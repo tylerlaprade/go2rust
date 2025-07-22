@@ -1,4 +1,4 @@
-# Go2Rust Transpiler
+# Go2Rust
 
 The last Go program you'll ever need!
 

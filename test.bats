@@ -84,7 +84,7 @@ run_transpilation_test() {
 
 # Test each .go file in tests/
 @test "hello_world" {
-    run_transpilation_test "testdata/hello_world.go"
+    run_transpilation_test "tests/hello_world.go"
 }
 
 # Add more tests here as .go files are added:
