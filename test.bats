@@ -16,23 +16,23 @@ compile_and_run_rust() {
     local rust_file="$1"
     local input_file="$2"
     local temp_dir=$(mktemp -d)
-    
+
     mkdir -p "$temp_dir/src"
     cp "$rust_file" "$temp_dir/src/main.rs"
-    
+
     cat > "$temp_dir/Cargo.toml" << EOF
 [package]
 name = "test_program"
 version = "0.1.0"
 edition = "2021"
 EOF
-    
+
     if [ -n "$input_file" ]; then
         output=$(cd "$temp_dir" && cargo run --quiet 2>&1 < "$input_file")
     else
         output=$(cd "$temp_dir" && cargo run --quiet 2>&1)
     fi
-    
+
     rm -rf "$temp_dir"
     echo "$output"
 }
@@ -43,24 +43,24 @@ run_transpilation_test() {
     local test_name=$(basename "$go_file" .go)
     local rust_file="${go_file%.go}.rs"
     local input_dir="tests/$test_name"
-    
+
     # Transpile
     ./go2rust "$go_file" > "$rust_file" || return 1
-    
+
     # Check for input directory
     if [ -d "$input_dir" ]; then
         # Test with each input file
         for input_file in "$input_dir"/*; do
             [ -f "$input_file" ] || continue
-            
+
             local input_name=$(basename "$input_file")
-            
+
             # Run Go version
             go_output=$(go run "$go_file" < "$input_file" 2>&1)
-            
+
             # Run Rust version
             rust_output=$(compile_and_run_rust "$rust_file" "$input_file")
-            
+
             # Compare
             [ "$go_output" = "$rust_output" ] || {
                 echo "Failed on input: $input_name"
@@ -73,7 +73,7 @@ run_transpilation_test() {
         # No input files, just run without stdin
         go_output=$(go run "$go_file" 2>&1)
         rust_output=$(compile_and_run_rust "$rust_file" "")
-        
+
         [ "$go_output" = "$rust_output" ] || {
             echo "Go output:   '$go_output'"
             echo "Rust output: '$rust_output'"
