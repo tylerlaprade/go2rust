@@ -210,7 +210,8 @@ go2rust/
 ├── tests/        # Test cases
 │   ├── hello_world.go
 │   └── README.md
-├── test.bats        # BATS test suite
+├── test.sh          # Test runner (auto-discovers tests)
+├── tests.bats       # BATS test suite (auto-generated)
 ├── go.mod
 ├── LICENSE          # MIT License
 └── README.md

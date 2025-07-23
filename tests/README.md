@@ -37,7 +37,7 @@ tests/
 
 ```bash
 echo 'package main...' > tests/my_feature.go
-# Add @test "my_feature" to test.bats
+# Test will be auto-discovered - no manual steps needed!
 ```
 
 ### Test with inputs
@@ -46,7 +46,16 @@ echo 'package main...' > tests/my_feature.go
 echo 'package main...' > tests/my_feature.go
 mkdir tests/my_feature
 echo 'test input' > tests/my_feature/case1.txt
-# Add @test "my_feature" to test.bats
+# Test will be auto-discovered - no manual steps needed!
+```
+
+### Multi-file tests
+
+```bash
+mkdir tests/my_feature
+echo 'package mylib...' > tests/my_feature/lib.go
+echo 'package main...' > tests/my_feature/test.go
+# Test will be auto-discovered - no manual steps needed!
 ```
 
 ## Running Tests
@@ -56,9 +65,10 @@ echo 'test input' > tests/my_feature/case1.txt
 brew install bats-core  # macOS
 # or: npm install -g bats
 
-# Run all tests
-bats test.bats
+# Run all tests (auto-discovers new tests)
+./test.sh
 
 # Run specific test
-bats test.bats --filter "hello_world"
+./test.sh
+bats tests.bats --filter "hello_world"
 ```

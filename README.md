@@ -14,7 +14,7 @@ go build -o go2rust .
 ./go2rust input.go > output.rs
 
 # Run tests
-./test.bats
+./test.sh
 ```
 
 ## Example

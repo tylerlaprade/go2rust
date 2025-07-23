@@ -20,12 +20,12 @@ compile_and_run_rust() {
     mkdir -p "$temp_dir/src"
     cp "$rust_file" "$temp_dir/src/main.rs"
 
-    cat > "$temp_dir/Cargo.toml" << EOF
+    cat > "$temp_dir/Cargo.toml" << CARGO_EOF
 [package]
 name = "test_program"
 version = "0.1.0"
 edition = "2021"
-EOF
+CARGO_EOF
 
     if [ -n "$input_file" ]; then
         output=$(cd "$temp_dir" && cargo run --quiet 2>&1 < "$input_file")
@@ -82,15 +82,59 @@ run_transpilation_test() {
     fi
 }
 
-# Test each .go file in tests/
+# Directory-based test runner for multi-file tests
+run_directory_test() {
+    local test_dir="$1"
+    local test_name=$(basename "$test_dir")
+    
+    # Check if it's a directory with lib.go and test.go
+    if [ ! -f "$test_dir/lib.go" ] || [ ! -f "$test_dir/test.go" ]; then
+        skip "Not a directory test"
+    fi
+    
+    # Run Go version
+    go_output=$(cd "$test_dir" && go run lib.go test.go 2>&1)
+    
+    # Transpile both files
+    ./go2rust "$test_dir/lib.go" > "$test_dir/lib.rs" || return 1
+    ./go2rust "$test_dir/test.go" > "$test_dir/test.rs" || return 1
+    
+    # Create a Rust project structure
+    local temp_dir=$(mktemp -d)
+    mkdir -p "$temp_dir/src"
+    
+    # For now, concatenate the files (later we'll do proper modules)
+    cat "$test_dir/lib.rs" "$test_dir/test.rs" > "$temp_dir/src/main.rs"
+    
+    # Create Cargo.toml
+    cat > "$temp_dir/Cargo.toml" << CARGO_EOF
+[package]
+name = "test_program"
+version = "0.1.0"
+edition = "2021"
+CARGO_EOF
+    
+    # Run Rust version
+    rust_output=$(cd "$temp_dir" && cargo run --quiet 2>&1)
+    
+    # Clean up
+    rm -rf "$temp_dir"
+    
+    # Compare outputs
+    [ "$go_output" = "$rust_output" ] || {
+        echo "Go output:   '$go_output'"
+        echo "Rust output: '$rust_output'"
+        return 1
+    }
+}
+
+
+# BEGIN GENERATED TESTS - DO NOT EDIT
 @test "hello_world" {
     run_transpilation_test "tests/hello_world.go"
 }
 
-# Add more tests here as .go files are added:
-# @test "variables" {
-#     run_transpilation_test "tests/variables.go"
-# }
-# @test "echo_program" {
-#     run_transpilation_test "tests/echo_program.go"
-# }
+@test "simple_functions" {
+    run_directory_test "tests/simple_functions/"
+}
+# END GENERATED TESTS

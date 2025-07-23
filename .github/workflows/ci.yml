@@ -33,4 +33,4 @@ jobs:
         uses: bats-core/bats-action@3.0.0
 
       - name: Run tests
-        run: bats test.bats
+        run: ./test.sh
