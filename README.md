@@ -46,3 +46,7 @@ fn main() {
 ## Philosophy
 
 This transpiler uses a "make it work first, optimize later" approach. Every Go pointer becomes `Arc<Mutex<Option<T>>>` initially, ensuring semantic correctness even if performance isn't optimal.
+
+## License
+
+MIT License - see [LICENSE](LICENSE) file for details.
