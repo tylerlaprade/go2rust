@@ -204,14 +204,15 @@ match do_something() {
 ```
 go2rust/
 ├── main.go          # CLI entry point
-├── parser.go        # Wraps go/parser
-├── translator.go    # AST translation to Rust representation
-├── generator.go     # Rust code generation
+├── parse.go         # Wraps go/parser
+├── translate.go     # AST translation to Rust representation
+├── generate.go      # Rust code generation
 ├── tests/        # Test cases
 │   ├── hello_world.go
 │   └── README.md
 ├── test.bats        # BATS test suite
 ├── go.mod
+├── LICENSE          # MIT License
 └── README.md
 ```
 

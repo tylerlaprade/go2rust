@@ -1,5 +1,7 @@
 # Go2Rust
 
+[![CI](https://github.com/tylerlaprade/go2rust/actions/workflows/ci.yml/badge.svg)](https://github.com/tylerlaprade/go2rust/actions/workflows/ci.yml)
+
 The last Go program you'll ever need!
 
 A conservative Go-to-Rust transpiler that prioritizes correctness over performance.
@@ -8,13 +10,13 @@ A conservative Go-to-Rust transpiler that prioritizes correctness over performan
 
 ```bash
 # Build the transpiler
-go build -o go2rust main.go
+go build -o go2rust .
 
 # Transpile a Go file
 ./go2rust input.go > output.rs
 
 # Run tests
-./test.sh
+./test.bats
 ```
 
 ## Example
@@ -39,9 +41,9 @@ fn main() {
 
 ## Architecture
 
-- **parser**: Wraps Go's standard `go/parser` and `go/ast`
-- **translator**: Converts Go AST to internal Rust representation
-- **generator**: Generates Rust source code from internal representation
+- **parse.go**: Wraps Go's standard `go/parser` and `go/ast`
+- **translate.go**: Converts Go AST to internal Rust representation
+- **generate.go**: Generates Rust source code from internal representation
 
 ## Philosophy
 

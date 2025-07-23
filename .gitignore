@@ -1,22 +1,2 @@
-# Transpiler binary
 go2rust
-
-# Test outputs
-tests/*/output.rs
-tests/*/temp_*
-
-# Go build artifacts
-*.exe
-*.dll
-*.so
-*.dylib
-
-# Rust build artifacts
-target/
-Cargo.lock
-
-# IDE
-.idea/
-.vscode/
-*.swp
-*.swo
+go2rust.exe

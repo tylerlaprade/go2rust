@@ -22,6 +22,7 @@ type RustStatement struct {
 	Args   []string
 }
 
+// TODO: Use ImportTracker when we implement Arc<Mutex<Option<T>>> types
 type ImportTracker struct {
 	needsHashMap bool
 	needsArc     bool
@@ -94,6 +95,7 @@ func translateCall(callExpr *ast.CallExpr) (*RustStatement, error) {
 }
 
 // Adapted from github.com/drewstone/go2rs (MIT License)
+// TODO: Use when we implement struct field name conversion
 func toSnakeCase(s string) string {
 	var result bytes.Buffer
 	for i, r := range s {
@@ -105,6 +107,7 @@ func toSnakeCase(s string) string {
 	return result.String()
 }
 
+// TODO: Use when we implement method name conversion
 func toRustMethodName(goMethod string) string {
 	if len(goMethod) == 0 {
 		return goMethod
