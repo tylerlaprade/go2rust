@@ -47,6 +47,50 @@ fn main() {
 
 This transpiler uses a "make it work first, optimize later" approach. Every Go pointer becomes `Arc<Mutex<Option<T>>>` initially, ensuring semantic correctness even if performance isn't optimal.
 
+## Progress Tracking
+
+### Go Keywords Support
+
+| Keyword | Status | Notes |
+|---------|--------|-------|
+| `break` | ❌ | |
+| `case` | ❌ | |
+| `chan` | ❌ | |
+| `const` | ❌ | |
+| `continue` | ❌ | |
+| `default` | ❌ | |
+| `defer` | ❌ | |
+| `else` | ❌ | |
+| `fallthrough` | ❌ | |
+| `for` | ❌ | |
+| `func` | ⚠️ | Only main function, no parameters/returns |
+| `go` | ❌ | |
+| `goto` | ❌ | |
+| `if` | ❌ | |
+| `import` | ⚠️ | Only fmt.Println |
+| `interface` | ❌ | |
+| `map` | ❌ | |
+| `package` | ⚠️ | Only main package |
+| `range` | ❌ | |
+| `return` | ❌ | |
+| `select` | ❌ | |
+| `struct` | ❌ | |
+| `switch` | ❌ | |
+| `type` | ❌ | |
+| `var` | ❌ | |
+
+### Standard Library Support
+
+| Package | Status | Supported Functions |
+|---------|--------|-------------------|
+| `fmt` | ⚠️ | Println (string literals only) |
+| `strings` | ❌ | |
+| `io` | ❌ | |
+| `os` | ❌ | |
+| `time` | ❌ | |
+| `sync` | ❌ | |
+| `net/http` | ❌ | |
+
 ## License
 
 MIT License - see [LICENSE](LICENSE) file for details.

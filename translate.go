@@ -107,6 +107,7 @@ func toSnakeCase(s string) string {
 	return result.String()
 }
 
+// Adapted from github.com/drewstone/go2rs (MIT License)
 // TODO: Use when we implement method name conversion
 func toRustMethodName(goMethod string) string {
 	if len(goMethod) == 0 {
