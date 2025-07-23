@@ -51,12 +51,20 @@ echo 'test input' > tests/my_feature/case1.txt
 
 ### Multi-file tests
 
+For tests that require multiple Go files (e.g., testing function calls across files):
+
 ```bash
 mkdir tests/my_feature
-echo 'package mylib...' > tests/my_feature/lib.go
-echo 'package main...' > tests/my_feature/test.go
+echo 'package main...' > tests/my_feature/lib.go   # Library functions
+echo 'package main...' > tests/my_feature/test.go  # Main function that calls lib
 # Test will be auto-discovered - no manual steps needed!
 ```
+
+The test framework will:
+1. Run `go run lib.go test.go` to get expected output
+2. Transpile both files to Rust
+3. Concatenate them (temporary solution until proper module support)
+4. Run the Rust version and compare outputs
 
 ## Running Tests
 

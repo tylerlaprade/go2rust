@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"go/parser"
+	"go/token"
 	"os"
 )
 
@@ -12,22 +14,14 @@ func main() {
 	}
 
 	filename := os.Args[1]
+	file_set := token.NewFileSet()
+	file, err := parser.ParseFile(file_set, filename, nil, parser.ParseComments)
 
-	// Parse Go source
-	file, err := ParseFile(filename)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Parse error: %v\n", err)
 		os.Exit(1)
 	}
 
-	// Translate to Rust AST representation
-	rustProgram, err := Translate(file)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Translation error: %v\n", err)
-		os.Exit(1)
-	}
-
-	// Generate Rust code
-	rustCode := Generate(rustProgram)
+	rustCode := Transpile(file)
 	fmt.Print(rustCode)
 }

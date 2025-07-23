@@ -23,25 +23,39 @@ go build -o go2rust .
 
 ```go
 package main
+
 import "fmt"
+
+func GetGreeting() string {
+    return "Hello, World!"
+}
+
+func GetYear() int {
+    return 2024
+}
+
 func main() {
-    fmt.Println("Hello, World!")
+    fmt.Println(GetGreeting())
+    println(GetYear())
 }
 ```
 
 **Output (Rust):**
 
 ```rust
+fn get_greeting() -> String {
+    return "Hello, World!".to_string();
+}
+
+fn get_year() -> i32 {
+    return 2024;
+}
+
 fn main() {
-    println!("Hello, World!");
+    println!("{}", get_greeting());
+    println!("{:?}", get_year());
 }
 ```
-
-## Architecture
-
-- **parse.go**: Wraps Go's standard `go/parser` and `go/ast`
-- **translate.go**: Converts Go AST to internal Rust representation
-- **generate.go**: Generates Rust source code from internal representation
 
 ## Philosophy
 
@@ -63,7 +77,7 @@ This transpiler uses a "make it work first, optimize later" approach. Every Go p
 | `else` | ❌ | |
 | `fallthrough` | ❌ | |
 | `for` | ❌ | |
-| `func` | ⚠️ | Only main function, no parameters/returns |
+| `func` | ⚠️ | Basic functions with parameters and return types |
 | `go` | ❌ | |
 | `goto` | ❌ | |
 | `if` | ❌ | |
@@ -72,7 +86,7 @@ This transpiler uses a "make it work first, optimize later" approach. Every Go p
 | `map` | ❌ | |
 | `package` | ⚠️ | Only main package |
 | `range` | ❌ | |
-| `return` | ❌ | |
+| `return` | ✅ | Single return values only |
 | `select` | ❌ | |
 | `struct` | ❌ | |
 | `switch` | ❌ | |
@@ -83,7 +97,8 @@ This transpiler uses a "make it work first, optimize later" approach. Every Go p
 
 | Package | Status | Supported Functions |
 |---------|--------|-------------------|
-| `fmt` | ⚠️ | Println (string literals only) |
+| `fmt` | ⚠️ | Println (with basic formatting) |
+| Built-in | ⚠️ | println function |
 | `strings` | ❌ | |
 | `io` | ❌ | |
 | `os` | ❌ | |

@@ -62,6 +62,9 @@ func main() {
 - Import handling (just fmt)
 - Function translation
 - String literals
+- Function parameters and return types
+- Basic function calls
+- String literal to String conversion (.to_string())
 
 ### Phase 2: Variables and Basic Types
 
@@ -204,11 +207,12 @@ match do_something() {
 ```
 go2rust/
 ├── main.go          # CLI entry point
-├── parse.go         # Wraps go/parser
-├── translate.go     # AST translation to Rust representation
-├── generate.go      # Rust code generation
-├── tests/        # Test cases
+├── transpile.go     # Direct Go AST to Rust code generation
+├── tests/           # Test cases
 │   ├── hello_world.go
+│   ├── simple_functions/
+│   │   ├── lib.go
+│   │   └── test.go
 │   └── README.md
 ├── test.sh          # Test runner (auto-discovers tests)
 ├── tests.bats       # BATS test suite (auto-generated)
