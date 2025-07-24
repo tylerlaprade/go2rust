@@ -1,5 +1,16 @@
 # Go2Rust Transpiler Project
 
+## IMPORTANT: Debugging Approach
+
+When debugging issues:
+
+1. **STOP and read the user's actual words** - they often contain the answer
+2. **Look for the simplest explanation first** - complex solutions are usually wrong
+3. **Check existing code before adding new code** - the issue might be a single line
+4. **When the user says "think about X"** - they're giving you a hint, not asking for speculation
+
+Example: If tests are deleting files you want to keep, look for where files are being deleted (like `teardown()` functions), don't create elaborate workarounds.
+
 ## Project Overview
 
 go2rust is a transpiler that converts Go code to Rust using a conservative "make it work first, optimize later" approach. Unlike c2rust which translates C's manual memory management directly to unsafe Rust, go2rust must bridge the semantic gap between Go's garbage collection and Rust's ownership model.

@@ -7,7 +7,6 @@ setup_file() {
 
 # Clean up after each test
 teardown() {
-    find tests -name "*.rs" -delete
     find tests -name "temp_*" -type d -exec rm -rf {} + 2>/dev/null || true
 }
 
@@ -44,7 +43,7 @@ run_transpilation_test() {
     local rust_file="${go_file%.go}.rs"
     local input_dir="tests/$test_name"
 
-    # Transpile
+    # Transpile directly to tracked location
     ./go2rust "$go_file" > "$rust_file" || return 1
 
     # Check for input directory
@@ -55,10 +54,7 @@ run_transpilation_test() {
 
             local input_name=$(basename "$input_file")
 
-            # Run Go version
             go_output=$(go run "$go_file" < "$input_file" 2>&1)
-
-            # Run Rust version
             rust_output=$(compile_and_run_rust "$rust_file" "$input_file")
 
             # Compare
@@ -86,26 +82,27 @@ run_transpilation_test() {
 run_directory_test() {
     local test_dir="$1"
     local test_name=$(basename "$test_dir")
-    
+
     # Check if it's a directory with lib.go and test.go
     if [ ! -f "$test_dir/main.go" ]; then
         skip "Not a directory test"
     fi
-    
-    # Run Go version
+
     go_output=$(cd "$test_dir" && go run . 2>&1)
-    
-    # Transpile all .go files
+
+    # Transpile all .go files directly to tracked locations
     for go_file in "$test_dir"/*.go; do
         [ -f "$go_file" ] || continue
         base_name=$(basename "$go_file" .go)
-        ./go2rust "$go_file" > "$test_dir/$base_name.rs" || return 1
+        rust_file="$test_dir/$base_name.rs"
+
+        ./go2rust "$go_file" > "$rust_file" || return 1
     done
-    
+
     # Create a Rust project structure
     local temp_dir=$(mktemp -d)
     mkdir -p "$temp_dir/src"
-    
+
     # For now, concatenate all .rs files with main.rs last
     # First, add all non-main.rs files
     for rs_file in "$test_dir"/*.rs; do
@@ -128,7 +125,6 @@ version = "0.1.0"
 edition = "2021"
 CARGO_EOF
     
-    # Run Rust version
     rust_output=$(cd "$temp_dir" && cargo run --quiet 2>&1)
     
     # Clean up
@@ -145,11 +141,11 @@ CARGO_EOF
 
 # BEGIN GENERATED TESTS - DO NOT EDIT
 @test "fmt_println" {
-    run_transpilation_test "tests/fmt_println//main.go"
+    run_transpilation_test "tests/fmt_println/main.go"
 }
 
 @test "hello_world" {
-    run_transpilation_test "tests/hello_world//main.go"
+    run_transpilation_test "tests/hello_world/main.go"
 }
 
 @test "simple_functions" {

@@ -37,3 +37,12 @@ jobs:
 
       - name: Run tests
         run: ./test.sh
+
+      - name: Check for uncommitted changes
+        run: |
+          if [ -n "$(git diff --name-only)" ]; then
+            echo "ERROR: Tests modified tracked files!"
+            echo "Please run tests locally and commit the changes:"
+            git diff --name-only
+            exit 1
+          fi

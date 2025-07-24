@@ -11,7 +11,8 @@ For the comprehensive test organization strategy and future test planning, see [
 ```
 tests/
 └── hello_world/
-    └── main.go          # Test file
+    ├── main.go          # Go source
+    └── main.rs          # Generated Rust (tracked in Git)
 ```
 
 ### Tests with stdin inputs
@@ -19,7 +20,8 @@ tests/
 ```
 tests/
 └── echo_program/
-    ├── main.go          # Test file
+    ├── main.go          # Go source
+    ├── main.rs          # Generated Rust (tracked in Git)
     └── inputs/          # Input directory
         ├── test1.txt    # Input case 1
         └── test2.txt    # Input case 2
@@ -29,9 +31,10 @@ tests/
 
 1. Each directory in `tests/` containing a `main.go` is a test case
 2. The test transpiles all `.go` files in the directory
-3. If directory `inputs/` exists within the test, runs both versions with each file as stdin
-4. Otherwise, runs both versions without stdin
-5. Compares outputs - they must match exactly
+3. Generated `.rs` files are tracked in Git as examples
+4. If directory `inputs/` exists within the test, runs both versions with each file as stdin
+5. Otherwise, runs both versions without stdin
+6. Compares outputs - they must match exactly
 
 ## Adding New Tests
 

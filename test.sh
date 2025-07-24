@@ -10,10 +10,10 @@ for dir in tests/*/; do
     [ -d "$dir" ] || continue
     if [ -f "$dir/main.go" ]; then
         test_name=$(basename "$dir")
-        
+
         # Check if it's a multi-file test (has other .go files besides main.go)
         go_file_count=$(find "$dir" -name "*.go" -type f | wc -l)
-        
+
         if [ "$go_file_count" -gt 1 ]; then
             # Multi-file test
             cat >> "$temp_file" << EOF
@@ -26,7 +26,7 @@ EOF
             # Single-file test
             cat >> "$temp_file" << EOF
 @test "$test_name" {
-    run_transpilation_test "$dir/main.go"
+    run_transpilation_test "${dir}main.go"
 }
 
 EOF
