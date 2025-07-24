@@ -209,10 +209,13 @@ go2rust/
 ├── main.go          # CLI entry point
 ├── transpile.go     # Direct Go AST to Rust code generation
 ├── tests/           # Test cases
-│   ├── hello_world.go
+│   ├── hello_world/
+│   │   └── main.go
+│   ├── fmt_println/
+│   │   └── main.go
 │   ├── simple_functions/
 │   │   ├── lib.go
-│   │   └── test.go
+│   │   └── main.go
 │   └── README.md
 ├── test.sh          # Test runner (auto-discovers tests)
 ├── tests.bats       # BATS test suite (auto-generated)
@@ -235,11 +238,13 @@ go2rust/
 
 ```
 tests/
-├── test_name.go          # Simple test
-├── test_with_input.go    # Test requiring stdin
-└── test_with_input/      # Input files
-    ├── case1.txt
-    └── case2.txt
+├── test_name/
+│   └── main.go          # Simple test
+├── test_with_input/
+│   ├── main.go          # Test requiring stdin
+│   └── inputs/          # Input files
+│       ├── case1.txt
+│       └── case2.txt
 ```
 
 ### Progressive Test Suite
@@ -255,7 +260,7 @@ tests/
 # The moment of truth!
 ./go2rust *.go > go2rust_v2.rs
 rustc go2rust_v2.rs
-./go2rust_v2 tests/hello_world.go
+./go2rust_v2 tests/hello_world/main.go
 ```
 
 ## Future Optimizations (Post-MVP)

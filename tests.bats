@@ -88,23 +88,37 @@ run_directory_test() {
     local test_name=$(basename "$test_dir")
     
     # Check if it's a directory with lib.go and test.go
-    if [ ! -f "$test_dir/lib.go" ] || [ ! -f "$test_dir/test.go" ]; then
+    if [ ! -f "$test_dir/main.go" ]; then
         skip "Not a directory test"
     fi
     
     # Run Go version
-    go_output=$(cd "$test_dir" && go run lib.go test.go 2>&1)
+    go_output=$(cd "$test_dir" && go run . 2>&1)
     
-    # Transpile both files
-    ./go2rust "$test_dir/lib.go" > "$test_dir/lib.rs" || return 1
-    ./go2rust "$test_dir/test.go" > "$test_dir/test.rs" || return 1
+    # Transpile all .go files
+    for go_file in "$test_dir"/*.go; do
+        [ -f "$go_file" ] || continue
+        base_name=$(basename "$go_file" .go)
+        ./go2rust "$go_file" > "$test_dir/$base_name.rs" || return 1
+    done
     
     # Create a Rust project structure
     local temp_dir=$(mktemp -d)
     mkdir -p "$temp_dir/src"
     
-    # For now, concatenate the files (later we'll do proper modules)
-    cat "$test_dir/lib.rs" "$test_dir/test.rs" > "$temp_dir/src/main.rs"
+    # For now, concatenate all .rs files with main.rs last
+    # First, add all non-main.rs files
+    for rs_file in "$test_dir"/*.rs; do
+        [ -f "$rs_file" ] || continue
+        if [ "$(basename "$rs_file")" != "main.rs" ]; then
+            cat "$rs_file" >> "$temp_dir/src/main.rs"
+            echo "" >> "$temp_dir/src/main.rs"  # Add newline between files
+        fi
+    done
+    # Then add main.rs
+    if [ -f "$test_dir/main.rs" ]; then
+        cat "$test_dir/main.rs" >> "$temp_dir/src/main.rs"
+    fi
     
     # Create Cargo.toml
     cat > "$temp_dir/Cargo.toml" << CARGO_EOF
@@ -130,8 +144,12 @@ CARGO_EOF
 
 
 # BEGIN GENERATED TESTS - DO NOT EDIT
+@test "fmt_println" {
+    run_transpilation_test "tests/fmt_println//main.go"
+}
+
 @test "hello_world" {
-    run_transpilation_test "tests/hello_world.go"
+    run_transpilation_test "tests/hello_world//main.go"
 }
 
 @test "simple_functions" {

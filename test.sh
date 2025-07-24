@@ -5,37 +5,32 @@
 # Create temporary file for new test cases
 temp_file=$(mktemp)
 
-# Generate test cases for single .go files
-for go_file in tests/*.go; do
-    [ -f "$go_file" ] || continue
-    test_name=$(basename "$go_file" .go)
-    
-    # Skip if it's part of a directory test
-    dir_name="${go_file%.go}"
-    if [ -d "$dir_name" ] && [ -f "$dir_name/lib.go" ]; then
-        continue
-    fi
-    
-    cat >> "$temp_file" << EOF
-@test "$test_name" {
-    run_transpilation_test "$go_file"
-}
-
-EOF
-done
-
-# Generate test cases for directories with lib.go and test.go
+# Generate test cases for directories containing main.go
 for dir in tests/*/; do
     [ -d "$dir" ] || continue
-    if [ -f "$dir/lib.go" ] && [ -f "$dir/test.go" ]; then
+    if [ -f "$dir/main.go" ]; then
         test_name=$(basename "$dir")
         
-        cat >> "$temp_file" << EOF
+        # Check if it's a multi-file test (has other .go files besides main.go)
+        go_file_count=$(find "$dir" -name "*.go" -type f | wc -l)
+        
+        if [ "$go_file_count" -gt 1 ]; then
+            # Multi-file test
+            cat >> "$temp_file" << EOF
 @test "$test_name" {
     run_directory_test "$dir"
 }
 
 EOF
+        else
+            # Single-file test
+            cat >> "$temp_file" << EOF
+@test "$test_name" {
+    run_transpilation_test "$dir/main.go"
+}
+
+EOF
+        fi
     fi
 done
 

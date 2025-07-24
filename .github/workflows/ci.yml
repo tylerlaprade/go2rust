@@ -24,7 +24,10 @@ jobs:
           fi
 
       - name: Run go vet
-        run: go vet ./...
+        run: |
+          # Vet main package only, skip tests directory
+          # (test files have multiple main functions for transpilation testing)
+          go vet .
 
       - name: Build
         run: go build -o go2rust .

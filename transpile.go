@@ -140,16 +140,9 @@ func transpileCall(out *strings.Builder, call *ast.CallExpr) {
 				out.WriteString(", ")
 			}
 
-			// Check if argument is a function call that returns non-string
-			if callArg, ok := arg.(*ast.CallExpr); ok {
-				if ident, ok := callArg.Fun.(*ast.Ident); ok {
-					returnType := getFunctionReturnType(ident.Name)
-					if returnType == "String" {
-						out.WriteString("\"{}\", ")
-					} else {
-						out.WriteString("\"{:?}\", ")
-					}
-				}
+			// For function calls, add a format string
+			if _, ok := arg.(*ast.CallExpr); ok {
+				out.WriteString("\"{}\", ")
 			}
 
 			transpileExpression(out, arg)
@@ -190,17 +183,6 @@ func goTypeToRust(expr ast.Expr) string {
 		default:
 			return t.Name
 		}
-	}
-	return "Unknown"
-}
-
-// TODO: Temporary helper - in real implementation would track types properly
-func getFunctionReturnType(name string) string {
-	switch name {
-	case "GetHello", "GetWorld":
-		return "String"
-	case "GetMagicNumber":
-		return "i32"
 	}
 	return "Unknown"
 }
