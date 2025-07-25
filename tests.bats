@@ -1,11 +1,9 @@
 #!/usr/bin/env bats
 
-# Build transpiler once before all tests
 setup_file() {
     go build -o go2rust .
 }
 
-# Clean up after each test
 teardown() {
     find tests -name "temp_*" -type d -exec rm -rf {} + 2>/dev/null || true
     find tests -name "main" -type f -delete 2>/dev/null || true
@@ -55,63 +53,22 @@ CARGO_EOF
     rm -rf "$temp_dir"
 }
 
-# Generic test runner
-run_transpilation_test() {
-    local go_file="$1"
-    local test_name=$(basename "$go_file" .go)
-    local rust_file="${go_file%.go}.rs"
-    local input_dir="tests/$test_name"
 
-    ./go2rust "$go_file" > "$rust_file" || return 1
-
-    if [ -d "$input_dir" ]; then
-        # Test with each input file
-        for input_file in "$input_dir"/*; do
-            [ -f "$input_file" ] || continue
-
-            local input_name=$(basename "$input_file")
-
-            go_output=$(run_with_prefix go run "$go_file" < "$input_file")
-            rust_output=$(compile_and_run_rust "$rust_file" "$input_file")
-
-            [ "$go_output" = "$rust_output" ] || {
-                echo "Failed on input: $input_name"
-                echo "Go output:"
-                echo "$go_output"
-                echo "Rust output:"
-                echo "$rust_output"
-                return 1
-            }
-        done
-    else
-        # No input files, just run without stdin
-        go_output=$(run_with_prefix go run "$go_file")
-        rust_output=$(compile_and_run_rust "$rust_file" "")
-
-        [ "$go_output" = "$rust_output" ] || {
-            echo "Go output:   '$go_output'"
-            echo "Rust output: '$rust_output'"
-            return 1
-        }
-    fi
-}
-
-# Directory-based test runner for multi-file tests
-run_directory_test() {
+run_test() {
     local test_dir="$1"
-    local test_name=$(basename "$test_dir")
 
     go_output=$(cd "$test_dir" && run_with_prefix go run .)
 
+    # Transpile all Go files in the directory
     for go_file in "$test_dir"/*.go; do
         [ -f "$go_file" ] || continue
         base_name=$(basename "$go_file" .go)
         rust_file="$test_dir/$base_name.rs"
-
+        
         ./go2rust "$go_file" > "$rust_file" || return 1
     done
 
-    # Create a Rust project structure
+    # Set up Rust project
     local temp_dir=$(mktemp -d)
     mkdir -p "$temp_dir/src"
 
@@ -141,8 +98,12 @@ CARGO_EOF
     rm -rf "$temp_dir"
     
     [ "$go_output" = "$rust_output" ] || {
-        echo "Go output:   '$go_output'"
-        echo "Rust output: '$rust_output'"
+        echo ""
+        echo "Go output:"
+        echo "$go_output"
+        echo ""
+        echo "Rust output:"
+        echo "$rust_output"
         return 1
     }
 }
@@ -150,30 +111,30 @@ CARGO_EOF
 
 # BEGIN GENERATED TESTS - DO NOT EDIT
 @test "builtin_functions" {
-    run_transpilation_test "tests/builtin_functions/main.go"
+    run_test "tests/builtin_functions/"
 }
 
 @test "fmt_println" {
-    run_transpilation_test "tests/fmt_println/main.go"
+    run_test "tests/fmt_println/"
 }
 
 @test "hello_world" {
-    run_transpilation_test "tests/hello_world/main.go"
+    run_test "tests/hello_world/"
 }
 
 @test "mixed_output" {
-    run_transpilation_test "tests/mixed_output/main.go"
+    run_test "tests/mixed_output/"
 }
 
 @test "simple_functions" {
-    run_directory_test "tests/simple_functions/"
+    run_test "tests/simple_functions/"
 }
 
 @test "stdlib_imports" {
-    run_transpilation_test "tests/stdlib_imports/main.go"
+    run_test "tests/stdlib_imports/"
 }
 
 @test "stdlib_strings" {
-    run_transpilation_test "tests/stdlib_strings/main.go"
+    run_test "tests/stdlib_strings/"
 }
 # END GENERATED TESTS
