@@ -59,32 +59,12 @@ run_test() {
 
     go_output=$(cd "$test_dir" && run_with_prefix go run .)
 
-    # Transpile all Go files in the directory
-    for go_file in "$test_dir"/*.go; do
-        [ -f "$go_file" ] || continue
-        base_name=$(basename "$go_file" .go)
-        rust_file="$test_dir/$base_name.rs"
-        
-        ./go2rust "$go_file" > "$rust_file" || return 1
-    done
-
-    # Set up Rust project
+    # Transpile directory using new directory support
     local temp_dir=$(mktemp -d)
     mkdir -p "$temp_dir/src"
-
-    # For now, concatenate all .rs files with main.rs last
-    # First, add all non-main.rs files
-    for rs_file in "$test_dir"/*.rs; do
-        [ -f "$rs_file" ] || continue
-        if [ "$(basename "$rs_file")" != "main.rs" ]; then
-            cat "$rs_file" >> "$temp_dir/src/main.rs"
-            echo "" >> "$temp_dir/src/main.rs"  # Add newline between files
-        fi
-    done
-    # Then add main.rs
-    if [ -f "$test_dir/main.rs" ]; then
-        cat "$test_dir/main.rs" >> "$temp_dir/src/main.rs"
-    fi
+    
+    # Use transpiler's directory support to generate Rust code
+    ./go2rust "$test_dir" > "$temp_dir/src/main.rs" || return 1
     
     cat > "$temp_dir/Cargo.toml" << CARGO_EOF
 [package]

@@ -26,8 +26,8 @@ jobs:
       - name: Run go vet
         run: |
           # Vet main package only, skip tests directory
-          # (test files have multiple main functions for transpilation testing)
-          go vet .
+          # (Don't lint test files since we want to support any valid Go code)
+          go vet ./go
 
       - name: Build
         run: go build -o go2rust ./go
@@ -50,8 +50,8 @@ jobs:
             echo ""
             echo "This usually means:"
             echo "1. XFAIL tests were auto-promoted (moved from tests/XFAIL/ to tests/)"
-            echo "2. Generated .rs files were updated"
-            echo "3. Test configuration files were modified"
+            echo "2. Generated .rs files were modified"
+            echo "3. tests.bats was modified with new auto-generated tests"
             echo ""
             echo "Please run tests locally and commit the changes if they are correct."
             exit 1
