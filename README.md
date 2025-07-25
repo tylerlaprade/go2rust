@@ -63,48 +63,54 @@ This transpiler uses a "make it work first, optimize later" approach. Every Go p
 
 ## Progress Tracking
 
-### Go Keywords Support
+**Current Status:** 5 working tests, 5 XFAIL tests for planned features
 
-| Keyword | Status | Notes |
-|---------|--------|-------|
-| `break` | ❌ | |
-| `case` | ❌ | |
-| `chan` | ❌ | |
-| `const` | ❌ | |
-| `continue` | ❌ | |
-| `default` | ❌ | |
-| `defer` | ❌ | |
-| `else` | ❌ | |
-| `fallthrough` | ❌ | |
-| `for` | ❌ | |
-| `func` | ⚠️ | Basic functions with parameters and return types |
-| `go` | ❌ | |
-| `goto` | ❌ | |
-| `if` | ❌ | |
-| `import` | ⚠️ | |
-| `interface` | ❌ | |
-| `map` | ❌ | |
-| `package` | ⚠️ | Only main package |
-| `range` | ❌ | |
-| `return` | ⚠️ | Single return values only |
-| `select` | ❌ | |
-| `struct` | ❌ | |
-| `switch` | ❌ | |
-| `type` | ❌ | |
-| `var` | ❌ | |
+### Go Keywords
 
-### Standard Library Support
+| Keyword | Status |
+|---------|--------|
+| **`func` - Functions** | |
+| └ Basic functions | ✅ |
+| └ Method definitions | ❌ |
+| └ Method calls | ❌ |
+| **`import` - Imports** | |
+| └ Single imports | ✅ |
+| └ Multiple imports | ✅ |
+| └ Package aliases | ❌ |
+| **`package` - Packages** | |
+| └ Main package | ✅ |
+| └ Other packages | ❌ |
+| **`return` - Return statements** | |
+| └ Single return values | ✅ |
+| └ Multiple return values | ❌ |
+| **`struct` - Struct types** | |
+| └ Struct definitions | ❌ |
+| └ Struct literals | ❌ |
+| └ Field access | ❌ |
+| **`type` - Type definitions** | |
+| └ Struct types | ❌ |
+| └ Type aliases | ❌ |
+| **`var` - Variable declarations** | |
+| └ Basic var declarations | ❌ |
+| └ Short declarations (:=) | ❌ |
 
-| Package | Status | Supported Functions |
-|---------|--------|-------------------|
-| `fmt` | ⚠️ | Println (with basic formatting) |
-| Built-in | ⚠️ | println function |
-| `strings` | ❌ | |
-| `io` | ❌ | |
-| `os` | ❌ | |
-| `time` | ❌ | |
-| `sync` | ❌ | |
-| `net/http` | ❌ | |
+### Standard Library Functions
+
+| Function | Status |
+|----------|--------|
+| **Built-in functions** | |
+| └ `println` | ❌ |
+| └ `len` | ❌ |
+| └ `append` | ❌ |
+| **`fmt` package** | |
+| └ `fmt.Println` | ✅ |
+| └ `fmt.Printf` | ❌ |
+| **`strings` package** | |
+| └ `strings.ToUpper` | ❌ |
+| └ `strings.ToLower` | ❌ |
+| └ `strings.TrimSpace` | ✅ |
+| **`strconv` package** | |
+| └ `strconv.Itoa` | ❌ |
 
 ## XFAIL Tests (Expected Failures)
 
