@@ -81,12 +81,12 @@ This transpiler uses a "make it work first, optimize later" approach. Every Go p
 | `go` | ❌ | |
 | `goto` | ❌ | |
 | `if` | ❌ | |
-| `import` | ⚠️ | Only fmt.Println |
+| `import` | ⚠️ | |
 | `interface` | ❌ | |
 | `map` | ❌ | |
 | `package` | ⚠️ | Only main package |
 | `range` | ❌ | |
-| `return` | ✅ | Single return values only |
+| `return` | ⚠️ | Single return values only |
 | `select` | ❌ | |
 | `struct` | ❌ | |
 | `switch` | ❌ | |

@@ -120,7 +120,6 @@ tests/
     └── go2rust/            # Copy of go2rust source
         ├── main.go
         ├── transpile.go
-        └── parse.go
 ```
 
 ## Test Naming Conventions

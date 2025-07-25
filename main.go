@@ -5,6 +5,8 @@ import (
 	"go/parser"
 	"go/token"
 	"os"
+
+	go2rust "go2rust/go"
 )
 
 func main() {
@@ -22,6 +24,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	rustCode := Transpile(file)
+	rustCode := go2rust.Transpile(file)
 	fmt.Print(rustCode)
 }

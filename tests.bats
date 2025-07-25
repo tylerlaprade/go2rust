@@ -129,7 +129,6 @@ run_directory_test() {
         cat "$test_dir/main.rs" >> "$temp_dir/src/main.rs"
     fi
     
-    # Create Cargo.toml
     cat > "$temp_dir/Cargo.toml" << CARGO_EOF
 [package]
 name = "test_program"
@@ -139,10 +138,8 @@ CARGO_EOF
     
     rust_output=$(cd "$temp_dir" && run_with_prefix cargo run --quiet)
     
-    # Clean up
     rm -rf "$temp_dir"
     
-    # Compare outputs
     [ "$go_output" = "$rust_output" ] || {
         echo "Go output:   '$go_output'"
         echo "Rust output: '$rust_output'"
@@ -152,6 +149,10 @@ CARGO_EOF
 
 
 # BEGIN GENERATED TESTS - DO NOT EDIT
+@test "builtin_functions" {
+    run_transpilation_test "tests/builtin_functions/main.go"
+}
+
 @test "fmt_println" {
     run_transpilation_test "tests/fmt_println/main.go"
 }
@@ -166,5 +167,13 @@ CARGO_EOF
 
 @test "simple_functions" {
     run_directory_test "tests/simple_functions/"
+}
+
+@test "stdlib_imports" {
+    run_transpilation_test "tests/stdlib_imports/main.go"
+}
+
+@test "stdlib_strings" {
+    run_transpilation_test "tests/stdlib_strings/main.go"
 }
 # END GENERATED TESTS
