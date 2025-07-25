@@ -1,7 +1,7 @@
 #!/usr/bin/env bats
 
 setup_file() {
-    go build -o go2rust .
+    go build -o go2rust ./go
 }
 
 teardown() {

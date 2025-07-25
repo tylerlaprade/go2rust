@@ -30,7 +30,7 @@ jobs:
           go vet .
 
       - name: Build
-        run: go build -o go2rust .
+        run: go build -o go2rust ./go
 
       - name: Setup BATS
         uses: bats-core/bats-action@3.0.0

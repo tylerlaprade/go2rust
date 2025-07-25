@@ -1,4 +1,4 @@
-package go2rust
+package main
 
 import (
 	"go/ast"

@@ -1,4 +1,4 @@
-package go2rust
+package main
 
 func ToSnakeCase(s string) string {
 	var result []byte

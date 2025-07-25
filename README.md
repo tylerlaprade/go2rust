@@ -8,7 +8,7 @@ A conservative Go-to-Rust transpiler that prioritizes correctness over performan
 
 ```bash
 # Build the transpiler
-go build -o go2rust .
+go build -o go2rust ./go
 
 # Transpile a Go file
 ./go2rust input.go > output.rs
