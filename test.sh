@@ -3,6 +3,9 @@
 # Generate test cases and update the GENERATED TESTS section in tests.bats
 
 # Create temporary file for new test cases
+# Note: We use a temp file here because passing multi-line content to awk
+# via variables or command substitution can corrupt newlines. A temp file
+# is the most reliable way to preserve formatting.
 temp_file=$(mktemp)
 
 # Generate test cases for directories containing main.go

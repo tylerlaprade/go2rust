@@ -8,9 +8,29 @@ setup_file() {
 # Clean up after each test
 teardown() {
     find tests -name "temp_*" -type d -exec rm -rf {} + 2>/dev/null || true
+    find tests -name "main" -type f -delete 2>/dev/null || true
 }
 
-# Helper to compile and run Rust code
+# Helper to run a command and prefix stdout/stderr
+run_with_prefix() {
+    local stdout_file=$(mktemp)
+    local stderr_file=$(mktemp)
+    
+    # Run command, capturing stdout and stderr separately
+    "$@" >"$stdout_file" 2>"$stderr_file"
+    
+    # Interleave the outputs with prefixes, preserving order as much as possible
+    while IFS= read -r line; do
+        echo "[stdout] $line"
+    done < "$stdout_file"
+    
+    while IFS= read -r line; do
+        echo "[stderr] $line"
+    done < "$stderr_file"
+    
+    rm -f "$stdout_file" "$stderr_file"
+}
+
 compile_and_run_rust() {
     local rust_file="$1"
     local input_file="$2"
@@ -27,13 +47,12 @@ edition = "2021"
 CARGO_EOF
 
     if [ -n "$input_file" ]; then
-        output=$(cd "$temp_dir" && cargo run --quiet 2>&1 < "$input_file")
+        (cd "$temp_dir" && run_with_prefix cargo run --quiet < "$input_file")
     else
-        output=$(cd "$temp_dir" && cargo run --quiet 2>&1)
+        (cd "$temp_dir" && run_with_prefix cargo run --quiet)
     fi
 
     rm -rf "$temp_dir"
-    echo "$output"
 }
 
 # Generic test runner
@@ -43,10 +62,8 @@ run_transpilation_test() {
     local rust_file="${go_file%.go}.rs"
     local input_dir="tests/$test_name"
 
-    # Transpile directly to tracked location
     ./go2rust "$go_file" > "$rust_file" || return 1
 
-    # Check for input directory
     if [ -d "$input_dir" ]; then
         # Test with each input file
         for input_file in "$input_dir"/*; do
@@ -54,20 +71,21 @@ run_transpilation_test() {
 
             local input_name=$(basename "$input_file")
 
-            go_output=$(go run "$go_file" < "$input_file" 2>&1)
+            go_output=$(run_with_prefix go run "$go_file" < "$input_file")
             rust_output=$(compile_and_run_rust "$rust_file" "$input_file")
 
-            # Compare
             [ "$go_output" = "$rust_output" ] || {
                 echo "Failed on input: $input_name"
-                echo "Go output:   '$go_output'"
-                echo "Rust output: '$rust_output'"
+                echo "Go output:"
+                echo "$go_output"
+                echo "Rust output:"
+                echo "$rust_output"
                 return 1
             }
         done
     else
         # No input files, just run without stdin
-        go_output=$(go run "$go_file" 2>&1)
+        go_output=$(run_with_prefix go run "$go_file")
         rust_output=$(compile_and_run_rust "$rust_file" "")
 
         [ "$go_output" = "$rust_output" ] || {
@@ -83,14 +101,8 @@ run_directory_test() {
     local test_dir="$1"
     local test_name=$(basename "$test_dir")
 
-    # Check if it's a directory with lib.go and test.go
-    if [ ! -f "$test_dir/main.go" ]; then
-        skip "Not a directory test"
-    fi
+    go_output=$(cd "$test_dir" && run_with_prefix go run .)
 
-    go_output=$(cd "$test_dir" && go run . 2>&1)
-
-    # Transpile all .go files directly to tracked locations
     for go_file in "$test_dir"/*.go; do
         [ -f "$go_file" ] || continue
         base_name=$(basename "$go_file" .go)
@@ -125,7 +137,7 @@ version = "0.1.0"
 edition = "2021"
 CARGO_EOF
     
-    rust_output=$(cd "$temp_dir" && cargo run --quiet 2>&1)
+    rust_output=$(cd "$temp_dir" && run_with_prefix cargo run --quiet)
     
     # Clean up
     rm -rf "$temp_dir"
@@ -146,6 +158,10 @@ CARGO_EOF
 
 @test "hello_world" {
     run_transpilation_test "tests/hello_world/main.go"
+}
+
+@test "mixed_output" {
+    run_transpilation_test "tests/mixed_output/main.go"
 }
 
 @test "simple_functions" {

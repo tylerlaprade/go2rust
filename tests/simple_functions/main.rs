@@ -1,5 +1,5 @@
 fn main() {
-    println!("{}", get_hello());
-    println!("{}", get_world());
-    println!("{}", get_magic_number());
+    eprintln!("{}", get_hello());
+    eprintln!("{}", get_world());
+    eprintln!("{}", get_magic_number());
 }

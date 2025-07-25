@@ -132,7 +132,7 @@ func transpileCall(out *strings.Builder, call *ast.CallExpr) {
 
 	// Handle println (built-in)
 	if ident, ok := call.Fun.(*ast.Ident); ok && ident.Name == "println" {
-		out.WriteString("println!")
+		out.WriteString("eprintln!")
 		out.WriteString("(")
 
 		for i, arg := range call.Args {
