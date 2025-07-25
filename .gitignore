@@ -1,2 +1,11 @@
 go2rust
 go2rust.exe
+
+# Test binaries (Go build artifacts)
+tests/*/main
+tests/XFAIL/*/main
+tests/**/builtin_functions
+tests/**/methods
+tests/**/pointers_basic
+tests/**/stdlib_imports
+tests/**/variable_declarations

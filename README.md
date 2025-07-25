@@ -106,6 +106,23 @@ This transpiler uses a "make it work first, optimize later" approach. Every Go p
 | `sync` | ❌ | |
 | `net/http` | ❌ | |
 
+## XFAIL Tests (Expected Failures)
+
+The `tests/XFAIL/` directory contains tests for features not yet implemented. These tests:
+
+- **Document the roadmap**: Each XFAIL test represents a planned feature
+- **Enable TDD workflow**: Write the Go code you want to support, then implement the transpiler
+- **Auto-promote when ready**: If an XFAIL test starts passing, it automatically moves to the main test suite
+- **Fail CI on unexpected passes**: Prevents accidental feature implementation without proper review
+
+### Contributing XFAIL Tests
+
+To add a new planned feature:
+
+1. Create `tests/XFAIL/feature_name/main.go` with valid Go code
+2. Run `./test.sh` - the test will be marked as "skip"
+3. When the feature is implemented, the test will auto-promote to the main suite
+
 ## License
 
 MIT License - see [LICENSE](LICENSE) file for details.

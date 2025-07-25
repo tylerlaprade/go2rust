@@ -6,7 +6,9 @@ For the comprehensive test organization strategy and future test planning, see [
 
 ## Test Structure
 
-### Simple tests (no stdin)
+### Working tests
+
+These are tests for features that currently work:
 
 ```
 tests/
@@ -27,6 +29,21 @@ tests/
         └── test2.txt    # Input case 2
 ```
 
+### XFAIL tests (expected failures)
+
+These are tests for features not yet implemented:
+
+```
+tests/
+└── XFAIL/
+    ├── variable_declarations/
+    │   └── main.go      # Go code using var/short declarations
+    ├── pointers_basic/
+    │   └── main.go      # Go code using pointers and structs
+    └── methods/
+        └── main.go      # Go code with method definitions
+```
+
 ## How It Works
 
 1. Each directory in `tests/` containing a `main.go` is a test case
@@ -36,9 +53,20 @@ tests/
 5. Otherwise, runs both versions without stdin
 6. Compares outputs - they must match exactly
 
+## XFAIL Auto-Promotion
+
+XFAIL tests automatically promote to working tests when they start passing:
+
+1. **Auto-detection**: `./test.sh` checks if XFAIL tests now transpile successfully
+2. **Auto-promotion**: Passing XFAIL tests are moved from `tests/XFAIL/` to `tests/`
+3. **Git diff catches changes**: CI will detect the moved files and require manual review
+4. **Clear feedback**: You'll see "🎉 Promoting XFAIL test 'feature_name'" messages
+
+This ensures new features are properly reviewed before being considered "working".
+
 ## Adding New Tests
 
-### Simple test (no inputs)
+### Working test (no inputs)
 
 ```bash
 mkdir tests/my_feature
@@ -46,7 +74,7 @@ echo 'package main...' > tests/my_feature/main.go
 # Test will be auto-discovered - no manual steps needed!
 ```
 
-### Test with inputs
+### Working test with inputs
 
 ```bash
 mkdir tests/my_feature
@@ -54,6 +82,15 @@ echo 'package main...' > tests/my_feature/main.go
 mkdir tests/my_feature/inputs
 echo 'test input' > tests/my_feature/inputs/case1.txt
 # Test will be auto-discovered - no manual steps needed!
+```
+
+### XFAIL test (planned feature)
+
+```bash
+mkdir tests/XFAIL/my_future_feature
+echo 'package main...' > tests/XFAIL/my_future_feature/main.go
+# Test will show as "skip" until the feature is implemented
+# When implemented, it will auto-promote to tests/
 ```
 
 ### Multi-file tests

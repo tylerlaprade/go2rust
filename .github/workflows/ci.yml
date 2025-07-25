@@ -42,7 +42,17 @@ jobs:
         run: |
           if [ -n "$(git diff --name-only)" ]; then
             echo "ERROR: Tests modified tracked files!"
-            echo "Please run tests locally and commit the changes:"
+            echo "Files changed:"
             git diff --name-only
+            echo ""
+            echo "Diff content:"
+            git diff
+            echo ""
+            echo "This usually means:"
+            echo "1. XFAIL tests were auto-promoted (moved from tests/XFAIL/ to tests/)"
+            echo "2. Generated .rs files were updated"
+            echo "3. Test configuration files were modified"
+            echo ""
+            echo "Please run tests locally and commit the changes if they are correct."
             exit 1
           fi

@@ -265,6 +265,12 @@ tests/
 3. Never break existing tests
 4. Each phase builds on previous
 
+### XFAIL Tests (Expected Failures)
+
+- `tests/XFAIL/` contains tests for planned features not yet implemented
+- Auto-promote to main test suite when transpilation succeeds
+- Enables test-driven development and roadmap planning through code
+
 ### The Bootstrap Test
 
 ```bash

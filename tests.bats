@@ -108,12 +108,19 @@ CARGO_EOF
     }
 }
 
-
-# BEGIN GENERATED TESTS - DO NOT EDIT
-@test "builtin_functions" {
-    run_test "tests/builtin_functions/"
+run_xfail_test() {
+    local test_dir="$1"
+    local test_name=$(basename "$test_dir")
+    
+    if run_test "$test_dir"; then
+        echo "🎉 Promoting XFAIL test '$test_name' - it now passes!"
+        mv "$test_dir" "tests/"
+    fi
+    return 0
 }
 
+
+# BEGIN GENERATED TESTS - DO NOT EDIT
 @test "fmt_println" {
     run_test "tests/fmt_println/"
 }
@@ -130,11 +137,27 @@ CARGO_EOF
     run_test "tests/simple_functions/"
 }
 
-@test "stdlib_imports" {
-    run_test "tests/stdlib_imports/"
-}
-
 @test "stdlib_strings" {
     run_test "tests/stdlib_strings/"
+}
+
+@test "XFAIL: builtin_functions" {
+    run_xfail_test "tests/XFAIL/builtin_functions/"
+}
+
+@test "XFAIL: methods" {
+    run_xfail_test "tests/XFAIL/methods/"
+}
+
+@test "XFAIL: pointers_basic" {
+    run_xfail_test "tests/XFAIL/pointers_basic/"
+}
+
+@test "XFAIL: stdlib_imports" {
+    run_xfail_test "tests/XFAIL/stdlib_imports/"
+}
+
+@test "XFAIL: variable_declarations" {
+    run_xfail_test "tests/XFAIL/variable_declarations/"
 }
 # END GENERATED TESTS

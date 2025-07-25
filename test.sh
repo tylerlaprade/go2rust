@@ -8,15 +8,45 @@
 # is the most reliable way to preserve formatting.
 temp_file=$(mktemp)
 
+# Validate XFAIL tests compile
+for xfail_dir in tests/XFAIL/*/; do
+    [ -d "$xfail_dir" ] || continue
+    if [ -f "$xfail_dir/main.go" ]; then
+        # Check if Go code compiles first
+        if ! (cd "$xfail_dir" && go build . >/dev/null 2>&1); then
+            echo "ERROR: XFAIL test $(basename "$xfail_dir") does not compile"
+            exit 1
+        fi
+    fi
+done
+
 # Generate test cases for directories containing main.go
 for dir in tests/*/; do
     [ -d "$dir" ] || continue
+    # Skip XFAIL directory
+    [ "$(basename "$dir")" = "XFAIL" ] && continue
+    
     if [ -f "$dir/main.go" ]; then
         test_name=$(basename "$dir")
 
         cat >> "$temp_file" << EOF
 @test "$test_name" {
     run_test "$dir"
+}
+
+EOF
+    fi
+done
+
+# Generate XFAIL test cases (run and expect to fail)
+for xfail_dir in tests/XFAIL/*/; do
+    [ -d "$xfail_dir" ] || continue
+    if [ -f "$xfail_dir/main.go" ]; then
+        test_name=$(basename "$xfail_dir")
+
+        cat >> "$temp_file" << EOF
+@test "XFAIL: $test_name" {
+    run_xfail_test "$xfail_dir"
 }
 
 EOF
