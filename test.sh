@@ -9,8 +9,7 @@
 temp_file=$(mktemp)
 
 # Validate XFAIL tests compile
-for xfail_dir in tests/XFAIL/*/; do
-    [ -d "$xfail_dir" ] || continue
+for xfail_dir in $(find tests/XFAIL -maxdepth 1 -type d ! -name XFAIL | sort); do
     if [ -f "$xfail_dir/main.go" ]; then
         # Check if Go code compiles first
         if ! (cd "$xfail_dir" && go build . >/dev/null 2>&1); then
@@ -21,11 +20,7 @@ for xfail_dir in tests/XFAIL/*/; do
 done
 
 # Generate test cases for directories containing main.go
-for dir in tests/*/; do
-    [ -d "$dir" ] || continue
-    # Skip XFAIL directory
-    [ "$(basename "$dir")" = "XFAIL" ] && continue
-    
+for dir in $(find tests -maxdepth 1 -type d ! -name tests ! -name XFAIL | sort); do
     if [ -f "$dir/main.go" ]; then
         test_name=$(basename "$dir")
 
@@ -39,8 +34,7 @@ EOF
 done
 
 # Generate XFAIL test cases (run and expect to fail)
-for xfail_dir in tests/XFAIL/*/; do
-    [ -d "$xfail_dir" ] || continue
+for xfail_dir in $(find tests/XFAIL -maxdepth 1 -type d ! -name XFAIL | sort); do
     if [ -f "$xfail_dir/main.go" ]; then
         test_name=$(basename "$xfail_dir")
 

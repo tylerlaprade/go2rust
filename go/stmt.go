@@ -76,8 +76,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						} else {
 							// Default initialization for uninitialized vars
 							if valueSpec.Type != nil {
-								if ident, ok := valueSpec.Type.(*ast.Ident); ok {
-									switch ident.Name {
+								switch t := valueSpec.Type.(type) {
+								case *ast.Ident:
+									switch t.Name {
 									case "string":
 										out.WriteString(" = String::new()")
 									case "int":
@@ -85,6 +86,11 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									default:
 										out.WriteString(" = Default::default()")
 									}
+								case *ast.ArrayType:
+									// Initialize array with default values
+									out.WriteString(": ")
+									out.WriteString(GoTypeToRust(valueSpec.Type))
+									out.WriteString(" = Default::default()")
 								}
 							}
 						}
@@ -139,5 +145,39 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			out.WriteString(" -= 1")
 		}
 		out.WriteString(";")
+
+	case *ast.RangeStmt:
+		// Handle for range loops
+		out.WriteString("for ")
+		if s.Key != nil && s.Value != nil {
+			// for i, v := range arr
+			out.WriteString("(")
+			TranspileExpression(out, s.Key)
+			out.WriteString(", ")
+			TranspileExpression(out, s.Value)
+			out.WriteString(") in ")
+			TranspileExpression(out, s.X)
+			out.WriteString(".iter().enumerate()")
+		} else if s.Value != nil {
+			// for _, v := range arr
+			TranspileExpression(out, s.Value)
+			out.WriteString(" in &")
+			TranspileExpression(out, s.X)
+		} else if s.Key != nil {
+			// for i := range arr
+			TranspileExpression(out, s.Key)
+			out.WriteString(" in 0..")
+			TranspileExpression(out, s.X)
+			out.WriteString(".len()")
+		}
+		out.WriteString(" {\n")
+
+		for _, stmt := range s.Body.List {
+			out.WriteString("        ")
+			TranspileStatement(out, stmt, fnType)
+			out.WriteString("\n")
+		}
+
+		out.WriteString("    }")
 	}
 }

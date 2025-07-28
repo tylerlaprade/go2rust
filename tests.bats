@@ -1,7 +1,6 @@
 #!/usr/bin/env bats
 
 setup_file() {
-    # Clean up any generated files from previous runs
     find tests -name "*.rs" -type f -delete 2>/dev/null || true
     find tests -name "Cargo.toml" -type f -delete 2>/dev/null || true
     find tests -name "Cargo.lock" -type f -delete 2>/dev/null || true
@@ -9,11 +8,11 @@ setup_file() {
     go build -o go2rust ./go
 }
 
-teardown() {
-    # Clean up Rust build artifacts after each test
+teardown_file() {
     find tests -name "target" -type d -exec rm -rf {} + 2>/dev/null || true
-    # Clean up Go binaries created by XFAIL validation in test.sh
-    rm -f tests/XFAIL/*/methods tests/XFAIL/*/pointers_basic 2>/dev/null || true
+    find tests -name "debug" -type d -exec rm -rf {} + 2>/dev/null || true
+    # Only have to clean up binaries in XFAIL since we generate them to confirm compilation works
+    find tests/XFAIL -mindepth 2 -maxdepth 2 -type f -perm +111 -delete 2>/dev/null || true
 }
 
 # Helper to run a command and prefix stdout/stderr
@@ -93,47 +92,167 @@ run_xfail_test() {
 
 
 # BEGIN GENERATED TESTS - DO NOT EDIT
+@test "arrays_basic" {
+    run_test "tests/arrays_basic"
+}
+
 @test "builtin_functions" {
-    run_test "tests/builtin_functions/"
+    run_test "tests/builtin_functions"
 }
 
 @test "fmt_println" {
-    run_test "tests/fmt_println/"
+    run_test "tests/fmt_println"
 }
 
 @test "hello_world" {
-    run_test "tests/hello_world/"
+    run_test "tests/hello_world"
 }
 
 @test "library_example" {
-    run_test "tests/library_example/"
-}
-
-@test "mixed_output" {
-    run_test "tests/mixed_output/"
+    run_test "tests/library_example"
 }
 
 @test "simple_functions" {
-    run_test "tests/simple_functions/"
-}
-
-@test "stdlib_imports" {
-    run_test "tests/stdlib_imports/"
-}
-
-@test "stdlib_strings" {
-    run_test "tests/stdlib_strings/"
+    run_test "tests/simple_functions"
 }
 
 @test "variable_declarations" {
-    run_test "tests/variable_declarations/"
+    run_test "tests/variable_declarations"
+}
+
+@test "XFAIL: advanced_control_flow" {
+    run_xfail_test "tests/XFAIL/advanced_control_flow"
+}
+
+@test "XFAIL: blank_identifier" {
+    run_xfail_test "tests/XFAIL/blank_identifier"
+}
+
+@test "XFAIL: channels_basic" {
+    run_xfail_test "tests/XFAIL/channels_basic"
+}
+
+@test "XFAIL: closures_basic" {
+    run_xfail_test "tests/XFAIL/closures_basic"
+}
+
+@test "XFAIL: complex_expressions" {
+    run_xfail_test "tests/XFAIL/complex_expressions"
+}
+
+@test "XFAIL: concurrency_patterns" {
+    run_xfail_test "tests/XFAIL/concurrency_patterns"
+}
+
+@test "XFAIL: constants_basic" {
+    run_xfail_test "tests/XFAIL/constants_basic"
+}
+
+@test "XFAIL: defer_statements" {
+    run_xfail_test "tests/XFAIL/defer_statements"
+}
+
+@test "XFAIL: embedded_structs" {
+    run_xfail_test "tests/XFAIL/embedded_structs"
+}
+
+@test "XFAIL: error_handling" {
+    run_xfail_test "tests/XFAIL/error_handling"
+}
+
+@test "XFAIL: file_operations" {
+    run_xfail_test "tests/XFAIL/file_operations"
+}
+
+@test "XFAIL: function_types" {
+    run_xfail_test "tests/XFAIL/function_types"
+}
+
+@test "XFAIL: goroutines_basic" {
+    run_xfail_test "tests/XFAIL/goroutines_basic"
+}
+
+@test "XFAIL: init_functions" {
+    run_xfail_test "tests/XFAIL/init_functions"
+}
+
+@test "XFAIL: interfaces_basic" {
+    run_xfail_test "tests/XFAIL/interfaces_basic"
+}
+
+@test "XFAIL: maps_basic" {
+    run_xfail_test "tests/XFAIL/maps_basic"
 }
 
 @test "XFAIL: methods" {
-    run_xfail_test "tests/XFAIL/methods/"
+    run_xfail_test "tests/XFAIL/methods"
+}
+
+@test "XFAIL: methods_basic" {
+    run_xfail_test "tests/XFAIL/methods_basic"
+}
+
+@test "XFAIL: mixed_output" {
+    run_xfail_test "tests/XFAIL/mixed_output"
+}
+
+@test "XFAIL: multiple_returns" {
+    run_xfail_test "tests/XFAIL/multiple_returns"
+}
+
+@test "XFAIL: nested_structures" {
+    run_xfail_test "tests/XFAIL/nested_structures"
+}
+
+@test "XFAIL: panic_recover" {
+    run_xfail_test "tests/XFAIL/panic_recover"
 }
 
 @test "XFAIL: pointers_basic" {
-    run_xfail_test "tests/XFAIL/pointers_basic/"
+    run_xfail_test "tests/XFAIL/pointers_basic"
+}
+
+@test "XFAIL: range_loops" {
+    run_xfail_test "tests/XFAIL/range_loops"
+}
+
+@test "XFAIL: recursion_basic" {
+    run_xfail_test "tests/XFAIL/recursion_basic"
+}
+
+@test "XFAIL: select_statements" {
+    run_xfail_test "tests/XFAIL/select_statements"
+}
+
+@test "XFAIL: slices_basic" {
+    run_xfail_test "tests/XFAIL/slices_basic"
+}
+
+@test "XFAIL: stdlib_imports" {
+    run_xfail_test "tests/XFAIL/stdlib_imports"
+}
+
+@test "XFAIL: stdlib_strings" {
+    run_xfail_test "tests/XFAIL/stdlib_strings"
+}
+
+@test "XFAIL: structs_basic" {
+    run_xfail_test "tests/XFAIL/structs_basic"
+}
+
+@test "XFAIL: switch_statements" {
+    run_xfail_test "tests/XFAIL/switch_statements"
+}
+
+@test "XFAIL: type_assertions" {
+    run_xfail_test "tests/XFAIL/type_assertions"
+}
+
+@test "XFAIL: type_conversions" {
+    run_xfail_test "tests/XFAIL/type_conversions"
+}
+
+@test "XFAIL: variadic_functions" {
+    run_xfail_test "tests/XFAIL/variadic_functions"
 }
 # END GENERATED TESTS

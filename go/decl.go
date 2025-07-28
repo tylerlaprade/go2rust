@@ -49,3 +49,28 @@ func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl) {
 
 	out.WriteString("}")
 }
+
+func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec) {
+	switch t := typeSpec.Type.(type) {
+	case *ast.StructType:
+		out.WriteString("#[derive(Debug)]\n")
+		out.WriteString("struct ")
+		out.WriteString(typeSpec.Name.Name)
+		out.WriteString(" {\n")
+
+		for _, field := range t.Fields.List {
+			out.WriteString("    ")
+			if len(field.Names) > 0 {
+				out.WriteString(ToSnakeCase(field.Names[0].Name))
+			} else {
+				// Embedded field
+				out.WriteString(ToSnakeCase(GoTypeToRust(field.Type)))
+			}
+			out.WriteString(": ")
+			out.WriteString(GoTypeToRust(field.Type))
+			out.WriteString(",\n")
+		}
+
+		out.WriteString("}")
+	}
+}

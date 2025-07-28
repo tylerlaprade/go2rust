@@ -21,6 +21,20 @@ func GoTypeToRust(expr ast.Expr) string {
 		default:
 			return t.Name
 		}
+	case *ast.ArrayType:
+		elemType := GoTypeToRust(t.Elt)
+		if t.Len != nil {
+			// Fixed-size array
+			if lit, ok := t.Len.(*ast.BasicLit); ok {
+				return "[" + elemType + "; " + lit.Value + "]"
+			}
+		}
+		// Slice
+		return "Vec<" + elemType + ">"
+	case *ast.MapType:
+		keyType := GoTypeToRust(t.Key)
+		valueType := GoTypeToRust(t.Value)
+		return "std::collections::HashMap<" + keyType + ", " + valueType + ">"
 	}
 	return "Unknown"
 }

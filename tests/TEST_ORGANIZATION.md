@@ -129,6 +129,27 @@ tests/
 3. **Grouped by concept** not by implementation difficulty
 4. **Keyword/function coverage** tracked explicitly
 
+## Test Output Preservation
+
+**IMPORTANT**: The test system preserves transpiled output files as snapshots:
+
+- **`.rs` files** - The transpiled Rust code
+- **`Cargo.toml` files** - Generated Cargo manifests
+- **`Cargo.lock` files** - Dependency lock files
+
+These files serve as:
+
+1. **Test output artifacts** - Show exactly what the transpiler produced
+2. **Regression detection** - Git tracks changes to transpiler output over time
+
+**Only build artifacts should be cleaned**:
+
+- `target/` directories (Rust build output)
+- `debug/` directories (Debug build output)
+- Go binaries in XFAIL tests (from validation)
+
+The `teardown()` function in `tests.bats` must NEVER delete .rs, Cargo.toml, or Cargo.lock files.
+
 ## Coverage Tracking
 
 Create coverage files to ensure completeness:

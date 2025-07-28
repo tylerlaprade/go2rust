@@ -47,6 +47,8 @@ func init() {
 		"append":  transpileAppend,
 		"len":     transpileLen,
 		"make":    transpileMake,
+		"cap":     transpileCap,
+		"delete":  transpileDelete,
 	}
 }
 
@@ -156,10 +158,30 @@ func transpileStrconvItoa(out *strings.Builder, call *ast.CallExpr) {
 
 func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 	if len(call.Args) >= 2 {
-		TranspileExpression(out, call.Args[0])
-		out.WriteString(".push(")
-		TranspileExpression(out, call.Args[1])
-		out.WriteString(")")
+		// For single element append
+		if len(call.Args) == 2 {
+			out.WriteString("{")
+			TranspileExpression(out, call.Args[0])
+			out.WriteString(".push(")
+			TranspileExpression(out, call.Args[1])
+			out.WriteString("); ")
+			TranspileExpression(out, call.Args[0])
+			out.WriteString("}")
+		} else {
+			// For multiple elements, use extend
+			out.WriteString("{")
+			TranspileExpression(out, call.Args[0])
+			out.WriteString(".extend(vec![")
+			for i := 1; i < len(call.Args); i++ {
+				if i > 1 {
+					out.WriteString(", ")
+				}
+				TranspileExpression(out, call.Args[i])
+			}
+			out.WriteString("]); ")
+			TranspileExpression(out, call.Args[0])
+			out.WriteString("}")
+		}
 	}
 }
 
@@ -171,14 +193,38 @@ func transpileLen(out *strings.Builder, call *ast.CallExpr) {
 }
 
 func transpileMake(out *strings.Builder, call *ast.CallExpr) {
-	// TODO: This is a simplified version
-	// Need to handle different types and capacities
+	if len(call.Args) >= 1 {
+		// Check if it's a map type
+		if mapType, ok := call.Args[0].(*ast.MapType); ok {
+			out.WriteString("std::collections::HashMap::<")
+			out.WriteString(GoTypeToRust(mapType.Key))
+			out.WriteString(", ")
+			out.WriteString(GoTypeToRust(mapType.Value))
+			out.WriteString(">::new()")
+		} else if len(call.Args) >= 2 {
+			// Slice with size
+			out.WriteString("vec![")
+			// TODO: Determine default value based on type
+			out.WriteString("0")
+			out.WriteString("; ")
+			TranspileExpression(out, call.Args[1])
+			out.WriteString("]")
+		}
+	}
+}
+
+func transpileCap(out *strings.Builder, call *ast.CallExpr) {
+	if len(call.Args) > 0 {
+		TranspileExpression(out, call.Args[0])
+		out.WriteString(".capacity()")
+	}
+}
+
+func transpileDelete(out *strings.Builder, call *ast.CallExpr) {
 	if len(call.Args) >= 2 {
-		out.WriteString("vec![")
-		// TODO: Determine default value based on type
-		out.WriteString("0")
-		out.WriteString("; ")
+		TranspileExpression(out, call.Args[0])
+		out.WriteString(".remove(&")
 		TranspileExpression(out, call.Args[1])
-		out.WriteString("]")
+		out.WriteString(")")
 	}
 }

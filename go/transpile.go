@@ -2,6 +2,7 @@ package main
 
 import (
 	"go/ast"
+	"go/token"
 	"strings"
 )
 
@@ -20,8 +21,18 @@ func Transpile(file *ast.File) string {
 			first = false
 			TranspileFunction(&output, d)
 		case *ast.GenDecl:
-			// TODO: Handle imports, types, consts, vars
-			// For now, skip
+			// Handle type declarations
+			if d.Tok == token.TYPE {
+				for _, spec := range d.Specs {
+					if typeSpec, ok := spec.(*ast.TypeSpec); ok {
+						if !first {
+							output.WriteString("\n\n")
+						}
+						first = false
+						TranspileTypeDecl(&output, typeSpec)
+					}
+				}
+			}
 		}
 	}
 

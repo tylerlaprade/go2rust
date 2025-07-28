@@ -24,7 +24,14 @@ func TranspileExpression(out *strings.Builder, expr ast.Expr) {
 
 	case *ast.SelectorExpr:
 		TranspileExpression(out, e.X)
-		out.WriteString("::")
+		// Check if this is a package selector or field access
+		// For now, assume lowercase identifiers are variables (field access)
+		// and uppercase are packages/types
+		if ident, ok := e.X.(*ast.Ident); ok && ident.Name[0] >= 'a' && ident.Name[0] <= 'z' {
+			out.WriteString(".")
+		} else {
+			out.WriteString("::")
+		}
 		out.WriteString(ToSnakeCase(e.Sel.Name))
 
 	case *ast.BinaryExpr:
@@ -33,6 +40,80 @@ func TranspileExpression(out *strings.Builder, expr ast.Expr) {
 		out.WriteString(e.Op.String())
 		out.WriteString(" ")
 		TranspileExpression(out, e.Y)
+
+	case *ast.IndexExpr:
+		TranspileExpression(out, e.X)
+		out.WriteString("[")
+		TranspileExpression(out, e.Index)
+		out.WriteString("]")
+
+	case *ast.SliceExpr:
+		TranspileExpression(out, e.X)
+		out.WriteString("[")
+		if e.Low != nil {
+			TranspileExpression(out, e.Low)
+		}
+		out.WriteString("..")
+		if e.High != nil {
+			TranspileExpression(out, e.High)
+		}
+		out.WriteString("].to_vec()")
+
+	case *ast.CompositeLit:
+		// Handle array/slice literals
+		if arrayType, ok := e.Type.(*ast.ArrayType); ok {
+			if arrayType.Len != nil {
+				// Fixed-size array
+				out.WriteString("[")
+			} else {
+				// Slice
+				out.WriteString("vec![")
+			}
+			for i, elt := range e.Elts {
+				if i > 0 {
+					out.WriteString(", ")
+				}
+				TranspileExpression(out, elt)
+			}
+			out.WriteString("]")
+		} else if mapType, ok := e.Type.(*ast.MapType); ok {
+			// Map literal
+			out.WriteString("std::collections::HashMap::<")
+			out.WriteString(GoTypeToRust(mapType.Key))
+			out.WriteString(", ")
+			out.WriteString(GoTypeToRust(mapType.Value))
+			out.WriteString(">::from([")
+			for i, elt := range e.Elts {
+				if i > 0 {
+					out.WriteString(", ")
+				}
+				if kv, ok := elt.(*ast.KeyValueExpr); ok {
+					out.WriteString("(")
+					TranspileExpression(out, kv.Key)
+					out.WriteString(", ")
+					TranspileExpression(out, kv.Value)
+					out.WriteString(")")
+				}
+			}
+			out.WriteString("])")
+		} else if ident, ok := e.Type.(*ast.Ident); ok {
+			// Struct literal
+			out.WriteString(ident.Name)
+			out.WriteString(" { ")
+			for i, elt := range e.Elts {
+				if i > 0 {
+					out.WriteString(", ")
+				}
+				if kv, ok := elt.(*ast.KeyValueExpr); ok {
+					if key, ok := kv.Key.(*ast.Ident); ok {
+						out.WriteString(ToSnakeCase(key.Name))
+						out.WriteString(": ")
+						TranspileExpression(out, kv.Value)
+					}
+				}
+			}
+			out.WriteString(" }")
+		}
 	}
 }
 
