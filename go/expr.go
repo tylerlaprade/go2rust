@@ -2,13 +2,19 @@ package main
 
 import (
 	"go/ast"
+	"go/token"
 	"strings"
 )
 
 func TranspileExpression(out *strings.Builder, expr ast.Expr) {
 	switch e := expr.(type) {
 	case *ast.BasicLit:
-		out.WriteString(e.Value)
+		if e.Kind == token.STRING {
+			out.WriteString(e.Value)
+			out.WriteString(".to_string()")
+		} else {
+			out.WriteString(e.Value)
+		}
 
 	case *ast.Ident:
 		out.WriteString(e.Name)
@@ -17,10 +23,16 @@ func TranspileExpression(out *strings.Builder, expr ast.Expr) {
 		TranspileCall(out, e)
 
 	case *ast.SelectorExpr:
-		// Handle package.Function
 		TranspileExpression(out, e.X)
 		out.WriteString("::")
 		out.WriteString(ToSnakeCase(e.Sel.Name))
+
+	case *ast.BinaryExpr:
+		TranspileExpression(out, e.X)
+		out.WriteString(" ")
+		out.WriteString(e.Op.String())
+		out.WriteString(" ")
+		TranspileExpression(out, e.Y)
 	}
 }
 

@@ -63,8 +63,6 @@ This transpiler uses a "make it work first, optimize later" approach. Every Go p
 
 ## Progress Tracking
 
-**Current Status:** 5 working tests, 5 XFAIL tests for planned features
-
 ### Go Keywords
 
 | Keyword | Status |
@@ -91,8 +89,16 @@ This transpiler uses a "make it work first, optimize later" approach. Every Go p
 | └ Struct types | ❌ |
 | └ Type aliases | ❌ |
 | **`var` - Variable declarations** | |
-| └ Basic var declarations | ❌ |
-| └ Short declarations (:=) | ❌ |
+| └ Basic var declarations | ✅ |
+| └ Short declarations (:=) | ✅ |
+| **`for` - For loops** | |
+| └ C-style for loops | ✅ |
+| └ Range loops | ❌ |
+| └ Infinite loops | ✅ |
+| **Operators** | |
+| └ Binary operators (+, -, *, /, etc.) | ✅ |
+| └ Assignment operators (=, +=, etc.) | ✅ |
+| └ Increment/decrement (++, --) | ✅ |
 
 ### Standard Library Functions
 

@@ -1,3 +1,3 @@
 fn main() {
-    eprintln!("{}", "Hello, World!");
+    eprintln!("{}", "Hello, World!".to_string());
 }

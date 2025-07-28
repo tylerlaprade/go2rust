@@ -6,7 +6,9 @@ import (
 )
 
 func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl) {
-	// Function signature
+	if fn.Name.Name != "main" {
+		out.WriteString("pub ")
+	}
 	out.WriteString("fn ")
 	out.WriteString(ToSnakeCase(fn.Name.Name))
 	out.WriteString("(")

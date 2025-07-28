@@ -105,10 +105,19 @@ echo 'package main...' > tests/my_feature/main.go  # Main function that calls li
 ```
 
 The test framework will:
+
 1. Run `go run .` in the directory to get expected output
-2. Transpile all `.go` files to Rust
-3. Concatenate them (temporary solution until proper module support)
-4. Run the Rust version and compare outputs
+2. Transpile all `.go` files to Rust modules
+3. Generate appropriate `main.rs` with module declarations
+4. Create a `Cargo.toml` for the project
+5. Run the Rust version and compare outputs
+
+Example: `library_example` test demonstrates:
+
+- Multiple Go files in the same package
+- Function calls between files
+- Proper module organization in Rust
+- Automatic handling of `lib.go` → `lib_.rs` renaming to avoid Rust naming conflicts
 
 ## Running Tests
 
@@ -128,6 +137,7 @@ bats tests.bats --filter "hello_world"
 ## Test Organization
 
 See [TEST_ORGANIZATION.md](TEST_ORGANIZATION.md) for:
+
 - Comprehensive test categorization strategy
 - Coverage tracking approach
 - Naming conventions

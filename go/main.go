@@ -2,8 +2,6 @@ package main
 
 import (
 	"fmt"
-	"go/parser"
-	"go/token"
 	"os"
 	"path/filepath"
 	"sort"
@@ -16,7 +14,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Collect all Go files from arguments
 	var goFiles []string
 	for _, arg := range os.Args[1:] {
 		files, err := collectGoFiles(arg)
@@ -34,7 +31,6 @@ func main() {
 
 	// Sort files to ensure consistent output (main.go last if present)
 	sort.Slice(goFiles, func(i, j int) bool {
-		// Put main.go last
 		if filepath.Base(goFiles[i]) == "main.go" {
 			return false
 		}
@@ -44,30 +40,19 @@ func main() {
 		return goFiles[i] < goFiles[j]
 	})
 
-	// Transpile all files and concatenate
-	var rustCode strings.Builder
-	file_set := token.NewFileSet()
-
-	for i, filename := range goFiles {
-		file, err := parser.ParseFile(file_set, filename, nil, parser.ParseComments)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Parse error in %s: %v\n", filename, err)
-			os.Exit(1)
-		}
-
-		fileRust := Transpile(file)
-		rustCode.WriteString(fileRust)
-
-		// Add newline between files (except after the last one)
-		if i < len(goFiles)-1 {
-			rustCode.WriteString("\n")
-		}
+	generator := NewProjectGenerator(goFiles)
+	if generator == nil {
+		fmt.Fprintf(os.Stderr, "No files to process\n")
+		os.Exit(1)
 	}
 
-	fmt.Print(rustCode.String())
+	err := generator.Generate()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
 }
 
-// collectGoFiles returns all Go files from the given path (file or directory)
 func collectGoFiles(path string) ([]string, error) {
 	info, err := os.Stat(path)
 	if err != nil {
@@ -75,14 +60,12 @@ func collectGoFiles(path string) ([]string, error) {
 	}
 
 	if !info.IsDir() {
-		// Single file
 		if !strings.HasSuffix(path, ".go") {
 			return nil, fmt.Errorf("not a Go file: %s", path)
 		}
 		return []string{path}, nil
 	}
 
-	// Directory - find all .go files
 	var goFiles []string
 	entries, err := os.ReadDir(path)
 	if err != nil {
@@ -91,7 +74,8 @@ func collectGoFiles(path string) ([]string, error) {
 
 	for _, entry := range entries {
 		if entry.IsDir() {
-			continue // Skip subdirectories for now
+			// Skip subdirectories for now
+			continue
 		}
 		if strings.HasSuffix(entry.Name(), ".go") {
 			goFiles = append(goFiles, filepath.Join(path, entry.Name()))

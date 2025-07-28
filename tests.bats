@@ -1,12 +1,19 @@
 #!/usr/bin/env bats
 
 setup_file() {
+    # Clean up any generated files from previous runs
+    find tests -name "*.rs" -type f -delete 2>/dev/null || true
+    find tests -name "Cargo.toml" -type f -delete 2>/dev/null || true
+    find tests -name "Cargo.lock" -type f -delete 2>/dev/null || true
+    
     go build -o go2rust ./go
 }
 
 teardown() {
-    find tests -name "temp_*" -type d -exec rm -rf {} + 2>/dev/null || true
-    find tests -name "main" -type f -delete 2>/dev/null || true
+    # Clean up Rust build artifacts after each test
+    find tests -name "target" -type d -exec rm -rf {} + 2>/dev/null || true
+    # Clean up Go binaries created by XFAIL validation in test.sh
+    rm -f tests/XFAIL/*/methods tests/XFAIL/*/pointers_basic 2>/dev/null || true
 }
 
 # Helper to run a command and prefix stdout/stderr
@@ -59,23 +66,8 @@ run_test() {
 
     go_output=$(cd "$test_dir" && run_with_prefix go run .)
 
-    # Transpile directory using new directory support
-    local temp_dir=$(mktemp -d)
-    mkdir -p "$temp_dir/src"
-    
-    # Use transpiler's directory support to generate Rust code
-    ./go2rust "$test_dir" > "$temp_dir/src/main.rs" || return 1
-    
-    cat > "$temp_dir/Cargo.toml" << CARGO_EOF
-[package]
-name = "test_program"
-version = "0.1.0"
-edition = "2021"
-CARGO_EOF
-    
-    rust_output=$(cd "$temp_dir" && run_with_prefix cargo run --quiet)
-    
-    rm -rf "$temp_dir"
+    ./go2rust "$test_dir" || return 1
+    rust_output=$(cd "$test_dir" && RUSTFLAGS="-A warnings" run_with_prefix cargo run --quiet)
     
     [ "$go_output" = "$rust_output" ] || {
         echo ""
@@ -101,12 +93,20 @@ run_xfail_test() {
 
 
 # BEGIN GENERATED TESTS - DO NOT EDIT
+@test "builtin_functions" {
+    run_test "tests/builtin_functions/"
+}
+
 @test "fmt_println" {
     run_test "tests/fmt_println/"
 }
 
 @test "hello_world" {
     run_test "tests/hello_world/"
+}
+
+@test "library_example" {
+    run_test "tests/library_example/"
 }
 
 @test "mixed_output" {
@@ -117,12 +117,16 @@ run_xfail_test() {
     run_test "tests/simple_functions/"
 }
 
+@test "stdlib_imports" {
+    run_test "tests/stdlib_imports/"
+}
+
 @test "stdlib_strings" {
     run_test "tests/stdlib_strings/"
 }
 
-@test "XFAIL: builtin_functions" {
-    run_xfail_test "tests/XFAIL/builtin_functions/"
+@test "variable_declarations" {
+    run_test "tests/variable_declarations/"
 }
 
 @test "XFAIL: methods" {
@@ -131,13 +135,5 @@ run_xfail_test() {
 
 @test "XFAIL: pointers_basic" {
     run_xfail_test "tests/XFAIL/pointers_basic/"
-}
-
-@test "XFAIL: stdlib_imports" {
-    run_xfail_test "tests/XFAIL/stdlib_imports/"
-}
-
-@test "XFAIL: variable_declarations" {
-    run_xfail_test "tests/XFAIL/variable_declarations/"
 }
 # END GENERATED TESTS

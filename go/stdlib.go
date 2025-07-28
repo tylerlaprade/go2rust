@@ -2,6 +2,7 @@ package main
 
 import (
 	"go/ast"
+	"go/token"
 	"strings"
 )
 
@@ -35,8 +36,8 @@ func init() {
 	stdlibMappings = map[string]StdlibHandler{
 		"fmt.Println":       transpileFmtPrintln,
 		"fmt.Printf":        transpileFmtPrintf,
-		"strings.ToUpper":   transpileStringsToUpper,
 		"strings.ToLower":   transpileStringsToLower,
+		"strings.ToUpper":   transpileStringsToUpper,
 		"strings.TrimSpace": transpileStringsTrimSpace,
 		"strconv.Itoa":      transpileStrconvItoa,
 	}
@@ -100,12 +101,26 @@ func transpileFmtPrintf(out *strings.Builder, call *ast.CallExpr) {
 	out.WriteString("print!")
 	out.WriteString("(")
 
-	// TODO: Convert Go format verbs to Rust format specifiers
-	for i, arg := range call.Args {
-		if i > 0 {
-			out.WriteString(", ")
+	if len(call.Args) > 0 {
+		// First arg is the format string
+		if lit, ok := call.Args[0].(*ast.BasicLit); ok && lit.Kind == token.STRING {
+			// Convert Go format verbs to Rust
+			format := lit.Value
+			// Simple conversion: %d -> {}, %s -> {}, etc.
+			format = strings.ReplaceAll(format, "%d", "{}")
+			format = strings.ReplaceAll(format, "%s", "{}")
+			format = strings.ReplaceAll(format, "%v", "{}")
+			format = strings.ReplaceAll(format, "%f", "{}")
+			out.WriteString(format)
+		} else {
+			TranspileExpression(out, call.Args[0])
 		}
-		TranspileExpression(out, arg)
+
+		// Rest of the arguments
+		for i := 1; i < len(call.Args); i++ {
+			out.WriteString(", ")
+			TranspileExpression(out, call.Args[i])
+		}
 	}
 
 	out.WriteString(")")

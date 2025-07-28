@@ -8,12 +8,23 @@ When debugging issues:
 2. **Look for the simplest explanation first** - complex solutions are usually wrong
 3. **Check existing code before adding new code** - the issue might be a single line
 4. **When the user says "think about X"** - they're giving you a hint, not asking for speculation
+5. **If you encounter an error that makes you suspect your task is impossible** - the user asked you to do it for a reason; don't give up and do something else instead. Try harder to solve the problem, and if that still doesn't work, present the roadblock to the user in a calm, level-headed manner so that you can work toward a solution together.
 
 Example: If tests are deleting files you want to keep, look for where files are being deleted (like `teardown()` functions), don't create elaborate workarounds.
 
+### Before modifying or removing code
+
+1. **Understand why it exists** - Read comments, trace through the logic, understand the purpose, check your instructions and other documentation
+2. **Check what depends on it** - Look for downstream effects of your changes
+3. **Test your assumptions** - Don't assume you know what code does; verify it
+4. **If it seems unnecessary, it probably isn't** - There's usually a reason code exists
+5. **Check existing code before REMOVING code** - it's probably there for a reason
+
+Example: XFAIL test validation may look redundant but serves a critical purpose - ensuring test Go code is valid even when transpilation is expected to fail.
+
 ## Project Overview
 
-go2rust is a transpiler that converts Go code to Rust using a conservative "make it work first, optimize later" approach. Unlike c2rust which translates C's manual memory management directly to unsafe Rust, go2rust must bridge the semantic gap between Go's garbage collection and Rust's ownership model.
+go2rust is a transpiler that converts Go code to Rust using a conservative "make it work first, optimize later" approach. go2rust must bridge the semantic gap between Go's garbage collection and Rust's ownership model.
 
 ## Core Philosophy: Conservative Translation
 
@@ -77,7 +88,7 @@ func main() {
 - Basic function calls
 - String literal to String conversion (.to_string())
 
-### Phase 2: Variables and Basic Types
+### Phase 2: Variables and Basic Types ✅
 
 **Goal**: Handle basic variable declarations and primitive types
 
@@ -90,11 +101,18 @@ func main() {
 }
 ```
 
-**Features needed**:
+**Implemented**:
 
-- Type inference for `:=`
-- Basic type mapping (int → i32, string → String, etc.)
-- Multiple arguments to fmt.Println (format string generation)
+- Type inference for `:=` ✅
+- Basic type mapping (int → i32, string → String, etc.) ✅
+- Multiple arguments to fmt.Println ✅
+- Variable declarations (var and :=) ✅
+- Binary expressions (+, -, *, /, etc.) ✅
+- Assignment operators (=, +=, -=, etc.) ✅
+- For loops (C-style) ✅
+- Multi-file projects ✅
+- Function calls between files ✅
+- String concatenation with += ✅
 
 ### Phase 3: Pointers and Mutation
 
@@ -177,7 +195,7 @@ This is the ultimate validation - if the transpiler can transpile itself, we've 
 1. **Direct transpilation**: For simple cases like `fmt.Println` → `println!`
 2. **Use go/types**: For symbol resolution and type checking when needed
 3. **Progressive addition**: Add stdlib support as needed
-4. **FFI fallback**: For unsupported packages (future)
+4. **FFI fallback**: For unsupported packages
 
 ### Concurrency Detection
 
@@ -217,17 +235,25 @@ match do_something() {
 
 ```
 go2rust/
-├── main.go          # CLI entry point
-├── transpile.go     # Direct Go AST to Rust code generation
+├── go/              # Transpiler source code
+│   ├── main.go      # CLI entry point
+│   ├── transpile.go # Direct Go AST to Rust code generation
+│   ├── project.go   # Multi-file project handling
+│   ├── expr.go      # Expression transpilation
+│   ├── stmt.go      # Statement transpilation
+│   ├── decl.go      # Declaration transpilation
+│   ├── stdlib.go    # Standard library mappings
+│   ├── types.go     # Type conversions
+│   └── utils.go     # Helper functions
 ├── tests/           # Test cases
 │   ├── hello_world/
-│   │   └── main.go
 │   ├── fmt_println/
-│   │   └── main.go
 │   ├── simple_functions/
-│   │   ├── lib.go
-│   │   └── main.go
-│   └── README.md
+│   ├── library_example/  # Multi-file test
+│   ├── builtin_functions/
+│   ├── stdlib_imports/
+│   ├── variable_declarations/
+│   └── XFAIL/       # Expected failures
 ├── test.sh          # Test runner (auto-discovers tests)
 ├── tests.bats       # BATS test suite (auto-generated)
 ├── go.mod
@@ -270,15 +296,6 @@ tests/
 - `tests/XFAIL/` contains tests for planned features not yet implemented
 - Auto-promote to main test suite when transpilation succeeds
 - Enables test-driven development and roadmap planning through code
-
-### The Bootstrap Test
-
-```bash
-# The moment of truth!
-./go2rust *.go > go2rust_v2.rs
-rustc go2rust_v2.rs
-./go2rust_v2 tests/hello_world/main.go
-```
 
 ## Future Optimizations (Post-MVP)
 

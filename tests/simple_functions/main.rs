@@ -1,3 +1,6 @@
+mod lib_;
+use lib_::*;
+
 fn main() {
     eprintln!("{}", get_hello());
     eprintln!("{}", get_world());
