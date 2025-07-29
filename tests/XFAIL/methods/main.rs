@@ -12,9 +12,9 @@ pub fn value() -> i32 {
     return c.value;
 }
 
-pub fn new_counter() -> Unknown {
+pub fn new_counter() -> std::sync::Arc<std::sync::Mutex<Option<Counter>>> {
 
-    return &Counter { value: 0 };
+    return std::sync::Arc::new(std::sync::Mutex::new(Some(Counter { value: 0 })));
 }
 
 fn main() {

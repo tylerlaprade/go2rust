@@ -57,10 +57,10 @@ fn main() {
     print!("nonZero != 0: {}\n", nonZero != 0);
     println!("{}", "\n=== Pointer conversions ===".to_string());
     let mut num = 100;
-    let mut ptr = &num;
+    let mut ptr = std::sync::Arc::new(std::sync::Mutex::new(Some(num)));
     print!("value: {}\n", num);
     print!("pointer: %p\n", ptr);
-    print!("dereferenced: {}\n", );
+    print!("dereferenced: {}\n", *ptr.lock().unwrap().as_ref().unwrap());
     println!("{}", "\n=== Interface conversions ===".to_string());
     let mut any = 42;
     print!("interface{} value: {}\n", any);

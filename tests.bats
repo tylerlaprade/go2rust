@@ -124,6 +124,10 @@ run_xfail_test() {
     run_xfail_test "tests/XFAIL/advanced_control_flow"
 }
 
+@test "XFAIL: aliasing_mutation" {
+    run_xfail_test "tests/XFAIL/aliasing_mutation"
+}
+
 @test "XFAIL: blank_identifier" {
     run_xfail_test "tests/XFAIL/blank_identifier"
 }
@@ -176,8 +180,16 @@ run_xfail_test() {
     run_xfail_test "tests/XFAIL/init_functions"
 }
 
+@test "XFAIL: interface_basic" {
+    run_xfail_test "tests/XFAIL/interface_basic"
+}
+
 @test "XFAIL: interfaces_basic" {
     run_xfail_test "tests/XFAIL/interfaces_basic"
+}
+
+@test "XFAIL: late_address_of" {
+    run_xfail_test "tests/XFAIL/late_address_of"
 }
 
 @test "XFAIL: maps_basic" {
@@ -216,6 +228,10 @@ run_xfail_test() {
     run_xfail_test "tests/XFAIL/pointers_basic"
 }
 
+@test "XFAIL: pointers_simple" {
+    run_xfail_test "tests/XFAIL/pointers_simple"
+}
+
 @test "XFAIL: range_loops" {
     run_xfail_test "tests/XFAIL/range_loops"
 }
@@ -226,6 +242,10 @@ run_xfail_test() {
 
 @test "XFAIL: select_statements" {
     run_xfail_test "tests/XFAIL/select_statements"
+}
+
+@test "XFAIL: shared_mutation" {
+    run_xfail_test "tests/XFAIL/shared_mutation"
 }
 
 @test "XFAIL: slices_basic" {
@@ -248,6 +268,10 @@ run_xfail_test() {
     run_xfail_test "tests/XFAIL/switch_statements"
 }
 
+@test "XFAIL: type_assertion_simple" {
+    run_xfail_test "tests/XFAIL/type_assertion_simple"
+}
+
 @test "XFAIL: type_assertions" {
     run_xfail_test "tests/XFAIL/type_assertions"
 }
@@ -258,5 +282,9 @@ run_xfail_test() {
 
 @test "XFAIL: variadic_functions" {
     run_xfail_test "tests/XFAIL/variadic_functions"
+}
+
+@test "XFAIL: wrap_everything" {
+    run_xfail_test "tests/XFAIL/wrap_everything"
 }
 # END GENERATED TESTS

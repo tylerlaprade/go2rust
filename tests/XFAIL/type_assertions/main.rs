@@ -28,6 +28,7 @@ pub fn assert_without_check(value: Box<dyn std::any::Any>) {
 #[derive(Debug)]
 struct Rectangle {
     width: f64,
+    height: f64,
 }
 
 pub fn area() -> f64 {

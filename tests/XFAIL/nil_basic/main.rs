@@ -8,9 +8,9 @@ fn main() {
         println!("{}", "q is nil".to_string());
     }
     let mut x = 42;
-    p = &x;
+    p = std::sync::Arc::new(std::sync::Mutex::new(Some(x)));
     if p.is_some() {
-        println!("{} {}", "p is not nil, value:".to_string(), );
+        println!("{} {}", "p is not nil, value:".to_string(), *p.lock().unwrap().as_ref().unwrap());
     }
     p = None;
     if p.is_none() {

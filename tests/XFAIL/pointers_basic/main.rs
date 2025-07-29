@@ -9,8 +9,8 @@ fn main() {
     let mut p = std::sync::Arc::new(std::sync::Mutex::new(Some(x)));
     println!("{} {}", "Value of x:".to_string(), x);
     println!("{} {}", "Address of x:".to_string(), p);
-    println!("{} {}", "Value through pointer:".to_string(), );
-     = 100;
+    println!("{} {}", "Value through pointer:".to_string(), *p.lock().unwrap().as_ref().unwrap());
+    *p.lock().unwrap().as_ref().unwrap() = 100;
     println!("{} {}", "Modified x:".to_string(), x);
     let mut point = std::sync::Arc::new(std::sync::Mutex::new(Some(Point { x: 10, y: 20 })));
     println!("{} {}", "Point:".to_string(), point);
@@ -20,7 +20,7 @@ fn main() {
     point.y = 40;
     println!("{} {}", "Modified point:".to_string(), point);
     let mut q = p;
-     = 200;
+    *q.lock().unwrap().as_ref().unwrap() = 200;
     println!("{} {}", "x after modifying through q:".to_string(), x);
     let mut newPoint = std::sync::Arc::new(std::sync::Mutex::new(Some(Point::default())));
     newPoint.x = 5;

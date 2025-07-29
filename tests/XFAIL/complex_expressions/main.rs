@@ -37,8 +37,8 @@ fn main() {
     print!("Distance squared between points: {}\n", distanceSquared);
     println!("{}", "\n=== Pointer expressions ===".to_string());
     let mut val = 42;
-    let mut ptr = &val;
-    let mut ptrResult =  +  - ;
+    let mut ptr = std::sync::Arc::new(std::sync::Mutex::new(Some(val)));
+    let mut ptrResult = *ptr.lock().unwrap().as_ref().unwrap() +  - ;
     print!("*ptr + (*ptr * 2) - (*ptr / 2) = {}\n", ptrResult);
     println!("{}", "\n=== Type assertion expressions ===".to_string());
     let mut iface = 100;
