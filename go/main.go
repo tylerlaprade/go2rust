@@ -9,6 +9,9 @@ import (
 )
 
 func main() {
+	// Enable the conservative wrapping approach
+	Config.WrapEverything = true
+
 	if len(os.Args) < 2 {
 		fmt.Fprintf(os.Stderr, "Usage: %s <go-file-or-directory>...\n", os.Args[0])
 		os.Exit(1)

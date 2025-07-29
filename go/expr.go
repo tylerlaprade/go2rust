@@ -6,7 +6,22 @@ import (
 	"strings"
 )
 
+// ExprContext represents how an expression is being used
+type ExprContext int
+
+const (
+	RValue    ExprContext = iota // Expression is being read
+	LValue                       // Expression is being written to
+	AddressOf                    // Expression is having its address taken
+)
+
+// TranspileExpression transpiles an expression (defaults to RValue context)
 func TranspileExpression(out *strings.Builder, expr ast.Expr) {
+	TranspileExpressionContext(out, expr, RValue)
+}
+
+// TranspileExpressionContext transpiles an expression with context about how it's used
+func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprContext) {
 	switch e := expr.(type) {
 	case *ast.BasicLit:
 		if e.Kind == token.STRING {
@@ -22,7 +37,25 @@ func TranspileExpression(out *strings.Builder, expr ast.Expr) {
 		} else if e.Name[0] >= 'A' && e.Name[0] <= 'Z' && e.Name != "String" {
 			// Likely a constant - convert to UPPER_SNAKE_CASE
 			out.WriteString(strings.ToUpper(ToSnakeCase(e.Name)))
+		} else if e.Name == "true" || e.Name == "false" {
+			// Boolean literals
+			out.WriteString(e.Name)
+		} else if Config.WrapEverything {
+			// All variables are wrapped in Arc<Mutex<Option<T>>>
+			if ctx == RValue {
+				// Reading a variable requires unwrapping to get the inner value
+				out.WriteString("(*")
+				out.WriteString(e.Name)
+				out.WriteString(".lock().unwrap().as_ref().unwrap())")
+			} else if ctx == AddressOf {
+				// Taking address just returns the Arc itself
+				out.WriteString(e.Name)
+			} else {
+				// LValue context - just the identifier
+				out.WriteString(e.Name)
+			}
 		} else {
+			// Not wrapping - just the identifier
 			out.WriteString(e.Name)
 		}
 
@@ -44,9 +77,16 @@ func TranspileExpression(out *strings.Builder, expr ast.Expr) {
 	case *ast.UnaryExpr:
 		switch e.Op {
 		case token.AND: // & - address-of
-			out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(Some(")
-			TranspileExpression(out, e.X)
-			out.WriteString(")))")
+			if Config.WrapEverything {
+				// In wrap-everything mode, & just clones the Arc
+				TranspileExpressionContext(out, e.X, AddressOf)
+				out.WriteString(".clone()")
+			} else {
+				// Old behavior - wrap the value
+				out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(Some(")
+				TranspileExpression(out, e.X)
+				out.WriteString(")))")
+			}
 		case token.MUL: // * - dereference
 			out.WriteString("*")
 			TranspileExpression(out, e.X)
@@ -61,7 +101,6 @@ func TranspileExpression(out *strings.Builder, expr ast.Expr) {
 		out.WriteString("*")
 		TranspileExpression(out, e.X)
 		out.WriteString(".lock().unwrap().as_ref().unwrap()")
-
 	case *ast.BinaryExpr:
 		// Special handling for comparisons with nil
 		if ident, ok := e.Y.(*ast.Ident); ok && ident.Name == "nil" {

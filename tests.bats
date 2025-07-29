@@ -92,6 +92,10 @@ run_xfail_test() {
 
 
 # BEGIN GENERATED TESTS - DO NOT EDIT
+@test "aliasing_mutation" {
+    run_test "tests/aliasing_mutation"
+}
+
 @test "arrays_basic" {
     run_test "tests/arrays_basic"
 }
@@ -108,8 +112,16 @@ run_xfail_test() {
     run_test "tests/hello_world"
 }
 
+@test "late_address_of" {
+    run_test "tests/late_address_of"
+}
+
 @test "library_example" {
     run_test "tests/library_example"
+}
+
+@test "pointers_simple" {
+    run_test "tests/pointers_simple"
 }
 
 @test "simple_functions" {
@@ -118,6 +130,14 @@ run_xfail_test() {
 
 @test "variable_declarations" {
     run_test "tests/variable_declarations"
+}
+
+@test "wrap_everything" {
+    run_test "tests/wrap_everything"
+}
+
+@test "wrap_simple" {
+    run_test "tests/wrap_simple"
 }
 
 @test "XFAIL: advanced_control_flow" {
@@ -286,5 +306,9 @@ run_xfail_test() {
 
 @test "XFAIL: wrap_everything" {
     run_xfail_test "tests/XFAIL/wrap_everything"
+}
+
+@test "XFAIL: wrap_simple" {
+    run_xfail_test "tests/XFAIL/wrap_simple"
 }
 # END GENERATED TESTS

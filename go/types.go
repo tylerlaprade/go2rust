@@ -5,6 +5,20 @@ import (
 )
 
 func GoTypeToRust(expr ast.Expr) string {
+	baseType := goTypeToRustBase(expr)
+
+	// Wrap everything in Arc<Mutex<Option<>>> when in WrapEverything mode
+	if Config.WrapEverything {
+		// Don't double-wrap pointers - they're already wrapped
+		if _, isPointer := expr.(*ast.StarExpr); !isPointer {
+			return "std::sync::Arc<std::sync::Mutex<Option<" + baseType + ">>>"
+		}
+	}
+
+	return baseType
+}
+
+func goTypeToRustBase(expr ast.Expr) string {
 	switch t := expr.(type) {
 	case *ast.Ident:
 		switch t.Name {
@@ -30,7 +44,7 @@ func GoTypeToRust(expr ast.Expr) string {
 		}
 		return "Unknown"
 	case *ast.ArrayType:
-		elemType := GoTypeToRust(t.Elt)
+		elemType := goTypeToRustBase(t.Elt)
 		if t.Len != nil {
 			// Fixed-size array
 			if lit, ok := t.Len.(*ast.BasicLit); ok {
@@ -40,12 +54,12 @@ func GoTypeToRust(expr ast.Expr) string {
 		// Slice
 		return "Vec<" + elemType + ">"
 	case *ast.MapType:
-		keyType := GoTypeToRust(t.Key)
-		valueType := GoTypeToRust(t.Value)
+		keyType := goTypeToRustBase(t.Key)
+		valueType := goTypeToRustBase(t.Value)
 		return "std::collections::HashMap<" + keyType + ", " + valueType + ">"
 	case *ast.StarExpr:
 		// Pointer type - use Arc<Mutex<Option<T>>> for conservative translation
-		innerType := GoTypeToRust(t.X)
+		innerType := goTypeToRustBase(t.X)
 		return "std::sync::Arc<std::sync::Mutex<Option<" + innerType + ">>>"
 	}
 	return "Unknown"

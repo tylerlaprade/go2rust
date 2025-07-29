@@ -480,18 +480,53 @@ Go provides the go/types package that already does type analysis. Instead of bui
 - Keep the transpiler focused on syntax translation
 - This is why we can handle complex features with simple code
 
-### 7. The True Conservative Approach Requires Wrapping Everything
+### 7. The True Conservative Approach: Wrap EVERYTHING
 
-The initial approach of only wrapping pointers is insufficient because Go allows taking the address of any variable:
+After much deliberation, we've decided on the truly conservative approach:
+
+**EVERYTHING is Arc<Mutex<Option<T>>>. No exceptions.**
+
+This includes:
+- Local variables
+- Function parameters
+- Return values
+- Struct fields
+- Intermediate expressions
+
+Why this approach:
+1. **Correctness over performance** - Go allows taking the address of ANY variable, including function parameters
+2. **Simplicity over cleverness** - No escape analysis, no special cases, no complex rules
+3. **Uniform mental model** - Everything works the same way
+4. **True to our philosophy** - We're a syntax translator, not an optimizing compiler
+
+Example:
 ```go
-x := 42      // regular variable
-p := &x      // now x needs to be shareable!
+func add(a, b int) int {
+    return a + b
+}
 ```
 
-The TRUE conservative approach requires:
-- Every variable becomes Arc<Mutex<Option<T>>>
-- Every access needs .lock().unwrap()
-- Taking address (&) just clones the Arc
-- This is a massive change but aligns with the core philosophy
+Becomes:
+```rust
+fn add(a: Arc<Mutex<Option<i32>>>, b: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<i32>>> {
+    Arc::new(Mutex::new(Some(
+        (*a.lock().unwrap().as_ref().unwrap()) + (*b.lock().unwrap().as_ref().unwrap())
+    )))
+}
+```
 
-This is a major architectural change that should be implemented as a separate mode or phase.
+Yes, it's verbose. Yes, we can't call Rust stdlib functions. But it's CORRECT and SIMPLE.
+
+**Important decisions:**
+- NO helper functions or macros - we generate real Rust code, not abstractions
+- NO escape analysis - that's optimization, not translation
+- NO special cases - everything follows the same rules
+- Accept the verbosity - our users will optimize later
+
+This approach ensures that ANY valid Go program can be translated, even edge cases like:
+```go
+func foo(x int) {
+    p := &x  // Taking address of parameter - this must work!
+    *p = 42
+}
+```

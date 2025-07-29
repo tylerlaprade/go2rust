@@ -109,7 +109,14 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						TranspileExpression(out, result)
 					}
 				} else {
-					TranspileExpression(out, result)
+					if Config.WrapEverything {
+						// Wrap return values in Arc<Mutex<Option<>>>
+						out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(Some(")
+						TranspileExpression(out, result)
+						out.WriteString(")))")
+					} else {
+						TranspileExpression(out, result)
+					}
 				}
 			}
 
@@ -225,9 +232,18 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						if i > 0 {
 							out.WriteString("; ")
 						}
-						TranspileExpression(out, s.Lhs[i])
-						out.WriteString(" = ")
-						TranspileExpression(out, s.Rhs[i])
+						if Config.WrapEverything {
+							// Assignment to wrapped variable: *var.lock().unwrap() = Some(value)
+							out.WriteString("*")
+							TranspileExpression(out, s.Lhs[i])
+							out.WriteString(".lock().unwrap() = Some(")
+							TranspileExpression(out, s.Rhs[i])
+							out.WriteString(")")
+						} else {
+							TranspileExpression(out, s.Lhs[i])
+							out.WriteString(" = ")
+							TranspileExpression(out, s.Rhs[i])
+						}
 					}
 					out.WriteString(" }")
 				}
@@ -246,23 +262,61 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						}
 					} else {
 						// Normal single assignment
-						for i, lhs := range s.Lhs {
-							if i > 0 {
-								out.WriteString(", ")
+						if Config.WrapEverything && s.Tok == token.ASSIGN {
+							// Assignment to wrapped variable
+							// Check if LHS is a dereference (*p = value)
+							if star, ok := s.Lhs[0].(*ast.StarExpr); ok {
+								// Assignment through pointer: *p = value
+								out.WriteString("{ ")
+								out.WriteString("let new_val = ")
+								TranspileExpression(out, s.Rhs[0])
+								out.WriteString("; ")
+								out.WriteString("*")
+								TranspileExpressionContext(out, star.X, LValue)
+								out.WriteString(".lock().unwrap() = Some(new_val); }")
+							} else {
+								// Direct assignment: x = value
+								out.WriteString("{ ")
+								out.WriteString("let new_val = ")
+								TranspileExpression(out, s.Rhs[0])
+								out.WriteString("; ")
+								out.WriteString("*")
+								TranspileExpressionContext(out, s.Lhs[0], LValue)
+								out.WriteString(".lock().unwrap() = Some(new_val); }")
 							}
-							if s.Tok == token.DEFINE {
-								out.WriteString("let mut ")
+						} else {
+							// Regular assignment or definition
+							for i, lhs := range s.Lhs {
+								if i > 0 {
+									out.WriteString(", ")
+								}
+								if s.Tok == token.DEFINE {
+									out.WriteString("let mut ")
+								}
+								TranspileExpressionContext(out, lhs, LValue)
 							}
-							TranspileExpression(out, lhs)
-						}
 
-						out.WriteString(" = ")
+							out.WriteString(" = ")
 
-						for i, rhs := range s.Rhs {
-							if i > 0 {
-								out.WriteString(", ")
+							for i, rhs := range s.Rhs {
+								if i > 0 {
+									out.WriteString(", ")
+								}
+								if Config.WrapEverything && s.Tok == token.DEFINE {
+									// Check if RHS is an address-of expression
+									if unary, ok := rhs.(*ast.UnaryExpr); ok && unary.Op == token.AND {
+										// Taking address - don't wrap, the & operator will handle it
+										TranspileExpression(out, rhs)
+									} else {
+										// Wrap new variables in Arc<Mutex<Option<>>>
+										out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(Some(")
+										TranspileExpression(out, rhs)
+										out.WriteString(")))")
+									}
+								} else {
+									TranspileExpression(out, rhs)
+								}
 							}
-							TranspileExpression(out, rhs)
 						}
 					}
 				} else {
@@ -283,7 +337,14 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						if i > 0 {
 							out.WriteString(", ")
 						}
-						TranspileExpression(out, rhs)
+						if Config.WrapEverything && s.Tok == token.DEFINE {
+							// Wrap new variables in Arc<Mutex<Option<>>>
+							out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(Some(")
+							TranspileExpression(out, rhs)
+							out.WriteString(")))")
+						} else {
+							TranspileExpression(out, rhs)
+						}
 					}
 				}
 			}

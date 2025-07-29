@@ -43,23 +43,35 @@ func main() {
 **Output (Rust):**
 
 ```rust
-fn get_greeting() -> String {
-    return "Hello, World!".to_string();
+use std::sync::{Arc, Mutex};
+
+fn get_greeting() -> Arc<Mutex<Option<String>>> {
+    return Arc::new(Mutex::new(Some("Hello, World!".to_string())));
 }
 
-fn get_year() -> i32 {
-    return 2024;
+fn get_year() -> Arc<Mutex<Option<i32>>> {
+    return Arc::new(Mutex::new(Some(2024)));
 }
 
 fn main() {
-    println!("{}", get_greeting());
-    println!("{:?}", get_year());
+    println!("{}", (*get_greeting().lock().unwrap().as_ref().unwrap()));
+    println!("{:?}", (*get_year().lock().unwrap().as_ref().unwrap()));
 }
 ```
 
+Note: The actual output is more verbose than shown here due to our conservative wrapping approach. Every value is wrapped in `Arc<Mutex<Option<T>>>` to ensure correctness.
+
 ## Philosophy
 
-This transpiler uses a "make it work first, optimize later" approach. Every Go pointer becomes `Arc<Mutex<Option<T>>>` initially, ensuring semantic correctness even if performance isn't optimal.
+This transpiler uses a "make it work first, optimize later" approach. **EVERY Go value** becomes `Arc<Mutex<Option<T>>>` - no exceptions. This includes:
+
+- All variables (local, global)
+- All function parameters
+- All return values
+- All struct fields
+- All intermediate expressions
+
+This ensures semantic correctness for ANY Go program, even edge cases like taking the address of function parameters. The generated code is verbose but correct. Users can optimize later.
 
 ## Progress Tracking
 
