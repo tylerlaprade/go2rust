@@ -235,7 +235,7 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 func transpileLen(out *strings.Builder, call *ast.CallExpr) {
 	if len(call.Args) > 0 {
 		TranspileExpression(out, call.Args[0])
-		out.WriteString(".len()")
+		out.WriteString(".len() as i32")
 	}
 }
 

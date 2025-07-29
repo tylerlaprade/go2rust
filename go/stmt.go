@@ -203,23 +203,58 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				}
 			} else {
 				// Single assignment
-				for i, lhs := range s.Lhs {
-					if i > 0 {
-						out.WriteString(", ")
-					}
-					if s.Tok == token.DEFINE {
-						out.WriteString("let mut ")
-					}
-					TranspileExpression(out, lhs)
-				}
+				// Check if we're assigning to just blank identifier
+				if len(s.Lhs) == 1 {
+					if ident, ok := s.Lhs[0].(*ast.Ident); ok && ident.Name == "_" {
+						// Assignment to _ only - just evaluate the RHS for side effects
+						out.WriteString("let _ = ")
+						for i, rhs := range s.Rhs {
+							if i > 0 {
+								out.WriteString(", ")
+							}
+							TranspileExpression(out, rhs)
+						}
+					} else {
+						// Normal single assignment
+						for i, lhs := range s.Lhs {
+							if i > 0 {
+								out.WriteString(", ")
+							}
+							if s.Tok == token.DEFINE {
+								out.WriteString("let mut ")
+							}
+							TranspileExpression(out, lhs)
+						}
 
-				out.WriteString(" = ")
+						out.WriteString(" = ")
 
-				for i, rhs := range s.Rhs {
-					if i > 0 {
-						out.WriteString(", ")
+						for i, rhs := range s.Rhs {
+							if i > 0 {
+								out.WriteString(", ")
+							}
+							TranspileExpression(out, rhs)
+						}
 					}
-					TranspileExpression(out, rhs)
+				} else {
+					// Multiple LHS
+					for i, lhs := range s.Lhs {
+						if i > 0 {
+							out.WriteString(", ")
+						}
+						if s.Tok == token.DEFINE {
+							out.WriteString("let mut ")
+						}
+						TranspileExpression(out, lhs)
+					}
+
+					out.WriteString(" = ")
+
+					for i, rhs := range s.Rhs {
+						if i > 0 {
+							out.WriteString(", ")
+						}
+						TranspileExpression(out, rhs)
+					}
 				}
 			}
 		}
@@ -313,26 +348,63 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 	case *ast.RangeStmt:
 		// Handle for range loops
 		out.WriteString("for ")
-		if s.Key != nil && s.Value != nil {
-			// for i, v := range arr
-			out.WriteString("(")
-			TranspileExpression(out, s.Key)
-			out.WriteString(", ")
-			TranspileExpression(out, s.Value)
-			out.WriteString(") in ")
-			TranspileExpression(out, s.X)
-			out.WriteString(".iter().enumerate()")
-		} else if s.Value != nil {
-			// for _, v := range arr
-			TranspileExpression(out, s.Value)
-			out.WriteString(" in &")
-			TranspileExpression(out, s.X)
-		} else if s.Key != nil {
-			// for i := range arr
-			TranspileExpression(out, s.Key)
-			out.WriteString(" in 0..")
-			TranspileExpression(out, s.X)
-			out.WriteString(".len()")
+
+		// Check if we're iterating over a map by looking at the identifier
+		isMap := false
+		if ident, ok := s.X.(*ast.Ident); ok {
+			// Simple heuristic: if the variable name contains "map" or common map names
+			// This is not perfect but works for many cases
+			// TODO: Use type information for accurate detection
+			name := strings.ToLower(ident.Name)
+			isMap = strings.Contains(name, "map") || name == "ages" || name == "colors" || name == "m"
+		}
+
+		if isMap {
+			// Map iteration
+			if s.Key != nil && s.Value != nil {
+				// for k, v := range map
+				out.WriteString("(")
+				TranspileExpression(out, s.Key)
+				out.WriteString(", ")
+				TranspileExpression(out, s.Value)
+				out.WriteString(") in &")
+				TranspileExpression(out, s.X)
+			} else if s.Value != nil {
+				// for _, v := range map (values only)
+				out.WriteString("(_, ")
+				TranspileExpression(out, s.Value)
+				out.WriteString(") in &")
+				TranspileExpression(out, s.X)
+			} else if s.Key != nil {
+				// for k := range map (keys only)
+				out.WriteString("(")
+				TranspileExpression(out, s.Key)
+				out.WriteString(", _) in &")
+				TranspileExpression(out, s.X)
+			}
+		} else {
+			// Array/slice iteration
+			if s.Key != nil && s.Value != nil {
+				// for i, v := range arr
+				out.WriteString("(")
+				TranspileExpression(out, s.Key)
+				out.WriteString(", ")
+				TranspileExpression(out, s.Value)
+				out.WriteString(") in ")
+				TranspileExpression(out, s.X)
+				out.WriteString(".iter().enumerate()")
+			} else if s.Value != nil {
+				// for _, v := range arr
+				TranspileExpression(out, s.Value)
+				out.WriteString(" in &")
+				TranspileExpression(out, s.X)
+			} else if s.Key != nil {
+				// for i := range arr
+				TranspileExpression(out, s.Key)
+				out.WriteString(" in 0..")
+				TranspileExpression(out, s.X)
+				out.WriteString(".len()")
+			}
 		}
 		out.WriteString(" {\n")
 

@@ -8,7 +8,7 @@ pub fn process_slice(slice: Vec<i32>) -> (i32, i32) {
     let mut count: i32 = 0;
 
     sum = 0;
-    count = slice.len();
+    count = slice.len() as i32;
     for (_, val) in slice.iter().enumerate() {
         sum += val;
     }
@@ -43,12 +43,12 @@ fn main() {
     println!("{}", "\n=== Ignoring in map iteration ===".to_string());
     let mut ages = std::collections::HashMap::<String, i32>::from([("Alice".to_string(), 25), ("Bob".to_string(), 30), ("Carol".to_string(), 35)]);
     println!("{}", "Keys only:".to_string());
-    for (name, _) in ages.iter().enumerate() {
+    for (name, _) in &ages {
         print!("{} ", name);
     }
     println!();
     println!("{}", "Values only:".to_string());
-    for (_, age) in ages.iter().enumerate() {
+    for (_, age) in &ages {
         print!("{} ", age);
     }
     println!();
@@ -58,7 +58,7 @@ fn main() {
     let (_, mut count) = process_slice(slice);
     print!("Count (ignoring sum): {}\n", count);
     println!("{}", "\n=== Blank identifier in declarations ===".to_string());
-    _ = "This string is assigned but not used".to_string();
+    let _ = "This string is assigned but not used".to_string();
     let (mut a, _, mut c) = (1, 2, 3);
     print!("a={}, c={} (middle value ignored)\n", a, c);
     println!("{}", "\n=== Blank identifier with type assertion ===".to_string());
