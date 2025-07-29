@@ -274,6 +274,14 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 								out.WriteString("*")
 								TranspileExpressionContext(out, star.X, LValue)
 								out.WriteString(".lock().unwrap() = Some(new_val); }")
+							} else if indexExpr, ok := s.Lhs[0].(*ast.IndexExpr); ok && !isMapIndexAssign {
+								// Array/slice element assignment: arr[i] = value
+								out.WriteString("(*")
+								TranspileExpressionContext(out, indexExpr.X, LValue)
+								out.WriteString(".lock().unwrap().as_mut().unwrap())[")
+								TranspileExpression(out, indexExpr.Index)
+								out.WriteString("] = ")
+								TranspileExpression(out, s.Rhs[0])
 							} else {
 								// Direct assignment: x = value
 								out.WriteString("{ ")
@@ -434,13 +442,28 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		out.WriteString("}")
 
 	case *ast.IncDecStmt:
-		TranspileExpression(out, s.X)
-		if s.Tok == token.INC {
-			out.WriteString(" += 1")
+		if Config.WrapEverything {
+			// For wrapped variables, we need to update the value inside
+			out.WriteString("{ ")
+			out.WriteString("let mut guard = ")
+			TranspileExpressionContext(out, s.X, LValue)
+			out.WriteString(".lock().unwrap(); ")
+			out.WriteString("*guard = Some(guard.as_ref().unwrap() ")
+			if s.Tok == token.INC {
+				out.WriteString("+ 1")
+			} else {
+				out.WriteString("- 1")
+			}
+			out.WriteString("); }")
 		} else {
-			out.WriteString(" -= 1")
+			TranspileExpression(out, s.X)
+			if s.Tok == token.INC {
+				out.WriteString(" += 1")
+			} else {
+				out.WriteString(" -= 1")
+			}
+			out.WriteString(";")
 		}
-		out.WriteString(";")
 
 	case *ast.RangeStmt:
 		// Handle for range loops

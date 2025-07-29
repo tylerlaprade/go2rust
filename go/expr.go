@@ -140,10 +140,19 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			}
 		}
 		// Regular array/slice indexing
-		TranspileExpression(out, e.X)
-		out.WriteString("[")
-		TranspileExpression(out, e.Index)
-		out.WriteString("]")
+		if Config.WrapEverything {
+			// Need to unwrap the array/slice first
+			out.WriteString("(*")
+			TranspileExpressionContext(out, e.X, RValue)
+			out.WriteString(")[")
+			TranspileExpression(out, e.Index)
+			out.WriteString("]")
+		} else {
+			TranspileExpression(out, e.X)
+			out.WriteString("[")
+			TranspileExpression(out, e.Index)
+			out.WriteString("]")
+		}
 
 	case *ast.SliceExpr:
 		TranspileExpression(out, e.X)
