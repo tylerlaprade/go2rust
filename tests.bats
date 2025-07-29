@@ -204,6 +204,10 @@ run_xfail_test() {
     run_xfail_test "tests/XFAIL/nested_structures"
 }
 
+@test "XFAIL: nil_basic" {
+    run_xfail_test "tests/XFAIL/nil_basic"
+}
+
 @test "XFAIL: panic_recover" {
     run_xfail_test "tests/XFAIL/panic_recover"
 }

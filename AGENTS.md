@@ -399,6 +399,7 @@ After we have working transpilation:
 ## Recent Progress
 
 **Phase 2 Progress**:
+
 - All basic variable and type features implemented
 - Added multiple return values support
 - Added blank identifier (_) support
@@ -407,11 +408,13 @@ After we have working transpilation:
 - Added maps with HashMap (partial operations)
 
 **Test Infrastructure Improvements**:
+
 - Added parallel test execution support (auto-detects CPU cores)
 - Uses 75% of available cores to avoid memory pressure
 - Requires GNU parallel for parallel execution
 
 **Key Achievements**:
+
 - Significant Phase 2 progress
 - No test regressions - all previously passing tests still pass
 - Maintained backward compatibility while adding new features
@@ -453,3 +456,21 @@ This maintains flexibility across different environments while addressing specif
 ### 4. Never Manually Move Tests Between Directories
 
 Tests should only move from XFAIL to the main test suite through autopromotion when they start passing. Manual moves break the test-driven development workflow and can hide issues. The autopromotion system ensures tests only graduate when they truly work.
+
+### 5. We're Building a Syntax Translator, Not a Compiler
+
+This is a crucial distinction that simplifies everything:
+
+- We don't need complex type tracking systems
+- We don't need to optimize or analyze code flow
+- We just translate Go syntax to Rust syntax conservatively
+- Let the Rust compiler handle optimization
+
+### 6. Let go/types Handle the Complexity
+
+Go provides the go/types package that already does type analysis. Instead of building our own:
+
+- Use go/types when we need type information
+- Don't duplicate what Go already provides
+- Keep the transpiler focused on syntax translation
+- This is why we can handle complex features with simple code

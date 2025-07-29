@@ -107,7 +107,7 @@ This transpiler uses a "make it work first, optimize later" approach. Every Go p
 | **`map` - Maps** | |
 | └ Map types | ✅ |
 | └ Map literals | ✅ |
-| └ Map operations | ⏳ |
+| └ Map operations | ✅ |
 | **Arrays & Slices** | |
 | └ Fixed arrays | ✅ |
 | └ Slices | ✅ |
