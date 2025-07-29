@@ -9,18 +9,18 @@ pub fn defer_example() {
 }
 
 pub fn defer_with_variables() {
-    let mut x = 10;
+    let mut x = std::sync::Arc::new(std::sync::Mutex::new(Some(10)));
     
-    x = 20;
-    println!("{} {}", "Current x:".to_string(), x);
+    { let new_val = 20; *x.lock().unwrap() = Some(new_val); };
+    println!("{} {}", "Current x:".to_string(), (*x.lock().unwrap().as_ref().unwrap()));
 }
 
 pub fn defer_in_loop() {
     println!("{}", "Defer in loop:".to_string());
-    let mut i = 0;
-    while i < 3 {
+    let mut i = std::sync::Arc::new(std::sync::Mutex::new(Some(0)));
+    while (*i.lock().unwrap().as_ref().unwrap()) < 3 {
         
-        i += 1;
+        { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
     println!("{}", "Loop finished".to_string());
 }
@@ -33,10 +33,10 @@ pub fn resource_example() {
     println!("{}", "Acquiring resource".to_string());
     
     println!("{}", "Using resource".to_string());
-    let mut i = 0;
-    while i < 3 {
-        print!("Working... {}\n", i + 1);
-        i += 1;
+    let mut i = std::sync::Arc::new(std::sync::Mutex::new(Some(0)));
+    while (*i.lock().unwrap().as_ref().unwrap()) < 3 {
+        print!("Working... {}\n", (*i.lock().unwrap().as_ref().unwrap()) + 1);
+        { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
     println!("{}", "Done with resource".to_string());
 }

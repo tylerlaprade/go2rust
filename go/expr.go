@@ -40,7 +40,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		} else if e.Name == "true" || e.Name == "false" {
 			// Boolean literals
 			out.WriteString(e.Name)
-		} else if Config.WrapEverything {
+		} else {
 			// All variables are wrapped in Arc<Mutex<Option<T>>>
 			if ctx == RValue {
 				// Reading a variable requires unwrapping to get the inner value
@@ -54,9 +54,6 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				// LValue context - just the identifier
 				out.WriteString(e.Name)
 			}
-		} else {
-			// Not wrapping - just the identifier
-			out.WriteString(e.Name)
 		}
 
 	case *ast.CallExpr:
@@ -77,16 +74,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 	case *ast.UnaryExpr:
 		switch e.Op {
 		case token.AND: // & - address-of
-			if Config.WrapEverything {
-				// In wrap-everything mode, & just clones the Arc
-				TranspileExpressionContext(out, e.X, AddressOf)
-				out.WriteString(".clone()")
-			} else {
-				// Old behavior - wrap the value
-				out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(Some(")
-				TranspileExpression(out, e.X)
-				out.WriteString(")))")
-			}
+			// Taking address just clones the Arc
+			TranspileExpressionContext(out, e.X, AddressOf)
+			out.WriteString(".clone()")
 		case token.MUL: // * - dereference
 			out.WriteString("*")
 			TranspileExpression(out, e.X)
@@ -140,19 +130,11 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			}
 		}
 		// Regular array/slice indexing
-		if Config.WrapEverything {
-			// Need to unwrap the array/slice first
-			out.WriteString("(*")
-			TranspileExpressionContext(out, e.X, RValue)
-			out.WriteString(")[")
-			TranspileExpression(out, e.Index)
-			out.WriteString("]")
-		} else {
-			TranspileExpression(out, e.X)
-			out.WriteString("[")
-			TranspileExpression(out, e.Index)
-			out.WriteString("]")
-		}
+		// Need to unwrap the array/slice first
+		TranspileExpressionContext(out, e.X, RValue)
+		out.WriteString("[")
+		TranspileExpression(out, e.Index)
+		out.WriteString("]")
 
 	case *ast.SliceExpr:
 		TranspileExpression(out, e.X)
@@ -292,7 +274,15 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 		if i > 0 {
 			out.WriteString(", ")
 		}
-		TranspileExpression(out, arg)
+		// Wrap arguments in Arc<Mutex<Option<>>> for user-defined functions
+		// Skip wrapping for stdlib functions (they're handled specially)
+		if handler := GetStdlibHandler(call); handler == nil {
+			out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(Some(")
+			TranspileExpression(out, arg)
+			out.WriteString(")))")
+		} else {
+			TranspileExpression(out, arg)
+		}
 	}
 	out.WriteString(")")
 }

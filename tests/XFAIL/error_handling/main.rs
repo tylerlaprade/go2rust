@@ -1,77 +1,77 @@
-pub fn divide(a: f64, b: f64) -> (f64, Option<Box<dyn std::error::Error + Send + Sync>>) {
+pub fn divide(a: std::sync::Arc<std::sync::Mutex<Option<f64>>>, b: std::sync::Arc<std::sync::Mutex<Option<f64>>>) -> (std::sync::Arc<std::sync::Mutex<Option<f64>>>, std::sync::Arc<std::sync::Mutex<Option<Option<Box<dyn std::error::Error + Send + Sync>>>>>) {
 
-    if b == 0 {
-        return (0, errors.new("division by zero".to_string()));
+    if (*b.lock().unwrap().as_ref().unwrap()) == 0 {
+        return (std::sync::Arc::new(std::sync::Mutex::new(Some(0))), std::sync::Arc::new(std::sync::Mutex::new(Some((*errors.lock().unwrap().as_ref().unwrap()).new(std::sync::Arc::new(std::sync::Mutex::new(Some("division by zero".to_string()))))))));
     }
-    return (a / b, None);
+    return (std::sync::Arc::new(std::sync::Mutex::new(Some((*a.lock().unwrap().as_ref().unwrap()) / (*b.lock().unwrap().as_ref().unwrap())))), std::sync::Arc::new(std::sync::Mutex::new(Some(None))));
 }
 
-pub fn sqrt(x: f64) -> (f64, Option<Box<dyn std::error::Error + Send + Sync>>) {
+pub fn sqrt(x: std::sync::Arc<std::sync::Mutex<Option<f64>>>) -> (std::sync::Arc<std::sync::Mutex<Option<f64>>>, std::sync::Arc<std::sync::Mutex<Option<Option<Box<dyn std::error::Error + Send + Sync>>>>>) {
 
-    if x < 0 {
-        return (0, Some(Box::new(format!("cannot take square root of negative number: {}", x)) as Box<dyn std::error::Error + Send + Sync>));
+    if (*x.lock().unwrap().as_ref().unwrap()) < 0 {
+        return (std::sync::Arc::new(std::sync::Mutex::new(Some(0))), std::sync::Arc::new(std::sync::Mutex::new(Some(Some(Box::new(format!("cannot take square root of negative number: {}", (*x.lock().unwrap().as_ref().unwrap()))) as Box<dyn std::error::Error + Send + Sync>)))));
     }
-    let mut result = x / 2;
-    let mut i = 0;
-    while i < 10 {
-        result =  / 2;
-        i += 1;
+    let mut result = std::sync::Arc::new(std::sync::Mutex::new(Some((*x.lock().unwrap().as_ref().unwrap()) / 2)));
+    let mut i = std::sync::Arc::new(std::sync::Mutex::new(Some(0)));
+    while (*i.lock().unwrap().as_ref().unwrap()) < 10 {
+        { let new_val =  / 2; *result.lock().unwrap() = Some(new_val); };
+        { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
-    return (result, None);
+    return (std::sync::Arc::new(std::sync::Mutex::new(Some((*result.lock().unwrap().as_ref().unwrap())))), std::sync::Arc::new(std::sync::Mutex::new(Some(None))));
 }
 
 #[derive(Debug)]
 struct CustomError {
-    code: i32,
-    message: String,
+    code: std::sync::Arc<std::sync::Mutex<Option<i32>>>,
+    message: std::sync::Arc<std::sync::Mutex<Option<String>>>,
 }
 
-pub fn error() -> String {
+pub fn error() -> std::sync::Arc<std::sync::Mutex<Option<String>>> {
 
-    return fmt.sprintf("Error %d: %s".to_string(), e.code, e.message);
+    return std::sync::Arc::new(std::sync::Mutex::new(Some((*fmt.lock().unwrap().as_ref().unwrap()).sprintf(std::sync::Arc::new(std::sync::Mutex::new(Some("Error %d: %s".to_string()))), std::sync::Arc::new(std::sync::Mutex::new(Some((*e.lock().unwrap().as_ref().unwrap()).code))), std::sync::Arc::new(std::sync::Mutex::new(Some((*e.lock().unwrap().as_ref().unwrap()).message)))))));
 }
 
-pub fn process_value(val: i32) -> Option<Box<dyn std::error::Error + Send + Sync>> {
+pub fn process_value(val: std::sync::Arc<std::sync::Mutex<Option<i32>>>) -> std::sync::Arc<std::sync::Mutex<Option<Option<Box<dyn std::error::Error + Send + Sync>>>>> {
 
-    if val < 0 {
-        return CustomError { code: 100, message: "negative value not allowed".to_string() };
+    if (*val.lock().unwrap().as_ref().unwrap()) < 0 {
+        return std::sync::Arc::new(std::sync::Mutex::new(Some(CustomError { code: 100, message: "negative value not allowed".to_string() })));
     }
-    if val > 100 {
-        return CustomError { code: 200, message: "value too large".to_string() };
+    if (*val.lock().unwrap().as_ref().unwrap()) > 100 {
+        return std::sync::Arc::new(std::sync::Mutex::new(Some(CustomError { code: 200, message: "value too large".to_string() })));
     }
-    return None;
+    return std::sync::Arc::new(std::sync::Mutex::new(Some(None)));
 }
 
 fn main() {
-    let (mut result, mut err) = divide(10, 2);
-    if err.is_some() {
-        println!("{} {}", "Error:".to_string(), err);
+    let (mut (*result.lock().unwrap().as_ref().unwrap()), mut (*err.lock().unwrap().as_ref().unwrap())) = divide(std::sync::Arc::new(std::sync::Mutex::new(Some(10))), std::sync::Arc::new(std::sync::Mutex::new(Some(2))));
+    if (*err.lock().unwrap().as_ref().unwrap()).is_some() {
+        println!("{} {}", "Error:".to_string(), (*err.lock().unwrap().as_ref().unwrap()));
     } else {
-        println!("{} {}", "10 / 2 =".to_string(), result);
+        println!("{} {}", "10 / 2 =".to_string(), (*result.lock().unwrap().as_ref().unwrap()));
     }
-    (result, err) = divide(10, 0);
-    if err.is_some() {
-        println!("{} {}", "Error:".to_string(), err);
+    ((*result.lock().unwrap().as_ref().unwrap()), (*err.lock().unwrap().as_ref().unwrap())) = divide(std::sync::Arc::new(std::sync::Mutex::new(Some(10))), std::sync::Arc::new(std::sync::Mutex::new(Some(0))));
+    if (*err.lock().unwrap().as_ref().unwrap()).is_some() {
+        println!("{} {}", "Error:".to_string(), (*err.lock().unwrap().as_ref().unwrap()));
     } else {
-        println!("{} {}", "Result:".to_string(), result);
+        println!("{} {}", "Result:".to_string(), (*result.lock().unwrap().as_ref().unwrap()));
     }
-    let (mut sqrtResult, mut err) = sqrt(-4);
-    if err.is_some() {
-        println!("{} {}", "Sqrt error:".to_string(), err);
+    let (mut (*sqrtResult.lock().unwrap().as_ref().unwrap()), mut (*err.lock().unwrap().as_ref().unwrap())) = sqrt(std::sync::Arc::new(std::sync::Mutex::new(Some(-4))));
+    if (*err.lock().unwrap().as_ref().unwrap()).is_some() {
+        println!("{} {}", "Sqrt error:".to_string(), (*err.lock().unwrap().as_ref().unwrap()));
     } else {
-        println!("{} {}", "Sqrt result:".to_string(), sqrtResult);
+        println!("{} {}", "Sqrt result:".to_string(), (*sqrtResult.lock().unwrap().as_ref().unwrap()));
     }
-    err = process_value(-5);
-    if err.is_some() {
-        println!("{} {}", "Process error:".to_string(), err);
+    { let new_val = process_value(std::sync::Arc::new(std::sync::Mutex::new(Some(-5)))); *err.lock().unwrap() = Some(new_val); };
+    if (*err.lock().unwrap().as_ref().unwrap()).is_some() {
+        println!("{} {}", "Process error:".to_string(), (*err.lock().unwrap().as_ref().unwrap()));
     }
-    err = process_value(150);
-    if err.is_some() {
-        println!("{} {}", "Process error:".to_string(), err);
+    { let new_val = process_value(std::sync::Arc::new(std::sync::Mutex::new(Some(150)))); *err.lock().unwrap() = Some(new_val); };
+    if (*err.lock().unwrap().as_ref().unwrap()).is_some() {
+        println!("{} {}", "Process error:".to_string(), (*err.lock().unwrap().as_ref().unwrap()));
     }
-    err = process_value(50);
-    if err.is_some() {
-        println!("{} {}", "Process error:".to_string(), err);
+    { let new_val = process_value(std::sync::Arc::new(std::sync::Mutex::new(Some(50)))); *err.lock().unwrap() = Some(new_val); };
+    if (*err.lock().unwrap().as_ref().unwrap()).is_some() {
+        println!("{} {}", "Process error:".to_string(), (*err.lock().unwrap().as_ref().unwrap()));
     } else {
         println!("{}", "Value processed successfully".to_string());
     }

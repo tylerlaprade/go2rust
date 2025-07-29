@@ -7,17 +7,14 @@ import (
 func GoTypeToRust(expr ast.Expr) string {
 	baseType := goTypeToRustBase(expr)
 
-	// Wrap everything in Arc<Mutex<Option<>>> when in WrapEverything mode
-	if Config.WrapEverything {
-		// Don't double-wrap pointers - they're already wrapped
-		if _, isPointer := expr.(*ast.StarExpr); !isPointer {
-			return "std::sync::Arc<std::sync::Mutex<Option<" + baseType + ">>>"
-		}
+	// Wrap everything in Arc<Mutex<Option<>>>
+	// Don't double-wrap pointers - they're already wrapped
+	if _, isPointer := expr.(*ast.StarExpr); !isPointer {
+		return "std::sync::Arc<std::sync::Mutex<Option<" + baseType + ">>>"
 	}
 
 	return baseType
 }
-
 func goTypeToRustBase(expr ast.Expr) string {
 	switch t := expr.(type) {
 	case *ast.Ident:

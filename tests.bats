@@ -144,10 +144,6 @@ run_xfail_test() {
     run_xfail_test "tests/XFAIL/advanced_control_flow"
 }
 
-@test "XFAIL: aliasing_mutation" {
-    run_xfail_test "tests/XFAIL/aliasing_mutation"
-}
-
 @test "XFAIL: blank_identifier" {
     run_xfail_test "tests/XFAIL/blank_identifier"
 }
@@ -208,10 +204,6 @@ run_xfail_test() {
     run_xfail_test "tests/XFAIL/interfaces_basic"
 }
 
-@test "XFAIL: late_address_of" {
-    run_xfail_test "tests/XFAIL/late_address_of"
-}
-
 @test "XFAIL: maps_basic" {
     run_xfail_test "tests/XFAIL/maps_basic"
 }
@@ -246,10 +238,6 @@ run_xfail_test() {
 
 @test "XFAIL: pointers_basic" {
     run_xfail_test "tests/XFAIL/pointers_basic"
-}
-
-@test "XFAIL: pointers_simple" {
-    run_xfail_test "tests/XFAIL/pointers_simple"
 }
 
 @test "XFAIL: range_loops" {
@@ -302,13 +290,5 @@ run_xfail_test() {
 
 @test "XFAIL: variadic_functions" {
     run_xfail_test "tests/XFAIL/variadic_functions"
-}
-
-@test "XFAIL: wrap_everything" {
-    run_xfail_test "tests/XFAIL/wrap_everything"
-}
-
-@test "XFAIL: wrap_simple" {
-    run_xfail_test "tests/XFAIL/wrap_simple"
 }
 # END GENERATED TESTS

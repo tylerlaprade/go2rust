@@ -1,14 +1,14 @@
-pub fn get_hello() -> String {
+pub fn get_hello() -> std::sync::Arc<std::sync::Mutex<Option<String>>> {
 
-    return "Hello".to_string();
+    return std::sync::Arc::new(std::sync::Mutex::new(Some("Hello".to_string())));
 }
 
-pub fn get_world() -> String {
+pub fn get_world() -> std::sync::Arc<std::sync::Mutex<Option<String>>> {
 
-    return "World".to_string();
+    return std::sync::Arc::new(std::sync::Mutex::new(Some("World".to_string())));
 }
 
-pub fn get_magic_number() -> i32 {
+pub fn get_magic_number() -> std::sync::Arc<std::sync::Mutex<Option<i32>>> {
 
-    return 42;
+    return std::sync::Arc::new(std::sync::Mutex::new(Some(42)));
 }

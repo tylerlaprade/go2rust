@@ -1,179 +1,179 @@
 fn main() {
     println!("{}", "=== File Operations Test ===".to_string());
-    let mut filename = "test_file.txt".to_string();
+    let mut filename = std::sync::Arc::new(std::sync::Mutex::new(Some("test_file.txt".to_string())));
     println!("{}", "\n--- Writing to file ---".to_string());
-    let (mut file, mut err) = os.create(filename);
-    if err.is_some() {
-        print!("Error creating file: {}\n", err);
+    let (mut (*file.lock().unwrap().as_ref().unwrap()), mut (*err.lock().unwrap().as_ref().unwrap())) = (*os.lock().unwrap().as_ref().unwrap()).create(std::sync::Arc::new(std::sync::Mutex::new(Some((*filename.lock().unwrap().as_ref().unwrap())))));
+    if (*err.lock().unwrap().as_ref().unwrap()).is_some() {
+        print!("Error creating file: {}\n", (*err.lock().unwrap().as_ref().unwrap()));
         return;
     }
-    let mut content = vec!["Hello, World!".to_string(), "This is line 2".to_string(), "Go file operations".to_string(), "Line 4 with numbers: 123".to_string(), "Final line".to_string()];
-    for (i, line) in content.iter().enumerate() {
-        let (_, mut err) = file.write_string(line + "\n".to_string());
-        if err.is_some() {
-        print!("Error writing line {}: {}\n", i + 1, err);
-        file.close();
+    let mut content = std::sync::Arc::new(std::sync::Mutex::new(Some(vec!["Hello, World!".to_string(), "This is line 2".to_string(), "Go file operations".to_string(), "Line 4 with numbers: 123".to_string(), "Final line".to_string()])));
+    for (i, line) in (*content.lock().unwrap().as_ref().unwrap()).iter().enumerate() {
+        let ((*_.lock().unwrap().as_ref().unwrap()), mut (*err.lock().unwrap().as_ref().unwrap())) = (*file.lock().unwrap().as_ref().unwrap()).write_string(std::sync::Arc::new(std::sync::Mutex::new(Some((*line.lock().unwrap().as_ref().unwrap()) + "\n".to_string()))));
+        if (*err.lock().unwrap().as_ref().unwrap()).is_some() {
+        print!("Error writing line {}: {}\n", (*i.lock().unwrap().as_ref().unwrap()) + 1, (*err.lock().unwrap().as_ref().unwrap()));
+        (*file.lock().unwrap().as_ref().unwrap()).close();
         return;
     }
-        print!("Wrote: {}\n", line);
+        print!("Wrote: {}\n", (*line.lock().unwrap().as_ref().unwrap()));
     }
-    file.close();
-    print!("File '{}' created successfully\n", filename);
+    (*file.lock().unwrap().as_ref().unwrap()).close();
+    print!("File '{}' created successfully\n", (*filename.lock().unwrap().as_ref().unwrap()));
     println!("{}", "\n--- Reading entire file ---".to_string());
-    let (mut data, mut err) = os.read_file(filename);
-    if err.is_some() {
-        print!("Error reading file: {}\n", err);
+    let (mut (*data.lock().unwrap().as_ref().unwrap()), mut (*err.lock().unwrap().as_ref().unwrap())) = (*os.lock().unwrap().as_ref().unwrap()).read_file(std::sync::Arc::new(std::sync::Mutex::new(Some((*filename.lock().unwrap().as_ref().unwrap())))));
+    if (*err.lock().unwrap().as_ref().unwrap()).is_some() {
+        print!("Error reading file: {}\n", (*err.lock().unwrap().as_ref().unwrap()));
         return;
     }
-    print!("File contents:\n{}", string(data));
+    print!("File contents:\n{}", string(std::sync::Arc::new(std::sync::Mutex::new(Some((*data.lock().unwrap().as_ref().unwrap()))))));
     println!("{}", "\n--- Reading file line by line ---".to_string());
-    (file, err) = os.open(filename);
-    if err.is_some() {
-        print!("Error opening file: {}\n", err);
+    ((*file.lock().unwrap().as_ref().unwrap()), (*err.lock().unwrap().as_ref().unwrap())) = (*os.lock().unwrap().as_ref().unwrap()).open(std::sync::Arc::new(std::sync::Mutex::new(Some((*filename.lock().unwrap().as_ref().unwrap())))));
+    if (*err.lock().unwrap().as_ref().unwrap()).is_some() {
+        print!("Error opening file: {}\n", (*err.lock().unwrap().as_ref().unwrap()));
         return;
     }
     
-    let mut scanner = bufio.new_scanner(file);
-    let mut lineNum = 1;
-    while scanner.scan() {
-        let mut line = scanner.text();
-        print!("Line {}: {}\n", lineNum, line);
-        lineNum += 1;
+    let mut scanner = std::sync::Arc::new(std::sync::Mutex::new(Some((*bufio.lock().unwrap().as_ref().unwrap()).new_scanner(std::sync::Arc::new(std::sync::Mutex::new(Some((*file.lock().unwrap().as_ref().unwrap()))))))));
+    let mut lineNum = std::sync::Arc::new(std::sync::Mutex::new(Some(1)));
+    while (*scanner.lock().unwrap().as_ref().unwrap()).scan() {
+        let mut line = std::sync::Arc::new(std::sync::Mutex::new(Some((*scanner.lock().unwrap().as_ref().unwrap()).text())));
+        print!("Line {}: {}\n", (*lineNum.lock().unwrap().as_ref().unwrap()), (*line.lock().unwrap().as_ref().unwrap()));
+        { let mut guard = lineNum.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
-    let mut err = scanner.err();
-    if err.is_some() {
-        print!("Error reading file: {}\n", err);
+    let mut err = std::sync::Arc::new(std::sync::Mutex::new(Some((*scanner.lock().unwrap().as_ref().unwrap()).err())));
+    if (*err.lock().unwrap().as_ref().unwrap()).is_some() {
+        print!("Error reading file: {}\n", (*err.lock().unwrap().as_ref().unwrap()));
         return;
     }
     println!("{}", "\n--- Appending to file ---".to_string());
-    (file, err) = os.open_file(filename, os.o__a_p_p_e_n_d | os.o__w_r_o_n_l_y, 0644);
-    if err.is_some() {
-        print!("Error opening file for append: {}\n", err);
+    ((*file.lock().unwrap().as_ref().unwrap()), (*err.lock().unwrap().as_ref().unwrap())) = (*os.lock().unwrap().as_ref().unwrap()).open_file(std::sync::Arc::new(std::sync::Mutex::new(Some((*filename.lock().unwrap().as_ref().unwrap())))), std::sync::Arc::new(std::sync::Mutex::new(Some((*os.lock().unwrap().as_ref().unwrap()).o__a_p_p_e_n_d | (*os.lock().unwrap().as_ref().unwrap()).o__w_r_o_n_l_y))), std::sync::Arc::new(std::sync::Mutex::new(Some(0644))));
+    if (*err.lock().unwrap().as_ref().unwrap()).is_some() {
+        print!("Error opening file for append: {}\n", (*err.lock().unwrap().as_ref().unwrap()));
         return;
     }
-    let mut appendContent = vec!["Appended line 1".to_string(), "Appended line 2".to_string()];
-    for (_, line) in appendContent.iter().enumerate() {
-        let (_, mut err) = file.write_string(line + "\n".to_string());
-        if err.is_some() {
-        print!("Error appending: {}\n", err);
-        file.close();
+    let mut appendContent = std::sync::Arc::new(std::sync::Mutex::new(Some(vec!["Appended line 1".to_string(), "Appended line 2".to_string()])));
+    for (_, line) in (*appendContent.lock().unwrap().as_ref().unwrap()).iter().enumerate() {
+        let ((*_.lock().unwrap().as_ref().unwrap()), mut (*err.lock().unwrap().as_ref().unwrap())) = (*file.lock().unwrap().as_ref().unwrap()).write_string(std::sync::Arc::new(std::sync::Mutex::new(Some((*line.lock().unwrap().as_ref().unwrap()) + "\n".to_string()))));
+        if (*err.lock().unwrap().as_ref().unwrap()).is_some() {
+        print!("Error appending: {}\n", (*err.lock().unwrap().as_ref().unwrap()));
+        (*file.lock().unwrap().as_ref().unwrap()).close();
         return;
     }
-        print!("Appended: {}\n", line);
+        print!("Appended: {}\n", (*line.lock().unwrap().as_ref().unwrap()));
     }
-    file.close();
+    (*file.lock().unwrap().as_ref().unwrap()).close();
     println!("{}", "\n--- Reading updated file ---".to_string());
-    (data, err) = os.read_file(filename);
-    if err.is_some() {
-        print!("Error reading updated file: {}\n", err);
+    ((*data.lock().unwrap().as_ref().unwrap()), (*err.lock().unwrap().as_ref().unwrap())) = (*os.lock().unwrap().as_ref().unwrap()).read_file(std::sync::Arc::new(std::sync::Mutex::new(Some((*filename.lock().unwrap().as_ref().unwrap())))));
+    if (*err.lock().unwrap().as_ref().unwrap()).is_some() {
+        print!("Error reading updated file: {}\n", (*err.lock().unwrap().as_ref().unwrap()));
         return;
     }
-    print!("Updated file contents:\n{}", string(data));
+    print!("Updated file contents:\n{}", string(std::sync::Arc::new(std::sync::Mutex::new(Some((*data.lock().unwrap().as_ref().unwrap()))))));
     println!("{}", "\n--- File information ---".to_string());
-    let (mut fileInfo, mut err) = os.stat(filename);
-    if err.is_some() {
-        print!("Error getting file info: {}\n", err);
+    let (mut (*fileInfo.lock().unwrap().as_ref().unwrap()), mut (*err.lock().unwrap().as_ref().unwrap())) = (*os.lock().unwrap().as_ref().unwrap()).stat(std::sync::Arc::new(std::sync::Mutex::new(Some((*filename.lock().unwrap().as_ref().unwrap())))));
+    if (*err.lock().unwrap().as_ref().unwrap()).is_some() {
+        print!("Error getting file info: {}\n", (*err.lock().unwrap().as_ref().unwrap()));
         return;
     }
-    print!("File name: {}\n", fileInfo.name());
-    print!("File size: {} bytes\n", fileInfo.size());
-    print!("File mode: {}\n", fileInfo.mode());
-    print!("Modified time: {}\n", fileInfo.mod_time());
-    print!("Is directory: {}\n", fileInfo.is_dir());
+    print!("File name: {}\n", (*fileInfo.lock().unwrap().as_ref().unwrap()).name());
+    print!("File size: {} bytes\n", (*fileInfo.lock().unwrap().as_ref().unwrap()).size());
+    print!("File mode: {}\n", (*fileInfo.lock().unwrap().as_ref().unwrap()).mode());
+    print!("Modified time: {}\n", (*fileInfo.lock().unwrap().as_ref().unwrap()).mod_time());
+    print!("Is directory: {}\n", (*fileInfo.lock().unwrap().as_ref().unwrap()).is_dir());
     println!("{}", "\n--- Copying file ---".to_string());
-    let mut copyFilename = "test_file_copy.txt".to_string();
-    let (mut sourceFile, mut err) = os.open(filename);
-    if err.is_some() {
-        print!("Error opening source file: {}\n", err);
+    let mut copyFilename = std::sync::Arc::new(std::sync::Mutex::new(Some("test_file_copy.txt".to_string())));
+    let (mut (*sourceFile.lock().unwrap().as_ref().unwrap()), mut (*err.lock().unwrap().as_ref().unwrap())) = (*os.lock().unwrap().as_ref().unwrap()).open(std::sync::Arc::new(std::sync::Mutex::new(Some((*filename.lock().unwrap().as_ref().unwrap())))));
+    if (*err.lock().unwrap().as_ref().unwrap()).is_some() {
+        print!("Error opening source file: {}\n", (*err.lock().unwrap().as_ref().unwrap()));
         return;
     }
     
-    let (mut destFile, mut err) = os.create(copyFilename);
-    if err.is_some() {
-        print!("Error creating destination file: {}\n", err);
+    let (mut (*destFile.lock().unwrap().as_ref().unwrap()), mut (*err.lock().unwrap().as_ref().unwrap())) = (*os.lock().unwrap().as_ref().unwrap()).create(std::sync::Arc::new(std::sync::Mutex::new(Some((*copyFilename.lock().unwrap().as_ref().unwrap())))));
+    if (*err.lock().unwrap().as_ref().unwrap()).is_some() {
+        print!("Error creating destination file: {}\n", (*err.lock().unwrap().as_ref().unwrap()));
         return;
     }
     
-    let (mut bytesWritten, mut err) = io.copy(destFile, sourceFile);
-    if err.is_some() {
-        print!("Error copying file: {}\n", err);
+    let (mut (*bytesWritten.lock().unwrap().as_ref().unwrap()), mut (*err.lock().unwrap().as_ref().unwrap())) = (*io.lock().unwrap().as_ref().unwrap()).copy(std::sync::Arc::new(std::sync::Mutex::new(Some((*destFile.lock().unwrap().as_ref().unwrap())))), std::sync::Arc::new(std::sync::Mutex::new(Some((*sourceFile.lock().unwrap().as_ref().unwrap())))));
+    if (*err.lock().unwrap().as_ref().unwrap()).is_some() {
+        print!("Error copying file: {}\n", (*err.lock().unwrap().as_ref().unwrap()));
         return;
     }
-    print!("Copied {} bytes to '{}'\n", bytesWritten, copyFilename);
+    print!("Copied {} bytes to '{}'\n", (*bytesWritten.lock().unwrap().as_ref().unwrap()), (*copyFilename.lock().unwrap().as_ref().unwrap()));
     println!("{}", "\n--- Processing file content ---".to_string());
-    (file, err) = os.open(filename);
-    if err.is_some() {
-        print!("Error opening file: {}\n", err);
+    ((*file.lock().unwrap().as_ref().unwrap()), (*err.lock().unwrap().as_ref().unwrap())) = (*os.lock().unwrap().as_ref().unwrap()).open(std::sync::Arc::new(std::sync::Mutex::new(Some((*filename.lock().unwrap().as_ref().unwrap())))));
+    if (*err.lock().unwrap().as_ref().unwrap()).is_some() {
+        print!("Error opening file: {}\n", (*err.lock().unwrap().as_ref().unwrap()));
         return;
     }
     
-    scanner = bufio.new_scanner(file);
-    let mut wordCount = 0;
-    let mut lineCount = 0;
-    let mut charCount = 0;
-    while scanner.scan() {
-        let mut line = scanner.text();
-        lineCount += 1;
-        charCount += line.len();
-        let mut words = strings.fields(line);
-        wordCount += words.len();
-        if strings.contains(line, "123".to_string()) {
-        print!("Found line with numbers: {}\n", line);
+    { let new_val = (*bufio.lock().unwrap().as_ref().unwrap()).new_scanner(std::sync::Arc::new(std::sync::Mutex::new(Some((*file.lock().unwrap().as_ref().unwrap()))))); *scanner.lock().unwrap() = Some(new_val); };
+    let mut wordCount = std::sync::Arc::new(std::sync::Mutex::new(Some(0)));
+    let mut lineCount = std::sync::Arc::new(std::sync::Mutex::new(Some(0)));
+    let mut charCount = std::sync::Arc::new(std::sync::Mutex::new(Some(0)));
+    while (*scanner.lock().unwrap().as_ref().unwrap()).scan() {
+        let mut line = std::sync::Arc::new(std::sync::Mutex::new(Some((*scanner.lock().unwrap().as_ref().unwrap()).text())));
+        { let mut guard = lineCount.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
+        (*charCount.lock().unwrap().as_ref().unwrap()) += (*line.lock().unwrap().as_ref().unwrap()).len();
+        let mut words = std::sync::Arc::new(std::sync::Mutex::new(Some((*strings.lock().unwrap().as_ref().unwrap()).fields(std::sync::Arc::new(std::sync::Mutex::new(Some((*line.lock().unwrap().as_ref().unwrap()))))))));
+        (*wordCount.lock().unwrap().as_ref().unwrap()) += (*words.lock().unwrap().as_ref().unwrap()).len();
+        if (*strings.lock().unwrap().as_ref().unwrap()).contains(std::sync::Arc::new(std::sync::Mutex::new(Some((*line.lock().unwrap().as_ref().unwrap())))), std::sync::Arc::new(std::sync::Mutex::new(Some("123".to_string())))) {
+        print!("Found line with numbers: {}\n", (*line.lock().unwrap().as_ref().unwrap()));
     }
     }
     print!("Statistics:\n");
-    print!("  Lines: {}\n", lineCount);
-    print!("  Words: {}\n", wordCount);
-    print!("  Characters: {}\n", charCount);
+    print!("  Lines: {}\n", (*lineCount.lock().unwrap().as_ref().unwrap()));
+    print!("  Words: {}\n", (*wordCount.lock().unwrap().as_ref().unwrap()));
+    print!("  Characters: {}\n", (*charCount.lock().unwrap().as_ref().unwrap()));
     println!("{}", "\n--- Writing formatted data ---".to_string());
-    let mut dataFile = "data.txt".to_string();
-    (file, err) = os.create(dataFile);
-    if err.is_some() {
-        print!("Error creating data file: {}\n", err);
+    let mut dataFile = std::sync::Arc::new(std::sync::Mutex::new(Some("data.txt".to_string())));
+    ((*file.lock().unwrap().as_ref().unwrap()), (*err.lock().unwrap().as_ref().unwrap())) = (*os.lock().unwrap().as_ref().unwrap()).create(std::sync::Arc::new(std::sync::Mutex::new(Some((*dataFile.lock().unwrap().as_ref().unwrap())))));
+    if (*err.lock().unwrap().as_ref().unwrap()).is_some() {
+        print!("Error creating data file: {}\n", (*err.lock().unwrap().as_ref().unwrap()));
         return;
     }
     
-    fmt.fprintf(file, "Name: %s\n".to_string(), "John Doe".to_string());
-    fmt.fprintf(file, "Age: %d\n".to_string(), 30);
-    fmt.fprintf(file, "Score: %.2f\n".to_string(), 95.5);
-    fmt.fprintf(file, "Active: %t\n".to_string(), true);
-    print!("Formatted data written to '{}'\n", dataFile);
+    (*fmt.lock().unwrap().as_ref().unwrap()).fprintf(std::sync::Arc::new(std::sync::Mutex::new(Some((*file.lock().unwrap().as_ref().unwrap())))), std::sync::Arc::new(std::sync::Mutex::new(Some("Name: %s\n".to_string()))), std::sync::Arc::new(std::sync::Mutex::new(Some("John Doe".to_string()))));
+    (*fmt.lock().unwrap().as_ref().unwrap()).fprintf(std::sync::Arc::new(std::sync::Mutex::new(Some((*file.lock().unwrap().as_ref().unwrap())))), std::sync::Arc::new(std::sync::Mutex::new(Some("Age: %d\n".to_string()))), std::sync::Arc::new(std::sync::Mutex::new(Some(30))));
+    (*fmt.lock().unwrap().as_ref().unwrap()).fprintf(std::sync::Arc::new(std::sync::Mutex::new(Some((*file.lock().unwrap().as_ref().unwrap())))), std::sync::Arc::new(std::sync::Mutex::new(Some("Score: %.2f\n".to_string()))), std::sync::Arc::new(std::sync::Mutex::new(Some(95.5))));
+    (*fmt.lock().unwrap().as_ref().unwrap()).fprintf(std::sync::Arc::new(std::sync::Mutex::new(Some((*file.lock().unwrap().as_ref().unwrap())))), std::sync::Arc::new(std::sync::Mutex::new(Some("Active: %t\n".to_string()))), std::sync::Arc::new(std::sync::Mutex::new(Some(true))));
+    print!("Formatted data written to '{}'\n", (*dataFile.lock().unwrap().as_ref().unwrap()));
     println!("{}", "\n--- Reading formatted data ---".to_string());
-    (data, err) = os.read_file(dataFile);
-    if err.is_some() {
-        print!("Error reading data file: {}\n", err);
+    ((*data.lock().unwrap().as_ref().unwrap()), (*err.lock().unwrap().as_ref().unwrap())) = (*os.lock().unwrap().as_ref().unwrap()).read_file(std::sync::Arc::new(std::sync::Mutex::new(Some((*dataFile.lock().unwrap().as_ref().unwrap())))));
+    if (*err.lock().unwrap().as_ref().unwrap()).is_some() {
+        print!("Error reading data file: {}\n", (*err.lock().unwrap().as_ref().unwrap()));
         return;
     }
-    print!("Data file contents:\n{}", string(data));
+    print!("Data file contents:\n{}", string(std::sync::Arc::new(std::sync::Mutex::new(Some((*data.lock().unwrap().as_ref().unwrap()))))));
     println!("{}", "\n--- Checking file existence ---".to_string());
-    let mut files = vec![filename, copyFilename, dataFile, "nonexistent.txt".to_string()];
-    for (_, f) in files.iter().enumerate() {
-        let (_, mut err) = os.stat(f);
-    if err.is_none() {
-        print!("File '{}' exists\n", f);
-    } else if os.is_not_exist(err) {
-        print!("File '{}' does not exist\n", f);
+    let mut files = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![(*filename.lock().unwrap().as_ref().unwrap()), (*copyFilename.lock().unwrap().as_ref().unwrap()), (*dataFile.lock().unwrap().as_ref().unwrap()), "nonexistent.txt".to_string()])));
+    for (_, f) in (*files.lock().unwrap().as_ref().unwrap()).iter().enumerate() {
+        let ((*_.lock().unwrap().as_ref().unwrap()), mut (*err.lock().unwrap().as_ref().unwrap())) = (*os.lock().unwrap().as_ref().unwrap()).stat(std::sync::Arc::new(std::sync::Mutex::new(Some((*f.lock().unwrap().as_ref().unwrap())))));
+    if (*err.lock().unwrap().as_ref().unwrap()).is_none() {
+        print!("File '{}' exists\n", (*f.lock().unwrap().as_ref().unwrap()));
+    } else if (*os.lock().unwrap().as_ref().unwrap()).is_not_exist(std::sync::Arc::new(std::sync::Mutex::new(Some((*err.lock().unwrap().as_ref().unwrap()))))) {
+        print!("File '{}' does not exist\n", (*f.lock().unwrap().as_ref().unwrap()));
     } else {
-        print!("Error checking file '{}': {}\n", f, err);
+        print!("Error checking file '{}': {}\n", (*f.lock().unwrap().as_ref().unwrap()), (*err.lock().unwrap().as_ref().unwrap()));
     }
     }
     println!("{}", "\n--- Cleaning up ---".to_string());
-    let mut filesToRemove = vec![filename, copyFilename, dataFile];
-    for (_, f) in filesToRemove.iter().enumerate() {
-        let mut err = os.remove(f);
-        if err.is_some() {
-        print!("Error removing file '{}': {}\n", f, err);
+    let mut filesToRemove = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![(*filename.lock().unwrap().as_ref().unwrap()), (*copyFilename.lock().unwrap().as_ref().unwrap()), (*dataFile.lock().unwrap().as_ref().unwrap())])));
+    for (_, f) in (*filesToRemove.lock().unwrap().as_ref().unwrap()).iter().enumerate() {
+        let mut err = std::sync::Arc::new(std::sync::Mutex::new(Some((*os.lock().unwrap().as_ref().unwrap()).remove(std::sync::Arc::new(std::sync::Mutex::new(Some((*f.lock().unwrap().as_ref().unwrap()))))))));
+        if (*err.lock().unwrap().as_ref().unwrap()).is_some() {
+        print!("Error removing file '{}': {}\n", (*f.lock().unwrap().as_ref().unwrap()), (*err.lock().unwrap().as_ref().unwrap()));
     } else {
-        print!("Removed file '{}'\n", f);
+        print!("Removed file '{}'\n", (*f.lock().unwrap().as_ref().unwrap()));
     }
     }
     println!("{}", "\n--- Verifying cleanup ---".to_string());
-    for (_, f) in filesToRemove.iter().enumerate() {
-        let (_, mut err) = os.stat(f);
-    if os.is_not_exist(err) {
-        print!("File '{}' successfully removed\n", f);
+    for (_, f) in (*filesToRemove.lock().unwrap().as_ref().unwrap()).iter().enumerate() {
+        let ((*_.lock().unwrap().as_ref().unwrap()), mut (*err.lock().unwrap().as_ref().unwrap())) = (*os.lock().unwrap().as_ref().unwrap()).stat(std::sync::Arc::new(std::sync::Mutex::new(Some((*f.lock().unwrap().as_ref().unwrap())))));
+    if (*os.lock().unwrap().as_ref().unwrap()).is_not_exist(std::sync::Arc::new(std::sync::Mutex::new(Some((*err.lock().unwrap().as_ref().unwrap()))))) {
+        print!("File '{}' successfully removed\n", (*f.lock().unwrap().as_ref().unwrap()));
     } else {
-        print!("File '{}' still exists\n", f);
+        print!("File '{}' still exists\n", (*f.lock().unwrap().as_ref().unwrap()));
     }
     }
     println!("{}", "\nFile operations test completed!".to_string());

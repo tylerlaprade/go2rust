@@ -1,78 +1,78 @@
-pub fn factorial(n: i32) -> i32 {
+pub fn factorial(n: std::sync::Arc<std::sync::Mutex<Option<i32>>>) -> std::sync::Arc<std::sync::Mutex<Option<i32>>> {
 
-    if n <= 1 {
-        return 1;
+    if (*n.lock().unwrap().as_ref().unwrap()) <= 1 {
+        return std::sync::Arc::new(std::sync::Mutex::new(Some(1)));
     }
-    return n * factorial(n - 1);
+    return std::sync::Arc::new(std::sync::Mutex::new(Some((*n.lock().unwrap().as_ref().unwrap()) * factorial(std::sync::Arc::new(std::sync::Mutex::new(Some((*n.lock().unwrap().as_ref().unwrap()) - 1)))))));
 }
 
-pub fn fibonacci(n: i32) -> i32 {
+pub fn fibonacci(n: std::sync::Arc<std::sync::Mutex<Option<i32>>>) -> std::sync::Arc<std::sync::Mutex<Option<i32>>> {
 
-    if n <= 1 {
-        return n;
+    if (*n.lock().unwrap().as_ref().unwrap()) <= 1 {
+        return std::sync::Arc::new(std::sync::Mutex::new(Some((*n.lock().unwrap().as_ref().unwrap()))));
     }
-    return fibonacci(n - 1) + fibonacci(n - 2);
+    return std::sync::Arc::new(std::sync::Mutex::new(Some(fibonacci(std::sync::Arc::new(std::sync::Mutex::new(Some((*n.lock().unwrap().as_ref().unwrap()) - 1)))) + fibonacci(std::sync::Arc::new(std::sync::Mutex::new(Some((*n.lock().unwrap().as_ref().unwrap()) - 2)))))));
 }
 
-pub fn gcd(a: i32, b: i32) -> i32 {
+pub fn gcd(a: std::sync::Arc<std::sync::Mutex<Option<i32>>>, b: std::sync::Arc<std::sync::Mutex<Option<i32>>>) -> std::sync::Arc<std::sync::Mutex<Option<i32>>> {
 
-    if b == 0 {
-        return a;
+    if (*b.lock().unwrap().as_ref().unwrap()) == 0 {
+        return std::sync::Arc::new(std::sync::Mutex::new(Some((*a.lock().unwrap().as_ref().unwrap()))));
     }
-    return gcd(b, a % b);
+    return std::sync::Arc::new(std::sync::Mutex::new(Some(gcd(std::sync::Arc::new(std::sync::Mutex::new(Some((*b.lock().unwrap().as_ref().unwrap())))), std::sync::Arc::new(std::sync::Mutex::new(Some((*a.lock().unwrap().as_ref().unwrap()) % (*b.lock().unwrap().as_ref().unwrap()))))))));
 }
 
-pub fn power(base: i32, exp: i32) -> i32 {
+pub fn power(base: std::sync::Arc<std::sync::Mutex<Option<i32>>>, exp: std::sync::Arc<std::sync::Mutex<Option<i32>>>) -> std::sync::Arc<std::sync::Mutex<Option<i32>>> {
 
-    if exp == 0 {
-        return 1;
+    if (*exp.lock().unwrap().as_ref().unwrap()) == 0 {
+        return std::sync::Arc::new(std::sync::Mutex::new(Some(1)));
     }
-    if exp == 1 {
-        return base;
+    if (*exp.lock().unwrap().as_ref().unwrap()) == 1 {
+        return std::sync::Arc::new(std::sync::Mutex::new(Some((*base.lock().unwrap().as_ref().unwrap()))));
     }
-    if exp % 2 == 0 {
-        let mut half = power(base, exp / 2);
-        return half * half;
+    if (*exp.lock().unwrap().as_ref().unwrap()) % 2 == 0 {
+        let mut half = std::sync::Arc::new(std::sync::Mutex::new(Some(power(std::sync::Arc::new(std::sync::Mutex::new(Some((*base.lock().unwrap().as_ref().unwrap())))), std::sync::Arc::new(std::sync::Mutex::new(Some((*exp.lock().unwrap().as_ref().unwrap()) / 2)))))));
+        return std::sync::Arc::new(std::sync::Mutex::new(Some((*half.lock().unwrap().as_ref().unwrap()) * (*half.lock().unwrap().as_ref().unwrap()))));
     }
-    return base * power(base, exp - 1);
+    return std::sync::Arc::new(std::sync::Mutex::new(Some((*base.lock().unwrap().as_ref().unwrap()) * power(std::sync::Arc::new(std::sync::Mutex::new(Some((*base.lock().unwrap().as_ref().unwrap())))), std::sync::Arc::new(std::sync::Mutex::new(Some((*exp.lock().unwrap().as_ref().unwrap()) - 1)))))));
 }
 
-pub fn sum_array(arr: Vec<i32>) -> i32 {
+pub fn sum_array(arr: std::sync::Arc<std::sync::Mutex<Option<Vec<i32>>>>) -> std::sync::Arc<std::sync::Mutex<Option<i32>>> {
 
-    if arr.len() == 0 {
-        return 0;
+    if (*arr.lock().unwrap().as_ref().unwrap()).len() == 0 {
+        return std::sync::Arc::new(std::sync::Mutex::new(Some(0)));
     }
-    if arr.len() == 1 {
-        return arr[0];
+    if (*arr.lock().unwrap().as_ref().unwrap()).len() == 1 {
+        return std::sync::Arc::new(std::sync::Mutex::new(Some((*arr.lock().unwrap().as_ref().unwrap())[0])));
     }
-    return arr[0] + sum_array(arr[1..].to_vec());
+    return std::sync::Arc::new(std::sync::Mutex::new(Some((*arr.lock().unwrap().as_ref().unwrap())[0] + sum_array(std::sync::Arc::new(std::sync::Mutex::new(Some((*arr.lock().unwrap().as_ref().unwrap())[1..].to_vec())))))));
 }
 
-pub fn reverse_string(s: String) -> String {
+pub fn reverse_string(s: std::sync::Arc<std::sync::Mutex<Option<String>>>) -> std::sync::Arc<std::sync::Mutex<Option<String>>> {
 
-    if s.len() <= 1 {
-        return s;
+    if (*s.lock().unwrap().as_ref().unwrap()).len() <= 1 {
+        return std::sync::Arc::new(std::sync::Mutex::new(Some((*s.lock().unwrap().as_ref().unwrap()))));
     }
-    return reverse_string(s[1..].to_vec()) + string(s[0]);
+    return std::sync::Arc::new(std::sync::Mutex::new(Some(reverse_string(std::sync::Arc::new(std::sync::Mutex::new(Some((*s.lock().unwrap().as_ref().unwrap())[1..].to_vec())))) + string(std::sync::Arc::new(std::sync::Mutex::new(Some((*s.lock().unwrap().as_ref().unwrap())[0])))))));
 }
 
 fn main() {
-    println!("{} {}", "Factorial of 5:".to_string(), factorial(5));
-    println!("{} {}", "Factorial of 0:".to_string(), factorial(0));
+    println!("{} {}", "Factorial of 5:".to_string(), (*factorial(std::sync::Arc::new(std::sync::Mutex::new(Some(5)))).lock().unwrap().as_ref().unwrap()));
+    println!("{} {}", "Factorial of 0:".to_string(), (*factorial(std::sync::Arc::new(std::sync::Mutex::new(Some(0)))).lock().unwrap().as_ref().unwrap()));
     println!("{}", "Fibonacci sequence:".to_string());
-    let mut i = 0;
-    while i < 10 {
-        print!("fib({}) = {}\n", i, fibonacci(i));
-        i += 1;
+    let mut i = std::sync::Arc::new(std::sync::Mutex::new(Some(0)));
+    while (*i.lock().unwrap().as_ref().unwrap()) < 10 {
+        print!("fib({}) = {}\n", (*i.lock().unwrap().as_ref().unwrap()), fibonacci(std::sync::Arc::new(std::sync::Mutex::new(Some((*i.lock().unwrap().as_ref().unwrap()))))));
+        { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
-    println!("{} {}", "GCD of 48 and 18:".to_string(), gcd(48, 18));
-    println!("{} {}", "GCD of 17 and 13:".to_string(), gcd(17, 13));
-    println!("{} {}", "2^8 =".to_string(), power(2, 8));
-    println!("{} {}", "3^4 =".to_string(), power(3, 4));
-    println!("{} {}", "5^0 =".to_string(), power(5, 0));
-    let mut numbers = vec![1, 2, 3, 4, 5];
-    println!("{} {} {} {}", "Sum of".to_string(), numbers, "=".to_string(), sum_array(numbers));
-    let mut original = "hello".to_string();
-    let mut reversed = reverse_string(original);
-    print!("'{}' reversed is '{}'\n", original, reversed);
+    println!("{} {}", "GCD of 48 and 18:".to_string(), (*gcd(std::sync::Arc::new(std::sync::Mutex::new(Some(48))), std::sync::Arc::new(std::sync::Mutex::new(Some(18)))).lock().unwrap().as_ref().unwrap()));
+    println!("{} {}", "GCD of 17 and 13:".to_string(), (*gcd(std::sync::Arc::new(std::sync::Mutex::new(Some(17))), std::sync::Arc::new(std::sync::Mutex::new(Some(13)))).lock().unwrap().as_ref().unwrap()));
+    println!("{} {}", "2^8 =".to_string(), (*power(std::sync::Arc::new(std::sync::Mutex::new(Some(2))), std::sync::Arc::new(std::sync::Mutex::new(Some(8)))).lock().unwrap().as_ref().unwrap()));
+    println!("{} {}", "3^4 =".to_string(), (*power(std::sync::Arc::new(std::sync::Mutex::new(Some(3))), std::sync::Arc::new(std::sync::Mutex::new(Some(4)))).lock().unwrap().as_ref().unwrap()));
+    println!("{} {}", "5^0 =".to_string(), (*power(std::sync::Arc::new(std::sync::Mutex::new(Some(5))), std::sync::Arc::new(std::sync::Mutex::new(Some(0)))).lock().unwrap().as_ref().unwrap()));
+    let mut numbers = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![1, 2, 3, 4, 5])));
+    println!("{} {} {} {}", "Sum of".to_string(), (*numbers.lock().unwrap().as_ref().unwrap()), "=".to_string(), (*sum_array(std::sync::Arc::new(std::sync::Mutex::new(Some((*numbers.lock().unwrap().as_ref().unwrap()))))).lock().unwrap().as_ref().unwrap()));
+    let mut original = std::sync::Arc::new(std::sync::Mutex::new(Some("hello".to_string())));
+    let mut reversed = std::sync::Arc::new(std::sync::Mutex::new(Some(reverse_string(std::sync::Arc::new(std::sync::Mutex::new(Some((*original.lock().unwrap().as_ref().unwrap()))))))));
+    print!("'{}' reversed is '{}'\n", (*original.lock().unwrap().as_ref().unwrap()), (*reversed.lock().unwrap().as_ref().unwrap()));
 }

@@ -4,39 +4,39 @@ fn main() {
     println!("{}", "\n=== Continue with labels ===".to_string());
     
     println!("{}", "\n=== Complex switch with fallthrough ===".to_string());
-    let mut num = 1;
-    while num <= 5 {
-        print!("Number {}: ", num);
-        match num {
+    let mut num = std::sync::Arc::new(std::sync::Mutex::new(Some(1)));
+    while (*num.lock().unwrap().as_ref().unwrap()) <= 5 {
+        print!("Number {}: ", (*num.lock().unwrap().as_ref().unwrap()));
+        match (*num.lock().unwrap().as_ref().unwrap()) {
         1 => {
-            fmt.print("One".to_string());
+            (*fmt.lock().unwrap().as_ref().unwrap()).print(std::sync::Arc::new(std::sync::Mutex::new(Some("One".to_string()))));
             
         }
         2 => {
-            fmt.print(" Two-ish".to_string());
+            (*fmt.lock().unwrap().as_ref().unwrap()).print(std::sync::Arc::new(std::sync::Mutex::new(Some(" Two-ish".to_string()))));
         }
         3 => {
-            fmt.print("Three".to_string());
+            (*fmt.lock().unwrap().as_ref().unwrap()).print(std::sync::Arc::new(std::sync::Mutex::new(Some("Three".to_string()))));
         }
         4 | 5 => {
-            fmt.print(" Four-or-Five".to_string());
+            (*fmt.lock().unwrap().as_ref().unwrap()).print(std::sync::Arc::new(std::sync::Mutex::new(Some(" Four-or-Five".to_string()))));
         }
         _ => {
-            fmt.print(" Other".to_string());
+            (*fmt.lock().unwrap().as_ref().unwrap()).print(std::sync::Arc::new(std::sync::Mutex::new(Some(" Other".to_string()))));
         }
     }
         println!();
-        num += 1;
+        { let mut guard = num.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
     println!("{}", "\n=== Nested switch statements ===".to_string());
-    let mut category = 1;
-    while category <= 2 {
-        let mut item = 1;
-    while item <= 2 {
-        print!("Category {}, Item {}: ", category, item);
-        match category {
+    let mut category = std::sync::Arc::new(std::sync::Mutex::new(Some(1)));
+    while (*category.lock().unwrap().as_ref().unwrap()) <= 2 {
+        let mut item = std::sync::Arc::new(std::sync::Mutex::new(Some(1)));
+    while (*item.lock().unwrap().as_ref().unwrap()) <= 2 {
+        print!("Category {}, Item {}: ", (*category.lock().unwrap().as_ref().unwrap()), (*item.lock().unwrap().as_ref().unwrap()));
+        match (*category.lock().unwrap().as_ref().unwrap()) {
         1 => {
-            match item {
+            match (*item.lock().unwrap().as_ref().unwrap()) {
         1 => {
             println!("{}", "Electronics - Phone".to_string());
         }
@@ -46,7 +46,7 @@ fn main() {
     }
         }
         2 => {
-            match item {
+            match (*item.lock().unwrap().as_ref().unwrap()) {
         1 => {
             println!("{}", "Books - Fiction".to_string());
         }
@@ -56,123 +56,123 @@ fn main() {
     }
         }
     }
-        item += 1;
+        { let mut guard = item.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
-        category += 1;
+        { let mut guard = category.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
     println!("{}", "\n=== Complex for loop conditions ===".to_string());
-    let (mut i, mut j) = (0, 10);
-    while i < j {
-        print!("i={}, j={}, sum={}\n", i, j, i + j);
-        if i >= 3 {
+    let (mut (*i.lock().unwrap().as_ref().unwrap()), mut (*j.lock().unwrap().as_ref().unwrap())) = (0, 10);
+    while (*i.lock().unwrap().as_ref().unwrap()) < (*j.lock().unwrap().as_ref().unwrap()) {
+        print!("i={}, j={}, sum={}\n", (*i.lock().unwrap().as_ref().unwrap()), (*j.lock().unwrap().as_ref().unwrap()), (*i.lock().unwrap().as_ref().unwrap()) + (*j.lock().unwrap().as_ref().unwrap()));
+        if (*i.lock().unwrap().as_ref().unwrap()) >= 3 {
         
     }
-        { i = i + 1; j = j - 1 };
+        { *(*i.lock().unwrap().as_ref().unwrap()).lock().unwrap() = Some((*i.lock().unwrap().as_ref().unwrap()) + 1); *(*j.lock().unwrap().as_ref().unwrap()).lock().unwrap() = Some((*j.lock().unwrap().as_ref().unwrap()) - 1) };
     }
     println!("{}", "\n=== For loop with complex condition ===".to_string());
-    let (mut x, mut y) = (1, 1);
-    while x * y < 100 && x < 10 {
-        print!("x={}, y={}, product={}\n", x, y, x * y);
-        if x % 2 == 0 {
-        y += 2;
+    let (mut (*x.lock().unwrap().as_ref().unwrap()), mut (*y.lock().unwrap().as_ref().unwrap())) = (1, 1);
+    while (*x.lock().unwrap().as_ref().unwrap()) * (*y.lock().unwrap().as_ref().unwrap()) < 100 && (*x.lock().unwrap().as_ref().unwrap()) < 10 {
+        print!("x={}, y={}, product={}\n", (*x.lock().unwrap().as_ref().unwrap()), (*y.lock().unwrap().as_ref().unwrap()), (*x.lock().unwrap().as_ref().unwrap()) * (*y.lock().unwrap().as_ref().unwrap()));
+        if (*x.lock().unwrap().as_ref().unwrap()) % 2 == 0 {
+        (*y.lock().unwrap().as_ref().unwrap()) += 2;
     } else {
-        y += 1;
+        (*y.lock().unwrap().as_ref().unwrap()) += 1;
     }
-        x += 1;
+        { let mut guard = x.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
     println!("{}", "\n=== Goto statements ===".to_string());
-    let mut counter = 0;
+    let mut counter = std::sync::Arc::new(std::sync::Mutex::new(Some(0)));
     
-    print!("Counter: {}\n", counter);
-    if counter < 3 {
+    print!("Counter: {}\n", (*counter.lock().unwrap().as_ref().unwrap()));
+    if (*counter.lock().unwrap().as_ref().unwrap()) < 3 {
         
     }
     println!("{}", "Done with goto".to_string());
     println!("{}", "\n=== Complex if-else chains ===".to_string());
-    let mut score = 0;
-    while score <= 100 {
+    let mut score = std::sync::Arc::new(std::sync::Mutex::new(Some(0)));
+    while (*score.lock().unwrap().as_ref().unwrap()) <= 100 {
         let mut grade = String::new();
         let mut message = String::new();
-        if score >= 90 {
-        grade = "A".to_string();
-        if score >= 95 {
-        message = "Excellent!".to_string();
+        if (*score.lock().unwrap().as_ref().unwrap()) >= 90 {
+        { let new_val = "A".to_string(); *grade.lock().unwrap() = Some(new_val); };
+        if (*score.lock().unwrap().as_ref().unwrap()) >= 95 {
+        { let new_val = "Excellent!".to_string(); *message.lock().unwrap() = Some(new_val); };
     } else {
-        message = "Great job!".to_string();
+        { let new_val = "Great job!".to_string(); *message.lock().unwrap() = Some(new_val); };
     }
-    } else if score >= 80 {
-        grade = "B".to_string();
-        if score >= 85 {
-        message = "Good work!".to_string();
+    } else if (*score.lock().unwrap().as_ref().unwrap()) >= 80 {
+        { let new_val = "B".to_string(); *grade.lock().unwrap() = Some(new_val); };
+        if (*score.lock().unwrap().as_ref().unwrap()) >= 85 {
+        { let new_val = "Good work!".to_string(); *message.lock().unwrap() = Some(new_val); };
     } else {
-        message = "Not bad!".to_string();
+        { let new_val = "Not bad!".to_string(); *message.lock().unwrap() = Some(new_val); };
     }
-    } else if score >= 70 {
-        grade = "C".to_string();
-        message = "Average".to_string();
-    } else if score >= 60 {
-        grade = "D".to_string();
-        message = "Below average".to_string();
+    } else if (*score.lock().unwrap().as_ref().unwrap()) >= 70 {
+        { let new_val = "C".to_string(); *grade.lock().unwrap() = Some(new_val); };
+        { let new_val = "Average".to_string(); *message.lock().unwrap() = Some(new_val); };
+    } else if (*score.lock().unwrap().as_ref().unwrap()) >= 60 {
+        { let new_val = "D".to_string(); *grade.lock().unwrap() = Some(new_val); };
+        { let new_val = "Below average".to_string(); *message.lock().unwrap() = Some(new_val); };
     } else {
-        grade = "F".to_string();
-        message = "Needs improvement".to_string();
+        { let new_val = "F".to_string(); *grade.lock().unwrap() = Some(new_val); };
+        { let new_val = "Needs improvement".to_string(); *message.lock().unwrap() = Some(new_val); };
     }
-        print!("Score {}: Grade {} - {}\n", score, grade, message);
-        score += 25;
+        print!("Score {}: Grade {} - {}\n", (*score.lock().unwrap().as_ref().unwrap()), (*grade.lock().unwrap().as_ref().unwrap()), (*message.lock().unwrap().as_ref().unwrap()));
+        (*score.lock().unwrap().as_ref().unwrap()) += 25;
     }
     println!("{}", "\n=== Range with complex break/continue ===".to_string());
-    let mut numbers = vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+    let mut numbers = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10])));
     println!("{}", "Processing numbers:".to_string());
-    for (i, num) in numbers.iter().enumerate() {
-        if num % 2 == 0 {
-        if num > 6 {
-        print!("Stopping at even number {} (index {})\n", num, i);
+    for (i, num) in (*numbers.lock().unwrap().as_ref().unwrap()).iter().enumerate() {
+        if (*num.lock().unwrap().as_ref().unwrap()) % 2 == 0 {
+        if (*num.lock().unwrap().as_ref().unwrap()) > 6 {
+        print!("Stopping at even number {} (index {})\n", (*num.lock().unwrap().as_ref().unwrap()), (*i.lock().unwrap().as_ref().unwrap()));
         
     }
-        print!("Skipping even number {} (index {})\n", num, i);
+        print!("Skipping even number {} (index {})\n", (*num.lock().unwrap().as_ref().unwrap()), (*i.lock().unwrap().as_ref().unwrap()));
         
     }
-        if num == 7 {
-        print!("Found lucky number {} at index {}\n", num, i);
+        if (*num.lock().unwrap().as_ref().unwrap()) == 7 {
+        print!("Found lucky number {} at index {}\n", (*num.lock().unwrap().as_ref().unwrap()), (*i.lock().unwrap().as_ref().unwrap()));
         
     }
-        print!("Processing odd number {} (index {})\n", num, i);
+        print!("Processing odd number {} (index {})\n", (*num.lock().unwrap().as_ref().unwrap()), (*i.lock().unwrap().as_ref().unwrap()));
     }
     println!("{}", "\n=== Nested range loops ===".to_string());
-    let mut matrix = vec![, , ];
-    for (rowIdx, row) in matrix.iter().enumerate() {
-        for (colIdx, cell) in row.iter().enumerate() {
-        if cell == "e".to_string() {
-        print!("Found center at [{}][{}]: {}\n", rowIdx, colIdx, cell);
+    let mut matrix = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![, , ])));
+    for (rowIdx, row) in (*matrix.lock().unwrap().as_ref().unwrap()).iter().enumerate() {
+        for (colIdx, cell) in (*row.lock().unwrap().as_ref().unwrap()).iter().enumerate() {
+        if (*cell.lock().unwrap().as_ref().unwrap()) == "e".to_string() {
+        print!("Found center at [{}][{}]: {}\n", (*rowIdx.lock().unwrap().as_ref().unwrap()), (*colIdx.lock().unwrap().as_ref().unwrap()), (*cell.lock().unwrap().as_ref().unwrap()));
         
     }
-        if rowIdx == 2 && colIdx == 2 {
-        print!("Last cell [{}][{}]: {}\n", rowIdx, colIdx, cell);
+        if (*rowIdx.lock().unwrap().as_ref().unwrap()) == 2 && (*colIdx.lock().unwrap().as_ref().unwrap()) == 2 {
+        print!("Last cell [{}][{}]: {}\n", (*rowIdx.lock().unwrap().as_ref().unwrap()), (*colIdx.lock().unwrap().as_ref().unwrap()), (*cell.lock().unwrap().as_ref().unwrap()));
         
     }
-        print!("[{}][{}]: {} ", rowIdx, colIdx, cell);
+        print!("[{}][{}]: {} ", (*rowIdx.lock().unwrap().as_ref().unwrap()), (*colIdx.lock().unwrap().as_ref().unwrap()), (*cell.lock().unwrap().as_ref().unwrap()));
     }
         println!();
     }
     println!("{}", "\n=== Select with complex channel operations ===".to_string());
-    let mut ch1 = vec![0; 2];
-    let mut ch2 = vec![0; 2];
-    let mut done = ;
+    let mut ch1 = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![0; 2])));
+    let mut ch2 = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![0; 2])));
+    let mut done = std::sync::Arc::new(std::sync::Mutex::new(Some()));
     
     
     
     
     
-    <-done;
+    <-(*done.lock().unwrap().as_ref().unwrap());
     println!("{}", "Channel processing complete".to_string());
     println!("{}", "\n=== Complex error handling flow ===".to_string());
-    let mut processData = ;
-    let mut testData = vec![, , , , ];
-    for (i, data) in testData.iter().enumerate() {
-        print!("Testing dataset {}: {}\n", i + 1, data);
-        let mut err = process_data(data);
-    if err.is_some() {
-        print!("  Error: {}\n", err);
+    let mut processData = std::sync::Arc::new(std::sync::Mutex::new(Some()));
+    let mut testData = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![, , , , ])));
+    for (i, data) in (*testData.lock().unwrap().as_ref().unwrap()).iter().enumerate() {
+        print!("Testing dataset {}: {}\n", (*i.lock().unwrap().as_ref().unwrap()) + 1, (*data.lock().unwrap().as_ref().unwrap()));
+        let mut err = std::sync::Arc::new(std::sync::Mutex::new(Some(process_data(std::sync::Arc::new(std::sync::Mutex::new(Some((*data.lock().unwrap().as_ref().unwrap()))))))));
+    if (*err.lock().unwrap().as_ref().unwrap()).is_some() {
+        print!("  Error: {}\n", (*err.lock().unwrap().as_ref().unwrap()));
         
     }
         print!("  Success: data is valid\n");

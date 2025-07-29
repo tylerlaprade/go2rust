@@ -1,8 +1,8 @@
 fn main() {
-    let mut x = 10;
-    let mut y = std::sync::Arc::new(std::sync::Mutex::new(Some(x)));
-    let mut z = y;
-    *y.lock().unwrap().as_ref().unwrap() = 20;
-    *z.lock().unwrap().as_ref().unwrap() = 30;
-    println!("{} {}", "x =".to_string(), x);
+    let mut x = std::sync::Arc::new(std::sync::Mutex::new(Some(10)));
+    let mut y = x.clone();
+    let mut z = std::sync::Arc::new(std::sync::Mutex::new(Some((*y.lock().unwrap().as_ref().unwrap()))));
+    { let new_val = 20; *y.lock().unwrap() = Some(new_val); };
+    { let new_val = 30; *z.lock().unwrap() = Some(new_val); };
+    println!("{} {}", "x =".to_string(), (*x.lock().unwrap().as_ref().unwrap()));
 }

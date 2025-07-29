@@ -24,6 +24,7 @@ This principle prevents:
 2. **Fixing symptoms without understanding root causes** - Ask "why" before "how"
 3. **Adding complexity when the issue is simple** - Check existing code first
 4. **Making changes in isolation** - Consider downstream effects
+5. **Forgetting to run tests** - Always run tests before committing changes or moving on to another task
 
 Example: If tests are deleting files you want to keep, look for where files are being deleted (like `teardown()` functions), don't create elaborate workarounds.
 
@@ -75,88 +76,13 @@ let q = p.clone();  // Shared reference
 
 **Goal**: Transpile the simplest possible program
 
-```go
-package main
-import "fmt"
-func main() {
-    fmt.Println("Hello, World!")
-}
-```
-
-**Implemented**:
-
-- Basic package structure → Rust module
-- Import handling (just fmt)
-- Function translation
-- String literals
-- Function parameters and return types
-- Basic function calls
-- String literal to String conversion (.to_string())
-
 ### Phase 2: Variables and Basic Types ⏳
 
 **Goal**: Handle basic variable declarations, primitive types, and basic data structures
 
-```go
-func main() {
-    // Primitives
-    var x int = 42
-    y := "hello"
-    z := 3.14
-    fmt.Println(x, y, z)
-    
-    // Arrays and slices
-    arr := [3]int{1, 2, 3}
-    slice := []int{4, 5, 6}
-    slice = append(slice, 7)
-    
-    // Basic structs
-    type Point struct {
-        X, Y int
-    }
-    p := Point{X: 10, Y: 20}
-}
-```
-
-**Implemented**:
-
-- Type inference for `:=` ✅
-- Basic type mapping (int → i32, string → String, etc.) ✅
-- Multiple arguments to fmt.Println ✅
-- Variable declarations (var and :=) ✅
-- Binary expressions (+, -, *, /, etc.) ✅
-- Assignment operators (=, +=, -=, etc.) ✅
-- For loops (C-style) ✅
-- Multi-file projects ✅
-- Function calls between files ✅
-- String concatenation with += ✅
-- Fixed-size arrays `[3]int` → `[i32; 3]` ✅
-- Array indexing `arr[0]` → `arr[0]` ✅
-- Array literals `[4]int{1, 2, 3, 4}` → `[1, 2, 3, 4]` ✅
-- Slice types `[]int` → `Vec<i32>` ✅
-- Slice literals `[]int{1, 2, 3}` → `vec![1, 2, 3]` ✅
-- Slice operations `slice[1:4]` → `slice[1..4].to_vec()` ✅
-- `append()` function with single/multiple elements ✅
-- `len()` function → `.len()` ✅
-- `cap()` function → `.capacity()` ✅
-- `make([]int, size)` → `vec![0; size]` ✅
-- Range loops `for i, v := range arr` ✅
-- Basic struct type declarations with `#[derive(Debug)]` ✅
-- Struct literals ✅
-- Field access (but not embedded field promotion) ✅
-
-**Additional Implemented Features**:
-
-- Multiple return values ✅
-- Blank identifier `_` ✅
-- Constants (const) ✅
-- Switch statements ✅
-- Maps with HashMap ✅
-- Map literals and indexing ✅
-- Map insert operations ⏳
-
 **Not Yet Implemented from Phase 2**:
 
+- Map insert operations ⏳
 - Error handling patterns
 - Type assertions
 - Interface types
@@ -190,6 +116,7 @@ func main() {
 **Critical Issue Discovered**:
 
 Currently only wrapping pointers, but Go allows taking address of ANY variable:
+
 ```go
 x := 42      // regular variable
 p := &x      // now x needs to be shareable!
@@ -410,18 +337,21 @@ After we have working transpilation:
 ## Recent Progress
 
 **Phase 2 Near Completion**:
+
 - All basic syntax translations implemented
 - Maps fully working (operations confirmed)
 - nil, interface{}, and type assertions have basic support
 - Core issue identified: need to wrap ALL variables, not just pointers
 
 **Phase 3 Started**:
+
 - Basic pointer support implemented
 - Address-of (&) and dereference (*) operators working
 - new() builtin function added
 - Discovered critical flaw: only wrapping pointers is insufficient
 
 **Next Critical Step**:
+
 - Implement the TRUE conservative approach: wrap ALL variables in Arc<Mutex<Option<T>>>
 - This enables taking address of any variable (core Go feature)
 - Aligns with original project vision of "make it work first, optimize later"
@@ -475,6 +405,7 @@ This is a crucial distinction that simplifies everything:
 ### 6. Let go/types Handle the Complexity
 
 Go provides the go/types package that already does type analysis. Instead of building our own:
+
 - Use go/types when we need type information
 - Don't duplicate what Go already provides
 - Keep the transpiler focused on syntax translation
@@ -487,6 +418,7 @@ After much deliberation, we've decided on the truly conservative approach:
 **EVERYTHING is Arc<Mutex<Option<T>>>. No exceptions.**
 
 This includes:
+
 - Local variables
 - Function parameters
 - Return values
@@ -494,12 +426,14 @@ This includes:
 - Intermediate expressions
 
 Why this approach:
+
 1. **Correctness over performance** - Go allows taking the address of ANY variable, including function parameters
 2. **Simplicity over cleverness** - No escape analysis, no special cases, no complex rules
 3. **Uniform mental model** - Everything works the same way
 4. **True to our philosophy** - We're a syntax translator, not an optimizing compiler
 
 Example:
+
 ```go
 func add(a, b int) int {
     return a + b
@@ -507,6 +441,7 @@ func add(a, b int) int {
 ```
 
 Becomes:
+
 ```rust
 fn add(a: Arc<Mutex<Option<i32>>>, b: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<i32>>> {
     Arc::new(Mutex::new(Some(
@@ -518,12 +453,14 @@ fn add(a: Arc<Mutex<Option<i32>>>, b: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Opti
 Yes, it's verbose. Yes, we can't call Rust stdlib functions. But it's CORRECT and SIMPLE.
 
 **Important decisions:**
+
 - NO helper functions or macros - we generate real Rust code, not abstractions
 - NO escape analysis - that's optimization, not translation
 - NO special cases - everything follows the same rules
 - Accept the verbosity - our users will optimize later
 
 This approach ensures that ANY valid Go program can be translated, even edge cases like:
+
 ```go
 func foo(x int) {
     p := &x  // Taking address of parameter - this must work!

@@ -4,8 +4,8 @@ const MAX_USERS: i32 = 100;
 
 
 const NAME: &'static str = "Go2Rust";
-const VERSION: f64 = 1.0;
-const DEBUG: bool = true;
+const VERSION: std::sync::Arc<std::sync::Mutex<Option<f64>>> = 1.0;
+const DEBUG: std::sync::Arc<std::sync::Mutex<Option<bool>>> = true;
 
 
 const SUNDAY: i32 = 0;
@@ -73,19 +73,19 @@ fn main() {
 const Y: i32 = 20;
 const Z: i32 = X + Y;
 
-    print!("localConst = {}\n", localConst);
-    print!("x = {}, y = {}, z = {}\n", x, y, z);
+    print!("localConst = {}\n", (*localConst.lock().unwrap().as_ref().unwrap()));
+    print!("x = {}, y = {}, z = {}\n", (*x.lock().unwrap().as_ref().unwrap()), (*y.lock().unwrap().as_ref().unwrap()), (*z.lock().unwrap().as_ref().unwrap()));
     println!("{}", "\n=== Untyped constants in expressions ===".to_string());
     const UNTYPED_INT: i32 = 100;
 
     const UNTYPED_FLOAT: f64 = 3.14;
 
-    let mut i = untypedInt;
-    let mut f = untypedFloat;
-    let mut mixed = untypedInt + 3;
-    print!("i = {}\n", i);
-    print!("f = {:.2}\n", f);
-    print!("mixed = {}\n", mixed);
+    let mut i = (*untypedInt.lock().unwrap().as_ref().unwrap());
+    let mut f = (*untypedFloat.lock().unwrap().as_ref().unwrap());
+    let mut mixed = (*untypedInt.lock().unwrap().as_ref().unwrap()) + 3;
+    print!("i = {}\n", (*i.lock().unwrap().as_ref().unwrap()));
+    print!("f = {:.2}\n", (*f.lock().unwrap().as_ref().unwrap()));
+    print!("mixed = {}\n", (*mixed.lock().unwrap().as_ref().unwrap()));
     println!("{}", "\n=== String constants ===".to_string());
     const GREETING: &'static str = "Hello";
 
@@ -93,5 +93,5 @@ const Z: i32 = X + Y;
 
     const MESSAGE: i32 = GREETING + ", " + TARGET + "!";
 
-    println!("{}", message);
+    println!("{}", (*message.lock().unwrap().as_ref().unwrap()));
 }

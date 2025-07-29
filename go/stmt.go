@@ -71,53 +71,18 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					out.WriteString(", ")
 				}
 
+				// Wrap all return values in Arc<Mutex<Option<>>>
+				out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(Some(")
+
 				// Special handling for string literals
 				if lit, ok := result.(*ast.BasicLit); ok && lit.Kind == token.STRING {
-					if fnType.Results != nil && len(fnType.Results.List) > 0 {
-						// Find the corresponding return type
-						resultTypeIdx := i
-						resultType := fnType.Results.List[0].Type
-						if len(fnType.Results.List) > 1 || (len(fnType.Results.List) == 1 && len(fnType.Results.List[0].Names) > 1) {
-							// Multiple return values - need to find the right type
-							currentIdx := 0
-							for _, res := range fnType.Results.List {
-								if len(res.Names) > 0 {
-									for range res.Names {
-										if currentIdx == resultTypeIdx {
-											resultType = res.Type
-											break
-										}
-										currentIdx++
-									}
-								} else {
-									if currentIdx == resultTypeIdx {
-										resultType = res.Type
-										break
-									}
-									currentIdx++
-								}
-							}
-						}
-
-						if ident, ok := resultType.(*ast.Ident); ok && ident.Name == "string" {
-							out.WriteString(lit.Value)
-							out.WriteString(".to_string()")
-						} else {
-							TranspileExpression(out, result)
-						}
-					} else {
-						TranspileExpression(out, result)
-					}
+					out.WriteString(lit.Value)
+					out.WriteString(".to_string()")
 				} else {
-					if Config.WrapEverything {
-						// Wrap return values in Arc<Mutex<Option<>>>
-						out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(Some(")
-						TranspileExpression(out, result)
-						out.WriteString(")))")
-					} else {
-						TranspileExpression(out, result)
-					}
+					TranspileExpression(out, result)
 				}
+
+				out.WriteString(")))")
 			}
 
 			if needsTuple {
@@ -232,18 +197,12 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						if i > 0 {
 							out.WriteString("; ")
 						}
-						if Config.WrapEverything {
-							// Assignment to wrapped variable: *var.lock().unwrap() = Some(value)
-							out.WriteString("*")
-							TranspileExpression(out, s.Lhs[i])
-							out.WriteString(".lock().unwrap() = Some(")
-							TranspileExpression(out, s.Rhs[i])
-							out.WriteString(")")
-						} else {
-							TranspileExpression(out, s.Lhs[i])
-							out.WriteString(" = ")
-							TranspileExpression(out, s.Rhs[i])
-						}
+						// Assignment to wrapped variable: *var.lock().unwrap() = Some(value)
+						out.WriteString("*")
+						TranspileExpression(out, s.Lhs[i])
+						out.WriteString(".lock().unwrap() = Some(")
+						TranspileExpression(out, s.Rhs[i])
+						out.WriteString(")")
 					}
 					out.WriteString(" }")
 				}
@@ -262,7 +221,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						}
 					} else {
 						// Normal single assignment
-						if Config.WrapEverything && s.Tok == token.ASSIGN {
+						if s.Tok == token.ASSIGN {
 							// Assignment to wrapped variable
 							// Check if LHS is a dereference (*p = value)
 							if star, ok := s.Lhs[0].(*ast.StarExpr); ok {
@@ -310,7 +269,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 								if i > 0 {
 									out.WriteString(", ")
 								}
-								if Config.WrapEverything && s.Tok == token.DEFINE {
+								if s.Tok == token.DEFINE {
 									// Check if RHS is an address-of expression
 									if unary, ok := rhs.(*ast.UnaryExpr); ok && unary.Op == token.AND {
 										// Taking address - don't wrap, the & operator will handle it
@@ -345,7 +304,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						if i > 0 {
 							out.WriteString(", ")
 						}
-						if Config.WrapEverything && s.Tok == token.DEFINE {
+						if s.Tok == token.DEFINE {
 							// Wrap new variables in Arc<Mutex<Option<>>>
 							out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(Some(")
 							TranspileExpression(out, rhs)
@@ -442,28 +401,18 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		out.WriteString("}")
 
 	case *ast.IncDecStmt:
-		if Config.WrapEverything {
-			// For wrapped variables, we need to update the value inside
-			out.WriteString("{ ")
-			out.WriteString("let mut guard = ")
-			TranspileExpressionContext(out, s.X, LValue)
-			out.WriteString(".lock().unwrap(); ")
-			out.WriteString("*guard = Some(guard.as_ref().unwrap() ")
-			if s.Tok == token.INC {
-				out.WriteString("+ 1")
-			} else {
-				out.WriteString("- 1")
-			}
-			out.WriteString("); }")
+		// For wrapped variables, we need to update the value inside
+		out.WriteString("{ ")
+		out.WriteString("let mut guard = ")
+		TranspileExpressionContext(out, s.X, LValue)
+		out.WriteString(".lock().unwrap(); ")
+		out.WriteString("*guard = Some(guard.as_ref().unwrap() ")
+		if s.Tok == token.INC {
+			out.WriteString("+ 1")
 		} else {
-			TranspileExpression(out, s.X)
-			if s.Tok == token.INC {
-				out.WriteString(" += 1")
-			} else {
-				out.WriteString(" -= 1")
-			}
-			out.WriteString(";")
+			out.WriteString("- 1")
 		}
+		out.WriteString("); }")
 
 	case *ast.RangeStmt:
 		// Handle for range loops
@@ -484,45 +433,80 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			if s.Key != nil && s.Value != nil {
 				// for k, v := range map
 				out.WriteString("(")
-				TranspileExpression(out, s.Key)
+				if ident, ok := s.Key.(*ast.Ident); ok {
+					out.WriteString(ident.Name)
+				} else {
+					TranspileExpression(out, s.Key)
+				}
 				out.WriteString(", ")
-				TranspileExpression(out, s.Value)
+				if ident, ok := s.Value.(*ast.Ident); ok {
+					out.WriteString(ident.Name)
+				} else {
+					TranspileExpression(out, s.Value)
+				}
 				out.WriteString(") in &")
-				TranspileExpression(out, s.X)
+				TranspileExpressionContext(out, s.X, RValue)
 			} else if s.Value != nil {
 				// for _, v := range map (values only)
 				out.WriteString("(_, ")
-				TranspileExpression(out, s.Value)
+				if ident, ok := s.Value.(*ast.Ident); ok {
+					out.WriteString(ident.Name)
+				} else {
+					TranspileExpression(out, s.Value)
+				}
 				out.WriteString(") in &")
-				TranspileExpression(out, s.X)
+				TranspileExpressionContext(out, s.X, RValue)
 			} else if s.Key != nil {
 				// for k := range map (keys only)
 				out.WriteString("(")
-				TranspileExpression(out, s.Key)
-				out.WriteString(", _) in &")
-				TranspileExpression(out, s.X)
+				if ident, ok := s.Key.(*ast.Ident); ok {
+					out.WriteString(ident.Name)
+				} else {
+					TranspileExpression(out, s.Key)
+				}
+				out.WriteString(", _) in &(*")
+				TranspileExpressionContext(out, s.X, RValue)
+				out.WriteString(")")
 			}
 		} else {
 			// Array/slice iteration
 			if s.Key != nil && s.Value != nil {
 				// for i, v := range arr
 				out.WriteString("(")
-				TranspileExpression(out, s.Key)
+				// Just output the identifier names, don't wrap them
+				if ident, ok := s.Key.(*ast.Ident); ok {
+					out.WriteString(ident.Name)
+				} else {
+					TranspileExpression(out, s.Key)
+				}
 				out.WriteString(", ")
-				TranspileExpression(out, s.Value)
+				if ident, ok := s.Value.(*ast.Ident); ok {
+					out.WriteString(ident.Name)
+				} else {
+					TranspileExpression(out, s.Value)
+				}
 				out.WriteString(") in ")
-				TranspileExpression(out, s.X)
+				// Need to unwrap the collection
+				TranspileExpressionContext(out, s.X, RValue)
 				out.WriteString(".iter().enumerate()")
 			} else if s.Value != nil {
 				// for _, v := range arr
-				TranspileExpression(out, s.Value)
+				if ident, ok := s.Value.(*ast.Ident); ok {
+					out.WriteString(ident.Name)
+				} else {
+					TranspileExpression(out, s.Value)
+				}
 				out.WriteString(" in &")
-				TranspileExpression(out, s.X)
+				TranspileExpressionContext(out, s.X, RValue)
 			} else if s.Key != nil {
 				// for i := range arr
-				TranspileExpression(out, s.Key)
+				if ident, ok := s.Key.(*ast.Ident); ok {
+					out.WriteString(ident.Name)
+				} else {
+					TranspileExpression(out, s.Key)
+				}
 				out.WriteString(" in 0..")
-				TranspileExpression(out, s.X)
+				TranspileExpressionContext(out, s.X, RValue)
 				out.WriteString(".len()")
 			}
 		}

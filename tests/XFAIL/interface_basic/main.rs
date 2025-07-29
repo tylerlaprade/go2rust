@@ -1,18 +1,18 @@
-pub fn print_any(v: Box<dyn std::any::Any>) {
-    println!("{} {}", "Value:".to_string(), v);
+pub fn print_any(v: std::sync::Arc<std::sync::Mutex<Option<Box<dyn std::any::Any>>>>) {
+    println!("{} {}", "Value:".to_string(), (*v.lock().unwrap().as_ref().unwrap()));
 }
 
 fn main() {
     let mut x;
-    x = 42;
-    println!("{} {}", "x is int:".to_string(), x);
-    print_any(x);
-    x = "hello".to_string();
-    println!("{} {}", "x is string:".to_string(), x);
-    print_any(x);
-    x = 3.14;
-    println!("{} {}", "x is float:".to_string(), x);
-    print_any(x);
-    let mut values = vec![1, "two".to_string(), 3.0];
-    println!("{} {}", "Mixed values:".to_string(), values);
+    { let new_val = 42; *x.lock().unwrap() = Some(new_val); };
+    println!("{} {}", "x is int:".to_string(), (*x.lock().unwrap().as_ref().unwrap()));
+    print_any(std::sync::Arc::new(std::sync::Mutex::new(Some((*x.lock().unwrap().as_ref().unwrap())))));
+    { let new_val = "hello".to_string(); *x.lock().unwrap() = Some(new_val); };
+    println!("{} {}", "x is string:".to_string(), (*x.lock().unwrap().as_ref().unwrap()));
+    print_any(std::sync::Arc::new(std::sync::Mutex::new(Some((*x.lock().unwrap().as_ref().unwrap())))));
+    { let new_val = 3.14; *x.lock().unwrap() = Some(new_val); };
+    println!("{} {}", "x is float:".to_string(), (*x.lock().unwrap().as_ref().unwrap()));
+    print_any(std::sync::Arc::new(std::sync::Mutex::new(Some((*x.lock().unwrap().as_ref().unwrap())))));
+    let mut values = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![1, "two".to_string(), 3.0])));
+    println!("{} {}", "Mixed values:".to_string(), (*values.lock().unwrap().as_ref().unwrap()));
 }

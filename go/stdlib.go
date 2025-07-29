@@ -82,7 +82,19 @@ func transpileFmtPrintln(out *strings.Builder, call *ast.CallExpr) {
 
 		for _, arg := range call.Args {
 			out.WriteString(", ")
-			TranspileExpression(out, arg)
+			// Check if this is a function call that returns a wrapped value
+			if callExpr, ok := arg.(*ast.CallExpr); ok {
+				// If it's a user function call (not stdlib), unwrap the result
+				if _, ok := callExpr.Fun.(*ast.Ident); ok && GetStdlibHandler(callExpr) == nil {
+					out.WriteString("(*")
+					TranspileExpression(out, arg)
+					out.WriteString(".lock().unwrap().as_ref().unwrap())")
+				} else {
+					TranspileExpression(out, arg)
+				}
+			} else {
+				TranspileExpression(out, arg)
+			}
 		}
 	}
 
@@ -106,7 +118,19 @@ func transpileBuiltinPrintln(out *strings.Builder, call *ast.CallExpr) {
 
 		for _, arg := range call.Args {
 			out.WriteString(", ")
-			TranspileExpression(out, arg)
+			// Check if this is a function call that returns a wrapped value
+			if callExpr, ok := arg.(*ast.CallExpr); ok {
+				// If it's a user function call (not stdlib), unwrap the result
+				if _, ok := callExpr.Fun.(*ast.Ident); ok && GetStdlibHandler(callExpr) == nil {
+					out.WriteString("(*")
+					TranspileExpression(out, arg)
+					out.WriteString(".lock().unwrap().as_ref().unwrap())")
+				} else {
+					TranspileExpression(out, arg)
+				}
+			} else {
+				TranspileExpression(out, arg)
+			}
 		}
 	}
 

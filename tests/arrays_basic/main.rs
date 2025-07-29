@@ -6,12 +6,12 @@ fn main() {
     println!("{}", "Array elements:".to_string());
     let mut i = std::sync::Arc::new(std::sync::Mutex::new(Some(0)));
     while (*i.lock().unwrap().as_ref().unwrap()) < (*arr.lock().unwrap().as_ref().unwrap()).len() {
-        println!("{}", (*(*arr.lock().unwrap().as_ref().unwrap()))[(*i.lock().unwrap().as_ref().unwrap())]);
+        println!("{}", (*arr.lock().unwrap().as_ref().unwrap())[(*i.lock().unwrap().as_ref().unwrap())]);
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
     let mut nums = std::sync::Arc::new(std::sync::Mutex::new(Some([1, 2, 3, 4])));
     println!("{}", "Initialized array:".to_string());
-    for ((*_.lock().unwrap().as_ref().unwrap()), (*num.lock().unwrap().as_ref().unwrap())) in (*nums.lock().unwrap().as_ref().unwrap()).iter().enumerate() {
+    for (_, num) in (*nums.lock().unwrap().as_ref().unwrap()).iter().enumerate() {
         println!("{}", (*num.lock().unwrap().as_ref().unwrap()));
     }
 }

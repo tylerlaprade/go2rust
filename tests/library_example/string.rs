@@ -1,10 +1,10 @@
-pub fn repeat(s: String, n: i32) -> String {
+pub fn repeat(s: std::sync::Arc<std::sync::Mutex<Option<String>>>, n: std::sync::Arc<std::sync::Mutex<Option<i32>>>) -> std::sync::Arc<std::sync::Mutex<Option<String>>> {
 
-    let mut result = "".to_string();
-    let mut i = 0;
-    while i < n {
-        result.push_str(&s);
-        i += 1;
+    let mut result = std::sync::Arc::new(std::sync::Mutex::new(Some("".to_string())));
+    let mut i = std::sync::Arc::new(std::sync::Mutex::new(Some(0)));
+    while (*i.lock().unwrap().as_ref().unwrap()) < (*n.lock().unwrap().as_ref().unwrap()) {
+        (*result.lock().unwrap().as_ref().unwrap()).push_str(&(*s.lock().unwrap().as_ref().unwrap()));
+        { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
-    return result;
+    return std::sync::Arc::new(std::sync::Mutex::new(Some((*result.lock().unwrap().as_ref().unwrap()))));
 }

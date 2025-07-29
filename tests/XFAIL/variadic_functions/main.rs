@@ -1,74 +1,74 @@
-pub fn sum(numbers: Unknown) -> i32 {
+pub fn sum(numbers: std::sync::Arc<std::sync::Mutex<Option<Unknown>>>) -> std::sync::Arc<std::sync::Mutex<Option<i32>>> {
 
-    let mut total = 0;
-    for (_, num) in numbers.iter().enumerate() {
-        total += num;
+    let mut total = std::sync::Arc::new(std::sync::Mutex::new(Some(0)));
+    for (_, num) in (*numbers.lock().unwrap().as_ref().unwrap()).iter().enumerate() {
+        (*total.lock().unwrap().as_ref().unwrap()) += (*num.lock().unwrap().as_ref().unwrap());
     }
-    return total;
+    return std::sync::Arc::new(std::sync::Mutex::new(Some((*total.lock().unwrap().as_ref().unwrap()))));
 }
 
-pub fn average(numbers: Unknown) -> f64 {
+pub fn average(numbers: std::sync::Arc<std::sync::Mutex<Option<Unknown>>>) -> std::sync::Arc<std::sync::Mutex<Option<f64>>> {
 
-    if numbers.len() == 0 {
-        return 0;
+    if (*numbers.lock().unwrap().as_ref().unwrap()).len() == 0 {
+        return std::sync::Arc::new(std::sync::Mutex::new(Some(0)));
     }
-    let mut total = 0.0;
-    for (_, num) in numbers.iter().enumerate() {
-        total += num;
+    let mut total = std::sync::Arc::new(std::sync::Mutex::new(Some(0.0)));
+    for (_, num) in (*numbers.lock().unwrap().as_ref().unwrap()).iter().enumerate() {
+        (*total.lock().unwrap().as_ref().unwrap()) += (*num.lock().unwrap().as_ref().unwrap());
     }
-    return total / float64(numbers.len());
+    return std::sync::Arc::new(std::sync::Mutex::new(Some((*total.lock().unwrap().as_ref().unwrap()) / float64(std::sync::Arc::new(std::sync::Mutex::new(Some((*numbers.lock().unwrap().as_ref().unwrap()).len())))))));
 }
 
-pub fn print_strings(prefix: String, strings: Unknown) {
-    print!("{}: ", prefix);
-    for (i, str) in strings.iter().enumerate() {
-        if i > 0 {
-        fmt.print(", ".to_string());
+pub fn print_strings(prefix: std::sync::Arc<std::sync::Mutex<Option<String>>>, strings: std::sync::Arc<std::sync::Mutex<Option<Unknown>>>) {
+    print!("{}: ", (*prefix.lock().unwrap().as_ref().unwrap()));
+    for (i, str) in (*strings.lock().unwrap().as_ref().unwrap()).iter().enumerate() {
+        if (*i.lock().unwrap().as_ref().unwrap()) > 0 {
+        (*fmt.lock().unwrap().as_ref().unwrap()).print(std::sync::Arc::new(std::sync::Mutex::new(Some(", ".to_string()))));
     }
-        fmt.print(str);
+        (*fmt.lock().unwrap().as_ref().unwrap()).print(std::sync::Arc::new(std::sync::Mutex::new(Some((*str.lock().unwrap().as_ref().unwrap())))));
     }
     println!();
 }
 
-pub fn min(first: i32, rest: Unknown) -> i32 {
+pub fn min(first: std::sync::Arc<std::sync::Mutex<Option<i32>>>, rest: std::sync::Arc<std::sync::Mutex<Option<Unknown>>>) -> std::sync::Arc<std::sync::Mutex<Option<i32>>> {
 
-    let mut minimum = first;
-    for (_, num) in rest.iter().enumerate() {
-        if num < minimum {
-        minimum = num;
+    let mut minimum = std::sync::Arc::new(std::sync::Mutex::new(Some((*first.lock().unwrap().as_ref().unwrap()))));
+    for (_, num) in (*rest.lock().unwrap().as_ref().unwrap()).iter().enumerate() {
+        if (*num.lock().unwrap().as_ref().unwrap()) < (*minimum.lock().unwrap().as_ref().unwrap()) {
+        { let new_val = (*num.lock().unwrap().as_ref().unwrap()); *minimum.lock().unwrap() = Some(new_val); };
     }
     }
-    return minimum;
+    return std::sync::Arc::new(std::sync::Mutex::new(Some((*minimum.lock().unwrap().as_ref().unwrap()))));
 }
 
-pub fn concat(separator: String, strings: Unknown) -> String {
+pub fn concat(separator: std::sync::Arc<std::sync::Mutex<Option<String>>>, strings: std::sync::Arc<std::sync::Mutex<Option<Unknown>>>) -> std::sync::Arc<std::sync::Mutex<Option<String>>> {
 
-    if strings.len() == 0 {
-        return "".to_string();
+    if (*strings.lock().unwrap().as_ref().unwrap()).len() == 0 {
+        return std::sync::Arc::new(std::sync::Mutex::new(Some("".to_string())));
     }
-    let mut result = strings[0];
-    for (_, str) in strings[1..].to_vec().iter().enumerate() {
-        result.push_str(&separator + str);
+    let mut result = std::sync::Arc::new(std::sync::Mutex::new(Some((*strings.lock().unwrap().as_ref().unwrap())[0])));
+    for (_, str) in (*strings.lock().unwrap().as_ref().unwrap())[1..].to_vec().iter().enumerate() {
+        (*result.lock().unwrap().as_ref().unwrap()).push_str(&(*separator.lock().unwrap().as_ref().unwrap()) + (*str.lock().unwrap().as_ref().unwrap()));
     }
-    return result;
+    return std::sync::Arc::new(std::sync::Mutex::new(Some((*result.lock().unwrap().as_ref().unwrap()))));
 }
 
 fn main() {
-    println!("{} {}", "Sum of no numbers:".to_string(), sum());
-    println!("{} {}", "Sum of 1, 2, 3:".to_string(), sum(1, 2, 3));
-    println!("{} {}", "Sum of 1, 2, 3, 4, 5:".to_string(), sum(1, 2, 3, 4, 5));
-    let mut numbers = vec![10, 20, 30, 40];
-    println!("{} {}", "Sum of slice:".to_string(), sum(numbers));
-    println!("{} {}", "Average of 1.5, 2.5, 3.5:".to_string(), average(1.5, 2.5, 3.5));
-    println!("{} {}", "Average of no numbers:".to_string(), average());
-    print_strings("Colors".to_string(), "red".to_string(), "green".to_string(), "blue".to_string());
-    print_strings("Animals".to_string(), "cat".to_string(), "dog".to_string());
-    print_strings("Empty".to_string());
-    println!("{} {}", "Min of 5, 2, 8, 1, 9:".to_string(), min(5, 2, 8, 1, 9));
-    println!("{} {}", "Min of just 42:".to_string(), min(42));
-    println!("{} {}", "Concat with comma:".to_string(), concat(", ".to_string(), "apple".to_string(), "banana".to_string(), "cherry".to_string()));
-    println!("{} {}", "Concat with dash:".to_string(), concat(" - ".to_string(), "one".to_string(), "two".to_string(), "three".to_string()));
-    println!("{} {}", "Concat empty:".to_string(), concat(", ".to_string()));
-    let mut words = vec!["hello".to_string(), "world".to_string(), "from".to_string(), "go".to_string()];
-    println!("{} {}", "Concat from slice:".to_string(), concat(" ".to_string(), words));
+    println!("{} {}", "Sum of no numbers:".to_string(), (*sum().lock().unwrap().as_ref().unwrap()));
+    println!("{} {}", "Sum of 1, 2, 3:".to_string(), (*sum(std::sync::Arc::new(std::sync::Mutex::new(Some(1))), std::sync::Arc::new(std::sync::Mutex::new(Some(2))), std::sync::Arc::new(std::sync::Mutex::new(Some(3)))).lock().unwrap().as_ref().unwrap()));
+    println!("{} {}", "Sum of 1, 2, 3, 4, 5:".to_string(), (*sum(std::sync::Arc::new(std::sync::Mutex::new(Some(1))), std::sync::Arc::new(std::sync::Mutex::new(Some(2))), std::sync::Arc::new(std::sync::Mutex::new(Some(3))), std::sync::Arc::new(std::sync::Mutex::new(Some(4))), std::sync::Arc::new(std::sync::Mutex::new(Some(5)))).lock().unwrap().as_ref().unwrap()));
+    let mut numbers = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![10, 20, 30, 40])));
+    println!("{} {}", "Sum of slice:".to_string(), (*sum(std::sync::Arc::new(std::sync::Mutex::new(Some((*numbers.lock().unwrap().as_ref().unwrap()))))).lock().unwrap().as_ref().unwrap()));
+    println!("{} {}", "Average of 1.5, 2.5, 3.5:".to_string(), (*average(std::sync::Arc::new(std::sync::Mutex::new(Some(1.5))), std::sync::Arc::new(std::sync::Mutex::new(Some(2.5))), std::sync::Arc::new(std::sync::Mutex::new(Some(3.5)))).lock().unwrap().as_ref().unwrap()));
+    println!("{} {}", "Average of no numbers:".to_string(), (*average().lock().unwrap().as_ref().unwrap()));
+    print_strings(std::sync::Arc::new(std::sync::Mutex::new(Some("Colors".to_string()))), std::sync::Arc::new(std::sync::Mutex::new(Some("red".to_string()))), std::sync::Arc::new(std::sync::Mutex::new(Some("green".to_string()))), std::sync::Arc::new(std::sync::Mutex::new(Some("blue".to_string()))));
+    print_strings(std::sync::Arc::new(std::sync::Mutex::new(Some("Animals".to_string()))), std::sync::Arc::new(std::sync::Mutex::new(Some("cat".to_string()))), std::sync::Arc::new(std::sync::Mutex::new(Some("dog".to_string()))));
+    print_strings(std::sync::Arc::new(std::sync::Mutex::new(Some("Empty".to_string()))));
+    println!("{} {}", "Min of 5, 2, 8, 1, 9:".to_string(), (*min(std::sync::Arc::new(std::sync::Mutex::new(Some(5))), std::sync::Arc::new(std::sync::Mutex::new(Some(2))), std::sync::Arc::new(std::sync::Mutex::new(Some(8))), std::sync::Arc::new(std::sync::Mutex::new(Some(1))), std::sync::Arc::new(std::sync::Mutex::new(Some(9)))).lock().unwrap().as_ref().unwrap()));
+    println!("{} {}", "Min of just 42:".to_string(), (*min(std::sync::Arc::new(std::sync::Mutex::new(Some(42)))).lock().unwrap().as_ref().unwrap()));
+    println!("{} {}", "Concat with comma:".to_string(), (*concat(std::sync::Arc::new(std::sync::Mutex::new(Some(", ".to_string()))), std::sync::Arc::new(std::sync::Mutex::new(Some("apple".to_string()))), std::sync::Arc::new(std::sync::Mutex::new(Some("banana".to_string()))), std::sync::Arc::new(std::sync::Mutex::new(Some("cherry".to_string())))).lock().unwrap().as_ref().unwrap()));
+    println!("{} {}", "Concat with dash:".to_string(), (*concat(std::sync::Arc::new(std::sync::Mutex::new(Some(" - ".to_string()))), std::sync::Arc::new(std::sync::Mutex::new(Some("one".to_string()))), std::sync::Arc::new(std::sync::Mutex::new(Some("two".to_string()))), std::sync::Arc::new(std::sync::Mutex::new(Some("three".to_string())))).lock().unwrap().as_ref().unwrap()));
+    println!("{} {}", "Concat empty:".to_string(), (*concat(std::sync::Arc::new(std::sync::Mutex::new(Some(", ".to_string())))).lock().unwrap().as_ref().unwrap()));
+    let mut words = std::sync::Arc::new(std::sync::Mutex::new(Some(vec!["hello".to_string(), "world".to_string(), "from".to_string(), "go".to_string()])));
+    println!("{} {}", "Concat from slice:".to_string(), (*concat(std::sync::Arc::new(std::sync::Mutex::new(Some(" ".to_string()))), std::sync::Arc::new(std::sync::Mutex::new(Some((*words.lock().unwrap().as_ref().unwrap()))))).lock().unwrap().as_ref().unwrap()));
 }
