@@ -135,6 +135,55 @@ func TranspileExpression(out *strings.Builder, expr ast.Expr) {
 			}
 			out.WriteString(" }")
 		}
+
+	case *ast.TypeAssertExpr:
+		// Handle type assertions like value.(string)
+		if e.Type != nil {
+			// Generate a match expression for type assertion
+			out.WriteString("match ")
+			TranspileExpression(out, e.X)
+			out.WriteString(".downcast_ref::<")
+
+			// Get the asserted type
+			if ident, ok := e.Type.(*ast.Ident); ok {
+				switch ident.Name {
+				case "string":
+					out.WriteString("String")
+				case "int":
+					out.WriteString("i32")
+				case "bool":
+					out.WriteString("bool")
+				case "float64":
+					out.WriteString("f64")
+				default:
+					out.WriteString(ident.Name)
+				}
+			} else {
+				out.WriteString(GoTypeToRust(e.Type))
+			}
+
+			out.WriteString(">() { Some(v) => (v.clone(), true), None => (")
+
+			// Default value for the type
+			if ident, ok := e.Type.(*ast.Ident); ok {
+				switch ident.Name {
+				case "string":
+					out.WriteString("String::new()")
+				case "int":
+					out.WriteString("0")
+				case "bool":
+					out.WriteString("false")
+				case "float64":
+					out.WriteString("0.0")
+				default:
+					out.WriteString("Default::default()")
+				}
+			} else {
+				out.WriteString("Default::default()")
+			}
+
+			out.WriteString(", false) }")
+		}
 	}
 }
 

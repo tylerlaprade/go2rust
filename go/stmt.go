@@ -451,5 +451,61 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				out.WriteString("    }")
 			}
 		}
+
+	case *ast.SwitchStmt:
+		// Handle init statement if present
+		if s.Init != nil {
+			TranspileStatement(out, s.Init, fnType)
+			out.WriteString("\n    ")
+		}
+
+		out.WriteString("match ")
+		if s.Tag != nil {
+			// Switch with expression
+			TranspileExpression(out, s.Tag)
+		} else {
+			// Switch without expression - use true
+			out.WriteString("true")
+		}
+		out.WriteString(" {\n")
+
+		// Process cases
+		for _, stmt := range s.Body.List {
+			if caseClause, ok := stmt.(*ast.CaseClause); ok {
+				out.WriteString("        ")
+				if caseClause.List == nil {
+					// default case
+					out.WriteString("_")
+				} else {
+					// Regular case(s)
+					for i, expr := range caseClause.List {
+						if i > 0 {
+							out.WriteString(" | ")
+						}
+						// For switch without expression, we need to handle boolean conditions
+						if s.Tag == nil {
+							// The expression is a condition, we need to match on true
+							// and put the condition as a guard
+							out.WriteString("true if ")
+							TranspileExpression(out, expr)
+						} else {
+							TranspileExpression(out, expr)
+						}
+					}
+				}
+				out.WriteString(" => {\n")
+
+				// Case body
+				for _, bodyStmt := range caseClause.Body {
+					out.WriteString("            ")
+					TranspileStatement(out, bodyStmt, fnType)
+					out.WriteString("\n")
+				}
+
+				out.WriteString("        }\n")
+			}
+		}
+
+		out.WriteString("    }")
 	}
 }
