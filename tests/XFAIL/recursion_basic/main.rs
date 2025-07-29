@@ -1,33 +1,58 @@
 pub fn factorial(n: i32) -> i32 {
-    
+
+    if n <= 1 {
+        return 1;
+    }
     return n * factorial(n - 1);
 }
 
 pub fn fibonacci(n: i32) -> i32 {
-    
+
+    if n <= 1 {
+        return n;
+    }
     return fibonacci(n - 1) + fibonacci(n - 2);
 }
 
 pub fn gcd(a: i32, b: i32) -> i32 {
-    
+
+    if b == 0 {
+        return a;
+    }
     return gcd(b, a % b);
 }
 
 pub fn power(base: i32, exp: i32) -> i32 {
-    
-    
-    
+
+    if exp == 0 {
+        return 1;
+    }
+    if exp == 1 {
+        return base;
+    }
+    if exp % 2 == 0 {
+        let mut half = power(base, exp / 2);
+        return half * half;
+    }
     return base * power(base, exp - 1);
 }
 
 pub fn sum_array(arr: Vec<i32>) -> i32 {
-    
-    
+
+    if arr.len() == 0 {
+        return 0;
+    }
+    if arr.len() == 1 {
+        return arr[0];
+    }
     return arr[0] + sum_array(arr[1..].to_vec());
 }
 
 pub fn reverse_string(s: String) -> String {
-    
+
+    if s.len() <= 1 {
+        return s;
+    }
     return reverse_string(s[1..].to_vec()) + string(s[0]);
 }
 

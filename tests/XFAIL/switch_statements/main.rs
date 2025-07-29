@@ -16,7 +16,7 @@ pub fn switch_with_fallthrough(num: i32) {
     
 }
 
-pub fn type_switch(value: Unknown) {
+pub fn type_switch(value: Box<dyn std::any::Any>) {
     
 }
 

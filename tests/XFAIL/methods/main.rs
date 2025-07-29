@@ -8,11 +8,13 @@ pub fn increment() {
 }
 
 pub fn value() -> i32 {
+
     return c.value;
 }
 
 pub fn new_counter() -> Unknown {
-    return ;
+
+    return &Counter { value: 0 };
 }
 
 fn main() {

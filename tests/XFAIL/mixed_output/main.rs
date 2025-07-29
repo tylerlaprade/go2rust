@@ -9,7 +9,7 @@ fn main() {
     fmt.fprintln(os.stderr, "Back to stderr".to_string());
     println!("{} {} {} {}", "Multiple".to_string(), "values".to_string(), "to".to_string(), "stdout".to_string());
     fmt.fprintln(os.stderr, "Multiple".to_string(), "values".to_string(), "to".to_string(), "stderr".to_string());
-    print!("Number: {}, String: {}, Float: %.2f\n", 123, "hello".to_string(), 3.14);
+    print!("Number: {}, String: {}, Float: {:.2}\n", 123, "hello".to_string(), 3.14);
     fmt.fprintf(os.stderr, "Error code: %d, Message: %s\n".to_string(), 404, "Not Found".to_string());
     println!("{}", "Program completed successfully".to_string());
     fmt.fprintln(os.stderr, "No errors occurred".to_string());

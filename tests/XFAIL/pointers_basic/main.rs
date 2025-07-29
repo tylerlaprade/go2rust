@@ -5,13 +5,13 @@ struct Point {
 
 fn main() {
     let mut x = 42;
-    let mut p = ;
+    let mut p = &x;
     println!("{} {}", "Value of x:".to_string(), x);
     println!("{} {}", "Address of x:".to_string(), p);
     println!("{} {}", "Value through pointer:".to_string(), );
      = 100;
     println!("{} {}", "Modified x:".to_string(), x);
-    let mut point = ;
+    let mut point = &Point { x: 10, y: 20 };
     println!("{} {}", "Point:".to_string(), point);
     println!("{} {}", "Point X:".to_string(), point.x);
     println!("{} {}", "Point Y:".to_string(), point.y);

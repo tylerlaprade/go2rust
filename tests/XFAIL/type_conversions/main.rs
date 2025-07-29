@@ -4,7 +4,7 @@ fn main() {
     let mut f = float64(i);
     let mut i2 = int(f);
     print!("int: {}\n", i);
-    print!("float64: %.2f\n", f);
+    print!("float64: {:.2}\n", f);
     print!("back to int: {}\n", i2);
     println!("{}", "\n=== Integer size conversions ===".to_string());
     let mut i8 = 127;
@@ -53,11 +53,11 @@ fn main() {
     println!("{}", "\n=== Boolean-like conversions ===".to_string());
     let mut zero = 0;
     let mut nonZero = 42;
-    print!("zero == 0: %t\n", zero == 0);
-    print!("nonZero != 0: %t\n", nonZero != 0);
+    print!("zero == 0: {}\n", zero == 0);
+    print!("nonZero != 0: {}\n", nonZero != 0);
     println!("{}", "\n=== Pointer conversions ===".to_string());
     let mut num = 100;
-    let mut ptr = ;
+    let mut ptr = &num;
     print!("value: {}\n", num);
     print!("pointer: %p\n", ptr);
     print!("dereferenced: {}\n", );
@@ -65,11 +65,17 @@ fn main() {
     let mut any = 42;
     print!("interface{} value: {}\n", any);
     print!("interface{} type: %T\n", any);
-    
+    let (mut intVal, mut ok) = ;
+    if ok {
+        print!("asserted as int: {}\n", intVal);
+    }
     any = "hello".to_string();
     print!("new interface{} value: {}\n", any);
     print!("new interface{} type: %T\n", any);
-    
+    let (mut strVal, mut ok) = ;
+    if ok {
+        print!("asserted as string: {}\n", strVal);
+    }
     println!("{}", "\n=== Complex number conversions ===".to_string());
     let mut c64 = 3 + 4i;
     let mut c128 = complex128(c64);
@@ -77,8 +83,8 @@ fn main() {
     print!("complex128: {}\n", c128);
     let mut real = real(c128);
     let mut imag = imag(c128);
-    print!("real part: %.2f\n", real);
-    print!("imaginary part: %.2f\n", imag);
+    print!("real part: {:.2}\n", real);
+    print!("imaginary part: {:.2}\n", imag);
     let mut newComplex = complex(real, imag);
     print!("reconstructed: {}\n", newComplex);
     println!("{}", "\n=== Overflow examples ===".to_string());

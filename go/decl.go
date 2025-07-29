@@ -35,10 +35,75 @@ func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl) {
 	// Return type
 	if fn.Type.Results != nil && len(fn.Type.Results.List) > 0 {
 		out.WriteString(" -> ")
-		out.WriteString(GoTypeToRust(fn.Type.Results.List[0].Type))
+		if len(fn.Type.Results.List) == 1 && len(fn.Type.Results.List[0].Names) <= 1 {
+			// Single return value
+			out.WriteString(GoTypeToRust(fn.Type.Results.List[0].Type))
+		} else {
+			// Multiple return values - use tuple
+			out.WriteString("(")
+			first := true
+			for _, result := range fn.Type.Results.List {
+				// Handle multiple names with same type
+				if len(result.Names) > 0 {
+					for range result.Names {
+						if !first {
+							out.WriteString(", ")
+						}
+						first = false
+						out.WriteString(GoTypeToRust(result.Type))
+					}
+				} else {
+					// Unnamed return value
+					if !first {
+						out.WriteString(", ")
+					}
+					first = false
+					out.WriteString(GoTypeToRust(result.Type))
+				}
+			}
+			out.WriteString(")")
+		}
 	}
 
 	out.WriteString(" {\n")
+
+	// Declare named return values as mutable variables
+	if fn.Type.Results != nil {
+		for _, result := range fn.Type.Results.List {
+			if len(result.Names) > 0 {
+				for _, name := range result.Names {
+					out.WriteString("    let mut ")
+					out.WriteString(name.Name)
+					out.WriteString(": ")
+					out.WriteString(GoTypeToRust(result.Type))
+					// Initialize with default values
+					switch t := result.Type.(type) {
+					case *ast.Ident:
+						switch t.Name {
+						case "string":
+							out.WriteString(" = String::new()")
+						case "int", "int64":
+							out.WriteString(" = 0")
+						case "float64":
+							out.WriteString(" = 0.0")
+						case "bool":
+							out.WriteString(" = false")
+						case "error":
+							out.WriteString(" = None")
+						default:
+							out.WriteString(" = Default::default()")
+						}
+					default:
+						out.WriteString(" = Default::default()")
+					}
+					out.WriteString(";\n")
+				}
+			}
+		}
+		if len(fn.Type.Results.List) > 0 {
+			out.WriteString("\n")
+		}
+	}
 
 	// Function body
 	for _, stmt := range fn.Body.List {

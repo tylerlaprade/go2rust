@@ -11,8 +11,11 @@ pub fn sender(ch: Unknown) {
 
 pub fn receiver(ch: Unknown) {
     while true {
-        let mut value, let mut ok = ;
+        let (mut value, mut ok) = <-ch;
+        if !ok {
+        println!("{}", "Channel closed".to_string());
         
+    }
         print!("Received: {}\n", value);
     }
 }
@@ -29,7 +32,7 @@ fn main() {
     println!("{}", "Buffered channel contents:".to_string());
     let mut i = 0;
     while i < 3 {
-        let mut msg = ;
+        let mut msg = <-buffered;
         println!("{} {}", "Got:".to_string(), msg);
         i += 1;
     }

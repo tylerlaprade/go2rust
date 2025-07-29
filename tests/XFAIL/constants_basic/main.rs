@@ -5,8 +5,8 @@ fn main() {
     print!("MaxUsers = {}\n", MaxUsers);
     println!("{}", "\n=== Typed constants ===".to_string());
     print!("Name: {}\n", Name);
-    print!("Version: %.1f\n", Version);
-    print!("Debug: %t\n", Debug);
+    print!("Version: {:.1}\n", Version);
+    print!("Debug: {}\n", Debug);
     println!("{}", "\n=== Weekday constants ===".to_string());
     print!("Sunday = {}\n", Sunday);
     print!("Monday = {}\n", Monday);
@@ -40,7 +40,7 @@ fn main() {
     let mut f = untypedFloat;
     let mut mixed = untypedInt + 3;
     print!("i = {}\n", i);
-    print!("f = %.2f\n", f);
+    print!("f = {:.2}\n", f);
     print!("mixed = {}\n", mixed);
     println!("{}", "\n=== String constants ===".to_string());
     

@@ -6,6 +6,7 @@ struct Circle {
 }
 
 pub fn draw() -> String {
+
     return fmt.sprintf("Circle(r=%.1f)".to_string(), c.radius);
 }
 
@@ -15,6 +16,7 @@ struct Rectangle {
 }
 
 pub fn draw() -> String {
+
     return fmt.sprintf("Rectangle(%.1fx%.1f)".to_string(), r.width, r.height);
 }
 
@@ -80,7 +82,7 @@ fn main() {
     print!("Company: {}\n", company.name);
     print!("HQ Address: {}, {}, {} {}\n", company.headquarters::street, company.headquarters::city, company.headquarters::state, company.headquarters::zip_code);
     print!("Department: {}\n", company.departments[0]::name);
-    print!("Department Budget: $%.2f\n", company.departments[0]::budget);
+    print!("Department Budget: ${:.2}\n", company.departments[0]::budget);
     print!("Manager: {} (Age: {})\n", company.departments[0]::manager::name, company.departments[0]::manager::age);
     print!("Manager Email: {}\n", company.departments[0]::manager::contact::email);
     print!("Manager Address: {}, {}\n", company.departments[0]::manager::address::city, company.departments[0]::manager::address::state);
@@ -111,7 +113,9 @@ fn main() {
         print!("Row {}: ", i);
         for (j, val) in row.iter().enumerate() {
         print!("{} ", val);
-        
+        if j < row.len() - 1 {
+        fmt.print(" ".to_string());
+    }
     }
         println!();
     }

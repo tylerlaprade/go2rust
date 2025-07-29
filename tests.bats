@@ -112,6 +112,10 @@ run_xfail_test() {
     run_test "tests/library_example"
 }
 
+@test "multiple_returns" {
+    run_test "tests/multiple_returns"
+}
+
 @test "simple_functions" {
     run_test "tests/simple_functions"
 }

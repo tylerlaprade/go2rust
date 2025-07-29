@@ -23,8 +23,8 @@ fn main() {
     println!("{}", "\n=== String searching ===".to_string());
     let mut searchText = "The quick brown fox jumps over the lazy dog".to_string();
     print!("Text: {}\n", searchText);
-    print!("Contains 'fox': %t\n", strings.contains(searchText, "fox".to_string()));
-    print!("Contains 'cat': %t\n", strings.contains(searchText, "cat".to_string()));
+    print!("Contains 'fox': {}\n", strings.contains(searchText, "fox".to_string()));
+    print!("Contains 'cat': {}\n", strings.contains(searchText, "cat".to_string()));
     print!("Index of 'fox': {}\n", strings.index(searchText, "fox".to_string()));
     print!("Index of 'cat': {}\n", strings.index(searchText, "cat".to_string()));
     print!("Last index of 'the': {}\n", strings.last_index(searchText, "the".to_string()));
@@ -32,9 +32,9 @@ fn main() {
     println!("{}", "\n=== Prefixes and suffixes ===".to_string());
     let mut filename = "document.txt".to_string();
     print!("Filename: {}\n", filename);
-    print!("Has .txt suffix: %t\n", strings.has_suffix(filename, ".txt".to_string()));
-    print!("Has .pdf suffix: %t\n", strings.has_suffix(filename, ".pdf".to_string()));
-    print!("Has 'doc' prefix: %t\n", strings.has_prefix(filename, "doc".to_string()));
+    print!("Has .txt suffix: {}\n", strings.has_suffix(filename, ".txt".to_string()));
+    print!("Has .pdf suffix: {}\n", strings.has_suffix(filename, ".pdf".to_string()));
+    print!("Has 'doc' prefix: {}\n", strings.has_prefix(filename, "doc".to_string()));
     println!("{}", "\n=== Splitting and joining ===".to_string());
     let mut csv = "apple,banana,cherry,date".to_string();
     print!("CSV: {}\n", csv);
@@ -60,10 +60,10 @@ fn main() {
     let mut str1 = "apple".to_string();
     let mut str2 = "banana".to_string();
     let mut str3 = "apple".to_string();
-    print!("'{}' == '{}': %t\n", str1, str2, str1 == str2);
-    print!("'{}' == '{}': %t\n", str1, str3, str1 == str3);
-    print!("'{}' < '{}': %t\n", str1, str2, str1 < str2);
-    print!("EqualFold('Apple', 'APPLE'): %t\n", strings.equal_fold("Apple".to_string(), "APPLE".to_string()));
+    print!("'{}' == '{}': {}\n", str1, str2, str1 == str2);
+    print!("'{}' == '{}': {}\n", str1, str3, str1 == str3);
+    print!("'{}' < '{}': {}\n", str1, str2, str1 < str2);
+    print!("EqualFold('Apple', 'APPLE'): {}\n", strings.equal_fold("Apple".to_string(), "APPLE".to_string()));
     println!("{}", "\n=== String building ===".to_string());
     let mut builder;
     builder.write_string("Building ".to_string());
@@ -93,7 +93,7 @@ fn main() {
     let mut name = "Alice".to_string();
     let mut age = 30;
     let mut height = 5.6;
-    print!("Name: {}, Age: {}, Height: %.1f\n", name, age, height);
+    print!("Name: {}, Age: {}, Height: {:.1}\n", name, age, height);
     print!("Quoted string: %q\n", name);
     print!("String with width: '%10s'\n", name);
     print!("Left-aligned: '%-10s'\n", name);

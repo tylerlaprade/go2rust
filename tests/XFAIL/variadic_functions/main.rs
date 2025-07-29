@@ -1,16 +1,20 @@
 pub fn sum(numbers: Unknown) -> i32 {
+
     let mut total = 0;
     for (_, num) in numbers.iter().enumerate() {
-        total.push_str(&num);
+        total += num;
     }
     return total;
 }
 
 pub fn average(numbers: Unknown) -> f64 {
-    
+
+    if numbers.len() == 0 {
+        return 0;
+    }
     let mut total = 0.0;
     for (_, num) in numbers.iter().enumerate() {
-        total.push_str(&num);
+        total += num;
     }
     return total / float64(numbers.len());
 }
@@ -18,25 +22,33 @@ pub fn average(numbers: Unknown) -> f64 {
 pub fn print_strings(prefix: String, strings: Unknown) {
     print!("{}: ", prefix);
     for (i, str) in strings.iter().enumerate() {
-        
+        if i > 0 {
+        fmt.print(", ".to_string());
+    }
         fmt.print(str);
     }
     println!();
 }
 
 pub fn min(first: i32, rest: Unknown) -> i32 {
+
     let mut minimum = first;
     for (_, num) in rest.iter().enumerate() {
-        
+        if num < minimum {
+        minimum = num;
+    }
     }
     return minimum;
 }
 
 pub fn concat(separator: String, strings: Unknown) -> String {
-    
+
+    if strings.len() == 0 {
+        return "".to_string();
+    }
     let mut result = strings[0];
     for (_, str) in strings[1..].to_vec().iter().enumerate() {
-        result.push_str(&separator + str);
+        result += separator + str;
     }
     return result;
 }

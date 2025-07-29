@@ -36,10 +36,12 @@ func init() {
 	stdlibMappings = map[string]StdlibHandler{
 		"fmt.Println":       transpileFmtPrintln,
 		"fmt.Printf":        transpileFmtPrintf,
+		"fmt.Errorf":        transpileFmtErrorf,
 		"strings.ToLower":   transpileStringsToLower,
 		"strings.ToUpper":   transpileStringsToUpper,
 		"strings.TrimSpace": transpileStringsTrimSpace,
 		"strconv.Itoa":      transpileStrconvItoa,
+		"strconv.Atoi":      transpileStrconvAtoi,
 	}
 
 	builtinMappings = map[string]StdlibHandler{
@@ -113,6 +115,10 @@ func transpileFmtPrintf(out *strings.Builder, call *ast.CallExpr) {
 			format = strings.ReplaceAll(format, "%s", "{}")
 			format = strings.ReplaceAll(format, "%v", "{}")
 			format = strings.ReplaceAll(format, "%f", "{}")
+			format = strings.ReplaceAll(format, "%t", "{}")
+			// Handle format verbs with precision
+			format = strings.ReplaceAll(format, "%.2f", "{:.2}")
+			format = strings.ReplaceAll(format, "%.1f", "{:.1}")
 			out.WriteString(format)
 		} else {
 			TranspileExpression(out, call.Args[0])
@@ -126,6 +132,39 @@ func transpileFmtPrintf(out *strings.Builder, call *ast.CallExpr) {
 	}
 
 	out.WriteString(")")
+}
+
+func transpileFmtErrorf(out *strings.Builder, call *ast.CallExpr) {
+	out.WriteString("Some(Box::new(format!")
+	out.WriteString("(")
+
+	if len(call.Args) > 0 {
+		// First arg is the format string
+		if lit, ok := call.Args[0].(*ast.BasicLit); ok && lit.Kind == token.STRING {
+			// Convert Go format verbs to Rust
+			format := lit.Value
+			// Simple conversion: %d -> {}, %s -> {}, etc.
+			format = strings.ReplaceAll(format, "%d", "{}")
+			format = strings.ReplaceAll(format, "%s", "{}")
+			format = strings.ReplaceAll(format, "%v", "{}")
+			format = strings.ReplaceAll(format, "%f", "{}")
+			format = strings.ReplaceAll(format, "%t", "{}")
+			// Handle format verbs with precision
+			format = strings.ReplaceAll(format, "%.2f", "{:.2}")
+			format = strings.ReplaceAll(format, "%.1f", "{:.1}")
+			out.WriteString(format)
+		} else {
+			TranspileExpression(out, call.Args[0])
+		}
+
+		// Rest of the arguments
+		for i := 1; i < len(call.Args); i++ {
+			out.WriteString(", ")
+			TranspileExpression(out, call.Args[i])
+		}
+	}
+
+	out.WriteString(")) as Box<dyn std::error::Error + Send + Sync>)")
 }
 
 func transpileStringsToUpper(out *strings.Builder, call *ast.CallExpr) {
@@ -153,6 +192,14 @@ func transpileStrconvItoa(out *strings.Builder, call *ast.CallExpr) {
 	if len(call.Args) > 0 {
 		TranspileExpression(out, call.Args[0])
 		out.WriteString(".to_string()")
+	}
+}
+
+func transpileStrconvAtoi(out *strings.Builder, call *ast.CallExpr) {
+	if len(call.Args) > 0 {
+		out.WriteString("match ")
+		TranspileExpression(out, call.Args[0])
+		out.WriteString(".parse::<i32>() { Ok(n) => (n, None), Err(e) => (0, Some(Box::new(e) as Box<dyn std::error::Error + Send + Sync>)) }")
 	}
 }
 

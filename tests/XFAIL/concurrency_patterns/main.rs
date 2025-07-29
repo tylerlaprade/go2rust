@@ -26,7 +26,7 @@ fn main() {
     let mut done = ;
     
     
-    ;
+    <-done;
     println!("{}", "\n=== Fan-out/Fan-in Pattern ===".to_string());
     let mut input = ;
     let mut c1 = fan_out(input);
@@ -78,12 +78,14 @@ fn main() {
 }
 
 pub fn fan_out(input: Unknown) -> Unknown {
+
     let mut output = ;
     
     return output;
 }
 
 pub fn fan_in(inputs: Unknown) -> Unknown {
+
     let mut output = ;
     let mut wg;
     for (_, input) in inputs.iter().enumerate() {

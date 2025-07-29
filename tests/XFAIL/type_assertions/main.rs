@@ -1,11 +1,23 @@
-pub fn process_value(value: Unknown) {
-    
-    
-    
+pub fn process_value(value: Box<dyn std::any::Any>) {
+    let (mut str, mut ok) = ;
+    if ok {
+        print!("String value: {} (length: {})\n", str, str.len());
+        return;
+    }
+    let (mut num, mut ok) = ;
+    if ok {
+        print!("Integer value: {} (doubled: {})\n", num, num * 2);
+        return;
+    }
+    let (mut f, mut ok) = ;
+    if ok {
+        print!("Float value: {:.2} (squared: {:.2})\n", f, f * f);
+        return;
+    }
     print!("Unknown type: %T with value: {}\n", value, value);
 }
 
-pub fn assert_without_check(value: Unknown) {
+pub fn assert_without_check(value: Box<dyn std::any::Any>) {
     
     let mut str = ;
     print!("Asserted string: {}\n", str);
@@ -19,6 +31,7 @@ struct Rectangle {
 }
 
 pub fn area() -> f64 {
+
     return r.width * r.height;
 }
 
@@ -28,12 +41,19 @@ struct Circle {
 }
 
 pub fn area() -> f64 {
+
     return 3.14159 * c.radius * c.radius;
 }
 
 pub fn describe_shape(s: Shape) {
-    print!("Shape area: %.2f\n", s.area());
-    
+    print!("Shape area: {:.2}\n", s.area());
+    let (mut rect, mut ok) = ;
+    if ok {
+        print!("  Rectangle: {:.1} x {:.1}\n", rect.width, rect.height);
+    } else let (mut circle, mut ok) = ;
+    if ok {
+        print!("  Circle: radius {:.1}\n", circle.radius);
+    }
 }
 
 fn main() {

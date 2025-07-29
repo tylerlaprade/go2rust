@@ -14,49 +14,213 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 	case *ast.ReturnStmt:
 		out.WriteString("return")
-		if len(s.Results) > 0 {
-			out.WriteString(" ")
-			if lit, ok := s.Results[0].(*ast.BasicLit); ok && lit.Kind == token.STRING {
-				if fnType.Results != nil && len(fnType.Results.List) > 0 {
-					if ident, ok := fnType.Results.List[0].Type.(*ast.Ident); ok && ident.Name == "string" {
-						out.WriteString(lit.Value)
-						out.WriteString(".to_string()")
+
+		// Handle naked return (no explicit values but function has named returns)
+		if len(s.Results) == 0 && fnType.Results != nil {
+			hasNamedReturns := false
+			for _, result := range fnType.Results.List {
+				if len(result.Names) > 0 {
+					hasNamedReturns = true
+					break
+				}
+			}
+
+			if hasNamedReturns {
+				out.WriteString(" ")
+				// Return the named values
+				needsTuple := false
+				totalReturns := 0
+				for _, result := range fnType.Results.List {
+					if len(result.Names) > 0 {
+						totalReturns += len(result.Names)
 					} else {
-						TranspileExpression(out, s.Results[0])
+						totalReturns++
+					}
+				}
+				needsTuple = totalReturns > 1
+
+				if needsTuple {
+					out.WriteString("(")
+				}
+
+				first := true
+				for _, result := range fnType.Results.List {
+					for _, name := range result.Names {
+						if !first {
+							out.WriteString(", ")
+						}
+						first = false
+						out.WriteString(name.Name)
+					}
+				}
+
+				if needsTuple {
+					out.WriteString(")")
+				}
+			}
+		} else if len(s.Results) > 0 {
+			out.WriteString(" ")
+			// Check if we need a tuple for multiple return values
+			needsTuple := len(s.Results) > 1
+			if needsTuple {
+				out.WriteString("(")
+			}
+
+			for i, result := range s.Results {
+				if i > 0 {
+					out.WriteString(", ")
+				}
+
+				// Special handling for string literals
+				if lit, ok := result.(*ast.BasicLit); ok && lit.Kind == token.STRING {
+					if fnType.Results != nil && len(fnType.Results.List) > 0 {
+						// Find the corresponding return type
+						resultTypeIdx := i
+						resultType := fnType.Results.List[0].Type
+						if len(fnType.Results.List) > 1 || (len(fnType.Results.List) == 1 && len(fnType.Results.List[0].Names) > 1) {
+							// Multiple return values - need to find the right type
+							currentIdx := 0
+							for _, res := range fnType.Results.List {
+								if len(res.Names) > 0 {
+									for range res.Names {
+										if currentIdx == resultTypeIdx {
+											resultType = res.Type
+											break
+										}
+										currentIdx++
+									}
+								} else {
+									if currentIdx == resultTypeIdx {
+										resultType = res.Type
+										break
+									}
+									currentIdx++
+								}
+							}
+						}
+
+						if ident, ok := resultType.(*ast.Ident); ok && ident.Name == "string" {
+							out.WriteString(lit.Value)
+							out.WriteString(".to_string()")
+						} else {
+							TranspileExpression(out, result)
+						}
+					} else {
+						TranspileExpression(out, result)
 					}
 				} else {
-					TranspileExpression(out, s.Results[0])
+					TranspileExpression(out, result)
 				}
-			} else {
-				TranspileExpression(out, s.Results[0])
+			}
+
+			if needsTuple {
+				out.WriteString(")")
 			}
 		}
 		out.WriteString(";")
 
 	case *ast.AssignStmt:
 		if s.Tok == token.ADD_ASSIGN {
-			TranspileExpression(out, s.Lhs[0])
-			out.WriteString(".push_str(&")
-			TranspileExpression(out, s.Rhs[0])
-			out.WriteString(")")
-		} else {
-			for i, lhs := range s.Lhs {
-				if i > 0 {
-					out.WriteString(", ")
-				}
-				if s.Tok == token.DEFINE {
-					out.WriteString("let mut ")
-				}
-				TranspileExpression(out, lhs)
+			// Check if it's a string (simple heuristic - if RHS is a string literal)
+			isString := false
+			if lit, ok := s.Rhs[0].(*ast.BasicLit); ok && lit.Kind == token.STRING {
+				isString = true
 			}
 
-			out.WriteString(" = ")
+			if isString {
+				TranspileExpression(out, s.Lhs[0])
+				out.WriteString(".push_str(&")
+				TranspileExpression(out, s.Rhs[0])
+				out.WriteString(")")
+			} else {
+				// Numeric +=
+				TranspileExpression(out, s.Lhs[0])
+				out.WriteString(" += ")
+				TranspileExpression(out, s.Rhs[0])
+			}
+		} else {
+			// Check if we have multiple LHS with single RHS (tuple unpacking)
+			needsTupleUnpack := len(s.Lhs) > 1 && len(s.Rhs) == 1
 
-			for i, rhs := range s.Rhs {
-				if i > 0 {
-					out.WriteString(", ")
+			if needsTupleUnpack {
+				if s.Tok == token.DEFINE {
+					out.WriteString("let ")
 				}
-				TranspileExpression(out, rhs)
+				out.WriteString("(")
+				for i, lhs := range s.Lhs {
+					if i > 0 {
+						out.WriteString(", ")
+					}
+					if s.Tok == token.DEFINE {
+						// Don't add mut before blank identifier
+						if ident, ok := lhs.(*ast.Ident); !ok || ident.Name != "_" {
+							out.WriteString("mut ")
+						}
+					}
+					TranspileExpression(out, lhs)
+				}
+				out.WriteString(")")
+
+				out.WriteString(" = ")
+
+				TranspileExpression(out, s.Rhs[0])
+			} else if len(s.Lhs) > 1 && len(s.Rhs) > 1 {
+				// Multiple assignments - need to handle specially
+				// For now, just handle the simple case of parallel assignment
+				if s.Tok == token.DEFINE {
+					out.WriteString("let (")
+					for i, lhs := range s.Lhs {
+						if i > 0 {
+							out.WriteString(", ")
+						}
+						// Don't add mut before blank identifier
+						if ident, ok := lhs.(*ast.Ident); !ok || ident.Name != "_" {
+							out.WriteString("mut ")
+						}
+						TranspileExpression(out, lhs)
+					}
+					out.WriteString(") = (")
+					for i, rhs := range s.Rhs {
+						if i > 0 {
+							out.WriteString(", ")
+						}
+						TranspileExpression(out, rhs)
+					}
+					out.WriteString(")")
+				} else {
+					// For reassignment, we need temporary variables in Rust
+					// This is a simplification - just do individual assignments
+					out.WriteString("{ ")
+					for i := range s.Lhs {
+						if i > 0 {
+							out.WriteString("; ")
+						}
+						TranspileExpression(out, s.Lhs[i])
+						out.WriteString(" = ")
+						TranspileExpression(out, s.Rhs[i])
+					}
+					out.WriteString(" }")
+				}
+			} else {
+				// Single assignment
+				for i, lhs := range s.Lhs {
+					if i > 0 {
+						out.WriteString(", ")
+					}
+					if s.Tok == token.DEFINE {
+						out.WriteString("let mut ")
+					}
+					TranspileExpression(out, lhs)
+				}
+
+				out.WriteString(" = ")
+
+				for i, rhs := range s.Rhs {
+					if i > 0 {
+						out.WriteString(", ")
+					}
+					TranspileExpression(out, rhs)
+				}
 			}
 		}
 		out.WriteString(";")
@@ -179,5 +343,41 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		}
 
 		out.WriteString("    }")
+
+	case *ast.IfStmt:
+		// Handle init statement if present
+		if s.Init != nil {
+			TranspileStatement(out, s.Init, fnType)
+			out.WriteString("\n    ")
+		}
+
+		out.WriteString("if ")
+		TranspileExpression(out, s.Cond)
+		out.WriteString(" {\n")
+
+		for _, stmt := range s.Body.List {
+			out.WriteString("        ")
+			TranspileStatement(out, stmt, fnType)
+			out.WriteString("\n")
+		}
+
+		out.WriteString("    }")
+
+		if s.Else != nil {
+			out.WriteString(" else ")
+			if elseIf, ok := s.Else.(*ast.IfStmt); ok {
+				// else if case - don't add extra braces
+				TranspileStatement(out, elseIf, fnType)
+			} else if block, ok := s.Else.(*ast.BlockStmt); ok {
+				// else block
+				out.WriteString("{\n")
+				for _, stmt := range block.List {
+					out.WriteString("        ")
+					TranspileStatement(out, stmt, fnType)
+					out.WriteString("\n")
+				}
+				out.WriteString("    }")
+			}
+		}
 	}
 }

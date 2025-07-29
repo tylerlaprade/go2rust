@@ -18,9 +18,17 @@ func GoTypeToRust(expr ast.Expr) string {
 			return "f64"
 		case "bool":
 			return "bool"
+		case "error":
+			return "Option<Box<dyn std::error::Error + Send + Sync>>"
 		default:
 			return t.Name
 		}
+	case *ast.InterfaceType:
+		// Empty interface{} becomes Box<dyn Any>
+		if len(t.Methods.List) == 0 {
+			return "Box<dyn std::any::Any>"
+		}
+		return "Unknown"
 	case *ast.ArrayType:
 		elemType := GoTypeToRust(t.Elt)
 		if t.Len != nil {

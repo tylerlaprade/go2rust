@@ -4,6 +4,7 @@ struct Counter {
 }
 
 pub fn get_value() -> i32 {
+
     return c.value;
 }
 
@@ -12,10 +13,11 @@ pub fn increment() {
 }
 
 pub fn add(n: i32) {
-    c.value.push_str(&n);
+    c.value += n;
 }
 
 pub fn double() -> i32 {
+
     c.value = 2;
     return c.value;
 }
@@ -36,7 +38,7 @@ pub fn have_birthday() {
 }
 
 fn main() {
-    let mut counter = ;
+    let mut counter = &Counter { value: 0 };
     println!("{} {}", "Initial value:".to_string(), counter.get_value());
     counter.increment();
     println!("{} {}", "After increment:".to_string(), counter.get_value());
@@ -44,7 +46,7 @@ fn main() {
     println!("{} {}", "After adding 5:".to_string(), counter.get_value());
     let mut doubled = counter.double();
     println!("{} {}", "After doubling:".to_string(), doubled);
-    let mut person = ;
+    let mut person = &Person { name: "Alice".to_string(), age: 25 };
     person.greet();
     person.have_birthday();
     person.greet();

@@ -36,7 +36,7 @@ pub fn select_with_send() {
     let mut ch1 = vec![0; 1];
     let mut ch2 = vec![0; 1];
     
-    println!("{} {}", "Reading from ch1:".to_string(), );
+    println!("{} {}", "Reading from ch1:".to_string(), <-ch1);
     
 }
 

@@ -49,13 +49,17 @@ fn main() {
     let mut data = vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
     println!("{}", "Even numbers only (with continue):".to_string());
     for (_, num) in data.iter().enumerate() {
+        if num % 2 != 0 {
         
+    }
         print!("{} ", num);
     }
     println!();
     println!("{}", "Numbers until 6 (with break):".to_string());
     for (_, num) in data.iter().enumerate() {
+        if num > 6 {
         
+    }
         print!("{} ", num);
     }
     println!();

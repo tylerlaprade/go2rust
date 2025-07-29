@@ -1,13 +1,16 @@
 pub fn make_counter() -> Unknown {
+
     let mut count = 0;
     return ;
 }
 
 pub fn make_adder(x: i32) -> Unknown {
+
     return ;
 }
 
 pub fn apply_operation(nums: Vec<i32>, op: Unknown) -> Vec<i32> {
+
     let mut result = vec![0; nums.len()];
     for (i, num) in nums.iter().enumerate() {
         result[i] = op(num);

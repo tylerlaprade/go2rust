@@ -6,10 +6,12 @@ struct Rectangle {
 }
 
 pub fn area() -> f64 {
+
     return r.width * r.height;
 }
 
 pub fn perimeter() -> f64 {
+
     return 2 * ;
 }
 
@@ -19,15 +21,17 @@ struct Circle {
 }
 
 pub fn area() -> f64 {
+
     return 3.14159 * c.radius * c.radius;
 }
 
 pub fn perimeter() -> f64 {
+
     return 2 * 3.14159 * c.radius;
 }
 
 pub fn print_shape_info(s: Shape) {
-    print!("Area: %.2f, Perimeter: %.2f\n", s.area(), s.perimeter());
+    print!("Area: {:.2}, Perimeter: {:.2}\n", s.area(), s.perimeter());
 }
 
 fn main() {

@@ -9,6 +9,7 @@ pub fn greet() {
 }
 
 pub fn get_info() -> String {
+
     return fmt.sprintf("%s (%d years old)".to_string(), p.name, p.age);
 }
 
@@ -20,6 +21,7 @@ struct Address {
 }
 
 pub fn full_address() -> String {
+
     return fmt.sprintf("%s, %s, %s".to_string(), a.street, a.city, a.state);
 }
 

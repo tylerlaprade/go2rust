@@ -17,7 +17,11 @@ func TranspileExpression(out *strings.Builder, expr ast.Expr) {
 		}
 
 	case *ast.Ident:
-		out.WriteString(e.Name)
+		if e.Name == "nil" {
+			out.WriteString("None")
+		} else {
+			out.WriteString(e.Name)
+		}
 
 	case *ast.CallExpr:
 		TranspileCall(out, e)
@@ -34,7 +38,24 @@ func TranspileExpression(out *strings.Builder, expr ast.Expr) {
 		}
 		out.WriteString(ToSnakeCase(e.Sel.Name))
 
+	case *ast.UnaryExpr:
+		out.WriteString(e.Op.String())
+		TranspileExpression(out, e.X)
+
 	case *ast.BinaryExpr:
+		// Special handling for comparisons with nil
+		if ident, ok := e.Y.(*ast.Ident); ok && ident.Name == "nil" {
+			if e.Op.String() == "!=" {
+				TranspileExpression(out, e.X)
+				out.WriteString(".is_some()")
+				return
+			} else if e.Op.String() == "==" {
+				TranspileExpression(out, e.X)
+				out.WriteString(".is_none()")
+				return
+			}
+		}
+
 		TranspileExpression(out, e.X)
 		out.WriteString(" ")
 		out.WriteString(e.Op.String())

@@ -6,7 +6,7 @@ pub fn init() {
 
 pub fn init() {
     println!("{}", "Second init function called".to_string());
-    globalCounter.push_str(&5);
+    globalCounter += 5;
     configData = std::collections::HashMap::<String, String>::new();
     configData["version".to_string()] = "1.0".to_string();
     configData["author".to_string()] = "go2rust".to_string();
@@ -14,12 +14,15 @@ pub fn init() {
 
 pub fn init() {
     println!("{}", "Third init function called".to_string());
-    
+    if initialized {
+        print!("Global counter initialized to: {}\n", globalCounter);
+    }
     configData["build".to_string()] = "debug".to_string();
     configData["target".to_string()] = "rust".to_string();
 }
 
 pub fn compute_initial_value() -> i32 {
+
     println!("{}", "Computing initial value during package initialization".to_string());
     return 42 * 2;
 }
@@ -27,7 +30,7 @@ pub fn compute_initial_value() -> i32 {
 pub fn init() {
     println!("{}", "Fourth init function called".to_string());
     print!("Computed value is: {}\n", computedValue);
-    computedValue.push_str(&10);
+    computedValue += 10;
 }
 
 #[derive(Debug)]
@@ -45,7 +48,9 @@ pub fn init() {
 pub fn init() {
     println!("{}", "Sixth init function - with potential panic handling".to_string());
     
-    
+    if false {
+        panic("Init function panic!".to_string());
+    }
     println!("{}", "Sixth init function completed successfully".to_string());
 }
 
@@ -56,13 +61,17 @@ pub fn setup_logging() {
 pub fn init() {
     println!("{}", "Seventh init function - setting up subsystems".to_string());
     setup_logging();
-    
+    if configData.len() == 0 {
+        println!("{}", "Warning: No configuration data found".to_string());
+    } else {
+        print!("Configuration loaded with {} entries\n", configData.len());
+    }
 }
 
 fn main() {
     println!("{}", "\n=== Main function started ===".to_string());
     print!("Global counter: {}\n", globalCounter);
-    print!("Initialized flag: %t\n", initialized);
+    print!("Initialized flag: {}\n", initialized);
     print!("Computed value: {}\n", computedValue);
     println!("{}", "\nConfiguration data:".to_string());
     for (key, value) in configData.iter().enumerate() {
