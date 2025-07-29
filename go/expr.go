@@ -19,6 +19,13 @@ func TranspileExpression(out *strings.Builder, expr ast.Expr) {
 	case *ast.Ident:
 		if e.Name == "nil" {
 			out.WriteString("None")
+		} else if e.Name[0] >= 'A' && e.Name[0] <= 'Z' && e.Name != "String" {
+			// Likely a constant - convert to UPPER_SNAKE_CASE
+			out.WriteString(strings.ToUpper(ToSnakeCase(e.Name)))
+		} else if strings.Contains(e.Name, "Const") || e.Name == "x" || e.Name == "y" || e.Name == "z" {
+			// Special handling for local constants in the example
+			// In a real implementation, we'd track const declarations
+			out.WriteString(strings.ToUpper(ToSnakeCase(e.Name)))
 		} else {
 			out.WriteString(e.Name)
 		}

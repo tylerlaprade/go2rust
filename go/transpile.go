@@ -21,8 +21,9 @@ func Transpile(file *ast.File) string {
 			first = false
 			TranspileFunction(&output, d)
 		case *ast.GenDecl:
-			// Handle type declarations
-			if d.Tok == token.TYPE {
+			switch d.Tok {
+			case token.TYPE:
+				// Handle type declarations
 				for _, spec := range d.Specs {
 					if typeSpec, ok := spec.(*ast.TypeSpec); ok {
 						if !first {
@@ -32,6 +33,13 @@ func Transpile(file *ast.File) string {
 						TranspileTypeDecl(&output, typeSpec)
 					}
 				}
+			case token.CONST:
+				// Handle const declarations
+				if !first {
+					output.WriteString("\n\n")
+				}
+				first = false
+				TranspileConstDecl(&output, d)
 			}
 		}
 	}

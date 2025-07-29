@@ -1,3 +1,41 @@
+const PI: f64 = 3.14159;
+const EULER: f64 = 2.71828;
+const MAX_USERS: i32 = 100;
+
+
+const NAME: String = "Go2Rust";
+const VERSION: f64 = 1.0;
+const DEBUG: bool = true;
+
+
+const SUNDAY: i32 = 0;
+const MONDAY: i32 = 1;
+const TUESDAY: i32 = 2;
+const WEDNESDAY: i32 = 3;
+const THURSDAY: i32 = 4;
+const FRIDAY: i32 = 5;
+const SATURDAY: i32 = 6;
+
+
+const K_B: i32 = 1 << (10 * 2);
+const M_B: i32 = 3;
+const G_B: i32 = 4;
+const T_B: i32 = 5;
+
+
+const RED: i32 = 0;
+const GREEN: i32 = 1;
+const BLUE: i32 = 2;
+
+
+const A: i32 = 0 * 2;
+const B: i32 = 1;
+const C: i32 = 2;
+const D: i32 = 3 + 10;
+const E_E: i32 = 4;
+const F: i32 = 5;
+
+
 fn main() {
     println!("{}", "=== Basic constants ===".to_string());
     print!("Pi = %.5f\n", Pi);

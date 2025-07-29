@@ -260,42 +260,48 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		}
 		out.WriteString(";")
 	case *ast.DeclStmt:
-		if genDecl, ok := s.Decl.(*ast.GenDecl); ok && genDecl.Tok == token.VAR {
-			for _, spec := range genDecl.Specs {
-				if valueSpec, ok := spec.(*ast.ValueSpec); ok {
-					for i, name := range valueSpec.Names {
-						if i > 0 {
-							out.WriteString(", ")
-						}
-						out.WriteString("let mut ")
-						out.WriteString(name.Name)
-						if len(valueSpec.Values) > i {
-							out.WriteString(" = ")
-							TranspileExpression(out, valueSpec.Values[i])
-						} else {
-							// Default initialization for uninitialized vars
-							if valueSpec.Type != nil {
-								switch t := valueSpec.Type.(type) {
-								case *ast.Ident:
-									switch t.Name {
-									case "string":
-										out.WriteString(" = String::new()")
-									case "int":
-										out.WriteString(" = 0")
-									default:
+		if genDecl, ok := s.Decl.(*ast.GenDecl); ok {
+			switch genDecl.Tok {
+			case token.VAR:
+				for _, spec := range genDecl.Specs {
+					if valueSpec, ok := spec.(*ast.ValueSpec); ok {
+						for i, name := range valueSpec.Names {
+							if i > 0 {
+								out.WriteString(", ")
+							}
+							out.WriteString("let mut ")
+							out.WriteString(name.Name)
+							if len(valueSpec.Values) > i {
+								out.WriteString(" = ")
+								TranspileExpression(out, valueSpec.Values[i])
+							} else {
+								// Default initialization for uninitialized vars
+								if valueSpec.Type != nil {
+									switch t := valueSpec.Type.(type) {
+									case *ast.Ident:
+										switch t.Name {
+										case "string":
+											out.WriteString(" = String::new()")
+										case "int":
+											out.WriteString(" = 0")
+										default:
+											out.WriteString(" = Default::default()")
+										}
+									case *ast.ArrayType:
+										// Initialize array with default values
+										out.WriteString(": ")
+										out.WriteString(GoTypeToRust(valueSpec.Type))
 										out.WriteString(" = Default::default()")
 									}
-								case *ast.ArrayType:
-									// Initialize array with default values
-									out.WriteString(": ")
-									out.WriteString(GoTypeToRust(valueSpec.Type))
-									out.WriteString(" = Default::default()")
 								}
 							}
+							out.WriteString(";")
 						}
-						out.WriteString(";")
 					}
 				}
+			case token.CONST:
+				// Handle local const declarations
+				TranspileConstDecl(out, genDecl)
 			}
 		}
 

@@ -1,7 +1,9 @@
 package main
 
 import (
+	"fmt"
 	"go/ast"
+	"go/token"
 	"strings"
 )
 
@@ -137,5 +139,117 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec) {
 		}
 
 		out.WriteString("}")
+	}
+}
+
+func TranspileConstDecl(out *strings.Builder, genDecl *ast.GenDecl) {
+	// Track iota value
+	iotaValue := 0
+
+	for specIndex, spec := range genDecl.Specs {
+		if valueSpec, ok := spec.(*ast.ValueSpec); ok {
+			// Set iota for this spec
+			iotaValue = specIndex
+
+			for i, name := range valueSpec.Names {
+				// Skip blank identifier
+				if name.Name == "_" {
+					continue
+				}
+				out.WriteString("const ")
+				out.WriteString(strings.ToUpper(ToSnakeCase(name.Name)))
+				out.WriteString(": ")
+
+				// Determine type
+				if valueSpec.Type != nil {
+					// For const string type, use &'static str
+					if ident, ok := valueSpec.Type.(*ast.Ident); ok && ident.Name == "string" {
+						out.WriteString("&'static str")
+					} else {
+						out.WriteString(GoTypeToRust(valueSpec.Type))
+					}
+				} else if len(valueSpec.Values) > i && valueSpec.Values[i] != nil {
+					// Infer type from value
+					out.WriteString(inferConstType(valueSpec.Values[i]))
+				} else {
+					// Default to i32 for iota
+					out.WriteString("i32")
+				}
+
+				out.WriteString(" = ")
+
+				// Handle value
+				if len(valueSpec.Values) > i && valueSpec.Values[i] != nil {
+					// Replace iota with actual value
+					TranspileConstExpr(out, valueSpec.Values[i], iotaValue)
+				} else if i == 0 && len(valueSpec.Values) == 0 {
+					// First constant without value in group gets iota
+					out.WriteString(fmt.Sprintf("%d", iotaValue))
+				} else {
+					// Subsequent constants without values repeat the pattern
+					// This is a simplification - proper handling would need to track the expression
+					out.WriteString(fmt.Sprintf("%d", iotaValue))
+				}
+
+				out.WriteString(";\n")
+			}
+		}
+	}
+}
+
+func inferConstType(expr ast.Expr) string {
+	switch e := expr.(type) {
+	case *ast.BasicLit:
+		switch e.Kind {
+		case token.INT:
+			return "i32"
+		case token.FLOAT:
+			return "f64"
+		case token.STRING:
+			return "&'static str"
+		}
+	case *ast.Ident:
+		if e.Name == "true" || e.Name == "false" {
+			return "bool"
+		}
+	}
+	return "i32" // default
+}
+
+func TranspileConstExpr(out *strings.Builder, expr ast.Expr, iotaValue int) {
+	switch e := expr.(type) {
+	case *ast.BasicLit:
+		if e.Kind == token.STRING {
+			// For const strings, use &str instead of String
+			out.WriteString(e.Value)
+		} else {
+			out.WriteString(e.Value)
+		}
+	case *ast.Ident:
+		if e.Name == "iota" {
+			out.WriteString(fmt.Sprintf("%d", iotaValue))
+		} else if e.Name == "true" || e.Name == "false" {
+			// Boolean literals
+			out.WriteString(e.Name)
+		} else if e.Name[0] >= 'a' && e.Name[0] <= 'z' {
+			// Lowercase identifier in const context - likely a const reference
+			out.WriteString(strings.ToUpper(ToSnakeCase(e.Name)))
+		} else {
+			out.WriteString(e.Name)
+		}
+	case *ast.BinaryExpr:
+		// Handle binary expressions in const context
+		TranspileConstExpr(out, e.X, iotaValue)
+		out.WriteString(" ")
+		out.WriteString(e.Op.String())
+		out.WriteString(" ")
+		TranspileConstExpr(out, e.Y, iotaValue)
+	case *ast.ParenExpr:
+		out.WriteString("(")
+		TranspileConstExpr(out, e.X, iotaValue)
+		out.WriteString(")")
+	default:
+		// Fallback to regular expression transpilation
+		TranspileExpression(out, expr)
 	}
 }

@@ -110,15 +110,16 @@ func transpileFmtPrintf(out *strings.Builder, call *ast.CallExpr) {
 		if lit, ok := call.Args[0].(*ast.BasicLit); ok && lit.Kind == token.STRING {
 			// Convert Go format verbs to Rust
 			format := lit.Value
+			// Handle format verbs with precision first
+			format = strings.ReplaceAll(format, "%.5f", "{:.5}")
+			format = strings.ReplaceAll(format, "%.2f", "{:.2}")
+			format = strings.ReplaceAll(format, "%.1f", "{:.1}")
 			// Simple conversion: %d -> {}, %s -> {}, etc.
 			format = strings.ReplaceAll(format, "%d", "{}")
 			format = strings.ReplaceAll(format, "%s", "{}")
 			format = strings.ReplaceAll(format, "%v", "{}")
 			format = strings.ReplaceAll(format, "%f", "{}")
 			format = strings.ReplaceAll(format, "%t", "{}")
-			// Handle format verbs with precision
-			format = strings.ReplaceAll(format, "%.2f", "{:.2}")
-			format = strings.ReplaceAll(format, "%.1f", "{:.1}")
 			out.WriteString(format)
 		} else {
 			TranspileExpression(out, call.Args[0])
@@ -143,15 +144,16 @@ func transpileFmtErrorf(out *strings.Builder, call *ast.CallExpr) {
 		if lit, ok := call.Args[0].(*ast.BasicLit); ok && lit.Kind == token.STRING {
 			// Convert Go format verbs to Rust
 			format := lit.Value
+			// Handle format verbs with precision first
+			format = strings.ReplaceAll(format, "%.5f", "{:.5}")
+			format = strings.ReplaceAll(format, "%.2f", "{:.2}")
+			format = strings.ReplaceAll(format, "%.1f", "{:.1}")
 			// Simple conversion: %d -> {}, %s -> {}, etc.
 			format = strings.ReplaceAll(format, "%d", "{}")
 			format = strings.ReplaceAll(format, "%s", "{}")
 			format = strings.ReplaceAll(format, "%v", "{}")
 			format = strings.ReplaceAll(format, "%f", "{}")
 			format = strings.ReplaceAll(format, "%t", "{}")
-			// Handle format verbs with precision
-			format = strings.ReplaceAll(format, "%.2f", "{:.2}")
-			format = strings.ReplaceAll(format, "%.1f", "{:.1}")
 			out.WriteString(format)
 		} else {
 			TranspileExpression(out, call.Args[0])
