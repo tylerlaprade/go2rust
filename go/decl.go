@@ -126,16 +126,23 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec) {
 		out.WriteString(" {\n")
 
 		for _, field := range t.Fields.List {
-			out.WriteString("    ")
 			if len(field.Names) > 0 {
-				out.WriteString(ToSnakeCase(field.Names[0].Name))
+				// Handle multiple names on one line (e.g., X, Y int)
+				for _, name := range field.Names {
+					out.WriteString("    ")
+					out.WriteString(ToSnakeCase(name.Name))
+					out.WriteString(": ")
+					out.WriteString(GoTypeToRust(field.Type))
+					out.WriteString(",\n")
+				}
 			} else {
 				// Embedded field
+				out.WriteString("    ")
 				out.WriteString(ToSnakeCase(GoTypeToRust(field.Type)))
+				out.WriteString(": ")
+				out.WriteString(GoTypeToRust(field.Type))
+				out.WriteString(",\n")
 			}
-			out.WriteString(": ")
-			out.WriteString(GoTypeToRust(field.Type))
-			out.WriteString(",\n")
 		}
 
 		out.WriteString("}")

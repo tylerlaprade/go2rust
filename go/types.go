@@ -43,6 +43,10 @@ func GoTypeToRust(expr ast.Expr) string {
 		keyType := GoTypeToRust(t.Key)
 		valueType := GoTypeToRust(t.Value)
 		return "std::collections::HashMap<" + keyType + ", " + valueType + ">"
+	case *ast.StarExpr:
+		// Pointer type - use Arc<Mutex<Option<T>>> for conservative translation
+		innerType := GoTypeToRust(t.X)
+		return "std::sync::Arc<std::sync::Mutex<Option<" + innerType + ">>>"
 	}
 	return "Unknown"
 }

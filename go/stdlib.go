@@ -51,6 +51,7 @@ func init() {
 		"make":    transpileMake,
 		"cap":     transpileCap,
 		"delete":  transpileDelete,
+		"new":     transpileNew,
 	}
 }
 
@@ -286,5 +287,13 @@ func transpileDelete(out *strings.Builder, call *ast.CallExpr) {
 		out.WriteString(".remove(&")
 		TranspileExpression(out, call.Args[1])
 		out.WriteString(")")
+	}
+}
+
+func transpileNew(out *strings.Builder, call *ast.CallExpr) {
+	if len(call.Args) > 0 {
+		out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(Some(")
+		out.WriteString(GoTypeToRust(call.Args[0]))
+		out.WriteString("::default())))")
 	}
 }

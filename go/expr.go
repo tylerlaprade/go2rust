@@ -42,8 +42,25 @@ func TranspileExpression(out *strings.Builder, expr ast.Expr) {
 		out.WriteString(ToSnakeCase(e.Sel.Name))
 
 	case *ast.UnaryExpr:
-		out.WriteString(e.Op.String())
+		switch e.Op {
+		case token.AND: // & - address-of
+			out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(Some(")
+			TranspileExpression(out, e.X)
+			out.WriteString(")))")
+		case token.MUL: // * - dereference
+			out.WriteString("*")
+			TranspileExpression(out, e.X)
+			out.WriteString(".lock().unwrap().as_ref().unwrap()")
+		default:
+			out.WriteString(e.Op.String())
+			TranspileExpression(out, e.X)
+		}
+
+	case *ast.StarExpr:
+		// Dereference pointer
+		out.WriteString("*")
 		TranspileExpression(out, e.X)
+		out.WriteString(".lock().unwrap().as_ref().unwrap()")
 
 	case *ast.BinaryExpr:
 		// Special handling for comparisons with nil
