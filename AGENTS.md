@@ -475,8 +475,23 @@ This is a crucial distinction that simplifies everything:
 ### 6. Let go/types Handle the Complexity
 
 Go provides the go/types package that already does type analysis. Instead of building our own:
-
 - Use go/types when we need type information
 - Don't duplicate what Go already provides
 - Keep the transpiler focused on syntax translation
 - This is why we can handle complex features with simple code
+
+### 7. The True Conservative Approach Requires Wrapping Everything
+
+The initial approach of only wrapping pointers is insufficient because Go allows taking the address of any variable:
+```go
+x := 42      // regular variable
+p := &x      // now x needs to be shareable!
+```
+
+The TRUE conservative approach requires:
+- Every variable becomes Arc<Mutex<Option<T>>>
+- Every access needs .lock().unwrap()
+- Taking address (&) just clones the Arc
+- This is a massive change but aligns with the core philosophy
+
+This is a major architectural change that should be implemented as a separate mode or phase.

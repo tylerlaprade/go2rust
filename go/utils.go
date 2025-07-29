@@ -1,5 +1,24 @@
 package main
 
+import (
+	"go/ast"
+	"strings"
+)
+
+// WrapInArcMutex wraps an expression in Arc<Mutex<Option<...>>>
+func WrapInArcMutex(out *strings.Builder, expr ast.Expr) {
+	out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(Some(")
+	TranspileExpression(out, expr)
+	out.WriteString(")))")
+}
+
+// UnwrapArcMutex generates code to access the value inside Arc<Mutex<Option<...>>>
+func UnwrapArcMutex(out *strings.Builder, expr ast.Expr) {
+	out.WriteString("(*")
+	TranspileExpression(out, expr)
+	out.WriteString(".lock().unwrap().as_ref().unwrap())")
+}
+
 func ToSnakeCase(s string) string {
 	var result []byte
 	for i, r := range s {
