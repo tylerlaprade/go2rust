@@ -166,7 +166,7 @@ func main() {
 - Vec<T> doesn't implement Display, requires {:?} formatting
 - Embedded struct field promotion not supported
 
-### Phase 3: Pointers and Mutation
+### Phase 3: Pointers and Mutation ⏳
 
 **Goal**: Implement the Arc<Mutex<Option<>>> transformation
 
@@ -179,12 +179,23 @@ func main() {
 }
 ```
 
-**Features needed**:
+**Implemented**:
 
-- Pointer type detection
-- Arc<Mutex<Option<>>> wrapping
-- Dereferencing (auto-generated `.lock().unwrap()` chains)
-- Struct translation
+- Pointer type detection (*T → Arc<Mutex<Option<T>>>) ✅
+- Address-of operator (&x → Arc::new(Mutex::new(Some(x)))) ✅
+- Dereference operator (*p → .lock().unwrap()) ✅
+- new() builtin function ✅
+- Fixed struct field handling for comma-separated fields ✅
+
+**Critical Issue Discovered**:
+
+Currently only wrapping pointers, but Go allows taking address of ANY variable:
+```go
+x := 42      // regular variable
+p := &x      // now x needs to be shareable!
+```
+
+**Next Step**: Wrap ALL variables in Arc<Mutex<Option<T>>> for true conservative translation
 
 ### Phase 4: Functions and Methods
 
@@ -398,27 +409,22 @@ After we have working transpilation:
 
 ## Recent Progress
 
-**Phase 2 Progress**:
+**Phase 2 Near Completion**:
+- All basic syntax translations implemented
+- Maps fully working (operations confirmed)
+- nil, interface{}, and type assertions have basic support
+- Core issue identified: need to wrap ALL variables, not just pointers
 
-- All basic variable and type features implemented
-- Added multiple return values support
-- Added blank identifier (_) support
-- Added constants (const) support
-- Added switch statements
-- Added maps with HashMap (partial operations)
+**Phase 3 Started**:
+- Basic pointer support implemented
+- Address-of (&) and dereference (*) operators working
+- new() builtin function added
+- Discovered critical flaw: only wrapping pointers is insufficient
 
-**Test Infrastructure Improvements**:
-
-- Added parallel test execution support (auto-detects CPU cores)
-- Uses 75% of available cores to avoid memory pressure
-- Requires GNU parallel for parallel execution
-
-**Key Achievements**:
-
-- Significant Phase 2 progress
-- No test regressions - all previously passing tests still pass
-- Maintained backward compatibility while adding new features
-- Clean git history with squashed commits
+**Next Critical Step**:
+- Implement the TRUE conservative approach: wrap ALL variables in Arc<Mutex<Option<T>>>
+- This enables taking address of any variable (core Go feature)
+- Aligns with original project vision of "make it work first, optimize later"
 
 ## General Lessons Learned
 

@@ -116,6 +116,13 @@ This transpiler uses a "make it work first, optimize later" approach. Every Go p
 | └ Binary operators (+, -, *, /, etc.) | ✅ |
 | └ Assignment operators (=, +=, etc.) | ✅ |
 | └ Increment/decrement (++, --) | ✅ |
+| └ Address-of (&) | ✅ |
+| └ Dereference (*) | ✅ |
+| **Pointers** | |
+| └ Pointer types (*T) | ⏳ |
+| └ Address-of operator | ✅ |
+| └ Dereference operator | ✅ |
+| └ Pointer aliasing | ⏳ |
 
 ### Standard Library Functions
 
@@ -138,6 +145,8 @@ This transpiler uses a "make it work first, optimize later" approach. Every Go p
 | **`strconv` package** | |
 | └ `strconv.Itoa` | ✅ |
 | └ `strconv.Atoi` | ❌ |
+| **Memory functions** | |
+| └ `new` | ✅ |
 
 ## XFAIL Tests (Expected Failures)
 
