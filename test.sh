@@ -80,4 +80,17 @@ if ! command -v bats >/dev/null 2>&1; then
 fi
 
 echo "Running tests..."
-bats tests.bats
+
+# Check if GNU parallel is installed for parallel execution
+if command -v parallel >/dev/null 2>&1; then
+    # Detect CPU cores but leave some headroom for Rust's memory usage
+    CORES=$(sysctl -n hw.ncpu 2>/dev/null || nproc 2>/dev/null || echo 4)
+    # Use 75% of cores (minimum 2) to avoid memory pressure from Rust compilation
+    JOBS=$(( CORES * 3 / 4 ))
+    [ $JOBS -lt 2 ] && JOBS=2
+    echo "Running tests in parallel with $JOBS jobs (detected $CORES cores)..."
+    bats -j "$JOBS" tests.bats
+else
+    echo "Running tests sequentially (install GNU parallel for faster execution)..."
+    bats tests.bats
+fi

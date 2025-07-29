@@ -42,7 +42,7 @@ fn main() {
     print!("*ptr + (*ptr * 2) - (*ptr / 2) = {}\n", ptrResult);
     println!("{}", "\n=== Type assertion expressions ===".to_string());
     let mut iface = 100;
-    let (mut intVal, mut ok) = ;
+    let (mut intVal, mut ok) = match iface.downcast_ref::<i32>() { Some(v) => (v.clone(), true), None => (0, false) };
     if ok {
         let mut assertResult = intVal * 2 +  * 3;
         print!("Type assertion result: {}\n", assertResult);

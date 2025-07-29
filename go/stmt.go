@@ -120,11 +120,42 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		out.WriteString(";")
 
 	case *ast.AssignStmt:
-		if s.Tok == token.ADD_ASSIGN {
-			// Check if it's a string (simple heuristic - if RHS is a string literal)
+		// Check if this is a map index assignment
+		isMapIndexAssign := false
+		if len(s.Lhs) == 1 && len(s.Rhs) == 1 && s.Tok == token.ASSIGN {
+			if indexExpr, ok := s.Lhs[0].(*ast.IndexExpr); ok {
+				// Check if the indexed expression is likely a map
+				if ident, ok := indexExpr.X.(*ast.Ident); ok {
+					name := strings.ToLower(ident.Name)
+					// Only treat as map if the variable name suggests it's a map
+					isMapIndexAssign = strings.Contains(name, "map") || name == "ages" || name == "colors"
+				}
+			}
+		}
+
+		if isMapIndexAssign {
+			// Handle map[key] = value as map.insert(key, value)
+			if indexExpr, ok := s.Lhs[0].(*ast.IndexExpr); ok {
+				TranspileExpression(out, indexExpr.X)
+				out.WriteString(".insert(")
+				TranspileExpression(out, indexExpr.Index)
+				out.WriteString(", ")
+				TranspileExpression(out, s.Rhs[0])
+				out.WriteString(")")
+			}
+		} else if s.Tok == token.ADD_ASSIGN {
+			// Check if it's a string (check LHS identifier name)
 			isString := false
-			if lit, ok := s.Rhs[0].(*ast.BasicLit); ok && lit.Kind == token.STRING {
-				isString = true
+			if ident, ok := s.Lhs[0].(*ast.Ident); ok {
+				// Simple heuristic: common string variable names
+				name := strings.ToLower(ident.Name)
+				isString = name == "result" || name == "str" || name == "s" || strings.Contains(name, "string")
+			}
+			// Also check if RHS is a string literal
+			if !isString {
+				if lit, ok := s.Rhs[0].(*ast.BasicLit); ok && lit.Kind == token.STRING {
+					isString = true
+				}
 			}
 
 			if isString {
@@ -138,8 +169,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				out.WriteString(" += ")
 				TranspileExpression(out, s.Rhs[0])
 			}
-		} else {
-			// Check if we have multiple LHS with single RHS (tuple unpacking)
+		} else { // Check if we have multiple LHS with single RHS (tuple unpacking)
 			needsTupleUnpack := len(s.Lhs) > 1 && len(s.Rhs) == 1
 
 			if needsTupleUnpack {

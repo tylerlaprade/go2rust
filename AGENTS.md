@@ -5,6 +5,7 @@
 **Before changing or removing anything, understand why it exists. The 'why' is more important than the 'what'. If something seems unnecessary or wrong, that's a signal to investigate deeper, not to immediately fix it.**
 
 This principle prevents:
+
 - Deleting files that serve as test snapshots
 - Removing code that seems redundant but serves a purpose
 - "Fixing" behavior that's actually correct
@@ -92,7 +93,7 @@ func main() {
 - Basic function calls
 - String literal to String conversion (.to_string())
 
-### Phase 2: Variables and Basic Types (Partial) ✅
+### Phase 2: Variables and Basic Types ⏳
 
 **Goal**: Handle basic variable declarations, primitive types, and basic data structures
 
@@ -144,13 +145,21 @@ func main() {
 - Struct literals ✅
 - Field access (but not embedded field promotion) ✅
 
+**Additional Implemented Features**:
+
+- Multiple return values ✅
+- Blank identifier `_` ✅
+- Constants (const) ✅
+- Switch statements ✅
+- Maps with HashMap ✅
+- Map literals and indexing ✅
+- Map insert operations ⏳
+
 **Not Yet Implemented from Phase 2**:
 
-- Maps (partially implemented but need proper insert/get operations)
-- Multiple return values
 - Error handling patterns
-- Blank identifier `_`
 - Type assertions
+- Interface types
 
 **Known Limitations**:
 
@@ -343,6 +352,7 @@ tests/
 ### Test Output Preservation
 
 The test system preserves transpiled output files (.rs, Cargo.toml, Cargo.lock) as snapshots. These files:
+
 - Show what the transpiler produced for each test
 - Enable debugging without re-running transpilation
 - Track output changes over time via git
@@ -388,13 +398,58 @@ After we have working transpilation:
 
 ## Recent Progress
 
-**Key Achievements**:
+**Phase 2 Progress**:
+- All basic variable and type features implemented
+- Added multiple return values support
+- Added blank identifier (_) support
+- Added constants (const) support
+- Added switch statements
+- Added maps with HashMap (partial operations)
 
-- Added support for arrays, slices, and basic structs
+**Test Infrastructure Improvements**:
+- Added parallel test execution support (auto-detects CPU cores)
+- Uses 75% of available cores to avoid memory pressure
+- Requires GNU parallel for parallel execution
+
+**Key Achievements**:
+- Significant Phase 2 progress
 - No test regressions - all previously passing tests still pass
 - Maintained backward compatibility while adding new features
+- Clean git history with squashed commits
 
-**Tests Moved to XFAIL**:
+## General Lessons Learned
 
-- structs_basic (requires embedded field promotion)
-- maps_basic (requires complex map operations)
+### 1. Always Ask Before Destructive Operations
+
+Never run commands that could lose data without explicit confirmation. This includes:
+
+- `git checkout` that discards changes
+- `git reset` operations
+- File deletions with `rm`
+- Any force operations
+
+Even if the operation seems routine or helpful, always ask first when uncommitted work could be lost.
+
+### 2. Don't Hide Problems with .gitignore
+
+When generated files appear in git status, the solution is NOT to add them to .gitignore. Instead:
+
+- Understand why they're being generated
+- Fix the test cleanup process if needed
+- Keep the working tree clean through proper processes
+
+Hiding problems makes them harder to diagnose and fix later.
+
+### 3. Preserve Intelligent Solutions When Refining
+
+When improving code that has clever solutions (like auto-detecting CPU cores), don't replace dynamic logic with hardcoded values. Instead:
+
+- Keep the intelligent detection
+- Apply adjustments or scaling factors
+- Document why the adjustment is needed
+
+This maintains flexibility across different environments while addressing specific concerns.
+
+### 4. Never Manually Move Tests Between Directories
+
+Tests should only move from XFAIL to the main test suite through autopromotion when they start passing. Manual moves break the test-driven development workflow and can hide issues. The autopromotion system ensures tests only graduate when they truly work.

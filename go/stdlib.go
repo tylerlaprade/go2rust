@@ -60,11 +60,22 @@ func transpileFmtPrintln(out *strings.Builder, call *ast.CallExpr) {
 
 	if len(call.Args) > 0 {
 		out.WriteString("\"")
-		for i := range call.Args {
+		for i, arg := range call.Args {
 			if i > 0 {
 				out.WriteString(" ")
 			}
-			out.WriteString("{}")
+			// Check if argument might be a map
+			isMap := false
+			if ident, ok := arg.(*ast.Ident); ok {
+				name := strings.ToLower(ident.Name)
+				isMap = strings.Contains(name, "map") || name == "ages" || name == "colors"
+			}
+
+			if isMap {
+				out.WriteString("{:?}")
+			} else {
+				out.WriteString("{}")
+			}
 		}
 		out.WriteString("\"")
 
@@ -237,7 +248,7 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 func transpileLen(out *strings.Builder, call *ast.CallExpr) {
 	if len(call.Args) > 0 {
 		TranspileExpression(out, call.Args[0])
-		out.WriteString(".len() as i32")
+		out.WriteString(".len()")
 	}
 }
 

@@ -8,7 +8,7 @@ pub fn process_slice(slice: Vec<i32>) -> (i32, i32) {
     let mut count: i32 = 0;
 
     sum = 0;
-    count = slice.len() as i32;
+    count = slice.len();
     for (_, val) in slice.iter().enumerate() {
         sum += val;
     }
@@ -63,11 +63,11 @@ fn main() {
     print!("a={}, c={} (middle value ignored)\n", a, c);
     println!("{}", "\n=== Blank identifier with type assertion ===".to_string());
     let mut value = "hello world".to_string();
-    let (_, mut ok) = ;
+    let (_, mut ok) = match value.downcast_ref::<String>() { Some(v) => (v.clone(), true), None => (String::new(), false) };
     if ok {
         println!("{}", "Value is a string (but we ignored the actual value)".to_string());
     }
-    let (_, mut ok) = ;
+    let (_, mut ok) = match value.downcast_ref::<i32>() { Some(v) => (v.clone(), true), None => (0, false) };
     if ok {
         println!("{}", "Value is an int".to_string());
     } else {

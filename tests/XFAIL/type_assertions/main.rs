@@ -1,15 +1,15 @@
 pub fn process_value(value: Box<dyn std::any::Any>) {
-    let (mut str, mut ok) = ;
+    let (mut str, mut ok) = match value.downcast_ref::<String>() { Some(v) => (v.clone(), true), None => (String::new(), false) };
     if ok {
         print!("String value: {} (length: {})\n", str, str.len());
         return;
     }
-    let (mut num, mut ok) = ;
+    let (mut num, mut ok) = match value.downcast_ref::<i32>() { Some(v) => (v.clone(), true), None => (0, false) };
     if ok {
         print!("Integer value: {} (doubled: {})\n", num, num * 2);
         return;
     }
-    let (mut f, mut ok) = ;
+    let (mut f, mut ok) = match value.downcast_ref::<f64>() { Some(v) => (v.clone(), true), None => (0.0, false) };
     if ok {
         print!("Float value: {:.2} (squared: {:.2})\n", f, f * f);
         return;
@@ -19,7 +19,7 @@ pub fn process_value(value: Box<dyn std::any::Any>) {
 
 pub fn assert_without_check(value: Box<dyn std::any::Any>) {
     
-    let mut str = ;
+    let mut str = match value.downcast_ref::<String>() { Some(v) => (v.clone(), true), None => (String::new(), false) };
     print!("Asserted string: {}\n", str);
 }
 
@@ -47,10 +47,10 @@ pub fn area() -> f64 {
 
 pub fn describe_shape(s: Shape) {
     print!("Shape area: {:.2}\n", s.area());
-    let (mut rect, mut ok) = ;
+    let (mut rect, mut ok) = match s.downcast_ref::<Rectangle>() { Some(v) => (v.clone(), true), None => (Default::default(), false) };
     if ok {
         print!("  Rectangle: {:.1} x {:.1}\n", rect.width, rect.height);
-    } else let (mut circle, mut ok) = ;
+    } else let (mut circle, mut ok) = match s.downcast_ref::<Circle>() { Some(v) => (v.clone(), true), None => (Default::default(), false) };
     if ok {
         print!("  Circle: radius {:.1}\n", circle.radius);
     }

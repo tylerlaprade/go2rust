@@ -21,7 +21,7 @@ fn main() {
     let mut q = p;
      = 200;
     println!("{} {}", "x after modifying through q:".to_string(), x);
-    let mut newPoint = new(Point);
+    let mut newPoint = new(POINT);
     newPoint.x = 5;
     newPoint.y = 15;
     println!("{} {}", "New point:".to_string(), newPoint);

@@ -65,14 +65,14 @@ fn main() {
     let mut any = 42;
     print!("interface{} value: {}\n", any);
     print!("interface{} type: %T\n", any);
-    let (mut intVal, mut ok) = ;
+    let (mut intVal, mut ok) = match any.downcast_ref::<i32>() { Some(v) => (v.clone(), true), None => (0, false) };
     if ok {
         print!("asserted as int: {}\n", intVal);
     }
     any = "hello".to_string();
     print!("new interface{} value: {}\n", any);
     print!("new interface{} type: %T\n", any);
-    let (mut strVal, mut ok) = ;
+    let (mut strVal, mut ok) = match any.downcast_ref::<String>() { Some(v) => (v.clone(), true), None => (String::new(), false) };
     if ok {
         print!("asserted as string: {}\n", strVal);
     }

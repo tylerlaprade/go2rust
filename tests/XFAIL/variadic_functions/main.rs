@@ -48,7 +48,7 @@ pub fn concat(separator: String, strings: Unknown) -> String {
     }
     let mut result = strings[0];
     for (_, str) in strings[1..].to_vec().iter().enumerate() {
-        result += separator + str;
+        result.push_str(&separator + str);
     }
     return result;
 }

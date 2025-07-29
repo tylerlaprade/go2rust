@@ -26,11 +26,11 @@ fn main() {
     }
     println!("{}", "\n=== Range over map ===".to_string());
     let mut ages = std::collections::HashMap::<String, i32>::from([("Alice".to_string(), 25), ("Bob".to_string(), 30), ("Charlie".to_string(), 35)]);
-    for (name, age) in ages.iter().enumerate() {
+    for (name, age) in &ages {
         print!("{} is {} years old\n", name, age);
     }
     println!("{}", "Keys only:".to_string());
-    for name in 0..ages.len() {
+    for (name, _) in &ages {
         print!("{} ", name);
     }
     println!();
@@ -79,7 +79,7 @@ fn main() {
     }
     println!("{}", "Empty slice range completed".to_string());
     println!("{}", "Empty map:".to_string());
-    for (k, v) in emptyMap.iter().enumerate() {
+    for (k, v) in &emptyMap {
         print!("This won't print: {}, {}\n", k, v);
     }
     println!("{}", "Empty map range completed".to_string());

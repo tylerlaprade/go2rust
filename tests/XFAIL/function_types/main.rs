@@ -31,9 +31,9 @@ pub fn to_upper(s: String) -> String {
     let mut result = "".to_string();
     for (_, char) in s.iter().enumerate() {
         if char >= 'a' && char <= 'z' {
-        result += string(char - 32);
+        result.push_str(&string(char - 32));
     } else {
-        result += string(char);
+        result.push_str(&string(char));
     }
     }
     return result;

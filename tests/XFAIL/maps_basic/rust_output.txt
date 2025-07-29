@@ -1,0 +1,8 @@
+Ages map: {"Bob": 30, "Charlie": 35, "Alice": 25}
+Colors map: {"green": "#00FF00", "blue": "#0000FF", "red": "#FF0000"}
+Alice's age: 25
+After deleting Bob: {"Charlie": 35, "Alice": 25}
+All colors:
+green -> #00FF00
+blue -> #0000FF
+red -> #FF0000

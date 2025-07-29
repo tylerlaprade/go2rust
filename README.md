@@ -69,6 +69,7 @@ This transpiler uses a "make it work first, optimize later" approach. Every Go p
 |---------|--------|
 | **`func` - Functions** | |
 | └ Basic functions | ✅ |
+| └ Multiple return values | ✅ |
 | └ Method definitions | ❌ |
 | └ Method calls | ❌ |
 | **`import` - Imports** | |
@@ -77,24 +78,40 @@ This transpiler uses a "make it work first, optimize later" approach. Every Go p
 | └ Package aliases | ❌ |
 | **`package` - Packages** | |
 | └ Main package | ✅ |
-| └ Other packages | ❌ |
+| └ Library packages | ✅ |
+| └ Package aliases | ❌ |
 | **`return` - Return statements** | |
 | └ Single return values | ✅ |
-| └ Multiple return values | ❌ |
+| └ Multiple return values | ✅ |
 | **`struct` - Struct types** | |
-| └ Struct definitions | ❌ |
-| └ Struct literals | ❌ |
-| └ Field access | ❌ |
+| └ Struct definitions | ✅ |
+| └ Struct literals | ✅ |
+| └ Field access | ✅ |
+| └ Embedded fields | ❌ |
 | **`type` - Type definitions** | |
-| └ Struct types | ❌ |
+| └ Struct types | ✅ |
 | └ Type aliases | ❌ |
-| **`var` - Variable declarations** | |
+| └ Interface types | ❌ |
+| **`var` / `const` - Declarations** | |
 | └ Basic var declarations | ✅ |
 | └ Short declarations (:=) | ✅ |
+| └ Constants (const) | ✅ |
+| └ Blank identifier (_) | ✅ |
 | **`for` - For loops** | |
 | └ C-style for loops | ✅ |
-| └ Range loops | ❌ |
+| └ Range loops | ✅ |
 | └ Infinite loops | ✅ |
+| **`switch` - Switch statements** | |
+| └ Basic switch | ✅ |
+| └ Type switch | ❌ |
+| **`map` - Maps** | |
+| └ Map types | ✅ |
+| └ Map literals | ✅ |
+| └ Map operations | ⏳ |
+| **Arrays & Slices** | |
+| └ Fixed arrays | ✅ |
+| └ Slices | ✅ |
+| └ Slice operations | ✅ |
 | **Operators** | |
 | └ Binary operators (+, -, *, /, etc.) | ✅ |
 | └ Assignment operators (=, +=, etc.) | ✅ |
@@ -105,18 +122,22 @@ This transpiler uses a "make it work first, optimize later" approach. Every Go p
 | Function | Status |
 |----------|--------|
 | **Built-in functions** | |
-| └ `println` | ❌ |
-| └ `len` | ❌ |
-| └ `append` | ❌ |
+| └ `println` | ✅ |
+| └ `len` | ✅ |
+| └ `cap` | ✅ |
+| └ `append` | ✅ |
+| └ `make` | ✅ |
 | **`fmt` package** | |
 | └ `fmt.Println` | ✅ |
 | └ `fmt.Printf` | ❌ |
+| └ `fmt.Sprintf` | ❌ |
 | **`strings` package** | |
-| └ `strings.ToUpper` | ❌ |
-| └ `strings.ToLower` | ❌ |
+| └ `strings.ToUpper` | ✅ |
+| └ `strings.ToLower` | ✅ |
 | └ `strings.TrimSpace` | ✅ |
 | **`strconv` package** | |
-| └ `strconv.Itoa` | ❌ |
+| └ `strconv.Itoa` | ✅ |
+| └ `strconv.Atoi` | ❌ |
 
 ## XFAIL Tests (Expected Failures)
 

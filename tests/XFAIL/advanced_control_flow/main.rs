@@ -7,7 +7,24 @@ fn main() {
     let mut num = 1;
     while num <= 5 {
         print!("Number {}: ", num);
-        
+        match num {
+        1 => {
+            fmt.print("One".to_string());
+            
+        }
+        2 => {
+            fmt.print(" Two-ish".to_string());
+        }
+        3 => {
+            fmt.print("Three".to_string());
+        }
+        4 | 5 => {
+            fmt.print(" Four-or-Five".to_string());
+        }
+        _ => {
+            fmt.print(" Other".to_string());
+        }
+    }
         println!();
         num += 1;
     }
@@ -17,7 +34,28 @@ fn main() {
         let mut item = 1;
     while item <= 2 {
         print!("Category {}, Item {}: ", category, item);
-        
+        match category {
+        1 => {
+            match item {
+        1 => {
+            println!("{}", "Electronics - Phone".to_string());
+        }
+        2 => {
+            println!("{}", "Electronics - Laptop".to_string());
+        }
+    }
+        }
+        2 => {
+            match item {
+        1 => {
+            println!("{}", "Books - Fiction".to_string());
+        }
+        2 => {
+            println!("{}", "Books - Non-fiction".to_string());
+        }
+    }
+        }
+    }
         item += 1;
     }
         category += 1;

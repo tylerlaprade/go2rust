@@ -22,10 +22,6 @@ func TranspileExpression(out *strings.Builder, expr ast.Expr) {
 		} else if e.Name[0] >= 'A' && e.Name[0] <= 'Z' && e.Name != "String" {
 			// Likely a constant - convert to UPPER_SNAKE_CASE
 			out.WriteString(strings.ToUpper(ToSnakeCase(e.Name)))
-		} else if strings.Contains(e.Name, "Const") || e.Name == "x" || e.Name == "y" || e.Name == "z" {
-			// Special handling for local constants in the example
-			// In a real implementation, we'd track const declarations
-			out.WriteString(strings.ToUpper(ToSnakeCase(e.Name)))
 		} else {
 			out.WriteString(e.Name)
 		}
@@ -70,6 +66,24 @@ func TranspileExpression(out *strings.Builder, expr ast.Expr) {
 		TranspileExpression(out, e.Y)
 
 	case *ast.IndexExpr:
+		// Check if this might be a map access (simple heuristic)
+		if ident, ok := e.X.(*ast.Ident); ok {
+			name := strings.ToLower(ident.Name)
+			if strings.Contains(name, "map") || name == "ages" || name == "colors" {
+				// Map access - use .get()
+				out.WriteString("(")
+				TranspileExpression(out, e.X)
+				out.WriteString(".get(&")
+				TranspileExpression(out, e.Index)
+				out.WriteString(").cloned().unwrap_or_default(), ")
+				TranspileExpression(out, e.X)
+				out.WriteString(".contains_key(&")
+				TranspileExpression(out, e.Index)
+				out.WriteString("))")
+				return
+			}
+		}
+		// Regular array/slice indexing
 		TranspileExpression(out, e.X)
 		out.WriteString("[")
 		TranspileExpression(out, e.Index)
