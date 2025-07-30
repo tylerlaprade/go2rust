@@ -4,7 +4,7 @@ pub fn sum(numbers: std::sync::Arc<std::sync::Mutex<Option<Unknown>>>) -> std::s
     for (_, num) in (*numbers.lock().unwrap().as_ref().unwrap()).iter().enumerate() {
         (*total.lock().unwrap().as_ref().unwrap()) += num;
     }
-    return std::sync::Arc::new(std::sync::Mutex::new(Some((*total.lock().unwrap().as_ref().unwrap()))));
+    return std::sync::Arc::new(std::sync::Mutex::new(Some((*total.lock().unwrap().as_ref().unwrap()).clone())));
 }
 
 pub fn average(numbers: std::sync::Arc<std::sync::Mutex<Option<Unknown>>>) -> std::sync::Arc<std::sync::Mutex<Option<f64>>> {
@@ -38,7 +38,7 @@ pub fn min(first: std::sync::Arc<std::sync::Mutex<Option<i32>>>, rest: std::sync
         { let new_val = num; *minimum.lock().unwrap() = Some(new_val); };
     }
     }
-    return std::sync::Arc::new(std::sync::Mutex::new(Some((*minimum.lock().unwrap().as_ref().unwrap()))));
+    return std::sync::Arc::new(std::sync::Mutex::new(Some((*minimum.lock().unwrap().as_ref().unwrap()).clone())));
 }
 
 pub fn concat(separator: std::sync::Arc<std::sync::Mutex<Option<String>>>, strings: std::sync::Arc<std::sync::Mutex<Option<Unknown>>>) -> std::sync::Arc<std::sync::Mutex<Option<String>>> {
@@ -48,9 +48,9 @@ pub fn concat(separator: std::sync::Arc<std::sync::Mutex<Option<String>>>, strin
     }
     let mut result = std::sync::Arc::new(std::sync::Mutex::new(Some((*strings.lock().unwrap().as_ref().unwrap())[0])));
     for (_, str) in (*strings.lock().unwrap().as_ref().unwrap())[1..].to_vec().iter().enumerate() {
-        (*result.lock().unwrap().as_ref().unwrap()).push_str(&(*separator.lock().unwrap().as_ref().unwrap()) + str);
+        (*result.lock().unwrap().as_mut().unwrap()).push_str(&(*separator.lock().unwrap().as_ref().unwrap()) + str);
     }
-    return std::sync::Arc::new(std::sync::Mutex::new(Some((*result.lock().unwrap().as_ref().unwrap()))));
+    return std::sync::Arc::new(std::sync::Mutex::new(Some((*result.lock().unwrap().as_ref().unwrap()).clone())));
 }
 
 fn main() {

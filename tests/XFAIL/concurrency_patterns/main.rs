@@ -81,7 +81,7 @@ pub fn fan_out(input: std::sync::Arc<std::sync::Mutex<Option<Unknown>>>) -> std:
 
     let mut output = ;
     
-    return std::sync::Arc::new(std::sync::Mutex::new(Some((*output.lock().unwrap().as_ref().unwrap()))));
+    return std::sync::Arc::new(std::sync::Mutex::new(Some((*output.lock().unwrap().as_ref().unwrap()).clone())));
 }
 
 pub fn fan_in(inputs: std::sync::Arc<std::sync::Mutex<Option<Unknown>>>) -> std::sync::Arc<std::sync::Mutex<Option<Unknown>>> {
@@ -93,5 +93,5 @@ pub fn fan_in(inputs: std::sync::Arc<std::sync::Mutex<Option<Unknown>>>) -> std:
         
     }
     
-    return std::sync::Arc::new(std::sync::Mutex::new(Some((*output.lock().unwrap().as_ref().unwrap()))));
+    return std::sync::Arc::new(std::sync::Mutex::new(Some((*output.lock().unwrap().as_ref().unwrap()).clone())));
 }

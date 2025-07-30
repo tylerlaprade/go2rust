@@ -36,7 +36,7 @@ jobs:
         uses: bats-core/bats-action@3.0.0
 
       - name: Run tests
-        run: ./test.sh
+        run: ./test.sh -v
 
       - name: Check for uncommitted changes
         run: |

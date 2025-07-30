@@ -17,7 +17,7 @@ pub fn sqrt(x: std::sync::Arc<std::sync::Mutex<Option<f64>>>) -> (std::sync::Arc
         { let new_val =  / 2; *result.lock().unwrap() = Some(new_val); };
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
-    return (std::sync::Arc::new(std::sync::Mutex::new(Some((*result.lock().unwrap().as_ref().unwrap())))), std::sync::Arc::new(std::sync::Mutex::new(Some(None))));
+    return (std::sync::Arc::new(std::sync::Mutex::new(Some((*result.lock().unwrap().as_ref().unwrap()).clone()))), std::sync::Arc::new(std::sync::Mutex::new(Some(None))));
 }
 
 #[derive(Debug)]

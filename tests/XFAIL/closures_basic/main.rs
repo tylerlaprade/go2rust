@@ -15,7 +15,7 @@ pub fn apply_operation(nums: std::sync::Arc<std::sync::Mutex<Option<Vec<i32>>>>,
     for (i, num) in (*nums.lock().unwrap().as_ref().unwrap()).iter().enumerate() {
         (*result.lock().unwrap().as_mut().unwrap())[i] = op(std::sync::Arc::new(std::sync::Mutex::new(Some(num))));
     }
-    return std::sync::Arc::new(std::sync::Mutex::new(Some((*result.lock().unwrap().as_ref().unwrap()))));
+    return std::sync::Arc::new(std::sync::Mutex::new(Some((*result.lock().unwrap().as_ref().unwrap()).clone())));
 }
 
 fn main() {

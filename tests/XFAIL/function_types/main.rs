@@ -31,12 +31,12 @@ pub fn to_upper(s: std::sync::Arc<std::sync::Mutex<Option<String>>>) -> std::syn
     let mut result = std::sync::Arc::new(std::sync::Mutex::new(Some("".to_string())));
     for (_, char) in (*s.lock().unwrap().as_ref().unwrap()).iter().enumerate() {
         if char >= 'a' && char <= 'z' {
-        (*result.lock().unwrap().as_ref().unwrap()).push_str(&string(std::sync::Arc::new(std::sync::Mutex::new(Some(char - 32)))));
+        (*result.lock().unwrap().as_mut().unwrap()).push_str(&string(std::sync::Arc::new(std::sync::Mutex::new(Some(char - 32)))));
     } else {
-        (*result.lock().unwrap().as_ref().unwrap()).push_str(&string(std::sync::Arc::new(std::sync::Mutex::new(Some(char)))));
+        (*result.lock().unwrap().as_mut().unwrap()).push_str(&string(std::sync::Arc::new(std::sync::Mutex::new(Some(char)))));
     }
     }
-    return std::sync::Arc::new(std::sync::Mutex::new(Some((*result.lock().unwrap().as_ref().unwrap()))));
+    return std::sync::Arc::new(std::sync::Mutex::new(Some((*result.lock().unwrap().as_ref().unwrap()).clone())));
 }
 
 pub fn apply_binary(op: std::sync::Arc<std::sync::Mutex<Option<BinaryOp>>>, a: std::sync::Arc<std::sync::Mutex<Option<i32>>>, b: std::sync::Arc<std::sync::Mutex<Option<i32>>>) -> std::sync::Arc<std::sync::Mutex<Option<i32>>> {
@@ -57,7 +57,7 @@ pub fn filter(numbers: std::sync::Arc<std::sync::Mutex<Option<Vec<i32>>>>, pred:
         { let new_val = {(*result.lock().unwrap().as_ref().unwrap()).push(num); (*result.lock().unwrap().as_ref().unwrap())}; *result.lock().unwrap() = Some(new_val); };
     }
     }
-    return std::sync::Arc::new(std::sync::Mutex::new(Some((*result.lock().unwrap().as_ref().unwrap()))));
+    return std::sync::Arc::new(std::sync::Mutex::new(Some((*result.lock().unwrap().as_ref().unwrap()).clone())));
 }
 
 pub fn transform(numbers: std::sync::Arc<std::sync::Mutex<Option<Vec<i32>>>>, op: std::sync::Arc<std::sync::Mutex<Option<UnaryOp>>>) -> std::sync::Arc<std::sync::Mutex<Option<Vec<i32>>>> {
@@ -66,7 +66,7 @@ pub fn transform(numbers: std::sync::Arc<std::sync::Mutex<Option<Vec<i32>>>>, op
     for (i, num) in (*numbers.lock().unwrap().as_ref().unwrap()).iter().enumerate() {
         (*result.lock().unwrap().as_mut().unwrap())[i] = op(std::sync::Arc::new(std::sync::Mutex::new(Some(num))));
     }
-    return std::sync::Arc::new(std::sync::Mutex::new(Some((*result.lock().unwrap().as_ref().unwrap()))));
+    return std::sync::Arc::new(std::sync::Mutex::new(Some((*result.lock().unwrap().as_ref().unwrap()).clone())));
 }
 
 pub fn process_string(s: std::sync::Arc<std::sync::Mutex<Option<String>>>, processor: std::sync::Arc<std::sync::Mutex<Option<StringProcessor>>>) -> std::sync::Arc<std::sync::Mutex<Option<String>>> {

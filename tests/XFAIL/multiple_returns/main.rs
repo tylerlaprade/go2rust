@@ -9,7 +9,7 @@ pub fn parse_number(s: std::sync::Arc<std::sync::Mutex<Option<String>>>) -> (std
     if (*err.lock().unwrap().as_ref().unwrap()).is_some() {
         return (std::sync::Arc::new(std::sync::Mutex::new(Some(0))), std::sync::Arc::new(std::sync::Mutex::new(Some(Some(Box::new(format!("failed to parse '{}': {}", (*s.lock().unwrap().as_ref().unwrap()), (*err.lock().unwrap().as_ref().unwrap()))) as Box<dyn std::error::Error + Send + Sync>)))));
     }
-    return (std::sync::Arc::new(std::sync::Mutex::new(Some((*num.lock().unwrap().as_ref().unwrap())))), std::sync::Arc::new(std::sync::Mutex::new(Some(None))));
+    return (std::sync::Arc::new(std::sync::Mutex::new(Some((*num.lock().unwrap().as_ref().unwrap()).clone()))), std::sync::Arc::new(std::sync::Mutex::new(Some(None))));
 }
 
 pub fn get_name_age() -> (std::sync::Arc<std::sync::Mutex<Option<String>>>, std::sync::Arc<std::sync::Mutex<Option<i32>>>) {
@@ -51,7 +51,7 @@ pub fn process_data(data: std::sync::Arc<std::sync::Mutex<Option<Vec<i32>>>>) ->
 
 pub fn swap(a: std::sync::Arc<std::sync::Mutex<Option<String>>>, b: std::sync::Arc<std::sync::Mutex<Option<String>>>) -> (std::sync::Arc<std::sync::Mutex<Option<String>>>, std::sync::Arc<std::sync::Mutex<Option<String>>>) {
 
-    return (std::sync::Arc::new(std::sync::Mutex::new(Some((*b.lock().unwrap().as_ref().unwrap())))), std::sync::Arc::new(std::sync::Mutex::new(Some((*a.lock().unwrap().as_ref().unwrap())))));
+    return (std::sync::Arc::new(std::sync::Mutex::new(Some((*b.lock().unwrap().as_ref().unwrap()).clone()))), std::sync::Arc::new(std::sync::Mutex::new(Some((*a.lock().unwrap().as_ref().unwrap()).clone()))));
 }
 
 pub fn get_person_info() -> (std::sync::Arc<std::sync::Mutex<Option<String>>>, std::sync::Arc<std::sync::Mutex<Option<i32>>>, std::sync::Arc<std::sync::Mutex<Option<f64>>>, std::sync::Arc<std::sync::Mutex<Option<bool>>>) {

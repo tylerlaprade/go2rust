@@ -78,6 +78,11 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				if lit, ok := result.(*ast.BasicLit); ok && lit.Kind == token.STRING {
 					out.WriteString(lit.Value)
 					out.WriteString(".to_string()")
+				} else if ident, ok := result.(*ast.Ident); ok && !rangeLoopVars[ident.Name] && ident.Name != "true" && ident.Name != "false" && ident.Name != "nil" {
+					// Returning a variable - need to clone the inner value
+					out.WriteString("(*")
+					out.WriteString(ident.Name)
+					out.WriteString(".lock().unwrap().as_ref().unwrap()).clone()")
 				} else {
 					TranspileExpression(out, result)
 				}
@@ -131,8 +136,10 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			}
 
 			if isString {
-				TranspileExpression(out, s.Lhs[0])
-				out.WriteString(".push_str(&")
+				// For string +=, we need mutable access to the LHS
+				out.WriteString("(*")
+				TranspileExpressionContext(out, s.Lhs[0], LValue)
+				out.WriteString(".lock().unwrap().as_mut().unwrap()).push_str(&")
 				TranspileExpression(out, s.Rhs[0])
 				out.WriteString(")")
 			} else {
