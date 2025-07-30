@@ -71,23 +71,39 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					out.WriteString(", ")
 				}
 
-				// Wrap all return values in Arc<Mutex<Option<>>>
-				out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(Some(")
-
-				// Special handling for string literals
-				if lit, ok := result.(*ast.BasicLit); ok && lit.Kind == token.STRING {
-					out.WriteString(lit.Value)
-					out.WriteString(".to_string()")
-				} else if ident, ok := result.(*ast.Ident); ok && !rangeLoopVars[ident.Name] && ident.Name != "true" && ident.Name != "false" && ident.Name != "nil" {
-					// Returning a variable - need to clone the inner value
-					out.WriteString("(*")
-					out.WriteString(ident.Name)
-					out.WriteString(".lock().unwrap().as_ref().unwrap()).clone()")
-				} else {
-					TranspileExpression(out, result)
+				// Check if this is nil being returned for an error type
+				isNilForError := false
+				if ident, ok := result.(*ast.Ident); ok && ident.Name == "nil" {
+					// Check if this position in return values is an error type
+					if fnType.Results != nil && i < len(fnType.Results.List) {
+						if resultType, ok := fnType.Results.List[i].Type.(*ast.Ident); ok && resultType.Name == "error" {
+							isNilForError = true
+						}
+					}
 				}
 
-				out.WriteString(")))")
+				if isNilForError {
+					// For error type, nil becomes Arc<Mutex<None>>
+					out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(None))")
+				} else {
+					// Wrap all return values in Arc<Mutex<Option<>>>
+					out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(Some(")
+
+					// Special handling for string literals
+					if lit, ok := result.(*ast.BasicLit); ok && lit.Kind == token.STRING {
+						out.WriteString(lit.Value)
+						out.WriteString(".to_string()")
+					} else if ident, ok := result.(*ast.Ident); ok && !rangeLoopVars[ident.Name] && ident.Name != "true" && ident.Name != "false" && ident.Name != "nil" {
+						// Returning a variable - need to clone the inner value
+						out.WriteString("(*")
+						out.WriteString(ident.Name)
+						out.WriteString(".lock().unwrap().as_ref().unwrap()).clone()")
+					} else {
+						TranspileExpression(out, result)
+					}
+
+					out.WriteString(")))")
+				}
 			}
 
 			if needsTuple {
@@ -166,7 +182,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							out.WriteString("mut ")
 						}
 					}
-					TranspileExpression(out, lhs)
+					TranspileExpressionContext(out, lhs, LValue)
 				}
 				out.WriteString(")")
 

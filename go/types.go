@@ -7,6 +7,11 @@ import (
 func GoTypeToRust(expr ast.Expr) string {
 	baseType := goTypeToRustBase(expr)
 
+	// Special case for error type - it's already Option
+	if ident, ok := expr.(*ast.Ident); ok && ident.Name == "error" {
+		return "std::sync::Arc<std::sync::Mutex<" + baseType + ">>"
+	}
+
 	// Wrap everything in Arc<Mutex<Option<>>>
 	// Don't double-wrap pointers - they're already wrapped
 	if _, isPointer := expr.(*ast.StarExpr); !isPointer {
