@@ -59,7 +59,7 @@ fn main() {
     print!("Count (ignoring sum): {}\n", (*count.lock().unwrap().as_ref().unwrap()));
     println!("{}", "\n=== Blank identifier in declarations ===".to_string());
     let _ = "This string is assigned but not used".to_string();
-    let (mut (*a.lock().unwrap().as_ref().unwrap()), (*_.lock().unwrap().as_ref().unwrap()), mut (*c.lock().unwrap().as_ref().unwrap())) = (1, 2, 3);
+    let (mut (*a.lock().unwrap().as_ref().unwrap()), _, mut (*c.lock().unwrap().as_ref().unwrap())) = (1, 2, 3);
     print!("a={}, c={} (middle value ignored)\n", (*a.lock().unwrap().as_ref().unwrap()), (*c.lock().unwrap().as_ref().unwrap()));
     println!("{}", "\n=== Blank identifier with type assertion ===".to_string());
     let mut value = std::sync::Arc::new(std::sync::Mutex::new(Some("hello world".to_string())));
