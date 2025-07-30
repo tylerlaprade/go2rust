@@ -40,6 +40,6 @@ fn main() {
     
     println!("{}", "Range over channel:".to_string());
     for num in 0..(*numbers.lock().unwrap().as_ref().unwrap()).len() {
-        println!("{} {}", "Number:".to_string(), (*num.lock().unwrap().as_ref().unwrap()));
+        println!("{} {}", "Number:".to_string(), num);
     }
 }

@@ -9,13 +9,13 @@ fn main() {
     }
     let mut content = std::sync::Arc::new(std::sync::Mutex::new(Some(vec!["Hello, World!".to_string(), "This is line 2".to_string(), "Go file operations".to_string(), "Line 4 with numbers: 123".to_string(), "Final line".to_string()])));
     for (i, line) in (*content.lock().unwrap().as_ref().unwrap()).iter().enumerate() {
-        let ((*_.lock().unwrap().as_ref().unwrap()), mut (*err.lock().unwrap().as_ref().unwrap())) = (*file.lock().unwrap().as_ref().unwrap()).write_string(std::sync::Arc::new(std::sync::Mutex::new(Some((*line.lock().unwrap().as_ref().unwrap()) + "\n".to_string()))));
+        let ((*_.lock().unwrap().as_ref().unwrap()), mut (*err.lock().unwrap().as_ref().unwrap())) = (*file.lock().unwrap().as_ref().unwrap()).write_string(std::sync::Arc::new(std::sync::Mutex::new(Some(line + "\n".to_string()))));
         if (*err.lock().unwrap().as_ref().unwrap()).is_some() {
-        print!("Error writing line {}: {}\n", (*i.lock().unwrap().as_ref().unwrap()) + 1, (*err.lock().unwrap().as_ref().unwrap()));
+        print!("Error writing line {}: {}\n", i + 1, (*err.lock().unwrap().as_ref().unwrap()));
         (*file.lock().unwrap().as_ref().unwrap()).close();
         return;
     }
-        print!("Wrote: {}\n", (*line.lock().unwrap().as_ref().unwrap()));
+        print!("Wrote: {}\n", line);
     }
     (*file.lock().unwrap().as_ref().unwrap()).close();
     print!("File '{}' created successfully\n", (*filename.lock().unwrap().as_ref().unwrap()));
@@ -53,13 +53,13 @@ fn main() {
     }
     let mut appendContent = std::sync::Arc::new(std::sync::Mutex::new(Some(vec!["Appended line 1".to_string(), "Appended line 2".to_string()])));
     for (_, line) in (*appendContent.lock().unwrap().as_ref().unwrap()).iter().enumerate() {
-        let ((*_.lock().unwrap().as_ref().unwrap()), mut (*err.lock().unwrap().as_ref().unwrap())) = (*file.lock().unwrap().as_ref().unwrap()).write_string(std::sync::Arc::new(std::sync::Mutex::new(Some((*line.lock().unwrap().as_ref().unwrap()) + "\n".to_string()))));
+        let (_, mut (*err.lock().unwrap().as_ref().unwrap())) = (*file.lock().unwrap().as_ref().unwrap()).write_string(std::sync::Arc::new(std::sync::Mutex::new(Some(line + "\n".to_string()))));
         if (*err.lock().unwrap().as_ref().unwrap()).is_some() {
         print!("Error appending: {}\n", (*err.lock().unwrap().as_ref().unwrap()));
         (*file.lock().unwrap().as_ref().unwrap()).close();
         return;
     }
-        print!("Appended: {}\n", (*line.lock().unwrap().as_ref().unwrap()));
+        print!("Appended: {}\n", line);
     }
     (*file.lock().unwrap().as_ref().unwrap()).close();
     println!("{}", "\n--- Reading updated file ---".to_string());
@@ -148,32 +148,32 @@ fn main() {
     println!("{}", "\n--- Checking file existence ---".to_string());
     let mut files = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![(*filename.lock().unwrap().as_ref().unwrap()), (*copyFilename.lock().unwrap().as_ref().unwrap()), (*dataFile.lock().unwrap().as_ref().unwrap()), "nonexistent.txt".to_string()])));
     for (_, f) in (*files.lock().unwrap().as_ref().unwrap()).iter().enumerate() {
-        let ((*_.lock().unwrap().as_ref().unwrap()), mut (*err.lock().unwrap().as_ref().unwrap())) = (*os.lock().unwrap().as_ref().unwrap()).stat(std::sync::Arc::new(std::sync::Mutex::new(Some((*f.lock().unwrap().as_ref().unwrap())))));
+        let (_, mut (*err.lock().unwrap().as_ref().unwrap())) = (*os.lock().unwrap().as_ref().unwrap()).stat(std::sync::Arc::new(std::sync::Mutex::new(Some(f))));
     if (*err.lock().unwrap().as_ref().unwrap()).is_none() {
-        print!("File '{}' exists\n", (*f.lock().unwrap().as_ref().unwrap()));
+        print!("File '{}' exists\n", f);
     } else if (*os.lock().unwrap().as_ref().unwrap()).is_not_exist(std::sync::Arc::new(std::sync::Mutex::new(Some((*err.lock().unwrap().as_ref().unwrap()))))) {
-        print!("File '{}' does not exist\n", (*f.lock().unwrap().as_ref().unwrap()));
+        print!("File '{}' does not exist\n", f);
     } else {
-        print!("Error checking file '{}': {}\n", (*f.lock().unwrap().as_ref().unwrap()), (*err.lock().unwrap().as_ref().unwrap()));
+        print!("Error checking file '{}': {}\n", f, (*err.lock().unwrap().as_ref().unwrap()));
     }
     }
     println!("{}", "\n--- Cleaning up ---".to_string());
     let mut filesToRemove = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![(*filename.lock().unwrap().as_ref().unwrap()), (*copyFilename.lock().unwrap().as_ref().unwrap()), (*dataFile.lock().unwrap().as_ref().unwrap())])));
     for (_, f) in (*filesToRemove.lock().unwrap().as_ref().unwrap()).iter().enumerate() {
-        let mut err = std::sync::Arc::new(std::sync::Mutex::new(Some((*os.lock().unwrap().as_ref().unwrap()).remove(std::sync::Arc::new(std::sync::Mutex::new(Some((*f.lock().unwrap().as_ref().unwrap()))))))));
+        let mut err = std::sync::Arc::new(std::sync::Mutex::new(Some((*os.lock().unwrap().as_ref().unwrap()).remove(std::sync::Arc::new(std::sync::Mutex::new(Some(f)))))));
         if (*err.lock().unwrap().as_ref().unwrap()).is_some() {
-        print!("Error removing file '{}': {}\n", (*f.lock().unwrap().as_ref().unwrap()), (*err.lock().unwrap().as_ref().unwrap()));
+        print!("Error removing file '{}': {}\n", f, (*err.lock().unwrap().as_ref().unwrap()));
     } else {
-        print!("Removed file '{}'\n", (*f.lock().unwrap().as_ref().unwrap()));
+        print!("Removed file '{}'\n", f);
     }
     }
     println!("{}", "\n--- Verifying cleanup ---".to_string());
     for (_, f) in (*filesToRemove.lock().unwrap().as_ref().unwrap()).iter().enumerate() {
-        let ((*_.lock().unwrap().as_ref().unwrap()), mut (*err.lock().unwrap().as_ref().unwrap())) = (*os.lock().unwrap().as_ref().unwrap()).stat(std::sync::Arc::new(std::sync::Mutex::new(Some((*f.lock().unwrap().as_ref().unwrap())))));
+        let (_, mut (*err.lock().unwrap().as_ref().unwrap())) = (*os.lock().unwrap().as_ref().unwrap()).stat(std::sync::Arc::new(std::sync::Mutex::new(Some(f))));
     if (*os.lock().unwrap().as_ref().unwrap()).is_not_exist(std::sync::Arc::new(std::sync::Mutex::new(Some((*err.lock().unwrap().as_ref().unwrap()))))) {
-        print!("File '{}' successfully removed\n", (*f.lock().unwrap().as_ref().unwrap()));
+        print!("File '{}' successfully removed\n", f);
     } else {
-        print!("File '{}' still exists\n", (*f.lock().unwrap().as_ref().unwrap()));
+        print!("File '{}' still exists\n", f);
     }
     }
     println!("{}", "\nFile operations test completed!".to_string());

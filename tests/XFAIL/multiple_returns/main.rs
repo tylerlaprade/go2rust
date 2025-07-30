@@ -38,13 +38,13 @@ pub fn process_data(data: std::sync::Arc<std::sync::Mutex<Option<Vec<i32>>>>) ->
     { let new_val = (*data.lock().unwrap().as_ref().unwrap())[0]; *max.lock().unwrap() = Some(new_val); };
     { let new_val = 0; *sum.lock().unwrap() = Some(new_val); };
     for (_, val) in (*data.lock().unwrap().as_ref().unwrap()).iter().enumerate() {
-        if (*val.lock().unwrap().as_ref().unwrap()) < (*min.lock().unwrap().as_ref().unwrap()) {
-        { let new_val = (*val.lock().unwrap().as_ref().unwrap()); *min.lock().unwrap() = Some(new_val); };
+        if val < (*min.lock().unwrap().as_ref().unwrap()) {
+        { let new_val = val; *min.lock().unwrap() = Some(new_val); };
     }
-        if (*val.lock().unwrap().as_ref().unwrap()) > (*max.lock().unwrap().as_ref().unwrap()) {
-        { let new_val = (*val.lock().unwrap().as_ref().unwrap()); *max.lock().unwrap() = Some(new_val); };
+        if val > (*max.lock().unwrap().as_ref().unwrap()) {
+        { let new_val = val; *max.lock().unwrap() = Some(new_val); };
     }
-        (*sum.lock().unwrap().as_ref().unwrap()) += (*val.lock().unwrap().as_ref().unwrap());
+        (*sum.lock().unwrap().as_ref().unwrap()) += val;
     }
     return (min, max, sum);
 }
@@ -68,8 +68,8 @@ pub fn find_in_slice(slice: std::sync::Arc<std::sync::Mutex<Option<Vec<i32>>>>, 
     let mut found: std::sync::Arc<std::sync::Mutex<Option<bool>>> = false;
 
     for (i, val) in (*slice.lock().unwrap().as_ref().unwrap()).iter().enumerate() {
-        if (*val.lock().unwrap().as_ref().unwrap()) == (*target.lock().unwrap().as_ref().unwrap()) {
-        return (std::sync::Arc::new(std::sync::Mutex::new(Some((*i.lock().unwrap().as_ref().unwrap())))), std::sync::Arc::new(std::sync::Mutex::new(Some(true))));
+        if val == (*target.lock().unwrap().as_ref().unwrap()) {
+        return (std::sync::Arc::new(std::sync::Mutex::new(Some(i))), std::sync::Arc::new(std::sync::Mutex::new(Some(true))));
     }
     }
     return (std::sync::Arc::new(std::sync::Mutex::new(Some(-1))), std::sync::Arc::new(std::sync::Mutex::new(Some(false))));

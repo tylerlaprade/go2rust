@@ -37,20 +37,20 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		} else if e.Name[0] >= 'A' && e.Name[0] <= 'Z' && e.Name != "String" {
 			// Likely a constant - convert to UPPER_SNAKE_CASE
 			out.WriteString(strings.ToUpper(ToSnakeCase(e.Name)))
-		} else if e.Name == "true" || e.Name == "false" {
-			// Boolean literals
+		} else if e.Name == "true" || e.Name == "false" || rangeLoopVars[e.Name] {
 			out.WriteString(e.Name)
 		} else {
 			// All variables are wrapped in Arc<Mutex<Option<T>>>
-			if ctx == RValue {
+			switch ctx {
+			case RValue:
 				// Reading a variable requires unwrapping to get the inner value
 				out.WriteString("(*")
 				out.WriteString(e.Name)
 				out.WriteString(".lock().unwrap().as_ref().unwrap())")
-			} else if ctx == AddressOf {
+			case AddressOf:
 				// Taking address just returns the Arc itself
 				out.WriteString(e.Name)
-			} else {
+			default:
 				// LValue context - just the identifier
 				out.WriteString(e.Name)
 			}
@@ -87,10 +87,11 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		}
 
 	case *ast.StarExpr:
-		// Dereference pointer
-		out.WriteString("*")
-		TranspileExpression(out, e.X)
-		out.WriteString(".lock().unwrap().as_ref().unwrap()")
+		// Dereference pointer - unwrap the Arc<Mutex<Option<T>>> to get T
+		out.WriteString("(*")
+		// Use LValue context so the identifier doesn't get unwrapped
+		TranspileExpressionContext(out, e.X, LValue)
+		out.WriteString(".lock().unwrap().as_ref().unwrap())")
 	case *ast.BinaryExpr:
 		// Special handling for comparisons with nil
 		if ident, ok := e.Y.(*ast.Ident); ok && ident.Name == "nil" {

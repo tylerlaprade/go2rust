@@ -1,5 +1,5 @@
 fn main() {
-    let mut arr: std::sync::Arc<std::sync::Mutex<Option<[i32; 3]>>> = Default::default();
+    let mut arr: std::sync::Arc<std::sync::Mutex<Option<[i32; 3]>>> = std::sync::Arc::new(std::sync::Mutex::new(Some(Default::default())));
     (*arr.lock().unwrap().as_mut().unwrap())[0] = 10;
     (*arr.lock().unwrap().as_mut().unwrap())[1] = 20;
     (*arr.lock().unwrap().as_mut().unwrap())[2] = 30;
@@ -12,6 +12,6 @@ fn main() {
     let mut nums = std::sync::Arc::new(std::sync::Mutex::new(Some([1, 2, 3, 4])));
     println!("{}", "Initialized array:".to_string());
     for (_, num) in (*nums.lock().unwrap().as_ref().unwrap()).iter().enumerate() {
-        println!("{}", (*num.lock().unwrap().as_ref().unwrap()));
+        println!("{}", num);
     }
 }

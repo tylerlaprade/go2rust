@@ -80,9 +80,9 @@ const Z: i32 = X + Y;
 
     const UNTYPED_FLOAT: f64 = 3.14;
 
-    let mut i = (*untypedInt.lock().unwrap().as_ref().unwrap());
-    let mut f = (*untypedFloat.lock().unwrap().as_ref().unwrap());
-    let mut mixed = (*untypedInt.lock().unwrap().as_ref().unwrap()) + 3;
+    let mut i = std::sync::Arc::new(std::sync::Mutex::new(Some((*untypedInt.lock().unwrap().as_ref().unwrap()))));
+    let mut f = std::sync::Arc::new(std::sync::Mutex::new(Some((*untypedFloat.lock().unwrap().as_ref().unwrap()))));
+    let mut mixed = std::sync::Arc::new(std::sync::Mutex::new(Some((*untypedInt.lock().unwrap().as_ref().unwrap()) + 3)));
     print!("i = {}\n", (*i.lock().unwrap().as_ref().unwrap()));
     print!("f = {:.2}\n", (*f.lock().unwrap().as_ref().unwrap()));
     print!("mixed = {}\n", (*mixed.lock().unwrap().as_ref().unwrap()));

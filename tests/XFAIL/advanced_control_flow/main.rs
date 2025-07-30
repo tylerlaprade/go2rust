@@ -124,33 +124,33 @@ fn main() {
     let mut numbers = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10])));
     println!("{}", "Processing numbers:".to_string());
     for (i, num) in (*numbers.lock().unwrap().as_ref().unwrap()).iter().enumerate() {
-        if (*num.lock().unwrap().as_ref().unwrap()) % 2 == 0 {
-        if (*num.lock().unwrap().as_ref().unwrap()) > 6 {
-        print!("Stopping at even number {} (index {})\n", (*num.lock().unwrap().as_ref().unwrap()), (*i.lock().unwrap().as_ref().unwrap()));
+        if num % 2 == 0 {
+        if num > 6 {
+        print!("Stopping at even number {} (index {})\n", num, i);
         
     }
-        print!("Skipping even number {} (index {})\n", (*num.lock().unwrap().as_ref().unwrap()), (*i.lock().unwrap().as_ref().unwrap()));
+        print!("Skipping even number {} (index {})\n", num, i);
         
     }
-        if (*num.lock().unwrap().as_ref().unwrap()) == 7 {
-        print!("Found lucky number {} at index {}\n", (*num.lock().unwrap().as_ref().unwrap()), (*i.lock().unwrap().as_ref().unwrap()));
+        if num == 7 {
+        print!("Found lucky number {} at index {}\n", num, i);
         
     }
-        print!("Processing odd number {} (index {})\n", (*num.lock().unwrap().as_ref().unwrap()), (*i.lock().unwrap().as_ref().unwrap()));
+        print!("Processing odd number {} (index {})\n", num, i);
     }
     println!("{}", "\n=== Nested range loops ===".to_string());
     let mut matrix = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![, , ])));
     for (rowIdx, row) in (*matrix.lock().unwrap().as_ref().unwrap()).iter().enumerate() {
-        for (colIdx, cell) in (*row.lock().unwrap().as_ref().unwrap()).iter().enumerate() {
-        if (*cell.lock().unwrap().as_ref().unwrap()) == "e".to_string() {
-        print!("Found center at [{}][{}]: {}\n", (*rowIdx.lock().unwrap().as_ref().unwrap()), (*colIdx.lock().unwrap().as_ref().unwrap()), (*cell.lock().unwrap().as_ref().unwrap()));
+        for (colIdx, cell) in row.iter().enumerate() {
+        if cell == "e".to_string() {
+        print!("Found center at [{}][{}]: {}\n", rowIdx, colIdx, cell);
         
     }
-        if (*rowIdx.lock().unwrap().as_ref().unwrap()) == 2 && (*colIdx.lock().unwrap().as_ref().unwrap()) == 2 {
-        print!("Last cell [{}][{}]: {}\n", (*rowIdx.lock().unwrap().as_ref().unwrap()), (*colIdx.lock().unwrap().as_ref().unwrap()), (*cell.lock().unwrap().as_ref().unwrap()));
+        if rowIdx == 2 && colIdx == 2 {
+        print!("Last cell [{}][{}]: {}\n", rowIdx, colIdx, cell);
         
     }
-        print!("[{}][{}]: {} ", (*rowIdx.lock().unwrap().as_ref().unwrap()), (*colIdx.lock().unwrap().as_ref().unwrap()), (*cell.lock().unwrap().as_ref().unwrap()));
+        print!("[{}][{}]: {} ", rowIdx, colIdx, cell);
     }
         println!();
     }
@@ -169,8 +169,8 @@ fn main() {
     let mut processData = std::sync::Arc::new(std::sync::Mutex::new(Some()));
     let mut testData = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![, , , , ])));
     for (i, data) in (*testData.lock().unwrap().as_ref().unwrap()).iter().enumerate() {
-        print!("Testing dataset {}: {}\n", (*i.lock().unwrap().as_ref().unwrap()) + 1, (*data.lock().unwrap().as_ref().unwrap()));
-        let mut err = std::sync::Arc::new(std::sync::Mutex::new(Some(process_data(std::sync::Arc::new(std::sync::Mutex::new(Some((*data.lock().unwrap().as_ref().unwrap()))))))));
+        print!("Testing dataset {}: {}\n", i + 1, data);
+        let mut err = std::sync::Arc::new(std::sync::Mutex::new(Some(process_data(std::sync::Arc::new(std::sync::Mutex::new(Some(data)))))));
     if (*err.lock().unwrap().as_ref().unwrap()).is_some() {
         print!("  Error: {}\n", (*err.lock().unwrap().as_ref().unwrap()));
         

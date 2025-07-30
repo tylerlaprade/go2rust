@@ -80,7 +80,7 @@ fn main() {
     let mut runeCount = std::sync::Arc::new(std::sync::Mutex::new(Some(0)));
     for (_, r) in (*unicode.lock().unwrap().as_ref().unwrap()).iter().enumerate() {
         { let mut guard = runeCount.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
-        print!("Rune: %c (U+%04X)\n", (*r.lock().unwrap().as_ref().unwrap()), (*r.lock().unwrap().as_ref().unwrap()));
+        print!("Rune: %c (U+%04X)\n", r, r);
     }
     print!("Rune count: {}\n", (*runeCount.lock().unwrap().as_ref().unwrap()));
     println!("{}", "\n=== String trimming variations ===".to_string());

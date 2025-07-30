@@ -9,7 +9,7 @@ fn main() {
     let mut p = x.clone();
     println!("{} {}", "Value of x:".to_string(), (*x.lock().unwrap().as_ref().unwrap()));
     println!("{} {}", "Address of x:".to_string(), (*p.lock().unwrap().as_ref().unwrap()));
-    println!("{} {}", "Value through pointer:".to_string(), *(*p.lock().unwrap().as_ref().unwrap()).lock().unwrap().as_ref().unwrap());
+    println!("{} {}", "Value through pointer:".to_string(), (*p.lock().unwrap().as_ref().unwrap()));
     { let new_val = 100; *p.lock().unwrap() = Some(new_val); };
     println!("{} {}", "Modified x:".to_string(), (*x.lock().unwrap().as_ref().unwrap()));
     let mut point = Point { x: 10, y: 20 }.clone();

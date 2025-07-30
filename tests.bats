@@ -22,6 +22,7 @@ run_with_prefix() {
     
     # Run command, capturing stdout and stderr separately
     "$@" >"$stdout_file" 2>"$stderr_file"
+    local exit_code=$?
     
     # Interleave the outputs with prefixes, preserving order as much as possible
     while IFS= read -r line; do
@@ -33,6 +34,9 @@ run_with_prefix() {
     done < "$stderr_file"
     
     rm -f "$stdout_file" "$stderr_file"
+    
+    # Return the original exit code
+    return $exit_code
 }
 
 compile_and_run_rust() {
@@ -66,7 +70,21 @@ run_test() {
     go_output=$(cd "$test_dir" && run_with_prefix go run .)
 
     ./go2rust "$test_dir" || return 1
+    
+    # Try to compile and run the Rust code
     rust_output=$(cd "$test_dir" && RUSTFLAGS="-A warnings" run_with_prefix cargo run --quiet)
+    rust_exit_code=$?
+    
+    if [ $rust_exit_code -ne 0 ]; then
+        # Rust compilation or execution failed
+        echo ""
+        echo "Go output:"
+        echo "$go_output"
+        echo ""
+        echo "Rust output:"
+        echo "$rust_output"
+        return 1
+    fi
     
     [ "$go_output" = "$rust_output" ] || {
         echo ""

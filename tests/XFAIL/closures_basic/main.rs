@@ -13,7 +13,7 @@ pub fn apply_operation(nums: std::sync::Arc<std::sync::Mutex<Option<Vec<i32>>>>,
 
     let mut result = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![0; (*nums.lock().unwrap().as_ref().unwrap()).len()])));
     for (i, num) in (*nums.lock().unwrap().as_ref().unwrap()).iter().enumerate() {
-        (*result.lock().unwrap().as_mut().unwrap())[(*i.lock().unwrap().as_ref().unwrap())] = op(std::sync::Arc::new(std::sync::Mutex::new(Some((*num.lock().unwrap().as_ref().unwrap())))));
+        (*result.lock().unwrap().as_mut().unwrap())[i] = op(std::sync::Arc::new(std::sync::Mutex::new(Some(num))));
     }
     return std::sync::Arc::new(std::sync::Mutex::new(Some((*result.lock().unwrap().as_ref().unwrap()))));
 }

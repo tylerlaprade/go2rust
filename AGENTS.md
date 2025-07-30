@@ -1,5 +1,23 @@
 # Go2Rust Transpiler Project
 
+## CRITICAL: Don't Hide Problems with .gitignore
+
+**When generated files appear in git status, the solution is NOT to add them to .gitignore.** Instead:
+- Understand why they're being generated
+- Fix the root cause (e.g., running commands in wrong directory)
+- Keep the working tree clean through proper processes
+
+Hiding problems makes them harder to diagnose and fix later.
+
+## CRITICAL: Preserve Test Output Files
+
+The test system preserves transpiled output files (.rs, Cargo.toml, Cargo.lock) as snapshots. These files:
+- Show what the transpiler produced for each test
+- Enable debugging without re-running transpilation
+- Track output changes over time via git
+
+**Only remove build artifacts (target/, debug/, Go binaries) in cleanup - never the transpiled files themselves.**
+
 ## Core Principle: Understand Before Changing
 
 **Before changing or removing anything, understand why it exists. The 'why' is more important than the 'what'. If something seems unnecessary or wrong, that's a signal to investigate deeper, not to immediately fix it.**
@@ -287,15 +305,7 @@ tests/
 - Auto-promote to main test suite when transpilation succeeds
 - Enables test-driven development and roadmap planning through code
 
-### Test Output Preservation
 
-The test system preserves transpiled output files (.rs, Cargo.toml, Cargo.lock) as snapshots. These files:
-
-- Show what the transpiler produced for each test
-- Enable debugging without re-running transpilation
-- Track output changes over time via git
-
-Only remove build artifacts (target/, debug/, Go binaries) in cleanup - never the transpiled files themselves.
 
 ## Future Optimizations (Post-MVP)
 
@@ -369,17 +379,9 @@ Never run commands that could lose data without explicit confirmation. This incl
 
 Even if the operation seems routine or helpful, always ask first when uncommitted work could be lost.
 
-### 2. Don't Hide Problems with .gitignore
 
-When generated files appear in git status, the solution is NOT to add them to .gitignore. Instead:
 
-- Understand why they're being generated
-- Fix the test cleanup process if needed
-- Keep the working tree clean through proper processes
-
-Hiding problems makes them harder to diagnose and fix later.
-
-### 3. Preserve Intelligent Solutions When Refining
+### 2. Preserve Intelligent Solutions When Refining
 
 When improving code that has clever solutions (like auto-detecting CPU cores), don't replace dynamic logic with hardcoded values. Instead:
 
@@ -389,11 +391,11 @@ When improving code that has clever solutions (like auto-detecting CPU cores), d
 
 This maintains flexibility across different environments while addressing specific concerns.
 
-### 4. Never Manually Move Tests Between Directories
+### 3. Never Manually Move Tests Between Directories
 
 Tests should only move from XFAIL to the main test suite through autopromotion when they start passing. Manual moves break the test-driven development workflow and can hide issues. The autopromotion system ensures tests only graduate when they truly work.
 
-### 5. We're Building a Syntax Translator, Not a Compiler
+### 4. We're Building a Syntax Translator, Not a Compiler
 
 This is a crucial distinction that simplifies everything:
 
@@ -402,7 +404,7 @@ This is a crucial distinction that simplifies everything:
 - We just translate Go syntax to Rust syntax conservatively
 - Let the Rust compiler handle optimization
 
-### 6. Let go/types Handle the Complexity
+### 5. Let go/types Handle the Complexity
 
 Go provides the go/types package that already does type analysis. Instead of building our own:
 
@@ -411,7 +413,12 @@ Go provides the go/types package that already does type analysis. Instead of bui
 - Keep the transpiler focused on syntax translation
 - This is why we can handle complex features with simple code
 
-### 7. The True Conservative Approach: Wrap EVERYTHING
+**Important**: The Go AST already contains type information! Before considering complex type tracking:
+- Check if the AST node (e.g., `*ast.StarExpr`, `*ast.ArrayType`) gives you what you need
+- The AST structure itself often encodes the type (pointer vs value, array vs slice)
+- Only reach for go/types when you need semantic analysis beyond syntax
+
+### 6. The True Conservative Approach: Wrap EVERYTHING
 
 After much deliberation, we've decided on the truly conservative approach:
 

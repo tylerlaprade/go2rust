@@ -331,7 +331,10 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							out.WriteString(name.Name)
 							if len(valueSpec.Values) > i {
 								out.WriteString(" = ")
+								// Wrap all variables in Arc<Mutex<Option<>>>
+								out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(Some(")
 								TranspileExpression(out, valueSpec.Values[i])
+								out.WriteString(")))")
 							} else {
 								// Default initialization for uninitialized vars
 								if valueSpec.Type != nil {
@@ -348,8 +351,10 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									case *ast.ArrayType:
 										// Initialize array with default values
 										out.WriteString(": ")
-										out.WriteString(GoTypeToRust(valueSpec.Type))
-										out.WriteString(" = Default::default()")
+										rustType := GoTypeToRust(valueSpec.Type)
+										out.WriteString(rustType)
+										// Arrays are wrapped, so we need Some(default array)
+										out.WriteString(" = std::sync::Arc::new(std::sync::Mutex::new(Some(Default::default())))")
 									}
 								}
 							}
@@ -383,6 +388,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			out.WriteString("\n")
 		}
 
+		// Add the post statement (increment) if present
 		if s.Post != nil {
 			out.WriteString("        ")
 			TranspileStatement(out, s.Post, fnType)
@@ -417,6 +423,21 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 	case *ast.RangeStmt:
 		// Handle for range loops
 		out.WriteString("for ")
+
+		// Track range loop variables so we don't try to unwrap them
+		var keyName, valueName string
+		if s.Key != nil {
+			if ident, ok := s.Key.(*ast.Ident); ok {
+				keyName = ident.Name
+				rangeLoopVars[keyName] = true
+			}
+		}
+		if s.Value != nil {
+			if ident, ok := s.Value.(*ast.Ident); ok {
+				valueName = ident.Name
+				rangeLoopVars[valueName] = true
+			}
+		}
 
 		// Check if we're iterating over a map by looking at the identifier
 		isMap := false
@@ -519,6 +540,14 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		}
 
 		out.WriteString("    }")
+
+		// Clean up range loop variables
+		if keyName != "" {
+			delete(rangeLoopVars, keyName)
+		}
+		if valueName != "" {
+			delete(rangeLoopVars, valueName)
+		}
 
 	case *ast.IfStmt:
 		// Handle init statement if present

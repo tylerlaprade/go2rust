@@ -75,7 +75,7 @@ fn main() {
     print!("Computed value: {}\n", (*computedValue.lock().unwrap().as_ref().unwrap()));
     println!("{}", "\nConfiguration data:".to_string());
     for (key, value) in (*configData.lock().unwrap().as_ref().unwrap()).iter().enumerate() {
-        print!("  {}: {}\n", (*key.lock().unwrap().as_ref().unwrap()), (*value.lock().unwrap().as_ref().unwrap()));
+        print!("  {}: {}\n", key, value);
     }
     print!("\nApp config: %+v\n", (*appConfig.lock().unwrap().as_ref().unwrap()));
     println!("{}", "\n=== Calling functions that were used in init ===".to_string());

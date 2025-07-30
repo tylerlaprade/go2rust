@@ -14,6 +14,6 @@ fn main() {
     println!("{} {:?}", "After deleting Bob:".to_string(), (*ages.lock().unwrap().as_ref().unwrap()));
     println!("{}", "All colors:".to_string());
     for (name, hex) in &(*colors.lock().unwrap().as_ref().unwrap()) {
-        println!("{} {} {}", (*name.lock().unwrap().as_ref().unwrap()), "->".to_string(), (*hex.lock().unwrap().as_ref().unwrap()));
+        println!("{} {} {}", name, "->".to_string(), hex);
     }
 }

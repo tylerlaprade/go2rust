@@ -61,7 +61,7 @@ fn main() {
     let mut values = std::sync::Arc::new(std::sync::Mutex::new(Some(vec!["hello world".to_string(), 42, 3.14159, true, vec![1, 2, 3]])));
     println!("{}", "=== Processing values ===".to_string());
     for (_, val) in (*values.lock().unwrap().as_ref().unwrap()).iter().enumerate() {
-        process_value(std::sync::Arc::new(std::sync::Mutex::new(Some((*val.lock().unwrap().as_ref().unwrap())))));
+        process_value(std::sync::Arc::new(std::sync::Mutex::new(Some(val))));
     }
     println!("{}", "\n=== Assertion without check ===".to_string());
     assert_without_check(std::sync::Arc::new(std::sync::Mutex::new(Some("valid string".to_string()))));
@@ -69,7 +69,7 @@ fn main() {
     println!("{}", "\n=== Interface type assertions ===".to_string());
     let mut shapes = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![Rectangle { width: 10, height: 5 }, Circle { radius: 3 }])));
     for (_, shape) in (*shapes.lock().unwrap().as_ref().unwrap()).iter().enumerate() {
-        describe_shape(std::sync::Arc::new(std::sync::Mutex::new(Some((*shape.lock().unwrap().as_ref().unwrap())))));
+        describe_shape(std::sync::Arc::new(std::sync::Mutex::new(Some(shape))));
     }
     println!("{}", "\n=== Type switch alternative ===".to_string());
     for (_, val) in (*values.lock().unwrap().as_ref().unwrap()).iter().enumerate() {

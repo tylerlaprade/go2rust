@@ -45,7 +45,7 @@ fn main() {
     let mut shapes = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![(*rect.lock().unwrap().as_ref().unwrap()), (*circle.lock().unwrap().as_ref().unwrap())])));
     println!("{}", "All shapes:".to_string());
     for (i, shape) in (*shapes.lock().unwrap().as_ref().unwrap()).iter().enumerate() {
-        print!("Shape {}: ", (*i.lock().unwrap().as_ref().unwrap()) + 1);
-        print_shape_info(std::sync::Arc::new(std::sync::Mutex::new(Some((*shape.lock().unwrap().as_ref().unwrap())))));
+        print!("Shape {}: ", i + 1);
+        print_shape_info(std::sync::Arc::new(std::sync::Mutex::new(Some(shape))));
     }
 }

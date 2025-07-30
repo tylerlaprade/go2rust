@@ -1,5 +1,5 @@
 fn main() {
-    let mut x = "hello".to_string();
+    let mut x = std::sync::Arc::new(std::sync::Mutex::new(Some("hello".to_string())));
     let (mut (*s.lock().unwrap().as_ref().unwrap()), mut (*ok.lock().unwrap().as_ref().unwrap())) = match (*x.lock().unwrap().as_ref().unwrap()).downcast_ref::<String>() { Some(v) => (v.clone(), true), None => (String::new(), false) };
     if (*ok.lock().unwrap().as_ref().unwrap()) {
         println!("{} {}", "x is string:".to_string(), (*s.lock().unwrap().as_ref().unwrap()));

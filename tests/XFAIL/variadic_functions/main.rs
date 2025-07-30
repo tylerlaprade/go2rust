@@ -2,7 +2,7 @@ pub fn sum(numbers: std::sync::Arc<std::sync::Mutex<Option<Unknown>>>) -> std::s
 
     let mut total = std::sync::Arc::new(std::sync::Mutex::new(Some(0)));
     for (_, num) in (*numbers.lock().unwrap().as_ref().unwrap()).iter().enumerate() {
-        (*total.lock().unwrap().as_ref().unwrap()) += (*num.lock().unwrap().as_ref().unwrap());
+        (*total.lock().unwrap().as_ref().unwrap()) += num;
     }
     return std::sync::Arc::new(std::sync::Mutex::new(Some((*total.lock().unwrap().as_ref().unwrap()))));
 }
@@ -14,7 +14,7 @@ pub fn average(numbers: std::sync::Arc<std::sync::Mutex<Option<Unknown>>>) -> st
     }
     let mut total = std::sync::Arc::new(std::sync::Mutex::new(Some(0.0)));
     for (_, num) in (*numbers.lock().unwrap().as_ref().unwrap()).iter().enumerate() {
-        (*total.lock().unwrap().as_ref().unwrap()) += (*num.lock().unwrap().as_ref().unwrap());
+        (*total.lock().unwrap().as_ref().unwrap()) += num;
     }
     return std::sync::Arc::new(std::sync::Mutex::new(Some((*total.lock().unwrap().as_ref().unwrap()) / float64(std::sync::Arc::new(std::sync::Mutex::new(Some((*numbers.lock().unwrap().as_ref().unwrap()).len())))))));
 }
@@ -22,10 +22,10 @@ pub fn average(numbers: std::sync::Arc<std::sync::Mutex<Option<Unknown>>>) -> st
 pub fn print_strings(prefix: std::sync::Arc<std::sync::Mutex<Option<String>>>, strings: std::sync::Arc<std::sync::Mutex<Option<Unknown>>>) {
     print!("{}: ", (*prefix.lock().unwrap().as_ref().unwrap()));
     for (i, str) in (*strings.lock().unwrap().as_ref().unwrap()).iter().enumerate() {
-        if (*i.lock().unwrap().as_ref().unwrap()) > 0 {
+        if i > 0 {
         (*fmt.lock().unwrap().as_ref().unwrap()).print(std::sync::Arc::new(std::sync::Mutex::new(Some(", ".to_string()))));
     }
-        (*fmt.lock().unwrap().as_ref().unwrap()).print(std::sync::Arc::new(std::sync::Mutex::new(Some((*str.lock().unwrap().as_ref().unwrap())))));
+        (*fmt.lock().unwrap().as_ref().unwrap()).print(std::sync::Arc::new(std::sync::Mutex::new(Some(str))));
     }
     println!();
 }
@@ -34,8 +34,8 @@ pub fn min(first: std::sync::Arc<std::sync::Mutex<Option<i32>>>, rest: std::sync
 
     let mut minimum = std::sync::Arc::new(std::sync::Mutex::new(Some((*first.lock().unwrap().as_ref().unwrap()))));
     for (_, num) in (*rest.lock().unwrap().as_ref().unwrap()).iter().enumerate() {
-        if (*num.lock().unwrap().as_ref().unwrap()) < (*minimum.lock().unwrap().as_ref().unwrap()) {
-        { let new_val = (*num.lock().unwrap().as_ref().unwrap()); *minimum.lock().unwrap() = Some(new_val); };
+        if num < (*minimum.lock().unwrap().as_ref().unwrap()) {
+        { let new_val = num; *minimum.lock().unwrap() = Some(new_val); };
     }
     }
     return std::sync::Arc::new(std::sync::Mutex::new(Some((*minimum.lock().unwrap().as_ref().unwrap()))));
@@ -48,7 +48,7 @@ pub fn concat(separator: std::sync::Arc<std::sync::Mutex<Option<String>>>, strin
     }
     let mut result = std::sync::Arc::new(std::sync::Mutex::new(Some((*strings.lock().unwrap().as_ref().unwrap())[0])));
     for (_, str) in (*strings.lock().unwrap().as_ref().unwrap())[1..].to_vec().iter().enumerate() {
-        (*result.lock().unwrap().as_ref().unwrap()).push_str(&(*separator.lock().unwrap().as_ref().unwrap()) + (*str.lock().unwrap().as_ref().unwrap()));
+        (*result.lock().unwrap().as_ref().unwrap()).push_str(&(*separator.lock().unwrap().as_ref().unwrap()) + str);
     }
     return std::sync::Arc::new(std::sync::Mutex::new(Some((*result.lock().unwrap().as_ref().unwrap()))));
 }

@@ -19,7 +19,7 @@ fn main() {
     close(std::sync::Arc::new(std::sync::Mutex::new(Some((*jobs.lock().unwrap().as_ref().unwrap())))));
     
     for result in 0..(*results.lock().unwrap().as_ref().unwrap()).len() {
-        print!("Result: {}\n", (*result.lock().unwrap().as_ref().unwrap()));
+        print!("Result: {}\n", result);
     }
     println!("{}", "\n=== Producer-Consumer Pattern ===".to_string());
     let mut buffer = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![0; 5])));
@@ -35,7 +35,7 @@ fn main() {
     let mut output = std::sync::Arc::new(std::sync::Mutex::new(Some(fan_in(std::sync::Arc::new(std::sync::Mutex::new(Some((*c1.lock().unwrap().as_ref().unwrap())))), std::sync::Arc::new(std::sync::Mutex::new(Some((*c2.lock().unwrap().as_ref().unwrap())))), std::sync::Arc::new(std::sync::Mutex::new(Some((*c3.lock().unwrap().as_ref().unwrap()))))))));
     
     for result in 0..(*output.lock().unwrap().as_ref().unwrap()).len() {
-        print!("Fan-in result: {}\n", (*result.lock().unwrap().as_ref().unwrap()));
+        print!("Fan-in result: {}\n", result);
     }
     println!("{}", "\n=== Pipeline Pattern ===".to_string());
     let mut numbers = std::sync::Arc::new(std::sync::Mutex::new(Some()));
@@ -45,7 +45,7 @@ fn main() {
     let mut final = std::sync::Arc::new(std::sync::Mutex::new(Some()));
     
     for result in 0..(*final.lock().unwrap().as_ref().unwrap()).len() {
-        print!("Pipeline result: {}\n", (*result.lock().unwrap().as_ref().unwrap()));
+        print!("Pipeline result: {}\n", result);
     }
     println!("{}", "\n=== Mutex and Shared State ===".to_string());
     let mut counter = 0;

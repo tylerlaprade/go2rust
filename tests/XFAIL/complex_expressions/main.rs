@@ -38,10 +38,10 @@ fn main() {
     println!("{}", "\n=== Pointer expressions ===".to_string());
     let mut val = std::sync::Arc::new(std::sync::Mutex::new(Some(42)));
     let mut ptr = val.clone();
-    let mut ptrResult = std::sync::Arc::new(std::sync::Mutex::new(Some(*(*ptr.lock().unwrap().as_ref().unwrap()).lock().unwrap().as_ref().unwrap() +  - )));
+    let mut ptrResult = std::sync::Arc::new(std::sync::Mutex::new(Some((*ptr.lock().unwrap().as_ref().unwrap()) +  - )));
     print!("*ptr + (*ptr * 2) - (*ptr / 2) = {}\n", (*ptrResult.lock().unwrap().as_ref().unwrap()));
     println!("{}", "\n=== Type assertion expressions ===".to_string());
-    let mut iface = 100;
+    let mut iface = std::sync::Arc::new(std::sync::Mutex::new(Some(100)));
     let (mut (*intVal.lock().unwrap().as_ref().unwrap()), mut (*ok.lock().unwrap().as_ref().unwrap())) = match (*iface.lock().unwrap().as_ref().unwrap()).downcast_ref::<i32>() { Some(v) => (v.clone(), true), None => (0, false) };
     if (*ok.lock().unwrap().as_ref().unwrap()) {
         let mut assertResult = std::sync::Arc::new(std::sync::Mutex::new(Some((*intVal.lock().unwrap().as_ref().unwrap()) * 2 +  * 3)));
@@ -82,7 +82,7 @@ fn main() {
     println!("{}", "\n=== Range expressions ===".to_string());
     let mut total = std::sync::Arc::new(std::sync::Mutex::new(Some(0)));
     for (i, val) in (*numbers.lock().unwrap().as_ref().unwrap())[..5].to_vec().iter().enumerate() {
-        (*total.lock().unwrap().as_ref().unwrap()) += (*i.lock().unwrap().as_ref().unwrap()) * (*val.lock().unwrap().as_ref().unwrap()) + ;
+        (*total.lock().unwrap().as_ref().unwrap()) += i * val + ;
     }
     print!("Complex range calculation: {}\n", (*total.lock().unwrap().as_ref().unwrap()));
 }

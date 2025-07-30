@@ -89,20 +89,20 @@ fn main() {
     print!("Manager Address: {}, {}\n", (*company.lock().unwrap().as_ref().unwrap()).departments[0]::manager::address::city, (*company.lock().unwrap().as_ref().unwrap()).departments[0]::manager::address::state);
     println!("{}", "\n=== Department employees ===".to_string());
     for (i, emp) in (*company.lock().unwrap().as_ref().unwrap()).departments[0]::employees.iter().enumerate() {
-        print!("Employee {}: {}\n", (*i.lock().unwrap().as_ref().unwrap()) + 1, (*emp.lock().unwrap().as_ref().unwrap()).name);
-        print!("  Age: {}\n", (*emp.lock().unwrap().as_ref().unwrap()).age);
-        print!("  Email: {}\n", (*emp.lock().unwrap().as_ref().unwrap()).contact::email);
-        print!("  Phone: {}\n", (*emp.lock().unwrap().as_ref().unwrap()).contact::phone);
-        print!("  Address: {}, {}, {}\n", (*emp.lock().unwrap().as_ref().unwrap()).address::street, (*emp.lock().unwrap().as_ref().unwrap()).address::city, (*emp.lock().unwrap().as_ref().unwrap()).address::state);
+        print!("Employee {}: {}\n", i + 1, emp.name);
+        print!("  Age: {}\n", emp.age);
+        print!("  Email: {}\n", emp.contact::email);
+        print!("  Phone: {}\n", emp.contact::phone);
+        print!("  Address: {}, {}, {}\n", emp.address::street, emp.address::city, emp.address::state);
         println!();
     }
     println!("{}", "=== Nested maps ===".to_string());
     let mut inventory = std::sync::Arc::new(std::sync::Mutex::new(Some(std::collections::HashMap::<std::sync::Arc<std::sync::Mutex<Option<String>>>, std::sync::Arc<std::sync::Mutex<Option<std::collections::HashMap<String, i32>>>>>::from([("electronics".to_string(), ), ("furniture".to_string(), ), ("supplies".to_string(), )]))));
     println!("{}", "Inventory:".to_string());
     for (category, items) in (*inventory.lock().unwrap().as_ref().unwrap()).iter().enumerate() {
-        print!("  {}:\n", (*category.lock().unwrap().as_ref().unwrap()));
-        for (item, count) in (*items.lock().unwrap().as_ref().unwrap()).iter().enumerate() {
-        print!("    {}: {}\n", (*item.lock().unwrap().as_ref().unwrap()), (*count.lock().unwrap().as_ref().unwrap()));
+        print!("  {}:\n", category);
+        for (item, count) in items.iter().enumerate() {
+        print!("    {}: {}\n", item, count);
     }
     }
     let mut laptopCount = std::sync::Arc::new(std::sync::Mutex::new(Some((*inventory.lock().unwrap().as_ref().unwrap())["electronics".to_string()]["laptops".to_string()])));
@@ -111,10 +111,10 @@ fn main() {
     let mut matrix = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![, , ])));
     println!("{}", "Matrix:".to_string());
     for (i, row) in (*matrix.lock().unwrap().as_ref().unwrap()).iter().enumerate() {
-        print!("Row {}: ", (*i.lock().unwrap().as_ref().unwrap()));
-        for (j, val) in (*row.lock().unwrap().as_ref().unwrap()).iter().enumerate() {
-        print!("{} ", (*val.lock().unwrap().as_ref().unwrap()));
-        if (*j.lock().unwrap().as_ref().unwrap()) < (*row.lock().unwrap().as_ref().unwrap()).len() - 1 {
+        print!("Row {}: ", i);
+        for (j, val) in row.iter().enumerate() {
+        print!("{} ", val);
+        if j < row.len() - 1 {
         (*fmt.lock().unwrap().as_ref().unwrap()).print(std::sync::Arc::new(std::sync::Mutex::new(Some(" ".to_string()))));
     }
     }
@@ -125,11 +125,11 @@ fn main() {
     let mut cube = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![, ])));
     println!("{}", "\n3D Cube:".to_string());
     for (i, layer) in (*cube.lock().unwrap().as_ref().unwrap()).iter().enumerate() {
-        print!("Layer {}:\n", (*i.lock().unwrap().as_ref().unwrap()));
-        for (j, row) in (*layer.lock().unwrap().as_ref().unwrap()).iter().enumerate() {
-        print!("  Row {}: ", (*j.lock().unwrap().as_ref().unwrap()));
-        for (_, val) in (*row.lock().unwrap().as_ref().unwrap()).iter().enumerate() {
-        print!("{} ", (*val.lock().unwrap().as_ref().unwrap()));
+        print!("Layer {}:\n", i);
+        for (j, row) in layer.iter().enumerate() {
+        print!("  Row {}: ", j);
+        for (_, val) in row.iter().enumerate() {
+        print!("{} ", val);
     }
         println!();
     }
@@ -138,7 +138,7 @@ fn main() {
     let mut canvas = std::sync::Arc::new(std::sync::Mutex::new(Some(Canvas { name: "My Drawing".to_string(), shapes: vec![Circle { radius: 5.0 }, Rectangle { width: 10.0, height: 8.0 }, Circle { radius: 3.0 }] })));
     print!("Canvas: {}\n", (*canvas.lock().unwrap().as_ref().unwrap()).name);
     for (i, shape) in (*canvas.lock().unwrap().as_ref().unwrap()).shapes.iter().enumerate() {
-        print!("Shape {}: {}\n", (*i.lock().unwrap().as_ref().unwrap()) + 1, (*shape.lock().unwrap().as_ref().unwrap()).draw());
+        print!("Shape {}: {}\n", i + 1, shape.draw());
     }
     println!("{}", "\n=== Modifying nested structures ===".to_string());
     { let new_val = "bob.new@company.com".to_string(); *(*company.lock().unwrap().as_ref().unwrap()).departments[0]::employees[0]::contact::email.lock().unwrap() = Some(new_val); };

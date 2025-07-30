@@ -30,10 +30,10 @@ pub fn to_upper(s: std::sync::Arc<std::sync::Mutex<Option<String>>>) -> std::syn
 
     let mut result = std::sync::Arc::new(std::sync::Mutex::new(Some("".to_string())));
     for (_, char) in (*s.lock().unwrap().as_ref().unwrap()).iter().enumerate() {
-        if (*char.lock().unwrap().as_ref().unwrap()) >= 'a' && (*char.lock().unwrap().as_ref().unwrap()) <= 'z' {
-        (*result.lock().unwrap().as_ref().unwrap()).push_str(&string(std::sync::Arc::new(std::sync::Mutex::new(Some((*char.lock().unwrap().as_ref().unwrap()) - 32)))));
+        if char >= 'a' && char <= 'z' {
+        (*result.lock().unwrap().as_ref().unwrap()).push_str(&string(std::sync::Arc::new(std::sync::Mutex::new(Some(char - 32)))));
     } else {
-        (*result.lock().unwrap().as_ref().unwrap()).push_str(&string(std::sync::Arc::new(std::sync::Mutex::new(Some((*char.lock().unwrap().as_ref().unwrap()))))));
+        (*result.lock().unwrap().as_ref().unwrap()).push_str(&string(std::sync::Arc::new(std::sync::Mutex::new(Some(char)))));
     }
     }
     return std::sync::Arc::new(std::sync::Mutex::new(Some((*result.lock().unwrap().as_ref().unwrap()))));
@@ -51,10 +51,10 @@ pub fn apply_unary(op: std::sync::Arc<std::sync::Mutex<Option<UnaryOp>>>, x: std
 
 pub fn filter(numbers: std::sync::Arc<std::sync::Mutex<Option<Vec<i32>>>>, pred: std::sync::Arc<std::sync::Mutex<Option<Predicate>>>) -> std::sync::Arc<std::sync::Mutex<Option<Vec<i32>>>> {
 
-    let mut result: std::sync::Arc<std::sync::Mutex<Option<Vec<i32>>>> = Default::default();
+    let mut result: std::sync::Arc<std::sync::Mutex<Option<Vec<i32>>>> = std::sync::Arc::new(std::sync::Mutex::new(Some(Default::default())));
     for (_, num) in (*numbers.lock().unwrap().as_ref().unwrap()).iter().enumerate() {
-        if pred(std::sync::Arc::new(std::sync::Mutex::new(Some((*num.lock().unwrap().as_ref().unwrap()))))) {
-        { let new_val = {(*result.lock().unwrap().as_ref().unwrap()).push((*num.lock().unwrap().as_ref().unwrap())); (*result.lock().unwrap().as_ref().unwrap())}; *result.lock().unwrap() = Some(new_val); };
+        if pred(std::sync::Arc::new(std::sync::Mutex::new(Some(num)))) {
+        { let new_val = {(*result.lock().unwrap().as_ref().unwrap()).push(num); (*result.lock().unwrap().as_ref().unwrap())}; *result.lock().unwrap() = Some(new_val); };
     }
     }
     return std::sync::Arc::new(std::sync::Mutex::new(Some((*result.lock().unwrap().as_ref().unwrap()))));
@@ -64,7 +64,7 @@ pub fn transform(numbers: std::sync::Arc<std::sync::Mutex<Option<Vec<i32>>>>, op
 
     let mut result = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![0; (*numbers.lock().unwrap().as_ref().unwrap()).len()])));
     for (i, num) in (*numbers.lock().unwrap().as_ref().unwrap()).iter().enumerate() {
-        (*result.lock().unwrap().as_mut().unwrap())[(*i.lock().unwrap().as_ref().unwrap())] = op(std::sync::Arc::new(std::sync::Mutex::new(Some((*num.lock().unwrap().as_ref().unwrap())))));
+        (*result.lock().unwrap().as_mut().unwrap())[i] = op(std::sync::Arc::new(std::sync::Mutex::new(Some(num))));
     }
     return std::sync::Arc::new(std::sync::Mutex::new(Some((*result.lock().unwrap().as_ref().unwrap()))));
 }
