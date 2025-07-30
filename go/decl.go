@@ -78,26 +78,31 @@ func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl) {
 					out.WriteString(name.Name)
 					out.WriteString(": ")
 					out.WriteString(GoTypeToRust(result.Type))
-					// Initialize with default values
+					// Initialize with wrapped default values
+					out.WriteString(" = std::sync::Arc::new(std::sync::Mutex::new(")
 					switch t := result.Type.(type) {
 					case *ast.Ident:
 						switch t.Name {
 						case "string":
-							out.WriteString(" = String::new()")
-						case "int", "int64":
-							out.WriteString(" = 0")
-						case "float64":
-							out.WriteString(" = 0.0")
+							out.WriteString("Some(String::new())")
+						case "int", "int64", "int32", "int16", "int8":
+							out.WriteString("Some(0)")
+						case "uint", "uint64", "uint32", "uint16", "uint8":
+							out.WriteString("Some(0)")
+						case "float64", "float32":
+							out.WriteString("Some(0.0)")
 						case "bool":
-							out.WriteString(" = false")
+							out.WriteString("Some(false)")
 						case "error":
-							out.WriteString(" = None")
+							// error type is already Option, so we use None directly
+							out.WriteString("None")
 						default:
-							out.WriteString(" = Default::default()")
+							out.WriteString("Some(Default::default())")
 						}
 					default:
-						out.WriteString(" = Default::default()")
+						out.WriteString("Some(Default::default())")
 					}
+					out.WriteString("))")
 					out.WriteString(";\n")
 				}
 			}

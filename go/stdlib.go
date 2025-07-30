@@ -172,7 +172,7 @@ func transpileFmtPrintf(out *strings.Builder, call *ast.CallExpr) {
 }
 
 func transpileFmtErrorf(out *strings.Builder, call *ast.CallExpr) {
-	out.WriteString("Some(Box::new(format!")
+	out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(Some(Box::new(format!")
 	out.WriteString("(")
 
 	if len(call.Args) > 0 {
@@ -202,7 +202,7 @@ func transpileFmtErrorf(out *strings.Builder, call *ast.CallExpr) {
 		}
 	}
 
-	out.WriteString(")) as Box<dyn std::error::Error + Send + Sync>)")
+	out.WriteString(")) as Box<dyn std::error::Error + Send + Sync>)))")
 }
 
 func transpileStringsToUpper(out *strings.Builder, call *ast.CallExpr) {
@@ -237,7 +237,9 @@ func transpileStrconvAtoi(out *strings.Builder, call *ast.CallExpr) {
 	if len(call.Args) > 0 {
 		out.WriteString("match ")
 		TranspileExpression(out, call.Args[0])
-		out.WriteString(".parse::<i32>() { Ok(n) => (n, None), Err(e) => (0, Some(Box::new(e) as Box<dyn std::error::Error + Send + Sync>)) }")
+		out.WriteString(".parse::<i32>() { ")
+		out.WriteString("Ok(n) => (std::sync::Arc::new(std::sync::Mutex::new(Some(n))), std::sync::Arc::new(std::sync::Mutex::new(None))), ")
+		out.WriteString("Err(e) => (std::sync::Arc::new(std::sync::Mutex::new(Some(Box::new(e) as Box<dyn std::error::Error + Send + Sync>)))) }")
 	}
 }
 
