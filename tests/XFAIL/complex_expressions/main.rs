@@ -42,7 +42,7 @@ fn main() {
     print!("*ptr + (*ptr * 2) - (*ptr / 2) = {}\n", (*ptrResult.lock().unwrap().as_ref().unwrap()));
     println!("{}", "\n=== Type assertion expressions ===".to_string());
     let mut iface = std::sync::Arc::new(std::sync::Mutex::new(Some(100)));
-    let (mut (*intVal.lock().unwrap().as_ref().unwrap()), mut (*ok.lock().unwrap().as_ref().unwrap())) = match (*iface.lock().unwrap().as_ref().unwrap()).downcast_ref::<i32>() { Some(v) => (v.clone(), true), None => (0, false) };
+    let (mut intVal, mut ok) = match (*iface.lock().unwrap().as_ref().unwrap()).downcast_ref::<i32>() { Some(v) => (v.clone(), true), None => (0, false) };
     if (*ok.lock().unwrap().as_ref().unwrap()) {
         let mut assertResult = std::sync::Arc::new(std::sync::Mutex::new(Some((*intVal.lock().unwrap().as_ref().unwrap()) * 2 +  * 3)));
         print!("Type assertion result: {}\n", (*assertResult.lock().unwrap().as_ref().unwrap()));

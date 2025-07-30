@@ -93,11 +93,16 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					if lit, ok := result.(*ast.BasicLit); ok && lit.Kind == token.STRING {
 						out.WriteString(lit.Value)
 						out.WriteString(".to_string()")
-					} else if ident, ok := result.(*ast.Ident); ok && !rangeLoopVars[ident.Name] && ident.Name != "true" && ident.Name != "false" && ident.Name != "nil" {
-						// Returning a variable - need to clone the inner value
-						out.WriteString("(*")
-						out.WriteString(ident.Name)
-						out.WriteString(".lock().unwrap().as_ref().unwrap()).clone()")
+					} else if ident, ok := result.(*ast.Ident); ok {
+						_, isRangeVar := rangeLoopVars[ident.Name]
+						if !isRangeVar && ident.Name != "true" && ident.Name != "false" && ident.Name != "nil" {
+							// Returning a variable - need to clone the inner value
+							out.WriteString("(*")
+							out.WriteString(ident.Name)
+							out.WriteString(".lock().unwrap().as_ref().unwrap()).clone()")
+						} else {
+							out.WriteString(ident.Name)
+						}
 					} else {
 						TranspileExpression(out, result)
 					}
@@ -401,8 +406,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					}
 				}
 			case token.CONST:
-				// Handle local const declarations
-				TranspileConstDecl(out, genDecl)
+				// Handle local const declarations - keep original case
+				transpileConstDeclWithCase(out, genDecl, false)
 			}
 		}
 
@@ -464,27 +469,37 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 		// Track range loop variables so we don't try to unwrap them
 		var keyName, valueName string
-		if s.Key != nil {
-			if ident, ok := s.Key.(*ast.Ident); ok {
-				keyName = ident.Name
-				rangeLoopVars[keyName] = true
-			}
-		}
-		if s.Value != nil {
-			if ident, ok := s.Value.(*ast.Ident); ok {
-				valueName = ident.Name
-				rangeLoopVars[valueName] = true
-			}
-		}
 
 		// Check if we're iterating over a map by looking at the identifier
 		isMap := false
 		if ident, ok := s.X.(*ast.Ident); ok {
 			// Simple heuristic: if the variable name contains "map" or common map names
 			// This is not perfect but works for many cases
-			// TODO: Use type information for accurate detection
+			// TODO: Use type information for accurate detection rather than this hack
 			name := strings.ToLower(ident.Name)
 			isMap = strings.Contains(name, "map") || name == "ages" || name == "colors" || name == "m"
+		}
+
+		// Determine types based on what we're iterating over
+		keyType := "usize" // Default for slice indices
+		valueType := "T"   // Generic placeholder
+
+		if isMap {
+			keyType = "String" // Common key type for maps
+			valueType = "i32"  // Common value type, could be improved with type analysis
+		}
+
+		if s.Key != nil {
+			if ident, ok := s.Key.(*ast.Ident); ok {
+				keyName = ident.Name
+				rangeLoopVars[keyName] = keyType
+			}
+		}
+		if s.Value != nil {
+			if ident, ok := s.Value.(*ast.Ident); ok {
+				valueName = ident.Name
+				rangeLoopVars[valueName] = valueType
+			}
 		}
 
 		if isMap {

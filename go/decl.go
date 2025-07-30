@@ -155,6 +155,10 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec) {
 }
 
 func TranspileConstDecl(out *strings.Builder, genDecl *ast.GenDecl) {
+	transpileConstDeclWithCase(out, genDecl, true)
+}
+
+func transpileConstDeclWithCase(out *strings.Builder, genDecl *ast.GenDecl, toUpper bool) {
 	// Track iota value
 	iotaValue := 0
 
@@ -169,16 +173,34 @@ func TranspileConstDecl(out *strings.Builder, genDecl *ast.GenDecl) {
 					continue
 				}
 				out.WriteString("const ")
-				out.WriteString(strings.ToUpper(ToSnakeCase(name.Name)))
+				constName := name.Name
+				if toUpper {
+					constName = strings.ToUpper(ToSnakeCase(name.Name))
+				} else {
+					// Keep original name for local constants
+					constName = name.Name
+					// Track local constants with their actual type
+					var constType string
+					if valueSpec.Type != nil {
+						constType = goTypeToRustBase(valueSpec.Type)
+					} else if len(valueSpec.Values) > 0 {
+						constType = inferConstType(valueSpec.Values[0])
+					} else {
+						constType = "&'static str"
+					}
+					localConstants[name.Name] = constType
+				}
+				out.WriteString(constName)
 				out.WriteString(": ")
 
-				// Determine type
+				// Determine type - constants should not be wrapped
 				if valueSpec.Type != nil {
 					// For const string type, use &'static str
 					if ident, ok := valueSpec.Type.(*ast.Ident); ok && ident.Name == "string" {
 						out.WriteString("&'static str")
 					} else {
-						out.WriteString(GoTypeToRust(valueSpec.Type))
+						// Use base type without wrapping for constants
+						out.WriteString(goTypeToRustBase(valueSpec.Type))
 					}
 				} else if len(valueSpec.Values) > i && valueSpec.Values[i] != nil {
 					// Infer type from value
@@ -224,6 +246,22 @@ func inferConstType(expr ast.Expr) string {
 		if e.Name == "true" || e.Name == "false" {
 			return "bool"
 		}
+		// Check if it's a known constant
+		if constType, exists := localConstants[e.Name]; exists {
+			return constType
+		}
+	case *ast.BinaryExpr:
+		// For binary expressions, check the type of operands
+		leftType := inferConstType(e.X)
+		if leftType == "&'static str" {
+			return "&'static str"
+		}
+		rightType := inferConstType(e.Y)
+		if rightType == "&'static str" {
+			return "&'static str"
+		}
+		// Default to numeric type
+		return "i32"
 	}
 	return "i32" // default
 }
@@ -243,8 +281,11 @@ func TranspileConstExpr(out *strings.Builder, expr ast.Expr, iotaValue int) {
 		} else if e.Name == "true" || e.Name == "false" {
 			// Boolean literals
 			out.WriteString(e.Name)
+		} else if _, exists := localConstants[e.Name]; exists {
+			// Local constant - keep original name
+			out.WriteString(e.Name)
 		} else if e.Name[0] >= 'a' && e.Name[0] <= 'z' {
-			// Lowercase identifier in const context - likely a const reference
+			// Package-level constant reference - convert to uppercase
 			out.WriteString(strings.ToUpper(ToSnakeCase(e.Name)))
 		} else {
 			out.WriteString(e.Name)

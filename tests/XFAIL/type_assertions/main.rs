@@ -1,15 +1,15 @@
 pub fn process_value(value: std::sync::Arc<std::sync::Mutex<Option<Box<dyn std::any::Any>>>>) {
-    let (mut (*str.lock().unwrap().as_ref().unwrap()), mut (*ok.lock().unwrap().as_ref().unwrap())) = match (*value.lock().unwrap().as_ref().unwrap()).downcast_ref::<String>() { Some(v) => (v.clone(), true), None => (String::new(), false) };
+    let (mut str, mut ok) = match (*value.lock().unwrap().as_ref().unwrap()).downcast_ref::<String>() { Some(v) => (v.clone(), true), None => (String::new(), false) };
     if (*ok.lock().unwrap().as_ref().unwrap()) {
         print!("String value: {} (length: {})\n", (*str.lock().unwrap().as_ref().unwrap()), (*str.lock().unwrap().as_ref().unwrap()).len());
         return;
     }
-    let (mut (*num.lock().unwrap().as_ref().unwrap()), mut (*ok.lock().unwrap().as_ref().unwrap())) = match (*value.lock().unwrap().as_ref().unwrap()).downcast_ref::<i32>() { Some(v) => (v.clone(), true), None => (0, false) };
+    let (mut num, mut ok) = match (*value.lock().unwrap().as_ref().unwrap()).downcast_ref::<i32>() { Some(v) => (v.clone(), true), None => (0, false) };
     if (*ok.lock().unwrap().as_ref().unwrap()) {
         print!("Integer value: {} (doubled: {})\n", (*num.lock().unwrap().as_ref().unwrap()), (*num.lock().unwrap().as_ref().unwrap()) * 2);
         return;
     }
-    let (mut (*f.lock().unwrap().as_ref().unwrap()), mut (*ok.lock().unwrap().as_ref().unwrap())) = match (*value.lock().unwrap().as_ref().unwrap()).downcast_ref::<f64>() { Some(v) => (v.clone(), true), None => (0.0, false) };
+    let (mut f, mut ok) = match (*value.lock().unwrap().as_ref().unwrap()).downcast_ref::<f64>() { Some(v) => (v.clone(), true), None => (0.0, false) };
     if (*ok.lock().unwrap().as_ref().unwrap()) {
         print!("Float value: {:.2} (squared: {:.2})\n", (*f.lock().unwrap().as_ref().unwrap()), (*f.lock().unwrap().as_ref().unwrap()) * (*f.lock().unwrap().as_ref().unwrap()));
         return;
@@ -48,10 +48,10 @@ pub fn area() -> std::sync::Arc<std::sync::Mutex<Option<f64>>> {
 
 pub fn describe_shape(s: std::sync::Arc<std::sync::Mutex<Option<Shape>>>) {
     print!("Shape area: {:.2}\n", (*s.lock().unwrap().as_ref().unwrap()).area());
-    let (mut (*rect.lock().unwrap().as_ref().unwrap()), mut (*ok.lock().unwrap().as_ref().unwrap())) = match (*s.lock().unwrap().as_ref().unwrap()).downcast_ref::<Rectangle>() { Some(v) => (v.clone(), true), None => (Default::default(), false) };
+    let (mut rect, mut ok) = match (*s.lock().unwrap().as_ref().unwrap()).downcast_ref::<Rectangle>() { Some(v) => (v.clone(), true), None => (Default::default(), false) };
     if (*ok.lock().unwrap().as_ref().unwrap()) {
         print!("  Rectangle: {:.1} x {:.1}\n", (*rect.lock().unwrap().as_ref().unwrap()).width, (*rect.lock().unwrap().as_ref().unwrap()).height);
-    } else let (mut (*circle.lock().unwrap().as_ref().unwrap()), mut (*ok.lock().unwrap().as_ref().unwrap())) = match (*s.lock().unwrap().as_ref().unwrap()).downcast_ref::<Circle>() { Some(v) => (v.clone(), true), None => (Default::default(), false) };
+    } else let (mut circle, mut ok) = match (*s.lock().unwrap().as_ref().unwrap()).downcast_ref::<Circle>() { Some(v) => (v.clone(), true), None => (Default::default(), false) };
     if (*ok.lock().unwrap().as_ref().unwrap()) {
         print!("  Circle: radius {:.1}\n", (*circle.lock().unwrap().as_ref().unwrap()).radius);
     }

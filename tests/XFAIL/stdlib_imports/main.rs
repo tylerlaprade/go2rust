@@ -13,7 +13,7 @@ fn main() {
     let mut num = std::sync::Arc::new(std::sync::Mutex::new(Some(42)));
     let mut str = (*num.lock().unwrap().as_ref().unwrap()).to_string();
     println!("{} {}", "Number as string:".to_string(), (*str.lock().unwrap().as_ref().unwrap()));
-    let (mut (*parsed.lock().unwrap().as_ref().unwrap()), mut (*err.lock().unwrap().as_ref().unwrap())) = match "123".to_string().parse::<i32>() { Ok(n) => (n, None), Err(e) => (0, Some(Box::new(e) as Box<dyn std::error::Error + Send + Sync>)) };
+    let (mut parsed, mut err) = match "123".to_string().parse::<i32>() { Ok(n) => (std::sync::Arc::new(std::sync::Mutex::new(Some(n))), std::sync::Arc::new(std::sync::Mutex::new(None))), Err(e) => (std::sync::Arc::new(std::sync::Mutex::new(Some(Box::new(e) as Box<dyn std::error::Error + Send + Sync>)))) };
     if (*err.lock().unwrap().as_ref().unwrap()).is_some() {
         println!("{} {}", "Parse error:".to_string(), (*err.lock().unwrap().as_ref().unwrap()));
     } else {
@@ -37,7 +37,7 @@ fn main() {
     (*time.lock().unwrap().as_ref().unwrap()).sleep(std::sync::Arc::new(std::sync::Mutex::new(Some(100 * (*time.lock().unwrap().as_ref().unwrap()).millisecond))));
     println!("{}", "Done sleeping".to_string());
     println!("{}", "\n--- os package ---".to_string());
-    let (mut (*hostname.lock().unwrap().as_ref().unwrap()), mut (*err.lock().unwrap().as_ref().unwrap())) = (*os.lock().unwrap().as_ref().unwrap()).hostname();
+    let (mut hostname, mut err) = (*os.lock().unwrap().as_ref().unwrap()).hostname();
     if (*err.lock().unwrap().as_ref().unwrap()).is_some() {
         println!("{} {}", "Hostname error:".to_string(), (*err.lock().unwrap().as_ref().unwrap()));
     } else {
@@ -49,7 +49,7 @@ fn main() {
     } else {
         println!("{}", "PATH not found".to_string());
     }
-    let (mut (*wd.lock().unwrap().as_ref().unwrap()), mut (*err.lock().unwrap().as_ref().unwrap())) = (*os.lock().unwrap().as_ref().unwrap()).getwd();
+    let (mut wd, mut err) = (*os.lock().unwrap().as_ref().unwrap()).getwd();
     if (*err.lock().unwrap().as_ref().unwrap()).is_some() {
         println!("{} {}", "Working directory error:".to_string(), (*err.lock().unwrap().as_ref().unwrap()));
     } else {

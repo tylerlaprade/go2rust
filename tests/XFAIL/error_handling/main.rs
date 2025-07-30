@@ -1,15 +1,15 @@
-pub fn divide(a: std::sync::Arc<std::sync::Mutex<Option<f64>>>, b: std::sync::Arc<std::sync::Mutex<Option<f64>>>) -> (std::sync::Arc<std::sync::Mutex<Option<f64>>>, std::sync::Arc<std::sync::Mutex<Option<Option<Box<dyn std::error::Error + Send + Sync>>>>>) {
+pub fn divide(a: std::sync::Arc<std::sync::Mutex<Option<f64>>>, b: std::sync::Arc<std::sync::Mutex<Option<f64>>>) -> (std::sync::Arc<std::sync::Mutex<Option<f64>>>, std::sync::Arc<std::sync::Mutex<Option<Box<dyn std::error::Error + Send + Sync>>>>) {
 
     if (*b.lock().unwrap().as_ref().unwrap()) == 0 {
         return (std::sync::Arc::new(std::sync::Mutex::new(Some(0))), std::sync::Arc::new(std::sync::Mutex::new(Some((*errors.lock().unwrap().as_ref().unwrap()).new(std::sync::Arc::new(std::sync::Mutex::new(Some("division by zero".to_string()))))))));
     }
-    return (std::sync::Arc::new(std::sync::Mutex::new(Some((*a.lock().unwrap().as_ref().unwrap()) / (*b.lock().unwrap().as_ref().unwrap())))), std::sync::Arc::new(std::sync::Mutex::new(Some(None))));
+    return (std::sync::Arc::new(std::sync::Mutex::new(Some((*a.lock().unwrap().as_ref().unwrap()) / (*b.lock().unwrap().as_ref().unwrap())))), std::sync::Arc::new(std::sync::Mutex::new(None)));
 }
 
-pub fn sqrt(x: std::sync::Arc<std::sync::Mutex<Option<f64>>>) -> (std::sync::Arc<std::sync::Mutex<Option<f64>>>, std::sync::Arc<std::sync::Mutex<Option<Option<Box<dyn std::error::Error + Send + Sync>>>>>) {
+pub fn sqrt(x: std::sync::Arc<std::sync::Mutex<Option<f64>>>) -> (std::sync::Arc<std::sync::Mutex<Option<f64>>>, std::sync::Arc<std::sync::Mutex<Option<Box<dyn std::error::Error + Send + Sync>>>>) {
 
     if (*x.lock().unwrap().as_ref().unwrap()) < 0 {
-        return (std::sync::Arc::new(std::sync::Mutex::new(Some(0))), std::sync::Arc::new(std::sync::Mutex::new(Some(Some(Box::new(format!("cannot take square root of negative number: {}", (*x.lock().unwrap().as_ref().unwrap()))) as Box<dyn std::error::Error + Send + Sync>)))));
+        return (std::sync::Arc::new(std::sync::Mutex::new(Some(0))), std::sync::Arc::new(std::sync::Mutex::new(Some(std::sync::Arc::new(std::sync::Mutex::new(Some(Box::new(format!("cannot take square root of negative number: {}", (*x.lock().unwrap().as_ref().unwrap()))) as Box<dyn std::error::Error + Send + Sync>)))))));
     }
     let mut result = std::sync::Arc::new(std::sync::Mutex::new(Some((*x.lock().unwrap().as_ref().unwrap()) / 2)));
     let mut i = std::sync::Arc::new(std::sync::Mutex::new(Some(0)));
@@ -17,7 +17,7 @@ pub fn sqrt(x: std::sync::Arc<std::sync::Mutex<Option<f64>>>) -> (std::sync::Arc
         { let new_val =  / 2; *result.lock().unwrap() = Some(new_val); };
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
-    return (std::sync::Arc::new(std::sync::Mutex::new(Some((*result.lock().unwrap().as_ref().unwrap()).clone()))), std::sync::Arc::new(std::sync::Mutex::new(Some(None))));
+    return (std::sync::Arc::new(std::sync::Mutex::new(Some((*result.lock().unwrap().as_ref().unwrap()).clone()))), std::sync::Arc::new(std::sync::Mutex::new(None)));
 }
 
 #[derive(Debug)]
@@ -31,7 +31,7 @@ pub fn error() -> std::sync::Arc<std::sync::Mutex<Option<String>>> {
     return std::sync::Arc::new(std::sync::Mutex::new(Some((*fmt.lock().unwrap().as_ref().unwrap()).sprintf(std::sync::Arc::new(std::sync::Mutex::new(Some("Error %d: %s".to_string()))), std::sync::Arc::new(std::sync::Mutex::new(Some((*e.lock().unwrap().as_ref().unwrap()).code))), std::sync::Arc::new(std::sync::Mutex::new(Some((*e.lock().unwrap().as_ref().unwrap()).message)))))));
 }
 
-pub fn process_value(val: std::sync::Arc<std::sync::Mutex<Option<i32>>>) -> std::sync::Arc<std::sync::Mutex<Option<Option<Box<dyn std::error::Error + Send + Sync>>>>> {
+pub fn process_value(val: std::sync::Arc<std::sync::Mutex<Option<i32>>>) -> std::sync::Arc<std::sync::Mutex<Option<Box<dyn std::error::Error + Send + Sync>>>> {
 
     if (*val.lock().unwrap().as_ref().unwrap()) < 0 {
         return std::sync::Arc::new(std::sync::Mutex::new(Some(CustomError { code: 100, message: "negative value not allowed".to_string() })));
@@ -39,23 +39,23 @@ pub fn process_value(val: std::sync::Arc<std::sync::Mutex<Option<i32>>>) -> std:
     if (*val.lock().unwrap().as_ref().unwrap()) > 100 {
         return std::sync::Arc::new(std::sync::Mutex::new(Some(CustomError { code: 200, message: "value too large".to_string() })));
     }
-    return std::sync::Arc::new(std::sync::Mutex::new(Some(None)));
+    return std::sync::Arc::new(std::sync::Mutex::new(None));
 }
 
 fn main() {
-    let (mut (*result.lock().unwrap().as_ref().unwrap()), mut (*err.lock().unwrap().as_ref().unwrap())) = divide(std::sync::Arc::new(std::sync::Mutex::new(Some(10))), std::sync::Arc::new(std::sync::Mutex::new(Some(2))));
+    let (mut result, mut err) = divide(std::sync::Arc::new(std::sync::Mutex::new(Some(10))), std::sync::Arc::new(std::sync::Mutex::new(Some(2))));
     if (*err.lock().unwrap().as_ref().unwrap()).is_some() {
         println!("{} {}", "Error:".to_string(), (*err.lock().unwrap().as_ref().unwrap()));
     } else {
         println!("{} {}", "10 / 2 =".to_string(), (*result.lock().unwrap().as_ref().unwrap()));
     }
-    ((*result.lock().unwrap().as_ref().unwrap()), (*err.lock().unwrap().as_ref().unwrap())) = divide(std::sync::Arc::new(std::sync::Mutex::new(Some(10))), std::sync::Arc::new(std::sync::Mutex::new(Some(0))));
+    (result, err) = divide(std::sync::Arc::new(std::sync::Mutex::new(Some(10))), std::sync::Arc::new(std::sync::Mutex::new(Some(0))));
     if (*err.lock().unwrap().as_ref().unwrap()).is_some() {
         println!("{} {}", "Error:".to_string(), (*err.lock().unwrap().as_ref().unwrap()));
     } else {
         println!("{} {}", "Result:".to_string(), (*result.lock().unwrap().as_ref().unwrap()));
     }
-    let (mut (*sqrtResult.lock().unwrap().as_ref().unwrap()), mut (*err.lock().unwrap().as_ref().unwrap())) = sqrt(std::sync::Arc::new(std::sync::Mutex::new(Some(-4))));
+    let (mut sqrtResult, mut err) = sqrt(std::sync::Arc::new(std::sync::Mutex::new(Some(-4))));
     if (*err.lock().unwrap().as_ref().unwrap()).is_some() {
         println!("{} {}", "Sqrt error:".to_string(), (*err.lock().unwrap().as_ref().unwrap()));
     } else {
