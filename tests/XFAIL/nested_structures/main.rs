@@ -5,20 +5,10 @@ struct Circle {
     radius: std::sync::Arc<std::sync::Mutex<Option<f64>>>,
 }
 
-pub fn draw() -> std::sync::Arc<std::sync::Mutex<Option<String>>> {
-
-    return std::sync::Arc::new(std::sync::Mutex::new(Some((*fmt.lock().unwrap().as_ref().unwrap()).sprintf(std::sync::Arc::new(std::sync::Mutex::new(Some("Circle(r=%.1f)".to_string()))), std::sync::Arc::new(std::sync::Mutex::new(Some((*c.lock().unwrap().as_ref().unwrap()).radius)))))));
-}
-
 #[derive(Debug)]
 struct Rectangle {
     width: std::sync::Arc<std::sync::Mutex<Option<f64>>>,
     height: std::sync::Arc<std::sync::Mutex<Option<f64>>>,
-}
-
-pub fn draw() -> std::sync::Arc<std::sync::Mutex<Option<String>>> {
-
-    return std::sync::Arc::new(std::sync::Mutex::new(Some((*fmt.lock().unwrap().as_ref().unwrap()).sprintf(std::sync::Arc::new(std::sync::Mutex::new(Some("Rectangle(%.1fx%.1f)".to_string()))), std::sync::Arc::new(std::sync::Mutex::new(Some((*r.lock().unwrap().as_ref().unwrap()).width))), std::sync::Arc::new(std::sync::Mutex::new(Some((*r.lock().unwrap().as_ref().unwrap()).height)))))));
 }
 
 #[derive(Debug)]
@@ -63,6 +53,18 @@ struct Company {
     name: std::sync::Arc<std::sync::Mutex<Option<String>>>,
     departments: std::sync::Arc<std::sync::Mutex<Option<Vec<Department>>>>,
     headquarters: std::sync::Arc<std::sync::Mutex<Option<Address>>>,
+}
+
+impl Circle {
+    pub fn draw(&self) -> std::sync::Arc<std::sync::Mutex<Option<String>>> {
+        return std::sync::Arc::new(std::sync::Mutex::new(Some((*fmt.lock().unwrap().as_ref().unwrap()).sprintf(std::sync::Arc::new(std::sync::Mutex::new(Some("Circle(r=%.1f)".to_string()))), std::sync::Arc::new(std::sync::Mutex::new(Some(self.radius)))))));
+    }
+}
+
+impl Rectangle {
+    pub fn draw(&self) -> std::sync::Arc<std::sync::Mutex<Option<String>>> {
+        return std::sync::Arc::new(std::sync::Mutex::new(Some((*fmt.lock().unwrap().as_ref().unwrap()).sprintf(std::sync::Arc::new(std::sync::Mutex::new(Some("Rectangle(%.1fx%.1f)".to_string()))), std::sync::Arc::new(std::sync::Mutex::new(Some(self.width))), std::sync::Arc::new(std::sync::Mutex::new(Some(self.height)))))));
+    }
 }
 
 fn main() {

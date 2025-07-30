@@ -3,38 +3,40 @@ struct Counter {
     value: std::sync::Arc<std::sync::Mutex<Option<i32>>>,
 }
 
-pub fn get_value() -> std::sync::Arc<std::sync::Mutex<Option<i32>>> {
-
-    return std::sync::Arc::new(std::sync::Mutex::new(Some((*c.lock().unwrap().as_ref().unwrap()).value)));
-}
-
-pub fn increment() {
-    { let mut guard = (*c.lock().unwrap().as_ref().unwrap()).value.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
-}
-
-pub fn add(n: std::sync::Arc<std::sync::Mutex<Option<i32>>>) {
-    (*c.lock().unwrap().as_ref().unwrap()).value += (*n.lock().unwrap().as_ref().unwrap());
-}
-
-pub fn double() -> std::sync::Arc<std::sync::Mutex<Option<i32>>> {
-
-    (*c.lock().unwrap().as_ref().unwrap()).value = 2;
-    return std::sync::Arc::new(std::sync::Mutex::new(Some((*c.lock().unwrap().as_ref().unwrap()).value)));
-}
-
 #[derive(Debug)]
 struct Person {
     name: std::sync::Arc<std::sync::Mutex<Option<String>>>,
     age: std::sync::Arc<std::sync::Mutex<Option<i32>>>,
 }
 
-pub fn greet() {
-    print!("Hello, I'm {} and I'm {} years old\n", (*p.lock().unwrap().as_ref().unwrap()).name, (*p.lock().unwrap().as_ref().unwrap()).age);
+impl Counter {
+    pub fn get_value(&self) -> std::sync::Arc<std::sync::Mutex<Option<i32>>> {
+        return std::sync::Arc::new(std::sync::Mutex::new(Some(self.value)));
+    }
+
+    pub fn increment(&mut self) {
+        { let mut guard = self.value.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
+    }
+
+    pub fn add(&mut self, n: std::sync::Arc<std::sync::Mutex<Option<i32>>>) {
+        self.value += (*n.lock().unwrap().as_ref().unwrap());
+    }
+
+    pub fn double(&mut self) -> std::sync::Arc<std::sync::Mutex<Option<i32>>> {
+        self.value = 2;
+        return std::sync::Arc::new(std::sync::Mutex::new(Some(self.value)));
+    }
 }
 
-pub fn have_birthday() {
-    { let mut guard = (*p.lock().unwrap().as_ref().unwrap()).age.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
-    print!("{} is now {} years old\n", (*p.lock().unwrap().as_ref().unwrap()).name, (*p.lock().unwrap().as_ref().unwrap()).age);
+impl Person {
+    pub fn greet(&self) {
+        print!("Hello, I'm {} and I'm {} years old\n", self.name, self.age);
+    }
+
+    pub fn have_birthday(&mut self) {
+        { let mut guard = self.age.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
+        print!("{} is now {} years old\n", self.name, self.age);
+    }
 }
 
 fn main() {

@@ -6,29 +6,29 @@ struct Rectangle {
     height: std::sync::Arc<std::sync::Mutex<Option<f64>>>,
 }
 
-pub fn area() -> std::sync::Arc<std::sync::Mutex<Option<f64>>> {
-
-    return std::sync::Arc::new(std::sync::Mutex::new(Some((*r.lock().unwrap().as_ref().unwrap()).width * (*r.lock().unwrap().as_ref().unwrap()).height)));
-}
-
-pub fn perimeter() -> std::sync::Arc<std::sync::Mutex<Option<f64>>> {
-
-    return std::sync::Arc::new(std::sync::Mutex::new(Some(2 * )));
-}
-
 #[derive(Debug)]
 struct Circle {
     radius: std::sync::Arc<std::sync::Mutex<Option<f64>>>,
 }
 
-pub fn area() -> std::sync::Arc<std::sync::Mutex<Option<f64>>> {
+impl Rectangle {
+    pub fn area(&self) -> std::sync::Arc<std::sync::Mutex<Option<f64>>> {
+        return std::sync::Arc::new(std::sync::Mutex::new(Some(self.width * self.height)));
+    }
 
-    return std::sync::Arc::new(std::sync::Mutex::new(Some(3.14159 * (*c.lock().unwrap().as_ref().unwrap()).radius * (*c.lock().unwrap().as_ref().unwrap()).radius)));
+    pub fn perimeter(&self) -> std::sync::Arc<std::sync::Mutex<Option<f64>>> {
+        return std::sync::Arc::new(std::sync::Mutex::new(Some(2 * )));
+    }
 }
 
-pub fn perimeter() -> std::sync::Arc<std::sync::Mutex<Option<f64>>> {
+impl Circle {
+    pub fn area(&self) -> std::sync::Arc<std::sync::Mutex<Option<f64>>> {
+        return std::sync::Arc::new(std::sync::Mutex::new(Some(3.14159 * self.radius * self.radius)));
+    }
 
-    return std::sync::Arc::new(std::sync::Mutex::new(Some(2 * 3.14159 * (*c.lock().unwrap().as_ref().unwrap()).radius)));
+    pub fn perimeter(&self) -> std::sync::Arc<std::sync::Mutex<Option<f64>>> {
+        return std::sync::Arc::new(std::sync::Mutex::new(Some(2 * 3.14159 * self.radius)));
+    }
 }
 
 pub fn print_shape_info(s: std::sync::Arc<std::sync::Mutex<Option<Shape>>>) {

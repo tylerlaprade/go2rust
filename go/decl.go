@@ -8,6 +8,14 @@ import (
 )
 
 func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl) {
+	// Check if this is a method (has receiver)
+	if fn.Recv != nil && len(fn.Recv.List) > 0 {
+		// Methods will be collected and generated in impl blocks
+		// For now, skip them here
+		return
+	}
+
+	// Regular function
 	if fn.Name.Name != "main" {
 		out.WriteString("pub ")
 	}
@@ -305,4 +313,97 @@ func TranspileConstExpr(out *strings.Builder, expr ast.Expr, iotaValue int) {
 		// Fallback to regular expression transpilation
 		TranspileExpression(out, expr)
 	}
+}
+
+// TranspileMethodImpl transpiles a method inside an impl block
+func TranspileMethodImpl(out *strings.Builder, fn *ast.FuncDecl) {
+	out.WriteString("    pub fn ")
+	out.WriteString(ToSnakeCase(fn.Name.Name))
+	out.WriteString("(")
+
+	// Receiver
+	if fn.Recv != nil && len(fn.Recv.List) > 0 {
+		recv := fn.Recv.List[0]
+		// Store the receiver name for self translation
+		if len(recv.Names) > 0 {
+			currentReceiver = recv.Names[0].Name
+		}
+
+		// Check if pointer receiver
+		if _, isPointer := recv.Type.(*ast.StarExpr); isPointer {
+			out.WriteString("&mut self")
+		} else {
+			out.WriteString("&self")
+		}
+
+		// Add comma if there are more parameters
+		if fn.Type.Params != nil && len(fn.Type.Params.List) > 0 {
+			out.WriteString(", ")
+		}
+	}
+	// Other parameters
+	if fn.Type.Params != nil {
+		for i, field := range fn.Type.Params.List {
+			if i > 0 {
+				out.WriteString(", ")
+			}
+			for j, name := range field.Names {
+				if j > 0 {
+					out.WriteString(", ")
+				}
+				out.WriteString(name.Name)
+				out.WriteString(": ")
+				out.WriteString(GoTypeToRust(field.Type))
+			}
+		}
+	}
+
+	out.WriteString(")")
+
+	// Return type
+	if fn.Type.Results != nil && len(fn.Type.Results.List) > 0 {
+		out.WriteString(" -> ")
+		if len(fn.Type.Results.List) == 1 && len(fn.Type.Results.List[0].Names) <= 1 {
+			// Single return value
+			out.WriteString(GoTypeToRust(fn.Type.Results.List[0].Type))
+		} else {
+			// Multiple return values - use tuple
+			out.WriteString("(")
+			first := true
+			for _, result := range fn.Type.Results.List {
+				// Handle multiple names with same type
+				if len(result.Names) > 0 {
+					for range result.Names {
+						if !first {
+							out.WriteString(", ")
+						}
+						first = false
+						out.WriteString(GoTypeToRust(result.Type))
+					}
+				} else {
+					// Unnamed return value
+					if !first {
+						out.WriteString(", ")
+					}
+					first = false
+					out.WriteString(GoTypeToRust(result.Type))
+				}
+			}
+			out.WriteString(")")
+		}
+	}
+
+	out.WriteString(" {\n")
+
+	// Method body - need to handle self references
+	for _, stmt := range fn.Body.List {
+		out.WriteString("        ")
+		TranspileStatement(out, stmt, fn.Type)
+		out.WriteString("\n")
+	}
+
+	out.WriteString("    }\n")
+
+	// Clear the receiver name
+	currentReceiver = ""
 }

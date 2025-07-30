@@ -1,3 +1,15 @@
+#[derive(Debug)]
+struct CustomError {
+    code: std::sync::Arc<std::sync::Mutex<Option<i32>>>,
+    message: std::sync::Arc<std::sync::Mutex<Option<String>>>,
+}
+
+impl CustomError {
+    pub fn error(&self) -> std::sync::Arc<std::sync::Mutex<Option<String>>> {
+        return std::sync::Arc::new(std::sync::Mutex::new(Some((*fmt.lock().unwrap().as_ref().unwrap()).sprintf(std::sync::Arc::new(std::sync::Mutex::new(Some("Error %d: %s".to_string()))), std::sync::Arc::new(std::sync::Mutex::new(Some(self.code))), std::sync::Arc::new(std::sync::Mutex::new(Some(self.message)))))));
+    }
+}
+
 pub fn divide(a: std::sync::Arc<std::sync::Mutex<Option<f64>>>, b: std::sync::Arc<std::sync::Mutex<Option<f64>>>) -> (std::sync::Arc<std::sync::Mutex<Option<f64>>>, std::sync::Arc<std::sync::Mutex<Option<Box<dyn std::error::Error + Send + Sync>>>>) {
 
     if (*b.lock().unwrap().as_ref().unwrap()) == 0 {
@@ -18,17 +30,6 @@ pub fn sqrt(x: std::sync::Arc<std::sync::Mutex<Option<f64>>>) -> (std::sync::Arc
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
     return (std::sync::Arc::new(std::sync::Mutex::new(Some((*result.lock().unwrap().as_ref().unwrap()).clone()))), std::sync::Arc::new(std::sync::Mutex::new(None)));
-}
-
-#[derive(Debug)]
-struct CustomError {
-    code: std::sync::Arc<std::sync::Mutex<Option<i32>>>,
-    message: std::sync::Arc<std::sync::Mutex<Option<String>>>,
-}
-
-pub fn error() -> std::sync::Arc<std::sync::Mutex<Option<String>>> {
-
-    return std::sync::Arc::new(std::sync::Mutex::new(Some((*fmt.lock().unwrap().as_ref().unwrap()).sprintf(std::sync::Arc::new(std::sync::Mutex::new(Some("Error %d: %s".to_string()))), std::sync::Arc::new(std::sync::Mutex::new(Some((*e.lock().unwrap().as_ref().unwrap()).code))), std::sync::Arc::new(std::sync::Mutex::new(Some((*e.lock().unwrap().as_ref().unwrap()).message)))))));
 }
 
 pub fn process_value(val: std::sync::Arc<std::sync::Mutex<Option<i32>>>) -> std::sync::Arc<std::sync::Mutex<Option<Box<dyn std::error::Error + Send + Sync>>>> {

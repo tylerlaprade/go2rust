@@ -34,6 +34,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 	case *ast.Ident:
 		if e.Name == "nil" {
 			out.WriteString("None")
+		} else if currentReceiver != "" && e.Name == currentReceiver {
+			// Method receiver - translate to self
+			out.WriteString("self")
 		} else if e.Name[0] >= 'A' && e.Name[0] <= 'Z' && e.Name != "String" {
 			// Likely a constant - convert to UPPER_SNAKE_CASE
 			out.WriteString(strings.ToUpper(ToSnakeCase(e.Name)))

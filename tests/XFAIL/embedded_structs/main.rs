@@ -4,25 +4,11 @@ struct Person {
     age: std::sync::Arc<std::sync::Mutex<Option<i32>>>,
 }
 
-pub fn greet() {
-    print!("Hello, I'm {}\n", (*p.lock().unwrap().as_ref().unwrap()).name);
-}
-
-pub fn get_info() -> std::sync::Arc<std::sync::Mutex<Option<String>>> {
-
-    return std::sync::Arc::new(std::sync::Mutex::new(Some((*fmt.lock().unwrap().as_ref().unwrap()).sprintf(std::sync::Arc::new(std::sync::Mutex::new(Some("%s (%d years old)".to_string()))), std::sync::Arc::new(std::sync::Mutex::new(Some((*p.lock().unwrap().as_ref().unwrap()).name))), std::sync::Arc::new(std::sync::Mutex::new(Some((*p.lock().unwrap().as_ref().unwrap()).age)))))));
-}
-
 #[derive(Debug)]
 struct Address {
     street: std::sync::Arc<std::sync::Mutex<Option<String>>>,
     city: std::sync::Arc<std::sync::Mutex<Option<String>>>,
     state: std::sync::Arc<std::sync::Mutex<Option<String>>>,
-}
-
-pub fn full_address() -> std::sync::Arc<std::sync::Mutex<Option<String>>> {
-
-    return std::sync::Arc::new(std::sync::Mutex::new(Some((*fmt.lock().unwrap().as_ref().unwrap()).sprintf(std::sync::Arc::new(std::sync::Mutex::new(Some("%s, %s, %s".to_string()))), std::sync::Arc::new(std::sync::Mutex::new(Some((*a.lock().unwrap().as_ref().unwrap()).street))), std::sync::Arc::new(std::sync::Mutex::new(Some((*a.lock().unwrap().as_ref().unwrap()).city))), std::sync::Arc::new(std::sync::Mutex::new(Some((*a.lock().unwrap().as_ref().unwrap()).state)))))));
 }
 
 #[derive(Debug)]
@@ -33,18 +19,10 @@ struct Employee {
     salary: std::sync::Arc<std::sync::Mutex<Option<f64>>>,
 }
 
-pub fn work() {
-    print!("{} is working (ID: {})\n", (*e.lock().unwrap().as_ref().unwrap()).name, (*e.lock().unwrap().as_ref().unwrap()).i_d);
-}
-
 #[derive(Debug)]
 struct Manager {
     std::sync::_arc<std::sync::_mutex<_option<_employee>>>: std::sync::Arc<std::sync::Mutex<Option<Employee>>>,
     team: std::sync::Arc<std::sync::Mutex<Option<Vec<String>>>>,
-}
-
-pub fn manage() {
-    print!("Manager {} is managing team: {}\n", (*m.lock().unwrap().as_ref().unwrap()).name, (*m.lock().unwrap().as_ref().unwrap()).team);
 }
 
 #[derive(Debug)]
@@ -57,6 +35,34 @@ struct CompanyInfo {
 struct Company {
     name: std::sync::Arc<std::sync::Mutex<Option<String>>>,
     std::sync::_arc<std::sync::_mutex<_option<_company_info>>>: std::sync::Arc<std::sync::Mutex<Option<CompanyInfo>>>,
+}
+
+impl Person {
+    pub fn greet(&self) {
+        print!("Hello, I'm {}\n", self.name);
+    }
+
+    pub fn get_info(&self) -> std::sync::Arc<std::sync::Mutex<Option<String>>> {
+        return std::sync::Arc::new(std::sync::Mutex::new(Some((*fmt.lock().unwrap().as_ref().unwrap()).sprintf(std::sync::Arc::new(std::sync::Mutex::new(Some("%s (%d years old)".to_string()))), std::sync::Arc::new(std::sync::Mutex::new(Some(self.name))), std::sync::Arc::new(std::sync::Mutex::new(Some(self.age)))))));
+    }
+}
+
+impl Address {
+    pub fn full_address(&self) -> std::sync::Arc<std::sync::Mutex<Option<String>>> {
+        return std::sync::Arc::new(std::sync::Mutex::new(Some((*fmt.lock().unwrap().as_ref().unwrap()).sprintf(std::sync::Arc::new(std::sync::Mutex::new(Some("%s, %s, %s".to_string()))), std::sync::Arc::new(std::sync::Mutex::new(Some(self.street))), std::sync::Arc::new(std::sync::Mutex::new(Some(self.city))), std::sync::Arc::new(std::sync::Mutex::new(Some(self.state)))))));
+    }
+}
+
+impl Employee {
+    pub fn work(&self) {
+        print!("{} is working (ID: {})\n", self.name, self.i_d);
+    }
+}
+
+impl Manager {
+    pub fn manage(&self) {
+        print!("Manager {} is managing team: {}\n", self.name, self.team);
+    }
 }
 
 fn main() {
