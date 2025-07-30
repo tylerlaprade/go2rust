@@ -35,7 +35,7 @@ fn main() {
     }
     println!();
     println!("{}", "\n=== Range over channel ===".to_string());
-    let mut ch = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![0; 5])));
+    let mut ch = vec![0; 5];
     let mut i = std::sync::Arc::new(std::sync::Mutex::new(Some(1)));
     while (*i.lock().unwrap().as_ref().unwrap()) <= 5 {
         

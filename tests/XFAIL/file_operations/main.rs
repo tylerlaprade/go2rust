@@ -33,14 +33,14 @@ fn main() {
         return;
     }
     
-    let mut scanner = std::sync::Arc::new(std::sync::Mutex::new(Some((*bufio.lock().unwrap().as_ref().unwrap()).new_scanner(std::sync::Arc::new(std::sync::Mutex::new(Some((*file.lock().unwrap().as_ref().unwrap()))))))));
+    let mut scanner = (*bufio.lock().unwrap().as_ref().unwrap()).new_scanner(std::sync::Arc::new(std::sync::Mutex::new(Some((*file.lock().unwrap().as_ref().unwrap())))));
     let mut lineNum = std::sync::Arc::new(std::sync::Mutex::new(Some(1)));
     while (*scanner.lock().unwrap().as_ref().unwrap()).scan() {
-        let mut line = std::sync::Arc::new(std::sync::Mutex::new(Some((*scanner.lock().unwrap().as_ref().unwrap()).text())));
+        let mut line = (*scanner.lock().unwrap().as_ref().unwrap()).text();
         print!("Line {}: {}\n", (*lineNum.lock().unwrap().as_ref().unwrap()), (*line.lock().unwrap().as_ref().unwrap()));
         { let mut guard = lineNum.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
-    let mut err = std::sync::Arc::new(std::sync::Mutex::new(Some((*scanner.lock().unwrap().as_ref().unwrap()).err())));
+    let mut err = (*scanner.lock().unwrap().as_ref().unwrap()).err();
     if (*err.lock().unwrap().as_ref().unwrap()).is_some() {
         print!("Error reading file: {}\n", (*err.lock().unwrap().as_ref().unwrap()));
         return;
@@ -112,10 +112,10 @@ fn main() {
     let mut lineCount = std::sync::Arc::new(std::sync::Mutex::new(Some(0)));
     let mut charCount = std::sync::Arc::new(std::sync::Mutex::new(Some(0)));
     while (*scanner.lock().unwrap().as_ref().unwrap()).scan() {
-        let mut line = std::sync::Arc::new(std::sync::Mutex::new(Some((*scanner.lock().unwrap().as_ref().unwrap()).text())));
+        let mut line = (*scanner.lock().unwrap().as_ref().unwrap()).text();
         { let mut guard = lineCount.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
         (*charCount.lock().unwrap().as_ref().unwrap()) += (*line.lock().unwrap().as_ref().unwrap()).len();
-        let mut words = std::sync::Arc::new(std::sync::Mutex::new(Some((*strings.lock().unwrap().as_ref().unwrap()).fields(std::sync::Arc::new(std::sync::Mutex::new(Some((*line.lock().unwrap().as_ref().unwrap()))))))));
+        let mut words = (*strings.lock().unwrap().as_ref().unwrap()).fields(std::sync::Arc::new(std::sync::Mutex::new(Some((*line.lock().unwrap().as_ref().unwrap())))));
         (*wordCount.lock().unwrap().as_ref().unwrap()) += (*words.lock().unwrap().as_ref().unwrap()).len();
         if (*strings.lock().unwrap().as_ref().unwrap()).contains(std::sync::Arc::new(std::sync::Mutex::new(Some((*line.lock().unwrap().as_ref().unwrap())))), std::sync::Arc::new(std::sync::Mutex::new(Some("123".to_string())))) {
         print!("Found line with numbers: {}\n", (*line.lock().unwrap().as_ref().unwrap()));
@@ -160,7 +160,7 @@ fn main() {
     println!("{}", "\n--- Cleaning up ---".to_string());
     let mut filesToRemove = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![(*filename.lock().unwrap().as_ref().unwrap()), (*copyFilename.lock().unwrap().as_ref().unwrap()), (*dataFile.lock().unwrap().as_ref().unwrap())])));
     for (_, f) in (*filesToRemove.lock().unwrap().as_ref().unwrap()).iter().enumerate() {
-        let mut err = std::sync::Arc::new(std::sync::Mutex::new(Some((*os.lock().unwrap().as_ref().unwrap()).remove(std::sync::Arc::new(std::sync::Mutex::new(Some(f)))))));
+        let mut err = (*os.lock().unwrap().as_ref().unwrap()).remove(std::sync::Arc::new(std::sync::Mutex::new(Some(f))));
         if (*err.lock().unwrap().as_ref().unwrap()).is_some() {
         print!("Error removing file '{}': {}\n", f, (*err.lock().unwrap().as_ref().unwrap()));
     } else {

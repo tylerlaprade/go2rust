@@ -155,9 +155,9 @@ fn main() {
         println!();
     }
     println!("{}", "\n=== Select with complex channel operations ===".to_string());
-    let mut ch1 = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![0; 2])));
-    let mut ch2 = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![0; 2])));
-    let mut done = std::sync::Arc::new(std::sync::Mutex::new(Some()));
+    let mut ch1 = vec![0; 2];
+    let mut ch2 = vec![0; 2];
+    let mut done = ;
     
     
     
@@ -170,7 +170,7 @@ fn main() {
     let mut testData = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![, , , , ])));
     for (i, data) in (*testData.lock().unwrap().as_ref().unwrap()).iter().enumerate() {
         print!("Testing dataset {}: {}\n", i + 1, data);
-        let mut err = std::sync::Arc::new(std::sync::Mutex::new(Some(process_data(std::sync::Arc::new(std::sync::Mutex::new(Some(data)))))));
+        let mut err = process_data(std::sync::Arc::new(std::sync::Mutex::new(Some(data))));
     if (*err.lock().unwrap().as_ref().unwrap()).is_some() {
         print!("  Error: {}\n", (*err.lock().unwrap().as_ref().unwrap()));
         

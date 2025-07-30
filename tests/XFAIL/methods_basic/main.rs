@@ -44,7 +44,7 @@ fn main() {
     println!("{} {}", "After increment:".to_string(), (*counter.lock().unwrap().as_ref().unwrap()).get_value());
     (*counter.lock().unwrap().as_ref().unwrap()).add(std::sync::Arc::new(std::sync::Mutex::new(Some(5))));
     println!("{} {}", "After adding 5:".to_string(), (*counter.lock().unwrap().as_ref().unwrap()).get_value());
-    let mut doubled = std::sync::Arc::new(std::sync::Mutex::new(Some((*counter.lock().unwrap().as_ref().unwrap()).double())));
+    let mut doubled = (*counter.lock().unwrap().as_ref().unwrap()).double();
     println!("{} {}", "After doubling:".to_string(), (*doubled.lock().unwrap().as_ref().unwrap()));
     let mut person = Person { name: "Alice".to_string(), age: 25 }.clone();
     (*person.lock().unwrap().as_ref().unwrap()).greet();

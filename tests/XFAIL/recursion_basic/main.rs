@@ -31,7 +31,7 @@ pub fn power(base: std::sync::Arc<std::sync::Mutex<Option<i32>>>, exp: std::sync
         return std::sync::Arc::new(std::sync::Mutex::new(Some((*base.lock().unwrap().as_ref().unwrap()))));
     }
     if (*exp.lock().unwrap().as_ref().unwrap()) % 2 == 0 {
-        let mut half = std::sync::Arc::new(std::sync::Mutex::new(Some(power(std::sync::Arc::new(std::sync::Mutex::new(Some((*base.lock().unwrap().as_ref().unwrap())))), std::sync::Arc::new(std::sync::Mutex::new(Some((*exp.lock().unwrap().as_ref().unwrap()) / 2)))))));
+        let mut half = power(std::sync::Arc::new(std::sync::Mutex::new(Some((*base.lock().unwrap().as_ref().unwrap())))), std::sync::Arc::new(std::sync::Mutex::new(Some((*exp.lock().unwrap().as_ref().unwrap()) / 2))));
         return std::sync::Arc::new(std::sync::Mutex::new(Some((*half.lock().unwrap().as_ref().unwrap()) * (*half.lock().unwrap().as_ref().unwrap()))));
     }
     return std::sync::Arc::new(std::sync::Mutex::new(Some((*base.lock().unwrap().as_ref().unwrap()) * power(std::sync::Arc::new(std::sync::Mutex::new(Some((*base.lock().unwrap().as_ref().unwrap())))), std::sync::Arc::new(std::sync::Mutex::new(Some((*exp.lock().unwrap().as_ref().unwrap()) - 1)))))));
@@ -73,6 +73,6 @@ fn main() {
     let mut numbers = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![1, 2, 3, 4, 5])));
     println!("{} {} {} {}", "Sum of".to_string(), (*numbers.lock().unwrap().as_ref().unwrap()), "=".to_string(), (*sum_array(std::sync::Arc::new(std::sync::Mutex::new(Some((*numbers.lock().unwrap().as_ref().unwrap()))))).lock().unwrap().as_ref().unwrap()));
     let mut original = std::sync::Arc::new(std::sync::Mutex::new(Some("hello".to_string())));
-    let mut reversed = std::sync::Arc::new(std::sync::Mutex::new(Some(reverse_string(std::sync::Arc::new(std::sync::Mutex::new(Some((*original.lock().unwrap().as_ref().unwrap()))))))));
+    let mut reversed = reverse_string(std::sync::Arc::new(std::sync::Mutex::new(Some((*original.lock().unwrap().as_ref().unwrap())))));
     print!("'{}' reversed is '{}'\n", (*original.lock().unwrap().as_ref().unwrap()), (*reversed.lock().unwrap().as_ref().unwrap()));
 }

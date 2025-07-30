@@ -21,11 +21,11 @@ pub fn receiver(ch: std::sync::Arc<std::sync::Mutex<Option<Unknown>>>) {
 }
 
 fn main() {
-    let mut ch = std::sync::Arc::new(std::sync::Mutex::new(Some()));
+    let mut ch = ;
     
     
     (*time.lock().unwrap().as_ref().unwrap()).sleep(std::sync::Arc::new(std::sync::Mutex::new(Some(1 * (*time.lock().unwrap().as_ref().unwrap()).second))));
-    let mut buffered = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![0; 3])));
+    let mut buffered = vec![0; 3];
     
     
     
@@ -36,7 +36,7 @@ fn main() {
         println!("{} {}", "Got:".to_string(), (*msg.lock().unwrap().as_ref().unwrap()));
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
-    let mut numbers = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![0; 5])));
+    let mut numbers = vec![0; 5];
     
     println!("{}", "Range over channel:".to_string());
     for num in 0..(*numbers.lock().unwrap().as_ref().unwrap()).len() {

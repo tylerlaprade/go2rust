@@ -274,6 +274,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									if unary, ok := rhs.(*ast.UnaryExpr); ok && unary.Op == token.AND {
 										// Taking address - don't wrap, the & operator will handle it
 										TranspileExpression(out, rhs)
+									} else if _, isCall := rhs.(*ast.CallExpr); isCall {
+										// Function calls already return wrapped values, don't wrap again
+										TranspileExpression(out, rhs)
 									} else {
 										// Wrap new variables in Arc<Mutex<Option<>>>
 										out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(Some(")
@@ -305,10 +308,16 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							out.WriteString(", ")
 						}
 						if s.Tok == token.DEFINE {
-							// Wrap new variables in Arc<Mutex<Option<>>>
-							out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(Some(")
-							TranspileExpression(out, rhs)
-							out.WriteString(")))")
+							// Check if RHS is a function call - they already return wrapped values
+							if _, isCall := rhs.(*ast.CallExpr); isCall {
+								// Function calls already return wrapped values, don't wrap again
+								TranspileExpression(out, rhs)
+							} else {
+								// Wrap new variables in Arc<Mutex<Option<>>>
+								out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(Some(")
+								TranspileExpression(out, rhs)
+								out.WriteString(")))")
+							}
 						} else {
 							TranspileExpression(out, rhs)
 						}
@@ -331,10 +340,16 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							out.WriteString(name.Name)
 							if len(valueSpec.Values) > i {
 								out.WriteString(" = ")
-								// Wrap all variables in Arc<Mutex<Option<>>>
-								out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(Some(")
-								TranspileExpression(out, valueSpec.Values[i])
-								out.WriteString(")))")
+								// Check if value is a function call - they already return wrapped values
+								if _, isCall := valueSpec.Values[i].(*ast.CallExpr); isCall {
+									// Function calls already return wrapped values, don't wrap again
+									TranspileExpression(out, valueSpec.Values[i])
+								} else {
+									// Wrap all variables in Arc<Mutex<Option<>>>
+									out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(Some(")
+									TranspileExpression(out, valueSpec.Values[i])
+									out.WriteString(")))")
+								}
 							} else {
 								// Default initialization for uninitialized vars
 								if valueSpec.Type != nil {

@@ -1,17 +1,17 @@
 fn main() {
     println!("{}", "=== Testing multiple stdlib imports ===".to_string());
     println!("{}", "\n--- strings package ---".to_string());
-    let mut upper = std::sync::Arc::new(std::sync::Mutex::new(Some("hello world".to_string().to_uppercase())));
+    let mut upper = "hello world".to_string().to_uppercase();
     println!("{} {}", "Upper:".to_string(), (*upper.lock().unwrap().as_ref().unwrap()));
-    let mut lower = std::sync::Arc::new(std::sync::Mutex::new(Some("HELLO WORLD".to_string().to_lowercase())));
+    let mut lower = "HELLO WORLD".to_string().to_lowercase();
     println!("{} {}", "Lower:".to_string(), (*lower.lock().unwrap().as_ref().unwrap()));
-    let mut trimmed = std::sync::Arc::new(std::sync::Mutex::new(Some("  hello  ".to_string().trim())));
+    let mut trimmed = "  hello  ".to_string().trim();
     println!("{} {}", "Trimmed:".to_string(), (*trimmed.lock().unwrap().as_ref().unwrap()));
-    let mut split = std::sync::Arc::new(std::sync::Mutex::new(Some((*strings.lock().unwrap().as_ref().unwrap()).split(std::sync::Arc::new(std::sync::Mutex::new(Some("a,b,c".to_string()))), std::sync::Arc::new(std::sync::Mutex::new(Some(",".to_string())))))));
+    let mut split = (*strings.lock().unwrap().as_ref().unwrap()).split(std::sync::Arc::new(std::sync::Mutex::new(Some("a,b,c".to_string()))), std::sync::Arc::new(std::sync::Mutex::new(Some(",".to_string()))));
     print!("Split: {}\n", (*split.lock().unwrap().as_ref().unwrap()));
     println!("{}", "\n--- strconv package ---".to_string());
     let mut num = std::sync::Arc::new(std::sync::Mutex::new(Some(42)));
-    let mut str = std::sync::Arc::new(std::sync::Mutex::new(Some((*num.lock().unwrap().as_ref().unwrap()).to_string())));
+    let mut str = (*num.lock().unwrap().as_ref().unwrap()).to_string();
     println!("{} {}", "Number as string:".to_string(), (*str.lock().unwrap().as_ref().unwrap()));
     let (mut (*parsed.lock().unwrap().as_ref().unwrap()), mut (*err.lock().unwrap().as_ref().unwrap())) = match "123".to_string().parse::<i32>() { Ok(n) => (n, None), Err(e) => (0, Some(Box::new(e) as Box<dyn std::error::Error + Send + Sync>)) };
     if (*err.lock().unwrap().as_ref().unwrap()).is_some() {
@@ -19,7 +19,7 @@ fn main() {
     } else {
         println!("{} {}", "Parsed number:".to_string(), (*parsed.lock().unwrap().as_ref().unwrap()));
     }
-    let mut floatStr = std::sync::Arc::new(std::sync::Mutex::new(Some((*strconv.lock().unwrap().as_ref().unwrap()).format_float(std::sync::Arc::new(std::sync::Mutex::new(Some(3.14159))), std::sync::Arc::new(std::sync::Mutex::new(Some('f'))), std::sync::Arc::new(std::sync::Mutex::new(Some(2))), std::sync::Arc::new(std::sync::Mutex::new(Some(64)))))));
+    let mut floatStr = (*strconv.lock().unwrap().as_ref().unwrap()).format_float(std::sync::Arc::new(std::sync::Mutex::new(Some(3.14159))), std::sync::Arc::new(std::sync::Mutex::new(Some('f'))), std::sync::Arc::new(std::sync::Mutex::new(Some(2))), std::sync::Arc::new(std::sync::Mutex::new(Some(64))));
     println!("{} {}", "Float as string:".to_string(), (*floatStr.lock().unwrap().as_ref().unwrap()));
     println!("{}", "\n--- math package ---".to_string());
     print!("Pi: %.6f\n", (*math.lock().unwrap().as_ref().unwrap()).pi);
@@ -29,7 +29,7 @@ fn main() {
     print!("Max(10, 20): %.0f\n", (*math.lock().unwrap().as_ref().unwrap()).max(std::sync::Arc::new(std::sync::Mutex::new(Some(10))), std::sync::Arc::new(std::sync::Mutex::new(Some(20)))));
     print!("Min(10, 20): %.0f\n", (*math.lock().unwrap().as_ref().unwrap()).min(std::sync::Arc::new(std::sync::Mutex::new(Some(10))), std::sync::Arc::new(std::sync::Mutex::new(Some(20)))));
     println!("{}", "\n--- time package ---".to_string());
-    let mut now = std::sync::Arc::new(std::sync::Mutex::new(Some((*time.lock().unwrap().as_ref().unwrap()).now())));
+    let mut now = (*time.lock().unwrap().as_ref().unwrap()).now();
     println!("{} {}", "Current time:".to_string(), (*now.lock().unwrap().as_ref().unwrap()).format(std::sync::Arc::new(std::sync::Mutex::new(Some("2006-01-02 15:04:05".to_string())))));
     let mut duration = std::sync::Arc::new(std::sync::Mutex::new(Some(5 * (*time.lock().unwrap().as_ref().unwrap()).second)));
     print!("Duration: {}\n", (*duration.lock().unwrap().as_ref().unwrap()));
@@ -43,7 +43,7 @@ fn main() {
     } else {
         println!("{} {}", "Hostname:".to_string(), (*hostname.lock().unwrap().as_ref().unwrap()));
     }
-    let mut path = std::sync::Arc::new(std::sync::Mutex::new(Some((*os.lock().unwrap().as_ref().unwrap()).getenv(std::sync::Arc::new(std::sync::Mutex::new(Some("PATH".to_string())))))));
+    let mut path = (*os.lock().unwrap().as_ref().unwrap()).getenv(std::sync::Arc::new(std::sync::Mutex::new(Some("PATH".to_string()))));
     if (*path.lock().unwrap().as_ref().unwrap()) != "".to_string() {
         print!("PATH length: {} characters\n", (*path.lock().unwrap().as_ref().unwrap()).len());
     } else {
@@ -56,11 +56,11 @@ fn main() {
         println!("{} {}", "Working directory:".to_string(), (*wd.lock().unwrap().as_ref().unwrap()));
     }
     println!("{}", "\n--- Combined usage ---".to_string());
-    let mut timestamp = std::sync::Arc::new(std::sync::Mutex::new(Some((*time.lock().unwrap().as_ref().unwrap()).now()::unix())));
-    let mut timestampStr = std::sync::Arc::new(std::sync::Mutex::new(Some((*strconv.lock().unwrap().as_ref().unwrap()).format_int(std::sync::Arc::new(std::sync::Mutex::new(Some((*timestamp.lock().unwrap().as_ref().unwrap())))), std::sync::Arc::new(std::sync::Mutex::new(Some(10)))))));
-    let mut message = std::sync::Arc::new(std::sync::Mutex::new(Some((*strings.lock().unwrap().as_ref().unwrap()).join(std::sync::Arc::new(std::sync::Mutex::new(Some(vec!["Timestamp:".to_string(), (*timestampStr.lock().unwrap().as_ref().unwrap())]))), std::sync::Arc::new(std::sync::Mutex::new(Some(" ".to_string())))))));
+    let mut timestamp = (*time.lock().unwrap().as_ref().unwrap()).now()::unix();
+    let mut timestampStr = (*strconv.lock().unwrap().as_ref().unwrap()).format_int(std::sync::Arc::new(std::sync::Mutex::new(Some((*timestamp.lock().unwrap().as_ref().unwrap())))), std::sync::Arc::new(std::sync::Mutex::new(Some(10))));
+    let mut message = (*strings.lock().unwrap().as_ref().unwrap()).join(std::sync::Arc::new(std::sync::Mutex::new(Some(vec!["Timestamp:".to_string(), (*timestampStr.lock().unwrap().as_ref().unwrap())]))), std::sync::Arc::new(std::sync::Mutex::new(Some(" ".to_string()))));
     println!("{}", (*message.lock().unwrap().as_ref().unwrap()));
-    let mut result = std::sync::Arc::new(std::sync::Mutex::new(Some((*math.lock().unwrap().as_ref().unwrap()).sqrt(std::sync::Arc::new(std::sync::Mutex::new(Some((*math.lock().unwrap().as_ref().unwrap()).pow(std::sync::Arc::new(std::sync::Mutex::new(Some(3))), std::sync::Arc::new(std::sync::Mutex::new(Some(2)))) + (*math.lock().unwrap().as_ref().unwrap()).pow(std::sync::Arc::new(std::sync::Mutex::new(Some(4))), std::sync::Arc::new(std::sync::Mutex::new(Some(2)))))))))));
-    let mut resultStr = std::sync::Arc::new(std::sync::Mutex::new(Some((*strconv.lock().unwrap().as_ref().unwrap()).format_float(std::sync::Arc::new(std::sync::Mutex::new(Some((*result.lock().unwrap().as_ref().unwrap())))), std::sync::Arc::new(std::sync::Mutex::new(Some('f'))), std::sync::Arc::new(std::sync::Mutex::new(Some(2))), std::sync::Arc::new(std::sync::Mutex::new(Some(64)))))));
+    let mut result = (*math.lock().unwrap().as_ref().unwrap()).sqrt(std::sync::Arc::new(std::sync::Mutex::new(Some((*math.lock().unwrap().as_ref().unwrap()).pow(std::sync::Arc::new(std::sync::Mutex::new(Some(3))), std::sync::Arc::new(std::sync::Mutex::new(Some(2)))) + (*math.lock().unwrap().as_ref().unwrap()).pow(std::sync::Arc::new(std::sync::Mutex::new(Some(4))), std::sync::Arc::new(std::sync::Mutex::new(Some(2))))))));
+    let mut resultStr = (*strconv.lock().unwrap().as_ref().unwrap()).format_float(std::sync::Arc::new(std::sync::Mutex::new(Some((*result.lock().unwrap().as_ref().unwrap())))), std::sync::Arc::new(std::sync::Mutex::new(Some('f'))), std::sync::Arc::new(std::sync::Mutex::new(Some(2))), std::sync::Arc::new(std::sync::Mutex::new(Some(64))));
     print!("Hypotenuse of 3,4 triangle: {}\n", (*resultStr.lock().unwrap().as_ref().unwrap()));
 }

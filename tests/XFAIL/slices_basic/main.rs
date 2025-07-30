@@ -7,7 +7,7 @@ fn main() {
     println!("{} {}", "Sub-slice [1:4]:".to_string(), (*subSlice.lock().unwrap().as_ref().unwrap()));
     println!("{} {}", "Length:".to_string(), (*slice.lock().unwrap().as_ref().unwrap()).len());
     println!("{} {}", "Capacity:".to_string(), (*slice.lock().unwrap().as_ref().unwrap()).capacity());
-    let mut made = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![0; 3])));
+    let mut made = vec![0; 3];
     (*made.lock().unwrap().as_mut().unwrap())[0] = 10;
     (*made.lock().unwrap().as_mut().unwrap())[1] = 20;
     (*made.lock().unwrap().as_mut().unwrap())[2] = 30;

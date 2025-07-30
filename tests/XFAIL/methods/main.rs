@@ -18,7 +18,7 @@ pub fn new_counter() -> std::sync::Arc<std::sync::Mutex<Option<Counter>>> {
 }
 
 fn main() {
-    let mut counter = std::sync::Arc::new(std::sync::Mutex::new(Some(new_counter())));
+    let mut counter = new_counter();
     (*counter.lock().unwrap().as_ref().unwrap()).increment();
     (*counter.lock().unwrap().as_ref().unwrap()).increment();
     println!("{} {}", "Counter value:".to_string(), (*counter.lock().unwrap().as_ref().unwrap()).value());

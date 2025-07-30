@@ -89,8 +89,34 @@ if command -v parallel >/dev/null 2>&1; then
     JOBS=$(( CORES * 3 / 4 ))
     [ $JOBS -lt 2 ] && JOBS=2
     echo "Running tests in parallel with $JOBS jobs (detected $CORES cores)..."
-    bats -j "$JOBS" tests.bats
+    bats -j "$JOBS" tests.bats | tee test_output.tmp
 else
     echo "Running tests sequentially (install GNU parallel for faster execution)..."
-    bats tests.bats
+    bats tests.bats | tee test_output.tmp
 fi
+
+# Extract and display test summary with colors
+echo ""
+echo -e "\033[1mTest Summary:\033[0m"
+echo "============="
+
+# Count passing and failing tests (excluding XFAIL)
+PASSING=$(grep "^ok " test_output.tmp | grep -v "XFAIL" | wc -l | tr -d ' ')
+FAILING=$(grep "^not ok " test_output.tmp | grep -v "XFAIL" | wc -l | tr -d ' ')
+TOTAL=$((PASSING + FAILING))
+
+# Display with colors
+if [ $FAILING -eq 0 ]; then
+    echo -e "\033[32mPassing: $PASSING/$TOTAL ✓\033[0m"
+else
+    echo -e "\033[32mPassing: $PASSING/$TOTAL\033[0m"
+    echo -e "\033[31mFailing: $FAILING/$TOTAL\033[0m"
+fi
+
+if [ $FAILING -gt 0 ]; then
+    echo ""
+    echo -e "\033[31mFailed tests:\033[0m"
+    grep "^not ok " test_output.tmp | grep -v "XFAIL" | sed 's/^not ok [0-9]* /  - /'
+fi
+
+rm -f test_output.tmp

@@ -22,7 +22,7 @@ fn main() {
     let mut q = std::sync::Arc::new(std::sync::Mutex::new(Some((*p.lock().unwrap().as_ref().unwrap()))));
     { let new_val = 200; *q.lock().unwrap() = Some(new_val); };
     println!("{} {}", "x after modifying through q:".to_string(), (*x.lock().unwrap().as_ref().unwrap()));
-    let mut newPoint = std::sync::Arc::new(std::sync::Mutex::new(Some(std::sync::Arc::new(std::sync::Mutex::new(Some(std::sync::Arc<std::sync::Mutex<Option<Point>>>::default()))))));
+    let mut newPoint = std::sync::Arc::new(std::sync::Mutex::new(Some(std::sync::Arc<std::sync::Mutex<Option<Point>>>::default())));
     { let new_val = 5; *(*newPoint.lock().unwrap().as_ref().unwrap()).x.lock().unwrap() = Some(new_val); };
     { let new_val = 15; *(*newPoint.lock().unwrap().as_ref().unwrap()).y.lock().unwrap() = Some(new_val); };
     println!("{} {}", "New point:".to_string(), (*newPoint.lock().unwrap().as_ref().unwrap()));

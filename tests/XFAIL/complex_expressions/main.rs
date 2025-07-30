@@ -48,7 +48,7 @@ fn main() {
         print!("Type assertion result: {}\n", (*assertResult.lock().unwrap().as_ref().unwrap()));
     }
     println!("{}", "\n=== Channel expressions ===".to_string());
-    let mut ch = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![0; 3])));
+    let mut ch = vec![0; 3];
     
     
     
@@ -58,7 +58,7 @@ fn main() {
     let mut add = std::sync::Arc::new(std::sync::Mutex::new(Some()));
     let mut multiply = std::sync::Arc::new(std::sync::Mutex::new(Some()));
     let mut subtract = std::sync::Arc::new(std::sync::Mutex::new(Some()));
-    let mut nestedResult = std::sync::Arc::new(std::sync::Mutex::new(Some(add(std::sync::Arc::new(std::sync::Mutex::new(Some(multiply(std::sync::Arc::new(std::sync::Mutex::new(Some(3))), std::sync::Arc::new(std::sync::Mutex::new(Some(4))))))), std::sync::Arc::new(std::sync::Mutex::new(Some(subtract(std::sync::Arc::new(std::sync::Mutex::new(Some(20))), std::sync::Arc::new(std::sync::Mutex::new(Some(multiply(std::sync::Arc::new(std::sync::Mutex::new(Some(2))), std::sync::Arc::new(std::sync::Mutex::new(Some(5)))))))))))))));
+    let mut nestedResult = add(std::sync::Arc::new(std::sync::Mutex::new(Some(multiply(std::sync::Arc::new(std::sync::Mutex::new(Some(3))), std::sync::Arc::new(std::sync::Mutex::new(Some(4))))))), std::sync::Arc::new(std::sync::Mutex::new(Some(subtract(std::sync::Arc::new(std::sync::Mutex::new(Some(20))), std::sync::Arc::new(std::sync::Mutex::new(Some(multiply(std::sync::Arc::new(std::sync::Mutex::new(Some(2))), std::sync::Arc::new(std::sync::Mutex::new(Some(5))))))))))));
     print!("add(multiply(3, 4), subtract(20, multiply(2, 5))) = {}\n", (*nestedResult.lock().unwrap().as_ref().unwrap()));
     println!("{}", "\n=== Complex conditional expressions ===".to_string());
     let mut score = std::sync::Arc::new(std::sync::Mutex::new(Some(85)));

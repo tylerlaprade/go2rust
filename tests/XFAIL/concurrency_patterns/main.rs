@@ -1,7 +1,7 @@
 fn main() {
     println!("{}", "=== Worker Pool Pattern ===".to_string());
-    let mut jobs = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![0; 100])));
-    let mut results = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![0; 100])));
+    let mut jobs = vec![0; 100];
+    let mut results = vec![0; 100];
     let mut wg;
     let mut numWorkers = std::sync::Arc::new(std::sync::Mutex::new(Some(3)));
     let mut w = std::sync::Arc::new(std::sync::Mutex::new(Some(1)));
@@ -22,27 +22,27 @@ fn main() {
         print!("Result: {}\n", result);
     }
     println!("{}", "\n=== Producer-Consumer Pattern ===".to_string());
-    let mut buffer = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![0; 5])));
-    let mut done = std::sync::Arc::new(std::sync::Mutex::new(Some()));
+    let mut buffer = vec![0; 5];
+    let mut done = ;
     
     
     <-(*done.lock().unwrap().as_ref().unwrap());
     println!("{}", "\n=== Fan-out/Fan-in Pattern ===".to_string());
-    let mut input = std::sync::Arc::new(std::sync::Mutex::new(Some()));
-    let mut c1 = std::sync::Arc::new(std::sync::Mutex::new(Some(fan_out(std::sync::Arc::new(std::sync::Mutex::new(Some((*input.lock().unwrap().as_ref().unwrap()))))))));
-    let mut c2 = std::sync::Arc::new(std::sync::Mutex::new(Some(fan_out(std::sync::Arc::new(std::sync::Mutex::new(Some((*input.lock().unwrap().as_ref().unwrap()))))))));
-    let mut c3 = std::sync::Arc::new(std::sync::Mutex::new(Some(fan_out(std::sync::Arc::new(std::sync::Mutex::new(Some((*input.lock().unwrap().as_ref().unwrap()))))))));
-    let mut output = std::sync::Arc::new(std::sync::Mutex::new(Some(fan_in(std::sync::Arc::new(std::sync::Mutex::new(Some((*c1.lock().unwrap().as_ref().unwrap())))), std::sync::Arc::new(std::sync::Mutex::new(Some((*c2.lock().unwrap().as_ref().unwrap())))), std::sync::Arc::new(std::sync::Mutex::new(Some((*c3.lock().unwrap().as_ref().unwrap()))))))));
+    let mut input = ;
+    let mut c1 = fan_out(std::sync::Arc::new(std::sync::Mutex::new(Some((*input.lock().unwrap().as_ref().unwrap())))));
+    let mut c2 = fan_out(std::sync::Arc::new(std::sync::Mutex::new(Some((*input.lock().unwrap().as_ref().unwrap())))));
+    let mut c3 = fan_out(std::sync::Arc::new(std::sync::Mutex::new(Some((*input.lock().unwrap().as_ref().unwrap())))));
+    let mut output = fan_in(std::sync::Arc::new(std::sync::Mutex::new(Some((*c1.lock().unwrap().as_ref().unwrap())))), std::sync::Arc::new(std::sync::Mutex::new(Some((*c2.lock().unwrap().as_ref().unwrap())))), std::sync::Arc::new(std::sync::Mutex::new(Some((*c3.lock().unwrap().as_ref().unwrap())))));
     
     for result in 0..(*output.lock().unwrap().as_ref().unwrap()).len() {
         print!("Fan-in result: {}\n", result);
     }
     println!("{}", "\n=== Pipeline Pattern ===".to_string());
-    let mut numbers = std::sync::Arc::new(std::sync::Mutex::new(Some()));
+    let mut numbers = ;
     
-    let mut squares = std::sync::Arc::new(std::sync::Mutex::new(Some()));
+    let mut squares = ;
     
-    let mut final = std::sync::Arc::new(std::sync::Mutex::new(Some()));
+    let mut final = ;
     
     for result in 0..(*final.lock().unwrap().as_ref().unwrap()).len() {
         print!("Pipeline result: {}\n", result);
@@ -62,7 +62,7 @@ fn main() {
     print!("Final counter value: {}\n", (*counter.lock().unwrap().as_ref().unwrap()));
     println!("{}", "\n=== Channel-based Synchronization ===".to_string());
     let mut wg3;
-    let mut barrier = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![0; 3])));
+    let mut barrier = vec![0; 3];
     let mut worker = std::sync::Arc::new(std::sync::Mutex::new(Some()));
     let mut i = std::sync::Arc::new(std::sync::Mutex::new(Some(1)));
     while (*i.lock().unwrap().as_ref().unwrap()) <= 3 {
@@ -79,14 +79,14 @@ fn main() {
 
 pub fn fan_out(input: std::sync::Arc<std::sync::Mutex<Option<Unknown>>>) -> std::sync::Arc<std::sync::Mutex<Option<Unknown>>> {
 
-    let mut output = std::sync::Arc::new(std::sync::Mutex::new(Some()));
+    let mut output = ;
     
     return std::sync::Arc::new(std::sync::Mutex::new(Some((*output.lock().unwrap().as_ref().unwrap()))));
 }
 
 pub fn fan_in(inputs: std::sync::Arc<std::sync::Mutex<Option<Unknown>>>) -> std::sync::Arc<std::sync::Mutex<Option<Unknown>>> {
 
-    let mut output = std::sync::Arc::new(std::sync::Mutex::new(Some()));
+    let mut output = ;
     let mut wg;
     for (_, input) in (*inputs.lock().unwrap().as_ref().unwrap()).iter().enumerate() {
         (*wg.lock().unwrap().as_ref().unwrap()).add(std::sync::Arc::new(std::sync::Mutex::new(Some(1))));

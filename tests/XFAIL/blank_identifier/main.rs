@@ -74,7 +74,7 @@ fn main() {
         println!("{}", "Value is not an int".to_string());
     }
     println!("{}", "\n=== Blank identifier with channels ===".to_string());
-    let mut ch = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![0; 3])));
+    let mut ch = vec![0; 3];
     
     
     

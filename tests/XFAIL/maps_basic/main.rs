@@ -1,5 +1,5 @@
 fn main() {
-    let mut ages = std::sync::Arc::new(std::sync::Mutex::new(Some(std::collections::HashMap::<std::sync::Arc<std::sync::Mutex<Option<String>>>, std::sync::Arc<std::sync::Mutex<Option<i32>>>>::new())));
+    let mut ages = std::collections::HashMap::<std::sync::Arc<std::sync::Mutex<Option<String>>>, std::sync::Arc<std::sync::Mutex<Option<i32>>>>::new();
     (*ages.lock().unwrap().as_ref().unwrap()).insert("Alice".to_string(), 25);
     (*ages.lock().unwrap().as_ref().unwrap()).insert("Bob".to_string(), 30);
     (*ages.lock().unwrap().as_ref().unwrap()).insert("Charlie".to_string(), 35);
