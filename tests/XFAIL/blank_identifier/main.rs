@@ -75,9 +75,9 @@ fn main() {
     }
     println!("{}", "\n=== Blank identifier with channels ===".to_string());
     let mut ch = vec![0; 3];
-    
-    
-    
+    // TODO: Unhandled statement type: SendStmt
+    // TODO: Unhandled statement type: SendStmt
+    // TODO: Unhandled statement type: SendStmt
     close(std::sync::Arc::new(std::sync::Mutex::new(Some((*ch.lock().unwrap().as_ref().unwrap())))));
     for  {
         println!("{}", "Received a value (but ignored it)".to_string());

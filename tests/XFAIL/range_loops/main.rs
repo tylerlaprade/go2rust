@@ -38,7 +38,7 @@ fn main() {
     let mut ch = vec![0; 5];
     let mut i = std::sync::Arc::new(std::sync::Mutex::new(Some(1)));
     while (*i.lock().unwrap().as_ref().unwrap()) <= 5 {
-        
+        // TODO: Unhandled statement type: SendStmt
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
     close(std::sync::Arc::new(std::sync::Mutex::new(Some((*ch.lock().unwrap().as_ref().unwrap())))));
@@ -50,7 +50,7 @@ fn main() {
     println!("{}", "Even numbers only (with continue):".to_string());
     for (_, num) in (*data.lock().unwrap().as_ref().unwrap()).iter().enumerate() {
         if num % 2 != 0 {
-        
+        // TODO: Unhandled statement type: BranchStmt
     }
         print!("{} ", num);
     }
@@ -58,7 +58,7 @@ fn main() {
     println!("{}", "Numbers until 6 (with break):".to_string());
     for (_, num) in (*data.lock().unwrap().as_ref().unwrap()).iter().enumerate() {
         if num > 6 {
-        
+        // TODO: Unhandled statement type: BranchStmt
     }
         print!("{} ", num);
     }

@@ -18,10 +18,10 @@ pub fn counter(start: std::sync::Arc<std::sync::Mutex<Option<i32>>>) {
 
 fn main() {
     println!("{}", "Starting goroutines...".to_string());
-    
-    
-    
-    
+    // TODO: Unhandled statement type: GoStmt
+    // TODO: Unhandled statement type: GoStmt
+    // TODO: Unhandled statement type: GoStmt
+    // TODO: Unhandled statement type: GoStmt
     (*time.lock().unwrap().as_ref().unwrap()).sleep(std::sync::Arc::new(std::sync::Mutex::new(Some(1 * (*time.lock().unwrap().as_ref().unwrap()).second))));
     println!("{}", "Main function ending".to_string());
 }

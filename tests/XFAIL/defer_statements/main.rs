@@ -1,16 +1,16 @@
 pub fn defer_example() {
     println!("{}", "Start of function".to_string());
-    
-    
-    
+    // defer println!("{}", "Deferred 1".to_string()) // TODO: defer not yet supported
+    // defer println!("{}", "Deferred 2".to_string()) // TODO: defer not yet supported
+    // defer println!("{}", "Deferred 3".to_string()) // TODO: defer not yet supported
     println!("{}", "Middle of function".to_string());
-    
+    // defer () // TODO: defer not yet supported
     println!("{}", "End of function".to_string());
 }
 
 pub fn defer_with_variables() {
     let mut x = std::sync::Arc::new(std::sync::Mutex::new(Some(10)));
-    
+    // defer () // TODO: defer not yet supported
     { let new_val = 20; *x.lock().unwrap() = Some(new_val); };
     println!("{} {}", "Current x:".to_string(), (*x.lock().unwrap().as_ref().unwrap()));
 }
@@ -19,7 +19,7 @@ pub fn defer_in_loop() {
     println!("{}", "Defer in loop:".to_string());
     let mut i = std::sync::Arc::new(std::sync::Mutex::new(Some(0)));
     while (*i.lock().unwrap().as_ref().unwrap()) < 3 {
-        
+        // defer (std::sync::Arc::new(std::sync::Mutex::new(Some((*i.lock().unwrap().as_ref().unwrap()))))) // TODO: defer not yet supported
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
     println!("{}", "Loop finished".to_string());
@@ -31,7 +31,7 @@ pub fn cleanup() {
 
 pub fn resource_example() {
     println!("{}", "Acquiring resource".to_string());
-    
+    // defer cleanup() // TODO: defer not yet supported
     println!("{}", "Using resource".to_string());
     let mut i = std::sync::Arc::new(std::sync::Mutex::new(Some(0)));
     while (*i.lock().unwrap().as_ref().unwrap()) < 3 {

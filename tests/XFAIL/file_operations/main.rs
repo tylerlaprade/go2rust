@@ -32,7 +32,7 @@ fn main() {
         print!("Error opening file: {}\n", (*err.lock().unwrap().as_ref().unwrap()));
         return;
     }
-    
+    // defer (*file.lock().unwrap().as_ref().unwrap()).close() // TODO: defer not yet supported
     let mut scanner = (*bufio.lock().unwrap().as_ref().unwrap()).new_scanner(std::sync::Arc::new(std::sync::Mutex::new(Some((*file.lock().unwrap().as_ref().unwrap())))));
     let mut lineNum = std::sync::Arc::new(std::sync::Mutex::new(Some(1)));
     while (*scanner.lock().unwrap().as_ref().unwrap()).scan() {
@@ -87,13 +87,13 @@ fn main() {
         print!("Error opening source file: {}\n", (*err.lock().unwrap().as_ref().unwrap()));
         return;
     }
-    
+    // defer (*sourceFile.lock().unwrap().as_ref().unwrap()).close() // TODO: defer not yet supported
     let (mut destFile, mut err) = (*os.lock().unwrap().as_ref().unwrap()).create(std::sync::Arc::new(std::sync::Mutex::new(Some((*copyFilename.lock().unwrap().as_ref().unwrap())))));
     if (*err.lock().unwrap().as_ref().unwrap()).is_some() {
         print!("Error creating destination file: {}\n", (*err.lock().unwrap().as_ref().unwrap()));
         return;
     }
-    
+    // defer (*destFile.lock().unwrap().as_ref().unwrap()).close() // TODO: defer not yet supported
     let (mut bytesWritten, mut err) = (*io.lock().unwrap().as_ref().unwrap()).copy(std::sync::Arc::new(std::sync::Mutex::new(Some((*destFile.lock().unwrap().as_ref().unwrap())))), std::sync::Arc::new(std::sync::Mutex::new(Some((*sourceFile.lock().unwrap().as_ref().unwrap())))));
     if (*err.lock().unwrap().as_ref().unwrap()).is_some() {
         print!("Error copying file: {}\n", (*err.lock().unwrap().as_ref().unwrap()));
@@ -106,7 +106,7 @@ fn main() {
         print!("Error opening file: {}\n", (*err.lock().unwrap().as_ref().unwrap()));
         return;
     }
-    
+    // defer (*file.lock().unwrap().as_ref().unwrap()).close() // TODO: defer not yet supported
     { let new_val = (*bufio.lock().unwrap().as_ref().unwrap()).new_scanner(std::sync::Arc::new(std::sync::Mutex::new(Some((*file.lock().unwrap().as_ref().unwrap()))))); *scanner.lock().unwrap() = Some(new_val); };
     let mut wordCount = std::sync::Arc::new(std::sync::Mutex::new(Some(0)));
     let mut lineCount = std::sync::Arc::new(std::sync::Mutex::new(Some(0)));
@@ -132,7 +132,7 @@ fn main() {
         print!("Error creating data file: {}\n", (*err.lock().unwrap().as_ref().unwrap()));
         return;
     }
-    
+    // defer (*file.lock().unwrap().as_ref().unwrap()).close() // TODO: defer not yet supported
     (*fmt.lock().unwrap().as_ref().unwrap()).fprintf(std::sync::Arc::new(std::sync::Mutex::new(Some((*file.lock().unwrap().as_ref().unwrap())))), std::sync::Arc::new(std::sync::Mutex::new(Some("Name: %s\n".to_string()))), std::sync::Arc::new(std::sync::Mutex::new(Some("John Doe".to_string()))));
     (*fmt.lock().unwrap().as_ref().unwrap()).fprintf(std::sync::Arc::new(std::sync::Mutex::new(Some((*file.lock().unwrap().as_ref().unwrap())))), std::sync::Arc::new(std::sync::Mutex::new(Some("Age: %d\n".to_string()))), std::sync::Arc::new(std::sync::Mutex::new(Some(30))));
     (*fmt.lock().unwrap().as_ref().unwrap()).fprintf(std::sync::Arc::new(std::sync::Mutex::new(Some((*file.lock().unwrap().as_ref().unwrap())))), std::sync::Arc::new(std::sync::Mutex::new(Some("Score: %.2f\n".to_string()))), std::sync::Arc::new(std::sync::Mutex::new(Some(95.5))));
