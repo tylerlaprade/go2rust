@@ -3,6 +3,7 @@
 ## CRITICAL: Don't Hide Problems with .gitignore
 
 **When generated files appear in git status, the solution is NOT to add them to .gitignore.** Instead:
+
 - Understand why they're being generated
 - Fix the root cause (e.g., running commands in wrong directory)
 - Keep the working tree clean through proper processes
@@ -12,6 +13,7 @@ Hiding problems makes them harder to diagnose and fix later.
 ## CRITICAL: Preserve Test Output Files
 
 The test system preserves transpiled output files (.rs, Cargo.toml, Cargo.lock) as snapshots. These files:
+
 - Show what the transpiler produced for each test
 - Enable debugging without re-running transpilation
 - Track output changes over time via git
@@ -305,8 +307,6 @@ tests/
 - Auto-promote to main test suite when transpilation succeeds
 - Enables test-driven development and roadmap planning through code
 
-
-
 ## Future Optimizations (Post-MVP)
 
 After we have working transpilation:
@@ -379,8 +379,6 @@ Never run commands that could lose data without explicit confirmation. This incl
 
 Even if the operation seems routine or helpful, always ask first when uncommitted work could be lost.
 
-
-
 ### 2. Preserve Intelligent Solutions When Refining
 
 When improving code that has clever solutions (like auto-detecting CPU cores), don't replace dynamic logic with hardcoded values. Instead:
@@ -414,6 +412,7 @@ Go provides the go/types package that already does type analysis. Instead of bui
 - This is why we can handle complex features with simple code
 
 **Important**: The Go AST already contains type information! Before considering complex type tracking:
+
 - Check if the AST node (e.g., `*ast.StarExpr`, `*ast.ArrayType`) gives you what you need
 - The AST structure itself often encodes the type (pointer vs value, array vs slice)
 - Only reach for go/types when you need semantic analysis beyond syntax
