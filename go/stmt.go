@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"go/ast"
 	"go/token"
 	"strings"
@@ -693,5 +694,14 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		}
 
 		out.WriteString("    }")
+
+	case *ast.DeferStmt:
+		// For now, just add a comment - proper defer support is complex
+		out.WriteString("// defer ")
+		TranspileCall(out, s.Call)
+		out.WriteString(" // TODO: defer not yet supported")
+
+	default:
+		out.WriteString("// TODO: Unhandled statement type: " + strings.TrimPrefix(fmt.Sprintf("%T", s), "*ast."))
 	}
 }

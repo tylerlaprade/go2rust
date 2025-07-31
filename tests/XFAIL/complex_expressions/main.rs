@@ -49,9 +49,9 @@ fn main() {
     }
     println!("{}", "\n=== Channel expressions ===".to_string());
     let mut ch = vec![0; 3];
-    
-    
-    
+    // TODO: Unhandled statement type: SendStmt
+    // TODO: Unhandled statement type: SendStmt
+    // TODO: Unhandled statement type: SendStmt
     let mut chanResult = std::sync::Arc::new(std::sync::Mutex::new(Some(<-(*ch.lock().unwrap().as_ref().unwrap()) + <-(*ch.lock().unwrap().as_ref().unwrap()) * 2 - <-(*ch.lock().unwrap().as_ref().unwrap()) / 2)));
     print!("Channel expression result: {}\n", (*chanResult.lock().unwrap().as_ref().unwrap()));
     println!("{}", "\n=== Nested function calls ===".to_string());

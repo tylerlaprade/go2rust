@@ -11,15 +11,15 @@ struct Circle {
     radius: std::sync::Arc<std::sync::Mutex<Option<f64>>>,
 }
 
-impl Rectangle {
-    pub fn area(&self) -> std::sync::Arc<std::sync::Mutex<Option<f64>>> {
-        return std::sync::Arc::new(std::sync::Mutex::new(Some(self.width * self.height)));
-    }
-}
-
 impl Circle {
     pub fn area(&self) -> std::sync::Arc<std::sync::Mutex<Option<f64>>> {
         return std::sync::Arc::new(std::sync::Mutex::new(Some(3.14159 * self.radius * self.radius)));
+    }
+}
+
+impl Rectangle {
+    pub fn area(&self) -> std::sync::Arc<std::sync::Mutex<Option<f64>>> {
+        return std::sync::Arc::new(std::sync::Mutex::new(Some(self.width * self.height)));
     }
 }
 
@@ -43,7 +43,7 @@ pub fn process_value(value: std::sync::Arc<std::sync::Mutex<Option<Box<dyn std::
 }
 
 pub fn assert_without_check(value: std::sync::Arc<std::sync::Mutex<Option<Box<dyn std::any::Any>>>>) {
-    
+    // defer () // TODO: defer not yet supported
     let mut str = std::sync::Arc::new(std::sync::Mutex::new(Some(match (*value.lock().unwrap().as_ref().unwrap()).downcast_ref::<String>() { Some(v) => (v.clone(), true), None => (String::new(), false) })));
     print!("Asserted string: {}\n", (*str.lock().unwrap().as_ref().unwrap()));
 }
@@ -75,6 +75,6 @@ fn main() {
     }
     println!("{}", "\n=== Type switch alternative ===".to_string());
     for (_, val) in (*values.lock().unwrap().as_ref().unwrap()).iter().enumerate() {
-        
+        // TODO: Unhandled statement type: TypeSwitchStmt
     }
 }

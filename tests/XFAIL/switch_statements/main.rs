@@ -64,11 +64,11 @@ pub fn switch_with_fallthrough(num: std::sync::Arc<std::sync::Mutex<Option<i32>>
     match (*num.lock().unwrap().as_ref().unwrap()) {
         1 => {
             println!("{}", "One".to_string());
-            
+            // TODO: Unhandled statement type: BranchStmt
         }
         2 => {
             println!("{}", "Two or after One".to_string());
-            
+            // TODO: Unhandled statement type: BranchStmt
         }
         3 => {
             println!("{}", "Three or after Two or after One".to_string());
@@ -80,7 +80,7 @@ pub fn switch_with_fallthrough(num: std::sync::Arc<std::sync::Mutex<Option<i32>>
 }
 
 pub fn type_switch(value: std::sync::Arc<std::sync::Mutex<Option<Box<dyn std::any::Any>>>>) {
-    
+    // TODO: Unhandled statement type: TypeSwitchStmt
 }
 
 fn main() {

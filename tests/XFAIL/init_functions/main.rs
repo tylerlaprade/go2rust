@@ -47,7 +47,7 @@ pub fn init() {
 
 pub fn init() {
     println!("{}", "Sixth init function - with potential panic handling".to_string());
-    
+    // defer () // TODO: defer not yet supported
     if false {
         panic(std::sync::Arc::new(std::sync::Mutex::new(Some("Init function panic!".to_string()))));
     }

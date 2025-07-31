@@ -37,18 +37,6 @@ struct Company {
     std::sync::_arc<std::sync::_mutex<_option<_company_info>>>: std::sync::Arc<std::sync::Mutex<Option<CompanyInfo>>>,
 }
 
-impl Employee {
-    pub fn work(&self) {
-        print!("{} is working (ID: {})\n", self.name, self.i_d);
-    }
-}
-
-impl Manager {
-    pub fn manage(&self) {
-        print!("Manager {} is managing team: {}\n", self.name, self.team);
-    }
-}
-
 impl Person {
     pub fn greet(&self) {
         print!("Hello, I'm {}\n", self.name);
@@ -62,6 +50,18 @@ impl Person {
 impl Address {
     pub fn full_address(&self) -> std::sync::Arc<std::sync::Mutex<Option<String>>> {
         return std::sync::Arc::new(std::sync::Mutex::new(Some((*fmt.lock().unwrap().as_ref().unwrap()).sprintf(std::sync::Arc::new(std::sync::Mutex::new(Some("%s, %s, %s".to_string()))), std::sync::Arc::new(std::sync::Mutex::new(Some(self.street))), std::sync::Arc::new(std::sync::Mutex::new(Some(self.city))), std::sync::Arc::new(std::sync::Mutex::new(Some(self.state)))))));
+    }
+}
+
+impl Employee {
+    pub fn work(&self) {
+        print!("{} is working (ID: {})\n", self.name, self.i_d);
+    }
+}
+
+impl Manager {
+    pub fn manage(&self) {
+        print!("Manager {} is managing team: {}\n", self.name, self.team);
     }
 }
 
