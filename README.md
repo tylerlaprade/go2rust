@@ -120,6 +120,8 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ C-style for loops | ✅ |
 | └ Range loops | ✅ |
 | └ Infinite loops | ✅ |
+| └ Break statements | ✅ |
+| └ Continue statements | ✅ |
 | **`switch` - Switch statements** | |
 | └ Basic switch | ✅ |
 | └ Type switch | ❌ |
@@ -171,7 +173,18 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | **Memory functions** | |
 | └ `new` | ✅ |
 
-## XFAIL Tests (Expected Failures)
+## Test Suite
+
+### Test Categories
+
+- **Basic Language Features**: Variables, types, operators, control flow
+- **Functions**: Basic functions, multiple returns, parameter handling  
+- **Data Structures**: Arrays, slices, maps, structs, pointers
+- **Standard Library**: fmt, strings, strconv, builtin functions
+- **Concurrency**: Goroutines, channels, select statements (planned)
+- **Advanced Features**: Interfaces, generics, error handling (planned)
+
+### XFAIL Tests (Expected Failures)
 
 The `tests/XFAIL/` directory contains tests for features not yet implemented. These tests:
 
@@ -180,6 +193,16 @@ The `tests/XFAIL/` directory contains tests for features not yet implemented. Th
 - **Auto-promote when ready**: If an XFAIL test starts passing, it automatically moves to the main test suite
 - **Fail CI on unexpected passes**: Prevents accidental feature implementation without proper review
 
+### Enhanced Test Harness
+
+The test runner (`./test.sh`) includes several advanced features:
+
+- **Parallel execution**: Control with `-n/--jobs N` (default: CPU cores)
+- **Timeout protection**: Set with `-t/--timeout TIME` (default: 60s per test)
+- **Real-time output**: Use `-n 1` for sequential mode with live updates
+- **Comprehensive reporting**: Shows passing, failing, and skipped tests
+- **Auto-promotion**: XFAIL tests automatically move when they start passing
+
 ### Contributing XFAIL Tests
 
 To add a new planned feature:
@@ -187,7 +210,3 @@ To add a new planned feature:
 1. Create `tests/XFAIL/feature_name/main.go` with valid Go code
 2. Run `./test.sh` - the test will be marked as "skip"
 3. When the feature is implemented, the test will auto-promote to the main suite
-
-## License
-
-MIT License - see [LICENSE](LICENSE) file for details.

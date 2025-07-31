@@ -11,15 +11,15 @@ struct Circle {
     radius: std::sync::Arc<std::sync::Mutex<Option<f64>>>,
 }
 
-impl Circle {
-    pub fn area(&self) -> std::sync::Arc<std::sync::Mutex<Option<f64>>> {
-        return std::sync::Arc::new(std::sync::Mutex::new(Some(3.14159 * self.radius * self.radius)));
-    }
-}
-
 impl Rectangle {
     pub fn area(&self) -> std::sync::Arc<std::sync::Mutex<Option<f64>>> {
         return std::sync::Arc::new(std::sync::Mutex::new(Some(self.width * self.height)));
+    }
+}
+
+impl Circle {
+    pub fn area(&self) -> std::sync::Arc<std::sync::Mutex<Option<f64>>> {
+        return std::sync::Arc::new(std::sync::Mutex::new(Some(3.14159 * self.radius * self.radius)));
     }
 }
 

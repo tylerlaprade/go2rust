@@ -19,7 +19,7 @@
 
 ## Core Philosophy: Conservative Translation
 
-**EVERYTHING is Arc<Mutex<Option<T>>>. No exceptions.**
+**EVERYTHING is `Arc<Mutex<Option<T>>>`. No exceptions.**
 
 This wraps all variables, parameters, returns, and fields because:
 
@@ -52,9 +52,9 @@ Basic program transpilation working
 
 ### ⏳ Phase 2: Variables and Basic Types
 
-- **Done**: Basic syntax, maps, nil, interface{}, type assertions
+- **Done**: Basic syntax, maps, nil, interface{}, type assertions, break/continue statements
 - **TODO**: Map insert operations, error handling patterns
-- **Issues**: Vec<T> needs {:?} formatting, no embedded struct promotion
+- **Issues**: `Vec<T>` needs `{:?}` formatting, no embedded struct promotion
 
 ### ⏳ Phase 3: Pointers and Mutation
 
@@ -92,7 +92,7 @@ go2rust transpiles itself!
 
 ## Project Structure
 
-```
+```tree
 go2rust/
 ├── go/              # Transpiler source
 │   ├── main.go      # CLI entry
@@ -100,11 +100,30 @@ go2rust/
 │   ├── expr.go      # Expression handling
 │   ├── stmt.go      # Statement handling
 │   └── ...
-├── tests/           # Test cases
-│   ├── */           # Passing tests
-│   └── XFAIL/       # Expected failures
+├── tests/           # Test cases (103 total)
+│   ├── */           # Passing tests (15)
+│   └── XFAIL/       # Expected failures (88)
 └── test.sh          # Test runner
 ```
+
+## Test Workflow
+
+### Running Tests
+
+```bash
+# Run all tests (parallel, default timeout)
+./test.sh
+
+# Sequential mode with real-time output
+./test.sh -n 1
+```
+
+### Test Development Workflow
+
+1. **Add new feature test**: Create `tests/XFAIL/feature_name/main.go`
+2. **Implement transpiler support**: Modify `go/*.go` files
+3. **Test auto-promotion**: XFAIL tests automatically move to main suite when passing (Never do this manually!)
+4. **Verify with full suite**: Run `./test.sh` before committing
 
 ## Future Optimizations (Post-MVP)
 

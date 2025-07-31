@@ -181,7 +181,7 @@ func transpileConstDeclWithCase(out *strings.Builder, genDecl *ast.GenDecl, toUp
 					continue
 				}
 				out.WriteString("const ")
-				constName := name.Name
+				var constName string
 				if toUpper {
 					constName = strings.ToUpper(ToSnakeCase(name.Name))
 				} else {

@@ -9,16 +9,18 @@ setup_file() {
 }
 
 teardown_file() {
-    find tests -name "target" -type d -exec rm -rf {} + 2>/dev/null || true
-    find tests -name "debug" -type d -exec rm -rf {} + 2>/dev/null || true
+    # find tests -name "target" -type d -exec rm -rf {} + 2>/dev/null || true
+    # find tests -name "debug" -type d -exec rm -rf {} + 2>/dev/null || true
     # Only have to clean up binaries in XFAIL since we generate them to confirm compilation works
     find tests/XFAIL -mindepth 2 -maxdepth 2 -type f -perm +111 -delete 2>/dev/null || true
 }
 
 # Helper to run a command and prefix stdout/stderr
 run_with_prefix() {
-    local stdout_file=$(mktemp)
-    local stderr_file=$(mktemp)
+    local stdout_file
+    stdout_file=$(mktemp)
+    local stderr_file
+    stderr_file=$(mktemp)
     
     # Run command, capturing stdout and stderr separately
     "$@" >"$stdout_file" 2>"$stderr_file"
@@ -42,7 +44,8 @@ run_with_prefix() {
 compile_and_run_rust() {
     local rust_file="$1"
     local input_file="$2"
-    local temp_dir=$(mktemp -d)
+    local temp_dir
+    temp_dir=$(mktemp -d)
 
     mkdir -p "$temp_dir/src"
     cp "$rust_file" "$temp_dir/src/main.rs"
@@ -66,40 +69,69 @@ CARGO_EOF
 
 run_test() {
     local test_dir="$1"
+    local timeout="${TEST_TIMEOUT:-60s}"
 
-    go_output=$(cd "$test_dir" && run_with_prefix go run .)
+    # Run the entire test with timeout
+    if ! timeout "$timeout" bash -c '
+        test_dir="$1"
+        
+        # Run Go version
+        go_output=$(cd "$test_dir" && go run . 2>&1)
+        go_exit_code=$?
+        
+        if [ $go_exit_code -ne 0 ]; then
+            echo "Go compilation/execution failed:"
+            echo "$go_output"
+            exit 1
+        fi
 
-    ./go2rust "$test_dir" || return 1
-    
-    # Try to compile and run the Rust code
-    rust_output=$(cd "$test_dir" && RUSTFLAGS="-A warnings" run_with_prefix cargo run --quiet)
-    rust_exit_code=$?
-    
-    if [ $rust_exit_code -ne 0 ]; then
-        # Rust compilation or execution failed
-        echo ""
-        echo "Go output:"
-        echo "$go_output"
-        echo ""
-        echo "Rust output:"
-        echo "$rust_output"
+        # Transpile to Rust
+        if ! ./go2rust "$test_dir" >/dev/null 2>&1; then
+            echo "Transpilation failed"
+            exit 1
+        fi
+        
+        # Run Rust version
+        rust_output=$(cd "$test_dir" && RUSTFLAGS="-A warnings" cargo run --quiet 2>&1)
+        rust_exit_code=$?
+        
+        if [ $rust_exit_code -ne 0 ]; then
+            echo ""
+            echo "Go output:"
+            echo "$go_output"
+            echo ""
+            echo "Rust compilation/execution failed:"
+            echo "$rust_output"
+            exit 1
+        fi
+        
+        # Compare outputs
+        if [ "$go_output" != "$rust_output" ]; then
+            echo ""
+            echo "Output mismatch:"
+            echo "Go output:"
+            echo "$go_output"
+            echo ""
+            echo "Rust output:"
+            echo "$rust_output"
+            exit 1
+        fi
+        
+        exit 0
+    ' _ "$test_dir"; then
+        if [ $? -eq 124 ]; then
+            echo "Test timed out after $timeout"
+        fi
         return 1
     fi
     
-    [ "$go_output" = "$rust_output" ] || {
-        echo ""
-        echo "Go output:"
-        echo "$go_output"
-        echo ""
-        echo "Rust output:"
-        echo "$rust_output"
-        return 1
-    }
+    return 0
 }
 
 run_xfail_test() {
     local test_dir="$1"
-    local test_name=$(basename "$test_dir")
+    local test_name
+    test_name=$(basename "$test_dir")
     
     if run_test "$test_dir"; then
         echo "🎉 Promoting XFAIL test '$test_name' - it now passes!"
@@ -126,8 +158,20 @@ run_xfail_test() {
     run_test "tests/fmt_println"
 }
 
+@test "for_loops" {
+    run_test "tests/for_loops"
+}
+
+@test "functions_multiple_return" {
+    run_test "tests/functions_multiple_return"
+}
+
 @test "hello_world" {
     run_test "tests/hello_world"
+}
+
+@test "if_else_basic" {
+    run_test "tests/if_else_basic"
 }
 
 @test "late_address_of" {
@@ -162,12 +206,40 @@ run_xfail_test() {
     run_xfail_test "tests/XFAIL/advanced_control_flow"
 }
 
+@test "XFAIL: atomic_operations" {
+    run_xfail_test "tests/XFAIL/atomic_operations"
+}
+
+@test "XFAIL: base64_encoding" {
+    run_xfail_test "tests/XFAIL/base64_encoding"
+}
+
 @test "XFAIL: blank_identifier" {
     run_xfail_test "tests/XFAIL/blank_identifier"
 }
 
+@test "XFAIL: channel_buffering" {
+    run_xfail_test "tests/XFAIL/channel_buffering"
+}
+
+@test "XFAIL: channel_directions" {
+    run_xfail_test "tests/XFAIL/channel_directions"
+}
+
+@test "XFAIL: channel_sync" {
+    run_xfail_test "tests/XFAIL/channel_sync"
+}
+
 @test "XFAIL: channels_basic" {
     run_xfail_test "tests/XFAIL/channels_basic"
+}
+
+@test "XFAIL: channels_simple" {
+    run_xfail_test "tests/XFAIL/channels_simple"
+}
+
+@test "XFAIL: closing_channels" {
+    run_xfail_test "tests/XFAIL/closing_channels"
 }
 
 @test "XFAIL: closures_basic" {
@@ -186,6 +258,14 @@ run_xfail_test() {
     run_xfail_test "tests/XFAIL/constants_basic"
 }
 
+@test "XFAIL: context_usage" {
+    run_xfail_test "tests/XFAIL/context_usage"
+}
+
+@test "XFAIL: crypto_hash" {
+    run_xfail_test "tests/XFAIL/crypto_hash"
+}
+
 @test "XFAIL: defer_statements" {
     run_xfail_test "tests/XFAIL/defer_statements"
 }
@@ -194,20 +274,48 @@ run_xfail_test() {
     run_xfail_test "tests/XFAIL/embedded_structs"
 }
 
+@test "XFAIL: enums_iota" {
+    run_xfail_test "tests/XFAIL/enums_iota"
+}
+
 @test "XFAIL: error_handling" {
     run_xfail_test "tests/XFAIL/error_handling"
+}
+
+@test "XFAIL: errors_custom" {
+    run_xfail_test "tests/XFAIL/errors_custom"
+}
+
+@test "XFAIL: file_io" {
+    run_xfail_test "tests/XFAIL/file_io"
 }
 
 @test "XFAIL: file_operations" {
     run_xfail_test "tests/XFAIL/file_operations"
 }
 
+@test "XFAIL: flag_parsing" {
+    run_xfail_test "tests/XFAIL/flag_parsing"
+}
+
 @test "XFAIL: function_types" {
     run_xfail_test "tests/XFAIL/function_types"
 }
 
+@test "XFAIL: generics_basic" {
+    run_xfail_test "tests/XFAIL/generics_basic"
+}
+
 @test "XFAIL: goroutines_basic" {
     run_xfail_test "tests/XFAIL/goroutines_basic"
+}
+
+@test "XFAIL: goroutines_simple" {
+    run_xfail_test "tests/XFAIL/goroutines_simple"
+}
+
+@test "XFAIL: http_client" {
+    run_xfail_test "tests/XFAIL/http_client"
 }
 
 @test "XFAIL: init_functions" {
@@ -222,8 +330,24 @@ run_xfail_test() {
     run_xfail_test "tests/XFAIL/interfaces_basic"
 }
 
+@test "XFAIL: interfaces_simple" {
+    run_xfail_test "tests/XFAIL/interfaces_simple"
+}
+
+@test "XFAIL: iota_enums" {
+    run_xfail_test "tests/XFAIL/iota_enums"
+}
+
+@test "XFAIL: json_marshal" {
+    run_xfail_test "tests/XFAIL/json_marshal"
+}
+
 @test "XFAIL: maps_basic" {
     run_xfail_test "tests/XFAIL/maps_basic"
+}
+
+@test "XFAIL: maps_operations" {
+    run_xfail_test "tests/XFAIL/maps_operations"
 }
 
 @test "XFAIL: methods" {
@@ -242,12 +366,24 @@ run_xfail_test() {
     run_xfail_test "tests/XFAIL/multiple_returns"
 }
 
+@test "XFAIL: mutex_counter" {
+    run_xfail_test "tests/XFAIL/mutex_counter"
+}
+
 @test "XFAIL: nested_structures" {
     run_xfail_test "tests/XFAIL/nested_structures"
 }
 
 @test "XFAIL: nil_basic" {
     run_xfail_test "tests/XFAIL/nil_basic"
+}
+
+@test "XFAIL: non_blocking_channels" {
+    run_xfail_test "tests/XFAIL/non_blocking_channels"
+}
+
+@test "XFAIL: os_args" {
+    run_xfail_test "tests/XFAIL/os_args"
 }
 
 @test "XFAIL: panic_recover" {
@@ -258,12 +394,44 @@ run_xfail_test() {
     run_xfail_test "tests/XFAIL/pointers_basic"
 }
 
+@test "XFAIL: pointers_dereference" {
+    run_xfail_test "tests/XFAIL/pointers_dereference"
+}
+
+@test "XFAIL: random_numbers" {
+    run_xfail_test "tests/XFAIL/random_numbers"
+}
+
+@test "XFAIL: range_iteration" {
+    run_xfail_test "tests/XFAIL/range_iteration"
+}
+
 @test "XFAIL: range_loops" {
     run_xfail_test "tests/XFAIL/range_loops"
 }
 
+@test "XFAIL: range_over_channels" {
+    run_xfail_test "tests/XFAIL/range_over_channels"
+}
+
+@test "XFAIL: rate_limiting" {
+    run_xfail_test "tests/XFAIL/rate_limiting"
+}
+
 @test "XFAIL: recursion_basic" {
     run_xfail_test "tests/XFAIL/recursion_basic"
+}
+
+@test "XFAIL: recursion_factorial" {
+    run_xfail_test "tests/XFAIL/recursion_factorial"
+}
+
+@test "XFAIL: regex_basic" {
+    run_xfail_test "tests/XFAIL/regex_basic"
+}
+
+@test "XFAIL: select_basic" {
+    run_xfail_test "tests/XFAIL/select_basic"
 }
 
 @test "XFAIL: select_statements" {
@@ -274,8 +442,20 @@ run_xfail_test() {
     run_xfail_test "tests/XFAIL/shared_mutation"
 }
 
+@test "XFAIL: slices_append" {
+    run_xfail_test "tests/XFAIL/slices_append"
+}
+
 @test "XFAIL: slices_basic" {
     run_xfail_test "tests/XFAIL/slices_basic"
+}
+
+@test "XFAIL: sort_slice" {
+    run_xfail_test "tests/XFAIL/sort_slice"
+}
+
+@test "XFAIL: stateful_goroutines" {
+    run_xfail_test "tests/XFAIL/stateful_goroutines"
 }
 
 @test "XFAIL: stdlib_imports" {
@@ -286,12 +466,56 @@ run_xfail_test() {
     run_xfail_test "tests/XFAIL/stdlib_strings"
 }
 
+@test "XFAIL: strconv_parse" {
+    run_xfail_test "tests/XFAIL/strconv_parse"
+}
+
+@test "XFAIL: string_builder" {
+    run_xfail_test "tests/XFAIL/string_builder"
+}
+
+@test "XFAIL: string_interpolation" {
+    run_xfail_test "tests/XFAIL/string_interpolation"
+}
+
+@test "XFAIL: strings_runes" {
+    run_xfail_test "tests/XFAIL/strings_runes"
+}
+
+@test "XFAIL: struct_embedding" {
+    run_xfail_test "tests/XFAIL/struct_embedding"
+}
+
+@test "XFAIL: struct_methods" {
+    run_xfail_test "tests/XFAIL/struct_methods"
+}
+
 @test "XFAIL: structs_basic" {
     run_xfail_test "tests/XFAIL/structs_basic"
 }
 
+@test "XFAIL: switch_basic" {
+    run_xfail_test "tests/XFAIL/switch_basic"
+}
+
 @test "XFAIL: switch_statements" {
     run_xfail_test "tests/XFAIL/switch_statements"
+}
+
+@test "XFAIL: tickers_basic" {
+    run_xfail_test "tests/XFAIL/tickers_basic"
+}
+
+@test "XFAIL: time_operations" {
+    run_xfail_test "tests/XFAIL/time_operations"
+}
+
+@test "XFAIL: timeouts_basic" {
+    run_xfail_test "tests/XFAIL/timeouts_basic"
+}
+
+@test "XFAIL: timers_basic" {
+    run_xfail_test "tests/XFAIL/timers_basic"
 }
 
 @test "XFAIL: type_assertion_simple" {
@@ -306,7 +530,27 @@ run_xfail_test() {
     run_xfail_test "tests/XFAIL/type_conversions"
 }
 
+@test "XFAIL: type_embedding" {
+    run_xfail_test "tests/XFAIL/type_embedding"
+}
+
+@test "XFAIL: url_parsing" {
+    run_xfail_test "tests/XFAIL/url_parsing"
+}
+
+@test "XFAIL: values_basic" {
+    run_xfail_test "tests/XFAIL/values_basic"
+}
+
 @test "XFAIL: variadic_functions" {
     run_xfail_test "tests/XFAIL/variadic_functions"
+}
+
+@test "XFAIL: waitgroup_sync" {
+    run_xfail_test "tests/XFAIL/waitgroup_sync"
+}
+
+@test "XFAIL: worker_pools" {
+    run_xfail_test "tests/XFAIL/worker_pools"
 }
 # END GENERATED TESTS

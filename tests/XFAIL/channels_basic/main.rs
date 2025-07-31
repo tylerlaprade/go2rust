@@ -14,7 +14,7 @@ pub fn receiver(ch: std::sync::Arc<std::sync::Mutex<Option<Unknown>>>) {
         let (mut value, mut ok) = <-(*ch.lock().unwrap().as_ref().unwrap());
         if !(*ok.lock().unwrap().as_ref().unwrap()) {
         println!("{}", "Channel closed".to_string());
-        // TODO: Unhandled statement type: BranchStmt
+        break
     }
         print!("Received: {}\n", (*value.lock().unwrap().as_ref().unwrap()));
     }
