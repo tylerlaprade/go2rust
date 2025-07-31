@@ -11,7 +11,7 @@ pub fn sender(ch: std::sync::Arc<std::sync::Mutex<Option<Unknown>>>) {
 
 pub fn receiver(ch: std::sync::Arc<std::sync::Mutex<Option<Unknown>>>) {
     while true {
-        let (mut (*value.lock().unwrap().as_ref().unwrap()), mut (*ok.lock().unwrap().as_ref().unwrap())) = <-(*ch.lock().unwrap().as_ref().unwrap());
+        let (mut value, mut ok) = <-(*ch.lock().unwrap().as_ref().unwrap());
         if !(*ok.lock().unwrap().as_ref().unwrap()) {
         println!("{}", "Channel closed".to_string());
         

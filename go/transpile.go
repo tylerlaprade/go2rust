@@ -6,8 +6,9 @@ import (
 	"strings"
 )
 
-// rangeLoopVars tracks variables that are range loop iterators and shouldn't be unwrapped
-var rangeLoopVars = make(map[string]bool)
+// These maps track the names and types of special variables that shouldn't be unwrapped
+var rangeLoopVars = make(map[string]string)
+var localConstants = make(map[string]string)
 
 func Transpile(file *ast.File) string {
 	var output strings.Builder

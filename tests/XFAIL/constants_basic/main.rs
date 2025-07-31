@@ -4,8 +4,8 @@ const MAX_USERS: i32 = 100;
 
 
 const NAME: &'static str = "Go2Rust";
-const VERSION: std::sync::Arc<std::sync::Mutex<Option<f64>>> = 1.0;
-const DEBUG: std::sync::Arc<std::sync::Mutex<Option<bool>>> = true;
+const VERSION: f64 = 1.0;
+const DEBUG: bool = true;
 
 
 const SUNDAY: i32 = 0;
@@ -67,31 +67,31 @@ fn main() {
     print!("EE = {}\n", E_E);
     print!("F = {}\n", F);
     println!("{}", "\n=== Local constants ===".to_string());
-    const LOCAL_CONST: i32 = 42;
+    const localConst: i32 = 42;
 
-    const X: i32 = 10;
-const Y: i32 = 20;
-const Z: i32 = X + Y;
+    const x: i32 = 10;
+const y: i32 = 20;
+const z: i32 = x + y;
 
-    print!("localConst = {}\n", (*localConst.lock().unwrap().as_ref().unwrap()));
-    print!("x = {}, y = {}, z = {}\n", (*x.lock().unwrap().as_ref().unwrap()), (*y.lock().unwrap().as_ref().unwrap()), (*z.lock().unwrap().as_ref().unwrap()));
+    print!("localConst = {}\n", localConst);
+    print!("x = {}, y = {}, z = {}\n", x, y, z);
     println!("{}", "\n=== Untyped constants in expressions ===".to_string());
-    const UNTYPED_INT: i32 = 100;
+    const untypedInt: i32 = 100;
 
-    const UNTYPED_FLOAT: f64 = 3.14;
+    const untypedFloat: f64 = 3.14;
 
-    let mut i = std::sync::Arc::new(std::sync::Mutex::new(Some((*untypedInt.lock().unwrap().as_ref().unwrap()))));
-    let mut f = std::sync::Arc::new(std::sync::Mutex::new(Some((*untypedFloat.lock().unwrap().as_ref().unwrap()))));
-    let mut mixed = std::sync::Arc::new(std::sync::Mutex::new(Some((*untypedInt.lock().unwrap().as_ref().unwrap()) + 3)));
+    let mut i = std::sync::Arc::new(std::sync::Mutex::new(Some(untypedInt)));
+    let mut f = std::sync::Arc::new(std::sync::Mutex::new(Some(untypedFloat)));
+    let mut mixed = std::sync::Arc::new(std::sync::Mutex::new(Some(untypedInt + 3)));
     print!("i = {}\n", (*i.lock().unwrap().as_ref().unwrap()));
     print!("f = {:.2}\n", (*f.lock().unwrap().as_ref().unwrap()));
     print!("mixed = {}\n", (*mixed.lock().unwrap().as_ref().unwrap()));
     println!("{}", "\n=== String constants ===".to_string());
-    const GREETING: &'static str = "Hello";
+    const greeting: &'static str = "Hello";
 
-    const TARGET: &'static str = "World";
+    const target: &'static str = "World";
 
-    const MESSAGE: i32 = GREETING + ", " + TARGET + "!";
+    const message: &'static str = greeting + ", " + target + "!";
 
-    println!("{}", (*message.lock().unwrap().as_ref().unwrap()));
+    println!("{}", message);
 }

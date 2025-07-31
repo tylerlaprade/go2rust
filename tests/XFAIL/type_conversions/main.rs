@@ -65,14 +65,14 @@ fn main() {
     let mut any = std::sync::Arc::new(std::sync::Mutex::new(Some(42)));
     print!("interface{} value: {}\n", (*any.lock().unwrap().as_ref().unwrap()));
     print!("interface{} type: %T\n", (*any.lock().unwrap().as_ref().unwrap()));
-    let (mut (*intVal.lock().unwrap().as_ref().unwrap()), mut (*ok.lock().unwrap().as_ref().unwrap())) = match (*any.lock().unwrap().as_ref().unwrap()).downcast_ref::<i32>() { Some(v) => (v.clone(), true), None => (0, false) };
+    let (mut intVal, mut ok) = match (*any.lock().unwrap().as_ref().unwrap()).downcast_ref::<i32>() { Some(v) => (v.clone(), true), None => (0, false) };
     if (*ok.lock().unwrap().as_ref().unwrap()) {
         print!("asserted as int: {}\n", (*intVal.lock().unwrap().as_ref().unwrap()));
     }
     { let new_val = "hello".to_string(); *any.lock().unwrap() = Some(new_val); };
     print!("new interface{} value: {}\n", (*any.lock().unwrap().as_ref().unwrap()));
     print!("new interface{} type: %T\n", (*any.lock().unwrap().as_ref().unwrap()));
-    let (mut (*strVal.lock().unwrap().as_ref().unwrap()), mut (*ok.lock().unwrap().as_ref().unwrap())) = match (*any.lock().unwrap().as_ref().unwrap()).downcast_ref::<String>() { Some(v) => (v.clone(), true), None => (String::new(), false) };
+    let (mut strVal, mut ok) = match (*any.lock().unwrap().as_ref().unwrap()).downcast_ref::<String>() { Some(v) => (v.clone(), true), None => (String::new(), false) };
     if (*ok.lock().unwrap().as_ref().unwrap()) {
         print!("asserted as string: {}\n", (*strVal.lock().unwrap().as_ref().unwrap()));
     }

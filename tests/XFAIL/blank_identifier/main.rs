@@ -4,8 +4,8 @@ pub fn multiple_returns() -> (std::sync::Arc<std::sync::Mutex<Option<i32>>>, std
 }
 
 pub fn process_slice(slice: std::sync::Arc<std::sync::Mutex<Option<Vec<i32>>>>) -> (std::sync::Arc<std::sync::Mutex<Option<i32>>>, std::sync::Arc<std::sync::Mutex<Option<i32>>>) {
-    let mut sum: std::sync::Arc<std::sync::Mutex<Option<i32>>> = 0;
-    let mut count: std::sync::Arc<std::sync::Mutex<Option<i32>>> = 0;
+    let mut sum: std::sync::Arc<std::sync::Mutex<Option<i32>>> = std::sync::Arc::new(std::sync::Mutex::new(Some(0)));
+    let mut count: std::sync::Arc<std::sync::Mutex<Option<i32>>> = std::sync::Arc::new(std::sync::Mutex::new(Some(0)));
 
     { let new_val = 0; *sum.lock().unwrap() = Some(new_val); };
     { let new_val = (*slice.lock().unwrap().as_ref().unwrap()).len(); *count.lock().unwrap() = Some(new_val); };
@@ -17,11 +17,11 @@ pub fn process_slice(slice: std::sync::Arc<std::sync::Mutex<Option<Vec<i32>>>>) 
 
 fn main() {
     println!("{}", "=== Ignoring return values ===".to_string());
-    let (mut (*num.lock().unwrap().as_ref().unwrap()), (*_.lock().unwrap().as_ref().unwrap()), (*_.lock().unwrap().as_ref().unwrap())) = multiple_returns();
+    let (mut num, _, _) = multiple_returns();
     print!("Only using first return: {}\n", (*num.lock().unwrap().as_ref().unwrap()));
-    let ((*_.lock().unwrap().as_ref().unwrap()), mut (*str.lock().unwrap().as_ref().unwrap()), (*_.lock().unwrap().as_ref().unwrap())) = multiple_returns();
+    let (_, mut str, _) = multiple_returns();
     print!("Only using middle return: {}\n", (*str.lock().unwrap().as_ref().unwrap()));
-    let ((*_.lock().unwrap().as_ref().unwrap()), (*_.lock().unwrap().as_ref().unwrap()), mut (*flag.lock().unwrap().as_ref().unwrap())) = multiple_returns();
+    let (_, _, mut flag) = multiple_returns();
     print!("Only using last return: {}\n", (*flag.lock().unwrap().as_ref().unwrap()));
     println!("{}", "\n=== Ignoring in range loops ===".to_string());
     let mut slice = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![10, 20, 30, 40, 50])));
@@ -53,9 +53,9 @@ fn main() {
     }
     println!();
     println!("{}", "\n=== Ignoring some return values in assignment ===".to_string());
-    let (mut (*sum.lock().unwrap().as_ref().unwrap()), (*_.lock().unwrap().as_ref().unwrap())) = process_slice(std::sync::Arc::new(std::sync::Mutex::new(Some((*slice.lock().unwrap().as_ref().unwrap())))));
+    let (mut sum, _) = process_slice(std::sync::Arc::new(std::sync::Mutex::new(Some((*slice.lock().unwrap().as_ref().unwrap())))));
     print!("Sum (ignoring count): {}\n", (*sum.lock().unwrap().as_ref().unwrap()));
-    let ((*_.lock().unwrap().as_ref().unwrap()), mut (*count.lock().unwrap().as_ref().unwrap())) = process_slice(std::sync::Arc::new(std::sync::Mutex::new(Some((*slice.lock().unwrap().as_ref().unwrap())))));
+    let (_, mut count) = process_slice(std::sync::Arc::new(std::sync::Mutex::new(Some((*slice.lock().unwrap().as_ref().unwrap())))));
     print!("Count (ignoring sum): {}\n", (*count.lock().unwrap().as_ref().unwrap()));
     println!("{}", "\n=== Blank identifier in declarations ===".to_string());
     let _ = "This string is assigned but not used".to_string();
@@ -63,11 +63,11 @@ fn main() {
     print!("a={}, c={} (middle value ignored)\n", (*a.lock().unwrap().as_ref().unwrap()), (*c.lock().unwrap().as_ref().unwrap()));
     println!("{}", "\n=== Blank identifier with type assertion ===".to_string());
     let mut value = std::sync::Arc::new(std::sync::Mutex::new(Some("hello world".to_string())));
-    let ((*_.lock().unwrap().as_ref().unwrap()), mut (*ok.lock().unwrap().as_ref().unwrap())) = match (*value.lock().unwrap().as_ref().unwrap()).downcast_ref::<String>() { Some(v) => (v.clone(), true), None => (String::new(), false) };
+    let (_, mut ok) = match (*value.lock().unwrap().as_ref().unwrap()).downcast_ref::<String>() { Some(v) => (v.clone(), true), None => (String::new(), false) };
     if (*ok.lock().unwrap().as_ref().unwrap()) {
         println!("{}", "Value is a string (but we ignored the actual value)".to_string());
     }
-    let ((*_.lock().unwrap().as_ref().unwrap()), mut (*ok.lock().unwrap().as_ref().unwrap())) = match (*value.lock().unwrap().as_ref().unwrap()).downcast_ref::<i32>() { Some(v) => (v.clone(), true), None => (0, false) };
+    let (_, mut ok) = match (*value.lock().unwrap().as_ref().unwrap()).downcast_ref::<i32>() { Some(v) => (v.clone(), true), None => (0, false) };
     if (*ok.lock().unwrap().as_ref().unwrap()) {
         println!("{}", "Value is an int".to_string());
     } else {
@@ -83,7 +83,7 @@ fn main() {
         println!("{}", "Received a value (but ignored it)".to_string());
     }
     println!("{}", "\n=== Blank identifier in error handling ===".to_string());
-    let (mut (*result.lock().unwrap().as_ref().unwrap()), (*_.lock().unwrap().as_ref().unwrap())) = process_slice(std::sync::Arc::new(std::sync::Mutex::new(Some(vec![1, 2, 3, 4, 5]))));
+    let (mut result, _) = process_slice(std::sync::Arc::new(std::sync::Mutex::new(Some(vec![1, 2, 3, 4, 5]))));
     print!("Result (ignoring potential error): {}\n", (*result.lock().unwrap().as_ref().unwrap()));
     println!("{}", "\n=== Complex example ===".to_string());
     let mut data = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![, , ])));
