@@ -6,6 +6,13 @@
 
 
 
+#[derive(Debug)]
+struct Calculator {
+    add: std::sync::Arc<std::sync::Mutex<Option<BinaryOp>>>,
+    subtract: std::sync::Arc<std::sync::Mutex<Option<BinaryOp>>>,
+    multiply: std::sync::Arc<std::sync::Mutex<Option<BinaryOp>>>,
+}
+
 pub fn add(a: std::sync::Arc<std::sync::Mutex<Option<i32>>>, b: std::sync::Arc<std::sync::Mutex<Option<i32>>>) -> std::sync::Arc<std::sync::Mutex<Option<i32>>> {
 
     return std::sync::Arc::new(std::sync::Mutex::new(Some((*a.lock().unwrap().as_ref().unwrap()) + (*b.lock().unwrap().as_ref().unwrap()))));
@@ -82,13 +89,6 @@ pub fn make_multiplier(factor: std::sync::Arc<std::sync::Mutex<Option<i32>>>) ->
 pub fn make_adder(addend: std::sync::Arc<std::sync::Mutex<Option<i32>>>) -> std::sync::Arc<std::sync::Mutex<Option<BinaryOp>>> {
 
     return std::sync::Arc::new(std::sync::Mutex::new(Some()));
-}
-
-#[derive(Debug)]
-struct Calculator {
-    add: std::sync::Arc<std::sync::Mutex<Option<BinaryOp>>>,
-    subtract: std::sync::Arc<std::sync::Mutex<Option<BinaryOp>>>,
-    multiply: std::sync::Arc<std::sync::Mutex<Option<BinaryOp>>>,
 }
 
 fn main() {

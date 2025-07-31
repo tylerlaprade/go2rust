@@ -1,3 +1,10 @@
+#[derive(Debug)]
+struct Config {
+    name: std::sync::Arc<std::sync::Mutex<Option<String>>>,
+    version: std::sync::Arc<std::sync::Mutex<Option<String>>>,
+    debug: std::sync::Arc<std::sync::Mutex<Option<bool>>>,
+}
+
 pub fn init() {
     println!("{}", "First init function called".to_string());
     { let new_val = 10; *globalCounter.lock().unwrap() = Some(new_val); };
@@ -31,13 +38,6 @@ pub fn init() {
     println!("{}", "Fourth init function called".to_string());
     print!("Computed value is: {}\n", (*computedValue.lock().unwrap().as_ref().unwrap()));
     (*computedValue.lock().unwrap().as_ref().unwrap()) += 10;
-}
-
-#[derive(Debug)]
-struct Config {
-    name: std::sync::Arc<std::sync::Mutex<Option<String>>>,
-    version: std::sync::Arc<std::sync::Mutex<Option<String>>>,
-    debug: std::sync::Arc<std::sync::Mutex<Option<bool>>>,
 }
 
 pub fn init() {

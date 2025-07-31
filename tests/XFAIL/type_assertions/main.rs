@@ -1,3 +1,28 @@
+
+
+#[derive(Debug)]
+struct Rectangle {
+    width: std::sync::Arc<std::sync::Mutex<Option<f64>>>,
+    height: std::sync::Arc<std::sync::Mutex<Option<f64>>>,
+}
+
+#[derive(Debug)]
+struct Circle {
+    radius: std::sync::Arc<std::sync::Mutex<Option<f64>>>,
+}
+
+impl Rectangle {
+    pub fn area(&self) -> std::sync::Arc<std::sync::Mutex<Option<f64>>> {
+        return std::sync::Arc::new(std::sync::Mutex::new(Some(self.width * self.height)));
+    }
+}
+
+impl Circle {
+    pub fn area(&self) -> std::sync::Arc<std::sync::Mutex<Option<f64>>> {
+        return std::sync::Arc::new(std::sync::Mutex::new(Some(3.14159 * self.radius * self.radius)));
+    }
+}
+
 pub fn process_value(value: std::sync::Arc<std::sync::Mutex<Option<Box<dyn std::any::Any>>>>) {
     let (mut str, mut ok) = match (*value.lock().unwrap().as_ref().unwrap()).downcast_ref::<String>() { Some(v) => (v.clone(), true), None => (String::new(), false) };
     if (*ok.lock().unwrap().as_ref().unwrap()) {
@@ -21,29 +46,6 @@ pub fn assert_without_check(value: std::sync::Arc<std::sync::Mutex<Option<Box<dy
     
     let mut str = std::sync::Arc::new(std::sync::Mutex::new(Some(match (*value.lock().unwrap().as_ref().unwrap()).downcast_ref::<String>() { Some(v) => (v.clone(), true), None => (String::new(), false) })));
     print!("Asserted string: {}\n", (*str.lock().unwrap().as_ref().unwrap()));
-}
-
-
-
-#[derive(Debug)]
-struct Rectangle {
-    width: std::sync::Arc<std::sync::Mutex<Option<f64>>>,
-    height: std::sync::Arc<std::sync::Mutex<Option<f64>>>,
-}
-
-pub fn area() -> std::sync::Arc<std::sync::Mutex<Option<f64>>> {
-
-    return std::sync::Arc::new(std::sync::Mutex::new(Some((*r.lock().unwrap().as_ref().unwrap()).width * (*r.lock().unwrap().as_ref().unwrap()).height)));
-}
-
-#[derive(Debug)]
-struct Circle {
-    radius: std::sync::Arc<std::sync::Mutex<Option<f64>>>,
-}
-
-pub fn area() -> std::sync::Arc<std::sync::Mutex<Option<f64>>> {
-
-    return std::sync::Arc::new(std::sync::Mutex::new(Some(3.14159 * (*c.lock().unwrap().as_ref().unwrap()).radius * (*c.lock().unwrap().as_ref().unwrap()).radius)));
 }
 
 pub fn describe_shape(s: std::sync::Arc<std::sync::Mutex<Option<Shape>>>) {
