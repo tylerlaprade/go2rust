@@ -3,6 +3,7 @@ package main
 import (
 	"go/ast"
 	"go/token"
+	"sort"
 	"strings"
 )
 
@@ -32,6 +33,7 @@ func Transpile(file *ast.File) string {
 
 	// Collect methods by receiver type
 	methods := make(map[string][]*ast.FuncDecl)
+	typePositions := make(map[string]token.Pos)
 	var functions []*ast.FuncDecl
 	var types []*ast.TypeSpec
 	var consts []*ast.GenDecl
@@ -43,6 +45,9 @@ func Transpile(file *ast.File) string {
 			if d.Recv != nil && len(d.Recv.List) > 0 {
 				// This is a method
 				recvType := getReceiverType(d.Recv.List[0].Type)
+				if _, exists := typePositions[recvType]; !exists {
+					typePositions[recvType] = d.Pos()
+				}
 				methods[recvType] = append(methods[recvType], d)
 			} else {
 				// Regular function
@@ -83,8 +88,17 @@ func Transpile(file *ast.File) string {
 		TranspileTypeDecl(&output, t)
 	}
 
-	// Output impl blocks for types with methods
-	for typeName, typeMethods := range methods {
+	// Output impl blocks for types with methods in source file order
+	var typeNames []string
+	for typeName := range methods {
+		typeNames = append(typeNames, typeName)
+	}
+	sort.Slice(typeNames, func(i, j int) bool {
+		return typePositions[typeNames[i]] < typePositions[typeNames[j]]
+	})
+
+	for _, typeName := range typeNames {
+		typeMethods := methods[typeName]
 		if !first {
 			output.WriteString("\n\n")
 		}

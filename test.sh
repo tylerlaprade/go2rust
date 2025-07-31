@@ -212,12 +212,12 @@ if [ "$JOBS" -gt 1 ] && [ -f test_output.tmp ]; then
     XFAIL_TOTAL=$(grep "XFAIL" test_output.tmp | wc -l | tr -d ' ')
     TOTAL=$((PASSING + FAILING + XFAIL_TOTAL))
 
-    # Display with colors
-    echo -e "\033[32mPassing: $PASSING/$TOTAL\033[0m"
+    # Display with colors and symbols
+    echo -e "\033[32m✓ Passing: $PASSING/$TOTAL\033[0m"
     if [ "$FAILING" -gt 0 ]; then
-        echo -e "\033[31mFailing: $FAILING/$TOTAL\033[0m"
+        echo -e "\033[31m✗ Failing: $FAILING/$TOTAL\033[0m"
     fi
-    echo -e "\033[33mXFAIL: $XFAIL_TOTAL/$TOTAL\033[0m"
+    echo -e "\033[33m⚠ XFAIL: $XFAIL_TOTAL/$TOTAL\033[0m"
 
     if [ "$FAILING" -gt 0 ]; then
         echo ""
