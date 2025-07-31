@@ -695,6 +695,18 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 		out.WriteString("    }")
 
+	case *ast.BranchStmt:
+		switch s.Tok {
+		case token.BREAK:
+			out.WriteString("break")
+		case token.CONTINUE:
+			out.WriteString("continue")
+		case token.GOTO:
+			out.WriteString("// TODO: goto not supported")
+		case token.FALLTHROUGH:
+			out.WriteString("// TODO: fallthrough not supported")
+		}
+
 	case *ast.DeferStmt:
 		// For now, just add a comment - proper defer support is complex
 		out.WriteString("// defer ")

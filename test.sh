@@ -72,17 +72,64 @@ rm "$temp_file"
 
 echo "Updated tests.bats with $(grep -c '^@test' tests.bats) tests"
 
-# Check for help flag
+# Parse command line arguments
+VERBOSE=false
+JOBS=""
+TIMEOUT="60s"
+HELP=false
+
+i=1
 for arg in "$@"; do
-    if [ "$arg" = "--help" ] || [ "$arg" = "-h" ]; then
-        echo ""
-        echo "Usage: $0 [options]"
-        echo "Options:"
-        echo "  -v, --verbose    Show XFAIL tests in output"
-        echo "  -h, --help       Show this help message"
-        exit 0
-    fi
+    case $arg in
+        -h|--help)
+            HELP=true
+            ;;
+        -v|--verbose)
+            VERBOSE=true
+            ;;
+        -n|--jobs)
+            # Next argument should be the number
+            eval "JOBS=\${$((i+1))}"
+            ;;
+        -n*)
+            # -n4 format
+            JOBS="${arg#-n}"
+            ;;
+        --jobs=*)
+            # --jobs=4 format
+            JOBS="${arg#--jobs=}"
+            ;;
+        -t|--timeout)
+            # Next argument should be the timeout
+            eval "TIMEOUT=\${$((i+1))}"
+            ;;
+        -t*)
+            # -t30s format
+            TIMEOUT="${arg#-t}"
+            ;;
+        --timeout=*)
+            # --timeout=30s format
+            TIMEOUT="${arg#--timeout=}"
+            ;;
+    esac
+    i=$((i+1))
 done
+
+# Show help if requested
+if [ "$HELP" = true ]; then
+    echo ""
+    echo "Usage: $0 [options]"
+    echo "Options:"
+    echo "  -v, --verbose      Show XFAIL tests in output"
+    echo "  -n, --jobs N       Number of parallel jobs (default: auto-detect)"
+    echo "  -t, --timeout TIME Timeout per test (default: 60s)"
+    echo "  -h, --help         Show this help message"
+    echo ""
+    echo "Examples:"
+    echo "  $0 -n 4 -t 30s     # 4 jobs, 30 second timeout per test"
+    echo "  $0 -t 2m            # 2 minute timeout per test"
+    exit 0
+fi
 
 # Run tests
 if ! command -v bats >/dev/null 2>&1; then
@@ -91,15 +138,14 @@ if ! command -v bats >/dev/null 2>&1; then
     exit 1
 fi
 
-echo "Running tests..."
-
-# Check for verbose flag
-VERBOSE=false
-for arg in "$@"; do
-    if [ "$arg" = "--verbose" ] || [ "$arg" = "-v" ]; then
-        VERBOSE=true
-    fi
-done
+# Set default job count if not specified
+if [ -z "$JOBS" ]; then
+    # Detect CPU cores but leave some headroom for Rust's memory usage
+    CORES=$(sysctl -n hw.ncpu 2>/dev/null || nproc 2>/dev/null || echo 4)
+    # Use 75% of cores (minimum 2) to avoid memory pressure from Rust compilation
+    JOBS=$(( CORES * 3 / 4 ))
+    [ $JOBS -lt 2 ] && JOBS=2
+fi
 
 # Function to colorize test output
 colorize_output() {
@@ -107,19 +153,22 @@ colorize_output() {
     while IFS= read -r line; do
         if [[ "$line" =~ ^"not ok " ]]; then
             # Start of failing test - red X
-            local test_name=$(echo "$line" | sed 's/^not ok [0-9]* //')
+            local test_name
+            test_name=$(echo "$line" | sed 's/^not ok [0-9]* //')
             echo -e "\033[31m✗ $test_name\033[0m"
             in_failure=true
         elif [[ "$line" =~ ^"ok " ]] && [[ "$line" =~ " XFAIL:" ]]; then
             # XFAIL tests - yellow ⚠ (only show if verbose)
             if [ "$VERBOSE" = true ]; then
-                local test_name=$(echo "$line" | sed 's/^ok [0-9]* //')
+                local test_name
+                test_name=$(echo "$line" | sed 's/^ok [0-9]* //')
                 echo -e "\033[33m⚠ $test_name\033[0m"
             fi
             in_failure=false
         elif [[ "$line" =~ ^"ok " ]]; then
             # Passing test - green checkmark
-            local test_name=$(echo "$line" | sed 's/^ok [0-9]* //')
+            local test_name
+            test_name=$(echo "$line" | sed 's/^ok [0-9]* //')
             echo -e "\033[32m✓\033[0m $test_name"
             in_failure=false
         elif [[ "$line" =~ ^"#" ]] && [ "$in_failure" = true ]; then
@@ -137,44 +186,46 @@ colorize_output() {
     done
 }
 
-# Check if GNU parallel is installed for parallel execution
-if command -v parallel >/dev/null 2>&1; then
-    # Detect CPU cores but leave some headroom for Rust's memory usage
-    CORES=$(sysctl -n hw.ncpu 2>/dev/null || nproc 2>/dev/null || echo 4)
-    # Use 75% of cores (minimum 2) to avoid memory pressure from Rust compilation
-    JOBS=$(( CORES * 3 / 4 ))
-    [ $JOBS -lt 2 ] && JOBS=2
-    echo "Running tests in parallel with $JOBS jobs (detected $CORES cores)..."
-    bats -j "$JOBS" tests.bats | tee test_output.tmp | colorize_output
+# Export timeout for bats to use
+export TEST_TIMEOUT="$TIMEOUT"
+
+# Choose execution mode based on job count
+if [ "$JOBS" -eq 1 ]; then
+    # Sequential mode - real-time output
+    echo "Running tests sequentially (timeout: $TIMEOUT per test)..."
+    bats --tap tests.bats | colorize_output
 else
-    echo "Running tests sequentially (install GNU parallel for faster execution)..."
-    bats tests.bats | tee test_output.tmp | colorize_output
+    # Parallel mode - buffered output
+    echo "Running tests in parallel with $JOBS jobs (timeout: $TIMEOUT per test)..."
+    bats -j "$JOBS" tests.bats | tee test_output.tmp | colorize_output
 fi
 
-# Extract and display test summary with colors
-echo ""
-echo -e "\033[1mTest Summary:\033[0m"
-echo "============="
-
-# Count all test types
-PASSING=$(grep "^ok " test_output.tmp | grep -v "XFAIL" | wc -l | tr -d ' ')
-FAILING=$(grep "^not ok " test_output.tmp | grep -v "XFAIL" | wc -l | tr -d ' ')
-XFAIL_TOTAL=$(grep "XFAIL" test_output.tmp | wc -l | tr -d ' ')
-TOTAL=$((PASSING + FAILING + XFAIL_TOTAL))
-
-# Display with colors
-echo -e "\033[32mPassing: $PASSING/$TOTAL\033[0m"
-if [ "$FAILING" -gt 0 ]; then
-    echo -e "\033[31mFailing: $FAILING/$TOTAL\033[0m"
-fi
-echo -e "\033[33mXFAIL: $XFAIL_TOTAL/$TOTAL\033[0m"
-
-if [ "$FAILING" -gt 0 ]; then
+# Extract and display test summary with colors (only for parallel mode)
+if [ "$JOBS" -gt 1 ] && [ -f test_output.tmp ]; then
     echo ""
-    echo -e "\033[31mFailed tests:\033[0m"
-    grep "^not ok " test_output.tmp | grep -v "XFAIL" | while IFS= read -r line; do
-        echo -e "\033[31m  - $(echo "$line" | sed 's/^not ok [0-9]* //')\033[0m"
-    done
-fi
+    echo -e "\033[1mTest Summary:\033[0m"
+    echo "============="
 
-rm -f test_output.tmp
+    # Count all test types
+    PASSING=$(grep "^ok " test_output.tmp | grep -v "XFAIL" | wc -l | tr -d ' ')
+    FAILING=$(grep "^not ok " test_output.tmp | grep -v "XFAIL" | wc -l | tr -d ' ')
+    XFAIL_TOTAL=$(grep "XFAIL" test_output.tmp | wc -l | tr -d ' ')
+    TOTAL=$((PASSING + FAILING + XFAIL_TOTAL))
+
+    # Display with colors
+    echo -e "\033[32mPassing: $PASSING/$TOTAL\033[0m"
+    if [ "$FAILING" -gt 0 ]; then
+        echo -e "\033[31mFailing: $FAILING/$TOTAL\033[0m"
+    fi
+    echo -e "\033[33mXFAIL: $XFAIL_TOTAL/$TOTAL\033[0m"
+
+    if [ "$FAILING" -gt 0 ]; then
+        echo ""
+        echo -e "\033[31mFailed tests:\033[0m"
+        grep "^not ok " test_output.tmp | grep -v "XFAIL" | while IFS= read -r line; do
+            echo -e "\033[31m  - $(echo "$line" | sed 's/^not ok [0-9]* //')\033[0m"
+        done
+    fi
+
+    rm -f test_output.tmp
+fi

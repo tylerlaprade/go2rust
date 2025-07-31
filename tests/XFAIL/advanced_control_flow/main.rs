@@ -10,7 +10,7 @@ fn main() {
         match (*num.lock().unwrap().as_ref().unwrap()) {
         1 => {
             (*fmt.lock().unwrap().as_ref().unwrap()).print(std::sync::Arc::new(std::sync::Mutex::new(Some("One".to_string()))));
-            // TODO: Unhandled statement type: BranchStmt
+            // TODO: fallthrough not supported
         }
         2 => {
             (*fmt.lock().unwrap().as_ref().unwrap()).print(std::sync::Arc::new(std::sync::Mutex::new(Some(" Two-ish".to_string()))));
@@ -65,7 +65,7 @@ fn main() {
     while (*i.lock().unwrap().as_ref().unwrap()) < (*j.lock().unwrap().as_ref().unwrap()) {
         print!("i={}, j={}, sum={}\n", (*i.lock().unwrap().as_ref().unwrap()), (*j.lock().unwrap().as_ref().unwrap()), (*i.lock().unwrap().as_ref().unwrap()) + (*j.lock().unwrap().as_ref().unwrap()));
         if (*i.lock().unwrap().as_ref().unwrap()) >= 3 {
-        // TODO: Unhandled statement type: BranchStmt
+        break
     }
         { *(*i.lock().unwrap().as_ref().unwrap()).lock().unwrap() = Some((*i.lock().unwrap().as_ref().unwrap()) + 1); *(*j.lock().unwrap().as_ref().unwrap()).lock().unwrap() = Some((*j.lock().unwrap().as_ref().unwrap()) - 1) };
     }
@@ -85,7 +85,7 @@ fn main() {
     // TODO: Unhandled statement type: LabeledStmt
     print!("Counter: {}\n", (*counter.lock().unwrap().as_ref().unwrap()));
     if (*counter.lock().unwrap().as_ref().unwrap()) < 3 {
-        // TODO: Unhandled statement type: BranchStmt
+        // TODO: goto not supported
     }
     println!("{}", "Done with goto".to_string());
     println!("{}", "\n=== Complex if-else chains ===".to_string());
@@ -127,14 +127,14 @@ fn main() {
         if num % 2 == 0 {
         if num > 6 {
         print!("Stopping at even number {} (index {})\n", num, i);
-        // TODO: Unhandled statement type: BranchStmt
+        break
     }
         print!("Skipping even number {} (index {})\n", num, i);
-        // TODO: Unhandled statement type: BranchStmt
+        continue
     }
         if num == 7 {
         print!("Found lucky number {} at index {}\n", num, i);
-        // TODO: Unhandled statement type: BranchStmt
+        continue
     }
         print!("Processing odd number {} (index {})\n", num, i);
     }
@@ -144,11 +144,11 @@ fn main() {
         for (colIdx, cell) in row.iter().enumerate() {
         if cell == "e".to_string() {
         print!("Found center at [{}][{}]: {}\n", rowIdx, colIdx, cell);
-        // TODO: Unhandled statement type: BranchStmt
+        continue
     }
         if rowIdx == 2 && colIdx == 2 {
         print!("Last cell [{}][{}]: {}\n", rowIdx, colIdx, cell);
-        // TODO: Unhandled statement type: BranchStmt
+        break
     }
         print!("[{}][{}]: {} ", rowIdx, colIdx, cell);
     }
@@ -173,7 +173,7 @@ fn main() {
         let mut err = process_data(std::sync::Arc::new(std::sync::Mutex::new(Some(data))));
     if (*err.lock().unwrap().as_ref().unwrap()).is_some() {
         print!("  Error: {}\n", (*err.lock().unwrap().as_ref().unwrap()));
-        // TODO: Unhandled statement type: BranchStmt
+        continue
     }
         print!("  Success: data is valid\n");
     }

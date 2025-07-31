@@ -50,7 +50,7 @@ fn main() {
     println!("{}", "Even numbers only (with continue):".to_string());
     for (_, num) in (*data.lock().unwrap().as_ref().unwrap()).iter().enumerate() {
         if num % 2 != 0 {
-        // TODO: Unhandled statement type: BranchStmt
+        continue
     }
         print!("{} ", num);
     }
@@ -58,7 +58,7 @@ fn main() {
     println!("{}", "Numbers until 6 (with break):".to_string());
     for (_, num) in (*data.lock().unwrap().as_ref().unwrap()).iter().enumerate() {
         if num > 6 {
-        // TODO: Unhandled statement type: BranchStmt
+        break
     }
         print!("{} ", num);
     }
