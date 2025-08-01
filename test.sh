@@ -16,19 +16,6 @@ trap cleanup EXIT INT TERM
 # is the most reliable way to preserve formatting.
 temp_file=$(mktemp)
 
-# Validate XFAIL tests compile
-for xfail_dir in $(find tests/XFAIL -maxdepth 1 -type d ! -name XFAIL | sort); do
-    if [ -f "$xfail_dir/main.go" ]; then
-        # Check if Go code compiles first
-        error_output=$(cd "$xfail_dir" && go build . 2>&1)
-        if [ $? -ne 0 ]; then
-            echo "ERROR: XFAIL test $(basename "$xfail_dir") does not compile:"
-            echo "$error_output" | sed 's/^/  /'
-            exit 1
-        fi
-    fi
-done
-
 # Generate test cases for directories containing main.go
 for dir in $(find tests -maxdepth 1 -type d ! -name tests ! -name XFAIL | sort); do
     if [ -f "$dir/main.go" ]; then

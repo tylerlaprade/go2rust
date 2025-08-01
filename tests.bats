@@ -8,12 +8,6 @@ setup_file() {
     go build -o go2rust ./go
 }
 
-teardown_file() {
-    # find tests -name "target" -type d -exec rm -rf {} + 2>/dev/null || true
-    # find tests -name "debug" -type d -exec rm -rf {} + 2>/dev/null || true
-    find tests/** -type f -perm +111 -delete 2>/dev/null || true
-}
-
 # Helper to run a command and prefix stdout/stderr
 run_with_prefix() {
     local stdout_file
@@ -65,12 +59,69 @@ CARGO_EOF
     rm -rf "$temp_dir"
 }
 
+# Helper function that handles transpilation, Rust compilation, and output comparison
+# Takes test_dir and go_output as parameters
+run_transpile_and_compare() {
+    local test_dir="$1"
+    local go_output="$2"
+    
+    # Transpile to Rust
+    transpile_output=$(./go2rust "$test_dir" 2>&1)
+    if [ $? -ne 0 ]; then
+        echo "Transpilation failed:"
+        echo "$transpile_output" | sed "s/^/  /"
+        return 1
+    fi
+    
+    # Check if Rust code compiles first (faster than cargo run)
+    rust_check_output=$(cd "$test_dir" && RUSTFLAGS="-A warnings" cargo check --quiet 2>&1)
+    if [ $? -ne 0 ]; then
+        echo ""
+        echo "Rust compilation failed:"
+        echo "$rust_check_output" | sed "s/^/  /"
+        echo ""
+        echo "Generated Rust code:"
+        echo "==================="
+        cat "$test_dir/main.rs" | sed "s/^/  /"
+        return 1
+    fi
+    
+    # Run Rust version
+    rust_output=$(cd "$test_dir" && RUSTFLAGS="-A warnings" cargo run --quiet 2>&1)
+    rust_exit_code=$?
+    
+    if [ $rust_exit_code -ne 0 ]; then
+        echo ""
+        echo "Rust execution failed:"
+        echo "$rust_output" | sed "s/^/  /"
+        return 1
+    fi
+    
+    # Compare outputs
+    if [ "$go_output" != "$rust_output" ]; then
+        echo ""
+        echo "Output mismatch:"
+        echo "Go output:"
+        echo "$go_output"
+        echo ""
+        echo "Rust output:"
+        echo "$rust_output"
+        return 1
+    fi
+    
+    return 0
+}
+
 
 run_test() {
     local test_dir="$1"
     local timeout="${TEST_TIMEOUT:-60s}"
 
+    # Export the helper function so it's available in the subshell
+    export -f run_transpile_and_compare
+
     # Run the entire test with timeout
+    # shellcheck disable=SC2016
     if ! timeout "$timeout" bash -c '
         test_dir="$1"
         
@@ -84,51 +135,8 @@ run_test() {
             exit 1
         fi
 
-        # Transpile to Rust
-        transpile_output=$(./go2rust "$test_dir" 2>&1)
-        if [ $? -ne 0 ]; then
-            echo "Transpilation failed:"
-            echo "$transpile_output" | sed "s/^/  /"
-            exit 1
-        fi
-        
-        # Check if Rust code compiles first (faster than cargo run)
-        rust_check_output=$(cd "$test_dir" && RUSTFLAGS="-A warnings" cargo check --quiet 2>&1)
-        if [ $? -ne 0 ]; then
-            echo ""
-            echo "Rust compilation failed:"
-            echo "$rust_check_output" | sed "s/^/  /"
-            echo ""
-            echo "Generated Rust code:"
-            echo "==================="
-            cat "$test_dir/main.rs" | sed "s/^/  /"
-            exit 1
-        fi
-        
-        # Run Rust version
-        rust_output=$(cd "$test_dir" && RUSTFLAGS="-A warnings" cargo run --quiet 2>&1)
-        rust_exit_code=$?
-        
-        if [ $rust_exit_code -ne 0 ]; then
-            echo ""
-            echo "Rust execution failed:"
-            echo "$rust_output" | sed "s/^/  /"
-            exit 1
-        fi
-        
-        # Compare outputs
-        if [ "$go_output" != "$rust_output" ]; then
-            echo ""
-            echo "Output mismatch:"
-            echo "Go output:"
-            echo "$go_output"
-            echo ""
-            echo "Rust output:"
-            echo "$rust_output"
-            exit 1
-        fi
-        
-        exit 0
+        # Use the shared helper for transpilation and comparison
+        run_transpile_and_compare "$test_dir" "$go_output"
     ' _ "$test_dir"; then
         if [ $? -eq 124 ]; then
             echo "Test timed out after $timeout"
@@ -143,12 +151,56 @@ run_xfail_test() {
     local test_dir="$1"
     local test_name
     test_name=$(basename "$test_dir")
+    local timeout="${TEST_TIMEOUT:-60s}"
     
-    if run_test "$test_dir"; then
+    # Export the helper function so it's available in the subshell
+    export -f run_transpile_and_compare
+    
+    # Run the entire test with timeout
+    # shellcheck disable=SC2016
+    if ! timeout "$timeout" bash -c '
+        test_dir="$1"
+        test_name="$2"
+        
+        # Build Go version
+        go_build_output=$(cd "$test_dir" && go build -o "$test_name" . 2>&1)
+        if [ $? -ne 0 ]; then
+            echo "ERROR: XFAIL test '"'"'$test_name'"'"' does not compile:"
+            echo "$go_build_output"
+            exit 2  # Special exit code for compilation failure
+        fi
+        
+        # Run Go binary
+        go_output=$(cd "$test_dir" && ./"$test_name" 2>&1)
+        go_exit_code=$?
+        
+        # Clean up Go binary
+        rm -f "$test_dir/$test_name"
+        
+        if [ $go_exit_code -ne 0 ]; then
+            echo "Go execution failed:"
+            echo "$go_output"
+            exit 1
+        fi
+        
+        # Use the shared helper for transpilation and comparison
+        run_transpile_and_compare "$test_dir" "$go_output"
+    ' _ "$test_dir" "$test_name"; then
+        local exit_code=$?
+        if [ $exit_code -eq 124 ]; then
+            echo "Test timed out after $timeout"
+        elif [ $exit_code -eq 2 ]; then
+            # Compilation failure - this is a real error for XFAIL tests
+            return 1
+        fi
+        # Other failures are expected for XFAIL
+        return 0
+    else
+        # Test passed - promote it!
         echo "🎉 Promoting XFAIL test '$test_name' - it now passes!"
         mv "$test_dir" "tests/"
+        return 0
     fi
-    return 0
 }
 
 
