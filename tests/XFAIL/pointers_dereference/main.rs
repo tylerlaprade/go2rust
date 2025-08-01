@@ -8,10 +8,10 @@ pub fn zeroptr(iptr: std::sync::Arc<std::sync::Mutex<Option<i32>>>) {
 
 fn main() {
     let mut i = std::sync::Arc::new(std::sync::Mutex::new(Some(1)));
-    println!("{} {}", "initial:".to_string(), (*i.lock().unwrap().as_ref().unwrap()));
-    zeroval(std::sync::Arc::new(std::sync::Mutex::new(Some((*i.lock().unwrap().as_ref().unwrap())))));
-    println!("{} {}", "zeroval:".to_string(), (*i.lock().unwrap().as_ref().unwrap()));
+    println!("{} {}", "initial:".to_string(), (*i.lock().unwrap().as_mut().unwrap()));
+    zeroval(std::sync::Arc::new(std::sync::Mutex::new(Some((*i.lock().unwrap().as_mut().unwrap())))));
+    println!("{} {}", "zeroval:".to_string(), (*i.lock().unwrap().as_mut().unwrap()));
     zeroptr(std::sync::Arc::new(std::sync::Mutex::new(Some(i.clone()))));
-    println!("{} {}", "zeroptr:".to_string(), (*i.lock().unwrap().as_ref().unwrap()));
+    println!("{} {}", "zeroptr:".to_string(), (*i.lock().unwrap().as_mut().unwrap()));
     println!("{} {}", "pointer:".to_string(), i.clone());
 }

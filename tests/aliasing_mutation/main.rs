@@ -4,5 +4,5 @@ fn main() {
     let mut q = x.clone();
     { let new_val = 100; *p.lock().unwrap() = Some(new_val); };
     { let new_val = 200; *q.lock().unwrap() = Some(new_val); };
-    println!("{} {}", "x =".to_string(), (*x.lock().unwrap().as_ref().unwrap()));
+    println!("{} {}", "x =".to_string(), (*x.lock().unwrap().as_mut().unwrap()));
 }

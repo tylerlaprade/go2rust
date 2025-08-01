@@ -5,7 +5,7 @@ struct User {
 }
 
 fn main() {
-    let mut u = std::sync::Arc::new(std::sync::Mutex::new(Some(User { name: "Alice".to_string(), age: 30 })));
-    let (mut data, _) = (*json.lock().unwrap().as_ref().unwrap()).marshal(std::sync::Arc::new(std::sync::Mutex::new(Some((*u.lock().unwrap().as_ref().unwrap())))));
-    println!("{}", (*string(std::sync::Arc::new(std::sync::Mutex::new(Some((*data.lock().unwrap().as_ref().unwrap()))))).lock().unwrap().as_ref().unwrap()));
+    let mut u = std::sync::Arc::new(std::sync::Mutex::new(Some(User { name: std::sync::Arc::new(std::sync::Mutex::new(Some("Alice".to_string()))), age: std::sync::Arc::new(std::sync::Mutex::new(Some(30))) })));
+    let (mut data, _) = (*json.lock().unwrap().as_mut().unwrap()).marshal(std::sync::Arc::new(std::sync::Mutex::new(Some((*u.lock().unwrap().as_mut().unwrap())))));
+    println!("{}", (*string(std::sync::Arc::new(std::sync::Mutex::new(Some((*data.lock().unwrap().as_mut().unwrap()))))).lock().unwrap().as_mut().unwrap()));
 }

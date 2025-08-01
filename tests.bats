@@ -11,8 +11,7 @@ setup_file() {
 teardown_file() {
     # find tests -name "target" -type d -exec rm -rf {} + 2>/dev/null || true
     # find tests -name "debug" -type d -exec rm -rf {} + 2>/dev/null || true
-    # Only have to clean up binaries in XFAIL since we generate them to confirm compilation works
-    find tests/XFAIL -mindepth 2 -maxdepth 2 -type f -perm +111 -delete 2>/dev/null || true
+    find tests/** -type f -perm +111 -delete 2>/dev/null || true
 }
 
 # Helper to run a command and prefix stdout/stderr

@@ -5,6 +5,6 @@ fn main() {
     let mut a = std::sync::Arc::new(std::sync::Mutex::new(Some(100)));
     let mut b = std::sync::Arc::new(std::sync::Mutex::new(Some("world".to_string())));
     let mut c = std::sync::Arc::new(std::sync::Mutex::new(Some(2.71)));
-    println!("{} {} {} {}", "Variables:".to_string(), (*x.lock().unwrap().as_ref().unwrap()), (*y.lock().unwrap().as_ref().unwrap()), (*z.lock().unwrap().as_ref().unwrap()));
-    println!("{} {} {} {}", "Short vars:".to_string(), (*a.lock().unwrap().as_ref().unwrap()), (*b.lock().unwrap().as_ref().unwrap()), (*c.lock().unwrap().as_ref().unwrap()));
+    println!("{} {} {} {}", "Variables:".to_string(), (*x.lock().unwrap().as_mut().unwrap()), (*y.lock().unwrap().as_mut().unwrap()), (*z.lock().unwrap().as_mut().unwrap()));
+    println!("{} {} {} {}", "Short vars:".to_string(), (*a.lock().unwrap().as_mut().unwrap()), (*b.lock().unwrap().as_mut().unwrap()), (*c.lock().unwrap().as_mut().unwrap()));
 }

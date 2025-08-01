@@ -1,6 +1,6 @@
 fn main() {
     let mut i = std::sync::Arc::new(std::sync::Mutex::new(Some(2)));
-    match (*i.lock().unwrap().as_ref().unwrap()) {
+    match (*i.lock().unwrap().as_mut().unwrap()) {
         1 => {
             println!("{}", "one".to_string());
         }
@@ -12,10 +12,10 @@ fn main() {
         }
     }
     match true {
-        true if (*i.lock().unwrap().as_ref().unwrap()) < 2 => {
+        true if (*i.lock().unwrap().as_mut().unwrap()) < 2 => {
             println!("{}", "less than 2".to_string());
         }
-        true if (*i.lock().unwrap().as_ref().unwrap()) > 2 => {
+        true if (*i.lock().unwrap().as_mut().unwrap()) > 2 => {
             println!("{}", "greater than 2".to_string());
         }
         _ => {

@@ -1,5 +1,5 @@
 pub fn basic_switch(day: std::sync::Arc<std::sync::Mutex<Option<i32>>>) {
-    match (*day.lock().unwrap().as_ref().unwrap()) {
+    match (*day.lock().unwrap().as_mut().unwrap()) {
         1 => {
             println!("{}", "Monday".to_string());
         }
@@ -26,7 +26,7 @@ pub fn basic_switch(day: std::sync::Arc<std::sync::Mutex<Option<i32>>>) {
 
 pub fn switch_with_expression() {
     let mut x = std::sync::Arc::new(std::sync::Mutex::new(Some(10)));
-    match (*x.lock().unwrap().as_ref().unwrap()) * 2 {
+    match (*x.lock().unwrap().as_mut().unwrap()) * 2 {
         20 => {
             println!("{}", "x * 2 equals 20".to_string());
         }
@@ -42,16 +42,16 @@ pub fn switch_with_expression() {
 pub fn switch_without_expression() {
     let mut score = std::sync::Arc::new(std::sync::Mutex::new(Some(85)));
     match true {
-        true if (*score.lock().unwrap().as_ref().unwrap()) >= 90 => {
+        true if (*score.lock().unwrap().as_mut().unwrap()) >= 90 => {
             println!("{}", "Grade: A".to_string());
         }
-        true if (*score.lock().unwrap().as_ref().unwrap()) >= 80 => {
+        true if (*score.lock().unwrap().as_mut().unwrap()) >= 80 => {
             println!("{}", "Grade: B".to_string());
         }
-        true if (*score.lock().unwrap().as_ref().unwrap()) >= 70 => {
+        true if (*score.lock().unwrap().as_mut().unwrap()) >= 70 => {
             println!("{}", "Grade: C".to_string());
         }
-        true if (*score.lock().unwrap().as_ref().unwrap()) >= 60 => {
+        true if (*score.lock().unwrap().as_mut().unwrap()) >= 60 => {
             println!("{}", "Grade: D".to_string());
         }
         _ => {
@@ -61,7 +61,7 @@ pub fn switch_without_expression() {
 }
 
 pub fn switch_with_fallthrough(num: std::sync::Arc<std::sync::Mutex<Option<i32>>>) {
-    match (*num.lock().unwrap().as_ref().unwrap()) {
+    match (*num.lock().unwrap().as_mut().unwrap()) {
         1 => {
             println!("{}", "One".to_string());
             // TODO: fallthrough not supported

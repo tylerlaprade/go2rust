@@ -1,4 +1,7 @@
-
+trait Shape {
+    fn area(&self) -> std::sync::Arc<std::sync::Mutex<Option<f64>>>;
+    fn perimeter(&self) -> std::sync::Arc<std::sync::Mutex<Option<f64>>>;
+}
 
 #[derive(Debug)]
 struct Rectangle {
@@ -13,38 +16,56 @@ struct Circle {
 
 impl Rectangle {
     pub fn area(&self) -> std::sync::Arc<std::sync::Mutex<Option<f64>>> {
-        return std::sync::Arc::new(std::sync::Mutex::new(Some(self.width * self.height)));
+        return std::sync::Arc::new(std::sync::Mutex::new(Some((*self.width.clone().lock().unwrap().as_mut().unwrap()) * (*self.height.clone().lock().unwrap().as_mut().unwrap()))));
     }
 
     pub fn perimeter(&self) -> std::sync::Arc<std::sync::Mutex<Option<f64>>> {
-        return std::sync::Arc::new(std::sync::Mutex::new(Some(2 * )));
+        return std::sync::Arc::new(std::sync::Mutex::new(Some(2.0 * ((*self.width.clone().lock().unwrap().as_mut().unwrap()) + (*self.height.clone().lock().unwrap().as_mut().unwrap())))));
+    }
+}
+
+impl Shape for Rectangle {
+    fn area(&self) -> std::sync::Arc<std::sync::Mutex<Option<f64>>> {
+        return std::sync::Arc::new(std::sync::Mutex::new(Some((*self.width.clone().lock().unwrap().as_mut().unwrap()) * (*self.height.clone().lock().unwrap().as_mut().unwrap()))));
+    }
+    fn perimeter(&self) -> std::sync::Arc<std::sync::Mutex<Option<f64>>> {
+        return std::sync::Arc::new(std::sync::Mutex::new(Some(2.0 * ((*self.width.clone().lock().unwrap().as_mut().unwrap()) + (*self.height.clone().lock().unwrap().as_mut().unwrap())))));
     }
 }
 
 impl Circle {
     pub fn area(&self) -> std::sync::Arc<std::sync::Mutex<Option<f64>>> {
-        return std::sync::Arc::new(std::sync::Mutex::new(Some(3.14159 * self.radius * self.radius)));
+        return std::sync::Arc::new(std::sync::Mutex::new(Some((*(*3.14159.lock().unwrap().as_mut().unwrap()) * (*self.radius.clone().lock().unwrap().as_mut().unwrap()).lock().unwrap().as_mut().unwrap()) * (*self.radius.clone().lock().unwrap().as_mut().unwrap()))));
     }
 
     pub fn perimeter(&self) -> std::sync::Arc<std::sync::Mutex<Option<f64>>> {
-        return std::sync::Arc::new(std::sync::Mutex::new(Some(2 * 3.14159 * self.radius)));
+        return std::sync::Arc::new(std::sync::Mutex::new(Some((*2.0 * 3.14159.lock().unwrap().as_mut().unwrap()) * (*self.radius.clone().lock().unwrap().as_mut().unwrap()))));
     }
 }
 
-pub fn print_shape_info(s: std::sync::Arc<std::sync::Mutex<Option<Shape>>>) {
-    print!("Area: {:.2}, Perimeter: {:.2}\n", (*s.lock().unwrap().as_ref().unwrap()).area(), (*s.lock().unwrap().as_ref().unwrap()).perimeter());
+impl Shape for Circle {
+    fn area(&self) -> std::sync::Arc<std::sync::Mutex<Option<f64>>> {
+        return std::sync::Arc::new(std::sync::Mutex::new(Some((*(*3.14159.lock().unwrap().as_mut().unwrap()) * (*self.radius.clone().lock().unwrap().as_mut().unwrap()).lock().unwrap().as_mut().unwrap()) * (*self.radius.clone().lock().unwrap().as_mut().unwrap()))));
+    }
+    fn perimeter(&self) -> std::sync::Arc<std::sync::Mutex<Option<f64>>> {
+        return std::sync::Arc::new(std::sync::Mutex::new(Some((*2.0 * 3.14159.lock().unwrap().as_mut().unwrap()) * (*self.radius.clone().lock().unwrap().as_mut().unwrap()))));
+    }
+}
+
+pub fn print_shape_info(s: std::sync::Arc<std::sync::Mutex<Option<Box<dyn Shape>>>>) {
+    print!("Area: {:.2}, Perimeter: {:.2}\n", (*s.lock().unwrap().as_mut().unwrap()).area(), (*s.lock().unwrap().as_mut().unwrap()).perimeter());
 }
 
 fn main() {
-    let mut rect = std::sync::Arc::new(std::sync::Mutex::new(Some(Rectangle { width: 10, height: 5 })));
-    let mut circle = std::sync::Arc::new(std::sync::Mutex::new(Some(Circle { radius: 3 })));
+    let mut rect = std::sync::Arc::new(std::sync::Mutex::new(Some(Rectangle { width: std::sync::Arc::new(std::sync::Mutex::new(Some(10))), height: std::sync::Arc::new(std::sync::Mutex::new(Some(5))) })));
+    let mut circle = std::sync::Arc::new(std::sync::Mutex::new(Some(Circle { radius: std::sync::Arc::new(std::sync::Mutex::new(Some(3))) })));
     println!("{}", "Rectangle:".to_string());
-    print_shape_info(std::sync::Arc::new(std::sync::Mutex::new(Some((*rect.lock().unwrap().as_ref().unwrap())))));
+    print_shape_info(std::sync::Arc::new(std::sync::Mutex::new(Some((*rect.lock().unwrap().as_mut().unwrap())))));
     println!("{}", "Circle:".to_string());
-    print_shape_info(std::sync::Arc::new(std::sync::Mutex::new(Some((*circle.lock().unwrap().as_ref().unwrap())))));
-    let mut shapes = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![(*rect.lock().unwrap().as_ref().unwrap()), (*circle.lock().unwrap().as_ref().unwrap())])));
+    print_shape_info(std::sync::Arc::new(std::sync::Mutex::new(Some((*circle.lock().unwrap().as_mut().unwrap())))));
+    let mut shapes = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![(*rect.lock().unwrap().as_mut().unwrap()), (*circle.lock().unwrap().as_mut().unwrap())])));
     println!("{}", "All shapes:".to_string());
-    for (i, shape) in (*shapes.lock().unwrap().as_ref().unwrap()).iter().enumerate() {
+    for (i, shape) in (*shapes.lock().unwrap().as_mut().unwrap()).iter().enumerate() {
         print!("Shape {}: ", i + 1);
         print_shape_info(std::sync::Arc::new(std::sync::Mutex::new(Some(shape))));
     }

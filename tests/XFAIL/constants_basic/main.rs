@@ -83,9 +83,9 @@ const z: i32 = x + y;
     let mut i = std::sync::Arc::new(std::sync::Mutex::new(Some(untypedInt)));
     let mut f = std::sync::Arc::new(std::sync::Mutex::new(Some(untypedFloat)));
     let mut mixed = std::sync::Arc::new(std::sync::Mutex::new(Some(untypedInt + 3)));
-    print!("i = {}\n", (*i.lock().unwrap().as_ref().unwrap()));
-    print!("f = {:.2}\n", (*f.lock().unwrap().as_ref().unwrap()));
-    print!("mixed = {}\n", (*mixed.lock().unwrap().as_ref().unwrap()));
+    print!("i = {}\n", (*i.lock().unwrap().as_mut().unwrap()));
+    print!("f = {:.2}\n", (*f.lock().unwrap().as_mut().unwrap()));
+    print!("mixed = {}\n", (*mixed.lock().unwrap().as_mut().unwrap()));
     println!("{}", "\n=== String constants ===".to_string());
     const greeting: &'static str = "Hello";
 

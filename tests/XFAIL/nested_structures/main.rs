@@ -1,4 +1,6 @@
-
+trait Drawable {
+    fn draw(&self) -> std::sync::Arc<std::sync::Mutex<Option<String>>>;
+}
 
 #[derive(Debug)]
 struct Circle {
@@ -14,7 +16,7 @@ struct Rectangle {
 #[derive(Debug)]
 struct Canvas {
     name: std::sync::Arc<std::sync::Mutex<Option<String>>>,
-    shapes: std::sync::Arc<std::sync::Mutex<Option<Vec<Drawable>>>>,
+    shapes: std::sync::Arc<std::sync::Mutex<Option<Vec<Box<dyn Drawable>>>>>,
 }
 
 #[derive(Debug)]
@@ -57,40 +59,52 @@ struct Company {
 
 impl Circle {
     pub fn draw(&self) -> std::sync::Arc<std::sync::Mutex<Option<String>>> {
-        return std::sync::Arc::new(std::sync::Mutex::new(Some((*fmt.lock().unwrap().as_ref().unwrap()).sprintf(std::sync::Arc::new(std::sync::Mutex::new(Some("Circle(r=%.1f)".to_string()))), std::sync::Arc::new(std::sync::Mutex::new(Some(self.radius)))))));
+        return std::sync::Arc::new(std::sync::Mutex::new(Some(format!("Circle(r={:.1})", (*self.radius.lock().unwrap().as_mut().unwrap())))));
+    }
+}
+
+impl Drawable for Circle {
+    fn draw(&self) -> std::sync::Arc<std::sync::Mutex<Option<String>>> {
+        return std::sync::Arc::new(std::sync::Mutex::new(Some(format!("Circle(r={:.1})", (*self.radius.lock().unwrap().as_mut().unwrap())))));
     }
 }
 
 impl Rectangle {
     pub fn draw(&self) -> std::sync::Arc<std::sync::Mutex<Option<String>>> {
-        return std::sync::Arc::new(std::sync::Mutex::new(Some((*fmt.lock().unwrap().as_ref().unwrap()).sprintf(std::sync::Arc::new(std::sync::Mutex::new(Some("Rectangle(%.1fx%.1f)".to_string()))), std::sync::Arc::new(std::sync::Mutex::new(Some(self.width))), std::sync::Arc::new(std::sync::Mutex::new(Some(self.height)))))));
+        return std::sync::Arc::new(std::sync::Mutex::new(Some(format!("Rectangle({:.1}x{:.1})", (*self.width.lock().unwrap().as_mut().unwrap()), (*self.height.lock().unwrap().as_mut().unwrap())))));
+    }
+}
+
+impl Drawable for Rectangle {
+    fn draw(&self) -> std::sync::Arc<std::sync::Mutex<Option<String>>> {
+        return std::sync::Arc::new(std::sync::Mutex::new(Some(format!("Rectangle({:.1}x{:.1})", (*self.width.lock().unwrap().as_mut().unwrap()), (*self.height.lock().unwrap().as_mut().unwrap())))));
     }
 }
 
 fn main() {
     println!("{}", "=== Creating nested structures ===".to_string());
-    let mut hq = std::sync::Arc::new(std::sync::Mutex::new(Some(Address { street: "123 Corporate Blvd".to_string(), city: "Tech City".to_string(), state: "CA".to_string(), zip_code: "90210".to_string(), country: "USA".to_string() })));
-    let mut managerAddr = std::sync::Arc::new(std::sync::Mutex::new(Some(Address { street: "456 Manager St".to_string(), city: "Suburb".to_string(), state: "CA".to_string(), zip_code: "90211".to_string(), country: "USA".to_string() })));
-    let mut emp1Addr = std::sync::Arc::new(std::sync::Mutex::new(Some(Address { street: "789 Employee Ave".to_string(), city: "Hometown".to_string(), state: "CA".to_string(), zip_code: "90212".to_string(), country: "USA".to_string() })));
-    let mut emp2Addr = std::sync::Arc::new(std::sync::Mutex::new(Some(Address { street: "321 Worker Way".to_string(), city: "Village".to_string(), state: "CA".to_string(), zip_code: "90213".to_string(), country: "USA".to_string() })));
-    let mut managerContact = std::sync::Arc::new(std::sync::Mutex::new(Some(Contact { email: "manager@company.com".to_string(), phone: "555-0001".to_string() })));
-    let mut emp1Contact = std::sync::Arc::new(std::sync::Mutex::new(Some(Contact { email: "emp1@company.com".to_string(), phone: "555-0002".to_string() })));
-    let mut emp2Contact = std::sync::Arc::new(std::sync::Mutex::new(Some(Contact { email: "emp2@company.com".to_string(), phone: "555-0003".to_string() })));
-    let mut manager = std::sync::Arc::new(std::sync::Mutex::new(Some(Person { name: "Alice Manager".to_string(), age: 45, address: (*managerAddr.lock().unwrap().as_ref().unwrap()), contact: (*managerContact.lock().unwrap().as_ref().unwrap()) })));
-    let mut employee1 = std::sync::Arc::new(std::sync::Mutex::new(Some(Person { name: "Bob Employee".to_string(), age: 30, address: (*emp1Addr.lock().unwrap().as_ref().unwrap()), contact: (*emp1Contact.lock().unwrap().as_ref().unwrap()) })));
-    let mut employee2 = std::sync::Arc::new(std::sync::Mutex::new(Some(Person { name: "Carol Worker".to_string(), age: 28, address: (*emp2Addr.lock().unwrap().as_ref().unwrap()), contact: (*emp2Contact.lock().unwrap().as_ref().unwrap()) })));
-    let mut engineering = std::sync::Arc::new(std::sync::Mutex::new(Some(Department { name: "Engineering".to_string(), manager: (*manager.lock().unwrap().as_ref().unwrap()), employees: vec![(*employee1.lock().unwrap().as_ref().unwrap()), (*employee2.lock().unwrap().as_ref().unwrap())], budget: 1000000.0 })));
-    let mut company = std::sync::Arc::new(std::sync::Mutex::new(Some(Company { name: "TechCorp Inc".to_string(), departments: vec![(*engineering.lock().unwrap().as_ref().unwrap())], headquarters: (*hq.lock().unwrap().as_ref().unwrap()) })));
+    let mut hq = std::sync::Arc::new(std::sync::Mutex::new(Some(Address { street: std::sync::Arc::new(std::sync::Mutex::new(Some("123 Corporate Blvd".to_string()))), city: std::sync::Arc::new(std::sync::Mutex::new(Some("Tech City".to_string()))), state: std::sync::Arc::new(std::sync::Mutex::new(Some("CA".to_string()))), zip_code: std::sync::Arc::new(std::sync::Mutex::new(Some("90210".to_string()))), country: std::sync::Arc::new(std::sync::Mutex::new(Some("USA".to_string()))) })));
+    let mut managerAddr = std::sync::Arc::new(std::sync::Mutex::new(Some(Address { street: std::sync::Arc::new(std::sync::Mutex::new(Some("456 Manager St".to_string()))), city: std::sync::Arc::new(std::sync::Mutex::new(Some("Suburb".to_string()))), state: std::sync::Arc::new(std::sync::Mutex::new(Some("CA".to_string()))), zip_code: std::sync::Arc::new(std::sync::Mutex::new(Some("90211".to_string()))), country: std::sync::Arc::new(std::sync::Mutex::new(Some("USA".to_string()))) })));
+    let mut emp1Addr = std::sync::Arc::new(std::sync::Mutex::new(Some(Address { street: std::sync::Arc::new(std::sync::Mutex::new(Some("789 Employee Ave".to_string()))), city: std::sync::Arc::new(std::sync::Mutex::new(Some("Hometown".to_string()))), state: std::sync::Arc::new(std::sync::Mutex::new(Some("CA".to_string()))), zip_code: std::sync::Arc::new(std::sync::Mutex::new(Some("90212".to_string()))), country: std::sync::Arc::new(std::sync::Mutex::new(Some("USA".to_string()))) })));
+    let mut emp2Addr = std::sync::Arc::new(std::sync::Mutex::new(Some(Address { street: std::sync::Arc::new(std::sync::Mutex::new(Some("321 Worker Way".to_string()))), city: std::sync::Arc::new(std::sync::Mutex::new(Some("Village".to_string()))), state: std::sync::Arc::new(std::sync::Mutex::new(Some("CA".to_string()))), zip_code: std::sync::Arc::new(std::sync::Mutex::new(Some("90213".to_string()))), country: std::sync::Arc::new(std::sync::Mutex::new(Some("USA".to_string()))) })));
+    let mut managerContact = std::sync::Arc::new(std::sync::Mutex::new(Some(Contact { email: std::sync::Arc::new(std::sync::Mutex::new(Some("manager@company.com".to_string()))), phone: std::sync::Arc::new(std::sync::Mutex::new(Some("555-0001".to_string()))) })));
+    let mut emp1Contact = std::sync::Arc::new(std::sync::Mutex::new(Some(Contact { email: std::sync::Arc::new(std::sync::Mutex::new(Some("emp1@company.com".to_string()))), phone: std::sync::Arc::new(std::sync::Mutex::new(Some("555-0002".to_string()))) })));
+    let mut emp2Contact = std::sync::Arc::new(std::sync::Mutex::new(Some(Contact { email: std::sync::Arc::new(std::sync::Mutex::new(Some("emp2@company.com".to_string()))), phone: std::sync::Arc::new(std::sync::Mutex::new(Some("555-0003".to_string()))) })));
+    let mut manager = std::sync::Arc::new(std::sync::Mutex::new(Some(Person { name: std::sync::Arc::new(std::sync::Mutex::new(Some("Alice Manager".to_string()))), age: std::sync::Arc::new(std::sync::Mutex::new(Some(45))), address: std::sync::Arc::new(std::sync::Mutex::new(Some((*managerAddr.lock().unwrap().as_mut().unwrap())))), contact: std::sync::Arc::new(std::sync::Mutex::new(Some((*managerContact.lock().unwrap().as_mut().unwrap())))) })));
+    let mut employee1 = std::sync::Arc::new(std::sync::Mutex::new(Some(Person { name: std::sync::Arc::new(std::sync::Mutex::new(Some("Bob Employee".to_string()))), age: std::sync::Arc::new(std::sync::Mutex::new(Some(30))), address: std::sync::Arc::new(std::sync::Mutex::new(Some((*emp1Addr.lock().unwrap().as_mut().unwrap())))), contact: std::sync::Arc::new(std::sync::Mutex::new(Some((*emp1Contact.lock().unwrap().as_mut().unwrap())))) })));
+    let mut employee2 = std::sync::Arc::new(std::sync::Mutex::new(Some(Person { name: std::sync::Arc::new(std::sync::Mutex::new(Some("Carol Worker".to_string()))), age: std::sync::Arc::new(std::sync::Mutex::new(Some(28))), address: std::sync::Arc::new(std::sync::Mutex::new(Some((*emp2Addr.lock().unwrap().as_mut().unwrap())))), contact: std::sync::Arc::new(std::sync::Mutex::new(Some((*emp2Contact.lock().unwrap().as_mut().unwrap())))) })));
+    let mut engineering = std::sync::Arc::new(std::sync::Mutex::new(Some(Department { name: std::sync::Arc::new(std::sync::Mutex::new(Some("Engineering".to_string()))), manager: std::sync::Arc::new(std::sync::Mutex::new(Some((*manager.lock().unwrap().as_mut().unwrap())))), employees: std::sync::Arc::new(std::sync::Mutex::new(Some(vec![(*employee1.lock().unwrap().as_mut().unwrap()), (*employee2.lock().unwrap().as_mut().unwrap())]))), budget: std::sync::Arc::new(std::sync::Mutex::new(Some(1000000.0))) })));
+    let mut company = std::sync::Arc::new(std::sync::Mutex::new(Some(Company { name: std::sync::Arc::new(std::sync::Mutex::new(Some("TechCorp Inc".to_string()))), departments: std::sync::Arc::new(std::sync::Mutex::new(Some(vec![(*engineering.lock().unwrap().as_mut().unwrap())]))), headquarters: std::sync::Arc::new(std::sync::Mutex::new(Some((*hq.lock().unwrap().as_mut().unwrap())))) })));
     println!("{}", "\n=== Accessing nested data ===".to_string());
-    print!("Company: {}\n", (*company.lock().unwrap().as_ref().unwrap()).name);
-    print!("HQ Address: {}, {}, {} {}\n", (*company.lock().unwrap().as_ref().unwrap()).headquarters::street, (*company.lock().unwrap().as_ref().unwrap()).headquarters::city, (*company.lock().unwrap().as_ref().unwrap()).headquarters::state, (*company.lock().unwrap().as_ref().unwrap()).headquarters::zip_code);
-    print!("Department: {}\n", (*company.lock().unwrap().as_ref().unwrap()).departments[0]::name);
-    print!("Department Budget: ${:.2}\n", (*company.lock().unwrap().as_ref().unwrap()).departments[0]::budget);
-    print!("Manager: {} (Age: {})\n", (*company.lock().unwrap().as_ref().unwrap()).departments[0]::manager::name, (*company.lock().unwrap().as_ref().unwrap()).departments[0]::manager::age);
-    print!("Manager Email: {}\n", (*company.lock().unwrap().as_ref().unwrap()).departments[0]::manager::contact::email);
-    print!("Manager Address: {}, {}\n", (*company.lock().unwrap().as_ref().unwrap()).departments[0]::manager::address::city, (*company.lock().unwrap().as_ref().unwrap()).departments[0]::manager::address::state);
+    print!("Company: {}\n", (*company.lock().unwrap().as_mut().unwrap()).name);
+    print!("HQ Address: {}, {}, {} {}\n", (*company.lock().unwrap().as_mut().unwrap()).headquarters::street, (*company.lock().unwrap().as_mut().unwrap()).headquarters::city, (*company.lock().unwrap().as_mut().unwrap()).headquarters::state, (*company.lock().unwrap().as_mut().unwrap()).headquarters::zip_code);
+    print!("Department: {}\n", (*company.lock().unwrap().as_mut().unwrap()).departments[0]::name);
+    print!("Department Budget: ${:.2}\n", (*company.lock().unwrap().as_mut().unwrap()).departments[0]::budget);
+    print!("Manager: {} (Age: {})\n", (*company.lock().unwrap().as_mut().unwrap()).departments[0]::manager::name, (*company.lock().unwrap().as_mut().unwrap()).departments[0]::manager::age);
+    print!("Manager Email: {}\n", (*company.lock().unwrap().as_mut().unwrap()).departments[0]::manager::contact::email);
+    print!("Manager Address: {}, {}\n", (*company.lock().unwrap().as_mut().unwrap()).departments[0]::manager::address::city, (*company.lock().unwrap().as_mut().unwrap()).departments[0]::manager::address::state);
     println!("{}", "\n=== Department employees ===".to_string());
-    for (i, emp) in (*company.lock().unwrap().as_ref().unwrap()).departments[0]::employees.iter().enumerate() {
+    for (i, emp) in (*company.lock().unwrap().as_mut().unwrap()).departments[0]::employees.iter().enumerate() {
         print!("Employee {}: {}\n", i + 1, emp.name);
         print!("  Age: {}\n", emp.age);
         print!("  Email: {}\n", emp.contact::email);
@@ -101,32 +115,32 @@ fn main() {
     println!("{}", "=== Nested maps ===".to_string());
     let mut inventory = std::sync::Arc::new(std::sync::Mutex::new(Some(std::collections::HashMap::<std::sync::Arc<std::sync::Mutex<Option<String>>>, std::sync::Arc<std::sync::Mutex<Option<std::collections::HashMap<String, i32>>>>>::from([("electronics".to_string(), ), ("furniture".to_string(), ), ("supplies".to_string(), )]))));
     println!("{}", "Inventory:".to_string());
-    for (category, items) in (*inventory.lock().unwrap().as_ref().unwrap()).iter().enumerate() {
+    for (category, items) in (*inventory.lock().unwrap().as_mut().unwrap()).iter().enumerate() {
         print!("  {}:\n", category);
         for (item, count) in items.iter().enumerate() {
         print!("    {}: {}\n", item, count);
     }
     }
-    let mut laptopCount = std::sync::Arc::new(std::sync::Mutex::new(Some((*inventory.lock().unwrap().as_ref().unwrap())["electronics".to_string()]["laptops".to_string()])));
-    print!("Laptop count: {}\n", (*laptopCount.lock().unwrap().as_ref().unwrap()));
+    let mut laptopCount = std::sync::Arc::new(std::sync::Mutex::new(Some((*inventory.lock().unwrap().as_mut().unwrap())["electronics".to_string()]["laptops".to_string()])));
+    print!("Laptop count: {}\n", (*laptopCount.lock().unwrap().as_mut().unwrap()));
     println!("{}", "\n=== Nested slices ===".to_string());
     let mut matrix = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![, , ])));
     println!("{}", "Matrix:".to_string());
-    for (i, row) in (*matrix.lock().unwrap().as_ref().unwrap()).iter().enumerate() {
+    for (i, row) in (*matrix.lock().unwrap().as_mut().unwrap()).iter().enumerate() {
         print!("Row {}: ", i);
         for (j, val) in row.iter().enumerate() {
         print!("{} ", val);
         if j < row.len() - 1 {
-        (*fmt.lock().unwrap().as_ref().unwrap()).print(std::sync::Arc::new(std::sync::Mutex::new(Some(" ".to_string()))));
+        (*fmt.lock().unwrap().as_mut().unwrap()).print(std::sync::Arc::new(std::sync::Mutex::new(Some(" ".to_string()))));
     }
     }
         println!();
     }
-    let mut centerElement = std::sync::Arc::new(std::sync::Mutex::new(Some((*matrix.lock().unwrap().as_ref().unwrap())[1][1])));
-    print!("Center element: {}\n", (*centerElement.lock().unwrap().as_ref().unwrap()));
+    let mut centerElement = std::sync::Arc::new(std::sync::Mutex::new(Some((*matrix.lock().unwrap().as_mut().unwrap())[1][1])));
+    print!("Center element: {}\n", (*centerElement.lock().unwrap().as_mut().unwrap()));
     let mut cube = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![, ])));
     println!("{}", "\n3D Cube:".to_string());
-    for (i, layer) in (*cube.lock().unwrap().as_ref().unwrap()).iter().enumerate() {
+    for (i, layer) in (*cube.lock().unwrap().as_mut().unwrap()).iter().enumerate() {
         print!("Layer {}:\n", i);
         for (j, row) in layer.iter().enumerate() {
         print!("  Row {}: ", j);
@@ -137,16 +151,16 @@ fn main() {
     }
     }
     println!("{}", "\n=== Complex nested with interfaces ===".to_string());
-    let mut canvas = std::sync::Arc::new(std::sync::Mutex::new(Some(Canvas { name: "My Drawing".to_string(), shapes: vec![Circle { radius: 5.0 }, Rectangle { width: 10.0, height: 8.0 }, Circle { radius: 3.0 }] })));
-    print!("Canvas: {}\n", (*canvas.lock().unwrap().as_ref().unwrap()).name);
-    for (i, shape) in (*canvas.lock().unwrap().as_ref().unwrap()).shapes.iter().enumerate() {
+    let mut canvas = std::sync::Arc::new(std::sync::Mutex::new(Some(Canvas { name: std::sync::Arc::new(std::sync::Mutex::new(Some("My Drawing".to_string()))), shapes: std::sync::Arc::new(std::sync::Mutex::new(Some(vec![Circle { radius: std::sync::Arc::new(std::sync::Mutex::new(Some(5.0))) }, Rectangle { width: std::sync::Arc::new(std::sync::Mutex::new(Some(10.0))), height: std::sync::Arc::new(std::sync::Mutex::new(Some(8.0))) }, Circle { radius: std::sync::Arc::new(std::sync::Mutex::new(Some(3.0))) }]))) })));
+    print!("Canvas: {}\n", (*canvas.lock().unwrap().as_mut().unwrap()).name);
+    for (i, shape) in (*canvas.lock().unwrap().as_mut().unwrap()).shapes.iter().enumerate() {
         print!("Shape {}: {}\n", i + 1, shape.draw());
     }
     println!("{}", "\n=== Modifying nested structures ===".to_string());
-    { let new_val = "bob.new@company.com".to_string(); *(*company.lock().unwrap().as_ref().unwrap()).departments[0]::employees[0]::contact::email.lock().unwrap() = Some(new_val); };
-    print!("Updated employee email: {}\n", (*company.lock().unwrap().as_ref().unwrap()).departments[0]::employees[0]::contact::email);
-    let mut newEmployee = std::sync::Arc::new(std::sync::Mutex::new(Some(Person { name: "Dave Newbie".to_string(), age: 25, address: Address { street: "999 New St".to_string(), city: "Newtown".to_string(), state: "CA".to_string(), zip_code: "90214".to_string(), country: "USA".to_string() }, contact: Contact { email: "dave@company.com".to_string(), phone: "555-0004".to_string() } })));
-    { let new_val = {(*company.lock().unwrap().as_ref().unwrap()).departments[0]::employees.push((*newEmployee.lock().unwrap().as_ref().unwrap())); (*company.lock().unwrap().as_ref().unwrap()).departments[0]::employees}; *(*company.lock().unwrap().as_ref().unwrap()).departments[0]::employees.lock().unwrap() = Some(new_val); };
-    print!("Added new employee: {}\n", (*newEmployee.lock().unwrap().as_ref().unwrap()).name);
-    print!("Total employees now: {}\n", (*company.lock().unwrap().as_ref().unwrap()).departments[0]::employees.len());
+    { let new_val = "bob.new@company.com".to_string(); *(*company.lock().unwrap().as_mut().unwrap()).departments[0]::employees[0]::contact::email.lock().unwrap() = Some(new_val); };
+    print!("Updated employee email: {}\n", (*company.lock().unwrap().as_mut().unwrap()).departments[0]::employees[0]::contact::email);
+    let mut newEmployee = std::sync::Arc::new(std::sync::Mutex::new(Some(Person { name: std::sync::Arc::new(std::sync::Mutex::new(Some("Dave Newbie".to_string()))), age: std::sync::Arc::new(std::sync::Mutex::new(Some(25))), address: std::sync::Arc::new(std::sync::Mutex::new(Some(Address { street: std::sync::Arc::new(std::sync::Mutex::new(Some("999 New St".to_string()))), city: std::sync::Arc::new(std::sync::Mutex::new(Some("Newtown".to_string()))), state: std::sync::Arc::new(std::sync::Mutex::new(Some("CA".to_string()))), zip_code: std::sync::Arc::new(std::sync::Mutex::new(Some("90214".to_string()))), country: std::sync::Arc::new(std::sync::Mutex::new(Some("USA".to_string()))) }))), contact: std::sync::Arc::new(std::sync::Mutex::new(Some(Contact { email: std::sync::Arc::new(std::sync::Mutex::new(Some("dave@company.com".to_string()))), phone: std::sync::Arc::new(std::sync::Mutex::new(Some("555-0004".to_string()))) }))) })));
+    { let new_val = {(*company.lock().unwrap().as_mut().unwrap()).departments[0]::employees.push((*newEmployee.lock().unwrap().as_mut().unwrap())); (*company.lock().unwrap().as_mut().unwrap()).departments[0]::employees}; *(*company.lock().unwrap().as_mut().unwrap()).departments[0]::employees.lock().unwrap() = Some(new_val); };
+    print!("Added new employee: {}\n", (*newEmployee.lock().unwrap().as_mut().unwrap()).name);
+    print!("Total employees now: {}\n", (*company.lock().unwrap().as_mut().unwrap()).departments[0]::employees.len());
 }
