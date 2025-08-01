@@ -41,7 +41,7 @@ fn main() {
         // TODO: Unhandled statement type: SendStmt
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
-    close(std::sync::Arc::new(std::sync::Mutex::new(Some((*ch.lock().unwrap().as_mut().unwrap())))));
+    close(ch.clone());
     for value in 0..(*ch.lock().unwrap().as_mut().unwrap()).len() {
         print!("Received: {}\n", value);
     }

@@ -108,26 +108,26 @@ fn main() {
     let (mut s, mut p) = calculate(std::sync::Arc::new(std::sync::Mutex::new(Some(6))), std::sync::Arc::new(std::sync::Mutex::new(Some(7))));
     print!("Sum: {}, Product: {}\n", (*s.lock().unwrap().as_mut().unwrap()), (*p.lock().unwrap().as_mut().unwrap()));
     let mut data = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![3, 1, 4, 1, 5, 9, 2, 6])));
-    let (mut min, mut max, mut sum) = process_data(std::sync::Arc::new(std::sync::Mutex::new(Some((*data.lock().unwrap().as_mut().unwrap())))));
+    let (mut min, mut max, mut sum) = process_data(data.clone());
     print!("Data: {}\n", (*data.lock().unwrap().as_mut().unwrap()));
     print!("Min: {}, Max: {}, Sum: {}\n", (*min.lock().unwrap().as_mut().unwrap()), (*max.lock().unwrap().as_mut().unwrap()), (*sum.lock().unwrap().as_mut().unwrap()));
     println!("{}", "\n=== Swapping values ===".to_string());
     let (mut x, mut y) = (std::sync::Arc::new(std::sync::Mutex::new(Some("hello".to_string()))), std::sync::Arc::new(std::sync::Mutex::new(Some("world".to_string()))));
     print!("Before swap: x={}, y={}\n", (*x.lock().unwrap().as_mut().unwrap()), (*y.lock().unwrap().as_mut().unwrap()));
-    (x, y) = swap(std::sync::Arc::new(std::sync::Mutex::new(Some((*x.lock().unwrap().as_mut().unwrap())))), std::sync::Arc::new(std::sync::Mutex::new(Some((*y.lock().unwrap().as_mut().unwrap())))));
+    (x, y) = swap(x.clone(), y.clone());
     print!("After swap: x={}, y={}\n", (*x.lock().unwrap().as_mut().unwrap()), (*y.lock().unwrap().as_mut().unwrap()));
     println!("{}", "\n=== Different types ===".to_string());
     let (mut pName, mut pAge, mut pHeight, mut pMarried) = get_person_info();
     print!("Person: {}, {} years old, {:.1} feet tall, married: {}\n", (*pName.lock().unwrap().as_mut().unwrap()), (*pAge.lock().unwrap().as_mut().unwrap()), (*pHeight.lock().unwrap().as_mut().unwrap()), (*pMarried.lock().unwrap().as_mut().unwrap()));
     println!("{}", "\n=== Finding in slice ===".to_string());
     let mut numbers = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![10, 20, 30, 40, 50])));
-    let (mut index, mut found) = find_in_slice(std::sync::Arc::new(std::sync::Mutex::new(Some((*numbers.lock().unwrap().as_mut().unwrap())))), std::sync::Arc::new(std::sync::Mutex::new(Some(30))));
+    let (mut index, mut found) = find_in_slice(numbers.clone(), std::sync::Arc::new(std::sync::Mutex::new(Some(30))));
     if (*found.lock().unwrap().as_mut().unwrap()) {
         print!("Found 30 at index {}\n", (*index.lock().unwrap().as_mut().unwrap()));
     } else {
         println!("{}", "30 not found".to_string());
     }
-    (index, found) = find_in_slice(std::sync::Arc::new(std::sync::Mutex::new(Some((*numbers.lock().unwrap().as_mut().unwrap())))), std::sync::Arc::new(std::sync::Mutex::new(Some(99))));
+    (index, found) = find_in_slice(numbers.clone(), std::sync::Arc::new(std::sync::Mutex::new(Some(99))));
     if (*found.lock().unwrap().as_mut().unwrap()) {
         print!("Found 99 at index {}\n", (*index.lock().unwrap().as_mut().unwrap()));
     } else {

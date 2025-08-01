@@ -1,4 +1,4 @@
-pub fn worker(id: std::sync::Arc<std::sync::Mutex<Option<i32>>>, wg: std::sync::Arc<std::sync::Mutex<Option<std::sync::Arc<std::sync::Mutex<Option<Unknown>>>>>>) {
+pub fn worker(id: std::sync::Arc<std::sync::Mutex<Option<i32>>>, wg: std::sync::Arc<std::sync::Mutex<Option<Unknown>>>) {
     // defer (*wg.lock().unwrap().as_mut().unwrap()).done() // TODO: defer not yet supported
     print!("Worker {} starting\n", (*id.lock().unwrap().as_mut().unwrap()));
     (*time.lock().unwrap().as_mut().unwrap()).sleep(std::sync::Arc::new(std::sync::Mutex::new(Some((*time.lock().unwrap().as_mut().unwrap()).second))));

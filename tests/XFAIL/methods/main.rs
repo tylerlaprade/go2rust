@@ -13,7 +13,7 @@ impl Counter {
     }
 }
 
-pub fn new_counter() -> std::sync::Arc<std::sync::Mutex<Option<std::sync::Arc<std::sync::Mutex<Option<Counter>>>>>> {
+pub fn new_counter() -> std::sync::Arc<std::sync::Mutex<Option<Counter>>> {
 
     return std::sync::Arc::new(std::sync::Mutex::new(Some(std::sync::Arc::new(std::sync::Mutex::new(Some(Counter { value: std::sync::Arc::new(std::sync::Mutex::new(Some(0))) }))))));
 }

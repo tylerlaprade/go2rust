@@ -19,7 +19,7 @@ pub fn defer_in_loop() {
     println!("{}", "Defer in loop:".to_string());
     let mut i = std::sync::Arc::new(std::sync::Mutex::new(Some(0)));
     while (*i.lock().unwrap().as_mut().unwrap()) < 3 {
-        // defer (std::sync::Arc::new(std::sync::Mutex::new(Some((*i.lock().unwrap().as_mut().unwrap()))))) // TODO: defer not yet supported
+        // defer (i.clone()) // TODO: defer not yet supported
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
     println!("{}", "Loop finished".to_string());

@@ -127,9 +127,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				out.WriteString(".clone()")
 			}
 		case token.MUL: // * - dereference
-			out.WriteString("*")
+			out.WriteString("(*")
 			TranspileExpression(out, e.X)
-			out.WriteString(".lock().unwrap().as_mut().unwrap()")
+			out.WriteString(".lock().unwrap().as_ref().unwrap().lock().unwrap().as_ref().unwrap())")
 		default:
 			out.WriteString(e.Op.String())
 			TranspileExpression(out, e.X)
@@ -429,9 +429,32 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 		// Wrap arguments in Arc<Mutex<Option<>>> for user-defined functions
 		// Skip wrapping for stdlib functions (they're handled specially)
 		if handler := GetStdlibHandler(call); handler == nil {
-			out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(Some(")
-			TranspileExpression(out, arg)
-			out.WriteString(")))")
+			// Check if the argument is already a wrapped variable
+			if ident, ok := arg.(*ast.Ident); ok && ident.Name != "nil" && ident.Name != "_" {
+				// Check if this is a variable (not a constant)
+				if _, isRangeVar := rangeLoopVars[ident.Name]; !isRangeVar {
+					if _, isLocalConst := localConstants[ident.Name]; !isLocalConst {
+						// It's a variable, just clone it
+						out.WriteString(ident.Name)
+						out.WriteString(".clone()")
+					} else {
+						// It's a constant, wrap it
+						out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(Some(")
+						TranspileExpression(out, arg)
+						out.WriteString(")))")
+					}
+				} else {
+					// Range variable, wrap it
+					out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(Some(")
+					TranspileExpression(out, arg)
+					out.WriteString(")))")
+				}
+			} else {
+				// Not a simple identifier, wrap it
+				out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(Some(")
+				TranspileExpression(out, arg)
+				out.WriteString(")))")
+			}
 		} else {
 			TranspileExpression(out, arg)
 		}

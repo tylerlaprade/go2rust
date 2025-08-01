@@ -18,7 +18,7 @@ fn main() {
     println!("{}", "\n=== Function calls in expressions ===".to_string());
     let mut getValue = std::sync::Arc::new(std::sync::Mutex::new(Some()));
     let mut getMultiplier = std::sync::Arc::new(std::sync::Mutex::new(Some()));
-    let mut complexResult = std::sync::Arc::new(std::sync::Mutex::new(Some(get_value(std::sync::Arc::new(std::sync::Mutex::new(Some((*a.lock().unwrap().as_mut().unwrap()))))) + get_value(std::sync::Arc::new(std::sync::Mutex::new(Some((*b.lock().unwrap().as_mut().unwrap()))))) * get_multiplier() - get_value(std::sync::Arc::new(std::sync::Mutex::new(Some((*c.lock().unwrap().as_mut().unwrap()))))) / 2)));
+    let mut complexResult = std::sync::Arc::new(std::sync::Mutex::new(Some(get_value(a.clone()) + get_value(b.clone()) * get_multiplier() - get_value(c.clone()) / 2)));
     print!("getValue(a) + getValue(b) * getMultiplier() - getValue(c)/2 = {}\n", (*complexResult.lock().unwrap().as_mut().unwrap()));
     println!("{}", "\n=== Array/slice expressions ===".to_string());
     let mut numbers = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10])));

@@ -64,8 +64,8 @@ func goTypeToRustBase(expr ast.Expr) string {
 		valueType := goTypeToRustBase(t.Value)
 		return "std::collections::HashMap<" + keyType + ", " + valueType + ">"
 	case *ast.StarExpr:
-		// Pointer type - wrap the already-wrapped inner type
-		innerType := GoTypeToRust(t.X)
+		// Pointer type - wrap the base type (not already wrapped)
+		innerType := goTypeToRustBase(t.X)
 		return "std::sync::Arc<std::sync::Mutex<Option<" + innerType + ">>>"
 	}
 	return "Unknown"

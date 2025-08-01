@@ -13,9 +13,9 @@ impl ServerState {
 }
 
 fn main() {
-    let mut ns = transition(std::sync::Arc::new(std::sync::Mutex::new(Some(STATE_IDLE))));
+    let mut ns = transition(StateIdle.clone());
     println!("{}", (*ns.lock().unwrap().as_mut().unwrap()));
-    let mut ns2 = transition(std::sync::Arc::new(std::sync::Mutex::new(Some((*ns.lock().unwrap().as_mut().unwrap())))));
+    let mut ns2 = transition(ns.clone());
     println!("{}", (*ns2.lock().unwrap().as_mut().unwrap()));
 }
 

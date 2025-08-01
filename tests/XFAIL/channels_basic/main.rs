@@ -6,7 +6,7 @@ pub fn sender(ch: std::sync::Arc<std::sync::Mutex<Option<Unknown>>>) {
         (*time.lock().unwrap().as_mut().unwrap()).sleep(std::sync::Arc::new(std::sync::Mutex::new(Some(100 * (*time.lock().unwrap().as_mut().unwrap()).millisecond))));
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
-    close(std::sync::Arc::new(std::sync::Mutex::new(Some((*ch.lock().unwrap().as_mut().unwrap())))));
+    close(ch.clone());
 }
 
 pub fn receiver(ch: std::sync::Arc<std::sync::Mutex<Option<Unknown>>>) {

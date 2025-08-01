@@ -56,13 +56,17 @@ Basic program transpilation working
 - **TODO**: Map insert operations, error handling patterns
 - **Issues**: `Vec<T>` needs `{:?}` formatting, no embedded struct promotion
 
-### ⏳ Phase 3: Pointers and Mutation
+### ✅ Phase 3: Pointers and Mutation
 
-- **Done**: Pointer types, &/*, new() builtin, struct fields
+- **Done**: Pointer types, &/*, new() builtin, struct fields, nil handling
+- **Fixed**: Pointer types now use single wrapping (`Arc<Mutex<Option<T>>>`) instead of double
+- **Fixed**: Pointer assignment (`p = &x`) correctly extracts values
+- **Optimization**: Function arguments avoid double-wrapping when passing variables
 
-### 📋 Phase 4: Functions and Methods
+### ✅ Phase 4: Functions and Methods
 
-Method receivers, multiple returns
+- **Done**: Method receivers (value and pointer), multiple returns, method calls
+- **Working**: All method functionality implemented and tested
 
 ### 📋 Phase 5: Goroutines and Concurrency
 
@@ -90,44 +94,31 @@ go2rust transpiles itself!
 - Use `as_ref()` + `.clone()` for owned values (returns, assignments)
 - Future: Track address-taken parameters for `&T` optimization
 
-## Project Structure
-
-```tree
-go2rust/
-├── go/              # Transpiler source
-│   ├── main.go      # CLI entry
-│   ├── transpile.go # AST → Rust generation
-│   ├── expr.go      # Expression handling
-│   ├── stmt.go      # Statement handling
-│   └── ...
-├── tests/           # Test cases (103 total)
-│   ├── */           # Passing tests (15)
-│   └── XFAIL/       # Expected failures (88)
-└── test.sh          # Test runner
-```
-
 ## Test Workflow
 
-### Running Tests
+### IMPORTANT: Testing Individual Tests
 
-```bash
-# Run all tests (parallel, default timeout)
-./test.sh
+**NEVER run test files directly!** Always use `./test.sh`:
 
-# Sequential mode with real-time output
-./test.sh -n 1
+- ❌ WRONG: `go run ./go tests/foo/main.go`
+- ❌ WRONG: `cd tests/foo && cargo build && cargo run`
+- ✅ CORRECT: `./test.sh foo`
 
-# Run specific test(s)
-./test.sh foo
-./test.sh foo bar
-```
+The test script handles:
+
+- Transpiling the Go code
+- Generating proper Cargo.toml
+- Building and running the Rust code
+- Comparing output with expected results
+- Proper error reporting
 
 ### Test Development Workflow
 
 1. **Add new feature test**: Create `tests/XFAIL/feature_name/main.go`
 2. **Implement transpiler support**: Modify `go/*.go` files
-3. **Test auto-promotion**: XFAIL tests automatically move to main suite when passing (Never do this manually!)
-4. **Verify with full suite**: Run `./test.sh` before committing
+3. **Test changes**: Use `./test.sh feature_name` to test specific features
+4. **Test auto-promotion**: XFAIL tests automatically move to main suite when passing (Never do this manually!)
+5. **Verify with full suite**: Run `./test.sh` before committing
 
 ## Future Optimizations (Post-MVP)
 
@@ -142,3 +133,10 @@ go2rust/
 - No unsafe, reflection, cgo
 - Limited stdlib support
 - No circular dependencies or build tags
+
+## Recent Progress
+
+- All pointer operations now working correctly
+- **Fixed pointer type wrapping**: Pointers now use single wrapping instead of double
+- **Optimized function calls**: Variables passed as arguments use `.clone()` instead of re-wrapping
+- **Fixed nil pointer handling**: Proper assignment and dereferencing of nil pointers

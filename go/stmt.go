@@ -372,6 +372,16 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									out.WriteString("*")
 									TranspileExpressionContext(out, s.Lhs[0], LValue)
 									out.WriteString(".lock().unwrap() = None")
+								} else if unary, ok := s.Rhs[0].(*ast.UnaryExpr); ok && unary.Op == token.AND {
+									// Special case: p = &x where p is a pointer
+									// We need to extract the value from x, not clone the whole Arc
+									out.WriteString("{ ")
+									out.WriteString("let new_val = (*")
+									TranspileExpressionContext(out, unary.X, LValue)
+									out.WriteString(".lock().unwrap()).clone(); ")
+									out.WriteString("*")
+									TranspileExpressionContext(out, s.Lhs[0], LValue)
+									out.WriteString(".lock().unwrap() = new_val; }")
 								} else {
 									out.WriteString("{ ")
 									out.WriteString("let new_val = ")

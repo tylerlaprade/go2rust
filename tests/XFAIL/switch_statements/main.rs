@@ -99,7 +99,7 @@ fn main() {
     println!("{}", "\n=== Type switch ===".to_string());
     type_switch(std::sync::Arc::new(std::sync::Mutex::new(Some(42))));
     type_switch(std::sync::Arc::new(std::sync::Mutex::new(Some("hello".to_string()))));
-    type_switch(std::sync::Arc::new(std::sync::Mutex::new(Some(true))));
+    type_switch(true.clone());
     type_switch(std::sync::Arc::new(std::sync::Mutex::new(Some(3.14))));
     type_switch(std::sync::Arc::new(std::sync::Mutex::new(Some(vec![1, 2, 3]))));
 }

@@ -6,7 +6,7 @@ fn main() {
     let mut s2 = std::sync::Arc::new(std::sync::Mutex::new(Some((*s.lock().unwrap().as_mut().unwrap())[2..5].to_vec())));
     print!("s2: len={} cap={} {}\n", (*s2.lock().unwrap().as_mut().unwrap()).len(), (*s2.lock().unwrap().as_mut().unwrap()).capacity(), (*s2.lock().unwrap().as_mut().unwrap()));
     let mut s3 = vec![0; 3];
-    let mut n = copy(std::sync::Arc::new(std::sync::Mutex::new(Some((*s3.lock().unwrap().as_mut().unwrap())))), std::sync::Arc::new(std::sync::Mutex::new(Some((*s.lock().unwrap().as_mut().unwrap())))));
+    let mut n = copy(s3.clone(), s.clone());
     print!("Copied {} elements: {}\n", (*n.lock().unwrap().as_mut().unwrap()), (*s3.lock().unwrap().as_mut().unwrap()));
     let mut s4: std::sync::Arc<std::sync::Mutex<Option<Vec<i32>>>> = std::sync::Arc::new(std::sync::Mutex::new(Some(Default::default())));
     let mut s5 = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![])));

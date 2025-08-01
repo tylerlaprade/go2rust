@@ -19,7 +19,7 @@ pub fn gcd(a: std::sync::Arc<std::sync::Mutex<Option<i32>>>, b: std::sync::Arc<s
     if (*b.lock().unwrap().as_mut().unwrap()) == 0 {
         return std::sync::Arc::new(std::sync::Mutex::new(Some((*a.lock().unwrap().as_mut().unwrap()).clone())));
     }
-    return std::sync::Arc::new(std::sync::Mutex::new(Some(gcd(std::sync::Arc::new(std::sync::Mutex::new(Some((*b.lock().unwrap().as_mut().unwrap())))), std::sync::Arc::new(std::sync::Mutex::new(Some((*a.lock().unwrap().as_mut().unwrap()) % (*b.lock().unwrap().as_mut().unwrap()))))))));
+    return std::sync::Arc::new(std::sync::Mutex::new(Some(gcd(b.clone(), std::sync::Arc::new(std::sync::Mutex::new(Some((*a.lock().unwrap().as_mut().unwrap()) % (*b.lock().unwrap().as_mut().unwrap()))))))));
 }
 
 pub fn power(base: std::sync::Arc<std::sync::Mutex<Option<i32>>>, exp: std::sync::Arc<std::sync::Mutex<Option<i32>>>) -> std::sync::Arc<std::sync::Mutex<Option<i32>>> {
@@ -31,10 +31,10 @@ pub fn power(base: std::sync::Arc<std::sync::Mutex<Option<i32>>>, exp: std::sync
         return std::sync::Arc::new(std::sync::Mutex::new(Some((*base.lock().unwrap().as_mut().unwrap()).clone())));
     }
     if (*exp.lock().unwrap().as_mut().unwrap()) % 2 == 0 {
-        let mut half = power(std::sync::Arc::new(std::sync::Mutex::new(Some((*base.lock().unwrap().as_mut().unwrap())))), std::sync::Arc::new(std::sync::Mutex::new(Some((*exp.lock().unwrap().as_mut().unwrap()) / 2))));
+        let mut half = power(base.clone(), std::sync::Arc::new(std::sync::Mutex::new(Some((*exp.lock().unwrap().as_mut().unwrap()) / 2))));
         return std::sync::Arc::new(std::sync::Mutex::new(Some((*half.lock().unwrap().as_mut().unwrap()) * (*half.lock().unwrap().as_mut().unwrap()))));
     }
-    return std::sync::Arc::new(std::sync::Mutex::new(Some((*base.lock().unwrap().as_mut().unwrap()) * power(std::sync::Arc::new(std::sync::Mutex::new(Some((*base.lock().unwrap().as_mut().unwrap())))), std::sync::Arc::new(std::sync::Mutex::new(Some((*exp.lock().unwrap().as_mut().unwrap()) - 1)))))));
+    return std::sync::Arc::new(std::sync::Mutex::new(Some((*base.lock().unwrap().as_mut().unwrap()) * power(base.clone(), std::sync::Arc::new(std::sync::Mutex::new(Some((*exp.lock().unwrap().as_mut().unwrap()) - 1)))))));
 }
 
 pub fn sum_array(arr: std::sync::Arc<std::sync::Mutex<Option<Vec<i32>>>>) -> std::sync::Arc<std::sync::Mutex<Option<i32>>> {
@@ -62,7 +62,7 @@ fn main() {
     println!("{}", "Fibonacci sequence:".to_string());
     let mut i = std::sync::Arc::new(std::sync::Mutex::new(Some(0)));
     while (*i.lock().unwrap().as_mut().unwrap()) < 10 {
-        print!("fib({}) = {}\n", (*i.lock().unwrap().as_mut().unwrap()), fibonacci(std::sync::Arc::new(std::sync::Mutex::new(Some((*i.lock().unwrap().as_mut().unwrap()))))));
+        print!("fib({}) = {}\n", (*i.lock().unwrap().as_mut().unwrap()), fibonacci(i.clone()));
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
     println!("{} {}", "GCD of 48 and 18:".to_string(), (*gcd(std::sync::Arc::new(std::sync::Mutex::new(Some(48))), std::sync::Arc::new(std::sync::Mutex::new(Some(18)))).lock().unwrap().as_mut().unwrap()));
@@ -71,8 +71,8 @@ fn main() {
     println!("{} {}", "3^4 =".to_string(), (*power(std::sync::Arc::new(std::sync::Mutex::new(Some(3))), std::sync::Arc::new(std::sync::Mutex::new(Some(4)))).lock().unwrap().as_mut().unwrap()));
     println!("{} {}", "5^0 =".to_string(), (*power(std::sync::Arc::new(std::sync::Mutex::new(Some(5))), std::sync::Arc::new(std::sync::Mutex::new(Some(0)))).lock().unwrap().as_mut().unwrap()));
     let mut numbers = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![1, 2, 3, 4, 5])));
-    println!("{} {} {} {}", "Sum of".to_string(), (*numbers.lock().unwrap().as_mut().unwrap()), "=".to_string(), (*sum_array(std::sync::Arc::new(std::sync::Mutex::new(Some((*numbers.lock().unwrap().as_mut().unwrap()))))).lock().unwrap().as_mut().unwrap()));
+    println!("{} {} {} {}", "Sum of".to_string(), (*numbers.lock().unwrap().as_mut().unwrap()), "=".to_string(), (*sum_array(numbers.clone()).lock().unwrap().as_mut().unwrap()));
     let mut original = std::sync::Arc::new(std::sync::Mutex::new(Some("hello".to_string())));
-    let mut reversed = reverse_string(std::sync::Arc::new(std::sync::Mutex::new(Some((*original.lock().unwrap().as_mut().unwrap())))));
+    let mut reversed = reverse_string(original.clone());
     print!("'{}' reversed is '{}'\n", (*original.lock().unwrap().as_mut().unwrap()), (*reversed.lock().unwrap().as_mut().unwrap()));
 }

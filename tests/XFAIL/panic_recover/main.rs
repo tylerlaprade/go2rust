@@ -55,13 +55,13 @@ fn main() {
     }
     println!("{}", "\n=== Slice access examples ===".to_string());
     let mut numbers = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![1, 2, 3, 4, 5])));
-    let (mut value, mut err) = process_slice(std::sync::Arc::new(std::sync::Mutex::new(Some((*numbers.lock().unwrap().as_mut().unwrap())))), std::sync::Arc::new(std::sync::Mutex::new(Some(2))));
+    let (mut value, mut err) = process_slice(numbers.clone(), std::sync::Arc::new(std::sync::Mutex::new(Some(2))));
     if (*err.lock().unwrap()).is_some() {
         print!("Error: {}\n", (*err.lock().unwrap().as_mut().unwrap()));
     } else {
         print!("numbers[2] = {}\n", (*value.lock().unwrap().as_mut().unwrap()));
     }
-    (value, err) = process_slice(std::sync::Arc::new(std::sync::Mutex::new(Some((*numbers.lock().unwrap().as_mut().unwrap())))), std::sync::Arc::new(std::sync::Mutex::new(Some(10))));
+    (value, err) = process_slice(numbers.clone(), std::sync::Arc::new(std::sync::Mutex::new(Some(10))));
     if (*err.lock().unwrap()).is_some() {
         print!("Error: {}\n", (*err.lock().unwrap().as_mut().unwrap()));
     } else {

@@ -31,12 +31,12 @@ fn main() {
     println!("{} {}", "5 + 3 =".to_string(), (*add5(std::sync::Arc::new(std::sync::Mutex::new(Some(3)))).lock().unwrap().as_mut().unwrap()));
     println!("{} {}", "10 + 7 =".to_string(), (*add10(std::sync::Arc::new(std::sync::Mutex::new(Some(7)))).lock().unwrap().as_mut().unwrap()));
     let mut numbers = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![1, 2, 3, 4, 5])));
-    let mut squared = apply_operation(std::sync::Arc::new(std::sync::Mutex::new(Some((*numbers.lock().unwrap().as_mut().unwrap())))), std::sync::Arc::new(std::sync::Mutex::new(Some())));
+    let mut squared = apply_operation(numbers.clone(), std::sync::Arc::new(std::sync::Mutex::new(Some())));
     println!("{} {}", "Squared:".to_string(), (*squared.lock().unwrap().as_mut().unwrap()));
-    let mut doubled = apply_operation(std::sync::Arc::new(std::sync::Mutex::new(Some((*numbers.lock().unwrap().as_mut().unwrap())))), std::sync::Arc::new(std::sync::Mutex::new(Some())));
+    let mut doubled = apply_operation(numbers.clone(), std::sync::Arc::new(std::sync::Mutex::new(Some())));
     println!("{} {}", "Doubled:".to_string(), (*doubled.lock().unwrap().as_mut().unwrap()));
     let mut multiplier = std::sync::Arc::new(std::sync::Mutex::new(Some(3)));
-    let mut tripled = apply_operation(std::sync::Arc::new(std::sync::Mutex::new(Some((*numbers.lock().unwrap().as_mut().unwrap())))), std::sync::Arc::new(std::sync::Mutex::new(Some())));
+    let mut tripled = apply_operation(numbers.clone(), std::sync::Arc::new(std::sync::Mutex::new(Some())));
     println!("{} {}", "Tripled:".to_string(), (*tripled.lock().unwrap().as_mut().unwrap()));
     let mut result = (std::sync::Arc::new(std::sync::Mutex::new(Some(10))), std::sync::Arc::new(std::sync::Mutex::new(Some(20))));
     println!("{} {}", "Immediate result:".to_string(), (*result.lock().unwrap().as_mut().unwrap()));

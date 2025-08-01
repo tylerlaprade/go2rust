@@ -5,7 +5,7 @@ fn main() {
         // TODO: Unhandled statement type: SendStmt
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
-    close(std::sync::Arc::new(std::sync::Mutex::new(Some((*requests.lock().unwrap().as_mut().unwrap())))));
+    close(requests.clone());
     let mut limiter = (*time.lock().unwrap().as_mut().unwrap()).tick(std::sync::Arc::new(std::sync::Mutex::new(Some(200 * (*time.lock().unwrap().as_mut().unwrap()).millisecond))));
     for req in 0..(*requests.lock().unwrap().as_mut().unwrap()).len() {
         <-(*limiter.lock().unwrap().as_mut().unwrap());
@@ -24,7 +24,7 @@ fn main() {
         // TODO: Unhandled statement type: SendStmt
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
-    close(std::sync::Arc::new(std::sync::Mutex::new(Some((*burstyRequests.lock().unwrap().as_mut().unwrap())))));
+    close(burstyRequests.clone());
     for req in 0..(*burstyRequests.lock().unwrap().as_mut().unwrap()).len() {
         <-(*burstyLimiter.lock().unwrap().as_mut().unwrap());
         println!("{} {} {}", "request".to_string(), req, (*(*time.lock().unwrap().as_mut().unwrap()).now().lock().unwrap().as_mut().unwrap()));

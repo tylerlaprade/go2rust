@@ -25,7 +25,7 @@ fn main() {
         print!("Error reading file: {}\n", (*err.lock().unwrap().as_mut().unwrap()));
         return;
     }
-    print!("File contents:\n{}", string(std::sync::Arc::new(std::sync::Mutex::new(Some((*data.lock().unwrap().as_mut().unwrap()))))));
+    print!("File contents:\n{}", string(data.clone()));
     println!("{}", "\n--- Reading file line by line ---".to_string());
     (file, err) = (*os.lock().unwrap().as_mut().unwrap()).open(std::sync::Arc::new(std::sync::Mutex::new(Some((*filename.lock().unwrap().as_mut().unwrap())))));
     if (*err.lock().unwrap()).is_some() {
@@ -68,7 +68,7 @@ fn main() {
         print!("Error reading updated file: {}\n", (*err.lock().unwrap().as_mut().unwrap()));
         return;
     }
-    print!("Updated file contents:\n{}", string(std::sync::Arc::new(std::sync::Mutex::new(Some((*data.lock().unwrap().as_mut().unwrap()))))));
+    print!("Updated file contents:\n{}", string(data.clone()));
     println!("{}", "\n--- File information ---".to_string());
     let (mut fileInfo, mut err) = (*os.lock().unwrap().as_mut().unwrap()).stat(std::sync::Arc::new(std::sync::Mutex::new(Some((*filename.lock().unwrap().as_mut().unwrap())))));
     if (*err.lock().unwrap()).is_some() {
@@ -144,7 +144,7 @@ fn main() {
         print!("Error reading data file: {}\n", (*err.lock().unwrap().as_mut().unwrap()));
         return;
     }
-    print!("Data file contents:\n{}", string(std::sync::Arc::new(std::sync::Mutex::new(Some((*data.lock().unwrap().as_mut().unwrap()))))));
+    print!("Data file contents:\n{}", string(data.clone()));
     println!("{}", "\n--- Checking file existence ---".to_string());
     let mut files = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![(*filename.lock().unwrap().as_mut().unwrap()), (*copyFilename.lock().unwrap().as_mut().unwrap()), (*dataFile.lock().unwrap().as_mut().unwrap()), "nonexistent.txt".to_string()])));
     for f in &(*files.lock().unwrap().as_mut().unwrap()) {

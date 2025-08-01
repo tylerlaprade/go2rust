@@ -53,9 +53,9 @@ fn main() {
     }
     println!();
     println!("{}", "\n=== Ignoring some return values in assignment ===".to_string());
-    let (mut sum, _) = process_slice(std::sync::Arc::new(std::sync::Mutex::new(Some((*slice.lock().unwrap().as_mut().unwrap())))));
+    let (mut sum, _) = process_slice(slice.clone());
     print!("Sum (ignoring count): {}\n", (*sum.lock().unwrap().as_mut().unwrap()));
-    let (_, mut count) = process_slice(std::sync::Arc::new(std::sync::Mutex::new(Some((*slice.lock().unwrap().as_mut().unwrap())))));
+    let (_, mut count) = process_slice(slice.clone());
     print!("Count (ignoring sum): {}\n", (*count.lock().unwrap().as_mut().unwrap()));
     println!("{}", "\n=== Blank identifier in declarations ===".to_string());
     let _ = "This string is assigned but not used".to_string();
@@ -78,7 +78,7 @@ fn main() {
     // TODO: Unhandled statement type: SendStmt
     // TODO: Unhandled statement type: SendStmt
     // TODO: Unhandled statement type: SendStmt
-    close(std::sync::Arc::new(std::sync::Mutex::new(Some((*ch.lock().unwrap().as_mut().unwrap())))));
+    close(ch.clone());
     for  {
         println!("{}", "Received a value (but ignored it)".to_string());
     }

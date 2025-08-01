@@ -22,7 +22,7 @@ fn main() {
         // TODO: Unhandled statement type: SendStmt
         { let mut guard = j.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
-    close(std::sync::Arc::new(std::sync::Mutex::new(Some((*jobs.lock().unwrap().as_mut().unwrap())))));
+    close(jobs.clone());
     let mut a = std::sync::Arc::new(std::sync::Mutex::new(Some(1)));
     while (*a.lock().unwrap().as_mut().unwrap()) <= numJobs {
         <-(*results.lock().unwrap().as_mut().unwrap());
