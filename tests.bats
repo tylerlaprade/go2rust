@@ -194,6 +194,10 @@ run_xfail_test() {
             return 1
         fi
         # Other failures are expected for XFAIL
+        # But if we're running specific tests (not all tests), fail so we see the output
+        if [ "$SHOW_XFAIL_ERRORS" = "true" ]; then
+            return 1
+        fi
         return 0
     else
         # Test passed - promote it!
@@ -375,6 +379,10 @@ run_xfail_test() {
 
 @test "XFAIL: error_handling" {
     run_xfail_test "tests/XFAIL/error_handling"
+}
+
+@test "XFAIL: error_simple" {
+    run_xfail_test "tests/XFAIL/error_simple"
 }
 
 @test "XFAIL: errors_custom" {

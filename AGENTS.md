@@ -2,6 +2,8 @@
 
 ## Critical Principles
 
+### Think about what you need to do before rushing to do it
+
 ### Don't Hide Problems
 
 - **Never add generated files to .gitignore** - fix the root cause instead
@@ -53,20 +55,16 @@ Basic program transpilation working
 ### ⏳ Phase 2: Variables and Basic Types
 
 - **Done**: Basic syntax, maps, nil, interface{}, type assertions, break/continue statements
-- **TODO**: Map insert operations, error handling patterns
-- **Issues**: `Vec<T>` needs `{:?}` formatting, no embedded struct promotion
+- **TODO**: Map delete/iteration, error handling patterns, custom formatting for slices/maps to match Go output
+- **Issues**: No embedded struct promotion
 
 ### ✅ Phase 3: Pointers and Mutation
 
-- **Done**: Pointer types, &/*, new() builtin, struct fields, nil handling
-- **Fixed**: Pointer types now use single wrapping (`Arc<Mutex<Option<T>>>`) instead of double
-- **Fixed**: Pointer assignment (`p = &x`) correctly extracts values
-- **Optimization**: Function arguments avoid double-wrapping when passing variables
+Pointer types, &/*, new() builtin, struct fields, nil handling all working
 
 ### ✅ Phase 4: Functions and Methods
 
-- **Done**: Method receivers (value and pointer), multiple returns, method calls
-- **Working**: All method functionality implemented and tested
+Method receivers (value and pointer), multiple returns, method calls all working
 
 ### 📋 Phase 5: Goroutines and Concurrency
 

@@ -159,6 +159,21 @@ if ! command -v bats >/dev/null 2>&1; then
     exit 1
 fi
 
+# Check if we're running specific XFAIL tests
+SHOW_XFAIL_ERRORS=false
+if [ ${#TEST_NAMES[@]} -gt 0 ]; then
+    # Check if any of the requested tests are XFAIL
+    for test_name in "${TEST_NAMES[@]}"; do
+        if [ -d "tests/XFAIL/$test_name" ]; then
+            SHOW_XFAIL_ERRORS=true
+            break
+        fi
+    done
+fi
+
+# Export for use in tests.bats
+export SHOW_XFAIL_ERRORS
+
 # Set default job count if not specified
 if [ -z "$JOBS" ]; then
     # Detect CPU cores but leave some headroom for Rust's memory usage
