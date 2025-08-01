@@ -5,8 +5,8 @@ pub fn divmod(a: std::sync::Arc<std::sync::Mutex<Option<i32>>>, b: std::sync::Ar
 
 pub fn parse_number(s: std::sync::Arc<std::sync::Mutex<Option<String>>>) -> (std::sync::Arc<std::sync::Mutex<Option<i32>>>, std::sync::Arc<std::sync::Mutex<Option<Box<dyn std::error::Error + Send + Sync>>>>) {
 
-    let (mut num, mut err) = match (*s.lock().unwrap().as_mut().unwrap()).parse::<i32>() { Ok(n) => (std::sync::Arc::new(std::sync::Mutex::new(Some(n))), std::sync::Arc::new(std::sync::Mutex::new(None))), Err(e) => (std::sync::Arc::new(std::sync::Mutex::new(Some(Box::new(e) as Box<dyn std::error::Error + Send + Sync>)))) };
-    if (*err.lock().unwrap().as_mut().unwrap()).is_some() {
+    let (mut num, mut err) = match (*s.lock().unwrap().as_mut().unwrap()).parse::<i32>() { Ok(n) => (std::sync::Arc::new(std::sync::Mutex::new(Some(n))), std::sync::Arc::new(std::sync::Mutex::new(None))), Err(e) => (std::sync::Arc::new(std::sync::Mutex::new(Some(0))), std::sync::Arc::new(std::sync::Mutex::new(Some(Box::new(e) as Box<dyn std::error::Error + Send + Sync>)))) };
+    if (*err.lock().unwrap()).is_some() {
         return (std::sync::Arc::new(std::sync::Mutex::new(Some(0))), std::sync::Arc::new(std::sync::Mutex::new(Some(Box::new(format!("failed to parse '{}': {}", (*s.lock().unwrap().as_mut().unwrap()), (*err.lock().unwrap().as_mut().unwrap()))) as Box<dyn std::error::Error + Send + Sync>))));
     }
     return (std::sync::Arc::new(std::sync::Mutex::new(Some((*num.lock().unwrap().as_mut().unwrap()).clone()))), std::sync::Arc::new(std::sync::Mutex::new(None)));
@@ -37,7 +37,7 @@ pub fn process_data(data: std::sync::Arc<std::sync::Mutex<Option<Vec<i32>>>>) ->
     { let new_val = (*data.lock().unwrap().as_mut().unwrap())[0]; *min.lock().unwrap() = Some(new_val); };
     { let new_val = (*data.lock().unwrap().as_mut().unwrap())[0]; *max.lock().unwrap() = Some(new_val); };
     { let new_val = 0; *sum.lock().unwrap() = Some(new_val); };
-    for (_, val) in (*data.lock().unwrap().as_mut().unwrap()).iter().enumerate() {
+    for val in &(*data.lock().unwrap().as_mut().unwrap()) {
         if val < (*min.lock().unwrap().as_mut().unwrap()) {
         { let new_val = val; *min.lock().unwrap() = Some(new_val); };
     }
@@ -93,13 +93,13 @@ fn main() {
     print!("Name: {}, Age: {}\n", (*name.lock().unwrap().as_mut().unwrap()), (*age.lock().unwrap().as_mut().unwrap()));
     println!("{}", "\n=== Multiple returns with errors ===".to_string());
     let (mut num, mut err) = parse_number(std::sync::Arc::new(std::sync::Mutex::new(Some("123".to_string()))));
-    if (*err.lock().unwrap().as_mut().unwrap()).is_some() {
+    if (*err.lock().unwrap()).is_some() {
         print!("Error: {}\n", (*err.lock().unwrap().as_mut().unwrap()));
     } else {
         print!("Parsed number: {}\n", (*num.lock().unwrap().as_mut().unwrap()));
     }
     (num, err) = parse_number(std::sync::Arc::new(std::sync::Mutex::new(Some("abc".to_string()))));
-    if (*err.lock().unwrap().as_mut().unwrap()).is_some() {
+    if (*err.lock().unwrap()).is_some() {
         print!("Error: {}\n", (*err.lock().unwrap().as_mut().unwrap()));
     } else {
         print!("Parsed number: {}\n", (*num.lock().unwrap().as_mut().unwrap()));
@@ -112,7 +112,7 @@ fn main() {
     print!("Data: {}\n", (*data.lock().unwrap().as_mut().unwrap()));
     print!("Min: {}, Max: {}, Sum: {}\n", (*min.lock().unwrap().as_mut().unwrap()), (*max.lock().unwrap().as_mut().unwrap()), (*sum.lock().unwrap().as_mut().unwrap()));
     println!("{}", "\n=== Swapping values ===".to_string());
-    let (mut (*x.lock().unwrap().as_mut().unwrap()), mut (*y.lock().unwrap().as_mut().unwrap())) = ("hello".to_string(), "world".to_string());
+    let (mut x, mut y) = (std::sync::Arc::new(std::sync::Mutex::new(Some("hello".to_string()))), std::sync::Arc::new(std::sync::Mutex::new(Some("world".to_string()))));
     print!("Before swap: x={}, y={}\n", (*x.lock().unwrap().as_mut().unwrap()), (*y.lock().unwrap().as_mut().unwrap()));
     (x, y) = swap(std::sync::Arc::new(std::sync::Mutex::new(Some((*x.lock().unwrap().as_mut().unwrap())))), std::sync::Arc::new(std::sync::Mutex::new(Some((*y.lock().unwrap().as_mut().unwrap())))));
     print!("After swap: x={}, y={}\n", (*x.lock().unwrap().as_mut().unwrap()), (*y.lock().unwrap().as_mut().unwrap()));
@@ -135,13 +135,13 @@ fn main() {
     }
     println!("{}", "\n=== Safe division ===".to_string());
     let (mut result, mut err) = safe_divide(std::sync::Arc::new(std::sync::Mutex::new(Some(10.0))), std::sync::Arc::new(std::sync::Mutex::new(Some(3.0))));
-    if (*err.lock().unwrap().as_mut().unwrap()).is_some() {
+    if (*err.lock().unwrap()).is_some() {
         print!("Error: {}\n", (*err.lock().unwrap().as_mut().unwrap()));
     } else {
         print!("10.0 / 3.0 = {:.2}\n", (*result.lock().unwrap().as_mut().unwrap()));
     }
     (result, err) = safe_divide(std::sync::Arc::new(std::sync::Mutex::new(Some(10.0))), std::sync::Arc::new(std::sync::Mutex::new(Some(0.0))));
-    if (*err.lock().unwrap().as_mut().unwrap()).is_some() {
+    if (*err.lock().unwrap()).is_some() {
         print!("Error: {}\n", (*err.lock().unwrap().as_mut().unwrap()));
     } else {
         print!("Result: {:.2}\n", (*result.lock().unwrap().as_mut().unwrap()));
@@ -152,7 +152,7 @@ fn main() {
     let (mut name2, _) = get_name_age();
     print!("Name only: {} (age ignored)\n", (*name2.lock().unwrap().as_mut().unwrap()));
     println!("{}", "\n=== Multiple assignment ===".to_string());
-    let (mut (*a.lock().unwrap().as_mut().unwrap()), mut (*b.lock().unwrap().as_mut().unwrap()), mut (*c.lock().unwrap().as_mut().unwrap())) = (1, 2, 3);
+    let (mut a, mut b, mut c) = (std::sync::Arc::new(std::sync::Mutex::new(Some(1))), std::sync::Arc::new(std::sync::Mutex::new(Some(2))), std::sync::Arc::new(std::sync::Mutex::new(Some(3))));
     print!("a={}, b={}, c={}\n", (*a.lock().unwrap().as_mut().unwrap()), (*b.lock().unwrap().as_mut().unwrap()), (*c.lock().unwrap().as_mut().unwrap()));
     { *(*a.lock().unwrap().as_mut().unwrap()).lock().unwrap() = Some((*b.lock().unwrap().as_mut().unwrap())); *(*b.lock().unwrap().as_mut().unwrap()).lock().unwrap() = Some((*a.lock().unwrap().as_mut().unwrap())) };
     print!("After swap: a={}, b={}\n", (*a.lock().unwrap().as_mut().unwrap()), (*b.lock().unwrap().as_mut().unwrap()));

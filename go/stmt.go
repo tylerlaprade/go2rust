@@ -299,14 +299,17 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						if ident, ok := lhs.(*ast.Ident); !ok || ident.Name != "_" {
 							out.WriteString("mut ")
 						}
-						TranspileExpression(out, lhs)
+						TranspileExpressionContext(out, lhs, LValue)
 					}
 					out.WriteString(") = (")
 					for i, rhs := range s.Rhs {
 						if i > 0 {
 							out.WriteString(", ")
 						}
+						// Wrap new variables in Arc<Mutex<Option<>>>
+						out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(Some(")
 						TranspileExpression(out, rhs)
+						out.WriteString(")))")
 					}
 					out.WriteString(")")
 				} else {
@@ -363,13 +366,21 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 								TranspileExpression(out, s.Rhs[0])
 							} else {
 								// Direct assignment: x = value
-								out.WriteString("{ ")
-								out.WriteString("let new_val = ")
-								TranspileExpression(out, s.Rhs[0])
-								out.WriteString("; ")
-								out.WriteString("*")
-								TranspileExpressionContext(out, s.Lhs[0], LValue)
-								out.WriteString(".lock().unwrap() = Some(new_val); }")
+								// Check if RHS is nil
+								if ident, ok := s.Rhs[0].(*ast.Ident); ok && ident.Name == "nil" {
+									// Assigning nil to pointer
+									out.WriteString("*")
+									TranspileExpressionContext(out, s.Lhs[0], LValue)
+									out.WriteString(".lock().unwrap() = None")
+								} else {
+									out.WriteString("{ ")
+									out.WriteString("let new_val = ")
+									TranspileExpression(out, s.Rhs[0])
+									out.WriteString("; ")
+									out.WriteString("*")
+									TranspileExpressionContext(out, s.Lhs[0], LValue)
+									out.WriteString(".lock().unwrap() = Some(new_val); }")
+								}
 							}
 						} else {
 							// Regular assignment or definition
@@ -390,8 +401,11 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									out.WriteString(", ")
 								}
 								if s.Tok == token.DEFINE {
-									// Check if RHS is an address-of expression
-									if unary, ok := rhs.(*ast.UnaryExpr); ok && unary.Op == token.AND {
+									// Check if RHS is nil
+									if ident, ok := rhs.(*ast.Ident); ok && ident.Name == "nil" {
+										// Initializing with nil
+										out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(None))")
+									} else if unary, ok := rhs.(*ast.UnaryExpr); ok && unary.Op == token.AND {
 										// Taking address - don't wrap, the & operator will handle it
 										TranspileExpression(out, rhs)
 									} else if _, isCall := rhs.(*ast.CallExpr); isCall {
@@ -458,10 +472,20 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							}
 							out.WriteString("let mut ")
 							out.WriteString(name.Name)
+
+							// Add type annotation if type is specified
+							if valueSpec.Type != nil {
+								out.WriteString(": ")
+								out.WriteString(GoTypeToRust(valueSpec.Type))
+							}
+
 							if len(valueSpec.Values) > i {
 								out.WriteString(" = ")
-								// Check if value is a function call - they already return wrapped values
-								if _, isCall := valueSpec.Values[i].(*ast.CallExpr); isCall {
+								// Check if value is nil
+								if ident, ok := valueSpec.Values[i].(*ast.Ident); ok && ident.Name == "nil" {
+									// Initializing with nil
+									out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(None))")
+								} else if _, isCall := valueSpec.Values[i].(*ast.CallExpr); isCall {
 									// Function calls already return wrapped values, don't wrap again
 									TranspileExpression(out, valueSpec.Values[i])
 								} else {
@@ -483,11 +507,11 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										default:
 											out.WriteString(" = Default::default()")
 										}
+									case *ast.StarExpr:
+										// Pointer type - initialize with None
+										out.WriteString(" = std::sync::Arc::new(std::sync::Mutex::new(None))")
 									case *ast.ArrayType:
 										// Initialize array with default values
-										out.WriteString(": ")
-										rustType := GoTypeToRust(valueSpec.Type)
-										out.WriteString(rustType)
 										// Arrays are wrapped, so we need Some(default array)
 										out.WriteString(" = std::sync::Arc::new(std::sync::Mutex::new(Some(Default::default())))")
 									}
@@ -637,24 +661,36 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		} else {
 			// Array/slice iteration
 			if s.Key != nil && s.Value != nil {
-				// for i, v := range arr
-				out.WriteString("(")
-				// Just output the identifier names, don't wrap them
-				if ident, ok := s.Key.(*ast.Ident); ok {
-					out.WriteString(ident.Name)
+				// Check if key is blank identifier
+				if keyIdent, ok := s.Key.(*ast.Ident); ok && keyIdent.Name == "_" {
+					// for _, v := range arr - just iterate values
+					if ident, ok := s.Value.(*ast.Ident); ok {
+						out.WriteString(ident.Name)
+					} else {
+						TranspileExpression(out, s.Value)
+					}
+					out.WriteString(" in &")
+					TranspileExpressionContext(out, s.X, RValue)
 				} else {
-					TranspileExpression(out, s.Key)
+					// for i, v := range arr
+					out.WriteString("(")
+					// Just output the identifier names, don't wrap them
+					if ident, ok := s.Key.(*ast.Ident); ok {
+						out.WriteString(ident.Name)
+					} else {
+						TranspileExpression(out, s.Key)
+					}
+					out.WriteString(", ")
+					if ident, ok := s.Value.(*ast.Ident); ok {
+						out.WriteString(ident.Name)
+					} else {
+						TranspileExpression(out, s.Value)
+					}
+					out.WriteString(") in ")
+					// Need to unwrap the collection
+					TranspileExpressionContext(out, s.X, RValue)
+					out.WriteString(".iter().enumerate()")
 				}
-				out.WriteString(", ")
-				if ident, ok := s.Value.(*ast.Ident); ok {
-					out.WriteString(ident.Name)
-				} else {
-					TranspileExpression(out, s.Value)
-				}
-				out.WriteString(") in ")
-				// Need to unwrap the collection
-				TranspileExpressionContext(out, s.X, RValue)
-				out.WriteString(".iter().enumerate()")
 			} else if s.Value != nil {
 				// for _, v := range arr
 				if ident, ok := s.Value.(*ast.Ident); ok {
@@ -748,12 +784,14 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		out.WriteString(" {\n")
 
 		// Process cases
+		hasDefault := false
 		for _, stmt := range s.Body.List {
 			if caseClause, ok := stmt.(*ast.CaseClause); ok {
 				out.WriteString("        ")
 				if caseClause.List == nil {
 					// default case
 					out.WriteString("_")
+					hasDefault = true
 				} else {
 					// Regular case(s)
 					for i, expr := range caseClause.List {
@@ -782,6 +820,11 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 				out.WriteString("        }\n")
 			}
+		}
+
+		// Add default case if not present (required for exhaustive matching in Rust)
+		if !hasDefault {
+			out.WriteString("        _ => {}\n")
 		}
 
 		out.WriteString("    }")

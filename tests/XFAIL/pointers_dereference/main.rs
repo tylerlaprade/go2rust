@@ -2,7 +2,7 @@ pub fn zeroval(ival: std::sync::Arc<std::sync::Mutex<Option<i32>>>) {
     { let new_val = 0; *ival.lock().unwrap() = Some(new_val); };
 }
 
-pub fn zeroptr(iptr: std::sync::Arc<std::sync::Mutex<Option<i32>>>) {
+pub fn zeroptr(iptr: std::sync::Arc<std::sync::Mutex<Option<std::sync::Arc<std::sync::Mutex<Option<i32>>>>>>) {
     { let new_val = 0; *iptr.lock().unwrap() = Some(new_val); };
 }
 

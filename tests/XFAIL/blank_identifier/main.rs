@@ -9,7 +9,7 @@ pub fn process_slice(slice: std::sync::Arc<std::sync::Mutex<Option<Vec<i32>>>>) 
 
     { let new_val = 0; *sum.lock().unwrap() = Some(new_val); };
     { let new_val = (*slice.lock().unwrap().as_mut().unwrap()).len(); *count.lock().unwrap() = Some(new_val); };
-    for (_, val) in (*slice.lock().unwrap().as_mut().unwrap()).iter().enumerate() {
+    for val in &(*slice.lock().unwrap().as_mut().unwrap()) {
         { let mut guard = sum.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + val); };
     }
     return (sum, count);
@@ -26,7 +26,7 @@ fn main() {
     println!("{}", "\n=== Ignoring in range loops ===".to_string());
     let mut slice = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![10, 20, 30, 40, 50])));
     println!("{}", "Values only:".to_string());
-    for (_, val) in (*slice.lock().unwrap().as_mut().unwrap()).iter().enumerate() {
+    for val in &(*slice.lock().unwrap().as_mut().unwrap()) {
         print!("{} ", val);
     }
     println!();
@@ -59,10 +59,10 @@ fn main() {
     print!("Count (ignoring sum): {}\n", (*count.lock().unwrap().as_mut().unwrap()));
     println!("{}", "\n=== Blank identifier in declarations ===".to_string());
     let _ = "This string is assigned but not used".to_string();
-    let (mut (*a.lock().unwrap().as_mut().unwrap()), _, mut (*c.lock().unwrap().as_mut().unwrap())) = (1, 2, 3);
+    let (mut a, _, mut c) = (std::sync::Arc::new(std::sync::Mutex::new(Some(1))), std::sync::Arc::new(std::sync::Mutex::new(Some(2))), std::sync::Arc::new(std::sync::Mutex::new(Some(3))));
     print!("a={}, c={} (middle value ignored)\n", (*a.lock().unwrap().as_mut().unwrap()), (*c.lock().unwrap().as_mut().unwrap()));
     println!("{}", "\n=== Blank identifier with type assertion ===".to_string());
-    let mut value = std::sync::Arc::new(std::sync::Mutex::new(Some("hello world".to_string())));
+    let mut value: std::sync::Arc<std::sync::Mutex<Option<Box<dyn std::any::Any>>>> = std::sync::Arc::new(std::sync::Mutex::new(Some("hello world".to_string())));
     let (_, mut ok) = match (*value.lock().unwrap().as_mut().unwrap()).downcast_ref::<String>() { Some(v) => (v.clone(), true), None => (String::new(), false) };
     if (*ok.lock().unwrap().as_mut().unwrap()) {
         println!("{}", "Value is a string (but we ignored the actual value)".to_string());
@@ -88,8 +88,8 @@ fn main() {
     println!("{}", "\n=== Complex example ===".to_string());
     let mut data = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![, , ])));
     let mut total = std::sync::Arc::new(std::sync::Mutex::new(Some(0)));
-    for (_, row) in (*data.lock().unwrap().as_mut().unwrap()).iter().enumerate() {
-        for (_, val) in row.iter().enumerate() {
+    for row in &(*data.lock().unwrap().as_mut().unwrap()) {
+        for val in &row {
         { let mut guard = total.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + val); };
     }
     }

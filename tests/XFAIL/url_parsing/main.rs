@@ -1,6 +1,6 @@
 fn main() {
     let (mut u, mut err) = (*url.lock().unwrap().as_mut().unwrap()).parse(std::sync::Arc::new(std::sync::Mutex::new(Some("https://example.com/path?key=value".to_string()))));
-    if (*err.lock().unwrap().as_mut().unwrap()).is_some() {
+    if (*err.lock().unwrap()).is_some() {
         println!("{} {}", "Error:".to_string(), (*err.lock().unwrap().as_mut().unwrap()));
         return;
     }

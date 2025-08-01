@@ -1,6 +1,6 @@
 fn main() {
     let (mut resp, mut err) = (*http.lock().unwrap().as_mut().unwrap()).get(std::sync::Arc::new(std::sync::Mutex::new(Some("https://httpbin.org/json".to_string()))));
-    if (*err.lock().unwrap().as_mut().unwrap()).is_some() {
+    if (*err.lock().unwrap()).is_some() {
         println!("{} {}", "Error:".to_string(), (*err.lock().unwrap().as_mut().unwrap()));
         return;
     }

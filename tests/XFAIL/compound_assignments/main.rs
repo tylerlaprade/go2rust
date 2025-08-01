@@ -1,0 +1,32 @@
+fn main() {
+    let mut x = std::sync::Arc::new(std::sync::Mutex::new(Some(10)));
+    { let mut guard = x.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 5); };
+    print!("x += 5: {}\n", (*x.lock().unwrap().as_mut().unwrap()));
+    { let mut guard = x.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - 3); };
+    print!("x -= 3: {}\n", (*x.lock().unwrap().as_mut().unwrap()));
+    { let mut guard = x.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() * 2); };
+    print!("x *= 2: {}\n", (*x.lock().unwrap().as_mut().unwrap()));
+    { let mut guard = x.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() / 4); };
+    print!("x /= 4: {}\n", (*x.lock().unwrap().as_mut().unwrap()));
+    { let mut guard = x.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() % 5); };
+    print!("x %%= 5: {}\n", (*x.lock().unwrap().as_mut().unwrap()));
+    let mut y = std::sync::Arc::new(std::sync::Mutex::new(Some(0b1010)));
+    y = 0b1100;
+    print!("y &= 0b1100: %b\n", (*y.lock().unwrap().as_mut().unwrap()));
+    y = 0b0011;
+    print!("y |= 0b0011: %b\n", (*y.lock().unwrap().as_mut().unwrap()));
+    y = 0b0101;
+    print!("y ^= 0b0101: %b\n", (*y.lock().unwrap().as_mut().unwrap()));
+    y = 2;
+    print!("y <<= 2: %b\n", (*y.lock().unwrap().as_mut().unwrap()));
+    y = 1;
+    print!("y >>= 1: %b\n", (*y.lock().unwrap().as_mut().unwrap()));
+    let mut f = std::sync::Arc::new(std::sync::Mutex::new(Some(3.14)));
+    { let mut guard = f.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 2.86); };
+    print!("f += 2.86: {:.2}\n", (*f.lock().unwrap().as_mut().unwrap()));
+    { let mut guard = f.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() * 2.0); };
+    print!("f *= 2.0: {:.2}\n", (*f.lock().unwrap().as_mut().unwrap()));
+    let mut s = std::sync::Arc::new(std::sync::Mutex::new(Some("Hello".to_string())));
+    (*s.lock().unwrap().as_mut().unwrap()).push_str(&" World".to_string());
+    print!("s += \" World\": {}\n", (*s.lock().unwrap().as_mut().unwrap()));
+}

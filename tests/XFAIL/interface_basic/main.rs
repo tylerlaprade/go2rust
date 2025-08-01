@@ -3,7 +3,7 @@ pub fn print_any(v: std::sync::Arc<std::sync::Mutex<Option<Box<dyn std::any::Any
 }
 
 fn main() {
-    let mut x;
+    let mut x: std::sync::Arc<std::sync::Mutex<Option<Box<dyn std::any::Any>>>>;
     { let new_val = 42; *x.lock().unwrap() = Some(new_val); };
     println!("{} {}", "x is int:".to_string(), (*x.lock().unwrap().as_mut().unwrap()));
     print_any(std::sync::Arc::new(std::sync::Mutex::new(Some((*x.lock().unwrap().as_mut().unwrap())))));

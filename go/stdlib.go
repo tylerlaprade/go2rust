@@ -198,6 +198,8 @@ func transpileFmtPrintf(out *strings.Builder, call *ast.CallExpr) {
 			format = strings.ReplaceAll(format, "%v", "{}")
 			format = strings.ReplaceAll(format, "%f", "{}")
 			format = strings.ReplaceAll(format, "%t", "{}")
+			format = strings.ReplaceAll(format, "%c", "{}")
+			format = strings.ReplaceAll(format, "%U", "{:?}")
 			out.WriteString(format)
 		} else {
 			TranspileExpression(out, call.Args[0])
@@ -232,6 +234,8 @@ func transpileFmtSprintf(out *strings.Builder, call *ast.CallExpr) {
 			format = strings.ReplaceAll(format, "%v", "{}")
 			format = strings.ReplaceAll(format, "%f", "{}")
 			format = strings.ReplaceAll(format, "%t", "{}")
+			format = strings.ReplaceAll(format, "%c", "{}")
+			format = strings.ReplaceAll(format, "%U", "{:?}")
 			out.WriteString(format)
 		} else {
 			TranspileExpression(out, call.Args[0])
@@ -266,6 +270,8 @@ func transpileFmtErrorf(out *strings.Builder, call *ast.CallExpr) {
 			format = strings.ReplaceAll(format, "%v", "{}")
 			format = strings.ReplaceAll(format, "%f", "{}")
 			format = strings.ReplaceAll(format, "%t", "{}")
+			format = strings.ReplaceAll(format, "%c", "{}")
+			format = strings.ReplaceAll(format, "%U", "{:?}")
 			out.WriteString(format)
 		} else {
 			TranspileExpression(out, call.Args[0])
@@ -332,7 +338,7 @@ func transpileStrconvAtoi(out *strings.Builder, call *ast.CallExpr) {
 		TranspileExpression(out, call.Args[0])
 		out.WriteString(".parse::<i32>() { ")
 		out.WriteString("Ok(n) => (std::sync::Arc::new(std::sync::Mutex::new(Some(n))), std::sync::Arc::new(std::sync::Mutex::new(None))), ")
-		out.WriteString("Err(e) => (std::sync::Arc::new(std::sync::Mutex::new(Some(Box::new(e) as Box<dyn std::error::Error + Send + Sync>)))) }")
+		out.WriteString("Err(e) => (std::sync::Arc::new(std::sync::Mutex::new(Some(0))), std::sync::Arc::new(std::sync::Mutex::new(Some(Box::new(e) as Box<dyn std::error::Error + Send + Sync>)))) }")
 	}
 }
 

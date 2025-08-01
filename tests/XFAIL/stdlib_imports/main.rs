@@ -13,8 +13,8 @@ fn main() {
     let mut num = std::sync::Arc::new(std::sync::Mutex::new(Some(42)));
     let mut str = (*num.lock().unwrap().as_mut().unwrap()).to_string();
     println!("{} {}", "Number as string:".to_string(), (*str.lock().unwrap().as_mut().unwrap()));
-    let (mut parsed, mut err) = match "123".to_string().parse::<i32>() { Ok(n) => (std::sync::Arc::new(std::sync::Mutex::new(Some(n))), std::sync::Arc::new(std::sync::Mutex::new(None))), Err(e) => (std::sync::Arc::new(std::sync::Mutex::new(Some(Box::new(e) as Box<dyn std::error::Error + Send + Sync>)))) };
-    if (*err.lock().unwrap().as_mut().unwrap()).is_some() {
+    let (mut parsed, mut err) = match "123".to_string().parse::<i32>() { Ok(n) => (std::sync::Arc::new(std::sync::Mutex::new(Some(n))), std::sync::Arc::new(std::sync::Mutex::new(None))), Err(e) => (std::sync::Arc::new(std::sync::Mutex::new(Some(0))), std::sync::Arc::new(std::sync::Mutex::new(Some(Box::new(e) as Box<dyn std::error::Error + Send + Sync>)))) };
+    if (*err.lock().unwrap()).is_some() {
         println!("{} {}", "Parse error:".to_string(), (*err.lock().unwrap().as_mut().unwrap()));
     } else {
         println!("{} {}", "Parsed number:".to_string(), (*parsed.lock().unwrap().as_mut().unwrap()));
@@ -38,7 +38,7 @@ fn main() {
     println!("{}", "Done sleeping".to_string());
     println!("{}", "\n--- os package ---".to_string());
     let (mut hostname, mut err) = (*os.lock().unwrap().as_mut().unwrap()).hostname();
-    if (*err.lock().unwrap().as_mut().unwrap()).is_some() {
+    if (*err.lock().unwrap()).is_some() {
         println!("{} {}", "Hostname error:".to_string(), (*err.lock().unwrap().as_mut().unwrap()));
     } else {
         println!("{} {}", "Hostname:".to_string(), (*hostname.lock().unwrap().as_mut().unwrap()));
@@ -50,7 +50,7 @@ fn main() {
         println!("{}", "PATH not found".to_string());
     }
     let (mut wd, mut err) = (*os.lock().unwrap().as_mut().unwrap()).getwd();
-    if (*err.lock().unwrap().as_mut().unwrap()).is_some() {
+    if (*err.lock().unwrap()).is_some() {
         println!("{} {}", "Working directory error:".to_string(), (*err.lock().unwrap().as_mut().unwrap()));
     } else {
         println!("{} {}", "Working directory:".to_string(), (*wd.lock().unwrap().as_mut().unwrap()));

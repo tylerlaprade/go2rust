@@ -10,6 +10,7 @@ fn main() {
         3 => {
             println!("{}", "three".to_string());
         }
+        _ => {}
     }
     match true {
         true if (*i.lock().unwrap().as_mut().unwrap()) < 2 => {

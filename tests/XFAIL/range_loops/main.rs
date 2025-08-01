@@ -5,7 +5,7 @@ fn main() {
         print!("Index {}: {}\n", i, num);
     }
     println!("{}", "Values only:".to_string());
-    for (_, num) in (*numbers.lock().unwrap().as_mut().unwrap()).iter().enumerate() {
+    for num in &(*numbers.lock().unwrap().as_mut().unwrap()) {
         print!("{} ", num);
     }
     println!();
@@ -22,7 +22,7 @@ fn main() {
     println!("{}", "\n=== Range over string ===".to_string());
     let mut text = std::sync::Arc::new(std::sync::Mutex::new(Some("Hello, 世界".to_string())));
     for (i, char) in (*text.lock().unwrap().as_mut().unwrap()).iter().enumerate() {
-        print!("Byte {}: %c (Unicode: %U)\n", i, char, char);
+        print!("Byte {}: {} (Unicode: {:?})\n", i, char, char);
     }
     println!("{}", "\n=== Range over map ===".to_string());
     let mut ages = std::sync::Arc::new(std::sync::Mutex::new(Some(std::collections::HashMap::<std::sync::Arc<std::sync::Mutex<Option<String>>>, std::sync::Arc<std::sync::Mutex<Option<i32>>>>::from([("Alice".to_string(), 25), ("Bob".to_string(), 30), ("Charlie".to_string(), 35)]))));
@@ -48,7 +48,7 @@ fn main() {
     println!("{}", "\n=== Range with break/continue ===".to_string());
     let mut data = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10])));
     println!("{}", "Even numbers only (with continue):".to_string());
-    for (_, num) in (*data.lock().unwrap().as_mut().unwrap()).iter().enumerate() {
+    for num in &(*data.lock().unwrap().as_mut().unwrap()) {
         if num % 2 != 0 {
         continue
     }
@@ -56,7 +56,7 @@ fn main() {
     }
     println!();
     println!("{}", "Numbers until 6 (with break):".to_string());
-    for (_, num) in (*data.lock().unwrap().as_mut().unwrap()).iter().enumerate() {
+    for num in &(*data.lock().unwrap().as_mut().unwrap()) {
         if num > 6 {
         break
     }
@@ -72,7 +72,7 @@ fn main() {
     }
     println!("{}", "\n=== Range over empty collections ===".to_string());
     let mut emptySlice: std::sync::Arc<std::sync::Mutex<Option<Vec<i32>>>> = std::sync::Arc::new(std::sync::Mutex::new(Some(Default::default())));
-    let mut emptyMap;
+    let mut emptyMap: std::sync::Arc<std::sync::Mutex<Option<std::collections::HashMap<String, i32>>>>;
     println!("{}", "Empty slice:".to_string());
     for (i, v) in (*emptySlice.lock().unwrap().as_mut().unwrap()).iter().enumerate() {
         print!("This won't print: {}, {}\n", i, v);

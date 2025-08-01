@@ -1,18 +1,18 @@
 #[derive(Debug)]
 struct List {
-    head: std::sync::Arc<std::sync::Mutex<Option<Unknown>>>,
-    tail: std::sync::Arc<std::sync::Mutex<Option<Unknown>>>,
+    head: std::sync::Arc<std::sync::Mutex<Option<std::sync::Arc<std::sync::Mutex<Option<Unknown>>>>>>,
+    tail: std::sync::Arc<std::sync::Mutex<Option<std::sync::Arc<std::sync::Mutex<Option<Unknown>>>>>>,
 }
 
 #[derive(Debug)]
 struct element {
-    next: std::sync::Arc<std::sync::Mutex<Option<Unknown>>>,
+    next: std::sync::Arc<std::sync::Mutex<Option<std::sync::Arc<std::sync::Mutex<Option<Unknown>>>>>>,
     val: std::sync::Arc<std::sync::Mutex<Option<T>>>,
 }
 
 impl Unknown {
     pub fn push(&mut self, v: std::sync::Arc<std::sync::Mutex<Option<T>>>) {
-        if self.tail.clone().is_none() {
+        if (*self.tail.lock().unwrap()).is_none() {
         { let new_val = std::sync::Arc::new(std::sync::Mutex::new(Some())); *self.head.lock().unwrap() = Some(new_val); };
         { let new_val = self.head.clone(); *self.tail.lock().unwrap() = Some(new_val); };
     } else {

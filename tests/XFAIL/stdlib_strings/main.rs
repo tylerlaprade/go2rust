@@ -3,14 +3,14 @@ fn main() {
     let mut str = std::sync::Arc::new(std::sync::Mutex::new(Some("Hello, World!".to_string())));
     print!("Original string: {}\n", (*str.lock().unwrap().as_mut().unwrap()));
     print!("Length: {}\n", (*str.lock().unwrap().as_mut().unwrap()).len());
-    print!("First character: %c\n", (*str.lock().unwrap().as_mut().unwrap())[0]);
-    print!("Last character: %c\n", (*str.lock().unwrap().as_mut().unwrap())[(*str.lock().unwrap().as_mut().unwrap()).len() - 1]);
+    print!("First character: {}\n", (*str.lock().unwrap().as_mut().unwrap())[0]);
+    print!("Last character: {}\n", (*str.lock().unwrap().as_mut().unwrap())[(*str.lock().unwrap().as_mut().unwrap()).len() - 1]);
     print!("Substring [0:5]: {}\n", (*str.lock().unwrap().as_mut().unwrap())[0..5].to_vec());
     print!("Substring [7:]: {}\n", (*str.lock().unwrap().as_mut().unwrap())[7..].to_vec());
     println!("{}", "\n=== String concatenation ===".to_string());
     let mut first = std::sync::Arc::new(std::sync::Mutex::new(Some("Hello".to_string())));
     let mut second = std::sync::Arc::new(std::sync::Mutex::new(Some("World".to_string())));
-    let mut combined = std::sync::Arc::new(std::sync::Mutex::new(Some((*first.lock().unwrap().as_mut().unwrap()) + ", ".to_string() + (*second.lock().unwrap().as_mut().unwrap()) + "!".to_string())));
+    let mut combined = std::sync::Arc::new(std::sync::Mutex::new(Some(format!("{}{}", format!("{}{}", (*first.lock().unwrap().as_mut().unwrap()), ", ".to_string()) + (*second.lock().unwrap().as_mut().unwrap()), "!".to_string()))));
     print!("Concatenated: {}\n", (*combined.lock().unwrap().as_mut().unwrap()));
     println!("{}", "\n=== strings package functions ===".to_string());
     let mut text = std::sync::Arc::new(std::sync::Mutex::new(Some("  Go is awesome for systems programming  ".to_string())));
@@ -65,7 +65,7 @@ fn main() {
     print!("'{}' < '{}': {}\n", (*str1.lock().unwrap().as_mut().unwrap()), (*str2.lock().unwrap().as_mut().unwrap()), (*str1.lock().unwrap().as_mut().unwrap()) < (*str2.lock().unwrap().as_mut().unwrap()));
     print!("EqualFold('Apple', 'APPLE'): {}\n", (*strings.lock().unwrap().as_mut().unwrap()).equal_fold(std::sync::Arc::new(std::sync::Mutex::new(Some("Apple".to_string()))), std::sync::Arc::new(std::sync::Mutex::new(Some("APPLE".to_string())))));
     println!("{}", "\n=== String building ===".to_string());
-    let mut builder;
+    let mut builder: std::sync::Arc<std::sync::Mutex<Option<Unknown>>>;
     (*builder.lock().unwrap().as_mut().unwrap()).write_string(std::sync::Arc::new(std::sync::Mutex::new(Some("Building ".to_string()))));
     (*builder.lock().unwrap().as_mut().unwrap()).write_string(std::sync::Arc::new(std::sync::Mutex::new(Some("a ".to_string()))));
     (*builder.lock().unwrap().as_mut().unwrap()).write_string(std::sync::Arc::new(std::sync::Mutex::new(Some("string ".to_string()))));
@@ -78,9 +78,9 @@ fn main() {
     print!("Unicode string: {}\n", (*unicode.lock().unwrap().as_mut().unwrap()));
     print!("Byte length: {}\n", (*unicode.lock().unwrap().as_mut().unwrap()).len());
     let mut runeCount = std::sync::Arc::new(std::sync::Mutex::new(Some(0)));
-    for (_, r) in (*unicode.lock().unwrap().as_mut().unwrap()).iter().enumerate() {
+    for r in &(*unicode.lock().unwrap().as_mut().unwrap()) {
         { let mut guard = runeCount.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
-        print!("Rune: %c (U+%04X)\n", r, r);
+        print!("Rune: {} (U+%04X)\n", r, r);
     }
     print!("Rune count: {}\n", (*runeCount.lock().unwrap().as_mut().unwrap()));
     println!("{}", "\n=== String trimming variations ===".to_string());

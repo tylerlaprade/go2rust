@@ -145,12 +145,36 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		// Special handling for comparisons with nil
 		if ident, ok := e.Y.(*ast.Ident); ok && ident.Name == "nil" {
 			if e.Op.String() == "!=" {
-				TranspileExpression(out, e.X)
-				out.WriteString(".is_some()")
+				out.WriteString("(*")
+				TranspileExpressionContext(out, e.X, LValue)
+				out.WriteString(".lock().unwrap()).is_some()")
 				return
 			} else if e.Op.String() == "==" {
+				out.WriteString("(*")
+				TranspileExpressionContext(out, e.X, LValue)
+				out.WriteString(".lock().unwrap()).is_none()")
+				return
+			}
+		}
+
+		// Special handling for string concatenation
+		if e.Op == token.ADD {
+			// Check if this might be string concatenation
+			isStringConcat := false
+			if lit, ok := e.X.(*ast.BasicLit); ok && lit.Kind == token.STRING {
+				isStringConcat = true
+			} else if lit, ok := e.Y.(*ast.BasicLit); ok && lit.Kind == token.STRING {
+				isStringConcat = true
+			}
+
+			if isStringConcat {
+				// Use format! for string concatenation
+				out.WriteString("format!(\"{}{}\"")
+				out.WriteString(", ")
 				TranspileExpression(out, e.X)
-				out.WriteString(".is_none()")
+				out.WriteString(", ")
+				TranspileExpression(out, e.Y)
+				out.WriteString(")")
 				return
 			}
 		}

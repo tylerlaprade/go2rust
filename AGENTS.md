@@ -116,6 +116,10 @@ go2rust/
 
 # Sequential mode with real-time output
 ./test.sh -n 1
+
+# Run specific test(s)
+./test.sh foo
+./test.sh foo bar
 ```
 
 ### Test Development Workflow

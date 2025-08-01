@@ -43,6 +43,7 @@ fn main() {
         2 => {
             println!("{}", "Electronics - Laptop".to_string());
         }
+        _ => {}
     }
         }
         2 => {
@@ -53,15 +54,17 @@ fn main() {
         2 => {
             println!("{}", "Books - Non-fiction".to_string());
         }
+        _ => {}
     }
         }
+        _ => {}
     }
         { let mut guard = item.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
         { let mut guard = category.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
     println!("{}", "\n=== Complex for loop conditions ===".to_string());
-    let (mut (*i.lock().unwrap().as_mut().unwrap()), mut (*j.lock().unwrap().as_mut().unwrap())) = (0, 10);
+    let (mut i, mut j) = (std::sync::Arc::new(std::sync::Mutex::new(Some(0))), std::sync::Arc::new(std::sync::Mutex::new(Some(10))));
     while (*i.lock().unwrap().as_mut().unwrap()) < (*j.lock().unwrap().as_mut().unwrap()) {
         print!("i={}, j={}, sum={}\n", (*i.lock().unwrap().as_mut().unwrap()), (*j.lock().unwrap().as_mut().unwrap()), (*i.lock().unwrap().as_mut().unwrap()) + (*j.lock().unwrap().as_mut().unwrap()));
         if (*i.lock().unwrap().as_mut().unwrap()) >= 3 {
@@ -70,7 +73,7 @@ fn main() {
         { *(*i.lock().unwrap().as_mut().unwrap()).lock().unwrap() = Some((*i.lock().unwrap().as_mut().unwrap()) + 1); *(*j.lock().unwrap().as_mut().unwrap()).lock().unwrap() = Some((*j.lock().unwrap().as_mut().unwrap()) - 1) };
     }
     println!("{}", "\n=== For loop with complex condition ===".to_string());
-    let (mut (*x.lock().unwrap().as_mut().unwrap()), mut (*y.lock().unwrap().as_mut().unwrap())) = (1, 1);
+    let (mut x, mut y) = (std::sync::Arc::new(std::sync::Mutex::new(Some(1))), std::sync::Arc::new(std::sync::Mutex::new(Some(1))));
     while (*x.lock().unwrap().as_mut().unwrap()) * (*y.lock().unwrap().as_mut().unwrap()) < 100 && (*x.lock().unwrap().as_mut().unwrap()) < 10 {
         print!("x={}, y={}, product={}\n", (*x.lock().unwrap().as_mut().unwrap()), (*y.lock().unwrap().as_mut().unwrap()), (*x.lock().unwrap().as_mut().unwrap()) * (*y.lock().unwrap().as_mut().unwrap()));
         if (*x.lock().unwrap().as_mut().unwrap()) % 2 == 0 {
@@ -91,8 +94,8 @@ fn main() {
     println!("{}", "\n=== Complex if-else chains ===".to_string());
     let mut score = std::sync::Arc::new(std::sync::Mutex::new(Some(0)));
     while (*score.lock().unwrap().as_mut().unwrap()) <= 100 {
-        let mut grade = String::new();
-        let mut message = String::new();
+        let mut grade: std::sync::Arc<std::sync::Mutex<Option<String>>> = String::new();
+        let mut message: std::sync::Arc<std::sync::Mutex<Option<String>>> = String::new();
         if (*score.lock().unwrap().as_mut().unwrap()) >= 90 {
         { let new_val = "A".to_string(); *grade.lock().unwrap() = Some(new_val); };
         if (*score.lock().unwrap().as_mut().unwrap()) >= 95 {
@@ -171,7 +174,7 @@ fn main() {
     for (i, data) in (*testData.lock().unwrap().as_mut().unwrap()).iter().enumerate() {
         print!("Testing dataset {}: {}\n", i + 1, data);
         let mut err = process_data(std::sync::Arc::new(std::sync::Mutex::new(Some(data))));
-    if (*err.lock().unwrap().as_mut().unwrap()).is_some() {
+    if (*err.lock().unwrap()).is_some() {
         print!("  Error: {}\n", (*err.lock().unwrap().as_mut().unwrap()));
         continue
     }

@@ -1,7 +1,7 @@
 pub fn sum(numbers: std::sync::Arc<std::sync::Mutex<Option<Unknown>>>) -> std::sync::Arc<std::sync::Mutex<Option<i32>>> {
 
     let mut total = std::sync::Arc::new(std::sync::Mutex::new(Some(0)));
-    for (_, num) in (*numbers.lock().unwrap().as_mut().unwrap()).iter().enumerate() {
+    for num in &(*numbers.lock().unwrap().as_mut().unwrap()) {
         { let mut guard = total.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + num); };
     }
     return std::sync::Arc::new(std::sync::Mutex::new(Some((*total.lock().unwrap().as_mut().unwrap()).clone())));
@@ -13,7 +13,7 @@ pub fn average(numbers: std::sync::Arc<std::sync::Mutex<Option<Unknown>>>) -> st
         return std::sync::Arc::new(std::sync::Mutex::new(Some(0)));
     }
     let mut total = std::sync::Arc::new(std::sync::Mutex::new(Some(0.0)));
-    for (_, num) in (*numbers.lock().unwrap().as_mut().unwrap()).iter().enumerate() {
+    for num in &(*numbers.lock().unwrap().as_mut().unwrap()) {
         { let mut guard = total.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + num); };
     }
     return std::sync::Arc::new(std::sync::Mutex::new(Some((*total.lock().unwrap().as_mut().unwrap()) / float64(std::sync::Arc::new(std::sync::Mutex::new(Some((*numbers.lock().unwrap().as_mut().unwrap()).len())))))));
@@ -33,7 +33,7 @@ pub fn print_strings(prefix: std::sync::Arc<std::sync::Mutex<Option<String>>>, s
 pub fn min(first: std::sync::Arc<std::sync::Mutex<Option<i32>>>, rest: std::sync::Arc<std::sync::Mutex<Option<Unknown>>>) -> std::sync::Arc<std::sync::Mutex<Option<i32>>> {
 
     let mut minimum = std::sync::Arc::new(std::sync::Mutex::new(Some((*first.lock().unwrap().as_mut().unwrap()))));
-    for (_, num) in (*rest.lock().unwrap().as_mut().unwrap()).iter().enumerate() {
+    for num in &(*rest.lock().unwrap().as_mut().unwrap()) {
         if num < (*minimum.lock().unwrap().as_mut().unwrap()) {
         { let new_val = num; *minimum.lock().unwrap() = Some(new_val); };
     }
@@ -47,7 +47,7 @@ pub fn concat(separator: std::sync::Arc<std::sync::Mutex<Option<String>>>, strin
         return std::sync::Arc::new(std::sync::Mutex::new(Some("".to_string())));
     }
     let mut result = std::sync::Arc::new(std::sync::Mutex::new(Some((*strings.lock().unwrap().as_mut().unwrap())[0])));
-    for (_, str) in (*strings.lock().unwrap().as_mut().unwrap())[1..].to_vec().iter().enumerate() {
+    for str in &(*strings.lock().unwrap().as_mut().unwrap())[1..].to_vec() {
         (*result.lock().unwrap().as_mut().unwrap()).push_str(&(*separator.lock().unwrap().as_mut().unwrap()) + str);
     }
     return std::sync::Arc::new(std::sync::Mutex::new(Some((*result.lock().unwrap().as_mut().unwrap()).clone())));

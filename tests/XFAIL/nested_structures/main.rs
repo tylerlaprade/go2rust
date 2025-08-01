@@ -144,7 +144,7 @@ fn main() {
         print!("Layer {}:\n", i);
         for (j, row) in layer.iter().enumerate() {
         print!("  Row {}: ", j);
-        for (_, val) in row.iter().enumerate() {
+        for val in &row {
         print!("{} ", val);
     }
         println!();

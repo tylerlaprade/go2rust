@@ -35,24 +35,24 @@ pub fn f2(arg: std::sync::Arc<std::sync::Mutex<Option<i32>>>) -> (std::sync::Arc
 }
 
 fn main() {
-    for (_, i) in vec![7, 42].iter().enumerate() {
+    for i in &vec![7, 42] {
         let (mut r, mut e) = f1(std::sync::Arc::new(std::sync::Mutex::new(Some(i))));
-    if (*e.lock().unwrap().as_mut().unwrap()).is_some() {
+    if (*e.lock().unwrap()).is_some() {
         println!("{} {}", "f1 failed:".to_string(), (*e.lock().unwrap().as_mut().unwrap()));
     } else {
         println!("{} {}", "f1 worked:".to_string(), (*r.lock().unwrap().as_mut().unwrap()));
     }
     }
-    for (_, i) in vec![7, 42].iter().enumerate() {
+    for i in &vec![7, 42] {
         let (mut r, mut e) = f2(std::sync::Arc::new(std::sync::Mutex::new(Some(i))));
-    if (*e.lock().unwrap().as_mut().unwrap()).is_some() {
+    if (*e.lock().unwrap()).is_some() {
         println!("{} {}", "f2 failed:".to_string(), (*e.lock().unwrap().as_mut().unwrap()));
     } else {
         println!("{} {}", "f2 worked:".to_string(), (*r.lock().unwrap().as_mut().unwrap()));
     }
     }
     let (_, mut e) = f2(std::sync::Arc::new(std::sync::Mutex::new(Some(42))));
-    let (mut ae, mut ok) = match (*e.lock().unwrap().as_mut().unwrap()).downcast_ref::<std::sync::Arc<std::sync::Mutex<Option<argError>>>>() { Some(v) => (v.clone(), true), None => (Default::default(), false) };
+    let (mut ae, mut ok) = match (*e.lock().unwrap().as_mut().unwrap()).downcast_ref::<std::sync::Arc<std::sync::Mutex<Option<std::sync::Arc<std::sync::Mutex<Option<argError>>>>>>>() { Some(v) => (v.clone(), true), None => (Default::default(), false) };
     if (*ok.lock().unwrap().as_mut().unwrap()) {
         println!("{}", (*ae.lock().unwrap().as_mut().unwrap()).arg);
         println!("{}", (*ae.lock().unwrap().as_mut().unwrap()).prob);

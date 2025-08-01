@@ -1,18 +1,18 @@
 fn main() {
     println!("{}", "=== Complex arithmetic expressions ===".to_string());
-    let (mut (*a.lock().unwrap().as_mut().unwrap()), mut (*b.lock().unwrap().as_mut().unwrap()), mut (*c.lock().unwrap().as_mut().unwrap())) = (10, 20, 30);
+    let (mut a, mut b, mut c) = (std::sync::Arc::new(std::sync::Mutex::new(Some(10))), std::sync::Arc::new(std::sync::Mutex::new(Some(20))), std::sync::Arc::new(std::sync::Mutex::new(Some(30))));
     let mut result1 = std::sync::Arc::new(std::sync::Mutex::new(Some(((*a.lock().unwrap().as_mut().unwrap()) + (*b.lock().unwrap().as_mut().unwrap())) * (*c.lock().unwrap().as_mut().unwrap()) - ((*a.lock().unwrap().as_mut().unwrap()) * (*b.lock().unwrap().as_mut().unwrap())) / ((*c.lock().unwrap().as_mut().unwrap()) - (*a.lock().unwrap().as_mut().unwrap())))));
     print!("(a + b) * c - (a * b) / (c - a) = {}\n", (*result1.lock().unwrap().as_mut().unwrap()));
     let mut result2 = std::sync::Arc::new(std::sync::Mutex::new(Some((*a.lock().unwrap().as_mut().unwrap()) + (*b.lock().unwrap().as_mut().unwrap()) * (*c.lock().unwrap().as_mut().unwrap()) / ((*a.lock().unwrap().as_mut().unwrap()) - 5) + (*c.lock().unwrap().as_mut().unwrap()) % (*b.lock().unwrap().as_mut().unwrap()))));
     print!("a + b * c / (a - 5) + c %% b = {}\n", (*result2.lock().unwrap().as_mut().unwrap()));
     println!("{}", "\n=== Complex boolean expressions ===".to_string());
-    let (mut (*x.lock().unwrap().as_mut().unwrap()), mut (*y.lock().unwrap().as_mut().unwrap()), mut (*z.lock().unwrap().as_mut().unwrap())) = (5, 10, 15);
+    let (mut x, mut y, mut z) = (std::sync::Arc::new(std::sync::Mutex::new(Some(5))), std::sync::Arc::new(std::sync::Mutex::new(Some(10))), std::sync::Arc::new(std::sync::Mutex::new(Some(15))));
     let mut bool1 = std::sync::Arc::new(std::sync::Mutex::new(Some(((*x.lock().unwrap().as_mut().unwrap()) < (*y.lock().unwrap().as_mut().unwrap())) && ((*y.lock().unwrap().as_mut().unwrap()) < (*z.lock().unwrap().as_mut().unwrap())) || ((*x.lock().unwrap().as_mut().unwrap()) == 5 && (*z.lock().unwrap().as_mut().unwrap()) > 10))));
     print!("(x < y) && (y < z) || (x == 5 && z > 10) = {}\n", (*bool1.lock().unwrap().as_mut().unwrap()));
     let mut bool2 = std::sync::Arc::new(std::sync::Mutex::new(Some(!((*x.lock().unwrap().as_mut().unwrap()) > (*y.lock().unwrap().as_mut().unwrap())) && ((*z.lock().unwrap().as_mut().unwrap()) - (*y.lock().unwrap().as_mut().unwrap()) == (*x.lock().unwrap().as_mut().unwrap())) || ((*x.lock().unwrap().as_mut().unwrap()) * 2 == (*y.lock().unwrap().as_mut().unwrap())))));
     print!("!(x > y) && (z-y == x) || (x*2 == y) = {}\n", (*bool2.lock().unwrap().as_mut().unwrap()));
     println!("{}", "\n=== Complex bitwise expressions ===".to_string());
-    let (mut (*bits1.lock().unwrap().as_mut().unwrap()), mut (*bits2.lock().unwrap().as_mut().unwrap())) = (0b1010, 0b1100);
+    let (mut bits1, mut bits2) = (std::sync::Arc::new(std::sync::Mutex::new(Some(0b1010))), std::sync::Arc::new(std::sync::Mutex::new(Some(0b1100))));
     let mut bitwiseResult = std::sync::Arc::new(std::sync::Mutex::new(Some(((*bits1.lock().unwrap().as_mut().unwrap()) & (*bits2.lock().unwrap().as_mut().unwrap())) | ((*bits1.lock().unwrap().as_mut().unwrap()) ^ (*bits2.lock().unwrap().as_mut().unwrap())) << 1)));
     print!("(bits1 & bits2) | (bits1 ^ bits2) << 1 = %b ({})\n", (*bitwiseResult.lock().unwrap().as_mut().unwrap()), (*bitwiseResult.lock().unwrap().as_mut().unwrap()));
     println!("{}", "\n=== Function calls in expressions ===".to_string());
@@ -22,7 +22,7 @@ fn main() {
     print!("getValue(a) + getValue(b) * getMultiplier() - getValue(c)/2 = {}\n", (*complexResult.lock().unwrap().as_mut().unwrap()));
     println!("{}", "\n=== Array/slice expressions ===".to_string());
     let mut numbers = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10])));
-    let (mut (*idx1.lock().unwrap().as_mut().unwrap()), mut (*idx2.lock().unwrap().as_mut().unwrap())) = (2, 7);
+    let (mut idx1, mut idx2) = (std::sync::Arc::new(std::sync::Mutex::new(Some(2))), std::sync::Arc::new(std::sync::Mutex::new(Some(7))));
     let mut sliceResult = std::sync::Arc::new(std::sync::Mutex::new(Some((*numbers.lock().unwrap().as_mut().unwrap())[(*idx1.lock().unwrap().as_mut().unwrap())..(*idx2.lock().unwrap().as_mut().unwrap())].to_vec()[1] + (*numbers.lock().unwrap().as_mut().unwrap())[(*numbers.lock().unwrap().as_mut().unwrap()).len() - 1] - (*numbers.lock().unwrap().as_mut().unwrap())[0])));
     print!("numbers[idx1:idx2][1] + numbers[len(numbers)-1] - numbers[0] = {}\n", (*sliceResult.lock().unwrap().as_mut().unwrap()));
     println!("{}", "\n=== Map expressions ===".to_string());
@@ -41,7 +41,7 @@ fn main() {
     let mut ptrResult = std::sync::Arc::new(std::sync::Mutex::new(Some((*ptr.lock().unwrap().as_mut().unwrap()) + ((*ptr.lock().unwrap().as_mut().unwrap()) * 2) - ((*ptr.lock().unwrap().as_mut().unwrap()) / 2))));
     print!("*ptr + (*ptr * 2) - (*ptr / 2) = {}\n", (*ptrResult.lock().unwrap().as_mut().unwrap()));
     println!("{}", "\n=== Type assertion expressions ===".to_string());
-    let mut iface = std::sync::Arc::new(std::sync::Mutex::new(Some(100)));
+    let mut iface: std::sync::Arc<std::sync::Mutex<Option<Box<dyn std::any::Any>>>> = std::sync::Arc::new(std::sync::Mutex::new(Some(100)));
     let (mut intVal, mut ok) = match (*iface.lock().unwrap().as_mut().unwrap()).downcast_ref::<i32>() { Some(v) => (v.clone(), true), None => (0, false) };
     if (*ok.lock().unwrap().as_mut().unwrap()) {
         let mut assertResult = std::sync::Arc::new(std::sync::Mutex::new(Some((*intVal.lock().unwrap().as_mut().unwrap()) * 2 + ((*intVal.lock().unwrap().as_mut().unwrap()) / 5) * 3)));
@@ -62,7 +62,7 @@ fn main() {
     print!("add(multiply(3, 4), subtract(20, multiply(2, 5))) = {}\n", (*nestedResult.lock().unwrap().as_mut().unwrap()));
     println!("{}", "\n=== Complex conditional expressions ===".to_string());
     let mut score = std::sync::Arc::new(std::sync::Mutex::new(Some(85)));
-    let mut grade = String::new();
+    let mut grade: std::sync::Arc<std::sync::Mutex<Option<String>>> = String::new();
     if (*score.lock().unwrap().as_mut().unwrap()) >= 90 {
         { let new_val = "A".to_string(); *grade.lock().unwrap() = Some(new_val); };
     } else if (*score.lock().unwrap().as_mut().unwrap()) >= 80 {
@@ -77,7 +77,7 @@ fn main() {
     let mut counter = std::sync::Arc::new(std::sync::Mutex::new(Some(0)));
     { let mut guard = counter.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + (5 * 3) - (10 / 2) + (8 % 3)); };
     print!("Complex assignment result: {}\n", (*counter.lock().unwrap().as_mut().unwrap()));
-    let (mut (*sum.lock().unwrap().as_mut().unwrap()), mut (*product.lock().unwrap().as_mut().unwrap())) = ((*a.lock().unwrap().as_mut().unwrap()) + (*b.lock().unwrap().as_mut().unwrap()) + (*c.lock().unwrap().as_mut().unwrap()), (*a.lock().unwrap().as_mut().unwrap()) * (*b.lock().unwrap().as_mut().unwrap()) * (*c.lock().unwrap().as_mut().unwrap()));
+    let (mut sum, mut product) = (std::sync::Arc::new(std::sync::Mutex::new(Some((*a.lock().unwrap().as_mut().unwrap()) + (*b.lock().unwrap().as_mut().unwrap()) + (*c.lock().unwrap().as_mut().unwrap())))), std::sync::Arc::new(std::sync::Mutex::new(Some((*a.lock().unwrap().as_mut().unwrap()) * (*b.lock().unwrap().as_mut().unwrap()) * (*c.lock().unwrap().as_mut().unwrap())))));
     print!("Sum: {}, Product: {}\n", (*sum.lock().unwrap().as_mut().unwrap()), (*product.lock().unwrap().as_mut().unwrap()));
     println!("{}", "\n=== Range expressions ===".to_string());
     let mut total = std::sync::Arc::new(std::sync::Mutex::new(Some(0)));

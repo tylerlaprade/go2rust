@@ -11,7 +11,7 @@ fn main() {
     }
     let mut nums = std::sync::Arc::new(std::sync::Mutex::new(Some([1, 2, 3, 4])));
     println!("{}", "Initialized array:".to_string());
-    for (_, num) in (*nums.lock().unwrap().as_mut().unwrap()).iter().enumerate() {
+    for num in &(*nums.lock().unwrap().as_mut().unwrap()) {
         println!("{}", num);
     }
 }

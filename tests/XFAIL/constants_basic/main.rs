@@ -80,8 +80,8 @@ const z: i32 = x + y;
 
     const untypedFloat: f64 = 3.14;
 
-    let mut i = std::sync::Arc::new(std::sync::Mutex::new(Some(untypedInt)));
-    let mut f = std::sync::Arc::new(std::sync::Mutex::new(Some(untypedFloat)));
+    let mut i: std::sync::Arc<std::sync::Mutex<Option<i32>>> = std::sync::Arc::new(std::sync::Mutex::new(Some(untypedInt)));
+    let mut f: std::sync::Arc<std::sync::Mutex<Option<f64>>> = std::sync::Arc::new(std::sync::Mutex::new(Some(untypedFloat)));
     let mut mixed = std::sync::Arc::new(std::sync::Mutex::new(Some(untypedInt + 3)));
     print!("i = {}\n", (*i.lock().unwrap().as_mut().unwrap()));
     print!("f = {:.2}\n", (*f.lock().unwrap().as_mut().unwrap()));

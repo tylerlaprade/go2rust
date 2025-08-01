@@ -42,13 +42,13 @@ pub fn chained_defers() {
 fn main() {
     println!("{}", "=== Safe divide examples ===".to_string());
     let (mut result, mut err) = safe_divide(std::sync::Arc::new(std::sync::Mutex::new(Some(10))), std::sync::Arc::new(std::sync::Mutex::new(Some(2))));
-    if (*err.lock().unwrap().as_mut().unwrap()).is_some() {
+    if (*err.lock().unwrap()).is_some() {
         print!("Error: {}\n", (*err.lock().unwrap().as_mut().unwrap()));
     } else {
         print!("10 / 2 = {:.2}\n", (*result.lock().unwrap().as_mut().unwrap()));
     }
     (result, err) = safe_divide(std::sync::Arc::new(std::sync::Mutex::new(Some(10))), std::sync::Arc::new(std::sync::Mutex::new(Some(0))));
-    if (*err.lock().unwrap().as_mut().unwrap()).is_some() {
+    if (*err.lock().unwrap()).is_some() {
         print!("Error: {}\n", (*err.lock().unwrap().as_mut().unwrap()));
     } else {
         print!("Result: {:.2}\n", (*result.lock().unwrap().as_mut().unwrap()));
@@ -56,13 +56,13 @@ fn main() {
     println!("{}", "\n=== Slice access examples ===".to_string());
     let mut numbers = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![1, 2, 3, 4, 5])));
     let (mut value, mut err) = process_slice(std::sync::Arc::new(std::sync::Mutex::new(Some((*numbers.lock().unwrap().as_mut().unwrap())))), std::sync::Arc::new(std::sync::Mutex::new(Some(2))));
-    if (*err.lock().unwrap().as_mut().unwrap()).is_some() {
+    if (*err.lock().unwrap()).is_some() {
         print!("Error: {}\n", (*err.lock().unwrap().as_mut().unwrap()));
     } else {
         print!("numbers[2] = {}\n", (*value.lock().unwrap().as_mut().unwrap()));
     }
     (value, err) = process_slice(std::sync::Arc::new(std::sync::Mutex::new(Some((*numbers.lock().unwrap().as_mut().unwrap())))), std::sync::Arc::new(std::sync::Mutex::new(Some(10))));
-    if (*err.lock().unwrap().as_mut().unwrap()).is_some() {
+    if (*err.lock().unwrap()).is_some() {
         print!("Error: {}\n", (*err.lock().unwrap().as_mut().unwrap()));
     } else {
         print!("Value: {}\n", (*value.lock().unwrap().as_mut().unwrap()));

@@ -12,8 +12,8 @@ struct writeOp {
 }
 
 fn main() {
-    let mut readOps = Default::default();
-    let mut writeOps = Default::default();
+    let mut readOps: std::sync::Arc<std::sync::Mutex<Option<uint64>>> = Default::default();
+    let mut writeOps: std::sync::Arc<std::sync::Mutex<Option<uint64>>> = Default::default();
     let mut reads = ;
     let mut writes = ;
     // TODO: Unhandled statement type: GoStmt

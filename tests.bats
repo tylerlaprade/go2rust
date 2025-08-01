@@ -249,12 +249,32 @@ run_xfail_test() {
     run_test "tests/methods_basic"
 }
 
+@test "nil_basic" {
+    run_test "tests/nil_basic"
+}
+
 @test "pointers_simple" {
     run_test "tests/pointers_simple"
 }
 
 @test "simple_functions" {
     run_test "tests/simple_functions"
+}
+
+@test "simple_range" {
+    run_test "tests/simple_range"
+}
+
+@test "strconv_parse" {
+    run_test "tests/strconv_parse"
+}
+
+@test "switch_basic" {
+    run_test "tests/switch_basic"
+}
+
+@test "values_basic" {
+    run_test "tests/values_basic"
 }
 
 @test "variable_declarations" {
@@ -283,6 +303,10 @@ run_xfail_test() {
 
 @test "XFAIL: blank_identifier" {
     run_xfail_test "tests/XFAIL/blank_identifier"
+}
+
+@test "XFAIL: blank_imports_side_effects" {
+    run_xfail_test "tests/XFAIL/blank_imports_side_effects"
 }
 
 @test "XFAIL: channel_buffering" {
@@ -315,6 +339,10 @@ run_xfail_test() {
 
 @test "XFAIL: complex_expressions" {
     run_xfail_test "tests/XFAIL/complex_expressions"
+}
+
+@test "XFAIL: compound_assignments" {
+    run_xfail_test "tests/XFAIL/compound_assignments"
 }
 
 @test "XFAIL: concurrency_patterns" {
@@ -353,6 +381,10 @@ run_xfail_test() {
     run_xfail_test "tests/XFAIL/errors_custom"
 }
 
+@test "XFAIL: fallthrough_switch" {
+    run_xfail_test "tests/XFAIL/fallthrough_switch"
+}
+
 @test "XFAIL: file_io" {
     run_xfail_test "tests/XFAIL/file_io"
 }
@@ -363,6 +395,10 @@ run_xfail_test() {
 
 @test "XFAIL: flag_parsing" {
     run_xfail_test "tests/XFAIL/flag_parsing"
+}
+
+@test "XFAIL: function_literals_closures" {
+    run_xfail_test "tests/XFAIL/function_literals_closures"
 }
 
 @test "XFAIL: function_types" {
@@ -381,12 +417,20 @@ run_xfail_test() {
     run_xfail_test "tests/XFAIL/goroutines_simple"
 }
 
+@test "XFAIL: goto_labels" {
+    run_xfail_test "tests/XFAIL/goto_labels"
+}
+
 @test "XFAIL: http_client" {
     run_xfail_test "tests/XFAIL/http_client"
 }
 
 @test "XFAIL: init_functions" {
     run_xfail_test "tests/XFAIL/init_functions"
+}
+
+@test "XFAIL: init_order_complex" {
+    run_xfail_test "tests/XFAIL/init_order_complex"
 }
 
 @test "XFAIL: interface_basic" {
@@ -401,12 +445,20 @@ run_xfail_test() {
     run_xfail_test "tests/XFAIL/interfaces_simple"
 }
 
+@test "XFAIL: iota_complex" {
+    run_xfail_test "tests/XFAIL/iota_complex"
+}
+
 @test "XFAIL: iota_enums" {
     run_xfail_test "tests/XFAIL/iota_enums"
 }
 
 @test "XFAIL: json_marshal" {
     run_xfail_test "tests/XFAIL/json_marshal"
+}
+
+@test "XFAIL: labeled_statements" {
+    run_xfail_test "tests/XFAIL/labeled_statements"
 }
 
 @test "XFAIL: maps_basic" {
@@ -433,12 +485,12 @@ run_xfail_test() {
     run_xfail_test "tests/XFAIL/mutex_counter"
 }
 
-@test "XFAIL: nested_structures" {
-    run_xfail_test "tests/XFAIL/nested_structures"
+@test "XFAIL: named_types_methods" {
+    run_xfail_test "tests/XFAIL/named_types_methods"
 }
 
-@test "XFAIL: nil_basic" {
-    run_xfail_test "tests/XFAIL/nil_basic"
+@test "XFAIL: nested_structures" {
+    run_xfail_test "tests/XFAIL/nested_structures"
 }
 
 @test "XFAIL: non_blocking_channels" {
@@ -505,6 +557,14 @@ run_xfail_test() {
     run_xfail_test "tests/XFAIL/shared_mutation"
 }
 
+@test "XFAIL: simple_multiple_returns" {
+    run_xfail_test "tests/XFAIL/simple_multiple_returns"
+}
+
+@test "XFAIL: slice_operations_advanced" {
+    run_xfail_test "tests/XFAIL/slice_operations_advanced"
+}
+
 @test "XFAIL: slices_append" {
     run_xfail_test "tests/XFAIL/slices_append"
 }
@@ -529,10 +589,6 @@ run_xfail_test() {
     run_xfail_test "tests/XFAIL/stdlib_strings"
 }
 
-@test "XFAIL: strconv_parse" {
-    run_xfail_test "tests/XFAIL/strconv_parse"
-}
-
 @test "XFAIL: string_builder" {
     run_xfail_test "tests/XFAIL/string_builder"
 }
@@ -553,12 +609,12 @@ run_xfail_test() {
     run_xfail_test "tests/XFAIL/struct_methods"
 }
 
-@test "XFAIL: structs_basic" {
-    run_xfail_test "tests/XFAIL/structs_basic"
+@test "XFAIL: struct_tags_reflection" {
+    run_xfail_test "tests/XFAIL/struct_tags_reflection"
 }
 
-@test "XFAIL: switch_basic" {
-    run_xfail_test "tests/XFAIL/switch_basic"
+@test "XFAIL: structs_basic" {
+    run_xfail_test "tests/XFAIL/structs_basic"
 }
 
 @test "XFAIL: switch_statements" {
@@ -597,12 +653,12 @@ run_xfail_test() {
     run_xfail_test "tests/XFAIL/type_embedding"
 }
 
-@test "XFAIL: url_parsing" {
-    run_xfail_test "tests/XFAIL/url_parsing"
+@test "XFAIL: unsafe_pointer_ops" {
+    run_xfail_test "tests/XFAIL/unsafe_pointer_ops"
 }
 
-@test "XFAIL: values_basic" {
-    run_xfail_test "tests/XFAIL/values_basic"
+@test "XFAIL: url_parsing" {
+    run_xfail_test "tests/XFAIL/url_parsing"
 }
 
 @test "XFAIL: variadic_functions" {

@@ -36,7 +36,7 @@ pub fn is_even(x: std::sync::Arc<std::sync::Mutex<Option<i32>>>) -> std::sync::A
 pub fn to_upper(s: std::sync::Arc<std::sync::Mutex<Option<String>>>) -> std::sync::Arc<std::sync::Mutex<Option<String>>> {
 
     let mut result = std::sync::Arc::new(std::sync::Mutex::new(Some("".to_string())));
-    for (_, char) in (*s.lock().unwrap().as_mut().unwrap()).iter().enumerate() {
+    for char in &(*s.lock().unwrap().as_mut().unwrap()) {
         if char >= 'a' && char <= 'z' {
         (*result.lock().unwrap().as_mut().unwrap()).push_str(&string(std::sync::Arc::new(std::sync::Mutex::new(Some(char - 32)))));
     } else {
@@ -59,7 +59,7 @@ pub fn apply_unary(op: std::sync::Arc<std::sync::Mutex<Option<UnaryOp>>>, x: std
 pub fn filter(numbers: std::sync::Arc<std::sync::Mutex<Option<Vec<i32>>>>, pred: std::sync::Arc<std::sync::Mutex<Option<Predicate>>>) -> std::sync::Arc<std::sync::Mutex<Option<Vec<i32>>>> {
 
     let mut result: std::sync::Arc<std::sync::Mutex<Option<Vec<i32>>>> = std::sync::Arc::new(std::sync::Mutex::new(Some(Default::default())));
-    for (_, num) in (*numbers.lock().unwrap().as_mut().unwrap()).iter().enumerate() {
+    for num in &(*numbers.lock().unwrap().as_mut().unwrap()) {
         if pred(std::sync::Arc::new(std::sync::Mutex::new(Some(num)))) {
         { let new_val = {(*result.lock().unwrap().as_mut().unwrap()).push(num); (*result.lock().unwrap().as_mut().unwrap())}; *result.lock().unwrap() = Some(new_val); };
     }
@@ -93,7 +93,7 @@ pub fn make_adder(addend: std::sync::Arc<std::sync::Mutex<Option<i32>>>) -> std:
 
 fn main() {
     println!("{}", "=== Basic function types ===".to_string());
-    let mut op = Default::default();
+    let mut op: std::sync::Arc<std::sync::Mutex<Option<BinaryOp>>> = Default::default();
     { let new_val = (*add.lock().unwrap().as_mut().unwrap()); *op.lock().unwrap() = Some(new_val); };
     print!("5 + 3 = {}\n", op(std::sync::Arc::new(std::sync::Mutex::new(Some(5))), std::sync::Arc::new(std::sync::Mutex::new(Some(3)))));
     { let new_val = (*multiply.lock().unwrap().as_mut().unwrap()); *op.lock().unwrap() = Some(new_val); };
@@ -133,7 +133,7 @@ fn main() {
     print!("calc.Subtract(10, 5) = {}\n", (*calc.lock().unwrap().as_mut().unwrap()).subtract(std::sync::Arc::new(std::sync::Mutex::new(Some(10))), std::sync::Arc::new(std::sync::Mutex::new(Some(5)))));
     print!("calc.Multiply(10, 5) = {}\n", (*calc.lock().unwrap().as_mut().unwrap()).multiply(std::sync::Arc::new(std::sync::Mutex::new(Some(10))), std::sync::Arc::new(std::sync::Mutex::new(Some(5)))));
     println!("{}", "\n=== Function variables ===".to_string());
-    let mut processor = Default::default();
+    let mut processor: std::sync::Arc<std::sync::Mutex<Option<StringProcessor>>> = Default::default();
     { let new_val = (*toUpper.lock().unwrap().as_mut().unwrap()); *processor.lock().unwrap() = Some(new_val); };
     print!("Using toUpper: {}\n", processor(std::sync::Arc::new(std::sync::Mutex::new(Some("test".to_string())))));
     { let new_val = ; *processor.lock().unwrap() = Some(new_val); };

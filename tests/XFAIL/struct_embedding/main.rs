@@ -21,6 +21,6 @@ fn main() {
     println!("{} {}", "also num:".to_string(), (*co.lock().unwrap().as_mut().unwrap()).base::num);
     println!("{} {}", "describe:".to_string(), (*(*co.lock().unwrap().as_mut().unwrap()).describe().lock().unwrap().as_mut().unwrap()));
     
-    let mut d = std::sync::Arc::new(std::sync::Mutex::new(Some((*co.lock().unwrap().as_mut().unwrap()))));
+    let mut d: std::sync::Arc<std::sync::Mutex<Option<describer>>> = std::sync::Arc::new(std::sync::Mutex::new(Some((*co.lock().unwrap().as_mut().unwrap()))));
     println!("{} {}", "describer:".to_string(), (*(*d.lock().unwrap().as_mut().unwrap()).describe().lock().unwrap().as_mut().unwrap()));
 }
