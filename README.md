@@ -89,8 +89,8 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | **`func` - Functions** | |
 | └ Basic functions | ✅ |
 | └ Multiple return values | ✅ |
-| └ Method definitions | ❌ |
-| └ Method calls | ❌ |
+| └ Method definitions | ✅ |
+| └ Method calls | ✅ |
 | **`import` - Imports** | |
 | └ Single imports | ✅ |
 | └ Multiple imports | ✅ |
@@ -110,7 +110,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | **`type` - Type definitions** | |
 | └ Struct types | ✅ |
 | └ Type aliases | ❌ |
-| └ Interface types | ❌ |
+| └ Interface types | ✅ |
 | **`var` / `const` - Declarations** | |
 | └ Basic var declarations | ✅ |
 | └ Short declarations (:=) | ✅ |
@@ -161,8 +161,9 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ `make` | ✅ |
 | **`fmt` package** | |
 | └ `fmt.Println` | ✅ |
-| └ `fmt.Printf` | ❌ |
-| └ `fmt.Sprintf` | ❌ |
+| └ `fmt.Printf` | ✅ |
+| └ `fmt.Sprintf` | ✅ |
+| └ `fmt.Errorf` | ✅ |
 | **`strings` package** | |
 | └ `strings.ToUpper` | ✅ |
 | └ `strings.ToLower` | ✅ |
@@ -172,6 +173,8 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ `strconv.Atoi` | ❌ |
 | **Memory functions** | |
 | └ `new` | ✅ |
+| **`errors` package** | |
+| └ `errors.New` | ✅ |
 
 ## Test Suite
 

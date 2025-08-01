@@ -36,12 +36,14 @@ func init() {
 	stdlibMappings = map[string]StdlibHandler{
 		"fmt.Println":       transpileFmtPrintln,
 		"fmt.Printf":        transpileFmtPrintf,
+		"fmt.Sprintf":       transpileFmtSprintf,
 		"fmt.Errorf":        transpileFmtErrorf,
 		"strings.ToLower":   transpileStringsToLower,
 		"strings.ToUpper":   transpileStringsToUpper,
 		"strings.TrimSpace": transpileStringsTrimSpace,
 		"strconv.Itoa":      transpileStrconvItoa,
 		"strconv.Atoi":      transpileStrconvAtoi,
+		"errors.New":        transpileErrorsNew,
 	}
 
 	builtinMappings = map[string]StdlibHandler{
@@ -84,12 +86,24 @@ func transpileFmtPrintln(out *strings.Builder, call *ast.CallExpr) {
 			out.WriteString(", ")
 			// Check if this is a function call that returns a wrapped value
 			if callExpr, ok := arg.(*ast.CallExpr); ok {
-				// If it's a user function call (not stdlib), unwrap the result
-				if _, ok := callExpr.Fun.(*ast.Ident); ok && GetStdlibHandler(callExpr) == nil {
+				// Check if it's a method call or user function call
+				needsUnwrap := false
+
+				// Check for method call
+				if _, ok := callExpr.Fun.(*ast.SelectorExpr); ok {
+					needsUnwrap = true
+				} else if _, ok := callExpr.Fun.(*ast.Ident); ok && GetStdlibHandler(callExpr) == nil {
+					// User function call (not stdlib)
+					needsUnwrap = true
+				}
+
+				if needsUnwrap {
+					// Method call or user function call - unwrap the result
 					out.WriteString("(*")
 					TranspileExpression(out, arg)
-					out.WriteString(".lock().unwrap().as_ref().unwrap())")
+					out.WriteString(".lock().unwrap().as_mut().unwrap())")
 				} else {
+					// Stdlib function or other expression
 					TranspileExpression(out, arg)
 				}
 			} else {
@@ -120,12 +134,24 @@ func transpileBuiltinPrintln(out *strings.Builder, call *ast.CallExpr) {
 			out.WriteString(", ")
 			// Check if this is a function call that returns a wrapped value
 			if callExpr, ok := arg.(*ast.CallExpr); ok {
-				// If it's a user function call (not stdlib), unwrap the result
-				if _, ok := callExpr.Fun.(*ast.Ident); ok && GetStdlibHandler(callExpr) == nil {
+				// Check if it's a method call or user function call
+				needsUnwrap := false
+
+				// Check for method call
+				if _, ok := callExpr.Fun.(*ast.SelectorExpr); ok {
+					needsUnwrap = true
+				} else if _, ok := callExpr.Fun.(*ast.Ident); ok && GetStdlibHandler(callExpr) == nil {
+					// User function call (not stdlib)
+					needsUnwrap = true
+				}
+
+				if needsUnwrap {
+					// Method call or user function call - unwrap the result
 					out.WriteString("(*")
 					TranspileExpression(out, arg)
-					out.WriteString(".lock().unwrap().as_ref().unwrap())")
+					out.WriteString(".lock().unwrap().as_mut().unwrap())")
 				} else {
+					// Stdlib function or other expression
 					TranspileExpression(out, arg)
 				}
 			} else {
@@ -135,6 +161,22 @@ func transpileBuiltinPrintln(out *strings.Builder, call *ast.CallExpr) {
 	}
 
 	out.WriteString(")")
+}
+
+// Helper function to unwrap arguments for print statements
+func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
+	// Check if this is a field access on self (already wrapped)
+	if sel, ok := arg.(*ast.SelectorExpr); ok {
+		if ident, ok := sel.X.(*ast.Ident); ok && currentReceiver != "" && ident.Name == currentReceiver {
+			// self.field - need to unwrap for display
+			out.WriteString("(*self.")
+			out.WriteString(ToSnakeCase(sel.Sel.Name))
+			out.WriteString(".lock().unwrap().as_mut().unwrap())")
+			return
+		}
+	}
+	// For other cases, just use regular expression transpilation
+	TranspileExpression(out, arg)
 }
 
 func transpileFmtPrintf(out *strings.Builder, call *ast.CallExpr) {
@@ -164,7 +206,41 @@ func transpileFmtPrintf(out *strings.Builder, call *ast.CallExpr) {
 		// Rest of the arguments
 		for i := 1; i < len(call.Args); i++ {
 			out.WriteString(", ")
-			TranspileExpression(out, call.Args[i])
+			transpilePrintArg(out, call.Args[i])
+		}
+	}
+
+	out.WriteString(")")
+}
+
+func transpileFmtSprintf(out *strings.Builder, call *ast.CallExpr) {
+	out.WriteString("format!")
+	out.WriteString("(")
+
+	if len(call.Args) > 0 {
+		// First arg is the format string
+		if lit, ok := call.Args[0].(*ast.BasicLit); ok && lit.Kind == token.STRING {
+			// Convert Go format verbs to Rust
+			format := lit.Value
+			// Handle format verbs with precision first
+			format = strings.ReplaceAll(format, "%.5f", "{:.5}")
+			format = strings.ReplaceAll(format, "%.2f", "{:.2}")
+			format = strings.ReplaceAll(format, "%.1f", "{:.1}")
+			// Simple conversion: %d -> {}, %s -> {}, etc.
+			format = strings.ReplaceAll(format, "%d", "{}")
+			format = strings.ReplaceAll(format, "%s", "{}")
+			format = strings.ReplaceAll(format, "%v", "{}")
+			format = strings.ReplaceAll(format, "%f", "{}")
+			format = strings.ReplaceAll(format, "%t", "{}")
+			out.WriteString(format)
+		} else {
+			TranspileExpression(out, call.Args[0])
+		}
+
+		// Rest of the arguments
+		for i := 1; i < len(call.Args); i++ {
+			out.WriteString(", ")
+			transpilePrintArg(out, call.Args[i])
 		}
 	}
 
@@ -205,6 +281,23 @@ func transpileFmtErrorf(out *strings.Builder, call *ast.CallExpr) {
 	out.WriteString(")) as Box<dyn std::error::Error + Send + Sync>)))")
 }
 
+func transpileErrorsNew(out *strings.Builder, call *ast.CallExpr) {
+	out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(Some(Box::new(")
+
+	if len(call.Args) > 0 {
+		// The argument is the error message
+		if lit, ok := call.Args[0].(*ast.BasicLit); ok && lit.Kind == token.STRING {
+			// String literal - already has quotes
+			out.WriteString(lit.Value)
+			out.WriteString(".to_string()")
+		} else {
+			// Expression - might already be a string
+			TranspileExpression(out, call.Args[0])
+		}
+	}
+
+	out.WriteString(" as Box<dyn std::error::Error + Send + Sync>))))")
+}
 func transpileStringsToUpper(out *strings.Builder, call *ast.CallExpr) {
 	if len(call.Args) > 0 {
 		TranspileExpression(out, call.Args[0])

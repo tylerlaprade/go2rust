@@ -15,6 +15,25 @@ const (
 	AddressOf                    // Expression is having its address taken
 )
 
+// isFloatExpression checks if an expression involves floats
+func isFloatExpression(expr ast.Expr) bool {
+	switch e := expr.(type) {
+	case *ast.BasicLit:
+		return e.Kind == token.FLOAT
+	case *ast.SelectorExpr:
+		// Field access - assume float if it's a common float field name
+		name := strings.ToLower(e.Sel.Name)
+		return name == "width" || name == "height" || name == "radius" ||
+			name == "x" || name == "y" || name == "z"
+	case *ast.BinaryExpr:
+		// Recursively check operands
+		return isFloatExpression(e.X) || isFloatExpression(e.Y)
+	case *ast.ParenExpr:
+		return isFloatExpression(e.X)
+	}
+	return false
+}
+
 // TranspileExpression transpiles an expression (defaults to RValue context)
 func TranspileExpression(out *strings.Builder, expr ast.Expr) {
 	TranspileExpressionContext(out, expr, RValue)
@@ -53,7 +72,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				// Reading a variable requires unwrapping to get the inner value
 				out.WriteString("(*")
 				out.WriteString(e.Name)
-				out.WriteString(".lock().unwrap().as_ref().unwrap())")
+				out.WriteString(".lock().unwrap().as_mut().unwrap())")
 			case AddressOf:
 				// Taking address just returns the Arc itself
 				out.WriteString(e.Name)
@@ -67,27 +86,50 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		TranspileCall(out, e)
 
 	case *ast.SelectorExpr:
-		TranspileExpression(out, e.X)
 		// Check if this is a package selector or field access
 		// For now, assume lowercase identifiers are variables (field access)
 		// and uppercase are packages/types
 		if ident, ok := e.X.(*ast.Ident); ok && ident.Name[0] >= 'a' && ident.Name[0] <= 'z' {
-			out.WriteString(".")
+			// Field access on a variable
+			if currentReceiver != "" && ident.Name == currentReceiver {
+				// Field access on method receiver - use self directly
+				out.WriteString("self.")
+				out.WriteString(ToSnakeCase(e.Sel.Name))
+				// For return statements, we need to clone the Arc
+				if ctx == RValue {
+					out.WriteString(".clone()")
+				}
+			} else {
+				// Regular field access
+				TranspileExpression(out, e.X)
+				out.WriteString(".")
+				out.WriteString(ToSnakeCase(e.Sel.Name))
+			}
 		} else {
+			// Package/type selector
+			TranspileExpression(out, e.X)
 			out.WriteString("::")
+			out.WriteString(ToSnakeCase(e.Sel.Name))
 		}
-		out.WriteString(ToSnakeCase(e.Sel.Name))
 
 	case *ast.UnaryExpr:
 		switch e.Op {
 		case token.AND: // & - address-of
-			// Taking address just clones the Arc
-			TranspileExpressionContext(out, e.X, AddressOf)
-			out.WriteString(".clone()")
+			// Check if we're taking address of a struct literal
+			if _, isCompositeLit := e.X.(*ast.CompositeLit); isCompositeLit {
+				// For struct literals, wrap the whole thing in Arc<Mutex<Option<>>>
+				out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(Some(")
+				TranspileExpressionContext(out, e.X, AddressOf)
+				out.WriteString(")))")
+			} else {
+				// Taking address of existing value just clones the Arc
+				TranspileExpressionContext(out, e.X, AddressOf)
+				out.WriteString(".clone()")
+			}
 		case token.MUL: // * - dereference
 			out.WriteString("*")
 			TranspileExpression(out, e.X)
-			out.WriteString(".lock().unwrap().as_ref().unwrap()")
+			out.WriteString(".lock().unwrap().as_mut().unwrap()")
 		default:
 			out.WriteString(e.Op.String())
 			TranspileExpression(out, e.X)
@@ -98,7 +140,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		out.WriteString("(*")
 		// Use LValue context so the identifier doesn't get unwrapped
 		TranspileExpressionContext(out, e.X, LValue)
-		out.WriteString(".lock().unwrap().as_ref().unwrap())")
+		out.WriteString(".lock().unwrap().as_mut().unwrap())")
 	case *ast.BinaryExpr:
 		// Special handling for comparisons with nil
 		if ident, ok := e.Y.(*ast.Ident); ok && ident.Name == "nil" {
@@ -113,11 +155,60 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			}
 		}
 
-		TranspileExpression(out, e.X)
-		out.WriteString(" ")
-		out.WriteString(e.Op.String())
-		out.WriteString(" ")
-		TranspileExpression(out, e.Y)
+		// Check if we're in a method and dealing with wrapped values
+		needsUnwrap := false
+		if currentReceiver != "" {
+			// In a method, field accesses return wrapped values
+			if _, ok := e.X.(*ast.SelectorExpr); ok {
+				needsUnwrap = true
+			}
+			if _, ok := e.Y.(*ast.SelectorExpr); ok {
+				needsUnwrap = true
+			}
+		}
+
+		if needsUnwrap {
+			// Unwrap the operands for arithmetic
+			out.WriteString("(*")
+			TranspileExpression(out, e.X)
+			out.WriteString(".lock().unwrap().as_mut().unwrap())")
+			out.WriteString(" ")
+			out.WriteString(e.Op.String())
+			out.WriteString(" ")
+			out.WriteString("(*")
+			TranspileExpression(out, e.Y)
+			out.WriteString(".lock().unwrap().as_mut().unwrap())")
+		} else {
+			// Regular binary expression
+			// Special handling for numeric literals with float operations
+			if lit, ok := e.X.(*ast.BasicLit); ok && lit.Kind == token.INT {
+				// Check if the other operand might be a float
+				if isFloatExpression(e.Y) {
+					out.WriteString(lit.Value)
+					out.WriteString(".0")
+				} else {
+					TranspileExpression(out, e.X)
+				}
+			} else {
+				TranspileExpression(out, e.X)
+			}
+
+			out.WriteString(" ")
+			out.WriteString(e.Op.String())
+			out.WriteString(" ")
+
+			if lit, ok := e.Y.(*ast.BasicLit); ok && lit.Kind == token.INT {
+				// Check if the other operand might be a float
+				if isFloatExpression(e.X) {
+					out.WriteString(lit.Value)
+					out.WriteString(".0")
+				} else {
+					TranspileExpression(out, e.Y)
+				}
+			} else {
+				TranspileExpression(out, e.Y)
+			}
+		}
 
 	case *ast.IndexExpr:
 		// Check if this might be a map access (simple heuristic)
@@ -205,12 +296,21 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					if key, ok := kv.Key.(*ast.Ident); ok {
 						out.WriteString(ToSnakeCase(key.Name))
 						out.WriteString(": ")
+						// Wrap field values in Arc<Mutex<Option<T>>>
+						out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(Some(")
 						TranspileExpression(out, kv.Value)
+						out.WriteString(")))")
 					}
 				}
 			}
 			out.WriteString(" }")
 		}
+
+	case *ast.ParenExpr:
+		// Parenthesized expression
+		out.WriteString("(")
+		TranspileExpression(out, e.X)
+		out.WriteString(")")
 
 	case *ast.TypeAssertExpr:
 		// Handle type assertions like value.(string)
@@ -267,6 +367,26 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 	// Check if this is a stdlib function we need to replace
 	if handler := GetStdlibHandler(call); handler != nil {
 		handler(out, call)
+		return
+	}
+
+	// Check if this is a method call (selector expression)
+	if sel, ok := call.Fun.(*ast.SelectorExpr); ok {
+		// This is a method call - handle it specially
+		TranspileExpression(out, sel.X)
+		out.WriteString(".")
+		out.WriteString(ToSnakeCase(sel.Sel.Name))
+		out.WriteString("(")
+		for i, arg := range call.Args {
+			if i > 0 {
+				out.WriteString(", ")
+			}
+			// For method calls, wrap arguments normally
+			out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(Some(")
+			TranspileExpression(out, arg)
+			out.WriteString(")))")
+		}
+		out.WriteString(")")
 		return
 	}
 

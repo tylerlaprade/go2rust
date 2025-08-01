@@ -87,28 +87,74 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					// For error type, nil becomes Arc<Mutex<None>>
 					out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(None))")
 				} else {
-					// Wrap all return values in Arc<Mutex<Option<>>>
-					out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(Some(")
-
-					// Special handling for string literals
-					if lit, ok := result.(*ast.BasicLit); ok && lit.Kind == token.STRING {
-						out.WriteString(lit.Value)
-						out.WriteString(".to_string()")
-					} else if ident, ok := result.(*ast.Ident); ok {
-						_, isRangeVar := rangeLoopVars[ident.Name]
-						if !isRangeVar && ident.Name != "true" && ident.Name != "false" && ident.Name != "nil" {
-							// Returning a variable - need to clone the inner value
-							out.WriteString("(*")
-							out.WriteString(ident.Name)
-							out.WriteString(".lock().unwrap().as_ref().unwrap()).clone()")
+					// Check if this is a field access on self (already wrapped)
+					if sel, ok := result.(*ast.SelectorExpr); ok {
+						if ident, ok := sel.X.(*ast.Ident); ok && currentReceiver != "" && ident.Name == currentReceiver {
+							// Returning self.field - just clone it, don't double-wrap
+							out.WriteString("self.")
+							out.WriteString(ToSnakeCase(sel.Sel.Name))
+							out.WriteString(".clone()")
 						} else {
-							out.WriteString(ident.Name)
+							// Regular selector - wrap it
+							out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(Some(")
+							TranspileExpression(out, result)
+							out.WriteString(")))")
+						}
+					} else if callExpr, ok := result.(*ast.CallExpr); ok {
+						// Check if this is a function that returns an already-wrapped value
+						needsWrapping := true
+
+						// Check if it's errors.New or a function returning error
+						if sel, ok := callExpr.Fun.(*ast.SelectorExpr); ok {
+							if ident, ok := sel.X.(*ast.Ident); ok {
+								if ident.Name == "errors" && sel.Sel.Name == "New" {
+									needsWrapping = false
+								} else if ident.Name == "fmt" && sel.Sel.Name == "Errorf" {
+									needsWrapping = false
+								}
+							}
+						}
+
+						// Check if it's a user function that returns error
+						if fnType.Results != nil && i < len(fnType.Results.List) {
+							if resultType, ok := fnType.Results.List[i].Type.(*ast.Ident); ok && resultType.Name == "error" {
+								// This position is an error type, and we have a function call
+								needsWrapping = false
+							}
+						}
+
+						if needsWrapping {
+							out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(Some(")
+							TranspileExpression(out, result)
+							out.WriteString(")))")
+						} else {
+							// Already wrapped
+							TranspileExpression(out, result)
 						}
 					} else {
-						TranspileExpression(out, result)
-					}
+						// Wrap all other return values in Arc<Mutex<Option<>>>
+						out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(Some(")
 
-					out.WriteString(")))")
+						// Special handling for string literals
+						if lit, ok := result.(*ast.BasicLit); ok && lit.Kind == token.STRING {
+							out.WriteString(lit.Value)
+							out.WriteString(".to_string()")
+						} else if ident, ok := result.(*ast.Ident); ok {
+							_, isRangeVar := rangeLoopVars[ident.Name]
+							if !isRangeVar && ident.Name != "true" && ident.Name != "false" && ident.Name != "nil" {
+								// Returning a variable - need to clone the inner value
+								out.WriteString("(*")
+								out.WriteString(ident.Name)
+								out.WriteString(".lock().unwrap().as_mut().unwrap()).clone()")
+							} else {
+								out.WriteString(ident.Name)
+							}
+						} else {
+							TranspileExpression(out, result)
+						}
+
+						out.WriteString(")))")
+					}
 				}
 			}
 
@@ -142,18 +188,22 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				TranspileExpression(out, s.Rhs[0])
 				out.WriteString(")")
 			}
-		} else if s.Tok == token.ADD_ASSIGN {
-			// Check if it's a string (check LHS identifier name)
+		} else if s.Tok == token.ADD_ASSIGN || s.Tok == token.SUB_ASSIGN ||
+			s.Tok == token.MUL_ASSIGN || s.Tok == token.QUO_ASSIGN || s.Tok == token.REM_ASSIGN {
+			// Compound assignment operators
+
 			isString := false
-			if ident, ok := s.Lhs[0].(*ast.Ident); ok {
-				// Simple heuristic: common string variable names
-				name := strings.ToLower(ident.Name)
-				isString = name == "result" || name == "str" || name == "s" || strings.Contains(name, "string")
-			}
-			// Also check if RHS is a string literal
-			if !isString {
-				if lit, ok := s.Rhs[0].(*ast.BasicLit); ok && lit.Kind == token.STRING {
-					isString = true
+			if s.Tok == token.ADD_ASSIGN {
+				if ident, ok := s.Lhs[0].(*ast.Ident); ok {
+					// TODO (hack): Simple heuristic: common string variable names
+					name := strings.ToLower(ident.Name)
+					isString = name == "result" || name == "str" || name == "s" || strings.Contains(name, "string")
+				}
+				// Also check if RHS is a string literal
+				if !isString {
+					if lit, ok := s.Rhs[0].(*ast.BasicLit); ok && lit.Kind == token.STRING {
+						isString = true
+					}
 				}
 			}
 
@@ -165,10 +215,51 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				TranspileExpression(out, s.Rhs[0])
 				out.WriteString(")")
 			} else {
-				// Numeric +=
-				TranspileExpression(out, s.Lhs[0])
-				out.WriteString(" += ")
-				TranspileExpression(out, s.Rhs[0])
+				// Numeric compound assignment for wrapped values
+				// Generate: { let mut guard = lhs.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() OP rhs); }
+				out.WriteString("{ let mut guard = ")
+				TranspileExpressionContext(out, s.Lhs[0], LValue)
+				out.WriteString(".lock().unwrap(); *guard = Some(guard.as_ref().unwrap() ")
+
+				// Output the appropriate operator
+				switch s.Tok {
+				case token.ADD_ASSIGN:
+					out.WriteString("+")
+				case token.SUB_ASSIGN:
+					out.WriteString("-")
+				case token.MUL_ASSIGN:
+					out.WriteString("*")
+				case token.QUO_ASSIGN:
+					out.WriteString("/")
+				case token.REM_ASSIGN:
+					out.WriteString("%")
+				}
+
+				out.WriteString(" ")
+				// Handle RHS based on its type
+				if ident, ok := s.Rhs[0].(*ast.Ident); ok {
+					// It's an identifier - need to unwrap it
+					// Check if it's a special identifier that shouldn't be unwrapped
+					_, isRangeVar := rangeLoopVars[ident.Name]
+					_, isLocalConst := localConstants[ident.Name]
+					if !isRangeVar && !isLocalConst && ident.Name != "true" && ident.Name != "false" &&
+						ident.Name != "nil" && ident.Name != "_" {
+						// Regular wrapped variable - unwrap it
+						out.WriteString("(*")
+						out.WriteString(ident.Name)
+						out.WriteString(".lock().unwrap().as_mut().unwrap())")
+					} else {
+						// Special identifier - use as-is
+						out.WriteString(ident.Name)
+					}
+				} else if lit, ok := s.Rhs[0].(*ast.BasicLit); ok {
+					// It's a literal - use directly
+					out.WriteString(lit.Value)
+				} else {
+					// It's an expression - transpile it
+					TranspileExpression(out, s.Rhs[0])
+				}
+				out.WriteString("); }")
 			}
 		} else { // Check if we have multiple LHS with single RHS (tuple unpacking)
 			needsTupleUnpack := len(s.Lhs) > 1 && len(s.Rhs) == 1

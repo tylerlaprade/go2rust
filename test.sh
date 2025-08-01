@@ -1,5 +1,13 @@
 #!/bin/bash
 
+# Cleanup function to remove temporary files
+cleanup() {
+    rm -f test_output.tmp
+}
+
+# Set trap to cleanup on exit or interrupt
+trap cleanup EXIT INT TERM
+
 # Generate test cases and update the GENERATED TESTS section in tests.bats
 
 # Create temporary file for new test cases
@@ -227,5 +235,4 @@ if [ "$JOBS" -gt 1 ] && [ -f test_output.tmp ]; then
         done
     fi
 
-    rm -f test_output.tmp
 fi

@@ -37,6 +37,10 @@ func goTypeToRustBase(expr ast.Expr) string {
 		case "error":
 			return "Option<Box<dyn std::error::Error + Send + Sync>>"
 		default:
+			// Check if this is an interface type
+			if interfaceTypes[t.Name] {
+				return "Box<dyn " + t.Name + ">"
+			}
 			return t.Name
 		}
 	case *ast.InterfaceType:

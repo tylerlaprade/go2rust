@@ -159,6 +159,79 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec) {
 		}
 
 		out.WriteString("}")
+
+	case *ast.InterfaceType:
+		// Generate a trait for the interface
+		out.WriteString("trait ")
+		out.WriteString(typeSpec.Name.Name)
+		out.WriteString(" {\n")
+
+		// Generate method signatures
+		for _, method := range t.Methods.List {
+			if len(method.Names) > 0 {
+				// Named method
+				funcType, ok := method.Type.(*ast.FuncType)
+				if !ok {
+					continue
+				}
+
+				out.WriteString("    fn ")
+				out.WriteString(ToSnakeCase(method.Names[0].Name))
+				out.WriteString("(&self")
+
+				// Add other parameters
+				if funcType.Params != nil && len(funcType.Params.List) > 0 {
+					for _, param := range funcType.Params.List {
+						out.WriteString(", ")
+						for j, name := range param.Names {
+							if j > 0 {
+								out.WriteString(", ")
+							}
+							out.WriteString(name.Name)
+							out.WriteString(": ")
+							out.WriteString(GoTypeToRust(param.Type))
+						}
+					}
+				}
+
+				out.WriteString(")")
+
+				// Return type
+				if funcType.Results != nil && len(funcType.Results.List) > 0 {
+					out.WriteString(" -> ")
+					if len(funcType.Results.List) == 1 && len(funcType.Results.List[0].Names) <= 1 {
+						// Single return value
+						out.WriteString(GoTypeToRust(funcType.Results.List[0].Type))
+					} else {
+						// Multiple return values - use tuple
+						out.WriteString("(")
+						first := true
+						for _, result := range funcType.Results.List {
+							if len(result.Names) > 0 {
+								for range result.Names {
+									if !first {
+										out.WriteString(", ")
+									}
+									first = false
+									out.WriteString(GoTypeToRust(result.Type))
+								}
+							} else {
+								if !first {
+									out.WriteString(", ")
+								}
+								first = false
+								out.WriteString(GoTypeToRust(result.Type))
+							}
+						}
+						out.WriteString(")")
+					}
+				}
+
+				out.WriteString(";\n")
+			}
+		}
+
+		out.WriteString("}")
 	}
 }
 
@@ -317,7 +390,16 @@ func TranspileConstExpr(out *strings.Builder, expr ast.Expr, iotaValue int) {
 
 // TranspileMethodImpl transpiles a method inside an impl block
 func TranspileMethodImpl(out *strings.Builder, fn *ast.FuncDecl) {
-	out.WriteString("    pub fn ")
+	transpileMethodImplWithVisibility(out, fn, true)
+}
+
+// transpileMethodImplWithVisibility transpiles a method with optional pub visibility
+func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, addPub bool) {
+	out.WriteString("    ")
+	if addPub {
+		out.WriteString("pub ")
+	}
+	out.WriteString("fn ")
 	out.WriteString(ToSnakeCase(fn.Name.Name))
 	out.WriteString("(")
 

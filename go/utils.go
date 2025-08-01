@@ -16,7 +16,7 @@ func WrapInArcMutex(out *strings.Builder, expr ast.Expr) {
 func UnwrapArcMutex(out *strings.Builder, expr ast.Expr) {
 	out.WriteString("(*")
 	TranspileExpression(out, expr)
-	out.WriteString(".lock().unwrap().as_ref().unwrap())")
+	out.WriteString(".lock().unwrap().as_mut().unwrap())")
 }
 
 func ToSnakeCase(s string) string {
