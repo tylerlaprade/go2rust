@@ -1,9 +1,9 @@
 #!/usr/bin/env bats
 
 setup_file() {
-    find tests -name "*.rs" -type f -delete 2>/dev/null || true
-    find tests -name "Cargo.toml" -type f -delete 2>/dev/null || true
-    find tests -name "Cargo.lock" -type f -delete 2>/dev/null || true
+    # find tests -name "*.rs" -type f -delete 2>/dev/null || true
+    # find tests -name "Cargo.toml" -type f -delete 2>/dev/null || true
+    # find tests -name "Cargo.lock" -type f -delete 2>/dev/null || true
     
     go build -o go2rust ./go
 }
@@ -85,8 +85,23 @@ run_test() {
         fi
 
         # Transpile to Rust
-        if ! ./go2rust "$test_dir" >/dev/null 2>&1; then
-            echo "Transpilation failed"
+        transpile_output=$(./go2rust "$test_dir" 2>&1)
+        if [ $? -ne 0 ]; then
+            echo "Transpilation failed:"
+            echo "$transpile_output" | sed "s/^/  /"
+            exit 1
+        fi
+        
+        # Check if Rust code compiles first (faster than cargo run)
+        rust_check_output=$(cd "$test_dir" && RUSTFLAGS="-A warnings" cargo check --quiet 2>&1)
+        if [ $? -ne 0 ]; then
+            echo ""
+            echo "Rust compilation failed:"
+            echo "$rust_check_output" | sed "s/^/  /"
+            echo ""
+            echo "Generated Rust code:"
+            echo "==================="
+            cat "$test_dir/main.rs" | sed "s/^/  /"
             exit 1
         fi
         
@@ -96,11 +111,8 @@ run_test() {
         
         if [ $rust_exit_code -ne 0 ]; then
             echo ""
-            echo "Go output:"
-            echo "$go_output"
-            echo ""
-            echo "Rust compilation/execution failed:"
-            echo "$rust_output"
+            echo "Rust execution failed:"
+            echo "$rust_output" | sed "s/^/  /"
             exit 1
         fi
         
@@ -179,6 +191,10 @@ run_xfail_test() {
 
 @test "library_example" {
     run_test "tests/library_example"
+}
+
+@test "methods_basic" {
+    run_test "tests/methods_basic"
 }
 
 @test "pointers_simple" {
@@ -351,10 +367,6 @@ run_xfail_test() {
 
 @test "XFAIL: methods" {
     run_xfail_test "tests/XFAIL/methods"
-}
-
-@test "XFAIL: methods_basic" {
-    run_xfail_test "tests/XFAIL/methods_basic"
 }
 
 @test "XFAIL: mixed_output" {

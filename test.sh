@@ -20,8 +20,10 @@ temp_file=$(mktemp)
 for xfail_dir in $(find tests/XFAIL -maxdepth 1 -type d ! -name XFAIL | sort); do
     if [ -f "$xfail_dir/main.go" ]; then
         # Check if Go code compiles first
-        if ! (cd "$xfail_dir" && go build . >/dev/null 2>&1); then
-            echo "ERROR: XFAIL test $(basename "$xfail_dir") does not compile"
+        error_output=$(cd "$xfail_dir" && go build . 2>&1)
+        if [ $? -ne 0 ]; then
+            echo "ERROR: XFAIL test $(basename "$xfail_dir") does not compile:"
+            echo "$error_output" | sed 's/^/  /'
             exit 1
         fi
     fi
@@ -85,9 +87,17 @@ VERBOSE=false
 JOBS=""
 TIMEOUT="60s"
 HELP=false
+TEST_NAMES=()
 
 i=1
+skip_next=false
 for arg in "$@"; do
+    if [ "$skip_next" = true ]; then
+        skip_next=false
+        i=$((i+1))
+        continue
+    fi
+    
     case $arg in
         -h|--help)
             HELP=true
@@ -98,6 +108,7 @@ for arg in "$@"; do
         -n|--jobs)
             # Next argument should be the number
             eval "JOBS=\${$((i+1))}"
+            skip_next=true
             ;;
         -n*)
             # -n4 format
@@ -110,6 +121,7 @@ for arg in "$@"; do
         -t|--timeout)
             # Next argument should be the timeout
             eval "TIMEOUT=\${$((i+1))}"
+            skip_next=true
             ;;
         -t*)
             # -t30s format
@@ -119,6 +131,14 @@ for arg in "$@"; do
             # --timeout=30s format
             TIMEOUT="${arg#--timeout=}"
             ;;
+        -*)
+            echo "Unknown option: $arg"
+            exit 1
+            ;;
+        *)
+            # Not a flag, assume it's a test name
+            TEST_NAMES+=("$arg")
+            ;;
     esac
     i=$((i+1))
 done
@@ -126,16 +146,22 @@ done
 # Show help if requested
 if [ "$HELP" = true ]; then
     echo ""
-    echo "Usage: $0 [options]"
+    echo "Usage: $0 [options] [test_names...]"
+    echo ""
     echo "Options:"
     echo "  -v, --verbose      Show XFAIL tests in output"
     echo "  -n, --jobs N       Number of parallel jobs (default: auto-detect)"
     echo "  -t, --timeout TIME Timeout per test (default: 60s)"
     echo "  -h, --help         Show this help message"
     echo ""
+    echo "Arguments:"
+    echo "  test_names         Specific tests to run (default: all tests)"
+    echo ""
     echo "Examples:"
-    echo "  $0 -n 4 -t 30s     # 4 jobs, 30 second timeout per test"
-    echo "  $0 -t 2m            # 2 minute timeout per test"
+    echo "  $0                  # Run all tests"
+    echo "  $0 hello_world      # Run specific test"
+    echo "  $0 -v methods_basic # Run specific test with verbose output"
+    echo "  $0 -n 1 foo bar     # Run multiple tests sequentially"
     exit 0
 fi
 
@@ -197,15 +223,40 @@ colorize_output() {
 # Export timeout for bats to use
 export TEST_TIMEOUT="$TIMEOUT"
 
+# Build filter pattern if specific tests requested
+FILTER_PATTERN=""
+if [ ${#TEST_NAMES[@]} -gt 0 ]; then
+    # Build a regex pattern that matches any of the test names
+    FILTER_PATTERN="("
+    for i in "${!TEST_NAMES[@]}"; do
+        if [ $i -gt 0 ]; then
+            FILTER_PATTERN+="|"
+        fi
+        # Escape special regex characters and handle both regular and XFAIL tests
+        escaped_name=$(echo "${TEST_NAMES[$i]}" | sed 's/[[\.*^$()+?{|]/\\&/g')
+        FILTER_PATTERN+="^${escaped_name}$|^XFAIL: ${escaped_name}$"
+    done
+    FILTER_PATTERN+=")"
+    echo "Running tests matching: ${TEST_NAMES[*]}"
+fi
+
 # Choose execution mode based on job count
 if [ "$JOBS" -eq 1 ]; then
     # Sequential mode - real-time output
     echo "Running tests sequentially (timeout: $TIMEOUT per test)..."
-    bats --tap tests.bats | colorize_output
+    if [ -n "$FILTER_PATTERN" ]; then
+        bats --tap --filter "$FILTER_PATTERN" tests.bats | colorize_output
+    else
+        bats --tap tests.bats | colorize_output
+    fi
 else
     # Parallel mode - buffered output
     echo "Running tests in parallel with $JOBS jobs (timeout: $TIMEOUT per test)..."
-    bats -j "$JOBS" tests.bats | tee test_output.tmp | colorize_output
+    if [ -n "$FILTER_PATTERN" ]; then
+        bats -j "$JOBS" --filter "$FILTER_PATTERN" tests.bats | tee test_output.tmp | colorize_output
+    else
+        bats -j "$JOBS" tests.bats | tee test_output.tmp | colorize_output
+    fi
 fi
 
 # Extract and display test summary with colors (only for parallel mode)
