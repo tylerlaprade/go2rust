@@ -37,7 +37,7 @@ where
     }
 }
 
-pub fn sum(numbers: std::sync::Arc<std::sync::Mutex<Option<Unknown>>>) -> std::sync::Arc<std::sync::Mutex<Option<i32>>> {
+pub fn sum(numbers: std::sync::Arc<std::sync::Mutex<Option</* TODO: Unhandled type *ast.Ellipsis */ std::sync::Arc<std::sync::Mutex<Option<()>>>>>>) -> std::sync::Arc<std::sync::Mutex<Option<i32>>> {
 
     let mut total = std::sync::Arc::new(std::sync::Mutex::new(Some(0)));
     for num in &(*numbers.lock().unwrap().as_mut().unwrap()) {
@@ -46,7 +46,7 @@ pub fn sum(numbers: std::sync::Arc<std::sync::Mutex<Option<Unknown>>>) -> std::s
     return std::sync::Arc::new(std::sync::Mutex::new(Some((*total.lock().unwrap().as_mut().unwrap()).clone())));
 }
 
-pub fn average(numbers: std::sync::Arc<std::sync::Mutex<Option<Unknown>>>) -> std::sync::Arc<std::sync::Mutex<Option<f64>>> {
+pub fn average(numbers: std::sync::Arc<std::sync::Mutex<Option</* TODO: Unhandled type *ast.Ellipsis */ std::sync::Arc<std::sync::Mutex<Option<()>>>>>>) -> std::sync::Arc<std::sync::Mutex<Option<f64>>> {
 
     if (*numbers.lock().unwrap().as_mut().unwrap()).len() == 0 {
         return std::sync::Arc::new(std::sync::Mutex::new(Some(0)));
@@ -58,7 +58,7 @@ pub fn average(numbers: std::sync::Arc<std::sync::Mutex<Option<Unknown>>>) -> st
     return std::sync::Arc::new(std::sync::Mutex::new(Some((*total.lock().unwrap().as_mut().unwrap()) / float64(std::sync::Arc::new(std::sync::Mutex::new(Some((*numbers.lock().unwrap().as_mut().unwrap()).len())))))));
 }
 
-pub fn print_strings(prefix: std::sync::Arc<std::sync::Mutex<Option<String>>>, strings: std::sync::Arc<std::sync::Mutex<Option<Unknown>>>) {
+pub fn print_strings(prefix: std::sync::Arc<std::sync::Mutex<Option<String>>>, strings: std::sync::Arc<std::sync::Mutex<Option</* TODO: Unhandled type *ast.Ellipsis */ std::sync::Arc<std::sync::Mutex<Option<()>>>>>>) {
     print!("{}: ", (*prefix.lock().unwrap().as_mut().unwrap()));
     for (i, str) in (*strings.lock().unwrap().as_mut().unwrap()).iter().enumerate() {
         if i > 0 {
@@ -69,7 +69,7 @@ pub fn print_strings(prefix: std::sync::Arc<std::sync::Mutex<Option<String>>>, s
     println!();
 }
 
-pub fn min(first: std::sync::Arc<std::sync::Mutex<Option<i32>>>, rest: std::sync::Arc<std::sync::Mutex<Option<Unknown>>>) -> std::sync::Arc<std::sync::Mutex<Option<i32>>> {
+pub fn min(first: std::sync::Arc<std::sync::Mutex<Option<i32>>>, rest: std::sync::Arc<std::sync::Mutex<Option</* TODO: Unhandled type *ast.Ellipsis */ std::sync::Arc<std::sync::Mutex<Option<()>>>>>>) -> std::sync::Arc<std::sync::Mutex<Option<i32>>> {
 
     let mut minimum = std::sync::Arc::new(std::sync::Mutex::new(Some((*first.lock().unwrap().as_mut().unwrap()))));
     for num in &(*rest.lock().unwrap().as_mut().unwrap()) {
@@ -80,7 +80,7 @@ pub fn min(first: std::sync::Arc<std::sync::Mutex<Option<i32>>>, rest: std::sync
     return std::sync::Arc::new(std::sync::Mutex::new(Some((*minimum.lock().unwrap().as_mut().unwrap()).clone())));
 }
 
-pub fn concat(separator: std::sync::Arc<std::sync::Mutex<Option<String>>>, strings: std::sync::Arc<std::sync::Mutex<Option<Unknown>>>) -> std::sync::Arc<std::sync::Mutex<Option<String>>> {
+pub fn concat(separator: std::sync::Arc<std::sync::Mutex<Option<String>>>, strings: std::sync::Arc<std::sync::Mutex<Option</* TODO: Unhandled type *ast.Ellipsis */ std::sync::Arc<std::sync::Mutex<Option<()>>>>>>) -> std::sync::Arc<std::sync::Mutex<Option<String>>> {
 
     if (*strings.lock().unwrap().as_mut().unwrap()).len() == 0 {
         return std::sync::Arc::new(std::sync::Mutex::new(Some("".to_string())));

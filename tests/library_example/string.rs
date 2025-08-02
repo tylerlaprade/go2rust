@@ -1,3 +1,4 @@
+/// Repeat repeats a string n times
 pub fn repeat(s: std::sync::Arc<std::sync::Mutex<Option<String>>>, n: std::sync::Arc<std::sync::Mutex<Option<i32>>>) -> std::sync::Arc<std::sync::Mutex<Option<String>>> {
 
     let mut result = std::sync::Arc::new(std::sync::Mutex::new(Some("".to_string())));

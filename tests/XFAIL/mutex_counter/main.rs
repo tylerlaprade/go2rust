@@ -39,7 +39,7 @@ where
 
 #[derive(Debug)]
 struct Counter {
-    mu: std::sync::Arc<std::sync::Mutex<Option<Unknown>>>,
+    mu: std::sync::Arc<std::sync::Mutex<Option</* TODO: Unhandled type *ast.SelectorExpr */ std::sync::Arc<std::sync::Mutex<Option<()>>>>>>,
     value: std::sync::Arc<std::sync::Mutex<Option<i32>>>,
 }
 

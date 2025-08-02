@@ -37,11 +37,14 @@ where
     }
 }
 
+// TODO: Unhandled type declaration: Ident
+type Celsius = std::sync::Arc<std::sync::Mutex<Option<()>>>
 
+// TODO: Unhandled type declaration: Ident
+type Fahrenheit = std::sync::Arc<std::sync::Mutex<Option<()>>>
 
-
-
-
+// TODO: Unhandled type declaration: Ident
+type StringAlias = std::sync::Arc<std::sync::Mutex<Option<()>>>
 
 impl Celsius {
     pub fn to_fahrenheit(&self) -> std::sync::Arc<std::sync::Mutex<Option<Fahrenheit>>> {

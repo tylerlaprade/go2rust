@@ -73,6 +73,30 @@ This transpiler uses a "make it work first, optimize later" approach. **EVERY Go
 
 This ensures semantic correctness for ANY Go program, even edge cases like taking the address of function parameters. The generated code is verbose but correct. Users can optimize later.
 
+## Features
+
+### Comment Preservation
+
+The transpiler preserves Go doc comments and converts them to Rust format:
+- Go doc comments (`// FunctionName ...`) → Rust doc comments (`/// FunctionName ...`)
+- Doc comments are preserved on functions, types, and methods
+- Regular comments inside function bodies are not currently preserved
+
+### Whitespace Preservation
+
+The transpiler attempts to preserve blank lines between statements to maintain code readability.
+
+### Error Handling
+
+For unimplemented features, the transpiler generates TODO comments:
+- Unhandled statements: `// TODO: Unhandled statement type: TypeName`
+- Unhandled expressions: `/* TODO: Unhandled expression type: TypeName */`
+- Unhandled type declarations: `// TODO: Unhandled type declaration: TypeName`
+
+### Comment Preservation Limitations
+
+Currently, only doc comments (documentation comments directly above functions, types, and methods) are preserved and converted to Rust's `///` format. Regular comments inside function bodies, inline comments, and trailing comments are not preserved. This is because the Go AST doesn't directly associate these comments with specific statements, making it complex to determine their correct placement in the generated code.
+
 ## Progress Tracking
 
 ### Go Keywords

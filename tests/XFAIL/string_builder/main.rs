@@ -38,7 +38,7 @@ where
 }
 
 fn main() {
-    let mut builder: std::sync::Arc<std::sync::Mutex<Option<Unknown>>>;
+    let mut builder: std::sync::Arc<std::sync::Mutex<Option</* TODO: Unhandled type *ast.SelectorExpr */ std::sync::Arc<std::sync::Mutex<Option<()>>>>>>;
     (*builder.lock().unwrap().as_mut().unwrap()).write_string(std::sync::Arc::new(std::sync::Mutex::new(Some("Hello".to_string()))));
     (*builder.lock().unwrap().as_mut().unwrap()).write_string(std::sync::Arc::new(std::sync::Mutex::new(Some(" ".to_string()))));
     (*builder.lock().unwrap().as_mut().unwrap()).write_string(std::sync::Arc::new(std::sync::Mutex::new(Some("World".to_string()))));

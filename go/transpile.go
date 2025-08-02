@@ -92,7 +92,10 @@ func Transpile(file *ast.File, fileSet *token.FileSet) string {
 	typePositions := make(map[string]token.Pos)
 	interfaces := make(map[string]*ast.InterfaceType)
 	var functions []*ast.FuncDecl
-	var types []*ast.TypeSpec
+	var types []struct {
+		spec *ast.TypeSpec
+		decl *ast.GenDecl
+	}
 	var consts []*ast.GenDecl
 
 	// First pass: categorize declarations
@@ -115,7 +118,10 @@ func Transpile(file *ast.File, fileSet *token.FileSet) string {
 			case token.TYPE:
 				for _, spec := range d.Specs {
 					if typeSpec, ok := spec.(*ast.TypeSpec); ok {
-						types = append(types, typeSpec)
+						types = append(types, struct {
+							spec *ast.TypeSpec
+							decl *ast.GenDecl
+						}{typeSpec, d})
 						// Track interfaces
 						if ifaceType, ok := typeSpec.Type.(*ast.InterfaceType); ok {
 							interfaces[typeSpec.Name.Name] = ifaceType
@@ -147,7 +153,9 @@ func Transpile(file *ast.File, fileSet *token.FileSet) string {
 			output.WriteString("\n\n")
 		}
 		first = false
-		TranspileTypeDecl(&output, t)
+		// Output doc comments if present
+		outputComment(&output, t.decl.Doc, "", true)
+		TranspileTypeDecl(&output, t.spec, t.decl)
 	}
 
 	// Output impl blocks for types with methods in source file order
@@ -239,6 +247,8 @@ func Transpile(file *ast.File, fileSet *token.FileSet) string {
 			output.WriteString("\n\n")
 		}
 		first = false
+		// Output doc comments if present
+		outputComment(&output, fn.Doc, "", true)
 		TranspileFunction(&output, fn, fileSet)
 	}
 

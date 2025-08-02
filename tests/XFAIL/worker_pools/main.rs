@@ -37,7 +37,7 @@ where
     }
 }
 
-pub fn worker(id: std::sync::Arc<std::sync::Mutex<Option<i32>>>, jobs: std::sync::Arc<std::sync::Mutex<Option<Unknown>>>, results: std::sync::Arc<std::sync::Mutex<Option<Unknown>>>) {
+pub fn worker(id: std::sync::Arc<std::sync::Mutex<Option<i32>>>, jobs: std::sync::Arc<std::sync::Mutex<Option</* TODO: Unhandled type *ast.ChanType */ std::sync::Arc<std::sync::Mutex<Option<()>>>>>>, results: std::sync::Arc<std::sync::Mutex<Option</* TODO: Unhandled type *ast.ChanType */ std::sync::Arc<std::sync::Mutex<Option<()>>>>>>) {
     for j in 0..(*jobs.lock().unwrap().as_mut().unwrap()).len() {
         println!("{} {} {} {}", "worker".to_string(), (*id.lock().unwrap().as_mut().unwrap()), "started  job".to_string(), j);
         (*time.lock().unwrap().as_mut().unwrap()).sleep(std::sync::Arc::new(std::sync::Mutex::new(Some((*time.lock().unwrap().as_mut().unwrap()).second))));

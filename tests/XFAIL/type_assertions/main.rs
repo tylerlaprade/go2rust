@@ -99,7 +99,7 @@ pub fn process_value(value: std::sync::Arc<std::sync::Mutex<Option<Box<dyn std::
 }
 
 pub fn assert_without_check(value: std::sync::Arc<std::sync::Mutex<Option<Box<dyn std::any::Any>>>>) {
-    // defer () // TODO: defer not yet supported
+    // defer /* TODO: Unhandled expression type: FuncLit */ std::sync::Arc::new(std::sync::Mutex::new(Some(())))() // TODO: defer not yet supported
 
     let mut str = std::sync::Arc::new(std::sync::Mutex::new(Some(match (*value.lock().unwrap().as_mut().unwrap()).downcast_ref::<String>() { Some(v) => (v.clone(), true), None => (String::new(), false) })));
     print!("Asserted string: {}\n", (*str.lock().unwrap().as_mut().unwrap()));

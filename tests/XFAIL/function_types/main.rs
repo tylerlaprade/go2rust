@@ -37,14 +37,20 @@ where
     }
 }
 
+/// Function type definitions
+// TODO: Unhandled type declaration: FuncType
+type BinaryOp = std::sync::Arc<std::sync::Mutex<Option<()>>>
 
+// TODO: Unhandled type declaration: FuncType
+type UnaryOp = std::sync::Arc<std::sync::Mutex<Option<()>>>
 
+// TODO: Unhandled type declaration: FuncType
+type Predicate = std::sync::Arc<std::sync::Mutex<Option<()>>>
 
+// TODO: Unhandled type declaration: FuncType
+type StringProcessor = std::sync::Arc<std::sync::Mutex<Option<()>>>
 
-
-
-
-
+/// Struct with function fields
 #[derive(Debug)]
 struct Calculator {
     add: std::sync::Arc<std::sync::Mutex<Option<BinaryOp>>>,
@@ -52,6 +58,7 @@ struct Calculator {
     multiply: std::sync::Arc<std::sync::Mutex<Option<BinaryOp>>>,
 }
 
+/// Functions that match the types
 pub fn add(a: std::sync::Arc<std::sync::Mutex<Option<i32>>>, b: std::sync::Arc<std::sync::Mutex<Option<i32>>>) -> std::sync::Arc<std::sync::Mutex<Option<i32>>> {
 
     return std::sync::Arc::new(std::sync::Mutex::new(Some((*a.lock().unwrap().as_mut().unwrap()) + (*b.lock().unwrap().as_mut().unwrap()))));
@@ -85,6 +92,7 @@ pub fn to_upper(s: std::sync::Arc<std::sync::Mutex<Option<String>>>) -> std::syn
     return std::sync::Arc::new(std::sync::Mutex::new(Some((*result.lock().unwrap().as_mut().unwrap()).clone())));
 }
 
+/// Higher-order functions
 pub fn apply_binary(op: std::sync::Arc<std::sync::Mutex<Option<BinaryOp>>>, a: std::sync::Arc<std::sync::Mutex<Option<i32>>>, b: std::sync::Arc<std::sync::Mutex<Option<i32>>>) -> std::sync::Arc<std::sync::Mutex<Option<i32>>> {
 
     return std::sync::Arc::new(std::sync::Mutex::new(Some(op(a.clone(), b.clone()))));
@@ -120,14 +128,15 @@ pub fn process_string(s: std::sync::Arc<std::sync::Mutex<Option<String>>>, proce
     return std::sync::Arc::new(std::sync::Mutex::new(Some(processor(s.clone()))));
 }
 
+/// Function that returns a function
 pub fn make_multiplier(factor: std::sync::Arc<std::sync::Mutex<Option<i32>>>) -> std::sync::Arc<std::sync::Mutex<Option<UnaryOp>>> {
 
-    return std::sync::Arc::new(std::sync::Mutex::new(Some()));
+    return std::sync::Arc::new(std::sync::Mutex::new(Some(/* TODO: Unhandled expression type: FuncLit */ std::sync::Arc::new(std::sync::Mutex::new(Some(()))))));
 }
 
 pub fn make_adder(addend: std::sync::Arc<std::sync::Mutex<Option<i32>>>) -> std::sync::Arc<std::sync::Mutex<Option<BinaryOp>>> {
 
-    return std::sync::Arc::new(std::sync::Mutex::new(Some()));
+    return std::sync::Arc::new(std::sync::Mutex::new(Some(/* TODO: Unhandled expression type: FuncLit */ std::sync::Arc::new(std::sync::Mutex::new(Some(()))))));
 }
 
 fn main() {
@@ -156,14 +165,14 @@ fn main() {
     let mut evens = filter(numbers.clone(), isEven.clone());
     print!("Even numbers: {}\n", (*evens.lock().unwrap().as_mut().unwrap()));
 
-    let mut odds = filter(numbers.clone(), std::sync::Arc::new(std::sync::Mutex::new(Some())));
+    let mut odds = filter(numbers.clone(), std::sync::Arc::new(std::sync::Mutex::new(Some(/* TODO: Unhandled expression type: FuncLit */ std::sync::Arc::new(std::sync::Mutex::new(Some(())))))));
     print!("Odd numbers: {}\n", (*odds.lock().unwrap().as_mut().unwrap()));
 
     println!("{}", "\n=== Transform operations ===".to_string());
     let mut squared = transform(std::sync::Arc::new(std::sync::Mutex::new(Some(std::sync::Arc::new(std::sync::Mutex::new(Some(vec![1, 2, 3, 4, 5])))))), square.clone());
     print!("Squared: {}\n", (*squared.lock().unwrap().as_mut().unwrap()));
 
-    let mut doubled = transform(std::sync::Arc::new(std::sync::Mutex::new(Some(std::sync::Arc::new(std::sync::Mutex::new(Some(vec![1, 2, 3, 4, 5])))))), std::sync::Arc::new(std::sync::Mutex::new(Some())));
+    let mut doubled = transform(std::sync::Arc::new(std::sync::Mutex::new(Some(std::sync::Arc::new(std::sync::Mutex::new(Some(vec![1, 2, 3, 4, 5])))))), std::sync::Arc::new(std::sync::Mutex::new(Some(/* TODO: Unhandled expression type: FuncLit */ std::sync::Arc::new(std::sync::Mutex::new(Some(())))))));
     print!("Doubled: {}\n", (*doubled.lock().unwrap().as_mut().unwrap()));
 
     println!("{}", "\n=== String processing ===".to_string());
@@ -171,7 +180,7 @@ fn main() {
     let mut upper = process_string(text.clone(), toUpper.clone());
     print!("'{}' -> '{}'\n", (*text.lock().unwrap().as_mut().unwrap()), (*upper.lock().unwrap().as_mut().unwrap()));
 
-    let mut reversed = process_string(std::sync::Arc::new(std::sync::Mutex::new(Some("hello".to_string()))), std::sync::Arc::new(std::sync::Mutex::new(Some())));
+    let mut reversed = process_string(std::sync::Arc::new(std::sync::Mutex::new(Some("hello".to_string()))), std::sync::Arc::new(std::sync::Mutex::new(Some(/* TODO: Unhandled expression type: FuncLit */ std::sync::Arc::new(std::sync::Mutex::new(Some(())))))));
     print!("Reversed: {}\n", (*reversed.lock().unwrap().as_mut().unwrap()));
 
     println!("{}", "\n=== Functions returning functions ===".to_string());
@@ -182,7 +191,7 @@ fn main() {
     print!("addTen(5, 3) = {}\n", (*add_ten(std::sync::Arc::new(std::sync::Mutex::new(Some(5))), std::sync::Arc::new(std::sync::Mutex::new(Some(3)))).lock().unwrap().as_mut().unwrap()));
 
     println!("{}", "\n=== Struct with function fields ===".to_string());
-    let mut calc = Calculator { add: std::sync::Arc::new(std::sync::Mutex::new(Some())), subtract: std::sync::Arc::new(std::sync::Mutex::new(Some())), multiply: std::sync::Arc::new(std::sync::Mutex::new(Some((*multiply.lock().unwrap().as_mut().unwrap())))) };
+    let mut calc = Calculator { add: std::sync::Arc::new(std::sync::Mutex::new(Some(/* TODO: Unhandled expression type: FuncLit */ std::sync::Arc::new(std::sync::Mutex::new(Some(())))))), subtract: std::sync::Arc::new(std::sync::Mutex::new(Some(/* TODO: Unhandled expression type: FuncLit */ std::sync::Arc::new(std::sync::Mutex::new(Some(())))))), multiply: std::sync::Arc::new(std::sync::Mutex::new(Some((*multiply.lock().unwrap().as_mut().unwrap())))) };
 
     print!("calc.Add(10, 5) = {}\n", (*(*calc.lock().unwrap().as_mut().unwrap()).add(std::sync::Arc::new(std::sync::Mutex::new(Some(10))), std::sync::Arc::new(std::sync::Mutex::new(Some(5)))).lock().unwrap().as_mut().unwrap()));
     print!("calc.Subtract(10, 5) = {}\n", (*(*calc.lock().unwrap().as_mut().unwrap()).subtract(std::sync::Arc::new(std::sync::Mutex::new(Some(10))), std::sync::Arc::new(std::sync::Mutex::new(Some(5)))).lock().unwrap().as_mut().unwrap()));
@@ -193,6 +202,6 @@ fn main() {
     { let new_val = (*toUpper.lock().unwrap().as_mut().unwrap()); *processor.lock().unwrap() = Some(new_val); };
     print!("Using toUpper: {}\n", (*processor(std::sync::Arc::new(std::sync::Mutex::new(Some("test".to_string())))).lock().unwrap().as_mut().unwrap()));
 
-    { let new_val = ; *processor.lock().unwrap() = Some(new_val); };
+    { let new_val = /* TODO: Unhandled expression type: FuncLit */ std::sync::Arc::new(std::sync::Mutex::new(Some(()))); *processor.lock().unwrap() = Some(new_val); };
     print!("Using anonymous: {}\n", (*processor(std::sync::Arc::new(std::sync::Mutex::new(Some("test".to_string())))).lock().unwrap().as_mut().unwrap()));
 }

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"go/ast"
 	"go/token"
 	"strings"
@@ -407,6 +408,12 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 
 			out.WriteString(", false) }")
 		}
+
+	default:
+		// Unhandled expression type
+		out.WriteString("/* TODO: Unhandled expression type: ")
+		out.WriteString(strings.TrimPrefix(fmt.Sprintf("%T", e), "*ast."))
+		out.WriteString(" */ std::sync::Arc::new(std::sync::Mutex::new(Some(())))")
 	}
 }
 

@@ -67,8 +67,8 @@ fn main() {
 
     println!("{}", "\n=== Function calls in expressions ===".to_string());
 
-    let mut getValue = std::sync::Arc::new(std::sync::Mutex::new(Some()));
-    let mut getMultiplier = std::sync::Arc::new(std::sync::Mutex::new(Some()));
+    let mut getValue = std::sync::Arc::new(std::sync::Mutex::new(Some(/* TODO: Unhandled expression type: FuncLit */ std::sync::Arc::new(std::sync::Mutex::new(Some(()))))));
+    let mut getMultiplier = std::sync::Arc::new(std::sync::Mutex::new(Some(/* TODO: Unhandled expression type: FuncLit */ std::sync::Arc::new(std::sync::Mutex::new(Some(()))))));
 
     let mut complexResult = std::sync::Arc::new(std::sync::Mutex::new(Some(get_value(a.clone()) + get_value(b.clone()) * get_multiplier() - get_value(c.clone()) / 2)));
     print!("getValue(a) + getValue(b) * getMultiplier() - getValue(c)/2 = {}\n", (*complexResult.lock().unwrap().as_mut().unwrap()));
@@ -128,9 +128,9 @@ fn main() {
 
     println!("{}", "\n=== Nested function calls ===".to_string());
 
-    let mut add = std::sync::Arc::new(std::sync::Mutex::new(Some()));
-    let mut multiply = std::sync::Arc::new(std::sync::Mutex::new(Some()));
-    let mut subtract = std::sync::Arc::new(std::sync::Mutex::new(Some()));
+    let mut add = std::sync::Arc::new(std::sync::Mutex::new(Some(/* TODO: Unhandled expression type: FuncLit */ std::sync::Arc::new(std::sync::Mutex::new(Some(()))))));
+    let mut multiply = std::sync::Arc::new(std::sync::Mutex::new(Some(/* TODO: Unhandled expression type: FuncLit */ std::sync::Arc::new(std::sync::Mutex::new(Some(()))))));
+    let mut subtract = std::sync::Arc::new(std::sync::Mutex::new(Some(/* TODO: Unhandled expression type: FuncLit */ std::sync::Arc::new(std::sync::Mutex::new(Some(()))))));
 
     let mut nestedResult = add(std::sync::Arc::new(std::sync::Mutex::new(Some(multiply(std::sync::Arc::new(std::sync::Mutex::new(Some(3))), std::sync::Arc::new(std::sync::Mutex::new(Some(4))))))), std::sync::Arc::new(std::sync::Mutex::new(Some(subtract(std::sync::Arc::new(std::sync::Mutex::new(Some(20))), std::sync::Arc::new(std::sync::Mutex::new(Some(multiply(std::sync::Arc::new(std::sync::Mutex::new(Some(2))), std::sync::Arc::new(std::sync::Mutex::new(Some(5))))))))))));
     print!("add(multiply(3, 4), subtract(20, multiply(2, 5))) = {}\n", (*nestedResult.lock().unwrap().as_mut().unwrap()));

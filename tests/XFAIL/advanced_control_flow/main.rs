@@ -242,7 +242,7 @@ fn main() {
 
     println!("{}", "\n=== Complex error handling flow ===".to_string());
 
-    let mut processData = std::sync::Arc::new(std::sync::Mutex::new(Some()));
+    let mut processData = std::sync::Arc::new(std::sync::Mutex::new(Some(/* TODO: Unhandled expression type: FuncLit */ std::sync::Arc::new(std::sync::Mutex::new(Some(()))))));
 
     let mut testData = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![, , , , ])));
 

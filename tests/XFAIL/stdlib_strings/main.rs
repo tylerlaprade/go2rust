@@ -129,7 +129,7 @@ fn main() {
     print!("EqualFold('Apple', 'APPLE'): {}\n", (*(*strings.lock().unwrap().as_mut().unwrap()).equal_fold(std::sync::Arc::new(std::sync::Mutex::new(Some("Apple".to_string()))), std::sync::Arc::new(std::sync::Mutex::new(Some("APPLE".to_string())))).lock().unwrap().as_mut().unwrap()));
 
     println!("{}", "\n=== String building ===".to_string());
-    let mut builder: std::sync::Arc<std::sync::Mutex<Option<Unknown>>>;
+    let mut builder: std::sync::Arc<std::sync::Mutex<Option</* TODO: Unhandled type *ast.SelectorExpr */ std::sync::Arc<std::sync::Mutex<Option<()>>>>>>;
 
     (*builder.lock().unwrap().as_mut().unwrap()).write_string(std::sync::Arc::new(std::sync::Mutex::new(Some("Building ".to_string()))));
     (*builder.lock().unwrap().as_mut().unwrap()).write_string(std::sync::Arc::new(std::sync::Mutex::new(Some("a ".to_string()))));

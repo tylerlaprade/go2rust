@@ -40,14 +40,14 @@ where
 #[derive(Debug)]
 struct readOp {
     key: std::sync::Arc<std::sync::Mutex<Option<i32>>>,
-    resp: std::sync::Arc<std::sync::Mutex<Option<Unknown>>>,
+    resp: std::sync::Arc<std::sync::Mutex<Option</* TODO: Unhandled type *ast.ChanType */ std::sync::Arc<std::sync::Mutex<Option<()>>>>>>,
 }
 
 #[derive(Debug)]
 struct writeOp {
     key: std::sync::Arc<std::sync::Mutex<Option<i32>>>,
     val: std::sync::Arc<std::sync::Mutex<Option<i32>>>,
-    resp: std::sync::Arc<std::sync::Mutex<Option<Unknown>>>,
+    resp: std::sync::Arc<std::sync::Mutex<Option</* TODO: Unhandled type *ast.ChanType */ std::sync::Arc<std::sync::Mutex<Option<()>>>>>>,
 }
 
 fn main() {

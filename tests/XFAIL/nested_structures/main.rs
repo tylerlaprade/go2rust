@@ -37,10 +37,12 @@ where
     }
 }
 
+/// Interface for drawing
 trait Drawable {
     fn draw(&self) -> std::sync::Arc<std::sync::Mutex<Option<String>>>;
 }
 
+/// Shape types
 #[derive(Debug)]
 struct Circle {
     radius: std::sync::Arc<std::sync::Mutex<Option<f64>>>,
@@ -58,6 +60,7 @@ struct Canvas {
     shapes: std::sync::Arc<std::sync::Mutex<Option<Vec<Box<dyn Drawable>>>>>,
 }
 
+/// Nested struct definitions
 #[derive(Debug)]
 struct Address {
     street: std::sync::Arc<std::sync::Mutex<Option<String>>>,

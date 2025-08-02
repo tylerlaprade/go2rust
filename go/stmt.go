@@ -20,6 +20,53 @@ func hasBlankLineBetween(fileSet *token.FileSet, pos1, pos2 token.Pos) bool {
 	return p2.Line-p1.Line > 1
 }
 
+// outputCommentsBeforePos outputs any comments that appear before the given position
+func outputCommentsBeforePos(out *strings.Builder, comments []*ast.CommentGroup, fileSet *token.FileSet, pos token.Pos, indent string, lastPos *token.Pos) {
+	if fileSet == nil || pos == token.NoPos {
+		return
+	}
+
+	targetLine := fileSet.Position(pos).Line
+	startLine := 0
+	if *lastPos != token.NoPos {
+		startLine = fileSet.Position(*lastPos).Line
+	}
+
+	for _, cg := range comments {
+		cgLine := fileSet.Position(cg.Pos()).Line
+		// Output comments that are after our last position but before the current position
+		if cgLine > startLine && cgLine < targetLine {
+			for _, comment := range cg.List {
+				out.WriteString(indent)
+				out.WriteString(comment.Text)
+				out.WriteString("\n")
+			}
+		}
+	}
+
+	*lastPos = pos
+}
+func outputComment(out *strings.Builder, cg *ast.CommentGroup, indent string, isDoc bool) {
+	if cg == nil {
+		return
+	}
+
+	for _, comment := range cg.List {
+		out.WriteString(indent)
+
+		text := comment.Text
+		if isDoc && strings.HasPrefix(text, "//") {
+			// Convert doc comment to Rust format
+			out.WriteString("///")
+			out.WriteString(text[2:]) // Skip the "//"
+		} else {
+			// Keep as-is for regular comments
+			out.WriteString(text)
+		}
+		out.WriteString("\n")
+	}
+}
+
 func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncType, fileSet *token.FileSet) {
 	switch s := stmt.(type) {
 	case *ast.ExprStmt:

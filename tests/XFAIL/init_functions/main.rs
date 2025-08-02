@@ -37,6 +37,7 @@ where
     }
 }
 
+/// Struct with initialization
 #[derive(Debug)]
 struct Config {
     name: std::sync::Arc<std::sync::Mutex<Option<String>>>,
@@ -44,12 +45,14 @@ struct Config {
     debug: std::sync::Arc<std::sync::Mutex<Option<bool>>>,
 }
 
+/// First init function
 pub fn init() {
     println!("{}", "First init function called".to_string());
     { let new_val = 10; *globalCounter.lock().unwrap() = Some(new_val); };
     { let new_val = true; *initialized.lock().unwrap() = Some(new_val); };
 }
 
+/// Second init function (they run in order)
 pub fn init() {
     println!("{}", "Second init function called".to_string());
     { let mut guard = globalCounter.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 5); };
@@ -59,6 +62,7 @@ pub fn init() {
     (*configData.lock().unwrap().as_mut().unwrap())["author".to_string()] = "go2rust".to_string();
 }
 
+/// Third init function
 pub fn init() {
     println!("{}", "Third init function called".to_string());
     if (*initialized.lock().unwrap().as_mut().unwrap()) {
@@ -75,6 +79,7 @@ pub fn compute_initial_value() -> std::sync::Arc<std::sync::Mutex<Option<i32>>> 
     return std::sync::Arc::new(std::sync::Mutex::new(Some(42 * 2)));
 }
 
+/// Another init function that runs after variable initialization
 pub fn init() {
     println!("{}", "Fourth init function called".to_string());
     print!("Computed value is: {}\n", (*computedValue.lock().unwrap().as_mut().unwrap()));
@@ -87,10 +92,11 @@ pub fn init() {
     { let new_val = Config { name: std::sync::Arc::new(std::sync::Mutex::new(Some("Go2Rust Transpiler".to_string()))), version: std::sync::Arc::new(std::sync::Mutex::new(Some("0.1.0".to_string()))), debug: std::sync::Arc::new(std::sync::Mutex::new(Some(true))) }; *appConfig.lock().unwrap() = Some(new_val); };
 }
 
+/// Init function that might panic (for testing error handling)
 pub fn init() {
     println!("{}", "Sixth init function - with potential panic handling".to_string());
 
-    // defer () // TODO: defer not yet supported
+    // defer /* TODO: Unhandled expression type: FuncLit */ std::sync::Arc::new(std::sync::Mutex::new(Some(())))() // TODO: defer not yet supported
 
     if false {
         panic(std::sync::Arc::new(std::sync::Mutex::new(Some("Init function panic!".to_string()))));
@@ -99,6 +105,7 @@ pub fn init() {
     println!("{}", "Sixth init function completed successfully".to_string());
 }
 
+/// Helper function for init
 pub fn setup_logging() {
     println!("{}", "Setting up logging system...".to_string());
 }

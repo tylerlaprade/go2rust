@@ -37,6 +37,7 @@ where
     }
 }
 
+/// Functions with multiple return values
 pub fn divmod(a: std::sync::Arc<std::sync::Mutex<Option<i32>>>, b: std::sync::Arc<std::sync::Mutex<Option<i32>>>) -> (std::sync::Arc<std::sync::Mutex<Option<i32>>>, std::sync::Arc<std::sync::Mutex<Option<i32>>>) {
 
     return (std::sync::Arc::new(std::sync::Mutex::new(Some((*a.lock().unwrap().as_mut().unwrap()) / (*b.lock().unwrap().as_mut().unwrap())))), std::sync::Arc::new(std::sync::Mutex::new(Some((*a.lock().unwrap().as_mut().unwrap()) % (*b.lock().unwrap().as_mut().unwrap())))));
@@ -56,6 +57,7 @@ pub fn get_name_age() -> (std::sync::Arc<std::sync::Mutex<Option<String>>>, std:
     return (std::sync::Arc::new(std::sync::Mutex::new(Some("Alice".to_string()))), std::sync::Arc::new(std::sync::Mutex::new(Some(30))));
 }
 
+/// Named return values
 pub fn calculate(a: std::sync::Arc<std::sync::Mutex<Option<i32>>>, b: std::sync::Arc<std::sync::Mutex<Option<i32>>>) -> (std::sync::Arc<std::sync::Mutex<Option<i32>>>, std::sync::Arc<std::sync::Mutex<Option<i32>>>) {
     let mut sum: std::sync::Arc<std::sync::Mutex<Option<i32>>> = std::sync::Arc::new(std::sync::Mutex::new(Some(0)));
     let mut product: std::sync::Arc<std::sync::Mutex<Option<i32>>> = std::sync::Arc::new(std::sync::Mutex::new(Some(0)));
@@ -96,6 +98,7 @@ pub fn swap(a: std::sync::Arc<std::sync::Mutex<Option<String>>>, b: std::sync::A
     return (std::sync::Arc::new(std::sync::Mutex::new(Some((*b.lock().unwrap().as_mut().unwrap()).clone()))), std::sync::Arc::new(std::sync::Mutex::new(Some((*a.lock().unwrap().as_mut().unwrap()).clone()))));
 }
 
+/// Function returning multiple values of different types
 pub fn get_person_info() -> (std::sync::Arc<std::sync::Mutex<Option<String>>>, std::sync::Arc<std::sync::Mutex<Option<i32>>>, std::sync::Arc<std::sync::Mutex<Option<f64>>>, std::sync::Arc<std::sync::Mutex<Option<bool>>>) {
     let mut name: std::sync::Arc<std::sync::Mutex<Option<String>>> = std::sync::Arc::new(std::sync::Mutex::new(Some(String::new())));
     let mut age: std::sync::Arc<std::sync::Mutex<Option<i32>>> = std::sync::Arc::new(std::sync::Mutex::new(Some(0)));
@@ -105,6 +108,7 @@ pub fn get_person_info() -> (std::sync::Arc<std::sync::Mutex<Option<String>>>, s
     return (std::sync::Arc::new(std::sync::Mutex::new(Some("Bob".to_string()))), std::sync::Arc::new(std::sync::Mutex::new(Some(25))), std::sync::Arc::new(std::sync::Mutex::new(Some(5.9))), std::sync::Arc::new(std::sync::Mutex::new(Some(false))));
 }
 
+/// Function that can return early with different values
 pub fn find_in_slice(slice: std::sync::Arc<std::sync::Mutex<Option<Vec<i32>>>>, target: std::sync::Arc<std::sync::Mutex<Option<i32>>>) -> (std::sync::Arc<std::sync::Mutex<Option<i32>>>, std::sync::Arc<std::sync::Mutex<Option<bool>>>) {
     let mut index: std::sync::Arc<std::sync::Mutex<Option<i32>>> = std::sync::Arc::new(std::sync::Mutex::new(Some(0)));
     let mut found: std::sync::Arc<std::sync::Mutex<Option<bool>>> = std::sync::Arc::new(std::sync::Mutex::new(Some(false)));
@@ -117,6 +121,7 @@ pub fn find_in_slice(slice: std::sync::Arc<std::sync::Mutex<Option<Vec<i32>>>>, 
     return (std::sync::Arc::new(std::sync::Mutex::new(Some(-1))), std::sync::Arc::new(std::sync::Mutex::new(Some(false))));
 }
 
+/// Multiple returns with error handling
 pub fn safe_divide(a: std::sync::Arc<std::sync::Mutex<Option<f64>>>, b: std::sync::Arc<std::sync::Mutex<Option<f64>>>) -> (std::sync::Arc<std::sync::Mutex<Option<f64>>>, std::sync::Arc<std::sync::Mutex<Option<Box<dyn std::error::Error + Send + Sync>>>>) {
     let mut result: std::sync::Arc<std::sync::Mutex<Option<f64>>> = std::sync::Arc::new(std::sync::Mutex::new(Some(0.0)));
     let mut err: std::sync::Arc<std::sync::Mutex<Option<Box<dyn std::error::Error + Send + Sync>>>> = std::sync::Arc::new(std::sync::Mutex::new(None));

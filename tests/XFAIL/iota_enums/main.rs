@@ -43,7 +43,8 @@ const BLUE: i32 = 2;
 const YELLOW: i32 = 3;
 
 
-
+// TODO: Unhandled type declaration: Ident
+type Color = std::sync::Arc<std::sync::Mutex<Option<()>>>
 
 fn main() {
     println!("{} {}", "Red:".to_string(), RED);

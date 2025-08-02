@@ -43,7 +43,8 @@ const STATE_ERROR: i32 = 2;
 const STATE_RETRYING: i32 = 3;
 
 
-
+// TODO: Unhandled type declaration: Ident
+type ServerState = std::sync::Arc<std::sync::Mutex<Option<()>>>
 
 impl ServerState {
     pub fn string(&self) -> std::sync::Arc<std::sync::Mutex<Option<String>>> {

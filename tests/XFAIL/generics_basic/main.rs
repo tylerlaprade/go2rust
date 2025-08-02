@@ -39,13 +39,13 @@ where
 
 #[derive(Debug)]
 struct List {
-    head: std::sync::Arc<std::sync::Mutex<Option<Unknown>>>,
-    tail: std::sync::Arc<std::sync::Mutex<Option<Unknown>>>,
+    head: std::sync::Arc<std::sync::Mutex<Option</* TODO: Unhandled type *ast.IndexExpr */ std::sync::Arc<std::sync::Mutex<Option<()>>>>>>,
+    tail: std::sync::Arc<std::sync::Mutex<Option</* TODO: Unhandled type *ast.IndexExpr */ std::sync::Arc<std::sync::Mutex<Option<()>>>>>>,
 }
 
 #[derive(Debug)]
 struct element {
-    next: std::sync::Arc<std::sync::Mutex<Option<Unknown>>>,
+    next: std::sync::Arc<std::sync::Mutex<Option</* TODO: Unhandled type *ast.IndexExpr */ std::sync::Arc<std::sync::Mutex<Option<()>>>>>>,
     val: std::sync::Arc<std::sync::Mutex<Option<T>>>,
 }
 

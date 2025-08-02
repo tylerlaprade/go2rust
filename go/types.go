@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"go/ast"
 )
 
@@ -67,6 +68,9 @@ func goTypeToRustBase(expr ast.Expr) string {
 		// Pointer type - wrap the base type (not already wrapped)
 		innerType := goTypeToRustBase(t.X)
 		return "std::sync::Arc<std::sync::Mutex<Option<" + innerType + ">>>"
+	default:
+		// Unhandled type
+		return fmt.Sprintf("/* TODO: Unhandled type %T */ std::sync::Arc<std::sync::Mutex<Option<()>>>", t)
 	}
 	return "Unknown"
 }

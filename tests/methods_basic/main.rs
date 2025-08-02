@@ -49,10 +49,12 @@ struct Person {
 }
 
 impl Counter {
+    /// Method with value receiver
     pub fn get_value(&self) -> std::sync::Arc<std::sync::Mutex<Option<i32>>> {
         return self.value.clone();
     }
 
+    /// Method with pointer receiver
     pub fn increment(&mut self) {
         { let mut guard = self.value.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
@@ -61,6 +63,7 @@ impl Counter {
         { let mut guard = self.value.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + (*n.lock().unwrap().as_mut().unwrap())); };
     }
 
+    /// Method with return value
     pub fn double(&mut self) -> std::sync::Arc<std::sync::Mutex<Option<i32>>> {
         { let mut guard = self.value.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() * 2); };
         return self.value.clone();

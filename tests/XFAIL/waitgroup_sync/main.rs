@@ -37,7 +37,7 @@ where
     }
 }
 
-pub fn worker(id: std::sync::Arc<std::sync::Mutex<Option<i32>>>, wg: std::sync::Arc<std::sync::Mutex<Option<Unknown>>>) {
+pub fn worker(id: std::sync::Arc<std::sync::Mutex<Option<i32>>>, wg: std::sync::Arc<std::sync::Mutex<Option</* TODO: Unhandled type *ast.SelectorExpr */ std::sync::Arc<std::sync::Mutex<Option<()>>>>>>) {
     // defer (*wg.lock().unwrap().as_mut().unwrap()).done() // TODO: defer not yet supported
     print!("Worker {} starting\n", (*id.lock().unwrap().as_mut().unwrap()));
     (*time.lock().unwrap().as_mut().unwrap()).sleep(std::sync::Arc::new(std::sync::Mutex::new(Some((*time.lock().unwrap().as_mut().unwrap()).second))));
@@ -45,7 +45,7 @@ pub fn worker(id: std::sync::Arc<std::sync::Mutex<Option<i32>>>, wg: std::sync::
 }
 
 fn main() {
-    let mut wg: std::sync::Arc<std::sync::Mutex<Option<Unknown>>>;
+    let mut wg: std::sync::Arc<std::sync::Mutex<Option</* TODO: Unhandled type *ast.SelectorExpr */ std::sync::Arc<std::sync::Mutex<Option<()>>>>>>;
     let mut i = std::sync::Arc::new(std::sync::Mutex::new(Some(1)));
     while (*i.lock().unwrap().as_mut().unwrap()) <= 3 {
         (*wg.lock().unwrap().as_mut().unwrap()).add(std::sync::Arc::new(std::sync::Mutex::new(Some(1))));

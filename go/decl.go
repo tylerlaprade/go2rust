@@ -138,7 +138,7 @@ func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.Fi
 	out.WriteString("}")
 }
 
-func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec) {
+func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *ast.GenDecl) {
 	switch t := typeSpec.Type.(type) {
 	case *ast.StructType:
 		out.WriteString("#[derive(Debug)]\n")
@@ -240,6 +240,15 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec) {
 		}
 
 		out.WriteString("}")
+
+	default:
+		// Unhandled type declaration
+		out.WriteString("// TODO: Unhandled type declaration: ")
+		out.WriteString(strings.TrimPrefix(fmt.Sprintf("%T", t), "*ast."))
+		out.WriteString("\n")
+		out.WriteString("type ")
+		out.WriteString(typeSpec.Name.Name)
+		out.WriteString(" = std::sync::Arc<std::sync::Mutex<Option<()>>>")
 	}
 }
 
@@ -402,6 +411,17 @@ func TranspileMethodImpl(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.
 }
 
 func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, addPub bool, fileSet *token.FileSet) {
+	// Store the receiver name for self translation
+	if fn.Recv != nil && len(fn.Recv.List) > 0 {
+		recv := fn.Recv.List[0]
+		if len(recv.Names) > 0 {
+			currentReceiver = recv.Names[0].Name
+		}
+	}
+
+	// Output doc comments if present (with indentation for methods)
+	outputComment(out, fn.Doc, "    ", true)
+
 	out.WriteString("    ")
 	if addPub {
 		out.WriteString("pub ")

@@ -64,6 +64,7 @@ struct Manager {
     team: std::sync::Arc<std::sync::Mutex<Option<Vec<String>>>>,
 }
 
+/// Anonymous struct embedding
 #[derive(Debug)]
 struct CompanyInfo {
     founded: std::sync::Arc<std::sync::Mutex<Option<i32>>>,

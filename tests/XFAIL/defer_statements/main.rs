@@ -46,14 +46,14 @@ pub fn defer_example() {
 
     println!("{}", "Middle of function".to_string());
 
-    // defer () // TODO: defer not yet supported
+    // defer /* TODO: Unhandled expression type: FuncLit */ std::sync::Arc::new(std::sync::Mutex::new(Some(())))() // TODO: defer not yet supported
 
     println!("{}", "End of function".to_string());
 }
 
 pub fn defer_with_variables() {
     let mut x = std::sync::Arc::new(std::sync::Mutex::new(Some(10)));
-    // defer () // TODO: defer not yet supported
+    // defer /* TODO: Unhandled expression type: FuncLit */ std::sync::Arc::new(std::sync::Mutex::new(Some(())))() // TODO: defer not yet supported
 
     { let new_val = 20; *x.lock().unwrap() = Some(new_val); };
     println!("{} {}", "Current x:".to_string(), (*x.lock().unwrap().as_mut().unwrap()));
@@ -63,7 +63,7 @@ pub fn defer_in_loop() {
     println!("{}", "Defer in loop:".to_string());
     let mut i = std::sync::Arc::new(std::sync::Mutex::new(Some(0)));
     while (*i.lock().unwrap().as_mut().unwrap()) < 3 {
-        // defer (i.clone()) // TODO: defer not yet supported
+        // defer /* TODO: Unhandled expression type: FuncLit */ std::sync::Arc::new(std::sync::Mutex::new(Some(())))(i.clone()) // TODO: defer not yet supported
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
     println!("{}", "Loop finished".to_string());

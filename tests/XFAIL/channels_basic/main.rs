@@ -37,7 +37,7 @@ where
     }
 }
 
-pub fn sender(ch: std::sync::Arc<std::sync::Mutex<Option<Unknown>>>) {
+pub fn sender(ch: std::sync::Arc<std::sync::Mutex<Option</* TODO: Unhandled type *ast.ChanType */ std::sync::Arc<std::sync::Mutex<Option<()>>>>>>) {
     let mut i = std::sync::Arc::new(std::sync::Mutex::new(Some(1)));
     while (*i.lock().unwrap().as_mut().unwrap()) <= 5 {
         print!("Sending: {}\n", (*i.lock().unwrap().as_mut().unwrap()));
@@ -48,7 +48,7 @@ pub fn sender(ch: std::sync::Arc<std::sync::Mutex<Option<Unknown>>>) {
     close(ch.clone());
 }
 
-pub fn receiver(ch: std::sync::Arc<std::sync::Mutex<Option<Unknown>>>) {
+pub fn receiver(ch: std::sync::Arc<std::sync::Mutex<Option</* TODO: Unhandled type *ast.ChanType */ std::sync::Arc<std::sync::Mutex<Option<()>>>>>>) {
     while true {
         let (mut value, mut ok) = <-(*ch.lock().unwrap().as_mut().unwrap());
         if !(*ok.lock().unwrap().as_mut().unwrap()) {

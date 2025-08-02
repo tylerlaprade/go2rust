@@ -99,10 +99,10 @@ fn main() {
     let mut strFromBytes = string(bytes.clone());
     print!("bytes to string: {}\n", (*strFromBytes.lock().unwrap().as_mut().unwrap()));
 
-    let mut backToBytes = (strFromBytes.clone());
+    let mut backToBytes = /* TODO: Unhandled expression type: ArrayType */ std::sync::Arc::new(std::sync::Mutex::new(Some(())))(strFromBytes.clone());
     print!("string to bytes: {}\n", (*backToBytes.lock().unwrap().as_mut().unwrap()));
 
-    let mut runes = (std::sync::Arc::new(std::sync::Mutex::new(Some("Hello, 世界".to_string()))));
+    let mut runes = /* TODO: Unhandled expression type: ArrayType */ std::sync::Arc::new(std::sync::Mutex::new(Some(())))(std::sync::Arc::new(std::sync::Mutex::new(Some("Hello, 世界".to_string()))));
     print!("string to runes: {}\n", (*runes.lock().unwrap().as_mut().unwrap()));
     print!("rune count: {}\n", (*runes.lock().unwrap().as_mut().unwrap()).len());
 

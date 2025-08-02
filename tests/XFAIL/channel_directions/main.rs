@@ -37,11 +37,11 @@ where
     }
 }
 
-pub fn ping(pings: std::sync::Arc<std::sync::Mutex<Option<Unknown>>>, msg: std::sync::Arc<std::sync::Mutex<Option<String>>>) {
+pub fn ping(pings: std::sync::Arc<std::sync::Mutex<Option</* TODO: Unhandled type *ast.ChanType */ std::sync::Arc<std::sync::Mutex<Option<()>>>>>>, msg: std::sync::Arc<std::sync::Mutex<Option<String>>>) {
     // TODO: Unhandled statement type: SendStmt
 }
 
-pub fn pong(pings: std::sync::Arc<std::sync::Mutex<Option<Unknown>>>, pongs: std::sync::Arc<std::sync::Mutex<Option<Unknown>>>) {
+pub fn pong(pings: std::sync::Arc<std::sync::Mutex<Option</* TODO: Unhandled type *ast.ChanType */ std::sync::Arc<std::sync::Mutex<Option<()>>>>>>, pongs: std::sync::Arc<std::sync::Mutex<Option</* TODO: Unhandled type *ast.ChanType */ std::sync::Arc<std::sync::Mutex<Option<()>>>>>>) {
     let mut msg = std::sync::Arc::new(std::sync::Mutex::new(Some(<-(*pings.lock().unwrap().as_mut().unwrap()))));
     // TODO: Unhandled statement type: SendStmt
 }
