@@ -16,7 +16,7 @@ impl base {
 }
 
 fn main() {
-    let mut co = std::sync::Arc::new(std::sync::Mutex::new(Some(container { base: std::sync::Arc::new(std::sync::Mutex::new(Some(base { num: std::sync::Arc::new(std::sync::Mutex::new(Some(1))) }))), str: std::sync::Arc::new(std::sync::Mutex::new(Some("some name".to_string()))) })));
+    let mut co = container { base: std::sync::Arc::new(std::sync::Mutex::new(Some(base { num: std::sync::Arc::new(std::sync::Mutex::new(Some(1))) }))), str: std::sync::Arc::new(std::sync::Mutex::new(Some("some name".to_string()))) };
     print!("co={num: {}, str: {}}\n", (*co.lock().unwrap().as_mut().unwrap()).num, (*co.lock().unwrap().as_mut().unwrap()).str);
     println!("{} {}", "also num:".to_string(), (*co.lock().unwrap().as_mut().unwrap()).base::num);
     println!("{} {}", "describe:".to_string(), (*(*co.lock().unwrap().as_mut().unwrap()).describe().lock().unwrap().as_mut().unwrap()));

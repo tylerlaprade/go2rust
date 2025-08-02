@@ -101,5 +101,5 @@ fn main() {
     type_switch(std::sync::Arc::new(std::sync::Mutex::new(Some("hello".to_string()))));
     type_switch(true.clone());
     type_switch(std::sync::Arc::new(std::sync::Mutex::new(Some(3.14))));
-    type_switch(std::sync::Arc::new(std::sync::Mutex::new(Some(vec![1, 2, 3]))));
+    type_switch(std::sync::Arc::new(std::sync::Mutex::new(Some(std::sync::Arc::new(std::sync::Mutex::new(Some(vec![1, 2, 3])))))));
 }

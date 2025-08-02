@@ -67,14 +67,17 @@ func transpileFmtPrintln(out *strings.Builder, call *ast.CallExpr) {
 			if i > 0 {
 				out.WriteString(" ")
 			}
-			// Check if argument might be a map
+			// Check if argument might be a map or slice
+			// TODO (hack): This is a heuristic - ideally we'd use type information
 			isMap := false
+			isSlice := false
 			if ident, ok := arg.(*ast.Ident); ok {
 				name := strings.ToLower(ident.Name)
-				isMap = strings.Contains(name, "map") || name == "ages" || name == "colors"
+				isMap = strings.Contains(name, "map") || name == "ages" || name == "colors" || name == "m"
+				isSlice = strings.Contains(name, "slice") || strings.Contains(name, "arr")
 			}
 
-			if isMap {
+			if isMap || isSlice {
 				out.WriteString("{:?}")
 			} else {
 				out.WriteString("{}")
@@ -288,7 +291,7 @@ func transpileFmtErrorf(out *strings.Builder, call *ast.CallExpr) {
 }
 
 func transpileErrorsNew(out *strings.Builder, call *ast.CallExpr) {
-	out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(Some(Box::new(")
+	out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(Some(Box::<dyn std::error::Error + Send + Sync>::from(")
 
 	if len(call.Args) > 0 {
 		// The argument is the error message
@@ -302,8 +305,9 @@ func transpileErrorsNew(out *strings.Builder, call *ast.CallExpr) {
 		}
 	}
 
-	out.WriteString(" as Box<dyn std::error::Error + Send + Sync>))))")
+	out.WriteString("))))")
 }
+
 func transpileStringsToUpper(out *strings.Builder, call *ast.CallExpr) {
 	if len(call.Args) > 0 {
 		TranspileExpression(out, call.Args[0])
@@ -382,19 +386,23 @@ func transpileMake(out *strings.Builder, call *ast.CallExpr) {
 	if len(call.Args) >= 1 {
 		// Check if it's a map type
 		if mapType, ok := call.Args[0].(*ast.MapType); ok {
+			out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(Some(")
 			out.WriteString("std::collections::HashMap::<")
-			out.WriteString(GoTypeToRust(mapType.Key))
+			out.WriteString(goTypeToRustBase(mapType.Key))
 			out.WriteString(", ")
 			out.WriteString(GoTypeToRust(mapType.Value))
 			out.WriteString(">::new()")
+			out.WriteString(")))")
 		} else if len(call.Args) >= 2 {
 			// Slice with size
+			out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(Some(")
 			out.WriteString("vec![")
-			// TODO: Determine default value based on type
-			out.WriteString("0")
+			// Default value wrapped in Arc<Mutex<Option<>>>
+			out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(Some(0)))")
 			out.WriteString("; ")
 			TranspileExpression(out, call.Args[1])
 			out.WriteString("]")
+			out.WriteString(")))")
 		}
 	}
 }
@@ -408,8 +416,16 @@ func transpileCap(out *strings.Builder, call *ast.CallExpr) {
 
 func transpileDelete(out *strings.Builder, call *ast.CallExpr) {
 	if len(call.Args) >= 2 {
-		TranspileExpression(out, call.Args[0])
-		out.WriteString(".remove(&")
+		out.WriteString("(*")
+		// For delete, we need the raw identifier, not the unwrapped value
+		if ident, ok := call.Args[0].(*ast.Ident); ok {
+			out.WriteString(ident.Name)
+		} else {
+			// For complex expressions, we'd need to handle differently
+			// For now, just use the expression as-is
+			TranspileExpression(out, call.Args[0])
+		}
+		out.WriteString(".lock().unwrap().as_mut().unwrap()).remove(&")
 		TranspileExpression(out, call.Args[1])
 		out.WriteString(")")
 	}

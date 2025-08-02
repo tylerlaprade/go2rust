@@ -57,8 +57,8 @@ pub fn print_shape_info(s: std::sync::Arc<std::sync::Mutex<Option<Box<dyn Shape>
 }
 
 fn main() {
-    let mut rect = std::sync::Arc::new(std::sync::Mutex::new(Some(Rectangle { width: std::sync::Arc::new(std::sync::Mutex::new(Some(10))), height: std::sync::Arc::new(std::sync::Mutex::new(Some(5))) })));
-    let mut circle = std::sync::Arc::new(std::sync::Mutex::new(Some(Circle { radius: std::sync::Arc::new(std::sync::Mutex::new(Some(3))) })));
+    let mut rect = Rectangle { width: std::sync::Arc::new(std::sync::Mutex::new(Some(10))), height: std::sync::Arc::new(std::sync::Mutex::new(Some(5))) };
+    let mut circle = Circle { radius: std::sync::Arc::new(std::sync::Mutex::new(Some(3))) };
     println!("{}", "Rectangle:".to_string());
     print_shape_info(rect.clone());
     println!("{}", "Circle:".to_string());

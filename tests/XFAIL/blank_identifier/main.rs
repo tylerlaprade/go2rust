@@ -41,15 +41,15 @@ fn main() {
     }
     println!();
     println!("{}", "\n=== Ignoring in map iteration ===".to_string());
-    let mut ages = std::sync::Arc::new(std::sync::Mutex::new(Some(std::collections::HashMap::<std::sync::Arc<std::sync::Mutex<Option<String>>>, std::sync::Arc<std::sync::Mutex<Option<i32>>>>::from([("Alice".to_string(), 25), ("Bob".to_string(), 30), ("Carol".to_string(), 35)]))));
+    let mut ages = std::sync::Arc::new(std::sync::Mutex::new(Some(std::collections::HashMap::<String, std::sync::Arc<std::sync::Mutex<Option<i32>>>>::from([("Alice".to_string(), std::sync::Arc::new(std::sync::Mutex::new(Some(25)))), ("Bob".to_string(), std::sync::Arc::new(std::sync::Mutex::new(Some(30)))), ("Carol".to_string(), std::sync::Arc::new(std::sync::Mutex::new(Some(35))))]))));
     println!("{}", "Keys only:".to_string());
-    for (name, _) in &(*ages.lock().unwrap().as_mut().unwrap()) {
+    for (name, _) in (*ages.lock().unwrap().as_ref().unwrap()).clone() {
         print!("{} ", name);
     }
     println!();
     println!("{}", "Values only:".to_string());
-    for (_, age) in &(*ages.lock().unwrap().as_mut().unwrap()) {
-        print!("{} ", age);
+    for (_, age) in (*ages.lock().unwrap().as_ref().unwrap()).clone() {
+        print!("{} ", (*age.lock().unwrap().as_mut().unwrap()));
     }
     println!();
     println!("{}", "\n=== Ignoring some return values in assignment ===".to_string());
@@ -74,7 +74,7 @@ fn main() {
         println!("{}", "Value is not an int".to_string());
     }
     println!("{}", "\n=== Blank identifier with channels ===".to_string());
-    let mut ch = vec![0; 3];
+    let mut ch = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![std::sync::Arc::new(std::sync::Mutex::new(Some(0))); 3])));
     // TODO: Unhandled statement type: SendStmt
     // TODO: Unhandled statement type: SendStmt
     // TODO: Unhandled statement type: SendStmt
@@ -83,7 +83,7 @@ fn main() {
         println!("{}", "Received a value (but ignored it)".to_string());
     }
     println!("{}", "\n=== Blank identifier in error handling ===".to_string());
-    let (mut result, _) = process_slice(std::sync::Arc::new(std::sync::Mutex::new(Some(vec![1, 2, 3, 4, 5]))));
+    let (mut result, _) = process_slice(std::sync::Arc::new(std::sync::Mutex::new(Some(std::sync::Arc::new(std::sync::Mutex::new(Some(vec![1, 2, 3, 4, 5])))))));
     print!("Result (ignoring potential error): {}\n", (*result.lock().unwrap().as_mut().unwrap()));
     println!("{}", "\n=== Complex example ===".to_string());
     let mut data = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![, , ])));

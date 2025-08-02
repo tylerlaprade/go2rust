@@ -24,17 +24,17 @@ impl Unknown {
 
 pub fn map_keys(m: std::sync::Arc<std::sync::Mutex<Option<std::collections::HashMap<K, V>>>>) -> std::sync::Arc<std::sync::Mutex<Option<Vec<K>>>> {
 
-    let mut r = vec![0; 0];
-    for (k, _) in &(*(*m.lock().unwrap().as_mut().unwrap())) {
+    let mut r = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![std::sync::Arc::new(std::sync::Mutex::new(Some(0))); 0])));
+    for (k, _) in (*(*m.lock().unwrap().as_mut().unwrap()).lock().unwrap().as_ref().unwrap()).clone() {
         { let new_val = {(*r.lock().unwrap().as_mut().unwrap()).push(k); (*r.lock().unwrap().as_mut().unwrap())}; *r.lock().unwrap() = Some(new_val); };
     }
     return std::sync::Arc::new(std::sync::Mutex::new(Some((*r.lock().unwrap().as_mut().unwrap()).clone())));
 }
 
 fn main() {
-    let mut m = std::sync::Arc::new(std::sync::Mutex::new(Some(std::collections::HashMap::<std::sync::Arc<std::sync::Mutex<Option<i32>>>, std::sync::Arc<std::sync::Mutex<Option<String>>>>::from([(1, "2".to_string()), (2, "4".to_string()), (4, "8".to_string())]))));
+    let mut m = std::sync::Arc::new(std::sync::Mutex::new(Some(std::collections::HashMap::<i32, std::sync::Arc<std::sync::Mutex<Option<String>>>>::from([(1, std::sync::Arc::new(std::sync::Mutex::new(Some("2".to_string())))), (2, std::sync::Arc::new(std::sync::Mutex::new(Some("4".to_string())))), (4, std::sync::Arc::new(std::sync::Mutex::new(Some("8".to_string()))))]))));
     println!("{} {}", "keys:".to_string(), (*map_keys(m.clone()).lock().unwrap().as_mut().unwrap()));
-    let mut lst = std::sync::Arc::new(std::sync::Mutex::new(Some()));
+    let mut lst = ;
     (*lst.lock().unwrap().as_mut().unwrap()).push(std::sync::Arc::new(std::sync::Mutex::new(Some(10))));
     (*lst.lock().unwrap().as_mut().unwrap()).push(std::sync::Arc::new(std::sync::Mutex::new(Some(13))));
     (*lst.lock().unwrap().as_mut().unwrap()).push(std::sync::Arc::new(std::sync::Mutex::new(Some(23))));

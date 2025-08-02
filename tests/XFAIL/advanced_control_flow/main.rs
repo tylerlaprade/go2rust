@@ -158,8 +158,8 @@ fn main() {
         println!();
     }
     println!("{}", "\n=== Select with complex channel operations ===".to_string());
-    let mut ch1 = vec![0; 2];
-    let mut ch2 = vec![0; 2];
+    let mut ch1 = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![std::sync::Arc::new(std::sync::Mutex::new(Some(0))); 2])));
+    let mut ch2 = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![std::sync::Arc::new(std::sync::Mutex::new(Some(0))); 2])));
     let mut done = ;
     // TODO: Unhandled statement type: SendStmt
     // TODO: Unhandled statement type: SendStmt

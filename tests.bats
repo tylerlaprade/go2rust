@@ -221,6 +221,10 @@ run_xfail_test() {
     run_test "tests/builtin_functions"
 }
 
+@test "error_simple" {
+    run_test "tests/error_simple"
+}
+
 @test "fmt_println" {
     run_test "tests/fmt_println"
 }
@@ -379,10 +383,6 @@ run_xfail_test() {
 
 @test "XFAIL: error_handling" {
     run_xfail_test "tests/XFAIL/error_handling"
-}
-
-@test "XFAIL: error_simple" {
-    run_xfail_test "tests/XFAIL/error_simple"
 }
 
 @test "XFAIL: errors_custom" {

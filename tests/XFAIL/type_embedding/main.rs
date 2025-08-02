@@ -11,7 +11,7 @@ struct Employee {
 }
 
 fn main() {
-    let mut e = std::sync::Arc::new(std::sync::Mutex::new(Some(Employee { person: std::sync::Arc::new(std::sync::Mutex::new(Some(Person { name: std::sync::Arc::new(std::sync::Mutex::new(Some("John".to_string()))), age: std::sync::Arc::new(std::sync::Mutex::new(Some(30))) }))), i_d: std::sync::Arc::new(std::sync::Mutex::new(Some(123))) })));
+    let mut e = Employee { person: std::sync::Arc::new(std::sync::Mutex::new(Some(Person { name: std::sync::Arc::new(std::sync::Mutex::new(Some("John".to_string()))), age: std::sync::Arc::new(std::sync::Mutex::new(Some(30))) }))), i_d: std::sync::Arc::new(std::sync::Mutex::new(Some(123))) };
     println!("{}", (*e.lock().unwrap().as_mut().unwrap()).name);
     println!("{}", (*e.lock().unwrap().as_mut().unwrap()).i_d);
 }

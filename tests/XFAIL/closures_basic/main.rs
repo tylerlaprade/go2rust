@@ -11,7 +11,7 @@ pub fn make_adder(x: std::sync::Arc<std::sync::Mutex<Option<i32>>>) -> std::sync
 
 pub fn apply_operation(nums: std::sync::Arc<std::sync::Mutex<Option<Vec<i32>>>>, op: std::sync::Arc<std::sync::Mutex<Option<Unknown>>>) -> std::sync::Arc<std::sync::Mutex<Option<Vec<i32>>>> {
 
-    let mut result = vec![0; (*nums.lock().unwrap().as_mut().unwrap()).len()];
+    let mut result = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![std::sync::Arc::new(std::sync::Mutex::new(Some(0))); (*nums.lock().unwrap().as_mut().unwrap()).len()])));
     for (i, num) in (*nums.lock().unwrap().as_mut().unwrap()).iter().enumerate() {
         (*result.lock().unwrap().as_mut().unwrap())[i] = op(std::sync::Arc::new(std::sync::Mutex::new(Some(num))));
     }

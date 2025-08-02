@@ -8,7 +8,7 @@ struct User {
 }
 
 fn main() {
-    let mut u = std::sync::Arc::new(std::sync::Mutex::new(Some(User { i_d: std::sync::Arc::new(std::sync::Mutex::new(Some(1))), name: std::sync::Arc::new(std::sync::Mutex::new(Some("Alice".to_string()))), email: std::sync::Arc::new(std::sync::Mutex::new(Some("alice@example.com".to_string()))) })));
+    let mut u = User { i_d: std::sync::Arc::new(std::sync::Mutex::new(Some(1))), name: std::sync::Arc::new(std::sync::Mutex::new(Some("Alice".to_string()))), email: std::sync::Arc::new(std::sync::Mutex::new(Some("alice@example.com".to_string()))) };
     let mut t = (*reflect.lock().unwrap().as_mut().unwrap()).type_of(std::sync::Arc::new(std::sync::Mutex::new(Some((*u.lock().unwrap().as_mut().unwrap())))));
     let mut i = std::sync::Arc::new(std::sync::Mutex::new(Some(0)));
     while (*i.lock().unwrap().as_mut().unwrap()) < (*t.lock().unwrap().as_mut().unwrap()).num_field() {

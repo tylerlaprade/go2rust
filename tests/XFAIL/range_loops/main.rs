@@ -25,17 +25,17 @@ fn main() {
         print!("Byte {}: {} (Unicode: {:?})\n", i, char, char);
     }
     println!("{}", "\n=== Range over map ===".to_string());
-    let mut ages = std::sync::Arc::new(std::sync::Mutex::new(Some(std::collections::HashMap::<std::sync::Arc<std::sync::Mutex<Option<String>>>, std::sync::Arc<std::sync::Mutex<Option<i32>>>>::from([("Alice".to_string(), 25), ("Bob".to_string(), 30), ("Charlie".to_string(), 35)]))));
-    for (name, age) in &(*ages.lock().unwrap().as_mut().unwrap()) {
-        print!("{} is {} years old\n", name, age);
+    let mut ages = std::sync::Arc::new(std::sync::Mutex::new(Some(std::collections::HashMap::<String, std::sync::Arc<std::sync::Mutex<Option<i32>>>>::from([("Alice".to_string(), std::sync::Arc::new(std::sync::Mutex::new(Some(25)))), ("Bob".to_string(), std::sync::Arc::new(std::sync::Mutex::new(Some(30)))), ("Charlie".to_string(), std::sync::Arc::new(std::sync::Mutex::new(Some(35))))]))));
+    for (name, age) in (*ages.lock().unwrap().as_ref().unwrap()).clone() {
+        print!("{} is {} years old\n", name, (*age.lock().unwrap().as_mut().unwrap()));
     }
     println!("{}", "Keys only:".to_string());
-    for (name, _) in &(*(*ages.lock().unwrap().as_mut().unwrap())) {
+    for (name, _) in (*(*ages.lock().unwrap().as_mut().unwrap()).lock().unwrap().as_ref().unwrap()).clone() {
         print!("{} ", name);
     }
     println!();
     println!("{}", "\n=== Range over channel ===".to_string());
-    let mut ch = vec![0; 5];
+    let mut ch = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![std::sync::Arc::new(std::sync::Mutex::new(Some(0))); 5])));
     let mut i = std::sync::Arc::new(std::sync::Mutex::new(Some(1)));
     while (*i.lock().unwrap().as_mut().unwrap()) <= 5 {
         // TODO: Unhandled statement type: SendStmt
@@ -79,8 +79,8 @@ fn main() {
     }
     println!("{}", "Empty slice range completed".to_string());
     println!("{}", "Empty map:".to_string());
-    for (k, v) in &(*emptyMap.lock().unwrap().as_mut().unwrap()) {
-        print!("This won't print: {}, {}\n", k, v);
+    for (k, v) in (*emptyMap.lock().unwrap().as_ref().unwrap()).clone() {
+        print!("This won't print: {}, {}\n", k, (*v.lock().unwrap().as_mut().unwrap()));
     }
     println!("{}", "Empty map range completed".to_string());
 }

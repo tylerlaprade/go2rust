@@ -25,7 +25,7 @@ fn main() {
     // TODO: Unhandled statement type: GoStmt
     // TODO: Unhandled statement type: GoStmt
     (*time.lock().unwrap().as_mut().unwrap()).sleep(std::sync::Arc::new(std::sync::Mutex::new(Some(1 * (*time.lock().unwrap().as_mut().unwrap()).second))));
-    let mut buffered = vec![0; 3];
+    let mut buffered = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![std::sync::Arc::new(std::sync::Mutex::new(Some(0))); 3])));
     // TODO: Unhandled statement type: SendStmt
     // TODO: Unhandled statement type: SendStmt
     // TODO: Unhandled statement type: SendStmt
@@ -36,7 +36,7 @@ fn main() {
         println!("{} {}", "Got:".to_string(), (*msg.lock().unwrap().as_mut().unwrap()));
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
-    let mut numbers = vec![0; 5];
+    let mut numbers = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![std::sync::Arc::new(std::sync::Mutex::new(Some(0))); 5])));
     // TODO: Unhandled statement type: GoStmt
     println!("{}", "Range over channel:".to_string());
     for num in 0..(*numbers.lock().unwrap().as_mut().unwrap()).len() {

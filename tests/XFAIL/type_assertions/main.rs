@@ -74,7 +74,7 @@ pub fn describe_shape(s: std::sync::Arc<std::sync::Mutex<Option<Box<dyn Shape>>>
 }
 
 fn main() {
-    let mut values = std::sync::Arc::new(std::sync::Mutex::new(Some(vec!["hello world".to_string(), 42, 3.14159, true, vec![1, 2, 3]])));
+    let mut values = std::sync::Arc::new(std::sync::Mutex::new(Some(vec!["hello world".to_string(), 42, 3.14159, true, std::sync::Arc::new(std::sync::Mutex::new(Some(vec![1, 2, 3])))])));
     println!("{}", "=== Processing values ===".to_string());
     for val in &(*values.lock().unwrap().as_mut().unwrap()) {
         process_value(std::sync::Arc::new(std::sync::Mutex::new(Some(val))));

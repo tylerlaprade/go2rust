@@ -26,13 +26,13 @@ fn main() {
     let mut sliceResult = std::sync::Arc::new(std::sync::Mutex::new(Some((*numbers.lock().unwrap().as_mut().unwrap())[(*idx1.lock().unwrap().as_mut().unwrap())..(*idx2.lock().unwrap().as_mut().unwrap())].to_vec()[1] + (*numbers.lock().unwrap().as_mut().unwrap())[(*numbers.lock().unwrap().as_mut().unwrap()).len() - 1] - (*numbers.lock().unwrap().as_mut().unwrap())[0])));
     print!("numbers[idx1:idx2][1] + numbers[len(numbers)-1] - numbers[0] = {}\n", (*sliceResult.lock().unwrap().as_mut().unwrap()));
     println!("{}", "\n=== Map expressions ===".to_string());
-    let mut data = std::sync::Arc::new(std::sync::Mutex::new(Some(std::collections::HashMap::<std::sync::Arc<std::sync::Mutex<Option<String>>>, std::sync::Arc<std::sync::Mutex<Option<i32>>>>::from([("alpha".to_string(), 10), ("beta".to_string(), 20), ("gamma".to_string(), 30)]))));
+    let mut data = std::sync::Arc::new(std::sync::Mutex::new(Some(std::collections::HashMap::<String, std::sync::Arc<std::sync::Mutex<Option<i32>>>>::from([("alpha".to_string(), std::sync::Arc::new(std::sync::Mutex::new(Some(10)))), ("beta".to_string(), std::sync::Arc::new(std::sync::Mutex::new(Some(20)))), ("gamma".to_string(), std::sync::Arc::new(std::sync::Mutex::new(Some(30))))]))));
     let mut mapResult = std::sync::Arc::new(std::sync::Mutex::new(Some((*data.lock().unwrap().as_mut().unwrap())["alpha".to_string()] + (*data.lock().unwrap().as_mut().unwrap())["beta".to_string()] * 2 - (*data.lock().unwrap().as_mut().unwrap())["gamma".to_string()] / 3)));
     print!("data[\"alpha\"] + data[\"beta\"]*2 - data[\"gamma\"]/3 = {}\n", (*mapResult.lock().unwrap().as_mut().unwrap()));
     println!("{}", "\n=== Struct field expressions ===".to_string());
     
-    let mut p1 = std::sync::Arc::new(std::sync::Mutex::new(Some(Point { x: std::sync::Arc::new(std::sync::Mutex::new(Some(3))), y: std::sync::Arc::new(std::sync::Mutex::new(Some(4))) })));
-    let mut p2 = std::sync::Arc::new(std::sync::Mutex::new(Some(Point { x: std::sync::Arc::new(std::sync::Mutex::new(Some(6))), y: std::sync::Arc::new(std::sync::Mutex::new(Some(8))) })));
+    let mut p1 = Point { x: std::sync::Arc::new(std::sync::Mutex::new(Some(3))), y: std::sync::Arc::new(std::sync::Mutex::new(Some(4))) };
+    let mut p2 = Point { x: std::sync::Arc::new(std::sync::Mutex::new(Some(6))), y: std::sync::Arc::new(std::sync::Mutex::new(Some(8))) };
     let mut distanceSquared = std::sync::Arc::new(std::sync::Mutex::new(Some(((*p2.lock().unwrap().as_mut().unwrap()).x - (*p1.lock().unwrap().as_mut().unwrap()).x) * ((*p2.lock().unwrap().as_mut().unwrap()).x - (*p1.lock().unwrap().as_mut().unwrap()).x) + ((*p2.lock().unwrap().as_mut().unwrap()).y - (*p1.lock().unwrap().as_mut().unwrap()).y) * ((*p2.lock().unwrap().as_mut().unwrap()).y - (*p1.lock().unwrap().as_mut().unwrap()).y))));
     print!("Distance squared between points: {}\n", (*distanceSquared.lock().unwrap().as_mut().unwrap()));
     println!("{}", "\n=== Pointer expressions ===".to_string());
@@ -48,7 +48,7 @@ fn main() {
         print!("Type assertion result: {}\n", (*assertResult.lock().unwrap().as_mut().unwrap()));
     }
     println!("{}", "\n=== Channel expressions ===".to_string());
-    let mut ch = vec![0; 3];
+    let mut ch = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![std::sync::Arc::new(std::sync::Mutex::new(Some(0))); 3])));
     // TODO: Unhandled statement type: SendStmt
     // TODO: Unhandled statement type: SendStmt
     // TODO: Unhandled statement type: SendStmt

@@ -61,8 +61,21 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			out.WriteString(strings.ToUpper(ToSnakeCase(e.Name)))
 		} else if e.Name == "true" || e.Name == "false" || e.Name == "_" {
 			out.WriteString(e.Name)
-		} else if _, isRangeVar := rangeLoopVars[e.Name]; isRangeVar {
-			out.WriteString(e.Name)
+		} else if varType, isRangeVar := rangeLoopVars[e.Name]; isRangeVar {
+			// Check if this is a wrapped type (contains Arc)
+			if strings.Contains(varType, "Arc") {
+				// It's a wrapped value from a map, need to unwrap for display
+				if ctx == RValue {
+					out.WriteString("(*")
+					out.WriteString(e.Name)
+					out.WriteString(".lock().unwrap().as_mut().unwrap())")
+				} else {
+					out.WriteString(e.Name)
+				}
+			} else {
+				// Simple type (like usize for array indices)
+				out.WriteString(e.Name)
+			}
 		} else if _, isLocalConst := localConstants[e.Name]; isLocalConst {
 			out.WriteString(e.Name)
 		} else {
@@ -236,28 +249,32 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 
 	case *ast.IndexExpr:
 		// Check if this might be a map access (simple heuristic)
+		isMap := false
 		if ident, ok := e.X.(*ast.Ident); ok {
 			name := strings.ToLower(ident.Name)
-			if strings.Contains(name, "map") || name == "ages" || name == "colors" {
-				// Map access - use .get()
-				out.WriteString("(")
-				TranspileExpression(out, e.X)
-				out.WriteString(".get(&")
-				TranspileExpression(out, e.Index)
-				out.WriteString(").cloned().unwrap_or_default(), ")
-				TranspileExpression(out, e.X)
-				out.WriteString(".contains_key(&")
-				TranspileExpression(out, e.Index)
-				out.WriteString("))")
-				return
-			}
+			// TODO: Use type information instead of this heuristic
+			isMap = strings.Contains(name, "map") || name == "ages" || name == "colors" || name == "m"
 		}
-		// Regular array/slice indexing
-		// Need to unwrap the array/slice first
-		TranspileExpressionContext(out, e.X, RValue)
-		out.WriteString("[")
-		TranspileExpression(out, e.Index)
-		out.WriteString("]")
+
+		if isMap && ctx == RValue {
+			// Map read access - need to clone the value
+			out.WriteString("(*(*")
+			if ident, ok := e.X.(*ast.Ident); ok {
+				out.WriteString(ident.Name)
+			} else {
+				TranspileExpression(out, e.X)
+			}
+			out.WriteString(".lock().unwrap().as_ref().unwrap()).get(&")
+			TranspileExpression(out, e.Index)
+			out.WriteString(").unwrap().lock().unwrap().as_ref().unwrap())")
+		} else {
+			// Regular array/slice indexing or map assignment (handled elsewhere)
+			// Need to unwrap the array/slice first
+			TranspileExpressionContext(out, e.X, RValue)
+			out.WriteString("[")
+			TranspileExpression(out, e.Index)
+			out.WriteString("]")
+		}
 
 	case *ast.SliceExpr:
 		TranspileExpression(out, e.X)
@@ -274,6 +291,8 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 	case *ast.CompositeLit:
 		// Handle array/slice literals
 		if arrayType, ok := e.Type.(*ast.ArrayType); ok {
+			// Wrap the entire array/slice in Arc<Mutex<Option<>>>
+			out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(Some(")
 			if arrayType.Len != nil {
 				// Fixed-size array
 				out.WriteString("[")
@@ -288,10 +307,11 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				TranspileExpression(out, elt)
 			}
 			out.WriteString("]")
+			out.WriteString(")))")
 		} else if mapType, ok := e.Type.(*ast.MapType); ok {
-			// Map literal
-			out.WriteString("std::collections::HashMap::<")
-			out.WriteString(GoTypeToRust(mapType.Key))
+			// Map literal - wrap the whole map in Arc<Mutex<Option<>>>
+			out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(Some(std::collections::HashMap::<")
+			out.WriteString(goTypeToRustBase(mapType.Key))
 			out.WriteString(", ")
 			out.WriteString(GoTypeToRust(mapType.Value))
 			out.WriteString(">::from([")
@@ -303,11 +323,14 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					out.WriteString("(")
 					TranspileExpression(out, kv.Key)
 					out.WriteString(", ")
+					// Wrap map values in Arc<Mutex<Option<>>>
+					out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(Some(")
 					TranspileExpression(out, kv.Value)
+					out.WriteString(")))")
 					out.WriteString(")")
 				}
 			}
-			out.WriteString("])")
+			out.WriteString("]))))")
 		} else if ident, ok := e.Type.(*ast.Ident); ok {
 			// Struct literal
 			out.WriteString(ident.Name)

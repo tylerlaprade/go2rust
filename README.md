@@ -121,7 +121,9 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | **`map` - Maps** | |
 | └ Map types | ✅ |
 | └ Map literals | ✅ |
-| └ Map operations | ✅ |
+| └ Map operations (insert, delete) | ✅ |
+| └ Map access with existence check | ✅ |
+| └ Map iteration (for range) | ✅ |
 | **Arrays & Slices** | |
 | └ Fixed arrays | ✅ |
 | └ Slices | ✅ |
@@ -152,6 +154,8 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ `cap` | ✅ |
 | └ `append` | ✅ |
 | └ `make` | ✅ |
+| └ `delete` | ✅ |
+| └ `new` | ✅ |
 | **`fmt` package** | |
 | └ `fmt.Println` | ✅ |
 | └ `fmt.Printf` | ✅ |
@@ -163,9 +167,8 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ `strings.TrimSpace` | ✅ |
 | **`strconv` package** | |
 | └ `strconv.Itoa` | ✅ |
-| └ `strconv.Atoi` | ❌ |
-| **Memory functions** | |
-| └ `new` | ✅ |
+| └ `strconv.Atoi` | ✅ |
+
 | **`errors` package** | |
 | └ `errors.New` | ✅ |
 

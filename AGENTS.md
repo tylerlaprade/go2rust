@@ -138,3 +138,13 @@ The test script handles:
 - **Fixed pointer type wrapping**: Pointers now use single wrapping instead of double
 - **Optimized function calls**: Variables passed as arguments use `.clone()` instead of re-wrapping
 - **Fixed nil pointer handling**: Proper assignment and dereferencing of nil pointers
+
+## TODO: Type System Integration
+
+**IMPORTANT**: We need to integrate `go/types` to replace current heuristics with proper type information. Currently using hacky heuristics in several places:
+
+- **stdlib.go:72-78**: Detecting maps/slices for print formatting by checking variable names
+- **Print argument unwrapping**: Guessing when function calls need unwrapping based on AST patterns
+- **Type conversions**: Making assumptions about types without actual type information
+
+Plan: Use `go/types.Config` and `go/types.Check` to get proper type information for all expressions, eliminating these brittle heuristics.

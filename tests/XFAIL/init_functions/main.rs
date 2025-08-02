@@ -14,7 +14,7 @@ pub fn init() {
 pub fn init() {
     println!("{}", "Second init function called".to_string());
     { let mut guard = globalCounter.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 5); };
-    { let new_val = std::collections::HashMap::<std::sync::Arc<std::sync::Mutex<Option<String>>>, std::sync::Arc<std::sync::Mutex<Option<String>>>>::new(); *configData.lock().unwrap() = Some(new_val); };
+    { let new_val = std::sync::Arc::new(std::sync::Mutex::new(Some(std::collections::HashMap::<String, std::sync::Arc<std::sync::Mutex<Option<String>>>>::new()))); *configData.lock().unwrap() = Some(new_val); };
     (*configData.lock().unwrap().as_mut().unwrap())["version".to_string()] = "1.0".to_string();
     (*configData.lock().unwrap().as_mut().unwrap())["author".to_string()] = "go2rust".to_string();
 }

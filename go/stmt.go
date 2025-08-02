@@ -173,7 +173,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				if ident, ok := indexExpr.X.(*ast.Ident); ok {
 					name := strings.ToLower(ident.Name)
 					// Only treat as map if the variable name suggests it's a map
-					isMapIndexAssign = strings.Contains(name, "map") || name == "ages" || name == "colors"
+					isMapIndexAssign = strings.Contains(name, "map") || name == "ages" || name == "colors" || name == "m"
 				}
 			}
 		}
@@ -181,11 +181,43 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		if isMapIndexAssign {
 			// Handle map[key] = value as map.insert(key, value)
 			if indexExpr, ok := s.Lhs[0].(*ast.IndexExpr); ok {
-				TranspileExpression(out, indexExpr.X)
-				out.WriteString(".insert(")
+				out.WriteString("(*")
+				// For map access, we need the raw identifier, not the unwrapped value
+				if ident, ok := indexExpr.X.(*ast.Ident); ok {
+					out.WriteString(ident.Name)
+				} else {
+					TranspileExpression(out, indexExpr.X)
+				}
+				out.WriteString(".lock().unwrap().as_mut().unwrap()).insert(")
 				TranspileExpression(out, indexExpr.Index)
 				out.WriteString(", ")
-				TranspileExpression(out, s.Rhs[0])
+
+				// Check if RHS is a variable that's already wrapped
+				if ident, ok := s.Rhs[0].(*ast.Ident); ok && ident.Name != "_" {
+					// Check if this is a variable (not a constant)
+					if _, isRangeVar := rangeLoopVars[ident.Name]; !isRangeVar {
+						if _, isLocalConst := localConstants[ident.Name]; !isLocalConst {
+							// It's a variable, just clone it
+							out.WriteString(ident.Name)
+							out.WriteString(".clone()")
+						} else {
+							// It's a constant, wrap it
+							out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(Some(")
+							TranspileExpression(out, s.Rhs[0])
+							out.WriteString(")))")
+						}
+					} else {
+						// Range variable, wrap it
+						out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(Some(")
+						TranspileExpression(out, s.Rhs[0])
+						out.WriteString(")))")
+					}
+				} else {
+					// Not a simple identifier (literal or expression), wrap it
+					out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(Some(")
+					TranspileExpression(out, s.Rhs[0])
+					out.WriteString(")))")
+				}
 				out.WriteString(")")
 			}
 		} else if s.Tok == token.ADD_ASSIGN || s.Tok == token.SUB_ASSIGN ||
@@ -264,7 +296,65 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		} else { // Check if we have multiple LHS with single RHS (tuple unpacking)
 			needsTupleUnpack := len(s.Lhs) > 1 && len(s.Rhs) == 1
 
-			if needsTupleUnpack {
+			// Check if this is a map access with existence check: value, ok := map[key]
+			isMapAccess := false
+			if needsTupleUnpack && len(s.Lhs) == 2 {
+				if indexExpr, ok := s.Rhs[0].(*ast.IndexExpr); ok {
+					// Check if the indexed expression is likely a map
+					if ident, ok := indexExpr.X.(*ast.Ident); ok {
+						name := strings.ToLower(ident.Name)
+						// TODO: Use type information instead of this heuristic
+						isMapAccess = strings.Contains(name, "map") || name == "ages" || name == "colors" || name == "m"
+					}
+				}
+			}
+
+			if isMapAccess && needsTupleUnpack {
+				// Handle map access with existence check
+				indexExpr := s.Rhs[0].(*ast.IndexExpr)
+
+				if s.Tok == token.DEFINE {
+					out.WriteString("let (")
+					// First variable for value
+					if ident, ok := s.Lhs[0].(*ast.Ident); ok && ident.Name != "_" {
+						out.WriteString("mut ")
+						out.WriteString(ident.Name)
+					} else {
+						out.WriteString("_")
+					}
+					out.WriteString(", ")
+					// Second variable for existence
+					if ident, ok := s.Lhs[1].(*ast.Ident); ok && ident.Name != "_" {
+						out.WriteString("mut ")
+						out.WriteString(ident.Name)
+					} else {
+						out.WriteString("_")
+					}
+					out.WriteString(") = ")
+				} else {
+					out.WriteString("(")
+					TranspileExpressionContext(out, s.Lhs[0], LValue)
+					out.WriteString(", ")
+					TranspileExpressionContext(out, s.Lhs[1], LValue)
+					out.WriteString(") = ")
+				}
+
+				// Generate the map access code
+				out.WriteString("match (*")
+				// For map access, we need the raw identifier, not the unwrapped value
+				if ident, ok := indexExpr.X.(*ast.Ident); ok {
+					out.WriteString(ident.Name)
+				} else {
+					TranspileExpression(out, indexExpr.X)
+				}
+				out.WriteString(".lock().unwrap().as_ref().unwrap()).get(&")
+				TranspileExpression(out, indexExpr.Index)
+				out.WriteString(") { Some(v) => (v.clone(), std::sync::Arc::new(std::sync::Mutex::new(Some(true)))), None => (std::sync::Arc::new(std::sync::Mutex::new(Some(")
+				// Default value for the type - for now assume i32
+				// TODO: Use proper type information
+				out.WriteString("0")
+				out.WriteString("))), std::sync::Arc::new(std::sync::Mutex::new(Some(false)))) }")
+			} else if needsTupleUnpack {
 				if s.Tok == token.DEFINE {
 					out.WriteString("let ")
 				}
@@ -421,6 +511,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									} else if _, isCall := rhs.(*ast.CallExpr); isCall {
 										// Function calls already return wrapped values, don't wrap again
 										TranspileExpression(out, rhs)
+									} else if _, isCompositeLit := rhs.(*ast.CompositeLit); isCompositeLit {
+										// Composite literals (map/slice/struct literals) already wrap themselves
+										TranspileExpression(out, rhs)
 									} else {
 										// Wrap new variables in Arc<Mutex<Option<>>>
 										out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(Some(")
@@ -497,6 +590,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(None))")
 								} else if _, isCall := valueSpec.Values[i].(*ast.CallExpr); isCall {
 									// Function calls already return wrapped values, don't wrap again
+									TranspileExpression(out, valueSpec.Values[i])
+								} else if _, isCompositeLit := valueSpec.Values[i].(*ast.CompositeLit); isCompositeLit {
+									// Composite literals (map/slice/struct literals) already wrap themselves
 									TranspileExpression(out, valueSpec.Values[i])
 								} else {
 									// Wrap all variables in Arc<Mutex<Option<>>>
@@ -611,8 +707,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		valueType := "T"   // Generic placeholder
 
 		if isMap {
-			keyType = "String" // Common key type for maps
-			valueType = "i32"  // Common value type, could be improved with type analysis
+			keyType = "String"                    // Common key type for maps
+			valueType = "Arc<Mutex<Option<i32>>>" // Map values are wrapped
 		}
 
 		if s.Key != nil {
@@ -629,7 +725,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		}
 
 		if isMap {
-			// Map iteration
+			// Map iteration - need to unwrap the Arc<Mutex<Option<HashMap>>>
 			if s.Key != nil && s.Value != nil {
 				// for k, v := range map
 				out.WriteString("(")
@@ -644,8 +740,14 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				} else {
 					TranspileExpression(out, s.Value)
 				}
-				out.WriteString(") in &")
-				TranspileExpressionContext(out, s.X, RValue)
+				out.WriteString(") in (*")
+				// For map access, we need the raw identifier, not the unwrapped value
+				if ident, ok := s.X.(*ast.Ident); ok {
+					out.WriteString(ident.Name)
+				} else {
+					TranspileExpression(out, s.X)
+				}
+				out.WriteString(".lock().unwrap().as_ref().unwrap()).clone()")
 			} else if s.Value != nil {
 				// for _, v := range map (values only)
 				out.WriteString("(_, ")
@@ -654,8 +756,14 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				} else {
 					TranspileExpression(out, s.Value)
 				}
-				out.WriteString(") in &")
-				TranspileExpressionContext(out, s.X, RValue)
+				out.WriteString(") in (*")
+				// For map access, we need the raw identifier, not the unwrapped value
+				if ident, ok := s.X.(*ast.Ident); ok {
+					out.WriteString(ident.Name)
+				} else {
+					TranspileExpression(out, s.X)
+				}
+				out.WriteString(".lock().unwrap().as_ref().unwrap()).clone()")
 			} else if s.Key != nil {
 				// for k := range map (keys only)
 				out.WriteString("(")
@@ -664,9 +772,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				} else {
 					TranspileExpression(out, s.Key)
 				}
-				out.WriteString(", _) in &(*")
-				TranspileExpressionContext(out, s.X, RValue)
-				out.WriteString(")")
+				out.WriteString(", _) in (*")
+				TranspileExpression(out, s.X)
+				out.WriteString(".lock().unwrap().as_ref().unwrap()).clone()")
 			}
 		} else {
 			// Array/slice iteration

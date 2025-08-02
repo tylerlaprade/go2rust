@@ -6,7 +6,7 @@ pub fn worker(done: std::sync::Arc<std::sync::Mutex<Option<Unknown>>>) {
 }
 
 fn main() {
-    let mut done = vec![0; 1];
+    let mut done = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![std::sync::Arc::new(std::sync::Mutex::new(Some(0))); 1])));
     // TODO: Unhandled statement type: GoStmt
     <-(*done.lock().unwrap().as_mut().unwrap());
 }
