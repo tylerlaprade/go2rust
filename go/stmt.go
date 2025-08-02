@@ -7,7 +7,20 @@ import (
 	"strings"
 )
 
-func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncType) {
+// hasBlankLineBetween checks if there's more than one line between two positions
+func hasBlankLineBetween(fileSet *token.FileSet, pos1, pos2 token.Pos) bool {
+	if fileSet == nil || pos1 == token.NoPos || pos2 == token.NoPos {
+		return false
+	}
+
+	p1 := fileSet.Position(pos1)
+	p2 := fileSet.Position(pos2)
+
+	// If there's more than 1 line between the positions, there's at least one blank line
+	return p2.Line-p1.Line > 1
+}
+
+func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncType, fileSet *token.FileSet) {
 	switch s := stmt.(type) {
 	case *ast.ExprStmt:
 		TranspileExpression(out, s.X)
@@ -635,7 +648,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 	case *ast.ForStmt:
 		if s.Init != nil {
-			TranspileStatement(out, s.Init, fnType)
+			TranspileStatement(out, s.Init, fnType, fileSet)
 			out.WriteString("\n    ")
 		}
 
@@ -647,16 +660,24 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		}
 		out.WriteString(" {\n")
 
+		var prevStmt ast.Stmt
 		for _, stmt := range s.Body.List {
+			// Add blank line if there was one in the source
+			if prevStmt != nil && hasBlankLineBetween(fileSet, prevStmt.End(), stmt.Pos()) {
+				out.WriteString("\n")
+			}
+
 			out.WriteString("        ")
-			TranspileStatement(out, stmt, fnType)
+			TranspileStatement(out, stmt, fnType, fileSet)
 			out.WriteString("\n")
+
+			prevStmt = stmt
 		}
 
 		// Add the post statement (increment) if present
 		if s.Post != nil {
 			out.WriteString("        ")
-			TranspileStatement(out, s.Post, fnType)
+			TranspileStatement(out, s.Post, fnType, fileSet)
 			out.WriteString("\n")
 		}
 
@@ -664,10 +685,18 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 	case *ast.BlockStmt:
 		out.WriteString("{\n")
+		var prevStmt ast.Stmt
 		for _, stmt := range s.List {
+			// Add blank line if there was one in the source
+			if prevStmt != nil && hasBlankLineBetween(fileSet, prevStmt.End(), stmt.Pos()) {
+				out.WriteString("\n")
+			}
+
 			out.WriteString("    ")
-			TranspileStatement(out, stmt, fnType)
+			TranspileStatement(out, stmt, fnType, fileSet)
 			out.WriteString("\n")
+
+			prevStmt = stmt
 		}
 		out.WriteString("}")
 
@@ -834,7 +863,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 		for _, stmt := range s.Body.List {
 			out.WriteString("        ")
-			TranspileStatement(out, stmt, fnType)
+			TranspileStatement(out, stmt, fnType, fileSet)
 			out.WriteString("\n")
 		}
 
@@ -851,7 +880,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 	case *ast.IfStmt:
 		// Handle init statement if present
 		if s.Init != nil {
-			TranspileStatement(out, s.Init, fnType)
+			TranspileStatement(out, s.Init, fnType, fileSet)
 			out.WriteString("\n    ")
 		}
 
@@ -861,7 +890,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 		for _, stmt := range s.Body.List {
 			out.WriteString("        ")
-			TranspileStatement(out, stmt, fnType)
+			TranspileStatement(out, stmt, fnType, fileSet)
 			out.WriteString("\n")
 		}
 
@@ -871,13 +900,13 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			out.WriteString(" else ")
 			if elseIf, ok := s.Else.(*ast.IfStmt); ok {
 				// else if case - don't add extra braces
-				TranspileStatement(out, elseIf, fnType)
+				TranspileStatement(out, elseIf, fnType, fileSet)
 			} else if block, ok := s.Else.(*ast.BlockStmt); ok {
 				// else block
 				out.WriteString("{\n")
 				for _, stmt := range block.List {
 					out.WriteString("        ")
-					TranspileStatement(out, stmt, fnType)
+					TranspileStatement(out, stmt, fnType, fileSet)
 					out.WriteString("\n")
 				}
 				out.WriteString("    }")
@@ -887,7 +916,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 	case *ast.SwitchStmt:
 		// Handle init statement if present
 		if s.Init != nil {
-			TranspileStatement(out, s.Init, fnType)
+			TranspileStatement(out, s.Init, fnType, fileSet)
 			out.WriteString("\n    ")
 		}
 
@@ -932,7 +961,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				// Case body
 				for _, bodyStmt := range caseClause.Body {
 					out.WriteString("            ")
-					TranspileStatement(out, bodyStmt, fnType)
+					TranspileStatement(out, bodyStmt, fnType, fileSet)
 					out.WriteString("\n")
 				}
 

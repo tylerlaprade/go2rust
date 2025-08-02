@@ -43,6 +43,7 @@ fn main() {
         println!("{} {}", "Error:".to_string(), (*err.lock().unwrap().as_mut().unwrap()));
         return;
     }
+
     println!("{} {}", "Scheme:".to_string(), (*u.lock().unwrap().as_mut().unwrap()).scheme);
     println!("{} {}", "Host:".to_string(), (*u.lock().unwrap().as_mut().unwrap()).host);
     println!("{} {}", "Path:".to_string(), (*u.lock().unwrap().as_mut().unwrap()).path);

@@ -45,7 +45,7 @@ func (pg *ProjectGenerator) Generate() error {
 			pg.isLibrary = pg.packageName != "main"
 		}
 
-		rustCode := Transpile(file)
+		rustCode := Transpile(file, fileSet)
 
 		baseName := strings.TrimSuffix(filepath.Base(filename), ".go")
 		rustFilename := strings.TrimSuffix(filename, ".go") + ".rs"
@@ -128,7 +128,7 @@ func (pg *ProjectGenerator) generateMainRs(fileSet *token.FileSet) error {
 		mainRust.WriteString("\n")
 	}
 
-	mainContent := Transpile(file)
+	mainContent := Transpile(file, fileSet)
 	mainRust.WriteString(mainContent)
 
 	mainRsPath := filepath.Join(pg.projectPath, "main.rs")

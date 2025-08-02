@@ -98,10 +98,13 @@ pub fn print_shape_info(s: std::sync::Arc<std::sync::Mutex<Option<Box<dyn Shape>
 fn main() {
     let mut rect = Rectangle { width: std::sync::Arc::new(std::sync::Mutex::new(Some(10))), height: std::sync::Arc::new(std::sync::Mutex::new(Some(5))) };
     let mut circle = Circle { radius: std::sync::Arc::new(std::sync::Mutex::new(Some(3))) };
+
     println!("{}", "Rectangle:".to_string());
     print_shape_info(rect.clone());
+
     println!("{}", "Circle:".to_string());
     print_shape_info(circle.clone());
+
     let mut shapes = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![(*rect.lock().unwrap().as_mut().unwrap()), (*circle.lock().unwrap().as_mut().unwrap())])));
     println!("{}", "All shapes:".to_string());
     for (i, shape) in (*shapes.lock().unwrap().as_mut().unwrap()).iter().enumerate() {

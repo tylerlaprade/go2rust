@@ -39,14 +39,19 @@ where
 
 fn main() {
     let mut i = std::sync::Arc::new(std::sync::Mutex::new(Some(0)));
+
     // TODO: Unhandled statement type: LabeledStmt
+
     println!("{}", "First loop done".to_string());
+
     let mut x = std::sync::Arc::new(std::sync::Mutex::new(Some(1)));
     if (*x.lock().unwrap().as_mut().unwrap()) > 0 {
         // TODO: goto not supported
     }
     println!("{}", "This won't print".to_string());
+
     // TODO: Unhandled statement type: LabeledStmt
+
     let mut j = std::sync::Arc::new(std::sync::Mutex::new(Some(0)));
     while (*j.lock().unwrap().as_mut().unwrap()) < 3 {
         let mut k = std::sync::Arc::new(std::sync::Mutex::new(Some(0)));
@@ -59,5 +64,6 @@ fn main() {
     }
         { let mut guard = j.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
+
     // TODO: Unhandled statement type: LabeledStmt
 }

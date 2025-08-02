@@ -58,8 +58,10 @@ impl Fahrenheit {
 fn main() {
     let mut temp: std::sync::Arc<std::sync::Mutex<Option<Celsius>>> = std::sync::Arc::new(std::sync::Mutex::new(Some(100)));
     print!("{}°C = {}°F\n", (*temp.lock().unwrap().as_mut().unwrap()), (*(*temp.lock().unwrap().as_mut().unwrap()).to_fahrenheit().lock().unwrap().as_mut().unwrap()));
+
     let mut f: std::sync::Arc<std::sync::Mutex<Option<Fahrenheit>>> = std::sync::Arc::new(std::sync::Mutex::new(Some(212)));
     print!("{}°F = {}°C\n", (*f.lock().unwrap().as_mut().unwrap()), (*(*f.lock().unwrap().as_mut().unwrap()).to_celsius().lock().unwrap().as_mut().unwrap()));
+
     let mut s: std::sync::Arc<std::sync::Mutex<Option<StringAlias>>> = std::sync::Arc::new(std::sync::Mutex::new(Some("hello".to_string())));
     println!("{}", (*s.lock().unwrap().as_mut().unwrap()));
 }

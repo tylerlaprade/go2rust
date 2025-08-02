@@ -127,14 +127,18 @@ fn main() {
     basic_switch(std::sync::Arc::new(std::sync::Mutex::new(Some(1))));
     basic_switch(std::sync::Arc::new(std::sync::Mutex::new(Some(6))));
     basic_switch(std::sync::Arc::new(std::sync::Mutex::new(Some(10))));
+
     println!("{}", "\n=== Switch with expression ===".to_string());
     switch_with_expression();
+
     println!("{}", "\n=== Switch without expression ===".to_string());
     switch_without_expression();
+
     println!("{}", "\n=== Switch with fallthrough ===".to_string());
     switch_with_fallthrough(std::sync::Arc::new(std::sync::Mutex::new(Some(1))));
     println!("{}", "---".to_string());
     switch_with_fallthrough(std::sync::Arc::new(std::sync::Mutex::new(Some(4))));
+
     println!("{}", "\n=== Type switch ===".to_string());
     type_switch(std::sync::Arc::new(std::sync::Mutex::new(Some(42))));
     type_switch(std::sync::Arc::new(std::sync::Mutex::new(Some("hello".to_string()))));

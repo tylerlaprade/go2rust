@@ -42,6 +42,7 @@ fn main() {
     // TODO: Unhandled statement type: SendStmt
     // TODO: Unhandled statement type: SendStmt
     close(queue.clone());
+
     for elem in 0..(*queue.lock().unwrap().as_mut().unwrap()).len() {
         println!("{}", elem);
     }

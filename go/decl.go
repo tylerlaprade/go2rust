@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl) {
+func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.FileSet) {
 	// Check if this is a method (has receiver)
 	if fn.Recv != nil && len(fn.Recv.List) > 0 {
 		// Methods will be collected and generated in impl blocks
@@ -121,10 +121,18 @@ func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl) {
 	}
 
 	// Function body
+	var prevStmt ast.Stmt
 	for _, stmt := range fn.Body.List {
+		// Add blank line if there was one in the source
+		if prevStmt != nil && hasBlankLineBetween(fileSet, prevStmt.End(), stmt.Pos()) {
+			out.WriteString("\n")
+		}
+
 		out.WriteString("    ")
-		TranspileStatement(out, stmt, fn.Type)
+		TranspileStatement(out, stmt, fn.Type, fileSet)
 		out.WriteString("\n")
+
+		prevStmt = stmt
 	}
 
 	out.WriteString("}")
@@ -389,12 +397,11 @@ func TranspileConstExpr(out *strings.Builder, expr ast.Expr, iotaValue int) {
 }
 
 // TranspileMethodImpl transpiles a method inside an impl block
-func TranspileMethodImpl(out *strings.Builder, fn *ast.FuncDecl) {
-	transpileMethodImplWithVisibility(out, fn, true)
+func TranspileMethodImpl(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.FileSet) {
+	transpileMethodImplWithVisibility(out, fn, true, fileSet)
 }
 
-// transpileMethodImplWithVisibility transpiles a method with optional pub visibility
-func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, addPub bool) {
+func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, addPub bool, fileSet *token.FileSet) {
 	out.WriteString("    ")
 	if addPub {
 		out.WriteString("pub ")
@@ -480,7 +487,7 @@ func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, a
 	// Method body - need to handle self references
 	for _, stmt := range fn.Body.List {
 		out.WriteString("        ")
-		TranspileStatement(out, stmt, fn.Type)
+		TranspileStatement(out, stmt, fn.Type, fileSet)
 		out.WriteString("\n")
 	}
 

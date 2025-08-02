@@ -39,10 +39,15 @@ where
 
 fn main() {
     println!("{}", "=== Nested loops with labels ===".to_string());
+
     // TODO: Unhandled statement type: LabeledStmt
+
     println!("{}", "\n=== Continue with labels ===".to_string());
+
     // TODO: Unhandled statement type: LabeledStmt
+
     println!("{}", "\n=== Complex switch with fallthrough ===".to_string());
+
     let mut num = std::sync::Arc::new(std::sync::Mutex::new(Some(1)));
     while (*num.lock().unwrap().as_mut().unwrap()) <= 5 {
         print!("Number {}: ", (*num.lock().unwrap().as_mut().unwrap()));
@@ -67,12 +72,15 @@ fn main() {
         println!();
         { let mut guard = num.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
+
     println!("{}", "\n=== Nested switch statements ===".to_string());
+
     let mut category = std::sync::Arc::new(std::sync::Mutex::new(Some(1)));
     while (*category.lock().unwrap().as_mut().unwrap()) <= 2 {
         let mut item = std::sync::Arc::new(std::sync::Mutex::new(Some(1)));
     while (*item.lock().unwrap().as_mut().unwrap()) <= 2 {
         print!("Category {}, Item {}: ", (*category.lock().unwrap().as_mut().unwrap()), (*item.lock().unwrap().as_mut().unwrap()));
+
         match (*category.lock().unwrap().as_mut().unwrap()) {
         1 => {
             match (*item.lock().unwrap().as_mut().unwrap()) {
@@ -102,7 +110,9 @@ fn main() {
     }
         { let mut guard = category.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
+
     println!("{}", "\n=== Complex for loop conditions ===".to_string());
+
     let (mut i, mut j) = (std::sync::Arc::new(std::sync::Mutex::new(Some(0))), std::sync::Arc::new(std::sync::Mutex::new(Some(10))));
     while (*i.lock().unwrap().as_mut().unwrap()) < (*j.lock().unwrap().as_mut().unwrap()) {
         print!("i={}, j={}, sum={}\n", (*i.lock().unwrap().as_mut().unwrap()), (*j.lock().unwrap().as_mut().unwrap()), (*i.lock().unwrap().as_mut().unwrap()) + (*j.lock().unwrap().as_mut().unwrap()));
@@ -111,7 +121,9 @@ fn main() {
     }
         { *(*i.lock().unwrap().as_mut().unwrap()).lock().unwrap() = Some((*i.lock().unwrap().as_mut().unwrap()) + 1); *(*j.lock().unwrap().as_mut().unwrap()).lock().unwrap() = Some((*j.lock().unwrap().as_mut().unwrap()) - 1) };
     }
+
     println!("{}", "\n=== For loop with complex condition ===".to_string());
+
     let (mut x, mut y) = (std::sync::Arc::new(std::sync::Mutex::new(Some(1))), std::sync::Arc::new(std::sync::Mutex::new(Some(1))));
     while (*x.lock().unwrap().as_mut().unwrap()) * (*y.lock().unwrap().as_mut().unwrap()) < 100 && (*x.lock().unwrap().as_mut().unwrap()) < 10 {
         print!("x={}, y={}, product={}\n", (*x.lock().unwrap().as_mut().unwrap()), (*y.lock().unwrap().as_mut().unwrap()), (*x.lock().unwrap().as_mut().unwrap()) * (*y.lock().unwrap().as_mut().unwrap()));
@@ -122,19 +134,27 @@ fn main() {
     }
         { let mut guard = x.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
+
     println!("{}", "\n=== Goto statements ===".to_string());
+
     let mut counter = std::sync::Arc::new(std::sync::Mutex::new(Some(0)));
+
     // TODO: Unhandled statement type: LabeledStmt
     print!("Counter: {}\n", (*counter.lock().unwrap().as_mut().unwrap()));
+
     if (*counter.lock().unwrap().as_mut().unwrap()) < 3 {
         // TODO: goto not supported
     }
+
     println!("{}", "Done with goto".to_string());
+
     println!("{}", "\n=== Complex if-else chains ===".to_string());
+
     let mut score = std::sync::Arc::new(std::sync::Mutex::new(Some(0)));
     while (*score.lock().unwrap().as_mut().unwrap()) <= 100 {
         let mut grade: std::sync::Arc<std::sync::Mutex<Option<String>>> = String::new();
         let mut message: std::sync::Arc<std::sync::Mutex<Option<String>>> = String::new();
+
         if (*score.lock().unwrap().as_mut().unwrap()) >= 90 {
         { let new_val = "A".to_string(); *grade.lock().unwrap() = Some(new_val); };
         if (*score.lock().unwrap().as_mut().unwrap()) >= 95 {
@@ -159,11 +179,15 @@ fn main() {
         { let new_val = "F".to_string(); *grade.lock().unwrap() = Some(new_val); };
         { let new_val = "Needs improvement".to_string(); *message.lock().unwrap() = Some(new_val); };
     }
+
         print!("Score {}: Grade {} - {}\n", (*score.lock().unwrap().as_mut().unwrap()), (*grade.lock().unwrap().as_mut().unwrap()), (*message.lock().unwrap().as_mut().unwrap()));
         { let mut guard = score.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 25); };
     }
+
     println!("{}", "\n=== Range with complex break/continue ===".to_string());
+
     let mut numbers = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10])));
+
     println!("{}", "Processing numbers:".to_string());
     for (i, num) in (*numbers.lock().unwrap().as_mut().unwrap()).iter().enumerate() {
         if num % 2 == 0 {
@@ -180,8 +204,11 @@ fn main() {
     }
         print!("Processing odd number {} (index {})\n", num, i);
     }
+
     println!("{}", "\n=== Nested range loops ===".to_string());
+
     let mut matrix = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![, , ])));
+
     for (rowIdx, row) in (*matrix.lock().unwrap().as_mut().unwrap()).iter().enumerate() {
         for (colIdx, cell) in row.iter().enumerate() {
         if cell == "e".to_string() {
@@ -196,20 +223,29 @@ fn main() {
     }
         println!();
     }
+
     println!("{}", "\n=== Select with complex channel operations ===".to_string());
+
     let mut ch1 = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![std::sync::Arc::new(std::sync::Mutex::new(Some(0))); 2])));
     let mut ch2 = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![std::sync::Arc::new(std::sync::Mutex::new(Some(0))); 2])));
     let mut done = ;
+
     // TODO: Unhandled statement type: SendStmt
     // TODO: Unhandled statement type: SendStmt
     // TODO: Unhandled statement type: SendStmt
     // TODO: Unhandled statement type: SendStmt
+
     // TODO: Unhandled statement type: GoStmt
+
     <-(*done.lock().unwrap().as_mut().unwrap());
     println!("{}", "Channel processing complete".to_string());
+
     println!("{}", "\n=== Complex error handling flow ===".to_string());
+
     let mut processData = std::sync::Arc::new(std::sync::Mutex::new(Some()));
+
     let mut testData = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![, , , , ])));
+
     for (i, data) in (*testData.lock().unwrap().as_mut().unwrap()).iter().enumerate() {
         print!("Testing dataset {}: {}\n", i + 1, data);
         let mut err = process_data(std::sync::Arc::new(std::sync::Mutex::new(Some(data))));

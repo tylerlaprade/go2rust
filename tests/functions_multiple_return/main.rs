@@ -46,6 +46,7 @@ fn main() {
     let (mut a, mut b) = vals();
     println!("{}", (*a.lock().unwrap().as_mut().unwrap()));
     println!("{}", (*b.lock().unwrap().as_mut().unwrap()));
+
     let (_, mut c) = vals();
     println!("{}", (*c.lock().unwrap().as_mut().unwrap()));
 }

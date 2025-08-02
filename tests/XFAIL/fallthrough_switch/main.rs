@@ -57,7 +57,9 @@ fn main() {
             println!("{}", "Other".to_string());
         }
     }
+
     println!("{}", "---".to_string());
+
     let mut grade = std::sync::Arc::new(std::sync::Mutex::new(Some('B')));
     match (*grade.lock().unwrap().as_mut().unwrap()) {
         'A' => {
@@ -79,7 +81,9 @@ fn main() {
         }
         _ => {}
     }
+
     println!("{}", "---".to_string());
+
     let mut n = std::sync::Arc::new(std::sync::Mutex::new(Some(15)));
     match true {
         true if (*n.lock().unwrap().as_mut().unwrap()) % 15 == 0 => {

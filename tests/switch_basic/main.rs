@@ -51,6 +51,7 @@ fn main() {
         }
         _ => {}
     }
+
     match true {
         true if (*i.lock().unwrap().as_mut().unwrap()) < 2 => {
             println!("{}", "less than 2".to_string());

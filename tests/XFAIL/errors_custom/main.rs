@@ -90,6 +90,7 @@ fn main() {
         println!("{} {}", "f2 worked:".to_string(), (*r.lock().unwrap().as_mut().unwrap()));
     }
     }
+
     let (_, mut e) = f2(std::sync::Arc::new(std::sync::Mutex::new(Some(42))));
     let (mut ae, mut ok) = match (*e.lock().unwrap().as_mut().unwrap()).downcast_ref::<std::sync::Arc<std::sync::Mutex<Option<argError>>>>() { Some(v) => (v.clone(), true), None => (Default::default(), false) };
     if (*ok.lock().unwrap().as_mut().unwrap()) {

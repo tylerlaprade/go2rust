@@ -81,12 +81,16 @@ impl Person {
 fn main() {
     let mut counter = std::sync::Arc::new(std::sync::Mutex::new(Some(Counter { value: std::sync::Arc::new(std::sync::Mutex::new(Some(0))) })));
     println!("{} {}", "Initial value:".to_string(), (*(*counter.lock().unwrap().as_mut().unwrap()).get_value().lock().unwrap().as_mut().unwrap()));
+
     (*counter.lock().unwrap().as_mut().unwrap()).increment();
     println!("{} {}", "After increment:".to_string(), (*(*counter.lock().unwrap().as_mut().unwrap()).get_value().lock().unwrap().as_mut().unwrap()));
+
     (*counter.lock().unwrap().as_mut().unwrap()).add(std::sync::Arc::new(std::sync::Mutex::new(Some(5))));
     println!("{} {}", "After adding 5:".to_string(), (*(*counter.lock().unwrap().as_mut().unwrap()).get_value().lock().unwrap().as_mut().unwrap()));
+
     let mut doubled = (*counter.lock().unwrap().as_mut().unwrap()).double();
     println!("{} {}", "After doubling:".to_string(), (*doubled.lock().unwrap().as_mut().unwrap()));
+
     let mut person = std::sync::Arc::new(std::sync::Mutex::new(Some(Person { name: std::sync::Arc::new(std::sync::Mutex::new(Some("Alice".to_string()))), age: std::sync::Arc::new(std::sync::Mutex::new(Some(25))) })));
     (*person.lock().unwrap().as_mut().unwrap()).greet();
     (*person.lock().unwrap().as_mut().unwrap()).have_birthday();

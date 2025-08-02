@@ -70,6 +70,7 @@ pub fn sqrt(x: std::sync::Arc<std::sync::Mutex<Option<f64>>>) -> (std::sync::Arc
     if (*x.lock().unwrap().as_mut().unwrap()) < 0 {
         return (std::sync::Arc::new(std::sync::Mutex::new(Some(0))), std::sync::Arc::new(std::sync::Mutex::new(Some(Box::new(format!("cannot take square root of negative number: {}", (*x.lock().unwrap().as_mut().unwrap()))) as Box<dyn std::error::Error + Send + Sync>))));
     }
+
     let mut result = std::sync::Arc::new(std::sync::Mutex::new(Some((*x.lock().unwrap().as_mut().unwrap()) / 2)));
     let mut i = std::sync::Arc::new(std::sync::Mutex::new(Some(0)));
     while (*i.lock().unwrap().as_mut().unwrap()) < 10 {
@@ -97,26 +98,31 @@ fn main() {
     } else {
         println!("{} {}", "10 / 2 =".to_string(), (*result.lock().unwrap().as_mut().unwrap()));
     }
+
     (result, err) = divide(std::sync::Arc::new(std::sync::Mutex::new(Some(10))), std::sync::Arc::new(std::sync::Mutex::new(Some(0))));
     if (*err.lock().unwrap()).is_some() {
         println!("{} {}", "Error:".to_string(), (*err.lock().unwrap().as_mut().unwrap()));
     } else {
         println!("{} {}", "Result:".to_string(), (*result.lock().unwrap().as_mut().unwrap()));
     }
+
     let (mut sqrtResult, mut err) = sqrt(std::sync::Arc::new(std::sync::Mutex::new(Some(-4))));
     if (*err.lock().unwrap()).is_some() {
         println!("{} {}", "Sqrt error:".to_string(), (*err.lock().unwrap().as_mut().unwrap()));
     } else {
         println!("{} {}", "Sqrt result:".to_string(), (*sqrtResult.lock().unwrap().as_mut().unwrap()));
     }
+
     { let new_val = process_value(std::sync::Arc::new(std::sync::Mutex::new(Some(-5)))); *err.lock().unwrap() = Some(new_val); };
     if (*err.lock().unwrap()).is_some() {
         println!("{} {}", "Process error:".to_string(), (*err.lock().unwrap().as_mut().unwrap()));
     }
+
     { let new_val = process_value(std::sync::Arc::new(std::sync::Mutex::new(Some(150)))); *err.lock().unwrap() = Some(new_val); };
     if (*err.lock().unwrap()).is_some() {
         println!("{} {}", "Process error:".to_string(), (*err.lock().unwrap().as_mut().unwrap()));
     }
+
     { let new_val = process_value(std::sync::Arc::new(std::sync::Mutex::new(Some(50)))); *err.lock().unwrap() = Some(new_val); };
     if (*err.lock().unwrap()).is_some() {
         println!("{} {}", "Process error:".to_string(), (*err.lock().unwrap().as_mut().unwrap()));

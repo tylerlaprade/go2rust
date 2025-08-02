@@ -39,99 +39,131 @@ where
 
 fn main() {
     println!("{}", "=== Basic string operations ===".to_string());
+
     let mut str = std::sync::Arc::new(std::sync::Mutex::new(Some("Hello, World!".to_string())));
     print!("Original string: {}\n", (*str.lock().unwrap().as_mut().unwrap()));
     print!("Length: {}\n", (*str.lock().unwrap().as_mut().unwrap()).len());
+
     print!("First character: {}\n", (*str.lock().unwrap().as_mut().unwrap())[0]);
     print!("Last character: {}\n", (*str.lock().unwrap().as_mut().unwrap())[(*str.lock().unwrap().as_mut().unwrap()).len() - 1]);
     print!("Substring [0:5]: {}\n", (*str.lock().unwrap().as_mut().unwrap())[0..5].to_vec());
     print!("Substring [7:]: {}\n", (*str.lock().unwrap().as_mut().unwrap())[7..].to_vec());
+
     println!("{}", "\n=== String concatenation ===".to_string());
     let mut first = std::sync::Arc::new(std::sync::Mutex::new(Some("Hello".to_string())));
     let mut second = std::sync::Arc::new(std::sync::Mutex::new(Some("World".to_string())));
     let mut combined = std::sync::Arc::new(std::sync::Mutex::new(Some(format!("{}{}", format!("{}{}", (*first.lock().unwrap().as_mut().unwrap()), ", ".to_string()) + (*second.lock().unwrap().as_mut().unwrap()), "!".to_string()))));
     print!("Concatenated: {}\n", (*combined.lock().unwrap().as_mut().unwrap()));
+
     println!("{}", "\n=== strings package functions ===".to_string());
+
     let mut text = std::sync::Arc::new(std::sync::Mutex::new(Some("  Go is awesome for systems programming  ".to_string())));
     print!("Original: '{}'\n", (*text.lock().unwrap().as_mut().unwrap()));
+
     let mut trimmed = (*text.lock().unwrap().as_mut().unwrap()).trim();
     print!("Trimmed: '{}'\n", (*trimmed.lock().unwrap().as_mut().unwrap()));
+
     print!("Upper: {}\n", (*(*trimmed.lock().unwrap().as_mut().unwrap()).to_uppercase().lock().unwrap().as_mut().unwrap()));
     print!("Lower: {}\n", (*(*trimmed.lock().unwrap().as_mut().unwrap()).to_lowercase().lock().unwrap().as_mut().unwrap()));
     print!("Title: {}\n", (*(*strings.lock().unwrap().as_mut().unwrap()).title(std::sync::Arc::new(std::sync::Mutex::new(Some((*trimmed.lock().unwrap().as_mut().unwrap()))))).lock().unwrap().as_mut().unwrap()));
+
     println!("{}", "\n=== String searching ===".to_string());
     let mut searchText = std::sync::Arc::new(std::sync::Mutex::new(Some("The quick brown fox jumps over the lazy dog".to_string())));
     print!("Text: {}\n", (*searchText.lock().unwrap().as_mut().unwrap()));
+
     print!("Contains 'fox': {}\n", (*(*strings.lock().unwrap().as_mut().unwrap()).contains(std::sync::Arc::new(std::sync::Mutex::new(Some((*searchText.lock().unwrap().as_mut().unwrap())))), std::sync::Arc::new(std::sync::Mutex::new(Some("fox".to_string())))).lock().unwrap().as_mut().unwrap()));
     print!("Contains 'cat': {}\n", (*(*strings.lock().unwrap().as_mut().unwrap()).contains(std::sync::Arc::new(std::sync::Mutex::new(Some((*searchText.lock().unwrap().as_mut().unwrap())))), std::sync::Arc::new(std::sync::Mutex::new(Some("cat".to_string())))).lock().unwrap().as_mut().unwrap()));
+
     print!("Index of 'fox': {}\n", (*(*strings.lock().unwrap().as_mut().unwrap()).index(std::sync::Arc::new(std::sync::Mutex::new(Some((*searchText.lock().unwrap().as_mut().unwrap())))), std::sync::Arc::new(std::sync::Mutex::new(Some("fox".to_string())))).lock().unwrap().as_mut().unwrap()));
     print!("Index of 'cat': {}\n", (*(*strings.lock().unwrap().as_mut().unwrap()).index(std::sync::Arc::new(std::sync::Mutex::new(Some((*searchText.lock().unwrap().as_mut().unwrap())))), std::sync::Arc::new(std::sync::Mutex::new(Some("cat".to_string())))).lock().unwrap().as_mut().unwrap()));
+
     print!("Last index of 'the': {}\n", (*(*strings.lock().unwrap().as_mut().unwrap()).last_index(std::sync::Arc::new(std::sync::Mutex::new(Some((*searchText.lock().unwrap().as_mut().unwrap())))), std::sync::Arc::new(std::sync::Mutex::new(Some("the".to_string())))).lock().unwrap().as_mut().unwrap()));
+
     print!("Count of 'the': {}\n", (*(*strings.lock().unwrap().as_mut().unwrap()).count(std::sync::Arc::new(std::sync::Mutex::new(Some((*searchText.lock().unwrap().as_mut().unwrap())))), std::sync::Arc::new(std::sync::Mutex::new(Some("the".to_string())))).lock().unwrap().as_mut().unwrap()));
+
     println!("{}", "\n=== Prefixes and suffixes ===".to_string());
     let mut filename = std::sync::Arc::new(std::sync::Mutex::new(Some("document.txt".to_string())));
     print!("Filename: {}\n", (*filename.lock().unwrap().as_mut().unwrap()));
     print!("Has .txt suffix: {}\n", (*(*strings.lock().unwrap().as_mut().unwrap()).has_suffix(std::sync::Arc::new(std::sync::Mutex::new(Some((*filename.lock().unwrap().as_mut().unwrap())))), std::sync::Arc::new(std::sync::Mutex::new(Some(".txt".to_string())))).lock().unwrap().as_mut().unwrap()));
     print!("Has .pdf suffix: {}\n", (*(*strings.lock().unwrap().as_mut().unwrap()).has_suffix(std::sync::Arc::new(std::sync::Mutex::new(Some((*filename.lock().unwrap().as_mut().unwrap())))), std::sync::Arc::new(std::sync::Mutex::new(Some(".pdf".to_string())))).lock().unwrap().as_mut().unwrap()));
     print!("Has 'doc' prefix: {}\n", (*(*strings.lock().unwrap().as_mut().unwrap()).has_prefix(std::sync::Arc::new(std::sync::Mutex::new(Some((*filename.lock().unwrap().as_mut().unwrap())))), std::sync::Arc::new(std::sync::Mutex::new(Some("doc".to_string())))).lock().unwrap().as_mut().unwrap()));
+
     println!("{}", "\n=== Splitting and joining ===".to_string());
     let mut csv = std::sync::Arc::new(std::sync::Mutex::new(Some("apple,banana,cherry,date".to_string())));
     print!("CSV: {}\n", (*csv.lock().unwrap().as_mut().unwrap()));
+
     let mut fruits = (*strings.lock().unwrap().as_mut().unwrap()).split(std::sync::Arc::new(std::sync::Mutex::new(Some((*csv.lock().unwrap().as_mut().unwrap())))), std::sync::Arc::new(std::sync::Mutex::new(Some(",".to_string()))));
     print!("Split result: {}\n", (*fruits.lock().unwrap().as_mut().unwrap()));
+
     let mut rejoined = (*strings.lock().unwrap().as_mut().unwrap()).join(std::sync::Arc::new(std::sync::Mutex::new(Some((*fruits.lock().unwrap().as_mut().unwrap())))), std::sync::Arc::new(std::sync::Mutex::new(Some(" | ".to_string()))));
     print!("Rejoined: {}\n", (*rejoined.lock().unwrap().as_mut().unwrap()));
+
     let mut sentence = std::sync::Arc::new(std::sync::Mutex::new(Some("The quick brown fox".to_string())));
     let mut words = (*strings.lock().unwrap().as_mut().unwrap()).fields(std::sync::Arc::new(std::sync::Mutex::new(Some((*sentence.lock().unwrap().as_mut().unwrap())))));
     print!("Words: {}\n", (*words.lock().unwrap().as_mut().unwrap()));
+
     println!("{}", "\n=== String replacement ===".to_string());
     let mut original = std::sync::Arc::new(std::sync::Mutex::new(Some("I like cats and cats like me".to_string())));
     print!("Original: {}\n", (*original.lock().unwrap().as_mut().unwrap()));
+
     let mut replaced = (*strings.lock().unwrap().as_mut().unwrap()).replace(std::sync::Arc::new(std::sync::Mutex::new(Some((*original.lock().unwrap().as_mut().unwrap())))), std::sync::Arc::new(std::sync::Mutex::new(Some("cats".to_string()))), std::sync::Arc::new(std::sync::Mutex::new(Some("dogs".to_string()))), std::sync::Arc::new(std::sync::Mutex::new(Some(1))));
     print!("Replace first 'cats': {}\n", (*replaced.lock().unwrap().as_mut().unwrap()));
+
     let mut replacedAll = (*strings.lock().unwrap().as_mut().unwrap()).replace_all(std::sync::Arc::new(std::sync::Mutex::new(Some((*original.lock().unwrap().as_mut().unwrap())))), std::sync::Arc::new(std::sync::Mutex::new(Some("cats".to_string()))), std::sync::Arc::new(std::sync::Mutex::new(Some("dogs".to_string()))));
     print!("Replace all 'cats': {}\n", (*replacedAll.lock().unwrap().as_mut().unwrap()));
+
     println!("{}", "\n=== String repetition ===".to_string());
     let mut pattern = std::sync::Arc::new(std::sync::Mutex::new(Some("Go! ".to_string())));
     let mut repeated = (*strings.lock().unwrap().as_mut().unwrap()).repeat(std::sync::Arc::new(std::sync::Mutex::new(Some((*pattern.lock().unwrap().as_mut().unwrap())))), std::sync::Arc::new(std::sync::Mutex::new(Some(3))));
     print!("Repeated: {}\n", (*repeated.lock().unwrap().as_mut().unwrap()));
+
     println!("{}", "\n=== String comparison ===".to_string());
     let mut str1 = std::sync::Arc::new(std::sync::Mutex::new(Some("apple".to_string())));
     let mut str2 = std::sync::Arc::new(std::sync::Mutex::new(Some("banana".to_string())));
     let mut str3 = std::sync::Arc::new(std::sync::Mutex::new(Some("apple".to_string())));
+
     print!("'{}' == '{}': {}\n", (*str1.lock().unwrap().as_mut().unwrap()), (*str2.lock().unwrap().as_mut().unwrap()), (*str1.lock().unwrap().as_mut().unwrap()) == (*str2.lock().unwrap().as_mut().unwrap()));
     print!("'{}' == '{}': {}\n", (*str1.lock().unwrap().as_mut().unwrap()), (*str3.lock().unwrap().as_mut().unwrap()), (*str1.lock().unwrap().as_mut().unwrap()) == (*str3.lock().unwrap().as_mut().unwrap()));
     print!("'{}' < '{}': {}\n", (*str1.lock().unwrap().as_mut().unwrap()), (*str2.lock().unwrap().as_mut().unwrap()), (*str1.lock().unwrap().as_mut().unwrap()) < (*str2.lock().unwrap().as_mut().unwrap()));
+
     print!("EqualFold('Apple', 'APPLE'): {}\n", (*(*strings.lock().unwrap().as_mut().unwrap()).equal_fold(std::sync::Arc::new(std::sync::Mutex::new(Some("Apple".to_string()))), std::sync::Arc::new(std::sync::Mutex::new(Some("APPLE".to_string())))).lock().unwrap().as_mut().unwrap()));
+
     println!("{}", "\n=== String building ===".to_string());
     let mut builder: std::sync::Arc<std::sync::Mutex<Option<Unknown>>>;
+
     (*builder.lock().unwrap().as_mut().unwrap()).write_string(std::sync::Arc::new(std::sync::Mutex::new(Some("Building ".to_string()))));
     (*builder.lock().unwrap().as_mut().unwrap()).write_string(std::sync::Arc::new(std::sync::Mutex::new(Some("a ".to_string()))));
     (*builder.lock().unwrap().as_mut().unwrap()).write_string(std::sync::Arc::new(std::sync::Mutex::new(Some("string ".to_string()))));
     (*builder.lock().unwrap().as_mut().unwrap()).write_string(std::sync::Arc::new(std::sync::Mutex::new(Some("efficiently".to_string()))));
+
     let mut built = (*builder.lock().unwrap().as_mut().unwrap()).string();
     print!("Built string: {}\n", (*built.lock().unwrap().as_mut().unwrap()));
     print!("Builder length: {}\n", (*(*builder.lock().unwrap().as_mut().unwrap()).len().lock().unwrap().as_mut().unwrap()));
+
     println!("{}", "\n=== Unicode and runes ===".to_string());
     let mut unicode = std::sync::Arc::new(std::sync::Mutex::new(Some("Hello, 世界! 🌍".to_string())));
     print!("Unicode string: {}\n", (*unicode.lock().unwrap().as_mut().unwrap()));
     print!("Byte length: {}\n", (*unicode.lock().unwrap().as_mut().unwrap()).len());
+
     let mut runeCount = std::sync::Arc::new(std::sync::Mutex::new(Some(0)));
     for r in &(*unicode.lock().unwrap().as_mut().unwrap()) {
         { let mut guard = runeCount.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
         print!("Rune: {} (U+%04X)\n", r, r);
     }
     print!("Rune count: {}\n", (*runeCount.lock().unwrap().as_mut().unwrap()));
+
     println!("{}", "\n=== String trimming variations ===".to_string());
     let mut messy = std::sync::Arc::new(std::sync::Mutex::new(Some("!!!Hello World!!!".to_string())));
     print!("Original: {}\n", (*messy.lock().unwrap().as_mut().unwrap()));
     print!("TrimLeft '!': {}\n", (*(*strings.lock().unwrap().as_mut().unwrap()).trim_left(std::sync::Arc::new(std::sync::Mutex::new(Some((*messy.lock().unwrap().as_mut().unwrap())))), std::sync::Arc::new(std::sync::Mutex::new(Some("!".to_string())))).lock().unwrap().as_mut().unwrap()));
     print!("TrimRight '!': {}\n", (*(*strings.lock().unwrap().as_mut().unwrap()).trim_right(std::sync::Arc::new(std::sync::Mutex::new(Some((*messy.lock().unwrap().as_mut().unwrap())))), std::sync::Arc::new(std::sync::Mutex::new(Some("!".to_string())))).lock().unwrap().as_mut().unwrap()));
     print!("Trim '!': {}\n", (*(*strings.lock().unwrap().as_mut().unwrap()).trim(std::sync::Arc::new(std::sync::Mutex::new(Some((*messy.lock().unwrap().as_mut().unwrap())))), std::sync::Arc::new(std::sync::Mutex::new(Some("!".to_string())))).lock().unwrap().as_mut().unwrap()));
+
     println!("{}", "\n=== String formatting ===".to_string());
     let mut name = std::sync::Arc::new(std::sync::Mutex::new(Some("Alice".to_string())));
     let mut age = std::sync::Arc::new(std::sync::Mutex::new(Some(30)));
     let mut height = std::sync::Arc::new(std::sync::Mutex::new(Some(5.6)));
+
     print!("Name: {}, Age: {}, Height: {:.1}\n", (*name.lock().unwrap().as_mut().unwrap()), (*age.lock().unwrap().as_mut().unwrap()), (*height.lock().unwrap().as_mut().unwrap()));
     print!("Quoted string: %q\n", (*name.lock().unwrap().as_mut().unwrap()));
     print!("String with width: '%10s'\n", (*name.lock().unwrap().as_mut().unwrap()));

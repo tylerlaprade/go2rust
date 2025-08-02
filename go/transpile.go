@@ -57,7 +57,7 @@ func implementsInterface(typeName string, typeMethods []*ast.FuncDecl, iface *as
 	return true
 }
 
-func Transpile(file *ast.File) string {
+func Transpile(file *ast.File, fileSet *token.FileSet) string {
 	var output strings.Builder
 
 	// Check if this file uses print statements (might need formatters)
@@ -173,7 +173,7 @@ func Transpile(file *ast.File) string {
 			if i > 0 {
 				output.WriteString("\n")
 			}
-			TranspileMethodImpl(&output, method)
+			TranspileMethodImpl(&output, method, fileSet)
 		}
 
 		output.WriteString("}")
@@ -221,7 +221,7 @@ func Transpile(file *ast.File) string {
 						// Find the corresponding method implementation
 						for _, impl := range methods[typeName] {
 							if impl.Name.Name == methodName {
-								transpileMethodImplWithVisibility(&output, impl, false)
+								transpileMethodImplWithVisibility(&output, impl, false, fileSet)
 								break
 							}
 						}
@@ -239,7 +239,7 @@ func Transpile(file *ast.File) string {
 			output.WriteString("\n\n")
 		}
 		first = false
-		TranspileFunction(&output, fn)
+		TranspileFunction(&output, fn, fileSet)
 	}
 
 	return output.String()

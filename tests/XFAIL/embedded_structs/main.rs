@@ -107,29 +107,37 @@ impl Manager {
 fn main() {
     println!("{}", "=== Basic embedded struct ===".to_string());
     let mut emp = Employee { person: std::sync::Arc::new(std::sync::Mutex::new(Some(Person { name: std::sync::Arc::new(std::sync::Mutex::new(Some("Alice".to_string()))), age: std::sync::Arc::new(std::sync::Mutex::new(Some(30))) }))), address: std::sync::Arc::new(std::sync::Mutex::new(Some(Address { street: std::sync::Arc::new(std::sync::Mutex::new(Some("123 Main St".to_string()))), city: std::sync::Arc::new(std::sync::Mutex::new(Some("Anytown".to_string()))), state: std::sync::Arc::new(std::sync::Mutex::new(Some("CA".to_string()))) }))), i_d: std::sync::Arc::new(std::sync::Mutex::new(Some(1001))), salary: std::sync::Arc::new(std::sync::Mutex::new(Some(75000.0))) };
+
     print!("Name: {}\n", (*emp.lock().unwrap().as_mut().unwrap()).name);
     print!("Age: {}\n", (*emp.lock().unwrap().as_mut().unwrap()).age);
     print!("Street: {}\n", (*emp.lock().unwrap().as_mut().unwrap()).street);
     print!("ID: {}\n", (*emp.lock().unwrap().as_mut().unwrap()).i_d);
+
     (*emp.lock().unwrap().as_mut().unwrap()).greet();
     println!("{} {}", "Info:".to_string(), (*(*emp.lock().unwrap().as_mut().unwrap()).get_info().lock().unwrap().as_mut().unwrap()));
     println!("{} {}", "Address:".to_string(), (*(*emp.lock().unwrap().as_mut().unwrap()).full_address().lock().unwrap().as_mut().unwrap()));
     (*emp.lock().unwrap().as_mut().unwrap()).work();
+
     println!("{}", "\n=== Nested embedding ===".to_string());
     let mut mgr = Manager { employee: std::sync::Arc::new(std::sync::Mutex::new(Some(Employee { person: std::sync::Arc::new(std::sync::Mutex::new(Some(Person { name: std::sync::Arc::new(std::sync::Mutex::new(Some("Bob".to_string()))), age: std::sync::Arc::new(std::sync::Mutex::new(Some(35))) }))), address: std::sync::Arc::new(std::sync::Mutex::new(Some(Address { street: std::sync::Arc::new(std::sync::Mutex::new(Some("456 Oak Ave".to_string()))), city: std::sync::Arc::new(std::sync::Mutex::new(Some("Somewhere".to_string()))), state: std::sync::Arc::new(std::sync::Mutex::new(Some("NY".to_string()))) }))), i_d: std::sync::Arc::new(std::sync::Mutex::new(Some(2001))), salary: std::sync::Arc::new(std::sync::Mutex::new(Some(95000.0))) }))), team: std::sync::Arc::new(std::sync::Mutex::new(Some(std::sync::Arc::new(std::sync::Mutex::new(Some(vec!["Alice".to_string(), "Charlie".to_string(), "Diana".to_string()])))))) };
+
     print!("Manager: {}\n", (*mgr.lock().unwrap().as_mut().unwrap()).name);
     print!("Manager ID: {}\n", (*mgr.lock().unwrap().as_mut().unwrap()).i_d);
     print!("Manager City: {}\n", (*mgr.lock().unwrap().as_mut().unwrap()).city);
+
     (*mgr.lock().unwrap().as_mut().unwrap()).greet();
     (*mgr.lock().unwrap().as_mut().unwrap()).work();
     (*mgr.lock().unwrap().as_mut().unwrap()).manage();
+
     println!("{}", "\n=== Anonymous struct embedding ===".to_string());
     let mut company = Company { name: std::sync::Arc::new(std::sync::Mutex::new(Some("TechCorp".to_string()))) };
     { let new_val = 2010; *(*company.lock().unwrap().as_mut().unwrap()).founded.lock().unwrap() = Some(new_val); };
     { let new_val = "John Doe".to_string(); *(*company.lock().unwrap().as_mut().unwrap()).c_e_o.lock().unwrap() = Some(new_val); };
+
     print!("Company: {}\n", (*company.lock().unwrap().as_mut().unwrap()).name);
     print!("Founded: {}\n", (*company.lock().unwrap().as_mut().unwrap()).founded);
     print!("CEO: {}\n", (*company.lock().unwrap().as_mut().unwrap()).c_e_o);
+
     println!("{}", "\n=== Method promotion ===".to_string());
     println!("{}", "Employee methods are promoted from Person and Address".to_string());
     print!("Employee can call: {}\n", (*(*emp.lock().unwrap().as_mut().unwrap()).get_info().lock().unwrap().as_mut().unwrap()));

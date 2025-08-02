@@ -54,6 +54,7 @@ impl ServerState {
 fn main() {
     let mut ns = transition(StateIdle.clone());
     println!("{}", (*ns.lock().unwrap().as_mut().unwrap()));
+
     let mut ns2 = transition(ns.clone());
     println!("{}", (*ns2.lock().unwrap().as_mut().unwrap()));
 }

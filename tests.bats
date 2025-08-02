@@ -253,6 +253,10 @@ run_xfail_test() {
     run_test "tests/library_example"
 }
 
+@test "maps_basic" {
+    run_test "tests/maps_basic"
+}
+
 @test "maps_operations" {
     run_test "tests/maps_operations"
 }
@@ -471,10 +475,6 @@ run_xfail_test() {
 
 @test "XFAIL: labeled_statements" {
     run_xfail_test "tests/XFAIL/labeled_statements"
-}
-
-@test "XFAIL: maps_basic" {
-    run_xfail_test "tests/XFAIL/maps_basic"
 }
 
 @test "XFAIL: methods" {

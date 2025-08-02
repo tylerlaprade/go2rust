@@ -52,6 +52,7 @@ fn main() {
     } else {
         println!("{} {}", "Result:".to_string(), (*result.lock().unwrap().as_mut().unwrap()));
     }
+
     (result, err) = divide(std::sync::Arc::new(std::sync::Mutex::new(Some(10))), std::sync::Arc::new(std::sync::Mutex::new(Some(0))));
     if (*err.lock().unwrap()).is_some() {
         println!("{} {}", "Error:".to_string(), (*err.lock().unwrap().as_mut().unwrap()));

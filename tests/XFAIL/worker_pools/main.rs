@@ -51,17 +51,20 @@ fn main() {
 
     let mut jobs = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![std::sync::Arc::new(std::sync::Mutex::new(Some(0))); numJobs])));
     let mut results = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![std::sync::Arc::new(std::sync::Mutex::new(Some(0))); numJobs])));
+
     let mut w = std::sync::Arc::new(std::sync::Mutex::new(Some(1)));
     while (*w.lock().unwrap().as_mut().unwrap()) <= 3 {
         // TODO: Unhandled statement type: GoStmt
         { let mut guard = w.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
+
     let mut j = std::sync::Arc::new(std::sync::Mutex::new(Some(1)));
     while (*j.lock().unwrap().as_mut().unwrap()) <= numJobs {
         // TODO: Unhandled statement type: SendStmt
         { let mut guard = j.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
     close(jobs.clone());
+
     let mut a = std::sync::Arc::new(std::sync::Mutex::new(Some(1)));
     while (*a.lock().unwrap().as_mut().unwrap()) <= numJobs {
         <-(*results.lock().unwrap().as_mut().unwrap());
