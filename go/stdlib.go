@@ -63,55 +63,17 @@ func transpileFmtPrintln(out *strings.Builder, call *ast.CallExpr) {
 
 	if len(call.Args) > 0 {
 		out.WriteString("\"")
-		for i, arg := range call.Args {
+		for i := range call.Args {
 			if i > 0 {
 				out.WriteString(" ")
 			}
-			// Check if argument might be a map or slice
-			// TODO (hack): This is a heuristic - ideally we'd use type information
-			isMap := false
-			isSlice := false
-			if ident, ok := arg.(*ast.Ident); ok {
-				name := strings.ToLower(ident.Name)
-				isMap = strings.Contains(name, "map") || name == "ages" || name == "colors" || name == "m"
-				isSlice = strings.Contains(name, "slice") || strings.Contains(name, "arr")
-			}
-
-			if isMap || isSlice {
-				out.WriteString("{:?}")
-			} else {
-				out.WriteString("{}")
-			}
+			out.WriteString("{}")
 		}
 		out.WriteString("\"")
 
 		for _, arg := range call.Args {
 			out.WriteString(", ")
-			// Check if this is a function call that returns a wrapped value
-			if callExpr, ok := arg.(*ast.CallExpr); ok {
-				// Check if it's a method call or user function call
-				needsUnwrap := false
-
-				// Check for method call
-				if _, ok := callExpr.Fun.(*ast.SelectorExpr); ok {
-					needsUnwrap = true
-				} else if _, ok := callExpr.Fun.(*ast.Ident); ok && GetStdlibHandler(callExpr) == nil {
-					// User function call (not stdlib)
-					needsUnwrap = true
-				}
-
-				if needsUnwrap {
-					// Method call or user function call - unwrap the result
-					out.WriteString("(*")
-					TranspileExpression(out, arg)
-					out.WriteString(".lock().unwrap().as_mut().unwrap())")
-				} else {
-					// Stdlib function or other expression
-					TranspileExpression(out, arg)
-				}
-			} else {
-				TranspileExpression(out, arg)
-			}
+			transpilePrintArg(out, arg)
 		}
 	}
 
@@ -135,31 +97,7 @@ func transpileBuiltinPrintln(out *strings.Builder, call *ast.CallExpr) {
 
 		for _, arg := range call.Args {
 			out.WriteString(", ")
-			// Check if this is a function call that returns a wrapped value
-			if callExpr, ok := arg.(*ast.CallExpr); ok {
-				// Check if it's a method call or user function call
-				needsUnwrap := false
-
-				// Check for method call
-				if _, ok := callExpr.Fun.(*ast.SelectorExpr); ok {
-					needsUnwrap = true
-				} else if _, ok := callExpr.Fun.(*ast.Ident); ok && GetStdlibHandler(callExpr) == nil {
-					// User function call (not stdlib)
-					needsUnwrap = true
-				}
-
-				if needsUnwrap {
-					// Method call or user function call - unwrap the result
-					out.WriteString("(*")
-					TranspileExpression(out, arg)
-					out.WriteString(".lock().unwrap().as_mut().unwrap())")
-				} else {
-					// Stdlib function or other expression
-					TranspileExpression(out, arg)
-				}
-			} else {
-				TranspileExpression(out, arg)
-			}
+			transpilePrintArg(out, arg)
 		}
 	}
 
@@ -168,6 +106,28 @@ func transpileBuiltinPrintln(out *strings.Builder, call *ast.CallExpr) {
 
 // Helper function to unwrap arguments for print statements
 func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
+	// Check if argument might be a map or slice
+	isMap := false
+	isSlice := false
+	if ident, ok := arg.(*ast.Ident); ok {
+		name := strings.ToLower(ident.Name)
+		isMap = strings.Contains(name, "map") || name == "ages" || name == "colors" || name == "m"
+		isSlice = strings.Contains(name, "slice") || strings.Contains(name, "arr") || name == "numbers" || name == "nums" || name == "made"
+		if isMap {
+			// Use format_map helper
+			out.WriteString("format_map(&")
+			out.WriteString(ident.Name)
+			out.WriteString(")")
+			return
+		} else if isSlice {
+			// Use format_slice helper
+			out.WriteString("format_slice(&")
+			out.WriteString(ident.Name)
+			out.WriteString(")")
+			return
+		}
+	}
+
 	// Check if this is a field access on self (already wrapped)
 	if sel, ok := arg.(*ast.SelectorExpr); ok {
 		if ident, ok := sel.X.(*ast.Ident); ok && currentReceiver != "" && ident.Name == currentReceiver {
@@ -178,6 +138,28 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 			return
 		}
 	}
+	// Check if this is a function call that returns a wrapped value
+	if callExpr, ok := arg.(*ast.CallExpr); ok {
+		// Check if it's a method call or user function call
+		needsUnwrap := false
+
+		// Check for method call
+		if _, ok := callExpr.Fun.(*ast.SelectorExpr); ok {
+			needsUnwrap = true
+		} else if _, ok := callExpr.Fun.(*ast.Ident); ok && GetStdlibHandler(callExpr) == nil {
+			// User function call (not stdlib)
+			needsUnwrap = true
+		}
+
+		if needsUnwrap {
+			// Method call or user function call - unwrap the result
+			out.WriteString("(*")
+			TranspileExpression(out, arg)
+			out.WriteString(".lock().unwrap().as_mut().unwrap())")
+			return
+		}
+	}
+
 	// For other cases, just use regular expression transpilation
 	TranspileExpression(out, arg)
 }
@@ -437,4 +419,52 @@ func transpileNew(out *strings.Builder, call *ast.CallExpr) {
 		out.WriteString(GoTypeToRust(call.Args[0]))
 		out.WriteString("::default())))")
 	}
+}
+
+// Helper function to format maps like Go does
+func generateMapFormatter(out *strings.Builder) {
+	out.WriteString(`fn format_map<K: std::fmt::Display + std::cmp::Ord + Clone, V>(map: &std::sync::Arc<std::sync::Mutex<Option<std::collections::HashMap<K, std::sync::Arc<std::sync::Mutex<Option<V>>>>>>>) -> String 
+where
+    V: std::fmt::Display,
+{
+    let guard = map.lock().unwrap();
+    if let Some(ref m) = *guard {
+        let mut items: Vec<_> = m.iter().collect();
+        items.sort_by_key(|(k, _)| (*k).clone());
+        
+        let formatted: Vec<String> = items
+            .into_iter()
+            .map(|(k, v)| {
+                let v_guard = v.lock().unwrap();
+                if let Some(ref val) = *v_guard {
+                    format!("{}:{}", k, val)
+                } else {
+                    format!("{}:<nil>", k)
+                }
+            })
+            .collect();
+        
+        format!("map[{}]", formatted.join(" "))
+    } else {
+        "map[]".to_string()
+    }
+}
+`)
+}
+
+// Helper function to format slices like Go does
+func generateSliceFormatter(out *strings.Builder) {
+	out.WriteString(`fn format_slice<T>(slice: &std::sync::Arc<std::sync::Mutex<Option<Vec<T>>>>) -> String 
+where
+    T: std::fmt::Display,
+{
+    let guard = slice.lock().unwrap();
+    if let Some(ref s) = *guard {
+        let formatted: Vec<String> = s.iter().map(|v| v.to_string()).collect();
+        format!("[{}]", formatted.join(" "))
+    } else {
+        "[]".to_string()
+    }
+}
+`)
 }

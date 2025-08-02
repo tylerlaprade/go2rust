@@ -1,3 +1,42 @@
+fn format_map<K: std::fmt::Display + std::cmp::Ord + Clone, V>(map: &std::sync::Arc<std::sync::Mutex<Option<std::collections::HashMap<K, std::sync::Arc<std::sync::Mutex<Option<V>>>>>>>) -> String 
+where
+    V: std::fmt::Display,
+{
+    let guard = map.lock().unwrap();
+    if let Some(ref m) = *guard {
+        let mut items: Vec<_> = m.iter().collect();
+        items.sort_by_key(|(k, _)| (*k).clone());
+        
+        let formatted: Vec<String> = items
+            .into_iter()
+            .map(|(k, v)| {
+                let v_guard = v.lock().unwrap();
+                if let Some(ref val) = *v_guard {
+                    format!("{}:{}", k, val)
+                } else {
+                    format!("{}:<nil>", k)
+                }
+            })
+            .collect();
+        
+        format!("map[{}]", formatted.join(" "))
+    } else {
+        "map[]".to_string()
+    }
+}
+fn format_slice<T>(slice: &std::sync::Arc<std::sync::Mutex<Option<Vec<T>>>>) -> String 
+where
+    T: std::fmt::Display,
+{
+    let guard = slice.lock().unwrap();
+    if let Some(ref s) = *guard {
+        let formatted: Vec<String> = s.iter().map(|v| v.to_string()).collect();
+        format!("[{}]", formatted.join(" "))
+    } else {
+        "[]".to_string()
+    }
+}
+
 fn main() {
     println!("{}", "=== Testing multiple stdlib imports ===".to_string());
     println!("{}", "\n--- strings package ---".to_string());
@@ -24,10 +63,10 @@ fn main() {
     println!("{}", "\n--- math package ---".to_string());
     print!("Pi: %.6f\n", (*math.lock().unwrap().as_mut().unwrap()).pi);
     print!("E: %.6f\n", (*math.lock().unwrap().as_mut().unwrap()).e);
-    print!("Sqrt(16): {:.2}\n", (*math.lock().unwrap().as_mut().unwrap()).sqrt(std::sync::Arc::new(std::sync::Mutex::new(Some(16)))));
-    print!("Pow(2, 8): %.0f\n", (*math.lock().unwrap().as_mut().unwrap()).pow(std::sync::Arc::new(std::sync::Mutex::new(Some(2))), std::sync::Arc::new(std::sync::Mutex::new(Some(8)))));
-    print!("Max(10, 20): %.0f\n", (*math.lock().unwrap().as_mut().unwrap()).max(std::sync::Arc::new(std::sync::Mutex::new(Some(10))), std::sync::Arc::new(std::sync::Mutex::new(Some(20)))));
-    print!("Min(10, 20): %.0f\n", (*math.lock().unwrap().as_mut().unwrap()).min(std::sync::Arc::new(std::sync::Mutex::new(Some(10))), std::sync::Arc::new(std::sync::Mutex::new(Some(20)))));
+    print!("Sqrt(16): {:.2}\n", (*(*math.lock().unwrap().as_mut().unwrap()).sqrt(std::sync::Arc::new(std::sync::Mutex::new(Some(16)))).lock().unwrap().as_mut().unwrap()));
+    print!("Pow(2, 8): %.0f\n", (*(*math.lock().unwrap().as_mut().unwrap()).pow(std::sync::Arc::new(std::sync::Mutex::new(Some(2))), std::sync::Arc::new(std::sync::Mutex::new(Some(8)))).lock().unwrap().as_mut().unwrap()));
+    print!("Max(10, 20): %.0f\n", (*(*math.lock().unwrap().as_mut().unwrap()).max(std::sync::Arc::new(std::sync::Mutex::new(Some(10))), std::sync::Arc::new(std::sync::Mutex::new(Some(20)))).lock().unwrap().as_mut().unwrap()));
+    print!("Min(10, 20): %.0f\n", (*(*math.lock().unwrap().as_mut().unwrap()).min(std::sync::Arc::new(std::sync::Mutex::new(Some(10))), std::sync::Arc::new(std::sync::Mutex::new(Some(20)))).lock().unwrap().as_mut().unwrap()));
     println!("{}", "\n--- time package ---".to_string());
     let mut now = (*time.lock().unwrap().as_mut().unwrap()).now();
     println!("{} {}", "Current time:".to_string(), (*(*now.lock().unwrap().as_mut().unwrap()).format(std::sync::Arc::new(std::sync::Mutex::new(Some("2006-01-02 15:04:05".to_string())))).lock().unwrap().as_mut().unwrap()));

@@ -60,6 +60,33 @@ func implementsInterface(typeName string, typeMethods []*ast.FuncDecl, iface *as
 func Transpile(file *ast.File) string {
 	var output strings.Builder
 
+	// Check if this file uses print statements (might need formatters)
+	needsFormatters := false
+	ast.Inspect(file, func(n ast.Node) bool {
+		if call, ok := n.(*ast.CallExpr); ok {
+			// Check for fmt.Println, fmt.Printf, or builtin println
+			if sel, ok := call.Fun.(*ast.SelectorExpr); ok {
+				if ident, ok := sel.X.(*ast.Ident); ok && ident.Name == "fmt" {
+					if sel.Sel.Name == "Println" || sel.Sel.Name == "Printf" {
+						needsFormatters = true
+						return false
+					}
+				}
+			} else if ident, ok := call.Fun.(*ast.Ident); ok && ident.Name == "println" {
+				needsFormatters = true
+				return false
+			}
+		}
+		return true
+	})
+
+	// Add helper functions if needed
+	if needsFormatters {
+		generateMapFormatter(&output)
+		generateSliceFormatter(&output)
+		output.WriteString("\n")
+	}
+
 	// Collect methods by receiver type
 	methods := make(map[string][]*ast.FuncDecl)
 	typePositions := make(map[string]token.Pos)

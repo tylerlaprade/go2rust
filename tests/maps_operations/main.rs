@@ -38,12 +38,14 @@ where
 }
 
 fn main() {
-    let mut x: std::sync::Arc<std::sync::Mutex<Option<i32>>> = std::sync::Arc::new(std::sync::Mutex::new(Some(42)));
-    let mut y: std::sync::Arc<std::sync::Mutex<Option<String>>> = std::sync::Arc::new(std::sync::Mutex::new(Some("hello".to_string())));
-    let mut z: std::sync::Arc<std::sync::Mutex<Option<f64>>> = std::sync::Arc::new(std::sync::Mutex::new(Some(3.14)));
-    let mut a = std::sync::Arc::new(std::sync::Mutex::new(Some(100)));
-    let mut b = std::sync::Arc::new(std::sync::Mutex::new(Some("world".to_string())));
-    let mut c = std::sync::Arc::new(std::sync::Mutex::new(Some(2.71)));
-    println!("{} {} {} {}", "Variables:".to_string(), (*x.lock().unwrap().as_mut().unwrap()), (*y.lock().unwrap().as_mut().unwrap()), (*z.lock().unwrap().as_mut().unwrap()));
-    println!("{} {} {} {}", "Short vars:".to_string(), (*a.lock().unwrap().as_mut().unwrap()), (*b.lock().unwrap().as_mut().unwrap()), (*c.lock().unwrap().as_mut().unwrap()));
+    let mut m = std::sync::Arc::new(std::sync::Mutex::new(Some(std::collections::HashMap::<String, std::sync::Arc<std::sync::Mutex<Option<i32>>>>::new())));
+    (*m.lock().unwrap().as_mut().unwrap()).insert("k1".to_string(), std::sync::Arc::new(std::sync::Mutex::new(Some(7))));
+    (*m.lock().unwrap().as_mut().unwrap()).insert("k2".to_string(), std::sync::Arc::new(std::sync::Mutex::new(Some(13))));
+    println!("{} {}", "map:".to_string(), format_map(&m));
+    let mut v1 = std::sync::Arc::new(std::sync::Mutex::new(Some((*(*m.lock().unwrap().as_ref().unwrap()).get(&"k1".to_string()).unwrap().lock().unwrap().as_ref().unwrap()))));
+    println!("{} {}", "v1:".to_string(), (*v1.lock().unwrap().as_mut().unwrap()));
+    (*m.lock().unwrap().as_mut().unwrap()).remove(&"k2".to_string());
+    println!("{} {}", "map:".to_string(), format_map(&m));
+    let (_, mut prs) = match (*m.lock().unwrap().as_ref().unwrap()).get(&"k2".to_string()) { Some(v) => (v.clone(), std::sync::Arc::new(std::sync::Mutex::new(Some(true)))), None => (std::sync::Arc::new(std::sync::Mutex::new(Some(0))), std::sync::Arc::new(std::sync::Mutex::new(Some(false)))) };
+    println!("{} {}", "prs:".to_string(), (*prs.lock().unwrap().as_mut().unwrap()));
 }

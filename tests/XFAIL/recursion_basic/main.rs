@@ -1,3 +1,42 @@
+fn format_map<K: std::fmt::Display + std::cmp::Ord + Clone, V>(map: &std::sync::Arc<std::sync::Mutex<Option<std::collections::HashMap<K, std::sync::Arc<std::sync::Mutex<Option<V>>>>>>>) -> String 
+where
+    V: std::fmt::Display,
+{
+    let guard = map.lock().unwrap();
+    if let Some(ref m) = *guard {
+        let mut items: Vec<_> = m.iter().collect();
+        items.sort_by_key(|(k, _)| (*k).clone());
+        
+        let formatted: Vec<String> = items
+            .into_iter()
+            .map(|(k, v)| {
+                let v_guard = v.lock().unwrap();
+                if let Some(ref val) = *v_guard {
+                    format!("{}:{}", k, val)
+                } else {
+                    format!("{}:<nil>", k)
+                }
+            })
+            .collect();
+        
+        format!("map[{}]", formatted.join(" "))
+    } else {
+        "map[]".to_string()
+    }
+}
+fn format_slice<T>(slice: &std::sync::Arc<std::sync::Mutex<Option<Vec<T>>>>) -> String 
+where
+    T: std::fmt::Display,
+{
+    let guard = slice.lock().unwrap();
+    if let Some(ref s) = *guard {
+        let formatted: Vec<String> = s.iter().map(|v| v.to_string()).collect();
+        format!("[{}]", formatted.join(" "))
+    } else {
+        "[]".to_string()
+    }
+}
+
 pub fn factorial(n: std::sync::Arc<std::sync::Mutex<Option<i32>>>) -> std::sync::Arc<std::sync::Mutex<Option<i32>>> {
 
     if (*n.lock().unwrap().as_mut().unwrap()) <= 1 {
@@ -62,7 +101,7 @@ fn main() {
     println!("{}", "Fibonacci sequence:".to_string());
     let mut i = std::sync::Arc::new(std::sync::Mutex::new(Some(0)));
     while (*i.lock().unwrap().as_mut().unwrap()) < 10 {
-        print!("fib({}) = {}\n", (*i.lock().unwrap().as_mut().unwrap()), fibonacci(i.clone()));
+        print!("fib({}) = {}\n", (*i.lock().unwrap().as_mut().unwrap()), (*fibonacci(i.clone()).lock().unwrap().as_mut().unwrap()));
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
     println!("{} {}", "GCD of 48 and 18:".to_string(), (*gcd(std::sync::Arc::new(std::sync::Mutex::new(Some(48))), std::sync::Arc::new(std::sync::Mutex::new(Some(18)))).lock().unwrap().as_mut().unwrap()));
@@ -71,7 +110,7 @@ fn main() {
     println!("{} {}", "3^4 =".to_string(), (*power(std::sync::Arc::new(std::sync::Mutex::new(Some(3))), std::sync::Arc::new(std::sync::Mutex::new(Some(4)))).lock().unwrap().as_mut().unwrap()));
     println!("{} {}", "5^0 =".to_string(), (*power(std::sync::Arc::new(std::sync::Mutex::new(Some(5))), std::sync::Arc::new(std::sync::Mutex::new(Some(0)))).lock().unwrap().as_mut().unwrap()));
     let mut numbers = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![1, 2, 3, 4, 5])));
-    println!("{} {} {} {}", "Sum of".to_string(), (*numbers.lock().unwrap().as_mut().unwrap()), "=".to_string(), (*sum_array(numbers.clone()).lock().unwrap().as_mut().unwrap()));
+    println!("{} {} {} {}", "Sum of".to_string(), format_slice(&numbers), "=".to_string(), (*sum_array(numbers.clone()).lock().unwrap().as_mut().unwrap()));
     let mut original = std::sync::Arc::new(std::sync::Mutex::new(Some("hello".to_string())));
     let mut reversed = reverse_string(original.clone());
     print!("'{}' reversed is '{}'\n", (*original.lock().unwrap().as_mut().unwrap()), (*reversed.lock().unwrap().as_mut().unwrap()));
