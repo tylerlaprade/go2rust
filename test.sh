@@ -1,13 +1,5 @@
 #!/bin/bash
 
-# Cleanup function to remove temporary files
-cleanup() {
-    rm -f test_output.tmp
-}
-
-# Set trap to cleanup on exit or interrupt
-trap cleanup EXIT INT TERM
-
 # Generate test cases and update the GENERATED TESTS section in tests.bats
 
 # Create temporary file for new test cases
@@ -254,23 +246,26 @@ if [ "$JOBS" -eq 1 ]; then
 else
     # Parallel mode - buffered output
     echo "Running tests in parallel with $JOBS jobs (timeout: $TIMEOUT per test)..."
+    
+    # Capture output in a variable
     if [ -n "$FILTER_PATTERN" ]; then
-        bats -j "$JOBS" --filter "$FILTER_PATTERN" tests.bats | tee test_output.tmp | colorize_output
+        TEST_OUTPUT=$(bats -j "$JOBS" --filter "$FILTER_PATTERN" tests.bats)
     else
-        bats -j "$JOBS" tests.bats | tee test_output.tmp | colorize_output
+        TEST_OUTPUT=$(bats -j "$JOBS" tests.bats)
     fi
-fi
-
-# Extract and display test summary with colors (only for parallel mode)
-if [ "$JOBS" -gt 1 ] && [ -f test_output.tmp ]; then
+    
+    # Display the output with colors
+    echo "$TEST_OUTPUT" | colorize_output
+    
+    # Extract and display test summary with colors (only for parallel mode)
     echo ""
     echo -e "\033[1mTest Summary:\033[0m"
     echo "============="
 
-    # Count all test types
-    PASSING=$(grep "^ok " test_output.tmp | grep -v "XFAIL" | wc -l | tr -d ' ')
-    FAILING=$(grep "^not ok " test_output.tmp | grep -v "XFAIL" | wc -l | tr -d ' ')
-    XFAIL_TOTAL=$(grep "XFAIL" test_output.tmp | wc -l | tr -d ' ')
+    # Count all test types from the captured output
+    PASSING=$(echo "$TEST_OUTPUT" | grep "^ok " | grep -v "XFAIL" | wc -l | tr -d ' ')
+    FAILING=$(echo "$TEST_OUTPUT" | grep "^not ok " | grep -v "XFAIL" | wc -l | tr -d ' ')
+    XFAIL_TOTAL=$(echo "$TEST_OUTPUT" | grep "XFAIL" | wc -l | tr -d ' ')
     TOTAL=$((PASSING + FAILING + XFAIL_TOTAL))
 
     # Display with colors and symbols
@@ -283,9 +278,8 @@ if [ "$JOBS" -gt 1 ] && [ -f test_output.tmp ]; then
     if [ "$FAILING" -gt 0 ]; then
         echo ""
         echo -e "\033[31mFailed tests:\033[0m"
-        grep "^not ok " test_output.tmp | grep -v "XFAIL" | while IFS= read -r line; do
+        echo "$TEST_OUTPUT" | grep "^not ok " | grep -v "XFAIL" | while IFS= read -r line; do
             echo -e "\033[31m  - $(echo "$line" | sed 's/^not ok [0-9]* //')\033[0m"
         done
     fi
-
 fi
