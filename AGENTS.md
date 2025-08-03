@@ -50,21 +50,19 @@ fn add(a: Arc<Mutex<Option<i32>>>, b: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Opti
 
 ### ✅ Phase 1: Hello World
 
-Basic program transpilation working
+Basic program transpilation
 
-### ⏳ Phase 2: Variables and Basic Types
+### ✅ Phase 2: Variables and Basic Types
 
-- **Done**: Basic syntax, maps, nil, interface{}, type assertions, break/continue statements
-- **TODO**: Map delete/iteration, error handling patterns, custom formatting for slices/maps to match Go output
-- **Issues**: No embedded struct promotion
+Variables, basic types, maps, nil, interface{}, type assertions, control flow
 
 ### ✅ Phase 3: Pointers and Mutation
 
-Pointer types, &/*, new() builtin, struct fields, nil handling all working
+Pointer types, &/*, new() builtin, struct fields, nil handling
 
 ### ✅ Phase 4: Functions and Methods
 
-Method receivers (value and pointer), multiple returns, method calls all working
+Method receivers (value and pointer), multiple returns, method calls
 
 ### 📋 Phase 5: Goroutines and Concurrency
 
