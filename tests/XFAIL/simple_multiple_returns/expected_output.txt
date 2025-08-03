@@ -1,0 +1,4 @@
+Quotient: 3 Remainder: 2
+Before swap: hello world
+After swap: world hello
+23 mod 7 = 2

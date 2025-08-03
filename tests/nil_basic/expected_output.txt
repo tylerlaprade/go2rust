@@ -1,0 +1,4 @@
+p is nil
+q is nil
+p is not nil, value: 42
+p is nil again

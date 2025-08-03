@@ -1,0 +1,35 @@
+=== Basic multiple returns ===
+17 / 5 = 3 remainder 2
+Name: Alice, Age: 30
+
+=== Multiple returns with errors ===
+Parsed number: 123
+Error: failed to parse 'abc': strconv.Atoi: parsing "abc": invalid syntax
+
+=== Named return values ===
+Sum: 13, Product: 42
+Data: [3 1 4 1 5 9 2 6]
+Min: 1, Max: 9, Sum: 31
+
+=== Swapping values ===
+Before swap: x=hello, y=world
+After swap: x=world, y=hello
+
+=== Different types ===
+Person: Bob, 25 years old, 5.9 feet tall, married: false
+
+=== Finding in slice ===
+Found 30 at index 2
+99 not found
+
+=== Safe division ===
+10.0 / 3.0 = 3.33
+Error: division by zero
+
+=== Ignoring return values ===
+23 mod 7 = 2 (quotient ignored)
+Name only: Alice (age ignored)
+
+=== Multiple assignment ===
+a=1, b=2, c=3
+After swap: a=2, b=1

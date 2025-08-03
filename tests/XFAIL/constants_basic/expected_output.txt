@@ -1,0 +1,46 @@
+=== Basic constants ===
+Pi = 3.14159
+Euler = 2.71828
+MaxUsers = 100
+
+=== Typed constants ===
+Name: Go2Rust
+Version: 1.0
+Debug: true
+
+=== Weekday constants ===
+Sunday = 0
+Monday = 1
+Wednesday = 3
+Saturday = 6
+
+=== Size constants ===
+KB = 1024 bytes
+MB = 1048576 bytes
+GB = 1073741824 bytes
+TB = 1099511627776 bytes
+
+=== Color constants ===
+Red = 0
+Green = 1
+Blue = 2
+
+=== Complex iota expressions ===
+A = 0
+B = 2
+C = 4
+D = 13
+EE = 14
+F = 15
+
+=== Local constants ===
+localConst = 42
+x = 10, y = 20, z = 30
+
+=== Untyped constants in expressions ===
+i = 100
+f = 3.14
+mixed = 103
+
+=== String constants ===
+Hello, World!

@@ -1,0 +1,2 @@
+Variables: 42 hello 3.14
+Short vars: 100 world 2.71

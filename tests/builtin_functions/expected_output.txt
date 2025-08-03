@@ -1,0 +1,2 @@
+This goes to stderr
+5

@@ -1,0 +1,24 @@
+=== Basic switch ===
+Monday
+Weekend
+Invalid day
+
+=== Switch with expression ===
+x * 2 equals 20
+
+=== Switch without expression ===
+Grade: B
+
+=== Switch with fallthrough ===
+One
+Two or after One
+Three or after Two or after One
+---
+Other number
+
+=== Type switch ===
+Integer: 42
+String: hello
+Boolean: true
+Float: 3.14
+Unknown type: []int

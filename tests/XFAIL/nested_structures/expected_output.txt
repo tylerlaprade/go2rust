@@ -1,0 +1,65 @@
+=== Creating nested structures ===
+
+=== Accessing nested data ===
+Company: TechCorp Inc
+HQ Address: 123 Corporate Blvd, Tech City, CA 90210
+Department: Engineering
+Department Budget: $1000000.00
+Manager: Alice Manager (Age: 45)
+Manager Email: manager@company.com
+Manager Address: Suburb, CA
+
+=== Department employees ===
+Employee 1: Bob Employee
+  Age: 30
+  Email: emp1@company.com
+  Phone: 555-0002
+  Address: 789 Employee Ave, Hometown, CA
+
+Employee 2: Carol Worker
+  Age: 28
+  Email: emp2@company.com
+  Phone: 555-0003
+  Address: 321 Worker Way, Village, CA
+
+=== Nested maps ===
+Inventory:
+  supplies:
+    pens: 1000
+    paper: 500
+    folders: 300
+  electronics:
+    laptops: 50
+    phones: 100
+    tablets: 25
+  furniture:
+    chairs: 200
+    desks: 75
+    lamps: 150
+Laptop count: 50
+
+=== Nested slices ===
+Matrix:
+Row 0: 1  2  3 
+Row 1: 4  5  6 
+Row 2: 7  8  9 
+Center element: 5
+
+3D Cube:
+Layer 0:
+  Row 0: 1 2 
+  Row 1: 3 4 
+Layer 1:
+  Row 0: 5 6 
+  Row 1: 7 8 
+
+=== Complex nested with interfaces ===
+Canvas: My Drawing
+Shape 1: Circle(r=5.0)
+Shape 2: Rectangle(10.0x8.0)
+Shape 3: Circle(r=3.0)
+
+=== Modifying nested structures ===
+Updated employee email: bob.new@company.com
+Added new employee: Dave Newbie
+Total employees now: 3

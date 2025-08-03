@@ -1,0 +1,5 @@
+ID: json="id" db="user_id"
+Name: json="name,omitempty" db="full_name"
+Email: json="email" db="email_address"
+IsActive: json="is_active" db="active"
+internal: json="" db=""

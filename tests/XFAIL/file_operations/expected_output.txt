@@ -1,0 +1,83 @@
+=== File Operations Test ===
+
+--- Writing to file ---
+Wrote: Hello, World!
+Wrote: This is line 2
+Wrote: Go file operations
+Wrote: Line 4 with numbers: 123
+Wrote: Final line
+File 'test_file.txt' created successfully
+
+--- Reading entire file ---
+File contents:
+Hello, World!
+This is line 2
+Go file operations
+Line 4 with numbers: 123
+Final line
+
+--- Reading file line by line ---
+Line 1: Hello, World!
+Line 2: This is line 2
+Line 3: Go file operations
+Line 4: Line 4 with numbers: 123
+Line 5: Final line
+
+--- Appending to file ---
+Appended: Appended line 1
+Appended: Appended line 2
+
+--- Reading updated file ---
+Updated file contents:
+Hello, World!
+This is line 2
+Go file operations
+Line 4 with numbers: 123
+Final line
+Appended line 1
+Appended line 2
+
+--- File information ---
+File name: test_file.txt
+File size: 116 bytes
+File mode: -rw-r--r--
+Modified time: 2025-08-03 16:35:22.444277756 -0400 EDT
+Is directory: false
+
+--- Copying file ---
+Copied 116 bytes to 'test_file_copy.txt'
+
+--- Processing file content ---
+Found line with numbers: Line 4 with numbers: 123
+Statistics:
+  Lines: 7
+  Words: 22
+  Characters: 109
+
+--- Writing formatted data ---
+Formatted data written to 'data.txt'
+
+--- Reading formatted data ---
+Data file contents:
+Name: John Doe
+Age: 30
+Score: 95.50
+Active: true
+
+--- Checking file existence ---
+File 'test_file.txt' exists
+File 'test_file_copy.txt' exists
+File 'data.txt' exists
+File 'nonexistent.txt' does not exist
+
+--- Cleaning up ---
+Removed file 'test_file.txt'
+Removed file 'test_file_copy.txt'
+Removed file 'data.txt'
+
+--- Verifying cleanup ---
+File 'test_file.txt' successfully removed
+File 'test_file_copy.txt' successfully removed
+File 'data.txt' successfully removed
+
+File operations test completed!

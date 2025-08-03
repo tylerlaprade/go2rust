@@ -1,0 +1,10 @@
+add(3, 4) = 7
+increment() = 11
+increment() = 12
+x = 12
+double(5) = 10
+triple(5) = 15
+IIFE result = 20
+operations[0](10, 5) = 15
+operations[1](10, 5) = 5
+operations[2](10, 5) = 50

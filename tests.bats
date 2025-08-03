@@ -148,10 +148,32 @@ run_test() {
             echo "$go_output"
             exit 1
         fi
-
+        
+        # Check if expected output exists and compare
+        expected_file="$test_dir/expected_output.txt"
+        if [ -f "$expected_file" ]; then
+            expected_output=$(cat "$expected_file")
+            if [ "$go_output" != "$expected_output" ]; then
+                echo ""
+                echo "ERROR: Go output doesn'"'"'t match expected (non-deterministic?):"
+                echo ""
+                echo "Expected output:"
+                echo "$expected_output"
+                echo ""
+                echo "Actual Go output:"
+                echo "$go_output"
+                echo ""
+                echo "This likely means the Go test produces non-deterministic output."
+                echo "Please update the test to ensure deterministic output (e.g., sort map keys before iteration)."
+                exit 1
+            fi
+        else
+            # Save the Go output as expected for future runs
+            echo "$go_output" > "$expected_file"
+        fi
+        
         # Use the shared helper for transpilation and comparison
-        run_transpile_and_compare "$test_dir" "$go_output"
-    ' _ "$test_dir"; then
+        run_transpile_and_compare "$test_dir" "$go_output"    ' _ "$test_dir"; then
         if [ $? -eq 124 ]; then
             echo "Test timed out after $timeout"
         fi
@@ -195,6 +217,29 @@ run_xfail_test() {
             echo "Go execution failed:"
             echo "$go_output"
             exit 1
+        fi
+        
+        # Check if expected output exists and compare
+        expected_file="$test_dir/expected_output.txt"
+        if [ -f "$expected_file" ]; then
+            expected_output=$(cat "$expected_file")
+            if [ "$go_output" != "$expected_output" ]; then
+                echo ""
+                echo "ERROR: Go output doesn'"'"'t match expected (non-deterministic?):"
+                echo ""
+                echo "Expected output:"
+                echo "$expected_output"
+                echo ""
+                echo "Actual Go output:"
+                echo "$go_output"
+                echo ""
+                echo "This likely means the Go test produces non-deterministic output."
+                echo "Please update the test to ensure deterministic output (e.g., sort map keys before iteration)."
+                exit 1
+            fi
+        else
+            # Save the Go output as expected for future runs
+            echo "$go_output" > "$expected_file"
         fi
         
         # Use the shared helper for transpilation and comparison

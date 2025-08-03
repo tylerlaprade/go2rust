@@ -1,0 +1,8 @@
+Ages map: map[Alice:25 Bob:30 Charlie:35]
+Colors map: map[blue:#0000FF green:#00FF00 red:#FF0000]
+Alice's age: 25
+After deleting Bob: map[Alice:25 Charlie:35]
+All colors:
+blue -> #0000FF
+green -> #00FF00
+red -> #FF0000

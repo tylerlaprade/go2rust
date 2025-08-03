@@ -136,11 +136,25 @@ tests/
 - **`.rs` files** - The transpiled Rust code
 - **`Cargo.toml` files** - Generated Cargo manifests
 - **`Cargo.lock` files** - Dependency lock files
+- **`expected_output.txt` files** - Expected output from Go execution
 
 These files serve as:
 
 1. **Test output artifacts** - Show exactly what the transpiler produced
 2. **Regression detection** - Git tracks changes to transpiler output over time
+3. **Non-determinism detection** - Expected output files help identify when Go tests produce non-deterministic output
+
+### Expected Output Files
+
+The test harness automatically manages `expected_output.txt` files:
+
+1. **First run**: When a test runs for the first time, the Go output is saved as `expected_output.txt`
+2. **Subsequent runs**: The Go output is compared with `expected_output.txt`
+3. **Mismatch detection**: If Go output doesn't match expected, the test fails with a clear error message about non-deterministic output
+
+This helps distinguish between:
+- "Go test is non-deterministic" - Go output doesn't match expected
+- "Transpiler bug" - Rust output doesn't match Go output
 
 **Only build artifacts should be cleaned**:
 
@@ -148,7 +162,7 @@ These files serve as:
 - `debug/` directories (Debug build output)
 - Go binaries in XFAIL tests (from validation)
 
-The `teardown()` function in `tests.bats` must NEVER delete .rs, Cargo.toml, or Cargo.lock files.
+The `teardown()` function in `tests.bats` must NEVER delete .rs, Cargo.toml, Cargo.lock, or expected_output.txt files.
 
 ## Coverage Tracking
 

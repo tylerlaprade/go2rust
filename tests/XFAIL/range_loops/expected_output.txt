@@ -1,0 +1,64 @@
+=== Range over slice ===
+Index 0: 10
+Index 1: 20
+Index 2: 30
+Index 3: 40
+Index 4: 50
+Values only:
+10 20 30 40 50 
+Indices only:
+0 1 2 3 4 
+
+=== Range over array ===
+0: apple
+1: banana
+2: cherry
+3: date
+
+=== Range over string ===
+Byte 0: H (Unicode: U+0048)
+Byte 1: e (Unicode: U+0065)
+Byte 2: l (Unicode: U+006C)
+Byte 3: l (Unicode: U+006C)
+Byte 4: o (Unicode: U+006F)
+Byte 5: , (Unicode: U+002C)
+Byte 6:   (Unicode: U+0020)
+Byte 7: 世 (Unicode: U+4E16)
+Byte 10: 界 (Unicode: U+754C)
+
+=== Range over map ===
+Charlie is 35 years old
+Alice is 25 years old
+Bob is 30 years old
+Keys only:
+Bob Charlie Alice 
+
+=== Range over channel ===
+Received: 1
+Received: 4
+Received: 9
+Received: 16
+Received: 25
+
+=== Range with break/continue ===
+Even numbers only (with continue):
+2 4 6 8 10 
+Numbers until 6 (with break):
+1 2 3 4 5 6 
+
+=== Nested range loops ===
+matrix[0][0] = 1
+matrix[0][1] = 2
+matrix[0][2] = 3
+matrix[1][0] = 4
+matrix[1][1] = 5
+matrix[1][2] = 6
+matrix[2][0] = 7
+matrix[2][1] = 8
+matrix[2][2] = 9
+
+=== Range over empty collections ===
+Empty slice:
+Empty slice range completed
+Empty map:
+Empty map range completed

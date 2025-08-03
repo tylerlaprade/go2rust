@@ -1,0 +1,11 @@
+Counter 1: 1
+Counter 2: 2
+Counter 3: 3
+Counter2 1: 1
+Counter 4: 4
+5 + 3 = 8
+10 + 7 = 17
+Squared: [1 4 9 16 25]
+Doubled: [2 4 6 8 10]
+Tripled: [3 6 9 12 15]
+Immediate result: 30

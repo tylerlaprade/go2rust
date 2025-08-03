@@ -1,0 +1,8 @@
+direct : 0
+direct : 1
+direct : 2
+going
+goroutine : 0
+goroutine : 1
+goroutine : 2
+done

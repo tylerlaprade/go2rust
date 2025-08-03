@@ -1,0 +1,7 @@
+x is int: 42
+Value: 42
+x is string: hello
+Value: hello
+x is float: 3.14
+Value: 3.14
+Mixed values: [1 two 3]

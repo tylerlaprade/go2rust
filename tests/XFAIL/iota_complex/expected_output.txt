@@ -1,0 +1,4 @@
+Permissions: 3 (Read=1, Write=2)
+KB=1024, MB=1048576, GB=1073741824
+A=0, B=0, C=1, D=10, E=2, F=20
+First=0, Second=1, Third=0, Fourth=1

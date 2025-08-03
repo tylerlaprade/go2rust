@@ -1,0 +1,2 @@
+Timer 1 fired
+Timer 2 stopped

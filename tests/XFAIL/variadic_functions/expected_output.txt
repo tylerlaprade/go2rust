@@ -1,0 +1,15 @@
+Sum of no numbers: 0
+Sum of 1, 2, 3: 6
+Sum of 1, 2, 3, 4, 5: 15
+Sum of slice: 100
+Average of 1.5, 2.5, 3.5: 2.5
+Average of no numbers: 0
+Colors: red, green, blue
+Animals: cat, dog
+Empty: 
+Min of 5, 2, 8, 1, 9: 1
+Min of just 42: 42
+Concat with comma: apple, banana, cherry
+Concat with dash: one - two - three
+Concat empty: 
+Concat from slice: hello world from go

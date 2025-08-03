@@ -1,0 +1,27 @@
+=== Basic embedded struct ===
+Name: Alice
+Age: 30
+Street: 123 Main St
+ID: 1001
+Hello, I'm Alice
+Info: Alice (30 years old)
+Address: 123 Main St, Anytown, CA
+Alice is working (ID: 1001)
+
+=== Nested embedding ===
+Manager: Bob
+Manager ID: 2001
+Manager City: Somewhere
+Hello, I'm Bob
+Bob is working (ID: 2001)
+Manager Bob is managing team: [Alice Charlie Diana]
+
+=== Anonymous struct embedding ===
+Company: TechCorp
+Founded: 2010
+CEO: John Doe
+
+=== Method promotion ===
+Employee methods are promoted from Person and Address
+Employee can call: Alice (30 years old)
+Employee address: 123 Main St, Anytown, CA

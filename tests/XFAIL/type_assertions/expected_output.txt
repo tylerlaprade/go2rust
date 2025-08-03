@@ -1,0 +1,23 @@
+=== Processing values ===
+String value: hello world (length: 11)
+Integer value: 42 (doubled: 84)
+Float value: 3.14 (squared: 9.87)
+Unknown type: bool with value: true
+Unknown type: []int with value: [1 2 3]
+
+=== Assertion without check ===
+Asserted string: valid string
+Panic recovered: interface conversion: interface {} is int, not string
+
+=== Interface type assertions ===
+Shape area: 50.00
+  Rectangle: 10.0 x 5.0
+Shape area: 28.27
+  Circle: radius 3.0
+
+=== Type switch alternative ===
+String: hello world
+Int: 42
+Float: 3.14
+Bool: true
+Other: []int = [1 2 3]

@@ -1,0 +1,4 @@
+First init
+Second init
+a=9, b=4, c=5, d=6
+In main: a=9, b=4, c=5, d=6

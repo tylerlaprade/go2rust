@@ -1,0 +1,6 @@
+Original slice: [1 2 3 4 5]
+After append: [1 2 3 4 5 6 7]
+Sub-slice [1:4]: [2 3 4]
+Length: 7
+Capacity: 10
+Made slice: [10 20 30]

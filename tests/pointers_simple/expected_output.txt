@@ -1,0 +1,3 @@
+x: 42
+p points to: 42
+x after change: 100

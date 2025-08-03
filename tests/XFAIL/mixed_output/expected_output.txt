@@ -1,0 +1,14 @@
+=== Mixed Output Test ===
+This goes to stdout via fmt.Println
+This goes to stdout via fmt.Printf: 42
+This goes to stderr via fmt.Fprintln
+This goes to stderr via fmt.Fprintf: error message
+This goes to stderr via built-in println
+Back to stdout
+Back to stderr
+Multiple values to stdout
+Multiple values to stderr
+Number: 123, String: hello, Float: 3.14
+Error code: 404, Message: Not Found
+Program completed successfully
+No errors occurred

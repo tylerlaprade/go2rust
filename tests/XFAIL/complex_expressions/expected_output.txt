@@ -1,0 +1,44 @@
+=== Complex arithmetic expressions ===
+(a + b) * c - (a * b) / (c - a) = 890
+a + b * c / (a - 5) + c % b = 140
+
+=== Complex boolean expressions ===
+(x < y) && (y < z) || (x == 5 && z > 10) = true
+!(x > y) && (z-y == x) || (x*2 == y) = true
+
+=== Complex bitwise expressions ===
+(bits1 & bits2) | (bits1 ^ bits2) << 1 = 1100 (12)
+
+=== Function calls in expressions ===
+getValue(a) + getValue(b) * getMultiplier() - getValue(c)/2 = 110
+
+=== Array/slice expressions ===
+numbers[idx1:idx2][1] + numbers[len(numbers)-1] - numbers[0] = 13
+
+=== Map expressions ===
+data["alpha"] + data["beta"]*2 - data["gamma"]/3 = 40
+
+=== Struct field expressions ===
+Distance squared between points: 25
+
+=== Pointer expressions ===
+*ptr + (*ptr * 2) - (*ptr / 2) = 105
+
+=== Type assertion expressions ===
+Type assertion result: 260
+
+=== Channel expressions ===
+Channel expression result: 35
+
+=== Nested function calls ===
+add(multiply(3, 4), subtract(20, multiply(2, 5))) = 22
+
+=== Complex conditional expressions ===
+Grade for score 85: B
+
+=== Complex assignment expressions ===
+Complex assignment result: 12
+Sum: 60, Product: 6000
+
+=== Range expressions ===
+Complex range calculation: 46

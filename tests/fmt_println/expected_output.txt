@@ -1,0 +1,2 @@
+Hello from fmt.Println
+This call  has two inputs

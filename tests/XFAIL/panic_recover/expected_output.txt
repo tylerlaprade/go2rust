@@ -1,0 +1,23 @@
+=== Safe divide examples ===
+10 / 2 = 5.00
+Error: panic occurred: division by zero
+
+=== Slice access examples ===
+numbers[2] = 3
+Error: index out of bounds: runtime error: index out of range [10] with length 5
+
+=== Nested panic example ===
+Inner recovery: original panic
+Recovered from nested panic: re-panicking from inner function
+
+=== Different panic types ===
+Recovered string panic: string panic message
+
+=== Chained defers with panic ===
+About to return normally
+Defer 3: This runs first
+Defer 2: This also runs
+Defer 1: This runs
+Final recovery: panic from defer
+
+=== Program completed successfully ===

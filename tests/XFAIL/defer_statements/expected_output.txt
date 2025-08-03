@@ -1,0 +1,30 @@
+=== Basic defer example ===
+Start of function
+Middle of function
+End of function
+Anonymous deferred function
+Deferred 3
+Deferred 2
+Deferred 1
+
+=== Defer with variables ===
+Current x: 20
+Deferred x: 20
+
+=== Defer in loop ===
+Defer in loop:
+Loop finished
+Deferred loop value: 2
+Deferred loop value: 1
+Deferred loop value: 0
+
+=== Resource cleanup example ===
+Acquiring resource
+Using resource
+Working... 1
+Working... 2
+Working... 3
+Done with resource
+Cleanup function called
+
+=== Main function ending ===

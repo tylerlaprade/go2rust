@@ -1,0 +1,5 @@
+len=3 cap=10 [0 0 0]
+len=11 cap=20 [0 0 0 1 2 3 4 5 6 7 8]
+s2: len=3 cap=5 [0 1 2]
+Copied 3 elements: [0 0 0]
+s4==nil: true, s5==nil: false

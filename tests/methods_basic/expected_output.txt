@@ -1,0 +1,7 @@
+Initial value: 0
+After increment: 1
+After adding 5: 6
+After doubling: 12
+Hello, I'm Alice and I'm 25 years old
+Alice is now 26 years old
+Hello, I'm Alice and I'm 26 years old

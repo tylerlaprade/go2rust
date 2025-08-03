@@ -1,0 +1,85 @@
+=== Basic string operations ===
+Original string: Hello, World!
+Length: 13
+First character: H
+Last character: !
+Substring [0:5]: Hello
+Substring [7:]: World!
+
+=== String concatenation ===
+Concatenated: Hello, World!
+
+=== strings package functions ===
+Original: '  Go is awesome for systems programming  '
+Trimmed: 'Go is awesome for systems programming'
+Upper: GO IS AWESOME FOR SYSTEMS PROGRAMMING
+Lower: go is awesome for systems programming
+Title: Go Is Awesome For Systems Programming
+
+=== String searching ===
+Text: The quick brown fox jumps over the lazy dog
+Contains 'fox': true
+Contains 'cat': false
+Index of 'fox': 16
+Index of 'cat': -1
+Last index of 'the': 31
+Count of 'the': 1
+
+=== Prefixes and suffixes ===
+Filename: document.txt
+Has .txt suffix: true
+Has .pdf suffix: false
+Has 'doc' prefix: true
+
+=== Splitting and joining ===
+CSV: apple,banana,cherry,date
+Split result: [apple banana cherry date]
+Rejoined: apple | banana | cherry | date
+Words: [The quick brown fox]
+
+=== String replacement ===
+Original: I like cats and cats like me
+Replace first 'cats': I like dogs and cats like me
+Replace all 'cats': I like dogs and dogs like me
+
+=== String repetition ===
+Repeated: Go! Go! Go! 
+
+=== String comparison ===
+'apple' == 'banana': false
+'apple' == 'apple': true
+'apple' < 'banana': true
+EqualFold('Apple', 'APPLE'): true
+
+=== String building ===
+Built string: Building a string efficiently
+Builder length: 29
+
+=== Unicode and runes ===
+Unicode string: Hello, 世界! 🌍
+Byte length: 19
+Rune: H (U+0048)
+Rune: e (U+0065)
+Rune: l (U+006C)
+Rune: l (U+006C)
+Rune: o (U+006F)
+Rune: , (U+002C)
+Rune:   (U+0020)
+Rune: 世 (U+4E16)
+Rune: 界 (U+754C)
+Rune: ! (U+0021)
+Rune:   (U+0020)
+Rune: 🌍 (U+1F30D)
+Rune count: 12
+
+=== String trimming variations ===
+Original: !!!Hello World!!!
+TrimLeft '!': Hello World!!!
+TrimRight '!': !!!Hello World
+Trim '!': Hello World
+
+=== String formatting ===
+Name: Alice, Age: 30, Height: 5.6
+Quoted string: "Alice"
+String with width: '     Alice'
+Left-aligned: 'Alice     '

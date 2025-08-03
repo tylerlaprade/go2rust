@@ -1,0 +1,3 @@
+Program name: ./os_args
+Arguments: []
+Total args: 1

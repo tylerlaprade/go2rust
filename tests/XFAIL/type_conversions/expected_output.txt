@@ -1,0 +1,70 @@
+=== Basic numeric conversions ===
+int: 42
+float64: 42.00
+back to int: 42
+
+=== Integer size conversions ===
+int8: 127
+int16: 127
+int32: 127
+int64: 127
+
+=== Unsigned integer conversions ===
+uint: 42
+uint8: 42
+uint16: 42
+uint32: 42
+uint64: 42
+
+=== Float conversions ===
+float64: 3.1415926536
+float32: 3.1415927410
+back to float64: 3.1415927410
+
+=== String conversions ===
+rune 'A': A (65)
+byte 65: A (65)
+rune to string: A
+bytes to string: Hello
+string to bytes: [72 101 108 108 111]
+string to runes: [72 101 108 108 111 44 32 19990 30028]
+rune count: 9
+runes to string: Hello, 世界
+
+=== Boolean-like conversions ===
+zero == 0: true
+nonZero != 0: true
+
+=== Pointer conversions ===
+value: 100
+pointer: 0x1400000e1a0
+dereferenced: 100
+
+=== Interface conversions ===
+interface{} value: 42
+interface{} type: int
+asserted as int: 42
+new interface{} value: hello
+new interface{} type: string
+asserted as string: hello
+
+=== Complex number conversions ===
+complex64: (3+4i)
+complex128: (3+4i)
+real part: 3.00
+imaginary part: 4.00
+reconstructed: (3+4i)
+
+=== Overflow examples ===
+int64: 1000000
+int8 (overflow): 64
+float64: 1.234567890123450
+float32: 1.234567880630493
+
+=== Custom type conversions ===
+MyInt: 42
+regular int: 42
+back to MyInt: 42
+MyString: hello
+regular string: hello
+back to MyString: hello

@@ -1,0 +1,35 @@
+=== Testing multiple stdlib imports ===
+
+--- strings package ---
+Upper: HELLO WORLD
+Lower: hello world
+Trimmed: hello
+Split: [a b c]
+
+--- strconv package ---
+Number as string: 42
+Parsed number: 123
+Float as string: 3.14
+
+--- math package ---
+Pi: 3.141593
+E: 2.718282
+Sqrt(16): 4.00
+Pow(2, 8): 256
+Max(10, 20): 20
+Min(10, 20): 10
+
+--- time package ---
+Current time: 2025-08-03 16:35:36
+Duration: 5s
+Sleeping for 100ms...
+Done sleeping
+
+--- os package ---
+Hostname: Tylers-MacBook-Air.local
+PATH length: 791 characters
+Working directory: /Users/tyler/Code/go2rust/tests/XFAIL/stdlib_imports
+
+--- Combined usage ---
+Timestamp: 1754253336
+Hypotenuse of 3,4 triangle: 5.00

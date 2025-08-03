@@ -1,0 +1,6 @@
+10 / 2 = 5
+Error: division by zero
+Sqrt error: cannot take square root of negative number: -4.000000
+Process error: Error 100: negative value not allowed
+Process error: Error 200: value too large
+Value processed successfully

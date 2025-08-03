@@ -1,0 +1,33 @@
+=== Basic function types ===
+5 + 3 = 8
+5 * 3 = 15
+
+=== Higher-order functions ===
+applyBinary(add, 10, 20) = 30
+applyBinary(multiply, 4, 7) = 28
+applyUnary(square, 6) = 36
+
+=== Function slices and filtering ===
+Even numbers: [2 4 6 8 10]
+Odd numbers: [1 3 5 7 9]
+
+=== Transform operations ===
+Squared: [1 4 9 16 25]
+Doubled: [2 4 6 8 10]
+
+=== String processing ===
+'hello world' -> 'HELLO WORLD'
+Reversed: olleh
+
+=== Functions returning functions ===
+triple(4) = 12
+addTen(5, 3) = 18
+
+=== Struct with function fields ===
+calc.Add(10, 5) = 15
+calc.Subtract(10, 5) = 5
+calc.Multiply(10, 5) = 50
+
+=== Function variables ===
+Using toUpper: TEST
+Using anonymous: processed: test

@@ -1,0 +1,7 @@
+Rectangle:
+Area: 50.00, Perimeter: 30.00
+Circle:
+Area: 28.27, Perimeter: 18.85
+All shapes:
+Shape 1: Area: 50.00, Perimeter: 30.00
+Shape 2: Area: 28.27, Perimeter: 18.85

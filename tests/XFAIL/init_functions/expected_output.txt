@@ -1,0 +1,41 @@
+Computing initial value during package initialization
+First init function called
+Second init function called
+Third init function called
+Global counter initialized to: 15
+Fourth init function called
+Computed value is: 84
+Fifth init function - initializing app config
+Sixth init function - with potential panic handling
+Sixth init function completed successfully
+Seventh init function - setting up subsystems
+Setting up logging system...
+Configuration loaded with 4 entries
+
+=== Main function started ===
+Global counter: 15
+Initialized flag: true
+Computed value: 94
+
+Configuration data:
+  build: debug
+  target: rust
+  version: 1.0
+  author: go2rust
+
+App config: {Name:Go2Rust Transpiler Version:0.1.0 Debug:true}
+
+=== Calling functions that were used in init ===
+Computing initial value during package initialization
+Calling computeInitialValue() again: 84
+Setting up logging system...
+Global counter still: 15
+Modified global counter: 100
+
+=== Demonstrating init execution order ===
+1. Package-level variable declarations
+2. Package-level variable initializations (like computedValue)
+3. Init functions in the order they appear in source
+4. Main function
+
+=== Main function completed ===

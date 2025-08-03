@@ -1,0 +1,93 @@
+=== Nested loops with labels ===
+i=1, j=1
+i=1, j=2
+i=1, j=3
+i=2, j=1
+Breaking outer loop at i=2, j=2
+
+=== Continue with labels ===
+i=1, j=1
+Continuing outer loop at i=1, j=2
+i=2, j=1
+Continuing outer loop at i=2, j=2
+i=3, j=1
+Continuing outer loop at i=3, j=2
+
+=== Complex switch with fallthrough ===
+Number 1: One Two-ish
+Number 2:  Two-ish
+Number 3: Three
+Number 4:  Four-or-Five
+Number 5:  Four-or-Five
+
+=== Nested switch statements ===
+Category 1, Item 1: Electronics - Phone
+Category 1, Item 2: Electronics - Laptop
+Category 2, Item 1: Books - Fiction
+Category 2, Item 2: Books - Non-fiction
+
+=== Complex for loop conditions ===
+i=0, j=10, sum=10
+i=1, j=9, sum=10
+i=2, j=8, sum=10
+i=3, j=7, sum=10
+
+=== For loop with complex condition ===
+x=1, y=1, product=1
+x=2, y=2, product=4
+x=3, y=4, product=12
+x=4, y=5, product=20
+x=5, y=7, product=35
+x=6, y=8, product=48
+x=7, y=10, product=70
+x=8, y=11, product=88
+
+=== Goto statements ===
+Counter: 1
+Counter: 2
+Counter: 3
+Done with goto
+
+=== Complex if-else chains ===
+Score 0: Grade F - Needs improvement
+Score 25: Grade F - Needs improvement
+Score 50: Grade F - Needs improvement
+Score 75: Grade C - Average
+Score 100: Grade A - Excellent!
+
+=== Range with complex break/continue ===
+Processing numbers:
+Processing odd number 1 (index 0)
+Skipping even number 2 (index 1)
+Processing odd number 3 (index 2)
+Skipping even number 4 (index 3)
+Processing odd number 5 (index 4)
+Skipping even number 6 (index 5)
+Found lucky number 7 at index 6
+Stopping at even number 8 (index 7)
+
+=== Nested range loops ===
+[0][0]: a [0][1]: b [0][2]: c 
+[1][0]: d Found center at [1][1]: e
+[1][2]: f 
+[2][0]: g [2][1]: h Last cell [2][2]: i
+
+
+=== Select with complex channel operations ===
+Received string: hello
+Received int: 1
+Received string: world
+Received int: 2
+Channel processing complete
+
+=== Complex error handling flow ===
+Testing dataset 1: [1 2 3]
+  Success: data is valid
+Testing dataset 2: []
+  Error: empty data
+Testing dataset 3: [1 -2 3]
+  Error: negative value at index 1: -2
+Testing dataset 4: [1 200 3]
+  Error: value too large at index 1: 200
+Testing dataset 5: [10 20 30]
+  Success: data is valid

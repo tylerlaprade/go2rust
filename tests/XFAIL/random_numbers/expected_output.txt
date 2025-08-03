@@ -1,0 +1,2 @@
+Random int: 7
+Random float: 0.7950426132177858
