@@ -75,9 +75,19 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 
 ## Features
 
+### Type-Aware Transpilation
+
+The transpiler uses Go's `go/types` package for accurate type information:
+
+- Proper type checking across all files in a package
+- Accurate detection of maps, slices, and other types
+- Correct handling of method calls and type assertions
+- No reliance on naming conventions or heuristics
+
 ### Comment Preservation
 
 The transpiler preserves Go doc comments and converts them to Rust format:
+
 - Go doc comments (`// FunctionName ...`) → Rust doc comments (`/// FunctionName ...`)
 - Doc comments are preserved on functions, types, and methods
 - Regular comments inside function bodies are not currently preserved
@@ -89,6 +99,7 @@ The transpiler attempts to preserve blank lines between statements to maintain c
 ### Error Handling
 
 For unimplemented features, the transpiler generates TODO comments:
+
 - Unhandled statements: `// TODO: Unhandled statement type: TypeName`
 - Unhandled expressions: `/* TODO: Unhandled expression type: TypeName */`
 - Unhandled type declarations: `// TODO: Unhandled type declaration: TypeName`
@@ -242,6 +253,7 @@ To add a new planned feature:
 **IMPORTANT**: All tests must produce deterministic output. The test infrastructure compares Go and Rust outputs byte-for-byte.
 
 Common patterns to ensure determinism:
+
 - **Map iteration**: Sort keys before iterating (see `tests/maps_basic/main.go`)
 - **Goroutines**: Use proper synchronization (WaitGroup, channels)
 - **Time/Random**: Use fixed values in tests
