@@ -203,6 +203,25 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						} else if _, ok := result.(*ast.FuncLit); ok {
 							// Function literal - already wrapped by TranspileFuncLit
 							TranspileExpression(out, result)
+						} else if ident, ok := result.(*ast.Ident); ok {
+							// Check if this is a variable (already wrapped) or a constant/literal
+							if _, isRangeVar := rangeLoopVars[ident.Name]; !isRangeVar {
+								if _, isLocalConst := localConstants[ident.Name]; !isLocalConst {
+									// It's a variable, just clone it
+									out.WriteString(ident.Name)
+									out.WriteString(".clone()")
+								} else {
+									// It's a constant, wrap it
+									out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(Some(")
+									TranspileExpression(out, result)
+									out.WriteString(")))")
+								}
+							} else {
+								// Range variable, wrap it
+								out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(Some(")
+								TranspileExpression(out, result)
+								out.WriteString(")))")
+							}
 						} else {
 							// Wrap all other return values in Arc<Mutex<Option<>>>
 							out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(Some(")

@@ -64,11 +64,47 @@ Pointer types, &/*, new() builtin, struct fields, nil handling
 
 Method receivers (value and pointer), multiple returns, method calls
 
-### 📋 Phase 5: Goroutines and Concurrency
+### 📋 Phase 4.5: Advanced Types and Structs
+
+- Struct embedding (embedded_structs, struct_embedding, type_embedding)
+- Type aliases and definitions
+- Struct tags (struct_tags_reflection)
+- Anonymous structs and fields
+
+### 📋 Phase 5: Core Language Features
+
+- Constants and iota (constants_basic, enums_iota, iota_complex, iota_enums)
+- Closures and function literals (closures_basic, function_literals_closures)
+- Defer statements (defer_statements)
+- Panic and recover (panic_recover)
+- Interfaces (interface_basic, interfaces_basic, interfaces_simple)
+
+### 📋 Phase 6: Control Flow Extensions
+
+- Select statements (select_basic, select_statements)
+- Goto and labels (goto_labels, labeled_statements)
+- Fallthrough in switch (fallthrough_switch)
+- Blank identifier (blank_identifier)
+
+### 📋 Phase 7: Goroutines and Concurrency
 
 go → thread::spawn, channels, sync primitives
 
-### 🚀 Phase 6: Bootstrap Test
+### 📋 Phase 8: Package System
+
+- Multiple file packages (package_multiple_files)
+- Init functions (init_functions, init_order_complex)
+- Import side effects (blank_imports_side_effects)
+- Standard library imports (stdlib_imports)
+
+### 📋 Phase 9: Advanced Features (Optional/Future)
+
+- Generics (generics_basic)
+- Reflection (struct_tags_reflection)
+- Unsafe operations (unsafe_pointer_ops)
+- JSON/encoding support
+
+### 🚀 Phase 10: Bootstrap Test
 
 go2rust transpiles itself!
 
@@ -147,3 +183,24 @@ The transpiler now uses `go/types` for accurate type information instead of brit
 - **Cross-file analysis**: Complete package-wide type information for all expressions
 
 See `go/typeinfo.go` and `go/README_TYPES.md` for implementation details.
+
+## ⚠️ CRITICAL: No Heuristics Policy
+
+**NEVER use heuristics to guess types or semantics!** Always use `go/types` for accurate information:
+
+- ❌ **BAD**: Checking if a name "looks like" a function (e.g., starts with "make", "get", etc.)
+- ✅ **GOOD**: Using `TypeInfo.IsFunction()` to check if an identifier is actually a function
+
+- ❌ **BAD**: Guessing if something is a map based on naming patterns
+- ✅ **GOOD**: Using `TypeInfo.IsMap()` to check the actual type
+
+- ❌ **BAD**: Assuming variable semantics based on name patterns
+- ✅ **GOOD**: Using `TypeInfo.GetType()` to get the actual type information
+
+**Why this matters:**
+1. Heuristics break on edge cases (e.g., a variable named `makeCounter` vs a function `makeCounter`)
+2. Go/types already provides 100% accurate type information
+3. Heuristics make the transpiler fragile and unpredictable
+4. We already have the infrastructure - use it!
+
+When in doubt, add a new method to `TypeInfo` in `typeinfo.go` rather than guessing.

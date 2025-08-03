@@ -441,25 +441,16 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 	}
 }
 
-// Helper to check if a name is a known function (not a closure variable)
-func isFunctionName(name string) bool {
-	// This is a simplified check - in a real implementation,
-	// we'd track all function declarations
-	// For now, assume names starting with lowercase that look like functions are functions
-	// (e.g., makeCounter, applyOperation, cleanup, etc.)
-	if len(name) > 0 {
-		firstChar := name[0]
-		// Check if it starts with common function prefixes
-		if strings.HasPrefix(name, "make") || strings.HasPrefix(name, "get") ||
-			strings.HasPrefix(name, "set") || strings.HasPrefix(name, "apply") ||
-			strings.HasPrefix(name, "create") || strings.HasPrefix(name, "new") ||
-			strings.HasPrefix(name, "cleanup") || strings.HasPrefix(name, "defer") ||
-			strings.HasPrefix(name, "resource") {
-			return true
-		}
-		// Exported functions
-		return firstChar >= 'A' && firstChar <= 'Z'
+// Helper to check if an identifier is a function (not a closure variable)
+func isFunctionName(ident *ast.Ident) bool {
+	// Use go/types to properly determine if this is a function
+	typeInfo := GetTypeInfo()
+	if typeInfo != nil {
+		return typeInfo.IsFunction(ident)
 	}
+
+	// Fallback: if no type info, assume it's not a function
+	// This ensures we don't make incorrect assumptions
 	return false
 }
 
@@ -569,7 +560,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 	// Check if this is a closure call (calling a variable that holds a function)
 	if ident, ok := call.Fun.(*ast.Ident); ok {
 		// Check if this is a known function or a variable
-		if isBuiltinFunction(ident.Name) || isFunctionName(ident.Name) {
+		if isBuiltinFunction(ident.Name) || isFunctionName(ident) {
 			// Regular function call
 			out.WriteString(ToSnakeCase(ident.Name))
 		} else {
@@ -594,7 +585,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 		// Check if we're calling a closure - closures take wrapped arguments
 		isClosureCall := false
 		if ident, ok := call.Fun.(*ast.Ident); ok {
-			isClosureCall = !isBuiltinFunction(ident.Name) && !isFunctionName(ident.Name)
+			isClosureCall = !isBuiltinFunction(ident.Name) && !isFunctionName(ident)
 		} else {
 			// Complex expression, likely a closure
 			isClosureCall = true

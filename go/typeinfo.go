@@ -95,6 +95,37 @@ func (ti *TypeInfo) IsArray(expr ast.Expr) bool {
 	return ok
 }
 
+// IsFunction returns true if the identifier refers to a function (not a variable holding a function)
+func (ti *TypeInfo) IsFunction(ident *ast.Ident) bool {
+	if ti == nil || ti.info == nil {
+		return false
+	}
+
+	// Check if this identifier is defined as a function
+	if obj, ok := ti.info.Defs[ident]; ok {
+		_, isFunc := obj.(*types.Func)
+		return isFunc
+	}
+
+	// Check if this identifier uses a function
+	if obj, ok := ti.info.Uses[ident]; ok {
+		_, isFunc := obj.(*types.Func)
+		return isFunc
+	}
+
+	return false
+}
+
+// IsFunctionType returns true if the expression has a function type
+func (ti *TypeInfo) IsFunctionType(expr ast.Expr) bool {
+	typ := ti.GetType(expr)
+	if typ == nil {
+		return false
+	}
+	_, ok := typ.Underlying().(*types.Signature)
+	return ok
+}
+
 // GetMapTypes returns the key and value types of a map, or nil if not a map
 func (ti *TypeInfo) GetMapTypes(expr ast.Expr) (key, value types.Type) {
 	typ := ti.GetType(expr)
