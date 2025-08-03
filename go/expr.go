@@ -249,12 +249,18 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		}
 
 	case *ast.IndexExpr:
-		// Check if this might be a map access (simple heuristic)
+		// Use type information to determine if this is a map access
+		typeInfo := GetTypeInfo()
 		isMap := false
-		if ident, ok := e.X.(*ast.Ident); ok {
-			name := strings.ToLower(ident.Name)
-			// TODO: Use type information instead of this heuristic
-			isMap = strings.Contains(name, "map") || name == "ages" || name == "colors" || name == "m"
+
+		if typeInfo != nil {
+			isMap = typeInfo.IsMap(e.X)
+		} else {
+			// Type info not available - add error comment
+			out.WriteString("/* ERROR: Cannot determine if map or slice access - type information required */ ")
+			// Generate unimplemented to make the error obvious
+			out.WriteString("unimplemented!(\"type info required for index expression\")")
+			return
 		}
 
 		if isMap && ctx == RValue {

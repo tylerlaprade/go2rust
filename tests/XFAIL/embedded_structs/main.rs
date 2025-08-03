@@ -101,7 +101,7 @@ impl Employee {
 
 impl Manager {
     pub fn manage(&self) {
-        print!("Manager {} is managing team: {}\n", (*self.name.lock().unwrap().as_mut().unwrap()), (*self.team.lock().unwrap().as_mut().unwrap()));
+        print!("Manager {} is managing team: {}\n", (*self.name.lock().unwrap().as_mut().unwrap()), format_slice(&self.team.clone()));
     }
 }
 

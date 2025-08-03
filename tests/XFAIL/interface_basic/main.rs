@@ -57,5 +57,5 @@ fn main() {
     print_any(x.clone());
 
     let mut values = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![1, "two".to_string(), 3.0])));
-    println!("{} {}", "Mixed values:".to_string(), (*values.lock().unwrap().as_mut().unwrap()));
+    println!("{} {}", "Mixed values:".to_string(), format_slice(&values));
 }

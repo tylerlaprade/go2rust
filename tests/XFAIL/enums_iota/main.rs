@@ -48,7 +48,7 @@ type ServerState = std::sync::Arc<std::sync::Mutex<Option<()>>>
 
 impl ServerState {
     pub fn string(&self) -> std::sync::Arc<std::sync::Mutex<Option<String>>> {
-        return std::sync::Arc::new(std::sync::Mutex::new(Some((*stateName.lock().unwrap().as_mut().unwrap())[self])));
+        return std::sync::Arc::new(std::sync::Mutex::new(Some((*(*stateName.lock().unwrap().as_ref().unwrap()).get(&self).unwrap().lock().unwrap().as_ref().unwrap()))));
     }
 }
 

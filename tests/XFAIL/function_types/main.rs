@@ -82,7 +82,7 @@ pub fn is_even(x: std::sync::Arc<std::sync::Mutex<Option<i32>>>) -> std::sync::A
 pub fn to_upper(s: std::sync::Arc<std::sync::Mutex<Option<String>>>) -> std::sync::Arc<std::sync::Mutex<Option<String>>> {
 
     let mut result = std::sync::Arc::new(std::sync::Mutex::new(Some("".to_string())));
-    for char in &(*s.lock().unwrap().as_mut().unwrap()) {
+    for (_, char) in (*(*s.lock().unwrap().as_mut().unwrap()).lock().unwrap().as_ref().unwrap()).chars().enumerate() {
         if char >= 'a' && char <= 'z' {
         (*result.lock().unwrap().as_mut().unwrap()).push_str(&string(std::sync::Arc::new(std::sync::Mutex::new(Some(char - 32)))));
     } else {
@@ -163,17 +163,17 @@ fn main() {
     let mut numbers = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10])));
 
     let mut evens = filter(numbers.clone(), isEven.clone());
-    print!("Even numbers: {}\n", (*evens.lock().unwrap().as_mut().unwrap()));
+    print!("Even numbers: {}\n", format_slice(&evens));
 
     let mut odds = filter(numbers.clone(), std::sync::Arc::new(std::sync::Mutex::new(Some(/* TODO: Unhandled expression type: FuncLit */ std::sync::Arc::new(std::sync::Mutex::new(Some(())))))));
-    print!("Odd numbers: {}\n", (*odds.lock().unwrap().as_mut().unwrap()));
+    print!("Odd numbers: {}\n", format_slice(&odds));
 
     println!("{}", "\n=== Transform operations ===".to_string());
     let mut squared = transform(std::sync::Arc::new(std::sync::Mutex::new(Some(std::sync::Arc::new(std::sync::Mutex::new(Some(vec![1, 2, 3, 4, 5])))))), square.clone());
-    print!("Squared: {}\n", (*squared.lock().unwrap().as_mut().unwrap()));
+    print!("Squared: {}\n", format_slice(&squared));
 
     let mut doubled = transform(std::sync::Arc::new(std::sync::Mutex::new(Some(std::sync::Arc::new(std::sync::Mutex::new(Some(vec![1, 2, 3, 4, 5])))))), std::sync::Arc::new(std::sync::Mutex::new(Some(/* TODO: Unhandled expression type: FuncLit */ std::sync::Arc::new(std::sync::Mutex::new(Some(())))))));
-    print!("Doubled: {}\n", (*doubled.lock().unwrap().as_mut().unwrap()));
+    print!("Doubled: {}\n", format_slice(&doubled));
 
     println!("{}", "\n=== String processing ===".to_string());
     let mut text = std::sync::Arc::new(std::sync::Mutex::new(Some("hello world".to_string())));

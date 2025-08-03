@@ -247,7 +247,7 @@ fn main() {
     let mut testData = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![, , , , ])));
 
     for (i, data) in (*testData.lock().unwrap().as_mut().unwrap()).iter().enumerate() {
-        print!("Testing dataset {}: {}\n", i + 1, data);
+        print!("Testing dataset {}: {}\n", i + 1, format_slice(&data));
         let mut err = process_data(std::sync::Arc::new(std::sync::Mutex::new(Some(data))));
     if (*err.lock().unwrap()).is_some() {
         print!("  Error: {}\n", (*err.lock().unwrap().as_mut().unwrap()));

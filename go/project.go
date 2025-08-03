@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"go/ast"
 	"go/parser"
 	"go/token"
 	"os"
@@ -16,6 +17,7 @@ type ProjectGenerator struct {
 	projectPath string
 	packageName string
 	isLibrary   bool
+	typeInfo    *TypeInfo
 }
 
 func NewProjectGenerator(goFiles []string) *ProjectGenerator {
@@ -32,12 +34,29 @@ func NewProjectGenerator(goFiles []string) *ProjectGenerator {
 func (pg *ProjectGenerator) Generate() error {
 	fileSet := token.NewFileSet()
 
-	// First pass: transpile all files and detect structure
-	for i, filename := range pg.goFiles {
+	// Parse all files first for type checking
+	var astFiles []*ast.File
+	for _, filename := range pg.goFiles {
 		file, err := parser.ParseFile(fileSet, filename, nil, parser.ParseComments)
 		if err != nil {
 			return fmt.Errorf("parse error in %s: %v", filename, err)
 		}
+		astFiles = append(astFiles, file)
+	}
+
+	// Perform type checking
+	typeInfo, err := NewTypeInfo(astFiles, fileSet)
+	if err != nil {
+		// Log warning but continue - we'll handle missing type info in individual functions
+		fmt.Fprintf(os.Stderr, "Warning: Type checking incomplete: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Generated code may contain errors where type information is required\n")
+	}
+	pg.typeInfo = typeInfo
+
+	// First pass: transpile all files and detect structure
+	for i, filename := range pg.goFiles {
+		// Use the already parsed file from astFiles
+		file := astFiles[i]
 
 		// Detect package name from first file
 		if i == 0 {
@@ -45,7 +64,7 @@ func (pg *ProjectGenerator) Generate() error {
 			pg.isLibrary = pg.packageName != "main"
 		}
 
-		rustCode := Transpile(file, fileSet)
+		rustCode := Transpile(file, fileSet, pg.typeInfo)
 
 		baseName := strings.TrimSuffix(filepath.Base(filename), ".go")
 		rustFilename := strings.TrimSuffix(filename, ".go") + ".rs"
@@ -75,7 +94,7 @@ func (pg *ProjectGenerator) Generate() error {
 
 	// Second pass: generate main.rs or lib.rs with module declarations
 	if pg.hasMain {
-		err := pg.generateMainRs(fileSet)
+		err := pg.generateMainRs(fileSet, astFiles)
 		if err != nil {
 			return err
 		}
@@ -98,23 +117,20 @@ func (pg *ProjectGenerator) hasMainFile() bool {
 	return false
 }
 
-func (pg *ProjectGenerator) generateMainRs(fileSet *token.FileSet) error {
-	var mainGoFile string
-	for _, file := range pg.goFiles {
-		if filepath.Base(file) == "main.go" {
-			mainGoFile = file
+func (pg *ProjectGenerator) generateMainRs(fileSet *token.FileSet, astFiles []*ast.File) error {
+	var mainGoFile *ast.File
+	for i, filename := range pg.goFiles {
+		if filepath.Base(filename) == "main.go" {
+			mainGoFile = astFiles[i]
 			break
 		}
 	}
 
-	if mainGoFile == "" {
+	if mainGoFile == nil {
 		return fmt.Errorf("main.go not found")
 	}
 
-	file, err := parser.ParseFile(fileSet, mainGoFile, nil, parser.ParseComments)
-	if err != nil {
-		return fmt.Errorf("error parsing main.go: %v", err)
-	}
+	file := mainGoFile
 
 	var mainRust strings.Builder
 
@@ -128,7 +144,7 @@ func (pg *ProjectGenerator) generateMainRs(fileSet *token.FileSet) error {
 		mainRust.WriteString("\n")
 	}
 
-	mainContent := Transpile(file, fileSet)
+	mainContent := Transpile(file, fileSet, pg.typeInfo)
 	mainRust.WriteString(mainContent)
 
 	mainRsPath := filepath.Join(pg.projectPath, "main.rs")

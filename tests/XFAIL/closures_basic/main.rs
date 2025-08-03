@@ -76,14 +76,14 @@ fn main() {
     let mut numbers = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![1, 2, 3, 4, 5])));
 
     let mut squared = apply_operation(numbers.clone(), std::sync::Arc::new(std::sync::Mutex::new(Some(/* TODO: Unhandled expression type: FuncLit */ std::sync::Arc::new(std::sync::Mutex::new(Some(())))))));
-    println!("{} {}", "Squared:".to_string(), (*squared.lock().unwrap().as_mut().unwrap()));
+    println!("{} {}", "Squared:".to_string(), format_slice(&squared));
 
     let mut doubled = apply_operation(numbers.clone(), std::sync::Arc::new(std::sync::Mutex::new(Some(/* TODO: Unhandled expression type: FuncLit */ std::sync::Arc::new(std::sync::Mutex::new(Some(())))))));
-    println!("{} {}", "Doubled:".to_string(), (*doubled.lock().unwrap().as_mut().unwrap()));
+    println!("{} {}", "Doubled:".to_string(), format_slice(&doubled));
 
     let mut multiplier = std::sync::Arc::new(std::sync::Mutex::new(Some(3)));
     let mut tripled = apply_operation(numbers.clone(), std::sync::Arc::new(std::sync::Mutex::new(Some(/* TODO: Unhandled expression type: FuncLit */ std::sync::Arc::new(std::sync::Mutex::new(Some(())))))));
-    println!("{} {}", "Tripled:".to_string(), (*tripled.lock().unwrap().as_mut().unwrap()));
+    println!("{} {}", "Tripled:".to_string(), format_slice(&tripled));
 
     let mut result = /* TODO: Unhandled expression type: FuncLit */ std::sync::Arc::new(std::sync::Mutex::new(Some(())))(std::sync::Arc::new(std::sync::Mutex::new(Some(10))), std::sync::Arc::new(std::sync::Mutex::new(Some(20))));
     println!("{} {}", "Immediate result:".to_string(), (*result.lock().unwrap().as_mut().unwrap()));

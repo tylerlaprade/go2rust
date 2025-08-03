@@ -65,7 +65,7 @@ fn main() {
 
     println!("{}", "\n=== Range over string ===".to_string());
     let mut text = std::sync::Arc::new(std::sync::Mutex::new(Some("Hello, 世界".to_string())));
-    for (i, char) in (*text.lock().unwrap().as_mut().unwrap()).iter().enumerate() {
+    for (i, char) in (*(*text.lock().unwrap().as_mut().unwrap()).lock().unwrap().as_ref().unwrap()).chars().enumerate() {
         print!("Byte {}: {} (Unicode: {:?})\n", i, char, char);
     }
 

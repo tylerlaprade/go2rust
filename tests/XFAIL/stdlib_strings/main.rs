@@ -93,14 +93,14 @@ fn main() {
     print!("CSV: {}\n", (*csv.lock().unwrap().as_mut().unwrap()));
 
     let mut fruits = (*strings.lock().unwrap().as_mut().unwrap()).split(std::sync::Arc::new(std::sync::Mutex::new(Some((*csv.lock().unwrap().as_mut().unwrap())))), std::sync::Arc::new(std::sync::Mutex::new(Some(",".to_string()))));
-    print!("Split result: {}\n", (*fruits.lock().unwrap().as_mut().unwrap()));
+    print!("Split result: {}\n", format_slice(&fruits));
 
     let mut rejoined = (*strings.lock().unwrap().as_mut().unwrap()).join(std::sync::Arc::new(std::sync::Mutex::new(Some((*fruits.lock().unwrap().as_mut().unwrap())))), std::sync::Arc::new(std::sync::Mutex::new(Some(" | ".to_string()))));
     print!("Rejoined: {}\n", (*rejoined.lock().unwrap().as_mut().unwrap()));
 
     let mut sentence = std::sync::Arc::new(std::sync::Mutex::new(Some("The quick brown fox".to_string())));
     let mut words = (*strings.lock().unwrap().as_mut().unwrap()).fields(std::sync::Arc::new(std::sync::Mutex::new(Some((*sentence.lock().unwrap().as_mut().unwrap())))));
-    print!("Words: {}\n", (*words.lock().unwrap().as_mut().unwrap()));
+    print!("Words: {}\n", format_slice(&words));
 
     println!("{}", "\n=== String replacement ===".to_string());
     let mut original = std::sync::Arc::new(std::sync::Mutex::new(Some("I like cats and cats like me".to_string())));
@@ -146,7 +146,7 @@ fn main() {
     print!("Byte length: {}\n", (*unicode.lock().unwrap().as_mut().unwrap()).len());
 
     let mut runeCount = std::sync::Arc::new(std::sync::Mutex::new(Some(0)));
-    for r in &(*unicode.lock().unwrap().as_mut().unwrap()) {
+    for (_, r) in (*(*unicode.lock().unwrap().as_mut().unwrap()).lock().unwrap().as_ref().unwrap()).chars().enumerate() {
         { let mut guard = runeCount.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
         print!("Rune: {} (U+%04X)\n", r, r);
     }

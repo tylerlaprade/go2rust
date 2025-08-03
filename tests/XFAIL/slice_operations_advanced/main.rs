@@ -39,17 +39,17 @@ where
 
 fn main() {
     let mut s = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![0; 3])));
-    print!("len={} cap={} {}\n", (*s.lock().unwrap().as_mut().unwrap()).len(), (*s.lock().unwrap().as_mut().unwrap()).capacity(), (*s.lock().unwrap().as_mut().unwrap()));
+    print!("len={} cap={} {}\n", (*s.lock().unwrap().as_mut().unwrap()).len(), (*s.lock().unwrap().as_mut().unwrap()).capacity(), format_slice(&s));
 
     {(*s.lock().unwrap().as_mut().unwrap()).extend(vec![1, 2, 3, 4, 5, 6, 7, 8]); s.clone()};
-    print!("len={} cap={} {}\n", (*s.lock().unwrap().as_mut().unwrap()).len(), (*s.lock().unwrap().as_mut().unwrap()).capacity(), (*s.lock().unwrap().as_mut().unwrap()));
+    print!("len={} cap={} {}\n", (*s.lock().unwrap().as_mut().unwrap()).len(), (*s.lock().unwrap().as_mut().unwrap()).capacity(), format_slice(&s));
 
     let mut s2 = std::sync::Arc::new(std::sync::Mutex::new(Some((*s.lock().unwrap().as_mut().unwrap())[2..5].to_vec())));
-    print!("s2: len={} cap={} {}\n", (*s2.lock().unwrap().as_mut().unwrap()).len(), (*s2.lock().unwrap().as_mut().unwrap()).capacity(), (*s2.lock().unwrap().as_mut().unwrap()));
+    print!("s2: len={} cap={} {}\n", (*s2.lock().unwrap().as_mut().unwrap()).len(), (*s2.lock().unwrap().as_mut().unwrap()).capacity(), format_slice(&s2));
 
     let mut s3 = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![0; 3])));
     let mut n = copy(s3.clone(), s.clone());
-    print!("Copied {} elements: {}\n", (*n.lock().unwrap().as_mut().unwrap()), (*s3.lock().unwrap().as_mut().unwrap()));
+    print!("Copied {} elements: {}\n", (*n.lock().unwrap().as_mut().unwrap()), format_slice(&s3));
 
     let mut s4: std::sync::Arc<std::sync::Mutex<Option<Vec<i32>>>> = std::sync::Arc::new(std::sync::Mutex::new(Some(Default::default())));
     let mut s5 = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![])));

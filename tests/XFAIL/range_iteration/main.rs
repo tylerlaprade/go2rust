@@ -52,7 +52,7 @@ fn main() {
     }
 
     let mut kvs = std::sync::Arc::new(std::sync::Mutex::new(Some(std::collections::HashMap::<String, std::sync::Arc<std::sync::Mutex<Option<String>>>>::from([("a".to_string(), std::sync::Arc::new(std::sync::Mutex::new(Some("apple".to_string())))), ("b".to_string(), std::sync::Arc::new(std::sync::Mutex::new(Some("banana".to_string()))))]))));
-    for (k, v) in (*kvs.lock().unwrap().as_mut().unwrap()).iter().enumerate() {
-        print!("{} -> {}\n", k, v);
+    for (k, v) in (*kvs.lock().unwrap().as_ref().unwrap()).clone() {
+        print!("{} -> {}\n", k, (*v.lock().unwrap().as_mut().unwrap()));
     }
 }

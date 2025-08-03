@@ -79,14 +79,14 @@ fn main() {
 
     let (mut idx1, mut idx2) = (std::sync::Arc::new(std::sync::Mutex::new(Some(2))), std::sync::Arc::new(std::sync::Mutex::new(Some(7))));
     let mut sliceResult = std::sync::Arc::new(std::sync::Mutex::new(Some((*numbers.lock().unwrap().as_mut().unwrap())[(*idx1.lock().unwrap().as_mut().unwrap())..(*idx2.lock().unwrap().as_mut().unwrap())].to_vec()[1] + (*numbers.lock().unwrap().as_mut().unwrap())[(*numbers.lock().unwrap().as_mut().unwrap()).len() - 1] - (*numbers.lock().unwrap().as_mut().unwrap())[0])));
-    print!("numbers[idx1:idx2][1] + numbers[len(numbers)-1] - numbers[0] = {}\n", format_slice(&sliceResult));
+    print!("numbers[idx1:idx2][1] + numbers[len(numbers)-1] - numbers[0] = {}\n", (*sliceResult.lock().unwrap().as_mut().unwrap()));
 
     println!("{}", "\n=== Map expressions ===".to_string());
 
     let mut data = std::sync::Arc::new(std::sync::Mutex::new(Some(std::collections::HashMap::<String, std::sync::Arc<std::sync::Mutex<Option<i32>>>>::from([("alpha".to_string(), std::sync::Arc::new(std::sync::Mutex::new(Some(10)))), ("beta".to_string(), std::sync::Arc::new(std::sync::Mutex::new(Some(20)))), ("gamma".to_string(), std::sync::Arc::new(std::sync::Mutex::new(Some(30))))]))));
 
-    let mut mapResult = std::sync::Arc::new(std::sync::Mutex::new(Some((*data.lock().unwrap().as_mut().unwrap())["alpha".to_string()] + (*data.lock().unwrap().as_mut().unwrap())["beta".to_string()] * 2 - (*data.lock().unwrap().as_mut().unwrap())["gamma".to_string()] / 3)));
-    print!("data[\"alpha\"] + data[\"beta\"]*2 - data[\"gamma\"]/3 = {}\n", format_map(&mapResult));
+    let mut mapResult = std::sync::Arc::new(std::sync::Mutex::new(Some((*(*data.lock().unwrap().as_ref().unwrap()).get(&"alpha".to_string()).unwrap().lock().unwrap().as_ref().unwrap()) + (*(*data.lock().unwrap().as_ref().unwrap()).get(&"beta".to_string()).unwrap().lock().unwrap().as_ref().unwrap()) * 2 - (*(*data.lock().unwrap().as_ref().unwrap()).get(&"gamma".to_string()).unwrap().lock().unwrap().as_ref().unwrap()) / 3)));
+    print!("data[\"alpha\"] + data[\"beta\"]*2 - data[\"gamma\"]/3 = {}\n", (*mapResult.lock().unwrap().as_mut().unwrap()));
 
     println!("{}", "\n=== Struct field expressions ===".to_string());
 

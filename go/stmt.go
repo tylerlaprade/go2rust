@@ -286,15 +286,14 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 			isString := false
 			if s.Tok == token.ADD_ASSIGN {
-				if ident, ok := s.Lhs[0].(*ast.Ident); ok {
-					// TODO (hack): Simple heuristic: common string variable names
-					name := strings.ToLower(ident.Name)
-					isString = name == "result" || name == "str" || name == "s" || strings.Contains(name, "string")
-				}
-				// Also check if RHS is a string literal
-				if !isString {
+				typeInfo := GetTypeInfo()
+				if typeInfo != nil {
+					isString = typeInfo.IsString(s.Lhs[0])
+				} else {
+					// Type info not available - check if RHS is a string literal at least
 					if lit, ok := s.Rhs[0].(*ast.BasicLit); ok && lit.Kind == token.STRING {
 						isString = true
+						out.WriteString("/* WARNING: Assuming string type based on literal */ ")
 					}
 				}
 			}
@@ -360,11 +359,14 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			isMapAccess := false
 			if needsTupleUnpack && len(s.Lhs) == 2 {
 				if indexExpr, ok := s.Rhs[0].(*ast.IndexExpr); ok {
-					// Check if the indexed expression is likely a map
-					if ident, ok := indexExpr.X.(*ast.Ident); ok {
-						name := strings.ToLower(ident.Name)
-						// TODO: Use type information instead of this heuristic
-						isMapAccess = strings.Contains(name, "map") || name == "ages" || name == "colors" || name == "m"
+					// Check if the indexed expression is a map
+					typeInfo := GetTypeInfo()
+					if typeInfo != nil {
+						isMapAccess = typeInfo.IsMap(indexExpr.X)
+					} else {
+						// Type info not available - cannot determine
+						out.WriteString("/* ERROR: Cannot determine if map access - type information required */ ")
+						isMapAccess = false
 					}
 				}
 			}
@@ -784,19 +786,19 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		// Track range loop variables so we don't try to unwrap them
 		var keyName, valueName string
 
-		// Check if we're iterating over a map by looking at the identifier
+		// Use type information to determine what we're iterating over
+		typeInfo := GetTypeInfo()
 		isMap := false
-		if ident, ok := s.X.(*ast.Ident); ok {
-			// Simple heuristic: if the variable name contains "map" or common map names
-			// This is not perfect but works for many cases
-			// TODO: Use type information for accurate detection rather than this hack
-			name := strings.ToLower(ident.Name)
-			// Be more specific - only exact matches for known map names
-			isMap = strings.Contains(name, "map") || name == "ages" || name == "colors" || name == "m"
-			// But exclude names that are clearly slices/arrays
-			if strings.Contains(name, "names") || strings.Contains(name, "list") || strings.Contains(name, "array") || strings.Contains(name, "slice") {
-				isMap = false
-			}
+		isString := false
+
+		if typeInfo != nil {
+			isMap = typeInfo.IsMap(s.X)
+			isString = typeInfo.IsString(s.X)
+		} else {
+			// Type info not available - generate error
+			out.WriteString("/* ERROR: Cannot determine range type - type information required */\n")
+			out.WriteString("unimplemented!(\"type info required for range statement\")")
+			return
 		}
 
 		// Determine types based on what we're iterating over
@@ -821,7 +823,25 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			}
 		}
 
-		if isMap {
+		if isString {
+			// String iteration - iterate over chars
+			if s.Key != nil && s.Value != nil {
+				// for i, c := range str
+				out.WriteString("(")
+				TranspileExpression(out, s.Key)
+				out.WriteString(", ")
+				TranspileExpression(out, s.Value)
+				out.WriteString(") in (*")
+				TranspileExpression(out, s.X)
+				out.WriteString(".lock().unwrap().as_ref().unwrap()).chars().enumerate()")
+			} else if s.Value != nil {
+				// for _, c := range str
+				TranspileExpression(out, s.Value)
+				out.WriteString(" in (*")
+				TranspileExpression(out, s.X)
+				out.WriteString(".lock().unwrap().as_ref().unwrap()).chars()")
+			}
+		} else if isMap {
 			// Map iteration - need to unwrap the Arc<Mutex<Option<HashMap>>>
 			if s.Key != nil && s.Value != nil {
 				// for k, v := range map

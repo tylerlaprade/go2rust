@@ -107,25 +107,47 @@ func transpileBuiltinPrintln(out *strings.Builder, call *ast.CallExpr) {
 
 // Helper function to unwrap arguments for print statements
 func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
-	// Check if argument might be a map or slice
-	isMap := false
-	isSlice := false
-	if ident, ok := arg.(*ast.Ident); ok {
-		name := strings.ToLower(ident.Name)
-		isMap = strings.Contains(name, "map") || name == "ages" || name == "colors" || name == "m"
-		isSlice = strings.Contains(name, "slice") || strings.Contains(name, "arr") || name == "numbers" || name == "nums" || name == "made"
-		if isMap {
-			// Use format_map helper
+	// Use type information if available
+	typeInfo := GetTypeInfo()
+	if typeInfo != nil && typeInfo.GetType(arg) != nil {
+		if typeInfo.IsMap(arg) {
 			out.WriteString("format_map(&")
-			out.WriteString(ident.Name)
+			if ident, ok := arg.(*ast.Ident); ok {
+				// For identifiers, just use the name directly (it's already wrapped)
+				out.WriteString(ident.Name)
+			} else {
+				TranspileExpression(out, arg)
+			}
 			out.WriteString(")")
 			return
-		} else if isSlice {
-			// Use format_slice helper
+		} else if typeInfo.IsSlice(arg) {
 			out.WriteString("format_slice(&")
-			out.WriteString(ident.Name)
+			if ident, ok := arg.(*ast.Ident); ok {
+				// For identifiers, just use the name directly (it's already wrapped)
+				out.WriteString(ident.Name)
+			} else {
+				TranspileExpression(out, arg)
+			}
 			out.WriteString(")")
 			return
+		}
+		// Type is known but not a map or slice - fall through
+	} else {
+		// Type info not available - generate error comment
+		if ident, ok := arg.(*ast.Ident); ok {
+			name := strings.ToLower(ident.Name)
+			// Only apply heuristics for very obvious cases, otherwise add warning
+			if name == "ages" || name == "colors" || name == "m" {
+				out.WriteString("/* WARNING: Assuming map type based on variable name */ format_map(&")
+				out.WriteString(ident.Name)
+				out.WriteString(")")
+				return
+			} else if name == "numbers" || name == "nums" {
+				out.WriteString("/* WARNING: Assuming slice type based on variable name */ format_slice(&")
+				out.WriteString(ident.Name)
+				out.WriteString(")")
+				return
+			}
 		}
 	}
 

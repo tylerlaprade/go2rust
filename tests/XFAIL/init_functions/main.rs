@@ -129,8 +129,8 @@ fn main() {
     print!("Computed value: {}\n", (*computedValue.lock().unwrap().as_mut().unwrap()));
 
     println!("{}", "\nConfiguration data:".to_string());
-    for (key, value) in (*configData.lock().unwrap().as_mut().unwrap()).iter().enumerate() {
-        print!("  {}: {}\n", key, value);
+    for (key, value) in (*configData.lock().unwrap().as_ref().unwrap()).clone() {
+        print!("  {}: {}\n", key, (*value.lock().unwrap().as_mut().unwrap()));
     }
 
     print!("\nApp config: %+v\n", (*appConfig.lock().unwrap().as_mut().unwrap()));

@@ -180,14 +180,14 @@ fn main() {
     let mut inventory = std::sync::Arc::new(std::sync::Mutex::new(Some(std::collections::HashMap::<String, std::sync::Arc<std::sync::Mutex<Option<std::collections::HashMap<String, i32>>>>>::from([("electronics".to_string(), std::sync::Arc::new(std::sync::Mutex::new(Some()))), ("furniture".to_string(), std::sync::Arc::new(std::sync::Mutex::new(Some()))), ("supplies".to_string(), std::sync::Arc::new(std::sync::Mutex::new(Some())))]))));
 
     println!("{}", "Inventory:".to_string());
-    for (category, items) in (*inventory.lock().unwrap().as_mut().unwrap()).iter().enumerate() {
+    for (category, items) in (*inventory.lock().unwrap().as_ref().unwrap()).clone() {
         print!("  {}:\n", category);
-        for (item, count) in items.iter().enumerate() {
-        print!("    {}: {}\n", item, count);
+        for (item, count) in (*items.lock().unwrap().as_ref().unwrap()).clone() {
+        print!("    {}: {}\n", item, (*count.lock().unwrap().as_mut().unwrap()));
     }
     }
 
-    let mut laptopCount = std::sync::Arc::new(std::sync::Mutex::new(Some((*inventory.lock().unwrap().as_mut().unwrap())["electronics".to_string()]["laptops".to_string()])));
+    let mut laptopCount = std::sync::Arc::new(std::sync::Mutex::new(Some((*(*(*(*inventory.lock().unwrap().as_ref().unwrap()).get(&"electronics".to_string()).unwrap().lock().unwrap().as_ref().unwrap()).lock().unwrap().as_ref().unwrap()).get(&"laptops".to_string()).unwrap().lock().unwrap().as_ref().unwrap()))));
     print!("Laptop count: {}\n", (*laptopCount.lock().unwrap().as_mut().unwrap()));
 
     println!("{}", "\n=== Nested slices ===".to_string());

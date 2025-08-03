@@ -51,7 +51,7 @@ fn main() {
     println!("{} {}", "Trimmed:".to_string(), (*trimmed.lock().unwrap().as_mut().unwrap()));
 
     let mut split = (*strings.lock().unwrap().as_mut().unwrap()).split(std::sync::Arc::new(std::sync::Mutex::new(Some("a,b,c".to_string()))), std::sync::Arc::new(std::sync::Mutex::new(Some(",".to_string()))));
-    print!("Split: {}\n", (*split.lock().unwrap().as_mut().unwrap()));
+    print!("Split: {}\n", format_slice(&split));
 
     println!("{}", "\n--- strconv package ---".to_string());
     let mut num = std::sync::Arc::new(std::sync::Mutex::new(Some(42)));

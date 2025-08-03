@@ -161,7 +161,7 @@ fn main() {
 
     let mut data = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![3, 1, 4, 1, 5, 9, 2, 6])));
     let (mut min, mut max, mut sum) = process_data(data.clone());
-    print!("Data: {}\n", (*data.lock().unwrap().as_mut().unwrap()));
+    print!("Data: {}\n", format_slice(&data));
     print!("Min: {}, Max: {}, Sum: {}\n", (*min.lock().unwrap().as_mut().unwrap()), (*max.lock().unwrap().as_mut().unwrap()), (*sum.lock().unwrap().as_mut().unwrap()));
 
     println!("{}", "\n=== Swapping values ===".to_string());
@@ -172,7 +172,7 @@ fn main() {
 
     println!("{}", "\n=== Different types ===".to_string());
     let (mut pName, mut pAge, mut pHeight, mut pMarried) = get_person_info();
-    print!("Person: {}, {} years old, {:.1} feet tall, married: {}\n", (*pName.lock().unwrap().as_mut().unwrap()), (*pAge.lock().unwrap().as_mut().unwrap()), (*pHeight.lock().unwrap().as_mut().unwrap()), format_slice(&pMarried));
+    print!("Person: {}, {} years old, {:.1} feet tall, married: {}\n", (*pName.lock().unwrap().as_mut().unwrap()), (*pAge.lock().unwrap().as_mut().unwrap()), (*pHeight.lock().unwrap().as_mut().unwrap()), (*pMarried.lock().unwrap().as_mut().unwrap()));
 
     println!("{}", "\n=== Finding in slice ===".to_string());
     let mut numbers = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![10, 20, 30, 40, 50])));
