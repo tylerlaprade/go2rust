@@ -49,7 +49,7 @@ pub fn parse_number(s: std::sync::Arc<std::sync::Mutex<Option<String>>>) -> (std
     if (*err.lock().unwrap()).is_some() {
         return (std::sync::Arc::new(std::sync::Mutex::new(Some(0))), std::sync::Arc::new(std::sync::Mutex::new(Some(Box::new(format!("failed to parse '{}': {}", (*s.lock().unwrap().as_mut().unwrap()), (*err.lock().unwrap().as_mut().unwrap()))) as Box<dyn std::error::Error + Send + Sync>))));
     }
-    return (std::sync::Arc::new(std::sync::Mutex::new(Some((*num.lock().unwrap().as_mut().unwrap())))), std::sync::Arc::new(std::sync::Mutex::new(None)));
+    return (num.clone(), std::sync::Arc::new(std::sync::Mutex::new(None)));
 }
 
 pub fn get_name_age() -> (std::sync::Arc<std::sync::Mutex<Option<String>>>, std::sync::Arc<std::sync::Mutex<Option<i32>>>) {
@@ -95,7 +95,7 @@ pub fn process_data(data: std::sync::Arc<std::sync::Mutex<Option<Vec<i32>>>>) ->
 
 pub fn swap(a: std::sync::Arc<std::sync::Mutex<Option<String>>>, b: std::sync::Arc<std::sync::Mutex<Option<String>>>) -> (std::sync::Arc<std::sync::Mutex<Option<String>>>, std::sync::Arc<std::sync::Mutex<Option<String>>>) {
 
-    return (std::sync::Arc::new(std::sync::Mutex::new(Some((*b.lock().unwrap().as_mut().unwrap())))), std::sync::Arc::new(std::sync::Mutex::new(Some((*a.lock().unwrap().as_mut().unwrap())))));
+    return (b.clone(), a.clone());
 }
 
 /// Function returning multiple values of different types
@@ -105,7 +105,7 @@ pub fn get_person_info() -> (std::sync::Arc<std::sync::Mutex<Option<String>>>, s
     let mut height: std::sync::Arc<std::sync::Mutex<Option<f64>>> = std::sync::Arc::new(std::sync::Mutex::new(Some(0.0)));
     let mut married: std::sync::Arc<std::sync::Mutex<Option<bool>>> = std::sync::Arc::new(std::sync::Mutex::new(Some(false)));
 
-    return (std::sync::Arc::new(std::sync::Mutex::new(Some("Bob".to_string()))), std::sync::Arc::new(std::sync::Mutex::new(Some(25))), std::sync::Arc::new(std::sync::Mutex::new(Some(5.9))), std::sync::Arc::new(std::sync::Mutex::new(Some(false))));
+    return (std::sync::Arc::new(std::sync::Mutex::new(Some("Bob".to_string()))), std::sync::Arc::new(std::sync::Mutex::new(Some(25))), std::sync::Arc::new(std::sync::Mutex::new(Some(5.9))), false.clone());
 }
 
 /// Function that can return early with different values
@@ -115,10 +115,10 @@ pub fn find_in_slice(slice: std::sync::Arc<std::sync::Mutex<Option<Vec<i32>>>>, 
 
     for (i, val) in (*slice.lock().unwrap().as_mut().unwrap()).iter().enumerate() {
         if val == (*target.lock().unwrap().as_mut().unwrap()) {
-        return (std::sync::Arc::new(std::sync::Mutex::new(Some(i))), std::sync::Arc::new(std::sync::Mutex::new(Some(true))));
+        return (std::sync::Arc::new(std::sync::Mutex::new(Some(i))), true.clone());
     }
     }
-    return (std::sync::Arc::new(std::sync::Mutex::new(Some(-1))), std::sync::Arc::new(std::sync::Mutex::new(Some(false))));
+    return (std::sync::Arc::new(std::sync::Mutex::new(Some(-1))), false.clone());
 }
 
 /// Multiple returns with error handling
@@ -134,21 +134,21 @@ pub fn safe_divide(a: std::sync::Arc<std::sync::Mutex<Option<f64>>>, b: std::syn
 
 fn main() {
     println!("{}", "=== Basic multiple returns ===".to_string());
-    let (mut quotient, mut remainder) = (divmod.lock().unwrap().as_ref().unwrap())(std::sync::Arc::new(std::sync::Mutex::new(Some(17))), std::sync::Arc::new(std::sync::Mutex::new(Some(5))));
+    let (mut quotient, mut remainder) = divmod(std::sync::Arc::new(std::sync::Mutex::new(Some(17))), std::sync::Arc::new(std::sync::Mutex::new(Some(5))));
     print!("17 / 5 = {} remainder {}\n", (*quotient.lock().unwrap().as_mut().unwrap()), (*remainder.lock().unwrap().as_mut().unwrap()));
 
     let (mut name, mut age) = get_name_age();
     print!("Name: {}, Age: {}\n", (*name.lock().unwrap().as_mut().unwrap()), (*age.lock().unwrap().as_mut().unwrap()));
 
     println!("{}", "\n=== Multiple returns with errors ===".to_string());
-    let (mut num, mut err) = (parseNumber.lock().unwrap().as_ref().unwrap())(std::sync::Arc::new(std::sync::Mutex::new(Some("123".to_string()))));
+    let (mut num, mut err) = parse_number(std::sync::Arc::new(std::sync::Mutex::new(Some("123".to_string()))));
     if (*err.lock().unwrap()).is_some() {
         print!("Error: {}\n", (*err.lock().unwrap().as_mut().unwrap()));
     } else {
         print!("Parsed number: {}\n", (*num.lock().unwrap().as_mut().unwrap()));
     }
 
-    (num, err) = (parseNumber.lock().unwrap().as_ref().unwrap())(std::sync::Arc::new(std::sync::Mutex::new(Some("abc".to_string()))));
+    (num, err) = parse_number(std::sync::Arc::new(std::sync::Mutex::new(Some("abc".to_string()))));
     if (*err.lock().unwrap()).is_some() {
         print!("Error: {}\n", (*err.lock().unwrap().as_mut().unwrap()));
     } else {
@@ -156,18 +156,18 @@ fn main() {
     }
 
     println!("{}", "\n=== Named return values ===".to_string());
-    let (mut s, mut p) = (calculate.lock().unwrap().as_ref().unwrap())(std::sync::Arc::new(std::sync::Mutex::new(Some(6))), std::sync::Arc::new(std::sync::Mutex::new(Some(7))));
+    let (mut s, mut p) = calculate(std::sync::Arc::new(std::sync::Mutex::new(Some(6))), std::sync::Arc::new(std::sync::Mutex::new(Some(7))));
     print!("Sum: {}, Product: {}\n", (*s.lock().unwrap().as_mut().unwrap()), (*p.lock().unwrap().as_mut().unwrap()));
 
     let mut data = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![3, 1, 4, 1, 5, 9, 2, 6])));
-    let (mut min, mut max, mut sum) = (processData.lock().unwrap().as_ref().unwrap())(data.clone());
+    let (mut min, mut max, mut sum) = process_data(data.clone());
     print!("Data: {}\n", format_slice(&data));
     print!("Min: {}, Max: {}, Sum: {}\n", (*min.lock().unwrap().as_mut().unwrap()), (*max.lock().unwrap().as_mut().unwrap()), (*sum.lock().unwrap().as_mut().unwrap()));
 
     println!("{}", "\n=== Swapping values ===".to_string());
     let (mut x, mut y) = (std::sync::Arc::new(std::sync::Mutex::new(Some("hello".to_string()))), std::sync::Arc::new(std::sync::Mutex::new(Some("world".to_string()))));
     print!("Before swap: x={}, y={}\n", (*x.lock().unwrap().as_mut().unwrap()), (*y.lock().unwrap().as_mut().unwrap()));
-    (x, y) = (swap.lock().unwrap().as_ref().unwrap())(x.clone(), y.clone());
+    (x, y) = swap(x.clone(), y.clone());
     print!("After swap: x={}, y={}\n", (*x.lock().unwrap().as_mut().unwrap()), (*y.lock().unwrap().as_mut().unwrap()));
 
     println!("{}", "\n=== Different types ===".to_string());
@@ -177,14 +177,14 @@ fn main() {
     println!("{}", "\n=== Finding in slice ===".to_string());
     let mut numbers = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![10, 20, 30, 40, 50])));
 
-    let (mut index, mut found) = (findInSlice.lock().unwrap().as_ref().unwrap())(numbers.clone(), std::sync::Arc::new(std::sync::Mutex::new(Some(30))));
+    let (mut index, mut found) = find_in_slice(numbers.clone(), std::sync::Arc::new(std::sync::Mutex::new(Some(30))));
     if (*found.lock().unwrap().as_mut().unwrap()) {
         print!("Found 30 at index {}\n", (*index.lock().unwrap().as_mut().unwrap()));
     } else {
         println!("{}", "30 not found".to_string());
     }
 
-    (index, found) = (findInSlice.lock().unwrap().as_ref().unwrap())(numbers.clone(), std::sync::Arc::new(std::sync::Mutex::new(Some(99))));
+    (index, found) = find_in_slice(numbers.clone(), std::sync::Arc::new(std::sync::Mutex::new(Some(99))));
     if (*found.lock().unwrap().as_mut().unwrap()) {
         print!("Found 99 at index {}\n", (*index.lock().unwrap().as_mut().unwrap()));
     } else {
@@ -192,14 +192,14 @@ fn main() {
     }
 
     println!("{}", "\n=== Safe division ===".to_string());
-    let (mut result, mut err) = (safeDivide.lock().unwrap().as_ref().unwrap())(std::sync::Arc::new(std::sync::Mutex::new(Some(10.0))), std::sync::Arc::new(std::sync::Mutex::new(Some(3.0))));
+    let (mut result, mut err) = safe_divide(std::sync::Arc::new(std::sync::Mutex::new(Some(10.0))), std::sync::Arc::new(std::sync::Mutex::new(Some(3.0))));
     if (*err.lock().unwrap()).is_some() {
         print!("Error: {}\n", (*err.lock().unwrap().as_mut().unwrap()));
     } else {
         print!("10.0 / 3.0 = {:.2}\n", (*result.lock().unwrap().as_mut().unwrap()));
     }
 
-    (result, err) = (safeDivide.lock().unwrap().as_ref().unwrap())(std::sync::Arc::new(std::sync::Mutex::new(Some(10.0))), std::sync::Arc::new(std::sync::Mutex::new(Some(0.0))));
+    (result, err) = safe_divide(std::sync::Arc::new(std::sync::Mutex::new(Some(10.0))), std::sync::Arc::new(std::sync::Mutex::new(Some(0.0))));
     if (*err.lock().unwrap()).is_some() {
         print!("Error: {}\n", (*err.lock().unwrap().as_mut().unwrap()));
     } else {
@@ -207,7 +207,7 @@ fn main() {
     }
 
     println!("{}", "\n=== Ignoring return values ===".to_string());
-    let (_, mut remainder2) = (divmod.lock().unwrap().as_ref().unwrap())(std::sync::Arc::new(std::sync::Mutex::new(Some(23))), std::sync::Arc::new(std::sync::Mutex::new(Some(7))));
+    let (_, mut remainder2) = divmod(std::sync::Arc::new(std::sync::Mutex::new(Some(23))), std::sync::Arc::new(std::sync::Mutex::new(Some(7))));
     print!("23 mod 7 = {} (quotient ignored)\n", (*remainder2.lock().unwrap().as_mut().unwrap()));
 
     let (mut name2, _) = get_name_age();

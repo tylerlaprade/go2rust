@@ -42,7 +42,7 @@ pub fn make_counter() -> std::sync::Arc<std::sync::Mutex<Option<Box<dyn Fn() -> 
     let mut count = std::sync::Arc::new(std::sync::Mutex::new(Some(0)));
     return std::sync::Arc::new(std::sync::Mutex::new(Some(Box::new(move || -> std::sync::Arc<std::sync::Mutex<Option<i32>>> {
         { let mut guard = count.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
-        return std::sync::Arc::new(std::sync::Mutex::new(Some((*count.lock().unwrap().as_mut().unwrap()))));
+        return count.clone();
     }) as Box<dyn Fn() -> std::sync::Arc<std::sync::Mutex<Option<i32>>> + Send + Sync>)));
 }
 
@@ -59,7 +59,7 @@ pub fn apply_operation(nums: std::sync::Arc<std::sync::Mutex<Option<Vec<i32>>>>,
     for (i, num) in (*nums.lock().unwrap().as_mut().unwrap()).iter().enumerate() {
         (*result.lock().unwrap().as_mut().unwrap())[i] = (op.lock().unwrap().as_ref().unwrap())(std::sync::Arc::new(std::sync::Mutex::new(Some(num))));
     }
-    return std::sync::Arc::new(std::sync::Mutex::new(Some((*result.lock().unwrap().as_mut().unwrap()))));
+    return result.clone();
 }
 
 fn main() {

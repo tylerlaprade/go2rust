@@ -74,7 +74,7 @@ fn main() {
         return std::sync::Arc::new(std::sync::Mutex::new(Some(3)));
     }) as Box<dyn Fn() -> std::sync::Arc<std::sync::Mutex<Option<i32>>> + Send + Sync>))))));
 
-    let mut complexResult = std::sync::Arc::new(std::sync::Mutex::new(Some(get_value(a.clone()) + get_value(b.clone()) * get_multiplier() - get_value(c.clone()) / 2)));
+    let mut complexResult = std::sync::Arc::new(std::sync::Mutex::new(Some((getValue.lock().unwrap().as_ref().unwrap())(a.clone()) + (getValue.lock().unwrap().as_ref().unwrap())(b.clone()) * (getMultiplier.lock().unwrap().as_ref().unwrap())() - (getValue.lock().unwrap().as_ref().unwrap())(c.clone()) / 2)));
     print!("getValue(a) + getValue(b) * getMultiplier() - getValue(c)/2 = {}\n", (*complexResult.lock().unwrap().as_mut().unwrap()));
 
     println!("{}", "\n=== Array/slice expressions ===".to_string());

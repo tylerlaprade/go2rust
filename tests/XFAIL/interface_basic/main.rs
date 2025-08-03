@@ -46,15 +46,15 @@ fn main() {
 
     { let new_val = 42; *x.lock().unwrap() = Some(new_val); };
     println!("{} {}", "x is int:".to_string(), (*x.lock().unwrap().as_mut().unwrap()));
-    (printAny.lock().unwrap().as_ref().unwrap())(x.clone());
+    print_any(x.clone());
 
     { let new_val = "hello".to_string(); *x.lock().unwrap() = Some(new_val); };
     println!("{} {}", "x is string:".to_string(), (*x.lock().unwrap().as_mut().unwrap()));
-    (printAny.lock().unwrap().as_ref().unwrap())(x.clone());
+    print_any(x.clone());
 
     { let new_val = 3.14; *x.lock().unwrap() = Some(new_val); };
     println!("{} {}", "x is float:".to_string(), (*x.lock().unwrap().as_mut().unwrap()));
-    (printAny.lock().unwrap().as_ref().unwrap())(x.clone());
+    print_any(x.clone());
 
     let mut values = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![1, "two".to_string(), 3.0])));
     println!("{} {}", "Mixed values:".to_string(), format_slice(&values));

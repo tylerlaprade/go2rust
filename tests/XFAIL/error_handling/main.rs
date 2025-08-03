@@ -77,7 +77,7 @@ pub fn sqrt(x: std::sync::Arc<std::sync::Mutex<Option<f64>>>) -> (std::sync::Arc
         { let new_val = ((*result.lock().unwrap().as_mut().unwrap()) + (*x.lock().unwrap().as_mut().unwrap()) / (*result.lock().unwrap().as_mut().unwrap())) / 2; *result.lock().unwrap() = Some(new_val); };
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
-    return (std::sync::Arc::new(std::sync::Mutex::new(Some((*result.lock().unwrap().as_mut().unwrap())))), std::sync::Arc::new(std::sync::Mutex::new(None)));
+    return (result.clone(), std::sync::Arc::new(std::sync::Mutex::new(None)));
 }
 
 pub fn process_value(val: std::sync::Arc<std::sync::Mutex<Option<i32>>>) -> std::sync::Arc<std::sync::Mutex<Option<Box<dyn std::error::Error + Send + Sync>>>> {
@@ -92,38 +92,38 @@ pub fn process_value(val: std::sync::Arc<std::sync::Mutex<Option<i32>>>) -> std:
 }
 
 fn main() {
-    let (mut result, mut err) = (divide.lock().unwrap().as_ref().unwrap())(std::sync::Arc::new(std::sync::Mutex::new(Some(10))), std::sync::Arc::new(std::sync::Mutex::new(Some(2))));
+    let (mut result, mut err) = divide(std::sync::Arc::new(std::sync::Mutex::new(Some(10))), std::sync::Arc::new(std::sync::Mutex::new(Some(2))));
     if (*err.lock().unwrap()).is_some() {
         println!("{} {}", "Error:".to_string(), (*err.lock().unwrap().as_mut().unwrap()));
     } else {
         println!("{} {}", "10 / 2 =".to_string(), (*result.lock().unwrap().as_mut().unwrap()));
     }
 
-    (result, err) = (divide.lock().unwrap().as_ref().unwrap())(std::sync::Arc::new(std::sync::Mutex::new(Some(10))), std::sync::Arc::new(std::sync::Mutex::new(Some(0))));
+    (result, err) = divide(std::sync::Arc::new(std::sync::Mutex::new(Some(10))), std::sync::Arc::new(std::sync::Mutex::new(Some(0))));
     if (*err.lock().unwrap()).is_some() {
         println!("{} {}", "Error:".to_string(), (*err.lock().unwrap().as_mut().unwrap()));
     } else {
         println!("{} {}", "Result:".to_string(), (*result.lock().unwrap().as_mut().unwrap()));
     }
 
-    let (mut sqrtResult, mut err) = (sqrt.lock().unwrap().as_ref().unwrap())(std::sync::Arc::new(std::sync::Mutex::new(Some(-4))));
+    let (mut sqrtResult, mut err) = sqrt(std::sync::Arc::new(std::sync::Mutex::new(Some(-4))));
     if (*err.lock().unwrap()).is_some() {
         println!("{} {}", "Sqrt error:".to_string(), (*err.lock().unwrap().as_mut().unwrap()));
     } else {
         println!("{} {}", "Sqrt result:".to_string(), (*sqrtResult.lock().unwrap().as_mut().unwrap()));
     }
 
-    { let new_val = (processValue.lock().unwrap().as_ref().unwrap())(std::sync::Arc::new(std::sync::Mutex::new(Some(-5)))); *err.lock().unwrap() = Some(new_val); };
+    { let new_val = process_value(std::sync::Arc::new(std::sync::Mutex::new(Some(-5)))); *err.lock().unwrap() = Some(new_val); };
     if (*err.lock().unwrap()).is_some() {
         println!("{} {}", "Process error:".to_string(), (*err.lock().unwrap().as_mut().unwrap()));
     }
 
-    { let new_val = (processValue.lock().unwrap().as_ref().unwrap())(std::sync::Arc::new(std::sync::Mutex::new(Some(150)))); *err.lock().unwrap() = Some(new_val); };
+    { let new_val = process_value(std::sync::Arc::new(std::sync::Mutex::new(Some(150)))); *err.lock().unwrap() = Some(new_val); };
     if (*err.lock().unwrap()).is_some() {
         println!("{} {}", "Process error:".to_string(), (*err.lock().unwrap().as_mut().unwrap()));
     }
 
-    { let new_val = (processValue.lock().unwrap().as_ref().unwrap())(std::sync::Arc::new(std::sync::Mutex::new(Some(50)))); *err.lock().unwrap() = Some(new_val); };
+    { let new_val = process_value(std::sync::Arc::new(std::sync::Mutex::new(Some(50)))); *err.lock().unwrap() = Some(new_val); };
     if (*err.lock().unwrap()).is_some() {
         println!("{} {}", "Process error:".to_string(), (*err.lock().unwrap().as_mut().unwrap()));
     } else {

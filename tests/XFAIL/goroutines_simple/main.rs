@@ -46,7 +46,7 @@ pub fn f(from: std::sync::Arc<std::sync::Mutex<Option<String>>>) {
 }
 
 fn main() {
-    (f.lock().unwrap().as_ref().unwrap())(std::sync::Arc::new(std::sync::Mutex::new(Some("direct".to_string()))));
+    f(std::sync::Arc::new(std::sync::Mutex::new(Some("direct".to_string()))));
 
     // TODO: Unhandled statement type: GoStmt
 

@@ -46,7 +46,7 @@ fn main() {
     let mut x = std::sync::Arc::new(std::sync::Mutex::new(Some(10)));
     let mut increment = std::sync::Arc::new(std::sync::Mutex::new(Some(std::sync::Arc::new(std::sync::Mutex::new(Some(Box::new(move || -> std::sync::Arc<std::sync::Mutex<Option<i32>>> {
         { let mut guard = x.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
-        return std::sync::Arc::new(std::sync::Mutex::new(Some((*x.lock().unwrap().as_mut().unwrap()))));
+        return x.clone();
     }) as Box<dyn Fn() -> std::sync::Arc<std::sync::Mutex<Option<i32>>> + Send + Sync>))))));
     println!("{} {}", "increment() =".to_string(), (*(increment.lock().unwrap().as_ref().unwrap())().lock().unwrap().as_mut().unwrap()));
     println!("{} {}", "increment() =".to_string(), (*(increment.lock().unwrap().as_ref().unwrap())().lock().unwrap().as_mut().unwrap()));
@@ -57,8 +57,8 @@ fn main() {
         return std::sync::Arc::new(std::sync::Mutex::new(Some((*x.lock().unwrap().as_mut().unwrap()) * (*factor.lock().unwrap().as_mut().unwrap()))));
     }) as Box<dyn Fn(std::sync::Arc<std::sync::Mutex<Option<i32>>>) -> std::sync::Arc<std::sync::Mutex<Option<i32>>> + Send + Sync>)));
     }) as Box<dyn Fn(std::sync::Arc<std::sync::Mutex<Option<i32>>>) -> std::sync::Arc<std::sync::Mutex<Option<Box<dyn Fn(std::sync::Arc<std::sync::Mutex<Option<i32>>>) -> std::sync::Arc<std::sync::Mutex<Option<i32>>> + Send + Sync>>>> + Send + Sync>))))));
-    let mut double = make_multiplier(std::sync::Arc::new(std::sync::Mutex::new(Some(2))));
-    let mut triple = make_multiplier(std::sync::Arc::new(std::sync::Mutex::new(Some(3))));
+    let mut double = (makeMultiplier.lock().unwrap().as_ref().unwrap())(std::sync::Arc::new(std::sync::Mutex::new(Some(2))));
+    let mut triple = (makeMultiplier.lock().unwrap().as_ref().unwrap())(std::sync::Arc::new(std::sync::Mutex::new(Some(3))));
     println!("{} {}", "double(5) =".to_string(), (*(double.lock().unwrap().as_ref().unwrap())(std::sync::Arc::new(std::sync::Mutex::new(Some(5)))).lock().unwrap().as_mut().unwrap()));
     println!("{} {}", "triple(5) =".to_string(), (*(triple.lock().unwrap().as_ref().unwrap())(std::sync::Arc::new(std::sync::Mutex::new(Some(5)))).lock().unwrap().as_mut().unwrap()));
 

@@ -210,14 +210,14 @@ pub fn chained_defers() {
 fn main() {
     println!("{}", "=== Safe divide examples ===".to_string());
 
-    let (mut result, mut err) = (safeDivide.lock().unwrap().as_ref().unwrap())(std::sync::Arc::new(std::sync::Mutex::new(Some(10))), std::sync::Arc::new(std::sync::Mutex::new(Some(2))));
+    let (mut result, mut err) = safe_divide(std::sync::Arc::new(std::sync::Mutex::new(Some(10))), std::sync::Arc::new(std::sync::Mutex::new(Some(2))));
     if (*err.lock().unwrap()).is_some() {
         print!("Error: {}\n", (*err.lock().unwrap().as_mut().unwrap()));
     } else {
         print!("10 / 2 = {:.2}\n", (*result.lock().unwrap().as_mut().unwrap()));
     }
 
-    (result, err) = (safeDivide.lock().unwrap().as_ref().unwrap())(std::sync::Arc::new(std::sync::Mutex::new(Some(10))), std::sync::Arc::new(std::sync::Mutex::new(Some(0))));
+    (result, err) = safe_divide(std::sync::Arc::new(std::sync::Mutex::new(Some(10))), std::sync::Arc::new(std::sync::Mutex::new(Some(0))));
     if (*err.lock().unwrap()).is_some() {
         print!("Error: {}\n", (*err.lock().unwrap().as_mut().unwrap()));
     } else {
@@ -228,14 +228,14 @@ fn main() {
 
     let mut numbers = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![1, 2, 3, 4, 5])));
 
-    let (mut value, mut err) = (processSlice.lock().unwrap().as_ref().unwrap())(numbers.clone(), std::sync::Arc::new(std::sync::Mutex::new(Some(2))));
+    let (mut value, mut err) = process_slice(numbers.clone(), std::sync::Arc::new(std::sync::Mutex::new(Some(2))));
     if (*err.lock().unwrap()).is_some() {
         print!("Error: {}\n", (*err.lock().unwrap().as_mut().unwrap()));
     } else {
         print!("numbers[2] = {}\n", (*value.lock().unwrap().as_mut().unwrap()));
     }
 
-    (value, err) = (processSlice.lock().unwrap().as_ref().unwrap())(numbers.clone(), std::sync::Arc::new(std::sync::Mutex::new(Some(10))));
+    (value, err) = process_slice(numbers.clone(), std::sync::Arc::new(std::sync::Mutex::new(Some(10))));
     if (*err.lock().unwrap()).is_some() {
         print!("Error: {}\n", (*err.lock().unwrap().as_mut().unwrap()));
     } else {
@@ -243,13 +243,13 @@ fn main() {
     }
 
     println!("{}", "\n=== Nested panic example ===".to_string());
-    (nestedPanic.lock().unwrap().as_ref().unwrap())();
+    nested_panic();
 
     println!("{}", "\n=== Different panic types ===".to_string());
-    (demonstratePanicTypes.lock().unwrap().as_ref().unwrap())();
+    demonstrate_panic_types();
 
     println!("{}", "\n=== Chained defers with panic ===".to_string());
-    (chainedDefers.lock().unwrap().as_ref().unwrap())();
+    chained_defers();
 
     println!("{}", "\n=== Program completed successfully ===".to_string());
 }

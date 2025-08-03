@@ -49,7 +49,7 @@ pub fn pong(pings: std::sync::Arc<std::sync::Mutex<Option</* TODO: Unhandled typ
 fn main() {
     let mut pings = ;
     let mut pongs = ;
-    (ping.lock().unwrap().as_ref().unwrap())(pings.clone(), std::sync::Arc::new(std::sync::Mutex::new(Some("passed message".to_string()))));
-    (pong.lock().unwrap().as_ref().unwrap())(pings.clone(), pongs.clone());
+    ping(pings.clone(), std::sync::Arc::new(std::sync::Mutex::new(Some("passed message".to_string()))));
+    pong(pings.clone(), pongs.clone());
     println!("{}", <-(*pongs.lock().unwrap().as_mut().unwrap()));
 }

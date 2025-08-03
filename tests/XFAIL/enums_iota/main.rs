@@ -53,10 +53,10 @@ impl ServerState {
 }
 
 fn main() {
-    let mut ns = (transition.lock().unwrap().as_ref().unwrap())(StateIdle.clone());
+    let mut ns = transition(StateIdle.clone());
     println!("{}", (*ns.lock().unwrap().as_mut().unwrap()));
 
-    let mut ns2 = (transition.lock().unwrap().as_ref().unwrap())(ns.clone());
+    let mut ns2 = transition(ns.clone());
     println!("{}", (*ns2.lock().unwrap().as_mut().unwrap()));
 }
 
@@ -64,13 +64,13 @@ pub fn transition(s: std::sync::Arc<std::sync::Mutex<Option<ServerState>>>) -> s
 
     match (*s.lock().unwrap().as_mut().unwrap()) {
         STATE_IDLE => {
-            return std::sync::Arc::new(std::sync::Mutex::new(Some(STATE_CONNECTED)));
+            return StateConnected.clone();
         }
         STATE_CONNECTED | STATE_RETRYING => {
-            return std::sync::Arc::new(std::sync::Mutex::new(Some(STATE_IDLE)));
+            return StateIdle.clone();
         }
         STATE_ERROR => {
-            return std::sync::Arc::new(std::sync::Mutex::new(Some(STATE_ERROR)));
+            return StateError.clone();
         }
         _ => {
             panic(std::sync::Arc::new(std::sync::Mutex::new(Some(std::sync::Arc::new(std::sync::Mutex::new(Some(Box::new(format!("unknown state: {}", (*s.lock().unwrap().as_mut().unwrap()))) as Box<dyn std::error::Error + Send + Sync>)))))));

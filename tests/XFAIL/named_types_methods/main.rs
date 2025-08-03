@@ -48,13 +48,13 @@ type StringAlias = std::sync::Arc<std::sync::Mutex<Option<()>>>
 
 impl Celsius {
     pub fn to_fahrenheit(&self) -> std::sync::Arc<std::sync::Mutex<Option<Fahrenheit>>> {
-        return std::sync::Arc::new(std::sync::Mutex::new(Some(fahrenheit(std::sync::Arc::new(std::sync::Mutex::new(Some(self * 9 / 5 + 32)))))));
+        return std::sync::Arc::new(std::sync::Mutex::new(Some((Fahrenheit.lock().unwrap().as_ref().unwrap())(std::sync::Arc::new(std::sync::Mutex::new(Some(self * 9 / 5 + 32)))))));
     }
 }
 
 impl Fahrenheit {
     pub fn to_celsius(&self) -> std::sync::Arc<std::sync::Mutex<Option<Celsius>>> {
-        return std::sync::Arc::new(std::sync::Mutex::new(Some(celsius(std::sync::Arc::new(std::sync::Mutex::new(Some((self - 32) * 5 / 9)))))));
+        return std::sync::Arc::new(std::sync::Mutex::new(Some((Celsius.lock().unwrap().as_ref().unwrap())(std::sync::Arc::new(std::sync::Mutex::new(Some((self - 32) * 5 / 9)))))));
     }
 }
 

@@ -110,56 +110,93 @@ Currently, only doc comments (documentation comments directly above functions, t
 
 ## Progress Tracking
 
-### Go Keywords
+### Go Keywords (25 total)
 
 | Keyword | Status |
 |---------|--------|
+| **`break` - Break statements** | ✅ |
+| **`case` - Case clauses** | |
+| └ Switch cases | ✅ |
+| └ Select cases | ❌ |
+| └ Type switch cases | ❌ |
+| **`chan` - Channel types** | ❌ |
+| **`const` - Constants** | |
+| └ Basic constants | ✅ |
+| └ Iota enumerations | ✅ |
+| └ Complex iota expressions | ✅ |
+| **`continue` - Continue statements** | ✅ |
+| **`default` - Default clauses** | |
+| └ Switch default | ✅ |
+| └ Select default | ❌ |
+| **`defer` - Defer statements** | ❌ |
+| **`else` - Else clauses** | ✅ |
+| **`fallthrough` - Fallthrough statements** | ❌ |
+| **`for` - For loops** | |
+| └ C-style for loops | ✅ |
+| └ While-style loops | ✅ |
+| └ Infinite loops | ✅ |
+| └ Range loops | ✅ |
 | **`func` - Functions** | |
 | └ Basic functions | ✅ |
 | └ Multiple return values | ✅ |
 | └ Method definitions | ✅ |
 | └ Method calls | ✅ |
+| └ Function literals/closures | ❌ |
+| **`go` - Goroutines** | ❌ |
+| **`goto` - Goto statements** | ❌ |
+| **`if` - If statements** | |
+| └ Basic if | ✅ |
+| └ If with init statement | ✅ |
+| └ If-else chains | ✅ |
 | **`import` - Imports** | |
 | └ Single imports | ✅ |
 | └ Multiple imports | ✅ |
 | └ Package aliases | ❌ |
-| **`package` - Packages** | |
-| └ Main package | ✅ |
-| └ Library packages | ✅ |
-| └ Package aliases | ❌ |
-| **`return` - Return statements** | |
-| └ Single return values | ✅ |
-| └ Multiple return values | ✅ |
-| **`struct` - Struct types** | |
-| └ Struct definitions | ✅ |
-| └ Struct literals | ✅ |
-| └ Field access | ✅ |
-| └ Embedded fields | ❌ |
-| **`type` - Type definitions** | |
-| └ Struct types | ✅ |
-| └ Type aliases | ❌ |
-| └ Interface types | ✅ |
-| **`var` / `const` - Declarations** | |
-| └ Basic var declarations | ✅ |
-| └ Short declarations (:=) | ✅ |
-| └ Constants (const) | ✅ |
-| └ Blank identifier (_) | ✅ |
-| **`for` - For loops** | |
-| └ C-style for loops | ✅ |
-| └ Range loops | ✅ |
-| └ Infinite loops | ✅ |
-| └ Break statements | ✅ |
-| └ Continue statements | ✅ |
-| **`switch` - Switch statements** | |
-| └ Basic switch | ✅ |
-| └ Type switch | ❌ |
-| **`map` - Maps** | |
+| └ Blank imports | ❌ |
+| **`interface` - Interface types** | |
+| └ Interface definitions | ✅ |
+| └ Interface implementations | ❌ |
+| └ Type assertions | ✅ |
+| └ Type switches | ❌ |
+| **`map` - Map types** | |
 | └ Map types | ✅ |
 | └ Map literals | ✅ |
 | └ Map operations (insert, delete) | ✅ |
 | └ Map access with existence check | ✅ |
 | └ Map iteration (for range) | ✅ |
 | └ Map printing (sorted keys, Go 1.12+) | ✅ |
+| **`package` - Packages** | |
+| └ Main package | ✅ |
+| └ Library packages | ✅ |
+| └ Multi-file packages | ❌ |
+| **`range` - Range clauses** | |
+| └ Array/slice range | ✅ |
+| └ Map range | ✅ |
+| └ String range | ❌ |
+| └ Channel range | ❌ |
+| **`return` - Return statements** | |
+| └ Single return values | ✅ |
+| └ Multiple return values | ✅ |
+| └ Named returns | ❌ |
+| **`select` - Select statements** | ❌ |
+| **`struct` - Struct types** | |
+| └ Struct definitions | ✅ |
+| └ Struct literals | ✅ |
+| └ Field access | ✅ |
+| └ Embedded fields | ❌ |
+| └ Anonymous structs | ❌ |
+| **`switch` - Switch statements** | |
+| └ Basic switch | ✅ |
+| └ Type switch | ❌ |
+| └ Fallthrough | ❌ |
+| **`type` - Type definitions** | |
+| └ Struct types | ✅ |
+| └ Type aliases | ❌ |
+| └ Interface types | ✅ |
+| **`var` - Variable declarations** | |
+| └ Basic var declarations | ✅ |
+| └ Short declarations (:=) | ✅ |
+| └ Blank identifier (_) | ✅ |
 | **Arrays & Slices** | |
 | └ Fixed arrays | ✅ |
 | └ Slices | ✅ |
@@ -179,6 +216,14 @@ Currently, only doc comments (documentation comments directly above functions, t
 | └ String concatenation (+) | ✅ |
 | └ String += operator | ✅ |
 | └ String comparisons | ✅ |
+| **Closures & Anonymous Functions** | |
+| └ Function literals | ✅ |
+| └ Closure variable capture | ⚠️ |
+| └ Anonymous function calls | ✅ |
+| **`defer` - Defer statements** | |
+| └ Basic defer | ✅ |
+| └ Multiple defers (LIFO order) | ✅ |
+| └ Defer with closures | ⚠️ |
 
 ### Standard Library Functions
 

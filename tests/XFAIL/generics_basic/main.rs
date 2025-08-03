@@ -67,7 +67,7 @@ pub fn map_keys(m: std::sync::Arc<std::sync::Mutex<Option<std::collections::Hash
     for (k, _) in (*m.lock().unwrap().as_ref().unwrap()).clone() {
         {(*r.lock().unwrap().as_mut().unwrap()).push(k); r.clone()};
     }
-    return std::sync::Arc::new(std::sync::Mutex::new(Some((*r.lock().unwrap().as_mut().unwrap()))));
+    return r.clone();
 }
 
 fn main() {
