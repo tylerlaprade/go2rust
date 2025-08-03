@@ -191,6 +191,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							// Already wrapped
 							TranspileExpression(out, result)
 						}
+					} else if _, ok := result.(*ast.FuncLit); ok {
+						// Function literal - already wrapped by TranspileFuncLit
+						TranspileExpression(out, result)
 					} else {
 						// Wrap all other return values in Arc<Mutex<Option<>>>
 						out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(Some(")
@@ -199,16 +202,6 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						if lit, ok := result.(*ast.BasicLit); ok && lit.Kind == token.STRING {
 							out.WriteString(lit.Value)
 							out.WriteString(".to_string()")
-						} else if ident, ok := result.(*ast.Ident); ok {
-							_, isRangeVar := rangeLoopVars[ident.Name]
-							if !isRangeVar && ident.Name != "true" && ident.Name != "false" && ident.Name != "nil" {
-								// Returning a variable - need to clone the inner value
-								out.WriteString("(*")
-								out.WriteString(ident.Name)
-								out.WriteString(".lock().unwrap().as_mut().unwrap()).clone()")
-							} else {
-								out.WriteString(ident.Name)
-							}
 						} else {
 							TranspileExpression(out, result)
 						}

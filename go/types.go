@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"go/ast"
+	"strings"
 )
 
 func GoTypeToRust(expr ast.Expr) string {
@@ -21,6 +22,52 @@ func GoTypeToRust(expr ast.Expr) string {
 
 	return baseType
 }
+
+// Generate Rust closure type from Go function type
+func generateClosureType(funcType *ast.FuncType) string {
+	var paramTypes []string
+	if funcType.Params != nil {
+		for _, field := range funcType.Params.List {
+			paramType := GoTypeToRust(field.Type)
+			// Add one param type for each name (or one if no names)
+			count := len(field.Names)
+			if count == 0 {
+				count = 1
+			}
+			for i := 0; i < count; i++ {
+				paramTypes = append(paramTypes, paramType)
+			}
+		}
+	}
+
+	// Determine return type
+	var returnType string
+	if funcType.Results == nil || len(funcType.Results.List) == 0 {
+		returnType = "()"
+	} else if len(funcType.Results.List) == 1 && len(funcType.Results.List[0].Names) == 0 {
+		// Single unnamed return
+		returnType = GoTypeToRust(funcType.Results.List[0].Type)
+	} else {
+		// Multiple returns or named returns
+		var retTypes []string
+		for _, field := range funcType.Results.List {
+			retType := GoTypeToRust(field.Type)
+			count := len(field.Names)
+			if count == 0 {
+				count = 1
+			}
+			for i := 0; i < count; i++ {
+				retTypes = append(retTypes, retType)
+			}
+		}
+		returnType = "(" + strings.Join(retTypes, ", ") + ")"
+	}
+
+	// Build the closure type: Box<dyn Fn(params) -> return + Send + Sync>
+	paramsStr := strings.Join(paramTypes, ", ")
+	return fmt.Sprintf("Box<dyn Fn(%s) -> %s + Send + Sync>", paramsStr, returnType)
+}
+
 func goTypeToRustBase(expr ast.Expr) string {
 	switch t := expr.(type) {
 	case *ast.Ident:
@@ -68,6 +115,9 @@ func goTypeToRustBase(expr ast.Expr) string {
 		// Pointer type - wrap the base type (not already wrapped)
 		innerType := goTypeToRustBase(t.X)
 		return "std::sync::Arc<std::sync::Mutex<Option<" + innerType + ">>>"
+	case *ast.FuncType:
+		// Function type - generate a closure type
+		return generateClosureType(t)
 	default:
 		// Unhandled type
 		return fmt.Sprintf("/* TODO: Unhandled type %T */ std::sync::Arc<std::sync::Mutex<Option<()>>>", t)

@@ -429,12 +429,112 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			out.WriteString(", false) }")
 		}
 
+	case *ast.FuncLit:
+		// Function literal (closure/anonymous function)
+		TranspileFuncLit(out, e)
+
 	default:
 		// Unhandled expression type
 		out.WriteString("/* TODO: Unhandled expression type: ")
 		out.WriteString(strings.TrimPrefix(fmt.Sprintf("%T", e), "*ast."))
 		out.WriteString(" */ std::sync::Arc::new(std::sync::Mutex::new(Some(())))")
 	}
+}
+
+// Helper to check if a name is a known function (not a closure variable)
+func isFunctionName(name string) bool {
+	// This is a simplified check - in a real implementation,
+	// we'd track all function declarations
+	// For now, assume names starting with lowercase that look like functions are functions
+	// (e.g., makeCounter, applyOperation)
+	if len(name) > 0 {
+		firstChar := name[0]
+		// Check if it starts with "make", "get", "set", "apply", etc. (common function prefixes)
+		if strings.HasPrefix(name, "make") || strings.HasPrefix(name, "get") ||
+			strings.HasPrefix(name, "set") || strings.HasPrefix(name, "apply") ||
+			strings.HasPrefix(name, "create") || strings.HasPrefix(name, "new") {
+			return true
+		}
+		// Exported functions
+		return firstChar >= 'A' && firstChar <= 'Z'
+	}
+	return false
+}
+
+// Helper to check if a name is a builtin function
+func isBuiltinFunction(name string) bool {
+	builtins := map[string]bool{
+		"len": true, "cap": true, "make": true, "new": true,
+		"append": true, "copy": true, "delete": true,
+		"panic": true, "recover": true, "print": true, "println": true,
+	}
+	return builtins[name]
+}
+
+// TranspileFuncLit transpiles a function literal (closure)
+func TranspileFuncLit(out *strings.Builder, funcLit *ast.FuncLit) {
+	// Wrap the closure in Arc<Mutex<Option<Box<dyn Fn>>>
+	out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(Some(")
+
+	// Generate the closure wrapped in Box
+	out.WriteString("Box::new(move |")
+
+	// Parameters
+	if funcLit.Type.Params != nil {
+		var params []string
+		for _, field := range funcLit.Type.Params.List {
+			paramType := GoTypeToRust(field.Type)
+			for _, name := range field.Names {
+				params = append(params, name.Name+": "+paramType)
+			}
+			// Handle unnamed parameters
+			if len(field.Names) == 0 {
+				params = append(params, "_: "+paramType)
+			}
+		}
+		out.WriteString(strings.Join(params, ", "))
+	}
+	out.WriteString("| ")
+
+	// Return type
+	if funcLit.Type.Results != nil && len(funcLit.Type.Results.List) > 0 {
+		out.WriteString("-> ")
+		if len(funcLit.Type.Results.List) == 1 && len(funcLit.Type.Results.List[0].Names) == 0 {
+			// Single unnamed return
+			out.WriteString(GoTypeToRust(funcLit.Type.Results.List[0].Type))
+		} else {
+			// Multiple returns
+			var retTypes []string
+			for _, field := range funcLit.Type.Results.List {
+				retType := GoTypeToRust(field.Type)
+				count := len(field.Names)
+				if count == 0 {
+					count = 1
+				}
+				for i := 0; i < count; i++ {
+					retTypes = append(retTypes, retType)
+				}
+			}
+			out.WriteString("(" + strings.Join(retTypes, ", ") + ")")
+		}
+		out.WriteString(" ")
+	}
+
+	// Body
+	out.WriteString("{\n")
+	if funcLit.Body != nil {
+		for _, stmt := range funcLit.Body.List {
+			out.WriteString("        ") // Indent for closure body
+			TranspileStatement(out, stmt, funcLit.Type, nil)
+			out.WriteString("\n")
+		}
+	}
+	out.WriteString("    })")
+
+	// Cast to the right type and close wrappers
+	out.WriteString(" as ")
+	out.WriteString(generateClosureType(funcLit.Type))
+	out.WriteString(")))")
 }
 
 func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
@@ -464,11 +564,23 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 		return
 	}
 
-	// Default handling for regular function calls
+	// Check if this is a closure call (calling a variable that holds a function)
 	if ident, ok := call.Fun.(*ast.Ident); ok {
-		out.WriteString(ToSnakeCase(ident.Name))
+		// Check if this is a known function or a variable
+		if isBuiltinFunction(ident.Name) || isFunctionName(ident.Name) {
+			// Regular function call
+			out.WriteString(ToSnakeCase(ident.Name))
+		} else {
+			// Likely a closure variable - need to unwrap and call
+			out.WriteString("(")
+			out.WriteString(ident.Name)
+			out.WriteString(".lock().unwrap().as_ref().unwrap())")
+		}
 	} else {
+		// Complex expression for the function (e.g., function returning a function)
+		out.WriteString("(")
 		TranspileExpression(out, call.Fun)
+		out.WriteString(".lock().unwrap().as_ref().unwrap())")
 	}
 
 	out.WriteString("(")
@@ -476,9 +588,19 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 		if i > 0 {
 			out.WriteString(", ")
 		}
-		// Wrap arguments in Arc<Mutex<Option<>>> for user-defined functions
-		// Skip wrapping for stdlib functions (they're handled specially)
-		if handler := GetStdlibHandler(call); handler == nil {
+
+		// Check if we're calling a closure - closures take wrapped arguments
+		isClosureCall := false
+		if ident, ok := call.Fun.(*ast.Ident); ok {
+			isClosureCall = !isBuiltinFunction(ident.Name) && !isFunctionName(ident.Name)
+		} else {
+			// Complex expression, likely a closure
+			isClosureCall = true
+		}
+
+		// Wrap arguments appropriately
+		handler := GetStdlibHandler(call)
+		if isClosureCall || handler == nil {
 			// Check if the argument is already a wrapped variable
 			if ident, ok := arg.(*ast.Ident); ok && ident.Name != "nil" && ident.Name != "_" {
 				// Check if this is a variable (not a constant)
