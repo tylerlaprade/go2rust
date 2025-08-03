@@ -58,9 +58,9 @@ func implementsInterface(typeName string, typeMethods []*ast.FuncDecl, iface *as
 }
 
 func Transpile(file *ast.File, fileSet *token.FileSet, typeInfo *TypeInfo) string {
-	// Set the global context for this transpilation
-	SetContext(&TranspileContext{TypeInfo: typeInfo})
-	defer SetContext(nil) // Clear context when done
+	// Set the global type info for this transpilation
+	SetTypeInfo(typeInfo)
+	defer SetTypeInfo(nil) // Clear type info when done
 
 	var output strings.Builder
 
