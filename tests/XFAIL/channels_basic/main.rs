@@ -67,7 +67,7 @@ fn main() {
 
     (*time.lock().unwrap().as_mut().unwrap()).sleep(std::sync::Arc::new(std::sync::Mutex::new(Some(1 * (*time.lock().unwrap().as_mut().unwrap()).second))));
 
-    let mut buffered = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![std::sync::Arc::new(std::sync::Mutex::new(Some(0))); 3])));
+    let mut buffered = ;
     // TODO: Unhandled statement type: SendStmt
     // TODO: Unhandled statement type: SendStmt
     // TODO: Unhandled statement type: SendStmt
@@ -80,7 +80,7 @@ fn main() {
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
 
-    let mut numbers = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![std::sync::Arc::new(std::sync::Mutex::new(Some(0))); 5])));
+    let mut numbers = ;
     // TODO: Unhandled statement type: GoStmt
 
     println!("{}", "Range over channel:".to_string());

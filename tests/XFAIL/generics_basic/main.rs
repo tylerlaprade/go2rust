@@ -63,9 +63,9 @@ impl Unknown {
 
 pub fn map_keys(m: std::sync::Arc<std::sync::Mutex<Option<std::collections::HashMap<K, V>>>>) -> std::sync::Arc<std::sync::Mutex<Option<Vec<K>>>> {
 
-    let mut r = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![std::sync::Arc::new(std::sync::Mutex::new(Some(0))); 0])));
-    for (k, _) in (*(*m.lock().unwrap().as_mut().unwrap()).lock().unwrap().as_ref().unwrap()).clone() {
-        { let new_val = {(*r.lock().unwrap().as_mut().unwrap()).push(k); (*r.lock().unwrap().as_mut().unwrap())}; *r.lock().unwrap() = Some(new_val); };
+    let mut r = std::sync::Arc::new(std::sync::Mutex::new(Some(Vec::with_capacity((*m.lock().unwrap().as_mut().unwrap()).len()))));
+    for (k, _) in (*m.lock().unwrap().as_ref().unwrap()).clone() {
+        {(*r.lock().unwrap().as_mut().unwrap()).push(k); r.clone()};
     }
     return std::sync::Arc::new(std::sync::Mutex::new(Some((*r.lock().unwrap().as_mut().unwrap()).clone())));
 }

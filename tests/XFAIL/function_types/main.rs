@@ -108,7 +108,7 @@ pub fn filter(numbers: std::sync::Arc<std::sync::Mutex<Option<Vec<i32>>>>, pred:
     let mut result: std::sync::Arc<std::sync::Mutex<Option<Vec<i32>>>> = std::sync::Arc::new(std::sync::Mutex::new(Some(Default::default())));
     for num in &(*numbers.lock().unwrap().as_mut().unwrap()) {
         if pred(std::sync::Arc::new(std::sync::Mutex::new(Some(num)))) {
-        { let new_val = {(*result.lock().unwrap().as_mut().unwrap()).push(num); (*result.lock().unwrap().as_mut().unwrap())}; *result.lock().unwrap() = Some(new_val); };
+        {(*result.lock().unwrap().as_mut().unwrap()).push(num); result.clone()};
     }
     }
     return std::sync::Arc::new(std::sync::Mutex::new(Some((*result.lock().unwrap().as_mut().unwrap()).clone())));
@@ -116,7 +116,7 @@ pub fn filter(numbers: std::sync::Arc<std::sync::Mutex<Option<Vec<i32>>>>, pred:
 
 pub fn transform(numbers: std::sync::Arc<std::sync::Mutex<Option<Vec<i32>>>>, op: std::sync::Arc<std::sync::Mutex<Option<UnaryOp>>>) -> std::sync::Arc<std::sync::Mutex<Option<Vec<i32>>>> {
 
-    let mut result = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![std::sync::Arc::new(std::sync::Mutex::new(Some(0))); (*numbers.lock().unwrap().as_mut().unwrap()).len()])));
+    let mut result = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![0; (*numbers.lock().unwrap().as_mut().unwrap()).len()])));
     for (i, num) in (*numbers.lock().unwrap().as_mut().unwrap()).iter().enumerate() {
         (*result.lock().unwrap().as_mut().unwrap())[i] = op(std::sync::Arc::new(std::sync::Mutex::new(Some(num))));
     }

@@ -265,8 +265,22 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			} else {
 				TranspileExpression(out, e.X)
 			}
-			out.WriteString(".lock().unwrap().as_ref().unwrap()).get(&")
-			TranspileExpression(out, e.Index)
+			out.WriteString(".lock().unwrap().as_ref().unwrap()).get(")
+			// Check if the index is a range loop variable that's already a reference
+			if ident, ok := e.Index.(*ast.Ident); ok {
+				if _, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar {
+					// Range variables from slice iteration are already references
+					out.WriteString(ident.Name)
+				} else {
+					// Normal variables need &
+					out.WriteString("&")
+					TranspileExpression(out, e.Index)
+				}
+			} else {
+				// Non-identifier expressions need &
+				out.WriteString("&")
+				TranspileExpression(out, e.Index)
+			}
 			out.WriteString(").unwrap().lock().unwrap().as_ref().unwrap())")
 		} else {
 			// Regular array/slice indexing or map assignment (handled elsewhere)

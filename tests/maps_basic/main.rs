@@ -58,7 +58,15 @@ fn main() {
     println!("{} {}", "After deleting Bob:".to_string(), format_map(&ages));
 
     println!("{}", "All colors:".to_string());
-    for (name, hex) in (*colors.lock().unwrap().as_ref().unwrap()).clone() {
-        println!("{} {} {}", name, "->".to_string(), (*hex.lock().unwrap().as_mut().unwrap()));
+
+    let mut keys: std::sync::Arc<std::sync::Mutex<Option<Vec<String>>>> = std::sync::Arc::new(std::sync::Mutex::new(Some(Default::default())));
+    for (k, _) in (*colors.lock().unwrap().as_ref().unwrap()).clone() {
+        {(*keys.lock().unwrap().as_mut().unwrap()).push(k); keys.clone()};
+    }
+
+    (*keys.lock().unwrap().as_mut().unwrap()).sort();
+
+    for k in &(*keys.lock().unwrap().as_mut().unwrap()) {
+        println!("{} {} {}", k, "->".to_string(), (*(*colors.lock().unwrap().as_ref().unwrap()).get(k).unwrap().lock().unwrap().as_ref().unwrap()));
     }
 }

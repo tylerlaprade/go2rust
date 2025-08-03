@@ -137,7 +137,7 @@ fn main() {
 
     println!("{}", "\n=== Blank identifier with channels ===".to_string());
 
-    let mut ch = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![std::sync::Arc::new(std::sync::Mutex::new(Some(0))); 3])));
+    let mut ch = ;
     // TODO: Unhandled statement type: SendStmt
     // TODO: Unhandled statement type: SendStmt
     // TODO: Unhandled statement type: SendStmt

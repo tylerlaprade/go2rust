@@ -77,13 +77,13 @@ fn main() {
     }
 
     println!("{}", "Keys only:".to_string());
-    for (name, _) in (*(*ages.lock().unwrap().as_mut().unwrap()).lock().unwrap().as_ref().unwrap()).clone() {
+    for (name, _) in (*ages.lock().unwrap().as_ref().unwrap()).clone() {
         print!("{} ", name);
     }
     println!();
 
     println!("{}", "\n=== Range over channel ===".to_string());
-    let mut ch = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![std::sync::Arc::new(std::sync::Mutex::new(Some(0))); 5])));
+    let mut ch = ;
 
     let mut i = std::sync::Arc::new(std::sync::Mutex::new(Some(1)));
     while (*i.lock().unwrap().as_mut().unwrap()) <= 5 {

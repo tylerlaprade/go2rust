@@ -239,7 +239,7 @@ fn main() {
 
     let mut newEmployee = Person { name: std::sync::Arc::new(std::sync::Mutex::new(Some("Dave Newbie".to_string()))), age: std::sync::Arc::new(std::sync::Mutex::new(Some(25))), address: std::sync::Arc::new(std::sync::Mutex::new(Some(Address { street: std::sync::Arc::new(std::sync::Mutex::new(Some("999 New St".to_string()))), city: std::sync::Arc::new(std::sync::Mutex::new(Some("Newtown".to_string()))), state: std::sync::Arc::new(std::sync::Mutex::new(Some("CA".to_string()))), zip_code: std::sync::Arc::new(std::sync::Mutex::new(Some("90214".to_string()))), country: std::sync::Arc::new(std::sync::Mutex::new(Some("USA".to_string()))) }))), contact: std::sync::Arc::new(std::sync::Mutex::new(Some(Contact { email: std::sync::Arc::new(std::sync::Mutex::new(Some("dave@company.com".to_string()))), phone: std::sync::Arc::new(std::sync::Mutex::new(Some("555-0004".to_string()))) }))) };
 
-    { let new_val = {(*company.lock().unwrap().as_mut().unwrap()).departments[0]::employees.push((*newEmployee.lock().unwrap().as_mut().unwrap())); (*company.lock().unwrap().as_mut().unwrap()).departments[0]::employees}; *(*company.lock().unwrap().as_mut().unwrap()).departments[0]::employees.lock().unwrap() = Some(new_val); };
+    {(*(*company.lock().unwrap().as_mut().unwrap()).departments[0]::employees.lock().unwrap().as_mut().unwrap()).push((*newEmployee.lock().unwrap().as_mut().unwrap())); (*company.lock().unwrap().as_mut().unwrap()).departments[0]::employees.clone()};
     print!("Added new employee: {}\n", (*newEmployee.lock().unwrap().as_mut().unwrap()).name);
     print!("Total employees now: {}\n", (*company.lock().unwrap().as_mut().unwrap()).departments[0]::employees.len());
 }

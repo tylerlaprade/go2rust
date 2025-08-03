@@ -532,6 +532,22 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									out.WriteString("*")
 									TranspileExpressionContext(out, s.Lhs[0], LValue)
 									out.WriteString(".lock().unwrap() = new_val; }")
+								} else if call, ok := s.Rhs[0].(*ast.CallExpr); ok {
+									// Check if it's an append call
+									if ident, ok := call.Fun.(*ast.Ident); ok && ident.Name == "append" {
+										// append() returns the same wrapped type, don't wrap in Some()
+										// Just execute the append for its side effect
+										TranspileExpression(out, s.Rhs[0])
+									} else {
+										// Regular function call
+										out.WriteString("{ ")
+										out.WriteString("let new_val = ")
+										TranspileExpression(out, s.Rhs[0])
+										out.WriteString("; ")
+										out.WriteString("*")
+										TranspileExpressionContext(out, s.Lhs[0], LValue)
+										out.WriteString(".lock().unwrap() = Some(new_val); }")
+									}
 								} else {
 									out.WriteString("{ ")
 									out.WriteString("let new_val = ")
@@ -775,7 +791,12 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			// This is not perfect but works for many cases
 			// TODO: Use type information for accurate detection rather than this hack
 			name := strings.ToLower(ident.Name)
+			// Be more specific - only exact matches for known map names
 			isMap = strings.Contains(name, "map") || name == "ages" || name == "colors" || name == "m"
+			// But exclude names that are clearly slices/arrays
+			if strings.Contains(name, "names") || strings.Contains(name, "list") || strings.Contains(name, "array") || strings.Contains(name, "slice") {
+				isMap = false
+			}
 		}
 
 		// Determine types based on what we're iterating over
@@ -849,7 +870,12 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					TranspileExpression(out, s.Key)
 				}
 				out.WriteString(", _) in (*")
-				TranspileExpression(out, s.X)
+				// For map access, we need the raw identifier, not the unwrapped value
+				if ident, ok := s.X.(*ast.Ident); ok {
+					out.WriteString(ident.Name)
+				} else {
+					TranspileExpression(out, s.X)
+				}
 				out.WriteString(".lock().unwrap().as_ref().unwrap()).clone()")
 			}
 		} else {

@@ -164,6 +164,67 @@ tests/coverage/
 └── ...
 ```
 
+## Test Determinism Requirements
+
+**CRITICAL**: All tests MUST produce deterministic output. The test infrastructure compares Go and Rust outputs byte-for-byte.
+
+### Common Non-Deterministic Patterns to Avoid:
+
+1. **Map iteration without sorting**:
+   ```go
+   // BAD - Non-deterministic order
+   for k, v := range myMap {
+       fmt.Println(k, v)
+   }
+   
+   // GOOD - Sort keys first
+   var keys []string
+   for k := range myMap {
+       keys = append(keys, k)
+   }
+   sort.Strings(keys)
+   for _, k := range keys {
+       fmt.Println(k, myMap[k])
+   }
+   ```
+
+2. **Goroutines without synchronization**:
+   ```go
+   // BAD - Race condition in output
+   go fmt.Println("Hello")
+   go fmt.Println("World")
+   
+   // GOOD - Use WaitGroup or channels
+   var wg sync.WaitGroup
+   wg.Add(2)
+   go func() { fmt.Println("Hello"); wg.Done() }()
+   go func() { fmt.Println("World"); wg.Done() }()
+   wg.Wait()
+   ```
+
+3. **Time-based operations**:
+   ```go
+   // BAD - Output changes each run
+   fmt.Println(time.Now())
+   
+   // GOOD - Use fixed values for tests
+   fmt.Println("2024-01-01 12:00:00")
+   ```
+
+4. **Random number generation**:
+   ```go
+   // BAD - Different each run
+   fmt.Println(rand.Int())
+   
+   // GOOD - Seed with fixed value
+   rand.Seed(42)
+   fmt.Println(rand.Int())
+   ```
+
+### Note on Map Printing
+
+Go 1.12+ prints maps in sorted key order when using `fmt` functions, so `fmt.Println(myMap)` is deterministic. However, iteration order remains non-deterministic.
+
 ## Test File Template
 
 Each test should have a header comment explaining what it tests:

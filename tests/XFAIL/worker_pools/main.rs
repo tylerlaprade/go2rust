@@ -49,8 +49,8 @@ pub fn worker(id: std::sync::Arc<std::sync::Mutex<Option<i32>>>, jobs: std::sync
 fn main() {
     const numJobs: i32 = 5;
 
-    let mut jobs = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![std::sync::Arc::new(std::sync::Mutex::new(Some(0))); numJobs])));
-    let mut results = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![std::sync::Arc::new(std::sync::Mutex::new(Some(0))); numJobs])));
+    let mut jobs = ;
+    let mut results = ;
 
     let mut w = std::sync::Arc::new(std::sync::Mutex::new(Some(1)));
     while (*w.lock().unwrap().as_mut().unwrap()) <= 3 {

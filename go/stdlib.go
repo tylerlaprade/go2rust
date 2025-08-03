@@ -44,6 +44,7 @@ func init() {
 		"strconv.Itoa":      transpileStrconvItoa,
 		"strconv.Atoi":      transpileStrconvAtoi,
 		"errors.New":        transpileErrorsNew,
+		"sort.Strings":      transpileSortStrings,
 	}
 
 	builtinMappings = map[string]StdlibHandler{
@@ -311,6 +312,20 @@ func transpileStringsTrimSpace(out *strings.Builder, call *ast.CallExpr) {
 	}
 }
 
+func transpileSortStrings(out *strings.Builder, call *ast.CallExpr) {
+	if len(call.Args) > 0 {
+		// sort.Strings sorts a slice of strings in-place
+		// We need to get mutable access to the vector inside the Arc<Mutex<Option<Vec<String>>>>
+		out.WriteString("(*")
+		if ident, ok := call.Args[0].(*ast.Ident); ok {
+			out.WriteString(ident.Name)
+		} else {
+			TranspileExpression(out, call.Args[0])
+		}
+		out.WriteString(".lock().unwrap().as_mut().unwrap()).sort()")
+	}
+}
+
 func transpileStrconvItoa(out *strings.Builder, call *ast.CallExpr) {
 	if len(call.Args) > 0 {
 		TranspileExpression(out, call.Args[0])
@@ -330,20 +345,35 @@ func transpileStrconvAtoi(out *strings.Builder, call *ast.CallExpr) {
 
 func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 	if len(call.Args) >= 2 {
-		// For single element append
+		// append() in Go returns the slice, but our slices are wrapped
+		// We need to push to the inner vector and return the wrapped slice
 		if len(call.Args) == 2 {
-			out.WriteString("{")
-			TranspileExpression(out, call.Args[0])
-			out.WriteString(".push(")
+			// Single element append
+			out.WriteString("{(*")
+			if ident, ok := call.Args[0].(*ast.Ident); ok {
+				out.WriteString(ident.Name)
+			} else {
+				TranspileExpression(out, call.Args[0])
+			}
+			out.WriteString(".lock().unwrap().as_mut().unwrap()).push(")
 			TranspileExpression(out, call.Args[1])
 			out.WriteString("); ")
-			TranspileExpression(out, call.Args[0])
-			out.WriteString("}")
+			// Return the wrapped slice itself
+			if ident, ok := call.Args[0].(*ast.Ident); ok {
+				out.WriteString(ident.Name)
+			} else {
+				TranspileExpression(out, call.Args[0])
+			}
+			out.WriteString(".clone()}")
 		} else {
-			// For multiple elements, use extend
-			out.WriteString("{")
-			TranspileExpression(out, call.Args[0])
-			out.WriteString(".extend(vec![")
+			// Multiple elements, use extend
+			out.WriteString("{(*")
+			if ident, ok := call.Args[0].(*ast.Ident); ok {
+				out.WriteString(ident.Name)
+			} else {
+				TranspileExpression(out, call.Args[0])
+			}
+			out.WriteString(".lock().unwrap().as_mut().unwrap()).extend(vec![")
 			for i := 1; i < len(call.Args); i++ {
 				if i > 1 {
 					out.WriteString(", ")
@@ -351,8 +381,13 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 				TranspileExpression(out, call.Args[i])
 			}
 			out.WriteString("]); ")
-			TranspileExpression(out, call.Args[0])
-			out.WriteString("}")
+			// Return the wrapped slice itself
+			if ident, ok := call.Args[0].(*ast.Ident); ok {
+				out.WriteString(ident.Name)
+			} else {
+				TranspileExpression(out, call.Args[0])
+			}
+			out.WriteString(".clone()}")
 		}
 	}
 }
@@ -375,15 +410,45 @@ func transpileMake(out *strings.Builder, call *ast.CallExpr) {
 			out.WriteString(GoTypeToRust(mapType.Value))
 			out.WriteString(">::new()")
 			out.WriteString(")))")
-		} else if len(call.Args) >= 2 {
-			// Slice with size
+		} else if arrayType, ok := call.Args[0].(*ast.ArrayType); ok && arrayType.Len == nil {
+			// Slice type - check element type
+			elementType := "0" // default
+			if ident, ok := arrayType.Elt.(*ast.Ident); ok {
+				switch ident.Name {
+				case "string":
+					elementType = `"".to_string()`
+				case "int", "int32", "int64":
+					elementType = "0"
+				case "float32", "float64":
+					elementType = "0.0"
+				case "bool":
+					elementType = "false"
+				}
+			}
+
 			out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(Some(")
-			out.WriteString("vec![")
-			// Default value wrapped in Arc<Mutex<Option<>>>
-			out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(Some(0)))")
-			out.WriteString("; ")
-			TranspileExpression(out, call.Args[1])
-			out.WriteString("]")
+			if len(call.Args) >= 2 {
+				// Check if size is 0
+				if lit, ok := call.Args[1].(*ast.BasicLit); ok && lit.Value == "0" {
+					// Empty vector with capacity
+					out.WriteString("Vec::with_capacity(")
+					if len(call.Args) >= 3 {
+						TranspileExpression(out, call.Args[2])
+					} else {
+						out.WriteString("0")
+					}
+					out.WriteString(")")
+				} else {
+					// Vector with initial size
+					out.WriteString("vec![")
+					out.WriteString(elementType)
+					out.WriteString("; ")
+					TranspileExpression(out, call.Args[1])
+					out.WriteString("]")
+				}
+			} else {
+				out.WriteString("Vec::new()")
+			}
 			out.WriteString(")))")
 		}
 	}

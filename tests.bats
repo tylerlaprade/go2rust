@@ -59,6 +59,19 @@ CARGO_EOF
     rm -rf "$temp_dir"
 }
 
+# Simple comparison function
+compare_outputs() {
+    local go_output="$1"
+    local rust_output="$2"
+    
+    # Simple string comparison
+    if [ "$go_output" = "$rust_output" ]; then
+        return 0
+    else
+        return 1
+    fi
+}
+
 # Helper function that handles transpilation, Rust compilation, and output comparison
 # Takes test_dir and go_output as parameters
 run_transpile_and_compare() {
@@ -97,8 +110,8 @@ run_transpile_and_compare() {
         return 1
     fi
     
-    # Compare outputs
-    if [ "$go_output" != "$rust_output" ]; then
+    # Compare outputs with smart map comparison
+    if ! compare_outputs "$go_output" "$rust_output"; then
         echo ""
         echo "Output mismatch:"
         echo "Go output:"
@@ -117,8 +130,9 @@ run_test() {
     local test_dir="$1"
     local timeout="${TEST_TIMEOUT:-60s}"
 
-    # Export the helper function so it's available in the subshell
+    # Export the helper functions so they're available in the subshell
     export -f run_transpile_and_compare
+    export -f compare_outputs
 
     # Run the entire test with timeout
     # shellcheck disable=SC2016

@@ -148,6 +148,7 @@ Currently, only doc comments (documentation comments directly above functions, t
 | └ Map operations (insert, delete) | ✅ |
 | └ Map access with existence check | ✅ |
 | └ Map iteration (for range) | ✅ |
+| └ Map printing (sorted keys) | ✅ |
 | **Arrays & Slices** | |
 | └ Fixed arrays | ✅ |
 | └ Slices | ✅ |
@@ -233,3 +234,14 @@ To add a new planned feature:
 1. Create `tests/XFAIL/feature_name/main.go` with valid Go code
 2. Run `./test.sh` - the test will be marked as "skip"
 3. When the feature is implemented, the test will auto-promote to the main suite
+
+### Test Determinism
+
+**IMPORTANT**: All tests must produce deterministic output. The test infrastructure compares Go and Rust outputs byte-for-byte.
+
+Common patterns to ensure determinism:
+- **Map iteration**: Sort keys before iterating (see `tests/maps_basic/main.go`)
+- **Goroutines**: Use proper synchronization (WaitGroup, channels)
+- **Time/Random**: Use fixed values in tests
+
+Note: Go 1.12+ prints maps in sorted key order with `fmt` functions, making map printing deterministic.

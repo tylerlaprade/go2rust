@@ -1,6 +1,9 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"sort"
+)
 
 func main() {
 	// Create and initialize map
@@ -30,9 +33,17 @@ func main() {
 	delete(ages, "Bob")
 	fmt.Println("After deleting Bob:", ages)
 
-	// Iterate over map
+	// Iterate over map in sorted order for deterministic output
 	fmt.Println("All colors:")
-	for name, hex := range colors {
-		fmt.Println(name, "->", hex)
+	// Collect all keys into a slice
+	var keys []string
+	for k := range colors {
+		keys = append(keys, k)
+	}
+	// Sort the keys
+	sort.Strings(keys)
+	// Print in sorted order
+	for _, k := range keys {
+		fmt.Println(k, "->", colors[k])
 	}
 }

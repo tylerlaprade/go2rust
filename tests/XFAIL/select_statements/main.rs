@@ -57,7 +57,7 @@ pub fn select_with_timeout() {
 }
 
 pub fn select_with_default() {
-    let mut ch = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![std::sync::Arc::new(std::sync::Mutex::new(Some(0))); 1])));
+    let mut ch = ;
 
     // TODO: Unhandled statement type: SelectStmt
 
@@ -84,8 +84,8 @@ pub fn select_loop() {
 }
 
 pub fn select_with_send() {
-    let mut ch1 = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![std::sync::Arc::new(std::sync::Mutex::new(Some(0))); 1])));
-    let mut ch2 = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![std::sync::Arc::new(std::sync::Mutex::new(Some(0))); 1])));
+    let mut ch1 = ;
+    let mut ch2 = ;
 
     // TODO: Unhandled statement type: SelectStmt
 

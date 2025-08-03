@@ -38,7 +38,7 @@ where
 }
 
 fn main() {
-    let mut jobs = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![std::sync::Arc::new(std::sync::Mutex::new(Some(0))); 5])));
+    let mut jobs = ;
     let mut done = ;
 
     // TODO: Unhandled statement type: GoStmt
