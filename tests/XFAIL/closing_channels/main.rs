@@ -49,7 +49,7 @@ fn main() {
         println!("{} {}", "sent job".to_string(), (*j.lock().unwrap().as_mut().unwrap()));
         { let mut guard = j.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
-    close(jobs.clone());
+    (close.lock().unwrap().as_ref().unwrap())(jobs.clone());
     println!("{}", "sent all jobs".to_string());
 
     <-(*done.lock().unwrap().as_mut().unwrap());

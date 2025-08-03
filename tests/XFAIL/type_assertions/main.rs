@@ -99,10 +99,24 @@ pub fn process_value(value: std::sync::Arc<std::sync::Mutex<Option<Box<dyn std::
 }
 
 pub fn assert_without_check(value: std::sync::Arc<std::sync::Mutex<Option<Box<dyn std::any::Any>>>>) {
-    // defer /* TODO: Unhandled expression type: FuncLit */ std::sync::Arc::new(std::sync::Mutex::new(Some(())))() // TODO: defer not yet supported
+    let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
+
+    __defer_stack.push(Box::new(move || {
+        (std::sync::Arc::new(std::sync::Mutex::new(Some(Box::new(move || {
+        let mut r = recover();
+    if (*r.lock().unwrap()).is_some() {
+        print!("Panic recovered: {}\n", (*r.lock().unwrap().as_mut().unwrap()));
+    }
+    }) as Box<dyn Fn() -> () + Send + Sync>))).lock().unwrap().as_ref().unwrap())();
+    }));
 
     let mut str = std::sync::Arc::new(std::sync::Mutex::new(Some(match (*value.lock().unwrap().as_mut().unwrap()).downcast_ref::<String>() { Some(v) => (v.clone(), true), None => (String::new(), false) })));
     print!("Asserted string: {}\n", (*str.lock().unwrap().as_mut().unwrap()));
+
+    // Execute deferred functions
+    while let Some(f) = __defer_stack.pop() {
+        f();
+    }
 }
 
 pub fn describe_shape(s: std::sync::Arc<std::sync::Mutex<Option<Box<dyn Shape>>>>) {
@@ -122,18 +136,18 @@ fn main() {
 
     println!("{}", "=== Processing values ===".to_string());
     for val in &(*values.lock().unwrap().as_mut().unwrap()) {
-        process_value(std::sync::Arc::new(std::sync::Mutex::new(Some(val))));
+        (processValue.lock().unwrap().as_ref().unwrap())(std::sync::Arc::new(std::sync::Mutex::new(Some(val))));
     }
 
     println!("{}", "\n=== Assertion without check ===".to_string());
-    assert_without_check(std::sync::Arc::new(std::sync::Mutex::new(Some("valid string".to_string()))));
-    assert_without_check(std::sync::Arc::new(std::sync::Mutex::new(Some(123))));
+    (assertWithoutCheck.lock().unwrap().as_ref().unwrap())(std::sync::Arc::new(std::sync::Mutex::new(Some("valid string".to_string()))));
+    (assertWithoutCheck.lock().unwrap().as_ref().unwrap())(std::sync::Arc::new(std::sync::Mutex::new(Some(123))));
 
     println!("{}", "\n=== Interface type assertions ===".to_string());
     let mut shapes = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![Rectangle { width: std::sync::Arc::new(std::sync::Mutex::new(Some(10))), height: std::sync::Arc::new(std::sync::Mutex::new(Some(5))) }, Circle { radius: std::sync::Arc::new(std::sync::Mutex::new(Some(3))) }])));
 
     for shape in &(*shapes.lock().unwrap().as_mut().unwrap()) {
-        describe_shape(std::sync::Arc::new(std::sync::Mutex::new(Some(shape))));
+        (describeShape.lock().unwrap().as_ref().unwrap())(std::sync::Arc::new(std::sync::Mutex::new(Some(shape))));
     }
 
     println!("{}", "\n=== Type switch alternative ===".to_string());

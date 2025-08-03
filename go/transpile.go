@@ -14,6 +14,9 @@ var localConstants = make(map[string]string)
 // currentReceiver tracks the current method receiver name for self translation
 var currentReceiver string
 
+// currentFunctionHasDefer tracks if the current function has defer statements
+var currentFunctionHasDefer bool
+
 // interfaceTypes tracks which type names are interfaces
 var interfaceTypes = make(map[string]bool)
 

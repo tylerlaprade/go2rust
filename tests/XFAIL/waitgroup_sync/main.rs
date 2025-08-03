@@ -38,10 +38,19 @@ where
 }
 
 pub fn worker(id: std::sync::Arc<std::sync::Mutex<Option<i32>>>, wg: std::sync::Arc<std::sync::Mutex<Option</* TODO: Unhandled type *ast.SelectorExpr */ std::sync::Arc<std::sync::Mutex<Option<()>>>>>>) {
-    // defer (*wg.lock().unwrap().as_mut().unwrap()).done() // TODO: defer not yet supported
+    let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
+
+    __defer_stack.push(Box::new(move || {
+        (*wg.lock().unwrap().as_mut().unwrap()).done();
+    }));
     print!("Worker {} starting\n", (*id.lock().unwrap().as_mut().unwrap()));
     (*time.lock().unwrap().as_mut().unwrap()).sleep(std::sync::Arc::new(std::sync::Mutex::new(Some((*time.lock().unwrap().as_mut().unwrap()).second))));
     print!("Worker {} done\n", (*id.lock().unwrap().as_mut().unwrap()));
+
+    // Execute deferred functions
+    while let Some(f) = __defer_stack.pop() {
+        f();
+    }
 }
 
 fn main() {

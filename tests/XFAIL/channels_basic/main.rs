@@ -45,7 +45,7 @@ pub fn sender(ch: std::sync::Arc<std::sync::Mutex<Option</* TODO: Unhandled type
         (*time.lock().unwrap().as_mut().unwrap()).sleep(std::sync::Arc::new(std::sync::Mutex::new(Some(100 * (*time.lock().unwrap().as_mut().unwrap()).millisecond))));
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
-    close(ch.clone());
+    (close.lock().unwrap().as_ref().unwrap())(ch.clone());
 }
 
 pub fn receiver(ch: std::sync::Arc<std::sync::Mutex<Option</* TODO: Unhandled type *ast.ChanType */ std::sync::Arc<std::sync::Mutex<Option<()>>>>>>) {

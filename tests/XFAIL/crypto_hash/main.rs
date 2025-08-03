@@ -39,6 +39,6 @@ where
 
 fn main() {
     let mut data = std::sync::Arc::new(std::sync::Mutex::new(Some("Hello, World!".to_string())));
-    let mut hash = (*sha256.lock().unwrap().as_mut().unwrap()).sum256(std::sync::Arc::new(std::sync::Mutex::new(Some(/* TODO: Unhandled expression type: ArrayType */ std::sync::Arc::new(std::sync::Mutex::new(Some(())))(data.clone())))));
+    let mut hash = (*sha256.lock().unwrap().as_mut().unwrap()).sum256(std::sync::Arc::new(std::sync::Mutex::new(Some((/* TODO: Unhandled expression type: ArrayType */ std::sync::Arc::new(std::sync::Mutex::new(Some(()))).lock().unwrap().as_ref().unwrap())(data.clone())))));
     print!("SHA256: %x\n", (*hash.lock().unwrap().as_mut().unwrap()));
 }

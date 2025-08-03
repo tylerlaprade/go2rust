@@ -75,5 +75,5 @@ pub fn measure(g: std::sync::Arc<std::sync::Mutex<Option<Box<dyn geometry>>>>) {
 
 fn main() {
     let mut r = rect { width: std::sync::Arc::new(std::sync::Mutex::new(Some(3))), height: std::sync::Arc::new(std::sync::Mutex::new(Some(4))) };
-    measure(r.clone());
+    (measure.lock().unwrap().as_ref().unwrap())(r.clone());
 }

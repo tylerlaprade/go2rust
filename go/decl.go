@@ -9,6 +9,40 @@ import (
 	"strings"
 )
 
+// Helper to check if a function body contains defer statements
+func checkHasDefer(stmts []ast.Stmt) bool {
+	for _, stmt := range stmts {
+		switch s := stmt.(type) {
+		case *ast.DeferStmt:
+			return true
+		case *ast.BlockStmt:
+			if checkHasDefer(s.List) {
+				return true
+			}
+		case *ast.IfStmt:
+			if s.Body != nil && checkHasDefer(s.Body.List) {
+				return true
+			}
+			if s.Else != nil {
+				if elseBlock, ok := s.Else.(*ast.BlockStmt); ok {
+					if checkHasDefer(elseBlock.List) {
+						return true
+					}
+				}
+			}
+		case *ast.ForStmt:
+			if s.Body != nil && checkHasDefer(s.Body.List) {
+				return true
+			}
+		case *ast.RangeStmt:
+			if s.Body != nil && checkHasDefer(s.Body.List) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.FileSet) {
 	// Check if this is a method (has receiver)
 	if fn.Recv != nil && len(fn.Recv.List) > 0 {
@@ -79,6 +113,17 @@ func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.Fi
 
 	out.WriteString(" {\n")
 
+	// Check if this function uses defer statements
+	hasDefer := checkHasDefer(fn.Body.List)
+	currentFunctionHasDefer = hasDefer
+
+	// Initialize defer stack if needed
+	if hasDefer {
+		out.WriteString("    let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();\n")
+		// We'll execute defers before each return statement
+		out.WriteString("\n")
+	}
+
 	// Declare named return values as mutable variables
 	if fn.Type.Results != nil {
 		for _, result := range fn.Type.Results.List {
@@ -135,6 +180,14 @@ func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.Fi
 		out.WriteString("\n")
 
 		prevStmt = stmt
+	}
+
+	// Execute defers at the end if needed
+	if hasDefer {
+		out.WriteString("\n    // Execute deferred functions\n")
+		out.WriteString("    while let Some(f) = __defer_stack.pop() {\n")
+		out.WriteString("        f();\n")
+		out.WriteString("    }\n")
 	}
 
 	out.WriteString("}")

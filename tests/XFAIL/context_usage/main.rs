@@ -38,8 +38,17 @@ where
 }
 
 fn main() {
+    let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
+
     let (mut ctx, mut cancel) = (*context.lock().unwrap().as_mut().unwrap()).with_timeout(std::sync::Arc::new(std::sync::Mutex::new(Some((*context.lock().unwrap().as_mut().unwrap()).background()))), std::sync::Arc::new(std::sync::Mutex::new(Some(2 * (*time.lock().unwrap().as_mut().unwrap()).second))));
-    // defer cancel() // TODO: defer not yet supported
+    __defer_stack.push(Box::new(move || {
+        (cancel.lock().unwrap().as_ref().unwrap())();
+    }));
 
     // TODO: Unhandled statement type: SelectStmt
+
+    // Execute deferred functions
+    while let Some(f) = __defer_stack.pop() {
+        f();
+    }
 }

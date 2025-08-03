@@ -96,19 +96,19 @@ pub fn select_with_send() {
 
 fn main() {
     println!("{}", "=== Basic select ===".to_string());
-    basic_select();
+    (basicSelect.lock().unwrap().as_ref().unwrap())();
 
     println!("{}", "\n=== Select with timeout ===".to_string());
-    select_with_timeout();
+    (selectWithTimeout.lock().unwrap().as_ref().unwrap())();
 
     println!("{}", "\n=== Select with default ===".to_string());
-    select_with_default();
+    (selectWithDefault.lock().unwrap().as_ref().unwrap())();
 
     println!("{}", "\n=== Select with send ===".to_string());
-    select_with_send();
+    (selectWithSend.lock().unwrap().as_ref().unwrap())();
 
     println!("{}", "\n=== Select loop ===".to_string());
-    select_loop();
+    (selectLoop.lock().unwrap().as_ref().unwrap())();
 
     println!("{}", "\n=== All examples completed ===".to_string());
 }

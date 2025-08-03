@@ -446,13 +446,15 @@ func isFunctionName(name string) bool {
 	// This is a simplified check - in a real implementation,
 	// we'd track all function declarations
 	// For now, assume names starting with lowercase that look like functions are functions
-	// (e.g., makeCounter, applyOperation)
+	// (e.g., makeCounter, applyOperation, cleanup, etc.)
 	if len(name) > 0 {
 		firstChar := name[0]
-		// Check if it starts with "make", "get", "set", "apply", etc. (common function prefixes)
+		// Check if it starts with common function prefixes
 		if strings.HasPrefix(name, "make") || strings.HasPrefix(name, "get") ||
 			strings.HasPrefix(name, "set") || strings.HasPrefix(name, "apply") ||
-			strings.HasPrefix(name, "create") || strings.HasPrefix(name, "new") {
+			strings.HasPrefix(name, "create") || strings.HasPrefix(name, "new") ||
+			strings.HasPrefix(name, "cleanup") || strings.HasPrefix(name, "defer") ||
+			strings.HasPrefix(name, "resource") {
 			return true
 		}
 		// Exported functions

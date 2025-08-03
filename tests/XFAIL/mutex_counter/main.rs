@@ -46,13 +46,17 @@ struct Counter {
 impl Counter {
     pub fn increment(&mut self) {
         self.mu.clone().lock();
-        // defer self.mu.clone().unlock() // TODO: defer not yet supported
+        __defer_stack.push(Box::new(move || {
+        self.mu.clone().unlock();
+    }));
         { let mut guard = self.value.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
 
     pub fn value(&mut self) -> std::sync::Arc<std::sync::Mutex<Option<i32>>> {
         self.mu.clone().lock();
-        // defer self.mu.clone().unlock() // TODO: defer not yet supported
+        __defer_stack.push(Box::new(move || {
+        self.mu.clone().unlock();
+    }));
         return self.value.clone();
     }
 }

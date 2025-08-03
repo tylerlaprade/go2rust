@@ -38,35 +38,74 @@ where
 }
 
 pub fn defer_example() {
+    let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
+
     println!("{}", "Start of function".to_string());
 
-    // defer println!("{}", "Deferred 1".to_string()) // TODO: defer not yet supported
-    // defer println!("{}", "Deferred 2".to_string()) // TODO: defer not yet supported
-    // defer println!("{}", "Deferred 3".to_string()) // TODO: defer not yet supported
+    __defer_stack.push(Box::new(move || {
+        println!("{}", "Deferred 1".to_string());
+    }));
+    __defer_stack.push(Box::new(move || {
+        println!("{}", "Deferred 2".to_string());
+    }));
+    __defer_stack.push(Box::new(move || {
+        println!("{}", "Deferred 3".to_string());
+    }));
 
     println!("{}", "Middle of function".to_string());
 
-    // defer /* TODO: Unhandled expression type: FuncLit */ std::sync::Arc::new(std::sync::Mutex::new(Some(())))() // TODO: defer not yet supported
+    __defer_stack.push(Box::new(move || {
+        (std::sync::Arc::new(std::sync::Mutex::new(Some(Box::new(move || {
+        println!("{}", "Anonymous deferred function".to_string());
+    }) as Box<dyn Fn() -> () + Send + Sync>))).lock().unwrap().as_ref().unwrap())();
+    }));
 
     println!("{}", "End of function".to_string());
+
+    // Execute deferred functions
+    while let Some(f) = __defer_stack.pop() {
+        f();
+    }
 }
 
 pub fn defer_with_variables() {
+    let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
+
     let mut x = std::sync::Arc::new(std::sync::Mutex::new(Some(10)));
-    // defer /* TODO: Unhandled expression type: FuncLit */ std::sync::Arc::new(std::sync::Mutex::new(Some(())))() // TODO: defer not yet supported
+    __defer_stack.push(Box::new(move || {
+        (std::sync::Arc::new(std::sync::Mutex::new(Some(Box::new(move || {
+        println!("{} {}", "Deferred x:".to_string(), (*x.lock().unwrap().as_mut().unwrap()));
+    }) as Box<dyn Fn() -> () + Send + Sync>))).lock().unwrap().as_ref().unwrap())();
+    }));
 
     { let new_val = 20; *x.lock().unwrap() = Some(new_val); };
     println!("{} {}", "Current x:".to_string(), (*x.lock().unwrap().as_mut().unwrap()));
+
+    // Execute deferred functions
+    while let Some(f) = __defer_stack.pop() {
+        f();
+    }
 }
 
 pub fn defer_in_loop() {
+    let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
+
     println!("{}", "Defer in loop:".to_string());
     let mut i = std::sync::Arc::new(std::sync::Mutex::new(Some(0)));
     while (*i.lock().unwrap().as_mut().unwrap()) < 3 {
-        // defer /* TODO: Unhandled expression type: FuncLit */ std::sync::Arc::new(std::sync::Mutex::new(Some(())))(i.clone()) // TODO: defer not yet supported
+        __defer_stack.push(Box::new(move || {
+        (std::sync::Arc::new(std::sync::Mutex::new(Some(Box::new(move |val: std::sync::Arc<std::sync::Mutex<Option<i32>>>| {
+        print!("Deferred loop value: {}\n", (*val.lock().unwrap().as_mut().unwrap()));
+    }) as Box<dyn Fn(std::sync::Arc<std::sync::Mutex<Option<i32>>>) -> () + Send + Sync>))).lock().unwrap().as_ref().unwrap())(i.clone());
+    }));
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
     println!("{}", "Loop finished".to_string());
+
+    // Execute deferred functions
+    while let Some(f) = __defer_stack.pop() {
+        f();
+    }
 }
 
 pub fn cleanup() {
@@ -74,8 +113,12 @@ pub fn cleanup() {
 }
 
 pub fn resource_example() {
+    let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
+
     println!("{}", "Acquiring resource".to_string());
-    // defer cleanup() // TODO: defer not yet supported
+    __defer_stack.push(Box::new(move || {
+        cleanup();
+    }));
 
     println!("{}", "Using resource".to_string());
 
@@ -85,6 +128,11 @@ pub fn resource_example() {
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
     println!("{}", "Done with resource".to_string());
+
+    // Execute deferred functions
+    while let Some(f) = __defer_stack.pop() {
+        f();
+    }
 }
 
 fn main() {

@@ -100,15 +100,15 @@ fn main() {
     let mut circle = Circle { radius: std::sync::Arc::new(std::sync::Mutex::new(Some(3))) };
 
     println!("{}", "Rectangle:".to_string());
-    print_shape_info(rect.clone());
+    (printShapeInfo.lock().unwrap().as_ref().unwrap())(rect.clone());
 
     println!("{}", "Circle:".to_string());
-    print_shape_info(circle.clone());
+    (printShapeInfo.lock().unwrap().as_ref().unwrap())(circle.clone());
 
     let mut shapes = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![(*rect.lock().unwrap().as_mut().unwrap()), (*circle.lock().unwrap().as_mut().unwrap())])));
     println!("{}", "All shapes:".to_string());
     for (i, shape) in (*shapes.lock().unwrap().as_mut().unwrap()).iter().enumerate() {
         print!("Shape {}: ", i + 1);
-        print_shape_info(std::sync::Arc::new(std::sync::Mutex::new(Some(shape))));
+        (printShapeInfo.lock().unwrap().as_ref().unwrap())(std::sync::Arc::new(std::sync::Mutex::new(Some(shape))));
     }
 }

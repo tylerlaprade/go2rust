@@ -74,44 +74,149 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		out.WriteString(";")
 
 	case *ast.ReturnStmt:
-		out.WriteString("return")
+		// Execute defers before returning if needed
+		if currentFunctionHasDefer {
+			out.WriteString("{\n")
+			out.WriteString("        // Execute deferred functions\n")
+			out.WriteString("        while let Some(f) = __defer_stack.pop() {\n")
+			out.WriteString("            f();\n")
+			out.WriteString("        }\n")
+			out.WriteString("        return")
+		} else {
+			out.WriteString("return")
 
-		// Handle naked return (no explicit values but function has named returns)
-		if len(s.Results) == 0 && fnType.Results != nil {
-			hasNamedReturns := false
-			for _, result := range fnType.Results.List {
-				if len(result.Names) > 0 {
-					hasNamedReturns = true
-					break
-				}
-			}
-
-			if hasNamedReturns {
-				out.WriteString(" ")
-				// Return the named values
-				needsTuple := false
-				totalReturns := 0
+			// Handle naked return (no explicit values but function has named returns)
+			if len(s.Results) == 0 && fnType.Results != nil {
+				hasNamedReturns := false
 				for _, result := range fnType.Results.List {
 					if len(result.Names) > 0 {
-						totalReturns += len(result.Names)
-					} else {
-						totalReturns++
+						hasNamedReturns = true
+						break
 					}
 				}
-				needsTuple = totalReturns > 1
 
+				if hasNamedReturns {
+					out.WriteString(" ")
+					// Return the named values
+					needsTuple := false
+					totalReturns := 0
+					for _, result := range fnType.Results.List {
+						if len(result.Names) > 0 {
+							totalReturns += len(result.Names)
+						} else {
+							totalReturns++
+						}
+					}
+					needsTuple = totalReturns > 1
+
+					if needsTuple {
+						out.WriteString("(")
+					}
+
+					first := true
+					for _, result := range fnType.Results.List {
+						for _, name := range result.Names {
+							if !first {
+								out.WriteString(", ")
+							}
+							first = false
+							out.WriteString(name.Name)
+						}
+					}
+
+					if needsTuple {
+						out.WriteString(")")
+					}
+				}
+			} else if len(s.Results) > 0 {
+				out.WriteString(" ")
+				// Check if we need a tuple for multiple return values
+				needsTuple := len(s.Results) > 1
 				if needsTuple {
 					out.WriteString("(")
 				}
 
-				first := true
-				for _, result := range fnType.Results.List {
-					for _, name := range result.Names {
-						if !first {
-							out.WriteString(", ")
+				for i, result := range s.Results {
+					if i > 0 {
+						out.WriteString(", ")
+					}
+
+					// Check if this is nil being returned for an error type
+					isNilForError := false
+					if ident, ok := result.(*ast.Ident); ok && ident.Name == "nil" {
+						// Check if this position in return values is an error type
+						if fnType.Results != nil && i < len(fnType.Results.List) {
+							if resultType, ok := fnType.Results.List[i].Type.(*ast.Ident); ok && resultType.Name == "error" {
+								isNilForError = true
+							}
 						}
-						first = false
-						out.WriteString(name.Name)
+					}
+
+					if isNilForError {
+						// For error type, nil becomes Arc<Mutex<None>>
+						out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(None))")
+					} else {
+						// Check if this is a field access on self (already wrapped)
+						if sel, ok := result.(*ast.SelectorExpr); ok {
+							if ident, ok := sel.X.(*ast.Ident); ok && currentReceiver != "" && ident.Name == currentReceiver {
+								// Returning self.field - just clone it, don't double-wrap
+								out.WriteString("self.")
+								out.WriteString(ToSnakeCase(sel.Sel.Name))
+								out.WriteString(".clone()")
+							} else {
+								// Regular selector - wrap it
+								out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(Some(")
+								TranspileExpression(out, result)
+								out.WriteString(")))")
+							}
+						} else if callExpr, ok := result.(*ast.CallExpr); ok {
+							// Check if this is a function that returns an already-wrapped value
+							needsWrapping := true
+
+							// Check if it's errors.New or a function returning error
+							if sel, ok := callExpr.Fun.(*ast.SelectorExpr); ok {
+								if ident, ok := sel.X.(*ast.Ident); ok {
+									if ident.Name == "errors" && sel.Sel.Name == "New" {
+										needsWrapping = false
+									} else if ident.Name == "fmt" && sel.Sel.Name == "Errorf" {
+										needsWrapping = false
+									}
+								}
+							}
+
+							// Check if it's a user function that returns error
+							if fnType.Results != nil && i < len(fnType.Results.List) {
+								if resultType, ok := fnType.Results.List[i].Type.(*ast.Ident); ok && resultType.Name == "error" {
+									// This position is an error type, and we have a function call
+									needsWrapping = false
+								}
+							}
+
+							if needsWrapping {
+								out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(Some(")
+								TranspileExpression(out, result)
+								out.WriteString(")))")
+							} else {
+								// Already wrapped
+								TranspileExpression(out, result)
+							}
+						} else if _, ok := result.(*ast.FuncLit); ok {
+							// Function literal - already wrapped by TranspileFuncLit
+							TranspileExpression(out, result)
+						} else {
+							// Wrap all other return values in Arc<Mutex<Option<>>>
+							out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(Some(")
+
+							// Special handling for string literals
+							if lit, ok := result.(*ast.BasicLit); ok && lit.Kind == token.STRING {
+								out.WriteString(lit.Value)
+								out.WriteString(".to_string()")
+							} else {
+								TranspileExpression(out, result)
+							}
+
+							out.WriteString(")))")
+						}
 					}
 				}
 
@@ -119,103 +224,14 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					out.WriteString(")")
 				}
 			}
-		} else if len(s.Results) > 0 {
-			out.WriteString(" ")
-			// Check if we need a tuple for multiple return values
-			needsTuple := len(s.Results) > 1
-			if needsTuple {
-				out.WriteString("(")
-			}
 
-			for i, result := range s.Results {
-				if i > 0 {
-					out.WriteString(", ")
-				}
-
-				// Check if this is nil being returned for an error type
-				isNilForError := false
-				if ident, ok := result.(*ast.Ident); ok && ident.Name == "nil" {
-					// Check if this position in return values is an error type
-					if fnType.Results != nil && i < len(fnType.Results.List) {
-						if resultType, ok := fnType.Results.List[i].Type.(*ast.Ident); ok && resultType.Name == "error" {
-							isNilForError = true
-						}
-					}
-				}
-
-				if isNilForError {
-					// For error type, nil becomes Arc<Mutex<None>>
-					out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(None))")
-				} else {
-					// Check if this is a field access on self (already wrapped)
-					if sel, ok := result.(*ast.SelectorExpr); ok {
-						if ident, ok := sel.X.(*ast.Ident); ok && currentReceiver != "" && ident.Name == currentReceiver {
-							// Returning self.field - just clone it, don't double-wrap
-							out.WriteString("self.")
-							out.WriteString(ToSnakeCase(sel.Sel.Name))
-							out.WriteString(".clone()")
-						} else {
-							// Regular selector - wrap it
-							out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(Some(")
-							TranspileExpression(out, result)
-							out.WriteString(")))")
-						}
-					} else if callExpr, ok := result.(*ast.CallExpr); ok {
-						// Check if this is a function that returns an already-wrapped value
-						needsWrapping := true
-
-						// Check if it's errors.New or a function returning error
-						if sel, ok := callExpr.Fun.(*ast.SelectorExpr); ok {
-							if ident, ok := sel.X.(*ast.Ident); ok {
-								if ident.Name == "errors" && sel.Sel.Name == "New" {
-									needsWrapping = false
-								} else if ident.Name == "fmt" && sel.Sel.Name == "Errorf" {
-									needsWrapping = false
-								}
-							}
-						}
-
-						// Check if it's a user function that returns error
-						if fnType.Results != nil && i < len(fnType.Results.List) {
-							if resultType, ok := fnType.Results.List[i].Type.(*ast.Ident); ok && resultType.Name == "error" {
-								// This position is an error type, and we have a function call
-								needsWrapping = false
-							}
-						}
-
-						if needsWrapping {
-							out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(Some(")
-							TranspileExpression(out, result)
-							out.WriteString(")))")
-						} else {
-							// Already wrapped
-							TranspileExpression(out, result)
-						}
-					} else if _, ok := result.(*ast.FuncLit); ok {
-						// Function literal - already wrapped by TranspileFuncLit
-						TranspileExpression(out, result)
-					} else {
-						// Wrap all other return values in Arc<Mutex<Option<>>>
-						out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(Some(")
-
-						// Special handling for string literals
-						if lit, ok := result.(*ast.BasicLit); ok && lit.Kind == token.STRING {
-							out.WriteString(lit.Value)
-							out.WriteString(".to_string()")
-						} else {
-							TranspileExpression(out, result)
-						}
-
-						out.WriteString(")))")
-					}
-				}
-			}
-
-			if needsTuple {
-				out.WriteString(")")
+			// Close the defer execution block if needed
+			if currentFunctionHasDefer {
+				out.WriteString("\n    }")
+			} else {
+				out.WriteString(";")
 			}
 		}
-		out.WriteString(";")
 
 	case *ast.AssignStmt:
 		// Check if this is a map index assignment
@@ -1075,10 +1091,12 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		}
 
 	case *ast.DeferStmt:
-		// For now, just add a comment - proper defer support is complex
-		out.WriteString("// defer ")
+		// Defer statements - push closure onto defer stack
+		out.WriteString("__defer_stack.push(Box::new(move || {\n")
+		out.WriteString("        ")
 		TranspileCall(out, s.Call)
-		out.WriteString(" // TODO: defer not yet supported")
+		out.WriteString(";\n")
+		out.WriteString("    }));")
 
 	default:
 		out.WriteString("// TODO: Unhandled statement type: " + strings.TrimPrefix(fmt.Sprintf("%T", s), "*ast."))

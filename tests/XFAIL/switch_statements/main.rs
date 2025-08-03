@@ -124,25 +124,25 @@ pub fn type_switch(value: std::sync::Arc<std::sync::Mutex<Option<Box<dyn std::an
 
 fn main() {
     println!("{}", "=== Basic switch ===".to_string());
-    basic_switch(std::sync::Arc::new(std::sync::Mutex::new(Some(1))));
-    basic_switch(std::sync::Arc::new(std::sync::Mutex::new(Some(6))));
-    basic_switch(std::sync::Arc::new(std::sync::Mutex::new(Some(10))));
+    (basicSwitch.lock().unwrap().as_ref().unwrap())(std::sync::Arc::new(std::sync::Mutex::new(Some(1))));
+    (basicSwitch.lock().unwrap().as_ref().unwrap())(std::sync::Arc::new(std::sync::Mutex::new(Some(6))));
+    (basicSwitch.lock().unwrap().as_ref().unwrap())(std::sync::Arc::new(std::sync::Mutex::new(Some(10))));
 
     println!("{}", "\n=== Switch with expression ===".to_string());
-    switch_with_expression();
+    (switchWithExpression.lock().unwrap().as_ref().unwrap())();
 
     println!("{}", "\n=== Switch without expression ===".to_string());
-    switch_without_expression();
+    (switchWithoutExpression.lock().unwrap().as_ref().unwrap())();
 
     println!("{}", "\n=== Switch with fallthrough ===".to_string());
-    switch_with_fallthrough(std::sync::Arc::new(std::sync::Mutex::new(Some(1))));
+    (switchWithFallthrough.lock().unwrap().as_ref().unwrap())(std::sync::Arc::new(std::sync::Mutex::new(Some(1))));
     println!("{}", "---".to_string());
-    switch_with_fallthrough(std::sync::Arc::new(std::sync::Mutex::new(Some(4))));
+    (switchWithFallthrough.lock().unwrap().as_ref().unwrap())(std::sync::Arc::new(std::sync::Mutex::new(Some(4))));
 
     println!("{}", "\n=== Type switch ===".to_string());
-    type_switch(std::sync::Arc::new(std::sync::Mutex::new(Some(42))));
-    type_switch(std::sync::Arc::new(std::sync::Mutex::new(Some("hello".to_string()))));
-    type_switch(true.clone());
-    type_switch(std::sync::Arc::new(std::sync::Mutex::new(Some(3.14))));
-    type_switch(std::sync::Arc::new(std::sync::Mutex::new(Some(std::sync::Arc::new(std::sync::Mutex::new(Some(vec![1, 2, 3])))))));
+    (typeSwitch.lock().unwrap().as_ref().unwrap())(std::sync::Arc::new(std::sync::Mutex::new(Some(42))));
+    (typeSwitch.lock().unwrap().as_ref().unwrap())(std::sync::Arc::new(std::sync::Mutex::new(Some("hello".to_string()))));
+    (typeSwitch.lock().unwrap().as_ref().unwrap())(true.clone());
+    (typeSwitch.lock().unwrap().as_ref().unwrap())(std::sync::Arc::new(std::sync::Mutex::new(Some(3.14))));
+    (typeSwitch.lock().unwrap().as_ref().unwrap())(std::sync::Arc::new(std::sync::Mutex::new(Some(std::sync::Arc::new(std::sync::Mutex::new(Some(vec![1, 2, 3])))))));
 }

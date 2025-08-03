@@ -40,7 +40,7 @@ where
 pub fn f() -> std::sync::Arc<std::sync::Mutex<Option<i32>>> {
 
     { let mut guard = d.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
-    return std::sync::Arc::new(std::sync::Mutex::new(Some((*d.lock().unwrap().as_mut().unwrap()).clone())));
+    return std::sync::Arc::new(std::sync::Mutex::new(Some((*d.lock().unwrap().as_mut().unwrap()))));
 }
 
 pub fn init() {
