@@ -148,7 +148,7 @@ Currently, only doc comments (documentation comments directly above functions, t
 | └ Map operations (insert, delete) | ✅ |
 | └ Map access with existence check | ✅ |
 | └ Map iteration (for range) | ✅ |
-| └ Map printing (sorted keys) | ✅ |
+| └ Map printing (sorted keys, Go 1.12+) | ✅ |
 | **Arrays & Slices** | |
 | └ Fixed arrays | ✅ |
 | └ Slices | ✅ |
@@ -196,6 +196,8 @@ Currently, only doc comments (documentation comments directly above functions, t
 
 | **`errors` package** | |
 | └ `errors.New` | ✅ |
+| **`sort` package** | |
+| └ `sort.Strings` | ✅ |
 
 ## Test Suite
 

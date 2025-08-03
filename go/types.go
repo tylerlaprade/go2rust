@@ -72,5 +72,4 @@ func goTypeToRustBase(expr ast.Expr) string {
 		// Unhandled type
 		return fmt.Sprintf("/* TODO: Unhandled type %T */ std::sync::Arc<std::sync::Mutex<Option<()>>>", t)
 	}
-	return "Unknown"
 }

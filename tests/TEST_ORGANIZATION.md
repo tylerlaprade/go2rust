@@ -147,14 +147,11 @@ These files serve as:
 ### Expected Output Files
 
 The test harness automatically manages `expected_output.txt` files:
+- **First run**: Saves Go output as `expected_output.txt`
+- **Subsequent runs**: Compares Go output with expected
+- **Mismatch**: Fails with clear error about non-deterministic Go output
 
-1. **First run**: When a test runs for the first time, the Go output is saved as `expected_output.txt`
-2. **Subsequent runs**: The Go output is compared with `expected_output.txt`
-3. **Mismatch detection**: If Go output doesn't match expected, the test fails with a clear error message about non-deterministic output
-
-This helps distinguish between:
-- "Go test is non-deterministic" - Go output doesn't match expected
-- "Transpiler bug" - Rust output doesn't match Go output
+This distinguishes "Go is non-deterministic" from "Rust doesn't match Go".
 
 **Only build artifacts should be cleaned**:
 
