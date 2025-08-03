@@ -53,6 +53,10 @@ func (pg *ProjectGenerator) Generate() error {
 	}
 	pg.typeInfo = typeInfo
 
+	// Set the global type info once for the entire project
+	SetTypeInfo(typeInfo)
+	defer SetTypeInfo(nil) // Clear when done
+
 	// First pass: transpile all files and detect structure
 	for i, filename := range pg.goFiles {
 		// Use the already parsed file from astFiles
