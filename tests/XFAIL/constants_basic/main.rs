@@ -56,10 +56,10 @@ const FRIDAY: i32 = 5;
 const SATURDAY: i32 = 6;
 
 
-const K_B: i32 = 1 << (10 * 1);
-const M_B: i32 = 2;
-const G_B: i32 = 3;
-const T_B: i32 = 4;
+const K_B: i64 = 1 << (10 * 1);
+const M_B: i64 = 1 << (10 * 2);
+const G_B: i64 = 1 << (10 * 3);
+const T_B: i64 = 1 << (10 * 4);
 
 
 const RED: i32 = 0;
@@ -68,11 +68,11 @@ const BLUE: i32 = 2;
 
 
 const A: i32 = 0 * 2;
-const B: i32 = 1;
-const C: i32 = 2;
+const B: i32 = 1 * 2;
+const C: i32 = 2 * 2;
 const D: i32 = 3 + 10;
-const E_E: i32 = 4;
-const F: i32 = 5;
+const E_E: i32 = 4 + 10;
+const F: i32 = 5 + 10;
 
 
 fn main() {
@@ -141,7 +141,7 @@ const z: i32 = x + y;
 
     const target: &'static str = "World";
 
-    const message: &'static str = greeting + ", " + target + "!";
+    const message: &'static str = "Hello, World!";
 
 
     println!("{}", message);

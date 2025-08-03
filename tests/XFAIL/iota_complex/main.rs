@@ -37,16 +37,16 @@ where
     }
 }
 
-const FLAG_READ: i32 = 1 << 0;
-const FLAG_WRITE: i32 = 1;
-const FLAG_EXECUTE: i32 = 2;
-const FLAG_DELETE: i32 = 3;
+const FLAG_READ: i64 = 1 << 0;
+const FLAG_WRITE: i64 = 1 << 1;
+const FLAG_EXECUTE: i64 = 1 << 2;
+const FLAG_DELETE: i64 = 1 << 3;
 
 
-const K_B: i32 = 1 << (10 * 1);
-const M_B: i32 = 2;
-const G_B: i32 = 3;
-const T_B: i32 = 4;
+const K_B: i64 = 1 << (10 * 1);
+const M_B: i64 = 1 << (10 * 2);
+const G_B: i64 = 1 << (10 * 3);
+const T_B: i64 = 1 << (10 * 4);
 
 
 const A: i32 = 0;
