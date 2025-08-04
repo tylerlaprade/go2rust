@@ -1,6 +1,13 @@
-fn format_map<K: std::fmt::Display + std::cmp::Ord + Clone, V>(map: &std::sync::Arc<std::sync::Mutex<Option<std::collections::HashMap<K, std::sync::Arc<std::sync::Mutex<Option<V>>>>>>>) -> String 
+use std::sync::{Arc, Mutex};
+use std::collections::HashMap;
+use std::fmt::{self, Display, Formatter};
+use std::error::Error;
+use std::any::Any;
+use std::cmp::Ord;
+
+fn format_map<K: Display + Ord + Clone, V>(map: &Arc<Mutex<Option<HashMap<K, Arc<Mutex<Option<V>>>>>>>) -> String 
 where
-    V: std::fmt::Display,
+    V: Display,
 {
     let guard = map.lock().unwrap();
     if let Some(ref m) = *guard {
@@ -24,9 +31,9 @@ where
         "map[]".to_string()
     }
 }
-fn format_slice<T>(slice: &std::sync::Arc<std::sync::Mutex<Option<Vec<T>>>>) -> String 
+fn format_slice<T>(slice: &Arc<Mutex<Option<Vec<T>>>>) -> String 
 where
-    T: std::fmt::Display,
+    T: Display,
 {
     let guard = slice.lock().unwrap();
     if let Some(ref s) = *guard {
@@ -37,22 +44,22 @@ where
     }
 }
 
-pub fn zeroval(ival: std::sync::Arc<std::sync::Mutex<Option<i32>>>) {
+pub fn zeroval(ival: Arc<Mutex<Option<i32>>>) {
     { let new_val = 0; *ival.lock().unwrap() = Some(new_val); };
 }
 
-pub fn zeroptr(iptr: std::sync::Arc<std::sync::Mutex<Option<i32>>>) {
+pub fn zeroptr(iptr: Arc<Mutex<Option<i32>>>) {
     { let new_val = 0; *iptr.lock().unwrap() = Some(new_val); };
 }
 
 fn main() {
-    let mut i = std::sync::Arc::new(std::sync::Mutex::new(Some(1)));
+    let mut i = Arc::new(Mutex::new(Some(1)));
     println!("{} {}", "initial:".to_string(), (*i.lock().unwrap().as_mut().unwrap()));
 
     zeroval(i.clone());
     println!("{} {}", "zeroval:".to_string(), (*i.lock().unwrap().as_mut().unwrap()));
 
-    zeroptr(std::sync::Arc::new(std::sync::Mutex::new(Some(i.clone()))));
+    zeroptr(Arc::new(Mutex::new(Some(i.clone()))));
     println!("{} {}", "zeroptr:".to_string(), (*i.lock().unwrap().as_mut().unwrap()));
 
     println!("{} {}", "pointer:".to_string(), i.clone());

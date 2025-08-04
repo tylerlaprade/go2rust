@@ -6,7 +6,7 @@ A conservative Go-to-Rust transpiler that prioritizes correctness over performan
 
 ## Usage
 
-```sh
+```bash
 # Build the transpiler
 go build -o go2rust ./go
 
