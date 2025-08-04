@@ -26,10 +26,11 @@ Method receivers (value and pointer), multiple returns, method calls
 - 🚧 Struct embedding - basic field promotion working, method promotion incomplete
 - ❌ Anonymous structs - not yet implemented
 
-### 📋 Phase 5: Core Language Features (Partial Progress)
+### 📋 Phase 5: Core Language Features (30% Complete)
 
-- 🚧 Constants and iota - basic support, needs refinement
-- 🚧 Closures and function literals - basic implementation, capture needs work
+- ✅ Basic constants - simple const declarations working
+- 🚧 Complex constants and iota - expressions, iota patterns need work
+- 🚧 Closures and function literals - basic implementation, capture needs refinement
 - 🚧 Defer statements - basic LIFO execution working
 - ❌ Panic and recover - not implemented
 - ❌ Interfaces - trait generation exists but incomplete

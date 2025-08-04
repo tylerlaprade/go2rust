@@ -189,8 +189,9 @@ run_xfail_test() {
     test_name=$(basename "$test_dir")
     local timeout="${TEST_TIMEOUT:-60s}"
     
-    # Export the helper function so it's available in the subshell
+    # Export the helper functions so they're available in the subshell
     export -f run_transpile_and_compare
+    export -f compare_outputs
     
     # Run the entire test with timeout
     # shellcheck disable=SC2016
@@ -278,6 +279,10 @@ run_xfail_test() {
 
 @test "builtin_functions" {
     run_test "tests/builtin_functions"
+}
+
+@test "const_basic" {
+    run_test "tests/const_basic"
 }
 
 @test "error_simple" {
