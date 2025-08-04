@@ -52,12 +52,12 @@ struct Person {
 
 #[derive(Debug)]
 struct Employee {
-    arc<_mutex<_option<_person>>>: Arc<Mutex<Option<Person>>>,
+    person: Arc<Mutex<Option<Person>>>,
     i_d: Arc<Mutex<Option<i32>>>,
 }
 
 fn main() {
     let mut e = Employee { person: Arc::new(Mutex::new(Some(Person { name: Arc::new(Mutex::new(Some("John".to_string()))), age: Arc::new(Mutex::new(Some(30))) }))), i_d: Arc::new(Mutex::new(Some(123))) };
-    println!("{}", (*e.lock().unwrap().as_mut().unwrap()).name);
-    println!("{}", (*e.lock().unwrap().as_mut().unwrap()).i_d);
+    println!("{}", (*(*e.lock().unwrap().as_mut().unwrap()).person.name.lock().unwrap().as_mut().unwrap()));
+    println!("{}", (*(*e.lock().unwrap().as_mut().unwrap()).i_d.lock().unwrap().as_mut().unwrap()));
 }

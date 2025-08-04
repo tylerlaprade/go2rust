@@ -14,6 +14,9 @@ var localConstants = make(map[string]string)
 // currentReceiver tracks the current method receiver name for self translation
 var currentReceiver string
 
+// currentReceiverType tracks the type of the current method receiver
+var currentReceiverType string
+
 // currentFunctionHasDefer tracks if the current function has defer statements
 var currentFunctionHasDefer bool
 
@@ -22,6 +25,47 @@ var currentCaptureRenames map[string]string
 
 // interfaceTypes tracks which type names are interfaces
 var interfaceTypes = make(map[string]bool)
+
+// typeDefinitions tracks which types are type definitions (not aliases)
+var typeDefinitions = make(map[string]string) // maps type name to underlying type
+
+// typeAliases tracks which types are type aliases
+var typeAliases = make(map[string]bool)
+
+// structDefs tracks struct definitions and their fields
+type StructDef struct {
+	Fields        map[string]string // field name -> field type
+	EmbeddedTypes []string          // list of embedded type names
+}
+
+var structDefs = make(map[string]*StructDef)
+
+// embeddedFields tracks which fields come from embedded structs
+// map[structType][fieldName] -> embeddedTypeName
+var embeddedFields = make(map[string]map[string]string)
+
+// resolveFieldAccess finds the path to access a field, considering embedded structs
+func resolveFieldAccess(structType string, fieldName string) string {
+	// Check if it's a direct field
+	if structDef, exists := structDefs[structType]; exists {
+		if _, isDirectField := structDef.Fields[fieldName]; isDirectField {
+			return ToSnakeCase(fieldName)
+		}
+
+		// Check embedded types
+		for _, embeddedType := range structDef.EmbeddedTypes {
+			if embeddedDef, exists := structDefs[embeddedType]; exists {
+				if _, hasField := embeddedDef.Fields[fieldName]; hasField {
+					// Field found in embedded struct
+					return ToSnakeCase(embeddedType) + "." + ToSnakeCase(fieldName)
+				}
+			}
+		}
+	}
+
+	// Default: just return the field name
+	return ToSnakeCase(fieldName)
+}
 
 // getReceiverType extracts the type name from a receiver type expression
 func getReceiverType(expr ast.Expr) string {

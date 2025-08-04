@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 # Generate test cases and update the GENERATED TESTS section in tests.bats
 
@@ -183,25 +183,25 @@ colorize_output() {
             # Start of failing test - red X
             local test_name
             test_name=$(echo "$line" | sed 's/^not ok [0-9]* //')
-            echo -e "\033[31m✗ $test_name\033[0m"
+            echo "\033[31m✗ $test_name\033[0m"
             in_failure=true
         elif [[ "$line" =~ ^"ok " ]] && [[ "$line" =~ " XFAIL:" ]]; then
             # XFAIL tests - yellow ⚠ (only show if verbose)
             if [ "$VERBOSE" = true ]; then
                 local test_name
                 test_name=$(echo "$line" | sed 's/^ok [0-9]* //')
-                echo -e "\033[33m⚠ $test_name\033[0m"
+                echo "\033[33m⚠ $test_name\033[0m"
             fi
             in_failure=false
         elif [[ "$line" =~ ^"ok " ]]; then
             # Passing test - green checkmark
             local test_name
             test_name=$(echo "$line" | sed 's/^ok [0-9]* //')
-            echo -e "\033[32m✓\033[0m $test_name"
+            echo "\033[32m✓\033[0m $test_name"
             in_failure=false
         elif [[ "$line" =~ ^"#" ]] && [ "$in_failure" = true ]; then
             # Error details from failed test - red
-            echo -e "\033[31m$line\033[0m"
+            echo "\033[31m$line\033[0m"
         elif [[ "$line" =~ ^[0-9]+\.\.[0-9]+ ]]; then
             # Test count header - show it
             echo "$line"
@@ -223,7 +223,7 @@ if [ ${#TEST_NAMES[@]} -gt 0 ]; then
     # Build a regex pattern that matches any of the test names
     FILTER_PATTERN="("
     for i in "${!TEST_NAMES[@]}"; do
-        if [ $i -gt 0 ]; then
+        if [ "$i" -gt 0 ]; then
             FILTER_PATTERN+="|"
         fi
         # Escape special regex characters and handle both regular and XFAIL tests
@@ -259,7 +259,7 @@ else
     
     # Extract and display test summary with colors (only for parallel mode)
     echo ""
-    echo -e "\033[1mTest Summary:\033[0m"
+    echo "\033[1mTest Summary:\033[0m"
     echo "============="
 
     # Count all test types from the captured output
@@ -269,17 +269,17 @@ else
     TOTAL=$((PASSING + FAILING + XFAIL_TOTAL))
 
     # Display with colors and symbols
-    echo -e "\033[32m✓ Passing: $PASSING/$TOTAL\033[0m"
+    echo "\033[32m✓ Passing: $PASSING/$TOTAL\033[0m"
     if [ "$FAILING" -gt 0 ]; then
-        echo -e "\033[31m✗ Failing: $FAILING/$TOTAL\033[0m"
+        echo "\033[31m✗ Failing: $FAILING/$TOTAL\033[0m"
     fi
-    echo -e "\033[33m⚠ XFAIL: $XFAIL_TOTAL/$TOTAL\033[0m"
+    echo "\033[33m⚠ XFAIL: $XFAIL_TOTAL/$TOTAL\033[0m"
 
     if [ "$FAILING" -gt 0 ]; then
         echo ""
-        echo -e "\033[31mFailed tests:\033[0m"
+        echo "\033[31mFailed tests:\033[0m"
         echo "$TEST_OUTPUT" | grep "^not ok " | grep -v "XFAIL" | while IFS= read -r line; do
-            echo -e "\033[31m  - $(echo "$line" | sed 's/^not ok [0-9]* //')\033[0m"
+            echo "\033[31m  - $(echo "$line" | sed 's/^not ok [0-9]* //')\033[0m"
         done
     fi
 fi

@@ -80,13 +80,8 @@ pub fn defer_with_variables() {
 
     let mut x = Arc::new(Mutex::new(Some(10)));
     let x_defer_captured = x.clone(); __defer_stack.push(Box::new(move || {
-<<<<<<< HEAD
         (Arc::new(Mutex::new(Some(Box::new(move || {
         println!("{} {}", "Deferred x:".to_string(), (*x.lock().unwrap().as_mut().unwrap()));
-=======
-        (let x_captured = x.clone(); Arc::new(Mutex::new(Some(Box::new(move || {
-        println!("{} {}", "Deferred x:".to_string(), (*x_captured.lock().unwrap().as_mut().unwrap()));
->>>>>>> 6a74952b549d931f2453fa376f6c98cd214f72d5
     }) as Box<dyn Fn() -> () + Send + Sync>))).lock().unwrap().as_ref().unwrap())();
     }));
 

@@ -45,17 +45,21 @@ where
 }
 
 /// Function type definitions
-// TODO: Unhandled type declaration: FuncType
-type BinaryOp = Arc<Mutex<Option<()>>>
+#[derive(Debug, Clone)]
+struct BinaryOp(Arc<Mutex<Option<Box<dyn Fn(Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<i32>>> + Send + Sync>>>>);
 
-// TODO: Unhandled type declaration: FuncType
-type UnaryOp = Arc<Mutex<Option<()>>>
 
-// TODO: Unhandled type declaration: FuncType
-type Predicate = Arc<Mutex<Option<()>>>
+#[derive(Debug, Clone)]
+struct UnaryOp(Arc<Mutex<Option<Box<dyn Fn(Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<i32>>> + Send + Sync>>>>);
 
-// TODO: Unhandled type declaration: FuncType
-type StringProcessor = Arc<Mutex<Option<()>>>
+
+#[derive(Debug, Clone)]
+struct Predicate(Arc<Mutex<Option<Box<dyn Fn(Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<bool>>> + Send + Sync>>>>);
+
+
+#[derive(Debug, Clone)]
+struct StringProcessor(Arc<Mutex<Option<Box<dyn Fn(Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<String>>> + Send + Sync>>>>);
+
 
 /// Struct with function fields
 #[derive(Debug)]

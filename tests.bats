@@ -136,7 +136,7 @@ run_test() {
 
     # Run the entire test with timeout
     # shellcheck disable=SC2016
-    if ! timeout "$timeout" bash -c '
+    if ! timeout "$timeout" sh -c '
         test_dir="$1"
         
         # Run Go version
@@ -194,7 +194,7 @@ run_xfail_test() {
     
     # Run the entire test with timeout
     # shellcheck disable=SC2016
-    if ! timeout "$timeout" bash -c '
+    if ! timeout "$timeout" sh -c '
         test_dir="$1"
         test_name="$2"
         

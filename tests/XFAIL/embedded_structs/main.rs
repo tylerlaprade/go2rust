@@ -59,15 +59,15 @@ struct Address {
 
 #[derive(Debug)]
 struct Employee {
-    arc<_mutex<_option<_person>>>: Arc<Mutex<Option<Person>>>,
-    arc<_mutex<_option<_address>>>: Arc<Mutex<Option<Address>>>,
+    person: Arc<Mutex<Option<Person>>>,
+    address: Arc<Mutex<Option<Address>>>,
     i_d: Arc<Mutex<Option<i32>>>,
     salary: Arc<Mutex<Option<f64>>>,
 }
 
 #[derive(Debug)]
 struct Manager {
-    arc<_mutex<_option<_employee>>>: Arc<Mutex<Option<Employee>>>,
+    employee: Arc<Mutex<Option<Employee>>>,
     team: Arc<Mutex<Option<Vec<String>>>>,
 }
 
@@ -81,7 +81,7 @@ struct CompanyInfo {
 #[derive(Debug)]
 struct Company {
     name: Arc<Mutex<Option<String>>>,
-    arc<_mutex<_option<_company_info>>>: Arc<Mutex<Option<CompanyInfo>>>,
+    company_info: Arc<Mutex<Option<CompanyInfo>>>,
 }
 
 impl Person {
@@ -116,10 +116,10 @@ fn main() {
     println!("{}", "=== Basic embedded struct ===".to_string());
     let mut emp = Employee { person: Arc::new(Mutex::new(Some(Person { name: Arc::new(Mutex::new(Some("Alice".to_string()))), age: Arc::new(Mutex::new(Some(30))) }))), address: Arc::new(Mutex::new(Some(Address { street: Arc::new(Mutex::new(Some("123 Main St".to_string()))), city: Arc::new(Mutex::new(Some("Anytown".to_string()))), state: Arc::new(Mutex::new(Some("CA".to_string()))) }))), i_d: Arc::new(Mutex::new(Some(1001))), salary: Arc::new(Mutex::new(Some(75000.0))) };
 
-    print!("Name: {}\n", (*emp.lock().unwrap().as_mut().unwrap()).name);
-    print!("Age: {}\n", (*emp.lock().unwrap().as_mut().unwrap()).age);
-    print!("Street: {}\n", (*emp.lock().unwrap().as_mut().unwrap()).street);
-    print!("ID: {}\n", (*emp.lock().unwrap().as_mut().unwrap()).i_d);
+    print!("Name: {}\n", (*(*emp.lock().unwrap().as_mut().unwrap()).person.name.lock().unwrap().as_mut().unwrap()));
+    print!("Age: {}\n", (*(*emp.lock().unwrap().as_mut().unwrap()).person.age.lock().unwrap().as_mut().unwrap()));
+    print!("Street: {}\n", (*(*emp.lock().unwrap().as_mut().unwrap()).address.street.lock().unwrap().as_mut().unwrap()));
+    print!("ID: {}\n", (*(*emp.lock().unwrap().as_mut().unwrap()).i_d.lock().unwrap().as_mut().unwrap()));
 
     (*emp.lock().unwrap().as_mut().unwrap()).greet();
     println!("{} {}", "Info:".to_string(), (*(*emp.lock().unwrap().as_mut().unwrap()).get_info().lock().unwrap().as_mut().unwrap()));
@@ -129,9 +129,9 @@ fn main() {
     println!("{}", "\n=== Nested embedding ===".to_string());
     let mut mgr = Manager { employee: Arc::new(Mutex::new(Some(Employee { person: Arc::new(Mutex::new(Some(Person { name: Arc::new(Mutex::new(Some("Bob".to_string()))), age: Arc::new(Mutex::new(Some(35))) }))), address: Arc::new(Mutex::new(Some(Address { street: Arc::new(Mutex::new(Some("456 Oak Ave".to_string()))), city: Arc::new(Mutex::new(Some("Somewhere".to_string()))), state: Arc::new(Mutex::new(Some("NY".to_string()))) }))), i_d: Arc::new(Mutex::new(Some(2001))), salary: Arc::new(Mutex::new(Some(95000.0))) }))), team: Arc::new(Mutex::new(Some(Arc::new(Mutex::new(Some(vec!["Alice".to_string(), "Charlie".to_string(), "Diana".to_string()])))))) };
 
-    print!("Manager: {}\n", (*mgr.lock().unwrap().as_mut().unwrap()).name);
-    print!("Manager ID: {}\n", (*mgr.lock().unwrap().as_mut().unwrap()).i_d);
-    print!("Manager City: {}\n", (*mgr.lock().unwrap().as_mut().unwrap()).city);
+    print!("Manager: {}\n", (*(*mgr.lock().unwrap().as_mut().unwrap()).name.lock().unwrap().as_mut().unwrap()));
+    print!("Manager ID: {}\n", (*(*mgr.lock().unwrap().as_mut().unwrap()).employee.i_d.lock().unwrap().as_mut().unwrap()));
+    print!("Manager City: {}\n", (*(*mgr.lock().unwrap().as_mut().unwrap()).city.lock().unwrap().as_mut().unwrap()));
 
     (*mgr.lock().unwrap().as_mut().unwrap()).greet();
     (*mgr.lock().unwrap().as_mut().unwrap()).work();
@@ -139,12 +139,12 @@ fn main() {
 
     println!("{}", "\n=== Anonymous struct embedding ===".to_string());
     let mut company = Company { name: Arc::new(Mutex::new(Some("TechCorp".to_string()))) };
-    { let new_val = 2010; *(*company.lock().unwrap().as_mut().unwrap()).founded.lock().unwrap() = Some(new_val); };
-    { let new_val = "John Doe".to_string(); *(*company.lock().unwrap().as_mut().unwrap()).c_e_o.lock().unwrap() = Some(new_val); };
+    { let new_val = 2010; *(*company.lock().unwrap().as_mut().unwrap()).company_info.founded.lock().unwrap() = Some(new_val); };
+    { let new_val = "John Doe".to_string(); *(*company.lock().unwrap().as_mut().unwrap()).company_info.c_e_o.lock().unwrap() = Some(new_val); };
 
-    print!("Company: {}\n", (*company.lock().unwrap().as_mut().unwrap()).name);
-    print!("Founded: {}\n", (*company.lock().unwrap().as_mut().unwrap()).founded);
-    print!("CEO: {}\n", (*company.lock().unwrap().as_mut().unwrap()).c_e_o);
+    print!("Company: {}\n", (*(*company.lock().unwrap().as_mut().unwrap()).name.lock().unwrap().as_mut().unwrap()));
+    print!("Founded: {}\n", (*(*company.lock().unwrap().as_mut().unwrap()).company_info.founded.lock().unwrap().as_mut().unwrap()));
+    print!("CEO: {}\n", (*(*company.lock().unwrap().as_mut().unwrap()).company_info.c_e_o.lock().unwrap().as_mut().unwrap()));
 
     println!("{}", "\n=== Method promotion ===".to_string());
     println!("{}", "Employee methods are promoted from Person and Address".to_string());

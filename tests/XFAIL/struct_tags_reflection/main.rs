@@ -46,9 +46,13 @@ where
 
 #[derive(Debug)]
 struct User {
+    // tags: `json:"id" db:"user_id"`
     i_d: Arc<Mutex<Option<i32>>>,
+    // tags: `json:"name,omitempty" db:"full_name"`
     name: Arc<Mutex<Option<String>>>,
+    // tags: `json:"email" db:"email_address" validate:"email"`
     email: Arc<Mutex<Option<String>>>,
+    // tags: `json:"is_active" db:"active"`
     is_active: Arc<Mutex<Option<bool>>>,
     internal: Arc<Mutex<Option<String>>>,
 }
@@ -60,7 +64,7 @@ fn main() {
     let mut i = Arc::new(Mutex::new(Some(0)));
     while (*i.lock().unwrap().as_mut().unwrap()) < (*t.lock().unwrap().as_mut().unwrap()).num_field() {
         let mut field = (*t.lock().unwrap().as_mut().unwrap()).field(Arc::new(Mutex::new(Some((*i.lock().unwrap().as_mut().unwrap())))));
-        print!("{}: json=%q db=%q\n", (*field.lock().unwrap().as_mut().unwrap()).name, (*(*field.lock().unwrap().as_mut().unwrap()).tag.get(Arc::new(Mutex::new(Some("json".to_string())))).lock().unwrap().as_mut().unwrap()), (*(*field.lock().unwrap().as_mut().unwrap()).tag.get(Arc::new(Mutex::new(Some("db".to_string())))).lock().unwrap().as_mut().unwrap()));
+        print!("{}: json=%q db=%q\n", (*(*field.lock().unwrap().as_mut().unwrap()).name.lock().unwrap().as_mut().unwrap()), (*(*field.lock().unwrap().as_mut().unwrap()).tag.get(Arc::new(Mutex::new(Some("json".to_string())))).lock().unwrap().as_mut().unwrap()), (*(*field.lock().unwrap().as_mut().unwrap()).tag.get(Arc::new(Mutex::new(Some("db".to_string())))).lock().unwrap().as_mut().unwrap()));
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
 }

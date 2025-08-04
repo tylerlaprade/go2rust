@@ -51,8 +51,8 @@ fn main() {
         return;
     }
 
-    println!("{} {}", "Scheme:".to_string(), (*u.lock().unwrap().as_mut().unwrap()).scheme);
-    println!("{} {}", "Host:".to_string(), (*u.lock().unwrap().as_mut().unwrap()).host);
-    println!("{} {}", "Path:".to_string(), (*u.lock().unwrap().as_mut().unwrap()).path);
-    println!("{} {}", "Query:".to_string(), (*u.lock().unwrap().as_mut().unwrap()).raw_query);
+    println!("{} {}", "Scheme:".to_string(), (*(*u.lock().unwrap().as_mut().unwrap()).scheme.lock().unwrap().as_mut().unwrap()));
+    println!("{} {}", "Host:".to_string(), (*(*u.lock().unwrap().as_mut().unwrap()).host.lock().unwrap().as_mut().unwrap()));
+    println!("{} {}", "Path:".to_string(), (*(*u.lock().unwrap().as_mut().unwrap()).path.lock().unwrap().as_mut().unwrap()));
+    println!("{} {}", "Query:".to_string(), (*(*u.lock().unwrap().as_mut().unwrap()).raw_query.lock().unwrap().as_mut().unwrap()));
 }

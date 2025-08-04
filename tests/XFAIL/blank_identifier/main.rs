@@ -1,6 +1,13 @@
-fn format_map<K: std::fmt::Display + std::cmp::Ord + Clone, V>(map: &std::sync::Arc<std::sync::Mutex<Option<std::collections::HashMap<K, std::sync::Arc<std::sync::Mutex<Option<V>>>>>>>) -> String 
+use std::sync::{Arc, Mutex};
+use std::collections::HashMap;
+use std::fmt::{self, Display, Formatter};
+use std::error::Error;
+use std::any::Any;
+use std::cmp::Ord;
+
+fn format_map<K: Display + Ord + Clone, V>(map: &Arc<Mutex<Option<HashMap<K, Arc<Mutex<Option<V>>>>>>>) -> String 
 where
-    V: std::fmt::Display,
+    V: Display,
 {
     let guard = map.lock().unwrap();
     if let Some(ref m) = *guard {
@@ -24,9 +31,9 @@ where
         "map[]".to_string()
     }
 }
-fn format_slice<T>(slice: &std::sync::Arc<std::sync::Mutex<Option<Vec<T>>>>) -> String 
+fn format_slice<T>(slice: &Arc<Mutex<Option<Vec<T>>>>) -> String 
 where
-    T: std::fmt::Display,
+    T: Display,
 {
     let guard = slice.lock().unwrap();
     if let Some(ref s) = *guard {
@@ -37,14 +44,14 @@ where
     }
 }
 
-pub fn multiple_returns() -> (std::sync::Arc<std::sync::Mutex<Option<i32>>>, std::sync::Arc<std::sync::Mutex<Option<String>>>, std::sync::Arc<std::sync::Mutex<Option<bool>>>) {
+pub fn multiple_returns() -> (Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<String>>>, Arc<Mutex<Option<bool>>>) {
 
-    return (std::sync::Arc::new(std::sync::Mutex::new(Some(42))), std::sync::Arc::new(std::sync::Mutex::new(Some("hello".to_string()))), std::sync::Arc::new(std::sync::Mutex::new(Some(true))));
+    return (Arc::new(Mutex::new(Some(42))), Arc::new(Mutex::new(Some("hello".to_string()))), true.clone());
 }
 
-pub fn process_slice(slice: std::sync::Arc<std::sync::Mutex<Option<Vec<i32>>>>) -> (std::sync::Arc<std::sync::Mutex<Option<i32>>>, std::sync::Arc<std::sync::Mutex<Option<i32>>>) {
-    let mut sum: std::sync::Arc<std::sync::Mutex<Option<i32>>> = std::sync::Arc::new(std::sync::Mutex::new(Some(0)));
-    let mut count: std::sync::Arc<std::sync::Mutex<Option<i32>>> = std::sync::Arc::new(std::sync::Mutex::new(Some(0)));
+pub fn process_slice(slice: Arc<Mutex<Option<Vec<i32>>>>) -> (Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>) {
+    let mut sum: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(0)));
+    let mut count: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(0)));
 
     { let new_val = 0; *sum.lock().unwrap() = Some(new_val); };
     { let new_val = (*slice.lock().unwrap().as_mut().unwrap()).len(); *count.lock().unwrap() = Some(new_val); };
@@ -68,7 +75,7 @@ fn main() {
 
     println!("{}", "\n=== Ignoring in range loops ===".to_string());
 
-    let mut slice = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![10, 20, 30, 40, 50])));
+    let mut slice = Arc::new(Mutex::new(Some(vec![10, 20, 30, 40, 50])));
 
     println!("{}", "Values only:".to_string());
     for val in &(*slice.lock().unwrap().as_mut().unwrap()) {
@@ -90,7 +97,7 @@ fn main() {
 
     println!("{}", "\n=== Ignoring in map iteration ===".to_string());
 
-    let mut ages = std::sync::Arc::new(std::sync::Mutex::new(Some(std::collections::HashMap::<String, std::sync::Arc<std::sync::Mutex<Option<i32>>>>::from([("Alice".to_string(), std::sync::Arc::new(std::sync::Mutex::new(Some(25)))), ("Bob".to_string(), std::sync::Arc::new(std::sync::Mutex::new(Some(30)))), ("Carol".to_string(), std::sync::Arc::new(std::sync::Mutex::new(Some(35))))]))));
+    let mut ages = Arc::new(Mutex::new(Some(HashMap::<String, Arc<Mutex<Option<i32>>>>::from([("Alice".to_string(), Arc::new(Mutex::new(Some(25)))), ("Bob".to_string(), Arc::new(Mutex::new(Some(30)))), ("Carol".to_string(), Arc::new(Mutex::new(Some(35))))]))));
 
     println!("{}", "Keys only:".to_string());
     for (name, _) in (*ages.lock().unwrap().as_ref().unwrap()).clone() {
@@ -116,12 +123,12 @@ fn main() {
 
     let _ = "This string is assigned but not used".to_string();
 
-    let (mut a, _, mut c) = (std::sync::Arc::new(std::sync::Mutex::new(Some(1))), std::sync::Arc::new(std::sync::Mutex::new(Some(2))), std::sync::Arc::new(std::sync::Mutex::new(Some(3))));
+    let (mut a, _, mut c) = (Arc::new(Mutex::new(Some(1))), Arc::new(Mutex::new(Some(2))), Arc::new(Mutex::new(Some(3))));
     print!("a={}, c={} (middle value ignored)\n", (*a.lock().unwrap().as_mut().unwrap()), (*c.lock().unwrap().as_mut().unwrap()));
 
     println!("{}", "\n=== Blank identifier with type assertion ===".to_string());
 
-    let mut value: std::sync::Arc<std::sync::Mutex<Option<Box<dyn std::any::Any>>>> = std::sync::Arc::new(std::sync::Mutex::new(Some("hello world".to_string())));
+    let mut value: Arc<Mutex<Option<Box<dyn Any>>>> = Arc::new(Mutex::new(Some("hello world".to_string())));
 
     let (_, mut ok) = match (*value.lock().unwrap().as_mut().unwrap()).downcast_ref::<String>() { Some(v) => (v.clone(), true), None => (String::new(), false) };
     if (*ok.lock().unwrap().as_mut().unwrap()) {
@@ -141,7 +148,7 @@ fn main() {
     // TODO: Unhandled statement type: SendStmt
     // TODO: Unhandled statement type: SendStmt
     // TODO: Unhandled statement type: SendStmt
-    close(ch.clone());
+    (close.lock().unwrap().as_ref().unwrap())(ch.clone());
 
     for  {
         println!("{}", "Received a value (but ignored it)".to_string());
@@ -149,14 +156,14 @@ fn main() {
 
     println!("{}", "\n=== Blank identifier in error handling ===".to_string());
 
-    let (mut result, _) = process_slice(std::sync::Arc::new(std::sync::Mutex::new(Some(std::sync::Arc::new(std::sync::Mutex::new(Some(vec![1, 2, 3, 4, 5])))))));
+    let (mut result, _) = process_slice(Arc::new(Mutex::new(Some(Arc::new(Mutex::new(Some(vec![1, 2, 3, 4, 5])))))));
     print!("Result (ignoring potential error): {}\n", (*result.lock().unwrap().as_mut().unwrap()));
 
     println!("{}", "\n=== Complex example ===".to_string());
 
-    let mut data = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![, , ])));
+    let mut data = Arc::new(Mutex::new(Some(vec![, , ])));
 
-    let mut total = std::sync::Arc::new(std::sync::Mutex::new(Some(0)));
+    let mut total = Arc::new(Mutex::new(Some(0)));
     for row in &(*data.lock().unwrap().as_mut().unwrap()) {
         for val in &row {
         { let mut guard = total.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + val); };

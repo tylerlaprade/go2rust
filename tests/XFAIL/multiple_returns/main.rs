@@ -133,7 +133,7 @@ pub fn safe_divide(a: Arc<Mutex<Option<f64>>>, b: Arc<Mutex<Option<f64>>>) -> (A
     let mut result: Arc<Mutex<Option<f64>>> = Arc::new(Mutex::new(Some(0.0)));
     let mut err: Arc<Mutex<Option<Box<dyn Error + Send + Sync>>>> = Arc::new(Mutex::new(None));
 
-    if (*b.lock().unwrap().as_mut().unwrap()) == 0 {
+    if (*b.lock().unwrap().as_mut().unwrap()) == 0.0 {
         return (Arc::new(Mutex::new(Some(0))), Arc::new(Mutex::new(Some(Box::new(format!("division by zero")) as Box<dyn Error + Send + Sync>))));
     }
     return (Arc::new(Mutex::new(Some((*a.lock().unwrap().as_mut().unwrap()) / (*b.lock().unwrap().as_mut().unwrap())))), Arc::new(Mutex::new(None)));

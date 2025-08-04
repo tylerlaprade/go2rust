@@ -68,7 +68,7 @@ This ensures new features are properly reviewed before being considered "working
 
 ### Working test (no inputs)
 
-```bash
+```sh
 mkdir tests/my_feature
 echo 'package main...' > tests/my_feature/main.go
 # Test will be auto-discovered - no manual steps needed!
@@ -76,7 +76,7 @@ echo 'package main...' > tests/my_feature/main.go
 
 ### Working test with inputs
 
-```bash
+```sh
 mkdir tests/my_feature
 echo 'package main...' > tests/my_feature/main.go
 mkdir tests/my_feature/inputs
@@ -86,7 +86,7 @@ echo 'test input' > tests/my_feature/inputs/case1.txt
 
 ### XFAIL test (planned feature)
 
-```bash
+```sh
 mkdir tests/XFAIL/my_future_feature
 echo 'package main...' > tests/XFAIL/my_future_feature/main.go
 # Test will show as "skip" until the feature is implemented
@@ -97,7 +97,7 @@ echo 'package main...' > tests/XFAIL/my_future_feature/main.go
 
 For tests that require multiple Go files (e.g., testing function calls across files):
 
-```bash
+```sh
 mkdir tests/my_feature
 echo 'package main...' > tests/my_feature/lib.go   # Library functions
 echo 'package main...' > tests/my_feature/main.go  # Main function that calls lib
@@ -121,7 +121,7 @@ Example: `library_example` test demonstrates:
 
 ## Running Tests
 
-```bash
+```sh
 # Install BATS (one time)
 brew install bats-core  # macOS
 # or: npm install -g bats

@@ -6,7 +6,7 @@ A conservative Go-to-Rust transpiler that prioritizes correctness over performan
 
 ## Usage
 
-```bash
+```sh
 # Build the transpiler
 go build -o go2rust ./go
 
@@ -183,15 +183,17 @@ Currently, only doc comments (documentation comments directly above functions, t
 | └ Struct definitions | ✅ |
 | └ Struct literals | ✅ |
 | └ Field access | ✅ |
-| └ Embedded fields | ❌ |
+| └ Embedded fields | 🚧 |
 | └ Anonymous structs | ❌ |
+| └ Struct tags | ✅ |
 | **`switch` - Switch statements** | |
 | └ Basic switch | ✅ |
 | └ Type switch | ❌ |
 | └ Fallthrough | ❌ |
 | **`type` - Type definitions** | |
 | └ Struct types | ✅ |
-| └ Type aliases | ❌ |
+| └ Type aliases | ✅ |
+| └ Type definitions | ✅ |
 | └ Interface types | ✅ |
 | **`var` - Variable declarations** | |
 | └ Basic var declarations | ✅ |

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"go/ast"
 	"go/token"
+	"go/types"
 	"strings"
 )
 
@@ -18,14 +19,20 @@ const (
 
 // isFloatExpression checks if an expression involves floats
 func isFloatExpression(expr ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo != nil {
+		typ := typeInfo.GetType(expr)
+		if typ != nil {
+			if basic, ok := typ.Underlying().(*types.Basic); ok {
+				return basic.Kind() == types.Float32 || basic.Kind() == types.Float64
+			}
+		}
+	}
+
+	// Fallback: only check for float literals, never guess based on names
 	switch e := expr.(type) {
 	case *ast.BasicLit:
 		return e.Kind == token.FLOAT
-	case *ast.SelectorExpr:
-		// Field access - assume float if it's a common float field name
-		name := strings.ToLower(e.Sel.Name)
-		return name == "width" || name == "height" || name == "radius" ||
-			name == "x" || name == "y" || name == "z"
 	case *ast.BinaryExpr:
 		// Recursively check operands
 		return isFloatExpression(e.X) || isFloatExpression(e.Y)
@@ -64,7 +71,13 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			out.WriteString("None")
 		} else if currentReceiver != "" && e.Name == currentReceiver {
 			// Method receiver - translate to self
-			out.WriteString("self")
+			// Check if this is a type definition that needs unwrapping
+			if _, isTypeDef := typeDefinitions[currentReceiverType]; isTypeDef {
+				// For type definitions, access the inner value
+				out.WriteString("(*self.0.lock().unwrap().as_ref().unwrap())")
+			} else {
+				out.WriteString("self")
+			}
 		} else if e.Name[0] >= 'A' && e.Name[0] <= 'Z' && e.Name != "String" {
 			// Likely a constant - convert to UPPER_SNAKE_CASE
 			out.WriteString(strings.ToUpper(ToSnakeCase(e.Name)))
@@ -108,29 +121,69 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		TranspileCall(out, e)
 
 	case *ast.SelectorExpr:
-		// Check if this is a package selector or field access
-		// For now, assume lowercase identifiers are variables (field access)
-		// and uppercase are packages/types
-		if ident, ok := e.X.(*ast.Ident); ok && ident.Name[0] >= 'a' && ident.Name[0] <= 'z' {
+		// Check if this is a package selector or field access using TypeInfo
+		typeInfo := GetTypeInfo()
+		isPackageSelector := false
+
+		if typeInfo != nil && typeInfo.info != nil {
+			// Check if this is a package selector
+			if ident, ok := e.X.(*ast.Ident); ok {
+				if obj, ok := typeInfo.info.Uses[ident]; ok {
+					if _, ok := obj.(*types.PkgName); ok {
+						isPackageSelector = true
+					}
+				}
+			}
+		}
+
+		if isPackageSelector {
+			// Package/type selector
+			TranspileExpression(out, e.X)
+			out.WriteString("::")
+			out.WriteString(ToSnakeCase(e.Sel.Name))
+		} else if ident, ok := e.X.(*ast.Ident); ok {
 			// Field access on a variable
 			if currentReceiver != "" && ident.Name == currentReceiver {
 				// Field access on method receiver - use self directly
+				fieldPath := resolveFieldAccess(currentReceiverType, e.Sel.Name)
 				out.WriteString("self.")
-				out.WriteString(ToSnakeCase(e.Sel.Name))
+				out.WriteString(fieldPath)
 				// For return statements, we need to clone the Arc
 				if ctx == RValue {
 					out.WriteString(".clone()")
 				}
 			} else {
-				// Regular field access
+				// Regular field access - try to resolve through type info
+				var fieldPath string
+
+				if typeInfo != nil {
+					// Try to get the type of the expression
+					if t := typeInfo.GetType(e.X); t != nil {
+						// Extract the struct type name
+						typeStr := t.String()
+						// Remove package prefix if present
+						if idx := strings.LastIndex(typeStr, "."); idx >= 0 {
+							typeStr = typeStr[idx+1:]
+						}
+						// Remove pointer prefix if present
+						typeStr = strings.TrimPrefix(typeStr, "*")
+
+						fieldPath = resolveFieldAccess(typeStr, e.Sel.Name)
+					} else {
+						fieldPath = ToSnakeCase(e.Sel.Name)
+					}
+				} else {
+					fieldPath = ToSnakeCase(e.Sel.Name)
+				}
+
 				TranspileExpression(out, e.X)
 				out.WriteString(".")
-				out.WriteString(ToSnakeCase(e.Sel.Name))
+				out.WriteString(fieldPath)
 			}
 		} else {
-			// Package/type selector
+			// Complex expression for X (not just an identifier)
 			TranspileExpression(out, e.X)
-			out.WriteString("::")
+			out.WriteString(".")
 			out.WriteString(ToSnakeCase(e.Sel.Name))
 		}
 
@@ -560,6 +613,20 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 	if handler := GetStdlibHandler(call); handler != nil {
 		handler(out, call)
 		return
+	}
+
+	// Check if this is a type conversion for a type definition
+	if ident, ok := call.Fun.(*ast.Ident); ok {
+		if _, isTypeDef := typeDefinitions[ident.Name]; isTypeDef {
+			// This is a type definition constructor
+			out.WriteString(ident.Name)
+			out.WriteString("(Arc::new(Mutex::new(Some(")
+			if len(call.Args) > 0 {
+				TranspileExpression(out, call.Args[0])
+			}
+			out.WriteString("))))")
+			return
+		}
 	}
 
 	// Check if this is a method call (selector expression)

@@ -46,7 +46,9 @@ where
 
 #[derive(Debug)]
 struct User {
+    // tags: `json:"name"`
     name: Arc<Mutex<Option<String>>>,
+    // tags: `json:"age"`
     age: Arc<Mutex<Option<i32>>>,
 }
 

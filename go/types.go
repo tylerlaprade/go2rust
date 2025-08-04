@@ -14,6 +14,14 @@ func GoTypeToRust(expr ast.Expr) string {
 		return "Arc<Mutex<" + baseType + ">>"
 	}
 
+	// Check if this is a type alias - type aliases are already fully typed
+	if ident, ok := expr.(*ast.Ident); ok {
+		if typeAliases[ident.Name] {
+			// Type alias - already includes Arc<Mutex<Option<>>>
+			return baseType
+		}
+	}
+
 	// Wrap everything in Arc<Mutex<Option<>>>
 	// Don't double-wrap pointers - they're already wrapped
 	if _, isPointer := expr.(*ast.StarExpr); !isPointer {

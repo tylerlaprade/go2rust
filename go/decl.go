@@ -3,7 +3,9 @@ package main
 import (
 	"fmt"
 	"go/ast"
+	"go/constant"
 	"go/token"
+	"go/types"
 	"math"
 	"strconv"
 	"strings"
@@ -193,15 +195,61 @@ func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.Fi
 	out.WriteString("}")
 }
 
+// getEmbeddedFieldName extracts the type name from an embedded field
+func getEmbeddedFieldName(expr ast.Expr) string {
+	switch t := expr.(type) {
+	case *ast.Ident:
+		return t.Name
+	case *ast.StarExpr:
+		// For pointer types, get the underlying type name
+		return getEmbeddedFieldName(t.X)
+	case *ast.SelectorExpr:
+		// For qualified types like pkg.Type
+		return t.Sel.Name
+	default:
+		// Fallback to a generic name
+		return "embedded"
+	}
+}
+
 func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *ast.GenDecl) {
 	switch t := typeSpec.Type.(type) {
 	case *ast.StructType:
+		// Track struct definition
+		structDef := &StructDef{
+			Fields:        make(map[string]string),
+			EmbeddedTypes: []string{},
+		}
+
+		// First pass: collect field information
+		for _, field := range t.Fields.List {
+			if len(field.Names) > 0 {
+				// Named fields
+				for _, name := range field.Names {
+					structDef.Fields[name.Name] = "regular"
+				}
+			} else {
+				// Embedded field
+				typeName := getEmbeddedFieldName(field.Type)
+				structDef.EmbeddedTypes = append(structDef.EmbeddedTypes, typeName)
+			}
+		}
+
+		structDefs[typeSpec.Name.Name] = structDef
+
 		out.WriteString("#[derive(Debug)]\n")
 		out.WriteString("struct ")
 		out.WriteString(typeSpec.Name.Name)
 		out.WriteString(" {\n")
 
 		for _, field := range t.Fields.List {
+			// Add struct tag as comment if present
+			if field.Tag != nil && field.Tag.Value != "" {
+				out.WriteString("    // tags: ")
+				out.WriteString(field.Tag.Value)
+				out.WriteString("\n")
+			}
+
 			if len(field.Names) > 0 {
 				// Handle multiple names on one line (e.g., X, Y int)
 				for _, name := range field.Names {
@@ -212,9 +260,10 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 					out.WriteString(",\n")
 				}
 			} else {
-				// Embedded field
+				// Embedded field - extract the type name
+				fieldName := getEmbeddedFieldName(field.Type)
 				out.WriteString("    ")
-				out.WriteString(ToSnakeCase(GoTypeToRust(field.Type)))
+				out.WriteString(ToSnakeCase(fieldName))
 				out.WriteString(": ")
 				out.WriteString(GoTypeToRust(field.Type))
 				out.WriteString(",\n")
@@ -297,13 +346,44 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 		out.WriteString("}")
 
 	default:
-		// Unhandled type declaration
-		out.WriteString("// TODO: Unhandled type declaration: ")
-		out.WriteString(strings.TrimPrefix(fmt.Sprintf("%T", t), "*ast."))
-		out.WriteString("\n")
-		out.WriteString("type ")
-		out.WriteString(typeSpec.Name.Name)
-		out.WriteString(" = Arc<Mutex<Option<()>>>")
+		// Handle type aliases and type definitions
+		if typeSpec.Assign != 0 {
+			// Type alias: type A = B
+			out.WriteString("type ")
+			out.WriteString(typeSpec.Name.Name)
+			out.WriteString(" = ")
+			out.WriteString(GoTypeToRust(t))
+			out.WriteString(";\n")
+
+			// Track this as a type alias
+			typeAliases[typeSpec.Name.Name] = true
+		} else {
+			// Type definition: type A B
+			// Create a newtype wrapper in Rust
+			out.WriteString("#[derive(Debug, Clone)]\n")
+			out.WriteString("struct ")
+			out.WriteString(typeSpec.Name.Name)
+			out.WriteString("(")
+			out.WriteString(GoTypeToRust(t))
+			out.WriteString(");\n")
+
+			// Add Display implementation for numeric type definitions
+			if ident, ok := t.(*ast.Ident); ok {
+				typeDefinitions[typeSpec.Name.Name] = ident.Name
+
+				// Add Display impl for numeric types
+				if ident.Name == "int" || ident.Name == "int64" || ident.Name == "float64" ||
+					ident.Name == "float32" || ident.Name == "uint" || ident.Name == "uint64" {
+					out.WriteString("\nimpl Display for ")
+					out.WriteString(typeSpec.Name.Name)
+					out.WriteString(" {\n")
+					out.WriteString("    fn fmt(&self, f: &mut Formatter) -> fmt::Result {\n")
+					out.WriteString("        write!(f, \"{}\", self.0.lock().unwrap().as_ref().unwrap())\n")
+					out.WriteString("    }\n")
+					out.WriteString("}\n")
+				}
+			}
+		}
 	}
 }
 
@@ -467,29 +547,6 @@ func isStringConstExpr(expr ast.Expr) bool {
 	return false
 }
 
-// Helper function to evaluate a const string expression to a literal value
-func evaluateConstString(expr ast.Expr) string {
-	switch e := expr.(type) {
-	case *ast.BasicLit:
-		if e.Kind == token.STRING {
-			// Remove quotes
-			str := e.Value
-			if len(str) >= 2 && str[0] == '"' && str[len(str)-1] == '"' {
-				return str[1 : len(str)-1]
-			}
-		}
-	case *ast.BinaryExpr:
-		if e.Op == token.ADD {
-			left := evaluateConstString(e.X)
-			right := evaluateConstString(e.Y)
-			if left != "" && right != "" {
-				return left + right
-			}
-		}
-	}
-	return ""
-}
-
 // Helper function to fully evaluate a const string expression including identifiers
 func evaluateConstStringExpr(expr ast.Expr) string {
 	switch e := expr.(type) {
@@ -502,14 +559,19 @@ func evaluateConstStringExpr(expr ast.Expr) string {
 			}
 		}
 	case *ast.Ident:
-		// Look up the value of the constant
-		// For now, we'll handle known constants
-		if e.Name == "greeting" {
-			return "Hello"
-		} else if e.Name == "target" {
-			return "World"
+		// Look up the value of the constant using TypeInfo
+		typeInfo := GetTypeInfo()
+		if typeInfo != nil && typeInfo.info != nil {
+			if obj, ok := typeInfo.info.Uses[e]; ok {
+				if constObj, ok := obj.(*types.Const); ok {
+					if constObj.Val() != nil {
+						// Extract the string value from the constant
+						return constant.StringVal(constObj.Val())
+					}
+				}
+			}
 		}
-		// TODO: Properly track constant values
+		// Type info not available or not a constant
 		return ""
 	case *ast.BinaryExpr:
 		if e.Op == token.ADD {
@@ -521,38 +583,6 @@ func evaluateConstStringExpr(expr ast.Expr) string {
 		}
 	}
 	return ""
-}
-
-// Helper function to transpile parts of string concatenation in const context
-func transpileStringConstPart(out *strings.Builder, expr ast.Expr, iotaValue int) {
-	switch e := expr.(type) {
-	case *ast.BasicLit:
-		if e.Kind == token.STRING {
-			// Remove quotes for concat! macro
-			str := e.Value
-			if len(str) >= 2 && str[0] == '"' && str[len(str)-1] == '"' {
-				out.WriteString(str)
-			} else {
-				out.WriteString(str)
-			}
-		} else {
-			TranspileConstExpr(out, expr, iotaValue)
-		}
-	case *ast.Ident:
-		// For identifiers that are string constants, just use the name
-		out.WriteString(e.Name)
-	case *ast.BinaryExpr:
-		if e.Op == token.ADD && isStringConstExpr(e.X) && isStringConstExpr(e.Y) {
-			// Nested string concatenation
-			transpileStringConstPart(out, e.X, iotaValue)
-			out.WriteString(", ")
-			transpileStringConstPart(out, e.Y, iotaValue)
-		} else {
-			TranspileConstExpr(out, expr, iotaValue)
-		}
-	default:
-		TranspileConstExpr(out, expr, iotaValue)
-	}
 }
 
 func TranspileConstExpr(out *strings.Builder, expr ast.Expr, iotaValue int) {
@@ -616,12 +646,14 @@ func TranspileMethodImpl(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.
 }
 
 func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, addPub bool, fileSet *token.FileSet) {
-	// Store the receiver name for self translation
+	// Store the receiver name and type for self translation
 	if fn.Recv != nil && len(fn.Recv.List) > 0 {
 		recv := fn.Recv.List[0]
 		if len(recv.Names) > 0 {
 			currentReceiver = recv.Names[0].Name
 		}
+		// Store the receiver type
+		currentReceiverType = getReceiverType(recv.Type)
 	}
 
 	// Output doc comments if present (with indentation for methods)

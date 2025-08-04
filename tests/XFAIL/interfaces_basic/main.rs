@@ -85,7 +85,7 @@ impl Circle {
     }
 
     pub fn perimeter(&self) -> Arc<Mutex<Option<f64>>> {
-        return Arc::new(Mutex::new(Some((*2.0 * 3.14159.lock().unwrap().as_mut().unwrap()) * (*self.radius.clone().lock().unwrap().as_mut().unwrap()))));
+        return Arc::new(Mutex::new(Some((*2 * 3.14159.lock().unwrap().as_mut().unwrap()) * (*self.radius.clone().lock().unwrap().as_mut().unwrap()))));
     }
 }
 
@@ -94,7 +94,7 @@ impl Shape for Circle {
         return Arc::new(Mutex::new(Some((*(*3.14159.lock().unwrap().as_mut().unwrap()) * (*self.radius.clone().lock().unwrap().as_mut().unwrap()).lock().unwrap().as_mut().unwrap()) * (*self.radius.clone().lock().unwrap().as_mut().unwrap()))));
     }
     fn perimeter(&self) -> Arc<Mutex<Option<f64>>> {
-        return Arc::new(Mutex::new(Some((*2.0 * 3.14159.lock().unwrap().as_mut().unwrap()) * (*self.radius.clone().lock().unwrap().as_mut().unwrap()))));
+        return Arc::new(Mutex::new(Some((*2 * 3.14159.lock().unwrap().as_mut().unwrap()) * (*self.radius.clone().lock().unwrap().as_mut().unwrap()))));
     }
 }
 

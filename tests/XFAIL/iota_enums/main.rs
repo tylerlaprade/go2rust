@@ -50,8 +50,15 @@ const BLUE: i32 = 2;
 const YELLOW: i32 = 3;
 
 
-// TODO: Unhandled type declaration: Ident
-type Color = Arc<Mutex<Option<()>>>
+#[derive(Debug, Clone)]
+struct Color(Arc<Mutex<Option<i32>>>);
+
+impl Display for Color {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(f, "{}", self.0.lock().unwrap().as_ref().unwrap())
+    }
+}
+
 
 fn main() {
     println!("{} {}", "Red:".to_string(), RED);

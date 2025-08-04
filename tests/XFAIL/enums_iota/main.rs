@@ -50,12 +50,19 @@ const STATE_ERROR: i32 = 2;
 const STATE_RETRYING: i32 = 3;
 
 
-// TODO: Unhandled type declaration: Ident
-type ServerState = Arc<Mutex<Option<()>>>
+#[derive(Debug, Clone)]
+struct ServerState(Arc<Mutex<Option<i32>>>);
+
+impl Display for ServerState {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(f, "{}", self.0.lock().unwrap().as_ref().unwrap())
+    }
+}
+
 
 impl ServerState {
     pub fn string(&self) -> Arc<Mutex<Option<String>>> {
-        return Arc::new(Mutex::new(Some((*(*stateName.lock().unwrap().as_ref().unwrap()).get(&self).unwrap().lock().unwrap().as_ref().unwrap()))));
+        return Arc::new(Mutex::new(Some((*(*stateName.lock().unwrap().as_ref().unwrap()).get(&(*self.0.lock().unwrap().as_ref().unwrap())).unwrap().lock().unwrap().as_ref().unwrap()))));
     }
 }
 

@@ -86,17 +86,10 @@ func findCapturedVars(funcLit *ast.FuncLit) map[string]bool {
 					}
 				}
 			} else {
-				// Fallback: assume it's captured if it looks like a variable
-				if ident.Name != "_" && ident.Name != "nil" &&
-					ident.Name != "true" && ident.Name != "false" {
-					// Check if it's in our known variables
-					if _, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar {
-						captured[ident.Name] = true
-					} else if _, isLocalConst := localConstants[ident.Name]; !isLocalConst {
-						// Not a constant, likely a variable
-						captured[ident.Name] = true
-					}
-				}
+				// No type info available - we cannot determine if this should be captured
+				// Add a comment to indicate the issue
+				// We'll conservatively NOT capture to avoid incorrect behavior
+				// The developer should ensure TypeInfo is available
 			}
 		}
 		return true

@@ -59,6 +59,6 @@ fn main() {
 
     // TODO: Unhandled statement type: GoStmt
 
-    (*time.lock().unwrap().as_mut().unwrap()).sleep(Arc::new(Mutex::new(Some((*time.lock().unwrap().as_mut().unwrap()).second))));
+    (*time.lock().unwrap().as_mut().unwrap()).sleep(Arc::new(Mutex::new(Some((*time.lock().unwrap().as_mut().unwrap())::second))));
     println!("{}", "done".to_string());
 }

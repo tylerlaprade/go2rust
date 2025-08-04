@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"go/ast"
 	"go/token"
+	"go/types"
 	"strings"
 )
 
@@ -575,13 +576,25 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									TranspileExpressionContext(out, s.Lhs[0], LValue)
 									out.WriteString(".lock().unwrap() = new_val; }")
 								} else if call, ok := s.Rhs[0].(*ast.CallExpr); ok {
-									// Check if it's an append call
-									if ident, ok := call.Fun.(*ast.Ident); ok && ident.Name == "append" {
+									// Check if it's an append call using TypeInfo
+									isAppend := false
+									typeInfo := GetTypeInfo()
+									if typeInfo != nil && typeInfo.info != nil {
+										if ident, ok := call.Fun.(*ast.Ident); ok {
+											// Check if this is the builtin append function
+											if obj, ok := typeInfo.info.Uses[ident]; ok {
+												if builtin, ok := obj.(*types.Builtin); ok {
+													isAppend = builtin.Name() == "append"
+												}
+											}
+										}
+									}
+
+									if isAppend {
 										// append() returns the same wrapped type, don't wrap in Some()
 										// Just execute the append for its side effect
 										TranspileExpression(out, s.Rhs[0])
-									} else {
-										// Regular function call
+									} else { // Regular function call
 										out.WriteString("{ ")
 										out.WriteString("let new_val = ")
 										TranspileExpression(out, s.Rhs[0])

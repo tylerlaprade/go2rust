@@ -1,6 +1,13 @@
-fn format_map<K: std::fmt::Display + std::cmp::Ord + Clone, V>(map: &std::sync::Arc<std::sync::Mutex<Option<std::collections::HashMap<K, std::sync::Arc<std::sync::Mutex<Option<V>>>>>>>) -> String 
+use std::sync::{Arc, Mutex};
+use std::collections::HashMap;
+use std::fmt::{self, Display, Formatter};
+use std::error::Error;
+use std::any::Any;
+use std::cmp::Ord;
+
+fn format_map<K: Display + Ord + Clone, V>(map: &Arc<Mutex<Option<HashMap<K, Arc<Mutex<Option<V>>>>>>>) -> String 
 where
-    V: std::fmt::Display,
+    V: Display,
 {
     let guard = map.lock().unwrap();
     if let Some(ref m) = *guard {
@@ -24,9 +31,9 @@ where
         "map[]".to_string()
     }
 }
-fn format_slice<T>(slice: &std::sync::Arc<std::sync::Mutex<Option<Vec<T>>>>) -> String 
+fn format_slice<T>(slice: &Arc<Mutex<Option<Vec<T>>>>) -> String 
 where
-    T: std::fmt::Display,
+    T: Display,
 {
     let guard = slice.lock().unwrap();
     if let Some(ref s) = *guard {
@@ -40,9 +47,9 @@ where
 /// Struct with initialization
 #[derive(Debug)]
 struct Config {
-    name: std::sync::Arc<std::sync::Mutex<Option<String>>>,
-    version: std::sync::Arc<std::sync::Mutex<Option<String>>>,
-    debug: std::sync::Arc<std::sync::Mutex<Option<bool>>>,
+    name: Arc<Mutex<Option<String>>>,
+    version: Arc<Mutex<Option<String>>>,
+    debug: Arc<Mutex<Option<bool>>>,
 }
 
 /// First init function
@@ -57,7 +64,7 @@ pub fn init() {
     println!("{}", "Second init function called".to_string());
     { let mut guard = globalCounter.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 5); };
 
-    { let new_val = std::sync::Arc::new(std::sync::Mutex::new(Some(std::collections::HashMap::<String, std::sync::Arc<std::sync::Mutex<Option<String>>>>::new()))); *configData.lock().unwrap() = Some(new_val); };
+    { let new_val = Arc::new(Mutex::new(Some(HashMap::<String, Arc<Mutex<Option<String>>>>::new()))); *configData.lock().unwrap() = Some(new_val); };
     (*configData.lock().unwrap().as_mut().unwrap())["version".to_string()] = "1.0".to_string();
     (*configData.lock().unwrap().as_mut().unwrap())["author".to_string()] = "go2rust".to_string();
 }
@@ -73,10 +80,10 @@ pub fn init() {
     (*configData.lock().unwrap().as_mut().unwrap())["target".to_string()] = "rust".to_string();
 }
 
-pub fn compute_initial_value() -> std::sync::Arc<std::sync::Mutex<Option<i32>>> {
+pub fn compute_initial_value() -> Arc<Mutex<Option<i32>>> {
 
     println!("{}", "Computing initial value during package initialization".to_string());
-    return std::sync::Arc::new(std::sync::Mutex::new(Some(42 * 2)));
+    return Arc::new(Mutex::new(Some(42 * 2)));
 }
 
 /// Another init function that runs after variable initialization
@@ -89,20 +96,34 @@ pub fn init() {
 
 pub fn init() {
     println!("{}", "Fifth init function - initializing app config".to_string());
-    { let new_val = Config { name: std::sync::Arc::new(std::sync::Mutex::new(Some("Go2Rust Transpiler".to_string()))), version: std::sync::Arc::new(std::sync::Mutex::new(Some("0.1.0".to_string()))), debug: std::sync::Arc::new(std::sync::Mutex::new(Some(true))) }; *appConfig.lock().unwrap() = Some(new_val); };
+    { let new_val = Config { name: Arc::new(Mutex::new(Some("Go2Rust Transpiler".to_string()))), version: Arc::new(Mutex::new(Some("0.1.0".to_string()))), debug: Arc::new(Mutex::new(Some(true))) }; *appConfig.lock().unwrap() = Some(new_val); };
 }
 
 /// Init function that might panic (for testing error handling)
 pub fn init() {
+    let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
+
     println!("{}", "Sixth init function - with potential panic handling".to_string());
 
-    // defer /* TODO: Unhandled expression type: FuncLit */ std::sync::Arc::new(std::sync::Mutex::new(Some(())))() // TODO: defer not yet supported
+    __defer_stack.push(Box::new(move || {
+        (Arc::new(Mutex::new(Some(Box::new(move || {
+        let mut r = recover();
+    if (*r.lock().unwrap()).is_some() {
+        print!("Recovered from panic in init: {}\n", (*r.lock().unwrap().as_mut().unwrap()));
+    }
+    }) as Box<dyn Fn() -> () + Send + Sync>))).lock().unwrap().as_ref().unwrap())();
+    }));
 
     if false {
-        panic(std::sync::Arc::new(std::sync::Mutex::new(Some("Init function panic!".to_string()))));
+        panic(Arc::new(Mutex::new(Some("Init function panic!".to_string()))));
     }
 
     println!("{}", "Sixth init function completed successfully".to_string());
+
+    // Execute deferred functions
+    while let Some(f) = __defer_stack.pop() {
+        f();
+    }
 }
 
 /// Helper function for init

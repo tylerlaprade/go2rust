@@ -131,10 +131,10 @@ pub fn describe_shape(s: Arc<Mutex<Option<Box<dyn Shape>>>>) {
 
     let (mut rect, mut ok) = match (*s.lock().unwrap().as_mut().unwrap()).downcast_ref::<Rectangle>() { Some(v) => (v.clone(), true), None => (Default::default(), false) };
     if (*ok.lock().unwrap().as_mut().unwrap()) {
-        print!("  Rectangle: {:.1} x {:.1}\n", (*rect.lock().unwrap().as_mut().unwrap()).width, (*rect.lock().unwrap().as_mut().unwrap()).height);
+        print!("  Rectangle: {:.1} x {:.1}\n", (*(*rect.lock().unwrap().as_mut().unwrap()).width.lock().unwrap().as_mut().unwrap()), (*(*rect.lock().unwrap().as_mut().unwrap()).height.lock().unwrap().as_mut().unwrap()));
     } else let (mut circle, mut ok) = match (*s.lock().unwrap().as_mut().unwrap()).downcast_ref::<Circle>() { Some(v) => (v.clone(), true), None => (Default::default(), false) };
     if (*ok.lock().unwrap().as_mut().unwrap()) {
-        print!("  Circle: radius {:.1}\n", (*circle.lock().unwrap().as_mut().unwrap()).radius);
+        print!("  Circle: radius {:.1}\n", (*(*circle.lock().unwrap().as_mut().unwrap()).radius.lock().unwrap().as_mut().unwrap()));
     }
 }
 

@@ -66,7 +66,7 @@ impl Display for CustomError {
 
 pub fn divide(a: Arc<Mutex<Option<f64>>>, b: Arc<Mutex<Option<f64>>>) -> (Arc<Mutex<Option<f64>>>, Arc<Mutex<Option<Box<dyn Error + Send + Sync>>>>) {
 
-    if (*b.lock().unwrap().as_mut().unwrap()) == 0 {
+    if (*b.lock().unwrap().as_mut().unwrap()) == 0.0 {
         return (Arc::new(Mutex::new(Some(0))), Arc::new(Mutex::new(Some(Box::<dyn std::error::Error + Send + Sync>::from("division by zero".to_string())))));
     }
     return (Arc::new(Mutex::new(Some((*a.lock().unwrap().as_mut().unwrap()) / (*b.lock().unwrap().as_mut().unwrap())))), Arc::new(Mutex::new(None)));
@@ -74,14 +74,14 @@ pub fn divide(a: Arc<Mutex<Option<f64>>>, b: Arc<Mutex<Option<f64>>>) -> (Arc<Mu
 
 pub fn sqrt(x: Arc<Mutex<Option<f64>>>) -> (Arc<Mutex<Option<f64>>>, Arc<Mutex<Option<Box<dyn Error + Send + Sync>>>>) {
 
-    if (*x.lock().unwrap().as_mut().unwrap()) < 0 {
+    if (*x.lock().unwrap().as_mut().unwrap()) < 0.0 {
         return (Arc::new(Mutex::new(Some(0))), Arc::new(Mutex::new(Some(Box::new(format!("cannot take square root of negative number: {}", (*x.lock().unwrap().as_mut().unwrap()))) as Box<dyn Error + Send + Sync>))));
     }
 
-    let mut result = Arc::new(Mutex::new(Some((*x.lock().unwrap().as_mut().unwrap()) / 2)));
+    let mut result = Arc::new(Mutex::new(Some((*x.lock().unwrap().as_mut().unwrap()) / 2.0)));
     let mut i = Arc::new(Mutex::new(Some(0)));
     while (*i.lock().unwrap().as_mut().unwrap()) < 10 {
-        { let new_val = ((*result.lock().unwrap().as_mut().unwrap()) + (*x.lock().unwrap().as_mut().unwrap()) / (*result.lock().unwrap().as_mut().unwrap())) / 2; *result.lock().unwrap() = Some(new_val); };
+        { let new_val = ((*result.lock().unwrap().as_mut().unwrap()) + (*x.lock().unwrap().as_mut().unwrap()) / (*result.lock().unwrap().as_mut().unwrap())) / 2.0; *result.lock().unwrap() = Some(new_val); };
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
     return (result.clone(), Arc::new(Mutex::new(None)));

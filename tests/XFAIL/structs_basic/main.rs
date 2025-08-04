@@ -59,8 +59,8 @@ struct Address {
 
 #[derive(Debug)]
 struct Employee {
-    arc<_mutex<_option<_person>>>: Arc<Mutex<Option<Person>>>,
-    arc<_mutex<_option<_address>>>: Arc<Mutex<Option<Address>>>,
+    person: Arc<Mutex<Option<Person>>>,
+    address: Arc<Mutex<Option<Address>>>,
     i_d: Arc<Mutex<Option<i32>>>,
     salary: Arc<Mutex<Option<f64>>>,
 }
@@ -78,6 +78,6 @@ fn main() {
     let mut emp = Employee { person: Arc::new(Mutex::new(Some(Person { name: Arc::new(Mutex::new(Some("Charlie".to_string()))), age: Arc::new(Mutex::new(Some(35))) }))), address: Arc::new(Mutex::new(Some(Address { street: Arc::new(Mutex::new(Some("123 Main St".to_string()))), city: Arc::new(Mutex::new(Some("Anytown".to_string()))), state: Arc::new(Mutex::new(Some("CA".to_string()))) }))), i_d: Arc::new(Mutex::new(Some(1001))), salary: Arc::new(Mutex::new(Some(75000.0))) };
 
     println!("{} {}", "Employee:".to_string(), (*emp.lock().unwrap().as_mut().unwrap()));
-    println!("{} {}", "Employee name:".to_string(), (*emp.lock().unwrap().as_mut().unwrap()).name);
-    println!("{} {}", "Employee city:".to_string(), (*emp.lock().unwrap().as_mut().unwrap()).city);
+    println!("{} {}", "Employee name:".to_string(), (*(*emp.lock().unwrap().as_mut().unwrap()).person.name.lock().unwrap().as_mut().unwrap()));
+    println!("{} {}", "Employee city:".to_string(), (*(*emp.lock().unwrap().as_mut().unwrap()).address.city.lock().unwrap().as_mut().unwrap()));
 }

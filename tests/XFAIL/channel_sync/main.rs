@@ -46,7 +46,7 @@ where
 
 pub fn worker(done: Arc<Mutex<Option</* TODO: Unhandled type *ast.ChanType */ Arc<Mutex<Option<()>>>>>>) {
     (*fmt.lock().unwrap().as_mut().unwrap()).print(Arc::new(Mutex::new(Some("working...".to_string()))));
-    (*time.lock().unwrap().as_mut().unwrap()).sleep(Arc::new(Mutex::new(Some((*time.lock().unwrap().as_mut().unwrap()).second))));
+    (*time.lock().unwrap().as_mut().unwrap()).sleep(Arc::new(Mutex::new(Some((*time.lock().unwrap().as_mut().unwrap())::second))));
     println!("{}", "done".to_string());
 
     // TODO: Unhandled statement type: SendStmt

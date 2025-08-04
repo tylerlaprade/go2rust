@@ -101,7 +101,7 @@ fn main() {
     let (_, mut e) = f2(Arc::new(Mutex::new(Some(42))));
     let (mut ae, mut ok) = match (*e.lock().unwrap().as_mut().unwrap()).downcast_ref::<Arc<Mutex<Option<argError>>>>() { Some(v) => (v.clone(), true), None => (Default::default(), false) };
     if (*ok.lock().unwrap().as_mut().unwrap()) {
-        println!("{}", (*ae.lock().unwrap().as_mut().unwrap()).arg);
-        println!("{}", (*ae.lock().unwrap().as_mut().unwrap()).prob);
+        println!("{}", (*(*ae.lock().unwrap().as_mut().unwrap()).arg.lock().unwrap().as_mut().unwrap()));
+        println!("{}", (*(*ae.lock().unwrap().as_mut().unwrap()).prob.lock().unwrap().as_mut().unwrap()));
     }
 }

@@ -51,7 +51,7 @@ struct base {
 
 #[derive(Debug)]
 struct container {
-    arc<_mutex<_option<base>>>: Arc<Mutex<Option<base>>>,
+    base: Arc<Mutex<Option<base>>>,
     str: Arc<Mutex<Option<String>>>,
 }
 
@@ -64,8 +64,8 @@ impl base {
 fn main() {
     let mut co = container { base: Arc::new(Mutex::new(Some(base { num: Arc::new(Mutex::new(Some(1))) }))), str: Arc::new(Mutex::new(Some("some name".to_string()))) };
 
-    print!("co={num: {}, str: {}}\n", (*co.lock().unwrap().as_mut().unwrap()).num, (*co.lock().unwrap().as_mut().unwrap()).str);
-    println!("{} {}", "also num:".to_string(), (*co.lock().unwrap().as_mut().unwrap()).base::num);
+    print!("co={num: {}, str: {}}\n", (*(*co.lock().unwrap().as_mut().unwrap()).base.num.lock().unwrap().as_mut().unwrap()), (*(*co.lock().unwrap().as_mut().unwrap()).str.lock().unwrap().as_mut().unwrap()));
+    println!("{} {}", "also num:".to_string(), (*co.lock().unwrap().as_mut().unwrap()).base.num);
     println!("{} {}", "describe:".to_string(), (*(*co.lock().unwrap().as_mut().unwrap()).describe().lock().unwrap().as_mut().unwrap()));
 
     

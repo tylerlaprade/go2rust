@@ -133,22 +133,8 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 		}
 		// Type is known but not a map or slice - fall through
 	} else {
-		// Type info not available - generate error comment
-		if ident, ok := arg.(*ast.Ident); ok {
-			name := strings.ToLower(ident.Name)
-			// Only apply heuristics for very obvious cases, otherwise add warning
-			if name == "ages" || name == "colors" || name == "m" {
-				out.WriteString("/* WARNING: Assuming map type based on variable name */ format_map(&")
-				out.WriteString(ident.Name)
-				out.WriteString(")")
-				return
-			} else if name == "numbers" || name == "nums" {
-				out.WriteString("/* WARNING: Assuming slice type based on variable name */ format_slice(&")
-				out.WriteString(ident.Name)
-				out.WriteString(")")
-				return
-			}
-		}
+		// Type info not available - add error comment
+		out.WriteString("/* ERROR: Type information not available for print argument */ ")
 	}
 
 	// Check if this is a field access on self (already wrapped)
@@ -181,6 +167,26 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 			out.WriteString(".lock().unwrap().as_mut().unwrap())")
 			return
 		}
+	}
+
+	// For selector expressions (field access), we need to unwrap the field value
+	if sel, ok := arg.(*ast.SelectorExpr); ok {
+		// For simple field access like e.Name or e.ID, unwrap the field
+		// But be careful not to double-wrap the base expression
+		if ident, isIdent := sel.X.(*ast.Ident); isIdent {
+			// Simple case: variable.field
+			// Check if this is a wrapped variable or a struct literal
+			if _, isRangeVar := rangeLoopVars[ident.Name]; !isRangeVar {
+				// Regular variable - fields are wrapped
+				out.WriteString("(*")
+				TranspileExpression(out, arg)
+				out.WriteString(".lock().unwrap().as_mut().unwrap())")
+				return
+			}
+		}
+		// For other cases, just transpile normally
+		TranspileExpression(out, arg)
+		return
 	}
 
 	// For other cases, just use regular expression transpilation

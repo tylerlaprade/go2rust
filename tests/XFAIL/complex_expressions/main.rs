@@ -53,7 +53,7 @@ fn main() {
     print!("(a + b) * c - (a * b) / (c - a) = {}\n", (*result1.lock().unwrap().as_mut().unwrap()));
 
     let mut result2 = Arc::new(Mutex::new(Some((*a.lock().unwrap().as_mut().unwrap()) + (*b.lock().unwrap().as_mut().unwrap()) * (*c.lock().unwrap().as_mut().unwrap()) / ((*a.lock().unwrap().as_mut().unwrap()) - 5) + (*c.lock().unwrap().as_mut().unwrap()) % (*b.lock().unwrap().as_mut().unwrap()))));
-    print!("a + b * c / (a - 5) + c %% b = {}\n", (*result2.lock().unwrap().as_mut().unwrap()));
+    print!("a + b * c / (a - 5) + c % b = {}\n", (*result2.lock().unwrap().as_mut().unwrap()));
 
     println!("{}", "\n=== Complex boolean expressions ===".to_string());
 
@@ -70,7 +70,7 @@ fn main() {
     let (mut bits1, mut bits2) = (Arc::new(Mutex::new(Some(0b1010))), Arc::new(Mutex::new(Some(0b1100))));
 
     let mut bitwiseResult = Arc::new(Mutex::new(Some(((*bits1.lock().unwrap().as_mut().unwrap()) & (*bits2.lock().unwrap().as_mut().unwrap())) | ((*bits1.lock().unwrap().as_mut().unwrap()) ^ (*bits2.lock().unwrap().as_mut().unwrap())) << 1)));
-    print!("(bits1 & bits2) | (bits1 ^ bits2) << 1 = %b ({})\n", (*bitwiseResult.lock().unwrap().as_mut().unwrap()), (*bitwiseResult.lock().unwrap().as_mut().unwrap()));
+    print!("(bits1 & bits2) | (bits1 ^ bits2) << 1 = {:b} ({})\n", (*bitwiseResult.lock().unwrap().as_mut().unwrap()), (*bitwiseResult.lock().unwrap().as_mut().unwrap()));
 
     println!("{}", "\n=== Function calls in expressions ===".to_string());
 
