@@ -220,10 +220,12 @@ Currently, only doc comments (documentation comments directly above functions, t
 | └ Function literals | ✅ |
 | └ Closure variable capture | ⚠️ |
 | └ Anonymous function calls | ✅ |
+| └ Capture analysis framework | ✅ |
 | **`defer` - Defer statements** | |
 | └ Basic defer | ✅ |
 | └ Multiple defers (LIFO order) | ✅ |
 | └ Defer with closures | ⚠️ |
+| └ Defer stack management | ✅ |
 
 ### Standard Library Functions
 

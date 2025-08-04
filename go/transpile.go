@@ -17,6 +17,9 @@ var currentReceiver string
 // currentFunctionHasDefer tracks if the current function has defer statements
 var currentFunctionHasDefer bool
 
+// currentCaptureRenames tracks variable renames for captured variables in closures
+var currentCaptureRenames map[string]string
+
 // interfaceTypes tracks which type names are interfaces
 var interfaceTypes = make(map[string]bool)
 

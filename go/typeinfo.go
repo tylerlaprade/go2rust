@@ -126,6 +126,25 @@ func (ti *TypeInfo) IsFunctionType(expr ast.Expr) bool {
 	return ok
 }
 
+// GetObject returns the types.Object for an identifier
+func (ti *TypeInfo) GetObject(ident *ast.Ident) types.Object {
+	if ti == nil || ti.info == nil {
+		return nil
+	}
+
+	// Check Uses first (references to objects)
+	if obj, ok := ti.info.Uses[ident]; ok {
+		return obj
+	}
+
+	// Check Defs (definitions of objects)
+	if obj, ok := ti.info.Defs[ident]; ok {
+		return obj
+	}
+
+	return nil
+}
+
 // GetMapTypes returns the key and value types of a map, or nil if not a map
 func (ti *TypeInfo) GetMapTypes(expr ast.Expr) (key, value types.Type) {
 	typ := ti.GetType(expr)

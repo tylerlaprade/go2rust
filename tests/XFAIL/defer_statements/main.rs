@@ -79,9 +79,9 @@ pub fn defer_with_variables() {
     let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
     let mut x = Arc::new(Mutex::new(Some(10)));
-    __defer_stack.push(Box::new(move || {
-        (Arc::new(Mutex::new(Some(Box::new(move || {
-        println!("{} {}", "Deferred x:".to_string(), (*x.lock().unwrap().as_mut().unwrap()));
+    let x_defer_captured = x.clone(); __defer_stack.push(Box::new(move || {
+        (let x_captured = x.clone(); Arc::new(Mutex::new(Some(Box::new(move || {
+        println!("{} {}", "Deferred x:".to_string(), (*x_captured.lock().unwrap().as_mut().unwrap()));
     }) as Box<dyn Fn() -> () + Send + Sync>))).lock().unwrap().as_ref().unwrap())();
     }));
 
