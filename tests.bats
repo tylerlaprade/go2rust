@@ -281,8 +281,16 @@ run_xfail_test() {
     run_test "tests/builtin_functions"
 }
 
+@test "compound_assignments" {
+    run_test "tests/compound_assignments"
+}
+
 @test "const_basic" {
     run_test "tests/const_basic"
+}
+
+@test "constants_basic" {
+    run_test "tests/constants_basic"
 }
 
 @test "error_simple" {
@@ -343,6 +351,10 @@ run_xfail_test() {
 
 @test "simple_range" {
     run_test "tests/simple_range"
+}
+
+@test "slices_basic" {
+    run_test "tests/slices_basic"
 }
 
 @test "strconv_parse" {
@@ -421,16 +433,8 @@ run_xfail_test() {
     run_xfail_test "tests/XFAIL/complex_expressions"
 }
 
-@test "XFAIL: compound_assignments" {
-    run_xfail_test "tests/XFAIL/compound_assignments"
-}
-
 @test "XFAIL: concurrency_patterns" {
     run_xfail_test "tests/XFAIL/concurrency_patterns"
-}
-
-@test "XFAIL: constants_basic" {
-    run_xfail_test "tests/XFAIL/constants_basic"
 }
 
 @test "XFAIL: context_usage" {
@@ -639,10 +643,6 @@ run_xfail_test() {
 
 @test "XFAIL: slices_append" {
     run_xfail_test "tests/XFAIL/slices_append"
-}
-
-@test "XFAIL: slices_basic" {
-    run_xfail_test "tests/XFAIL/slices_basic"
 }
 
 @test "XFAIL: sort_slice" {

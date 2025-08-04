@@ -62,8 +62,8 @@ impl Unknown {
         { let new_val = (*.lock().unwrap()).clone(); *self.head.lock().unwrap() = new_val; };
         { let new_val = self.head.clone(); *self.tail.lock().unwrap() = Some(new_val); };
     } else {
-        { let new_val = (*.lock().unwrap()).clone(); *self.tail.clone()::next.lock().unwrap() = new_val; };
-        { let new_val = self.tail.clone()::next; *self.tail.lock().unwrap() = Some(new_val); };
+        { let new_val = (*.lock().unwrap()).clone(); *self.tail.clone().next.lock().unwrap() = new_val; };
+        { let new_val = self.tail.clone().next; *self.tail.lock().unwrap() = Some(new_val); };
     }
     }
 }
