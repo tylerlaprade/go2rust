@@ -47,16 +47,16 @@ where
 pub fn make_counter() -> Arc<Mutex<Option<Box<dyn Fn() -> Arc<Mutex<Option<i32>>> + Send + Sync>>>> {
 
     let mut count = Arc::new(Mutex::new(Some(0)));
-    return Arc::new(Mutex::new(Some(Box::new(move || -> Arc<Mutex<Option<i32>>> {
-        { let mut guard = count.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
+    return let count_captured = count.clone(); Arc::new(Mutex::new(Some(Box::new(move || -> Arc<Mutex<Option<i32>>> {
+        { let mut guard = count_captured.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
         return count.clone();
     }) as Box<dyn Fn() -> Arc<Mutex<Option<i32>>> + Send + Sync>)));
 }
 
 pub fn make_adder(x: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<Box<dyn Fn(Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<i32>>> + Send + Sync>>>> {
 
-    return Arc::new(Mutex::new(Some(Box::new(move |y: Arc<Mutex<Option<i32>>>| -> Arc<Mutex<Option<i32>>> {
-        return Arc::new(Mutex::new(Some((*x.lock().unwrap().as_mut().unwrap()) + (*y.lock().unwrap().as_mut().unwrap()))));
+    return let x_captured = x.clone(); Arc::new(Mutex::new(Some(Box::new(move |y: Arc<Mutex<Option<i32>>>| -> Arc<Mutex<Option<i32>>> {
+        return Arc::new(Mutex::new(Some((*x_captured.lock().unwrap().as_mut().unwrap()) + (*y.lock().unwrap().as_mut().unwrap()))));
     }) as Box<dyn Fn(Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<i32>>> + Send + Sync>)));
 }
 
@@ -98,8 +98,8 @@ fn main() {
     println!("{} {}", "Doubled:".to_string(), format_slice(&doubled));
 
     let mut multiplier = Arc::new(Mutex::new(Some(3)));
-    let mut tripled = apply_operation(numbers.clone(), Arc::new(Mutex::new(Some(Arc::new(Mutex::new(Some(Box::new(move |x: Arc<Mutex<Option<i32>>>| -> Arc<Mutex<Option<i32>>> {
-        return Arc::new(Mutex::new(Some((*x.lock().unwrap().as_mut().unwrap()) * (*multiplier.lock().unwrap().as_mut().unwrap()))));
+    let mut tripled = apply_operation(numbers.clone(), Arc::new(Mutex::new(Some(let multiplier_captured = multiplier.clone(); Arc::new(Mutex::new(Some(Box::new(move |x: Arc<Mutex<Option<i32>>>| -> Arc<Mutex<Option<i32>>> {
+        return Arc::new(Mutex::new(Some((*x.lock().unwrap().as_mut().unwrap()) * (*multiplier_captured.lock().unwrap().as_mut().unwrap()))));
     }) as Box<dyn Fn(Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<i32>>> + Send + Sync>)))))));
     println!("{} {}", "Tripled:".to_string(), format_slice(&tripled));
 
