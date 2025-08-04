@@ -1110,12 +1110,34 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		}
 
 	case *ast.DeferStmt:
+		// Check if the defer contains a closure that captures variables
+		captured := findCapturedInCall(s.Call)
+
+		// Generate clones for captured variables
+		captureRenames := make(map[string]string)
+		for varName := range captured {
+			cloneName := varName + "_defer_captured"
+			captureRenames[varName] = cloneName
+			out.WriteString("let ")
+			out.WriteString(cloneName)
+			out.WriteString(" = ")
+			out.WriteString(varName)
+			out.WriteString(".clone(); ")
+		}
+
+		// Store current capture renames for nested transpilation
+		oldCaptureRenames := currentCaptureRenames
+		currentCaptureRenames = captureRenames
+
 		// Defer statements - push closure onto defer stack
 		out.WriteString("__defer_stack.push(Box::new(move || {\n")
 		out.WriteString("        ")
 		TranspileCall(out, s.Call)
 		out.WriteString(";\n")
 		out.WriteString("    }));")
+
+		// Restore previous capture renames
+		currentCaptureRenames = oldCaptureRenames
 
 	default:
 		out.WriteString("// TODO: Unhandled statement type: " + strings.TrimPrefix(fmt.Sprintf("%T", s), "*ast."))

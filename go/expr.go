@@ -52,6 +52,14 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		}
 
 	case *ast.Ident:
+		// Check if this variable has been renamed (captured in closure)
+		varName := e.Name
+		if currentCaptureRenames != nil {
+			if renamed, exists := currentCaptureRenames[e.Name]; exists {
+				varName = renamed
+			}
+		}
+
 		if e.Name == "nil" {
 			out.WriteString("None")
 		} else if currentReceiver != "" && e.Name == currentReceiver {
@@ -68,31 +76,31 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				// It's a wrapped value from a map, need to unwrap for display
 				if ctx == RValue {
 					out.WriteString("(*")
-					out.WriteString(e.Name)
+					out.WriteString(varName)
 					out.WriteString(".lock().unwrap().as_mut().unwrap())")
 				} else {
-					out.WriteString(e.Name)
+					out.WriteString(varName)
 				}
 			} else {
 				// Simple type (like usize for array indices)
-				out.WriteString(e.Name)
+				out.WriteString(varName)
 			}
 		} else if _, isLocalConst := localConstants[e.Name]; isLocalConst {
-			out.WriteString(e.Name)
+			out.WriteString(varName)
 		} else {
 			// All variables are wrapped in Arc<Mutex<Option<T>>>
 			switch ctx {
 			case RValue:
 				// Reading a variable requires unwrapping to get the inner value
 				out.WriteString("(*")
-				out.WriteString(e.Name)
+				out.WriteString(varName)
 				out.WriteString(".lock().unwrap().as_mut().unwrap())")
 			case AddressOf:
 				// Taking address just returns the Arc itself
-				out.WriteString(e.Name)
-			default:
-				// LValue context - just the identifier
-				out.WriteString(e.Name)
+				out.WriteString(varName)
+			case LValue:
+				// Writing to a variable - we'll handle the actual assignment in AssignStmt
+				out.WriteString(varName)
 			}
 		}
 
@@ -466,6 +474,23 @@ func isBuiltinFunction(name string) bool {
 
 // TranspileFuncLit transpiles a function literal (closure)
 func TranspileFuncLit(out *strings.Builder, funcLit *ast.FuncLit) {
+	// Find captured variables
+	captured := findCapturedVars(funcLit)
+
+	// Build capture renames but don't generate clones here
+	// The clones need to be generated at the statement level
+	captureRenames := make(map[string]string)
+	for varName := range captured {
+		// For now, just use the original names
+		// A proper implementation would handle this at statement level
+		captureRenames[varName] = varName
+	}
+
+	// Store current capture renames for nested transpilation
+	oldCaptureRenames := currentCaptureRenames
+	currentCaptureRenames = captureRenames
+	defer func() { currentCaptureRenames = oldCaptureRenames }()
+
 	// Wrap the closure in Arc<Mutex<Option<Box<dyn Fn>>>
 	out.WriteString("Arc::new(Mutex::new(Some(")
 

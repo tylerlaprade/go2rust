@@ -50,7 +50,7 @@ pub fn safe_divide(a: Arc<Mutex<Option<f64>>>, b: Arc<Mutex<Option<f64>>>) -> (A
     let mut result: Arc<Mutex<Option<f64>>> = Arc::new(Mutex::new(Some(0.0)));
     let mut err: Arc<Mutex<Option<Box<dyn Error + Send + Sync>>>> = Arc::new(Mutex::new(None));
 
-    __defer_stack.push(Box::new(move || {
+    let result_defer_captured = result.clone(); let err_defer_captured = err.clone(); __defer_stack.push(Box::new(move || {
         (Arc::new(Mutex::new(Some(Box::new(move || {
         let mut r = recover();
     if (*r.lock().unwrap()).is_some() {
@@ -84,7 +84,7 @@ pub fn process_slice(slice: Arc<Mutex<Option<Vec<i32>>>>, index: Arc<Mutex<Optio
     let mut value: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(0)));
     let mut err: Arc<Mutex<Option<Box<dyn Error + Send + Sync>>>> = Arc::new(Mutex::new(None));
 
-    __defer_stack.push(Box::new(move || {
+    let err_defer_captured = err.clone(); let value_defer_captured = value.clone(); __defer_stack.push(Box::new(move || {
         (Arc::new(Mutex::new(Some(Box::new(move || {
         let mut r = recover();
     if (*r.lock().unwrap()).is_some() {
