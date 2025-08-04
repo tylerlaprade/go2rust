@@ -17,7 +17,8 @@
 3. **Test-driven development** - XFAIL tests auto-promote when passing
 4. **Always run tests** before committing or moving to next task
 5. **Update README** when adding support for new Go syntax features
-6. **Include transpiled test outputs** in commits when transpiler changes affect them
+6. **Update ROADMAP.md** after implementing features or making progress on phases
+7. **Include transpiled test outputs** in commits when transpiler changes affect them
 
 ## Core Philosophy: Conservative Translation
 
