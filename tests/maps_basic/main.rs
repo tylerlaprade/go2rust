@@ -1,6 +1,13 @@
-fn format_map<K: std::fmt::Display + std::cmp::Ord + Clone, V>(map: &std::sync::Arc<std::sync::Mutex<Option<std::collections::HashMap<K, std::sync::Arc<std::sync::Mutex<Option<V>>>>>>>) -> String 
+use std::sync::{Arc, Mutex};
+use std::collections::HashMap;
+use std::fmt::{self, Display, Formatter};
+use std::error::Error;
+use std::any::Any;
+use std::cmp::Ord;
+
+fn format_map<K: Display + Ord + Clone, V>(map: &Arc<Mutex<Option<HashMap<K, Arc<Mutex<Option<V>>>>>>>) -> String 
 where
-    V: std::fmt::Display,
+    V: Display,
 {
     let guard = map.lock().unwrap();
     if let Some(ref m) = *guard {
@@ -24,9 +31,9 @@ where
         "map[]".to_string()
     }
 }
-fn format_slice<T>(slice: &std::sync::Arc<std::sync::Mutex<Option<Vec<T>>>>) -> String 
+fn format_slice<T>(slice: &Arc<Mutex<Option<Vec<T>>>>) -> String 
 where
-    T: std::fmt::Display,
+    T: Display,
 {
     let guard = slice.lock().unwrap();
     if let Some(ref s) = *guard {
@@ -38,18 +45,18 @@ where
 }
 
 fn main() {
-    let mut ages = std::sync::Arc::new(std::sync::Mutex::new(Some(std::collections::HashMap::<String, std::sync::Arc<std::sync::Mutex<Option<i32>>>>::new())));
-    (*ages.lock().unwrap().as_mut().unwrap()).insert("Alice".to_string(), std::sync::Arc::new(std::sync::Mutex::new(Some(25))));
-    (*ages.lock().unwrap().as_mut().unwrap()).insert("Bob".to_string(), std::sync::Arc::new(std::sync::Mutex::new(Some(30))));
-    (*ages.lock().unwrap().as_mut().unwrap()).insert("Charlie".to_string(), std::sync::Arc::new(std::sync::Mutex::new(Some(35))));
+    let mut ages = Arc::new(Mutex::new(Some(HashMap::<String, Arc<Mutex<Option<i32>>>>::new())));
+    (*ages.lock().unwrap().as_mut().unwrap()).insert("Alice".to_string(), Arc::new(Mutex::new(Some(25))));
+    (*ages.lock().unwrap().as_mut().unwrap()).insert("Bob".to_string(), Arc::new(Mutex::new(Some(30))));
+    (*ages.lock().unwrap().as_mut().unwrap()).insert("Charlie".to_string(), Arc::new(Mutex::new(Some(35))));
 
     println!("{} {}", "Ages map:".to_string(), format_map(&ages));
 
-    let mut colors = std::sync::Arc::new(std::sync::Mutex::new(Some(std::collections::HashMap::<String, std::sync::Arc<std::sync::Mutex<Option<String>>>>::from([("red".to_string(), std::sync::Arc::new(std::sync::Mutex::new(Some("#FF0000".to_string())))), ("green".to_string(), std::sync::Arc::new(std::sync::Mutex::new(Some("#00FF00".to_string())))), ("blue".to_string(), std::sync::Arc::new(std::sync::Mutex::new(Some("#0000FF".to_string()))))]))));
+    let mut colors = Arc::new(Mutex::new(Some(HashMap::<String, Arc<Mutex<Option<String>>>>::from([("red".to_string(), Arc::new(Mutex::new(Some("#FF0000".to_string())))), ("green".to_string(), Arc::new(Mutex::new(Some("#00FF00".to_string())))), ("blue".to_string(), Arc::new(Mutex::new(Some("#0000FF".to_string()))))]))));
 
     println!("{} {}", "Colors map:".to_string(), format_map(&colors));
 
-    let (mut age, mut exists) = match (*ages.lock().unwrap().as_ref().unwrap()).get(&"Alice".to_string()) { Some(v) => (v.clone(), std::sync::Arc::new(std::sync::Mutex::new(Some(true)))), None => (std::sync::Arc::new(std::sync::Mutex::new(Some(0))), std::sync::Arc::new(std::sync::Mutex::new(Some(false)))) };
+    let (mut age, mut exists) = match (*ages.lock().unwrap().as_ref().unwrap()).get(&"Alice".to_string()) { Some(v) => (v.clone(), Arc::new(Mutex::new(Some(true)))), None => (Arc::new(Mutex::new(Some(0))), Arc::new(Mutex::new(Some(false)))) };
     if (*exists.lock().unwrap().as_mut().unwrap()) {
         println!("{} {}", "Alice's age:".to_string(), (*age.lock().unwrap().as_mut().unwrap()));
     }
@@ -59,7 +66,7 @@ fn main() {
 
     println!("{}", "All colors:".to_string());
 
-    let mut keys: std::sync::Arc<std::sync::Mutex<Option<Vec<String>>>> = std::sync::Arc::new(std::sync::Mutex::new(Some(Default::default())));
+    let mut keys: Arc<Mutex<Option<Vec<String>>>> = Arc::new(Mutex::new(Some(Default::default())));
     for (k, _) in (*colors.lock().unwrap().as_ref().unwrap()).clone() {
         {(*keys.lock().unwrap().as_mut().unwrap()).push(k); keys.clone()};
     }

@@ -1,6 +1,13 @@
-fn format_map<K: std::fmt::Display + std::cmp::Ord + Clone, V>(map: &std::sync::Arc<std::sync::Mutex<Option<std::collections::HashMap<K, std::sync::Arc<std::sync::Mutex<Option<V>>>>>>>) -> String 
+use std::sync::{Arc, Mutex};
+use std::collections::HashMap;
+use std::fmt::{self, Display, Formatter};
+use std::error::Error;
+use std::any::Any;
+use std::cmp::Ord;
+
+fn format_map<K: Display + Ord + Clone, V>(map: &Arc<Mutex<Option<HashMap<K, Arc<Mutex<Option<V>>>>>>>) -> String 
 where
-    V: std::fmt::Display,
+    V: Display,
 {
     let guard = map.lock().unwrap();
     if let Some(ref m) = *guard {
@@ -24,9 +31,9 @@ where
         "map[]".to_string()
     }
 }
-fn format_slice<T>(slice: &std::sync::Arc<std::sync::Mutex<Option<Vec<T>>>>) -> String 
+fn format_slice<T>(slice: &Arc<Mutex<Option<Vec<T>>>>) -> String 
 where
-    T: std::fmt::Display,
+    T: Display,
 {
     let guard = slice.lock().unwrap();
     if let Some(ref s) = *guard {
@@ -37,14 +44,14 @@ where
     }
 }
 
-pub fn worker(id: std::sync::Arc<std::sync::Mutex<Option<i32>>>, wg: std::sync::Arc<std::sync::Mutex<Option</* TODO: Unhandled type *ast.SelectorExpr */ std::sync::Arc<std::sync::Mutex<Option<()>>>>>>) {
+pub fn worker(id: Arc<Mutex<Option<i32>>>, wg: Arc<Mutex<Option</* TODO: Unhandled type *ast.SelectorExpr */ Arc<Mutex<Option<()>>>>>>) {
     let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
     __defer_stack.push(Box::new(move || {
         (*wg.lock().unwrap().as_mut().unwrap()).done();
     }));
     print!("Worker {} starting\n", (*id.lock().unwrap().as_mut().unwrap()));
-    (*time.lock().unwrap().as_mut().unwrap()).sleep(std::sync::Arc::new(std::sync::Mutex::new(Some((*time.lock().unwrap().as_mut().unwrap()).second))));
+    (*time.lock().unwrap().as_mut().unwrap()).sleep(Arc::new(Mutex::new(Some((*time.lock().unwrap().as_mut().unwrap()).second))));
     print!("Worker {} done\n", (*id.lock().unwrap().as_mut().unwrap()));
 
     // Execute deferred functions
@@ -54,10 +61,10 @@ pub fn worker(id: std::sync::Arc<std::sync::Mutex<Option<i32>>>, wg: std::sync::
 }
 
 fn main() {
-    let mut wg: std::sync::Arc<std::sync::Mutex<Option</* TODO: Unhandled type *ast.SelectorExpr */ std::sync::Arc<std::sync::Mutex<Option<()>>>>>>;
-    let mut i = std::sync::Arc::new(std::sync::Mutex::new(Some(1)));
+    let mut wg: Arc<Mutex<Option</* TODO: Unhandled type *ast.SelectorExpr */ Arc<Mutex<Option<()>>>>>>;
+    let mut i = Arc::new(Mutex::new(Some(1)));
     while (*i.lock().unwrap().as_mut().unwrap()) <= 3 {
-        (*wg.lock().unwrap().as_mut().unwrap()).add(std::sync::Arc::new(std::sync::Mutex::new(Some(1))));
+        (*wg.lock().unwrap().as_mut().unwrap()).add(Arc::new(Mutex::new(Some(1))));
         // TODO: Unhandled statement type: GoStmt
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }

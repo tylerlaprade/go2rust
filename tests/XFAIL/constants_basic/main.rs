@@ -1,6 +1,13 @@
-fn format_map<K: std::fmt::Display + std::cmp::Ord + Clone, V>(map: &std::sync::Arc<std::sync::Mutex<Option<std::collections::HashMap<K, std::sync::Arc<std::sync::Mutex<Option<V>>>>>>>) -> String 
+use std::sync::{Arc, Mutex};
+use std::collections::HashMap;
+use std::fmt::{self, Display, Formatter};
+use std::error::Error;
+use std::any::Any;
+use std::cmp::Ord;
+
+fn format_map<K: Display + Ord + Clone, V>(map: &Arc<Mutex<Option<HashMap<K, Arc<Mutex<Option<V>>>>>>>) -> String 
 where
-    V: std::fmt::Display,
+    V: Display,
 {
     let guard = map.lock().unwrap();
     if let Some(ref m) = *guard {
@@ -24,9 +31,9 @@ where
         "map[]".to_string()
     }
 }
-fn format_slice<T>(slice: &std::sync::Arc<std::sync::Mutex<Option<Vec<T>>>>) -> String 
+fn format_slice<T>(slice: &Arc<Mutex<Option<Vec<T>>>>) -> String 
 where
-    T: std::fmt::Display,
+    T: Display,
 {
     let guard = slice.lock().unwrap();
     if let Some(ref s) = *guard {
@@ -128,9 +135,9 @@ const z: i32 = x + y;
     const untypedFloat: f64 = 3.14;
 
 
-    let mut i: std::sync::Arc<std::sync::Mutex<Option<i32>>> = std::sync::Arc::new(std::sync::Mutex::new(Some(untypedInt)));
-    let mut f: std::sync::Arc<std::sync::Mutex<Option<f64>>> = std::sync::Arc::new(std::sync::Mutex::new(Some(untypedFloat)));
-    let mut mixed = std::sync::Arc::new(std::sync::Mutex::new(Some(untypedInt + 3)));
+    let mut i: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(untypedInt)));
+    let mut f: Arc<Mutex<Option<f64>>> = Arc::new(Mutex::new(Some(untypedFloat)));
+    let mut mixed = Arc::new(Mutex::new(Some(untypedInt + 3)));
 
     print!("i = {}\n", (*i.lock().unwrap().as_mut().unwrap()));
     print!("f = {:.2}\n", (*f.lock().unwrap().as_mut().unwrap()));

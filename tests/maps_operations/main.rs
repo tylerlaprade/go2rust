@@ -1,6 +1,13 @@
-fn format_map<K: std::fmt::Display + std::cmp::Ord + Clone, V>(map: &std::sync::Arc<std::sync::Mutex<Option<std::collections::HashMap<K, std::sync::Arc<std::sync::Mutex<Option<V>>>>>>>) -> String 
+use std::sync::{Arc, Mutex};
+use std::collections::HashMap;
+use std::fmt::{self, Display, Formatter};
+use std::error::Error;
+use std::any::Any;
+use std::cmp::Ord;
+
+fn format_map<K: Display + Ord + Clone, V>(map: &Arc<Mutex<Option<HashMap<K, Arc<Mutex<Option<V>>>>>>>) -> String 
 where
-    V: std::fmt::Display,
+    V: Display,
 {
     let guard = map.lock().unwrap();
     if let Some(ref m) = *guard {
@@ -24,9 +31,9 @@ where
         "map[]".to_string()
     }
 }
-fn format_slice<T>(slice: &std::sync::Arc<std::sync::Mutex<Option<Vec<T>>>>) -> String 
+fn format_slice<T>(slice: &Arc<Mutex<Option<Vec<T>>>>) -> String 
 where
-    T: std::fmt::Display,
+    T: Display,
 {
     let guard = slice.lock().unwrap();
     if let Some(ref s) = *guard {
@@ -38,17 +45,17 @@ where
 }
 
 fn main() {
-    let mut m = std::sync::Arc::new(std::sync::Mutex::new(Some(std::collections::HashMap::<String, std::sync::Arc<std::sync::Mutex<Option<i32>>>>::new())));
-    (*m.lock().unwrap().as_mut().unwrap()).insert("k1".to_string(), std::sync::Arc::new(std::sync::Mutex::new(Some(7))));
-    (*m.lock().unwrap().as_mut().unwrap()).insert("k2".to_string(), std::sync::Arc::new(std::sync::Mutex::new(Some(13))));
+    let mut m = Arc::new(Mutex::new(Some(HashMap::<String, Arc<Mutex<Option<i32>>>>::new())));
+    (*m.lock().unwrap().as_mut().unwrap()).insert("k1".to_string(), Arc::new(Mutex::new(Some(7))));
+    (*m.lock().unwrap().as_mut().unwrap()).insert("k2".to_string(), Arc::new(Mutex::new(Some(13))));
     println!("{} {}", "map:".to_string(), format_map(&m));
 
-    let mut v1 = std::sync::Arc::new(std::sync::Mutex::new(Some((*(*m.lock().unwrap().as_ref().unwrap()).get(&"k1".to_string()).unwrap().lock().unwrap().as_ref().unwrap()))));
+    let mut v1 = Arc::new(Mutex::new(Some((*(*m.lock().unwrap().as_ref().unwrap()).get(&"k1".to_string()).unwrap().lock().unwrap().as_ref().unwrap()))));
     println!("{} {}", "v1:".to_string(), (*v1.lock().unwrap().as_mut().unwrap()));
 
     (*m.lock().unwrap().as_mut().unwrap()).remove(&"k2".to_string());
     println!("{} {}", "map:".to_string(), format_map(&m));
 
-    let (_, mut prs) = match (*m.lock().unwrap().as_ref().unwrap()).get(&"k2".to_string()) { Some(v) => (v.clone(), std::sync::Arc::new(std::sync::Mutex::new(Some(true)))), None => (std::sync::Arc::new(std::sync::Mutex::new(Some(0))), std::sync::Arc::new(std::sync::Mutex::new(Some(false)))) };
+    let (_, mut prs) = match (*m.lock().unwrap().as_ref().unwrap()).get(&"k2".to_string()) { Some(v) => (v.clone(), Arc::new(Mutex::new(Some(true)))), None => (Arc::new(Mutex::new(Some(0))), Arc::new(Mutex::new(Some(false)))) };
     println!("{} {}", "prs:".to_string(), (*prs.lock().unwrap().as_mut().unwrap()));
 }

@@ -63,6 +63,15 @@ func implementsInterface(typeName string, typeMethods []*ast.FuncDecl, iface *as
 func Transpile(file *ast.File, fileSet *token.FileSet, typeInfo *TypeInfo) string {
 	var output strings.Builder
 
+	// Add standard library imports at the top
+	output.WriteString("use std::sync::{Arc, Mutex};\n")
+	output.WriteString("use std::collections::HashMap;\n")
+	output.WriteString("use std::fmt::{self, Display, Formatter};\n")
+	output.WriteString("use std::error::Error;\n")
+	output.WriteString("use std::any::Any;\n")
+	output.WriteString("use std::cmp::Ord;\n")
+	output.WriteString("\n")
+
 	// Check if this file uses print statements (might need formatters)
 	needsFormatters := false
 	ast.Inspect(file, func(n ast.Node) bool {
@@ -200,16 +209,16 @@ func Transpile(file *ast.File, fileSet *token.FileSet, typeInfo *TypeInfo) strin
 			}
 		}
 
-		// If it has Error() method, implement std::error::Error trait
+		// If it has Error() method, implement Error trait
 		if hasErrorMethod {
 			output.WriteString("\n\n")
-			output.WriteString("impl std::error::Error for ")
+			output.WriteString("impl Error for ")
 			output.WriteString(typeName)
 			output.WriteString(" {}\n\n")
-			output.WriteString("impl std::fmt::Display for ")
+			output.WriteString("impl Display for ")
 			output.WriteString(typeName)
 			output.WriteString(" {\n")
-			output.WriteString("    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {\n")
+			output.WriteString("    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {\n")
 			output.WriteString("        write!(f, \"{}\", (*self.error().lock().unwrap().as_mut().unwrap()))\n")
 			output.WriteString("    }\n")
 			output.WriteString("}")

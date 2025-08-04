@@ -154,7 +154,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 					if isNilForError {
 						// For error type, nil becomes Arc<Mutex<None>>
-						out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(None))")
+						out.WriteString("Arc::new(Mutex::new(None))")
 					} else {
 						// Check if this is a field access on self (already wrapped)
 						if sel, ok := result.(*ast.SelectorExpr); ok {
@@ -165,7 +165,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 								out.WriteString(".clone()")
 							} else {
 								// Regular selector - wrap it
-								out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(Some(")
+								out.WriteString("Arc::new(Mutex::new(Some(")
 								TranspileExpression(out, result)
 								out.WriteString(")))")
 							}
@@ -193,7 +193,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							}
 
 							if needsWrapping {
-								out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(Some(")
+								out.WriteString("Arc::new(Mutex::new(Some(")
 								TranspileExpression(out, result)
 								out.WriteString(")))")
 							} else {
@@ -212,19 +212,19 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									out.WriteString(".clone()")
 								} else {
 									// It's a constant, wrap it
-									out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(Some(")
+									out.WriteString("Arc::new(Mutex::new(Some(")
 									TranspileExpression(out, result)
 									out.WriteString(")))")
 								}
 							} else {
 								// Range variable, wrap it
-								out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(Some(")
+								out.WriteString("Arc::new(Mutex::new(Some(")
 								TranspileExpression(out, result)
 								out.WriteString(")))")
 							}
 						} else {
 							// Wrap all other return values in Arc<Mutex<Option<>>>
-							out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(Some(")
+							out.WriteString("Arc::new(Mutex::new(Some(")
 
 							// Special handling for string literals
 							if lit, ok := result.(*ast.BasicLit); ok && lit.Kind == token.STRING {
@@ -290,19 +290,19 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							out.WriteString(".clone()")
 						} else {
 							// It's a constant, wrap it
-							out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(Some(")
+							out.WriteString("Arc::new(Mutex::new(Some(")
 							TranspileExpression(out, s.Rhs[0])
 							out.WriteString(")))")
 						}
 					} else {
 						// Range variable, wrap it
-						out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(Some(")
+						out.WriteString("Arc::new(Mutex::new(Some(")
 						TranspileExpression(out, s.Rhs[0])
 						out.WriteString(")))")
 					}
 				} else {
 					// Not a simple identifier (literal or expression), wrap it
-					out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(Some(")
+					out.WriteString("Arc::new(Mutex::new(Some(")
 					TranspileExpression(out, s.Rhs[0])
 					out.WriteString(")))")
 				}
@@ -439,11 +439,11 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				}
 				out.WriteString(".lock().unwrap().as_ref().unwrap()).get(&")
 				TranspileExpression(out, indexExpr.Index)
-				out.WriteString(") { Some(v) => (v.clone(), std::sync::Arc::new(std::sync::Mutex::new(Some(true)))), None => (std::sync::Arc::new(std::sync::Mutex::new(Some(")
+				out.WriteString(") { Some(v) => (v.clone(), Arc::new(Mutex::new(Some(true)))), None => (Arc::new(Mutex::new(Some(")
 				// Default value for the type - for now assume i32
 				// TODO: Use proper type information
 				out.WriteString("0")
-				out.WriteString("))), std::sync::Arc::new(std::sync::Mutex::new(Some(false)))) }")
+				out.WriteString("))), Arc::new(Mutex::new(Some(false)))) }")
 			} else if needsTupleUnpack {
 				if s.Tok == token.DEFINE {
 					out.WriteString("let ")
@@ -487,7 +487,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							out.WriteString(", ")
 						}
 						// Wrap new variables in Arc<Mutex<Option<>>>
-						out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(Some(")
+						out.WriteString("Arc::new(Mutex::new(Some(")
 						TranspileExpression(out, rhs)
 						out.WriteString(")))")
 					}
@@ -610,7 +610,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									// Check if RHS is nil
 									if ident, ok := rhs.(*ast.Ident); ok && ident.Name == "nil" {
 										// Initializing with nil
-										out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(None))")
+										out.WriteString("Arc::new(Mutex::new(None))")
 									} else if unary, ok := rhs.(*ast.UnaryExpr); ok && unary.Op == token.AND {
 										// Taking address - don't wrap, the & operator will handle it
 										TranspileExpression(out, rhs)
@@ -622,7 +622,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										TranspileExpression(out, rhs)
 									} else {
 										// Wrap new variables in Arc<Mutex<Option<>>>
-										out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(Some(")
+										out.WriteString("Arc::new(Mutex::new(Some(")
 										TranspileExpression(out, rhs)
 										out.WriteString(")))")
 									}
@@ -657,7 +657,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 								TranspileExpression(out, rhs)
 							} else {
 								// Wrap new variables in Arc<Mutex<Option<>>>
-								out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(Some(")
+								out.WriteString("Arc::new(Mutex::new(Some(")
 								TranspileExpression(out, rhs)
 								out.WriteString(")))")
 							}
@@ -693,7 +693,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 								// Check if value is nil
 								if ident, ok := valueSpec.Values[i].(*ast.Ident); ok && ident.Name == "nil" {
 									// Initializing with nil
-									out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(None))")
+									out.WriteString("Arc::new(Mutex::new(None))")
 								} else if _, isCall := valueSpec.Values[i].(*ast.CallExpr); isCall {
 									// Function calls already return wrapped values, don't wrap again
 									TranspileExpression(out, valueSpec.Values[i])
@@ -702,7 +702,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									TranspileExpression(out, valueSpec.Values[i])
 								} else {
 									// Wrap all variables in Arc<Mutex<Option<>>>
-									out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(Some(")
+									out.WriteString("Arc::new(Mutex::new(Some(")
 									TranspileExpression(out, valueSpec.Values[i])
 									out.WriteString(")))")
 								}
@@ -721,11 +721,11 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										}
 									case *ast.StarExpr:
 										// Pointer type - initialize with None
-										out.WriteString(" = std::sync::Arc::new(std::sync::Mutex::new(None))")
+										out.WriteString(" = Arc::new(Mutex::new(None))")
 									case *ast.ArrayType:
 										// Initialize array with default values
 										// Arrays are wrapped, so we need Some(default array)
-										out.WriteString(" = std::sync::Arc::new(std::sync::Mutex::new(Some(Default::default())))")
+										out.WriteString(" = Arc::new(Mutex::new(Some(Default::default())))")
 									}
 								}
 							}

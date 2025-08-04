@@ -1,6 +1,13 @@
-fn format_map<K: std::fmt::Display + std::cmp::Ord + Clone, V>(map: &std::sync::Arc<std::sync::Mutex<Option<std::collections::HashMap<K, std::sync::Arc<std::sync::Mutex<Option<V>>>>>>>) -> String 
+use std::sync::{Arc, Mutex};
+use std::collections::HashMap;
+use std::fmt::{self, Display, Formatter};
+use std::error::Error;
+use std::any::Any;
+use std::cmp::Ord;
+
+fn format_map<K: Display + Ord + Clone, V>(map: &Arc<Mutex<Option<HashMap<K, Arc<Mutex<Option<V>>>>>>>) -> String 
 where
-    V: std::fmt::Display,
+    V: Display,
 {
     let guard = map.lock().unwrap();
     if let Some(ref m) = *guard {
@@ -24,9 +31,9 @@ where
         "map[]".to_string()
     }
 }
-fn format_slice<T>(slice: &std::sync::Arc<std::sync::Mutex<Option<Vec<T>>>>) -> String 
+fn format_slice<T>(slice: &Arc<Mutex<Option<Vec<T>>>>) -> String 
 where
-    T: std::fmt::Display,
+    T: Display,
 {
     let guard = slice.lock().unwrap();
     if let Some(ref s) = *guard {
@@ -39,23 +46,23 @@ where
 
 #[derive(Debug)]
 struct base {
-    num: std::sync::Arc<std::sync::Mutex<Option<i32>>>,
+    num: Arc<Mutex<Option<i32>>>,
 }
 
 #[derive(Debug)]
 struct container {
-    std::sync::_arc<std::sync::_mutex<_option<base>>>: std::sync::Arc<std::sync::Mutex<Option<base>>>,
-    str: std::sync::Arc<std::sync::Mutex<Option<String>>>,
+    arc<_mutex<_option<base>>>: Arc<Mutex<Option<base>>>,
+    str: Arc<Mutex<Option<String>>>,
 }
 
 impl base {
-    pub fn describe(&self) -> std::sync::Arc<std::sync::Mutex<Option<String>>> {
-        return std::sync::Arc::new(std::sync::Mutex::new(Some(format!("base with num={}", (*self.num.lock().unwrap().as_mut().unwrap())))));
+    pub fn describe(&self) -> Arc<Mutex<Option<String>>> {
+        return Arc::new(Mutex::new(Some(format!("base with num={}", (*self.num.lock().unwrap().as_mut().unwrap())))));
     }
 }
 
 fn main() {
-    let mut co = container { base: std::sync::Arc::new(std::sync::Mutex::new(Some(base { num: std::sync::Arc::new(std::sync::Mutex::new(Some(1))) }))), str: std::sync::Arc::new(std::sync::Mutex::new(Some("some name".to_string()))) };
+    let mut co = container { base: Arc::new(Mutex::new(Some(base { num: Arc::new(Mutex::new(Some(1))) }))), str: Arc::new(Mutex::new(Some("some name".to_string()))) };
 
     print!("co={num: {}, str: {}}\n", (*co.lock().unwrap().as_mut().unwrap()).num, (*co.lock().unwrap().as_mut().unwrap()).str);
     println!("{} {}", "also num:".to_string(), (*co.lock().unwrap().as_mut().unwrap()).base::num);
@@ -63,6 +70,6 @@ fn main() {
 
     
 
-    let mut d: std::sync::Arc<std::sync::Mutex<Option<describer>>> = std::sync::Arc::new(std::sync::Mutex::new(Some((*co.lock().unwrap().as_mut().unwrap()))));
+    let mut d: Arc<Mutex<Option<describer>>> = Arc::new(Mutex::new(Some((*co.lock().unwrap().as_mut().unwrap()))));
     println!("{} {}", "describer:".to_string(), (*(*d.lock().unwrap().as_mut().unwrap()).describe().lock().unwrap().as_mut().unwrap()));
 }

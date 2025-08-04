@@ -1,6 +1,13 @@
-fn format_map<K: std::fmt::Display + std::cmp::Ord + Clone, V>(map: &std::sync::Arc<std::sync::Mutex<Option<std::collections::HashMap<K, std::sync::Arc<std::sync::Mutex<Option<V>>>>>>>) -> String 
+use std::sync::{Arc, Mutex};
+use std::collections::HashMap;
+use std::fmt::{self, Display, Formatter};
+use std::error::Error;
+use std::any::Any;
+use std::cmp::Ord;
+
+fn format_map<K: Display + Ord + Clone, V>(map: &Arc<Mutex<Option<HashMap<K, Arc<Mutex<Option<V>>>>>>>) -> String 
 where
-    V: std::fmt::Display,
+    V: Display,
 {
     let guard = map.lock().unwrap();
     if let Some(ref m) = *guard {
@@ -24,9 +31,9 @@ where
         "map[]".to_string()
     }
 }
-fn format_slice<T>(slice: &std::sync::Arc<std::sync::Mutex<Option<Vec<T>>>>) -> String 
+fn format_slice<T>(slice: &Arc<Mutex<Option<Vec<T>>>>) -> String 
 where
-    T: std::fmt::Display,
+    T: Display,
 {
     let guard = slice.lock().unwrap();
     if let Some(ref s) = *guard {
@@ -39,191 +46,191 @@ where
 
 /// Function type definitions
 // TODO: Unhandled type declaration: FuncType
-type BinaryOp = std::sync::Arc<std::sync::Mutex<Option<()>>>
+type BinaryOp = Arc<Mutex<Option<()>>>
 
 // TODO: Unhandled type declaration: FuncType
-type UnaryOp = std::sync::Arc<std::sync::Mutex<Option<()>>>
+type UnaryOp = Arc<Mutex<Option<()>>>
 
 // TODO: Unhandled type declaration: FuncType
-type Predicate = std::sync::Arc<std::sync::Mutex<Option<()>>>
+type Predicate = Arc<Mutex<Option<()>>>
 
 // TODO: Unhandled type declaration: FuncType
-type StringProcessor = std::sync::Arc<std::sync::Mutex<Option<()>>>
+type StringProcessor = Arc<Mutex<Option<()>>>
 
 /// Struct with function fields
 #[derive(Debug)]
 struct Calculator {
-    add: std::sync::Arc<std::sync::Mutex<Option<BinaryOp>>>,
-    subtract: std::sync::Arc<std::sync::Mutex<Option<BinaryOp>>>,
-    multiply: std::sync::Arc<std::sync::Mutex<Option<BinaryOp>>>,
+    add: Arc<Mutex<Option<BinaryOp>>>,
+    subtract: Arc<Mutex<Option<BinaryOp>>>,
+    multiply: Arc<Mutex<Option<BinaryOp>>>,
 }
 
 /// Functions that match the types
-pub fn add(a: std::sync::Arc<std::sync::Mutex<Option<i32>>>, b: std::sync::Arc<std::sync::Mutex<Option<i32>>>) -> std::sync::Arc<std::sync::Mutex<Option<i32>>> {
+pub fn add(a: Arc<Mutex<Option<i32>>>, b: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<i32>>> {
 
-    return std::sync::Arc::new(std::sync::Mutex::new(Some((*a.lock().unwrap().as_mut().unwrap()) + (*b.lock().unwrap().as_mut().unwrap()))));
+    return Arc::new(Mutex::new(Some((*a.lock().unwrap().as_mut().unwrap()) + (*b.lock().unwrap().as_mut().unwrap()))));
 }
 
-pub fn multiply(a: std::sync::Arc<std::sync::Mutex<Option<i32>>>, b: std::sync::Arc<std::sync::Mutex<Option<i32>>>) -> std::sync::Arc<std::sync::Mutex<Option<i32>>> {
+pub fn multiply(a: Arc<Mutex<Option<i32>>>, b: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<i32>>> {
 
-    return std::sync::Arc::new(std::sync::Mutex::new(Some((*a.lock().unwrap().as_mut().unwrap()) * (*b.lock().unwrap().as_mut().unwrap()))));
+    return Arc::new(Mutex::new(Some((*a.lock().unwrap().as_mut().unwrap()) * (*b.lock().unwrap().as_mut().unwrap()))));
 }
 
-pub fn square(x: std::sync::Arc<std::sync::Mutex<Option<i32>>>) -> std::sync::Arc<std::sync::Mutex<Option<i32>>> {
+pub fn square(x: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<i32>>> {
 
-    return std::sync::Arc::new(std::sync::Mutex::new(Some((*x.lock().unwrap().as_mut().unwrap()) * (*x.lock().unwrap().as_mut().unwrap()))));
+    return Arc::new(Mutex::new(Some((*x.lock().unwrap().as_mut().unwrap()) * (*x.lock().unwrap().as_mut().unwrap()))));
 }
 
-pub fn is_even(x: std::sync::Arc<std::sync::Mutex<Option<i32>>>) -> std::sync::Arc<std::sync::Mutex<Option<bool>>> {
+pub fn is_even(x: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<bool>>> {
 
-    return std::sync::Arc::new(std::sync::Mutex::new(Some((*x.lock().unwrap().as_mut().unwrap()) % 2 == 0)));
+    return Arc::new(Mutex::new(Some((*x.lock().unwrap().as_mut().unwrap()) % 2 == 0)));
 }
 
-pub fn to_upper(s: std::sync::Arc<std::sync::Mutex<Option<String>>>) -> std::sync::Arc<std::sync::Mutex<Option<String>>> {
+pub fn to_upper(s: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<String>>> {
 
-    let mut result = std::sync::Arc::new(std::sync::Mutex::new(Some("".to_string())));
+    let mut result = Arc::new(Mutex::new(Some("".to_string())));
     for (_, char) in (*(*s.lock().unwrap().as_mut().unwrap()).lock().unwrap().as_ref().unwrap()).chars().enumerate() {
         if char >= 'a' && char <= 'z' {
-        (*result.lock().unwrap().as_mut().unwrap()).push_str(&(string.lock().unwrap().as_ref().unwrap())(std::sync::Arc::new(std::sync::Mutex::new(Some(char - 32)))));
+        (*result.lock().unwrap().as_mut().unwrap()).push_str(&(string.lock().unwrap().as_ref().unwrap())(Arc::new(Mutex::new(Some(char - 32)))));
     } else {
-        (*result.lock().unwrap().as_mut().unwrap()).push_str(&(string.lock().unwrap().as_ref().unwrap())(std::sync::Arc::new(std::sync::Mutex::new(Some(char)))));
+        (*result.lock().unwrap().as_mut().unwrap()).push_str(&(string.lock().unwrap().as_ref().unwrap())(Arc::new(Mutex::new(Some(char)))));
     }
     }
     return result.clone();
 }
 
 /// Higher-order functions
-pub fn apply_binary(op: std::sync::Arc<std::sync::Mutex<Option<BinaryOp>>>, a: std::sync::Arc<std::sync::Mutex<Option<i32>>>, b: std::sync::Arc<std::sync::Mutex<Option<i32>>>) -> std::sync::Arc<std::sync::Mutex<Option<i32>>> {
+pub fn apply_binary(op: Arc<Mutex<Option<BinaryOp>>>, a: Arc<Mutex<Option<i32>>>, b: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<i32>>> {
 
-    return std::sync::Arc::new(std::sync::Mutex::new(Some((op.lock().unwrap().as_ref().unwrap())(a.clone(), b.clone()))));
+    return Arc::new(Mutex::new(Some((op.lock().unwrap().as_ref().unwrap())(a.clone(), b.clone()))));
 }
 
-pub fn apply_unary(op: std::sync::Arc<std::sync::Mutex<Option<UnaryOp>>>, x: std::sync::Arc<std::sync::Mutex<Option<i32>>>) -> std::sync::Arc<std::sync::Mutex<Option<i32>>> {
+pub fn apply_unary(op: Arc<Mutex<Option<UnaryOp>>>, x: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<i32>>> {
 
-    return std::sync::Arc::new(std::sync::Mutex::new(Some((op.lock().unwrap().as_ref().unwrap())(x.clone()))));
+    return Arc::new(Mutex::new(Some((op.lock().unwrap().as_ref().unwrap())(x.clone()))));
 }
 
-pub fn filter(numbers: std::sync::Arc<std::sync::Mutex<Option<Vec<i32>>>>, pred: std::sync::Arc<std::sync::Mutex<Option<Predicate>>>) -> std::sync::Arc<std::sync::Mutex<Option<Vec<i32>>>> {
+pub fn filter(numbers: Arc<Mutex<Option<Vec<i32>>>>, pred: Arc<Mutex<Option<Predicate>>>) -> Arc<Mutex<Option<Vec<i32>>>> {
 
-    let mut result: std::sync::Arc<std::sync::Mutex<Option<Vec<i32>>>> = std::sync::Arc::new(std::sync::Mutex::new(Some(Default::default())));
+    let mut result: Arc<Mutex<Option<Vec<i32>>>> = Arc::new(Mutex::new(Some(Default::default())));
     for num in &(*numbers.lock().unwrap().as_mut().unwrap()) {
-        if (pred.lock().unwrap().as_ref().unwrap())(std::sync::Arc::new(std::sync::Mutex::new(Some(num)))) {
+        if (pred.lock().unwrap().as_ref().unwrap())(Arc::new(Mutex::new(Some(num)))) {
         {(*result.lock().unwrap().as_mut().unwrap()).push(num); result.clone()};
     }
     }
     return result.clone();
 }
 
-pub fn transform(numbers: std::sync::Arc<std::sync::Mutex<Option<Vec<i32>>>>, op: std::sync::Arc<std::sync::Mutex<Option<UnaryOp>>>) -> std::sync::Arc<std::sync::Mutex<Option<Vec<i32>>>> {
+pub fn transform(numbers: Arc<Mutex<Option<Vec<i32>>>>, op: Arc<Mutex<Option<UnaryOp>>>) -> Arc<Mutex<Option<Vec<i32>>>> {
 
-    let mut result = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![0; (*numbers.lock().unwrap().as_mut().unwrap()).len()])));
+    let mut result = Arc::new(Mutex::new(Some(vec![0; (*numbers.lock().unwrap().as_mut().unwrap()).len()])));
     for (i, num) in (*numbers.lock().unwrap().as_mut().unwrap()).iter().enumerate() {
-        (*result.lock().unwrap().as_mut().unwrap())[i] = (op.lock().unwrap().as_ref().unwrap())(std::sync::Arc::new(std::sync::Mutex::new(Some(num))));
+        (*result.lock().unwrap().as_mut().unwrap())[i] = (op.lock().unwrap().as_ref().unwrap())(Arc::new(Mutex::new(Some(num))));
     }
     return result.clone();
 }
 
-pub fn process_string(s: std::sync::Arc<std::sync::Mutex<Option<String>>>, processor: std::sync::Arc<std::sync::Mutex<Option<StringProcessor>>>) -> std::sync::Arc<std::sync::Mutex<Option<String>>> {
+pub fn process_string(s: Arc<Mutex<Option<String>>>, processor: Arc<Mutex<Option<StringProcessor>>>) -> Arc<Mutex<Option<String>>> {
 
-    return std::sync::Arc::new(std::sync::Mutex::new(Some((processor.lock().unwrap().as_ref().unwrap())(s.clone()))));
+    return Arc::new(Mutex::new(Some((processor.lock().unwrap().as_ref().unwrap())(s.clone()))));
 }
 
 /// Function that returns a function
-pub fn make_multiplier(factor: std::sync::Arc<std::sync::Mutex<Option<i32>>>) -> std::sync::Arc<std::sync::Mutex<Option<UnaryOp>>> {
+pub fn make_multiplier(factor: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<UnaryOp>>> {
 
-    return std::sync::Arc::new(std::sync::Mutex::new(Some(Box::new(move |x: std::sync::Arc<std::sync::Mutex<Option<i32>>>| -> std::sync::Arc<std::sync::Mutex<Option<i32>>> {
-        return std::sync::Arc::new(std::sync::Mutex::new(Some((*x.lock().unwrap().as_mut().unwrap()) * (*factor.lock().unwrap().as_mut().unwrap()))));
-    }) as Box<dyn Fn(std::sync::Arc<std::sync::Mutex<Option<i32>>>) -> std::sync::Arc<std::sync::Mutex<Option<i32>>> + Send + Sync>)));
+    return Arc::new(Mutex::new(Some(Box::new(move |x: Arc<Mutex<Option<i32>>>| -> Arc<Mutex<Option<i32>>> {
+        return Arc::new(Mutex::new(Some((*x.lock().unwrap().as_mut().unwrap()) * (*factor.lock().unwrap().as_mut().unwrap()))));
+    }) as Box<dyn Fn(Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<i32>>> + Send + Sync>)));
 }
 
-pub fn make_adder(addend: std::sync::Arc<std::sync::Mutex<Option<i32>>>) -> std::sync::Arc<std::sync::Mutex<Option<BinaryOp>>> {
+pub fn make_adder(addend: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<BinaryOp>>> {
 
-    return std::sync::Arc::new(std::sync::Mutex::new(Some(Box::new(move |a: std::sync::Arc<std::sync::Mutex<Option<i32>>>, b: std::sync::Arc<std::sync::Mutex<Option<i32>>>| -> std::sync::Arc<std::sync::Mutex<Option<i32>>> {
-        return std::sync::Arc::new(std::sync::Mutex::new(Some((*a.lock().unwrap().as_mut().unwrap()) + (*b.lock().unwrap().as_mut().unwrap()) + (*addend.lock().unwrap().as_mut().unwrap()))));
-    }) as Box<dyn Fn(std::sync::Arc<std::sync::Mutex<Option<i32>>>, std::sync::Arc<std::sync::Mutex<Option<i32>>>) -> std::sync::Arc<std::sync::Mutex<Option<i32>>> + Send + Sync>)));
+    return Arc::new(Mutex::new(Some(Box::new(move |a: Arc<Mutex<Option<i32>>>, b: Arc<Mutex<Option<i32>>>| -> Arc<Mutex<Option<i32>>> {
+        return Arc::new(Mutex::new(Some((*a.lock().unwrap().as_mut().unwrap()) + (*b.lock().unwrap().as_mut().unwrap()) + (*addend.lock().unwrap().as_mut().unwrap()))));
+    }) as Box<dyn Fn(Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<i32>>> + Send + Sync>)));
 }
 
 fn main() {
     println!("{}", "=== Basic function types ===".to_string());
 
-    let mut op: std::sync::Arc<std::sync::Mutex<Option<BinaryOp>>> = Default::default();
+    let mut op: Arc<Mutex<Option<BinaryOp>>> = Default::default();
     { let new_val = (*add.lock().unwrap().as_mut().unwrap()); *op.lock().unwrap() = Some(new_val); };
-    print!("5 + 3 = {}\n", (*(op.lock().unwrap().as_ref().unwrap())(std::sync::Arc::new(std::sync::Mutex::new(Some(5))), std::sync::Arc::new(std::sync::Mutex::new(Some(3)))).lock().unwrap().as_mut().unwrap()));
+    print!("5 + 3 = {}\n", (*(op.lock().unwrap().as_ref().unwrap())(Arc::new(Mutex::new(Some(5))), Arc::new(Mutex::new(Some(3)))).lock().unwrap().as_mut().unwrap()));
 
     { let new_val = (*multiply.lock().unwrap().as_mut().unwrap()); *op.lock().unwrap() = Some(new_val); };
-    print!("5 * 3 = {}\n", (*(op.lock().unwrap().as_ref().unwrap())(std::sync::Arc::new(std::sync::Mutex::new(Some(5))), std::sync::Arc::new(std::sync::Mutex::new(Some(3)))).lock().unwrap().as_mut().unwrap()));
+    print!("5 * 3 = {}\n", (*(op.lock().unwrap().as_ref().unwrap())(Arc::new(Mutex::new(Some(5))), Arc::new(Mutex::new(Some(3)))).lock().unwrap().as_mut().unwrap()));
 
     println!("{}", "\n=== Higher-order functions ===".to_string());
-    let mut result = apply_binary(add.clone(), std::sync::Arc::new(std::sync::Mutex::new(Some(10))), std::sync::Arc::new(std::sync::Mutex::new(Some(20))));
+    let mut result = apply_binary(add.clone(), Arc::new(Mutex::new(Some(10))), Arc::new(Mutex::new(Some(20))));
     print!("applyBinary(add, 10, 20) = {}\n", (*result.lock().unwrap().as_mut().unwrap()));
 
-    { let new_val = apply_binary(multiply.clone(), std::sync::Arc::new(std::sync::Mutex::new(Some(4))), std::sync::Arc::new(std::sync::Mutex::new(Some(7)))); *result.lock().unwrap() = Some(new_val); };
+    { let new_val = apply_binary(multiply.clone(), Arc::new(Mutex::new(Some(4))), Arc::new(Mutex::new(Some(7)))); *result.lock().unwrap() = Some(new_val); };
     print!("applyBinary(multiply, 4, 7) = {}\n", (*result.lock().unwrap().as_mut().unwrap()));
 
-    let mut unaryResult = apply_unary(square.clone(), std::sync::Arc::new(std::sync::Mutex::new(Some(6))));
+    let mut unaryResult = apply_unary(square.clone(), Arc::new(Mutex::new(Some(6))));
     print!("applyUnary(square, 6) = {}\n", (*unaryResult.lock().unwrap().as_mut().unwrap()));
 
     println!("{}", "\n=== Function slices and filtering ===".to_string());
-    let mut numbers = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10])));
+    let mut numbers = Arc::new(Mutex::new(Some(vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10])));
 
     let mut evens = filter(numbers.clone(), isEven.clone());
     print!("Even numbers: {}\n", format_slice(&evens));
 
-    let mut odds = filter(numbers.clone(), std::sync::Arc::new(std::sync::Mutex::new(Some(std::sync::Arc::new(std::sync::Mutex::new(Some(Box::new(move |x: std::sync::Arc<std::sync::Mutex<Option<i32>>>| -> std::sync::Arc<std::sync::Mutex<Option<bool>>> {
-        return std::sync::Arc::new(std::sync::Mutex::new(Some((*x.lock().unwrap().as_mut().unwrap()) % 2 != 0)));
-    }) as Box<dyn Fn(std::sync::Arc<std::sync::Mutex<Option<i32>>>) -> std::sync::Arc<std::sync::Mutex<Option<bool>>> + Send + Sync>)))))));
+    let mut odds = filter(numbers.clone(), Arc::new(Mutex::new(Some(Arc::new(Mutex::new(Some(Box::new(move |x: Arc<Mutex<Option<i32>>>| -> Arc<Mutex<Option<bool>>> {
+        return Arc::new(Mutex::new(Some((*x.lock().unwrap().as_mut().unwrap()) % 2 != 0)));
+    }) as Box<dyn Fn(Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<bool>>> + Send + Sync>)))))));
     print!("Odd numbers: {}\n", format_slice(&odds));
 
     println!("{}", "\n=== Transform operations ===".to_string());
-    let mut squared = transform(std::sync::Arc::new(std::sync::Mutex::new(Some(std::sync::Arc::new(std::sync::Mutex::new(Some(vec![1, 2, 3, 4, 5])))))), square.clone());
+    let mut squared = transform(Arc::new(Mutex::new(Some(Arc::new(Mutex::new(Some(vec![1, 2, 3, 4, 5])))))), square.clone());
     print!("Squared: {}\n", format_slice(&squared));
 
-    let mut doubled = transform(std::sync::Arc::new(std::sync::Mutex::new(Some(std::sync::Arc::new(std::sync::Mutex::new(Some(vec![1, 2, 3, 4, 5])))))), std::sync::Arc::new(std::sync::Mutex::new(Some(std::sync::Arc::new(std::sync::Mutex::new(Some(Box::new(move |x: std::sync::Arc<std::sync::Mutex<Option<i32>>>| -> std::sync::Arc<std::sync::Mutex<Option<i32>>> {
-        return std::sync::Arc::new(std::sync::Mutex::new(Some((*x.lock().unwrap().as_mut().unwrap()) * 2)));
-    }) as Box<dyn Fn(std::sync::Arc<std::sync::Mutex<Option<i32>>>) -> std::sync::Arc<std::sync::Mutex<Option<i32>>> + Send + Sync>)))))));
+    let mut doubled = transform(Arc::new(Mutex::new(Some(Arc::new(Mutex::new(Some(vec![1, 2, 3, 4, 5])))))), Arc::new(Mutex::new(Some(Arc::new(Mutex::new(Some(Box::new(move |x: Arc<Mutex<Option<i32>>>| -> Arc<Mutex<Option<i32>>> {
+        return Arc::new(Mutex::new(Some((*x.lock().unwrap().as_mut().unwrap()) * 2)));
+    }) as Box<dyn Fn(Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<i32>>> + Send + Sync>)))))));
     print!("Doubled: {}\n", format_slice(&doubled));
 
     println!("{}", "\n=== String processing ===".to_string());
-    let mut text = std::sync::Arc::new(std::sync::Mutex::new(Some("hello world".to_string())));
+    let mut text = Arc::new(Mutex::new(Some("hello world".to_string())));
     let mut upper = process_string(text.clone(), toUpper.clone());
     print!("'{}' -> '{}'\n", (*text.lock().unwrap().as_mut().unwrap()), (*upper.lock().unwrap().as_mut().unwrap()));
 
-    let mut reversed = process_string(std::sync::Arc::new(std::sync::Mutex::new(Some("hello".to_string()))), std::sync::Arc::new(std::sync::Mutex::new(Some(std::sync::Arc::new(std::sync::Mutex::new(Some(Box::new(move |s: std::sync::Arc<std::sync::Mutex<Option<String>>>| -> std::sync::Arc<std::sync::Mutex<Option<String>>> {
-        let mut runes = (/* TODO: Unhandled expression type: ArrayType */ std::sync::Arc::new(std::sync::Mutex::new(Some(()))).lock().unwrap().as_ref().unwrap())(s.clone());
-        let (mut i, mut j) = (std::sync::Arc::new(std::sync::Mutex::new(Some(0))), std::sync::Arc::new(std::sync::Mutex::new(Some((*runes.lock().unwrap().as_mut().unwrap()).len() - 1))));
+    let mut reversed = process_string(Arc::new(Mutex::new(Some("hello".to_string()))), Arc::new(Mutex::new(Some(Arc::new(Mutex::new(Some(Box::new(move |s: Arc<Mutex<Option<String>>>| -> Arc<Mutex<Option<String>>> {
+        let mut runes = (/* TODO: Unhandled expression type: ArrayType */ Arc::new(Mutex::new(Some(()))).lock().unwrap().as_ref().unwrap())(s.clone());
+        let (mut i, mut j) = (Arc::new(Mutex::new(Some(0))), Arc::new(Mutex::new(Some((*runes.lock().unwrap().as_mut().unwrap()).len() - 1))));
     while (*i.lock().unwrap().as_mut().unwrap()) < (*j.lock().unwrap().as_mut().unwrap()) {
         { *(*runes.lock().unwrap().as_mut().unwrap())[(*i.lock().unwrap().as_mut().unwrap())].lock().unwrap() = Some((*runes.lock().unwrap().as_mut().unwrap())[(*j.lock().unwrap().as_mut().unwrap())]); *(*runes.lock().unwrap().as_mut().unwrap())[(*j.lock().unwrap().as_mut().unwrap())].lock().unwrap() = Some((*runes.lock().unwrap().as_mut().unwrap())[(*i.lock().unwrap().as_mut().unwrap())]) };
         { *(*i.lock().unwrap().as_mut().unwrap()).lock().unwrap() = Some((*i.lock().unwrap().as_mut().unwrap()) + 1); *(*j.lock().unwrap().as_mut().unwrap()).lock().unwrap() = Some((*j.lock().unwrap().as_mut().unwrap()) - 1) };
     }
-        return std::sync::Arc::new(std::sync::Mutex::new(Some((string.lock().unwrap().as_ref().unwrap())(runes.clone()))));
-    }) as Box<dyn Fn(std::sync::Arc<std::sync::Mutex<Option<String>>>) -> std::sync::Arc<std::sync::Mutex<Option<String>>> + Send + Sync>)))))));
+        return Arc::new(Mutex::new(Some((string.lock().unwrap().as_ref().unwrap())(runes.clone()))));
+    }) as Box<dyn Fn(Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<String>>> + Send + Sync>)))))));
     print!("Reversed: {}\n", (*reversed.lock().unwrap().as_mut().unwrap()));
 
     println!("{}", "\n=== Functions returning functions ===".to_string());
-    let mut triple = make_multiplier(std::sync::Arc::new(std::sync::Mutex::new(Some(3))));
-    print!("triple(4) = {}\n", (*(triple.lock().unwrap().as_ref().unwrap())(std::sync::Arc::new(std::sync::Mutex::new(Some(4)))).lock().unwrap().as_mut().unwrap()));
+    let mut triple = make_multiplier(Arc::new(Mutex::new(Some(3))));
+    print!("triple(4) = {}\n", (*(triple.lock().unwrap().as_ref().unwrap())(Arc::new(Mutex::new(Some(4)))).lock().unwrap().as_mut().unwrap()));
 
-    let mut addTen = make_adder(std::sync::Arc::new(std::sync::Mutex::new(Some(10))));
-    print!("addTen(5, 3) = {}\n", (*(addTen.lock().unwrap().as_ref().unwrap())(std::sync::Arc::new(std::sync::Mutex::new(Some(5))), std::sync::Arc::new(std::sync::Mutex::new(Some(3)))).lock().unwrap().as_mut().unwrap()));
+    let mut addTen = make_adder(Arc::new(Mutex::new(Some(10))));
+    print!("addTen(5, 3) = {}\n", (*(addTen.lock().unwrap().as_ref().unwrap())(Arc::new(Mutex::new(Some(5))), Arc::new(Mutex::new(Some(3)))).lock().unwrap().as_mut().unwrap()));
 
     println!("{}", "\n=== Struct with function fields ===".to_string());
-    let mut calc = Calculator { add: std::sync::Arc::new(std::sync::Mutex::new(Some(std::sync::Arc::new(std::sync::Mutex::new(Some(Box::new(move |a: std::sync::Arc<std::sync::Mutex<Option<i32>>>, b: std::sync::Arc<std::sync::Mutex<Option<i32>>>| -> std::sync::Arc<std::sync::Mutex<Option<i32>>> {
-        return std::sync::Arc::new(std::sync::Mutex::new(Some((*a.lock().unwrap().as_mut().unwrap()) + (*b.lock().unwrap().as_mut().unwrap()))));
-    }) as Box<dyn Fn(std::sync::Arc<std::sync::Mutex<Option<i32>>>, std::sync::Arc<std::sync::Mutex<Option<i32>>>) -> std::sync::Arc<std::sync::Mutex<Option<i32>>> + Send + Sync>)))))), subtract: std::sync::Arc::new(std::sync::Mutex::new(Some(std::sync::Arc::new(std::sync::Mutex::new(Some(Box::new(move |a: std::sync::Arc<std::sync::Mutex<Option<i32>>>, b: std::sync::Arc<std::sync::Mutex<Option<i32>>>| -> std::sync::Arc<std::sync::Mutex<Option<i32>>> {
-        return std::sync::Arc::new(std::sync::Mutex::new(Some((*a.lock().unwrap().as_mut().unwrap()) - (*b.lock().unwrap().as_mut().unwrap()))));
-    }) as Box<dyn Fn(std::sync::Arc<std::sync::Mutex<Option<i32>>>, std::sync::Arc<std::sync::Mutex<Option<i32>>>) -> std::sync::Arc<std::sync::Mutex<Option<i32>>> + Send + Sync>)))))), multiply: std::sync::Arc::new(std::sync::Mutex::new(Some((*multiply.lock().unwrap().as_mut().unwrap())))) };
+    let mut calc = Calculator { add: Arc::new(Mutex::new(Some(Arc::new(Mutex::new(Some(Box::new(move |a: Arc<Mutex<Option<i32>>>, b: Arc<Mutex<Option<i32>>>| -> Arc<Mutex<Option<i32>>> {
+        return Arc::new(Mutex::new(Some((*a.lock().unwrap().as_mut().unwrap()) + (*b.lock().unwrap().as_mut().unwrap()))));
+    }) as Box<dyn Fn(Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<i32>>> + Send + Sync>)))))), subtract: Arc::new(Mutex::new(Some(Arc::new(Mutex::new(Some(Box::new(move |a: Arc<Mutex<Option<i32>>>, b: Arc<Mutex<Option<i32>>>| -> Arc<Mutex<Option<i32>>> {
+        return Arc::new(Mutex::new(Some((*a.lock().unwrap().as_mut().unwrap()) - (*b.lock().unwrap().as_mut().unwrap()))));
+    }) as Box<dyn Fn(Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<i32>>> + Send + Sync>)))))), multiply: Arc::new(Mutex::new(Some((*multiply.lock().unwrap().as_mut().unwrap())))) };
 
-    print!("calc.Add(10, 5) = {}\n", (*(*calc.lock().unwrap().as_mut().unwrap()).add(std::sync::Arc::new(std::sync::Mutex::new(Some(10))), std::sync::Arc::new(std::sync::Mutex::new(Some(5)))).lock().unwrap().as_mut().unwrap()));
-    print!("calc.Subtract(10, 5) = {}\n", (*(*calc.lock().unwrap().as_mut().unwrap()).subtract(std::sync::Arc::new(std::sync::Mutex::new(Some(10))), std::sync::Arc::new(std::sync::Mutex::new(Some(5)))).lock().unwrap().as_mut().unwrap()));
-    print!("calc.Multiply(10, 5) = {}\n", (*(*calc.lock().unwrap().as_mut().unwrap()).multiply(std::sync::Arc::new(std::sync::Mutex::new(Some(10))), std::sync::Arc::new(std::sync::Mutex::new(Some(5)))).lock().unwrap().as_mut().unwrap()));
+    print!("calc.Add(10, 5) = {}\n", (*(*calc.lock().unwrap().as_mut().unwrap()).add(Arc::new(Mutex::new(Some(10))), Arc::new(Mutex::new(Some(5)))).lock().unwrap().as_mut().unwrap()));
+    print!("calc.Subtract(10, 5) = {}\n", (*(*calc.lock().unwrap().as_mut().unwrap()).subtract(Arc::new(Mutex::new(Some(10))), Arc::new(Mutex::new(Some(5)))).lock().unwrap().as_mut().unwrap()));
+    print!("calc.Multiply(10, 5) = {}\n", (*(*calc.lock().unwrap().as_mut().unwrap()).multiply(Arc::new(Mutex::new(Some(10))), Arc::new(Mutex::new(Some(5)))).lock().unwrap().as_mut().unwrap()));
 
     println!("{}", "\n=== Function variables ===".to_string());
-    let mut processor: std::sync::Arc<std::sync::Mutex<Option<StringProcessor>>> = Default::default();
+    let mut processor: Arc<Mutex<Option<StringProcessor>>> = Default::default();
     { let new_val = (*toUpper.lock().unwrap().as_mut().unwrap()); *processor.lock().unwrap() = Some(new_val); };
-    print!("Using toUpper: {}\n", (*(processor.lock().unwrap().as_ref().unwrap())(std::sync::Arc::new(std::sync::Mutex::new(Some("test".to_string())))).lock().unwrap().as_mut().unwrap()));
+    print!("Using toUpper: {}\n", (*(processor.lock().unwrap().as_ref().unwrap())(Arc::new(Mutex::new(Some("test".to_string())))).lock().unwrap().as_mut().unwrap()));
 
-    { let new_val = std::sync::Arc::new(std::sync::Mutex::new(Some(Box::new(move |s: std::sync::Arc<std::sync::Mutex<Option<String>>>| -> std::sync::Arc<std::sync::Mutex<Option<String>>> {
-        return std::sync::Arc::new(std::sync::Mutex::new(Some(format!("{}{}", "processed: ".to_string(), (*s.lock().unwrap().as_mut().unwrap())))));
-    }) as Box<dyn Fn(std::sync::Arc<std::sync::Mutex<Option<String>>>) -> std::sync::Arc<std::sync::Mutex<Option<String>>> + Send + Sync>))); *processor.lock().unwrap() = Some(new_val); };
-    print!("Using anonymous: {}\n", (*(processor.lock().unwrap().as_ref().unwrap())(std::sync::Arc::new(std::sync::Mutex::new(Some("test".to_string())))).lock().unwrap().as_mut().unwrap()));
+    { let new_val = Arc::new(Mutex::new(Some(Box::new(move |s: Arc<Mutex<Option<String>>>| -> Arc<Mutex<Option<String>>> {
+        return Arc::new(Mutex::new(Some(format!("{}{}", "processed: ".to_string(), (*s.lock().unwrap().as_mut().unwrap())))));
+    }) as Box<dyn Fn(Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<String>>> + Send + Sync>))); *processor.lock().unwrap() = Some(new_val); };
+    print!("Using anonymous: {}\n", (*(processor.lock().unwrap().as_ref().unwrap())(Arc::new(Mutex::new(Some("test".to_string())))).lock().unwrap().as_mut().unwrap()));
 }

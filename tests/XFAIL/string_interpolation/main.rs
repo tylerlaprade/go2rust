@@ -1,6 +1,13 @@
-fn format_map<K: std::fmt::Display + std::cmp::Ord + Clone, V>(map: &std::sync::Arc<std::sync::Mutex<Option<std::collections::HashMap<K, std::sync::Arc<std::sync::Mutex<Option<V>>>>>>>) -> String 
+use std::sync::{Arc, Mutex};
+use std::collections::HashMap;
+use std::fmt::{self, Display, Formatter};
+use std::error::Error;
+use std::any::Any;
+use std::cmp::Ord;
+
+fn format_map<K: Display + Ord + Clone, V>(map: &Arc<Mutex<Option<HashMap<K, Arc<Mutex<Option<V>>>>>>>) -> String 
 where
-    V: std::fmt::Display,
+    V: Display,
 {
     let guard = map.lock().unwrap();
     if let Some(ref m) = *guard {
@@ -24,9 +31,9 @@ where
         "map[]".to_string()
     }
 }
-fn format_slice<T>(slice: &std::sync::Arc<std::sync::Mutex<Option<Vec<T>>>>) -> String 
+fn format_slice<T>(slice: &Arc<Mutex<Option<Vec<T>>>>) -> String 
 where
-    T: std::fmt::Display,
+    T: Display,
 {
     let guard = slice.lock().unwrap();
     if let Some(ref s) = *guard {
@@ -38,9 +45,9 @@ where
 }
 
 fn main() {
-    let mut name = std::sync::Arc::new(std::sync::Mutex::new(Some("World".to_string())));
-    let mut age = std::sync::Arc::new(std::sync::Mutex::new(Some(25)));
+    let mut name = Arc::new(Mutex::new(Some("World".to_string())));
+    let mut age = Arc::new(Mutex::new(Some(25)));
     print!("Hello {}! You are {} years old.\n", (*name.lock().unwrap().as_mut().unwrap()), (*age.lock().unwrap().as_mut().unwrap()));
-    let mut result = format!("Formatted: {}", format_slice(&std::sync::Arc::new(std::sync::Mutex::new(Some(vec![1, 2, 3])))));
+    let mut result = format!("Formatted: {}", format_slice(&Arc::new(Mutex::new(Some(vec![1, 2, 3])))));
     println!("{}", (*result.lock().unwrap().as_mut().unwrap()));
 }

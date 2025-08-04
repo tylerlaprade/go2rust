@@ -1,6 +1,13 @@
-fn format_map<K: std::fmt::Display + std::cmp::Ord + Clone, V>(map: &std::sync::Arc<std::sync::Mutex<Option<std::collections::HashMap<K, std::sync::Arc<std::sync::Mutex<Option<V>>>>>>>) -> String 
+use std::sync::{Arc, Mutex};
+use std::collections::HashMap;
+use std::fmt::{self, Display, Formatter};
+use std::error::Error;
+use std::any::Any;
+use std::cmp::Ord;
+
+fn format_map<K: Display + Ord + Clone, V>(map: &Arc<Mutex<Option<HashMap<K, Arc<Mutex<Option<V>>>>>>>) -> String 
 where
-    V: std::fmt::Display,
+    V: Display,
 {
     let guard = map.lock().unwrap();
     if let Some(ref m) = *guard {
@@ -24,9 +31,9 @@ where
         "map[]".to_string()
     }
 }
-fn format_slice<T>(slice: &std::sync::Arc<std::sync::Mutex<Option<Vec<T>>>>) -> String 
+fn format_slice<T>(slice: &Arc<Mutex<Option<Vec<T>>>>) -> String 
 where
-    T: std::fmt::Display,
+    T: Display,
 {
     let guard = slice.lock().unwrap();
     if let Some(ref s) = *guard {
@@ -39,21 +46,21 @@ where
 
 #[derive(Debug)]
 struct User {
-    i_d: std::sync::Arc<std::sync::Mutex<Option<i32>>>,
-    name: std::sync::Arc<std::sync::Mutex<Option<String>>>,
-    email: std::sync::Arc<std::sync::Mutex<Option<String>>>,
-    is_active: std::sync::Arc<std::sync::Mutex<Option<bool>>>,
-    internal: std::sync::Arc<std::sync::Mutex<Option<String>>>,
+    i_d: Arc<Mutex<Option<i32>>>,
+    name: Arc<Mutex<Option<String>>>,
+    email: Arc<Mutex<Option<String>>>,
+    is_active: Arc<Mutex<Option<bool>>>,
+    internal: Arc<Mutex<Option<String>>>,
 }
 
 fn main() {
-    let mut u = User { i_d: std::sync::Arc::new(std::sync::Mutex::new(Some(1))), name: std::sync::Arc::new(std::sync::Mutex::new(Some("Alice".to_string()))), email: std::sync::Arc::new(std::sync::Mutex::new(Some("alice@example.com".to_string()))) };
-    let mut t = (*reflect.lock().unwrap().as_mut().unwrap()).type_of(std::sync::Arc::new(std::sync::Mutex::new(Some((*u.lock().unwrap().as_mut().unwrap())))));
+    let mut u = User { i_d: Arc::new(Mutex::new(Some(1))), name: Arc::new(Mutex::new(Some("Alice".to_string()))), email: Arc::new(Mutex::new(Some("alice@example.com".to_string()))) };
+    let mut t = (*reflect.lock().unwrap().as_mut().unwrap()).type_of(Arc::new(Mutex::new(Some((*u.lock().unwrap().as_mut().unwrap())))));
 
-    let mut i = std::sync::Arc::new(std::sync::Mutex::new(Some(0)));
+    let mut i = Arc::new(Mutex::new(Some(0)));
     while (*i.lock().unwrap().as_mut().unwrap()) < (*t.lock().unwrap().as_mut().unwrap()).num_field() {
-        let mut field = (*t.lock().unwrap().as_mut().unwrap()).field(std::sync::Arc::new(std::sync::Mutex::new(Some((*i.lock().unwrap().as_mut().unwrap())))));
-        print!("{}: json=%q db=%q\n", (*field.lock().unwrap().as_mut().unwrap()).name, (*(*field.lock().unwrap().as_mut().unwrap()).tag.get(std::sync::Arc::new(std::sync::Mutex::new(Some("json".to_string())))).lock().unwrap().as_mut().unwrap()), (*(*field.lock().unwrap().as_mut().unwrap()).tag.get(std::sync::Arc::new(std::sync::Mutex::new(Some("db".to_string())))).lock().unwrap().as_mut().unwrap()));
+        let mut field = (*t.lock().unwrap().as_mut().unwrap()).field(Arc::new(Mutex::new(Some((*i.lock().unwrap().as_mut().unwrap())))));
+        print!("{}: json=%q db=%q\n", (*field.lock().unwrap().as_mut().unwrap()).name, (*(*field.lock().unwrap().as_mut().unwrap()).tag.get(Arc::new(Mutex::new(Some("json".to_string())))).lock().unwrap().as_mut().unwrap()), (*(*field.lock().unwrap().as_mut().unwrap()).tag.get(Arc::new(Mutex::new(Some("db".to_string())))).lock().unwrap().as_mut().unwrap()));
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
 }

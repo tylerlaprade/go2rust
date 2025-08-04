@@ -1,6 +1,13 @@
-fn format_map<K: std::fmt::Display + std::cmp::Ord + Clone, V>(map: &std::sync::Arc<std::sync::Mutex<Option<std::collections::HashMap<K, std::sync::Arc<std::sync::Mutex<Option<V>>>>>>>) -> String 
+use std::sync::{Arc, Mutex};
+use std::collections::HashMap;
+use std::fmt::{self, Display, Formatter};
+use std::error::Error;
+use std::any::Any;
+use std::cmp::Ord;
+
+fn format_map<K: Display + Ord + Clone, V>(map: &Arc<Mutex<Option<HashMap<K, Arc<Mutex<Option<V>>>>>>>) -> String 
 where
-    V: std::fmt::Display,
+    V: Display,
 {
     let guard = map.lock().unwrap();
     if let Some(ref m) = *guard {
@@ -24,9 +31,9 @@ where
         "map[]".to_string()
     }
 }
-fn format_slice<T>(slice: &std::sync::Arc<std::sync::Mutex<Option<Vec<T>>>>) -> String 
+fn format_slice<T>(slice: &Arc<Mutex<Option<Vec<T>>>>) -> String 
 where
-    T: std::fmt::Display,
+    T: Display,
 {
     let guard = slice.lock().unwrap();
     if let Some(ref s) = *guard {
@@ -38,8 +45,8 @@ where
 }
 
 fn main() {
-    let mut nums = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![2, 3, 4])));
-    let mut sum = std::sync::Arc::new(std::sync::Mutex::new(Some(0)));
+    let mut nums = Arc::new(Mutex::new(Some(vec![2, 3, 4])));
+    let mut sum = Arc::new(Mutex::new(Some(0)));
     for num in &(*nums.lock().unwrap().as_mut().unwrap()) {
         { let mut guard = sum.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + num); };
     }
@@ -51,7 +58,7 @@ fn main() {
     }
     }
 
-    let mut kvs = std::sync::Arc::new(std::sync::Mutex::new(Some(std::collections::HashMap::<String, std::sync::Arc<std::sync::Mutex<Option<String>>>>::from([("a".to_string(), std::sync::Arc::new(std::sync::Mutex::new(Some("apple".to_string())))), ("b".to_string(), std::sync::Arc::new(std::sync::Mutex::new(Some("banana".to_string()))))]))));
+    let mut kvs = Arc::new(Mutex::new(Some(HashMap::<String, Arc<Mutex<Option<String>>>>::from([("a".to_string(), Arc::new(Mutex::new(Some("apple".to_string())))), ("b".to_string(), Arc::new(Mutex::new(Some("banana".to_string()))))]))));
     for (k, v) in (*kvs.lock().unwrap().as_ref().unwrap()).clone() {
         print!("{} -> {}\n", k, (*v.lock().unwrap().as_mut().unwrap()));
     }

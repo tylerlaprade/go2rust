@@ -1,6 +1,13 @@
-fn format_map<K: std::fmt::Display + std::cmp::Ord + Clone, V>(map: &std::sync::Arc<std::sync::Mutex<Option<std::collections::HashMap<K, std::sync::Arc<std::sync::Mutex<Option<V>>>>>>>) -> String 
+use std::sync::{Arc, Mutex};
+use std::collections::HashMap;
+use std::fmt::{self, Display, Formatter};
+use std::error::Error;
+use std::any::Any;
+use std::cmp::Ord;
+
+fn format_map<K: Display + Ord + Clone, V>(map: &Arc<Mutex<Option<HashMap<K, Arc<Mutex<Option<V>>>>>>>) -> String 
 where
-    V: std::fmt::Display,
+    V: Display,
 {
     let guard = map.lock().unwrap();
     if let Some(ref m) = *guard {
@@ -24,9 +31,9 @@ where
         "map[]".to_string()
     }
 }
-fn format_slice<T>(slice: &std::sync::Arc<std::sync::Mutex<Option<Vec<T>>>>) -> String 
+fn format_slice<T>(slice: &Arc<Mutex<Option<Vec<T>>>>) -> String 
 where
-    T: std::fmt::Display,
+    T: Display,
 {
     let guard = slice.lock().unwrap();
     if let Some(ref s) = *guard {
@@ -38,9 +45,9 @@ where
 }
 
 fn main() {
-    let mut x = std::sync::Arc::new(std::sync::Mutex::new(Some(10)));
+    let mut x = Arc::new(Mutex::new(Some(10)));
     let mut y = x.clone();
-    let mut z = std::sync::Arc::new(std::sync::Mutex::new(Some((*y.lock().unwrap().as_mut().unwrap()))));
+    let mut z = Arc::new(Mutex::new(Some((*y.lock().unwrap().as_mut().unwrap()))));
 
     { let new_val = 20; *y.lock().unwrap() = Some(new_val); };
     { let new_val = 30; *z.lock().unwrap() = Some(new_val); };

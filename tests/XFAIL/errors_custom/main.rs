@@ -1,6 +1,13 @@
-fn format_map<K: std::fmt::Display + std::cmp::Ord + Clone, V>(map: &std::sync::Arc<std::sync::Mutex<Option<std::collections::HashMap<K, std::sync::Arc<std::sync::Mutex<Option<V>>>>>>>) -> String 
+use std::sync::{Arc, Mutex};
+use std::collections::HashMap;
+use std::fmt::{self, Display, Formatter};
+use std::error::Error;
+use std::any::Any;
+use std::cmp::Ord;
+
+fn format_map<K: Display + Ord + Clone, V>(map: &Arc<Mutex<Option<HashMap<K, Arc<Mutex<Option<V>>>>>>>) -> String 
 where
-    V: std::fmt::Display,
+    V: Display,
 {
     let guard = map.lock().unwrap();
     if let Some(ref m) = *guard {
@@ -24,9 +31,9 @@ where
         "map[]".to_string()
     }
 }
-fn format_slice<T>(slice: &std::sync::Arc<std::sync::Mutex<Option<Vec<T>>>>) -> String 
+fn format_slice<T>(slice: &Arc<Mutex<Option<Vec<T>>>>) -> String 
 where
-    T: std::fmt::Display,
+    T: Display,
 {
     let guard = slice.lock().unwrap();
     if let Some(ref s) = *guard {
@@ -39,51 +46,51 @@ where
 
 #[derive(Debug)]
 struct argError {
-    arg: std::sync::Arc<std::sync::Mutex<Option<i32>>>,
-    prob: std::sync::Arc<std::sync::Mutex<Option<String>>>,
+    arg: Arc<Mutex<Option<i32>>>,
+    prob: Arc<Mutex<Option<String>>>,
 }
 
 impl argError {
-    pub fn error(&mut self) -> std::sync::Arc<std::sync::Mutex<Option<String>>> {
-        return std::sync::Arc::new(std::sync::Mutex::new(Some(format!("{} - {}", (*self.arg.lock().unwrap().as_mut().unwrap()), (*self.prob.lock().unwrap().as_mut().unwrap())))));
+    pub fn error(&mut self) -> Arc<Mutex<Option<String>>> {
+        return Arc::new(Mutex::new(Some(format!("{} - {}", (*self.arg.lock().unwrap().as_mut().unwrap()), (*self.prob.lock().unwrap().as_mut().unwrap())))));
     }
 }
 
-impl std::error::Error for argError {}
+impl Error for argError {}
 
-impl std::fmt::Display for argError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl Display for argError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "{}", (*self.error().lock().unwrap().as_mut().unwrap()))
     }
 }
 
-pub fn f1(arg: std::sync::Arc<std::sync::Mutex<Option<i32>>>) -> (std::sync::Arc<std::sync::Mutex<Option<i32>>>, std::sync::Arc<std::sync::Mutex<Option<Box<dyn std::error::Error + Send + Sync>>>>) {
+pub fn f1(arg: Arc<Mutex<Option<i32>>>) -> (Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<Box<dyn Error + Send + Sync>>>>) {
 
     if (*arg.lock().unwrap().as_mut().unwrap()) == 42 {
-        return (std::sync::Arc::new(std::sync::Mutex::new(Some(-1))), std::sync::Arc::new(std::sync::Mutex::new(Some(Box::<dyn std::error::Error + Send + Sync>::from("can't work with 42".to_string())))));
+        return (Arc::new(Mutex::new(Some(-1))), Arc::new(Mutex::new(Some(Box::<dyn std::error::Error + Send + Sync>::from("can't work with 42".to_string())))));
     }
-    return (std::sync::Arc::new(std::sync::Mutex::new(Some((*arg.lock().unwrap().as_mut().unwrap()) + 3))), std::sync::Arc::new(std::sync::Mutex::new(None)));
+    return (Arc::new(Mutex::new(Some((*arg.lock().unwrap().as_mut().unwrap()) + 3))), Arc::new(Mutex::new(None)));
 }
 
-pub fn f2(arg: std::sync::Arc<std::sync::Mutex<Option<i32>>>) -> (std::sync::Arc<std::sync::Mutex<Option<i32>>>, std::sync::Arc<std::sync::Mutex<Option<Box<dyn std::error::Error + Send + Sync>>>>) {
+pub fn f2(arg: Arc<Mutex<Option<i32>>>) -> (Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<Box<dyn Error + Send + Sync>>>>) {
 
     if (*arg.lock().unwrap().as_mut().unwrap()) == 42 {
-        return (std::sync::Arc::new(std::sync::Mutex::new(Some(-1))), std::sync::Arc::new(std::sync::Mutex::new(Some(std::sync::Arc::new(std::sync::Mutex::new(Some(argError { ,  })))))));
+        return (Arc::new(Mutex::new(Some(-1))), Arc::new(Mutex::new(Some(Arc::new(Mutex::new(Some(argError { ,  })))))));
     }
-    return (std::sync::Arc::new(std::sync::Mutex::new(Some((*arg.lock().unwrap().as_mut().unwrap()) + 3))), std::sync::Arc::new(std::sync::Mutex::new(None)));
+    return (Arc::new(Mutex::new(Some((*arg.lock().unwrap().as_mut().unwrap()) + 3))), Arc::new(Mutex::new(None)));
 }
 
 fn main() {
-    for i in &std::sync::Arc::new(std::sync::Mutex::new(Some(vec![7, 42]))) {
-        let (mut r, mut e) = f1(std::sync::Arc::new(std::sync::Mutex::new(Some(i))));
+    for i in &Arc::new(Mutex::new(Some(vec![7, 42]))) {
+        let (mut r, mut e) = f1(Arc::new(Mutex::new(Some(i))));
     if (*e.lock().unwrap()).is_some() {
         println!("{} {}", "f1 failed:".to_string(), (*e.lock().unwrap().as_mut().unwrap()));
     } else {
         println!("{} {}", "f1 worked:".to_string(), (*r.lock().unwrap().as_mut().unwrap()));
     }
     }
-    for i in &std::sync::Arc::new(std::sync::Mutex::new(Some(vec![7, 42]))) {
-        let (mut r, mut e) = f2(std::sync::Arc::new(std::sync::Mutex::new(Some(i))));
+    for i in &Arc::new(Mutex::new(Some(vec![7, 42]))) {
+        let (mut r, mut e) = f2(Arc::new(Mutex::new(Some(i))));
     if (*e.lock().unwrap()).is_some() {
         println!("{} {}", "f2 failed:".to_string(), (*e.lock().unwrap().as_mut().unwrap()));
     } else {
@@ -91,8 +98,8 @@ fn main() {
     }
     }
 
-    let (_, mut e) = f2(std::sync::Arc::new(std::sync::Mutex::new(Some(42))));
-    let (mut ae, mut ok) = match (*e.lock().unwrap().as_mut().unwrap()).downcast_ref::<std::sync::Arc<std::sync::Mutex<Option<argError>>>>() { Some(v) => (v.clone(), true), None => (Default::default(), false) };
+    let (_, mut e) = f2(Arc::new(Mutex::new(Some(42))));
+    let (mut ae, mut ok) = match (*e.lock().unwrap().as_mut().unwrap()).downcast_ref::<Arc<Mutex<Option<argError>>>>() { Some(v) => (v.clone(), true), None => (Default::default(), false) };
     if (*ok.lock().unwrap().as_mut().unwrap()) {
         println!("{}", (*ae.lock().unwrap().as_mut().unwrap()).arg);
         println!("{}", (*ae.lock().unwrap().as_mut().unwrap()).prob);

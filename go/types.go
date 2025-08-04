@@ -11,13 +11,13 @@ func GoTypeToRust(expr ast.Expr) string {
 
 	// Special case for error type - it's already Option
 	if ident, ok := expr.(*ast.Ident); ok && ident.Name == "error" {
-		return "std::sync::Arc<std::sync::Mutex<" + baseType + ">>"
+		return "Arc<Mutex<" + baseType + ">>"
 	}
 
 	// Wrap everything in Arc<Mutex<Option<>>>
 	// Don't double-wrap pointers - they're already wrapped
 	if _, isPointer := expr.(*ast.StarExpr); !isPointer {
-		return "std::sync::Arc<std::sync::Mutex<Option<" + baseType + ">>>"
+		return "Arc<Mutex<Option<" + baseType + ">>>"
 	}
 
 	return baseType
@@ -83,7 +83,7 @@ func goTypeToRustBase(expr ast.Expr) string {
 		case "bool":
 			return "bool"
 		case "error":
-			return "Option<Box<dyn std::error::Error + Send + Sync>>"
+			return "Option<Box<dyn Error + Send + Sync>>"
 		default:
 			// Check if this is an interface type
 			if interfaceTypes[t.Name] {
@@ -94,7 +94,7 @@ func goTypeToRustBase(expr ast.Expr) string {
 	case *ast.InterfaceType:
 		// Empty interface{} becomes Box<dyn Any>
 		if len(t.Methods.List) == 0 {
-			return "Box<dyn std::any::Any>"
+			return "Box<dyn Any>"
 		}
 		return "Unknown"
 	case *ast.ArrayType:
@@ -110,16 +110,16 @@ func goTypeToRustBase(expr ast.Expr) string {
 	case *ast.MapType:
 		keyType := goTypeToRustBase(t.Key)
 		valueType := goTypeToRustBase(t.Value)
-		return "std::collections::HashMap<" + keyType + ", " + valueType + ">"
+		return "HashMap<" + keyType + ", " + valueType + ">"
 	case *ast.StarExpr:
 		// Pointer type - wrap the base type (not already wrapped)
 		innerType := goTypeToRustBase(t.X)
-		return "std::sync::Arc<std::sync::Mutex<Option<" + innerType + ">>>"
+		return "Arc<Mutex<Option<" + innerType + ">>>"
 	case *ast.FuncType:
 		// Function type - generate a closure type
 		return generateClosureType(t)
 	default:
 		// Unhandled type
-		return fmt.Sprintf("/* TODO: Unhandled type %T */ std::sync::Arc<std::sync::Mutex<Option<()>>>", t)
+		return fmt.Sprintf("/* TODO: Unhandled type %T */ Arc<Mutex<Option<()>>>", t)
 	}
 }

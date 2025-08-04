@@ -1,6 +1,13 @@
-fn format_map<K: std::fmt::Display + std::cmp::Ord + Clone, V>(map: &std::sync::Arc<std::sync::Mutex<Option<std::collections::HashMap<K, std::sync::Arc<std::sync::Mutex<Option<V>>>>>>>) -> String 
+use std::sync::{Arc, Mutex};
+use std::collections::HashMap;
+use std::fmt::{self, Display, Formatter};
+use std::error::Error;
+use std::any::Any;
+use std::cmp::Ord;
+
+fn format_map<K: Display + Ord + Clone, V>(map: &Arc<Mutex<Option<HashMap<K, Arc<Mutex<Option<V>>>>>>>) -> String 
 where
-    V: std::fmt::Display,
+    V: Display,
 {
     let guard = map.lock().unwrap();
     if let Some(ref m) = *guard {
@@ -24,9 +31,9 @@ where
         "map[]".to_string()
     }
 }
-fn format_slice<T>(slice: &std::sync::Arc<std::sync::Mutex<Option<Vec<T>>>>) -> String 
+fn format_slice<T>(slice: &Arc<Mutex<Option<Vec<T>>>>) -> String 
 where
-    T: std::fmt::Display,
+    T: Display,
 {
     let guard = slice.lock().unwrap();
     if let Some(ref s) = *guard {
@@ -38,13 +45,13 @@ where
 }
 
 fn main() {
-    let mut x: std::sync::Arc<std::sync::Mutex<Option<i32>>> = std::sync::Arc::new(std::sync::Mutex::new(Some(42)));
-    let mut y: std::sync::Arc<std::sync::Mutex<Option<String>>> = std::sync::Arc::new(std::sync::Mutex::new(Some("hello".to_string())));
-    let mut z: std::sync::Arc<std::sync::Mutex<Option<f64>>> = std::sync::Arc::new(std::sync::Mutex::new(Some(3.14)));
+    let mut x: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(42)));
+    let mut y: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(Some("hello".to_string())));
+    let mut z: Arc<Mutex<Option<f64>>> = Arc::new(Mutex::new(Some(3.14)));
 
-    let mut a = std::sync::Arc::new(std::sync::Mutex::new(Some(100)));
-    let mut b = std::sync::Arc::new(std::sync::Mutex::new(Some("world".to_string())));
-    let mut c = std::sync::Arc::new(std::sync::Mutex::new(Some(2.71)));
+    let mut a = Arc::new(Mutex::new(Some(100)));
+    let mut b = Arc::new(Mutex::new(Some("world".to_string())));
+    let mut c = Arc::new(Mutex::new(Some(2.71)));
 
     println!("{} {} {} {}", "Variables:".to_string(), (*x.lock().unwrap().as_mut().unwrap()), (*y.lock().unwrap().as_mut().unwrap()), (*z.lock().unwrap().as_mut().unwrap()));
     println!("{} {} {} {}", "Short vars:".to_string(), (*a.lock().unwrap().as_mut().unwrap()), (*b.lock().unwrap().as_mut().unwrap()), (*c.lock().unwrap().as_mut().unwrap()));

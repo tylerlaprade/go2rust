@@ -198,6 +198,7 @@ See `go/typeinfo.go` and `go/README_TYPES.md` for implementation details.
 - ✅ **GOOD**: Using `TypeInfo.GetType()` to get the actual type information
 
 **Why this matters:**
+
 1. Heuristics break on edge cases (e.g., a variable named `makeCounter` vs a function `makeCounter`)
 2. Go/types already provides 100% accurate type information
 3. Heuristics make the transpiler fragile and unpredictable

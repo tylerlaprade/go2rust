@@ -132,7 +132,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			// Check if we're taking address of a struct literal
 			if _, isCompositeLit := e.X.(*ast.CompositeLit); isCompositeLit {
 				// For struct literals, wrap the whole thing in Arc<Mutex<Option<>>>
-				out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(Some(")
+				out.WriteString("Arc::new(Mutex::new(Some(")
 				TranspileExpressionContext(out, e.X, AddressOf)
 				out.WriteString(")))")
 			} else {
@@ -313,7 +313,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		// Handle array/slice literals
 		if arrayType, ok := e.Type.(*ast.ArrayType); ok {
 			// Wrap the entire array/slice in Arc<Mutex<Option<>>>
-			out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(Some(")
+			out.WriteString("Arc::new(Mutex::new(Some(")
 			if arrayType.Len != nil {
 				// Fixed-size array
 				out.WriteString("[")
@@ -331,7 +331,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			out.WriteString(")))")
 		} else if mapType, ok := e.Type.(*ast.MapType); ok {
 			// Map literal - wrap the whole map in Arc<Mutex<Option<>>>
-			out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(Some(std::collections::HashMap::<")
+			out.WriteString("Arc::new(Mutex::new(Some(HashMap::<")
 			out.WriteString(goTypeToRustBase(mapType.Key))
 			out.WriteString(", ")
 			out.WriteString(GoTypeToRust(mapType.Value))
@@ -345,7 +345,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					TranspileExpression(out, kv.Key)
 					out.WriteString(", ")
 					// Wrap map values in Arc<Mutex<Option<>>>
-					out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(Some(")
+					out.WriteString("Arc::new(Mutex::new(Some(")
 					TranspileExpression(out, kv.Value)
 					out.WriteString(")))")
 					out.WriteString(")")
@@ -365,7 +365,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 						out.WriteString(ToSnakeCase(key.Name))
 						out.WriteString(": ")
 						// Wrap field values in Arc<Mutex<Option<T>>>
-						out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(Some(")
+						out.WriteString("Arc::new(Mutex::new(Some(")
 						TranspileExpression(out, kv.Value)
 						out.WriteString(")))")
 					}
@@ -437,7 +437,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		// Unhandled expression type
 		out.WriteString("/* TODO: Unhandled expression type: ")
 		out.WriteString(strings.TrimPrefix(fmt.Sprintf("%T", e), "*ast."))
-		out.WriteString(" */ std::sync::Arc::new(std::sync::Mutex::new(Some(())))")
+		out.WriteString(" */ Arc::new(Mutex::new(Some(())))")
 	}
 }
 
@@ -467,7 +467,7 @@ func isBuiltinFunction(name string) bool {
 // TranspileFuncLit transpiles a function literal (closure)
 func TranspileFuncLit(out *strings.Builder, funcLit *ast.FuncLit) {
 	// Wrap the closure in Arc<Mutex<Option<Box<dyn Fn>>>
-	out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(Some(")
+	out.WriteString("Arc::new(Mutex::new(Some(")
 
 	// Generate the closure wrapped in Box
 	out.WriteString("Box::new(move |")
@@ -549,7 +549,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				out.WriteString(", ")
 			}
 			// For method calls, wrap arguments normally
-			out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(Some(")
+			out.WriteString("Arc::new(Mutex::new(Some(")
 			TranspileExpression(out, arg)
 			out.WriteString(")))")
 		}
@@ -604,19 +604,19 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 						out.WriteString(".clone()")
 					} else {
 						// It's a constant, wrap it
-						out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(Some(")
+						out.WriteString("Arc::new(Mutex::new(Some(")
 						TranspileExpression(out, arg)
 						out.WriteString(")))")
 					}
 				} else {
 					// Range variable, wrap it
-					out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(Some(")
+					out.WriteString("Arc::new(Mutex::new(Some(")
 					TranspileExpression(out, arg)
 					out.WriteString(")))")
 				}
 			} else {
 				// Not a simple identifier, wrap it
-				out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(Some(")
+				out.WriteString("Arc::new(Mutex::new(Some(")
 				TranspileExpression(out, arg)
 				out.WriteString(")))")
 			}

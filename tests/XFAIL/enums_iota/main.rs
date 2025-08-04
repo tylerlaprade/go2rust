@@ -1,6 +1,13 @@
-fn format_map<K: std::fmt::Display + std::cmp::Ord + Clone, V>(map: &std::sync::Arc<std::sync::Mutex<Option<std::collections::HashMap<K, std::sync::Arc<std::sync::Mutex<Option<V>>>>>>>) -> String 
+use std::sync::{Arc, Mutex};
+use std::collections::HashMap;
+use std::fmt::{self, Display, Formatter};
+use std::error::Error;
+use std::any::Any;
+use std::cmp::Ord;
+
+fn format_map<K: Display + Ord + Clone, V>(map: &Arc<Mutex<Option<HashMap<K, Arc<Mutex<Option<V>>>>>>>) -> String 
 where
-    V: std::fmt::Display,
+    V: Display,
 {
     let guard = map.lock().unwrap();
     if let Some(ref m) = *guard {
@@ -24,9 +31,9 @@ where
         "map[]".to_string()
     }
 }
-fn format_slice<T>(slice: &std::sync::Arc<std::sync::Mutex<Option<Vec<T>>>>) -> String 
+fn format_slice<T>(slice: &Arc<Mutex<Option<Vec<T>>>>) -> String 
 where
-    T: std::fmt::Display,
+    T: Display,
 {
     let guard = slice.lock().unwrap();
     if let Some(ref s) = *guard {
@@ -44,11 +51,11 @@ const STATE_RETRYING: i32 = 3;
 
 
 // TODO: Unhandled type declaration: Ident
-type ServerState = std::sync::Arc<std::sync::Mutex<Option<()>>>
+type ServerState = Arc<Mutex<Option<()>>>
 
 impl ServerState {
-    pub fn string(&self) -> std::sync::Arc<std::sync::Mutex<Option<String>>> {
-        return std::sync::Arc::new(std::sync::Mutex::new(Some((*(*stateName.lock().unwrap().as_ref().unwrap()).get(&self).unwrap().lock().unwrap().as_ref().unwrap()))));
+    pub fn string(&self) -> Arc<Mutex<Option<String>>> {
+        return Arc::new(Mutex::new(Some((*(*stateName.lock().unwrap().as_ref().unwrap()).get(&self).unwrap().lock().unwrap().as_ref().unwrap()))));
     }
 }
 
@@ -60,7 +67,7 @@ fn main() {
     println!("{}", (*ns2.lock().unwrap().as_mut().unwrap()));
 }
 
-pub fn transition(s: std::sync::Arc<std::sync::Mutex<Option<ServerState>>>) -> std::sync::Arc<std::sync::Mutex<Option<ServerState>>> {
+pub fn transition(s: Arc<Mutex<Option<ServerState>>>) -> Arc<Mutex<Option<ServerState>>> {
 
     match (*s.lock().unwrap().as_mut().unwrap()) {
         STATE_IDLE => {
@@ -73,7 +80,7 @@ pub fn transition(s: std::sync::Arc<std::sync::Mutex<Option<ServerState>>>) -> s
             return StateError.clone();
         }
         _ => {
-            panic(std::sync::Arc::new(std::sync::Mutex::new(Some(std::sync::Arc::new(std::sync::Mutex::new(Some(Box::new(format!("unknown state: {}", (*s.lock().unwrap().as_mut().unwrap()))) as Box<dyn std::error::Error + Send + Sync>)))))));
+            panic(Arc::new(Mutex::new(Some(Arc::new(Mutex::new(Some(Box::new(format!("unknown state: {}", (*s.lock().unwrap().as_mut().unwrap()))) as Box<dyn Error + Send + Sync>)))))));
         }
     }
 }

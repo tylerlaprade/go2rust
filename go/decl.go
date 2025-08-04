@@ -134,7 +134,7 @@ func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.Fi
 					out.WriteString(": ")
 					out.WriteString(GoTypeToRust(result.Type))
 					// Initialize with wrapped default values
-					out.WriteString(" = std::sync::Arc::new(std::sync::Mutex::new(")
+					out.WriteString(" = Arc::new(Mutex::new(")
 					switch t := result.Type.(type) {
 					case *ast.Ident:
 						switch t.Name {
@@ -303,7 +303,7 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 		out.WriteString("\n")
 		out.WriteString("type ")
 		out.WriteString(typeSpec.Name.Name)
-		out.WriteString(" = std::sync::Arc<std::sync::Mutex<Option<()>>>")
+		out.WriteString(" = Arc<Mutex<Option<()>>>")
 	}
 }
 

@@ -1,6 +1,13 @@
-fn format_map<K: std::fmt::Display + std::cmp::Ord + Clone, V>(map: &std::sync::Arc<std::sync::Mutex<Option<std::collections::HashMap<K, std::sync::Arc<std::sync::Mutex<Option<V>>>>>>>) -> String 
+use std::sync::{Arc, Mutex};
+use std::collections::HashMap;
+use std::fmt::{self, Display, Formatter};
+use std::error::Error;
+use std::any::Any;
+use std::cmp::Ord;
+
+fn format_map<K: Display + Ord + Clone, V>(map: &Arc<Mutex<Option<HashMap<K, Arc<Mutex<Option<V>>>>>>>) -> String 
 where
-    V: std::fmt::Display,
+    V: Display,
 {
     let guard = map.lock().unwrap();
     if let Some(ref m) = *guard {
@@ -24,9 +31,9 @@ where
         "map[]".to_string()
     }
 }
-fn format_slice<T>(slice: &std::sync::Arc<std::sync::Mutex<Option<Vec<T>>>>) -> String 
+fn format_slice<T>(slice: &Arc<Mutex<Option<Vec<T>>>>) -> String 
 where
-    T: std::fmt::Display,
+    T: Display,
 {
     let guard = slice.lock().unwrap();
     if let Some(ref s) = *guard {
@@ -39,18 +46,18 @@ where
 
 #[derive(Debug)]
 struct Point {
-    x: std::sync::Arc<std::sync::Mutex<Option<int32>>>,
-    y: std::sync::Arc<std::sync::Mutex<Option<int32>>>,
+    x: Arc<Mutex<Option<int32>>>,
+    y: Arc<Mutex<Option<int32>>>,
 }
 
 fn main() {
-    let mut p = std::sync::Arc::new(std::sync::Mutex::new(Some(Point { x: std::sync::Arc::new(std::sync::Mutex::new(Some(10))), y: std::sync::Arc::new(std::sync::Mutex::new(Some(20))) })));
+    let mut p = Arc::new(Mutex::new(Some(Point { x: Arc::new(Mutex::new(Some(10))), y: Arc::new(Mutex::new(Some(20))) })));
 
-    let mut xPtr = (((*int32.lock().unwrap().as_mut().unwrap())).lock().unwrap().as_ref().unwrap())(std::sync::Arc::new(std::sync::Mutex::new(Some((*unsafe.lock().unwrap().as_mut().unwrap()).pointer(std::sync::Arc::new(std::sync::Mutex::new(Some((*p.lock().unwrap().as_mut().unwrap())))))))));
+    let mut xPtr = (((*int32.lock().unwrap().as_mut().unwrap())).lock().unwrap().as_ref().unwrap())(Arc::new(Mutex::new(Some((*unsafe.lock().unwrap().as_mut().unwrap()).pointer(Arc::new(Mutex::new(Some((*p.lock().unwrap().as_mut().unwrap())))))))));
     print!("X via unsafe: {}\n", (*xPtr.lock().unwrap().as_mut().unwrap()));
 
-    let mut yPtr = (((*int32.lock().unwrap().as_mut().unwrap())).lock().unwrap().as_ref().unwrap())(std::sync::Arc::new(std::sync::Mutex::new(Some((*unsafe.lock().unwrap().as_mut().unwrap()).pointer(std::sync::Arc::new(std::sync::Mutex::new(Some((uintptr.lock().unwrap().as_ref().unwrap())(std::sync::Arc::new(std::sync::Mutex::new(Some((*unsafe.lock().unwrap().as_mut().unwrap()).pointer(std::sync::Arc::new(std::sync::Mutex::new(Some((*p.lock().unwrap().as_mut().unwrap()))))))))) + (*unsafe.lock().unwrap().as_mut().unwrap()).offsetof(std::sync::Arc::new(std::sync::Mutex::new(Some((*p.lock().unwrap().as_mut().unwrap()).y))))))))))));
+    let mut yPtr = (((*int32.lock().unwrap().as_mut().unwrap())).lock().unwrap().as_ref().unwrap())(Arc::new(Mutex::new(Some((*unsafe.lock().unwrap().as_mut().unwrap()).pointer(Arc::new(Mutex::new(Some((uintptr.lock().unwrap().as_ref().unwrap())(Arc::new(Mutex::new(Some((*unsafe.lock().unwrap().as_mut().unwrap()).pointer(Arc::new(Mutex::new(Some((*p.lock().unwrap().as_mut().unwrap()))))))))) + (*unsafe.lock().unwrap().as_mut().unwrap()).offsetof(Arc::new(Mutex::new(Some((*p.lock().unwrap().as_mut().unwrap()).y))))))))))));
     print!("Y via unsafe: {}\n", (*yPtr.lock().unwrap().as_mut().unwrap()));
 
-    print!("Size: {}, Align: {}\n", (*(*unsafe.lock().unwrap().as_mut().unwrap()).sizeof(std::sync::Arc::new(std::sync::Mutex::new(Some((*p.lock().unwrap().as_mut().unwrap()))))).lock().unwrap().as_mut().unwrap()), (*(*unsafe.lock().unwrap().as_mut().unwrap()).alignof(std::sync::Arc::new(std::sync::Mutex::new(Some((*p.lock().unwrap().as_mut().unwrap()))))).lock().unwrap().as_mut().unwrap()));
+    print!("Size: {}, Align: {}\n", (*(*unsafe.lock().unwrap().as_mut().unwrap()).sizeof(Arc::new(Mutex::new(Some((*p.lock().unwrap().as_mut().unwrap()))))).lock().unwrap().as_mut().unwrap()), (*(*unsafe.lock().unwrap().as_mut().unwrap()).alignof(Arc::new(Mutex::new(Some((*p.lock().unwrap().as_mut().unwrap()))))).lock().unwrap().as_mut().unwrap()));
 }

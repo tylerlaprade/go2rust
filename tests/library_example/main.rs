@@ -3,9 +3,16 @@ mod string;
 use math::*;
 use string::*;
 
-fn format_map<K: std::fmt::Display + std::cmp::Ord + Clone, V>(map: &std::sync::Arc<std::sync::Mutex<Option<std::collections::HashMap<K, std::sync::Arc<std::sync::Mutex<Option<V>>>>>>>) -> String 
+use std::sync::{Arc, Mutex};
+use std::collections::HashMap;
+use std::fmt::{self, Display, Formatter};
+use std::error::Error;
+use std::any::Any;
+use std::cmp::Ord;
+
+fn format_map<K: Display + Ord + Clone, V>(map: &Arc<Mutex<Option<HashMap<K, Arc<Mutex<Option<V>>>>>>>) -> String 
 where
-    V: std::fmt::Display,
+    V: Display,
 {
     let guard = map.lock().unwrap();
     if let Some(ref m) = *guard {
@@ -29,9 +36,9 @@ where
         "map[]".to_string()
     }
 }
-fn format_slice<T>(slice: &std::sync::Arc<std::sync::Mutex<Option<Vec<T>>>>) -> String 
+fn format_slice<T>(slice: &Arc<Mutex<Option<Vec<T>>>>) -> String 
 where
-    T: std::fmt::Display,
+    T: Display,
 {
     let guard = slice.lock().unwrap();
     if let Some(ref s) = *guard {
@@ -43,12 +50,12 @@ where
 }
 
 fn main() {
-    let mut sum = add(std::sync::Arc::new(std::sync::Mutex::new(Some(5))), std::sync::Arc::new(std::sync::Mutex::new(Some(3))));
+    let mut sum = add(Arc::new(Mutex::new(Some(5))), Arc::new(Mutex::new(Some(3))));
     print!("5 + 3 = {}\n", (*sum.lock().unwrap().as_mut().unwrap()));
 
-    let mut product = multiply(std::sync::Arc::new(std::sync::Mutex::new(Some(4))), std::sync::Arc::new(std::sync::Mutex::new(Some(7))));
+    let mut product = multiply(Arc::new(Mutex::new(Some(4))), Arc::new(Mutex::new(Some(7))));
     print!("4 * 7 = {}\n", (*product.lock().unwrap().as_mut().unwrap()));
 
-    let mut repeated = repeat(std::sync::Arc::new(std::sync::Mutex::new(Some("Go".to_string()))), std::sync::Arc::new(std::sync::Mutex::new(Some(3))));
+    let mut repeated = repeat(Arc::new(Mutex::new(Some("Go".to_string()))), Arc::new(Mutex::new(Some(3))));
     print!("Repeat(\"Go\", 3) = {}\n", (*repeated.lock().unwrap().as_mut().unwrap()));
 }

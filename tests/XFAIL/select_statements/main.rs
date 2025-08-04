@@ -1,6 +1,13 @@
-fn format_map<K: std::fmt::Display + std::cmp::Ord + Clone, V>(map: &std::sync::Arc<std::sync::Mutex<Option<std::collections::HashMap<K, std::sync::Arc<std::sync::Mutex<Option<V>>>>>>>) -> String 
+use std::sync::{Arc, Mutex};
+use std::collections::HashMap;
+use std::fmt::{self, Display, Formatter};
+use std::error::Error;
+use std::any::Any;
+use std::cmp::Ord;
+
+fn format_map<K: Display + Ord + Clone, V>(map: &Arc<Mutex<Option<HashMap<K, Arc<Mutex<Option<V>>>>>>>) -> String 
 where
-    V: std::fmt::Display,
+    V: Display,
 {
     let guard = map.lock().unwrap();
     if let Some(ref m) = *guard {
@@ -24,9 +31,9 @@ where
         "map[]".to_string()
     }
 }
-fn format_slice<T>(slice: &std::sync::Arc<std::sync::Mutex<Option<Vec<T>>>>) -> String 
+fn format_slice<T>(slice: &Arc<Mutex<Option<Vec<T>>>>) -> String 
 where
-    T: std::fmt::Display,
+    T: Display,
 {
     let guard = slice.lock().unwrap();
     if let Some(ref s) = *guard {
@@ -96,19 +103,19 @@ pub fn select_with_send() {
 
 fn main() {
     println!("{}", "=== Basic select ===".to_string());
-    (basicSelect.lock().unwrap().as_ref().unwrap())();
+    basic_select();
 
     println!("{}", "\n=== Select with timeout ===".to_string());
-    (selectWithTimeout.lock().unwrap().as_ref().unwrap())();
+    select_with_timeout();
 
     println!("{}", "\n=== Select with default ===".to_string());
-    (selectWithDefault.lock().unwrap().as_ref().unwrap())();
+    select_with_default();
 
     println!("{}", "\n=== Select with send ===".to_string());
-    (selectWithSend.lock().unwrap().as_ref().unwrap())();
+    select_with_send();
 
     println!("{}", "\n=== Select loop ===".to_string());
-    (selectLoop.lock().unwrap().as_ref().unwrap())();
+    select_loop();
 
     println!("{}", "\n=== All examples completed ===".to_string());
 }

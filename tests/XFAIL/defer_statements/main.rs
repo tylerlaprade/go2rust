@@ -1,6 +1,13 @@
-fn format_map<K: std::fmt::Display + std::cmp::Ord + Clone, V>(map: &std::sync::Arc<std::sync::Mutex<Option<std::collections::HashMap<K, std::sync::Arc<std::sync::Mutex<Option<V>>>>>>>) -> String 
+use std::sync::{Arc, Mutex};
+use std::collections::HashMap;
+use std::fmt::{self, Display, Formatter};
+use std::error::Error;
+use std::any::Any;
+use std::cmp::Ord;
+
+fn format_map<K: Display + Ord + Clone, V>(map: &Arc<Mutex<Option<HashMap<K, Arc<Mutex<Option<V>>>>>>>) -> String 
 where
-    V: std::fmt::Display,
+    V: Display,
 {
     let guard = map.lock().unwrap();
     if let Some(ref m) = *guard {
@@ -24,9 +31,9 @@ where
         "map[]".to_string()
     }
 }
-fn format_slice<T>(slice: &std::sync::Arc<std::sync::Mutex<Option<Vec<T>>>>) -> String 
+fn format_slice<T>(slice: &Arc<Mutex<Option<Vec<T>>>>) -> String 
 where
-    T: std::fmt::Display,
+    T: Display,
 {
     let guard = slice.lock().unwrap();
     if let Some(ref s) = *guard {
@@ -55,7 +62,7 @@ pub fn defer_example() {
     println!("{}", "Middle of function".to_string());
 
     __defer_stack.push(Box::new(move || {
-        (std::sync::Arc::new(std::sync::Mutex::new(Some(Box::new(move || {
+        (Arc::new(Mutex::new(Some(Box::new(move || {
         println!("{}", "Anonymous deferred function".to_string());
     }) as Box<dyn Fn() -> () + Send + Sync>))).lock().unwrap().as_ref().unwrap())();
     }));
@@ -71,9 +78,9 @@ pub fn defer_example() {
 pub fn defer_with_variables() {
     let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-    let mut x = std::sync::Arc::new(std::sync::Mutex::new(Some(10)));
+    let mut x = Arc::new(Mutex::new(Some(10)));
     __defer_stack.push(Box::new(move || {
-        (std::sync::Arc::new(std::sync::Mutex::new(Some(Box::new(move || {
+        (Arc::new(Mutex::new(Some(Box::new(move || {
         println!("{} {}", "Deferred x:".to_string(), (*x.lock().unwrap().as_mut().unwrap()));
     }) as Box<dyn Fn() -> () + Send + Sync>))).lock().unwrap().as_ref().unwrap())();
     }));
@@ -91,12 +98,12 @@ pub fn defer_in_loop() {
     let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
     println!("{}", "Defer in loop:".to_string());
-    let mut i = std::sync::Arc::new(std::sync::Mutex::new(Some(0)));
+    let mut i = Arc::new(Mutex::new(Some(0)));
     while (*i.lock().unwrap().as_mut().unwrap()) < 3 {
         __defer_stack.push(Box::new(move || {
-        (std::sync::Arc::new(std::sync::Mutex::new(Some(Box::new(move |val: std::sync::Arc<std::sync::Mutex<Option<i32>>>| {
+        (Arc::new(Mutex::new(Some(Box::new(move |val: Arc<Mutex<Option<i32>>>| {
         print!("Deferred loop value: {}\n", (*val.lock().unwrap().as_mut().unwrap()));
-    }) as Box<dyn Fn(std::sync::Arc<std::sync::Mutex<Option<i32>>>) -> () + Send + Sync>))).lock().unwrap().as_ref().unwrap())(i.clone());
+    }) as Box<dyn Fn(Arc<Mutex<Option<i32>>>) -> () + Send + Sync>))).lock().unwrap().as_ref().unwrap())(i.clone());
     }));
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
@@ -122,7 +129,7 @@ pub fn resource_example() {
 
     println!("{}", "Using resource".to_string());
 
-    let mut i = std::sync::Arc::new(std::sync::Mutex::new(Some(0)));
+    let mut i = Arc::new(Mutex::new(Some(0)));
     while (*i.lock().unwrap().as_mut().unwrap()) < 3 {
         print!("Working... {}\n", (*i.lock().unwrap().as_mut().unwrap()) + 1);
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }

@@ -7,7 +7,7 @@ import (
 
 // WrapInArcMutex wraps an expression in Arc<Mutex<Option<...>>>
 func WrapInArcMutex(out *strings.Builder, expr ast.Expr) {
-	out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(Some(")
+	out.WriteString("Arc::new(Mutex::new(Some(")
 	TranspileExpression(out, expr)
 	out.WriteString(")))")
 }

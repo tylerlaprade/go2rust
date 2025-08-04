@@ -1,6 +1,13 @@
-fn format_map<K: std::fmt::Display + std::cmp::Ord + Clone, V>(map: &std::sync::Arc<std::sync::Mutex<Option<std::collections::HashMap<K, std::sync::Arc<std::sync::Mutex<Option<V>>>>>>>) -> String 
+use std::sync::{Arc, Mutex};
+use std::collections::HashMap;
+use std::fmt::{self, Display, Formatter};
+use std::error::Error;
+use std::any::Any;
+use std::cmp::Ord;
+
+fn format_map<K: Display + Ord + Clone, V>(map: &Arc<Mutex<Option<HashMap<K, Arc<Mutex<Option<V>>>>>>>) -> String 
 where
-    V: std::fmt::Display,
+    V: Display,
 {
     let guard = map.lock().unwrap();
     if let Some(ref m) = *guard {
@@ -24,9 +31,9 @@ where
         "map[]".to_string()
     }
 }
-fn format_slice<T>(slice: &std::sync::Arc<std::sync::Mutex<Option<Vec<T>>>>) -> String 
+fn format_slice<T>(slice: &Arc<Mutex<Option<Vec<T>>>>) -> String 
 where
-    T: std::fmt::Display,
+    T: Display,
 {
     let guard = slice.lock().unwrap();
     if let Some(ref s) = *guard {
@@ -38,7 +45,7 @@ where
 }
 
 fn main() {
-    let mut x = std::sync::Arc::new(std::sync::Mutex::new(Some(10)));
+    let mut x = Arc::new(Mutex::new(Some(10)));
     { let mut guard = x.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 5); };
     print!("x += 5: {}\n", (*x.lock().unwrap().as_mut().unwrap()));
 
@@ -54,7 +61,7 @@ fn main() {
     { let mut guard = x.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() % 5); };
     print!("x %%= 5: {}\n", (*x.lock().unwrap().as_mut().unwrap()));
 
-    let mut y = std::sync::Arc::new(std::sync::Mutex::new(Some(0b1010)));
+    let mut y = Arc::new(Mutex::new(Some(0b1010)));
     y = 0b1100;
     print!("y &= 0b1100: %b\n", (*y.lock().unwrap().as_mut().unwrap()));
 
@@ -70,14 +77,14 @@ fn main() {
     y = 1;
     print!("y >>= 1: %b\n", (*y.lock().unwrap().as_mut().unwrap()));
 
-    let mut f = std::sync::Arc::new(std::sync::Mutex::new(Some(3.14)));
+    let mut f = Arc::new(Mutex::new(Some(3.14)));
     { let mut guard = f.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 2.86); };
     print!("f += 2.86: {:.2}\n", (*f.lock().unwrap().as_mut().unwrap()));
 
     { let mut guard = f.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() * 2.0); };
     print!("f *= 2.0: {:.2}\n", (*f.lock().unwrap().as_mut().unwrap()));
 
-    let mut s = std::sync::Arc::new(std::sync::Mutex::new(Some("Hello".to_string())));
+    let mut s = Arc::new(Mutex::new(Some("Hello".to_string())));
     (*s.lock().unwrap().as_mut().unwrap()).push_str(&" World".to_string());
     print!("s += \" World\": {}\n", (*s.lock().unwrap().as_mut().unwrap()));
 }

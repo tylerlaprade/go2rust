@@ -1,14 +1,21 @@
-pub fn get_hello() -> std::sync::Arc<std::sync::Mutex<Option<String>>> {
+use std::sync::{Arc, Mutex};
+use std::collections::HashMap;
+use std::fmt::{self, Display, Formatter};
+use std::error::Error;
+use std::any::Any;
+use std::cmp::Ord;
 
-    return std::sync::Arc::new(std::sync::Mutex::new(Some("Hello".to_string())));
+pub fn get_hello() -> Arc<Mutex<Option<String>>> {
+
+    return Arc::new(Mutex::new(Some("Hello".to_string())));
 }
 
-pub fn get_world() -> std::sync::Arc<std::sync::Mutex<Option<String>>> {
+pub fn get_world() -> Arc<Mutex<Option<String>>> {
 
-    return std::sync::Arc::new(std::sync::Mutex::new(Some("World".to_string())));
+    return Arc::new(Mutex::new(Some("World".to_string())));
 }
 
-pub fn get_magic_number() -> std::sync::Arc<std::sync::Mutex<Option<i32>>> {
+pub fn get_magic_number() -> Arc<Mutex<Option<i32>>> {
 
-    return std::sync::Arc::new(std::sync::Mutex::new(Some(42)));
+    return Arc::new(Mutex::new(Some(42)));
 }

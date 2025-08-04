@@ -1,6 +1,13 @@
-fn format_map<K: std::fmt::Display + std::cmp::Ord + Clone, V>(map: &std::sync::Arc<std::sync::Mutex<Option<std::collections::HashMap<K, std::sync::Arc<std::sync::Mutex<Option<V>>>>>>>) -> String 
+use std::sync::{Arc, Mutex};
+use std::collections::HashMap;
+use std::fmt::{self, Display, Formatter};
+use std::error::Error;
+use std::any::Any;
+use std::cmp::Ord;
+
+fn format_map<K: Display + Ord + Clone, V>(map: &Arc<Mutex<Option<HashMap<K, Arc<Mutex<Option<V>>>>>>>) -> String 
 where
-    V: std::fmt::Display,
+    V: Display,
 {
     let guard = map.lock().unwrap();
     if let Some(ref m) = *guard {
@@ -24,9 +31,9 @@ where
         "map[]".to_string()
     }
 }
-fn format_slice<T>(slice: &std::sync::Arc<std::sync::Mutex<Option<Vec<T>>>>) -> String 
+fn format_slice<T>(slice: &Arc<Mutex<Option<Vec<T>>>>) -> String 
 where
-    T: std::fmt::Display,
+    T: Display,
 {
     let guard = slice.lock().unwrap();
     if let Some(ref s) = *guard {
@@ -37,19 +44,19 @@ where
     }
 }
 
-pub fn ping(pings: std::sync::Arc<std::sync::Mutex<Option</* TODO: Unhandled type *ast.ChanType */ std::sync::Arc<std::sync::Mutex<Option<()>>>>>>, msg: std::sync::Arc<std::sync::Mutex<Option<String>>>) {
+pub fn ping(pings: Arc<Mutex<Option</* TODO: Unhandled type *ast.ChanType */ Arc<Mutex<Option<()>>>>>>, msg: Arc<Mutex<Option<String>>>) {
     // TODO: Unhandled statement type: SendStmt
 }
 
-pub fn pong(pings: std::sync::Arc<std::sync::Mutex<Option</* TODO: Unhandled type *ast.ChanType */ std::sync::Arc<std::sync::Mutex<Option<()>>>>>>, pongs: std::sync::Arc<std::sync::Mutex<Option</* TODO: Unhandled type *ast.ChanType */ std::sync::Arc<std::sync::Mutex<Option<()>>>>>>) {
-    let mut msg = std::sync::Arc::new(std::sync::Mutex::new(Some(<-(*pings.lock().unwrap().as_mut().unwrap()))));
+pub fn pong(pings: Arc<Mutex<Option</* TODO: Unhandled type *ast.ChanType */ Arc<Mutex<Option<()>>>>>>, pongs: Arc<Mutex<Option</* TODO: Unhandled type *ast.ChanType */ Arc<Mutex<Option<()>>>>>>) {
+    let mut msg = Arc::new(Mutex::new(Some(<-(*pings.lock().unwrap().as_mut().unwrap()))));
     // TODO: Unhandled statement type: SendStmt
 }
 
 fn main() {
     let mut pings = ;
     let mut pongs = ;
-    ping(pings.clone(), std::sync::Arc::new(std::sync::Mutex::new(Some("passed message".to_string()))));
+    ping(pings.clone(), Arc::new(Mutex::new(Some("passed message".to_string()))));
     pong(pings.clone(), pongs.clone());
     println!("{}", <-(*pongs.lock().unwrap().as_mut().unwrap()));
 }

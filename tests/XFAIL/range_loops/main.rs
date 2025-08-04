@@ -1,6 +1,13 @@
-fn format_map<K: std::fmt::Display + std::cmp::Ord + Clone, V>(map: &std::sync::Arc<std::sync::Mutex<Option<std::collections::HashMap<K, std::sync::Arc<std::sync::Mutex<Option<V>>>>>>>) -> String 
+use std::sync::{Arc, Mutex};
+use std::collections::HashMap;
+use std::fmt::{self, Display, Formatter};
+use std::error::Error;
+use std::any::Any;
+use std::cmp::Ord;
+
+fn format_map<K: Display + Ord + Clone, V>(map: &Arc<Mutex<Option<HashMap<K, Arc<Mutex<Option<V>>>>>>>) -> String 
 where
-    V: std::fmt::Display,
+    V: Display,
 {
     let guard = map.lock().unwrap();
     if let Some(ref m) = *guard {
@@ -24,9 +31,9 @@ where
         "map[]".to_string()
     }
 }
-fn format_slice<T>(slice: &std::sync::Arc<std::sync::Mutex<Option<Vec<T>>>>) -> String 
+fn format_slice<T>(slice: &Arc<Mutex<Option<Vec<T>>>>) -> String 
 where
-    T: std::fmt::Display,
+    T: Display,
 {
     let guard = slice.lock().unwrap();
     if let Some(ref s) = *guard {
@@ -39,7 +46,7 @@ where
 
 fn main() {
     println!("{}", "=== Range over slice ===".to_string());
-    let mut numbers = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![10, 20, 30, 40, 50])));
+    let mut numbers = Arc::new(Mutex::new(Some(vec![10, 20, 30, 40, 50])));
 
     for (i, num) in (*numbers.lock().unwrap().as_mut().unwrap()).iter().enumerate() {
         print!("Index {}: {}\n", i, num);
@@ -58,19 +65,19 @@ fn main() {
     println!();
 
     println!("{}", "\n=== Range over array ===".to_string());
-    let mut arr = std::sync::Arc::new(std::sync::Mutex::new(Some(["apple".to_string(), "banana".to_string(), "cherry".to_string(), "date".to_string()])));
+    let mut arr = Arc::new(Mutex::new(Some(["apple".to_string(), "banana".to_string(), "cherry".to_string(), "date".to_string()])));
     for (i, fruit) in (*arr.lock().unwrap().as_mut().unwrap()).iter().enumerate() {
         print!("{}: {}\n", i, fruit);
     }
 
     println!("{}", "\n=== Range over string ===".to_string());
-    let mut text = std::sync::Arc::new(std::sync::Mutex::new(Some("Hello, 世界".to_string())));
+    let mut text = Arc::new(Mutex::new(Some("Hello, 世界".to_string())));
     for (i, char) in (*(*text.lock().unwrap().as_mut().unwrap()).lock().unwrap().as_ref().unwrap()).chars().enumerate() {
         print!("Byte {}: {} (Unicode: {:?})\n", i, char, char);
     }
 
     println!("{}", "\n=== Range over map ===".to_string());
-    let mut ages = std::sync::Arc::new(std::sync::Mutex::new(Some(std::collections::HashMap::<String, std::sync::Arc<std::sync::Mutex<Option<i32>>>>::from([("Alice".to_string(), std::sync::Arc::new(std::sync::Mutex::new(Some(25)))), ("Bob".to_string(), std::sync::Arc::new(std::sync::Mutex::new(Some(30)))), ("Charlie".to_string(), std::sync::Arc::new(std::sync::Mutex::new(Some(35))))]))));
+    let mut ages = Arc::new(Mutex::new(Some(HashMap::<String, Arc<Mutex<Option<i32>>>>::from([("Alice".to_string(), Arc::new(Mutex::new(Some(25)))), ("Bob".to_string(), Arc::new(Mutex::new(Some(30)))), ("Charlie".to_string(), Arc::new(Mutex::new(Some(35))))]))));
 
     for (name, age) in (*ages.lock().unwrap().as_ref().unwrap()).clone() {
         print!("{} is {} years old\n", name, (*age.lock().unwrap().as_mut().unwrap()));
@@ -85,19 +92,19 @@ fn main() {
     println!("{}", "\n=== Range over channel ===".to_string());
     let mut ch = ;
 
-    let mut i = std::sync::Arc::new(std::sync::Mutex::new(Some(1)));
+    let mut i = Arc::new(Mutex::new(Some(1)));
     while (*i.lock().unwrap().as_mut().unwrap()) <= 5 {
         // TODO: Unhandled statement type: SendStmt
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
-    close(ch.clone());
+    (close.lock().unwrap().as_ref().unwrap())(ch.clone());
 
     for value in 0..(*ch.lock().unwrap().as_mut().unwrap()).len() {
         print!("Received: {}\n", value);
     }
 
     println!("{}", "\n=== Range with break/continue ===".to_string());
-    let mut data = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10])));
+    let mut data = Arc::new(Mutex::new(Some(vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10])));
 
     println!("{}", "Even numbers only (with continue):".to_string());
     for num in &(*data.lock().unwrap().as_mut().unwrap()) {
@@ -118,7 +125,7 @@ fn main() {
     println!();
 
     println!("{}", "\n=== Nested range loops ===".to_string());
-    let mut matrix = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![, , ])));
+    let mut matrix = Arc::new(Mutex::new(Some(vec![, , ])));
 
     for (i, row) in (*matrix.lock().unwrap().as_mut().unwrap()).iter().enumerate() {
         for (j, val) in row.iter().enumerate() {
@@ -127,8 +134,8 @@ fn main() {
     }
 
     println!("{}", "\n=== Range over empty collections ===".to_string());
-    let mut emptySlice: std::sync::Arc<std::sync::Mutex<Option<Vec<i32>>>> = std::sync::Arc::new(std::sync::Mutex::new(Some(Default::default())));
-    let mut emptyMap: std::sync::Arc<std::sync::Mutex<Option<std::collections::HashMap<String, i32>>>>;
+    let mut emptySlice: Arc<Mutex<Option<Vec<i32>>>> = Arc::new(Mutex::new(Some(Default::default())));
+    let mut emptyMap: Arc<Mutex<Option<HashMap<String, i32>>>>;
 
     println!("{}", "Empty slice:".to_string());
     for (i, v) in (*emptySlice.lock().unwrap().as_mut().unwrap()).iter().enumerate() {

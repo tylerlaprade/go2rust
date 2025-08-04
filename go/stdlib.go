@@ -260,7 +260,7 @@ func transpileFmtSprintf(out *strings.Builder, call *ast.CallExpr) {
 }
 
 func transpileFmtErrorf(out *strings.Builder, call *ast.CallExpr) {
-	out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(Some(Box::new(format!")
+	out.WriteString("Arc::new(Mutex::new(Some(Box::new(format!")
 	out.WriteString("(")
 
 	if len(call.Args) > 0 {
@@ -292,11 +292,11 @@ func transpileFmtErrorf(out *strings.Builder, call *ast.CallExpr) {
 		}
 	}
 
-	out.WriteString(")) as Box<dyn std::error::Error + Send + Sync>)))")
+	out.WriteString(")) as Box<dyn Error + Send + Sync>)))")
 }
 
 func transpileErrorsNew(out *strings.Builder, call *ast.CallExpr) {
-	out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(Some(Box::<dyn std::error::Error + Send + Sync>::from(")
+	out.WriteString("Arc::new(Mutex::new(Some(Box::<dyn std::error::Error + Send + Sync>::from(")
 
 	if len(call.Args) > 0 {
 		// The argument is the error message
@@ -360,8 +360,8 @@ func transpileStrconvAtoi(out *strings.Builder, call *ast.CallExpr) {
 		out.WriteString("match ")
 		TranspileExpression(out, call.Args[0])
 		out.WriteString(".parse::<i32>() { ")
-		out.WriteString("Ok(n) => (std::sync::Arc::new(std::sync::Mutex::new(Some(n))), std::sync::Arc::new(std::sync::Mutex::new(None))), ")
-		out.WriteString("Err(e) => (std::sync::Arc::new(std::sync::Mutex::new(Some(0))), std::sync::Arc::new(std::sync::Mutex::new(Some(Box::new(e) as Box<dyn std::error::Error + Send + Sync>)))) }")
+		out.WriteString("Ok(n) => (Arc::new(Mutex::new(Some(n))), Arc::new(Mutex::new(None))), ")
+		out.WriteString("Err(e) => (Arc::new(Mutex::new(Some(0))), Arc::new(Mutex::new(Some(Box::new(e) as Box<dyn Error + Send + Sync>)))) }")
 	}
 }
 
@@ -425,8 +425,8 @@ func transpileMake(out *strings.Builder, call *ast.CallExpr) {
 	if len(call.Args) >= 1 {
 		// Check if it's a map type
 		if mapType, ok := call.Args[0].(*ast.MapType); ok {
-			out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(Some(")
-			out.WriteString("std::collections::HashMap::<")
+			out.WriteString("Arc::new(Mutex::new(Some(")
+			out.WriteString("HashMap::<")
 			out.WriteString(goTypeToRustBase(mapType.Key))
 			out.WriteString(", ")
 			out.WriteString(GoTypeToRust(mapType.Value))
@@ -448,7 +448,7 @@ func transpileMake(out *strings.Builder, call *ast.CallExpr) {
 				}
 			}
 
-			out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(Some(")
+			out.WriteString("Arc::new(Mutex::new(Some(")
 			if len(call.Args) >= 2 {
 				// Check if size is 0
 				if lit, ok := call.Args[1].(*ast.BasicLit); ok && lit.Value == "0" {
@@ -502,7 +502,7 @@ func transpileDelete(out *strings.Builder, call *ast.CallExpr) {
 
 func transpileNew(out *strings.Builder, call *ast.CallExpr) {
 	if len(call.Args) > 0 {
-		out.WriteString("std::sync::Arc::new(std::sync::Mutex::new(Some(")
+		out.WriteString("Arc::new(Mutex::new(Some(")
 		out.WriteString(GoTypeToRust(call.Args[0]))
 		out.WriteString("::default())))")
 	}
@@ -510,9 +510,9 @@ func transpileNew(out *strings.Builder, call *ast.CallExpr) {
 
 // Helper function to format maps like Go does
 func generateMapFormatter(out *strings.Builder) {
-	out.WriteString(`fn format_map<K: std::fmt::Display + std::cmp::Ord + Clone, V>(map: &std::sync::Arc<std::sync::Mutex<Option<std::collections::HashMap<K, std::sync::Arc<std::sync::Mutex<Option<V>>>>>>>) -> String 
+	out.WriteString(`fn format_map<K: Display + Ord + Clone, V>(map: &Arc<Mutex<Option<HashMap<K, Arc<Mutex<Option<V>>>>>>>) -> String 
 where
-    V: std::fmt::Display,
+    V: Display,
 {
     let guard = map.lock().unwrap();
     if let Some(ref m) = *guard {
@@ -541,9 +541,9 @@ where
 
 // Helper function to format slices like Go does
 func generateSliceFormatter(out *strings.Builder) {
-	out.WriteString(`fn format_slice<T>(slice: &std::sync::Arc<std::sync::Mutex<Option<Vec<T>>>>) -> String 
+	out.WriteString(`fn format_slice<T>(slice: &Arc<Mutex<Option<Vec<T>>>>) -> String 
 where
-    T: std::fmt::Display,
+    T: Display,
 {
     let guard = slice.lock().unwrap();
     if let Some(ref s) = *guard {

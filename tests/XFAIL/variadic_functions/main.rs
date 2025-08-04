@@ -1,6 +1,13 @@
-fn format_map<K: std::fmt::Display + std::cmp::Ord + Clone, V>(map: &std::sync::Arc<std::sync::Mutex<Option<std::collections::HashMap<K, std::sync::Arc<std::sync::Mutex<Option<V>>>>>>>) -> String 
+use std::sync::{Arc, Mutex};
+use std::collections::HashMap;
+use std::fmt::{self, Display, Formatter};
+use std::error::Error;
+use std::any::Any;
+use std::cmp::Ord;
+
+fn format_map<K: Display + Ord + Clone, V>(map: &Arc<Mutex<Option<HashMap<K, Arc<Mutex<Option<V>>>>>>>) -> String 
 where
-    V: std::fmt::Display,
+    V: Display,
 {
     let guard = map.lock().unwrap();
     if let Some(ref m) = *guard {
@@ -24,9 +31,9 @@ where
         "map[]".to_string()
     }
 }
-fn format_slice<T>(slice: &std::sync::Arc<std::sync::Mutex<Option<Vec<T>>>>) -> String 
+fn format_slice<T>(slice: &Arc<Mutex<Option<Vec<T>>>>) -> String 
 where
-    T: std::fmt::Display,
+    T: Display,
 {
     let guard = slice.lock().unwrap();
     if let Some(ref s) = *guard {
@@ -37,41 +44,41 @@ where
     }
 }
 
-pub fn sum(numbers: std::sync::Arc<std::sync::Mutex<Option</* TODO: Unhandled type *ast.Ellipsis */ std::sync::Arc<std::sync::Mutex<Option<()>>>>>>) -> std::sync::Arc<std::sync::Mutex<Option<i32>>> {
+pub fn sum(numbers: Arc<Mutex<Option</* TODO: Unhandled type *ast.Ellipsis */ Arc<Mutex<Option<()>>>>>>) -> Arc<Mutex<Option<i32>>> {
 
-    let mut total = std::sync::Arc::new(std::sync::Mutex::new(Some(0)));
+    let mut total = Arc::new(Mutex::new(Some(0)));
     for num in &(*numbers.lock().unwrap().as_mut().unwrap()) {
         { let mut guard = total.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + num); };
     }
     return total.clone();
 }
 
-pub fn average(numbers: std::sync::Arc<std::sync::Mutex<Option</* TODO: Unhandled type *ast.Ellipsis */ std::sync::Arc<std::sync::Mutex<Option<()>>>>>>) -> std::sync::Arc<std::sync::Mutex<Option<f64>>> {
+pub fn average(numbers: Arc<Mutex<Option</* TODO: Unhandled type *ast.Ellipsis */ Arc<Mutex<Option<()>>>>>>) -> Arc<Mutex<Option<f64>>> {
 
     if (*numbers.lock().unwrap().as_mut().unwrap()).len() == 0 {
-        return std::sync::Arc::new(std::sync::Mutex::new(Some(0)));
+        return Arc::new(Mutex::new(Some(0)));
     }
-    let mut total = std::sync::Arc::new(std::sync::Mutex::new(Some(0.0)));
+    let mut total = Arc::new(Mutex::new(Some(0.0)));
     for num in &(*numbers.lock().unwrap().as_mut().unwrap()) {
         { let mut guard = total.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + num); };
     }
-    return std::sync::Arc::new(std::sync::Mutex::new(Some((*total.lock().unwrap().as_mut().unwrap()) / (float64.lock().unwrap().as_ref().unwrap())(std::sync::Arc::new(std::sync::Mutex::new(Some((*numbers.lock().unwrap().as_mut().unwrap()).len())))))));
+    return Arc::new(Mutex::new(Some((*total.lock().unwrap().as_mut().unwrap()) / (float64.lock().unwrap().as_ref().unwrap())(Arc::new(Mutex::new(Some((*numbers.lock().unwrap().as_mut().unwrap()).len())))))));
 }
 
-pub fn print_strings(prefix: std::sync::Arc<std::sync::Mutex<Option<String>>>, strings: std::sync::Arc<std::sync::Mutex<Option</* TODO: Unhandled type *ast.Ellipsis */ std::sync::Arc<std::sync::Mutex<Option<()>>>>>>) {
+pub fn print_strings(prefix: Arc<Mutex<Option<String>>>, strings: Arc<Mutex<Option</* TODO: Unhandled type *ast.Ellipsis */ Arc<Mutex<Option<()>>>>>>) {
     print!("{}: ", (*prefix.lock().unwrap().as_mut().unwrap()));
     for (i, str) in (*strings.lock().unwrap().as_mut().unwrap()).iter().enumerate() {
         if i > 0 {
-        (*fmt.lock().unwrap().as_mut().unwrap()).print(std::sync::Arc::new(std::sync::Mutex::new(Some(", ".to_string()))));
+        (*fmt.lock().unwrap().as_mut().unwrap()).print(Arc::new(Mutex::new(Some(", ".to_string()))));
     }
-        (*fmt.lock().unwrap().as_mut().unwrap()).print(std::sync::Arc::new(std::sync::Mutex::new(Some(str))));
+        (*fmt.lock().unwrap().as_mut().unwrap()).print(Arc::new(Mutex::new(Some(str))));
     }
     println!();
 }
 
-pub fn min(first: std::sync::Arc<std::sync::Mutex<Option<i32>>>, rest: std::sync::Arc<std::sync::Mutex<Option</* TODO: Unhandled type *ast.Ellipsis */ std::sync::Arc<std::sync::Mutex<Option<()>>>>>>) -> std::sync::Arc<std::sync::Mutex<Option<i32>>> {
+pub fn min(first: Arc<Mutex<Option<i32>>>, rest: Arc<Mutex<Option</* TODO: Unhandled type *ast.Ellipsis */ Arc<Mutex<Option<()>>>>>>) -> Arc<Mutex<Option<i32>>> {
 
-    let mut minimum = std::sync::Arc::new(std::sync::Mutex::new(Some((*first.lock().unwrap().as_mut().unwrap()))));
+    let mut minimum = Arc::new(Mutex::new(Some((*first.lock().unwrap().as_mut().unwrap()))));
     for num in &(*rest.lock().unwrap().as_mut().unwrap()) {
         if num < (*minimum.lock().unwrap().as_mut().unwrap()) {
         { let new_val = num; *minimum.lock().unwrap() = Some(new_val); };
@@ -80,12 +87,12 @@ pub fn min(first: std::sync::Arc<std::sync::Mutex<Option<i32>>>, rest: std::sync
     return minimum.clone();
 }
 
-pub fn concat(separator: std::sync::Arc<std::sync::Mutex<Option<String>>>, strings: std::sync::Arc<std::sync::Mutex<Option</* TODO: Unhandled type *ast.Ellipsis */ std::sync::Arc<std::sync::Mutex<Option<()>>>>>>) -> std::sync::Arc<std::sync::Mutex<Option<String>>> {
+pub fn concat(separator: Arc<Mutex<Option<String>>>, strings: Arc<Mutex<Option</* TODO: Unhandled type *ast.Ellipsis */ Arc<Mutex<Option<()>>>>>>) -> Arc<Mutex<Option<String>>> {
 
     if (*strings.lock().unwrap().as_mut().unwrap()).len() == 0 {
-        return std::sync::Arc::new(std::sync::Mutex::new(Some("".to_string())));
+        return Arc::new(Mutex::new(Some("".to_string())));
     }
-    let mut result = std::sync::Arc::new(std::sync::Mutex::new(Some((*strings.lock().unwrap().as_mut().unwrap())[0])));
+    let mut result = Arc::new(Mutex::new(Some((*strings.lock().unwrap().as_mut().unwrap())[0])));
     for str in &(*strings.lock().unwrap().as_mut().unwrap())[1..].to_vec() {
         (*result.lock().unwrap().as_mut().unwrap()).push_str(&(*separator.lock().unwrap().as_mut().unwrap()) + str);
     }
@@ -94,26 +101,26 @@ pub fn concat(separator: std::sync::Arc<std::sync::Mutex<Option<String>>>, strin
 
 fn main() {
     println!("{} {}", "Sum of no numbers:".to_string(), (*sum().lock().unwrap().as_mut().unwrap()));
-    println!("{} {}", "Sum of 1, 2, 3:".to_string(), (*sum(std::sync::Arc::new(std::sync::Mutex::new(Some(1))), std::sync::Arc::new(std::sync::Mutex::new(Some(2))), std::sync::Arc::new(std::sync::Mutex::new(Some(3)))).lock().unwrap().as_mut().unwrap()));
-    println!("{} {}", "Sum of 1, 2, 3, 4, 5:".to_string(), (*sum(std::sync::Arc::new(std::sync::Mutex::new(Some(1))), std::sync::Arc::new(std::sync::Mutex::new(Some(2))), std::sync::Arc::new(std::sync::Mutex::new(Some(3))), std::sync::Arc::new(std::sync::Mutex::new(Some(4))), std::sync::Arc::new(std::sync::Mutex::new(Some(5)))).lock().unwrap().as_mut().unwrap()));
+    println!("{} {}", "Sum of 1, 2, 3:".to_string(), (*sum(Arc::new(Mutex::new(Some(1))), Arc::new(Mutex::new(Some(2))), Arc::new(Mutex::new(Some(3)))).lock().unwrap().as_mut().unwrap()));
+    println!("{} {}", "Sum of 1, 2, 3, 4, 5:".to_string(), (*sum(Arc::new(Mutex::new(Some(1))), Arc::new(Mutex::new(Some(2))), Arc::new(Mutex::new(Some(3))), Arc::new(Mutex::new(Some(4))), Arc::new(Mutex::new(Some(5)))).lock().unwrap().as_mut().unwrap()));
 
-    let mut numbers = std::sync::Arc::new(std::sync::Mutex::new(Some(vec![10, 20, 30, 40])));
+    let mut numbers = Arc::new(Mutex::new(Some(vec![10, 20, 30, 40])));
     println!("{} {}", "Sum of slice:".to_string(), (*sum(numbers.clone()).lock().unwrap().as_mut().unwrap()));
 
-    println!("{} {}", "Average of 1.5, 2.5, 3.5:".to_string(), (*average(std::sync::Arc::new(std::sync::Mutex::new(Some(1.5))), std::sync::Arc::new(std::sync::Mutex::new(Some(2.5))), std::sync::Arc::new(std::sync::Mutex::new(Some(3.5)))).lock().unwrap().as_mut().unwrap()));
+    println!("{} {}", "Average of 1.5, 2.5, 3.5:".to_string(), (*average(Arc::new(Mutex::new(Some(1.5))), Arc::new(Mutex::new(Some(2.5))), Arc::new(Mutex::new(Some(3.5)))).lock().unwrap().as_mut().unwrap()));
     println!("{} {}", "Average of no numbers:".to_string(), (*average().lock().unwrap().as_mut().unwrap()));
 
-    print_strings(std::sync::Arc::new(std::sync::Mutex::new(Some("Colors".to_string()))), std::sync::Arc::new(std::sync::Mutex::new(Some("red".to_string()))), std::sync::Arc::new(std::sync::Mutex::new(Some("green".to_string()))), std::sync::Arc::new(std::sync::Mutex::new(Some("blue".to_string()))));
-    print_strings(std::sync::Arc::new(std::sync::Mutex::new(Some("Animals".to_string()))), std::sync::Arc::new(std::sync::Mutex::new(Some("cat".to_string()))), std::sync::Arc::new(std::sync::Mutex::new(Some("dog".to_string()))));
-    print_strings(std::sync::Arc::new(std::sync::Mutex::new(Some("Empty".to_string()))));
+    print_strings(Arc::new(Mutex::new(Some("Colors".to_string()))), Arc::new(Mutex::new(Some("red".to_string()))), Arc::new(Mutex::new(Some("green".to_string()))), Arc::new(Mutex::new(Some("blue".to_string()))));
+    print_strings(Arc::new(Mutex::new(Some("Animals".to_string()))), Arc::new(Mutex::new(Some("cat".to_string()))), Arc::new(Mutex::new(Some("dog".to_string()))));
+    print_strings(Arc::new(Mutex::new(Some("Empty".to_string()))));
 
-    println!("{} {}", "Min of 5, 2, 8, 1, 9:".to_string(), (*min(std::sync::Arc::new(std::sync::Mutex::new(Some(5))), std::sync::Arc::new(std::sync::Mutex::new(Some(2))), std::sync::Arc::new(std::sync::Mutex::new(Some(8))), std::sync::Arc::new(std::sync::Mutex::new(Some(1))), std::sync::Arc::new(std::sync::Mutex::new(Some(9)))).lock().unwrap().as_mut().unwrap()));
-    println!("{} {}", "Min of just 42:".to_string(), (*min(std::sync::Arc::new(std::sync::Mutex::new(Some(42)))).lock().unwrap().as_mut().unwrap()));
+    println!("{} {}", "Min of 5, 2, 8, 1, 9:".to_string(), (*min(Arc::new(Mutex::new(Some(5))), Arc::new(Mutex::new(Some(2))), Arc::new(Mutex::new(Some(8))), Arc::new(Mutex::new(Some(1))), Arc::new(Mutex::new(Some(9)))).lock().unwrap().as_mut().unwrap()));
+    println!("{} {}", "Min of just 42:".to_string(), (*min(Arc::new(Mutex::new(Some(42)))).lock().unwrap().as_mut().unwrap()));
 
-    println!("{} {}", "Concat with comma:".to_string(), (*concat(std::sync::Arc::new(std::sync::Mutex::new(Some(", ".to_string()))), std::sync::Arc::new(std::sync::Mutex::new(Some("apple".to_string()))), std::sync::Arc::new(std::sync::Mutex::new(Some("banana".to_string()))), std::sync::Arc::new(std::sync::Mutex::new(Some("cherry".to_string())))).lock().unwrap().as_mut().unwrap()));
-    println!("{} {}", "Concat with dash:".to_string(), (*concat(std::sync::Arc::new(std::sync::Mutex::new(Some(" - ".to_string()))), std::sync::Arc::new(std::sync::Mutex::new(Some("one".to_string()))), std::sync::Arc::new(std::sync::Mutex::new(Some("two".to_string()))), std::sync::Arc::new(std::sync::Mutex::new(Some("three".to_string())))).lock().unwrap().as_mut().unwrap()));
-    println!("{} {}", "Concat empty:".to_string(), (*concat(std::sync::Arc::new(std::sync::Mutex::new(Some(", ".to_string())))).lock().unwrap().as_mut().unwrap()));
+    println!("{} {}", "Concat with comma:".to_string(), (*concat(Arc::new(Mutex::new(Some(", ".to_string()))), Arc::new(Mutex::new(Some("apple".to_string()))), Arc::new(Mutex::new(Some("banana".to_string()))), Arc::new(Mutex::new(Some("cherry".to_string())))).lock().unwrap().as_mut().unwrap()));
+    println!("{} {}", "Concat with dash:".to_string(), (*concat(Arc::new(Mutex::new(Some(" - ".to_string()))), Arc::new(Mutex::new(Some("one".to_string()))), Arc::new(Mutex::new(Some("two".to_string()))), Arc::new(Mutex::new(Some("three".to_string())))).lock().unwrap().as_mut().unwrap()));
+    println!("{} {}", "Concat empty:".to_string(), (*concat(Arc::new(Mutex::new(Some(", ".to_string())))).lock().unwrap().as_mut().unwrap()));
 
-    let mut words = std::sync::Arc::new(std::sync::Mutex::new(Some(vec!["hello".to_string(), "world".to_string(), "from".to_string(), "go".to_string()])));
-    println!("{} {}", "Concat from slice:".to_string(), (*concat(std::sync::Arc::new(std::sync::Mutex::new(Some(" ".to_string()))), words.clone()).lock().unwrap().as_mut().unwrap()));
+    let mut words = Arc::new(Mutex::new(Some(vec!["hello".to_string(), "world".to_string(), "from".to_string(), "go".to_string()])));
+    println!("{} {}", "Concat from slice:".to_string(), (*concat(Arc::new(Mutex::new(Some(" ".to_string()))), words.clone()).lock().unwrap().as_mut().unwrap()));
 }

@@ -1,6 +1,13 @@
-fn format_map<K: std::fmt::Display + std::cmp::Ord + Clone, V>(map: &std::sync::Arc<std::sync::Mutex<Option<std::collections::HashMap<K, std::sync::Arc<std::sync::Mutex<Option<V>>>>>>>) -> String 
+use std::sync::{Arc, Mutex};
+use std::collections::HashMap;
+use std::fmt::{self, Display, Formatter};
+use std::error::Error;
+use std::any::Any;
+use std::cmp::Ord;
+
+fn format_map<K: Display + Ord + Clone, V>(map: &Arc<Mutex<Option<HashMap<K, Arc<Mutex<Option<V>>>>>>>) -> String 
 where
-    V: std::fmt::Display,
+    V: Display,
 {
     let guard = map.lock().unwrap();
     if let Some(ref m) = *guard {
@@ -24,9 +31,9 @@ where
         "map[]".to_string()
     }
 }
-fn format_slice<T>(slice: &std::sync::Arc<std::sync::Mutex<Option<Vec<T>>>>) -> String 
+fn format_slice<T>(slice: &Arc<Mutex<Option<Vec<T>>>>) -> String 
 where
-    T: std::fmt::Display,
+    T: Display,
 {
     let guard = slice.lock().unwrap();
     if let Some(ref s) = *guard {
@@ -40,7 +47,7 @@ where
 fn main() {
     let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-    let (mut ctx, mut cancel) = (*context.lock().unwrap().as_mut().unwrap()).with_timeout(std::sync::Arc::new(std::sync::Mutex::new(Some((*context.lock().unwrap().as_mut().unwrap()).background()))), std::sync::Arc::new(std::sync::Mutex::new(Some(2 * (*time.lock().unwrap().as_mut().unwrap()).second))));
+    let (mut ctx, mut cancel) = (*context.lock().unwrap().as_mut().unwrap()).with_timeout(Arc::new(Mutex::new(Some((*context.lock().unwrap().as_mut().unwrap()).background()))), Arc::new(Mutex::new(Some(2 * (*time.lock().unwrap().as_mut().unwrap()).second))));
     __defer_stack.push(Box::new(move || {
         (cancel.lock().unwrap().as_ref().unwrap())();
     }));

@@ -1,6 +1,13 @@
-fn format_map<K: std::fmt::Display + std::cmp::Ord + Clone, V>(map: &std::sync::Arc<std::sync::Mutex<Option<std::collections::HashMap<K, std::sync::Arc<std::sync::Mutex<Option<V>>>>>>>) -> String 
+use std::sync::{Arc, Mutex};
+use std::collections::HashMap;
+use std::fmt::{self, Display, Formatter};
+use std::error::Error;
+use std::any::Any;
+use std::cmp::Ord;
+
+fn format_map<K: Display + Ord + Clone, V>(map: &Arc<Mutex<Option<HashMap<K, Arc<Mutex<Option<V>>>>>>>) -> String 
 where
-    V: std::fmt::Display,
+    V: Display,
 {
     let guard = map.lock().unwrap();
     if let Some(ref m) = *guard {
@@ -24,9 +31,9 @@ where
         "map[]".to_string()
     }
 }
-fn format_slice<T>(slice: &std::sync::Arc<std::sync::Mutex<Option<Vec<T>>>>) -> String 
+fn format_slice<T>(slice: &Arc<Mutex<Option<Vec<T>>>>) -> String 
 where
-    T: std::fmt::Display,
+    T: Display,
 {
     let guard = slice.lock().unwrap();
     if let Some(ref s) = *guard {
@@ -39,18 +46,18 @@ where
 
 #[derive(Debug)]
 struct List {
-    head: std::sync::Arc<std::sync::Mutex<Option</* TODO: Unhandled type *ast.IndexExpr */ std::sync::Arc<std::sync::Mutex<Option<()>>>>>>,
-    tail: std::sync::Arc<std::sync::Mutex<Option</* TODO: Unhandled type *ast.IndexExpr */ std::sync::Arc<std::sync::Mutex<Option<()>>>>>>,
+    head: Arc<Mutex<Option</* TODO: Unhandled type *ast.IndexExpr */ Arc<Mutex<Option<()>>>>>>,
+    tail: Arc<Mutex<Option</* TODO: Unhandled type *ast.IndexExpr */ Arc<Mutex<Option<()>>>>>>,
 }
 
 #[derive(Debug)]
 struct element {
-    next: std::sync::Arc<std::sync::Mutex<Option</* TODO: Unhandled type *ast.IndexExpr */ std::sync::Arc<std::sync::Mutex<Option<()>>>>>>,
-    val: std::sync::Arc<std::sync::Mutex<Option<T>>>,
+    next: Arc<Mutex<Option</* TODO: Unhandled type *ast.IndexExpr */ Arc<Mutex<Option<()>>>>>>,
+    val: Arc<Mutex<Option<T>>>,
 }
 
 impl Unknown {
-    pub fn push(&mut self, v: std::sync::Arc<std::sync::Mutex<Option<T>>>) {
+    pub fn push(&mut self, v: Arc<Mutex<Option<T>>>) {
         if (*self.tail.lock().unwrap()).is_none() {
         { let new_val = (*.lock().unwrap()).clone(); *self.head.lock().unwrap() = new_val; };
         { let new_val = self.head.clone(); *self.tail.lock().unwrap() = Some(new_val); };
@@ -61,9 +68,9 @@ impl Unknown {
     }
 }
 
-pub fn map_keys(m: std::sync::Arc<std::sync::Mutex<Option<std::collections::HashMap<K, V>>>>) -> std::sync::Arc<std::sync::Mutex<Option<Vec<K>>>> {
+pub fn map_keys(m: Arc<Mutex<Option<HashMap<K, V>>>>) -> Arc<Mutex<Option<Vec<K>>>> {
 
-    let mut r = std::sync::Arc::new(std::sync::Mutex::new(Some(Vec::with_capacity((*m.lock().unwrap().as_mut().unwrap()).len()))));
+    let mut r = Arc::new(Mutex::new(Some(Vec::with_capacity((*m.lock().unwrap().as_mut().unwrap()).len()))));
     for (k, _) in (*m.lock().unwrap().as_ref().unwrap()).clone() {
         {(*r.lock().unwrap().as_mut().unwrap()).push(k); r.clone()};
     }
@@ -71,11 +78,11 @@ pub fn map_keys(m: std::sync::Arc<std::sync::Mutex<Option<std::collections::Hash
 }
 
 fn main() {
-    let mut m = std::sync::Arc::new(std::sync::Mutex::new(Some(std::collections::HashMap::<i32, std::sync::Arc<std::sync::Mutex<Option<String>>>>::from([(1, std::sync::Arc::new(std::sync::Mutex::new(Some("2".to_string())))), (2, std::sync::Arc::new(std::sync::Mutex::new(Some("4".to_string())))), (4, std::sync::Arc::new(std::sync::Mutex::new(Some("8".to_string()))))]))));
+    let mut m = Arc::new(Mutex::new(Some(HashMap::<i32, Arc<Mutex<Option<String>>>>::from([(1, Arc::new(Mutex::new(Some("2".to_string())))), (2, Arc::new(Mutex::new(Some("4".to_string())))), (4, Arc::new(Mutex::new(Some("8".to_string()))))]))));
     println!("{} {}", "keys:".to_string(), format_slice(&map_keys(m.clone())));
 
     let mut lst = ;
-    (*lst.lock().unwrap().as_mut().unwrap()).push(std::sync::Arc::new(std::sync::Mutex::new(Some(10))));
-    (*lst.lock().unwrap().as_mut().unwrap()).push(std::sync::Arc::new(std::sync::Mutex::new(Some(13))));
-    (*lst.lock().unwrap().as_mut().unwrap()).push(std::sync::Arc::new(std::sync::Mutex::new(Some(23))));
+    (*lst.lock().unwrap().as_mut().unwrap()).push(Arc::new(Mutex::new(Some(10))));
+    (*lst.lock().unwrap().as_mut().unwrap()).push(Arc::new(Mutex::new(Some(13))));
+    (*lst.lock().unwrap().as_mut().unwrap()).push(Arc::new(Mutex::new(Some(23))));
 }

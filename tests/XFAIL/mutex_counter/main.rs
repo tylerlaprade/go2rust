@@ -1,6 +1,13 @@
-fn format_map<K: std::fmt::Display + std::cmp::Ord + Clone, V>(map: &std::sync::Arc<std::sync::Mutex<Option<std::collections::HashMap<K, std::sync::Arc<std::sync::Mutex<Option<V>>>>>>>) -> String 
+use std::sync::{Arc, Mutex};
+use std::collections::HashMap;
+use std::fmt::{self, Display, Formatter};
+use std::error::Error;
+use std::any::Any;
+use std::cmp::Ord;
+
+fn format_map<K: Display + Ord + Clone, V>(map: &Arc<Mutex<Option<HashMap<K, Arc<Mutex<Option<V>>>>>>>) -> String 
 where
-    V: std::fmt::Display,
+    V: Display,
 {
     let guard = map.lock().unwrap();
     if let Some(ref m) = *guard {
@@ -24,9 +31,9 @@ where
         "map[]".to_string()
     }
 }
-fn format_slice<T>(slice: &std::sync::Arc<std::sync::Mutex<Option<Vec<T>>>>) -> String 
+fn format_slice<T>(slice: &Arc<Mutex<Option<Vec<T>>>>) -> String 
 where
-    T: std::fmt::Display,
+    T: Display,
 {
     let guard = slice.lock().unwrap();
     if let Some(ref s) = *guard {
@@ -39,8 +46,8 @@ where
 
 #[derive(Debug)]
 struct Counter {
-    mu: std::sync::Arc<std::sync::Mutex<Option</* TODO: Unhandled type *ast.SelectorExpr */ std::sync::Arc<std::sync::Mutex<Option<()>>>>>>,
-    value: std::sync::Arc<std::sync::Mutex<Option<i32>>>,
+    mu: Arc<Mutex<Option</* TODO: Unhandled type *ast.SelectorExpr */ Arc<Mutex<Option<()>>>>>>,
+    value: Arc<Mutex<Option<i32>>>,
 }
 
 impl Counter {
@@ -52,7 +59,7 @@ impl Counter {
         { let mut guard = self.value.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
 
-    pub fn value(&mut self) -> std::sync::Arc<std::sync::Mutex<Option<i32>>> {
+    pub fn value(&mut self) -> Arc<Mutex<Option<i32>>> {
         self.mu.clone().lock();
         __defer_stack.push(Box::new(move || {
         self.mu.clone().unlock();
@@ -62,7 +69,7 @@ impl Counter {
 }
 
 fn main() {
-    let mut counter = std::sync::Arc::new(std::sync::Mutex::new(Some(Counter {  })));
+    let mut counter = Arc::new(Mutex::new(Some(Counter {  })));
     (*counter.lock().unwrap().as_mut().unwrap()).increment();
     (*counter.lock().unwrap().as_mut().unwrap()).increment();
     println!("{} {}", "Counter value:".to_string(), (*(*counter.lock().unwrap().as_mut().unwrap()).value().lock().unwrap().as_mut().unwrap()));

@@ -1,6 +1,13 @@
-fn format_map<K: std::fmt::Display + std::cmp::Ord + Clone, V>(map: &std::sync::Arc<std::sync::Mutex<Option<std::collections::HashMap<K, std::sync::Arc<std::sync::Mutex<Option<V>>>>>>>) -> String 
+use std::sync::{Arc, Mutex};
+use std::collections::HashMap;
+use std::fmt::{self, Display, Formatter};
+use std::error::Error;
+use std::any::Any;
+use std::cmp::Ord;
+
+fn format_map<K: Display + Ord + Clone, V>(map: &Arc<Mutex<Option<HashMap<K, Arc<Mutex<Option<V>>>>>>>) -> String 
 where
-    V: std::fmt::Display,
+    V: Display,
 {
     let guard = map.lock().unwrap();
     if let Some(ref m) = *guard {
@@ -24,9 +31,9 @@ where
         "map[]".to_string()
     }
 }
-fn format_slice<T>(slice: &std::sync::Arc<std::sync::Mutex<Option<Vec<T>>>>) -> String 
+fn format_slice<T>(slice: &Arc<Mutex<Option<Vec<T>>>>) -> String 
 where
-    T: std::fmt::Display,
+    T: Display,
 {
     let guard = slice.lock().unwrap();
     if let Some(ref s) = *guard {
@@ -38,9 +45,9 @@ where
 }
 
 fn main() {
-    let mut counter: std::sync::Arc<std::sync::Mutex<Option<i64>>> = Default::default();
-    (*atomic.lock().unwrap().as_mut().unwrap()).add_int64(std::sync::Arc::new(std::sync::Mutex::new(Some(counter.clone()))), std::sync::Arc::new(std::sync::Mutex::new(Some(1))));
-    (*atomic.lock().unwrap().as_mut().unwrap()).add_int64(std::sync::Arc::new(std::sync::Mutex::new(Some(counter.clone()))), std::sync::Arc::new(std::sync::Mutex::new(Some(5))));
-    let mut value = (*atomic.lock().unwrap().as_mut().unwrap()).load_int64(std::sync::Arc::new(std::sync::Mutex::new(Some(counter.clone()))));
+    let mut counter: Arc<Mutex<Option<i64>>> = Default::default();
+    (*atomic.lock().unwrap().as_mut().unwrap()).add_int64(Arc::new(Mutex::new(Some(counter.clone()))), Arc::new(Mutex::new(Some(1))));
+    (*atomic.lock().unwrap().as_mut().unwrap()).add_int64(Arc::new(Mutex::new(Some(counter.clone()))), Arc::new(Mutex::new(Some(5))));
+    let mut value = (*atomic.lock().unwrap().as_mut().unwrap()).load_int64(Arc::new(Mutex::new(Some(counter.clone()))));
     println!("{} {}", "Atomic counter:".to_string(), (*value.lock().unwrap().as_mut().unwrap()));
 }

@@ -1,6 +1,13 @@
-fn format_map<K: std::fmt::Display + std::cmp::Ord + Clone, V>(map: &std::sync::Arc<std::sync::Mutex<Option<std::collections::HashMap<K, std::sync::Arc<std::sync::Mutex<Option<V>>>>>>>) -> String 
+use std::sync::{Arc, Mutex};
+use std::collections::HashMap;
+use std::fmt::{self, Display, Formatter};
+use std::error::Error;
+use std::any::Any;
+use std::cmp::Ord;
+
+fn format_map<K: Display + Ord + Clone, V>(map: &Arc<Mutex<Option<HashMap<K, Arc<Mutex<Option<V>>>>>>>) -> String 
 where
-    V: std::fmt::Display,
+    V: Display,
 {
     let guard = map.lock().unwrap();
     if let Some(ref m) = *guard {
@@ -24,9 +31,9 @@ where
         "map[]".to_string()
     }
 }
-fn format_slice<T>(slice: &std::sync::Arc<std::sync::Mutex<Option<Vec<T>>>>) -> String 
+fn format_slice<T>(slice: &Arc<Mutex<Option<Vec<T>>>>) -> String 
 where
-    T: std::fmt::Display,
+    T: Display,
 {
     let guard = slice.lock().unwrap();
     if let Some(ref s) = *guard {
@@ -37,18 +44,18 @@ where
     }
 }
 
-pub fn sender(ch: std::sync::Arc<std::sync::Mutex<Option</* TODO: Unhandled type *ast.ChanType */ std::sync::Arc<std::sync::Mutex<Option<()>>>>>>) {
-    let mut i = std::sync::Arc::new(std::sync::Mutex::new(Some(1)));
+pub fn sender(ch: Arc<Mutex<Option</* TODO: Unhandled type *ast.ChanType */ Arc<Mutex<Option<()>>>>>>) {
+    let mut i = Arc::new(Mutex::new(Some(1)));
     while (*i.lock().unwrap().as_mut().unwrap()) <= 5 {
         print!("Sending: {}\n", (*i.lock().unwrap().as_mut().unwrap()));
         // TODO: Unhandled statement type: SendStmt
-        (*time.lock().unwrap().as_mut().unwrap()).sleep(std::sync::Arc::new(std::sync::Mutex::new(Some(100 * (*time.lock().unwrap().as_mut().unwrap()).millisecond))));
+        (*time.lock().unwrap().as_mut().unwrap()).sleep(Arc::new(Mutex::new(Some(100 * (*time.lock().unwrap().as_mut().unwrap()).millisecond))));
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
     (close.lock().unwrap().as_ref().unwrap())(ch.clone());
 }
 
-pub fn receiver(ch: std::sync::Arc<std::sync::Mutex<Option</* TODO: Unhandled type *ast.ChanType */ std::sync::Arc<std::sync::Mutex<Option<()>>>>>>) {
+pub fn receiver(ch: Arc<Mutex<Option</* TODO: Unhandled type *ast.ChanType */ Arc<Mutex<Option<()>>>>>>) {
     while true {
         let (mut value, mut ok) = <-(*ch.lock().unwrap().as_mut().unwrap());
         if !(*ok.lock().unwrap().as_mut().unwrap()) {
@@ -65,7 +72,7 @@ fn main() {
     // TODO: Unhandled statement type: GoStmt
     // TODO: Unhandled statement type: GoStmt
 
-    (*time.lock().unwrap().as_mut().unwrap()).sleep(std::sync::Arc::new(std::sync::Mutex::new(Some(1 * (*time.lock().unwrap().as_mut().unwrap()).second))));
+    (*time.lock().unwrap().as_mut().unwrap()).sleep(Arc::new(Mutex::new(Some(1 * (*time.lock().unwrap().as_mut().unwrap()).second))));
 
     let mut buffered = ;
     // TODO: Unhandled statement type: SendStmt
@@ -73,9 +80,9 @@ fn main() {
     // TODO: Unhandled statement type: SendStmt
 
     println!("{}", "Buffered channel contents:".to_string());
-    let mut i = std::sync::Arc::new(std::sync::Mutex::new(Some(0)));
+    let mut i = Arc::new(Mutex::new(Some(0)));
     while (*i.lock().unwrap().as_mut().unwrap()) < 3 {
-        let mut msg = std::sync::Arc::new(std::sync::Mutex::new(Some(<-(*buffered.lock().unwrap().as_mut().unwrap()))));
+        let mut msg = Arc::new(Mutex::new(Some(<-(*buffered.lock().unwrap().as_mut().unwrap()))));
         println!("{} {}", "Got:".to_string(), (*msg.lock().unwrap().as_mut().unwrap()));
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
