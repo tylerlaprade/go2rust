@@ -309,7 +309,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				out.WriteString(")")
 			}
 		} else if s.Tok == token.ADD_ASSIGN || s.Tok == token.SUB_ASSIGN ||
-			s.Tok == token.MUL_ASSIGN || s.Tok == token.QUO_ASSIGN || s.Tok == token.REM_ASSIGN {
+			s.Tok == token.MUL_ASSIGN || s.Tok == token.QUO_ASSIGN || s.Tok == token.REM_ASSIGN ||
+			s.Tok == token.AND_ASSIGN || s.Tok == token.OR_ASSIGN || s.Tok == token.XOR_ASSIGN ||
+			s.Tok == token.SHL_ASSIGN || s.Tok == token.SHR_ASSIGN {
 			// Compound assignment operators
 
 			isString := false
@@ -352,6 +354,16 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					out.WriteString("/")
 				case token.REM_ASSIGN:
 					out.WriteString("%")
+				case token.AND_ASSIGN:
+					out.WriteString("&")
+				case token.OR_ASSIGN:
+					out.WriteString("|")
+				case token.XOR_ASSIGN:
+					out.WriteString("^")
+				case token.SHL_ASSIGN:
+					out.WriteString("<<")
+				case token.SHR_ASSIGN:
+					out.WriteString(">>")
 				}
 
 				out.WriteString(" ")

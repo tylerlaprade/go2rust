@@ -196,6 +196,8 @@ func transpileFmtPrintf(out *strings.Builder, call *ast.CallExpr) {
 		if lit, ok := call.Args[0].(*ast.BasicLit); ok && lit.Kind == token.STRING {
 			// Convert Go format verbs to Rust
 			format := lit.Value
+			// Handle %% -> % (literal percent) first
+			format = strings.ReplaceAll(format, "%%", "%")
 			// Handle format verbs with precision first
 			format = strings.ReplaceAll(format, "%.5f", "{:.5}")
 			format = strings.ReplaceAll(format, "%.2f", "{:.2}")
@@ -206,6 +208,7 @@ func transpileFmtPrintf(out *strings.Builder, call *ast.CallExpr) {
 			format = strings.ReplaceAll(format, "%v", "{}")
 			format = strings.ReplaceAll(format, "%f", "{}")
 			format = strings.ReplaceAll(format, "%t", "{}")
+			format = strings.ReplaceAll(format, "%b", "{:b}")
 			format = strings.ReplaceAll(format, "%c", "{}")
 			format = strings.ReplaceAll(format, "%U", "{:?}")
 			out.WriteString(format)
@@ -232,6 +235,8 @@ func transpileFmtSprintf(out *strings.Builder, call *ast.CallExpr) {
 		if lit, ok := call.Args[0].(*ast.BasicLit); ok && lit.Kind == token.STRING {
 			// Convert Go format verbs to Rust
 			format := lit.Value
+			// Handle %% -> % (literal percent) first
+			format = strings.ReplaceAll(format, "%%", "%")
 			// Handle format verbs with precision first
 			format = strings.ReplaceAll(format, "%.5f", "{:.5}")
 			format = strings.ReplaceAll(format, "%.2f", "{:.2}")
@@ -242,6 +247,7 @@ func transpileFmtSprintf(out *strings.Builder, call *ast.CallExpr) {
 			format = strings.ReplaceAll(format, "%v", "{}")
 			format = strings.ReplaceAll(format, "%f", "{}")
 			format = strings.ReplaceAll(format, "%t", "{}")
+			format = strings.ReplaceAll(format, "%b", "{:b}")
 			format = strings.ReplaceAll(format, "%c", "{}")
 			format = strings.ReplaceAll(format, "%U", "{:?}")
 			out.WriteString(format)
@@ -268,6 +274,8 @@ func transpileFmtErrorf(out *strings.Builder, call *ast.CallExpr) {
 		if lit, ok := call.Args[0].(*ast.BasicLit); ok && lit.Kind == token.STRING {
 			// Convert Go format verbs to Rust
 			format := lit.Value
+			// Handle %% -> % (literal percent) first
+			format = strings.ReplaceAll(format, "%%", "%")
 			// Handle format verbs with precision first
 			format = strings.ReplaceAll(format, "%.5f", "{:.5}")
 			format = strings.ReplaceAll(format, "%.2f", "{:.2}")
@@ -278,6 +286,7 @@ func transpileFmtErrorf(out *strings.Builder, call *ast.CallExpr) {
 			format = strings.ReplaceAll(format, "%v", "{}")
 			format = strings.ReplaceAll(format, "%f", "{}")
 			format = strings.ReplaceAll(format, "%t", "{}")
+			format = strings.ReplaceAll(format, "%b", "{:b}")
 			format = strings.ReplaceAll(format, "%c", "{}")
 			format = strings.ReplaceAll(format, "%U", "{:?}")
 			out.WriteString(format)

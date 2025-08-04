@@ -59,23 +59,23 @@ fn main() {
     print!("x /= 4: {}\n", (*x.lock().unwrap().as_mut().unwrap()));
 
     { let mut guard = x.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() % 5); };
-    print!("x %%= 5: {}\n", (*x.lock().unwrap().as_mut().unwrap()));
+    print!("x %= 5: {}\n", (*x.lock().unwrap().as_mut().unwrap()));
 
     let mut y = Arc::new(Mutex::new(Some(0b1010)));
-    y = 0b1100;
-    print!("y &= 0b1100: %b\n", (*y.lock().unwrap().as_mut().unwrap()));
+    { let mut guard = y.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() & 0b1100); };
+    print!("y &= 0b1100: {:b}\n", (*y.lock().unwrap().as_mut().unwrap()));
 
-    y = 0b0011;
-    print!("y |= 0b0011: %b\n", (*y.lock().unwrap().as_mut().unwrap()));
+    { let mut guard = y.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() | 0b0011); };
+    print!("y |= 0b0011: {:b}\n", (*y.lock().unwrap().as_mut().unwrap()));
 
-    y = 0b0101;
-    print!("y ^= 0b0101: %b\n", (*y.lock().unwrap().as_mut().unwrap()));
+    { let mut guard = y.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() ^ 0b0101); };
+    print!("y ^= 0b0101: {:b}\n", (*y.lock().unwrap().as_mut().unwrap()));
 
-    y = 2;
-    print!("y <<= 2: %b\n", (*y.lock().unwrap().as_mut().unwrap()));
+    { let mut guard = y.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() << 2); };
+    print!("y <<= 2: {:b}\n", (*y.lock().unwrap().as_mut().unwrap()));
 
-    y = 1;
-    print!("y >>= 1: %b\n", (*y.lock().unwrap().as_mut().unwrap()));
+    { let mut guard = y.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() >> 1); };
+    print!("y >>= 1: {:b}\n", (*y.lock().unwrap().as_mut().unwrap()));
 
     let mut f = Arc::new(Mutex::new(Some(3.14)));
     { let mut guard = f.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 2.86); };
