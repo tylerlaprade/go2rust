@@ -1,0 +1,4 @@
+Person: Alice is 30 years old
+Address: 123 Main St, Springfield 12345
+Employee 42: Bob lives at 123 Main St
+After birthday: Bob is now 26

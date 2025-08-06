@@ -1,0 +1,6 @@
+Initial value: 10
+After increment: 11
+After adding 5: 16
+Distance between points: 5.0
+After move: (1.0, 1.0)
+New distance: 3.6

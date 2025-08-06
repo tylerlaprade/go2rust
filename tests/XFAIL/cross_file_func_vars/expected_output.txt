@@ -1,0 +1,10 @@
+ProcessData(5) = 10
+Combined: Hello World
+ApplyTwice(ProcessData, 3) = 12
+Hello from function variable!
+17 / 5 = 3 remainder 2
+RegularDouble(5) = 10
+Triple(4) = 12
+Dynamic: test
+Local func call: 14
+Conditional func(6) = 12

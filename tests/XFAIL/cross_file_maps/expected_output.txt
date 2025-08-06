@@ -1,0 +1,9 @@
+Alice's ID: 1
+Dave not found
+First number: 10
+Last number: 50
+Admin count: 2
+First admin: alice
+User count: 3
+First record name: Alice
+Dave added with ID: 4
