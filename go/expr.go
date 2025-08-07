@@ -455,52 +455,69 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		out.WriteString(")")
 
 	case *ast.TypeAssertExpr:
-		// Handle type assertions like value.(string)
+		// Handle type assertions like value.(Type)
+		// Type assertions work on interface{} values (Box<dyn Any>)
 		if e.Type != nil {
-			// Generate a match expression for type assertion
-			out.WriteString("match ")
-			TranspileExpression(out, e.X)
-			out.WriteString(".downcast_ref::<")
-
-			// Get the asserted type
+			// Get the Rust type for the assertion
+			rustType := ""
 			if ident, ok := e.Type.(*ast.Ident); ok {
 				switch ident.Name {
 				case "string":
-					out.WriteString("String")
+					rustType = "String"
 				case "int":
-					out.WriteString("i32")
+					rustType = "i32"
+				case "int8":
+					rustType = "i8"
+				case "int16":
+					rustType = "i16"
+				case "int32", "rune":
+					rustType = "i32"
+				case "int64":
+					rustType = "i64"
+				case "uint":
+					rustType = "u32"
+				case "uint8", "byte":
+					rustType = "u8"
+				case "uint16":
+					rustType = "u16"
+				case "uint32":
+					rustType = "u32"
+				case "uint64":
+					rustType = "u64"
 				case "bool":
-					out.WriteString("bool")
+					rustType = "bool"
+				case "float32":
+					rustType = "f32"
 				case "float64":
-					out.WriteString("f64")
+					rustType = "f64"
 				default:
-					out.WriteString(ident.Name)
+					rustType = ident.Name
 				}
 			} else {
-				out.WriteString(GoTypeToRust(e.Type))
+				// Complex type - use the base type
+				rustType = goTypeToRustBase(e.Type)
 			}
 
-			out.WriteString(">() { Some(v) => (v.clone(), true), None => (")
-
-			// Default value for the type
-			if ident, ok := e.Type.(*ast.Ident); ok {
-				switch ident.Name {
-				case "string":
-					out.WriteString("String::new()")
-				case "int":
-					out.WriteString("0")
-				case "bool":
-					out.WriteString("false")
-				case "float64":
-					out.WriteString("0.0")
-				default:
-					out.WriteString("Default::default()")
-				}
+			// Generate type assertion that panics on failure (for single-value context)
+			// The comma-ok form is handled specially in assignment statements
+			out.WriteString("({\n")
+			out.WriteString("        let val = ")
+			// Check if e.X is an identifier (simple variable)
+			if ident, ok := e.X.(*ast.Ident); ok && ident.Name != "nil" {
+				out.WriteString(ident.Name)
 			} else {
-				out.WriteString("Default::default()")
+				TranspileExpression(out, e.X)
 			}
-
-			out.WriteString(", false) }")
+			out.WriteString(".clone();\n")
+			out.WriteString("        let guard = val.lock().unwrap();\n")
+			out.WriteString("        if let Some(ref any_val) = *guard {\n")
+			out.WriteString("            any_val.downcast_ref::<")
+			out.WriteString(rustType)
+			out.WriteString(">().expect(\"type assertion failed\").clone()\n")
+			out.WriteString("        } else {\n")
+			out.WriteString("            panic!(\"type assertion on nil interface\")\n")
+			out.WriteString("        }\n")
+			out.WriteString("    })")
 		}
 
 	case *ast.FuncLit:
@@ -850,6 +867,98 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 		// No cast needed or unknown type
 		TranspileExpression(out, call.Args[0])
 	}
+}
+
+// TranspileTypeAssertionCommaOk generates code for type assertion with comma-ok form
+func TranspileTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr) {
+	if e.Type == nil {
+		return
+	}
+
+	// Get the Rust type for the assertion
+	rustType := ""
+	defaultValue := ""
+	if ident, ok := e.Type.(*ast.Ident); ok {
+		switch ident.Name {
+		case "string":
+			rustType = "String"
+			defaultValue = "String::new()"
+		case "int":
+			rustType = "i32"
+			defaultValue = "0"
+		case "int8":
+			rustType = "i8"
+			defaultValue = "0"
+		case "int16":
+			rustType = "i16"
+			defaultValue = "0"
+		case "int32", "rune":
+			rustType = "i32"
+			defaultValue = "0"
+		case "int64":
+			rustType = "i64"
+			defaultValue = "0"
+		case "uint":
+			rustType = "u32"
+			defaultValue = "0"
+		case "uint8", "byte":
+			rustType = "u8"
+			defaultValue = "0"
+		case "uint16":
+			rustType = "u16"
+			defaultValue = "0"
+		case "uint32":
+			rustType = "u32"
+			defaultValue = "0"
+		case "uint64":
+			rustType = "u64"
+			defaultValue = "0"
+		case "bool":
+			rustType = "bool"
+			defaultValue = "false"
+		case "float32":
+			rustType = "f32"
+			defaultValue = "0.0"
+		case "float64":
+			rustType = "f64"
+			defaultValue = "0.0"
+		default:
+			rustType = ident.Name
+			defaultValue = "Default::default()"
+		}
+	} else {
+		// Complex type - use the base type
+		rustType = goTypeToRustBase(e.Type)
+		defaultValue = "Default::default()"
+	}
+
+	// Generate the type assertion code that returns (value, ok)
+	out.WriteString("({\n")
+	out.WriteString("        let val = ")
+	// Check if e.X is an identifier (simple variable)
+	if ident, ok := e.X.(*ast.Ident); ok && ident.Name != "nil" {
+		out.WriteString(ident.Name)
+	} else {
+		TranspileExpression(out, e.X)
+	}
+	out.WriteString(".clone();\n")
+	out.WriteString("        let guard = val.lock().unwrap();\n")
+	out.WriteString("        if let Some(ref any_val) = *guard {\n")
+	out.WriteString("            if let Some(typed_val) = any_val.downcast_ref::<")
+	out.WriteString(rustType)
+	out.WriteString(">() {\n")
+	out.WriteString("                (Arc::new(Mutex::new(Some(typed_val.clone()))), Arc::new(Mutex::new(Some(true))))\n")
+	out.WriteString("            } else {\n")
+	out.WriteString("                (Arc::new(Mutex::new(Some(")
+	out.WriteString(defaultValue)
+	out.WriteString("))), Arc::new(Mutex::new(Some(false))))\n")
+	out.WriteString("            }\n")
+	out.WriteString("        } else {\n")
+	out.WriteString("            (Arc::new(Mutex::new(Some(")
+	out.WriteString(defaultValue)
+	out.WriteString("))), Arc::new(Mutex::new(Some(false))))\n")
+	out.WriteString("        }\n")
+	out.WriteString("    })")
 }
 
 func TranspileCall(out *strings.Builder, call *ast.CallExpr) {

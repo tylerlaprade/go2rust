@@ -436,6 +436,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 			// Check if this is a map access with existence check: value, ok := map[key]
 			isMapAccess := false
+			isTypeAssertion := false
 			if needsTupleUnpack && len(s.Lhs) == 2 {
 				if indexExpr, ok := s.Rhs[0].(*ast.IndexExpr); ok {
 					// Check if the indexed expression is a map
@@ -447,10 +448,45 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						out.WriteString("/* ERROR: Cannot determine if map access - type information required */ ")
 						isMapAccess = false
 					}
+				} else if _, ok := s.Rhs[0].(*ast.TypeAssertExpr); ok {
+					// This is a type assertion with comma-ok
+					isTypeAssertion = true
 				}
 			}
 
-			if isMapAccess && needsTupleUnpack {
+			if isTypeAssertion && needsTupleUnpack {
+				// Handle type assertion with comma-ok: value, ok := x.(Type)
+				typeAssert := s.Rhs[0].(*ast.TypeAssertExpr)
+
+				if s.Tok == token.DEFINE {
+					out.WriteString("let (")
+					// First variable for value
+					if ident, ok := s.Lhs[0].(*ast.Ident); ok && ident.Name != "_" {
+						out.WriteString("mut ")
+						out.WriteString(ident.Name)
+					} else {
+						out.WriteString("_")
+					}
+					out.WriteString(", ")
+					// Second variable for ok
+					if ident, ok := s.Lhs[1].(*ast.Ident); ok && ident.Name != "_" {
+						out.WriteString("mut ")
+						out.WriteString(ident.Name)
+					} else {
+						out.WriteString("_")
+					}
+					out.WriteString(") = ")
+				} else {
+					out.WriteString("(")
+					TranspileExpressionContext(out, s.Lhs[0], LValue)
+					out.WriteString(", ")
+					TranspileExpressionContext(out, s.Lhs[1], LValue)
+					out.WriteString(") = ")
+				}
+
+				// Generate type assertion code with comma-ok
+				TranspileTypeAssertionCommaOk(out, typeAssert)
+			} else if isMapAccess && needsTupleUnpack {
 				// Handle map access with existence check
 				indexExpr := s.Rhs[0].(*ast.IndexExpr)
 
@@ -779,7 +815,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										// For interface{}, box the value
 										out.WriteString("Arc::new(Mutex::new(Some(Box::new(")
 										TranspileExpression(out, valueSpec.Values[i])
-										out.WriteString(" as Box<dyn Any>))))")
+										out.WriteString(") as Box<dyn Any>)))")
 									} else {
 										// Wrap all variables in Arc<Mutex<Option<>>>
 										out.WriteString("Arc::new(Mutex::new(Some(")

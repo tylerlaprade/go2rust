@@ -356,6 +356,10 @@ run_xfail_test() {
     run_test "tests/switch_basic"
 }
 
+@test "type_assertion_simple" {
+    run_test "tests/type_assertion_simple"
+}
+
 @test "values_basic" {
     run_test "tests/values_basic"
 }
@@ -710,10 +714,6 @@ run_xfail_test() {
 
 @test "XFAIL: timers_basic" {
     run_xfail_test "tests/XFAIL/timers_basic"
-}
-
-@test "XFAIL: type_assertion_simple" {
-    run_xfail_test "tests/XFAIL/type_assertion_simple"
 }
 
 @test "XFAIL: type_assertions" {
