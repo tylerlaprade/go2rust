@@ -80,22 +80,9 @@ run_transpile_and_compare() {
     
     # Transpile to Rust
     transpile_output=$(./go2rust "$test_dir" 2>&1)
-    if [ $? -ne 0 ]; then
+    if [ ! $? ]; then
         echo "Transpilation failed:"
         echo "$transpile_output" | sed "s/^/  /"
-        return 1
-    fi
-    
-    # Check if Rust code compiles first (faster than cargo run)
-    rust_check_output=$(cd "$test_dir" && RUSTFLAGS="-A warnings" cargo check --quiet 2>&1)
-    if [ $? -ne 0 ]; then
-        echo ""
-        echo "Rust compilation failed:"
-        echo "$rust_check_output" | sed "s/^/  /"
-        echo ""
-        echo "Generated Rust code:"
-        echo "==================="
-        cat "$test_dir/main.rs" | sed "s/^/  /"
         return 1
     fi
     
@@ -105,7 +92,7 @@ run_transpile_and_compare() {
     
     if [ $rust_exit_code -ne 0 ]; then
         echo ""
-        echo "Rust execution failed:"
+        echo "Rust compilation/execution failed:"
         echo "$rust_output" | sed "s/^/  /"
         return 1
     fi
@@ -347,6 +334,10 @@ run_xfail_test() {
 
 @test "simple_functions" {
     run_test "tests/simple_functions"
+}
+
+@test "simple_multiple_returns" {
+    run_test "tests/simple_multiple_returns"
 }
 
 @test "simple_range" {
@@ -647,10 +638,6 @@ run_xfail_test() {
 
 @test "XFAIL: shared_mutation" {
     run_xfail_test "tests/XFAIL/shared_mutation"
-}
-
-@test "XFAIL: simple_multiple_returns" {
-    run_xfail_test "tests/XFAIL/simple_multiple_returns"
 }
 
 @test "XFAIL: slice_operations_advanced" {

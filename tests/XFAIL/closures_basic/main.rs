@@ -26,7 +26,11 @@ pub fn make_counter() -> Arc<Mutex<Option<Box<dyn Fn() -> Arc<Mutex<Option<i32>>
 pub fn make_adder(x: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<Box<dyn Fn(Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<i32>>> + Send + Sync>>>> {
 
     return Arc::new(Mutex::new(Some(Box::new(move |y: Arc<Mutex<Option<i32>>>| -> Arc<Mutex<Option<i32>>> {
-        return Arc::new(Mutex::new(Some((*x.lock().unwrap().as_mut().unwrap()) + (*y.lock().unwrap().as_mut().unwrap()))));
+        return {
+            let __tmp_x = (*x.lock().unwrap().as_mut().unwrap());
+            let __tmp_y = (*y.lock().unwrap().as_mut().unwrap());
+            Arc::new(Mutex::new(Some(__tmp_x + __tmp_y)))
+        };
     }) as Box<dyn Fn(Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<i32>>> + Send + Sync>)));
 }
 
@@ -58,23 +62,39 @@ fn main() {
     let mut numbers = Arc::new(Mutex::new(Some(vec![1, 2, 3, 4, 5])));
 
     let mut squared = apply_operation(numbers.clone(), Arc::new(Mutex::new(Some(Arc::new(Mutex::new(Some(Box::new(move |x: Arc<Mutex<Option<i32>>>| -> Arc<Mutex<Option<i32>>> {
-        return Arc::new(Mutex::new(Some((*x.lock().unwrap().as_mut().unwrap()) * (*x.lock().unwrap().as_mut().unwrap()))));
+        return {
+            let __tmp_x = (*x.lock().unwrap().as_mut().unwrap());
+            let __tmp_y = (*x.lock().unwrap().as_mut().unwrap());
+            Arc::new(Mutex::new(Some(__tmp_x * __tmp_y)))
+        };
     }) as Box<dyn Fn(Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<i32>>> + Send + Sync>)))))));
     println!("{} {}", "Squared:".to_string(), format_slice(&squared));
 
     let mut doubled = apply_operation(numbers.clone(), Arc::new(Mutex::new(Some(Arc::new(Mutex::new(Some(Box::new(move |x: Arc<Mutex<Option<i32>>>| -> Arc<Mutex<Option<i32>>> {
-        return Arc::new(Mutex::new(Some((*x.lock().unwrap().as_mut().unwrap()) * 2)));
+        return {
+            let __tmp_x = (*x.lock().unwrap().as_mut().unwrap());
+            let __tmp_y = 2;
+            Arc::new(Mutex::new(Some(__tmp_x * __tmp_y)))
+        };
     }) as Box<dyn Fn(Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<i32>>> + Send + Sync>)))))));
     println!("{} {}", "Doubled:".to_string(), format_slice(&doubled));
 
     let mut multiplier = Arc::new(Mutex::new(Some(3)));
     let mut tripled = apply_operation(numbers.clone(), Arc::new(Mutex::new(Some(Arc::new(Mutex::new(Some(Box::new(move |x: Arc<Mutex<Option<i32>>>| -> Arc<Mutex<Option<i32>>> {
-        return Arc::new(Mutex::new(Some((*x.lock().unwrap().as_mut().unwrap()) * (*multiplier.lock().unwrap().as_mut().unwrap()))));
+        return {
+            let __tmp_x = (*x.lock().unwrap().as_mut().unwrap());
+            let __tmp_y = (*multiplier.lock().unwrap().as_mut().unwrap());
+            Arc::new(Mutex::new(Some(__tmp_x * __tmp_y)))
+        };
     }) as Box<dyn Fn(Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<i32>>> + Send + Sync>)))))));
     println!("{} {}", "Tripled:".to_string(), format_slice(&tripled));
 
     let mut result = (Arc::new(Mutex::new(Some(Box::new(move |a: Arc<Mutex<Option<i32>>>, b: Arc<Mutex<Option<i32>>>| -> Arc<Mutex<Option<i32>>> {
-        return Arc::new(Mutex::new(Some((*a.lock().unwrap().as_mut().unwrap()) + (*b.lock().unwrap().as_mut().unwrap()))));
+        return {
+            let __tmp_x = (*a.lock().unwrap().as_mut().unwrap());
+            let __tmp_y = (*b.lock().unwrap().as_mut().unwrap());
+            Arc::new(Mutex::new(Some(__tmp_x + __tmp_y)))
+        };
     }) as Box<dyn Fn(Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<i32>>> + Send + Sync>))).lock().unwrap().as_ref().unwrap())(Arc::new(Mutex::new(Some(10))), Arc::new(Mutex::new(Some(20))));
     println!("{} {}", "Immediate result:".to_string(), (*result.lock().unwrap().as_mut().unwrap()));
 }

@@ -42,17 +42,29 @@ struct Calculator {
 /// Functions that match the types
 pub fn add(a: Arc<Mutex<Option<i32>>>, b: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<i32>>> {
 
-    return Arc::new(Mutex::new(Some((*a.lock().unwrap().as_mut().unwrap()) + (*b.lock().unwrap().as_mut().unwrap()))));
+    return {
+            let __tmp_x = (*a.lock().unwrap().as_mut().unwrap());
+            let __tmp_y = (*b.lock().unwrap().as_mut().unwrap());
+            Arc::new(Mutex::new(Some(__tmp_x + __tmp_y)))
+        };
 }
 
 pub fn multiply(a: Arc<Mutex<Option<i32>>>, b: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<i32>>> {
 
-    return Arc::new(Mutex::new(Some((*a.lock().unwrap().as_mut().unwrap()) * (*b.lock().unwrap().as_mut().unwrap()))));
+    return {
+            let __tmp_x = (*a.lock().unwrap().as_mut().unwrap());
+            let __tmp_y = (*b.lock().unwrap().as_mut().unwrap());
+            Arc::new(Mutex::new(Some(__tmp_x * __tmp_y)))
+        };
 }
 
 pub fn square(x: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<i32>>> {
 
-    return Arc::new(Mutex::new(Some((*x.lock().unwrap().as_mut().unwrap()) * (*x.lock().unwrap().as_mut().unwrap()))));
+    return {
+            let __tmp_x = (*x.lock().unwrap().as_mut().unwrap());
+            let __tmp_y = (*x.lock().unwrap().as_mut().unwrap());
+            Arc::new(Mutex::new(Some(__tmp_x * __tmp_y)))
+        };
 }
 
 pub fn is_even(x: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<bool>>> {
@@ -113,14 +125,22 @@ pub fn process_string(s: Arc<Mutex<Option<String>>>, processor: Arc<Mutex<Option
 pub fn make_multiplier(factor: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<UnaryOp>>> {
 
     return Arc::new(Mutex::new(Some(Box::new(move |x: Arc<Mutex<Option<i32>>>| -> Arc<Mutex<Option<i32>>> {
-        return Arc::new(Mutex::new(Some((*x.lock().unwrap().as_mut().unwrap()) * (*factor.lock().unwrap().as_mut().unwrap()))));
+        return {
+            let __tmp_x = (*x.lock().unwrap().as_mut().unwrap());
+            let __tmp_y = (*factor.lock().unwrap().as_mut().unwrap());
+            Arc::new(Mutex::new(Some(__tmp_x * __tmp_y)))
+        };
     }) as Box<dyn Fn(Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<i32>>> + Send + Sync>)));
 }
 
 pub fn make_adder(addend: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<BinaryOp>>> {
 
     return Arc::new(Mutex::new(Some(Box::new(move |a: Arc<Mutex<Option<i32>>>, b: Arc<Mutex<Option<i32>>>| -> Arc<Mutex<Option<i32>>> {
-        return Arc::new(Mutex::new(Some((*a.lock().unwrap().as_mut().unwrap()) + (*b.lock().unwrap().as_mut().unwrap()) + (*addend.lock().unwrap().as_mut().unwrap()))));
+        return {
+            let __tmp_x = (*a.lock().unwrap().as_mut().unwrap()) + (*b.lock().unwrap().as_mut().unwrap());
+            let __tmp_y = (*addend.lock().unwrap().as_mut().unwrap());
+            Arc::new(Mutex::new(Some(__tmp_x + __tmp_y)))
+        };
     }) as Box<dyn Fn(Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<i32>>> + Send + Sync>)));
 }
 
@@ -160,7 +180,11 @@ fn main() {
     print!("Squared: {}\n", format_slice(&squared));
 
     let mut doubled = transform(Arc::new(Mutex::new(Some(Arc::new(Mutex::new(Some(vec![1, 2, 3, 4, 5])))))), Arc::new(Mutex::new(Some(Arc::new(Mutex::new(Some(Box::new(move |x: Arc<Mutex<Option<i32>>>| -> Arc<Mutex<Option<i32>>> {
-        return Arc::new(Mutex::new(Some((*x.lock().unwrap().as_mut().unwrap()) * 2)));
+        return {
+            let __tmp_x = (*x.lock().unwrap().as_mut().unwrap());
+            let __tmp_y = 2;
+            Arc::new(Mutex::new(Some(__tmp_x * __tmp_y)))
+        };
     }) as Box<dyn Fn(Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<i32>>> + Send + Sync>)))))));
     print!("Doubled: {}\n", format_slice(&doubled));
 
@@ -189,9 +213,17 @@ fn main() {
 
     println!("{}", "\n=== Struct with function fields ===".to_string());
     let mut calc = Calculator { add: Arc::new(Mutex::new(Some(Arc::new(Mutex::new(Some(Box::new(move |a: Arc<Mutex<Option<i32>>>, b: Arc<Mutex<Option<i32>>>| -> Arc<Mutex<Option<i32>>> {
-        return Arc::new(Mutex::new(Some((*a.lock().unwrap().as_mut().unwrap()) + (*b.lock().unwrap().as_mut().unwrap()))));
+        return {
+            let __tmp_x = (*a.lock().unwrap().as_mut().unwrap());
+            let __tmp_y = (*b.lock().unwrap().as_mut().unwrap());
+            Arc::new(Mutex::new(Some(__tmp_x + __tmp_y)))
+        };
     }) as Box<dyn Fn(Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<i32>>> + Send + Sync>)))))), subtract: Arc::new(Mutex::new(Some(Arc::new(Mutex::new(Some(Box::new(move |a: Arc<Mutex<Option<i32>>>, b: Arc<Mutex<Option<i32>>>| -> Arc<Mutex<Option<i32>>> {
-        return Arc::new(Mutex::new(Some((*a.lock().unwrap().as_mut().unwrap()) - (*b.lock().unwrap().as_mut().unwrap()))));
+        return {
+            let __tmp_x = (*a.lock().unwrap().as_mut().unwrap());
+            let __tmp_y = (*b.lock().unwrap().as_mut().unwrap());
+            Arc::new(Mutex::new(Some(__tmp_x - __tmp_y)))
+        };
     }) as Box<dyn Fn(Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<i32>>> + Send + Sync>)))))), multiply: Arc::new(Mutex::new(Some((*multiply.lock().unwrap().as_mut().unwrap())))) };
 
     print!("calc.Add(10, 5) = {}\n", (*(*calc.lock().unwrap().as_mut().unwrap()).add(Arc::new(Mutex::new(Some(10))), Arc::new(Mutex::new(Some(5)))).lock().unwrap().as_ref().unwrap()));
@@ -204,7 +236,11 @@ fn main() {
     print!("Using toUpper: {}\n", (*(processor.lock().unwrap().as_ref().unwrap())(Arc::new(Mutex::new(Some("test".to_string())))).lock().unwrap().as_ref().unwrap()));
 
     { let new_val = Arc::new(Mutex::new(Some(Box::new(move |s: Arc<Mutex<Option<String>>>| -> Arc<Mutex<Option<String>>> {
-        return Arc::new(Mutex::new(Some(format!("{}{}", "processed: ".to_string(), (*s.lock().unwrap().as_mut().unwrap())))));
+        return {
+            let __tmp_x = "processed: ".to_string();
+            let __tmp_y = (*s.lock().unwrap().as_mut().unwrap());
+            Arc::new(Mutex::new(Some(__tmp_x + __tmp_y)))
+        };
     }) as Box<dyn Fn(Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<String>>> + Send + Sync>))); *processor.lock().unwrap() = Some(new_val); };
     print!("Using anonymous: {}\n", (*(processor.lock().unwrap().as_ref().unwrap())(Arc::new(Mutex::new(Some("test".to_string())))).lock().unwrap().as_ref().unwrap()));
 }

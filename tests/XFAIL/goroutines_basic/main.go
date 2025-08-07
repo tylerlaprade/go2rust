@@ -35,6 +35,6 @@ func main() {
 	}()
 
 	// Wait for goroutines to complete
-	time.Sleep(1 * time.Second)
+	time.Sleep(500 * time.Millisecond)
 	fmt.Println("Main function ending")
 }

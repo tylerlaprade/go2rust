@@ -26,7 +26,11 @@ pub fn divide(a: Arc<Mutex<Option<f64>>>, b: Arc<Mutex<Option<f64>>>) -> (Arc<Mu
     if (*b.lock().unwrap().as_mut().unwrap()) == 0.0 {
         return (Arc::new(Mutex::new(Some(0))), Arc::new(Mutex::new(Some(Box::<dyn std::error::Error + Send + Sync>::from("division by zero".to_string())))));
     }
-    return (Arc::new(Mutex::new(Some((*a.lock().unwrap().as_mut().unwrap()) / (*b.lock().unwrap().as_mut().unwrap())))), Arc::new(Mutex::new(None)));
+    return ({
+            let __tmp_x = (*a.lock().unwrap().as_mut().unwrap());
+            let __tmp_y = (*b.lock().unwrap().as_mut().unwrap());
+            Arc::new(Mutex::new(Some(__tmp_x / __tmp_y)))
+        }, Arc::new(Mutex::new(None)));
 }
 
 pub fn sqrt(x: Arc<Mutex<Option<f64>>>) -> (Arc<Mutex<Option<f64>>>, Arc<Mutex<Option<Box<dyn Error + Send + Sync>>>>) {

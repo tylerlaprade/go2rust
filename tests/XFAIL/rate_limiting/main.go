@@ -12,7 +12,7 @@ func main() {
 	}
 	close(requests)
 
-	limiter := time.Tick(200 * time.Millisecond)
+	limiter := time.Tick(100 * time.Millisecond)
 
 	for req := range requests {
 		<-limiter
@@ -26,7 +26,7 @@ func main() {
 	}
 
 	go func() {
-		for t := range time.Tick(200 * time.Millisecond) {
+		for t := range time.Tick(100 * time.Millisecond) {
 			burstyLimiter <- t
 		}
 	}()

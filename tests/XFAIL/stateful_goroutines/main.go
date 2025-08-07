@@ -66,7 +66,7 @@ func main() {
 		}()
 	}
 
-	time.Sleep(time.Second)
+	time.Sleep(500 * time.Millisecond)
 
 	readOpsFinal := atomic.LoadUint64(&readOps)
 	fmt.Println("readOps:", readOpsFinal)

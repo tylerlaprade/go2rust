@@ -7,11 +7,11 @@ import (
 )
 
 func main() {
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
 	select {
-	case <-time.After(1 * time.Second):
+	case <-time.After(500 * time.Millisecond):
 		fmt.Println("Operation completed")
 	case <-ctx.Done():
 		fmt.Println("Context cancelled:", ctx.Err())

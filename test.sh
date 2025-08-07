@@ -64,7 +64,7 @@ echo "Updated tests.bats with $(grep -c '^@test' tests.bats) tests"
 # Parse command line arguments
 VERBOSE=false
 JOBS=""
-TIMEOUT="60s"
+TIMEOUT="10s"
 HELP=false
 TEST_NAMES=()
 
@@ -263,52 +263,56 @@ if [ ${#TEST_NAMES[@]} -gt 0 ]; then
     echo "Running tests matching: ${TEST_NAMES[*]}"
 fi
 
-# Choose execution mode based on job count
+# Record start time
+START_TIME=$(date +%s)
+
+# Build bats command based on mode
 if [ "$JOBS" -eq 1 ]; then
-    # Sequential mode - real-time output
     echo "Running tests sequentially (timeout: $TIMEOUT per test)..."
-    if [ -n "$FILTER_PATTERN" ]; then
-        bats -T --tap --filter "$FILTER_PATTERN" tests.bats | colorize_output
-    else
-        bats -T --tap tests.bats | colorize_output
-    fi
+    BATS_CMD="bats -T --tap"
 else
-    # Parallel mode - buffered output
     echo "Running tests in parallel with $JOBS jobs (timeout: $TIMEOUT per test)..."
-    
-    # Capture output in a variable
-    if [ -n "$FILTER_PATTERN" ]; then
-        TEST_OUTPUT=$(bats -T -j "$JOBS" --filter "$FILTER_PATTERN" tests.bats)
-    else
-        TEST_OUTPUT=$(bats -T -j "$JOBS" tests.bats)
-    fi
-    
-    # Display the output with colors
-    echo "$TEST_OUTPUT" | colorize_output
-    
-    # Extract and display test summary with colors (only for parallel mode)
+    BATS_CMD="bats -T -j $JOBS"
+fi
+
+# Add filter if specified
+if [ -n "$FILTER_PATTERN" ]; then
+    BATS_CMD="$BATS_CMD --filter \"$FILTER_PATTERN\""
+fi
+
+# Run tests and capture output
+TEST_OUTPUT=$(eval "$BATS_CMD tests.bats")
+
+# Display the output with colors
+echo "$TEST_OUTPUT" | colorize_output
+
+# Display test summary for both modes
+echo ""
+echo -e "\033[1mTest Summary:\033[0m"
+echo "============="
+
+# Calculate and display total time
+END_TIME=$(date +%s)
+TOTAL_TIME=$((END_TIME - START_TIME))
+echo -e "\033[90mTotal time: ${TOTAL_TIME}s\033[0m"
+
+# Count all test types from the captured output
+PASSING=$(echo "$TEST_OUTPUT" | grep "^ok " | grep -v "XFAIL" | wc -l | tr -d ' ')
+FAILING=$(echo "$TEST_OUTPUT" | grep "^not ok " | grep -v "XFAIL" | wc -l | tr -d ' ')
+XFAIL_TOTAL=$(echo "$TEST_OUTPUT" | grep "XFAIL" | wc -l | tr -d ' ')
+TOTAL=$((PASSING + FAILING + XFAIL_TOTAL))
+
+# Display with colors and symbols
+echo -e "\033[32m✓ Passing: $PASSING/$TOTAL\033[0m"
+if [ "$FAILING" -gt 0 ]; then
+    echo -e "\033[31m✗ Failing: $FAILING/$TOTAL\033[0m"
+fi
+echo -e "\033[33m⚠ XFAIL: $XFAIL_TOTAL/$TOTAL\033[0m"
+
+if [ "$FAILING" -gt 0 ]; then
     echo ""
-    echo -e "\033[1mTest Summary:\033[0m"
-    echo "============="
-
-    # Count all test types from the captured output
-    PASSING=$(echo "$TEST_OUTPUT" | grep "^ok " | grep -v "XFAIL" | wc -l | tr -d ' ')
-    FAILING=$(echo "$TEST_OUTPUT" | grep "^not ok " | grep -v "XFAIL" | wc -l | tr -d ' ')
-    XFAIL_TOTAL=$(echo "$TEST_OUTPUT" | grep "XFAIL" | wc -l | tr -d ' ')
-    TOTAL=$((PASSING + FAILING + XFAIL_TOTAL))
-
-    # Display with colors and symbols
-    echo -e "\033[32m✓ Passing: $PASSING/$TOTAL\033[0m"
-    if [ "$FAILING" -gt 0 ]; then
-        echo -e "\033[31m✗ Failing: $FAILING/$TOTAL\033[0m"
-    fi
-    echo -e "\033[33m⚠ XFAIL: $XFAIL_TOTAL/$TOTAL\033[0m"
-
-    if [ "$FAILING" -gt 0 ]; then
-        echo ""
-        echo -e "\033[31mFailed tests:\033[0m"
-        echo "$TEST_OUTPUT" | grep "^not ok " | grep -v "XFAIL" | while IFS= read -r line; do
-            echo -e "\033[31m  - $(echo "$line" | sed 's/^not ok [0-9]* //')\033[0m"
-        done
-    fi
+    echo -e "\033[31mFailed tests:\033[0m"
+    echo "$TEST_OUTPUT" | grep "^not ok " | grep -v "XFAIL" | while IFS= read -r line; do
+        echo -e "\033[31m  - $(echo "$line" | sed 's/^not ok [0-9]* //')\033[0m"
+    done
 fi

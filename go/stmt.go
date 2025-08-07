@@ -223,6 +223,44 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 								TranspileExpression(out, result)
 								out.WriteString(")))")
 							}
+						} else if binExpr, ok := result.(*ast.BinaryExpr); ok {
+							// Binary expressions need special handling to avoid multiple locks
+							// Check if operands are identifiers that would need unwrapping
+							needsExtraction := false
+							if ident, ok := binExpr.X.(*ast.Ident); ok && ident.Name != "nil" && ident.Name != "true" && ident.Name != "false" {
+								if _, isConst := localConstants[ident.Name]; !isConst {
+									if _, isRange := rangeLoopVars[ident.Name]; !isRange {
+										needsExtraction = true
+									}
+								}
+							}
+							if ident, ok := binExpr.Y.(*ast.Ident); ok && ident.Name != "nil" && ident.Name != "true" && ident.Name != "false" {
+								if _, isConst := localConstants[ident.Name]; !isConst {
+									if _, isRange := rangeLoopVars[ident.Name]; !isRange {
+										needsExtraction = true
+									}
+								}
+							}
+
+							if needsExtraction {
+								// Extract values first to avoid multiple locks
+								out.WriteString("{\n")
+								out.WriteString("            let __tmp_x = ")
+								TranspileExpressionContext(out, binExpr.X, RValue)
+								out.WriteString(";\n")
+								out.WriteString("            let __tmp_y = ")
+								TranspileExpressionContext(out, binExpr.Y, RValue)
+								out.WriteString(";\n")
+								out.WriteString("            Arc::new(Mutex::new(Some(__tmp_x ")
+								out.WriteString(binExpr.Op.String())
+								out.WriteString(" __tmp_y)))\n")
+								out.WriteString("        }")
+							} else {
+								// No extraction needed
+								out.WriteString("Arc::new(Mutex::new(Some(")
+								TranspileExpression(out, result)
+								out.WriteString(")))")
+							}
 						} else {
 							// Wrap all other return values in Arc<Mutex<Option<>>>
 							out.WriteString("Arc::new(Mutex::new(Some(")

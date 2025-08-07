@@ -104,33 +104,33 @@ fn main() {
 
     let mut emp2Contact = Contact { email: Arc::new(Mutex::new(Some("emp2@company.com".to_string()))), phone: Arc::new(Mutex::new(Some("555-0003".to_string()))) };
 
-    let mut manager = Person { name: Arc::new(Mutex::new(Some("Alice Manager".to_string()))), age: Arc::new(Mutex::new(Some(45))), address: Arc::new(Mutex::new(Some((*managerAddr.lock().unwrap().as_ref().unwrap())))), contact: Arc::new(Mutex::new(Some((*managerContact.lock().unwrap().as_ref().unwrap())))) };
+    let mut manager = Person { name: Arc::new(Mutex::new(Some("Alice Manager".to_string()))), age: Arc::new(Mutex::new(Some(45))), address: Arc::new(Mutex::new(Some((*managerAddr.lock().unwrap().as_mut().unwrap())))), contact: Arc::new(Mutex::new(Some((*managerContact.lock().unwrap().as_mut().unwrap())))) };
 
-    let mut employee1 = Person { name: Arc::new(Mutex::new(Some("Bob Employee".to_string()))), age: Arc::new(Mutex::new(Some(30))), address: Arc::new(Mutex::new(Some((*emp1Addr.lock().unwrap().as_ref().unwrap())))), contact: Arc::new(Mutex::new(Some((*emp1Contact.lock().unwrap().as_ref().unwrap())))) };
+    let mut employee1 = Person { name: Arc::new(Mutex::new(Some("Bob Employee".to_string()))), age: Arc::new(Mutex::new(Some(30))), address: Arc::new(Mutex::new(Some((*emp1Addr.lock().unwrap().as_mut().unwrap())))), contact: Arc::new(Mutex::new(Some((*emp1Contact.lock().unwrap().as_mut().unwrap())))) };
 
-    let mut employee2 = Person { name: Arc::new(Mutex::new(Some("Carol Worker".to_string()))), age: Arc::new(Mutex::new(Some(28))), address: Arc::new(Mutex::new(Some((*emp2Addr.lock().unwrap().as_ref().unwrap())))), contact: Arc::new(Mutex::new(Some((*emp2Contact.lock().unwrap().as_ref().unwrap())))) };
+    let mut employee2 = Person { name: Arc::new(Mutex::new(Some("Carol Worker".to_string()))), age: Arc::new(Mutex::new(Some(28))), address: Arc::new(Mutex::new(Some((*emp2Addr.lock().unwrap().as_mut().unwrap())))), contact: Arc::new(Mutex::new(Some((*emp2Contact.lock().unwrap().as_mut().unwrap())))) };
 
-    let mut engineering = Department { name: Arc::new(Mutex::new(Some("Engineering".to_string()))), manager: Arc::new(Mutex::new(Some((*manager.lock().unwrap().as_ref().unwrap())))), employees: Arc::new(Mutex::new(Some(Arc::new(Mutex::new(Some(vec![(*employee1.lock().unwrap().as_ref().unwrap()), (*employee2.lock().unwrap().as_ref().unwrap())])))))), budget: Arc::new(Mutex::new(Some(1000000.0))) };
+    let mut engineering = Department { name: Arc::new(Mutex::new(Some("Engineering".to_string()))), manager: Arc::new(Mutex::new(Some((*manager.lock().unwrap().as_mut().unwrap())))), employees: Arc::new(Mutex::new(Some(Arc::new(Mutex::new(Some(vec![(*employee1.lock().unwrap().as_mut().unwrap()), (*employee2.lock().unwrap().as_mut().unwrap())])))))), budget: Arc::new(Mutex::new(Some(1000000.0))) };
 
-    let mut company = Company { name: Arc::new(Mutex::new(Some("TechCorp Inc".to_string()))), departments: Arc::new(Mutex::new(Some(Arc::new(Mutex::new(Some(vec![(*engineering.lock().unwrap().as_ref().unwrap())])))))), headquarters: Arc::new(Mutex::new(Some((*hq.lock().unwrap().as_ref().unwrap())))) };
+    let mut company = Company { name: Arc::new(Mutex::new(Some("TechCorp Inc".to_string()))), departments: Arc::new(Mutex::new(Some(Arc::new(Mutex::new(Some(vec![(*engineering.lock().unwrap().as_mut().unwrap())])))))), headquarters: Arc::new(Mutex::new(Some((*hq.lock().unwrap().as_mut().unwrap())))) };
 
     println!("{}", "\n=== Accessing nested data ===".to_string());
 
-    print!("Company: {}\n", (*(*company.lock().unwrap().as_ref().unwrap()).name.lock().unwrap().as_ref().unwrap()));
-    print!("HQ Address: {}, {}, {} {}\n", (*company.lock().unwrap().as_ref().unwrap()).headquarters.street, (*company.lock().unwrap().as_ref().unwrap()).headquarters.city, (*company.lock().unwrap().as_ref().unwrap()).headquarters.state, (*company.lock().unwrap().as_ref().unwrap()).headquarters.zip_code);
+    print!("Company: {}\n", (*(*company.lock().unwrap().as_mut().unwrap()).name.lock().unwrap().as_ref().unwrap()));
+    print!("HQ Address: {}, {}, {} {}\n", (*company.lock().unwrap().as_mut().unwrap()).headquarters.street, (*company.lock().unwrap().as_mut().unwrap()).headquarters.city, (*company.lock().unwrap().as_mut().unwrap()).headquarters.state, (*company.lock().unwrap().as_mut().unwrap()).headquarters.zip_code);
 
-    print!("Department: {}\n", (*company.lock().unwrap().as_ref().unwrap()).departments[0].name);
-    print!("Department Budget: ${:.2}\n", (*company.lock().unwrap().as_ref().unwrap()).departments[0].budget);
+    print!("Department: {}\n", (*company.lock().unwrap().as_mut().unwrap()).departments[0].name);
+    print!("Department Budget: ${:.2}\n", (*company.lock().unwrap().as_mut().unwrap()).departments[0].budget);
 
-    print!("Manager: {} (Age: {})\n", (*company.lock().unwrap().as_ref().unwrap()).departments[0].manager.name, (*company.lock().unwrap().as_ref().unwrap()).departments[0].manager.age);
+    print!("Manager: {} (Age: {})\n", (*company.lock().unwrap().as_mut().unwrap()).departments[0].manager.name, (*company.lock().unwrap().as_mut().unwrap()).departments[0].manager.age);
 
-    print!("Manager Email: {}\n", (*company.lock().unwrap().as_ref().unwrap()).departments[0].manager.contact.email);
+    print!("Manager Email: {}\n", (*company.lock().unwrap().as_mut().unwrap()).departments[0].manager.contact.email);
 
-    print!("Manager Address: {}, {}\n", (*company.lock().unwrap().as_ref().unwrap()).departments[0].manager.address.city, (*company.lock().unwrap().as_ref().unwrap()).departments[0].manager.address.state);
+    print!("Manager Address: {}, {}\n", (*company.lock().unwrap().as_mut().unwrap()).departments[0].manager.address.city, (*company.lock().unwrap().as_mut().unwrap()).departments[0].manager.address.state);
 
     println!("{}", "\n=== Department employees ===".to_string());
 
-    for (i, emp) in (*company.lock().unwrap().as_ref().unwrap()).departments[0].employees.iter().enumerate() {
+    for (i, emp) in (*company.lock().unwrap().as_mut().unwrap()).departments[0].employees.iter().enumerate() {
         print!("Employee {}: {}\n", i + 1, emp.name);
         print!("  Age: {}\n", emp.age);
         print!("  Email: {}\n", emp.contact.email);
@@ -147,36 +147,36 @@ fn main() {
     for (category, items) in (*inventory.lock().unwrap().as_ref().unwrap()).clone() {
         print!("  {}:\n", category);
         for (item, count) in (*items.lock().unwrap().as_ref().unwrap()).clone() {
-        print!("    {}: {}\n", item, (*count.lock().unwrap().as_ref().unwrap()));
+        print!("    {}: {}\n", item, (*count.lock().unwrap().as_mut().unwrap()));
     }
     }
 
     let mut laptopCount = Arc::new(Mutex::new(Some((*(*(*(*inventory.lock().unwrap().as_ref().unwrap()).get(&"electronics".to_string()).unwrap().lock().unwrap().as_ref().unwrap()).lock().unwrap().as_ref().unwrap()).get(&"laptops".to_string()).unwrap().lock().unwrap().as_ref().unwrap()))));
-    print!("Laptop count: {}\n", (*laptopCount.lock().unwrap().as_ref().unwrap()));
+    print!("Laptop count: {}\n", (*laptopCount.lock().unwrap().as_mut().unwrap()));
 
     println!("{}", "\n=== Nested slices ===".to_string());
 
     let mut matrix = Arc::new(Mutex::new(Some(vec![, , ])));
 
     println!("{}", "Matrix:".to_string());
-    for (i, row) in (*matrix.lock().unwrap().as_ref().unwrap()).iter().enumerate() {
+    for (i, row) in (*matrix.lock().unwrap().as_mut().unwrap()).iter().enumerate() {
         print!("Row {}: ", i);
         for (j, val) in row.iter().enumerate() {
         print!("{} ", val);
         if j < row.len() - 1 {
-        (*fmt.lock().unwrap().as_ref().unwrap()).print(Arc::new(Mutex::new(Some(" ".to_string()))));
+        (*fmt.lock().unwrap().as_mut().unwrap()).print(Arc::new(Mutex::new(Some(" ".to_string()))));
     }
     }
         println!();
     }
 
-    let mut centerElement = Arc::new(Mutex::new(Some((*matrix.lock().unwrap().as_ref().unwrap())[1][1])));
-    print!("Center element: {}\n", (*centerElement.lock().unwrap().as_ref().unwrap()));
+    let mut centerElement = Arc::new(Mutex::new(Some((*matrix.lock().unwrap().as_mut().unwrap())[1][1])));
+    print!("Center element: {}\n", (*centerElement.lock().unwrap().as_mut().unwrap()));
 
     let mut cube = Arc::new(Mutex::new(Some(vec![, ])));
 
     println!("{}", "\n3D Cube:".to_string());
-    for (i, layer) in (*cube.lock().unwrap().as_ref().unwrap()).iter().enumerate() {
+    for (i, layer) in (*cube.lock().unwrap().as_mut().unwrap()).iter().enumerate() {
         print!("Layer {}:\n", i);
         for (j, row) in layer.iter().enumerate() {
         print!("  Row {}: ", j);
@@ -191,19 +191,19 @@ fn main() {
 
     let mut canvas = Canvas { name: Arc::new(Mutex::new(Some("My Drawing".to_string()))), shapes: Arc::new(Mutex::new(Some(Arc::new(Mutex::new(Some(vec![Circle { radius: Arc::new(Mutex::new(Some(5.0))) }, Rectangle { width: Arc::new(Mutex::new(Some(10.0))), height: Arc::new(Mutex::new(Some(8.0))) }, Circle { radius: Arc::new(Mutex::new(Some(3.0))) }])))))) };
 
-    print!("Canvas: {}\n", (*(*canvas.lock().unwrap().as_ref().unwrap()).name.lock().unwrap().as_ref().unwrap()));
-    for (i, shape) in (*canvas.lock().unwrap().as_ref().unwrap()).shapes.iter().enumerate() {
+    print!("Canvas: {}\n", (*(*canvas.lock().unwrap().as_mut().unwrap()).name.lock().unwrap().as_ref().unwrap()));
+    for (i, shape) in (*canvas.lock().unwrap().as_mut().unwrap()).shapes.iter().enumerate() {
         print!("Shape {}: {}\n", i + 1, (*shape.draw().lock().unwrap().as_ref().unwrap()));
     }
 
     println!("{}", "\n=== Modifying nested structures ===".to_string());
 
-    { let new_val = "bob.new@company.com".to_string(); *(*company.lock().unwrap().as_ref().unwrap()).departments[0].employees[0].contact.email.lock().unwrap() = Some(new_val); };
-    print!("Updated employee email: {}\n", (*company.lock().unwrap().as_ref().unwrap()).departments[0].employees[0].contact.email);
+    { let new_val = "bob.new@company.com".to_string(); *(*company.lock().unwrap().as_mut().unwrap()).departments[0].employees[0].contact.email.lock().unwrap() = Some(new_val); };
+    print!("Updated employee email: {}\n", (*company.lock().unwrap().as_mut().unwrap()).departments[0].employees[0].contact.email);
 
     let mut newEmployee = Person { name: Arc::new(Mutex::new(Some("Dave Newbie".to_string()))), age: Arc::new(Mutex::new(Some(25))), address: Arc::new(Mutex::new(Some(Address { street: Arc::new(Mutex::new(Some("999 New St".to_string()))), city: Arc::new(Mutex::new(Some("Newtown".to_string()))), state: Arc::new(Mutex::new(Some("CA".to_string()))), zip_code: Arc::new(Mutex::new(Some("90214".to_string()))), country: Arc::new(Mutex::new(Some("USA".to_string()))) }))), contact: Arc::new(Mutex::new(Some(Contact { email: Arc::new(Mutex::new(Some("dave@company.com".to_string()))), phone: Arc::new(Mutex::new(Some("555-0004".to_string()))) }))) };
 
-    {(*(*company.lock().unwrap().as_ref().unwrap()).departments[0].employees.lock().unwrap().as_mut().unwrap()).push((*newEmployee.lock().unwrap().as_ref().unwrap())); (*company.lock().unwrap().as_ref().unwrap()).departments[0].employees.clone()};
-    print!("Added new employee: {}\n", (*(*newEmployee.lock().unwrap().as_ref().unwrap()).name.lock().unwrap().as_ref().unwrap()));
-    print!("Total employees now: {}\n", (*company.lock().unwrap().as_ref().unwrap()).departments[0].employees.len());
+    {(*(*company.lock().unwrap().as_mut().unwrap()).departments[0].employees.lock().unwrap().as_mut().unwrap()).push((*newEmployee.lock().unwrap().as_mut().unwrap())); (*company.lock().unwrap().as_mut().unwrap()).departments[0].employees.clone()};
+    print!("Added new employee: {}\n", (*(*newEmployee.lock().unwrap().as_mut().unwrap()).name.lock().unwrap().as_ref().unwrap()));
+    print!("Total employees now: {}\n", (*company.lock().unwrap().as_mut().unwrap()).departments[0].employees.len());
 }

@@ -18,7 +18,11 @@ pub fn average(numbers: Arc<Mutex<Option</* TODO: Unhandled type *ast.Ellipsis *
     for num in &(*numbers.lock().unwrap().as_mut().unwrap()) {
         { let mut guard = total.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + num); };
     }
-    return Arc::new(Mutex::new(Some((*total.lock().unwrap().as_mut().unwrap()) / (float64.lock().unwrap().as_ref().unwrap())(Arc::new(Mutex::new(Some((*numbers.lock().unwrap().as_mut().unwrap()).len())))))));
+    return {
+            let __tmp_x = (*total.lock().unwrap().as_mut().unwrap());
+            let __tmp_y = (float64.lock().unwrap().as_ref().unwrap())(Arc::new(Mutex::new(Some((*numbers.lock().unwrap().as_mut().unwrap()).len()))));
+            Arc::new(Mutex::new(Some(__tmp_x / __tmp_y)))
+        };
 }
 
 pub fn print_strings(prefix: Arc<Mutex<Option<String>>>, strings: Arc<Mutex<Option</* TODO: Unhandled type *ast.Ellipsis */ Arc<Mutex<Option<()>>>>>>) {

@@ -19,7 +19,11 @@ pub fn factorial(n: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<i32>>> {
     if (*n.lock().unwrap().as_mut().unwrap()) <= 1 {
         return Arc::new(Mutex::new(Some(1)));
     }
-    return Arc::new(Mutex::new(Some((*n.lock().unwrap().as_mut().unwrap()) * factorial(Arc::new(Mutex::new(Some((*n.lock().unwrap().as_mut().unwrap()) - 1)))))));
+    return {
+            let __tmp_x = (*n.lock().unwrap().as_mut().unwrap());
+            let __tmp_y = factorial(Arc::new(Mutex::new(Some((*n.lock().unwrap().as_mut().unwrap()) - 1))));
+            Arc::new(Mutex::new(Some(__tmp_x * __tmp_y)))
+        };
 }
 
 pub fn fibonacci(n: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<i32>>> {
@@ -48,9 +52,17 @@ pub fn power(base: Arc<Mutex<Option<i32>>>, exp: Arc<Mutex<Option<i32>>>) -> Arc
     }
     if (*exp.lock().unwrap().as_mut().unwrap()) % 2 == 0 {
         let mut half = power(base.clone(), Arc::new(Mutex::new(Some((*exp.lock().unwrap().as_mut().unwrap()) / 2))));
-        return Arc::new(Mutex::new(Some((*half.lock().unwrap().as_mut().unwrap()) * (*half.lock().unwrap().as_mut().unwrap()))));
+        return {
+            let __tmp_x = (*half.lock().unwrap().as_mut().unwrap());
+            let __tmp_y = (*half.lock().unwrap().as_mut().unwrap());
+            Arc::new(Mutex::new(Some(__tmp_x * __tmp_y)))
+        };
     }
-    return Arc::new(Mutex::new(Some((*base.lock().unwrap().as_mut().unwrap()) * power(base.clone(), Arc::new(Mutex::new(Some((*exp.lock().unwrap().as_mut().unwrap()) - 1)))))));
+    return {
+            let __tmp_x = (*base.lock().unwrap().as_mut().unwrap());
+            let __tmp_y = power(base.clone(), Arc::new(Mutex::new(Some((*exp.lock().unwrap().as_mut().unwrap()) - 1))));
+            Arc::new(Mutex::new(Some(__tmp_x * __tmp_y)))
+        };
 }
 
 pub fn sum_array(arr: Arc<Mutex<Option<Vec<i32>>>>) -> Arc<Mutex<Option<i32>>> {

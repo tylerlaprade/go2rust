@@ -9,7 +9,7 @@ import (
 func worker(id int, wg *sync.WaitGroup) {
 	defer wg.Done()
 	fmt.Printf("Worker %d starting\n", id)
-	time.Sleep(time.Second)
+	time.Sleep(500 * time.Millisecond)
 	fmt.Printf("Worker %d done\n", id)
 }
 

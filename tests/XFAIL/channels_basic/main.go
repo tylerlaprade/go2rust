@@ -32,7 +32,7 @@ func main() {
 	go sender(ch)
 	go receiver(ch)
 
-	time.Sleep(1 * time.Second)
+	time.Sleep(500 * time.Millisecond)
 
 	// Buffered channel
 	buffered := make(chan string, 3)

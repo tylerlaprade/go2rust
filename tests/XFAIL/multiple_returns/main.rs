@@ -18,7 +18,15 @@ where
 /// Functions with multiple return values
 pub fn divmod(a: Arc<Mutex<Option<i32>>>, b: Arc<Mutex<Option<i32>>>) -> (Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>) {
 
-    return (Arc::new(Mutex::new(Some((*a.lock().unwrap().as_mut().unwrap()) / (*b.lock().unwrap().as_mut().unwrap())))), Arc::new(Mutex::new(Some((*a.lock().unwrap().as_mut().unwrap()) % (*b.lock().unwrap().as_mut().unwrap())))));
+    return ({
+            let __tmp_x = (*a.lock().unwrap().as_mut().unwrap());
+            let __tmp_y = (*b.lock().unwrap().as_mut().unwrap());
+            Arc::new(Mutex::new(Some(__tmp_x / __tmp_y)))
+        }, {
+            let __tmp_x = (*a.lock().unwrap().as_mut().unwrap());
+            let __tmp_y = (*b.lock().unwrap().as_mut().unwrap());
+            Arc::new(Mutex::new(Some(__tmp_x % __tmp_y)))
+        });
 }
 
 pub fn parse_number(s: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<Box<dyn Error + Send + Sync>>>>) {
@@ -107,7 +115,11 @@ pub fn safe_divide(a: Arc<Mutex<Option<f64>>>, b: Arc<Mutex<Option<f64>>>) -> (A
     if (*b.lock().unwrap().as_mut().unwrap()) == 0.0 {
         return (Arc::new(Mutex::new(Some(0))), Arc::new(Mutex::new(Some(Box::new(format!("division by zero")) as Box<dyn Error + Send + Sync>))));
     }
-    return (Arc::new(Mutex::new(Some((*a.lock().unwrap().as_mut().unwrap()) / (*b.lock().unwrap().as_mut().unwrap())))), Arc::new(Mutex::new(None)));
+    return ({
+            let __tmp_x = (*a.lock().unwrap().as_mut().unwrap());
+            let __tmp_y = (*b.lock().unwrap().as_mut().unwrap());
+            Arc::new(Mutex::new(Some(__tmp_x / __tmp_y)))
+        }, Arc::new(Mutex::new(None)));
 }
 
 fn main() {
