@@ -1,9 +1,4 @@
 use std::sync::{Arc, Mutex};
-use std::collections::HashMap;
-use std::fmt::{self, Display, Formatter};
-use std::error::Error;
-use std::any::Any;
-use std::cmp::Ord;
 
 /// Repeat repeats a string n times
 pub fn repeat(s: Arc<Mutex<Option<String>>>, n: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<String>>> {

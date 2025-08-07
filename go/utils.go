@@ -7,6 +7,8 @@ import (
 
 // WrapInArcMutex wraps an expression in Arc<Mutex<Option<...>>>
 func WrapInArcMutex(out *strings.Builder, expr ast.Expr) {
+	TrackImport("Arc", "wrapping value")
+	TrackImport("Mutex", "wrapping value")
 	out.WriteString("Arc::new(Mutex::new(Some(")
 	TranspileExpression(out, expr)
 	out.WriteString(")))")

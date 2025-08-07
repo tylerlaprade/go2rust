@@ -1,48 +1,4 @@
 use std::sync::{Arc, Mutex};
-use std::collections::HashMap;
-use std::fmt::{self, Display, Formatter};
-use std::error::Error;
-use std::any::Any;
-use std::cmp::Ord;
-
-fn format_map<K: Display + Ord + Clone, V>(map: &Arc<Mutex<Option<HashMap<K, Arc<Mutex<Option<V>>>>>>>) -> String 
-where
-    V: Display,
-{
-    let guard = map.lock().unwrap();
-    if let Some(ref m) = *guard {
-        let mut items: Vec<_> = m.iter().collect();
-        items.sort_by_key(|(k, _)| (*k).clone());
-        
-        let formatted: Vec<String> = items
-            .into_iter()
-            .map(|(k, v)| {
-                let v_guard = v.lock().unwrap();
-                if let Some(ref val) = *v_guard {
-                    format!("{}:{}", k, val)
-                } else {
-                    format!("{}:<nil>", k)
-                }
-            })
-            .collect();
-        
-        format!("map[{}]", formatted.join(" "))
-    } else {
-        "map[]".to_string()
-    }
-}
-fn format_slice<T>(slice: &Arc<Mutex<Option<Vec<T>>>>) -> String 
-where
-    T: Display,
-{
-    let guard = slice.lock().unwrap();
-    if let Some(ref s) = *guard {
-        let formatted: Vec<String> = s.iter().map(|v| v.to_string()).collect();
-        format!("[{}]", formatted.join(" "))
-    } else {
-        "[]".to_string()
-    }
-}
 
 trait Shape {
     fn area(&self) -> Arc<Mutex<Option<f64>>>;
@@ -127,14 +83,14 @@ pub fn assert_without_check(value: Arc<Mutex<Option<Box<dyn Any>>>>) {
 }
 
 pub fn describe_shape(s: Arc<Mutex<Option<Box<dyn Shape>>>>) {
-    print!("Shape area: {:.2}\n", (*(*s.lock().unwrap().as_mut().unwrap()).area().lock().unwrap().as_mut().unwrap()));
+    print!("Shape area: {:.2}\n", (*(*s.lock().unwrap().as_mut().unwrap()).area().lock().unwrap().as_ref().unwrap()));
 
     let (mut rect, mut ok) = match (*s.lock().unwrap().as_mut().unwrap()).downcast_ref::<Rectangle>() { Some(v) => (v.clone(), true), None => (Default::default(), false) };
     if (*ok.lock().unwrap().as_mut().unwrap()) {
-        print!("  Rectangle: {:.1} x {:.1}\n", (*(*rect.lock().unwrap().as_mut().unwrap()).width.lock().unwrap().as_mut().unwrap()), (*(*rect.lock().unwrap().as_mut().unwrap()).height.lock().unwrap().as_mut().unwrap()));
+        print!("  Rectangle: {:.1} x {:.1}\n", (*(*rect.lock().unwrap().as_mut().unwrap()).width.lock().unwrap().as_ref().unwrap()), (*(*rect.lock().unwrap().as_mut().unwrap()).height.lock().unwrap().as_ref().unwrap()));
     } else let (mut circle, mut ok) = match (*s.lock().unwrap().as_mut().unwrap()).downcast_ref::<Circle>() { Some(v) => (v.clone(), true), None => (Default::default(), false) };
     if (*ok.lock().unwrap().as_mut().unwrap()) {
-        print!("  Circle: radius {:.1}\n", (*(*circle.lock().unwrap().as_mut().unwrap()).radius.lock().unwrap().as_mut().unwrap()));
+        print!("  Circle: radius {:.1}\n", (*(*circle.lock().unwrap().as_mut().unwrap()).radius.lock().unwrap().as_ref().unwrap()));
     }
 }
 

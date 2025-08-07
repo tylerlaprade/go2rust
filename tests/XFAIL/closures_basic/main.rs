@@ -1,36 +1,6 @@
+use std::fmt::{Display};
 use std::sync::{Arc, Mutex};
-use std::collections::HashMap;
-use std::fmt::{self, Display, Formatter};
-use std::error::Error;
-use std::any::Any;
-use std::cmp::Ord;
 
-fn format_map<K: Display + Ord + Clone, V>(map: &Arc<Mutex<Option<HashMap<K, Arc<Mutex<Option<V>>>>>>>) -> String 
-where
-    V: Display,
-{
-    let guard = map.lock().unwrap();
-    if let Some(ref m) = *guard {
-        let mut items: Vec<_> = m.iter().collect();
-        items.sort_by_key(|(k, _)| (*k).clone());
-        
-        let formatted: Vec<String> = items
-            .into_iter()
-            .map(|(k, v)| {
-                let v_guard = v.lock().unwrap();
-                if let Some(ref val) = *v_guard {
-                    format!("{}:{}", k, val)
-                } else {
-                    format!("{}:<nil>", k)
-                }
-            })
-            .collect();
-        
-        format!("map[{}]", formatted.join(" "))
-    } else {
-        "map[]".to_string()
-    }
-}
 fn format_slice<T>(slice: &Arc<Mutex<Option<Vec<T>>>>) -> String 
 where
     T: Display,
@@ -71,19 +41,19 @@ pub fn apply_operation(nums: Arc<Mutex<Option<Vec<i32>>>>, op: Arc<Mutex<Option<
 
 fn main() {
     let mut counter = make_counter();
-    println!("{} {}", "Counter 1:".to_string(), (*(counter.lock().unwrap().as_ref().unwrap())().lock().unwrap().as_mut().unwrap()));
-    println!("{} {}", "Counter 2:".to_string(), (*(counter.lock().unwrap().as_ref().unwrap())().lock().unwrap().as_mut().unwrap()));
-    println!("{} {}", "Counter 3:".to_string(), (*(counter.lock().unwrap().as_ref().unwrap())().lock().unwrap().as_mut().unwrap()));
+    println!("{} {}", "Counter 1:".to_string(), (*(counter.lock().unwrap().as_ref().unwrap())().lock().unwrap().as_ref().unwrap()));
+    println!("{} {}", "Counter 2:".to_string(), (*(counter.lock().unwrap().as_ref().unwrap())().lock().unwrap().as_ref().unwrap()));
+    println!("{} {}", "Counter 3:".to_string(), (*(counter.lock().unwrap().as_ref().unwrap())().lock().unwrap().as_ref().unwrap()));
 
     let mut counter2 = make_counter();
-    println!("{} {}", "Counter2 1:".to_string(), (*(counter2.lock().unwrap().as_ref().unwrap())().lock().unwrap().as_mut().unwrap()));
-    println!("{} {}", "Counter 4:".to_string(), (*(counter.lock().unwrap().as_ref().unwrap())().lock().unwrap().as_mut().unwrap()));
+    println!("{} {}", "Counter2 1:".to_string(), (*(counter2.lock().unwrap().as_ref().unwrap())().lock().unwrap().as_ref().unwrap()));
+    println!("{} {}", "Counter 4:".to_string(), (*(counter.lock().unwrap().as_ref().unwrap())().lock().unwrap().as_ref().unwrap()));
 
     let mut add5 = make_adder(Arc::new(Mutex::new(Some(5))));
     let mut add10 = make_adder(Arc::new(Mutex::new(Some(10))));
 
-    println!("{} {}", "5 + 3 =".to_string(), (*(add5.lock().unwrap().as_ref().unwrap())(Arc::new(Mutex::new(Some(3)))).lock().unwrap().as_mut().unwrap()));
-    println!("{} {}", "10 + 7 =".to_string(), (*(add10.lock().unwrap().as_ref().unwrap())(Arc::new(Mutex::new(Some(7)))).lock().unwrap().as_mut().unwrap()));
+    println!("{} {}", "5 + 3 =".to_string(), (*(add5.lock().unwrap().as_ref().unwrap())(Arc::new(Mutex::new(Some(3)))).lock().unwrap().as_ref().unwrap()));
+    println!("{} {}", "10 + 7 =".to_string(), (*(add10.lock().unwrap().as_ref().unwrap())(Arc::new(Mutex::new(Some(7)))).lock().unwrap().as_ref().unwrap()));
 
     let mut numbers = Arc::new(Mutex::new(Some(vec![1, 2, 3, 4, 5])));
 

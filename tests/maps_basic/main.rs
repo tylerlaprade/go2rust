@@ -1,9 +1,7 @@
-use std::sync::{Arc, Mutex};
-use std::collections::HashMap;
-use std::fmt::{self, Display, Formatter};
-use std::error::Error;
-use std::any::Any;
 use std::cmp::Ord;
+use std::collections::HashMap;
+use std::fmt::{Display};
+use std::sync::{Arc, Mutex};
 
 fn format_map<K: Display + Ord + Clone, V>(map: &Arc<Mutex<Option<HashMap<K, Arc<Mutex<Option<V>>>>>>>) -> String 
 where
@@ -29,18 +27,6 @@ where
         format!("map[{}]", formatted.join(" "))
     } else {
         "map[]".to_string()
-    }
-}
-fn format_slice<T>(slice: &Arc<Mutex<Option<Vec<T>>>>) -> String 
-where
-    T: Display,
-{
-    let guard = slice.lock().unwrap();
-    if let Some(ref s) = *guard {
-        let formatted: Vec<String> = s.iter().map(|v| v.to_string()).collect();
-        format!("[{}]", formatted.join(" "))
-    } else {
-        "[]".to_string()
     }
 }
 

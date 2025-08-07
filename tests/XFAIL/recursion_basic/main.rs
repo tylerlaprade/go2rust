@@ -1,36 +1,6 @@
+use std::fmt::{Display};
 use std::sync::{Arc, Mutex};
-use std::collections::HashMap;
-use std::fmt::{self, Display, Formatter};
-use std::error::Error;
-use std::any::Any;
-use std::cmp::Ord;
 
-fn format_map<K: Display + Ord + Clone, V>(map: &Arc<Mutex<Option<HashMap<K, Arc<Mutex<Option<V>>>>>>>) -> String 
-where
-    V: Display,
-{
-    let guard = map.lock().unwrap();
-    if let Some(ref m) = *guard {
-        let mut items: Vec<_> = m.iter().collect();
-        items.sort_by_key(|(k, _)| (*k).clone());
-        
-        let formatted: Vec<String> = items
-            .into_iter()
-            .map(|(k, v)| {
-                let v_guard = v.lock().unwrap();
-                if let Some(ref val) = *v_guard {
-                    format!("{}:{}", k, val)
-                } else {
-                    format!("{}:<nil>", k)
-                }
-            })
-            .collect();
-        
-        format!("map[{}]", formatted.join(" "))
-    } else {
-        "map[]".to_string()
-    }
-}
 fn format_slice<T>(slice: &Arc<Mutex<Option<Vec<T>>>>) -> String 
 where
     T: Display,
@@ -103,25 +73,25 @@ pub fn reverse_string(s: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<String>
 }
 
 fn main() {
-    println!("{} {}", "Factorial of 5:".to_string(), (*factorial(Arc::new(Mutex::new(Some(5)))).lock().unwrap().as_mut().unwrap()));
-    println!("{} {}", "Factorial of 0:".to_string(), (*factorial(Arc::new(Mutex::new(Some(0)))).lock().unwrap().as_mut().unwrap()));
+    println!("{} {}", "Factorial of 5:".to_string(), (*factorial(Arc::new(Mutex::new(Some(5)))).lock().unwrap().as_ref().unwrap()));
+    println!("{} {}", "Factorial of 0:".to_string(), (*factorial(Arc::new(Mutex::new(Some(0)))).lock().unwrap().as_ref().unwrap()));
 
     println!("{}", "Fibonacci sequence:".to_string());
     let mut i = Arc::new(Mutex::new(Some(0)));
     while (*i.lock().unwrap().as_mut().unwrap()) < 10 {
-        print!("fib({}) = {}\n", (*i.lock().unwrap().as_mut().unwrap()), (*fibonacci(i.clone()).lock().unwrap().as_mut().unwrap()));
+        print!("fib({}) = {}\n", (*i.lock().unwrap().as_mut().unwrap()), (*fibonacci(i.clone()).lock().unwrap().as_ref().unwrap()));
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
 
-    println!("{} {}", "GCD of 48 and 18:".to_string(), (*gcd(Arc::new(Mutex::new(Some(48))), Arc::new(Mutex::new(Some(18)))).lock().unwrap().as_mut().unwrap()));
-    println!("{} {}", "GCD of 17 and 13:".to_string(), (*gcd(Arc::new(Mutex::new(Some(17))), Arc::new(Mutex::new(Some(13)))).lock().unwrap().as_mut().unwrap()));
+    println!("{} {}", "GCD of 48 and 18:".to_string(), (*gcd(Arc::new(Mutex::new(Some(48))), Arc::new(Mutex::new(Some(18)))).lock().unwrap().as_ref().unwrap()));
+    println!("{} {}", "GCD of 17 and 13:".to_string(), (*gcd(Arc::new(Mutex::new(Some(17))), Arc::new(Mutex::new(Some(13)))).lock().unwrap().as_ref().unwrap()));
 
-    println!("{} {}", "2^8 =".to_string(), (*power(Arc::new(Mutex::new(Some(2))), Arc::new(Mutex::new(Some(8)))).lock().unwrap().as_mut().unwrap()));
-    println!("{} {}", "3^4 =".to_string(), (*power(Arc::new(Mutex::new(Some(3))), Arc::new(Mutex::new(Some(4)))).lock().unwrap().as_mut().unwrap()));
-    println!("{} {}", "5^0 =".to_string(), (*power(Arc::new(Mutex::new(Some(5))), Arc::new(Mutex::new(Some(0)))).lock().unwrap().as_mut().unwrap()));
+    println!("{} {}", "2^8 =".to_string(), (*power(Arc::new(Mutex::new(Some(2))), Arc::new(Mutex::new(Some(8)))).lock().unwrap().as_ref().unwrap()));
+    println!("{} {}", "3^4 =".to_string(), (*power(Arc::new(Mutex::new(Some(3))), Arc::new(Mutex::new(Some(4)))).lock().unwrap().as_ref().unwrap()));
+    println!("{} {}", "5^0 =".to_string(), (*power(Arc::new(Mutex::new(Some(5))), Arc::new(Mutex::new(Some(0)))).lock().unwrap().as_ref().unwrap()));
 
     let mut numbers = Arc::new(Mutex::new(Some(vec![1, 2, 3, 4, 5])));
-    println!("{} {} {} {}", "Sum of".to_string(), format_slice(&numbers), "=".to_string(), (*sum_array(numbers.clone()).lock().unwrap().as_mut().unwrap()));
+    println!("{} {} {} {}", "Sum of".to_string(), format_slice(&numbers), "=".to_string(), (*sum_array(numbers.clone()).lock().unwrap().as_ref().unwrap()));
 
     let mut original = Arc::new(Mutex::new(Some("hello".to_string())));
     let mut reversed = reverse_string(original.clone());

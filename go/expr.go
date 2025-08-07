@@ -215,7 +215,11 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		out.WriteString("(*")
 		// Use LValue context so the identifier doesn't get unwrapped
 		TranspileExpressionContext(out, e.X, LValue)
-		out.WriteString(".lock().unwrap().as_mut().unwrap())")
+		if ctx == RValue {
+			out.WriteString(".lock().unwrap().as_ref().unwrap())")
+		} else {
+			out.WriteString(".lock().unwrap().as_mut().unwrap())")
+		}
 	case *ast.BinaryExpr:
 		// Special handling for comparisons with nil
 		if ident, ok := e.Y.(*ast.Ident); ok && ident.Name == "nil" {
@@ -392,6 +396,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			out.WriteString(")))")
 		} else if mapType, ok := e.Type.(*ast.MapType); ok {
 			// Map literal - wrap the whole map in Arc<Mutex<Option<>>>
+			TrackImport("Arc", "map literal")
+			TrackImport("Mutex", "map literal")
+			TrackImport("HashMap", "map literal")
 			out.WriteString("Arc::new(Mutex::new(Some(HashMap::<")
 			out.WriteString(goTypeToRustBase(mapType.Key))
 			out.WriteString(", ")

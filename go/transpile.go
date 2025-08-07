@@ -108,43 +108,24 @@ func implementsInterface(typeName string, typeMethods []*ast.FuncDecl, iface *as
 }
 
 func Transpile(file *ast.File, fileSet *token.FileSet, typeInfo *TypeInfo) string {
-	var output strings.Builder
+	// Create trackers
+	imports := NewImportTracker()
+	helpers := &HelperTracker{}
 
-	// Add standard library imports at the top
-	output.WriteString("use std::sync::{Arc, Mutex};\n")
-	output.WriteString("use std::collections::HashMap;\n")
-	output.WriteString("use std::fmt::{self, Display, Formatter};\n")
-	output.WriteString("use std::error::Error;\n")
-	output.WriteString("use std::any::Any;\n")
-	output.WriteString("use std::cmp::Ord;\n")
-	output.WriteString("\n")
-
-	// Check if this file uses print statements (might need formatters)
-	needsFormatters := false
-	ast.Inspect(file, func(n ast.Node) bool {
-		if call, ok := n.(*ast.CallExpr); ok {
-			// Check for fmt.Println, fmt.Printf, or builtin println
-			if sel, ok := call.Fun.(*ast.SelectorExpr); ok {
-				if ident, ok := sel.X.(*ast.Ident); ok && ident.Name == "fmt" {
-					if sel.Sel.Name == "Println" || sel.Sel.Name == "Printf" {
-						needsFormatters = true
-						return false
-					}
-				}
-			} else if ident, ok := call.Fun.(*ast.Ident); ok && ident.Name == "println" {
-				needsFormatters = true
-				return false
-			}
-		}
-		return true
-	})
-
-	// Add helper functions if needed
-	if needsFormatters {
-		generateMapFormatter(&output)
-		generateSliceFormatter(&output)
-		output.WriteString("\n")
+	// Set up global context
+	ctx := &TranspileContext{
+		Imports: imports,
+		Helpers: helpers,
 	}
+	SetTranspileContext(ctx)
+	defer SetTranspileContext(nil) // Clear when done
+
+	// Always need Arc and Mutex for our wrapping strategy
+	TrackImport("Arc", "core wrapping strategy")
+	TrackImport("Mutex", "core wrapping strategy")
+
+	// Transpile the body
+	var body strings.Builder
 
 	// Collect methods by receiver type
 	methods := make(map[string][]*ast.FuncDecl)
@@ -200,21 +181,21 @@ func Transpile(file *ast.File, fileSet *token.FileSet, typeInfo *TypeInfo) strin
 	// Output constants first
 	for _, c := range consts {
 		if !first {
-			output.WriteString("\n\n")
+			body.WriteString("\n\n")
 		}
 		first = false
-		TranspileConstDecl(&output, c)
+		TranspileConstDecl(&body, c)
 	}
 
 	// Output type declarations
 	for _, t := range types {
 		if !first {
-			output.WriteString("\n\n")
+			body.WriteString("\n\n")
 		}
 		first = false
 		// Output doc comments if present
-		outputComment(&output, t.decl.Doc, "", true)
-		TranspileTypeDecl(&output, t.spec, t.decl)
+		outputComment(&body, t.decl.Doc, "", true)
+		TranspileTypeDecl(&body, t.spec, t.decl)
 	}
 
 	// Output impl blocks for types with methods in source file order
@@ -229,21 +210,21 @@ func Transpile(file *ast.File, fileSet *token.FileSet, typeInfo *TypeInfo) strin
 	for _, typeName := range typeNames {
 		typeMethods := methods[typeName]
 		if !first {
-			output.WriteString("\n\n")
+			body.WriteString("\n\n")
 		}
 		first = false
-		output.WriteString("impl ")
-		output.WriteString(typeName)
-		output.WriteString(" {\n")
+		body.WriteString("impl ")
+		body.WriteString(typeName)
+		body.WriteString(" {\n")
 
 		for i, method := range typeMethods {
 			if i > 0 {
-				output.WriteString("\n")
+				body.WriteString("\n")
 			}
-			TranspileMethodImpl(&output, method, fileSet)
+			TranspileMethodImpl(&body, method, fileSet)
 		}
 
-		output.WriteString("}")
+		body.WriteString("}")
 
 		// Check if this type has an Error() string method
 		hasErrorMethod := false
@@ -258,28 +239,28 @@ func Transpile(file *ast.File, fileSet *token.FileSet, typeInfo *TypeInfo) strin
 
 		// If it has Error() method, implement Error trait
 		if hasErrorMethod {
-			output.WriteString("\n\n")
-			output.WriteString("impl Error for ")
-			output.WriteString(typeName)
-			output.WriteString(" {}\n\n")
-			output.WriteString("impl Display for ")
-			output.WriteString(typeName)
-			output.WriteString(" {\n")
-			output.WriteString("    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {\n")
-			output.WriteString("        write!(f, \"{}\", (*self.error().lock().unwrap().as_mut().unwrap()))\n")
-			output.WriteString("    }\n")
-			output.WriteString("}")
+			body.WriteString("\n\n")
+			body.WriteString("impl Error for ")
+			body.WriteString(typeName)
+			body.WriteString(" {}\n\n")
+			body.WriteString("impl Display for ")
+			body.WriteString(typeName)
+			body.WriteString(" {\n")
+			body.WriteString("    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {\n")
+			body.WriteString("        write!(f, \"{}\", (*self.error().lock().unwrap().as_mut().unwrap()))\n")
+			body.WriteString("    }\n")
+			body.WriteString("}")
 		}
 
 		// Generate trait implementations for this type
 		for ifaceName, ifaceType := range interfaces {
 			if implementsInterface(typeName, methods[typeName], ifaceType) {
-				output.WriteString("\n\n")
-				output.WriteString("impl ")
-				output.WriteString(ifaceName)
-				output.WriteString(" for ")
-				output.WriteString(typeName)
-				output.WriteString(" {\n")
+				body.WriteString("\n\n")
+				body.WriteString("impl ")
+				body.WriteString(ifaceName)
+				body.WriteString(" for ")
+				body.WriteString(typeName)
+				body.WriteString(" {\n")
 
 				// Generate trait method implementations
 				for _, method := range ifaceType.Methods.List {
@@ -288,14 +269,14 @@ func Transpile(file *ast.File, fileSet *token.FileSet, typeInfo *TypeInfo) strin
 						// Find the corresponding method implementation
 						for _, impl := range methods[typeName] {
 							if impl.Name.Name == methodName {
-								transpileMethodImplWithVisibility(&output, impl, false, fileSet)
+								transpileMethodImplWithVisibility(&body, impl, false, fileSet)
 								break
 							}
 						}
 					}
 				}
 
-				output.WriteString("}")
+				body.WriteString("}")
 			}
 		}
 	}
@@ -303,13 +284,25 @@ func Transpile(file *ast.File, fileSet *token.FileSet, typeInfo *TypeInfo) strin
 	// Output regular functions
 	for _, fn := range functions {
 		if !first {
-			output.WriteString("\n\n")
+			body.WriteString("\n\n")
 		}
 		first = false
 		// Output doc comments if present
-		outputComment(&output, fn.Doc, "", true)
-		TranspileFunction(&output, fn, fileSet)
+		outputComment(&body, fn.Doc, "", true)
+		TranspileFunction(&body, fn, fileSet)
 	}
+
+	// Now build the final output with only needed imports
+	var output strings.Builder
+	output.WriteString(imports.GenerateImports())
+	if imports.GenerateImports() != "" {
+		output.WriteString("\n")
+	}
+	output.WriteString(helpers.GenerateHelpers())
+	if helpers.GenerateHelpers() != "" {
+		output.WriteString("\n")
+	}
+	output.WriteString(body.String())
 
 	return output.String()
 }

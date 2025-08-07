@@ -441,6 +441,22 @@ run_xfail_test() {
     run_xfail_test "tests/XFAIL/context_usage"
 }
 
+@test "XFAIL: cross_file_func_vars" {
+    run_xfail_test "tests/XFAIL/cross_file_func_vars"
+}
+
+@test "XFAIL: cross_file_maps" {
+    run_xfail_test "tests/XFAIL/cross_file_maps"
+}
+
+@test "XFAIL: cross_file_methods" {
+    run_xfail_test "tests/XFAIL/cross_file_methods"
+}
+
+@test "XFAIL: cross_file_types" {
+    run_xfail_test "tests/XFAIL/cross_file_types"
+}
+
 @test "XFAIL: crypto_hash" {
     run_xfail_test "tests/XFAIL/crypto_hash"
 }

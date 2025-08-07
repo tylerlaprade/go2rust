@@ -1,36 +1,6 @@
+use std::fmt::{Display};
 use std::sync::{Arc, Mutex};
-use std::collections::HashMap;
-use std::fmt::{self, Display, Formatter};
-use std::error::Error;
-use std::any::Any;
-use std::cmp::Ord;
 
-fn format_map<K: Display + Ord + Clone, V>(map: &Arc<Mutex<Option<HashMap<K, Arc<Mutex<Option<V>>>>>>>) -> String 
-where
-    V: Display,
-{
-    let guard = map.lock().unwrap();
-    if let Some(ref m) = *guard {
-        let mut items: Vec<_> = m.iter().collect();
-        items.sort_by_key(|(k, _)| (*k).clone());
-        
-        let formatted: Vec<String> = items
-            .into_iter()
-            .map(|(k, v)| {
-                let v_guard = v.lock().unwrap();
-                if let Some(ref val) = *v_guard {
-                    format!("{}:{}", k, val)
-                } else {
-                    format!("{}:<nil>", k)
-                }
-            })
-            .collect();
-        
-        format!("map[{}]", formatted.join(" "))
-    } else {
-        "map[]".to_string()
-    }
-}
 fn format_slice<T>(slice: &Arc<Mutex<Option<Vec<T>>>>) -> String 
 where
     T: Display,
@@ -159,10 +129,10 @@ fn main() {
 
     let mut op: Arc<Mutex<Option<BinaryOp>>> = Default::default();
     { let new_val = (*add.lock().unwrap().as_mut().unwrap()); *op.lock().unwrap() = Some(new_val); };
-    print!("5 + 3 = {}\n", (*(op.lock().unwrap().as_ref().unwrap())(Arc::new(Mutex::new(Some(5))), Arc::new(Mutex::new(Some(3)))).lock().unwrap().as_mut().unwrap()));
+    print!("5 + 3 = {}\n", (*(op.lock().unwrap().as_ref().unwrap())(Arc::new(Mutex::new(Some(5))), Arc::new(Mutex::new(Some(3)))).lock().unwrap().as_ref().unwrap()));
 
     { let new_val = (*multiply.lock().unwrap().as_mut().unwrap()); *op.lock().unwrap() = Some(new_val); };
-    print!("5 * 3 = {}\n", (*(op.lock().unwrap().as_ref().unwrap())(Arc::new(Mutex::new(Some(5))), Arc::new(Mutex::new(Some(3)))).lock().unwrap().as_mut().unwrap()));
+    print!("5 * 3 = {}\n", (*(op.lock().unwrap().as_ref().unwrap())(Arc::new(Mutex::new(Some(5))), Arc::new(Mutex::new(Some(3)))).lock().unwrap().as_ref().unwrap()));
 
     println!("{}", "\n=== Higher-order functions ===".to_string());
     let mut result = apply_binary(add.clone(), Arc::new(Mutex::new(Some(10))), Arc::new(Mutex::new(Some(20))));
@@ -212,10 +182,10 @@ fn main() {
 
     println!("{}", "\n=== Functions returning functions ===".to_string());
     let mut triple = make_multiplier(Arc::new(Mutex::new(Some(3))));
-    print!("triple(4) = {}\n", (*(triple.lock().unwrap().as_ref().unwrap())(Arc::new(Mutex::new(Some(4)))).lock().unwrap().as_mut().unwrap()));
+    print!("triple(4) = {}\n", (*(triple.lock().unwrap().as_ref().unwrap())(Arc::new(Mutex::new(Some(4)))).lock().unwrap().as_ref().unwrap()));
 
     let mut addTen = make_adder(Arc::new(Mutex::new(Some(10))));
-    print!("addTen(5, 3) = {}\n", (*(addTen.lock().unwrap().as_ref().unwrap())(Arc::new(Mutex::new(Some(5))), Arc::new(Mutex::new(Some(3)))).lock().unwrap().as_mut().unwrap()));
+    print!("addTen(5, 3) = {}\n", (*(addTen.lock().unwrap().as_ref().unwrap())(Arc::new(Mutex::new(Some(5))), Arc::new(Mutex::new(Some(3)))).lock().unwrap().as_ref().unwrap()));
 
     println!("{}", "\n=== Struct with function fields ===".to_string());
     let mut calc = Calculator { add: Arc::new(Mutex::new(Some(Arc::new(Mutex::new(Some(Box::new(move |a: Arc<Mutex<Option<i32>>>, b: Arc<Mutex<Option<i32>>>| -> Arc<Mutex<Option<i32>>> {
@@ -224,17 +194,17 @@ fn main() {
         return Arc::new(Mutex::new(Some((*a.lock().unwrap().as_mut().unwrap()) - (*b.lock().unwrap().as_mut().unwrap()))));
     }) as Box<dyn Fn(Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<i32>>> + Send + Sync>)))))), multiply: Arc::new(Mutex::new(Some((*multiply.lock().unwrap().as_mut().unwrap())))) };
 
-    print!("calc.Add(10, 5) = {}\n", (*(*calc.lock().unwrap().as_mut().unwrap()).add(Arc::new(Mutex::new(Some(10))), Arc::new(Mutex::new(Some(5)))).lock().unwrap().as_mut().unwrap()));
-    print!("calc.Subtract(10, 5) = {}\n", (*(*calc.lock().unwrap().as_mut().unwrap()).subtract(Arc::new(Mutex::new(Some(10))), Arc::new(Mutex::new(Some(5)))).lock().unwrap().as_mut().unwrap()));
-    print!("calc.Multiply(10, 5) = {}\n", (*(*calc.lock().unwrap().as_mut().unwrap()).multiply(Arc::new(Mutex::new(Some(10))), Arc::new(Mutex::new(Some(5)))).lock().unwrap().as_mut().unwrap()));
+    print!("calc.Add(10, 5) = {}\n", (*(*calc.lock().unwrap().as_mut().unwrap()).add(Arc::new(Mutex::new(Some(10))), Arc::new(Mutex::new(Some(5)))).lock().unwrap().as_ref().unwrap()));
+    print!("calc.Subtract(10, 5) = {}\n", (*(*calc.lock().unwrap().as_mut().unwrap()).subtract(Arc::new(Mutex::new(Some(10))), Arc::new(Mutex::new(Some(5)))).lock().unwrap().as_ref().unwrap()));
+    print!("calc.Multiply(10, 5) = {}\n", (*(*calc.lock().unwrap().as_mut().unwrap()).multiply(Arc::new(Mutex::new(Some(10))), Arc::new(Mutex::new(Some(5)))).lock().unwrap().as_ref().unwrap()));
 
     println!("{}", "\n=== Function variables ===".to_string());
     let mut processor: Arc<Mutex<Option<StringProcessor>>> = Default::default();
     { let new_val = (*toUpper.lock().unwrap().as_mut().unwrap()); *processor.lock().unwrap() = Some(new_val); };
-    print!("Using toUpper: {}\n", (*(processor.lock().unwrap().as_ref().unwrap())(Arc::new(Mutex::new(Some("test".to_string())))).lock().unwrap().as_mut().unwrap()));
+    print!("Using toUpper: {}\n", (*(processor.lock().unwrap().as_ref().unwrap())(Arc::new(Mutex::new(Some("test".to_string())))).lock().unwrap().as_ref().unwrap()));
 
     { let new_val = Arc::new(Mutex::new(Some(Box::new(move |s: Arc<Mutex<Option<String>>>| -> Arc<Mutex<Option<String>>> {
         return Arc::new(Mutex::new(Some(format!("{}{}", "processed: ".to_string(), (*s.lock().unwrap().as_mut().unwrap())))));
     }) as Box<dyn Fn(Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<String>>> + Send + Sync>))); *processor.lock().unwrap() = Some(new_val); };
-    print!("Using anonymous: {}\n", (*(processor.lock().unwrap().as_ref().unwrap())(Arc::new(Mutex::new(Some("test".to_string())))).lock().unwrap().as_mut().unwrap()));
+    print!("Using anonymous: {}\n", (*(processor.lock().unwrap().as_ref().unwrap())(Arc::new(Mutex::new(Some("test".to_string())))).lock().unwrap().as_ref().unwrap()));
 }

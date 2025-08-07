@@ -1,9 +1,4 @@
 use std::sync::{Arc, Mutex};
-use std::collections::HashMap;
-use std::fmt::{self, Display, Formatter};
-use std::error::Error;
-use std::any::Any;
-use std::cmp::Ord;
 
 pub fn get_hello() -> Arc<Mutex<Option<String>>> {
 

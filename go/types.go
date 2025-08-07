@@ -91,6 +91,7 @@ func goTypeToRustBase(expr ast.Expr) string {
 		case "bool":
 			return "bool"
 		case "error":
+			TrackImport("Error", "error type")
 			return "Option<Box<dyn Error + Send + Sync>>"
 		default:
 			// Check if this is an interface type

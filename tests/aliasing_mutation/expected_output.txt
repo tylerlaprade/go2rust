@@ -1,1 +1,12 @@
-x = 200
+Initial: x = 42
+Initial: *p = 42
+Initial: *q = 42
+After *p = 100: x = 100
+After *p = 100: *p = 100
+After *p = 100: *q = 100
+After *q = 200: x = 200
+After *q = 200: *p = 200
+After *q = 200: *q = 200
+After x = 300: x = 300
+After x = 300: *p = 300
+After x = 300: *q = 300

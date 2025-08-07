@@ -1,0 +1,7 @@
+{
+    "rust-analyzer.check.command": "check",
+    "rust-analyzer.check.extraArgs": [
+        "--",
+        "-Awarnings"
+    ],
+}

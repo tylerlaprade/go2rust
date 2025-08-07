@@ -111,6 +111,9 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 	typeInfo := GetTypeInfo()
 	if typeInfo != nil && typeInfo.GetType(arg) != nil {
 		if typeInfo.IsMap(arg) {
+			NeedFormatMap()
+			TrackImport("Display", "map formatting")
+			TrackImport("Ord", "map formatting")
 			out.WriteString("format_map(&")
 			if ident, ok := arg.(*ast.Ident); ok {
 				// For identifiers, just use the name directly (it's already wrapped)
@@ -121,6 +124,8 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 			out.WriteString(")")
 			return
 		} else if typeInfo.IsSlice(arg) {
+			NeedFormatSlice()
+			TrackImport("Display", "slice formatting")
 			out.WriteString("format_slice(&")
 			if ident, ok := arg.(*ast.Ident); ok {
 				// For identifiers, just use the name directly (it's already wrapped)
@@ -143,7 +148,7 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 			// self.field - need to unwrap for display
 			out.WriteString("(*self.")
 			out.WriteString(ToSnakeCase(sel.Sel.Name))
-			out.WriteString(".lock().unwrap().as_mut().unwrap())")
+			out.WriteString(".lock().unwrap().as_ref().unwrap())")
 			return
 		}
 	}
@@ -164,7 +169,7 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 			// Method call or user function call - unwrap the result
 			out.WriteString("(*")
 			TranspileExpression(out, arg)
-			out.WriteString(".lock().unwrap().as_mut().unwrap())")
+			out.WriteString(".lock().unwrap().as_ref().unwrap())")
 			return
 		}
 	}
@@ -180,7 +185,7 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 				// Regular variable - fields are wrapped
 				out.WriteString("(*")
 				TranspileExpression(out, arg)
-				out.WriteString(".lock().unwrap().as_mut().unwrap())")
+				out.WriteString(".lock().unwrap().as_ref().unwrap())")
 				return
 			}
 		}
@@ -376,6 +381,7 @@ func transpileStrconvAtoi(out *strings.Builder, call *ast.CallExpr) {
 		TranspileExpression(out, call.Args[0])
 		out.WriteString(".parse::<i32>() { ")
 		out.WriteString("Ok(n) => (Arc::new(Mutex::new(Some(n))), Arc::new(Mutex::new(None))), ")
+		TrackImport("Error", "parse error handling")
 		out.WriteString("Err(e) => (Arc::new(Mutex::new(Some(0))), Arc::new(Mutex::new(Some(Box::new(e) as Box<dyn Error + Send + Sync>)))) }")
 	}
 }
@@ -440,6 +446,9 @@ func transpileMake(out *strings.Builder, call *ast.CallExpr) {
 	if len(call.Args) >= 1 {
 		// Check if it's a map type
 		if mapType, ok := call.Args[0].(*ast.MapType); ok {
+			TrackImport("Arc", "make map")
+			TrackImport("Mutex", "make map")
+			TrackImport("HashMap", "make map")
 			out.WriteString("Arc::new(Mutex::new(Some(")
 			out.WriteString("HashMap::<")
 			out.WriteString(goTypeToRustBase(mapType.Key))

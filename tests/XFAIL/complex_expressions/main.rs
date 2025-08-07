@@ -1,48 +1,5 @@
-use std::sync::{Arc, Mutex};
 use std::collections::HashMap;
-use std::fmt::{self, Display, Formatter};
-use std::error::Error;
-use std::any::Any;
-use std::cmp::Ord;
-
-fn format_map<K: Display + Ord + Clone, V>(map: &Arc<Mutex<Option<HashMap<K, Arc<Mutex<Option<V>>>>>>>) -> String 
-where
-    V: Display,
-{
-    let guard = map.lock().unwrap();
-    if let Some(ref m) = *guard {
-        let mut items: Vec<_> = m.iter().collect();
-        items.sort_by_key(|(k, _)| (*k).clone());
-        
-        let formatted: Vec<String> = items
-            .into_iter()
-            .map(|(k, v)| {
-                let v_guard = v.lock().unwrap();
-                if let Some(ref val) = *v_guard {
-                    format!("{}:{}", k, val)
-                } else {
-                    format!("{}:<nil>", k)
-                }
-            })
-            .collect();
-        
-        format!("map[{}]", formatted.join(" "))
-    } else {
-        "map[]".to_string()
-    }
-}
-fn format_slice<T>(slice: &Arc<Mutex<Option<Vec<T>>>>) -> String 
-where
-    T: Display,
-{
-    let guard = slice.lock().unwrap();
-    if let Some(ref s) = *guard {
-        let formatted: Vec<String> = s.iter().map(|v| v.to_string()).collect();
-        format!("[{}]", formatted.join(" "))
-    } else {
-        "[]".to_string()
-    }
-}
+use std::sync::{Arc, Mutex};
 
 fn main() {
     println!("{}", "=== Complex arithmetic expressions ===".to_string());
@@ -114,7 +71,7 @@ fn main() {
     let mut val = Arc::new(Mutex::new(Some(42)));
     let mut ptr = val.clone();
 
-    let mut ptrResult = Arc::new(Mutex::new(Some((*ptr.lock().unwrap().as_mut().unwrap()) + ((*ptr.lock().unwrap().as_mut().unwrap()) * 2) - ((*ptr.lock().unwrap().as_mut().unwrap()) / 2))));
+    let mut ptrResult = Arc::new(Mutex::new(Some((*ptr.lock().unwrap().as_ref().unwrap()) + ((*ptr.lock().unwrap().as_ref().unwrap()) * 2) - ((*ptr.lock().unwrap().as_ref().unwrap()) / 2))));
     print!("*ptr + (*ptr * 2) - (*ptr / 2) = {}\n", (*ptrResult.lock().unwrap().as_mut().unwrap()));
 
     println!("{}", "\n=== Type assertion expressions ===".to_string());

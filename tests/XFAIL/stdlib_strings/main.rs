@@ -1,36 +1,6 @@
+use std::fmt::{Display};
 use std::sync::{Arc, Mutex};
-use std::collections::HashMap;
-use std::fmt::{self, Display, Formatter};
-use std::error::Error;
-use std::any::Any;
-use std::cmp::Ord;
 
-fn format_map<K: Display + Ord + Clone, V>(map: &Arc<Mutex<Option<HashMap<K, Arc<Mutex<Option<V>>>>>>>) -> String 
-where
-    V: Display,
-{
-    let guard = map.lock().unwrap();
-    if let Some(ref m) = *guard {
-        let mut items: Vec<_> = m.iter().collect();
-        items.sort_by_key(|(k, _)| (*k).clone());
-        
-        let formatted: Vec<String> = items
-            .into_iter()
-            .map(|(k, v)| {
-                let v_guard = v.lock().unwrap();
-                if let Some(ref val) = *v_guard {
-                    format!("{}:{}", k, val)
-                } else {
-                    format!("{}:<nil>", k)
-                }
-            })
-            .collect();
-        
-        format!("map[{}]", formatted.join(" "))
-    } else {
-        "map[]".to_string()
-    }
-}
 fn format_slice<T>(slice: &Arc<Mutex<Option<Vec<T>>>>) -> String 
 where
     T: Display,
@@ -70,30 +40,30 @@ fn main() {
     let mut trimmed = (*text.lock().unwrap().as_mut().unwrap()).trim();
     print!("Trimmed: '{}'\n", (*trimmed.lock().unwrap().as_mut().unwrap()));
 
-    print!("Upper: {}\n", (*(*trimmed.lock().unwrap().as_mut().unwrap()).to_uppercase().lock().unwrap().as_mut().unwrap()));
-    print!("Lower: {}\n", (*(*trimmed.lock().unwrap().as_mut().unwrap()).to_lowercase().lock().unwrap().as_mut().unwrap()));
-    print!("Title: {}\n", (*(*strings.lock().unwrap().as_mut().unwrap()).title(Arc::new(Mutex::new(Some((*trimmed.lock().unwrap().as_mut().unwrap()))))).lock().unwrap().as_mut().unwrap()));
+    print!("Upper: {}\n", (*(*trimmed.lock().unwrap().as_mut().unwrap()).to_uppercase().lock().unwrap().as_ref().unwrap()));
+    print!("Lower: {}\n", (*(*trimmed.lock().unwrap().as_mut().unwrap()).to_lowercase().lock().unwrap().as_ref().unwrap()));
+    print!("Title: {}\n", (*(*strings.lock().unwrap().as_mut().unwrap()).title(Arc::new(Mutex::new(Some((*trimmed.lock().unwrap().as_mut().unwrap()))))).lock().unwrap().as_ref().unwrap()));
 
     println!("{}", "\n=== String searching ===".to_string());
     let mut searchText = Arc::new(Mutex::new(Some("The quick brown fox jumps over the lazy dog".to_string())));
     print!("Text: {}\n", (*searchText.lock().unwrap().as_mut().unwrap()));
 
-    print!("Contains 'fox': {}\n", (*(*strings.lock().unwrap().as_mut().unwrap()).contains(Arc::new(Mutex::new(Some((*searchText.lock().unwrap().as_mut().unwrap())))), Arc::new(Mutex::new(Some("fox".to_string())))).lock().unwrap().as_mut().unwrap()));
-    print!("Contains 'cat': {}\n", (*(*strings.lock().unwrap().as_mut().unwrap()).contains(Arc::new(Mutex::new(Some((*searchText.lock().unwrap().as_mut().unwrap())))), Arc::new(Mutex::new(Some("cat".to_string())))).lock().unwrap().as_mut().unwrap()));
+    print!("Contains 'fox': {}\n", (*(*strings.lock().unwrap().as_mut().unwrap()).contains(Arc::new(Mutex::new(Some((*searchText.lock().unwrap().as_mut().unwrap())))), Arc::new(Mutex::new(Some("fox".to_string())))).lock().unwrap().as_ref().unwrap()));
+    print!("Contains 'cat': {}\n", (*(*strings.lock().unwrap().as_mut().unwrap()).contains(Arc::new(Mutex::new(Some((*searchText.lock().unwrap().as_mut().unwrap())))), Arc::new(Mutex::new(Some("cat".to_string())))).lock().unwrap().as_ref().unwrap()));
 
-    print!("Index of 'fox': {}\n", (*(*strings.lock().unwrap().as_mut().unwrap()).index(Arc::new(Mutex::new(Some((*searchText.lock().unwrap().as_mut().unwrap())))), Arc::new(Mutex::new(Some("fox".to_string())))).lock().unwrap().as_mut().unwrap()));
-    print!("Index of 'cat': {}\n", (*(*strings.lock().unwrap().as_mut().unwrap()).index(Arc::new(Mutex::new(Some((*searchText.lock().unwrap().as_mut().unwrap())))), Arc::new(Mutex::new(Some("cat".to_string())))).lock().unwrap().as_mut().unwrap()));
+    print!("Index of 'fox': {}\n", (*(*strings.lock().unwrap().as_mut().unwrap()).index(Arc::new(Mutex::new(Some((*searchText.lock().unwrap().as_mut().unwrap())))), Arc::new(Mutex::new(Some("fox".to_string())))).lock().unwrap().as_ref().unwrap()));
+    print!("Index of 'cat': {}\n", (*(*strings.lock().unwrap().as_mut().unwrap()).index(Arc::new(Mutex::new(Some((*searchText.lock().unwrap().as_mut().unwrap())))), Arc::new(Mutex::new(Some("cat".to_string())))).lock().unwrap().as_ref().unwrap()));
 
-    print!("Last index of 'the': {}\n", (*(*strings.lock().unwrap().as_mut().unwrap()).last_index(Arc::new(Mutex::new(Some((*searchText.lock().unwrap().as_mut().unwrap())))), Arc::new(Mutex::new(Some("the".to_string())))).lock().unwrap().as_mut().unwrap()));
+    print!("Last index of 'the': {}\n", (*(*strings.lock().unwrap().as_mut().unwrap()).last_index(Arc::new(Mutex::new(Some((*searchText.lock().unwrap().as_mut().unwrap())))), Arc::new(Mutex::new(Some("the".to_string())))).lock().unwrap().as_ref().unwrap()));
 
-    print!("Count of 'the': {}\n", (*(*strings.lock().unwrap().as_mut().unwrap()).count(Arc::new(Mutex::new(Some((*searchText.lock().unwrap().as_mut().unwrap())))), Arc::new(Mutex::new(Some("the".to_string())))).lock().unwrap().as_mut().unwrap()));
+    print!("Count of 'the': {}\n", (*(*strings.lock().unwrap().as_mut().unwrap()).count(Arc::new(Mutex::new(Some((*searchText.lock().unwrap().as_mut().unwrap())))), Arc::new(Mutex::new(Some("the".to_string())))).lock().unwrap().as_ref().unwrap()));
 
     println!("{}", "\n=== Prefixes and suffixes ===".to_string());
     let mut filename = Arc::new(Mutex::new(Some("document.txt".to_string())));
     print!("Filename: {}\n", (*filename.lock().unwrap().as_mut().unwrap()));
-    print!("Has .txt suffix: {}\n", (*(*strings.lock().unwrap().as_mut().unwrap()).has_suffix(Arc::new(Mutex::new(Some((*filename.lock().unwrap().as_mut().unwrap())))), Arc::new(Mutex::new(Some(".txt".to_string())))).lock().unwrap().as_mut().unwrap()));
-    print!("Has .pdf suffix: {}\n", (*(*strings.lock().unwrap().as_mut().unwrap()).has_suffix(Arc::new(Mutex::new(Some((*filename.lock().unwrap().as_mut().unwrap())))), Arc::new(Mutex::new(Some(".pdf".to_string())))).lock().unwrap().as_mut().unwrap()));
-    print!("Has 'doc' prefix: {}\n", (*(*strings.lock().unwrap().as_mut().unwrap()).has_prefix(Arc::new(Mutex::new(Some((*filename.lock().unwrap().as_mut().unwrap())))), Arc::new(Mutex::new(Some("doc".to_string())))).lock().unwrap().as_mut().unwrap()));
+    print!("Has .txt suffix: {}\n", (*(*strings.lock().unwrap().as_mut().unwrap()).has_suffix(Arc::new(Mutex::new(Some((*filename.lock().unwrap().as_mut().unwrap())))), Arc::new(Mutex::new(Some(".txt".to_string())))).lock().unwrap().as_ref().unwrap()));
+    print!("Has .pdf suffix: {}\n", (*(*strings.lock().unwrap().as_mut().unwrap()).has_suffix(Arc::new(Mutex::new(Some((*filename.lock().unwrap().as_mut().unwrap())))), Arc::new(Mutex::new(Some(".pdf".to_string())))).lock().unwrap().as_ref().unwrap()));
+    print!("Has 'doc' prefix: {}\n", (*(*strings.lock().unwrap().as_mut().unwrap()).has_prefix(Arc::new(Mutex::new(Some((*filename.lock().unwrap().as_mut().unwrap())))), Arc::new(Mutex::new(Some("doc".to_string())))).lock().unwrap().as_ref().unwrap()));
 
     println!("{}", "\n=== Splitting and joining ===".to_string());
     let mut csv = Arc::new(Mutex::new(Some("apple,banana,cherry,date".to_string())));
@@ -133,7 +103,7 @@ fn main() {
     print!("'{}' == '{}': {}\n", (*str1.lock().unwrap().as_mut().unwrap()), (*str3.lock().unwrap().as_mut().unwrap()), (*str1.lock().unwrap().as_mut().unwrap()) == (*str3.lock().unwrap().as_mut().unwrap()));
     print!("'{}' < '{}': {}\n", (*str1.lock().unwrap().as_mut().unwrap()), (*str2.lock().unwrap().as_mut().unwrap()), (*str1.lock().unwrap().as_mut().unwrap()) < (*str2.lock().unwrap().as_mut().unwrap()));
 
-    print!("EqualFold('Apple', 'APPLE'): {}\n", (*(*strings.lock().unwrap().as_mut().unwrap()).equal_fold(Arc::new(Mutex::new(Some("Apple".to_string()))), Arc::new(Mutex::new(Some("APPLE".to_string())))).lock().unwrap().as_mut().unwrap()));
+    print!("EqualFold('Apple', 'APPLE'): {}\n", (*(*strings.lock().unwrap().as_mut().unwrap()).equal_fold(Arc::new(Mutex::new(Some("Apple".to_string()))), Arc::new(Mutex::new(Some("APPLE".to_string())))).lock().unwrap().as_ref().unwrap()));
 
     println!("{}", "\n=== String building ===".to_string());
     let mut builder: Arc<Mutex<Option</* TODO: Unhandled type *ast.SelectorExpr */ Arc<Mutex<Option<()>>>>>>;
@@ -145,7 +115,7 @@ fn main() {
 
     let mut built = (*builder.lock().unwrap().as_mut().unwrap()).string();
     print!("Built string: {}\n", (*built.lock().unwrap().as_mut().unwrap()));
-    print!("Builder length: {}\n", (*(*builder.lock().unwrap().as_mut().unwrap()).len().lock().unwrap().as_mut().unwrap()));
+    print!("Builder length: {}\n", (*(*builder.lock().unwrap().as_mut().unwrap()).len().lock().unwrap().as_ref().unwrap()));
 
     println!("{}", "\n=== Unicode and runes ===".to_string());
     let mut unicode = Arc::new(Mutex::new(Some("Hello, 世界! 🌍".to_string())));
@@ -162,9 +132,9 @@ fn main() {
     println!("{}", "\n=== String trimming variations ===".to_string());
     let mut messy = Arc::new(Mutex::new(Some("!!!Hello World!!!".to_string())));
     print!("Original: {}\n", (*messy.lock().unwrap().as_mut().unwrap()));
-    print!("TrimLeft '!': {}\n", (*(*strings.lock().unwrap().as_mut().unwrap()).trim_left(Arc::new(Mutex::new(Some((*messy.lock().unwrap().as_mut().unwrap())))), Arc::new(Mutex::new(Some("!".to_string())))).lock().unwrap().as_mut().unwrap()));
-    print!("TrimRight '!': {}\n", (*(*strings.lock().unwrap().as_mut().unwrap()).trim_right(Arc::new(Mutex::new(Some((*messy.lock().unwrap().as_mut().unwrap())))), Arc::new(Mutex::new(Some("!".to_string())))).lock().unwrap().as_mut().unwrap()));
-    print!("Trim '!': {}\n", (*(*strings.lock().unwrap().as_mut().unwrap()).trim(Arc::new(Mutex::new(Some((*messy.lock().unwrap().as_mut().unwrap())))), Arc::new(Mutex::new(Some("!".to_string())))).lock().unwrap().as_mut().unwrap()));
+    print!("TrimLeft '!': {}\n", (*(*strings.lock().unwrap().as_mut().unwrap()).trim_left(Arc::new(Mutex::new(Some((*messy.lock().unwrap().as_mut().unwrap())))), Arc::new(Mutex::new(Some("!".to_string())))).lock().unwrap().as_ref().unwrap()));
+    print!("TrimRight '!': {}\n", (*(*strings.lock().unwrap().as_mut().unwrap()).trim_right(Arc::new(Mutex::new(Some((*messy.lock().unwrap().as_mut().unwrap())))), Arc::new(Mutex::new(Some("!".to_string())))).lock().unwrap().as_ref().unwrap()));
+    print!("Trim '!': {}\n", (*(*strings.lock().unwrap().as_mut().unwrap()).trim(Arc::new(Mutex::new(Some((*messy.lock().unwrap().as_mut().unwrap())))), Arc::new(Mutex::new(Some("!".to_string())))).lock().unwrap().as_ref().unwrap()));
 
     println!("{}", "\n=== String formatting ===".to_string());
     let mut name = Arc::new(Mutex::new(Some("Alice".to_string())));
