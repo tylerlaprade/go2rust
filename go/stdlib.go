@@ -55,6 +55,9 @@ func init() {
 		"cap":     transpileCap,
 		"delete":  transpileDelete,
 		"new":     transpileNew,
+		"complex": transpileComplex,
+		"real":    transpileReal,
+		"imag":    transpileImag,
 	}
 }
 
@@ -530,6 +533,47 @@ func transpileNew(out *strings.Builder, call *ast.CallExpr) {
 		out.WriteString(GoTypeToRust(call.Args[0]))
 		out.WriteString("::default())))")
 	}
+}
+
+// transpileComplex handles the complex() builtin function
+func transpileComplex(out *strings.Builder, call *ast.CallExpr) {
+	if len(call.Args) != 2 {
+		return
+	}
+
+	// Determine the type - complex64 or complex128
+	// For now, default to complex128 (f64)
+	out.WriteString("Arc::new(Mutex::new(Some(num::Complex::new(")
+	out.WriteString("*")
+	TranspileExpression(out, call.Args[0])
+	out.WriteString(".lock().unwrap().as_ref().unwrap(), ")
+	out.WriteString("*")
+	TranspileExpression(out, call.Args[1])
+	out.WriteString(".lock().unwrap().as_ref().unwrap()))))")
+}
+
+// transpileReal handles the real() builtin function
+func transpileReal(out *strings.Builder, call *ast.CallExpr) {
+	if len(call.Args) != 1 {
+		return
+	}
+
+	out.WriteString("Arc::new(Mutex::new(Some(")
+	out.WriteString("(*")
+	TranspileExpression(out, call.Args[0])
+	out.WriteString(".lock().unwrap().as_ref().unwrap()).re)))")
+}
+
+// transpileImag handles the imag() builtin function
+func transpileImag(out *strings.Builder, call *ast.CallExpr) {
+	if len(call.Args) != 1 {
+		return
+	}
+
+	out.WriteString("Arc::new(Mutex::new(Some(")
+	out.WriteString("(*")
+	TranspileExpression(out, call.Args[0])
+	out.WriteString(".lock().unwrap().as_ref().unwrap()).im)))")
 }
 
 // Helper function to format maps like Go does

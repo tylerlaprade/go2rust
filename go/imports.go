@@ -77,6 +77,11 @@ func (it *ImportTracker) GenerateImports() string {
 		imports = append(imports, "use std::cmp::Ord;")
 	}
 
+	// External crate imports
+	if it.needs["num::Complex"] {
+		imports = append(imports, "use num::Complex;")
+	}
+
 	// Sort for consistent output
 	sort.Strings(imports)
 

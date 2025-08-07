@@ -180,3 +180,48 @@ func (ti *TypeInfo) GetBasicKind(expr ast.Expr) types.BasicKind {
 	}
 	return types.Invalid
 }
+
+// IsTypeConversion checks if a CallExpr is actually a type conversion
+func (ti *TypeInfo) IsTypeConversion(call *ast.CallExpr) bool {
+	// Type conversions have exactly one argument
+	if len(call.Args) != 1 {
+		return false
+	}
+
+	// Check for []byte(x) or []rune(x) conversions
+	if _, ok := call.Fun.(*ast.ArrayType); ok {
+		return true
+	}
+
+	if ti == nil || ti.info == nil {
+		// Without type info, we can still check for common type names
+		if ident, ok := call.Fun.(*ast.Ident); ok {
+			switch ident.Name {
+			case "int", "int8", "int16", "int32", "int64",
+				"uint", "uint8", "uint16", "uint32", "uint64",
+				"float32", "float64", "string", "byte", "rune",
+				"uintptr", "complex64", "complex128":
+				return true
+			}
+		}
+		return false
+	}
+
+	// Check if the function is actually a type
+	if ident, ok := call.Fun.(*ast.Ident); ok {
+		if obj := ti.GetObject(ident); obj != nil {
+			_, isType := obj.(*types.TypeName)
+			return isType
+		}
+	}
+
+	// Also check for selector expressions (e.g., time.Duration)
+	if sel, ok := call.Fun.(*ast.SelectorExpr); ok {
+		if obj, ok := ti.info.Uses[sel.Sel]; ok {
+			_, isType := obj.(*types.TypeName)
+			return isType
+		}
+	}
+
+	return false
+}

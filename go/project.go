@@ -11,23 +11,24 @@ import (
 )
 
 type ProjectGenerator struct {
-	goFiles     []string
-	moduleNames []string
-	hasMain     bool
-	projectPath string
-	packageName string
-	isLibrary   bool
-	typeInfo    *TypeInfo
+	goFiles        []string
+	projectPath    string
+	packageName    string
+	isLibrary      bool
+	hasMain        bool
+	moduleNames    []string
+	typeInfo       *TypeInfo
+	projectImports *ImportTracker // Collect imports across all files
 }
 
 func NewProjectGenerator(goFiles []string) *ProjectGenerator {
 	if len(goFiles) == 0 {
 		return nil
 	}
-
 	return &ProjectGenerator{
-		goFiles:     goFiles,
-		projectPath: filepath.Dir(goFiles[0]),
+		goFiles:        goFiles,
+		projectPath:    filepath.Dir(goFiles[0]),
+		projectImports: NewImportTracker(),
 	}
 }
 
@@ -68,7 +69,18 @@ func (pg *ProjectGenerator) Generate() error {
 			pg.isLibrary = pg.packageName != "main"
 		}
 
-		rustCode := Transpile(file, fileSet, pg.typeInfo)
+		rustCode, fileImports := Transpile(file, fileSet, pg.typeInfo)
+
+		// Merge file imports into project imports
+		if fileImports != nil {
+			for imp := range fileImports.needs {
+				if reasons, ok := fileImports.reasons[imp]; ok {
+					for _, reason := range reasons {
+						pg.projectImports.Add(imp, reason)
+					}
+				}
+			}
+		}
 
 		baseName := strings.TrimSuffix(filepath.Base(filename), ".go")
 		rustFilename := strings.TrimSuffix(filename, ".go") + ".rs"
@@ -148,7 +160,19 @@ func (pg *ProjectGenerator) generateMainRs(fileSet *token.FileSet, astFiles []*a
 		mainRust.WriteString("\n")
 	}
 
-	mainContent := Transpile(file, fileSet, pg.typeInfo)
+	mainContent, mainImports := Transpile(file, fileSet, pg.typeInfo)
+
+	// Merge main imports into project imports
+	if mainImports != nil {
+		for imp := range mainImports.needs {
+			if reasons, ok := mainImports.reasons[imp]; ok {
+				for _, reason := range reasons {
+					pg.projectImports.Add(imp, reason)
+				}
+			}
+		}
+	}
+
 	mainRust.WriteString(mainContent)
 
 	mainRsPath := filepath.Join(pg.projectPath, "main.rs")
@@ -157,6 +181,12 @@ func (pg *ProjectGenerator) generateMainRs(fileSet *token.FileSet, astFiles []*a
 
 func (pg *ProjectGenerator) generateCargoToml() error {
 	cargoPath := filepath.Join(pg.projectPath, "Cargo.toml")
+
+	// Check if we need the num crate from project imports
+	needsNum := false
+	if pg.projectImports != nil && pg.projectImports.needs["num::Complex"] {
+		needsNum = true
+	}
 
 	var cargoContent string
 	if pg.isLibrary {
@@ -178,6 +208,14 @@ edition = "2021"
 [[bin]]
 name = "transpiled"
 path = "main.rs"
+`
+	}
+
+	// Add dependencies if needed
+	if needsNum {
+		cargoContent += `
+[dependencies]
+num = "0.4"
 `
 	}
 

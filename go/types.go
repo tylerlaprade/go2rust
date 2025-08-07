@@ -84,10 +84,36 @@ func goTypeToRustBase(expr ast.Expr) string {
 			return "String"
 		case "int":
 			return "i32"
+		case "int8":
+			return "i8"
+		case "int16":
+			return "i16"
+		case "int32", "rune":
+			return "i32"
 		case "int64":
 			return "i64"
+		case "uint":
+			return "u32"
+		case "uint8", "byte":
+			return "u8"
+		case "uint16":
+			return "u16"
+		case "uint32":
+			return "u32"
+		case "uint64":
+			return "u64"
+		case "uintptr":
+			return "usize"
+		case "float32":
+			return "f32"
 		case "float64":
 			return "f64"
+		case "complex64":
+			TrackImport("num::Complex", "complex numbers")
+			return "num::Complex<f32>"
+		case "complex128":
+			TrackImport("num::Complex", "complex numbers")
+			return "num::Complex<f64>"
 		case "bool":
 			return "bool"
 		case "error":
@@ -103,6 +129,7 @@ func goTypeToRustBase(expr ast.Expr) string {
 	case *ast.InterfaceType:
 		// Empty interface{} becomes Box<dyn Any>
 		if len(t.Methods.List) == 0 {
+			TrackImport("Any", "interface{} type")
 			return "Box<dyn Any>"
 		}
 		return "Unknown"

@@ -763,11 +763,29 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 								} else if _, isCompositeLit := valueSpec.Values[i].(*ast.CompositeLit); isCompositeLit {
 									// Composite literals (map/slice/struct literals) already wrap themselves
 									TranspileExpression(out, valueSpec.Values[i])
-								} else {
-									// Wrap all variables in Arc<Mutex<Option<>>>
-									out.WriteString("Arc::new(Mutex::new(Some(")
+								} else if unary, ok := valueSpec.Values[i].(*ast.UnaryExpr); ok && unary.Op == token.AND {
+									// Address-of operator already produces wrapped value
 									TranspileExpression(out, valueSpec.Values[i])
-									out.WriteString(")))")
+								} else {
+									// Check if the target type is interface{}
+									isInterface := false
+									if valueSpec.Type != nil {
+										if intf, ok := valueSpec.Type.(*ast.InterfaceType); ok && len(intf.Methods.List) == 0 {
+											isInterface = true
+										}
+									}
+
+									if isInterface {
+										// For interface{}, box the value
+										out.WriteString("Arc::new(Mutex::new(Some(Box::new(")
+										TranspileExpression(out, valueSpec.Values[i])
+										out.WriteString(" as Box<dyn Any>))))")
+									} else {
+										// Wrap all variables in Arc<Mutex<Option<>>>
+										out.WriteString("Arc::new(Mutex::new(Some(")
+										TranspileExpression(out, valueSpec.Values[i])
+										out.WriteString(")))")
+									}
 								}
 							} else {
 								// Default initialization for uninitialized vars
@@ -799,6 +817,19 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			case token.CONST:
 				// Handle local const declarations - keep original case
 				transpileConstDeclWithCase(out, genDecl, false)
+			case token.TYPE:
+				// Handle local type declarations
+				for _, spec := range genDecl.Specs {
+					if typeSpec, ok := spec.(*ast.TypeSpec); ok {
+						// For now, just generate type aliases inside functions
+						// These should be hoisted to module level in a real implementation
+						out.WriteString("type ")
+						out.WriteString(typeSpec.Name.Name)
+						out.WriteString(" = ")
+						out.WriteString(GoTypeToRust(typeSpec.Type))
+						out.WriteString(";")
+					}
+				}
 			}
 		}
 

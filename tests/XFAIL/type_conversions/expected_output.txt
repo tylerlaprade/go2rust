@@ -37,7 +37,7 @@ nonZero != 0: true
 
 === Pointer conversions ===
 value: 100
-pointer: 0x1400000e1a0
+pointer: 0xDEADBEEF
 dereferenced: 100
 
 === Interface conversions ===

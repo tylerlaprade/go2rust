@@ -107,7 +107,7 @@ func implementsInterface(typeName string, typeMethods []*ast.FuncDecl, iface *as
 	return true
 }
 
-func Transpile(file *ast.File, fileSet *token.FileSet, typeInfo *TypeInfo) string {
+func Transpile(file *ast.File, fileSet *token.FileSet, typeInfo *TypeInfo) (string, *ImportTracker) {
 	// Create trackers
 	imports := NewImportTracker()
 	helpers := &HelperTracker{}
@@ -304,5 +304,5 @@ func Transpile(file *ast.File, fileSet *token.FileSet, typeInfo *TypeInfo) strin
 	}
 	output.WriteString(body.String())
 
-	return output.String()
+	return output.String(), imports
 }

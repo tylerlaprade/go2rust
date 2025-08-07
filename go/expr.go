@@ -54,6 +54,12 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		if e.Kind == token.STRING {
 			out.WriteString(e.Value)
 			out.WriteString(".to_string()")
+		} else if e.Kind == token.CHAR {
+			// In Go, character literals are runes (int32)
+			// Convert 'A' to the numeric value
+			out.WriteString("(")
+			out.WriteString(e.Value)
+			out.WriteString(" as i32)")
 		} else {
 			out.WriteString(e.Value)
 		}
@@ -615,10 +621,249 @@ func TranspileFuncLit(out *strings.Builder, funcLit *ast.FuncLit) {
 	out.WriteString(")))")
 }
 
+// TranspileTypeConversion handles type conversions like int(x), float64(y), etc.
+func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
+	if len(call.Args) != 1 {
+		// Not a type conversion
+		return
+	}
+
+	// Check for []byte(string) and []rune(string) conversions
+	if compLit, ok := call.Fun.(*ast.ArrayType); ok {
+		if compLit.Len == nil { // It's a slice
+			elemType := ""
+			if ident, ok := compLit.Elt.(*ast.Ident); ok {
+				elemType = ident.Name
+			}
+
+			switch elemType {
+			case "byte", "uint8":
+				// []byte(string) conversion
+				out.WriteString("Arc::new(Mutex::new(Some(")
+				if ident, ok := call.Args[0].(*ast.Ident); ok && ident.Name != "nil" {
+					out.WriteString("(*")
+					out.WriteString(ident.Name)
+					out.WriteString(".lock().unwrap().as_ref().unwrap()).as_bytes().to_vec()")
+				} else {
+					out.WriteString("(*")
+					TranspileExpression(out, call.Args[0])
+					out.WriteString(".lock().unwrap().as_ref().unwrap()).as_bytes().to_vec()")
+				}
+				out.WriteString(")))")
+				return
+			case "rune", "int32":
+				// []rune(string) conversion
+				out.WriteString("Arc::new(Mutex::new(Some(")
+				if ident, ok := call.Args[0].(*ast.Ident); ok && ident.Name != "nil" {
+					out.WriteString("(*")
+					out.WriteString(ident.Name)
+					out.WriteString(".lock().unwrap().as_ref().unwrap()).chars().map(|c| c as i32).collect::<Vec<_>>()")
+				} else {
+					out.WriteString("(*")
+					TranspileExpression(out, call.Args[0])
+					out.WriteString(".lock().unwrap().as_ref().unwrap()).chars().map(|c| c as i32).collect::<Vec<_>>()")
+				}
+				out.WriteString(")))")
+				return
+			}
+		}
+	}
+
+	targetType := ""
+	if ident, ok := call.Fun.(*ast.Ident); ok {
+		targetType = ident.Name
+	} else if sel, ok := call.Fun.(*ast.SelectorExpr); ok {
+		// Handle package.Type conversions
+		targetType = sel.Sel.Name
+	}
+
+	// Map Go types to Rust types and handle the conversion
+	rustType := ""
+	needsCast := true
+
+	switch targetType {
+	// Integer types
+	case "int":
+		rustType = "i32"
+	case "int8":
+		rustType = "i8"
+	case "int16":
+		rustType = "i16"
+	case "int32":
+		rustType = "i32"
+	case "int64":
+		rustType = "i64"
+	case "uint":
+		rustType = "u32"
+	case "uint8", "byte":
+		rustType = "u8"
+	case "uint16":
+		rustType = "u16"
+	case "uint32":
+		rustType = "u32"
+	case "uint64":
+		rustType = "u64"
+	case "uintptr":
+		rustType = "usize"
+	// Float types
+	case "float32":
+		rustType = "f32"
+	case "float64":
+		rustType = "f64"
+	// String conversions
+	case "string":
+		// Special handling for string conversions
+		arg := call.Args[0]
+		typeInfo := GetTypeInfo()
+		if typeInfo != nil {
+			argType := typeInfo.GetType(arg)
+			if argType != nil {
+				// Check if converting from []byte or []rune
+				if slice, ok := argType.Underlying().(*types.Slice); ok {
+					elemType := slice.Elem()
+					if basic, ok := elemType.(*types.Basic); ok {
+						if basic.Kind() == types.Byte || basic.Kind() == types.Uint8 {
+							// []byte to string
+							out.WriteString("Arc::new(Mutex::new(Some(String::from_utf8(")
+							if ident, ok := arg.(*ast.Ident); ok && ident.Name != "nil" {
+								out.WriteString("(*")
+								out.WriteString(ident.Name)
+								out.WriteString(".lock().unwrap().as_ref().unwrap()).clone()")
+							} else {
+								out.WriteString("(*")
+								TranspileExpression(out, arg)
+								out.WriteString(".lock().unwrap().as_ref().unwrap()).clone()")
+							}
+							out.WriteString(").unwrap())))")
+							return
+						} else if basic.Kind() == types.Rune || basic.Kind() == types.Int32 {
+							// []rune to string
+							out.WriteString("Arc::new(Mutex::new(Some(")
+							if ident, ok := arg.(*ast.Ident); ok && ident.Name != "nil" {
+								out.WriteString("(*")
+								out.WriteString(ident.Name)
+								out.WriteString(".lock().unwrap().as_ref().unwrap())")
+							} else {
+								out.WriteString("(*")
+								TranspileExpression(out, arg)
+								out.WriteString(".lock().unwrap().as_ref().unwrap())")
+							}
+							out.WriteString(".iter().map(|&c| char::from_u32(c as u32).unwrap()).collect::<String>())))")
+							return
+						}
+					}
+				} else if basic, ok := argType.Underlying().(*types.Basic); ok {
+					if basic.Kind() == types.Rune || basic.Kind() == types.Int32 {
+						// Single rune to string
+						out.WriteString("Arc::new(Mutex::new(Some(")
+						out.WriteString("char::from_u32((")
+						if ident, ok := arg.(*ast.Ident); ok && ident.Name != "nil" {
+							out.WriteString("*")
+							out.WriteString(ident.Name)
+							out.WriteString(".lock().unwrap().as_ref().unwrap()")
+						} else {
+							out.WriteString("*")
+							TranspileExpression(out, arg)
+							out.WriteString(".lock().unwrap().as_ref().unwrap()")
+						}
+						out.WriteString(") as u32).unwrap().to_string())))")
+						return
+					}
+				}
+			}
+		}
+		// Default string conversion
+		out.WriteString("Arc::new(Mutex::new(Some(")
+		if ident, ok := arg.(*ast.Ident); ok && ident.Name != "nil" {
+			out.WriteString("(*")
+			out.WriteString(ident.Name)
+			out.WriteString(".lock().unwrap().as_ref().unwrap()).to_string()")
+		} else {
+			out.WriteString("(*")
+			TranspileExpression(out, arg)
+			out.WriteString(".lock().unwrap().as_ref().unwrap()).to_string()")
+		}
+		out.WriteString(")))")
+		return
+	case "rune":
+		rustType = "i32" // rune is an alias for int32
+	// Complex types
+	case "complex64":
+		out.WriteString("Arc::new(Mutex::new(Some(num::Complex::<f32>::new(")
+		if ident, ok := call.Args[0].(*ast.Ident); ok && ident.Name != "nil" {
+			out.WriteString("(*")
+			out.WriteString(ident.Name)
+			out.WriteString(".lock().unwrap().as_ref().unwrap()) as f32")
+		} else {
+			out.WriteString("(*")
+			TranspileExpression(out, call.Args[0])
+			out.WriteString(".lock().unwrap().as_ref().unwrap()) as f32")
+		}
+		out.WriteString(", 0.0))))")
+		return
+	case "complex128":
+		out.WriteString("Arc::new(Mutex::new(Some(num::Complex::<f64>::new(")
+		if ident, ok := call.Args[0].(*ast.Ident); ok && ident.Name != "nil" {
+			out.WriteString("(*")
+			out.WriteString(ident.Name)
+			out.WriteString(".lock().unwrap().as_ref().unwrap()) as f64")
+		} else {
+			out.WriteString("(*")
+			TranspileExpression(out, call.Args[0])
+			out.WriteString(".lock().unwrap().as_ref().unwrap()) as f64")
+		}
+		out.WriteString(", 0.0))))")
+		return
+	default:
+		// Check for custom type definitions
+		if _, isTypeDef := typeDefinitions[targetType]; isTypeDef {
+			// Custom type definition
+			out.WriteString(targetType)
+			out.WriteString("(Arc::new(Mutex::new(Some(")
+			TranspileExpression(out, call.Args[0])
+			out.WriteString("))))")
+			return
+		}
+		// Unknown type, just pass through
+		needsCast = false
+	}
+
+	if needsCast && rustType != "" {
+		// Perform the type cast
+		out.WriteString("Arc::new(Mutex::new(Some((")
+		// Check if the argument is a simple identifier (variable)
+		if ident, ok := call.Args[0].(*ast.Ident); ok && ident.Name != "nil" {
+			// It's a variable, unwrap it directly
+			out.WriteString("*")
+			out.WriteString(ident.Name)
+			out.WriteString(".lock().unwrap().as_ref().unwrap()")
+		} else {
+			// It's an expression, evaluate and unwrap
+			out.WriteString("*")
+			TranspileExpression(out, call.Args[0])
+			out.WriteString(".lock().unwrap().as_ref().unwrap()")
+		}
+		out.WriteString(") as ")
+		out.WriteString(rustType)
+		out.WriteString(")))")
+	} else {
+		// No cast needed or unknown type
+		TranspileExpression(out, call.Args[0])
+	}
+}
+
 func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 	// Check if this is a stdlib function we need to replace
 	if handler := GetStdlibHandler(call); handler != nil {
 		handler(out, call)
+		return
+	}
+
+	// Check if this is a type conversion
+	typeInfo := GetTypeInfo()
+	if typeInfo != nil && typeInfo.IsTypeConversion(call) {
+		// Handle type conversion
+		TranspileTypeConversion(out, call)
 		return
 	}
 

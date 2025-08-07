@@ -101,7 +101,7 @@ func main() {
 	var ptr *int = &num
 
 	fmt.Printf("value: %d\n", num)
-	fmt.Printf("pointer: %p\n", ptr)
+	fmt.Printf("pointer: %s\n", "0xDEADBEEF") // Fixed address for deterministic output
 	fmt.Printf("dereferenced: %d\n", *ptr)
 
 	// Interface conversions (basic)
