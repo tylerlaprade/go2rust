@@ -181,23 +181,52 @@ colorize_output() {
     while IFS= read -r line; do
         if [[ "$line" =~ ^"not ok " ]]; then
             # Start of failing test - red X
-            local test_name
+            local test_name timing
             test_name=$(echo "$line" | sed 's/^not ok [0-9]* //')
-            echo -e "\033[31m✗ $test_name\033[0m"
+            # Extract timing if present
+            if [[ "$test_name" =~ (.+)" in "([0-9]+ms) ]]; then
+                test_name="${BASH_REMATCH[1]}"
+                timing="${BASH_REMATCH[2]}"
+                if [ "$VERBOSE" = true ]; then
+                    echo -e "\033[31m✗ $test_name\033[0m \033[90m($timing)\033[0m"
+                else
+                    echo -e "\033[31m✗ $test_name\033[0m"
+                fi
+            else
+                echo -e "\033[31m✗ $test_name\033[0m"
+            fi
             in_failure=true
         elif [[ "$line" =~ ^"ok " ]] && [[ "$line" =~ " XFAIL:" ]]; then
             # XFAIL tests - yellow ⚠ (only show if verbose)
             if [ "$VERBOSE" = true ]; then
-                local test_name
+                local test_name timing
                 test_name=$(echo "$line" | sed 's/^ok [0-9]* //')
-                echo -e "\033[33m⚠ $test_name\033[0m"
+                # Extract timing if present
+                if [[ "$test_name" =~ (.+)" in "([0-9]+ms) ]]; then
+                    test_name="${BASH_REMATCH[1]}"
+                    timing="${BASH_REMATCH[2]}"
+                    echo -e "\033[33m⚠ $test_name\033[0m \033[90m($timing)\033[0m"
+                else
+                    echo -e "\033[33m⚠ $test_name\033[0m"
+                fi
             fi
             in_failure=false
         elif [[ "$line" =~ ^"ok " ]]; then
             # Passing test - green checkmark
-            local test_name
+            local test_name timing
             test_name=$(echo "$line" | sed 's/^ok [0-9]* //')
-            echo -e "\033[32m✓\033[0m $test_name"
+            # Extract timing if present
+            if [[ "$test_name" =~ (.+)" in "([0-9]+ms) ]]; then
+                test_name="${BASH_REMATCH[1]}"
+                timing="${BASH_REMATCH[2]}"
+                if [ "$VERBOSE" = true ]; then
+                    echo -e "\033[32m✓\033[0m $test_name \033[90m($timing)\033[0m"
+                else
+                    echo -e "\033[32m✓\033[0m $test_name"
+                fi
+            else
+                echo -e "\033[32m✓\033[0m $test_name"
+            fi
             in_failure=false
         elif [[ "$line" =~ ^"#" ]] && [ "$in_failure" = true ]; then
             # Error details from failed test - red
@@ -239,9 +268,9 @@ if [ "$JOBS" -eq 1 ]; then
     # Sequential mode - real-time output
     echo "Running tests sequentially (timeout: $TIMEOUT per test)..."
     if [ -n "$FILTER_PATTERN" ]; then
-        bats --tap --filter "$FILTER_PATTERN" tests.bats | colorize_output
+        bats -T --tap --filter "$FILTER_PATTERN" tests.bats | colorize_output
     else
-        bats --tap tests.bats | colorize_output
+        bats -T --tap tests.bats | colorize_output
     fi
 else
     # Parallel mode - buffered output
@@ -249,9 +278,9 @@ else
     
     # Capture output in a variable
     if [ -n "$FILTER_PATTERN" ]; then
-        TEST_OUTPUT=$(bats -j "$JOBS" --filter "$FILTER_PATTERN" tests.bats)
+        TEST_OUTPUT=$(bats -T -j "$JOBS" --filter "$FILTER_PATTERN" tests.bats)
     else
-        TEST_OUTPUT=$(bats -j "$JOBS" tests.bats)
+        TEST_OUTPUT=$(bats -T -j "$JOBS" tests.bats)
     fi
     
     # Display the output with colors
