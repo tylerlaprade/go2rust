@@ -5,6 +5,7 @@ import (
 	"go/ast"
 	"go/token"
 	"go/types"
+	"strconv"
 	"strings"
 )
 
@@ -264,29 +265,92 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			}
 		}
 
-		// Check if we're in a method and dealing with wrapped values
-		needsUnwrap := false
-		if currentReceiver != "" {
-			// In a method, field accesses return wrapped values
+		// Check if we need to unwrap operands
+		needsUnwrapX := false
+		needsUnwrapY := false
+
+		// Check if operands are function calls or field accesses that return wrapped values
+		if _, ok := e.X.(*ast.CallExpr); ok {
+			needsUnwrapX = true
+		} else if currentReceiver != "" {
 			if _, ok := e.X.(*ast.SelectorExpr); ok {
-				needsUnwrap = true
-			}
-			if _, ok := e.Y.(*ast.SelectorExpr); ok {
-				needsUnwrap = true
+				needsUnwrapX = true
 			}
 		}
 
-		if needsUnwrap {
-			// Unwrap the operands for arithmetic
-			out.WriteString("(*")
-			TranspileExpression(out, e.X)
-			out.WriteString(".lock().unwrap().as_mut().unwrap())")
+		if _, ok := e.Y.(*ast.CallExpr); ok {
+			needsUnwrapY = true
+		} else if currentReceiver != "" {
+			if _, ok := e.Y.(*ast.SelectorExpr); ok {
+				needsUnwrapY = true
+			}
+		}
+
+		// Check if identifiers are variables that need unwrapping
+		// But be careful - only unwrap if they're actually wrapped types
+		if ident, ok := e.X.(*ast.Ident); ok && ident.Name != "nil" && ident.Name != "true" && ident.Name != "false" {
+			// Check if it's a constant or literal
+			if ident.Name[0] >= 'A' && ident.Name[0] <= 'Z' {
+				// Likely a constant, don't unwrap
+			} else if _, err := strconv.Atoi(ident.Name); err == nil {
+				// It's a number literal, don't unwrap
+			} else if _, isLocalConst := localConstants[ident.Name]; isLocalConst {
+				// Local constant, don't unwrap
+			} else if _, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar {
+				// Range variable - check its type
+				if varType, ok := rangeLoopVars[ident.Name]; ok && !strings.Contains(varType, "Arc") {
+					// Simple type like usize, don't unwrap
+				} else {
+					needsUnwrapX = true
+				}
+			} else {
+				// Regular variable, needs unwrapping
+				needsUnwrapX = true
+			}
+		}
+
+		if ident, ok := e.Y.(*ast.Ident); ok && ident.Name != "nil" && ident.Name != "true" && ident.Name != "false" {
+			// Check if it's a constant or literal
+			if ident.Name[0] >= 'A' && ident.Name[0] <= 'Z' {
+				// Likely a constant, don't unwrap
+			} else if _, err := strconv.Atoi(ident.Name); err == nil {
+				// It's a number literal, don't unwrap
+			} else if _, isLocalConst := localConstants[ident.Name]; isLocalConst {
+				// Local constant, don't unwrap
+			} else if _, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar {
+				// Range variable - check its type
+				if varType, ok := rangeLoopVars[ident.Name]; ok && !strings.Contains(varType, "Arc") {
+					// Simple type like usize, don't unwrap
+				} else {
+					needsUnwrapY = true
+				}
+			} else {
+				// Regular variable, needs unwrapping
+				needsUnwrapY = true
+			}
+		}
+
+		if needsUnwrapX || needsUnwrapY {
+			// Need to unwrap at least one operand
+			if needsUnwrapX {
+				out.WriteString("(*")
+				TranspileExpression(out, e.X)
+				out.WriteString(".lock().unwrap().as_ref().unwrap())")
+			} else {
+				TranspileExpression(out, e.X)
+			}
+
 			out.WriteString(" ")
 			out.WriteString(e.Op.String())
 			out.WriteString(" ")
-			out.WriteString("(*")
-			TranspileExpression(out, e.Y)
-			out.WriteString(".lock().unwrap().as_mut().unwrap())")
+
+			if needsUnwrapY {
+				out.WriteString("(*")
+				TranspileExpression(out, e.Y)
+				out.WriteString(".lock().unwrap().as_ref().unwrap())")
+			} else {
+				TranspileExpression(out, e.Y)
+			}
 		} else {
 			// Regular binary expression
 			// Special handling for numeric literals with float operations
@@ -360,25 +424,53 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			}
 			out.WriteString(").unwrap().lock().unwrap().as_ref().unwrap())")
 		} else {
-			// Regular array/slice indexing or map assignment (handled elsewhere)
-			// Need to unwrap the array/slice first
-			TranspileExpressionContext(out, e.X, RValue)
-			out.WriteString("[")
-			TranspileExpression(out, e.Index)
-			out.WriteString("]")
+			// Regular array/slice indexing
+			// Check if we're indexing a string
+			typeInfo := GetTypeInfo()
+			isString := false
+			if typeInfo != nil {
+				if typ := typeInfo.GetType(e.X); typ != nil {
+					if basic, ok := typ.Underlying().(*types.Basic); ok {
+						isString = basic.Kind() == types.String
+					}
+				}
+			}
+
+			if isString {
+				// String indexing returns a byte
+				out.WriteString("(*")
+				TranspileExpression(out, e.X)
+				out.WriteString(".lock().unwrap().as_ref().unwrap()).as_bytes()[")
+				TranspileExpression(out, e.Index)
+				out.WriteString("]")
+			} else {
+				// Array/slice indexing
+				out.WriteString("(*")
+				TranspileExpression(out, e.X)
+				out.WriteString(".lock().unwrap().as_ref().unwrap())[")
+				TranspileExpression(out, e.Index)
+				out.WriteString("]")
+			}
 		}
 
 	case *ast.SliceExpr:
+		// Slicing operation like arr[1:] or s[start:end]
+		// The slice is wrapped in Arc<Mutex<Option<Vec<T>>>>
+		out.WriteString("Arc::new(Mutex::new(Some(")
+		out.WriteString("(*")
 		TranspileExpression(out, e.X)
+		out.WriteString(".lock().unwrap().as_ref().unwrap())")
 		out.WriteString("[")
 		if e.Low != nil {
 			TranspileExpression(out, e.Low)
+		} else {
+			out.WriteString("0")
 		}
 		out.WriteString("..")
 		if e.High != nil {
 			TranspileExpression(out, e.High)
 		}
-		out.WriteString("].to_vec()")
+		out.WriteString("].to_vec())))")
 
 	case *ast.CompositeLit:
 		// Handle array/slice literals
