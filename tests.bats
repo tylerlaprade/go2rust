@@ -332,6 +332,10 @@ run_xfail_test() {
     run_test "tests/pointers_simple"
 }
 
+@test "recursion_factorial" {
+    run_test "tests/recursion_factorial"
+}
+
 @test "simple_functions" {
     run_test "tests/simple_functions"
 }
@@ -622,10 +626,6 @@ run_xfail_test() {
 
 @test "XFAIL: recursion_basic" {
     run_xfail_test "tests/XFAIL/recursion_basic"
-}
-
-@test "XFAIL: recursion_factorial" {
-    run_xfail_test "tests/XFAIL/recursion_factorial"
 }
 
 @test "XFAIL: regex_basic" {

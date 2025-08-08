@@ -11,7 +11,7 @@ pub fn sum(numbers: Arc<Mutex<Option</* TODO: Unhandled type *ast.Ellipsis */ Ar
 
 pub fn average(numbers: Arc<Mutex<Option</* TODO: Unhandled type *ast.Ellipsis */ Arc<Mutex<Option<()>>>>>>) -> Arc<Mutex<Option<f64>>> {
 
-    if (*numbers.lock().unwrap().as_mut().unwrap()).len() == 0 {
+    if (*numbers.lock().unwrap().as_ref().unwrap()).len() == 0 {
         return Arc::new(Mutex::new(Some(0)));
     }
     let mut total = Arc::new(Mutex::new(Some(0.0)));
@@ -20,7 +20,7 @@ pub fn average(numbers: Arc<Mutex<Option</* TODO: Unhandled type *ast.Ellipsis *
     }
     return {
             let __tmp_x = (*total.lock().unwrap().as_mut().unwrap());
-            let __tmp_y = Arc::new(Mutex::new(Some((*(*numbers.lock().unwrap().as_mut().unwrap()).len().lock().unwrap().as_ref().unwrap()) as f64)));
+            let __tmp_y = Arc::new(Mutex::new(Some((*(*numbers.lock().unwrap().as_ref().unwrap()).len().lock().unwrap().as_ref().unwrap()) as f64)));
             Arc::new(Mutex::new(Some(__tmp_x / __tmp_y)))
         };
 }
@@ -49,11 +49,11 @@ pub fn min(first: Arc<Mutex<Option<i32>>>, rest: Arc<Mutex<Option</* TODO: Unhan
 
 pub fn concat(separator: Arc<Mutex<Option<String>>>, strings: Arc<Mutex<Option</* TODO: Unhandled type *ast.Ellipsis */ Arc<Mutex<Option<()>>>>>>) -> Arc<Mutex<Option<String>>> {
 
-    if (*strings.lock().unwrap().as_mut().unwrap()).len() == 0 {
+    if (*strings.lock().unwrap().as_ref().unwrap()).len() == 0 {
         return Arc::new(Mutex::new(Some("".to_string())));
     }
-    let mut result = Arc::new(Mutex::new(Some((*strings.lock().unwrap().as_mut().unwrap())[0])));
-    for str in &(*strings.lock().unwrap().as_mut().unwrap())[1..].to_vec() {
+    let mut result = Arc::new(Mutex::new(Some((*strings.lock().unwrap().as_ref().unwrap())[0 as usize].clone())));
+    for str in &Arc::new(Mutex::new(Some((*strings.lock().unwrap().as_ref().unwrap())[1 as usize..].to_vec()))) {
         (*result.lock().unwrap().as_mut().unwrap()).push_str(&(*separator.lock().unwrap().as_mut().unwrap()) + str);
     }
     return result.clone();

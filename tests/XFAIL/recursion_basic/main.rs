@@ -31,7 +31,7 @@ pub fn fibonacci(n: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<i32>>> {
     if (*n.lock().unwrap().as_mut().unwrap()) <= 1 {
         return n.clone();
     }
-    return Arc::new(Mutex::new(Some(fibonacci(Arc::new(Mutex::new(Some((*n.lock().unwrap().as_mut().unwrap()) - 1)))) + fibonacci(Arc::new(Mutex::new(Some((*n.lock().unwrap().as_mut().unwrap()) - 2)))))));
+    return Arc::new(Mutex::new(Some((*fibonacci(Arc::new(Mutex::new(Some((*n.lock().unwrap().as_mut().unwrap()) - 1)))).lock().unwrap().as_ref().unwrap()) + (*fibonacci(Arc::new(Mutex::new(Some((*n.lock().unwrap().as_mut().unwrap()) - 2)))).lock().unwrap().as_ref().unwrap()))));
 }
 
 pub fn gcd(a: Arc<Mutex<Option<i32>>>, b: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<i32>>> {
@@ -67,21 +67,21 @@ pub fn power(base: Arc<Mutex<Option<i32>>>, exp: Arc<Mutex<Option<i32>>>) -> Arc
 
 pub fn sum_array(arr: Arc<Mutex<Option<Vec<i32>>>>) -> Arc<Mutex<Option<i32>>> {
 
-    if (*arr.lock().unwrap().as_mut().unwrap()).len() == 0 {
+    if (*arr.lock().unwrap().as_ref().unwrap()).len() == 0 {
         return Arc::new(Mutex::new(Some(0)));
     }
-    if (*arr.lock().unwrap().as_mut().unwrap()).len() == 1 {
-        return Arc::new(Mutex::new(Some((*arr.lock().unwrap().as_mut().unwrap())[0])));
+    if (*arr.lock().unwrap().as_ref().unwrap()).len() == 1 {
+        return Arc::new(Mutex::new(Some((*arr.lock().unwrap().as_ref().unwrap())[0 as usize].clone())));
     }
-    return Arc::new(Mutex::new(Some((*arr.lock().unwrap().as_mut().unwrap())[0] + sum_array(Arc::new(Mutex::new(Some((*arr.lock().unwrap().as_mut().unwrap())[1..].to_vec())))))));
+    return Arc::new(Mutex::new(Some((*(*arr.lock().unwrap().as_ref().unwrap())[0 as usize].clone().lock().unwrap().as_ref().unwrap()) + (*sum_array(Arc::new(Mutex::new(Some(Arc::new(Mutex::new(Some((*arr.lock().unwrap().as_ref().unwrap())[1 as usize..].to_vec()))))))).lock().unwrap().as_ref().unwrap()))));
 }
 
 pub fn reverse_string(s: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<String>>> {
 
-    if (*s.lock().unwrap().as_mut().unwrap()).len() <= 1 {
+    if (*s.lock().unwrap().as_ref().unwrap()).len() <= 1 {
         return s.clone();
     }
-    return Arc::new(Mutex::new(Some(reverse_string(Arc::new(Mutex::new(Some((*s.lock().unwrap().as_mut().unwrap())[1..].to_vec())))) + Arc::new(Mutex::new(Some((*(*s.lock().unwrap().as_mut().unwrap())[0].lock().unwrap().as_ref().unwrap()).to_string()))))));
+    return Arc::new(Mutex::new(Some((*reverse_string(Arc::new(Mutex::new(Some(Arc::new(Mutex::new(Some((*s.lock().unwrap().as_ref().unwrap())[1 as usize..].to_vec()))))))).lock().unwrap().as_ref().unwrap()) + Arc::new(Mutex::new(Some((*(*(*s.lock().unwrap().as_mut().unwrap()).lock().unwrap().as_ref().unwrap()).as_bytes()[0 as usize].lock().unwrap().as_ref().unwrap()).to_string()))))));
 }
 
 fn main() {

@@ -7,7 +7,7 @@ pub fn worker(id: Arc<Mutex<Option<i32>>>, wg: Arc<Mutex<Option</* TODO: Unhandl
         (*wg.lock().unwrap().as_mut().unwrap()).done();
     }));
     print!("Worker {} starting\n", (*id.lock().unwrap().as_mut().unwrap()));
-    (*time.lock().unwrap().as_mut().unwrap()).sleep(Arc::new(Mutex::new(Some(500 * (*time.lock().unwrap().as_mut().unwrap())::millisecond))));
+    (*time.lock().unwrap().as_mut().unwrap()).sleep(Arc::new(Mutex::new(Some(500 * (*(*time.lock().unwrap().as_mut().unwrap())::millisecond.lock().unwrap().as_ref().unwrap())))));
     print!("Worker {} done\n", (*id.lock().unwrap().as_mut().unwrap()));
 
     // Execute deferred functions

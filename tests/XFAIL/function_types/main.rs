@@ -109,7 +109,7 @@ pub fn filter(numbers: Arc<Mutex<Option<Vec<i32>>>>, pred: Arc<Mutex<Option<Pred
 
 pub fn transform(numbers: Arc<Mutex<Option<Vec<i32>>>>, op: Arc<Mutex<Option<UnaryOp>>>) -> Arc<Mutex<Option<Vec<i32>>>> {
 
-    let mut result = Arc::new(Mutex::new(Some(vec![0; (*numbers.lock().unwrap().as_mut().unwrap()).len()])));
+    let mut result = Arc::new(Mutex::new(Some(vec![0; (*numbers.lock().unwrap().as_ref().unwrap()).len()])));
     for (i, num) in (*numbers.lock().unwrap().as_mut().unwrap()).iter().enumerate() {
         (*result.lock().unwrap().as_mut().unwrap())[i] = (op.lock().unwrap().as_ref().unwrap())(Arc::new(Mutex::new(Some(num))));
     }
@@ -195,9 +195,9 @@ fn main() {
 
     let mut reversed = process_string(Arc::new(Mutex::new(Some("hello".to_string()))), Arc::new(Mutex::new(Some(Arc::new(Mutex::new(Some(Box::new(move |s: Arc<Mutex<Option<String>>>| -> Arc<Mutex<Option<String>>> {
         let mut runes = Arc::new(Mutex::new(Some((*s.lock().unwrap().as_ref().unwrap()).chars().map(|c| c as i32).collect::<Vec<_>>())));
-        let (mut i, mut j) = (Arc::new(Mutex::new(Some(0))), Arc::new(Mutex::new(Some((*runes.lock().unwrap().as_mut().unwrap()).len() - 1))));
+        let (mut i, mut j) = (Arc::new(Mutex::new(Some(0))), Arc::new(Mutex::new(Some((*runes.lock().unwrap().as_ref().unwrap()).len() - 1))));
     while (*i.lock().unwrap().as_mut().unwrap()) < (*j.lock().unwrap().as_mut().unwrap()) {
-        { *(*runes.lock().unwrap().as_mut().unwrap())[(*i.lock().unwrap().as_mut().unwrap())].lock().unwrap() = Some((*runes.lock().unwrap().as_mut().unwrap())[(*j.lock().unwrap().as_mut().unwrap())]); *(*runes.lock().unwrap().as_mut().unwrap())[(*j.lock().unwrap().as_mut().unwrap())].lock().unwrap() = Some((*runes.lock().unwrap().as_mut().unwrap())[(*i.lock().unwrap().as_mut().unwrap())]) };
+        { *(*runes.lock().unwrap().as_ref().unwrap())[(*i.lock().unwrap().as_mut().unwrap()) as usize].clone().lock().unwrap() = Some((*runes.lock().unwrap().as_ref().unwrap())[(*j.lock().unwrap().as_mut().unwrap()) as usize].clone()); *(*runes.lock().unwrap().as_ref().unwrap())[(*j.lock().unwrap().as_mut().unwrap()) as usize].clone().lock().unwrap() = Some((*runes.lock().unwrap().as_ref().unwrap())[(*i.lock().unwrap().as_mut().unwrap()) as usize].clone()) };
         { *(*i.lock().unwrap().as_mut().unwrap()).lock().unwrap() = Some((*i.lock().unwrap().as_mut().unwrap()) + 1); *(*j.lock().unwrap().as_mut().unwrap()).lock().unwrap() = Some((*j.lock().unwrap().as_mut().unwrap()) - 1) };
     }
         return Arc::new(Mutex::new(Some(Arc::new(Mutex::new(Some((*runes.lock().unwrap().as_ref().unwrap()).iter().map(|&c| char::from_u32(c as u32).unwrap()).collect::<String>()))))));

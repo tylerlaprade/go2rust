@@ -264,31 +264,48 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			}
 		}
 
-		// Check if we're in a method and dealing with wrapped values
-		needsUnwrap := false
-		if currentReceiver != "" {
-			// In a method, field accesses return wrapped values
-			if _, ok := e.X.(*ast.SelectorExpr); ok {
-				needsUnwrap = true
-			}
-			if _, ok := e.Y.(*ast.SelectorExpr); ok {
-				needsUnwrap = true
+		// Use type info to determine if operands need unwrapping
+		typeInfo := GetTypeInfo()
+		needsUnwrapX := false
+		needsUnwrapY := false
+
+		if typeInfo != nil {
+			needsUnwrapX = typeInfo.NeedsUnwrapping(e.X)
+			needsUnwrapY = typeInfo.NeedsUnwrapping(e.Y)
+		} else {
+			// Fallback to old logic if no type info
+			if currentReceiver != "" {
+				// In a method, field accesses return wrapped values
+				if _, ok := e.X.(*ast.SelectorExpr); ok {
+					needsUnwrapX = true
+				}
+				if _, ok := e.Y.(*ast.SelectorExpr); ok {
+					needsUnwrapY = true
+				}
 			}
 		}
 
-		if needsUnwrap {
-			// Unwrap the operands for arithmetic
-			out.WriteString("(*")
-			TranspileExpression(out, e.X)
-			out.WriteString(".lock().unwrap().as_mut().unwrap())")
+		if needsUnwrapX || needsUnwrapY {
+			// At least one operand needs unwrapping
+			if needsUnwrapX {
+				out.WriteString("(*")
+				TranspileExpression(out, e.X)
+				out.WriteString(".lock().unwrap().as_ref().unwrap())")
+			} else {
+				TranspileExpression(out, e.X)
+			}
 			out.WriteString(" ")
 			out.WriteString(e.Op.String())
 			out.WriteString(" ")
-			out.WriteString("(*")
-			TranspileExpression(out, e.Y)
-			out.WriteString(".lock().unwrap().as_mut().unwrap())")
+			if needsUnwrapY {
+				out.WriteString("(*")
+				TranspileExpression(out, e.Y)
+				out.WriteString(".lock().unwrap().as_ref().unwrap())")
+			} else {
+				TranspileExpression(out, e.Y)
+			}
 		} else {
-			// Regular binary expression
+			// No unwrapping needed
 			// Special handling for numeric literals with float operations
 			if lit, ok := e.X.(*ast.BasicLit); ok && lit.Kind == token.INT {
 				// Check if the other operand might be a float
@@ -360,25 +377,66 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			}
 			out.WriteString(").unwrap().lock().unwrap().as_ref().unwrap())")
 		} else {
-			// Regular array/slice indexing or map assignment (handled elsewhere)
-			// Need to unwrap the array/slice first
-			TranspileExpressionContext(out, e.X, RValue)
-			out.WriteString("[")
-			TranspileExpression(out, e.Index)
-			out.WriteString("]")
+			// Regular array/slice/string indexing
+			// Check if it's a string (returns a byte)
+			typeInfo := GetTypeInfo()
+			isString := false
+			if typeInfo != nil {
+				basicKind := typeInfo.GetBasicKind(e.X)
+				isString = (basicKind == types.String)
+			}
+
+			if isString {
+				// String indexing returns a byte (u8)
+				out.WriteString("(*")
+				TranspileExpression(out, e.X)
+				out.WriteString(".lock().unwrap().as_ref().unwrap()).as_bytes()[")
+				// Check if index needs unwrapping
+				if typeInfo != nil && typeInfo.NeedsUnwrapping(e.Index) {
+					out.WriteString("(*")
+					TranspileExpression(out, e.Index)
+					out.WriteString(".lock().unwrap().as_ref().unwrap()) as usize")
+				} else {
+					TranspileExpression(out, e.Index)
+					out.WriteString(" as usize")
+				}
+				out.WriteString("]")
+			} else {
+				// Array/slice indexing
+				out.WriteString("(*")
+				// Use LValue context so identifiers don't unwrap themselves
+				TranspileExpressionContext(out, e.X, LValue)
+				out.WriteString(".lock().unwrap().as_ref().unwrap())[")
+				// Index handling - identifiers will unwrap themselves in RValue context
+				TranspileExpression(out, e.Index)
+				out.WriteString(" as usize]")
+				// Array/slice elements are wrapped, so we need to clone
+				out.WriteString(".clone()")
+			}
 		}
 
 	case *ast.SliceExpr:
-		TranspileExpression(out, e.X)
+		// Slice expressions like arr[1:] or s[0:5]
+		// The array/slice is wrapped, so we need to unwrap it first
+		out.WriteString("Arc::new(Mutex::new(Some(")
+		out.WriteString("(*")
+		// Use LValue context so identifiers don't unwrap themselves
+		TranspileExpressionContext(out, e.X, LValue)
+		out.WriteString(".lock().unwrap().as_ref().unwrap())")
 		out.WriteString("[")
 		if e.Low != nil {
+			// Indices will unwrap themselves in RValue context if needed
 			TranspileExpression(out, e.Low)
+			out.WriteString(" as usize")
 		}
 		out.WriteString("..")
 		if e.High != nil {
+			// Indices will unwrap themselves in RValue context if needed
 			TranspileExpression(out, e.High)
+			out.WriteString(" as usize")
 		}
 		out.WriteString("].to_vec()")
+		out.WriteString(")))")
 
 	case *ast.CompositeLit:
 		// Handle array/slice literals

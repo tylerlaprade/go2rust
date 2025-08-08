@@ -41,7 +41,7 @@ impl Unknown {
 
 pub fn map_keys(m: Arc<Mutex<Option<HashMap<K, V>>>>) -> Arc<Mutex<Option<Vec<K>>>> {
 
-    let mut r = Arc::new(Mutex::new(Some(Vec::with_capacity((*m.lock().unwrap().as_mut().unwrap()).len()))));
+    let mut r = Arc::new(Mutex::new(Some(Vec::with_capacity((*m.lock().unwrap().as_ref().unwrap()).len()))));
     for (k, _) in (*m.lock().unwrap().as_ref().unwrap()).clone() {
         {(*r.lock().unwrap().as_mut().unwrap()).push(k); r.clone()};
     }

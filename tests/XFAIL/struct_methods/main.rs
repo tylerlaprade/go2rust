@@ -8,11 +8,11 @@ struct rect {
 
 impl rect {
     pub fn area(&mut self) -> Arc<Mutex<Option<i32>>> {
-        return Arc::new(Mutex::new(Some((*self.width.clone().lock().unwrap().as_mut().unwrap()) * (*self.height.clone().lock().unwrap().as_mut().unwrap()))));
+        return Arc::new(Mutex::new(Some((*self.width.clone().lock().unwrap().as_ref().unwrap()) * (*self.height.clone().lock().unwrap().as_ref().unwrap()))));
     }
 
     pub fn perim(&self) -> Arc<Mutex<Option<i32>>> {
-        return Arc::new(Mutex::new(Some((*2.lock().unwrap().as_mut().unwrap()) * (*self.width.clone().lock().unwrap().as_mut().unwrap()) + (*2.lock().unwrap().as_mut().unwrap()) * (*self.height.clone().lock().unwrap().as_mut().unwrap()))));
+        return Arc::new(Mutex::new(Some(2 * (*self.width.clone().lock().unwrap().as_ref().unwrap()) + 2 * (*self.height.clone().lock().unwrap().as_ref().unwrap()))));
     }
 }
 

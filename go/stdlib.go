@@ -440,8 +440,12 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 
 func transpileLen(out *strings.Builder, call *ast.CallExpr) {
 	if len(call.Args) > 0 {
-		TranspileExpression(out, call.Args[0])
-		out.WriteString(".len()")
+		// len() returns the length of arrays, slices, maps, strings, or channels
+		// The argument is wrapped, so we need to unwrap it first
+		out.WriteString("(*")
+		// Use LValue context so identifiers don't unwrap themselves
+		TranspileExpressionContext(out, call.Args[0], LValue)
+		out.WriteString(".lock().unwrap().as_ref().unwrap()).len()")
 	}
 }
 

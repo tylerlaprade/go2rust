@@ -181,6 +181,86 @@ func (ti *TypeInfo) GetBasicKind(expr ast.Expr) types.BasicKind {
 	return types.Invalid
 }
 
+// ReturnsWrappedValue checks if an expression returns a wrapped Arc<Mutex<Option<T>>> value
+// This is true for function calls, method calls, and field accesses in our conservative model
+func (ti *TypeInfo) ReturnsWrappedValue(expr ast.Expr) bool {
+	switch e := expr.(type) {
+	case *ast.CallExpr:
+		// Function calls return wrapped values (unless it's a type conversion)
+		return !ti.IsTypeConversion(e)
+	case *ast.SelectorExpr:
+		// Field accesses return wrapped values in our conservative model
+		// Method calls are handled by CallExpr case
+		if ti.IsFunction(e.Sel) {
+			return false // This will be handled as a CallExpr
+		}
+		return true // Field access returns wrapped value
+	case *ast.IndexExpr:
+		// Array/slice indexing returns the element directly (not wrapped)
+		return false
+	case *ast.SliceExpr:
+		// Slice expressions return a new slice (wrapped)
+		return true
+	case *ast.Ident:
+		// Variables are already wrapped, but accessing them doesn't add another layer
+		return false
+	case *ast.BasicLit:
+		// Literals are not wrapped
+		return false
+	case *ast.BinaryExpr:
+		// Binary expressions return raw values that we wrap
+		return false
+	case *ast.UnaryExpr:
+		// Unary expressions depend on the operator
+		if e.Op == token.AND {
+			// Address-of returns a wrapped pointer
+			return true
+		}
+		// Other unary ops return raw values
+		return false
+	default:
+		// Conservative: assume it doesn't return wrapped
+		return false
+	}
+}
+
+// NeedsUnwrapping checks if an expression needs unwrapping for use in a binary expression
+// This is true for expressions that return wrapped values, but NOT for identifiers
+// because identifiers already unwrap themselves in RValue context
+func (ti *TypeInfo) NeedsUnwrapping(expr ast.Expr) bool {
+	switch e := expr.(type) {
+	case *ast.Ident:
+		// Identifiers handle their own unwrapping in RValue context
+		// so we should NOT unwrap them again in binary expressions
+		return false
+	case *ast.CallExpr:
+		// Check if it's a built-in function that returns a primitive
+		if ident, ok := e.Fun.(*ast.Ident); ok {
+			switch ident.Name {
+			case "len", "cap":
+				return false // These return primitives (usize)
+			}
+		}
+		// Function calls that return wrapped values need unwrapping
+		return ti.ReturnsWrappedValue(expr)
+	case *ast.SelectorExpr:
+		// Field accesses need unwrapping
+		return ti.ReturnsWrappedValue(expr)
+	case *ast.BasicLit:
+		// Literals don't need unwrapping
+		return false
+	case *ast.BinaryExpr:
+		// Binary expressions are computed inline, don't need unwrapping
+		return false
+	case *ast.ParenExpr:
+		// Check the inner expression
+		return ti.NeedsUnwrapping(e.X)
+	default:
+		// Conservative: assume it needs unwrapping if we're not sure
+		return true
+	}
+}
+
 // IsTypeConversion checks if a CallExpr is actually a type conversion
 func (ti *TypeInfo) IsTypeConversion(call *ast.CallExpr) bool {
 	// Type conversions have exactly one argument

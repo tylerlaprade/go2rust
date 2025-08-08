@@ -223,6 +223,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 								TranspileExpression(out, result)
 								out.WriteString(")))")
 							}
+						} else if _, ok := result.(*ast.SliceExpr); ok {
+							// Slice expressions already return wrapped values (Arc<Mutex<Option<Vec<T>>>>)
+							TranspileExpression(out, result)
 						} else if binExpr, ok := result.(*ast.BinaryExpr); ok {
 							// Binary expressions need special handling to avoid multiple locks
 							// Check if operands are identifiers that would need unwrapping
@@ -573,10 +576,19 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						if i > 0 {
 							out.WriteString(", ")
 						}
-						// Wrap new variables in Arc<Mutex<Option<>>>
-						out.WriteString("Arc::new(Mutex::new(Some(")
-						TranspileExpression(out, rhs)
-						out.WriteString(")))")
+						// Check if RHS already returns wrapped values
+						if _, isCall := rhs.(*ast.CallExpr); isCall {
+							// Function calls already return wrapped values
+							TranspileExpression(out, rhs)
+						} else if _, isSlice := rhs.(*ast.SliceExpr); isSlice {
+							// Slice expressions already return wrapped values
+							TranspileExpression(out, rhs)
+						} else {
+							// Wrap new variables in Arc<Mutex<Option<>>>
+							out.WriteString("Arc::new(Mutex::new(Some(")
+							TranspileExpression(out, rhs)
+							out.WriteString(")))")
+						}
 					}
 					out.WriteString(")")
 				} else {
@@ -719,6 +731,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									} else if _, isCompositeLit := rhs.(*ast.CompositeLit); isCompositeLit {
 										// Composite literals (map/slice/struct literals) already wrap themselves
 										TranspileExpression(out, rhs)
+									} else if _, isSliceExpr := rhs.(*ast.SliceExpr); isSliceExpr {
+										// Slice expressions already return wrapped values
+										TranspileExpression(out, rhs)
 									} else {
 										// Wrap new variables in Arc<Mutex<Option<>>>
 										out.WriteString("Arc::new(Mutex::new(Some(")
@@ -750,9 +765,12 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							out.WriteString(", ")
 						}
 						if s.Tok == token.DEFINE {
-							// Check if RHS is a function call - they already return wrapped values
+							// Check if RHS is an expression that already returns wrapped values
 							if _, isCall := rhs.(*ast.CallExpr); isCall {
 								// Function calls already return wrapped values, don't wrap again
+								TranspileExpression(out, rhs)
+							} else if _, isSlice := rhs.(*ast.SliceExpr); isSlice {
+								// Slice expressions already return wrapped values
 								TranspileExpression(out, rhs)
 							} else {
 								// Wrap new variables in Arc<Mutex<Option<>>>

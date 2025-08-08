@@ -41,7 +41,7 @@ pub fn process_slice(slice: Arc<Mutex<Option<Vec<i32>>>>, index: Arc<Mutex<Optio
     let mut value: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(0)));
     let mut err: Arc<Mutex<Option<Box<dyn Error + Send + Sync>>>> = Arc::new(Mutex::new(None));
 
-    let value_defer_captured = value.clone(); let err_defer_captured = err.clone(); __defer_stack.push(Box::new(move || {
+    let err_defer_captured = err.clone(); let value_defer_captured = value.clone(); __defer_stack.push(Box::new(move || {
         (Arc::new(Mutex::new(Some(Box::new(move || {
         let mut r = recover();
     if (*r.lock().unwrap()).is_some() {
@@ -51,7 +51,7 @@ pub fn process_slice(slice: Arc<Mutex<Option<Vec<i32>>>>, index: Arc<Mutex<Optio
     }) as Box<dyn Fn() -> () + Send + Sync>))).lock().unwrap().as_ref().unwrap())();
     }));
 
-    { let new_val = (*slice.lock().unwrap().as_mut().unwrap())[(*index.lock().unwrap().as_mut().unwrap())]; *value.lock().unwrap() = Some(new_val); };
+    { let new_val = (*slice.lock().unwrap().as_ref().unwrap())[(*index.lock().unwrap().as_mut().unwrap()) as usize].clone(); *value.lock().unwrap() = Some(new_val); };
     {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {

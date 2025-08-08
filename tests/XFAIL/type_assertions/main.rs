@@ -18,25 +18,25 @@ struct Circle {
 
 impl Rectangle {
     pub fn area(&self) -> Arc<Mutex<Option<f64>>> {
-        return Arc::new(Mutex::new(Some((*self.width.clone().lock().unwrap().as_mut().unwrap()) * (*self.height.clone().lock().unwrap().as_mut().unwrap()))));
+        return Arc::new(Mutex::new(Some((*self.width.clone().lock().unwrap().as_ref().unwrap()) * (*self.height.clone().lock().unwrap().as_ref().unwrap()))));
     }
 }
 
 impl Shape for Rectangle {
     fn area(&self) -> Arc<Mutex<Option<f64>>> {
-        return Arc::new(Mutex::new(Some((*self.width.clone().lock().unwrap().as_mut().unwrap()) * (*self.height.clone().lock().unwrap().as_mut().unwrap()))));
+        return Arc::new(Mutex::new(Some((*self.width.clone().lock().unwrap().as_ref().unwrap()) * (*self.height.clone().lock().unwrap().as_ref().unwrap()))));
     }
 }
 
 impl Circle {
     pub fn area(&self) -> Arc<Mutex<Option<f64>>> {
-        return Arc::new(Mutex::new(Some((*(*3.14159.lock().unwrap().as_mut().unwrap()) * (*self.radius.clone().lock().unwrap().as_mut().unwrap()).lock().unwrap().as_mut().unwrap()) * (*self.radius.clone().lock().unwrap().as_mut().unwrap()))));
+        return Arc::new(Mutex::new(Some(3.14159 * (*self.radius.clone().lock().unwrap().as_ref().unwrap()) * (*self.radius.clone().lock().unwrap().as_ref().unwrap()))));
     }
 }
 
 impl Shape for Circle {
     fn area(&self) -> Arc<Mutex<Option<f64>>> {
-        return Arc::new(Mutex::new(Some((*(*3.14159.lock().unwrap().as_mut().unwrap()) * (*self.radius.clone().lock().unwrap().as_mut().unwrap()).lock().unwrap().as_mut().unwrap()) * (*self.radius.clone().lock().unwrap().as_mut().unwrap()))));
+        return Arc::new(Mutex::new(Some(3.14159 * (*self.radius.clone().lock().unwrap().as_ref().unwrap()) * (*self.radius.clone().lock().unwrap().as_ref().unwrap()))));
     }
 }
 
@@ -55,7 +55,7 @@ pub fn process_value(value: Arc<Mutex<Option<Box<dyn Any>>>>) {
         }
     });
     if (*ok.lock().unwrap().as_mut().unwrap()) {
-        print!("String value: {} (length: {})\n", (*str.lock().unwrap().as_mut().unwrap()), (*str.lock().unwrap().as_mut().unwrap()).len());
+        print!("String value: {} (length: {})\n", (*str.lock().unwrap().as_mut().unwrap()), (*str.lock().unwrap().as_ref().unwrap()).len());
         return;
     }
 

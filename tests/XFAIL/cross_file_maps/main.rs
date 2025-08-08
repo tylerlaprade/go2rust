@@ -14,12 +14,12 @@ fn main() {
         println!("{}", "Dave not found".to_string());
     }
 
-    print!("First number: {}\n", NUMBERS[0]);
-    print!("Last number: {}\n", NUMBERS[NUMBERS.len() - 1]);
+    print!("First number: {}\n", (*NUMBERS.lock().unwrap().as_ref().unwrap())[0 as usize].clone());
+    print!("Last number: {}\n", (*NUMBERS.lock().unwrap().as_ref().unwrap())[(*NUMBERS.lock().unwrap().as_ref().unwrap()).len() - 1 as usize].clone());
 
     let mut admins = Arc::new(Mutex::new(Some((*(*Groups.lock().unwrap().as_ref().unwrap()).get(&"admins".to_string()).unwrap().lock().unwrap().as_ref().unwrap()))));
-    print!("Admin count: {}\n", (*admins.lock().unwrap().as_mut().unwrap()).len());
-    print!("First admin: {}\n", (*admins.lock().unwrap().as_mut().unwrap())[0]);
+    print!("Admin count: {}\n", (*admins.lock().unwrap().as_ref().unwrap()).len());
+    print!("First admin: {}\n", (*admins.lock().unwrap().as_ref().unwrap())[0 as usize].clone());
 
     let mut count = Arc::new(Mutex::new(Some(0)));
     for (_, _) in (*Users.lock().unwrap().as_ref().unwrap()).clone() {
@@ -27,7 +27,7 @@ fn main() {
     }
     print!("User count: {}\n", (*count.lock().unwrap().as_mut().unwrap()));
 
-    let mut firstRecord = Arc::new(Mutex::new(Some(RECORDS[0])));
+    let mut firstRecord = Arc::new(Mutex::new(Some((*RECORDS.lock().unwrap().as_ref().unwrap())[0 as usize].clone())));
     let (mut name, mut ok) = ({
         let val = (*(*firstRecord.lock().unwrap().as_ref().unwrap()).get(&"name".to_string()).unwrap().lock().unwrap().as_ref().unwrap()).clone();
         let guard = val.lock().unwrap();

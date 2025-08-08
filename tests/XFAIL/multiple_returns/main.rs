@@ -58,12 +58,12 @@ pub fn process_data(data: Arc<Mutex<Option<Vec<i32>>>>) -> (Arc<Mutex<Option<i32
     let mut max: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(0)));
     let mut sum: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(0)));
 
-    if (*data.lock().unwrap().as_mut().unwrap()).len() == 0 {
+    if (*data.lock().unwrap().as_ref().unwrap()).len() == 0 {
         return (Arc::new(Mutex::new(Some(0))), Arc::new(Mutex::new(Some(0))), Arc::new(Mutex::new(Some(0))));
     }
 
-    { let new_val = (*data.lock().unwrap().as_mut().unwrap())[0]; *min.lock().unwrap() = Some(new_val); };
-    { let new_val = (*data.lock().unwrap().as_mut().unwrap())[0]; *max.lock().unwrap() = Some(new_val); };
+    { let new_val = (*data.lock().unwrap().as_ref().unwrap())[0 as usize].clone(); *min.lock().unwrap() = Some(new_val); };
+    { let new_val = (*data.lock().unwrap().as_ref().unwrap())[0 as usize].clone(); *max.lock().unwrap() = Some(new_val); };
     { let new_val = 0; *sum.lock().unwrap() = Some(new_val); };
 
     for val in &(*data.lock().unwrap().as_mut().unwrap()) {

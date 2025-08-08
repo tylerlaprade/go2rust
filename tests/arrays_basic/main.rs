@@ -8,8 +8,8 @@ fn main() {
 
     println!("{}", "Array elements:".to_string());
     let mut i = Arc::new(Mutex::new(Some(0)));
-    while (*i.lock().unwrap().as_mut().unwrap()) < (*arr.lock().unwrap().as_mut().unwrap()).len() {
-        println!("{}", (*arr.lock().unwrap().as_mut().unwrap())[(*i.lock().unwrap().as_mut().unwrap())]);
+    while (*i.lock().unwrap().as_mut().unwrap()) < (*arr.lock().unwrap().as_ref().unwrap()).len() {
+        println!("{}", (*arr.lock().unwrap().as_ref().unwrap())[(*i.lock().unwrap().as_mut().unwrap()) as usize].clone());
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
 

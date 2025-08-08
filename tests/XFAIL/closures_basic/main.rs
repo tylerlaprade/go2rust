@@ -36,7 +36,7 @@ pub fn make_adder(x: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<Box<dyn Fn(Arc
 
 pub fn apply_operation(nums: Arc<Mutex<Option<Vec<i32>>>>, op: Arc<Mutex<Option<Box<dyn Fn(Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<i32>>> + Send + Sync>>>>) -> Arc<Mutex<Option<Vec<i32>>>> {
 
-    let mut result = Arc::new(Mutex::new(Some(vec![0; (*nums.lock().unwrap().as_mut().unwrap()).len()])));
+    let mut result = Arc::new(Mutex::new(Some(vec![0; (*nums.lock().unwrap().as_ref().unwrap()).len()])));
     for (i, num) in (*nums.lock().unwrap().as_mut().unwrap()).iter().enumerate() {
         (*result.lock().unwrap().as_mut().unwrap())[i] = (op.lock().unwrap().as_ref().unwrap())(Arc::new(Mutex::new(Some(num))));
     }

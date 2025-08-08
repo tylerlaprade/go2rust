@@ -20,7 +20,7 @@ fn main() {
     let mut bool1 = Arc::new(Mutex::new(Some(((*x.lock().unwrap().as_mut().unwrap()) < (*y.lock().unwrap().as_mut().unwrap())) && ((*y.lock().unwrap().as_mut().unwrap()) < (*z.lock().unwrap().as_mut().unwrap())) || ((*x.lock().unwrap().as_mut().unwrap()) == 5 && (*z.lock().unwrap().as_mut().unwrap()) > 10))));
     print!("(x < y) && (y < z) || (x == 5 && z > 10) = {}\n", (*bool1.lock().unwrap().as_mut().unwrap()));
 
-    let mut bool2 = Arc::new(Mutex::new(Some(!((*x.lock().unwrap().as_mut().unwrap()) > (*y.lock().unwrap().as_mut().unwrap())) && ((*z.lock().unwrap().as_mut().unwrap()) - (*y.lock().unwrap().as_mut().unwrap()) == (*x.lock().unwrap().as_mut().unwrap())) || ((*x.lock().unwrap().as_mut().unwrap()) * 2 == (*y.lock().unwrap().as_mut().unwrap())))));
+    let mut bool2 = Arc::new(Mutex::new(Some((*!((*x.lock().unwrap().as_mut().unwrap()) > (*y.lock().unwrap().as_mut().unwrap())).lock().unwrap().as_ref().unwrap()) && ((*z.lock().unwrap().as_mut().unwrap()) - (*y.lock().unwrap().as_mut().unwrap()) == (*x.lock().unwrap().as_mut().unwrap())) || ((*x.lock().unwrap().as_mut().unwrap()) * 2 == (*y.lock().unwrap().as_mut().unwrap())))));
     print!("!(x > y) && (z-y == x) || (x*2 == y) = {}\n", (*bool2.lock().unwrap().as_mut().unwrap()));
 
     println!("{}", "\n=== Complex bitwise expressions ===".to_string());
@@ -43,7 +43,7 @@ fn main() {
         return Arc::new(Mutex::new(Some(3)));
     }) as Box<dyn Fn() -> Arc<Mutex<Option<i32>>> + Send + Sync>))))));
 
-    let mut complexResult = Arc::new(Mutex::new(Some((getValue.lock().unwrap().as_ref().unwrap())(a.clone()) + (getValue.lock().unwrap().as_ref().unwrap())(b.clone()) * (getMultiplier.lock().unwrap().as_ref().unwrap())() - (getValue.lock().unwrap().as_ref().unwrap())(c.clone()) / 2)));
+    let mut complexResult = Arc::new(Mutex::new(Some((*(getValue.lock().unwrap().as_ref().unwrap())(a.clone()).lock().unwrap().as_ref().unwrap()) + (*(getValue.lock().unwrap().as_ref().unwrap())(b.clone()).lock().unwrap().as_ref().unwrap()) * (*(getMultiplier.lock().unwrap().as_ref().unwrap())().lock().unwrap().as_ref().unwrap()) - (*(getValue.lock().unwrap().as_ref().unwrap())(c.clone()).lock().unwrap().as_ref().unwrap()) / 2)));
     print!("getValue(a) + getValue(b) * getMultiplier() - getValue(c)/2 = {}\n", (*complexResult.lock().unwrap().as_mut().unwrap()));
 
     println!("{}", "\n=== Array/slice expressions ===".to_string());
@@ -51,14 +51,14 @@ fn main() {
     let mut numbers = Arc::new(Mutex::new(Some(vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10])));
 
     let (mut idx1, mut idx2) = (Arc::new(Mutex::new(Some(2))), Arc::new(Mutex::new(Some(7))));
-    let mut sliceResult = Arc::new(Mutex::new(Some((*numbers.lock().unwrap().as_mut().unwrap())[(*idx1.lock().unwrap().as_mut().unwrap())..(*idx2.lock().unwrap().as_mut().unwrap())].to_vec()[1] + (*numbers.lock().unwrap().as_mut().unwrap())[(*numbers.lock().unwrap().as_mut().unwrap()).len() - 1] - (*numbers.lock().unwrap().as_mut().unwrap())[0])));
+    let mut sliceResult = Arc::new(Mutex::new(Some((*(*Arc::new(Mutex::new(Some((*numbers.lock().unwrap().as_ref().unwrap())[(*idx1.lock().unwrap().as_mut().unwrap()) as usize..(*idx2.lock().unwrap().as_mut().unwrap()) as usize].to_vec()))).lock().unwrap().as_ref().unwrap())[1 as usize].clone().lock().unwrap().as_ref().unwrap()) + (*(*numbers.lock().unwrap().as_ref().unwrap())[(*numbers.lock().unwrap().as_ref().unwrap()).len() - 1 as usize].clone().lock().unwrap().as_ref().unwrap()) - (*(*numbers.lock().unwrap().as_ref().unwrap())[0 as usize].clone().lock().unwrap().as_ref().unwrap()))));
     print!("numbers[idx1:idx2][1] + numbers[len(numbers)-1] - numbers[0] = {}\n", (*sliceResult.lock().unwrap().as_mut().unwrap()));
 
     println!("{}", "\n=== Map expressions ===".to_string());
 
     let mut data = Arc::new(Mutex::new(Some(HashMap::<String, Arc<Mutex<Option<i32>>>>::from([("alpha".to_string(), Arc::new(Mutex::new(Some(10)))), ("beta".to_string(), Arc::new(Mutex::new(Some(20)))), ("gamma".to_string(), Arc::new(Mutex::new(Some(30))))]))));
 
-    let mut mapResult = Arc::new(Mutex::new(Some((*(*data.lock().unwrap().as_ref().unwrap()).get(&"alpha".to_string()).unwrap().lock().unwrap().as_ref().unwrap()) + (*(*data.lock().unwrap().as_ref().unwrap()).get(&"beta".to_string()).unwrap().lock().unwrap().as_ref().unwrap()) * 2 - (*(*data.lock().unwrap().as_ref().unwrap()).get(&"gamma".to_string()).unwrap().lock().unwrap().as_ref().unwrap()) / 3)));
+    let mut mapResult = Arc::new(Mutex::new(Some((*(*(*data.lock().unwrap().as_ref().unwrap()).get(&"alpha".to_string()).unwrap().lock().unwrap().as_ref().unwrap()).lock().unwrap().as_ref().unwrap()) + (*(*(*data.lock().unwrap().as_ref().unwrap()).get(&"beta".to_string()).unwrap().lock().unwrap().as_ref().unwrap()).lock().unwrap().as_ref().unwrap()) * 2 - (*(*(*data.lock().unwrap().as_ref().unwrap()).get(&"gamma".to_string()).unwrap().lock().unwrap().as_ref().unwrap()).lock().unwrap().as_ref().unwrap()) / 3)));
     print!("data[\"alpha\"] + data[\"beta\"]*2 - data[\"gamma\"]/3 = {}\n", (*mapResult.lock().unwrap().as_mut().unwrap()));
 
     println!("{}", "\n=== Struct field expressions ===".to_string());
@@ -68,7 +68,7 @@ fn main() {
     let mut p1 = Point { x: Arc::new(Mutex::new(Some(3))), y: Arc::new(Mutex::new(Some(4))) };
     let mut p2 = Point { x: Arc::new(Mutex::new(Some(6))), y: Arc::new(Mutex::new(Some(8))) };
 
-    let mut distanceSquared = Arc::new(Mutex::new(Some(((*p2.lock().unwrap().as_mut().unwrap()).x - (*p1.lock().unwrap().as_mut().unwrap()).x) * ((*p2.lock().unwrap().as_mut().unwrap()).x - (*p1.lock().unwrap().as_mut().unwrap()).x) + ((*p2.lock().unwrap().as_mut().unwrap()).y - (*p1.lock().unwrap().as_mut().unwrap()).y) * ((*p2.lock().unwrap().as_mut().unwrap()).y - (*p1.lock().unwrap().as_mut().unwrap()).y))));
+    let mut distanceSquared = Arc::new(Mutex::new(Some(((*(*p2.lock().unwrap().as_mut().unwrap()).x.lock().unwrap().as_ref().unwrap()) - (*(*p1.lock().unwrap().as_mut().unwrap()).x.lock().unwrap().as_ref().unwrap())) * ((*(*p2.lock().unwrap().as_mut().unwrap()).x.lock().unwrap().as_ref().unwrap()) - (*(*p1.lock().unwrap().as_mut().unwrap()).x.lock().unwrap().as_ref().unwrap())) + ((*(*p2.lock().unwrap().as_mut().unwrap()).y.lock().unwrap().as_ref().unwrap()) - (*(*p1.lock().unwrap().as_mut().unwrap()).y.lock().unwrap().as_ref().unwrap())) * ((*(*p2.lock().unwrap().as_mut().unwrap()).y.lock().unwrap().as_ref().unwrap()) - (*(*p1.lock().unwrap().as_mut().unwrap()).y.lock().unwrap().as_ref().unwrap())))));
     print!("Distance squared between points: {}\n", (*distanceSquared.lock().unwrap().as_mut().unwrap()));
 
     println!("{}", "\n=== Pointer expressions ===".to_string());
@@ -76,7 +76,7 @@ fn main() {
     let mut val = Arc::new(Mutex::new(Some(42)));
     let mut ptr = val.clone();
 
-    let mut ptrResult = Arc::new(Mutex::new(Some((*ptr.lock().unwrap().as_ref().unwrap()) + ((*ptr.lock().unwrap().as_ref().unwrap()) * 2) - ((*ptr.lock().unwrap().as_ref().unwrap()) / 2))));
+    let mut ptrResult = Arc::new(Mutex::new(Some((*(*ptr.lock().unwrap().as_ref().unwrap()).lock().unwrap().as_ref().unwrap()) + ((*(*ptr.lock().unwrap().as_ref().unwrap()).lock().unwrap().as_ref().unwrap()) * 2) - ((*(*ptr.lock().unwrap().as_ref().unwrap()).lock().unwrap().as_ref().unwrap()) / 2))));
     print!("*ptr + (*ptr * 2) - (*ptr / 2) = {}\n", (*ptrResult.lock().unwrap().as_mut().unwrap()));
 
     println!("{}", "\n=== Type assertion expressions ===".to_string());
@@ -108,7 +108,7 @@ fn main() {
     // TODO: Unhandled statement type: SendStmt
     // TODO: Unhandled statement type: SendStmt
 
-    let mut chanResult = Arc::new(Mutex::new(Some(<-(*ch.lock().unwrap().as_mut().unwrap()) + <-(*ch.lock().unwrap().as_mut().unwrap()) * 2 - <-(*ch.lock().unwrap().as_mut().unwrap()) / 2)));
+    let mut chanResult = Arc::new(Mutex::new(Some((*<-(*ch.lock().unwrap().as_mut().unwrap()).lock().unwrap().as_ref().unwrap()) + (*<-(*ch.lock().unwrap().as_mut().unwrap()).lock().unwrap().as_ref().unwrap()) * 2 - (*<-(*ch.lock().unwrap().as_mut().unwrap()).lock().unwrap().as_ref().unwrap()) / 2)));
     print!("Channel expression result: {}\n", (*chanResult.lock().unwrap().as_mut().unwrap()));
 
     println!("{}", "\n=== Nested function calls ===".to_string());
@@ -167,7 +167,7 @@ fn main() {
     println!("{}", "\n=== Range expressions ===".to_string());
 
     let mut total = Arc::new(Mutex::new(Some(0)));
-    for (i, val) in (*numbers.lock().unwrap().as_mut().unwrap())[..5].to_vec().iter().enumerate() {
+    for (i, val) in Arc::new(Mutex::new(Some((*numbers.lock().unwrap().as_ref().unwrap())[..5 as usize].to_vec()))).iter().enumerate() {
         { let mut guard = total.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + i * val + (val % 3)); };
     }
     print!("Complex range calculation: {}\n", (*total.lock().unwrap().as_mut().unwrap()));

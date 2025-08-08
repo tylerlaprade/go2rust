@@ -83,7 +83,7 @@ fn main() {
 
     let mut runes = Arc::new(Mutex::new(Some((*"Hello, 世界".to_string().lock().unwrap().as_ref().unwrap()).chars().map(|c| c as i32).collect::<Vec<_>>())));
     print!("string to runes: {}\n", format_slice(&runes));
-    print!("rune count: {}\n", (*runes.lock().unwrap().as_mut().unwrap()).len());
+    print!("rune count: {}\n", (*runes.lock().unwrap().as_ref().unwrap()).len());
 
     let mut backToString = Arc::new(Mutex::new(Some((*runes.lock().unwrap().as_ref().unwrap()).iter().map(|&c| char::from_u32(c as u32).unwrap()).collect::<String>())));
     print!("runes to string: {}\n", (*backToString.lock().unwrap().as_mut().unwrap()));

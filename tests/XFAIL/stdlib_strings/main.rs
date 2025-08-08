@@ -19,12 +19,12 @@ fn main() {
 
     let mut str = Arc::new(Mutex::new(Some("Hello, World!".to_string())));
     print!("Original string: {}\n", (*str.lock().unwrap().as_mut().unwrap()));
-    print!("Length: {}\n", (*str.lock().unwrap().as_mut().unwrap()).len());
+    print!("Length: {}\n", (*str.lock().unwrap().as_ref().unwrap()).len());
 
-    print!("First character: {}\n", (*str.lock().unwrap().as_mut().unwrap())[0]);
-    print!("Last character: {}\n", (*str.lock().unwrap().as_mut().unwrap())[(*str.lock().unwrap().as_mut().unwrap()).len() - 1]);
-    print!("Substring [0:5]: {}\n", (*str.lock().unwrap().as_mut().unwrap())[0..5].to_vec());
-    print!("Substring [7:]: {}\n", (*str.lock().unwrap().as_mut().unwrap())[7..].to_vec());
+    print!("First character: {}\n", (*(*str.lock().unwrap().as_mut().unwrap()).lock().unwrap().as_ref().unwrap()).as_bytes()[0 as usize]);
+    print!("Last character: {}\n", (*(*str.lock().unwrap().as_mut().unwrap()).lock().unwrap().as_ref().unwrap()).as_bytes()[(*str.lock().unwrap().as_ref().unwrap()).len() - 1 as usize]);
+    print!("Substring [0:5]: {}\n", Arc::new(Mutex::new(Some((*str.lock().unwrap().as_ref().unwrap())[0 as usize..5 as usize].to_vec()))));
+    print!("Substring [7:]: {}\n", Arc::new(Mutex::new(Some((*str.lock().unwrap().as_ref().unwrap())[7 as usize..].to_vec()))));
 
     println!("{}", "\n=== String concatenation ===".to_string());
     let mut first = Arc::new(Mutex::new(Some("Hello".to_string())));
@@ -120,7 +120,7 @@ fn main() {
     println!("{}", "\n=== Unicode and runes ===".to_string());
     let mut unicode = Arc::new(Mutex::new(Some("Hello, 世界! 🌍".to_string())));
     print!("Unicode string: {}\n", (*unicode.lock().unwrap().as_mut().unwrap()));
-    print!("Byte length: {}\n", (*unicode.lock().unwrap().as_mut().unwrap()).len());
+    print!("Byte length: {}\n", (*unicode.lock().unwrap().as_ref().unwrap()).len());
 
     let mut runeCount = Arc::new(Mutex::new(Some(0)));
     for (_, r) in (*(*unicode.lock().unwrap().as_mut().unwrap()).lock().unwrap().as_ref().unwrap()).chars().enumerate() {
