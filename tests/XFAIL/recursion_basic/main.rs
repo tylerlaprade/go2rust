@@ -21,7 +21,7 @@ pub fn factorial(n: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<i32>>> {
     }
     return {
             let __tmp_x = (*n.lock().unwrap().as_mut().unwrap());
-            let __tmp_y = factorial(Arc::new(Mutex::new(Some((*n.lock().unwrap().as_mut().unwrap()) - 1))));
+            let __tmp_y = (*factorial(Arc::new(Mutex::new(Some((*n.lock().unwrap().as_mut().unwrap()) - 1)))).lock().unwrap().as_ref().unwrap());
             Arc::new(Mutex::new(Some(__tmp_x * __tmp_y)))
         };
 }
@@ -60,7 +60,7 @@ pub fn power(base: Arc<Mutex<Option<i32>>>, exp: Arc<Mutex<Option<i32>>>) -> Arc
     }
     return {
             let __tmp_x = (*base.lock().unwrap().as_mut().unwrap());
-            let __tmp_y = power(base.clone(), Arc::new(Mutex::new(Some((*exp.lock().unwrap().as_mut().unwrap()) - 1))));
+            let __tmp_y = (*power(base.clone(), Arc::new(Mutex::new(Some((*exp.lock().unwrap().as_mut().unwrap()) - 1)))).lock().unwrap().as_ref().unwrap());
             Arc::new(Mutex::new(Some(__tmp_x * __tmp_y)))
         };
 }

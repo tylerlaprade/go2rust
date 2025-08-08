@@ -247,13 +247,40 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 							if needsExtraction {
 								// Extract values first to avoid multiple locks
+								// We need both operands to be unwrapped for the binary operation
 								out.WriteString("{\n")
+
+								// Get TypeInfo to check if expressions return wrapped values
+								typeInfo := GetTypeInfo()
+
+								// Extract X operand
 								out.WriteString("            let __tmp_x = ")
-								TranspileExpressionContext(out, binExpr.X, RValue)
+								// Check if X returns a wrapped value that needs unwrapping
+								if typeInfo != nil && typeInfo.ReturnsWrappedValue(binExpr.X) {
+									// Expression returns wrapped value, unwrap it
+									out.WriteString("(*")
+									TranspileExpression(out, binExpr.X)
+									out.WriteString(".lock().unwrap().as_ref().unwrap())")
+								} else {
+									// Either a literal/constant or an identifier that will unwrap itself in RValue context
+									TranspileExpressionContext(out, binExpr.X, RValue)
+								}
 								out.WriteString(";\n")
+
+								// Extract Y operand
 								out.WriteString("            let __tmp_y = ")
-								TranspileExpressionContext(out, binExpr.Y, RValue)
+								// Check if Y returns a wrapped value that needs unwrapping
+								if typeInfo != nil && typeInfo.ReturnsWrappedValue(binExpr.Y) {
+									// Expression returns wrapped value, unwrap it
+									out.WriteString("(*")
+									TranspileExpression(out, binExpr.Y)
+									out.WriteString(".lock().unwrap().as_ref().unwrap())")
+								} else {
+									// Either a literal/constant or an identifier that will unwrap itself in RValue context
+									TranspileExpressionContext(out, binExpr.Y, RValue)
+								}
 								out.WriteString(";\n")
+
 								out.WriteString("            Arc::new(Mutex::new(Some(__tmp_x ")
 								out.WriteString(binExpr.Op.String())
 								out.WriteString(" __tmp_y)))\n")

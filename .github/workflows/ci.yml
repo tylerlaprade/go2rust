@@ -17,9 +17,9 @@ jobs:
 
       - name: Check formatting
         run: |
-          if [ -n "$(gofmt -l .)" ]; then
-            echo "Please run 'gofmt -w .'"
-            gofmt -d .
+          if [ -n "$(gofmt -l ./go)" ]; then
+            echo "Please run 'gofmt -w ./go'"
+            gofmt -d ./go
             exit 1
           fi
 
