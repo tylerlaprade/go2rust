@@ -19,17 +19,17 @@ fn main() {
 
     let mut str = Arc::new(Mutex::new(Some("Hello, World!".to_string())));
     print!("Original string: {}\n", (*str.lock().unwrap().as_mut().unwrap()));
-    print!("Length: {}\n", (*str.lock().unwrap().as_mut().unwrap()).len());
+    print!("Length: {}\n", (*(*str.lock().unwrap().as_mut().unwrap()).lock().unwrap().as_ref().unwrap()).len());
 
-    print!("First character: {}\n", (*str.lock().unwrap().as_mut().unwrap())[0]);
-    print!("Last character: {}\n", (*str.lock().unwrap().as_mut().unwrap())[(*str.lock().unwrap().as_mut().unwrap()).len() - 1]);
-    print!("Substring [0:5]: {}\n", (*str.lock().unwrap().as_mut().unwrap())[0..5].to_vec());
-    print!("Substring [7:]: {}\n", (*str.lock().unwrap().as_mut().unwrap())[7..].to_vec());
+    print!("First character: {}\n", (*(*str.lock().unwrap().as_mut().unwrap()).lock().unwrap().as_ref().unwrap()).as_bytes()[0]);
+    print!("Last character: {}\n", (*(*str.lock().unwrap().as_mut().unwrap()).lock().unwrap().as_ref().unwrap()).as_bytes()[(*(*(*str.lock().unwrap().as_mut().unwrap()).lock().unwrap().as_ref().unwrap()).len().lock().unwrap().as_ref().unwrap()) - 1]);
+    print!("Substring [0:5]: {}\n", Arc::new(Mutex::new(Some((*(*str.lock().unwrap().as_mut().unwrap()).lock().unwrap().as_ref().unwrap())[0..5].to_vec()))));
+    print!("Substring [7:]: {}\n", Arc::new(Mutex::new(Some((*(*str.lock().unwrap().as_mut().unwrap()).lock().unwrap().as_ref().unwrap())[7..].to_vec()))));
 
     println!("{}", "\n=== String concatenation ===".to_string());
     let mut first = Arc::new(Mutex::new(Some("Hello".to_string())));
     let mut second = Arc::new(Mutex::new(Some("World".to_string())));
-    let mut combined = Arc::new(Mutex::new(Some(format!("{}{}", format!("{}{}", (*first.lock().unwrap().as_mut().unwrap()), ", ".to_string()) + (*second.lock().unwrap().as_mut().unwrap()), "!".to_string()))));
+    let mut combined = Arc::new(Mutex::new(Some(format!("{}{}", format!("{}{}", (*first.lock().unwrap().as_mut().unwrap()), ", ".to_string()) + (*(*second.lock().unwrap().as_mut().unwrap()).lock().unwrap().as_ref().unwrap()), "!".to_string()))));
     print!("Concatenated: {}\n", (*combined.lock().unwrap().as_mut().unwrap()));
 
     println!("{}", "\n=== strings package functions ===".to_string());
@@ -99,9 +99,9 @@ fn main() {
     let mut str2 = Arc::new(Mutex::new(Some("banana".to_string())));
     let mut str3 = Arc::new(Mutex::new(Some("apple".to_string())));
 
-    print!("'{}' == '{}': {}\n", (*str1.lock().unwrap().as_mut().unwrap()), (*str2.lock().unwrap().as_mut().unwrap()), (*str1.lock().unwrap().as_mut().unwrap()) == (*str2.lock().unwrap().as_mut().unwrap()));
-    print!("'{}' == '{}': {}\n", (*str1.lock().unwrap().as_mut().unwrap()), (*str3.lock().unwrap().as_mut().unwrap()), (*str1.lock().unwrap().as_mut().unwrap()) == (*str3.lock().unwrap().as_mut().unwrap()));
-    print!("'{}' < '{}': {}\n", (*str1.lock().unwrap().as_mut().unwrap()), (*str2.lock().unwrap().as_mut().unwrap()), (*str1.lock().unwrap().as_mut().unwrap()) < (*str2.lock().unwrap().as_mut().unwrap()));
+    print!("'{}' == '{}': {}\n", (*str1.lock().unwrap().as_mut().unwrap()), (*str2.lock().unwrap().as_mut().unwrap()), (*(*str1.lock().unwrap().as_mut().unwrap()).lock().unwrap().as_ref().unwrap()) == (*(*str2.lock().unwrap().as_mut().unwrap()).lock().unwrap().as_ref().unwrap()));
+    print!("'{}' == '{}': {}\n", (*str1.lock().unwrap().as_mut().unwrap()), (*str3.lock().unwrap().as_mut().unwrap()), (*(*str1.lock().unwrap().as_mut().unwrap()).lock().unwrap().as_ref().unwrap()) == (*(*str3.lock().unwrap().as_mut().unwrap()).lock().unwrap().as_ref().unwrap()));
+    print!("'{}' < '{}': {}\n", (*str1.lock().unwrap().as_mut().unwrap()), (*str2.lock().unwrap().as_mut().unwrap()), (*(*str1.lock().unwrap().as_mut().unwrap()).lock().unwrap().as_ref().unwrap()) < (*(*str2.lock().unwrap().as_mut().unwrap()).lock().unwrap().as_ref().unwrap()));
 
     print!("EqualFold('Apple', 'APPLE'): {}\n", (*(*strings.lock().unwrap().as_mut().unwrap()).equal_fold(Arc::new(Mutex::new(Some("Apple".to_string()))), Arc::new(Mutex::new(Some("APPLE".to_string())))).lock().unwrap().as_ref().unwrap()));
 
@@ -120,7 +120,7 @@ fn main() {
     println!("{}", "\n=== Unicode and runes ===".to_string());
     let mut unicode = Arc::new(Mutex::new(Some("Hello, 世界! 🌍".to_string())));
     print!("Unicode string: {}\n", (*unicode.lock().unwrap().as_mut().unwrap()));
-    print!("Byte length: {}\n", (*unicode.lock().unwrap().as_mut().unwrap()).len());
+    print!("Byte length: {}\n", (*(*unicode.lock().unwrap().as_mut().unwrap()).lock().unwrap().as_ref().unwrap()).len());
 
     let mut runeCount = Arc::new(Mutex::new(Some(0)));
     for (_, r) in (*(*unicode.lock().unwrap().as_mut().unwrap()).lock().unwrap().as_ref().unwrap()).chars().enumerate() {

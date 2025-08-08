@@ -17,11 +17,11 @@ pub fn safe_divide(a: Arc<Mutex<Option<f64>>>, b: Arc<Mutex<Option<f64>>>) -> (A
     }) as Box<dyn Fn() -> () + Send + Sync>))).lock().unwrap().as_ref().unwrap())();
     }));
 
-    if (*b.lock().unwrap().as_mut().unwrap()) == 0.0 {
+    if (*(*b.lock().unwrap().as_mut().unwrap()).lock().unwrap().as_ref().unwrap()) == 0 {
         panic(Arc::new(Mutex::new(Some("division by zero".to_string()))));
     }
 
-    { let new_val = (*a.lock().unwrap().as_mut().unwrap()) / (*b.lock().unwrap().as_mut().unwrap()); *result.lock().unwrap() = Some(new_val); };
+    { let new_val = (*(*a.lock().unwrap().as_mut().unwrap()).lock().unwrap().as_ref().unwrap()) / (*(*b.lock().unwrap().as_mut().unwrap()).lock().unwrap().as_ref().unwrap()); *result.lock().unwrap() = Some(new_val); };
     {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
@@ -51,7 +51,7 @@ pub fn process_slice(slice: Arc<Mutex<Option<Vec<i32>>>>, index: Arc<Mutex<Optio
     }) as Box<dyn Fn() -> () + Send + Sync>))).lock().unwrap().as_ref().unwrap())();
     }));
 
-    { let new_val = (*slice.lock().unwrap().as_mut().unwrap())[(*index.lock().unwrap().as_mut().unwrap())]; *value.lock().unwrap() = Some(new_val); };
+    { let new_val = (*(*slice.lock().unwrap().as_mut().unwrap()).lock().unwrap().as_ref().unwrap())[(*index.lock().unwrap().as_mut().unwrap())]; *value.lock().unwrap() = Some(new_val); };
     {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {

@@ -16,10 +16,10 @@ fn main() {
     }
 
     match true {
-        true if (*i.lock().unwrap().as_mut().unwrap()) < 2 => {
+        true if (*(*i.lock().unwrap().as_mut().unwrap()).lock().unwrap().as_ref().unwrap()) < 2 => {
             println!("{}", "less than 2".to_string());
         }
-        true if (*i.lock().unwrap().as_mut().unwrap()) > 2 => {
+        true if (*(*i.lock().unwrap().as_mut().unwrap()).lock().unwrap().as_ref().unwrap()) > 2 => {
             println!("{}", "greater than 2".to_string());
         }
         _ => {

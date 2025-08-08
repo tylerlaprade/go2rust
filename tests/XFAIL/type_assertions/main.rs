@@ -1,3 +1,4 @@
+use std::any::Any;
 use std::sync::{Arc, Mutex};
 
 trait Shape {
@@ -17,44 +18,80 @@ struct Circle {
 
 impl Rectangle {
     pub fn area(&self) -> Arc<Mutex<Option<f64>>> {
-        return Arc::new(Mutex::new(Some((*self.width.clone().lock().unwrap().as_mut().unwrap()) * (*self.height.clone().lock().unwrap().as_mut().unwrap()))));
+        return Arc::new(Mutex::new(Some((*self.width.clone().lock().unwrap().as_ref().unwrap()) * (*self.height.clone().lock().unwrap().as_ref().unwrap()))));
     }
 }
 
 impl Shape for Rectangle {
     fn area(&self) -> Arc<Mutex<Option<f64>>> {
-        return Arc::new(Mutex::new(Some((*self.width.clone().lock().unwrap().as_mut().unwrap()) * (*self.height.clone().lock().unwrap().as_mut().unwrap()))));
+        return Arc::new(Mutex::new(Some((*self.width.clone().lock().unwrap().as_ref().unwrap()) * (*self.height.clone().lock().unwrap().as_ref().unwrap()))));
     }
 }
 
 impl Circle {
     pub fn area(&self) -> Arc<Mutex<Option<f64>>> {
-        return Arc::new(Mutex::new(Some((*(*3.14159.lock().unwrap().as_mut().unwrap()) * (*self.radius.clone().lock().unwrap().as_mut().unwrap()).lock().unwrap().as_mut().unwrap()) * (*self.radius.clone().lock().unwrap().as_mut().unwrap()))));
+        return Arc::new(Mutex::new(Some(3.14159 * (*self.radius.clone().lock().unwrap().as_ref().unwrap()) * (*self.radius.clone().lock().unwrap().as_ref().unwrap()))));
     }
 }
 
 impl Shape for Circle {
     fn area(&self) -> Arc<Mutex<Option<f64>>> {
-        return Arc::new(Mutex::new(Some((*(*3.14159.lock().unwrap().as_mut().unwrap()) * (*self.radius.clone().lock().unwrap().as_mut().unwrap()).lock().unwrap().as_mut().unwrap()) * (*self.radius.clone().lock().unwrap().as_mut().unwrap()))));
+        return Arc::new(Mutex::new(Some(3.14159 * (*self.radius.clone().lock().unwrap().as_ref().unwrap()) * (*self.radius.clone().lock().unwrap().as_ref().unwrap()))));
     }
 }
 
 pub fn process_value(value: Arc<Mutex<Option<Box<dyn Any>>>>) {
-    let (mut str, mut ok) = match (*value.lock().unwrap().as_mut().unwrap()).downcast_ref::<String>() { Some(v) => (v.clone(), true), None => (String::new(), false) };
+    let (mut str, mut ok) = ({
+        let val = value.clone();
+        let guard = val.lock().unwrap();
+        if let Some(ref any_val) = *guard {
+            if let Some(typed_val) = any_val.downcast_ref::<String>() {
+                (Arc::new(Mutex::new(Some(typed_val.clone()))), Arc::new(Mutex::new(Some(true))))
+            } else {
+                (Arc::new(Mutex::new(Some(String::new()))), Arc::new(Mutex::new(Some(false))))
+            }
+        } else {
+            (Arc::new(Mutex::new(Some(String::new()))), Arc::new(Mutex::new(Some(false))))
+        }
+    });
     if (*ok.lock().unwrap().as_mut().unwrap()) {
-        print!("String value: {} (length: {})\n", (*str.lock().unwrap().as_mut().unwrap()), (*str.lock().unwrap().as_mut().unwrap()).len());
+        print!("String value: {} (length: {})\n", (*str.lock().unwrap().as_mut().unwrap()), (*(*str.lock().unwrap().as_mut().unwrap()).lock().unwrap().as_ref().unwrap()).len());
         return;
     }
 
-    let (mut num, mut ok) = match (*value.lock().unwrap().as_mut().unwrap()).downcast_ref::<i32>() { Some(v) => (v.clone(), true), None => (0, false) };
+    let (mut num, mut ok) = ({
+        let val = value.clone();
+        let guard = val.lock().unwrap();
+        if let Some(ref any_val) = *guard {
+            if let Some(typed_val) = any_val.downcast_ref::<i32>() {
+                (Arc::new(Mutex::new(Some(typed_val.clone()))), Arc::new(Mutex::new(Some(true))))
+            } else {
+                (Arc::new(Mutex::new(Some(0))), Arc::new(Mutex::new(Some(false))))
+            }
+        } else {
+            (Arc::new(Mutex::new(Some(0))), Arc::new(Mutex::new(Some(false))))
+        }
+    });
     if (*ok.lock().unwrap().as_mut().unwrap()) {
-        print!("Integer value: {} (doubled: {})\n", (*num.lock().unwrap().as_mut().unwrap()), (*num.lock().unwrap().as_mut().unwrap()) * 2);
+        print!("Integer value: {} (doubled: {})\n", (*num.lock().unwrap().as_mut().unwrap()), (*(*num.lock().unwrap().as_mut().unwrap()).lock().unwrap().as_ref().unwrap()) * 2);
         return;
     }
 
-    let (mut f, mut ok) = match (*value.lock().unwrap().as_mut().unwrap()).downcast_ref::<f64>() { Some(v) => (v.clone(), true), None => (0.0, false) };
+    let (mut f, mut ok) = ({
+        let val = value.clone();
+        let guard = val.lock().unwrap();
+        if let Some(ref any_val) = *guard {
+            if let Some(typed_val) = any_val.downcast_ref::<f64>() {
+                (Arc::new(Mutex::new(Some(typed_val.clone()))), Arc::new(Mutex::new(Some(true))))
+            } else {
+                (Arc::new(Mutex::new(Some(0.0))), Arc::new(Mutex::new(Some(false))))
+            }
+        } else {
+            (Arc::new(Mutex::new(Some(0.0))), Arc::new(Mutex::new(Some(false))))
+        }
+    });
     if (*ok.lock().unwrap().as_mut().unwrap()) {
-        print!("Float value: {:.2} (squared: {:.2})\n", (*f.lock().unwrap().as_mut().unwrap()), (*f.lock().unwrap().as_mut().unwrap()) * (*f.lock().unwrap().as_mut().unwrap()));
+        print!("Float value: {:.2} (squared: {:.2})\n", (*f.lock().unwrap().as_mut().unwrap()), (*(*f.lock().unwrap().as_mut().unwrap()).lock().unwrap().as_ref().unwrap()) * (*(*f.lock().unwrap().as_mut().unwrap()).lock().unwrap().as_ref().unwrap()));
         return;
     }
 
@@ -73,7 +110,15 @@ pub fn assert_without_check(value: Arc<Mutex<Option<Box<dyn Any>>>>) {
     }) as Box<dyn Fn() -> () + Send + Sync>))).lock().unwrap().as_ref().unwrap())();
     }));
 
-    let mut str = Arc::new(Mutex::new(Some(match (*value.lock().unwrap().as_mut().unwrap()).downcast_ref::<String>() { Some(v) => (v.clone(), true), None => (String::new(), false) })));
+    let mut str = Arc::new(Mutex::new(Some(({
+        let val = value.clone();
+        let guard = val.lock().unwrap();
+        if let Some(ref any_val) = *guard {
+            any_val.downcast_ref::<String>().expect("type assertion failed").clone()
+        } else {
+            panic!("type assertion on nil interface")
+        }
+    }))));
     print!("Asserted string: {}\n", (*str.lock().unwrap().as_mut().unwrap()));
 
     // Execute deferred functions
@@ -85,10 +130,34 @@ pub fn assert_without_check(value: Arc<Mutex<Option<Box<dyn Any>>>>) {
 pub fn describe_shape(s: Arc<Mutex<Option<Box<dyn Shape>>>>) {
     print!("Shape area: {:.2}\n", (*(*s.lock().unwrap().as_mut().unwrap()).area().lock().unwrap().as_ref().unwrap()));
 
-    let (mut rect, mut ok) = match (*s.lock().unwrap().as_mut().unwrap()).downcast_ref::<Rectangle>() { Some(v) => (v.clone(), true), None => (Default::default(), false) };
+    let (mut rect, mut ok) = ({
+        let val = s.clone();
+        let guard = val.lock().unwrap();
+        if let Some(ref any_val) = *guard {
+            if let Some(typed_val) = any_val.downcast_ref::<Rectangle>() {
+                (Arc::new(Mutex::new(Some(typed_val.clone()))), Arc::new(Mutex::new(Some(true))))
+            } else {
+                (Arc::new(Mutex::new(Some(Default::default()))), Arc::new(Mutex::new(Some(false))))
+            }
+        } else {
+            (Arc::new(Mutex::new(Some(Default::default()))), Arc::new(Mutex::new(Some(false))))
+        }
+    });
     if (*ok.lock().unwrap().as_mut().unwrap()) {
         print!("  Rectangle: {:.1} x {:.1}\n", (*(*rect.lock().unwrap().as_mut().unwrap()).width.lock().unwrap().as_ref().unwrap()), (*(*rect.lock().unwrap().as_mut().unwrap()).height.lock().unwrap().as_ref().unwrap()));
-    } else let (mut circle, mut ok) = match (*s.lock().unwrap().as_mut().unwrap()).downcast_ref::<Circle>() { Some(v) => (v.clone(), true), None => (Default::default(), false) };
+    } else let (mut circle, mut ok) = ({
+        let val = s.clone();
+        let guard = val.lock().unwrap();
+        if let Some(ref any_val) = *guard {
+            if let Some(typed_val) = any_val.downcast_ref::<Circle>() {
+                (Arc::new(Mutex::new(Some(typed_val.clone()))), Arc::new(Mutex::new(Some(true))))
+            } else {
+                (Arc::new(Mutex::new(Some(Default::default()))), Arc::new(Mutex::new(Some(false))))
+            }
+        } else {
+            (Arc::new(Mutex::new(Some(Default::default()))), Arc::new(Mutex::new(Some(false))))
+        }
+    });
     if (*ok.lock().unwrap().as_mut().unwrap()) {
         print!("  Circle: radius {:.1}\n", (*(*circle.lock().unwrap().as_mut().unwrap()).radius.lock().unwrap().as_ref().unwrap()));
     }

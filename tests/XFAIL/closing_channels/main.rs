@@ -7,7 +7,7 @@ fn main() {
     // TODO: Unhandled statement type: GoStmt
 
     let mut j = Arc::new(Mutex::new(Some(1)));
-    while (*j.lock().unwrap().as_mut().unwrap()) <= 3 {
+    while (*(*j.lock().unwrap().as_mut().unwrap()).lock().unwrap().as_ref().unwrap()) <= 3 {
         // TODO: Unhandled statement type: SendStmt
         println!("{} {}", "sent job".to_string(), (*j.lock().unwrap().as_mut().unwrap()));
         { let mut guard = j.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }

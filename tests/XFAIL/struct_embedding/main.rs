@@ -24,7 +24,7 @@ fn main() {
     println!("{} {}", "also num:".to_string(), (*co.lock().unwrap().as_mut().unwrap()).base.num);
     println!("{} {}", "describe:".to_string(), (*(*co.lock().unwrap().as_mut().unwrap()).describe().lock().unwrap().as_ref().unwrap()));
 
-    
+    type describer = Arc<Mutex<Option<Unknown>>>;
 
     let mut d: Arc<Mutex<Option<describer>>> = Arc::new(Mutex::new(Some((*co.lock().unwrap().as_mut().unwrap()))));
     println!("{} {}", "describer:".to_string(), (*(*d.lock().unwrap().as_mut().unwrap()).describe().lock().unwrap().as_ref().unwrap()));

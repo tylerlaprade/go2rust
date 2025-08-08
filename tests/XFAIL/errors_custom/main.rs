@@ -23,11 +23,11 @@ impl Display for argError {
 
 pub fn f1(arg: Arc<Mutex<Option<i32>>>) -> (Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<Box<dyn Error + Send + Sync>>>>) {
 
-    if (*arg.lock().unwrap().as_mut().unwrap()) == 42 {
+    if (*(*arg.lock().unwrap().as_mut().unwrap()).lock().unwrap().as_ref().unwrap()) == 42 {
         return (Arc::new(Mutex::new(Some(-1))), Arc::new(Mutex::new(Some(Box::<dyn std::error::Error + Send + Sync>::from("can't work with 42".to_string())))));
     }
     return ({
-            let __tmp_x = (*arg.lock().unwrap().as_mut().unwrap());
+            let __tmp_x = (*arg.lock().unwrap().as_ref().unwrap());
             let __tmp_y = 3;
             Arc::new(Mutex::new(Some(__tmp_x + __tmp_y)))
         }, Arc::new(Mutex::new(None)));
@@ -35,11 +35,11 @@ pub fn f1(arg: Arc<Mutex<Option<i32>>>) -> (Arc<Mutex<Option<i32>>>, Arc<Mutex<O
 
 pub fn f2(arg: Arc<Mutex<Option<i32>>>) -> (Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<Box<dyn Error + Send + Sync>>>>) {
 
-    if (*arg.lock().unwrap().as_mut().unwrap()) == 42 {
+    if (*(*arg.lock().unwrap().as_mut().unwrap()).lock().unwrap().as_ref().unwrap()) == 42 {
         return (Arc::new(Mutex::new(Some(-1))), Arc::new(Mutex::new(Some(Arc::new(Mutex::new(Some(argError { ,  })))))));
     }
     return ({
-            let __tmp_x = (*arg.lock().unwrap().as_mut().unwrap());
+            let __tmp_x = (*arg.lock().unwrap().as_ref().unwrap());
             let __tmp_y = 3;
             Arc::new(Mutex::new(Some(__tmp_x + __tmp_y)))
         }, Arc::new(Mutex::new(None)));
@@ -64,7 +64,19 @@ fn main() {
     }
 
     let (_, mut e) = f2(Arc::new(Mutex::new(Some(42))));
-    let (mut ae, mut ok) = match (*e.lock().unwrap().as_mut().unwrap()).downcast_ref::<Arc<Mutex<Option<argError>>>>() { Some(v) => (v.clone(), true), None => (Default::default(), false) };
+    let (mut ae, mut ok) = ({
+        let val = e.clone();
+        let guard = val.lock().unwrap();
+        if let Some(ref any_val) = *guard {
+            if let Some(typed_val) = any_val.downcast_ref::<Arc<Mutex<Option<argError>>>>() {
+                (Arc::new(Mutex::new(Some(typed_val.clone()))), Arc::new(Mutex::new(Some(true))))
+            } else {
+                (Arc::new(Mutex::new(Some(Default::default()))), Arc::new(Mutex::new(Some(false))))
+            }
+        } else {
+            (Arc::new(Mutex::new(Some(Default::default()))), Arc::new(Mutex::new(Some(false))))
+        }
+    });
     if (*ok.lock().unwrap().as_mut().unwrap()) {
         println!("{}", (*(*ae.lock().unwrap().as_mut().unwrap()).arg.lock().unwrap().as_ref().unwrap()));
         println!("{}", (*(*ae.lock().unwrap().as_mut().unwrap()).prob.lock().unwrap().as_ref().unwrap()));

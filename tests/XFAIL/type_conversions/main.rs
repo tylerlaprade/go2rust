@@ -65,7 +65,7 @@ fn main() {
 
     println!("{}", "\n=== String conversions ===".to_string());
 
-    let mut r: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some('A')));
+    let mut r: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(('A' as i32))));
     let mut b: Arc<Mutex<Option<u8>>> = Arc::new(Mutex::new(Some(65)));
 
     print!("rune 'A': {} ({})\n", (*r.lock().unwrap().as_mut().unwrap()), (*r.lock().unwrap().as_mut().unwrap()));
@@ -83,7 +83,7 @@ fn main() {
 
     let mut runes = Arc::new(Mutex::new(Some((*"Hello, 世界".to_string().lock().unwrap().as_ref().unwrap()).chars().map(|c| c as i32).collect::<Vec<_>>())));
     print!("string to runes: {}\n", format_slice(&runes));
-    print!("rune count: {}\n", (*runes.lock().unwrap().as_mut().unwrap()).len());
+    print!("rune count: {}\n", (*(*runes.lock().unwrap().as_mut().unwrap()).lock().unwrap().as_ref().unwrap()).len());
 
     let mut backToString = Arc::new(Mutex::new(Some((*runes.lock().unwrap().as_ref().unwrap()).iter().map(|&c| char::from_u32(c as u32).unwrap()).collect::<String>())));
     print!("runes to string: {}\n", (*backToString.lock().unwrap().as_mut().unwrap()));
@@ -93,13 +93,13 @@ fn main() {
     let mut zero: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(0)));
     let mut nonZero: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(42)));
 
-    print!("zero == 0: {}\n", (*zero.lock().unwrap().as_mut().unwrap()) == 0);
-    print!("nonZero != 0: {}\n", (*nonZero.lock().unwrap().as_mut().unwrap()) != 0);
+    print!("zero == 0: {}\n", (*(*zero.lock().unwrap().as_mut().unwrap()).lock().unwrap().as_ref().unwrap()) == 0);
+    print!("nonZero != 0: {}\n", (*(*nonZero.lock().unwrap().as_mut().unwrap()).lock().unwrap().as_ref().unwrap()) != 0);
 
     println!("{}", "\n=== Pointer conversions ===".to_string());
 
     let mut num: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(100)));
-    let mut ptr: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(num.clone())));
+    let mut ptr: Arc<Mutex<Option<i32>>> = num.clone();
 
     print!("value: {}\n", (*num.lock().unwrap().as_mut().unwrap()));
     print!("pointer: {}\n", "0xDEADBEEF".to_string());
@@ -107,11 +107,23 @@ fn main() {
 
     println!("{}", "\n=== Interface conversions ===".to_string());
 
-    let mut any: Arc<Mutex<Option<Box<dyn Any>>>> = Arc::new(Mutex::new(Some(42)));
+    let mut any: Arc<Mutex<Option<Box<dyn Any>>>> = Arc::new(Mutex::new(Some(Box::new(42) as Box<dyn Any>)));
     print!("interface{} value: {}\n", (*any.lock().unwrap().as_mut().unwrap()));
     print!("interface{} type: %T\n", (*any.lock().unwrap().as_mut().unwrap()));
 
-    let (mut intVal, mut ok) = match (*any.lock().unwrap().as_mut().unwrap()).downcast_ref::<i32>() { Some(v) => (v.clone(), true), None => (0, false) };
+    let (mut intVal, mut ok) = ({
+        let val = any.clone();
+        let guard = val.lock().unwrap();
+        if let Some(ref any_val) = *guard {
+            if let Some(typed_val) = any_val.downcast_ref::<i32>() {
+                (Arc::new(Mutex::new(Some(typed_val.clone()))), Arc::new(Mutex::new(Some(true))))
+            } else {
+                (Arc::new(Mutex::new(Some(0))), Arc::new(Mutex::new(Some(false))))
+            }
+        } else {
+            (Arc::new(Mutex::new(Some(0))), Arc::new(Mutex::new(Some(false))))
+        }
+    });
     if (*ok.lock().unwrap().as_mut().unwrap()) {
         print!("asserted as int: {}\n", (*intVal.lock().unwrap().as_mut().unwrap()));
     }
@@ -120,7 +132,19 @@ fn main() {
     print!("new interface{} value: {}\n", (*any.lock().unwrap().as_mut().unwrap()));
     print!("new interface{} type: %T\n", (*any.lock().unwrap().as_mut().unwrap()));
 
-    let (mut strVal, mut ok) = match (*any.lock().unwrap().as_mut().unwrap()).downcast_ref::<String>() { Some(v) => (v.clone(), true), None => (String::new(), false) };
+    let (mut strVal, mut ok) = ({
+        let val = any.clone();
+        let guard = val.lock().unwrap();
+        if let Some(ref any_val) = *guard {
+            if let Some(typed_val) = any_val.downcast_ref::<String>() {
+                (Arc::new(Mutex::new(Some(typed_val.clone()))), Arc::new(Mutex::new(Some(true))))
+            } else {
+                (Arc::new(Mutex::new(Some(String::new()))), Arc::new(Mutex::new(Some(false))))
+            }
+        } else {
+            (Arc::new(Mutex::new(Some(String::new()))), Arc::new(Mutex::new(Some(false))))
+        }
+    });
     if (*ok.lock().unwrap().as_mut().unwrap()) {
         print!("asserted as string: {}\n", (*strVal.lock().unwrap().as_mut().unwrap()));
     }

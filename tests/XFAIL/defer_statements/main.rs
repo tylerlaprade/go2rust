@@ -55,7 +55,7 @@ pub fn defer_in_loop() {
 
     println!("{}", "Defer in loop:".to_string());
     let mut i = Arc::new(Mutex::new(Some(0)));
-    while (*i.lock().unwrap().as_mut().unwrap()) < 3 {
+    while (*(*i.lock().unwrap().as_mut().unwrap()).lock().unwrap().as_ref().unwrap()) < 3 {
         __defer_stack.push(Box::new(move || {
         (Arc::new(Mutex::new(Some(Box::new(move |val: Arc<Mutex<Option<i32>>>| {
         print!("Deferred loop value: {}\n", (*val.lock().unwrap().as_mut().unwrap()));
@@ -86,8 +86,8 @@ pub fn resource_example() {
     println!("{}", "Using resource".to_string());
 
     let mut i = Arc::new(Mutex::new(Some(0)));
-    while (*i.lock().unwrap().as_mut().unwrap()) < 3 {
-        print!("Working... {}\n", (*i.lock().unwrap().as_mut().unwrap()) + 1);
+    while (*(*i.lock().unwrap().as_mut().unwrap()).lock().unwrap().as_ref().unwrap()) < 3 {
+        print!("Working... {}\n", (*(*i.lock().unwrap().as_mut().unwrap()).lock().unwrap().as_ref().unwrap()) + 1);
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
     println!("{}", "Done with resource".to_string());

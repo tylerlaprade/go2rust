@@ -3,8 +3,8 @@ use std::sync::{Arc, Mutex};
 fn main() {
     let mut add = Arc::new(Mutex::new(Some(Arc::new(Mutex::new(Some(Box::new(move |a: Arc<Mutex<Option<i32>>>, b: Arc<Mutex<Option<i32>>>| -> Arc<Mutex<Option<i32>>> {
         return {
-            let __tmp_x = (*a.lock().unwrap().as_mut().unwrap());
-            let __tmp_y = (*b.lock().unwrap().as_mut().unwrap());
+            let __tmp_x = (*a.lock().unwrap().as_ref().unwrap());
+            let __tmp_y = (*b.lock().unwrap().as_ref().unwrap());
             Arc::new(Mutex::new(Some(__tmp_x + __tmp_y)))
         };
     }) as Box<dyn Fn(Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<i32>>> + Send + Sync>))))));
@@ -22,8 +22,8 @@ fn main() {
     let mut makeMultiplier = Arc::new(Mutex::new(Some(Arc::new(Mutex::new(Some(Box::new(move |factor: Arc<Mutex<Option<i32>>>| -> Arc<Mutex<Option<Box<dyn Fn(Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<i32>>> + Send + Sync>>>> {
         return Arc::new(Mutex::new(Some(Box::new(move |x: Arc<Mutex<Option<i32>>>| -> Arc<Mutex<Option<i32>>> {
         return {
-            let __tmp_x = (*x.lock().unwrap().as_mut().unwrap());
-            let __tmp_y = (*factor.lock().unwrap().as_mut().unwrap());
+            let __tmp_x = (*x.lock().unwrap().as_ref().unwrap());
+            let __tmp_y = (*factor.lock().unwrap().as_ref().unwrap());
             Arc::new(Mutex::new(Some(__tmp_x * __tmp_y)))
         };
     }) as Box<dyn Fn(Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<i32>>> + Send + Sync>)));
@@ -35,8 +35,8 @@ fn main() {
 
     let mut result = (Arc::new(Mutex::new(Some(Box::new(move |a: Arc<Mutex<Option<i32>>>, b: Arc<Mutex<Option<i32>>>| -> Arc<Mutex<Option<i32>>> {
         return {
-            let __tmp_x = (*a.lock().unwrap().as_mut().unwrap());
-            let __tmp_y = (*b.lock().unwrap().as_mut().unwrap());
+            let __tmp_x = (*a.lock().unwrap().as_ref().unwrap());
+            let __tmp_y = (*b.lock().unwrap().as_ref().unwrap());
             Arc::new(Mutex::new(Some(__tmp_x * __tmp_y)))
         };
     }) as Box<dyn Fn(Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<i32>>> + Send + Sync>))).lock().unwrap().as_ref().unwrap())(Arc::new(Mutex::new(Some(4))), Arc::new(Mutex::new(Some(5))));
@@ -44,20 +44,20 @@ fn main() {
 
     let mut operations = Arc::new(Mutex::new(Some(vec![Arc::new(Mutex::new(Some(Box::new(move |a: Arc<Mutex<Option<i32>>>, b: Arc<Mutex<Option<i32>>>| -> Arc<Mutex<Option<i32>>> {
         return {
-            let __tmp_x = (*a.lock().unwrap().as_mut().unwrap());
-            let __tmp_y = (*b.lock().unwrap().as_mut().unwrap());
+            let __tmp_x = (*a.lock().unwrap().as_ref().unwrap());
+            let __tmp_y = (*b.lock().unwrap().as_ref().unwrap());
             Arc::new(Mutex::new(Some(__tmp_x + __tmp_y)))
         };
     }) as Box<dyn Fn(Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<i32>>> + Send + Sync>))), Arc::new(Mutex::new(Some(Box::new(move |a: Arc<Mutex<Option<i32>>>, b: Arc<Mutex<Option<i32>>>| -> Arc<Mutex<Option<i32>>> {
         return {
-            let __tmp_x = (*a.lock().unwrap().as_mut().unwrap());
-            let __tmp_y = (*b.lock().unwrap().as_mut().unwrap());
+            let __tmp_x = (*a.lock().unwrap().as_ref().unwrap());
+            let __tmp_y = (*b.lock().unwrap().as_ref().unwrap());
             Arc::new(Mutex::new(Some(__tmp_x - __tmp_y)))
         };
     }) as Box<dyn Fn(Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<i32>>> + Send + Sync>))), Arc::new(Mutex::new(Some(Box::new(move |a: Arc<Mutex<Option<i32>>>, b: Arc<Mutex<Option<i32>>>| -> Arc<Mutex<Option<i32>>> {
         return {
-            let __tmp_x = (*a.lock().unwrap().as_mut().unwrap());
-            let __tmp_y = (*b.lock().unwrap().as_mut().unwrap());
+            let __tmp_x = (*a.lock().unwrap().as_ref().unwrap());
+            let __tmp_y = (*b.lock().unwrap().as_ref().unwrap());
             Arc::new(Mutex::new(Some(__tmp_x * __tmp_y)))
         };
     }) as Box<dyn Fn(Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<i32>>> + Send + Sync>)))])));

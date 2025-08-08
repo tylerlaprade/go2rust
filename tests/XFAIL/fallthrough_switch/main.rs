@@ -23,23 +23,23 @@ fn main() {
 
     println!("{}", "---".to_string());
 
-    let mut grade = Arc::new(Mutex::new(Some('B')));
+    let mut grade = Arc::new(Mutex::new(Some(('B' as i32))));
     match (*grade.lock().unwrap().as_mut().unwrap()) {
-        'A' => {
+        ('A' as i32) => {
             println!("{}", "Excellent!".to_string());
             // TODO: fallthrough not supported
         }
-        'B' => {
+        ('B' as i32) => {
             println!("{}", "Good job!".to_string());
             // TODO: fallthrough not supported
         }
-        'C' => {
+        ('C' as i32) => {
             println!("{}", "Passed".to_string());
         }
-        'D' => {
+        ('D' as i32) => {
             println!("{}", "Barely passed".to_string());
         }
-        'F' => {
+        ('F' as i32) => {
             println!("{}", "Failed".to_string());
         }
         _ => {}
@@ -49,14 +49,14 @@ fn main() {
 
     let mut n = Arc::new(Mutex::new(Some(15)));
     match true {
-        true if (*n.lock().unwrap().as_mut().unwrap()) % 15 == 0 => {
+        true if (*(*n.lock().unwrap().as_mut().unwrap()).lock().unwrap().as_ref().unwrap()) % 15 == 0 => {
             println!("{}", "FizzBuzz".to_string());
             // TODO: fallthrough not supported
         }
-        true if (*n.lock().unwrap().as_mut().unwrap()) % 3 == 0 => {
+        true if (*(*n.lock().unwrap().as_mut().unwrap()).lock().unwrap().as_ref().unwrap()) % 3 == 0 => {
             println!("{}", "Fizz".to_string());
         }
-        true if (*n.lock().unwrap().as_mut().unwrap()) % 5 == 0 => {
+        true if (*(*n.lock().unwrap().as_mut().unwrap()).lock().unwrap().as_ref().unwrap()) % 5 == 0 => {
             println!("{}", "Buzz".to_string());
         }
         _ => {

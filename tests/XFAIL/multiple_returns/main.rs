@@ -19,12 +19,12 @@ where
 pub fn divmod(a: Arc<Mutex<Option<i32>>>, b: Arc<Mutex<Option<i32>>>) -> (Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>) {
 
     return ({
-            let __tmp_x = (*a.lock().unwrap().as_mut().unwrap());
-            let __tmp_y = (*b.lock().unwrap().as_mut().unwrap());
+            let __tmp_x = (*a.lock().unwrap().as_ref().unwrap());
+            let __tmp_y = (*b.lock().unwrap().as_ref().unwrap());
             Arc::new(Mutex::new(Some(__tmp_x / __tmp_y)))
         }, {
-            let __tmp_x = (*a.lock().unwrap().as_mut().unwrap());
-            let __tmp_y = (*b.lock().unwrap().as_mut().unwrap());
+            let __tmp_x = (*a.lock().unwrap().as_ref().unwrap());
+            let __tmp_y = (*b.lock().unwrap().as_ref().unwrap());
             Arc::new(Mutex::new(Some(__tmp_x % __tmp_y)))
         });
 }
@@ -48,8 +48,8 @@ pub fn calculate(a: Arc<Mutex<Option<i32>>>, b: Arc<Mutex<Option<i32>>>) -> (Arc
     let mut sum: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(0)));
     let mut product: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(0)));
 
-    { let new_val = (*a.lock().unwrap().as_mut().unwrap()) + (*b.lock().unwrap().as_mut().unwrap()); *sum.lock().unwrap() = Some(new_val); };
-    { let new_val = (*a.lock().unwrap().as_mut().unwrap()) * (*b.lock().unwrap().as_mut().unwrap()); *product.lock().unwrap() = Some(new_val); };
+    { let new_val = (*(*a.lock().unwrap().as_mut().unwrap()).lock().unwrap().as_ref().unwrap()) + (*(*b.lock().unwrap().as_mut().unwrap()).lock().unwrap().as_ref().unwrap()); *sum.lock().unwrap() = Some(new_val); };
+    { let new_val = (*(*a.lock().unwrap().as_mut().unwrap()).lock().unwrap().as_ref().unwrap()) * (*(*b.lock().unwrap().as_mut().unwrap()).lock().unwrap().as_ref().unwrap()); *product.lock().unwrap() = Some(new_val); };
     return (sum, product);
 }
 
@@ -58,19 +58,19 @@ pub fn process_data(data: Arc<Mutex<Option<Vec<i32>>>>) -> (Arc<Mutex<Option<i32
     let mut max: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(0)));
     let mut sum: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(0)));
 
-    if (*data.lock().unwrap().as_mut().unwrap()).len() == 0 {
+    if (*(*(*data.lock().unwrap().as_mut().unwrap()).lock().unwrap().as_ref().unwrap()).len().lock().unwrap().as_ref().unwrap()) == 0 {
         return (Arc::new(Mutex::new(Some(0))), Arc::new(Mutex::new(Some(0))), Arc::new(Mutex::new(Some(0))));
     }
 
-    { let new_val = (*data.lock().unwrap().as_mut().unwrap())[0]; *min.lock().unwrap() = Some(new_val); };
-    { let new_val = (*data.lock().unwrap().as_mut().unwrap())[0]; *max.lock().unwrap() = Some(new_val); };
+    { let new_val = (*(*data.lock().unwrap().as_mut().unwrap()).lock().unwrap().as_ref().unwrap())[0]; *min.lock().unwrap() = Some(new_val); };
+    { let new_val = (*(*data.lock().unwrap().as_mut().unwrap()).lock().unwrap().as_ref().unwrap())[0]; *max.lock().unwrap() = Some(new_val); };
     { let new_val = 0; *sum.lock().unwrap() = Some(new_val); };
 
     for val in &(*data.lock().unwrap().as_mut().unwrap()) {
-        if val < (*min.lock().unwrap().as_mut().unwrap()) {
+        if val < (*(*min.lock().unwrap().as_mut().unwrap()).lock().unwrap().as_ref().unwrap()) {
         { let new_val = val; *min.lock().unwrap() = Some(new_val); };
     }
-        if val > (*max.lock().unwrap().as_mut().unwrap()) {
+        if val > (*(*max.lock().unwrap().as_mut().unwrap()).lock().unwrap().as_ref().unwrap()) {
         { let new_val = val; *max.lock().unwrap() = Some(new_val); };
     }
         { let mut guard = sum.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + val); };
@@ -100,7 +100,7 @@ pub fn find_in_slice(slice: Arc<Mutex<Option<Vec<i32>>>>, target: Arc<Mutex<Opti
     let mut found: Arc<Mutex<Option<bool>>> = Arc::new(Mutex::new(Some(false)));
 
     for (i, val) in (*slice.lock().unwrap().as_mut().unwrap()).iter().enumerate() {
-        if val == (*target.lock().unwrap().as_mut().unwrap()) {
+        if val == (*(*target.lock().unwrap().as_mut().unwrap()).lock().unwrap().as_ref().unwrap()) {
         return (Arc::new(Mutex::new(Some(i))), true.clone());
     }
     }
@@ -112,12 +112,12 @@ pub fn safe_divide(a: Arc<Mutex<Option<f64>>>, b: Arc<Mutex<Option<f64>>>) -> (A
     let mut result: Arc<Mutex<Option<f64>>> = Arc::new(Mutex::new(Some(0.0)));
     let mut err: Arc<Mutex<Option<Box<dyn Error + Send + Sync>>>> = Arc::new(Mutex::new(None));
 
-    if (*b.lock().unwrap().as_mut().unwrap()) == 0.0 {
+    if (*(*b.lock().unwrap().as_mut().unwrap()).lock().unwrap().as_ref().unwrap()) == 0 {
         return (Arc::new(Mutex::new(Some(0))), Arc::new(Mutex::new(Some(Box::new(format!("division by zero")) as Box<dyn Error + Send + Sync>))));
     }
     return ({
-            let __tmp_x = (*a.lock().unwrap().as_mut().unwrap());
-            let __tmp_y = (*b.lock().unwrap().as_mut().unwrap());
+            let __tmp_x = (*a.lock().unwrap().as_ref().unwrap());
+            let __tmp_y = (*b.lock().unwrap().as_ref().unwrap());
             Arc::new(Mutex::new(Some(__tmp_x / __tmp_y)))
         }, Arc::new(Mutex::new(None)));
 }

@@ -32,7 +32,7 @@ fn main() {
     print!("Local func call: {}\n", (*(localFunc.lock().unwrap().as_ref().unwrap())(Arc::new(Mutex::new(Some(7)))).lock().unwrap().as_ref().unwrap()));
 
     let mut conditionalFunc: Arc<Mutex<Option<Box<dyn Fn(Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<i32>>> + Send + Sync>>>>;
-    if (*result.lock().unwrap().as_mut().unwrap()) > 0 {
+    if (*(*result.lock().unwrap().as_mut().unwrap()).lock().unwrap().as_ref().unwrap()) > 0 {
         { let new_val = PROCESS_DATA; *conditionalFunc.lock().unwrap() = Some(new_val); };
     } else {
         { let new_val = REGULAR_DOUBLE; *conditionalFunc.lock().unwrap() = Some(new_val); };

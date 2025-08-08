@@ -14,12 +14,12 @@ fn main() {
         println!("{}", "Dave not found".to_string());
     }
 
-    print!("First number: {}\n", NUMBERS[0]);
-    print!("Last number: {}\n", NUMBERS[NUMBERS.len() - 1]);
+    print!("First number: {}\n", (*NUMBERS.lock().unwrap().as_ref().unwrap())[0]);
+    print!("Last number: {}\n", (*NUMBERS.lock().unwrap().as_ref().unwrap())[(*(*NUMBERS.lock().unwrap().as_ref().unwrap()).len().lock().unwrap().as_ref().unwrap()) - 1]);
 
     let mut admins = Arc::new(Mutex::new(Some((*(*Groups.lock().unwrap().as_ref().unwrap()).get(&"admins".to_string()).unwrap().lock().unwrap().as_ref().unwrap()))));
-    print!("Admin count: {}\n", (*admins.lock().unwrap().as_mut().unwrap()).len());
-    print!("First admin: {}\n", (*admins.lock().unwrap().as_mut().unwrap())[0]);
+    print!("Admin count: {}\n", (*(*admins.lock().unwrap().as_mut().unwrap()).lock().unwrap().as_ref().unwrap()).len());
+    print!("First admin: {}\n", (*(*admins.lock().unwrap().as_mut().unwrap()).lock().unwrap().as_ref().unwrap())[0]);
 
     let mut count = Arc::new(Mutex::new(Some(0)));
     for (_, _) in (*Users.lock().unwrap().as_ref().unwrap()).clone() {
@@ -27,8 +27,20 @@ fn main() {
     }
     print!("User count: {}\n", (*count.lock().unwrap().as_mut().unwrap()));
 
-    let mut firstRecord = Arc::new(Mutex::new(Some(RECORDS[0])));
-    let (mut name, mut ok) = match (*(*firstRecord.lock().unwrap().as_ref().unwrap()).get(&"name".to_string()).unwrap().lock().unwrap().as_ref().unwrap()).downcast_ref::<String>() { Some(v) => (v.clone(), true), None => (String::new(), false) };
+    let mut firstRecord = Arc::new(Mutex::new(Some((*RECORDS.lock().unwrap().as_ref().unwrap())[0])));
+    let (mut name, mut ok) = ({
+        let val = (*(*firstRecord.lock().unwrap().as_ref().unwrap()).get(&"name".to_string()).unwrap().lock().unwrap().as_ref().unwrap()).clone();
+        let guard = val.lock().unwrap();
+        if let Some(ref any_val) = *guard {
+            if let Some(typed_val) = any_val.downcast_ref::<String>() {
+                (Arc::new(Mutex::new(Some(typed_val.clone()))), Arc::new(Mutex::new(Some(true))))
+            } else {
+                (Arc::new(Mutex::new(Some(String::new()))), Arc::new(Mutex::new(Some(false))))
+            }
+        } else {
+            (Arc::new(Mutex::new(Some(String::new()))), Arc::new(Mutex::new(Some(false))))
+        }
+    });
     if (*ok.lock().unwrap().as_mut().unwrap()) {
         print!("First record name: {}\n", (*name.lock().unwrap().as_mut().unwrap()));
     }
