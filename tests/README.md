@@ -17,18 +17,6 @@ tests/
     └── main.rs          # Generated Rust (tracked in Git)
 ```
 
-### Tests with stdin inputs
-
-```
-tests/
-└── echo_program/
-    ├── main.go          # Go source
-    ├── main.rs          # Generated Rust (tracked in Git)
-    └── inputs/          # Input directory
-        ├── test1.txt    # Input case 1
-        └── test2.txt    # Input case 2
-```
-
 ### XFAIL tests (expected failures)
 
 These are tests for features not yet implemented:
@@ -49,9 +37,7 @@ tests/
 1. Each directory in `tests/` containing a `main.go` is a test case
 2. The test transpiles all `.go` files in the directory
 3. Generated `.rs` files are tracked in Git as examples
-4. If directory `inputs/` exists within the test, runs both versions with each file as stdin
-5. Otherwise, runs both versions without stdin
-6. Compares outputs - they must match exactly
+4. Runs both versions and compares outputs - they must match exactly
 
 ## XFAIL Auto-Promotion
 
@@ -66,21 +52,11 @@ This ensures new features are properly reviewed before being considered "working
 
 ## Adding New Tests
 
-### Working test (no inputs)
+### Working test
 
 ```sh
 mkdir tests/my_feature
 echo 'package main...' > tests/my_feature/main.go
-# Test will be auto-discovered - no manual steps needed!
-```
-
-### Working test with inputs
-
-```sh
-mkdir tests/my_feature
-echo 'package main...' > tests/my_feature/main.go
-mkdir tests/my_feature/inputs
-echo 'test input' > tests/my_feature/inputs/case1.txt
 # Test will be auto-discovered - no manual steps needed!
 ```
 
