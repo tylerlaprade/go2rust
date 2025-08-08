@@ -1,0 +1,3 @@
+Value: 42
+Name: test
+GetValue: 42

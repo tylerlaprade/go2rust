@@ -644,6 +644,10 @@ run_xfail_test() {
     run_xfail_test "tests/XFAIL/shared_mutation"
 }
 
+@test "XFAIL: simple_embedding" {
+    run_xfail_test "tests/XFAIL/simple_embedding"
+}
+
 @test "XFAIL: slice_operations_advanced" {
     run_xfail_test "tests/XFAIL/slice_operations_advanced"
 }
