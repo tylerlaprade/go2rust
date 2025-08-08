@@ -45,6 +45,6 @@ fn main() {
         print!("First record name: {}\n", (*name.lock().unwrap().as_mut().unwrap()));
     }
 
-    (*USERS.lock().unwrap().as_mut().unwrap())["dave".to_string()] = 4;
+    (*Users.lock().unwrap().as_mut().unwrap()).insert("dave".to_string(), Arc::new(Mutex::new(Some(4))));
     print!("Dave added with ID: {}\n", (*(*Users.lock().unwrap().as_ref().unwrap()).get(&"dave".to_string()).unwrap().lock().unwrap().as_ref().unwrap()));
 }

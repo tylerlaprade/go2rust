@@ -295,15 +295,18 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		}
 
 	case *ast.AssignStmt:
-		// Check if this is a map index assignment
+		// Check if this is a map index assignment using type information
 		isMapIndexAssign := false
 		if len(s.Lhs) == 1 && len(s.Rhs) == 1 && s.Tok == token.ASSIGN {
 			if indexExpr, ok := s.Lhs[0].(*ast.IndexExpr); ok {
-				// Check if the indexed expression is likely a map
-				if ident, ok := indexExpr.X.(*ast.Ident); ok {
-					name := strings.ToLower(ident.Name)
-					// Only treat as map if the variable name suggests it's a map
-					isMapIndexAssign = strings.Contains(name, "map") || name == "ages" || name == "colors" || name == "m"
+				// Use TypeInfo to determine if this is actually a map
+				typeInfo := GetTypeInfo()
+				if typeInfo != nil {
+					isMapIndexAssign = typeInfo.IsMap(indexExpr.X)
+				} else {
+					// Type info not available - can't determine if it's a map
+					// Generate an error comment to make this obvious
+					out.WriteString("/* ERROR: Cannot determine if map assignment - type information required */ ")
 				}
 			}
 		}
