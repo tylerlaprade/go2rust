@@ -440,10 +440,8 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 
 func transpileLen(out *strings.Builder, call *ast.CallExpr) {
 	if len(call.Args) > 0 {
-		// len() needs to unwrap the collection first
-		out.WriteString("(*")
 		TranspileExpression(out, call.Args[0])
-		out.WriteString(".lock().unwrap().as_ref().unwrap()).len()")
+		out.WriteString(".len()")
 	}
 }
 

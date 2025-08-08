@@ -23,26 +23,26 @@ impl Display for CustomError {
 
 pub fn divide(a: Arc<Mutex<Option<f64>>>, b: Arc<Mutex<Option<f64>>>) -> (Arc<Mutex<Option<f64>>>, Arc<Mutex<Option<Box<dyn Error + Send + Sync>>>>) {
 
-    if (*(*b.lock().unwrap().as_mut().unwrap()).lock().unwrap().as_ref().unwrap()) == 0 {
+    if (*b.lock().unwrap().as_mut().unwrap()) == 0.0 {
         return (Arc::new(Mutex::new(Some(0))), Arc::new(Mutex::new(Some(Box::<dyn std::error::Error + Send + Sync>::from("division by zero".to_string())))));
     }
     return ({
-            let __tmp_x = (*a.lock().unwrap().as_ref().unwrap());
-            let __tmp_y = (*b.lock().unwrap().as_ref().unwrap());
+            let __tmp_x = (*a.lock().unwrap().as_mut().unwrap());
+            let __tmp_y = (*b.lock().unwrap().as_mut().unwrap());
             Arc::new(Mutex::new(Some(__tmp_x / __tmp_y)))
         }, Arc::new(Mutex::new(None)));
 }
 
 pub fn sqrt(x: Arc<Mutex<Option<f64>>>) -> (Arc<Mutex<Option<f64>>>, Arc<Mutex<Option<Box<dyn Error + Send + Sync>>>>) {
 
-    if (*(*x.lock().unwrap().as_mut().unwrap()).lock().unwrap().as_ref().unwrap()) < 0 {
+    if (*x.lock().unwrap().as_mut().unwrap()) < 0.0 {
         return (Arc::new(Mutex::new(Some(0))), Arc::new(Mutex::new(Some(Box::new(format!("cannot take square root of negative number: {}", (*x.lock().unwrap().as_mut().unwrap()))) as Box<dyn Error + Send + Sync>))));
     }
 
-    let mut result = Arc::new(Mutex::new(Some((*(*x.lock().unwrap().as_mut().unwrap()).lock().unwrap().as_ref().unwrap()) / 2)));
+    let mut result = Arc::new(Mutex::new(Some((*x.lock().unwrap().as_mut().unwrap()) / 2.0)));
     let mut i = Arc::new(Mutex::new(Some(0)));
-    while (*(*i.lock().unwrap().as_mut().unwrap()).lock().unwrap().as_ref().unwrap()) < 10 {
-        { let new_val = ((*(*result.lock().unwrap().as_mut().unwrap()).lock().unwrap().as_ref().unwrap()) + (*(*x.lock().unwrap().as_mut().unwrap()).lock().unwrap().as_ref().unwrap()) / (*(*result.lock().unwrap().as_mut().unwrap()).lock().unwrap().as_ref().unwrap())) / 2.0; *result.lock().unwrap() = Some(new_val); };
+    while (*i.lock().unwrap().as_mut().unwrap()) < 10 {
+        { let new_val = ((*result.lock().unwrap().as_mut().unwrap()) + (*x.lock().unwrap().as_mut().unwrap()) / (*result.lock().unwrap().as_mut().unwrap())) / 2.0; *result.lock().unwrap() = Some(new_val); };
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
     return (result.clone(), Arc::new(Mutex::new(None)));
@@ -50,10 +50,10 @@ pub fn sqrt(x: Arc<Mutex<Option<f64>>>) -> (Arc<Mutex<Option<f64>>>, Arc<Mutex<O
 
 pub fn process_value(val: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<Box<dyn Error + Send + Sync>>>> {
 
-    if (*(*val.lock().unwrap().as_mut().unwrap()).lock().unwrap().as_ref().unwrap()) < 0 {
+    if (*val.lock().unwrap().as_mut().unwrap()) < 0 {
         return Arc::new(Mutex::new(Some(CustomError { code: Arc::new(Mutex::new(Some(100))), message: Arc::new(Mutex::new(Some("negative value not allowed".to_string()))) })));
     }
-    if (*(*val.lock().unwrap().as_mut().unwrap()).lock().unwrap().as_ref().unwrap()) > 100 {
+    if (*val.lock().unwrap().as_mut().unwrap()) > 100 {
         return Arc::new(Mutex::new(Some(CustomError { code: Arc::new(Mutex::new(Some(200))), message: Arc::new(Mutex::new(Some("value too large".to_string()))) })));
     }
     return Arc::new(Mutex::new(None));

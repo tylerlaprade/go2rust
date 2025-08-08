@@ -25,13 +25,13 @@ type StringAlias = Arc<Mutex<Option<String>>>;
 
 impl Celsius {
     pub fn to_fahrenheit(&self) -> Arc<Mutex<Option<Fahrenheit>>> {
-        return Arc::new(Mutex::new(Some(Fahrenheit(Arc::new(Mutex::new(Some((*(*self.0.lock().unwrap().as_ref().unwrap()).lock().unwrap().as_ref().unwrap()) * 9 / 5.0 + 32.0)))))));
+        return Arc::new(Mutex::new(Some(Fahrenheit(Arc::new(Mutex::new(Some((*self.0.lock().unwrap().as_ref().unwrap()) * 9.0 / 5.0 + 32.0)))))));
     }
 }
 
 impl Fahrenheit {
     pub fn to_celsius(&self) -> Arc<Mutex<Option<Celsius>>> {
-        return Arc::new(Mutex::new(Some(Celsius(Arc::new(Mutex::new(Some(((*(*self.0.lock().unwrap().as_ref().unwrap()).lock().unwrap().as_ref().unwrap()) - 32) * 5.0 / 9.0)))))));
+        return Arc::new(Mutex::new(Some(Celsius(Arc::new(Mutex::new(Some(((*self.0.lock().unwrap().as_ref().unwrap()) - 32.0) * 5.0 / 9.0)))))));
     }
 }
 

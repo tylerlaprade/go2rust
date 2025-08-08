@@ -49,14 +49,14 @@ fn main() {
 
     let mut n = Arc::new(Mutex::new(Some(15)));
     match true {
-        true if (*(*n.lock().unwrap().as_mut().unwrap()).lock().unwrap().as_ref().unwrap()) % 15 == 0 => {
+        true if (*n.lock().unwrap().as_mut().unwrap()) % 15 == 0 => {
             println!("{}", "FizzBuzz".to_string());
             // TODO: fallthrough not supported
         }
-        true if (*(*n.lock().unwrap().as_mut().unwrap()).lock().unwrap().as_ref().unwrap()) % 3 == 0 => {
+        true if (*n.lock().unwrap().as_mut().unwrap()) % 3 == 0 => {
             println!("{}", "Fizz".to_string());
         }
-        true if (*(*n.lock().unwrap().as_mut().unwrap()).lock().unwrap().as_ref().unwrap()) % 5 == 0 => {
+        true if (*n.lock().unwrap().as_mut().unwrap()) % 5 == 0 => {
             println!("{}", "Buzz".to_string());
         }
         _ => {

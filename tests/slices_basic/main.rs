@@ -21,10 +21,10 @@ fn main() {
     {(*slice.lock().unwrap().as_mut().unwrap()).extend(vec![6, 7]); slice.clone()};
     println!("{} {}", "After append:".to_string(), format_slice(&slice));
 
-    let mut subSlice = Arc::new(Mutex::new(Some(Arc::new(Mutex::new(Some((*(*slice.lock().unwrap().as_mut().unwrap()).lock().unwrap().as_ref().unwrap())[1..4].to_vec()))))));
+    let mut subSlice = Arc::new(Mutex::new(Some((*slice.lock().unwrap().as_mut().unwrap())[1..4].to_vec())));
     println!("{} {}", "Sub-slice [1:4]:".to_string(), format_slice(&subSlice));
 
-    println!("{} {}", "Length:".to_string(), (*(*slice.lock().unwrap().as_mut().unwrap()).lock().unwrap().as_ref().unwrap()).len());
+    println!("{} {}", "Length:".to_string(), (*slice.lock().unwrap().as_mut().unwrap()).len());
     println!("{} {}", "Capacity:".to_string(), (*slice.lock().unwrap().as_mut().unwrap()).capacity());
 
     let mut made = Arc::new(Mutex::new(Some(vec![0; 3])));

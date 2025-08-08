@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 
 pub fn f(from: Arc<Mutex<Option<String>>>) {
     let mut i = Arc::new(Mutex::new(Some(0)));
-    while (*(*i.lock().unwrap().as_mut().unwrap()).lock().unwrap().as_ref().unwrap()) < 3 {
+    while (*i.lock().unwrap().as_mut().unwrap()) < 3 {
         println!("{} {} {}", (*from.lock().unwrap().as_mut().unwrap()), ":".to_string(), (*i.lock().unwrap().as_mut().unwrap()));
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }

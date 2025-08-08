@@ -83,7 +83,7 @@ fn main() {
 
     let mut runes = Arc::new(Mutex::new(Some((*"Hello, 世界".to_string().lock().unwrap().as_ref().unwrap()).chars().map(|c| c as i32).collect::<Vec<_>>())));
     print!("string to runes: {}\n", format_slice(&runes));
-    print!("rune count: {}\n", (*(*runes.lock().unwrap().as_mut().unwrap()).lock().unwrap().as_ref().unwrap()).len());
+    print!("rune count: {}\n", (*runes.lock().unwrap().as_mut().unwrap()).len());
 
     let mut backToString = Arc::new(Mutex::new(Some((*runes.lock().unwrap().as_ref().unwrap()).iter().map(|&c| char::from_u32(c as u32).unwrap()).collect::<String>())));
     print!("runes to string: {}\n", (*backToString.lock().unwrap().as_mut().unwrap()));
@@ -93,8 +93,8 @@ fn main() {
     let mut zero: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(0)));
     let mut nonZero: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(42)));
 
-    print!("zero == 0: {}\n", (*(*zero.lock().unwrap().as_mut().unwrap()).lock().unwrap().as_ref().unwrap()) == 0);
-    print!("nonZero != 0: {}\n", (*(*nonZero.lock().unwrap().as_mut().unwrap()).lock().unwrap().as_ref().unwrap()) != 0);
+    print!("zero == 0: {}\n", (*zero.lock().unwrap().as_mut().unwrap()) == 0);
+    print!("nonZero != 0: {}\n", (*nonZero.lock().unwrap().as_mut().unwrap()) != 0);
 
     println!("{}", "\n=== Pointer conversions ===".to_string());
 

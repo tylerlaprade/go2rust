@@ -18,7 +18,7 @@ fn main() {
     }));
 
     let (mut body, _) = (*io.lock().unwrap().as_mut().unwrap()).read_all(Arc::new(Mutex::new(Some((*resp.lock().unwrap().as_mut().unwrap()).body))));
-    println!("{} {}", "Response:".to_string(), Arc::new(Mutex::new(Some((*Arc::new(Mutex::new(Some(String::from_utf8((*body.lock().unwrap().as_ref().unwrap()).clone()).unwrap()))).lock().unwrap().as_ref().unwrap())[0..100].to_vec()))));
+    println!("{} {}", "Response:".to_string(), Arc::new(Mutex::new(Some(String::from_utf8((*body.lock().unwrap().as_ref().unwrap()).clone()).unwrap())))[..100].to_vec());
 
     // Execute deferred functions
     while let Some(f) = __defer_stack.pop() {

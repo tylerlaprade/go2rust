@@ -244,41 +244,12 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 							if needsExtraction {
 								// Extract values first to avoid multiple locks
-								// We need to unwrap the values for arithmetic
 								out.WriteString("{\n")
 								out.WriteString("            let __tmp_x = ")
-								// Check if X needs unwrapping
-								if ident, ok := binExpr.X.(*ast.Ident); ok && ident.Name != "nil" {
-									// It's a variable, unwrap it
-									out.WriteString("(*")
-									out.WriteString(ident.Name)
-									out.WriteString(".lock().unwrap().as_ref().unwrap())")
-								} else if _, ok := binExpr.X.(*ast.CallExpr); ok {
-									// Function call result, unwrap it
-									out.WriteString("(*")
-									TranspileExpression(out, binExpr.X)
-									out.WriteString(".lock().unwrap().as_ref().unwrap())")
-								} else {
-									// Literal or expression
-									TranspileExpression(out, binExpr.X)
-								}
+								TranspileExpressionContext(out, binExpr.X, RValue)
 								out.WriteString(";\n")
 								out.WriteString("            let __tmp_y = ")
-								// Check if Y needs unwrapping
-								if ident, ok := binExpr.Y.(*ast.Ident); ok && ident.Name != "nil" {
-									// It's a variable, unwrap it
-									out.WriteString("(*")
-									out.WriteString(ident.Name)
-									out.WriteString(".lock().unwrap().as_ref().unwrap())")
-								} else if _, ok := binExpr.Y.(*ast.CallExpr); ok {
-									// Function call result, unwrap it
-									out.WriteString("(*")
-									TranspileExpression(out, binExpr.Y)
-									out.WriteString(".lock().unwrap().as_ref().unwrap())")
-								} else {
-									// Literal or expression
-									TranspileExpression(out, binExpr.Y)
-								}
+								TranspileExpressionContext(out, binExpr.Y, RValue)
 								out.WriteString(";\n")
 								out.WriteString("            Arc::new(Mutex::new(Some(__tmp_x ")
 								out.WriteString(binExpr.Op.String())

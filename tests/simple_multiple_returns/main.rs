@@ -3,12 +3,12 @@ use std::sync::{Arc, Mutex};
 pub fn divmod(a: Arc<Mutex<Option<i32>>>, b: Arc<Mutex<Option<i32>>>) -> (Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>) {
 
     return ({
-            let __tmp_x = (*a.lock().unwrap().as_ref().unwrap());
-            let __tmp_y = (*b.lock().unwrap().as_ref().unwrap());
+            let __tmp_x = (*a.lock().unwrap().as_mut().unwrap());
+            let __tmp_y = (*b.lock().unwrap().as_mut().unwrap());
             Arc::new(Mutex::new(Some(__tmp_x / __tmp_y)))
         }, {
-            let __tmp_x = (*a.lock().unwrap().as_ref().unwrap());
-            let __tmp_y = (*b.lock().unwrap().as_ref().unwrap());
+            let __tmp_x = (*a.lock().unwrap().as_mut().unwrap());
+            let __tmp_y = (*b.lock().unwrap().as_mut().unwrap());
             Arc::new(Mutex::new(Some(__tmp_x % __tmp_y)))
         });
 }

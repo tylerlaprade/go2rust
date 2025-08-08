@@ -27,8 +27,8 @@ pub fn make_adder(x: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<Box<dyn Fn(Arc
 
     return Arc::new(Mutex::new(Some(Box::new(move |y: Arc<Mutex<Option<i32>>>| -> Arc<Mutex<Option<i32>>> {
         return {
-            let __tmp_x = (*x.lock().unwrap().as_ref().unwrap());
-            let __tmp_y = (*y.lock().unwrap().as_ref().unwrap());
+            let __tmp_x = (*x.lock().unwrap().as_mut().unwrap());
+            let __tmp_y = (*y.lock().unwrap().as_mut().unwrap());
             Arc::new(Mutex::new(Some(__tmp_x + __tmp_y)))
         };
     }) as Box<dyn Fn(Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<i32>>> + Send + Sync>)));
@@ -36,7 +36,7 @@ pub fn make_adder(x: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<Box<dyn Fn(Arc
 
 pub fn apply_operation(nums: Arc<Mutex<Option<Vec<i32>>>>, op: Arc<Mutex<Option<Box<dyn Fn(Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<i32>>> + Send + Sync>>>>) -> Arc<Mutex<Option<Vec<i32>>>> {
 
-    let mut result = Arc::new(Mutex::new(Some(vec![0; (*(*nums.lock().unwrap().as_mut().unwrap()).lock().unwrap().as_ref().unwrap()).len()])));
+    let mut result = Arc::new(Mutex::new(Some(vec![0; (*nums.lock().unwrap().as_mut().unwrap()).len()])));
     for (i, num) in (*nums.lock().unwrap().as_mut().unwrap()).iter().enumerate() {
         (*result.lock().unwrap().as_mut().unwrap())[i] = (op.lock().unwrap().as_ref().unwrap())(Arc::new(Mutex::new(Some(num))));
     }
@@ -63,8 +63,8 @@ fn main() {
 
     let mut squared = apply_operation(numbers.clone(), Arc::new(Mutex::new(Some(Arc::new(Mutex::new(Some(Box::new(move |x: Arc<Mutex<Option<i32>>>| -> Arc<Mutex<Option<i32>>> {
         return {
-            let __tmp_x = (*x.lock().unwrap().as_ref().unwrap());
-            let __tmp_y = (*x.lock().unwrap().as_ref().unwrap());
+            let __tmp_x = (*x.lock().unwrap().as_mut().unwrap());
+            let __tmp_y = (*x.lock().unwrap().as_mut().unwrap());
             Arc::new(Mutex::new(Some(__tmp_x * __tmp_y)))
         };
     }) as Box<dyn Fn(Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<i32>>> + Send + Sync>)))))));
@@ -72,7 +72,7 @@ fn main() {
 
     let mut doubled = apply_operation(numbers.clone(), Arc::new(Mutex::new(Some(Arc::new(Mutex::new(Some(Box::new(move |x: Arc<Mutex<Option<i32>>>| -> Arc<Mutex<Option<i32>>> {
         return {
-            let __tmp_x = (*x.lock().unwrap().as_ref().unwrap());
+            let __tmp_x = (*x.lock().unwrap().as_mut().unwrap());
             let __tmp_y = 2;
             Arc::new(Mutex::new(Some(__tmp_x * __tmp_y)))
         };
@@ -82,8 +82,8 @@ fn main() {
     let mut multiplier = Arc::new(Mutex::new(Some(3)));
     let mut tripled = apply_operation(numbers.clone(), Arc::new(Mutex::new(Some(Arc::new(Mutex::new(Some(Box::new(move |x: Arc<Mutex<Option<i32>>>| -> Arc<Mutex<Option<i32>>> {
         return {
-            let __tmp_x = (*x.lock().unwrap().as_ref().unwrap());
-            let __tmp_y = (*multiplier.lock().unwrap().as_ref().unwrap());
+            let __tmp_x = (*x.lock().unwrap().as_mut().unwrap());
+            let __tmp_y = (*multiplier.lock().unwrap().as_mut().unwrap());
             Arc::new(Mutex::new(Some(__tmp_x * __tmp_y)))
         };
     }) as Box<dyn Fn(Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<i32>>> + Send + Sync>)))))));
@@ -91,8 +91,8 @@ fn main() {
 
     let mut result = (Arc::new(Mutex::new(Some(Box::new(move |a: Arc<Mutex<Option<i32>>>, b: Arc<Mutex<Option<i32>>>| -> Arc<Mutex<Option<i32>>> {
         return {
-            let __tmp_x = (*a.lock().unwrap().as_ref().unwrap());
-            let __tmp_y = (*b.lock().unwrap().as_ref().unwrap());
+            let __tmp_x = (*a.lock().unwrap().as_mut().unwrap());
+            let __tmp_y = (*b.lock().unwrap().as_mut().unwrap());
             Arc::new(Mutex::new(Some(__tmp_x + __tmp_y)))
         };
     }) as Box<dyn Fn(Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<i32>>> + Send + Sync>))).lock().unwrap().as_ref().unwrap())(Arc::new(Mutex::new(Some(10))), Arc::new(Mutex::new(Some(20))));

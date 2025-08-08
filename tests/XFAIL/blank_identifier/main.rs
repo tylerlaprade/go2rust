@@ -1,48 +1,6 @@
-use std::sync::{Arc, Mutex};
-use std::collections::HashMap;
-use std::fmt::{self, Display, Formatter};
-use std::error::Error;
 use std::any::Any;
-use std::cmp::Ord;
-
-fn format_map<K: Display + Ord + Clone, V>(map: &Arc<Mutex<Option<HashMap<K, Arc<Mutex<Option<V>>>>>>>) -> String 
-where
-    V: Display,
-{
-    let guard = map.lock().unwrap();
-    if let Some(ref m) = *guard {
-        let mut items: Vec<_> = m.iter().collect();
-        items.sort_by_key(|(k, _)| (*k).clone());
-        
-        let formatted: Vec<String> = items
-            .into_iter()
-            .map(|(k, v)| {
-                let v_guard = v.lock().unwrap();
-                if let Some(ref val) = *v_guard {
-                    format!("{}:{}", k, val)
-                } else {
-                    format!("{}:<nil>", k)
-                }
-            })
-            .collect();
-        
-        format!("map[{}]", formatted.join(" "))
-    } else {
-        "map[]".to_string()
-    }
-}
-fn format_slice<T>(slice: &Arc<Mutex<Option<Vec<T>>>>) -> String 
-where
-    T: Display,
-{
-    let guard = slice.lock().unwrap();
-    if let Some(ref s) = *guard {
-        let formatted: Vec<String> = s.iter().map(|v| v.to_string()).collect();
-        format!("[{}]", formatted.join(" "))
-    } else {
-        "[]".to_string()
-    }
-}
+use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
 
 pub fn multiple_returns() -> (Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<String>>>, Arc<Mutex<Option<bool>>>) {
 
@@ -128,14 +86,38 @@ fn main() {
 
     println!("{}", "\n=== Blank identifier with type assertion ===".to_string());
 
-    let mut value: Arc<Mutex<Option<Box<dyn Any>>>> = Arc::new(Mutex::new(Some("hello world".to_string())));
+    let mut value: Arc<Mutex<Option<Box<dyn Any>>>> = Arc::new(Mutex::new(Some(Box::new("hello world".to_string()) as Box<dyn Any>)));
 
-    let (_, mut ok) = match (*value.lock().unwrap().as_mut().unwrap()).downcast_ref::<String>() { Some(v) => (v.clone(), true), None => (String::new(), false) };
+    let (_, mut ok) = ({
+        let val = value.clone();
+        let guard = val.lock().unwrap();
+        if let Some(ref any_val) = *guard {
+            if let Some(typed_val) = any_val.downcast_ref::<String>() {
+                (Arc::new(Mutex::new(Some(typed_val.clone()))), Arc::new(Mutex::new(Some(true))))
+            } else {
+                (Arc::new(Mutex::new(Some(String::new()))), Arc::new(Mutex::new(Some(false))))
+            }
+        } else {
+            (Arc::new(Mutex::new(Some(String::new()))), Arc::new(Mutex::new(Some(false))))
+        }
+    });
     if (*ok.lock().unwrap().as_mut().unwrap()) {
         println!("{}", "Value is a string (but we ignored the actual value)".to_string());
     }
 
-    let (_, mut ok) = match (*value.lock().unwrap().as_mut().unwrap()).downcast_ref::<i32>() { Some(v) => (v.clone(), true), None => (0, false) };
+    let (_, mut ok) = ({
+        let val = value.clone();
+        let guard = val.lock().unwrap();
+        if let Some(ref any_val) = *guard {
+            if let Some(typed_val) = any_val.downcast_ref::<i32>() {
+                (Arc::new(Mutex::new(Some(typed_val.clone()))), Arc::new(Mutex::new(Some(true))))
+            } else {
+                (Arc::new(Mutex::new(Some(0))), Arc::new(Mutex::new(Some(false))))
+            }
+        } else {
+            (Arc::new(Mutex::new(Some(0))), Arc::new(Mutex::new(Some(false))))
+        }
+    });
     if (*ok.lock().unwrap().as_mut().unwrap()) {
         println!("{}", "Value is an int".to_string());
     } else {
