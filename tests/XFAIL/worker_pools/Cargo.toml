@@ -1,8 +1,8 @@
 [package]
-name = "transpiled"
+name = "worker_pools"
 version = "0.1.0"
 edition = "2021"
 
 [[bin]]
-name = "transpiled"
+name = "worker_pools"
 path = "main.rs"

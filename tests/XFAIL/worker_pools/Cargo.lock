@@ -3,5 +3,5 @@
 version = 4
 
 [[package]]
-name = "transpiled"
+name = "worker_pools"
 version = "0.1.0"

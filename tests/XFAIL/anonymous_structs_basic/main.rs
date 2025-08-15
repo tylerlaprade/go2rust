@@ -2,6 +2,20 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
 #[derive(Debug)]
+struct AnonymousStruct4 {
+    i_d: Arc<Mutex<Option<i32>>>,
+    value: Arc<Mutex<Option<String>>>,
+}
+
+
+#[derive(Debug)]
+struct AnonymousStruct5 {
+    email: Arc<Mutex<Option<String>>>,
+    admin: Arc<Mutex<Option<bool>>>,
+}
+
+
+#[derive(Debug)]
 struct AnonymousStruct1 {
     x: Arc<Mutex<Option<i32>>>,
     y: Arc<Mutex<Option<i32>>>,
@@ -20,27 +34,6 @@ struct AnonymousStruct3 {
     host: Arc<Mutex<Option<String>>>,
     port: Arc<Mutex<Option<i32>>>,
     settings: Arc<Mutex<Option<AnonymousStruct6>>>,
-}
-
-
-#[derive(Debug)]
-struct AnonymousStruct4 {
-    i_d: Arc<Mutex<Option<i32>>>,
-    value: Arc<Mutex<Option<String>>>,
-}
-
-
-#[derive(Debug)]
-struct AnonymousStruct5 {
-    email: Arc<Mutex<Option<String>>>,
-    admin: Arc<Mutex<Option<bool>>>,
-}
-
-
-#[derive(Debug)]
-struct AnonymousStruct6 {
-    debug: Arc<Mutex<Option<bool>>>,
-    verbose: Arc<Mutex<Option<bool>>>,
 }
 
 

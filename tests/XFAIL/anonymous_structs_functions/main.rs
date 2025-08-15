@@ -1,28 +1,14 @@
 use std::sync::{Arc, Mutex};
 
 #[derive(Debug)]
-struct AnonymousStruct5 {
-    x: Arc<Mutex<Option<i32>>>,
-    y: Arc<Mutex<Option<i32>>>,
+struct AnonymousStruct1 {
+    name: Arc<Mutex<Option<String>>>,
+    age: Arc<Mutex<Option<i32>>>,
 }
 
 
 #[derive(Debug)]
-struct AnonymousStruct8 {
-    debug: Arc<Mutex<Option<bool>>>,
-    verbose: Arc<Mutex<Option<bool>>>,
-}
-
-
-#[derive(Debug)]
-struct AnonymousStruct10 {
-    x: Arc<Mutex<Option<i32>>>,
-    y: Arc<Mutex<Option<i32>>>,
-}
-
-
-#[derive(Debug)]
-struct AnonymousStruct12 {
+struct AnonymousStruct2 {
     x: Arc<Mutex<Option<i32>>>,
     y: Arc<Mutex<Option<i32>>>,
 }
@@ -43,16 +29,9 @@ struct AnonymousStruct6 {
 
 
 #[derive(Debug)]
-struct AnonymousStruct7 {
-    port: Arc<Mutex<Option<i32>>>,
-    timeout: Arc<Mutex<Option<i32>>>,
-}
-
-
-#[derive(Debug)]
-struct AnonymousStruct9 {
-    name: Arc<Mutex<Option<String>>>,
-    age: Arc<Mutex<Option<i32>>>,
+struct AnonymousStruct10 {
+    x: Arc<Mutex<Option<i32>>>,
+    y: Arc<Mutex<Option<i32>>>,
 }
 
 
@@ -71,21 +50,42 @@ struct AnonymousStruct13 {
 
 
 #[derive(Debug)]
-struct AnonymousStruct1 {
-    name: Arc<Mutex<Option<String>>>,
-    age: Arc<Mutex<Option<i32>>>,
-}
-
-
-#[derive(Debug)]
-struct AnonymousStruct2 {
+struct AnonymousStruct3 {
     x: Arc<Mutex<Option<i32>>>,
     y: Arc<Mutex<Option<i32>>>,
 }
 
 
 #[derive(Debug)]
-struct AnonymousStruct3 {
+struct AnonymousStruct5 {
+    x: Arc<Mutex<Option<i32>>>,
+    y: Arc<Mutex<Option<i32>>>,
+}
+
+
+#[derive(Debug)]
+struct AnonymousStruct7 {
+    port: Arc<Mutex<Option<i32>>>,
+    timeout: Arc<Mutex<Option<i32>>>,
+}
+
+
+#[derive(Debug)]
+struct AnonymousStruct8 {
+    debug: Arc<Mutex<Option<bool>>>,
+    verbose: Arc<Mutex<Option<bool>>>,
+}
+
+
+#[derive(Debug)]
+struct AnonymousStruct9 {
+    name: Arc<Mutex<Option<String>>>,
+    age: Arc<Mutex<Option<i32>>>,
+}
+
+
+#[derive(Debug)]
+struct AnonymousStruct12 {
     x: Arc<Mutex<Option<i32>>>,
     y: Arc<Mutex<Option<i32>>>,
 }

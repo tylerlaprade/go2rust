@@ -16,14 +16,17 @@ where
 }
 
 fn main() {
+        // Nested loops with labels
     println!("{}", "=== Nested loops with labels ===".to_string());
 
     // TODO: Unhandled statement type: LabeledStmt
 
+        // Continue with labels
     println!("{}", "\n=== Continue with labels ===".to_string());
 
     // TODO: Unhandled statement type: LabeledStmt
 
+        // Complex switch with fallthrough
     println!("{}", "\n=== Complex switch with fallthrough ===".to_string());
 
     let mut num = Arc::new(Mutex::new(Some(1)));
@@ -31,26 +34,27 @@ fn main() {
         print!("Number {}: ", (*num.lock().unwrap().as_mut().unwrap()));
         match (*num.lock().unwrap().as_mut().unwrap()) {
         1 => {
-            (*fmt.lock().unwrap().as_mut().unwrap()).print(Arc::new(Mutex::new(Some("One".to_string()))));
+            fmt.print(Arc::new(Mutex::new(Some("One".to_string()))));
             // TODO: fallthrough not supported
         }
         2 => {
-            (*fmt.lock().unwrap().as_mut().unwrap()).print(Arc::new(Mutex::new(Some(" Two-ish".to_string()))));
+            fmt.print(Arc::new(Mutex::new(Some(" Two-ish".to_string()))));
         }
         3 => {
-            (*fmt.lock().unwrap().as_mut().unwrap()).print(Arc::new(Mutex::new(Some("Three".to_string()))));
+            fmt.print(Arc::new(Mutex::new(Some("Three".to_string()))));
         }
         4 | 5 => {
-            (*fmt.lock().unwrap().as_mut().unwrap()).print(Arc::new(Mutex::new(Some(" Four-or-Five".to_string()))));
+            fmt.print(Arc::new(Mutex::new(Some(" Four-or-Five".to_string()))));
         }
         _ => {
-            (*fmt.lock().unwrap().as_mut().unwrap()).print(Arc::new(Mutex::new(Some(" Other".to_string()))));
+            fmt.print(Arc::new(Mutex::new(Some(" Other".to_string()))));
         }
     }
         println!();
         { let mut guard = num.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
 
+        // Nested switch statements
     println!("{}", "\n=== Nested switch statements ===".to_string());
 
     let mut category = Arc::new(Mutex::new(Some(1)));
@@ -89,8 +93,10 @@ fn main() {
         { let mut guard = category.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
 
+        // Complex for loop conditions
     println!("{}", "\n=== Complex for loop conditions ===".to_string());
 
+        // Multiple variables in for loop
     let (mut i, mut j) = (Arc::new(Mutex::new(Some(0))), Arc::new(Mutex::new(Some(10))));
     while (*i.lock().unwrap().as_mut().unwrap()) < (*j.lock().unwrap().as_mut().unwrap()) {
         print!("i={}, j={}, sum={}\n", (*i.lock().unwrap().as_mut().unwrap()), (*j.lock().unwrap().as_mut().unwrap()), (*i.lock().unwrap().as_mut().unwrap()) + (*j.lock().unwrap().as_mut().unwrap()));
@@ -100,6 +106,7 @@ fn main() {
         { *(*i.lock().unwrap().as_mut().unwrap()).lock().unwrap() = Some((*i.lock().unwrap().as_mut().unwrap()) + 1); *(*j.lock().unwrap().as_mut().unwrap()).lock().unwrap() = Some((*j.lock().unwrap().as_mut().unwrap()) - 1) };
     }
 
+        // For loop with complex condition
     println!("{}", "\n=== For loop with complex condition ===".to_string());
 
     let (mut x, mut y) = (Arc::new(Mutex::new(Some(1))), Arc::new(Mutex::new(Some(1))));
@@ -113,6 +120,7 @@ fn main() {
         { let mut guard = x.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
 
+        // Goto statements (rarely used, but valid Go)
     println!("{}", "\n=== Goto statements ===".to_string());
 
     let mut counter = Arc::new(Mutex::new(Some(0)));
@@ -126,6 +134,7 @@ fn main() {
 
     println!("{}", "Done with goto".to_string());
 
+        // Complex if-else chains
     println!("{}", "\n=== Complex if-else chains ===".to_string());
 
     let mut score = Arc::new(Mutex::new(Some(0)));
@@ -162,6 +171,7 @@ fn main() {
         { let mut guard = score.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 25); };
     }
 
+        // Range with complex break/continue logic
     println!("{}", "\n=== Range with complex break/continue ===".to_string());
 
     let mut numbers = Arc::new(Mutex::new(Some(vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10])));
@@ -183,6 +193,7 @@ fn main() {
         print!("Processing odd number {} (index {})\n", num, i);
     }
 
+        // Nested range loops
     println!("{}", "\n=== Nested range loops ===".to_string());
 
     let mut matrix = Arc::new(Mutex::new(Some(vec![, , ])));
@@ -202,12 +213,14 @@ fn main() {
         println!();
     }
 
+        // Select with complex channel operations
     println!("{}", "\n=== Select with complex channel operations ===".to_string());
 
     let mut ch1 = ;
     let mut ch2 = ;
     let mut done = ;
 
+        // Fill channels
     // TODO: Unhandled statement type: SendStmt
     // TODO: Unhandled statement type: SendStmt
     // TODO: Unhandled statement type: SendStmt
@@ -218,10 +231,11 @@ fn main() {
     <-(*done.lock().unwrap().as_mut().unwrap());
     println!("{}", "Channel processing complete".to_string());
 
+        // Complex error handling flow
     println!("{}", "\n=== Complex error handling flow ===".to_string());
 
     let mut processData = Arc::new(Mutex::new(Some(Arc::new(Mutex::new(Some(Box::new(move |data: Arc<Mutex<Option<Vec<i32>>>>| -> Arc<Mutex<Option<Box<dyn Error + Send + Sync>>>> {
-        if (*data.lock().unwrap().as_mut().unwrap()).len() == 0 {
+        if (*data.lock().unwrap().as_ref().unwrap()).len() == 0 {
         return Arc::new(Mutex::new(Some(Box::new(format!("empty data")) as Box<dyn Error + Send + Sync>)));
     }
         for (i, val) in (*data.lock().unwrap().as_mut().unwrap()).iter().enumerate() {

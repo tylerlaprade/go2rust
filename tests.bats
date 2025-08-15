@@ -6,10 +6,6 @@ setup_file() {
     # find tests -name "Cargo.lock" -type f -delete 2>/dev/null || true
     
     go build -o go2rust ./go
-    
-    # Set up shared Cargo target directory for faster compilation
-    export CARGO_TARGET_DIR="${BATS_TEST_DIRNAME}/tests/target"
-    mkdir -p "$CARGO_TARGET_DIR"
 }
 
 # Helper to run a command and prefix stdout/stderr
@@ -90,8 +86,8 @@ run_transpile_and_compare() {
         return 1
     fi
     
-    # Run Rust version with shared target directory
-    rust_output=$(cd "$test_dir" && CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$BATS_TEST_DIRNAME/tests/target}" RUSTFLAGS="-A warnings" cargo run --quiet 2>&1)
+    # Run Rust version
+    rust_output=$(cd "$test_dir" && RUSTFLAGS="-A warnings" cargo run --quiet 2>&1)
     rust_exit_code=$?
     
     if [ $rust_exit_code -ne 0 ]; then

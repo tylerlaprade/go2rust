@@ -17,17 +17,10 @@ struct Dashboard {
 }
 
 #[derive(Debug)]
-struct AnonymousStruct1 {
+struct AnonymousStruct9 {
     host: Arc<Mutex<Option<String>>>,
     port: Arc<Mutex<Option<i32>>>,
     credentials: Arc<Mutex<Option<AnonymousStruct12>>>,
-}
-
-
-#[derive(Debug)]
-struct AnonymousStruct2 {
-    enabled: Arc<Mutex<Option<bool>>>,
-    t_t_l: Arc<Mutex<Option<i32>>>,
 }
 
 
@@ -40,17 +33,30 @@ struct AnonymousStruct3 {
 
 
 #[derive(Debug)]
-struct AnonymousStruct7 {
-    enabled: Arc<Mutex<Option<bool>>>,
-    settings: Arc<Mutex<Option<AnonymousStruct14>>>,
+struct AnonymousStruct6 {
+    version: Arc<Mutex<Option<String>>>,
+    modules: Arc<Mutex<Option<HashMap<String, AnonymousStruct14>>>>,
 }
 
 
 #[derive(Debug)]
-struct AnonymousStruct9 {
-    host: Arc<Mutex<Option<String>>>,
-    port: Arc<Mutex<Option<i32>>>,
-    credentials: Arc<Mutex<Option<AnonymousStruct15>>>,
+struct AnonymousStruct7 {
+    enabled: Arc<Mutex<Option<bool>>>,
+    settings: Arc<Mutex<Option<AnonymousStruct15>>>,
+}
+
+
+#[derive(Debug)]
+struct AnonymousStruct8 {
+    enabled: Arc<Mutex<Option<bool>>>,
+    settings: Arc<Mutex<Option<AnonymousStruct16>>>,
+}
+
+
+#[derive(Debug)]
+struct AnonymousStruct10 {
+    enabled: Arc<Mutex<Option<bool>>>,
+    t_t_l: Arc<Mutex<Option<i32>>>,
 }
 
 
@@ -58,14 +64,36 @@ struct AnonymousStruct9 {
 struct AnonymousStruct11 {
     i_d: Arc<Mutex<Option<i32>>>,
     type: Arc<Mutex<Option<String>>>,
-    position: Arc<Mutex<Option<AnonymousStruct16>>>,
+    position: Arc<Mutex<Option<AnonymousStruct17>>>,
 }
 
 
 #[derive(Debug)]
-struct AnonymousStruct13 {
-    x: Arc<Mutex<Option<i32>>>,
-    y: Arc<Mutex<Option<i32>>>,
+struct AnonymousStruct12 {
+    user: Arc<Mutex<Option<String>>>,
+    password: Arc<Mutex<Option<String>>>,
+}
+
+
+#[derive(Debug)]
+struct AnonymousStruct14 {
+    enabled: Arc<Mutex<Option<bool>>>,
+    settings: Arc<Mutex<Option<AnonymousStruct18>>>,
+}
+
+
+#[derive(Debug)]
+struct AnonymousStruct1 {
+    host: Arc<Mutex<Option<String>>>,
+    port: Arc<Mutex<Option<i32>>>,
+    credentials: Arc<Mutex<Option<AnonymousStruct19>>>,
+}
+
+
+#[derive(Debug)]
+struct AnonymousStruct2 {
+    enabled: Arc<Mutex<Option<bool>>>,
+    t_t_l: Arc<Mutex<Option<i32>>>,
 }
 
 
@@ -80,27 +108,6 @@ struct AnonymousStruct4 {
 struct AnonymousStruct5 {
     x: Arc<Mutex<Option<i32>>>,
     y: Arc<Mutex<Option<i32>>>,
-}
-
-
-#[derive(Debug)]
-struct AnonymousStruct6 {
-    version: Arc<Mutex<Option<String>>>,
-    modules: Arc<Mutex<Option<HashMap<String, AnonymousStruct17>>>>,
-}
-
-
-#[derive(Debug)]
-struct AnonymousStruct8 {
-    enabled: Arc<Mutex<Option<bool>>>,
-    settings: Arc<Mutex<Option<AnonymousStruct18>>>,
-}
-
-
-#[derive(Debug)]
-struct AnonymousStruct10 {
-    enabled: Arc<Mutex<Option<bool>>>,
-    t_t_l: Arc<Mutex<Option<i32>>>,
 }
 
 
@@ -127,13 +134,13 @@ fn main() {
     }
 
         // Deeply nested anonymous structs
-    let mut system: Arc<Mutex<Option<AnonymousStruct19>>>;
+    let mut system: Arc<Mutex<Option<AnonymousStruct20>>>;
 
     { let new_val = "1.0.0".to_string(); *system.version.lock().unwrap() = Some(new_val); };
-    { let new_val = Arc::new(Mutex::new(Some(HashMap::<String, Arc<Mutex<Option<AnonymousStruct20>>>>::new()))); *system.modules.lock().unwrap() = Some(new_val); };
+    { let new_val = Arc::new(Mutex::new(Some(HashMap::<String, Arc<Mutex<Option<AnonymousStruct21>>>>::new()))); *system.modules.lock().unwrap() = Some(new_val); };
 
         // Add a module with settings
-    let mut authModule = AnonymousStruct21 { enabled: true.clone() };
+    let mut authModule = AnonymousStruct22 { enabled: true.clone() };
     { let new_val = Arc::new(Mutex::new(Some(vec![, ]))); *authModule.settings.options.lock().unwrap() = Some(new_val); };
     (*system.modules.lock().unwrap().as_mut().unwrap()).insert("auth".to_string(), authModule.clone());
 
