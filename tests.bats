@@ -90,8 +90,7 @@ run_transpile_and_compare() {
     # -A warnings: Allow all warnings (don't spend time on lints)
     # -C opt-level=0: No optimizations (fastest compilation)
     # -C debuginfo=0: No debug symbols (smaller binary, faster linking)
-    # -C codegen-units=16: More parallel codegen (trades compile time for binary size)
-    rust_output=$(cd "$test_dir" && RUSTFLAGS="-A warnings -C opt-level=0 -C debuginfo=0 -C codegen-units=16" cargo run --quiet 2>&1)
+    rust_output=$(cd "$test_dir" && RUSTFLAGS="-A warnings -C opt-level=0 -C debuginfo=0" cargo run --quiet 2>&1)
     rust_exit_code=$?
     
     if [ $rust_exit_code -ne 0 ]; then
