@@ -3,6 +3,7 @@ package main
 import (
 	"go/ast"
 	"go/token"
+	"go/types"
 	"strings"
 )
 
@@ -112,9 +113,29 @@ func transpileBuiltinPrintln(out *strings.Builder, call *ast.CallExpr) {
 
 // Helper function to unwrap arguments for print statements
 func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
-	// Use type information if available
+	// Type-based printing using TypeInfo
 	typeInfo := GetTypeInfo()
 	if typeInfo != nil && typeInfo.GetType(arg) != nil {
+		argType := typeInfo.GetType(arg)
+
+		// Check if it's interface{}
+		if intf, ok := argType.Underlying().(*types.Interface); ok && intf.NumMethods() == 0 {
+			// It's interface{} - use format_any helper
+			NeedFormatAny()
+			out.WriteString("format_any(")
+			if ident, ok := arg.(*ast.Ident); ok {
+				out.WriteString(ident.Name)
+				out.WriteString(".lock().unwrap().as_ref().unwrap().as_ref()")
+			} else {
+				// Complex expression
+				out.WriteString("(")
+				TranspileExpression(out, arg)
+				out.WriteString(").lock().unwrap().as_ref().unwrap().as_ref()")
+			}
+			out.WriteString(")")
+			return
+		}
+
 		if typeInfo.IsMap(arg) {
 			NeedFormatMap()
 			TrackImport("Display", "map formatting")

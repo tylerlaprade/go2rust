@@ -767,13 +767,36 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										out.WriteString(".lock().unwrap() = Some(new_val); }")
 									}
 								} else {
-									out.WriteString("{ ")
-									out.WriteString("let new_val = ")
-									TranspileExpression(out, s.Rhs[0])
-									out.WriteString("; ")
-									out.WriteString("*")
-									TranspileExpressionContext(out, s.Lhs[0], LValue)
-									out.WriteString(".lock().unwrap() = Some(new_val); }")
+									// Check if LHS is interface{} type
+									isInterface := false
+									typeInfo := GetTypeInfo()
+									if typeInfo != nil {
+										if lhsType := typeInfo.GetType(s.Lhs[0]); lhsType != nil {
+											// Check if it's the empty interface
+											if intf, ok := lhsType.Underlying().(*types.Interface); ok && intf.NumMethods() == 0 {
+												isInterface = true
+											}
+										}
+									}
+
+									if isInterface {
+										// Assignment to interface{} - need to box the value
+										out.WriteString("{ ")
+										out.WriteString("let new_val = Box::new(")
+										TranspileExpression(out, s.Rhs[0])
+										out.WriteString(") as Box<dyn Any>; ")
+										out.WriteString("*")
+										TranspileExpressionContext(out, s.Lhs[0], LValue)
+										out.WriteString(".lock().unwrap() = Some(new_val); }")
+									} else {
+										out.WriteString("{ ")
+										out.WriteString("let new_val = ")
+										TranspileExpression(out, s.Rhs[0])
+										out.WriteString("; ")
+										out.WriteString("*")
+										TranspileExpressionContext(out, s.Lhs[0], LValue)
+										out.WriteString(".lock().unwrap() = Some(new_val); }")
+									}
 								}
 							}
 						} else {

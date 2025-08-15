@@ -39,3 +39,10 @@ func NeedFormatSlice() {
 		currentContext.Helpers.needsFormatSlice = true
 	}
 }
+
+// NeedFormatAny marks that we need the format_any helper
+func NeedFormatAny() {
+	if currentContext != nil && currentContext.Helpers != nil {
+		currentContext.Helpers.needsFormatAny = true
+	}
+}

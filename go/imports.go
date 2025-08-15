@@ -92,6 +92,7 @@ func (it *ImportTracker) GenerateImports() string {
 type HelperTracker struct {
 	needsFormatMap   bool
 	needsFormatSlice bool
+	needsFormatAny   bool
 }
 
 // GenerateHelpers returns the helper function definitions
@@ -106,5 +107,31 @@ func (ht *HelperTracker) GenerateHelpers() string {
 		generateSliceFormatter(&result)
 	}
 
+	if ht.needsFormatAny {
+		generateAnyFormatter(&result)
+	}
+
 	return result.String()
+}
+
+func generateAnyFormatter(out *strings.Builder) {
+	out.WriteString("\nfn format_any(value: &dyn Any) -> String {\n")
+	out.WriteString("    if let Some(v) = value.downcast_ref::<i32>() {\n")
+	out.WriteString("        v.to_string()\n")
+	out.WriteString("    } else if let Some(v) = value.downcast_ref::<i64>() {\n")
+	out.WriteString("        v.to_string()\n")
+	out.WriteString("    } else if let Some(v) = value.downcast_ref::<f64>() {\n")
+	out.WriteString("        v.to_string()\n")
+	out.WriteString("    } else if let Some(v) = value.downcast_ref::<f32>() {\n")
+	out.WriteString("        v.to_string()\n")
+	out.WriteString("    } else if let Some(v) = value.downcast_ref::<String>() {\n")
+	out.WriteString("        v.clone()\n")
+	out.WriteString("    } else if let Some(v) = value.downcast_ref::<&str>() {\n")
+	out.WriteString("        v.to_string()\n")
+	out.WriteString("    } else if let Some(v) = value.downcast_ref::<bool>() {\n")
+	out.WriteString("        v.to_string()\n")
+	out.WriteString("    } else {\n")
+	out.WriteString("        \"<unknown>\".to_string()\n")
+	out.WriteString("    }\n")
+	out.WriteString("}\n")
 }

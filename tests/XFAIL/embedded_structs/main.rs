@@ -105,22 +105,6 @@ impl Manager {
         print!("Manager {} is managing team: {}\n", (*self.name.lock().unwrap().as_ref().unwrap()), format_slice(&self.team.clone()));
     }
 
-    pub fn get_info(&self) -> Arc<Mutex<Option<String>>> {
-        // Forward to embedded type's method
-        let embedded = self.employee.clone();
-        let mut guard = embedded.lock().unwrap();
-        let embedded_ref = guard.as_mut().unwrap();
-        embedded_ref.get_info()
-    }
-
-    pub fn full_address(&self) -> Arc<Mutex<Option<String>>> {
-        // Forward to embedded type's method
-        let embedded = self.employee.clone();
-        let mut guard = embedded.lock().unwrap();
-        let embedded_ref = guard.as_mut().unwrap();
-        embedded_ref.full_address()
-    }
-
     pub fn work(&self) {
         // Forward to embedded type's method
         let embedded = self.employee.clone();
@@ -135,6 +119,22 @@ impl Manager {
         let mut guard = embedded.lock().unwrap();
         let embedded_ref = guard.as_mut().unwrap();
         embedded_ref.greet()
+    }
+
+    pub fn get_info(&self) -> Arc<Mutex<Option<String>>> {
+        // Forward to embedded type's method
+        let embedded = self.employee.clone();
+        let mut guard = embedded.lock().unwrap();
+        let embedded_ref = guard.as_mut().unwrap();
+        embedded_ref.get_info()
+    }
+
+    pub fn full_address(&self) -> Arc<Mutex<Option<String>>> {
+        // Forward to embedded type's method
+        let embedded = self.employee.clone();
+        let mut guard = embedded.lock().unwrap();
+        let embedded_ref = guard.as_mut().unwrap();
+        embedded_ref.full_address()
     }
 }
 

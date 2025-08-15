@@ -514,6 +514,12 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 	case *ast.CompositeLit:
 		// Handle array/slice literals
 		if arrayType, ok := e.Type.(*ast.ArrayType); ok {
+			// Check if element type is interface{}
+			isInterfaceSlice := false
+			if intf, ok := arrayType.Elt.(*ast.InterfaceType); ok && len(intf.Methods.List) == 0 {
+				isInterfaceSlice = true
+			}
+
 			// Wrap the entire array/slice in Arc<Mutex<Option<>>>
 			out.WriteString("Arc::new(Mutex::new(Some(")
 			if arrayType.Len != nil {
@@ -527,7 +533,14 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				if i > 0 {
 					out.WriteString(", ")
 				}
-				TranspileExpression(out, elt)
+				if isInterfaceSlice {
+					// Box each element for interface{} slices
+					out.WriteString("Box::new(")
+					TranspileExpression(out, elt)
+					out.WriteString(") as Box<dyn Any>")
+				} else {
+					TranspileExpression(out, elt)
+				}
 			}
 			out.WriteString("]")
 			out.WriteString(")))")

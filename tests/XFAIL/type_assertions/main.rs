@@ -1,6 +1,27 @@
 use std::any::Any;
 use std::sync::{Arc, Mutex};
 
+
+fn format_any(value: &dyn Any) -> String {
+    if let Some(v) = value.downcast_ref::<i32>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<i64>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<f64>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<f32>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<String>() {
+        v.clone()
+    } else if let Some(v) = value.downcast_ref::<&str>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<bool>() {
+        v.to_string()
+    } else {
+        "<unknown>".to_string()
+    }
+}
+
 trait Shape {
     fn area(&self) -> Arc<Mutex<Option<f64>>>;
 }
@@ -96,7 +117,7 @@ pub fn process_value(value: Arc<Mutex<Option<Box<dyn Any>>>>) {
         return;
     }
 
-    print!("Unknown type: %T with value: {}\n", (*value.lock().unwrap().as_mut().unwrap()), (*value.lock().unwrap().as_mut().unwrap()));
+    print!("Unknown type: %T with value: {}\n", format_any(value.lock().unwrap().as_ref().unwrap().as_ref()), format_any(value.lock().unwrap().as_ref().unwrap().as_ref()));
 }
 
 pub fn assert_without_check(value: Arc<Mutex<Option<Box<dyn Any>>>>) {
@@ -107,7 +128,7 @@ pub fn assert_without_check(value: Arc<Mutex<Option<Box<dyn Any>>>>) {
         (Arc::new(Mutex::new(Some(Box::new(move || {
         let mut r = Arc::new(Mutex::new(None::<String>));
     if (*r.lock().unwrap()).is_some() {
-        print!("Panic recovered: {}\n", (*r.lock().unwrap().as_mut().unwrap()));
+        print!("Panic recovered: {}\n", format_any(r.lock().unwrap().as_ref().unwrap().as_ref()));
     }
     }) as Box<dyn Fn() -> () + Send + Sync>))).lock().unwrap().as_ref().unwrap())();
     }));
@@ -168,7 +189,7 @@ pub fn describe_shape(s: Arc<Mutex<Option<Box<dyn Shape>>>>) {
 
 fn main() {
         // Test with different types
-    let mut values = Arc::new(Mutex::new(Some(vec!["hello world".to_string(), 42, 3.14159, true, Arc::new(Mutex::new(Some(vec![1, 2, 3])))])));
+    let mut values = Arc::new(Mutex::new(Some(vec![Box::new("hello world".to_string()) as Box<dyn Any>, Box::new(42) as Box<dyn Any>, Box::new(3.14159) as Box<dyn Any>, Box::new(true) as Box<dyn Any>, Box::new(Arc::new(Mutex::new(Some(vec![1, 2, 3])))) as Box<dyn Any>])));
 
     println!("{}", "=== Processing values ===".to_string());
     for val in &(*values.lock().unwrap().as_mut().unwrap()) {

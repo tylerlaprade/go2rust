@@ -16,6 +16,26 @@ where
     }
 }
 
+fn format_any(value: &dyn Any) -> String {
+    if let Some(v) = value.downcast_ref::<i32>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<i64>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<f64>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<f32>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<String>() {
+        v.clone()
+    } else if let Some(v) = value.downcast_ref::<&str>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<bool>() {
+        v.to_string()
+    } else {
+        "<unknown>".to_string()
+    }
+}
+
 fn main() {
         // Basic numeric type conversions
     println!("{}", "=== Basic numeric conversions ===".to_string());
@@ -122,8 +142,8 @@ fn main() {
     println!("{}", "\n=== Interface conversions ===".to_string());
 
     let mut any: Arc<Mutex<Option<Box<dyn Any>>>> = Arc::new(Mutex::new(Some(Box::new(42) as Box<dyn Any>)));
-    print!("interface{} value: {}\n", (*any.lock().unwrap().as_mut().unwrap()));
-    print!("interface{} type: %T\n", (*any.lock().unwrap().as_mut().unwrap()));
+    print!("interface{} value: {}\n", format_any(any.lock().unwrap().as_ref().unwrap().as_ref()));
+    print!("interface{} type: %T\n", format_any(any.lock().unwrap().as_ref().unwrap().as_ref()));
 
         // Type assertion
     let (mut intVal, mut ok) = ({
@@ -144,9 +164,9 @@ fn main() {
     }
 
         // Change interface value
-    { let new_val = "hello".to_string(); *any.lock().unwrap() = Some(new_val); };
-    print!("new interface{} value: {}\n", (*any.lock().unwrap().as_mut().unwrap()));
-    print!("new interface{} type: %T\n", (*any.lock().unwrap().as_mut().unwrap()));
+    { let new_val = Box::new("hello".to_string()) as Box<dyn Any>; *any.lock().unwrap() = Some(new_val); };
+    print!("new interface{} value: {}\n", format_any(any.lock().unwrap().as_ref().unwrap().as_ref()));
+    print!("new interface{} type: %T\n", format_any(any.lock().unwrap().as_ref().unwrap().as_ref()));
 
     let (mut strVal, mut ok) = ({
         let val = any.clone();
