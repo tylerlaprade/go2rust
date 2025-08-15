@@ -60,27 +60,34 @@ pub fn concat(separator: Arc<Mutex<Option<String>>>, strings: Arc<Mutex<Option</
 }
 
 fn main() {
-    println!("{} {}", "Sum of no numbers:".to_string(), (*sum().lock().unwrap().as_ref().unwrap()));
+        // Basic variadic function
+println!("{} {}", "Sum of no numbers:".to_string(), (*sum().lock().unwrap().as_ref().unwrap()));
     println!("{} {}", "Sum of 1, 2, 3:".to_string(), (*sum(Arc::new(Mutex::new(Some(1))), Arc::new(Mutex::new(Some(2))), Arc::new(Mutex::new(Some(3)))).lock().unwrap().as_ref().unwrap()));
     println!("{} {}", "Sum of 1, 2, 3, 4, 5:".to_string(), (*sum(Arc::new(Mutex::new(Some(1))), Arc::new(Mutex::new(Some(2))), Arc::new(Mutex::new(Some(3))), Arc::new(Mutex::new(Some(4))), Arc::new(Mutex::new(Some(5)))).lock().unwrap().as_ref().unwrap()));
 
-    let mut numbers = Arc::new(Mutex::new(Some(vec![10, 20, 30, 40])));
+        // Passing slice to variadic function
+let mut numbers = Arc::new(Mutex::new(Some(vec![10, 20, 30, 40])));
     println!("{} {}", "Sum of slice:".to_string(), (*sum(numbers.clone()).lock().unwrap().as_ref().unwrap()));
 
-    println!("{} {}", "Average of 1.5, 2.5, 3.5:".to_string(), (*average(Arc::new(Mutex::new(Some(1.5))), Arc::new(Mutex::new(Some(2.5))), Arc::new(Mutex::new(Some(3.5)))).lock().unwrap().as_ref().unwrap()));
+        // Variadic with different types
+println!("{} {}", "Average of 1.5, 2.5, 3.5:".to_string(), (*average(Arc::new(Mutex::new(Some(1.5))), Arc::new(Mutex::new(Some(2.5))), Arc::new(Mutex::new(Some(3.5)))).lock().unwrap().as_ref().unwrap()));
     println!("{} {}", "Average of no numbers:".to_string(), (*average().lock().unwrap().as_ref().unwrap()));
 
-    print_strings(Arc::new(Mutex::new(Some("Colors".to_string()))), Arc::new(Mutex::new(Some("red".to_string()))), Arc::new(Mutex::new(Some("green".to_string()))), Arc::new(Mutex::new(Some("blue".to_string()))));
+        // Mixed parameters
+print_strings(Arc::new(Mutex::new(Some("Colors".to_string()))), Arc::new(Mutex::new(Some("red".to_string()))), Arc::new(Mutex::new(Some("green".to_string()))), Arc::new(Mutex::new(Some("blue".to_string()))));
     print_strings(Arc::new(Mutex::new(Some("Animals".to_string()))), Arc::new(Mutex::new(Some("cat".to_string()))), Arc::new(Mutex::new(Some("dog".to_string()))));
     print_strings(Arc::new(Mutex::new(Some("Empty".to_string()))));
 
-    println!("{} {}", "Min of 5, 2, 8, 1, 9:".to_string(), (*min(Arc::new(Mutex::new(Some(5))), Arc::new(Mutex::new(Some(2))), Arc::new(Mutex::new(Some(8))), Arc::new(Mutex::new(Some(1))), Arc::new(Mutex::new(Some(9)))).lock().unwrap().as_ref().unwrap()));
+        // Variadic with required first parameter
+println!("{} {}", "Min of 5, 2, 8, 1, 9:".to_string(), (*min(Arc::new(Mutex::new(Some(5))), Arc::new(Mutex::new(Some(2))), Arc::new(Mutex::new(Some(8))), Arc::new(Mutex::new(Some(1))), Arc::new(Mutex::new(Some(9)))).lock().unwrap().as_ref().unwrap()));
     println!("{} {}", "Min of just 42:".to_string(), (*min(Arc::new(Mutex::new(Some(42)))).lock().unwrap().as_ref().unwrap()));
 
-    println!("{} {}", "Concat with comma:".to_string(), (*concat(Arc::new(Mutex::new(Some(", ".to_string()))), Arc::new(Mutex::new(Some("apple".to_string()))), Arc::new(Mutex::new(Some("banana".to_string()))), Arc::new(Mutex::new(Some("cherry".to_string())))).lock().unwrap().as_ref().unwrap()));
+        // String concatenation
+println!("{} {}", "Concat with comma:".to_string(), (*concat(Arc::new(Mutex::new(Some(", ".to_string()))), Arc::new(Mutex::new(Some("apple".to_string()))), Arc::new(Mutex::new(Some("banana".to_string()))), Arc::new(Mutex::new(Some("cherry".to_string())))).lock().unwrap().as_ref().unwrap()));
     println!("{} {}", "Concat with dash:".to_string(), (*concat(Arc::new(Mutex::new(Some(" - ".to_string()))), Arc::new(Mutex::new(Some("one".to_string()))), Arc::new(Mutex::new(Some("two".to_string()))), Arc::new(Mutex::new(Some("three".to_string())))).lock().unwrap().as_ref().unwrap()));
     println!("{} {}", "Concat empty:".to_string(), (*concat(Arc::new(Mutex::new(Some(", ".to_string())))).lock().unwrap().as_ref().unwrap()));
 
-    let mut words = Arc::new(Mutex::new(Some(vec!["hello".to_string(), "world".to_string(), "from".to_string(), "go".to_string()])));
+        // Using slice with string variadic
+let mut words = Arc::new(Mutex::new(Some(vec!["hello".to_string(), "world".to_string(), "from".to_string(), "go".to_string()])));
     println!("{} {}", "Concat from slice:".to_string(), (*concat(Arc::new(Mutex::new(Some(" ".to_string()))), words.clone()).lock().unwrap().as_ref().unwrap()));
 }

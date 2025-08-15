@@ -221,7 +221,7 @@ func Transpile(file *ast.File, fileSet *token.FileSet, typeInfo *TypeInfo) (stri
 			if i > 0 {
 				body.WriteString("\n")
 			}
-			TranspileMethodImpl(&body, method, fileSet)
+			TranspileMethodImpl(&body, method, fileSet, file.Comments)
 		}
 
 		body.WriteString("}")
@@ -269,7 +269,7 @@ func Transpile(file *ast.File, fileSet *token.FileSet, typeInfo *TypeInfo) (stri
 						// Find the corresponding method implementation
 						for _, impl := range methods[typeName] {
 							if impl.Name.Name == methodName {
-								transpileMethodImplWithVisibility(&body, impl, false, fileSet)
+								transpileMethodImplWithVisibility(&body, impl, false, fileSet, file.Comments)
 								break
 							}
 						}
@@ -289,7 +289,7 @@ func Transpile(file *ast.File, fileSet *token.FileSet, typeInfo *TypeInfo) (stri
 		first = false
 		// Output doc comments if present
 		outputComment(&body, fn.Doc, "", true)
-		TranspileFunction(&body, fn, fileSet)
+		TranspileFunction(&body, fn, fileSet, file.Comments)
 	}
 
 	// Now build the final output with only needed imports

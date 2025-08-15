@@ -1,7 +1,8 @@
 use std::sync::{Arc, Mutex};
 
 fn main() {
-    let mut x = Arc::new(Mutex::new(Some(42)));
+        // This is the simplest case that breaks Rust's ownership
+let mut x = Arc::new(Mutex::new(Some(42)));
     let mut p = x.clone();
     let mut q = x.clone();
 

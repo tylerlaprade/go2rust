@@ -85,27 +85,33 @@ pub fn reverse_string(s: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<String>
 }
 
 fn main() {
-    println!("{} {}", "Factorial of 5:".to_string(), (*factorial(Arc::new(Mutex::new(Some(5)))).lock().unwrap().as_ref().unwrap()));
+        // Factorial
+println!("{} {}", "Factorial of 5:".to_string(), (*factorial(Arc::new(Mutex::new(Some(5)))).lock().unwrap().as_ref().unwrap()));
     println!("{} {}", "Factorial of 0:".to_string(), (*factorial(Arc::new(Mutex::new(Some(0)))).lock().unwrap().as_ref().unwrap()));
 
-    println!("{}", "Fibonacci sequence:".to_string());
+        // Fibonacci
+println!("{}", "Fibonacci sequence:".to_string());
     let mut i = Arc::new(Mutex::new(Some(0)));
     while (*i.lock().unwrap().as_mut().unwrap()) < 10 {
         print!("fib({}) = {}\n", (*i.lock().unwrap().as_mut().unwrap()), (*fibonacci(i.clone()).lock().unwrap().as_ref().unwrap()));
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
 
-    println!("{} {}", "GCD of 48 and 18:".to_string(), (*gcd(Arc::new(Mutex::new(Some(48))), Arc::new(Mutex::new(Some(18)))).lock().unwrap().as_ref().unwrap()));
+        // GCD
+println!("{} {}", "GCD of 48 and 18:".to_string(), (*gcd(Arc::new(Mutex::new(Some(48))), Arc::new(Mutex::new(Some(18)))).lock().unwrap().as_ref().unwrap()));
     println!("{} {}", "GCD of 17 and 13:".to_string(), (*gcd(Arc::new(Mutex::new(Some(17))), Arc::new(Mutex::new(Some(13)))).lock().unwrap().as_ref().unwrap()));
 
-    println!("{} {}", "2^8 =".to_string(), (*power(Arc::new(Mutex::new(Some(2))), Arc::new(Mutex::new(Some(8)))).lock().unwrap().as_ref().unwrap()));
+        // Power
+println!("{} {}", "2^8 =".to_string(), (*power(Arc::new(Mutex::new(Some(2))), Arc::new(Mutex::new(Some(8)))).lock().unwrap().as_ref().unwrap()));
     println!("{} {}", "3^4 =".to_string(), (*power(Arc::new(Mutex::new(Some(3))), Arc::new(Mutex::new(Some(4)))).lock().unwrap().as_ref().unwrap()));
     println!("{} {}", "5^0 =".to_string(), (*power(Arc::new(Mutex::new(Some(5))), Arc::new(Mutex::new(Some(0)))).lock().unwrap().as_ref().unwrap()));
 
-    let mut numbers = Arc::new(Mutex::new(Some(vec![1, 2, 3, 4, 5])));
+        // Sum array
+let mut numbers = Arc::new(Mutex::new(Some(vec![1, 2, 3, 4, 5])));
     println!("{} {} {} {}", "Sum of".to_string(), format_slice(&numbers), "=".to_string(), (*sum_array(numbers.clone()).lock().unwrap().as_ref().unwrap()));
 
-    let mut original = Arc::new(Mutex::new(Some("hello".to_string())));
+        // Reverse string
+let mut original = Arc::new(Mutex::new(Some("hello".to_string())));
     let mut reversed = reverse_string(original.clone());
     print!("'{}' reversed is '{}'\n", (*original.lock().unwrap().as_mut().unwrap()), (*reversed.lock().unwrap().as_mut().unwrap()));
 }

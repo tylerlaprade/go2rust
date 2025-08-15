@@ -1,17 +1,21 @@
 use std::sync::{Arc, Mutex};
 
 fn main() {
-    let mut numbers = Arc::new(Mutex::new(Some(vec![10, 20, 30])));
+        // Simple slice range
+let mut numbers = Arc::new(Mutex::new(Some(vec![10, 20, 30])));
 
-    for (i, num) in (*numbers.lock().unwrap().as_mut().unwrap()).iter().enumerate() {
+        // Index and value
+for (i, num) in (*numbers.lock().unwrap().as_mut().unwrap()).iter().enumerate() {
         println!("{} {} {} {}", "Index:".to_string(), i, "Value:".to_string(), num);
     }
 
-    for num in &(*numbers.lock().unwrap().as_mut().unwrap()) {
+        // Value only
+for num in &(*numbers.lock().unwrap().as_mut().unwrap()) {
         println!("{} {}", "Value:".to_string(), num);
     }
 
-    for i in 0..(*numbers.lock().unwrap().as_mut().unwrap()).len() {
+        // Index only
+for i in 0..(*numbers.lock().unwrap().as_mut().unwrap()).len() {
         println!("{} {}", "Index:".to_string(), i);
     }
 }

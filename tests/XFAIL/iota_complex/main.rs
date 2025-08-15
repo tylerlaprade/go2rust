@@ -29,12 +29,16 @@ const FOURTH: i32 = 1;
 
 
 fn main() {
-    let mut perms = Arc::new(Mutex::new(Some(FLAG_READ | FLAG_WRITE)));
+        // Test bit flags
+let mut perms = Arc::new(Mutex::new(Some(FLAG_READ | FLAG_WRITE)));
     print!("Permissions: {} (Read={}, Write={})\n", (*perms.lock().unwrap().as_mut().unwrap()), FLAG_READ, FLAG_WRITE);
 
-    print!("KB={}, MB={}, GB={}\n", K_B, M_B, G_B);
+        // Test size constants
+print!("KB={}, MB={}, GB={}\n", K_B, M_B, G_B);
 
-    print!("A={}, B={}, C={}, D={}, E={}, F={}\n", A, B, C, D, E, F);
+        // Test multiple iotas
+print!("A={}, B={}, C={}, D={}, E={}, F={}\n", A, B, C, D, E, F);
 
-    print!("First={}, Second={}, Third={}, Fourth={}\n", FIRST, SECOND, THIRD, FOURTH);
+        // Test reset
+print!("First={}, Second={}, Third={}, Fourth={}\n", FIRST, SECOND, THIRD, FOURTH);
 }

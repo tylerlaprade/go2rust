@@ -45,7 +45,7 @@ func checkHasDefer(stmts []ast.Stmt) bool {
 	return false
 }
 
-func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.FileSet) {
+func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.FileSet, comments []*ast.CommentGroup) {
 	// Check if this is a method (has receiver)
 	if fn.Recv != nil && len(fn.Recv.List) > 0 {
 		// Methods will be collected and generated in impl blocks
@@ -171,6 +171,7 @@ func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.Fi
 
 	// Function body
 	var prevStmt ast.Stmt
+	var lastPos token.Pos = fn.Body.Lbrace
 	for _, stmt := range fn.Body.List {
 		// Add blank line if there was one in the source
 		if prevStmt != nil && hasBlankLineBetween(fileSet, prevStmt.End(), stmt.Pos()) {
@@ -178,7 +179,7 @@ func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.Fi
 		}
 
 		out.WriteString("    ")
-		TranspileStatement(out, stmt, fn.Type, fileSet)
+		TranspileStatement(out, stmt, fn.Type, fileSet, comments, &lastPos, "    ")
 		out.WriteString("\n")
 
 		prevStmt = stmt
@@ -641,11 +642,11 @@ func TranspileConstExpr(out *strings.Builder, expr ast.Expr, iotaValue int) {
 }
 
 // TranspileMethodImpl transpiles a method inside an impl block
-func TranspileMethodImpl(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.FileSet) {
-	transpileMethodImplWithVisibility(out, fn, true, fileSet)
+func TranspileMethodImpl(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.FileSet, comments []*ast.CommentGroup) {
+	transpileMethodImplWithVisibility(out, fn, true, fileSet, comments)
 }
 
-func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, addPub bool, fileSet *token.FileSet) {
+func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, addPub bool, fileSet *token.FileSet, comments []*ast.CommentGroup) {
 	// Store the receiver name and type for self translation
 	if fn.Recv != nil && len(fn.Recv.List) > 0 {
 		recv := fn.Recv.List[0]
@@ -742,9 +743,10 @@ func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, a
 	out.WriteString(" {\n")
 
 	// Method body - need to handle self references
+	var lastPos token.Pos = fn.Body.Lbrace
 	for _, stmt := range fn.Body.List {
 		out.WriteString("        ")
-		TranspileStatement(out, stmt, fn.Type, fileSet)
+		TranspileStatement(out, stmt, fn.Type, fileSet, comments, &lastPos, "        ")
 		out.WriteString("\n")
 	}
 

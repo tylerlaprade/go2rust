@@ -7,7 +7,7 @@ pub fn safe_divide(a: Arc<Mutex<Option<f64>>>, b: Arc<Mutex<Option<f64>>>) -> (A
     let mut result: Arc<Mutex<Option<f64>>> = Arc::new(Mutex::new(Some(0.0)));
     let mut err: Arc<Mutex<Option<Box<dyn Error + Send + Sync>>>> = Arc::new(Mutex::new(None));
 
-    let result_defer_captured = result.clone(); let err_defer_captured = err.clone(); __defer_stack.push(Box::new(move || {
+    let err_defer_captured = err.clone(); let result_defer_captured = result.clone(); __defer_stack.push(Box::new(move || {
         (Arc::new(Mutex::new(Some(Box::new(move || {
         let mut r = recover();
     if (*r.lock().unwrap()).is_some() {
@@ -99,7 +99,8 @@ pub fn nested_panic() {
 pub fn demonstrate_panic_types() {
     let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-    __defer_stack.push(Box::new(move || {
+        // String panic
+__defer_stack.push(Box::new(move || {
         (Arc::new(Mutex::new(Some(Box::new(move || {
         let mut r = recover();
     if (*r.lock().unwrap()).is_some() {
@@ -120,7 +121,8 @@ pub fn demonstrate_panic_types() {
     }) as Box<dyn Fn() -> () + Send + Sync>))).lock().unwrap().as_ref().unwrap())();
     }));
 
-    __defer_stack.push(Box::new(move || {
+        // Integer panic
+__defer_stack.push(Box::new(move || {
         (Arc::new(Mutex::new(Some(Box::new(move || {
         panic(Arc::new(Mutex::new(Some(Arc::new(Mutex::new(Some(Box::new(format!("error panic")) as Box<dyn Error + Send + Sync>)))))));
     }) as Box<dyn Fn() -> () + Send + Sync>))).lock().unwrap().as_ref().unwrap())();

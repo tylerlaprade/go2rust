@@ -44,24 +44,29 @@ pub fn apply_operation(nums: Arc<Mutex<Option<Vec<i32>>>>, op: Arc<Mutex<Option<
 }
 
 fn main() {
-    let mut counter = make_counter();
+        // Basic closure
+let mut counter = make_counter();
     println!("{} {}", "Counter 1:".to_string(), (*(counter.lock().unwrap().as_ref().unwrap())().lock().unwrap().as_ref().unwrap()));
     println!("{} {}", "Counter 2:".to_string(), (*(counter.lock().unwrap().as_ref().unwrap())().lock().unwrap().as_ref().unwrap()));
     println!("{} {}", "Counter 3:".to_string(), (*(counter.lock().unwrap().as_ref().unwrap())().lock().unwrap().as_ref().unwrap()));
 
-    let mut counter2 = make_counter();
+        // Another counter instance
+let mut counter2 = make_counter();
     println!("{} {}", "Counter2 1:".to_string(), (*(counter2.lock().unwrap().as_ref().unwrap())().lock().unwrap().as_ref().unwrap()));
     println!("{} {}", "Counter 4:".to_string(), (*(counter.lock().unwrap().as_ref().unwrap())().lock().unwrap().as_ref().unwrap()));
 
-    let mut add5 = make_adder(Arc::new(Mutex::new(Some(5))));
+        // Closure with parameters
+let mut add5 = make_adder(Arc::new(Mutex::new(Some(5))));
     let mut add10 = make_adder(Arc::new(Mutex::new(Some(10))));
 
     println!("{} {}", "5 + 3 =".to_string(), (*(add5.lock().unwrap().as_ref().unwrap())(Arc::new(Mutex::new(Some(3)))).lock().unwrap().as_ref().unwrap()));
     println!("{} {}", "10 + 7 =".to_string(), (*(add10.lock().unwrap().as_ref().unwrap())(Arc::new(Mutex::new(Some(7)))).lock().unwrap().as_ref().unwrap()));
 
-    let mut numbers = Arc::new(Mutex::new(Some(vec![1, 2, 3, 4, 5])));
+        // Higher-order functions
+let mut numbers = Arc::new(Mutex::new(Some(vec![1, 2, 3, 4, 5])));
 
-    let mut squared = apply_operation(numbers.clone(), Arc::new(Mutex::new(Some(Arc::new(Mutex::new(Some(Box::new(move |x: Arc<Mutex<Option<i32>>>| -> Arc<Mutex<Option<i32>>> {
+        // Square function
+let mut squared = apply_operation(numbers.clone(), Arc::new(Mutex::new(Some(Arc::new(Mutex::new(Some(Box::new(move |x: Arc<Mutex<Option<i32>>>| -> Arc<Mutex<Option<i32>>> {
         return {
             let __tmp_x = (*x.lock().unwrap().as_mut().unwrap());
             let __tmp_y = (*x.lock().unwrap().as_mut().unwrap());
@@ -70,7 +75,8 @@ fn main() {
     }) as Box<dyn Fn(Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<i32>>> + Send + Sync>)))))));
     println!("{} {}", "Squared:".to_string(), format_slice(&squared));
 
-    let mut doubled = apply_operation(numbers.clone(), Arc::new(Mutex::new(Some(Arc::new(Mutex::new(Some(Box::new(move |x: Arc<Mutex<Option<i32>>>| -> Arc<Mutex<Option<i32>>> {
+        // Double function
+let mut doubled = apply_operation(numbers.clone(), Arc::new(Mutex::new(Some(Arc::new(Mutex::new(Some(Box::new(move |x: Arc<Mutex<Option<i32>>>| -> Arc<Mutex<Option<i32>>> {
         return {
             let __tmp_x = (*x.lock().unwrap().as_mut().unwrap());
             let __tmp_y = 2;
@@ -79,7 +85,8 @@ fn main() {
     }) as Box<dyn Fn(Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<i32>>> + Send + Sync>)))))));
     println!("{} {}", "Doubled:".to_string(), format_slice(&doubled));
 
-    let mut multiplier = Arc::new(Mutex::new(Some(3)));
+        // Closure capturing local variable
+let mut multiplier = Arc::new(Mutex::new(Some(3)));
     let mut tripled = apply_operation(numbers.clone(), Arc::new(Mutex::new(Some(Arc::new(Mutex::new(Some(Box::new(move |x: Arc<Mutex<Option<i32>>>| -> Arc<Mutex<Option<i32>>> {
         return {
             let __tmp_x = (*x.lock().unwrap().as_mut().unwrap());
@@ -89,7 +96,8 @@ fn main() {
     }) as Box<dyn Fn(Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<i32>>> + Send + Sync>)))))));
     println!("{} {}", "Tripled:".to_string(), format_slice(&tripled));
 
-    let mut result = (Arc::new(Mutex::new(Some(Box::new(move |a: Arc<Mutex<Option<i32>>>, b: Arc<Mutex<Option<i32>>>| -> Arc<Mutex<Option<i32>>> {
+        // Immediately invoked function
+let mut result = (Arc::new(Mutex::new(Some(Box::new(move |a: Arc<Mutex<Option<i32>>>, b: Arc<Mutex<Option<i32>>>| -> Arc<Mutex<Option<i32>>> {
         return {
             let __tmp_x = (*a.lock().unwrap().as_mut().unwrap());
             let __tmp_y = (*b.lock().unwrap().as_mut().unwrap());

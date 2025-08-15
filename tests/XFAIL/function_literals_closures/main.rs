@@ -1,7 +1,8 @@
 use std::sync::{Arc, Mutex};
 
 fn main() {
-    let mut add = Arc::new(Mutex::new(Some(Arc::new(Mutex::new(Some(Box::new(move |a: Arc<Mutex<Option<i32>>>, b: Arc<Mutex<Option<i32>>>| -> Arc<Mutex<Option<i32>>> {
+        // Basic function literal
+let mut add = Arc::new(Mutex::new(Some(Arc::new(Mutex::new(Some(Box::new(move |a: Arc<Mutex<Option<i32>>>, b: Arc<Mutex<Option<i32>>>| -> Arc<Mutex<Option<i32>>> {
         return {
             let __tmp_x = (*a.lock().unwrap().as_mut().unwrap());
             let __tmp_y = (*b.lock().unwrap().as_mut().unwrap());
@@ -10,7 +11,8 @@ fn main() {
     }) as Box<dyn Fn(Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<i32>>> + Send + Sync>))))));
     println!("{} {}", "add(3, 4) =".to_string(), (*(add.lock().unwrap().as_ref().unwrap())(Arc::new(Mutex::new(Some(3))), Arc::new(Mutex::new(Some(4)))).lock().unwrap().as_ref().unwrap()));
 
-    let mut x = Arc::new(Mutex::new(Some(10)));
+        // Closure capturing variables
+let mut x = Arc::new(Mutex::new(Some(10)));
     let mut increment = Arc::new(Mutex::new(Some(Arc::new(Mutex::new(Some(Box::new(move || -> Arc<Mutex<Option<i32>>> {
         { let mut guard = x.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
         return x.clone();
@@ -19,7 +21,8 @@ fn main() {
     println!("{} {}", "increment() =".to_string(), (*(increment.lock().unwrap().as_ref().unwrap())().lock().unwrap().as_ref().unwrap()));
     println!("{} {}", "x =".to_string(), (*x.lock().unwrap().as_mut().unwrap()));
 
-    let mut makeMultiplier = Arc::new(Mutex::new(Some(Arc::new(Mutex::new(Some(Box::new(move |factor: Arc<Mutex<Option<i32>>>| -> Arc<Mutex<Option<Box<dyn Fn(Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<i32>>> + Send + Sync>>>> {
+        // Function returning closure
+let mut makeMultiplier = Arc::new(Mutex::new(Some(Arc::new(Mutex::new(Some(Box::new(move |factor: Arc<Mutex<Option<i32>>>| -> Arc<Mutex<Option<Box<dyn Fn(Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<i32>>> + Send + Sync>>>> {
         return Arc::new(Mutex::new(Some(Box::new(move |x: Arc<Mutex<Option<i32>>>| -> Arc<Mutex<Option<i32>>> {
         return {
             let __tmp_x = (*x.lock().unwrap().as_mut().unwrap());
@@ -33,7 +36,8 @@ fn main() {
     println!("{} {}", "double(5) =".to_string(), (*(double.lock().unwrap().as_ref().unwrap())(Arc::new(Mutex::new(Some(5)))).lock().unwrap().as_ref().unwrap()));
     println!("{} {}", "triple(5) =".to_string(), (*(triple.lock().unwrap().as_ref().unwrap())(Arc::new(Mutex::new(Some(5)))).lock().unwrap().as_ref().unwrap()));
 
-    let mut result = (Arc::new(Mutex::new(Some(Box::new(move |a: Arc<Mutex<Option<i32>>>, b: Arc<Mutex<Option<i32>>>| -> Arc<Mutex<Option<i32>>> {
+        // Immediately invoked function
+let mut result = (Arc::new(Mutex::new(Some(Box::new(move |a: Arc<Mutex<Option<i32>>>, b: Arc<Mutex<Option<i32>>>| -> Arc<Mutex<Option<i32>>> {
         return {
             let __tmp_x = (*a.lock().unwrap().as_mut().unwrap());
             let __tmp_y = (*b.lock().unwrap().as_mut().unwrap());
@@ -42,7 +46,8 @@ fn main() {
     }) as Box<dyn Fn(Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<i32>>> + Send + Sync>))).lock().unwrap().as_ref().unwrap())(Arc::new(Mutex::new(Some(4))), Arc::new(Mutex::new(Some(5))));
     println!("{} {}", "IIFE result =".to_string(), (*result.lock().unwrap().as_mut().unwrap()));
 
-    let mut operations = Arc::new(Mutex::new(Some(vec![Arc::new(Mutex::new(Some(Box::new(move |a: Arc<Mutex<Option<i32>>>, b: Arc<Mutex<Option<i32>>>| -> Arc<Mutex<Option<i32>>> {
+        // Function literal in slice
+let mut operations = Arc::new(Mutex::new(Some(vec![Arc::new(Mutex::new(Some(Box::new(move |a: Arc<Mutex<Option<i32>>>, b: Arc<Mutex<Option<i32>>>| -> Arc<Mutex<Option<i32>>> {
         return {
             let __tmp_x = (*a.lock().unwrap().as_mut().unwrap());
             let __tmp_y = (*b.lock().unwrap().as_mut().unwrap());

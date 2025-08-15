@@ -23,7 +23,8 @@ pub fn make_multiplier(factor: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<Box<
 }
 
 pub fn init() {
-    { let new_val = Arc::new(Mutex::new(Some(Box::new(move |s: Arc<Mutex<Option<String>>>| -> Arc<Mutex<Option<String>>> {
+        // Assign function to variable in init
+{ let new_val = Arc::new(Mutex::new(Some(Box::new(move |s: Arc<Mutex<Option<String>>>| -> Arc<Mutex<Option<String>>> {
         return Arc::new(Mutex::new(Some(format!("Dynamic: {}", (*s.lock().unwrap().as_mut().unwrap())))));
     }) as Box<dyn Fn(Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<String>>> + Send + Sync>))); *DYNAMIC_FUNC.lock().unwrap() = Some(new_val); };
 }

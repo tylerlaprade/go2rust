@@ -268,6 +268,14 @@ run_xfail_test() {
     run_test "tests/builtin_functions"
 }
 
+@test "comment_complex" {
+    run_test "tests/comment_complex"
+}
+
+@test "comment_preservation" {
+    run_test "tests/comment_preservation"
+}
+
 @test "compound_assignments" {
     run_test "tests/compound_assignments"
 }

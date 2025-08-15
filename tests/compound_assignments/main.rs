@@ -1,7 +1,8 @@
 use std::sync::{Arc, Mutex};
 
 fn main() {
-    let mut x = Arc::new(Mutex::new(Some(10)));
+        // Integer compound assignments
+let mut x = Arc::new(Mutex::new(Some(10)));
     { let mut guard = x.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 5); };
     print!("x += 5: {}\n", (*x.lock().unwrap().as_mut().unwrap()));
 
@@ -17,7 +18,8 @@ fn main() {
     { let mut guard = x.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() % 5); };
     print!("x %= 5: {}\n", (*x.lock().unwrap().as_mut().unwrap()));
 
-    let mut y = Arc::new(Mutex::new(Some(0b1010)));
+        // Bitwise compound assignments
+let mut y = Arc::new(Mutex::new(Some(0b1010)));
     { let mut guard = y.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() & 0b1100); };
     print!("y &= 0b1100: {:b}\n", (*y.lock().unwrap().as_mut().unwrap()));
 
@@ -33,14 +35,16 @@ fn main() {
     { let mut guard = y.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() >> 1); };
     print!("y >>= 1: {:b}\n", (*y.lock().unwrap().as_mut().unwrap()));
 
-    let mut f = Arc::new(Mutex::new(Some(3.14)));
+        // Float compound assignments
+let mut f = Arc::new(Mutex::new(Some(3.14)));
     { let mut guard = f.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 2.86); };
     print!("f += 2.86: {:.2}\n", (*f.lock().unwrap().as_mut().unwrap()));
 
     { let mut guard = f.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() * 2.0); };
     print!("f *= 2.0: {:.2}\n", (*f.lock().unwrap().as_mut().unwrap()));
 
-    let mut s = Arc::new(Mutex::new(Some("Hello".to_string())));
+        // String compound assignment
+let mut s = Arc::new(Mutex::new(Some("Hello".to_string())));
     (*s.lock().unwrap().as_mut().unwrap()).push_str(&" World".to_string());
     print!("s += \" World\": {}\n", (*s.lock().unwrap().as_mut().unwrap()));
 }

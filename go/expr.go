@@ -685,7 +685,7 @@ func TranspileFuncLit(out *strings.Builder, funcLit *ast.FuncLit) {
 	if funcLit.Body != nil {
 		for _, stmt := range funcLit.Body.List {
 			out.WriteString("        ") // Indent for closure body
-			TranspileStatement(out, stmt, funcLit.Type, nil)
+			TranspileStatementSimple(out, stmt, funcLit.Type, nil)
 			out.WriteString("\n")
 		}
 	}

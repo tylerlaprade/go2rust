@@ -13,7 +13,8 @@ fn main() {
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
 
-    let mut nums = Arc::new(Mutex::new(Some([1, 2, 3, 4])));
+        // Array initialization
+let mut nums = Arc::new(Mutex::new(Some([1, 2, 3, 4])));
     println!("{}", "Initialized array:".to_string());
     for num in &(*nums.lock().unwrap().as_mut().unwrap()) {
         println!("{}", num);

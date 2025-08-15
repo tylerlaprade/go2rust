@@ -4,30 +4,37 @@ use data::*;
 use std::sync::{Arc, Mutex};
 
 fn main() {
-    let mut aliceID = Arc::new(Mutex::new(Some((*(*Users.lock().unwrap().as_ref().unwrap()).get(&"alice".to_string()).unwrap().lock().unwrap().as_ref().unwrap()))));
+        // Access map - transpiler needs to know Users is a map, not a slice
+let mut aliceID = Arc::new(Mutex::new(Some((*(*Users.lock().unwrap().as_ref().unwrap()).get(&"alice".to_string()).unwrap().lock().unwrap().as_ref().unwrap()))));
     print!("Alice's ID: {}\n", (*aliceID.lock().unwrap().as_mut().unwrap()));
 
-    let (mut id, mut ok) = match (*Users.lock().unwrap().as_ref().unwrap()).get(&"dave".to_string()) { Some(v) => (v.clone(), Arc::new(Mutex::new(Some(true)))), None => (Arc::new(Mutex::new(Some(0))), Arc::new(Mutex::new(Some(false)))) };
+        // Check map key existence - requires knowing it's a map
+let (mut id, mut ok) = match (*Users.lock().unwrap().as_ref().unwrap()).get(&"dave".to_string()) { Some(v) => (v.clone(), Arc::new(Mutex::new(Some(true)))), None => (Arc::new(Mutex::new(Some(0))), Arc::new(Mutex::new(Some(false)))) };
     if (*ok.lock().unwrap().as_mut().unwrap()) {
         print!("Dave's ID: {}\n", (*id.lock().unwrap().as_mut().unwrap()));
     } else {
         println!("{}", "Dave not found".to_string());
     }
 
-    print!("First number: {}\n", (*NUMBERS.lock().unwrap().as_ref().unwrap())[0 as usize].clone());
+        // Access slice - transpiler needs to know Numbers is a slice
+print!("First number: {}\n", (*NUMBERS.lock().unwrap().as_ref().unwrap())[0 as usize].clone());
     print!("Last number: {}\n", (*NUMBERS.lock().unwrap().as_ref().unwrap())[(*NUMBERS.lock().unwrap().as_ref().unwrap()).len() - 1 as usize].clone());
 
-    let mut admins = Arc::new(Mutex::new(Some((*(*Groups.lock().unwrap().as_ref().unwrap()).get(&"admins".to_string()).unwrap().lock().unwrap().as_ref().unwrap()))));
+        // Access map of slices - complex type resolution
+let mut admins = Arc::new(Mutex::new(Some((*(*Groups.lock().unwrap().as_ref().unwrap()).get(&"admins".to_string()).unwrap().lock().unwrap().as_ref().unwrap()))));
     print!("Admin count: {}\n", (*admins.lock().unwrap().as_ref().unwrap()).len());
     print!("First admin: {}\n", (*admins.lock().unwrap().as_ref().unwrap())[0 as usize].clone());
 
-    let mut count = Arc::new(Mutex::new(Some(0)));
+        // Iterate over map - requires knowing the type
+    // Note: map iteration order is non-deterministic, so we'll just count
+let mut count = Arc::new(Mutex::new(Some(0)));
     for (_, _) in (*Users.lock().unwrap().as_ref().unwrap()).clone() {
         { let mut guard = count.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
     print!("User count: {}\n", (*count.lock().unwrap().as_mut().unwrap()));
 
-    let mut firstRecord = Arc::new(Mutex::new(Some((*RECORDS.lock().unwrap().as_ref().unwrap())[0 as usize].clone())));
+        // Access slice of maps - another complex case
+let mut firstRecord = Arc::new(Mutex::new(Some((*RECORDS.lock().unwrap().as_ref().unwrap())[0 as usize].clone())));
     let (mut name, mut ok) = ({
         let val = (*(*firstRecord.lock().unwrap().as_ref().unwrap()).get(&"name".to_string()).unwrap().lock().unwrap().as_ref().unwrap()).clone();
         let guard = val.lock().unwrap();
@@ -45,6 +52,7 @@ fn main() {
         print!("First record name: {}\n", (*name.lock().unwrap().as_mut().unwrap()));
     }
 
-    (*Users.lock().unwrap().as_mut().unwrap()).insert("dave".to_string(), Arc::new(Mutex::new(Some(4))));
+        // Modify map - requires proper type handling
+(*Users.lock().unwrap().as_mut().unwrap()).insert("dave".to_string(), Arc::new(Mutex::new(Some(4))));
     print!("Dave added with ID: {}\n", (*(*Users.lock().unwrap().as_ref().unwrap()).get(&"dave".to_string()).unwrap().lock().unwrap().as_ref().unwrap()));
 }

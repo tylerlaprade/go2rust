@@ -45,7 +45,8 @@ impl Person {
 }
 
 fn main() {
-    let mut counter = Arc::new(Mutex::new(Some(Counter { value: Arc::new(Mutex::new(Some(0))) })));
+        // Counter methods
+let mut counter = Arc::new(Mutex::new(Some(Counter { value: Arc::new(Mutex::new(Some(0))) })));
     println!("{} {}", "Initial value:".to_string(), (*(*counter.lock().unwrap().as_mut().unwrap()).get_value().lock().unwrap().as_ref().unwrap()));
 
     (*counter.lock().unwrap().as_mut().unwrap()).increment();
@@ -57,7 +58,8 @@ fn main() {
     let mut doubled = (*counter.lock().unwrap().as_mut().unwrap()).double();
     println!("{} {}", "After doubling:".to_string(), (*doubled.lock().unwrap().as_mut().unwrap()));
 
-    let mut person = Arc::new(Mutex::new(Some(Person { name: Arc::new(Mutex::new(Some("Alice".to_string()))), age: Arc::new(Mutex::new(Some(25))) })));
+        // Person methods
+let mut person = Arc::new(Mutex::new(Some(Person { name: Arc::new(Mutex::new(Some("Alice".to_string()))), age: Arc::new(Mutex::new(Some(25))) })));
     (*person.lock().unwrap().as_mut().unwrap()).greet();
     (*person.lock().unwrap().as_mut().unwrap()).have_birthday();
     (*person.lock().unwrap().as_mut().unwrap()).greet();

@@ -68,7 +68,8 @@ fn main() {
     println!("{}", "Circle:".to_string());
     print_shape_info(circle.clone());
 
-    let mut shapes = Arc::new(Mutex::new(Some(vec![(*rect.lock().unwrap().as_mut().unwrap()), (*circle.lock().unwrap().as_mut().unwrap())])));
+        // Interface slice
+let mut shapes = Arc::new(Mutex::new(Some(vec![(*rect.lock().unwrap().as_mut().unwrap()), (*circle.lock().unwrap().as_mut().unwrap())])));
     println!("{}", "All shapes:".to_string());
     for (i, shape) in (*shapes.lock().unwrap().as_mut().unwrap()).iter().enumerate() {
         print!("Shape {}: ", i + 1);
