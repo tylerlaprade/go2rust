@@ -13,6 +13,7 @@ fn main() {
         }
         return
     }
+    }
     __defer_stack.push(Box::new(move || {
         (*resp.body.lock().unwrap().as_mut().unwrap()).close();
     }));

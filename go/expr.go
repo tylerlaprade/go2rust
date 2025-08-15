@@ -1272,8 +1272,11 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 					TranspileExpression(out, arg)
 					out.WriteString(")))")
 				}
+			} else if _, isFuncLit := arg.(*ast.FuncLit); isFuncLit {
+				// Function literal - already wraps itself
+				TranspileExpression(out, arg)
 			} else {
-				// Not a simple identifier, wrap it
+				// Not a simple identifier or function literal, wrap it
 				out.WriteString("Arc::new(Mutex::new(Some(")
 				TranspileExpression(out, arg)
 				out.WriteString(")))")

@@ -67,7 +67,7 @@ pub fn init() {
 
     __defer_stack.push(Box::new(move || {
         (Arc::new(Mutex::new(Some(Box::new(move || {
-        let mut r = recover();
+        let mut r = Arc::new(Mutex::new(None::<String>));
     if (*r.lock().unwrap()).is_some() {
         print!("Recovered from panic in init: {}\n", (*r.lock().unwrap().as_mut().unwrap()));
     }
@@ -76,7 +76,7 @@ pub fn init() {
 
         // This would normally panic, but we'll handle it
     if false {
-        panic(Arc::new(Mutex::new(Some("Init function panic!".to_string()))));
+        panic!("Init function panic!");
     }
 
     println!("{}", "Sixth init function completed successfully".to_string());

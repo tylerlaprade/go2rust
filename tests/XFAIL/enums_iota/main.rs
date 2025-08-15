@@ -43,7 +43,7 @@ pub fn transition(s: Arc<Mutex<Option<ServerState>>>) -> Arc<Mutex<Option<Server
             return StateError.clone();
         }
         _ => {
-            panic(Arc::new(Mutex::new(Some(Arc::new(Mutex::new(Some(Box::new(format!("unknown state: {}", (*s.lock().unwrap().as_mut().unwrap()))) as Box<dyn Error + Send + Sync>)))))));
+            panic!("{}", Arc::new(Mutex::new(Some(Box::new(format!("unknown state: {}", (*s.lock().unwrap().as_mut().unwrap()))) as Box<dyn Error + Send + Sync>))));
         }
     }
 }

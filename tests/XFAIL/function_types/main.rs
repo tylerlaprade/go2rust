@@ -173,9 +173,9 @@ fn main() {
     let mut evens = filter(numbers.clone(), isEven.clone());
     print!("Even numbers: {}\n", format_slice(&evens));
 
-    let mut odds = filter(numbers.clone(), Arc::new(Mutex::new(Some(Arc::new(Mutex::new(Some(Box::new(move |x: Arc<Mutex<Option<i32>>>| -> Arc<Mutex<Option<bool>>> {
+    let mut odds = filter(numbers.clone(), Arc::new(Mutex::new(Some(Box::new(move |x: Arc<Mutex<Option<i32>>>| -> Arc<Mutex<Option<bool>>> {
         return Arc::new(Mutex::new(Some((*x.lock().unwrap().as_mut().unwrap()) % 2 != 0)));
-    }) as Box<dyn Fn(Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<bool>>> + Send + Sync>)))))));
+    }) as Box<dyn Fn(Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<bool>>> + Send + Sync>))));
     print!("Odd numbers: {}\n", format_slice(&odds));
 
         // Transform with function types
@@ -183,13 +183,13 @@ fn main() {
     let mut squared = transform(Arc::new(Mutex::new(Some(Arc::new(Mutex::new(Some(vec![1, 2, 3, 4, 5])))))), square.clone());
     print!("Squared: {}\n", format_slice(&squared));
 
-    let mut doubled = transform(Arc::new(Mutex::new(Some(Arc::new(Mutex::new(Some(vec![1, 2, 3, 4, 5])))))), Arc::new(Mutex::new(Some(Arc::new(Mutex::new(Some(Box::new(move |x: Arc<Mutex<Option<i32>>>| -> Arc<Mutex<Option<i32>>> {
+    let mut doubled = transform(Arc::new(Mutex::new(Some(Arc::new(Mutex::new(Some(vec![1, 2, 3, 4, 5])))))), Arc::new(Mutex::new(Some(Box::new(move |x: Arc<Mutex<Option<i32>>>| -> Arc<Mutex<Option<i32>>> {
         return {
             let __tmp_x = (*x.lock().unwrap().as_mut().unwrap());
             let __tmp_y = 2;
             Arc::new(Mutex::new(Some(__tmp_x * __tmp_y)))
         };
-    }) as Box<dyn Fn(Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<i32>>> + Send + Sync>)))))));
+    }) as Box<dyn Fn(Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<i32>>> + Send + Sync>))));
     print!("Doubled: {}\n", format_slice(&doubled));
 
         // String processing
@@ -198,7 +198,7 @@ fn main() {
     let mut upper = process_string(text.clone(), toUpper.clone());
     print!("'{}' -> '{}'\n", (*text.lock().unwrap().as_mut().unwrap()), (*upper.lock().unwrap().as_mut().unwrap()));
 
-    let mut reversed = process_string(Arc::new(Mutex::new(Some("hello".to_string()))), Arc::new(Mutex::new(Some(Arc::new(Mutex::new(Some(Box::new(move |s: Arc<Mutex<Option<String>>>| -> Arc<Mutex<Option<String>>> {
+    let mut reversed = process_string(Arc::new(Mutex::new(Some("hello".to_string()))), Arc::new(Mutex::new(Some(Box::new(move |s: Arc<Mutex<Option<String>>>| -> Arc<Mutex<Option<String>>> {
         let mut runes = Arc::new(Mutex::new(Some((*s.lock().unwrap().as_ref().unwrap()).chars().map(|c| c as i32).collect::<Vec<_>>())));
         let (mut i, mut j) = (Arc::new(Mutex::new(Some(0))), Arc::new(Mutex::new(Some((*runes.lock().unwrap().as_ref().unwrap()).len() - 1))));
     while (*i.lock().unwrap().as_mut().unwrap()) < (*j.lock().unwrap().as_mut().unwrap()) {
@@ -206,7 +206,7 @@ fn main() {
         { *(*i.lock().unwrap().as_mut().unwrap()).lock().unwrap() = Some((*i.lock().unwrap().as_mut().unwrap()) + 1); *(*j.lock().unwrap().as_mut().unwrap()).lock().unwrap() = Some((*j.lock().unwrap().as_mut().unwrap()) - 1) };
     }
         return Arc::new(Mutex::new(Some(Arc::new(Mutex::new(Some((*runes.lock().unwrap().as_ref().unwrap()).iter().map(|&c| char::from_u32(c as u32).unwrap()).collect::<String>()))))));
-    }) as Box<dyn Fn(Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<String>>> + Send + Sync>)))))));
+    }) as Box<dyn Fn(Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<String>>> + Send + Sync>))));
     print!("Reversed: {}\n", (*reversed.lock().unwrap().as_mut().unwrap()));
 
         // Functions that return functions

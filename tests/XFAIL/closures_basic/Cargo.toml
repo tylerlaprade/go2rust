@@ -1,8 +1,8 @@
 [package]
-name = "closures_basic"
+name = "transpiled"
 version = "0.1.0"
 edition = "2021"
 
 [[bin]]
-name = "closures_basic"
+name = "transpiled"
 path = "main.rs"

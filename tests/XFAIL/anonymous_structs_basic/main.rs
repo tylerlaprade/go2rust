@@ -37,6 +37,13 @@ struct AnonymousStruct5 {
 }
 
 
+#[derive(Debug)]
+struct AnonymousStruct6 {
+    debug: Arc<Mutex<Option<bool>>>,
+    verbose: Arc<Mutex<Option<bool>>>,
+}
+
+
 fn main() {
         // Anonymous struct as variable
     let mut point: Arc<Mutex<Option<AnonymousStruct7>>>;

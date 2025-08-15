@@ -105,7 +105,7 @@ pub fn assert_without_check(value: Arc<Mutex<Option<Box<dyn Any>>>>) {
         // This will panic if assertion fails
     __defer_stack.push(Box::new(move || {
         (Arc::new(Mutex::new(Some(Box::new(move || {
-        let mut r = recover();
+        let mut r = Arc::new(Mutex::new(None::<String>));
     if (*r.lock().unwrap()).is_some() {
         print!("Panic recovered: {}\n", (*r.lock().unwrap().as_mut().unwrap()));
     }
