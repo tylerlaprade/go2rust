@@ -3,5 +3,5 @@
 version = 4
 
 [[package]]
-name = "transpiled"
+name = "url_parsing"
 version = "0.1.0"

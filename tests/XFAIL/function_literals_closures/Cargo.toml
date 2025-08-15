@@ -1,8 +1,8 @@
 [package]
-name = "transpiled"
+name = "function_literals_closures"
 version = "0.1.0"
 edition = "2021"
 
 [[bin]]
-name = "transpiled"
+name = "function_literals_closures"
 path = "main.rs"

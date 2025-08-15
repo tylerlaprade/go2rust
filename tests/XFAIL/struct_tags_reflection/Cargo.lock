@@ -3,5 +3,5 @@
 version = 4
 
 [[package]]
-name = "transpiled"
+name = "struct_tags_reflection"
 version = "0.1.0"

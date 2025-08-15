@@ -1,8 +1,8 @@
 [package]
-name = "transpiled"
+name = "atomic_operations"
 version = "0.1.0"
 edition = "2021"
 
 [[bin]]
-name = "transpiled"
+name = "atomic_operations"
 path = "main.rs"

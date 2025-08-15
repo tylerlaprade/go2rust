@@ -1,8 +1,8 @@
 [package]
-name = "transpiled"
+name = "unsafe_pointer_ops"
 version = "0.1.0"
 edition = "2021"
 
 [[bin]]
-name = "transpiled"
+name = "unsafe_pointer_ops"
 path = "main.rs"

@@ -58,6 +58,8 @@ func init() {
 		"complex": transpileComplex,
 		"real":    transpileReal,
 		"imag":    transpileImag,
+		"panic":   transpilePanic,
+		"recover": transpileRecover,
 	}
 }
 
@@ -626,4 +628,32 @@ where
     }
 }
 `)
+}
+
+// transpilePanic handles the panic() builtin function
+func transpilePanic(out *strings.Builder, call *ast.CallExpr) {
+	out.WriteString("panic!(")
+	if len(call.Args) > 0 {
+		// Check if the argument is a string literal or expression
+		if lit, ok := call.Args[0].(*ast.BasicLit); ok && lit.Kind == token.STRING {
+			// String literal - use it directly
+			out.WriteString(lit.Value)
+		} else {
+			// Expression - format it
+			out.WriteString("\"{}\", ")
+			TranspileExpression(out, call.Args[0])
+		}
+	} else {
+		out.WriteString("\"explicit panic\"")
+	}
+	out.WriteString(")")
+}
+
+// transpileRecover handles the recover() builtin function
+func transpileRecover(out *strings.Builder, call *ast.CallExpr) {
+	// In Rust, we can use std::panic::catch_unwind for similar functionality
+	// For now, we'll generate a placeholder that returns None
+	// A proper implementation would need to track defer context and use catch_unwind
+	// This is a simplified version that always returns None
+	out.WriteString("Arc::new(Mutex::new(None::<String>))")
 }

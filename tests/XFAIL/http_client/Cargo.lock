@@ -3,5 +3,5 @@
 version = 4
 
 [[package]]
-name = "transpiled"
+name = "http_client"
 version = "0.1.0"

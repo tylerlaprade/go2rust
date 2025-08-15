@@ -1,0 +1,8 @@
+[package]
+name = "blank_identifier_simple"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "blank_identifier_simple"
+path = "main.rs"

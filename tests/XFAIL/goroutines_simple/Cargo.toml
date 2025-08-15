@@ -1,8 +1,8 @@
 [package]
-name = "transpiled"
+name = "goroutines_simple"
 version = "0.1.0"
 edition = "2021"
 
 [[bin]]
-name = "transpiled"
+name = "goroutines_simple"
 path = "main.rs"

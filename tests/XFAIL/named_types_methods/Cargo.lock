@@ -3,5 +3,5 @@
 version = 4
 
 [[package]]
-name = "transpiled"
+name = "named_types_methods"
 version = "0.1.0"

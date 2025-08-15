@@ -151,20 +151,20 @@ impl Top {
         embedded_ref.get_data()
     }
 
-    pub fn set_i_d(&mut self, id: Arc<Mutex<Option<i32>>>) {
-        // Forward to embedded type's method
-        let embedded = self.middle.clone();
-        let mut guard = embedded.lock().unwrap();
-        let embedded_ref = guard.as_mut().unwrap();
-        embedded_ref.set_i_d(id)
-    }
-
     pub fn get_i_d(&self) -> Arc<Mutex<Option<i32>>> {
         // Forward to embedded type's method
         let embedded = self.middle.clone();
         let mut guard = embedded.lock().unwrap();
         let embedded_ref = guard.as_mut().unwrap();
         embedded_ref.get_i_d()
+    }
+
+    pub fn set_i_d(&mut self, id: Arc<Mutex<Option<i32>>>) {
+        // Forward to embedded type's method
+        let embedded = self.middle.clone();
+        let mut guard = embedded.lock().unwrap();
+        let embedded_ref = guard.as_mut().unwrap();
+        embedded_ref.set_i_d(id)
     }
 }
 

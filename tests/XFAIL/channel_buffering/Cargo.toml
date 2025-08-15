@@ -1,8 +1,8 @@
 [package]
-name = "transpiled"
+name = "channel_buffering"
 version = "0.1.0"
 edition = "2021"
 
 [[bin]]
-name = "transpiled"
+name = "channel_buffering"
 path = "main.rs"

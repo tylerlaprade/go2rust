@@ -1,10 +1,10 @@
 [package]
-name = "transpiled"
+name = "type_conversions"
 version = "0.1.0"
 edition = "2021"
 
 [[bin]]
-name = "transpiled"
+name = "type_conversions"
 path = "main.rs"
 
 [dependencies]

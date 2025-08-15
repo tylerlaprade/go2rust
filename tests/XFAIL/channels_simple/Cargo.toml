@@ -1,8 +1,8 @@
 [package]
-name = "transpiled"
+name = "channels_simple"
 version = "0.1.0"
 edition = "2021"
 
 [[bin]]
-name = "transpiled"
+name = "channels_simple"
 path = "main.rs"

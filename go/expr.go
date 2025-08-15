@@ -584,6 +584,34 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				}
 			}
 			out.WriteString(" }")
+		} else if structType, ok := e.Type.(*ast.StructType); ok {
+			// Anonymous struct literal - generate a type for it
+			typeName := generateAnonymousStructType(structType)
+			out.WriteString(typeName)
+			out.WriteString(" { ")
+			for i, elt := range e.Elts {
+				if i > 0 {
+					out.WriteString(", ")
+				}
+				if kv, ok := elt.(*ast.KeyValueExpr); ok {
+					if key, ok := kv.Key.(*ast.Ident); ok {
+						out.WriteString(ToSnakeCase(key.Name))
+						out.WriteString(": ")
+						// Check if the value is an identifier (parameter/variable)
+						if valIdent, ok := kv.Value.(*ast.Ident); ok {
+							// It's already wrapped, just clone it
+							out.WriteString(valIdent.Name)
+							out.WriteString(".clone()")
+						} else {
+							// Wrap field values in Arc<Mutex<Option<T>>>
+							out.WriteString("Arc::new(Mutex::new(Some(")
+							TranspileExpression(out, kv.Value)
+							out.WriteString(")))")
+						}
+					}
+				}
+			}
+			out.WriteString(" }")
 		}
 
 	case *ast.ParenExpr:

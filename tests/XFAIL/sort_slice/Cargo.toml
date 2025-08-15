@@ -1,8 +1,8 @@
 [package]
-name = "transpiled"
+name = "sort_slice"
 version = "0.1.0"
 edition = "2021"
 
 [[bin]]
-name = "transpiled"
+name = "sort_slice"
 path = "main.rs"

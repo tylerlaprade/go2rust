@@ -3,5 +3,5 @@
 version = 4
 
 [[package]]
-name = "transpiled"
+name = "cross_file_methods"
 version = "0.1.0"

@@ -1,8 +1,8 @@
 [package]
-name = "transpiled"
+name = "wrap_everything"
 version = "0.1.0"
 edition = "2021"
 
 [[bin]]
-name = "transpiled"
+name = "wrap_everything"
 path = "main.rs"

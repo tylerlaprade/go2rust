@@ -82,7 +82,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "transpiled"
+name = "type_conversions"
 version = "0.1.0"
 dependencies = [
  "num",

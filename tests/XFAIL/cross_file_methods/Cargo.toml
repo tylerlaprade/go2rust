@@ -1,8 +1,8 @@
 [package]
-name = "transpiled"
+name = "cross_file_methods"
 version = "0.1.0"
 edition = "2021"
 
 [[bin]]
-name = "transpiled"
+name = "cross_file_methods"
 path = "main.rs"

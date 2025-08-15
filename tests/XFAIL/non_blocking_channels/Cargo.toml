@@ -1,8 +1,8 @@
 [package]
-name = "transpiled"
+name = "non_blocking_channels"
 version = "0.1.0"
 edition = "2021"
 
 [[bin]]
-name = "transpiled"
+name = "non_blocking_channels"
 path = "main.rs"

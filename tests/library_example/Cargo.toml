@@ -1,8 +1,8 @@
 [package]
-name = "transpiled"
+name = "library_example"
 version = "0.1.0"
 edition = "2021"
 
 [[bin]]
-name = "transpiled"
+name = "library_example"
 path = "main.rs"

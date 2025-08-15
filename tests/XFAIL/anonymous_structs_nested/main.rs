@@ -5,15 +5,15 @@ use std::sync::{Arc, Mutex};
 #[derive(Debug)]
 struct Config {
     name: Arc<Mutex<Option<String>>>,
-    database: Arc<Mutex<Option<AnonymousStruct8>>>,
-    cache: Arc<Mutex<Option<AnonymousStruct9>>>,
+    database: Arc<Mutex<Option<AnonymousStruct9>>>,
+    cache: Arc<Mutex<Option<AnonymousStruct10>>>,
 }
 
 /// Named struct with slice of anonymous structs
 #[derive(Debug)]
 struct Dashboard {
     title: Arc<Mutex<Option<String>>>,
-    widgets: Arc<Mutex<Option<Vec<AnonymousStruct10>>>>,
+    widgets: Arc<Mutex<Option<Vec<AnonymousStruct11>>>>,
 }
 
 #[derive(Debug)]
@@ -27,63 +27,48 @@ struct AnonymousStruct2 {
 struct AnonymousStruct3 {
     i_d: Arc<Mutex<Option<i32>>>,
     type: Arc<Mutex<Option<String>>>,
-    position: Arc<Mutex<Option<AnonymousStruct11>>>,
+    position: Arc<Mutex<Option<AnonymousStruct12>>>,
 }
 
 
 #[derive(Debug)]
 struct AnonymousStruct4 {
-    user: Arc<Mutex<Option<String>>>,
-    password: Arc<Mutex<Option<String>>>,
-}
-
-
-#[derive(Debug)]
-struct AnonymousStruct5 {
     x: Arc<Mutex<Option<i32>>>,
     y: Arc<Mutex<Option<i32>>>,
 }
 
 
 #[derive(Debug)]
-struct AnonymousStruct6 {
-    version: Arc<Mutex<Option<String>>>,
-    modules: Arc<Mutex<Option<HashMap<String, AnonymousStruct12>>>>,
+struct AnonymousStruct7 {
+    enabled: Arc<Mutex<Option<bool>>>,
+    settings: Arc<Mutex<Option<AnonymousStruct13>>>,
 }
 
 
 #[derive(Debug)]
 struct AnonymousStruct8 {
-    host: Arc<Mutex<Option<String>>>,
-    port: Arc<Mutex<Option<i32>>>,
-    credentials: Arc<Mutex<Option<AnonymousStruct13>>>,
-}
-
-
-#[derive(Debug)]
-struct AnonymousStruct1 {
-    host: Arc<Mutex<Option<String>>>,
-    port: Arc<Mutex<Option<i32>>>,
-    credentials: Arc<Mutex<Option<AnonymousStruct14>>>,
-}
-
-
-#[derive(Debug)]
-struct AnonymousStruct7 {
     enabled: Arc<Mutex<Option<bool>>>,
-    settings: Arc<Mutex<Option<AnonymousStruct15>>>,
+    settings: Arc<Mutex<Option<AnonymousStruct14>>>,
 }
 
 
 #[derive(Debug)]
 struct AnonymousStruct9 {
+    host: Arc<Mutex<Option<String>>>,
+    port: Arc<Mutex<Option<i32>>>,
+    credentials: Arc<Mutex<Option<AnonymousStruct15>>>,
+}
+
+
+#[derive(Debug)]
+struct AnonymousStruct10 {
     enabled: Arc<Mutex<Option<bool>>>,
     t_t_l: Arc<Mutex<Option<i32>>>,
 }
 
 
 #[derive(Debug)]
-struct AnonymousStruct10 {
+struct AnonymousStruct11 {
     i_d: Arc<Mutex<Option<i32>>>,
     type: Arc<Mutex<Option<String>>>,
     position: Arc<Mutex<Option<AnonymousStruct16>>>,
@@ -91,7 +76,29 @@ struct AnonymousStruct10 {
 
 
 #[derive(Debug)]
-struct AnonymousStruct11 {
+struct AnonymousStruct1 {
+    host: Arc<Mutex<Option<String>>>,
+    port: Arc<Mutex<Option<i32>>>,
+    credentials: Arc<Mutex<Option<AnonymousStruct17>>>,
+}
+
+
+#[derive(Debug)]
+struct AnonymousStruct5 {
+    user: Arc<Mutex<Option<String>>>,
+    password: Arc<Mutex<Option<String>>>,
+}
+
+
+#[derive(Debug)]
+struct AnonymousStruct6 {
+    version: Arc<Mutex<Option<String>>>,
+    modules: Arc<Mutex<Option<HashMap<String, AnonymousStruct18>>>>,
+}
+
+
+#[derive(Debug)]
+struct AnonymousStruct12 {
     x: Arc<Mutex<Option<i32>>>,
     y: Arc<Mutex<Option<i32>>>,
 }
@@ -120,13 +127,13 @@ fn main() {
     }
 
         // Deeply nested anonymous structs
-    let mut system: Arc<Mutex<Option<AnonymousStruct17>>>;
+    let mut system: Arc<Mutex<Option<AnonymousStruct19>>>;
 
     { let new_val = "1.0.0".to_string(); *system.version.lock().unwrap() = Some(new_val); };
-    { let new_val = Arc::new(Mutex::new(Some(HashMap::<String, Arc<Mutex<Option<AnonymousStruct18>>>>::new()))); *system.modules.lock().unwrap() = Some(new_val); };
+    { let new_val = Arc::new(Mutex::new(Some(HashMap::<String, Arc<Mutex<Option<AnonymousStruct20>>>>::new()))); *system.modules.lock().unwrap() = Some(new_val); };
 
         // Add a module with settings
-    let mut authModule = ;
+    let mut authModule = AnonymousStruct21 { enabled: true.clone() };
     { let new_val = Arc::new(Mutex::new(Some(vec![, ]))); *authModule.settings.options.lock().unwrap() = Some(new_val); };
     (*system.modules.lock().unwrap().as_mut().unwrap()).insert("auth".to_string(), authModule.clone());
 

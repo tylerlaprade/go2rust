@@ -1,8 +1,8 @@
 [package]
-name = "transpiled"
+name = "goto_labels"
 version = "0.1.0"
 edition = "2021"
 
 [[bin]]
-name = "transpiled"
+name = "goto_labels"
 path = "main.rs"

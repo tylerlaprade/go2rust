@@ -1,8 +1,8 @@
 [package]
-name = "transpiled"
+name = "strconv_parse"
 version = "0.1.0"
 edition = "2021"
 
 [[bin]]
-name = "transpiled"
+name = "strconv_parse"
 path = "main.rs"

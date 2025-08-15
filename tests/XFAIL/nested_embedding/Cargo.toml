@@ -1,8 +1,8 @@
 [package]
-name = "transpiled"
+name = "nested_embedding"
 version = "0.1.0"
 edition = "2021"
 
 [[bin]]
-name = "transpiled"
+name = "nested_embedding"
 path = "main.rs"

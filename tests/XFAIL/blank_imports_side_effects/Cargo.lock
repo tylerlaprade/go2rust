@@ -3,5 +3,5 @@
 version = 4
 
 [[package]]
-name = "transpiled"
+name = "blank_imports_side_effects"
 version = "0.1.0"

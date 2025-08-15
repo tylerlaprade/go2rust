@@ -1,0 +1,21 @@
+=== Ignoring return values ===
+Only using first return: 42
+Only using middle return: hello
+Only using last return: true
+
+=== Ignoring in range loops ===
+Values only:
+10 20 30 40 50 
+Indices only:
+0 1 2 3 4 
+Indices (idiomatic):
+0 1 2 3 4 
+
+=== Ignoring in map iteration ===
+Keys only:
+Alice Bob Carol 
+Values only:
+25 30 35 
+
+=== Blank identifier in declarations ===
+a=1, c=3 (middle value ignored)

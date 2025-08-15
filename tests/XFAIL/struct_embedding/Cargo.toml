@@ -1,8 +1,8 @@
 [package]
-name = "transpiled"
+name = "struct_embedding"
 version = "0.1.0"
 edition = "2021"
 
 [[bin]]
-name = "transpiled"
+name = "struct_embedding"
 path = "main.rs"

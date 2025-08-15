@@ -1,8 +1,8 @@
 [package]
-name = "transpiled"
+name = "interfaces_basic"
 version = "0.1.0"
 edition = "2021"
 
 [[bin]]
-name = "transpiled"
+name = "interfaces_basic"
 path = "main.rs"

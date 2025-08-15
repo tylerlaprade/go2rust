@@ -96,237 +96,44 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			out.WriteString("        return")
 		} else {
 			out.WriteString("return")
+		}
 
-			// Handle naked return (no explicit values but function has named returns)
-			if len(s.Results) == 0 && fnType.Results != nil {
-				hasNamedReturns := false
+		// Handle naked return (no explicit values but function has named returns)
+		if len(s.Results) == 0 && fnType.Results != nil {
+			hasNamedReturns := false
+			for _, result := range fnType.Results.List {
+				if len(result.Names) > 0 {
+					hasNamedReturns = true
+					break
+				}
+			}
+
+			if hasNamedReturns {
+				out.WriteString(" ")
+				// Return the named values
+				needsTuple := false
+				totalReturns := 0
 				for _, result := range fnType.Results.List {
 					if len(result.Names) > 0 {
-						hasNamedReturns = true
-						break
+						totalReturns += len(result.Names)
+					} else {
+						totalReturns++
 					}
 				}
+				needsTuple = totalReturns > 1
 
-				if hasNamedReturns {
-					out.WriteString(" ")
-					// Return the named values
-					needsTuple := false
-					totalReturns := 0
-					for _, result := range fnType.Results.List {
-						if len(result.Names) > 0 {
-							totalReturns += len(result.Names)
-						} else {
-							totalReturns++
-						}
-					}
-					needsTuple = totalReturns > 1
-
-					if needsTuple {
-						out.WriteString("(")
-					}
-
-					first := true
-					for _, result := range fnType.Results.List {
-						for _, name := range result.Names {
-							if !first {
-								out.WriteString(", ")
-							}
-							first = false
-							out.WriteString(name.Name)
-						}
-					}
-
-					if needsTuple {
-						out.WriteString(")")
-					}
-				}
-			} else if len(s.Results) > 0 {
-				out.WriteString(" ")
-				// Check if we need a tuple for multiple return values
-				needsTuple := len(s.Results) > 1
 				if needsTuple {
 					out.WriteString("(")
 				}
 
-				for i, result := range s.Results {
-					if i > 0 {
-						out.WriteString(", ")
-					}
-
-					// Check if this is nil being returned
-					isNil := false
-					if ident, ok := result.(*ast.Ident); ok && ident.Name == "nil" {
-						isNil = true
-					}
-
-					if isNil {
-						// For any wrapped type (error, pointer, etc.), nil becomes Arc<Mutex<None>>
-						out.WriteString("Arc::new(Mutex::new(None))")
-					} else {
-						// Check if this is a field access on self (already wrapped)
-						if sel, ok := result.(*ast.SelectorExpr); ok {
-							if ident, ok := sel.X.(*ast.Ident); ok && currentReceiver != "" && ident.Name == currentReceiver {
-								// Returning self.field - just clone it, don't double-wrap
-								out.WriteString("self.")
-								out.WriteString(ToSnakeCase(sel.Sel.Name))
-								out.WriteString(".clone()")
-							} else {
-								// Regular selector - wrap it
-								out.WriteString("Arc::new(Mutex::new(Some(")
-								TranspileExpression(out, result)
-								out.WriteString(")))")
-							}
-						} else if callExpr, ok := result.(*ast.CallExpr); ok {
-							// Check if this is a function that returns an already-wrapped value
-							needsWrapping := true
-
-							// Check if it's errors.New or a function returning error
-							if sel, ok := callExpr.Fun.(*ast.SelectorExpr); ok {
-								if ident, ok := sel.X.(*ast.Ident); ok {
-									if ident.Name == "errors" && sel.Sel.Name == "New" {
-										needsWrapping = false
-									} else if ident.Name == "fmt" && sel.Sel.Name == "Errorf" {
-										needsWrapping = false
-									}
-								}
-							}
-
-							// Check if it's a user function that returns error
-							if fnType.Results != nil && i < len(fnType.Results.List) {
-								if resultType, ok := fnType.Results.List[i].Type.(*ast.Ident); ok && resultType.Name == "error" {
-									// This position is an error type, and we have a function call
-									needsWrapping = false
-								}
-							}
-
-							if needsWrapping {
-								out.WriteString("Arc::new(Mutex::new(Some(")
-								TranspileExpression(out, result)
-								out.WriteString(")))")
-							} else {
-								// Already wrapped
-								TranspileExpression(out, result)
-							}
-						} else if _, ok := result.(*ast.FuncLit); ok {
-							// Function literal - already wrapped by TranspileFuncLit
-							TranspileExpression(out, result)
-						} else if ident, ok := result.(*ast.Ident); ok {
-							// Check if this is a variable (already wrapped) or a constant/literal
-							if _, isRangeVar := rangeLoopVars[ident.Name]; !isRangeVar {
-								if _, isLocalConst := localConstants[ident.Name]; !isLocalConst {
-									// It's a variable, just clone it
-									out.WriteString(ident.Name)
-									out.WriteString(".clone()")
-								} else {
-									// It's a constant, wrap it
-									out.WriteString("Arc::new(Mutex::new(Some(")
-									TranspileExpression(out, result)
-									out.WriteString(")))")
-								}
-							} else {
-								// Range variable, wrap it
-								out.WriteString("Arc::new(Mutex::new(Some(")
-								TranspileExpression(out, result)
-								out.WriteString(")))")
-							}
-						} else if _, ok := result.(*ast.SliceExpr); ok {
-							// Slice expressions already return wrapped values (Arc<Mutex<Option<Vec<T>>>>)
-							TranspileExpression(out, result)
-						} else if unaryExpr, ok := result.(*ast.UnaryExpr); ok {
-							// Check if this is address-of a struct literal
-							if unaryExpr.Op == token.AND {
-								if _, isCompositeLit := unaryExpr.X.(*ast.CompositeLit); isCompositeLit {
-									// Already wrapped by UnaryExpr handling, don't double-wrap
-									TranspileExpression(out, result)
-								} else {
-									// Regular address-of, already returns wrapped value
-									TranspileExpression(out, result)
-								}
-							} else {
-								// Other unary expressions, wrap them
-								out.WriteString("Arc::new(Mutex::new(Some(")
-								TranspileExpression(out, result)
-								out.WriteString(")))")
-							}
-						} else if binExpr, ok := result.(*ast.BinaryExpr); ok {
-							// Binary expressions need special handling to avoid multiple locks
-							// Check if operands are identifiers that would need unwrapping
-							needsExtraction := false
-							if ident, ok := binExpr.X.(*ast.Ident); ok && ident.Name != "nil" && ident.Name != "true" && ident.Name != "false" {
-								if _, isConst := localConstants[ident.Name]; !isConst {
-									if _, isRange := rangeLoopVars[ident.Name]; !isRange {
-										needsExtraction = true
-									}
-								}
-							}
-							if ident, ok := binExpr.Y.(*ast.Ident); ok && ident.Name != "nil" && ident.Name != "true" && ident.Name != "false" {
-								if _, isConst := localConstants[ident.Name]; !isConst {
-									if _, isRange := rangeLoopVars[ident.Name]; !isRange {
-										needsExtraction = true
-									}
-								}
-							}
-
-							if needsExtraction {
-								// Extract values first to avoid multiple locks
-								// We need both operands to be unwrapped for the binary operation
-								out.WriteString("{\n")
-
-								// Get TypeInfo to check if expressions return wrapped values
-								typeInfo := GetTypeInfo()
-
-								// Extract X operand
-								out.WriteString("            let __tmp_x = ")
-								// Check if X returns a wrapped value that needs unwrapping
-								if typeInfo != nil && typeInfo.ReturnsWrappedValue(binExpr.X) {
-									// Expression returns wrapped value, unwrap it
-									out.WriteString("(*")
-									TranspileExpression(out, binExpr.X)
-									out.WriteString(".lock().unwrap().as_ref().unwrap())")
-								} else {
-									// Either a literal/constant or an identifier that will unwrap itself in RValue context
-									TranspileExpressionContext(out, binExpr.X, RValue)
-								}
-								out.WriteString(";\n")
-
-								// Extract Y operand
-								out.WriteString("            let __tmp_y = ")
-								// Check if Y returns a wrapped value that needs unwrapping
-								if typeInfo != nil && typeInfo.ReturnsWrappedValue(binExpr.Y) {
-									// Expression returns wrapped value, unwrap it
-									out.WriteString("(*")
-									TranspileExpression(out, binExpr.Y)
-									out.WriteString(".lock().unwrap().as_ref().unwrap())")
-								} else {
-									// Either a literal/constant or an identifier that will unwrap itself in RValue context
-									TranspileExpressionContext(out, binExpr.Y, RValue)
-								}
-								out.WriteString(";\n")
-
-								out.WriteString("            Arc::new(Mutex::new(Some(__tmp_x ")
-								out.WriteString(binExpr.Op.String())
-								out.WriteString(" __tmp_y)))\n")
-								out.WriteString("        }")
-							} else {
-								// No extraction needed
-								out.WriteString("Arc::new(Mutex::new(Some(")
-								TranspileExpression(out, result)
-								out.WriteString(")))")
-							}
-						} else {
-							// Wrap all other return values in Arc<Mutex<Option<>>>
-							out.WriteString("Arc::new(Mutex::new(Some(")
-
-							// Special handling for string literals
-							if lit, ok := result.(*ast.BasicLit); ok && lit.Kind == token.STRING {
-								out.WriteString(lit.Value)
-								out.WriteString(".to_string()")
-							} else {
-								TranspileExpression(out, result)
-							}
-
-							out.WriteString(")))")
+				first := true
+				for _, result := range fnType.Results.List {
+					for _, name := range result.Names {
+						if !first {
+							out.WriteString(", ")
 						}
+						first = false
+						out.WriteString(name.Name)
 					}
 				}
 
@@ -334,13 +141,206 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					out.WriteString(")")
 				}
 			}
-
-			// Close the defer execution block if needed
-			if currentFunctionHasDefer {
-				out.WriteString("\n    }")
-			} else {
-				out.WriteString(";")
+		} else if len(s.Results) > 0 {
+			out.WriteString(" ")
+			// Check if we need a tuple for multiple return values
+			needsTuple := len(s.Results) > 1
+			if needsTuple {
+				out.WriteString("(")
 			}
+
+			for i, result := range s.Results {
+				if i > 0 {
+					out.WriteString(", ")
+				}
+
+				// Check if this is nil being returned
+				isNil := false
+				if ident, ok := result.(*ast.Ident); ok && ident.Name == "nil" {
+					isNil = true
+				}
+
+				if isNil {
+					// For any wrapped type (error, pointer, etc.), nil becomes Arc<Mutex<None>>
+					out.WriteString("Arc::new(Mutex::new(None))")
+				} else {
+					// Check if this is a field access on self (already wrapped)
+					if sel, ok := result.(*ast.SelectorExpr); ok {
+						if ident, ok := sel.X.(*ast.Ident); ok && currentReceiver != "" && ident.Name == currentReceiver {
+							// Returning self.field - just clone it, don't double-wrap
+							out.WriteString("self.")
+							out.WriteString(ToSnakeCase(sel.Sel.Name))
+							out.WriteString(".clone()")
+						} else {
+							// Regular selector - wrap it
+							out.WriteString("Arc::new(Mutex::new(Some(")
+							TranspileExpression(out, result)
+							out.WriteString(")))")
+						}
+					} else if callExpr, ok := result.(*ast.CallExpr); ok {
+						// Check if this is a function that returns an already-wrapped value
+						needsWrapping := true
+
+						// Check if it's errors.New or a function returning error
+						if sel, ok := callExpr.Fun.(*ast.SelectorExpr); ok {
+							if ident, ok := sel.X.(*ast.Ident); ok {
+								if ident.Name == "errors" && sel.Sel.Name == "New" {
+									needsWrapping = false
+								} else if ident.Name == "fmt" && sel.Sel.Name == "Errorf" {
+									needsWrapping = false
+								}
+							}
+						}
+
+						// Check if it's a user function that returns error
+						if fnType.Results != nil && i < len(fnType.Results.List) {
+							if resultType, ok := fnType.Results.List[i].Type.(*ast.Ident); ok && resultType.Name == "error" {
+								// This position is an error type, and we have a function call
+								needsWrapping = false
+							}
+						}
+
+						if needsWrapping {
+							out.WriteString("Arc::new(Mutex::new(Some(")
+							TranspileExpression(out, result)
+							out.WriteString(")))")
+						} else {
+							// Already wrapped
+							TranspileExpression(out, result)
+						}
+					} else if _, ok := result.(*ast.FuncLit); ok {
+						// Function literal - already wrapped by TranspileFuncLit
+						TranspileExpression(out, result)
+					} else if ident, ok := result.(*ast.Ident); ok {
+						// Check if this is a variable (already wrapped) or a constant/literal
+						if _, isRangeVar := rangeLoopVars[ident.Name]; !isRangeVar {
+							if _, isLocalConst := localConstants[ident.Name]; !isLocalConst {
+								// It's a variable, just clone it
+								out.WriteString(ident.Name)
+								out.WriteString(".clone()")
+							} else {
+								// It's a constant, wrap it
+								out.WriteString("Arc::new(Mutex::new(Some(")
+								TranspileExpression(out, result)
+								out.WriteString(")))")
+							}
+						} else {
+							// Range variable, wrap it
+							out.WriteString("Arc::new(Mutex::new(Some(")
+							TranspileExpression(out, result)
+							out.WriteString(")))")
+						}
+					} else if _, ok := result.(*ast.SliceExpr); ok {
+						// Slice expressions already return wrapped values (Arc<Mutex<Option<Vec<T>>>>)
+						TranspileExpression(out, result)
+					} else if unaryExpr, ok := result.(*ast.UnaryExpr); ok {
+						// Check if this is address-of a struct literal
+						if unaryExpr.Op == token.AND {
+							if _, isCompositeLit := unaryExpr.X.(*ast.CompositeLit); isCompositeLit {
+								// Already wrapped by UnaryExpr handling, don't double-wrap
+								TranspileExpression(out, result)
+							} else {
+								// Regular address-of, already returns wrapped value
+								TranspileExpression(out, result)
+							}
+						} else {
+							// Other unary expressions, wrap them
+							out.WriteString("Arc::new(Mutex::new(Some(")
+							TranspileExpression(out, result)
+							out.WriteString(")))")
+						}
+					} else if binExpr, ok := result.(*ast.BinaryExpr); ok {
+						// Binary expressions need special handling to avoid multiple locks
+						// Check if operands are identifiers that would need unwrapping
+						needsExtraction := false
+						if ident, ok := binExpr.X.(*ast.Ident); ok && ident.Name != "nil" && ident.Name != "true" && ident.Name != "false" {
+							if _, isConst := localConstants[ident.Name]; !isConst {
+								if _, isRange := rangeLoopVars[ident.Name]; !isRange {
+									needsExtraction = true
+								}
+							}
+						}
+						if ident, ok := binExpr.Y.(*ast.Ident); ok && ident.Name != "nil" && ident.Name != "true" && ident.Name != "false" {
+							if _, isConst := localConstants[ident.Name]; !isConst {
+								if _, isRange := rangeLoopVars[ident.Name]; !isRange {
+									needsExtraction = true
+								}
+							}
+						}
+
+						if needsExtraction {
+							// Extract values first to avoid multiple locks
+							// We need both operands to be unwrapped for the binary operation
+							out.WriteString("{\n")
+
+							// Get TypeInfo to check if expressions return wrapped values
+							typeInfo := GetTypeInfo()
+
+							// Extract X operand
+							out.WriteString("            let __tmp_x = ")
+							// Check if X returns a wrapped value that needs unwrapping
+							if typeInfo != nil && typeInfo.ReturnsWrappedValue(binExpr.X) {
+								// Expression returns wrapped value, unwrap it
+								out.WriteString("(*")
+								TranspileExpression(out, binExpr.X)
+								out.WriteString(".lock().unwrap().as_ref().unwrap())")
+							} else {
+								// Either a literal/constant or an identifier that will unwrap itself in RValue context
+								TranspileExpressionContext(out, binExpr.X, RValue)
+							}
+							out.WriteString(";\n")
+
+							// Extract Y operand
+							out.WriteString("            let __tmp_y = ")
+							// Check if Y returns a wrapped value that needs unwrapping
+							if typeInfo != nil && typeInfo.ReturnsWrappedValue(binExpr.Y) {
+								// Expression returns wrapped value, unwrap it
+								out.WriteString("(*")
+								TranspileExpression(out, binExpr.Y)
+								out.WriteString(".lock().unwrap().as_ref().unwrap())")
+							} else {
+								// Either a literal/constant or an identifier that will unwrap itself in RValue context
+								TranspileExpressionContext(out, binExpr.Y, RValue)
+							}
+							out.WriteString(";\n")
+
+							out.WriteString("            Arc::new(Mutex::new(Some(__tmp_x ")
+							out.WriteString(binExpr.Op.String())
+							out.WriteString(" __tmp_y)))\n")
+							out.WriteString("        }")
+						} else {
+							// No extraction needed
+							out.WriteString("Arc::new(Mutex::new(Some(")
+							TranspileExpression(out, result)
+							out.WriteString(")))")
+						}
+					} else {
+						// Wrap all other return values in Arc<Mutex<Option<>>>
+						out.WriteString("Arc::new(Mutex::new(Some(")
+
+						// Special handling for string literals
+						if lit, ok := result.(*ast.BasicLit); ok && lit.Kind == token.STRING {
+							out.WriteString(lit.Value)
+							out.WriteString(".to_string()")
+						} else {
+							TranspileExpression(out, result)
+						}
+
+						out.WriteString(")))")
+					}
+				}
+			}
+
+			if needsTuple {
+				out.WriteString(")")
+			}
+		}
+
+		// Close the defer execution block if needed
+		if currentFunctionHasDefer {
+			out.WriteString("\n    }")
+		} else {
+			out.WriteString(";")
 		}
 
 	case *ast.AssignStmt:

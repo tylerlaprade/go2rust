@@ -3,5 +3,5 @@
 version = 4
 
 [[package]]
-name = "transpiled"
+name = "anonymous_structs_functions"
 version = "0.1.0"

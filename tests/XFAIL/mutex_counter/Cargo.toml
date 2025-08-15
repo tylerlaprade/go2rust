@@ -1,8 +1,8 @@
 [package]
-name = "transpiled"
+name = "mutex_counter"
 version = "0.1.0"
 edition = "2021"
 
 [[bin]]
-name = "transpiled"
+name = "mutex_counter"
 path = "main.rs"
