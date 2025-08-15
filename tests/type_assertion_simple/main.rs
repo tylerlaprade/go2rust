@@ -5,7 +5,7 @@ fn main() {
     let mut x: Arc<Mutex<Option<Box<dyn Any>>>> = Arc::new(Mutex::new(Some(Box::new("hello".to_string()) as Box<dyn Any>)));
 
         // Type assertion with comma-ok
-let (mut s, mut ok) = ({
+    let (mut s, mut ok) = ({
         let val = x.clone();
         let guard = val.lock().unwrap();
         if let Some(ref any_val) = *guard {
@@ -23,7 +23,7 @@ let (mut s, mut ok) = ({
     }
 
         // Type assertion without comma-ok (would panic if wrong)
-let mut str = Arc::new(Mutex::new(Some(({
+    let mut str = Arc::new(Mutex::new(Some(({
         let val = x.clone();
         let guard = val.lock().unwrap();
         if let Some(ref any_val) = *guard {
@@ -35,7 +35,7 @@ let mut str = Arc::new(Mutex::new(Some(({
     println!("{} {}", "Asserted string:".to_string(), (*str.lock().unwrap().as_mut().unwrap()));
 
         // Failed assertion with comma-ok
-let (mut n, mut ok) = ({
+    let (mut n, mut ok) = ({
         let val = x.clone();
         let guard = val.lock().unwrap();
         if let Some(ref any_val) = *guard {

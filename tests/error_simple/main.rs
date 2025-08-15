@@ -15,7 +15,7 @@ pub fn divide(a: Arc<Mutex<Option<i32>>>, b: Arc<Mutex<Option<i32>>>) -> (Arc<Mu
 
 fn main() {
         // Success case
-let (mut result, mut err) = divide(Arc::new(Mutex::new(Some(10))), Arc::new(Mutex::new(Some(2))));
+    let (mut result, mut err) = divide(Arc::new(Mutex::new(Some(10))), Arc::new(Mutex::new(Some(2))));
     if (*err.lock().unwrap()).is_some() {
         println!("{} {}", "Error:".to_string(), (*err.lock().unwrap().as_mut().unwrap()));
     } else {
@@ -23,7 +23,7 @@ let (mut result, mut err) = divide(Arc::new(Mutex::new(Some(10))), Arc::new(Mute
     }
 
         // Error case
-(result, err) = divide(Arc::new(Mutex::new(Some(10))), Arc::new(Mutex::new(Some(0))));
+    (result, err) = divide(Arc::new(Mutex::new(Some(10))), Arc::new(Mutex::new(Some(0))));
     if (*err.lock().unwrap()).is_some() {
         println!("{} {}", "Error:".to_string(), (*err.lock().unwrap().as_mut().unwrap()));
     } else {

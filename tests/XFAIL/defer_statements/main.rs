@@ -86,7 +86,7 @@ pub fn resource_example() {
     println!("{}", "Using resource".to_string());
 
         // Simulate some work
-let mut i = Arc::new(Mutex::new(Some(0)));
+    let mut i = Arc::new(Mutex::new(Some(0)));
     while (*i.lock().unwrap().as_mut().unwrap()) < 3 {
         print!("Working... {}\n", (*i.lock().unwrap().as_mut().unwrap()) + 1);
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }

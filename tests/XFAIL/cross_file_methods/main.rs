@@ -7,7 +7,7 @@ use std::sync::{Arc, Mutex};
 
 fn main() {
         // Test Counter methods - transpiler needs to know Counter has these methods
-let mut c = Arc::new(Mutex::new(Some(Counter { value: Arc::new(Mutex::new(Some(10))) })));
+    let mut c = Arc::new(Mutex::new(Some(Counter { value: Arc::new(Mutex::new(Some(10))) })));
     print!("Initial value: {}\n", (*(*c.lock().unwrap().as_mut().unwrap()).value().lock().unwrap().as_ref().unwrap()));
 
     (*c.lock().unwrap().as_mut().unwrap()).increment();
@@ -17,7 +17,7 @@ let mut c = Arc::new(Mutex::new(Some(Counter { value: Arc::new(Mutex::new(Some(1
     print!("After adding 5: {}\n", (*(*c.lock().unwrap().as_mut().unwrap()).value().lock().unwrap().as_ref().unwrap()));
 
         // Test Point methods - transpiler needs to resolve method receivers
-let mut p1 = Point { x: Arc::new(Mutex::new(Some(0))), y: Arc::new(Mutex::new(Some(0))) };
+    let mut p1 = Point { x: Arc::new(Mutex::new(Some(0))), y: Arc::new(Mutex::new(Some(0))) };
     let mut p2 = Point { x: Arc::new(Mutex::new(Some(3))), y: Arc::new(Mutex::new(Some(4))) };
 
     let mut dist = (*p1.lock().unwrap().as_mut().unwrap()).distance(Arc::new(Mutex::new(Some((*p2.lock().unwrap().as_mut().unwrap())))));
@@ -27,6 +27,6 @@ let mut p1 = Point { x: Arc::new(Mutex::new(Some(0))), y: Arc::new(Mutex::new(So
     print!("After move: ({:.1}, {:.1})\n", (*(*p1.lock().unwrap().as_mut().unwrap()).x.lock().unwrap().as_ref().unwrap()), (*(*p1.lock().unwrap().as_mut().unwrap()).y.lock().unwrap().as_ref().unwrap()));
 
         // Test method on value vs pointer receiver
-let mut newDist = (*p1.lock().unwrap().as_mut().unwrap()).distance(Arc::new(Mutex::new(Some((*p2.lock().unwrap().as_mut().unwrap())))));
+    let mut newDist = (*p1.lock().unwrap().as_mut().unwrap()).distance(Arc::new(Mutex::new(Some((*p2.lock().unwrap().as_mut().unwrap())))));
     print!("New distance: {:.1}\n", (*newDist.lock().unwrap().as_mut().unwrap()));
 }

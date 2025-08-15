@@ -41,6 +41,7 @@ func outputCommentsBeforePos(out *strings.Builder, comments []*ast.CommentGroup,
 				out.WriteString(indent)
 				out.WriteString(comment.Text)
 				out.WriteString("\n")
+				out.WriteString(indent)
 			}
 		}
 	}

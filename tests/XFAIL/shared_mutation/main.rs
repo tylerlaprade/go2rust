@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 
 fn main() {
         // Even simpler: mutation through aliasing
-let mut x = Arc::new(Mutex::new(Some(10)));
+    let mut x = Arc::new(Mutex::new(Some(10)));
     let mut y = x.clone();
     let mut z = Arc::new(Mutex::new(Some((*y.lock().unwrap().as_mut().unwrap()))));
 

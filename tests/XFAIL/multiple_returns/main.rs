@@ -124,7 +124,7 @@ pub fn safe_divide(a: Arc<Mutex<Option<f64>>>, b: Arc<Mutex<Option<f64>>>) -> (A
 
 fn main() {
         // Basic multiple returns
-println!("{}", "=== Basic multiple returns ===".to_string());
+    println!("{}", "=== Basic multiple returns ===".to_string());
     let (mut quotient, mut remainder) = divmod(Arc::new(Mutex::new(Some(17))), Arc::new(Mutex::new(Some(5))));
     print!("17 / 5 = {} remainder {}\n", (*quotient.lock().unwrap().as_mut().unwrap()), (*remainder.lock().unwrap().as_mut().unwrap()));
 
@@ -132,7 +132,7 @@ println!("{}", "=== Basic multiple returns ===".to_string());
     print!("Name: {}, Age: {}\n", (*name.lock().unwrap().as_mut().unwrap()), (*age.lock().unwrap().as_mut().unwrap()));
 
         // Multiple returns with error handling
-println!("{}", "\n=== Multiple returns with errors ===".to_string());
+    println!("{}", "\n=== Multiple returns with errors ===".to_string());
     let (mut num, mut err) = parse_number(Arc::new(Mutex::new(Some("123".to_string()))));
     if (*err.lock().unwrap()).is_some() {
         print!("Error: {}\n", (*err.lock().unwrap().as_mut().unwrap()));
@@ -148,30 +148,30 @@ println!("{}", "\n=== Multiple returns with errors ===".to_string());
     }
 
         // Named return values
-println!("{}", "\n=== Named return values ===".to_string());
+    println!("{}", "\n=== Named return values ===".to_string());
     let (mut s, mut p) = calculate(Arc::new(Mutex::new(Some(6))), Arc::new(Mutex::new(Some(7))));
     print!("Sum: {}, Product: {}\n", (*s.lock().unwrap().as_mut().unwrap()), (*p.lock().unwrap().as_mut().unwrap()));
 
         // Processing data with multiple named returns
-let mut data = Arc::new(Mutex::new(Some(vec![3, 1, 4, 1, 5, 9, 2, 6])));
+    let mut data = Arc::new(Mutex::new(Some(vec![3, 1, 4, 1, 5, 9, 2, 6])));
     let (mut min, mut max, mut sum) = process_data(data.clone());
     print!("Data: {}\n", format_slice(&data));
     print!("Min: {}, Max: {}, Sum: {}\n", (*min.lock().unwrap().as_mut().unwrap()), (*max.lock().unwrap().as_mut().unwrap()), (*sum.lock().unwrap().as_mut().unwrap()));
 
         // Swapping values
-println!("{}", "\n=== Swapping values ===".to_string());
+    println!("{}", "\n=== Swapping values ===".to_string());
     let (mut x, mut y) = (Arc::new(Mutex::new(Some("hello".to_string()))), Arc::new(Mutex::new(Some("world".to_string()))));
     print!("Before swap: x={}, y={}\n", (*x.lock().unwrap().as_mut().unwrap()), (*y.lock().unwrap().as_mut().unwrap()));
     (x, y) = swap(x.clone(), y.clone());
     print!("After swap: x={}, y={}\n", (*x.lock().unwrap().as_mut().unwrap()), (*y.lock().unwrap().as_mut().unwrap()));
 
         // Multiple returns of different types
-println!("{}", "\n=== Different types ===".to_string());
+    println!("{}", "\n=== Different types ===".to_string());
     let (mut pName, mut pAge, mut pHeight, mut pMarried) = get_person_info();
     print!("Person: {}, {} years old, {:.1} feet tall, married: {}\n", (*pName.lock().unwrap().as_mut().unwrap()), (*pAge.lock().unwrap().as_mut().unwrap()), (*pHeight.lock().unwrap().as_mut().unwrap()), (*pMarried.lock().unwrap().as_mut().unwrap()));
 
         // Finding in slice
-println!("{}", "\n=== Finding in slice ===".to_string());
+    println!("{}", "\n=== Finding in slice ===".to_string());
     let mut numbers = Arc::new(Mutex::new(Some(vec![10, 20, 30, 40, 50])));
 
     let (mut index, mut found) = find_in_slice(numbers.clone(), Arc::new(Mutex::new(Some(30))));
@@ -189,7 +189,7 @@ println!("{}", "\n=== Finding in slice ===".to_string());
     }
 
         // Safe division
-println!("{}", "\n=== Safe division ===".to_string());
+    println!("{}", "\n=== Safe division ===".to_string());
     let (mut result, mut err) = safe_divide(Arc::new(Mutex::new(Some(10.0))), Arc::new(Mutex::new(Some(3.0))));
     if (*err.lock().unwrap()).is_some() {
         print!("Error: {}\n", (*err.lock().unwrap().as_mut().unwrap()));
@@ -205,7 +205,7 @@ println!("{}", "\n=== Safe division ===".to_string());
     }
 
         // Ignoring return values with blank identifier
-println!("{}", "\n=== Ignoring return values ===".to_string());
+    println!("{}", "\n=== Ignoring return values ===".to_string());
     let (_, mut remainder2) = divmod(Arc::new(Mutex::new(Some(23))), Arc::new(Mutex::new(Some(7))));
     print!("23 mod 7 = {} (quotient ignored)\n", (*remainder2.lock().unwrap().as_mut().unwrap()));
 
@@ -213,11 +213,11 @@ println!("{}", "\n=== Ignoring return values ===".to_string());
     print!("Name only: {} (age ignored)\n", (*name2.lock().unwrap().as_mut().unwrap()));
 
         // Multiple assignment
-println!("{}", "\n=== Multiple assignment ===".to_string());
+    println!("{}", "\n=== Multiple assignment ===".to_string());
     let (mut a, mut b, mut c) = (Arc::new(Mutex::new(Some(1))), Arc::new(Mutex::new(Some(2))), Arc::new(Mutex::new(Some(3))));
     print!("a={}, b={}, c={}\n", (*a.lock().unwrap().as_mut().unwrap()), (*b.lock().unwrap().as_mut().unwrap()), (*c.lock().unwrap().as_mut().unwrap()));
 
         // Reassignment with multiple returns
-{ *(*a.lock().unwrap().as_mut().unwrap()).lock().unwrap() = Some((*b.lock().unwrap().as_mut().unwrap())); *(*b.lock().unwrap().as_mut().unwrap()).lock().unwrap() = Some((*a.lock().unwrap().as_mut().unwrap())) };
+    { *(*a.lock().unwrap().as_mut().unwrap()).lock().unwrap() = Some((*b.lock().unwrap().as_mut().unwrap())); *(*b.lock().unwrap().as_mut().unwrap()).lock().unwrap() = Some((*a.lock().unwrap().as_mut().unwrap())) };
     print!("After swap: a={}, b={}\n", (*a.lock().unwrap().as_mut().unwrap()), (*b.lock().unwrap().as_mut().unwrap()));
 }

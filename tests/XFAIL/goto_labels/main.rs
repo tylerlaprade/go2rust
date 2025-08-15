@@ -8,7 +8,7 @@ fn main() {
     println!("{}", "First loop done".to_string());
 
         // Goto to skip code
-let mut x = Arc::new(Mutex::new(Some(1)));
+    let mut x = Arc::new(Mutex::new(Some(1)));
     if (*x.lock().unwrap().as_mut().unwrap()) > 0 {
         // TODO: goto not supported
     }
@@ -17,7 +17,7 @@ let mut x = Arc::new(Mutex::new(Some(1)));
     // TODO: Unhandled statement type: LabeledStmt
 
         // More complex goto pattern
-let mut j = Arc::new(Mutex::new(Some(0)));
+    let mut j = Arc::new(Mutex::new(Some(0)));
     while (*j.lock().unwrap().as_mut().unwrap()) < 3 {
         let mut k = Arc::new(Mutex::new(Some(0)));
     while (*k.lock().unwrap().as_mut().unwrap()) < 3 {

@@ -14,7 +14,7 @@ fn main() {
     }
 
         // Array initialization
-let mut nums = Arc::new(Mutex::new(Some([1, 2, 3, 4])));
+    let mut nums = Arc::new(Mutex::new(Some([1, 2, 3, 4])));
     println!("{}", "Initialized array:".to_string());
     for num in &(*nums.lock().unwrap().as_mut().unwrap()) {
         println!("{}", num);

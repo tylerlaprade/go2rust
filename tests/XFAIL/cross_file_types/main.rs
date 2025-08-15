@@ -5,18 +5,18 @@ use std::sync::{Arc, Mutex};
 
 fn main() {
         // Create a Person - transpiler needs to know Person struct fields
-let mut p = Person { name: Arc::new(Mutex::new(Some("Alice".to_string()))), age: Arc::new(Mutex::new(Some(30))) };
+    let mut p = Person { name: Arc::new(Mutex::new(Some("Alice".to_string()))), age: Arc::new(Mutex::new(Some(30))) };
     print!("Person: {} is {} years old\n", (*(*p.lock().unwrap().as_mut().unwrap()).name.lock().unwrap().as_ref().unwrap()), (*(*p.lock().unwrap().as_mut().unwrap()).age.lock().unwrap().as_ref().unwrap()));
 
         // Create an Address - transpiler needs to know Address struct fields
-let mut addr = Address { street: Arc::new(Mutex::new(Some("123 Main St".to_string()))), city: Arc::new(Mutex::new(Some("Springfield".to_string()))), zip: Arc::new(Mutex::new(Some("12345".to_string()))) };
+    let mut addr = Address { street: Arc::new(Mutex::new(Some("123 Main St".to_string()))), city: Arc::new(Mutex::new(Some("Springfield".to_string()))), zip: Arc::new(Mutex::new(Some("12345".to_string()))) };
     print!("Address: {}, {} {}\n", (*(*addr.lock().unwrap().as_mut().unwrap()).street.lock().unwrap().as_ref().unwrap()), (*(*addr.lock().unwrap().as_mut().unwrap()).city.lock().unwrap().as_ref().unwrap()), (*(*addr.lock().unwrap().as_mut().unwrap()).zip.lock().unwrap().as_ref().unwrap()));
 
         // Create an Employee - transpiler needs to know nested struct types
-let mut emp = Employee { person: Arc::new(Mutex::new(Some(Person { name: Arc::new(Mutex::new(Some("Bob".to_string()))), age: Arc::new(Mutex::new(Some(25))) }))), address: addr.clone(), i_d: Arc::new(Mutex::new(Some(42))) };
+    let mut emp = Employee { person: Arc::new(Mutex::new(Some(Person { name: Arc::new(Mutex::new(Some("Bob".to_string()))), age: Arc::new(Mutex::new(Some(25))) }))), address: addr.clone(), i_d: Arc::new(Mutex::new(Some(42))) };
     print!("Employee {}: {} lives at {}\n", (*(*emp.lock().unwrap().as_mut().unwrap()).i_d.lock().unwrap().as_ref().unwrap()), (*emp.lock().unwrap().as_mut().unwrap()).person.name, (*emp.lock().unwrap().as_mut().unwrap()).address.street);
 
         // Access nested fields - requires knowing the full type hierarchy
-{ let new_val = 26; *(*emp.lock().unwrap().as_mut().unwrap()).person.age.lock().unwrap() = Some(new_val); };
+    { let new_val = 26; *(*emp.lock().unwrap().as_mut().unwrap()).person.age.lock().unwrap() = Some(new_val); };
     print!("After birthday: {} is now {}\n", (*emp.lock().unwrap().as_mut().unwrap()).person.name, (*emp.lock().unwrap().as_mut().unwrap()).person.age);
 }

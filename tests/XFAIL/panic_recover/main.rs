@@ -100,7 +100,7 @@ pub fn demonstrate_panic_types() {
     let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
         // String panic
-__defer_stack.push(Box::new(move || {
+    __defer_stack.push(Box::new(move || {
         (Arc::new(Mutex::new(Some(Box::new(move || {
         let mut r = recover();
     if (*r.lock().unwrap()).is_some() {
@@ -122,7 +122,7 @@ __defer_stack.push(Box::new(move || {
     }));
 
         // Integer panic
-__defer_stack.push(Box::new(move || {
+    __defer_stack.push(Box::new(move || {
         (Arc::new(Mutex::new(Some(Box::new(move || {
         panic(Arc::new(Mutex::new(Some(Arc::new(Mutex::new(Some(Box::new(format!("error panic")) as Box<dyn Error + Send + Sync>)))))));
     }) as Box<dyn Fn() -> () + Send + Sync>))).lock().unwrap().as_ref().unwrap())();

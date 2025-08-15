@@ -21,7 +21,7 @@ pub fn print_any(v: Arc<Mutex<Option<Box<dyn Any>>>>) {
 
 fn main() {
         // interface{} can hold any value
-let mut x: Arc<Mutex<Option<Box<dyn Any>>>>;
+    let mut x: Arc<Mutex<Option<Box<dyn Any>>>>;
 
     { let new_val = 42; *x.lock().unwrap() = Some(new_val); };
     println!("{} {}", "x is int:".to_string(), (*x.lock().unwrap().as_mut().unwrap()));
@@ -36,6 +36,6 @@ let mut x: Arc<Mutex<Option<Box<dyn Any>>>>;
     print_any(x.clone());
 
         // interface{} in slice
-let mut values = Arc::new(Mutex::new(Some(vec![1, "two".to_string(), 3.0])));
+    let mut values = Arc::new(Mutex::new(Some(vec![1, "two".to_string(), 3.0])));
     println!("{} {}", "Mixed values:".to_string(), format_slice(&values));
 }

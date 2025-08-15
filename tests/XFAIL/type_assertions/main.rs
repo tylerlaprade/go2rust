@@ -42,7 +42,7 @@ impl Shape for Circle {
 
 pub fn process_value(value: Arc<Mutex<Option<Box<dyn Any>>>>) {
         // Basic type assertion
-let (mut str, mut ok) = ({
+    let (mut str, mut ok) = ({
         let val = value.clone();
         let guard = val.lock().unwrap();
         if let Some(ref any_val) = *guard {
@@ -103,7 +103,7 @@ pub fn assert_without_check(value: Arc<Mutex<Option<Box<dyn Any>>>>) {
     let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
         // This will panic if assertion fails
-__defer_stack.push(Box::new(move || {
+    __defer_stack.push(Box::new(move || {
         (Arc::new(Mutex::new(Some(Box::new(move || {
         let mut r = recover();
     if (*r.lock().unwrap()).is_some() {
@@ -133,7 +133,7 @@ pub fn describe_shape(s: Arc<Mutex<Option<Box<dyn Shape>>>>) {
     print!("Shape area: {:.2}\n", (*(*s.lock().unwrap().as_mut().unwrap()).area().lock().unwrap().as_ref().unwrap()));
 
         // Type assertion on interface
-let (mut rect, mut ok) = ({
+    let (mut rect, mut ok) = ({
         let val = s.clone();
         let guard = val.lock().unwrap();
         if let Some(ref any_val) = *guard {
@@ -168,7 +168,7 @@ let (mut rect, mut ok) = ({
 
 fn main() {
         // Test with different types
-let mut values = Arc::new(Mutex::new(Some(vec!["hello world".to_string(), 42, 3.14159, true, Arc::new(Mutex::new(Some(vec![1, 2, 3])))])));
+    let mut values = Arc::new(Mutex::new(Some(vec!["hello world".to_string(), 42, 3.14159, true, Arc::new(Mutex::new(Some(vec![1, 2, 3])))])));
 
     println!("{}", "=== Processing values ===".to_string());
     for val in &(*values.lock().unwrap().as_mut().unwrap()) {

@@ -21,9 +21,10 @@ pub fn init() {
     println!("{}", "Second init function called".to_string());
     { let mut guard = globalCounter.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 5); };
 
+        // Initialize map
     { let new_val = Arc::new(Mutex::new(Some(HashMap::<String, Arc<Mutex<Option<String>>>>::new()))); *configData.lock().unwrap() = Some(new_val); };
-    (*configData.lock().unwrap().as_mut().unwrap())["version".to_string()] = "1.0".to_string();
-    (*configData.lock().unwrap().as_mut().unwrap())["author".to_string()] = "go2rust".to_string();
+    (*configData.lock().unwrap().as_mut().unwrap()).insert("version".to_string(), Arc::new(Mutex::new(Some("1.0".to_string()))));
+    (*configData.lock().unwrap().as_mut().unwrap()).insert("author".to_string(), Arc::new(Mutex::new(Some("go2rust".to_string()))));
 }
 
 /// Third init function
@@ -33,8 +34,9 @@ pub fn init() {
         print!("Global counter initialized to: {}\n", (*globalCounter.lock().unwrap().as_mut().unwrap()));
     }
 
-    (*configData.lock().unwrap().as_mut().unwrap())["build".to_string()] = "debug".to_string();
-    (*configData.lock().unwrap().as_mut().unwrap())["target".to_string()] = "rust".to_string();
+        // Add more config
+    (*configData.lock().unwrap().as_mut().unwrap()).insert("build".to_string(), Arc::new(Mutex::new(Some("debug".to_string()))));
+    (*configData.lock().unwrap().as_mut().unwrap()).insert("target".to_string(), Arc::new(Mutex::new(Some("rust".to_string()))));
 }
 
 pub fn compute_initial_value() -> Arc<Mutex<Option<i32>>> {
@@ -48,12 +50,13 @@ pub fn init() {
     println!("{}", "Fourth init function called".to_string());
     print!("Computed value is: {}\n", (*computedValue.lock().unwrap().as_mut().unwrap()));
 
+        // Modify the computed value
     { let mut guard = computedValue.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 10); };
 }
 
 pub fn init() {
     println!("{}", "Fifth init function - initializing app config".to_string());
-    { let new_val = Config { name: Arc::new(Mutex::new(Some("Go2Rust Transpiler".to_string()))), version: Arc::new(Mutex::new(Some("0.1.0".to_string()))), debug: Arc::new(Mutex::new(Some(true))) }; *appConfig.lock().unwrap() = Some(new_val); };
+    { let new_val = Config { name: Arc::new(Mutex::new(Some("Go2Rust Transpiler".to_string()))), version: Arc::new(Mutex::new(Some("0.1.0".to_string()))), debug: true.clone() }; *appConfig.lock().unwrap() = Some(new_val); };
 }
 
 /// Init function that might panic (for testing error handling)
@@ -71,6 +74,7 @@ pub fn init() {
     }) as Box<dyn Fn() -> () + Send + Sync>))).lock().unwrap().as_ref().unwrap())();
     }));
 
+        // This would normally panic, but we'll handle it
     if false {
         panic(Arc::new(Mutex::new(Some("Init function panic!".to_string()))));
     }
@@ -92,16 +96,18 @@ pub fn init() {
     println!("{}", "Seventh init function - setting up subsystems".to_string());
     setup_logging();
 
-    if (*configData.lock().unwrap().as_mut().unwrap()).len() == 0 {
+        // Validate configuration
+    if (*configData.lock().unwrap().as_ref().unwrap()).len() == 0 {
         println!("{}", "Warning: No configuration data found".to_string());
     } else {
-        print!("Configuration loaded with {} entries\n", (*configData.lock().unwrap().as_mut().unwrap()).len());
+        print!("Configuration loaded with {} entries\n", (*configData.lock().unwrap().as_ref().unwrap()).len());
     }
 }
 
 fn main() {
     println!("{}", "\n=== Main function started ===".to_string());
 
+        // Show that all init functions have run
     print!("Global counter: {}\n", (*globalCounter.lock().unwrap().as_mut().unwrap()));
     print!("Initialized flag: {}\n", (*initialized.lock().unwrap().as_mut().unwrap()));
     print!("Computed value: {}\n", (*computedValue.lock().unwrap().as_mut().unwrap()));
@@ -113,12 +119,15 @@ fn main() {
 
     print!("\nApp config: %+v\n", (*appConfig.lock().unwrap().as_mut().unwrap()));
 
+        // Demonstrate that init functions only run once
     println!("{}", "\n=== Calling functions that were used in init ===".to_string());
     print!("Calling computeInitialValue() again: {}\n", (*compute_initial_value().lock().unwrap().as_ref().unwrap()));
     setup_logging();
 
+        // Show that package variables retain their init values
     print!("Global counter still: {}\n", (*globalCounter.lock().unwrap().as_mut().unwrap()));
 
+        // Modify package variables
     { let new_val = 100; *globalCounter.lock().unwrap() = Some(new_val); };
     print!("Modified global counter: {}\n", (*globalCounter.lock().unwrap().as_mut().unwrap()));
 

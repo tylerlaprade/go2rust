@@ -16,23 +16,23 @@ where
 
 fn main() {
         // Create a slice
-let mut slice = Arc::new(Mutex::new(Some(vec![1, 2, 3, 4, 5])));
+    let mut slice = Arc::new(Mutex::new(Some(vec![1, 2, 3, 4, 5])));
     println!("{} {}", "Original slice:".to_string(), format_slice(&slice));
 
         // Append to slice
-{(*slice.lock().unwrap().as_mut().unwrap()).extend(vec![6, 7]); slice.clone()};
+    {(*slice.lock().unwrap().as_mut().unwrap()).extend(vec![6, 7]); slice.clone()};
     println!("{} {}", "After append:".to_string(), format_slice(&slice));
 
         // Slice operations
-let mut subSlice = Arc::new(Mutex::new(Some((*slice.lock().unwrap().as_ref().unwrap())[1 as usize..4 as usize].to_vec())));
+    let mut subSlice = Arc::new(Mutex::new(Some((*slice.lock().unwrap().as_ref().unwrap())[1 as usize..4 as usize].to_vec())));
     println!("{} {}", "Sub-slice [1:4]:".to_string(), format_slice(&subSlice));
 
         // Length and capacity
-println!("{} {}", "Length:".to_string(), (*slice.lock().unwrap().as_ref().unwrap()).len());
+    println!("{} {}", "Length:".to_string(), (*slice.lock().unwrap().as_ref().unwrap()).len());
     println!("{} {}", "Capacity:".to_string(), (*slice.lock().unwrap().as_mut().unwrap()).capacity());
 
         // Make slice
-let mut made = Arc::new(Mutex::new(Some(vec![0; 3])));
+    let mut made = Arc::new(Mutex::new(Some(vec![0; 3])));
     (*made.lock().unwrap().as_mut().unwrap())[0] = 10;
     (*made.lock().unwrap().as_mut().unwrap())[1] = 20;
     (*made.lock().unwrap().as_mut().unwrap())[2] = 30;

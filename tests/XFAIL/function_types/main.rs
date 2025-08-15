@@ -146,7 +146,7 @@ pub fn make_adder(addend: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<BinaryOp>
 
 fn main() {
         // Basic function type usage
-println!("{}", "=== Basic function types ===".to_string());
+    println!("{}", "=== Basic function types ===".to_string());
 
     let mut op: Arc<Mutex<Option<BinaryOp>>> = Default::default();
     { let new_val = (*add.lock().unwrap().as_mut().unwrap()); *op.lock().unwrap() = Some(new_val); };
@@ -156,7 +156,7 @@ println!("{}", "=== Basic function types ===".to_string());
     print!("5 * 3 = {}\n", (*(op.lock().unwrap().as_ref().unwrap())(Arc::new(Mutex::new(Some(5))), Arc::new(Mutex::new(Some(3)))).lock().unwrap().as_ref().unwrap()));
 
         // Higher-order functions
-println!("{}", "\n=== Higher-order functions ===".to_string());
+    println!("{}", "\n=== Higher-order functions ===".to_string());
     let mut result = apply_binary(add.clone(), Arc::new(Mutex::new(Some(10))), Arc::new(Mutex::new(Some(20))));
     print!("applyBinary(add, 10, 20) = {}\n", (*result.lock().unwrap().as_mut().unwrap()));
 
@@ -167,7 +167,7 @@ println!("{}", "\n=== Higher-order functions ===".to_string());
     print!("applyUnary(square, 6) = {}\n", (*unaryResult.lock().unwrap().as_mut().unwrap()));
 
         // Function slices and filtering
-println!("{}", "\n=== Function slices and filtering ===".to_string());
+    println!("{}", "\n=== Function slices and filtering ===".to_string());
     let mut numbers = Arc::new(Mutex::new(Some(vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10])));
 
     let mut evens = filter(numbers.clone(), isEven.clone());
@@ -179,7 +179,7 @@ println!("{}", "\n=== Function slices and filtering ===".to_string());
     print!("Odd numbers: {}\n", format_slice(&odds));
 
         // Transform with function types
-println!("{}", "\n=== Transform operations ===".to_string());
+    println!("{}", "\n=== Transform operations ===".to_string());
     let mut squared = transform(Arc::new(Mutex::new(Some(Arc::new(Mutex::new(Some(vec![1, 2, 3, 4, 5])))))), square.clone());
     print!("Squared: {}\n", format_slice(&squared));
 
@@ -193,7 +193,7 @@ println!("{}", "\n=== Transform operations ===".to_string());
     print!("Doubled: {}\n", format_slice(&doubled));
 
         // String processing
-println!("{}", "\n=== String processing ===".to_string());
+    println!("{}", "\n=== String processing ===".to_string());
     let mut text = Arc::new(Mutex::new(Some("hello world".to_string())));
     let mut upper = process_string(text.clone(), toUpper.clone());
     print!("'{}' -> '{}'\n", (*text.lock().unwrap().as_mut().unwrap()), (*upper.lock().unwrap().as_mut().unwrap()));
@@ -210,7 +210,7 @@ println!("{}", "\n=== String processing ===".to_string());
     print!("Reversed: {}\n", (*reversed.lock().unwrap().as_mut().unwrap()));
 
         // Functions that return functions
-println!("{}", "\n=== Functions returning functions ===".to_string());
+    println!("{}", "\n=== Functions returning functions ===".to_string());
     let mut triple = make_multiplier(Arc::new(Mutex::new(Some(3))));
     print!("triple(4) = {}\n", (*(triple.lock().unwrap().as_ref().unwrap())(Arc::new(Mutex::new(Some(4)))).lock().unwrap().as_ref().unwrap()));
 
@@ -218,7 +218,7 @@ println!("{}", "\n=== Functions returning functions ===".to_string());
     print!("addTen(5, 3) = {}\n", (*(addTen.lock().unwrap().as_ref().unwrap())(Arc::new(Mutex::new(Some(5))), Arc::new(Mutex::new(Some(3)))).lock().unwrap().as_ref().unwrap()));
 
         // Struct with function fields
-println!("{}", "\n=== Struct with function fields ===".to_string());
+    println!("{}", "\n=== Struct with function fields ===".to_string());
     let mut calc = Calculator { add: Arc::new(Mutex::new(Some(Arc::new(Mutex::new(Some(Box::new(move |a: Arc<Mutex<Option<i32>>>, b: Arc<Mutex<Option<i32>>>| -> Arc<Mutex<Option<i32>>> {
         return {
             let __tmp_x = (*a.lock().unwrap().as_mut().unwrap());
@@ -234,12 +234,12 @@ println!("{}", "\n=== Struct with function fields ===".to_string());
     }) as Box<dyn Fn(Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<i32>>> + Send + Sync>)))))), multiply: multiply.clone() };
 
         // Reuse existing function
-print!("calc.Add(10, 5) = {}\n", (*(*calc.lock().unwrap().as_mut().unwrap()).add(Arc::new(Mutex::new(Some(10))), Arc::new(Mutex::new(Some(5)))).lock().unwrap().as_ref().unwrap()));
+    print!("calc.Add(10, 5) = {}\n", (*(*calc.lock().unwrap().as_mut().unwrap()).add(Arc::new(Mutex::new(Some(10))), Arc::new(Mutex::new(Some(5)))).lock().unwrap().as_ref().unwrap()));
     print!("calc.Subtract(10, 5) = {}\n", (*(*calc.lock().unwrap().as_mut().unwrap()).subtract(Arc::new(Mutex::new(Some(10))), Arc::new(Mutex::new(Some(5)))).lock().unwrap().as_ref().unwrap()));
     print!("calc.Multiply(10, 5) = {}\n", (*(*calc.lock().unwrap().as_mut().unwrap()).multiply(Arc::new(Mutex::new(Some(10))), Arc::new(Mutex::new(Some(5)))).lock().unwrap().as_ref().unwrap()));
 
         // Function variables
-println!("{}", "\n=== Function variables ===".to_string());
+    println!("{}", "\n=== Function variables ===".to_string());
     let mut processor: Arc<Mutex<Option<StringProcessor>>> = Default::default();
     { let new_val = (*toUpper.lock().unwrap().as_mut().unwrap()); *processor.lock().unwrap() = Some(new_val); };
     print!("Using toUpper: {}\n", (*(processor.lock().unwrap().as_ref().unwrap())(Arc::new(Mutex::new(Some("test".to_string())))).lock().unwrap().as_ref().unwrap()));

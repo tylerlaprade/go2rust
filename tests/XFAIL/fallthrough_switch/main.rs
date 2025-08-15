@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 
 fn main() {
         // Basic fallthrough
-let mut x = Arc::new(Mutex::new(Some(2)));
+    let mut x = Arc::new(Mutex::new(Some(2)));
     match (*x.lock().unwrap().as_mut().unwrap()) {
         1 => {
             println!("{}", "One".to_string());
@@ -25,7 +25,7 @@ let mut x = Arc::new(Mutex::new(Some(2)));
     println!("{}", "---".to_string());
 
         // Multiple fallthrough
-let mut grade = Arc::new(Mutex::new(Some(('B' as i32))));
+    let mut grade = Arc::new(Mutex::new(Some(('B' as i32))));
     match (*grade.lock().unwrap().as_mut().unwrap()) {
         ('A' as i32) => {
             println!("{}", "Excellent!".to_string());
@@ -50,7 +50,7 @@ let mut grade = Arc::new(Mutex::new(Some(('B' as i32))));
     println!("{}", "---".to_string());
 
         // Fallthrough with conditions
-let mut n = Arc::new(Mutex::new(Some(15)));
+    let mut n = Arc::new(Mutex::new(Some(15)));
     match true {
         true if (*n.lock().unwrap().as_mut().unwrap()) % 15 == 0 => {
             println!("{}", "FizzBuzz".to_string());

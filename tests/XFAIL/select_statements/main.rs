@@ -23,13 +23,13 @@ pub fn select_with_default() {
     let mut ch = ;
 
         // Non-blocking send
-// TODO: Unhandled statement type: SelectStmt
+    // TODO: Unhandled statement type: SelectStmt
 
         // Non-blocking receive
-// TODO: Unhandled statement type: SelectStmt
+    // TODO: Unhandled statement type: SelectStmt
 
         // Try to receive again (should hit default)
-// TODO: Unhandled statement type: SelectStmt
+    // TODO: Unhandled statement type: SelectStmt
 }
 
 pub fn select_loop() {
@@ -56,7 +56,7 @@ pub fn select_with_send() {
     // TODO: Unhandled statement type: SelectStmt
 
         // Read from both channels
-println!("{} {}", "Reading from ch1:".to_string(), <-(*ch1.lock().unwrap().as_mut().unwrap()));
+    println!("{} {}", "Reading from ch1:".to_string(), <-(*ch1.lock().unwrap().as_mut().unwrap()));
 
     // TODO: Unhandled statement type: SelectStmt
 }

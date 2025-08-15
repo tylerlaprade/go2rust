@@ -40,7 +40,7 @@ pub fn sqrt(x: Arc<Mutex<Option<f64>>>) -> (Arc<Mutex<Option<f64>>>, Arc<Mutex<O
     }
 
         // Simple approximation
-let mut result = Arc::new(Mutex::new(Some((*x.lock().unwrap().as_mut().unwrap()) / 2.0)));
+    let mut result = Arc::new(Mutex::new(Some((*x.lock().unwrap().as_mut().unwrap()) / 2.0)));
     let mut i = Arc::new(Mutex::new(Some(0)));
     while (*i.lock().unwrap().as_mut().unwrap()) < 10 {
         { let new_val = ((*result.lock().unwrap().as_mut().unwrap()) + (*x.lock().unwrap().as_mut().unwrap()) / (*result.lock().unwrap().as_mut().unwrap())) / 2.0; *result.lock().unwrap() = Some(new_val); };
@@ -62,7 +62,7 @@ pub fn process_value(val: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<Box<dyn E
 
 fn main() {
         // Basic error handling
-let (mut result, mut err) = divide(Arc::new(Mutex::new(Some(10))), Arc::new(Mutex::new(Some(2))));
+    let (mut result, mut err) = divide(Arc::new(Mutex::new(Some(10))), Arc::new(Mutex::new(Some(2))));
     if (*err.lock().unwrap()).is_some() {
         println!("{} {}", "Error:".to_string(), (*err.lock().unwrap().as_mut().unwrap()));
     } else {
@@ -70,7 +70,7 @@ let (mut result, mut err) = divide(Arc::new(Mutex::new(Some(10))), Arc::new(Mute
     }
 
         // Error case
-(result, err) = divide(Arc::new(Mutex::new(Some(10))), Arc::new(Mutex::new(Some(0))));
+    (result, err) = divide(Arc::new(Mutex::new(Some(10))), Arc::new(Mutex::new(Some(0))));
     if (*err.lock().unwrap()).is_some() {
         println!("{} {}", "Error:".to_string(), (*err.lock().unwrap().as_mut().unwrap()));
     } else {
@@ -78,7 +78,7 @@ let (mut result, mut err) = divide(Arc::new(Mutex::new(Some(10))), Arc::new(Mute
     }
 
         // Formatted error
-let (mut sqrtResult, mut err) = sqrt(Arc::new(Mutex::new(Some(-4))));
+    let (mut sqrtResult, mut err) = sqrt(Arc::new(Mutex::new(Some(-4))));
     if (*err.lock().unwrap()).is_some() {
         println!("{} {}", "Sqrt error:".to_string(), (*err.lock().unwrap().as_mut().unwrap()));
     } else {
@@ -86,7 +86,7 @@ let (mut sqrtResult, mut err) = sqrt(Arc::new(Mutex::new(Some(-4))));
     }
 
         // Custom error
-{ let new_val = process_value(Arc::new(Mutex::new(Some(-5)))); *err.lock().unwrap() = Some(new_val); };
+    { let new_val = process_value(Arc::new(Mutex::new(Some(-5)))); *err.lock().unwrap() = Some(new_val); };
     if (*err.lock().unwrap()).is_some() {
         println!("{} {}", "Process error:".to_string(), (*err.lock().unwrap().as_mut().unwrap()));
     }

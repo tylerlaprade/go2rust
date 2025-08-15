@@ -40,39 +40,39 @@ const F: i32 = 5 + 10;
 
 fn main() {
         // Basic constants
-println!("{}", "=== Basic constants ===".to_string());
+    println!("{}", "=== Basic constants ===".to_string());
     print!("Pi = {:.5}\n", PI);
     print!("Euler = {:.5}\n", EULER);
     print!("MaxUsers = {}\n", MAX_USERS);
 
         // Typed constants
-println!("{}", "\n=== Typed constants ===".to_string());
+    println!("{}", "\n=== Typed constants ===".to_string());
     print!("Name: {}\n", NAME);
     print!("Version: {:.1}\n", VERSION);
     print!("Debug: {}\n", DEBUG);
 
         // Weekday constants
-println!("{}", "\n=== Weekday constants ===".to_string());
+    println!("{}", "\n=== Weekday constants ===".to_string());
     print!("Sunday = {}\n", SUNDAY);
     print!("Monday = {}\n", MONDAY);
     print!("Wednesday = {}\n", WEDNESDAY);
     print!("Saturday = {}\n", SATURDAY);
 
         // Size constants
-println!("{}", "\n=== Size constants ===".to_string());
+    println!("{}", "\n=== Size constants ===".to_string());
     print!("KB = {} bytes\n", K_B);
     print!("MB = {} bytes\n", M_B);
     print!("GB = {} bytes\n", G_B);
     print!("TB = {} bytes\n", T_B);
 
         // Color constants
-println!("{}", "\n=== Color constants ===".to_string());
+    println!("{}", "\n=== Color constants ===".to_string());
     print!("Red = {}\n", RED);
     print!("Green = {}\n", GREEN);
     print!("Blue = {}\n", BLUE);
 
         // Complex iota
-println!("{}", "\n=== Complex iota expressions ===".to_string());
+    println!("{}", "\n=== Complex iota expressions ===".to_string());
     print!("A = {}\n", A);
     print!("B = {}\n", B);
     print!("C = {}\n", C);
@@ -81,7 +81,7 @@ println!("{}", "\n=== Complex iota expressions ===".to_string());
     print!("F = {}\n", F);
 
         // Local constants
-println!("{}", "\n=== Local constants ===".to_string());
+    println!("{}", "\n=== Local constants ===".to_string());
     const localConst: i32 = 42;
 
     const x: i32 = 10;
@@ -93,7 +93,7 @@ const z: i32 = x + y;
     print!("x = {}, y = {}, z = {}\n", x, y, z);
 
         // Untyped constants in expressions
-println!("{}", "\n=== Untyped constants in expressions ===".to_string());
+    println!("{}", "\n=== Untyped constants in expressions ===".to_string());
     const untypedInt: i32 = 100;
 
     const untypedFloat: f64 = 3.14;
@@ -108,7 +108,7 @@ println!("{}", "\n=== Untyped constants in expressions ===".to_string());
     print!("mixed = {}\n", (*mixed.lock().unwrap().as_mut().unwrap()));
 
         // String constants
-println!("{}", "\n=== String constants ===".to_string());
+    println!("{}", "\n=== String constants ===".to_string());
     const greeting: &'static str = "Hello";
 
     const target: &'static str = "World";
