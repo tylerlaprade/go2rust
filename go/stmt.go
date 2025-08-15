@@ -5,6 +5,7 @@ import (
 	"go/ast"
 	"go/token"
 	"go/types"
+	"sort"
 	"strings"
 )
 
@@ -1377,8 +1378,15 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		captured := findCapturedInCall(s.Call)
 
 		// Generate clones for captured variables
-		captureRenames := make(map[string]string)
+		// Sort variable names for deterministic output
+		var capturedVars []string
 		for varName := range captured {
+			capturedVars = append(capturedVars, varName)
+		}
+		sort.Strings(capturedVars)
+
+		captureRenames := make(map[string]string)
+		for _, varName := range capturedVars {
 			cloneName := varName + "_defer_captured"
 			captureRenames[varName] = cloneName
 			out.WriteString("let ")

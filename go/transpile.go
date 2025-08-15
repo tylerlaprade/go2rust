@@ -387,7 +387,15 @@ func Transpile(file *ast.File, fileSet *token.FileSet, typeInfo *TypeInfo) (stri
 	}
 
 	// Output anonymous struct definitions if any were generated
-	for typeName, structType := range anonymousStructs {
+	// Sort the type names for deterministic output
+	var anonTypeNames []string
+	for typeName := range anonymousStructs {
+		anonTypeNames = append(anonTypeNames, typeName)
+	}
+	sort.Strings(anonTypeNames)
+
+	for _, typeName := range anonTypeNames {
+		structType := anonymousStructs[typeName]
 		if !first {
 			body.WriteString("\n\n")
 		}

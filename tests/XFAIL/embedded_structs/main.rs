@@ -75,14 +75,6 @@ impl Employee {
         print!("{} is working (ID: {})\n", (*self.name.lock().unwrap().as_ref().unwrap()), (*self.i_d.lock().unwrap().as_ref().unwrap()));
     }
 
-    pub fn greet(&self) {
-        // Forward to embedded type's method
-        let embedded = self.person.clone();
-        let mut guard = embedded.lock().unwrap();
-        let embedded_ref = guard.as_mut().unwrap();
-        embedded_ref.greet()
-    }
-
     pub fn get_info(&self) -> Arc<Mutex<Option<String>>> {
         // Forward to embedded type's method
         let embedded = self.person.clone();
@@ -97,6 +89,14 @@ impl Employee {
         let mut guard = embedded.lock().unwrap();
         let embedded_ref = guard.as_mut().unwrap();
         embedded_ref.full_address()
+    }
+
+    pub fn greet(&self) {
+        // Forward to embedded type's method
+        let embedded = self.person.clone();
+        let mut guard = embedded.lock().unwrap();
+        let embedded_ref = guard.as_mut().unwrap();
+        embedded_ref.greet()
     }
 }
 

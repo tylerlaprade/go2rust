@@ -73,22 +73,6 @@ impl Service {
         return Arc::new(Mutex::new(Some((*(*(*self.logger.lock().unwrap().as_ref().unwrap()).counter.clone().lock().unwrap().as_mut().unwrap()).value().lock().unwrap().as_ref().unwrap()) * 10)));
     }
 
-    pub fn increment(&mut self) {
-        // Forward to embedded type's method
-        let embedded = self.counter.clone();
-        let mut guard = embedded.lock().unwrap();
-        let embedded_ref = guard.as_mut().unwrap();
-        embedded_ref.increment()
-    }
-
-    pub fn add(&mut self, n: Arc<Mutex<Option<i32>>>) {
-        // Forward to embedded type's method
-        let embedded = self.counter.clone();
-        let mut guard = embedded.lock().unwrap();
-        let embedded_ref = guard.as_mut().unwrap();
-        embedded_ref.add(n)
-    }
-
     pub fn log(&self, msg: Arc<Mutex<Option<String>>>) {
         // Forward to embedded type's method
         let embedded = self.logger.clone();
@@ -103,6 +87,22 @@ impl Service {
         let mut guard = embedded.lock().unwrap();
         let embedded_ref = guard.as_mut().unwrap();
         embedded_ref.set_prefix(prefix)
+    }
+
+    pub fn increment(&mut self) {
+        // Forward to embedded type's method
+        let embedded = self.counter.clone();
+        let mut guard = embedded.lock().unwrap();
+        let embedded_ref = guard.as_mut().unwrap();
+        embedded_ref.increment()
+    }
+
+    pub fn add(&mut self, n: Arc<Mutex<Option<i32>>>) {
+        // Forward to embedded type's method
+        let embedded = self.counter.clone();
+        let mut guard = embedded.lock().unwrap();
+        let embedded_ref = guard.as_mut().unwrap();
+        embedded_ref.add(n)
     }
 }
 
@@ -143,6 +143,14 @@ impl Top {
         return self.extra.clone();
     }
 
+    pub fn set_i_d(&mut self, id: Arc<Mutex<Option<i32>>>) {
+        // Forward to embedded type's method
+        let embedded = self.middle.clone();
+        let mut guard = embedded.lock().unwrap();
+        let embedded_ref = guard.as_mut().unwrap();
+        embedded_ref.set_i_d(id)
+    }
+
     pub fn get_data(&self) -> Arc<Mutex<Option<String>>> {
         // Forward to embedded type's method
         let embedded = self.middle.clone();
@@ -157,14 +165,6 @@ impl Top {
         let mut guard = embedded.lock().unwrap();
         let embedded_ref = guard.as_mut().unwrap();
         embedded_ref.get_i_d()
-    }
-
-    pub fn set_i_d(&mut self, id: Arc<Mutex<Option<i32>>>) {
-        // Forward to embedded type's method
-        let embedded = self.middle.clone();
-        let mut guard = embedded.lock().unwrap();
-        let embedded_ref = guard.as_mut().unwrap();
-        embedded_ref.set_i_d(id)
     }
 }
 
