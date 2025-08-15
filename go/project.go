@@ -200,15 +200,25 @@ name = "%s"
 path = "lib.rs"
 `, pg.packageName, pg.packageName)
 	} else {
-		cargoContent = `[package]
-name = "transpiled"
+		// Use directory name as package name for better test isolation
+		packageName := filepath.Base(pg.projectPath)
+		if packageName == "." {
+			// If running in current directory, use "transpiled" as default name
+			packageName = "transpiled"
+		}
+		// Sanitize package name to ensure it's valid for Cargo
+		packageName = strings.ReplaceAll(packageName, "-", "_")
+		packageName = strings.ReplaceAll(packageName, " ", "_")
+
+		cargoContent = fmt.Sprintf(`[package]
+name = "%s"
 version = "0.1.0"
 edition = "2021"
 
 [[bin]]
-name = "transpiled"
+name = "%s"
 path = "main.rs"
-`
+`, packageName, packageName)
 	}
 
 	// Add dependencies if needed
