@@ -19,6 +19,7 @@
 5. **Update README** when adding support for new Go syntax features
 6. **Update ROADMAP.md** after implementing features or making progress on phases
 7. **Include transpiled Rust files in commits** when transpiler changes affect them (output of test cases)
+8. **ENSURE DETERMINISTIC OUTPUT** - Always sort map keys before iterating when generating output. The transpiler MUST produce identical output for identical input
 
 ## Core Philosophy: Conservative Translation
 
@@ -109,8 +110,15 @@ The test script handles:
 - Limited stdlib support
 - No circular dependencies or build tags
 
-## Recent Progress
+## Recent Progress (2025-08-15)
 
+- **Closures fully working**: Fixed variable capture, proper unwrapping of return values, correct handling of range loop variables
+- **Defer statements improved**: Immediate argument evaluation for deferred closures, proper LIFO execution
+- **Basic interface{} support**: Empty interface with Box<dyn Any>, format_any helper for printing
+- **Deterministic output**: Fixed non-deterministic ordering in anonymous structs, promoted methods, and interfaces
+- **Test suite improvements**: Removed duplicate main functions, auto-promoted closures_basic test
+
+Previous progress:
 - All pointer operations now working correctly
 - **Fixed pointer type wrapping**: Pointers now use single wrapping instead of double
 - **Optimized function calls**: Variables passed as arguments use `.clone()` instead of re-wrapping

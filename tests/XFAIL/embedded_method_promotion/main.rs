@@ -73,20 +73,20 @@ impl Service {
         return Arc::new(Mutex::new(Some((*(*(*self.logger.lock().unwrap().as_ref().unwrap()).counter.clone().lock().unwrap().as_mut().unwrap()).value().lock().unwrap().as_ref().unwrap()) * 10)));
     }
 
-    pub fn increment(&mut self) {
-        // Forward to embedded type's method
-        let embedded = self.counter.clone();
-        let mut guard = embedded.lock().unwrap();
-        let embedded_ref = guard.as_mut().unwrap();
-        embedded_ref.increment()
-    }
-
     pub fn add(&mut self, n: Arc<Mutex<Option<i32>>>) {
         // Forward to embedded type's method
         let embedded = self.counter.clone();
         let mut guard = embedded.lock().unwrap();
         let embedded_ref = guard.as_mut().unwrap();
         embedded_ref.add(n)
+    }
+
+    pub fn increment(&mut self) {
+        // Forward to embedded type's method
+        let embedded = self.counter.clone();
+        let mut guard = embedded.lock().unwrap();
+        let embedded_ref = guard.as_mut().unwrap();
+        embedded_ref.increment()
     }
 
     pub fn log(&self, msg: Arc<Mutex<Option<String>>>) {

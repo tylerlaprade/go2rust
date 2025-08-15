@@ -103,7 +103,7 @@ func resolveFieldAccess(structType string, fieldName string) FieldAccessInfo {
 }
 
 // collectPromotedMethods recursively collects all methods that should be promoted from embedded types
-func collectPromotedMethods(typeName string, structDef *StructDef, methods map[string][]*ast.FuncDecl, promoted map[string]struct {
+func collectPromotedMethods(structDef *StructDef, methods map[string][]*ast.FuncDecl, promoted map[string]struct {
 	embeddedType string
 	method       *ast.FuncDecl
 }) {
@@ -132,7 +132,7 @@ func collectPromotedMethods(typeName string, structDef *StructDef, methods map[s
 				embeddedType string
 				method       *ast.FuncDecl
 			})
-			collectPromotedMethods(embeddedType, embeddedDef, methods, embeddedPromoted)
+			collectPromotedMethods(embeddedDef, methods, embeddedPromoted)
 
 			// Add these to our promoted methods (but they're promoted through the embedded type)
 			for methodName, methodInfo := range embeddedPromoted {
@@ -486,7 +486,7 @@ func Transpile(file *ast.File, fileSet *token.FileSet, typeInfo *TypeInfo) (stri
 				embeddedType string
 				method       *ast.FuncDecl
 			})
-			collectPromotedMethods(typeName, structDef, methods, promotedMethods)
+			collectPromotedMethods(structDef, methods, promotedMethods)
 
 			// Generate forwarding methods for all promoted methods
 			// Sort method names for deterministic output
@@ -547,7 +547,15 @@ func Transpile(file *ast.File, fileSet *token.FileSet, typeInfo *TypeInfo) (stri
 		}
 
 		// Generate trait implementations for this type
-		for ifaceName, ifaceType := range interfaces {
+		// Sort interface names for deterministic output
+		var ifaceNames []string
+		for ifaceName := range interfaces {
+			ifaceNames = append(ifaceNames, ifaceName)
+		}
+		sort.Strings(ifaceNames)
+
+		for _, ifaceName := range ifaceNames {
+			ifaceType := interfaces[ifaceName]
 			if implementsInterface(methods[typeName], ifaceType) {
 				body.WriteString("\n\n")
 				body.WriteString("impl ")
