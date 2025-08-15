@@ -125,7 +125,7 @@ For unimplemented features, the transpiler generates TODO comments:
 | └ Multiple return values | ✅ |
 | └ Method definitions | ✅ |
 | └ Method calls | ✅ |
-| └ Function literals/closures | ❌ |
+| └ Function literals/closures | ✅ |
 | **`go` - Goroutines** | ❌ |
 | **`goto` - Goto statements** | ❌ |
 | **`if` - If statements** | |
@@ -139,6 +139,7 @@ For unimplemented features, the transpiler generates TODO comments:
 | └ Blank imports | ❌ |
 | **`interface` - Interface types** | |
 | └ Interface definitions | ✅ |
+| └ Empty interface{} | ✅ |
 | └ Interface implementations | ❌ |
 | └ Type assertions | ✅ |
 | └ Type switches | ❌ |
@@ -210,7 +211,7 @@ For unimplemented features, the transpiler generates TODO comments:
 | **`defer` - Defer statements** | |
 | └ Basic defer | ✅ |
 | └ Multiple defers (LIFO order) | ✅ |
-| └ Defer with closures | ⚠️ |
+| └ Defer with closures | ✅ |
 | └ Defer stack management | ✅ |
 
 ### Standard Library Functions

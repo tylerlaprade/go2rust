@@ -489,7 +489,15 @@ func Transpile(file *ast.File, fileSet *token.FileSet, typeInfo *TypeInfo) (stri
 			collectPromotedMethods(typeName, structDef, methods, promotedMethods)
 
 			// Generate forwarding methods for all promoted methods
-			for methodName, methodInfo := range promotedMethods {
+			// Sort method names for deterministic output
+			var promotedMethodNames []string
+			for methodName := range promotedMethods {
+				promotedMethodNames = append(promotedMethodNames, methodName)
+			}
+			sort.Strings(promotedMethodNames)
+
+			for _, methodName := range promotedMethodNames {
+				methodInfo := promotedMethods[methodName]
 				// Check if this method is already defined by the outer type (shadowing)
 				shadowed := false
 				for _, ownMethod := range typeMethods {

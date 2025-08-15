@@ -26,21 +26,21 @@ Method receivers (value and pointer), multiple returns, method calls
 - 🚧 Struct embedding - method promotion working, field promotion needs wrapper handling fixes
 - 🚧 Anonymous structs - partial support (type generation works, literals need fixing)
 
-### 📋 Phase 5: Core Language Features (30% Complete)
+### 📋 Phase 5: Core Language Features (50% Complete)
 
 - ✅ Basic constants - simple const declarations working
 - 🚧 Complex constants and iota - expressions, iota patterns need work
-- 🚧 Closures and function literals - basic implementation, capture needs refinement
-- 🚧 Defer statements - basic LIFO execution working
+- ✅ Closures and function literals - fully working with proper variable capture
+- 🚧 Defer statements - basic LIFO execution working, some edge cases remain
 - ❌ Panic and recover - not implemented
-- ❌ Interfaces - trait generation exists but incomplete
+- 🚧 Interfaces - empty interface{} support added, named interfaces incomplete
 
 ### 📋 Phase 6: Control Flow Extensions
 
-- Select statements (select_basic, select_statements)
-- Goto and labels (goto_labels, labeled_statements)
-- Fallthrough in switch (fallthrough_switch)
-- Blank identifier (blank_identifier)
+- ❌ Select statements (select_basic, select_statements)
+- ❌ Goto and labels (goto_labels, labeled_statements)
+- ❌ Fallthrough in switch (fallthrough_switch)
+- ✅ Blank identifier - fully working except for channels (which aren't implemented)
 
 ### 📋 Phase 7: Goroutines and Concurrency
 
