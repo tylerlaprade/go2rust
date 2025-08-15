@@ -55,7 +55,7 @@ impl Shape for Circle {
 }
 
 pub fn print_shape_info(s: Arc<Mutex<Option<Box<dyn Shape>>>>) {
-    print!("Area: {:.2}, Perimeter: {:.2}\n", (*(*s.lock().unwrap().as_mut().unwrap()).area().lock().unwrap().as_ref().unwrap()), (*(*s.lock().unwrap().as_mut().unwrap()).perimeter().lock().unwrap().as_ref().unwrap()));
+    print!("Area: {:.2}, Perimeter: {:.2}\n", (*s.area().lock().unwrap().as_ref().unwrap()), (*s.perimeter().lock().unwrap().as_ref().unwrap()));
 }
 
 fn main() {

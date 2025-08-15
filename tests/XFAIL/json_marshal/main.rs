@@ -10,6 +10,6 @@ struct User {
 
 fn main() {
     let mut u = User { name: Arc::new(Mutex::new(Some("Alice".to_string()))), age: Arc::new(Mutex::new(Some(30))) };
-    let (mut data, _) = (*json.lock().unwrap().as_mut().unwrap()).marshal(Arc::new(Mutex::new(Some((*u.lock().unwrap().as_mut().unwrap())))));
+    let (mut data, _) = json.marshal(Arc::new(Mutex::new(Some((*u.lock().unwrap().as_mut().unwrap())))));
     println!("{}", (*Arc::new(Mutex::new(Some(String::from_utf8((*data.lock().unwrap().as_ref().unwrap()).clone()).unwrap()))).lock().unwrap().as_ref().unwrap()));
 }

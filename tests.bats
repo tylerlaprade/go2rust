@@ -348,6 +348,10 @@ run_xfail_test() {
     run_test "tests/recursion_factorial"
 }
 
+@test "simple_embedding" {
+    run_test "tests/simple_embedding"
+}
+
 @test "simple_functions" {
     run_test "tests/simple_functions"
 }
@@ -376,6 +380,10 @@ run_xfail_test() {
     run_test "tests/type_assertion_simple"
 }
 
+@test "type_embedding" {
+    run_test "tests/type_embedding"
+}
+
 @test "values_basic" {
     run_test "tests/values_basic"
 }
@@ -394,6 +402,18 @@ run_xfail_test() {
 
 @test "XFAIL: advanced_control_flow" {
     run_xfail_test "tests/XFAIL/advanced_control_flow"
+}
+
+@test "XFAIL: anonymous_structs_basic" {
+    run_xfail_test "tests/XFAIL/anonymous_structs_basic"
+}
+
+@test "XFAIL: anonymous_structs_functions" {
+    run_xfail_test "tests/XFAIL/anonymous_structs_functions"
+}
+
+@test "XFAIL: anonymous_structs_nested" {
+    run_xfail_test "tests/XFAIL/anonymous_structs_nested"
 }
 
 @test "XFAIL: atomic_operations" {
@@ -474,6 +494,10 @@ run_xfail_test() {
 
 @test "XFAIL: defer_statements" {
     run_xfail_test "tests/XFAIL/defer_statements"
+}
+
+@test "XFAIL: embedded_method_promotion" {
+    run_xfail_test "tests/XFAIL/embedded_method_promotion"
 }
 
 @test "XFAIL: embedded_structs" {
@@ -588,6 +612,10 @@ run_xfail_test() {
     run_xfail_test "tests/XFAIL/named_types_methods"
 }
 
+@test "XFAIL: nested_embedding" {
+    run_xfail_test "tests/XFAIL/nested_embedding"
+}
+
 @test "XFAIL: nested_structures" {
     run_xfail_test "tests/XFAIL/nested_structures"
 }
@@ -650,10 +678,6 @@ run_xfail_test() {
 
 @test "XFAIL: shared_mutation" {
     run_xfail_test "tests/XFAIL/shared_mutation"
-}
-
-@test "XFAIL: simple_embedding" {
-    run_xfail_test "tests/XFAIL/simple_embedding"
 }
 
 @test "XFAIL: slice_operations_advanced" {
@@ -734,10 +758,6 @@ run_xfail_test() {
 
 @test "XFAIL: type_conversions" {
     run_xfail_test "tests/XFAIL/type_conversions"
-}
-
-@test "XFAIL: type_embedding" {
-    run_xfail_test "tests/XFAIL/type_embedding"
 }
 
 @test "XFAIL: unsafe_pointer_ops" {

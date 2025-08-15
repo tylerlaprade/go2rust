@@ -1,0 +1,9 @@
+Person: Alice is 30 years old
+Point: (10, 20)
+p1 == p2: true
+p1 == p3: false
+Config for server: Port=8080, Timeout=30
+Settings before: Debug=false, Verbose=false
+Settings after: Debug=true, Verbose=true
+Event [info]: System started
+Event [error]: Connection failed

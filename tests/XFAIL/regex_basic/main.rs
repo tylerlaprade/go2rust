@@ -16,7 +16,7 @@ where
 
 fn main() {
     let mut pattern = Arc::new(Mutex::new(Some(`\d+`.to_string())));
-    let mut re = (*regexp.lock().unwrap().as_mut().unwrap()).must_compile(Arc::new(Mutex::new(Some((*pattern.lock().unwrap().as_mut().unwrap())))));
+    let mut re = regexp.must_compile(Arc::new(Mutex::new(Some((*pattern.lock().unwrap().as_mut().unwrap())))));
     let mut text = Arc::new(Mutex::new(Some("I have 42 apples and 7 oranges".to_string())));
     let mut matches = (*re.lock().unwrap().as_mut().unwrap()).find_all_string(Arc::new(Mutex::new(Some((*text.lock().unwrap().as_mut().unwrap())))), Arc::new(Mutex::new(Some(-1))));
     println!("{} {}", "Numbers found:".to_string(), format_slice(&matches));

@@ -1,0 +1,18 @@
+=== Basic method promotion ===
+[SVC] Service started
+[SERVICE] Prefix changed
+Counter value (via promoted method): 6
+Service name: MyService
+Shadowed Value method: 60
+
+=== Method promotion with pointers ===
+[PTR] Pointer service
+Pointer service counter: 11
+
+=== Multi-level embedding ===
+ID (promoted from Base): 100
+ID after SetID: 200
+Data (promoted from Middle): middle data
+Extra: extra data
+
+=== End of method promotion tests ===

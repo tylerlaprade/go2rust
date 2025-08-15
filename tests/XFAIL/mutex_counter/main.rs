@@ -8,17 +8,17 @@ struct Counter {
 
 impl Counter {
     pub fn increment(&mut self) {
-        self.mu.clone().lock();
+        (*self.mu.clone().lock().unwrap().as_mut().unwrap()).lock();
         __defer_stack.push(Box::new(move || {
-        self.mu.clone().unlock();
+        (*self.mu.clone().lock().unwrap().as_mut().unwrap()).unlock();
     }));
         { let mut guard = self.value.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
 
     pub fn value(&mut self) -> Arc<Mutex<Option<i32>>> {
-        self.mu.clone().lock();
+        (*self.mu.clone().lock().unwrap().as_mut().unwrap()).lock();
         __defer_stack.push(Box::new(move || {
-        self.mu.clone().unlock();
+        (*self.mu.clone().lock().unwrap().as_mut().unwrap()).unlock();
     }));
         return self.value.clone();
     }

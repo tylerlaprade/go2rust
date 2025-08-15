@@ -18,9 +18,9 @@ impl Counter {
 impl Point {
     /// Methods for Point type
     pub fn distance(&self, other: Arc<Mutex<Option<Point>>>) -> Arc<Mutex<Option<f64>>> {
-        let mut dx = Arc::new(Mutex::new(Some((*self.x.clone().lock().unwrap().as_ref().unwrap()) - (*(*other.lock().unwrap().as_mut().unwrap()).x.lock().unwrap().as_ref().unwrap()))));
-        let mut dy = Arc::new(Mutex::new(Some((*self.y.clone().lock().unwrap().as_ref().unwrap()) - (*(*other.lock().unwrap().as_mut().unwrap()).y.lock().unwrap().as_ref().unwrap()))));
-        return Arc::new(Mutex::new(Some((*math.lock().unwrap().as_mut().unwrap()).sqrt(Arc::new(Mutex::new(Some((*dx.lock().unwrap().as_mut().unwrap()) * (*dx.lock().unwrap().as_mut().unwrap()) + (*dy.lock().unwrap().as_mut().unwrap()) * (*dy.lock().unwrap().as_mut().unwrap()))))))));
+        let mut dx = Arc::new(Mutex::new(Some((*self.x.clone().lock().unwrap().as_ref().unwrap()) - (*other.x.lock().unwrap().as_ref().unwrap()))));
+        let mut dy = Arc::new(Mutex::new(Some((*self.y.clone().lock().unwrap().as_ref().unwrap()) - (*other.y.lock().unwrap().as_ref().unwrap()))));
+        return Arc::new(Mutex::new(Some(math.sqrt(Arc::new(Mutex::new(Some((*dx.lock().unwrap().as_mut().unwrap()) * (*dx.lock().unwrap().as_mut().unwrap()) + (*dy.lock().unwrap().as_mut().unwrap()) * (*dy.lock().unwrap().as_mut().unwrap()))))))));
     }
 
     pub fn move(&mut self, dx: Arc<Mutex<Option<f64>>>, dy: Arc<Mutex<Option<f64>>>) {

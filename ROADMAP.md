@@ -18,13 +18,13 @@ Pointer types, &/*, new() builtin, struct fields, nil handling
 
 Method receivers (value and pointer), multiple returns, method calls
 
-### ✅ Phase 4.5: Advanced Types and Structs (80% Complete)
+### 🚧 Phase 4.5: Advanced Types and Structs (85% Complete)
 
 - ✅ Type aliases (`type A = B`) - generates proper Rust type aliases
 - ✅ Type definitions (`type A B`) - generates newtype wrappers with Display impl
 - ✅ Struct tags - preserved as comments in generated code
-- 🚧 Struct embedding - basic field promotion working, method promotion incomplete
-- ❌ Anonymous structs - not yet implemented
+- 🚧 Struct embedding - method promotion working, field promotion needs wrapper handling fixes
+- 🚧 Anonymous structs - partial support (type generation works, literals need fixing)
 
 ### 📋 Phase 5: Core Language Features (30% Complete)
 

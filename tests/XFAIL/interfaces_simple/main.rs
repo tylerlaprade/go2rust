@@ -32,8 +32,8 @@ impl geometry for rect {
 
 pub fn measure(g: Arc<Mutex<Option<Box<dyn geometry>>>>) {
     println!("{}", (*g.lock().unwrap().as_mut().unwrap()));
-    println!("{}", (*(*g.lock().unwrap().as_mut().unwrap()).area().lock().unwrap().as_ref().unwrap()));
-    println!("{}", (*(*g.lock().unwrap().as_mut().unwrap()).perim().lock().unwrap().as_ref().unwrap()));
+    println!("{}", (*g.area().lock().unwrap().as_ref().unwrap()));
+    println!("{}", (*g.perim().lock().unwrap().as_ref().unwrap()));
 }
 
 fn main() {

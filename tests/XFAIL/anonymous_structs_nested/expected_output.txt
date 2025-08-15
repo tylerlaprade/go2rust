@@ -1,0 +1,12 @@
+Config: production
+Database: db.example.com:5432 (user: admin)
+Cache: enabled=true, TTL=300
+
+Dashboard: Main Dashboard
+Widget 1 (chart) at position (0, 0)
+Widget 2 (table) at position (100, 0)
+
+System version: 1.0.0
+Module auth: enabled=true
+  - timeout: 3600
+  - max_attempts: 3

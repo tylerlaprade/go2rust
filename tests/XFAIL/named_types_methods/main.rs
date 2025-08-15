@@ -37,10 +37,10 @@ impl Fahrenheit {
 
 fn main() {
     let mut temp: Arc<Mutex<Option<Celsius>>> = Arc::new(Mutex::new(Some(100)));
-    print!("{}°C = {}°F\n", (*temp.lock().unwrap().as_mut().unwrap()), (*(*temp.lock().unwrap().as_mut().unwrap()).to_fahrenheit().lock().unwrap().as_ref().unwrap()));
+    print!("{}°C = {}°F\n", (*temp.lock().unwrap().as_mut().unwrap()), (*temp.to_fahrenheit().lock().unwrap().as_ref().unwrap()));
 
     let mut f: Arc<Mutex<Option<Fahrenheit>>> = Arc::new(Mutex::new(Some(212)));
-    print!("{}°F = {}°C\n", (*f.lock().unwrap().as_mut().unwrap()), (*(*f.lock().unwrap().as_mut().unwrap()).to_celsius().lock().unwrap().as_ref().unwrap()));
+    print!("{}°F = {}°C\n", (*f.lock().unwrap().as_mut().unwrap()), (*f.to_celsius().lock().unwrap().as_ref().unwrap()));
 
     let mut s: StringAlias = Arc::new(Mutex::new(Some("hello".to_string())));
     println!("{}", (*s.lock().unwrap().as_mut().unwrap()));

@@ -152,16 +152,55 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			// Field access on a variable
 			if currentReceiver != "" && ident.Name == currentReceiver {
 				// Field access on method receiver - use self directly
-				fieldPath := resolveFieldAccess(currentReceiverType, e.Sel.Name)
-				out.WriteString("self.")
-				out.WriteString(fieldPath)
-				// For return statements, we need to clone the Arc
-				if ctx == RValue {
-					out.WriteString(".clone()")
+				fieldInfo := resolveFieldAccess(currentReceiverType, e.Sel.Name)
+
+				if fieldInfo.IsPromoted {
+					// Accessing promoted field through embedded struct(s)
+					// For nested embedding like C.B.A.x, we need:
+					// (*(*self.b.lock().unwrap().as_ref().unwrap()).a.lock().unwrap().as_ref().unwrap()).x
+
+					if len(fieldInfo.EmbeddedPath) == 1 {
+						// Simple case: one level of embedding
+						out.WriteString("(*self.")
+						out.WriteString(ToSnakeCase(fieldInfo.EmbeddedPath[0]))
+						out.WriteString(".lock().unwrap().as_ref().unwrap()).")
+						out.WriteString(fieldInfo.FieldName)
+					} else {
+						// Complex case: multiple levels of embedding
+						// Start with the first embedded struct
+						out.WriteString("(*(*self.")
+						out.WriteString(ToSnakeCase(fieldInfo.EmbeddedPath[0]))
+						out.WriteString(".lock().unwrap().as_ref().unwrap())")
+
+						// Add intermediate embedded structs
+						for i := 1; i < len(fieldInfo.EmbeddedPath); i++ {
+							out.WriteString(".")
+							out.WriteString(ToSnakeCase(fieldInfo.EmbeddedPath[i]))
+							if i < len(fieldInfo.EmbeddedPath)-1 {
+								out.WriteString(".lock().unwrap().as_ref().unwrap()")
+							} else {
+								// Last one before the field
+								out.WriteString(".lock().unwrap().as_ref().unwrap()).")
+							}
+						}
+						out.WriteString(fieldInfo.FieldName)
+					}
+					// For return statements, we need to clone the Arc
+					if ctx == RValue {
+						out.WriteString(".clone()")
+					}
+				} else {
+					// Direct field access
+					out.WriteString("self.")
+					out.WriteString(fieldInfo.FieldName)
+					// For return statements, we need to clone the Arc
+					if ctx == RValue {
+						out.WriteString(".clone()")
+					}
 				}
 			} else {
 				// Regular field access - try to resolve through type info
-				var fieldPath string
+				var fieldInfo FieldAccessInfo
 
 				if typeInfo != nil {
 					// Try to get the type of the expression
@@ -175,17 +214,37 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 						// Remove pointer prefix if present
 						typeStr = strings.TrimPrefix(typeStr, "*")
 
-						fieldPath = resolveFieldAccess(typeStr, e.Sel.Name)
+						fieldInfo = resolveFieldAccess(typeStr, e.Sel.Name)
 					} else {
-						fieldPath = ToSnakeCase(e.Sel.Name)
+						fieldInfo = FieldAccessInfo{
+							IsPromoted: false,
+							FieldName:  ToSnakeCase(e.Sel.Name),
+						}
 					}
 				} else {
-					fieldPath = ToSnakeCase(e.Sel.Name)
+					fieldInfo = FieldAccessInfo{
+						IsPromoted: false,
+						FieldName:  ToSnakeCase(e.Sel.Name),
+					}
 				}
 
-				TranspileExpression(out, e.X)
-				out.WriteString(".")
-				out.WriteString(fieldPath)
+				if fieldInfo.IsPromoted {
+					// Accessing promoted field through embedded struct(s)
+					// We need to unwrap each embedded struct in the path
+					TranspileExpressionContext(out, e.X, LValue)
+					for _, embedded := range fieldInfo.EmbeddedPath {
+						out.WriteString(".")
+						out.WriteString(ToSnakeCase(embedded))
+						out.WriteString(".lock().unwrap().as_ref().unwrap()")
+					}
+					out.WriteString(".")
+					out.WriteString(fieldInfo.FieldName)
+				} else {
+					// Direct field access
+					TranspileExpressionContext(out, e.X, LValue)
+					out.WriteString(".")
+					out.WriteString(fieldInfo.FieldName)
+				}
 			}
 		} else {
 			// Complex expression for X (not just an identifier)
@@ -1072,8 +1131,47 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 	// Check if this is a method call (selector expression)
 	if sel, ok := call.Fun.(*ast.SelectorExpr); ok {
 		// This is a method call - handle it specially
-		TranspileExpression(out, sel.X)
-		out.WriteString(".")
+		// For method calls, we need to check if the receiver is a wrapped type or not
+		// If it's a struct variable, we call the method directly
+		// If it's a pointer/wrapped type, we need to unwrap it first
+
+		// Check what kind of receiver we have
+		needsUnwrap := false
+
+		// Check if the receiver is a simple identifier (local variable)
+		if ident, ok := sel.X.(*ast.Ident); ok {
+			// Check with TypeInfo if this is a wrapped type
+			if typeInfo != nil {
+				if t := typeInfo.GetType(sel.X); t != nil {
+					// Check if it's a pointer type
+					if _, isPointer := t.(*types.Pointer); isPointer {
+						needsUnwrap = true
+					}
+				}
+			}
+
+			if needsUnwrap {
+				// Wrapped type - need to unwrap
+				out.WriteString("(*")
+				out.WriteString(ident.Name)
+				out.WriteString(".lock().unwrap().as_mut().unwrap()).")
+			} else {
+				// Direct struct variable - call method directly
+				out.WriteString(ident.Name)
+				out.WriteString(".")
+			}
+		} else if fieldSel, ok := sel.X.(*ast.SelectorExpr); ok {
+			// Method call on a field (e.g., s.Counter.Value())
+			// The field is wrapped, so we need to unwrap it
+			out.WriteString("(*")
+			TranspileExpression(out, fieldSel)
+			out.WriteString(".lock().unwrap().as_mut().unwrap()).")
+		} else {
+			// Other complex expression - just transpile it
+			TranspileExpression(out, sel.X)
+			out.WriteString(".")
+		}
+
 		out.WriteString(ToSnakeCase(sel.Sel.Name))
 		out.WriteString("(")
 		for i, arg := range call.Args {

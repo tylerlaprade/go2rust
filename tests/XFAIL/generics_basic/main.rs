@@ -53,7 +53,7 @@ fn main() {
     println!("{} {}", "keys:".to_string(), format_slice(&map_keys(m.clone())));
 
     let mut lst = ;
-    (*lst.lock().unwrap().as_mut().unwrap()).push(Arc::new(Mutex::new(Some(10))));
-    (*lst.lock().unwrap().as_mut().unwrap()).push(Arc::new(Mutex::new(Some(13))));
-    (*lst.lock().unwrap().as_mut().unwrap()).push(Arc::new(Mutex::new(Some(23))));
+    lst.push(Arc::new(Mutex::new(Some(10))));
+    lst.push(Arc::new(Mutex::new(Some(13))));
+    lst.push(Arc::new(Mutex::new(Some(23))));
 }

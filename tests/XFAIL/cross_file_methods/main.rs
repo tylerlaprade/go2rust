@@ -20,13 +20,13 @@ fn main() {
     let mut p1 = Point { x: Arc::new(Mutex::new(Some(0))), y: Arc::new(Mutex::new(Some(0))) };
     let mut p2 = Point { x: Arc::new(Mutex::new(Some(3))), y: Arc::new(Mutex::new(Some(4))) };
 
-    let mut dist = (*p1.lock().unwrap().as_mut().unwrap()).distance(Arc::new(Mutex::new(Some((*p2.lock().unwrap().as_mut().unwrap())))));
+    let mut dist = p1.distance(Arc::new(Mutex::new(Some((*p2.lock().unwrap().as_mut().unwrap())))));
     print!("Distance between points: {:.1}\n", (*dist.lock().unwrap().as_mut().unwrap()));
 
-    (*p1.lock().unwrap().as_mut().unwrap()).move(Arc::new(Mutex::new(Some(1))), Arc::new(Mutex::new(Some(1))));
-    print!("After move: ({:.1}, {:.1})\n", (*(*p1.lock().unwrap().as_mut().unwrap()).x.lock().unwrap().as_ref().unwrap()), (*(*p1.lock().unwrap().as_mut().unwrap()).y.lock().unwrap().as_ref().unwrap()));
+    p1.move(Arc::new(Mutex::new(Some(1))), Arc::new(Mutex::new(Some(1))));
+    print!("After move: ({:.1}, {:.1})\n", (*p1.x.lock().unwrap().as_ref().unwrap()), (*p1.y.lock().unwrap().as_ref().unwrap()));
 
         // Test method on value vs pointer receiver
-    let mut newDist = (*p1.lock().unwrap().as_mut().unwrap()).distance(Arc::new(Mutex::new(Some((*p2.lock().unwrap().as_mut().unwrap())))));
+    let mut newDist = p1.distance(Arc::new(Mutex::new(Some((*p2.lock().unwrap().as_mut().unwrap())))));
     print!("New distance: {:.1}\n", (*newDist.lock().unwrap().as_mut().unwrap()));
 }

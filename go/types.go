@@ -6,6 +6,18 @@ import (
 	"strings"
 )
 
+// Track anonymous struct definitions
+var anonymousStructCounter = 0
+var anonymousStructs = make(map[string]*ast.StructType)
+
+// generateAnonymousStructType generates a unique type name for an anonymous struct
+func generateAnonymousStructType(structType *ast.StructType) string {
+	anonymousStructCounter++
+	typeName := fmt.Sprintf("AnonymousStruct%d", anonymousStructCounter)
+	anonymousStructs[typeName] = structType
+	return typeName
+}
+
 func GoTypeToRust(expr ast.Expr) string {
 	baseType := goTypeToRustBase(expr)
 
@@ -154,6 +166,9 @@ func goTypeToRustBase(expr ast.Expr) string {
 	case *ast.FuncType:
 		// Function type - generate a closure type
 		return generateClosureType(t)
+	case *ast.StructType:
+		// Anonymous struct type - generate a unique type name
+		return generateAnonymousStructType(t)
 	default:
 		// Unhandled type
 		return fmt.Sprintf("/* TODO: Unhandled type %T */ Arc<Mutex<Option<()>>>", t)

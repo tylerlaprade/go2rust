@@ -29,9 +29,9 @@ pub fn print_strings(prefix: Arc<Mutex<Option<String>>>, strings: Arc<Mutex<Opti
     print!("{}: ", (*prefix.lock().unwrap().as_mut().unwrap()));
     for (i, str) in (*strings.lock().unwrap().as_mut().unwrap()).iter().enumerate() {
         if i > 0 {
-        (*fmt.lock().unwrap().as_mut().unwrap()).print(Arc::new(Mutex::new(Some(", ".to_string()))));
+        fmt.print(Arc::new(Mutex::new(Some(", ".to_string()))));
     }
-        (*fmt.lock().unwrap().as_mut().unwrap()).print(Arc::new(Mutex::new(Some(str))));
+        fmt.print(Arc::new(Mutex::new(Some(str))));
     }
     println!();
 }
