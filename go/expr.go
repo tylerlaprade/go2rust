@@ -1267,10 +1267,19 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 						out.WriteString(")))")
 					}
 				} else {
-					// Range variable, wrap it
-					out.WriteString("Arc::new(Mutex::new(Some(")
-					TranspileExpression(out, arg)
-					out.WriteString(")))")
+					// Range variable - check if it needs dereferencing
+					varType := rangeLoopVars[ident.Name]
+					if varType == "ref_value" {
+						// It's a reference from iterator, dereference it
+						out.WriteString("Arc::new(Mutex::new(Some(*")
+						TranspileExpression(out, arg)
+						out.WriteString(")))")
+					} else {
+						// Regular range variable, wrap it normally
+						out.WriteString("Arc::new(Mutex::new(Some(")
+						TranspileExpression(out, arg)
+						out.WriteString(")))")
+					}
 				}
 			} else if _, isFuncLit := arg.(*ast.FuncLit); isFuncLit {
 				// Function literal - already wraps itself

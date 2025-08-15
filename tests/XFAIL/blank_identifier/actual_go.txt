@@ -1,0 +1,40 @@
+=== Ignoring return values ===
+Only using first return: 42
+Only using middle return: hello
+Only using last return: true
+
+=== Ignoring in range loops ===
+Values only:
+10 20 30 40 50 
+Indices only:
+0 1 2 3 4 
+Indices (idiomatic):
+0 1 2 3 4 
+
+=== Ignoring in map iteration ===
+Keys only:
+Bob Carol Alice 
+Values only:
+25 30 35 
+
+=== Ignoring some return values in assignment ===
+Sum (ignoring count): 150
+Count (ignoring sum): 5
+
+=== Blank identifier in declarations ===
+a=1, c=3 (middle value ignored)
+
+=== Blank identifier with type assertion ===
+Value is a string (but we ignored the actual value)
+Value is not an int
+
+=== Blank identifier with channels ===
+Received a value (but ignored it)
+Received a value (but ignored it)
+Received a value (but ignored it)
+
+=== Blank identifier in error handling ===
+Result (ignoring potential error): 15
+
+=== Complex example ===
+Total of all values: 45

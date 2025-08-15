@@ -47,7 +47,7 @@ pub fn f2(arg: Arc<Mutex<Option<i32>>>) -> (Arc<Mutex<Option<i32>>>, Arc<Mutex<O
 
 fn main() {
     for i in &Arc::new(Mutex::new(Some(vec![7, 42]))) {
-        let (mut r, mut e) = f1(Arc::new(Mutex::new(Some(i))));
+        let (mut r, mut e) = f1(Arc::new(Mutex::new(Some(*i))));
     if (*e.lock().unwrap()).is_some() {
         println!("{} {}", "f1 failed:".to_string(), (*e.lock().unwrap().as_mut().unwrap()));
     } else {
@@ -55,7 +55,7 @@ fn main() {
     }
     }
     for i in &Arc::new(Mutex::new(Some(vec![7, 42]))) {
-        let (mut r, mut e) = f2(Arc::new(Mutex::new(Some(i))));
+        let (mut r, mut e) = f2(Arc::new(Mutex::new(Some(*i))));
     if (*e.lock().unwrap()).is_some() {
         println!("{} {}", "f2 failed:".to_string(), (*e.lock().unwrap().as_mut().unwrap()));
     } else {

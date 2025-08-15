@@ -17,7 +17,7 @@ struct Dashboard {
 }
 
 #[derive(Debug)]
-struct AnonymousStruct9 {
+struct AnonymousStruct1 {
     host: Arc<Mutex<Option<String>>>,
     port: Arc<Mutex<Option<i32>>>,
     credentials: Arc<Mutex<Option<AnonymousStruct12>>>,
@@ -33,23 +33,9 @@ struct AnonymousStruct3 {
 
 
 #[derive(Debug)]
-struct AnonymousStruct6 {
-    version: Arc<Mutex<Option<String>>>,
-    modules: Arc<Mutex<Option<HashMap<String, AnonymousStruct14>>>>,
-}
-
-
-#[derive(Debug)]
 struct AnonymousStruct7 {
     enabled: Arc<Mutex<Option<bool>>>,
-    settings: Arc<Mutex<Option<AnonymousStruct15>>>,
-}
-
-
-#[derive(Debug)]
-struct AnonymousStruct8 {
-    enabled: Arc<Mutex<Option<bool>>>,
-    settings: Arc<Mutex<Option<AnonymousStruct16>>>,
+    settings: Arc<Mutex<Option<AnonymousStruct14>>>,
 }
 
 
@@ -64,7 +50,7 @@ struct AnonymousStruct10 {
 struct AnonymousStruct11 {
     i_d: Arc<Mutex<Option<i32>>>,
     type: Arc<Mutex<Option<String>>>,
-    position: Arc<Mutex<Option<AnonymousStruct17>>>,
+    position: Arc<Mutex<Option<AnonymousStruct15>>>,
 }
 
 
@@ -77,16 +63,7 @@ struct AnonymousStruct12 {
 
 #[derive(Debug)]
 struct AnonymousStruct14 {
-    enabled: Arc<Mutex<Option<bool>>>,
-    settings: Arc<Mutex<Option<AnonymousStruct18>>>,
-}
-
-
-#[derive(Debug)]
-struct AnonymousStruct1 {
-    host: Arc<Mutex<Option<String>>>,
-    port: Arc<Mutex<Option<i32>>>,
-    credentials: Arc<Mutex<Option<AnonymousStruct19>>>,
+    options: Arc<Mutex<Option<Vec<AnonymousStruct16>>>>,
 }
 
 
@@ -106,6 +83,35 @@ struct AnonymousStruct4 {
 
 #[derive(Debug)]
 struct AnonymousStruct5 {
+    x: Arc<Mutex<Option<i32>>>,
+    y: Arc<Mutex<Option<i32>>>,
+}
+
+
+#[derive(Debug)]
+struct AnonymousStruct6 {
+    version: Arc<Mutex<Option<String>>>,
+    modules: Arc<Mutex<Option<HashMap<String, AnonymousStruct17>>>>,
+}
+
+
+#[derive(Debug)]
+struct AnonymousStruct8 {
+    enabled: Arc<Mutex<Option<bool>>>,
+    settings: Arc<Mutex<Option<AnonymousStruct18>>>,
+}
+
+
+#[derive(Debug)]
+struct AnonymousStruct9 {
+    host: Arc<Mutex<Option<String>>>,
+    port: Arc<Mutex<Option<i32>>>,
+    credentials: Arc<Mutex<Option<AnonymousStruct19>>>,
+}
+
+
+#[derive(Debug)]
+struct AnonymousStruct13 {
     x: Arc<Mutex<Option<i32>>>,
     y: Arc<Mutex<Option<i32>>>,
 }

@@ -38,7 +38,7 @@ pub fn apply_operation(nums: Arc<Mutex<Option<Vec<i32>>>>, op: Arc<Mutex<Option<
 
     let mut result = Arc::new(Mutex::new(Some(vec![0; (*nums.lock().unwrap().as_ref().unwrap()).len()])));
     for (i, num) in (*nums.lock().unwrap().as_mut().unwrap()).iter().enumerate() {
-        (*result.lock().unwrap().as_mut().unwrap())[i] = (op.lock().unwrap().as_ref().unwrap())(Arc::new(Mutex::new(Some(num))));
+        (*result.lock().unwrap().as_mut().unwrap())[i] = (*(op.lock().unwrap().as_ref().unwrap())(Arc::new(Mutex::new(Some(*num)))).lock().unwrap().as_ref().unwrap());
     }
     return result.clone();
 }

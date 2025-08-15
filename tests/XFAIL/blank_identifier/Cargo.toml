@@ -1,8 +1,8 @@
 [package]
-name = "blank_identifier"
+name = "transpiled"
 version = "0.1.0"
 edition = "2021"
 
 [[bin]]
-name = "blank_identifier"
+name = "transpiled"
 path = "main.rs"

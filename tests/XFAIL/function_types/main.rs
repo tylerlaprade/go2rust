@@ -100,7 +100,7 @@ pub fn filter(numbers: Arc<Mutex<Option<Vec<i32>>>>, pred: Arc<Mutex<Option<Pred
 
     let mut result: Arc<Mutex<Option<Vec<i32>>>> = Arc::new(Mutex::new(Some(Default::default())));
     for num in &(*numbers.lock().unwrap().as_mut().unwrap()) {
-        if (pred.lock().unwrap().as_ref().unwrap())(Arc::new(Mutex::new(Some(num)))) {
+        if (pred.lock().unwrap().as_ref().unwrap())(Arc::new(Mutex::new(Some(*num)))) {
         {(*result.lock().unwrap().as_mut().unwrap()).push(num); result.clone()};
     }
     }
@@ -111,7 +111,7 @@ pub fn transform(numbers: Arc<Mutex<Option<Vec<i32>>>>, op: Arc<Mutex<Option<Una
 
     let mut result = Arc::new(Mutex::new(Some(vec![0; (*numbers.lock().unwrap().as_ref().unwrap()).len()])));
     for (i, num) in (*numbers.lock().unwrap().as_mut().unwrap()).iter().enumerate() {
-        (*result.lock().unwrap().as_mut().unwrap())[i] = (op.lock().unwrap().as_ref().unwrap())(Arc::new(Mutex::new(Some(num))));
+        (*result.lock().unwrap().as_mut().unwrap())[i] = (*(op.lock().unwrap().as_ref().unwrap())(Arc::new(Mutex::new(Some(*num)))).lock().unwrap().as_ref().unwrap());
     }
     return result.clone();
 }

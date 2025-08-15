@@ -73,6 +73,6 @@ fn main() {
     println!("{}", "All shapes:".to_string());
     for (i, shape) in (*shapes.lock().unwrap().as_mut().unwrap()).iter().enumerate() {
         print!("Shape {}: ", i + 1);
-        print_shape_info(Arc::new(Mutex::new(Some(shape))));
+        print_shape_info(Arc::new(Mutex::new(Some(*shape))));
     }
 }

@@ -172,7 +172,7 @@ fn main() {
 
     println!("{}", "=== Processing values ===".to_string());
     for val in &(*values.lock().unwrap().as_mut().unwrap()) {
-        process_value(Arc::new(Mutex::new(Some(val))));
+        process_value(Arc::new(Mutex::new(Some(*val))));
     }
 
     println!("{}", "\n=== Assertion without check ===".to_string());
@@ -183,7 +183,7 @@ fn main() {
     let mut shapes = Arc::new(Mutex::new(Some(vec![Rectangle { width: Arc::new(Mutex::new(Some(10))), height: Arc::new(Mutex::new(Some(5))) }, Circle { radius: Arc::new(Mutex::new(Some(3))) }])));
 
     for shape in &(*shapes.lock().unwrap().as_mut().unwrap()) {
-        describe_shape(Arc::new(Mutex::new(Some(shape))));
+        describe_shape(Arc::new(Mutex::new(Some(*shape))));
     }
 
     println!("{}", "\n=== Type switch alternative ===".to_string());

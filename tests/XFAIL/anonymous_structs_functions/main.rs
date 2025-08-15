@@ -1,6 +1,20 @@
 use std::sync::{Arc, Mutex};
 
 #[derive(Debug)]
+struct AnonymousStruct12 {
+    x: Arc<Mutex<Option<i32>>>,
+    y: Arc<Mutex<Option<i32>>>,
+}
+
+
+#[derive(Debug)]
+struct AnonymousStruct13 {
+    debug: Arc<Mutex<Option<bool>>>,
+    verbose: Arc<Mutex<Option<bool>>>,
+}
+
+
+#[derive(Debug)]
 struct AnonymousStruct1 {
     name: Arc<Mutex<Option<String>>>,
     age: Arc<Mutex<Option<i32>>>,
@@ -15,7 +29,7 @@ struct AnonymousStruct2 {
 
 
 #[derive(Debug)]
-struct AnonymousStruct4 {
+struct AnonymousStruct5 {
     x: Arc<Mutex<Option<i32>>>,
     y: Arc<Mutex<Option<i32>>>,
 }
@@ -25,41 +39,6 @@ struct AnonymousStruct4 {
 struct AnonymousStruct6 {
     port: Arc<Mutex<Option<i32>>>,
     timeout: Arc<Mutex<Option<i32>>>,
-}
-
-
-#[derive(Debug)]
-struct AnonymousStruct10 {
-    x: Arc<Mutex<Option<i32>>>,
-    y: Arc<Mutex<Option<i32>>>,
-}
-
-
-#[derive(Debug)]
-struct AnonymousStruct11 {
-    x: Arc<Mutex<Option<i32>>>,
-    y: Arc<Mutex<Option<i32>>>,
-}
-
-
-#[derive(Debug)]
-struct AnonymousStruct13 {
-    debug: Arc<Mutex<Option<bool>>>,
-    verbose: Arc<Mutex<Option<bool>>>,
-}
-
-
-#[derive(Debug)]
-struct AnonymousStruct3 {
-    x: Arc<Mutex<Option<i32>>>,
-    y: Arc<Mutex<Option<i32>>>,
-}
-
-
-#[derive(Debug)]
-struct AnonymousStruct5 {
-    x: Arc<Mutex<Option<i32>>>,
-    y: Arc<Mutex<Option<i32>>>,
 }
 
 
@@ -78,6 +57,27 @@ struct AnonymousStruct8 {
 
 
 #[derive(Debug)]
+struct AnonymousStruct11 {
+    x: Arc<Mutex<Option<i32>>>,
+    y: Arc<Mutex<Option<i32>>>,
+}
+
+
+#[derive(Debug)]
+struct AnonymousStruct3 {
+    x: Arc<Mutex<Option<i32>>>,
+    y: Arc<Mutex<Option<i32>>>,
+}
+
+
+#[derive(Debug)]
+struct AnonymousStruct4 {
+    x: Arc<Mutex<Option<i32>>>,
+    y: Arc<Mutex<Option<i32>>>,
+}
+
+
+#[derive(Debug)]
 struct AnonymousStruct9 {
     name: Arc<Mutex<Option<String>>>,
     age: Arc<Mutex<Option<i32>>>,
@@ -85,7 +85,7 @@ struct AnonymousStruct9 {
 
 
 #[derive(Debug)]
-struct AnonymousStruct12 {
+struct AnonymousStruct10 {
     x: Arc<Mutex<Option<i32>>>,
     y: Arc<Mutex<Option<i32>>>,
 }

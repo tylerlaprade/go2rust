@@ -56,10 +56,10 @@ pub fn defer_in_loop() {
     println!("{}", "Defer in loop:".to_string());
     let mut i = Arc::new(Mutex::new(Some(0)));
     while (*i.lock().unwrap().as_mut().unwrap()) < 3 {
-        __defer_stack.push(Box::new(move || {
-        (Arc::new(Mutex::new(Some(Box::new(move |val: Arc<Mutex<Option<i32>>>| {
-        print!("Deferred loop value: {}\n", (*val.lock().unwrap().as_mut().unwrap()));
-    }) as Box<dyn Fn(Arc<Mutex<Option<i32>>>) -> () + Send + Sync>))).lock().unwrap().as_ref().unwrap())(i.clone());
+        let __defer_arg_0 = i.clone(); __defer_stack.push(Box::new(move || {
+        (move |val: Arc<Mutex<Option<i32>>>| {
+        print!("Deferred loop value: {}\n", (*val.lock().unwrap().as_mut().unwrap()));; 
+        })(__defer_arg_0);
     }));
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }

@@ -694,7 +694,32 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 								out.WriteString(".lock().unwrap().as_mut().unwrap())[")
 								TranspileExpression(out, indexExpr.Index)
 								out.WriteString("] = ")
-								TranspileExpression(out, s.Rhs[0])
+
+								// Check if RHS is a call that returns a wrapped value
+								needsUnwrap := false
+								if call, ok := s.Rhs[0].(*ast.CallExpr); ok {
+									// Use TypeInfo to check if this returns a wrapped value
+									typeInfo := GetTypeInfo()
+									if typeInfo != nil && typeInfo.ReturnsWrappedValue(call) {
+										needsUnwrap = true
+									} else {
+										// Fallback: Check if it's calling a closure variable
+										if ident, ok := call.Fun.(*ast.Ident); ok {
+											// If it's not a known function, it might be a closure variable
+											if !isBuiltinFunction(ident.Name) && !isFunctionName(ident) {
+												needsUnwrap = true
+											}
+										}
+									}
+								}
+
+								if needsUnwrap {
+									out.WriteString("(*")
+									TranspileExpression(out, s.Rhs[0])
+									out.WriteString(".lock().unwrap().as_ref().unwrap())")
+								} else {
+									TranspileExpression(out, s.Rhs[0])
+								}
 							} else {
 								// Direct assignment: x = value
 								// Check if RHS is nil
@@ -1052,7 +1077,12 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		if s.Value != nil {
 			if ident, ok := s.Value.(*ast.Ident); ok {
 				valueName = ident.Name
-				rangeLoopVars[valueName] = valueType
+				// When using iter().enumerate(), the value is a reference
+				if s.Key != nil && !isMap && !isString {
+					rangeLoopVars[valueName] = "ref_value"
+				} else {
+					rangeLoopVars[valueName] = valueType
+				}
 			}
 		}
 
@@ -1339,12 +1369,93 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		oldCaptureRenames := currentCaptureRenames
 		currentCaptureRenames = captureRenames
 
-		// Defer statements - push closure onto defer stack
-		out.WriteString("__defer_stack.push(Box::new(move || {\n")
-		out.WriteString("        ")
-		TranspileCall(out, s.Call)
-		out.WriteString(";\n")
-		out.WriteString("    }));")
+		// Check if the defer is calling an immediately invoked function literal
+		// e.g., defer func(x int) { ... }(y)
+		if funcLit, ok := s.Call.Fun.(*ast.FuncLit); ok && len(s.Call.Args) > 0 {
+			// It's an immediately invoked function literal with arguments
+			// We need to capture the argument values immediately
+
+			// Generate captures for the arguments
+			argCaptures := make([]string, len(s.Call.Args))
+			for i, arg := range s.Call.Args {
+				captureVar := fmt.Sprintf("__defer_arg_%d", i)
+				argCaptures[i] = captureVar
+				out.WriteString("let ")
+				out.WriteString(captureVar)
+				out.WriteString(" = ")
+
+				// Check if argument needs wrapping
+				if ident, ok := arg.(*ast.Ident); ok && ident.Name != "nil" && ident.Name != "_" {
+					// Check if this is a variable (not a constant)
+					if _, isRangeVar := rangeLoopVars[ident.Name]; !isRangeVar {
+						if _, isLocalConst := localConstants[ident.Name]; !isLocalConst {
+							// It's a variable, clone it
+							out.WriteString(ident.Name)
+							out.WriteString(".clone()")
+						} else {
+							// It's a constant, wrap it
+							out.WriteString("Arc::new(Mutex::new(Some(")
+							TranspileExpression(out, arg)
+							out.WriteString(")))")
+						}
+					} else {
+						// Range variable, wrap it
+						out.WriteString("Arc::new(Mutex::new(Some(")
+						TranspileExpression(out, arg)
+						out.WriteString(")))")
+					}
+				} else {
+					// Complex expression or literal, wrap it
+					out.WriteString("Arc::new(Mutex::new(Some(")
+					TranspileExpression(out, arg)
+					out.WriteString(")))")
+				}
+				out.WriteString("; ")
+			}
+
+			// Now generate the defer with the captured arguments
+			out.WriteString("__defer_stack.push(Box::new(move || {\n")
+			out.WriteString("        ")
+
+			// Generate the closure directly (without Arc wrapper)
+			out.WriteString("(move |")
+			// Parameters
+			if funcLit.Type.Params != nil {
+				var params []string
+				for _, field := range funcLit.Type.Params.List {
+					paramType := GoTypeToRust(field.Type)
+					for _, name := range field.Names {
+						params = append(params, name.Name+": "+paramType)
+					}
+				}
+				out.WriteString(strings.Join(params, ", "))
+			}
+			out.WriteString("| {\n        ")
+
+			// Body
+			for _, stmt := range funcLit.Body.List {
+				TranspileStatementSimple(out, stmt, funcLit.Type, fileSet)
+				out.WriteString("; ")
+			}
+
+			out.WriteString("\n        })(")
+			for i, capture := range argCaptures {
+				if i > 0 {
+					out.WriteString(", ")
+				}
+				out.WriteString(capture)
+			}
+			out.WriteString(");\n")
+			out.WriteString("    }))")
+		} else {
+			// Regular defer call
+			out.WriteString("__defer_stack.push(Box::new(move || {\n")
+			out.WriteString("        ")
+			TranspileCall(out, s.Call)
+			out.WriteString(";\n")
+			out.WriteString("    }))")
+		}
+		out.WriteString(";")
 
 		// Restore previous capture renames
 		currentCaptureRenames = oldCaptureRenames

@@ -3,5 +3,5 @@
 version = 4
 
 [[package]]
-name = "closures_basic"
+name = "transpiled"
 version = "0.1.0"
