@@ -18,7 +18,7 @@
 4. **Always run tests** before committing or moving to next task
 5. **Update README** when adding support for new Go syntax features
 6. **Update ROADMAP.md** after implementing features or making progress on phases
-7. **Include transpiled test outputs** in commits when transpiler changes affect them
+7. **Include transpiled Rust files in commits** when transpiler changes affect them (output of test cases)
 
 ## Core Philosophy: Conservative Translation
 
@@ -170,6 +170,7 @@ if strings.Contains(varName, "map") {
 ### When TypeInfo Isn't Available
 
 If `GetTypeInfo()` returns nil (shouldn't happen in normal operation):
+
 - Generate an error comment: `/* ERROR: Type information required for <operation> */`
 - Use `unimplemented!()` to make the issue obvious
 - Never fall back to heuristics

@@ -82,7 +82,7 @@ func getReceiverType(expr ast.Expr) string {
 }
 
 // implementsInterface checks if a type implements all methods of an interface
-func implementsInterface(typeName string, typeMethods []*ast.FuncDecl, iface *ast.InterfaceType) bool {
+func implementsInterface(typeMethods []*ast.FuncDecl, iface *ast.InterfaceType) bool {
 	// Check each interface method
 	for _, method := range iface.Methods.List {
 		if len(method.Names) == 0 {
@@ -254,7 +254,7 @@ func Transpile(file *ast.File, fileSet *token.FileSet, typeInfo *TypeInfo) (stri
 
 		// Generate trait implementations for this type
 		for ifaceName, ifaceType := range interfaces {
-			if implementsInterface(typeName, methods[typeName], ifaceType) {
+			if implementsInterface(methods[typeName], ifaceType) {
 				body.WriteString("\n\n")
 				body.WriteString("impl ")
 				body.WriteString(ifaceName)

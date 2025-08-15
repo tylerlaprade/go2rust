@@ -51,16 +51,17 @@ func TranspileExpression(out *strings.Builder, expr ast.Expr) {
 func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprContext) {
 	switch e := expr.(type) {
 	case *ast.BasicLit:
-		if e.Kind == token.STRING {
+		switch e.Kind {
+		case token.STRING:
 			out.WriteString(e.Value)
 			out.WriteString(".to_string()")
-		} else if e.Kind == token.CHAR {
+		case token.CHAR:
 			// In Go, character literals are runes (int32)
 			// Convert 'A' to the numeric value
 			out.WriteString("(")
 			out.WriteString(e.Value)
 			out.WriteString(" as i32)")
-		} else {
+		default:
 			out.WriteString(e.Value)
 		}
 
