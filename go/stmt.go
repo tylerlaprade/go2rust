@@ -152,19 +152,14 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						out.WriteString(", ")
 					}
 
-					// Check if this is nil being returned for an error type
-					isNilForError := false
+					// Check if this is nil being returned
+					isNil := false
 					if ident, ok := result.(*ast.Ident); ok && ident.Name == "nil" {
-						// Check if this position in return values is an error type
-						if fnType.Results != nil && i < len(fnType.Results.List) {
-							if resultType, ok := fnType.Results.List[i].Type.(*ast.Ident); ok && resultType.Name == "error" {
-								isNilForError = true
-							}
-						}
+						isNil = true
 					}
 
-					if isNilForError {
-						// For error type, nil becomes Arc<Mutex<None>>
+					if isNil {
+						// For any wrapped type (error, pointer, etc.), nil becomes Arc<Mutex<None>>
 						out.WriteString("Arc::new(Mutex::new(None))")
 					} else {
 						// Check if this is a field access on self (already wrapped)
@@ -236,6 +231,22 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						} else if _, ok := result.(*ast.SliceExpr); ok {
 							// Slice expressions already return wrapped values (Arc<Mutex<Option<Vec<T>>>>)
 							TranspileExpression(out, result)
+						} else if unaryExpr, ok := result.(*ast.UnaryExpr); ok {
+							// Check if this is address-of a struct literal
+							if unaryExpr.Op == token.AND {
+								if _, isCompositeLit := unaryExpr.X.(*ast.CompositeLit); isCompositeLit {
+									// Already wrapped by UnaryExpr handling, don't double-wrap
+									TranspileExpression(out, result)
+								} else {
+									// Regular address-of, already returns wrapped value
+									TranspileExpression(out, result)
+								}
+							} else {
+								// Other unary expressions, wrap them
+								out.WriteString("Arc::new(Mutex::new(Some(")
+								TranspileExpression(out, result)
+								out.WriteString(")))")
+							}
 						} else if binExpr, ok := result.(*ast.BinaryExpr); ok {
 							// Binary expressions need special handling to avoid multiple locks
 							// Check if operands are identifiers that would need unwrapping
@@ -942,6 +953,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		out.WriteString(" {\n")
 
 		var prevStmt ast.Stmt
+		var forBodyLastPos token.Pos = s.Body.Lbrace
 		for _, stmt := range s.Body.List {
 			// Add blank line if there was one in the source
 			if prevStmt != nil && hasBlankLineBetween(fileSet, prevStmt.End(), stmt.Pos()) {
@@ -949,7 +961,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			}
 
 			out.WriteString("        ")
-			TranspileStatementSimple(out, stmt, fnType, fileSet)
+			TranspileStatement(out, stmt, fnType, fileSet, comments, &forBodyLastPos, "        ")
 			out.WriteString("\n")
 
 			prevStmt = stmt
@@ -1174,9 +1186,10 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		}
 		out.WriteString(" {\n")
 
+		var rangeBodyLastPos token.Pos = s.Body.Lbrace
 		for _, stmt := range s.Body.List {
 			out.WriteString("        ")
-			TranspileStatementSimple(out, stmt, fnType, fileSet)
+			TranspileStatement(out, stmt, fnType, fileSet, comments, &rangeBodyLastPos, "        ")
 			out.WriteString("\n")
 		}
 
@@ -1201,9 +1214,11 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		TranspileExpression(out, s.Cond)
 		out.WriteString(" {\n")
 
+		// Use comment-aware transpilation for the body
+		var ifBodyLastPos token.Pos = s.Body.Lbrace
 		for _, stmt := range s.Body.List {
 			out.WriteString("        ")
-			TranspileStatementSimple(out, stmt, fnType, fileSet)
+			TranspileStatement(out, stmt, fnType, fileSet, comments, &ifBodyLastPos, "        ")
 			out.WriteString("\n")
 		}
 
@@ -1217,9 +1232,10 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			} else if block, ok := s.Else.(*ast.BlockStmt); ok {
 				// else block
 				out.WriteString("{\n")
+				var elseBodyLastPos token.Pos = block.Lbrace
 				for _, stmt := range block.List {
 					out.WriteString("        ")
-					TranspileStatementSimple(out, stmt, fnType, fileSet)
+					TranspileStatement(out, stmt, fnType, fileSet, comments, &elseBodyLastPos, "        ")
 					out.WriteString("\n")
 				}
 				out.WriteString("    }")
@@ -1272,9 +1288,10 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				out.WriteString(" => {\n")
 
 				// Case body
+				var caseBodyLastPos token.Pos = caseClause.Colon
 				for _, bodyStmt := range caseClause.Body {
 					out.WriteString("            ")
-					TranspileStatementSimple(out, bodyStmt, fnType, fileSet)
+					TranspileStatement(out, bodyStmt, fnType, fileSet, comments, &caseBodyLastPos, "            ")
 					out.WriteString("\n")
 				}
 

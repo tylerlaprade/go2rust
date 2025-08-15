@@ -230,6 +230,19 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 	case *ast.BinaryExpr:
 		// Special handling for comparisons with nil
 		if ident, ok := e.Y.(*ast.Ident); ok && ident.Name == "nil" {
+			// Check if left side is the receiver (self)
+			if leftIdent, ok := e.X.(*ast.Ident); ok && currentReceiver != "" && leftIdent.Name == currentReceiver {
+				// Receiver nil check - this is a Go pattern that doesn't translate well
+				// In Rust, methods can't be called on None values
+				// We'll generate a false condition since self is never None in a method
+				if e.Op.String() == "!=" {
+					out.WriteString("true") // self is always != nil in a method
+				} else if e.Op.String() == "==" {
+					out.WriteString("false") // self is never == nil in a method
+				}
+				return
+			}
+
 			if e.Op.String() == "!=" {
 				out.WriteString("(*")
 				TranspileExpressionContext(out, e.X, LValue)
@@ -497,10 +510,17 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					if key, ok := kv.Key.(*ast.Ident); ok {
 						out.WriteString(ToSnakeCase(key.Name))
 						out.WriteString(": ")
-						// Wrap field values in Arc<Mutex<Option<T>>>
-						out.WriteString("Arc::new(Mutex::new(Some(")
-						TranspileExpression(out, kv.Value)
-						out.WriteString(")))")
+						// Check if the value is an identifier (parameter/variable)
+						if valIdent, ok := kv.Value.(*ast.Ident); ok {
+							// It's already wrapped, just clone it
+							out.WriteString(valIdent.Name)
+							out.WriteString(".clone()")
+						} else {
+							// Wrap field values in Arc<Mutex<Option<T>>>
+							out.WriteString("Arc::new(Mutex::new(Some(")
+							TranspileExpression(out, kv.Value)
+							out.WriteString(")))")
+						}
 					}
 				}
 			}

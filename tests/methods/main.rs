@@ -17,7 +17,7 @@ impl Counter {
 
 pub fn new_counter() -> Arc<Mutex<Option<Counter>>> {
 
-    return Arc::new(Mutex::new(Some(Arc::new(Mutex::new(Some(Counter { value: Arc::new(Mutex::new(Some(0))) }))))));
+    return Arc::new(Mutex::new(Some(Counter { value: Arc::new(Mutex::new(Some(0))) })));
 }
 
 fn main() {

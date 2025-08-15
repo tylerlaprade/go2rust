@@ -231,7 +231,7 @@ println!("{}", "\n=== Struct with function fields ===".to_string());
             let __tmp_y = (*b.lock().unwrap().as_mut().unwrap());
             Arc::new(Mutex::new(Some(__tmp_x - __tmp_y)))
         };
-    }) as Box<dyn Fn(Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<i32>>> + Send + Sync>)))))), multiply: Arc::new(Mutex::new(Some((*multiply.lock().unwrap().as_mut().unwrap())))) };
+    }) as Box<dyn Fn(Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<i32>>> + Send + Sync>)))))), multiply: multiply.clone() };
 
         // Reuse existing function
 print!("calc.Add(10, 5) = {}\n", (*(*calc.lock().unwrap().as_mut().unwrap()).add(Arc::new(Mutex::new(Some(10))), Arc::new(Mutex::new(Some(5)))).lock().unwrap().as_ref().unwrap()));

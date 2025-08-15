@@ -13,7 +13,7 @@ let mut addr = Address { street: Arc::new(Mutex::new(Some("123 Main St".to_strin
     print!("Address: {}, {} {}\n", (*(*addr.lock().unwrap().as_mut().unwrap()).street.lock().unwrap().as_ref().unwrap()), (*(*addr.lock().unwrap().as_mut().unwrap()).city.lock().unwrap().as_ref().unwrap()), (*(*addr.lock().unwrap().as_mut().unwrap()).zip.lock().unwrap().as_ref().unwrap()));
 
         // Create an Employee - transpiler needs to know nested struct types
-let mut emp = Employee { person: Arc::new(Mutex::new(Some(Person { name: Arc::new(Mutex::new(Some("Bob".to_string()))), age: Arc::new(Mutex::new(Some(25))) }))), address: Arc::new(Mutex::new(Some((*addr.lock().unwrap().as_mut().unwrap())))), i_d: Arc::new(Mutex::new(Some(42))) };
+let mut emp = Employee { person: Arc::new(Mutex::new(Some(Person { name: Arc::new(Mutex::new(Some("Bob".to_string()))), age: Arc::new(Mutex::new(Some(25))) }))), address: addr.clone(), i_d: Arc::new(Mutex::new(Some(42))) };
     print!("Employee {}: {} lives at {}\n", (*(*emp.lock().unwrap().as_mut().unwrap()).i_d.lock().unwrap().as_ref().unwrap()), (*emp.lock().unwrap().as_mut().unwrap()).person.name, (*emp.lock().unwrap().as_mut().unwrap()).address.street);
 
         // Access nested fields - requires knowing the full type hierarchy

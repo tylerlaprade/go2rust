@@ -11,8 +11,9 @@ impl Person {
     /// Greet prints a greeting message
     pub fn greet(&mut self) {
                 // Check if person is valid
-if (*self.lock().unwrap()).is_none() {
-        println!("{}", "Invalid person".to_string());
+if false {
+                // Handle nil receiver
+println!("{}", "Invalid person".to_string());
         return;
     }
                 // Handle nil receiver
@@ -26,12 +27,13 @@ pub fn new_person(name: Arc<Mutex<Option<String>>>, age: Arc<Mutex<Option<i32>>>
 
         // Validate inputs
 if (*age.lock().unwrap().as_mut().unwrap()) < 0 {
-        return nil.clone();
+                // Return nil for invalid age
+return Arc::new(Mutex::new(None));
     }
 
         // Return nil for invalid age
     // Create and return the person
-return Arc::new(Mutex::new(Some(Arc::new(Mutex::new(Some(Person { name: Arc::new(Mutex::new(Some((*name.lock().unwrap().as_mut().unwrap())))), age: Arc::new(Mutex::new(Some((*age.lock().unwrap().as_mut().unwrap())))) }))))));
+return Arc::new(Mutex::new(Some(Person { name: name.clone(), age: age.clone() })));
 }
 
 fn main() {
@@ -44,6 +46,7 @@ let mut person = new_person(Arc::new(Mutex::new(Some("Alice".to_string()))), Arc
         // Try with invalid age
 let mut invalid = new_person(Arc::new(Mutex::new(Some("Bob".to_string()))), Arc::new(Mutex::new(Some(-1))));
     if (*invalid.lock().unwrap()).is_none() {
-        println!("{}", "Failed to create person with invalid age".to_string());
+                // This should print
+println!("{}", "Failed to create person with invalid age".to_string());
     }
 }

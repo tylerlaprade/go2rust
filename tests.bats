@@ -328,6 +328,10 @@ run_xfail_test() {
     run_test "tests/maps_operations"
 }
 
+@test "methods" {
+    run_test "tests/methods"
+}
+
 @test "methods_basic" {
     run_test "tests/methods_basic"
 }
@@ -566,10 +570,6 @@ run_xfail_test() {
 
 @test "XFAIL: labeled_statements" {
     run_xfail_test "tests/XFAIL/labeled_statements"
-}
-
-@test "XFAIL: methods" {
-    run_xfail_test "tests/XFAIL/methods"
 }
 
 @test "XFAIL: mixed_output" {

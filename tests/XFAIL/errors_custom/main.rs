@@ -36,7 +36,7 @@ pub fn f1(arg: Arc<Mutex<Option<i32>>>) -> (Arc<Mutex<Option<i32>>>, Arc<Mutex<O
 pub fn f2(arg: Arc<Mutex<Option<i32>>>) -> (Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<Box<dyn Error + Send + Sync>>>>) {
 
     if (*arg.lock().unwrap().as_mut().unwrap()) == 42 {
-        return (Arc::new(Mutex::new(Some(-1))), Arc::new(Mutex::new(Some(Arc::new(Mutex::new(Some(argError { ,  })))))));
+        return (Arc::new(Mutex::new(Some(-1))), Arc::new(Mutex::new(Some(argError { ,  }))));
     }
     return ({
             let __tmp_x = (*arg.lock().unwrap().as_mut().unwrap());
