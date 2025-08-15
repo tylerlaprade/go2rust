@@ -1,8 +1,8 @@
 [package]
-name = "transpiled"
+name = "panic_recover"
 version = "0.1.0"
 edition = "2021"
 
 [[bin]]
-name = "transpiled"
+name = "panic_recover"
 path = "main.rs"

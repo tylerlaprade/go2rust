@@ -272,6 +272,10 @@ run_xfail_test() {
     run_test "tests/builtin_functions"
 }
 
+@test "closures_basic" {
+    run_test "tests/closures_basic"
+}
+
 @test "comment_complex" {
     run_test "tests/comment_complex"
 }
@@ -462,10 +466,6 @@ run_xfail_test() {
 
 @test "XFAIL: closing_channels" {
     run_xfail_test "tests/XFAIL/closing_channels"
-}
-
-@test "XFAIL: closures_basic" {
-    run_xfail_test "tests/XFAIL/closures_basic"
 }
 
 @test "XFAIL: complex_expressions" {

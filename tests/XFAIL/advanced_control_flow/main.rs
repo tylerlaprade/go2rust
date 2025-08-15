@@ -253,7 +253,7 @@ fn main() {
 
     for (i, data) in (*testData.lock().unwrap().as_mut().unwrap()).iter().enumerate() {
         print!("Testing dataset {}: {}\n", i + 1, format_slice(&data));
-        let mut err = (processData.lock().unwrap().as_ref().unwrap())(Arc::new(Mutex::new(Some(data))));
+        let mut err = (processData.lock().unwrap().as_ref().unwrap())(Arc::new(Mutex::new(Some(*data))));
     if (*err.lock().unwrap()).is_some() {
         print!("  Error: {}\n", (*err.lock().unwrap().as_mut().unwrap()));
         continue

@@ -1,13 +1,34 @@
 use std::error::Error;
 use std::sync::{Arc, Mutex};
 
+
+fn format_any(value: &dyn Any) -> String {
+    if let Some(v) = value.downcast_ref::<i32>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<i64>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<f64>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<f32>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<String>() {
+        v.clone()
+    } else if let Some(v) = value.downcast_ref::<&str>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<bool>() {
+        v.to_string()
+    } else {
+        "<unknown>".to_string()
+    }
+}
+
 pub fn safe_divide(a: Arc<Mutex<Option<f64>>>, b: Arc<Mutex<Option<f64>>>) -> (Arc<Mutex<Option<f64>>>, Arc<Mutex<Option<Box<dyn Error + Send + Sync>>>>) {
     let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
     let mut result: Arc<Mutex<Option<f64>>> = Arc::new(Mutex::new(Some(0.0)));
     let mut err: Arc<Mutex<Option<Box<dyn Error + Send + Sync>>>> = Arc::new(Mutex::new(None));
 
-    let result_defer_captured = result.clone(); let err_defer_captured = err.clone(); __defer_stack.push(Box::new(move || {
+    let err_defer_captured = err.clone(); let result_defer_captured = result.clone(); __defer_stack.push(Box::new(move || {
         (Arc::new(Mutex::new(Some(Box::new(move || {
         let mut r = Arc::new(Mutex::new(None::<String>));
     if (*r.lock().unwrap()).is_some() {
@@ -74,7 +95,7 @@ pub fn nested_panic() {
         (Arc::new(Mutex::new(Some(Box::new(move || {
         let mut r = Arc::new(Mutex::new(None::<String>));
     if (*r.lock().unwrap()).is_some() {
-        print!("Recovered from nested panic: {}\n", (*r.lock().unwrap().as_mut().unwrap()));
+        print!("Recovered from nested panic: {}\n", format_any(r.lock().unwrap().as_ref().unwrap().as_ref()));
     }
     }) as Box<dyn Fn() -> () + Send + Sync>))).lock().unwrap().as_ref().unwrap())();
     }));
@@ -84,7 +105,7 @@ pub fn nested_panic() {
         (Arc::new(Mutex::new(Some(Box::new(move || {
         let mut r = Arc::new(Mutex::new(None::<String>));
     if (*r.lock().unwrap()).is_some() {
-        print!("Inner recovery: {}\n", (*r.lock().unwrap().as_mut().unwrap()));
+        print!("Inner recovery: {}\n", format_any(r.lock().unwrap().as_ref().unwrap().as_ref()));
         panic!("re-panicking from inner function");
     }
     }) as Box<dyn Fn() -> () + Send + Sync>))).lock().unwrap().as_ref().unwrap())();
@@ -106,7 +127,7 @@ pub fn demonstrate_panic_types() {
         (Arc::new(Mutex::new(Some(Box::new(move || {
         let mut r = Arc::new(Mutex::new(None::<String>));
     if (*r.lock().unwrap()).is_some() {
-        print!("Recovered string panic: {}\n", (*r.lock().unwrap().as_mut().unwrap()));
+        print!("Recovered string panic: {}\n", format_any(r.lock().unwrap().as_ref().unwrap().as_ref()));
     }
     }) as Box<dyn Fn() -> () + Send + Sync>))).lock().unwrap().as_ref().unwrap())();
     }));
@@ -143,7 +164,7 @@ pub fn chained_defers() {
         (Arc::new(Mutex::new(Some(Box::new(move || {
         let mut r = Arc::new(Mutex::new(None::<String>));
     if (*r.lock().unwrap()).is_some() {
-        print!("Final recovery: {}\n", (*r.lock().unwrap().as_mut().unwrap()));
+        print!("Final recovery: {}\n", format_any(r.lock().unwrap().as_ref().unwrap().as_ref()));
     }
     }) as Box<dyn Fn() -> () + Send + Sync>))).lock().unwrap().as_ref().unwrap())();
     }));
