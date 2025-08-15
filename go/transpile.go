@@ -600,8 +600,9 @@ func Transpile(file *ast.File, fileSet *token.FileSet, typeInfo *TypeInfo) (stri
 	if imports.GenerateImports() != "" {
 		output.WriteString("\n")
 	}
-	output.WriteString(helpers.GenerateHelpers())
-	if helpers.GenerateHelpers() != "" {
+	helpersStr := helpers.GenerateHelpers()
+	output.WriteString(helpersStr)
+	if helpersStr != "" {
 		output.WriteString("\n")
 	}
 	output.WriteString(body.String())

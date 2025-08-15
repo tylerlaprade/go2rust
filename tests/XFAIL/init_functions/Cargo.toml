@@ -1,8 +1,8 @@
 [package]
-name = "init_functions"
+name = "transpiled"
 version = "0.1.0"
 edition = "2021"
 
 [[bin]]
-name = "init_functions"
+name = "transpiled"
 path = "main.rs"

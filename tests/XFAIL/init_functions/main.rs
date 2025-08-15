@@ -1,6 +1,27 @@
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
+
+fn format_any(value: &dyn Any) -> String {
+    if let Some(v) = value.downcast_ref::<i32>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<i64>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<f64>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<f32>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<String>() {
+        v.clone()
+    } else if let Some(v) = value.downcast_ref::<&str>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<bool>() {
+        v.to_string()
+    } else {
+        "<unknown>".to_string()
+    }
+}
+
 /// Struct with initialization
 #[derive(Debug)]
 struct Config {
@@ -69,7 +90,7 @@ pub fn init() {
         (Arc::new(Mutex::new(Some(Box::new(move || {
         let mut r = Arc::new(Mutex::new(None::<String>));
     if (*r.lock().unwrap()).is_some() {
-        print!("Recovered from panic in init: {}\n", (*r.lock().unwrap().as_mut().unwrap()));
+        print!("Recovered from panic in init: {}\n", format_any(r.lock().unwrap().as_ref().unwrap().as_ref()));
     }
     }) as Box<dyn Fn() -> () + Send + Sync>))).lock().unwrap().as_ref().unwrap())();
     }));
