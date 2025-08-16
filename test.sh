@@ -299,7 +299,8 @@ echo -e "\033[90mTotal time: ${TOTAL_TIME}s\033[0m"
 # Count all test types from the captured output
 PASSING=$(echo "$TEST_OUTPUT" | grep "^ok " | grep -v "XFAIL" | wc -l | tr -d ' ')
 FAILING=$(echo "$TEST_OUTPUT" | grep "^not ok " | grep -v "XFAIL" | wc -l | tr -d ' ')
-XFAIL_TOTAL=$(echo "$TEST_OUTPUT" | grep "XFAIL" | wc -l | tr -d ' ')
+# Only count XFAIL tests from actual test result lines (ok or not ok), not error messages
+XFAIL_TOTAL=$(echo "$TEST_OUTPUT" | grep -E "^(ok |not ok )" | grep "XFAIL" | wc -l | tr -d ' ')
 TOTAL=$((PASSING + FAILING + XFAIL_TOTAL))
 
 # Display with colors and symbols
