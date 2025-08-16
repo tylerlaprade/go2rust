@@ -194,7 +194,7 @@ run_xfail_test() {
         if [ $? -ne 0 ]; then
             echo "ERROR: XFAIL test '"'"'$test_name'"'"' does not compile:"
             echo "$go_build_output"
-            exit 2  # Special exit code for compilation failure
+            exit 2
         fi
         
         # Run Go binary
@@ -207,7 +207,7 @@ run_xfail_test() {
         if [ $go_exit_code -ne 0 ]; then
             echo "Go execution failed:"
             echo "$go_output"
-            exit 1
+            exit 2
         fi
         
         # Check if expected output exists and compare
@@ -226,7 +226,7 @@ run_xfail_test() {
                 echo ""
                 echo "This likely means the Go test produces non-deterministic output."
                 echo "Please update the test to ensure deterministic output (e.g., sort map keys before iteration)."
-                exit 1
+                exit 2
             fi
         else
             # Save the Go output as expected for future runs
@@ -240,7 +240,7 @@ run_xfail_test() {
         if [ $exit_code -eq 124 ]; then
             echo "Test timed out after $timeout"
         elif [ $exit_code -eq 2 ]; then
-            # Compilation failure - this is a real error for XFAIL tests
+            # Compilation failure or other problem in the Go code itself- this is a real error for XFAIL tests
             return 1
         fi
         # Other failures are expected for XFAIL

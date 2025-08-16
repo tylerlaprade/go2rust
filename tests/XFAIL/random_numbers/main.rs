@@ -1,44 +1,7 @@
-fn format_map<K: std::fmt::Display + std::cmp::Ord + Clone, V>(map: &std::sync::Arc<std::sync::Mutex<Option<std::collections::HashMap<K, std::sync::Arc<std::sync::Mutex<Option<V>>>>>>>) -> String 
-where
-    V: std::fmt::Display,
-{
-    let guard = map.lock().unwrap();
-    if let Some(ref m) = *guard {
-        let mut items: Vec<_> = m.iter().collect();
-        items.sort_by_key(|(k, _)| (*k).clone());
-        
-        let formatted: Vec<String> = items
-            .into_iter()
-            .map(|(k, v)| {
-                let v_guard = v.lock().unwrap();
-                if let Some(ref val) = *v_guard {
-                    format!("{}:{}", k, val)
-                } else {
-                    format!("{}:<nil>", k)
-                }
-            })
-            .collect();
-        
-        format!("map[{}]", formatted.join(" "))
-    } else {
-        "map[]".to_string()
-    }
-}
-fn format_slice<T>(slice: &std::sync::Arc<std::sync::Mutex<Option<Vec<T>>>>) -> String 
-where
-    T: std::fmt::Display,
-{
-    let guard = slice.lock().unwrap();
-    if let Some(ref s) = *guard {
-        let formatted: Vec<String> = s.iter().map(|v| v.to_string()).collect();
-        format!("[{}]", formatted.join(" "))
-    } else {
-        "[]".to_string()
-    }
-}
+use std::sync::{Arc, Mutex};
 
 fn main() {
-    (*rand.lock().unwrap().as_mut().unwrap()).seed(std::sync::Arc::new(std::sync::Mutex::new(Some((*time.lock().unwrap().as_mut().unwrap()).now().unix_nano()))));
-    println!("{} {}", "Random int:".to_string(), (*(*rand.lock().unwrap().as_mut().unwrap()).intn(std::sync::Arc::new(std::sync::Mutex::new(Some(100)))).lock().unwrap().as_mut().unwrap()));
-    println!("{} {}", "Random float:".to_string(), (*(*rand.lock().unwrap().as_mut().unwrap()).float64().lock().unwrap().as_mut().unwrap()));
+    rand.seed(Arc::new(Mutex::new(Some(time.now().unix_nano()))));
+    println!("{} {}", "Random int:".to_string(), (*rand.intn(Arc::new(Mutex::new(Some(100)))).lock().unwrap().as_ref().unwrap()));
+    println!("{} {}", "Random float:".to_string(), (*rand.float64().lock().unwrap().as_ref().unwrap()));
 }

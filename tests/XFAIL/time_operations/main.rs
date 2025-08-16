@@ -1,48 +1,11 @@
-fn format_map<K: std::fmt::Display + std::cmp::Ord + Clone, V>(map: &std::sync::Arc<std::sync::Mutex<Option<std::collections::HashMap<K, std::sync::Arc<std::sync::Mutex<Option<V>>>>>>>) -> String 
-where
-    V: std::fmt::Display,
-{
-    let guard = map.lock().unwrap();
-    if let Some(ref m) = *guard {
-        let mut items: Vec<_> = m.iter().collect();
-        items.sort_by_key(|(k, _)| (*k).clone());
-        
-        let formatted: Vec<String> = items
-            .into_iter()
-            .map(|(k, v)| {
-                let v_guard = v.lock().unwrap();
-                if let Some(ref val) = *v_guard {
-                    format!("{}:{}", k, val)
-                } else {
-                    format!("{}:<nil>", k)
-                }
-            })
-            .collect();
-        
-        format!("map[{}]", formatted.join(" "))
-    } else {
-        "map[]".to_string()
-    }
-}
-fn format_slice<T>(slice: &std::sync::Arc<std::sync::Mutex<Option<Vec<T>>>>) -> String 
-where
-    T: std::fmt::Display,
-{
-    let guard = slice.lock().unwrap();
-    if let Some(ref s) = *guard {
-        let formatted: Vec<String> = s.iter().map(|v| v.to_string()).collect();
-        format!("[{}]", formatted.join(" "))
-    } else {
-        "[]".to_string()
-    }
-}
+use std::sync::{Arc, Mutex};
 
 fn main() {
-    let mut now = (*time.lock().unwrap().as_mut().unwrap()).now();
+    let mut now = time.now();
     println!("{} {}", "Current time:".to_string(), (*now.lock().unwrap().as_mut().unwrap()));
 
-    let mut future = (*now.lock().unwrap().as_mut().unwrap()).add(std::sync::Arc::new(std::sync::Mutex::new(Some(24 * (*time.lock().unwrap().as_mut().unwrap()).hour))));
+    let mut future = now.add(Arc::new(Mutex::new(Some(24 * (*(*time.lock().unwrap().as_mut().unwrap())::hour.lock().unwrap().as_ref().unwrap())))));
     println!("{} {}", "Tomorrow:".to_string(), (*future.lock().unwrap().as_mut().unwrap()));
 
-    println!("{} {}", "Unix timestamp:".to_string(), (*(*now.lock().unwrap().as_mut().unwrap()).unix().lock().unwrap().as_mut().unwrap()));
+    println!("{} {}", "Unix timestamp:".to_string(), (*now.unix().lock().unwrap().as_ref().unwrap()));
 }

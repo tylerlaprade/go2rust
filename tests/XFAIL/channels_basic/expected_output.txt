@@ -8,7 +8,6 @@ Sending: 4
 Received: 4
 Sending: 5
 Received: 5
-Channel closed
 Buffered channel contents:
 Got: first
 Got: second

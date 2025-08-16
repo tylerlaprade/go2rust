@@ -1,5 +1,5 @@
 Value of x: 42
-Address of x: 0x1400000e130
+Address of x: 0x14000184020
 Value through pointer: 42
 Modified x: 100
 Point: &{10 20}

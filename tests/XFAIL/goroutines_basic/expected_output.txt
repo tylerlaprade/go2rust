@@ -1,8 +1,8 @@
 Starting goroutines...
 Anonymous goroutine running
-Count: 10
 Hello Alice! (1)
 Hello Bob! (1)
+Count: 10
 Count: 11
 Hello Bob! (2)
 Hello Alice! (2)

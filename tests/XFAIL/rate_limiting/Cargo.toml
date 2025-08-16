@@ -1,8 +1,8 @@
 [package]
-name = "transpiled"
+name = "rate_limiting"
 version = "0.1.0"
 edition = "2021"
 
 [[bin]]
-name = "transpiled"
+name = "rate_limiting"
 path = "main.rs"

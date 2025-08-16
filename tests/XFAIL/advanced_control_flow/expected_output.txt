@@ -74,10 +74,10 @@ Stopping at even number 8 (index 7)
 
 
 === Select with complex channel operations ===
-Received string: hello
 Received int: 1
-Received string: world
+Received string: hello
 Received int: 2
+Received string: world
 Channel processing complete
 
 === Complex error handling flow ===
