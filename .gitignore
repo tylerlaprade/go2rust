@@ -1,6 +1,6 @@
-go2rust
-go2rust.exe
-go/go
+*
+!*.*
+!*/
 
 tests/**/target
 tests/**/Cargo.lock
