@@ -5,7 +5,7 @@ import (
 	"go/ast"
 	"go/token"
 	"go/types"
-	"sort"
+	"slices"
 	"strings"
 )
 
@@ -213,23 +213,40 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						// Function literal - already wrapped by TranspileFuncLit
 						TranspileExpression(out, result)
 					} else if ident, ok := result.(*ast.Ident); ok {
-						// Check if this is a variable (already wrapped) or a constant/literal
-						if _, isRangeVar := rangeLoopVars[ident.Name]; !isRangeVar {
-							if _, isLocalConst := localConstants[ident.Name]; !isLocalConst {
-								// It's a variable, just clone it
-								out.WriteString(ident.Name)
-								out.WriteString(".clone()")
+						// Check if this is a wrapped variable that needs cloning
+						// Use a combination of TypeInfo and heuristics
+						isWrappedVariable := false
+
+						// First check TypeInfo
+						typeInfo := GetTypeInfo()
+						if typeInfo != nil && typeInfo.ReturnsWrappedValue(result) {
+							isWrappedVariable = true
+						} else {
+							// Fallback: check if this looks like a local variable
+							// (not a special identifier and not a range variable)
+							if ident.Name != "true" && ident.Name != "false" && ident.Name != "nil" {
+								if _, isRangeVar := rangeLoopVars[ident.Name]; !isRangeVar {
+									if _, isLocalConst := localConstants[ident.Name]; !isLocalConst {
+										// This is likely a wrapped variable
+										isWrappedVariable = true
+									}
+								}
+							}
+						}
+
+						if isWrappedVariable {
+							// This is a wrapped variable - clone it to avoid move errors
+							out.WriteString(ident.Name)
+							out.WriteString(".clone()")
+						} else {
+							// This needs wrapping (constants, literals, etc.)
+							if ident.Name == "nil" {
+								out.WriteString("Arc::new(Mutex::new(None))")
 							} else {
-								// It's a constant, wrap it
 								out.WriteString("Arc::new(Mutex::new(Some(")
 								TranspileExpression(out, result)
 								out.WriteString(")))")
 							}
-						} else {
-							// Range variable, wrap it
-							out.WriteString("Arc::new(Mutex::new(Some(")
-							TranspileExpression(out, result)
-							out.WriteString(")))")
 						}
 					} else if _, ok := result.(*ast.SliceExpr); ok {
 						// Slice expressions already return wrapped values (Arc<Mutex<Option<Vec<T>>>>)
@@ -829,9 +846,24 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									} else if _, isCall := rhs.(*ast.CallExpr); isCall {
 										// Function calls already return wrapped values, don't wrap again
 										TranspileExpression(out, rhs)
-									} else if _, isCompositeLit := rhs.(*ast.CompositeLit); isCompositeLit {
-										// Composite literals (map/slice/struct literals) already wrap themselves
-										TranspileExpression(out, rhs)
+									} else if compositeLit, isCompositeLit := rhs.(*ast.CompositeLit); isCompositeLit {
+										// Check if it's a struct literal vs array/slice/map literal
+										isStructLiteral := false
+										if _, ok := compositeLit.Type.(*ast.Ident); ok {
+											isStructLiteral = true
+										} else if _, ok := compositeLit.Type.(*ast.StructType); ok {
+											isStructLiteral = true
+										}
+
+										if isStructLiteral {
+											// Struct literals need to be wrapped
+											out.WriteString("Arc::new(Mutex::new(Some(")
+											TranspileExpression(out, rhs)
+											out.WriteString(")))")
+										} else {
+											// Array/slice/map literals already wrap themselves
+											TranspileExpression(out, rhs)
+										}
 									} else if _, isSliceExpr := rhs.(*ast.SliceExpr); isSliceExpr {
 										// Slice expressions already return wrapped values
 										TranspileExpression(out, rhs)
@@ -915,9 +947,24 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 								} else if _, isCall := valueSpec.Values[i].(*ast.CallExpr); isCall {
 									// Function calls already return wrapped values, don't wrap again
 									TranspileExpression(out, valueSpec.Values[i])
-								} else if _, isCompositeLit := valueSpec.Values[i].(*ast.CompositeLit); isCompositeLit {
-									// Composite literals (map/slice/struct literals) already wrap themselves
-									TranspileExpression(out, valueSpec.Values[i])
+								} else if compositeLit, isCompositeLit := valueSpec.Values[i].(*ast.CompositeLit); isCompositeLit {
+									// Check if it's a struct literal vs array/slice/map literal
+									isStructLiteral := false
+									if _, ok := compositeLit.Type.(*ast.Ident); ok {
+										isStructLiteral = true
+									} else if _, ok := compositeLit.Type.(*ast.StructType); ok {
+										isStructLiteral = true
+									}
+
+									if isStructLiteral {
+										// Struct literals need to be wrapped
+										out.WriteString("Arc::new(Mutex::new(Some(")
+										TranspileExpression(out, valueSpec.Values[i])
+										out.WriteString(")))")
+									} else {
+										// Array/slice/map literals already wrap themselves
+										TranspileExpression(out, valueSpec.Values[i])
+									}
 								} else if unary, ok := valueSpec.Values[i].(*ast.UnaryExpr); ok && unary.Op == token.AND {
 									// Address-of operator already produces wrapped value
 									TranspileExpression(out, valueSpec.Values[i])
@@ -1383,7 +1430,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		for varName := range captured {
 			capturedVars = append(capturedVars, varName)
 		}
-		sort.Strings(capturedVars)
+		slices.Sort(capturedVars)
 
 		captureRenames := make(map[string]string)
 		for _, varName := range capturedVars {

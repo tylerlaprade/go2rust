@@ -1,11 +1,11 @@
 use std::sync::{Arc, Mutex};
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Default)]
 struct Inner {
     value: Arc<Mutex<Option<i32>>>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Default)]
 struct Outer {
     inner: Arc<Mutex<Option<Inner>>>,
     name: Arc<Mutex<Option<String>>>,
@@ -28,12 +28,12 @@ impl Outer {
 }
 
 fn main() {
-    let mut o = Outer { inner: Arc::new(Mutex::new(Some(Inner { value: Arc::new(Mutex::new(Some(42))) }))), name: Arc::new(Mutex::new(Some("test".to_string()))) };
+    let mut o = Arc::new(Mutex::new(Some(Outer { inner: Arc::new(Mutex::new(Some(Inner { value: Arc::new(Mutex::new(Some(42))) }))), name: Arc::new(Mutex::new(Some("test".to_string()))) })));
 
         // Direct field access
-    println!("{} {}", "Value:".to_string(), (*o.inner.lock().unwrap().as_ref().unwrap().value.lock().unwrap().as_ref().unwrap()));
-    println!("{} {}", "Name:".to_string(), (*o.name.lock().unwrap().as_ref().unwrap()));
+    println!("{} {}", "Value:".to_string(), (*(*(*o.lock().unwrap().as_ref().unwrap()).inner.lock().unwrap().as_ref().unwrap()).value.lock().unwrap().as_ref().unwrap()));
+    println!("{} {}", "Name:".to_string(), (*(*o.lock().unwrap().as_ref().unwrap()).name.lock().unwrap().as_ref().unwrap()));
 
         // Method call
-    println!("{} {}", "GetValue:".to_string(), (*o.get_value().lock().unwrap().as_ref().unwrap()));
+    println!("{} {}", "GetValue:".to_string(), (*(*o.lock().unwrap().as_mut().unwrap()).get_value().lock().unwrap().as_ref().unwrap()));
 }

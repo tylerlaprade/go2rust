@@ -91,7 +91,7 @@ pub fn get_person_info() -> (Arc<Mutex<Option<String>>>, Arc<Mutex<Option<i32>>>
     let mut height: Arc<Mutex<Option<f64>>> = Arc::new(Mutex::new(Some(0.0)));
     let mut married: Arc<Mutex<Option<bool>>> = Arc::new(Mutex::new(Some(false)));
 
-    return (Arc::new(Mutex::new(Some("Bob".to_string()))), Arc::new(Mutex::new(Some(25))), Arc::new(Mutex::new(Some(5.9))), false.clone());
+    return (Arc::new(Mutex::new(Some("Bob".to_string()))), Arc::new(Mutex::new(Some(25))), Arc::new(Mutex::new(Some(5.9))), Arc::new(Mutex::new(Some(false))));
 }
 
 /// Function that can return early with different values
@@ -101,10 +101,10 @@ pub fn find_in_slice(slice: Arc<Mutex<Option<Vec<i32>>>>, target: Arc<Mutex<Opti
 
     for (i, val) in (*slice.lock().unwrap().as_mut().unwrap()).iter().enumerate() {
         if val == (*target.lock().unwrap().as_mut().unwrap()) {
-        return (Arc::new(Mutex::new(Some(i))), true.clone());
+        return (Arc::new(Mutex::new(Some(i))), Arc::new(Mutex::new(Some(true))));
     }
     }
-    return (Arc::new(Mutex::new(Some(-1))), false.clone());
+    return (Arc::new(Mutex::new(Some(-1))), Arc::new(Mutex::new(Some(false))));
 }
 
 /// Multiple returns with error handling

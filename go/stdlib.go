@@ -46,6 +46,8 @@ func init() {
 		"strconv.Atoi":      transpileStrconvAtoi,
 		"errors.New":        transpileErrorsNew,
 		"sort.Strings":      transpileSortStrings,
+		"sort.Ints":         transpileSortInts,
+		"slices.Sort":       transpileSlicesSort,
 	}
 
 	builtinMappings = map[string]StdlibHandler{
@@ -224,6 +226,39 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 	TranspileExpression(out, arg)
 }
 
+// convertFormatString converts Go format strings to Rust format strings
+func convertFormatString(goFormat string) string {
+	format := goFormat
+
+	// First, escape any literal curly braces that aren't part of Go format verbs
+	// We need to do this before converting format verbs
+	// Use placeholders to avoid double-escaping
+	format = strings.ReplaceAll(format, "{", "__OPEN_BRACE__")
+	format = strings.ReplaceAll(format, "}", "__CLOSE_BRACE__")
+
+	// Handle %% -> % (literal percent) first
+	format = strings.ReplaceAll(format, "%%", "%")
+	// Handle format verbs with precision first
+	format = strings.ReplaceAll(format, "%.5f", "{:.5}")
+	format = strings.ReplaceAll(format, "%.2f", "{:.2}")
+	format = strings.ReplaceAll(format, "%.1f", "{:.1}")
+	// Simple conversion: %d -> {}, %s -> {}, etc.
+	format = strings.ReplaceAll(format, "%d", "{}")
+	format = strings.ReplaceAll(format, "%s", "{}")
+	format = strings.ReplaceAll(format, "%v", "{}")
+	format = strings.ReplaceAll(format, "%f", "{}")
+	format = strings.ReplaceAll(format, "%t", "{}")
+	format = strings.ReplaceAll(format, "%b", "{:b}")
+	format = strings.ReplaceAll(format, "%c", "{}")
+	format = strings.ReplaceAll(format, "%U", "{:?}")
+
+	// Now escape the literal braces that were in the original string
+	format = strings.ReplaceAll(format, "__OPEN_BRACE__", "{{")
+	format = strings.ReplaceAll(format, "__CLOSE_BRACE__", "}}")
+
+	return format
+}
+
 func transpileFmtPrintf(out *strings.Builder, call *ast.CallExpr) {
 	out.WriteString("print!")
 	out.WriteString("(")
@@ -394,6 +429,34 @@ func transpileSortStrings(out *strings.Builder, call *ast.CallExpr) {
 	}
 }
 
+func transpileSortInts(out *strings.Builder, call *ast.CallExpr) {
+	if len(call.Args) > 0 {
+		// sort.Ints sorts a slice of integers in-place
+		// We need to get mutable access to the vector inside the Arc<Mutex<Option<Vec<i32>>>>
+		out.WriteString("(*")
+		if ident, ok := call.Args[0].(*ast.Ident); ok {
+			out.WriteString(ident.Name)
+		} else {
+			TranspileExpression(out, call.Args[0])
+		}
+		out.WriteString(".lock().unwrap().as_mut().unwrap()).sort()")
+	}
+}
+
+func transpileSlicesSort(out *strings.Builder, call *ast.CallExpr) {
+	if len(call.Args) > 0 {
+		// slices.Sort is a generic sort function that works with any ordered type
+		// We need to get mutable access to the vector inside the Arc<Mutex<Option<Vec<T>>>>
+		out.WriteString("(*")
+		if ident, ok := call.Args[0].(*ast.Ident); ok {
+			out.WriteString(ident.Name)
+		} else {
+			TranspileExpression(out, call.Args[0])
+		}
+		out.WriteString(".lock().unwrap().as_mut().unwrap()).sort()")
+	}
+}
+
 func transpileStrconvItoa(out *strings.Builder, call *ast.CallExpr) {
 	if len(call.Args) > 0 {
 		TranspileExpression(out, call.Args[0])
@@ -465,6 +528,7 @@ func transpileLen(out *strings.Builder, call *ast.CallExpr) {
 	if len(call.Args) > 0 {
 		// len() returns the length of arrays, slices, maps, strings, or channels
 		// The argument is wrapped, so we need to unwrap it first
+		// Keep as usize - Rust's natural size type for collections
 		out.WriteString("(*")
 		// Use LValue context so identifiers don't unwrap themselves
 		TranspileExpressionContext(out, call.Args[0], LValue)

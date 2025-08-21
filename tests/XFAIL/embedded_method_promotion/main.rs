@@ -1,18 +1,18 @@
 use std::sync::{Arc, Mutex};
 
 /// Base types with methods
-#[derive(Debug)]
+#[derive(Debug, Clone, Default)]
 struct Logger {
     prefix: Arc<Mutex<Option<String>>>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Default)]
 struct Counter {
     count: Arc<Mutex<Option<i32>>>,
 }
 
 /// Type that embeds both Logger and Counter
-#[derive(Debug)]
+#[derive(Debug, Clone, Default)]
 struct Service {
     logger: Arc<Mutex<Option<Logger>>>,
     counter: Arc<Mutex<Option<Counter>>>,
@@ -20,18 +20,18 @@ struct Service {
 }
 
 /// Type with multiple levels of embedding
-#[derive(Debug)]
+#[derive(Debug, Clone, Default)]
 struct Base {
     id: Arc<Mutex<Option<i32>>>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Default)]
 struct Middle {
     base: Arc<Mutex<Option<Base>>>,
     data: Arc<Mutex<Option<String>>>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Default)]
 struct Top {
     middle: Arc<Mutex<Option<Middle>>>,
     extra: Arc<Mutex<Option<String>>>,
@@ -171,21 +171,21 @@ impl Top {
 fn main() {
         // Test basic method promotion
     println!("{}", "=== Basic method promotion ===".to_string());
-    let mut svc = Service { logger: Arc::new(Mutex::new(Some(Logger { prefix: Arc::new(Mutex::new(Some("SVC".to_string()))) }))), counter: Arc::new(Mutex::new(Some(Counter { count: Arc::new(Mutex::new(Some(0))) }))), name: Arc::new(Mutex::new(Some("MyService".to_string()))) };
+    let mut svc = Arc::new(Mutex::new(Some(Service { logger: Arc::new(Mutex::new(Some(Logger { prefix: Arc::new(Mutex::new(Some("SVC".to_string()))) }))), counter: Arc::new(Mutex::new(Some(Counter { count: Arc::new(Mutex::new(Some(0))) }))), name: Arc::new(Mutex::new(Some("MyService".to_string()))) })));
 
         // Call promoted methods from Logger
-    svc.log(Arc::new(Mutex::new(Some("Service started".to_string()))));
-    svc.set_prefix(Arc::new(Mutex::new(Some("SERVICE".to_string()))));
-    svc.log(Arc::new(Mutex::new(Some("Prefix changed".to_string()))));
+    (*svc.lock().unwrap().as_mut().unwrap()).log(Arc::new(Mutex::new(Some("Service started".to_string()))));
+    (*svc.lock().unwrap().as_mut().unwrap()).set_prefix(Arc::new(Mutex::new(Some("SERVICE".to_string()))));
+    (*svc.lock().unwrap().as_mut().unwrap()).log(Arc::new(Mutex::new(Some("Prefix changed".to_string()))));
 
         // Call promoted methods from Counter
-    svc.increment();
-    svc.add(Arc::new(Mutex::new(Some(5))));
-    print!("Counter value (via promoted method): {}\n", (*(*svc.logger.lock().unwrap().as_ref().unwrap().counter.lock().unwrap().as_mut().unwrap()).value().lock().unwrap().as_ref().unwrap()));
+    (*svc.lock().unwrap().as_mut().unwrap()).increment();
+    (*svc.lock().unwrap().as_mut().unwrap()).add(Arc::new(Mutex::new(Some(5))));
+    print!("Counter value (via promoted method): {}\n", (*(*(*(*svc.lock().unwrap().as_ref().unwrap()).logger.lock().unwrap().as_ref().unwrap()).counter.lock().unwrap().as_mut().unwrap()).value().lock().unwrap().as_ref().unwrap()));
 
         // Call Service's own methods
-    print!("Service name: {}\n", (*svc.name().lock().unwrap().as_ref().unwrap()));
-    print!("Shadowed Value method: {}\n", (*svc.value().lock().unwrap().as_ref().unwrap()));
+    print!("Service name: {}\n", (*(*svc.lock().unwrap().as_mut().unwrap()).name().lock().unwrap().as_ref().unwrap()));
+    print!("Shadowed Value method: {}\n", (*(*svc.lock().unwrap().as_mut().unwrap()).value().lock().unwrap().as_ref().unwrap()));
 
         // Test method promotion with pointers
     println!("{}", "\n=== Method promotion with pointers ===".to_string());
@@ -193,22 +193,22 @@ fn main() {
 
     (*svcPtr.lock().unwrap().as_mut().unwrap()).log(Arc::new(Mutex::new(Some("Pointer service".to_string()))));
     (*svcPtr.lock().unwrap().as_mut().unwrap()).increment();
-    print!("Pointer service counter: {}\n", (*(*svcPtr.logger.lock().unwrap().as_ref().unwrap().counter.lock().unwrap().as_mut().unwrap()).value().lock().unwrap().as_ref().unwrap()));
+    print!("Pointer service counter: {}\n", (*(*(*(*svcPtr.lock().unwrap().as_ref().unwrap()).logger.lock().unwrap().as_ref().unwrap()).counter.lock().unwrap().as_mut().unwrap()).value().lock().unwrap().as_ref().unwrap()));
 
         // Test multi-level embedding
     println!("{}", "\n=== Multi-level embedding ===".to_string());
-    let mut top = Top { middle: Arc::new(Mutex::new(Some(Middle { base: Arc::new(Mutex::new(Some(Base { id: Arc::new(Mutex::new(Some(100))) }))), data: Arc::new(Mutex::new(Some("middle data".to_string()))) }))), extra: Arc::new(Mutex::new(Some("extra data".to_string()))) };
+    let mut top = Arc::new(Mutex::new(Some(Top { middle: Arc::new(Mutex::new(Some(Middle { base: Arc::new(Mutex::new(Some(Base { id: Arc::new(Mutex::new(Some(100))) }))), data: Arc::new(Mutex::new(Some("middle data".to_string()))) }))), extra: Arc::new(Mutex::new(Some("extra data".to_string()))) })));
 
         // Methods promoted from Base through Middle
-    print!("ID (promoted from Base): {}\n", (*top.get_i_d().lock().unwrap().as_ref().unwrap()));
-    top.set_i_d(Arc::new(Mutex::new(Some(200))));
-    print!("ID after SetID: {}\n", (*top.get_i_d().lock().unwrap().as_ref().unwrap()));
+    print!("ID (promoted from Base): {}\n", (*(*top.lock().unwrap().as_mut().unwrap()).get_i_d().lock().unwrap().as_ref().unwrap()));
+    (*top.lock().unwrap().as_mut().unwrap()).set_i_d(Arc::new(Mutex::new(Some(200))));
+    print!("ID after SetID: {}\n", (*(*top.lock().unwrap().as_mut().unwrap()).get_i_d().lock().unwrap().as_ref().unwrap()));
 
         // Methods promoted from Middle
-    print!("Data (promoted from Middle): {}\n", (*top.get_data().lock().unwrap().as_ref().unwrap()));
+    print!("Data (promoted from Middle): {}\n", (*(*top.lock().unwrap().as_mut().unwrap()).get_data().lock().unwrap().as_ref().unwrap()));
 
         // Top's own method
-    print!("Extra: {}\n", (*top.get_extra().lock().unwrap().as_ref().unwrap()));
+    print!("Extra: {}\n", (*(*top.lock().unwrap().as_mut().unwrap()).get_extra().lock().unwrap().as_ref().unwrap()));
 
         // Test with embedded pointer types would go here
         // but local type definitions with methods aren't supported in functions

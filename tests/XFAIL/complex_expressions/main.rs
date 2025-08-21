@@ -2,7 +2,7 @@ use std::any::Any;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Default)]
 struct AnonymousStruct1 {
     x: Arc<Mutex<Option<i32>>>,
     y: Arc<Mutex<Option<i32>>>,
@@ -81,13 +81,13 @@ fn main() {
         // Struct field expressions
     println!("{}", "\n=== Struct field expressions ===".to_string());
 
-    type Point = Arc<Mutex<Option<AnonymousStruct2>>>;
+    type Point = Arc<Mutex<Option<AnonymousStruct1>>>;
 
-    let mut p1 = Point { x: Arc::new(Mutex::new(Some(3))), y: Arc::new(Mutex::new(Some(4))) };
-    let mut p2 = Point { x: Arc::new(Mutex::new(Some(6))), y: Arc::new(Mutex::new(Some(8))) };
+    let mut p1 = Arc::new(Mutex::new(Some(Point { x: Arc::new(Mutex::new(Some(3))), y: Arc::new(Mutex::new(Some(4))) })));
+    let mut p2 = Arc::new(Mutex::new(Some(Point { x: Arc::new(Mutex::new(Some(6))), y: Arc::new(Mutex::new(Some(8))) })));
 
         // Distance calculation (without sqrt for simplicity)
-    let mut distanceSquared = Arc::new(Mutex::new(Some(((*p2.x.lock().unwrap().as_ref().unwrap()) - (*p1.x.lock().unwrap().as_ref().unwrap())) * ((*p2.x.lock().unwrap().as_ref().unwrap()) - (*p1.x.lock().unwrap().as_ref().unwrap())) + ((*p2.y.lock().unwrap().as_ref().unwrap()) - (*p1.y.lock().unwrap().as_ref().unwrap())) * ((*p2.y.lock().unwrap().as_ref().unwrap()) - (*p1.y.lock().unwrap().as_ref().unwrap())))));
+    let mut distanceSquared = Arc::new(Mutex::new(Some(((*(*p2.lock().unwrap().as_ref().unwrap()).x.lock().unwrap().as_ref().unwrap()) - (*(*p1.lock().unwrap().as_ref().unwrap()).x.lock().unwrap().as_ref().unwrap())) * ((*(*p2.lock().unwrap().as_ref().unwrap()).x.lock().unwrap().as_ref().unwrap()) - (*(*p1.lock().unwrap().as_ref().unwrap()).x.lock().unwrap().as_ref().unwrap())) + ((*(*p2.lock().unwrap().as_ref().unwrap()).y.lock().unwrap().as_ref().unwrap()) - (*(*p1.lock().unwrap().as_ref().unwrap()).y.lock().unwrap().as_ref().unwrap())) * ((*(*p2.lock().unwrap().as_ref().unwrap()).y.lock().unwrap().as_ref().unwrap()) - (*(*p1.lock().unwrap().as_ref().unwrap()).y.lock().unwrap().as_ref().unwrap())))));
     print!("Distance squared between points: {}\n", (*distanceSquared.lock().unwrap().as_mut().unwrap()));
 
         // Pointer expressions

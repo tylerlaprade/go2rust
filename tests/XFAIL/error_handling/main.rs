@@ -1,7 +1,7 @@
 use std::error::Error;
 use std::sync::{Arc, Mutex};
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Default)]
 struct CustomError {
     code: Arc<Mutex<Option<i32>>>,
     message: Arc<Mutex<Option<String>>>,

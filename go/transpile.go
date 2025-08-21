@@ -3,6 +3,7 @@ package main
 import (
 	"go/ast"
 	"go/token"
+	"slices"
 	"sort"
 	"strings"
 )
@@ -392,7 +393,7 @@ func Transpile(file *ast.File, fileSet *token.FileSet, typeInfo *TypeInfo) (stri
 	for typeName := range anonymousStructs {
 		anonTypeNames = append(anonTypeNames, typeName)
 	}
-	sort.Strings(anonTypeNames)
+	slices.Sort(anonTypeNames)
 
 	for _, typeName := range anonTypeNames {
 		structType := anonymousStructs[typeName]
@@ -400,7 +401,7 @@ func Transpile(file *ast.File, fileSet *token.FileSet, typeInfo *TypeInfo) (stri
 			body.WriteString("\n\n")
 		}
 		first = false
-		body.WriteString("#[derive(Debug)]\n")
+		body.WriteString("#[derive(Debug, Clone, Default)]\n")
 		body.WriteString("struct ")
 		body.WriteString(typeName)
 		body.WriteString(" {\n")
@@ -494,7 +495,7 @@ func Transpile(file *ast.File, fileSet *token.FileSet, typeInfo *TypeInfo) (stri
 			for methodName := range promotedMethods {
 				promotedMethodNames = append(promotedMethodNames, methodName)
 			}
-			sort.Strings(promotedMethodNames)
+			slices.Sort(promotedMethodNames)
 
 			for _, methodName := range promotedMethodNames {
 				methodInfo := promotedMethods[methodName]
@@ -552,7 +553,7 @@ func Transpile(file *ast.File, fileSet *token.FileSet, typeInfo *TypeInfo) (stri
 		for ifaceName := range interfaces {
 			ifaceNames = append(ifaceNames, ifaceName)
 		}
-		sort.Strings(ifaceNames)
+		slices.Sort(ifaceNames)
 
 		for _, ifaceName := range ifaceNames {
 			ifaceType := interfaces[ifaceName]

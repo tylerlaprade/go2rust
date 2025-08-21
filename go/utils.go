@@ -29,7 +29,15 @@ func ToSnakeCase(s string) string {
 		}
 		result = append(result, toLower(r))
 	}
-	return string(result)
+
+	// Escape Rust keywords
+	resultStr := string(result)
+	switch resultStr {
+	case "type", "match", "move", "ref", "impl", "trait", "mod", "pub", "use", "where", "async", "await", "dyn":
+		return "r#" + resultStr
+	}
+
+	return resultStr
 }
 
 func isUpper(r rune) bool {

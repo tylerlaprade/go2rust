@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Default)]
 struct Point {
     x: Arc<Mutex<Option<i32>>>,
     y: Arc<Mutex<Option<i32>>>,
@@ -21,12 +21,12 @@ fn main() {
         // Pointer to struct
     let mut point = Arc::new(Mutex::new(Some(Point { x: Arc::new(Mutex::new(Some(10))), y: Arc::new(Mutex::new(Some(20))) })));
     println!("{} {}", "Point:".to_string(), (*point.lock().unwrap().as_mut().unwrap()));
-    println!("{} {}", "Point X:".to_string(), (*point.x.lock().unwrap().as_ref().unwrap()));
-    println!("{} {}", "Point Y:".to_string(), (*point.y.lock().unwrap().as_ref().unwrap()));
+    println!("{} {}", "Point X:".to_string(), (*(*point.lock().unwrap().as_ref().unwrap()).x.lock().unwrap().as_ref().unwrap()));
+    println!("{} {}", "Point Y:".to_string(), (*(*point.lock().unwrap().as_ref().unwrap()).y.lock().unwrap().as_ref().unwrap()));
 
         // Modify struct through pointer
-    { let new_val = 30; *point.x.lock().unwrap() = Some(new_val); };
-    { let new_val = 40; *point.y.lock().unwrap() = Some(new_val); };
+    { let new_val = 30; *(*point.lock().unwrap().as_mut().unwrap()).x.lock().unwrap() = Some(new_val); };
+    { let new_val = 40; *(*point.lock().unwrap().as_mut().unwrap()).y.lock().unwrap() = Some(new_val); };
     println!("{} {}", "Modified point:".to_string(), (*point.lock().unwrap().as_mut().unwrap()));
 
         // Pointer aliasing
@@ -36,7 +36,7 @@ fn main() {
 
         // New pointer allocation
     let mut newPoint = Arc::new(Mutex::new(Some(Arc<Mutex<Option<Point>>>::default())));
-    { let new_val = 5; *newPoint.x.lock().unwrap() = Some(new_val); };
-    { let new_val = 15; *newPoint.y.lock().unwrap() = Some(new_val); };
+    { let new_val = 5; *(*newPoint.lock().unwrap().as_mut().unwrap()).x.lock().unwrap() = Some(new_val); };
+    { let new_val = 15; *(*newPoint.lock().unwrap().as_mut().unwrap()).y.lock().unwrap() = Some(new_val); };
     println!("{} {}", "New point:".to_string(), (*newPoint.lock().unwrap().as_mut().unwrap()));
 }

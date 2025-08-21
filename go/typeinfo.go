@@ -203,7 +203,14 @@ func (ti *TypeInfo) ReturnsWrappedValue(expr ast.Expr) bool {
 		return true
 	case *ast.Ident:
 		// Variables are already wrapped, but accessing them doesn't add another layer
-		return false
+		// However, in return statements, we need to clone wrapped variables to avoid move errors
+		// For now, we'll use a heuristic: if it's not a special identifier, assume it's wrapped
+		if e.Name == "true" || e.Name == "false" || e.Name == "nil" {
+			return false
+		}
+		// Check if this is a local variable by looking at the context
+		// This is a simplified approach - we could improve this with better type analysis
+		return false // Revert to original behavior for now
 	case *ast.BasicLit:
 		// Literals are not wrapped
 		return false

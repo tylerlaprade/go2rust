@@ -26,13 +26,13 @@ trait Shape {
     fn area(&self) -> Arc<Mutex<Option<f64>>>;
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Default)]
 struct Rectangle {
     width: Arc<Mutex<Option<f64>>>,
     height: Arc<Mutex<Option<f64>>>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Default)]
 struct Circle {
     radius: Arc<Mutex<Option<f64>>>,
 }
@@ -151,7 +151,7 @@ pub fn assert_without_check(value: Arc<Mutex<Option<Box<dyn Any>>>>) {
 }
 
 pub fn describe_shape(s: Arc<Mutex<Option<Box<dyn Shape>>>>) {
-    print!("Shape area: {:.2}\n", (*s.area().lock().unwrap().as_ref().unwrap()));
+    print!("Shape area: {:.2}\n", (*(*s.lock().unwrap().as_mut().unwrap()).area().lock().unwrap().as_ref().unwrap()));
 
         // Type assertion on interface
     let (mut rect, mut ok) = ({
@@ -168,7 +168,7 @@ pub fn describe_shape(s: Arc<Mutex<Option<Box<dyn Shape>>>>) {
         }
     });
     if (*ok.lock().unwrap().as_mut().unwrap()) {
-        print!("  Rectangle: {:.1} x {:.1}\n", (*rect.width.lock().unwrap().as_ref().unwrap()), (*rect.height.lock().unwrap().as_ref().unwrap()));
+        print!("  Rectangle: {:.1} x {:.1}\n", (*(*rect.lock().unwrap().as_ref().unwrap()).width.lock().unwrap().as_ref().unwrap()), (*(*rect.lock().unwrap().as_ref().unwrap()).height.lock().unwrap().as_ref().unwrap()));
     } else let (mut circle, mut ok) = ({
         let val = s.clone();
         let guard = val.lock().unwrap();
@@ -183,7 +183,7 @@ pub fn describe_shape(s: Arc<Mutex<Option<Box<dyn Shape>>>>) {
         }
     });
     if (*ok.lock().unwrap().as_mut().unwrap()) {
-        print!("  Circle: radius {:.1}\n", (*circle.radius.lock().unwrap().as_ref().unwrap()));
+        print!("  Circle: radius {:.1}\n", (*(*circle.lock().unwrap().as_ref().unwrap()).radius.lock().unwrap().as_ref().unwrap()));
     }
 }
 

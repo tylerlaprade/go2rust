@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"sort"
+	"slices"
 	"strings"
 )
 
@@ -83,7 +83,7 @@ func (it *ImportTracker) GenerateImports() string {
 	}
 
 	// Sort for consistent output
-	sort.Strings(imports)
+	slices.Sort(imports)
 
 	return strings.Join(imports, "\n") + "\n"
 }

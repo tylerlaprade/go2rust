@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Default)]
 struct Counter {
     value: Arc<Mutex<Option<i32>>>,
 }

@@ -1,18 +1,12 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"slices"
+)
 
 func multipleReturns() (int, string, bool) {
 	return 42, "hello", true
-}
-
-func processSlice(slice []int) (sum, count int) {
-	sum = 0
-	count = len(slice)
-	for _, val := range slice {
-		sum += val
-	}
-	return
 }
 
 func main() {
@@ -68,14 +62,24 @@ func main() {
 
 	// Ignore values, use only keys
 	fmt.Println("Keys only:")
+	keys := make([]string, 0, len(ages))
 	for name, _ := range ages {
+		keys = append(keys, name)
+	}
+	slices.Sort(keys)
+	for _, name := range keys {
 		fmt.Printf("%s ", name)
 	}
 	fmt.Println()
 
 	// Ignore keys, use only values
 	fmt.Println("Values only:")
+	values := make([]int, 0, len(ages))
 	for _, age := range ages {
+		values = append(values, age)
+	}
+	slices.Sort(values)
+	for _, age := range values {
 		fmt.Printf("%d ", age)
 	}
 	fmt.Println()

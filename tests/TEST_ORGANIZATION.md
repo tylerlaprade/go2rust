@@ -147,6 +147,7 @@ These files serve as:
 ### Expected Output Files
 
 The test harness automatically manages `expected_output.txt` files:
+
 - **First run**: Saves Go output as `expected_output.txt`
 - **Subsequent runs**: Compares Go output with expected
 - **Mismatch**: Fails with clear error about non-deterministic Go output
@@ -179,9 +180,10 @@ tests/coverage/
 
 **CRITICAL**: All tests MUST produce deterministic output. The test infrastructure compares Go and Rust outputs byte-for-byte.
 
-### Common Non-Deterministic Patterns to Avoid:
+### Common Non-Deterministic Patterns to Avoid
 
 1. **Map iteration without sorting**:
+
    ```go
    // BAD - Non-deterministic order
    for k, v := range myMap {
@@ -193,13 +195,14 @@ tests/coverage/
    for k := range myMap {
        keys = append(keys, k)
    }
-   sort.Strings(keys)
+   slices.Sort(keys)
    for _, k := range keys {
        fmt.Println(k, myMap[k])
    }
    ```
 
 2. **Goroutines without synchronization**:
+
    ```go
    // BAD - Race condition in output
    go fmt.Println("Hello")
@@ -214,6 +217,7 @@ tests/coverage/
    ```
 
 3. **Time-based operations**:
+
    ```go
    // BAD - Output changes each run
    fmt.Println(time.Now())
@@ -223,6 +227,7 @@ tests/coverage/
    ```
 
 4. **Random number generation**:
+
    ```go
    // BAD - Different each run
    fmt.Println(rand.Int())

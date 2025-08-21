@@ -23,7 +23,7 @@ fn format_any(value: &dyn Any) -> String {
 }
 
 /// Struct with initialization
-#[derive(Debug)]
+#[derive(Debug, Clone, Default)]
 struct Config {
     name: Arc<Mutex<Option<String>>>,
     version: Arc<Mutex<Option<String>>>,

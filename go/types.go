@@ -9,12 +9,59 @@ import (
 // Track anonymous struct definitions
 var anonymousStructCounter = 0
 var anonymousStructs = make(map[string]*ast.StructType)
+var anonymousStructTypeMap = make(map[string]string) // maps struct signature to type name
+
+// getStructSignature creates a unique signature for a struct type based on its fields
+func getStructSignature(structType *ast.StructType) string {
+	var sig strings.Builder
+	sig.WriteString("struct{")
+	for i, field := range structType.Fields.List {
+		if i > 0 {
+			sig.WriteString(";")
+		}
+		// Add field names
+		for j, name := range field.Names {
+			if j > 0 {
+				sig.WriteString(",")
+			}
+			sig.WriteString(name.Name)
+		}
+		sig.WriteString(":")
+		// Add field type - need to handle nested structs specially
+		if nestedStruct, ok := field.Type.(*ast.StructType); ok {
+			// For nested anonymous structs, include their full signature
+			sig.WriteString(getStructSignature(nestedStruct))
+		} else {
+			// For other types, just use the type string representation
+			sig.WriteString(fmt.Sprintf("%T", field.Type))
+		}
+	}
+	sig.WriteString("}")
+	return sig.String()
+}
 
 // generateAnonymousStructType generates a unique type name for an anonymous struct
 func generateAnonymousStructType(structType *ast.StructType) string {
+	// Check if we've already generated a type for this struct signature
+	sig := getStructSignature(structType)
+	if typeName, exists := anonymousStructTypeMap[sig]; exists {
+		return typeName
+	}
+
+	// Generate a new type name for this struct
 	anonymousStructCounter++
 	typeName := fmt.Sprintf("AnonymousStruct%d", anonymousStructCounter)
 	anonymousStructs[typeName] = structType
+	anonymousStructTypeMap[sig] = typeName
+
+	// Process nested structs in fields to ensure they're also generated
+	for _, field := range structType.Fields.List {
+		if nestedStruct, ok := field.Type.(*ast.StructType); ok {
+			// Recursively generate type for nested struct
+			generateAnonymousStructType(nestedStruct)
+		}
+	}
+
 	return typeName
 }
 

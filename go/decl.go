@@ -238,7 +238,7 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 
 		structDefs[typeSpec.Name.Name] = structDef
 
-		out.WriteString("#[derive(Debug)]\n")
+		out.WriteString("#[derive(Debug, Clone, Default)]\n")
 		out.WriteString("struct ")
 		out.WriteString(typeSpec.Name.Name)
 		out.WriteString(" {\n")

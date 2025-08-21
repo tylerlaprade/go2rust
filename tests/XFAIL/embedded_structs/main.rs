@@ -14,20 +14,20 @@ where
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Default)]
 struct Person {
     name: Arc<Mutex<Option<String>>>,
     age: Arc<Mutex<Option<i32>>>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Default)]
 struct Address {
     street: Arc<Mutex<Option<String>>>,
     city: Arc<Mutex<Option<String>>>,
     state: Arc<Mutex<Option<String>>>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Default)]
 struct Employee {
     person: Arc<Mutex<Option<Person>>>,
     address: Arc<Mutex<Option<Address>>>,
@@ -35,20 +35,20 @@ struct Employee {
     salary: Arc<Mutex<Option<f64>>>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Default)]
 struct Manager {
     employee: Arc<Mutex<Option<Employee>>>,
     team: Arc<Mutex<Option<Vec<String>>>>,
 }
 
 /// Anonymous struct embedding
-#[derive(Debug)]
+#[derive(Debug, Clone, Default)]
 struct CompanyInfo {
     founded: Arc<Mutex<Option<i32>>>,
     c_e_o: Arc<Mutex<Option<String>>>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Default)]
 struct Company {
     name: Arc<Mutex<Option<String>>>,
     company_info: Arc<Mutex<Option<CompanyInfo>>>,
@@ -144,47 +144,47 @@ impl Company {
 fn main() {
         // Basic embedded struct
     println!("{}", "=== Basic embedded struct ===".to_string());
-    let mut emp = Employee { person: Arc::new(Mutex::new(Some(Person { name: Arc::new(Mutex::new(Some("Alice".to_string()))), age: Arc::new(Mutex::new(Some(30))) }))), address: Arc::new(Mutex::new(Some(Address { street: Arc::new(Mutex::new(Some("123 Main St".to_string()))), city: Arc::new(Mutex::new(Some("Anytown".to_string()))), state: Arc::new(Mutex::new(Some("CA".to_string()))) }))), i_d: Arc::new(Mutex::new(Some(1001))), salary: Arc::new(Mutex::new(Some(75000.0))) };
+    let mut emp = Arc::new(Mutex::new(Some(Employee { person: Arc::new(Mutex::new(Some(Person { name: Arc::new(Mutex::new(Some("Alice".to_string()))), age: Arc::new(Mutex::new(Some(30))) }))), address: Arc::new(Mutex::new(Some(Address { street: Arc::new(Mutex::new(Some("123 Main St".to_string()))), city: Arc::new(Mutex::new(Some("Anytown".to_string()))), state: Arc::new(Mutex::new(Some("CA".to_string()))) }))), i_d: Arc::new(Mutex::new(Some(1001))), salary: Arc::new(Mutex::new(Some(75000.0))) })));
 
         // Access embedded fields directly
-    print!("Name: {}\n", (*emp.person.lock().unwrap().as_ref().unwrap().name.lock().unwrap().as_ref().unwrap()));
-    print!("Age: {}\n", (*emp.person.lock().unwrap().as_ref().unwrap().age.lock().unwrap().as_ref().unwrap()));
-    print!("Street: {}\n", (*emp.person.lock().unwrap().as_ref().unwrap().street.lock().unwrap().as_ref().unwrap()));
-    print!("ID: {}\n", (*emp.i_d.lock().unwrap().as_ref().unwrap()));
+    print!("Name: {}\n", (*(*(*emp.lock().unwrap().as_ref().unwrap()).person.lock().unwrap().as_ref().unwrap()).name.lock().unwrap().as_ref().unwrap()));
+    print!("Age: {}\n", (*(*(*emp.lock().unwrap().as_ref().unwrap()).person.lock().unwrap().as_ref().unwrap()).age.lock().unwrap().as_ref().unwrap()));
+    print!("Street: {}\n", (*(*(*emp.lock().unwrap().as_ref().unwrap()).person.lock().unwrap().as_ref().unwrap()).street.lock().unwrap().as_ref().unwrap()));
+    print!("ID: {}\n", (*(*emp.lock().unwrap().as_ref().unwrap()).i_d.lock().unwrap().as_ref().unwrap()));
 
         // Call embedded methods
-    emp.greet();
-    println!("{} {}", "Info:".to_string(), (*emp.get_info().lock().unwrap().as_ref().unwrap()));
-    println!("{} {}", "Address:".to_string(), (*emp.full_address().lock().unwrap().as_ref().unwrap()));
-    emp.work();
+    (*emp.lock().unwrap().as_mut().unwrap()).greet();
+    println!("{} {}", "Info:".to_string(), (*(*emp.lock().unwrap().as_mut().unwrap()).get_info().lock().unwrap().as_ref().unwrap()));
+    println!("{} {}", "Address:".to_string(), (*(*emp.lock().unwrap().as_mut().unwrap()).full_address().lock().unwrap().as_ref().unwrap()));
+    (*emp.lock().unwrap().as_mut().unwrap()).work();
 
         // Nested embedding
     println!("{}", "\n=== Nested embedding ===".to_string());
-    let mut mgr = Manager { employee: Arc::new(Mutex::new(Some(Employee { person: Arc::new(Mutex::new(Some(Person { name: Arc::new(Mutex::new(Some("Bob".to_string()))), age: Arc::new(Mutex::new(Some(35))) }))), address: Arc::new(Mutex::new(Some(Address { street: Arc::new(Mutex::new(Some("456 Oak Ave".to_string()))), city: Arc::new(Mutex::new(Some("Somewhere".to_string()))), state: Arc::new(Mutex::new(Some("NY".to_string()))) }))), i_d: Arc::new(Mutex::new(Some(2001))), salary: Arc::new(Mutex::new(Some(95000.0))) }))), team: Arc::new(Mutex::new(Some(Arc::new(Mutex::new(Some(vec!["Alice".to_string(), "Charlie".to_string(), "Diana".to_string()])))))) };
+    let mut mgr = Arc::new(Mutex::new(Some(Manager { employee: Arc::new(Mutex::new(Some(Employee { person: Arc::new(Mutex::new(Some(Person { name: Arc::new(Mutex::new(Some("Bob".to_string()))), age: Arc::new(Mutex::new(Some(35))) }))), address: Arc::new(Mutex::new(Some(Address { street: Arc::new(Mutex::new(Some("456 Oak Ave".to_string()))), city: Arc::new(Mutex::new(Some("Somewhere".to_string()))), state: Arc::new(Mutex::new(Some("NY".to_string()))) }))), i_d: Arc::new(Mutex::new(Some(2001))), salary: Arc::new(Mutex::new(Some(95000.0))) }))), team: Arc::new(Mutex::new(Some(Arc::new(Mutex::new(Some(vec!["Alice".to_string(), "Charlie".to_string(), "Diana".to_string()])))))) })));
 
         // Access deeply nested fields
-    print!("Manager: {}\n", (*mgr.employee.lock().unwrap().as_ref().unwrap().person.lock().unwrap().as_ref().unwrap().name.lock().unwrap().as_ref().unwrap()));
-    print!("Manager ID: {}\n", (*mgr.employee.lock().unwrap().as_ref().unwrap().i_d.lock().unwrap().as_ref().unwrap()));
-    print!("Manager City: {}\n", (*mgr.employee.lock().unwrap().as_ref().unwrap().person.lock().unwrap().as_ref().unwrap().city.lock().unwrap().as_ref().unwrap()));
+    print!("Manager: {}\n", (*(*(*mgr.lock().unwrap().as_ref().unwrap()).employee.lock().unwrap().as_ref().unwrap().person.lock().unwrap().as_ref().unwrap()).name.lock().unwrap().as_ref().unwrap()));
+    print!("Manager ID: {}\n", (*(*(*mgr.lock().unwrap().as_ref().unwrap()).employee.lock().unwrap().as_ref().unwrap()).i_d.lock().unwrap().as_ref().unwrap()));
+    print!("Manager City: {}\n", (*(*(*mgr.lock().unwrap().as_ref().unwrap()).employee.lock().unwrap().as_ref().unwrap().person.lock().unwrap().as_ref().unwrap()).city.lock().unwrap().as_ref().unwrap()));
 
         // Call methods from all levels
-    mgr.greet();
-    mgr.work();
-    mgr.manage();
+    (*mgr.lock().unwrap().as_mut().unwrap()).greet();
+    (*mgr.lock().unwrap().as_mut().unwrap()).work();
+    (*mgr.lock().unwrap().as_mut().unwrap()).manage();
 
         // Anonymous struct embedding
     println!("{}", "\n=== Anonymous struct embedding ===".to_string());
-    let mut company = Company { name: Arc::new(Mutex::new(Some("TechCorp".to_string()))) };
-    { let new_val = 2010; *company.company_info.lock().unwrap().as_ref().unwrap().founded.lock().unwrap() = Some(new_val); };
-    { let new_val = "John Doe".to_string(); *company.company_info.lock().unwrap().as_ref().unwrap().c_e_o.lock().unwrap() = Some(new_val); };
+    let mut company = Arc::new(Mutex::new(Some(Company { name: Arc::new(Mutex::new(Some("TechCorp".to_string()))) })));
+    { let new_val = 2010; *(*(*company.lock().unwrap().as_mut().unwrap()).company_info.lock().unwrap().as_mut().unwrap()).founded.lock().unwrap() = Some(new_val); };
+    { let new_val = "John Doe".to_string(); *(*(*company.lock().unwrap().as_mut().unwrap()).company_info.lock().unwrap().as_mut().unwrap()).c_e_o.lock().unwrap() = Some(new_val); };
 
-    print!("Company: {}\n", (*company.name.lock().unwrap().as_ref().unwrap()));
-    print!("Founded: {}\n", (*company.company_info.lock().unwrap().as_ref().unwrap().founded.lock().unwrap().as_ref().unwrap()));
-    print!("CEO: {}\n", (*company.company_info.lock().unwrap().as_ref().unwrap().c_e_o.lock().unwrap().as_ref().unwrap()));
+    print!("Company: {}\n", (*(*company.lock().unwrap().as_ref().unwrap()).name.lock().unwrap().as_ref().unwrap()));
+    print!("Founded: {}\n", (*(*(*company.lock().unwrap().as_ref().unwrap()).company_info.lock().unwrap().as_ref().unwrap()).founded.lock().unwrap().as_ref().unwrap()));
+    print!("CEO: {}\n", (*(*(*company.lock().unwrap().as_ref().unwrap()).company_info.lock().unwrap().as_ref().unwrap()).c_e_o.lock().unwrap().as_ref().unwrap()));
 
         // Method promotion
     println!("{}", "\n=== Method promotion ===".to_string());
     println!("{}", "Employee methods are promoted from Person and Address".to_string());
-    print!("Employee can call: {}\n", (*emp.get_info().lock().unwrap().as_ref().unwrap()));
-    print!("Employee address: {}\n", (*emp.full_address().lock().unwrap().as_ref().unwrap()));
+    print!("Employee can call: {}\n", (*(*emp.lock().unwrap().as_mut().unwrap()).get_info().lock().unwrap().as_ref().unwrap()));
+    print!("Employee address: {}\n", (*(*emp.lock().unwrap().as_mut().unwrap()).full_address().lock().unwrap().as_ref().unwrap()));
 }

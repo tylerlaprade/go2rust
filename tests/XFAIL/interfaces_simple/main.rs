@@ -5,7 +5,7 @@ trait geometry {
     fn perim(&self) -> Arc<Mutex<Option<f64>>>;
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Default)]
 struct rect {
     width: Arc<Mutex<Option<f64>>>,
     height: Arc<Mutex<Option<f64>>>,
@@ -32,11 +32,11 @@ impl geometry for rect {
 
 pub fn measure(g: Arc<Mutex<Option<Box<dyn geometry>>>>) {
     println!("{}", (*g.lock().unwrap().as_mut().unwrap()));
-    println!("{}", (*g.area().lock().unwrap().as_ref().unwrap()));
-    println!("{}", (*g.perim().lock().unwrap().as_ref().unwrap()));
+    println!("{}", (*(*g.lock().unwrap().as_mut().unwrap()).area().lock().unwrap().as_ref().unwrap()));
+    println!("{}", (*(*g.lock().unwrap().as_mut().unwrap()).perim().lock().unwrap().as_ref().unwrap()));
 }
 
 fn main() {
-    let mut r = rect { width: Arc::new(Mutex::new(Some(3))), height: Arc::new(Mutex::new(Some(4))) };
+    let mut r = Arc::new(Mutex::new(Some(rect { width: Arc::new(Mutex::new(Some(3))), height: Arc::new(Mutex::new(Some(4))) })));
     measure(r.clone());
 }

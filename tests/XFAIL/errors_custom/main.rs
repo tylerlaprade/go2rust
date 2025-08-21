@@ -1,7 +1,7 @@
 use std::error::Error;
 use std::sync::{Arc, Mutex};
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Default)]
 struct argError {
     arg: Arc<Mutex<Option<i32>>>,
     prob: Arc<Mutex<Option<String>>>,
@@ -78,7 +78,7 @@ fn main() {
         }
     });
     if (*ok.lock().unwrap().as_mut().unwrap()) {
-        println!("{}", (*ae.arg.lock().unwrap().as_ref().unwrap()));
-        println!("{}", (*ae.prob.lock().unwrap().as_ref().unwrap()));
+        println!("{}", (*(*ae.lock().unwrap().as_ref().unwrap()).arg.lock().unwrap().as_ref().unwrap()));
+        println!("{}", (*(*ae.lock().unwrap().as_ref().unwrap()).prob.lock().unwrap().as_ref().unwrap()));
     }
 }

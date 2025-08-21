@@ -267,6 +267,10 @@ run_xfail_test() {
     run_test "tests/arrays_basic"
 }
 
+@test "blank_identifier_simple" {
+    run_test "tests/blank_identifier_simple"
+}
+
 @test "builtin_functions" {
     run_test "tests/builtin_functions"
 }
@@ -375,8 +379,16 @@ run_xfail_test() {
     run_test "tests/slices_basic"
 }
 
+@test "sort_slice" {
+    run_test "tests/sort_slice"
+}
+
 @test "strconv_parse" {
     run_test "tests/strconv_parse"
+}
+
+@test "struct_methods" {
+    run_test "tests/struct_methods"
 }
 
 @test "switch_basic" {
@@ -433,10 +445,6 @@ run_xfail_test() {
 
 @test "XFAIL: blank_identifier" {
     run_xfail_test "tests/XFAIL/blank_identifier"
-}
-
-@test "XFAIL: blank_identifier_simple" {
-    run_xfail_test "tests/XFAIL/blank_identifier_simple"
 }
 
 @test "XFAIL: blank_imports_side_effects" {
@@ -695,10 +703,6 @@ run_xfail_test() {
     run_xfail_test "tests/XFAIL/slices_append"
 }
 
-@test "XFAIL: sort_slice" {
-    run_xfail_test "tests/XFAIL/sort_slice"
-}
-
 @test "XFAIL: stateful_goroutines" {
     run_xfail_test "tests/XFAIL/stateful_goroutines"
 }
@@ -725,10 +729,6 @@ run_xfail_test() {
 
 @test "XFAIL: struct_embedding" {
     run_xfail_test "tests/XFAIL/struct_embedding"
-}
-
-@test "XFAIL: struct_methods" {
-    run_xfail_test "tests/XFAIL/struct_methods"
 }
 
 @test "XFAIL: struct_tags_reflection" {

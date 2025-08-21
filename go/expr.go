@@ -199,11 +199,12 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					}
 				}
 			} else {
-				// Regular field access - try to resolve through type info
+				// Regular field access on a variable - need to check for promoted fields
+				// Try to resolve the field through type info
 				var fieldInfo FieldAccessInfo
 
 				if typeInfo != nil {
-					// Try to get the type of the expression
+					// Try to get the type of the variable
 					if t := typeInfo.GetType(e.X); t != nil {
 						// Extract the struct type name
 						typeStr := t.String()
@@ -228,29 +229,128 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					}
 				}
 
+				// Check if this variable is wrapped (not a range var, not a constant)
+				needsUnwrap := false
+				if _, isRangeVar := rangeLoopVars[ident.Name]; !isRangeVar {
+					if _, isLocalConst := localConstants[ident.Name]; !isLocalConst {
+						// Regular variable - likely wrapped
+						needsUnwrap = true
+					}
+				}
+
 				if fieldInfo.IsPromoted {
 					// Accessing promoted field through embedded struct(s)
-					// We need to unwrap each embedded struct in the path
-					TranspileExpressionContext(out, e.X, LValue)
-					for _, embedded := range fieldInfo.EmbeddedPath {
+					if needsUnwrap {
+						// Wrapped variable with promoted field
+						if ctx == LValue {
+							out.WriteString("(*(*")
+							out.WriteString(ident.Name)
+							out.WriteString(".lock().unwrap().as_mut().unwrap()).")
+							for i, embedded := range fieldInfo.EmbeddedPath {
+								out.WriteString(ToSnakeCase(embedded))
+								if i < len(fieldInfo.EmbeddedPath)-1 {
+									out.WriteString(".lock().unwrap().as_mut().unwrap().")
+								} else {
+									out.WriteString(".lock().unwrap().as_mut().unwrap()).")
+								}
+							}
+							out.WriteString(fieldInfo.FieldName)
+						} else {
+							out.WriteString("(*(*")
+							out.WriteString(ident.Name)
+							out.WriteString(".lock().unwrap().as_ref().unwrap()).")
+							for i, embedded := range fieldInfo.EmbeddedPath {
+								out.WriteString(ToSnakeCase(embedded))
+								if i < len(fieldInfo.EmbeddedPath)-1 {
+									out.WriteString(".lock().unwrap().as_ref().unwrap().")
+								} else {
+									out.WriteString(".lock().unwrap().as_ref().unwrap()).")
+								}
+							}
+							out.WriteString(fieldInfo.FieldName)
+						}
+					} else {
+						// Unwrapped variable with promoted field
+						out.WriteString(ident.Name)
+						for _, embedded := range fieldInfo.EmbeddedPath {
+							out.WriteString(".")
+							out.WriteString(ToSnakeCase(embedded))
+						}
 						out.WriteString(".")
-						out.WriteString(ToSnakeCase(embedded))
-						out.WriteString(".lock().unwrap().as_ref().unwrap()")
+						out.WriteString(fieldInfo.FieldName)
 					}
-					out.WriteString(".")
-					out.WriteString(fieldInfo.FieldName)
 				} else {
 					// Direct field access
-					TranspileExpressionContext(out, e.X, LValue)
-					out.WriteString(".")
-					out.WriteString(fieldInfo.FieldName)
+					if needsUnwrap {
+						// Access field on wrapped struct: (*var.lock().unwrap().as_ref().unwrap()).field
+						if ctx == LValue {
+							// For assignment, we need mutable access
+							out.WriteString("(*")
+							out.WriteString(ident.Name)
+							out.WriteString(".lock().unwrap().as_mut().unwrap()).")
+							out.WriteString(fieldInfo.FieldName)
+						} else {
+							// For reading, we need immutable access
+							out.WriteString("(*")
+							out.WriteString(ident.Name)
+							out.WriteString(".lock().unwrap().as_ref().unwrap()).")
+							out.WriteString(fieldInfo.FieldName)
+						}
+					} else {
+						// Not wrapped - direct access
+						out.WriteString(ident.Name)
+						out.WriteString(".")
+						out.WriteString(fieldInfo.FieldName)
+					}
 				}
 			}
 		} else {
 			// Complex expression for X (not just an identifier)
-			TranspileExpression(out, e.X)
-			out.WriteString(".")
-			out.WriteString(ToSnakeCase(e.Sel.Name))
+			var fieldInfo FieldAccessInfo
+
+			if typeInfo != nil {
+				// Try to get the type of the expression
+				if t := typeInfo.GetType(e.X); t != nil {
+					// Extract the struct type name
+					typeStr := t.String()
+					// Remove package prefix if present
+					if idx := strings.LastIndex(typeStr, "."); idx >= 0 {
+						typeStr = typeStr[idx+1:]
+					}
+					// Remove pointer prefix if present
+					typeStr = strings.TrimPrefix(typeStr, "*")
+
+					fieldInfo = resolveFieldAccess(typeStr, e.Sel.Name)
+				} else {
+					fieldInfo = FieldAccessInfo{
+						IsPromoted: false,
+						FieldName:  ToSnakeCase(e.Sel.Name),
+					}
+				}
+			} else {
+				fieldInfo = FieldAccessInfo{
+					IsPromoted: false,
+					FieldName:  ToSnakeCase(e.Sel.Name),
+				}
+			}
+
+			if fieldInfo.IsPromoted {
+				// Accessing promoted field through embedded struct(s)
+				// We need to unwrap each embedded struct in the path
+				TranspileExpressionContext(out, e.X, LValue)
+				for _, embedded := range fieldInfo.EmbeddedPath {
+					out.WriteString(".")
+					out.WriteString(ToSnakeCase(embedded))
+					out.WriteString(".lock().unwrap().as_ref().unwrap()")
+				}
+				out.WriteString(".")
+				out.WriteString(fieldInfo.FieldName)
+			} else {
+				// Direct field access
+				TranspileExpressionContext(out, e.X, LValue)
+				out.WriteString(".")
+				out.WriteString(fieldInfo.FieldName)
+			}
 		}
 
 	case *ast.UnaryExpr:
@@ -574,6 +674,10 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			// Struct literal
 			out.WriteString(ident.Name)
 			out.WriteString(" { ")
+
+			// For named struct types, we can't easily determine missing fields
+			// without type information, so we'll just output the provided fields
+			// and use ..Default::default() for the rest
 			for i, elt := range e.Elts {
 				if i > 0 {
 					out.WriteString(", ")
@@ -596,16 +700,36 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					}
 				}
 			}
+
+			// Note: In Go, uninitialized fields get zero values
+			// In Rust with our Arc<Mutex<Option<>>> wrapping, we'd need Default::default()
+			// But this requires all fields to implement Default, which may not always be true
+			// For now, we'll require all fields to be explicitly initialized
+
 			out.WriteString(" }")
 		} else if structType, ok := e.Type.(*ast.StructType); ok {
 			// Anonymous struct literal - generate a type for it
 			typeName := generateAnonymousStructType(structType)
 			out.WriteString(typeName)
 			out.WriteString(" { ")
-			for i, elt := range e.Elts {
-				if i > 0 {
+
+			// Track which fields are initialized
+			initializedFields := make(map[string]bool)
+			for _, elt := range e.Elts {
+				if kv, ok := elt.(*ast.KeyValueExpr); ok {
+					if key, ok := kv.Key.(*ast.Ident); ok {
+						initializedFields[key.Name] = true
+					}
+				}
+			}
+
+			// Output initialized fields
+			needComma := false
+			for _, elt := range e.Elts {
+				if needComma {
 					out.WriteString(", ")
 				}
+				needComma = true
 				if kv, ok := elt.(*ast.KeyValueExpr); ok {
 					if key, ok := kv.Key.(*ast.Ident); ok {
 						out.WriteString(ToSnakeCase(key.Name))
@@ -624,6 +748,21 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					}
 				}
 			}
+
+			// Add default values for uninitialized fields
+			for _, field := range structType.Fields.List {
+				for _, name := range field.Names {
+					if !initializedFields[name.Name] {
+						if needComma {
+							out.WriteString(", ")
+						}
+						needComma = true
+						out.WriteString(ToSnakeCase(name.Name))
+						out.WriteString(": Default::default()")
+					}
+				}
+			}
+
 			out.WriteString(" }")
 		}
 
@@ -1181,13 +1320,11 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 
 		// Check if the receiver is a simple identifier (local variable)
 		if ident, ok := sel.X.(*ast.Ident); ok {
-			// Check with TypeInfo if this is a wrapped type
-			if typeInfo != nil {
-				if t := typeInfo.GetType(sel.X); t != nil {
-					// Check if it's a pointer type
-					if _, isPointer := t.(*types.Pointer); isPointer {
-						needsUnwrap = true
-					}
+			// Check if this variable is wrapped (not a range var, not a constant)
+			if _, isRangeVar := rangeLoopVars[ident.Name]; !isRangeVar {
+				if _, isLocalConst := localConstants[ident.Name]; !isLocalConst {
+					// Regular variable - it's wrapped in Arc<Mutex<Option<>>>
+					needsUnwrap = true
 				}
 			}
 
@@ -1197,7 +1334,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				out.WriteString(ident.Name)
 				out.WriteString(".lock().unwrap().as_mut().unwrap()).")
 			} else {
-				// Direct struct variable - call method directly
+				// Direct struct variable (range var or constant) - call method directly
 				out.WriteString(ident.Name)
 				out.WriteString(".")
 			}

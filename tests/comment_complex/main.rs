@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex};
 
 /// Person represents a person with a name and age
-#[derive(Debug)]
+#[derive(Debug, Clone, Default)]
 struct Person {
     name: Arc<Mutex<Option<String>>>,
     age: Arc<Mutex<Option<i32>>>,

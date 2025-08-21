@@ -3,19 +3,7 @@ use std::sync::{Arc, Mutex};
 
 pub fn multiple_returns() -> (Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<String>>>, Arc<Mutex<Option<bool>>>) {
 
-    return (Arc::new(Mutex::new(Some(42))), Arc::new(Mutex::new(Some("hello".to_string()))), true.clone());
-}
-
-pub fn process_slice(slice: Arc<Mutex<Option<Vec<i32>>>>) -> (Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>) {
-    let mut sum: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(0)));
-    let mut count: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(0)));
-
-    { let new_val = 0; *sum.lock().unwrap() = Some(new_val); };
-    { let new_val = (*slice.lock().unwrap().as_ref().unwrap()).len(); *count.lock().unwrap() = Some(new_val); };
-    for val in &(*slice.lock().unwrap().as_mut().unwrap()) {
-        { let mut guard = sum.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + val); };
-    }
-    return (sum, count);
+    return (Arc::new(Mutex::new(Some(42))), Arc::new(Mutex::new(Some("hello".to_string()))), Arc::new(Mutex::new(Some(true))));
 }
 
 fn main() {
@@ -67,15 +55,25 @@ fn main() {
 
         // Ignore values, use only keys
     println!("{}", "Keys only:".to_string());
+    let mut keys = Arc::new(Mutex::new(Some(Vec::with_capacity((*ages.lock().unwrap().as_ref().unwrap()).len()))));
     for (name, _) in (*ages.lock().unwrap().as_ref().unwrap()).clone() {
+        {(*keys.lock().unwrap().as_mut().unwrap()).push(name); keys.clone()};
+    }
+    (*keys.lock().unwrap().as_mut().unwrap()).sort();
+    for name in &(*keys.lock().unwrap().as_mut().unwrap()) {
         print!("{} ", name);
     }
     println!();
 
         // Ignore keys, use only values
     println!("{}", "Values only:".to_string());
+    let mut values = Arc::new(Mutex::new(Some(Vec::with_capacity((*ages.lock().unwrap().as_ref().unwrap()).len()))));
     for (_, age) in (*ages.lock().unwrap().as_ref().unwrap()).clone() {
-        print!("{} ", (*age.lock().unwrap().as_mut().unwrap()));
+        {(*values.lock().unwrap().as_mut().unwrap()).push((*age.lock().unwrap().as_mut().unwrap())); values.clone()};
+    }
+    (*values.lock().unwrap().as_mut().unwrap()).sort();
+    for age in &(*values.lock().unwrap().as_mut().unwrap()) {
+        print!("{} ", age);
     }
     println!();
 

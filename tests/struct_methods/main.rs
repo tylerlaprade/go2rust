@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Default)]
 struct rect {
     width: Arc<Mutex<Option<i32>>>,
     height: Arc<Mutex<Option<i32>>>,
@@ -17,9 +17,9 @@ impl rect {
 }
 
 fn main() {
-    let mut r = rect { width: Arc::new(Mutex::new(Some(10))), height: Arc::new(Mutex::new(Some(5))) };
-    println!("{} {}", "area: ".to_string(), (*r.area().lock().unwrap().as_ref().unwrap()));
-    println!("{} {}", "perim:".to_string(), (*r.perim().lock().unwrap().as_ref().unwrap()));
+    let mut r = Arc::new(Mutex::new(Some(rect { width: Arc::new(Mutex::new(Some(10))), height: Arc::new(Mutex::new(Some(5))) })));
+    println!("{} {}", "area: ".to_string(), (*(*r.lock().unwrap().as_mut().unwrap()).area().lock().unwrap().as_ref().unwrap()));
+    println!("{} {}", "perim:".to_string(), (*(*r.lock().unwrap().as_mut().unwrap()).perim().lock().unwrap().as_ref().unwrap()));
 
     let mut rp = r.clone();
     println!("{} {}", "area: ".to_string(), (*(*rp.lock().unwrap().as_mut().unwrap()).area().lock().unwrap().as_ref().unwrap()));

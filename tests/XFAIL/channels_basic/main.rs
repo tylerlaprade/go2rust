@@ -5,7 +5,7 @@ pub fn sender(ch: Arc<Mutex<Option</* TODO: Unhandled type *ast.ChanType */ Arc<
     while (*i.lock().unwrap().as_mut().unwrap()) <= 5 {
         print!("Sending: {}\n", (*i.lock().unwrap().as_mut().unwrap()));
         // TODO: Unhandled statement type: SendStmt
-        time.sleep(Arc::new(Mutex::new(Some(100 * (*(*time.lock().unwrap().as_mut().unwrap())::millisecond.lock().unwrap().as_ref().unwrap())))));
+        (*time.lock().unwrap().as_mut().unwrap()).sleep(Arc::new(Mutex::new(Some(100 * (*(*time.lock().unwrap().as_mut().unwrap())::millisecond.lock().unwrap().as_ref().unwrap())))));
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
     (close.lock().unwrap().as_ref().unwrap())(ch.clone());
@@ -29,7 +29,7 @@ fn main() {
     // TODO: Unhandled statement type: GoStmt
     // TODO: Unhandled statement type: GoStmt
 
-    time.sleep(Arc::new(Mutex::new(Some(500 * (*(*time.lock().unwrap().as_mut().unwrap())::millisecond.lock().unwrap().as_ref().unwrap())))));
+    (*time.lock().unwrap().as_mut().unwrap()).sleep(Arc::new(Mutex::new(Some(500 * (*(*time.lock().unwrap().as_mut().unwrap())::millisecond.lock().unwrap().as_ref().unwrap())))));
 
         // Buffered channel
     let mut buffered = ;

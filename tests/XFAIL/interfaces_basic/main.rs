@@ -5,13 +5,13 @@ trait Shape {
     fn perimeter(&self) -> Arc<Mutex<Option<f64>>>;
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Default)]
 struct Rectangle {
     width: Arc<Mutex<Option<f64>>>,
     height: Arc<Mutex<Option<f64>>>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Default)]
 struct Circle {
     radius: Arc<Mutex<Option<f64>>>,
 }
@@ -55,12 +55,12 @@ impl Shape for Circle {
 }
 
 pub fn print_shape_info(s: Arc<Mutex<Option<Box<dyn Shape>>>>) {
-    print!("Area: {:.2}, Perimeter: {:.2}\n", (*s.area().lock().unwrap().as_ref().unwrap()), (*s.perimeter().lock().unwrap().as_ref().unwrap()));
+    print!("Area: {:.2}, Perimeter: {:.2}\n", (*(*s.lock().unwrap().as_mut().unwrap()).area().lock().unwrap().as_ref().unwrap()), (*(*s.lock().unwrap().as_mut().unwrap()).perimeter().lock().unwrap().as_ref().unwrap()));
 }
 
 fn main() {
-    let mut rect = Rectangle { width: Arc::new(Mutex::new(Some(10))), height: Arc::new(Mutex::new(Some(5))) };
-    let mut circle = Circle { radius: Arc::new(Mutex::new(Some(3))) };
+    let mut rect = Arc::new(Mutex::new(Some(Rectangle { width: Arc::new(Mutex::new(Some(10))), height: Arc::new(Mutex::new(Some(5))) })));
+    let mut circle = Arc::new(Mutex::new(Some(Circle { radius: Arc::new(Mutex::new(Some(3))) })));
 
     println!("{}", "Rectangle:".to_string());
     print_shape_info(rect.clone());

@@ -32,7 +32,7 @@ struct StringProcessor(Arc<Mutex<Option<Box<dyn Fn(Arc<Mutex<Option<String>>>) -
 
 
 /// Struct with function fields
-#[derive(Debug)]
+#[derive(Debug, Clone, Default)]
 struct Calculator {
     add: Arc<Mutex<Option<BinaryOp>>>,
     subtract: Arc<Mutex<Option<BinaryOp>>>,
@@ -219,7 +219,7 @@ fn main() {
 
         // Struct with function fields
     println!("{}", "\n=== Struct with function fields ===".to_string());
-    let mut calc = Calculator { add: Arc::new(Mutex::new(Some(Arc::new(Mutex::new(Some(Box::new(move |a: Arc<Mutex<Option<i32>>>, b: Arc<Mutex<Option<i32>>>| -> Arc<Mutex<Option<i32>>> {
+    let mut calc = Arc::new(Mutex::new(Some(Calculator { add: Arc::new(Mutex::new(Some(Arc::new(Mutex::new(Some(Box::new(move |a: Arc<Mutex<Option<i32>>>, b: Arc<Mutex<Option<i32>>>| -> Arc<Mutex<Option<i32>>> {
         return {
             let __tmp_x = (*a.lock().unwrap().as_mut().unwrap());
             let __tmp_y = (*b.lock().unwrap().as_mut().unwrap());
@@ -231,12 +231,12 @@ fn main() {
             let __tmp_y = (*b.lock().unwrap().as_mut().unwrap());
             Arc::new(Mutex::new(Some(__tmp_x - __tmp_y)))
         };
-    }) as Box<dyn Fn(Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<i32>>> + Send + Sync>)))))), multiply: multiply.clone() };
+    }) as Box<dyn Fn(Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<i32>>> + Send + Sync>)))))), multiply: multiply.clone() })));
 
         // Reuse existing function
-    print!("calc.Add(10, 5) = {}\n", (*calc.add(Arc::new(Mutex::new(Some(10))), Arc::new(Mutex::new(Some(5)))).lock().unwrap().as_ref().unwrap()));
-    print!("calc.Subtract(10, 5) = {}\n", (*calc.subtract(Arc::new(Mutex::new(Some(10))), Arc::new(Mutex::new(Some(5)))).lock().unwrap().as_ref().unwrap()));
-    print!("calc.Multiply(10, 5) = {}\n", (*calc.multiply(Arc::new(Mutex::new(Some(10))), Arc::new(Mutex::new(Some(5)))).lock().unwrap().as_ref().unwrap()));
+    print!("calc.Add(10, 5) = {}\n", (*(*calc.lock().unwrap().as_mut().unwrap()).add(Arc::new(Mutex::new(Some(10))), Arc::new(Mutex::new(Some(5)))).lock().unwrap().as_ref().unwrap()));
+    print!("calc.Subtract(10, 5) = {}\n", (*(*calc.lock().unwrap().as_mut().unwrap()).subtract(Arc::new(Mutex::new(Some(10))), Arc::new(Mutex::new(Some(5)))).lock().unwrap().as_ref().unwrap()));
+    print!("calc.Multiply(10, 5) = {}\n", (*(*calc.lock().unwrap().as_mut().unwrap()).multiply(Arc::new(Mutex::new(Some(10))), Arc::new(Mutex::new(Some(5)))).lock().unwrap().as_ref().unwrap()));
 
         // Function variables
     println!("{}", "\n=== Function variables ===".to_string());

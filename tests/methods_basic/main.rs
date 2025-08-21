@@ -1,11 +1,11 @@
 use std::sync::{Arc, Mutex};
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Default)]
 struct Counter {
     value: Arc<Mutex<Option<i32>>>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Default)]
 struct Person {
     name: Arc<Mutex<Option<String>>>,
     age: Arc<Mutex<Option<i32>>>,

@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"sort"
+	"slices"
 )
 
 func main() {
@@ -41,7 +41,7 @@ func main() {
 		keys = append(keys, k)
 	}
 	// Sort the keys
-	sort.Strings(keys)
+	slices.Sort(keys)
 	// Print in sorted order
 	for _, k := range keys {
 		fmt.Println(k, "->", colors[k])

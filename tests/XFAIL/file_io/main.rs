@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex};
 fn main() {
     let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-    let (mut file, mut err) = os.create(Arc::new(Mutex::new(Some("test.txt".to_string()))));
+    let (mut file, mut err) = (*os.lock().unwrap().as_mut().unwrap()).create(Arc::new(Mutex::new(Some("test.txt".to_string()))));
     if (*err.lock().unwrap()).is_some() {
         println!("{} {}", "Error:".to_string(), (*err.lock().unwrap().as_mut().unwrap()));
         {
