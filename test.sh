@@ -186,9 +186,10 @@ colorize_output() {
             # Extract timing if present
             if [[ "$test_name" =~ (.+)" in "([0-9]+ms) ]]; then
                 test_name="${BASH_REMATCH[1]}"
-                timing="${BASH_REMATCH[2]}"
+                timing_ms="${BASH_REMATCH[2]%ms}"
+                timing_s=$(awk "BEGIN {printf \"%.1f\", $timing_ms/1000}")
                 if [ "$VERBOSE" = true ]; then
-                    echo -e "\033[31m✗ $test_name\033[0m \033[90m($timing)\033[0m"
+                    echo -e "\033[31m✗ $test_name\033[0m \033[90m(${timing_s}s)\033[0m"
                 else
                     echo -e "\033[31m✗ $test_name\033[0m"
                 fi
@@ -204,8 +205,9 @@ colorize_output() {
                 # Extract timing if present
                 if [[ "$test_name" =~ (.+)" in "([0-9]+ms) ]]; then
                     test_name="${BASH_REMATCH[1]}"
-                    timing="${BASH_REMATCH[2]}"
-                    echo -e "\033[33m⚠ $test_name\033[0m \033[90m($timing)\033[0m"
+                    timing_ms="${BASH_REMATCH[2]%ms}"
+                    timing_s=$(awk "BEGIN {printf \"%.1f\", $timing_ms/1000}")
+                    echo -e "\033[33m⚠ $test_name\033[0m \033[90m(${timing_s}s)\033[0m"
                 else
                     echo -e "\033[33m⚠ $test_name\033[0m"
                 fi
@@ -213,14 +215,15 @@ colorize_output() {
             in_failure=false
         elif [[ "$line" =~ ^"ok " ]]; then
             # Passing test - green checkmark
-            local test_name timing
+            local test_name
             test_name=$(echo "$line" | sed 's/^ok [0-9]* //')
             # Extract timing if present
             if [[ "$test_name" =~ (.+)" in "([0-9]+ms) ]]; then
                 test_name="${BASH_REMATCH[1]}"
-                timing="${BASH_REMATCH[2]}"
+                timing_ms="${BASH_REMATCH[2]%ms}"
+                timing_s=$(awk "BEGIN {printf \"%.1f\", $timing_ms/1000}")
                 if [ "$VERBOSE" = true ]; then
-                    echo -e "\033[32m✓\033[0m $test_name \033[90m($timing)\033[0m"
+                    echo -e "\033[32m✓\033[0m $test_name \033[90m(${timing_s}s)\033[0m"
                 else
                     echo -e "\033[32m✓\033[0m $test_name"
                 fi
