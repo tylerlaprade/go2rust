@@ -127,7 +127,7 @@ pub fn assert_without_check(value: Rc<RefCell<Option<Box<dyn Any>>>>) {
         // This will panic if assertion fails
     __defer_stack.push(Box::new(move || {
         (Rc::new(RefCell::new(Some(Box::new(move || {
-        let mut r = Rc::new(RefCell::new(None))::<String>));
+        let mut r = Arc::new(Mutex::new(None::<String>));
     if (*r.borrow()).is_some() {
         print!("Panic recovered: {}\n", format_any(r.borrow().as_ref().unwrap().as_ref()));
     }

@@ -1,15 +1,15 @@
 Starting goroutines...
 Anonymous goroutine running
+Anonymous goroutine done
 Hello Alice! (1)
+Hello Alice! (2)
+Hello Alice! (3)
 Hello Bob! (1)
+Hello Bob! (2)
+Hello Bob! (3)
 Count: 10
 Count: 11
-Hello Bob! (2)
-Hello Alice! (2)
 Count: 12
 Count: 13
-Anonymous goroutine done
-Hello Bob! (3)
-Hello Alice! (3)
 Count: 14
 Main function ending

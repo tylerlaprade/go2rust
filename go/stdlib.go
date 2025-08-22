@@ -48,6 +48,7 @@ func init() {
 		"sort.Strings":      transpileSortStrings,
 		"sort.Ints":         transpileSortInts,
 		"slices.Sort":       transpileSlicesSort,
+		"time.Sleep":        transpileTimeSleep,
 	}
 
 	builtinMappings = map[string]StdlibHandler{
@@ -776,9 +777,78 @@ func transpilePanic(out *strings.Builder, call *ast.CallExpr) {
 func transpileRecover(out *strings.Builder, call *ast.CallExpr) {
 	// In Rust, we can use std::panic::catch_unwind for similar functionality
 	// For now, we'll generate a placeholder that returns None
-	// TODO: A proper implementation would need to track defer context and use catch_unwind
+	// A proper implementation would need to track defer context and use catch_unwind
 	// This is a simplified version that always returns None
-	WriteWrappedNone(out)
-	out.WriteString("::<String>))")
+	out.WriteString("Arc::new(Mutex::new(None::<String>))")
+}
 
+// transpileTimeSleep handles the time.Sleep function
+func transpileTimeSleep(out *strings.Builder, call *ast.CallExpr) {
+	// Track that we need time and thread imports
+	TrackImport("thread")
+	TrackImport("time::Duration")
+
+	if len(call.Args) > 0 {
+		// time.Sleep takes a Duration in nanoseconds in Go
+		// We need to convert to milliseconds for Rust's Duration::from_millis
+		// Handle different cases of duration arguments
+
+		// Check if it's a simple multiplication like 500 * time.Millisecond
+		if binOp, ok := call.Args[0].(*ast.BinaryExpr); ok && binOp.Op == token.MUL {
+			// Check if one side is time.Millisecond, time.Second, etc.
+			var multiplier ast.Expr
+			var unit string
+
+			if sel, ok := binOp.Y.(*ast.SelectorExpr); ok {
+				if ident, ok := sel.X.(*ast.Ident); ok && ident.Name == "time" {
+					unit = sel.Sel.Name
+					multiplier = binOp.X
+				}
+			} else if sel, ok := binOp.X.(*ast.SelectorExpr); ok {
+				if ident, ok := sel.X.(*ast.Ident); ok && ident.Name == "time" {
+					unit = sel.Sel.Name
+					multiplier = binOp.Y
+				}
+			}
+
+			if unit != "" {
+				out.WriteString("std::thread::sleep(std::time::Duration::")
+				switch unit {
+				case "Millisecond":
+					out.WriteString("from_millis(")
+					TranspileExpression(out, multiplier)
+				case "Second":
+					out.WriteString("from_secs(")
+					TranspileExpression(out, multiplier)
+				case "Microsecond":
+					out.WriteString("from_micros(")
+					TranspileExpression(out, multiplier)
+				case "Nanosecond":
+					out.WriteString("from_nanos(")
+					TranspileExpression(out, multiplier)
+				case "Minute":
+					out.WriteString("from_secs(60 * ")
+					TranspileExpression(out, multiplier)
+				case "Hour":
+					out.WriteString("from_secs(3600 * ")
+					TranspileExpression(out, multiplier)
+				default:
+					// Unknown unit, default to milliseconds
+					out.WriteString("from_millis(")
+					TranspileExpression(out, multiplier)
+				}
+
+				if unit == "Minute" || unit == "Hour" {
+					out.WriteString(")")
+				}
+				out.WriteString("))")
+				return
+			}
+		}
+
+		// Fallback: assume it's a duration in nanoseconds
+		out.WriteString("std::thread::sleep(std::time::Duration::from_nanos(")
+		TranspileExpression(out, call.Args[0])
+		out.WriteString(" as u64))")
+	}
 }

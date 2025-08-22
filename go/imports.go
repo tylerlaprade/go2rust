@@ -80,6 +80,14 @@ func (it *ImportTracker) GenerateImports() string {
 		imports = append(imports, fmt.Sprintf("use std::fmt::{%s};", strings.Join(fmtImports, ", ")))
 	}
 
+	// Thread and time imports
+	if it.needs["thread"] {
+		imports = append(imports, "use std::thread;")
+	}
+	if it.needs["time::Duration"] {
+		imports = append(imports, "use std::time::Duration;")
+	}
+
 	// Other imports
 	if it.needs["Error"] {
 		imports = append(imports, "use std::error::Error;")

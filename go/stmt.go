@@ -1584,6 +1584,131 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		// Restore previous capture renames
 		currentCaptureRenames = oldCaptureRenames
 
+	case *ast.GoStmt:
+		// Track that we need thread import
+		TrackImport("thread")
+
+		// Check if the go statement contains a closure that captures variables
+		captured := findCapturedInCall(s.Call)
+
+		// Generate clones for captured variables
+		// Sort variable names for deterministic output
+		var capturedVars []string
+		for varName := range captured {
+			capturedVars = append(capturedVars, varName)
+		}
+		slices.Sort(capturedVars)
+
+		for _, varName := range capturedVars {
+			out.WriteString("let ")
+			out.WriteString(varName)
+			out.WriteString("_thread = ")
+			out.WriteString(varName)
+			out.WriteString(".clone(); ")
+		}
+
+		// Store current capture renames for nested transpilation
+		captureRenames := make(map[string]string)
+		for _, varName := range capturedVars {
+			captureRenames[varName] = varName + "_thread"
+		}
+		oldCaptureRenames := currentCaptureRenames
+		currentCaptureRenames = captureRenames
+
+		// Generate the thread::spawn call
+		out.WriteString("std::thread::spawn(move || {\n")
+		out.WriteString("        ")
+
+		// Check if it's an immediately invoked function literal
+		if funcLit, ok := s.Call.Fun.(*ast.FuncLit); ok {
+			// Generate the closure body inline
+			if len(s.Call.Args) > 0 {
+				// Has arguments - need to create parameter bindings
+				out.WriteString("let __closure = move |")
+				// Parameters
+				if funcLit.Type.Params != nil {
+					var params []string
+					for _, field := range funcLit.Type.Params.List {
+						paramType := GoTypeToRust(field.Type)
+						for _, name := range field.Names {
+							params = append(params, name.Name+": "+paramType)
+						}
+					}
+					out.WriteString(strings.Join(params, ", "))
+				}
+				out.WriteString("| {\n            ")
+
+				// Body
+				for i, stmt := range funcLit.Body.List {
+					if i > 0 {
+						out.WriteString("\n            ")
+					}
+					TranspileStatementSimple(out, stmt, funcLit.Type, fileSet)
+					out.WriteString(";")
+				}
+
+				out.WriteString("\n        };\n")
+				out.WriteString("        __closure(")
+
+				// Arguments
+				for i, arg := range s.Call.Args {
+					if i > 0 {
+						out.WriteString(", ")
+					}
+					// Wrap arguments appropriately
+					if ident, ok := arg.(*ast.Ident); ok && ident.Name != "nil" && ident.Name != "_" {
+						// Check if this is a variable (not a constant)
+						if _, isRangeVar := rangeLoopVars[ident.Name]; !isRangeVar {
+							if _, isLocalConst := localConstants[ident.Name]; !isLocalConst {
+								// It's a variable, clone it
+								if captureRenames[ident.Name] != "" {
+									out.WriteString(captureRenames[ident.Name])
+								} else {
+									out.WriteString(ident.Name)
+									out.WriteString(".clone()")
+								}
+							} else {
+								// It's a constant, wrap it
+								out.WriteString("Arc::new(Mutex::new(Some(")
+								TranspileExpression(out, arg)
+								out.WriteString(")))")
+							}
+						} else {
+							// Range variable, wrap it
+							out.WriteString("Arc::new(Mutex::new(Some(")
+							TranspileExpression(out, arg)
+							out.WriteString(")))")
+						}
+					} else {
+						// Complex expression or literal, wrap it
+						out.WriteString("Arc::new(Mutex::new(Some(")
+						TranspileExpression(out, arg)
+						out.WriteString(")))")
+					}
+				}
+				out.WriteString(")")
+			} else {
+				// No arguments - just inline the body
+				for i, stmt := range funcLit.Body.List {
+					if i > 0 {
+						out.WriteString("\n        ")
+					}
+					TranspileStatementSimple(out, stmt, funcLit.Type, fileSet)
+					out.WriteString(";")
+				}
+			}
+		} else {
+			// Regular function call
+			TranspileCall(out, s.Call)
+		}
+
+		out.WriteString(";\n")
+		out.WriteString("    })")
+		out.WriteString(";")
+
+		// Restore previous capture renames
+		currentCaptureRenames = oldCaptureRenames
+
 	default:
 		out.WriteString("// TODO: Unhandled statement type: " + strings.TrimPrefix(fmt.Sprintf("%T", s), "*ast."))
 	}

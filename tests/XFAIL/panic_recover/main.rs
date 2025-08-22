@@ -31,7 +31,7 @@ pub fn safe_divide(a: Rc<RefCell<Option<f64>>>, b: Rc<RefCell<Option<f64>>>) -> 
 
     let err_defer_captured = err.clone(); let result_defer_captured = result.clone(); __defer_stack.push(Box::new(move || {
         (Rc::new(RefCell::new(Some(Box::new(move || {
-        let mut r = Rc::new(RefCell::new(None))::<String>));
+        let mut r = Arc::new(Mutex::new(None::<String>));
     if (*r.borrow()).is_some() {
         { let new_val = Rc::new(RefCell::new(Some(Some(Box::new(format!("panic occurred: {}", (*r.borrow_mut().as_mut().unwrap()))) as Box<dyn Error + Send + Sync>))); *err_defer_captured.borrow_mut() = Some(new_val); };
         { let new_val = 0; *result_defer_captured.borrow_mut() = Some(new_val); };
@@ -66,7 +66,7 @@ pub fn process_slice(slice: Rc<RefCell<Option<Vec<i32>>>>, index: Rc<RefCell<Opt
 
     let err_defer_captured = err.clone(); let value_defer_captured = value.clone(); __defer_stack.push(Box::new(move || {
         (Rc::new(RefCell::new(Some(Box::new(move || {
-        let mut r = Rc::new(RefCell::new(None))::<String>));
+        let mut r = Arc::new(Mutex::new(None::<String>));
     if (*r.borrow()).is_some() {
         { let new_val = Rc::new(RefCell::new(Some(Some(Box::new(format!("index out of bounds: {}", (*r.borrow_mut().as_mut().unwrap()))) as Box<dyn Error + Send + Sync>))); *err_defer_captured.borrow_mut() = Some(new_val); };
         { let new_val = -1; *value_defer_captured.borrow_mut() = Some(new_val); };
@@ -94,7 +94,7 @@ pub fn nested_panic() {
 
     __defer_stack.push(Box::new(move || {
         (Rc::new(RefCell::new(Some(Box::new(move || {
-        let mut r = Rc::new(RefCell::new(None))::<String>));
+        let mut r = Arc::new(Mutex::new(None::<String>));
     if (*r.borrow()).is_some() {
         print!("Recovered from nested panic: {}\n", format_any(r.borrow().as_ref().unwrap().as_ref()));
     }
@@ -104,7 +104,7 @@ pub fn nested_panic() {
     (Rc::new(RefCell::new(Some(Box::new(move || {
         __defer_stack.push(Box::new(move || {
         (Rc::new(RefCell::new(Some(Box::new(move || {
-        let mut r = Rc::new(RefCell::new(None))::<String>));
+        let mut r = Arc::new(Mutex::new(None::<String>));
     if (*r.borrow()).is_some() {
         print!("Inner recovery: {}\n", format_any(r.borrow().as_ref().unwrap().as_ref()));
         panic!("re-panicking from inner function");
@@ -126,7 +126,7 @@ pub fn demonstrate_panic_types() {
         // String panic
     __defer_stack.push(Box::new(move || {
         (Rc::new(RefCell::new(Some(Box::new(move || {
-        let mut r = Rc::new(RefCell::new(None))::<String>));
+        let mut r = Arc::new(Mutex::new(None::<String>));
     if (*r.borrow()).is_some() {
         print!("Recovered string panic: {}\n", format_any(r.borrow().as_ref().unwrap().as_ref()));
     }
@@ -163,7 +163,7 @@ pub fn chained_defers() {
 
     __defer_stack.push(Box::new(move || {
         (Rc::new(RefCell::new(Some(Box::new(move || {
-        let mut r = Rc::new(RefCell::new(None))::<String>));
+        let mut r = Arc::new(Mutex::new(None::<String>));
     if (*r.borrow()).is_some() {
         print!("Final recovery: {}\n", format_any(r.borrow().as_ref().unwrap().as_ref()));
     }

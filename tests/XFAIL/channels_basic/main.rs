@@ -1,11 +1,13 @@
 use std::sync::{Arc, Mutex};
+use std::thread;
+use std::time::Duration;
 
 pub fn sender(ch: Arc<Mutex<Option</* TODO: Unhandled type *ast.ChanType */ Arc<Mutex<Option<()>>>>>>) {
     let mut i = Arc::new(Mutex::new(Some(1)));
     while (*i.lock().unwrap().as_mut().unwrap()) <= 5 {
         print!("Sending: {}\n", (*i.lock().unwrap().as_mut().unwrap()));
         // TODO: Unhandled statement type: SendStmt
-        (*time.lock().unwrap().as_mut().unwrap()).sleep(Arc::new(Mutex::new(Some(100 * (*(*time.lock().unwrap().as_mut().unwrap())::millisecond.lock().unwrap().as_ref().unwrap())))));
+        std::thread::sleep(std::time::Duration::from_millis(100));
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
     (close.lock().unwrap().as_ref().unwrap())(ch.clone());
@@ -26,10 +28,14 @@ fn main() {
         // Unbuffered channel
     let mut ch = ;
 
-    // TODO: Unhandled statement type: GoStmt
-    // TODO: Unhandled statement type: GoStmt
+    std::thread::spawn(move || {
+        sender(ch.clone());
+    });
+    std::thread::spawn(move || {
+        receiver(ch.clone());
+    });
 
-    (*time.lock().unwrap().as_mut().unwrap()).sleep(Arc::new(Mutex::new(Some(500 * (*(*time.lock().unwrap().as_mut().unwrap())::millisecond.lock().unwrap().as_ref().unwrap())))));
+    std::thread::sleep(std::time::Duration::from_millis(500));
 
         // Buffered channel
     let mut buffered = ;
@@ -47,7 +53,14 @@ fn main() {
 
         // Channel range
     let mut numbers = ;
-    // TODO: Unhandled statement type: GoStmt
+    let numbers_thread = numbers.clone(); std::thread::spawn(move || {
+        let mut i = Arc::new(Mutex::new(Some(10)));
+    while (*i.lock().unwrap().as_mut().unwrap()) < 15 {
+        // TODO: Unhandled statement type: SendStmt
+        { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
+    };
+        (close.lock().unwrap().as_ref().unwrap())(numbers.clone());;;
+    });
 
     println!("{}", "Range over channel:".to_string());
     for num in 0..(*numbers.lock().unwrap().as_mut().unwrap()).len() {

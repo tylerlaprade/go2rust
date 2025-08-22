@@ -124,7 +124,7 @@ For unimplemented features, the transpiler generates TODO comments:
 | └ Method definitions | ✅ |
 | └ Method calls | ✅ |
 | └ Function literals/closures | ✅ |
-| **`go` - Goroutines** | ❌ |
+| **`go` - Goroutines** | ✅ |
 | **`goto` - Goto statements** | ❌ |
 | **`if` - If statements** | |
 | └ Basic if | ✅ |

@@ -1,10 +1,22 @@
 use std::sync::{Arc, Mutex};
+use std::thread;
 
 fn main() {
     let mut jobs = ;
     let mut done = ;
 
-    // TODO: Unhandled statement type: GoStmt
+    let done_thread = done.clone(); let jobs_thread = jobs.clone(); std::thread::spawn(move || {
+        while true {
+        let (mut j, mut more) = <-(*jobs_thread.lock().unwrap().as_mut().unwrap());
+        if (*more.lock().unwrap().as_mut().unwrap()) {
+        println!("{} {}", "received job".to_string(), (*j.lock().unwrap().as_mut().unwrap()));
+    } else {
+        println!("{}", "received all jobs".to_string());
+        // TODO: Unhandled statement type: SendStmt
+        return;
+    }
+    };;
+    });
 
     let mut j = Arc::new(Mutex::new(Some(1)));
     while (*j.lock().unwrap().as_mut().unwrap()) <= 3 {

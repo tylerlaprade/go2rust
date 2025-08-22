@@ -319,6 +319,14 @@ run_xfail_test() {
     run_test "tests/functions_multiple_return"
 }
 
+@test "goroutines_basic" {
+    run_test "tests/goroutines_basic"
+}
+
+@test "goroutines_simple" {
+    run_test "tests/goroutines_simple"
+}
+
 @test "hello_world" {
     run_test "tests/hello_world"
 }
@@ -557,14 +565,6 @@ run_xfail_test() {
 
 @test "XFAIL: generics_basic" {
     run_xfail_test "tests/XFAIL/generics_basic"
-}
-
-@test "XFAIL: goroutines_basic" {
-    run_xfail_test "tests/XFAIL/goroutines_basic"
-}
-
-@test "XFAIL: goroutines_simple" {
-    run_xfail_test "tests/XFAIL/goroutines_simple"
 }
 
 @test "XFAIL: goto_labels" {

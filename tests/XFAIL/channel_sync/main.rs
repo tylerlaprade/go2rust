@@ -1,8 +1,10 @@
 use std::sync::{Arc, Mutex};
+use std::thread;
+use std::time::Duration;
 
 pub fn worker(done: Arc<Mutex<Option</* TODO: Unhandled type *ast.ChanType */ Arc<Mutex<Option<()>>>>>>) {
     (*fmt.lock().unwrap().as_mut().unwrap()).print(Arc::new(Mutex::new(Some("working...".to_string()))));
-    (*time.lock().unwrap().as_mut().unwrap()).sleep(Arc::new(Mutex::new(Some(500 * (*(*time.lock().unwrap().as_mut().unwrap())::millisecond.lock().unwrap().as_ref().unwrap())))));
+    std::thread::sleep(std::time::Duration::from_millis(500));
     println!("{}", "done".to_string());
 
     // TODO: Unhandled statement type: SendStmt
@@ -10,7 +12,9 @@ pub fn worker(done: Arc<Mutex<Option</* TODO: Unhandled type *ast.ChanType */ Ar
 
 fn main() {
     let mut done = ;
-    // TODO: Unhandled statement type: GoStmt
+    std::thread::spawn(move || {
+        worker(done.clone());
+    });
 
     <-(*done.lock().unwrap().as_mut().unwrap());
 }
