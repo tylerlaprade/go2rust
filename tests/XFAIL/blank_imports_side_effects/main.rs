@@ -1,5 +1,3 @@
-use std::sync::{Arc, Mutex};
-
 pub fn init() {
     println!("{}", "main package init".to_string());
 }

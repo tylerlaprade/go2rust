@@ -1,22 +1,23 @@
-use std::sync::{Arc, Mutex};
+use std::cell::{RefCell};
+use std::rc::{Rc};
 
 fn main() {
-    let mut arr: Arc<Mutex<Option<[i32; 3]>>> = Arc::new(Mutex::new(Some(Default::default())));
-    (*arr.lock().unwrap().as_mut().unwrap())[0] = 10;
-    (*arr.lock().unwrap().as_mut().unwrap())[1] = 20;
-    (*arr.lock().unwrap().as_mut().unwrap())[2] = 30;
+    let mut arr: Rc<RefCell<Option<[i32; 3]>>> = Rc::new(RefCell::new(Some(Default::default())));
+    (*arr.borrow_mut().as_mut().unwrap())[0] = 10;
+    (*arr.borrow_mut().as_mut().unwrap())[1] = 20;
+    (*arr.borrow_mut().as_mut().unwrap())[2] = 30;
 
     println!("{}", "Array elements:".to_string());
-    let mut i = Arc::new(Mutex::new(Some(0)));
-    while (*i.lock().unwrap().as_mut().unwrap()) < (*arr.lock().unwrap().as_ref().unwrap()).len() {
-        println!("{}", (*arr.lock().unwrap().as_ref().unwrap())[(*i.lock().unwrap().as_mut().unwrap()) as usize].clone());
-        { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
+    let mut i = Rc::new(RefCell::new(Some(0)));
+    while (*i.borrow_mut().as_mut().unwrap()) < (*arr.borrow().as_ref().unwrap()).len() {
+        println!("{}", (*arr.borrow().as_ref().unwrap())[(*i.borrow_mut().as_mut().unwrap()) as usize].clone());
+        { let mut guard = i.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
 
         // Array initialization
-    let mut nums = Arc::new(Mutex::new(Some([1, 2, 3, 4])));
+    let mut nums = Rc::new(RefCell::new(Some([1, 2, 3, 4])));
     println!("{}", "Initialized array:".to_string());
-    for num in &(*nums.lock().unwrap().as_mut().unwrap()) {
+    for num in &(*nums.borrow_mut().as_mut().unwrap()) {
         println!("{}", num);
     }
 }

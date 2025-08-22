@@ -162,8 +162,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				}
 
 				if isNil {
-					// For any wrapped type (error, pointer, etc.), nil becomes Arc<Mutex<None>>
-					out.WriteString("Arc::new(Mutex::new(None))")
+					WriteWrappedNone(out)
 				} else {
 					// Check if this is a field access on self (already wrapped)
 					if sel, ok := result.(*ast.SelectorExpr); ok {
@@ -174,9 +173,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							out.WriteString(".clone()")
 						} else {
 							// Regular selector - wrap it
-							out.WriteString("Arc::new(Mutex::new(Some(")
+							WriteWrapperPrefix(out)
 							TranspileExpression(out, result)
-							out.WriteString(")))")
+							WriteWrapperSuffix(out)
 						}
 					} else if callExpr, ok := result.(*ast.CallExpr); ok {
 						// Check if this is a function that returns an already-wrapped value
@@ -202,9 +201,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						}
 
 						if needsWrapping {
-							out.WriteString("Arc::new(Mutex::new(Some(")
+							WriteWrapperPrefix(out)
 							TranspileExpression(out, result)
-							out.WriteString(")))")
+							WriteWrapperSuffix(out)
 						} else {
 							// Already wrapped
 							TranspileExpression(out, result)
@@ -241,11 +240,11 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						} else {
 							// This needs wrapping (constants, literals, etc.)
 							if ident.Name == "nil" {
-								out.WriteString("Arc::new(Mutex::new(None))")
+								WriteWrappedNone(out)
 							} else {
-								out.WriteString("Arc::new(Mutex::new(Some(")
+								WriteWrapperPrefix(out)
 								TranspileExpression(out, result)
-								out.WriteString(")))")
+								WriteWrapperSuffix(out)
 							}
 						}
 					} else if _, ok := result.(*ast.SliceExpr); ok {
@@ -263,9 +262,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							}
 						} else {
 							// Other unary expressions, wrap them
-							out.WriteString("Arc::new(Mutex::new(Some(")
+							WriteWrapperPrefix(out)
 							TranspileExpression(out, result)
-							out.WriteString(")))")
+							WriteWrapperSuffix(out)
 						}
 					} else if binExpr, ok := result.(*ast.BinaryExpr); ok {
 						// Binary expressions need special handling to avoid multiple locks
@@ -301,7 +300,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 								// Expression returns wrapped value, unwrap it
 								out.WriteString("(*")
 								TranspileExpression(out, binExpr.X)
-								out.WriteString(".lock().unwrap().as_ref().unwrap())")
+								WriteBorrowMethod(out, false)
+								out.WriteString(".as_ref().unwrap())")
 							} else {
 								// Either a literal/constant or an identifier that will unwrap itself in RValue context
 								TranspileExpressionContext(out, binExpr.X, RValue)
@@ -315,26 +315,31 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 								// Expression returns wrapped value, unwrap it
 								out.WriteString("(*")
 								TranspileExpression(out, binExpr.Y)
-								out.WriteString(".lock().unwrap().as_ref().unwrap())")
+								WriteBorrowMethod(out, false)
+								out.WriteString(".as_ref().unwrap())")
 							} else {
 								// Either a literal/constant or an identifier that will unwrap itself in RValue context
 								TranspileExpressionContext(out, binExpr.Y, RValue)
 							}
 							out.WriteString(";\n")
 
-							out.WriteString("            Arc::new(Mutex::new(Some(__tmp_x ")
+							out.WriteString("            ")
+							WriteWrapperPrefix(out)
+							out.WriteString("__tmp_x ")
 							out.WriteString(binExpr.Op.String())
-							out.WriteString(" __tmp_y)))\n")
+							out.WriteString(" __tmp_y")
+							WriteWrapperSuffix(out)
+							out.WriteString("\n")
 							out.WriteString("        }")
 						} else {
 							// No extraction needed
-							out.WriteString("Arc::new(Mutex::new(Some(")
+							WriteWrapperPrefix(out)
 							TranspileExpression(out, result)
-							out.WriteString(")))")
+							WriteWrapperSuffix(out)
 						}
 					} else {
 						// Wrap all other return values in Arc<Mutex<Option<>>>
-						out.WriteString("Arc::new(Mutex::new(Some(")
+						WriteWrapperPrefix(out)
 
 						// Special handling for string literals
 						if lit, ok := result.(*ast.BasicLit); ok && lit.Kind == token.STRING {
@@ -344,7 +349,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							TranspileExpression(out, result)
 						}
 
-						out.WriteString(")))")
+						WriteWrapperSuffix(out)
 					}
 				}
 			}
@@ -388,7 +393,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				} else {
 					TranspileExpression(out, indexExpr.X)
 				}
-				out.WriteString(".lock().unwrap().as_mut().unwrap()).insert(")
+				WriteBorrowMethod(out, true)
+				out.WriteString(".as_mut().unwrap()).insert(")
 				TranspileExpression(out, indexExpr.Index)
 				out.WriteString(", ")
 
@@ -402,21 +408,21 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							out.WriteString(".clone()")
 						} else {
 							// It's a constant, wrap it
-							out.WriteString("Arc::new(Mutex::new(Some(")
+							WriteWrapperPrefix(out)
 							TranspileExpression(out, s.Rhs[0])
-							out.WriteString(")))")
+							WriteWrapperSuffix(out)
 						}
 					} else {
 						// Range variable, wrap it
-						out.WriteString("Arc::new(Mutex::new(Some(")
+						WriteWrapperPrefix(out)
 						TranspileExpression(out, s.Rhs[0])
-						out.WriteString(")))")
+						WriteWrapperSuffix(out)
 					}
 				} else {
 					// Not a simple identifier (literal or expression), wrap it
-					out.WriteString("Arc::new(Mutex::new(Some(")
+					WriteWrapperPrefix(out)
 					TranspileExpression(out, s.Rhs[0])
-					out.WriteString(")))")
+					WriteWrapperSuffix(out)
 				}
 				out.WriteString(")")
 			}
@@ -444,7 +450,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				// For string +=, we need mutable access to the LHS
 				out.WriteString("(*")
 				TranspileExpressionContext(out, s.Lhs[0], LValue)
-				out.WriteString(".lock().unwrap().as_mut().unwrap()).push_str(&")
+				WriteBorrowMethod(out, true)
+				out.WriteString(".as_mut().unwrap()).push_str(&")
 				TranspileExpression(out, s.Rhs[0])
 				out.WriteString(")")
 			} else {
@@ -452,7 +459,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				// Generate: { let mut guard = lhs.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() OP rhs); }
 				out.WriteString("{ let mut guard = ")
 				TranspileExpressionContext(out, s.Lhs[0], LValue)
-				out.WriteString(".lock().unwrap(); *guard = Some(guard.as_ref().unwrap() ")
+				WriteBorrowMethod(out, true)
+				out.WriteString("; *guard = Some(guard.as_ref().unwrap() ")
 
 				// Output the appropriate operator
 				switch s.Tok {
@@ -490,7 +498,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						// Regular wrapped variable - unwrap it
 						out.WriteString("(*")
 						out.WriteString(ident.Name)
-						out.WriteString(".lock().unwrap().as_mut().unwrap())")
+						WriteBorrowMethod(out, true)
+						out.WriteString(".as_mut().unwrap())")
 					} else {
 						// Special identifier - use as-is
 						out.WriteString(ident.Name)
@@ -597,13 +606,24 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				} else {
 					TranspileExpression(out, indexExpr.X)
 				}
-				out.WriteString(".lock().unwrap().as_ref().unwrap()).get(&")
+				WriteBorrowMethod(out, false)
+				out.WriteString(".as_ref().unwrap()).get(&")
 				TranspileExpression(out, indexExpr.Index)
-				out.WriteString(") { Some(v) => (v.clone(), Arc::new(Mutex::new(Some(true)))), None => (Arc::new(Mutex::new(Some(")
+				out.WriteString(") { /* MAP_COMMA_OK */ Some(v) => (v.clone(), ")
+				WriteWrapperPrefix(out)
+				out.WriteString("true")
+				WriteWrapperSuffix(out)
+				out.WriteString("), None => (")
+				WriteWrapperPrefix(out)
 				// Default value for the type - for now assume i32
 				// TODO: Use proper type information
 				out.WriteString("0")
-				out.WriteString("))), Arc::new(Mutex::new(Some(false)))) }")
+				WriteWrapperSuffix(out)
+				out.WriteString(", ")
+				WriteWrapperPrefix(out)
+				out.WriteString("false")
+				WriteWrapperSuffix(out)
+				out.WriteString(") }")
 			} else if needsTupleUnpack {
 				if s.Tok == token.DEFINE {
 					out.WriteString("let ")
@@ -654,10 +674,10 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							// Slice expressions already return wrapped values
 							TranspileExpression(out, rhs)
 						} else {
-							// Wrap new variables in Arc<Mutex<Option<>>>
-							out.WriteString("Arc::new(Mutex::new(Some(")
+							// Wrap new variables
+							WriteWrapperPrefix(out)
 							TranspileExpression(out, rhs)
-							out.WriteString(")))")
+							WriteWrapperSuffix(out)
 						}
 					}
 					out.WriteString(")")
@@ -672,7 +692,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						// Assignment to wrapped variable: *var.lock().unwrap() = Some(value)
 						out.WriteString("*")
 						TranspileExpression(out, s.Lhs[i])
-						out.WriteString(".lock().unwrap() = Some(")
+						WriteBorrowMethod(out, true)
+						out.WriteString(" = Some(")
 						TranspileExpression(out, s.Rhs[i])
 						out.WriteString(")")
 					}
@@ -704,12 +725,14 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 								out.WriteString("; ")
 								out.WriteString("*")
 								TranspileExpressionContext(out, star.X, LValue)
-								out.WriteString(".lock().unwrap() = Some(new_val); }")
+								WriteBorrowMethod(out, true)
+								out.WriteString(" = Some(new_val); }")
 							} else if indexExpr, ok := s.Lhs[0].(*ast.IndexExpr); ok && !isMapIndexAssign {
 								// Array/slice element assignment: arr[i] = value
 								out.WriteString("(*")
 								TranspileExpressionContext(out, indexExpr.X, LValue)
-								out.WriteString(".lock().unwrap().as_mut().unwrap())[")
+								WriteBorrowMethod(out, true)
+								out.WriteString(".as_mut().unwrap())[")
 								TranspileExpression(out, indexExpr.Index)
 								out.WriteString("] = ")
 
@@ -734,7 +757,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 								if needsUnwrap {
 									out.WriteString("(*")
 									TranspileExpression(out, s.Rhs[0])
-									out.WriteString(".lock().unwrap().as_ref().unwrap())")
+									WriteBorrowMethod(out, false)
+									out.WriteString(".as_ref().unwrap())")
 								} else {
 									TranspileExpression(out, s.Rhs[0])
 								}
@@ -745,17 +769,20 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									// Assigning nil to pointer
 									out.WriteString("*")
 									TranspileExpressionContext(out, s.Lhs[0], LValue)
-									out.WriteString(".lock().unwrap() = None")
+									WriteBorrowMethod(out, true)
+									out.WriteString(" = None")
 								} else if unary, ok := s.Rhs[0].(*ast.UnaryExpr); ok && unary.Op == token.AND {
 									// Special case: p = &x where p is a pointer
 									// We need to extract the value from x, not clone the whole Arc
 									out.WriteString("{ ")
 									out.WriteString("let new_val = (*")
 									TranspileExpressionContext(out, unary.X, LValue)
-									out.WriteString(".lock().unwrap()).clone(); ")
+									WriteBorrowMethod(out, false)
+									out.WriteString(").clone(); ")
 									out.WriteString("*")
 									TranspileExpressionContext(out, s.Lhs[0], LValue)
-									out.WriteString(".lock().unwrap() = new_val; }")
+									WriteBorrowMethod(out, true)
+									out.WriteString(" = new_val; }")
 								} else if call, ok := s.Rhs[0].(*ast.CallExpr); ok {
 									// Check if it's an append call using TypeInfo
 									isAppend := false
@@ -782,7 +809,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										out.WriteString("; ")
 										out.WriteString("*")
 										TranspileExpressionContext(out, s.Lhs[0], LValue)
-										out.WriteString(".lock().unwrap() = Some(new_val); }")
+										WriteBorrowMethod(out, true)
+										out.WriteString(" = Some(new_val); }")
 									}
 								} else {
 									// Check if LHS is interface{} type
@@ -805,7 +833,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										out.WriteString(") as Box<dyn Any>; ")
 										out.WriteString("*")
 										TranspileExpressionContext(out, s.Lhs[0], LValue)
-										out.WriteString(".lock().unwrap() = Some(new_val); }")
+										WriteBorrowMethod(out, true)
+										out.WriteString(" = Some(new_val); }")
 									} else {
 										out.WriteString("{ ")
 										out.WriteString("let new_val = ")
@@ -813,7 +842,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										out.WriteString("; ")
 										out.WriteString("*")
 										TranspileExpressionContext(out, s.Lhs[0], LValue)
-										out.WriteString(".lock().unwrap() = Some(new_val); }")
+										WriteBorrowMethod(out, true)
+										out.WriteString(" = Some(new_val); }")
 									}
 								}
 							}
@@ -838,8 +868,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 								if s.Tok == token.DEFINE {
 									// Check if RHS is nil
 									if ident, ok := rhs.(*ast.Ident); ok && ident.Name == "nil" {
-										// Initializing with nil
-										out.WriteString("Arc::new(Mutex::new(None))")
+										WriteWrappedNone(out)
 									} else if unary, ok := rhs.(*ast.UnaryExpr); ok && unary.Op == token.AND {
 										// Taking address - don't wrap, the & operator will handle it
 										TranspileExpression(out, rhs)
@@ -857,9 +886,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 										if isStructLiteral {
 											// Struct literals need to be wrapped
-											out.WriteString("Arc::new(Mutex::new(Some(")
+											WriteWrapperPrefix(out)
 											TranspileExpression(out, rhs)
-											out.WriteString(")))")
+											WriteWrapperSuffix(out)
 										} else {
 											// Array/slice/map literals already wrap themselves
 											TranspileExpression(out, rhs)
@@ -868,10 +897,10 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										// Slice expressions already return wrapped values
 										TranspileExpression(out, rhs)
 									} else {
-										// Wrap new variables in Arc<Mutex<Option<>>>
-										out.WriteString("Arc::new(Mutex::new(Some(")
+										// Wrap new variables
+										WriteWrapperPrefix(out)
 										TranspileExpression(out, rhs)
-										out.WriteString(")))")
+										WriteWrapperSuffix(out)
 									}
 								} else {
 									TranspileExpression(out, rhs)
@@ -907,9 +936,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 								TranspileExpression(out, rhs)
 							} else {
 								// Wrap new variables in Arc<Mutex<Option<>>>
-								out.WriteString("Arc::new(Mutex::new(Some(")
+								WriteWrapperPrefix(out)
 								TranspileExpression(out, rhs)
-								out.WriteString(")))")
+								WriteWrapperSuffix(out)
 							}
 						} else {
 							TranspileExpression(out, rhs)
@@ -943,7 +972,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 								// Check if value is nil
 								if ident, ok := valueSpec.Values[i].(*ast.Ident); ok && ident.Name == "nil" {
 									// Initializing with nil
-									out.WriteString("Arc::new(Mutex::new(None))")
+									WriteWrappedNone(out)
 								} else if _, isCall := valueSpec.Values[i].(*ast.CallExpr); isCall {
 									// Function calls already return wrapped values, don't wrap again
 									TranspileExpression(out, valueSpec.Values[i])
@@ -958,9 +987,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 									if isStructLiteral {
 										// Struct literals need to be wrapped
-										out.WriteString("Arc::new(Mutex::new(Some(")
+										WriteWrapperPrefix(out)
 										TranspileExpression(out, valueSpec.Values[i])
-										out.WriteString(")))")
+										WriteWrapperSuffix(out)
 									} else {
 										// Array/slice/map literals already wrap themselves
 										TranspileExpression(out, valueSpec.Values[i])
@@ -979,14 +1008,15 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 									if isInterface {
 										// For interface{}, box the value
-										out.WriteString("Arc::new(Mutex::new(Some(Box::new(")
+										WriteWrapperPrefix(out)
+										out.WriteString("Box::new(")
 										TranspileExpression(out, valueSpec.Values[i])
 										out.WriteString(") as Box<dyn Any>)))")
 									} else {
 										// Wrap all variables in Arc<Mutex<Option<>>>
-										out.WriteString("Arc::new(Mutex::new(Some(")
+										WriteWrapperPrefix(out)
 										TranspileExpression(out, valueSpec.Values[i])
-										out.WriteString(")))")
+										WriteWrapperSuffix(out)
 									}
 								}
 							} else {
@@ -1004,11 +1034,14 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										}
 									case *ast.StarExpr:
 										// Pointer type - initialize with None
-										out.WriteString(" = Arc::new(Mutex::new(None))")
+										out.WriteString(" = ")
+										WriteWrappedNone(out)
 									case *ast.ArrayType:
 										// Initialize array with default values
 										// Arrays are wrapped, so we need Some(default array)
-										out.WriteString(" = Arc::new(Mutex::new(Some(Default::default())))")
+										out.WriteString(" = ")
+										WriteWrapperPrefix(out)
+										out.WriteString("Default::default())))")
 									}
 								}
 							}
@@ -1099,7 +1132,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		out.WriteString("{ ")
 		out.WriteString("let mut guard = ")
 		TranspileExpressionContext(out, s.X, LValue)
-		out.WriteString(".lock().unwrap(); ")
+		WriteBorrowMethod(out, true)
+		out.WriteString("; ")
 		out.WriteString("*guard = Some(guard.as_ref().unwrap() ")
 		if s.Tok == token.INC {
 			out.WriteString("+ 1")
@@ -1167,13 +1201,15 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				TranspileExpression(out, s.Value)
 				out.WriteString(") in (*")
 				TranspileExpression(out, s.X)
-				out.WriteString(".lock().unwrap().as_ref().unwrap()).chars().enumerate()")
+				WriteBorrowMethod(out, false)
+				out.WriteString(".as_ref().unwrap()).chars().enumerate()")
 			} else if s.Value != nil {
 				// for _, c := range str
 				TranspileExpression(out, s.Value)
 				out.WriteString(" in (*")
 				TranspileExpression(out, s.X)
-				out.WriteString(".lock().unwrap().as_ref().unwrap()).chars()")
+				WriteBorrowMethod(out, false)
+				out.WriteString(".as_ref().unwrap()).chars()")
 			}
 		} else if isMap {
 			// Map iteration - need to unwrap the Arc<Mutex<Option<HashMap>>>
@@ -1198,7 +1234,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				} else {
 					TranspileExpression(out, s.X)
 				}
-				out.WriteString(".lock().unwrap().as_ref().unwrap()).clone()")
+				WriteBorrowMethod(out, false)
+				out.WriteString(".as_ref().unwrap()).clone()")
 			} else if s.Value != nil {
 				// for _, v := range map (values only)
 				out.WriteString("(_, ")
@@ -1214,7 +1251,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				} else {
 					TranspileExpression(out, s.X)
 				}
-				out.WriteString(".lock().unwrap().as_ref().unwrap()).clone()")
+				WriteBorrowMethod(out, false)
+				out.WriteString(".as_ref().unwrap()).clone()")
 			} else if s.Key != nil {
 				// for k := range map (keys only)
 				out.WriteString("(")
@@ -1230,7 +1268,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				} else {
 					TranspileExpression(out, s.X)
 				}
-				out.WriteString(".lock().unwrap().as_ref().unwrap()).clone()")
+				WriteBorrowMethod(out, false)
+				out.WriteString(".as_ref().unwrap()).clone()")
 			}
 		} else {
 			// Array/slice iteration
@@ -1472,21 +1511,21 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							out.WriteString(".clone()")
 						} else {
 							// It's a constant, wrap it
-							out.WriteString("Arc::new(Mutex::new(Some(")
+							WriteWrapperPrefix(out)
 							TranspileExpression(out, arg)
-							out.WriteString(")))")
+							WriteWrapperSuffix(out)
 						}
 					} else {
 						// Range variable, wrap it
-						out.WriteString("Arc::new(Mutex::new(Some(")
+						WriteWrapperPrefix(out)
 						TranspileExpression(out, arg)
-						out.WriteString(")))")
+						WriteWrapperSuffix(out)
 					}
 				} else {
 					// Complex expression or literal, wrap it
-					out.WriteString("Arc::new(Mutex::new(Some(")
+					WriteWrapperPrefix(out)
 					TranspileExpression(out, arg)
-					out.WriteString(")))")
+					WriteWrapperSuffix(out)
 				}
 				out.WriteString("; ")
 			}

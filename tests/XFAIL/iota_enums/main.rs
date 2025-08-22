@@ -1,5 +1,3 @@
-use std::sync::{Arc, Mutex};
-
 const RED: Color = 0;
 const GREEN: i32 = 1;
 const BLUE: i32 = 2;
@@ -7,11 +5,11 @@ const YELLOW: i32 = 3;
 
 
 #[derive(Debug, Clone)]
-struct Color(Arc<Mutex<Option<i32>>>);
+struct Color(Rc<RefCell<Option<i32>>>);
 
 impl Display for Color {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        write!(f, "{}", self.0.lock().unwrap().as_ref().unwrap())
+        write!(f, "{}", self.0.borrow().as_ref().unwrap())
     }
 }
 

@@ -1,28 +1,29 @@
-use std::sync::{Arc, Mutex};
+use std::cell::{RefCell};
+use std::rc::{Rc};
 
 fn main() {
         // Basic nil comparisons
-    let mut p: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(None));
-    if (*p.lock().unwrap()).is_none() {
+    let mut p: Rc<RefCell<Option<i32>>> = Rc::new(RefCell::new(None));
+    if (*p.borrow()).is_none() {
         println!("{}", "p is nil".to_string());
     }
 
         // Assign nil
-    let mut q: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(None));
-    if (*q.lock().unwrap()).is_none() {
+    let mut q: Rc<RefCell<Option<String>>> = Rc::new(RefCell::new(None));
+    if (*q.borrow()).is_none() {
         println!("{}", "q is nil".to_string());
     }
 
         // Non-nil pointer
-    let mut x = Arc::new(Mutex::new(Some(42)));
-    { let new_val = (*x.lock().unwrap()).clone(); *p.lock().unwrap() = new_val; };
-    if (*p.lock().unwrap()).is_some() {
-        println!("{} {}", "p is not nil, value:".to_string(), (*p.lock().unwrap().as_ref().unwrap()));
+    let mut x = Rc::new(RefCell::new(Some(42)));
+    { let new_val = (*x.borrow()).clone(); *p.borrow_mut() = new_val; };
+    if (*p.borrow()).is_some() {
+        println!("{} {}", "p is not nil, value:".to_string(), (*p.borrow().as_ref().unwrap()));
     }
 
         // Set back to nil
-    *p.lock().unwrap() = None;
-    if (*p.lock().unwrap()).is_none() {
+    *p.borrow_mut() = None;
+    if (*p.borrow()).is_none() {
         println!("{}", "p is nil again".to_string());
     }
 }

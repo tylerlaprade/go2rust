@@ -1,39 +1,40 @@
-use std::sync::{Arc, Mutex};
+use std::cell::{RefCell};
+use std::rc::{Rc};
 
 #[derive(Debug, Clone, Default)]
 struct Inner {
-    value: Arc<Mutex<Option<i32>>>,
+    value: Rc<RefCell<Option<i32>>>,
 }
 
 #[derive(Debug, Clone, Default)]
 struct Outer {
-    inner: Arc<Mutex<Option<Inner>>>,
-    name: Arc<Mutex<Option<String>>>,
+    inner: Rc<RefCell<Option<Inner>>>,
+    name: Rc<RefCell<Option<String>>>,
 }
 
 impl Inner {
-    pub fn get_value(&self) -> Arc<Mutex<Option<i32>>> {
+    pub fn get_value(&self) -> Rc<RefCell<Option<i32>>> {
         return self.value.clone();
     }
 }
 
 impl Outer {
-    pub fn get_value(&self) -> Arc<Mutex<Option<i32>>> {
+    pub fn get_value(&self) -> Rc<RefCell<Option<i32>>> {
         // Forward to embedded type's method
         let embedded = self.inner.clone();
-        let mut guard = embedded.lock().unwrap();
+        let mut guard = embedded.borrow_mut();
         let embedded_ref = guard.as_mut().unwrap();
         embedded_ref.get_value()
     }
 }
 
 fn main() {
-    let mut o = Arc::new(Mutex::new(Some(Outer { inner: Arc::new(Mutex::new(Some(Inner { value: Arc::new(Mutex::new(Some(42))) }))), name: Arc::new(Mutex::new(Some("test".to_string()))) })));
+    let mut o = Rc::new(RefCell::new(Some(Outer { inner: Rc::new(RefCell::new(Some(Inner { value: Rc::new(RefCell::new(Some(42))) }))), name: Rc::new(RefCell::new(Some("test".to_string()))) })));
 
         // Direct field access
-    println!("{} {}", "Value:".to_string(), (*(*(*o.lock().unwrap().as_ref().unwrap()).inner.lock().unwrap().as_ref().unwrap()).value.lock().unwrap().as_ref().unwrap()));
-    println!("{} {}", "Name:".to_string(), (*(*o.lock().unwrap().as_ref().unwrap()).name.lock().unwrap().as_ref().unwrap()));
+    println!("{} {}", "Value:".to_string(), (*(*(*o.borrow().as_ref().unwrap()).inner.borrow().as_ref().unwrap()).value.borrow().as_ref().unwrap()));
+    println!("{} {}", "Name:".to_string(), (*(*o.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()));
 
         // Method call
-    println!("{} {}", "GetValue:".to_string(), (*(*o.lock().unwrap().as_mut().unwrap()).get_value().lock().unwrap().as_ref().unwrap()));
+    println!("{} {}", "GetValue:".to_string(), (*(*o.borrow_mut().as_mut().unwrap()).get_value().borrow().as_ref().unwrap()));
 }

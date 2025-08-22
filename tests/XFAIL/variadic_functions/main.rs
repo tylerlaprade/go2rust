@@ -1,93 +1,94 @@
-use std::sync::{Arc, Mutex};
+use std::cell::{RefCell};
+use std::rc::{Rc};
 
-pub fn sum(numbers: Arc<Mutex<Option</* TODO: Unhandled type *ast.Ellipsis */ Arc<Mutex<Option<()>>>>>>) -> Arc<Mutex<Option<i32>>> {
+pub fn sum(numbers: Rc<RefCell<Option</* TODO: Unhandled type *ast.Ellipsis */ Rc<RefCell<Option<()>>>>>>) -> Rc<RefCell<Option<i32>>> {
 
-    let mut total = Arc::new(Mutex::new(Some(0)));
-    for num in &(*numbers.lock().unwrap().as_mut().unwrap()) {
-        { let mut guard = total.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + num); };
+    let mut total = Rc::new(RefCell::new(Some(0)));
+    for num in &(*numbers.borrow_mut().as_mut().unwrap()) {
+        { let mut guard = total.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + num); };
     }
     return total.clone();
 }
 
-pub fn average(numbers: Arc<Mutex<Option</* TODO: Unhandled type *ast.Ellipsis */ Arc<Mutex<Option<()>>>>>>) -> Arc<Mutex<Option<f64>>> {
+pub fn average(numbers: Rc<RefCell<Option</* TODO: Unhandled type *ast.Ellipsis */ Rc<RefCell<Option<()>>>>>>) -> Rc<RefCell<Option<f64>>> {
 
-    if (*numbers.lock().unwrap().as_ref().unwrap()).len() == 0 {
-        return Arc::new(Mutex::new(Some(0)));
+    if (*numbers.borrow().as_ref().unwrap()).len() == 0 {
+        return Rc::new(RefCell::new(Some(0)));
     }
-    let mut total = Arc::new(Mutex::new(Some(0.0)));
-    for num in &(*numbers.lock().unwrap().as_mut().unwrap()) {
-        { let mut guard = total.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + num); };
+    let mut total = Rc::new(RefCell::new(Some(0.0)));
+    for num in &(*numbers.borrow_mut().as_mut().unwrap()) {
+        { let mut guard = total.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + num); };
     }
     return {
-            let __tmp_x = (*total.lock().unwrap().as_mut().unwrap());
-            let __tmp_y = Arc::new(Mutex::new(Some((*(*numbers.lock().unwrap().as_ref().unwrap()).len().lock().unwrap().as_ref().unwrap()) as f64)));
-            Arc::new(Mutex::new(Some(__tmp_x / __tmp_y)))
+            let __tmp_x = (*total.borrow_mut().as_mut().unwrap());
+            let __tmp_y = Rc::new(RefCell::new(Some((*(*numbers.borrow().as_ref().unwrap()).len().as_ref().unwrap().as_ref().unwrap()) as f64)));
+            Rc::new(RefCell::new(Some(__tmp_x / __tmp_y)))
         };
 }
 
-pub fn print_strings(prefix: Arc<Mutex<Option<String>>>, strings: Arc<Mutex<Option</* TODO: Unhandled type *ast.Ellipsis */ Arc<Mutex<Option<()>>>>>>) {
-    print!("{}: ", (*prefix.lock().unwrap().as_mut().unwrap()));
-    for (i, str) in (*strings.lock().unwrap().as_mut().unwrap()).iter().enumerate() {
+pub fn print_strings(prefix: Rc<RefCell<Option<String>>>, strings: Rc<RefCell<Option</* TODO: Unhandled type *ast.Ellipsis */ Rc<RefCell<Option<()>>>>>>) {
+    print!("{}: ", (*prefix.borrow_mut().as_mut().unwrap()));
+    for (i, str) in (*strings.borrow_mut().as_mut().unwrap()).iter().enumerate() {
         if i > 0 {
-        (*fmt.lock().unwrap().as_mut().unwrap()).print(Arc::new(Mutex::new(Some(", ".to_string()))));
+        (*fmt.borrow_mut().as_mut().unwrap()).print(Rc::new(RefCell::new(Some(", ".to_string()))));
     }
-        (*fmt.lock().unwrap().as_mut().unwrap()).print(Arc::new(Mutex::new(Some(str))));
+        (*fmt.borrow_mut().as_mut().unwrap()).print(Rc::new(RefCell::new(Some(str))));
     }
     println!();
 }
 
-pub fn min(first: Arc<Mutex<Option<i32>>>, rest: Arc<Mutex<Option</* TODO: Unhandled type *ast.Ellipsis */ Arc<Mutex<Option<()>>>>>>) -> Arc<Mutex<Option<i32>>> {
+pub fn min(first: Rc<RefCell<Option<i32>>>, rest: Rc<RefCell<Option</* TODO: Unhandled type *ast.Ellipsis */ Rc<RefCell<Option<()>>>>>>) -> Rc<RefCell<Option<i32>>> {
 
-    let mut minimum = Arc::new(Mutex::new(Some((*first.lock().unwrap().as_mut().unwrap()))));
-    for num in &(*rest.lock().unwrap().as_mut().unwrap()) {
-        if num < (*minimum.lock().unwrap().as_mut().unwrap()) {
-        { let new_val = num; *minimum.lock().unwrap() = Some(new_val); };
+    let mut minimum = Rc::new(RefCell::new(Some((*first.borrow_mut().as_mut().unwrap()))));
+    for num in &(*rest.borrow_mut().as_mut().unwrap()) {
+        if num < (*minimum.borrow_mut().as_mut().unwrap()) {
+        { let new_val = num; *minimum.borrow_mut() = Some(new_val); };
     }
     }
     return minimum.clone();
 }
 
-pub fn concat(separator: Arc<Mutex<Option<String>>>, strings: Arc<Mutex<Option</* TODO: Unhandled type *ast.Ellipsis */ Arc<Mutex<Option<()>>>>>>) -> Arc<Mutex<Option<String>>> {
+pub fn concat(separator: Rc<RefCell<Option<String>>>, strings: Rc<RefCell<Option</* TODO: Unhandled type *ast.Ellipsis */ Rc<RefCell<Option<()>>>>>>) -> Rc<RefCell<Option<String>>> {
 
-    if (*strings.lock().unwrap().as_ref().unwrap()).len() == 0 {
-        return Arc::new(Mutex::new(Some("".to_string())));
+    if (*strings.borrow().as_ref().unwrap()).len() == 0 {
+        return Rc::new(RefCell::new(Some("".to_string())));
     }
-    let mut result = Arc::new(Mutex::new(Some((*strings.lock().unwrap().as_ref().unwrap())[0 as usize].clone())));
-    for str in &Arc::new(Mutex::new(Some((*strings.lock().unwrap().as_ref().unwrap())[1 as usize..].to_vec()))) {
-        (*result.lock().unwrap().as_mut().unwrap()).push_str(&(*separator.lock().unwrap().as_mut().unwrap()) + str);
+    let mut result = Rc::new(RefCell::new(Some((*strings.borrow().as_ref().unwrap())[0 as usize].clone())));
+    for str in &Rc::new(RefCell::new(Some((*strings.borrow().as_ref().unwrap())[1 as usize..].to_vec()))) {
+        (*result.borrow_mut().as_mut().unwrap()).push_str(&(*separator.borrow_mut().as_mut().unwrap()) + str);
     }
     return result.clone();
 }
 
 fn main() {
         // Basic variadic function
-    println!("{} {}", "Sum of no numbers:".to_string(), (*sum().lock().unwrap().as_ref().unwrap()));
-    println!("{} {}", "Sum of 1, 2, 3:".to_string(), (*sum(Arc::new(Mutex::new(Some(1))), Arc::new(Mutex::new(Some(2))), Arc::new(Mutex::new(Some(3)))).lock().unwrap().as_ref().unwrap()));
-    println!("{} {}", "Sum of 1, 2, 3, 4, 5:".to_string(), (*sum(Arc::new(Mutex::new(Some(1))), Arc::new(Mutex::new(Some(2))), Arc::new(Mutex::new(Some(3))), Arc::new(Mutex::new(Some(4))), Arc::new(Mutex::new(Some(5)))).lock().unwrap().as_ref().unwrap()));
+    println!("{} {}", "Sum of no numbers:".to_string(), (*sum().borrow().as_ref().unwrap()));
+    println!("{} {}", "Sum of 1, 2, 3:".to_string(), (*sum(Rc::new(RefCell::new(Some(1))), Rc::new(RefCell::new(Some(2))), Rc::new(RefCell::new(Some(3)))).borrow().as_ref().unwrap()));
+    println!("{} {}", "Sum of 1, 2, 3, 4, 5:".to_string(), (*sum(Rc::new(RefCell::new(Some(1))), Rc::new(RefCell::new(Some(2))), Rc::new(RefCell::new(Some(3))), Rc::new(RefCell::new(Some(4))), Rc::new(RefCell::new(Some(5)))).borrow().as_ref().unwrap()));
 
         // Passing slice to variadic function
-    let mut numbers = Arc::new(Mutex::new(Some(vec![10, 20, 30, 40])));
-    println!("{} {}", "Sum of slice:".to_string(), (*sum(numbers.clone()).lock().unwrap().as_ref().unwrap()));
+    let mut numbers = Rc::new(RefCell::new(Some(vec![10, 20, 30, 40])));
+    println!("{} {}", "Sum of slice:".to_string(), (*sum(numbers.clone()).borrow().as_ref().unwrap()));
 
         // Variadic with different types
-    println!("{} {}", "Average of 1.5, 2.5, 3.5:".to_string(), (*average(Arc::new(Mutex::new(Some(1.5))), Arc::new(Mutex::new(Some(2.5))), Arc::new(Mutex::new(Some(3.5)))).lock().unwrap().as_ref().unwrap()));
-    println!("{} {}", "Average of no numbers:".to_string(), (*average().lock().unwrap().as_ref().unwrap()));
+    println!("{} {}", "Average of 1.5, 2.5, 3.5:".to_string(), (*average(Rc::new(RefCell::new(Some(1.5))), Rc::new(RefCell::new(Some(2.5))), Rc::new(RefCell::new(Some(3.5)))).borrow().as_ref().unwrap()));
+    println!("{} {}", "Average of no numbers:".to_string(), (*average().borrow().as_ref().unwrap()));
 
         // Mixed parameters
-    print_strings(Arc::new(Mutex::new(Some("Colors".to_string()))), Arc::new(Mutex::new(Some("red".to_string()))), Arc::new(Mutex::new(Some("green".to_string()))), Arc::new(Mutex::new(Some("blue".to_string()))));
-    print_strings(Arc::new(Mutex::new(Some("Animals".to_string()))), Arc::new(Mutex::new(Some("cat".to_string()))), Arc::new(Mutex::new(Some("dog".to_string()))));
-    print_strings(Arc::new(Mutex::new(Some("Empty".to_string()))));
+    print_strings(Rc::new(RefCell::new(Some("Colors".to_string()))), Rc::new(RefCell::new(Some("red".to_string()))), Rc::new(RefCell::new(Some("green".to_string()))), Rc::new(RefCell::new(Some("blue".to_string()))));
+    print_strings(Rc::new(RefCell::new(Some("Animals".to_string()))), Rc::new(RefCell::new(Some("cat".to_string()))), Rc::new(RefCell::new(Some("dog".to_string()))));
+    print_strings(Rc::new(RefCell::new(Some("Empty".to_string()))));
 
         // Variadic with required first parameter
-    println!("{} {}", "Min of 5, 2, 8, 1, 9:".to_string(), (*min(Arc::new(Mutex::new(Some(5))), Arc::new(Mutex::new(Some(2))), Arc::new(Mutex::new(Some(8))), Arc::new(Mutex::new(Some(1))), Arc::new(Mutex::new(Some(9)))).lock().unwrap().as_ref().unwrap()));
-    println!("{} {}", "Min of just 42:".to_string(), (*min(Arc::new(Mutex::new(Some(42)))).lock().unwrap().as_ref().unwrap()));
+    println!("{} {}", "Min of 5, 2, 8, 1, 9:".to_string(), (*min(Rc::new(RefCell::new(Some(5))), Rc::new(RefCell::new(Some(2))), Rc::new(RefCell::new(Some(8))), Rc::new(RefCell::new(Some(1))), Rc::new(RefCell::new(Some(9)))).borrow().as_ref().unwrap()));
+    println!("{} {}", "Min of just 42:".to_string(), (*min(Rc::new(RefCell::new(Some(42)))).borrow().as_ref().unwrap()));
 
         // String concatenation
-    println!("{} {}", "Concat with comma:".to_string(), (*concat(Arc::new(Mutex::new(Some(", ".to_string()))), Arc::new(Mutex::new(Some("apple".to_string()))), Arc::new(Mutex::new(Some("banana".to_string()))), Arc::new(Mutex::new(Some("cherry".to_string())))).lock().unwrap().as_ref().unwrap()));
-    println!("{} {}", "Concat with dash:".to_string(), (*concat(Arc::new(Mutex::new(Some(" - ".to_string()))), Arc::new(Mutex::new(Some("one".to_string()))), Arc::new(Mutex::new(Some("two".to_string()))), Arc::new(Mutex::new(Some("three".to_string())))).lock().unwrap().as_ref().unwrap()));
-    println!("{} {}", "Concat empty:".to_string(), (*concat(Arc::new(Mutex::new(Some(", ".to_string())))).lock().unwrap().as_ref().unwrap()));
+    println!("{} {}", "Concat with comma:".to_string(), (*concat(Rc::new(RefCell::new(Some(", ".to_string()))), Rc::new(RefCell::new(Some("apple".to_string()))), Rc::new(RefCell::new(Some("banana".to_string()))), Rc::new(RefCell::new(Some("cherry".to_string())))).borrow().as_ref().unwrap()));
+    println!("{} {}", "Concat with dash:".to_string(), (*concat(Rc::new(RefCell::new(Some(" - ".to_string()))), Rc::new(RefCell::new(Some("one".to_string()))), Rc::new(RefCell::new(Some("two".to_string()))), Rc::new(RefCell::new(Some("three".to_string())))).borrow().as_ref().unwrap()));
+    println!("{} {}", "Concat empty:".to_string(), (*concat(Rc::new(RefCell::new(Some(", ".to_string())))).borrow().as_ref().unwrap()));
 
         // Using slice with string variadic
-    let mut words = Arc::new(Mutex::new(Some(vec!["hello".to_string(), "world".to_string(), "from".to_string(), "go".to_string()])));
-    println!("{} {}", "Concat from slice:".to_string(), (*concat(Arc::new(Mutex::new(Some(" ".to_string()))), words.clone()).lock().unwrap().as_ref().unwrap()));
+    let mut words = Rc::new(RefCell::new(Some(vec!["hello".to_string(), "world".to_string(), "from".to_string(), "go".to_string()])));
+    println!("{} {}", "Concat from slice:".to_string(), (*concat(Rc::new(RefCell::new(Some(" ".to_string()))), words.clone()).borrow().as_ref().unwrap()));
 }

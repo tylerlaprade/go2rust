@@ -8,22 +8,19 @@ import (
 
 // ImportTracker tracks which imports are needed during transpilation
 type ImportTracker struct {
-	needs   map[string]bool
-	reasons map[string][]string
+	needs map[string]bool
 }
 
 // NewImportTracker creates a new import tracker
 func NewImportTracker() *ImportTracker {
 	return &ImportTracker{
-		needs:   make(map[string]bool),
-		reasons: make(map[string][]string),
+		needs: make(map[string]bool),
 	}
 }
 
 // Add marks an import as needed with a reason
-func (it *ImportTracker) Add(importName string, reason string) {
+func (it *ImportTracker) Add(importName string) {
 	it.needs[importName] = true
-	it.reasons[importName] = append(it.reasons[importName], reason)
 }
 
 // GenerateImports returns the import statements for the file
@@ -44,6 +41,23 @@ func (it *ImportTracker) GenerateImports() string {
 	}
 	if len(syncImports) > 0 {
 		imports = append(imports, fmt.Sprintf("use std::sync::{%s};", strings.Join(syncImports, ", ")))
+	}
+
+	// Check for std::rc and std::cell imports
+	var rcImports []string
+	if it.needs["Rc"] {
+		rcImports = append(rcImports, "Rc")
+	}
+	if len(rcImports) > 0 {
+		imports = append(imports, fmt.Sprintf("use std::rc::{%s};", strings.Join(rcImports, ", ")))
+	}
+
+	var cellImports []string
+	if it.needs["RefCell"] {
+		cellImports = append(cellImports, "RefCell")
+	}
+	if len(cellImports) > 0 {
+		imports = append(imports, fmt.Sprintf("use std::cell::{%s};", strings.Join(cellImports, ", ")))
 	}
 
 	// HashMap

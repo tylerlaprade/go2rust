@@ -68,23 +68,27 @@ func generateAnonymousStructType(structType *ast.StructType) string {
 func GoTypeToRust(expr ast.Expr) string {
 	baseType := goTypeToRustBase(expr)
 
+	// Determine wrapper types based on concurrency needs
+	outerWrapper := GetOuterWrapperType()
+	innerWrapper := GetInnerWrapperType()
+
 	// Special case for error type - it's already Option
 	if ident, ok := expr.(*ast.Ident); ok && ident.Name == "error" {
-		return "Arc<Mutex<" + baseType + ">>"
+		return outerWrapper + "<" + innerWrapper + "<" + baseType + ">>"
 	}
 
 	// Check if this is a type alias - type aliases are already fully typed
 	if ident, ok := expr.(*ast.Ident); ok {
 		if typeAliases[ident.Name] {
-			// Type alias - already includes Arc<Mutex<Option<>>>
+			// Type alias - already includes wrapper
 			return baseType
 		}
 	}
 
-	// Wrap everything in Arc<Mutex<Option<>>>
+	// Wrap everything in appropriate wrapper
 	// Don't double-wrap pointers - they're already wrapped
 	if _, isPointer := expr.(*ast.StarExpr); !isPointer {
-		return "Arc<Mutex<Option<" + baseType + ">>>"
+		return outerWrapper + "<" + innerWrapper + "<Option<" + baseType + ">>>"
 	}
 
 	return baseType
@@ -130,9 +134,15 @@ func generateClosureType(funcType *ast.FuncType) string {
 		returnType = "(" + strings.Join(retTypes, ", ") + ")"
 	}
 
-	// Build the closure type: Box<dyn Fn(params) -> return + Send + Sync>
+	// Build the closure type
 	paramsStr := strings.Join(paramTypes, ", ")
-	return fmt.Sprintf("Box<dyn Fn(%s) -> %s + Send + Sync>", paramsStr, returnType)
+	if NeedsConcurrentWrapper() {
+		// For concurrent code, closures need Send + Sync
+		return fmt.Sprintf("Box<dyn Fn(%s) -> %s + Send + Sync>", paramsStr, returnType)
+	} else {
+		// For single-threaded code, no Send + Sync requirement
+		return fmt.Sprintf("Box<dyn Fn(%s) -> %s>", paramsStr, returnType)
+	}
 }
 
 func goTypeToRustBase(expr ast.Expr) string {
@@ -168,15 +178,15 @@ func goTypeToRustBase(expr ast.Expr) string {
 		case "float64":
 			return "f64"
 		case "complex64":
-			TrackImport("num::Complex", "complex numbers")
+			TrackImport("num::Complex")
 			return "num::Complex<f32>"
 		case "complex128":
-			TrackImport("num::Complex", "complex numbers")
+			TrackImport("num::Complex")
 			return "num::Complex<f64>"
 		case "bool":
 			return "bool"
 		case "error":
-			TrackImport("Error", "error type")
+			TrackImport("Error")
 			return "Option<Box<dyn Error + Send + Sync>>"
 		default:
 			// Check if this is an interface type
@@ -188,7 +198,7 @@ func goTypeToRustBase(expr ast.Expr) string {
 	case *ast.InterfaceType:
 		// Empty interface{} becomes Box<dyn Any>
 		if len(t.Methods.List) == 0 {
-			TrackImport("Any", "interface{} type")
+			TrackImport("Any")
 			return "Box<dyn Any>"
 		}
 		return "Unknown"
@@ -209,7 +219,9 @@ func goTypeToRustBase(expr ast.Expr) string {
 	case *ast.StarExpr:
 		// Pointer type - wrap the base type (not already wrapped)
 		innerType := goTypeToRustBase(t.X)
-		return "Arc<Mutex<Option<" + innerType + ">>>"
+		outerWrapper := GetOuterWrapperType()
+		innerWrapper := GetInnerWrapperType()
+		return outerWrapper + "<" + innerWrapper + "<Option<" + innerType + ">>>"
 	case *ast.FuncType:
 		// Function type - generate a closure type
 		return generateClosureType(t)
@@ -218,6 +230,8 @@ func goTypeToRustBase(expr ast.Expr) string {
 		return generateAnonymousStructType(t)
 	default:
 		// Unhandled type
-		return fmt.Sprintf("/* TODO: Unhandled type %T */ Arc<Mutex<Option<()>>>", t)
+		outerWrapper := GetOuterWrapperType()
+		innerWrapper := GetInnerWrapperType()
+		return fmt.Sprintf("/* TODO: Unhandled type %T */ %s<%s<Option<()>>>", t, outerWrapper, innerWrapper)
 	}
 }

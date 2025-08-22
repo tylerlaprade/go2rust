@@ -1,5 +1,3 @@
-use std::sync::{Arc, Mutex};
-
 fn main() {
     let mut queue = ;
     // TODO: Unhandled statement type: SendStmt

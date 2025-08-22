@@ -1,5 +1,3 @@
-use std::sync::{Arc, Mutex};
-
 fn main() {
     println!("{}", format!("{}{}", "go".to_string(), "lang".to_string()));
     println!("{} {}", "1+1 =".to_string(), 1 + 1);

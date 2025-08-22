@@ -34,20 +34,20 @@ fn main() {
         print!("Number {}: ", (*num.lock().unwrap().as_mut().unwrap()));
         match (*num.lock().unwrap().as_mut().unwrap()) {
         1 => {
-            fmt.print(Arc::new(Mutex::new(Some("One".to_string()))));
+            (*fmt.lock().unwrap().as_mut().unwrap()).print(Arc::new(Mutex::new(Some("One".to_string()))));
             // TODO: fallthrough not supported
         }
         2 => {
-            fmt.print(Arc::new(Mutex::new(Some(" Two-ish".to_string()))));
+            (*fmt.lock().unwrap().as_mut().unwrap()).print(Arc::new(Mutex::new(Some(" Two-ish".to_string()))));
         }
         3 => {
-            fmt.print(Arc::new(Mutex::new(Some("Three".to_string()))));
+            (*fmt.lock().unwrap().as_mut().unwrap()).print(Arc::new(Mutex::new(Some("Three".to_string()))));
         }
         4 | 5 => {
-            fmt.print(Arc::new(Mutex::new(Some(" Four-or-Five".to_string()))));
+            (*fmt.lock().unwrap().as_mut().unwrap()).print(Arc::new(Mutex::new(Some(" Four-or-Five".to_string()))));
         }
         _ => {
-            fmt.print(Arc::new(Mutex::new(Some(" Other".to_string()))));
+            (*fmt.lock().unwrap().as_mut().unwrap()).print(Arc::new(Mutex::new(Some(" Other".to_string()))));
         }
     }
         println!();
@@ -236,14 +236,14 @@ fn main() {
 
     let mut processData = Arc::new(Mutex::new(Some(Arc::new(Mutex::new(Some(Box::new(move |data: Arc<Mutex<Option<Vec<i32>>>>| -> Arc<Mutex<Option<Box<dyn Error + Send + Sync>>>> {
         if (*data.lock().unwrap().as_ref().unwrap()).len() == 0 {
-        return Arc::new(Mutex::new(Some(Box::new(format!("empty data")) as Box<dyn Error + Send + Sync>)));
+        return Arc::new(Mutex::new(Some(Some(Box::new(format!("empty data")) as Box<dyn Error + Send + Sync>)));
     }
         for (i, val) in (*data.lock().unwrap().as_mut().unwrap()).iter().enumerate() {
         if val < 0 {
-        return Arc::new(Mutex::new(Some(Box::new(format!("negative value at index {}: {}", i, val)) as Box<dyn Error + Send + Sync>)));
+        return Arc::new(Mutex::new(Some(Some(Box::new(format!("negative value at index {}: {}", i, val)) as Box<dyn Error + Send + Sync>)));
     }
         if val > 100 {
-        return Arc::new(Mutex::new(Some(Box::new(format!("value too large at index {}: {}", i, val)) as Box<dyn Error + Send + Sync>)));
+        return Arc::new(Mutex::new(Some(Some(Box::new(format!("value too large at index {}: {}", i, val)) as Box<dyn Error + Send + Sync>)));
     }
     }
         return Arc::new(Mutex::new(None));

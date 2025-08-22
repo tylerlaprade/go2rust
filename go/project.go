@@ -58,6 +58,12 @@ func (pg *ProjectGenerator) Generate() error {
 	SetTypeInfo(typeInfo)
 	defer SetTypeInfo(nil) // Clear when done
 
+	// Detect concurrency in the project
+	concurrencyDetector := NewConcurrencyDetector()
+	concurrencyDetector.AnalyzeProject(astFiles)
+	SetConcurrencyDetector(concurrencyDetector)
+	defer SetConcurrencyDetector(nil) // Clear when done
+
 	// First pass: transpile all files and detect structure
 	for i, filename := range pg.goFiles {
 		// Use the already parsed file from astFiles
@@ -74,11 +80,7 @@ func (pg *ProjectGenerator) Generate() error {
 		// Merge file imports into project imports
 		if fileImports != nil {
 			for imp := range fileImports.needs {
-				if reasons, ok := fileImports.reasons[imp]; ok {
-					for _, reason := range reasons {
-						pg.projectImports.Add(imp, reason)
-					}
-				}
+				pg.projectImports.Add(imp)
 			}
 		}
 
@@ -165,11 +167,7 @@ func (pg *ProjectGenerator) generateMainRs(fileSet *token.FileSet, astFiles []*a
 	// Merge main imports into project imports
 	if mainImports != nil {
 		for imp := range mainImports.needs {
-			if reasons, ok := mainImports.reasons[imp]; ok {
-				for _, reason := range reasons {
-					pg.projectImports.Add(imp, reason)
-				}
-			}
+			pg.projectImports.Add(imp)
 		}
 	}
 

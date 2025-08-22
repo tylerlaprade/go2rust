@@ -20,9 +20,9 @@ func GetTranspileContext() *TranspileContext {
 }
 
 // TrackImport adds an import to the current context if available
-func TrackImport(importName string, reason string) {
+func TrackImport(importName string) {
 	if currentContext != nil && currentContext.Imports != nil {
-		currentContext.Imports.Add(importName, reason)
+		currentContext.Imports.Add(importName)
 	}
 }
 

@@ -136,7 +136,8 @@ func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.Fi
 					out.WriteString(": ")
 					out.WriteString(GoTypeToRust(result.Type))
 					// Initialize with wrapped default values
-					out.WriteString(" = Arc::new(Mutex::new(")
+					out.WriteString(" = ")
+					WriteWrapperPrefix(out)
 					switch t := result.Type.(type) {
 					case *ast.Ident:
 						switch t.Name {
@@ -379,7 +380,9 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 					out.WriteString(typeSpec.Name.Name)
 					out.WriteString(" {\n")
 					out.WriteString("    fn fmt(&self, f: &mut Formatter) -> fmt::Result {\n")
-					out.WriteString("        write!(f, \"{}\", self.0.lock().unwrap().as_ref().unwrap())\n")
+					out.WriteString("        write!(f, \"{}\", self.0")
+					WriteBorrowMethod(out, false)
+					out.WriteString(".as_ref().unwrap())\n")
 					out.WriteString("    }\n")
 					out.WriteString("}\n")
 				}

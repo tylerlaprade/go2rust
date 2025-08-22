@@ -1,32 +1,33 @@
-use std::sync::{Arc, Mutex};
+use std::cell::{RefCell};
+use std::rc::{Rc};
 
 #[derive(Debug, Clone, Default)]
 struct Counter {
-    mu: Arc<Mutex<Option</* TODO: Unhandled type *ast.SelectorExpr */ Arc<Mutex<Option<()>>>>>>,
-    value: Arc<Mutex<Option<i32>>>,
+    mu: Rc<RefCell<Option</* TODO: Unhandled type *ast.SelectorExpr */ Rc<RefCell<Option<()>>>>>>,
+    value: Rc<RefCell<Option<i32>>>,
 }
 
 impl Counter {
     pub fn increment(&mut self) {
-        (*self.mu.clone().lock().unwrap().as_mut().unwrap()).lock();
+        (*self.mu.clone().borrow().as_mut().unwrap()).lock();
         __defer_stack.push(Box::new(move || {
-        (*self.mu.clone().lock().unwrap().as_mut().unwrap()).unlock();
+        (*self.mu.clone().borrow().as_mut().unwrap()).unlock();
     }));
-        { let mut guard = self.value.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
+        { let mut guard = self.value.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
 
-    pub fn value(&mut self) -> Arc<Mutex<Option<i32>>> {
-        (*self.mu.clone().lock().unwrap().as_mut().unwrap()).lock();
+    pub fn value(&mut self) -> Rc<RefCell<Option<i32>>> {
+        (*self.mu.clone().borrow().as_mut().unwrap()).lock();
         __defer_stack.push(Box::new(move || {
-        (*self.mu.clone().lock().unwrap().as_mut().unwrap()).unlock();
+        (*self.mu.clone().borrow().as_mut().unwrap()).unlock();
     }));
         return self.value.clone();
     }
 }
 
 fn main() {
-    let mut counter = Arc::new(Mutex::new(Some(Counter {  })));
-    (*counter.lock().unwrap().as_mut().unwrap()).increment();
-    (*counter.lock().unwrap().as_mut().unwrap()).increment();
-    println!("{} {}", "Counter value:".to_string(), (*(*counter.lock().unwrap().as_mut().unwrap()).value().lock().unwrap().as_ref().unwrap()));
+    let mut counter = Rc::new(RefCell::new(Some(Counter {  })));
+    (*counter.borrow_mut().as_mut().unwrap()).increment();
+    (*counter.borrow_mut().as_mut().unwrap()).increment();
+    println!("{} {}", "Counter value:".to_string(), (*(*counter.borrow_mut().as_mut().unwrap()).value().borrow().as_ref().unwrap()));
 }

@@ -1,18 +1,19 @@
-use std::sync::{Arc, Mutex};
+use std::cell::{RefCell};
+use std::rc::{Rc};
 
 /// This is a doc comment for the main function
 fn main() {
         // Initialize a variable
-    let mut x = Arc::new(Mutex::new(Some(42)));
+    let mut x = Rc::new(RefCell::new(Some(42)));
 
         // Print the value
-    println!("{} {}", "Value:".to_string(), (*x.lock().unwrap().as_mut().unwrap()));
+    println!("{} {}", "Value:".to_string(), (*x.borrow_mut().as_mut().unwrap()));
 
         // Do some math
-    let mut y = Arc::new(Mutex::new(Some((*x.lock().unwrap().as_mut().unwrap()) * 2)));
+    let mut y = Rc::new(RefCell::new(Some((*x.borrow_mut().as_mut().unwrap()) * 2)));
 
         // Another comment
         // spanning multiple lines
         // to test preservation
-    println!("{} {}", "Double:".to_string(), (*y.lock().unwrap().as_mut().unwrap()));
+    println!("{} {}", "Double:".to_string(), (*y.borrow_mut().as_mut().unwrap()));
 }

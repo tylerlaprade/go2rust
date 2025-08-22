@@ -1,10 +1,11 @@
-use std::sync::{Arc, Mutex};
+use std::cell::{RefCell};
+use std::rc::{Rc};
 
 fn main() {
-    let mut builder: Arc<Mutex<Option</* TODO: Unhandled type *ast.SelectorExpr */ Arc<Mutex<Option<()>>>>>>;
-    (*builder.lock().unwrap().as_mut().unwrap()).write_string(Arc::new(Mutex::new(Some("Hello".to_string()))));
-    (*builder.lock().unwrap().as_mut().unwrap()).write_string(Arc::new(Mutex::new(Some(" ".to_string()))));
-    (*builder.lock().unwrap().as_mut().unwrap()).write_string(Arc::new(Mutex::new(Some("World".to_string()))));
-    let mut result = (*builder.lock().unwrap().as_mut().unwrap()).string();
-    println!("{}", (*result.lock().unwrap().as_mut().unwrap()));
+    let mut builder: Rc<RefCell<Option</* TODO: Unhandled type *ast.SelectorExpr */ Rc<RefCell<Option<()>>>>>>;
+    (*builder.borrow_mut().as_mut().unwrap()).write_string(Rc::new(RefCell::new(Some("Hello".to_string()))));
+    (*builder.borrow_mut().as_mut().unwrap()).write_string(Rc::new(RefCell::new(Some(" ".to_string()))));
+    (*builder.borrow_mut().as_mut().unwrap()).write_string(Rc::new(RefCell::new(Some("World".to_string()))));
+    let mut result = (*builder.borrow_mut().as_mut().unwrap()).string();
+    println!("{}", (*result.borrow_mut().as_mut().unwrap()));
 }

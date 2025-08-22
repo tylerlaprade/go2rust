@@ -1,5 +1,3 @@
-use std::sync::{Arc, Mutex};
-
 fn main() {
     let mut c1 = ;
     // TODO: Unhandled statement type: GoStmt

@@ -153,7 +153,7 @@ func collectPromotedMethods(structDef *StructDef, methods map[string][]*ast.Func
 }
 
 // generatePromotedMethod generates a forwarding method that delegates to an embedded type's method
-func generatePromotedMethod(out *strings.Builder, method *ast.FuncDecl, embeddedTypeName string, fileSet *token.FileSet) {
+func generatePromotedMethod(out *strings.Builder, method *ast.FuncDecl, embeddedTypeName string) {
 	out.WriteString("    pub fn ")
 	out.WriteString(ToSnakeCase(method.Name.Name))
 	out.WriteString("(")
@@ -231,7 +231,9 @@ func generatePromotedMethod(out *strings.Builder, method *ast.FuncDecl, embedded
 	out.WriteString("        let embedded = self.")
 	out.WriteString(ToSnakeCase(embeddedTypeName))
 	out.WriteString(".clone();\n")
-	out.WriteString("        let mut guard = embedded.lock().unwrap();\n")
+	out.WriteString("        let mut guard = embedded")
+	WriteBorrowMethod(out, true)
+	out.WriteString(";\n")
 	out.WriteString("        let embedded_ref = guard.as_mut().unwrap();\n")
 	out.WriteString("        embedded_ref.")
 	out.WriteString(ToSnakeCase(method.Name.Name))
@@ -308,10 +310,6 @@ func Transpile(file *ast.File, fileSet *token.FileSet, typeInfo *TypeInfo) (stri
 	}
 	SetTranspileContext(ctx)
 	defer SetTranspileContext(nil) // Clear when done
-
-	// Always need Arc and Mutex for our wrapping strategy
-	TrackImport("Arc", "core wrapping strategy")
-	TrackImport("Mutex", "core wrapping strategy")
 
 	// Transpile the body
 	var body strings.Builder
@@ -513,7 +511,7 @@ func Transpile(file *ast.File, fileSet *token.FileSet, typeInfo *TypeInfo) (stri
 					if methodCount > 0 {
 						body.WriteString("\n")
 					}
-					generatePromotedMethod(&body, methodInfo.method, methodInfo.embeddedType, fileSet)
+					generatePromotedMethod(&body, methodInfo.method, methodInfo.embeddedType)
 					methodCount++
 				}
 			}
@@ -542,7 +540,9 @@ func Transpile(file *ast.File, fileSet *token.FileSet, typeInfo *TypeInfo) (stri
 			body.WriteString(typeName)
 			body.WriteString(" {\n")
 			body.WriteString("    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {\n")
-			body.WriteString("        write!(f, \"{}\", (*self.error().lock().unwrap().as_mut().unwrap()))\n")
+			body.WriteString("        write!(f, \"{}\", (*self.error()")
+			WriteBorrowMethod(&body, true)
+			body.WriteString(".as_mut().unwrap()))\n")
 			body.WriteString("    }\n")
 			body.WriteString("}")
 		}

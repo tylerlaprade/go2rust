@@ -181,7 +181,7 @@ colorize_output() {
     while IFS= read -r line; do
         if [[ "$line" =~ ^"not ok " ]]; then
             # Start of failing test - red X
-            local test_name timing
+            local test_name
             test_name=$(echo "$line" | sed 's/^not ok [0-9]* //')
             # Extract timing if present
             if [[ "$test_name" =~ (.+)" in "([0-9]+ms) ]]; then
@@ -200,7 +200,7 @@ colorize_output() {
         elif [[ "$line" =~ ^"ok " ]] && [[ "$line" =~ " XFAIL:" ]]; then
             # XFAIL tests - yellow ⚠ (only show if verbose)
             if [ "$VERBOSE" = true ]; then
-                local test_name timing
+                local test_name
                 test_name=$(echo "$line" | sed 's/^ok [0-9]* //')
                 # Extract timing if present
                 if [[ "$test_name" =~ (.+)" in "([0-9]+ms) ]]; then

@@ -127,12 +127,15 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 			out.WriteString("format_any(")
 			if ident, ok := arg.(*ast.Ident); ok {
 				out.WriteString(ident.Name)
-				out.WriteString(".lock().unwrap().as_ref().unwrap().as_ref()")
+				WriteBorrowMethod(out, false)
+				out.WriteString(".as_ref().unwrap().as_ref()")
 			} else {
 				// Complex expression
 				out.WriteString("(")
 				TranspileExpression(out, arg)
-				out.WriteString(").lock().unwrap().as_ref().unwrap().as_ref()")
+				out.WriteString(")")
+				WriteBorrowMethod(out, false)
+				out.WriteString(".as_ref().unwrap().as_ref()")
 			}
 			out.WriteString(")")
 			return
@@ -140,8 +143,8 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 
 		if typeInfo.IsMap(arg) {
 			NeedFormatMap()
-			TrackImport("Display", "map formatting")
-			TrackImport("Ord", "map formatting")
+			TrackImport("Display")
+			TrackImport("Ord")
 			out.WriteString("format_map(&")
 			if ident, ok := arg.(*ast.Ident); ok {
 				// For identifiers, just use the name directly (it's already wrapped)
@@ -153,7 +156,7 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 			return
 		} else if typeInfo.IsSlice(arg) {
 			NeedFormatSlice()
-			TrackImport("Display", "slice formatting")
+			TrackImport("Display")
 			out.WriteString("format_slice(&")
 			if ident, ok := arg.(*ast.Ident); ok {
 				// For identifiers, just use the name directly (it's already wrapped)
@@ -176,7 +179,8 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 			// self.field - need to unwrap for display
 			out.WriteString("(*self.")
 			out.WriteString(ToSnakeCase(sel.Sel.Name))
-			out.WriteString(".lock().unwrap().as_ref().unwrap())")
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref().unwrap())")
 			return
 		}
 	}
@@ -197,7 +201,8 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 			// Method call or user function call - unwrap the result
 			out.WriteString("(*")
 			TranspileExpression(out, arg)
-			out.WriteString(".lock().unwrap().as_ref().unwrap())")
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref().unwrap())")
 			return
 		}
 	}
@@ -213,7 +218,8 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 				// Regular variable - fields are wrapped
 				out.WriteString("(*")
 				TranspileExpression(out, arg)
-				out.WriteString(".lock().unwrap().as_ref().unwrap())")
+				WriteBorrowMethod(out, false)
+				out.WriteString(".as_ref().unwrap())")
 				return
 			}
 		}
@@ -267,22 +273,7 @@ func transpileFmtPrintf(out *strings.Builder, call *ast.CallExpr) {
 		// First arg is the format string
 		if lit, ok := call.Args[0].(*ast.BasicLit); ok && lit.Kind == token.STRING {
 			// Convert Go format verbs to Rust
-			format := lit.Value
-			// Handle %% -> % (literal percent) first
-			format = strings.ReplaceAll(format, "%%", "%")
-			// Handle format verbs with precision first
-			format = strings.ReplaceAll(format, "%.5f", "{:.5}")
-			format = strings.ReplaceAll(format, "%.2f", "{:.2}")
-			format = strings.ReplaceAll(format, "%.1f", "{:.1}")
-			// Simple conversion: %d -> {}, %s -> {}, etc.
-			format = strings.ReplaceAll(format, "%d", "{}")
-			format = strings.ReplaceAll(format, "%s", "{}")
-			format = strings.ReplaceAll(format, "%v", "{}")
-			format = strings.ReplaceAll(format, "%f", "{}")
-			format = strings.ReplaceAll(format, "%t", "{}")
-			format = strings.ReplaceAll(format, "%b", "{:b}")
-			format = strings.ReplaceAll(format, "%c", "{}")
-			format = strings.ReplaceAll(format, "%U", "{:?}")
+			format := convertFormatString(lit.Value)
 			out.WriteString(format)
 		} else {
 			TranspileExpression(out, call.Args[0])
@@ -306,22 +297,7 @@ func transpileFmtSprintf(out *strings.Builder, call *ast.CallExpr) {
 		// First arg is the format string
 		if lit, ok := call.Args[0].(*ast.BasicLit); ok && lit.Kind == token.STRING {
 			// Convert Go format verbs to Rust
-			format := lit.Value
-			// Handle %% -> % (literal percent) first
-			format = strings.ReplaceAll(format, "%%", "%")
-			// Handle format verbs with precision first
-			format = strings.ReplaceAll(format, "%.5f", "{:.5}")
-			format = strings.ReplaceAll(format, "%.2f", "{:.2}")
-			format = strings.ReplaceAll(format, "%.1f", "{:.1}")
-			// Simple conversion: %d -> {}, %s -> {}, etc.
-			format = strings.ReplaceAll(format, "%d", "{}")
-			format = strings.ReplaceAll(format, "%s", "{}")
-			format = strings.ReplaceAll(format, "%v", "{}")
-			format = strings.ReplaceAll(format, "%f", "{}")
-			format = strings.ReplaceAll(format, "%t", "{}")
-			format = strings.ReplaceAll(format, "%b", "{:b}")
-			format = strings.ReplaceAll(format, "%c", "{}")
-			format = strings.ReplaceAll(format, "%U", "{:?}")
+			format := convertFormatString(lit.Value)
 			out.WriteString(format)
 		} else {
 			TranspileExpression(out, call.Args[0])
@@ -338,29 +314,15 @@ func transpileFmtSprintf(out *strings.Builder, call *ast.CallExpr) {
 }
 
 func transpileFmtErrorf(out *strings.Builder, call *ast.CallExpr) {
-	out.WriteString("Arc::new(Mutex::new(Some(Box::new(format!")
+	WriteWrapperPrefix(out)
+	out.WriteString("Some(Box::new(format!")
 	out.WriteString("(")
 
 	if len(call.Args) > 0 {
 		// First arg is the format string
 		if lit, ok := call.Args[0].(*ast.BasicLit); ok && lit.Kind == token.STRING {
 			// Convert Go format verbs to Rust
-			format := lit.Value
-			// Handle %% -> % (literal percent) first
-			format = strings.ReplaceAll(format, "%%", "%")
-			// Handle format verbs with precision first
-			format = strings.ReplaceAll(format, "%.5f", "{:.5}")
-			format = strings.ReplaceAll(format, "%.2f", "{:.2}")
-			format = strings.ReplaceAll(format, "%.1f", "{:.1}")
-			// Simple conversion: %d -> {}, %s -> {}, etc.
-			format = strings.ReplaceAll(format, "%d", "{}")
-			format = strings.ReplaceAll(format, "%s", "{}")
-			format = strings.ReplaceAll(format, "%v", "{}")
-			format = strings.ReplaceAll(format, "%f", "{}")
-			format = strings.ReplaceAll(format, "%t", "{}")
-			format = strings.ReplaceAll(format, "%b", "{:b}")
-			format = strings.ReplaceAll(format, "%c", "{}")
-			format = strings.ReplaceAll(format, "%U", "{:?}")
+			format := convertFormatString(lit.Value)
 			out.WriteString(format)
 		} else {
 			TranspileExpression(out, call.Args[0])
@@ -377,7 +339,8 @@ func transpileFmtErrorf(out *strings.Builder, call *ast.CallExpr) {
 }
 
 func transpileErrorsNew(out *strings.Builder, call *ast.CallExpr) {
-	out.WriteString("Arc::new(Mutex::new(Some(Box::<dyn std::error::Error + Send + Sync>::from(")
+	WriteWrapperPrefix(out)
+	out.WriteString("Box::<dyn std::error::Error + Send + Sync>::from(")
 
 	if len(call.Args) > 0 {
 		// The argument is the error message
@@ -425,7 +388,8 @@ func transpileSortStrings(out *strings.Builder, call *ast.CallExpr) {
 		} else {
 			TranspileExpression(out, call.Args[0])
 		}
-		out.WriteString(".lock().unwrap().as_mut().unwrap()).sort()")
+		WriteBorrowMethod(out, true)
+		out.WriteString(".as_mut().unwrap()).sort()")
 	}
 }
 
@@ -439,7 +403,8 @@ func transpileSortInts(out *strings.Builder, call *ast.CallExpr) {
 		} else {
 			TranspileExpression(out, call.Args[0])
 		}
-		out.WriteString(".lock().unwrap().as_mut().unwrap()).sort()")
+		WriteBorrowMethod(out, true)
+		out.WriteString(".as_mut().unwrap()).sort()")
 	}
 }
 
@@ -453,7 +418,8 @@ func transpileSlicesSort(out *strings.Builder, call *ast.CallExpr) {
 		} else {
 			TranspileExpression(out, call.Args[0])
 		}
-		out.WriteString(".lock().unwrap().as_mut().unwrap()).sort()")
+		WriteBorrowMethod(out, true)
+		out.WriteString(".as_mut().unwrap()).sort()")
 	}
 }
 
@@ -469,9 +435,17 @@ func transpileStrconvAtoi(out *strings.Builder, call *ast.CallExpr) {
 		out.WriteString("match ")
 		TranspileExpression(out, call.Args[0])
 		out.WriteString(".parse::<i32>() { ")
-		out.WriteString("Ok(n) => (Arc::new(Mutex::new(Some(n))), Arc::new(Mutex::new(None))), ")
-		TrackImport("Error", "parse error handling")
-		out.WriteString("Err(e) => (Arc::new(Mutex::new(Some(0))), Arc::new(Mutex::new(Some(Box::new(e) as Box<dyn Error + Send + Sync>)))) }")
+		out.WriteString("Ok(n) => (")
+		WriteWrapperPrefix(out)
+		out.WriteString("n))), ")
+		WriteWrappedNone(out)
+		out.WriteString("), ")
+		TrackImport("Error")
+		out.WriteString("Err(e) => (")
+		WriteWrapperPrefix(out)
+		out.WriteString("0))), ")
+		WriteWrapperPrefix(out)
+		out.WriteString("Box::new(e) as Box<dyn Error + Send + Sync>)))) }")
 	}
 }
 
@@ -487,7 +461,8 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 			} else {
 				TranspileExpression(out, call.Args[0])
 			}
-			out.WriteString(".lock().unwrap().as_mut().unwrap()).push(")
+			WriteBorrowMethod(out, true)
+			out.WriteString(".as_mut().unwrap()).push(")
 			TranspileExpression(out, call.Args[1])
 			out.WriteString("); ")
 			// Return the wrapped slice itself
@@ -505,7 +480,8 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 			} else {
 				TranspileExpression(out, call.Args[0])
 			}
-			out.WriteString(".lock().unwrap().as_mut().unwrap()).extend(vec![")
+			WriteBorrowMethod(out, true)
+			out.WriteString(".as_mut().unwrap()).extend(vec![")
 			for i := 1; i < len(call.Args); i++ {
 				if i > 1 {
 					out.WriteString(", ")
@@ -532,7 +508,8 @@ func transpileLen(out *strings.Builder, call *ast.CallExpr) {
 		out.WriteString("(*")
 		// Use LValue context so identifiers don't unwrap themselves
 		TranspileExpressionContext(out, call.Args[0], LValue)
-		out.WriteString(".lock().unwrap().as_ref().unwrap()).len()")
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap()).len()")
 	}
 }
 
@@ -540,10 +517,8 @@ func transpileMake(out *strings.Builder, call *ast.CallExpr) {
 	if len(call.Args) >= 1 {
 		// Check if it's a map type
 		if mapType, ok := call.Args[0].(*ast.MapType); ok {
-			TrackImport("Arc", "make map")
-			TrackImport("Mutex", "make map")
-			TrackImport("HashMap", "make map")
-			out.WriteString("Arc::new(Mutex::new(Some(")
+			WriteWrapperPrefix(out)
+			TrackImport("HashMap")
 			out.WriteString("HashMap::<")
 			out.WriteString(goTypeToRustBase(mapType.Key))
 			out.WriteString(", ")
@@ -566,7 +541,7 @@ func transpileMake(out *strings.Builder, call *ast.CallExpr) {
 				}
 			}
 
-			out.WriteString("Arc::new(Mutex::new(Some(")
+			WriteWrapperPrefix(out)
 			if len(call.Args) >= 2 {
 				// Check if size is 0
 				if lit, ok := call.Args[1].(*ast.BasicLit); ok && lit.Value == "0" {
@@ -612,7 +587,8 @@ func transpileDelete(out *strings.Builder, call *ast.CallExpr) {
 			// For now, just use the expression as-is
 			TranspileExpression(out, call.Args[0])
 		}
-		out.WriteString(".lock().unwrap().as_mut().unwrap()).remove(&")
+		WriteBorrowMethod(out, true)
+		out.WriteString(".as_mut().unwrap()).remove(&")
 		TranspileExpression(out, call.Args[1])
 		out.WriteString(")")
 	}
@@ -620,7 +596,7 @@ func transpileDelete(out *strings.Builder, call *ast.CallExpr) {
 
 func transpileNew(out *strings.Builder, call *ast.CallExpr) {
 	if len(call.Args) > 0 {
-		out.WriteString("Arc::new(Mutex::new(Some(")
+		WriteWrapperPrefix(out)
 		out.WriteString(GoTypeToRust(call.Args[0]))
 		out.WriteString("::default())))")
 	}
@@ -632,15 +608,18 @@ func transpileComplex(out *strings.Builder, call *ast.CallExpr) {
 		return
 	}
 
-	// Determine the type - complex64 or complex128
+	// TODO: Determine the type - complex64 or complex128
 	// For now, default to complex128 (f64)
-	out.WriteString("Arc::new(Mutex::new(Some(num::Complex::new(")
+	WriteWrapperPrefix(out)
+	out.WriteString("num::Complex::new(")
 	out.WriteString("*")
 	TranspileExpression(out, call.Args[0])
-	out.WriteString(".lock().unwrap().as_ref().unwrap(), ")
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap(), ")
 	out.WriteString("*")
 	TranspileExpression(out, call.Args[1])
-	out.WriteString(".lock().unwrap().as_ref().unwrap()))))")
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap()))))")
 }
 
 // transpileReal handles the real() builtin function
@@ -649,10 +628,11 @@ func transpileReal(out *strings.Builder, call *ast.CallExpr) {
 		return
 	}
 
-	out.WriteString("Arc::new(Mutex::new(Some(")
+	WriteWrapperPrefix(out)
 	out.WriteString("(*")
 	TranspileExpression(out, call.Args[0])
-	out.WriteString(".lock().unwrap().as_ref().unwrap()).re)))")
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap()).re)))")
 }
 
 // transpileImag handles the imag() builtin function
@@ -661,15 +641,22 @@ func transpileImag(out *strings.Builder, call *ast.CallExpr) {
 		return
 	}
 
-	out.WriteString("Arc::new(Mutex::new(Some(")
+	WriteWrapperPrefix(out)
 	out.WriteString("(*")
 	TranspileExpression(out, call.Args[0])
-	out.WriteString(".lock().unwrap().as_ref().unwrap()).im)))")
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap()).im)))")
 }
 
 // Helper function to format maps like Go does
 func generateMapFormatter(out *strings.Builder) {
-	out.WriteString(`fn format_map<K: Display + Ord + Clone, V>(map: &Arc<Mutex<Option<HashMap<K, Arc<Mutex<Option<V>>>>>>>) -> String 
+	TrackImport("Display")
+	TrackImport("Ord")
+
+	if NeedsConcurrentWrapper() {
+		TrackImport("Arc")
+		TrackImport("Mutex")
+		out.WriteString(`fn format_map<K: Display + Ord + Clone, V>(map: &Arc<Mutex<Option<HashMap<K, Arc<Mutex<Option<V>>>>>>>) -> String 
 where
     V: Display,
 {
@@ -696,11 +683,45 @@ where
     }
 }
 `)
+	} else {
+		TrackImport("Rc")
+		TrackImport("RefCell")
+		out.WriteString(`fn format_map<K: Display + Ord + Clone, V>(map: &Rc<RefCell<Option<HashMap<K, Rc<RefCell<Option<V>>>>>>>) -> String 
+where
+    V: Display,
+{
+    let guard = map.borrow();
+    if let Some(ref m) = *guard {
+        let mut items: Vec<_> = m.iter().collect();
+        items.sort_by_key(|(k, _)| (*k).clone());
+        
+        let formatted: Vec<String> = items
+            .into_iter()
+            .map(|(k, v)| {
+                let v_guard = v.borrow();
+                if let Some(ref val) = *v_guard {
+                    format!("{}:{}", k, val)
+                } else {
+                    format!("{}:<nil>", k)
+                }
+            })
+            .collect();
+        
+        format!("map[{}]", formatted.join(" "))
+    } else {
+        "map[]".to_string()
+    }
+}
+`)
+	}
 }
 
 // Helper function to format slices like Go does
 func generateSliceFormatter(out *strings.Builder) {
-	out.WriteString(`fn format_slice<T>(slice: &Arc<Mutex<Option<Vec<T>>>>) -> String 
+	if NeedsConcurrentWrapper() {
+		TrackImport("Arc")
+		TrackImport("Mutex")
+		out.WriteString(`fn format_slice<T>(slice: &Arc<Mutex<Option<Vec<T>>>>) -> String 
 where
     T: Display,
 {
@@ -713,6 +734,23 @@ where
     }
 }
 `)
+	} else {
+		TrackImport("Rc")
+		TrackImport("RefCell")
+		out.WriteString(`fn format_slice<T>(slice: &Rc<RefCell<Option<Vec<T>>>>) -> String 
+where
+    T: Display,
+{
+    let guard = slice.borrow();
+    if let Some(ref s) = *guard {
+        let formatted: Vec<String> = s.iter().map(|v| v.to_string()).collect();
+        format!("[{}]", formatted.join(" "))
+    } else {
+        "[]".to_string()
+    }
+}
+`)
+	}
 }
 
 // transpilePanic handles the panic() builtin function
@@ -738,7 +776,9 @@ func transpilePanic(out *strings.Builder, call *ast.CallExpr) {
 func transpileRecover(out *strings.Builder, call *ast.CallExpr) {
 	// In Rust, we can use std::panic::catch_unwind for similar functionality
 	// For now, we'll generate a placeholder that returns None
-	// A proper implementation would need to track defer context and use catch_unwind
+	// TODO: A proper implementation would need to track defer context and use catch_unwind
 	// This is a simplified version that always returns None
-	out.WriteString("Arc::new(Mutex::new(None::<String>))")
+	WriteWrappedNone(out)
+	out.WriteString("::<String>))")
+
 }

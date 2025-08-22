@@ -1,12 +1,13 @@
+use std::cell::{RefCell};
 use std::error::Error;
 use std::fmt::{Display};
-use std::sync::{Arc, Mutex};
+use std::rc::{Rc};
 
-fn format_slice<T>(slice: &Arc<Mutex<Option<Vec<T>>>>) -> String 
+fn format_slice<T>(slice: &Rc<RefCell<Option<Vec<T>>>>) -> String 
 where
     T: Display,
 {
-    let guard = slice.lock().unwrap();
+    let guard = slice.borrow();
     if let Some(ref s) = *guard {
         let formatted: Vec<String> = s.iter().map(|v| v.to_string()).collect();
         format!("[{}]", formatted.join(" "))
@@ -16,208 +17,208 @@ where
 }
 
 /// Functions with multiple return values
-pub fn divmod(a: Arc<Mutex<Option<i32>>>, b: Arc<Mutex<Option<i32>>>) -> (Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>) {
+pub fn divmod(a: Rc<RefCell<Option<i32>>>, b: Rc<RefCell<Option<i32>>>) -> (Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) {
 
     return ({
-            let __tmp_x = (*a.lock().unwrap().as_mut().unwrap());
-            let __tmp_y = (*b.lock().unwrap().as_mut().unwrap());
-            Arc::new(Mutex::new(Some(__tmp_x / __tmp_y)))
+            let __tmp_x = (*a.borrow_mut().as_mut().unwrap());
+            let __tmp_y = (*b.borrow_mut().as_mut().unwrap());
+            Rc::new(RefCell::new(Some(__tmp_x / __tmp_y)))
         }, {
-            let __tmp_x = (*a.lock().unwrap().as_mut().unwrap());
-            let __tmp_y = (*b.lock().unwrap().as_mut().unwrap());
-            Arc::new(Mutex::new(Some(__tmp_x % __tmp_y)))
+            let __tmp_x = (*a.borrow_mut().as_mut().unwrap());
+            let __tmp_y = (*b.borrow_mut().as_mut().unwrap());
+            Rc::new(RefCell::new(Some(__tmp_x % __tmp_y)))
         });
 }
 
-pub fn parse_number(s: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<Box<dyn Error + Send + Sync>>>>) {
+pub fn parse_number(s: Rc<RefCell<Option<String>>>) -> (Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<Box<dyn Error + Send + Sync>>>>) {
 
-    let (mut num, mut err) = match (*s.lock().unwrap().as_mut().unwrap()).parse::<i32>() { Ok(n) => (Arc::new(Mutex::new(Some(n))), Arc::new(Mutex::new(None))), Err(e) => (Arc::new(Mutex::new(Some(0))), Arc::new(Mutex::new(Some(Box::new(e) as Box<dyn Error + Send + Sync>)))) };
-    if (*err.lock().unwrap()).is_some() {
-        return (Arc::new(Mutex::new(Some(0))), Arc::new(Mutex::new(Some(Box::new(format!("failed to parse '{}': {}", (*s.lock().unwrap().as_mut().unwrap()), (*err.lock().unwrap().as_mut().unwrap()))) as Box<dyn Error + Send + Sync>))));
+    let (mut num, mut err) = match (*s.borrow_mut().as_mut().unwrap()).parse::<i32>() { Ok(n) => (Rc::new(RefCell::new(Some(n))), Rc::new(RefCell::new(None))), Err(e) => (Rc::new(RefCell::new(Some(0))), Rc::new(RefCell::new(Some(Box::new(e) as Box<dyn Error + Send + Sync>)))) };
+    if (*err.borrow()).is_some() {
+        return (Rc::new(RefCell::new(Some(0))), Rc::new(RefCell::new(Some(Some(Box::new(format!("failed to parse '{}': {}", (*s.borrow_mut().as_mut().unwrap()), (*err.borrow_mut().as_mut().unwrap()))) as Box<dyn Error + Send + Sync>))));
     }
-    return (num.clone(), Arc::new(Mutex::new(None)));
+    return (num.clone(), Rc::new(RefCell::new(None)));
 }
 
-pub fn get_name_age() -> (Arc<Mutex<Option<String>>>, Arc<Mutex<Option<i32>>>) {
+pub fn get_name_age() -> (Rc<RefCell<Option<String>>>, Rc<RefCell<Option<i32>>>) {
 
-    return (Arc::new(Mutex::new(Some("Alice".to_string()))), Arc::new(Mutex::new(Some(30))));
+    return (Rc::new(RefCell::new(Some("Alice".to_string()))), Rc::new(RefCell::new(Some(30))));
 }
 
 /// Named return values
-pub fn calculate(a: Arc<Mutex<Option<i32>>>, b: Arc<Mutex<Option<i32>>>) -> (Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>) {
-    let mut sum: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(0)));
-    let mut product: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(0)));
+pub fn calculate(a: Rc<RefCell<Option<i32>>>, b: Rc<RefCell<Option<i32>>>) -> (Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) {
+    let mut sum: Rc<RefCell<Option<i32>>> = Rc::new(RefCell::new(Some(Some(0)));
+    let mut product: Rc<RefCell<Option<i32>>> = Rc::new(RefCell::new(Some(Some(0)));
 
-    { let new_val = (*a.lock().unwrap().as_mut().unwrap()) + (*b.lock().unwrap().as_mut().unwrap()); *sum.lock().unwrap() = Some(new_val); };
-    { let new_val = (*a.lock().unwrap().as_mut().unwrap()) * (*b.lock().unwrap().as_mut().unwrap()); *product.lock().unwrap() = Some(new_val); };
+    { let new_val = (*a.borrow_mut().as_mut().unwrap()) + (*b.borrow_mut().as_mut().unwrap()); *sum.borrow_mut() = Some(new_val); };
+    { let new_val = (*a.borrow_mut().as_mut().unwrap()) * (*b.borrow_mut().as_mut().unwrap()); *product.borrow_mut() = Some(new_val); };
     return (sum, product);
 }
 
-pub fn process_data(data: Arc<Mutex<Option<Vec<i32>>>>) -> (Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>) {
-    let mut min: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(0)));
-    let mut max: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(0)));
-    let mut sum: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(0)));
+pub fn process_data(data: Rc<RefCell<Option<Vec<i32>>>>) -> (Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) {
+    let mut min: Rc<RefCell<Option<i32>>> = Rc::new(RefCell::new(Some(Some(0)));
+    let mut max: Rc<RefCell<Option<i32>>> = Rc::new(RefCell::new(Some(Some(0)));
+    let mut sum: Rc<RefCell<Option<i32>>> = Rc::new(RefCell::new(Some(Some(0)));
 
-    if (*data.lock().unwrap().as_ref().unwrap()).len() == 0 {
-        return (Arc::new(Mutex::new(Some(0))), Arc::new(Mutex::new(Some(0))), Arc::new(Mutex::new(Some(0))));
+    if (*data.borrow().as_ref().unwrap()).len() == 0 {
+        return (Rc::new(RefCell::new(Some(0))), Rc::new(RefCell::new(Some(0))), Rc::new(RefCell::new(Some(0))));
     }
 
-    { let new_val = (*data.lock().unwrap().as_ref().unwrap())[0 as usize].clone(); *min.lock().unwrap() = Some(new_val); };
-    { let new_val = (*data.lock().unwrap().as_ref().unwrap())[0 as usize].clone(); *max.lock().unwrap() = Some(new_val); };
-    { let new_val = 0; *sum.lock().unwrap() = Some(new_val); };
+    { let new_val = (*data.borrow().as_ref().unwrap())[0 as usize].clone(); *min.borrow_mut() = Some(new_val); };
+    { let new_val = (*data.borrow().as_ref().unwrap())[0 as usize].clone(); *max.borrow_mut() = Some(new_val); };
+    { let new_val = 0; *sum.borrow_mut() = Some(new_val); };
 
-    for val in &(*data.lock().unwrap().as_mut().unwrap()) {
-        if val < (*min.lock().unwrap().as_mut().unwrap()) {
-        { let new_val = val; *min.lock().unwrap() = Some(new_val); };
+    for val in &(*data.borrow_mut().as_mut().unwrap()) {
+        if val < (*min.borrow_mut().as_mut().unwrap()) {
+        { let new_val = val; *min.borrow_mut() = Some(new_val); };
     }
-        if val > (*max.lock().unwrap().as_mut().unwrap()) {
-        { let new_val = val; *max.lock().unwrap() = Some(new_val); };
+        if val > (*max.borrow_mut().as_mut().unwrap()) {
+        { let new_val = val; *max.borrow_mut() = Some(new_val); };
     }
-        { let mut guard = sum.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + val); };
+        { let mut guard = sum.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + val); };
     }
 
     return (min, max, sum);
 }
 
-pub fn swap(a: Arc<Mutex<Option<String>>>, b: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<String>>>, Arc<Mutex<Option<String>>>) {
+pub fn swap(a: Rc<RefCell<Option<String>>>, b: Rc<RefCell<Option<String>>>) -> (Rc<RefCell<Option<String>>>, Rc<RefCell<Option<String>>>) {
 
     return (b.clone(), a.clone());
 }
 
 /// Function returning multiple values of different types
-pub fn get_person_info() -> (Arc<Mutex<Option<String>>>, Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<f64>>>, Arc<Mutex<Option<bool>>>) {
-    let mut name: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(Some(String::new())));
-    let mut age: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(0)));
-    let mut height: Arc<Mutex<Option<f64>>> = Arc::new(Mutex::new(Some(0.0)));
-    let mut married: Arc<Mutex<Option<bool>>> = Arc::new(Mutex::new(Some(false)));
+pub fn get_person_info() -> (Rc<RefCell<Option<String>>>, Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<f64>>>, Rc<RefCell<Option<bool>>>) {
+    let mut name: Rc<RefCell<Option<String>>> = Rc::new(RefCell::new(Some(Some(String::new())));
+    let mut age: Rc<RefCell<Option<i32>>> = Rc::new(RefCell::new(Some(Some(0)));
+    let mut height: Rc<RefCell<Option<f64>>> = Rc::new(RefCell::new(Some(Some(0.0)));
+    let mut married: Rc<RefCell<Option<bool>>> = Rc::new(RefCell::new(Some(Some(false)));
 
-    return (Arc::new(Mutex::new(Some("Bob".to_string()))), Arc::new(Mutex::new(Some(25))), Arc::new(Mutex::new(Some(5.9))), Arc::new(Mutex::new(Some(false))));
+    return (Rc::new(RefCell::new(Some("Bob".to_string()))), Rc::new(RefCell::new(Some(25))), Rc::new(RefCell::new(Some(5.9))), Rc::new(RefCell::new(Some(false))));
 }
 
 /// Function that can return early with different values
-pub fn find_in_slice(slice: Arc<Mutex<Option<Vec<i32>>>>, target: Arc<Mutex<Option<i32>>>) -> (Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<bool>>>) {
-    let mut index: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(0)));
-    let mut found: Arc<Mutex<Option<bool>>> = Arc::new(Mutex::new(Some(false)));
+pub fn find_in_slice(slice: Rc<RefCell<Option<Vec<i32>>>>, target: Rc<RefCell<Option<i32>>>) -> (Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<bool>>>) {
+    let mut index: Rc<RefCell<Option<i32>>> = Rc::new(RefCell::new(Some(Some(0)));
+    let mut found: Rc<RefCell<Option<bool>>> = Rc::new(RefCell::new(Some(Some(false)));
 
-    for (i, val) in (*slice.lock().unwrap().as_mut().unwrap()).iter().enumerate() {
-        if val == (*target.lock().unwrap().as_mut().unwrap()) {
-        return (Arc::new(Mutex::new(Some(i))), Arc::new(Mutex::new(Some(true))));
+    for (i, val) in (*slice.borrow_mut().as_mut().unwrap()).iter().enumerate() {
+        if val == (*target.borrow_mut().as_mut().unwrap()) {
+        return (Rc::new(RefCell::new(Some(i))), Rc::new(RefCell::new(Some(true))));
     }
     }
-    return (Arc::new(Mutex::new(Some(-1))), Arc::new(Mutex::new(Some(false))));
+    return (Rc::new(RefCell::new(Some(-1))), Rc::new(RefCell::new(Some(false))));
 }
 
 /// Multiple returns with error handling
-pub fn safe_divide(a: Arc<Mutex<Option<f64>>>, b: Arc<Mutex<Option<f64>>>) -> (Arc<Mutex<Option<f64>>>, Arc<Mutex<Option<Box<dyn Error + Send + Sync>>>>) {
-    let mut result: Arc<Mutex<Option<f64>>> = Arc::new(Mutex::new(Some(0.0)));
-    let mut err: Arc<Mutex<Option<Box<dyn Error + Send + Sync>>>> = Arc::new(Mutex::new(None));
+pub fn safe_divide(a: Rc<RefCell<Option<f64>>>, b: Rc<RefCell<Option<f64>>>) -> (Rc<RefCell<Option<f64>>>, Rc<RefCell<Option<Box<dyn Error + Send + Sync>>>>) {
+    let mut result: Rc<RefCell<Option<f64>>> = Rc::new(RefCell::new(Some(Some(0.0)));
+    let mut err: Rc<RefCell<Option<Box<dyn Error + Send + Sync>>>> = Rc::new(RefCell::new(Some(None));
 
-    if (*b.lock().unwrap().as_mut().unwrap()) == 0.0 {
-        return (Arc::new(Mutex::new(Some(0))), Arc::new(Mutex::new(Some(Box::new(format!("division by zero")) as Box<dyn Error + Send + Sync>))));
+    if (*b.borrow_mut().as_mut().unwrap()) == 0.0 {
+        return (Rc::new(RefCell::new(Some(0))), Rc::new(RefCell::new(Some(Some(Box::new(format!("division by zero")) as Box<dyn Error + Send + Sync>))));
     }
     return ({
-            let __tmp_x = (*a.lock().unwrap().as_mut().unwrap());
-            let __tmp_y = (*b.lock().unwrap().as_mut().unwrap());
-            Arc::new(Mutex::new(Some(__tmp_x / __tmp_y)))
-        }, Arc::new(Mutex::new(None)));
+            let __tmp_x = (*a.borrow_mut().as_mut().unwrap());
+            let __tmp_y = (*b.borrow_mut().as_mut().unwrap());
+            Rc::new(RefCell::new(Some(__tmp_x / __tmp_y)))
+        }, Rc::new(RefCell::new(None)));
 }
 
 fn main() {
         // Basic multiple returns
     println!("{}", "=== Basic multiple returns ===".to_string());
-    let (mut quotient, mut remainder) = divmod(Arc::new(Mutex::new(Some(17))), Arc::new(Mutex::new(Some(5))));
-    print!("17 / 5 = {} remainder {}\n", (*quotient.lock().unwrap().as_mut().unwrap()), (*remainder.lock().unwrap().as_mut().unwrap()));
+    let (mut quotient, mut remainder) = divmod(Rc::new(RefCell::new(Some(17))), Rc::new(RefCell::new(Some(5))));
+    print!("17 / 5 = {} remainder {}\n", (*quotient.borrow_mut().as_mut().unwrap()), (*remainder.borrow_mut().as_mut().unwrap()));
 
     let (mut name, mut age) = get_name_age();
-    print!("Name: {}, Age: {}\n", (*name.lock().unwrap().as_mut().unwrap()), (*age.lock().unwrap().as_mut().unwrap()));
+    print!("Name: {}, Age: {}\n", (*name.borrow_mut().as_mut().unwrap()), (*age.borrow_mut().as_mut().unwrap()));
 
         // Multiple returns with error handling
     println!("{}", "\n=== Multiple returns with errors ===".to_string());
-    let (mut num, mut err) = parse_number(Arc::new(Mutex::new(Some("123".to_string()))));
-    if (*err.lock().unwrap()).is_some() {
-        print!("Error: {}\n", (*err.lock().unwrap().as_mut().unwrap()));
+    let (mut num, mut err) = parse_number(Rc::new(RefCell::new(Some("123".to_string()))));
+    if (*err.borrow()).is_some() {
+        print!("Error: {}\n", (*err.borrow_mut().as_mut().unwrap()));
     } else {
-        print!("Parsed number: {}\n", (*num.lock().unwrap().as_mut().unwrap()));
+        print!("Parsed number: {}\n", (*num.borrow_mut().as_mut().unwrap()));
     }
 
-    (num, err) = parse_number(Arc::new(Mutex::new(Some("abc".to_string()))));
-    if (*err.lock().unwrap()).is_some() {
-        print!("Error: {}\n", (*err.lock().unwrap().as_mut().unwrap()));
+    (num, err) = parse_number(Rc::new(RefCell::new(Some("abc".to_string()))));
+    if (*err.borrow()).is_some() {
+        print!("Error: {}\n", (*err.borrow_mut().as_mut().unwrap()));
     } else {
-        print!("Parsed number: {}\n", (*num.lock().unwrap().as_mut().unwrap()));
+        print!("Parsed number: {}\n", (*num.borrow_mut().as_mut().unwrap()));
     }
 
         // Named return values
     println!("{}", "\n=== Named return values ===".to_string());
-    let (mut s, mut p) = calculate(Arc::new(Mutex::new(Some(6))), Arc::new(Mutex::new(Some(7))));
-    print!("Sum: {}, Product: {}\n", (*s.lock().unwrap().as_mut().unwrap()), (*p.lock().unwrap().as_mut().unwrap()));
+    let (mut s, mut p) = calculate(Rc::new(RefCell::new(Some(6))), Rc::new(RefCell::new(Some(7))));
+    print!("Sum: {}, Product: {}\n", (*s.borrow_mut().as_mut().unwrap()), (*p.borrow_mut().as_mut().unwrap()));
 
         // Processing data with multiple named returns
-    let mut data = Arc::new(Mutex::new(Some(vec![3, 1, 4, 1, 5, 9, 2, 6])));
+    let mut data = Rc::new(RefCell::new(Some(vec![3, 1, 4, 1, 5, 9, 2, 6])));
     let (mut min, mut max, mut sum) = process_data(data.clone());
     print!("Data: {}\n", format_slice(&data));
-    print!("Min: {}, Max: {}, Sum: {}\n", (*min.lock().unwrap().as_mut().unwrap()), (*max.lock().unwrap().as_mut().unwrap()), (*sum.lock().unwrap().as_mut().unwrap()));
+    print!("Min: {}, Max: {}, Sum: {}\n", (*min.borrow_mut().as_mut().unwrap()), (*max.borrow_mut().as_mut().unwrap()), (*sum.borrow_mut().as_mut().unwrap()));
 
         // Swapping values
     println!("{}", "\n=== Swapping values ===".to_string());
-    let (mut x, mut y) = (Arc::new(Mutex::new(Some("hello".to_string()))), Arc::new(Mutex::new(Some("world".to_string()))));
-    print!("Before swap: x={}, y={}\n", (*x.lock().unwrap().as_mut().unwrap()), (*y.lock().unwrap().as_mut().unwrap()));
+    let (mut x, mut y) = (Rc::new(RefCell::new(Some("hello".to_string()))), Rc::new(RefCell::new(Some("world".to_string()))));
+    print!("Before swap: x={}, y={}\n", (*x.borrow_mut().as_mut().unwrap()), (*y.borrow_mut().as_mut().unwrap()));
     (x, y) = swap(x.clone(), y.clone());
-    print!("After swap: x={}, y={}\n", (*x.lock().unwrap().as_mut().unwrap()), (*y.lock().unwrap().as_mut().unwrap()));
+    print!("After swap: x={}, y={}\n", (*x.borrow_mut().as_mut().unwrap()), (*y.borrow_mut().as_mut().unwrap()));
 
         // Multiple returns of different types
     println!("{}", "\n=== Different types ===".to_string());
     let (mut pName, mut pAge, mut pHeight, mut pMarried) = get_person_info();
-    print!("Person: {}, {} years old, {:.1} feet tall, married: {}\n", (*pName.lock().unwrap().as_mut().unwrap()), (*pAge.lock().unwrap().as_mut().unwrap()), (*pHeight.lock().unwrap().as_mut().unwrap()), (*pMarried.lock().unwrap().as_mut().unwrap()));
+    print!("Person: {}, {} years old, {:.1} feet tall, married: {}\n", (*pName.borrow_mut().as_mut().unwrap()), (*pAge.borrow_mut().as_mut().unwrap()), (*pHeight.borrow_mut().as_mut().unwrap()), (*pMarried.borrow_mut().as_mut().unwrap()));
 
         // Finding in slice
     println!("{}", "\n=== Finding in slice ===".to_string());
-    let mut numbers = Arc::new(Mutex::new(Some(vec![10, 20, 30, 40, 50])));
+    let mut numbers = Rc::new(RefCell::new(Some(vec![10, 20, 30, 40, 50])));
 
-    let (mut index, mut found) = find_in_slice(numbers.clone(), Arc::new(Mutex::new(Some(30))));
-    if (*found.lock().unwrap().as_mut().unwrap()) {
-        print!("Found 30 at index {}\n", (*index.lock().unwrap().as_mut().unwrap()));
+    let (mut index, mut found) = find_in_slice(numbers.clone(), Rc::new(RefCell::new(Some(30))));
+    if (*found.borrow_mut().as_mut().unwrap()) {
+        print!("Found 30 at index {}\n", (*index.borrow_mut().as_mut().unwrap()));
     } else {
         println!("{}", "30 not found".to_string());
     }
 
-    (index, found) = find_in_slice(numbers.clone(), Arc::new(Mutex::new(Some(99))));
-    if (*found.lock().unwrap().as_mut().unwrap()) {
-        print!("Found 99 at index {}\n", (*index.lock().unwrap().as_mut().unwrap()));
+    (index, found) = find_in_slice(numbers.clone(), Rc::new(RefCell::new(Some(99))));
+    if (*found.borrow_mut().as_mut().unwrap()) {
+        print!("Found 99 at index {}\n", (*index.borrow_mut().as_mut().unwrap()));
     } else {
         println!("{}", "99 not found".to_string());
     }
 
         // Safe division
     println!("{}", "\n=== Safe division ===".to_string());
-    let (mut result, mut err) = safe_divide(Arc::new(Mutex::new(Some(10.0))), Arc::new(Mutex::new(Some(3.0))));
-    if (*err.lock().unwrap()).is_some() {
-        print!("Error: {}\n", (*err.lock().unwrap().as_mut().unwrap()));
+    let (mut result, mut err) = safe_divide(Rc::new(RefCell::new(Some(10.0))), Rc::new(RefCell::new(Some(3.0))));
+    if (*err.borrow()).is_some() {
+        print!("Error: {}\n", (*err.borrow_mut().as_mut().unwrap()));
     } else {
-        print!("10.0 / 3.0 = {:.2}\n", (*result.lock().unwrap().as_mut().unwrap()));
+        print!("10.0 / 3.0 = {:.2}\n", (*result.borrow_mut().as_mut().unwrap()));
     }
 
-    (result, err) = safe_divide(Arc::new(Mutex::new(Some(10.0))), Arc::new(Mutex::new(Some(0.0))));
-    if (*err.lock().unwrap()).is_some() {
-        print!("Error: {}\n", (*err.lock().unwrap().as_mut().unwrap()));
+    (result, err) = safe_divide(Rc::new(RefCell::new(Some(10.0))), Rc::new(RefCell::new(Some(0.0))));
+    if (*err.borrow()).is_some() {
+        print!("Error: {}\n", (*err.borrow_mut().as_mut().unwrap()));
     } else {
-        print!("Result: {:.2}\n", (*result.lock().unwrap().as_mut().unwrap()));
+        print!("Result: {:.2}\n", (*result.borrow_mut().as_mut().unwrap()));
     }
 
         // Ignoring return values with blank identifier
     println!("{}", "\n=== Ignoring return values ===".to_string());
-    let (_, mut remainder2) = divmod(Arc::new(Mutex::new(Some(23))), Arc::new(Mutex::new(Some(7))));
-    print!("23 mod 7 = {} (quotient ignored)\n", (*remainder2.lock().unwrap().as_mut().unwrap()));
+    let (_, mut remainder2) = divmod(Rc::new(RefCell::new(Some(23))), Rc::new(RefCell::new(Some(7))));
+    print!("23 mod 7 = {} (quotient ignored)\n", (*remainder2.borrow_mut().as_mut().unwrap()));
 
     let (mut name2, _) = get_name_age();
-    print!("Name only: {} (age ignored)\n", (*name2.lock().unwrap().as_mut().unwrap()));
+    print!("Name only: {} (age ignored)\n", (*name2.borrow_mut().as_mut().unwrap()));
 
         // Multiple assignment
     println!("{}", "\n=== Multiple assignment ===".to_string());
-    let (mut a, mut b, mut c) = (Arc::new(Mutex::new(Some(1))), Arc::new(Mutex::new(Some(2))), Arc::new(Mutex::new(Some(3))));
-    print!("a={}, b={}, c={}\n", (*a.lock().unwrap().as_mut().unwrap()), (*b.lock().unwrap().as_mut().unwrap()), (*c.lock().unwrap().as_mut().unwrap()));
+    let (mut a, mut b, mut c) = (Rc::new(RefCell::new(Some(1))), Rc::new(RefCell::new(Some(2))), Rc::new(RefCell::new(Some(3))));
+    print!("a={}, b={}, c={}\n", (*a.borrow_mut().as_mut().unwrap()), (*b.borrow_mut().as_mut().unwrap()), (*c.borrow_mut().as_mut().unwrap()));
 
         // Reassignment with multiple returns
-    { *(*a.lock().unwrap().as_mut().unwrap()).lock().unwrap() = Some((*b.lock().unwrap().as_mut().unwrap())); *(*b.lock().unwrap().as_mut().unwrap()).lock().unwrap() = Some((*a.lock().unwrap().as_mut().unwrap())) };
-    print!("After swap: a={}, b={}\n", (*a.lock().unwrap().as_mut().unwrap()), (*b.lock().unwrap().as_mut().unwrap()));
+    { *(*a.borrow_mut().as_mut().unwrap()).borrow_mut() = Some((*b.borrow_mut().as_mut().unwrap())); *(*b.borrow_mut().as_mut().unwrap()).borrow_mut() = Some((*a.borrow_mut().as_mut().unwrap())) };
+    print!("After swap: a={}, b={}\n", (*a.borrow_mut().as_mut().unwrap()), (*b.borrow_mut().as_mut().unwrap()));
 }

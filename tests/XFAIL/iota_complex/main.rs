@@ -1,4 +1,5 @@
-use std::sync::{Arc, Mutex};
+use std::cell::{RefCell};
+use std::rc::{Rc};
 
 const FLAG_READ: i64 = 1 << 0;
 const FLAG_WRITE: i64 = 1 << 1;
@@ -30,8 +31,8 @@ const FOURTH: i32 = 1;
 
 fn main() {
         // Test bit flags
-    let mut perms = Arc::new(Mutex::new(Some(FLAG_READ | FLAG_WRITE)));
-    print!("Permissions: {} (Read={}, Write={})\n", (*perms.lock().unwrap().as_mut().unwrap()), FLAG_READ, FLAG_WRITE);
+    let mut perms = Rc::new(RefCell::new(Some(FLAG_READ | FLAG_WRITE)));
+    print!("Permissions: {} (Read={}, Write={})\n", (*perms.borrow_mut().as_mut().unwrap()), FLAG_READ, FLAG_WRITE);
 
         // Test size constants
     print!("KB={}, MB={}, GB={}\n", K_B, M_B, G_B);

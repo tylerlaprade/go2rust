@@ -81,7 +81,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			// Check if this is a type definition that needs unwrapping
 			if _, isTypeDef := typeDefinitions[currentReceiverType]; isTypeDef {
 				// For type definitions, access the inner value
-				out.WriteString("(*self.0.lock().unwrap().as_ref().unwrap())")
+				out.WriteString("(*self.0")
+				WriteBorrowMethod(out, false)
+				out.WriteString(".as_ref().unwrap())")
 			} else {
 				out.WriteString("self")
 			}
@@ -97,7 +99,8 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				if ctx == RValue {
 					out.WriteString("(*")
 					out.WriteString(varName)
-					out.WriteString(".lock().unwrap().as_mut().unwrap())")
+					WriteBorrowMethod(out, true)
+					out.WriteString(".as_mut().unwrap())")
 				} else {
 					out.WriteString(varName)
 				}
@@ -114,7 +117,8 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				// Reading a variable requires unwrapping to get the inner value
 				out.WriteString("(*")
 				out.WriteString(varName)
-				out.WriteString(".lock().unwrap().as_mut().unwrap())")
+				WriteBorrowMethod(out, true)
+				out.WriteString(".as_mut().unwrap())")
 			case AddressOf:
 				// Taking address just returns the Arc itself
 				out.WriteString(varName)
@@ -163,24 +167,27 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 						// Simple case: one level of embedding
 						out.WriteString("(*self.")
 						out.WriteString(ToSnakeCase(fieldInfo.EmbeddedPath[0]))
-						out.WriteString(".lock().unwrap().as_ref().unwrap()).")
+						WriteBorrowMethod(out, false)
+						out.WriteString(".as_ref().unwrap()).")
 						out.WriteString(fieldInfo.FieldName)
 					} else {
 						// Complex case: multiple levels of embedding
 						// Start with the first embedded struct
 						out.WriteString("(*(*self.")
 						out.WriteString(ToSnakeCase(fieldInfo.EmbeddedPath[0]))
-						out.WriteString(".lock().unwrap().as_ref().unwrap())")
+						WriteBorrowMethod(out, false)
+						out.WriteString(".as_ref().unwrap())")
 
 						// Add intermediate embedded structs
 						for i := 1; i < len(fieldInfo.EmbeddedPath); i++ {
 							out.WriteString(".")
 							out.WriteString(ToSnakeCase(fieldInfo.EmbeddedPath[i]))
+							WriteBorrowMethod(out, false)
 							if i < len(fieldInfo.EmbeddedPath)-1 {
-								out.WriteString(".lock().unwrap().as_ref().unwrap()")
+								out.WriteString(".as_ref().unwrap()")
 							} else {
 								// Last one before the field
-								out.WriteString(".lock().unwrap().as_ref().unwrap()).")
+								out.WriteString(".as_ref().unwrap()).")
 							}
 						}
 						out.WriteString(fieldInfo.FieldName)
@@ -245,26 +252,30 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 						if ctx == LValue {
 							out.WriteString("(*(*")
 							out.WriteString(ident.Name)
-							out.WriteString(".lock().unwrap().as_mut().unwrap()).")
+							WriteBorrowMethod(out, true)
+							out.WriteString(".as_mut().unwrap()).")
 							for i, embedded := range fieldInfo.EmbeddedPath {
 								out.WriteString(ToSnakeCase(embedded))
+								WriteBorrowMethod(out, true)
 								if i < len(fieldInfo.EmbeddedPath)-1 {
-									out.WriteString(".lock().unwrap().as_mut().unwrap().")
+									out.WriteString(".as_mut().unwrap().")
 								} else {
-									out.WriteString(".lock().unwrap().as_mut().unwrap()).")
+									out.WriteString(".as_mut().unwrap()).")
 								}
 							}
 							out.WriteString(fieldInfo.FieldName)
 						} else {
 							out.WriteString("(*(*")
 							out.WriteString(ident.Name)
-							out.WriteString(".lock().unwrap().as_ref().unwrap()).")
+							WriteBorrowMethod(out, false)
+							out.WriteString(".as_ref().unwrap()).")
 							for i, embedded := range fieldInfo.EmbeddedPath {
 								out.WriteString(ToSnakeCase(embedded))
+								WriteBorrowMethod(out, false)
 								if i < len(fieldInfo.EmbeddedPath)-1 {
-									out.WriteString(".lock().unwrap().as_ref().unwrap().")
+									out.WriteString(".as_ref().unwrap().")
 								} else {
-									out.WriteString(".lock().unwrap().as_ref().unwrap()).")
+									out.WriteString(".as_ref().unwrap()).")
 								}
 							}
 							out.WriteString(fieldInfo.FieldName)
@@ -282,18 +293,20 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				} else {
 					// Direct field access
 					if needsUnwrap {
-						// Access field on wrapped struct: (*var.lock().unwrap().as_ref().unwrap()).field
+						// Access field on wrapped struct
 						if ctx == LValue {
 							// For assignment, we need mutable access
 							out.WriteString("(*")
 							out.WriteString(ident.Name)
-							out.WriteString(".lock().unwrap().as_mut().unwrap()).")
+							WriteBorrowMethod(out, true)
+							out.WriteString(".as_mut().unwrap()).")
 							out.WriteString(fieldInfo.FieldName)
 						} else {
 							// For reading, we need immutable access
 							out.WriteString("(*")
 							out.WriteString(ident.Name)
-							out.WriteString(".lock().unwrap().as_ref().unwrap()).")
+							WriteBorrowMethod(out, false)
+							out.WriteString(".as_ref().unwrap()).")
 							out.WriteString(fieldInfo.FieldName)
 						}
 					} else {
@@ -341,7 +354,8 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				for _, embedded := range fieldInfo.EmbeddedPath {
 					out.WriteString(".")
 					out.WriteString(ToSnakeCase(embedded))
-					out.WriteString(".lock().unwrap().as_ref().unwrap()")
+					WriteBorrowMethod(out, false)
+					out.WriteString(".as_ref().unwrap()")
 				}
 				out.WriteString(".")
 				out.WriteString(fieldInfo.FieldName)
@@ -358,33 +372,39 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		case token.AND: // & - address-of
 			// Check if we're taking address of a struct literal
 			if _, isCompositeLit := e.X.(*ast.CompositeLit); isCompositeLit {
-				// For struct literals, wrap the whole thing in Arc<Mutex<Option<>>>
-				out.WriteString("Arc::new(Mutex::new(Some(")
+				// For struct literals, wrap the whole thing
+				WriteWrapperPrefix(out)
 				TranspileExpressionContext(out, e.X, AddressOf)
-				out.WriteString(")))")
+				WriteWrapperSuffix(out)
 			} else {
 				// Taking address of existing value just clones the Arc
 				TranspileExpressionContext(out, e.X, AddressOf)
 				out.WriteString(".clone()")
 			}
 		case token.MUL: // * - dereference
+			// Double dereference - need to unwrap twice for **p
 			out.WriteString("(*")
 			TranspileExpression(out, e.X)
-			out.WriteString(".lock().unwrap().as_ref().unwrap().lock().unwrap().as_ref().unwrap())")
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref().unwrap()")
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref().unwrap())")
 		default:
 			out.WriteString(e.Op.String())
 			TranspileExpression(out, e.X)
 		}
 
 	case *ast.StarExpr:
-		// Dereference pointer - unwrap the Arc<Mutex<Option<T>>> to get T
+		// Dereference pointer - unwrap the wrapper to get T
 		out.WriteString("(*")
 		// Use LValue context so the identifier doesn't get unwrapped
 		TranspileExpressionContext(out, e.X, LValue)
 		if ctx == RValue {
-			out.WriteString(".lock().unwrap().as_ref().unwrap())")
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref().unwrap())")
 		} else {
-			out.WriteString(".lock().unwrap().as_mut().unwrap())")
+			WriteBorrowMethod(out, true)
+			out.WriteString(".as_mut().unwrap())")
 		}
 	case *ast.BinaryExpr:
 		// Special handling for comparisons with nil
@@ -405,12 +425,14 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			if e.Op.String() == "!=" {
 				out.WriteString("(*")
 				TranspileExpressionContext(out, e.X, LValue)
-				out.WriteString(".lock().unwrap()).is_some()")
+				WriteBorrowMethod(out, false)
+				out.WriteString(").is_some()")
 				return
 			} else if e.Op.String() == "==" {
 				out.WriteString("(*")
 				TranspileExpressionContext(out, e.X, LValue)
-				out.WriteString(".lock().unwrap()).is_none()")
+				WriteBorrowMethod(out, false)
+				out.WriteString(").is_none()")
 				return
 			}
 		}
@@ -463,7 +485,8 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			if needsUnwrapX {
 				out.WriteString("(*")
 				TranspileExpression(out, e.X)
-				out.WriteString(".lock().unwrap().as_ref().unwrap())")
+				WriteBorrowMethod(out, false)
+				out.WriteString(".as_ref().unwrap())")
 			} else {
 				TranspileExpression(out, e.X)
 			}
@@ -473,7 +496,8 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			if needsUnwrapY {
 				out.WriteString("(*")
 				TranspileExpression(out, e.Y)
-				out.WriteString(".lock().unwrap().as_ref().unwrap())")
+				WriteBorrowMethod(out, false)
+				out.WriteString(".as_ref().unwrap())")
 			} else {
 				TranspileExpression(out, e.Y)
 			}
@@ -532,7 +556,8 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			} else {
 				TranspileExpression(out, e.X)
 			}
-			out.WriteString(".lock().unwrap().as_ref().unwrap()).get(")
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref().unwrap()).get(")
 			// Check if the index is a range loop variable that's already a reference
 			if ident, ok := e.Index.(*ast.Ident); ok {
 				if _, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar {
@@ -548,7 +573,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				out.WriteString("&")
 				TranspileExpression(out, e.Index)
 			}
-			out.WriteString(").unwrap().lock().unwrap().as_ref().unwrap())")
+			out.WriteString(").unwrap()")
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref().unwrap())")
 		} else {
 			// Regular array/slice/string indexing
 			// Check if it's a string (returns a byte)
@@ -563,12 +590,14 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				// String indexing returns a byte (u8)
 				out.WriteString("(*")
 				TranspileExpression(out, e.X)
-				out.WriteString(".lock().unwrap().as_ref().unwrap()).as_bytes()[")
+				WriteBorrowMethod(out, false)
+				out.WriteString(".as_ref().unwrap()).as_bytes()[")
 				// Check if index needs unwrapping
 				if typeInfo != nil && typeInfo.NeedsUnwrapping(e.Index) {
 					out.WriteString("(*")
 					TranspileExpression(out, e.Index)
-					out.WriteString(".lock().unwrap().as_ref().unwrap()) as usize")
+					WriteBorrowMethod(out, false)
+					out.WriteString(".as_ref().unwrap()) as usize")
 				} else {
 					TranspileExpression(out, e.Index)
 					out.WriteString(" as usize")
@@ -579,7 +608,8 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				out.WriteString("(*")
 				// Use LValue context so identifiers don't unwrap themselves
 				TranspileExpressionContext(out, e.X, LValue)
-				out.WriteString(".lock().unwrap().as_ref().unwrap())[")
+				WriteBorrowMethod(out, false)
+				out.WriteString(".as_ref().unwrap())[")
 				// Index handling - identifiers will unwrap themselves in RValue context
 				TranspileExpression(out, e.Index)
 				out.WriteString(" as usize]")
@@ -591,11 +621,12 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 	case *ast.SliceExpr:
 		// Slice expressions like arr[1:] or s[0:5]
 		// The array/slice is wrapped, so we need to unwrap it first
-		out.WriteString("Arc::new(Mutex::new(Some(")
+		WriteWrapperPrefix(out)
 		out.WriteString("(*")
 		// Use LValue context so identifiers don't unwrap themselves
 		TranspileExpressionContext(out, e.X, LValue)
-		out.WriteString(".lock().unwrap().as_ref().unwrap())")
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap())")
 		out.WriteString("[")
 		if e.Low != nil {
 			// Indices will unwrap themselves in RValue context if needed
@@ -609,7 +640,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			out.WriteString(" as usize")
 		}
 		out.WriteString("].to_vec()")
-		out.WriteString(")))")
+		WriteWrapperSuffix(out)
 
 	case *ast.CompositeLit:
 		// Handle array/slice literals
@@ -621,7 +652,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			}
 
 			// Wrap the entire array/slice in Arc<Mutex<Option<>>>
-			out.WriteString("Arc::new(Mutex::new(Some(")
+			WriteWrapperPrefix(out)
 			if arrayType.Len != nil {
 				// Fixed-size array
 				out.WriteString("[")
@@ -643,13 +674,12 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				}
 			}
 			out.WriteString("]")
-			out.WriteString(")))")
+			WriteWrapperSuffix(out)
 		} else if mapType, ok := e.Type.(*ast.MapType); ok {
 			// Map literal - wrap the whole map in Arc<Mutex<Option<>>>
-			TrackImport("Arc", "map literal")
-			TrackImport("Mutex", "map literal")
-			TrackImport("HashMap", "map literal")
-			out.WriteString("Arc::new(Mutex::new(Some(HashMap::<")
+			TrackImport("HashMap")
+			WriteWrapperPrefix(out)
+			out.WriteString("HashMap::<")
 			out.WriteString(goTypeToRustBase(mapType.Key))
 			out.WriteString(", ")
 			out.WriteString(GoTypeToRust(mapType.Value))
@@ -663,9 +693,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					TranspileExpression(out, kv.Key)
 					out.WriteString(", ")
 					// Wrap map values in Arc<Mutex<Option<>>>
-					out.WriteString("Arc::new(Mutex::new(Some(")
+					WriteWrapperPrefix(out)
 					TranspileExpression(out, kv.Value)
-					out.WriteString(")))")
+					WriteWrapperSuffix(out)
 					out.WriteString(")")
 				}
 			}
@@ -693,9 +723,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 							out.WriteString(".clone()")
 						} else {
 							// Wrap field values in Arc<Mutex<Option<T>>>
-							out.WriteString("Arc::new(Mutex::new(Some(")
+							WriteWrapperPrefix(out)
 							TranspileExpression(out, kv.Value)
-							out.WriteString(")))")
+							WriteWrapperSuffix(out)
 						}
 					}
 				}
@@ -741,9 +771,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 							out.WriteString(".clone()")
 						} else {
 							// Wrap field values in Arc<Mutex<Option<T>>>
-							out.WriteString("Arc::new(Mutex::new(Some(")
+							WriteWrapperPrefix(out)
 							TranspileExpression(out, kv.Value)
-							out.WriteString(")))")
+							WriteWrapperSuffix(out)
 						}
 					}
 				}
@@ -827,7 +857,13 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				TranspileExpression(out, e.X)
 			}
 			out.WriteString(".clone();\n")
-			out.WriteString("        let guard = val.lock().unwrap();\n")
+			out.WriteString("        let guard = val.")
+			if NeedsConcurrentWrapper() {
+				out.WriteString("lock().unwrap()")
+			} else {
+				out.WriteString("borrow()")
+			}
+			out.WriteString(";\n")
 			out.WriteString("        if let Some(ref any_val) = *guard {\n")
 			out.WriteString("            any_val.downcast_ref::<")
 			out.WriteString(rustType)
@@ -846,7 +882,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		// Unhandled expression type
 		out.WriteString("/* TODO: Unhandled expression type: ")
 		out.WriteString(strings.TrimPrefix(fmt.Sprintf("%T", e), "*ast."))
-		out.WriteString(" */ Arc::new(Mutex::new(Some(())))")
+		out.WriteString(" */ ")
+		WriteWrapperPrefix(out)
+		out.WriteString("()))")
 	}
 }
 
@@ -893,7 +931,7 @@ func TranspileFuncLit(out *strings.Builder, funcLit *ast.FuncLit) {
 	defer func() { currentCaptureRenames = oldCaptureRenames }()
 
 	// Wrap the closure in Arc<Mutex<Option<Box<dyn Fn>>>
-	out.WriteString("Arc::new(Mutex::new(Some(")
+	WriteWrapperPrefix(out)
 
 	// Generate the closure wrapped in Box
 	out.WriteString("Box::new(move |")
@@ -953,7 +991,7 @@ func TranspileFuncLit(out *strings.Builder, funcLit *ast.FuncLit) {
 	// Cast to the right type and close wrappers
 	out.WriteString(" as ")
 	out.WriteString(generateClosureType(funcLit.Type))
-	out.WriteString(")))")
+	WriteWrapperSuffix(out)
 }
 
 // TranspileTypeConversion handles type conversions like int(x), float64(y), etc.
@@ -974,31 +1012,35 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 			switch elemType {
 			case "byte", "uint8":
 				// []byte(string) conversion
-				out.WriteString("Arc::new(Mutex::new(Some(")
+				WriteWrapperPrefix(out)
 				if ident, ok := call.Args[0].(*ast.Ident); ok && ident.Name != "nil" {
 					out.WriteString("(*")
 					out.WriteString(ident.Name)
-					out.WriteString(".lock().unwrap().as_ref().unwrap()).as_bytes().to_vec()")
+					WriteBorrowMethod(out, false)
+					out.WriteString(".as_ref().unwrap()).as_bytes().to_vec()")
 				} else {
 					out.WriteString("(*")
 					TranspileExpression(out, call.Args[0])
-					out.WriteString(".lock().unwrap().as_ref().unwrap()).as_bytes().to_vec()")
+					WriteBorrowMethod(out, false)
+					out.WriteString(".as_ref().unwrap()).as_bytes().to_vec()")
 				}
-				out.WriteString(")))")
+				WriteWrapperSuffix(out)
 				return
 			case "rune", "int32":
 				// []rune(string) conversion
-				out.WriteString("Arc::new(Mutex::new(Some(")
+				WriteWrapperPrefix(out)
 				if ident, ok := call.Args[0].(*ast.Ident); ok && ident.Name != "nil" {
 					out.WriteString("(*")
 					out.WriteString(ident.Name)
-					out.WriteString(".lock().unwrap().as_ref().unwrap()).chars().map(|c| c as i32).collect::<Vec<_>>()")
+					WriteBorrowMethod(out, false)
+					out.WriteString(".as_ref().unwrap()).chars().map(|c| c as i32).collect::<Vec<_>>()")
 				} else {
 					out.WriteString("(*")
 					TranspileExpression(out, call.Args[0])
-					out.WriteString(".lock().unwrap().as_ref().unwrap()).chars().map(|c| c as i32).collect::<Vec<_>>()")
+					WriteBorrowMethod(out, false)
+					out.WriteString(".as_ref().unwrap()).chars().map(|c| c as i32).collect::<Vec<_>>()")
 				}
-				out.WriteString(")))")
+				WriteWrapperSuffix(out)
 				return
 			}
 		}
@@ -1059,29 +1101,34 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 					if basic, ok := elemType.(*types.Basic); ok {
 						if basic.Kind() == types.Byte || basic.Kind() == types.Uint8 {
 							// []byte to string
-							out.WriteString("Arc::new(Mutex::new(Some(String::from_utf8(")
+							WriteWrapperPrefix(out)
+							out.WriteString("String::from_utf8(")
 							if ident, ok := arg.(*ast.Ident); ok && ident.Name != "nil" {
 								out.WriteString("(*")
 								out.WriteString(ident.Name)
-								out.WriteString(".lock().unwrap().as_ref().unwrap()).clone()")
+								WriteBorrowMethod(out, false)
+								out.WriteString(".as_ref().unwrap()).clone()")
 							} else {
 								out.WriteString("(*")
 								TranspileExpression(out, arg)
-								out.WriteString(".lock().unwrap().as_ref().unwrap()).clone()")
+								WriteBorrowMethod(out, false)
+								out.WriteString(".as_ref().unwrap()).clone()")
 							}
 							out.WriteString(").unwrap())))")
 							return
 						} else if basic.Kind() == types.Rune || basic.Kind() == types.Int32 {
 							// []rune to string
-							out.WriteString("Arc::new(Mutex::new(Some(")
+							WriteWrapperPrefix(out)
 							if ident, ok := arg.(*ast.Ident); ok && ident.Name != "nil" {
 								out.WriteString("(*")
 								out.WriteString(ident.Name)
-								out.WriteString(".lock().unwrap().as_ref().unwrap())")
+								WriteBorrowMethod(out, false)
+								out.WriteString(".as_ref().unwrap())")
 							} else {
 								out.WriteString("(*")
 								TranspileExpression(out, arg)
-								out.WriteString(".lock().unwrap().as_ref().unwrap())")
+								WriteBorrowMethod(out, false)
+								out.WriteString(".as_ref().unwrap())")
 							}
 							out.WriteString(".iter().map(|&c| char::from_u32(c as u32).unwrap()).collect::<String>())))")
 							return
@@ -1090,17 +1137,16 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 				} else if basic, ok := argType.Underlying().(*types.Basic); ok {
 					if basic.Kind() == types.Rune || basic.Kind() == types.Int32 {
 						// Single rune to string
-						out.WriteString("Arc::new(Mutex::new(Some(")
+						WriteWrapperPrefix(out)
 						out.WriteString("char::from_u32((")
+						out.WriteString("*")
 						if ident, ok := arg.(*ast.Ident); ok && ident.Name != "nil" {
-							out.WriteString("*")
 							out.WriteString(ident.Name)
-							out.WriteString(".lock().unwrap().as_ref().unwrap()")
 						} else {
-							out.WriteString("*")
 							TranspileExpression(out, arg)
-							out.WriteString(".lock().unwrap().as_ref().unwrap()")
 						}
+						WriteBorrowMethod(out, false)
+						out.WriteString(".as_ref().unwrap()")
 						out.WriteString(") as u32).unwrap().to_string())))")
 						return
 					}
@@ -1108,44 +1154,49 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 			}
 		}
 		// Default string conversion
-		out.WriteString("Arc::new(Mutex::new(Some(")
+		WriteWrapperPrefix(out)
+		out.WriteString("(*")
 		if ident, ok := arg.(*ast.Ident); ok && ident.Name != "nil" {
-			out.WriteString("(*")
 			out.WriteString(ident.Name)
-			out.WriteString(".lock().unwrap().as_ref().unwrap()).to_string()")
 		} else {
-			out.WriteString("(*")
 			TranspileExpression(out, arg)
-			out.WriteString(".lock().unwrap().as_ref().unwrap()).to_string()")
 		}
-		out.WriteString(")))")
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap()).to_string()")
+		WriteWrapperSuffix(out)
 		return
 	case "rune":
 		rustType = "i32" // rune is an alias for int32
 	// Complex types
 	case "complex64":
-		out.WriteString("Arc::new(Mutex::new(Some(num::Complex::<f32>::new(")
+		WriteWrapperPrefix(out)
+		out.WriteString("num::Complex::<f32>::new(")
 		if ident, ok := call.Args[0].(*ast.Ident); ok && ident.Name != "nil" {
 			out.WriteString("(*")
 			out.WriteString(ident.Name)
-			out.WriteString(".lock().unwrap().as_ref().unwrap()) as f32")
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref().unwrap()) as f32")
 		} else {
 			out.WriteString("(*")
 			TranspileExpression(out, call.Args[0])
-			out.WriteString(".lock().unwrap().as_ref().unwrap()) as f32")
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref().unwrap()) as f32")
 		}
 		out.WriteString(", 0.0))))")
 		return
 	case "complex128":
-		out.WriteString("Arc::new(Mutex::new(Some(num::Complex::<f64>::new(")
+		WriteWrapperPrefix(out)
+		out.WriteString("num::Complex::<f64>::new(")
 		if ident, ok := call.Args[0].(*ast.Ident); ok && ident.Name != "nil" {
 			out.WriteString("(*")
 			out.WriteString(ident.Name)
-			out.WriteString(".lock().unwrap().as_ref().unwrap()) as f64")
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref().unwrap()) as f64")
 		} else {
 			out.WriteString("(*")
 			TranspileExpression(out, call.Args[0])
-			out.WriteString(".lock().unwrap().as_ref().unwrap()) as f64")
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref().unwrap()) as f64")
 		}
 		out.WriteString(", 0.0))))")
 		return
@@ -1154,7 +1205,8 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 		if _, isTypeDef := typeDefinitions[targetType]; isTypeDef {
 			// Custom type definition
 			out.WriteString(targetType)
-			out.WriteString("(Arc::new(Mutex::new(Some(")
+			out.WriteString("(")
+			WriteWrapperPrefix(out)
 			TranspileExpression(out, call.Args[0])
 			out.WriteString("))))")
 			return
@@ -1165,22 +1217,22 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 
 	if needsCast && rustType != "" {
 		// Perform the type cast
-		out.WriteString("Arc::new(Mutex::new(Some((")
+		WriteWrapperPrefix(out)
+		out.WriteString("(")
 		// Check if the argument is a simple identifier (variable)
+		out.WriteString("*")
 		if ident, ok := call.Args[0].(*ast.Ident); ok && ident.Name != "nil" {
 			// It's a variable, unwrap it directly
-			out.WriteString("*")
 			out.WriteString(ident.Name)
-			out.WriteString(".lock().unwrap().as_ref().unwrap()")
 		} else {
 			// It's an expression, evaluate and unwrap
-			out.WriteString("*")
 			TranspileExpression(out, call.Args[0])
-			out.WriteString(".lock().unwrap().as_ref().unwrap()")
 		}
+		out.WriteString(".as_ref().unwrap()")
+		out.WriteString(".as_ref().unwrap()")
 		out.WriteString(") as ")
 		out.WriteString(rustType)
-		out.WriteString(")))")
+		WriteWrapperSuffix(out)
 	} else {
 		// No cast needed or unknown type
 		TranspileExpression(out, call.Args[0])
@@ -1260,21 +1312,33 @@ func TranspileTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr) 
 		TranspileExpression(out, e.X)
 	}
 	out.WriteString(".clone();\n")
-	out.WriteString("        let guard = val.lock().unwrap();\n")
+	out.WriteString("        let guard = val")
+	WriteBorrowMethod(out, false)
+	out.WriteString(";\n")
 	out.WriteString("        if let Some(ref any_val) = *guard {\n")
 	out.WriteString("            if let Some(typed_val) = any_val.downcast_ref::<")
 	out.WriteString(rustType)
 	out.WriteString(">() {\n")
-	out.WriteString("                (Arc::new(Mutex::new(Some(typed_val.clone()))), Arc::new(Mutex::new(Some(true))))\n")
+	out.WriteString("                (")
+	WriteWrapperPrefix(out)
+	out.WriteString("typed_val.clone()))), ")
+	WriteWrapperPrefix(out)
+	out.WriteString("true))))\n")
 	out.WriteString("            } else {\n")
-	out.WriteString("                (Arc::new(Mutex::new(Some(")
+	out.WriteString("                (")
+	WriteWrapperPrefix(out)
 	out.WriteString(defaultValue)
-	out.WriteString("))), Arc::new(Mutex::new(Some(false))))\n")
+	out.WriteString("))), ")
+	WriteWrapperPrefix(out)
+	out.WriteString("false))))\n")
 	out.WriteString("            }\n")
 	out.WriteString("        } else {\n")
-	out.WriteString("            (Arc::new(Mutex::new(Some(")
+	out.WriteString("            (")
+	WriteWrapperPrefix(out)
 	out.WriteString(defaultValue)
-	out.WriteString("))), Arc::new(Mutex::new(Some(false))))\n")
+	out.WriteString("))), ")
+	WriteWrapperPrefix(out)
+	out.WriteString("false))))\n")
 	out.WriteString("        }\n")
 	out.WriteString("    })")
 }
@@ -1299,7 +1363,8 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 		if _, isTypeDef := typeDefinitions[ident.Name]; isTypeDef {
 			// This is a type definition constructor
 			out.WriteString(ident.Name)
-			out.WriteString("(Arc::new(Mutex::new(Some(")
+			out.WriteString("(")
+			WriteWrapperPrefix(out)
 			if len(call.Args) > 0 {
 				TranspileExpression(out, call.Args[0])
 			}
@@ -1332,7 +1397,8 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				// Wrapped type - need to unwrap
 				out.WriteString("(*")
 				out.WriteString(ident.Name)
-				out.WriteString(".lock().unwrap().as_mut().unwrap()).")
+				WriteBorrowMethod(out, true)
+				out.WriteString(".as_mut().unwrap()).")
 			} else {
 				// Direct struct variable (range var or constant) - call method directly
 				out.WriteString(ident.Name)
@@ -1343,7 +1409,9 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 			// The field is wrapped, so we need to unwrap it
 			out.WriteString("(*")
 			TranspileExpression(out, fieldSel)
-			out.WriteString(".lock().unwrap().as_mut().unwrap()).")
+			out.WriteString("")
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_mut().unwrap()).")
 		} else {
 			// Other complex expression - just transpile it
 			TranspileExpression(out, sel.X)
@@ -1357,9 +1425,9 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				out.WriteString(", ")
 			}
 			// For method calls, wrap arguments normally
-			out.WriteString("Arc::new(Mutex::new(Some(")
+			WriteWrapperPrefix(out)
 			TranspileExpression(out, arg)
-			out.WriteString(")))")
+			WriteWrapperSuffix(out)
 		}
 		out.WriteString(")")
 		return
@@ -1375,13 +1443,15 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 			// Likely a closure variable - need to unwrap and call
 			out.WriteString("(")
 			out.WriteString(ident.Name)
-			out.WriteString(".lock().unwrap().as_ref().unwrap())")
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref().unwrap())")
 		}
 	} else {
 		// Complex expression for the function (e.g., function returning a function)
 		out.WriteString("(")
 		TranspileExpression(out, call.Fun)
-		out.WriteString(".lock().unwrap().as_ref().unwrap())")
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap())")
 	}
 
 	out.WriteString("(")
@@ -1412,23 +1482,24 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 						out.WriteString(".clone()")
 					} else {
 						// It's a constant, wrap it
-						out.WriteString("Arc::new(Mutex::new(Some(")
+						WriteWrapperPrefix(out)
 						TranspileExpression(out, arg)
-						out.WriteString(")))")
+						WriteWrapperSuffix(out)
 					}
 				} else {
 					// Range variable - check if it needs dereferencing
 					varType := rangeLoopVars[ident.Name]
 					if varType == "ref_value" {
 						// It's a reference from iterator, dereference it
-						out.WriteString("Arc::new(Mutex::new(Some(*")
+						WriteWrapperPrefix(out)
+						out.WriteString("*")
 						TranspileExpression(out, arg)
-						out.WriteString(")))")
+						WriteWrapperSuffix(out)
 					} else {
 						// Regular range variable, wrap it normally
-						out.WriteString("Arc::new(Mutex::new(Some(")
+						WriteWrapperPrefix(out)
 						TranspileExpression(out, arg)
-						out.WriteString(")))")
+						WriteWrapperSuffix(out)
 					}
 				}
 			} else if _, isFuncLit := arg.(*ast.FuncLit); isFuncLit {
@@ -1436,9 +1507,9 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				TranspileExpression(out, arg)
 			} else {
 				// Not a simple identifier or function literal, wrap it
-				out.WriteString("Arc::new(Mutex::new(Some(")
+				WriteWrapperPrefix(out)
 				TranspileExpression(out, arg)
-				out.WriteString(")))")
+				WriteWrapperSuffix(out)
 			}
 		} else {
 			TranspileExpression(out, arg)

@@ -1,15 +1,16 @@
-use std::sync::{Arc, Mutex};
+use std::cell::{RefCell};
+use std::rc::{Rc};
 
 fn main() {
         // Every variable should be wrapped
-    let mut x = Arc::new(Mutex::new(Some(42)));
-    let mut y = Arc::new(Mutex::new(Some((*x.lock().unwrap().as_mut().unwrap()) + 1)));
+    let mut x = Rc::new(RefCell::new(Some(42)));
+    let mut y = Rc::new(RefCell::new(Some((*x.borrow_mut().as_mut().unwrap()) + 1)));
 
         // Taking address should work naturally
     let mut p = x.clone();
-    { let new_val = 100; *p.lock().unwrap() = Some(new_val); };
+    { let new_val = 100; *p.borrow_mut() = Some(new_val); };
 
         // x should reflect the change
-    println!("{} {}", "x =".to_string(), (*x.lock().unwrap().as_mut().unwrap()));
-    println!("{} {}", "y =".to_string(), (*y.lock().unwrap().as_mut().unwrap()));
+    println!("{} {}", "x =".to_string(), (*x.borrow_mut().as_mut().unwrap()));
+    println!("{} {}", "y =".to_string(), (*y.borrow_mut().as_mut().unwrap()));
 }

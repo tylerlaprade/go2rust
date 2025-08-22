@@ -1,4 +1,5 @@
-use std::sync::{Arc, Mutex};
+use std::cell::{RefCell};
+use std::rc::{Rc};
 
 const PI: f64 = 3.14159;
 const EULER: f64 = 2.71828;
@@ -99,13 +100,13 @@ const z: i32 = x + y;
     const untypedFloat: f64 = 3.14;
 
 
-    let mut i: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(untypedInt)));
-    let mut f: Arc<Mutex<Option<f64>>> = Arc::new(Mutex::new(Some(untypedFloat)));
-    let mut mixed = Arc::new(Mutex::new(Some(untypedInt + 3)));
+    let mut i: Rc<RefCell<Option<i32>>> = Rc::new(RefCell::new(Some(untypedInt)));
+    let mut f: Rc<RefCell<Option<f64>>> = Rc::new(RefCell::new(Some(untypedFloat)));
+    let mut mixed = Rc::new(RefCell::new(Some(untypedInt + 3)));
 
-    print!("i = {}\n", (*i.lock().unwrap().as_mut().unwrap()));
-    print!("f = {:.2}\n", (*f.lock().unwrap().as_mut().unwrap()));
-    print!("mixed = {}\n", (*mixed.lock().unwrap().as_mut().unwrap()));
+    print!("i = {}\n", (*i.borrow_mut().as_mut().unwrap()));
+    print!("f = {:.2}\n", (*f.borrow_mut().as_mut().unwrap()));
+    print!("mixed = {}\n", (*mixed.borrow_mut().as_mut().unwrap()));
 
         // String constants
     println!("{}", "\n=== String constants ===".to_string());

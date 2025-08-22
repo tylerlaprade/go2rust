@@ -1,9 +1,10 @@
-use std::sync::{Arc, Mutex};
+use std::cell::{RefCell};
+use std::rc::{Rc};
 
 fn main() {
         // Basic fallthrough
-    let mut x = Arc::new(Mutex::new(Some(2)));
-    match (*x.lock().unwrap().as_mut().unwrap()) {
+    let mut x = Rc::new(RefCell::new(Some(2)));
+    match (*x.borrow_mut().as_mut().unwrap()) {
         1 => {
             println!("{}", "One".to_string());
         }
@@ -25,8 +26,8 @@ fn main() {
     println!("{}", "---".to_string());
 
         // Multiple fallthrough
-    let mut grade = Arc::new(Mutex::new(Some(('B' as i32))));
-    match (*grade.lock().unwrap().as_mut().unwrap()) {
+    let mut grade = Rc::new(RefCell::new(Some(('B' as i32))));
+    match (*grade.borrow_mut().as_mut().unwrap()) {
         ('A' as i32) => {
             println!("{}", "Excellent!".to_string());
             // TODO: fallthrough not supported
@@ -50,20 +51,20 @@ fn main() {
     println!("{}", "---".to_string());
 
         // Fallthrough with conditions
-    let mut n = Arc::new(Mutex::new(Some(15)));
+    let mut n = Rc::new(RefCell::new(Some(15)));
     match true {
-        true if (*n.lock().unwrap().as_mut().unwrap()) % 15 == 0 => {
+        true if (*n.borrow_mut().as_mut().unwrap()) % 15 == 0 => {
             println!("{}", "FizzBuzz".to_string());
             // TODO: fallthrough not supported
         }
-        true if (*n.lock().unwrap().as_mut().unwrap()) % 3 == 0 => {
+        true if (*n.borrow_mut().as_mut().unwrap()) % 3 == 0 => {
             println!("{}", "Fizz".to_string());
         }
-        true if (*n.lock().unwrap().as_mut().unwrap()) % 5 == 0 => {
+        true if (*n.borrow_mut().as_mut().unwrap()) % 5 == 0 => {
             println!("{}", "Buzz".to_string());
         }
         _ => {
-            println!("{}", (*n.lock().unwrap().as_mut().unwrap()));
+            println!("{}", (*n.borrow_mut().as_mut().unwrap()));
         }
     }
 }

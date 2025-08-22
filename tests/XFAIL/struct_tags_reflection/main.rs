@@ -1,26 +1,27 @@
-use std::sync::{Arc, Mutex};
+use std::cell::{RefCell};
+use std::rc::{Rc};
 
 #[derive(Debug, Clone, Default)]
 struct User {
     // tags: `json:"id" db:"user_id"`
-    i_d: Arc<Mutex<Option<i32>>>,
+    i_d: Rc<RefCell<Option<i32>>>,
     // tags: `json:"name,omitempty" db:"full_name"`
-    name: Arc<Mutex<Option<String>>>,
+    name: Rc<RefCell<Option<String>>>,
     // tags: `json:"email" db:"email_address" validate:"email"`
-    email: Arc<Mutex<Option<String>>>,
+    email: Rc<RefCell<Option<String>>>,
     // tags: `json:"is_active" db:"active"`
-    is_active: Arc<Mutex<Option<bool>>>,
-    internal: Arc<Mutex<Option<String>>>,
+    is_active: Rc<RefCell<Option<bool>>>,
+    internal: Rc<RefCell<Option<String>>>,
 }
 
 fn main() {
-    let mut u = Arc::new(Mutex::new(Some(User { i_d: Arc::new(Mutex::new(Some(1))), name: Arc::new(Mutex::new(Some("Alice".to_string()))), email: Arc::new(Mutex::new(Some("alice@example.com".to_string()))) })));
-    let mut t = (*reflect.lock().unwrap().as_mut().unwrap()).type_of(Arc::new(Mutex::new(Some((*u.lock().unwrap().as_mut().unwrap())))));
+    let mut u = Rc::new(RefCell::new(Some(User { i_d: Rc::new(RefCell::new(Some(1))), name: Rc::new(RefCell::new(Some("Alice".to_string()))), email: Rc::new(RefCell::new(Some("alice@example.com".to_string()))) })));
+    let mut t = (*reflect.borrow_mut().as_mut().unwrap()).type_of(Rc::new(RefCell::new(Some((*u.borrow_mut().as_mut().unwrap())))));
 
-    let mut i = Arc::new(Mutex::new(Some(0)));
-    while (*i.lock().unwrap().as_mut().unwrap()) < (*(*t.lock().unwrap().as_mut().unwrap()).num_field().lock().unwrap().as_ref().unwrap()) {
-        let mut field = (*t.lock().unwrap().as_mut().unwrap()).field(Arc::new(Mutex::new(Some((*i.lock().unwrap().as_mut().unwrap())))));
-        print!("{}: json=%q db=%q\n", (*(*field.lock().unwrap().as_ref().unwrap()).name.lock().unwrap().as_ref().unwrap()), (*(*(*field.lock().unwrap().as_ref().unwrap()).tag.lock().unwrap().as_mut().unwrap()).get(Arc::new(Mutex::new(Some("json".to_string())))).lock().unwrap().as_ref().unwrap()), (*(*(*field.lock().unwrap().as_ref().unwrap()).tag.lock().unwrap().as_mut().unwrap()).get(Arc::new(Mutex::new(Some("db".to_string())))).lock().unwrap().as_ref().unwrap()));
-        { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
+    let mut i = Rc::new(RefCell::new(Some(0)));
+    while (*i.borrow_mut().as_mut().unwrap()) < (*(*t.borrow_mut().as_mut().unwrap()).num_field().borrow().as_ref().unwrap()) {
+        let mut field = (*t.borrow_mut().as_mut().unwrap()).field(Rc::new(RefCell::new(Some((*i.borrow_mut().as_mut().unwrap())))));
+        print!("{}: json=%q db=%q\n", (*(*field.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()), (*(*(*field.borrow().as_ref().unwrap()).tag.borrow().as_mut().unwrap()).get(Rc::new(RefCell::new(Some("json".to_string())))).borrow().as_ref().unwrap()), (*(*(*field.borrow().as_ref().unwrap()).tag.borrow().as_mut().unwrap()).get(Rc::new(RefCell::new(Some("db".to_string())))).borrow().as_ref().unwrap()));
+        { let mut guard = i.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
 }

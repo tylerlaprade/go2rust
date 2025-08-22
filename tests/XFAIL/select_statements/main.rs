@@ -1,5 +1,3 @@
-use std::sync::{Arc, Mutex};
-
 pub fn basic_select() {
     let mut ch1 = ;
     let mut ch2 = ;

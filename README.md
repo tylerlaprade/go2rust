@@ -40,36 +40,34 @@ func main() {
 }
 ```
 
-**Output (Rust):**
+**Output (Rust) - Single-threaded code:**
 
 ```rust
-use std::sync::{Arc, Mutex};
+use std::rc::Rc;
+use std::cell::RefCell;
 
-fn get_greeting() -> Arc<Mutex<Option<String>>> {
-    return Arc::new(Mutex::new(Some("Hello, World!".to_string())));
+fn get_greeting() -> Rc<RefCell<Option<String>>> {
+    return Rc::new(RefCell::new(Some("Hello, World!".to_string())));
 }
 
-fn get_year() -> Arc<Mutex<Option<i32>>> {
-    return Arc::new(Mutex::new(Some(2024)));
+fn get_year() -> Rc<RefCell<Option<i32>>> {
+    return Rc::new(RefCell::new(Some(2024)));
 }
 
 fn main() {
-    println!("{}", (*get_greeting().lock().unwrap().as_ref().unwrap()));
-    println!("{:?}", (*get_year().lock().unwrap().as_ref().unwrap()));
+    println!("{}", (*get_greeting().borrow().as_ref().unwrap()));
+    println!("{:?}", (*get_year().borrow().as_ref().unwrap()));
 }
 ```
 
-Note: The actual output is more verbose than shown here due to our conservative wrapping approach. Every value is wrapped in `Arc<Mutex<Option<T>>>` to ensure correctness.
+When the transpiler detects concurrency (goroutines, channels, or async stdlib calls), it automatically uses `Arc<Mutex<Option<T>>>` instead for thread safety.
 
 ## Philosophy
 
-This transpiler uses a "make it work first, optimize later" approach. **EVERY Go value** becomes `Arc<Mutex<Option<T>>>` - no exceptions. This includes:
+This transpiler uses a "make it work first, optimize later" approach. **EVERY Go value** is wrapped for safety, but the wrapper type depends on concurrency needs:
 
-- All variables (local, global)
-- All function parameters
-- All return values
-- All struct fields
-- All intermediate expressions
+- **Single-threaded code**: Uses `Rc<RefCell<Option<T>>>` for better performance
+- **Concurrent code**: Uses `Arc<Mutex<Option<T>>>` for thread safety
 
 This ensures semantic correctness for ANY Go program, even edge cases like taking the address of function parameters. The generated code is verbose but correct. Users can optimize later.
 
@@ -243,17 +241,6 @@ For unimplemented features, the transpiler generates TODO comments:
 | └ `errors.New` | ✅ |
 | **`sort` package** | |
 | └ `sort.Strings` | ✅ |
-
-## Test Suite
-
-### Test Categories
-
-- **Basic Language Features**: Variables, types, operators, control flow
-- **Functions**: Basic functions, multiple returns, parameter handling
-- **Data Structures**: Arrays, slices, maps, structs, pointers
-- **Standard Library**: fmt, strings, strconv, builtin functions
-- **Concurrency**: Goroutines, channels, select statements (planned)
-- **Advanced Features**: Interfaces, generics, error handling (planned)
 
 ### XFAIL Tests (Expected Failures)
 

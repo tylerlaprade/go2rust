@@ -3,30 +3,31 @@ mod types;
 use methods::*;
 use types::*;
 
-use std::sync::{Arc, Mutex};
+use std::cell::{RefCell};
+use std::rc::{Rc};
 
 fn main() {
         // Test Counter methods - transpiler needs to know Counter has these methods
-    let mut c = Arc::new(Mutex::new(Some(Counter { value: Arc::new(Mutex::new(Some(10))) })));
-    print!("Initial value: {}\n", (*(*c.lock().unwrap().as_mut().unwrap()).value().lock().unwrap().as_ref().unwrap()));
+    let mut c = Rc::new(RefCell::new(Some(Counter { value: Rc::new(RefCell::new(Some(10))) })));
+    print!("Initial value: {}\n", (*(*c.borrow_mut().as_mut().unwrap()).value().borrow().as_ref().unwrap()));
 
-    (*c.lock().unwrap().as_mut().unwrap()).increment();
-    print!("After increment: {}\n", (*(*c.lock().unwrap().as_mut().unwrap()).value().lock().unwrap().as_ref().unwrap()));
+    (*c.borrow_mut().as_mut().unwrap()).increment();
+    print!("After increment: {}\n", (*(*c.borrow_mut().as_mut().unwrap()).value().borrow().as_ref().unwrap()));
 
-    (*c.lock().unwrap().as_mut().unwrap()).add(Arc::new(Mutex::new(Some(5))));
-    print!("After adding 5: {}\n", (*(*c.lock().unwrap().as_mut().unwrap()).value().lock().unwrap().as_ref().unwrap()));
+    (*c.borrow_mut().as_mut().unwrap()).add(Rc::new(RefCell::new(Some(5))));
+    print!("After adding 5: {}\n", (*(*c.borrow_mut().as_mut().unwrap()).value().borrow().as_ref().unwrap()));
 
         // Test Point methods - transpiler needs to resolve method receivers
-    let mut p1 = Arc::new(Mutex::new(Some(Point { x: Arc::new(Mutex::new(Some(0))), y: Arc::new(Mutex::new(Some(0))) })));
-    let mut p2 = Arc::new(Mutex::new(Some(Point { x: Arc::new(Mutex::new(Some(3))), y: Arc::new(Mutex::new(Some(4))) })));
+    let mut p1 = Rc::new(RefCell::new(Some(Point { x: Rc::new(RefCell::new(Some(0))), y: Rc::new(RefCell::new(Some(0))) })));
+    let mut p2 = Rc::new(RefCell::new(Some(Point { x: Rc::new(RefCell::new(Some(3))), y: Rc::new(RefCell::new(Some(4))) })));
 
-    let mut dist = (*p1.lock().unwrap().as_mut().unwrap()).distance(Arc::new(Mutex::new(Some((*p2.lock().unwrap().as_mut().unwrap())))));
-    print!("Distance between points: {:.1}\n", (*dist.lock().unwrap().as_mut().unwrap()));
+    let mut dist = (*p1.borrow_mut().as_mut().unwrap()).distance(Rc::new(RefCell::new(Some((*p2.borrow_mut().as_mut().unwrap())))));
+    print!("Distance between points: {:.1}\n", (*dist.borrow_mut().as_mut().unwrap()));
 
-    (*p1.lock().unwrap().as_mut().unwrap()).r#move(Arc::new(Mutex::new(Some(1))), Arc::new(Mutex::new(Some(1))));
-    print!("After move: ({:.1}, {:.1})\n", (*(*p1.lock().unwrap().as_ref().unwrap()).x.lock().unwrap().as_ref().unwrap()), (*(*p1.lock().unwrap().as_ref().unwrap()).y.lock().unwrap().as_ref().unwrap()));
+    (*p1.borrow_mut().as_mut().unwrap()).r#move(Rc::new(RefCell::new(Some(1))), Rc::new(RefCell::new(Some(1))));
+    print!("After move: ({:.1}, {:.1})\n", (*(*p1.borrow().as_ref().unwrap()).x.borrow().as_ref().unwrap()), (*(*p1.borrow().as_ref().unwrap()).y.borrow().as_ref().unwrap()));
 
         // Test method on value vs pointer receiver
-    let mut newDist = (*p1.lock().unwrap().as_mut().unwrap()).distance(Arc::new(Mutex::new(Some((*p2.lock().unwrap().as_mut().unwrap())))));
-    print!("New distance: {:.1}\n", (*newDist.lock().unwrap().as_mut().unwrap()));
+    let mut newDist = (*p1.borrow_mut().as_mut().unwrap()).distance(Rc::new(RefCell::new(Some((*p2.borrow_mut().as_mut().unwrap())))));
+    print!("New distance: {:.1}\n", (*newDist.borrow_mut().as_mut().unwrap()));
 }

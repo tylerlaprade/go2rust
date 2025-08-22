@@ -1,30 +1,31 @@
-use std::sync::{Arc, Mutex};
+use std::cell::{RefCell};
+use std::rc::{Rc};
 
 /// Regular function for comparison
-pub fn regular_double(x: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<i32>>> {
+pub fn regular_double(x: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>> {
 
     return {
-            let __tmp_x = (*x.lock().unwrap().as_mut().unwrap());
+            let __tmp_x = (*x.borrow_mut().as_mut().unwrap());
             let __tmp_y = 2;
-            Arc::new(Mutex::new(Some(__tmp_x * __tmp_y)))
+            Rc::new(RefCell::new(Some(__tmp_x * __tmp_y)))
         };
 }
 
 /// Function that returns a function
-pub fn make_multiplier(factor: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<Box<dyn Fn(Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<i32>>> + Send + Sync>>>> {
+pub fn make_multiplier(factor: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<Box<dyn Fn(Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>>>>> {
 
-    return Arc::new(Mutex::new(Some(Box::new(move |x: Arc<Mutex<Option<i32>>>| -> Arc<Mutex<Option<i32>>> {
+    return Rc::new(RefCell::new(Some(Box::new(move |x: Rc<RefCell<Option<i32>>>| -> Rc<RefCell<Option<i32>>> {
         return {
-            let __tmp_x = (*x.lock().unwrap().as_mut().unwrap());
-            let __tmp_y = (*factor.lock().unwrap().as_mut().unwrap());
-            Arc::new(Mutex::new(Some(__tmp_x * __tmp_y)))
+            let __tmp_x = (*x.borrow_mut().as_mut().unwrap());
+            let __tmp_y = (*factor.borrow_mut().as_mut().unwrap());
+            Rc::new(RefCell::new(Some(__tmp_x * __tmp_y)))
         };
-    }) as Box<dyn Fn(Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<i32>>> + Send + Sync>)));
+    }) as Box<dyn Fn(Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>>)));
 }
 
 pub fn init() {
         // Assign function to variable in init
-    { let new_val = Arc::new(Mutex::new(Some(Box::new(move |s: Arc<Mutex<Option<String>>>| -> Arc<Mutex<Option<String>>> {
-        return Arc::new(Mutex::new(Some(format!("Dynamic: {}", (*s.lock().unwrap().as_mut().unwrap())))));
-    }) as Box<dyn Fn(Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<String>>> + Send + Sync>))); *DYNAMIC_FUNC.lock().unwrap() = Some(new_val); };
+    { let new_val = Rc::new(RefCell::new(Some(Box::new(move |s: Rc<RefCell<Option<String>>>| -> Rc<RefCell<Option<String>>> {
+        return Rc::new(RefCell::new(Some(format!("Dynamic: {}", (*s.borrow_mut().as_mut().unwrap())))));
+    }) as Box<dyn Fn(Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>>>))); *DYNAMIC_FUNC.borrow_mut() = Some(new_val); };
 }

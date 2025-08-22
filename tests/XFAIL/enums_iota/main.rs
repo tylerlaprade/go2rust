@@ -1,4 +1,5 @@
-use std::sync::{Arc, Mutex};
+use std::cell::{RefCell};
+use std::rc::{Rc};
 
 const STATE_IDLE: ServerState = 0;
 const STATE_CONNECTED: i32 = 1;
@@ -7,32 +8,32 @@ const STATE_RETRYING: i32 = 3;
 
 
 #[derive(Debug, Clone)]
-struct ServerState(Arc<Mutex<Option<i32>>>);
+struct ServerState(Rc<RefCell<Option<i32>>>);
 
 impl Display for ServerState {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        write!(f, "{}", self.0.lock().unwrap().as_ref().unwrap())
+        write!(f, "{}", self.0.borrow().as_ref().unwrap())
     }
 }
 
 
 impl ServerState {
-    pub fn string(&self) -> Arc<Mutex<Option<String>>> {
-        return Arc::new(Mutex::new(Some((*(*stateName.lock().unwrap().as_ref().unwrap()).get(&(*self.0.lock().unwrap().as_ref().unwrap())).unwrap().lock().unwrap().as_ref().unwrap()))));
+    pub fn string(&self) -> Rc<RefCell<Option<String>>> {
+        return Rc::new(RefCell::new(Some((*(*stateName.borrow().as_ref().unwrap()).get(&(*self.0.borrow().as_ref().unwrap())).unwrap().borrow().as_ref().unwrap()))));
     }
 }
 
 fn main() {
     let mut ns = transition(StateIdle.clone());
-    println!("{}", (*ns.lock().unwrap().as_mut().unwrap()));
+    println!("{}", (*ns.borrow_mut().as_mut().unwrap()));
 
     let mut ns2 = transition(ns.clone());
-    println!("{}", (*ns2.lock().unwrap().as_mut().unwrap()));
+    println!("{}", (*ns2.borrow_mut().as_mut().unwrap()));
 }
 
-pub fn transition(s: Arc<Mutex<Option<ServerState>>>) -> Arc<Mutex<Option<ServerState>>> {
+pub fn transition(s: Rc<RefCell<Option<ServerState>>>) -> Rc<RefCell<Option<ServerState>>> {
 
-    match (*s.lock().unwrap().as_mut().unwrap()) {
+    match (*s.borrow_mut().as_mut().unwrap()) {
         STATE_IDLE => {
             return StateConnected.clone();
         }
@@ -43,7 +44,7 @@ pub fn transition(s: Arc<Mutex<Option<ServerState>>>) -> Arc<Mutex<Option<Server
             return StateError.clone();
         }
         _ => {
-            panic!("{}", Arc::new(Mutex::new(Some(Box::new(format!("unknown state: {}", (*s.lock().unwrap().as_mut().unwrap()))) as Box<dyn Error + Send + Sync>))));
+            panic!("{}", Rc::new(RefCell::new(Some(Some(Box::new(format!("unknown state: {}", (*s.borrow_mut().as_mut().unwrap()))) as Box<dyn Error + Send + Sync>))));
         }
     }
 }

@@ -1,8 +1,9 @@
 use std::any::Any;
-use std::sync::{Arc, Mutex};
+use std::cell::{RefCell};
+use std::rc::{Rc};
 
-pub fn basic_switch(day: Arc<Mutex<Option<i32>>>) {
-    match (*day.lock().unwrap().as_mut().unwrap()) {
+pub fn basic_switch(day: Rc<RefCell<Option<i32>>>) {
+    match (*day.borrow_mut().as_mut().unwrap()) {
         1 => {
             println!("{}", "Monday".to_string());
         }
@@ -28,8 +29,8 @@ pub fn basic_switch(day: Arc<Mutex<Option<i32>>>) {
 }
 
 pub fn switch_with_expression() {
-    let mut x = Arc::new(Mutex::new(Some(10)));
-    match (*x.lock().unwrap().as_mut().unwrap()) * 2 {
+    let mut x = Rc::new(RefCell::new(Some(10)));
+    match (*x.borrow_mut().as_mut().unwrap()) * 2 {
         20 => {
             println!("{}", "x * 2 equals 20".to_string());
         }
@@ -43,18 +44,18 @@ pub fn switch_with_expression() {
 }
 
 pub fn switch_without_expression() {
-    let mut score = Arc::new(Mutex::new(Some(85)));
+    let mut score = Rc::new(RefCell::new(Some(85)));
     match true {
-        true if (*score.lock().unwrap().as_mut().unwrap()) >= 90 => {
+        true if (*score.borrow_mut().as_mut().unwrap()) >= 90 => {
             println!("{}", "Grade: A".to_string());
         }
-        true if (*score.lock().unwrap().as_mut().unwrap()) >= 80 => {
+        true if (*score.borrow_mut().as_mut().unwrap()) >= 80 => {
             println!("{}", "Grade: B".to_string());
         }
-        true if (*score.lock().unwrap().as_mut().unwrap()) >= 70 => {
+        true if (*score.borrow_mut().as_mut().unwrap()) >= 70 => {
             println!("{}", "Grade: C".to_string());
         }
-        true if (*score.lock().unwrap().as_mut().unwrap()) >= 60 => {
+        true if (*score.borrow_mut().as_mut().unwrap()) >= 60 => {
             println!("{}", "Grade: D".to_string());
         }
         _ => {
@@ -63,8 +64,8 @@ pub fn switch_without_expression() {
     }
 }
 
-pub fn switch_with_fallthrough(num: Arc<Mutex<Option<i32>>>) {
-    match (*num.lock().unwrap().as_mut().unwrap()) {
+pub fn switch_with_fallthrough(num: Rc<RefCell<Option<i32>>>) {
+    match (*num.borrow_mut().as_mut().unwrap()) {
         1 => {
             println!("{}", "One".to_string());
             // TODO: fallthrough not supported
@@ -82,15 +83,15 @@ pub fn switch_with_fallthrough(num: Arc<Mutex<Option<i32>>>) {
     }
 }
 
-pub fn type_switch(value: Arc<Mutex<Option<Box<dyn Any>>>>) {
+pub fn type_switch(value: Rc<RefCell<Option<Box<dyn Any>>>>) {
     // TODO: Unhandled statement type: TypeSwitchStmt
 }
 
 fn main() {
     println!("{}", "=== Basic switch ===".to_string());
-    basic_switch(Arc::new(Mutex::new(Some(1))));
-    basic_switch(Arc::new(Mutex::new(Some(6))));
-    basic_switch(Arc::new(Mutex::new(Some(10))));
+    basic_switch(Rc::new(RefCell::new(Some(1))));
+    basic_switch(Rc::new(RefCell::new(Some(6))));
+    basic_switch(Rc::new(RefCell::new(Some(10))));
 
     println!("{}", "\n=== Switch with expression ===".to_string());
     switch_with_expression();
@@ -99,14 +100,14 @@ fn main() {
     switch_without_expression();
 
     println!("{}", "\n=== Switch with fallthrough ===".to_string());
-    switch_with_fallthrough(Arc::new(Mutex::new(Some(1))));
+    switch_with_fallthrough(Rc::new(RefCell::new(Some(1))));
     println!("{}", "---".to_string());
-    switch_with_fallthrough(Arc::new(Mutex::new(Some(4))));
+    switch_with_fallthrough(Rc::new(RefCell::new(Some(4))));
 
     println!("{}", "\n=== Type switch ===".to_string());
-    type_switch(Arc::new(Mutex::new(Some(42))));
-    type_switch(Arc::new(Mutex::new(Some("hello".to_string()))));
+    type_switch(Rc::new(RefCell::new(Some(42))));
+    type_switch(Rc::new(RefCell::new(Some("hello".to_string()))));
     type_switch(true.clone());
-    type_switch(Arc::new(Mutex::new(Some(3.14))));
-    type_switch(Arc::new(Mutex::new(Some(Arc::new(Mutex::new(Some(vec![1, 2, 3])))))));
+    type_switch(Rc::new(RefCell::new(Some(3.14))));
+    type_switch(Rc::new(RefCell::new(Some(Rc::new(RefCell::new(Some(vec![1, 2, 3])))))));
 }

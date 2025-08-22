@@ -1,82 +1,83 @@
-use std::sync::{Arc, Mutex};
+use std::cell::{RefCell};
+use std::rc::{Rc};
 
 /// Base types with methods
 #[derive(Debug, Clone, Default)]
 struct Logger {
-    prefix: Arc<Mutex<Option<String>>>,
+    prefix: Rc<RefCell<Option<String>>>,
 }
 
 #[derive(Debug, Clone, Default)]
 struct Counter {
-    count: Arc<Mutex<Option<i32>>>,
+    count: Rc<RefCell<Option<i32>>>,
 }
 
 /// Type that embeds both Logger and Counter
 #[derive(Debug, Clone, Default)]
 struct Service {
-    logger: Arc<Mutex<Option<Logger>>>,
-    counter: Arc<Mutex<Option<Counter>>>,
-    name: Arc<Mutex<Option<String>>>,
+    logger: Rc<RefCell<Option<Logger>>>,
+    counter: Rc<RefCell<Option<Counter>>>,
+    name: Rc<RefCell<Option<String>>>,
 }
 
 /// Type with multiple levels of embedding
 #[derive(Debug, Clone, Default)]
 struct Base {
-    id: Arc<Mutex<Option<i32>>>,
+    id: Rc<RefCell<Option<i32>>>,
 }
 
 #[derive(Debug, Clone, Default)]
 struct Middle {
-    base: Arc<Mutex<Option<Base>>>,
-    data: Arc<Mutex<Option<String>>>,
+    base: Rc<RefCell<Option<Base>>>,
+    data: Rc<RefCell<Option<String>>>,
 }
 
 #[derive(Debug, Clone, Default)]
 struct Top {
-    middle: Arc<Mutex<Option<Middle>>>,
-    extra: Arc<Mutex<Option<String>>>,
+    middle: Rc<RefCell<Option<Middle>>>,
+    extra: Rc<RefCell<Option<String>>>,
 }
 
 impl Logger {
-    pub fn log(&self, msg: Arc<Mutex<Option<String>>>) {
-        print!("[{}] {}\n", (*self.prefix.lock().unwrap().as_ref().unwrap()), (*msg.lock().unwrap().as_mut().unwrap()));
+    pub fn log(&self, msg: Rc<RefCell<Option<String>>>) {
+        print!("[{}] {}\n", (*self.prefix.borrow().as_ref().unwrap()), (*msg.borrow_mut().as_mut().unwrap()));
     }
 
-    pub fn set_prefix(&mut self, prefix: Arc<Mutex<Option<String>>>) {
-        { let new_val = (*prefix.lock().unwrap().as_mut().unwrap()); *self.prefix.lock().unwrap() = Some(new_val); };
+    pub fn set_prefix(&mut self, prefix: Rc<RefCell<Option<String>>>) {
+        { let new_val = (*prefix.borrow_mut().as_mut().unwrap()); *self.prefix.borrow_mut() = Some(new_val); };
     }
 }
 
 impl Counter {
-    pub fn value(&self) -> Arc<Mutex<Option<i32>>> {
+    pub fn value(&self) -> Rc<RefCell<Option<i32>>> {
         return self.count.clone();
     }
 
     pub fn increment(&mut self) {
-        { let mut guard = self.count.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
+        { let mut guard = self.count.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
 
-    pub fn add(&mut self, n: Arc<Mutex<Option<i32>>>) {
-        { let mut guard = self.count.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + (*n.lock().unwrap().as_mut().unwrap())); };
+    pub fn add(&mut self, n: Rc<RefCell<Option<i32>>>) {
+        { let mut guard = self.count.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + (*n.borrow_mut().as_mut().unwrap())); };
     }
 }
 
 impl Service {
     /// Service's own method
-    pub fn name(&self) -> Arc<Mutex<Option<String>>> {
+    pub fn name(&self) -> Rc<RefCell<Option<String>>> {
         return self.name.clone();
     }
 
     /// Method that shadows embedded method
-    pub fn value(&self) -> Arc<Mutex<Option<i32>>> {
+    pub fn value(&self) -> Rc<RefCell<Option<i32>>> {
                 // This should shadow Counter.Value()
-        return Arc::new(Mutex::new(Some((*(*(*self.logger.lock().unwrap().as_ref().unwrap()).counter.clone().lock().unwrap().as_mut().unwrap()).value().lock().unwrap().as_ref().unwrap()) * 10)));
+        return Rc::new(RefCell::new(Some((*(*(*self.logger.borrow().as_ref().unwrap()).counter.clone().borrow().as_mut().unwrap()).value().borrow().as_ref().unwrap()) * 10)));
     }
 
-    pub fn add(&mut self, n: Arc<Mutex<Option<i32>>>) {
+    pub fn add(&mut self, n: Rc<RefCell<Option<i32>>>) {
         // Forward to embedded type's method
         let embedded = self.counter.clone();
-        let mut guard = embedded.lock().unwrap();
+        let mut guard = embedded.borrow_mut();
         let embedded_ref = guard.as_mut().unwrap();
         embedded_ref.add(n)
     }
@@ -84,85 +85,85 @@ impl Service {
     pub fn increment(&mut self) {
         // Forward to embedded type's method
         let embedded = self.counter.clone();
-        let mut guard = embedded.lock().unwrap();
+        let mut guard = embedded.borrow_mut();
         let embedded_ref = guard.as_mut().unwrap();
         embedded_ref.increment()
     }
 
-    pub fn log(&self, msg: Arc<Mutex<Option<String>>>) {
+    pub fn log(&self, msg: Rc<RefCell<Option<String>>>) {
         // Forward to embedded type's method
         let embedded = self.logger.clone();
-        let mut guard = embedded.lock().unwrap();
+        let mut guard = embedded.borrow_mut();
         let embedded_ref = guard.as_mut().unwrap();
         embedded_ref.log(msg)
     }
 
-    pub fn set_prefix(&mut self, prefix: Arc<Mutex<Option<String>>>) {
+    pub fn set_prefix(&mut self, prefix: Rc<RefCell<Option<String>>>) {
         // Forward to embedded type's method
         let embedded = self.logger.clone();
-        let mut guard = embedded.lock().unwrap();
+        let mut guard = embedded.borrow_mut();
         let embedded_ref = guard.as_mut().unwrap();
         embedded_ref.set_prefix(prefix)
     }
 }
 
 impl Base {
-    pub fn get_i_d(&self) -> Arc<Mutex<Option<i32>>> {
+    pub fn get_i_d(&self) -> Rc<RefCell<Option<i32>>> {
         return self.id.clone();
     }
 
-    pub fn set_i_d(&mut self, id: Arc<Mutex<Option<i32>>>) {
-        { let new_val = (*id.lock().unwrap().as_mut().unwrap()); *self.id.lock().unwrap() = Some(new_val); };
+    pub fn set_i_d(&mut self, id: Rc<RefCell<Option<i32>>>) {
+        { let new_val = (*id.borrow_mut().as_mut().unwrap()); *self.id.borrow_mut() = Some(new_val); };
     }
 }
 
 impl Middle {
-    pub fn get_data(&self) -> Arc<Mutex<Option<String>>> {
+    pub fn get_data(&self) -> Rc<RefCell<Option<String>>> {
         return self.data.clone();
     }
 
-    pub fn get_i_d(&self) -> Arc<Mutex<Option<i32>>> {
+    pub fn get_i_d(&self) -> Rc<RefCell<Option<i32>>> {
         // Forward to embedded type's method
         let embedded = self.base.clone();
-        let mut guard = embedded.lock().unwrap();
+        let mut guard = embedded.borrow_mut();
         let embedded_ref = guard.as_mut().unwrap();
         embedded_ref.get_i_d()
     }
 
-    pub fn set_i_d(&mut self, id: Arc<Mutex<Option<i32>>>) {
+    pub fn set_i_d(&mut self, id: Rc<RefCell<Option<i32>>>) {
         // Forward to embedded type's method
         let embedded = self.base.clone();
-        let mut guard = embedded.lock().unwrap();
+        let mut guard = embedded.borrow_mut();
         let embedded_ref = guard.as_mut().unwrap();
         embedded_ref.set_i_d(id)
     }
 }
 
 impl Top {
-    pub fn get_extra(&self) -> Arc<Mutex<Option<String>>> {
+    pub fn get_extra(&self) -> Rc<RefCell<Option<String>>> {
         return self.extra.clone();
     }
 
-    pub fn get_data(&self) -> Arc<Mutex<Option<String>>> {
+    pub fn get_data(&self) -> Rc<RefCell<Option<String>>> {
         // Forward to embedded type's method
         let embedded = self.middle.clone();
-        let mut guard = embedded.lock().unwrap();
+        let mut guard = embedded.borrow_mut();
         let embedded_ref = guard.as_mut().unwrap();
         embedded_ref.get_data()
     }
 
-    pub fn get_i_d(&self) -> Arc<Mutex<Option<i32>>> {
+    pub fn get_i_d(&self) -> Rc<RefCell<Option<i32>>> {
         // Forward to embedded type's method
         let embedded = self.middle.clone();
-        let mut guard = embedded.lock().unwrap();
+        let mut guard = embedded.borrow_mut();
         let embedded_ref = guard.as_mut().unwrap();
         embedded_ref.get_i_d()
     }
 
-    pub fn set_i_d(&mut self, id: Arc<Mutex<Option<i32>>>) {
+    pub fn set_i_d(&mut self, id: Rc<RefCell<Option<i32>>>) {
         // Forward to embedded type's method
         let embedded = self.middle.clone();
-        let mut guard = embedded.lock().unwrap();
+        let mut guard = embedded.borrow_mut();
         let embedded_ref = guard.as_mut().unwrap();
         embedded_ref.set_i_d(id)
     }
@@ -171,44 +172,44 @@ impl Top {
 fn main() {
         // Test basic method promotion
     println!("{}", "=== Basic method promotion ===".to_string());
-    let mut svc = Arc::new(Mutex::new(Some(Service { logger: Arc::new(Mutex::new(Some(Logger { prefix: Arc::new(Mutex::new(Some("SVC".to_string()))) }))), counter: Arc::new(Mutex::new(Some(Counter { count: Arc::new(Mutex::new(Some(0))) }))), name: Arc::new(Mutex::new(Some("MyService".to_string()))) })));
+    let mut svc = Rc::new(RefCell::new(Some(Service { logger: Rc::new(RefCell::new(Some(Logger { prefix: Rc::new(RefCell::new(Some("SVC".to_string()))) }))), counter: Rc::new(RefCell::new(Some(Counter { count: Rc::new(RefCell::new(Some(0))) }))), name: Rc::new(RefCell::new(Some("MyService".to_string()))) })));
 
         // Call promoted methods from Logger
-    (*svc.lock().unwrap().as_mut().unwrap()).log(Arc::new(Mutex::new(Some("Service started".to_string()))));
-    (*svc.lock().unwrap().as_mut().unwrap()).set_prefix(Arc::new(Mutex::new(Some("SERVICE".to_string()))));
-    (*svc.lock().unwrap().as_mut().unwrap()).log(Arc::new(Mutex::new(Some("Prefix changed".to_string()))));
+    (*svc.borrow_mut().as_mut().unwrap()).log(Rc::new(RefCell::new(Some("Service started".to_string()))));
+    (*svc.borrow_mut().as_mut().unwrap()).set_prefix(Rc::new(RefCell::new(Some("SERVICE".to_string()))));
+    (*svc.borrow_mut().as_mut().unwrap()).log(Rc::new(RefCell::new(Some("Prefix changed".to_string()))));
 
         // Call promoted methods from Counter
-    (*svc.lock().unwrap().as_mut().unwrap()).increment();
-    (*svc.lock().unwrap().as_mut().unwrap()).add(Arc::new(Mutex::new(Some(5))));
-    print!("Counter value (via promoted method): {}\n", (*(*(*(*svc.lock().unwrap().as_ref().unwrap()).logger.lock().unwrap().as_ref().unwrap()).counter.lock().unwrap().as_mut().unwrap()).value().lock().unwrap().as_ref().unwrap()));
+    (*svc.borrow_mut().as_mut().unwrap()).increment();
+    (*svc.borrow_mut().as_mut().unwrap()).add(Rc::new(RefCell::new(Some(5))));
+    print!("Counter value (via promoted method): {}\n", (*(*(*(*svc.borrow().as_ref().unwrap()).logger.borrow().as_ref().unwrap()).counter.borrow().as_mut().unwrap()).value().borrow().as_ref().unwrap()));
 
         // Call Service's own methods
-    print!("Service name: {}\n", (*(*svc.lock().unwrap().as_mut().unwrap()).name().lock().unwrap().as_ref().unwrap()));
-    print!("Shadowed Value method: {}\n", (*(*svc.lock().unwrap().as_mut().unwrap()).value().lock().unwrap().as_ref().unwrap()));
+    print!("Service name: {}\n", (*(*svc.borrow_mut().as_mut().unwrap()).name().borrow().as_ref().unwrap()));
+    print!("Shadowed Value method: {}\n", (*(*svc.borrow_mut().as_mut().unwrap()).value().borrow().as_ref().unwrap()));
 
         // Test method promotion with pointers
     println!("{}", "\n=== Method promotion with pointers ===".to_string());
-    let mut svcPtr = Arc::new(Mutex::new(Some(Service { logger: Arc::new(Mutex::new(Some(Logger { prefix: Arc::new(Mutex::new(Some("PTR".to_string()))) }))), counter: Arc::new(Mutex::new(Some(Counter { count: Arc::new(Mutex::new(Some(10))) }))), name: Arc::new(Mutex::new(Some("PointerService".to_string()))) })));
+    let mut svcPtr = Rc::new(RefCell::new(Some(Service { logger: Rc::new(RefCell::new(Some(Logger { prefix: Rc::new(RefCell::new(Some("PTR".to_string()))) }))), counter: Rc::new(RefCell::new(Some(Counter { count: Rc::new(RefCell::new(Some(10))) }))), name: Rc::new(RefCell::new(Some("PointerService".to_string()))) })));
 
-    (*svcPtr.lock().unwrap().as_mut().unwrap()).log(Arc::new(Mutex::new(Some("Pointer service".to_string()))));
-    (*svcPtr.lock().unwrap().as_mut().unwrap()).increment();
-    print!("Pointer service counter: {}\n", (*(*(*(*svcPtr.lock().unwrap().as_ref().unwrap()).logger.lock().unwrap().as_ref().unwrap()).counter.lock().unwrap().as_mut().unwrap()).value().lock().unwrap().as_ref().unwrap()));
+    (*svcPtr.borrow_mut().as_mut().unwrap()).log(Rc::new(RefCell::new(Some("Pointer service".to_string()))));
+    (*svcPtr.borrow_mut().as_mut().unwrap()).increment();
+    print!("Pointer service counter: {}\n", (*(*(*(*svcPtr.borrow().as_ref().unwrap()).logger.borrow().as_ref().unwrap()).counter.borrow().as_mut().unwrap()).value().borrow().as_ref().unwrap()));
 
         // Test multi-level embedding
     println!("{}", "\n=== Multi-level embedding ===".to_string());
-    let mut top = Arc::new(Mutex::new(Some(Top { middle: Arc::new(Mutex::new(Some(Middle { base: Arc::new(Mutex::new(Some(Base { id: Arc::new(Mutex::new(Some(100))) }))), data: Arc::new(Mutex::new(Some("middle data".to_string()))) }))), extra: Arc::new(Mutex::new(Some("extra data".to_string()))) })));
+    let mut top = Rc::new(RefCell::new(Some(Top { middle: Rc::new(RefCell::new(Some(Middle { base: Rc::new(RefCell::new(Some(Base { id: Rc::new(RefCell::new(Some(100))) }))), data: Rc::new(RefCell::new(Some("middle data".to_string()))) }))), extra: Rc::new(RefCell::new(Some("extra data".to_string()))) })));
 
         // Methods promoted from Base through Middle
-    print!("ID (promoted from Base): {}\n", (*(*top.lock().unwrap().as_mut().unwrap()).get_i_d().lock().unwrap().as_ref().unwrap()));
-    (*top.lock().unwrap().as_mut().unwrap()).set_i_d(Arc::new(Mutex::new(Some(200))));
-    print!("ID after SetID: {}\n", (*(*top.lock().unwrap().as_mut().unwrap()).get_i_d().lock().unwrap().as_ref().unwrap()));
+    print!("ID (promoted from Base): {}\n", (*(*top.borrow_mut().as_mut().unwrap()).get_i_d().borrow().as_ref().unwrap()));
+    (*top.borrow_mut().as_mut().unwrap()).set_i_d(Rc::new(RefCell::new(Some(200))));
+    print!("ID after SetID: {}\n", (*(*top.borrow_mut().as_mut().unwrap()).get_i_d().borrow().as_ref().unwrap()));
 
         // Methods promoted from Middle
-    print!("Data (promoted from Middle): {}\n", (*(*top.lock().unwrap().as_mut().unwrap()).get_data().lock().unwrap().as_ref().unwrap()));
+    print!("Data (promoted from Middle): {}\n", (*(*top.borrow_mut().as_mut().unwrap()).get_data().borrow().as_ref().unwrap()));
 
         // Top's own method
-    print!("Extra: {}\n", (*(*top.lock().unwrap().as_mut().unwrap()).get_extra().lock().unwrap().as_ref().unwrap()));
+    print!("Extra: {}\n", (*(*top.borrow_mut().as_mut().unwrap()).get_extra().borrow().as_ref().unwrap()));
 
         // Test with embedded pointer types would go here
         // but local type definitions with methods aren't supported in functions

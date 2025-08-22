@@ -1,13 +1,14 @@
+use std::cell::{RefCell};
 use std::cmp::Ord;
 use std::collections::HashMap;
 use std::fmt::{Display};
-use std::sync::{Arc, Mutex};
+use std::rc::{Rc};
 
-fn format_map<K: Display + Ord + Clone, V>(map: &Arc<Mutex<Option<HashMap<K, Arc<Mutex<Option<V>>>>>>>) -> String 
+fn format_map<K: Display + Ord + Clone, V>(map: &Rc<RefCell<Option<HashMap<K, Rc<RefCell<Option<V>>>>>>>) -> String 
 where
     V: Display,
 {
-    let guard = map.lock().unwrap();
+    let guard = map.borrow();
     if let Some(ref m) = *guard {
         let mut items: Vec<_> = m.iter().collect();
         items.sort_by_key(|(k, _)| (*k).clone());
@@ -15,7 +16,7 @@ where
         let formatted: Vec<String> = items
             .into_iter()
             .map(|(k, v)| {
-                let v_guard = v.lock().unwrap();
+                let v_guard = v.borrow();
                 if let Some(ref val) = *v_guard {
                     format!("{}:{}", k, val)
                 } else {
@@ -31,17 +32,17 @@ where
 }
 
 fn main() {
-    let mut m = Arc::new(Mutex::new(Some(HashMap::<String, Arc<Mutex<Option<i32>>>>::new())));
-    (*m.lock().unwrap().as_mut().unwrap()).insert("k1".to_string(), Arc::new(Mutex::new(Some(7))));
-    (*m.lock().unwrap().as_mut().unwrap()).insert("k2".to_string(), Arc::new(Mutex::new(Some(13))));
+    let mut m = Rc::new(RefCell::new(Some(HashMap::<String, Rc<RefCell<Option<i32>>>>::new())));
+    (*m.borrow_mut().as_mut().unwrap()).insert("k1".to_string(), Rc::new(RefCell::new(Some(7))));
+    (*m.borrow_mut().as_mut().unwrap()).insert("k2".to_string(), Rc::new(RefCell::new(Some(13))));
     println!("{} {}", "map:".to_string(), format_map(&m));
 
-    let mut v1 = Arc::new(Mutex::new(Some((*(*m.lock().unwrap().as_ref().unwrap()).get(&"k1".to_string()).unwrap().lock().unwrap().as_ref().unwrap()))));
-    println!("{} {}", "v1:".to_string(), (*v1.lock().unwrap().as_mut().unwrap()));
+    let mut v1 = Rc::new(RefCell::new(Some((*(*m.borrow().as_ref().unwrap()).get(&"k1".to_string()).unwrap().borrow().as_ref().unwrap()))));
+    println!("{} {}", "v1:".to_string(), (*v1.borrow_mut().as_mut().unwrap()));
 
-    (*m.lock().unwrap().as_mut().unwrap()).remove(&"k2".to_string());
+    (*m.borrow_mut().as_mut().unwrap()).remove(&"k2".to_string());
     println!("{} {}", "map:".to_string(), format_map(&m));
 
-    let (_, mut prs) = match (*m.lock().unwrap().as_ref().unwrap()).get(&"k2".to_string()) { Some(v) => (v.clone(), Arc::new(Mutex::new(Some(true)))), None => (Arc::new(Mutex::new(Some(0))), Arc::new(Mutex::new(Some(false)))) };
-    println!("{} {}", "prs:".to_string(), (*prs.lock().unwrap().as_mut().unwrap()));
+    let (_, mut prs) = match (*m.borrow().as_ref().unwrap()).get(&"k2".to_string()) { /* MAP_COMMA_OK */ Some(v) => (v.clone(), Rc::new(RefCell::new(Some(true)))), None => (Rc::new(RefCell::new(Some(0))), Rc::new(RefCell::new(Some(false)))) };
+    println!("{} {}", "prs:".to_string(), (*prs.borrow_mut().as_mut().unwrap()));
 }

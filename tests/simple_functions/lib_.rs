@@ -1,16 +1,17 @@
-use std::sync::{Arc, Mutex};
+use std::cell::{RefCell};
+use std::rc::{Rc};
 
-pub fn get_hello() -> Arc<Mutex<Option<String>>> {
+pub fn get_hello() -> Rc<RefCell<Option<String>>> {
 
-    return Arc::new(Mutex::new(Some("Hello".to_string())));
+    return Rc::new(RefCell::new(Some("Hello".to_string())));
 }
 
-pub fn get_world() -> Arc<Mutex<Option<String>>> {
+pub fn get_world() -> Rc<RefCell<Option<String>>> {
 
-    return Arc::new(Mutex::new(Some("World".to_string())));
+    return Rc::new(RefCell::new(Some("World".to_string())));
 }
 
-pub fn get_magic_number() -> Arc<Mutex<Option<i32>>> {
+pub fn get_magic_number() -> Rc<RefCell<Option<i32>>> {
 
-    return Arc::new(Mutex::new(Some(42)));
+    return Rc::new(RefCell::new(Some(42)));
 }
