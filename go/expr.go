@@ -920,9 +920,20 @@ func TranspileFuncLit(out *strings.Builder, funcLit *ast.FuncLit) {
 	// The clones need to be generated at the statement level
 	captureRenames := make(map[string]string)
 	for varName := range captured {
-		// For now, just use the original names
-		// A proper implementation would handle this at statement level
-		captureRenames[varName] = varName
+		// Check if we already have renames set up (e.g., from defer)
+		// This allows statement-level handlers to pre-configure renames
+		if currentCaptureRenames != nil {
+			if existingRename, exists := currentCaptureRenames[varName]; exists && existingRename != "" {
+				// Use the existing rename
+				captureRenames[varName] = existingRename
+			} else {
+				// No existing rename for this variable, use identity
+				captureRenames[varName] = varName
+			}
+		} else {
+			// No existing renames at all, use identity
+			captureRenames[varName] = varName
+		}
 	}
 
 	// Store current capture renames for nested transpilation

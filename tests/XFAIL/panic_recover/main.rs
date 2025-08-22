@@ -33,8 +33,8 @@ pub fn safe_divide(a: Rc<RefCell<Option<f64>>>, b: Rc<RefCell<Option<f64>>>) -> 
         (Rc::new(RefCell::new(Some(Box::new(move || {
         let mut r = Rc::new(RefCell::new(None))::<String>));
     if (*r.borrow()).is_some() {
-        { let new_val = Rc::new(RefCell::new(Some(Some(Box::new(format!("panic occurred: {}", (*r.borrow_mut().as_mut().unwrap()))) as Box<dyn Error + Send + Sync>))); *err.borrow_mut() = Some(new_val); };
-        { let new_val = 0; *result.borrow_mut() = Some(new_val); };
+        { let new_val = Rc::new(RefCell::new(Some(Some(Box::new(format!("panic occurred: {}", (*r.borrow_mut().as_mut().unwrap()))) as Box<dyn Error + Send + Sync>))); *err_defer_captured.borrow_mut() = Some(new_val); };
+        { let new_val = 0; *result_defer_captured.borrow_mut() = Some(new_val); };
     }
     }) as Box<dyn Fn() -> ()>))).borrow().as_ref().unwrap())();
     }));
@@ -68,8 +68,8 @@ pub fn process_slice(slice: Rc<RefCell<Option<Vec<i32>>>>, index: Rc<RefCell<Opt
         (Rc::new(RefCell::new(Some(Box::new(move || {
         let mut r = Rc::new(RefCell::new(None))::<String>));
     if (*r.borrow()).is_some() {
-        { let new_val = Rc::new(RefCell::new(Some(Some(Box::new(format!("index out of bounds: {}", (*r.borrow_mut().as_mut().unwrap()))) as Box<dyn Error + Send + Sync>))); *err.borrow_mut() = Some(new_val); };
-        { let new_val = -1; *value.borrow_mut() = Some(new_val); };
+        { let new_val = Rc::new(RefCell::new(Some(Some(Box::new(format!("index out of bounds: {}", (*r.borrow_mut().as_mut().unwrap()))) as Box<dyn Error + Send + Sync>))); *err_defer_captured.borrow_mut() = Some(new_val); };
+        { let new_val = -1; *value_defer_captured.borrow_mut() = Some(new_val); };
     }
     }) as Box<dyn Fn() -> ()>))).borrow().as_ref().unwrap())();
     }));

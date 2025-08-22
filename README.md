@@ -110,7 +110,7 @@ For unimplemented features, the transpiler generates TODO comments:
 | **`default` - Default clauses** | |
 | └ Switch default | ✅ |
 | └ Select default | ❌ |
-| **`defer` - Defer statements** | ❌ |
+| **`defer` - Defer statements** | ✅ |
 | **`else` - Else clauses** | ✅ |
 | **`fallthrough` - Fallthrough statements** | ❌ |
 | **`for` - For loops** | |

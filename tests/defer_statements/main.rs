@@ -38,7 +38,7 @@ pub fn defer_with_variables() {
     let mut x = Rc::new(RefCell::new(Some(10)));
     let x_defer_captured = x.clone(); __defer_stack.push(Box::new(move || {
         (Rc::new(RefCell::new(Some(Box::new(move || {
-        println!("{} {}", "Deferred x:".to_string(), (*x.borrow_mut().as_mut().unwrap()));
+        println!("{} {}", "Deferred x:".to_string(), (*x_defer_captured.borrow_mut().as_mut().unwrap()));
     }) as Box<dyn Fn() -> ()>))).borrow().as_ref().unwrap())();
     }));
 
@@ -57,7 +57,7 @@ pub fn defer_in_loop() {
     println!("{}", "Defer in loop:".to_string());
     let mut i = Rc::new(RefCell::new(Some(0)));
     while (*i.borrow_mut().as_mut().unwrap()) < 3 {
-        let __defer_arg_0 = i.clone(); __defer_stack.push(Box::new(move || {
+        let __defer_arg_0 = Rc::new(RefCell::new(Some((*i.borrow().as_ref().unwrap()).clone()))); __defer_stack.push(Box::new(move || {
         (move |val: Rc<RefCell<Option<i32>>>| {
         print!("Deferred loop value: {}\n", (*val.borrow_mut().as_mut().unwrap()));; 
         })(__defer_arg_0);

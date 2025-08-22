@@ -1502,13 +1502,20 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				out.WriteString(" = ")
 
 				// Check if argument needs wrapping
+				// For defer arguments, we need to capture the VALUE at this moment,
+				// not a reference that could change later
 				if ident, ok := arg.(*ast.Ident); ok && ident.Name != "nil" && ident.Name != "_" {
 					// Check if this is a variable (not a constant)
 					if _, isRangeVar := rangeLoopVars[ident.Name]; !isRangeVar {
 						if _, isLocalConst := localConstants[ident.Name]; !isLocalConst {
-							// It's a variable, clone it
+							// It's a variable - capture its current value, not the reference
+							// This ensures each defer gets the value at the time of deferring
+							WriteWrapperPrefix(out)
+							out.WriteString("(*")
 							out.WriteString(ident.Name)
-							out.WriteString(".clone()")
+							WriteBorrowMethod(out, false)
+							out.WriteString(".as_ref().unwrap()).clone()")
+							WriteWrapperSuffix(out)
 						} else {
 							// It's a constant, wrap it
 							WriteWrapperPrefix(out)

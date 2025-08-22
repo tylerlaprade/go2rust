@@ -299,6 +299,10 @@ run_xfail_test() {
     run_test "tests/constants_basic"
 }
 
+@test "defer_statements" {
+    run_test "tests/defer_statements"
+}
+
 @test "error_simple" {
     run_test "tests/error_simple"
 }
@@ -505,10 +509,6 @@ run_xfail_test() {
 
 @test "XFAIL: crypto_hash" {
     run_xfail_test "tests/XFAIL/crypto_hash"
-}
-
-@test "XFAIL: defer_statements" {
-    run_xfail_test "tests/XFAIL/defer_statements"
 }
 
 @test "XFAIL: embedded_method_promotion" {

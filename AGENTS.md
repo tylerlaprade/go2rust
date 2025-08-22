@@ -112,10 +112,12 @@ The test script handles:
 
 ## Recent Progress (2025-08-21)
 
+- **Defer statements fully working**: Fixed variable capture and argument evaluation, LIFO execution order correct
+  - Closures now respect pre-configured capture renames from defer handlers
+  - Defer arguments capture VALUES at defer time, not references that could change
 - **Return statement fixes**: Fixed "cannot move out of mutable reference" errors by properly cloning wrapped values in return statements instead of unwrapping/re-wrapping
 - **Map iteration determinism**: Added sorting to ensure deterministic output for map iteration tests
 - **Printf format string handling**: Improved conversion of Go format strings to Rust equivalents
-- **Test suite progress**: 40/132 tests passing (30%), up from 37/132
 
 Previous progress (2025-08-15):
 
@@ -187,15 +189,18 @@ If `GetTypeInfo()` returns nil (shouldn't happen in normal operation):
 
 ### Closures
 
-The closure variable capture is partially working but needs refinement:
+The closure variable capture is partially working but needs refinement for general closures:
 
 1. **Capture detection works** - We can identify which variables are captured
 2. **Renaming infrastructure exists** - Variables can be renamed in closure bodies
 3. **Clone generation needs work** - Clones need to be generated at statement level, not inline
-4. **Complex cases fail** - Nested closures, defer with captures, etc.
+4. **Some complex cases fail** - Nested closures in expressions, etc.
 
 The main challenge is that clones need to be generated before the statement containing the closure,
 not inside the closure expression itself. This requires statement-level analysis and transformation.
+
+Note: Defer statements with closures now work correctly as of 2025-08-21, providing a model for how
+statement-level capture could work for other closure use cases.
 
 ## Recent Progress (2025-08-21)
 
@@ -213,11 +218,3 @@ Key components:
   - `WriteWrapperPrefix/Suffix()`: Uses appropriate wrapper based on concurrency
   - `WriteBorrowMethod()`: Uses `.borrow()` or `.lock().unwrap()` as needed
 - Helper functions adapt to concurrency (format_map, format_slice)
-
-### Previous Progress (2025-08-15)
-
-- **Closures fully working**: Fixed variable capture, proper unwrapping of return values
-- **Defer statements improved**: Immediate argument evaluation, proper LIFO execution
-- **Basic interface{} support**: Empty interface with Box<dyn Any>
-- **Deterministic output**: Fixed non-deterministic ordering issues
-- **Type system integration**: Full go/types integration for accurate type information
