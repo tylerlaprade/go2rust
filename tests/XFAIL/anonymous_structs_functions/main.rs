@@ -93,6 +93,6 @@ fn main() {
     let mut eventCh = ;
     // TODO: Unhandled statement type: SendStmt
     // TODO: Unhandled statement type: SendStmt
-    (close.lock().unwrap().as_ref().unwrap())(eventCh.clone());
+    (*close.lock().unwrap().as_ref().unwrap())(eventCh.clone());
     process_events(eventCh.clone());
 }

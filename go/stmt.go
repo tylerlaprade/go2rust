@@ -81,6 +81,23 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 	if stmt != nil && comments != nil && lastPos != nil {
 		outputCommentsBeforePos(out, comments, fileSet, stmt.Pos(), indent, lastPos)
 	}
+
+	// Preprocess the statement to find closures and generate clone statements
+	// Skip defer statements as they handle captures themselves
+	var captureInfo *CaptureInfo
+	if _, isDefer := stmt.(*ast.DeferStmt); !isDefer && statementPreprocessor != nil {
+		captureInfo = statementPreprocessor.PreprocessStatement(stmt, fnType)
+		if captureInfo != nil && len(captureInfo.CapturedVars) > 0 {
+			// Generate clone statements before the actual statement
+			statementPreprocessor.GenerateCloneStatements(out, captureInfo)
+
+			// Set up capture renames for this statement
+			oldCaptureRenames := currentCaptureRenames
+			currentCaptureRenames = captureInfo.CapturedVars
+			defer func() { currentCaptureRenames = oldCaptureRenames }()
+		}
+	}
+
 	switch s := stmt.(type) {
 	case *ast.ExprStmt:
 		TranspileExpression(out, s.X)
@@ -235,7 +252,14 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 						if isWrappedVariable {
 							// This is a wrapped variable - clone it to avoid move errors
-							out.WriteString(ident.Name)
+							// Check if this variable has been renamed (captured in closure)
+							varName := ident.Name
+							if currentCaptureRenames != nil {
+								if renamed, exists := currentCaptureRenames[ident.Name]; exists {
+									varName = renamed
+								}
+							}
+							out.WriteString(varName)
 							out.WriteString(".clone()")
 						} else {
 							// This needs wrapping (constants, literals, etc.)
@@ -874,6 +898,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										TranspileExpression(out, rhs)
 									} else if _, isCall := rhs.(*ast.CallExpr); isCall {
 										// Function calls already return wrapped values, don't wrap again
+										TranspileExpression(out, rhs)
+									} else if _, isFuncLit := rhs.(*ast.FuncLit); isFuncLit {
+										// Function literals are already wrapped by TranspileFuncLit
 										TranspileExpression(out, rhs)
 									} else if compositeLit, isCompositeLit := rhs.(*ast.CompositeLit); isCompositeLit {
 										// Check if it's a struct literal vs array/slice/map literal

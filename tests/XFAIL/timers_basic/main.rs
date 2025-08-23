@@ -9,7 +9,7 @@ fn main() {
     println!("{}", "Timer 1 fired".to_string());
 
     let mut timer2 = (*time.lock().unwrap().as_mut().unwrap()).new_timer(Arc::new(Mutex::new(Some(500 * (*(*time.lock().unwrap().as_mut().unwrap())::millisecond.lock().unwrap().as_ref().unwrap())))));
-    let C_thread = C.clone(); let timer2_thread = timer2.clone(); std::thread::spawn(move || {
+    let timer2_closure_clone = timer2.clone(); let C_thread = C.clone(); let timer2_thread = timer2.clone(); std::thread::spawn(move || {
         <-(*timer2.lock().unwrap().as_ref().unwrap()).c;;
         println!("{}", "Timer 2 fired".to_string());;;
     });

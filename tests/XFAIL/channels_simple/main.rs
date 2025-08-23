@@ -4,7 +4,7 @@ use std::thread;
 fn main() {
     let mut messages = ;
 
-    let messages_thread = messages.clone(); std::thread::spawn(move || {
+    let messages_closure_clone = messages.clone(); let messages_thread = messages.clone(); std::thread::spawn(move || {
         // TODO: Unhandled statement type: SendStmt;;
     });
 

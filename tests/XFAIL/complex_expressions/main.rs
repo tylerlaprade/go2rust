@@ -46,18 +46,18 @@ fn main() {
         // Function calls in expressions
     println!("{}", "\n=== Function calls in expressions ===".to_string());
 
-    let mut getValue = Arc::new(Mutex::new(Some(Arc::new(Mutex::new(Some(Box::new(move |n: Arc<Mutex<Option<i32>>>| -> Arc<Mutex<Option<i32>>> {
+    let mut getValue = Arc::new(Mutex::new(Some(Box::new(move |n: Arc<Mutex<Option<i32>>>| -> Arc<Mutex<Option<i32>>> {
         return {
             let __tmp_x = (*n.lock().unwrap().as_mut().unwrap());
             let __tmp_y = 2;
             Arc::new(Mutex::new(Some(__tmp_x * __tmp_y)))
         };
-    }) as Box<dyn Fn(Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<i32>>> + Send + Sync>))))));
-    let mut getMultiplier = Arc::new(Mutex::new(Some(Arc::new(Mutex::new(Some(Box::new(move || -> Arc<Mutex<Option<i32>>> {
+    }) as Box<dyn Fn(Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<i32>>> + Send + Sync>)));
+    let mut getMultiplier = Arc::new(Mutex::new(Some(Box::new(move || -> Arc<Mutex<Option<i32>>> {
         return Arc::new(Mutex::new(Some(3)));
-    }) as Box<dyn Fn() -> Arc<Mutex<Option<i32>>> + Send + Sync>))))));
+    }) as Box<dyn Fn() -> Arc<Mutex<Option<i32>>> + Send + Sync>)));
 
-    let mut complexResult = Arc::new(Mutex::new(Some((*(getValue.lock().unwrap().as_ref().unwrap())(a.clone()).lock().unwrap().as_ref().unwrap()) + (*(getValue.lock().unwrap().as_ref().unwrap())(b.clone()).lock().unwrap().as_ref().unwrap()) * (*(getMultiplier.lock().unwrap().as_ref().unwrap())().lock().unwrap().as_ref().unwrap()) - (*(getValue.lock().unwrap().as_ref().unwrap())(c.clone()).lock().unwrap().as_ref().unwrap()) / 2)));
+    let mut complexResult = Arc::new(Mutex::new(Some((*(*getValue.lock().unwrap().as_ref().unwrap())(a.clone()).lock().unwrap().as_ref().unwrap()) + (*(*getValue.lock().unwrap().as_ref().unwrap())(b.clone()).lock().unwrap().as_ref().unwrap()) * (*(*getMultiplier.lock().unwrap().as_ref().unwrap())().lock().unwrap().as_ref().unwrap()) - (*(*getValue.lock().unwrap().as_ref().unwrap())(c.clone()).lock().unwrap().as_ref().unwrap()) / 2)));
     print!("getValue(a) + getValue(b) * getMultiplier() - getValue(c)/2 = {}\n", (*complexResult.lock().unwrap().as_mut().unwrap()));
 
         // Array/slice expressions
@@ -136,29 +136,29 @@ fn main() {
         // Nested function calls
     println!("{}", "\n=== Nested function calls ===".to_string());
 
-    let mut add = Arc::new(Mutex::new(Some(Arc::new(Mutex::new(Some(Box::new(move |a: Arc<Mutex<Option<i32>>>, b: Arc<Mutex<Option<i32>>>| -> Arc<Mutex<Option<i32>>> {
+    let mut add = Arc::new(Mutex::new(Some(Box::new(move |a: Arc<Mutex<Option<i32>>>, b: Arc<Mutex<Option<i32>>>| -> Arc<Mutex<Option<i32>>> {
         return {
             let __tmp_x = (*a.lock().unwrap().as_mut().unwrap());
             let __tmp_y = (*b.lock().unwrap().as_mut().unwrap());
             Arc::new(Mutex::new(Some(__tmp_x + __tmp_y)))
         };
-    }) as Box<dyn Fn(Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<i32>>> + Send + Sync>))))));
-    let mut multiply = Arc::new(Mutex::new(Some(Arc::new(Mutex::new(Some(Box::new(move |a: Arc<Mutex<Option<i32>>>, b: Arc<Mutex<Option<i32>>>| -> Arc<Mutex<Option<i32>>> {
+    }) as Box<dyn Fn(Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<i32>>> + Send + Sync>)));
+    let mut multiply = Arc::new(Mutex::new(Some(Box::new(move |a: Arc<Mutex<Option<i32>>>, b: Arc<Mutex<Option<i32>>>| -> Arc<Mutex<Option<i32>>> {
         return {
             let __tmp_x = (*a.lock().unwrap().as_mut().unwrap());
             let __tmp_y = (*b.lock().unwrap().as_mut().unwrap());
             Arc::new(Mutex::new(Some(__tmp_x * __tmp_y)))
         };
-    }) as Box<dyn Fn(Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<i32>>> + Send + Sync>))))));
-    let mut subtract = Arc::new(Mutex::new(Some(Arc::new(Mutex::new(Some(Box::new(move |a: Arc<Mutex<Option<i32>>>, b: Arc<Mutex<Option<i32>>>| -> Arc<Mutex<Option<i32>>> {
+    }) as Box<dyn Fn(Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<i32>>> + Send + Sync>)));
+    let mut subtract = Arc::new(Mutex::new(Some(Box::new(move |a: Arc<Mutex<Option<i32>>>, b: Arc<Mutex<Option<i32>>>| -> Arc<Mutex<Option<i32>>> {
         return {
             let __tmp_x = (*a.lock().unwrap().as_mut().unwrap());
             let __tmp_y = (*b.lock().unwrap().as_mut().unwrap());
             Arc::new(Mutex::new(Some(__tmp_x - __tmp_y)))
         };
-    }) as Box<dyn Fn(Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<i32>>> + Send + Sync>))))));
+    }) as Box<dyn Fn(Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<i32>>> + Send + Sync>)));
 
-    let mut nestedResult = (add.lock().unwrap().as_ref().unwrap())(Arc::new(Mutex::new(Some((multiply.lock().unwrap().as_ref().unwrap())(Arc::new(Mutex::new(Some(3))), Arc::new(Mutex::new(Some(4))))))), Arc::new(Mutex::new(Some((subtract.lock().unwrap().as_ref().unwrap())(Arc::new(Mutex::new(Some(20))), Arc::new(Mutex::new(Some((multiply.lock().unwrap().as_ref().unwrap())(Arc::new(Mutex::new(Some(2))), Arc::new(Mutex::new(Some(5))))))))))));
+    let mut nestedResult = (*add.lock().unwrap().as_ref().unwrap())(Arc::new(Mutex::new(Some((*multiply.lock().unwrap().as_ref().unwrap())(Arc::new(Mutex::new(Some(3))), Arc::new(Mutex::new(Some(4))))))), Arc::new(Mutex::new(Some((*subtract.lock().unwrap().as_ref().unwrap())(Arc::new(Mutex::new(Some(20))), Arc::new(Mutex::new(Some((*multiply.lock().unwrap().as_ref().unwrap())(Arc::new(Mutex::new(Some(2))), Arc::new(Mutex::new(Some(5))))))))))));
     print!("add(multiply(3, 4), subtract(20, multiply(2, 5))) = {}\n", (*nestedResult.lock().unwrap().as_mut().unwrap()));
 
         // Complex conditional expressions

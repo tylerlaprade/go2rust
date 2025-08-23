@@ -315,6 +315,10 @@ run_xfail_test() {
     run_test "tests/for_loops"
 }
 
+@test "function_literals_closures" {
+    run_test "tests/function_literals_closures"
+}
+
 @test "functions_multiple_return" {
     run_test "tests/functions_multiple_return"
 }
@@ -553,10 +557,6 @@ run_xfail_test() {
 
 @test "XFAIL: flag_parsing" {
     run_xfail_test "tests/XFAIL/flag_parsing"
-}
-
-@test "XFAIL: function_literals_closures" {
-    run_xfail_test "tests/XFAIL/function_literals_closures"
 }
 
 @test "XFAIL: function_types" {

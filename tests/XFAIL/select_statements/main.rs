@@ -1,10 +1,20 @@
+use std::sync::{Arc, Mutex};
+use std::thread;
+use std::time::Duration;
+
 pub fn basic_select() {
     let mut ch1 = ;
     let mut ch2 = ;
 
-    // TODO: Unhandled statement type: GoStmt
+    let ch1_closure_clone = ch1.clone(); let ch1_thread = ch1.clone(); std::thread::spawn(move || {
+        std::thread::sleep(std::time::Duration::from_millis(100));;
+        // TODO: Unhandled statement type: SendStmt;;
+    });
 
-    // TODO: Unhandled statement type: GoStmt
+    let ch2_closure_clone = ch2.clone(); let ch2_thread = ch2.clone(); std::thread::spawn(move || {
+        std::thread::sleep(std::time::Duration::from_millis(200));;
+        // TODO: Unhandled statement type: SendStmt;;
+    });
 
     // TODO: Unhandled statement type: SelectStmt
 }
@@ -12,7 +22,10 @@ pub fn basic_select() {
 pub fn select_with_timeout() {
     let mut ch = ;
 
-    // TODO: Unhandled statement type: GoStmt
+    let ch_closure_clone = ch.clone(); let ch_thread = ch.clone(); std::thread::spawn(move || {
+        std::thread::sleep(std::time::Duration::from_millis(300));;
+        // TODO: Unhandled statement type: SendStmt;;
+    });
 
     // TODO: Unhandled statement type: SelectStmt
 }
@@ -35,11 +48,28 @@ pub fn select_loop() {
     let mut ch2 = ;
     let mut quit = ;
 
-    // TODO: Unhandled statement type: GoStmt
+    let ch1_closure_clone = ch1.clone(); let ch1_thread = ch1.clone(); std::thread::spawn(move || {
+        let mut i = Arc::new(Mutex::new(Some(0)));
+    while (*i.lock().unwrap().as_mut().unwrap()) < 3 {
+        // TODO: Unhandled statement type: SendStmt
+        std::thread::sleep(std::time::Duration::from_millis(100));
+        { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
+    };;
+    });
 
-    // TODO: Unhandled statement type: GoStmt
+    let ch2_closure_clone = ch2.clone(); let ch2_thread = ch2.clone(); std::thread::spawn(move || {
+        let mut i = Arc::new(Mutex::new(Some(10)));
+    while (*i.lock().unwrap().as_mut().unwrap()) < 13 {
+        // TODO: Unhandled statement type: SendStmt
+        std::thread::sleep(std::time::Duration::from_millis(150));
+        { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
+    };;
+    });
 
-    // TODO: Unhandled statement type: GoStmt
+    let quit_closure_clone = quit.clone(); let quit_thread = quit.clone(); std::thread::spawn(move || {
+        std::thread::sleep(std::time::Duration::from_millis(500));;
+        // TODO: Unhandled statement type: SendStmt;;
+    });
 
     println!("{}", "Starting select loop:".to_string());
     while true {

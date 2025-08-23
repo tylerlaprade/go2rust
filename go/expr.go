@@ -1452,14 +1452,21 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 			out.WriteString(ToSnakeCase(ident.Name))
 		} else {
 			// Likely a closure variable - need to unwrap and call
-			out.WriteString("(")
-			out.WriteString(ident.Name)
+			// Check if this variable has been renamed (captured in closure)
+			varName := ident.Name
+			if currentCaptureRenames != nil {
+				if renamed, exists := currentCaptureRenames[ident.Name]; exists {
+					varName = renamed
+				}
+			}
+			out.WriteString("(*")
+			out.WriteString(varName)
 			WriteBorrowMethod(out, false)
 			out.WriteString(".as_ref().unwrap())")
 		}
 	} else {
 		// Complex expression for the function (e.g., function returning a function)
-		out.WriteString("(")
+		out.WriteString("(*")
 		TranspileExpression(out, call.Fun)
 		WriteBorrowMethod(out, false)
 		out.WriteString(".as_ref().unwrap())")

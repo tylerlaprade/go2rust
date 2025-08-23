@@ -24,6 +24,9 @@ var currentFunctionHasDefer bool
 // currentCaptureRenames tracks variable renames for captured variables in closures
 var currentCaptureRenames map[string]string
 
+// statementPreprocessor analyzes statements for closure captures
+var statementPreprocessor *StatementPreprocessor
+
 // interfaceTypes tracks which type names are interfaces
 var interfaceTypes = make(map[string]bool)
 
@@ -302,6 +305,9 @@ func Transpile(file *ast.File, fileSet *token.FileSet, typeInfo *TypeInfo) (stri
 	// Create trackers
 	imports := NewImportTracker()
 	helpers := &HelperTracker{}
+
+	// Initialize the statement preprocessor
+	statementPreprocessor = NewStatementPreprocessor(fileSet)
 
 	// Set up global context
 	ctx := &TranspileContext{

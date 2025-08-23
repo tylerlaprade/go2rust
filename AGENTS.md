@@ -110,7 +110,19 @@ The test script handles:
 - Limited stdlib support
 - No circular dependencies or build tags
 
-## Recent Progress (2025-08-21)
+## Recent Progress (2025-08-22)
+
+- **Comprehensive closure capture fix**: Implemented two-phase approach for proper closure variable capture
+  - Created statement preprocessor (`stmt_preprocess.go`) to analyze closures before transpilation
+  - Generates clone statements at statement level, before closures are created
+  - Properly handles nested closures and complex capture scenarios
+  - Fixed closure calling mechanism to properly dereference wrapped closures
+  - Fixed double-wrapping issue with function literals in assignments
+- **Return statement improvements**: Variables in return statements now use renamed captures
+- **Heuristic-based capture filtering**: Prevents capturing package names and constants
+  - All defer and goroutine tests maintained
+
+Previous progress (2025-08-21):
 
 - **Defer statements fully working**: Fixed variable capture and argument evaluation, LIFO execution order correct
   - Closures now respect pre-configured capture renames from defer handlers
@@ -118,13 +130,6 @@ The test script handles:
 - **Return statement fixes**: Fixed "cannot move out of mutable reference" errors by properly cloning wrapped values in return statements instead of unwrapping/re-wrapping
 - **Map iteration determinism**: Added sorting to ensure deterministic output for map iteration tests
 - **Printf format string handling**: Improved conversion of Go format strings to Rust equivalents
-
-Previous progress (2025-08-15):
-
-- **Closures fully working**: Fixed variable capture, proper unwrapping of return values, correct handling of range loop variables
-- **Defer statements improved**: Immediate argument evaluation for deferred closures, proper LIFO execution
-- **Basic interface{} support**: Empty interface with Box<dyn Any>, format_any helper for printing
-- **Deterministic output**: Fixed non-deterministic ordering in anonymous structs, promoted methods, and interfaces
 
 ## ✅ Type System Integration (COMPLETED)
 
@@ -189,18 +194,22 @@ If `GetTypeInfo()` returns nil (shouldn't happen in normal operation):
 
 ### Closures
 
-The closure variable capture is partially working but needs refinement for general closures:
+The general closure capture mechanism is now working through a two-phase approach (implemented 2025-08-22):
 
-1. **Capture detection works** - We can identify which variables are captured
-2. **Renaming infrastructure exists** - Variables can be renamed in closure bodies
-3. **Clone generation needs work** - Clones need to be generated at statement level, not inline
-4. **Some complex cases fail** - Nested closures in expressions, etc.
+1. ✅ **Statement preprocessing** - Analyzes closures before transpilation
+2. ✅ **Clone generation at statement level** - Generates clones before the statement
+3. ✅ **Variable renaming** - Properly renames captured variables in closure bodies
+4. ✅ **Nested closures** - Handles closures within closures correctly
 
-The main challenge is that clones need to be generated before the statement containing the closure,
-not inside the closure expression itself. This requires statement-level analysis and transformation.
+Remaining limitations:
 
-Note: Defer statements with closures now work correctly as of 2025-08-21, providing a model for how
-statement-level capture could work for other closure use cases.
+- Some edge cases with variadic functions
+- Cross-file function variables need more work
+- Anonymous struct methods with closures
+
+The solution uses a statement preprocessor (`stmt_preprocess.go`) that analyzes all closures
+in a statement, generates appropriate clone statements, and sets up variable renames that are
+respected during transpilation.
 
 ## Recent Progress (2025-08-21)
 

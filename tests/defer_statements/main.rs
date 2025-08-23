@@ -19,7 +19,7 @@ pub fn defer_example() {
     println!("{}", "Middle of function".to_string());
 
     __defer_stack.push(Box::new(move || {
-        (Rc::new(RefCell::new(Some(Box::new(move || {
+        (*Rc::new(RefCell::new(Some(Box::new(move || {
         println!("{}", "Anonymous deferred function".to_string());
     }) as Box<dyn Fn() -> ()>))).borrow().as_ref().unwrap())();
     }));
@@ -37,7 +37,7 @@ pub fn defer_with_variables() {
 
     let mut x = Rc::new(RefCell::new(Some(10)));
     let x_defer_captured = x.clone(); __defer_stack.push(Box::new(move || {
-        (Rc::new(RefCell::new(Some(Box::new(move || {
+        (*Rc::new(RefCell::new(Some(Box::new(move || {
         println!("{} {}", "Deferred x:".to_string(), (*x_defer_captured.borrow_mut().as_mut().unwrap()));
     }) as Box<dyn Fn() -> ()>))).borrow().as_ref().unwrap())();
     }));

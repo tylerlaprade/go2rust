@@ -10,7 +10,7 @@ pub fn sender(ch: Arc<Mutex<Option</* TODO: Unhandled type *ast.ChanType */ Arc<
         std::thread::sleep(std::time::Duration::from_millis(100));
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
-    (close.lock().unwrap().as_ref().unwrap())(ch.clone());
+    (*close.lock().unwrap().as_ref().unwrap())(ch.clone());
 }
 
 pub fn receiver(ch: Arc<Mutex<Option</* TODO: Unhandled type *ast.ChanType */ Arc<Mutex<Option<()>>>>>>) {
@@ -53,13 +53,13 @@ fn main() {
 
         // Channel range
     let mut numbers = ;
-    let numbers_thread = numbers.clone(); std::thread::spawn(move || {
+    let numbers_closure_clone = numbers.clone(); let numbers_thread = numbers.clone(); std::thread::spawn(move || {
         let mut i = Arc::new(Mutex::new(Some(10)));
     while (*i.lock().unwrap().as_mut().unwrap()) < 15 {
         // TODO: Unhandled statement type: SendStmt
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     };
-        (close.lock().unwrap().as_ref().unwrap())(numbers.clone());;;
+        (*close.lock().unwrap().as_ref().unwrap())(numbers.clone());;;
     });
 
     println!("{}", "Range over channel:".to_string());

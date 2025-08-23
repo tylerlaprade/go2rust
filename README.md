@@ -203,7 +203,7 @@ For unimplemented features, the transpiler generates TODO comments:
 | └ String comparisons | ✅ |
 | **Closures & Anonymous Functions** | |
 | └ Function literals | ✅ |
-| └ Closure variable capture | ⚠️ |
+| └ Closure variable capture | ✅ |
 | └ Anonymous function calls | ✅ |
 | └ Capture analysis framework | ✅ |
 | **`defer` - Defer statements** | |

@@ -5,7 +5,7 @@ fn main() {
 
     let (mut ctx, mut cancel) = (*context.lock().unwrap().as_mut().unwrap()).with_timeout(Arc::new(Mutex::new(Some((*context.lock().unwrap().as_mut().unwrap()).background()))), Arc::new(Mutex::new(Some(1 * (*(*time.lock().unwrap().as_mut().unwrap())::second.lock().unwrap().as_ref().unwrap())))));
     __defer_stack.push(Box::new(move || {
-        (cancel.lock().unwrap().as_ref().unwrap())();
+        (*cancel.lock().unwrap().as_ref().unwrap())();
     }));
 
     // TODO: Unhandled statement type: SelectStmt
