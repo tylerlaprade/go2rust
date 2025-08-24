@@ -451,7 +451,7 @@ func transpileConstDeclWithCase(out *strings.Builder, genDecl *ast.GenDecl, toUp
 					} else {
 						// Check if this is a type definition and get underlying type
 						baseType := goTypeToRustBase(valueSpec.Type)
-						// If it's a custom type (like Color), we need to use the underlying type
+						// If it's a custom type, we need to use the underlying type
 						// For now, assume custom int types map to i32
 						if ident, ok := valueSpec.Type.(*ast.Ident); ok {
 							// Check if this is a known type definition

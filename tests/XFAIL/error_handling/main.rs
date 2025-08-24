@@ -18,7 +18,7 @@ impl CustomError {
 impl Error for CustomError {}
 
 impl Display for CustomError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", (*self.error().borrow_mut().as_mut().unwrap()))
     }
 }

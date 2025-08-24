@@ -1,3 +1,6 @@
+use std::cell::{RefCell};
+use std::rc::{Rc};
+
 /// Counter holds a numeric value
 #[derive(Debug, Clone, Default)]
 struct Counter {

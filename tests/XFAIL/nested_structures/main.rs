@@ -125,26 +125,26 @@ fn main() {
     println!("{}", "\n=== Accessing nested data ===".to_string());
 
     print!("Company: {}\n", (*(*company.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()));
-    print!("HQ Address: {}, {}, {} {}\n", (*company.borrow_mut().as_mut().unwrap()).headquarters.street, (*company.borrow_mut().as_mut().unwrap()).headquarters.city, (*company.borrow_mut().as_mut().unwrap()).headquarters.state, (*company.borrow_mut().as_mut().unwrap()).headquarters.zip_code);
+    print!("HQ Address: {}, {}, {} {}\n", (*(*(*company.borrow_mut().as_mut().unwrap()).headquarters.borrow().as_ref().unwrap()).street.borrow().as_ref().unwrap()), (*(*(*company.borrow_mut().as_mut().unwrap()).headquarters.borrow().as_ref().unwrap()).city.borrow().as_ref().unwrap()), (*(*(*company.borrow_mut().as_mut().unwrap()).headquarters.borrow().as_ref().unwrap()).state.borrow().as_ref().unwrap()), (*(*(*company.borrow_mut().as_mut().unwrap()).headquarters.borrow().as_ref().unwrap()).zip_code.borrow().as_ref().unwrap()));
 
-    print!("Department: {}\n", (*(*company.borrow_mut().as_mut().unwrap()).departments.borrow().as_ref().unwrap())[0 as usize].clone().name);
-    print!("Department Budget: ${:.2}\n", (*(*company.borrow_mut().as_mut().unwrap()).departments.borrow().as_ref().unwrap())[0 as usize].clone().budget);
+    print!("Department: {}\n", (*(*(*company.borrow_mut().as_mut().unwrap()).departments.borrow().as_ref().unwrap())[0 as usize].clone().name.borrow().as_ref().unwrap()));
+    print!("Department Budget: ${:.2}\n", (*(*(*company.borrow_mut().as_mut().unwrap()).departments.borrow().as_ref().unwrap())[0 as usize].clone().budget.borrow().as_ref().unwrap()));
 
-    print!("Manager: {} (Age: {})\n", (*(*company.borrow_mut().as_mut().unwrap()).departments.borrow().as_ref().unwrap())[0 as usize].clone().manager.name, (*(*company.borrow_mut().as_mut().unwrap()).departments.borrow().as_ref().unwrap())[0 as usize].clone().manager.age);
+    print!("Manager: {} (Age: {})\n", (*(*(*(*company.borrow_mut().as_mut().unwrap()).departments.borrow().as_ref().unwrap())[0 as usize].clone().manager.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()), (*(*(*(*company.borrow_mut().as_mut().unwrap()).departments.borrow().as_ref().unwrap())[0 as usize].clone().manager.borrow().as_ref().unwrap()).age.borrow().as_ref().unwrap()));
 
-    print!("Manager Email: {}\n", (*(*company.borrow_mut().as_mut().unwrap()).departments.borrow().as_ref().unwrap())[0 as usize].clone().manager.contact.email);
+    print!("Manager Email: {}\n", (*(*(*(*(*company.borrow_mut().as_mut().unwrap()).departments.borrow().as_ref().unwrap())[0 as usize].clone().manager.borrow().as_ref().unwrap()).contact.borrow().as_ref().unwrap()).email.borrow().as_ref().unwrap()));
 
-    print!("Manager Address: {}, {}\n", (*(*company.borrow_mut().as_mut().unwrap()).departments.borrow().as_ref().unwrap())[0 as usize].clone().manager.address.city, (*(*company.borrow_mut().as_mut().unwrap()).departments.borrow().as_ref().unwrap())[0 as usize].clone().manager.address.state);
+    print!("Manager Address: {}, {}\n", (*(*(*(*(*company.borrow_mut().as_mut().unwrap()).departments.borrow().as_ref().unwrap())[0 as usize].clone().manager.borrow().as_ref().unwrap()).address.borrow().as_ref().unwrap()).city.borrow().as_ref().unwrap()), (*(*(*(*(*company.borrow_mut().as_mut().unwrap()).departments.borrow().as_ref().unwrap())[0 as usize].clone().manager.borrow().as_ref().unwrap()).address.borrow().as_ref().unwrap()).state.borrow().as_ref().unwrap()));
 
         // Iterate through employees
     println!("{}", "\n=== Department employees ===".to_string());
 
-    for (i, emp) in (*(*company.borrow_mut().as_mut().unwrap()).departments.borrow().as_ref().unwrap())[0 as usize].clone().employees.iter().enumerate() {
-        print!("Employee {}: {}\n", i + 1, emp.name);
-        print!("  Age: {}\n", emp.age);
-        print!("  Email: {}\n", emp.contact.email);
-        print!("  Phone: {}\n", emp.contact.phone);
-        print!("  Address: {}, {}, {}\n", emp.address.street, emp.address.city, emp.address.state);
+    for (i, emp) in (*(*(*company.borrow_mut().as_mut().unwrap()).departments.borrow().as_ref().unwrap())[0 as usize].clone().employees.borrow().as_ref().unwrap()).iter().enumerate() {
+        print!("Employee {}: {}\n", i + 1, (*emp.name.borrow().as_ref().unwrap()));
+        print!("  Age: {}\n", (*emp.age.borrow().as_ref().unwrap()));
+        print!("  Email: {}\n", (*(*emp.contact.borrow().as_ref().unwrap()).email.borrow().as_ref().unwrap()));
+        print!("  Phone: {}\n", (*(*emp.contact.borrow().as_ref().unwrap()).phone.borrow().as_ref().unwrap()));
+        print!("  Address: {}, {}, {}\n", (*(*emp.address.borrow().as_ref().unwrap()).street.borrow().as_ref().unwrap()), (*(*emp.address.borrow().as_ref().unwrap()).city.borrow().as_ref().unwrap()), (*(*emp.address.borrow().as_ref().unwrap()).state.borrow().as_ref().unwrap()));
         println!();
     }
 
@@ -152,7 +152,7 @@ fn main() {
     println!("{}", "=== Nested maps ===".to_string());
 
         // Map of maps
-    let mut inventory = Rc::new(RefCell::new(Some(HashMap::<String, Rc<RefCell<Option<HashMap<String, i32>>>>>::from([("electronics".to_string(), Rc::new(RefCell::new(Some()))), ("furniture".to_string(), Rc::new(RefCell::new(Some()))), ("supplies".to_string(), Rc::new(RefCell::new(Some())))]))));
+    let mut inventory = Rc::new(RefCell::new(Some(HashMap::<String, Rc<RefCell<Option<HashMap<String, i32>>>>>::from([("electronics".to_string(), Rc::new(RefCell::new(Some(/* ERROR: CompositeLit with nil Type - type inference failed */unimplemented!())))), ("furniture".to_string(), Rc::new(RefCell::new(Some(/* ERROR: CompositeLit with nil Type - type inference failed */unimplemented!())))), ("supplies".to_string(), Rc::new(RefCell::new(Some(/* ERROR: CompositeLit with nil Type - type inference failed */unimplemented!()))))]))));
 
     println!("{}", "Inventory:".to_string());
     for (category, items) in (*inventory.borrow().as_ref().unwrap()).clone() {
@@ -170,7 +170,7 @@ fn main() {
     println!("{}", "\n=== Nested slices ===".to_string());
 
         // Matrix (slice of slices)
-    let mut matrix = Rc::new(RefCell::new(Some(vec![, , ])));
+    let mut matrix = Rc::new(RefCell::new(Some(vec![Rc::new(RefCell::new(Some(vec![1, 2, 3]))), Rc::new(RefCell::new(Some(vec![4, 5, 6]))), Rc::new(RefCell::new(Some(vec![7, 8, 9])))])));
 
     println!("{}", "Matrix:".to_string());
     for (i, row) in (*matrix.borrow_mut().as_mut().unwrap()).iter().enumerate() {
@@ -189,7 +189,7 @@ fn main() {
     print!("Center element: {}\n", (*centerElement.borrow_mut().as_mut().unwrap()));
 
         // 3D slice
-    let mut cube = Rc::new(RefCell::new(Some(vec![, ])));
+    let mut cube = Rc::new(RefCell::new(Some(vec![Rc::new(RefCell::new(Some(vec![Rc::new(RefCell::new(Some(vec![1, 2]))), Rc::new(RefCell::new(Some(vec![3, 4])))]))), Rc::new(RefCell::new(Some(vec![Rc::new(RefCell::new(Some(vec![5, 6]))), Rc::new(RefCell::new(Some(vec![7, 8])))])))])));
 
     println!("{}", "\n3D Cube:".to_string());
     for (i, layer) in (*cube.borrow_mut().as_mut().unwrap()).iter().enumerate() {
@@ -209,7 +209,7 @@ fn main() {
     let mut canvas = Rc::new(RefCell::new(Some(Canvas { name: Rc::new(RefCell::new(Some("My Drawing".to_string()))), shapes: Rc::new(RefCell::new(Some(Rc::new(RefCell::new(Some(vec![Circle { radius: Rc::new(RefCell::new(Some(5.0))) }, Rectangle { width: Rc::new(RefCell::new(Some(10.0))), height: Rc::new(RefCell::new(Some(8.0))) }, Circle { radius: Rc::new(RefCell::new(Some(3.0))) }])))))) })));
 
     print!("Canvas: {}\n", (*(*canvas.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()));
-    for (i, shape) in (*canvas.borrow().as_ref().unwrap()).shapes.iter().enumerate() {
+    for (i, shape) in (*(*canvas.borrow().as_ref().unwrap()).shapes.borrow().as_ref().unwrap()).iter().enumerate() {
         print!("Shape {}: {}\n", i + 1, (*shape.draw().borrow().as_ref().unwrap()));
     }
 
@@ -217,13 +217,13 @@ fn main() {
     println!("{}", "\n=== Modifying nested structures ===".to_string());
 
         // Update employee contact
-    { let new_val = "bob.new@company.com".to_string(); *(*(*(*company.borrow_mut().as_mut().unwrap()).departments.borrow().as_ref().unwrap())[0 as usize].clone().employees.borrow().as_ref().unwrap())[0 as usize].clone().contact.email.borrow_mut() = Some(new_val); };
-    print!("Updated employee email: {}\n", (*(*(*company.borrow_mut().as_mut().unwrap()).departments.borrow().as_ref().unwrap())[0 as usize].clone().employees.borrow().as_ref().unwrap())[0 as usize].clone().contact.email);
+    { let new_val = "bob.new@company.com".to_string(); *(*(*(*(*company.borrow_mut().as_mut().unwrap()).departments.borrow().as_ref().unwrap())[0 as usize].clone().employees.borrow().as_ref().unwrap())[0 as usize].clone().contact.borrow().as_ref().unwrap()).email.borrow_mut() = Some(new_val); };
+    print!("Updated employee email: {}\n", (*(*(*(*(*company.borrow_mut().as_mut().unwrap()).departments.borrow().as_ref().unwrap())[0 as usize].clone().employees.borrow().as_ref().unwrap())[0 as usize].clone().contact.borrow().as_ref().unwrap()).email.borrow().as_ref().unwrap()));
 
         // Add new employee
     let mut newEmployee = Rc::new(RefCell::new(Some(Person { name: Rc::new(RefCell::new(Some("Dave Newbie".to_string()))), age: Rc::new(RefCell::new(Some(25))), address: Rc::new(RefCell::new(Some(Address { street: Rc::new(RefCell::new(Some("999 New St".to_string()))), city: Rc::new(RefCell::new(Some("Newtown".to_string()))), state: Rc::new(RefCell::new(Some("CA".to_string()))), zip_code: Rc::new(RefCell::new(Some("90214".to_string()))), country: Rc::new(RefCell::new(Some("USA".to_string()))) }))), contact: Rc::new(RefCell::new(Some(Contact { email: Rc::new(RefCell::new(Some("dave@company.com".to_string()))), phone: Rc::new(RefCell::new(Some("555-0004".to_string()))) }))) })));
 
-    {(*(*(*company.borrow_mut().as_mut().unwrap()).departments.borrow().as_ref().unwrap())[0 as usize].clone().employees.borrow_mut().as_mut().unwrap()).push((*newEmployee.borrow_mut().as_mut().unwrap())); (*(*company.borrow_mut().as_mut().unwrap()).departments.borrow().as_ref().unwrap())[0 as usize].clone().employees.clone()};
+    {(*(*(*(*company.borrow_mut().as_mut().unwrap()).departments.borrow().as_ref().unwrap())[0 as usize].clone().employees.borrow().as_ref().unwrap()).borrow_mut().as_mut().unwrap()).push((*newEmployee.borrow_mut().as_mut().unwrap())); (*(*(*company.borrow_mut().as_mut().unwrap()).departments.borrow().as_ref().unwrap())[0 as usize].clone().employees.borrow().as_ref().unwrap()).clone()};
     print!("Added new employee: {}\n", (*(*newEmployee.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()));
     print!("Total employees now: {}\n", (*(*(*company.borrow_mut().as_mut().unwrap()).departments.borrow().as_ref().unwrap())[0 as usize].clone().employees.borrow().as_ref().unwrap()).len());
 }

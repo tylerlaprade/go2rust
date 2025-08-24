@@ -12,7 +12,7 @@ const STATE_RETRYING: i32 = 3;
 struct ServerState(Rc<RefCell<Option<i32>>>);
 
 impl Display for ServerState {
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
         write!(f, "{}", self.0.borrow().as_ref().unwrap())
     }
 }

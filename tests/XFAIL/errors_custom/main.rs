@@ -18,7 +18,7 @@ impl argError {
 impl Error for argError {}
 
 impl Display for argError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", (*self.error().borrow_mut().as_mut().unwrap()))
     }
 }

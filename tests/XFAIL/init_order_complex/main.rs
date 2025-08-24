@@ -1,3 +1,6 @@
+use std::cell::{RefCell};
+use std::rc::{Rc};
+
 pub fn f() -> Rc<RefCell<Option<i32>>> {
 
     { let mut guard = d.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }

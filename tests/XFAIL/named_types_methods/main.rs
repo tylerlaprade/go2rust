@@ -6,7 +6,7 @@ use std::rc::{Rc};
 struct Celsius(Rc<RefCell<Option<f64>>>);
 
 impl Display for Celsius {
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
         write!(f, "{}", self.0.borrow().as_ref().unwrap())
     }
 }
@@ -16,7 +16,7 @@ impl Display for Celsius {
 struct Fahrenheit(Rc<RefCell<Option<f64>>>);
 
 impl Display for Fahrenheit {
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
         write!(f, "{}", self.0.borrow().as_ref().unwrap())
     }
 }
