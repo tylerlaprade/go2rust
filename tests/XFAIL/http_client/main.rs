@@ -15,10 +15,10 @@ fn main() {
     }
     }
     __defer_stack.push(Box::new(move || {
-        (*(*resp.lock().unwrap().as_ref().unwrap()).body.lock().unwrap().as_mut().unwrap()).close();
+        (*(*(*resp.lock().unwrap().as_ref().unwrap()).body.lock().unwrap().as_ref().unwrap()).lock().unwrap().as_mut().unwrap()).close();
     }));
 
-    let (mut body, _) = (*io.lock().unwrap().as_mut().unwrap()).read_all(Arc::new(Mutex::new(Some((*resp.lock().unwrap().as_ref().unwrap()).body))));
+    let (mut body, _) = (*io.lock().unwrap().as_mut().unwrap()).read_all(Arc::new(Mutex::new(Some((*(*resp.lock().unwrap().as_ref().unwrap()).body.lock().unwrap().as_ref().unwrap())))));
     println!("{} {}", "Response:".to_string(), Arc::new(Mutex::new(Some((*Arc::new(Mutex::new(Some(String::from_utf8((*body.lock().unwrap().as_ref().unwrap()).clone()).unwrap()))).lock().unwrap().as_ref().unwrap())[..100 as usize].to_vec()))));
 
     // Execute deferred functions

@@ -166,8 +166,8 @@ For unimplemented features, the transpiler generates TODO comments:
 | └ Struct definitions | ✅ |
 | └ Struct literals | ✅ |
 | └ Field access | ✅ |
-| └ Embedded fields | 🚧 |
-| └ Anonymous structs | ❌ |
+| └ Embedded fields | ✅ |
+| └ Anonymous structs | 🚧 |
 | └ Struct tags | ✅ |
 | **`switch` - Switch statements** | |
 | └ Basic switch | ✅ |

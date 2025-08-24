@@ -182,7 +182,7 @@ fn main() {
         // Call promoted methods from Counter
     (*svc.borrow_mut().as_mut().unwrap()).increment();
     (*svc.borrow_mut().as_mut().unwrap()).add(Rc::new(RefCell::new(Some(5))));
-    print!("Counter value (via promoted method): {}\n", (*(*(*(*svc.borrow().as_ref().unwrap()).logger.borrow().as_ref().unwrap()).counter.borrow().as_mut().unwrap()).value().borrow().as_ref().unwrap()));
+    print!("Counter value (via promoted method): {}\n", (*(*(*(*(*svc.borrow().as_ref().unwrap()).logger.borrow().as_ref().unwrap()).counter.borrow().as_ref().unwrap()).borrow().as_mut().unwrap()).value().borrow().as_ref().unwrap()));
 
         // Call Service's own methods
     print!("Service name: {}\n", (*(*svc.borrow_mut().as_mut().unwrap()).name().borrow().as_ref().unwrap()));
@@ -194,7 +194,7 @@ fn main() {
 
     (*svcPtr.borrow_mut().as_mut().unwrap()).log(Rc::new(RefCell::new(Some("Pointer service".to_string()))));
     (*svcPtr.borrow_mut().as_mut().unwrap()).increment();
-    print!("Pointer service counter: {}\n", (*(*(*(*svcPtr.borrow().as_ref().unwrap()).logger.borrow().as_ref().unwrap()).counter.borrow().as_mut().unwrap()).value().borrow().as_ref().unwrap()));
+    print!("Pointer service counter: {}\n", (*(*(*(*(*svcPtr.borrow().as_ref().unwrap()).logger.borrow().as_ref().unwrap()).counter.borrow().as_ref().unwrap()).borrow().as_mut().unwrap()).value().borrow().as_ref().unwrap()));
 
         // Test multi-level embedding
     println!("{}", "\n=== Multi-level embedding ===".to_string());

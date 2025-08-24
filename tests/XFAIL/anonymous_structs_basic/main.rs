@@ -58,9 +58,9 @@ fn main() {
 
         // Anonymous struct with nested fields
     let mut config = Rc::new(RefCell::new(Some(AnonymousStruct3 { host: Rc::new(RefCell::new(Some("localhost".to_string()))), port: Rc::new(RefCell::new(Some(8080))), settings: Default::default() })));
-    { let new_val = true; *(*config.borrow_mut().as_mut().unwrap()).settings.debug.borrow_mut() = Some(new_val); };
-    { let new_val = false; *(*config.borrow_mut().as_mut().unwrap()).settings.verbose.borrow_mut() = Some(new_val); };
-    print!("Config: {}:{} (Debug: {}, Verbose: {})\n", (*(*config.borrow().as_ref().unwrap()).host.borrow().as_ref().unwrap()), (*(*config.borrow().as_ref().unwrap()).port.borrow().as_ref().unwrap()), (*config.borrow_mut().as_mut().unwrap()).settings.debug, (*config.borrow_mut().as_mut().unwrap()).settings.verbose);
+    { let new_val = true; *(*(*config.borrow_mut().as_mut().unwrap()).settings.borrow().as_ref().unwrap()).debug.borrow_mut() = Some(new_val); };
+    { let new_val = false; *(*(*config.borrow_mut().as_mut().unwrap()).settings.borrow().as_ref().unwrap()).verbose.borrow_mut() = Some(new_val); };
+    print!("Config: {}:{} (Debug: {}, Verbose: {})\n", (*(*config.borrow().as_ref().unwrap()).host.borrow().as_ref().unwrap()), (*(*config.borrow().as_ref().unwrap()).port.borrow().as_ref().unwrap()), (*(*(*config.borrow_mut().as_mut().unwrap()).settings.borrow().as_ref().unwrap()).debug.borrow().as_ref().unwrap()), (*(*(*config.borrow_mut().as_mut().unwrap()).settings.borrow().as_ref().unwrap()).verbose.borrow().as_ref().unwrap()));
 
         // Array of anonymous structs
     let mut items: Rc<RefCell<Option<[AnonymousStruct5; 2]>>> = Rc::new(RefCell::new(Some(Default::default())));
@@ -69,18 +69,18 @@ fn main() {
     { let new_val = 2; *(*items.borrow().as_ref().unwrap())[1 as usize].clone().i_d.borrow_mut() = Some(new_val); };
     { let new_val = "second".to_string(); *(*items.borrow().as_ref().unwrap())[1 as usize].clone().value.borrow_mut() = Some(new_val); };
     for (i, item) in (*items.borrow_mut().as_mut().unwrap()).iter().enumerate() {
-        print!("Item {}: {{ID: {}, Value: {}}}\n", i, item.i_d, item.value);
+        print!("Item {}: {{ID: {}, Value: {}}}\n", i, (*item.i_d.borrow().as_ref().unwrap()), (*item.value.borrow().as_ref().unwrap()));
     }
 
         // Slice of anonymous structs
-    let mut events = Rc::new(RefCell::new(Some(vec![, , ])));
+    let mut events = Rc::new(RefCell::new(Some(vec![/* Anonymous struct literal */unimplemented!(), /* Anonymous struct literal */unimplemented!(), /* Anonymous struct literal */unimplemented!()])));
     for event in &(*events.borrow_mut().as_mut().unwrap()) {
-        print!("Event [{}]: {}\n", event.r#type, event.message);
+        print!("Event [{}]: {}\n", (*event.r#type.borrow().as_ref().unwrap()), (*event.message.borrow().as_ref().unwrap()));
     }
 
         // Map with anonymous struct values
-    let mut users = Rc::new(RefCell::new(Some(HashMap::<String, Rc<RefCell<Option<AnonymousStruct6>>>>::from([("alice".to_string(), Rc::new(RefCell::new(Some()))), ("bob".to_string(), Rc::new(RefCell::new(Some())))]))));
+    let mut users = Rc::new(RefCell::new(Some(HashMap::<String, Rc<RefCell<Option<AnonymousStruct6>>>>::from([("alice".to_string(), Rc::new(RefCell::new(Some(/* Anonymous struct literal */unimplemented!())))), ("bob".to_string(), Rc::new(RefCell::new(Some(/* Anonymous struct literal */unimplemented!()))))]))));
     for (name, user) in (*users.borrow().as_ref().unwrap()).clone() {
-        print!("User {}: {} (admin: {})\n", name, user.email, user.admin);
+        print!("User {}: {} (admin: {})\n", name, (*user.email.borrow().as_ref().unwrap()), (*user.admin.borrow().as_ref().unwrap()));
     }
 }

@@ -265,7 +265,8 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 							}
 							out.WriteString(fieldInfo.FieldName)
 						} else {
-							out.WriteString("(*(*")
+							// RValue context - need to unwrap the field value too
+							out.WriteString("(*(*(*")
 							out.WriteString(ident.Name)
 							WriteBorrowMethod(out, false)
 							out.WriteString(".as_ref().unwrap()).")
@@ -279,16 +280,32 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 								}
 							}
 							out.WriteString(fieldInfo.FieldName)
+							WriteBorrowMethod(out, false)
+							out.WriteString(".as_ref().unwrap())")
 						}
 					} else {
-						// Unwrapped variable with promoted field
-						out.WriteString(ident.Name)
-						for _, embedded := range fieldInfo.EmbeddedPath {
+						// Unwrapped variable (e.g., range variable) with promoted field
+						// The field itself is still wrapped, so unwrap it in RValue context
+						if ctx == RValue {
+							out.WriteString("(*")
+							out.WriteString(ident.Name)
+							for _, embedded := range fieldInfo.EmbeddedPath {
+								out.WriteString(".")
+								out.WriteString(ToSnakeCase(embedded))
+							}
 							out.WriteString(".")
-							out.WriteString(ToSnakeCase(embedded))
+							out.WriteString(fieldInfo.FieldName)
+							WriteBorrowMethod(out, false)
+							out.WriteString(".as_ref().unwrap())")
+						} else {
+							out.WriteString(ident.Name)
+							for _, embedded := range fieldInfo.EmbeddedPath {
+								out.WriteString(".")
+								out.WriteString(ToSnakeCase(embedded))
+							}
+							out.WriteString(".")
+							out.WriteString(fieldInfo.FieldName)
 						}
-						out.WriteString(".")
-						out.WriteString(fieldInfo.FieldName)
 					}
 				} else {
 					// Direct field access
@@ -303,17 +320,31 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 							out.WriteString(fieldInfo.FieldName)
 						} else {
 							// For reading, we need immutable access
-							out.WriteString("(*")
+							// Also unwrap the field itself in RValue context
+							out.WriteString("(*(*")
 							out.WriteString(ident.Name)
 							WriteBorrowMethod(out, false)
 							out.WriteString(".as_ref().unwrap()).")
 							out.WriteString(fieldInfo.FieldName)
+							WriteBorrowMethod(out, false)
+							out.WriteString(".as_ref().unwrap())")
 						}
 					} else {
-						// Not wrapped - direct access
-						out.WriteString(ident.Name)
-						out.WriteString(".")
-						out.WriteString(fieldInfo.FieldName)
+						// Not wrapped (e.g., range variable) - but field itself is wrapped
+						if ctx == RValue {
+							// Unwrap the field in RValue context
+							out.WriteString("(*")
+							out.WriteString(ident.Name)
+							out.WriteString(".")
+							out.WriteString(fieldInfo.FieldName)
+							WriteBorrowMethod(out, false)
+							out.WriteString(".as_ref().unwrap())")
+						} else {
+							// Direct access in LValue context
+							out.WriteString(ident.Name)
+							out.WriteString(".")
+							out.WriteString(fieldInfo.FieldName)
+						}
 					}
 				}
 			}
@@ -350,20 +381,71 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			if fieldInfo.IsPromoted {
 				// Accessing promoted field through embedded struct(s)
 				// We need to unwrap each embedded struct in the path
-				TranspileExpressionContext(out, e.X, LValue)
-				for _, embedded := range fieldInfo.EmbeddedPath {
+				if ctx == RValue {
+					// In RValue context, unwrap the final field too
+					out.WriteString("(*")
+					TranspileExpressionContext(out, e.X, LValue)
+					for _, embedded := range fieldInfo.EmbeddedPath {
+						out.WriteString(".")
+						out.WriteString(ToSnakeCase(embedded))
+						WriteBorrowMethod(out, false)
+						out.WriteString(".as_ref().unwrap()")
+					}
 					out.WriteString(".")
-					out.WriteString(ToSnakeCase(embedded))
+					out.WriteString(fieldInfo.FieldName)
 					WriteBorrowMethod(out, false)
-					out.WriteString(".as_ref().unwrap()")
+					out.WriteString(".as_ref().unwrap())")
+				} else {
+					// In LValue context, don't unwrap the final field
+					TranspileExpressionContext(out, e.X, LValue)
+					for _, embedded := range fieldInfo.EmbeddedPath {
+						out.WriteString(".")
+						out.WriteString(ToSnakeCase(embedded))
+						WriteBorrowMethod(out, false)
+						out.WriteString(".as_ref().unwrap()")
+					}
+					out.WriteString(".")
+					out.WriteString(fieldInfo.FieldName)
 				}
-				out.WriteString(".")
-				out.WriteString(fieldInfo.FieldName)
 			} else {
 				// Direct field access
-				TranspileExpressionContext(out, e.X, LValue)
-				out.WriteString(".")
-				out.WriteString(fieldInfo.FieldName)
+				// Check if e.X is a selector expression that returns a wrapped struct field
+				if _, isSelector := e.X.(*ast.SelectorExpr); isSelector {
+					// e.X is a field access that returns a wrapped value, need to unwrap it
+					if ctx == RValue {
+						// In RValue context, unwrap both the struct and the final field
+						out.WriteString("(*(*")
+						TranspileExpressionContext(out, e.X, LValue)
+						WriteBorrowMethod(out, false)
+						out.WriteString(".as_ref().unwrap()).")
+						out.WriteString(fieldInfo.FieldName)
+						WriteBorrowMethod(out, false)
+						out.WriteString(".as_ref().unwrap())")
+					} else {
+						// In LValue context, just unwrap the struct to access the field
+						out.WriteString("(*")
+						TranspileExpressionContext(out, e.X, LValue)
+						WriteBorrowMethod(out, false)
+						out.WriteString(".as_ref().unwrap()).")
+						out.WriteString(fieldInfo.FieldName)
+					}
+				} else {
+					// e.X is not a selector, use normal handling
+					if ctx == RValue {
+						// In RValue context, field needs to be unwrapped
+						out.WriteString("(*")
+						TranspileExpressionContext(out, e.X, LValue)
+						out.WriteString(".")
+						out.WriteString(fieldInfo.FieldName)
+						WriteBorrowMethod(out, false)
+						out.WriteString(".as_ref().unwrap())")
+					} else {
+						// In LValue context, just access the field
+						TranspileExpressionContext(out, e.X, LValue)
+						out.WriteString(".")
+						out.WriteString(fieldInfo.FieldName)
+					}
+				}
 			}
 		}
 
@@ -643,6 +725,81 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		WriteWrapperSuffix(out)
 
 	case *ast.CompositeLit:
+		// When Type is nil, try to infer from TypeInfo
+		if e.Type == nil {
+			typeInfo := GetTypeInfo()
+			if typeInfo != nil {
+				if typ := typeInfo.GetType(e); typ != nil {
+					// We have the actual type from go/types
+					switch typ.Underlying().(type) {
+					case *types.Slice:
+						// Handle slice with inferred element type
+						WriteWrapperPrefix(out)
+						out.WriteString("vec![")
+						for i, elt := range e.Elts {
+							if i > 0 {
+								out.WriteString(", ")
+							}
+							// Recursively transpile elements
+							TranspileExpression(out, elt)
+						}
+						out.WriteString("]")
+						WriteWrapperSuffix(out)
+						return
+					case *types.Struct:
+						// Handle struct literal with inferred type
+						// Try to get the struct name from the named type
+						if named, ok := typ.(*types.Named); ok {
+							out.WriteString(named.Obj().Name())
+						} else {
+							// Anonymous struct - we'd need to generate a type
+							out.WriteString("/* Anonymous struct literal */")
+							out.WriteString("unimplemented!()")
+							return
+						}
+						out.WriteString(" { ")
+
+						// Output the fields
+						for i, elt := range e.Elts {
+							if i > 0 {
+								out.WriteString(", ")
+							}
+							if kv, ok := elt.(*ast.KeyValueExpr); ok {
+								if key, ok := kv.Key.(*ast.Ident); ok {
+									out.WriteString(ToSnakeCase(key.Name))
+									out.WriteString(": ")
+									// Check if the value is an identifier (parameter/variable)
+									if valIdent, ok := kv.Value.(*ast.Ident); ok {
+										// Check if it's a literal (true, false, nil) that doesn't need cloning
+										if valIdent.Name == "true" || valIdent.Name == "false" || valIdent.Name == "nil" {
+											// Wrap literal values
+											WriteWrapperPrefix(out)
+											TranspileExpression(out, kv.Value)
+											WriteWrapperSuffix(out)
+										} else {
+											// It's already wrapped, just clone it
+											out.WriteString(valIdent.Name)
+											out.WriteString(".clone()")
+										}
+									} else {
+										// Wrap field values
+										WriteWrapperPrefix(out)
+										TranspileExpression(out, kv.Value)
+										WriteWrapperSuffix(out)
+									}
+								}
+							}
+						}
+						out.WriteString(" }")
+						return
+					}
+				}
+			}
+			// If we can't infer, output an error comment
+			out.WriteString("/* ERROR: CompositeLit with nil Type - type inference failed */")
+			out.WriteString("unimplemented!()")
+			return
+		}
 		// Handle array/slice literals
 		if arrayType, ok := e.Type.(*ast.ArrayType); ok {
 			// Check if element type is interface{}
@@ -718,9 +875,17 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 						out.WriteString(": ")
 						// Check if the value is an identifier (parameter/variable)
 						if valIdent, ok := kv.Value.(*ast.Ident); ok {
-							// It's already wrapped, just clone it
-							out.WriteString(valIdent.Name)
-							out.WriteString(".clone()")
+							// Check if it's a literal (true, false, nil) that doesn't need cloning
+							if valIdent.Name == "true" || valIdent.Name == "false" || valIdent.Name == "nil" {
+								// Wrap literal values
+								WriteWrapperPrefix(out)
+								TranspileExpression(out, kv.Value)
+								WriteWrapperSuffix(out)
+							} else {
+								// It's already wrapped, just clone it
+								out.WriteString(valIdent.Name)
+								out.WriteString(".clone()")
+							}
 						} else {
 							// Wrap field values in Arc<Mutex<Option<T>>>
 							WriteWrapperPrefix(out)
@@ -766,9 +931,17 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 						out.WriteString(": ")
 						// Check if the value is an identifier (parameter/variable)
 						if valIdent, ok := kv.Value.(*ast.Ident); ok {
-							// It's already wrapped, just clone it
-							out.WriteString(valIdent.Name)
-							out.WriteString(".clone()")
+							// Check if it's a literal (true, false, nil) that doesn't need cloning
+							if valIdent.Name == "true" || valIdent.Name == "false" || valIdent.Name == "nil" {
+								// Wrap literal values
+								WriteWrapperPrefix(out)
+								TranspileExpression(out, kv.Value)
+								WriteWrapperSuffix(out)
+							} else {
+								// It's already wrapped, just clone it
+								out.WriteString(valIdent.Name)
+								out.WriteString(".clone()")
+							}
 						} else {
 							// Wrap field values in Arc<Mutex<Option<T>>>
 							WriteWrapperPrefix(out)

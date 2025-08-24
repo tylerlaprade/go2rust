@@ -1,6 +1,7 @@
 use std::error::Error;
 use std::fmt::{Display};
 use std::sync::{Arc, Mutex};
+use std::thread;
 
 fn format_slice<T>(slice: &Arc<Mutex<Option<Vec<T>>>>) -> String 
 where
@@ -196,7 +197,7 @@ fn main() {
         // Nested range loops
     println!("{}", "\n=== Nested range loops ===".to_string());
 
-    let mut matrix = Arc::new(Mutex::new(Some(vec![, , ])));
+    let mut matrix = Arc::new(Mutex::new(Some(vec![Arc::new(Mutex::new(Some(vec!["a".to_string(), "b".to_string(), "c".to_string()]))), Arc::new(Mutex::new(Some(vec!["d".to_string(), "e".to_string(), "f".to_string()]))), Arc::new(Mutex::new(Some(vec!["g".to_string(), "h".to_string(), "i".to_string()])))])));
 
     for (rowIdx, row) in (*matrix.lock().unwrap().as_mut().unwrap()).iter().enumerate() {
         for (colIdx, cell) in row.iter().enumerate() {
@@ -226,7 +227,12 @@ fn main() {
     // TODO: Unhandled statement type: SendStmt
     // TODO: Unhandled statement type: SendStmt
 
-    // TODO: Unhandled statement type: GoStmt
+    let ch1_closure_clone = ch1.clone(); let ch2_closure_clone = ch2.clone(); let done_closure_clone = done.clone(); let ch1_thread = ch1.clone(); let ch2_thread = ch2.clone(); let done_thread = done.clone(); std::thread::spawn(move || {
+        let mut count = Arc::new(Mutex::new(Some(0)));;
+        while true {
+        // TODO: Unhandled statement type: SelectStmt
+    };;
+    });
 
     <-(*done.lock().unwrap().as_mut().unwrap());
     println!("{}", "Channel processing complete".to_string());
@@ -234,7 +240,7 @@ fn main() {
         // Complex error handling flow
     println!("{}", "\n=== Complex error handling flow ===".to_string());
 
-    let mut processData = Arc::new(Mutex::new(Some(Arc::new(Mutex::new(Some(Box::new(move |data: Arc<Mutex<Option<Vec<i32>>>>| -> Arc<Mutex<Option<Box<dyn Error + Send + Sync>>>> {
+    let mut processData = Arc::new(Mutex::new(Some(Box::new(move |data: Arc<Mutex<Option<Vec<i32>>>>| -> Arc<Mutex<Option<Box<dyn Error + Send + Sync>>>> {
         if (*data.lock().unwrap().as_ref().unwrap()).len() == 0 {
         return Arc::new(Mutex::new(Some(Some(Box::new(format!("empty data")) as Box<dyn Error + Send + Sync>)));
     }
@@ -247,13 +253,13 @@ fn main() {
     }
     }
         return Arc::new(Mutex::new(None));
-    }) as Box<dyn Fn(Arc<Mutex<Option<Vec<i32>>>>) -> Arc<Mutex<Option<Box<dyn Error + Send + Sync>>>> + Send + Sync>))))));
+    }) as Box<dyn Fn(Arc<Mutex<Option<Vec<i32>>>>) -> Arc<Mutex<Option<Box<dyn Error + Send + Sync>>>> + Send + Sync>)));
 
-    let mut testData = Arc::new(Mutex::new(Some(vec![, , , , ])));
+    let mut testData = Arc::new(Mutex::new(Some(vec![Arc::new(Mutex::new(Some(vec![1, 2, 3]))), Arc::new(Mutex::new(Some(vec![]))), Arc::new(Mutex::new(Some(vec![1, -2, 3]))), Arc::new(Mutex::new(Some(vec![1, 200, 3]))), Arc::new(Mutex::new(Some(vec![10, 20, 30])))])));
 
     for (i, data) in (*testData.lock().unwrap().as_mut().unwrap()).iter().enumerate() {
         print!("Testing dataset {}: {}\n", i + 1, format_slice(&data));
-        let mut err = (processData.lock().unwrap().as_ref().unwrap())(Arc::new(Mutex::new(Some(*data))));
+        let mut err = (*processData.lock().unwrap().as_ref().unwrap())(Arc::new(Mutex::new(Some(*data))));
     if (*err.lock().unwrap()).is_some() {
         print!("  Error: {}\n", (*err.lock().unwrap().as_mut().unwrap()));
         continue

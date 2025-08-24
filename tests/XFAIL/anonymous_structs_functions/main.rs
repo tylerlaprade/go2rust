@@ -42,7 +42,7 @@ pub fn get_point() -> Arc<Mutex<Option<AnonymousStruct2>>> {
 /// Function with multiple anonymous struct parameters
 pub fn compare_points(p1: Arc<Mutex<Option<AnonymousStruct2>>>, p2: Arc<Mutex<Option<AnonymousStruct2>>>) -> Arc<Mutex<Option<bool>>> {
 
-    return Arc::new(Mutex::new(Some((*(*p1.lock().unwrap().as_ref().unwrap()).x.lock().unwrap().as_ref().unwrap()) == (*(*p2.lock().unwrap().as_ref().unwrap()).x.lock().unwrap().as_ref().unwrap()) && (*(*p1.lock().unwrap().as_ref().unwrap()).y.lock().unwrap().as_ref().unwrap()) == (*(*p2.lock().unwrap().as_ref().unwrap()).y.lock().unwrap().as_ref().unwrap()))));
+    return Arc::new(Mutex::new(Some((*(*(*p1.lock().unwrap().as_ref().unwrap()).x.lock().unwrap().as_ref().unwrap()).lock().unwrap().as_ref().unwrap()) == (*(*(*p2.lock().unwrap().as_ref().unwrap()).x.lock().unwrap().as_ref().unwrap()).lock().unwrap().as_ref().unwrap()) && (*(*(*p1.lock().unwrap().as_ref().unwrap()).y.lock().unwrap().as_ref().unwrap()).lock().unwrap().as_ref().unwrap()) == (*(*(*p2.lock().unwrap().as_ref().unwrap()).y.lock().unwrap().as_ref().unwrap()).lock().unwrap().as_ref().unwrap()))));
 }
 
 /// Function returning multiple values including anonymous struct
@@ -60,7 +60,7 @@ pub fn update_settings(s: Arc<Mutex<Option<AnonymousStruct4>>>) {
 /// Function with anonymous struct in channel
 pub fn process_events(ch: Arc<Mutex<Option</* TODO: Unhandled type *ast.ChanType */ Arc<Mutex<Option<()>>>>>>) {
     for event in 0..(*ch.lock().unwrap().as_mut().unwrap()).len() {
-        print!("Event [{}]: {}\n", event.r#type, event.message);
+        print!("Event [{}]: {}\n", (*event.r#type.lock().unwrap().as_ref().unwrap()), (*event.message.lock().unwrap().as_ref().unwrap()));
     }
 }
 
@@ -84,7 +84,7 @@ fn main() {
     print!("Config for {}: Port={}, Timeout={}\n", (*name.lock().unwrap().as_mut().unwrap()), (*(*config.lock().unwrap().as_ref().unwrap()).port.lock().unwrap().as_ref().unwrap()), (*(*config.lock().unwrap().as_ref().unwrap()).timeout.lock().unwrap().as_ref().unwrap()));
 
         // Test function with anonymous struct pointer
-    let mut settings = Arc::new(Mutex::new(Some(AnonymousStruct4 { debug: false.clone(), verbose: false.clone() })));
+    let mut settings = Arc::new(Mutex::new(Some(AnonymousStruct4 { debug: Arc::new(Mutex::new(Some(false))), verbose: Arc::new(Mutex::new(Some(false))) })));
     print!("Settings before: Debug={}, Verbose={}\n", (*(*settings.lock().unwrap().as_ref().unwrap()).debug.lock().unwrap().as_ref().unwrap()), (*(*settings.lock().unwrap().as_ref().unwrap()).verbose.lock().unwrap().as_ref().unwrap()));
     update_settings(settings.clone());
     print!("Settings after: Debug={}, Verbose={}\n", (*(*settings.lock().unwrap().as_ref().unwrap()).debug.lock().unwrap().as_ref().unwrap()), (*(*settings.lock().unwrap().as_ref().unwrap()).verbose.lock().unwrap().as_ref().unwrap()));

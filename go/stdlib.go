@@ -208,23 +208,9 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 		}
 	}
 
-	// For selector expressions (field access), we need to unwrap the field value
-	if sel, ok := arg.(*ast.SelectorExpr); ok {
-		// For simple field access like e.Name or e.ID, unwrap the field
-		// But be careful not to double-wrap the base expression
-		if ident, isIdent := sel.X.(*ast.Ident); isIdent {
-			// Simple case: variable.field
-			// Check if this is a wrapped variable or a struct literal
-			if _, isRangeVar := rangeLoopVars[ident.Name]; !isRangeVar {
-				// Regular variable - fields are wrapped
-				out.WriteString("(*")
-				TranspileExpression(out, arg)
-				WriteBorrowMethod(out, false)
-				out.WriteString(".as_ref().unwrap())")
-				return
-			}
-		}
-		// For other cases, just transpile normally
+	// For selector expressions (field access), TranspileExpression already handles unwrapping
+	// in RValue context, so we don't need to add extra unwrapping here
+	if _, ok := arg.(*ast.SelectorExpr); ok {
 		TranspileExpression(out, arg)
 		return
 	}

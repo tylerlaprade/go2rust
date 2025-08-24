@@ -14,7 +14,7 @@ fn main() {
     print!("X via unsafe: {}\n", (*xPtr.lock().unwrap().as_ref().unwrap()));
 
         // Get pointer to Y field
-    let mut yPtr = (*((*int32.lock().unwrap().as_ref().unwrap())).lock().unwrap().as_ref().unwrap())(Arc::new(Mutex::new(Some(Arc::new(Mutex::new(Some((*(*p.lock().unwrap().as_mut().unwrap()).as_ref().unwrap().as_ref().unwrap()) as usize))) + (*(*unsafe.lock().unwrap().as_mut().unwrap()).offsetof(Arc::new(Mutex::new(Some((*p.lock().unwrap().as_ref().unwrap()).y)))).lock().unwrap().as_ref().unwrap())))));
+    let mut yPtr = (*((*int32.lock().unwrap().as_ref().unwrap())).lock().unwrap().as_ref().unwrap())(Arc::new(Mutex::new(Some(Arc::new(Mutex::new(Some((*(*p.lock().unwrap().as_mut().unwrap()).as_ref().unwrap().as_ref().unwrap()) as usize))) + (*(*unsafe.lock().unwrap().as_mut().unwrap()).offsetof(Arc::new(Mutex::new(Some((*(*p.lock().unwrap().as_ref().unwrap()).y.lock().unwrap().as_ref().unwrap()))))).lock().unwrap().as_ref().unwrap())))));
     print!("Y via unsafe: {}\n", (*yPtr.lock().unwrap().as_ref().unwrap()));
 
         // Size and alignment

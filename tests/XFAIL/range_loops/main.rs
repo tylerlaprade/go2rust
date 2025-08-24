@@ -64,7 +64,7 @@ fn main() {
         // TODO: Unhandled statement type: SendStmt
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
-    (close.lock().unwrap().as_ref().unwrap())(ch.clone());
+    (*close.lock().unwrap().as_ref().unwrap())(ch.clone());
 
         // Range over closed channel
     for value in 0..(*ch.lock().unwrap().as_mut().unwrap()).len() {
@@ -95,7 +95,7 @@ fn main() {
 
         // Nested range loops
     println!("{}", "\n=== Nested range loops ===".to_string());
-    let mut matrix = Arc::new(Mutex::new(Some(vec![, , ])));
+    let mut matrix = Arc::new(Mutex::new(Some(vec![Arc::new(Mutex::new(Some(vec![1, 2, 3]))), Arc::new(Mutex::new(Some(vec![4, 5, 6]))), Arc::new(Mutex::new(Some(vec![7, 8, 9])))])));
 
     for (i, row) in (*matrix.lock().unwrap().as_mut().unwrap()).iter().enumerate() {
         for (j, val) in row.iter().enumerate() {

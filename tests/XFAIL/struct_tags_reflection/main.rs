@@ -21,7 +21,7 @@ fn main() {
     let mut i = Rc::new(RefCell::new(Some(0)));
     while (*i.borrow_mut().as_mut().unwrap()) < (*(*t.borrow_mut().as_mut().unwrap()).num_field().borrow().as_ref().unwrap()) {
         let mut field = (*t.borrow_mut().as_mut().unwrap()).field(Rc::new(RefCell::new(Some((*i.borrow_mut().as_mut().unwrap())))));
-        print!("{}: json=%q db=%q\n", (*(*field.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()), (*(*(*field.borrow().as_ref().unwrap()).tag.borrow().as_mut().unwrap()).get(Rc::new(RefCell::new(Some("json".to_string())))).borrow().as_ref().unwrap()), (*(*(*field.borrow().as_ref().unwrap()).tag.borrow().as_mut().unwrap()).get(Rc::new(RefCell::new(Some("db".to_string())))).borrow().as_ref().unwrap()));
+        print!("{}: json=%q db=%q\n", (*(*field.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()), (*(*(*(*field.borrow().as_ref().unwrap()).tag.borrow().as_ref().unwrap()).borrow().as_mut().unwrap()).get(Rc::new(RefCell::new(Some("json".to_string())))).borrow().as_ref().unwrap()), (*(*(*(*field.borrow().as_ref().unwrap()).tag.borrow().as_ref().unwrap()).borrow().as_mut().unwrap()).get(Rc::new(RefCell::new(Some("db".to_string())))).borrow().as_ref().unwrap()));
         { let mut guard = i.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
 }

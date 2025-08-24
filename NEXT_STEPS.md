@@ -3,8 +3,10 @@
 Looking at the XFAIL tests, the major features that
 need implementation include:
 
-## Anonymous Structs
+## Anonymous Structs (Partially Complete)
 
+✅ Composite literals with nil Type inference
+✅ Nested field access with proper unwrapping
 • Basic anonymous structs (anonymous_structs_basic)
 • In functions (anonymous_structs_functions)
 • Nested anonymous structs

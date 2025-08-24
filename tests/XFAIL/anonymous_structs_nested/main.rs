@@ -98,23 +98,23 @@ struct AnonymousStruct8 {
 fn main() {
         // Test named struct with anonymous struct field
     let mut config = Rc::new(RefCell::new(Some(Config { name: Rc::new(RefCell::new(Some("production".to_string()))) })));
-    { let new_val = "db.example.com".to_string(); *(*config.borrow_mut().as_mut().unwrap()).database.host.borrow_mut() = Some(new_val); };
-    { let new_val = 5432; *(*config.borrow_mut().as_mut().unwrap()).database.port.borrow_mut() = Some(new_val); };
-    { let new_val = "admin".to_string(); *(*config.borrow_mut().as_mut().unwrap()).database.credentials.user.borrow_mut() = Some(new_val); };
-    { let new_val = "secret".to_string(); *(*config.borrow_mut().as_mut().unwrap()).database.credentials.password.borrow_mut() = Some(new_val); };
-    { let new_val = true; *(*config.borrow_mut().as_mut().unwrap()).cache.enabled.borrow_mut() = Some(new_val); };
-    { let new_val = 300; *(*config.borrow_mut().as_mut().unwrap()).cache.t_t_l.borrow_mut() = Some(new_val); };
+    { let new_val = "db.example.com".to_string(); *(*(*config.borrow_mut().as_mut().unwrap()).database.borrow().as_ref().unwrap()).host.borrow_mut() = Some(new_val); };
+    { let new_val = 5432; *(*(*config.borrow_mut().as_mut().unwrap()).database.borrow().as_ref().unwrap()).port.borrow_mut() = Some(new_val); };
+    { let new_val = "admin".to_string(); *(*(*(*config.borrow_mut().as_mut().unwrap()).database.borrow().as_ref().unwrap()).credentials.borrow().as_ref().unwrap()).user.borrow_mut() = Some(new_val); };
+    { let new_val = "secret".to_string(); *(*(*(*config.borrow_mut().as_mut().unwrap()).database.borrow().as_ref().unwrap()).credentials.borrow().as_ref().unwrap()).password.borrow_mut() = Some(new_val); };
+    { let new_val = true; *(*(*config.borrow_mut().as_mut().unwrap()).cache.borrow().as_ref().unwrap()).enabled.borrow_mut() = Some(new_val); };
+    { let new_val = 300; *(*(*config.borrow_mut().as_mut().unwrap()).cache.borrow().as_ref().unwrap()).t_t_l.borrow_mut() = Some(new_val); };
 
     print!("Config: {}\n", (*(*config.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()));
-    print!("Database: {}:{} (user: {})\n", (*config.borrow_mut().as_mut().unwrap()).database.host, (*config.borrow_mut().as_mut().unwrap()).database.port, (*config.borrow_mut().as_mut().unwrap()).database.credentials.user);
-    print!("Cache: enabled={}, TTL={}\n", (*config.borrow_mut().as_mut().unwrap()).cache.enabled, (*config.borrow_mut().as_mut().unwrap()).cache.t_t_l);
+    print!("Database: {}:{} (user: {})\n", (*(*(*config.borrow_mut().as_mut().unwrap()).database.borrow().as_ref().unwrap()).host.borrow().as_ref().unwrap()), (*(*(*config.borrow_mut().as_mut().unwrap()).database.borrow().as_ref().unwrap()).port.borrow().as_ref().unwrap()), (*(*(*(*config.borrow_mut().as_mut().unwrap()).database.borrow().as_ref().unwrap()).credentials.borrow().as_ref().unwrap()).user.borrow().as_ref().unwrap()));
+    print!("Cache: enabled={}, TTL={}\n", (*(*(*config.borrow_mut().as_mut().unwrap()).cache.borrow().as_ref().unwrap()).enabled.borrow().as_ref().unwrap()), (*(*(*config.borrow_mut().as_mut().unwrap()).cache.borrow().as_ref().unwrap()).t_t_l.borrow().as_ref().unwrap()));
 
         // Test named struct with slice of anonymous structs
-    let mut dashboard = Rc::new(RefCell::new(Some(Dashboard { title: Rc::new(RefCell::new(Some("Main Dashboard".to_string()))), widgets: Rc::new(RefCell::new(Some(Rc::new(RefCell::new(Some(vec![, ])))))) })));
+    let mut dashboard = Rc::new(RefCell::new(Some(Dashboard { title: Rc::new(RefCell::new(Some("Main Dashboard".to_string()))), widgets: Rc::new(RefCell::new(Some(Rc::new(RefCell::new(Some(vec![/* Anonymous struct literal */unimplemented!(), /* Anonymous struct literal */unimplemented!()])))))) })));
 
     print!("\nDashboard: {}\n", (*(*dashboard.borrow().as_ref().unwrap()).title.borrow().as_ref().unwrap()));
-    for widget in &(*dashboard.borrow().as_ref().unwrap()).widgets {
-        print!("Widget {} ({}) at position ({}, {})\n", widget.i_d, widget.r#type, widget.position.x, widget.position.y);
+    for widget in &(*(*dashboard.borrow().as_ref().unwrap()).widgets.borrow().as_ref().unwrap()) {
+        print!("Widget {} ({}) at position ({}, {})\n", (*widget.i_d.borrow().as_ref().unwrap()), (*widget.r#type.borrow().as_ref().unwrap()), (*(*widget.position.borrow().as_ref().unwrap()).x.borrow().as_ref().unwrap()), (*(*widget.position.borrow().as_ref().unwrap()).y.borrow().as_ref().unwrap()));
     }
 
         // Deeply nested anonymous structs
@@ -124,15 +124,15 @@ fn main() {
     { let new_val = Rc::new(RefCell::new(Some(HashMap::<String, Rc<RefCell<Option<AnonymousStruct7>>>>::new()))); *(*system.borrow_mut().as_mut().unwrap()).modules.borrow_mut() = Some(new_val); };
 
         // Add a module with settings
-    let mut authModule = Rc::new(RefCell::new(Some(AnonymousStruct7 { enabled: true.clone(), settings: Default::default() })));
-    { let new_val = Rc::new(RefCell::new(Some(vec![, ]))); *(*authModule.borrow_mut().as_mut().unwrap()).settings.options.borrow_mut() = Some(new_val); };
-    (*(*system.borrow().as_ref().unwrap()).modules.borrow_mut().as_mut().unwrap()).insert("auth".to_string(), authModule.clone());
+    let mut authModule = Rc::new(RefCell::new(Some(AnonymousStruct7 { enabled: Rc::new(RefCell::new(Some(true))), settings: Default::default() })));
+    { let new_val = Rc::new(RefCell::new(Some(vec![/* Anonymous struct literal */unimplemented!(), /* Anonymous struct literal */unimplemented!()]))); *(*(*authModule.borrow_mut().as_mut().unwrap()).settings.borrow().as_ref().unwrap()).options.borrow_mut() = Some(new_val); };
+    (*(*(*system.borrow().as_ref().unwrap()).modules.borrow().as_ref().unwrap()).borrow_mut().as_mut().unwrap()).insert("auth".to_string(), authModule.clone());
 
     print!("\nSystem version: {}\n", (*(*system.borrow().as_ref().unwrap()).version.borrow().as_ref().unwrap()));
-    for (name, module) in (*(*system.borrow().as_ref().unwrap()).modules.borrow().as_ref().unwrap()).clone() {
-        print!("Module {}: enabled={}\n", name, module.enabled);
-        for opt in &module.settings.options {
-        print!("  - {}: {}\n", opt.key, format_any((opt.value).borrow().as_ref().unwrap().as_ref()));
+    for (name, module) in (*(*(*system.borrow().as_ref().unwrap()).modules.borrow().as_ref().unwrap()).borrow().as_ref().unwrap()).clone() {
+        print!("Module {}: enabled={}\n", name, (*module.enabled.borrow().as_ref().unwrap()));
+        for opt in &(*(*module.settings.borrow().as_ref().unwrap()).options.borrow().as_ref().unwrap()) {
+        print!("  - {}: {}\n", (*opt.key.borrow().as_ref().unwrap()), format_any(((*opt.value.borrow().as_ref().unwrap())).borrow().as_ref().unwrap().as_ref()));
     }
     }
 }

@@ -2,6 +2,9 @@
 
 ## Implementation Status
 
+**Current Progress: 44/132 tests passing (33.3%)**
+*Last updated: 2025-08-23*
+
 ### ✅ Phase 1: Hello World
 
 Basic program transpilation
@@ -18,15 +21,16 @@ Pointer types, &/*, new() builtin, struct fields, nil handling
 
 Method receivers (value and pointer), multiple returns, method calls
 
-### 🚧 Phase 4.5: Advanced Types and Structs (85% Complete)
+### ✅ Phase 4.5: Advanced Types and Structs (Complete)
 
 - ✅ Type aliases (`type A = B`) - generates proper Rust type aliases
 - ✅ Type definitions (`type A B`) - generates newtype wrappers with Display impl
 - ✅ Struct tags - preserved as comments in generated code
-- 🚧 Struct embedding - method promotion working, field promotion needs wrapper handling fixes
-- 🚧 Anonymous structs - partial support (type generation works, literals need fixing)
+- ✅ Struct embedding - both method and field promotion fully working with proper unwrapping
+- ✅ Anonymous structs - composite literals with nil Type inference working
+- ✅ Nested field access - proper unwrapping of intermediate struct fields (2025-08-23)
 
-### 📋 Phase 5: Core Language Features (60% Complete)
+### 🚧 Phase 5: Core Language Features (70% Complete)
 
 - ✅ Basic constants - simple const declarations working
 - 🚧 Complex constants and iota - expressions, iota patterns need work
