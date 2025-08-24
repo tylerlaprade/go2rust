@@ -16,9 +16,9 @@ const T_B: i64 = 1 << (10 * 4);
 const A: i32 = 0;
 const B: i32 = 0 * 10;
 const C: i32 = 1;
-const D: i32 = 1;
+const D: i32 = 1 * 10;
 const E: i32 = 2;
-const F: i32 = 2;
+const F: i32 = 2 * 10;
 
 
 const FIRST: i32 = 0;

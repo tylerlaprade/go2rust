@@ -744,13 +744,44 @@ where
 func transpilePanic(out *strings.Builder, call *ast.CallExpr) {
 	out.WriteString("panic!(")
 	if len(call.Args) > 0 {
-		// Check if the argument is a string literal or expression
+		// Check if the argument is a string literal
 		if lit, ok := call.Args[0].(*ast.BasicLit); ok && lit.Kind == token.STRING {
 			// String literal - use it directly
 			out.WriteString(lit.Value)
+		} else if callExpr, ok := call.Args[0].(*ast.CallExpr); ok {
+			// Check if it's fmt.Errorf - handle specially
+			if sel, ok := callExpr.Fun.(*ast.SelectorExpr); ok {
+				if pkg, ok := sel.X.(*ast.Ident); ok && pkg.Name == "fmt" && sel.Sel.Name == "Errorf" {
+					// panic(fmt.Errorf(...)) - extract the format string directly
+					if len(callExpr.Args) > 0 {
+						if lit, ok := callExpr.Args[0].(*ast.BasicLit); ok && lit.Kind == token.STRING {
+							// Convert format string
+							format := convertFormatString(lit.Value)
+							out.WriteString(format)
+							// Add the rest of the arguments
+							for i := 1; i < len(callExpr.Args); i++ {
+								out.WriteString(", ")
+								transpilePrintArg(out, callExpr.Args[i])
+							}
+						} else {
+							// Non-literal format string
+							out.WriteString("\"{}\", ")
+							TranspileExpression(out, call.Args[0])
+						}
+					}
+				} else {
+					// Other function call - format it
+					out.WriteString("\"{:?}\", ")
+					TranspileExpression(out, call.Args[0])
+				}
+			} else {
+				// Other call expression - format it
+				out.WriteString("\"{:?}\", ")
+				TranspileExpression(out, call.Args[0])
+			}
 		} else {
-			// Expression - format it
-			out.WriteString("\"{}\", ")
+			// Other expression - format it
+			out.WriteString("\"{:?}\", ")
 			TranspileExpression(out, call.Args[0])
 		}
 	} else {

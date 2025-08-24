@@ -72,6 +72,15 @@ func GoTypeToRust(expr ast.Expr) string {
 	outerWrapper := GetOuterWrapperType()
 	innerWrapper := GetInnerWrapperType()
 
+	// Track imports for the wrappers we're using
+	if NeedsConcurrentWrapper() {
+		TrackImport("Arc")
+		TrackImport("Mutex")
+	} else {
+		TrackImport("Rc")
+		TrackImport("RefCell")
+	}
+
 	// Special case for error type - it's already Option
 	if ident, ok := expr.(*ast.Ident); ok && ident.Name == "error" {
 		return outerWrapper + "<" + innerWrapper + "<" + baseType + ">>"

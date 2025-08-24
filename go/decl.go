@@ -376,10 +376,15 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 				// Add Display impl for numeric types
 				if ident.Name == "int" || ident.Name == "int64" || ident.Name == "float64" ||
 					ident.Name == "float32" || ident.Name == "uint" || ident.Name == "uint64" {
+					// Track necessary imports
+					TrackImport("Display")
+					TrackImport("Formatter")
+					TrackImport("fmt")
+
 					out.WriteString("\nimpl Display for ")
 					out.WriteString(typeSpec.Name.Name)
 					out.WriteString(" {\n")
-					out.WriteString("    fn fmt(&self, f: &mut Formatter) -> fmt::Result {\n")
+					out.WriteString("    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {\n")
 					out.WriteString("        write!(f, \"{}\", self.0")
 					WriteBorrowMethod(out, false)
 					out.WriteString(".as_ref().unwrap())\n")
@@ -444,8 +449,19 @@ func transpileConstDeclWithCase(out *strings.Builder, genDecl *ast.GenDecl, toUp
 					if ident, ok := valueSpec.Type.(*ast.Ident); ok && ident.Name == "string" {
 						out.WriteString("&'static str")
 					} else {
-						// Use base type without wrapping for constants
-						out.WriteString(goTypeToRustBase(valueSpec.Type))
+						// Check if this is a type definition and get underlying type
+						baseType := goTypeToRustBase(valueSpec.Type)
+						// If it's a custom type (like Color), we need to use the underlying type
+						// For now, assume custom int types map to i32
+						if ident, ok := valueSpec.Type.(*ast.Ident); ok {
+							// Check if this is a known type definition
+							if _, isTypeDef := typeDefinitions[ident.Name]; isTypeDef {
+								// Type definitions for constants should use the underlying type
+								// For now, assume int-based type definitions
+								baseType = "i32"
+							}
+						}
+						out.WriteString(baseType)
 					}
 				} else if len(valueSpec.Values) > i && valueSpec.Values[i] != nil {
 					// Infer type from value
@@ -464,14 +480,14 @@ func transpileConstDeclWithCase(out *strings.Builder, genDecl *ast.GenDecl, toUp
 				if len(valueSpec.Values) > i && valueSpec.Values[i] != nil {
 					// Replace iota with actual value
 					TranspileConstExpr(out, valueSpec.Values[i], iotaValue)
-				} else if i == 0 && len(lastExpressions) > 0 && lastExpressions[0] != nil {
-					// Repeat the last expression pattern with current iota
+				} else if len(lastExpressions) > i && lastExpressions[i] != nil {
+					// Use the corresponding expression from lastExpressions for this position
+					TranspileConstExpr(out, lastExpressions[i], iotaValue)
+				} else if len(lastExpressions) > 0 && lastExpressions[0] != nil {
+					// If we don't have an expression for this position, use the first one
 					TranspileConstExpr(out, lastExpressions[0], iotaValue)
-				} else if i == 0 && len(valueSpec.Values) == 0 {
-					// First constant without value in group gets iota
-					out.WriteString(fmt.Sprintf("%d", iotaValue))
 				} else {
-					// Subsequent constants without values repeat the pattern
+					// No previous expression pattern, just use iota value
 					out.WriteString(fmt.Sprintf("%d", iotaValue))
 				}
 

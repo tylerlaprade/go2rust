@@ -1,7 +1,8 @@
 use std::cell::{RefCell};
+use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
-const STATE_IDLE: ServerState = 0;
+const STATE_IDLE: i32 = 0;
 const STATE_CONNECTED: i32 = 1;
 const STATE_ERROR: i32 = 2;
 const STATE_RETRYING: i32 = 3;
@@ -44,7 +45,7 @@ pub fn transition(s: Rc<RefCell<Option<ServerState>>>) -> Rc<RefCell<Option<Serv
             return StateError.clone();
         }
         _ => {
-            panic!("{}", Rc::new(RefCell::new(Some(Some(Box::new(format!("unknown state: {}", (*s.borrow_mut().as_mut().unwrap()))) as Box<dyn Error + Send + Sync>))));
+            panic!("unknown state: {}", (*s.borrow_mut().as_mut().unwrap()));
         }
     }
 }

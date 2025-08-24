@@ -339,6 +339,14 @@ run_xfail_test() {
     run_test "tests/if_else_basic"
 }
 
+@test "iota_complex" {
+    run_test "tests/iota_complex"
+}
+
+@test "iota_enums" {
+    run_test "tests/iota_enums"
+}
+
 @test "late_address_of" {
     run_test "tests/late_address_of"
 }
@@ -593,14 +601,6 @@ run_xfail_test() {
 
 @test "XFAIL: interfaces_simple" {
     run_xfail_test "tests/XFAIL/interfaces_simple"
-}
-
-@test "XFAIL: iota_complex" {
-    run_xfail_test "tests/XFAIL/iota_complex"
-}
-
-@test "XFAIL: iota_enums" {
-    run_xfail_test "tests/XFAIL/iota_enums"
 }
 
 @test "XFAIL: json_marshal" {

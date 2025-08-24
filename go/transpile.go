@@ -538,6 +538,12 @@ func Transpile(file *ast.File, fileSet *token.FileSet, typeInfo *TypeInfo) (stri
 
 		// If it has Error() method, implement Error trait
 		if hasErrorMethod {
+			// Track necessary imports
+			TrackImport("Error")
+			TrackImport("Display")
+			TrackImport("Formatter")
+			TrackImport("fmt")
+
 			body.WriteString("\n\n")
 			body.WriteString("impl Error for ")
 			body.WriteString(typeName)
@@ -545,7 +551,7 @@ func Transpile(file *ast.File, fileSet *token.FileSet, typeInfo *TypeInfo) (stri
 			body.WriteString("impl Display for ")
 			body.WriteString(typeName)
 			body.WriteString(" {\n")
-			body.WriteString("    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {\n")
+			body.WriteString("    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {\n")
 			body.WriteString("        write!(f, \"{}\", (*self.error()")
 			WriteBorrowMethod(&body, true)
 			body.WriteString(".as_mut().unwrap()))\n")

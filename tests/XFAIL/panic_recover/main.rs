@@ -141,14 +141,14 @@ pub fn demonstrate_panic_types() {
 
     __defer_stack.push(Box::new(move || {
         (*Rc::new(RefCell::new(Some(Box::new(move || {
-        panic!("{}", 42);
+        panic!("{:?}", 42);
     }) as Box<dyn Fn() -> ()>))).borrow().as_ref().unwrap())();
     }));
 
         // Integer panic
     __defer_stack.push(Box::new(move || {
         (*Rc::new(RefCell::new(Some(Box::new(move || {
-        panic!("{}", Rc::new(RefCell::new(Some(Some(Box::new(format!("error panic")) as Box<dyn Error + Send + Sync>))));
+        panic!("error panic");
     }) as Box<dyn Fn() -> ()>))).borrow().as_ref().unwrap())();
     }));
 
