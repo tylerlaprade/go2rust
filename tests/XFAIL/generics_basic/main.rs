@@ -1,6 +1,6 @@
 use std::cell::{RefCell};
 use std::collections::HashMap;
-use std::fmt::{Display};
+use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
 fn format_slice<T>(slice: &Rc<RefCell<Option<Vec<T>>>>) -> String 
@@ -22,11 +22,25 @@ struct List {
     tail: Rc<RefCell<Option</* TODO: Unhandled type *ast.IndexExpr */ Rc<RefCell<Option<()>>>>>>,
 }
 
+impl std::fmt::Display for List {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{} {}}}", (*self.head.borrow().as_ref().unwrap()), (*self.tail.borrow().as_ref().unwrap()))
+    }
+}
+
+
 #[derive(Debug, Clone, Default)]
 struct element {
     next: Rc<RefCell<Option</* TODO: Unhandled type *ast.IndexExpr */ Rc<RefCell<Option<()>>>>>>,
     val: Rc<RefCell<Option<T>>>,
 }
+
+impl std::fmt::Display for element {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{} {}}}", (*self.next.borrow().as_ref().unwrap()), (*self.val.borrow().as_ref().unwrap()))
+    }
+}
+
 
 impl Unknown {
     pub fn push(&mut self, v: Rc<RefCell<Option<T>>>) {

@@ -242,14 +242,14 @@ fn main() {
 
     let mut processData = Arc::new(Mutex::new(Some(Box::new(move |data: Arc<Mutex<Option<Vec<i32>>>>| -> Arc<Mutex<Option<Box<dyn Error + Send + Sync>>>> {
         if (*data.lock().unwrap().as_ref().unwrap()).len() == 0 {
-        return Arc::new(Mutex::new(Some(Some(Box::new(format!("empty data")) as Box<dyn Error + Send + Sync>)));
+        return Arc::new(Mutex::new(Some(Box::new(format!("empty data")) as Box<dyn Error + Send + Sync>)));
     }
         for (i, val) in (*data.lock().unwrap().as_mut().unwrap()).iter().enumerate() {
         if val < 0 {
-        return Arc::new(Mutex::new(Some(Some(Box::new(format!("negative value at index {}: {}", i, val)) as Box<dyn Error + Send + Sync>)));
+        return Arc::new(Mutex::new(Some(Box::new(format!("negative value at index {}: {}", i, val)) as Box<dyn Error + Send + Sync>)));
     }
         if val > 100 {
-        return Arc::new(Mutex::new(Some(Some(Box::new(format!("value too large at index {}: {}", i, val)) as Box<dyn Error + Send + Sync>)));
+        return Arc::new(Mutex::new(Some(Box::new(format!("value too large at index {}: {}", i, val)) as Box<dyn Error + Send + Sync>)));
     }
     }
         return Arc::new(Mutex::new(None));
@@ -261,7 +261,7 @@ fn main() {
         print!("Testing dataset {}: {}\n", i + 1, format_slice(&data));
         let mut err = (*processData.lock().unwrap().as_ref().unwrap())(Arc::new(Mutex::new(Some(*data))));
     if (*err.lock().unwrap()).is_some() {
-        print!("  Error: {}\n", (*err.lock().unwrap().as_mut().unwrap()));
+        print!("  Error: {}\n", format!("{}", (*err.lock().unwrap().as_ref().unwrap())));
         continue
     }
         print!("  Success: data is valid\n");

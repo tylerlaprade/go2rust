@@ -1,10 +1,10 @@
 use std::cell::{RefCell};
 use std::collections::HashMap;
-use std::fmt::{Debug};
+use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
 /// Interface for drawing
-trait Drawable: Debug {
+trait Drawable: std::fmt::Display {
     fn draw(&self) -> Rc<RefCell<Option<String>>>;
 }
 
@@ -14,17 +14,38 @@ struct Circle {
     radius: Rc<RefCell<Option<f64>>>,
 }
 
+impl std::fmt::Display for Circle {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{}}}", (*self.radius.borrow().as_ref().unwrap()))
+    }
+}
+
+
 #[derive(Debug, Clone, Default)]
 struct Rectangle {
     width: Rc<RefCell<Option<f64>>>,
     height: Rc<RefCell<Option<f64>>>,
 }
 
+impl std::fmt::Display for Rectangle {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{} {}}}", (*self.width.borrow().as_ref().unwrap()), (*self.height.borrow().as_ref().unwrap()))
+    }
+}
+
+
 #[derive(Debug, Clone, Default)]
 struct Canvas {
     name: Rc<RefCell<Option<String>>>,
     shapes: Rc<RefCell<Option<Vec<Box<dyn Drawable>>>>>,
 }
+
+impl std::fmt::Display for Canvas {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{} {}}}", (*self.name.borrow().as_ref().unwrap()), (*self.shapes.borrow().as_ref().unwrap()))
+    }
+}
+
 
 /// Nested struct definitions
 #[derive(Debug, Clone, Default)]
@@ -36,11 +57,25 @@ struct Address {
     country: Rc<RefCell<Option<String>>>,
 }
 
+impl std::fmt::Display for Address {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{} {} {} {} {}}}", (*self.street.borrow().as_ref().unwrap()), (*self.city.borrow().as_ref().unwrap()), (*self.state.borrow().as_ref().unwrap()), (*self.zip_code.borrow().as_ref().unwrap()), (*self.country.borrow().as_ref().unwrap()))
+    }
+}
+
+
 #[derive(Debug, Clone, Default)]
 struct Contact {
     email: Rc<RefCell<Option<String>>>,
     phone: Rc<RefCell<Option<String>>>,
 }
+
+impl std::fmt::Display for Contact {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{} {}}}", (*self.email.borrow().as_ref().unwrap()), (*self.phone.borrow().as_ref().unwrap()))
+    }
+}
+
 
 #[derive(Debug, Clone, Default)]
 struct Person {
@@ -50,6 +85,13 @@ struct Person {
     contact: Rc<RefCell<Option<Contact>>>,
 }
 
+impl std::fmt::Display for Person {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{} {} {} {}}}", (*self.name.borrow().as_ref().unwrap()), (*self.age.borrow().as_ref().unwrap()), (*self.address.borrow().as_ref().unwrap()), (*self.contact.borrow().as_ref().unwrap()))
+    }
+}
+
+
 #[derive(Debug, Clone, Default)]
 struct Department {
     name: Rc<RefCell<Option<String>>>,
@@ -58,6 +100,13 @@ struct Department {
     budget: Rc<RefCell<Option<f64>>>,
 }
 
+impl std::fmt::Display for Department {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{} {} {} {}}}", (*self.name.borrow().as_ref().unwrap()), (*self.manager.borrow().as_ref().unwrap()), (*self.employees.borrow().as_ref().unwrap()), (*self.budget.borrow().as_ref().unwrap()))
+    }
+}
+
+
 #[derive(Debug, Clone, Default)]
 struct Company {
     name: Rc<RefCell<Option<String>>>,
@@ -65,27 +114,34 @@ struct Company {
     headquarters: Rc<RefCell<Option<Address>>>,
 }
 
+impl std::fmt::Display for Company {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{} {} {}}}", (*self.name.borrow().as_ref().unwrap()), (*self.departments.borrow().as_ref().unwrap()), (*self.headquarters.borrow().as_ref().unwrap()))
+    }
+}
+
+
 impl Circle {
     pub fn draw(&self) -> Rc<RefCell<Option<String>>> {
-        return Rc::new(RefCell::new(Some(format!("Circle(r={:.1})", (*self.radius.borrow().as_ref().unwrap())))));
+        return Rc::new(RefCell::new(Some(Rc::new(RefCell::new(Some(format!("Circle(r={:.1})", (*self.radius.borrow().as_ref().unwrap()))))))));
     }
 }
 
 impl Drawable for Circle {
     fn draw(&self) -> Rc<RefCell<Option<String>>> {
-        return Rc::new(RefCell::new(Some(format!("Circle(r={:.1})", (*self.radius.borrow().as_ref().unwrap())))));
+        return Rc::new(RefCell::new(Some(Rc::new(RefCell::new(Some(format!("Circle(r={:.1})", (*self.radius.borrow().as_ref().unwrap()))))))));
     }
 }
 
 impl Rectangle {
     pub fn draw(&self) -> Rc<RefCell<Option<String>>> {
-        return Rc::new(RefCell::new(Some(format!("Rectangle({:.1}x{:.1})", (*self.width.borrow().as_ref().unwrap()), (*self.height.borrow().as_ref().unwrap())))));
+        return Rc::new(RefCell::new(Some(Rc::new(RefCell::new(Some(format!("Rectangle({:.1}x{:.1})", (*self.width.borrow().as_ref().unwrap()), (*self.height.borrow().as_ref().unwrap()))))))));
     }
 }
 
 impl Drawable for Rectangle {
     fn draw(&self) -> Rc<RefCell<Option<String>>> {
-        return Rc::new(RefCell::new(Some(format!("Rectangle({:.1}x{:.1})", (*self.width.borrow().as_ref().unwrap()), (*self.height.borrow().as_ref().unwrap())))));
+        return Rc::new(RefCell::new(Some(Rc::new(RefCell::new(Some(format!("Rectangle({:.1}x{:.1})", (*self.width.borrow().as_ref().unwrap()), (*self.height.borrow().as_ref().unwrap()))))))));
     }
 }
 

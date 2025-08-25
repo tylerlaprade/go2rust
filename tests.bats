@@ -419,6 +419,10 @@ run_xfail_test() {
     run_test "tests/strconv_parse"
 }
 
+@test "string_interpolation" {
+    run_test "tests/string_interpolation"
+}
+
 @test "struct_methods" {
     run_test "tests/struct_methods"
 }
@@ -717,10 +721,6 @@ run_xfail_test() {
 
 @test "XFAIL: string_builder" {
     run_xfail_test "tests/XFAIL/string_builder"
-}
-
-@test "XFAIL: string_interpolation" {
-    run_xfail_test "tests/XFAIL/string_interpolation"
 }
 
 @test "XFAIL: strings_runes" {

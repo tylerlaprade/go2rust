@@ -18,7 +18,7 @@ impl std::fmt::Display for argError {
 
 impl argError {
     pub fn error(&mut self) -> Rc<RefCell<Option<String>>> {
-        return Rc::new(RefCell::new(Some(format!("{} - {}", (*self.arg.borrow().as_ref().unwrap()), (*self.prob.borrow().as_ref().unwrap())))));
+        return Rc::new(RefCell::new(Some(Rc::new(RefCell::new(Some(format!("{} - {}", (*self.arg.borrow().as_ref().unwrap()), (*self.prob.borrow().as_ref().unwrap()))))))));
     }
 }
 

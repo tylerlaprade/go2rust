@@ -103,13 +103,13 @@ impl Person {
     }
 
     pub fn get_info(&self) -> Rc<RefCell<Option<String>>> {
-        return Rc::new(RefCell::new(Some(format!("{} ({} years old)", (*self.name.borrow().as_ref().unwrap()), (*self.age.borrow().as_ref().unwrap())))));
+        return Rc::new(RefCell::new(Some(Rc::new(RefCell::new(Some(format!("{} ({} years old)", (*self.name.borrow().as_ref().unwrap()), (*self.age.borrow().as_ref().unwrap()))))))));
     }
 }
 
 impl Address {
     pub fn full_address(&self) -> Rc<RefCell<Option<String>>> {
-        return Rc::new(RefCell::new(Some(format!("{}, {}, {}", (*self.street.borrow().as_ref().unwrap()), (*self.city.borrow().as_ref().unwrap()), (*self.state.borrow().as_ref().unwrap())))));
+        return Rc::new(RefCell::new(Some(Rc::new(RefCell::new(Some(format!("{}, {}, {}", (*self.street.borrow().as_ref().unwrap()), (*self.city.borrow().as_ref().unwrap()), (*self.state.borrow().as_ref().unwrap()))))))));
     }
 }
 

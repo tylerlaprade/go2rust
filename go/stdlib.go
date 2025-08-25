@@ -336,6 +336,8 @@ func transpileFmtPrintf(out *strings.Builder, call *ast.CallExpr) {
 }
 
 func transpileFmtSprintf(out *strings.Builder, call *ast.CallExpr) {
+	// fmt.Sprintf returns a string, which needs to be wrapped
+	WriteWrapperPrefix(out)
 	out.WriteString("format!")
 	out.WriteString("(")
 
@@ -356,7 +358,7 @@ func transpileFmtSprintf(out *strings.Builder, call *ast.CallExpr) {
 		}
 	}
 
-	out.WriteString(")")
+	out.WriteString("))))")
 }
 
 func transpileFmtErrorf(out *strings.Builder, call *ast.CallExpr) {
