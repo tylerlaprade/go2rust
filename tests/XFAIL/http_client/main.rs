@@ -5,7 +5,7 @@ fn main() {
 
     let (mut resp, mut err) = (*http.lock().unwrap().as_mut().unwrap()).get(Arc::new(Mutex::new(Some("https://httpbin.org/json".to_string()))));
     if (*err.lock().unwrap()).is_some() {
-        println!("{} {}", "Error:".to_string(), (*err.lock().unwrap().as_mut().unwrap()));
+        println!("{} {}", "Error:".to_string(), format!("{}", (*err.lock().unwrap().as_ref().unwrap())));
         {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {

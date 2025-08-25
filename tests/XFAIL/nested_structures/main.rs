@@ -1,9 +1,10 @@
 use std::cell::{RefCell};
 use std::collections::HashMap;
+use std::fmt::{Debug};
 use std::rc::{Rc};
 
 /// Interface for drawing
-trait Drawable {
+trait Drawable: Debug {
     fn draw(&self) -> Rc<RefCell<Option<String>>>;
 }
 

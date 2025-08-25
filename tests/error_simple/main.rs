@@ -18,7 +18,7 @@ fn main() {
         // Success case
     let (mut result, mut err) = divide(Rc::new(RefCell::new(Some(10))), Rc::new(RefCell::new(Some(2))));
     if (*err.borrow()).is_some() {
-        println!("{} {}", "Error:".to_string(), (*err.borrow_mut().as_mut().unwrap()));
+        println!("{} {}", "Error:".to_string(), format!("{}", (*err.borrow().as_ref().unwrap())));
     } else {
         println!("{} {}", "Result:".to_string(), (*result.borrow_mut().as_mut().unwrap()));
     }
@@ -26,7 +26,7 @@ fn main() {
         // Error case
     (result, err) = divide(Rc::new(RefCell::new(Some(10))), Rc::new(RefCell::new(Some(0))));
     if (*err.borrow()).is_some() {
-        println!("{} {}", "Error:".to_string(), (*err.borrow_mut().as_mut().unwrap()));
+        println!("{} {}", "Error:".to_string(), format!("{}", (*err.borrow().as_ref().unwrap())));
     } else {
         println!("{} {}", "Result:".to_string(), (*result.borrow_mut().as_mut().unwrap()));
     }

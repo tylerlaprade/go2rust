@@ -121,24 +121,66 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 	if typeInfo != nil && typeInfo.GetType(arg) != nil {
 		argType := typeInfo.GetType(arg)
 
-		// Check if it's interface{}
-		if intf, ok := argType.Underlying().(*types.Interface); ok && intf.NumMethods() == 0 {
-			// It's interface{} - use format_any helper
-			NeedFormatAny()
-			out.WriteString("format_any(")
-			if ident, ok := arg.(*ast.Ident); ok {
-				out.WriteString(ident.Name)
-				WriteBorrowMethod(out, false)
-				out.WriteString(".as_ref().unwrap().as_ref()")
-			} else {
-				// Complex expression
-				out.WriteString("(")
-				TranspileExpression(out, arg)
-				out.WriteString(")")
-				WriteBorrowMethod(out, false)
-				out.WriteString(".as_ref().unwrap().as_ref()")
+		// Check if it's any kind of interface
+		if intf, ok := argType.Underlying().(*types.Interface); ok {
+			// Special case for error type - use Display not Debug
+			if named, ok := argType.(*types.Named); ok {
+				if named.Obj().Name() == "error" && named.Obj().Pkg() == nil {
+					// It's the builtin error type - use Display formatting
+					if ident, ok := arg.(*ast.Ident); ok {
+						out.WriteString("format!(\"{}\", (*")
+						out.WriteString(ident.Name)
+						WriteBorrowMethod(out, false)
+						out.WriteString(".as_ref().unwrap()))")
+					} else {
+						// Complex expression
+						out.WriteString("format!(\"{}\", (*(")
+						TranspileExpression(out, arg)
+						out.WriteString(")")
+						WriteBorrowMethod(out, false)
+						out.WriteString(".as_ref().unwrap()))")
+					}
+					return
+				}
 			}
-			out.WriteString(")")
+
+			if intf.NumMethods() == 0 {
+				// It's interface{} - use format_any helper
+				NeedFormatAny()
+				out.WriteString("format_any(")
+				if ident, ok := arg.(*ast.Ident); ok {
+					out.WriteString(ident.Name)
+					WriteBorrowMethod(out, false)
+					out.WriteString(".as_ref().unwrap().as_ref()")
+				} else {
+					// Complex expression
+					out.WriteString("(")
+					TranspileExpression(out, arg)
+					out.WriteString(")")
+					WriteBorrowMethod(out, false)
+					out.WriteString(".as_ref().unwrap().as_ref()")
+				}
+				out.WriteString(")")
+			} else {
+				// It's a named interface - for now just use Debug formatting
+				// In Go, this would print the concrete type and value
+				// We'll format it as a debug string
+				out.WriteString("format!(\"{:?}\", ")
+				if ident, ok := arg.(*ast.Ident); ok {
+					out.WriteString("(*")
+					out.WriteString(ident.Name)
+					WriteBorrowMethod(out, false)
+					out.WriteString(".as_ref().unwrap())")
+				} else {
+					// Complex expression
+					out.WriteString("(*(")
+					TranspileExpression(out, arg)
+					out.WriteString(")")
+					WriteBorrowMethod(out, false)
+					out.WriteString(".as_ref().unwrap())")
+				}
+				out.WriteString(")")
+			}
 			return
 		}
 
@@ -320,7 +362,7 @@ func transpileFmtSprintf(out *strings.Builder, call *ast.CallExpr) {
 
 func transpileFmtErrorf(out *strings.Builder, call *ast.CallExpr) {
 	WriteWrapperPrefix(out)
-	out.WriteString("Some(Box::new(format!")
+	out.WriteString("Box::new(format!")
 	out.WriteString("(")
 
 	if len(call.Args) > 0 {
@@ -814,7 +856,16 @@ func transpileRecover(out *strings.Builder, call *ast.CallExpr) {
 	// For now, we'll generate a placeholder that returns None
 	// A proper implementation would need to track defer context and use catch_unwind
 	// This is a simplified version that always returns None
-	out.WriteString("Arc::new(Mutex::new(None::<String>))")
+	// Don't use WriteWrapperPrefix as it adds Some() which we don't want for None
+	if NeedsConcurrentWrapper() {
+		TrackImport("Arc")
+		TrackImport("Mutex")
+		out.WriteString("Arc::new(Mutex::new(None::<String>))")
+	} else {
+		TrackImport("Rc")
+		TrackImport("RefCell")
+		out.WriteString("Rc::new(RefCell::new(None::<String>))")
+	}
 }
 
 // transpileTimeSleep handles the time.Sleep function

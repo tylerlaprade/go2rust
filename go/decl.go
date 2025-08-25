@@ -53,6 +53,20 @@ func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.Fi
 		return
 	}
 
+	// Register the function signature for later use
+	var params []*ast.Field
+	if fn.Type.Params != nil {
+		params = fn.Type.Params.List
+	}
+	var results []*ast.Field
+	if fn.Type.Results != nil {
+		results = fn.Type.Results.List
+	}
+	RegisterFunctionSignature(fn.Name.Name, &FunctionSignature{
+		Params:  params,
+		Results: results,
+	})
+
 	// Regular function
 	if fn.Name.Name != "main" {
 		out.WriteString("pub ")
@@ -137,30 +151,46 @@ func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.Fi
 					out.WriteString(GoTypeToRust(result.Type))
 					// Initialize with wrapped default values
 					out.WriteString(" = ")
+
+					// Special handling for error type
+					if t, ok := result.Type.(*ast.Ident); ok && t.Name == "error" {
+						// error type is wrapped as Rc<RefCell<Option<Box<dyn Error>>>>
+						// We need to write the wrapper manually without the Some()
+						if NeedsConcurrentWrapper() {
+							TrackImport("Arc")
+							TrackImport("Mutex")
+							out.WriteString("Arc::new(Mutex::new(None))")
+						} else {
+							TrackImport("Rc")
+							TrackImport("RefCell")
+							out.WriteString("Rc::new(RefCell::new(None))")
+						}
+						out.WriteString(";\n")
+						continue
+					}
+
+					// For all other types
 					WriteWrapperPrefix(out)
 					switch t := result.Type.(type) {
 					case *ast.Ident:
 						switch t.Name {
 						case "string":
-							out.WriteString("Some(String::new())")
+							out.WriteString("String::new()")
 						case "int", "int64", "int32", "int16", "int8":
-							out.WriteString("Some(0)")
+							out.WriteString("0")
 						case "uint", "uint64", "uint32", "uint16", "uint8":
-							out.WriteString("Some(0)")
+							out.WriteString("0")
 						case "float64", "float32":
-							out.WriteString("Some(0.0)")
+							out.WriteString("0.0")
 						case "bool":
-							out.WriteString("Some(false)")
-						case "error":
-							// error type is already Option, so we use None directly
-							out.WriteString("None")
+							out.WriteString("false")
 						default:
-							out.WriteString("Some(Default::default())")
+							out.WriteString("Default::default()")
 						}
 					default:
-						out.WriteString("Some(Default::default())")
+						out.WriteString("Default::default()")
 					}
-					out.WriteString("))")
+					out.WriteString(")))")
 					out.WriteString(";\n")
 				}
 			}
@@ -276,9 +306,11 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 
 	case *ast.InterfaceType:
 		// Generate a trait for the interface
+		// Add Debug as a supertrait so we can print interface values
 		out.WriteString("trait ")
 		out.WriteString(typeSpec.Name.Name)
-		out.WriteString(" {\n")
+		out.WriteString(": Debug {\n")
+		TrackImport("Debug")
 
 		// Generate method signatures
 		for _, method := range t.Methods.List {

@@ -1661,9 +1661,38 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 	}
 
 	out.WriteString("(")
+
+	// Check if this is a regular function call to determine if we need interface boxing
+	var funcName string
+	if ident, ok := call.Fun.(*ast.Ident); ok {
+		funcName = ident.Name
+	}
+
+	// Get function signature to check for interface parameters
+	var funcSig *FunctionSignature
+	if funcName != "" && !isBuiltinFunction(funcName) {
+		funcSig = GetFunctionSignature(funcName)
+	}
+
 	for i, arg := range call.Args {
 		if i > 0 {
 			out.WriteString(", ")
+		}
+
+		// Check if this parameter expects an interface type
+		needsInterfaceBoxing := false
+		var interfaceName string
+		if funcSig != nil && i < len(funcSig.Params) {
+			// Get the parameter type
+			paramType := funcSig.Params[i].Type
+			if ident, ok := paramType.(*ast.Ident); ok {
+				// Check if this is an interface type using TypeInfo
+				typeInfo := GetTypeInfo()
+				if typeInfo != nil && typeInfo.IsInterface(ident) {
+					needsInterfaceBoxing = true
+					interfaceName = ident.Name
+				}
+			}
 		}
 
 		// Check if we're calling a closure - closures take wrapped arguments
@@ -1683,9 +1712,21 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				// Check if this is a variable (not a constant)
 				if _, isRangeVar := rangeLoopVars[ident.Name]; !isRangeVar {
 					if _, isLocalConst := localConstants[ident.Name]; !isLocalConst {
-						// It's a variable, just clone it
-						out.WriteString(ident.Name)
-						out.WriteString(".clone()")
+						// It's a variable
+						if needsInterfaceBoxing {
+							// Need to box for interface parameter
+							WriteWrapperPrefix(out)
+							out.WriteString("Box::new((*")
+							out.WriteString(ident.Name)
+							WriteBorrowMethod(out, false)
+							out.WriteString(".as_ref().unwrap()).clone()) as Box<dyn ")
+							out.WriteString(interfaceName)
+							out.WriteString(">)))")
+						} else {
+							// Regular variable, just clone it
+							out.WriteString(ident.Name)
+							out.WriteString(".clone()")
+						}
 					} else {
 						// It's a constant, wrap it
 						WriteWrapperPrefix(out)

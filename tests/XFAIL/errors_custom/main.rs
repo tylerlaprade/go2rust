@@ -51,7 +51,7 @@ fn main() {
     for i in &Rc::new(RefCell::new(Some(vec![7, 42]))) {
         let (mut r, mut e) = f1(Rc::new(RefCell::new(Some(*i))));
     if (*e.borrow()).is_some() {
-        println!("{} {}", "f1 failed:".to_string(), (*e.borrow_mut().as_mut().unwrap()));
+        println!("{} {}", "f1 failed:".to_string(), format!("{}", (*e.borrow().as_ref().unwrap())));
     } else {
         println!("{} {}", "f1 worked:".to_string(), (*r.borrow_mut().as_mut().unwrap()));
     }
@@ -59,7 +59,7 @@ fn main() {
     for i in &Rc::new(RefCell::new(Some(vec![7, 42]))) {
         let (mut r, mut e) = f2(Rc::new(RefCell::new(Some(*i))));
     if (*e.borrow()).is_some() {
-        println!("{} {}", "f2 failed:".to_string(), (*e.borrow_mut().as_mut().unwrap()));
+        println!("{} {}", "f2 failed:".to_string(), format!("{}", (*e.borrow().as_ref().unwrap())));
     } else {
         println!("{} {}", "f2 worked:".to_string(), (*r.borrow_mut().as_mut().unwrap()));
     }

@@ -8,8 +8,8 @@ pub fn multiple_returns() -> (Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<String>>
 }
 
 pub fn process_slice(slice: Arc<Mutex<Option<Vec<i32>>>>) -> (Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>) {
-    let mut sum: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(Some(0)));
-    let mut count: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(Some(0)));
+    let mut sum: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(0)));
+    let mut count: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(0)));
 
     { let new_val = 0; *sum.lock().unwrap() = Some(new_val); };
     { let new_val = (*slice.lock().unwrap().as_ref().unwrap()).len(); *count.lock().unwrap() = Some(new_val); };

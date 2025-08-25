@@ -73,6 +73,9 @@ func (it *ImportTracker) GenerateImports() string {
 	if it.needs["Display"] {
 		fmtImports = append(fmtImports, "Display")
 	}
+	if it.needs["Debug"] {
+		fmtImports = append(fmtImports, "Debug")
+	}
 	if it.needs["Formatter"] {
 		fmtImports = append(fmtImports, "Formatter")
 	}
@@ -142,6 +145,7 @@ func (ht *HelperTracker) GenerateHelpers() string {
 }
 
 func generateAnyFormatter(out *strings.Builder) {
+	TrackImport("Any")
 	out.WriteString("\nfn format_any(value: &dyn Any) -> String {\n")
 	out.WriteString("    if let Some(v) = value.downcast_ref::<i32>() {\n")
 	out.WriteString("        v.to_string()\n")

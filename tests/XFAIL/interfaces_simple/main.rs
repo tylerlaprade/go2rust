@@ -1,7 +1,8 @@
 use std::cell::{RefCell};
+use std::fmt::{Debug};
 use std::rc::{Rc};
 
-trait geometry {
+trait geometry: Debug {
     fn area(&self) -> Rc<RefCell<Option<f64>>>;
     fn perim(&self) -> Rc<RefCell<Option<f64>>>;
 }
@@ -32,12 +33,12 @@ impl geometry for rect {
 }
 
 pub fn measure(g: Rc<RefCell<Option<Box<dyn geometry>>>>) {
-    println!("{}", (*g.borrow_mut().as_mut().unwrap()));
+    println!("{}", format!("{:?}", (*g.borrow().as_ref().unwrap())));
     println!("{}", (*(*g.borrow_mut().as_mut().unwrap()).area().borrow().as_ref().unwrap()));
     println!("{}", (*(*g.borrow_mut().as_mut().unwrap()).perim().borrow().as_ref().unwrap()));
 }
 
 fn main() {
     let mut r = Rc::new(RefCell::new(Some(rect { width: Rc::new(RefCell::new(Some(3.0))), height: Rc::new(RefCell::new(Some(4.0))) })));
-    measure(r.clone());
+    measure(Rc::new(RefCell::new(Some(Box::new((*r.borrow().as_ref().unwrap()).clone()) as Box<dyn geometry>))));
 }

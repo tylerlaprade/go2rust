@@ -1,3 +1,4 @@
+use std::any::Any;
 use std::cell::{RefCell};
 use std::error::Error;
 use std::rc::{Rc};
@@ -26,14 +27,14 @@ fn format_any(value: &dyn Any) -> String {
 pub fn safe_divide(a: Rc<RefCell<Option<f64>>>, b: Rc<RefCell<Option<f64>>>) -> (Rc<RefCell<Option<f64>>>, Rc<RefCell<Option<Box<dyn Error + Send + Sync>>>>) {
     let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-    let mut result: Rc<RefCell<Option<f64>>> = Rc::new(RefCell::new(Some(Some(0.0)));
-    let mut err: Rc<RefCell<Option<Box<dyn Error + Send + Sync>>>> = Rc::new(RefCell::new(Some(None));
+    let mut result: Rc<RefCell<Option<f64>>> = Rc::new(RefCell::new(Some(0.0)));
+    let mut err: Rc<RefCell<Option<Box<dyn Error + Send + Sync>>>> = Rc::new(RefCell::new(None));
 
     let err_defer_captured = err.clone(); let result_defer_captured = result.clone(); __defer_stack.push(Box::new(move || {
         (*Rc::new(RefCell::new(Some(Box::new(move || {
-        let mut r = Arc::new(Mutex::new(None::<String>));
+        let mut r = Rc::new(RefCell::new(None::<String>));
     if (*r.borrow()).is_some() {
-        { let new_val = Rc::new(RefCell::new(Some(Some(Box::new(format!("panic occurred: {}", (*r.borrow_mut().as_mut().unwrap()))) as Box<dyn Error + Send + Sync>))); *err_defer_captured.borrow_mut() = Some(new_val); };
+        { let new_val = Rc::new(RefCell::new(Some(Box::new(format!("panic occurred: {}", (*r.borrow_mut().as_mut().unwrap()))) as Box<dyn Error + Send + Sync>))); *err_defer_captured.borrow_mut() = new_val; };
         { let new_val = 0.0; *result_defer_captured.borrow_mut() = Some(new_val); };
     }
     }) as Box<dyn Fn() -> ()>))).borrow().as_ref().unwrap())();
@@ -61,14 +62,14 @@ pub fn safe_divide(a: Rc<RefCell<Option<f64>>>, b: Rc<RefCell<Option<f64>>>) -> 
 pub fn process_slice(slice: Rc<RefCell<Option<Vec<i32>>>>, index: Rc<RefCell<Option<i32>>>) -> (Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<Box<dyn Error + Send + Sync>>>>) {
     let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-    let mut value: Rc<RefCell<Option<i32>>> = Rc::new(RefCell::new(Some(Some(0)));
-    let mut err: Rc<RefCell<Option<Box<dyn Error + Send + Sync>>>> = Rc::new(RefCell::new(Some(None));
+    let mut value: Rc<RefCell<Option<i32>>> = Rc::new(RefCell::new(Some(0)));
+    let mut err: Rc<RefCell<Option<Box<dyn Error + Send + Sync>>>> = Rc::new(RefCell::new(None));
 
     let err_defer_captured = err.clone(); let value_defer_captured = value.clone(); __defer_stack.push(Box::new(move || {
         (*Rc::new(RefCell::new(Some(Box::new(move || {
-        let mut r = Arc::new(Mutex::new(None::<String>));
+        let mut r = Rc::new(RefCell::new(None::<String>));
     if (*r.borrow()).is_some() {
-        { let new_val = Rc::new(RefCell::new(Some(Some(Box::new(format!("index out of bounds: {}", (*r.borrow_mut().as_mut().unwrap()))) as Box<dyn Error + Send + Sync>))); *err_defer_captured.borrow_mut() = Some(new_val); };
+        { let new_val = Rc::new(RefCell::new(Some(Box::new(format!("index out of bounds: {}", (*r.borrow_mut().as_mut().unwrap()))) as Box<dyn Error + Send + Sync>))); *err_defer_captured.borrow_mut() = new_val; };
         { let new_val = -1; *value_defer_captured.borrow_mut() = Some(new_val); };
     }
     }) as Box<dyn Fn() -> ()>))).borrow().as_ref().unwrap())();
@@ -94,7 +95,7 @@ pub fn nested_panic() {
 
     __defer_stack.push(Box::new(move || {
         (*Rc::new(RefCell::new(Some(Box::new(move || {
-        let mut r = Arc::new(Mutex::new(None::<String>));
+        let mut r = Rc::new(RefCell::new(None::<String>));
     if (*r.borrow()).is_some() {
         print!("Recovered from nested panic: {}\n", format_any(r.borrow().as_ref().unwrap().as_ref()));
     }
@@ -104,7 +105,7 @@ pub fn nested_panic() {
     (*Rc::new(RefCell::new(Some(Box::new(move || {
         __defer_stack.push(Box::new(move || {
         (*Rc::new(RefCell::new(Some(Box::new(move || {
-        let mut r = Arc::new(Mutex::new(None::<String>));
+        let mut r = Rc::new(RefCell::new(None::<String>));
     if (*r.borrow()).is_some() {
         print!("Inner recovery: {}\n", format_any(r.borrow().as_ref().unwrap().as_ref()));
         panic!("re-panicking from inner function");
@@ -126,7 +127,7 @@ pub fn demonstrate_panic_types() {
         // String panic
     __defer_stack.push(Box::new(move || {
         (*Rc::new(RefCell::new(Some(Box::new(move || {
-        let mut r = Arc::new(Mutex::new(None::<String>));
+        let mut r = Rc::new(RefCell::new(None::<String>));
     if (*r.borrow()).is_some() {
         print!("Recovered string panic: {}\n", format_any(r.borrow().as_ref().unwrap().as_ref()));
     }
@@ -163,7 +164,7 @@ pub fn chained_defers() {
 
     __defer_stack.push(Box::new(move || {
         (*Rc::new(RefCell::new(Some(Box::new(move || {
-        let mut r = Arc::new(Mutex::new(None::<String>));
+        let mut r = Rc::new(RefCell::new(None::<String>));
     if (*r.borrow()).is_some() {
         print!("Final recovery: {}\n", format_any(r.borrow().as_ref().unwrap().as_ref()));
     }
@@ -202,14 +203,14 @@ fn main() {
 
     let (mut result, mut err) = safe_divide(Rc::new(RefCell::new(Some(10.0))), Rc::new(RefCell::new(Some(2.0))));
     if (*err.borrow()).is_some() {
-        print!("Error: {}\n", (*err.borrow_mut().as_mut().unwrap()));
+        print!("Error: {}\n", format!("{}", (*err.borrow().as_ref().unwrap())));
     } else {
         print!("10 / 2 = {:.2}\n", (*result.borrow_mut().as_mut().unwrap()));
     }
 
     (result, err) = safe_divide(Rc::new(RefCell::new(Some(10.0))), Rc::new(RefCell::new(Some(0.0))));
     if (*err.borrow()).is_some() {
-        print!("Error: {}\n", (*err.borrow_mut().as_mut().unwrap()));
+        print!("Error: {}\n", format!("{}", (*err.borrow().as_ref().unwrap())));
     } else {
         print!("Result: {:.2}\n", (*result.borrow_mut().as_mut().unwrap()));
     }
@@ -220,14 +221,14 @@ fn main() {
 
     let (mut value, mut err) = process_slice(numbers.clone(), Rc::new(RefCell::new(Some(2))));
     if (*err.borrow()).is_some() {
-        print!("Error: {}\n", (*err.borrow_mut().as_mut().unwrap()));
+        print!("Error: {}\n", format!("{}", (*err.borrow().as_ref().unwrap())));
     } else {
         print!("numbers[2] = {}\n", (*value.borrow_mut().as_mut().unwrap()));
     }
 
     (value, err) = process_slice(numbers.clone(), Rc::new(RefCell::new(Some(10))));
     if (*err.borrow()).is_some() {
-        print!("Error: {}\n", (*err.borrow_mut().as_mut().unwrap()));
+        print!("Error: {}\n", format!("{}", (*err.borrow().as_ref().unwrap())));
     } else {
         print!("Value: {}\n", (*value.borrow_mut().as_mut().unwrap()));
     }

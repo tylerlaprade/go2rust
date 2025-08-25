@@ -810,6 +810,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 								} else if call, ok := s.Rhs[0].(*ast.CallExpr); ok {
 									// Check if it's an append call using TypeInfo
 									isAppend := false
+									isErrorFunc := false
 									typeInfo := GetTypeInfo()
 									if typeInfo != nil && typeInfo.info != nil {
 										if ident, ok := call.Fun.(*ast.Ident); ok {
@@ -822,10 +823,31 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										}
 									}
 
+									// Check if it's fmt.Errorf or errors.New which return error types
+									if sel, ok := call.Fun.(*ast.SelectorExpr); ok {
+										if pkg, ok := sel.X.(*ast.Ident); ok {
+											if (pkg.Name == "fmt" && sel.Sel.Name == "Errorf") ||
+												(pkg.Name == "errors" && sel.Sel.Name == "New") {
+												isErrorFunc = true
+											}
+										}
+									}
+
 									if isAppend {
 										// append() returns the same wrapped type, don't wrap in Some()
 										// Just execute the append for its side effect
 										TranspileExpression(out, s.Rhs[0])
+									} else if isErrorFunc {
+										// fmt.Errorf and errors.New already return wrapped Option<Box<dyn Error>>
+										// Don't wrap in Some()
+										out.WriteString("{ ")
+										out.WriteString("let new_val = ")
+										TranspileExpression(out, s.Rhs[0])
+										out.WriteString("; ")
+										out.WriteString("*")
+										TranspileExpressionContext(out, s.Lhs[0], LValue)
+										WriteBorrowMethod(out, true)
+										out.WriteString(" = new_val; }")
 									} else { // Regular function call
 										out.WriteString("{ ")
 										out.WriteString("let new_val = ")

@@ -1,7 +1,8 @@
 use std::cell::{RefCell};
+use std::fmt::{Debug};
 use std::rc::{Rc};
 
-trait Shape {
+trait Shape: Debug {
     fn area(&self) -> Rc<RefCell<Option<f64>>>;
     fn perimeter(&self) -> Rc<RefCell<Option<f64>>>;
 }
@@ -64,10 +65,10 @@ fn main() {
     let mut circle = Rc::new(RefCell::new(Some(Circle { radius: Rc::new(RefCell::new(Some(3.0))) })));
 
     println!("{}", "Rectangle:".to_string());
-    print_shape_info(rect.clone());
+    print_shape_info(Rc::new(RefCell::new(Some(Box::new((*rect.borrow().as_ref().unwrap()).clone()) as Box<dyn Shape>))));
 
     println!("{}", "Circle:".to_string());
-    print_shape_info(circle.clone());
+    print_shape_info(Rc::new(RefCell::new(Some(Box::new((*circle.borrow().as_ref().unwrap()).clone()) as Box<dyn Shape>))));
 
         // Interface slice
     let mut shapes = Rc::new(RefCell::new(Some(vec![(*rect.borrow_mut().as_mut().unwrap()), (*circle.borrow_mut().as_mut().unwrap())])));

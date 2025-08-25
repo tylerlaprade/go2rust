@@ -181,6 +181,35 @@ func (ti *TypeInfo) GetBasicKind(expr ast.Expr) types.BasicKind {
 	return types.Invalid
 }
 
+// IsInterface checks if an identifier refers to an interface type
+func (ti *TypeInfo) IsInterface(ident *ast.Ident) bool {
+	if ti.info == nil {
+		return false
+	}
+
+	// Look up the identifier in the type info
+	if obj, ok := ti.info.Uses[ident]; ok {
+		if typeName, ok := obj.(*types.TypeName); ok {
+			// Check if the underlying type is an interface
+			if _, ok := typeName.Type().Underlying().(*types.Interface); ok {
+				return true
+			}
+		}
+	}
+
+	// Also check in Defs for type definitions
+	if obj, ok := ti.info.Defs[ident]; ok {
+		if typeName, ok := obj.(*types.TypeName); ok {
+			// Check if the underlying type is an interface
+			if _, ok := typeName.Type().Underlying().(*types.Interface); ok {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
 // ReturnsWrappedValue checks if an expression returns a wrapped Arc<Mutex<Option<T>>> value
 // This is true for function calls, method calls, and field accesses in our conservative model
 func (ti *TypeInfo) ReturnsWrappedValue(expr ast.Expr) bool {

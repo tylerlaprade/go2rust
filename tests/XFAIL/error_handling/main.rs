@@ -38,7 +38,7 @@ pub fn divide(a: Rc<RefCell<Option<f64>>>, b: Rc<RefCell<Option<f64>>>) -> (Rc<R
 pub fn sqrt(x: Rc<RefCell<Option<f64>>>) -> (Rc<RefCell<Option<f64>>>, Rc<RefCell<Option<Box<dyn Error + Send + Sync>>>>) {
 
     if (*x.borrow_mut().as_mut().unwrap()) < 0.0 {
-        return (Rc::new(RefCell::new(Some(0.0))), Rc::new(RefCell::new(Some(Some(Box::new(format!("cannot take square root of negative number: {}", (*x.borrow_mut().as_mut().unwrap()))) as Box<dyn Error + Send + Sync>))));
+        return (Rc::new(RefCell::new(Some(0.0))), Rc::new(RefCell::new(Some(Box::new(format!("cannot take square root of negative number: {}", (*x.borrow_mut().as_mut().unwrap()))) as Box<dyn Error + Send + Sync>))));
     }
 
         // Simple approximation
@@ -66,7 +66,7 @@ fn main() {
         // Basic error handling
     let (mut result, mut err) = divide(Rc::new(RefCell::new(Some(10.0))), Rc::new(RefCell::new(Some(2.0))));
     if (*err.borrow()).is_some() {
-        println!("{} {}", "Error:".to_string(), (*err.borrow_mut().as_mut().unwrap()));
+        println!("{} {}", "Error:".to_string(), format!("{}", (*err.borrow().as_ref().unwrap())));
     } else {
         println!("{} {}", "10 / 2 =".to_string(), (*result.borrow_mut().as_mut().unwrap()));
     }
@@ -74,7 +74,7 @@ fn main() {
         // Error case
     (result, err) = divide(Rc::new(RefCell::new(Some(10.0))), Rc::new(RefCell::new(Some(0.0))));
     if (*err.borrow()).is_some() {
-        println!("{} {}", "Error:".to_string(), (*err.borrow_mut().as_mut().unwrap()));
+        println!("{} {}", "Error:".to_string(), format!("{}", (*err.borrow().as_ref().unwrap())));
     } else {
         println!("{} {}", "Result:".to_string(), (*result.borrow_mut().as_mut().unwrap()));
     }
@@ -82,7 +82,7 @@ fn main() {
         // Formatted error
     let (mut sqrtResult, mut err) = sqrt(Rc::new(RefCell::new(Some(-4))));
     if (*err.borrow()).is_some() {
-        println!("{} {}", "Sqrt error:".to_string(), (*err.borrow_mut().as_mut().unwrap()));
+        println!("{} {}", "Sqrt error:".to_string(), format!("{}", (*err.borrow().as_ref().unwrap())));
     } else {
         println!("{} {}", "Sqrt result:".to_string(), (*sqrtResult.borrow_mut().as_mut().unwrap()));
     }
@@ -90,17 +90,17 @@ fn main() {
         // Custom error
     { let new_val = process_value(Rc::new(RefCell::new(Some(-5)))); *err.borrow_mut() = Some(new_val); };
     if (*err.borrow()).is_some() {
-        println!("{} {}", "Process error:".to_string(), (*err.borrow_mut().as_mut().unwrap()));
+        println!("{} {}", "Process error:".to_string(), format!("{}", (*err.borrow().as_ref().unwrap())));
     }
 
     { let new_val = process_value(Rc::new(RefCell::new(Some(150)))); *err.borrow_mut() = Some(new_val); };
     if (*err.borrow()).is_some() {
-        println!("{} {}", "Process error:".to_string(), (*err.borrow_mut().as_mut().unwrap()));
+        println!("{} {}", "Process error:".to_string(), format!("{}", (*err.borrow().as_ref().unwrap())));
     }
 
     { let new_val = process_value(Rc::new(RefCell::new(Some(50)))); *err.borrow_mut() = Some(new_val); };
     if (*err.borrow()).is_some() {
-        println!("{} {}", "Process error:".to_string(), (*err.borrow_mut().as_mut().unwrap()));
+        println!("{} {}", "Process error:".to_string(), format!("{}", (*err.borrow().as_ref().unwrap())));
     } else {
         println!("{}", "Value processed successfully".to_string());
     }

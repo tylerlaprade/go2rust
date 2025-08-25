@@ -1,3 +1,4 @@
+use std::any::Any;
 use std::cell::{RefCell};
 use std::collections::HashMap;
 use std::rc::{Rc};
@@ -89,7 +90,7 @@ pub fn init() {
 
     __defer_stack.push(Box::new(move || {
         (*Rc::new(RefCell::new(Some(Box::new(move || {
-        let mut r = Arc::new(Mutex::new(None::<String>));
+        let mut r = Rc::new(RefCell::new(None::<String>));
     if (*r.borrow()).is_some() {
         print!("Recovered from panic in init: {}\n", format_any(r.borrow().as_ref().unwrap().as_ref()));
     }

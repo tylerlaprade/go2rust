@@ -6,7 +6,7 @@ fn main() {
 
     let (mut file, mut err) = (*os.borrow_mut().as_mut().unwrap()).create(Rc::new(RefCell::new(Some("test.txt".to_string()))));
     if (*err.borrow()).is_some() {
-        println!("{} {}", "Error:".to_string(), (*err.borrow_mut().as_mut().unwrap()));
+        println!("{} {}", "Error:".to_string(), format!("{}", (*err.borrow().as_ref().unwrap())));
         {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {

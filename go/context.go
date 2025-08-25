@@ -44,6 +44,8 @@ func NeedFormatSlice() {
 func NeedFormatAny() {
 	if currentContext != nil && currentContext.Helpers != nil {
 		currentContext.Helpers.needsFormatAny = true
+		// Also track the Any import that the helper will need
+		TrackImport("Any")
 	}
 }
 
@@ -51,7 +53,9 @@ func NeedFormatAny() {
 func NeedFormatAnySlice() {
 	if currentContext != nil && currentContext.Helpers != nil {
 		currentContext.Helpers.needsFormatAnySlice = true
-		// We also need format_any since format_any_slice uses it
+		// Also need the regular format_any helper
 		currentContext.Helpers.needsFormatAny = true
+		// Track the Any import that the helpers will need
+		TrackImport("Any")
 	}
 }
