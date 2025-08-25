@@ -11,6 +11,49 @@ import (
 	"strings"
 )
 
+// generateStructDisplay generates a Display implementation for a struct to match Go's output format
+func generateStructDisplay(out *strings.Builder, structName string, structType *ast.StructType) {
+	TrackImport("Display")
+	TrackImport("Formatter")
+
+	out.WriteString("impl std::fmt::Display for ")
+	out.WriteString(structName)
+	out.WriteString(" {\n")
+	out.WriteString("    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {\n")
+	out.WriteString("        write!(f, \"{{")
+
+	// Collect field names
+	var fieldNames []string
+	for _, field := range structType.Fields.List {
+		if len(field.Names) > 0 {
+			for _, name := range field.Names {
+				fieldNames = append(fieldNames, name.Name)
+			}
+		}
+	}
+
+	// Generate format string with placeholders
+	for i := range fieldNames {
+		if i > 0 {
+			out.WriteString(" ")
+		}
+		out.WriteString("{}")
+	}
+	out.WriteString("}}\"")
+
+	// Add field values
+	for _, fieldName := range fieldNames {
+		out.WriteString(", ")
+		out.WriteString("(*self.")
+		out.WriteString(ToSnakeCase(fieldName))
+		out.WriteString(".borrow().as_ref().unwrap())")
+	}
+
+	out.WriteString(")\n")
+	out.WriteString("    }\n")
+	out.WriteString("}\n")
+}
+
 // Helper to check if a function body contains defer statements
 func checkHasDefer(stmts []ast.Stmt) bool {
 	for _, stmt := range stmts {
@@ -302,15 +345,18 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 			}
 		}
 
-		out.WriteString("}")
+		out.WriteString("}\n\n")
+
+		// Generate Display implementation to match Go's format
+		generateStructDisplay(out, typeSpec.Name.Name, t)
 
 	case *ast.InterfaceType:
 		// Generate a trait for the interface
-		// Add Debug as a supertrait so we can print interface values
+		// Add Display as a supertrait so we can print interface values
 		out.WriteString("trait ")
 		out.WriteString(typeSpec.Name.Name)
-		out.WriteString(": Debug {\n")
-		TrackImport("Debug")
+		out.WriteString(": std::fmt::Display {\n")
+		TrackImport("Display")
 
 		// Generate method signatures
 		for _, method := range t.Methods.List {

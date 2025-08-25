@@ -1,4 +1,5 @@
 use std::cell::{RefCell};
+use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
 #[derive(Debug, Clone, Default)]
@@ -7,12 +8,26 @@ struct Person {
     age: Rc<RefCell<Option<i32>>>,
 }
 
+impl std::fmt::Display for Person {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{} {}}}", (*self.name.borrow().as_ref().unwrap()), (*self.age.borrow().as_ref().unwrap()))
+    }
+}
+
+
 #[derive(Debug, Clone, Default)]
 struct Address {
     street: Rc<RefCell<Option<String>>>,
     city: Rc<RefCell<Option<String>>>,
     state: Rc<RefCell<Option<String>>>,
 }
+
+impl std::fmt::Display for Address {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{} {} {}}}", (*self.street.borrow().as_ref().unwrap()), (*self.city.borrow().as_ref().unwrap()), (*self.state.borrow().as_ref().unwrap()))
+    }
+}
+
 
 #[derive(Debug, Clone, Default)]
 struct Employee {
@@ -21,6 +36,13 @@ struct Employee {
     i_d: Rc<RefCell<Option<i32>>>,
     salary: Rc<RefCell<Option<f64>>>,
 }
+
+impl std::fmt::Display for Employee {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{} {}}}", (*self.i_d.borrow().as_ref().unwrap()), (*self.salary.borrow().as_ref().unwrap()))
+    }
+}
+
 
 impl Employee {
 }

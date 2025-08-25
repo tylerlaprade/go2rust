@@ -1,4 +1,5 @@
 use std::cell::{RefCell};
+use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
 #[derive(Debug, Clone, Default)]
@@ -8,6 +9,13 @@ struct User {
     // tags: `json:"age"`
     age: Rc<RefCell<Option<i32>>>,
 }
+
+impl std::fmt::Display for User {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{} {}}}", (*self.name.borrow().as_ref().unwrap()), (*self.age.borrow().as_ref().unwrap()))
+    }
+}
+
 
 fn main() {
     let mut u = Rc::new(RefCell::new(Some(User { name: Rc::new(RefCell::new(Some("Alice".to_string()))), age: Rc::new(RefCell::new(Some(30))) })));

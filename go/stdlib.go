@@ -162,10 +162,9 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 				}
 				out.WriteString(")")
 			} else {
-				// It's a named interface - for now just use Debug formatting
-				// In Go, this would print the concrete type and value
-				// We'll format it as a debug string
-				out.WriteString("format!(\"{:?}\", ")
+				// It's a named interface - use Display formatting
+				// This will use the Display impl of the concrete type
+				out.WriteString("format!(\"{}\", ")
 				if ident, ok := arg.(*ast.Ident); ok {
 					out.WriteString("(*")
 					out.WriteString(ident.Name)

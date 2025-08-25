@@ -1,3 +1,4 @@
+use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
 
 #[derive(Debug, Clone, Default)]
@@ -5,6 +6,13 @@ struct Point {
     x: Arc<Mutex<Option<i32>>>,
     y: Arc<Mutex<Option<i32>>>,
 }
+
+impl std::fmt::Display for Point {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{} {}}}", (*self.x.borrow().as_ref().unwrap()), (*self.y.borrow().as_ref().unwrap()))
+    }
+}
+
 
 fn main() {
     let mut p = Arc::new(Mutex::new(Some(Point { x: Arc::new(Mutex::new(Some(10))), y: Arc::new(Mutex::new(Some(20))) })));

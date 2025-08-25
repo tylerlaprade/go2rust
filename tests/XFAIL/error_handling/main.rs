@@ -9,6 +9,13 @@ struct CustomError {
     message: Rc<RefCell<Option<String>>>,
 }
 
+impl std::fmt::Display for CustomError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{} {}}}", (*self.code.borrow().as_ref().unwrap()), (*self.message.borrow().as_ref().unwrap()))
+    }
+}
+
+
 impl CustomError {
     pub fn error(&self) -> Rc<RefCell<Option<String>>> {
         return Rc::new(RefCell::new(Some(format!("Error {}: {}", (*self.code.borrow().as_ref().unwrap()), (*self.message.borrow().as_ref().unwrap())))));

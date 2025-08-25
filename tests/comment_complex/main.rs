@@ -1,4 +1,5 @@
 use std::cell::{RefCell};
+use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
 /// Person represents a person with a name and age
@@ -7,6 +8,13 @@ struct Person {
     name: Rc<RefCell<Option<String>>>,
     age: Rc<RefCell<Option<i32>>>,
 }
+
+impl std::fmt::Display for Person {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{} {}}}", (*self.name.borrow().as_ref().unwrap()), (*self.age.borrow().as_ref().unwrap()))
+    }
+}
+
 
 impl Person {
     /// Greet prints a greeting message

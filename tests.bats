@@ -343,6 +343,10 @@ run_xfail_test() {
     run_test "tests/interface_basic"
 }
 
+@test "interfaces_simple" {
+    run_test "tests/interfaces_simple"
+}
+
 @test "iota_complex" {
     run_test "tests/iota_complex"
 }
@@ -597,10 +601,6 @@ run_xfail_test() {
 
 @test "XFAIL: interfaces_basic" {
     run_xfail_test "tests/XFAIL/interfaces_basic"
-}
-
-@test "XFAIL: interfaces_simple" {
-    run_xfail_test "tests/XFAIL/interfaces_simple"
 }
 
 @test "XFAIL: json_marshal" {

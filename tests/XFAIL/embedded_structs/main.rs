@@ -1,5 +1,5 @@
 use std::cell::{RefCell};
-use std::fmt::{Display};
+use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
 fn format_slice<T>(slice: &Rc<RefCell<Option<Vec<T>>>>) -> String 
@@ -21,12 +21,26 @@ struct Person {
     age: Rc<RefCell<Option<i32>>>,
 }
 
+impl std::fmt::Display for Person {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{} {}}}", (*self.name.borrow().as_ref().unwrap()), (*self.age.borrow().as_ref().unwrap()))
+    }
+}
+
+
 #[derive(Debug, Clone, Default)]
 struct Address {
     street: Rc<RefCell<Option<String>>>,
     city: Rc<RefCell<Option<String>>>,
     state: Rc<RefCell<Option<String>>>,
 }
+
+impl std::fmt::Display for Address {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{} {} {}}}", (*self.street.borrow().as_ref().unwrap()), (*self.city.borrow().as_ref().unwrap()), (*self.state.borrow().as_ref().unwrap()))
+    }
+}
+
 
 #[derive(Debug, Clone, Default)]
 struct Employee {
@@ -36,11 +50,25 @@ struct Employee {
     salary: Rc<RefCell<Option<f64>>>,
 }
 
+impl std::fmt::Display for Employee {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{} {}}}", (*self.i_d.borrow().as_ref().unwrap()), (*self.salary.borrow().as_ref().unwrap()))
+    }
+}
+
+
 #[derive(Debug, Clone, Default)]
 struct Manager {
     employee: Rc<RefCell<Option<Employee>>>,
     team: Rc<RefCell<Option<Vec<String>>>>,
 }
+
+impl std::fmt::Display for Manager {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{}}}", (*self.team.borrow().as_ref().unwrap()))
+    }
+}
+
 
 /// Anonymous struct embedding
 #[derive(Debug, Clone, Default)]
@@ -49,11 +77,25 @@ struct CompanyInfo {
     c_e_o: Rc<RefCell<Option<String>>>,
 }
 
+impl std::fmt::Display for CompanyInfo {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{} {}}}", (*self.founded.borrow().as_ref().unwrap()), (*self.c_e_o.borrow().as_ref().unwrap()))
+    }
+}
+
+
 #[derive(Debug, Clone, Default)]
 struct Company {
     name: Rc<RefCell<Option<String>>>,
     company_info: Rc<RefCell<Option<CompanyInfo>>>,
 }
+
+impl std::fmt::Display for Company {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{}}}", (*self.name.borrow().as_ref().unwrap()))
+    }
+}
+
 
 impl Person {
     pub fn greet(&self) {

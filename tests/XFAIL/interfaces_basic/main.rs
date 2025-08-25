@@ -1,8 +1,8 @@
 use std::cell::{RefCell};
-use std::fmt::{Debug};
+use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
-trait Shape: Debug {
+trait Shape: std::fmt::Display {
     fn area(&self) -> Rc<RefCell<Option<f64>>>;
     fn perimeter(&self) -> Rc<RefCell<Option<f64>>>;
 }
@@ -13,10 +13,24 @@ struct Rectangle {
     height: Rc<RefCell<Option<f64>>>,
 }
 
+impl std::fmt::Display for Rectangle {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{} {}}}", (*self.width.borrow().as_ref().unwrap()), (*self.height.borrow().as_ref().unwrap()))
+    }
+}
+
+
 #[derive(Debug, Clone, Default)]
 struct Circle {
     radius: Rc<RefCell<Option<f64>>>,
 }
+
+impl std::fmt::Display for Circle {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{}}}", (*self.radius.borrow().as_ref().unwrap()))
+    }
+}
+
 
 impl Rectangle {
     pub fn area(&self) -> Rc<RefCell<Option<f64>>> {

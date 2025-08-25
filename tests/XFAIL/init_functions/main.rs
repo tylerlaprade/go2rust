@@ -1,6 +1,7 @@
 use std::any::Any;
 use std::cell::{RefCell};
 use std::collections::HashMap;
+use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
 
@@ -31,6 +32,13 @@ struct Config {
     version: Rc<RefCell<Option<String>>>,
     debug: Rc<RefCell<Option<bool>>>,
 }
+
+impl std::fmt::Display for Config {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{} {} {}}}", (*self.name.borrow().as_ref().unwrap()), (*self.version.borrow().as_ref().unwrap()), (*self.debug.borrow().as_ref().unwrap()))
+    }
+}
+
 
 /// First init function
 pub fn init() {

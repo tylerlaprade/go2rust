@@ -9,6 +9,13 @@ struct argError {
     prob: Rc<RefCell<Option<String>>>,
 }
 
+impl std::fmt::Display for argError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{} {}}}", (*self.arg.borrow().as_ref().unwrap()), (*self.prob.borrow().as_ref().unwrap()))
+    }
+}
+
+
 impl argError {
     pub fn error(&mut self) -> Rc<RefCell<Option<String>>> {
         return Rc::new(RefCell::new(Some(format!("{} - {}", (*self.arg.borrow().as_ref().unwrap()), (*self.prob.borrow().as_ref().unwrap())))));

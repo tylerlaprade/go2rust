@@ -1,5 +1,5 @@
 use std::cell::{RefCell};
-use std::fmt::{Display};
+use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
 fn format_slice<T>(slice: &Rc<RefCell<Option<Vec<T>>>>) -> String 
@@ -39,6 +39,13 @@ struct Calculator {
     subtract: Rc<RefCell<Option<BinaryOp>>>,
     multiply: Rc<RefCell<Option<BinaryOp>>>,
 }
+
+impl std::fmt::Display for Calculator {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{} {} {}}}", (*self.add.borrow().as_ref().unwrap()), (*self.subtract.borrow().as_ref().unwrap()), (*self.multiply.borrow().as_ref().unwrap()))
+    }
+}
+
 
 /// Functions that match the types
 pub fn add(a: Rc<RefCell<Option<i32>>>, b: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>> {

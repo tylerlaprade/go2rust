@@ -1,4 +1,5 @@
 use std::cell::{RefCell};
+use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
 /// Base types with methods
@@ -7,10 +8,24 @@ struct Logger {
     prefix: Rc<RefCell<Option<String>>>,
 }
 
+impl std::fmt::Display for Logger {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{}}}", (*self.prefix.borrow().as_ref().unwrap()))
+    }
+}
+
+
 #[derive(Debug, Clone, Default)]
 struct Counter {
     count: Rc<RefCell<Option<i32>>>,
 }
+
+impl std::fmt::Display for Counter {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{}}}", (*self.count.borrow().as_ref().unwrap()))
+    }
+}
+
 
 /// Type that embeds both Logger and Counter
 #[derive(Debug, Clone, Default)]
@@ -20,11 +35,25 @@ struct Service {
     name: Rc<RefCell<Option<String>>>,
 }
 
+impl std::fmt::Display for Service {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{}}}", (*self.name.borrow().as_ref().unwrap()))
+    }
+}
+
+
 /// Type with multiple levels of embedding
 #[derive(Debug, Clone, Default)]
 struct Base {
     id: Rc<RefCell<Option<i32>>>,
 }
+
+impl std::fmt::Display for Base {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{}}}", (*self.id.borrow().as_ref().unwrap()))
+    }
+}
+
 
 #[derive(Debug, Clone, Default)]
 struct Middle {
@@ -32,11 +61,25 @@ struct Middle {
     data: Rc<RefCell<Option<String>>>,
 }
 
+impl std::fmt::Display for Middle {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{}}}", (*self.data.borrow().as_ref().unwrap()))
+    }
+}
+
+
 #[derive(Debug, Clone, Default)]
 struct Top {
     middle: Rc<RefCell<Option<Middle>>>,
     extra: Rc<RefCell<Option<String>>>,
 }
+
+impl std::fmt::Display for Top {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{}}}", (*self.extra.borrow().as_ref().unwrap()))
+    }
+}
+
 
 impl Logger {
     pub fn log(&self, msg: Rc<RefCell<Option<String>>>) {

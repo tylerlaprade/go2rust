@@ -1,4 +1,5 @@
 use std::cell::{RefCell};
+use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
 #[derive(Debug, Clone, Default)]
@@ -6,11 +7,25 @@ struct Counter {
     value: Rc<RefCell<Option<i32>>>,
 }
 
+impl std::fmt::Display for Counter {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{}}}", (*self.value.borrow().as_ref().unwrap()))
+    }
+}
+
+
 #[derive(Debug, Clone, Default)]
 struct Person {
     name: Rc<RefCell<Option<String>>>,
     age: Rc<RefCell<Option<i32>>>,
 }
+
+impl std::fmt::Display for Person {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{} {}}}", (*self.name.borrow().as_ref().unwrap()), (*self.age.borrow().as_ref().unwrap()))
+    }
+}
+
 
 impl Counter {
     /// Method with value receiver

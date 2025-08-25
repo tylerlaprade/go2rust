@@ -1,8 +1,8 @@
 use std::cell::{RefCell};
-use std::fmt::{Debug};
+use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
-trait geometry: Debug {
+trait geometry: std::fmt::Display {
     fn area(&self) -> Rc<RefCell<Option<f64>>>;
     fn perim(&self) -> Rc<RefCell<Option<f64>>>;
 }
@@ -12,6 +12,13 @@ struct rect {
     width: Rc<RefCell<Option<f64>>>,
     height: Rc<RefCell<Option<f64>>>,
 }
+
+impl std::fmt::Display for rect {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{} {}}}", (*self.width.borrow().as_ref().unwrap()), (*self.height.borrow().as_ref().unwrap()))
+    }
+}
+
 
 impl rect {
     pub fn area(&self) -> Rc<RefCell<Option<f64>>> {
@@ -33,7 +40,7 @@ impl geometry for rect {
 }
 
 pub fn measure(g: Rc<RefCell<Option<Box<dyn geometry>>>>) {
-    println!("{}", format!("{:?}", (*g.borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*g.borrow().as_ref().unwrap())));
     println!("{}", (*(*g.borrow_mut().as_mut().unwrap()).area().borrow().as_ref().unwrap()));
     println!("{}", (*(*g.borrow_mut().as_mut().unwrap()).perim().borrow().as_ref().unwrap()));
 }

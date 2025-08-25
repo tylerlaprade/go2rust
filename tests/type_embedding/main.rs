@@ -1,4 +1,5 @@
 use std::cell::{RefCell};
+use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
 #[derive(Debug, Clone, Default)]
@@ -7,11 +8,25 @@ struct Person {
     age: Rc<RefCell<Option<i32>>>,
 }
 
+impl std::fmt::Display for Person {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{} {}}}", (*self.name.borrow().as_ref().unwrap()), (*self.age.borrow().as_ref().unwrap()))
+    }
+}
+
+
 #[derive(Debug, Clone, Default)]
 struct Employee {
     person: Rc<RefCell<Option<Person>>>,
     i_d: Rc<RefCell<Option<i32>>>,
 }
+
+impl std::fmt::Display for Employee {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{}}}", (*self.i_d.borrow().as_ref().unwrap()))
+    }
+}
+
 
 impl Employee {
 }

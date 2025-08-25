@@ -1,6 +1,7 @@
 use std::any::Any;
 use std::cell::{RefCell};
 use std::collections::HashMap;
+use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
 
@@ -32,12 +33,26 @@ struct Config {
     cache: Rc<RefCell<Option<AnonymousStruct3>>>,
 }
 
+impl std::fmt::Display for Config {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{} {} {}}}", (*self.name.borrow().as_ref().unwrap()), (*self.database.borrow().as_ref().unwrap()), (*self.cache.borrow().as_ref().unwrap()))
+    }
+}
+
+
 /// Named struct with slice of anonymous structs
 #[derive(Debug, Clone, Default)]
 struct Dashboard {
     title: Rc<RefCell<Option<String>>>,
     widgets: Rc<RefCell<Option<Vec<AnonymousStruct4>>>>,
 }
+
+impl std::fmt::Display for Dashboard {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{} {}}}", (*self.title.borrow().as_ref().unwrap()), (*self.widgets.borrow().as_ref().unwrap()))
+    }
+}
+
 
 #[derive(Debug, Clone, Default)]
 struct AnonymousStruct1 {

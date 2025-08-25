@@ -1,4 +1,5 @@
 use std::cell::{RefCell};
+use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
 #[derive(Debug, Clone, Default)]
@@ -13,6 +14,13 @@ struct User {
     is_active: Rc<RefCell<Option<bool>>>,
     internal: Rc<RefCell<Option<String>>>,
 }
+
+impl std::fmt::Display for User {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{} {} {} {} {}}}", (*self.i_d.borrow().as_ref().unwrap()), (*self.name.borrow().as_ref().unwrap()), (*self.email.borrow().as_ref().unwrap()), (*self.is_active.borrow().as_ref().unwrap()), (*self.internal.borrow().as_ref().unwrap()))
+    }
+}
+
 
 fn main() {
     let mut u = Rc::new(RefCell::new(Some(User { i_d: Rc::new(RefCell::new(Some(1))), name: Rc::new(RefCell::new(Some("Alice".to_string()))), email: Rc::new(RefCell::new(Some("alice@example.com".to_string()))) })));

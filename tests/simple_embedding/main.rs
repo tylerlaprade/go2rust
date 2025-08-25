@@ -1,4 +1,5 @@
 use std::cell::{RefCell};
+use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
 #[derive(Debug, Clone, Default)]
@@ -6,11 +7,25 @@ struct Inner {
     value: Rc<RefCell<Option<i32>>>,
 }
 
+impl std::fmt::Display for Inner {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{}}}", (*self.value.borrow().as_ref().unwrap()))
+    }
+}
+
+
 #[derive(Debug, Clone, Default)]
 struct Outer {
     inner: Rc<RefCell<Option<Inner>>>,
     name: Rc<RefCell<Option<String>>>,
 }
+
+impl std::fmt::Display for Outer {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{}}}", (*self.name.borrow().as_ref().unwrap()))
+    }
+}
+
 
 impl Inner {
     pub fn get_value(&self) -> Rc<RefCell<Option<i32>>> {

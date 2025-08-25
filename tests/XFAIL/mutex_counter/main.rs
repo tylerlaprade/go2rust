@@ -1,4 +1,5 @@
 use std::cell::{RefCell};
+use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
 #[derive(Debug, Clone, Default)]
@@ -6,6 +7,13 @@ struct Counter {
     mu: Rc<RefCell<Option</* TODO: Unhandled type *ast.SelectorExpr */ Rc<RefCell<Option<()>>>>>>,
     value: Rc<RefCell<Option<i32>>>,
 }
+
+impl std::fmt::Display for Counter {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{} {}}}", (*self.mu.borrow().as_ref().unwrap()), (*self.value.borrow().as_ref().unwrap()))
+    }
+}
+
 
 impl Counter {
     pub fn increment(&mut self) {

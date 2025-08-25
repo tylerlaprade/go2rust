@@ -1,4 +1,5 @@
 use std::cell::{RefCell};
+use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
 #[derive(Debug, Clone, Default)]
@@ -6,6 +7,13 @@ struct rect {
     width: Rc<RefCell<Option<i32>>>,
     height: Rc<RefCell<Option<i32>>>,
 }
+
+impl std::fmt::Display for rect {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{} {}}}", (*self.width.borrow().as_ref().unwrap()), (*self.height.borrow().as_ref().unwrap()))
+    }
+}
+
 
 impl rect {
     pub fn area(&mut self) -> Rc<RefCell<Option<i32>>> {
