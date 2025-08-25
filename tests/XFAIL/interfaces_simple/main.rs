@@ -18,7 +18,7 @@ impl rect {
     }
 
     pub fn perim(&self) -> Rc<RefCell<Option<f64>>> {
-        return Rc::new(RefCell::new(Some(2 * (*self.width.clone().borrow().as_ref().unwrap()) + 2 * (*self.height.clone().borrow().as_ref().unwrap()))));
+        return Rc::new(RefCell::new(Some(2.0 * (*self.width.clone().borrow().as_ref().unwrap()) + 2.0 * (*self.height.clone().borrow().as_ref().unwrap()))));
     }
 }
 
@@ -27,7 +27,7 @@ impl geometry for rect {
         return Rc::new(RefCell::new(Some((*self.width.clone().borrow().as_ref().unwrap()) * (*self.height.clone().borrow().as_ref().unwrap()))));
     }
     fn perim(&self) -> Rc<RefCell<Option<f64>>> {
-        return Rc::new(RefCell::new(Some(2 * (*self.width.clone().borrow().as_ref().unwrap()) + 2 * (*self.height.clone().borrow().as_ref().unwrap()))));
+        return Rc::new(RefCell::new(Some(2.0 * (*self.width.clone().borrow().as_ref().unwrap()) + 2.0 * (*self.height.clone().borrow().as_ref().unwrap()))));
     }
 }
 
@@ -38,6 +38,6 @@ pub fn measure(g: Rc<RefCell<Option<Box<dyn geometry>>>>) {
 }
 
 fn main() {
-    let mut r = Rc::new(RefCell::new(Some(rect { width: Rc::new(RefCell::new(Some(3))), height: Rc::new(RefCell::new(Some(4))) })));
+    let mut r = Rc::new(RefCell::new(Some(rect { width: Rc::new(RefCell::new(Some(3.0))), height: Rc::new(RefCell::new(Some(4.0))) })));
     measure(r.clone());
 }

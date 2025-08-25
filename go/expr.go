@@ -61,6 +61,21 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			out.WriteString("(")
 			out.WriteString(e.Value)
 			out.WriteString(" as i32)")
+		case token.INT:
+			// Check if this integer is used in a float context
+			typeInfo := GetTypeInfo()
+			if typeInfo != nil {
+				exprType := typeInfo.GetType(expr)
+				if exprType != nil {
+					if basic, ok := exprType.(*types.Basic); ok && (basic.Kind() == types.Float32 || basic.Kind() == types.Float64 || basic.Kind() == types.UntypedFloat) {
+						// Integer literal used as float - add .0
+						out.WriteString(e.Value)
+						out.WriteString(".0")
+						return
+					}
+				}
+			}
+			out.WriteString(e.Value)
 		default:
 			out.WriteString(e.Value)
 		}

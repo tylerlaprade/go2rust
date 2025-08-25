@@ -13,7 +13,7 @@ pub fn sum(numbers: Rc<RefCell<Option</* TODO: Unhandled type *ast.Ellipsis */ R
 pub fn average(numbers: Rc<RefCell<Option</* TODO: Unhandled type *ast.Ellipsis */ Rc<RefCell<Option<()>>>>>>) -> Rc<RefCell<Option<f64>>> {
 
     if (*numbers.borrow().as_ref().unwrap()).len() == 0 {
-        return Rc::new(RefCell::new(Some(0)));
+        return Rc::new(RefCell::new(Some(0.0)));
     }
     let mut total = Rc::new(RefCell::new(Some(0.0)));
     for num in &(*numbers.borrow_mut().as_mut().unwrap()) {

@@ -26,7 +26,7 @@ impl Display for CustomError {
 pub fn divide(a: Rc<RefCell<Option<f64>>>, b: Rc<RefCell<Option<f64>>>) -> (Rc<RefCell<Option<f64>>>, Rc<RefCell<Option<Box<dyn Error + Send + Sync>>>>) {
 
     if (*b.borrow_mut().as_mut().unwrap()) == 0.0 {
-        return (Rc::new(RefCell::new(Some(0))), Rc::new(RefCell::new(Some(Box::<dyn std::error::Error + Send + Sync>::from("division by zero".to_string())))));
+        return (Rc::new(RefCell::new(Some(0.0))), Rc::new(RefCell::new(Some(Box::<dyn std::error::Error + Send + Sync>::from("division by zero".to_string())))));
     }
     return ({
             let __tmp_x = (*a.borrow_mut().as_mut().unwrap());
@@ -38,7 +38,7 @@ pub fn divide(a: Rc<RefCell<Option<f64>>>, b: Rc<RefCell<Option<f64>>>) -> (Rc<R
 pub fn sqrt(x: Rc<RefCell<Option<f64>>>) -> (Rc<RefCell<Option<f64>>>, Rc<RefCell<Option<Box<dyn Error + Send + Sync>>>>) {
 
     if (*x.borrow_mut().as_mut().unwrap()) < 0.0 {
-        return (Rc::new(RefCell::new(Some(0))), Rc::new(RefCell::new(Some(Some(Box::new(format!("cannot take square root of negative number: {}", (*x.borrow_mut().as_mut().unwrap()))) as Box<dyn Error + Send + Sync>))));
+        return (Rc::new(RefCell::new(Some(0.0))), Rc::new(RefCell::new(Some(Some(Box::new(format!("cannot take square root of negative number: {}", (*x.borrow_mut().as_mut().unwrap()))) as Box<dyn Error + Send + Sync>))));
     }
 
         // Simple approximation
@@ -64,7 +64,7 @@ pub fn process_value(val: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<Box<dyn
 
 fn main() {
         // Basic error handling
-    let (mut result, mut err) = divide(Rc::new(RefCell::new(Some(10))), Rc::new(RefCell::new(Some(2))));
+    let (mut result, mut err) = divide(Rc::new(RefCell::new(Some(10.0))), Rc::new(RefCell::new(Some(2.0))));
     if (*err.borrow()).is_some() {
         println!("{} {}", "Error:".to_string(), (*err.borrow_mut().as_mut().unwrap()));
     } else {
@@ -72,7 +72,7 @@ fn main() {
     }
 
         // Error case
-    (result, err) = divide(Rc::new(RefCell::new(Some(10))), Rc::new(RefCell::new(Some(0))));
+    (result, err) = divide(Rc::new(RefCell::new(Some(10.0))), Rc::new(RefCell::new(Some(0.0))));
     if (*err.borrow()).is_some() {
         println!("{} {}", "Error:".to_string(), (*err.borrow_mut().as_mut().unwrap()));
     } else {

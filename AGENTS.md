@@ -110,54 +110,15 @@ The test script handles:
 - Limited stdlib support
 - No circular dependencies or build tags
 
-## Recent Progress (2025-08-22)
-
-- **Comprehensive closure capture fix**: Implemented two-phase approach for proper closure variable capture
-  - Created statement preprocessor (`stmt_preprocess.go`) to analyze closures before transpilation
-  - Generates clone statements at statement level, before closures are created
-  - Properly handles nested closures and complex capture scenarios
-  - Fixed closure calling mechanism to properly dereference wrapped closures
-  - Fixed double-wrapping issue with function literals in assignments
-- **Return statement improvements**: Variables in return statements now use renamed captures
-- **Heuristic-based capture filtering**: Prevents capturing package names and constants
-  - All defer and goroutine tests maintained
-
-Previous progress (2025-08-21):
-
-- **Defer statements fully working**: Fixed variable capture and argument evaluation, LIFO execution order correct
-  - Closures now respect pre-configured capture renames from defer handlers
-  - Defer arguments capture VALUES at defer time, not references that could change
-- **Return statement fixes**: Fixed "cannot move out of mutable reference" errors by properly cloning wrapped values in return statements instead of unwrapping/re-wrapping
-- **Map iteration determinism**: Added sorting to ensure deterministic output for map iteration tests
-- **Printf format string handling**: Improved conversion of Go format strings to Rust equivalents
-
-## ✅ Type System Integration (COMPLETED)
-
-The transpiler now uses `go/types` for accurate type information instead of brittle heuristics:
-
-- **Type checking**: Full Go type checking with `go/types.Config` and `go/types.Check`
-- **Print formatting**: Proper detection of maps/slices using actual type information
-- **Function calls**: Accurate unwrapping based on real types, not AST patterns
-- **Cross-file analysis**: Complete package-wide type information for all expressions
-
-See `go/typeinfo.go` and `go/README_TYPES.md` for implementation details.
-
 ## ⚠️ CRITICAL: Always Use TypeInfo for Type Decisions
 
 **The transpiler has complete type information via `go/types` - USE IT!**
+See `go/typeinfo.go` and `go/README_TYPES.md` for implementation details.
 
 ### How to Make Type-Based Decisions
 
 1. **First, get the TypeInfo**: `typeInfo := GetTypeInfo()`
-2. **Use TypeInfo methods** to query types:
-   - `typeInfo.IsMap(expr)` - Check if expression is a map
-   - `typeInfo.IsSlice(expr)` - Check if expression is a slice
-   - `typeInfo.IsString(expr)` - Check if expression is a string
-   - `typeInfo.IsFunction(ident)` - Check if identifier is a function
-   - `typeInfo.GetType(expr)` - Get the actual Go type
-   - `typeInfo.ReturnsWrappedValue(expr)` - Check if expression returns Arc<Mutex<Option<T>>>
-   - `typeInfo.NeedsUnwrapping(expr)` - Check if expression needs unwrapping in context
-
+2. **Use TypeInfo methods** to query types
 3. **Add new TypeInfo methods** when you need new type queries - don't guess!
 
 ### Examples
@@ -210,20 +171,3 @@ Remaining limitations:
 The solution uses a statement preprocessor (`stmt_preprocess.go`) that analyzes all closures
 in a statement, generates appropriate clone statements, and sets up variable renames that are
 respected during transpilation.
-
-## Recent Progress (2025-08-21)
-
-### ✅ Smart Concurrency-Based Optimization (COMPLETED)
-
-- **Automatic wrapper selection**: Uses `Rc<RefCell<>>` for single-threaded code, `Arc<Mutex<>>` only when needed
-- **Concurrency detection**: Analyzes code for goroutines, channels, and async stdlib functions
-- **40/132 tests passing**: Up from 25, with all optimization-related issues resolved
-
-Key components:
-
-- `go/concurrency.go`: Detects goroutines, channels, async stdlib calls
-- `go/stdlib_concurrency.go`: Database of async vs sync stdlib functions
-- Smart wrapper functions in `go/utils.go`:
-  - `WriteWrapperPrefix/Suffix()`: Uses appropriate wrapper based on concurrency
-  - `WriteBorrowMethod()`: Uses `.borrow()` or `.lock().unwrap()` as needed
-- Helper functions adapt to concurrency (format_map, format_slice)

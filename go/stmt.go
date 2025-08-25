@@ -1063,6 +1063,12 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										// Pointer type - initialize with None
 										out.WriteString(" = ")
 										WriteWrappedNone(out)
+									case *ast.InterfaceType:
+										// interface{} - initialize with None
+										if len(t.Methods.List) == 0 {
+											out.WriteString(" = ")
+											WriteWrappedNone(out)
+										}
 									case *ast.ArrayType:
 										// Initialize array with default values
 										// Arrays are wrapped, so we need Some(default array)

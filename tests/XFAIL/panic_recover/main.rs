@@ -34,7 +34,7 @@ pub fn safe_divide(a: Rc<RefCell<Option<f64>>>, b: Rc<RefCell<Option<f64>>>) -> 
         let mut r = Arc::new(Mutex::new(None::<String>));
     if (*r.borrow()).is_some() {
         { let new_val = Rc::new(RefCell::new(Some(Some(Box::new(format!("panic occurred: {}", (*r.borrow_mut().as_mut().unwrap()))) as Box<dyn Error + Send + Sync>))); *err_defer_captured.borrow_mut() = Some(new_val); };
-        { let new_val = 0; *result_defer_captured.borrow_mut() = Some(new_val); };
+        { let new_val = 0.0; *result_defer_captured.borrow_mut() = Some(new_val); };
     }
     }) as Box<dyn Fn() -> ()>))).borrow().as_ref().unwrap())();
     }));
@@ -200,14 +200,14 @@ pub fn chained_defers() {
 fn main() {
     println!("{}", "=== Safe divide examples ===".to_string());
 
-    let (mut result, mut err) = safe_divide(Rc::new(RefCell::new(Some(10))), Rc::new(RefCell::new(Some(2))));
+    let (mut result, mut err) = safe_divide(Rc::new(RefCell::new(Some(10.0))), Rc::new(RefCell::new(Some(2.0))));
     if (*err.borrow()).is_some() {
         print!("Error: {}\n", (*err.borrow_mut().as_mut().unwrap()));
     } else {
         print!("10 / 2 = {:.2}\n", (*result.borrow_mut().as_mut().unwrap()));
     }
 
-    (result, err) = safe_divide(Rc::new(RefCell::new(Some(10))), Rc::new(RefCell::new(Some(0))));
+    (result, err) = safe_divide(Rc::new(RefCell::new(Some(10.0))), Rc::new(RefCell::new(Some(0.0))));
     if (*err.borrow()).is_some() {
         print!("Error: {}\n", (*err.borrow_mut().as_mut().unwrap()));
     } else {

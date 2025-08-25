@@ -112,9 +112,10 @@ func (it *ImportTracker) GenerateImports() string {
 
 // HelperTracker tracks which helper functions are needed
 type HelperTracker struct {
-	needsFormatMap   bool
-	needsFormatSlice bool
-	needsFormatAny   bool
+	needsFormatMap      bool
+	needsFormatSlice    bool
+	needsFormatAny      bool
+	needsFormatAnySlice bool
 }
 
 // GenerateHelpers returns the helper function definitions
@@ -131,6 +132,10 @@ func (ht *HelperTracker) GenerateHelpers() string {
 
 	if ht.needsFormatAny {
 		generateAnyFormatter(&result)
+	}
+
+	if ht.needsFormatAnySlice {
+		generateAnySliceFormatter(&result)
 	}
 
 	return result.String()
@@ -156,4 +161,38 @@ func generateAnyFormatter(out *strings.Builder) {
 	out.WriteString("        \"<unknown>\".to_string()\n")
 	out.WriteString("    }\n")
 	out.WriteString("}\n")
+}
+
+func generateAnySliceFormatter(out *strings.Builder) {
+	if NeedsConcurrentWrapper() {
+		TrackImport("Arc")
+		TrackImport("Mutex")
+		TrackImport("Any")
+		out.WriteString(`
+fn format_any_slice(slice: &Arc<Mutex<Option<Vec<Box<dyn Any>>>>>) -> String {
+    let guard = slice.lock().unwrap();
+    if let Some(ref s) = *guard {
+        let formatted: Vec<String> = s.iter().map(|v| format_any(v.as_ref())).collect();
+        format!("[{}]", formatted.join(" "))
+    } else {
+        "[]".to_string()
+    }
+}
+`)
+	} else {
+		TrackImport("Rc")
+		TrackImport("RefCell")
+		TrackImport("Any")
+		out.WriteString(`
+fn format_any_slice(slice: &Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) -> String {
+    let guard = slice.borrow();
+    if let Some(ref s) = *guard {
+        let formatted: Vec<String> = s.iter().map(|v| format_any(v.as_ref())).collect();
+        format!("[{}]", formatted.join(" "))
+    } else {
+        "[]".to_string()
+    }
+}
+`)
+	}
 }

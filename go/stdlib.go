@@ -156,6 +156,24 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 			out.WriteString(")")
 			return
 		} else if typeInfo.IsSlice(arg) {
+			// Check if it's a slice of interface{}
+			elemType := typeInfo.GetSliceElemType(arg)
+			if elemType != nil {
+				if intf, ok := elemType.Underlying().(*types.Interface); ok && intf.NumMethods() == 0 {
+					// It's []interface{} - use format_any_slice
+					NeedFormatAnySlice()
+					TrackImport("Any")
+					out.WriteString("format_any_slice(&")
+					if ident, ok := arg.(*ast.Ident); ok {
+						out.WriteString(ident.Name)
+					} else {
+						TranspileExpression(out, arg)
+					}
+					out.WriteString(")")
+					return
+				}
+			}
+			// Regular slice - use format_slice
 			NeedFormatSlice()
 			TrackImport("Display")
 			out.WriteString("format_slice(&")

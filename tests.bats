@@ -339,6 +339,10 @@ run_xfail_test() {
     run_test "tests/if_else_basic"
 }
 
+@test "interface_basic" {
+    run_test "tests/interface_basic"
+}
+
 @test "iota_complex" {
     run_test "tests/iota_complex"
 }
@@ -589,10 +593,6 @@ run_xfail_test() {
 
 @test "XFAIL: init_order_complex" {
     run_xfail_test "tests/XFAIL/init_order_complex"
-}
-
-@test "XFAIL: interface_basic" {
-    run_xfail_test "tests/XFAIL/interface_basic"
 }
 
 @test "XFAIL: interfaces_basic" {

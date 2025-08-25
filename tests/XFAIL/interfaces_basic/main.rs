@@ -42,7 +42,7 @@ impl Circle {
     }
 
     pub fn perimeter(&self) -> Rc<RefCell<Option<f64>>> {
-        return Rc::new(RefCell::new(Some(2 * 3.14159 * (*self.radius.clone().borrow().as_ref().unwrap()))));
+        return Rc::new(RefCell::new(Some(2.0 * 3.14159 * (*self.radius.clone().borrow().as_ref().unwrap()))));
     }
 }
 
@@ -51,7 +51,7 @@ impl Shape for Circle {
         return Rc::new(RefCell::new(Some(3.14159 * (*self.radius.clone().borrow().as_ref().unwrap()) * (*self.radius.clone().borrow().as_ref().unwrap()))));
     }
     fn perimeter(&self) -> Rc<RefCell<Option<f64>>> {
-        return Rc::new(RefCell::new(Some(2 * 3.14159 * (*self.radius.clone().borrow().as_ref().unwrap()))));
+        return Rc::new(RefCell::new(Some(2.0 * 3.14159 * (*self.radius.clone().borrow().as_ref().unwrap()))));
     }
 }
 
@@ -60,8 +60,8 @@ pub fn print_shape_info(s: Rc<RefCell<Option<Box<dyn Shape>>>>) {
 }
 
 fn main() {
-    let mut rect = Rc::new(RefCell::new(Some(Rectangle { width: Rc::new(RefCell::new(Some(10))), height: Rc::new(RefCell::new(Some(5))) })));
-    let mut circle = Rc::new(RefCell::new(Some(Circle { radius: Rc::new(RefCell::new(Some(3))) })));
+    let mut rect = Rc::new(RefCell::new(Some(Rectangle { width: Rc::new(RefCell::new(Some(10.0))), height: Rc::new(RefCell::new(Some(5.0))) })));
+    let mut circle = Rc::new(RefCell::new(Some(Circle { radius: Rc::new(RefCell::new(Some(3.0))) })));
 
     println!("{}", "Rectangle:".to_string());
     print_shape_info(rect.clone());

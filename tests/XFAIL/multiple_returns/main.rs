@@ -114,7 +114,7 @@ pub fn safe_divide(a: Rc<RefCell<Option<f64>>>, b: Rc<RefCell<Option<f64>>>) -> 
     let mut err: Rc<RefCell<Option<Box<dyn Error + Send + Sync>>>> = Rc::new(RefCell::new(Some(None));
 
     if (*b.borrow_mut().as_mut().unwrap()) == 0.0 {
-        return (Rc::new(RefCell::new(Some(0))), Rc::new(RefCell::new(Some(Some(Box::new(format!("division by zero")) as Box<dyn Error + Send + Sync>))));
+        return (Rc::new(RefCell::new(Some(0.0))), Rc::new(RefCell::new(Some(Some(Box::new(format!("division by zero")) as Box<dyn Error + Send + Sync>))));
     }
     return ({
             let __tmp_x = (*a.borrow_mut().as_mut().unwrap());

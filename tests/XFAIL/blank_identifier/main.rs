@@ -149,7 +149,7 @@ fn main() {
     // TODO: Unhandled statement type: SendStmt
     // TODO: Unhandled statement type: SendStmt
     // TODO: Unhandled statement type: SendStmt
-    (close.lock().unwrap().as_ref().unwrap())(ch.clone());
+    (*close.lock().unwrap().as_ref().unwrap())(ch.clone());
 
         // Read from channel but ignore the value
     for  {
@@ -166,7 +166,7 @@ fn main() {
     println!("{}", "\n=== Complex example ===".to_string());
 
         // Complex example with multiple blank identifiers
-    let mut data = Arc::new(Mutex::new(Some(vec![, , ])));
+    let mut data = Arc::new(Mutex::new(Some(vec![Arc::new(Mutex::new(Some(vec![1, 2, 3]))), Arc::new(Mutex::new(Some(vec![4, 5, 6]))), Arc::new(Mutex::new(Some(vec![7, 8, 9])))])));
 
     let mut total = Arc::new(Mutex::new(Some(0)));
     for row in &(*data.lock().unwrap().as_mut().unwrap()) {
