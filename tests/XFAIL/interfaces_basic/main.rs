@@ -2,7 +2,7 @@ use std::cell::{RefCell};
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
-trait Shape: std::fmt::Display {
+trait Shape: std::fmt::Display + Clone {
     fn area(&self) -> Rc<RefCell<Option<f64>>>;
     fn perimeter(&self) -> Rc<RefCell<Option<f64>>>;
 }
@@ -85,10 +85,10 @@ fn main() {
     print_shape_info(Rc::new(RefCell::new(Some(Box::new((*circle.borrow().as_ref().unwrap()).clone()) as Box<dyn Shape>))));
 
         // Interface slice
-    let mut shapes = Rc::new(RefCell::new(Some(vec![(*rect.borrow_mut().as_mut().unwrap()), (*circle.borrow_mut().as_mut().unwrap())])));
+    let mut shapes = Rc::new(RefCell::new(Some(vec![Box::new((*rect.borrow().as_ref().unwrap()).clone()) as Box<dyn Shape>, Box::new((*circle.borrow().as_ref().unwrap()).clone()) as Box<dyn Shape>])));
     println!("{}", "All shapes:".to_string());
     for (i, shape) in (*shapes.borrow_mut().as_mut().unwrap()).iter().enumerate() {
         print!("Shape {}: ", i + 1);
-        print_shape_info(Rc::new(RefCell::new(Some(*shape))));
+        print_shape_info(Rc::new(RefCell::new(Some((*shape).clone()))));
     }
 }

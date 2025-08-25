@@ -352,7 +352,7 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 
 	case *ast.InterfaceType:
 		// Generate a trait for the interface
-		// Add Display as a supertrait so we can print interface values
+		// Add Display and Clone as supertraits
 		out.WriteString("trait ")
 		out.WriteString(typeSpec.Name.Name)
 		out.WriteString(": std::fmt::Display {\n")

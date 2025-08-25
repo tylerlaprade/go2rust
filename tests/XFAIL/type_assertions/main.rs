@@ -205,7 +205,7 @@ pub fn describe_shape(s: Rc<RefCell<Option<Box<dyn Shape>>>>) {
 
 fn main() {
         // Test with different types
-    let mut values = Rc::new(RefCell::new(Some(vec![Box::new("hello world".to_string()) as Box<dyn Any>, Box::new(42) as Box<dyn Any>, Box::new(3.14159) as Box<dyn Any>, Box::new(true) as Box<dyn Any>, Box::new(Rc::new(RefCell::new(Some(vec![1, 2, 3])))) as Box<dyn Any>])));
+    let mut values = Rc::new(RefCell::new(Some(vec![Box::new("hello world".to_string()) as Box<dyn Any>, Box::new(42) as Box<dyn Any>, Box::new(3.14159) as Box<dyn Any>, Box::new((*true.borrow().as_ref().unwrap()).clone()) as Box<dyn Any>, Box::new(Rc::new(RefCell::new(Some(vec![1, 2, 3])))) as Box<dyn Any>])));
 
     println!("{}", "=== Processing values ===".to_string());
     for val in &(*values.borrow_mut().as_mut().unwrap()) {
@@ -217,7 +217,7 @@ fn main() {
     assert_without_check(Rc::new(RefCell::new(Some(123))));
 
     println!("{}", "\n=== Interface type assertions ===".to_string());
-    let mut shapes = Rc::new(RefCell::new(Some(vec![Rectangle { width: Rc::new(RefCell::new(Some(10.0))), height: Rc::new(RefCell::new(Some(5.0))) }, Circle { radius: Rc::new(RefCell::new(Some(3.0))) }])));
+    let mut shapes = Rc::new(RefCell::new(Some(vec![Box::new(Rectangle { width: Rc::new(RefCell::new(Some(10.0))), height: Rc::new(RefCell::new(Some(5.0))) }) as Box<dyn Shape>, Box::new(Circle { radius: Rc::new(RefCell::new(Some(3.0))) }) as Box<dyn Shape>])));
 
     for shape in &(*shapes.borrow_mut().as_mut().unwrap()) {
         describe_shape(Rc::new(RefCell::new(Some(*shape))));

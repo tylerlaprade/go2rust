@@ -817,10 +817,22 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		}
 		// Handle array/slice literals
 		if arrayType, ok := e.Type.(*ast.ArrayType); ok {
-			// Check if element type is interface{}
+			// Check if element type is an interface
 			isInterfaceSlice := false
+			var interfaceName string
+
+			// Check for interface{} (empty interface)
 			if intf, ok := arrayType.Elt.(*ast.InterfaceType); ok && len(intf.Methods.List) == 0 {
 				isInterfaceSlice = true
+				interfaceName = "Any"
+				TrackImport("Any")
+			} else if ident, ok := arrayType.Elt.(*ast.Ident); ok {
+				// Check if it's a named interface using TypeInfo
+				typeInfo := GetTypeInfo()
+				if typeInfo != nil && typeInfo.IsInterface(ident) {
+					isInterfaceSlice = true
+					interfaceName = ident.Name
+				}
 			}
 
 			// Wrap the entire array/slice in Arc<Mutex<Option<>>>
@@ -837,10 +849,32 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					out.WriteString(", ")
 				}
 				if isInterfaceSlice {
-					// Box each element for interface{} slices
+					// Box each element for interface slices
 					out.WriteString("Box::new(")
-					TranspileExpression(out, elt)
-					out.WriteString(") as Box<dyn Any>")
+					// If the element is already a wrapped variable, unwrap it first
+					if ident, ok := elt.(*ast.Ident); ok && ident.Name != "nil" && ident.Name != "_" {
+						// Check if it's a variable (already wrapped)
+						if _, isRangeVar := rangeLoopVars[ident.Name]; !isRangeVar {
+							if _, isLocalConst := localConstants[ident.Name]; !isLocalConst {
+								// It's a wrapped variable, unwrap it
+								out.WriteString("(*")
+								out.WriteString(ident.Name)
+								WriteBorrowMethod(out, false)
+								out.WriteString(".as_ref().unwrap()).clone()")
+							} else {
+								// It's a constant
+								TranspileExpression(out, elt)
+							}
+						} else {
+							// Range variable
+							TranspileExpression(out, elt)
+						}
+					} else {
+						TranspileExpression(out, elt)
+					}
+					out.WriteString(") as Box<dyn ")
+					out.WriteString(interfaceName)
+					out.WriteString(">")
 				} else {
 					TranspileExpression(out, elt)
 				}
@@ -1715,13 +1749,23 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 						// It's a variable
 						if needsInterfaceBoxing {
 							// Need to box for interface parameter
-							WriteWrapperPrefix(out)
-							out.WriteString("Box::new((*")
-							out.WriteString(ident.Name)
-							WriteBorrowMethod(out, false)
-							out.WriteString(".as_ref().unwrap()).clone()) as Box<dyn ")
-							out.WriteString(interfaceName)
-							out.WriteString(">)))")
+							// Check if it's a range variable that's already a boxed interface
+							if varType, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar && varType == "ref_value" {
+								// It's a reference from a range loop over interface slice
+								// The value is already &Box<dyn Interface>, just clone it
+								WriteWrapperPrefix(out)
+								out.WriteString(ident.Name)
+								out.WriteString(".clone()))")
+							} else {
+								// Regular variable needs boxing
+								WriteWrapperPrefix(out)
+								out.WriteString("Box::new((*")
+								out.WriteString(ident.Name)
+								WriteBorrowMethod(out, false)
+								out.WriteString(".as_ref().unwrap()).clone()) as Box<dyn ")
+								out.WriteString(interfaceName)
+								out.WriteString(">)))")
+							}
 						} else {
 							// Regular variable, just clone it
 							out.WriteString(ident.Name)
@@ -1737,11 +1781,20 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 					// Range variable - check if it needs dereferencing
 					varType := rangeLoopVars[ident.Name]
 					if varType == "ref_value" {
-						// It's a reference from iterator, dereference it
-						WriteWrapperPrefix(out)
-						out.WriteString("*")
-						TranspileExpression(out, arg)
-						WriteWrapperSuffix(out)
+						// It's a reference from iterator
+						if needsInterfaceBoxing {
+							// It's already a &Box<dyn Interface>
+							// We can't clone Box<dyn Trait> directly, so just clone the reference
+							WriteWrapperPrefix(out)
+							out.WriteString(ident.Name)
+							out.WriteString(".clone())))")
+						} else {
+							// Regular ref value, dereference it
+							WriteWrapperPrefix(out)
+							out.WriteString("*")
+							TranspileExpression(out, arg)
+							WriteWrapperSuffix(out)
+						}
 					} else {
 						// Regular range variable, wrap it normally
 						WriteWrapperPrefix(out)
