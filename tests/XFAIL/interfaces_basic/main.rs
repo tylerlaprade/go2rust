@@ -2,7 +2,7 @@ use std::cell::{RefCell};
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
-trait Shape: std::fmt::Display + Clone {
+trait Shape: std::fmt::Display {
     fn area(&self) -> Rc<RefCell<Option<f64>>>;
     fn perimeter(&self) -> Rc<RefCell<Option<f64>>>;
 }
@@ -89,6 +89,6 @@ fn main() {
     println!("{}", "All shapes:".to_string());
     for (i, shape) in (*shapes.borrow_mut().as_mut().unwrap()).iter().enumerate() {
         print!("Shape {}: ", i + 1);
-        print_shape_info(Rc::new(RefCell::new(Some((*shape).clone()))));
+        print_shape_info(Rc::new(RefCell::new(Some(shape.clone()))));
     }
 }

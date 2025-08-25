@@ -263,7 +263,7 @@ fn main() {
         // Complex nested structure with interfaces
     println!("{}", "\n=== Complex nested with interfaces ===".to_string());
 
-    let mut canvas = Rc::new(RefCell::new(Some(Canvas { name: Rc::new(RefCell::new(Some("My Drawing".to_string()))), shapes: Rc::new(RefCell::new(Some(Rc::new(RefCell::new(Some(vec![Circle { radius: Rc::new(RefCell::new(Some(5.0))) }, Rectangle { width: Rc::new(RefCell::new(Some(10.0))), height: Rc::new(RefCell::new(Some(8.0))) }, Circle { radius: Rc::new(RefCell::new(Some(3.0))) }])))))) })));
+    let mut canvas = Rc::new(RefCell::new(Some(Canvas { name: Rc::new(RefCell::new(Some("My Drawing".to_string()))), shapes: Rc::new(RefCell::new(Some(Rc::new(RefCell::new(Some(vec![Box::new(Circle { radius: Rc::new(RefCell::new(Some(5.0))) }) as Box<dyn Drawable>, Box::new(Rectangle { width: Rc::new(RefCell::new(Some(10.0))), height: Rc::new(RefCell::new(Some(8.0))) }) as Box<dyn Drawable>, Box::new(Circle { radius: Rc::new(RefCell::new(Some(3.0))) }) as Box<dyn Drawable>])))))) })));
 
     print!("Canvas: {}\n", (*(*canvas.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()));
     for (i, shape) in (*(*canvas.borrow().as_ref().unwrap()).shapes.borrow().as_ref().unwrap()).iter().enumerate() {
