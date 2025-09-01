@@ -1229,6 +1229,16 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		if isMap {
 			keyType = "String"                    // Common key type for maps
 			valueType = "Arc<Mutex<Option<i32>>>" // Map values are wrapped
+		} else if typeInfo != nil && typeInfo.IsSlice(s.X) {
+			// Check if it's a slice of interface{}
+			elemType := typeInfo.GetSliceElemType(s.X)
+			if elemType != nil {
+				if intf, ok := elemType.Underlying().(*types.Interface); ok && intf.NumMethods() == 0 {
+					// It's []interface{} - elements are Box<dyn Any>
+					// When iterating with &, we get &Box<dyn Any>
+					valueType = "&Box<dyn Any>"
+				}
+			}
 		}
 
 		if s.Key != nil {
@@ -1241,7 +1251,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			if ident, ok := s.Value.(*ast.Ident); ok {
 				valueName = ident.Name
 				// When using iter().enumerate(), the value is a reference
-				if s.Key != nil && !isMap && !isString {
+				// But keep the specific type if we already determined it (e.g., &Box<dyn Any>)
+				if s.Key != nil && !isMap && !isString && valueType == "T" {
 					rangeLoopVars[valueName] = "ref_value"
 				} else {
 					rangeLoopVars[valueName] = valueType
@@ -1426,8 +1437,42 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		if s.Else != nil {
 			out.WriteString(" else ")
 			if elseIf, ok := s.Else.(*ast.IfStmt); ok {
-				// else if case - don't add extra braces
-				TranspileStatementSimple(out, elseIf, fnType, fileSet)
+				// else if case
+				if elseIf.Init != nil {
+					// If the else-if has an init statement, we need to wrap it in a block
+					out.WriteString("{\n        ")
+					TranspileStatementSimple(out, elseIf.Init, fnType, fileSet)
+					out.WriteString(";\n        ")
+					out.WriteString("if ")
+					TranspileExpression(out, elseIf.Cond)
+					out.WriteString(" {\n")
+					for _, stmt := range elseIf.Body.List {
+						out.WriteString("            ")
+						TranspileStatementSimple(out, stmt, fnType, fileSet)
+						out.WriteString(";\n")
+					}
+					out.WriteString("        }")
+					// Handle nested else
+					if elseIf.Else != nil {
+						out.WriteString(" else ")
+						if nestedElseIf, ok := elseIf.Else.(*ast.IfStmt); ok {
+							// Recursively handle nested else-if
+							TranspileStatementSimple(out, nestedElseIf, fnType, fileSet)
+						} else if block, ok := elseIf.Else.(*ast.BlockStmt); ok {
+							out.WriteString("{\n")
+							for _, stmt := range block.List {
+								out.WriteString("            ")
+								TranspileStatementSimple(out, stmt, fnType, fileSet)
+								out.WriteString(";\n")
+							}
+							out.WriteString("        }")
+						}
+					}
+					out.WriteString("\n    }")
+				} else {
+					// No init statement, handle normally
+					TranspileStatementSimple(out, elseIf, fnType, fileSet)
+				}
 			} else if block, ok := s.Else.(*ast.BlockStmt); ok {
 				// else block
 				out.WriteString("{\n")
@@ -1766,6 +1811,173 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 		// Restore previous capture renames
 		currentCaptureRenames = oldCaptureRenames
+
+	case *ast.TypeSwitchStmt:
+		// Type switch: switch v := x.(type) { ... }
+		// We'll convert this to a series of if-else type checks
+
+		// Extract the variable name and expression
+		var varName string
+		var expr ast.Expr
+
+		if s.Assign != nil {
+			// Has assignment: v := x.(type)
+			if assign, ok := s.Assign.(*ast.AssignStmt); ok && len(assign.Lhs) == 1 && len(assign.Rhs) == 1 {
+				if ident, ok := assign.Lhs[0].(*ast.Ident); ok {
+					varName = ident.Name
+				}
+				if typeAssert, ok := assign.Rhs[0].(*ast.TypeAssertExpr); ok {
+					expr = typeAssert.X
+				}
+			}
+		} else if s.Init != nil {
+			// Has init statement
+			TranspileStatementSimple(out, s.Init, fnType, fileSet)
+			out.WriteString(";\n")
+		}
+
+		if expr == nil {
+			out.WriteString("// ERROR: Invalid type switch format")
+			break
+		}
+
+		// Generate match-like if-else chain
+		for i, clause := range s.Body.List {
+			caseClause := clause.(*ast.CaseClause)
+
+			if i > 0 {
+				out.WriteString(" else ")
+			}
+
+			if len(caseClause.List) == 0 {
+				// default case - provide access to the original value
+				out.WriteString("{\n")
+				if varName != "" {
+					out.WriteString("        let ")
+					out.WriteString(varName)
+					out.WriteString(" = ")
+					TranspileExpression(out, expr)
+					out.WriteString(";\n")
+				}
+			} else {
+				// Type case(s)
+				out.WriteString("if let Some(")
+				if varName != "" {
+					out.WriteString(varName)
+				} else {
+					out.WriteString("_val")
+				}
+				out.WriteString(") = (|| -> Option<Box<dyn Any>> {\n")
+				out.WriteString("        let val = ")
+				TranspileExpression(out, expr)
+				out.WriteString(";\n")
+
+				// Check if this is a range variable from an interface{} slice
+				isRangeVar := false
+				if ident, ok := expr.(*ast.Ident); ok {
+					if varType, exists := rangeLoopVars[ident.Name]; exists && strings.Contains(varType, "&Box<dyn Any>") {
+						isRangeVar = true
+					}
+				}
+
+				if isRangeVar {
+					// It's a reference to Box<dyn Any>, no need to unwrap RefCell
+					// But we need to work with the Box<dyn Any> itself for downcast
+					out.WriteString("        let any_val = val;\n")
+					out.WriteString("        {\n")
+				} else {
+					// It's wrapped, need to unwrap
+					out.WriteString("        let guard = val")
+					WriteBorrowMethod(out, false)
+					out.WriteString(";\n")
+					out.WriteString("        if let Some(ref any_val) = *guard {\n")
+				}
+
+				// Check each type in the case
+				for j, typeExpr := range caseClause.List {
+					if j > 0 {
+						out.WriteString("            } else if ")
+					} else {
+						out.WriteString("            if ")
+					}
+
+					// Get the Rust type name
+					rustType := ""
+					if ident, ok := typeExpr.(*ast.Ident); ok {
+						switch ident.Name {
+						case "string":
+							rustType = "String"
+						case "int":
+							rustType = "i32"
+						case "float64":
+							rustType = "f64"
+						case "bool":
+							rustType = "bool"
+						default:
+							rustType = ident.Name
+						}
+					}
+
+					// Check if we're dealing with a reference to Box<dyn Any>
+					if isRangeVar {
+						// For &Box<dyn Any>, use as_ref() to get &dyn Any
+						out.WriteString("let Some(val) = any_val.as_ref().downcast_ref::<")
+					} else {
+						// For regular wrapped values
+						out.WriteString("let Some(val) = any_val.downcast_ref::<")
+					}
+					out.WriteString(rustType)
+					out.WriteString(">() {\n")
+					out.WriteString("                return Some(Box::new(val.clone()) as Box<dyn Any>);\n")
+				}
+
+				out.WriteString("            }\n")
+				out.WriteString("        }\n")
+				out.WriteString("        None\n")
+				out.WriteString("    })() {\n")
+
+				// If we have a variable, we need to extract the actual typed value
+				if varName != "" {
+					// Extract the first type for the actual variable
+					if len(caseClause.List) > 0 {
+						rustType := ""
+						if ident, ok := caseClause.List[0].(*ast.Ident); ok {
+							switch ident.Name {
+							case "string":
+								rustType = "String"
+							case "int":
+								rustType = "i32"
+							case "float64":
+								rustType = "f64"
+							case "bool":
+								rustType = "bool"
+							default:
+								rustType = ident.Name
+							}
+						}
+						// Wrap the extracted value so it works with the rest of the transpiler
+						out.WriteString("        let ")
+						out.WriteString(varName)
+						out.WriteString(" = ")
+						WriteWrapperPrefix(out)
+						out.WriteString("(*")
+						out.WriteString(varName)
+						out.WriteString(".downcast_ref::<")
+						out.WriteString(rustType)
+						out.WriteString(">().unwrap()).clone())));\n")
+					}
+				}
+			}
+
+			// Case body
+			for _, stmt := range caseClause.Body {
+				out.WriteString("        ")
+				TranspileStatementSimple(out, stmt, fnType, fileSet)
+				out.WriteString(";\n")
+			}
+
+			out.WriteString("    }")
+		}
 
 	default:
 		out.WriteString("// TODO: Unhandled statement type: " + strings.TrimPrefix(fmt.Sprintf("%T", s), "*ast."))

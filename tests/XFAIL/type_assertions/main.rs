@@ -133,7 +133,7 @@ pub fn process_value(value: Rc<RefCell<Option<Box<dyn Any>>>>) {
         return;
     }
 
-    print!("Unknown type: %T with value: {}\n", format_any(value.borrow().as_ref().unwrap().as_ref()), format_any(value.borrow().as_ref().unwrap().as_ref()));
+    print!("Unknown type: <type> with value: {}\n", format_any(value.borrow().as_ref().unwrap().as_ref()));
 }
 
 pub fn assert_without_check(value: Rc<RefCell<Option<Box<dyn Any>>>>) {
@@ -185,7 +185,8 @@ pub fn describe_shape(s: Rc<RefCell<Option<Box<dyn Shape>>>>) {
     });
     if (*ok.borrow_mut().as_mut().unwrap()) {
         print!("  Rectangle: {:.1} x {:.1}\n", (*(*rect.borrow().as_ref().unwrap()).width.borrow().as_ref().unwrap()), (*(*rect.borrow().as_ref().unwrap()).height.borrow().as_ref().unwrap()));
-    } else let (mut circle, mut ok) = ({
+    } else {
+        let (mut circle, mut ok) = ({
         let val = s.clone();
         let guard = val.borrow();
         if let Some(ref any_val) = *guard {
@@ -197,19 +198,20 @@ pub fn describe_shape(s: Rc<RefCell<Option<Box<dyn Shape>>>>) {
         } else {
             (Rc::new(RefCell::new(Some(Default::default()))), Rc::new(RefCell::new(Some(false))))
         }
-    });
-    if (*ok.borrow_mut().as_mut().unwrap()) {
-        print!("  Circle: radius {:.1}\n", (*(*circle.borrow().as_ref().unwrap()).radius.borrow().as_ref().unwrap()));
+    });;
+        if (*ok.borrow_mut().as_mut().unwrap()) {
+            print!("  Circle: radius {:.1}\n", (*(*circle.borrow().as_ref().unwrap()).radius.borrow().as_ref().unwrap()));;
+        }
     }
 }
 
 fn main() {
         // Test with different types
-    let mut values = Rc::new(RefCell::new(Some(vec![Box::new("hello world".to_string()) as Box<dyn Any>, Box::new(42) as Box<dyn Any>, Box::new(3.14159) as Box<dyn Any>, Box::new((*true.borrow().as_ref().unwrap()).clone()) as Box<dyn Any>, Box::new(Rc::new(RefCell::new(Some(vec![1, 2, 3])))) as Box<dyn Any>])));
+    let mut values = Rc::new(RefCell::new(Some(vec![Box::new("hello world".to_string()) as Box<dyn Any>, Box::new(42) as Box<dyn Any>, Box::new(3.14159) as Box<dyn Any>, Box::new(true) as Box<dyn Any>, Box::new(Rc::new(RefCell::new(Some(vec![1, 2, 3])))) as Box<dyn Any>])));
 
     println!("{}", "=== Processing values ===".to_string());
     for val in &(*values.borrow_mut().as_mut().unwrap()) {
-        process_value(Rc::new(RefCell::new(Some(*val))));
+        process_value(Rc::new(RefCell::new(Some(val))));
     }
 
     println!("{}", "\n=== Assertion without check ===".to_string());
@@ -225,6 +227,57 @@ fn main() {
 
     println!("{}", "\n=== Type switch alternative ===".to_string());
     for val in &(*values.borrow_mut().as_mut().unwrap()) {
-        // TODO: Unhandled statement type: TypeSwitchStmt
+        if let Some(v) = (|| -> Option<Box<dyn Any>> {
+        let val = val;
+        let any_val = val;
+        {
+            if let Some(val) = any_val.as_ref().downcast_ref::<String>() {
+                return Some(Box::new(val.clone()) as Box<dyn Any>);
+            }
+        }
+        None
+    })() {
+        let v = Rc::new(RefCell::new(Some((*v.downcast_ref::<String>().unwrap()).clone())));
+        print!("String: {}\n", (*v.borrow_mut().as_mut().unwrap()));;
+    } else if let Some(v) = (|| -> Option<Box<dyn Any>> {
+        let val = val;
+        let any_val = val;
+        {
+            if let Some(val) = any_val.as_ref().downcast_ref::<i32>() {
+                return Some(Box::new(val.clone()) as Box<dyn Any>);
+            }
+        }
+        None
+    })() {
+        let v = Rc::new(RefCell::new(Some((*v.downcast_ref::<i32>().unwrap()).clone())));
+        print!("Int: {}\n", (*v.borrow_mut().as_mut().unwrap()));;
+    } else if let Some(v) = (|| -> Option<Box<dyn Any>> {
+        let val = val;
+        let any_val = val;
+        {
+            if let Some(val) = any_val.as_ref().downcast_ref::<f64>() {
+                return Some(Box::new(val.clone()) as Box<dyn Any>);
+            }
+        }
+        None
+    })() {
+        let v = Rc::new(RefCell::new(Some((*v.downcast_ref::<f64>().unwrap()).clone())));
+        print!("Float: {:.2}\n", (*v.borrow_mut().as_mut().unwrap()));;
+    } else if let Some(v) = (|| -> Option<Box<dyn Any>> {
+        let val = val;
+        let any_val = val;
+        {
+            if let Some(val) = any_val.as_ref().downcast_ref::<bool>() {
+                return Some(Box::new(val.clone()) as Box<dyn Any>);
+            }
+        }
+        None
+    })() {
+        let v = Rc::new(RefCell::new(Some((*v.downcast_ref::<bool>().unwrap()).clone())));
+        print!("Bool: {}\n", (*v.borrow_mut().as_mut().unwrap()));;
+    } else {
+        let v = val;
+        print!("Other: <type> = {}\n", format_any(v.borrow().as_ref().unwrap().as_ref()));;
+    }
     }
 }

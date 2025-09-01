@@ -861,7 +861,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					// Box each element for interface slices
 					out.WriteString("Box::new(")
 					// If the element is already a wrapped variable, unwrap it first
-					if ident, ok := elt.(*ast.Ident); ok && ident.Name != "nil" && ident.Name != "_" {
+					if ident, ok := elt.(*ast.Ident); ok && ident.Name != "nil" && ident.Name != "_" && ident.Name != "true" && ident.Name != "false" {
 						// Check if it's a variable (already wrapped)
 						if _, isRangeVar := rangeLoopVars[ident.Name]; !isRangeVar {
 							if _, isLocalConst := localConstants[ident.Name]; !isLocalConst {

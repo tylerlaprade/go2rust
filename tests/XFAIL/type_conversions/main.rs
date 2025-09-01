@@ -144,7 +144,7 @@ fn main() {
 
     let mut any: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new(42) as Box<dyn Any>)));
     print!("interface{{}} value: {}\n", format_any(any.borrow().as_ref().unwrap().as_ref()));
-    print!("interface{{}} type: %T\n", format_any(any.borrow().as_ref().unwrap().as_ref()));
+    print!("interface{{}} type: <type>\n");
 
         // Type assertion
     let (mut intVal, mut ok) = ({
@@ -167,7 +167,7 @@ fn main() {
         // Change interface value
     { let new_val = Box::new("hello".to_string()) as Box<dyn Any>; *any.borrow_mut() = Some(new_val); };
     print!("new interface{{}} value: {}\n", format_any(any.borrow().as_ref().unwrap().as_ref()));
-    print!("new interface{{}} type: %T\n", format_any(any.borrow().as_ref().unwrap().as_ref()));
+    print!("new interface{{}} type: <type>\n");
 
     let (mut strVal, mut ok) = ({
         let val = any.clone();
