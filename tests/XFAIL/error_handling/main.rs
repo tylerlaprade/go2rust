@@ -18,17 +18,12 @@ impl std::fmt::Display for CustomError {
 
 impl CustomError {
     pub fn error(&self) -> Rc<RefCell<Option<String>>> {
-        return Rc::new(RefCell::new(Some(Rc::new(RefCell::new(Some(format!("Error {}: {}", (*self.code.borrow().as_ref().unwrap()), (*self.message.borrow().as_ref().unwrap()))))))));
+        return Rc::new(RefCell::new(Some(format!("Error {}: {}", (*self.code.borrow().as_ref().unwrap()), (*self.message.borrow().as_ref().unwrap())))));
     }
 }
 
 impl Error for CustomError {}
 
-impl Display for CustomError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", (*self.error().borrow_mut().as_mut().unwrap()))
-    }
-}
 
 pub fn divide(a: Rc<RefCell<Option<f64>>>, b: Rc<RefCell<Option<f64>>>) -> (Rc<RefCell<Option<f64>>>, Rc<RefCell<Option<Box<dyn Error + Send + Sync>>>>) {
 

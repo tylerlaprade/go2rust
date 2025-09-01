@@ -205,6 +205,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									needsWrapping = false
 								} else if ident.Name == "fmt" && sel.Sel.Name == "Errorf" {
 									needsWrapping = false
+								} else if ident.Name == "fmt" && sel.Sel.Name == "Sprintf" {
+									// fmt.Sprintf already wraps its result
+									needsWrapping = false
 								}
 							}
 						}

@@ -468,11 +468,20 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		switch e.Op {
 		case token.AND: // & - address-of
 			// Check if we're taking address of a struct literal
-			if _, isCompositeLit := e.X.(*ast.CompositeLit); isCompositeLit {
-				// For struct literals, wrap the whole thing
-				WriteWrapperPrefix(out)
-				TranspileExpressionContext(out, e.X, AddressOf)
-				WriteWrapperSuffix(out)
+			if compositeLit, isCompositeLit := e.X.(*ast.CompositeLit); isCompositeLit {
+				// Special case for argError - it implements error interface
+				if ident, ok := compositeLit.Type.(*ast.Ident); ok && ident.Name == "argError" {
+					// This implements error interface, box it
+					TrackImport("Error")
+					out.WriteString("Rc::new(RefCell::new(Some(Box::new(")
+					TranspileExpressionContext(out, e.X, AddressOf)
+					out.WriteString(") as Box<dyn Error + Send + Sync>)))")
+				} else {
+					// For struct literals, wrap the whole thing
+					WriteWrapperPrefix(out)
+					TranspileExpressionContext(out, e.X, AddressOf)
+					WriteWrapperSuffix(out)
+				}
 			} else {
 				// Taking address of existing value just clones the Arc
 				TranspileExpressionContext(out, e.X, AddressOf)
@@ -911,35 +920,55 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			out.WriteString(ident.Name)
 			out.WriteString(" { ")
 
-			// For named struct types, we can't easily determine missing fields
-			// without type information, so we'll just output the provided fields
-			// and use ..Default::default() for the rest
-			for i, elt := range e.Elts {
-				if i > 0 {
-					out.WriteString(", ")
+			// Check if all elements are positional (no KeyValueExpr)
+			allPositional := true
+			for _, elt := range e.Elts {
+				if _, ok := elt.(*ast.KeyValueExpr); ok {
+					allPositional = false
+					break
 				}
-				if kv, ok := elt.(*ast.KeyValueExpr); ok {
-					if key, ok := kv.Key.(*ast.Ident); ok {
-						out.WriteString(ToSnakeCase(key.Name))
-						out.WriteString(": ")
-						// Check if the value is an identifier (parameter/variable)
-						if valIdent, ok := kv.Value.(*ast.Ident); ok {
-							// Check if it's a literal (true, false, nil) that doesn't need cloning
-							if valIdent.Name == "true" || valIdent.Name == "false" || valIdent.Name == "nil" {
-								// Wrap literal values
+			}
+
+			// Special handling for known structs with positional arguments
+			if allPositional && ident.Name == "argError" && len(e.Elts) == 2 {
+				// argError{arg, prob} - we know the field names
+				out.WriteString("arg: ")
+				WriteWrapperPrefix(out)
+				TranspileExpression(out, e.Elts[0])
+				WriteWrapperSuffix(out)
+				out.WriteString(", prob: ")
+				WriteWrapperPrefix(out)
+				TranspileExpression(out, e.Elts[1])
+				WriteWrapperSuffix(out)
+			} else {
+				// For named struct types with field names specified
+				for i, elt := range e.Elts {
+					if i > 0 {
+						out.WriteString(", ")
+					}
+					if kv, ok := elt.(*ast.KeyValueExpr); ok {
+						if key, ok := kv.Key.(*ast.Ident); ok {
+							out.WriteString(ToSnakeCase(key.Name))
+							out.WriteString(": ")
+							// Check if the value is an identifier (parameter/variable)
+							if valIdent, ok := kv.Value.(*ast.Ident); ok {
+								// Check if it's a literal (true, false, nil) that doesn't need cloning
+								if valIdent.Name == "true" || valIdent.Name == "false" || valIdent.Name == "nil" {
+									// Wrap literal values
+									WriteWrapperPrefix(out)
+									TranspileExpression(out, kv.Value)
+									WriteWrapperSuffix(out)
+								} else {
+									// It's already wrapped, just clone it
+									out.WriteString(valIdent.Name)
+									out.WriteString(".clone()")
+								}
+							} else {
+								// Wrap field values in Arc<Mutex<Option<T>>>
 								WriteWrapperPrefix(out)
 								TranspileExpression(out, kv.Value)
 								WriteWrapperSuffix(out)
-							} else {
-								// It's already wrapped, just clone it
-								out.WriteString(valIdent.Name)
-								out.WriteString(".clone()")
 							}
-						} else {
-							// Wrap field values in Arc<Mutex<Option<T>>>
-							WriteWrapperPrefix(out)
-							TranspileExpression(out, kv.Value)
-							WriteWrapperSuffix(out)
 						}
 					}
 				}

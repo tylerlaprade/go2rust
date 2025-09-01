@@ -123,25 +123,25 @@ impl std::fmt::Display for Company {
 
 impl Circle {
     pub fn draw(&self) -> Rc<RefCell<Option<String>>> {
-        return Rc::new(RefCell::new(Some(Rc::new(RefCell::new(Some(format!("Circle(r={:.1})", (*self.radius.borrow().as_ref().unwrap()))))))));
+        return Rc::new(RefCell::new(Some(format!("Circle(r={:.1})", (*self.radius.borrow().as_ref().unwrap())))));
     }
 }
 
 impl Drawable for Circle {
     fn draw(&self) -> Rc<RefCell<Option<String>>> {
-        return Rc::new(RefCell::new(Some(Rc::new(RefCell::new(Some(format!("Circle(r={:.1})", (*self.radius.borrow().as_ref().unwrap()))))))));
+        return Rc::new(RefCell::new(Some(format!("Circle(r={:.1})", (*self.radius.borrow().as_ref().unwrap())))));
     }
 }
 
 impl Rectangle {
     pub fn draw(&self) -> Rc<RefCell<Option<String>>> {
-        return Rc::new(RefCell::new(Some(Rc::new(RefCell::new(Some(format!("Rectangle({:.1}x{:.1})", (*self.width.borrow().as_ref().unwrap()), (*self.height.borrow().as_ref().unwrap()))))))));
+        return Rc::new(RefCell::new(Some(format!("Rectangle({:.1}x{:.1})", (*self.width.borrow().as_ref().unwrap()), (*self.height.borrow().as_ref().unwrap())))));
     }
 }
 
 impl Drawable for Rectangle {
     fn draw(&self) -> Rc<RefCell<Option<String>>> {
-        return Rc::new(RefCell::new(Some(Rc::new(RefCell::new(Some(format!("Rectangle({:.1}x{:.1})", (*self.width.borrow().as_ref().unwrap()), (*self.height.borrow().as_ref().unwrap()))))))));
+        return Rc::new(RefCell::new(Some(format!("Rectangle({:.1}x{:.1})", (*self.width.borrow().as_ref().unwrap()), (*self.height.borrow().as_ref().unwrap())))));
     }
 }
 

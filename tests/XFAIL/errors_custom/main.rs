@@ -18,17 +18,12 @@ impl std::fmt::Display for argError {
 
 impl argError {
     pub fn error(&mut self) -> Rc<RefCell<Option<String>>> {
-        return Rc::new(RefCell::new(Some(Rc::new(RefCell::new(Some(format!("{} - {}", (*self.arg.borrow().as_ref().unwrap()), (*self.prob.borrow().as_ref().unwrap()))))))));
+        return Rc::new(RefCell::new(Some(format!("{} - {}", (*self.arg.borrow().as_ref().unwrap()), (*self.prob.borrow().as_ref().unwrap())))));
     }
 }
 
 impl Error for argError {}
 
-impl Display for argError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", (*self.error().borrow_mut().as_mut().unwrap()))
-    }
-}
 
 pub fn f1(arg: Rc<RefCell<Option<i32>>>) -> (Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<Box<dyn Error + Send + Sync>>>>) {
 
@@ -45,7 +40,7 @@ pub fn f1(arg: Rc<RefCell<Option<i32>>>) -> (Rc<RefCell<Option<i32>>>, Rc<RefCel
 pub fn f2(arg: Rc<RefCell<Option<i32>>>) -> (Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<Box<dyn Error + Send + Sync>>>>) {
 
     if (*arg.borrow_mut().as_mut().unwrap()) == 42 {
-        return (Rc::new(RefCell::new(Some(-1))), Rc::new(RefCell::new(Some(argError { ,  }))));
+        return (Rc::new(RefCell::new(Some(-1))), Rc::new(RefCell::new(Some(Box::new(argError { arg: Rc::new(RefCell::new(Some((*arg.borrow_mut().as_mut().unwrap())))), prob: Rc::new(RefCell::new(Some("can't work with it".to_string()))) }) as Box<dyn Error + Send + Sync>))));
     }
     return ({
             let __tmp_x = (*arg.borrow_mut().as_mut().unwrap());

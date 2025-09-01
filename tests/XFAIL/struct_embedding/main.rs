@@ -29,7 +29,7 @@ impl std::fmt::Display for container {
 
 impl base {
     pub fn describe(&self) -> Rc<RefCell<Option<String>>> {
-        return Rc::new(RefCell::new(Some(Rc::new(RefCell::new(Some(format!("base with num={}", (*self.num.borrow().as_ref().unwrap()))))))));
+        return Rc::new(RefCell::new(Some(format!("base with num={}", (*self.num.borrow().as_ref().unwrap())))));
     }
 }
 
