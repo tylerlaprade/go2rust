@@ -84,9 +84,9 @@ fn main() {
     let mut f32: Rc<RefCell<Option<f32>>> = Rc::new(RefCell::new(Some((*f64.as_ref().unwrap().as_ref().unwrap()) as f32)));
     let mut backToF64: Rc<RefCell<Option<f64>>> = Rc::new(RefCell::new(Some((*f32.as_ref().unwrap().as_ref().unwrap()) as f64)));
 
-    print!("float64: %.10f\n", (*f64.borrow_mut().as_mut().unwrap()));
-    print!("float32: %.10f\n", (*f32.borrow_mut().as_mut().unwrap()));
-    print!("back to float64: %.10f\n", (*backToF64.borrow_mut().as_mut().unwrap()));
+    print!("float64: {:.10}\n", (*f64.borrow_mut().as_mut().unwrap()));
+    print!("float32: {:.10}\n", (*f32.borrow_mut().as_mut().unwrap()));
+    print!("back to float64: {:.10}\n", (*backToF64.borrow_mut().as_mut().unwrap()));
 
         // String conversions
     println!("{}", "\n=== String conversions ===".to_string());
@@ -216,8 +216,8 @@ fn main() {
         // Precision loss in float conversion
     let mut preciseFloat: Rc<RefCell<Option<f64>>> = Rc::new(RefCell::new(Some(1.23456789012345)));
     let mut lessPrec: Rc<RefCell<Option<f32>>> = Rc::new(RefCell::new(Some((*preciseFloat.as_ref().unwrap().as_ref().unwrap()) as f32)));
-    print!("float64: %.15f\n", (*preciseFloat.borrow_mut().as_mut().unwrap()));
-    print!("float32: %.15f\n", (*lessPrec.borrow_mut().as_mut().unwrap()));
+    print!("float64: {:.15}\n", (*preciseFloat.borrow_mut().as_mut().unwrap()));
+    print!("float32: {:.15}\n", (*lessPrec.borrow_mut().as_mut().unwrap()));
 
         // Custom type conversions
     println!("{}", "\n=== Custom type conversions ===".to_string());

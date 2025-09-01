@@ -306,18 +306,25 @@ func convertFormatStringWithSkips(goFormat string) (string, []int) {
 				result.WriteString("<type>")
 				argIndex++
 				i += 2
-			} else if i < len(format)-4 && format[i:i+4] == "%.5f" {
-				result.WriteString("{:.5}")
-				argIndex++
-				i += 4
-			} else if i < len(format)-4 && format[i:i+4] == "%.2f" {
-				result.WriteString("{:.2}")
-				argIndex++
-				i += 4
-			} else if i < len(format)-4 && format[i:i+4] == "%.1f" {
-				result.WriteString("{:.1}")
-				argIndex++
-				i += 4
+			} else if format[i+1] == '.' {
+				// Handle precision format like %.10f, %.2d, etc.
+				j := i + 2
+				// Find the digits
+				for j < len(format) && format[j] >= '0' && format[j] <= '9' {
+					j++
+				}
+				if j < len(format) && (format[j] == 'f' || format[j] == 'd' || format[j] == 's') {
+					precision := format[i+2 : j]
+					result.WriteString("{:.")
+					result.WriteString(precision)
+					result.WriteString("}")
+					argIndex++
+					i = j + 1
+				} else {
+					// Unknown format, keep as-is
+					result.WriteByte(format[i])
+					i++
+				}
 			} else {
 				// Handle single-char format verbs
 				switch format[i+1] {
