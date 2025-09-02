@@ -98,25 +98,6 @@ This transpiler uses a "make it work first, optimize later" approach. **EVERY Go
 
 This ensures semantic correctness for ANY Go program, even edge cases like taking the address of function parameters. The generated code is verbose but correct. Users can optimize later.
 
-## Features
-
-### Type-Aware Transpilation
-
-The transpiler uses Go's `go/types` package for accurate type information:
-
-- Proper type checking across all files in a package
-- Accurate detection of maps, slices, and other types
-- Correct handling of method calls and type assertions
-- No reliance on naming conventions or heuristics
-
-### Error Handling
-
-For unimplemented features, the transpiler generates TODO comments:
-
-- Unhandled statements: `// TODO: Unhandled statement type: TypeName`
-- Unhandled expressions: `/* TODO: Unhandled expression type: TypeName */`
-- Unhandled type declarations: `// TODO: Unhandled type declaration: TypeName`
-
 ## Progress Tracking
 
 ### Go Keywords (25 total)
@@ -278,32 +259,6 @@ The `tests/XFAIL/` directory contains tests for features not yet implemented. Th
 - **Auto-promote when ready**: If an XFAIL test starts passing, it automatically moves to the main test suite
 - **Fail CI on unexpected passes**: Prevents accidental feature implementation without proper review
 
-### Enhanced Test Harness
-
-The test runner (`./test.sh`) includes several advanced features:
-
-- **Parallel execution**: Control with `-n/--jobs N` (default: CPU cores)
-- **Timeout protection**: Set with `-t/--timeout TIME` (default: 60s per test)
-- **Real-time output**: Use `-n 1` for sequential mode with live updates
-- **Comprehensive reporting**: Shows passing, failing, and skipped tests
-- **Auto-promotion**: XFAIL tests automatically move when they start passing
-
 ### Contributing XFAIL Tests
 
-To add a new planned feature:
-
-1. Create `tests/XFAIL/feature_name/main.go` with valid Go code
-2. Run `./test.sh` - the test will be marked as "skip"
-3. When the feature is implemented, the test will auto-promote to the main suite
-
-### Test Determinism
-
-**IMPORTANT**: All tests must produce deterministic output. The test infrastructure compares Go and Rust outputs byte-for-byte.
-
-Common patterns to ensure determinism:
-
-- **Map iteration**: Sort keys before iterating (see `tests/maps_basic/main.go`)
-- **Goroutines**: Use proper synchronization (WaitGroup, channels)
-- **Time/Random**: Use fixed values in tests
-
-Note: Go 1.12+ prints maps in sorted key order with `fmt` functions, making map printing deterministic.
+To report an unimplemented or broken feature, create a pull request adding `tests/XFAIL/feature_name/main.go` with compilable, deterministic Go code.
