@@ -2,6 +2,11 @@
 
 The last Go program you'll ever need!
 
+<p align="center">
+  <img alt="gopher2ferris" src="https://cdn.discordapp.com/attachments/1152615158179451083/1412163446497083422/IMG_0497.png?ex=68b74b32&is=68b5f9b2&hm=b0be30b31bda04bf510b65282dde392413685b68871c292e421a3f5c28942400&" /></a>
+    <i>Artwork by <a href="https://linktr.ee/bwh.art">Bonnie Hansen</a></i>
+</p>
+
 A conservative Go-to-Rust transpiler that prioritizes correctness over performance.
 
 ## Usage
