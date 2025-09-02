@@ -563,6 +563,10 @@ run_xfail_test() {
     run_xfail_test "tests/XFAIL/errors_custom"
 }
 
+@test "XFAIL: external_packages" {
+    run_xfail_test "tests/XFAIL/external_packages"
+}
+
 @test "XFAIL: fallthrough_switch" {
     run_xfail_test "tests/XFAIL/fallthrough_switch"
 }

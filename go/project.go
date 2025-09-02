@@ -19,6 +19,8 @@ type ProjectGenerator struct {
 	moduleNames    []string
 	typeInfo       *TypeInfo
 	projectImports *ImportTracker // Collect imports across all files
+	externalMode   ExternalPackageMode
+	goImports      map[string][]string // package path -> list of imports
 }
 
 func NewProjectGenerator(goFiles []string) *ProjectGenerator {
@@ -29,10 +31,44 @@ func NewProjectGenerator(goFiles []string) *ProjectGenerator {
 		goFiles:        goFiles,
 		projectPath:    filepath.Dir(goFiles[0]),
 		projectImports: NewImportTracker(),
+		externalMode:   ModeTranspile, // Default to transpile mode
+		goImports:      make(map[string][]string),
 	}
 }
 
+// SetExternalPackageMode sets how external packages should be handled
+func (pg *ProjectGenerator) SetExternalPackageMode(mode ExternalPackageMode) {
+	pg.externalMode = mode
+}
+
+// checkForExternalPackages scans for external package imports when mode is 'none'
+func (pg *ProjectGenerator) checkForExternalPackages() error {
+	fileSet := token.NewFileSet()
+
+	for _, filename := range pg.goFiles {
+		file, err := parser.ParseFile(fileSet, filename, nil, parser.ImportsOnly)
+		if err != nil {
+			continue // Skip files with parse errors
+		}
+
+		for _, imp := range file.Imports {
+			path := strings.Trim(imp.Path.Value, `"`)
+			if !isStdlibPackage(path) {
+				return fmt.Errorf("external package import not allowed with --external-packages=none: %s in %s", path, filename)
+			}
+		}
+	}
+
+	return nil
+}
+
 func (pg *ProjectGenerator) Generate() error {
+	// Check for external packages first if mode is 'none'
+	if pg.externalMode == ModeNone {
+		if err := pg.checkForExternalPackages(); err != nil {
+			return err
+		}
+	}
 	fileSet := token.NewFileSet()
 
 	// Parse all files first for type checking
@@ -75,7 +111,15 @@ func (pg *ProjectGenerator) Generate() error {
 			pg.isLibrary = pg.packageName != "main"
 		}
 
-		rustCode, fileImports := Transpile(file, fileSet, pg.typeInfo)
+		rustCode, fileImports, fileExternalPkgs := Transpile(file, fileSet, pg.typeInfo)
+
+		// Track external packages found
+		for pkg := range fileExternalPkgs {
+			if pg.goImports[filename] == nil {
+				pg.goImports[filename] = []string{}
+			}
+			pg.goImports[filename] = append(pg.goImports[filename], pkg)
+		}
 
 		// Merge file imports into project imports
 		if fileImports != nil {
@@ -110,6 +154,33 @@ func (pg *ProjectGenerator) Generate() error {
 		pg.moduleNames = append(pg.moduleNames, outputName)
 	}
 
+	// Handle external packages based on mode
+	if len(pg.goImports) > 0 && pg.hasExternalPackages() {
+		switch pg.externalMode {
+		case ModeTranspile:
+			// TODO: Implement recursive transpilation
+			fmt.Fprintf(os.Stderr, "Warning: Recursive transpilation of external packages not yet implemented\n")
+			fmt.Fprintf(os.Stderr, "External packages found:\n")
+			for _, imports := range pg.goImports {
+				for _, pkg := range imports {
+					fmt.Fprintf(os.Stderr, "  - %s\n", pkg)
+				}
+			}
+		case ModeFfi:
+			// TODO: Implement FFI bridge generation
+			fmt.Fprintf(os.Stderr, "Warning: FFI bridge generation not yet implemented\n")
+			fmt.Fprintf(os.Stderr, "External packages found:\n")
+			for _, imports := range pg.goImports {
+				for _, pkg := range imports {
+					fmt.Fprintf(os.Stderr, "  - %s\n", pkg)
+				}
+			}
+		case ModeNone:
+			// This should have been caught earlier, but double-check
+			return fmt.Errorf("external packages found but mode is 'none'")
+		}
+	}
+
 	// Second pass: generate main.rs or lib.rs with module declarations
 	if pg.hasMain {
 		err := pg.generateMainRs(fileSet, astFiles)
@@ -124,6 +195,16 @@ func (pg *ProjectGenerator) Generate() error {
 	}
 
 	return pg.generateCargoToml()
+}
+
+// hasExternalPackages checks if any external packages were found
+func (pg *ProjectGenerator) hasExternalPackages() bool {
+	for _, imports := range pg.goImports {
+		if len(imports) > 0 {
+			return true
+		}
+	}
+	return false
 }
 
 func (pg *ProjectGenerator) hasMainFile() bool {
@@ -162,7 +243,24 @@ func (pg *ProjectGenerator) generateMainRs(fileSet *token.FileSet, astFiles []*a
 		mainRust.WriteString("\n")
 	}
 
-	mainContent, mainImports := Transpile(file, fileSet, pg.typeInfo)
+	mainContent, mainImports, mainExternalPkgs := Transpile(file, fileSet, pg.typeInfo)
+
+	// Track external packages from main
+	mainPath := ""
+	for _, fname := range pg.goFiles {
+		if filepath.Base(fname) == "main.go" {
+			mainPath = fname
+			break
+		}
+	}
+	if mainPath != "" {
+		for pkg := range mainExternalPkgs {
+			if pg.goImports[mainPath] == nil {
+				pg.goImports[mainPath] = []string{}
+			}
+			pg.goImports[mainPath] = append(pg.goImports[mainPath], pkg)
+		}
+	}
 
 	// Merge main imports into project imports
 	if mainImports != nil {

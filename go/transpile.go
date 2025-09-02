@@ -36,6 +36,13 @@ var typeDefinitions = make(map[string]string) // maps type name to underlying ty
 // typeAliases tracks which types are type aliases
 var typeAliases = make(map[string]bool)
 
+// goPackageImports tracks imported Go packages for the current file
+// map[alias]packagePath (alias can be empty for default)
+var goPackageImports = make(map[string]string)
+
+// externalPackages tracks external (non-stdlib) package imports
+var externalPackages = make(map[string]bool)
+
 // structDefs tracks struct definitions and their fields
 type StructDef struct {
 	Fields        map[string]string // field name -> field type
@@ -53,6 +60,31 @@ type FieldAccessInfo struct {
 	IsPromoted   bool     // True if field comes from embedded struct
 	EmbeddedPath []string // Path of embedded types to traverse (e.g., ["B", "A"] for C.B.A)
 	FieldName    string   // The actual field name (snake_case)
+}
+
+// trackGoImport tracks a Go import statement
+func trackGoImport(packagePath string, nameIdent *ast.Ident) {
+	// Determine the alias (if any)
+	var alias string
+	if nameIdent != nil {
+		if nameIdent.Name == "_" {
+			// Blank import - ignore for now
+			return
+		}
+		alias = nameIdent.Name
+	} else {
+		// Default alias is the last component of the path
+		parts := strings.Split(packagePath, "/")
+		alias = parts[len(parts)-1]
+	}
+
+	// Track the import
+	goPackageImports[alias] = packagePath
+
+	// Check if it's an external package (not stdlib)
+	if !isStdlibPackage(packagePath) {
+		externalPackages[packagePath] = true
+	}
 }
 
 // resolveFieldAccess finds the path to access a field, considering embedded structs
@@ -301,10 +333,14 @@ func implementsInterface(typeMethods []*ast.FuncDecl, iface *ast.InterfaceType) 
 	return true
 }
 
-func Transpile(file *ast.File, fileSet *token.FileSet, typeInfo *TypeInfo) (string, *ImportTracker) {
+func Transpile(file *ast.File, fileSet *token.FileSet, typeInfo *TypeInfo) (string, *ImportTracker, map[string]bool) {
 	// Create trackers
 	imports := NewImportTracker()
 	helpers := &HelperTracker{}
+
+	// Clear import tracking for this file
+	goPackageImports = make(map[string]string)
+	externalPackages = make(map[string]bool)
 
 	// Initialize the statement preprocessor
 	statementPreprocessor = NewStatementPreprocessor(fileSet)
@@ -348,6 +384,15 @@ func Transpile(file *ast.File, fileSet *token.FileSet, typeInfo *TypeInfo) (stri
 			}
 		case *ast.GenDecl:
 			switch d.Tok {
+			case token.IMPORT:
+				// Track imports for external package handling
+				for _, spec := range d.Specs {
+					if importSpec, ok := spec.(*ast.ImportSpec); ok {
+						path := strings.Trim(importSpec.Path.Value, `"`)
+						// Track this import (will be handled based on external package mode)
+						trackGoImport(path, importSpec.Name)
+					}
+				}
 			case token.TYPE:
 				for _, spec := range d.Specs {
 					if typeSpec, ok := spec.(*ast.TypeSpec); ok {
@@ -609,5 +654,5 @@ func Transpile(file *ast.File, fileSet *token.FileSet, typeInfo *TypeInfo) (stri
 	}
 	output.WriteString(body.String())
 
-	return output.String(), imports
+	return output.String(), imports, externalPackages
 }

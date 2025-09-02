@@ -13,9 +13,31 @@ go build -o go2rust ./go
 # Transpile a Go file
 ./go2rust input.go > output.rs
 
+# Transpile with external package handling
+./go2rust --external-packages=transpile input.go  # Recursively transpile dependencies (default)
+./go2rust --external-packages=ffi input.go        # Generate FFI bridge to Go libraries
+./go2rust --external-packages=none input.go       # Error on external imports
+
 # Run tests
 ./test.sh
 ```
+
+### External Package Handling
+
+Go2Rust provides three modes for handling external package imports:
+
+1. **`transpile` (default)**: Recursively transpiles all dependencies to Rust
+   - Pure Rust output with no Go runtime dependency
+   - Currently in development
+
+2. **`ffi`**: Generates FFI bridge to call Go libraries from Rust
+   - Keeps Go packages as-is and generates bindings
+   - Useful for packages with cgo or complex dependencies
+   - Currently in development
+
+3. **`none`**: Fails if external packages are imported
+   - Useful for simple, self-contained programs
+   - Ensures no external dependencies
 
 ## Example
 
