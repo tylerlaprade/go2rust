@@ -3,7 +3,7 @@
 The last Go program you'll ever need!
 
 <p align="center">
-  <img alt="gopher2ferris" src="https://cdn.discordapp.com/attachments/1152615158179451083/1412163446497083422/IMG_0497.png?ex=68b74b32&is=68b5f9b2&hm=b0be30b31bda04bf510b65282dde392413685b68871c292e421a3f5c28942400&" /></a>
+  <img alt="gopher2ferris" src="https://cdn.discordapp.com/attachments/1152615158179451083/1412290769058009139/Go2rust.png?ex=68b86a86&is=68b71906&hm=8cf4f5cec6e36a4e90936a3aa2fa1178338740bb4ed39e009551cfaf0b65647d&" /></a>
     <i>Artwork by <a href="https://linktr.ee/bwh.art">Bonnie Hansen</a></i>
 </p>
 
@@ -17,11 +17,6 @@ go build -o go2rust ./go
 
 # Transpile a Go file
 ./go2rust input.go > output.rs
-
-# Transpile with external package handling
-./go2rust --external-packages=transpile input.go  # Recursively transpile dependencies (default)
-./go2rust --external-packages=ffi input.go        # Generate FFI bridge to Go libraries
-./go2rust --external-packages=none input.go       # Error on external imports
 
 # Run tests
 ./test.sh

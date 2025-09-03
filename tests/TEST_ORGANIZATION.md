@@ -237,10 +237,6 @@ tests/coverage/
    fmt.Println(rand.Int())
    ```
 
-### Note on Map Printing
-
-Go 1.12+ prints maps in sorted key order when using `fmt` functions, so `fmt.Println(myMap)` is deterministic. However, iteration order remains non-deterministic.
-
 ## Test File Template
 
 Each test should have a header comment explaining what it tests:
