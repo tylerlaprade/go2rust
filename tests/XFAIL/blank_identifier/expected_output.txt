@@ -13,7 +13,7 @@ Indices (idiomatic):
 
 === Ignoring in map iteration ===
 Keys only:
-Bob Carol Alice 
+Carol Alice Bob 
 Values only:
 25 30 35 
 

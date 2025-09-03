@@ -11,9 +11,9 @@ fn main() {
         // Write to file
     println!("{}", "\n--- Writing to file ---".to_string());
 
-    let (mut file, mut err) = os.create(Arc::new(Mutex::new(Some((*filename.lock().unwrap().as_mut().unwrap())))));
+    let (mut file, mut err) = (*os.lock().unwrap().as_mut().unwrap())::create(Arc::new(Mutex::new(Some((*filename.lock().unwrap().as_mut().unwrap())))));
     if (*err.lock().unwrap()).is_some() {
-        print!("Error creating file: {}\n", (*err.lock().unwrap().as_mut().unwrap()));
+        print!("Error creating file: {}\n", format!("{}", (*err.lock().unwrap().as_ref().unwrap())));
         {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
@@ -28,7 +28,7 @@ fn main() {
     for (i, line) in (*content.lock().unwrap().as_mut().unwrap()).iter().enumerate() {
         let (_, mut err) = (*file.lock().unwrap().as_mut().unwrap()).write_string(Arc::new(Mutex::new(Some(format!("{}{}", line, "\n".to_string())))));
         if (*err.lock().unwrap()).is_some() {
-        print!("Error writing line {}: {}\n", i + 1, (*err.lock().unwrap().as_mut().unwrap()));
+        print!("Error writing line {}: {}\n", i + 1, format!("{}", (*err.lock().unwrap().as_ref().unwrap())));
         (*file.lock().unwrap().as_mut().unwrap()).close();
         {
         // Execute deferred functions
@@ -47,9 +47,9 @@ fn main() {
         // Read entire file
     println!("{}", "\n--- Reading entire file ---".to_string());
 
-    let (mut data, mut err) = os.read_file(Arc::new(Mutex::new(Some((*filename.lock().unwrap().as_mut().unwrap())))));
+    let (mut data, mut err) = (*os.lock().unwrap().as_mut().unwrap())::read_file(Arc::new(Mutex::new(Some((*filename.lock().unwrap().as_mut().unwrap())))));
     if (*err.lock().unwrap()).is_some() {
-        print!("Error reading file: {}\n", (*err.lock().unwrap().as_mut().unwrap()));
+        print!("Error reading file: {}\n", format!("{}", (*err.lock().unwrap().as_ref().unwrap())));
         {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
@@ -64,9 +64,9 @@ fn main() {
         // Read file line by line
     println!("{}", "\n--- Reading file line by line ---".to_string());
 
-    (file, err) = os.open(Arc::new(Mutex::new(Some((*filename.lock().unwrap().as_mut().unwrap())))));
+    (file, err) = (*os.lock().unwrap().as_mut().unwrap())::open(Arc::new(Mutex::new(Some((*filename.lock().unwrap().as_mut().unwrap())))));
     if (*err.lock().unwrap()).is_some() {
-        print!("Error opening file: {}\n", (*err.lock().unwrap().as_mut().unwrap()));
+        print!("Error opening file: {}\n", format!("{}", (*err.lock().unwrap().as_ref().unwrap())));
         {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
@@ -79,7 +79,7 @@ fn main() {
         (*file.lock().unwrap().as_mut().unwrap()).close();
     }));
 
-    let mut scanner = bufio.new_scanner(Arc::new(Mutex::new(Some((*file.lock().unwrap().as_mut().unwrap())))));
+    let mut scanner = (*bufio.lock().unwrap().as_mut().unwrap())::new_scanner(Arc::new(Mutex::new(Some((*file.lock().unwrap().as_mut().unwrap())))));
     let mut lineNum = Arc::new(Mutex::new(Some(1)));
 
     while (*scanner.lock().unwrap().as_mut().unwrap()).scan() {
@@ -90,7 +90,7 @@ fn main() {
 
     let mut err = (*scanner.lock().unwrap().as_mut().unwrap()).err();
     if (*err.lock().unwrap()).is_some() {
-        print!("Error reading file: {}\n", (*err.lock().unwrap().as_mut().unwrap()));
+        print!("Error reading file: {}\n", format!("{}", (*err.lock().unwrap().as_ref().unwrap())));
         {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
@@ -103,9 +103,9 @@ fn main() {
         // Append to file
     println!("{}", "\n--- Appending to file ---".to_string());
 
-    (file, err) = os.open_file(Arc::new(Mutex::new(Some((*filename.lock().unwrap().as_mut().unwrap())))), Arc::new(Mutex::new(Some((*(*os.lock().unwrap().as_mut().unwrap())::o__a_p_p_e_n_d.lock().unwrap().as_ref().unwrap()) | (*(*os.lock().unwrap().as_mut().unwrap())::o__w_r_o_n_l_y.lock().unwrap().as_ref().unwrap())))), Arc::new(Mutex::new(Some(0644))));
+    (file, err) = (*os.lock().unwrap().as_mut().unwrap())::open_file(Arc::new(Mutex::new(Some((*filename.lock().unwrap().as_mut().unwrap())))), Arc::new(Mutex::new(Some((*(*os.lock().unwrap().as_mut().unwrap())::o__a_p_p_e_n_d.lock().unwrap().as_ref().unwrap()) | (*(*os.lock().unwrap().as_mut().unwrap())::o__w_r_o_n_l_y.lock().unwrap().as_ref().unwrap())))), Arc::new(Mutex::new(Some(0644))));
     if (*err.lock().unwrap()).is_some() {
-        print!("Error opening file for append: {}\n", (*err.lock().unwrap().as_mut().unwrap()));
+        print!("Error opening file for append: {}\n", format!("{}", (*err.lock().unwrap().as_ref().unwrap())));
         {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
@@ -120,7 +120,7 @@ fn main() {
     for line in &(*appendContent.lock().unwrap().as_mut().unwrap()) {
         let (_, mut err) = (*file.lock().unwrap().as_mut().unwrap()).write_string(Arc::new(Mutex::new(Some(format!("{}{}", line, "\n".to_string())))));
         if (*err.lock().unwrap()).is_some() {
-        print!("Error appending: {}\n", (*err.lock().unwrap().as_mut().unwrap()));
+        print!("Error appending: {}\n", format!("{}", (*err.lock().unwrap().as_ref().unwrap())));
         (*file.lock().unwrap().as_mut().unwrap()).close();
         {
         // Execute deferred functions
@@ -138,9 +138,9 @@ fn main() {
         // Read updated file
     println!("{}", "\n--- Reading updated file ---".to_string());
 
-    (data, err) = os.read_file(Arc::new(Mutex::new(Some((*filename.lock().unwrap().as_mut().unwrap())))));
+    (data, err) = (*os.lock().unwrap().as_mut().unwrap())::read_file(Arc::new(Mutex::new(Some((*filename.lock().unwrap().as_mut().unwrap())))));
     if (*err.lock().unwrap()).is_some() {
-        print!("Error reading updated file: {}\n", (*err.lock().unwrap().as_mut().unwrap()));
+        print!("Error reading updated file: {}\n", format!("{}", (*err.lock().unwrap().as_ref().unwrap())));
         {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
@@ -155,9 +155,9 @@ fn main() {
         // File information
     println!("{}", "\n--- File information ---".to_string());
 
-    let (mut fileInfo, mut err) = os.stat(Arc::new(Mutex::new(Some((*filename.lock().unwrap().as_mut().unwrap())))));
+    let (mut fileInfo, mut err) = (*os.lock().unwrap().as_mut().unwrap())::stat(Arc::new(Mutex::new(Some((*filename.lock().unwrap().as_mut().unwrap())))));
     if (*err.lock().unwrap()).is_some() {
-        print!("Error getting file info: {}\n", (*err.lock().unwrap().as_mut().unwrap()));
+        print!("Error getting file info: {}\n", format!("{}", (*err.lock().unwrap().as_ref().unwrap())));
         {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
@@ -167,20 +167,20 @@ fn main() {
     }
     }
 
-    print!("File name: {}\n", (*fileInfo.name().lock().unwrap().as_ref().unwrap()));
-    print!("File size: {} bytes\n", (*fileInfo.size().lock().unwrap().as_ref().unwrap()));
-    print!("File mode: {}\n", (*fileInfo.mode().lock().unwrap().as_ref().unwrap()));
-    print!("Modified time: {}\n", (*fileInfo.mod_time().lock().unwrap().as_ref().unwrap()));
-    print!("Is directory: {}\n", (*fileInfo.is_dir().lock().unwrap().as_ref().unwrap()));
+    print!("File name: {}\n", (*(*fileInfo.lock().unwrap().as_mut().unwrap()).name().lock().unwrap().as_ref().unwrap()));
+    print!("File size: {} bytes\n", (*(*fileInfo.lock().unwrap().as_mut().unwrap()).size().lock().unwrap().as_ref().unwrap()));
+    print!("File mode: {}\n", (*(*fileInfo.lock().unwrap().as_mut().unwrap()).mode().lock().unwrap().as_ref().unwrap()));
+    print!("Modified time: {}\n", (*(*fileInfo.lock().unwrap().as_mut().unwrap()).mod_time().lock().unwrap().as_ref().unwrap()));
+    print!("Is directory: {}\n", (*(*fileInfo.lock().unwrap().as_mut().unwrap()).is_dir().lock().unwrap().as_ref().unwrap()));
 
         // Copy file
     println!("{}", "\n--- Copying file ---".to_string());
 
     let mut copyFilename = Arc::new(Mutex::new(Some("test_file_copy.txt".to_string())));
 
-    let (mut sourceFile, mut err) = os.open(Arc::new(Mutex::new(Some((*filename.lock().unwrap().as_mut().unwrap())))));
+    let (mut sourceFile, mut err) = (*os.lock().unwrap().as_mut().unwrap())::open(Arc::new(Mutex::new(Some((*filename.lock().unwrap().as_mut().unwrap())))));
     if (*err.lock().unwrap()).is_some() {
-        print!("Error opening source file: {}\n", (*err.lock().unwrap().as_mut().unwrap()));
+        print!("Error opening source file: {}\n", format!("{}", (*err.lock().unwrap().as_ref().unwrap())));
         {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
@@ -193,9 +193,9 @@ fn main() {
         (*sourceFile.lock().unwrap().as_mut().unwrap()).close();
     }));
 
-    let (mut destFile, mut err) = os.create(Arc::new(Mutex::new(Some((*copyFilename.lock().unwrap().as_mut().unwrap())))));
+    let (mut destFile, mut err) = (*os.lock().unwrap().as_mut().unwrap())::create(Arc::new(Mutex::new(Some((*copyFilename.lock().unwrap().as_mut().unwrap())))));
     if (*err.lock().unwrap()).is_some() {
-        print!("Error creating destination file: {}\n", (*err.lock().unwrap().as_mut().unwrap()));
+        print!("Error creating destination file: {}\n", format!("{}", (*err.lock().unwrap().as_ref().unwrap())));
         {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
@@ -208,9 +208,9 @@ fn main() {
         (*destFile.lock().unwrap().as_mut().unwrap()).close();
     }));
 
-    let (mut bytesWritten, mut err) = io.copy(Arc::new(Mutex::new(Some((*destFile.lock().unwrap().as_mut().unwrap())))), Arc::new(Mutex::new(Some((*sourceFile.lock().unwrap().as_mut().unwrap())))));
+    let (mut bytesWritten, mut err) = (*io.lock().unwrap().as_mut().unwrap())::copy(Arc::new(Mutex::new(Some((*destFile.lock().unwrap().as_mut().unwrap())))), Arc::new(Mutex::new(Some((*sourceFile.lock().unwrap().as_mut().unwrap())))));
     if (*err.lock().unwrap()).is_some() {
-        print!("Error copying file: {}\n", (*err.lock().unwrap().as_mut().unwrap()));
+        print!("Error copying file: {}\n", format!("{}", (*err.lock().unwrap().as_ref().unwrap())));
         {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
@@ -225,9 +225,9 @@ fn main() {
         // Read and process file content
     println!("{}", "\n--- Processing file content ---".to_string());
 
-    (file, err) = os.open(Arc::new(Mutex::new(Some((*filename.lock().unwrap().as_mut().unwrap())))));
+    (file, err) = (*os.lock().unwrap().as_mut().unwrap())::open(Arc::new(Mutex::new(Some((*filename.lock().unwrap().as_mut().unwrap())))));
     if (*err.lock().unwrap()).is_some() {
-        print!("Error opening file: {}\n", (*err.lock().unwrap().as_mut().unwrap()));
+        print!("Error opening file: {}\n", format!("{}", (*err.lock().unwrap().as_ref().unwrap())));
         {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
@@ -240,7 +240,7 @@ fn main() {
         (*file.lock().unwrap().as_mut().unwrap()).close();
     }));
 
-    { let new_val = bufio.new_scanner(Arc::new(Mutex::new(Some((*file.lock().unwrap().as_mut().unwrap()))))); *scanner.lock().unwrap() = Some(new_val); };
+    { let new_val = (*bufio.lock().unwrap().as_mut().unwrap())::new_scanner(Arc::new(Mutex::new(Some((*file.lock().unwrap().as_mut().unwrap()))))); *scanner.lock().unwrap() = Some(new_val); };
     let mut wordCount = Arc::new(Mutex::new(Some(0)));
     let mut lineCount = Arc::new(Mutex::new(Some(0)));
     let mut charCount = Arc::new(Mutex::new(Some(0)));
@@ -250,11 +250,11 @@ fn main() {
         { let mut guard = lineCount.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
         { let mut guard = charCount.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + (*line.lock().unwrap().as_ref().unwrap()).len()); };
 
-        let mut words = strings.fields(Arc::new(Mutex::new(Some((*line.lock().unwrap().as_mut().unwrap())))));
+        let mut words = (*strings.lock().unwrap().as_mut().unwrap())::fields(Arc::new(Mutex::new(Some((*line.lock().unwrap().as_mut().unwrap())))));
         { let mut guard = wordCount.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + (*words.lock().unwrap().as_ref().unwrap()).len()); };
 
                 // Process lines containing numbers
-        if strings.contains(Arc::new(Mutex::new(Some((*line.lock().unwrap().as_mut().unwrap())))), Arc::new(Mutex::new(Some("123".to_string())))) {
+        if (*strings.lock().unwrap().as_mut().unwrap())::contains(Arc::new(Mutex::new(Some((*line.lock().unwrap().as_mut().unwrap())))), Arc::new(Mutex::new(Some("123".to_string())))) {
         print!("Found line with numbers: {}\n", (*line.lock().unwrap().as_mut().unwrap()));
     }
     }
@@ -269,9 +269,9 @@ fn main() {
     println!("{}", "\n--- Writing formatted data ---".to_string());
 
     let mut dataFile = Arc::new(Mutex::new(Some("data.txt".to_string())));
-    (file, err) = os.create(Arc::new(Mutex::new(Some((*dataFile.lock().unwrap().as_mut().unwrap())))));
+    (file, err) = (*os.lock().unwrap().as_mut().unwrap())::create(Arc::new(Mutex::new(Some((*dataFile.lock().unwrap().as_mut().unwrap())))));
     if (*err.lock().unwrap()).is_some() {
-        print!("Error creating data file: {}\n", (*err.lock().unwrap().as_mut().unwrap()));
+        print!("Error creating data file: {}\n", format!("{}", (*err.lock().unwrap().as_ref().unwrap())));
         {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
@@ -285,19 +285,19 @@ fn main() {
     }));
 
         // Write structured data
-    fmt.fprintf(Arc::new(Mutex::new(Some((*file.lock().unwrap().as_mut().unwrap())))), Arc::new(Mutex::new(Some("Name: %s\n".to_string()))), Arc::new(Mutex::new(Some("John Doe".to_string()))));
-    fmt.fprintf(Arc::new(Mutex::new(Some((*file.lock().unwrap().as_mut().unwrap())))), Arc::new(Mutex::new(Some("Age: %d\n".to_string()))), Arc::new(Mutex::new(Some(30))));
-    fmt.fprintf(Arc::new(Mutex::new(Some((*file.lock().unwrap().as_mut().unwrap())))), Arc::new(Mutex::new(Some("Score: %.2f\n".to_string()))), Arc::new(Mutex::new(Some(95.5))));
-    fmt.fprintf(Arc::new(Mutex::new(Some((*file.lock().unwrap().as_mut().unwrap())))), Arc::new(Mutex::new(Some("Active: %t\n".to_string()))), Arc::new(Mutex::new(Some(true))));
+    (*fmt.lock().unwrap().as_mut().unwrap())::fprintf(Arc::new(Mutex::new(Some((*file.lock().unwrap().as_mut().unwrap())))), Arc::new(Mutex::new(Some("Name: %s\n".to_string()))), Arc::new(Mutex::new(Some("John Doe".to_string()))));
+    (*fmt.lock().unwrap().as_mut().unwrap())::fprintf(Arc::new(Mutex::new(Some((*file.lock().unwrap().as_mut().unwrap())))), Arc::new(Mutex::new(Some("Age: %d\n".to_string()))), Arc::new(Mutex::new(Some(30))));
+    (*fmt.lock().unwrap().as_mut().unwrap())::fprintf(Arc::new(Mutex::new(Some((*file.lock().unwrap().as_mut().unwrap())))), Arc::new(Mutex::new(Some("Score: %.2f\n".to_string()))), Arc::new(Mutex::new(Some(95.5))));
+    (*fmt.lock().unwrap().as_mut().unwrap())::fprintf(Arc::new(Mutex::new(Some((*file.lock().unwrap().as_mut().unwrap())))), Arc::new(Mutex::new(Some("Active: %t\n".to_string()))), Arc::new(Mutex::new(Some(true))));
 
     print!("Formatted data written to '{}'\n", (*dataFile.lock().unwrap().as_mut().unwrap()));
 
         // Read and parse formatted data
     println!("{}", "\n--- Reading formatted data ---".to_string());
 
-    (data, err) = os.read_file(Arc::new(Mutex::new(Some((*dataFile.lock().unwrap().as_mut().unwrap())))));
+    (data, err) = (*os.lock().unwrap().as_mut().unwrap())::read_file(Arc::new(Mutex::new(Some((*dataFile.lock().unwrap().as_mut().unwrap())))));
     if (*err.lock().unwrap()).is_some() {
-        print!("Error reading data file: {}\n", (*err.lock().unwrap().as_mut().unwrap()));
+        print!("Error reading data file: {}\n", format!("{}", (*err.lock().unwrap().as_ref().unwrap())));
         {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
@@ -315,13 +315,13 @@ fn main() {
     let mut files = Arc::new(Mutex::new(Some(vec![(*filename.lock().unwrap().as_mut().unwrap()), (*copyFilename.lock().unwrap().as_mut().unwrap()), (*dataFile.lock().unwrap().as_mut().unwrap()), "nonexistent.txt".to_string()])));
 
     for f in &(*files.lock().unwrap().as_mut().unwrap()) {
-        let (_, mut err) = os.stat(Arc::new(Mutex::new(Some(f))));
+        let (_, mut err) = (*os.lock().unwrap().as_mut().unwrap())::stat(Arc::new(Mutex::new(Some(f))));
     if (*err.lock().unwrap()).is_none() {
         print!("File '{}' exists\n", f);
-    } else if os.is_not_exist(Arc::new(Mutex::new(Some((*err.lock().unwrap().as_mut().unwrap()))))) {
+    } else if (*os.lock().unwrap().as_mut().unwrap())::is_not_exist(Arc::new(Mutex::new(Some((*err.lock().unwrap().as_mut().unwrap()))))) {
         print!("File '{}' does not exist\n", f);
     } else {
-        print!("Error checking file '{}': {}\n", f, (*err.lock().unwrap().as_mut().unwrap()));
+        print!("Error checking file '{}': {}\n", f, format!("{}", (*err.lock().unwrap().as_ref().unwrap())));
     }
     }
 
@@ -331,9 +331,9 @@ fn main() {
     let mut filesToRemove = Arc::new(Mutex::new(Some(vec![(*filename.lock().unwrap().as_mut().unwrap()), (*copyFilename.lock().unwrap().as_mut().unwrap()), (*dataFile.lock().unwrap().as_mut().unwrap())])));
 
     for f in &(*filesToRemove.lock().unwrap().as_mut().unwrap()) {
-        let mut err = os.remove(Arc::new(Mutex::new(Some(f))));
+        let mut err = (*os.lock().unwrap().as_mut().unwrap())::remove(Arc::new(Mutex::new(Some(f))));
         if (*err.lock().unwrap()).is_some() {
-        print!("Error removing file '{}': {}\n", f, (*err.lock().unwrap().as_mut().unwrap()));
+        print!("Error removing file '{}': {}\n", f, format!("{}", (*err.lock().unwrap().as_ref().unwrap())));
     } else {
         print!("Removed file '{}'\n", f);
     }
@@ -343,8 +343,8 @@ fn main() {
     println!("{}", "\n--- Verifying cleanup ---".to_string());
 
     for f in &(*filesToRemove.lock().unwrap().as_mut().unwrap()) {
-        let (_, mut err) = os.stat(Arc::new(Mutex::new(Some(f))));
-    if os.is_not_exist(Arc::new(Mutex::new(Some((*err.lock().unwrap().as_mut().unwrap()))))) {
+        let (_, mut err) = (*os.lock().unwrap().as_mut().unwrap())::stat(Arc::new(Mutex::new(Some(f))));
+    if (*os.lock().unwrap().as_mut().unwrap())::is_not_exist(Arc::new(Mutex::new(Some((*err.lock().unwrap().as_mut().unwrap()))))) {
         print!("File '{}' successfully removed\n", f);
     } else {
         print!("File '{}' still exists\n", f);

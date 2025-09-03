@@ -41,7 +41,7 @@ Appended line 2
 File name: test_file.txt
 File size: 116 bytes
 File mode: -rw-r--r--
-Modified time: 2025-08-15 22:24:39.338513442 -0400 EDT
+Modified time: 2025-09-03 17:54:53.244453396 -0400 EDT
 Is directory: false
 
 --- Copying file ---

@@ -24,18 +24,24 @@ go build -o go2rust ./go
 
 ### External Package Handling
 
-Go2Rust provides three modes for handling external package imports:
+Go2Rust provides four modes for handling external package imports:
 
 1. **`transpile` (default)**: Recursively transpiles all dependencies to Rust
    - Pure Rust output with no Go runtime dependency
    - Currently in development
 
-2. **`ffi`**: Generates FFI bridge to call Go libraries from Rust
+2. **`stub`**: Generates stub implementations for external packages
+   - Creates placeholder Rust modules with helpful TODO comments
+   - Allows you to manually implement or use Rust equivalents
+   - Useful when automatic transpilation fails or when you want custom implementations
+   - Stub files are generated in `vendor/` directory
+
+3. **`ffi`**: Generates FFI bridge to call Go libraries from Rust
    - Keeps Go packages as-is and generates bindings
    - Useful for packages with cgo or complex dependencies
    - Currently in development
 
-3. **`none`**: Fails if external packages are imported
+4. **`none`**: Fails if external packages are imported
    - Useful for simple, self-contained programs
    - Ensures no external dependencies
 

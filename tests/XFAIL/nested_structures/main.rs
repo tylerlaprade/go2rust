@@ -235,7 +235,7 @@ fn main() {
         for (j, val) in row.iter().enumerate() {
         print!("{} ", val);
         if j < (*row.borrow().as_ref().unwrap()).len() - 1 {
-        (*fmt.borrow_mut().as_mut().unwrap()).print(Rc::new(RefCell::new(Some(" ".to_string()))));
+        (*fmt.borrow_mut().as_mut().unwrap())::print(Rc::new(RefCell::new(Some(" ".to_string()))));
     }
     }
         println!();

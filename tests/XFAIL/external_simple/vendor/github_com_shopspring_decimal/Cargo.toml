@@ -1,0 +1,8 @@
+[package]
+name = "github_com_shopspring_decimal"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "github_com_shopspring_decimal"
+path = "lib.rs"

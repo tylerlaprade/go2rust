@@ -30,9 +30,9 @@ pub fn print_strings(prefix: Rc<RefCell<Option<String>>>, strings: Rc<RefCell<Op
     print!("{}: ", (*prefix.borrow_mut().as_mut().unwrap()));
     for (i, str) in (*strings.borrow_mut().as_mut().unwrap()).iter().enumerate() {
         if i > 0 {
-        (*fmt.borrow_mut().as_mut().unwrap()).print(Rc::new(RefCell::new(Some(", ".to_string()))));
+        (*fmt.borrow_mut().as_mut().unwrap())::print(Rc::new(RefCell::new(Some(", ".to_string()))));
     }
-        (*fmt.borrow_mut().as_mut().unwrap()).print(Rc::new(RefCell::new(Some(str))));
+        (*fmt.borrow_mut().as_mut().unwrap())::print(Rc::new(RefCell::new(Some(str))));
     }
     println!();
 }

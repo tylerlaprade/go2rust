@@ -4,7 +4,7 @@ use std::rc::{Rc};
 fn main() {
     let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-    let (mut file, mut err) = (*os.borrow_mut().as_mut().unwrap()).create(Rc::new(RefCell::new(Some("test.txt".to_string()))));
+    let (mut file, mut err) = (*os.borrow_mut().as_mut().unwrap())::create(Rc::new(RefCell::new(Some("test.txt".to_string()))));
     if (*err.borrow()).is_some() {
         println!("{} {}", "Error:".to_string(), format!("{}", (*err.borrow().as_ref().unwrap())));
         {

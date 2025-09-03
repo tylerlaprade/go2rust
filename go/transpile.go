@@ -43,6 +43,17 @@ var goPackageImports = make(map[string]string)
 // externalPackages tracks external (non-stdlib) package imports
 var externalPackages = make(map[string]bool)
 
+// SetPackageImports sets the package imports for the current transpilation
+func SetPackageImports(imports map[string]string) {
+	goPackageImports = imports
+	// Also track external packages
+	for _, path := range imports {
+		if !isStdlibPackage(path) {
+			externalPackages[path] = true
+		}
+	}
+}
+
 // structDefs tracks struct definitions and their fields
 type StructDef struct {
 	Fields        map[string]string // field name -> field type
@@ -334,21 +345,28 @@ func implementsInterface(typeMethods []*ast.FuncDecl, iface *ast.InterfaceType) 
 }
 
 func Transpile(file *ast.File, fileSet *token.FileSet, typeInfo *TypeInfo) (string, *ImportTracker, map[string]bool) {
+	return TranspileWithMapping(file, fileSet, typeInfo, nil)
+}
+
+func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *TypeInfo, packageMapping map[string]string) (string, *ImportTracker, map[string]bool) {
 	// Create trackers
 	imports := NewImportTracker()
 	helpers := &HelperTracker{}
 
-	// Clear import tracking for this file
-	goPackageImports = make(map[string]string)
-	externalPackages = make(map[string]bool)
+	// Only clear import tracking if not already set (by PackageLoader)
+	if len(goPackageImports) == 0 {
+		goPackageImports = make(map[string]string)
+		externalPackages = make(map[string]bool)
+	}
 
 	// Initialize the statement preprocessor
 	statementPreprocessor = NewStatementPreprocessor(fileSet)
 
 	// Set up global context
 	ctx := &TranspileContext{
-		Imports: imports,
-		Helpers: helpers,
+		Imports:        imports,
+		Helpers:        helpers,
+		PackageMapping: packageMapping,
 	}
 	SetTranspileContext(ctx)
 	defer SetTranspileContext(nil) // Clear when done

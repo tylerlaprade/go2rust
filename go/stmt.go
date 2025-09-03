@@ -1229,7 +1229,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		if isMap {
 			keyType = "String"                    // Common key type for maps
 			valueType = "Arc<Mutex<Option<i32>>>" // Map values are wrapped
-		} else if typeInfo != nil && typeInfo.IsSlice(s.X) {
+		} else if typeInfo.IsSlice(s.X) {
 			// Check if it's a slice of interface{}
 			elemType := typeInfo.GetSliceElemType(s.X)
 			if elemType != nil {

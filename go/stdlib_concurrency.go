@@ -1,5 +1,7 @@
 package main
 
+import "strings"
+
 // asyncStdlibFunctions contains stdlib functions that spawn goroutines
 // or pass user data to goroutines. When these are called, we must use
 // Arc<Mutex<>> instead of Rc<RefCell<>> for thread safety.
@@ -203,25 +205,31 @@ func isAsyncStdlibFunction(pkgName, funcName string) bool {
 
 // isStdlibPackage checks if a package is part of the Go standard library
 func isStdlibPackage(pkgName string) bool {
-	// List of known stdlib packages (not exhaustive, but covers common ones)
-	stdlibPackages := map[string]bool{
+	// Check if it starts with a domain (has a dot in first component)
+	parts := strings.Split(pkgName, "/")
+	if len(parts) > 0 && strings.Contains(parts[0], ".") {
+		return false // External package (e.g., github.com/...)
+	}
+
+	// List of known stdlib root packages
+	stdlibRoots := map[string]bool{
 		"fmt": true, "strings": true, "strconv": true, "math": true,
 		"io": true, "os": true, "bytes": true, "sort": true,
 		"time": true, "errors": true, "reflect": true, "regexp": true,
-		"net": true, "net/http": true, "net/url": true,
-		"encoding/json": true, "encoding/xml": true, "encoding/base64": true,
-		"crypto": true, "crypto/rand": true, "crypto/sha256": true,
-		"sync": true, "sync/atomic": true,
-		"context": true, "database/sql": true,
-		"path": true, "path/filepath": true,
-		"runtime": true, "unsafe": true,
-		"log": true, "flag": true,
-		"bufio": true, "compress/gzip": true,
-		"container/list": true, "container/heap": true,
-		"debug/elf": true, "debug/dwarf": true,
-		"image": true, "image/png": true, "image/jpeg": true,
-		"testing": true, "testing/quick": true,
+		"net": true, "encoding": true, "crypto": true, "hash": true,
+		"sync": true, "context": true, "database": true,
+		"path": true, "runtime": true, "unsafe": true,
+		"log": true, "flag": true, "bufio": true, "compress": true,
+		"container": true, "debug": true, "image": true, "testing": true,
+		"archive": true, "html": true, "text": true, "unicode": true,
+		"go": true, "cmd": true, "internal": true, "vendor": true,
+		"embed": true, "expvar": true, "index": true, "mime": true,
 	}
 
-	return stdlibPackages[pkgName]
+	// Check if the package or its root is a stdlib package
+	if len(parts) > 0 {
+		return stdlibRoots[parts[0]]
+	}
+
+	return false
 }

@@ -3,7 +3,7 @@ use std::thread;
 use std::time::Duration;
 
 pub fn worker(done: Arc<Mutex<Option</* TODO: Unhandled type *ast.ChanType */ Arc<Mutex<Option<()>>>>>>) {
-    (*fmt.lock().unwrap().as_mut().unwrap()).print(Arc::new(Mutex::new(Some("working...".to_string()))));
+    (*fmt.lock().unwrap().as_mut().unwrap())::print(Arc::new(Mutex::new(Some("working...".to_string()))));
     std::thread::sleep(std::time::Duration::from_millis(500));
     println!("{}", "done".to_string());
 

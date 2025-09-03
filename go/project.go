@@ -11,16 +11,18 @@ import (
 )
 
 type ProjectGenerator struct {
-	goFiles        []string
-	projectPath    string
-	packageName    string
-	isLibrary      bool
-	hasMain        bool
-	moduleNames    []string
-	typeInfo       *TypeInfo
-	projectImports *ImportTracker // Collect imports across all files
-	externalMode   ExternalPackageMode
-	goImports      map[string][]string // package path -> list of imports
+	goFiles         []string
+	projectPath     string
+	packageName     string
+	isLibrary       bool
+	hasMain         bool
+	moduleNames     []string
+	typeInfo        *TypeInfo
+	projectImports  *ImportTracker // Collect imports across all files
+	externalMode    ExternalPackageMode
+	goImports       map[string][]string // package path -> list of imports
+	packageMapping  map[string]string   // Go import path -> Rust crate name
+	isVendorPackage bool                // True if this is a vendor package (no go.mod required)
 }
 
 func NewProjectGenerator(goFiles []string) *ProjectGenerator {
@@ -62,6 +64,12 @@ func (pg *ProjectGenerator) checkForExternalPackages() error {
 	return nil
 }
 
+// GeneratePackage generates a package without handling external dependencies (for vendor packages)
+func (pg *ProjectGenerator) GeneratePackage() error {
+	// Skip external package checks and handling for vendor packages
+	return pg.generateInternal(true)
+}
+
 func (pg *ProjectGenerator) Generate() error {
 	// Check for external packages first if mode is 'none'
 	if pg.externalMode == ModeNone {
@@ -69,6 +77,10 @@ func (pg *ProjectGenerator) Generate() error {
 			return err
 		}
 	}
+	return pg.generateInternal(false)
+}
+
+func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 	fileSet := token.NewFileSet()
 
 	// Parse all files first for type checking
@@ -81,24 +93,121 @@ func (pg *ProjectGenerator) Generate() error {
 		astFiles = append(astFiles, file)
 	}
 
-	// Perform type checking
-	typeInfo, err := NewTypeInfo(astFiles, fileSet)
-	if err != nil {
-		// Log warning but continue - we'll handle missing type info in individual functions
-		fmt.Fprintf(os.Stderr, "Warning: Type checking incomplete: %v\n", err)
-		fmt.Fprintf(os.Stderr, "Generated code may contain errors where type information is required\n")
+	// Check if we have external packages
+	hasExternal := false
+	for _, file := range astFiles {
+		for _, imp := range file.Imports {
+			path := strings.Trim(imp.Path.Value, `"`)
+			if !isStdlibPackage(path) {
+				hasExternal = true
+				break
+			}
+		}
+		if hasExternal {
+			break
+		}
 	}
-	pg.typeInfo = typeInfo
 
-	// Set the global type info once for the entire project
-	SetTypeInfo(typeInfo)
-	defer SetTypeInfo(nil) // Clear when done
+	// Use PackageLoader for projects with external dependencies
+	if hasExternal && pg.externalMode == ModeTranspile && !skipExternalHandling {
+		fmt.Fprintf(os.Stderr, "Loading packages with dependencies...\n")
+
+		// Use PackageLoader to get full type information
+		loader := NewPackageLoader(pg.projectPath)
+
+		// Load with the current directory pattern
+		if err := loader.LoadWithDependencies([]string{"."}); err != nil {
+			return fmt.Errorf("failed to load packages: %v", err)
+		}
+
+		// Transpile external packages
+		if err := loader.TranspileAll(); err != nil {
+			return fmt.Errorf("failed to transpile dependencies: %v", err)
+		}
+
+		// Get type info and package mapping
+		pg.typeInfo = loader.GetTypeInfo()
+		pg.packageMapping = loader.GetPackageMapping()
+
+		// CRITICAL: Replace our AST files with the ones from PackageLoader
+		// which have the proper type information
+		astFiles = loader.GetMainAST()
+		if len(astFiles) == 0 {
+			return fmt.Errorf("no AST files from package loader")
+		}
+
+		// Set up imports for the main package (go/packages doesn't include import declarations)
+		mainImports := loader.GetMainImports()
+		SetPackageImports(mainImports)
+
+		// The main package will use this type info
+		SetTypeInfo(pg.typeInfo)
+
+		// Skip duplicate handling
+		skipExternalHandling = true
+	} else if hasExternal && pg.externalMode == ModeStub && !skipExternalHandling {
+		fmt.Fprintf(os.Stderr, "Generating stubs for external packages...\n")
+
+		// Generate stub implementations
+		stubGen := NewStubGenerator(pg.projectPath)
+		if err := stubGen.GenerateStubsFromImports(astFiles); err != nil {
+			return fmt.Errorf("failed to generate stubs: %v", err)
+		}
+
+		// Use the package mapping from stub generator
+		pg.packageMapping = stubGen.GetPackageMapping()
+
+		// Set up package imports for proper transpilation
+		imports := make(map[string]string)
+		for _, file := range astFiles {
+			for _, imp := range file.Imports {
+				importPath := strings.Trim(imp.Path.Value, `"`)
+				var pkgName string
+				if imp.Name != nil {
+					pkgName = imp.Name.Name
+				} else {
+					segments := strings.Split(importPath, "/")
+					pkgName = segments[len(segments)-1]
+				}
+				imports[pkgName] = importPath
+			}
+		}
+		SetPackageImports(imports)
+
+		// Regular type checking (will have missing types for external packages)
+		typeInfo, err := NewTypeInfo(astFiles, fileSet)
+		if err != nil {
+			// This is expected with stubs - external types won't be available
+			fmt.Fprintf(os.Stderr, "Note: Type checking incomplete (external packages are stubs): %v\n", err)
+			fmt.Fprintf(os.Stderr, "You will need to implement the stub packages in vendor/\n")
+		}
+		pg.typeInfo = typeInfo
+		SetTypeInfo(typeInfo)
+
+		// Skip duplicate handling
+		skipExternalHandling = true
+	} else {
+		// Regular type checking for projects without external dependencies
+		typeInfo, err := NewTypeInfo(astFiles, fileSet)
+		if err != nil {
+			// Log warning but continue - we'll handle missing type info in individual functions
+			fmt.Fprintf(os.Stderr, "Warning: Type checking incomplete: %v\n", err)
+			fmt.Fprintf(os.Stderr, "Generated code may contain errors where type information is required\n")
+		}
+		pg.typeInfo = typeInfo
+
+		// Set the global type info once for the entire project
+		SetTypeInfo(typeInfo)
+	}
 
 	// Detect concurrency in the project
 	concurrencyDetector := NewConcurrencyDetector()
 	concurrencyDetector.AnalyzeProject(astFiles)
 	SetConcurrencyDetector(concurrencyDetector)
 	defer SetConcurrencyDetector(nil) // Clear when done
+
+	// Ensure we clean up TypeInfo when done
+	defer SetTypeInfo(nil)
 
 	// First pass: transpile all files and detect structure
 	for i, filename := range pg.goFiles {
@@ -111,7 +220,15 @@ func (pg *ProjectGenerator) Generate() error {
 			pg.isLibrary = pg.packageName != "main"
 		}
 
-		rustCode, fileImports, fileExternalPkgs := Transpile(file, fileSet, pg.typeInfo)
+		var rustCode string
+		var fileImports *ImportTracker
+		var fileExternalPkgs map[string]bool
+
+		if pg.packageMapping != nil {
+			rustCode, fileImports, fileExternalPkgs = TranspileWithMapping(file, fileSet, pg.typeInfo, pg.packageMapping)
+		} else {
+			rustCode, fileImports, fileExternalPkgs = Transpile(file, fileSet, pg.typeInfo)
+		}
 
 		// Track external packages found
 		for pkg := range fileExternalPkgs {
@@ -146,7 +263,7 @@ func (pg *ProjectGenerator) Generate() error {
 		}
 
 		// Write module file
-		err = os.WriteFile(rustFilename, []byte(rustCode), 0644)
+		err := os.WriteFile(rustFilename, []byte(rustCode), 0644)
 		if err != nil {
 			return fmt.Errorf("error writing %s: %v", rustFilename, err)
 		}
@@ -154,18 +271,12 @@ func (pg *ProjectGenerator) Generate() error {
 		pg.moduleNames = append(pg.moduleNames, outputName)
 	}
 
-	// Handle external packages based on mode
-	if len(pg.goImports) > 0 && pg.hasExternalPackages() {
+	// Handle external packages based on mode (skip for vendor packages)
+	// Note: ModeTranspile is already handled above with unified transpilation
+	if !skipExternalHandling && len(pg.goImports) > 0 && pg.hasExternalPackages() {
 		switch pg.externalMode {
 		case ModeTranspile:
-			// TODO: Implement recursive transpilation
-			fmt.Fprintf(os.Stderr, "Warning: Recursive transpilation of external packages not yet implemented\n")
-			fmt.Fprintf(os.Stderr, "External packages found:\n")
-			for _, imports := range pg.goImports {
-				for _, pkg := range imports {
-					fmt.Fprintf(os.Stderr, "  - %s\n", pkg)
-				}
-			}
+			// Already handled above with unified transpilation
 		case ModeFfi:
 			// TODO: Implement FFI bridge generation
 			fmt.Fprintf(os.Stderr, "Warning: FFI bridge generation not yet implemented\n")
@@ -243,7 +354,15 @@ func (pg *ProjectGenerator) generateMainRs(fileSet *token.FileSet, astFiles []*a
 		mainRust.WriteString("\n")
 	}
 
-	mainContent, mainImports, mainExternalPkgs := Transpile(file, fileSet, pg.typeInfo)
+	var mainContent string
+	var mainImports *ImportTracker
+	var mainExternalPkgs map[string]bool
+
+	if pg.packageMapping != nil {
+		mainContent, mainImports, mainExternalPkgs = TranspileWithMapping(file, fileSet, pg.typeInfo, pg.packageMapping)
+	} else {
+		mainContent, mainImports, mainExternalPkgs = Transpile(file, fileSet, pg.typeInfo)
+	}
 
 	// Track external packages from main
 	mainPath := ""
@@ -317,12 +436,26 @@ path = "main.rs"
 `, packageName, packageName)
 	}
 
-	// Add dependencies if needed
-	if needsNum {
-		cargoContent += `
-[dependencies]
-num = "0.4"
-`
+	// Add workspace configuration if we have external packages
+	if len(pg.packageMapping) > 0 {
+		workspaceSection := "\n[workspace]\nmembers = [\n    \".\",\n"
+		for _, crateName := range pg.packageMapping {
+			workspaceSection += fmt.Sprintf("    \"vendor/%s\",\n", crateName)
+		}
+		workspaceSection += "]\n"
+		cargoContent = workspaceSection + "\n" + cargoContent
+	}
+
+	// Add dependencies section
+	if needsNum || len(pg.packageMapping) > 0 {
+		cargoContent += "\n[dependencies]\n"
+		if needsNum {
+			cargoContent += "num = \"0.4\"\n"
+		}
+		// Add external package dependencies
+		for _, crateName := range pg.packageMapping {
+			cargoContent += fmt.Sprintf("%s = { path = \"vendor/%s\" }\n", crateName, crateName)
+		}
 	}
 
 	return os.WriteFile(cargoPath, []byte(cargoContent), 0644)

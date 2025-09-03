@@ -19,6 +19,6 @@ impl std::fmt::Display for User {
 
 fn main() {
     let mut u = Rc::new(RefCell::new(Some(User { name: Rc::new(RefCell::new(Some("Alice".to_string()))), age: Rc::new(RefCell::new(Some(30))) })));
-    let (mut data, _) = (*json.borrow_mut().as_mut().unwrap()).marshal(Rc::new(RefCell::new(Some((*u.borrow_mut().as_mut().unwrap())))));
+    let (mut data, _) = (*json.borrow_mut().as_mut().unwrap())::marshal(Rc::new(RefCell::new(Some((*u.borrow_mut().as_mut().unwrap())))));
     println!("{}", (*Rc::new(RefCell::new(Some(String::from_utf8((*data.borrow().as_ref().unwrap()).clone()).unwrap()))).borrow().as_ref().unwrap()));
 }

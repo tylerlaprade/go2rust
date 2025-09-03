@@ -2,8 +2,9 @@ package main
 
 // TranspileContext holds the context for a single transpilation session
 type TranspileContext struct {
-	Imports *ImportTracker
-	Helpers *HelperTracker
+	Imports        *ImportTracker
+	Helpers        *HelperTracker
+	PackageMapping map[string]string // Go import path -> Rust crate name
 }
 
 // Global context for the current transpilation

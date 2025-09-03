@@ -1,0 +1,18 @@
+
+[workspace]
+members = [
+    ".",
+    "vendor/github_com_shopspring_decimal",
+]
+
+[package]
+name = "external_simple"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "external_simple"
+path = "main.rs"
+
+[dependencies]
+github_com_shopspring_decimal = { path = "vendor/github_com_shopspring_decimal" }

@@ -147,7 +147,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		TranspileCall(out, e)
 
 	case *ast.SelectorExpr:
-		// Check if this is a package selector or field access using TypeInfo
+		// Check if this is a type assertion first (e.g., x.(Type))
 		typeInfo := GetTypeInfo()
 		isPackageSelector := false
 
@@ -162,8 +162,48 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			}
 		}
 
+		// Also check if it's a known package import (fallback)
+		if !isPackageSelector {
+			if ident, ok := e.X.(*ast.Ident); ok {
+				if _, isImport := goPackageImports[ident.Name]; isImport {
+					isPackageSelector = true
+				}
+			}
+		}
+
 		if isPackageSelector {
 			// Package/type selector
+			// Check if this is an external package that needs mapping
+			if ident, ok := e.X.(*ast.Ident); ok {
+				if pkgPath, exists := goPackageImports[ident.Name]; exists {
+					// Check if we have a mapping for this package
+					ctx := GetTranspileContext()
+					if ctx != nil && ctx.PackageMapping != nil {
+						if crateName, hasCrate := ctx.PackageMapping[pkgPath]; hasCrate {
+							// Use the mapped crate name with proper formatting
+							if !isStdlibPackage(pkgPath) {
+								// External package - use crate name directly
+								out.WriteString(crateName)
+							} else {
+								// Stdlib package - use normal transpilation
+								out.WriteString(ident.Name)
+							}
+							out.WriteString("::")
+							out.WriteString(ToSnakeCase(e.Sel.Name))
+							break
+						}
+					}
+					// If no mapping found but it's a known import, still use package syntax
+					if !isStdlibPackage(pkgPath) {
+						// External package without mapping - use sanitized name
+						out.WriteString(strings.ReplaceAll(strings.ReplaceAll(pkgPath, "/", "_"), ".", "_"))
+						out.WriteString("::")
+						out.WriteString(ToSnakeCase(e.Sel.Name))
+						break
+					}
+				}
+			}
+			// Default behavior for stdlib or unmapped packages
 			TranspileExpression(out, e.X)
 			out.WriteString("::")
 			out.WriteString(ToSnakeCase(e.Sel.Name))
@@ -1637,6 +1677,32 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 
 	// Check if this is a method call (selector expression)
 	if sel, ok := call.Fun.(*ast.SelectorExpr); ok {
+		// First check if this is a package function call
+		isPackageCall := false
+		if ident, ok := sel.X.(*ast.Ident); ok {
+			if _, isImport := goPackageImports[ident.Name]; isImport {
+				isPackageCall = true
+			}
+		}
+
+		if isPackageCall {
+			// This is a package function call, not a method call
+			// Just transpile the selector expression and add the arguments
+			TranspileExpression(out, sel)
+			out.WriteString("(")
+			for i, arg := range call.Args {
+				if i > 0 {
+					out.WriteString(", ")
+				}
+				// Wrap arguments in Rc<RefCell<Option<>>>
+				WriteWrapperPrefix(out)
+				TranspileExpression(out, arg)
+				out.WriteString(")))")
+			}
+			out.WriteString(")")
+			return
+		}
+
 		// This is a method call - handle it specially
 		// For method calls, we need to check if the receiver is a wrapped type or not
 		// If it's a struct variable, we call the method directly

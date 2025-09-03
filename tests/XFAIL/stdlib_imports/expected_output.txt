@@ -20,16 +20,16 @@ Max(10, 20): 20
 Min(10, 20): 10
 
 --- time package ---
-Current time: 2025-08-15 22:24:51
+Current time: 2025-09-03 17:55:03
 Duration: 5s
 Sleeping for 100ms...
 Done sleeping
 
 --- os package ---
 Hostname: Tylers-Air
-PATH length: 919 characters
+PATH length: 901 characters
 Working directory: /Users/tyler/Code/go2rust/tests/XFAIL/stdlib_imports
 
 --- Combined usage ---
-Timestamp: 1755311091
+Timestamp: 1756936503
 Hypotenuse of 3,4 triangle: 5.00

@@ -18,10 +18,10 @@ Initialized flag: true
 Computed value: 94
 
 Configuration data:
-  version: 1.0
-  author: go2rust
   build: debug
   target: rust
+  version: 1.0
+  author: go2rust
 
 App config: {Name:Go2Rust Transpiler Version:0.1.0 Debug:true}
 

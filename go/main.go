@@ -85,11 +85,13 @@ func showHelp() {
 	fmt.Printf("                             Modes:\n")
 	fmt.Printf("                               transpile - Recursively transpile all dependencies\n")
 	fmt.Printf("                               ffi       - Generate FFI bridge to Go libraries\n")
+	fmt.Printf("                               stub      - Generate stub implementations for manual completion\n")
 	fmt.Printf("                               none      - Error on external imports\n")
 	fmt.Printf("  -help                      Show this help message\n\n")
 	fmt.Printf("Examples:\n")
 	fmt.Printf("  %s main.go                                    # Transpile with default settings\n", os.Args[0])
 	fmt.Printf("  %s -external-packages=ffi ./cmd/myapp        # Use FFI for external packages\n", os.Args[0])
+	fmt.Printf("  %s -external-packages=stub mycode.go         # Generate stubs for external deps\n", os.Args[0])
 	fmt.Printf("  %s -external-packages=none simple.go         # Fail on external imports\n", os.Args[0])
 }
 

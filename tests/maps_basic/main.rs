@@ -32,42 +32,25 @@ where
 }
 
 fn main() {
-        // Create and initialize map
     let mut ages = Rc::new(RefCell::new(Some(HashMap::<String, Rc<RefCell<Option<i32>>>>::new())));
     (*ages.borrow_mut().as_mut().unwrap()).insert("Alice".to_string(), Rc::new(RefCell::new(Some(25))));
     (*ages.borrow_mut().as_mut().unwrap()).insert("Bob".to_string(), Rc::new(RefCell::new(Some(30))));
     (*ages.borrow_mut().as_mut().unwrap()).insert("Charlie".to_string(), Rc::new(RefCell::new(Some(35))));
-
     println!("{} {}", "Ages map:".to_string(), format_map(&ages));
-
-        // Map literal
     let mut colors = Rc::new(RefCell::new(Some(HashMap::<String, Rc<RefCell<Option<String>>>>::from([("red".to_string(), Rc::new(RefCell::new(Some("#FF0000".to_string())))), ("green".to_string(), Rc::new(RefCell::new(Some("#00FF00".to_string())))), ("blue".to_string(), Rc::new(RefCell::new(Some("#0000FF".to_string()))))]))));
-
     println!("{} {}", "Colors map:".to_string(), format_map(&colors));
-
-        // Check if key exists
     let (mut age, mut exists) = match (*ages.borrow().as_ref().unwrap()).get(&"Alice".to_string()) { /* MAP_COMMA_OK */ Some(v) => (v.clone(), Rc::new(RefCell::new(Some(true)))), None => (Rc::new(RefCell::new(Some(0))), Rc::new(RefCell::new(Some(false)))) };
     if (*exists.borrow_mut().as_mut().unwrap()) {
         println!("{} {}", "Alice's age:".to_string(), (*age.borrow_mut().as_mut().unwrap()));
     }
-
-        // Delete from map
     (*ages.borrow_mut().as_mut().unwrap()).remove(&"Bob".to_string());
     println!("{} {}", "After deleting Bob:".to_string(), format_map(&ages));
-
-        // Iterate over map in sorted order for deterministic output
     println!("{}", "All colors:".to_string());
-
-        // Collect all keys into a slice
     let mut keys: Rc<RefCell<Option<Vec<String>>>> = Rc::new(RefCell::new(Some(Default::default())));
     for (k, _) in (*colors.borrow().as_ref().unwrap()).clone() {
         {(*keys.borrow_mut().as_mut().unwrap()).push(k); keys.clone()};
     }
-
-        // Sort the keys
     (*keys.borrow_mut().as_mut().unwrap()).sort();
-
-        // Print in sorted order
     for k in &(*keys.borrow_mut().as_mut().unwrap()) {
         println!("{} {} {}", k, "->".to_string(), (*(*colors.borrow().as_ref().unwrap()).get(k).unwrap().borrow().as_ref().unwrap()));
     }

@@ -144,6 +144,37 @@ func ToSnakeCase(s string) string {
 	return resultStr
 }
 
+// SanitizeRustModuleName converts a string to a valid Rust module name
+func SanitizeRustModuleName(s string) string {
+	var result []byte
+	for i, r := range s {
+		// Replace hyphens and other invalid characters with underscores
+		if r == '-' || r == '.' || r == '/' || r == '\\' {
+			result = append(result, '_')
+		} else if i > 0 && isUpper(r) {
+			// Insert underscore before uppercase letters (camelCase -> snake_case)
+			result = append(result, '_')
+			result = append(result, toLower(r))
+		} else {
+			result = append(result, toLower(r))
+		}
+	}
+
+	// Escape Rust keywords
+	resultStr := string(result)
+	switch resultStr {
+	case "type", "match", "move", "ref", "impl", "trait", "mod", "pub", "use", "where", "async", "await", "dyn":
+		return "r#" + resultStr
+	}
+
+	// Ensure the name starts with a letter or underscore
+	if len(resultStr) > 0 && !((resultStr[0] >= 'a' && resultStr[0] <= 'z') || resultStr[0] == '_') {
+		resultStr = "_" + resultStr
+	}
+
+	return resultStr
+}
+
 func isUpper(r rune) bool {
 	return r >= 'A' && r <= 'Z'
 }

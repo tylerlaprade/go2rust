@@ -27,9 +27,9 @@ Byte 7: 世 (Unicode: U+4E16)
 Byte 10: 界 (Unicode: U+754C)
 
 === Range over map ===
+Alice is 25 years old
 Bob is 30 years old
 Charlie is 35 years old
-Alice is 25 years old
 Keys only:
 Alice Bob Charlie 
 

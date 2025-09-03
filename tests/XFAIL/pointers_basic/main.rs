@@ -1,4 +1,5 @@
 use std::cell::{RefCell};
+use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
 #[derive(Debug, Clone, Default)]
@@ -6,6 +7,13 @@ struct Point {
     x: Rc<RefCell<Option<i32>>>,
     y: Rc<RefCell<Option<i32>>>,
 }
+
+impl std::fmt::Display for Point {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{} {}}}", (*self.x.borrow().as_ref().unwrap()), (*self.y.borrow().as_ref().unwrap()))
+    }
+}
+
 
 fn main() {
         // Basic pointer operations

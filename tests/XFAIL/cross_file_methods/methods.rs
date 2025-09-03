@@ -21,7 +21,7 @@ impl Point {
     pub fn distance(&self, other: Rc<RefCell<Option<Point>>>) -> Rc<RefCell<Option<f64>>> {
         let mut dx = Rc::new(RefCell::new(Some((*self.x.clone().borrow().as_ref().unwrap()) - (*(*(*other.borrow().as_ref().unwrap()).x.borrow().as_ref().unwrap()).borrow().as_ref().unwrap()))));
         let mut dy = Rc::new(RefCell::new(Some((*self.y.clone().borrow().as_ref().unwrap()) - (*(*(*other.borrow().as_ref().unwrap()).y.borrow().as_ref().unwrap()).borrow().as_ref().unwrap()))));
-        return Rc::new(RefCell::new(Some((*math.borrow_mut().as_mut().unwrap()).sqrt(Rc::new(RefCell::new(Some((*dx.borrow_mut().as_mut().unwrap()) * (*dx.borrow_mut().as_mut().unwrap()) + (*dy.borrow_mut().as_mut().unwrap()) * (*dy.borrow_mut().as_mut().unwrap()))))))));
+        return Rc::new(RefCell::new(Some((*math.borrow_mut().as_mut().unwrap())::sqrt(Rc::new(RefCell::new(Some((*dx.borrow_mut().as_mut().unwrap()) * (*dx.borrow_mut().as_mut().unwrap()) + (*dy.borrow_mut().as_mut().unwrap()) * (*dy.borrow_mut().as_mut().unwrap()))))))));
     }
 
     pub fn r#move(&mut self, dx: Rc<RefCell<Option<f64>>>, dy: Rc<RefCell<Option<f64>>>) {

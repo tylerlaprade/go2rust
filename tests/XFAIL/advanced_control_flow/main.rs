@@ -35,20 +35,20 @@ fn main() {
         print!("Number {}: ", (*num.lock().unwrap().as_mut().unwrap()));
         match (*num.lock().unwrap().as_mut().unwrap()) {
         1 => {
-            (*fmt.lock().unwrap().as_mut().unwrap()).print(Arc::new(Mutex::new(Some("One".to_string()))));
+            (*fmt.lock().unwrap().as_mut().unwrap())::print(Arc::new(Mutex::new(Some("One".to_string()))));
             // TODO: fallthrough not supported
         }
         2 => {
-            (*fmt.lock().unwrap().as_mut().unwrap()).print(Arc::new(Mutex::new(Some(" Two-ish".to_string()))));
+            (*fmt.lock().unwrap().as_mut().unwrap())::print(Arc::new(Mutex::new(Some(" Two-ish".to_string()))));
         }
         3 => {
-            (*fmt.lock().unwrap().as_mut().unwrap()).print(Arc::new(Mutex::new(Some("Three".to_string()))));
+            (*fmt.lock().unwrap().as_mut().unwrap())::print(Arc::new(Mutex::new(Some("Three".to_string()))));
         }
         4 | 5 => {
-            (*fmt.lock().unwrap().as_mut().unwrap()).print(Arc::new(Mutex::new(Some(" Four-or-Five".to_string()))));
+            (*fmt.lock().unwrap().as_mut().unwrap())::print(Arc::new(Mutex::new(Some(" Four-or-Five".to_string()))));
         }
         _ => {
-            (*fmt.lock().unwrap().as_mut().unwrap()).print(Arc::new(Mutex::new(Some(" Other".to_string()))));
+            (*fmt.lock().unwrap().as_mut().unwrap())::print(Arc::new(Mutex::new(Some(" Other".to_string()))));
         }
     }
         println!();

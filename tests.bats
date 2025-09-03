@@ -80,7 +80,7 @@ run_transpile_and_compare() {
     
     # Transpile to Rust
     transpile_output=$(./go2rust "$test_dir" 2>&1)
-    if [ ! $? ]; then
+    if [ $? -ne 0 ]; then
         echo "Transpilation failed:"
         echo "$transpile_output" | sed "s/^/  /"
         return 1
@@ -565,6 +565,10 @@ run_xfail_test() {
 
 @test "XFAIL: external_packages" {
     run_xfail_test "tests/XFAIL/external_packages"
+}
+
+@test "XFAIL: external_simple" {
+    run_xfail_test "tests/XFAIL/external_simple"
 }
 
 @test "XFAIL: fallthrough_switch" {

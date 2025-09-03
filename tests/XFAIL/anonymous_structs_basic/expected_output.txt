@@ -6,5 +6,5 @@ Item 1: {ID: 2, Value: second}
 Event [info]: System started
 Event [warning]: Low memory
 Event [error]: Connection failed
-User alice: alice@example.com (admin: true)
 User bob: bob@example.com (admin: false)
+User alice: alice@example.com (admin: true)
