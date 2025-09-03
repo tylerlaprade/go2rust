@@ -3,7 +3,7 @@
 The last Go program you'll ever need!
 
 <p align="center">
-  <img alt="gopher2ferris" src="https://cdn.discordapp.com/attachments/1152615158179451083/1412290769058009139/Go2rust.png?ex=68b86a86&is=68b71906&hm=8cf4f5cec6e36a4e90936a3aa2fa1178338740bb4ed39e009551cfaf0b65647d&" /></a>
+  <img alt="gopher2ferris" src="gopher2ferris.png" /></a>
     <i>Artwork by <a href="https://linktr.ee/bwh.art">Bonnie Hansen</a></i>
 </p>
 

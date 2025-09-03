@@ -2,8 +2,6 @@
 
 This directory contains all transpiler tests. Each directory containing a `main.go` file is a test case.
 
-For the comprehensive test organization strategy and future test planning, see [TEST_ORGANIZATION.md](TEST_ORGANIZATION.md).
-
 ## Test Structure
 
 ### Working tests
@@ -109,12 +107,3 @@ brew install bats-core  # macOS
 ./test.sh
 bats tests.bats --filter "hello_world"
 ```
-
-## Test Organization
-
-See [TEST_ORGANIZATION.md](TEST_ORGANIZATION.md) for:
-
-- Comprehensive test categorization strategy
-- Coverage tracking approach
-- Naming conventions
-- Future test planning
