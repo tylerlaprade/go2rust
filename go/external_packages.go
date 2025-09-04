@@ -108,7 +108,7 @@ func (h *ExternalPackageHandler) updateCargoWorkspace() error {
 	// Add external packages as workspace members
 	for pkg := range h.packageMapping {
 		crateName := h.packageMapping[pkg]
-		workspaceSection += fmt.Sprintf("    \"vendor/%s\",\n", crateName)
+		workspaceSection += fmt.Sprintf("    \"external_stubs/%s\",\n", crateName)
 	}
 	workspaceSection += "]\n\n"
 
@@ -116,7 +116,7 @@ func (h *ExternalPackageHandler) updateCargoWorkspace() error {
 	depsSection := "[dependencies]\n"
 	for pkg := range h.packageMapping {
 		crateName := h.packageMapping[pkg]
-		depsSection += fmt.Sprintf("%s = { path = \"vendor/%s\" }\n", crateName, crateName)
+		depsSection += fmt.Sprintf("%s = { path = \"external_stubs/%s\" }\n", crateName, crateName)
 	}
 
 	// Combine workspace section with existing package configuration

@@ -78,8 +78,22 @@ run_transpile_and_compare() {
     local test_dir="$1"
     local go_output="$2"
     
+    # Check for test-specific configuration
+    local external_mode=""
+    if [ -f "$test_dir/.go2rust.toml" ]; then
+        # Simple parsing - just look for external_packages line
+        external_mode=$(grep "^external_packages" "$test_dir/.go2rust.toml" | cut -d'"' -f2)
+    fi
+    
+    # Build transpile command with appropriate flags
+    local transpile_cmd="./go2rust"
+    if [ -n "$external_mode" ]; then
+        transpile_cmd="$transpile_cmd --external-packages=$external_mode"
+    fi
+    transpile_cmd="$transpile_cmd \"$test_dir\""
+    
     # Transpile to Rust
-    transpile_output=$(./go2rust "$test_dir" 2>&1)
+    transpile_output=$(eval $transpile_cmd 2>&1)
     if [ $? -ne 0 ]; then
         echo "Transpilation failed:"
         echo "$transpile_output" | sed "s/^/  /"
@@ -305,6 +319,10 @@ run_xfail_test() {
 
 @test "error_simple" {
     run_test "tests/error_simple"
+}
+
+@test "external_simple" {
+    run_test "tests/external_simple"
 }
 
 @test "fmt_println" {
@@ -565,10 +583,6 @@ run_xfail_test() {
 
 @test "XFAIL: external_packages" {
     run_xfail_test "tests/XFAIL/external_packages"
-}
-
-@test "XFAIL: external_simple" {
-    run_xfail_test "tests/XFAIL/external_simple"
 }
 
 @test "XFAIL: fallthrough_switch" {

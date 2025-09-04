@@ -179,7 +179,7 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 		if err != nil {
 			// This is expected with stubs - external types won't be available
 			fmt.Fprintf(os.Stderr, "Note: Type checking incomplete (external packages are stubs): %v\n", err)
-			fmt.Fprintf(os.Stderr, "You will need to implement the stub packages in vendor/\n")
+			fmt.Fprintf(os.Stderr, "You will need to implement the stub packages in external_stubs/\n")
 		}
 		pg.typeInfo = typeInfo
 		SetTypeInfo(typeInfo)
@@ -440,7 +440,7 @@ path = "main.rs"
 	if len(pg.packageMapping) > 0 {
 		workspaceSection := "\n[workspace]\nmembers = [\n    \".\",\n"
 		for _, crateName := range pg.packageMapping {
-			workspaceSection += fmt.Sprintf("    \"vendor/%s\",\n", crateName)
+			workspaceSection += fmt.Sprintf("    \"external_stubs/%s\",\n", crateName)
 		}
 		workspaceSection += "]\n"
 		cargoContent = workspaceSection + "\n" + cargoContent
@@ -454,7 +454,7 @@ path = "main.rs"
 		}
 		// Add external package dependencies
 		for _, crateName := range pg.packageMapping {
-			cargoContent += fmt.Sprintf("%s = { path = \"vendor/%s\" }\n", crateName, crateName)
+			cargoContent += fmt.Sprintf("%s = { path = \"external_stubs/%s\" }\n", crateName, crateName)
 		}
 	}
 

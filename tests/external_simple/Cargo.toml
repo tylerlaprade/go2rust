@@ -2,7 +2,7 @@
 [workspace]
 members = [
     ".",
-    "vendor/github_com_shopspring_decimal",
+    "external_stubs/github_com_shopspring_decimal",
 ]
 
 [package]
@@ -15,4 +15,4 @@ name = "external_simple"
 path = "main.rs"
 
 [dependencies]
-github_com_shopspring_decimal = { path = "vendor/github_com_shopspring_decimal" }
+github_com_shopspring_decimal = { path = "external_stubs/github_com_shopspring_decimal" }

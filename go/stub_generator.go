@@ -71,10 +71,10 @@ func (sg *StubGenerator) generateStub(importPath, pkgName string) error {
 	crateName := sg.goPathToRustCrate(importPath)
 	sg.packageMapping[importPath] = crateName
 
-	// Create vendor directory
-	vendorDir := filepath.Join(sg.projectPath, "vendor")
+	// Create external_stubs directory
+	vendorDir := filepath.Join(sg.projectPath, "external_stubs")
 	if err := os.MkdirAll(vendorDir, 0755); err != nil {
-		return fmt.Errorf("failed to create vendor directory: %v", err)
+		return fmt.Errorf("failed to create external_stubs directory: %v", err)
 	}
 
 	// Create package directory
@@ -83,11 +83,16 @@ func (sg *StubGenerator) generateStub(importPath, pkgName string) error {
 		return fmt.Errorf("failed to create package directory: %v", err)
 	}
 
-	// Generate lib.rs with TODO comments
+	// Generate lib.rs with TODO comments (only if it doesn't exist)
 	libRsPath := filepath.Join(pkgDir, "lib.rs")
-	libRsContent := sg.generateLibRsContent(importPath, pkgName)
-	if err := os.WriteFile(libRsPath, []byte(libRsContent), 0644); err != nil {
-		return fmt.Errorf("failed to write lib.rs: %v", err)
+	if _, err := os.Stat(libRsPath); os.IsNotExist(err) {
+		libRsContent := sg.generateLibRsContent(importPath, pkgName)
+		if err := os.WriteFile(libRsPath, []byte(libRsContent), 0644); err != nil {
+			return fmt.Errorf("failed to write lib.rs: %v", err)
+		}
+		fmt.Fprintf(os.Stderr, "Generated NEW stub for %s at external_stubs/%s/\n", importPath, crateName)
+	} else {
+		fmt.Fprintf(os.Stderr, "Using existing stub for %s at external_stubs/%s/\n", importPath, crateName)
 	}
 
 	// Generate Cargo.toml
@@ -110,7 +115,6 @@ path = "lib.rs"
 	}
 
 	sg.generatedStubs[importPath] = true
-	fmt.Fprintf(os.Stderr, "Generated stub for %s at vendor/%s/\n", importPath, crateName)
 	return nil
 }
 

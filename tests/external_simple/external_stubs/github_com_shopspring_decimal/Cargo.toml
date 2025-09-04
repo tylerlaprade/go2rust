@@ -6,3 +6,6 @@ edition = "2021"
 [lib]
 name = "github_com_shopspring_decimal"
 path = "lib.rs"
+
+[dependencies]
+# TODO: Add any Rust dependencies needed for this package implementation
