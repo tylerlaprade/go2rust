@@ -1,0 +1,11 @@
+[package]
+name = "github_com_stretchr_testify_assert"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "github_com_stretchr_testify_assert"
+path = "lib.rs"
+
+[dependencies]
+# TODO: Add any Rust dependencies needed for this package implementation
