@@ -465,6 +465,10 @@ run_xfail_test() {
     run_test "tests/select_basic"
 }
 
+@test "shared_mutation" {
+    run_test "tests/shared_mutation"
+}
+
 @test "simple_embedding" {
     run_test "tests/simple_embedding"
 }
@@ -711,10 +715,6 @@ run_xfail_test() {
 
 @test "XFAIL: select_statements" {
     run_xfail_test "tests/XFAIL/select_statements"
-}
-
-@test "XFAIL: shared_mutation" {
-    run_xfail_test "tests/XFAIL/shared_mutation"
 }
 
 @test "XFAIL: slice_operations_advanced" {

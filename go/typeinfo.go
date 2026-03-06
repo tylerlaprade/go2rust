@@ -55,6 +55,25 @@ func (ti *TypeInfo) GetType(expr ast.Expr) types.Type {
 	return nil
 }
 
+// IsPointer returns true if the expression has a pointer type
+func (ti *TypeInfo) IsPointer(expr ast.Expr) bool {
+	typ := ti.GetType(expr)
+	if typ == nil {
+		return false
+	}
+	_, ok := typ.Underlying().(*types.Pointer)
+	return ok
+}
+
+// rhsIsPointerType checks if a RHS expression in an assignment has pointer type
+func rhsIsPointerType(expr ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	return typeInfo.IsPointer(expr)
+}
+
 // IsMap returns true if the expression is a map type
 func (ti *TypeInfo) IsMap(expr ast.Expr) bool {
 	typ := ti.GetType(expr)

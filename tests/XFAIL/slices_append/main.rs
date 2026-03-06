@@ -22,7 +22,7 @@ fn main() {
     println!("{} {}", "slice:".to_string(), format_slice(&s));
 
     let mut c = Rc::new(RefCell::new(Some(vec!["".to_string(); (*s.borrow().as_ref().unwrap()).len()])));
-    copy(c.clone(), s.clone());
+    { let _src = ((*s.borrow_mut().as_mut().unwrap())).clone(); let _n = std::cmp::min(((*c.borrow_mut().as_mut().unwrap())).len(), _src.len()); for _i in 0.._n { (*(*c.borrow_mut().as_mut().unwrap()))[_i] = _src[_i].clone(); } Rc::new(RefCell::new(Some(_n as i32))) };
     println!("{} {}", "copy:".to_string(), format_slice(&c));
 
     let mut l = Rc::new(RefCell::new(Some((*s.borrow().as_ref().unwrap())[2 as usize..5 as usize].to_vec())));

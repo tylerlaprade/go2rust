@@ -5,7 +5,7 @@ fn main() {
         // Even simpler: mutation through aliasing
     let mut x = Rc::new(RefCell::new(Some(10)));
     let mut y = x.clone();
-    let mut z = Rc::new(RefCell::new(Some((*y.borrow_mut().as_mut().unwrap()))));
+    let mut z = y.clone();
 
     { let new_val = 20; *y.borrow_mut() = Some(new_val); };
     { let new_val = 30; *z.borrow_mut() = Some(new_val); };

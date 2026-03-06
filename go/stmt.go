@@ -1170,6 +1170,11 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									} else if _, isSliceExpr := rhs.(*ast.SliceExpr); isSliceExpr {
 										// Slice expressions already return wrapped values
 										TranspileExpression(out, rhs)
+									} else if rhsIsPointerType(rhs) {
+										// RHS is a pointer-typed variable (e.g., z := y where y is *int)
+										// Clone the Rc to preserve aliasing instead of copying the inner value
+										TranspileExpressionContext(out, rhs, AddressOf)
+										out.WriteString(".clone()")
 									} else {
 										// Wrap new variables
 										WriteWrapperPrefix(out)

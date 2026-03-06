@@ -39,7 +39,7 @@ fn main() {
     println!("{} {}", "Modified point:".to_string(), (*point.borrow_mut().as_mut().unwrap()));
 
         // Pointer aliasing
-    let mut q = Rc::new(RefCell::new(Some((*p.borrow_mut().as_mut().unwrap()))));
+    let mut q = p.clone();
     { let new_val = 200; *q.borrow_mut() = Some(new_val); };
     println!("{} {}", "x after modifying through q:".to_string(), (*x.borrow_mut().as_mut().unwrap()));
 
