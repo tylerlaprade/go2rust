@@ -2268,6 +2268,9 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 			} else if _, isFuncLit := arg.(*ast.FuncLit); isFuncLit {
 				// Function literal - already wraps itself
 				TranspileExpression(out, arg)
+			} else if _, isSliceExpr := arg.(*ast.SliceExpr); isSliceExpr {
+				// Slice expressions already wrap themselves
+				TranspileExpression(out, arg)
 			} else {
 				// Not a simple identifier or function literal, wrap it
 				WriteWrapperPrefix(out)
