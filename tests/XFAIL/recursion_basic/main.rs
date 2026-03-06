@@ -82,7 +82,7 @@ pub fn reverse_string(s: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<Strin
     if (*s.borrow().as_ref().unwrap()).len() <= 1 {
         return s.clone();
     }
-    return Rc::new(RefCell::new(Some((*reverse_string(Rc::new(RefCell::new(Some(Rc::new(RefCell::new(Some((*s.borrow().as_ref().unwrap())[1 as usize..].to_vec()))))))).borrow().as_ref().unwrap()) + Rc::new(RefCell::new(Some((*(*(*s.borrow().as_ref().unwrap()).borrow().as_ref().unwrap()).as_bytes()[0 as usize].borrow().as_ref().unwrap()).to_string()))))));
+    return Rc::new(RefCell::new(Some((*reverse_string(Rc::new(RefCell::new(Some(Rc::new(RefCell::new(Some((*s.borrow().as_ref().unwrap())[1 as usize..].to_vec()))))))).borrow().as_ref().unwrap()) + Rc::new(RefCell::new(Some((*(*s.borrow().as_ref().unwrap()).as_bytes()[0 as usize].borrow().as_ref().unwrap()).to_string()))))));
 }
 
 fn main() {

@@ -23,8 +23,8 @@ fn main() {
     print!("Length: {}\n", (*str.lock().unwrap().as_ref().unwrap()).len());
 
         // String indexing and slicing
-    print!("First character: {}\n", (*(*str.lock().unwrap().as_ref().unwrap()).lock().unwrap().as_ref().unwrap()).as_bytes()[0 as usize]);
-    print!("Last character: {}\n", (*(*str.lock().unwrap().as_ref().unwrap()).lock().unwrap().as_ref().unwrap()).as_bytes()[(*str.lock().unwrap().as_ref().unwrap()).len() - 1 as usize]);
+    print!("First character: {}\n", (*str.lock().unwrap().as_ref().unwrap()).as_bytes()[0 as usize]);
+    print!("Last character: {}\n", (*str.lock().unwrap().as_ref().unwrap()).as_bytes()[(*str.lock().unwrap().as_ref().unwrap()).len() - 1 as usize]);
     print!("Substring [0:5]: {}\n", Arc::new(Mutex::new(Some((*str.lock().unwrap().as_ref().unwrap())[0 as usize..5 as usize].to_vec()))));
     print!("Substring [7:]: {}\n", Arc::new(Mutex::new(Some((*str.lock().unwrap().as_ref().unwrap())[7 as usize..].to_vec()))));
 

@@ -86,14 +86,14 @@ fn main() {
     println!("{}", "=== Nested loops with labels ===".to_string());
 
     let mut i = Arc::new(Mutex::new(Some(1)));
-    'outer: while (*i.lock().unwrap().as_mut().unwrap()) <= 3 {
+    'outer: while (*i.lock().unwrap().as_ref().unwrap()) <= 3 {
         let mut j = Arc::new(Mutex::new(Some(1)));
-    while (*j.lock().unwrap().as_mut().unwrap()) <= 3 {
-        if (*i.lock().unwrap().as_mut().unwrap()) == 2 && (*j.lock().unwrap().as_mut().unwrap()) == 2 {
-        print!("Breaking outer loop at i={}, j={}\n", (*i.lock().unwrap().as_mut().unwrap()), (*j.lock().unwrap().as_mut().unwrap()));
+    while (*j.lock().unwrap().as_ref().unwrap()) <= 3 {
+        if (*i.lock().unwrap().as_ref().unwrap()) == 2 && (*j.lock().unwrap().as_ref().unwrap()) == 2 {
+        print!("Breaking outer loop at i={}, j={}\n", (*i.lock().unwrap().as_ref().unwrap()), (*j.lock().unwrap().as_ref().unwrap()));
         break 'outer
     }
-        print!("i={}, j={}\n", (*i.lock().unwrap().as_mut().unwrap()), (*j.lock().unwrap().as_mut().unwrap()));
+        print!("i={}, j={}\n", (*i.lock().unwrap().as_ref().unwrap()), (*j.lock().unwrap().as_ref().unwrap()));
         { let mut guard = j.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
@@ -103,14 +103,14 @@ fn main() {
     println!("{}", "\n=== Continue with labels ===".to_string());
 
     let mut i = Arc::new(Mutex::new(Some(1)));
-    'outer_continue: while (*i.lock().unwrap().as_mut().unwrap()) <= 3 {
+    'outer_continue: while (*i.lock().unwrap().as_ref().unwrap()) <= 3 {
         let mut j = Arc::new(Mutex::new(Some(1)));
-    while (*j.lock().unwrap().as_mut().unwrap()) <= 3 {
-        if (*j.lock().unwrap().as_mut().unwrap()) == 2 {
-        print!("Continuing outer loop at i={}, j={}\n", (*i.lock().unwrap().as_mut().unwrap()), (*j.lock().unwrap().as_mut().unwrap()));
+    while (*j.lock().unwrap().as_ref().unwrap()) <= 3 {
+        if (*j.lock().unwrap().as_ref().unwrap()) == 2 {
+        print!("Continuing outer loop at i={}, j={}\n", (*i.lock().unwrap().as_ref().unwrap()), (*j.lock().unwrap().as_ref().unwrap()));
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }; continue 'outer_continue
     }
-        print!("i={}, j={}\n", (*i.lock().unwrap().as_mut().unwrap()), (*j.lock().unwrap().as_mut().unwrap()));
+        print!("i={}, j={}\n", (*i.lock().unwrap().as_ref().unwrap()), (*j.lock().unwrap().as_ref().unwrap()));
         { let mut guard = j.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
@@ -120,9 +120,9 @@ fn main() {
     println!("{}", "\n=== Complex switch with fallthrough ===".to_string());
 
     let mut num = Arc::new(Mutex::new(Some(1)));
-    while (*num.lock().unwrap().as_mut().unwrap()) <= 5 {
-        print!("Number {}: ", (*num.lock().unwrap().as_mut().unwrap()));
-        match (*num.lock().unwrap().as_mut().unwrap()) {
+    while (*num.lock().unwrap().as_ref().unwrap()) <= 5 {
+        print!("Number {}: ", (*num.lock().unwrap().as_ref().unwrap()));
+        match (*num.lock().unwrap().as_ref().unwrap()) {
         1 => {
             print!("{}", "One".to_string());
             // TODO: fallthrough not supported
@@ -148,14 +148,14 @@ fn main() {
     println!("{}", "\n=== Nested switch statements ===".to_string());
 
     let mut category = Arc::new(Mutex::new(Some(1)));
-    while (*category.lock().unwrap().as_mut().unwrap()) <= 2 {
+    while (*category.lock().unwrap().as_ref().unwrap()) <= 2 {
         let mut item = Arc::new(Mutex::new(Some(1)));
-    while (*item.lock().unwrap().as_mut().unwrap()) <= 2 {
-        print!("Category {}, Item {}: ", (*category.lock().unwrap().as_mut().unwrap()), (*item.lock().unwrap().as_mut().unwrap()));
+    while (*item.lock().unwrap().as_ref().unwrap()) <= 2 {
+        print!("Category {}, Item {}: ", (*category.lock().unwrap().as_ref().unwrap()), (*item.lock().unwrap().as_ref().unwrap()));
 
-        match (*category.lock().unwrap().as_mut().unwrap()) {
+        match (*category.lock().unwrap().as_ref().unwrap()) {
         1 => {
-            match (*item.lock().unwrap().as_mut().unwrap()) {
+            match (*item.lock().unwrap().as_ref().unwrap()) {
         1 => {
             println!("{}", "Electronics - Phone".to_string());
         }
@@ -166,7 +166,7 @@ fn main() {
     }
         }
         2 => {
-            match (*item.lock().unwrap().as_mut().unwrap()) {
+            match (*item.lock().unwrap().as_ref().unwrap()) {
         1 => {
             println!("{}", "Books - Fiction".to_string());
         }
@@ -188,21 +188,21 @@ fn main() {
 
         // Multiple variables in for loop
     let (mut i, mut j) = (Arc::new(Mutex::new(Some(0))), Arc::new(Mutex::new(Some(10))));
-    while (*i.lock().unwrap().as_mut().unwrap()) < (*j.lock().unwrap().as_mut().unwrap()) {
-        print!("i={}, j={}, sum={}\n", (*i.lock().unwrap().as_mut().unwrap()), (*j.lock().unwrap().as_mut().unwrap()), (*i.lock().unwrap().as_mut().unwrap()) + (*j.lock().unwrap().as_mut().unwrap()));
-        if (*i.lock().unwrap().as_mut().unwrap()) >= 3 {
+    while (*i.lock().unwrap().as_ref().unwrap()) < (*j.lock().unwrap().as_ref().unwrap()) {
+        print!("i={}, j={}, sum={}\n", (*i.lock().unwrap().as_ref().unwrap()), (*j.lock().unwrap().as_ref().unwrap()), (*i.lock().unwrap().as_ref().unwrap()) + (*j.lock().unwrap().as_ref().unwrap()));
+        if (*i.lock().unwrap().as_ref().unwrap()) >= 3 {
         break
     }
-        { *(*i.lock().unwrap().as_mut().unwrap()).lock().unwrap() = Some((*i.lock().unwrap().as_mut().unwrap()) + 1); *(*j.lock().unwrap().as_mut().unwrap()).lock().unwrap() = Some((*j.lock().unwrap().as_mut().unwrap()) - 1) };
+        { *(*i.lock().unwrap().as_ref().unwrap()).lock().unwrap() = Some((*i.lock().unwrap().as_ref().unwrap()) + 1); *(*j.lock().unwrap().as_ref().unwrap()).lock().unwrap() = Some((*j.lock().unwrap().as_ref().unwrap()) - 1) };
     }
 
         // For loop with complex condition
     println!("{}", "\n=== For loop with complex condition ===".to_string());
 
     let (mut x, mut y) = (Arc::new(Mutex::new(Some(1))), Arc::new(Mutex::new(Some(1))));
-    while (*x.lock().unwrap().as_mut().unwrap()) * (*y.lock().unwrap().as_mut().unwrap()) < 100 && (*x.lock().unwrap().as_mut().unwrap()) < 10 {
-        print!("x={}, y={}, product={}\n", (*x.lock().unwrap().as_mut().unwrap()), (*y.lock().unwrap().as_mut().unwrap()), (*x.lock().unwrap().as_mut().unwrap()) * (*y.lock().unwrap().as_mut().unwrap()));
-        if (*x.lock().unwrap().as_mut().unwrap()) % 2 == 0 {
+    while (*x.lock().unwrap().as_ref().unwrap()) * (*y.lock().unwrap().as_ref().unwrap()) < 100 && (*x.lock().unwrap().as_ref().unwrap()) < 10 {
+        print!("x={}, y={}, product={}\n", (*x.lock().unwrap().as_ref().unwrap()), (*y.lock().unwrap().as_ref().unwrap()), (*x.lock().unwrap().as_ref().unwrap()) * (*y.lock().unwrap().as_ref().unwrap()));
+        if (*x.lock().unwrap().as_ref().unwrap()) % 2 == 0 {
         { let mut guard = y.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 2); };
     } else {
         { let mut guard = y.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); };
@@ -216,9 +216,9 @@ fn main() {
     let mut counter = Arc::new(Mutex::new(Some(0)));
 
     { let mut guard = counter.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
-    print!("Counter: {}\n", (*counter.lock().unwrap().as_mut().unwrap()));
+    print!("Counter: {}\n", (*counter.lock().unwrap().as_ref().unwrap()));
 
-    if (*counter.lock().unwrap().as_mut().unwrap()) < 3 {
+    if (*counter.lock().unwrap().as_ref().unwrap()) < 3 {
         // TODO: goto not supported
     }
 
@@ -228,28 +228,28 @@ fn main() {
     println!("{}", "\n=== Complex if-else chains ===".to_string());
 
     let mut score = Arc::new(Mutex::new(Some(0)));
-    while (*score.lock().unwrap().as_mut().unwrap()) <= 100 {
+    while (*score.lock().unwrap().as_ref().unwrap()) <= 100 {
         let mut grade: Arc<Mutex<Option<String>>> = String::new();
         let mut message: Arc<Mutex<Option<String>>> = String::new();
 
-        if (*score.lock().unwrap().as_mut().unwrap()) >= 90 {
+        if (*score.lock().unwrap().as_ref().unwrap()) >= 90 {
         { let new_val = "A".to_string(); *grade.lock().unwrap() = Some(new_val); };
-        if (*score.lock().unwrap().as_mut().unwrap()) >= 95 {
+        if (*score.lock().unwrap().as_ref().unwrap()) >= 95 {
         { let new_val = "Excellent!".to_string(); *message.lock().unwrap() = Some(new_val); };
     } else {
         { let new_val = "Great job!".to_string(); *message.lock().unwrap() = Some(new_val); };
     }
-    } else if (*score.lock().unwrap().as_mut().unwrap()) >= 80 {
+    } else if (*score.lock().unwrap().as_ref().unwrap()) >= 80 {
         { let new_val = "B".to_string(); *grade.lock().unwrap() = Some(new_val); };
-        if (*score.lock().unwrap().as_mut().unwrap()) >= 85 {
+        if (*score.lock().unwrap().as_ref().unwrap()) >= 85 {
         { let new_val = "Good work!".to_string(); *message.lock().unwrap() = Some(new_val); };
     } else {
         { let new_val = "Not bad!".to_string(); *message.lock().unwrap() = Some(new_val); };
     }
-    } else if (*score.lock().unwrap().as_mut().unwrap()) >= 70 {
+    } else if (*score.lock().unwrap().as_ref().unwrap()) >= 70 {
         { let new_val = "C".to_string(); *grade.lock().unwrap() = Some(new_val); };
         { let new_val = "Average".to_string(); *message.lock().unwrap() = Some(new_val); };
-    } else if (*score.lock().unwrap().as_mut().unwrap()) >= 60 {
+    } else if (*score.lock().unwrap().as_ref().unwrap()) >= 60 {
         { let new_val = "D".to_string(); *grade.lock().unwrap() = Some(new_val); };
         { let new_val = "Below average".to_string(); *message.lock().unwrap() = Some(new_val); };
     } else {
@@ -257,7 +257,7 @@ fn main() {
         { let new_val = "Needs improvement".to_string(); *message.lock().unwrap() = Some(new_val); };
     }
 
-        print!("Score {}: Grade {} - {}\n", (*score.lock().unwrap().as_mut().unwrap()), (*grade.lock().unwrap().as_mut().unwrap()), (*message.lock().unwrap().as_mut().unwrap()));
+        print!("Score {}: Grade {} - {}\n", (*score.lock().unwrap().as_ref().unwrap()), (*grade.lock().unwrap().as_ref().unwrap()), (*message.lock().unwrap().as_ref().unwrap()));
         { let mut guard = score.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 25); };
     }
 
@@ -267,7 +267,7 @@ fn main() {
     let mut numbers = Arc::new(Mutex::new(Some(vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10])));
 
     println!("{}", "Processing numbers:".to_string());
-    for (i, num) in (*numbers.lock().unwrap().as_mut().unwrap()).iter().copied().enumerate() {
+    for (i, num) in (*numbers.lock().unwrap().as_ref().unwrap()).iter().copied().enumerate() {
         if num % 2 == 0 {
         if num > 6 {
         print!("Stopping at even number {} (index {})\n", num, i);
@@ -288,7 +288,7 @@ fn main() {
 
     let mut matrix = Arc::new(Mutex::new(Some(vec![Arc::new(Mutex::new(Some(vec!["a".to_string(), "b".to_string(), "c".to_string()]))), Arc::new(Mutex::new(Some(vec!["d".to_string(), "e".to_string(), "f".to_string()]))), Arc::new(Mutex::new(Some(vec!["g".to_string(), "h".to_string(), "i".to_string()])))])));
 
-    for (rowIdx, row) in (*matrix.lock().unwrap().as_mut().unwrap()).iter().enumerate() {
+    for (rowIdx, row) in (*matrix.lock().unwrap().as_ref().unwrap()).iter().enumerate() {
         for (colIdx, cell) in row.iter().copied().enumerate() {
         if cell == "e".to_string() {
         print!("Found center at [{}][{}]: {}\n", rowIdx, colIdx, cell);
@@ -322,17 +322,17 @@ fn main() {
         loop {
         if let Some(val) = ch1_thread.try_recv() {
             let mut val = Arc::new(Mutex::new(Some(val)));
-            print!("Received int: {}\n", (*val.lock().unwrap().as_mut().unwrap()));
+            print!("Received int: {}\n", (*val.lock().unwrap().as_ref().unwrap()));
             { let mut guard = count.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
             break;
         }
         if let Some(val) = ch2_thread.try_recv() {
             let mut val = Arc::new(Mutex::new(Some(val)));
-            print!("Received string: {}\n", (*val.lock().unwrap().as_mut().unwrap()));
+            print!("Received string: {}\n", (*val.lock().unwrap().as_ref().unwrap()));
             { let mut guard = count.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
             break;
         }
-        if (*count.lock().unwrap().as_mut().unwrap()) >= 4 {
+        if (*count.lock().unwrap().as_ref().unwrap()) >= 4 {
         done_thread.send(true);
         return;
     }
@@ -351,7 +351,7 @@ fn main() {
         if (*data.lock().unwrap().as_ref().unwrap()).len() == 0 {
         return Arc::new(Mutex::new(Some(Box::new(format!("empty data")) as Box<dyn Error + Send + Sync>)));
     }
-        for (i, val) in (*data.lock().unwrap().as_mut().unwrap()).iter().copied().enumerate() {
+        for (i, val) in (*data.lock().unwrap().as_ref().unwrap()).iter().copied().enumerate() {
         if val < 0 {
         return Arc::new(Mutex::new(Some(Box::new(format!("negative value at index {}: {}", i, val)) as Box<dyn Error + Send + Sync>)));
     }
@@ -364,7 +364,7 @@ fn main() {
 
     let mut testData = Arc::new(Mutex::new(Some(vec![Arc::new(Mutex::new(Some(vec![1, 2, 3]))), Arc::new(Mutex::new(Some(vec![]))), Arc::new(Mutex::new(Some(vec![1, -2, 3]))), Arc::new(Mutex::new(Some(vec![1, 200, 3]))), Arc::new(Mutex::new(Some(vec![10, 20, 30])))])));
 
-    for (i, data) in (*testData.lock().unwrap().as_mut().unwrap()).iter().enumerate() {
+    for (i, data) in (*testData.lock().unwrap().as_ref().unwrap()).iter().enumerate() {
         print!("Testing dataset {}: {}\n", i + 1, format_slice(&data));
         let mut err = (*processData.lock().unwrap().as_ref().unwrap())(Arc::new(Mutex::new(Some(*data))));
     if (*err.lock().unwrap()).is_some() {

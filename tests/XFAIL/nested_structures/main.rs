@@ -173,10 +173,10 @@ fn main() {
     let mut employee2 = Rc::new(RefCell::new(Some(Person { name: Rc::new(RefCell::new(Some("Carol Worker".to_string()))), age: Rc::new(RefCell::new(Some(28))), address: emp2Addr.clone(), contact: emp2Contact.clone() })));
 
         // Create department
-    let mut engineering = Rc::new(RefCell::new(Some(Department { name: Rc::new(RefCell::new(Some("Engineering".to_string()))), manager: manager.clone(), employees: Rc::new(RefCell::new(Some(Rc::new(RefCell::new(Some(vec![(*employee1.borrow_mut().as_mut().unwrap()), (*employee2.borrow_mut().as_mut().unwrap())])))))), budget: Rc::new(RefCell::new(Some(1000000.0))) })));
+    let mut engineering = Rc::new(RefCell::new(Some(Department { name: Rc::new(RefCell::new(Some("Engineering".to_string()))), manager: manager.clone(), employees: Rc::new(RefCell::new(Some(Rc::new(RefCell::new(Some(vec![(*employee1.borrow().as_ref().unwrap()), (*employee2.borrow().as_ref().unwrap())])))))), budget: Rc::new(RefCell::new(Some(1000000.0))) })));
 
         // Create company
-    let mut company = Rc::new(RefCell::new(Some(Company { name: Rc::new(RefCell::new(Some("TechCorp Inc".to_string()))), departments: Rc::new(RefCell::new(Some(Rc::new(RefCell::new(Some(vec![(*engineering.borrow_mut().as_mut().unwrap())])))))), headquarters: hq.clone() })));
+    let mut company = Rc::new(RefCell::new(Some(Company { name: Rc::new(RefCell::new(Some("TechCorp Inc".to_string()))), departments: Rc::new(RefCell::new(Some(Rc::new(RefCell::new(Some(vec![(*engineering.borrow().as_ref().unwrap())])))))), headquarters: hq.clone() })));
 
         // Access nested data
     println!("{}", "\n=== Accessing nested data ===".to_string());
@@ -221,7 +221,7 @@ fn main() {
 
         // Access nested map values
     let mut laptopCount = Rc::new(RefCell::new(Some((*(*(*(*inventory.borrow().as_ref().unwrap()).get(&"electronics".to_string()).unwrap().borrow().as_ref().unwrap()).borrow().as_ref().unwrap()).get(&"laptops".to_string()).unwrap().borrow().as_ref().unwrap()))));
-    print!("Laptop count: {}\n", (*laptopCount.borrow_mut().as_mut().unwrap()));
+    print!("Laptop count: {}\n", (*laptopCount.borrow().as_ref().unwrap()));
 
         // Nested slices
     println!("{}", "\n=== Nested slices ===".to_string());
@@ -230,7 +230,7 @@ fn main() {
     let mut matrix = Rc::new(RefCell::new(Some(vec![Rc::new(RefCell::new(Some(vec![1, 2, 3]))), Rc::new(RefCell::new(Some(vec![4, 5, 6]))), Rc::new(RefCell::new(Some(vec![7, 8, 9])))])));
 
     println!("{}", "Matrix:".to_string());
-    for (i, row) in (*matrix.borrow_mut().as_mut().unwrap()).iter().enumerate() {
+    for (i, row) in (*matrix.borrow().as_ref().unwrap()).iter().enumerate() {
         print!("Row {}: ", i);
         for (j, val) in row.iter().copied().enumerate() {
         print!("{} ", val);
@@ -243,13 +243,13 @@ fn main() {
 
         // Access nested slice elements
     let mut centerElement = Rc::new(RefCell::new(Some((*(*matrix.borrow().as_ref().unwrap())[1 as usize].clone().borrow().as_ref().unwrap())[1 as usize].clone())));
-    print!("Center element: {}\n", (*centerElement.borrow_mut().as_mut().unwrap()));
+    print!("Center element: {}\n", (*centerElement.borrow().as_ref().unwrap()));
 
         // 3D slice
     let mut cube = Rc::new(RefCell::new(Some(vec![Rc::new(RefCell::new(Some(vec![Rc::new(RefCell::new(Some(vec![1, 2]))), Rc::new(RefCell::new(Some(vec![3, 4])))]))), Rc::new(RefCell::new(Some(vec![Rc::new(RefCell::new(Some(vec![5, 6]))), Rc::new(RefCell::new(Some(vec![7, 8])))])))])));
 
     println!("{}", "\n3D Cube:".to_string());
-    for (i, layer) in (*cube.borrow_mut().as_mut().unwrap()).iter().enumerate() {
+    for (i, layer) in (*cube.borrow().as_ref().unwrap()).iter().enumerate() {
         print!("Layer {}:\n", i);
         for (j, row) in layer.iter().enumerate() {
         print!("  Row {}: ", j);
@@ -280,7 +280,7 @@ fn main() {
         // Add new employee
     let mut newEmployee = Rc::new(RefCell::new(Some(Person { name: Rc::new(RefCell::new(Some("Dave Newbie".to_string()))), age: Rc::new(RefCell::new(Some(25))), address: Rc::new(RefCell::new(Some(Address { street: Rc::new(RefCell::new(Some("999 New St".to_string()))), city: Rc::new(RefCell::new(Some("Newtown".to_string()))), state: Rc::new(RefCell::new(Some("CA".to_string()))), zip_code: Rc::new(RefCell::new(Some("90214".to_string()))), country: Rc::new(RefCell::new(Some("USA".to_string()))) }))), contact: Rc::new(RefCell::new(Some(Contact { email: Rc::new(RefCell::new(Some("dave@company.com".to_string()))), phone: Rc::new(RefCell::new(Some("555-0004".to_string()))) }))) })));
 
-    {(*(*(*(*company.borrow_mut().as_mut().unwrap()).departments.borrow().as_ref().unwrap())[0 as usize].clone().employees.borrow().as_ref().unwrap()).borrow_mut().as_mut().unwrap()).push((*newEmployee.borrow_mut().as_mut().unwrap())); (*(*(*company.borrow_mut().as_mut().unwrap()).departments.borrow().as_ref().unwrap())[0 as usize].clone().employees.borrow().as_ref().unwrap()).clone()};
+    {(*(*(*(*company.borrow_mut().as_mut().unwrap()).departments.borrow().as_ref().unwrap())[0 as usize].clone().employees.borrow().as_ref().unwrap()).borrow_mut().as_mut().unwrap()).push((*newEmployee.borrow().as_ref().unwrap())); (*(*(*company.borrow_mut().as_mut().unwrap()).departments.borrow().as_ref().unwrap())[0 as usize].clone().employees.borrow().as_ref().unwrap()).clone()};
     print!("Added new employee: {}\n", (*(*newEmployee.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()));
     print!("Total employees now: {}\n", (*(*(*company.borrow_mut().as_mut().unwrap()).departments.borrow().as_ref().unwrap())[0 as usize].clone().employees.borrow().as_ref().unwrap()).len());
 }
