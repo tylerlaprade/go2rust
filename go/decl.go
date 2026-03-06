@@ -194,6 +194,12 @@ func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.Fi
 							Source:    SourceParam,
 							IsRef:     true,
 						})
+					} else if _, ok := field.Type.(*ast.ChanType); ok {
+						// Channel parameters are bare (GoChannel<T>)
+						vt.Register(name.Name, &VarInfo{
+							WrapLevel: WrapNone,
+							Source:    SourceParam,
+						})
 					} else {
 						vt.Register(name.Name, &VarInfo{
 							WrapLevel: WrapFull,
@@ -885,6 +891,12 @@ func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, a
 							RustType:  "&dyn " + ident.Name,
 							Source:    SourceParam,
 							IsRef:     true,
+						})
+					} else if _, ok := field.Type.(*ast.ChanType); ok {
+						// Channel parameters are bare (GoChannel<T>)
+						vt.Register(name.Name, &VarInfo{
+							WrapLevel: WrapNone,
+							Source:    SourceParam,
 						})
 					} else {
 						vt.Register(name.Name, &VarInfo{

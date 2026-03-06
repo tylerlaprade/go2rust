@@ -1,8 +1,0 @@
-[package]
-name = "closing_channels"
-version = "0.1.0"
-edition = "2021"
-
-[[bin]]
-name = "closing_channels"
-path = "main.rs"

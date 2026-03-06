@@ -109,6 +109,11 @@ func GoTypeToRust(expr ast.Expr) string {
 		}
 	}
 
+	// Channel types are not wrapped - GoChannel is already a shared, cloneable type
+	if _, isChan := expr.(*ast.ChanType); isChan {
+		return baseType
+	}
+
 	// Wrap everything in appropriate wrapper
 	// Don't double-wrap pointers - they're already wrapped
 	if _, isPointer := expr.(*ast.StarExpr); !isPointer {
@@ -249,6 +254,9 @@ func goTypeToRustBase(expr ast.Expr) string {
 	case *ast.FuncType:
 		// Function type - generate a closure type
 		return generateClosureType(t)
+	case *ast.ChanType:
+		elemType := goTypeToRustBase(t.Value)
+		return "GoChannel<" + elemType + ">"
 	case *ast.StructType:
 		// Anonymous struct type - generate a unique type name
 		return generateAnonymousStructType(t)

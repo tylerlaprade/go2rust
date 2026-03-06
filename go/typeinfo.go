@@ -85,6 +85,28 @@ func (ti *TypeInfo) IsString(expr ast.Expr) bool {
 	return ok && basic.Kind() == types.String
 }
 
+// IsChannel returns true if the expression is a channel type
+func (ti *TypeInfo) IsChannel(expr ast.Expr) bool {
+	typ := ti.GetType(expr)
+	if typ == nil {
+		return false
+	}
+	_, ok := typ.Underlying().(*types.Chan)
+	return ok
+}
+
+// GetChannelElemType returns the element type of a channel expression
+func (ti *TypeInfo) GetChannelElemType(expr ast.Expr) types.Type {
+	typ := ti.GetType(expr)
+	if typ == nil {
+		return nil
+	}
+	if ch, ok := typ.Underlying().(*types.Chan); ok {
+		return ch.Elem()
+	}
+	return nil
+}
+
 // IsArray returns true if the expression is an array type
 func (ti *TypeInfo) IsArray(expr ast.Expr) bool {
 	typ := ti.GetType(expr)

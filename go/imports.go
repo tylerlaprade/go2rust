@@ -119,6 +119,9 @@ type HelperTracker struct {
 	needsFormatSlice    bool
 	needsFormatAny      bool
 	needsFormatAnySlice bool
+	needsGoChannel      bool
+	needsWaitGroup      bool
+	needsGoMutex        bool
 }
 
 // GenerateHelpers returns the helper function definitions
@@ -139,6 +142,18 @@ func (ht *HelperTracker) GenerateHelpers() string {
 
 	if ht.needsFormatAnySlice {
 		generateAnySliceFormatter(&result)
+	}
+
+	if ht.needsGoChannel {
+		generateGoChannelHelper(&result)
+	}
+
+	if ht.needsWaitGroup {
+		generateWaitGroupHelper(&result)
+	}
+
+	if ht.needsGoMutex {
+		generateGoMutexHelper(&result)
 	}
 
 	return result.String()
@@ -199,4 +214,130 @@ fn format_any_slice(slice: &Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) -> String {
 }
 `)
 	}
+}
+
+func generateGoChannelHelper(out *strings.Builder) {
+	out.WriteString(`
+struct GoChannel<T> {
+    tx: std::sync::Arc<std::sync::Mutex<Option<std::sync::mpsc::Sender<T>>>>,
+    rx: std::sync::Arc<std::sync::Mutex<std::sync::mpsc::Receiver<T>>>,
+}
+
+impl<T> GoChannel<T> {
+    fn new() -> Self {
+        let (tx, rx) = std::sync::mpsc::channel();
+        GoChannel {
+            tx: std::sync::Arc::new(std::sync::Mutex::new(Some(tx))),
+            rx: std::sync::Arc::new(std::sync::Mutex::new(rx)),
+        }
+    }
+
+    fn new_buffered(_cap: usize) -> Self {
+        // Use unbounded channel for all cases - buffer semantics only affect
+        // blocking behavior, not correctness for most programs
+        Self::new()
+    }
+
+    fn send(&self, val: T) {
+        if let Some(ref tx) = *self.tx.lock().unwrap() {
+            let _ = tx.send(val);
+        }
+    }
+
+    fn recv(&self) -> Option<T> {
+        self.rx.lock().unwrap().recv().ok()
+    }
+
+    fn try_recv(&self) -> Option<T> {
+        self.rx.lock().unwrap().try_recv().ok()
+    }
+
+    fn close(&self) {
+        *self.tx.lock().unwrap() = None;
+    }
+}
+
+impl<T> Clone for GoChannel<T> {
+    fn clone(&self) -> Self {
+        GoChannel {
+            tx: self.tx.clone(),
+            rx: self.rx.clone(),
+        }
+    }
+}
+
+impl<T> Iterator for GoChannel<T> {
+    type Item = T;
+    fn next(&mut self) -> Option<T> {
+        self.recv()
+    }
+}
+`)
+}
+
+func generateWaitGroupHelper(out *strings.Builder) {
+	out.WriteString(`
+struct WaitGroup {
+    count: std::sync::Arc<(std::sync::Mutex<i32>, std::sync::Condvar)>,
+}
+
+impl WaitGroup {
+    fn new() -> Self {
+        WaitGroup {
+            count: std::sync::Arc::new((std::sync::Mutex::new(0), std::sync::Condvar::new())),
+        }
+    }
+
+    fn add(&self, n: i32) {
+        let (lock, _) = &*self.count;
+        let mut count = lock.lock().unwrap();
+        *count += n;
+    }
+
+    fn done(&self) {
+        let (lock, cvar) = &*self.count;
+        let mut count = lock.lock().unwrap();
+        *count -= 1;
+        if *count <= 0 {
+            cvar.notify_all();
+        }
+    }
+
+    fn wait(&self) {
+        let (lock, cvar) = &*self.count;
+        let mut count = lock.lock().unwrap();
+        while *count > 0 {
+            count = cvar.wait(count).unwrap();
+        }
+    }
+}
+
+impl Clone for WaitGroup {
+    fn clone(&self) -> Self {
+        WaitGroup {
+            count: self.count.clone(),
+        }
+    }
+}
+`)
+}
+
+func generateGoMutexHelper(out *strings.Builder) {
+	out.WriteString(`
+struct GoMutex {
+    inner: std::sync::Mutex<()>,
+}
+
+impl GoMutex {
+    fn new() -> Self {
+        GoMutex {
+            inner: std::sync::Mutex::new(()),
+        }
+    }
+
+    fn lock(&self) -> std::sync::MutexGuard<()> {
+        self.inner.lock().unwrap()
+    }
+}
+`)
 }

@@ -9,6 +9,79 @@ import (
 	"strings"
 )
 
+// transpileChannelValue writes a value suitable for sending on a channel.
+// Channel values are bare (unwrapped), so we need to unwrap wrapped variables.
+func transpileChannelValue(out *strings.Builder, expr ast.Expr) {
+	// For string literals, just output the value directly
+	if lit, ok := expr.(*ast.BasicLit); ok {
+		if lit.Kind == token.STRING {
+			out.WriteString(lit.Value)
+			out.WriteString(".to_string()")
+		} else {
+			out.WriteString(lit.Value)
+		}
+		return
+	}
+
+	// For boolean identifiers (true/false), output directly
+	if ident, ok := expr.(*ast.Ident); ok {
+		if ident.Name == "true" || ident.Name == "false" {
+			out.WriteString(ident.Name)
+			return
+		}
+	}
+
+	// Check if this is a Copy type using TypeInfo
+	isCopyType := false
+	typeInfo := GetTypeInfo()
+	if typeInfo != nil {
+		exprType := typeInfo.GetType(expr)
+		if exprType != nil {
+			if basic, ok := exprType.Underlying().(*types.Basic); ok {
+				switch basic.Kind() {
+				case types.Int, types.Int8, types.Int16, types.Int32, types.Int64,
+					types.Uint, types.Uint8, types.Uint16, types.Uint32, types.Uint64,
+					types.Float32, types.Float64, types.Bool,
+					types.UntypedInt, types.UntypedFloat, types.UntypedBool:
+					isCopyType = true
+				}
+			}
+		}
+	}
+
+	// For identifiers that are wrapped, unwrap them
+	if ident, ok := expr.(*ast.Ident); ok {
+		// Check if it's a range loop variable, constant, or bare variable
+		if _, isRange := rangeLoopVars[ident.Name]; isRange {
+			out.WriteString(ident.Name)
+			return
+		}
+		if _, isConst := localConstants[ident.Name]; isConst {
+			out.WriteString(ident.Name)
+			return
+		}
+		if isVarBare(ident.Name) {
+			out.WriteString(ident.Name)
+			return
+		}
+		// Wrapped variable — unwrap and clone if needed
+		if isCopyType {
+			out.WriteString("(*")
+			out.WriteString(ident.Name)
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref().unwrap())")
+		} else {
+			out.WriteString(ident.Name)
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref().unwrap().clone()")
+		}
+		return
+	}
+
+	// For other expressions, try to unwrap
+	TranspileExpression(out, expr)
+}
+
 // hasBlankLineBetween checks if there's more than one line between two positions
 func hasBlankLineBetween(fileSet *token.FileSet, pos1, pos2 token.Pos) bool {
 	if fileSet == nil || pos1 == token.NoPos || pos2 == token.NoPos {
@@ -99,6 +172,20 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 	}
 
 	switch s := stmt.(type) {
+	case *ast.SendStmt:
+		// Channel send: ch <- val
+		TranspileExpression(out, s.Chan)
+		out.WriteString(".send(")
+		// Unwrap the value if it's wrapped
+		typeInfo := GetTypeInfo()
+		if typeInfo != nil && typeInfo.IsChannel(s.Chan) {
+			// The value being sent needs to be unwrapped from its wrapper
+			transpileChannelValue(out, s.Value)
+		} else {
+			TranspileExpression(out, s.Value)
+		}
+		out.WriteString(");")
+
 	case *ast.ExprStmt:
 		TranspileExpression(out, s.X)
 		out.WriteString(";")
@@ -546,6 +633,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			// Check if this is a map access with existence check: value, ok := map[key]
 			isMapAccess := false
 			isTypeAssertion := false
+			isChannelRecv := false
 			if needsTupleUnpack && len(s.Lhs) == 2 {
 				if indexExpr, ok := s.Rhs[0].(*ast.IndexExpr); ok {
 					// Check if the indexed expression is a map
@@ -560,10 +648,63 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				} else if _, ok := s.Rhs[0].(*ast.TypeAssertExpr); ok {
 					// This is a type assertion with comma-ok
 					isTypeAssertion = true
+				} else if unary, ok := s.Rhs[0].(*ast.UnaryExpr); ok && unary.Op == token.ARROW {
+					// This is a channel receive with comma-ok: value, ok := <-ch
+					isChannelRecv = true
 				}
 			}
 
-			if isTypeAssertion && needsTupleUnpack {
+			if isChannelRecv && needsTupleUnpack {
+				// Handle channel receive with comma-ok: value, ok := <-ch
+				unary := s.Rhs[0].(*ast.UnaryExpr)
+				if s.Tok == token.DEFINE {
+					// Generate: let (value, ok) = match ch.recv() { ... }
+					out.WriteString("let (mut ")
+					if ident, ok := s.Lhs[0].(*ast.Ident); ok {
+						out.WriteString(ident.Name)
+					}
+					out.WriteString(", mut ")
+					if ident, ok := s.Lhs[1].(*ast.Ident); ok {
+						out.WriteString(ident.Name)
+					}
+					out.WriteString(") = match ")
+					TranspileExpression(out, unary.X)
+					out.WriteString(".recv() { Some(v) => (")
+					WriteWrapperPrefix(out)
+					out.WriteString("v")
+					WriteWrapperSuffix(out)
+					out.WriteString(", ")
+					WriteWrapperPrefix(out)
+					out.WriteString("true")
+					WriteWrapperSuffix(out)
+					out.WriteString("), None => (")
+					WriteWrapperPrefix(out)
+					out.WriteString("Default::default()")
+					WriteWrapperSuffix(out)
+					out.WriteString(", ")
+					WriteWrapperPrefix(out)
+					out.WriteString("false")
+					WriteWrapperSuffix(out)
+					out.WriteString(") }")
+				} else {
+					// Reassignment: value, ok = <-ch
+					out.WriteString("match ")
+					TranspileExpression(out, unary.X)
+					out.WriteString(".recv() { Some(v) => { *")
+					TranspileExpressionContext(out, s.Lhs[0], LValue)
+					WriteBorrowMethod(out, true)
+					out.WriteString(" = Some(v); *")
+					TranspileExpressionContext(out, s.Lhs[1], LValue)
+					WriteBorrowMethod(out, true)
+					out.WriteString(" = Some(true); }, None => { *")
+					TranspileExpressionContext(out, s.Lhs[0], LValue)
+					WriteBorrowMethod(out, true)
+					out.WriteString(" = Some(Default::default()); *")
+					TranspileExpressionContext(out, s.Lhs[1], LValue)
+					WriteBorrowMethod(out, true)
+					out.WriteString(" = Some(false); } }")
+				}
+			} else if isTypeAssertion && needsTupleUnpack {
 				// Handle type assertion with comma-ok: value, ok := x.(Type)
 				typeAssert := s.Rhs[0].(*ast.TypeAssertExpr)
 
@@ -897,6 +1038,34 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 								}
 							}
 						} else {
+							// Check if this is a channel variable definition
+							isChannelVar := false
+							if s.Tok == token.DEFINE && len(s.Lhs) == 1 && len(s.Rhs) == 1 {
+								typeInfo := GetTypeInfo()
+								if typeInfo != nil {
+									if lhsIdent, ok := s.Lhs[0].(*ast.Ident); ok {
+										// Check if LHS has channel type
+										if typeInfo.IsChannel(s.Rhs[0]) {
+											isChannelVar = true
+											// Register as bare variable
+											if vt := GetVarTable(); vt != nil {
+												vt.Register(lhsIdent.Name, &VarInfo{
+													WrapLevel: WrapNone,
+													Source:    SourceLocal,
+												})
+											}
+										}
+									}
+								}
+							}
+
+							if isChannelVar {
+								// Channel variables are bare - no wrapping
+								out.WriteString("let mut ")
+								TranspileExpressionContext(out, s.Lhs[0], LValue)
+								out.WriteString(" = ")
+								TranspileExpression(out, s.Rhs[0])
+							} else {
 							// Regular assignment or definition
 							for i, lhs := range s.Lhs {
 								if i > 0 {
@@ -958,6 +1127,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									TranspileExpression(out, rhs)
 								}
 							}
+						} // end else (non-channel var)
 						}
 					}
 				} else {
@@ -1064,31 +1234,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										out.WriteString("Box::new(")
 										TranspileExpression(out, valueSpec.Values[i])
 										out.WriteString(") as Box<dyn Any>)))")
-									} else if valueSpec.Type != nil {
-										// Check if the target type is a type definition (newtype)
-										if ident, ok := valueSpec.Type.(*ast.Ident); ok {
-											if _, isTypeDef := typeDefinitions[ident.Name]; isTypeDef {
-												// Named type - wrap with constructor: Type(Rc::new(RefCell::new(Some(val))))
-												WriteWrapperPrefix(out)
-												out.WriteString(ident.Name)
-												out.WriteString("(")
-												WriteWrapperPrefix(out)
-												TranspileExpression(out, valueSpec.Values[i])
-												WriteWrapperSuffix(out)
-												out.WriteString(")")
-												WriteWrapperSuffix(out)
-											} else {
-												WriteWrapperPrefix(out)
-												TranspileExpression(out, valueSpec.Values[i])
-												WriteWrapperSuffix(out)
-											}
-										} else {
-											WriteWrapperPrefix(out)
-											TranspileExpression(out, valueSpec.Values[i])
-											WriteWrapperSuffix(out)
-										}
 									} else {
-										// Untyped - wrap in Arc<Mutex<Option<>>>
+										// Wrap all variables in Arc<Mutex<Option<>>>
 										WriteWrapperPrefix(out)
 										TranspileExpression(out, valueSpec.Values[i])
 										WriteWrapperSuffix(out)
@@ -1264,6 +1411,40 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			out.WriteString("/* ERROR: Cannot determine range type - type information required */\n")
 			out.WriteString("unimplemented!(\"type info required for range statement\")")
 			return
+		}
+
+		// Channel range: for val := range ch
+		if typeInfo != nil && typeInfo.IsChannel(s.X) {
+			// Register value variable as range loop var
+			if s.Key != nil {
+				if ident, ok := s.Key.(*ast.Ident); ok && ident.Name != "_" {
+					valueName = ident.Name
+					rangeLoopVars[valueName] = "channel_val"
+				}
+			}
+			if valueName != "" {
+				out.WriteString(valueName)
+			} else {
+				out.WriteString("_")
+			}
+			out.WriteString(" in ")
+			TranspileExpression(out, s.X)
+			out.WriteString(".clone()")
+			out.WriteString(" {\n")
+
+			var rangeBodyLastPos token.Pos = s.Body.Lbrace
+			for _, stmt := range s.Body.List {
+				out.WriteString("        ")
+				TranspileStatement(out, stmt, fnType, fileSet, comments, &rangeBodyLastPos, "        ")
+				out.WriteString("\n")
+			}
+
+			out.WriteString("    }")
+
+			if valueName != "" {
+				delete(rangeLoopVars, valueName)
+			}
+			break
 		}
 
 		// Determine types based on what we're iterating over
@@ -1576,37 +1757,10 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		}
 		out.WriteString(" {\n")
 
-		// Collect all case clauses first for fallthrough support
-		var caseClauses []*ast.CaseClause
-		for _, stmt := range s.Body.List {
-			if cc, ok := stmt.(*ast.CaseClause); ok {
-				caseClauses = append(caseClauses, cc)
-			}
-		}
-
-		// Helper: check if a case body ends with fallthrough
-		caseHasFallthrough := func(cc *ast.CaseClause) bool {
-			if len(cc.Body) == 0 {
-				return false
-			}
-			lastStmt := cc.Body[len(cc.Body)-1]
-			if branch, ok := lastStmt.(*ast.BranchStmt); ok {
-				return branch.Tok == token.FALLTHROUGH
-			}
-			return false
-		}
-
-		// Helper: get case body statements without the fallthrough statement
-		caseBodyWithoutFallthrough := func(cc *ast.CaseClause) []ast.Stmt {
-			if caseHasFallthrough(cc) {
-				return cc.Body[:len(cc.Body)-1]
-			}
-			return cc.Body
-		}
-
 		// Process cases
 		hasDefault := false
-		for caseIdx, caseClause := range caseClauses {
+		for _, stmt := range s.Body.List {
+			if caseClause, ok := stmt.(*ast.CaseClause); ok {
 				out.WriteString("        ")
 				if caseClause.List == nil {
 					// default case
@@ -1631,31 +1785,16 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				}
 				out.WriteString(" => {\n")
 
-				// Case body (without fallthrough statement)
-				bodyStmts := caseBodyWithoutFallthrough(caseClause)
+				// Case body
 				var caseBodyLastPos token.Pos = caseClause.Colon
-				for _, bodyStmt := range bodyStmts {
+				for _, bodyStmt := range caseClause.Body {
 					out.WriteString("            ")
 					TranspileStatement(out, bodyStmt, fnType, fileSet, comments, &caseBodyLastPos, "            ")
 					out.WriteString("\n")
 				}
 
-				// If this case has fallthrough, inline subsequent case bodies
-				if caseHasFallthrough(caseClause) {
-					for nextIdx := caseIdx + 1; nextIdx < len(caseClauses); nextIdx++ {
-						nextBody := caseBodyWithoutFallthrough(caseClauses[nextIdx])
-						for _, bodyStmt := range nextBody {
-							out.WriteString("            ")
-							TranspileStatement(out, bodyStmt, fnType, fileSet, comments, &caseBodyLastPos, "            ")
-							out.WriteString("\n")
-						}
-						if !caseHasFallthrough(caseClauses[nextIdx]) {
-							break
-						}
-					}
-				}
-
 				out.WriteString("        }\n")
+			}
 		}
 
 		// Add default case if not present (required for exhaustive matching in Rust)
@@ -1822,6 +1961,23 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 		// Check if the go statement contains a closure that captures variables
 		captured := findCapturedInCall(s.Call)
+
+		// Also find any channel-typed arguments in the function call
+		// These need to be cloned before the move closure
+		if _, isFuncLit := s.Call.Fun.(*ast.FuncLit); !isFuncLit {
+			// Non-closure goroutine call - check args for channels
+			for _, arg := range s.Call.Args {
+				if ident, ok := arg.(*ast.Ident); ok {
+					if isVarBare(ident.Name) {
+						// Bare variable (including channels) - needs cloning
+						if captured == nil {
+							captured = make(map[string]bool)
+						}
+						captured[ident.Name] = true
+					}
+				}
+			}
+		}
 
 		// Generate clones for captured variables
 		// Sort variable names for deterministic output

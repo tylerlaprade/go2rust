@@ -60,3 +60,24 @@ func NeedFormatAnySlice() {
 		TrackImport("Any")
 	}
 }
+
+// NeedGoChannel marks that we need the GoChannel helper struct
+func NeedGoChannel() {
+	if currentContext != nil && currentContext.Helpers != nil {
+		currentContext.Helpers.needsGoChannel = true
+	}
+}
+
+// NeedWaitGroup marks that we need the WaitGroup helper struct
+func NeedWaitGroup() {
+	if currentContext != nil && currentContext.Helpers != nil {
+		currentContext.Helpers.needsWaitGroup = true
+	}
+}
+
+// NeedGoMutex marks that we need the GoMutex helper struct
+func NeedGoMutex() {
+	if currentContext != nil && currentContext.Helpers != nil {
+		currentContext.Helpers.needsGoMutex = true
+	}
+}

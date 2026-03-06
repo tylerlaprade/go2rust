@@ -37,6 +37,7 @@ func init() {
 	stdlibMappings = map[string]StdlibHandler{
 		"fmt.Println":       transpileFmtPrintln,
 		"fmt.Printf":        transpileFmtPrintf,
+		"fmt.Print":         transpileFmtPrint,
 		"fmt.Sprintf":       transpileFmtSprintf,
 		"fmt.Errorf":        transpileFmtErrorf,
 		"strings.ToLower":   transpileStringsToLower,
@@ -64,7 +65,31 @@ func init() {
 		"imag":    transpileImag,
 		"panic":   transpilePanic,
 		"recover": transpileRecover,
+		"close":   transpileClose,
 	}
+}
+
+func transpileFmtPrint(out *strings.Builder, call *ast.CallExpr) {
+	out.WriteString("print!")
+	out.WriteString("(")
+
+	if len(call.Args) > 0 {
+		out.WriteString("\"")
+		for i := range call.Args {
+			if i > 0 {
+				out.WriteString(" ")
+			}
+			out.WriteString("{}")
+		}
+		out.WriteString("\"")
+
+		for _, arg := range call.Args {
+			out.WriteString(", ")
+			transpilePrintArg(out, arg)
+		}
+	}
+
+	out.WriteString(")")
 }
 
 func transpileFmtPrintln(out *strings.Builder, call *ast.CallExpr) {
@@ -646,6 +671,25 @@ func transpileLen(out *strings.Builder, call *ast.CallExpr) {
 
 func transpileMake(out *strings.Builder, call *ast.CallExpr) {
 	if len(call.Args) >= 1 {
+		// Check if it's a channel type
+		if chanType, ok := call.Args[0].(*ast.ChanType); ok {
+			NeedGoChannel()
+			elemType := goTypeToRustBase(chanType.Value)
+			if len(call.Args) > 1 {
+				// Buffered: make(chan T, n)
+				out.WriteString("GoChannel::<")
+				out.WriteString(elemType)
+				out.WriteString(">::new_buffered(")
+				TranspileExpression(out, call.Args[1])
+				out.WriteString(" as usize)")
+			} else {
+				// Unbuffered: make(chan T)
+				out.WriteString("GoChannel::<")
+				out.WriteString(elemType)
+				out.WriteString(">::new()")
+			}
+			return
+		}
 		// Check if it's a map type
 		if mapType, ok := call.Args[0].(*ast.MapType); ok {
 			WriteWrapperPrefix(out)
@@ -728,9 +772,8 @@ func transpileDelete(out *strings.Builder, call *ast.CallExpr) {
 func transpileNew(out *strings.Builder, call *ast.CallExpr) {
 	if len(call.Args) > 0 {
 		WriteWrapperPrefix(out)
-		out.WriteString(goTypeToRustBase(call.Args[0]))
-		out.WriteString("::default()")
-		WriteWrapperSuffix(out)
+		out.WriteString(GoTypeToRust(call.Args[0]))
+		out.WriteString("::default())))")
 	}
 }
 
@@ -1021,5 +1064,12 @@ func transpileTimeSleep(out *strings.Builder, call *ast.CallExpr) {
 		out.WriteString("std::thread::sleep(std::time::Duration::from_nanos(")
 		TranspileExpression(out, call.Args[0])
 		out.WriteString(" as u64))")
+	}
+}
+
+func transpileClose(out *strings.Builder, call *ast.CallExpr) {
+	if len(call.Args) > 0 {
+		TranspileExpression(out, call.Args[0])
+		out.WriteString(".close()")
 	}
 }

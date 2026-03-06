@@ -1,8 +1,0 @@
-[package]
-name = "channel_directions"
-version = "0.1.0"
-edition = "2021"
-
-[[bin]]
-name = "channel_directions"
-path = "main.rs"

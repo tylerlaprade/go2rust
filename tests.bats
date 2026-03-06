@@ -553,8 +553,8 @@ run_xfail_test() {
     run_xfail_test "tests/XFAIL/channel_buffering"
 }
 
-@test "XFAIL: channel_directions" {
-    run_xfail_test "tests/XFAIL/channel_directions"
+@test "XFAIL: channel_sync" {
+    run_xfail_test "tests/XFAIL/channel_sync"
 }
 
 @test "XFAIL: channels_basic" {
@@ -563,10 +563,6 @@ run_xfail_test() {
 
 @test "XFAIL: channels_simple" {
     run_xfail_test "tests/XFAIL/channels_simple"
-}
-
-@test "XFAIL: closing_channels" {
-    run_xfail_test "tests/XFAIL/closing_channels"
 }
 
 @test "XFAIL: complex_expressions" {
@@ -707,10 +703,6 @@ run_xfail_test() {
 
 @test "XFAIL: range_loops" {
     run_xfail_test "tests/XFAIL/range_loops"
-}
-
-@test "XFAIL: range_over_channels" {
-    run_xfail_test "tests/XFAIL/range_over_channels"
 }
 
 @test "XFAIL: rate_limiting" {
