@@ -40,7 +40,7 @@ pub fn gcd(a: Rc<RefCell<Option<i32>>>, b: Rc<RefCell<Option<i32>>>) -> Rc<RefCe
     if (*b.borrow().as_ref().unwrap()) == 0 {
         return a.clone();
     }
-    return Rc::new(RefCell::new(Some(gcd(b.clone(), Rc::new(RefCell::new(Some((*a.borrow().as_ref().unwrap()) % (*b.borrow().as_ref().unwrap()))))))));
+    return gcd(b.clone(), Rc::new(RefCell::new(Some((*a.borrow().as_ref().unwrap()) % (*b.borrow().as_ref().unwrap())))));
 }
 
 pub fn power(base: Rc<RefCell<Option<i32>>>, exp: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>> {

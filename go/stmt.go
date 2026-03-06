@@ -352,6 +352,13 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							}
 						}
 
+						// Check if it's a call to a user-defined function (already returns wrapped type)
+						if fnIdent, ok := callExpr.Fun.(*ast.Ident); ok {
+							if GetFunctionSignature(fnIdent.Name) != nil {
+								needsWrapping = false
+							}
+						}
+
 						// Check if it's a user function that returns error
 						if fnType.Results != nil && i < len(fnType.Results.List) {
 							if resultType, ok := fnType.Results.List[i].Type.(*ast.Ident); ok && resultType.Name == "error" {
