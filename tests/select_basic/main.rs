@@ -69,40 +69,33 @@ impl<T> Iterator for GoChannel<T> {
 }
 
 fn main() {
-    let mut c1 = GoChannel::<String>::new_buffered(1 as usize);
+    let mut c1 = GoChannel::<String>::new();
+    let mut c2 = GoChannel::<String>::new();
+
     let c1_closure_clone = c1.clone(); let c1_thread = c1.clone(); std::thread::spawn(move || {
+        std::thread::sleep(std::time::Duration::from_millis(500));;
+        c1_thread.send("one".to_string());;;
+    });
+    let c2_closure_clone = c2.clone(); let c2_thread = c2.clone(); std::thread::spawn(move || {
         std::thread::sleep(std::time::Duration::from_secs(1));;
-        c1_thread.send("result 1".to_string());;;
+        c2_thread.send("two".to_string());;;
     });
 
-    loop {
-        if let Some(res) = c1.try_recv() {
-            let mut res = Arc::new(Mutex::new(Some(res)));
-            println!("{}", (*res.lock().unwrap().as_mut().unwrap()));
+    let mut i = Arc::new(Mutex::new(Some(0)));
+    while (*i.lock().unwrap().as_mut().unwrap()) < 2 {
+        loop {
+        if let Some(msg1) = c1.try_recv() {
+            let mut msg1 = Arc::new(Mutex::new(Some(msg1)));
+            println!("{} {}", "received".to_string(), (*msg1.lock().unwrap().as_mut().unwrap()));
             break;
         }
-        if let Some(_) = (*time.lock().unwrap().as_mut().unwrap())::after(Arc::new(Mutex::new(Some(500 * (*(*time.lock().unwrap().as_mut().unwrap())::millisecond.lock().unwrap().as_ref().unwrap()))))).try_recv() {
-            println!("{}", "timeout 1".to_string());
+        if let Some(msg2) = c2.try_recv() {
+            let mut msg2 = Arc::new(Mutex::new(Some(msg2)));
+            println!("{} {}", "received".to_string(), (*msg2.lock().unwrap().as_mut().unwrap()));
             break;
         }
         std::thread::sleep(std::time::Duration::from_millis(1));
     }
-
-    let mut c2 = GoChannel::<String>::new_buffered(1 as usize);
-    let c2_closure_clone = c2.clone(); let c2_thread = c2.clone(); std::thread::spawn(move || {
-        std::thread::sleep(std::time::Duration::from_secs(1));;
-        c2_thread.send("result 2".to_string());;;
-    });
-    loop {
-        if let Some(res) = c2.try_recv() {
-            let mut res = Arc::new(Mutex::new(Some(res)));
-            println!("{}", (*res.lock().unwrap().as_mut().unwrap()));
-            break;
-        }
-        if let Some(_) = (*time.lock().unwrap().as_mut().unwrap())::after(Arc::new(Mutex::new(Some(1500 * (*(*time.lock().unwrap().as_mut().unwrap())::millisecond.lock().unwrap().as_ref().unwrap()))))).try_recv() {
-            println!("{}", "timeout 2".to_string());
-            break;
-        }
-        std::thread::sleep(std::time::Duration::from_millis(1));
+        { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
 }

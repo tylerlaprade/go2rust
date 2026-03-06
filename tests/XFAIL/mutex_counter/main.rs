@@ -2,9 +2,26 @@ use std::cell::{RefCell};
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
+
+struct GoMutex {
+    inner: std::sync::Mutex<()>,
+}
+
+impl GoMutex {
+    fn new() -> Self {
+        GoMutex {
+            inner: std::sync::Mutex::new(()),
+        }
+    }
+
+    fn lock(&self) -> std::sync::MutexGuard<()> {
+        self.inner.lock().unwrap()
+    }
+}
+
 #[derive(Debug, Clone, Default)]
 struct Counter {
-    mu: Rc<RefCell<Option</* TODO: Unhandled type *ast.SelectorExpr */ Rc<RefCell<Option<()>>>>>>,
+    mu: GoMutex,
     value: Rc<RefCell<Option<i32>>>,
 }
 

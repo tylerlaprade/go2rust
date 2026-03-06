@@ -1,5 +1,71 @@
 use std::sync::{Arc, Mutex};
 
+
+struct GoChannel<T> {
+    tx: std::sync::Arc<std::sync::Mutex<Option<std::sync::mpsc::SyncSender<T>>>>,
+    rx: std::sync::Arc<std::sync::Mutex<std::sync::mpsc::Receiver<T>>>,
+}
+
+impl<T> GoChannel<T> {
+    fn new() -> Self {
+        let (tx, rx) = std::sync::mpsc::sync_channel(0);
+        GoChannel {
+            tx: std::sync::Arc::new(std::sync::Mutex::new(Some(tx))),
+            rx: std::sync::Arc::new(std::sync::Mutex::new(rx)),
+        }
+    }
+
+    fn new_buffered(cap: usize) -> Self {
+        let (tx, rx) = std::sync::mpsc::sync_channel(cap);
+        GoChannel {
+            tx: std::sync::Arc::new(std::sync::Mutex::new(Some(tx))),
+            rx: std::sync::Arc::new(std::sync::Mutex::new(rx)),
+        }
+    }
+
+    fn send(&self, val: T) {
+        if let Some(ref tx) = *self.tx.lock().unwrap() {
+            let _ = tx.send(val);
+        }
+    }
+
+    fn try_send(&self, val: T) -> bool {
+        if let Some(ref tx) = *self.tx.lock().unwrap() {
+            tx.try_send(val).is_ok()
+        } else {
+            false
+        }
+    }
+
+    fn recv(&self) -> Option<T> {
+        self.rx.lock().unwrap().recv().ok()
+    }
+
+    fn try_recv(&self) -> Option<T> {
+        self.rx.lock().unwrap().try_recv().ok()
+    }
+
+    fn close(&self) {
+        *self.tx.lock().unwrap() = None;
+    }
+}
+
+impl<T> Clone for GoChannel<T> {
+    fn clone(&self) -> Self {
+        GoChannel {
+            tx: self.tx.clone(),
+            rx: self.rx.clone(),
+        }
+    }
+}
+
+impl<T> Iterator for GoChannel<T> {
+    type Item = T;
+    fn next(&mut self) -> Option<T> {
+        self.recv()
+    }
+}
+
 #[derive(Debug, Clone, Default)]
 struct AnonymousStruct1 {
     name: Arc<Mutex<Option<String>>>,
@@ -25,6 +91,13 @@ struct AnonymousStruct3 {
 struct AnonymousStruct4 {
     debug: Arc<Mutex<Option<bool>>>,
     verbose: Arc<Mutex<Option<bool>>>,
+}
+
+
+#[derive(Debug, Clone, Default)]
+struct AnonymousStruct5 {
+    r#type: Arc<Mutex<Option<String>>>,
+    message: Arc<Mutex<Option<String>>>,
 }
 
 
@@ -58,8 +131,8 @@ pub fn update_settings(s: Arc<Mutex<Option<AnonymousStruct4>>>) {
 }
 
 /// Function with anonymous struct in channel
-pub fn process_events(ch: Arc<Mutex<Option</* TODO: Unhandled type *ast.ChanType */ Arc<Mutex<Option<()>>>>>>) {
-    for event in 0..(*ch.lock().unwrap().as_mut().unwrap()).len() {
+pub fn process_events(ch: GoChannel<AnonymousStruct5>) {
+    for event in ch.clone() {
         print!("Event [{}]: {}\n", (*event.r#type.lock().unwrap().as_ref().unwrap()), (*event.message.lock().unwrap().as_ref().unwrap()));
     }
 }
@@ -90,9 +163,9 @@ fn main() {
     print!("Settings after: Debug={}, Verbose={}\n", (*(*settings.lock().unwrap().as_ref().unwrap()).debug.lock().unwrap().as_ref().unwrap()), (*(*settings.lock().unwrap().as_ref().unwrap()).verbose.lock().unwrap().as_ref().unwrap()));
 
         // Test function with anonymous struct in channel
-    let mut eventCh = ;
-    // TODO: Unhandled statement type: SendStmt
-    // TODO: Unhandled statement type: SendStmt
-    (*close.lock().unwrap().as_ref().unwrap())(eventCh.clone());
+    let mut eventCh = GoChannel::<AnonymousStruct5>::new_buffered(2 as usize);
+    eventCh.send(AnonymousStruct5 { r#type: Arc::new(Mutex::new(Some("info".to_string()))), message: Arc::new(Mutex::new(Some("System started".to_string()))) });
+    eventCh.send(AnonymousStruct5 { r#type: Arc::new(Mutex::new(Some("error".to_string()))), message: Arc::new(Mutex::new(Some("Connection failed".to_string()))) });
+    eventCh.close();
     process_events(eventCh.clone());
 }

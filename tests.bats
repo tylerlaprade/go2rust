@@ -517,6 +517,10 @@ run_xfail_test() {
     run_test "tests/variable_declarations"
 }
 
+@test "waitgroup_sync" {
+    run_test "tests/waitgroup_sync"
+}
+
 @test "wrap_everything" {
     run_test "tests/wrap_everything"
 }
@@ -787,10 +791,6 @@ run_xfail_test() {
 
 @test "XFAIL: variadic_functions" {
     run_xfail_test "tests/XFAIL/variadic_functions"
-}
-
-@test "XFAIL: waitgroup_sync" {
-    run_xfail_test "tests/XFAIL/waitgroup_sync"
 }
 
 @test "XFAIL: worker_pools" {

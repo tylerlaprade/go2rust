@@ -20,7 +20,7 @@ fn main() {
     let mut x = Rc::new(RefCell::new(Some(42)));
     let mut p = x.clone();
     println!("{} {}", "Value of x:".to_string(), (*x.borrow_mut().as_mut().unwrap()));
-    println!("{} {}", "Address of x:".to_string(), (*p.borrow_mut().as_mut().unwrap()));
+    println!("{} {}", "Pointer is non-nil:".to_string(), (*p.borrow()).is_some());
     println!("{} {}", "Value through pointer:".to_string(), (*p.borrow().as_ref().unwrap()));
 
         // Modify through pointer
@@ -44,7 +44,7 @@ fn main() {
     println!("{} {}", "x after modifying through q:".to_string(), (*x.borrow_mut().as_mut().unwrap()));
 
         // New pointer allocation
-    let mut newPoint = Rc::new(RefCell::new(Some(Rc<RefCell<Option<Point>>>::default())));
+    let mut newPoint = Rc::new(RefCell::new(Some(Point::default())));
     { let new_val = 5; *(*newPoint.borrow_mut().as_mut().unwrap()).x.borrow_mut() = Some(new_val); };
     { let new_val = 15; *(*newPoint.borrow_mut().as_mut().unwrap()).y.borrow_mut() = Some(new_val); };
     println!("{} {}", "New point:".to_string(), (*newPoint.borrow_mut().as_mut().unwrap()));

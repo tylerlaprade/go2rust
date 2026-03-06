@@ -16,16 +16,95 @@ where
     }
 }
 
+struct GoChannel<T> {
+    tx: std::sync::Arc<std::sync::Mutex<Option<std::sync::mpsc::Sender<T>>>>,
+    rx: std::sync::Arc<std::sync::Mutex<std::sync::mpsc::Receiver<T>>>,
+}
+
+impl<T> GoChannel<T> {
+    fn new() -> Self {
+        let (tx, rx) = std::sync::mpsc::channel();
+        GoChannel {
+            tx: std::sync::Arc::new(std::sync::Mutex::new(Some(tx))),
+            rx: std::sync::Arc::new(std::sync::Mutex::new(rx)),
+        }
+    }
+
+    fn new_buffered(_cap: usize) -> Self {
+        // Use unbounded channel for all cases - buffer semantics only affect
+        // blocking behavior, not correctness for most programs
+        Self::new()
+    }
+
+    fn send(&self, val: T) {
+        if let Some(ref tx) = *self.tx.lock().unwrap() {
+            let _ = tx.send(val);
+        }
+    }
+
+    fn recv(&self) -> Option<T> {
+        self.rx.lock().unwrap().recv().ok()
+    }
+
+    fn try_recv(&self) -> Option<T> {
+        self.rx.lock().unwrap().try_recv().ok()
+    }
+
+    fn close(&self) {
+        *self.tx.lock().unwrap() = None;
+    }
+}
+
+impl<T> Clone for GoChannel<T> {
+    fn clone(&self) -> Self {
+        GoChannel {
+            tx: self.tx.clone(),
+            rx: self.rx.clone(),
+        }
+    }
+}
+
+impl<T> Iterator for GoChannel<T> {
+    type Item = T;
+    fn next(&mut self) -> Option<T> {
+        self.recv()
+    }
+}
+
 fn main() {
         // Nested loops with labels
     println!("{}", "=== Nested loops with labels ===".to_string());
 
-    // TODO: Unhandled statement type: LabeledStmt
+    let mut i = Arc::new(Mutex::new(Some(1)));
+    'outer: while (*i.lock().unwrap().as_mut().unwrap()) <= 3 {
+        let mut j = Arc::new(Mutex::new(Some(1)));
+    while (*j.lock().unwrap().as_mut().unwrap()) <= 3 {
+        if (*i.lock().unwrap().as_mut().unwrap()) == 2 && (*j.lock().unwrap().as_mut().unwrap()) == 2 {
+        print!("Breaking outer loop at i={}, j={}\n", (*i.lock().unwrap().as_mut().unwrap()), (*j.lock().unwrap().as_mut().unwrap()));
+        break 'outer
+    }
+        print!("i={}, j={}\n", (*i.lock().unwrap().as_mut().unwrap()), (*j.lock().unwrap().as_mut().unwrap()));
+        { let mut guard = j.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
+    }
+        { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
+    }
 
         // Continue with labels
     println!("{}", "\n=== Continue with labels ===".to_string());
 
-    // TODO: Unhandled statement type: LabeledStmt
+    let mut i = Arc::new(Mutex::new(Some(1)));
+    'outer_continue: while (*i.lock().unwrap().as_mut().unwrap()) <= 3 {
+        let mut j = Arc::new(Mutex::new(Some(1)));
+    while (*j.lock().unwrap().as_mut().unwrap()) <= 3 {
+        if (*j.lock().unwrap().as_mut().unwrap()) == 2 {
+        print!("Continuing outer loop at i={}, j={}\n", (*i.lock().unwrap().as_mut().unwrap()), (*j.lock().unwrap().as_mut().unwrap()));
+        { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }; continue 'outer_continue
+    }
+        print!("i={}, j={}\n", (*i.lock().unwrap().as_mut().unwrap()), (*j.lock().unwrap().as_mut().unwrap()));
+        { let mut guard = j.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
+    }
+        { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
+    }
 
         // Complex switch with fallthrough
     println!("{}", "\n=== Complex switch with fallthrough ===".to_string());
@@ -35,20 +114,20 @@ fn main() {
         print!("Number {}: ", (*num.lock().unwrap().as_mut().unwrap()));
         match (*num.lock().unwrap().as_mut().unwrap()) {
         1 => {
-            (*fmt.lock().unwrap().as_mut().unwrap())::print(Arc::new(Mutex::new(Some("One".to_string()))));
+            print!("{}", "One".to_string());
             // TODO: fallthrough not supported
         }
         2 => {
-            (*fmt.lock().unwrap().as_mut().unwrap())::print(Arc::new(Mutex::new(Some(" Two-ish".to_string()))));
+            print!("{}", " Two-ish".to_string());
         }
         3 => {
-            (*fmt.lock().unwrap().as_mut().unwrap())::print(Arc::new(Mutex::new(Some("Three".to_string()))));
+            print!("{}", "Three".to_string());
         }
         4 | 5 => {
-            (*fmt.lock().unwrap().as_mut().unwrap())::print(Arc::new(Mutex::new(Some(" Four-or-Five".to_string()))));
+            print!("{}", " Four-or-Five".to_string());
         }
         _ => {
-            (*fmt.lock().unwrap().as_mut().unwrap())::print(Arc::new(Mutex::new(Some(" Other".to_string()))));
+            print!("{}", " Other".to_string());
         }
     }
         println!();
@@ -126,7 +205,7 @@ fn main() {
 
     let mut counter = Arc::new(Mutex::new(Some(0)));
 
-    // TODO: Unhandled statement type: LabeledStmt
+    { let mut guard = counter.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     print!("Counter: {}\n", (*counter.lock().unwrap().as_mut().unwrap()));
 
     if (*counter.lock().unwrap().as_mut().unwrap()) < 3 {
@@ -178,7 +257,7 @@ fn main() {
     let mut numbers = Arc::new(Mutex::new(Some(vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10])));
 
     println!("{}", "Processing numbers:".to_string());
-    for (i, num) in (*numbers.lock().unwrap().as_mut().unwrap()).iter().enumerate() {
+    for (i, num) in (*numbers.lock().unwrap().as_mut().unwrap()).iter().copied().enumerate() {
         if num % 2 == 0 {
         if num > 6 {
         print!("Stopping at even number {} (index {})\n", num, i);
@@ -200,7 +279,7 @@ fn main() {
     let mut matrix = Arc::new(Mutex::new(Some(vec![Arc::new(Mutex::new(Some(vec!["a".to_string(), "b".to_string(), "c".to_string()]))), Arc::new(Mutex::new(Some(vec!["d".to_string(), "e".to_string(), "f".to_string()]))), Arc::new(Mutex::new(Some(vec!["g".to_string(), "h".to_string(), "i".to_string()])))])));
 
     for (rowIdx, row) in (*matrix.lock().unwrap().as_mut().unwrap()).iter().enumerate() {
-        for (colIdx, cell) in row.iter().enumerate() {
+        for (colIdx, cell) in row.iter().copied().enumerate() {
         if cell == "e".to_string() {
         print!("Found center at [{}][{}]: {}\n", rowIdx, colIdx, cell);
         continue
@@ -217,15 +296,15 @@ fn main() {
         // Select with complex channel operations
     println!("{}", "\n=== Select with complex channel operations ===".to_string());
 
-    let mut ch1 = ;
-    let mut ch2 = ;
-    let mut done = ;
+    let mut ch1 = GoChannel::<i32>::new_buffered(2 as usize);
+    let mut ch2 = GoChannel::<String>::new_buffered(2 as usize);
+    let mut done = GoChannel::<bool>::new();
 
         // Fill channels
-    // TODO: Unhandled statement type: SendStmt
-    // TODO: Unhandled statement type: SendStmt
-    // TODO: Unhandled statement type: SendStmt
-    // TODO: Unhandled statement type: SendStmt
+    ch1.send(1);
+    ch1.send(2);
+    ch2.send("hello".to_string());
+    ch2.send("world".to_string());
 
     let ch1_closure_clone = ch1.clone(); let ch2_closure_clone = ch2.clone(); let done_closure_clone = done.clone(); let ch1_thread = ch1.clone(); let ch2_thread = ch2.clone(); let done_thread = done.clone(); std::thread::spawn(move || {
         let mut count = Arc::new(Mutex::new(Some(0)));;
@@ -234,7 +313,7 @@ fn main() {
     };;
     });
 
-    <-(*done.lock().unwrap().as_mut().unwrap());
+    done.recv().unwrap();
     println!("{}", "Channel processing complete".to_string());
 
         // Complex error handling flow
@@ -244,7 +323,7 @@ fn main() {
         if (*data.lock().unwrap().as_ref().unwrap()).len() == 0 {
         return Arc::new(Mutex::new(Some(Box::new(format!("empty data")) as Box<dyn Error + Send + Sync>)));
     }
-        for (i, val) in (*data.lock().unwrap().as_mut().unwrap()).iter().enumerate() {
+        for (i, val) in (*data.lock().unwrap().as_mut().unwrap()).iter().copied().enumerate() {
         if val < 0 {
         return Arc::new(Mutex::new(Some(Box::new(format!("negative value at index {}: {}", i, val)) as Box<dyn Error + Send + Sync>)));
     }

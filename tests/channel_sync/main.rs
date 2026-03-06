@@ -4,28 +4,38 @@ use std::time::Duration;
 
 
 struct GoChannel<T> {
-    tx: std::sync::Arc<std::sync::Mutex<Option<std::sync::mpsc::Sender<T>>>>,
+    tx: std::sync::Arc<std::sync::Mutex<Option<std::sync::mpsc::SyncSender<T>>>>,
     rx: std::sync::Arc<std::sync::Mutex<std::sync::mpsc::Receiver<T>>>,
 }
 
 impl<T> GoChannel<T> {
     fn new() -> Self {
-        let (tx, rx) = std::sync::mpsc::channel();
+        let (tx, rx) = std::sync::mpsc::sync_channel(0);
         GoChannel {
             tx: std::sync::Arc::new(std::sync::Mutex::new(Some(tx))),
             rx: std::sync::Arc::new(std::sync::Mutex::new(rx)),
         }
     }
 
-    fn new_buffered(_cap: usize) -> Self {
-        // Use unbounded channel for all cases - buffer semantics only affect
-        // blocking behavior, not correctness for most programs
-        Self::new()
+    fn new_buffered(cap: usize) -> Self {
+        let (tx, rx) = std::sync::mpsc::sync_channel(cap);
+        GoChannel {
+            tx: std::sync::Arc::new(std::sync::Mutex::new(Some(tx))),
+            rx: std::sync::Arc::new(std::sync::Mutex::new(rx)),
+        }
     }
 
     fn send(&self, val: T) {
         if let Some(ref tx) = *self.tx.lock().unwrap() {
             let _ = tx.send(val);
+        }
+    }
+
+    fn try_send(&self, val: T) -> bool {
+        if let Some(ref tx) = *self.tx.lock().unwrap() {
+            tx.try_send(val).is_ok()
+        } else {
+            false
         }
     }
 
@@ -69,7 +79,7 @@ pub fn worker(done: GoChannel<bool>) {
 fn main() {
     let mut done = GoChannel::<bool>::new_buffered(1 as usize);
     let done_thread = done.clone(); std::thread::spawn(move || {
-        worker(done.clone());
+        worker(done_thread.clone());
     });
 
     done.recv().unwrap();

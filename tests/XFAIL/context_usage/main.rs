@@ -8,7 +8,17 @@ fn main() {
         (*cancel.lock().unwrap().as_ref().unwrap())();
     }));
 
-    // TODO: Unhandled statement type: SelectStmt
+    loop {
+        if let Some(_) = (*time.lock().unwrap().as_mut().unwrap())::after(Arc::new(Mutex::new(Some(500 * (*(*time.lock().unwrap().as_mut().unwrap())::millisecond.lock().unwrap().as_ref().unwrap()))))).try_recv() {
+            println!("{}", "Operation completed".to_string());
+            break;
+        }
+        if let Some(_) = (*ctx.lock().unwrap().as_mut().unwrap()).done().try_recv() {
+            println!("{} {}", "Context cancelled:".to_string(), format!("{}", (*((*ctx.lock().unwrap().as_mut().unwrap()).err()).lock().unwrap().as_ref().unwrap())));
+            break;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(1));
+    }
 
     // Execute deferred functions
     while let Some(f) = __defer_stack.pop() {

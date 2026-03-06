@@ -1,6 +1,4 @@
 use std::sync::{Arc, Mutex};
-use std::thread;
-use std::time::Duration;
 
 
 struct GoChannel<T> {
@@ -69,40 +67,41 @@ impl<T> Iterator for GoChannel<T> {
 }
 
 fn main() {
-    let mut c1 = GoChannel::<String>::new_buffered(1 as usize);
-    let c1_closure_clone = c1.clone(); let c1_thread = c1.clone(); std::thread::spawn(move || {
-        std::thread::sleep(std::time::Duration::from_secs(1));;
-        c1_thread.send("result 1".to_string());;;
-    });
+    let mut messages = GoChannel::<String>::new();
+    let mut signals = GoChannel::<bool>::new();
 
     loop {
-        if let Some(res) = c1.try_recv() {
-            let mut res = Arc::new(Mutex::new(Some(res)));
-            println!("{}", (*res.lock().unwrap().as_mut().unwrap()));
+        if let Some(msg) = messages.try_recv() {
+            let mut msg = Arc::new(Mutex::new(Some(msg)));
+            println!("{} {}", "received message".to_string(), (*msg.lock().unwrap().as_mut().unwrap()));
             break;
         }
-        if let Some(_) = (*time.lock().unwrap().as_mut().unwrap())::after(Arc::new(Mutex::new(Some(500 * (*(*time.lock().unwrap().as_mut().unwrap())::millisecond.lock().unwrap().as_ref().unwrap()))))).try_recv() {
-            println!("{}", "timeout 1".to_string());
-            break;
-        }
-        std::thread::sleep(std::time::Duration::from_millis(1));
+        println!("{}", "no message received".to_string());
+        break;
     }
 
-    let mut c2 = GoChannel::<String>::new_buffered(1 as usize);
-    let c2_closure_clone = c2.clone(); let c2_thread = c2.clone(); std::thread::spawn(move || {
-        std::thread::sleep(std::time::Duration::from_secs(1));;
-        c2_thread.send("result 2".to_string());;;
-    });
+    let mut msg = Arc::new(Mutex::new(Some("hi".to_string())));
     loop {
-        if let Some(res) = c2.try_recv() {
-            let mut res = Arc::new(Mutex::new(Some(res)));
-            println!("{}", (*res.lock().unwrap().as_mut().unwrap()));
+        if messages.try_send(msg.lock().unwrap().as_ref().unwrap().clone()) {
+            println!("{} {}", "sent message".to_string(), (*msg.lock().unwrap().as_mut().unwrap()));
             break;
         }
-        if let Some(_) = (*time.lock().unwrap().as_mut().unwrap())::after(Arc::new(Mutex::new(Some(1500 * (*(*time.lock().unwrap().as_mut().unwrap())::millisecond.lock().unwrap().as_ref().unwrap()))))).try_recv() {
-            println!("{}", "timeout 2".to_string());
+        println!("{}", "no message sent".to_string());
+        break;
+    }
+
+    loop {
+        if let Some(msg) = messages.try_recv() {
+            let mut msg = Arc::new(Mutex::new(Some(msg)));
+            println!("{} {}", "received message".to_string(), (*msg.lock().unwrap().as_mut().unwrap()));
             break;
         }
-        std::thread::sleep(std::time::Duration::from_millis(1));
+        if let Some(sig) = signals.try_recv() {
+            let mut sig = Arc::new(Mutex::new(Some(sig)));
+            println!("{} {}", "received signal".to_string(), (*sig.lock().unwrap().as_mut().unwrap()));
+            break;
+        }
+        println!("{}", "no activity".to_string());
+        break;
     }
 }

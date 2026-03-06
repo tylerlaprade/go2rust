@@ -121,7 +121,7 @@ fn main() {
 
         // String building with strings.Builder
     println!("{}", "\n=== String building ===".to_string());
-    let mut builder: Arc<Mutex<Option</* TODO: Unhandled type *ast.SelectorExpr */ Arc<Mutex<Option<()>>>>>>;
+    let mut builder: Arc<Mutex<Option<strings_Builder>>>;
 
     (*builder.lock().unwrap().as_mut().unwrap()).write_string(Arc::new(Mutex::new(Some("Building ".to_string()))));
     (*builder.lock().unwrap().as_mut().unwrap()).write_string(Arc::new(Mutex::new(Some("a ".to_string()))));

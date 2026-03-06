@@ -1,5 +1,5 @@
 use std::cell::{RefCell};
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::rc::{Rc};
 
 #[derive(Debug, Clone, Default)]
@@ -79,7 +79,7 @@ fn main() {
     }
 
         // Map with anonymous struct values
-    let mut users = Rc::new(RefCell::new(Some(HashMap::<String, Rc<RefCell<Option<AnonymousStruct6>>>>::from([("alice".to_string(), Rc::new(RefCell::new(Some(/* Anonymous struct literal */unimplemented!())))), ("bob".to_string(), Rc::new(RefCell::new(Some(/* Anonymous struct literal */unimplemented!()))))]))));
+    let mut users = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<AnonymousStruct6>>>>::from([("alice".to_string(), Rc::new(RefCell::new(Some(/* Anonymous struct literal */unimplemented!())))), ("bob".to_string(), Rc::new(RefCell::new(Some(/* Anonymous struct literal */unimplemented!()))))]))));
     for (name, user) in (*users.borrow().as_ref().unwrap()).clone() {
         print!("User {}: {} (admin: {})\n", name, (*user.email.borrow().as_ref().unwrap()), (*user.admin.borrow().as_ref().unwrap()));
     }
