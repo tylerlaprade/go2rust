@@ -445,6 +445,10 @@ run_xfail_test() {
     run_test "tests/non_blocking_channels"
 }
 
+@test "pointers_basic" {
+    run_test "tests/pointers_basic"
+}
+
 @test "pointers_dereference" {
     run_test "tests/pointers_dereference"
 }
@@ -687,10 +691,6 @@ run_xfail_test() {
 
 @test "XFAIL: panic_recover" {
     run_xfail_test "tests/XFAIL/panic_recover"
-}
-
-@test "XFAIL: pointers_basic" {
-    run_xfail_test "tests/XFAIL/pointers_basic"
 }
 
 @test "XFAIL: random_numbers" {

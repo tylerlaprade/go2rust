@@ -61,8 +61,8 @@ pub fn init() {
 /// Third init function
 pub fn init() {
     println!("{}", "Third init function called".to_string());
-    if (*initialized.borrow_mut().as_mut().unwrap()) {
-        print!("Global counter initialized to: {}\n", (*globalCounter.borrow_mut().as_mut().unwrap()));
+    if (*initialized.borrow().as_ref().unwrap()) {
+        print!("Global counter initialized to: {}\n", (*globalCounter.borrow().as_ref().unwrap()));
     }
 
         // Add more config
@@ -79,7 +79,7 @@ pub fn compute_initial_value() -> Rc<RefCell<Option<i32>>> {
 /// Another init function that runs after variable initialization
 pub fn init() {
     println!("{}", "Fourth init function called".to_string());
-    print!("Computed value is: {}\n", (*computedValue.borrow_mut().as_mut().unwrap()));
+    print!("Computed value is: {}\n", (*computedValue.borrow().as_ref().unwrap()));
 
         // Modify the computed value
     { let mut guard = computedValue.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 10); };
@@ -139,16 +139,16 @@ fn main() {
     println!("{}", "\n=== Main function started ===".to_string());
 
         // Show that all init functions have run
-    print!("Global counter: {}\n", (*globalCounter.borrow_mut().as_mut().unwrap()));
-    print!("Initialized flag: {}\n", (*initialized.borrow_mut().as_mut().unwrap()));
-    print!("Computed value: {}\n", (*computedValue.borrow_mut().as_mut().unwrap()));
+    print!("Global counter: {}\n", (*globalCounter.borrow().as_ref().unwrap()));
+    print!("Initialized flag: {}\n", (*initialized.borrow().as_ref().unwrap()));
+    print!("Computed value: {}\n", (*computedValue.borrow().as_ref().unwrap()));
 
     println!("{}", "\nConfiguration data:".to_string());
     for (key, value) in (*configData.borrow().as_ref().unwrap()).clone() {
         print!("  {}: {}\n", key, (*value.borrow_mut().as_mut().unwrap()));
     }
 
-    print!("\nApp config: %+v\n", (*appConfig.borrow_mut().as_mut().unwrap()));
+    print!("\nApp config: %+v\n", (*appConfig.borrow().as_ref().unwrap()));
 
         // Demonstrate that init functions only run once
     println!("{}", "\n=== Calling functions that were used in init ===".to_string());
@@ -156,11 +156,11 @@ fn main() {
     setup_logging();
 
         // Show that package variables retain their init values
-    print!("Global counter still: {}\n", (*globalCounter.borrow_mut().as_mut().unwrap()));
+    print!("Global counter still: {}\n", (*globalCounter.borrow().as_ref().unwrap()));
 
         // Modify package variables
     { let new_val = 100; *globalCounter.borrow_mut() = Some(new_val); };
-    print!("Modified global counter: {}\n", (*globalCounter.borrow_mut().as_mut().unwrap()));
+    print!("Modified global counter: {}\n", (*globalCounter.borrow().as_ref().unwrap()));
 
     println!("{}", "\n=== Demonstrating init execution order ===".to_string());
     println!("{}", "1. Package-level variable declarations".to_string());

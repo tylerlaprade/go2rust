@@ -259,7 +259,21 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 			out.WriteString(")")
 			return
 		}
-		// Type is known but not a map or slice - fall through
+		// Check if it's a pointer to a struct - Go prints "&{...}" for these
+		if ptr, ok := argType.(*types.Pointer); ok {
+			if _, ok := ptr.Elem().Underlying().(*types.Struct); ok {
+				out.WriteString("format!(\"&{}\", (*")
+				if ident, ok := arg.(*ast.Ident); ok {
+					out.WriteString(ident.Name)
+				} else {
+					TranspileExpression(out, arg)
+				}
+				WriteBorrowMethod(out, false)
+				out.WriteString(".as_ref().unwrap()))")
+				return
+			}
+		}
+		// Type is known but not a map, slice, or pointer-to-struct - fall through
 	} else {
 		// Type info not available - add error comment
 		out.WriteString("/* ERROR: Type information not available for print argument */ ")

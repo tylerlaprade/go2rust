@@ -85,12 +85,12 @@ pub fn basic_select() {
     loop {
         if let Some(msg1) = ch1.try_recv() {
             let mut msg1 = Arc::new(Mutex::new(Some(msg1)));
-            println!("{} {}", "Received:".to_string(), (*msg1.lock().unwrap().as_mut().unwrap()));
+            println!("{} {}", "Received:".to_string(), (*msg1.lock().unwrap().as_ref().unwrap()));
             break;
         }
         if let Some(msg2) = ch2.try_recv() {
             let mut msg2 = Arc::new(Mutex::new(Some(msg2)));
-            println!("{} {}", "Received:".to_string(), (*msg2.lock().unwrap().as_mut().unwrap()));
+            println!("{} {}", "Received:".to_string(), (*msg2.lock().unwrap().as_ref().unwrap()));
             break;
         }
         std::thread::sleep(std::time::Duration::from_millis(1));
@@ -108,10 +108,10 @@ pub fn select_with_timeout() {
     loop {
         if let Some(msg) = ch.try_recv() {
             let mut msg = Arc::new(Mutex::new(Some(msg)));
-            println!("{} {}", "Got message:".to_string(), (*msg.lock().unwrap().as_mut().unwrap()));
+            println!("{} {}", "Got message:".to_string(), (*msg.lock().unwrap().as_ref().unwrap()));
             break;
         }
-        if let Some(_) = (*time.lock().unwrap().as_mut().unwrap())::after(Arc::new(Mutex::new(Some(100 * (*(*time.lock().unwrap().as_mut().unwrap())::millisecond.lock().unwrap().as_ref().unwrap()))))).try_recv() {
+        if let Some(_) = (*time.lock().unwrap().as_ref().unwrap())::after(Arc::new(Mutex::new(Some(100 * (*(*time.lock().unwrap().as_ref().unwrap())::millisecond.lock().unwrap().as_ref().unwrap()))))).try_recv() {
             println!("{}", "Timeout occurred".to_string());
             break;
         }
@@ -136,7 +136,7 @@ pub fn select_with_default() {
     loop {
         if let Some(msg) = ch.try_recv() {
             let mut msg = Arc::new(Mutex::new(Some(msg)));
-            println!("{} {}", "Received:".to_string(), (*msg.lock().unwrap().as_mut().unwrap()));
+            println!("{} {}", "Received:".to_string(), (*msg.lock().unwrap().as_ref().unwrap()));
             break;
         }
         println!("{}", "No message available".to_string());
@@ -147,7 +147,7 @@ pub fn select_with_default() {
     loop {
         if let Some(msg) = ch.try_recv() {
             let mut msg = Arc::new(Mutex::new(Some(msg)));
-            println!("{} {}", "Received:".to_string(), (*msg.lock().unwrap().as_mut().unwrap()));
+            println!("{} {}", "Received:".to_string(), (*msg.lock().unwrap().as_ref().unwrap()));
             break;
         }
         println!("{}", "No message available".to_string());
@@ -162,7 +162,7 @@ pub fn select_loop() {
 
     let ch1_closure_clone = ch1.clone(); let ch1_thread = ch1.clone(); std::thread::spawn(move || {
         let mut i = Arc::new(Mutex::new(Some(0)));
-    while (*i.lock().unwrap().as_mut().unwrap()) < 3 {
+    while (*i.lock().unwrap().as_ref().unwrap()) < 3 {
         ch1_thread.send((*i.lock().unwrap().as_ref().unwrap()));
         std::thread::sleep(std::time::Duration::from_millis(100));
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
@@ -171,7 +171,7 @@ pub fn select_loop() {
 
     let ch2_closure_clone = ch2.clone(); let ch2_thread = ch2.clone(); std::thread::spawn(move || {
         let mut i = Arc::new(Mutex::new(Some(10)));
-    while (*i.lock().unwrap().as_mut().unwrap()) < 13 {
+    while (*i.lock().unwrap().as_ref().unwrap()) < 13 {
         ch2_thread.send((*i.lock().unwrap().as_ref().unwrap()));
         std::thread::sleep(std::time::Duration::from_millis(150));
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
@@ -188,12 +188,12 @@ pub fn select_loop() {
         loop {
         if let Some(val1) = ch1.try_recv() {
             let mut val1 = Arc::new(Mutex::new(Some(val1)));
-            print!("From ch1: {}\n", (*val1.lock().unwrap().as_mut().unwrap()));
+            print!("From ch1: {}\n", (*val1.lock().unwrap().as_ref().unwrap()));
             break;
         }
         if let Some(val2) = ch2.try_recv() {
             let mut val2 = Arc::new(Mutex::new(Some(val2)));
-            print!("From ch2: {}\n", (*val2.lock().unwrap().as_mut().unwrap()));
+            print!("From ch2: {}\n", (*val2.lock().unwrap().as_ref().unwrap()));
             break;
         }
         if let Some(_) = quit.try_recv() {
@@ -229,7 +229,7 @@ pub fn select_with_send() {
     loop {
         if let Some(msg) = ch2.try_recv() {
             let mut msg = Arc::new(Mutex::new(Some(msg)));
-            println!("{} {}", "Reading from ch2:".to_string(), (*msg.lock().unwrap().as_mut().unwrap()));
+            println!("{} {}", "Reading from ch2:".to_string(), (*msg.lock().unwrap().as_ref().unwrap()));
             break;
         }
         println!("{}", "ch2 is empty".to_string());
