@@ -5,6 +5,7 @@ import (
 	"go/ast"
 	"go/token"
 	"go/types"
+	"strconv"
 	"strings"
 )
 
@@ -57,10 +58,15 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			out.WriteString(".to_string()")
 		case token.CHAR:
 			// In Go, character literals are runes (int32)
-			// Convert 'A' to the numeric value
-			out.WriteString("(")
-			out.WriteString(e.Value)
-			out.WriteString(" as i32)")
+			// Convert to the numeric value directly for pattern compatibility
+			r, _, _, err := strconv.UnquoteChar(e.Value[1:len(e.Value)-1], '\'')
+			if err == nil {
+				out.WriteString(fmt.Sprintf("%d", r))
+			} else {
+				out.WriteString("(")
+				out.WriteString(e.Value)
+				out.WriteString(" as i32)")
+			}
 		case token.INT:
 			// Check if this integer is used in a float context
 			typeInfo := GetTypeInfo()
@@ -1899,8 +1905,14 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 								out.WriteString(interfaceName)
 								out.WriteString(">)))")
 							}
+						} else if funcSig != nil && IsParamValueType(funcSig, i) {
+							// Value parameter - deep clone to preserve Go's pass-by-value semantics
+							// (*i.borrow()) is Option<T>, .clone() copies the whole Option
+							out.WriteString("Rc::new(RefCell::new((*")
+							out.WriteString(ident.Name)
+							out.WriteString(".borrow()).clone()))")
 						} else {
-							// Regular variable, just clone it
+							// Pointer parameter or unknown signature - shallow Rc clone (shared reference)
 							out.WriteString(ident.Name)
 							out.WriteString(".clone()")
 						}
@@ -1958,6 +1970,17 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 			} else if _, isFuncLit := arg.(*ast.FuncLit); isFuncLit {
 				// Function literal - already wraps itself
 				TranspileExpression(out, arg)
+			} else if unary, isUnary := arg.(*ast.UnaryExpr); isUnary && unary.Op == token.AND {
+				// Address-of expression (&x) - the AND handler already produces
+				// x.clone() for variables, which is already Rc<RefCell<Option<T>>>.
+				// Don't double-wrap it.
+				if _, isCompositeLit := unary.X.(*ast.CompositeLit); isCompositeLit {
+					// &StructLit{} - the AND handler wraps the struct literal, no extra wrap needed
+					TranspileExpression(out, arg)
+				} else {
+					// &variable - produces variable.clone(), already wrapped
+					TranspileExpression(out, arg)
+				}
 			} else {
 				// Not a simple identifier or function literal, wrap it
 				WriteWrapperPrefix(out)

@@ -728,8 +728,9 @@ func transpileDelete(out *strings.Builder, call *ast.CallExpr) {
 func transpileNew(out *strings.Builder, call *ast.CallExpr) {
 	if len(call.Args) > 0 {
 		WriteWrapperPrefix(out)
-		out.WriteString(GoTypeToRust(call.Args[0]))
-		out.WriteString("::default())))")
+		out.WriteString(goTypeToRustBase(call.Args[0]))
+		out.WriteString("::default()")
+		WriteWrapperSuffix(out)
 	}
 }
 

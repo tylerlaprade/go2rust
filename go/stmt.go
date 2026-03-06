@@ -1064,8 +1064,31 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										out.WriteString("Box::new(")
 										TranspileExpression(out, valueSpec.Values[i])
 										out.WriteString(") as Box<dyn Any>)))")
+									} else if valueSpec.Type != nil {
+										// Check if the target type is a type definition (newtype)
+										if ident, ok := valueSpec.Type.(*ast.Ident); ok {
+											if _, isTypeDef := typeDefinitions[ident.Name]; isTypeDef {
+												// Named type - wrap with constructor: Type(Rc::new(RefCell::new(Some(val))))
+												WriteWrapperPrefix(out)
+												out.WriteString(ident.Name)
+												out.WriteString("(")
+												WriteWrapperPrefix(out)
+												TranspileExpression(out, valueSpec.Values[i])
+												WriteWrapperSuffix(out)
+												out.WriteString(")")
+												WriteWrapperSuffix(out)
+											} else {
+												WriteWrapperPrefix(out)
+												TranspileExpression(out, valueSpec.Values[i])
+												WriteWrapperSuffix(out)
+											}
+										} else {
+											WriteWrapperPrefix(out)
+											TranspileExpression(out, valueSpec.Values[i])
+											WriteWrapperSuffix(out)
+										}
 									} else {
-										// Wrap all variables in Arc<Mutex<Option<>>>
+										// Untyped - wrap in Arc<Mutex<Option<>>>
 										WriteWrapperPrefix(out)
 										TranspileExpression(out, valueSpec.Values[i])
 										WriteWrapperSuffix(out)
@@ -1553,10 +1576,37 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		}
 		out.WriteString(" {\n")
 
+		// Collect all case clauses first for fallthrough support
+		var caseClauses []*ast.CaseClause
+		for _, stmt := range s.Body.List {
+			if cc, ok := stmt.(*ast.CaseClause); ok {
+				caseClauses = append(caseClauses, cc)
+			}
+		}
+
+		// Helper: check if a case body ends with fallthrough
+		caseHasFallthrough := func(cc *ast.CaseClause) bool {
+			if len(cc.Body) == 0 {
+				return false
+			}
+			lastStmt := cc.Body[len(cc.Body)-1]
+			if branch, ok := lastStmt.(*ast.BranchStmt); ok {
+				return branch.Tok == token.FALLTHROUGH
+			}
+			return false
+		}
+
+		// Helper: get case body statements without the fallthrough statement
+		caseBodyWithoutFallthrough := func(cc *ast.CaseClause) []ast.Stmt {
+			if caseHasFallthrough(cc) {
+				return cc.Body[:len(cc.Body)-1]
+			}
+			return cc.Body
+		}
+
 		// Process cases
 		hasDefault := false
-		for _, stmt := range s.Body.List {
-			if caseClause, ok := stmt.(*ast.CaseClause); ok {
+		for caseIdx, caseClause := range caseClauses {
 				out.WriteString("        ")
 				if caseClause.List == nil {
 					// default case
@@ -1581,16 +1631,31 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				}
 				out.WriteString(" => {\n")
 
-				// Case body
+				// Case body (without fallthrough statement)
+				bodyStmts := caseBodyWithoutFallthrough(caseClause)
 				var caseBodyLastPos token.Pos = caseClause.Colon
-				for _, bodyStmt := range caseClause.Body {
+				for _, bodyStmt := range bodyStmts {
 					out.WriteString("            ")
 					TranspileStatement(out, bodyStmt, fnType, fileSet, comments, &caseBodyLastPos, "            ")
 					out.WriteString("\n")
 				}
 
+				// If this case has fallthrough, inline subsequent case bodies
+				if caseHasFallthrough(caseClause) {
+					for nextIdx := caseIdx + 1; nextIdx < len(caseClauses); nextIdx++ {
+						nextBody := caseBodyWithoutFallthrough(caseClauses[nextIdx])
+						for _, bodyStmt := range nextBody {
+							out.WriteString("            ")
+							TranspileStatement(out, bodyStmt, fnType, fileSet, comments, &caseBodyLastPos, "            ")
+							out.WriteString("\n")
+						}
+						if !caseHasFallthrough(caseClauses[nextIdx]) {
+							break
+						}
+					}
+				}
+
 				out.WriteString("        }\n")
-			}
 		}
 
 		// Add default case if not present (required for exhaustive matching in Rust)

@@ -33,3 +33,65 @@ func RegisterFunctionSignature(name string, sig *FunctionSignature) {
 func GetFunctionSignature(name string) *FunctionSignature {
 	return functionSignatures[name]
 }
+
+// IsParamValueType checks if the parameter at the given argument index is a plain value type
+// that should be deep-cloned when passed as an argument (to preserve Go's pass-by-value semantics).
+// Returns true for basic types (int, string, etc.) and structs, false for pointers, interfaces,
+// slices, maps, channels, and function types.
+func IsParamValueType(funcSig *FunctionSignature, argIndex int) bool {
+	if funcSig == nil {
+		return false
+	}
+	idx := 0
+	for _, field := range funcSig.Params {
+		numNames := len(field.Names)
+		if numNames == 0 {
+			numNames = 1
+		}
+		if argIndex < idx+numNames {
+			return isValueType(field.Type)
+		}
+		idx += numNames
+	}
+	return false
+}
+
+// isValueType returns true if the AST type expression represents a plain value type
+// (basic types, named types that aren't interfaces). Returns false for pointers,
+// interfaces, slices, maps, channels, and function types.
+func isValueType(expr ast.Expr) bool {
+	switch t := expr.(type) {
+	case *ast.Ident:
+		// Basic types and named types
+		// Check if it's a known interface type
+		if interfaceTypes[t.Name] {
+			return false
+		}
+		// Check via TypeInfo
+		typeInfo := GetTypeInfo()
+		if typeInfo != nil && typeInfo.IsInterface(t) {
+			return false
+		}
+		return true
+	case *ast.StarExpr:
+		return false // pointer
+	case *ast.ArrayType:
+		if t.Len == nil {
+			return false // slice
+		}
+		return true // fixed-size array
+	case *ast.MapType:
+		return false
+	case *ast.ChanType:
+		return false
+	case *ast.FuncType:
+		return false
+	case *ast.InterfaceType:
+		return false // interface{} literal
+	case *ast.SelectorExpr:
+		// Qualified type like pkg.Type - treat as value type
+		return true
+	default:
+		return false
+	}
+}

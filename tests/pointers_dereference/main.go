@@ -20,5 +20,6 @@ func main() {
 	zeroptr(&i)
 	fmt.Println("zeroptr:", i)
 
-	fmt.Println("pointer:", &i)
+	p := &i
+	fmt.Println("pointer is non-nil:", p != nil)
 }

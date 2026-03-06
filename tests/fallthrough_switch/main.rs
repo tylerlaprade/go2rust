@@ -10,7 +10,7 @@ fn main() {
         }
         2 => {
             println!("{}", "Two".to_string());
-            // TODO: fallthrough not supported
+            println!("{}", "Three (via fallthrough)".to_string());
         }
         3 => {
             println!("{}", "Three (via fallthrough)".to_string());
@@ -26,23 +26,24 @@ fn main() {
     println!("{}", "---".to_string());
 
         // Multiple fallthrough
-    let mut grade = Rc::new(RefCell::new(Some(('B' as i32))));
+    let mut grade = Rc::new(RefCell::new(Some(66)));
     match (*grade.borrow_mut().as_mut().unwrap()) {
-        ('A' as i32) => {
+        65 => {
             println!("{}", "Excellent!".to_string());
-            // TODO: fallthrough not supported
-        }
-        ('B' as i32) => {
             println!("{}", "Good job!".to_string());
-            // TODO: fallthrough not supported
-        }
-        ('C' as i32) => {
             println!("{}", "Passed".to_string());
         }
-        ('D' as i32) => {
+        66 => {
+            println!("{}", "Good job!".to_string());
+            println!("{}", "Passed".to_string());
+        }
+        67 => {
+            println!("{}", "Passed".to_string());
+        }
+        68 => {
             println!("{}", "Barely passed".to_string());
         }
-        ('F' as i32) => {
+        70 => {
             println!("{}", "Failed".to_string());
         }
         _ => {}
@@ -55,7 +56,7 @@ fn main() {
     match true {
         true if (*n.borrow_mut().as_mut().unwrap()) % 15 == 0 => {
             println!("{}", "FizzBuzz".to_string());
-            // TODO: fallthrough not supported
+            println!("{}", "Fizz".to_string());
         }
         true if (*n.borrow_mut().as_mut().unwrap()) % 3 == 0 => {
             println!("{}", "Fizz".to_string());

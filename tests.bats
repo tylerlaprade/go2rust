@@ -289,6 +289,18 @@ run_xfail_test() {
     run_test "tests/builtin_functions"
 }
 
+@test "channel_directions" {
+    run_test "tests/channel_directions"
+}
+
+@test "channel_sync" {
+    run_test "tests/channel_sync"
+}
+
+@test "closing_channels" {
+    run_test "tests/closing_channels"
+}
+
 @test "closures_basic" {
     run_test "tests/closures_basic"
 }
@@ -327,6 +339,10 @@ run_xfail_test() {
 
 @test "external_simple" {
     run_test "tests/external_simple"
+}
+
+@test "fallthrough_switch" {
+    run_test "tests/fallthrough_switch"
 }
 
 @test "fmt_println" {
@@ -413,12 +429,20 @@ run_xfail_test() {
     run_test "tests/nil_basic"
 }
 
+@test "pointers_dereference" {
+    run_test "tests/pointers_dereference"
+}
+
 @test "pointers_simple" {
     run_test "tests/pointers_simple"
 }
 
 @test "range_iteration" {
     run_test "tests/range_iteration"
+}
+
+@test "range_over_channels" {
+    run_test "tests/range_over_channels"
 }
 
 @test "recursion_factorial" {
@@ -533,10 +557,6 @@ run_xfail_test() {
     run_xfail_test "tests/XFAIL/channel_directions"
 }
 
-@test "XFAIL: channel_sync" {
-    run_xfail_test "tests/XFAIL/channel_sync"
-}
-
 @test "XFAIL: channels_basic" {
     run_xfail_test "tests/XFAIL/channels_basic"
 }
@@ -599,10 +619,6 @@ run_xfail_test() {
 
 @test "XFAIL: errors_custom" {
     run_xfail_test "tests/XFAIL/errors_custom"
-}
-
-@test "XFAIL: fallthrough_switch" {
-    run_xfail_test "tests/XFAIL/fallthrough_switch"
 }
 
 @test "XFAIL: file_io" {
@@ -683,10 +699,6 @@ run_xfail_test() {
 
 @test "XFAIL: pointers_basic" {
     run_xfail_test "tests/XFAIL/pointers_basic"
-}
-
-@test "XFAIL: pointers_dereference" {
-    run_xfail_test "tests/XFAIL/pointers_dereference"
 }
 
 @test "XFAIL: random_numbers" {
