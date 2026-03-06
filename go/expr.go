@@ -1787,10 +1787,17 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 
 			if needsUnwrap {
 				// Wrapped type - need to unwrap
+				// Use mutable borrow only for pointer receiver methods
+				typeInfo := GetTypeInfo()
+				needsMut := typeInfo != nil && typeInfo.HasPointerReceiver(sel)
 				out.WriteString("(*")
 				out.WriteString(receiverName)
-				WriteBorrowMethod(out, true)
-				out.WriteString(".as_mut().unwrap()).")
+				WriteBorrowMethod(out, needsMut)
+				if needsMut {
+					out.WriteString(".as_mut().unwrap()).")
+				} else {
+					out.WriteString(".as_ref().unwrap()).")
+				}
 			} else {
 				// Direct struct variable (range var or constant) - call method directly
 				out.WriteString(receiverName)

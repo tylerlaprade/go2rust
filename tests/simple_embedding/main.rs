@@ -51,5 +51,5 @@ fn main() {
     println!("{} {}", "Name:".to_string(), (*(*o.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()));
 
         // Method call
-    println!("{} {}", "GetValue:".to_string(), (*(*o.borrow_mut().as_mut().unwrap()).get_value().borrow().as_ref().unwrap()));
+    println!("{} {}", "GetValue:".to_string(), (*(*o.borrow().as_ref().unwrap()).get_value().borrow().as_ref().unwrap()));
 }

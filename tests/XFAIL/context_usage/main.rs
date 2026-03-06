@@ -13,8 +13,8 @@ fn main() {
             println!("{}", "Operation completed".to_string());
             break;
         }
-        if let Some(_) = (*ctx.lock().unwrap().as_mut().unwrap()).done().try_recv() {
-            println!("{} {}", "Context cancelled:".to_string(), format!("{}", (*((*ctx.lock().unwrap().as_mut().unwrap()).err()).lock().unwrap().as_ref().unwrap())));
+        if let Some(_) = (*ctx.lock().unwrap().as_ref().unwrap()).done().try_recv() {
+            println!("{} {}", "Context cancelled:".to_string(), format!("{}", (*((*ctx.lock().unwrap().as_ref().unwrap()).err()).lock().unwrap().as_ref().unwrap())));
             break;
         }
         std::thread::sleep(std::time::Duration::from_millis(1));

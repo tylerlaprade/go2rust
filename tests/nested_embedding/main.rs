@@ -58,5 +58,5 @@ fn main() {
     print!("c.Z = {}\n", (*(*c.borrow().as_ref().unwrap()).z.borrow().as_ref().unwrap()));
 
         // Method accessing promoted field
-    (*c.borrow_mut().as_mut().unwrap()).show_x();
+    (*c.borrow().as_ref().unwrap()).show_x();
 }

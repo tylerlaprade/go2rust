@@ -196,10 +196,10 @@ fn main() {
     print!("ID: {}\n", (*(*emp.borrow().as_ref().unwrap()).i_d.borrow().as_ref().unwrap()));
 
         // Call embedded methods
-    (*emp.borrow_mut().as_mut().unwrap()).greet();
-    println!("{} {}", "Info:".to_string(), (*(*emp.borrow_mut().as_mut().unwrap()).get_info().borrow().as_ref().unwrap()));
-    println!("{} {}", "Address:".to_string(), (*(*emp.borrow_mut().as_mut().unwrap()).full_address().borrow().as_ref().unwrap()));
-    (*emp.borrow_mut().as_mut().unwrap()).work();
+    (*emp.borrow().as_ref().unwrap()).greet();
+    println!("{} {}", "Info:".to_string(), (*(*emp.borrow().as_ref().unwrap()).get_info().borrow().as_ref().unwrap()));
+    println!("{} {}", "Address:".to_string(), (*(*emp.borrow().as_ref().unwrap()).full_address().borrow().as_ref().unwrap()));
+    (*emp.borrow().as_ref().unwrap()).work();
 
         // Nested embedding
     println!("{}", "\n=== Nested embedding ===".to_string());
@@ -211,9 +211,9 @@ fn main() {
     print!("Manager City: {}\n", (*(*(*mgr.borrow().as_ref().unwrap()).employee.borrow().as_ref().unwrap().address.borrow().as_ref().unwrap()).city.borrow().as_ref().unwrap()));
 
         // Call methods from all levels
-    (*mgr.borrow_mut().as_mut().unwrap()).greet();
-    (*mgr.borrow_mut().as_mut().unwrap()).work();
-    (*mgr.borrow_mut().as_mut().unwrap()).manage();
+    (*mgr.borrow().as_ref().unwrap()).greet();
+    (*mgr.borrow().as_ref().unwrap()).work();
+    (*mgr.borrow().as_ref().unwrap()).manage();
 
         // Anonymous struct embedding
     println!("{}", "\n=== Anonymous struct embedding ===".to_string());
@@ -228,6 +228,6 @@ fn main() {
         // Method promotion
     println!("{}", "\n=== Method promotion ===".to_string());
     println!("{}", "Employee methods are promoted from Person and Address".to_string());
-    print!("Employee can call: {}\n", (*(*emp.borrow_mut().as_mut().unwrap()).get_info().borrow().as_ref().unwrap()));
-    print!("Employee address: {}\n", (*(*emp.borrow_mut().as_mut().unwrap()).full_address().borrow().as_ref().unwrap()));
+    print!("Employee can call: {}\n", (*(*emp.borrow().as_ref().unwrap()).get_info().borrow().as_ref().unwrap()));
+    print!("Employee address: {}\n", (*(*emp.borrow().as_ref().unwrap()).full_address().borrow().as_ref().unwrap()));
 }

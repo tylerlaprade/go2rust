@@ -218,9 +218,9 @@ fn main() {
     let mut svc = Rc::new(RefCell::new(Some(Service { logger: Rc::new(RefCell::new(Some(Logger { prefix: Rc::new(RefCell::new(Some("SVC".to_string()))) }))), counter: Rc::new(RefCell::new(Some(Counter { count: Rc::new(RefCell::new(Some(0))) }))), name: Rc::new(RefCell::new(Some("MyService".to_string()))) })));
 
         // Call promoted methods from Logger
-    (*svc.borrow_mut().as_mut().unwrap()).log(Rc::new(RefCell::new(Some("Service started".to_string()))));
+    (*svc.borrow().as_ref().unwrap()).log(Rc::new(RefCell::new(Some("Service started".to_string()))));
     (*svc.borrow_mut().as_mut().unwrap()).set_prefix(Rc::new(RefCell::new(Some("SERVICE".to_string()))));
-    (*svc.borrow_mut().as_mut().unwrap()).log(Rc::new(RefCell::new(Some("Prefix changed".to_string()))));
+    (*svc.borrow().as_ref().unwrap()).log(Rc::new(RefCell::new(Some("Prefix changed".to_string()))));
 
         // Call promoted methods from Counter
     (*svc.borrow_mut().as_mut().unwrap()).increment();
@@ -228,14 +228,14 @@ fn main() {
     print!("Counter value (via promoted method): {}\n", (*(*(*(*svc.borrow().as_ref().unwrap()).counter.borrow().as_ref().unwrap()).borrow().as_mut().unwrap()).value().borrow().as_ref().unwrap()));
 
         // Call Service's own methods
-    print!("Service name: {}\n", (*(*svc.borrow_mut().as_mut().unwrap()).name().borrow().as_ref().unwrap()));
-    print!("Shadowed Value method: {}\n", (*(*svc.borrow_mut().as_mut().unwrap()).value().borrow().as_ref().unwrap()));
+    print!("Service name: {}\n", (*(*svc.borrow().as_ref().unwrap()).name().borrow().as_ref().unwrap()));
+    print!("Shadowed Value method: {}\n", (*(*svc.borrow().as_ref().unwrap()).value().borrow().as_ref().unwrap()));
 
         // Test method promotion with pointers
     println!("{}", "\n=== Method promotion with pointers ===".to_string());
     let mut svcPtr = Rc::new(RefCell::new(Some(Service { logger: Rc::new(RefCell::new(Some(Logger { prefix: Rc::new(RefCell::new(Some("PTR".to_string()))) }))), counter: Rc::new(RefCell::new(Some(Counter { count: Rc::new(RefCell::new(Some(10))) }))), name: Rc::new(RefCell::new(Some("PointerService".to_string()))) })));
 
-    (*svcPtr.borrow_mut().as_mut().unwrap()).log(Rc::new(RefCell::new(Some("Pointer service".to_string()))));
+    (*svcPtr.borrow().as_ref().unwrap()).log(Rc::new(RefCell::new(Some("Pointer service".to_string()))));
     (*svcPtr.borrow_mut().as_mut().unwrap()).increment();
     print!("Pointer service counter: {}\n", (*(*(*(*svcPtr.borrow().as_ref().unwrap()).counter.borrow().as_ref().unwrap()).borrow().as_mut().unwrap()).value().borrow().as_ref().unwrap()));
 
@@ -244,15 +244,15 @@ fn main() {
     let mut top = Rc::new(RefCell::new(Some(Top { middle: Rc::new(RefCell::new(Some(Middle { base: Rc::new(RefCell::new(Some(Base { id: Rc::new(RefCell::new(Some(100))) }))), data: Rc::new(RefCell::new(Some("middle data".to_string()))) }))), extra: Rc::new(RefCell::new(Some("extra data".to_string()))) })));
 
         // Methods promoted from Base through Middle
-    print!("ID (promoted from Base): {}\n", (*(*top.borrow_mut().as_mut().unwrap()).get_i_d().borrow().as_ref().unwrap()));
+    print!("ID (promoted from Base): {}\n", (*(*top.borrow().as_ref().unwrap()).get_i_d().borrow().as_ref().unwrap()));
     (*top.borrow_mut().as_mut().unwrap()).set_i_d(Rc::new(RefCell::new(Some(200))));
-    print!("ID after SetID: {}\n", (*(*top.borrow_mut().as_mut().unwrap()).get_i_d().borrow().as_ref().unwrap()));
+    print!("ID after SetID: {}\n", (*(*top.borrow().as_ref().unwrap()).get_i_d().borrow().as_ref().unwrap()));
 
         // Methods promoted from Middle
-    print!("Data (promoted from Middle): {}\n", (*(*top.borrow_mut().as_mut().unwrap()).get_data().borrow().as_ref().unwrap()));
+    print!("Data (promoted from Middle): {}\n", (*(*top.borrow().as_ref().unwrap()).get_data().borrow().as_ref().unwrap()));
 
         // Top's own method
-    print!("Extra: {}\n", (*(*top.borrow_mut().as_mut().unwrap()).get_extra().borrow().as_ref().unwrap()));
+    print!("Extra: {}\n", (*(*top.borrow().as_ref().unwrap()).get_extra().borrow().as_ref().unwrap()));
 
         // Test with embedded pointer types would go here
         // but local type definitions with methods aren't supported in functions

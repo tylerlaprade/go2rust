@@ -74,6 +74,33 @@ func rhsIsPointerType(expr ast.Expr) bool {
 	return typeInfo.IsPointer(expr)
 }
 
+// HasPointerReceiver returns true if the method being called via a selector
+// expression has a pointer receiver (i.e., func (t *T) method())
+func (ti *TypeInfo) HasPointerReceiver(sel *ast.SelectorExpr) bool {
+	if ti == nil || ti.info == nil {
+		return false
+	}
+	selection, ok := ti.info.Selections[sel]
+	if !ok {
+		return false
+	}
+	// Get the method's signature
+	fn, ok := selection.Obj().(*types.Func)
+	if !ok {
+		return false
+	}
+	sig, ok := fn.Type().(*types.Signature)
+	if !ok {
+		return false
+	}
+	recv := sig.Recv()
+	if recv == nil {
+		return false
+	}
+	_, isPtr := recv.Type().(*types.Pointer)
+	return isPtr
+}
+
 // IsMap returns true if the expression is a map type
 func (ti *TypeInfo) IsMap(expr ast.Expr) bool {
 	typ := ti.GetType(expr)

@@ -242,9 +242,9 @@ fn main() {
     }) as Box<dyn Fn(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>>)))))), multiply: multiply.clone() })));
 
         // Reuse existing function
-    print!("calc.Add(10, 5) = {}\n", (*(*calc.borrow_mut().as_mut().unwrap()).add(Rc::new(RefCell::new(Some(10))), Rc::new(RefCell::new(Some(5)))).borrow().as_ref().unwrap()));
-    print!("calc.Subtract(10, 5) = {}\n", (*(*calc.borrow_mut().as_mut().unwrap()).subtract(Rc::new(RefCell::new(Some(10))), Rc::new(RefCell::new(Some(5)))).borrow().as_ref().unwrap()));
-    print!("calc.Multiply(10, 5) = {}\n", (*(*calc.borrow_mut().as_mut().unwrap()).multiply(Rc::new(RefCell::new(Some(10))), Rc::new(RefCell::new(Some(5)))).borrow().as_ref().unwrap()));
+    print!("calc.Add(10, 5) = {}\n", (*(*calc.borrow().as_ref().unwrap()).add(Rc::new(RefCell::new(Some(10))), Rc::new(RefCell::new(Some(5)))).borrow().as_ref().unwrap()));
+    print!("calc.Subtract(10, 5) = {}\n", (*(*calc.borrow().as_ref().unwrap()).subtract(Rc::new(RefCell::new(Some(10))), Rc::new(RefCell::new(Some(5)))).borrow().as_ref().unwrap()));
+    print!("calc.Multiply(10, 5) = {}\n", (*(*calc.borrow().as_ref().unwrap()).multiply(Rc::new(RefCell::new(Some(10))), Rc::new(RefCell::new(Some(5)))).borrow().as_ref().unwrap()));
 
         // Function variables
     println!("{}", "\n=== Function variables ===".to_string());

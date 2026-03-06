@@ -48,10 +48,10 @@ fn main() {
 
     print!("co={{num: {}, str: {}}}\n", (*(*(*co.borrow().as_ref().unwrap()).base.borrow().as_ref().unwrap()).num.borrow().as_ref().unwrap()), (*(*co.borrow().as_ref().unwrap()).str.borrow().as_ref().unwrap()));
     println!("{} {}", "also num:".to_string(), (*(*(*co.borrow_mut().as_mut().unwrap()).base.borrow().as_ref().unwrap()).num.borrow().as_ref().unwrap()));
-    println!("{} {}", "describe:".to_string(), (*(*co.borrow_mut().as_mut().unwrap()).describe().borrow().as_ref().unwrap()));
+    println!("{} {}", "describe:".to_string(), (*(*co.borrow().as_ref().unwrap()).describe().borrow().as_ref().unwrap()));
 
     type describer = Rc<RefCell<Option<Unknown>>>;
 
     let mut d: Rc<RefCell<Option<describer>>> = Rc::new(RefCell::new(Some((*co.borrow().as_ref().unwrap()))));
-    println!("{} {}", "describer:".to_string(), (*(*d.borrow_mut().as_mut().unwrap()).describe().borrow().as_ref().unwrap()));
+    println!("{} {}", "describer:".to_string(), (*(*d.borrow().as_ref().unwrap()).describe().borrow().as_ref().unwrap()));
 }
