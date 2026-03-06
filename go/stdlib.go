@@ -268,11 +268,31 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 	// Check if this is a field access on self (already wrapped)
 	if sel, ok := arg.(*ast.SelectorExpr); ok {
 		if ident, ok := sel.X.(*ast.Ident); ok && currentReceiver != "" && ident.Name == currentReceiver {
-			// self.field - need to unwrap for display
-			out.WriteString("(*self.")
-			out.WriteString(ToSnakeCase(sel.Sel.Name))
-			WriteBorrowMethod(out, false)
-			out.WriteString(".as_ref().unwrap())")
+			// self.field - need to unwrap for display, resolving promoted fields
+			fieldInfo := resolveFieldAccess(currentReceiverType, sel.Sel.Name)
+			if fieldInfo.IsPromoted && len(fieldInfo.EmbeddedPath) > 0 {
+				// Promoted field - traverse through embedded structs
+				out.WriteString("(*")
+				out.WriteString("self.")
+				out.WriteString(ToSnakeCase(fieldInfo.EmbeddedPath[0]))
+				WriteBorrowMethod(out, false)
+				out.WriteString(".as_ref().unwrap()")
+				for i := 1; i < len(fieldInfo.EmbeddedPath); i++ {
+					out.WriteString(".")
+					out.WriteString(ToSnakeCase(fieldInfo.EmbeddedPath[i]))
+					WriteBorrowMethod(out, false)
+					out.WriteString(".as_ref().unwrap()")
+				}
+				out.WriteString(".")
+				out.WriteString(fieldInfo.FieldName)
+				WriteBorrowMethod(out, false)
+				out.WriteString(".as_ref().unwrap())")
+			} else {
+				out.WriteString("(*self.")
+				out.WriteString(ToSnakeCase(sel.Sel.Name))
+				WriteBorrowMethod(out, false)
+				out.WriteString(".as_ref().unwrap())")
+			}
 			return
 		}
 	}

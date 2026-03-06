@@ -433,6 +433,10 @@ run_xfail_test() {
     run_test "tests/mutex_counter"
 }
 
+@test "nested_embedding" {
+    run_test "tests/nested_embedding"
+}
+
 @test "nil_basic" {
     run_test "tests/nil_basic"
 }
@@ -667,10 +671,6 @@ run_xfail_test() {
 
 @test "XFAIL: named_types_methods" {
     run_xfail_test "tests/XFAIL/named_types_methods"
-}
-
-@test "XFAIL: nested_embedding" {
-    run_xfail_test "tests/XFAIL/nested_embedding"
 }
 
 @test "XFAIL: nested_structures" {

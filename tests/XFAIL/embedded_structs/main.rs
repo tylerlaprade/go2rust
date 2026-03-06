@@ -115,7 +115,7 @@ impl Address {
 
 impl Employee {
     pub fn work(&self) {
-        print!("{} is working (ID: {})\n", (*self.name.borrow().as_ref().unwrap()), (*self.i_d.borrow().as_ref().unwrap()));
+        print!("{} is working (ID: {})\n", (*self.person.borrow().as_ref().unwrap().name.borrow().as_ref().unwrap()), (*self.i_d.borrow().as_ref().unwrap()));
     }
 
     pub fn full_address(&self) -> Rc<RefCell<Option<String>>> {
@@ -145,7 +145,7 @@ impl Employee {
 
 impl Manager {
     pub fn manage(&self) {
-        print!("Manager {} is managing team: {}\n", (*self.name.borrow().as_ref().unwrap()), format_slice(&self.team.clone()));
+        print!("Manager {} is managing team: {}\n", (*self.employee.borrow().as_ref().unwrap().person.borrow().as_ref().unwrap().name.borrow().as_ref().unwrap()), format_slice(&self.team.clone()));
     }
 
     pub fn full_address(&self) -> Rc<RefCell<Option<String>>> {

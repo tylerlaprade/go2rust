@@ -42,7 +42,7 @@ impl std::fmt::Display for C {
 
 impl C {
     pub fn show_x(&self) {
-        print!("X = {}\n", (*self.x.borrow().as_ref().unwrap()));
+        print!("X = {}\n", (*self.b.borrow().as_ref().unwrap().a.borrow().as_ref().unwrap().x.borrow().as_ref().unwrap()));
     }
 }
 

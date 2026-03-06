@@ -5,7 +5,6 @@ import (
 	"go/ast"
 	"go/token"
 	"go/types"
-	"log"
 	"strings"
 )
 
@@ -212,12 +211,10 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			out.WriteString("::")
 			out.WriteString(ToSnakeCase(e.Sel.Name))
 		} else if ident, ok := e.X.(*ast.Ident); ok {
-			log.Printf("DEBUG SelectorExpr ident=%s sel=%s currentReceiver=%s currentReceiverType=%s", ident.Name, e.Sel.Name, currentReceiver, currentReceiverType)
 			// Field access on a variable
 			if currentReceiver != "" && ident.Name == currentReceiver {
 				// Field access on method receiver - use self directly
 				fieldInfo := resolveFieldAccess(currentReceiverType, e.Sel.Name)
-				log.Printf("DEBUG resolveFieldAccess(%s, %s) = Found:%v IsPromoted:%v Path:%v Field:%s", currentReceiverType, e.Sel.Name, fieldInfo.Found, fieldInfo.IsPromoted, fieldInfo.EmbeddedPath, fieldInfo.FieldName)
 
 				if fieldInfo.IsPromoted {
 					// Accessing promoted field through embedded struct(s)
