@@ -19,6 +19,24 @@ impl GoMutex {
     }
 }
 
+impl Default for GoMutex {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl Clone for GoMutex {
+    fn clone(&self) -> Self {
+        Self::new()
+    }
+}
+
+impl std::fmt::Debug for GoMutex {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "Mutex")
+    }
+}
+
 #[derive(Debug, Clone, Default)]
 struct Counter {
     mu: GoMutex,
@@ -27,31 +45,27 @@ struct Counter {
 
 impl std::fmt::Display for Counter {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.mu.borrow().as_ref().unwrap()), (*self.value.borrow().as_ref().unwrap()))
+        write!(f, "{{{}}}", (*self.value.borrow().as_ref().unwrap()))
     }
 }
 
 
 impl Counter {
     pub fn increment(&mut self) {
-        (*self.mu.clone().borrow().as_mut().unwrap()).lock();
-        __defer_stack.push(Box::new(move || {
-        (*self.mu.clone().borrow().as_mut().unwrap()).unlock();
-    }));
+        let _guard = self.mu.lock();
+        // mu.Unlock() handled by RAII guard
         { let mut guard = self.value.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
 
     pub fn value(&mut self) -> Rc<RefCell<Option<i32>>> {
-        (*self.mu.clone().borrow().as_mut().unwrap()).lock();
-        __defer_stack.push(Box::new(move || {
-        (*self.mu.clone().borrow().as_mut().unwrap()).unlock();
-    }));
+        let _guard = self.mu.lock();
+        // mu.Unlock() handled by RAII guard
         return self.value.clone();
     }
 }
 
 fn main() {
-    let mut counter = Rc::new(RefCell::new(Some(Counter {  })));
+    let mut counter = Rc::new(RefCell::new(Some(Counter { mu: GoMutex::new(), value: Rc::new(RefCell::new(Some(0))) })));
     (*counter.borrow_mut().as_mut().unwrap()).increment();
     (*counter.borrow_mut().as_mut().unwrap()).increment();
     println!("{} {}", "Counter value:".to_string(), (*(*counter.borrow_mut().as_mut().unwrap()).value().borrow().as_ref().unwrap()));

@@ -219,28 +219,38 @@ fn format_any_slice(slice: &Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) -> String {
 func generateGoChannelHelper(out *strings.Builder) {
 	out.WriteString(`
 struct GoChannel<T> {
-    tx: std::sync::Arc<std::sync::Mutex<Option<std::sync::mpsc::Sender<T>>>>,
+    tx: std::sync::Arc<std::sync::Mutex<Option<std::sync::mpsc::SyncSender<T>>>>,
     rx: std::sync::Arc<std::sync::Mutex<std::sync::mpsc::Receiver<T>>>,
 }
 
 impl<T> GoChannel<T> {
     fn new() -> Self {
-        let (tx, rx) = std::sync::mpsc::channel();
+        let (tx, rx) = std::sync::mpsc::sync_channel(0);
         GoChannel {
             tx: std::sync::Arc::new(std::sync::Mutex::new(Some(tx))),
             rx: std::sync::Arc::new(std::sync::Mutex::new(rx)),
         }
     }
 
-    fn new_buffered(_cap: usize) -> Self {
-        // Use unbounded channel for all cases - buffer semantics only affect
-        // blocking behavior, not correctness for most programs
-        Self::new()
+    fn new_buffered(cap: usize) -> Self {
+        let (tx, rx) = std::sync::mpsc::sync_channel(cap);
+        GoChannel {
+            tx: std::sync::Arc::new(std::sync::Mutex::new(Some(tx))),
+            rx: std::sync::Arc::new(std::sync::Mutex::new(rx)),
+        }
     }
 
     fn send(&self, val: T) {
         if let Some(ref tx) = *self.tx.lock().unwrap() {
             let _ = tx.send(val);
+        }
+    }
+
+    fn try_send(&self, val: T) -> bool {
+        if let Some(ref tx) = *self.tx.lock().unwrap() {
+            tx.try_send(val).is_ok()
+        } else {
+            false
         }
     }
 
@@ -337,6 +347,24 @@ impl GoMutex {
 
     fn lock(&self) -> std::sync::MutexGuard<()> {
         self.inner.lock().unwrap()
+    }
+}
+
+impl Default for GoMutex {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl Clone for GoMutex {
+    fn clone(&self) -> Self {
+        Self::new()
+    }
+}
+
+impl std::fmt::Debug for GoMutex {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "Mutex")
     }
 }
 `)

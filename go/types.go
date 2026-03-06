@@ -114,6 +114,13 @@ func GoTypeToRust(expr ast.Expr) string {
 		return baseType
 	}
 
+	// sync types are not wrapped - they handle synchronization internally
+	if sel, ok := expr.(*ast.SelectorExpr); ok {
+		if ident, ok := sel.X.(*ast.Ident); ok && ident.Name == "sync" {
+			return baseType
+		}
+	}
+
 	// Wrap everything in appropriate wrapper
 	// Don't double-wrap pointers - they're already wrapped
 	if _, isPointer := expr.(*ast.StarExpr); !isPointer {
@@ -246,6 +253,10 @@ func goTypeToRustBase(expr ast.Expr) string {
 		valueType := goTypeToRustBase(t.Value)
 		return "BTreeMap<" + keyType + ", " + valueType + ">"
 	case *ast.StarExpr:
+		// Pointer to sync types → bare type (they handle sharing internally)
+		if isSyncParam(t) {
+			return goTypeToRustBase(t.X)
+		}
 		// Pointer type - wrap the base type (not already wrapped)
 		innerType := goTypeToRustBase(t.X)
 		outerWrapper := GetOuterWrapperType()
@@ -257,6 +268,21 @@ func goTypeToRustBase(expr ast.Expr) string {
 	case *ast.ChanType:
 		elemType := goTypeToRustBase(t.Value)
 		return "GoChannel<" + elemType + ">"
+	case *ast.SelectorExpr:
+		// Package-qualified types like sync.WaitGroup, sync.Mutex
+		if ident, ok := t.X.(*ast.Ident); ok {
+			if ident.Name == "sync" {
+				switch t.Sel.Name {
+				case "WaitGroup":
+					NeedWaitGroup()
+					return "WaitGroup"
+				case "Mutex":
+					NeedGoMutex()
+					return "GoMutex"
+				}
+			}
+		}
+		return fmt.Sprintf("%s_%s", t.X, t.Sel.Name)
 	case *ast.StructType:
 		// Anonymous struct type - generate a unique type name
 		return generateAnonymousStructType(t)
@@ -266,4 +292,49 @@ func goTypeToRustBase(expr ast.Expr) string {
 		innerWrapper := GetInnerWrapperType()
 		return fmt.Sprintf("/* TODO: Unhandled type %T */ %s<%s<Option<()>>>", t, outerWrapper, innerWrapper)
 	}
+}
+
+// zeroValueForGoType returns the Rust zero value for a Go type expression
+func zeroValueForGoType(expr ast.Expr) string {
+	switch t := expr.(type) {
+	case *ast.Ident:
+		switch t.Name {
+		case "string":
+			return "String::new()"
+		case "int", "int8", "int16", "int32", "int64", "rune":
+			return "0"
+		case "uint", "uint8", "uint16", "uint32", "uint64", "uintptr", "byte":
+			return "0"
+		case "float32", "float64":
+			return "0.0"
+		case "bool":
+			return "false"
+		default:
+			return "Default::default()"
+		}
+	case *ast.ArrayType:
+		if t.Len != nil {
+			return "Default::default()"
+		}
+		return "vec![]"
+	case *ast.MapType:
+		return "BTreeMap::new()"
+	default:
+		return "Default::default()"
+	}
+}
+
+// isSyncParam checks if a type expression is sync.WaitGroup, sync.Mutex, or pointers to them
+func isSyncParam(expr ast.Expr) bool {
+	// Check *sync.WaitGroup / *sync.Mutex
+	if star, ok := expr.(*ast.StarExpr); ok {
+		return isSyncParam(star.X)
+	}
+	// Check sync.WaitGroup / sync.Mutex
+	if sel, ok := expr.(*ast.SelectorExpr); ok {
+		if ident, ok := sel.X.(*ast.Ident); ok && ident.Name == "sync" {
+			return sel.Sel.Name == "WaitGroup" || sel.Sel.Name == "Mutex"
+		}
+	}
+	return false
 }

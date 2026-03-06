@@ -429,6 +429,10 @@ run_xfail_test() {
     run_test "tests/methods_basic"
 }
 
+@test "mutex_counter" {
+    run_test "tests/mutex_counter"
+}
+
 @test "nil_basic" {
     run_test "tests/nil_basic"
 }
@@ -659,10 +663,6 @@ run_xfail_test() {
 
 @test "XFAIL: multiple_returns" {
     run_xfail_test "tests/XFAIL/multiple_returns"
-}
-
-@test "XFAIL: mutex_counter" {
-    run_xfail_test "tests/XFAIL/mutex_counter"
 }
 
 @test "XFAIL: named_types_methods" {

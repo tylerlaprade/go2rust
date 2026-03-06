@@ -9,6 +9,55 @@ import (
 	"strings"
 )
 
+// isMutexLockCall checks if an expression is a Lock() call on a sync.Mutex field
+func isMutexLockCall(expr ast.Expr) bool {
+	call, ok := expr.(*ast.CallExpr)
+	if !ok {
+		return false
+	}
+	sel, ok := call.Fun.(*ast.SelectorExpr)
+	if !ok || sel.Sel.Name != "Lock" {
+		return false
+	}
+	// Check if the receiver field is a sync.Mutex
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	fieldType := typeInfo.GetType(sel.X)
+	if fieldType == nil {
+		return false
+	}
+	if named, ok := fieldType.(*types.Named); ok {
+		if named.Obj() != nil && named.Obj().Pkg() != nil && named.Obj().Pkg().Name() == "sync" && named.Obj().Name() == "Mutex" {
+			return true
+		}
+	}
+	return false
+}
+
+// isMutexUnlockDefer checks if a defer statement is mu.Unlock() on a sync.Mutex
+func isMutexUnlockDefer(call *ast.CallExpr) bool {
+	sel, ok := call.Fun.(*ast.SelectorExpr)
+	if !ok || sel.Sel.Name != "Unlock" {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	fieldType := typeInfo.GetType(sel.X)
+	if fieldType == nil {
+		return false
+	}
+	if named, ok := fieldType.(*types.Named); ok {
+		if named.Obj() != nil && named.Obj().Pkg() != nil && named.Obj().Pkg().Name() == "sync" && named.Obj().Name() == "Mutex" {
+			return true
+		}
+	}
+	return false
+}
+
 // transpileChannelValue writes a value suitable for sending on a channel.
 // Channel values are bare (unwrapped), so we need to unwrap wrapped variables.
 func transpileChannelValue(out *strings.Builder, expr ast.Expr) {
@@ -187,6 +236,10 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		out.WriteString(");")
 
 	case *ast.ExprStmt:
+		// Check if this is a mutex Lock() call — needs guard binding
+		if isMutexLockCall(s.X) {
+			out.WriteString("let _guard = ")
+		}
 		TranspileExpression(out, s.X)
 		out.WriteString(";")
 
@@ -2025,6 +2078,12 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		out.WriteString("    }")
 
 	case *ast.DeferStmt:
+		// Check if this is defer mu.Unlock() — suppress it (RAII guard handles unlock)
+		if isMutexUnlockDefer(s.Call) {
+			out.WriteString("// mu.Unlock() handled by RAII guard")
+			break
+		}
+
 		// Check if the defer contains a closure that captures variables
 		captured := findCapturedInCall(s.Call)
 

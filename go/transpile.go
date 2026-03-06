@@ -66,6 +66,7 @@ func SetPackageImports(imports map[string]string) {
 type StructDef struct {
 	Fields        map[string]string // field name -> field type
 	EmbeddedTypes []string          // list of embedded type names
+	ASTType       *ast.StructType   // original AST type for zero-value generation
 }
 
 var structDefs = make(map[string]*StructDef)

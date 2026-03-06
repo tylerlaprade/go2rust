@@ -29,6 +29,10 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 	}
 	var fields []fieldEntry
 	for _, field := range structType.Fields.List {
+		// Skip sync types (Mutex, WaitGroup) — they're not data fields
+		if isSyncParam(field.Type) {
+			continue
+		}
 		if len(field.Names) > 0 {
 			for _, name := range field.Names {
 				fields = append(fields, fieldEntry{name: name.Name, isEmbedded: false})
@@ -200,6 +204,12 @@ func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.Fi
 							WrapLevel: WrapNone,
 							Source:    SourceParam,
 						})
+					} else if isSyncParam(field.Type) {
+						// sync.WaitGroup / sync.Mutex parameters are bare
+						vt.Register(name.Name, &VarInfo{
+							WrapLevel: WrapNone,
+							Source:    SourceParam,
+						})
 					} else {
 						vt.Register(name.Name, &VarInfo{
 							WrapLevel: WrapFull,
@@ -333,6 +343,7 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 		structDef := &StructDef{
 			Fields:        make(map[string]string),
 			EmbeddedTypes: []string{},
+			ASTType:       t,
 		}
 
 		// First pass: collect field information
@@ -894,6 +905,12 @@ func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, a
 						})
 					} else if _, ok := field.Type.(*ast.ChanType); ok {
 						// Channel parameters are bare (GoChannel<T>)
+						vt.Register(name.Name, &VarInfo{
+							WrapLevel: WrapNone,
+							Source:    SourceParam,
+						})
+					} else if isSyncParam(field.Type) {
+						// sync.WaitGroup / sync.Mutex parameters are bare
 						vt.Register(name.Name, &VarInfo{
 							WrapLevel: WrapNone,
 							Source:    SourceParam,

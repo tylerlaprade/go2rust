@@ -5,6 +5,7 @@ import (
 	"go/ast"
 	"go/token"
 	"go/types"
+	"log"
 	"strings"
 )
 
@@ -211,10 +212,12 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			out.WriteString("::")
 			out.WriteString(ToSnakeCase(e.Sel.Name))
 		} else if ident, ok := e.X.(*ast.Ident); ok {
+			log.Printf("DEBUG SelectorExpr ident=%s sel=%s currentReceiver=%s currentReceiverType=%s", ident.Name, e.Sel.Name, currentReceiver, currentReceiverType)
 			// Field access on a variable
 			if currentReceiver != "" && ident.Name == currentReceiver {
 				// Field access on method receiver - use self directly
 				fieldInfo := resolveFieldAccess(currentReceiverType, e.Sel.Name)
+				log.Printf("DEBUG resolveFieldAccess(%s, %s) = Found:%v IsPromoted:%v Path:%v Field:%s", currentReceiverType, e.Sel.Name, fieldInfo.Found, fieldInfo.IsPromoted, fieldInfo.EmbeddedPath, fieldInfo.FieldName)
 
 				if fieldInfo.IsPromoted {
 					// Accessing promoted field through embedded struct(s)
@@ -978,6 +981,38 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			}
 			out.WriteString("]))))")
 		} else if ident, ok := e.Type.(*ast.Ident); ok {
+			// Empty struct literal — generate explicit zero-value fields
+			if len(e.Elts) == 0 {
+				if sd, exists := structDefs[ident.Name]; exists && sd.ASTType != nil {
+					out.WriteString(ident.Name)
+					out.WriteString(" { ")
+					fieldIdx := 0
+					for _, field := range sd.ASTType.Fields.List {
+						for _, name := range field.Names {
+							if fieldIdx > 0 {
+								out.WriteString(", ")
+							}
+							out.WriteString(ToSnakeCase(name.Name))
+							out.WriteString(": ")
+							if isSyncParam(field.Type) {
+								out.WriteString(goTypeToRustBase(field.Type))
+								out.WriteString("::new()")
+							} else {
+								WriteWrapperPrefix(out)
+								out.WriteString(zeroValueForGoType(field.Type))
+								WriteWrapperSuffix(out)
+							}
+							fieldIdx++
+						}
+					}
+					out.WriteString(" }")
+				} else {
+					out.WriteString(ident.Name)
+					out.WriteString("::default()")
+				}
+				break
+			}
+
 			// Struct literal
 			out.WriteString(ident.Name)
 			out.WriteString(" { ")
@@ -1765,13 +1800,37 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				out.WriteString(".")
 			}
 		} else if fieldSel, ok := sel.X.(*ast.SelectorExpr); ok {
-			// Method call on a field (e.g., s.Counter.Value())
-			// The field is wrapped, so we need to unwrap it
-			out.WriteString("(*")
-			TranspileExpression(out, fieldSel)
-			out.WriteString("")
-			WriteBorrowMethod(out, false)
-			out.WriteString(".as_mut().unwrap()).")
+			// Check if this is a sync.Mutex method call (e.g., c.mu.Lock())
+			isMutexMethodCall := false
+			if sel.Sel.Name == "Lock" || sel.Sel.Name == "Unlock" {
+				// Check if the field type is sync.Mutex via TypeInfo
+				typeInfo := GetTypeInfo()
+				if typeInfo != nil {
+					fieldType := typeInfo.GetType(fieldSel)
+					if fieldType != nil {
+						if named, ok := fieldType.(*types.Named); ok {
+							if named.Obj() != nil && named.Obj().Pkg() != nil && named.Obj().Pkg().Name() == "sync" && named.Obj().Name() == "Mutex" {
+								isMutexMethodCall = true
+							}
+						}
+					}
+				}
+			}
+			if isMutexMethodCall {
+				// Mutex field — access directly without unwrapping
+				TranspileExpression(out, fieldSel.X)
+				out.WriteString(".")
+				out.WriteString(ToSnakeCase(fieldSel.Sel.Name))
+				out.WriteString(".")
+			} else {
+				// Method call on a field (e.g., s.Counter.Value())
+				// The field is wrapped, so we need to unwrap it
+				out.WriteString("(*")
+				TranspileExpression(out, fieldSel)
+				out.WriteString("")
+				WriteBorrowMethod(out, false)
+				out.WriteString(".as_mut().unwrap()).")
+			}
 		} else {
 			// Other complex expression - just transpile it
 			TranspileExpression(out, sel.X)

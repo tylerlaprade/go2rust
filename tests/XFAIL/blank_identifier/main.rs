@@ -2,6 +2,72 @@ use std::any::Any;
 use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex};
 
+
+struct GoChannel<T> {
+    tx: std::sync::Arc<std::sync::Mutex<Option<std::sync::mpsc::SyncSender<T>>>>,
+    rx: std::sync::Arc<std::sync::Mutex<std::sync::mpsc::Receiver<T>>>,
+}
+
+impl<T> GoChannel<T> {
+    fn new() -> Self {
+        let (tx, rx) = std::sync::mpsc::sync_channel(0);
+        GoChannel {
+            tx: std::sync::Arc::new(std::sync::Mutex::new(Some(tx))),
+            rx: std::sync::Arc::new(std::sync::Mutex::new(rx)),
+        }
+    }
+
+    fn new_buffered(cap: usize) -> Self {
+        let (tx, rx) = std::sync::mpsc::sync_channel(cap);
+        GoChannel {
+            tx: std::sync::Arc::new(std::sync::Mutex::new(Some(tx))),
+            rx: std::sync::Arc::new(std::sync::Mutex::new(rx)),
+        }
+    }
+
+    fn send(&self, val: T) {
+        if let Some(ref tx) = *self.tx.lock().unwrap() {
+            let _ = tx.send(val);
+        }
+    }
+
+    fn try_send(&self, val: T) -> bool {
+        if let Some(ref tx) = *self.tx.lock().unwrap() {
+            tx.try_send(val).is_ok()
+        } else {
+            false
+        }
+    }
+
+    fn recv(&self) -> Option<T> {
+        self.rx.lock().unwrap().recv().ok()
+    }
+
+    fn try_recv(&self) -> Option<T> {
+        self.rx.lock().unwrap().try_recv().ok()
+    }
+
+    fn close(&self) {
+        *self.tx.lock().unwrap() = None;
+    }
+}
+
+impl<T> Clone for GoChannel<T> {
+    fn clone(&self) -> Self {
+        GoChannel {
+            tx: self.tx.clone(),
+            rx: self.rx.clone(),
+        }
+    }
+}
+
+impl<T> Iterator for GoChannel<T> {
+    type Item = T;
+    fn next(&mut self) -> Option<T> {
+        self.recv()
+    }
+}
+
 pub fn multiple_returns() -> (Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<String>>>, Arc<Mutex<Option<bool>>>) {
 
     return (Arc::new(Mutex::new(Some(42))), Arc::new(Mutex::new(Some("hello".to_string()))), Arc::new(Mutex::new(Some(true))));
@@ -145,14 +211,14 @@ fn main() {
         // Blank identifier in channel operations
     println!("{}", "\n=== Blank identifier with channels ===".to_string());
 
-    let mut ch = ;
-    // TODO: Unhandled statement type: SendStmt
-    // TODO: Unhandled statement type: SendStmt
-    // TODO: Unhandled statement type: SendStmt
-    (*close.lock().unwrap().as_ref().unwrap())(ch.clone());
+    let mut ch = GoChannel::<i32>::new_buffered(3 as usize);
+    ch.send(1);
+    ch.send(2);
+    ch.send(3);
+    ch.close();
 
         // Read from channel but ignore the value
-    for  {
+    for _ in ch.clone() {
         println!("{}", "Received a value (but ignored it)".to_string());
     }
 
