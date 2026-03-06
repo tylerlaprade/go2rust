@@ -23,8 +23,8 @@ fn main() {
     print!("Length: {}\n", (*str.lock().unwrap().as_ref().unwrap()).len());
 
         // String indexing and slicing
-    print!("First character: {}\n", (*str.lock().unwrap().as_ref().unwrap()).as_bytes()[0 as usize]);
-    print!("Last character: {}\n", (*str.lock().unwrap().as_ref().unwrap()).as_bytes()[(*str.lock().unwrap().as_ref().unwrap()).len() - 1 as usize]);
+    print!("First character: {}\n", ((*str.lock().unwrap().as_ref().unwrap()).as_bytes()[0 as usize]) as u8 as char);
+    print!("Last character: {}\n", ((*str.lock().unwrap().as_ref().unwrap()).as_bytes()[(*str.lock().unwrap().as_ref().unwrap()).len() - 1 as usize]) as u8 as char);
     print!("Substring [0:5]: {}\n", Arc::new(Mutex::new(Some((*str.lock().unwrap().as_ref().unwrap())[0 as usize..5 as usize].to_vec()))));
     print!("Substring [7:]: {}\n", Arc::new(Mutex::new(Some((*str.lock().unwrap().as_ref().unwrap())[7 as usize..].to_vec()))));
 
@@ -121,14 +121,14 @@ fn main() {
 
         // String building with strings.Builder
     println!("{}", "\n=== String building ===".to_string());
-    let mut builder: Arc<Mutex<Option<strings_Builder>>>;
+    let mut builder: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(Some(String::new())));
 
-    (*builder.lock().unwrap().as_mut().unwrap()).write_string(Arc::new(Mutex::new(Some("Building ".to_string()))));
-    (*builder.lock().unwrap().as_mut().unwrap()).write_string(Arc::new(Mutex::new(Some("a ".to_string()))));
-    (*builder.lock().unwrap().as_mut().unwrap()).write_string(Arc::new(Mutex::new(Some("string ".to_string()))));
-    (*builder.lock().unwrap().as_mut().unwrap()).write_string(Arc::new(Mutex::new(Some("efficiently".to_string()))));
+    (*builder.lock().unwrap().as_mut().unwrap()).push_str("Building ");
+    (*builder.lock().unwrap().as_mut().unwrap()).push_str("a ");
+    (*builder.lock().unwrap().as_mut().unwrap()).push_str("string ");
+    (*builder.lock().unwrap().as_mut().unwrap()).push_str("efficiently");
 
-    let mut built = (*builder.lock().unwrap().as_mut().unwrap()).string();
+    let mut built = Arc::new(Mutex::new(Some((*builder.lock().unwrap().as_ref().unwrap()).clone())));
     print!("Built string: {}\n", (*built.lock().unwrap().as_ref().unwrap()));
     print!("Builder length: {}\n", (*(*builder.lock().unwrap().as_mut().unwrap()).len().lock().unwrap().as_ref().unwrap()));
 
@@ -141,7 +141,7 @@ fn main() {
     let mut runeCount = Arc::new(Mutex::new(Some(0)));
     for (_, r) in (*(*unicode.lock().unwrap().as_ref().unwrap()).lock().unwrap().as_ref().unwrap()).chars().enumerate() {
         { let mut guard = runeCount.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
-        print!("Rune: {} (U+%04X)\n", r, r);
+        print!("Rune: {} (U+%04X)\n", (r) as u8 as char, r);
     }
     print!("Rune count: {}\n", (*runeCount.lock().unwrap().as_ref().unwrap()));
 

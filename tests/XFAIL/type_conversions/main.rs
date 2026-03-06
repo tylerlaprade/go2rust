@@ -94,8 +94,8 @@ fn main() {
     let mut r: Rc<RefCell<Option<i32>>> = Rc::new(RefCell::new(Some(('A' as i32))));
     let mut b: Rc<RefCell<Option<u8>>> = Rc::new(RefCell::new(Some(65)));
 
-    print!("rune 'A': {} ({})\n", (*r.borrow().as_ref().unwrap()), (*r.borrow().as_ref().unwrap()));
-    print!("byte 65: {} ({})\n", (*b.borrow().as_ref().unwrap()), (*b.borrow().as_ref().unwrap()));
+    print!("rune 'A': {} ({})\n", ((*r.borrow().as_ref().unwrap())) as u8 as char, (*r.borrow().as_ref().unwrap()));
+    print!("byte 65: {} ({})\n", ((*b.borrow().as_ref().unwrap())) as u8 as char, (*b.borrow().as_ref().unwrap()));
 
         // Rune to string
     let mut str = Rc::new(RefCell::new(Some(char::from_u32((*r.borrow().as_ref().unwrap()) as u32).unwrap().to_string())));
