@@ -1264,8 +1264,12 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							out.WriteString("let mut ")
 							out.WriteString(name.Name)
 
-							// Add type annotation if type is specified (skip for sync types - bare)
-							if valueSpec.Type != nil && !isSyncType {
+							// Add type annotation if type is specified (skip for sync types and local interfaces)
+							isLocalInterface := false
+							if typeIdent, ok := valueSpec.Type.(*ast.Ident); ok && localInterfaces[typeIdent.Name] {
+								isLocalInterface = true
+							}
+							if valueSpec.Type != nil && !isSyncType && !isLocalInterface {
 								out.WriteString(": ")
 								out.WriteString(GoTypeToRust(valueSpec.Type))
 							}
@@ -1276,6 +1280,13 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 								if ident, ok := valueSpec.Values[i].(*ast.Ident); ok && ident.Name == "nil" {
 									// Initializing with nil
 									WriteWrappedNone(out)
+								} else if isLocalInterface {
+									// Assigning to a local interface variable - keep wrapped, just clone the Rc
+									if ident, ok := valueSpec.Values[i].(*ast.Ident); ok {
+										out.WriteString(ident.Name + ".clone()")
+									} else {
+										TranspileExpression(out, valueSpec.Values[i])
+									}
 								} else if _, isCall := valueSpec.Values[i].(*ast.CallExpr); isCall {
 									// Function calls already return wrapped values, don't wrap again
 									TranspileExpression(out, valueSpec.Values[i])
@@ -1412,6 +1423,11 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				// Handle local type declarations
 				for _, spec := range genDecl.Specs {
 					if typeSpec, ok := spec.(*ast.TypeSpec); ok {
+						// Skip local interface type declarations - they can't be Rust type aliases
+						if _, isIface := typeSpec.Type.(*ast.InterfaceType); isIface {
+							localInterfaces[typeSpec.Name.Name] = true
+							continue
+						}
 						// For now, just generate type aliases inside functions
 						// These should be hoisted to module level in a real implementation
 						out.WriteString("type ")

@@ -517,6 +517,10 @@ run_xfail_test() {
     run_test "tests/strings_runes"
 }
 
+@test "struct_embedding" {
+    run_test "tests/struct_embedding"
+}
+
 @test "struct_methods" {
     run_test "tests/struct_methods"
 }
@@ -743,10 +747,6 @@ run_xfail_test() {
 
 @test "XFAIL: stdlib_strings" {
     run_xfail_test "tests/XFAIL/stdlib_strings"
-}
-
-@test "XFAIL: struct_embedding" {
-    run_xfail_test "tests/XFAIL/struct_embedding"
 }
 
 @test "XFAIL: struct_tags_reflection" {

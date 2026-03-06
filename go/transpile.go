@@ -12,6 +12,9 @@ import (
 var rangeLoopVars = make(map[string]string)
 var localConstants = make(map[string]string)
 
+// localInterfaces tracks locally-defined interface type names (inside functions)
+var localInterfaces = make(map[string]bool)
+
 // currentReceiver tracks the current method receiver name for self translation
 var currentReceiver string
 
