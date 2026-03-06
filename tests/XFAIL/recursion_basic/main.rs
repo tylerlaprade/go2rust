@@ -74,7 +74,7 @@ pub fn sum_array(arr: Rc<RefCell<Option<Vec<i32>>>>) -> Rc<RefCell<Option<i32>>>
     if (*arr.borrow().as_ref().unwrap()).len() == 1 {
         return Rc::new(RefCell::new(Some((*arr.borrow().as_ref().unwrap())[0 as usize].clone())));
     }
-    return Rc::new(RefCell::new(Some((*(*arr.borrow().as_ref().unwrap())[0 as usize].clone().borrow().as_ref().unwrap()) + (*sum_array(Rc::new(RefCell::new(Some(Rc::new(RefCell::new(Some((*arr.borrow().as_ref().unwrap())[1 as usize..].to_vec()))))))).borrow().as_ref().unwrap()))));
+    return Rc::new(RefCell::new(Some((*arr.borrow().as_ref().unwrap())[0 as usize].clone() + (*sum_array(Rc::new(RefCell::new(Some(Rc::new(RefCell::new(Some((*arr.borrow().as_ref().unwrap())[1 as usize..].to_vec()))))))).borrow().as_ref().unwrap()))));
 }
 
 pub fn reverse_string(s: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>> {

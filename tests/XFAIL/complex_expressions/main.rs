@@ -98,7 +98,7 @@ fn main() {
     let mut bool1 = Arc::new(Mutex::new(Some(((*x.lock().unwrap().as_ref().unwrap()) < (*y.lock().unwrap().as_ref().unwrap())) && ((*y.lock().unwrap().as_ref().unwrap()) < (*z.lock().unwrap().as_ref().unwrap())) || ((*x.lock().unwrap().as_ref().unwrap()) == 5 && (*z.lock().unwrap().as_ref().unwrap()) > 10))));
     print!("(x < y) && (y < z) || (x == 5 && z > 10) = {}\n", (*bool1.lock().unwrap().as_ref().unwrap()));
 
-    let mut bool2 = Arc::new(Mutex::new(Some((*!((*x.lock().unwrap().as_ref().unwrap()) > (*y.lock().unwrap().as_ref().unwrap())).lock().unwrap().as_ref().unwrap()) && ((*z.lock().unwrap().as_ref().unwrap()) - (*y.lock().unwrap().as_ref().unwrap()) == (*x.lock().unwrap().as_ref().unwrap())) || ((*x.lock().unwrap().as_ref().unwrap()) * 2 == (*y.lock().unwrap().as_ref().unwrap())))));
+    let mut bool2 = Arc::new(Mutex::new(Some(!((*x.lock().unwrap().as_ref().unwrap()) > (*y.lock().unwrap().as_ref().unwrap())) && ((*z.lock().unwrap().as_ref().unwrap()) - (*y.lock().unwrap().as_ref().unwrap()) == (*x.lock().unwrap().as_ref().unwrap())) || ((*x.lock().unwrap().as_ref().unwrap()) * 2 == (*y.lock().unwrap().as_ref().unwrap())))));
     print!("!(x > y) && (z-y == x) || (x*2 == y) = {}\n", (*bool2.lock().unwrap().as_ref().unwrap()));
 
         // Bitwise operations
@@ -133,7 +133,7 @@ fn main() {
 
         // Complex indexing
     let (mut idx1, mut idx2) = (Arc::new(Mutex::new(Some(2))), Arc::new(Mutex::new(Some(7))));
-    let mut sliceResult = Arc::new(Mutex::new(Some((*(*Arc::new(Mutex::new(Some((*numbers.lock().unwrap().as_ref().unwrap())[(*idx1.lock().unwrap().as_ref().unwrap()) as usize..(*idx2.lock().unwrap().as_ref().unwrap()) as usize].to_vec()))).lock().unwrap().as_ref().unwrap())[1 as usize].clone().lock().unwrap().as_ref().unwrap()) + (*(*numbers.lock().unwrap().as_ref().unwrap())[(*numbers.lock().unwrap().as_ref().unwrap()).len() - 1 as usize].clone().lock().unwrap().as_ref().unwrap()) - (*(*numbers.lock().unwrap().as_ref().unwrap())[0 as usize].clone().lock().unwrap().as_ref().unwrap()))));
+    let mut sliceResult = Arc::new(Mutex::new(Some((*Arc::new(Mutex::new(Some((*numbers.lock().unwrap().as_ref().unwrap())[(*idx1.lock().unwrap().as_ref().unwrap()) as usize..(*idx2.lock().unwrap().as_ref().unwrap()) as usize].to_vec()))).lock().unwrap().as_ref().unwrap())[1 as usize].clone() + (*numbers.lock().unwrap().as_ref().unwrap())[(*numbers.lock().unwrap().as_ref().unwrap()).len() - 1 as usize].clone() - (*numbers.lock().unwrap().as_ref().unwrap())[0 as usize].clone())));
     print!("numbers[idx1:idx2][1] + numbers[len(numbers)-1] - numbers[0] = {}\n", (*sliceResult.lock().unwrap().as_ref().unwrap()));
 
         // Map expressions
@@ -141,7 +141,7 @@ fn main() {
 
     let mut data = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i32>>>>::from([("alpha".to_string(), Arc::new(Mutex::new(Some(10)))), ("beta".to_string(), Arc::new(Mutex::new(Some(20)))), ("gamma".to_string(), Arc::new(Mutex::new(Some(30))))]))));
 
-    let mut mapResult = Arc::new(Mutex::new(Some((*(*(*data.lock().unwrap().as_ref().unwrap()).get(&"alpha".to_string()).unwrap().lock().unwrap().as_ref().unwrap()).lock().unwrap().as_ref().unwrap()) + (*(*(*data.lock().unwrap().as_ref().unwrap()).get(&"beta".to_string()).unwrap().lock().unwrap().as_ref().unwrap()).lock().unwrap().as_ref().unwrap()) * 2 - (*(*(*data.lock().unwrap().as_ref().unwrap()).get(&"gamma".to_string()).unwrap().lock().unwrap().as_ref().unwrap()).lock().unwrap().as_ref().unwrap()) / 3)));
+    let mut mapResult = Arc::new(Mutex::new(Some((*(*data.lock().unwrap().as_ref().unwrap()).get(&"alpha".to_string()).unwrap().lock().unwrap().as_ref().unwrap()) + (*(*data.lock().unwrap().as_ref().unwrap()).get(&"beta".to_string()).unwrap().lock().unwrap().as_ref().unwrap()) * 2 - (*(*data.lock().unwrap().as_ref().unwrap()).get(&"gamma".to_string()).unwrap().lock().unwrap().as_ref().unwrap()) / 3)));
     print!("data[\"alpha\"] + data[\"beta\"]*2 - data[\"gamma\"]/3 = {}\n", (*mapResult.lock().unwrap().as_ref().unwrap()));
 
         // Struct field expressions
@@ -196,7 +196,7 @@ fn main() {
     ch.send(20);
     ch.send(30);
 
-    let mut chanResult = Arc::new(Mutex::new(Some((*ch.recv().unwrap().lock().unwrap().as_ref().unwrap()) + (*ch.recv().unwrap().lock().unwrap().as_ref().unwrap()) * 2 - (*ch.recv().unwrap().lock().unwrap().as_ref().unwrap()) / 2)));
+    let mut chanResult = Arc::new(Mutex::new(Some(ch.recv().unwrap() + ch.recv().unwrap() * 2 - ch.recv().unwrap() / 2)));
     print!("Channel expression result: {}\n", (*chanResult.lock().unwrap().as_ref().unwrap()));
 
         // Nested function calls

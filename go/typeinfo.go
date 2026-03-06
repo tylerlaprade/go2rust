@@ -367,11 +367,30 @@ func (ti *TypeInfo) NeedsUnwrapping(expr ast.Expr) bool {
 			return false
 		}
 		return ti.ReturnsWrappedValue(expr)
+	case *ast.IndexExpr:
+		// Array/slice indexing: the IndexExpr handler already unwraps and adds .clone()
+		// For basic element types (int, float, string, bool, byte), the result is a raw value
+		exprType := ti.GetType(e)
+		if exprType != nil {
+			if _, ok := exprType.Underlying().(*types.Basic); ok {
+				return false // Basic element type - already a raw value
+			}
+		}
+		// For non-basic element types (pointers, etc.), the element may be wrapped
+		return true
+	case *ast.SliceExpr:
+		// SliceExpr handler wraps its output in Rc/Arc, so it IS wrapped
+		// But it's already called in RValue context via TranspileExpression
+		// The caller should unwrap it
+		return true
 	case *ast.BasicLit:
 		// Literals don't need unwrapping
 		return false
 	case *ast.BinaryExpr:
 		// Binary expressions are computed inline, don't need unwrapping
+		return false
+	case *ast.UnaryExpr:
+		// Unary expressions are computed inline, don't need unwrapping
 		return false
 	case *ast.ParenExpr:
 		// Check the inner expression
