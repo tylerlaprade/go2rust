@@ -30,7 +30,7 @@ fn main() {
 
         // Copy
     let mut s3 = Rc::new(RefCell::new(Some(vec![0; 3])));
-    let mut n = { let _src = ((*s.borrow().as_ref().unwrap())).clone(); let _n = std::cmp::min(((*s3.borrow().as_ref().unwrap())).len(), _src.len()); for _i in 0.._n { (*(*s3.borrow().as_ref().unwrap()))[_i] = _src[_i].clone(); } Rc::new(RefCell::new(Some(_n as i32))) };
+    let mut n = { let _src = ((*s.borrow().as_ref().unwrap())).clone(); let _n = std::cmp::min(((*s3.borrow().as_ref().unwrap())).len(), _src.len()); for _i in 0.._n { (*s3.borrow_mut().as_mut().unwrap())[_i] = _src[_i].clone(); } Rc::new(RefCell::new(Some(_n as i32))) };
     print!("Copied {} elements: {}\n", (*n.borrow().as_ref().unwrap()), format_slice(&s3));
 
         // Nil slice vs empty slice

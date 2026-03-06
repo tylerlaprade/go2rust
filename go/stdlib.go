@@ -812,9 +812,19 @@ func transpileCopy(out *strings.Builder, call *ast.CallExpr) {
 		TranspileExpression(out, call.Args[1])
 		out.WriteString(").clone(); let _n = std::cmp::min((")
 		TranspileExpression(out, call.Args[0])
-		out.WriteString(").len(), _src.len()); for _i in 0.._n { (*")
-		TranspileExpression(out, call.Args[0])
-		out.WriteString(")[_i] = _src[_i].clone(); } ")
+		out.WriteString(").len(), _src.len()); for _i in 0.._n { ")
+		// Destination needs mutable borrow for assignment
+		if ident, ok := call.Args[0].(*ast.Ident); ok {
+			out.WriteString("(*")
+			out.WriteString(ident.Name)
+			WriteBorrowMethod(out, true)
+			out.WriteString(".as_mut().unwrap())")
+		} else {
+			out.WriteString("(*")
+			TranspileExpression(out, call.Args[0])
+			out.WriteString(")")
+		}
+		out.WriteString("[_i] = _src[_i].clone(); } ")
 		WriteWrapperPrefix(out)
 		out.WriteString("_n as i32")
 		WriteWrapperSuffix(out)
