@@ -6,7 +6,7 @@ fn main() {
     let mut numbers = Rc::new(RefCell::new(Some(vec![10, 20, 30])));
 
         // Index and value
-    for (i, num) in (*numbers.borrow_mut().as_mut().unwrap()).iter().enumerate() {
+    for (i, num) in (*numbers.borrow_mut().as_mut().unwrap()).iter().copied().enumerate() {
         println!("{} {} {} {}", "Index:".to_string(), i, "Value:".to_string(), num);
     }
 

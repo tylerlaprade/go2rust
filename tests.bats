@@ -461,6 +461,10 @@ run_xfail_test() {
     run_test "tests/struct_methods"
 }
 
+@test "structs_basic" {
+    run_test "tests/structs_basic"
+}
+
 @test "switch_basic" {
     run_test "tests/switch_basic"
 }
@@ -755,10 +759,6 @@ run_xfail_test() {
 
 @test "XFAIL: struct_tags_reflection" {
     run_xfail_test "tests/XFAIL/struct_tags_reflection"
-}
-
-@test "XFAIL: structs_basic" {
-    run_xfail_test "tests/XFAIL/structs_basic"
 }
 
 @test "XFAIL: switch_statements" {

@@ -1,5 +1,5 @@
 use std::cell::{RefCell};
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
@@ -54,7 +54,7 @@ impl Unknown {
     }
 }
 
-pub fn map_keys(m: Rc<RefCell<Option<HashMap<K, V>>>>) -> Rc<RefCell<Option<Vec<K>>>> {
+pub fn map_keys(m: Rc<RefCell<Option<BTreeMap<K, V>>>>) -> Rc<RefCell<Option<Vec<K>>>> {
 
     let mut r = Rc::new(RefCell::new(Some(Vec::with_capacity((*m.borrow().as_ref().unwrap()).len()))));
     for (k, _) in (*m.borrow().as_ref().unwrap()).clone() {
@@ -64,7 +64,7 @@ pub fn map_keys(m: Rc<RefCell<Option<HashMap<K, V>>>>) -> Rc<RefCell<Option<Vec<
 }
 
 fn main() {
-    let mut m = Rc::new(RefCell::new(Some(HashMap::<i32, Rc<RefCell<Option<String>>>>::from([(1, Rc::new(RefCell::new(Some("2".to_string())))), (2, Rc::new(RefCell::new(Some("4".to_string())))), (4, Rc::new(RefCell::new(Some("8".to_string()))))]))));
+    let mut m = Rc::new(RefCell::new(Some(BTreeMap::<i32, Rc<RefCell<Option<String>>>>::from([(1, Rc::new(RefCell::new(Some("2".to_string())))), (2, Rc::new(RefCell::new(Some("4".to_string())))), (4, Rc::new(RefCell::new(Some("8".to_string()))))]))));
     println!("{} {}", "keys:".to_string(), format_slice(&map_keys(m.clone())));
 
     let mut lst = ;

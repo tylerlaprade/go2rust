@@ -1,5 +1,5 @@
 use std::cell::{RefCell};
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::rc::{Rc};
 
 pub fn multiple_returns() -> (Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<String>>>, Rc<RefCell<Option<bool>>>) {
@@ -23,7 +23,7 @@ fn main() {
     }
     println!();
     println!("{}", "Indices only:".to_string());
-    for (i, _) in (*slice.borrow_mut().as_mut().unwrap()).iter().enumerate() {
+    for (i, _) in (*slice.borrow_mut().as_mut().unwrap()).iter().copied().enumerate() {
         print!("{} ", i);
     }
     println!();
@@ -33,7 +33,7 @@ fn main() {
     }
     println!();
     println!("{}", "\n=== Ignoring in map iteration ===".to_string());
-    let mut ages = Rc::new(RefCell::new(Some(HashMap::<String, Rc<RefCell<Option<i32>>>>::from([("Alice".to_string(), Rc::new(RefCell::new(Some(25)))), ("Bob".to_string(), Rc::new(RefCell::new(Some(30)))), ("Carol".to_string(), Rc::new(RefCell::new(Some(35))))]))));
+    let mut ages = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i32>>>>::from([("Alice".to_string(), Rc::new(RefCell::new(Some(25)))), ("Bob".to_string(), Rc::new(RefCell::new(Some(30)))), ("Carol".to_string(), Rc::new(RefCell::new(Some(35))))]))));
     println!("{}", "Keys only:".to_string());
     let mut keys = Rc::new(RefCell::new(Some(Vec::with_capacity((*ages.borrow().as_ref().unwrap()).len()))));
     for (name, _) in (*ages.borrow().as_ref().unwrap()).clone() {

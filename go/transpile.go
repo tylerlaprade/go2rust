@@ -76,6 +76,7 @@ var embeddedFields = make(map[string]map[string]string)
 
 // FieldAccessInfo describes how to access a field, including through embedded structs
 type FieldAccessInfo struct {
+	Found        bool     // True if the field was actually found in the struct or its embeds
 	IsPromoted   bool     // True if field comes from embedded struct
 	EmbeddedPath []string // Path of embedded types to traverse (e.g., ["B", "A"] for C.B.A)
 	FieldName    string   // The actual field name (snake_case)
@@ -112,6 +113,7 @@ func resolveFieldAccess(structType string, fieldName string) FieldAccessInfo {
 	if structDef, exists := structDefs[structType]; exists {
 		if _, isDirectField := structDef.Fields[fieldName]; isDirectField {
 			return FieldAccessInfo{
+				Found:      true,
 				IsPromoted: false,
 				FieldName:  ToSnakeCase(fieldName),
 			}
@@ -124,6 +126,7 @@ func resolveFieldAccess(structType string, fieldName string) FieldAccessInfo {
 				if _, hasField := embeddedDef.Fields[fieldName]; hasField {
 					// Field found directly in embedded struct
 					return FieldAccessInfo{
+						Found:        true,
 						IsPromoted:   true,
 						EmbeddedPath: []string{embeddedType},
 						FieldName:    ToSnakeCase(fieldName),
@@ -133,7 +136,7 @@ func resolveFieldAccess(structType string, fieldName string) FieldAccessInfo {
 
 			// Recursively check fields promoted through the embedded type
 			embeddedInfo := resolveFieldAccess(embeddedType, fieldName)
-			if embeddedInfo.IsPromoted || embeddedInfo.FieldName == ToSnakeCase(fieldName) {
+			if embeddedInfo.Found {
 				// Field was found in nested embedded struct
 				// Build the path through our embedded type
 				path := []string{embeddedType}
@@ -142,6 +145,7 @@ func resolveFieldAccess(structType string, fieldName string) FieldAccessInfo {
 					path = append(path, embeddedInfo.EmbeddedPath...)
 				}
 				return FieldAccessInfo{
+					Found:        true,
 					IsPromoted:   true,
 					EmbeddedPath: path,
 					FieldName:    ToSnakeCase(fieldName),
@@ -150,8 +154,9 @@ func resolveFieldAccess(structType string, fieldName string) FieldAccessInfo {
 		}
 	}
 
-	// Default: assume direct field
+	// Default: field not found, assume direct field access
 	return FieldAccessInfo{
+		Found:      false,
 		IsPromoted: false,
 		FieldName:  ToSnakeCase(fieldName),
 	}

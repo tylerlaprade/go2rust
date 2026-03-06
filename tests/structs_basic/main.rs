@@ -39,7 +39,7 @@ struct Employee {
 
 impl std::fmt::Display for Employee {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.i_d.borrow().as_ref().unwrap()), (*self.salary.borrow().as_ref().unwrap()))
+        write!(f, "{{{} {} {} {}}}", (*self.person.borrow().as_ref().unwrap()), (*self.address.borrow().as_ref().unwrap()), (*self.i_d.borrow().as_ref().unwrap()), (*self.salary.borrow().as_ref().unwrap()))
     }
 }
 
@@ -65,5 +65,5 @@ fn main() {
 
     println!("{} {}", "Employee:".to_string(), (*emp.borrow_mut().as_mut().unwrap()));
     println!("{} {}", "Employee name:".to_string(), (*(*(*emp.borrow().as_ref().unwrap()).person.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()));
-    println!("{} {}", "Employee city:".to_string(), (*(*(*emp.borrow().as_ref().unwrap()).person.borrow().as_ref().unwrap()).city.borrow().as_ref().unwrap()));
+    println!("{} {}", "Employee city:".to_string(), (*(*(*emp.borrow().as_ref().unwrap()).address.borrow().as_ref().unwrap()).city.borrow().as_ref().unwrap()));
 }

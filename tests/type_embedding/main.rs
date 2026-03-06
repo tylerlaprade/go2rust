@@ -23,7 +23,7 @@ struct Employee {
 
 impl std::fmt::Display for Employee {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.i_d.borrow().as_ref().unwrap()))
+        write!(f, "{{{} {}}}", (*self.person.borrow().as_ref().unwrap()), (*self.i_d.borrow().as_ref().unwrap()))
     }
 }
 

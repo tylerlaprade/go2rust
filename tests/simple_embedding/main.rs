@@ -22,7 +22,7 @@ struct Outer {
 
 impl std::fmt::Display for Outer {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.name.borrow().as_ref().unwrap()))
+        write!(f, "{{{} {}}}", (*self.inner.borrow().as_ref().unwrap()), (*self.name.borrow().as_ref().unwrap()))
     }
 }
 

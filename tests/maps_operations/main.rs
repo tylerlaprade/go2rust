@@ -1,10 +1,10 @@
 use std::cell::{RefCell};
 use std::cmp::Ord;
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::fmt::{Display};
 use std::rc::{Rc};
 
-fn format_map<K: Display + Ord + Clone, V>(map: &Rc<RefCell<Option<HashMap<K, Rc<RefCell<Option<V>>>>>>>) -> String 
+fn format_map<K: Display + Ord + Clone, V>(map: &Rc<RefCell<Option<BTreeMap<K, Rc<RefCell<Option<V>>>>>>>) -> String 
 where
     V: Display,
 {
@@ -32,7 +32,7 @@ where
 }
 
 fn main() {
-    let mut m = Rc::new(RefCell::new(Some(HashMap::<String, Rc<RefCell<Option<i32>>>>::new())));
+    let mut m = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i32>>>>::new())));
     (*m.borrow_mut().as_mut().unwrap()).insert("k1".to_string(), Rc::new(RefCell::new(Some(7))));
     (*m.borrow_mut().as_mut().unwrap()).insert("k2".to_string(), Rc::new(RefCell::new(Some(13))));
     println!("{} {}", "map:".to_string(), format_map(&m));

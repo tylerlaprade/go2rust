@@ -38,8 +38,8 @@ pub fn make_adder(x: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<Box<dyn Fn(R
 pub fn apply_operation(nums: Rc<RefCell<Option<Vec<i32>>>>, op: Rc<RefCell<Option<Box<dyn Fn(Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>>>>>) -> Rc<RefCell<Option<Vec<i32>>>> {
 
     let mut result = Rc::new(RefCell::new(Some(vec![0; (*nums.borrow().as_ref().unwrap()).len()])));
-    for (i, num) in (*nums.borrow_mut().as_mut().unwrap()).iter().enumerate() {
-        (*result.borrow_mut().as_mut().unwrap())[i] = (*(*op.borrow().as_ref().unwrap())(Rc::new(RefCell::new(Some(*num)))).borrow().as_ref().unwrap());
+    for (i, num) in (*nums.borrow_mut().as_mut().unwrap()).iter().copied().enumerate() {
+        (*result.borrow_mut().as_mut().unwrap())[i] = (*(*op.borrow().as_ref().unwrap())(Rc::new(RefCell::new(Some(num)))).borrow().as_ref().unwrap());
     }
     return result.clone();
 }

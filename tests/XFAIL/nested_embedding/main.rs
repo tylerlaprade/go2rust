@@ -22,7 +22,7 @@ struct B {
 
 impl std::fmt::Display for B {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.y.borrow().as_ref().unwrap()))
+        write!(f, "{{{} {}}}", (*self.a.borrow().as_ref().unwrap()), (*self.y.borrow().as_ref().unwrap()))
     }
 }
 
@@ -35,7 +35,7 @@ struct C {
 
 impl std::fmt::Display for C {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.z.borrow().as_ref().unwrap()))
+        write!(f, "{{{} {}}}", (*self.b.borrow().as_ref().unwrap()), (*self.z.borrow().as_ref().unwrap()))
     }
 }
 

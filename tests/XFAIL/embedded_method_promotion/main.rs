@@ -37,7 +37,7 @@ struct Service {
 
 impl std::fmt::Display for Service {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.name.borrow().as_ref().unwrap()))
+        write!(f, "{{{} {} {}}}", (*self.logger.borrow().as_ref().unwrap()), (*self.counter.borrow().as_ref().unwrap()), (*self.name.borrow().as_ref().unwrap()))
     }
 }
 
@@ -63,7 +63,7 @@ struct Middle {
 
 impl std::fmt::Display for Middle {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.data.borrow().as_ref().unwrap()))
+        write!(f, "{{{} {}}}", (*self.base.borrow().as_ref().unwrap()), (*self.data.borrow().as_ref().unwrap()))
     }
 }
 
@@ -76,7 +76,7 @@ struct Top {
 
 impl std::fmt::Display for Top {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.extra.borrow().as_ref().unwrap()))
+        write!(f, "{{{} {}}}", (*self.middle.borrow().as_ref().unwrap()), (*self.extra.borrow().as_ref().unwrap()))
     }
 }
 
@@ -114,7 +114,7 @@ impl Service {
     /// Method that shadows embedded method
     pub fn value(&self) -> Rc<RefCell<Option<i32>>> {
                 // This should shadow Counter.Value()
-        return Rc::new(RefCell::new(Some((*(*(*self.logger.borrow().as_ref().unwrap()).counter.clone().borrow().as_mut().unwrap()).value().borrow().as_ref().unwrap()) * 10)));
+        return Rc::new(RefCell::new(Some((*(*self.counter.clone().borrow().as_mut().unwrap()).value().borrow().as_ref().unwrap()) * 10)));
     }
 
     pub fn add(&mut self, n: Rc<RefCell<Option<i32>>>) {
@@ -225,7 +225,7 @@ fn main() {
         // Call promoted methods from Counter
     (*svc.borrow_mut().as_mut().unwrap()).increment();
     (*svc.borrow_mut().as_mut().unwrap()).add(Rc::new(RefCell::new(Some(5))));
-    print!("Counter value (via promoted method): {}\n", (*(*(*(*(*svc.borrow().as_ref().unwrap()).logger.borrow().as_ref().unwrap()).counter.borrow().as_ref().unwrap()).borrow().as_mut().unwrap()).value().borrow().as_ref().unwrap()));
+    print!("Counter value (via promoted method): {}\n", (*(*(*(*svc.borrow().as_ref().unwrap()).counter.borrow().as_ref().unwrap()).borrow().as_mut().unwrap()).value().borrow().as_ref().unwrap()));
 
         // Call Service's own methods
     print!("Service name: {}\n", (*(*svc.borrow_mut().as_mut().unwrap()).name().borrow().as_ref().unwrap()));
@@ -237,7 +237,7 @@ fn main() {
 
     (*svcPtr.borrow_mut().as_mut().unwrap()).log(Rc::new(RefCell::new(Some("Pointer service".to_string()))));
     (*svcPtr.borrow_mut().as_mut().unwrap()).increment();
-    print!("Pointer service counter: {}\n", (*(*(*(*(*svcPtr.borrow().as_ref().unwrap()).logger.borrow().as_ref().unwrap()).counter.borrow().as_ref().unwrap()).borrow().as_mut().unwrap()).value().borrow().as_ref().unwrap()));
+    print!("Pointer service counter: {}\n", (*(*(*(*svcPtr.borrow().as_ref().unwrap()).counter.borrow().as_ref().unwrap()).borrow().as_mut().unwrap()).value().borrow().as_ref().unwrap()));
 
         // Test multi-level embedding
     println!("{}", "\n=== Multi-level embedding ===".to_string());

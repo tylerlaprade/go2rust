@@ -52,7 +52,7 @@ struct Employee {
 
 impl std::fmt::Display for Employee {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.i_d.borrow().as_ref().unwrap()), (*self.salary.borrow().as_ref().unwrap()))
+        write!(f, "{{{} {} {} {}}}", (*self.person.borrow().as_ref().unwrap()), (*self.address.borrow().as_ref().unwrap()), (*self.i_d.borrow().as_ref().unwrap()), (*self.salary.borrow().as_ref().unwrap()))
     }
 }
 
@@ -65,7 +65,7 @@ struct Manager {
 
 impl std::fmt::Display for Manager {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.team.borrow().as_ref().unwrap()))
+        write!(f, "{{{} {}}}", (*self.employee.borrow().as_ref().unwrap()), (*self.team.borrow().as_ref().unwrap()))
     }
 }
 
@@ -92,7 +92,7 @@ struct Company {
 
 impl std::fmt::Display for Company {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.name.borrow().as_ref().unwrap()))
+        write!(f, "{{{} {}}}", (*self.name.borrow().as_ref().unwrap()), (*self.company_info.borrow().as_ref().unwrap()))
     }
 }
 
@@ -192,7 +192,7 @@ fn main() {
         // Access embedded fields directly
     print!("Name: {}\n", (*(*(*emp.borrow().as_ref().unwrap()).person.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()));
     print!("Age: {}\n", (*(*(*emp.borrow().as_ref().unwrap()).person.borrow().as_ref().unwrap()).age.borrow().as_ref().unwrap()));
-    print!("Street: {}\n", (*(*(*emp.borrow().as_ref().unwrap()).person.borrow().as_ref().unwrap()).street.borrow().as_ref().unwrap()));
+    print!("Street: {}\n", (*(*(*emp.borrow().as_ref().unwrap()).address.borrow().as_ref().unwrap()).street.borrow().as_ref().unwrap()));
     print!("ID: {}\n", (*(*emp.borrow().as_ref().unwrap()).i_d.borrow().as_ref().unwrap()));
 
         // Call embedded methods
@@ -208,7 +208,7 @@ fn main() {
         // Access deeply nested fields
     print!("Manager: {}\n", (*(*(*mgr.borrow().as_ref().unwrap()).employee.borrow().as_ref().unwrap().person.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()));
     print!("Manager ID: {}\n", (*(*(*mgr.borrow().as_ref().unwrap()).employee.borrow().as_ref().unwrap()).i_d.borrow().as_ref().unwrap()));
-    print!("Manager City: {}\n", (*(*(*mgr.borrow().as_ref().unwrap()).employee.borrow().as_ref().unwrap().person.borrow().as_ref().unwrap()).city.borrow().as_ref().unwrap()));
+    print!("Manager City: {}\n", (*(*(*mgr.borrow().as_ref().unwrap()).employee.borrow().as_ref().unwrap().address.borrow().as_ref().unwrap()).city.borrow().as_ref().unwrap()));
 
         // Call methods from all levels
     (*mgr.borrow_mut().as_mut().unwrap()).greet();

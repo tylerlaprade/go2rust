@@ -22,18 +22,26 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 	out.WriteString("    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {\n")
 	out.WriteString("        write!(f, \"{{")
 
-	// Collect field names
-	var fieldNames []string
+	// Collect all fields (including embedded)
+	type fieldEntry struct {
+		name       string
+		isEmbedded bool
+	}
+	var fields []fieldEntry
 	for _, field := range structType.Fields.List {
 		if len(field.Names) > 0 {
 			for _, name := range field.Names {
-				fieldNames = append(fieldNames, name.Name)
+				fields = append(fields, fieldEntry{name: name.Name, isEmbedded: false})
 			}
+		} else {
+			// Embedded field
+			typeName := getEmbeddedFieldName(field.Type)
+			fields = append(fields, fieldEntry{name: typeName, isEmbedded: true})
 		}
 	}
 
 	// Generate format string with placeholders
-	for i := range fieldNames {
+	for i := range fields {
 		if i > 0 {
 			out.WriteString(" ")
 		}
@@ -42,10 +50,10 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 	out.WriteString("}}\"")
 
 	// Add field values
-	for _, fieldName := range fieldNames {
+	for _, f := range fields {
 		out.WriteString(", ")
 		out.WriteString("(*self.")
-		out.WriteString(ToSnakeCase(fieldName))
+		out.WriteString(ToSnakeCase(f.name))
 		out.WriteString(".borrow().as_ref().unwrap())")
 	}
 
