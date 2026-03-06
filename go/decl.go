@@ -26,6 +26,7 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 	type fieldEntry struct {
 		name       string
 		isEmbedded bool
+		isSlice    bool
 	}
 	var fields []fieldEntry
 	for _, field := range structType.Fields.List {
@@ -33,14 +34,15 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 		if isSyncParam(field.Type) {
 			continue
 		}
+		_, isSlice := field.Type.(*ast.ArrayType)
 		if len(field.Names) > 0 {
 			for _, name := range field.Names {
-				fields = append(fields, fieldEntry{name: name.Name, isEmbedded: false})
+				fields = append(fields, fieldEntry{name: name.Name, isEmbedded: false, isSlice: isSlice})
 			}
 		} else {
 			// Embedded field
 			typeName := getEmbeddedFieldName(field.Type)
-			fields = append(fields, fieldEntry{name: typeName, isEmbedded: true})
+			fields = append(fields, fieldEntry{name: typeName, isEmbedded: true, isSlice: isSlice})
 		}
 	}
 
@@ -56,9 +58,15 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 	// Add field values
 	for _, f := range fields {
 		out.WriteString(", ")
-		out.WriteString("(*self.")
-		out.WriteString(ToSnakeCase(f.name))
-		out.WriteString(".borrow().as_ref().unwrap())")
+		if f.isSlice {
+			out.WriteString("format_slice(&self.")
+			out.WriteString(ToSnakeCase(f.name))
+			out.WriteString(")")
+		} else {
+			out.WriteString("(*self.")
+			out.WriteString(ToSnakeCase(f.name))
+			out.WriteString(".borrow().as_ref().unwrap())")
+		}
 	}
 
 	out.WriteString(")\n")

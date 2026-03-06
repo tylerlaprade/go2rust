@@ -49,7 +49,7 @@ struct Dashboard {
 
 impl std::fmt::Display for Dashboard {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.title.borrow().as_ref().unwrap()), (*self.widgets.borrow().as_ref().unwrap()))
+        write!(f, "{{{} {}}}", (*self.title.borrow().as_ref().unwrap()), format_slice(&self.widgets))
     }
 }
 
@@ -126,7 +126,7 @@ fn main() {
     print!("Cache: enabled={}, TTL={}\n", (*(*(*config.borrow_mut().as_mut().unwrap()).cache.borrow().as_ref().unwrap()).enabled.borrow().as_ref().unwrap()), (*(*(*config.borrow_mut().as_mut().unwrap()).cache.borrow().as_ref().unwrap()).t_t_l.borrow().as_ref().unwrap()));
 
         // Test named struct with slice of anonymous structs
-    let mut dashboard = Rc::new(RefCell::new(Some(Dashboard { title: Rc::new(RefCell::new(Some("Main Dashboard".to_string()))), widgets: Rc::new(RefCell::new(Some(Rc::new(RefCell::new(Some(vec![/* Anonymous struct literal */unimplemented!(), /* Anonymous struct literal */unimplemented!()])))))), ..Default::default() })));
+    let mut dashboard = Rc::new(RefCell::new(Some(Dashboard { title: Rc::new(RefCell::new(Some("Main Dashboard".to_string()))), widgets: Rc::new(RefCell::new(Some(vec![/* Anonymous struct literal */unimplemented!(), /* Anonymous struct literal */unimplemented!()]))), ..Default::default() })));
 
     print!("\nDashboard: {}\n", (*(*dashboard.borrow().as_ref().unwrap()).title.borrow().as_ref().unwrap()));
     for widget in &(*(*dashboard.borrow().as_ref().unwrap()).widgets.borrow().as_ref().unwrap()) {

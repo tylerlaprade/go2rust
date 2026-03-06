@@ -333,6 +333,10 @@ run_xfail_test() {
     run_test "tests/defer_statements"
 }
 
+@test "embedded_structs" {
+    run_test "tests/embedded_structs"
+}
+
 @test "error_simple" {
     run_test "tests/error_simple"
 }
@@ -627,10 +631,6 @@ run_xfail_test() {
 
 @test "XFAIL: embedded_method_promotion" {
     run_xfail_test "tests/XFAIL/embedded_method_promotion"
-}
-
-@test "XFAIL: embedded_structs" {
-    run_xfail_test "tests/XFAIL/embedded_structs"
 }
 
 @test "XFAIL: enums_iota" {

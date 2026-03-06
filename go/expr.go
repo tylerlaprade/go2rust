@@ -17,6 +17,34 @@ const (
 	AddressOf                    // Expression is having its address taken
 )
 
+// isCompositeLitSelfWrapping checks if a CompositeLit expression will
+// self-wrap with Rc<RefCell<Option<>>> when transpiled. Slice and map
+// literals self-wrap; struct literals do not.
+func isCompositeLitSelfWrapping(expr ast.Expr) bool {
+	cl, ok := expr.(*ast.CompositeLit)
+	if !ok {
+		return false
+	}
+	if cl.Type == nil {
+		// Nil-type composite lit: check TypeInfo to see if it resolves to a slice or map
+		typeInfo := GetTypeInfo()
+		if typeInfo != nil {
+			if typ := typeInfo.GetType(cl); typ != nil {
+				switch typ.Underlying().(type) {
+				case *types.Slice, *types.Array, *types.Map:
+					return true
+				}
+			}
+		}
+		return false
+	}
+	switch cl.Type.(type) {
+	case *ast.ArrayType, *ast.MapType:
+		return true
+	}
+	return false
+}
+
 // isFloatExpression checks if an expression involves floats
 func isFloatExpression(expr ast.Expr) bool {
 	typeInfo := GetTypeInfo()
@@ -854,6 +882,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 											out.WriteString(valIdent.Name)
 											out.WriteString(".clone()")
 										}
+									} else if isCompositeLitSelfWrapping(kv.Value) {
+										// Slice/map literals already wrap themselves
+										TranspileExpression(out, kv.Value)
 									} else {
 										// Wrap field values
 										WriteWrapperPrefix(out)
@@ -1059,6 +1090,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 									out.WriteString(valIdent.Name)
 									out.WriteString(".clone()")
 								}
+							} else if isCompositeLitSelfWrapping(kv.Value) {
+								// Slice/map literals already wrap themselves
+								TranspileExpression(out, kv.Value)
 							} else {
 								// Wrap field values in Arc<Mutex<Option<T>>>
 								WriteWrapperPrefix(out)
@@ -1070,8 +1104,84 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				}
 			}
 
-			// Go zero-initializes uninitialized fields; use ..Default::default() in Rust
-			out.WriteString(", ..Default::default()")
+			// Go zero-initializes uninitialized fields
+			// Collect initialized field names
+			initializedFields := make(map[string]bool)
+			for _, elt := range e.Elts {
+				if kv, ok := elt.(*ast.KeyValueExpr); ok {
+					if key, ok := kv.Key.(*ast.Ident); ok {
+						initializedFields[key.Name] = true
+					}
+				}
+			}
+			// Check if any uninitialized field is a struct type that needs Some(T::default())
+			hasStructFields := false
+			if sd, exists := structDefs[ident.Name]; exists && sd.ASTType != nil {
+				for _, field := range sd.ASTType.Fields.List {
+					for _, name := range field.Names {
+						if !initializedFields[name.Name] {
+							if fieldIdent, ok := field.Type.(*ast.Ident); ok {
+								if _, isStruct := structDefs[fieldIdent.Name]; isStruct {
+									hasStructFields = true
+								}
+							}
+						}
+					}
+					// Embedded fields (no names)
+					if len(field.Names) == 0 {
+						typeName := getEmbeddedFieldName(field.Type)
+						if !initializedFields[typeName] {
+							if _, isStruct := structDefs[typeName]; isStruct {
+								hasStructFields = true
+							}
+						}
+					}
+				}
+			}
+			if hasStructFields {
+				// Explicitly initialize struct-typed fields with Some(T::default())
+				if sd, exists := structDefs[ident.Name]; exists && sd.ASTType != nil {
+					for _, field := range sd.ASTType.Fields.List {
+						if len(field.Names) > 0 {
+							for _, name := range field.Names {
+								if !initializedFields[name.Name] {
+									out.WriteString(", ")
+									out.WriteString(ToSnakeCase(name.Name))
+									out.WriteString(": ")
+									if fieldIdent, ok := field.Type.(*ast.Ident); ok {
+										if _, isStruct := structDefs[fieldIdent.Name]; isStruct {
+											WriteWrapperPrefix(out)
+											out.WriteString(fieldIdent.Name)
+											out.WriteString("::default()")
+											WriteWrapperSuffix(out)
+											continue
+										}
+									}
+									out.WriteString("Default::default()")
+								}
+							}
+						} else {
+							// Embedded field
+							typeName := getEmbeddedFieldName(field.Type)
+							if !initializedFields[typeName] {
+								out.WriteString(", ")
+								out.WriteString(ToSnakeCase(typeName))
+								out.WriteString(": ")
+								if _, isStruct := structDefs[typeName]; isStruct {
+									WriteWrapperPrefix(out)
+									out.WriteString(typeName)
+									out.WriteString("::default()")
+									WriteWrapperSuffix(out)
+								} else {
+									out.WriteString("Default::default()")
+								}
+							}
+						}
+					}
+				}
+			} else {
+				out.WriteString(", ..Default::default()")
+			}
 
 			out.WriteString(" }")
 		} else if structType, ok := e.Type.(*ast.StructType); ok {
@@ -1114,6 +1224,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 								out.WriteString(valIdent.Name)
 								out.WriteString(".clone()")
 							}
+						} else if isCompositeLitSelfWrapping(kv.Value) {
+							// Slice/map literals already wrap themselves
+							TranspileExpression(out, kv.Value)
 						} else {
 							// Wrap field values in Arc<Mutex<Option<T>>>
 							WriteWrapperPrefix(out)

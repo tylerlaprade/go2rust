@@ -65,7 +65,7 @@ struct Manager {
 
 impl std::fmt::Display for Manager {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.employee.borrow().as_ref().unwrap()), (*self.team.borrow().as_ref().unwrap()))
+        write!(f, "{{{} {}}}", (*self.employee.borrow().as_ref().unwrap()), format_slice(&self.team))
     }
 }
 
@@ -203,7 +203,7 @@ fn main() {
 
         // Nested embedding
     println!("{}", "\n=== Nested embedding ===".to_string());
-    let mut mgr = Rc::new(RefCell::new(Some(Manager { employee: Rc::new(RefCell::new(Some(Employee { person: Rc::new(RefCell::new(Some(Person { name: Rc::new(RefCell::new(Some("Bob".to_string()))), age: Rc::new(RefCell::new(Some(35))), ..Default::default() }))), address: Rc::new(RefCell::new(Some(Address { street: Rc::new(RefCell::new(Some("456 Oak Ave".to_string()))), city: Rc::new(RefCell::new(Some("Somewhere".to_string()))), state: Rc::new(RefCell::new(Some("NY".to_string()))), ..Default::default() }))), i_d: Rc::new(RefCell::new(Some(2001))), salary: Rc::new(RefCell::new(Some(95000.0))), ..Default::default() }))), team: Rc::new(RefCell::new(Some(Rc::new(RefCell::new(Some(vec!["Alice".to_string(), "Charlie".to_string(), "Diana".to_string()])))))), ..Default::default() })));
+    let mut mgr = Rc::new(RefCell::new(Some(Manager { employee: Rc::new(RefCell::new(Some(Employee { person: Rc::new(RefCell::new(Some(Person { name: Rc::new(RefCell::new(Some("Bob".to_string()))), age: Rc::new(RefCell::new(Some(35))), ..Default::default() }))), address: Rc::new(RefCell::new(Some(Address { street: Rc::new(RefCell::new(Some("456 Oak Ave".to_string()))), city: Rc::new(RefCell::new(Some("Somewhere".to_string()))), state: Rc::new(RefCell::new(Some("NY".to_string()))), ..Default::default() }))), i_d: Rc::new(RefCell::new(Some(2001))), salary: Rc::new(RefCell::new(Some(95000.0))), ..Default::default() }))), team: Rc::new(RefCell::new(Some(vec!["Alice".to_string(), "Charlie".to_string(), "Diana".to_string()]))), ..Default::default() })));
 
         // Access deeply nested fields
     print!("Manager: {}\n", (*(*(*mgr.borrow().as_ref().unwrap()).employee.borrow().as_ref().unwrap().person.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()));
@@ -217,7 +217,7 @@ fn main() {
 
         // Anonymous struct embedding
     println!("{}", "\n=== Anonymous struct embedding ===".to_string());
-    let mut company = Rc::new(RefCell::new(Some(Company { name: Rc::new(RefCell::new(Some("TechCorp".to_string()))), ..Default::default() })));
+    let mut company = Rc::new(RefCell::new(Some(Company { name: Rc::new(RefCell::new(Some("TechCorp".to_string()))), company_info: Rc::new(RefCell::new(Some(CompanyInfo::default()))) })));
     { let new_val = 2010; *(*(*company.borrow_mut().as_mut().unwrap()).company_info.borrow_mut().as_mut().unwrap()).founded.borrow_mut() = Some(new_val); };
     { let new_val = "John Doe".to_string(); *(*(*company.borrow_mut().as_mut().unwrap()).company_info.borrow_mut().as_mut().unwrap()).c_e_o.borrow_mut() = Some(new_val); };
 
