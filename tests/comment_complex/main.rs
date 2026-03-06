@@ -42,7 +42,7 @@ pub fn new_person(name: Rc<RefCell<Option<String>>>, age: Rc<RefCell<Option<i32>
 
         // Return nil for invalid age
         // Create and return the person
-    return Rc::new(RefCell::new(Some(Person { name: name.clone(), age: age.clone() })));
+    return Rc::new(RefCell::new(Some(Person { name: name.clone(), age: age.clone(), ..Default::default() })));
 }
 
 fn main() {

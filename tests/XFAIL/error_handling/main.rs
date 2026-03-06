@@ -56,10 +56,10 @@ pub fn sqrt(x: Rc<RefCell<Option<f64>>>) -> (Rc<RefCell<Option<f64>>>, Rc<RefCel
 pub fn process_value(val: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<Box<dyn Error + Send + Sync>>>> {
 
     if (*val.borrow().as_ref().unwrap()) < 0 {
-        return Rc::new(RefCell::new(Some(CustomError { code: Rc::new(RefCell::new(Some(100))), message: Rc::new(RefCell::new(Some("negative value not allowed".to_string()))) })));
+        return Rc::new(RefCell::new(Some(CustomError { code: Rc::new(RefCell::new(Some(100))), message: Rc::new(RefCell::new(Some("negative value not allowed".to_string()))), ..Default::default() })));
     }
     if (*val.borrow().as_ref().unwrap()) > 100 {
-        return Rc::new(RefCell::new(Some(CustomError { code: Rc::new(RefCell::new(Some(200))), message: Rc::new(RefCell::new(Some("value too large".to_string()))) })));
+        return Rc::new(RefCell::new(Some(CustomError { code: Rc::new(RefCell::new(Some(200))), message: Rc::new(RefCell::new(Some("value too large".to_string()))), ..Default::default() })));
     }
     return Rc::new(RefCell::new(None));
 }

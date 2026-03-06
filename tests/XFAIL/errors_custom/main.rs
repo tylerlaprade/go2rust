@@ -40,7 +40,7 @@ pub fn f1(arg: Rc<RefCell<Option<i32>>>) -> (Rc<RefCell<Option<i32>>>, Rc<RefCel
 pub fn f2(arg: Rc<RefCell<Option<i32>>>) -> (Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<Box<dyn Error + Send + Sync>>>>) {
 
     if (*arg.borrow().as_ref().unwrap()) == 42 {
-        return (Rc::new(RefCell::new(Some(-1))), Rc::new(RefCell::new(Some(Box::new(argError { arg: Rc::new(RefCell::new(Some((*arg.borrow().as_ref().unwrap())))), prob: Rc::new(RefCell::new(Some("can't work with it".to_string()))) }) as Box<dyn Error + Send + Sync>))));
+        return (Rc::new(RefCell::new(Some(-1))), Rc::new(RefCell::new(Some(Box::new(argError { arg: Rc::new(RefCell::new(Some((*arg.borrow().as_ref().unwrap())))), prob: Rc::new(RefCell::new(Some("can't work with it".to_string()))), ..Default::default() }) as Box<dyn Error + Send + Sync>))));
     }
     return ({
             let __tmp_x = (*arg.borrow().as_ref().unwrap());

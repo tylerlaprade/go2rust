@@ -44,7 +44,7 @@ impl container {
 }
 
 fn main() {
-    let mut co = Rc::new(RefCell::new(Some(container { base: Rc::new(RefCell::new(Some(base { num: Rc::new(RefCell::new(Some(1))) }))), str: Rc::new(RefCell::new(Some("some name".to_string()))) })));
+    let mut co = Rc::new(RefCell::new(Some(container { base: Rc::new(RefCell::new(Some(base { num: Rc::new(RefCell::new(Some(1))), ..Default::default() }))), str: Rc::new(RefCell::new(Some("some name".to_string()))), ..Default::default() })));
 
     print!("co={{num: {}, str: {}}}\n", (*(*(*co.borrow().as_ref().unwrap()).base.borrow().as_ref().unwrap()).num.borrow().as_ref().unwrap()), (*(*co.borrow().as_ref().unwrap()).str.borrow().as_ref().unwrap()));
     println!("{} {}", "also num:".to_string(), (*(*(*co.borrow_mut().as_mut().unwrap()).base.borrow().as_ref().unwrap()).num.borrow().as_ref().unwrap()));

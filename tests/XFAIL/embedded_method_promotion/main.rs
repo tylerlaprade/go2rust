@@ -215,7 +215,7 @@ impl Top {
 fn main() {
         // Test basic method promotion
     println!("{}", "=== Basic method promotion ===".to_string());
-    let mut svc = Rc::new(RefCell::new(Some(Service { logger: Rc::new(RefCell::new(Some(Logger { prefix: Rc::new(RefCell::new(Some("SVC".to_string()))) }))), counter: Rc::new(RefCell::new(Some(Counter { count: Rc::new(RefCell::new(Some(0))) }))), name: Rc::new(RefCell::new(Some("MyService".to_string()))) })));
+    let mut svc = Rc::new(RefCell::new(Some(Service { logger: Rc::new(RefCell::new(Some(Logger { prefix: Rc::new(RefCell::new(Some("SVC".to_string()))), ..Default::default() }))), counter: Rc::new(RefCell::new(Some(Counter { count: Rc::new(RefCell::new(Some(0))), ..Default::default() }))), name: Rc::new(RefCell::new(Some("MyService".to_string()))), ..Default::default() })));
 
         // Call promoted methods from Logger
     (*svc.borrow().as_ref().unwrap()).log(Rc::new(RefCell::new(Some("Service started".to_string()))));
@@ -233,7 +233,7 @@ fn main() {
 
         // Test method promotion with pointers
     println!("{}", "\n=== Method promotion with pointers ===".to_string());
-    let mut svcPtr = Rc::new(RefCell::new(Some(Service { logger: Rc::new(RefCell::new(Some(Logger { prefix: Rc::new(RefCell::new(Some("PTR".to_string()))) }))), counter: Rc::new(RefCell::new(Some(Counter { count: Rc::new(RefCell::new(Some(10))) }))), name: Rc::new(RefCell::new(Some("PointerService".to_string()))) })));
+    let mut svcPtr = Rc::new(RefCell::new(Some(Service { logger: Rc::new(RefCell::new(Some(Logger { prefix: Rc::new(RefCell::new(Some("PTR".to_string()))), ..Default::default() }))), counter: Rc::new(RefCell::new(Some(Counter { count: Rc::new(RefCell::new(Some(10))), ..Default::default() }))), name: Rc::new(RefCell::new(Some("PointerService".to_string()))), ..Default::default() })));
 
     (*svcPtr.borrow().as_ref().unwrap()).log(Rc::new(RefCell::new(Some("Pointer service".to_string()))));
     (*svcPtr.borrow_mut().as_mut().unwrap()).increment();
@@ -241,7 +241,7 @@ fn main() {
 
         // Test multi-level embedding
     println!("{}", "\n=== Multi-level embedding ===".to_string());
-    let mut top = Rc::new(RefCell::new(Some(Top { middle: Rc::new(RefCell::new(Some(Middle { base: Rc::new(RefCell::new(Some(Base { id: Rc::new(RefCell::new(Some(100))) }))), data: Rc::new(RefCell::new(Some("middle data".to_string()))) }))), extra: Rc::new(RefCell::new(Some("extra data".to_string()))) })));
+    let mut top = Rc::new(RefCell::new(Some(Top { middle: Rc::new(RefCell::new(Some(Middle { base: Rc::new(RefCell::new(Some(Base { id: Rc::new(RefCell::new(Some(100))), ..Default::default() }))), data: Rc::new(RefCell::new(Some("middle data".to_string()))), ..Default::default() }))), extra: Rc::new(RefCell::new(Some("extra data".to_string()))), ..Default::default() })));
 
         // Methods promoted from Base through Middle
     print!("ID (promoted from Base): {}\n", (*(*top.borrow().as_ref().unwrap()).get_i_d().borrow().as_ref().unwrap()));

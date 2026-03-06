@@ -87,7 +87,7 @@ pub fn init() {
 
 pub fn init() {
     println!("{}", "Fifth init function - initializing app config".to_string());
-    { let new_val = Config { name: Rc::new(RefCell::new(Some("Go2Rust Transpiler".to_string()))), version: Rc::new(RefCell::new(Some("0.1.0".to_string()))), debug: Rc::new(RefCell::new(Some(true))) }; *appConfig.borrow_mut() = Some(new_val); };
+    { let new_val = Config { name: Rc::new(RefCell::new(Some("Go2Rust Transpiler".to_string()))), version: Rc::new(RefCell::new(Some("0.1.0".to_string()))), debug: Rc::new(RefCell::new(Some(true))), ..Default::default() }; *appConfig.borrow_mut() = Some(new_val); };
 }
 
 /// Init function that might panic (for testing error handling)

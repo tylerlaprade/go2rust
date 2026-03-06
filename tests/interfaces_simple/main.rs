@@ -46,6 +46,6 @@ pub fn measure(g: &dyn geometry) {
 }
 
 fn main() {
-    let mut r = Rc::new(RefCell::new(Some(rect { width: Rc::new(RefCell::new(Some(3.0))), height: Rc::new(RefCell::new(Some(4.0))) })));
+    let mut r = Rc::new(RefCell::new(Some(rect { width: Rc::new(RefCell::new(Some(3.0))), height: Rc::new(RefCell::new(Some(4.0))), ..Default::default() })));
     measure(r.borrow().as_ref().unwrap());
 }

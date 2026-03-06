@@ -149,8 +149,8 @@ fn main() {
 
     type Point = Arc<Mutex<Option<AnonymousStruct1>>>;
 
-    let mut p1 = Arc::new(Mutex::new(Some(Point { x: Arc::new(Mutex::new(Some(3))), y: Arc::new(Mutex::new(Some(4))) })));
-    let mut p2 = Arc::new(Mutex::new(Some(Point { x: Arc::new(Mutex::new(Some(6))), y: Arc::new(Mutex::new(Some(8))) })));
+    let mut p1 = Arc::new(Mutex::new(Some(Point { x: Arc::new(Mutex::new(Some(3))), y: Arc::new(Mutex::new(Some(4))), ..Default::default() })));
+    let mut p2 = Arc::new(Mutex::new(Some(Point { x: Arc::new(Mutex::new(Some(6))), y: Arc::new(Mutex::new(Some(8))), ..Default::default() })));
 
         // Distance calculation (without sqrt for simplicity)
     let mut distanceSquared = Arc::new(Mutex::new(Some(((*(*(*p2.lock().unwrap().as_ref().unwrap()).x.lock().unwrap().as_ref().unwrap()).lock().unwrap().as_ref().unwrap()) - (*(*(*p1.lock().unwrap().as_ref().unwrap()).x.lock().unwrap().as_ref().unwrap()).lock().unwrap().as_ref().unwrap())) * ((*(*(*p2.lock().unwrap().as_ref().unwrap()).x.lock().unwrap().as_ref().unwrap()).lock().unwrap().as_ref().unwrap()) - (*(*(*p1.lock().unwrap().as_ref().unwrap()).x.lock().unwrap().as_ref().unwrap()).lock().unwrap().as_ref().unwrap())) + ((*(*(*p2.lock().unwrap().as_ref().unwrap()).y.lock().unwrap().as_ref().unwrap()).lock().unwrap().as_ref().unwrap()) - (*(*(*p1.lock().unwrap().as_ref().unwrap()).y.lock().unwrap().as_ref().unwrap()).lock().unwrap().as_ref().unwrap())) * ((*(*(*p2.lock().unwrap().as_ref().unwrap()).y.lock().unwrap().as_ref().unwrap()).lock().unwrap().as_ref().unwrap()) - (*(*(*p1.lock().unwrap().as_ref().unwrap()).y.lock().unwrap().as_ref().unwrap()).lock().unwrap().as_ref().unwrap())))));

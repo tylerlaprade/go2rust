@@ -44,7 +44,7 @@ impl Outer {
 }
 
 fn main() {
-    let mut o = Rc::new(RefCell::new(Some(Outer { inner: Rc::new(RefCell::new(Some(Inner { value: Rc::new(RefCell::new(Some(42))) }))), name: Rc::new(RefCell::new(Some("test".to_string()))) })));
+    let mut o = Rc::new(RefCell::new(Some(Outer { inner: Rc::new(RefCell::new(Some(Inner { value: Rc::new(RefCell::new(Some(42))), ..Default::default() }))), name: Rc::new(RefCell::new(Some("test".to_string()))), ..Default::default() })));
 
         // Direct field access
     println!("{} {}", "Value:".to_string(), (*(*(*o.borrow().as_ref().unwrap()).inner.borrow().as_ref().unwrap()).value.borrow().as_ref().unwrap()));

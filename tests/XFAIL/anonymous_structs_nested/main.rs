@@ -113,7 +113,7 @@ struct AnonymousStruct8 {
 
 fn main() {
         // Test named struct with anonymous struct field
-    let mut config = Rc::new(RefCell::new(Some(Config { name: Rc::new(RefCell::new(Some("production".to_string()))) })));
+    let mut config = Rc::new(RefCell::new(Some(Config { name: Rc::new(RefCell::new(Some("production".to_string()))), ..Default::default() })));
     { let new_val = "db.example.com".to_string(); *(*(*config.borrow_mut().as_mut().unwrap()).database.borrow().as_ref().unwrap()).host.borrow_mut() = Some(new_val); };
     { let new_val = 5432; *(*(*config.borrow_mut().as_mut().unwrap()).database.borrow().as_ref().unwrap()).port.borrow_mut() = Some(new_val); };
     { let new_val = "admin".to_string(); *(*(*(*config.borrow_mut().as_mut().unwrap()).database.borrow().as_ref().unwrap()).credentials.borrow().as_ref().unwrap()).user.borrow_mut() = Some(new_val); };
@@ -126,7 +126,7 @@ fn main() {
     print!("Cache: enabled={}, TTL={}\n", (*(*(*config.borrow_mut().as_mut().unwrap()).cache.borrow().as_ref().unwrap()).enabled.borrow().as_ref().unwrap()), (*(*(*config.borrow_mut().as_mut().unwrap()).cache.borrow().as_ref().unwrap()).t_t_l.borrow().as_ref().unwrap()));
 
         // Test named struct with slice of anonymous structs
-    let mut dashboard = Rc::new(RefCell::new(Some(Dashboard { title: Rc::new(RefCell::new(Some("Main Dashboard".to_string()))), widgets: Rc::new(RefCell::new(Some(Rc::new(RefCell::new(Some(vec![/* Anonymous struct literal */unimplemented!(), /* Anonymous struct literal */unimplemented!()])))))) })));
+    let mut dashboard = Rc::new(RefCell::new(Some(Dashboard { title: Rc::new(RefCell::new(Some("Main Dashboard".to_string()))), widgets: Rc::new(RefCell::new(Some(Rc::new(RefCell::new(Some(vec![/* Anonymous struct literal */unimplemented!(), /* Anonymous struct literal */unimplemented!()])))))), ..Default::default() })));
 
     print!("\nDashboard: {}\n", (*(*dashboard.borrow().as_ref().unwrap()).title.borrow().as_ref().unwrap()));
     for widget in &(*(*dashboard.borrow().as_ref().unwrap()).widgets.borrow().as_ref().unwrap()) {

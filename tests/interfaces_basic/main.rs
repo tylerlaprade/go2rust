@@ -75,8 +75,8 @@ pub fn print_shape_info(s: &dyn Shape) {
 }
 
 fn main() {
-    let mut rect = Rc::new(RefCell::new(Some(Rectangle { width: Rc::new(RefCell::new(Some(10.0))), height: Rc::new(RefCell::new(Some(5.0))) })));
-    let mut circle = Rc::new(RefCell::new(Some(Circle { radius: Rc::new(RefCell::new(Some(3.0))) })));
+    let mut rect = Rc::new(RefCell::new(Some(Rectangle { width: Rc::new(RefCell::new(Some(10.0))), height: Rc::new(RefCell::new(Some(5.0))), ..Default::default() })));
+    let mut circle = Rc::new(RefCell::new(Some(Circle { radius: Rc::new(RefCell::new(Some(3.0))), ..Default::default() })));
 
     println!("{}", "Rectangle:".to_string());
     print_shape_info(rect.borrow().as_ref().unwrap());

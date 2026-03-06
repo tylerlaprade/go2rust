@@ -23,7 +23,7 @@ impl std::fmt::Display for User {
 
 
 fn main() {
-    let mut u = Rc::new(RefCell::new(Some(User { i_d: Rc::new(RefCell::new(Some(1))), name: Rc::new(RefCell::new(Some("Alice".to_string()))), email: Rc::new(RefCell::new(Some("alice@example.com".to_string()))) })));
+    let mut u = Rc::new(RefCell::new(Some(User { i_d: Rc::new(RefCell::new(Some(1))), name: Rc::new(RefCell::new(Some("Alice".to_string()))), email: Rc::new(RefCell::new(Some("alice@example.com".to_string()))), ..Default::default() })));
     let mut t = (*reflect.borrow().as_ref().unwrap())::type_of(Rc::new(RefCell::new(Some((*u.borrow().as_ref().unwrap())))));
 
     let mut i = Rc::new(RefCell::new(Some(0)));

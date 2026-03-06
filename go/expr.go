@@ -863,6 +863,8 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 								}
 							}
 						}
+						// Go zero-initializes uninitialized fields
+						out.WriteString(", ..Default::default()")
 						out.WriteString(" }")
 						return
 					}
@@ -1068,10 +1070,8 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				}
 			}
 
-			// Note: In Go, uninitialized fields get zero values
-			// In Rust with our Arc<Mutex<Option<>>> wrapping, we'd need Default::default()
-			// But this requires all fields to implement Default, which may not always be true
-			// For now, we'll require all fields to be explicitly initialized
+			// Go zero-initializes uninitialized fields; use ..Default::default() in Rust
+			out.WriteString(", ..Default::default()")
 
 			out.WriteString(" }")
 		} else if structType, ok := e.Type.(*ast.StructType); ok {

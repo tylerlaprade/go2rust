@@ -187,7 +187,7 @@ impl Company {
 fn main() {
         // Basic embedded struct
     println!("{}", "=== Basic embedded struct ===".to_string());
-    let mut emp = Rc::new(RefCell::new(Some(Employee { person: Rc::new(RefCell::new(Some(Person { name: Rc::new(RefCell::new(Some("Alice".to_string()))), age: Rc::new(RefCell::new(Some(30))) }))), address: Rc::new(RefCell::new(Some(Address { street: Rc::new(RefCell::new(Some("123 Main St".to_string()))), city: Rc::new(RefCell::new(Some("Anytown".to_string()))), state: Rc::new(RefCell::new(Some("CA".to_string()))) }))), i_d: Rc::new(RefCell::new(Some(1001))), salary: Rc::new(RefCell::new(Some(75000.0))) })));
+    let mut emp = Rc::new(RefCell::new(Some(Employee { person: Rc::new(RefCell::new(Some(Person { name: Rc::new(RefCell::new(Some("Alice".to_string()))), age: Rc::new(RefCell::new(Some(30))), ..Default::default() }))), address: Rc::new(RefCell::new(Some(Address { street: Rc::new(RefCell::new(Some("123 Main St".to_string()))), city: Rc::new(RefCell::new(Some("Anytown".to_string()))), state: Rc::new(RefCell::new(Some("CA".to_string()))), ..Default::default() }))), i_d: Rc::new(RefCell::new(Some(1001))), salary: Rc::new(RefCell::new(Some(75000.0))), ..Default::default() })));
 
         // Access embedded fields directly
     print!("Name: {}\n", (*(*(*emp.borrow().as_ref().unwrap()).person.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()));
@@ -203,7 +203,7 @@ fn main() {
 
         // Nested embedding
     println!("{}", "\n=== Nested embedding ===".to_string());
-    let mut mgr = Rc::new(RefCell::new(Some(Manager { employee: Rc::new(RefCell::new(Some(Employee { person: Rc::new(RefCell::new(Some(Person { name: Rc::new(RefCell::new(Some("Bob".to_string()))), age: Rc::new(RefCell::new(Some(35))) }))), address: Rc::new(RefCell::new(Some(Address { street: Rc::new(RefCell::new(Some("456 Oak Ave".to_string()))), city: Rc::new(RefCell::new(Some("Somewhere".to_string()))), state: Rc::new(RefCell::new(Some("NY".to_string()))) }))), i_d: Rc::new(RefCell::new(Some(2001))), salary: Rc::new(RefCell::new(Some(95000.0))) }))), team: Rc::new(RefCell::new(Some(Rc::new(RefCell::new(Some(vec!["Alice".to_string(), "Charlie".to_string(), "Diana".to_string()])))))) })));
+    let mut mgr = Rc::new(RefCell::new(Some(Manager { employee: Rc::new(RefCell::new(Some(Employee { person: Rc::new(RefCell::new(Some(Person { name: Rc::new(RefCell::new(Some("Bob".to_string()))), age: Rc::new(RefCell::new(Some(35))), ..Default::default() }))), address: Rc::new(RefCell::new(Some(Address { street: Rc::new(RefCell::new(Some("456 Oak Ave".to_string()))), city: Rc::new(RefCell::new(Some("Somewhere".to_string()))), state: Rc::new(RefCell::new(Some("NY".to_string()))), ..Default::default() }))), i_d: Rc::new(RefCell::new(Some(2001))), salary: Rc::new(RefCell::new(Some(95000.0))), ..Default::default() }))), team: Rc::new(RefCell::new(Some(Rc::new(RefCell::new(Some(vec!["Alice".to_string(), "Charlie".to_string(), "Diana".to_string()])))))), ..Default::default() })));
 
         // Access deeply nested fields
     print!("Manager: {}\n", (*(*(*mgr.borrow().as_ref().unwrap()).employee.borrow().as_ref().unwrap().person.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()));
@@ -217,7 +217,7 @@ fn main() {
 
         // Anonymous struct embedding
     println!("{}", "\n=== Anonymous struct embedding ===".to_string());
-    let mut company = Rc::new(RefCell::new(Some(Company { name: Rc::new(RefCell::new(Some("TechCorp".to_string()))) })));
+    let mut company = Rc::new(RefCell::new(Some(Company { name: Rc::new(RefCell::new(Some("TechCorp".to_string()))), ..Default::default() })));
     { let new_val = 2010; *(*(*company.borrow_mut().as_mut().unwrap()).company_info.borrow_mut().as_mut().unwrap()).founded.borrow_mut() = Some(new_val); };
     { let new_val = "John Doe".to_string(); *(*(*company.borrow_mut().as_mut().unwrap()).company_info.borrow_mut().as_mut().unwrap()).c_e_o.borrow_mut() = Some(new_val); };
 

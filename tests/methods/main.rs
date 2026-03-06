@@ -26,7 +26,7 @@ impl Counter {
 
 pub fn new_counter() -> Rc<RefCell<Option<Counter>>> {
 
-    return Rc::new(RefCell::new(Some(Counter { value: Rc::new(RefCell::new(Some(0))) })));
+    return Rc::new(RefCell::new(Some(Counter { value: Rc::new(RefCell::new(Some(0))), ..Default::default() })));
 }
 
 fn main() {

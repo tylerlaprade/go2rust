@@ -219,7 +219,7 @@ fn main() {
     assert_without_check(Rc::new(RefCell::new(Some(123))));
 
     println!("{}", "\n=== Interface type assertions ===".to_string());
-    let mut shapes = Rc::new(RefCell::new(Some(vec![Box::new(Rectangle { width: Rc::new(RefCell::new(Some(10.0))), height: Rc::new(RefCell::new(Some(5.0))) }) as Box<dyn Shape>, Box::new(Circle { radius: Rc::new(RefCell::new(Some(3.0))) }) as Box<dyn Shape>])));
+    let mut shapes = Rc::new(RefCell::new(Some(vec![Box::new(Rectangle { width: Rc::new(RefCell::new(Some(10.0))), height: Rc::new(RefCell::new(Some(5.0))), ..Default::default() }) as Box<dyn Shape>, Box::new(Circle { radius: Rc::new(RefCell::new(Some(3.0))), ..Default::default() }) as Box<dyn Shape>])));
 
     for shape in &(*shapes.borrow().as_ref().unwrap()) {
         describe_shape(shape.as_ref());
