@@ -1,2 +1,2 @@
-Random int: 87
-Random float: 0.07101821005017417
+Random int: 47
+Random float: 0.7175505503946967
