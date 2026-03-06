@@ -42,7 +42,7 @@ struct Canvas {
 
 impl std::fmt::Display for Canvas {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.name.borrow().as_ref().unwrap()), (*self.shapes.borrow().as_ref().unwrap()))
+        write!(f, "{{{} {}}}", (*self.name.borrow().as_ref().unwrap()), format_slice(&self.shapes))
     }
 }
 
@@ -102,7 +102,7 @@ struct Department {
 
 impl std::fmt::Display for Department {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {}}}", (*self.name.borrow().as_ref().unwrap()), (*self.manager.borrow().as_ref().unwrap()), (*self.employees.borrow().as_ref().unwrap()), (*self.budget.borrow().as_ref().unwrap()))
+        write!(f, "{{{} {} {} {}}}", (*self.name.borrow().as_ref().unwrap()), (*self.manager.borrow().as_ref().unwrap()), format_slice(&self.employees), (*self.budget.borrow().as_ref().unwrap()))
     }
 }
 
@@ -116,7 +116,7 @@ struct Company {
 
 impl std::fmt::Display for Company {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {}}}", (*self.name.borrow().as_ref().unwrap()), (*self.departments.borrow().as_ref().unwrap()), (*self.headquarters.borrow().as_ref().unwrap()))
+        write!(f, "{{{} {} {}}}", (*self.name.borrow().as_ref().unwrap()), format_slice(&self.departments), (*self.headquarters.borrow().as_ref().unwrap()))
     }
 }
 
@@ -150,33 +150,33 @@ fn main() {
     println!("{}", "=== Creating nested structures ===".to_string());
 
         // Create addresses
-    let mut hq = Rc::new(RefCell::new(Some(Address { street: Rc::new(RefCell::new(Some("123 Corporate Blvd".to_string()))), city: Rc::new(RefCell::new(Some("Tech City".to_string()))), state: Rc::new(RefCell::new(Some("CA".to_string()))), zip_code: Rc::new(RefCell::new(Some("90210".to_string()))), country: Rc::new(RefCell::new(Some("USA".to_string()))) })));
+    let mut hq = Rc::new(RefCell::new(Some(Address { street: Rc::new(RefCell::new(Some("123 Corporate Blvd".to_string()))), city: Rc::new(RefCell::new(Some("Tech City".to_string()))), state: Rc::new(RefCell::new(Some("CA".to_string()))), zip_code: Rc::new(RefCell::new(Some("90210".to_string()))), country: Rc::new(RefCell::new(Some("USA".to_string()))), ..Default::default() })));
 
-    let mut managerAddr = Rc::new(RefCell::new(Some(Address { street: Rc::new(RefCell::new(Some("456 Manager St".to_string()))), city: Rc::new(RefCell::new(Some("Suburb".to_string()))), state: Rc::new(RefCell::new(Some("CA".to_string()))), zip_code: Rc::new(RefCell::new(Some("90211".to_string()))), country: Rc::new(RefCell::new(Some("USA".to_string()))) })));
+    let mut managerAddr = Rc::new(RefCell::new(Some(Address { street: Rc::new(RefCell::new(Some("456 Manager St".to_string()))), city: Rc::new(RefCell::new(Some("Suburb".to_string()))), state: Rc::new(RefCell::new(Some("CA".to_string()))), zip_code: Rc::new(RefCell::new(Some("90211".to_string()))), country: Rc::new(RefCell::new(Some("USA".to_string()))), ..Default::default() })));
 
-    let mut emp1Addr = Rc::new(RefCell::new(Some(Address { street: Rc::new(RefCell::new(Some("789 Employee Ave".to_string()))), city: Rc::new(RefCell::new(Some("Hometown".to_string()))), state: Rc::new(RefCell::new(Some("CA".to_string()))), zip_code: Rc::new(RefCell::new(Some("90212".to_string()))), country: Rc::new(RefCell::new(Some("USA".to_string()))) })));
+    let mut emp1Addr = Rc::new(RefCell::new(Some(Address { street: Rc::new(RefCell::new(Some("789 Employee Ave".to_string()))), city: Rc::new(RefCell::new(Some("Hometown".to_string()))), state: Rc::new(RefCell::new(Some("CA".to_string()))), zip_code: Rc::new(RefCell::new(Some("90212".to_string()))), country: Rc::new(RefCell::new(Some("USA".to_string()))), ..Default::default() })));
 
-    let mut emp2Addr = Rc::new(RefCell::new(Some(Address { street: Rc::new(RefCell::new(Some("321 Worker Way".to_string()))), city: Rc::new(RefCell::new(Some("Village".to_string()))), state: Rc::new(RefCell::new(Some("CA".to_string()))), zip_code: Rc::new(RefCell::new(Some("90213".to_string()))), country: Rc::new(RefCell::new(Some("USA".to_string()))) })));
+    let mut emp2Addr = Rc::new(RefCell::new(Some(Address { street: Rc::new(RefCell::new(Some("321 Worker Way".to_string()))), city: Rc::new(RefCell::new(Some("Village".to_string()))), state: Rc::new(RefCell::new(Some("CA".to_string()))), zip_code: Rc::new(RefCell::new(Some("90213".to_string()))), country: Rc::new(RefCell::new(Some("USA".to_string()))), ..Default::default() })));
 
         // Create contacts
-    let mut managerContact = Rc::new(RefCell::new(Some(Contact { email: Rc::new(RefCell::new(Some("manager@company.com".to_string()))), phone: Rc::new(RefCell::new(Some("555-0001".to_string()))) })));
+    let mut managerContact = Rc::new(RefCell::new(Some(Contact { email: Rc::new(RefCell::new(Some("manager@company.com".to_string()))), phone: Rc::new(RefCell::new(Some("555-0001".to_string()))), ..Default::default() })));
 
-    let mut emp1Contact = Rc::new(RefCell::new(Some(Contact { email: Rc::new(RefCell::new(Some("emp1@company.com".to_string()))), phone: Rc::new(RefCell::new(Some("555-0002".to_string()))) })));
+    let mut emp1Contact = Rc::new(RefCell::new(Some(Contact { email: Rc::new(RefCell::new(Some("emp1@company.com".to_string()))), phone: Rc::new(RefCell::new(Some("555-0002".to_string()))), ..Default::default() })));
 
-    let mut emp2Contact = Rc::new(RefCell::new(Some(Contact { email: Rc::new(RefCell::new(Some("emp2@company.com".to_string()))), phone: Rc::new(RefCell::new(Some("555-0003".to_string()))) })));
+    let mut emp2Contact = Rc::new(RefCell::new(Some(Contact { email: Rc::new(RefCell::new(Some("emp2@company.com".to_string()))), phone: Rc::new(RefCell::new(Some("555-0003".to_string()))), ..Default::default() })));
 
         // Create people
-    let mut manager = Rc::new(RefCell::new(Some(Person { name: Rc::new(RefCell::new(Some("Alice Manager".to_string()))), age: Rc::new(RefCell::new(Some(45))), address: managerAddr.clone(), contact: managerContact.clone() })));
+    let mut manager = Rc::new(RefCell::new(Some(Person { name: Rc::new(RefCell::new(Some("Alice Manager".to_string()))), age: Rc::new(RefCell::new(Some(45))), address: managerAddr.clone(), contact: managerContact.clone(), ..Default::default() })));
 
-    let mut employee1 = Rc::new(RefCell::new(Some(Person { name: Rc::new(RefCell::new(Some("Bob Employee".to_string()))), age: Rc::new(RefCell::new(Some(30))), address: emp1Addr.clone(), contact: emp1Contact.clone() })));
+    let mut employee1 = Rc::new(RefCell::new(Some(Person { name: Rc::new(RefCell::new(Some("Bob Employee".to_string()))), age: Rc::new(RefCell::new(Some(30))), address: emp1Addr.clone(), contact: emp1Contact.clone(), ..Default::default() })));
 
-    let mut employee2 = Rc::new(RefCell::new(Some(Person { name: Rc::new(RefCell::new(Some("Carol Worker".to_string()))), age: Rc::new(RefCell::new(Some(28))), address: emp2Addr.clone(), contact: emp2Contact.clone() })));
+    let mut employee2 = Rc::new(RefCell::new(Some(Person { name: Rc::new(RefCell::new(Some("Carol Worker".to_string()))), age: Rc::new(RefCell::new(Some(28))), address: emp2Addr.clone(), contact: emp2Contact.clone(), ..Default::default() })));
 
         // Create department
-    let mut engineering = Rc::new(RefCell::new(Some(Department { name: Rc::new(RefCell::new(Some("Engineering".to_string()))), manager: manager.clone(), employees: Rc::new(RefCell::new(Some(Rc::new(RefCell::new(Some(vec![(*employee1.borrow().as_ref().unwrap()), (*employee2.borrow().as_ref().unwrap())])))))), budget: Rc::new(RefCell::new(Some(1000000.0))) })));
+    let mut engineering = Rc::new(RefCell::new(Some(Department { name: Rc::new(RefCell::new(Some("Engineering".to_string()))), manager: manager.clone(), employees: Rc::new(RefCell::new(Some(vec![(*employee1.borrow().as_ref().unwrap()), (*employee2.borrow().as_ref().unwrap())]))), budget: Rc::new(RefCell::new(Some(1000000.0))), ..Default::default() })));
 
         // Create company
-    let mut company = Rc::new(RefCell::new(Some(Company { name: Rc::new(RefCell::new(Some("TechCorp Inc".to_string()))), departments: Rc::new(RefCell::new(Some(Rc::new(RefCell::new(Some(vec![(*engineering.borrow().as_ref().unwrap())])))))), headquarters: hq.clone() })));
+    let mut company = Rc::new(RefCell::new(Some(Company { name: Rc::new(RefCell::new(Some("TechCorp Inc".to_string()))), departments: Rc::new(RefCell::new(Some(vec![(*engineering.borrow().as_ref().unwrap())]))), headquarters: hq.clone(), ..Default::default() })));
 
         // Access nested data
     println!("{}", "\n=== Accessing nested data ===".to_string());
@@ -263,7 +263,7 @@ fn main() {
         // Complex nested structure with interfaces
     println!("{}", "\n=== Complex nested with interfaces ===".to_string());
 
-    let mut canvas = Rc::new(RefCell::new(Some(Canvas { name: Rc::new(RefCell::new(Some("My Drawing".to_string()))), shapes: Rc::new(RefCell::new(Some(Rc::new(RefCell::new(Some(vec![Box::new(Circle { radius: Rc::new(RefCell::new(Some(5.0))) }) as Box<dyn Drawable>, Box::new(Rectangle { width: Rc::new(RefCell::new(Some(10.0))), height: Rc::new(RefCell::new(Some(8.0))) }) as Box<dyn Drawable>, Box::new(Circle { radius: Rc::new(RefCell::new(Some(3.0))) }) as Box<dyn Drawable>])))))) })));
+    let mut canvas = Rc::new(RefCell::new(Some(Canvas { name: Rc::new(RefCell::new(Some("My Drawing".to_string()))), shapes: Rc::new(RefCell::new(Some(vec![Box::new(Circle { radius: Rc::new(RefCell::new(Some(5.0))), ..Default::default() }) as Box<dyn Drawable>, Box::new(Rectangle { width: Rc::new(RefCell::new(Some(10.0))), height: Rc::new(RefCell::new(Some(8.0))), ..Default::default() }) as Box<dyn Drawable>, Box::new(Circle { radius: Rc::new(RefCell::new(Some(3.0))), ..Default::default() }) as Box<dyn Drawable>]))), ..Default::default() })));
 
     print!("Canvas: {}\n", (*(*canvas.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()));
     for (i, shape) in (*(*canvas.borrow().as_ref().unwrap()).shapes.borrow().as_ref().unwrap()).iter().enumerate() {
@@ -278,7 +278,7 @@ fn main() {
     print!("Updated employee email: {}\n", (*(*(*(*(*company.borrow_mut().as_mut().unwrap()).departments.borrow().as_ref().unwrap())[0 as usize].clone().employees.borrow().as_ref().unwrap())[0 as usize].clone().contact.borrow().as_ref().unwrap()).email.borrow().as_ref().unwrap()));
 
         // Add new employee
-    let mut newEmployee = Rc::new(RefCell::new(Some(Person { name: Rc::new(RefCell::new(Some("Dave Newbie".to_string()))), age: Rc::new(RefCell::new(Some(25))), address: Rc::new(RefCell::new(Some(Address { street: Rc::new(RefCell::new(Some("999 New St".to_string()))), city: Rc::new(RefCell::new(Some("Newtown".to_string()))), state: Rc::new(RefCell::new(Some("CA".to_string()))), zip_code: Rc::new(RefCell::new(Some("90214".to_string()))), country: Rc::new(RefCell::new(Some("USA".to_string()))) }))), contact: Rc::new(RefCell::new(Some(Contact { email: Rc::new(RefCell::new(Some("dave@company.com".to_string()))), phone: Rc::new(RefCell::new(Some("555-0004".to_string()))) }))) })));
+    let mut newEmployee = Rc::new(RefCell::new(Some(Person { name: Rc::new(RefCell::new(Some("Dave Newbie".to_string()))), age: Rc::new(RefCell::new(Some(25))), address: Rc::new(RefCell::new(Some(Address { street: Rc::new(RefCell::new(Some("999 New St".to_string()))), city: Rc::new(RefCell::new(Some("Newtown".to_string()))), state: Rc::new(RefCell::new(Some("CA".to_string()))), zip_code: Rc::new(RefCell::new(Some("90214".to_string()))), country: Rc::new(RefCell::new(Some("USA".to_string()))), ..Default::default() }))), contact: Rc::new(RefCell::new(Some(Contact { email: Rc::new(RefCell::new(Some("dave@company.com".to_string()))), phone: Rc::new(RefCell::new(Some("555-0004".to_string()))), ..Default::default() }))), ..Default::default() })));
 
     {(*(*(*(*company.borrow_mut().as_mut().unwrap()).departments.borrow().as_ref().unwrap())[0 as usize].clone().employees.borrow().as_ref().unwrap()).borrow_mut().as_mut().unwrap()).push((*newEmployee.borrow().as_ref().unwrap())); (*(*(*company.borrow_mut().as_mut().unwrap()).departments.borrow().as_ref().unwrap())[0 as usize].clone().employees.borrow().as_ref().unwrap()).clone()};
     print!("Added new employee: {}\n", (*(*newEmployee.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()));

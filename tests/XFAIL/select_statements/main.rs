@@ -111,7 +111,7 @@ pub fn select_with_timeout() {
             println!("{} {}", "Got message:".to_string(), (*msg.lock().unwrap().as_ref().unwrap()));
             break;
         }
-        if let Some(_) = (*time.lock().unwrap().as_ref().unwrap())::after(Arc::new(Mutex::new(Some(100 * (*(*time.lock().unwrap().as_ref().unwrap())::millisecond.lock().unwrap().as_ref().unwrap()))))).try_recv() {
+        if let Some(_) = (*time.lock().unwrap().as_ref().unwrap())::after(Arc::new(Mutex::new(Some(100 * (*time.lock().unwrap().as_ref().unwrap())::millisecond)))).try_recv() {
             println!("{}", "Timeout occurred".to_string());
             break;
         }

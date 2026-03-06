@@ -348,7 +348,24 @@ func (ti *TypeInfo) NeedsUnwrapping(expr ast.Expr) bool {
 		// Function calls that return wrapped values need unwrapping
 		return ti.ReturnsWrappedValue(expr)
 	case *ast.SelectorExpr:
-		// Field accesses need unwrapping
+		// Field accesses on regular variables are already fully unwrapped
+		// by the SelectorExpr handler in RValue context.
+		// Only self/receiver field accesses need extra unwrapping (they just clone).
+		if ident, ok := e.X.(*ast.Ident); ok {
+			if currentReceiver != "" && ident.Name == currentReceiver {
+				return true // self.field.clone() is still wrapped
+			}
+			// Check if it's a package selector (not a field access)
+			if ti.info != nil {
+				if obj, ok := ti.info.Uses[ident]; ok {
+					if _, ok := obj.(*types.PkgName); ok {
+						return false
+					}
+				}
+			}
+			// Regular variable field access - already unwrapped by SelectorExpr handler
+			return false
+		}
 		return ti.ReturnsWrappedValue(expr)
 	case *ast.BasicLit:
 		// Literals don't need unwrapping

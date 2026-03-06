@@ -1,0 +1,33 @@
+**Session summary:**
+
+- **Starting**: 70 passing, 59 XFAIL
+- **Ending**: 71 passing, 58 XFAIL (no regressions)
+
+**Promoted**: `embedded_structs` — fixed 3 transpiler issues:
+1. **Double-wrapping**: Added `isCompositeLitSelfWrapping()` to skip outer wrapper when slice/map CompositeLits already self-wrap
+2. **Display for Vec**: Use `format_slice()` in auto-generated Display impls for Vec-typed fields
+3. **Struct default init**: Explicitly initialize struct-typed fields with `Some(T::default())` instead of relying on `..Default::default()` (which gives `None`)
+
+**Auto-promoted** (already passing before this session): `structs_basic`, `strings_runes`, `string_builder`, `labeled_statements`
+
+**Next easiest targets** for future sessions:
+- `nested_structures` — Rust compiles & runs but Go output is non-deterministic (needs sorted map iteration in Go source)
+- `slice_operations_advanced` — compiles/runs but cap values and nil checks differ
+- `anonymous_structs_basic` — 1 error (anonymous struct literal not implemented)
+iadic_functions (many errors - variadic params not handled)
+- multiple_returns (9 errors - error handling, range refs, swap)
+- switch_statements (18 errors - type switch, interface handling)
+- range_loops (4 errors - double lock, range refs)
+- blank_identifier (3 errors - len->usize, double wrapping, nested iteration)
+- embedded_method_promotion (4 errors - borrow issues)
+- nested_structures (compiles but Go output non-deterministic)
+- anonymous_structs_basic (1 error - unimplemented anonymous struct literals)
+- type_conversions (many errors)
+- type_assertions (15 errors - interface handling)
+- error_handling (7 errors)
+- errors_custom (9 errors)
+- function_types (52 errors)
+- enums_iota (9 errors - named type constants)
+- complex_expressions (30 errors)
+- advanced_control_flow (7 errors)
+- slice_operations_advanced (compiles, output mismatch - cap/nil)

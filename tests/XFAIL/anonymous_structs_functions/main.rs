@@ -115,7 +115,7 @@ pub fn get_point() -> Arc<Mutex<Option<AnonymousStruct2>>> {
 /// Function with multiple anonymous struct parameters
 pub fn compare_points(p1: Arc<Mutex<Option<AnonymousStruct2>>>, p2: Arc<Mutex<Option<AnonymousStruct2>>>) -> Arc<Mutex<Option<bool>>> {
 
-    return Arc::new(Mutex::new(Some((*(*(*p1.lock().unwrap().as_ref().unwrap()).x.lock().unwrap().as_ref().unwrap()).lock().unwrap().as_ref().unwrap()) == (*(*(*p2.lock().unwrap().as_ref().unwrap()).x.lock().unwrap().as_ref().unwrap()).lock().unwrap().as_ref().unwrap()) && (*(*(*p1.lock().unwrap().as_ref().unwrap()).y.lock().unwrap().as_ref().unwrap()).lock().unwrap().as_ref().unwrap()) == (*(*(*p2.lock().unwrap().as_ref().unwrap()).y.lock().unwrap().as_ref().unwrap()).lock().unwrap().as_ref().unwrap()))));
+    return Arc::new(Mutex::new(Some((*(*p1.lock().unwrap().as_ref().unwrap()).x.lock().unwrap().as_ref().unwrap()) == (*(*p2.lock().unwrap().as_ref().unwrap()).x.lock().unwrap().as_ref().unwrap()) && (*(*p1.lock().unwrap().as_ref().unwrap()).y.lock().unwrap().as_ref().unwrap()) == (*(*p2.lock().unwrap().as_ref().unwrap()).y.lock().unwrap().as_ref().unwrap()))));
 }
 
 /// Function returning multiple values including anonymous struct
