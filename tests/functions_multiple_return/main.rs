@@ -8,9 +8,9 @@ pub fn vals() -> (Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) {
 
 fn main() {
     let (mut a, mut b) = vals();
-    println!("{}", (*a.borrow_mut().as_mut().unwrap()));
-    println!("{}", (*b.borrow_mut().as_mut().unwrap()));
+    println!("{}", (*a.borrow().as_ref().unwrap()));
+    println!("{}", (*b.borrow().as_ref().unwrap()));
 
     let (_, mut c) = vals();
-    println!("{}", (*c.borrow_mut().as_mut().unwrap()));
+    println!("{}", (*c.borrow().as_ref().unwrap()));
 }

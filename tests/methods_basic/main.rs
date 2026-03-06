@@ -72,7 +72,7 @@ fn main() {
     println!("{} {}", "After adding 5:".to_string(), (*(*counter.borrow_mut().as_mut().unwrap()).get_value().borrow().as_ref().unwrap()));
 
     let mut doubled = (*counter.borrow_mut().as_mut().unwrap()).double();
-    println!("{} {}", "After doubling:".to_string(), (*doubled.borrow_mut().as_mut().unwrap()));
+    println!("{} {}", "After doubling:".to_string(), (*doubled.borrow().as_ref().unwrap()));
 
         // Person methods
     let mut person = Rc::new(RefCell::new(Some(Person { name: Rc::new(RefCell::new(Some("Alice".to_string()))), age: Rc::new(RefCell::new(Some(25))) })));

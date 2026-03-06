@@ -17,51 +17,51 @@ where
 
 pub fn factorial(n: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>> {
 
-    if (*n.borrow_mut().as_mut().unwrap()) <= 1 {
+    if (*n.borrow().as_ref().unwrap()) <= 1 {
         return Rc::new(RefCell::new(Some(1)));
     }
     return {
-            let __tmp_x = (*n.borrow_mut().as_mut().unwrap());
-            let __tmp_y = (*factorial(Rc::new(RefCell::new(Some((*n.borrow_mut().as_mut().unwrap()) - 1)))).borrow().as_ref().unwrap());
+            let __tmp_x = (*n.borrow().as_ref().unwrap());
+            let __tmp_y = (*factorial(Rc::new(RefCell::new(Some((*n.borrow().as_ref().unwrap()) - 1)))).borrow().as_ref().unwrap());
             Rc::new(RefCell::new(Some(__tmp_x * __tmp_y)))
         };
 }
 
 pub fn fibonacci(n: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>> {
 
-    if (*n.borrow_mut().as_mut().unwrap()) <= 1 {
+    if (*n.borrow().as_ref().unwrap()) <= 1 {
         return n.clone();
     }
-    return Rc::new(RefCell::new(Some((*fibonacci(Rc::new(RefCell::new(Some((*n.borrow_mut().as_mut().unwrap()) - 1)))).borrow().as_ref().unwrap()) + (*fibonacci(Rc::new(RefCell::new(Some((*n.borrow_mut().as_mut().unwrap()) - 2)))).borrow().as_ref().unwrap()))));
+    return Rc::new(RefCell::new(Some((*fibonacci(Rc::new(RefCell::new(Some((*n.borrow().as_ref().unwrap()) - 1)))).borrow().as_ref().unwrap()) + (*fibonacci(Rc::new(RefCell::new(Some((*n.borrow().as_ref().unwrap()) - 2)))).borrow().as_ref().unwrap()))));
 }
 
 pub fn gcd(a: Rc<RefCell<Option<i32>>>, b: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>> {
 
-    if (*b.borrow_mut().as_mut().unwrap()) == 0 {
+    if (*b.borrow().as_ref().unwrap()) == 0 {
         return a.clone();
     }
-    return Rc::new(RefCell::new(Some(gcd(b.clone(), Rc::new(RefCell::new(Some((*a.borrow_mut().as_mut().unwrap()) % (*b.borrow_mut().as_mut().unwrap()))))))));
+    return Rc::new(RefCell::new(Some(gcd(b.clone(), Rc::new(RefCell::new(Some((*a.borrow().as_ref().unwrap()) % (*b.borrow().as_ref().unwrap()))))))));
 }
 
 pub fn power(base: Rc<RefCell<Option<i32>>>, exp: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>> {
 
-    if (*exp.borrow_mut().as_mut().unwrap()) == 0 {
+    if (*exp.borrow().as_ref().unwrap()) == 0 {
         return Rc::new(RefCell::new(Some(1)));
     }
-    if (*exp.borrow_mut().as_mut().unwrap()) == 1 {
+    if (*exp.borrow().as_ref().unwrap()) == 1 {
         return base.clone();
     }
-    if (*exp.borrow_mut().as_mut().unwrap()) % 2 == 0 {
-        let mut half = power(base.clone(), Rc::new(RefCell::new(Some((*exp.borrow_mut().as_mut().unwrap()) / 2))));
+    if (*exp.borrow().as_ref().unwrap()) % 2 == 0 {
+        let mut half = power(base.clone(), Rc::new(RefCell::new(Some((*exp.borrow().as_ref().unwrap()) / 2))));
         return {
-            let __tmp_x = (*half.borrow_mut().as_mut().unwrap());
-            let __tmp_y = (*half.borrow_mut().as_mut().unwrap());
+            let __tmp_x = (*half.borrow().as_ref().unwrap());
+            let __tmp_y = (*half.borrow().as_ref().unwrap());
             Rc::new(RefCell::new(Some(__tmp_x * __tmp_y)))
         };
     }
     return {
-            let __tmp_x = (*base.borrow_mut().as_mut().unwrap());
-            let __tmp_y = (*power(base.clone(), Rc::new(RefCell::new(Some((*exp.borrow_mut().as_mut().unwrap()) - 1)))).borrow().as_ref().unwrap());
+            let __tmp_x = (*base.borrow().as_ref().unwrap());
+            let __tmp_y = (*power(base.clone(), Rc::new(RefCell::new(Some((*exp.borrow().as_ref().unwrap()) - 1)))).borrow().as_ref().unwrap());
             Rc::new(RefCell::new(Some(__tmp_x * __tmp_y)))
         };
 }
@@ -82,7 +82,7 @@ pub fn reverse_string(s: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<Strin
     if (*s.borrow().as_ref().unwrap()).len() <= 1 {
         return s.clone();
     }
-    return Rc::new(RefCell::new(Some((*reverse_string(Rc::new(RefCell::new(Some(Rc::new(RefCell::new(Some((*s.borrow().as_ref().unwrap())[1 as usize..].to_vec()))))))).borrow().as_ref().unwrap()) + Rc::new(RefCell::new(Some((*(*(*s.borrow_mut().as_mut().unwrap()).borrow().as_ref().unwrap()).as_bytes()[0 as usize].borrow().as_ref().unwrap()).to_string()))))));
+    return Rc::new(RefCell::new(Some((*reverse_string(Rc::new(RefCell::new(Some(Rc::new(RefCell::new(Some((*s.borrow().as_ref().unwrap())[1 as usize..].to_vec()))))))).borrow().as_ref().unwrap()) + Rc::new(RefCell::new(Some((*(*(*s.borrow().as_ref().unwrap()).borrow().as_ref().unwrap()).as_bytes()[0 as usize].borrow().as_ref().unwrap()).to_string()))))));
 }
 
 fn main() {
@@ -93,8 +93,8 @@ fn main() {
         // Fibonacci
     println!("{}", "Fibonacci sequence:".to_string());
     let mut i = Rc::new(RefCell::new(Some(0)));
-    while (*i.borrow_mut().as_mut().unwrap()) < 10 {
-        print!("fib({}) = {}\n", (*i.borrow_mut().as_mut().unwrap()), (*fibonacci(i.clone()).borrow().as_ref().unwrap()));
+    while (*i.borrow().as_ref().unwrap()) < 10 {
+        print!("fib({}) = {}\n", (*i.borrow().as_ref().unwrap()), (*fibonacci(i.clone()).borrow().as_ref().unwrap()));
         { let mut guard = i.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
 
@@ -114,5 +114,5 @@ fn main() {
         // Reverse string
     let mut original = Rc::new(RefCell::new(Some("hello".to_string())));
     let mut reversed = reverse_string(original.clone());
-    print!("'{}' reversed is '{}'\n", (*original.borrow_mut().as_mut().unwrap()), (*reversed.borrow_mut().as_mut().unwrap()));
+    print!("'{}' reversed is '{}'\n", (*original.borrow().as_ref().unwrap()), (*reversed.borrow().as_ref().unwrap()));
 }

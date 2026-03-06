@@ -9,15 +9,15 @@ fn main() {
 
     println!("{}", "Array elements:".to_string());
     let mut i = Rc::new(RefCell::new(Some(0)));
-    while (*i.borrow_mut().as_mut().unwrap()) < (*arr.borrow().as_ref().unwrap()).len() {
-        println!("{}", (*arr.borrow().as_ref().unwrap())[(*i.borrow_mut().as_mut().unwrap()) as usize].clone());
+    while (*i.borrow().as_ref().unwrap()) < (*arr.borrow().as_ref().unwrap()).len() {
+        println!("{}", (*arr.borrow().as_ref().unwrap())[(*i.borrow().as_ref().unwrap()) as usize].clone());
         { let mut guard = i.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
 
         // Array initialization
     let mut nums = Rc::new(RefCell::new(Some([1, 2, 3, 4])));
     println!("{}", "Initialized array:".to_string());
-    for num in &(*nums.borrow_mut().as_mut().unwrap()) {
+    for num in &(*nums.borrow().as_ref().unwrap()) {
         println!("{}", num);
     }
 }

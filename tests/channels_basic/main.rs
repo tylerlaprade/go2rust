@@ -70,8 +70,8 @@ impl<T> Iterator for GoChannel<T> {
 
 pub fn sender(ch: GoChannel<i32>) {
     let mut i = Arc::new(Mutex::new(Some(1)));
-    while (*i.lock().unwrap().as_mut().unwrap()) <= 5 {
-        print!("Sending: {}\n", (*i.lock().unwrap().as_mut().unwrap()));
+    while (*i.lock().unwrap().as_ref().unwrap()) <= 5 {
+        print!("Sending: {}\n", (*i.lock().unwrap().as_ref().unwrap()));
         ch.send((*i.lock().unwrap().as_ref().unwrap()));
         std::thread::sleep(std::time::Duration::from_millis(100));
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
@@ -82,11 +82,11 @@ pub fn sender(ch: GoChannel<i32>) {
 pub fn receiver(ch: GoChannel<i32>) {
     while true {
         let (mut value, mut ok) = match ch.recv() { Some(v) => (Arc::new(Mutex::new(Some(v))), Arc::new(Mutex::new(Some(true)))), None => (Arc::new(Mutex::new(Some(Default::default()))), Arc::new(Mutex::new(Some(false)))) };
-        if !(*ok.lock().unwrap().as_mut().unwrap()) {
+        if !(*ok.lock().unwrap().as_ref().unwrap()) {
         println!("{}", "Channel closed".to_string());
         break
     }
-        print!("Received: {}\n", (*value.lock().unwrap().as_mut().unwrap()));
+        print!("Received: {}\n", (*value.lock().unwrap().as_ref().unwrap()));
     }
 }
 
@@ -111,9 +111,9 @@ fn main() {
 
     println!("{}", "Buffered channel contents:".to_string());
     let mut i = Arc::new(Mutex::new(Some(0)));
-    while (*i.lock().unwrap().as_mut().unwrap()) < 3 {
+    while (*i.lock().unwrap().as_ref().unwrap()) < 3 {
         let mut msg = Arc::new(Mutex::new(Some(buffered.recv().unwrap())));
-        println!("{} {}", "Got:".to_string(), (*msg.lock().unwrap().as_mut().unwrap()));
+        println!("{} {}", "Got:".to_string(), (*msg.lock().unwrap().as_ref().unwrap()));
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
 
@@ -121,7 +121,7 @@ fn main() {
     let mut numbers = GoChannel::<i32>::new_buffered(5 as usize);
     let numbers_closure_clone = numbers.clone(); let numbers_thread = numbers.clone(); std::thread::spawn(move || {
         let mut i = Arc::new(Mutex::new(Some(10)));
-    while (*i.lock().unwrap().as_mut().unwrap()) < 15 {
+    while (*i.lock().unwrap().as_ref().unwrap()) < 15 {
         numbers_thread.send((*i.lock().unwrap().as_ref().unwrap()));
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     };

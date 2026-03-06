@@ -104,9 +104,9 @@ const z: i32 = x + y;
     let mut f: Rc<RefCell<Option<f64>>> = Rc::new(RefCell::new(Some(untypedFloat)));
     let mut mixed = Rc::new(RefCell::new(Some(untypedInt + 3)));
 
-    print!("i = {}\n", (*i.borrow_mut().as_mut().unwrap()));
-    print!("f = {:.2}\n", (*f.borrow_mut().as_mut().unwrap()));
-    print!("mixed = {}\n", (*mixed.borrow_mut().as_mut().unwrap()));
+    print!("i = {}\n", (*i.borrow().as_ref().unwrap()));
+    print!("f = {:.2}\n", (*f.borrow().as_ref().unwrap()));
+    print!("mixed = {}\n", (*mixed.borrow().as_ref().unwrap()));
 
         // String constants
     println!("{}", "\n=== String constants ===".to_string());

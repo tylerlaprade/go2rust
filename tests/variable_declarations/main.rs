@@ -12,6 +12,6 @@ fn main() {
     let mut b = Rc::new(RefCell::new(Some("world".to_string())));
     let mut c = Rc::new(RefCell::new(Some(2.71)));
 
-    println!("{} {} {} {}", "Variables:".to_string(), (*x.borrow_mut().as_mut().unwrap()), (*y.borrow_mut().as_mut().unwrap()), (*z.borrow_mut().as_mut().unwrap()));
-    println!("{} {} {} {}", "Short vars:".to_string(), (*a.borrow_mut().as_mut().unwrap()), (*b.borrow_mut().as_mut().unwrap()), (*c.borrow_mut().as_mut().unwrap()));
+    println!("{} {} {} {}", "Variables:".to_string(), (*x.borrow().as_ref().unwrap()), (*y.borrow().as_ref().unwrap()), (*z.borrow().as_ref().unwrap()));
+    println!("{} {} {} {}", "Short vars:".to_string(), (*a.borrow().as_ref().unwrap()), (*b.borrow().as_ref().unwrap()), (*c.borrow().as_ref().unwrap()));
 }

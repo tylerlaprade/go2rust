@@ -40,8 +40,8 @@ fn main() {
     let mut colors = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<String>>>>::from([("red".to_string(), Rc::new(RefCell::new(Some("#FF0000".to_string())))), ("green".to_string(), Rc::new(RefCell::new(Some("#00FF00".to_string())))), ("blue".to_string(), Rc::new(RefCell::new(Some("#0000FF".to_string()))))]))));
     println!("{} {}", "Colors map:".to_string(), format_map(&colors));
     let (mut age, mut exists) = match (*ages.borrow().as_ref().unwrap()).get(&"Alice".to_string()) { /* MAP_COMMA_OK */ Some(v) => (v.clone(), Rc::new(RefCell::new(Some(true)))), None => (Rc::new(RefCell::new(Some(0))), Rc::new(RefCell::new(Some(false)))) };
-    if (*exists.borrow_mut().as_mut().unwrap()) {
-        println!("{} {}", "Alice's age:".to_string(), (*age.borrow_mut().as_mut().unwrap()));
+    if (*exists.borrow().as_ref().unwrap()) {
+        println!("{} {}", "Alice's age:".to_string(), (*age.borrow().as_ref().unwrap()));
     }
     (*ages.borrow_mut().as_mut().unwrap()).remove(&"Bob".to_string());
     println!("{} {}", "After deleting Bob:".to_string(), format_map(&ages));
@@ -51,7 +51,7 @@ fn main() {
         {(*keys.borrow_mut().as_mut().unwrap()).push(k); keys.clone()};
     }
     (*keys.borrow_mut().as_mut().unwrap()).sort();
-    for k in &(*keys.borrow_mut().as_mut().unwrap()) {
+    for k in &(*keys.borrow().as_ref().unwrap()) {
         println!("{} {} {}", k, "->".to_string(), (*(*colors.borrow().as_ref().unwrap()).get(k).unwrap().borrow().as_ref().unwrap()));
     }
 }

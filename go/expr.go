@@ -135,8 +135,8 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				// Reading a variable requires unwrapping to get the inner value
 				out.WriteString("(*")
 				out.WriteString(varName)
-				WriteBorrowMethod(out, true)
-				out.WriteString(".as_mut().unwrap())")
+				WriteBorrowMethod(out, false)
+				out.WriteString(".as_ref().unwrap())")
 			case AddressOf:
 				// Taking address just returns the Arc itself
 				out.WriteString(varName)

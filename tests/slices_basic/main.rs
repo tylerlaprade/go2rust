@@ -30,7 +30,7 @@ fn main() {
 
         // Length and capacity
     println!("{} {}", "Length:".to_string(), (*slice.borrow().as_ref().unwrap()).len());
-    println!("{} {}", "Capacity:".to_string(), (*slice.borrow_mut().as_mut().unwrap()).capacity());
+    println!("{} {}", "Capacity:".to_string(), (*slice.borrow().as_ref().unwrap()).capacity());
 
         // Make slice
     let mut made = Rc::new(RefCell::new(Some(vec![0; 3])));

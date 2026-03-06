@@ -18,7 +18,7 @@ where
 fn main() {
     let mut name = Rc::new(RefCell::new(Some("World".to_string())));
     let mut age = Rc::new(RefCell::new(Some(25)));
-    print!("Hello {}! You are {} years old.\n", (*name.borrow_mut().as_mut().unwrap()), (*age.borrow_mut().as_mut().unwrap()));
+    print!("Hello {}! You are {} years old.\n", (*name.borrow().as_ref().unwrap()), (*age.borrow().as_ref().unwrap()));
     let mut result = Rc::new(RefCell::new(Some(format!("Formatted: {}", format_slice(&Rc::new(RefCell::new(Some(vec![1, 2, 3]))))))));
-    println!("{}", (*result.borrow_mut().as_mut().unwrap()));
+    println!("{}", (*result.borrow().as_ref().unwrap()));
 }

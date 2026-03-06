@@ -18,20 +18,20 @@ where
 fn main() {
         // Slice with capacity
     let mut s = Rc::new(RefCell::new(Some(vec![0; 3])));
-    print!("len={} cap={} {}\n", (*s.borrow().as_ref().unwrap()).len(), (*s.borrow_mut().as_mut().unwrap()).capacity(), format_slice(&s));
+    print!("len={} cap={} {}\n", (*s.borrow().as_ref().unwrap()).len(), (*s.borrow().as_ref().unwrap()).capacity(), format_slice(&s));
 
         // Append beyond capacity
     {(*s.borrow_mut().as_mut().unwrap()).extend(vec![1, 2, 3, 4, 5, 6, 7, 8]); s.clone()};
-    print!("len={} cap={} {}\n", (*s.borrow().as_ref().unwrap()).len(), (*s.borrow_mut().as_mut().unwrap()).capacity(), format_slice(&s));
+    print!("len={} cap={} {}\n", (*s.borrow().as_ref().unwrap()).len(), (*s.borrow().as_ref().unwrap()).capacity(), format_slice(&s));
 
         // Three-index slice
     let mut s2 = Rc::new(RefCell::new(Some((*s.borrow().as_ref().unwrap())[2 as usize..5 as usize].to_vec())));
-    print!("s2: len={} cap={} {}\n", (*s2.borrow().as_ref().unwrap()).len(), (*s2.borrow_mut().as_mut().unwrap()).capacity(), format_slice(&s2));
+    print!("s2: len={} cap={} {}\n", (*s2.borrow().as_ref().unwrap()).len(), (*s2.borrow().as_ref().unwrap()).capacity(), format_slice(&s2));
 
         // Copy
     let mut s3 = Rc::new(RefCell::new(Some(vec![0; 3])));
-    let mut n = { let _src = ((*s.borrow_mut().as_mut().unwrap())).clone(); let _n = std::cmp::min(((*s3.borrow_mut().as_mut().unwrap())).len(), _src.len()); for _i in 0.._n { (*(*s3.borrow_mut().as_mut().unwrap()))[_i] = _src[_i].clone(); } Rc::new(RefCell::new(Some(_n as i32))) };
-    print!("Copied {} elements: {}\n", (*n.borrow_mut().as_mut().unwrap()), format_slice(&s3));
+    let mut n = { let _src = ((*s.borrow().as_ref().unwrap())).clone(); let _n = std::cmp::min(((*s3.borrow().as_ref().unwrap())).len(), _src.len()); for _i in 0.._n { (*(*s3.borrow().as_ref().unwrap()))[_i] = _src[_i].clone(); } Rc::new(RefCell::new(Some(_n as i32))) };
+    print!("Copied {} elements: {}\n", (*n.borrow().as_ref().unwrap()), format_slice(&s3));
 
         // Nil slice vs empty slice
     let mut s4: Rc<RefCell<Option<Vec<i32>>>> = Rc::new(RefCell::new(Some(Default::default())));

@@ -68,13 +68,13 @@ fn main() {
     { let new_val = "first".to_string(); *(*items.borrow().as_ref().unwrap())[0 as usize].clone().value.borrow_mut() = Some(new_val); };
     { let new_val = 2; *(*items.borrow().as_ref().unwrap())[1 as usize].clone().i_d.borrow_mut() = Some(new_val); };
     { let new_val = "second".to_string(); *(*items.borrow().as_ref().unwrap())[1 as usize].clone().value.borrow_mut() = Some(new_val); };
-    for (i, item) in (*items.borrow_mut().as_mut().unwrap()).iter().enumerate() {
+    for (i, item) in (*items.borrow().as_ref().unwrap()).iter().enumerate() {
         print!("Item {}: {{ID: {}, Value: {}}}\n", i, (*item.i_d.borrow().as_ref().unwrap()), (*item.value.borrow().as_ref().unwrap()));
     }
 
         // Slice of anonymous structs
     let mut events = Rc::new(RefCell::new(Some(vec![/* Anonymous struct literal */unimplemented!(), /* Anonymous struct literal */unimplemented!(), /* Anonymous struct literal */unimplemented!()])));
-    for event in &(*events.borrow_mut().as_mut().unwrap()) {
+    for event in &(*events.borrow().as_ref().unwrap()) {
         print!("Event [{}]: {}\n", (*event.r#type.borrow().as_ref().unwrap()), (*event.message.borrow().as_ref().unwrap()));
     }
 
@@ -85,7 +85,7 @@ fn main() {
         {(*userNames.borrow_mut().as_mut().unwrap()).push(name); userNames.clone()};
     }
     (*userNames.borrow_mut().as_mut().unwrap()).sort();
-    for name in &(*userNames.borrow_mut().as_mut().unwrap()) {
+    for name in &(*userNames.borrow().as_ref().unwrap()) {
         let mut user = Rc::new(RefCell::new(Some((*(*users.borrow().as_ref().unwrap()).get(name).unwrap().borrow().as_ref().unwrap()))));
         print!("User {}: {} (admin: {})\n", name, (*(*user.borrow().as_ref().unwrap()).email.borrow().as_ref().unwrap()), (*(*user.borrow().as_ref().unwrap()).admin.borrow().as_ref().unwrap()));
     }

@@ -4,16 +4,16 @@ use std::time::Duration;
 
 pub fn say_hello(name: Arc<Mutex<Option<String>>>) {
     let mut i = Arc::new(Mutex::new(Some(0)));
-    while (*i.lock().unwrap().as_mut().unwrap()) < 3 {
-        print!("Hello {}! ({})\n", (*name.lock().unwrap().as_mut().unwrap()), (*i.lock().unwrap().as_mut().unwrap()) + 1);
+    while (*i.lock().unwrap().as_ref().unwrap()) < 3 {
+        print!("Hello {}! ({})\n", (*name.lock().unwrap().as_ref().unwrap()), (*i.lock().unwrap().as_ref().unwrap()) + 1);
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
 }
 
 pub fn counter(start: Arc<Mutex<Option<i32>>>) {
-    let mut i = Arc::new(Mutex::new(Some((*start.lock().unwrap().as_mut().unwrap()))));
-    while (*i.lock().unwrap().as_mut().unwrap()) < (*start.lock().unwrap().as_mut().unwrap()) + 5 {
-        print!("Count: {}\n", (*i.lock().unwrap().as_mut().unwrap()));
+    let mut i = Arc::new(Mutex::new(Some((*start.lock().unwrap().as_ref().unwrap()))));
+    while (*i.lock().unwrap().as_ref().unwrap()) < (*start.lock().unwrap().as_ref().unwrap()) + 5 {
+        print!("Count: {}\n", (*i.lock().unwrap().as_ref().unwrap()));
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
 }

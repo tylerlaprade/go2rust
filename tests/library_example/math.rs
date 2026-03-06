@@ -5,8 +5,8 @@ use std::rc::{Rc};
 pub fn add(a: Rc<RefCell<Option<i32>>>, b: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>> {
 
     return {
-            let __tmp_x = (*a.borrow_mut().as_mut().unwrap());
-            let __tmp_y = (*b.borrow_mut().as_mut().unwrap());
+            let __tmp_x = (*a.borrow().as_ref().unwrap());
+            let __tmp_y = (*b.borrow().as_ref().unwrap());
             Rc::new(RefCell::new(Some(__tmp_x + __tmp_y)))
         };
 }
@@ -15,8 +15,8 @@ pub fn add(a: Rc<RefCell<Option<i32>>>, b: Rc<RefCell<Option<i32>>>) -> Rc<RefCe
 pub fn multiply(a: Rc<RefCell<Option<i32>>>, b: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>> {
 
     return {
-            let __tmp_x = (*a.borrow_mut().as_mut().unwrap());
-            let __tmp_y = (*b.borrow_mut().as_mut().unwrap());
+            let __tmp_x = (*a.borrow().as_ref().unwrap());
+            let __tmp_y = (*b.borrow().as_ref().unwrap());
             Rc::new(RefCell::new(Some(__tmp_x * __tmp_y)))
         };
 }

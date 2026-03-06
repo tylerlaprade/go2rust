@@ -28,8 +28,8 @@ pub fn make_adder(x: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<Box<dyn Fn(R
 
     let x_closure_clone = x.clone(); return Rc::new(RefCell::new(Some(Box::new(move |y: Rc<RefCell<Option<i32>>>| -> Rc<RefCell<Option<i32>>> {
         return {
-            let __tmp_x = (*x_closure_clone.borrow_mut().as_mut().unwrap());
-            let __tmp_y = (*y.borrow_mut().as_mut().unwrap());
+            let __tmp_x = (*x_closure_clone.borrow().as_ref().unwrap());
+            let __tmp_y = (*y.borrow().as_ref().unwrap());
             Rc::new(RefCell::new(Some(__tmp_x + __tmp_y)))
         };
     }) as Box<dyn Fn(Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>>)));
@@ -38,7 +38,7 @@ pub fn make_adder(x: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<Box<dyn Fn(R
 pub fn apply_operation(nums: Rc<RefCell<Option<Vec<i32>>>>, op: Rc<RefCell<Option<Box<dyn Fn(Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>>>>>) -> Rc<RefCell<Option<Vec<i32>>>> {
 
     let mut result = Rc::new(RefCell::new(Some(vec![0; (*nums.borrow().as_ref().unwrap()).len()])));
-    for (i, num) in (*nums.borrow_mut().as_mut().unwrap()).iter().copied().enumerate() {
+    for (i, num) in (*nums.borrow().as_ref().unwrap()).iter().copied().enumerate() {
         (*result.borrow_mut().as_mut().unwrap())[i] = (*(*op.borrow().as_ref().unwrap())(Rc::new(RefCell::new(Some(num)))).borrow().as_ref().unwrap());
     }
     return result.clone();
@@ -69,8 +69,8 @@ fn main() {
         // Square function
     let mut squared = apply_operation(numbers.clone(), Rc::new(RefCell::new(Some(Box::new(move |x: Rc<RefCell<Option<i32>>>| -> Rc<RefCell<Option<i32>>> {
         return {
-            let __tmp_x = (*x.borrow_mut().as_mut().unwrap());
-            let __tmp_y = (*x.borrow_mut().as_mut().unwrap());
+            let __tmp_x = (*x.borrow().as_ref().unwrap());
+            let __tmp_y = (*x.borrow().as_ref().unwrap());
             Rc::new(RefCell::new(Some(__tmp_x * __tmp_y)))
         };
     }) as Box<dyn Fn(Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>>))));
@@ -79,7 +79,7 @@ fn main() {
         // Double function
     let mut doubled = apply_operation(numbers.clone(), Rc::new(RefCell::new(Some(Box::new(move |x: Rc<RefCell<Option<i32>>>| -> Rc<RefCell<Option<i32>>> {
         return {
-            let __tmp_x = (*x.borrow_mut().as_mut().unwrap());
+            let __tmp_x = (*x.borrow().as_ref().unwrap());
             let __tmp_y = 2;
             Rc::new(RefCell::new(Some(__tmp_x * __tmp_y)))
         };
@@ -90,8 +90,8 @@ fn main() {
     let mut multiplier = Rc::new(RefCell::new(Some(3)));
     let multiplier_closure_clone = multiplier.clone(); let mut tripled = apply_operation(numbers.clone(), Rc::new(RefCell::new(Some(Box::new(move |x: Rc<RefCell<Option<i32>>>| -> Rc<RefCell<Option<i32>>> {
         return {
-            let __tmp_x = (*x.borrow_mut().as_mut().unwrap());
-            let __tmp_y = (*multiplier_closure_clone.borrow_mut().as_mut().unwrap());
+            let __tmp_x = (*x.borrow().as_ref().unwrap());
+            let __tmp_y = (*multiplier_closure_clone.borrow().as_ref().unwrap());
             Rc::new(RefCell::new(Some(__tmp_x * __tmp_y)))
         };
     }) as Box<dyn Fn(Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>>))));
@@ -100,10 +100,10 @@ fn main() {
         // Immediately invoked function
     let mut result = (*Rc::new(RefCell::new(Some(Box::new(move |a: Rc<RefCell<Option<i32>>>, b: Rc<RefCell<Option<i32>>>| -> Rc<RefCell<Option<i32>>> {
         return {
-            let __tmp_x = (*a.borrow_mut().as_mut().unwrap());
-            let __tmp_y = (*b.borrow_mut().as_mut().unwrap());
+            let __tmp_x = (*a.borrow().as_ref().unwrap());
+            let __tmp_y = (*b.borrow().as_ref().unwrap());
             Rc::new(RefCell::new(Some(__tmp_x + __tmp_y)))
         };
     }) as Box<dyn Fn(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>>))).borrow().as_ref().unwrap())(Rc::new(RefCell::new(Some(10))), Rc::new(RefCell::new(Some(20))));
-    println!("{} {}", "Immediate result:".to_string(), (*result.borrow_mut().as_mut().unwrap()));
+    println!("{} {}", "Immediate result:".to_string(), (*result.borrow().as_ref().unwrap()));
 }

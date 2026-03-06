@@ -38,12 +38,12 @@ pub fn defer_with_variables() {
     let mut x = Rc::new(RefCell::new(Some(10)));
     let x_defer_captured = x.clone(); __defer_stack.push(Box::new(move || {
         (*Rc::new(RefCell::new(Some(Box::new(move || {
-        println!("{} {}", "Deferred x:".to_string(), (*x_defer_captured.borrow_mut().as_mut().unwrap()));
+        println!("{} {}", "Deferred x:".to_string(), (*x_defer_captured.borrow().as_ref().unwrap()));
     }) as Box<dyn Fn() -> ()>))).borrow().as_ref().unwrap())();
     }));
 
     { let new_val = 20; *x.borrow_mut() = Some(new_val); };
-    println!("{} {}", "Current x:".to_string(), (*x.borrow_mut().as_mut().unwrap()));
+    println!("{} {}", "Current x:".to_string(), (*x.borrow().as_ref().unwrap()));
 
     // Execute deferred functions
     while let Some(f) = __defer_stack.pop() {
@@ -56,10 +56,10 @@ pub fn defer_in_loop() {
 
     println!("{}", "Defer in loop:".to_string());
     let mut i = Rc::new(RefCell::new(Some(0)));
-    while (*i.borrow_mut().as_mut().unwrap()) < 3 {
+    while (*i.borrow().as_ref().unwrap()) < 3 {
         let __defer_arg_0 = Rc::new(RefCell::new(Some((*i.borrow().as_ref().unwrap()).clone()))); __defer_stack.push(Box::new(move || {
         (move |val: Rc<RefCell<Option<i32>>>| {
-        print!("Deferred loop value: {}\n", (*val.borrow_mut().as_mut().unwrap()));; 
+        print!("Deferred loop value: {}\n", (*val.borrow().as_ref().unwrap()));; 
         })(__defer_arg_0);
     }));
         { let mut guard = i.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
@@ -88,8 +88,8 @@ pub fn resource_example() {
 
         // Simulate some work
     let mut i = Rc::new(RefCell::new(Some(0)));
-    while (*i.borrow_mut().as_mut().unwrap()) < 3 {
-        print!("Working... {}\n", (*i.borrow_mut().as_mut().unwrap()) + 1);
+    while (*i.borrow().as_ref().unwrap()) < 3 {
+        print!("Working... {}\n", (*i.borrow().as_ref().unwrap()) + 1);
         { let mut guard = i.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
     println!("{}", "Done with resource".to_string());

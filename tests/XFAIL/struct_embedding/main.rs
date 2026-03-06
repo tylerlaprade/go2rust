@@ -52,6 +52,6 @@ fn main() {
 
     type describer = Rc<RefCell<Option<Unknown>>>;
 
-    let mut d: Rc<RefCell<Option<describer>>> = Rc::new(RefCell::new(Some((*co.borrow_mut().as_mut().unwrap()))));
+    let mut d: Rc<RefCell<Option<describer>>> = Rc::new(RefCell::new(Some((*co.borrow().as_ref().unwrap()))));
     println!("{} {}", "describer:".to_string(), (*(*d.borrow_mut().as_mut().unwrap()).describe().borrow().as_ref().unwrap()));
 }

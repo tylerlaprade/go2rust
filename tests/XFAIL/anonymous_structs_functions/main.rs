@@ -154,7 +154,7 @@ fn main() {
 
         // Test function returning multiple values including anonymous struct
     let (mut name, mut config) = get_config();
-    print!("Config for {}: Port={}, Timeout={}\n", (*name.lock().unwrap().as_mut().unwrap()), (*(*config.lock().unwrap().as_ref().unwrap()).port.lock().unwrap().as_ref().unwrap()), (*(*config.lock().unwrap().as_ref().unwrap()).timeout.lock().unwrap().as_ref().unwrap()));
+    print!("Config for {}: Port={}, Timeout={}\n", (*name.lock().unwrap().as_ref().unwrap()), (*(*config.lock().unwrap().as_ref().unwrap()).port.lock().unwrap().as_ref().unwrap()), (*(*config.lock().unwrap().as_ref().unwrap()).timeout.lock().unwrap().as_ref().unwrap()));
 
         // Test function with anonymous struct pointer
     let mut settings = Arc::new(Mutex::new(Some(AnonymousStruct4 { debug: Arc::new(Mutex::new(Some(false))), verbose: Arc::new(Mutex::new(Some(false))) })));

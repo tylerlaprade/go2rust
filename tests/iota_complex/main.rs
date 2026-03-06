@@ -32,7 +32,7 @@ const FOURTH: i32 = 1;
 fn main() {
         // Test bit flags
     let mut perms = Rc::new(RefCell::new(Some(FLAG_READ | FLAG_WRITE)));
-    print!("Permissions: {} (Read={}, Write={})\n", (*perms.borrow_mut().as_mut().unwrap()), FLAG_READ, FLAG_WRITE);
+    print!("Permissions: {} (Read={}, Write={})\n", (*perms.borrow().as_ref().unwrap()), FLAG_READ, FLAG_WRITE);
 
         // Test size constants
     print!("KB={}, MB={}, GB={}\n", K_B, M_B, G_B);

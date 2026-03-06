@@ -83,11 +83,11 @@ impl std::fmt::Display for Top {
 
 impl Logger {
     pub fn log(&self, msg: Rc<RefCell<Option<String>>>) {
-        print!("[{}] {}\n", (*self.prefix.borrow().as_ref().unwrap()), (*msg.borrow_mut().as_mut().unwrap()));
+        print!("[{}] {}\n", (*self.prefix.borrow().as_ref().unwrap()), (*msg.borrow().as_ref().unwrap()));
     }
 
     pub fn set_prefix(&mut self, prefix: Rc<RefCell<Option<String>>>) {
-        { let new_val = (*prefix.borrow_mut().as_mut().unwrap()); *self.prefix.borrow_mut() = Some(new_val); };
+        { let new_val = (*prefix.borrow().as_ref().unwrap()); *self.prefix.borrow_mut() = Some(new_val); };
     }
 }
 
@@ -156,7 +156,7 @@ impl Base {
     }
 
     pub fn set_i_d(&mut self, id: Rc<RefCell<Option<i32>>>) {
-        { let new_val = (*id.borrow_mut().as_mut().unwrap()); *self.id.borrow_mut() = Some(new_val); };
+        { let new_val = (*id.borrow().as_ref().unwrap()); *self.id.borrow_mut() = Some(new_val); };
     }
 }
 

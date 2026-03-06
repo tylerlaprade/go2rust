@@ -7,12 +7,12 @@ use std::rc::{Rc};
 fn main() {
         // Access map - transpiler needs to know Users is a map, not a slice
     let mut aliceID = Rc::new(RefCell::new(Some((*(*Users.borrow().as_ref().unwrap()).get(&"alice".to_string()).unwrap().borrow().as_ref().unwrap()))));
-    print!("Alice's ID: {}\n", (*aliceID.borrow_mut().as_mut().unwrap()));
+    print!("Alice's ID: {}\n", (*aliceID.borrow().as_ref().unwrap()));
 
         // Check map key existence - requires knowing it's a map
     let (mut id, mut ok) = match (*Users.borrow().as_ref().unwrap()).get(&"dave".to_string()) { /* MAP_COMMA_OK */ Some(v) => (v.clone(), Rc::new(RefCell::new(Some(true)))), None => (Rc::new(RefCell::new(Some(0))), Rc::new(RefCell::new(Some(false)))) };
-    if (*ok.borrow_mut().as_mut().unwrap()) {
-        print!("Dave's ID: {}\n", (*id.borrow_mut().as_mut().unwrap()));
+    if (*ok.borrow().as_ref().unwrap()) {
+        print!("Dave's ID: {}\n", (*id.borrow().as_ref().unwrap()));
     } else {
         println!("{}", "Dave not found".to_string());
     }
@@ -32,7 +32,7 @@ fn main() {
     for (_, _) in (*Users.borrow().as_ref().unwrap()).clone() {
         { let mut guard = count.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
-    print!("User count: {}\n", (*count.borrow_mut().as_mut().unwrap()));
+    print!("User count: {}\n", (*count.borrow().as_ref().unwrap()));
 
         // Access slice of maps - another complex case
     let mut firstRecord = Rc::new(RefCell::new(Some((*RECORDS.borrow().as_ref().unwrap())[0 as usize].clone())));
@@ -49,8 +49,8 @@ fn main() {
             (Rc::new(RefCell::new(Some(String::new()))), Rc::new(RefCell::new(Some(false))))
         }
     });
-    if (*ok.borrow_mut().as_mut().unwrap()) {
-        print!("First record name: {}\n", (*name.borrow_mut().as_mut().unwrap()));
+    if (*ok.borrow().as_ref().unwrap()) {
+        print!("First record name: {}\n", (*name.borrow().as_ref().unwrap()));
     }
 
         // Modify map - requires proper type handling

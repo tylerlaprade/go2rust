@@ -34,17 +34,17 @@ pub fn safe_divide(a: Rc<RefCell<Option<f64>>>, b: Rc<RefCell<Option<f64>>>) -> 
         (*Rc::new(RefCell::new(Some(Box::new(move || {
         let mut r = Rc::new(RefCell::new(None::<String>));
     if (*r.borrow()).is_some() {
-        { let new_val = Rc::new(RefCell::new(Some(Box::new(format!("panic occurred: {}", (*r.borrow_mut().as_mut().unwrap()))) as Box<dyn Error + Send + Sync>))); *err_defer_captured.borrow_mut() = new_val; };
+        { let new_val = Rc::new(RefCell::new(Some(Box::new(format!("panic occurred: {}", (*r.borrow().as_ref().unwrap()))) as Box<dyn Error + Send + Sync>))); *err_defer_captured.borrow_mut() = new_val; };
         { let new_val = 0.0; *result_defer_captured.borrow_mut() = Some(new_val); };
     }
     }) as Box<dyn Fn() -> ()>))).borrow().as_ref().unwrap())();
     }));
 
-    if (*b.borrow_mut().as_mut().unwrap()) == 0.0 {
+    if (*b.borrow().as_ref().unwrap()) == 0.0 {
         panic!("division by zero");
     }
 
-    { let new_val = (*a.borrow_mut().as_mut().unwrap()) / (*b.borrow_mut().as_mut().unwrap()); *result.borrow_mut() = Some(new_val); };
+    { let new_val = (*a.borrow().as_ref().unwrap()) / (*b.borrow().as_ref().unwrap()); *result.borrow_mut() = Some(new_val); };
     {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
@@ -69,13 +69,13 @@ pub fn process_slice(slice: Rc<RefCell<Option<Vec<i32>>>>, index: Rc<RefCell<Opt
         (*Rc::new(RefCell::new(Some(Box::new(move || {
         let mut r = Rc::new(RefCell::new(None::<String>));
     if (*r.borrow()).is_some() {
-        { let new_val = Rc::new(RefCell::new(Some(Box::new(format!("index out of bounds: {}", (*r.borrow_mut().as_mut().unwrap()))) as Box<dyn Error + Send + Sync>))); *err_defer_captured.borrow_mut() = new_val; };
+        { let new_val = Rc::new(RefCell::new(Some(Box::new(format!("index out of bounds: {}", (*r.borrow().as_ref().unwrap()))) as Box<dyn Error + Send + Sync>))); *err_defer_captured.borrow_mut() = new_val; };
         { let new_val = -1; *value_defer_captured.borrow_mut() = Some(new_val); };
     }
     }) as Box<dyn Fn() -> ()>))).borrow().as_ref().unwrap())();
     }));
 
-    { let new_val = (*slice.borrow().as_ref().unwrap())[(*index.borrow_mut().as_mut().unwrap()) as usize].clone(); *value.borrow_mut() = Some(new_val); };
+    { let new_val = (*slice.borrow().as_ref().unwrap())[(*index.borrow().as_ref().unwrap()) as usize].clone(); *value.borrow_mut() = Some(new_val); };
     {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
@@ -205,14 +205,14 @@ fn main() {
     if (*err.borrow()).is_some() {
         print!("Error: {}\n", format!("{}", (*err.borrow().as_ref().unwrap())));
     } else {
-        print!("10 / 2 = {:.2}\n", (*result.borrow_mut().as_mut().unwrap()));
+        print!("10 / 2 = {:.2}\n", (*result.borrow().as_ref().unwrap()));
     }
 
     (result, err) = safe_divide(Rc::new(RefCell::new(Some(10.0))), Rc::new(RefCell::new(Some(0.0))));
     if (*err.borrow()).is_some() {
         print!("Error: {}\n", format!("{}", (*err.borrow().as_ref().unwrap())));
     } else {
-        print!("Result: {:.2}\n", (*result.borrow_mut().as_mut().unwrap()));
+        print!("Result: {:.2}\n", (*result.borrow().as_ref().unwrap()));
     }
 
     println!("{}", "\n=== Slice access examples ===".to_string());
@@ -223,14 +223,14 @@ fn main() {
     if (*err.borrow()).is_some() {
         print!("Error: {}\n", format!("{}", (*err.borrow().as_ref().unwrap())));
     } else {
-        print!("numbers[2] = {}\n", (*value.borrow_mut().as_mut().unwrap()));
+        print!("numbers[2] = {}\n", (*value.borrow().as_ref().unwrap()));
     }
 
     (value, err) = process_slice(numbers.clone(), Rc::new(RefCell::new(Some(10))));
     if (*err.borrow()).is_some() {
         print!("Error: {}\n", format!("{}", (*err.borrow().as_ref().unwrap())));
     } else {
-        print!("Value: {}\n", (*value.borrow_mut().as_mut().unwrap()));
+        print!("Value: {}\n", (*value.borrow().as_ref().unwrap()));
     }
 
     println!("{}", "\n=== Nested panic example ===".to_string());

@@ -26,15 +26,15 @@ impl ServerState {
 
 fn main() {
     let mut ns = transition(StateIdle.clone());
-    println!("{}", (*ns.borrow_mut().as_mut().unwrap()));
+    println!("{}", (*ns.borrow().as_ref().unwrap()));
 
     let mut ns2 = transition(ns.clone());
-    println!("{}", (*ns2.borrow_mut().as_mut().unwrap()));
+    println!("{}", (*ns2.borrow().as_ref().unwrap()));
 }
 
 pub fn transition(s: Rc<RefCell<Option<ServerState>>>) -> Rc<RefCell<Option<ServerState>>> {
 
-    match (*s.borrow_mut().as_mut().unwrap()) {
+    match (*s.borrow().as_ref().unwrap()) {
         STATE_IDLE => {
             return StateConnected.clone();
         }
@@ -45,7 +45,7 @@ pub fn transition(s: Rc<RefCell<Option<ServerState>>>) -> Rc<RefCell<Option<Serv
             return StateError.clone();
         }
         _ => {
-            panic!("unknown state: {}", (*s.borrow_mut().as_mut().unwrap()));
+            panic!("unknown state: {}", (*s.borrow().as_ref().unwrap()));
         }
     }
 }

@@ -51,8 +51,8 @@ pub fn worker(id: Rc<RefCell<Option<i32>>>, wg: WaitGroup) {
     __defer_stack.push(Box::new(move || {
         wg.done();
     }));
-    print!("Worker {} starting\n", (*id.borrow_mut().as_mut().unwrap()));
-    print!("Worker {} done\n", (*id.borrow_mut().as_mut().unwrap()));
+    print!("Worker {} starting\n", (*id.borrow().as_ref().unwrap()));
+    print!("Worker {} done\n", (*id.borrow().as_ref().unwrap()));
 
     // Execute deferred functions
     while let Some(f) = __defer_stack.pop() {
@@ -63,7 +63,7 @@ pub fn worker(id: Rc<RefCell<Option<i32>>>, wg: WaitGroup) {
 fn main() {
     let mut wg = WaitGroup::new();
     let mut i = Rc::new(RefCell::new(Some(1)));
-    while (*i.borrow_mut().as_mut().unwrap()) <= 3 {
+    while (*i.borrow().as_ref().unwrap()) <= 3 {
         wg.add(1);
         worker(i.clone(), wg.clone());
         { let mut guard = i.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }

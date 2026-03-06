@@ -78,10 +78,10 @@ fn main() {
     loop {
         if let Some(res) = c1.try_recv() {
             let mut res = Arc::new(Mutex::new(Some(res)));
-            println!("{}", (*res.lock().unwrap().as_mut().unwrap()));
+            println!("{}", (*res.lock().unwrap().as_ref().unwrap()));
             break;
         }
-        if let Some(_) = (*time.lock().unwrap().as_mut().unwrap())::after(Arc::new(Mutex::new(Some(500 * (*(*time.lock().unwrap().as_mut().unwrap())::millisecond.lock().unwrap().as_ref().unwrap()))))).try_recv() {
+        if let Some(_) = (*time.lock().unwrap().as_ref().unwrap())::after(Arc::new(Mutex::new(Some(500 * (*(*time.lock().unwrap().as_ref().unwrap())::millisecond.lock().unwrap().as_ref().unwrap()))))).try_recv() {
             println!("{}", "timeout 1".to_string());
             break;
         }
@@ -96,10 +96,10 @@ fn main() {
     loop {
         if let Some(res) = c2.try_recv() {
             let mut res = Arc::new(Mutex::new(Some(res)));
-            println!("{}", (*res.lock().unwrap().as_mut().unwrap()));
+            println!("{}", (*res.lock().unwrap().as_ref().unwrap()));
             break;
         }
-        if let Some(_) = (*time.lock().unwrap().as_mut().unwrap())::after(Arc::new(Mutex::new(Some(1500 * (*(*time.lock().unwrap().as_mut().unwrap())::millisecond.lock().unwrap().as_ref().unwrap()))))).try_recv() {
+        if let Some(_) = (*time.lock().unwrap().as_ref().unwrap())::after(Arc::new(Mutex::new(Some(1500 * (*(*time.lock().unwrap().as_ref().unwrap())::millisecond.lock().unwrap().as_ref().unwrap()))))).try_recv() {
             println!("{}", "timeout 2".to_string());
             break;
         }

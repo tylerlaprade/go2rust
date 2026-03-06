@@ -19,8 +19,8 @@ fn main() {
             (Rc::new(RefCell::new(Some(String::new()))), Rc::new(RefCell::new(Some(false))))
         }
     });
-    if (*ok.borrow_mut().as_mut().unwrap()) {
-        println!("{} {}", "x is string:".to_string(), (*s.borrow_mut().as_mut().unwrap()));
+    if (*ok.borrow().as_ref().unwrap()) {
+        println!("{} {}", "x is string:".to_string(), (*s.borrow().as_ref().unwrap()));
     }
 
         // Type assertion without comma-ok (would panic if wrong)
@@ -33,7 +33,7 @@ fn main() {
             panic!("type assertion on nil interface")
         }
     }))));
-    println!("{} {}", "Asserted string:".to_string(), (*str.borrow_mut().as_mut().unwrap()));
+    println!("{} {}", "Asserted string:".to_string(), (*str.borrow().as_ref().unwrap()));
 
         // Failed assertion with comma-ok
     let (mut n, mut ok) = ({
@@ -49,8 +49,8 @@ fn main() {
             (Rc::new(RefCell::new(Some(0))), Rc::new(RefCell::new(Some(false))))
         }
     });
-    if (*ok.borrow_mut().as_mut().unwrap()) {
-        println!("{} {}", "x is int:".to_string(), (*n.borrow_mut().as_mut().unwrap()));
+    if (*ok.borrow().as_ref().unwrap()) {
+        println!("{} {}", "x is int:".to_string(), (*n.borrow().as_ref().unwrap()));
     } else {
         println!("{}", "x is not an int".to_string());
     }

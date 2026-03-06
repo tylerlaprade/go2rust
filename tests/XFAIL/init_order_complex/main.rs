@@ -14,9 +14,9 @@ pub fn init() {
 
 pub fn init() {
     println!("{}", "Second init".to_string());
-    print!("a={}, b={}, c={}, d={}\n", (*a.borrow_mut().as_mut().unwrap()), (*b.borrow_mut().as_mut().unwrap()), (*c.borrow_mut().as_mut().unwrap()), (*d.borrow_mut().as_mut().unwrap()));
+    print!("a={}, b={}, c={}, d={}\n", (*a.borrow().as_ref().unwrap()), (*b.borrow().as_ref().unwrap()), (*c.borrow().as_ref().unwrap()), (*d.borrow().as_ref().unwrap()));
 }
 
 fn main() {
-    print!("In main: a={}, b={}, c={}, d={}\n", (*a.borrow_mut().as_mut().unwrap()), (*b.borrow_mut().as_mut().unwrap()), (*c.borrow_mut().as_mut().unwrap()), (*d.borrow_mut().as_mut().unwrap()));
+    print!("In main: a={}, b={}, c={}, d={}\n", (*a.borrow().as_ref().unwrap()), (*b.borrow().as_ref().unwrap()), (*c.borrow().as_ref().unwrap()), (*d.borrow().as_ref().unwrap()));
 }

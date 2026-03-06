@@ -92,8 +92,8 @@ pub fn process_value(value: Rc<RefCell<Option<Box<dyn Any>>>>) {
             (Rc::new(RefCell::new(Some(String::new()))), Rc::new(RefCell::new(Some(false))))
         }
     });
-    if (*ok.borrow_mut().as_mut().unwrap()) {
-        print!("String value: {} (length: {})\n", (*str.borrow_mut().as_mut().unwrap()), (*str.borrow().as_ref().unwrap()).len());
+    if (*ok.borrow().as_ref().unwrap()) {
+        print!("String value: {} (length: {})\n", (*str.borrow().as_ref().unwrap()), (*str.borrow().as_ref().unwrap()).len());
         return;
     }
 
@@ -110,8 +110,8 @@ pub fn process_value(value: Rc<RefCell<Option<Box<dyn Any>>>>) {
             (Rc::new(RefCell::new(Some(0))), Rc::new(RefCell::new(Some(false))))
         }
     });
-    if (*ok.borrow_mut().as_mut().unwrap()) {
-        print!("Integer value: {} (doubled: {})\n", (*num.borrow_mut().as_mut().unwrap()), (*num.borrow_mut().as_mut().unwrap()) * 2);
+    if (*ok.borrow().as_ref().unwrap()) {
+        print!("Integer value: {} (doubled: {})\n", (*num.borrow().as_ref().unwrap()), (*num.borrow().as_ref().unwrap()) * 2);
         return;
     }
 
@@ -128,8 +128,8 @@ pub fn process_value(value: Rc<RefCell<Option<Box<dyn Any>>>>) {
             (Rc::new(RefCell::new(Some(0.0))), Rc::new(RefCell::new(Some(false))))
         }
     });
-    if (*ok.borrow_mut().as_mut().unwrap()) {
-        print!("Float value: {:.2} (squared: {:.2})\n", (*f.borrow_mut().as_mut().unwrap()), (*f.borrow_mut().as_mut().unwrap()) * (*f.borrow_mut().as_mut().unwrap()));
+    if (*ok.borrow().as_ref().unwrap()) {
+        print!("Float value: {:.2} (squared: {:.2})\n", (*f.borrow().as_ref().unwrap()), (*f.borrow().as_ref().unwrap()) * (*f.borrow().as_ref().unwrap()));
         return;
     }
 
@@ -158,7 +158,7 @@ pub fn assert_without_check(value: Rc<RefCell<Option<Box<dyn Any>>>>) {
             panic!("type assertion on nil interface")
         }
     }))));
-    print!("Asserted string: {}\n", (*str.borrow_mut().as_mut().unwrap()));
+    print!("Asserted string: {}\n", (*str.borrow().as_ref().unwrap()));
 
     // Execute deferred functions
     while let Some(f) = __defer_stack.pop() {
@@ -183,7 +183,7 @@ pub fn describe_shape(s: &dyn Shape) {
             (Rc::new(RefCell::new(Some(Default::default()))), Rc::new(RefCell::new(Some(false))))
         }
     });
-    if (*ok.borrow_mut().as_mut().unwrap()) {
+    if (*ok.borrow().as_ref().unwrap()) {
         print!("  Rectangle: {:.1} x {:.1}\n", (*(*rect.borrow().as_ref().unwrap()).width.borrow().as_ref().unwrap()), (*(*rect.borrow().as_ref().unwrap()).height.borrow().as_ref().unwrap()));
     } else {
         let (mut circle, mut ok) = ({
@@ -199,7 +199,7 @@ pub fn describe_shape(s: &dyn Shape) {
             (Rc::new(RefCell::new(Some(Default::default()))), Rc::new(RefCell::new(Some(false))))
         }
     });;
-        if (*ok.borrow_mut().as_mut().unwrap()) {
+        if (*ok.borrow().as_ref().unwrap()) {
             print!("  Circle: radius {:.1}\n", (*(*circle.borrow().as_ref().unwrap()).radius.borrow().as_ref().unwrap()));;
         }
     }
@@ -210,7 +210,7 @@ fn main() {
     let mut values = Rc::new(RefCell::new(Some(vec![Box::new("hello world".to_string()) as Box<dyn Any>, Box::new(42) as Box<dyn Any>, Box::new(3.14159) as Box<dyn Any>, Box::new(true) as Box<dyn Any>, Box::new(Rc::new(RefCell::new(Some(vec![1, 2, 3])))) as Box<dyn Any>])));
 
     println!("{}", "=== Processing values ===".to_string());
-    for val in &(*values.borrow_mut().as_mut().unwrap()) {
+    for val in &(*values.borrow().as_ref().unwrap()) {
         process_value(Rc::new(RefCell::new(Some(val))));
     }
 
@@ -221,12 +221,12 @@ fn main() {
     println!("{}", "\n=== Interface type assertions ===".to_string());
     let mut shapes = Rc::new(RefCell::new(Some(vec![Box::new(Rectangle { width: Rc::new(RefCell::new(Some(10.0))), height: Rc::new(RefCell::new(Some(5.0))) }) as Box<dyn Shape>, Box::new(Circle { radius: Rc::new(RefCell::new(Some(3.0))) }) as Box<dyn Shape>])));
 
-    for shape in &(*shapes.borrow_mut().as_mut().unwrap()) {
+    for shape in &(*shapes.borrow().as_ref().unwrap()) {
         describe_shape(shape.as_ref());
     }
 
     println!("{}", "\n=== Type switch alternative ===".to_string());
-    for val in &(*values.borrow_mut().as_mut().unwrap()) {
+    for val in &(*values.borrow().as_ref().unwrap()) {
         if let Some(v) = (|| -> Option<Box<dyn Any>> {
         let val = val;
         let any_val = val;
@@ -238,7 +238,7 @@ fn main() {
         None
     })() {
         let v = Rc::new(RefCell::new(Some((*v.downcast_ref::<String>().unwrap()).clone())));
-        print!("String: {}\n", (*v.borrow_mut().as_mut().unwrap()));;
+        print!("String: {}\n", (*v.borrow().as_ref().unwrap()));;
     } else if let Some(v) = (|| -> Option<Box<dyn Any>> {
         let val = val;
         let any_val = val;
@@ -250,7 +250,7 @@ fn main() {
         None
     })() {
         let v = Rc::new(RefCell::new(Some((*v.downcast_ref::<i32>().unwrap()).clone())));
-        print!("Int: {}\n", (*v.borrow_mut().as_mut().unwrap()));;
+        print!("Int: {}\n", (*v.borrow().as_ref().unwrap()));;
     } else if let Some(v) = (|| -> Option<Box<dyn Any>> {
         let val = val;
         let any_val = val;
@@ -262,7 +262,7 @@ fn main() {
         None
     })() {
         let v = Rc::new(RefCell::new(Some((*v.downcast_ref::<f64>().unwrap()).clone())));
-        print!("Float: {:.2}\n", (*v.borrow_mut().as_mut().unwrap()));;
+        print!("Float: {:.2}\n", (*v.borrow().as_ref().unwrap()));;
     } else if let Some(v) = (|| -> Option<Box<dyn Any>> {
         let val = val;
         let any_val = val;
@@ -274,7 +274,7 @@ fn main() {
         None
     })() {
         let v = Rc::new(RefCell::new(Some((*v.downcast_ref::<bool>().unwrap()).clone())));
-        print!("Bool: {}\n", (*v.borrow_mut().as_mut().unwrap()));;
+        print!("Bool: {}\n", (*v.borrow().as_ref().unwrap()));;
     } else {
         let v = val;
         print!("Other: <type> = {}\n", format_any(v.borrow().as_ref().unwrap().as_ref()));;

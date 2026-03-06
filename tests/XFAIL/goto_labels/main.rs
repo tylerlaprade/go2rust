@@ -4,8 +4,8 @@ use std::rc::{Rc};
 fn main() {
     let mut i = Rc::new(RefCell::new(Some(0)));
 
-    if (*i.borrow_mut().as_mut().unwrap()) < 5 {
-        print!("i = {}\n", (*i.borrow_mut().as_mut().unwrap()));
+    if (*i.borrow().as_ref().unwrap()) < 5 {
+        print!("i = {}\n", (*i.borrow().as_ref().unwrap()));
         { let mut guard = i.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
         // TODO: goto not supported
     }
@@ -14,7 +14,7 @@ fn main() {
 
         // Goto to skip code
     let mut x = Rc::new(RefCell::new(Some(1)));
-    if (*x.borrow_mut().as_mut().unwrap()) > 0 {
+    if (*x.borrow().as_ref().unwrap()) > 0 {
         // TODO: goto not supported
     }
     println!("{}", "This won't print".to_string());
@@ -23,13 +23,13 @@ fn main() {
 
         // More complex goto pattern
     let mut j = Rc::new(RefCell::new(Some(0)));
-    while (*j.borrow_mut().as_mut().unwrap()) < 3 {
+    while (*j.borrow().as_ref().unwrap()) < 3 {
         let mut k = Rc::new(RefCell::new(Some(0)));
-    while (*k.borrow_mut().as_mut().unwrap()) < 3 {
-        if (*j.borrow_mut().as_mut().unwrap()) == 1 && (*k.borrow_mut().as_mut().unwrap()) == 1 {
+    while (*k.borrow().as_ref().unwrap()) < 3 {
+        if (*j.borrow().as_ref().unwrap()) == 1 && (*k.borrow().as_ref().unwrap()) == 1 {
         // TODO: goto not supported
     }
-        print!("j={}, k={}\n", (*j.borrow_mut().as_mut().unwrap()), (*k.borrow_mut().as_mut().unwrap()));
+        print!("j={}, k={}\n", (*j.borrow().as_ref().unwrap()), (*k.borrow().as_ref().unwrap()));
         { let mut guard = k.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
         { let mut guard = j.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }

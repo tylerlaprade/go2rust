@@ -73,7 +73,7 @@ fn main() {
     loop {
         if let Some(msg) = messages.try_recv() {
             let mut msg = Arc::new(Mutex::new(Some(msg)));
-            println!("{} {}", "received message".to_string(), (*msg.lock().unwrap().as_mut().unwrap()));
+            println!("{} {}", "received message".to_string(), (*msg.lock().unwrap().as_ref().unwrap()));
             break;
         }
         println!("{}", "no message received".to_string());
@@ -83,7 +83,7 @@ fn main() {
     let mut msg = Arc::new(Mutex::new(Some("hi".to_string())));
     loop {
         if messages.try_send(msg.lock().unwrap().as_ref().unwrap().clone()) {
-            println!("{} {}", "sent message".to_string(), (*msg.lock().unwrap().as_mut().unwrap()));
+            println!("{} {}", "sent message".to_string(), (*msg.lock().unwrap().as_ref().unwrap()));
             break;
         }
         println!("{}", "no message sent".to_string());
@@ -93,12 +93,12 @@ fn main() {
     loop {
         if let Some(msg) = messages.try_recv() {
             let mut msg = Arc::new(Mutex::new(Some(msg)));
-            println!("{} {}", "received message".to_string(), (*msg.lock().unwrap().as_mut().unwrap()));
+            println!("{} {}", "received message".to_string(), (*msg.lock().unwrap().as_ref().unwrap()));
             break;
         }
         if let Some(sig) = signals.try_recv() {
             let mut sig = Arc::new(Mutex::new(Some(sig)));
-            println!("{} {}", "received signal".to_string(), (*sig.lock().unwrap().as_mut().unwrap()));
+            println!("{} {}", "received signal".to_string(), (*sig.lock().unwrap().as_ref().unwrap()));
             break;
         }
         println!("{}", "no activity".to_string());

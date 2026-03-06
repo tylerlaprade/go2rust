@@ -5,8 +5,8 @@ fn main() {
         // Basic function literal
     let mut add = Rc::new(RefCell::new(Some(Box::new(move |a: Rc<RefCell<Option<i32>>>, b: Rc<RefCell<Option<i32>>>| -> Rc<RefCell<Option<i32>>> {
         return {
-            let __tmp_x = (*a.borrow_mut().as_mut().unwrap());
-            let __tmp_y = (*b.borrow_mut().as_mut().unwrap());
+            let __tmp_x = (*a.borrow().as_ref().unwrap());
+            let __tmp_y = (*b.borrow().as_ref().unwrap());
             Rc::new(RefCell::new(Some(__tmp_x + __tmp_y)))
         };
     }) as Box<dyn Fn(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>>)));
@@ -20,14 +20,14 @@ fn main() {
     }) as Box<dyn Fn() -> Rc<RefCell<Option<i32>>>>)));
     println!("{} {}", "increment() =".to_string(), (*(*increment.borrow().as_ref().unwrap())().borrow().as_ref().unwrap()));
     println!("{} {}", "increment() =".to_string(), (*(*increment.borrow().as_ref().unwrap())().borrow().as_ref().unwrap()));
-    println!("{} {}", "x =".to_string(), (*x.borrow_mut().as_mut().unwrap()));
+    println!("{} {}", "x =".to_string(), (*x.borrow().as_ref().unwrap()));
 
         // Function returning closure
     let mut makeMultiplier = Rc::new(RefCell::new(Some(Box::new(move |factor: Rc<RefCell<Option<i32>>>| -> Rc<RefCell<Option<Box<dyn Fn(Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>>>>> {
         return Rc::new(RefCell::new(Some(Box::new(move |x: Rc<RefCell<Option<i32>>>| -> Rc<RefCell<Option<i32>>> {
         return {
-            let __tmp_x = (*x.borrow_mut().as_mut().unwrap());
-            let __tmp_y = (*factor.borrow_mut().as_mut().unwrap());
+            let __tmp_x = (*x.borrow().as_ref().unwrap());
+            let __tmp_y = (*factor.borrow().as_ref().unwrap());
             Rc::new(RefCell::new(Some(__tmp_x * __tmp_y)))
         };
     }) as Box<dyn Fn(Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>>)));
@@ -40,35 +40,35 @@ fn main() {
         // Immediately invoked function
     let mut result = (*Rc::new(RefCell::new(Some(Box::new(move |a: Rc<RefCell<Option<i32>>>, b: Rc<RefCell<Option<i32>>>| -> Rc<RefCell<Option<i32>>> {
         return {
-            let __tmp_x = (*a.borrow_mut().as_mut().unwrap());
-            let __tmp_y = (*b.borrow_mut().as_mut().unwrap());
+            let __tmp_x = (*a.borrow().as_ref().unwrap());
+            let __tmp_y = (*b.borrow().as_ref().unwrap());
             Rc::new(RefCell::new(Some(__tmp_x * __tmp_y)))
         };
     }) as Box<dyn Fn(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>>))).borrow().as_ref().unwrap())(Rc::new(RefCell::new(Some(4))), Rc::new(RefCell::new(Some(5))));
-    println!("{} {}", "IIFE result =".to_string(), (*result.borrow_mut().as_mut().unwrap()));
+    println!("{} {}", "IIFE result =".to_string(), (*result.borrow().as_ref().unwrap()));
 
         // Function literal in slice
     let mut operations = Rc::new(RefCell::new(Some(vec![Rc::new(RefCell::new(Some(Box::new(move |a: Rc<RefCell<Option<i32>>>, b: Rc<RefCell<Option<i32>>>| -> Rc<RefCell<Option<i32>>> {
         return {
-            let __tmp_x = (*a.borrow_mut().as_mut().unwrap());
-            let __tmp_y = (*b.borrow_mut().as_mut().unwrap());
+            let __tmp_x = (*a.borrow().as_ref().unwrap());
+            let __tmp_y = (*b.borrow().as_ref().unwrap());
             Rc::new(RefCell::new(Some(__tmp_x + __tmp_y)))
         };
     }) as Box<dyn Fn(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>>))), Rc::new(RefCell::new(Some(Box::new(move |a: Rc<RefCell<Option<i32>>>, b: Rc<RefCell<Option<i32>>>| -> Rc<RefCell<Option<i32>>> {
         return {
-            let __tmp_x = (*a.borrow_mut().as_mut().unwrap());
-            let __tmp_y = (*b.borrow_mut().as_mut().unwrap());
+            let __tmp_x = (*a.borrow().as_ref().unwrap());
+            let __tmp_y = (*b.borrow().as_ref().unwrap());
             Rc::new(RefCell::new(Some(__tmp_x - __tmp_y)))
         };
     }) as Box<dyn Fn(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>>))), Rc::new(RefCell::new(Some(Box::new(move |a: Rc<RefCell<Option<i32>>>, b: Rc<RefCell<Option<i32>>>| -> Rc<RefCell<Option<i32>>> {
         return {
-            let __tmp_x = (*a.borrow_mut().as_mut().unwrap());
-            let __tmp_y = (*b.borrow_mut().as_mut().unwrap());
+            let __tmp_x = (*a.borrow().as_ref().unwrap());
+            let __tmp_y = (*b.borrow().as_ref().unwrap());
             Rc::new(RefCell::new(Some(__tmp_x * __tmp_y)))
         };
     }) as Box<dyn Fn(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>>)))])));
 
-    for (i, op) in (*operations.borrow_mut().as_mut().unwrap()).iter().enumerate() {
+    for (i, op) in (*operations.borrow().as_ref().unwrap()).iter().enumerate() {
         print!("operations[{}](10, 5) = {}\n", i, (*(*op.borrow().as_ref().unwrap())(Rc::new(RefCell::new(Some(10))), Rc::new(RefCell::new(Some(5)))).borrow().as_ref().unwrap()));
     }
 }

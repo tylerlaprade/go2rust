@@ -27,11 +27,11 @@ impl Error for argError {}
 
 pub fn f1(arg: Rc<RefCell<Option<i32>>>) -> (Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<Box<dyn Error + Send + Sync>>>>) {
 
-    if (*arg.borrow_mut().as_mut().unwrap()) == 42 {
+    if (*arg.borrow().as_ref().unwrap()) == 42 {
         return (Rc::new(RefCell::new(Some(-1))), Rc::new(RefCell::new(Some(Box::<dyn std::error::Error + Send + Sync>::from("can't work with 42".to_string())))));
     }
     return ({
-            let __tmp_x = (*arg.borrow_mut().as_mut().unwrap());
+            let __tmp_x = (*arg.borrow().as_ref().unwrap());
             let __tmp_y = 3;
             Rc::new(RefCell::new(Some(__tmp_x + __tmp_y)))
         }, Rc::new(RefCell::new(None)));
@@ -39,11 +39,11 @@ pub fn f1(arg: Rc<RefCell<Option<i32>>>) -> (Rc<RefCell<Option<i32>>>, Rc<RefCel
 
 pub fn f2(arg: Rc<RefCell<Option<i32>>>) -> (Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<Box<dyn Error + Send + Sync>>>>) {
 
-    if (*arg.borrow_mut().as_mut().unwrap()) == 42 {
-        return (Rc::new(RefCell::new(Some(-1))), Rc::new(RefCell::new(Some(Box::new(argError { arg: Rc::new(RefCell::new(Some((*arg.borrow_mut().as_mut().unwrap())))), prob: Rc::new(RefCell::new(Some("can't work with it".to_string()))) }) as Box<dyn Error + Send + Sync>))));
+    if (*arg.borrow().as_ref().unwrap()) == 42 {
+        return (Rc::new(RefCell::new(Some(-1))), Rc::new(RefCell::new(Some(Box::new(argError { arg: Rc::new(RefCell::new(Some((*arg.borrow().as_ref().unwrap())))), prob: Rc::new(RefCell::new(Some("can't work with it".to_string()))) }) as Box<dyn Error + Send + Sync>))));
     }
     return ({
-            let __tmp_x = (*arg.borrow_mut().as_mut().unwrap());
+            let __tmp_x = (*arg.borrow().as_ref().unwrap());
             let __tmp_y = 3;
             Rc::new(RefCell::new(Some(__tmp_x + __tmp_y)))
         }, Rc::new(RefCell::new(None)));
@@ -55,7 +55,7 @@ fn main() {
     if (*e.borrow()).is_some() {
         println!("{} {}", "f1 failed:".to_string(), format!("{}", (*e.borrow().as_ref().unwrap())));
     } else {
-        println!("{} {}", "f1 worked:".to_string(), (*r.borrow_mut().as_mut().unwrap()));
+        println!("{} {}", "f1 worked:".to_string(), (*r.borrow().as_ref().unwrap()));
     }
     }
     for i in &Rc::new(RefCell::new(Some(vec![7, 42]))) {
@@ -63,7 +63,7 @@ fn main() {
     if (*e.borrow()).is_some() {
         println!("{} {}", "f2 failed:".to_string(), format!("{}", (*e.borrow().as_ref().unwrap())));
     } else {
-        println!("{} {}", "f2 worked:".to_string(), (*r.borrow_mut().as_mut().unwrap()));
+        println!("{} {}", "f2 worked:".to_string(), (*r.borrow().as_ref().unwrap()));
     }
     }
 
@@ -81,7 +81,7 @@ fn main() {
             (Rc::new(RefCell::new(Some(Default::default()))), Rc::new(RefCell::new(Some(false))))
         }
     });
-    if (*ok.borrow_mut().as_mut().unwrap()) {
+    if (*ok.borrow().as_ref().unwrap()) {
         println!("{}", (*(*ae.borrow().as_ref().unwrap()).arg.borrow().as_ref().unwrap()));
         println!("{}", (*(*ae.borrow().as_ref().unwrap()).prob.borrow().as_ref().unwrap()));
     }

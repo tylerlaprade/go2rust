@@ -3,16 +3,16 @@ use std::rc::{Rc};
 
 fn main() {
     let mut i = Rc::new(RefCell::new(Some(0)));
-    'outer: while (*i.borrow_mut().as_mut().unwrap()) < 3 {
+    'outer: while (*i.borrow().as_ref().unwrap()) < 3 {
         let mut j = Rc::new(RefCell::new(Some(0)));
-    while (*j.borrow_mut().as_mut().unwrap()) < 3 {
-        if (*i.borrow_mut().as_mut().unwrap()) == 1 && (*j.borrow_mut().as_mut().unwrap()) == 1 {
+    while (*j.borrow().as_ref().unwrap()) < 3 {
+        if (*i.borrow().as_ref().unwrap()) == 1 && (*j.borrow().as_ref().unwrap()) == 1 {
         { let mut guard = i.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }; continue 'outer
     }
-        if (*i.borrow_mut().as_mut().unwrap()) == 2 && (*j.borrow_mut().as_mut().unwrap()) == 1 {
+        if (*i.borrow().as_ref().unwrap()) == 2 && (*j.borrow().as_ref().unwrap()) == 1 {
         break 'outer
     }
-        print!("({}, {}) ", (*i.borrow_mut().as_mut().unwrap()), (*j.borrow_mut().as_mut().unwrap()));
+        print!("({}, {}) ", (*i.borrow().as_ref().unwrap()), (*j.borrow().as_ref().unwrap()));
         { let mut guard = j.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
         println!();

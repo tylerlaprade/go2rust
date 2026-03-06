@@ -87,7 +87,7 @@ fn main() {
         // Interface slice
     let mut shapes = Rc::new(RefCell::new(Some(vec![Box::new((*rect.borrow().as_ref().unwrap()).clone()) as Box<dyn Shape>, Box::new((*circle.borrow().as_ref().unwrap()).clone()) as Box<dyn Shape>])));
     println!("{}", "All shapes:".to_string());
-    for (i, shape) in (*shapes.borrow_mut().as_mut().unwrap()).iter().enumerate() {
+    for (i, shape) in (*shapes.borrow().as_ref().unwrap()).iter().enumerate() {
         print!("Shape {}: ", i + 1);
         print_shape_info(shape.as_ref());
     }

@@ -45,9 +45,9 @@ fn main() {
     let mut f: Rc<RefCell<Option<f64>>> = Rc::new(RefCell::new(Some((*i.as_ref().unwrap().as_ref().unwrap()) as f64)));
     let mut i2: Rc<RefCell<Option<i32>>> = Rc::new(RefCell::new(Some((*f.as_ref().unwrap().as_ref().unwrap()) as i32)));
 
-    print!("int: {}\n", (*i.borrow_mut().as_mut().unwrap()));
-    print!("float64: {:.2}\n", (*f.borrow_mut().as_mut().unwrap()));
-    print!("back to int: {}\n", (*i2.borrow_mut().as_mut().unwrap()));
+    print!("int: {}\n", (*i.borrow().as_ref().unwrap()));
+    print!("float64: {:.2}\n", (*f.borrow().as_ref().unwrap()));
+    print!("back to int: {}\n", (*i2.borrow().as_ref().unwrap()));
 
         // Different integer sizes
     println!("{}", "\n=== Integer size conversions ===".to_string());
@@ -57,10 +57,10 @@ fn main() {
     let mut i32: Rc<RefCell<Option<i32>>> = Rc::new(RefCell::new(Some((*i16.as_ref().unwrap().as_ref().unwrap()) as i32)));
     let mut i64: Rc<RefCell<Option<i64>>> = Rc::new(RefCell::new(Some((*i32.as_ref().unwrap().as_ref().unwrap()) as i64)));
 
-    print!("int8: {}\n", (*i8.borrow_mut().as_mut().unwrap()));
-    print!("int16: {}\n", (*i16.borrow_mut().as_mut().unwrap()));
-    print!("int32: {}\n", (*i32.borrow_mut().as_mut().unwrap()));
-    print!("int64: {}\n", (*i64.borrow_mut().as_mut().unwrap()));
+    print!("int8: {}\n", (*i8.borrow().as_ref().unwrap()));
+    print!("int16: {}\n", (*i16.borrow().as_ref().unwrap()));
+    print!("int32: {}\n", (*i32.borrow().as_ref().unwrap()));
+    print!("int64: {}\n", (*i64.borrow().as_ref().unwrap()));
 
         // Unsigned integers
     println!("{}", "\n=== Unsigned integer conversions ===".to_string());
@@ -71,11 +71,11 @@ fn main() {
     let mut ui32: Rc<RefCell<Option<u32>>> = Rc::new(RefCell::new(Some((*ui16.as_ref().unwrap().as_ref().unwrap()) as u32)));
     let mut ui64: Rc<RefCell<Option<u64>>> = Rc::new(RefCell::new(Some((*ui32.as_ref().unwrap().as_ref().unwrap()) as u64)));
 
-    print!("uint: {}\n", (*ui.borrow_mut().as_mut().unwrap()));
-    print!("uint8: {}\n", (*ui8.borrow_mut().as_mut().unwrap()));
-    print!("uint16: {}\n", (*ui16.borrow_mut().as_mut().unwrap()));
-    print!("uint32: {}\n", (*ui32.borrow_mut().as_mut().unwrap()));
-    print!("uint64: {}\n", (*ui64.borrow_mut().as_mut().unwrap()));
+    print!("uint: {}\n", (*ui.borrow().as_ref().unwrap()));
+    print!("uint8: {}\n", (*ui8.borrow().as_ref().unwrap()));
+    print!("uint16: {}\n", (*ui16.borrow().as_ref().unwrap()));
+    print!("uint32: {}\n", (*ui32.borrow().as_ref().unwrap()));
+    print!("uint64: {}\n", (*ui64.borrow().as_ref().unwrap()));
 
         // Float conversions
     println!("{}", "\n=== Float conversions ===".to_string());
@@ -84,9 +84,9 @@ fn main() {
     let mut f32: Rc<RefCell<Option<f32>>> = Rc::new(RefCell::new(Some((*f64.as_ref().unwrap().as_ref().unwrap()) as f32)));
     let mut backToF64: Rc<RefCell<Option<f64>>> = Rc::new(RefCell::new(Some((*f32.as_ref().unwrap().as_ref().unwrap()) as f64)));
 
-    print!("float64: {:.10}\n", (*f64.borrow_mut().as_mut().unwrap()));
-    print!("float32: {:.10}\n", (*f32.borrow_mut().as_mut().unwrap()));
-    print!("back to float64: {:.10}\n", (*backToF64.borrow_mut().as_mut().unwrap()));
+    print!("float64: {:.10}\n", (*f64.borrow().as_ref().unwrap()));
+    print!("float32: {:.10}\n", (*f32.borrow().as_ref().unwrap()));
+    print!("back to float64: {:.10}\n", (*backToF64.borrow().as_ref().unwrap()));
 
         // String conversions
     println!("{}", "\n=== String conversions ===".to_string());
@@ -94,17 +94,17 @@ fn main() {
     let mut r: Rc<RefCell<Option<i32>>> = Rc::new(RefCell::new(Some(('A' as i32))));
     let mut b: Rc<RefCell<Option<u8>>> = Rc::new(RefCell::new(Some(65)));
 
-    print!("rune 'A': {} ({})\n", (*r.borrow_mut().as_mut().unwrap()), (*r.borrow_mut().as_mut().unwrap()));
-    print!("byte 65: {} ({})\n", (*b.borrow_mut().as_mut().unwrap()), (*b.borrow_mut().as_mut().unwrap()));
+    print!("rune 'A': {} ({})\n", (*r.borrow().as_ref().unwrap()), (*r.borrow().as_ref().unwrap()));
+    print!("byte 65: {} ({})\n", (*b.borrow().as_ref().unwrap()), (*b.borrow().as_ref().unwrap()));
 
         // Rune to string
     let mut str = Rc::new(RefCell::new(Some(char::from_u32((*r.borrow().as_ref().unwrap()) as u32).unwrap().to_string())));
-    print!("rune to string: {}\n", (*str.borrow_mut().as_mut().unwrap()));
+    print!("rune to string: {}\n", (*str.borrow().as_ref().unwrap()));
 
         // Byte slice to string
     let mut bytes = Rc::new(RefCell::new(Some(vec![72, 101, 108, 108, 111])));
     let mut strFromBytes = Rc::new(RefCell::new(Some(String::from_utf8((*bytes.borrow().as_ref().unwrap()).clone()).unwrap())));
-    print!("bytes to string: {}\n", (*strFromBytes.borrow_mut().as_mut().unwrap()));
+    print!("bytes to string: {}\n", (*strFromBytes.borrow().as_ref().unwrap()));
 
         // String to byte slice
     let mut backToBytes = Rc::new(RefCell::new(Some((*strFromBytes.borrow().as_ref().unwrap()).as_bytes().to_vec())));
@@ -117,7 +117,7 @@ fn main() {
 
         // Rune slice back to string
     let mut backToString = Rc::new(RefCell::new(Some((*runes.borrow().as_ref().unwrap()).iter().map(|&c| char::from_u32(c as u32).unwrap()).collect::<String>())));
-    print!("runes to string: {}\n", (*backToString.borrow_mut().as_mut().unwrap()));
+    print!("runes to string: {}\n", (*backToString.borrow().as_ref().unwrap()));
 
         // Boolean conversions (not direct, but showing concept)
     println!("{}", "\n=== Boolean-like conversions ===".to_string());
@@ -126,8 +126,8 @@ fn main() {
     let mut nonZero: Rc<RefCell<Option<i32>>> = Rc::new(RefCell::new(Some(42)));
 
         // Go doesn't have direct bool conversion, but we can demonstrate the concept
-    print!("zero == 0: {}\n", (*zero.borrow_mut().as_mut().unwrap()) == 0);
-    print!("nonZero != 0: {}\n", (*nonZero.borrow_mut().as_mut().unwrap()) != 0);
+    print!("zero == 0: {}\n", (*zero.borrow().as_ref().unwrap()) == 0);
+    print!("nonZero != 0: {}\n", (*nonZero.borrow().as_ref().unwrap()) != 0);
 
         // Pointer conversions
     println!("{}", "\n=== Pointer conversions ===".to_string());
@@ -135,7 +135,7 @@ fn main() {
     let mut num: Rc<RefCell<Option<i32>>> = Rc::new(RefCell::new(Some(100)));
     let mut ptr: Rc<RefCell<Option<i32>>> = num.clone();
 
-    print!("value: {}\n", (*num.borrow_mut().as_mut().unwrap()));
+    print!("value: {}\n", (*num.borrow().as_ref().unwrap()));
     print!("pointer: {}\n", "0xDEADBEEF".to_string());
     print!("dereferenced: {}\n", (*ptr.borrow().as_ref().unwrap()));
 
@@ -160,8 +160,8 @@ fn main() {
             (Rc::new(RefCell::new(Some(0))), Rc::new(RefCell::new(Some(false))))
         }
     });
-    if (*ok.borrow_mut().as_mut().unwrap()) {
-        print!("asserted as int: {}\n", (*intVal.borrow_mut().as_mut().unwrap()));
+    if (*ok.borrow().as_ref().unwrap()) {
+        print!("asserted as int: {}\n", (*intVal.borrow().as_ref().unwrap()));
     }
 
         // Change interface value
@@ -182,8 +182,8 @@ fn main() {
             (Rc::new(RefCell::new(Some(String::new()))), Rc::new(RefCell::new(Some(false))))
         }
     });
-    if (*ok.borrow_mut().as_mut().unwrap()) {
-        print!("asserted as string: {}\n", (*strVal.borrow_mut().as_mut().unwrap()));
+    if (*ok.borrow().as_ref().unwrap()) {
+        print!("asserted as string: {}\n", (*strVal.borrow().as_ref().unwrap()));
     }
 
         // Complex number conversions
@@ -192,32 +192,32 @@ fn main() {
     let mut c64: Rc<RefCell<Option<num::Complex<f32>>>> = Rc::new(RefCell::new(Some(3 + 4i)));
     let mut c128: Rc<RefCell<Option<num::Complex<f64>>>> = Rc::new(RefCell::new(Some(num::Complex::<f64>::new((*c64.borrow().as_ref().unwrap()) as f64, 0.0))));
 
-    print!("complex64: {}\n", (*c64.borrow_mut().as_mut().unwrap()));
-    print!("complex128: {}\n", (*c128.borrow_mut().as_mut().unwrap()));
+    print!("complex64: {}\n", (*c64.borrow().as_ref().unwrap()));
+    print!("complex128: {}\n", (*c128.borrow().as_ref().unwrap()));
 
         // Extract real and imaginary parts
-    let mut real = Rc::new(RefCell::new(Some((*(*c128.borrow_mut().as_mut().unwrap()).borrow().as_ref().unwrap()).re)));
-    let mut imag = Rc::new(RefCell::new(Some((*(*c128.borrow_mut().as_mut().unwrap()).borrow().as_ref().unwrap()).im)));
-    print!("real part: {:.2}\n", (*real.borrow_mut().as_mut().unwrap()));
-    print!("imaginary part: {:.2}\n", (*imag.borrow_mut().as_mut().unwrap()));
+    let mut real = Rc::new(RefCell::new(Some((*(*c128.borrow().as_ref().unwrap()).borrow().as_ref().unwrap()).re)));
+    let mut imag = Rc::new(RefCell::new(Some((*(*c128.borrow().as_ref().unwrap()).borrow().as_ref().unwrap()).im)));
+    print!("real part: {:.2}\n", (*real.borrow().as_ref().unwrap()));
+    print!("imaginary part: {:.2}\n", (*imag.borrow().as_ref().unwrap()));
 
         // Create complex from parts
-    let mut newComplex = Rc::new(RefCell::new(Some(num::Complex::new(*(*real.borrow_mut().as_mut().unwrap()).borrow().as_ref().unwrap(), *(*imag.borrow_mut().as_mut().unwrap()).borrow().as_ref().unwrap()))));
-    print!("reconstructed: {}\n", (*newComplex.borrow_mut().as_mut().unwrap()));
+    let mut newComplex = Rc::new(RefCell::new(Some(num::Complex::new(*(*real.borrow().as_ref().unwrap()).borrow().as_ref().unwrap(), *(*imag.borrow().as_ref().unwrap()).borrow().as_ref().unwrap()))));
+    print!("reconstructed: {}\n", (*newComplex.borrow().as_ref().unwrap()));
 
         // Overflow demonstration (be careful!)
     println!("{}", "\n=== Overflow examples ===".to_string());
 
     let mut bigInt: Rc<RefCell<Option<i64>>> = Rc::new(RefCell::new(Some(1000000)));
     let mut smallInt: Rc<RefCell<Option<i8>>> = Rc::new(RefCell::new(Some((*bigInt.as_ref().unwrap().as_ref().unwrap()) as i8)));
-    print!("int64: {}\n", (*bigInt.borrow_mut().as_mut().unwrap()));
-    print!("int8 (overflow): {}\n", (*smallInt.borrow_mut().as_mut().unwrap()));
+    print!("int64: {}\n", (*bigInt.borrow().as_ref().unwrap()));
+    print!("int8 (overflow): {}\n", (*smallInt.borrow().as_ref().unwrap()));
 
         // Precision loss in float conversion
     let mut preciseFloat: Rc<RefCell<Option<f64>>> = Rc::new(RefCell::new(Some(1.23456789012345)));
     let mut lessPrec: Rc<RefCell<Option<f32>>> = Rc::new(RefCell::new(Some((*preciseFloat.as_ref().unwrap().as_ref().unwrap()) as f32)));
-    print!("float64: {:.15}\n", (*preciseFloat.borrow_mut().as_mut().unwrap()));
-    print!("float32: {:.15}\n", (*lessPrec.borrow_mut().as_mut().unwrap()));
+    print!("float64: {:.15}\n", (*preciseFloat.borrow().as_ref().unwrap()));
+    print!("float32: {:.15}\n", (*lessPrec.borrow().as_ref().unwrap()));
 
         // Custom type conversions
     println!("{}", "\n=== Custom type conversions ===".to_string());
@@ -227,17 +227,17 @@ fn main() {
 
     let mut mi: Rc<RefCell<Option<MyInt>>> = Rc::new(RefCell::new(Some(42)));
     let mut regularInt: Rc<RefCell<Option<i32>>> = Rc::new(RefCell::new(Some((*mi.as_ref().unwrap().as_ref().unwrap()) as i32)));
-    let mut backToMyInt: Rc<RefCell<Option<MyInt>>> = (*regularInt.borrow_mut().as_mut().unwrap());
+    let mut backToMyInt: Rc<RefCell<Option<MyInt>>> = (*regularInt.borrow().as_ref().unwrap());
 
-    print!("MyInt: {}\n", (*mi.borrow_mut().as_mut().unwrap()));
-    print!("regular int: {}\n", (*regularInt.borrow_mut().as_mut().unwrap()));
-    print!("back to MyInt: {}\n", (*backToMyInt.borrow_mut().as_mut().unwrap()));
+    print!("MyInt: {}\n", (*mi.borrow().as_ref().unwrap()));
+    print!("regular int: {}\n", (*regularInt.borrow().as_ref().unwrap()));
+    print!("back to MyInt: {}\n", (*backToMyInt.borrow().as_ref().unwrap()));
 
     let mut ms: Rc<RefCell<Option<MyString>>> = Rc::new(RefCell::new(Some("hello".to_string())));
     let mut regularString: Rc<RefCell<Option<String>>> = Rc::new(RefCell::new(Some((*ms.borrow().as_ref().unwrap()).to_string())));
-    let mut backToMyString: Rc<RefCell<Option<MyString>>> = (*regularString.borrow_mut().as_mut().unwrap());
+    let mut backToMyString: Rc<RefCell<Option<MyString>>> = (*regularString.borrow().as_ref().unwrap());
 
-    print!("MyString: {}\n", (*ms.borrow_mut().as_mut().unwrap()));
-    print!("regular string: {}\n", (*regularString.borrow_mut().as_mut().unwrap()));
-    print!("back to MyString: {}\n", (*backToMyString.borrow_mut().as_mut().unwrap()));
+    print!("MyString: {}\n", (*ms.borrow().as_ref().unwrap()));
+    print!("regular string: {}\n", (*regularString.borrow().as_ref().unwrap()));
+    print!("back to MyString: {}\n", (*backToMyString.borrow().as_ref().unwrap()));
 }

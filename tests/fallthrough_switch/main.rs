@@ -4,7 +4,7 @@ use std::rc::{Rc};
 fn main() {
         // Basic fallthrough
     let mut x = Rc::new(RefCell::new(Some(2)));
-    match (*x.borrow_mut().as_mut().unwrap()) {
+    match (*x.borrow().as_ref().unwrap()) {
         1 => {
             println!("{}", "One".to_string());
         }
@@ -27,7 +27,7 @@ fn main() {
 
         // Multiple fallthrough
     let mut grade = Rc::new(RefCell::new(Some(('B' as i32))));
-    match (*grade.borrow_mut().as_mut().unwrap()) {
+    match (*grade.borrow().as_ref().unwrap()) {
         ('A' as i32) => {
             println!("{}", "Excellent!".to_string());
             // TODO: fallthrough not supported
@@ -53,18 +53,18 @@ fn main() {
         // Fallthrough with conditions
     let mut n = Rc::new(RefCell::new(Some(15)));
     match true {
-        true if (*n.borrow_mut().as_mut().unwrap()) % 15 == 0 => {
+        true if (*n.borrow().as_ref().unwrap()) % 15 == 0 => {
             println!("{}", "FizzBuzz".to_string());
             // TODO: fallthrough not supported
         }
-        true if (*n.borrow_mut().as_mut().unwrap()) % 3 == 0 => {
+        true if (*n.borrow().as_ref().unwrap()) % 3 == 0 => {
             println!("{}", "Fizz".to_string());
         }
-        true if (*n.borrow_mut().as_mut().unwrap()) % 5 == 0 => {
+        true if (*n.borrow().as_ref().unwrap()) % 5 == 0 => {
             println!("{}", "Buzz".to_string());
         }
         _ => {
-            println!("{}", (*n.borrow_mut().as_mut().unwrap()));
+            println!("{}", (*n.borrow().as_ref().unwrap()));
         }
     }
 }

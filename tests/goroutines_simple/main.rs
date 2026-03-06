@@ -4,8 +4,8 @@ use std::time::Duration;
 
 pub fn f(from: Arc<Mutex<Option<String>>>) {
     let mut i = Arc::new(Mutex::new(Some(0)));
-    while (*i.lock().unwrap().as_mut().unwrap()) < 3 {
-        println!("{} {} {}", (*from.lock().unwrap().as_mut().unwrap()), ":".to_string(), (*i.lock().unwrap().as_mut().unwrap()));
+    while (*i.lock().unwrap().as_ref().unwrap()) < 3 {
+        println!("{} {} {}", (*from.lock().unwrap().as_ref().unwrap()), ":".to_string(), (*i.lock().unwrap().as_ref().unwrap()));
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
 }
@@ -22,7 +22,7 @@ fn main() {
     std::thread::spawn(move || {
         let __closure = move |msg: Arc<Mutex<Option<String>>>| {
             std::thread::sleep(std::time::Duration::from_millis(10));;
-            println!("{}", (*msg.lock().unwrap().as_mut().unwrap()));;
+            println!("{}", (*msg.lock().unwrap().as_ref().unwrap()));;
         };
         __closure(Arc::new(Mutex::new(Some("going".to_string()))));
     });
