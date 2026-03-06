@@ -1,6 +1,9 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"sort"
+)
 
 func main() {
 	// Anonymous struct as variable
@@ -73,7 +76,13 @@ func main() {
 		"alice": {Email: "alice@example.com", Admin: true},
 		"bob":   {Email: "bob@example.com", Admin: false},
 	}
-	for name, user := range users {
+	var userNames []string
+	for name := range users {
+		userNames = append(userNames, name)
+	}
+	sort.Strings(userNames)
+	for _, name := range userNames {
+		user := users[name]
 		fmt.Printf("User %s: %s (admin: %v)\n", name, user.Email, user.Admin)
 	}
 }

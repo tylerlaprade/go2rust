@@ -109,13 +109,18 @@ fn main() {
     println!("{}", "\n=== Range over map ===".to_string());
     let mut ages = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i32>>>>::from([("Alice".to_string(), Arc::new(Mutex::new(Some(25)))), ("Bob".to_string(), Arc::new(Mutex::new(Some(30)))), ("Charlie".to_string(), Arc::new(Mutex::new(Some(35))))]))));
 
-    for (name, age) in (*ages.lock().unwrap().as_ref().unwrap()).clone() {
-        print!("{} is {} years old\n", name, (*age.lock().unwrap().as_mut().unwrap()));
+    let mut sortedNames: Arc<Mutex<Option<Vec<String>>>> = Arc::new(Mutex::new(Some(Default::default())));
+    for (name, _) in (*ages.lock().unwrap().as_ref().unwrap()).clone() {
+        {(*sortedNames.lock().unwrap().as_mut().unwrap()).push(name); sortedNames.clone()};
+    }
+    (*sortedNames.lock().unwrap().as_mut().unwrap()).sort();
+    for name in &(*sortedNames.lock().unwrap().as_mut().unwrap()) {
+        print!("{} is {} years old\n", name, (*(*ages.lock().unwrap().as_ref().unwrap()).get(name).unwrap().lock().unwrap().as_ref().unwrap()));
     }
 
         // Only keys
     println!("{}", "Keys only:".to_string());
-    for (name, _) in (*ages.lock().unwrap().as_ref().unwrap()).clone() {
+    for name in &(*sortedNames.lock().unwrap().as_mut().unwrap()) {
         print!("{} ", name);
     }
     println!();

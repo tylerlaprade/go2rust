@@ -132,17 +132,27 @@ fn main() {
 
     let mut ages = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i32>>>>::from([("Alice".to_string(), Arc::new(Mutex::new(Some(25)))), ("Bob".to_string(), Arc::new(Mutex::new(Some(30)))), ("Carol".to_string(), Arc::new(Mutex::new(Some(35))))]))));
 
-        // Ignore values, use only keys
+        // Ignore values, use only keys (sorted for deterministic output)
     println!("{}", "Keys only:".to_string());
+    let mut names: Arc<Mutex<Option<Vec<String>>>> = Arc::new(Mutex::new(Some(Default::default())));
     for (name, _) in (*ages.lock().unwrap().as_ref().unwrap()).clone() {
+        {(*names.lock().unwrap().as_mut().unwrap()).push(name); names.clone()};
+    }
+    (*names.lock().unwrap().as_mut().unwrap()).sort();
+    for name in &(*names.lock().unwrap().as_mut().unwrap()) {
         print!("{} ", name);
     }
     println!();
 
-        // Ignore keys, use only values
+        // Ignore keys, use only values (sorted for deterministic output)
     println!("{}", "Values only:".to_string());
+    let mut sortedAges: Arc<Mutex<Option<Vec<i32>>>> = Arc::new(Mutex::new(Some(Default::default())));
     for (_, age) in (*ages.lock().unwrap().as_ref().unwrap()).clone() {
-        print!("{} ", (*age.lock().unwrap().as_mut().unwrap()));
+        {(*sortedAges.lock().unwrap().as_mut().unwrap()).push((*age.lock().unwrap().as_mut().unwrap())); sortedAges.clone()};
+    }
+    (*sortedAges.lock().unwrap().as_mut().unwrap()).sort();
+    for age in &(*sortedAges.lock().unwrap().as_mut().unwrap()) {
+        print!("{} ", age);
     }
     println!();
 

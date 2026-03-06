@@ -80,7 +80,13 @@ fn main() {
 
         // Map with anonymous struct values
     let mut users = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<AnonymousStruct6>>>>::from([("alice".to_string(), Rc::new(RefCell::new(Some(/* Anonymous struct literal */unimplemented!())))), ("bob".to_string(), Rc::new(RefCell::new(Some(/* Anonymous struct literal */unimplemented!()))))]))));
-    for (name, user) in (*users.borrow().as_ref().unwrap()).clone() {
-        print!("User {}: {} (admin: {})\n", name, (*user.email.borrow().as_ref().unwrap()), (*user.admin.borrow().as_ref().unwrap()));
+    let mut userNames: Rc<RefCell<Option<Vec<String>>>> = Rc::new(RefCell::new(Some(Default::default())));
+    for (name, _) in (*users.borrow().as_ref().unwrap()).clone() {
+        {(*userNames.borrow_mut().as_mut().unwrap()).push(name); userNames.clone()};
+    }
+    (*userNames.borrow_mut().as_mut().unwrap()).sort();
+    for name in &(*userNames.borrow_mut().as_mut().unwrap()) {
+        let mut user = Rc::new(RefCell::new(Some((*(*users.borrow().as_ref().unwrap()).get(name).unwrap().borrow().as_ref().unwrap()))));
+        print!("User {}: {} (admin: {})\n", name, (*(*user.borrow().as_ref().unwrap()).email.borrow().as_ref().unwrap()), (*(*user.borrow().as_ref().unwrap()).admin.borrow().as_ref().unwrap()));
     }
 }

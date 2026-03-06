@@ -1,6 +1,9 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"sort"
+)
 
 func multipleReturns() (int, string, bool) {
 	return 42, "hello", true
@@ -66,16 +69,26 @@ func main() {
 		"Carol": 35,
 	}
 
-	// Ignore values, use only keys
+	// Ignore values, use only keys (sorted for deterministic output)
 	fmt.Println("Keys only:")
+	var names []string
 	for name, _ := range ages {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	for _, name := range names {
 		fmt.Printf("%s ", name)
 	}
 	fmt.Println()
 
-	// Ignore keys, use only values
+	// Ignore keys, use only values (sorted for deterministic output)
 	fmt.Println("Values only:")
+	var sortedAges []int
 	for _, age := range ages {
+		sortedAges = append(sortedAges, age)
+	}
+	sort.Ints(sortedAges)
+	for _, age := range sortedAges {
 		fmt.Printf("%d ", age)
 	}
 	fmt.Println()

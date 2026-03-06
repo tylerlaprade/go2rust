@@ -1,6 +1,9 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"sort"
+)
 
 func main() {
 	// Range over slice
@@ -48,13 +51,18 @@ func main() {
 		"Charlie": 35,
 	}
 
-	for name, age := range ages {
-		fmt.Printf("%s is %d years old\n", name, age)
+	var sortedNames []string
+	for name := range ages {
+		sortedNames = append(sortedNames, name)
+	}
+	sort.Strings(sortedNames)
+	for _, name := range sortedNames {
+		fmt.Printf("%s is %d years old\n", name, ages[name])
 	}
 
 	// Only keys
 	fmt.Println("Keys only:")
-	for name := range ages {
+	for _, name := range sortedNames {
 		fmt.Printf("%s ", name)
 	}
 	fmt.Println()
