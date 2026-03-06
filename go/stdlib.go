@@ -58,6 +58,7 @@ func init() {
 		"len":     transpileLen,
 		"make":    transpileMake,
 		"cap":     transpileCap,
+		"copy":    transpileCopy,
 		"delete":  transpileDelete,
 		"new":     transpileNew,
 		"complex": transpileComplex,
@@ -769,10 +770,28 @@ func transpileDelete(out *strings.Builder, call *ast.CallExpr) {
 	}
 }
 
+func transpileCopy(out *strings.Builder, call *ast.CallExpr) {
+	if len(call.Args) >= 2 {
+		// Go: copy(dst, src) copies min(len(dst), len(src)) elements, returns count
+		// Generate inline block that works with already-unwrapped Vec values
+		out.WriteString("{ let _src = (")
+		TranspileExpression(out, call.Args[1])
+		out.WriteString(").clone(); let _n = std::cmp::min((")
+		TranspileExpression(out, call.Args[0])
+		out.WriteString(").len(), _src.len()); for _i in 0.._n { (*")
+		TranspileExpression(out, call.Args[0])
+		out.WriteString(")[_i] = _src[_i].clone(); } ")
+		WriteWrapperPrefix(out)
+		out.WriteString("_n as i32")
+		WriteWrapperSuffix(out)
+		out.WriteString(" }")
+	}
+}
+
 func transpileNew(out *strings.Builder, call *ast.CallExpr) {
 	if len(call.Args) > 0 {
 		WriteWrapperPrefix(out)
-		out.WriteString(GoTypeToRust(call.Args[0]))
+		out.WriteString(goTypeToRustBase(call.Args[0]))
 		out.WriteString("::default())))")
 	}
 }

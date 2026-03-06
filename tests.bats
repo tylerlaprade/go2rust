@@ -289,16 +289,20 @@ run_xfail_test() {
     run_test "tests/builtin_functions"
 }
 
-@test "channel_directions" {
-    run_test "tests/channel_directions"
+@test "channel_buffering" {
+    run_test "tests/channel_buffering"
 }
 
 @test "channel_sync" {
     run_test "tests/channel_sync"
 }
 
-@test "closing_channels" {
-    run_test "tests/closing_channels"
+@test "channels_basic" {
+    run_test "tests/channels_basic"
+}
+
+@test "channels_simple" {
+    run_test "tests/channels_simple"
 }
 
 @test "closures_basic" {
@@ -429,6 +433,10 @@ run_xfail_test() {
     run_test "tests/nil_basic"
 }
 
+@test "non_blocking_channels" {
+    run_test "tests/non_blocking_channels"
+}
+
 @test "pointers_dereference" {
     run_test "tests/pointers_dereference"
 }
@@ -441,12 +449,12 @@ run_xfail_test() {
     run_test "tests/range_iteration"
 }
 
-@test "range_over_channels" {
-    run_test "tests/range_over_channels"
-}
-
 @test "recursion_factorial" {
     run_test "tests/recursion_factorial"
+}
+
+@test "select_basic" {
+    run_test "tests/select_basic"
 }
 
 @test "simple_embedding" {
@@ -547,22 +555,6 @@ run_xfail_test() {
 
 @test "XFAIL: blank_imports_side_effects" {
     run_xfail_test "tests/XFAIL/blank_imports_side_effects"
-}
-
-@test "XFAIL: channel_buffering" {
-    run_xfail_test "tests/XFAIL/channel_buffering"
-}
-
-@test "XFAIL: channel_sync" {
-    run_xfail_test "tests/XFAIL/channel_sync"
-}
-
-@test "XFAIL: channels_basic" {
-    run_xfail_test "tests/XFAIL/channels_basic"
-}
-
-@test "XFAIL: channels_simple" {
-    run_xfail_test "tests/XFAIL/channels_simple"
 }
 
 @test "XFAIL: complex_expressions" {
@@ -681,10 +673,6 @@ run_xfail_test() {
     run_xfail_test "tests/XFAIL/nested_structures"
 }
 
-@test "XFAIL: non_blocking_channels" {
-    run_xfail_test "tests/XFAIL/non_blocking_channels"
-}
-
 @test "XFAIL: os_args" {
     run_xfail_test "tests/XFAIL/os_args"
 }
@@ -715,10 +703,6 @@ run_xfail_test() {
 
 @test "XFAIL: regex_basic" {
     run_xfail_test "tests/XFAIL/regex_basic"
-}
-
-@test "XFAIL: select_basic" {
-    run_xfail_test "tests/XFAIL/select_basic"
 }
 
 @test "XFAIL: select_statements" {

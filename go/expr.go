@@ -900,7 +900,14 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				out.WriteString("[")
 			} else {
 				// Slice
-				out.WriteString("vec![")
+				if len(e.Elts) == 0 {
+					// Empty slice needs explicit type
+					out.WriteString("Vec::<")
+					out.WriteString(GoTypeToRust(arrayType.Elt))
+					out.WriteString(">::new(")
+				} else {
+					out.WriteString("vec![")
+				}
 			}
 			for i, elt := range e.Elts {
 				if i > 0 {
@@ -937,7 +944,13 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					TranspileExpression(out, elt)
 				}
 			}
-			out.WriteString("]")
+			if arrayType.Len != nil {
+				out.WriteString("]")
+			} else if len(e.Elts) == 0 {
+				out.WriteString(")")
+			} else {
+				out.WriteString("]")
+			}
 			WriteWrapperSuffix(out)
 		} else if mapType, ok := e.Type.(*ast.MapType); ok {
 			// Map literal - wrap the whole map in Arc<Mutex<Option<>>>
@@ -1732,15 +1745,23 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				}
 			}
 
+			// Apply capture renames for defer closures
+			receiverName := ident.Name
+			if currentCaptureRenames != nil {
+				if renamed, exists := currentCaptureRenames[ident.Name]; exists {
+					receiverName = renamed
+				}
+			}
+
 			if needsUnwrap {
 				// Wrapped type - need to unwrap
 				out.WriteString("(*")
-				out.WriteString(ident.Name)
+				out.WriteString(receiverName)
 				WriteBorrowMethod(out, true)
 				out.WriteString(".as_mut().unwrap()).")
 			} else {
 				// Direct struct variable (range var or constant) - call method directly
-				out.WriteString(ident.Name)
+				out.WriteString(receiverName)
 				out.WriteString(".")
 			}
 		} else if fieldSel, ok := sel.X.(*ast.SelectorExpr); ok {
@@ -1757,16 +1778,29 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 			out.WriteString(".")
 		}
 
+		// Check if receiver is a bare sync type (WaitGroup, Mutex)
+		bareMethodCall := false
+		if ident, ok := sel.X.(*ast.Ident); ok {
+			if isVarBare(ident.Name) {
+				bareMethodCall = true
+			}
+		}
+
 		out.WriteString(ToSnakeCase(sel.Sel.Name))
 		out.WriteString("(")
 		for i, arg := range call.Args {
 			if i > 0 {
 				out.WriteString(", ")
 			}
-			// For method calls, wrap arguments normally
-			WriteWrapperPrefix(out)
-			TranspileExpression(out, arg)
-			WriteWrapperSuffix(out)
+			if bareMethodCall {
+				// Bare type methods take bare arguments
+				TranspileExpression(out, arg)
+			} else {
+				// For method calls, wrap arguments normally
+				WriteWrapperPrefix(out)
+				TranspileExpression(out, arg)
+				WriteWrapperSuffix(out)
+			}
 		}
 		out.WriteString(")")
 		return
@@ -1876,6 +1910,41 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 					TranspileExpression(out, arg)
 				}
 				continue // Skip the regular handling
+			}
+
+			// Check if this parameter expects a sync type (WaitGroup, Mutex)
+			expectsSyncParam := false
+			if funcSig != nil && i < len(funcSig.Params) {
+				if isSyncParam(funcSig.Params[i].Type) {
+					expectsSyncParam = true
+				}
+			}
+
+			if expectsSyncParam {
+				// Sync parameter - pass bare clone, unwrap &x to just x.clone()
+				if unary, ok := arg.(*ast.UnaryExpr); ok && unary.Op == token.AND {
+					if ident, ok := unary.X.(*ast.Ident); ok {
+						argVarName := ident.Name
+						if currentCaptureRenames != nil {
+							if renamed, exists := currentCaptureRenames[ident.Name]; exists {
+								argVarName = renamed
+							}
+						}
+						out.WriteString(argVarName)
+						out.WriteString(".clone()")
+						continue
+					}
+				} else if ident, ok := arg.(*ast.Ident); ok {
+					argVarName := ident.Name
+					if currentCaptureRenames != nil {
+						if renamed, exists := currentCaptureRenames[ident.Name]; exists {
+							argVarName = renamed
+						}
+					}
+					out.WriteString(argVarName)
+					out.WriteString(".clone()")
+					continue
+				}
 			}
 
 			// Check if the argument is already a wrapped variable

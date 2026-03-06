@@ -11,7 +11,7 @@ func main() {
 	x := 42
 	p := &x
 	fmt.Println("Value of x:", x)
-	fmt.Println("Address of x:", p)
+	fmt.Println("Pointer is non-nil:", p != nil)
 	fmt.Println("Value through pointer:", *p)
 
 	// Modify through pointer

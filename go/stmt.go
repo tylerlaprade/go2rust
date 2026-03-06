@@ -1180,11 +1180,27 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							if i > 0 {
 								out.WriteString(", ")
 							}
+							// Check if this is a sync type (WaitGroup, Mutex) - bare, not wrapped
+							isSyncType := false
+							if sel, ok := valueSpec.Type.(*ast.SelectorExpr); ok {
+								if pkgIdent, ok := sel.X.(*ast.Ident); ok && pkgIdent.Name == "sync" {
+									if sel.Sel.Name == "WaitGroup" || sel.Sel.Name == "Mutex" {
+										isSyncType = true
+										if vt := GetVarTable(); vt != nil {
+											vt.Register(name.Name, &VarInfo{
+												WrapLevel: WrapNone,
+												Source:    SourceLocal,
+											})
+										}
+									}
+								}
+							}
+
 							out.WriteString("let mut ")
 							out.WriteString(name.Name)
 
-							// Add type annotation if type is specified
-							if valueSpec.Type != nil {
+							// Add type annotation if type is specified (skip for sync types - bare)
+							if valueSpec.Type != nil && !isSyncType {
 								out.WriteString(": ")
 								out.WriteString(GoTypeToRust(valueSpec.Type))
 							}
@@ -1234,8 +1250,38 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										out.WriteString("Box::new(")
 										TranspileExpression(out, valueSpec.Values[i])
 										out.WriteString(") as Box<dyn Any>)))")
+									} else if valueSpec.Type != nil {
+										if typeIdent, ok := valueSpec.Type.(*ast.Ident); ok {
+											if underlyingType, isTypeDef := typeDefinitions[typeIdent.Name]; isTypeDef {
+												WriteWrapperPrefix(out)
+												out.WriteString(typeIdent.Name)
+												out.WriteString("(")
+												WriteWrapperPrefix(out)
+												// Check if int literal needs float conversion
+												isFloatType := underlyingType == "float64" || underlyingType == "float32"
+												if isFloatType {
+													if lit, ok := valueSpec.Values[i].(*ast.BasicLit); ok && lit.Kind == token.INT {
+														out.WriteString(lit.Value + ".0")
+													} else {
+														TranspileExpression(out, valueSpec.Values[i])
+													}
+												} else {
+													TranspileExpression(out, valueSpec.Values[i])
+												}
+												WriteWrapperSuffix(out)
+												out.WriteString(")")
+												WriteWrapperSuffix(out)
+											} else {
+												WriteWrapperPrefix(out)
+												TranspileExpression(out, valueSpec.Values[i])
+												WriteWrapperSuffix(out)
+											}
+										} else {
+											WriteWrapperPrefix(out)
+											TranspileExpression(out, valueSpec.Values[i])
+											WriteWrapperSuffix(out)
+										}
 									} else {
-										// Wrap all variables in Arc<Mutex<Option<>>>
 										WriteWrapperPrefix(out)
 										TranspileExpression(out, valueSpec.Values[i])
 										WriteWrapperSuffix(out)
@@ -1270,6 +1316,16 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										out.WriteString(" = ")
 										WriteWrapperPrefix(out)
 										out.WriteString("Default::default())))")
+									case *ast.SelectorExpr:
+										// Package-qualified types like sync.WaitGroup
+										if pkgIdent, ok := t.X.(*ast.Ident); ok && pkgIdent.Name == "sync" {
+											switch t.Sel.Name {
+											case "WaitGroup":
+												out.WriteString(" = WaitGroup::new()")
+											case "Mutex":
+												out.WriteString(" = GoMutex::new()")
+											}
+										}
 									}
 								}
 							}
@@ -1830,6 +1886,144 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			out.WriteString("// TODO: fallthrough not supported")
 		}
 
+	case *ast.SelectStmt:
+		// Select statement — poll-based approach
+		hasDefault := false
+		var commClauses []*ast.CommClause
+		for _, stmt := range s.Body.List {
+			if cc, ok := stmt.(*ast.CommClause); ok {
+				commClauses = append(commClauses, cc)
+				if cc.Comm == nil {
+					hasDefault = true
+				}
+			}
+		}
+
+		out.WriteString("loop {\n")
+
+		for _, cc := range commClauses {
+			if cc.Comm == nil {
+				// Default case — handled at the end
+				continue
+			}
+
+			// Determine the type of communication
+			switch comm := cc.Comm.(type) {
+			case *ast.AssignStmt:
+				// case val := <-ch or case val, ok := <-ch
+				if len(comm.Rhs) == 1 {
+					if unary, ok := comm.Rhs[0].(*ast.UnaryExpr); ok && unary.Op == token.ARROW {
+						out.WriteString("        if let Some(")
+						// Variable name(s)
+						if len(comm.Lhs) == 1 {
+							if ident, ok := comm.Lhs[0].(*ast.Ident); ok {
+								out.WriteString(ident.Name)
+								// Register as range var so it's not unwrapped
+								rangeLoopVars[ident.Name] = "select_val"
+							}
+						} else if len(comm.Lhs) == 2 {
+							// val, ok := <-ch — just bind val
+							if ident, ok := comm.Lhs[0].(*ast.Ident); ok {
+								out.WriteString(ident.Name)
+								rangeLoopVars[ident.Name] = "select_val"
+							}
+						}
+						out.WriteString(") = ")
+						TranspileExpression(out, unary.X)
+						out.WriteString(".try_recv() {\n")
+
+						// Handle ok variable if present
+						if len(comm.Lhs) == 2 {
+							if okIdent, ok := comm.Lhs[1].(*ast.Ident); ok && okIdent.Name != "_" {
+								out.WriteString("            let mut ")
+								out.WriteString(okIdent.Name)
+								out.WriteString(" = ")
+								WriteWrapperPrefix(out)
+								out.WriteString("true")
+								WriteWrapperSuffix(out)
+								out.WriteString(";\n")
+							}
+						}
+
+						// Wrap the received value if needed for use in body
+						if len(comm.Lhs) >= 1 {
+							if ident, ok := comm.Lhs[0].(*ast.Ident); ok && ident.Name != "_" {
+								out.WriteString("            let mut ")
+								out.WriteString(ident.Name)
+								out.WriteString(" = ")
+								WriteWrapperPrefix(out)
+								out.WriteString(ident.Name)
+								WriteWrapperSuffix(out)
+								out.WriteString(";\n")
+								// Now it's wrapped, remove from rangeLoopVars
+								delete(rangeLoopVars, ident.Name)
+							}
+						}
+
+						// Body
+						for _, bodyStmt := range cc.Body {
+							out.WriteString("            ")
+							TranspileStatementSimple(out, bodyStmt, fnType, fileSet)
+							out.WriteString("\n")
+						}
+						out.WriteString("            break;\n")
+						out.WriteString("        }\n")
+					}
+				}
+
+			case *ast.ExprStmt:
+				// case <-ch (receive without assignment)
+				if unary, ok := comm.X.(*ast.UnaryExpr); ok && unary.Op == token.ARROW {
+					out.WriteString("        if let Some(_) = ")
+					TranspileExpression(out, unary.X)
+					out.WriteString(".try_recv() {\n")
+
+					for _, bodyStmt := range cc.Body {
+						out.WriteString("            ")
+						TranspileStatementSimple(out, bodyStmt, fnType, fileSet)
+						out.WriteString("\n")
+					}
+					out.WriteString("            break;\n")
+					out.WriteString("        }\n")
+				}
+
+			case *ast.SendStmt:
+				// case ch <- val (send case) — use try_send for non-blocking
+				out.WriteString("        if ")
+				TranspileExpression(out, comm.Chan)
+				out.WriteString(".try_send(")
+				transpileChannelValue(out, comm.Value)
+				out.WriteString(") {\n")
+
+				for _, bodyStmt := range cc.Body {
+					out.WriteString("            ")
+					TranspileStatementSimple(out, bodyStmt, fnType, fileSet)
+					out.WriteString("\n")
+				}
+				out.WriteString("            break;\n")
+				out.WriteString("        }\n")
+			}
+		}
+
+		// Default case
+		if hasDefault {
+			for _, cc := range commClauses {
+				if cc.Comm == nil {
+					for _, bodyStmt := range cc.Body {
+						out.WriteString("        ")
+						TranspileStatementSimple(out, bodyStmt, fnType, fileSet)
+						out.WriteString("\n")
+					}
+					out.WriteString("        break;\n")
+				}
+			}
+		} else {
+			// No default — sleep briefly and retry
+			out.WriteString("        std::thread::sleep(std::time::Duration::from_millis(1));\n")
+		}
+
+		out.WriteString("    }")
+
 	case *ast.DeferStmt:
 		// Check if the defer contains a closure that captures variables
 		captured := findCapturedInCall(s.Call)
@@ -1967,13 +2161,24 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		if _, isFuncLit := s.Call.Fun.(*ast.FuncLit); !isFuncLit {
 			// Non-closure goroutine call - check args for channels
 			for _, arg := range s.Call.Args {
+				var argIdent *ast.Ident
 				if ident, ok := arg.(*ast.Ident); ok {
-					if isVarBare(ident.Name) {
-						// Bare variable (including channels) - needs cloning
-						if captured == nil {
-							captured = make(map[string]bool)
+					argIdent = ident
+				} else if unary, ok := arg.(*ast.UnaryExpr); ok && unary.Op == token.AND {
+					// &var — check the inner variable
+					if ident, ok := unary.X.(*ast.Ident); ok {
+						argIdent = ident
+					}
+				}
+					if argIdent != nil {
+					// All variable arguments need cloning for the move closure
+					if _, isConst := localConstants[argIdent.Name]; !isConst {
+						if argIdent.Name != "true" && argIdent.Name != "false" && argIdent.Name != "nil" {
+							if captured == nil {
+								captured = make(map[string]bool)
+							}
+							captured[argIdent.Name] = true
 						}
-						captured[ident.Name] = true
 					}
 				}
 			}
@@ -1991,8 +2196,20 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			out.WriteString("let ")
 			out.WriteString(varName)
 			out.WriteString("_thread = ")
-			out.WriteString(varName)
-			out.WriteString(".clone(); ")
+			if isVarBare(varName) {
+				// Bare variables (channels, sync types) — clone the handle
+				out.WriteString(varName)
+				out.WriteString(".clone(); ")
+			} else {
+				// Wrapped variables — snapshot the value for goroutine
+				WriteWrapperPrefix(out)
+				out.WriteString("(*")
+				out.WriteString(varName)
+				WriteBorrowMethod(out, false)
+				out.WriteString(".as_ref().unwrap()).clone()")
+				WriteWrapperSuffix(out)
+				out.WriteString("; ")
+			}
 		}
 
 		// Store current capture renames for nested transpilation
