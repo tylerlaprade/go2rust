@@ -1132,6 +1132,17 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			out.WriteString("\n    ")
 		}
 
+		// Emit loop label if set by LabeledStmt
+		var currentLoopLabel string
+		if pendingLoopLabel != "" {
+			currentLoopLabel = pendingLoopLabel
+			out.WriteString("'" + pendingLoopLabel + ": ")
+			// Track post-statement for labeled continue
+			if s.Post != nil {
+				labeledLoopPost[pendingLoopLabel] = s.Post
+			}
+			pendingLoopLabel = ""
+		}
 		out.WriteString("while ")
 		if s.Cond != nil {
 			TranspileExpression(out, s.Cond)
@@ -1163,6 +1174,11 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		}
 
 		out.WriteString("    }")
+
+		// Clean up label tracking
+		if currentLoopLabel != "" {
+			delete(labeledLoopPost, currentLoopLabel)
+		}
 
 	case *ast.BlockStmt:
 		out.WriteString("{\n")
@@ -1201,6 +1217,11 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		out.WriteString("); }")
 
 	case *ast.RangeStmt:
+		// Emit loop label if set by LabeledStmt
+		if pendingLoopLabel != "" {
+			out.WriteString("'" + pendingLoopLabel + ": ")
+			pendingLoopLabel = ""
+		}
 		// Handle for range loops
 		out.WriteString("for ")
 
@@ -1565,8 +1586,22 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		switch s.Tok {
 		case token.BREAK:
 			out.WriteString("break")
+			if s.Label != nil {
+				out.WriteString(" '" + ToSnakeCase(s.Label.Name))
+			}
 		case token.CONTINUE:
-			out.WriteString("continue")
+			// In Go, `continue label` executes the for-loop's post-statement.
+			// In Rust, `continue 'label` does not, so emit it explicitly.
+			if s.Label != nil {
+				label := ToSnakeCase(s.Label.Name)
+				if postStmt, ok := labeledLoopPost[label]; ok {
+					TranspileStatementSimple(out, postStmt, fnType, fileSet)
+					out.WriteString("; ")
+				}
+				out.WriteString("continue '" + label)
+			} else {
+				out.WriteString("continue")
+			}
 		case token.GOTO:
 			out.WriteString("// TODO: goto not supported")
 		case token.FALLTHROUGH:
@@ -1989,6 +2024,14 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 			out.WriteString("    }")
 		}
+
+	case *ast.LabeledStmt:
+		label := ToSnakeCase(s.Label.Name)
+		// Set the pending label for the next loop statement to consume
+		pendingLoopLabel = label
+		// Transpile the inner statement (usually a for/range loop)
+		TranspileStatement(out, s.Stmt, fnType, fileSet, comments, lastPos, indent)
+		pendingLoopLabel = "" // clear if not consumed
 
 	default:
 		out.WriteString("// TODO: Unhandled statement type: " + strings.TrimPrefix(fmt.Sprintf("%T", s), "*ast."))

@@ -381,6 +381,10 @@ run_xfail_test() {
     run_test "tests/iota_enums"
 }
 
+@test "labeled_statements" {
+    run_test "tests/labeled_statements"
+}
+
 @test "late_address_of" {
     run_test "tests/late_address_of"
 }
@@ -631,10 +635,6 @@ run_xfail_test() {
 
 @test "XFAIL: json_marshal" {
     run_xfail_test "tests/XFAIL/json_marshal"
-}
-
-@test "XFAIL: labeled_statements" {
-    run_xfail_test "tests/XFAIL/labeled_statements"
 }
 
 @test "XFAIL: mixed_output" {

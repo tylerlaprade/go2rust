@@ -27,6 +27,14 @@ var currentCaptureRenames map[string]string
 // statementPreprocessor analyzes statements for closure captures
 var statementPreprocessor *StatementPreprocessor
 
+// pendingLoopLabel is set by LabeledStmt and consumed by ForStmt/RangeStmt
+var pendingLoopLabel string
+
+// labeledLoopPost maps loop labels to their ForStmt Post statements.
+// Used to emit the post-statement before `continue 'label` in Rust,
+// since Go's `continue label` executes the post-statement but Rust's doesn't.
+var labeledLoopPost = make(map[string]ast.Stmt)
+
 // interfaceTypes tracks which type names are interfaces
 var interfaceTypes = make(map[string]bool)
 
