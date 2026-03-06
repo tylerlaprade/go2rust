@@ -70,8 +70,8 @@ impl Shape for Circle {
     }
 }
 
-pub fn print_shape_info(s: Rc<RefCell<Option<Box<dyn Shape>>>>) {
-    print!("Area: {:.2}, Perimeter: {:.2}\n", (*(*s.borrow_mut().as_mut().unwrap()).area().borrow().as_ref().unwrap()), (*(*s.borrow_mut().as_mut().unwrap()).perimeter().borrow().as_ref().unwrap()));
+pub fn print_shape_info(s: &dyn Shape) {
+    print!("Area: {:.2}, Perimeter: {:.2}\n", (*s.area().borrow().as_ref().unwrap()), (*s.perimeter().borrow().as_ref().unwrap()));
 }
 
 fn main() {
@@ -79,16 +79,16 @@ fn main() {
     let mut circle = Rc::new(RefCell::new(Some(Circle { radius: Rc::new(RefCell::new(Some(3.0))) })));
 
     println!("{}", "Rectangle:".to_string());
-    print_shape_info(Rc::new(RefCell::new(Some(Box::new((*rect.borrow().as_ref().unwrap()).clone()) as Box<dyn Shape>))));
+    print_shape_info(rect.borrow().as_ref().unwrap());
 
     println!("{}", "Circle:".to_string());
-    print_shape_info(Rc::new(RefCell::new(Some(Box::new((*circle.borrow().as_ref().unwrap()).clone()) as Box<dyn Shape>))));
+    print_shape_info(circle.borrow().as_ref().unwrap());
 
         // Interface slice
     let mut shapes = Rc::new(RefCell::new(Some(vec![Box::new((*rect.borrow().as_ref().unwrap()).clone()) as Box<dyn Shape>, Box::new((*circle.borrow().as_ref().unwrap()).clone()) as Box<dyn Shape>])));
     println!("{}", "All shapes:".to_string());
     for (i, shape) in (*shapes.borrow_mut().as_mut().unwrap()).iter().enumerate() {
         print!("Shape {}: ", i + 1);
-        print_shape_info(Rc::new(RefCell::new(Some(shape.clone()))));
+        print_shape_info(shape.as_ref());
     }
 }

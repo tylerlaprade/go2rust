@@ -130,7 +130,7 @@ func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.Fi
 				}
 				out.WriteString(name.Name)
 				out.WriteString(": ")
-				out.WriteString(GoTypeToRust(field.Type))
+				out.WriteString(GoTypeToRustParam(field.Type))
 			}
 		}
 	}
@@ -171,6 +171,31 @@ func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.Fi
 	}
 
 	out.WriteString(" {\n")
+
+	// Register function parameters in VarTable
+	if vt := GetVarTable(); vt != nil {
+		vt.PushScope()
+		defer vt.PopScope()
+		if fn.Type.Params != nil {
+			for _, field := range fn.Type.Params.List {
+				for _, name := range field.Names {
+					if ident, ok := field.Type.(*ast.Ident); ok && interfaceTypes[ident.Name] {
+						vt.Register(name.Name, &VarInfo{
+							WrapLevel: WrapNone,
+							RustType:  "&dyn " + ident.Name,
+							Source:    SourceParam,
+							IsRef:     true,
+						})
+					} else {
+						vt.Register(name.Name, &VarInfo{
+							WrapLevel: WrapFull,
+							Source:    SourceParam,
+						})
+					}
+				}
+			}
+		}
+	}
 
 	// Check if this function uses defer statements
 	hasDefer := checkHasDefer(fn.Body.List)
@@ -797,7 +822,7 @@ func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, a
 				}
 				out.WriteString(name.Name)
 				out.WriteString(": ")
-				out.WriteString(GoTypeToRust(field.Type))
+				out.WriteString(GoTypeToRustParam(field.Type))
 			}
 		}
 	}
@@ -838,6 +863,31 @@ func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, a
 	}
 
 	out.WriteString(" {\n")
+
+	// Register method parameters in VarTable
+	if vt := GetVarTable(); vt != nil {
+		vt.PushScope()
+		defer vt.PopScope()
+		if fn.Type.Params != nil {
+			for _, field := range fn.Type.Params.List {
+				for _, name := range field.Names {
+					if ident, ok := field.Type.(*ast.Ident); ok && interfaceTypes[ident.Name] {
+						vt.Register(name.Name, &VarInfo{
+							WrapLevel: WrapNone,
+							RustType:  "&dyn " + ident.Name,
+							Source:    SourceParam,
+							IsRef:     true,
+						})
+					} else {
+						vt.Register(name.Name, &VarInfo{
+							WrapLevel: WrapFull,
+							Source:    SourceParam,
+						})
+					}
+				}
+			}
+		}
+	}
 
 	// Method body - need to handle self references
 	var lastPos token.Pos = fn.Body.Lbrace

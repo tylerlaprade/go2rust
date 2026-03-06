@@ -125,6 +125,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			}
 		} else if _, isLocalConst := localConstants[e.Name]; isLocalConst {
 			out.WriteString(varName)
+		} else if isVarBare(e.Name) {
+			// VarTable says this variable is bare (e.g., interface parameter &dyn Trait)
+			out.WriteString(varName)
 		} else {
 			// All variables are wrapped in Arc<Mutex<Option<T>>>
 			switch ctx {
@@ -291,12 +294,14 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					}
 				}
 
-				// Check if this variable is wrapped (not a range var, not a constant)
+				// Check if this variable is wrapped (not a range var, not a constant, not bare)
 				needsUnwrap := false
 				if _, isRangeVar := rangeLoopVars[ident.Name]; !isRangeVar {
 					if _, isLocalConst := localConstants[ident.Name]; !isLocalConst {
-						// Regular variable - likely wrapped
-						needsUnwrap = true
+						if !isVarBare(ident.Name) {
+							// Regular variable - likely wrapped
+							needsUnwrap = true
+						}
 					}
 				}
 
@@ -1713,11 +1718,13 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 
 		// Check if the receiver is a simple identifier (local variable)
 		if ident, ok := sel.X.(*ast.Ident); ok {
-			// Check if this variable is wrapped (not a range var, not a constant)
+			// Check if this variable is wrapped (not a range var, not a constant, not bare)
 			if _, isRangeVar := rangeLoopVars[ident.Name]; !isRangeVar {
 				if _, isLocalConst := localConstants[ident.Name]; !isLocalConst {
-					// Regular variable - it's wrapped in Arc<Mutex<Option<>>>
-					needsUnwrap = true
+					if !isVarBare(ident.Name) {
+						// Regular variable - it's wrapped in Arc<Mutex<Option<>>>
+						needsUnwrap = true
+					}
 				}
 			}
 
@@ -1810,6 +1817,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 
 		// Check if this parameter expects an interface type
 		needsInterfaceBoxing := false
+		expectsInterfaceParam := false
 		var interfaceName string
 		if funcSig != nil && i < len(funcSig.Params) {
 			// Get the parameter type
@@ -1818,8 +1826,11 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				// Check if this is an interface type using TypeInfo
 				typeInfo := GetTypeInfo()
 				if typeInfo != nil && typeInfo.IsInterface(ident) {
-					needsInterfaceBoxing = true
+					// Interface parameters now use &dyn Trait, not wrapped
+					expectsInterfaceParam = true
 					interfaceName = ident.Name
+					// We no longer need interface boxing since params changed
+					needsInterfaceBoxing = false
 				}
 			}
 		}
@@ -1836,6 +1847,33 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 		// Wrap arguments appropriately
 		handler := GetStdlibHandler(call)
 		if isClosureCall || handler == nil {
+			// Special handling for interface parameters that now use &dyn Trait
+			if expectsInterfaceParam {
+				// Interface parameter - pass as reference without wrapper
+				if ident, ok := arg.(*ast.Ident); ok {
+					varType, isRangeVar := rangeLoopVars[ident.Name]
+					if isRangeVar && strings.HasPrefix(varType, "&Box<dyn ") {
+						// Range variable that's already &Box<dyn Trait>
+						// Convert to &dyn Trait via as_ref()
+						out.WriteString(ident.Name)
+						out.WriteString(".as_ref()")
+					} else if isVarBare(ident.Name) {
+						// Already a bare interface reference (&dyn Trait) - pass directly
+						out.WriteString(ident.Name)
+					} else {
+						// Regular wrapped variable - unwrap to get &T which coerces to &dyn Trait
+						// r.borrow().as_ref().unwrap() gives &T from Rc<RefCell<Option<T>>>
+						out.WriteString(ident.Name)
+						out.WriteString(".borrow().as_ref().unwrap()")
+					}
+				} else {
+					// Complex expression - need to evaluate and reference
+					out.WriteString("&*")
+					TranspileExpression(out, arg)
+				}
+				continue // Skip the regular handling
+			}
+
 			// Check if the argument is already a wrapped variable
 			if ident, ok := arg.(*ast.Ident); ok && ident.Name != "nil" && ident.Name != "_" {
 				// Check if this is a variable (not a constant)
@@ -1875,7 +1913,27 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				} else {
 					// Range variable - check if it needs dereferencing
 					varType := rangeLoopVars[ident.Name]
-					if varType == "ref_value" {
+					if strings.HasPrefix(varType, "&Box<dyn ") {
+						// It's a reference to a boxed trait object from a range loop
+						// We cannot clone trait objects themselves
+						// The solution is to dereference and pass the owned Box
+						if needsInterfaceBoxing {
+							// For interface parameters expecting Box<dyn Trait>
+							// We have &Box<dyn Trait>, need to get Box<dyn Trait>
+							// But we can't clone trait objects! This is the fundamental issue.
+							// The only solution is to not use regular wrapping here
+							WriteWrapperPrefix(out)
+							// This will still fail because shape.clone() clones the reference, not the Box
+							// We need a different approach - maybe pass as is without Some()
+							out.WriteString(ident.Name)
+							WriteWrapperSuffix(out)
+						} else {
+							// Not an interface parameter, just wrap the reference
+							WriteWrapperPrefix(out)
+							out.WriteString(ident.Name)
+							WriteWrapperSuffix(out)
+						}
+					} else if varType == "ref_value" {
 						// It's a reference from iterator
 						if needsInterfaceBoxing {
 							// It's already a &Box<dyn Interface>

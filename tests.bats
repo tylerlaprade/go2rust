@@ -365,6 +365,10 @@ run_xfail_test() {
     run_test "tests/interface_basic"
 }
 
+@test "interfaces_basic" {
+    run_test "tests/interfaces_basic"
+}
+
 @test "interfaces_simple" {
     run_test "tests/interfaces_simple"
 }
@@ -623,10 +627,6 @@ run_xfail_test() {
 
 @test "XFAIL: init_order_complex" {
     run_xfail_test "tests/XFAIL/init_order_complex"
-}
-
-@test "XFAIL: interfaces_basic" {
-    run_xfail_test "tests/XFAIL/interfaces_basic"
 }
 
 @test "XFAIL: json_marshal" {

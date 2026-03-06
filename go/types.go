@@ -65,6 +65,21 @@ func generateAnonymousStructType(structType *ast.StructType) string {
 	return typeName
 }
 
+// GoTypeToRustParam generates Rust type for function parameters
+// Interface parameters are not wrapped to avoid trait object issues
+func GoTypeToRustParam(expr ast.Expr) string {
+	// Check if this is an interface type
+	if ident, ok := expr.(*ast.Ident); ok {
+		if interfaceTypes[ident.Name] {
+			// Interface parameter - use reference to trait object
+			return "&dyn " + ident.Name
+		}
+	}
+
+	// For non-interface types, use regular wrapping
+	return GoTypeToRust(expr)
+}
+
 func GoTypeToRust(expr ast.Expr) string {
 	baseType := goTypeToRustBase(expr)
 

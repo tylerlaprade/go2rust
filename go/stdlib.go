@@ -163,22 +163,28 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 				out.WriteString(")")
 			} else {
 				// It's a named interface - use Display formatting
-				// This will use the Display impl of the concrete type
-				out.WriteString("format!(\"{}\", ")
-				if ident, ok := arg.(*ast.Ident); ok {
-					out.WriteString("(*")
+				// Check if it's a bare interface param (&dyn Trait) - use directly
+				if ident, ok := arg.(*ast.Ident); ok && isVarBare(ident.Name) {
+					// Interface parameter is already &dyn Trait with Display supertrait
 					out.WriteString(ident.Name)
-					WriteBorrowMethod(out, false)
-					out.WriteString(".as_ref().unwrap())")
 				} else {
-					// Complex expression
-					out.WriteString("(*(")
-					TranspileExpression(out, arg)
+					// This will use the Display impl of the concrete type
+					out.WriteString("format!(\"{}\", ")
+					if ident, ok := arg.(*ast.Ident); ok {
+						out.WriteString("(*")
+						out.WriteString(ident.Name)
+						WriteBorrowMethod(out, false)
+						out.WriteString(".as_ref().unwrap())")
+					} else {
+						// Complex expression
+						out.WriteString("(*(")
+						TranspileExpression(out, arg)
+						out.WriteString(")")
+						WriteBorrowMethod(out, false)
+						out.WriteString(".as_ref().unwrap())")
+					}
 					out.WriteString(")")
-					WriteBorrowMethod(out, false)
-					out.WriteString(".as_ref().unwrap())")
 				}
-				out.WriteString(")")
 			}
 			return
 		}

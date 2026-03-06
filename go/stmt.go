@@ -1230,13 +1230,24 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			keyType = "String"                    // Common key type for maps
 			valueType = "Arc<Mutex<Option<i32>>>" // Map values are wrapped
 		} else if typeInfo.IsSlice(s.X) {
-			// Check if it's a slice of interface{}
+			// Check if it's a slice of interface{} or named interface
 			elemType := typeInfo.GetSliceElemType(s.X)
 			if elemType != nil {
-				if intf, ok := elemType.Underlying().(*types.Interface); ok && intf.NumMethods() == 0 {
-					// It's []interface{} - elements are Box<dyn Any>
-					// When iterating with &, we get &Box<dyn Any>
-					valueType = "&Box<dyn Any>"
+				if intf, ok := elemType.Underlying().(*types.Interface); ok {
+					if intf.NumMethods() == 0 {
+						// It's []interface{} - elements are Box<dyn Any>
+						// When iterating with &, we get &Box<dyn Any>
+						valueType = "&Box<dyn Any>"
+					} else {
+						// It's a slice of named interface - elements are Box<dyn InterfaceName>
+						// We need to get the interface name
+						if namedType, ok := elemType.(*types.Named); ok {
+							valueType = "&Box<dyn " + namedType.Obj().Name() + ">"
+						} else {
+							// Generic named interface
+							valueType = "&Box<dyn Trait>"
+						}
+					}
 				}
 			}
 		}

@@ -362,6 +362,11 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 	// Initialize the statement preprocessor
 	statementPreprocessor = NewStatementPreprocessor(fileSet)
 
+	// Initialize variable tracking table
+	vt := NewVarTable()
+	SetVarTable(vt)
+	defer SetVarTable(nil)
+
 	// Set up global context
 	ctx := &TranspileContext{
 		Imports:        imports,

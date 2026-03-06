@@ -166,8 +166,8 @@ pub fn assert_without_check(value: Rc<RefCell<Option<Box<dyn Any>>>>) {
     }
 }
 
-pub fn describe_shape(s: Rc<RefCell<Option<Box<dyn Shape>>>>) {
-    print!("Shape area: {:.2}\n", (*(*s.borrow_mut().as_mut().unwrap()).area().borrow().as_ref().unwrap()));
+pub fn describe_shape(s: &dyn Shape) {
+    print!("Shape area: {:.2}\n", (*s.area().borrow().as_ref().unwrap()));
 
         // Type assertion on interface
     let (mut rect, mut ok) = ({
@@ -222,7 +222,7 @@ fn main() {
     let mut shapes = Rc::new(RefCell::new(Some(vec![Box::new(Rectangle { width: Rc::new(RefCell::new(Some(10.0))), height: Rc::new(RefCell::new(Some(5.0))) }) as Box<dyn Shape>, Box::new(Circle { radius: Rc::new(RefCell::new(Some(3.0))) }) as Box<dyn Shape>])));
 
     for shape in &(*shapes.borrow_mut().as_mut().unwrap()) {
-        describe_shape(Rc::new(RefCell::new(Some(shape.clone()))));
+        describe_shape(shape.as_ref());
     }
 
     println!("{}", "\n=== Type switch alternative ===".to_string());

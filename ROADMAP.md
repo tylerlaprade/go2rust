@@ -2,9 +2,6 @@
 
 ## Implementation Status
 
-**Current Progress: 47/132 tests passing (35.6%)**
-*Last updated: 2025-08-24*
-
 ### ✅ Phase 1: Hello World
 
 Basic program transpilation
@@ -25,14 +22,15 @@ Method receivers (value and pointer), multiple returns, method calls
 
 Type aliases/definitions, struct tags, embedding, anonymous structs, nested field access
 
-### 🚧 Phase 5: Core Language Features (85% Complete)
+### ✅ Phase 5: Core Language Features (90% Complete)
 
 - ✅ Basic constants - simple const declarations working
 - ✅ Complex constants and iota - multiple constants per line, bit shifts, blank identifier all working (2025-08-23)
 - ✅ Closures and function literals - fully working with proper variable capture
 - ✅ Defer statements - fully working with proper LIFO execution and variable capture
-- ❌ Panic and recover - partially implemented, needs catch_unwind integration
-- 🚧 Interfaces - empty interface{} working with proper initialization and formatting (2025-08-24), named interfaces need boxing support
+- 🚧 Panic and recover - basic panic working, recover needs catch_unwind integration
+- ✅ Interfaces - empty interface{} and named interfaces working with trait generation (2025-09-04)
+- ✅ VarTable selective wrapping - scope-aware variable tracking, interface params as bare `&dyn Trait` (2026-03-05)
 
 ### 📋 Phase 6: Control Flow Extensions
 
