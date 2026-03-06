@@ -744,7 +744,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			if isString {
 				// String indexing returns a byte (u8)
 				out.WriteString("(*")
-				TranspileExpression(out, e.X)
+				TranspileExpressionContext(out, e.X, LValue)
 				WriteBorrowMethod(out, false)
 				out.WriteString(".as_ref().unwrap()).as_bytes()[")
 				// Check if index needs unwrapping

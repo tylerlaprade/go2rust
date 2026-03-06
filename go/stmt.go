@@ -1520,6 +1520,12 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		if typeInfo != nil {
 			isMap = typeInfo.IsMap(s.X)
 			isString = typeInfo.IsString(s.X)
+			// Also check for string literals directly
+			if !isString {
+				if lit, ok := s.X.(*ast.BasicLit); ok && lit.Kind == token.STRING {
+					isString = true
+				}
+			}
 		} else {
 			// Type info not available - generate error
 			out.WriteString("/* ERROR: Cannot determine range type - type information required */\n")
@@ -1626,23 +1632,37 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 		if isString {
 			// String iteration - iterate over chars
+			// Check if the range target is a string literal (no wrapping needed)
+			_, isStringLit := s.X.(*ast.BasicLit)
 			if s.Key != nil && s.Value != nil {
 				// for i, c := range str
 				out.WriteString("(")
 				TranspileExpression(out, s.Key)
 				out.WriteString(", ")
 				TranspileExpression(out, s.Value)
-				out.WriteString(") in (*")
-				TranspileExpression(out, s.X)
-				WriteBorrowMethod(out, false)
-				out.WriteString(".as_ref().unwrap()).chars().enumerate()")
+				if isStringLit {
+					out.WriteString(") in ")
+					TranspileExpression(out, s.X)
+					out.WriteString(".chars().enumerate()")
+				} else {
+					out.WriteString(") in (*")
+					TranspileExpression(out, s.X)
+					WriteBorrowMethod(out, false)
+					out.WriteString(".as_ref().unwrap()).chars().enumerate()")
+				}
 			} else if s.Value != nil {
 				// for _, c := range str
 				TranspileExpression(out, s.Value)
-				out.WriteString(" in (*")
-				TranspileExpression(out, s.X)
-				WriteBorrowMethod(out, false)
-				out.WriteString(".as_ref().unwrap()).chars()")
+				if isStringLit {
+					out.WriteString(" in ")
+					TranspileExpression(out, s.X)
+					out.WriteString(".chars()")
+				} else {
+					out.WriteString(" in (*")
+					TranspileExpression(out, s.X)
+					WriteBorrowMethod(out, false)
+					out.WriteString(".as_ref().unwrap()).chars()")
+				}
 			}
 		} else if isMap {
 			// Map iteration - need to unwrap the Arc<Mutex<Option<HashMap>>>

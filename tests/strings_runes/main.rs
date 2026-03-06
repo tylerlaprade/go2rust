@@ -7,13 +7,13 @@ fn main() {
 
     let mut i = Rc::new(RefCell::new(Some(0)));
     while (*i.borrow().as_ref().unwrap()) < (*s.borrow().as_ref().unwrap()).len() {
-        print!("{} ", (*s.borrow().as_ref().unwrap()).as_bytes()[(*i.borrow().as_ref().unwrap()) as usize]);
+        print!("{} ", ((*s.borrow().as_ref().unwrap()).as_bytes()[(*i.borrow().as_ref().unwrap()) as usize]) as u8 as char);
         { let mut guard = i.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
     println!();
 
     for (_, r) in "go".to_string().chars().enumerate() {
-        print!("{} ", r);
+        print!("{} ", (r) as u8 as char);
     }
     println!();
 }

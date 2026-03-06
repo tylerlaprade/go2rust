@@ -346,7 +346,7 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 
 // convertFormatStringWithSkips converts Go format verbs to Rust format strings
 // Returns the converted format string and indices of arguments to skip (for %T)
-func convertFormatStringWithSkips(goFormat string) (string, []int) {
+func convertFormatStringWithSkips(goFormat string) (string, []int, []int) {
 	var skipIndices []int
 	format := goFormat
 
@@ -358,6 +358,7 @@ func convertFormatStringWithSkips(goFormat string) (string, []int) {
 
 	// Track which arguments correspond to which verbs
 	argIndex := 0
+	var charIndices []int
 	result := strings.Builder{}
 	i := 0
 	for i < len(format) {
@@ -394,8 +395,12 @@ func convertFormatStringWithSkips(goFormat string) (string, []int) {
 			} else {
 				// Handle single-char format verbs
 				switch format[i+1] {
-				case 'd', 's', 'v', 'f', 't', 'c':
+				case 'd', 's', 'v', 'f', 't':
 					result.WriteString("{}")
+					argIndex++
+				case 'c':
+					result.WriteString("{}")
+					charIndices = append(charIndices, argIndex)
 					argIndex++
 				case 'b':
 					result.WriteString("{:b}")
@@ -421,12 +426,12 @@ func convertFormatStringWithSkips(goFormat string) (string, []int) {
 	finalFormat = strings.ReplaceAll(finalFormat, "__OPEN_BRACE__", "{{")
 	finalFormat = strings.ReplaceAll(finalFormat, "__CLOSE_BRACE__", "}}")
 
-	return finalFormat, skipIndices
+	return finalFormat, skipIndices, charIndices
 }
 
 // convertFormatString converts Go format strings to Rust format strings
 func convertFormatString(goFormat string) string {
-	converted, _ := convertFormatStringWithSkips(goFormat)
+	converted, _, _ := convertFormatStringWithSkips(goFormat)
 	return converted
 }
 
@@ -435,12 +440,14 @@ func transpileFmtPrintf(out *strings.Builder, call *ast.CallExpr) {
 	out.WriteString("(")
 
 	var skipIndices []int
+	var charIndices []int
 	if len(call.Args) > 0 {
 		// First arg is the format string
 		if lit, ok := call.Args[0].(*ast.BasicLit); ok && lit.Kind == token.STRING {
-			// Convert Go format verbs to Rust and get skip indices
-			format, skips := convertFormatStringWithSkips(lit.Value)
+			// Convert Go format verbs to Rust and get skip/char indices
+			format, skips, chars := convertFormatStringWithSkips(lit.Value)
 			skipIndices = skips
+			charIndices = chars
 			out.WriteString(format)
 		} else {
 			TranspileExpression(out, call.Args[0])
@@ -451,14 +458,28 @@ func transpileFmtPrintf(out *strings.Builder, call *ast.CallExpr) {
 			// Check if this argument index should be skipped (0-based in skipIndices)
 			shouldSkip := false
 			for _, skipIdx := range skipIndices {
-				if skipIdx == i-1 { // i-1 because format string is arg 0
+				if skipIdx == i-1 {
 					shouldSkip = true
 					break
 				}
 			}
 			if !shouldSkip {
 				out.WriteString(", ")
-				transpilePrintArg(out, call.Args[i])
+				// Check if this arg needs char casting (%c verb)
+				isCharArg := false
+				for _, charIdx := range charIndices {
+					if charIdx == i-1 {
+						isCharArg = true
+						break
+					}
+				}
+				if isCharArg {
+					out.WriteString("(")
+					transpilePrintArg(out, call.Args[i])
+					out.WriteString(") as u8 as char")
+				} else {
+					transpilePrintArg(out, call.Args[i])
+				}
 			}
 		}
 	}
@@ -477,7 +498,7 @@ func transpileFmtSprintf(out *strings.Builder, call *ast.CallExpr) {
 		// First arg is the format string
 		if lit, ok := call.Args[0].(*ast.BasicLit); ok && lit.Kind == token.STRING {
 			// Convert Go format verbs to Rust and get skip indices
-			format, skips := convertFormatStringWithSkips(lit.Value)
+			format, skips, _ := convertFormatStringWithSkips(lit.Value)
 			skipIndices = skips
 			out.WriteString(format)
 		} else {
