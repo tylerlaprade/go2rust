@@ -281,6 +281,9 @@ func goTypeToRustBase(expr ast.Expr) string {
 					return "GoMutex"
 				}
 			}
+			if ident.Name == "strings" && t.Sel.Name == "Builder" {
+				return "String"
+			}
 		}
 		return fmt.Sprintf("%s_%s", t.X, t.Sel.Name)
 	case *ast.StructType:
@@ -312,6 +315,13 @@ func zeroValueForGoType(expr ast.Expr) string {
 		default:
 			return "Default::default()"
 		}
+	case *ast.SelectorExpr:
+		if ident, ok := t.X.(*ast.Ident); ok {
+			if ident.Name == "strings" && t.Sel.Name == "Builder" {
+				return "String::new()"
+			}
+		}
+		return "Default::default()"
 	case *ast.ArrayType:
 		if t.Len != nil {
 			return "Default::default()"

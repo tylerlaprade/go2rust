@@ -1375,13 +1375,20 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										WriteWrapperPrefix(out)
 										out.WriteString("Default::default())))")
 									case *ast.SelectorExpr:
-										// Package-qualified types like sync.WaitGroup
-										if pkgIdent, ok := t.X.(*ast.Ident); ok && pkgIdent.Name == "sync" {
-											switch t.Sel.Name {
-											case "WaitGroup":
-												out.WriteString(" = WaitGroup::new()")
-											case "Mutex":
-												out.WriteString(" = GoMutex::new()")
+										// Package-qualified types like sync.WaitGroup, strings.Builder
+										if pkgIdent, ok := t.X.(*ast.Ident); ok {
+											if pkgIdent.Name == "sync" {
+												switch t.Sel.Name {
+												case "WaitGroup":
+													out.WriteString(" = WaitGroup::new()")
+												case "Mutex":
+													out.WriteString(" = GoMutex::new()")
+												}
+											} else if pkgIdent.Name == "strings" && t.Sel.Name == "Builder" {
+												out.WriteString(" = ")
+												WriteWrapperPrefix(out)
+												out.WriteString("String::new()")
+												WriteWrapperSuffix(out)
 											}
 										}
 									}

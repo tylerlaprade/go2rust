@@ -1757,6 +1757,52 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 			return
 		}
 
+		// Check if receiver is a strings.Builder (mapped to String) - handle before receiver unwrap
+		if recvTypeInfo := GetTypeInfo(); recvTypeInfo != nil {
+			recvType := recvTypeInfo.GetType(sel.X)
+			if recvType != nil {
+				if named, ok := recvType.(*types.Named); ok {
+					if named.Obj() != nil && named.Obj().Pkg() != nil && named.Obj().Pkg().Path() == "strings" && named.Obj().Name() == "Builder" {
+						// Get receiver name
+						recvName := ""
+						if ident, ok := sel.X.(*ast.Ident); ok {
+							recvName = ident.Name
+						}
+						switch sel.Sel.Name {
+						case "WriteString":
+							out.WriteString("(*")
+							out.WriteString(recvName)
+							WriteBorrowMethod(out, true)
+							out.WriteString(".as_mut().unwrap()).push_str(")
+							// Arg is a string - need &str, not wrapped
+							if len(call.Args) > 0 {
+								if lit, ok := call.Args[0].(*ast.BasicLit); ok && lit.Kind == token.STRING {
+									// String literal - use directly
+									out.WriteString(lit.Value)
+								} else {
+									// Variable - unwrap and borrow
+									out.WriteString("&(*")
+									TranspileExpression(out, call.Args[0])
+									WriteBorrowMethod(out, false)
+									out.WriteString(".as_ref().unwrap())")
+								}
+							}
+							out.WriteString(")")
+							return
+						case "String":
+							WriteWrapperPrefix(out)
+							out.WriteString("(*")
+							out.WriteString(recvName)
+							WriteBorrowMethod(out, false)
+							out.WriteString(".as_ref().unwrap()).clone()")
+							WriteWrapperSuffix(out)
+							return
+						}
+					}
+				}
+			}
+		}
+
 		// This is a method call - handle it specially
 		// For method calls, we need to check if the receiver is a wrapped type or not
 		// If it's a struct variable, we call the method directly

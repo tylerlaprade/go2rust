@@ -505,6 +505,10 @@ run_xfail_test() {
     run_test "tests/strconv_parse"
 }
 
+@test "string_builder" {
+    run_test "tests/string_builder"
+}
+
 @test "string_interpolation" {
     run_test "tests/string_interpolation"
 }
@@ -739,10 +743,6 @@ run_xfail_test() {
 
 @test "XFAIL: stdlib_strings" {
     run_xfail_test "tests/XFAIL/stdlib_strings"
-}
-
-@test "XFAIL: string_builder" {
-    run_xfail_test "tests/XFAIL/string_builder"
 }
 
 @test "XFAIL: struct_embedding" {
