@@ -75,8 +75,8 @@ Stopping at even number 8 (index 7)
 
 === Select with complex channel operations ===
 Received int: 1
-Received string: hello
 Received int: 2
+Received string: hello
 Received string: world
 Channel processing complete
 

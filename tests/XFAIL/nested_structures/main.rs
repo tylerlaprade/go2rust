@@ -1,5 +1,5 @@
 use std::cell::{RefCell};
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
@@ -209,7 +209,7 @@ fn main() {
     println!("{}", "=== Nested maps ===".to_string());
 
         // Map of maps
-    let mut inventory = Rc::new(RefCell::new(Some(HashMap::<String, Rc<RefCell<Option<HashMap<String, i32>>>>>::from([("electronics".to_string(), Rc::new(RefCell::new(Some(/* ERROR: CompositeLit with nil Type - type inference failed */unimplemented!())))), ("furniture".to_string(), Rc::new(RefCell::new(Some(/* ERROR: CompositeLit with nil Type - type inference failed */unimplemented!())))), ("supplies".to_string(), Rc::new(RefCell::new(Some(/* ERROR: CompositeLit with nil Type - type inference failed */unimplemented!()))))]))));
+    let mut inventory = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<BTreeMap<String, i32>>>>>::from([("electronics".to_string(), Rc::new(RefCell::new(Some(/* ERROR: CompositeLit with nil Type - type inference failed */unimplemented!())))), ("furniture".to_string(), Rc::new(RefCell::new(Some(/* ERROR: CompositeLit with nil Type - type inference failed */unimplemented!())))), ("supplies".to_string(), Rc::new(RefCell::new(Some(/* ERROR: CompositeLit with nil Type - type inference failed */unimplemented!()))))]))));
 
     println!("{}", "Inventory:".to_string());
     for (category, items) in (*inventory.borrow().as_ref().unwrap()).clone() {
@@ -232,10 +232,10 @@ fn main() {
     println!("{}", "Matrix:".to_string());
     for (i, row) in (*matrix.borrow_mut().as_mut().unwrap()).iter().enumerate() {
         print!("Row {}: ", i);
-        for (j, val) in row.iter().enumerate() {
+        for (j, val) in row.iter().copied().enumerate() {
         print!("{} ", val);
         if j < (*row.borrow().as_ref().unwrap()).len() - 1 {
-        (*fmt.borrow_mut().as_mut().unwrap())::print(Rc::new(RefCell::new(Some(" ".to_string()))));
+        print!("{}", " ".to_string());
     }
     }
         println!();

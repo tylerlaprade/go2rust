@@ -25,7 +25,7 @@ fn main() {
 
     let mut content = Arc::new(Mutex::new(Some(vec!["Hello, World!".to_string(), "This is line 2".to_string(), "Go file operations".to_string(), "Line 4 with numbers: 123".to_string(), "Final line".to_string()])));
 
-    for (i, line) in (*content.lock().unwrap().as_mut().unwrap()).iter().enumerate() {
+    for (i, line) in (*content.lock().unwrap().as_mut().unwrap()).iter().copied().enumerate() {
         let (_, mut err) = (*file.lock().unwrap().as_mut().unwrap()).write_string(Arc::new(Mutex::new(Some(format!("{}{}", line, "\n".to_string())))));
         if (*err.lock().unwrap()).is_some() {
         print!("Error writing line {}: {}\n", i + 1, format!("{}", (*err.lock().unwrap().as_ref().unwrap())));

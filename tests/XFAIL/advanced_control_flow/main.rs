@@ -17,28 +17,38 @@ where
 }
 
 struct GoChannel<T> {
-    tx: std::sync::Arc<std::sync::Mutex<Option<std::sync::mpsc::Sender<T>>>>,
+    tx: std::sync::Arc<std::sync::Mutex<Option<std::sync::mpsc::SyncSender<T>>>>,
     rx: std::sync::Arc<std::sync::Mutex<std::sync::mpsc::Receiver<T>>>,
 }
 
 impl<T> GoChannel<T> {
     fn new() -> Self {
-        let (tx, rx) = std::sync::mpsc::channel();
+        let (tx, rx) = std::sync::mpsc::sync_channel(0);
         GoChannel {
             tx: std::sync::Arc::new(std::sync::Mutex::new(Some(tx))),
             rx: std::sync::Arc::new(std::sync::Mutex::new(rx)),
         }
     }
 
-    fn new_buffered(_cap: usize) -> Self {
-        // Use unbounded channel for all cases - buffer semantics only affect
-        // blocking behavior, not correctness for most programs
-        Self::new()
+    fn new_buffered(cap: usize) -> Self {
+        let (tx, rx) = std::sync::mpsc::sync_channel(cap);
+        GoChannel {
+            tx: std::sync::Arc::new(std::sync::Mutex::new(Some(tx))),
+            rx: std::sync::Arc::new(std::sync::Mutex::new(rx)),
+        }
     }
 
     fn send(&self, val: T) {
         if let Some(ref tx) = *self.tx.lock().unwrap() {
             let _ = tx.send(val);
+        }
+    }
+
+    fn try_send(&self, val: T) -> bool {
+        if let Some(ref tx) = *self.tx.lock().unwrap() {
+            tx.try_send(val).is_ok()
+        } else {
+            false
         }
     }
 
@@ -309,7 +319,25 @@ fn main() {
     let ch1_closure_clone = ch1.clone(); let ch2_closure_clone = ch2.clone(); let done_closure_clone = done.clone(); let ch1_thread = ch1.clone(); let ch2_thread = ch2.clone(); let done_thread = done.clone(); std::thread::spawn(move || {
         let mut count = Arc::new(Mutex::new(Some(0)));;
         while true {
-        // TODO: Unhandled statement type: SelectStmt
+        loop {
+        if let Some(val) = ch1_thread.try_recv() {
+            let mut val = Arc::new(Mutex::new(Some(val)));
+            print!("Received int: {}\n", (*val.lock().unwrap().as_mut().unwrap()));
+            { let mut guard = count.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
+            break;
+        }
+        if let Some(val) = ch2_thread.try_recv() {
+            let mut val = Arc::new(Mutex::new(Some(val)));
+            print!("Received string: {}\n", (*val.lock().unwrap().as_mut().unwrap()));
+            { let mut guard = count.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
+            break;
+        }
+        if (*count.lock().unwrap().as_mut().unwrap()) >= 4 {
+        done_thread.send(true);
+        return;
+    }
+        break;
+    }
     };;
     });
 
