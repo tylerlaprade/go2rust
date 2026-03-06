@@ -38,10 +38,10 @@ impl Fahrenheit {
 }
 
 fn main() {
-    let mut temp: Rc<RefCell<Option<Celsius>>> = Rc::new(RefCell::new(Some(100)));
+    let mut temp: Rc<RefCell<Option<Celsius>>> = Rc::new(RefCell::new(Some(Celsius(Rc::new(RefCell::new(Some(100)))))));
     print!("{}°C = {}°F\n", (*temp.borrow_mut().as_mut().unwrap()), (*(*temp.borrow_mut().as_mut().unwrap()).to_fahrenheit().borrow().as_ref().unwrap()));
 
-    let mut f: Rc<RefCell<Option<Fahrenheit>>> = Rc::new(RefCell::new(Some(212)));
+    let mut f: Rc<RefCell<Option<Fahrenheit>>> = Rc::new(RefCell::new(Some(Fahrenheit(Rc::new(RefCell::new(Some(212)))))));
     print!("{}°F = {}°C\n", (*f.borrow_mut().as_mut().unwrap()), (*(*f.borrow_mut().as_mut().unwrap()).to_celsius().borrow().as_ref().unwrap()));
 
     let mut s: StringAlias = Rc::new(RefCell::new(Some("hello".to_string())));
