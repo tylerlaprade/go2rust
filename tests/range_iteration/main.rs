@@ -1,5 +1,5 @@
 use std::cell::{RefCell};
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::rc::{Rc};
 
 fn main() {
@@ -10,13 +10,13 @@ fn main() {
     }
     println!("{} {}", "sum:".to_string(), (*sum.borrow_mut().as_mut().unwrap()));
 
-    for (i, num) in (*nums.borrow_mut().as_mut().unwrap()).iter().enumerate() {
+    for (i, num) in (*nums.borrow_mut().as_mut().unwrap()).iter().copied().enumerate() {
         if num == 3 {
         println!("{} {}", "index:".to_string(), i);
     }
     }
 
-    let mut kvs = Rc::new(RefCell::new(Some(HashMap::<String, Rc<RefCell<Option<String>>>>::from([("a".to_string(), Rc::new(RefCell::new(Some("apple".to_string())))), ("b".to_string(), Rc::new(RefCell::new(Some("banana".to_string()))))]))));
+    let mut kvs = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<String>>>>::from([("a".to_string(), Rc::new(RefCell::new(Some("apple".to_string())))), ("b".to_string(), Rc::new(RefCell::new(Some("banana".to_string()))))]))));
     for (k, v) in (*kvs.borrow().as_ref().unwrap()).clone() {
         print!("{} -> {}\n", k, (*v.borrow_mut().as_mut().unwrap()));
     }

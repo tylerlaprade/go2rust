@@ -1,5 +1,5 @@
 use std::any::Any;
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex};
 
 pub fn multiple_returns() -> (Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<String>>>, Arc<Mutex<Option<bool>>>) {
@@ -49,7 +49,7 @@ fn main() {
 
         // Ignore value, use only index
     println!("{}", "Indices only:".to_string());
-    for (i, _) in (*slice.lock().unwrap().as_mut().unwrap()).iter().enumerate() {
+    for (i, _) in (*slice.lock().unwrap().as_mut().unwrap()).iter().copied().enumerate() {
         print!("{} ", i);
     }
     println!();
@@ -64,7 +64,7 @@ fn main() {
         // Ignoring in map iteration
     println!("{}", "\n=== Ignoring in map iteration ===".to_string());
 
-    let mut ages = Arc::new(Mutex::new(Some(HashMap::<String, Arc<Mutex<Option<i32>>>>::from([("Alice".to_string(), Arc::new(Mutex::new(Some(25)))), ("Bob".to_string(), Arc::new(Mutex::new(Some(30)))), ("Carol".to_string(), Arc::new(Mutex::new(Some(35))))]))));
+    let mut ages = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i32>>>>::from([("Alice".to_string(), Arc::new(Mutex::new(Some(25)))), ("Bob".to_string(), Arc::new(Mutex::new(Some(30)))), ("Carol".to_string(), Arc::new(Mutex::new(Some(35))))]))));
 
         // Ignore values, use only keys
     println!("{}", "Keys only:".to_string());

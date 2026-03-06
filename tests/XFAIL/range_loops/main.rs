@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex};
 
 fn main() {
@@ -7,7 +7,7 @@ fn main() {
     let mut numbers = Arc::new(Mutex::new(Some(vec![10, 20, 30, 40, 50])));
 
         // With index and value
-    for (i, num) in (*numbers.lock().unwrap().as_mut().unwrap()).iter().enumerate() {
+    for (i, num) in (*numbers.lock().unwrap().as_mut().unwrap()).iter().copied().enumerate() {
         print!("Index {}: {}\n", i, num);
     }
 
@@ -41,7 +41,7 @@ fn main() {
 
         // Range over map
     println!("{}", "\n=== Range over map ===".to_string());
-    let mut ages = Arc::new(Mutex::new(Some(HashMap::<String, Arc<Mutex<Option<i32>>>>::from([("Alice".to_string(), Arc::new(Mutex::new(Some(25)))), ("Bob".to_string(), Arc::new(Mutex::new(Some(30)))), ("Charlie".to_string(), Arc::new(Mutex::new(Some(35))))]))));
+    let mut ages = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i32>>>>::from([("Alice".to_string(), Arc::new(Mutex::new(Some(25)))), ("Bob".to_string(), Arc::new(Mutex::new(Some(30)))), ("Charlie".to_string(), Arc::new(Mutex::new(Some(35))))]))));
 
     for (name, age) in (*ages.lock().unwrap().as_ref().unwrap()).clone() {
         print!("{} is {} years old\n", name, (*age.lock().unwrap().as_mut().unwrap()));
@@ -98,7 +98,7 @@ fn main() {
     let mut matrix = Arc::new(Mutex::new(Some(vec![Arc::new(Mutex::new(Some(vec![1, 2, 3]))), Arc::new(Mutex::new(Some(vec![4, 5, 6]))), Arc::new(Mutex::new(Some(vec![7, 8, 9])))])));
 
     for (i, row) in (*matrix.lock().unwrap().as_mut().unwrap()).iter().enumerate() {
-        for (j, val) in row.iter().enumerate() {
+        for (j, val) in row.iter().copied().enumerate() {
         print!("matrix[{}][{}] = {}\n", i, j, val);
     }
     }
@@ -106,10 +106,10 @@ fn main() {
         // Range over empty collections
     println!("{}", "\n=== Range over empty collections ===".to_string());
     let mut emptySlice: Arc<Mutex<Option<Vec<i32>>>> = Arc::new(Mutex::new(Some(Default::default())));
-    let mut emptyMap: Arc<Mutex<Option<HashMap<String, i32>>>>;
+    let mut emptyMap: Arc<Mutex<Option<BTreeMap<String, i32>>>>;
 
     println!("{}", "Empty slice:".to_string());
-    for (i, v) in (*emptySlice.lock().unwrap().as_mut().unwrap()).iter().enumerate() {
+    for (i, v) in (*emptySlice.lock().unwrap().as_mut().unwrap()).iter().copied().enumerate() {
         print!("This won't print: {}, {}\n", i, v);
     }
     println!("{}", "Empty slice range completed".to_string());

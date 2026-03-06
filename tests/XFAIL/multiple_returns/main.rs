@@ -100,7 +100,7 @@ pub fn find_in_slice(slice: Rc<RefCell<Option<Vec<i32>>>>, target: Rc<RefCell<Op
     let mut index: Rc<RefCell<Option<i32>>> = Rc::new(RefCell::new(Some(0)));
     let mut found: Rc<RefCell<Option<bool>>> = Rc::new(RefCell::new(Some(false)));
 
-    for (i, val) in (*slice.borrow_mut().as_mut().unwrap()).iter().enumerate() {
+    for (i, val) in (*slice.borrow_mut().as_mut().unwrap()).iter().copied().enumerate() {
         if val == (*target.borrow_mut().as_mut().unwrap()) {
         return (Rc::new(RefCell::new(Some(i))), Rc::new(RefCell::new(Some(true))));
     }

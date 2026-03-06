@@ -1,5 +1,5 @@
 use std::any::Any;
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex};
 
 #[derive(Debug, Clone, Default)]
@@ -73,7 +73,7 @@ fn main() {
         // Map expressions
     println!("{}", "\n=== Map expressions ===".to_string());
 
-    let mut data = Arc::new(Mutex::new(Some(HashMap::<String, Arc<Mutex<Option<i32>>>>::from([("alpha".to_string(), Arc::new(Mutex::new(Some(10)))), ("beta".to_string(), Arc::new(Mutex::new(Some(20)))), ("gamma".to_string(), Arc::new(Mutex::new(Some(30))))]))));
+    let mut data = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i32>>>>::from([("alpha".to_string(), Arc::new(Mutex::new(Some(10)))), ("beta".to_string(), Arc::new(Mutex::new(Some(20)))), ("gamma".to_string(), Arc::new(Mutex::new(Some(30))))]))));
 
     let mut mapResult = Arc::new(Mutex::new(Some((*(*(*data.lock().unwrap().as_ref().unwrap()).get(&"alpha".to_string()).unwrap().lock().unwrap().as_ref().unwrap()).lock().unwrap().as_ref().unwrap()) + (*(*(*data.lock().unwrap().as_ref().unwrap()).get(&"beta".to_string()).unwrap().lock().unwrap().as_ref().unwrap()).lock().unwrap().as_ref().unwrap()) * 2 - (*(*(*data.lock().unwrap().as_ref().unwrap()).get(&"gamma".to_string()).unwrap().lock().unwrap().as_ref().unwrap()).lock().unwrap().as_ref().unwrap()) / 3)));
     print!("data[\"alpha\"] + data[\"beta\"]*2 - data[\"gamma\"]/3 = {}\n", (*mapResult.lock().unwrap().as_mut().unwrap()));
@@ -195,7 +195,7 @@ fn main() {
     println!("{}", "\n=== Range expressions ===".to_string());
 
     let mut total = Arc::new(Mutex::new(Some(0)));
-    for (i, val) in Arc::new(Mutex::new(Some((*numbers.lock().unwrap().as_ref().unwrap())[..5 as usize].to_vec()))).iter().enumerate() {
+    for (i, val) in Arc::new(Mutex::new(Some((*numbers.lock().unwrap().as_ref().unwrap())[..5 as usize].to_vec()))).iter().copied().enumerate() {
         { let mut guard = total.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + i * val + (val % 3)); };
     }
     print!("Complex range calculation: {}\n", (*total.lock().unwrap().as_mut().unwrap()));

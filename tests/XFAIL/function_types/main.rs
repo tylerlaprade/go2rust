@@ -108,7 +108,7 @@ pub fn filter(numbers: Rc<RefCell<Option<Vec<i32>>>>, pred: Rc<RefCell<Option<Pr
 
     let mut result: Rc<RefCell<Option<Vec<i32>>>> = Rc::new(RefCell::new(Some(Default::default())));
     for num in &(*numbers.borrow_mut().as_mut().unwrap()) {
-        if (*pred.borrow().as_ref().unwrap())(Rc::new(RefCell::new(Some(*num)))) {
+        if (*pred.borrow().as_ref().unwrap())(Rc::new(RefCell::new(Some(num)))) {
         {(*result.borrow_mut().as_mut().unwrap()).push(num); result.clone()};
     }
     }
@@ -118,8 +118,8 @@ pub fn filter(numbers: Rc<RefCell<Option<Vec<i32>>>>, pred: Rc<RefCell<Option<Pr
 pub fn transform(numbers: Rc<RefCell<Option<Vec<i32>>>>, op: Rc<RefCell<Option<UnaryOp>>>) -> Rc<RefCell<Option<Vec<i32>>>> {
 
     let mut result = Rc::new(RefCell::new(Some(vec![0; (*numbers.borrow().as_ref().unwrap()).len()])));
-    for (i, num) in (*numbers.borrow_mut().as_mut().unwrap()).iter().enumerate() {
-        (*result.borrow_mut().as_mut().unwrap())[i] = (*(*op.borrow().as_ref().unwrap())(Rc::new(RefCell::new(Some(*num)))).borrow().as_ref().unwrap());
+    for (i, num) in (*numbers.borrow_mut().as_mut().unwrap()).iter().copied().enumerate() {
+        (*result.borrow_mut().as_mut().unwrap())[i] = (*(*op.borrow().as_ref().unwrap())(Rc::new(RefCell::new(Some(num)))).borrow().as_ref().unwrap());
     }
     return result.clone();
 }

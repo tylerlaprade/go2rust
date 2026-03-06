@@ -649,8 +649,8 @@ func transpileMake(out *strings.Builder, call *ast.CallExpr) {
 		// Check if it's a map type
 		if mapType, ok := call.Args[0].(*ast.MapType); ok {
 			WriteWrapperPrefix(out)
-			TrackImport("HashMap")
-			out.WriteString("HashMap::<")
+			TrackImport("BTreeMap")
+			out.WriteString("BTreeMap::<")
 			out.WriteString(goTypeToRustBase(mapType.Key))
 			out.WriteString(", ")
 			out.WriteString(GoTypeToRust(mapType.Value))
@@ -787,7 +787,7 @@ func generateMapFormatter(out *strings.Builder) {
 	if NeedsConcurrentWrapper() {
 		TrackImport("Arc")
 		TrackImport("Mutex")
-		out.WriteString(`fn format_map<K: Display + Ord + Clone, V>(map: &Arc<Mutex<Option<HashMap<K, Arc<Mutex<Option<V>>>>>>>) -> String 
+		out.WriteString(`fn format_map<K: Display + Ord + Clone, V>(map: &Arc<Mutex<Option<BTreeMap<K, Arc<Mutex<Option<V>>>>>>>) -> String 
 where
     V: Display,
 {
@@ -817,7 +817,7 @@ where
 	} else {
 		TrackImport("Rc")
 		TrackImport("RefCell")
-		out.WriteString(`fn format_map<K: Display + Ord + Clone, V>(map: &Rc<RefCell<Option<HashMap<K, Rc<RefCell<Option<V>>>>>>>) -> String 
+		out.WriteString(`fn format_map<K: Display + Ord + Clone, V>(map: &Rc<RefCell<Option<BTreeMap<K, Rc<RefCell<Option<V>>>>>>>) -> String 
 where
     V: Display,
 {

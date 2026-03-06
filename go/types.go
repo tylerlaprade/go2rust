@@ -239,7 +239,7 @@ func goTypeToRustBase(expr ast.Expr) string {
 	case *ast.MapType:
 		keyType := goTypeToRustBase(t.Key)
 		valueType := goTypeToRustBase(t.Value)
-		return "HashMap<" + keyType + ", " + valueType + ">"
+		return "BTreeMap<" + keyType + ", " + valueType + ">"
 	case *ast.StarExpr:
 		// Pointer type - wrap the base type (not already wrapped)
 		innerType := goTypeToRustBase(t.X)

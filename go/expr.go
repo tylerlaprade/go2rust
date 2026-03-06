@@ -937,9 +937,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			WriteWrapperSuffix(out)
 		} else if mapType, ok := e.Type.(*ast.MapType); ok {
 			// Map literal - wrap the whole map in Arc<Mutex<Option<>>>
-			TrackImport("HashMap")
+			TrackImport("BTreeMap")
 			WriteWrapperPrefix(out)
-			out.WriteString("HashMap::<")
+			out.WriteString("BTreeMap::<")
 			out.WriteString(goTypeToRustBase(mapType.Key))
 			out.WriteString(", ")
 			out.WriteString(GoTypeToRust(mapType.Value))

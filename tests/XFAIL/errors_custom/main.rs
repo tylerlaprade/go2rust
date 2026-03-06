@@ -51,7 +51,7 @@ pub fn f2(arg: Rc<RefCell<Option<i32>>>) -> (Rc<RefCell<Option<i32>>>, Rc<RefCel
 
 fn main() {
     for i in &Rc::new(RefCell::new(Some(vec![7, 42]))) {
-        let (mut r, mut e) = f1(Rc::new(RefCell::new(Some(*i))));
+        let (mut r, mut e) = f1(Rc::new(RefCell::new(Some(i))));
     if (*e.borrow()).is_some() {
         println!("{} {}", "f1 failed:".to_string(), format!("{}", (*e.borrow().as_ref().unwrap())));
     } else {
@@ -59,7 +59,7 @@ fn main() {
     }
     }
     for i in &Rc::new(RefCell::new(Some(vec![7, 42]))) {
-        let (mut r, mut e) = f2(Rc::new(RefCell::new(Some(*i))));
+        let (mut r, mut e) = f2(Rc::new(RefCell::new(Some(i))));
     if (*e.borrow()).is_some() {
         println!("{} {}", "f2 failed:".to_string(), format!("{}", (*e.borrow().as_ref().unwrap())));
     } else {

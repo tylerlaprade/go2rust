@@ -1,6 +1,6 @@
 use std::any::Any;
 use std::cell::{RefCell};
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
@@ -94,7 +94,7 @@ struct AnonymousStruct5 {
 #[derive(Debug, Clone, Default)]
 struct AnonymousStruct6 {
     version: Rc<RefCell<Option<String>>>,
-    modules: Rc<RefCell<Option<HashMap<String, AnonymousStruct7>>>>,
+    modules: Rc<RefCell<Option<BTreeMap<String, AnonymousStruct7>>>>,
 }
 
 
@@ -137,7 +137,7 @@ fn main() {
     let mut system: Rc<RefCell<Option<AnonymousStruct6>>>;
 
     { let new_val = "1.0.0".to_string(); *(*system.borrow_mut().as_mut().unwrap()).version.borrow_mut() = Some(new_val); };
-    { let new_val = Rc::new(RefCell::new(Some(HashMap::<String, Rc<RefCell<Option<AnonymousStruct7>>>>::new()))); *(*system.borrow_mut().as_mut().unwrap()).modules.borrow_mut() = Some(new_val); };
+    { let new_val = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<AnonymousStruct7>>>>::new()))); *(*system.borrow_mut().as_mut().unwrap()).modules.borrow_mut() = Some(new_val); };
 
         // Add a module with settings
     let mut authModule = Rc::new(RefCell::new(Some(AnonymousStruct7 { enabled: Rc::new(RefCell::new(Some(true))), settings: Default::default() })));

@@ -1279,13 +1279,27 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				rangeLoopVars[keyName] = keyType
 			}
 		}
+		// Track whether we need .copied() on the iterator to get owned values
+		needsCopied := false
 		if s.Value != nil {
 			if ident, ok := s.Value.(*ast.Ident); ok {
 				valueName = ident.Name
 				// When using iter().enumerate(), the value is a reference
-				// But keep the specific type if we already determined it (e.g., &Box<dyn Any>)
+				// For basic/Copy types, use .copied() to get owned values
 				if s.Key != nil && !isMap && !isString && valueType == "T" {
-					rangeLoopVars[valueName] = "ref_value"
+					// Check if element type is a basic (Copy) type
+					elemType := typeInfo.GetSliceElemType(s.X)
+					if elemType != nil {
+						if basic, ok := elemType.Underlying().(*types.Basic); ok {
+							_ = basic
+							needsCopied = true
+						}
+					}
+					if needsCopied {
+						rangeLoopVars[valueName] = valueType
+					} else {
+						rangeLoopVars[valueName] = "ref_value"
+					}
 				} else {
 					rangeLoopVars[valueName] = valueType
 				}
@@ -1403,7 +1417,11 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					out.WriteString(") in ")
 					// Need to unwrap the collection
 					TranspileExpressionContext(out, s.X, RValue)
-					out.WriteString(".iter().enumerate()")
+					if needsCopied {
+						out.WriteString(".iter().copied().enumerate()")
+					} else {
+						out.WriteString(".iter().enumerate()")
+					}
 				}
 			} else if s.Value != nil {
 				// for _, v := range arr

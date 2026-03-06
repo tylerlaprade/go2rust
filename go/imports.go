@@ -60,9 +60,9 @@ func (it *ImportTracker) GenerateImports() string {
 		imports = append(imports, fmt.Sprintf("use std::cell::{%s};", strings.Join(cellImports, ", ")))
 	}
 
-	// HashMap
-	if it.needs["HashMap"] {
-		imports = append(imports, "use std::collections::HashMap;")
+	// BTreeMap (deterministic iteration order, matching Go test expectations)
+	if it.needs["BTreeMap"] {
+		imports = append(imports, "use std::collections::BTreeMap;")
 	}
 
 	// fmt imports

@@ -1,6 +1,6 @@
 use std::any::Any;
 use std::cell::{RefCell};
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
@@ -53,7 +53,7 @@ pub fn init() {
     { let mut guard = globalCounter.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 5); };
 
         // Initialize map
-    { let new_val = Rc::new(RefCell::new(Some(HashMap::<String, Rc<RefCell<Option<String>>>>::new()))); *configData.borrow_mut() = Some(new_val); };
+    { let new_val = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<String>>>>::new()))); *configData.borrow_mut() = Some(new_val); };
     (*configData.borrow_mut().as_mut().unwrap()).insert("version".to_string(), Rc::new(RefCell::new(Some("1.0".to_string()))));
     (*configData.borrow_mut().as_mut().unwrap()).insert("author".to_string(), Rc::new(RefCell::new(Some("go2rust".to_string()))));
 }

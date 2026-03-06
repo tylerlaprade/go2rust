@@ -4,7 +4,11 @@ use std::rc::{Rc};
 fn main() {
     let mut i = Rc::new(RefCell::new(Some(0)));
 
-    // TODO: Unhandled statement type: LabeledStmt
+    if (*i.borrow_mut().as_mut().unwrap()) < 5 {
+        print!("i = {}\n", (*i.borrow_mut().as_mut().unwrap()));
+        { let mut guard = i.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
+        // TODO: goto not supported
+    }
 
     println!("{}", "First loop done".to_string());
 
@@ -15,7 +19,7 @@ fn main() {
     }
     println!("{}", "This won't print".to_string());
 
-    // TODO: Unhandled statement type: LabeledStmt
+    println!("{}", "Skipped to here".to_string());
 
         // More complex goto pattern
     let mut j = Rc::new(RefCell::new(Some(0)));
@@ -31,5 +35,5 @@ fn main() {
         { let mut guard = j.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
 
-    // TODO: Unhandled statement type: LabeledStmt
+    println!("{}", "All done".to_string());
 }

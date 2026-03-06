@@ -417,6 +417,10 @@ run_xfail_test() {
     run_test "tests/pointers_simple"
 }
 
+@test "range_iteration" {
+    run_test "tests/range_iteration"
+}
+
 @test "recursion_factorial" {
     run_test "tests/recursion_factorial"
 }
@@ -683,10 +687,6 @@ run_xfail_test() {
 
 @test "XFAIL: random_numbers" {
     run_xfail_test "tests/XFAIL/random_numbers"
-}
-
-@test "XFAIL: range_iteration" {
-    run_xfail_test "tests/XFAIL/range_iteration"
 }
 
 @test "XFAIL: range_loops" {
