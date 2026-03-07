@@ -75,6 +75,34 @@ func TranspileExpression(out *strings.Builder, expr ast.Expr) {
 	TranspileExpressionContext(out, expr, RValue)
 }
 
+// writeUnwrappedForFormat writes an expression suitable for use in format!() macro.
+// If the expression produces a wrapped value, it unwraps it first.
+func writeUnwrappedForFormat(out *strings.Builder, expr ast.Expr) {
+	ti := GetTypeInfo()
+	needsUnwrap := false
+	if ti != nil {
+		needsUnwrap = ti.NeedsUnwrapping(expr)
+		// Type conversions to string also produce wrapped values
+		if !needsUnwrap {
+			if call, ok := expr.(*ast.CallExpr); ok {
+				if ident, ok := call.Fun.(*ast.Ident); ok {
+					if ident.Name == "string" {
+						needsUnwrap = true
+					}
+				}
+			}
+		}
+	}
+	if needsUnwrap {
+		out.WriteString("(*")
+		TranspileExpression(out, expr)
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap())")
+	} else {
+		TranspileExpression(out, expr)
+	}
+}
+
 // TranspileExpressionContext transpiles an expression with context about how it's used
 func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprContext) {
 	switch e := expr.(type) {
@@ -628,15 +656,18 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				isStringConcat = true
 			} else if lit, ok := e.Y.(*ast.BasicLit); ok && lit.Kind == token.STRING {
 				isStringConcat = true
+			} else if ti := GetTypeInfo(); ti != nil && ti.IsString(e) {
+				isStringConcat = true
 			}
 
 			if isStringConcat {
 				// Use format! for string concatenation
+				// All arguments must be unwrapped Display values for format!
 				out.WriteString("format!(\"{}{}\"")
 				out.WriteString(", ")
-				TranspileExpression(out, e.X)
+				writeUnwrappedForFormat(out, e.X)
 				out.WriteString(", ")
-				TranspileExpression(out, e.Y)
+				writeUnwrappedForFormat(out, e.Y)
 				out.WriteString(")")
 				return
 			}
@@ -822,7 +853,16 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			TranspileExpression(out, e.High)
 			out.WriteString(" as usize")
 		}
-		out.WriteString("].to_vec()")
+		// Use .to_string() for string slicing, .to_vec() for slice/array
+		isStringSlice := false
+		if typeInfo := GetTypeInfo(); typeInfo != nil {
+			isStringSlice = typeInfo.IsString(e.X)
+		}
+		if isStringSlice {
+			out.WriteString("].to_string()")
+		} else {
+			out.WriteString("].to_vec()")
+		}
 		WriteWrapperSuffix(out)
 
 	case *ast.CompositeLit:
@@ -1617,6 +1657,13 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 						WriteBorrowMethod(out, false)
 						out.WriteString(".as_ref().unwrap()")
 						out.WriteString(") as u32).unwrap().to_string())))")
+						return
+					} else if basic.Kind() == types.Byte || basic.Kind() == types.Uint8 {
+						// Single byte to string - e.g. string(s[0])
+						WriteWrapperPrefix(out)
+						out.WriteString("(")
+						TranspileExpression(out, arg)
+						out.WriteString(" as char).to_string())))")
 						return
 					}
 				}

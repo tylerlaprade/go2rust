@@ -25,14 +25,14 @@ fn main() {
         // String indexing and slicing
     print!("First character: {}\n", ((*str.lock().unwrap().as_ref().unwrap()).as_bytes()[0 as usize]) as u8 as char);
     print!("Last character: {}\n", ((*str.lock().unwrap().as_ref().unwrap()).as_bytes()[(*str.lock().unwrap().as_ref().unwrap()).len() - 1 as usize]) as u8 as char);
-    print!("Substring [0:5]: {}\n", Arc::new(Mutex::new(Some((*str.lock().unwrap().as_ref().unwrap())[0 as usize..5 as usize].to_vec()))));
-    print!("Substring [7:]: {}\n", Arc::new(Mutex::new(Some((*str.lock().unwrap().as_ref().unwrap())[7 as usize..].to_vec()))));
+    print!("Substring [0:5]: {}\n", Arc::new(Mutex::new(Some((*str.lock().unwrap().as_ref().unwrap())[0 as usize..5 as usize].to_string()))));
+    print!("Substring [7:]: {}\n", Arc::new(Mutex::new(Some((*str.lock().unwrap().as_ref().unwrap())[7 as usize..].to_string()))));
 
         // String concatenation
     println!("{}", "\n=== String concatenation ===".to_string());
     let mut first = Arc::new(Mutex::new(Some("Hello".to_string())));
     let mut second = Arc::new(Mutex::new(Some("World".to_string())));
-    let mut combined = Arc::new(Mutex::new(Some(format!("{}{}", format!("{}{}", (*first.lock().unwrap().as_ref().unwrap()), ", ".to_string()) + (*second.lock().unwrap().as_ref().unwrap()), "!".to_string()))));
+    let mut combined = Arc::new(Mutex::new(Some(format!("{}{}", format!("{}{}", format!("{}{}", (*first.lock().unwrap().as_ref().unwrap()), ", ".to_string()), (*second.lock().unwrap().as_ref().unwrap())), "!".to_string()))));
     print!("Concatenated: {}\n", (*combined.lock().unwrap().as_ref().unwrap()));
 
         // Using strings package

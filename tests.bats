@@ -473,6 +473,10 @@ run_xfail_test() {
     run_test "tests/range_iteration"
 }
 
+@test "recursion_basic" {
+    run_test "tests/recursion_basic"
+}
+
 @test "recursion_factorial" {
     run_test "tests/recursion_factorial"
 }
@@ -715,10 +719,6 @@ run_xfail_test() {
 
 @test "XFAIL: rate_limiting" {
     run_xfail_test "tests/XFAIL/rate_limiting"
-}
-
-@test "XFAIL: recursion_basic" {
-    run_xfail_test "tests/XFAIL/recursion_basic"
 }
 
 @test "XFAIL: regex_basic" {

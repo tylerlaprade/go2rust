@@ -55,7 +55,7 @@ pub fn concat(separator: Rc<RefCell<Option<String>>>, strings: Rc<RefCell<Option
     }
     let mut result = Rc::new(RefCell::new(Some((*strings.borrow().as_ref().unwrap())[0 as usize].clone())));
     for str in &Rc::new(RefCell::new(Some((*strings.borrow().as_ref().unwrap())[1 as usize..].to_vec()))) {
-        (*result.borrow_mut().as_mut().unwrap()).push_str(&(*separator.borrow().as_ref().unwrap()) + str);
+        (*result.borrow_mut().as_mut().unwrap()).push_str(&format!("{}{}", (*separator.borrow().as_ref().unwrap()), str));
     }
     return result.clone();
 }
