@@ -285,6 +285,10 @@ run_xfail_test() {
     run_test "tests/blank_identifier_simple"
 }
 
+@test "blank_imports_side_effects" {
+    run_test "tests/blank_imports_side_effects"
+}
+
 @test "builtin_functions" {
     run_test "tests/builtin_functions"
 }
@@ -591,10 +595,6 @@ run_xfail_test() {
 
 @test "XFAIL: blank_identifier" {
     run_xfail_test "tests/XFAIL/blank_identifier"
-}
-
-@test "XFAIL: blank_imports_side_effects" {
-    run_xfail_test "tests/XFAIL/blank_imports_side_effects"
 }
 
 @test "XFAIL: complex_expressions" {

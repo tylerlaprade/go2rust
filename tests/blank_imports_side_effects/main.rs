@@ -3,5 +3,6 @@ pub fn init() {
 }
 
 fn main() {
+    init();
     println!("{}", "main function".to_string());
 }

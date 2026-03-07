@@ -18,5 +18,6 @@ pub fn init() {
 }
 
 fn main() {
+    init();
     print!("In main: a={}, b={}, c={}, d={}\n", (*a.borrow().as_ref().unwrap()), (*b.borrow().as_ref().unwrap()), (*c.borrow().as_ref().unwrap()), (*d.borrow().as_ref().unwrap()));
 }

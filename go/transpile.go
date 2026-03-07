@@ -33,6 +33,9 @@ var statementPreprocessor *StatementPreprocessor
 // pendingLoopLabel is set by LabeledStmt and consumed by ForStmt/RangeStmt
 var pendingLoopLabel string
 
+// hasInitFunction tracks whether the current file has an init() function
+var hasInitFunction bool
+
 // labeledLoopPost maps loop labels to their ForStmt Post statements.
 // Used to emit the post-statement before `continue 'label` in Rust,
 // since Go's `continue label` executes the post-statement but Rust's doesn't.
@@ -376,6 +379,9 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 		externalPackages = make(map[string]bool)
 	}
 
+	// Reset init function tracking
+	hasInitFunction = false
+
 	// Initialize the statement preprocessor
 	statementPreprocessor = NewStatementPreprocessor(fileSet)
 
@@ -421,6 +427,9 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 			} else {
 				// Regular function
 				functions = append(functions, d)
+				if d.Name.Name == "init" {
+					hasInitFunction = true
+				}
 			}
 		case *ast.GenDecl:
 			switch d.Tok {

@@ -229,6 +229,11 @@ func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.Fi
 		}
 	}
 
+	// Call init() at the start of main() if present
+	if fn.Name.Name == "main" && hasInitFunction {
+		out.WriteString("    init();\n")
+	}
+
 	// Check if this function uses defer statements
 	hasDefer := checkHasDefer(fn.Body.List)
 	currentFunctionHasDefer = hasDefer

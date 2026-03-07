@@ -136,6 +136,7 @@ pub fn init() {
 }
 
 fn main() {
+    init();
     println!("{}", "\n=== Main function started ===".to_string());
 
         // Show that all init functions have run
