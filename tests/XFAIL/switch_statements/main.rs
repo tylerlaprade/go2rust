@@ -65,19 +65,30 @@ pub fn switch_without_expression() {
 }
 
 pub fn switch_with_fallthrough(num: Rc<RefCell<Option<i32>>>) {
-    match (*num.borrow().as_ref().unwrap()) {
-        1 => {
+    {
+        let _switch_val = (*num.borrow().as_ref().unwrap());
+        let mut _fallthrough = false;
+        let mut _matched = false;
+        if !_matched && (_switch_val == 1) || _fallthrough {
+            _matched = true;
+            _fallthrough = false;
             println!("{}", "One".to_string());
-            // TODO: fallthrough not supported
+            _fallthrough = true;
         }
-        2 => {
+        if !_matched && (_switch_val == 2) || _fallthrough {
+            _matched = true;
+            _fallthrough = false;
             println!("{}", "Two or after One".to_string());
-            // TODO: fallthrough not supported
+            _fallthrough = true;
         }
-        3 => {
+        if !_matched && (_switch_val == 3) || _fallthrough {
+            _matched = true;
+            _fallthrough = false;
             println!("{}", "Three or after Two or after One".to_string());
         }
-        _ => {
+        if !_matched || _fallthrough {
+            _matched = true;
+            _fallthrough = false;
             println!("{}", "Other number".to_string());
         }
     }

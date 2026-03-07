@@ -25,10 +25,10 @@ impl ServerState {
 }
 
 fn main() {
-    let mut ns = transition(StateIdle.clone());
+    let mut ns = transition(Rc::new(RefCell::new(Some((*StateIdle.borrow().as_ref().unwrap()).clone()))));
     println!("{}", (*ns.borrow().as_ref().unwrap()));
 
-    let mut ns2 = transition(ns.clone());
+    let mut ns2 = transition(Rc::new(RefCell::new(Some((*ns.borrow().as_ref().unwrap()).clone()))));
     println!("{}", (*ns2.borrow().as_ref().unwrap()));
 }
 

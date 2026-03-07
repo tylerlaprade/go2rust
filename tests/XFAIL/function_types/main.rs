@@ -165,20 +165,20 @@ fn main() {
 
         // Higher-order functions
     println!("{}", "\n=== Higher-order functions ===".to_string());
-    let mut result = apply_binary(add.clone(), Rc::new(RefCell::new(Some(10))), Rc::new(RefCell::new(Some(20))));
+    let mut result = apply_binary(Rc::new(RefCell::new(Some((*add.borrow().as_ref().unwrap()).clone()))), Rc::new(RefCell::new(Some(10))), Rc::new(RefCell::new(Some(20))));
     print!("applyBinary(add, 10, 20) = {}\n", (*result.borrow().as_ref().unwrap()));
 
-    { let new_val = apply_binary(multiply.clone(), Rc::new(RefCell::new(Some(4))), Rc::new(RefCell::new(Some(7)))); *result.borrow_mut() = Some(new_val); };
+    { let new_val = apply_binary(Rc::new(RefCell::new(Some((*multiply.borrow().as_ref().unwrap()).clone()))), Rc::new(RefCell::new(Some(4))), Rc::new(RefCell::new(Some(7)))); *result.borrow_mut() = Some(new_val); };
     print!("applyBinary(multiply, 4, 7) = {}\n", (*result.borrow().as_ref().unwrap()));
 
-    let mut unaryResult = apply_unary(square.clone(), Rc::new(RefCell::new(Some(6))));
+    let mut unaryResult = apply_unary(Rc::new(RefCell::new(Some((*square.borrow().as_ref().unwrap()).clone()))), Rc::new(RefCell::new(Some(6))));
     print!("applyUnary(square, 6) = {}\n", (*unaryResult.borrow().as_ref().unwrap()));
 
         // Function slices and filtering
     println!("{}", "\n=== Function slices and filtering ===".to_string());
     let mut numbers = Rc::new(RefCell::new(Some(vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10])));
 
-    let mut evens = filter(numbers.clone(), isEven.clone());
+    let mut evens = filter(numbers.clone(), Rc::new(RefCell::new(Some((*isEven.borrow().as_ref().unwrap()).clone()))));
     print!("Even numbers: {}\n", format_slice(&evens));
 
     let mut odds = filter(numbers.clone(), Rc::new(RefCell::new(Some(Box::new(move |x: Rc<RefCell<Option<i32>>>| -> Rc<RefCell<Option<bool>>> {
@@ -188,7 +188,7 @@ fn main() {
 
         // Transform with function types
     println!("{}", "\n=== Transform operations ===".to_string());
-    let mut squared = transform(Rc::new(RefCell::new(Some(Rc::new(RefCell::new(Some(vec![1, 2, 3, 4, 5])))))), square.clone());
+    let mut squared = transform(Rc::new(RefCell::new(Some(Rc::new(RefCell::new(Some(vec![1, 2, 3, 4, 5])))))), Rc::new(RefCell::new(Some((*square.borrow().as_ref().unwrap()).clone()))));
     print!("Squared: {}\n", format_slice(&squared));
 
     let mut doubled = transform(Rc::new(RefCell::new(Some(Rc::new(RefCell::new(Some(vec![1, 2, 3, 4, 5])))))), Rc::new(RefCell::new(Some(Box::new(move |x: Rc<RefCell<Option<i32>>>| -> Rc<RefCell<Option<i32>>> {
@@ -203,7 +203,7 @@ fn main() {
         // String processing
     println!("{}", "\n=== String processing ===".to_string());
     let mut text = Rc::new(RefCell::new(Some("hello world".to_string())));
-    let mut upper = process_string(text.clone(), toUpper.clone());
+    let mut upper = process_string(Rc::new(RefCell::new(Some((*text.borrow().as_ref().unwrap()).clone()))), Rc::new(RefCell::new(Some((*toUpper.borrow().as_ref().unwrap()).clone()))));
     print!("'{}' -> '{}'\n", (*text.borrow().as_ref().unwrap()), (*upper.borrow().as_ref().unwrap()));
 
     let rune_closure_clone = rune.clone(); let mut reversed = process_string(Rc::new(RefCell::new(Some("hello".to_string()))), Rc::new(RefCell::new(Some(Box::new(move |s: Rc<RefCell<Option<String>>>| -> Rc<RefCell<Option<String>>> {

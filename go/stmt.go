@@ -1911,62 +1911,133 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			out.WriteString("\n    ")
 		}
 
-		out.WriteString("match ")
-		if s.Tag != nil {
-			// Switch with expression
-			TranspileExpression(out, s.Tag)
-		} else {
-			// Switch without expression - use true
-			out.WriteString("true")
-		}
-		out.WriteString(" {\n")
-
-		// Process cases
-		hasDefault := false
+		// Check if any case has fallthrough
+		hasFallthrough := false
 		for _, stmt := range s.Body.List {
 			if caseClause, ok := stmt.(*ast.CaseClause); ok {
-				out.WriteString("        ")
-				if caseClause.List == nil {
-					// default case
-					out.WriteString("_")
-					hasDefault = true
-				} else {
-					// Regular case(s)
-					for i, expr := range caseClause.List {
-						if i > 0 {
-							out.WriteString(" | ")
-						}
-						// For switch without expression, we need to handle boolean conditions
-						if s.Tag == nil {
-							// The expression is a condition, we need to match on true
-							// and put the condition as a guard
-							out.WriteString("true if ")
-							TranspileExpression(out, expr)
-						} else {
-							TranspileExpression(out, expr)
-						}
+				for _, bodyStmt := range caseClause.Body {
+					if branch, ok := bodyStmt.(*ast.BranchStmt); ok && branch.Tok == token.FALLTHROUGH {
+						hasFallthrough = true
+						break
 					}
 				}
-				out.WriteString(" => {\n")
-
-				// Case body
-				var caseBodyLastPos token.Pos = caseClause.Colon
-				for _, bodyStmt := range caseClause.Body {
-					out.WriteString("            ")
-					TranspileStatement(out, bodyStmt, fnType, fileSet, comments, &caseBodyLastPos, "            ")
-					out.WriteString("\n")
+				if hasFallthrough {
+					break
 				}
-
-				out.WriteString("        }\n")
 			}
 		}
 
-		// Add default case if not present (required for exhaustive matching in Rust)
-		if !hasDefault {
-			out.WriteString("        _ => {}\n")
-		}
+		if hasFallthrough {
+			// Rust match doesn't support fallthrough — use if-chain with flags
+			out.WriteString("{\n")
 
-		out.WriteString("    }")
+			if s.Tag != nil {
+				out.WriteString("        let _switch_val = ")
+				TranspileExpression(out, s.Tag)
+				out.WriteString(";\n")
+			}
+			out.WriteString("        let mut _fallthrough = false;\n")
+			out.WriteString("        let mut _matched = false;\n")
+
+			for _, stmt := range s.Body.List {
+				if caseClause, ok := stmt.(*ast.CaseClause); ok {
+					out.WriteString("        ")
+					if caseClause.List == nil {
+						// default case
+						out.WriteString("if !_matched || _fallthrough {\n")
+					} else {
+						out.WriteString("if !_matched && (")
+						for i, expr := range caseClause.List {
+							if i > 0 {
+								out.WriteString(" || ")
+							}
+							if s.Tag != nil {
+								out.WriteString("_switch_val == ")
+							}
+							TranspileExpression(out, expr)
+						}
+						out.WriteString(") || _fallthrough {\n")
+					}
+
+					out.WriteString("            _matched = true;\n")
+					out.WriteString("            _fallthrough = false;\n")
+
+					// Case body — replace fallthrough with flag set
+					var caseBodyLastPos token.Pos = caseClause.Colon
+					for _, bodyStmt := range caseClause.Body {
+						if branch, ok := bodyStmt.(*ast.BranchStmt); ok && branch.Tok == token.FALLTHROUGH {
+							out.WriteString("            _fallthrough = true;\n")
+							continue
+						}
+						out.WriteString("            ")
+						TranspileStatement(out, bodyStmt, fnType, fileSet, comments, &caseBodyLastPos, "            ")
+						out.WriteString("\n")
+					}
+
+					out.WriteString("        }\n")
+				}
+			}
+
+			out.WriteString("    }")
+		} else {
+			// Standard match-based code (no fallthrough)
+			out.WriteString("match ")
+			if s.Tag != nil {
+				// Switch with expression
+				TranspileExpression(out, s.Tag)
+			} else {
+				// Switch without expression - use true
+				out.WriteString("true")
+			}
+			out.WriteString(" {\n")
+
+			// Process cases
+			hasDefault := false
+			for _, stmt := range s.Body.List {
+				if caseClause, ok := stmt.(*ast.CaseClause); ok {
+					out.WriteString("        ")
+					if caseClause.List == nil {
+						// default case
+						out.WriteString("_")
+						hasDefault = true
+					} else {
+						// Regular case(s)
+						for i, expr := range caseClause.List {
+							if i > 0 {
+								out.WriteString(" | ")
+							}
+							// For switch without expression, we need to handle boolean conditions
+							if s.Tag == nil {
+								// The expression is a condition, we need to match on true
+								// and put the condition as a guard
+								out.WriteString("true if ")
+								TranspileExpression(out, expr)
+							} else {
+								TranspileExpression(out, expr)
+							}
+						}
+					}
+					out.WriteString(" => {\n")
+
+					// Case body
+					var caseBodyLastPos token.Pos = caseClause.Colon
+					for _, bodyStmt := range caseClause.Body {
+						out.WriteString("            ")
+						TranspileStatement(out, bodyStmt, fnType, fileSet, comments, &caseBodyLastPos, "            ")
+						out.WriteString("\n")
+					}
+
+					out.WriteString("        }\n")
+				}
+			}
+
+			// Add default case if not present (required for exhaustive matching in Rust)
+			if !hasDefault {
+				out.WriteString("        _ => {}\n")
+			}
+
+			out.WriteString("    }")
+		}
 
 	case *ast.BranchStmt:
 		switch s.Tok {

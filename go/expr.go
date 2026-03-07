@@ -2209,8 +2209,16 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 								out.WriteString(interfaceName)
 								out.WriteString(">)))")
 							}
+						} else if IsParamValueType(funcSig, i) {
+							// Value-type parameter — deep copy to preserve Go's pass-by-value semantics
+							WriteWrapperPrefix(out)
+							out.WriteString("(*")
+							out.WriteString(argVarName)
+							WriteBorrowMethod(out, false)
+							out.WriteString(".as_ref().unwrap()).clone()")
+							WriteWrapperSuffix(out)
 						} else {
-							// Regular variable, just clone it
+							// Regular variable, just clone it (shares Rc for pointer semantics)
 							out.WriteString(argVarName)
 							out.WriteString(".clone()")
 						}
@@ -2270,6 +2278,9 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				TranspileExpression(out, arg)
 			} else if _, isSliceExpr := arg.(*ast.SliceExpr); isSliceExpr {
 				// Slice expressions already wrap themselves
+				TranspileExpression(out, arg)
+			} else if unary, isUnary := arg.(*ast.UnaryExpr); isUnary && unary.Op == token.AND {
+				// Address-of (&var) — produces a clone of the Rc, already wrapped
 				TranspileExpression(out, arg)
 			} else {
 				// Not a simple identifier or function literal, wrap it

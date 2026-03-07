@@ -29,7 +29,7 @@ fn main() {
     println!("{} {} {}", "Before swap:".to_string(), (*x.borrow().as_ref().unwrap()), (*y.borrow().as_ref().unwrap()));
 
         // Swap using function
-    (x, y) = swap(x.clone(), y.clone());
+    (x, y) = swap(Rc::new(RefCell::new(Some((*x.borrow().as_ref().unwrap()).clone()))), Rc::new(RefCell::new(Some((*y.borrow().as_ref().unwrap()).clone()))));
     println!("{} {} {}", "After swap:".to_string(), (*x.borrow().as_ref().unwrap()), (*y.borrow().as_ref().unwrap()));
 
         // Ignoring values

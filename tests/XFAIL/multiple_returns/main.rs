@@ -163,7 +163,7 @@ fn main() {
     println!("{}", "\n=== Swapping values ===".to_string());
     let (mut x, mut y) = (Rc::new(RefCell::new(Some("hello".to_string()))), Rc::new(RefCell::new(Some("world".to_string()))));
     print!("Before swap: x={}, y={}\n", (*x.borrow().as_ref().unwrap()), (*y.borrow().as_ref().unwrap()));
-    (x, y) = swap(x.clone(), y.clone());
+    (x, y) = swap(Rc::new(RefCell::new(Some((*x.borrow().as_ref().unwrap()).clone()))), Rc::new(RefCell::new(Some((*y.borrow().as_ref().unwrap()).clone()))));
     print!("After swap: x={}, y={}\n", (*x.borrow().as_ref().unwrap()), (*y.borrow().as_ref().unwrap()));
 
         // Multiple returns of different types
