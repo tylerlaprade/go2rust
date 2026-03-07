@@ -764,7 +764,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 
 		if isMap && ctx == RValue {
 			// Map read access - need to clone the value
-			out.WriteString("(*(*")
+			out.WriteString("(*")
 			if ident, ok := e.X.(*ast.Ident); ok {
 				out.WriteString(ident.Name)
 			} else {
@@ -789,7 +789,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			}
 			out.WriteString(").unwrap()")
 			WriteBorrowMethod(out, false)
-			out.WriteString(".as_ref().unwrap())")
+			out.WriteString(".as_ref().unwrap().clone()")
 		} else {
 			// Regular array/slice/string indexing
 			// Check if it's a string (returns a byte)
@@ -889,15 +889,19 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 						return
 					case *types.Struct:
 						// Handle struct literal with inferred type
-						// Try to get the struct name from the named type
+						structTypeName := ""
 						if named, ok := typ.(*types.Named); ok {
-							out.WriteString(named.Obj().Name())
+							structTypeName = named.Obj().Name()
 						} else {
-							// Anonymous struct - we'd need to generate a type
+							// Anonymous struct - look up by field matching
+							structTypeName = lookupAnonymousStructName(typ.Underlying().(*types.Struct))
+						}
+						if structTypeName == "" {
 							out.WriteString("/* Anonymous struct literal */")
 							out.WriteString("unimplemented!()")
 							return
 						}
+						out.WriteString(structTypeName)
 						out.WriteString(" { ")
 
 						// Output the fields
@@ -948,6 +952,10 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		}
 		// Handle array/slice literals
 		if arrayType, ok := e.Type.(*ast.ArrayType); ok {
+			// Ensure anonymous struct element types are registered
+			if structElt, ok := arrayType.Elt.(*ast.StructType); ok {
+				generateAnonymousStructType(structElt)
+			}
 			// Check if element type is an interface
 			isInterfaceSlice := false
 			var interfaceName string
@@ -1026,6 +1034,10 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			}
 			WriteWrapperSuffix(out)
 		} else if mapType, ok := e.Type.(*ast.MapType); ok {
+			// Ensure anonymous struct value types are registered
+			if structVal, ok := mapType.Value.(*ast.StructType); ok {
+				generateAnonymousStructType(structVal)
+			}
 			// Map literal - wrap the whole map in Arc<Mutex<Option<>>>
 			TrackImport("BTreeMap")
 			WriteWrapperPrefix(out)
@@ -1286,7 +1298,17 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 						}
 						needComma = true
 						out.WriteString(ToSnakeCase(name.Name))
-						out.WriteString(": Default::default()")
+						out.WriteString(": ")
+						if nestedStruct, ok := field.Type.(*ast.StructType); ok {
+							// Nested struct field needs Some(StructName::default())
+							nestedName := generateAnonymousStructType(nestedStruct)
+							WriteWrapperPrefix(out)
+							out.WriteString(nestedName)
+							out.WriteString("::default()")
+							WriteWrapperSuffix(out)
+						} else {
+							out.WriteString("Default::default()")
+						}
 					}
 				}
 			}

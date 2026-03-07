@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"go/ast"
+	"go/types"
 	"strings"
 )
 
@@ -63,6 +64,45 @@ func generateAnonymousStructType(structType *ast.StructType) string {
 	}
 
 	return typeName
+}
+
+// lookupAnonymousStructName finds the anonymous struct name for a *types.Struct
+// by matching field names against registered anonymous structs.
+func lookupAnonymousStructName(structType *types.Struct) string {
+	numFields := structType.NumFields()
+	for anonName, anonAST := range anonymousStructs {
+		// Count AST fields (expand grouped names)
+		astFieldCount := 0
+		for _, field := range anonAST.Fields.List {
+			if len(field.Names) == 0 {
+				astFieldCount++ // embedded field
+			} else {
+				astFieldCount += len(field.Names)
+			}
+		}
+		if astFieldCount != numFields {
+			continue
+		}
+		// Compare field names in order
+		match := true
+		idx := 0
+		for _, field := range anonAST.Fields.List {
+			for _, name := range field.Names {
+				if idx >= numFields || structType.Field(idx).Name() != name.Name {
+					match = false
+					break
+				}
+				idx++
+			}
+			if !match {
+				break
+			}
+		}
+		if match && idx == numFields {
+			return anonName
+		}
+	}
+	return ""
 }
 
 // GoTypeToRustParam generates Rust type for function parameters

@@ -1386,6 +1386,12 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 											out.WriteString(" = ")
 											WriteWrappedNone(out)
 										}
+									case *ast.StructType:
+										// Anonymous struct type - initialize with default
+										out.WriteString(" = ")
+										WriteWrapperPrefix(out)
+										out.WriteString("Default::default()")
+										WriteWrapperSuffix(out)
 									case *ast.ArrayType:
 										// Initialize array with default values
 										// Arrays are wrapped, so we need Some(default array)
