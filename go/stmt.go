@@ -1500,7 +1500,13 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										out.WriteString(" = ")
 										WriteWrapperPrefix(out)
 										out.WriteString("Default::default())))")
-									case *ast.SelectorExpr:
+									case *ast.MapType:
+									// Initialize map variable with empty map (Go nil map)
+									out.WriteString(" = ")
+									WriteWrapperPrefix(out)
+									out.WriteString("BTreeMap::new()")
+									WriteWrapperSuffix(out)
+								case *ast.SelectorExpr:
 										// Package-qualified types like sync.WaitGroup, strings.Builder
 										if pkgIdent, ok := t.X.(*ast.Ident); ok {
 											if pkgIdent.Name == "sync" {
@@ -1784,7 +1790,12 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					out.WriteString(".chars().enumerate()")
 				} else {
 					out.WriteString(") in (*")
-					TranspileExpression(out, s.X)
+					// Use raw identifier to avoid double-unwrapping
+					if ident, ok := s.X.(*ast.Ident); ok {
+						out.WriteString(ident.Name)
+					} else {
+						TranspileExpression(out, s.X)
+					}
 					WriteBorrowMethod(out, false)
 					out.WriteString(".as_ref().unwrap()).chars().enumerate()")
 				}
@@ -1797,7 +1808,12 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					out.WriteString(".chars()")
 				} else {
 					out.WriteString(" in (*")
-					TranspileExpression(out, s.X)
+					// Use raw identifier to avoid double-unwrapping
+					if ident, ok := s.X.(*ast.Ident); ok {
+						out.WriteString(ident.Name)
+					} else {
+						TranspileExpression(out, s.X)
+					}
 					WriteBorrowMethod(out, false)
 					out.WriteString(".as_ref().unwrap()).chars()")
 				}

@@ -94,7 +94,7 @@ struct AnonymousStruct5 {
 #[derive(Debug, Clone, Default)]
 struct AnonymousStruct6 {
     version: Rc<RefCell<Option<String>>>,
-    modules: Rc<RefCell<Option<BTreeMap<String, AnonymousStruct7>>>>,
+    modules: Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<AnonymousStruct7>>>>>>>,
 }
 
 

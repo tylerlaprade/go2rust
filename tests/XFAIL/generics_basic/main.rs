@@ -54,7 +54,7 @@ impl Unknown {
     }
 }
 
-pub fn map_keys(m: Rc<RefCell<Option<BTreeMap<K, V>>>>) -> Rc<RefCell<Option<Vec<K>>>> {
+pub fn map_keys(m: Rc<RefCell<Option<BTreeMap<K, Rc<RefCell<Option<V>>>>>>>) -> Rc<RefCell<Option<Vec<K>>>> {
 
     let mut r = Rc::new(RefCell::new(Some(Vec::with_capacity((*m.borrow().as_ref().unwrap()).len()))));
     for (k, _) in (*m.borrow().as_ref().unwrap()).clone() {

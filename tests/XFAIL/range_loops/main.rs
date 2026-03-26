@@ -101,7 +101,7 @@ fn main() {
         // Range over string
     println!("{}", "\n=== Range over string ===".to_string());
     let mut text = Arc::new(Mutex::new(Some("Hello, 世界".to_string())));
-    for (i, char) in (*(*text.lock().unwrap().as_ref().unwrap()).lock().unwrap().as_ref().unwrap()).chars().enumerate() {
+    for (i, char) in (*text.lock().unwrap().as_ref().unwrap()).chars().enumerate() {
         print!("Byte {}: {} (Unicode: {:?})\n", i, (char) as u8 as char, char);
     }
 
@@ -177,7 +177,7 @@ fn main() {
         // Range over empty collections
     println!("{}", "\n=== Range over empty collections ===".to_string());
     let mut emptySlice: Arc<Mutex<Option<Vec<i32>>>> = Arc::new(Mutex::new(Some(Default::default())));
-    let mut emptyMap: Arc<Mutex<Option<BTreeMap<String, i32>>>>;
+    let mut emptyMap: Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i32>>>>>>> = Arc::new(Mutex::new(Some(BTreeMap::new())));
 
     println!("{}", "Empty slice:".to_string());
     for (i, v) in (*emptySlice.lock().unwrap().as_ref().unwrap()).iter().copied().enumerate() {

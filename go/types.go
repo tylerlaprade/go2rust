@@ -293,7 +293,7 @@ func goTypeToRustBase(expr ast.Expr) string {
 		return "Vec<" + elemType + ">"
 	case *ast.MapType:
 		keyType := goTypeToRustBase(t.Key)
-		valueType := goTypeToRustBase(t.Value)
+		valueType := GoTypeToRust(t.Value)
 		return "BTreeMap<" + keyType + ", " + valueType + ">"
 	case *ast.StarExpr:
 		// Pointer to sync types → bare type (they handle sharing internally)

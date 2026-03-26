@@ -237,6 +237,18 @@ func (ti *TypeInfo) GetSliceElemType(expr ast.Expr) types.Type {
 	return nil
 }
 
+// GetMapValueType returns the value type of a map, or nil if not a map
+func (ti *TypeInfo) GetMapValueType(expr ast.Expr) types.Type {
+	typ := ti.GetType(expr)
+	if typ == nil {
+		return nil
+	}
+	if mapType, ok := typ.Underlying().(*types.Map); ok {
+		return mapType.Elem()
+	}
+	return nil
+}
+
 // GetBasicKind returns the BasicKind if the type is a basic type
 func (ti *TypeInfo) GetBasicKind(expr ast.Expr) types.BasicKind {
 	typ := ti.GetType(expr)

@@ -1840,6 +1840,14 @@ func TranspileTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr) 
 			rustType = ident.Name
 			defaultValue = "Default::default()"
 		}
+	} else if star, ok := e.Type.(*ast.StarExpr); ok {
+		// Pointer type assertion (*T) - downcast to the bare type T
+		if ident, ok := star.X.(*ast.Ident); ok {
+			rustType = ident.Name
+		} else {
+			rustType = goTypeToRustBase(star.X)
+		}
+		defaultValue = "Default::default()"
 	} else {
 		// Complex type - use the base type
 		rustType = goTypeToRustBase(e.Type)

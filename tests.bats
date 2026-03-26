@@ -357,6 +357,10 @@ run_xfail_test() {
     run_test "tests/error_simple"
 }
 
+@test "errors_custom" {
+    run_test "tests/errors_custom"
+}
+
 @test "external_packages" {
     run_test "tests/external_packages"
 }
@@ -655,10 +659,6 @@ run_xfail_test() {
 
 @test "XFAIL: enums_iota" {
     run_xfail_test "tests/XFAIL/enums_iota"
-}
-
-@test "XFAIL: errors_custom" {
-    run_xfail_test "tests/XFAIL/errors_custom"
 }
 
 @test "XFAIL: file_io" {
