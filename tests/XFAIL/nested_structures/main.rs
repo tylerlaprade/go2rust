@@ -3,6 +3,19 @@ use std::collections::BTreeMap;
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
+fn format_slice<T>(slice: &Rc<RefCell<Option<Vec<T>>>>) -> String 
+where
+    T: Display,
+{
+    let guard = slice.borrow();
+    if let Some(ref s) = *guard {
+        let formatted: Vec<String> = s.iter().map(|v| v.to_string()).collect();
+        format!("[{}]", formatted.join(" "))
+    } else {
+        "[]".to_string()
+    }
+}
+
 /// Interface for drawing
 trait Drawable: std::fmt::Display {
     fn draw(&self) -> Rc<RefCell<Option<String>>>;
@@ -34,7 +47,7 @@ impl std::fmt::Display for Rectangle {
 }
 
 
-#[derive(Debug, Clone, Default)]
+#[derive(Clone, Default)]
 struct Canvas {
     name: Rc<RefCell<Option<String>>>,
     shapes: Rc<RefCell<Option<Vec<Box<dyn Drawable>>>>>,
@@ -209,7 +222,7 @@ fn main() {
     println!("{}", "=== Nested maps ===".to_string());
 
         // Map of maps
-    let mut inventory = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<BTreeMap<String, i32>>>>>::from([("electronics".to_string(), Rc::new(RefCell::new(Some(/* ERROR: CompositeLit with nil Type - type inference failed */unimplemented!())))), ("furniture".to_string(), Rc::new(RefCell::new(Some(/* ERROR: CompositeLit with nil Type - type inference failed */unimplemented!())))), ("supplies".to_string(), Rc::new(RefCell::new(Some(/* ERROR: CompositeLit with nil Type - type inference failed */unimplemented!()))))]))));
+    let mut inventory = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i32>>>>>>>>::from([("electronics".to_string(), Rc::new(RefCell::new(Some(/* ERROR: CompositeLit with nil Type - type inference failed */unimplemented!())))), ("furniture".to_string(), Rc::new(RefCell::new(Some(/* ERROR: CompositeLit with nil Type - type inference failed */unimplemented!())))), ("supplies".to_string(), Rc::new(RefCell::new(Some(/* ERROR: CompositeLit with nil Type - type inference failed */unimplemented!()))))]))));
 
     println!("{}", "Inventory:".to_string());
     for (category, items) in (*inventory.borrow().as_ref().unwrap()).clone() {

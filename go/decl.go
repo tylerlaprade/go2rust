@@ -388,7 +388,28 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 
 		structDefs[typeSpec.Name.Name] = structDef
 
-		out.WriteString("#[derive(Debug, Clone, Default)]\n")
+		// Check if any field contains a trait object (dyn), which doesn't implement Debug
+		hasTraitField := false
+		for _, field := range t.Fields.List {
+			fieldType := goTypeToRustBase(field.Type)
+			if strings.Contains(fieldType, "dyn ") {
+				hasTraitField = true
+				break
+			}
+			// Also check slice of interface
+			if arrayType, ok := field.Type.(*ast.ArrayType); ok && arrayType.Len == nil {
+				elemType := goTypeToRustBase(arrayType.Elt)
+				if strings.Contains(elemType, "dyn ") {
+					hasTraitField = true
+					break
+				}
+			}
+		}
+		if hasTraitField {
+			out.WriteString("#[derive(Clone, Default)]\n")
+		} else {
+			out.WriteString("#[derive(Debug, Clone, Default)]\n")
+		}
 		out.WriteString("struct ")
 		out.WriteString(typeSpec.Name.Name)
 		out.WriteString(" {\n")

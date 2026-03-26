@@ -29,9 +29,9 @@ Inventory:
     phones: 100
     tablets: 25
   furniture:
-    lamps: 150
     chairs: 200
     desks: 75
+    lamps: 150
   supplies:
     pens: 1000
     paper: 500

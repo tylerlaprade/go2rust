@@ -4,6 +4,18 @@ use std::collections::BTreeMap;
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
+fn format_slice<T>(slice: &Rc<RefCell<Option<Vec<T>>>>) -> String 
+where
+    T: Display,
+{
+    let guard = slice.borrow();
+    if let Some(ref s) = *guard {
+        let formatted: Vec<String> = s.iter().map(|v| v.to_string()).collect();
+        format!("[{}]", formatted.join(" "))
+    } else {
+        "[]".to_string()
+    }
+}
 
 fn format_any(value: &dyn Any) -> String {
     if let Some(v) = value.downcast_ref::<i32>() {
