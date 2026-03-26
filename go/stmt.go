@@ -1153,9 +1153,35 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										WriteBorrowMethod(out, true)
 										out.WriteString(" = Some(new_val); }")
 									} else {
+										// Check if RHS is a wrapped variable - use clone for non-Copy types
+										rhsIsWrappedVar := false
+										if rhsIdent, ok := s.Rhs[0].(*ast.Ident); ok {
+											if rhsIdent.Name != "true" && rhsIdent.Name != "false" && rhsIdent.Name != "nil" {
+												if _, isRange := rangeLoopVars[rhsIdent.Name]; !isRange {
+													if _, isConst := localConstants[rhsIdent.Name]; !isConst {
+														if !isVarBare(rhsIdent.Name) {
+															rhsIsWrappedVar = true
+														}
+													}
+												}
+											}
+										}
 										out.WriteString("{ ")
 										out.WriteString("let new_val = ")
-										TranspileExpression(out, s.Rhs[0])
+										if rhsIsWrappedVar {
+											// Use clone to avoid moving non-Copy types like String
+											rhsVarName := s.Rhs[0].(*ast.Ident).Name
+											if currentCaptureRenames != nil {
+												if renamed, exists := currentCaptureRenames[rhsVarName]; exists {
+													rhsVarName = renamed
+												}
+											}
+											out.WriteString(ToSnakeCase(rhsVarName))
+											WriteBorrowMethod(out, false)
+											out.WriteString(".as_ref().unwrap().clone()")
+										} else {
+											TranspileExpression(out, s.Rhs[0])
+										}
 										out.WriteString("; ")
 										out.WriteString("*")
 										TranspileExpressionContext(out, s.Lhs[0], LValue)

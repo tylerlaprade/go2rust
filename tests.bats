@@ -341,6 +341,10 @@ run_xfail_test() {
     run_test "tests/defer_statements"
 }
 
+@test "embedded_method_promotion" {
+    run_test "tests/embedded_method_promotion"
+}
+
 @test "embedded_structs" {
     run_test "tests/embedded_structs"
 }
@@ -647,10 +651,6 @@ run_xfail_test() {
 
 @test "XFAIL: crypto_hash" {
     run_xfail_test "tests/XFAIL/crypto_hash"
-}
-
-@test "XFAIL: embedded_method_promotion" {
-    run_xfail_test "tests/XFAIL/embedded_method_promotion"
 }
 
 @test "XFAIL: enums_iota" {

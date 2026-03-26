@@ -157,10 +157,10 @@ fn main() {
     println!("{}", "=== Basic function types ===".to_string());
 
     let mut op: Rc<RefCell<Option<BinaryOp>>> = Rc::new(RefCell::new(Some(Default::default())));
-    { let new_val = (*add.borrow().as_ref().unwrap()); *op.borrow_mut() = Some(new_val); };
+    { let new_val = add.borrow().as_ref().unwrap().clone(); *op.borrow_mut() = Some(new_val); };
     print!("5 + 3 = {}\n", (*(*op.borrow().as_ref().unwrap())(Rc::new(RefCell::new(Some(5))), Rc::new(RefCell::new(Some(3)))).borrow().as_ref().unwrap()));
 
-    { let new_val = (*multiply.borrow().as_ref().unwrap()); *op.borrow_mut() = Some(new_val); };
+    { let new_val = multiply.borrow().as_ref().unwrap().clone(); *op.borrow_mut() = Some(new_val); };
     print!("5 * 3 = {}\n", (*(*op.borrow().as_ref().unwrap())(Rc::new(RefCell::new(Some(5))), Rc::new(RefCell::new(Some(3)))).borrow().as_ref().unwrap()));
 
         // Higher-order functions
@@ -249,7 +249,7 @@ fn main() {
         // Function variables
     println!("{}", "\n=== Function variables ===".to_string());
     let mut processor: Rc<RefCell<Option<StringProcessor>>> = Rc::new(RefCell::new(Some(Default::default())));
-    { let new_val = (*toUpper.borrow().as_ref().unwrap()); *processor.borrow_mut() = Some(new_val); };
+    { let new_val = to_upper.borrow().as_ref().unwrap().clone(); *processor.borrow_mut() = Some(new_val); };
     print!("Using toUpper: {}\n", (*(*processor.borrow().as_ref().unwrap())(Rc::new(RefCell::new(Some("test".to_string())))).borrow().as_ref().unwrap()));
 
     { let new_val = Rc::new(RefCell::new(Some(Box::new(move |s: Rc<RefCell<Option<String>>>| -> Rc<RefCell<Option<String>>> {

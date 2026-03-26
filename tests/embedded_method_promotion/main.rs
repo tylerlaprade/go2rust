@@ -87,7 +87,7 @@ impl Logger {
     }
 
     pub fn set_prefix(&mut self, prefix: Rc<RefCell<Option<String>>>) {
-        { let new_val = (*prefix.borrow().as_ref().unwrap()); *self.prefix.borrow_mut() = Some(new_val); };
+        { let new_val = prefix.borrow().as_ref().unwrap().clone(); *self.prefix.borrow_mut() = Some(new_val); };
     }
 }
 
@@ -114,7 +114,7 @@ impl Service {
     /// Method that shadows embedded method
     pub fn value(&self) -> Rc<RefCell<Option<i32>>> {
                 // This should shadow Counter.Value()
-        return Rc::new(RefCell::new(Some((*(*self.counter.clone().borrow().as_mut().unwrap()).value().borrow().as_ref().unwrap()) * 10)));
+        return Rc::new(RefCell::new(Some((*(*self.counter.borrow().as_ref().unwrap()).value().borrow().as_ref().unwrap()) * 10)));
     }
 
     pub fn add(&mut self, n: Rc<RefCell<Option<i32>>>) {
@@ -156,7 +156,7 @@ impl Base {
     }
 
     pub fn set_i_d(&mut self, id: Rc<RefCell<Option<i32>>>) {
-        { let new_val = (*id.borrow().as_ref().unwrap()); *self.id.borrow_mut() = Some(new_val); };
+        { let new_val = id.borrow().as_ref().unwrap().clone(); *self.id.borrow_mut() = Some(new_val); };
     }
 }
 
@@ -225,7 +225,7 @@ fn main() {
         // Call promoted methods from Counter
     (*svc.borrow_mut().as_mut().unwrap()).increment();
     (*svc.borrow_mut().as_mut().unwrap()).add(Rc::new(RefCell::new(Some(5))));
-    print!("Counter value (via promoted method): {}\n", (*(*(*(*svc.borrow().as_ref().unwrap()).counter.borrow().as_ref().unwrap()).borrow().as_mut().unwrap()).value().borrow().as_ref().unwrap()));
+    print!("Counter value (via promoted method): {}\n", (*(*(*svc.borrow().as_ref().unwrap()).counter.borrow().as_ref().unwrap()).value().borrow().as_ref().unwrap()));
 
         // Call Service's own methods
     print!("Service name: {}\n", (*(*svc.borrow().as_ref().unwrap()).name().borrow().as_ref().unwrap()));
@@ -237,7 +237,7 @@ fn main() {
 
     (*svcPtr.borrow().as_ref().unwrap()).log(Rc::new(RefCell::new(Some("Pointer service".to_string()))));
     (*svcPtr.borrow_mut().as_mut().unwrap()).increment();
-    print!("Pointer service counter: {}\n", (*(*(*(*svcPtr.borrow().as_ref().unwrap()).counter.borrow().as_ref().unwrap()).borrow().as_mut().unwrap()).value().borrow().as_ref().unwrap()));
+    print!("Pointer service counter: {}\n", (*(*(*svcPtr.borrow().as_ref().unwrap()).counter.borrow().as_ref().unwrap()).value().borrow().as_ref().unwrap()));
 
         // Test multi-level embedding
     println!("{}", "\n=== Multi-level embedding ===".to_string());

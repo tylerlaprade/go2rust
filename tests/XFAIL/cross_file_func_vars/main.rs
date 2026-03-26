@@ -44,9 +44,9 @@ fn main() {
         // Function variable in conditional
     let mut conditionalFunc: Rc<RefCell<Option<Box<dyn Fn(Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>>>>>;
     if (*result.borrow().as_ref().unwrap()) > 0 {
-        { let new_val = PROCESS_DATA; *conditionalFunc.borrow_mut() = Some(new_val); };
+        { let new_val = process_data.borrow().as_ref().unwrap().clone(); *conditionalFunc.borrow_mut() = Some(new_val); };
     } else {
-        { let new_val = REGULAR_DOUBLE; *conditionalFunc.borrow_mut() = Some(new_val); };
+        { let new_val = regular_double.borrow().as_ref().unwrap().clone(); *conditionalFunc.borrow_mut() = Some(new_val); };
     }
     print!("Conditional func(6) = {}\n", (*(*conditionalFunc.borrow().as_ref().unwrap())(Rc::new(RefCell::new(Some(6)))).borrow().as_ref().unwrap()));
 }

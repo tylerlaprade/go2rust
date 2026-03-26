@@ -2062,15 +2062,16 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				out.WriteString(".")
 			} else {
 				// Method call on a field (e.g., s.Counter.Value())
-				// The field is wrapped, so we need to unwrap it
-				// Use mutable borrow only for pointer receiver methods
+				// The field is wrapped in Rc<RefCell<Option<T>>>, so unwrap it.
+				// Use LValue context so the field itself stays as the Rc wrapper,
+				// then we add one borrow/unwrap layer to get &T or &mut T.
 				fieldNeedsMut := false
 				typeInfo2 := GetTypeInfo()
 				if typeInfo2 != nil {
 					fieldNeedsMut = typeInfo2.HasPointerReceiver(sel)
 				}
 				out.WriteString("(*")
-				TranspileExpression(out, fieldSel)
+				TranspileExpressionContext(out, fieldSel, LValue)
 				WriteBorrowMethod(out, false)
 				if fieldNeedsMut {
 					out.WriteString(".as_mut().unwrap()).")

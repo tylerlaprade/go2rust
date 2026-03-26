@@ -15,7 +15,7 @@ fn main() {
     }
     }
     __defer_stack.push(Box::new(move || {
-        (*(*(*resp.lock().unwrap().as_ref().unwrap()).body.lock().unwrap().as_ref().unwrap()).lock().unwrap().as_mut().unwrap()).close();
+        (*(*resp.lock().unwrap().as_ref().unwrap()).body.lock().unwrap().as_ref().unwrap()).close();
     }));
 
     let (mut body, _) = (*io.lock().unwrap().as_ref().unwrap())::read_all(Arc::new(Mutex::new(Some((*(*resp.lock().unwrap().as_ref().unwrap()).body.lock().unwrap().as_ref().unwrap())))));
