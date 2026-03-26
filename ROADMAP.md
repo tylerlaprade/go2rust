@@ -32,6 +32,7 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 - ✅ Interfaces - empty interface{} and named interfaces working with trait generation (2025-09-04)
 - ✅ VarTable selective wrapping - scope-aware variable tracking, interface params as bare `&dyn Trait` (2026-03-05)
 - ✅ Error handling - custom error types with Error() method, Box<dyn Error> returns, error assignment (2026-03-26)
+- ✅ Embedded method promotion - multi-level embedding, promoted method calls, field method chains (2026-03-26)
 
 ### 📋 Phase 6: Control Flow Extensions
 
