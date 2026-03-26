@@ -1771,8 +1771,26 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					} else {
 						TranspileExpression(out, s.Value)
 					}
-					out.WriteString(" in &")
-					TranspileExpressionContext(out, s.X, RValue)
+					// For numeric/bool (Rust Copy) types, use .iter().copied()
+					// to get owned values instead of &(...) which gives references
+					elemTypeV := typeInfo.GetSliceElemType(s.X)
+					valCopied := false
+					if elemTypeV != nil {
+						if basic, ok := elemTypeV.Underlying().(*types.Basic); ok {
+							info := basic.Info()
+							if info&types.IsNumeric != 0 || info&types.IsBoolean != 0 {
+								valCopied = true
+							}
+						}
+					}
+					if valCopied {
+						out.WriteString(" in ")
+						TranspileExpressionContext(out, s.X, RValue)
+						out.WriteString(".iter().copied()")
+					} else {
+						out.WriteString(" in &")
+						TranspileExpressionContext(out, s.X, RValue)
+					}
 				} else {
 					// for i, v := range arr
 					out.WriteString("(")
@@ -1804,8 +1822,25 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				} else {
 					TranspileExpression(out, s.Value)
 				}
-				out.WriteString(" in &")
-				TranspileExpressionContext(out, s.X, RValue)
+				// For numeric/bool (Rust Copy) types, use .iter().copied()
+				elemTypeV2 := typeInfo.GetSliceElemType(s.X)
+				valCopied2 := false
+				if elemTypeV2 != nil {
+					if basic, ok := elemTypeV2.Underlying().(*types.Basic); ok {
+						info := basic.Info()
+						if info&types.IsNumeric != 0 || info&types.IsBoolean != 0 {
+							valCopied2 = true
+						}
+					}
+				}
+				if valCopied2 {
+					out.WriteString(" in ")
+					TranspileExpressionContext(out, s.X, RValue)
+					out.WriteString(".iter().copied()")
+				} else {
+					out.WriteString(" in &")
+					TranspileExpressionContext(out, s.X, RValue)
+				}
 			} else if s.Key != nil {
 				// for i := range arr
 				if ident, ok := s.Key.(*ast.Ident); ok {
