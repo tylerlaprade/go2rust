@@ -643,7 +643,7 @@ func transpileFmtSprintf(out *strings.Builder, call *ast.CallExpr) {
 
 func transpileFmtErrorf(out *strings.Builder, call *ast.CallExpr) {
 	WriteWrapperPrefix(out)
-	out.WriteString("Box::new(format!")
+	out.WriteString("Box::<dyn Error + Send + Sync>::from(format!")
 	out.WriteString("(")
 
 	if len(call.Args) > 0 {
@@ -663,7 +663,7 @@ func transpileFmtErrorf(out *strings.Builder, call *ast.CallExpr) {
 		}
 	}
 
-	out.WriteString(")) as Box<dyn Error + Send + Sync>)))")
+	out.WriteString(")))))")
 }
 
 func transpileErrorsNew(out *strings.Builder, call *ast.CallExpr) {
