@@ -1370,11 +1370,20 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									case *ast.Ident:
 										switch t.Name {
 										case "string":
-											out.WriteString(" = String::new()")
+											out.WriteString(" = ")
+											WriteWrapperPrefix(out)
+											out.WriteString("String::new()")
+											WriteWrapperSuffix(out)
 										case "int":
-											out.WriteString(" = 0")
+											out.WriteString(" = ")
+											WriteWrapperPrefix(out)
+											out.WriteString("0")
+											WriteWrapperSuffix(out)
 										default:
-											out.WriteString(" = Default::default()")
+											out.WriteString(" = ")
+											WriteWrapperPrefix(out)
+											out.WriteString("Default::default()")
+											WriteWrapperSuffix(out)
 										}
 									case *ast.StarExpr:
 										// Pointer type - initialize with None
