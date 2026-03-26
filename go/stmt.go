@@ -417,7 +417,12 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 								WriteWrappedNone(out)
 							} else {
 								WriteWrapperPrefix(out)
-								TranspileExpression(out, result)
+								// Cast usize range index to i32 when wrapping
+								if varType, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar && varType == "usize" {
+									out.WriteString(ToSnakeCase(ident.Name) + " as i32")
+								} else {
+									TranspileExpression(out, result)
+								}
 								WriteWrapperSuffix(out)
 							}
 						}
@@ -910,20 +915,27 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					}
 					out.WriteString(")")
 				} else {
-					// For reassignment, we need temporary variables in Rust
-					// This is a simplification - just do individual assignments
+					// For reassignment, use temporaries to handle swaps correctly
 					out.WriteString("{ ")
-					for i := range s.Lhs {
+					// First, capture all RHS values into temporaries
+					for i, rhs := range s.Rhs {
 						if i > 0 {
-							out.WriteString("; ")
+							out.WriteString(" ")
 						}
-						// Assignment to wrapped variable: *var.lock().unwrap() = Some(value)
-						out.WriteString("*")
-						TranspileExpression(out, s.Lhs[i])
+						out.WriteString(fmt.Sprintf("let __tmp_%d = ", i))
+						TranspileExpression(out, rhs)
+						out.WriteString(";")
+					}
+					// Then assign all LHS from temporaries
+					for i, lhs := range s.Lhs {
+						out.WriteString(" *")
+						if ident, ok := lhs.(*ast.Ident); ok {
+							out.WriteString(ToSnakeCase(ident.Name))
+						} else {
+							TranspileExpressionContext(out, lhs, LValue)
+						}
 						WriteBorrowMethod(out, true)
-						out.WriteString(" = Some(")
-						TranspileExpression(out, s.Rhs[i])
-						out.WriteString(")")
+						out.WriteString(fmt.Sprintf(" = Some(__tmp_%d);", i))
 					}
 					out.WriteString(" }")
 				}

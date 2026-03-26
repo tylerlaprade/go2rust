@@ -1,0 +1,8 @@
+[package]
+name = "multiple_returns"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "multiple_returns"
+path = "main.rs"

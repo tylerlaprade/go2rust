@@ -760,9 +760,10 @@ func transpileStrconvItoa(out *strings.Builder, call *ast.CallExpr) {
 
 func transpileStrconvAtoi(out *strings.Builder, call *ast.CallExpr) {
 	if len(call.Args) > 0 {
-		out.WriteString("match ")
+		// Capture input string for Go-compatible error message
+		out.WriteString("{ let __atoi_input = ")
 		TranspileExpression(out, call.Args[0])
-		out.WriteString(".parse::<i32>() { ")
+		out.WriteString(".clone(); match __atoi_input.parse::<i32>() { ")
 		out.WriteString("Ok(n) => (")
 		WriteWrapperPrefix(out)
 		out.WriteString("n))), ")
@@ -773,7 +774,7 @@ func transpileStrconvAtoi(out *strings.Builder, call *ast.CallExpr) {
 		WriteWrapperPrefix(out)
 		out.WriteString("0))), ")
 		WriteWrapperPrefix(out)
-		out.WriteString("Box::new(e) as Box<dyn Error + Send + Sync>)))) }")
+		out.WriteString("Box::<dyn Error + Send + Sync>::from(format!(\"strconv.Atoi: parsing \\\"{}\\\": invalid syntax\", __atoi_input)))))) } }")
 	}
 }
 
