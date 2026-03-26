@@ -2063,11 +2063,20 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 			} else {
 				// Method call on a field (e.g., s.Counter.Value())
 				// The field is wrapped, so we need to unwrap it
+				// Use mutable borrow only for pointer receiver methods
+				fieldNeedsMut := false
+				typeInfo2 := GetTypeInfo()
+				if typeInfo2 != nil {
+					fieldNeedsMut = typeInfo2.HasPointerReceiver(sel)
+				}
 				out.WriteString("(*")
 				TranspileExpression(out, fieldSel)
-				out.WriteString("")
 				WriteBorrowMethod(out, false)
-				out.WriteString(".as_mut().unwrap()).")
+				if fieldNeedsMut {
+					out.WriteString(".as_mut().unwrap()).")
+				} else {
+					out.WriteString(".as_ref().unwrap()).")
+				}
 			}
 		} else {
 			// Other complex expression - just transpile it
