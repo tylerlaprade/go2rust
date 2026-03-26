@@ -52,6 +52,6 @@ fn main() {
     }
     (*keys.borrow_mut().as_mut().unwrap()).sort();
     for k in &(*keys.borrow().as_ref().unwrap()) {
-        println!("{} {} {}", k, "->".to_string(), (*(*colors.borrow().as_ref().unwrap()).get(k).unwrap().borrow().as_ref().unwrap()));
+        println!("{} {} {}", k, "->".to_string(), (*colors.borrow().as_ref().unwrap()).get(k).unwrap().borrow().as_ref().unwrap().clone());
     }
 }

@@ -115,7 +115,7 @@ fn main() {
     }
     (*sortedNames.lock().unwrap().as_mut().unwrap()).sort();
     for name in &(*sortedNames.lock().unwrap().as_ref().unwrap()) {
-        print!("{} is {} years old\n", name, (*(*ages.lock().unwrap().as_ref().unwrap()).get(name).unwrap().lock().unwrap().as_ref().unwrap()));
+        print!("{} is {} years old\n", name, (*ages.lock().unwrap().as_ref().unwrap()).get(name).unwrap().lock().unwrap().as_ref().unwrap().clone());
     }
 
         // Only keys

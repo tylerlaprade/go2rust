@@ -37,7 +37,7 @@ fn main() {
     (*m.borrow_mut().as_mut().unwrap()).insert("k2".to_string(), Rc::new(RefCell::new(Some(13))));
     println!("{} {}", "map:".to_string(), format_map(&m));
 
-    let mut v1 = Rc::new(RefCell::new(Some((*(*m.borrow().as_ref().unwrap()).get(&"k1".to_string()).unwrap().borrow().as_ref().unwrap()))));
+    let mut v1 = Rc::new(RefCell::new(Some((*m.borrow().as_ref().unwrap()).get(&"k1".to_string()).unwrap().borrow().as_ref().unwrap().clone())));
     println!("{} {}", "v1:".to_string(), (*v1.borrow().as_ref().unwrap()));
 
     (*m.borrow_mut().as_mut().unwrap()).remove(&"k2".to_string());

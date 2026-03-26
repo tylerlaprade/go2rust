@@ -20,7 +20,7 @@ impl Display for ServerState {
 
 impl ServerState {
     pub fn string(&self) -> Rc<RefCell<Option<String>>> {
-        return Rc::new(RefCell::new(Some((*(*stateName.borrow().as_ref().unwrap()).get(&(*self.0.borrow().as_ref().unwrap())).unwrap().borrow().as_ref().unwrap()))));
+        return Rc::new(RefCell::new(Some((*stateName.borrow().as_ref().unwrap()).get(&(*self.0.borrow().as_ref().unwrap())).unwrap().borrow().as_ref().unwrap().clone())));
     }
 }
 
