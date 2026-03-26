@@ -2372,6 +2372,18 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 			} else if _, isSliceExpr := arg.(*ast.SliceExpr); isSliceExpr {
 				// Slice expressions already wrap themselves
 				TranspileExpression(out, arg)
+			} else if compositeLit, isCompLit := arg.(*ast.CompositeLit); isCompLit {
+				// Composite literals (slice/map/array) already wrap themselves
+				// But struct literals passed to functions need wrapping
+				_, isStructType := compositeLit.Type.(*ast.Ident)
+				_, isAnonymousStruct := compositeLit.Type.(*ast.StructType)
+				if isStructType || isAnonymousStruct {
+					WriteWrapperPrefix(out)
+					TranspileExpression(out, arg)
+					WriteWrapperSuffix(out)
+				} else {
+					TranspileExpression(out, arg)
+				}
 			} else if unary, isUnary := arg.(*ast.UnaryExpr); isUnary && unary.Op == token.AND {
 				// Address-of (&var) — produces a clone of the Rc, already wrapped
 				TranspileExpression(out, arg)

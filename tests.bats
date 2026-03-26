@@ -285,6 +285,10 @@ run_xfail_test() {
     run_test "tests/arrays_basic"
 }
 
+@test "blank_identifier" {
+    run_test "tests/blank_identifier"
+}
+
 @test "blank_identifier_simple" {
     run_test "tests/blank_identifier_simple"
 }
@@ -619,10 +623,6 @@ run_xfail_test() {
 
 @test "XFAIL: base64_encoding" {
     run_xfail_test "tests/XFAIL/base64_encoding"
-}
-
-@test "XFAIL: blank_identifier" {
-    run_xfail_test "tests/XFAIL/blank_identifier"
 }
 
 @test "XFAIL: complex_expressions" {

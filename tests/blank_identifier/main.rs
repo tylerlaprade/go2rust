@@ -78,7 +78,7 @@ pub fn process_slice(slice: Arc<Mutex<Option<Vec<i32>>>>) -> (Arc<Mutex<Option<i
     let mut count: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(0)));
 
     { let new_val = 0; *sum.lock().unwrap() = Some(new_val); };
-    { let new_val = (*slice.lock().unwrap().as_ref().unwrap()).len(); *count.lock().unwrap() = Some(new_val); };
+    { let new_val = (*slice.lock().unwrap().as_ref().unwrap()).len() as i32; *count.lock().unwrap() = Some(new_val); };
     for val in (*slice.lock().unwrap().as_ref().unwrap()).iter().copied() {
         { let mut guard = sum.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + val); };
     }
@@ -236,7 +236,7 @@ fn main() {
     println!("{}", "\n=== Blank identifier in error handling ===".to_string());
 
         // Sometimes you might want to ignore errors (not recommended in real code)
-    let (mut result, _) = process_slice(Arc::new(Mutex::new(Some(Arc::new(Mutex::new(Some(vec![1, 2, 3, 4, 5])))))));
+    let (mut result, _) = process_slice(Arc::new(Mutex::new(Some(vec![1, 2, 3, 4, 5]))));
     print!("Result (ignoring potential error): {}\n", (*result.lock().unwrap().as_ref().unwrap()));
 
     println!("{}", "\n=== Complex example ===".to_string());

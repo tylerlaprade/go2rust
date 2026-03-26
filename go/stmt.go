@@ -1120,9 +1120,23 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										out.WriteString(" = ")
 										TranspileExpression(out, s.Rhs[0])
 									} else { // Regular function call
+										// Check if RHS is len() which returns usize but LHS expects i32
+										isLenCall := false
+										if lenIdent, ok := call.Fun.(*ast.Ident); ok && lenIdent.Name == "len" {
+											if typeInfo != nil && typeInfo.info != nil {
+												if obj, ok := typeInfo.info.Uses[lenIdent]; ok {
+													if builtin, ok := obj.(*types.Builtin); ok && builtin.Name() == "len" {
+														isLenCall = true
+													}
+												}
+											}
+										}
 										out.WriteString("{ ")
 										out.WriteString("let new_val = ")
 										TranspileExpression(out, s.Rhs[0])
+										if isLenCall {
+											out.WriteString(" as i32")
+										}
 										out.WriteString("; ")
 										out.WriteString("*")
 										TranspileExpressionContext(out, s.Lhs[0], LValue)

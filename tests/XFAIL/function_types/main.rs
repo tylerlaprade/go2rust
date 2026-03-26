@@ -188,10 +188,10 @@ fn main() {
 
         // Transform with function types
     println!("{}", "\n=== Transform operations ===".to_string());
-    let mut squared = transform(Rc::new(RefCell::new(Some(Rc::new(RefCell::new(Some(vec![1, 2, 3, 4, 5])))))), Rc::new(RefCell::new(Some((*square.borrow().as_ref().unwrap()).clone()))));
+    let mut squared = transform(Rc::new(RefCell::new(Some(vec![1, 2, 3, 4, 5]))), Rc::new(RefCell::new(Some((*square.borrow().as_ref().unwrap()).clone()))));
     print!("Squared: {}\n", format_slice(&squared));
 
-    let mut doubled = transform(Rc::new(RefCell::new(Some(Rc::new(RefCell::new(Some(vec![1, 2, 3, 4, 5])))))), Rc::new(RefCell::new(Some(Box::new(move |x: Rc<RefCell<Option<i32>>>| -> Rc<RefCell<Option<i32>>> {
+    let mut doubled = transform(Rc::new(RefCell::new(Some(vec![1, 2, 3, 4, 5]))), Rc::new(RefCell::new(Some(Box::new(move |x: Rc<RefCell<Option<i32>>>| -> Rc<RefCell<Option<i32>>> {
         return {
             let __tmp_x = (*x.borrow().as_ref().unwrap());
             let __tmp_y = 2;

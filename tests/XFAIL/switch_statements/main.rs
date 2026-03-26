@@ -171,5 +171,5 @@ fn main() {
     type_switch(Rc::new(RefCell::new(Some("hello".to_string()))));
     type_switch(true.clone());
     type_switch(Rc::new(RefCell::new(Some(3.14))));
-    type_switch(Rc::new(RefCell::new(Some(Rc::new(RefCell::new(Some(vec![1, 2, 3])))))));
+    type_switch(Rc::new(RefCell::new(Some(vec![1, 2, 3]))));
 }
