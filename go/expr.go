@@ -2360,7 +2360,28 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 			} else {
 				// Not a simple identifier or function literal, wrap it
 				WriteWrapperPrefix(out)
-				TranspileExpression(out, arg)
+				// Check if parameter expects float but arg is integer literal
+				isFloatParam := false
+				if funcSig != nil && i < len(funcSig.Params) {
+					if paramIdent, ok := funcSig.Params[i].Type.(*ast.Ident); ok {
+						if paramIdent.Name == "float64" || paramIdent.Name == "float32" {
+							isFloatParam = true
+						}
+					}
+				}
+				if isFloatParam {
+					// Capture expression to check if float suffix is needed
+					var argBuf strings.Builder
+					TranspileExpression(&argBuf, arg)
+					argStr := argBuf.String()
+					out.WriteString(argStr)
+					// Only add .0 if the expression is a pure integer (no decimal)
+					if !strings.Contains(argStr, ".") && !strings.Contains(argStr, "as f") {
+						out.WriteString(".0")
+					}
+				} else {
+					TranspileExpression(out, arg)
+				}
 				WriteWrapperSuffix(out)
 			}
 		} else {

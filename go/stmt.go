@@ -517,18 +517,44 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							WriteWrapperSuffix(out)
 						}
 					} else {
-						// Wrap all other return values in Arc<Mutex<Option<>>>
-						WriteWrapperPrefix(out)
-
-						// Special handling for string literals
-						if lit, ok := result.(*ast.BasicLit); ok && lit.Kind == token.STRING {
-							out.WriteString(lit.Value)
-							out.WriteString(".to_string()")
-						} else {
-							TranspileExpression(out, result)
+						// Check if this return position expects an error type
+						// and the result is a struct literal implementing Error
+						isErrorReturn := false
+						if fnType.Results != nil && i < len(fnType.Results.List) {
+							resultField := fnType.Results.List[i]
+							if resultType, ok := resultField.Type.(*ast.Ident); ok && resultType.Name == "error" {
+								if _, isComposite := result.(*ast.CompositeLit); isComposite {
+									isErrorReturn = true
+								}
+							}
 						}
 
-						WriteWrapperSuffix(out)
+						if isErrorReturn {
+							// Struct implementing error interface - box it
+							TrackImport("Error")
+							WriteWrapperPrefix(out)
+							out.WriteString("Box::new(")
+							TranspileExpression(out, result)
+							if NeedsConcurrentWrapper() {
+								out.WriteString(") as Box<dyn Error + Send + Sync>")
+							} else {
+								out.WriteString(") as Box<dyn Error>")
+							}
+							WriteWrapperSuffix(out)
+						} else {
+							// Wrap all other return values in Arc<Mutex<Option<>>>
+							WriteWrapperPrefix(out)
+
+							// Special handling for string literals
+							if lit, ok := result.(*ast.BasicLit); ok && lit.Kind == token.STRING {
+								out.WriteString(lit.Value)
+								out.WriteString(".to_string()")
+							} else {
+								TranspileExpression(out, result)
+							}
+
+							WriteWrapperSuffix(out)
+						}
 					}
 				}
 			}
@@ -1049,21 +1075,26 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										}
 									}
 
+									// Check if the LHS variable is an error type -
+									// user functions returning error already return wrapped values
+									if !isErrorFunc && typeInfo != nil {
+										if lhsType := typeInfo.GetType(s.Lhs[0]); lhsType != nil {
+											if named, ok := lhsType.(*types.Named); ok && named.Obj().Name() == "error" {
+												isErrorFunc = true
+											}
+										}
+									}
+
 									if isAppend {
 										// append() returns the same wrapped type, don't wrap in Some()
 										// Just execute the append for its side effect
 										TranspileExpression(out, s.Rhs[0])
 									} else if isErrorFunc {
-										// fmt.Errorf and errors.New already return wrapped Option<Box<dyn Error>>
-										// Don't wrap in Some()
-										out.WriteString("{ ")
-										out.WriteString("let new_val = ")
-										TranspileExpression(out, s.Rhs[0])
-										out.WriteString("; ")
-										out.WriteString("*")
+										// Error functions return the full wrapped type Rc<RefCell<Option<Box<dyn Error>>>>
+										// Just replace the Rc pointer directly
 										TranspileExpressionContext(out, s.Lhs[0], LValue)
-										WriteBorrowMethod(out, true)
-										out.WriteString(" = new_val; }")
+										out.WriteString(" = ")
+										TranspileExpression(out, s.Rhs[0])
 									} else { // Regular function call
 										out.WriteString("{ ")
 										out.WriteString("let new_val = ")
