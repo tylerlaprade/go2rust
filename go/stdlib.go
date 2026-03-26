@@ -39,6 +39,8 @@ func init() {
 		"fmt.Printf":        transpileFmtPrintf,
 		"fmt.Print":         transpileFmtPrint,
 		"fmt.Sprintf":       transpileFmtSprintf,
+		"fmt.Fprintln":      transpileFmtFprintln,
+		"fmt.Fprintf":       transpileFmtFprintf,
 		"fmt.Errorf":        transpileFmtErrorf,
 		"strings.ToLower":   transpileStringsToLower,
 		"strings.ToUpper":   transpileStringsToUpper,
@@ -480,6 +482,120 @@ func transpileFmtPrintf(out *strings.Builder, call *ast.CallExpr) {
 				} else {
 					transpilePrintArg(out, call.Args[i])
 				}
+			}
+		}
+	}
+
+	out.WriteString(")")
+}
+
+// isOsStderr checks if an expression is os.Stderr
+func isOsStderr(expr ast.Expr) bool {
+	sel, ok := expr.(*ast.SelectorExpr)
+	if !ok {
+		return false
+	}
+	ident, ok := sel.X.(*ast.Ident)
+	return ok && ident.Name == "os" && sel.Sel.Name == "Stderr"
+}
+
+func transpileFmtFprintln(out *strings.Builder, call *ast.CallExpr) {
+	if len(call.Args) < 1 {
+		out.WriteString("/* ERROR: fmt.Fprintln requires at least 1 argument */")
+		return
+	}
+	// Check if writing to stderr
+	if isOsStderr(call.Args[0]) {
+		out.WriteString("eprintln!")
+		out.WriteString("(")
+		// Remaining args (skip the writer)
+		remaining := call.Args[1:]
+		if len(remaining) > 0 {
+			out.WriteString("\"")
+			for i := range remaining {
+				if i > 0 {
+					out.WriteString(" ")
+				}
+				out.WriteString("{}")
+			}
+			out.WriteString("\"")
+			for _, arg := range remaining {
+				out.WriteString(", ")
+				transpilePrintArg(out, arg)
+			}
+		}
+		out.WriteString(")")
+	} else {
+		// Default to stdout for os.Stdout or other writers
+		out.WriteString("println!")
+		out.WriteString("(")
+		remaining := call.Args[1:]
+		if len(remaining) > 0 {
+			out.WriteString("\"")
+			for i := range remaining {
+				if i > 0 {
+					out.WriteString(" ")
+				}
+				out.WriteString("{}")
+			}
+			out.WriteString("\"")
+			for _, arg := range remaining {
+				out.WriteString(", ")
+				transpilePrintArg(out, arg)
+			}
+		}
+		out.WriteString(")")
+	}
+}
+
+func transpileFmtFprintf(out *strings.Builder, call *ast.CallExpr) {
+	if len(call.Args) < 2 {
+		out.WriteString("/* ERROR: fmt.Fprintf requires at least 2 arguments */")
+		return
+	}
+	// Check if writing to stderr
+	macro := "print!"
+	if isOsStderr(call.Args[0]) {
+		macro = "eprint!"
+	}
+	out.WriteString(macro)
+	out.WriteString("(")
+
+	// Second arg is the format string, remaining are values
+	var skipIndices []int
+	var charIndices []int
+	if lit, ok := call.Args[1].(*ast.BasicLit); ok && lit.Kind == token.STRING {
+		format, skips, chars := convertFormatStringWithSkips(lit.Value)
+		skipIndices = skips
+		charIndices = chars
+		out.WriteString(format)
+	} else {
+		TranspileExpression(out, call.Args[1])
+	}
+
+	for i := 2; i < len(call.Args); i++ {
+		shouldSkip := false
+		for _, skipIdx := range skipIndices {
+			if skipIdx == i-2 {
+				shouldSkip = true
+				break
+			}
+		}
+		if !shouldSkip {
+			out.WriteString(", ")
+			isCharArg := false
+			for _, charIdx := range charIndices {
+				if charIdx == i-2 {
+					isCharArg = true
+					break
+				}
+			}
+			if isCharArg {
+				out.WriteString("(")
+				transpilePrintArg(out, call.Args[i])
+				out.WriteString(") as u8 as char")
+			} else {
+				transpilePrintArg(out, call.Args[i])
 			}
 		}
 	}
