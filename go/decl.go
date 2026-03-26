@@ -850,7 +850,12 @@ func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, a
 
 		// Check if pointer receiver
 		if _, isPointer := recv.Type.(*ast.StarExpr); isPointer {
-			out.WriteString("&mut self")
+			// Error() methods should use &self since they only read
+			if fn.Name.Name == "Error" || fn.Name.Name == "String" {
+				out.WriteString("&self")
+			} else {
+				out.WriteString("&mut self")
+			}
 		} else {
 			out.WriteString("&self")
 		}
