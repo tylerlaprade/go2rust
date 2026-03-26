@@ -238,6 +238,8 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ `fmt.Printf` | ✅ |
 | └ `fmt.Sprintf` | ✅ |
 | └ `fmt.Errorf` | ✅ |
+| └ `fmt.Fprintln` | ✅ |
+| └ `fmt.Fprintf` | ✅ |
 | **`strings` package** | |
 | └ `strings.ToUpper` | ✅ |
 | └ `strings.ToLower` | ✅ |

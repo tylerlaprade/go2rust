@@ -16,11 +16,11 @@ Pointer types, &/*, new() builtin, struct fields, nil handling
 
 ### ✅ Phase 4: Functions and Methods
 
-Method receivers (value and pointer), multiple returns, method calls
+Method receivers (value and pointer), multiple returns (including named returns, naked returns, swap via multi-assignment), method calls
 
 ### ✅ Phase 4.5: Advanced Types and Structs
 
-Type aliases/definitions, struct tags, embedding, anonymous structs, nested field access
+Type aliases/definitions, struct tags, embedding, anonymous structs (basic, functions, arrays, slices, maps), nested field access with immutable borrows
 
 ### ✅ Phase 5: Core Language Features (90% Complete)
 
@@ -38,6 +38,7 @@ Type aliases/definitions, struct tags, embedding, anonymous structs, nested fiel
 - ❌ Goto and labels (goto_labels, labeled_statements)
 - ❌ Fallthrough in switch (fallthrough_switch)
 - ✅ Blank identifier - fully working except for channels (which aren't implemented)
+- ✅ Mixed output (fmt.Fprintln/Fprintf to os.Stderr → eprintln!/eprint!)
 
 ### 📋 Phase 7: Goroutines and Concurrency
 
