@@ -1,0 +1,10 @@
+Point: (10, 20)
+Person: Alice, 30 years old
+Config: localhost:8080 (Debug: true, Verbose: false)
+Item 0: {ID: 1, Value: first}
+Item 1: {ID: 2, Value: second}
+Event [info]: System started
+Event [warning]: Low memory
+Event [error]: Connection failed
+User alice: alice@example.com (admin: true)
+User bob: bob@example.com (admin: false)

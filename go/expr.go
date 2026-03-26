@@ -428,11 +428,12 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					if needsUnwrap {
 						// Access field on wrapped struct
 						if ctx == LValue {
-							// For assignment, we need mutable access
+							// Immutable borrow on outer struct suffices because each
+							// field is independently wrapped in Rc<RefCell<...>>
 							out.WriteString("(*")
 							out.WriteString(ident.Name)
-							WriteBorrowMethod(out, true)
-							out.WriteString(".as_mut().unwrap()).")
+							WriteBorrowMethod(out, false)
+							out.WriteString(".as_ref().unwrap()).")
 							out.WriteString(fieldInfo.FieldName)
 						} else {
 							// For reading, we need immutable access
