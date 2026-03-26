@@ -876,7 +876,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					switch typ.Underlying().(type) {
 					case *types.Slice:
 						// Handle slice with inferred element type
-						WriteWrapperPrefix(out)
+						// When Type is nil, this is a nested element within another
+						// composite literal (Go spec: elided type). Don't wrap - the
+						// outer container provides the type (e.g., Vec<Vec<i32>>).
 						out.WriteString("vec![")
 						for i, elt := range e.Elts {
 							if i > 0 {
@@ -886,7 +888,6 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 							TranspileExpression(out, elt)
 						}
 						out.WriteString("]")
-						WriteWrapperSuffix(out)
 						return
 					case *types.Struct:
 						// Handle struct literal with inferred type
