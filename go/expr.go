@@ -577,7 +577,11 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					TrackImport("Error")
 					out.WriteString("Rc::new(RefCell::new(Some(Box::new(")
 					TranspileExpressionContext(out, e.X, AddressOf)
-					out.WriteString(") as Box<dyn Error + Send + Sync>)))")
+					if NeedsConcurrentWrapper() {
+						out.WriteString(") as Box<dyn Error + Send + Sync>)))")
+					} else {
+						out.WriteString(") as Box<dyn Error>)))")
+					}
 				} else {
 					// For struct literals, wrap the whole thing
 					WriteWrapperPrefix(out)

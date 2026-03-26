@@ -643,7 +643,11 @@ func transpileFmtSprintf(out *strings.Builder, call *ast.CallExpr) {
 
 func transpileFmtErrorf(out *strings.Builder, call *ast.CallExpr) {
 	WriteWrapperPrefix(out)
-	out.WriteString("Box::<dyn Error + Send + Sync>::from(format!")
+	if NeedsConcurrentWrapper() {
+		out.WriteString("Box::<dyn Error + Send + Sync>::from(format!")
+	} else {
+		out.WriteString("Box::<dyn Error>::from(format!")
+	}
 	out.WriteString("(")
 
 	if len(call.Args) > 0 {
@@ -668,7 +672,11 @@ func transpileFmtErrorf(out *strings.Builder, call *ast.CallExpr) {
 
 func transpileErrorsNew(out *strings.Builder, call *ast.CallExpr) {
 	WriteWrapperPrefix(out)
-	out.WriteString("Box::<dyn std::error::Error + Send + Sync>::from(")
+	if NeedsConcurrentWrapper() {
+		out.WriteString("Box::<dyn std::error::Error + Send + Sync>::from(")
+	} else {
+		out.WriteString("Box::<dyn std::error::Error>::from(")
+	}
 
 	if len(call.Args) > 0 {
 		// The argument is the error message
@@ -774,7 +782,11 @@ func transpileStrconvAtoi(out *strings.Builder, call *ast.CallExpr) {
 		WriteWrapperPrefix(out)
 		out.WriteString("0))), ")
 		WriteWrapperPrefix(out)
-		out.WriteString("Box::<dyn Error + Send + Sync>::from(format!(\"strconv.Atoi: parsing \\\"{}\\\": invalid syntax\", __atoi_input)))))) } }")
+		if NeedsConcurrentWrapper() {
+			out.WriteString("Box::<dyn Error + Send + Sync>::from(format!(\"strconv.Atoi: parsing \\\"{}\\\": invalid syntax\", __atoi_input)))))) } }")
+		} else {
+			out.WriteString("Box::<dyn Error>::from(format!(\"strconv.Atoi: parsing \\\"{}\\\": invalid syntax\", __atoi_input)))))) } }")
+		}
 	}
 }
 

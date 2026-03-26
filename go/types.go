@@ -263,7 +263,10 @@ func goTypeToRustBase(expr ast.Expr) string {
 			return "bool"
 		case "error":
 			TrackImport("Error")
-			return "Option<Box<dyn Error + Send + Sync>>"
+			if NeedsConcurrentWrapper() {
+				return "Option<Box<dyn Error + Send + Sync>>"
+			}
+			return "Option<Box<dyn Error>>"
 		default:
 			// Check if this is an interface type
 			if interfaceTypes[t.Name] {
