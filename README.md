@@ -250,6 +250,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 
 | **`errors` package** | |
 | └ `errors.New` | ✅ |
+| └ Custom error types | ✅ |
 | **`sort` package** | |
 | └ `sort.Strings` | ✅ |
 

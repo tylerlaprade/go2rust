@@ -17,7 +17,7 @@ impl std::fmt::Display for argError {
 
 
 impl argError {
-    pub fn error(&mut self) -> Rc<RefCell<Option<String>>> {
+    pub fn error(&self) -> Rc<RefCell<Option<String>>> {
         return Rc::new(RefCell::new(Some(format!("{} - {}", (*self.arg.borrow().as_ref().unwrap()), (*self.prob.borrow().as_ref().unwrap())))));
     }
 }
@@ -50,7 +50,7 @@ pub fn f2(arg: Rc<RefCell<Option<i32>>>) -> (Rc<RefCell<Option<i32>>>, Rc<RefCel
 }
 
 fn main() {
-    for i in Rc::new(RefCell::new(Some(vec![7, 42]))).iter().copied() {
+    for i in vec![7, 42].iter().copied() {
         let (mut r, mut e) = f1(Rc::new(RefCell::new(Some(i))));
     if (*e.borrow()).is_some() {
         println!("{} {}", "f1 failed:".to_string(), format!("{}", (*e.borrow().as_ref().unwrap())));
@@ -58,7 +58,7 @@ fn main() {
         println!("{} {}", "f1 worked:".to_string(), (*r.borrow().as_ref().unwrap()));
     }
     }
-    for i in Rc::new(RefCell::new(Some(vec![7, 42]))).iter().copied() {
+    for i in vec![7, 42].iter().copied() {
         let (mut r, mut e) = f2(Rc::new(RefCell::new(Some(i))));
     if (*e.borrow()).is_some() {
         println!("{} {}", "f2 failed:".to_string(), format!("{}", (*e.borrow().as_ref().unwrap())));

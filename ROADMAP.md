@@ -31,6 +31,7 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 - 🚧 Panic and recover - basic panic working, recover needs catch_unwind integration
 - ✅ Interfaces - empty interface{} and named interfaces working with trait generation (2025-09-04)
 - ✅ VarTable selective wrapping - scope-aware variable tracking, interface params as bare `&dyn Trait` (2026-03-05)
+- ✅ Error handling - custom error types with Error() method, Box<dyn Error> returns, error assignment (2026-03-26)
 
 ### 📋 Phase 6: Control Flow Extensions
 
