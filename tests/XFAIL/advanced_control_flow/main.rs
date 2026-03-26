@@ -299,7 +299,7 @@ fn main() {
         // Nested range loops
     println!("{}", "\n=== Nested range loops ===".to_string());
 
-    let mut matrix = Arc::new(Mutex::new(Some(vec![Arc::new(Mutex::new(Some(vec!["a".to_string(), "b".to_string(), "c".to_string()]))), Arc::new(Mutex::new(Some(vec!["d".to_string(), "e".to_string(), "f".to_string()]))), Arc::new(Mutex::new(Some(vec!["g".to_string(), "h".to_string(), "i".to_string()])))])));
+    let mut matrix = Arc::new(Mutex::new(Some(vec![vec!["a".to_string(), "b".to_string(), "c".to_string()], vec!["d".to_string(), "e".to_string(), "f".to_string()], vec!["g".to_string(), "h".to_string(), "i".to_string()]])));
 
     for (rowIdx, row) in (*matrix.lock().unwrap().as_ref().unwrap()).iter().enumerate() {
         for (colIdx, cell) in row.iter().copied().enumerate() {
@@ -375,7 +375,7 @@ fn main() {
         return Arc::new(Mutex::new(None));
     }) as Box<dyn Fn(Arc<Mutex<Option<Vec<i32>>>>) -> Arc<Mutex<Option<Box<dyn Error + Send + Sync>>>> + Send + Sync>)));
 
-    let mut testData = Arc::new(Mutex::new(Some(vec![Arc::new(Mutex::new(Some(vec![1, 2, 3]))), Arc::new(Mutex::new(Some(vec![]))), Arc::new(Mutex::new(Some(vec![1, -2, 3]))), Arc::new(Mutex::new(Some(vec![1, 200, 3]))), Arc::new(Mutex::new(Some(vec![10, 20, 30])))])));
+    let mut testData = Arc::new(Mutex::new(Some(vec![vec![1, 2, 3], vec![], vec![1, -2, 3], vec![1, 200, 3], vec![10, 20, 30]])));
 
     for (i, data) in (*testData.lock().unwrap().as_ref().unwrap()).iter().enumerate() {
         print!("Testing dataset {}: {}\n", i + 1, format_slice(&data));

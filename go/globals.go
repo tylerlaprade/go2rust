@@ -24,6 +24,19 @@ type FunctionSignature struct {
 // Global map to track function signatures (function name -> signature)
 var functionSignatures = make(map[string]*FunctionSignature)
 
+// Global set of types that implement the error interface (have Error() string method)
+var errorImplTypes = make(map[string]bool)
+
+// RegisterErrorImplType marks a type as implementing the error interface
+func RegisterErrorImplType(name string) {
+	errorImplTypes[name] = true
+}
+
+// IsErrorImplType checks if a type implements the error interface
+func IsErrorImplType(name string) bool {
+	return errorImplTypes[name]
+}
+
 // RegisterFunctionSignature stores a function's signature for later use
 func RegisterFunctionSignature(name string, sig *FunctionSignature) {
 	functionSignatures[name] = sig

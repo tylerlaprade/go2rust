@@ -227,7 +227,7 @@ fn main() {
     println!("{}", "\n=== Nested slices ===".to_string());
 
         // Matrix (slice of slices)
-    let mut matrix = Rc::new(RefCell::new(Some(vec![Rc::new(RefCell::new(Some(vec![1, 2, 3]))), Rc::new(RefCell::new(Some(vec![4, 5, 6]))), Rc::new(RefCell::new(Some(vec![7, 8, 9])))])));
+    let mut matrix = Rc::new(RefCell::new(Some(vec![vec![1, 2, 3], vec![4, 5, 6], vec![7, 8, 9]])));
 
     println!("{}", "Matrix:".to_string());
     for (i, row) in (*matrix.borrow().as_ref().unwrap()).iter().enumerate() {
@@ -246,7 +246,7 @@ fn main() {
     print!("Center element: {}\n", (*centerElement.borrow().as_ref().unwrap()));
 
         // 3D slice
-    let mut cube = Rc::new(RefCell::new(Some(vec![Rc::new(RefCell::new(Some(vec![Rc::new(RefCell::new(Some(vec![1, 2]))), Rc::new(RefCell::new(Some(vec![3, 4])))]))), Rc::new(RefCell::new(Some(vec![Rc::new(RefCell::new(Some(vec![5, 6]))), Rc::new(RefCell::new(Some(vec![7, 8])))])))])));
+    let mut cube = Rc::new(RefCell::new(Some(vec![vec![vec![1, 2], vec![3, 4]], vec![vec![5, 6], vec![7, 8]]])));
 
     println!("{}", "\n3D Cube:".to_string());
     for (i, layer) in (*cube.borrow().as_ref().unwrap()).iter().enumerate() {

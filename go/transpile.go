@@ -424,6 +424,12 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 					typePositions[recvType] = d.Pos()
 				}
 				methods[recvType] = append(methods[recvType], d)
+				// Track types with Error() string method (error interface)
+				if d.Name.Name == "Error" && d.Type.Results != nil && len(d.Type.Results.List) == 1 {
+					if resultType, ok := d.Type.Results.List[0].Type.(*ast.Ident); ok && resultType.Name == "string" {
+						RegisterErrorImplType(recvType)
+					}
+				}
 			} else {
 				// Regular function
 				functions = append(functions, d)

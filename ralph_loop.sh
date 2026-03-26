@@ -94,7 +94,7 @@ for i in $(seq 1 "$MAX_ITERATIONS"); do
     # --max-budget-usd: cost guardrail per session
     # --output-format text ensures plain text output (not JSON)
     # tee splits to stdout (real-time in terminal) and log file
-    claude --dangerously-skip-permissions -p "$PROMPT" --max-budget-usd 5 --output-format text 2>&1 | tee "$LOGFILE"
+    claude --dangerously-skip-permissions -p "$PROMPT" --output-format text 2>&1 | tee "$LOGFILE"
     EXIT_CODE=${PIPESTATUS[0]}
 
     echo ""

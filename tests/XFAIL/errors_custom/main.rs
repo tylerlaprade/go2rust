@@ -11,7 +11,7 @@ struct argError {
 
 impl std::fmt::Display for argError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.arg.borrow().as_ref().unwrap()), (*self.prob.borrow().as_ref().unwrap()))
+        write!(f, "{}", (*self.error().borrow().as_ref().unwrap()))
     }
 }
 
@@ -25,10 +25,10 @@ impl argError {
 impl Error for argError {}
 
 
-pub fn f1(arg: Rc<RefCell<Option<i32>>>) -> (Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<Box<dyn Error + Send + Sync>>>>) {
+pub fn f1(arg: Rc<RefCell<Option<i32>>>) -> (Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<Box<dyn Error>>>>) {
 
     if (*arg.borrow().as_ref().unwrap()) == 42 {
-        return (Rc::new(RefCell::new(Some(-1))), Rc::new(RefCell::new(Some(Box::<dyn std::error::Error + Send + Sync>::from("can't work with 42".to_string())))));
+        return (Rc::new(RefCell::new(Some(-1))), Rc::new(RefCell::new(Some(Box::<dyn std::error::Error>::from("can't work with 42".to_string())))));
     }
     return ({
             let __tmp_x = (*arg.borrow().as_ref().unwrap());
@@ -37,10 +37,10 @@ pub fn f1(arg: Rc<RefCell<Option<i32>>>) -> (Rc<RefCell<Option<i32>>>, Rc<RefCel
         }, Rc::new(RefCell::new(None)));
 }
 
-pub fn f2(arg: Rc<RefCell<Option<i32>>>) -> (Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<Box<dyn Error + Send + Sync>>>>) {
+pub fn f2(arg: Rc<RefCell<Option<i32>>>) -> (Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<Box<dyn Error>>>>) {
 
     if (*arg.borrow().as_ref().unwrap()) == 42 {
-        return (Rc::new(RefCell::new(Some(-1))), Rc::new(RefCell::new(Some(Box::new(argError { arg: Rc::new(RefCell::new(Some((*arg.borrow().as_ref().unwrap())))), prob: Rc::new(RefCell::new(Some("can't work with it".to_string()))), ..Default::default() }) as Box<dyn Error + Send + Sync>))));
+        return (Rc::new(RefCell::new(Some(-1))), Rc::new(RefCell::new(Some(Box::new(argError { arg: Rc::new(RefCell::new(Some((*arg.borrow().as_ref().unwrap())))), prob: Rc::new(RefCell::new(Some("can't work with it".to_string()))), ..Default::default() }) as Box<dyn Error>))));
     }
     return ({
             let __tmp_x = (*arg.borrow().as_ref().unwrap());

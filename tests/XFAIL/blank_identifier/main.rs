@@ -242,7 +242,7 @@ fn main() {
     println!("{}", "\n=== Complex example ===".to_string());
 
         // Complex example with multiple blank identifiers
-    let mut data = Arc::new(Mutex::new(Some(vec![Arc::new(Mutex::new(Some(vec![1, 2, 3]))), Arc::new(Mutex::new(Some(vec![4, 5, 6]))), Arc::new(Mutex::new(Some(vec![7, 8, 9])))])));
+    let mut data = Arc::new(Mutex::new(Some(vec![vec![1, 2, 3], vec![4, 5, 6], vec![7, 8, 9]])));
 
     let mut total = Arc::new(Mutex::new(Some(0)));
     for row in &(*data.lock().unwrap().as_ref().unwrap()) {

@@ -166,7 +166,7 @@ fn main() {
 
         // Nested range loops
     println!("{}", "\n=== Nested range loops ===".to_string());
-    let mut matrix = Arc::new(Mutex::new(Some(vec![Arc::new(Mutex::new(Some(vec![1, 2, 3]))), Arc::new(Mutex::new(Some(vec![4, 5, 6]))), Arc::new(Mutex::new(Some(vec![7, 8, 9])))])));
+    let mut matrix = Arc::new(Mutex::new(Some(vec![vec![1, 2, 3], vec![4, 5, 6], vec![7, 8, 9]])));
 
     for (i, row) in (*matrix.lock().unwrap().as_ref().unwrap()).iter().enumerate() {
         for (j, val) in row.iter().copied().enumerate() {

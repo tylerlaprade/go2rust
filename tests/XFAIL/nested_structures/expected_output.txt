@@ -25,9 +25,9 @@ Employee 2: Carol Worker
 === Nested maps ===
 Inventory:
   furniture:
+    chairs: 200
     desks: 75
     lamps: 150
-    chairs: 200
   supplies:
     pens: 1000
     paper: 500

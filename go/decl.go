@@ -16,6 +16,18 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 	TrackImport("Display")
 	TrackImport("Formatter")
 
+	// If this type implements the error interface, Display should delegate to error()
+	if IsErrorImplType(structName) {
+		out.WriteString("impl std::fmt::Display for ")
+		out.WriteString(structName)
+		out.WriteString(" {\n")
+		out.WriteString("    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {\n")
+		out.WriteString("        write!(f, \"{}\", (*self.error().borrow().as_ref().unwrap()))\n")
+		out.WriteString("    }\n")
+		out.WriteString("}\n")
+		return
+	}
+
 	out.WriteString("impl std::fmt::Display for ")
 	out.WriteString(structName)
 	out.WriteString(" {\n")

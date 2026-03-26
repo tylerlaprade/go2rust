@@ -345,6 +345,10 @@ run_xfail_test() {
     run_test "tests/embedded_structs"
 }
 
+@test "error_handling" {
+    run_test "tests/error_handling"
+}
+
 @test "error_simple" {
     run_test "tests/error_simple"
 }
@@ -651,10 +655,6 @@ run_xfail_test() {
 
 @test "XFAIL: enums_iota" {
     run_xfail_test "tests/XFAIL/enums_iota"
-}
-
-@test "XFAIL: error_handling" {
-    run_xfail_test "tests/XFAIL/error_handling"
 }
 
 @test "XFAIL: errors_custom" {

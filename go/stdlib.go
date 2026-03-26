@@ -397,8 +397,12 @@ func convertFormatStringWithSkips(goFormat string) (string, []int, []int) {
 			} else {
 				// Handle single-char format verbs
 				switch format[i+1] {
-				case 'd', 's', 'v', 'f', 't':
+				case 'd', 's', 'v', 't':
 					result.WriteString("{}")
+					argIndex++
+				case 'f':
+					// Go's %f defaults to 6 decimal places
+					result.WriteString("{:.6}")
 					argIndex++
 				case 'c':
 					result.WriteString("{}")
