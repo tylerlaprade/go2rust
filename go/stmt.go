@@ -9,6 +9,30 @@ import (
 	"strings"
 )
 
+// writeUnwrappedRangeTarget writes a range target expression unwrapped for iteration.
+// For CompositeLits (inline slices), generates the bare vec![...] without Rc wrapping.
+// For identifiers (variables), delegates to TranspileExpressionContext which already unwraps.
+func writeUnwrappedRangeTarget(out *strings.Builder, expr ast.Expr) {
+	if _, isCompositeLit := expr.(*ast.CompositeLit); isCompositeLit {
+		// Inline slice literal - capture output and strip wrapper if present
+		var buf strings.Builder
+		TranspileExpressionContext(&buf, expr, RValue)
+		s := buf.String()
+		// Strip Rc::new(RefCell::new(Some(...))) wrapper
+		outerWrapper := GetOuterWrapperType()
+		innerWrapper := GetInnerWrapperType()
+		prefix := outerWrapper + "::new(" + innerWrapper + "::new(Some("
+		suffix := ")))"
+		if strings.HasPrefix(s, prefix) && strings.HasSuffix(s, suffix) {
+			out.WriteString(s[len(prefix) : len(s)-len(suffix)])
+		} else {
+			out.WriteString(s)
+		}
+	} else {
+		TranspileExpressionContext(out, expr, RValue)
+	}
+}
+
 // isMutexLockCall checks if an expression is a Lock() call on a sync.Mutex field
 func isMutexLockCall(expr ast.Expr) bool {
 	call, ok := expr.(*ast.CallExpr)
@@ -1837,11 +1861,11 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					}
 					if valCopied {
 						out.WriteString(" in ")
-						TranspileExpressionContext(out, s.X, RValue)
+						writeUnwrappedRangeTarget(out, s.X)
 						out.WriteString(".iter().copied()")
 					} else {
 						out.WriteString(" in &")
-						TranspileExpressionContext(out, s.X, RValue)
+						writeUnwrappedRangeTarget(out, s.X)
 					}
 				} else {
 					// for i, v := range arr
@@ -1860,7 +1884,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					}
 					out.WriteString(") in ")
 					// Need to unwrap the collection
-					TranspileExpressionContext(out, s.X, RValue)
+					writeUnwrappedRangeTarget(out, s.X)
 					if needsCopied {
 						out.WriteString(".iter().copied().enumerate()")
 					} else {
@@ -1887,11 +1911,11 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				}
 				if valCopied2 {
 					out.WriteString(" in ")
-					TranspileExpressionContext(out, s.X, RValue)
+					writeUnwrappedRangeTarget(out, s.X)
 					out.WriteString(".iter().copied()")
 				} else {
 					out.WriteString(" in &")
-					TranspileExpressionContext(out, s.X, RValue)
+					writeUnwrappedRangeTarget(out, s.X)
 				}
 			} else if s.Key != nil {
 				// for i := range arr
@@ -1901,7 +1925,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					TranspileExpression(out, s.Key)
 				}
 				out.WriteString(" in 0..")
-				TranspileExpressionContext(out, s.X, RValue)
+				writeUnwrappedRangeTarget(out, s.X)
 				out.WriteString(".len()")
 			}
 		}
