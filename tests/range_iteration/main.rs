@@ -17,7 +17,12 @@ fn main() {
     }
 
     let mut kvs = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<String>>>>::from([("a".to_string(), Rc::new(RefCell::new(Some("apple".to_string())))), ("b".to_string(), Rc::new(RefCell::new(Some("banana".to_string()))))]))));
-    for (k, v) in (*kvs.borrow().as_ref().unwrap()).clone() {
-        print!("{} -> {}\n", k, (*v.borrow_mut().as_mut().unwrap()));
+    let mut keys: Rc<RefCell<Option<Vec<String>>>> = Rc::new(RefCell::new(Some(Default::default())));
+    for (k, _) in (*kvs.borrow().as_ref().unwrap()).clone() {
+        {(*keys.borrow_mut().as_mut().unwrap()).push(k); keys.clone()};
+    }
+    (*keys.borrow_mut().as_mut().unwrap()).sort();
+    for k in &(*keys.borrow().as_ref().unwrap()) {
+        print!("{} -> {}\n", k, (*kvs.borrow().as_ref().unwrap()).get(k).unwrap().borrow().as_ref().unwrap().clone());
     }
 }

@@ -1,6 +1,9 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"sort"
+)
 
 func main() {
 	nums := []int{2, 3, 4}
@@ -17,7 +20,12 @@ func main() {
 	}
 
 	kvs := map[string]string{"a": "apple", "b": "banana"}
-	for k, v := range kvs {
-		fmt.Printf("%s -> %s\n", k, v)
+	var keys []string
+	for k := range kvs {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	for _, k := range keys {
+		fmt.Printf("%s -> %s\n", k, kvs[k])
 	}
 }
