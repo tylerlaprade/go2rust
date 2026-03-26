@@ -164,12 +164,12 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | **`range` - Range clauses** | |
 | └ Array/slice range | ✅ |
 | └ Map range | ✅ |
-| └ String range | ❌ |
-| └ Channel range | ❌ |
+| └ String range | ✅ |
+| └ Channel range | ✅ |
 | **`return` - Return statements** | |
 | └ Single return values | ✅ |
 | └ Multiple return values | ✅ |
-| └ Named returns | ❌ |
+| └ Named returns | ✅ |
 | **`select` - Select statements** | ❌ |
 | **`struct` - Struct types** | |
 | └ Struct definitions | ✅ |
@@ -251,6 +251,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | **`errors` package** | |
 | └ `errors.New` | ✅ |
 | └ Custom error types | ✅ |
+| └ Type assertions on errors | ✅ |
 | **`sort` package** | |
 | └ `sort.Strings` | ✅ |
 

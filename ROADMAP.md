@@ -31,15 +31,17 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 - 🚧 Panic and recover - basic panic working, recover needs catch_unwind integration
 - ✅ Interfaces - empty interface{} and named interfaces working with trait generation (2025-09-04)
 - ✅ VarTable selective wrapping - scope-aware variable tracking, interface params as bare `&dyn Trait` (2026-03-05)
-- ✅ Error handling - custom error types with Error() method, Box<dyn Error> returns, error assignment (2026-03-26)
+- ✅ Error handling - custom error types with Error() method, Box<dyn Error> returns, error assignment, type assertions on errors (2026-03-26)
 - ✅ Embedded method promotion - multi-level embedding, promoted method calls, field method chains (2026-03-26)
+- ✅ Map value type consistency - map literal values and type annotations now consistently wrap values (2026-03-26)
+- ✅ Composite literal arguments - slice/map/array literals passed to functions no longer double-wrap (2026-03-26)
 
 ### 📋 Phase 6: Control Flow Extensions
 
 - ❌ Select statements (select_basic, select_statements)
 - ❌ Goto and labels (goto_labels, labeled_statements)
 - ❌ Fallthrough in switch (fallthrough_switch)
-- ✅ Blank identifier - fully working except for channels (which aren't implemented)
+- ✅ Blank identifier - fully working with return values, range loops, type assertions, declarations (2026-03-26)
 - ✅ Mixed output (fmt.Fprintln/Fprintf to os.Stderr → eprintln!/eprint!)
 
 ### 📋 Phase 7: Goroutines and Concurrency
