@@ -71,6 +71,7 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 	for _, f := range fields {
 		out.WriteString(", ")
 		if f.isSlice {
+			NeedFormatSlice()
 			out.WriteString("format_slice(&self.")
 			out.WriteString(ToSnakeCase(f.name))
 			out.WriteString(")")
