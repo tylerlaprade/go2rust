@@ -18,7 +18,7 @@ fn main() {
     println!("{}", "\n=== Ignoring in range loops ===".to_string());
     let mut slice = Rc::new(RefCell::new(Some(vec![10, 20, 30, 40, 50])));
     println!("{}", "Values only:".to_string());
-    for val in &(*slice.borrow().as_ref().unwrap()) {
+    for val in (*slice.borrow().as_ref().unwrap()).iter().copied() {
         print!("{} ", val);
     }
     println!();
@@ -50,7 +50,7 @@ fn main() {
         {(*values.borrow_mut().as_mut().unwrap()).push((*age.borrow_mut().as_mut().unwrap())); values.clone()};
     }
     (*values.borrow_mut().as_mut().unwrap()).sort();
-    for age in &(*values.borrow().as_ref().unwrap()) {
+    for age in (*values.borrow().as_ref().unwrap()).iter().copied() {
         print!("{} ", age);
     }
     println!();

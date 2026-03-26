@@ -277,6 +277,10 @@ run_xfail_test() {
     run_test "tests/aliasing_mutation"
 }
 
+@test "anonymous_structs_basic" {
+    run_test "tests/anonymous_structs_basic"
+}
+
 @test "arrays_basic" {
     run_test "tests/arrays_basic"
 }
@@ -437,6 +441,14 @@ run_xfail_test() {
     run_test "tests/methods_basic"
 }
 
+@test "mixed_output" {
+    run_test "tests/mixed_output"
+}
+
+@test "multiple_returns" {
+    run_test "tests/multiple_returns"
+}
+
 @test "mutex_counter" {
     run_test "tests/mutex_counter"
 }
@@ -503,6 +515,10 @@ run_xfail_test() {
 
 @test "simple_range" {
     run_test "tests/simple_range"
+}
+
+@test "slices_append" {
+    run_test "tests/slices_append"
 }
 
 @test "slices_basic" {
@@ -575,10 +591,6 @@ run_xfail_test() {
 
 @test "XFAIL: advanced_control_flow" {
     run_xfail_test "tests/XFAIL/advanced_control_flow"
-}
-
-@test "XFAIL: anonymous_structs_basic" {
-    run_xfail_test "tests/XFAIL/anonymous_structs_basic"
 }
 
 @test "XFAIL: anonymous_structs_functions" {
@@ -689,14 +701,6 @@ run_xfail_test() {
     run_xfail_test "tests/XFAIL/json_marshal"
 }
 
-@test "XFAIL: mixed_output" {
-    run_xfail_test "tests/XFAIL/mixed_output"
-}
-
-@test "XFAIL: multiple_returns" {
-    run_xfail_test "tests/XFAIL/multiple_returns"
-}
-
 @test "XFAIL: nested_structures" {
     run_xfail_test "tests/XFAIL/nested_structures"
 }
@@ -731,10 +735,6 @@ run_xfail_test() {
 
 @test "XFAIL: slice_operations_advanced" {
     run_xfail_test "tests/XFAIL/slice_operations_advanced"
-}
-
-@test "XFAIL: slices_append" {
-    run_xfail_test "tests/XFAIL/slices_append"
 }
 
 @test "XFAIL: stateful_goroutines" {

@@ -231,7 +231,7 @@ fn main() {
     println!("{}", "\n=== Complex conditional expressions ===".to_string());
 
     let mut score = Arc::new(Mutex::new(Some(85)));
-    let mut grade: Arc<Mutex<Option<String>>> = String::new();
+    let mut grade: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(Some(String::new())));
 
         // Ternary-like using if-else
     if (*score.lock().unwrap().as_ref().unwrap()) >= 90 {

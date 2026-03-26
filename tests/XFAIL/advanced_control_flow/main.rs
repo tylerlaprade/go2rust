@@ -206,7 +206,7 @@ fn main() {
         if (*i.lock().unwrap().as_ref().unwrap()) >= 3 {
         break
     }
-        { *(*i.lock().unwrap().as_ref().unwrap()).lock().unwrap() = Some((*i.lock().unwrap().as_ref().unwrap()) + 1); *(*j.lock().unwrap().as_ref().unwrap()).lock().unwrap() = Some((*j.lock().unwrap().as_ref().unwrap()) - 1) };
+        { let __tmp_0 = (*i.lock().unwrap().as_ref().unwrap()) + 1; let __tmp_1 = (*j.lock().unwrap().as_ref().unwrap()) - 1; *i.lock().unwrap() = Some(__tmp_0); *j.lock().unwrap() = Some(__tmp_1); };
     }
 
         // For loop with complex condition
@@ -242,8 +242,8 @@ fn main() {
 
     let mut score = Arc::new(Mutex::new(Some(0)));
     while (*score.lock().unwrap().as_ref().unwrap()) <= 100 {
-        let mut grade: Arc<Mutex<Option<String>>> = String::new();
-        let mut message: Arc<Mutex<Option<String>>> = String::new();
+        let mut grade: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(Some(String::new())));
+        let mut message: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(Some(String::new())));
 
         if (*score.lock().unwrap().as_ref().unwrap()) >= 90 {
         { let new_val = "A".to_string(); *grade.lock().unwrap() = Some(new_val); };
@@ -362,14 +362,14 @@ fn main() {
 
     let mut processData = Arc::new(Mutex::new(Some(Box::new(move |data: Arc<Mutex<Option<Vec<i32>>>>| -> Arc<Mutex<Option<Box<dyn Error + Send + Sync>>>> {
         if (*data.lock().unwrap().as_ref().unwrap()).len() == 0 {
-        return Arc::new(Mutex::new(Some(Box::new(format!("empty data")) as Box<dyn Error + Send + Sync>)));
+        return Arc::new(Mutex::new(Some(Box::<dyn Error + Send + Sync>::from(format!("empty data")))));
     }
         for (i, val) in (*data.lock().unwrap().as_ref().unwrap()).iter().copied().enumerate() {
         if val < 0 {
-        return Arc::new(Mutex::new(Some(Box::new(format!("negative value at index {}: {}", i, val)) as Box<dyn Error + Send + Sync>)));
+        return Arc::new(Mutex::new(Some(Box::<dyn Error + Send + Sync>::from(format!("negative value at index {}: {}", i, val)))));
     }
         if val > 100 {
-        return Arc::new(Mutex::new(Some(Box::new(format!("value too large at index {}: {}", i, val)) as Box<dyn Error + Send + Sync>)));
+        return Arc::new(Mutex::new(Some(Box::<dyn Error + Send + Sync>::from(format!("value too large at index {}: {}", i, val)))));
     }
     }
         return Arc::new(Mutex::new(None));

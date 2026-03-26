@@ -34,8 +34,8 @@ fn main() {
     println!("{} {}", "Point Y:".to_string(), (*(*point.borrow().as_ref().unwrap()).y.borrow().as_ref().unwrap()));
 
         // Modify struct through pointer
-    { let new_val = 30; *(*point.borrow_mut().as_mut().unwrap()).x.borrow_mut() = Some(new_val); };
-    { let new_val = 40; *(*point.borrow_mut().as_mut().unwrap()).y.borrow_mut() = Some(new_val); };
+    { let new_val = 30; *(*point.borrow().as_ref().unwrap()).x.borrow_mut() = Some(new_val); };
+    { let new_val = 40; *(*point.borrow().as_ref().unwrap()).y.borrow_mut() = Some(new_val); };
     println!("{} {}", "Modified point:".to_string(), format!("&{}", (*point.borrow().as_ref().unwrap())));
 
         // Pointer aliasing
@@ -45,7 +45,7 @@ fn main() {
 
         // New pointer allocation
     let mut newPoint = Rc::new(RefCell::new(Some(Point::default())));
-    { let new_val = 5; *(*newPoint.borrow_mut().as_mut().unwrap()).x.borrow_mut() = Some(new_val); };
-    { let new_val = 15; *(*newPoint.borrow_mut().as_mut().unwrap()).y.borrow_mut() = Some(new_val); };
+    { let new_val = 5; *(*newPoint.borrow().as_ref().unwrap()).x.borrow_mut() = Some(new_val); };
+    { let new_val = 15; *(*newPoint.borrow().as_ref().unwrap()).y.borrow_mut() = Some(new_val); };
     println!("{} {}", "New point:".to_string(), format!("&{}", (*newPoint.borrow().as_ref().unwrap())));
 }

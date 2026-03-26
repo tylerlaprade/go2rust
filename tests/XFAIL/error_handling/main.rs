@@ -40,7 +40,7 @@ pub fn divide(a: Rc<RefCell<Option<f64>>>, b: Rc<RefCell<Option<f64>>>) -> (Rc<R
 pub fn sqrt(x: Rc<RefCell<Option<f64>>>) -> (Rc<RefCell<Option<f64>>>, Rc<RefCell<Option<Box<dyn Error + Send + Sync>>>>) {
 
     if (*x.borrow().as_ref().unwrap()) < 0.0 {
-        return (Rc::new(RefCell::new(Some(0.0))), Rc::new(RefCell::new(Some(Box::new(format!("cannot take square root of negative number: {}", (*x.borrow().as_ref().unwrap()))) as Box<dyn Error + Send + Sync>))));
+        return (Rc::new(RefCell::new(Some(0.0))), Rc::new(RefCell::new(Some(Box::<dyn Error + Send + Sync>::from(format!("cannot take square root of negative number: {}", (*x.borrow().as_ref().unwrap())))))));
     }
 
         // Simple approximation

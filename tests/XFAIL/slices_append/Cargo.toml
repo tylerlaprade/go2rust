@@ -1,8 +1,0 @@
-[package]
-name = "slices_append"
-version = "0.1.0"
-edition = "2021"
-
-[[bin]]
-name = "slices_append"
-path = "main.rs"

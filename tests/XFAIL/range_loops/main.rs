@@ -79,7 +79,7 @@ fn main() {
 
         // Only value
     println!("{}", "Values only:".to_string());
-    for num in &(*numbers.lock().unwrap().as_ref().unwrap()) {
+    for num in (*numbers.lock().unwrap().as_ref().unwrap()).iter().copied() {
         print!("{} ", num);
     }
     println!();
@@ -147,7 +147,7 @@ fn main() {
     let mut data = Arc::new(Mutex::new(Some(vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10])));
 
     println!("{}", "Even numbers only (with continue):".to_string());
-    for num in &(*data.lock().unwrap().as_ref().unwrap()) {
+    for num in (*data.lock().unwrap().as_ref().unwrap()).iter().copied() {
         if num % 2 != 0 {
         continue
     }
@@ -156,7 +156,7 @@ fn main() {
     println!();
 
     println!("{}", "Numbers until 6 (with break):".to_string());
-    for num in &(*data.lock().unwrap().as_ref().unwrap()) {
+    for num in (*data.lock().unwrap().as_ref().unwrap()).iter().copied() {
         if num > 6 {
         break
     }

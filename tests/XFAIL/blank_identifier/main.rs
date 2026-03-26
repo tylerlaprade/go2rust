@@ -79,7 +79,7 @@ pub fn process_slice(slice: Arc<Mutex<Option<Vec<i32>>>>) -> (Arc<Mutex<Option<i
 
     { let new_val = 0; *sum.lock().unwrap() = Some(new_val); };
     { let new_val = (*slice.lock().unwrap().as_ref().unwrap()).len(); *count.lock().unwrap() = Some(new_val); };
-    for val in &(*slice.lock().unwrap().as_ref().unwrap()) {
+    for val in (*slice.lock().unwrap().as_ref().unwrap()).iter().copied() {
         { let mut guard = sum.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + val); };
     }
     return (sum, count);
@@ -108,7 +108,7 @@ fn main() {
 
         // Ignore index, use only value
     println!("{}", "Values only:".to_string());
-    for val in &(*slice.lock().unwrap().as_ref().unwrap()) {
+    for val in (*slice.lock().unwrap().as_ref().unwrap()).iter().copied() {
         print!("{} ", val);
     }
     println!();
@@ -151,7 +151,7 @@ fn main() {
         {(*sortedAges.lock().unwrap().as_mut().unwrap()).push((*age.lock().unwrap().as_mut().unwrap())); sortedAges.clone()};
     }
     (*sortedAges.lock().unwrap().as_mut().unwrap()).sort();
-    for age in &(*sortedAges.lock().unwrap().as_ref().unwrap()) {
+    for age in (*sortedAges.lock().unwrap().as_ref().unwrap()).iter().copied() {
         print!("{} ", age);
     }
     println!();
@@ -246,7 +246,7 @@ fn main() {
 
     let mut total = Arc::new(Mutex::new(Some(0)));
     for row in &(*data.lock().unwrap().as_ref().unwrap()) {
-        for val in &row {
+        for val in row.iter().copied() {
         { let mut guard = total.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + val); };
     }
     }

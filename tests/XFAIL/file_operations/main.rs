@@ -285,10 +285,10 @@ fn main() {
     }));
 
         // Write structured data
-    (*fmt.lock().unwrap().as_ref().unwrap())::fprintf(Arc::new(Mutex::new(Some((*file.lock().unwrap().as_ref().unwrap())))), Arc::new(Mutex::new(Some("Name: %s\n".to_string()))), Arc::new(Mutex::new(Some("John Doe".to_string()))));
-    (*fmt.lock().unwrap().as_ref().unwrap())::fprintf(Arc::new(Mutex::new(Some((*file.lock().unwrap().as_ref().unwrap())))), Arc::new(Mutex::new(Some("Age: %d\n".to_string()))), Arc::new(Mutex::new(Some(30))));
-    (*fmt.lock().unwrap().as_ref().unwrap())::fprintf(Arc::new(Mutex::new(Some((*file.lock().unwrap().as_ref().unwrap())))), Arc::new(Mutex::new(Some("Score: %.2f\n".to_string()))), Arc::new(Mutex::new(Some(95.5))));
-    (*fmt.lock().unwrap().as_ref().unwrap())::fprintf(Arc::new(Mutex::new(Some((*file.lock().unwrap().as_ref().unwrap())))), Arc::new(Mutex::new(Some("Active: %t\n".to_string()))), Arc::new(Mutex::new(Some(true))));
+    print!("Name: {}\n", "John Doe".to_string());
+    print!("Age: {}\n", 30);
+    print!("Score: {:.2}\n", 95.5);
+    print!("Active: {}\n", true);
 
     print!("Formatted data written to '{}'\n", (*dataFile.lock().unwrap().as_ref().unwrap()));
 

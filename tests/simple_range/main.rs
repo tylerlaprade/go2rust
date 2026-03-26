@@ -11,7 +11,7 @@ fn main() {
     }
 
         // Value only
-    for num in &(*numbers.borrow().as_ref().unwrap()) {
+    for num in (*numbers.borrow().as_ref().unwrap()).iter().copied() {
         println!("{} {}", "Value:".to_string(), num);
     }
 

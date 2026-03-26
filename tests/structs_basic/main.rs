@@ -57,7 +57,7 @@ fn main() {
     println!("{} {}", "Person 2:".to_string(), (*p2.borrow().as_ref().unwrap()));
 
         // Access and modify fields
-    { let new_val = 26; *(*p2.borrow_mut().as_mut().unwrap()).age.borrow_mut() = Some(new_val); };
+    { let new_val = 26; *(*p2.borrow().as_ref().unwrap()).age.borrow_mut() = Some(new_val); };
     println!("{} {}", "Updated Person 2:".to_string(), (*p2.borrow().as_ref().unwrap()));
 
         // Embedded structs

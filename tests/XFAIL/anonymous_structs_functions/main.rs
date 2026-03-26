@@ -126,8 +126,8 @@ pub fn get_config() -> (Arc<Mutex<Option<String>>>, Arc<Mutex<Option<AnonymousSt
 
 /// Function with anonymous struct pointer parameter
 pub fn update_settings(s: Arc<Mutex<Option<AnonymousStruct4>>>) {
-    { let new_val = true; *(*s.lock().unwrap().as_mut().unwrap()).debug.lock().unwrap() = Some(new_val); };
-    { let new_val = true; *(*s.lock().unwrap().as_mut().unwrap()).verbose.lock().unwrap() = Some(new_val); };
+    { let new_val = true; *(*s.lock().unwrap().as_ref().unwrap()).debug.lock().unwrap() = Some(new_val); };
+    { let new_val = true; *(*s.lock().unwrap().as_ref().unwrap()).verbose.lock().unwrap() = Some(new_val); };
 }
 
 /// Function with anonymous struct in channel

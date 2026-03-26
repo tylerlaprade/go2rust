@@ -4,7 +4,7 @@ use std::rc::{Rc};
 pub fn sum(numbers: Rc<RefCell<Option</* TODO: Unhandled type *ast.Ellipsis */ Rc<RefCell<Option<()>>>>>>) -> Rc<RefCell<Option<i32>>> {
 
     let mut total = Rc::new(RefCell::new(Some(0)));
-    for num in &(*numbers.borrow().as_ref().unwrap()) {
+    for num in (*numbers.borrow().as_ref().unwrap()).iter().copied() {
         { let mut guard = total.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + num); };
     }
     return total.clone();
@@ -16,7 +16,7 @@ pub fn average(numbers: Rc<RefCell<Option</* TODO: Unhandled type *ast.Ellipsis 
         return Rc::new(RefCell::new(Some(0.0)));
     }
     let mut total = Rc::new(RefCell::new(Some(0.0)));
-    for num in &(*numbers.borrow().as_ref().unwrap()) {
+    for num in (*numbers.borrow().as_ref().unwrap()).iter().copied() {
         { let mut guard = total.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + num); };
     }
     return {
@@ -40,7 +40,7 @@ pub fn print_strings(prefix: Rc<RefCell<Option<String>>>, strings: Rc<RefCell<Op
 pub fn min(first: Rc<RefCell<Option<i32>>>, rest: Rc<RefCell<Option</* TODO: Unhandled type *ast.Ellipsis */ Rc<RefCell<Option<()>>>>>>) -> Rc<RefCell<Option<i32>>> {
 
     let mut minimum = Rc::new(RefCell::new(Some((*first.borrow().as_ref().unwrap()))));
-    for num in &(*rest.borrow().as_ref().unwrap()) {
+    for num in (*rest.borrow().as_ref().unwrap()).iter().copied() {
         if num < (*minimum.borrow().as_ref().unwrap()) {
         { let new_val = num; *minimum.borrow_mut() = Some(new_val); };
     }

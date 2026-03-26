@@ -5,7 +5,7 @@ use std::rc::{Rc};
 fn main() {
     let mut nums = Rc::new(RefCell::new(Some(vec![2, 3, 4])));
     let mut sum = Rc::new(RefCell::new(Some(0)));
-    for num in &(*nums.borrow().as_ref().unwrap()) {
+    for num in (*nums.borrow().as_ref().unwrap()).iter().copied() {
         { let mut guard = sum.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + num); };
     }
     println!("{} {}", "sum:".to_string(), (*sum.borrow().as_ref().unwrap()));
