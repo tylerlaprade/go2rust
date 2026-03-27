@@ -13,8 +13,16 @@ import (
 // For CompositeLits (inline slices), generates the bare vec![...] without Rc wrapping.
 // For identifiers (variables), delegates to TranspileExpressionContext which already unwraps.
 func writeUnwrappedRangeTarget(out *strings.Builder, expr ast.Expr) {
-	if _, isCompositeLit := expr.(*ast.CompositeLit); isCompositeLit {
-		// Inline slice literal - capture output and strip wrapper if present
+	needsStrip := false
+	switch expr.(type) {
+	case *ast.CompositeLit:
+		needsStrip = true
+	case *ast.SliceExpr:
+		needsStrip = true
+	}
+
+	if needsStrip {
+		// Inline slice literal or slice expression - capture output and strip wrapper if present
 		var buf strings.Builder
 		TranspileExpressionContext(&buf, expr, RValue)
 		s := buf.String()
@@ -1769,12 +1777,14 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				// When using iter().enumerate(), the value is a reference
 				// For basic/Copy types, use .copied() to get owned values
 				if s.Key != nil && !isMap && !isString && valueType == "T" {
-					// Check if element type is a basic (Copy) type
+					// Check if element type is a numeric/bool (Rust Copy) type
 					elemType := typeInfo.GetSliceElemType(s.X)
 					if elemType != nil {
 						if basic, ok := elemType.Underlying().(*types.Basic); ok {
-							_ = basic
-							needsCopied = true
+							info := basic.Info()
+							if info&types.IsNumeric != 0 || info&types.IsBoolean != 0 {
+								needsCopied = true
+							}
 						}
 					}
 					if needsCopied {

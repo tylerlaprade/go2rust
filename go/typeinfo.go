@@ -295,8 +295,9 @@ func (ti *TypeInfo) IsInterface(ident *ast.Ident) bool {
 func (ti *TypeInfo) ReturnsWrappedValue(expr ast.Expr) bool {
 	switch e := expr.(type) {
 	case *ast.CallExpr:
-		// Function calls return wrapped values (unless it's a type conversion)
-		return !ti.IsTypeConversion(e)
+		// Both function calls and type conversions return wrapped values
+		// (TranspileTypeConversion wraps its output with WriteWrapperPrefix/Suffix)
+		return true
 	case *ast.SelectorExpr:
 		// Field accesses return wrapped values in our conservative model
 		// Method calls are handled by CallExpr case

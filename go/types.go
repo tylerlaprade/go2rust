@@ -329,6 +329,10 @@ func goTypeToRustBase(expr ast.Expr) string {
 			}
 		}
 		return fmt.Sprintf("%s_%s", t.X, t.Sel.Name)
+	case *ast.Ellipsis:
+		// Variadic parameter ...T is treated as []T (slice) in Go
+		elemType := goTypeToRustBase(t.Elt)
+		return "Vec<" + elemType + ">"
 	case *ast.StructType:
 		// Anonymous struct type - generate a unique type name
 		return generateAnonymousStructType(t)

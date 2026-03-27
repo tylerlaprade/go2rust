@@ -104,7 +104,40 @@ func isValueType(expr ast.Expr) bool {
 	case *ast.SelectorExpr:
 		// Qualified type like pkg.Type - treat as value type
 		return true
+	case *ast.Ellipsis:
+		return false // variadic param is a slice
 	default:
 		return false
 	}
+}
+
+// IsVariadicFunction returns true if the function signature has a variadic (ellipsis) last parameter
+func IsVariadicFunction(funcSig *FunctionSignature) bool {
+	if funcSig == nil || len(funcSig.Params) == 0 {
+		return false
+	}
+	lastParam := funcSig.Params[len(funcSig.Params)-1]
+	_, isEllipsis := lastParam.Type.(*ast.Ellipsis)
+	return isEllipsis
+}
+
+// GetVariadicParamIndex returns the argument index where variadic args start (counting
+// individual named params), or -1 if not variadic
+func GetVariadicParamIndex(funcSig *FunctionSignature) int {
+	if !IsVariadicFunction(funcSig) {
+		return -1
+	}
+	idx := 0
+	for i, field := range funcSig.Params {
+		if i == len(funcSig.Params)-1 {
+			// This is the variadic param
+			return idx
+		}
+		numNames := len(field.Names)
+		if numNames == 0 {
+			numNames = 1
+		}
+		idx += numNames
+	}
+	return idx
 }

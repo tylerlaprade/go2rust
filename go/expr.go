@@ -1760,23 +1760,43 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 	}
 
 	if needsCast && rustType != "" {
-		// Perform the type cast
-		WriteWrapperPrefix(out)
-		out.WriteString("(")
-		// Check if the argument is a simple identifier (variable)
-		out.WriteString("*")
-		if ident, ok := call.Args[0].(*ast.Ident); ok && ident.Name != "nil" {
-			// It's a variable, unwrap it directly
-			out.WriteString(ident.Name)
-		} else {
-			// It's an expression, evaluate and unwrap
-			TranspileExpression(out, call.Args[0])
+		// Check if the argument is a builtin call that returns a bare value (not wrapped)
+		argReturnsBare := false
+		if argCall, ok := call.Args[0].(*ast.CallExpr); ok {
+			if argIdent, ok := argCall.Fun.(*ast.Ident); ok {
+				switch argIdent.Name {
+				case "len", "cap":
+					argReturnsBare = true
+				}
+			}
 		}
-		out.WriteString(".as_ref().unwrap()")
-		out.WriteString(".as_ref().unwrap()")
-		out.WriteString(") as ")
-		out.WriteString(rustType)
-		WriteWrapperSuffix(out)
+
+		if argReturnsBare {
+			// Builtin returns bare value (e.g., len() → usize), just cast directly
+			WriteWrapperPrefix(out)
+			TranspileExpression(out, call.Args[0])
+			out.WriteString(" as ")
+			out.WriteString(rustType)
+			WriteWrapperSuffix(out)
+		} else {
+			// Perform the type cast on a wrapped value
+			WriteWrapperPrefix(out)
+			out.WriteString("(")
+			// Check if the argument is a simple identifier (variable)
+			out.WriteString("*")
+			if ident, ok := call.Args[0].(*ast.Ident); ok && ident.Name != "nil" {
+				// It's a variable, unwrap it directly
+				out.WriteString(ident.Name)
+			} else {
+				// It's an expression, evaluate and unwrap
+				TranspileExpression(out, call.Args[0])
+			}
+			out.WriteString(".as_ref().unwrap()")
+			out.WriteString(".as_ref().unwrap()")
+			out.WriteString(") as ")
+			out.WriteString(rustType)
+			WriteWrapperSuffix(out)
+		}
 	} else {
 		// No cast needed or unknown type
 		TranspileExpression(out, call.Args[0])
@@ -2161,6 +2181,62 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 	var funcSig *FunctionSignature
 	if funcName != "" && !isBuiltinFunction(funcName) {
 		funcSig = GetFunctionSignature(funcName)
+	}
+
+	// Handle variadic function calls
+	variadicStart := GetVariadicParamIndex(funcSig)
+	if variadicStart >= 0 {
+		// Emit non-variadic args first
+		for i := 0; i < variadicStart && i < len(call.Args); i++ {
+			if i > 0 {
+				out.WriteString(", ")
+			}
+			WriteWrapperPrefix(out)
+			TranspileExpression(out, call.Args[i])
+			WriteWrapperSuffix(out)
+		}
+
+		// Now handle variadic args
+		if variadicStart > 0 && variadicStart < len(call.Args) {
+			out.WriteString(", ")
+		}
+		if variadicStart > 0 && variadicStart == len(call.Args) {
+			// No variadic args provided, pass empty vec
+			out.WriteString(", ")
+			WriteWrapperPrefix(out)
+			out.WriteString("vec![]")
+			WriteWrapperSuffix(out)
+		} else if call.Ellipsis.IsValid() {
+			// Slice expansion: sum(slice...) — pass the slice directly
+			// The last arg is already a slice, just clone it
+			lastArg := call.Args[len(call.Args)-1]
+			if ident, ok := lastArg.(*ast.Ident); ok {
+				out.WriteString(ident.Name)
+				out.WriteString(".clone()")
+			} else {
+				TranspileExpression(out, lastArg)
+			}
+		} else if variadicStart < len(call.Args) {
+			// Individual variadic args: sum(1, 2, 3) → sum(vec![1, 2, 3])
+			WriteWrapperPrefix(out)
+			out.WriteString("vec![")
+			for i := variadicStart; i < len(call.Args); i++ {
+				if i > variadicStart {
+					out.WriteString(", ")
+				}
+				TranspileExpression(out, call.Args[i])
+			}
+			out.WriteString("]")
+			WriteWrapperSuffix(out)
+		} else {
+			// No variadic args at all — pass empty vec
+			WriteWrapperPrefix(out)
+			out.WriteString("vec![]")
+			WriteWrapperSuffix(out)
+		}
+
+		out.WriteString(")")
+		return
 	}
 
 	for i, arg := range call.Args {

@@ -593,6 +593,10 @@ run_xfail_test() {
     run_test "tests/variable_declarations"
 }
 
+@test "variadic_functions" {
+    run_test "tests/variadic_functions"
+}
+
 @test "waitgroup_sync" {
     run_test "tests/waitgroup_sync"
 }
@@ -787,10 +791,6 @@ run_xfail_test() {
 
 @test "XFAIL: url_parsing" {
     run_xfail_test "tests/XFAIL/url_parsing"
-}
-
-@test "XFAIL: variadic_functions" {
-    run_xfail_test "tests/XFAIL/variadic_functions"
 }
 
 @test "XFAIL: worker_pools" {
