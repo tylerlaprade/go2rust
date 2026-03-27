@@ -2374,8 +2374,18 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 						WriteBorrowMethod(out, false)
 						out.WriteString(".as_ref().unwrap()).clone()")
 					} else {
-						// Literal or expression — just emit directly
-						TranspileExpression(out, arg)
+						// Literal or expression — emit without wrapping
+						// TranspileExpression may add wrapper, so capture and strip it
+						var buf strings.Builder
+						TranspileExpression(&buf, arg)
+						s := buf.String()
+						wrapPrefix := outerWrapper + "::new(" + innerWrapper + "::new(Some("
+						wrapSuffix := ")))"
+						if strings.HasPrefix(s, wrapPrefix) && strings.HasSuffix(s, wrapSuffix) {
+							out.WriteString(s[len(wrapPrefix) : len(s)-len(wrapSuffix)])
+						} else {
+							out.WriteString(s)
+						}
 					}
 					out.WriteString(") as Box<dyn Any>)))")
 				}

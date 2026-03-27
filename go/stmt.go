@@ -2783,6 +2783,13 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					out.WriteString("        let ")
 					out.WriteString(varName)
 					out.WriteString(" = _any_val;\n")
+					// Register as bare in VarTable so print handlers don't try to unwrap
+					if vt := GetVarTable(); vt != nil {
+						vt.Register(varName, &VarInfo{
+							WrapLevel: WrapNone,
+							Source:    SourceLocal,
+						})
+					}
 				}
 			} else {
 				// Type case(s)

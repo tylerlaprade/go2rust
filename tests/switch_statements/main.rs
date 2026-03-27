@@ -2,6 +2,28 @@ use std::any::Any;
 use std::cell::{RefCell};
 use std::rc::{Rc};
 
+
+fn go_type_name(val: &dyn Any) -> &'static str {
+    if val.is::<i32>() { return "int" }
+    if val.is::<i64>() { return "int64" }
+    if val.is::<i8>() { return "int8" }
+    if val.is::<i16>() { return "int16" }
+    if val.is::<u32>() { return "uint" }
+    if val.is::<u64>() { return "uint64" }
+    if val.is::<u8>() { return "uint8" }
+    if val.is::<u16>() { return "uint16" }
+    if val.is::<f64>() { return "float64" }
+    if val.is::<f32>() { return "float32" }
+    if val.is::<bool>() { return "bool" }
+    if val.is::<String>() { return "string" }
+    if val.is::<Vec<i32>>() { return "[]int" }
+    if val.is::<Vec<i64>>() { return "[]int64" }
+    if val.is::<Vec<f64>>() { return "[]float64" }
+    if val.is::<Vec<String>>() { return "[]string" }
+    if val.is::<Vec<bool>>() { return "[]bool" }
+    std::any::type_name_of_val(val)
+}
+
 pub fn basic_switch(day: Rc<RefCell<Option<i32>>>) {
     { let _switch_val = (*day.borrow().as_ref().unwrap());
     match _switch_val {
@@ -114,7 +136,7 @@ pub fn type_switch(value: Rc<RefCell<Option<Box<dyn Any>>>>) {
         print!("Float: {:.2}\n", (*v.borrow().as_ref().unwrap()));;
     } else {
         let v = _any_val;
-        print!("Unknown type: <type>\n");;
+        print!("Unknown type: {}\n", go_type_name(v));;
     }
     }
 }
@@ -141,5 +163,5 @@ fn main() {
     type_switch(Rc::new(RefCell::new(Some(Box::new("hello".to_string()) as Box<dyn Any>))));
     type_switch(Rc::new(RefCell::new(Some(Box::new(true) as Box<dyn Any>))));
     type_switch(Rc::new(RefCell::new(Some(Box::new(3.14) as Box<dyn Any>))));
-    type_switch(Rc::new(RefCell::new(Some(Box::new(Rc::new(RefCell::new(Some(vec![1, 2, 3])))) as Box<dyn Any>))));
+    type_switch(Rc::new(RefCell::new(Some(Box::new(vec![1, 2, 3]) as Box<dyn Any>))));
 }

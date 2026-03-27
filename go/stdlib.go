@@ -347,9 +347,10 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 }
 
 // convertFormatStringWithSkips converts Go format verbs to Rust format strings
-// Returns the converted format string and indices of arguments to skip (for %T)
-func convertFormatStringWithSkips(goFormat string) (string, []int, []int) {
+// Returns: (format_string, skipIndices, charIndices, typeNameIndices)
+func convertFormatStringWithSkips(goFormat string) (string, []int, []int, []int) {
 	var skipIndices []int
+	var typeNameIndices []int
 	format := goFormat
 
 	// First, escape any literal curly braces that aren't part of Go format verbs
@@ -370,9 +371,9 @@ func convertFormatStringWithSkips(goFormat string) (string, []int, []int) {
 				result.WriteString("%")
 				i += 2
 			} else if format[i+1] == 'T' {
-				// %T - skip this argument
-				skipIndices = append(skipIndices, argIndex)
-				result.WriteString("<type>")
+				// %T - print Go type name of the argument
+				typeNameIndices = append(typeNameIndices, argIndex)
+				result.WriteString("{}")
 				argIndex++
 				i += 2
 			} else if format[i+1] == '.' {
@@ -432,12 +433,12 @@ func convertFormatStringWithSkips(goFormat string) (string, []int, []int) {
 	finalFormat = strings.ReplaceAll(finalFormat, "__OPEN_BRACE__", "{{")
 	finalFormat = strings.ReplaceAll(finalFormat, "__CLOSE_BRACE__", "}}")
 
-	return finalFormat, skipIndices, charIndices
+	return finalFormat, skipIndices, charIndices, typeNameIndices
 }
 
 // convertFormatString converts Go format strings to Rust format strings
 func convertFormatString(goFormat string) string {
-	converted, _, _ := convertFormatStringWithSkips(goFormat)
+	converted, _, _, _ := convertFormatStringWithSkips(goFormat)
 	return converted
 }
 
@@ -447,19 +448,21 @@ func transpileFmtPrintf(out *strings.Builder, call *ast.CallExpr) {
 
 	var skipIndices []int
 	var charIndices []int
+	var typeNameIndices []int
 	if len(call.Args) > 0 {
 		// First arg is the format string
 		if lit, ok := call.Args[0].(*ast.BasicLit); ok && lit.Kind == token.STRING {
-			// Convert Go format verbs to Rust and get skip/char indices
-			format, skips, chars := convertFormatStringWithSkips(lit.Value)
+			// Convert Go format verbs to Rust and get skip/char/typeName indices
+			format, skips, chars, typeNames := convertFormatStringWithSkips(lit.Value)
 			skipIndices = skips
 			charIndices = chars
+			typeNameIndices = typeNames
 			out.WriteString(format)
 		} else {
 			TranspileExpression(out, call.Args[0])
 		}
 
-		// Rest of the arguments, skipping those for %T
+		// Rest of the arguments, skipping those no longer needed
 		for i := 1; i < len(call.Args); i++ {
 			// Check if this argument index should be skipped (0-based in skipIndices)
 			shouldSkip := false
@@ -471,6 +474,14 @@ func transpileFmtPrintf(out *strings.Builder, call *ast.CallExpr) {
 			}
 			if !shouldSkip {
 				out.WriteString(", ")
+				// Check if this arg needs %T type name
+				isTypeNameArg := false
+				for _, tnIdx := range typeNameIndices {
+					if tnIdx == i-1 {
+						isTypeNameArg = true
+						break
+					}
+				}
 				// Check if this arg needs char casting (%c verb)
 				isCharArg := false
 				for _, charIdx := range charIndices {
@@ -479,7 +490,29 @@ func transpileFmtPrintf(out *strings.Builder, call *ast.CallExpr) {
 						break
 					}
 				}
-				if isCharArg {
+				if isTypeNameArg {
+					NeedGoTypeName()
+					// %T: pass the value to go_type_name as &dyn Any
+					if ident, ok := call.Args[i].(*ast.Ident); ok {
+						if isVarBare(ident.Name) {
+							// Bare variable (e.g., &dyn Any from type switch default) — pass directly
+							out.WriteString("go_type_name(")
+							out.WriteString(ident.Name)
+							out.WriteString(")")
+						} else {
+							// Wrapped variable with Box<dyn Any> inside
+							out.WriteString("go_type_name(&**")
+							out.WriteString(ident.Name)
+							WriteBorrowMethod(out, false)
+							out.WriteString(".as_ref().unwrap())")
+						}
+					} else {
+						// Expression — evaluate and pass
+						out.WriteString("go_type_name(&*")
+						transpilePrintArg(out, call.Args[i])
+						out.WriteString(")")
+					}
+				} else if isCharArg {
 					out.WriteString("(")
 					transpilePrintArg(out, call.Args[i])
 					out.WriteString(") as u8 as char")
@@ -568,10 +601,12 @@ func transpileFmtFprintf(out *strings.Builder, call *ast.CallExpr) {
 	// Second arg is the format string, remaining are values
 	var skipIndices []int
 	var charIndices []int
+	var typeNameIndices []int
 	if lit, ok := call.Args[1].(*ast.BasicLit); ok && lit.Kind == token.STRING {
-		format, skips, chars := convertFormatStringWithSkips(lit.Value)
+		format, skips, chars, typeNames := convertFormatStringWithSkips(lit.Value)
 		skipIndices = skips
 		charIndices = chars
+		typeNameIndices = typeNames
 		out.WriteString(format)
 	} else {
 		TranspileExpression(out, call.Args[1])
@@ -587,6 +622,13 @@ func transpileFmtFprintf(out *strings.Builder, call *ast.CallExpr) {
 		}
 		if !shouldSkip {
 			out.WriteString(", ")
+			isTypeNameArg := false
+			for _, tnIdx := range typeNameIndices {
+				if tnIdx == i-2 {
+					isTypeNameArg = true
+					break
+				}
+			}
 			isCharArg := false
 			for _, charIdx := range charIndices {
 				if charIdx == i-2 {
@@ -594,7 +636,12 @@ func transpileFmtFprintf(out *strings.Builder, call *ast.CallExpr) {
 					break
 				}
 			}
-			if isCharArg {
+			if isTypeNameArg {
+				NeedGoTypeName()
+				out.WriteString("go_type_name(&*")
+				transpilePrintArg(out, call.Args[i])
+				out.WriteString(")")
+			} else if isCharArg {
 				out.WriteString("(")
 				transpilePrintArg(out, call.Args[i])
 				out.WriteString(") as u8 as char")
@@ -614,18 +661,20 @@ func transpileFmtSprintf(out *strings.Builder, call *ast.CallExpr) {
 	out.WriteString("(")
 
 	var skipIndices []int
+	var typeNameIndices []int
 	if len(call.Args) > 0 {
 		// First arg is the format string
 		if lit, ok := call.Args[0].(*ast.BasicLit); ok && lit.Kind == token.STRING {
 			// Convert Go format verbs to Rust and get skip indices
-			format, skips, _ := convertFormatStringWithSkips(lit.Value)
+			format, skips, _, typeNames := convertFormatStringWithSkips(lit.Value)
 			skipIndices = skips
+			typeNameIndices = typeNames
 			out.WriteString(format)
 		} else {
 			TranspileExpression(out, call.Args[0])
 		}
 
-		// Rest of the arguments, skipping those for %T
+		// Rest of the arguments, skipping those no longer needed
 		for i := 1; i < len(call.Args); i++ {
 			// Check if this argument index should be skipped (0-based in skipIndices)
 			shouldSkip := false
@@ -637,7 +686,21 @@ func transpileFmtSprintf(out *strings.Builder, call *ast.CallExpr) {
 			}
 			if !shouldSkip {
 				out.WriteString(", ")
-				transpilePrintArg(out, call.Args[i])
+				isTypeNameArg := false
+				for _, tnIdx := range typeNameIndices {
+					if tnIdx == i-1 {
+						isTypeNameArg = true
+						break
+					}
+				}
+				if isTypeNameArg {
+					NeedGoTypeName()
+					out.WriteString("go_type_name(&*")
+					transpilePrintArg(out, call.Args[i])
+					out.WriteString(")")
+				} else {
+					transpilePrintArg(out, call.Args[i])
+				}
 			}
 		}
 	}

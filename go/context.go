@@ -81,3 +81,11 @@ func NeedGoMutex() {
 		currentContext.Helpers.needsGoMutex = true
 	}
 }
+
+// NeedGoTypeName marks that we need the go_type_name helper function
+func NeedGoTypeName() {
+	if currentContext != nil && currentContext.Helpers != nil {
+		currentContext.Helpers.needsGoTypeName = true
+		TrackImport("Any")
+	}
+}
