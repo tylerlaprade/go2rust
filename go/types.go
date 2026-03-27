@@ -395,3 +395,62 @@ func isSyncParam(expr ast.Expr) bool {
 	}
 	return false
 }
+
+// goTypesTypeToRust converts a go/types.Type to the base Rust type string (unwrapped)
+func goTypesTypeToRust(t types.Type) string {
+	switch ut := t.Underlying().(type) {
+	case *types.Basic:
+		switch ut.Kind() {
+		case types.String:
+			return "String"
+		case types.Int:
+			return "i32"
+		case types.Int8:
+			return "i8"
+		case types.Int16:
+			return "i16"
+		case types.Int32:
+			return "i32"
+		case types.Int64:
+			return "i64"
+		case types.Uint:
+			return "u32"
+		case types.Uint8:
+			return "u8"
+		case types.Uint16:
+			return "u16"
+		case types.Uint32:
+			return "u32"
+		case types.Uint64:
+			return "u64"
+		case types.Uintptr:
+			return "usize"
+		case types.Float32:
+			return "f32"
+		case types.Float64:
+			return "f64"
+		case types.Bool:
+			return "bool"
+		default:
+			return fmt.Sprintf("/* unknown basic type: %s */", ut.Name())
+		}
+	case *types.Slice:
+		return "Vec<" + goTypesTypeToRust(ut.Elem()) + ">"
+	case *types.Map:
+		return "BTreeMap<" + goTypesTypeToRust(ut.Key()) + ", " + goTypesTypeToRustWrapped(ut.Elem()) + ">"
+	default:
+		// Fallback for named types
+		if named, ok := t.(*types.Named); ok {
+			return named.Obj().Name()
+		}
+		return "/* unknown type */"
+	}
+}
+
+// goTypesTypeToRustWrapped converts a go/types.Type to the wrapped Rust type string
+func goTypesTypeToRustWrapped(t types.Type) string {
+	base := goTypesTypeToRust(t)
+	outerWrapper := GetOuterWrapperType()
+	innerWrapper := GetInnerWrapperType()
+	return outerWrapper + "<" + innerWrapper + "<Option<" + base + ">>>"
+}

@@ -980,6 +980,35 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 						}
 						out.WriteString("]")
 						return
+					case *types.Map:
+						// Handle map with inferred type (nested map literal)
+						// Don't wrap - the outer container wraps the value
+						mapType := typ.Underlying().(*types.Map)
+						TrackImport("BTreeMap")
+						keyRust := goTypesTypeToRust(mapType.Key())
+						valRust := goTypesTypeToRustWrapped(mapType.Elem())
+						out.WriteString("BTreeMap::<")
+						out.WriteString(keyRust)
+						out.WriteString(", ")
+						out.WriteString(valRust)
+						out.WriteString(">::from([")
+						for i, elt := range e.Elts {
+							if i > 0 {
+								out.WriteString(", ")
+							}
+							if kv, ok := elt.(*ast.KeyValueExpr); ok {
+								out.WriteString("(")
+								TranspileExpression(out, kv.Key)
+								out.WriteString(", ")
+								// Wrap map values
+								WriteWrapperPrefix(out)
+								TranspileExpression(out, kv.Value)
+								WriteWrapperSuffix(out)
+								out.WriteString(")")
+							}
+						}
+						out.WriteString("])")
+						return
 					case *types.Struct:
 						// Handle struct literal with inferred type
 						structTypeName := ""
