@@ -5,3 +5,4 @@
 tests/**/target
 tests/**/Cargo.lock
 .worktrees/
+.ralph-loop-logs/

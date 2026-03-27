@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Autonomous Claude Code loop for go2rust
-# Usage: ./run_loop.sh [phase] [max_iterations]
+# Autonomous Ralph loop for go2rust
+# Usage: ./ralph_loop.sh [phase] [max_iterations]
 #
 # Phases:
 #   a - Pick off easy/medium XFAIL tests (default)
@@ -10,17 +10,37 @@
 #   e - Extend selective wrapping (rearchitecture stages 2-5)
 #
 # Examples:
-#   ./run_loop.sh        # Phase A, 50 iterations
-#   ./run_loop.sh b 10   # Phase B, 10 iterations
-#   ./run_loop.sh e      # Phase E, 50 iterations
+#   ./ralph_loop.sh        # Phase A, 50 iterations
+#   ./ralph_loop.sh b 10   # Phase B, 10 iterations
+#   ./ralph_loop.sh e      # Phase E, 50 iterations
 
 PHASE="${1:-a}"
 MAX_ITERATIONS="${2:-50}"
-LOGDIR="$(pwd)/.claude-loop-logs"
+LOGDIR="$(pwd)/.ralph-loop-logs"
 mkdir -p "$LOGDIR"
 
-# Ctrl+C kills the whole loop, not just the current claude session
-trap 'echo ""; echo "Loop interrupted."; exit 130' INT
+# Status line helpers
+status() {
+    printf "\r\033[K%s" "$1"
+}
+
+event() {
+    printf "\r\033[K%s\n" "$1"
+}
+
+format_duration() {
+    local secs=$1
+    if [ "$secs" -ge 3600 ]; then
+        printf "%dh%02dm" $((secs/3600)) $((secs%3600/60))
+    elif [ "$secs" -ge 60 ]; then
+        printf "%dm%02ds" $((secs/60)) $((secs%60))
+    else
+        printf "%ds" "$secs"
+    fi
+}
+
+# Ctrl+C kills the whole loop, not just the current ralph session
+trap 'printf "\r\033[K"; echo "Loop interrupted."; exit 130' INT
 
 # Record baseline test count before starting (count test dirs)
 BASELINE_PASS=$(ls tests/ | grep -v XFAIL | grep -v '\.bats' | grep -v README | wc -l | tr -d ' ')
@@ -53,72 +73,99 @@ case "$PHASE" in
     ;;
 esac
 
-echo "=== Go2Rust Autonomous Loop ==="
-echo "Phase: $PHASE — $PHASE_NAME"
-echo "Max iterations: $MAX_ITERATIONS"
-echo "Baseline passing: $BASELINE_PASS"
-echo "Logs: $LOGDIR/"
-echo "Press Ctrl+C to stop"
+echo "ralph loop — phase $PHASE ($PHASE_NAME) — baseline: $BASELINE_PASS passing"
+echo "logs: $LOGDIR/"
 echo ""
 
+# Pre-flight: verify claude can start
+if ! claude --dangerously-skip-permissions -p "ok" --output-format text --max-turns 1 >/dev/null 2>&1; then
+    echo "ERROR: claude preflight failed — check auth/network"
+    exit 1
+fi
+
+LOOP_START=$SECONDS
+
 for i in $(seq 1 "$MAX_ITERATIONS"); do
-    echo "--- Iteration $i / $MAX_ITERATIONS ($(date)) ---"
     LOGFILE="$LOGDIR/phase-${PHASE}-$(date +%Y%m%d-%H%M%S).log"
 
     # Count current passing/failing
     PASSING=$(ls tests/ | grep -v XFAIL | grep -v '\.bats' | grep -v README | wc -l | tr -d ' ')
     XFAIL=$(ls tests/XFAIL/ 2>/dev/null | wc -l | tr -d ' ')
-    echo "Status: $PASSING passing, $XFAIL XFAIL (baseline: $BASELINE_PASS)"
 
     # REGRESSION GATE: if passing count dropped below baseline, stop
     if [ "$PASSING" -lt "$BASELINE_PASS" ]; then
-        echo "REGRESSION DETECTED: $PASSING passing < $BASELINE_PASS baseline"
-        echo "Stopping loop. Check git log and fix manually."
+        event "REGRESSION: $PASSING passing < $BASELINE_PASS baseline — stopping"
         exit 1
     fi
 
     # Update baseline if we gained tests
     if [ "$PASSING" -gt "$BASELINE_PASS" ]; then
+        event "promoted: $BASELINE_PASS → $PASSING passing"
         BASELINE_PASS="$PASSING"
-        echo "New baseline: $BASELINE_PASS"
     fi
 
     if [ "$XFAIL" -eq 0 ]; then
-        echo "All tests passing! Nothing left to do."
+        event "all tests passing — nothing left to do"
         break
     fi
 
-    # Run Claude Code in print mode (non-interactive, runs to completion)
-    # --dangerously-skip-permissions: no confirmation prompts
-    # -p: print mode (agentic, exits when done)
-    # --max-budget-usd: cost guardrail per session
-    # --output-format text ensures plain text output (not JSON)
-    # tee splits to stdout (real-time in terminal) and log file
-    claude --dangerously-skip-permissions -p "$PROMPT" --output-format text 2>&1 | tee "$LOGFILE"
-    EXIT_CODE=${PIPESTATUS[0]}
+    # Run claude, output to log only. Spinner updates status line in background.
+    SESSION_START=$SECONDS
 
-    echo ""
-    echo "Session $i complete (exit code: $EXIT_CODE). Log: $LOGFILE"
+    # Background spinner — updates status line with elapsed time
+    _spinner_iter=$i _spinner_max=$MAX_ITERATIONS _spinner_pass=$PASSING _spinner_xfail=$XFAIL
+    (
+        FRAMES=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
+        TICK=0
+        while true; do
+            F=${FRAMES[$(( TICK % ${#FRAMES[@]} ))]}
+            if [ "$TICK" -ge 3600 ]; then
+                DUR=$(printf "%dh%02dm" $((TICK/3600)) $((TICK%3600/60)))
+            elif [ "$TICK" -ge 60 ]; then
+                DUR=$(printf "%dm%02ds" $((TICK/60)) $((TICK%60)))
+            else
+                DUR=$(printf "%ds" "$TICK")
+            fi
+            printf "\r\033[K%s  iter %d/%d  ✓%d ✗%d  %s  %s" \
+                "$F" "$_spinner_iter" "$_spinner_max" "$_spinner_pass" "$_spinner_xfail" \
+                "$DUR" "running session…"
+            sleep 1
+            TICK=$((TICK + 1))
+        done
+    ) &
+    SPINNER_PID=$!
+
+    ERRFILE="${LOGFILE%.log}.err"
+    claude --dangerously-skip-permissions -p "$PROMPT" --output-format text >"$LOGFILE" 2>"$ERRFILE"
+    EXIT_CODE=$?
+
+    # Kill spinner
+    kill "$SPINNER_PID" 2>/dev/null
+    wait "$SPINNER_PID" 2>/dev/null
+
+    ELAPSED=$(( SECONDS - SESSION_START ))
     LINES=$(wc -l < "$LOGFILE" | tr -d ' ')
-    echo "Log size: $LINES lines"
 
     if [ "$LINES" -eq 0 ]; then
-        echo "WARNING: Empty log — claude may have failed to start. Check above for errors."
+        if [ -s "$ERRFILE" ]; then
+            event "FAILED (exit $EXIT_CODE): $(head -1 "$ERRFILE")"
+        else
+            event "warning: empty log — ralph may have failed to start (exit $EXIT_CODE)"
+        fi
+    else
+        status "done  iter $i/$MAX_ITERATIONS  ✓$PASSING ✗$XFAIL  $(format_duration $ELAPSED)  ${LINES}L logged"
     fi
 
     # Auto-stage test file changes: promoted tests, regenerated .rs/.toml output, tests.bats
     git add tests/ tests.bats 2>/dev/null
     if ! git diff --cached --quiet 2>/dev/null; then
-        echo "Auto-committing test file changes..."
-        git commit -m "Auto-commit: test output updates (phase $PHASE, session $i)"
-        echo "Auto-committed."
+        git commit -q -m "Auto-commit: test output updates (phase $PHASE, session $i)"
     fi
 
-    echo ""
     sleep 2
 done
 
-echo "=== Loop finished ==="
+TOTAL=$(( SECONDS - LOOP_START ))
 PASSING=$(ls tests/ | grep -v XFAIL | grep -v '\.bats' | grep -v README | wc -l | tr -d ' ')
 XFAIL=$(ls tests/XFAIL/ 2>/dev/null | wc -l | tr -d ' ')
-echo "Final: $PASSING passing, $XFAIL XFAIL (started at: $BASELINE_PASS)"
+event "done — $PASSING passing, $XFAIL xfail (started at $BASELINE_PASS) — $(format_duration $TOTAL) total"
