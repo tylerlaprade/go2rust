@@ -121,7 +121,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Select default | ❌ |
 | **`defer` - Defer statements** | ✅ |
 | **`else` - Else clauses** | ✅ |
-| **`fallthrough` - Fallthrough statements** | ❌ |
+| **`fallthrough` - Fallthrough statements** | ✅ |
 | **`for` - For loops** | |
 | └ C-style for loops | ✅ |
 | └ While-style loops | ✅ |
@@ -133,6 +133,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Method definitions | ✅ |
 | └ Method calls | ✅ |
 | └ Function literals/closures | ✅ |
+| └ Variadic functions | ✅ |
 | **`go` - Goroutines** | ✅ |
 | **`goto` - Goto statements** | ❌ |
 | **`if` - If statements** | |
@@ -180,8 +181,8 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Struct tags | ✅ |
 | **`switch` - Switch statements** | |
 | └ Basic switch | ✅ |
-| └ Type switch | ❌ |
-| └ Fallthrough | ❌ |
+| └ Type switch | ✅ |
+| └ Fallthrough | ✅ |
 | **`type` - Type definitions** | |
 | └ Struct types | ✅ |
 | └ Type aliases | ✅ |
