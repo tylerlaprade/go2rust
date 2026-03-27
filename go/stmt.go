@@ -1811,7 +1811,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				if isStringLit {
 					out.WriteString(") in ")
 					TranspileExpression(out, s.X)
-					out.WriteString(".chars().enumerate()")
+					out.WriteString(".char_indices()")
 				} else {
 					out.WriteString(") in (*")
 					// Use raw identifier to avoid double-unwrapping
@@ -1821,7 +1821,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						TranspileExpression(out, s.X)
 					}
 					WriteBorrowMethod(out, false)
-					out.WriteString(".as_ref().unwrap()).chars().enumerate()")
+					out.WriteString(".as_ref().unwrap()).char_indices()")
 				}
 			} else if s.Value != nil {
 				// for _, c := range str
