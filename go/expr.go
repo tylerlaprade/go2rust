@@ -1781,18 +1781,19 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 		} else {
 			// Perform the type cast on a wrapped value
 			WriteWrapperPrefix(out)
-			out.WriteString("(")
-			// Check if the argument is a simple identifier (variable)
-			out.WriteString("*")
+			out.WriteString("(*")
 			if ident, ok := call.Args[0].(*ast.Ident); ok && ident.Name != "nil" {
-				// It's a variable, unwrap it directly
+				// It's a variable (Rc<RefCell<Option<T>>>), unwrap it
 				out.WriteString(ident.Name)
+				WriteBorrowMethod(out, false)
+				out.WriteString(".as_ref().unwrap()")
 			} else {
-				// It's an expression, evaluate and unwrap
+				// It's an expression — TranspileExpression returns wrapped value
+				// so unwrap the result
 				TranspileExpression(out, call.Args[0])
+				WriteBorrowMethod(out, false)
+				out.WriteString(".as_ref().unwrap()")
 			}
-			out.WriteString(".as_ref().unwrap()")
-			out.WriteString(".as_ref().unwrap()")
 			out.WriteString(") as ")
 			out.WriteString(rustType)
 			WriteWrapperSuffix(out)

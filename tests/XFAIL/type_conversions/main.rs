@@ -37,13 +37,34 @@ fn format_any(value: &dyn Any) -> String {
     }
 }
 
+fn go_type_name(val: &dyn Any) -> &'static str {
+    if val.is::<i32>() { return "int" }
+    if val.is::<i64>() { return "int64" }
+    if val.is::<i8>() { return "int8" }
+    if val.is::<i16>() { return "int16" }
+    if val.is::<u32>() { return "uint" }
+    if val.is::<u64>() { return "uint64" }
+    if val.is::<u8>() { return "uint8" }
+    if val.is::<u16>() { return "uint16" }
+    if val.is::<f64>() { return "float64" }
+    if val.is::<f32>() { return "float32" }
+    if val.is::<bool>() { return "bool" }
+    if val.is::<String>() { return "string" }
+    if val.is::<Vec<i32>>() { return "[]int" }
+    if val.is::<Vec<i64>>() { return "[]int64" }
+    if val.is::<Vec<f64>>() { return "[]float64" }
+    if val.is::<Vec<String>>() { return "[]string" }
+    if val.is::<Vec<bool>>() { return "[]bool" }
+    std::any::type_name_of_val(val)
+}
+
 fn main() {
         // Basic numeric type conversions
     println!("{}", "=== Basic numeric conversions ===".to_string());
 
     let mut i: Rc<RefCell<Option<i32>>> = Rc::new(RefCell::new(Some(42)));
-    let mut f: Rc<RefCell<Option<f64>>> = Rc::new(RefCell::new(Some((*i.as_ref().unwrap().as_ref().unwrap()) as f64)));
-    let mut i2: Rc<RefCell<Option<i32>>> = Rc::new(RefCell::new(Some((*f.as_ref().unwrap().as_ref().unwrap()) as i32)));
+    let mut f: Rc<RefCell<Option<f64>>> = Rc::new(RefCell::new(Some((*i.borrow().as_ref().unwrap()) as f64)));
+    let mut i2: Rc<RefCell<Option<i32>>> = Rc::new(RefCell::new(Some((*f.borrow().as_ref().unwrap()) as i32)));
 
     print!("int: {}\n", (*i.borrow().as_ref().unwrap()));
     print!("float64: {:.2}\n", (*f.borrow().as_ref().unwrap()));
@@ -53,9 +74,9 @@ fn main() {
     println!("{}", "\n=== Integer size conversions ===".to_string());
 
     let mut i8: Rc<RefCell<Option<i8>>> = Rc::new(RefCell::new(Some(127)));
-    let mut i16: Rc<RefCell<Option<i16>>> = Rc::new(RefCell::new(Some((*i8.as_ref().unwrap().as_ref().unwrap()) as i16)));
-    let mut i32: Rc<RefCell<Option<i32>>> = Rc::new(RefCell::new(Some((*i16.as_ref().unwrap().as_ref().unwrap()) as i32)));
-    let mut i64: Rc<RefCell<Option<i64>>> = Rc::new(RefCell::new(Some((*i32.as_ref().unwrap().as_ref().unwrap()) as i64)));
+    let mut i16: Rc<RefCell<Option<i16>>> = Rc::new(RefCell::new(Some((*i8.borrow().as_ref().unwrap()) as i16)));
+    let mut i32: Rc<RefCell<Option<i32>>> = Rc::new(RefCell::new(Some((*i16.borrow().as_ref().unwrap()) as i32)));
+    let mut i64: Rc<RefCell<Option<i64>>> = Rc::new(RefCell::new(Some((*i32.borrow().as_ref().unwrap()) as i64)));
 
     print!("int8: {}\n", (*i8.borrow().as_ref().unwrap()));
     print!("int16: {}\n", (*i16.borrow().as_ref().unwrap()));
@@ -66,10 +87,10 @@ fn main() {
     println!("{}", "\n=== Unsigned integer conversions ===".to_string());
 
     let mut ui: Rc<RefCell<Option<u32>>> = Rc::new(RefCell::new(Some(42)));
-    let mut ui8: Rc<RefCell<Option<u8>>> = Rc::new(RefCell::new(Some((*ui.as_ref().unwrap().as_ref().unwrap()) as u8)));
-    let mut ui16: Rc<RefCell<Option<u16>>> = Rc::new(RefCell::new(Some((*ui8.as_ref().unwrap().as_ref().unwrap()) as u16)));
-    let mut ui32: Rc<RefCell<Option<u32>>> = Rc::new(RefCell::new(Some((*ui16.as_ref().unwrap().as_ref().unwrap()) as u32)));
-    let mut ui64: Rc<RefCell<Option<u64>>> = Rc::new(RefCell::new(Some((*ui32.as_ref().unwrap().as_ref().unwrap()) as u64)));
+    let mut ui8: Rc<RefCell<Option<u8>>> = Rc::new(RefCell::new(Some((*ui.borrow().as_ref().unwrap()) as u8)));
+    let mut ui16: Rc<RefCell<Option<u16>>> = Rc::new(RefCell::new(Some((*ui8.borrow().as_ref().unwrap()) as u16)));
+    let mut ui32: Rc<RefCell<Option<u32>>> = Rc::new(RefCell::new(Some((*ui16.borrow().as_ref().unwrap()) as u32)));
+    let mut ui64: Rc<RefCell<Option<u64>>> = Rc::new(RefCell::new(Some((*ui32.borrow().as_ref().unwrap()) as u64)));
 
     print!("uint: {}\n", (*ui.borrow().as_ref().unwrap()));
     print!("uint8: {}\n", (*ui8.borrow().as_ref().unwrap()));
@@ -81,8 +102,8 @@ fn main() {
     println!("{}", "\n=== Float conversions ===".to_string());
 
     let mut f64: Rc<RefCell<Option<f64>>> = Rc::new(RefCell::new(Some(3.14159265359)));
-    let mut f32: Rc<RefCell<Option<f32>>> = Rc::new(RefCell::new(Some((*f64.as_ref().unwrap().as_ref().unwrap()) as f32)));
-    let mut backToF64: Rc<RefCell<Option<f64>>> = Rc::new(RefCell::new(Some((*f32.as_ref().unwrap().as_ref().unwrap()) as f64)));
+    let mut f32: Rc<RefCell<Option<f32>>> = Rc::new(RefCell::new(Some((*f64.borrow().as_ref().unwrap()) as f32)));
+    let mut backToF64: Rc<RefCell<Option<f64>>> = Rc::new(RefCell::new(Some((*f32.borrow().as_ref().unwrap()) as f64)));
 
     print!("float64: {:.10}\n", (*f64.borrow().as_ref().unwrap()));
     print!("float32: {:.10}\n", (*f32.borrow().as_ref().unwrap()));
@@ -144,7 +165,7 @@ fn main() {
 
     let mut any: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new(42) as Box<dyn Any>)));
     print!("interface{{}} value: {}\n", format_any(any.borrow().as_ref().unwrap().as_ref()));
-    print!("interface{{}} type: <type>\n");
+    print!("interface{{}} type: {}\n", go_type_name(&**any.borrow().as_ref().unwrap()));
 
         // Type assertion
     let (mut intVal, mut ok) = ({
@@ -167,7 +188,7 @@ fn main() {
         // Change interface value
     { let new_val = Box::new("hello".to_string()) as Box<dyn Any>; *any.borrow_mut() = Some(new_val); };
     print!("new interface{{}} value: {}\n", format_any(any.borrow().as_ref().unwrap().as_ref()));
-    print!("new interface{{}} type: <type>\n");
+    print!("new interface{{}} type: {}\n", go_type_name(&**any.borrow().as_ref().unwrap()));
 
     let (mut strVal, mut ok) = ({
         let val = any.clone();
@@ -209,13 +230,13 @@ fn main() {
     println!("{}", "\n=== Overflow examples ===".to_string());
 
     let mut bigInt: Rc<RefCell<Option<i64>>> = Rc::new(RefCell::new(Some(1000000)));
-    let mut smallInt: Rc<RefCell<Option<i8>>> = Rc::new(RefCell::new(Some((*bigInt.as_ref().unwrap().as_ref().unwrap()) as i8)));
+    let mut smallInt: Rc<RefCell<Option<i8>>> = Rc::new(RefCell::new(Some((*bigInt.borrow().as_ref().unwrap()) as i8)));
     print!("int64: {}\n", (*bigInt.borrow().as_ref().unwrap()));
     print!("int8 (overflow): {}\n", (*smallInt.borrow().as_ref().unwrap()));
 
         // Precision loss in float conversion
     let mut preciseFloat: Rc<RefCell<Option<f64>>> = Rc::new(RefCell::new(Some(1.23456789012345)));
-    let mut lessPrec: Rc<RefCell<Option<f32>>> = Rc::new(RefCell::new(Some((*preciseFloat.as_ref().unwrap().as_ref().unwrap()) as f32)));
+    let mut lessPrec: Rc<RefCell<Option<f32>>> = Rc::new(RefCell::new(Some((*preciseFloat.borrow().as_ref().unwrap()) as f32)));
     print!("float64: {:.15}\n", (*preciseFloat.borrow().as_ref().unwrap()));
     print!("float32: {:.15}\n", (*lessPrec.borrow().as_ref().unwrap()));
 
@@ -226,7 +247,7 @@ fn main() {
     type MyString = Rc<RefCell<Option<String>>>;
 
     let mut mi: Rc<RefCell<Option<MyInt>>> = Rc::new(RefCell::new(Some(42)));
-    let mut regularInt: Rc<RefCell<Option<i32>>> = Rc::new(RefCell::new(Some((*mi.as_ref().unwrap().as_ref().unwrap()) as i32)));
+    let mut regularInt: Rc<RefCell<Option<i32>>> = Rc::new(RefCell::new(Some((*mi.borrow().as_ref().unwrap()) as i32)));
     let mut backToMyInt: Rc<RefCell<Option<MyInt>>> = (*regularInt.borrow().as_ref().unwrap());
 
     print!("MyInt: {}\n", (*mi.borrow().as_ref().unwrap()));
