@@ -726,26 +726,54 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			}
 		}
 
-		if needsUnwrapX || needsUnwrapY {
-			// At least one operand needs unwrapping
-			if needsUnwrapX {
+		// Check if either operand is a string literal in a comparison - use &str directly
+		isComparison := e.Op == token.EQL || e.Op == token.NEQ || e.Op == token.LSS || e.Op == token.GTR || e.Op == token.LEQ || e.Op == token.GEQ
+		xIsStringLit := false
+		yIsStringLit := false
+		if isComparison {
+			if lit, ok := e.X.(*ast.BasicLit); ok && lit.Kind == token.STRING {
+				xIsStringLit = true
+			}
+			if lit, ok := e.Y.(*ast.BasicLit); ok && lit.Kind == token.STRING {
+				yIsStringLit = true
+			}
+		}
+
+		// Helper to write an operand, using bare &str for string literals in comparisons
+		writeOperand := func(expr ast.Expr, isStringLit bool, needsUnwrap bool) {
+			if needsUnwrap {
 				out.WriteString("(*")
-				TranspileExpression(out, e.X)
+				TranspileExpression(out, expr)
 				WriteBorrowMethod(out, false)
 				out.WriteString(".as_ref().unwrap())")
+			} else if isStringLit {
+				// Emit string literal as &str (without .to_string())
+				// This works for comparing with String, &String, and &str
+				lit := expr.(*ast.BasicLit)
+				out.WriteString(lit.Value)
 			} else {
-				TranspileExpression(out, e.X)
+				TranspileExpression(out, expr)
+			}
+		}
+
+		if needsUnwrapX || needsUnwrapY || xIsStringLit || yIsStringLit {
+			// At least one operand needs special handling
+			// Handle X operand
+			if xLit, ok := e.X.(*ast.BasicLit); ok && xLit.Kind == token.INT && isFloatExpression(e.Y) {
+				out.WriteString(xLit.Value)
+				out.WriteString(".0")
+			} else {
+				writeOperand(e.X, xIsStringLit, needsUnwrapX)
 			}
 			out.WriteString(" ")
 			out.WriteString(e.Op.String())
 			out.WriteString(" ")
-			if needsUnwrapY {
-				out.WriteString("(*")
-				TranspileExpression(out, e.Y)
-				WriteBorrowMethod(out, false)
-				out.WriteString(".as_ref().unwrap())")
+			// Handle Y operand
+			if yLit, ok := e.Y.(*ast.BasicLit); ok && yLit.Kind == token.INT && isFloatExpression(e.X) {
+				out.WriteString(yLit.Value)
+				out.WriteString(".0")
 			} else {
-				TranspileExpression(out, e.Y)
+				writeOperand(e.Y, yIsStringLit, needsUnwrapY)
 			}
 		} else {
 			// No unwrapping needed
