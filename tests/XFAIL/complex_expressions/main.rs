@@ -261,7 +261,7 @@ fn main() {
     println!("{}", "\n=== Range expressions ===".to_string());
 
     let mut total = Arc::new(Mutex::new(Some(0)));
-    for (i, val) in Arc::new(Mutex::new(Some((*numbers.lock().unwrap().as_ref().unwrap())[..5 as usize].to_vec()))).iter().copied().enumerate() {
+    for (i, val) in (*numbers.lock().unwrap().as_ref().unwrap())[..5 as usize].to_vec().iter().copied().enumerate() {
         { let mut guard = total.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + i * val + (val % 3)); };
     }
     print!("Complex range calculation: {}\n", (*total.lock().unwrap().as_ref().unwrap()));

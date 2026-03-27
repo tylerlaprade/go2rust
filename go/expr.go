@@ -17,6 +17,33 @@ const (
 	AddressOf                    // Expression is having its address taken
 )
 
+// isExpressionResultBare checks if an expression produces a bare (non-wrapped) result
+// in LValue context. If true, the result should NOT have .borrow()/.lock() applied.
+// This is used to avoid adding extra unwrap layers in nested indexing like matrix[1][1].
+func isExpressionResultBare(expr ast.Expr) bool {
+	switch e := expr.(type) {
+	case *ast.IndexExpr:
+		// Array/slice/map indexing results are bare values (already cloned out of the wrapper)
+		return true
+	case *ast.Ident:
+		// Range loop variables are bare
+		if _, isRangeVar := rangeLoopVars[e.Name]; isRangeVar {
+			return true
+		}
+		// VarTable bare variables (interface params, channel vars, etc.)
+		if isVarBare(e.Name) {
+			return true
+		}
+		// Local constants are bare
+		if _, isConst := localConstants[e.Name]; isConst {
+			return true
+		}
+		return false
+	default:
+		return false
+	}
+}
+
 // isCompositeLitSelfWrapping checks if a CompositeLit expression will
 // self-wrap with Rc<RefCell<Option<>>> when transpiled. Slice and map
 // literals self-wrap; struct literals do not.
@@ -769,32 +796,54 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 
 		if isMap && ctx == RValue {
 			// Map read access - need to clone the value
-			out.WriteString("(*")
-			if ident, ok := e.X.(*ast.Ident); ok {
-				out.WriteString(ident.Name)
-			} else {
+			if isExpressionResultBare(e.X) {
+				// e.X is a bare value (e.g., result of another index/map access)
+				// Use RValue context to get the bare map value, then .get() directly
 				TranspileExpression(out, e.X)
-			}
-			WriteBorrowMethod(out, false)
-			out.WriteString(".as_ref().unwrap()).get(")
-			// Check if the index is a range loop variable that's already a reference
-			if ident, ok := e.Index.(*ast.Ident); ok {
-				if _, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar {
-					// Range variables from slice iteration are already references
-					out.WriteString(ident.Name)
+				out.WriteString(".get(")
+				// Index key
+				if ident, ok := e.Index.(*ast.Ident); ok {
+					if _, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar {
+						out.WriteString(ident.Name)
+					} else {
+						out.WriteString("&")
+						TranspileExpression(out, e.Index)
+					}
 				} else {
-					// Normal variables need &
 					out.WriteString("&")
 					TranspileExpression(out, e.Index)
 				}
+				out.WriteString(").unwrap()")
+				WriteBorrowMethod(out, false)
+				out.WriteString(".as_ref().unwrap().clone()")
 			} else {
-				// Non-identifier expressions need &
-				out.WriteString("&")
-				TranspileExpression(out, e.Index)
+				out.WriteString("(*")
+				if ident, ok := e.X.(*ast.Ident); ok {
+					out.WriteString(ident.Name)
+				} else {
+					TranspileExpression(out, e.X)
+				}
+				WriteBorrowMethod(out, false)
+				out.WriteString(".as_ref().unwrap()).get(")
+				// Check if the index is a range loop variable that's already a reference
+				if ident, ok := e.Index.(*ast.Ident); ok {
+					if _, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar {
+						// Range variables from slice iteration are already references
+						out.WriteString(ident.Name)
+					} else {
+						// Normal variables need &
+						out.WriteString("&")
+						TranspileExpression(out, e.Index)
+					}
+				} else {
+					// Non-identifier expressions need &
+					out.WriteString("&")
+					TranspileExpression(out, e.Index)
+				}
+				out.WriteString(").unwrap()")
+				WriteBorrowMethod(out, false)
+				out.WriteString(".as_ref().unwrap().clone()")
 			}
-			out.WriteString(").unwrap()")
-			WriteBorrowMethod(out, false)
-			out.WriteString(".as_ref().unwrap().clone()")
 		} else {
 			// Regular array/slice/string indexing
 			// Check if it's a string (returns a byte)
@@ -824,16 +873,26 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				out.WriteString("]")
 			} else {
 				// Array/slice indexing
-				out.WriteString("(*")
-				// Use LValue context so identifiers don't unwrap themselves
-				TranspileExpressionContext(out, e.X, LValue)
-				WriteBorrowMethod(out, false)
-				out.WriteString(".as_ref().unwrap())[")
-				// Index handling - identifiers will unwrap themselves in RValue context
-				TranspileExpression(out, e.Index)
-				out.WriteString(" as usize]")
-				// Array/slice elements are wrapped, so we need to clone
-				out.WriteString(".clone()")
+				if isExpressionResultBare(e.X) {
+					// e.X is a bare value (e.g., result of another index, range var)
+					// Don't add borrow/unwrap - just index directly
+					TranspileExpressionContext(out, e.X, LValue)
+					out.WriteString("[")
+					TranspileExpression(out, e.Index)
+					out.WriteString(" as usize]")
+					out.WriteString(".clone()")
+				} else {
+					out.WriteString("(*")
+					// Use LValue context so identifiers don't unwrap themselves
+					TranspileExpressionContext(out, e.X, LValue)
+					WriteBorrowMethod(out, false)
+					out.WriteString(".as_ref().unwrap())[")
+					// Index handling - identifiers will unwrap themselves in RValue context
+					TranspileExpression(out, e.Index)
+					out.WriteString(" as usize]")
+					// Array/slice elements are wrapped, so we need to clone
+					out.WriteString(".clone()")
+				}
 			}
 		}
 

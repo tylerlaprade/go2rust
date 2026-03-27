@@ -412,6 +412,7 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 		decl *ast.GenDecl
 	}
 	var consts []*ast.GenDecl
+	var globalVars []*ast.GenDecl
 
 	// First pass: categorize declarations
 	for _, decl := range file.Decls {
@@ -464,6 +465,8 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 				}
 			case token.CONST:
 				consts = append(consts, d)
+			case token.VAR:
+				globalVars = append(globalVars, d)
 			}
 		}
 	}

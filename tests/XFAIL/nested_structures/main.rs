@@ -233,7 +233,7 @@ fn main() {
     }
 
         // Access nested map values
-    let mut laptopCount = Rc::new(RefCell::new(Some((*(*inventory.borrow().as_ref().unwrap()).get(&"electronics".to_string()).unwrap().borrow().as_ref().unwrap().clone().borrow().as_ref().unwrap()).get(&"laptops".to_string()).unwrap().borrow().as_ref().unwrap().clone())));
+    let mut laptopCount = Rc::new(RefCell::new(Some((*inventory.borrow().as_ref().unwrap()).get(&"electronics".to_string()).unwrap().borrow().as_ref().unwrap().clone().get(&"laptops".to_string()).unwrap().borrow().as_ref().unwrap().clone())));
     print!("Laptop count: {}\n", (*laptopCount.borrow().as_ref().unwrap()));
 
         // Nested slices
@@ -247,7 +247,7 @@ fn main() {
         print!("Row {}: ", i);
         for (j, val) in row.iter().copied().enumerate() {
         print!("{} ", val);
-        if j < (*row.borrow().as_ref().unwrap()).len() - 1 {
+        if j < row.len() - 1 {
         print!("{}", " ".to_string());
     }
     }
@@ -255,7 +255,7 @@ fn main() {
     }
 
         // Access nested slice elements
-    let mut centerElement = Rc::new(RefCell::new(Some((*(*matrix.borrow().as_ref().unwrap())[1 as usize].clone().borrow().as_ref().unwrap())[1 as usize].clone())));
+    let mut centerElement = Rc::new(RefCell::new(Some((*matrix.borrow().as_ref().unwrap())[1 as usize].clone()[1 as usize].clone())));
     print!("Center element: {}\n", (*centerElement.borrow().as_ref().unwrap()));
 
         // 3D slice

@@ -3,7 +3,8 @@ use std::rc::{Rc};
 
 fn main() {
     let mut i = Rc::new(RefCell::new(Some(2)));
-    match (*i.borrow().as_ref().unwrap()) {
+    { let _switch_val = (*i.borrow().as_ref().unwrap());
+    match _switch_val {
         1 => {
             println!("{}", "one".to_string());
         }
@@ -14,7 +15,7 @@ fn main() {
             println!("{}", "three".to_string());
         }
         _ => {}
-    }
+    } }
 
     match true {
         true if (*i.borrow().as_ref().unwrap()) < 2 => {

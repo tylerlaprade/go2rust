@@ -34,7 +34,8 @@ fn main() {
 
 pub fn transition(s: Rc<RefCell<Option<ServerState>>>) -> Rc<RefCell<Option<ServerState>>> {
 
-    match (*s.borrow().as_ref().unwrap()) {
+    { let _switch_val = (*s.borrow().as_ref().unwrap());
+    match _switch_val {
         STATE_IDLE => {
             return StateConnected.clone();
         }
@@ -47,5 +48,5 @@ pub fn transition(s: Rc<RefCell<Option<ServerState>>>) -> Rc<RefCell<Option<Serv
         _ => {
             panic!("unknown state: {}", (*s.borrow().as_ref().unwrap()));
         }
-    }
+    } }
 }

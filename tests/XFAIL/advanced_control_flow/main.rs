@@ -166,9 +166,11 @@ fn main() {
     while (*item.lock().unwrap().as_ref().unwrap()) <= 2 {
         print!("Category {}, Item {}: ", (*category.lock().unwrap().as_ref().unwrap()), (*item.lock().unwrap().as_ref().unwrap()));
 
-        match (*category.lock().unwrap().as_ref().unwrap()) {
+        { let _switch_val = (*category.lock().unwrap().as_ref().unwrap());
+    match _switch_val {
         1 => {
-            match (*item.lock().unwrap().as_ref().unwrap()) {
+            { let _switch_val = (*item.lock().unwrap().as_ref().unwrap());
+    match _switch_val {
         1 => {
             println!("{}", "Electronics - Phone".to_string());
         }
@@ -176,10 +178,11 @@ fn main() {
             println!("{}", "Electronics - Laptop".to_string());
         }
         _ => {}
-    }
+    } }
         }
         2 => {
-            match (*item.lock().unwrap().as_ref().unwrap()) {
+            { let _switch_val = (*item.lock().unwrap().as_ref().unwrap());
+    match _switch_val {
         1 => {
             println!("{}", "Books - Fiction".to_string());
         }
@@ -187,10 +190,10 @@ fn main() {
             println!("{}", "Books - Non-fiction".to_string());
         }
         _ => {}
-    }
+    } }
         }
         _ => {}
-    }
+    } }
         { let mut guard = item.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
         { let mut guard = category.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
@@ -302,7 +305,7 @@ fn main() {
     let mut matrix = Arc::new(Mutex::new(Some(vec![vec!["a".to_string(), "b".to_string(), "c".to_string()], vec!["d".to_string(), "e".to_string(), "f".to_string()], vec!["g".to_string(), "h".to_string(), "i".to_string()]])));
 
     for (rowIdx, row) in (*matrix.lock().unwrap().as_ref().unwrap()).iter().enumerate() {
-        for (colIdx, cell) in row.iter().copied().enumerate() {
+        for (colIdx, cell) in row.iter().enumerate() {
         if cell == "e".to_string() {
         print!("Found center at [{}][{}]: {}\n", rowIdx, colIdx, cell);
         continue

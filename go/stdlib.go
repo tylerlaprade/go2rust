@@ -911,13 +911,19 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 func transpileLen(out *strings.Builder, call *ast.CallExpr) {
 	if len(call.Args) > 0 {
 		// len() returns the length of arrays, slices, maps, strings, or channels
-		// The argument is wrapped, so we need to unwrap it first
-		// Keep as usize - Rust's natural size type for collections
-		out.WriteString("(*")
-		// Use LValue context so identifiers don't unwrap themselves
-		TranspileExpressionContext(out, call.Args[0], LValue)
-		WriteBorrowMethod(out, false)
-		out.WriteString(".as_ref().unwrap()).len()")
+		if isExpressionResultBare(call.Args[0]) {
+			// Bare value (range var, index result, etc.) - access directly
+			TranspileExpressionContext(out, call.Args[0], LValue)
+			out.WriteString(".len()")
+		} else {
+			// The argument is wrapped, so we need to unwrap it first
+			// Keep as usize - Rust's natural size type for collections
+			out.WriteString("(*")
+			// Use LValue context so identifiers don't unwrap themselves
+			TranspileExpressionContext(out, call.Args[0], LValue)
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref().unwrap()).len()")
+		}
 	}
 }
 
