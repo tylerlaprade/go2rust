@@ -3,7 +3,8 @@ use std::cell::{RefCell};
 use std::rc::{Rc};
 
 pub fn basic_switch(day: Rc<RefCell<Option<i32>>>) {
-    match (*day.borrow().as_ref().unwrap()) {
+    { let _switch_val = (*day.borrow().as_ref().unwrap());
+    match _switch_val {
         1 => {
             println!("{}", "Monday".to_string());
         }
@@ -25,12 +26,13 @@ pub fn basic_switch(day: Rc<RefCell<Option<i32>>>) {
         _ => {
             println!("{}", "Invalid day".to_string());
         }
-    }
+    } }
 }
 
 pub fn switch_with_expression() {
     let mut x = Rc::new(RefCell::new(Some(10)));
-    match (*x.borrow().as_ref().unwrap()) * 2 {
+    { let _switch_val = (*x.borrow().as_ref().unwrap()) * 2;
+    match _switch_val {
         20 => {
             println!("{}", "x * 2 equals 20".to_string());
         }
@@ -40,7 +42,7 @@ pub fn switch_with_expression() {
         _ => {
             println!("{}", "x * 2 is something else".to_string());
         }
-    }
+    } }
 }
 
 pub fn switch_without_expression() {
@@ -95,57 +97,25 @@ pub fn switch_with_fallthrough(num: Rc<RefCell<Option<i32>>>) {
 }
 
 pub fn type_switch(value: Rc<RefCell<Option<Box<dyn Any>>>>) {
-    if let Some(v) = (|| -> Option<Box<dyn Any>> {
-        let val = (*value.borrow().as_ref().unwrap());
-        let guard = val.borrow();
-        if let Some(ref any_val) = *guard {
-            if let Some(val) = any_val.downcast_ref::<i32>() {
-                return Some(Box::new(val.clone()) as Box<dyn Any>);
-            }
-        }
-        None
-    })() {
-        let v = Rc::new(RefCell::new(Some((*v.downcast_ref::<i32>().unwrap()).clone())));
+    {
+    let _ts_guard = value.borrow();
+    let _any_val: &dyn Any = _ts_guard.as_ref().unwrap().as_ref();
+    if _any_val.downcast_ref::<i32>().is_some() {
+        let v = Rc::new(RefCell::new(Some(_any_val.downcast_ref::<i32>().unwrap().clone())));
         print!("Integer: {}\n", (*v.borrow().as_ref().unwrap()));;
-    } else if let Some(v) = (|| -> Option<Box<dyn Any>> {
-        let val = (*value.borrow().as_ref().unwrap());
-        let guard = val.borrow();
-        if let Some(ref any_val) = *guard {
-            if let Some(val) = any_val.downcast_ref::<String>() {
-                return Some(Box::new(val.clone()) as Box<dyn Any>);
-            }
-        }
-        None
-    })() {
-        let v = Rc::new(RefCell::new(Some((*v.downcast_ref::<String>().unwrap()).clone())));
+    } else if _any_val.downcast_ref::<String>().is_some() {
+        let v = Rc::new(RefCell::new(Some(_any_val.downcast_ref::<String>().unwrap().clone())));
         print!("String: {}\n", (*v.borrow().as_ref().unwrap()));;
-    } else if let Some(v) = (|| -> Option<Box<dyn Any>> {
-        let val = (*value.borrow().as_ref().unwrap());
-        let guard = val.borrow();
-        if let Some(ref any_val) = *guard {
-            if let Some(val) = any_val.downcast_ref::<bool>() {
-                return Some(Box::new(val.clone()) as Box<dyn Any>);
-            }
-        }
-        None
-    })() {
-        let v = Rc::new(RefCell::new(Some((*v.downcast_ref::<bool>().unwrap()).clone())));
+    } else if _any_val.downcast_ref::<bool>().is_some() {
+        let v = Rc::new(RefCell::new(Some(_any_val.downcast_ref::<bool>().unwrap().clone())));
         print!("Boolean: {}\n", (*v.borrow().as_ref().unwrap()));;
-    } else if let Some(v) = (|| -> Option<Box<dyn Any>> {
-        let val = (*value.borrow().as_ref().unwrap());
-        let guard = val.borrow();
-        if let Some(ref any_val) = *guard {
-            if let Some(val) = any_val.downcast_ref::<f64>() {
-                return Some(Box::new(val.clone()) as Box<dyn Any>);
-            }
-        }
-        None
-    })() {
-        let v = Rc::new(RefCell::new(Some((*v.downcast_ref::<f64>().unwrap()).clone())));
+    } else if _any_val.downcast_ref::<f64>().is_some() {
+        let v = Rc::new(RefCell::new(Some(_any_val.downcast_ref::<f64>().unwrap().clone())));
         print!("Float: {:.2}\n", (*v.borrow().as_ref().unwrap()));;
     } else {
-        let v = (*value.borrow().as_ref().unwrap());
+        let v = _any_val;
         print!("Unknown type: <type>\n");;
+    }
     }
 }
 
@@ -167,9 +137,9 @@ fn main() {
     switch_with_fallthrough(Rc::new(RefCell::new(Some(4))));
 
     println!("{}", "\n=== Type switch ===".to_string());
-    type_switch(Rc::new(RefCell::new(Some(42))));
-    type_switch(Rc::new(RefCell::new(Some("hello".to_string()))));
-    type_switch(true.clone());
-    type_switch(Rc::new(RefCell::new(Some(3.14))));
-    type_switch(Rc::new(RefCell::new(Some(vec![1, 2, 3]))));
+    type_switch(Rc::new(RefCell::new(Some(Box::new(42) as Box<dyn Any>))));
+    type_switch(Rc::new(RefCell::new(Some(Box::new("hello".to_string()) as Box<dyn Any>))));
+    type_switch(Rc::new(RefCell::new(Some(Box::new(true) as Box<dyn Any>))));
+    type_switch(Rc::new(RefCell::new(Some(Box::new(3.14) as Box<dyn Any>))));
+    type_switch(Rc::new(RefCell::new(Some(Box::new(Rc::new(RefCell::new(Some(vec![1, 2, 3])))) as Box<dyn Any>))));
 }

@@ -2247,10 +2247,24 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 		// Check if this parameter expects an interface type
 		needsInterfaceBoxing := false
 		expectsInterfaceParam := false
+		expectsEmptyInterface := false
 		var interfaceName string
 		if funcSig != nil && i < len(funcSig.Params) {
-			// Get the parameter type
-			paramType := funcSig.Params[i].Type
+			// Get the parameter type — account for multi-name fields
+			paramField := funcSig.Params[i]
+			idx := 0
+			for _, field := range funcSig.Params {
+				numNames := len(field.Names)
+				if numNames == 0 {
+					numNames = 1
+				}
+				if i < idx+numNames {
+					paramField = field
+					break
+				}
+				idx += numNames
+			}
+			paramType := paramField.Type
 			if ident, ok := paramType.(*ast.Ident); ok {
 				// Check if this is an interface type using TypeInfo
 				typeInfo := GetTypeInfo()
@@ -2260,6 +2274,12 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 					interfaceName = ident.Name
 					// We no longer need interface boxing since params changed
 					needsInterfaceBoxing = false
+				}
+			}
+			// Check for anonymous empty interface{} parameter → Box<dyn Any>
+			if ifaceType, ok := paramType.(*ast.InterfaceType); ok {
+				if ifaceType.Methods == nil || len(ifaceType.Methods.List) == 0 {
+					expectsEmptyInterface = true
 				}
 			}
 		}
@@ -2301,6 +2321,65 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 					TranspileExpression(out, arg)
 				}
 				continue // Skip the regular handling
+			}
+
+			// Check if this parameter expects interface{} (Box<dyn Any>)
+			if expectsEmptyInterface {
+				// Check if the argument already has type interface{} (Box<dyn Any>)
+				argIsInterface := false
+				typeInfo := GetTypeInfo()
+				if typeInfo != nil {
+					argType := typeInfo.GetType(arg)
+					if argType != nil {
+						if iface, ok := argType.Underlying().(*types.Interface); ok && iface.NumMethods() == 0 {
+							argIsInterface = true
+						}
+					}
+				}
+
+				if argIsInterface {
+					// Argument is already interface{} — just clone the Rc
+					if ident, ok := arg.(*ast.Ident); ok {
+						out.WriteString(ident.Name)
+						out.WriteString(".clone()")
+					} else {
+						TranspileExpression(out, arg)
+					}
+				} else {
+					// Need to box the value as Box<dyn Any>
+					outerWrapper := GetOuterWrapperType()
+					innerWrapper := GetInnerWrapperType()
+					out.WriteString(outerWrapper + "::new(" + innerWrapper + "::new(Some(Box::new(")
+
+					// Check if the argument is a wrapped variable that needs unwrapping
+					isWrappedVar := false
+					if ident, ok := arg.(*ast.Ident); ok {
+						switch ident.Name {
+						case "nil", "true", "false":
+							// Not wrapped vars
+						default:
+							if _, isConst := localConstants[ident.Name]; !isConst {
+								if _, isRange := rangeLoopVars[ident.Name]; !isRange {
+									isWrappedVar = true
+								}
+							}
+						}
+					}
+
+					if isWrappedVar {
+						ident := arg.(*ast.Ident)
+						// Variable — unwrap to get the inner value, then box it
+						out.WriteString("(*")
+						out.WriteString(ident.Name)
+						WriteBorrowMethod(out, false)
+						out.WriteString(".as_ref().unwrap()).clone()")
+					} else {
+						// Literal or expression — just emit directly
+						TranspileExpression(out, arg)
+					}
+					out.WriteString(") as Box<dyn Any>)))")
+				}
+				continue
 			}
 
 			// Check if this parameter expects a sync type (WaitGroup, Mutex)

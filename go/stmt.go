@@ -2164,15 +2164,15 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			out.WriteString("    }")
 		} else {
 			// Standard match-based code (no fallthrough)
-			out.WriteString("match ")
 			if s.Tag != nil {
-				// Switch with expression
+				// Capture tag expression to avoid borrow-lifetime issues in match
+				out.WriteString("{ let _switch_val = ")
 				TranspileExpression(out, s.Tag)
+				out.WriteString(";\n    match _switch_val {\n")
 			} else {
 				// Switch without expression - use true
-				out.WriteString("true")
+				out.WriteString("match true {\n")
 			}
-			out.WriteString(" {\n")
 
 			// Process cases
 			hasDefault := false
@@ -2220,6 +2220,10 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			}
 
 			out.WriteString("    }")
+			if s.Tag != nil {
+				// Close the extra block wrapping the _switch_val let binding
+				out.WriteString(" }")
+			}
 		}
 
 	case *ast.BranchStmt:
@@ -2711,131 +2715,115 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			break
 		}
 
-		// Generate match-like if-else chain
-		for i, clause := range s.Body.List {
+		// Get the Rust type name for type switch cases
+		getRustTypeName := func(typeExpr ast.Expr) string {
+			if ident, ok := typeExpr.(*ast.Ident); ok {
+				switch ident.Name {
+				case "string":
+					return "String"
+				case "int":
+					return "i32"
+				case "float64":
+					return "f64"
+				case "float32":
+					return "f32"
+				case "bool":
+					return "bool"
+				default:
+					return ident.Name
+				}
+			}
+			if arr, ok := typeExpr.(*ast.ArrayType); ok {
+				if arr.Len == nil {
+					elemType := goTypeToRustBase(arr.Elt)
+					return "Vec<" + elemType + ">"
+				}
+			}
+			return "Unknown"
+		}
+
+		// Check if this is a range variable from an interface{} slice
+		isRangeVar := false
+		if ident, ok := expr.(*ast.Ident); ok {
+			if varType, exists := rangeLoopVars[ident.Name]; exists && strings.Contains(varType, "&Box<dyn Any>") {
+				isRangeVar = true
+			}
+		}
+
+		// Open a block and borrow the value once for all cases
+		out.WriteString("{\n")
+		if isRangeVar {
+			out.WriteString("    let _ts_ref = ")
+			TranspileExpression(out, expr)
+			out.WriteString(";\n")
+			out.WriteString("    let _any_val: &dyn Any = _ts_ref.as_ref();\n")
+		} else {
+			out.WriteString("    let _ts_guard = ")
+			TranspileExpressionContext(out, expr, LValue)
+			WriteBorrowMethod(out, false)
+			out.WriteString(";\n")
+			out.WriteString("    let _any_val: &dyn Any = _ts_guard.as_ref().unwrap().as_ref();\n")
+		}
+
+		// Generate if-else chain for type cases
+		firstCase := true
+		for _, clause := range s.Body.List {
 			caseClause := clause.(*ast.CaseClause)
 
-			if i > 0 {
-				out.WriteString(" else ")
-			}
-
 			if len(caseClause.List) == 0 {
-				// default case - provide access to the original value
-				out.WriteString("{\n")
+				// default case
+				if !firstCase {
+					out.WriteString(" else {\n")
+				} else {
+					out.WriteString("    {\n")
+				}
 				if varName != "" {
+					// In default case, v is the original interface{} value
+					// Use the already-borrowed _any_val reference
 					out.WriteString("        let ")
 					out.WriteString(varName)
-					out.WriteString(" = ")
-					TranspileExpression(out, expr)
-					out.WriteString(";\n")
+					out.WriteString(" = _any_val;\n")
 				}
 			} else {
 				// Type case(s)
-				out.WriteString("if let Some(")
-				if varName != "" {
-					out.WriteString(varName)
+				if !firstCase {
+					out.WriteString(" else ")
 				} else {
-					out.WriteString("_val")
+					out.WriteString("    ")
 				}
-				out.WriteString(") = (|| -> Option<Box<dyn Any>> {\n")
-				out.WriteString("        let val = ")
-				TranspileExpression(out, expr)
-				out.WriteString(";\n")
+				firstCase = false
 
-				// Check if this is a range variable from an interface{} slice
-				isRangeVar := false
-				if ident, ok := expr.(*ast.Ident); ok {
-					if varType, exists := rangeLoopVars[ident.Name]; exists && strings.Contains(varType, "&Box<dyn Any>") {
-						isRangeVar = true
-					}
-				}
-
-				if isRangeVar {
-					// It's a reference to Box<dyn Any>, no need to unwrap RefCell
-					// But we need to work with the Box<dyn Any> itself for downcast
-					out.WriteString("        let any_val = val;\n")
-					out.WriteString("        {\n")
-				} else {
-					// It's wrapped, need to unwrap
-					out.WriteString("        let guard = val")
-					WriteBorrowMethod(out, false)
-					out.WriteString(";\n")
-					out.WriteString("        if let Some(ref any_val) = *guard {\n")
-				}
-
-				// Check each type in the case
-				for j, typeExpr := range caseClause.List {
-					if j > 0 {
-						out.WriteString("            } else if ")
-					} else {
-						out.WriteString("            if ")
-					}
-
-					// Get the Rust type name
-					rustType := ""
-					if ident, ok := typeExpr.(*ast.Ident); ok {
-						switch ident.Name {
-						case "string":
-							rustType = "String"
-						case "int":
-							rustType = "i32"
-						case "float64":
-							rustType = "f64"
-						case "bool":
-							rustType = "bool"
-						default:
-							rustType = ident.Name
-						}
-					}
-
-					// Check if we're dealing with a reference to Box<dyn Any>
-					if isRangeVar {
-						// For &Box<dyn Any>, use as_ref() to get &dyn Any
-						out.WriteString("let Some(val) = any_val.as_ref().downcast_ref::<")
-					} else {
-						// For regular wrapped values
-						out.WriteString("let Some(val) = any_val.downcast_ref::<")
-					}
+				if len(caseClause.List) == 1 {
+					rustType := getRustTypeName(caseClause.List[0])
+					out.WriteString("if _any_val.downcast_ref::<")
 					out.WriteString(rustType)
-					out.WriteString(">() {\n")
-					out.WriteString("                return Some(Box::new(val.clone()) as Box<dyn Any>);\n")
-				}
+					out.WriteString(">().is_some() {\n")
 
-				out.WriteString("            }\n")
-				out.WriteString("        }\n")
-				out.WriteString("        None\n")
-				out.WriteString("    })() {\n")
-
-				// If we have a variable, we need to extract the actual typed value
-				if varName != "" {
-					// Extract the first type for the actual variable
-					if len(caseClause.List) > 0 {
-						rustType := ""
-						if ident, ok := caseClause.List[0].(*ast.Ident); ok {
-							switch ident.Name {
-							case "string":
-								rustType = "String"
-							case "int":
-								rustType = "i32"
-							case "float64":
-								rustType = "f64"
-							case "bool":
-								rustType = "bool"
-							default:
-								rustType = ident.Name
-							}
-						}
-						// Wrap the extracted value so it works with the rest of the transpiler
+					// Create typed variable if needed
+					if varName != "" {
 						out.WriteString("        let ")
 						out.WriteString(varName)
 						out.WriteString(" = ")
 						WriteWrapperPrefix(out)
-						out.WriteString("(*")
-						out.WriteString(varName)
-						out.WriteString(".downcast_ref::<")
+						out.WriteString("_any_val.downcast_ref::<")
 						out.WriteString(rustType)
-						out.WriteString(">().unwrap()).clone())));\n")
+						out.WriteString(">().unwrap().clone()")
+						WriteWrapperSuffix(out)
+						out.WriteString(";\n")
 					}
+				} else {
+					// Multiple types in one case
+					out.WriteString("if ")
+					for j, typeExpr := range caseClause.List {
+						if j > 0 {
+							out.WriteString(" || ")
+						}
+						rustType := getRustTypeName(typeExpr)
+						out.WriteString("_any_val.downcast_ref::<")
+						out.WriteString(rustType)
+						out.WriteString(">().is_some()")
+					}
+					out.WriteString(" {\n")
 				}
 			}
 
@@ -2848,6 +2836,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 			out.WriteString("    }")
 		}
+		out.WriteString("\n    }")
 
 	case *ast.LabeledStmt:
 		label := ToSnakeCase(s.Label.Name)
