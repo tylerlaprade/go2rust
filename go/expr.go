@@ -925,37 +925,68 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		}
 
 	case *ast.SliceExpr:
-		// Slice expressions like arr[1:] or s[0:5]
+		// Slice expressions like arr[1:] or s[0:5] or s[0:5:7]
 		// The array/slice is wrapped, so we need to unwrap it first
-		WriteWrapperPrefix(out)
-		out.WriteString("(*")
-		// Use LValue context so identifiers don't unwrap themselves
-		TranspileExpressionContext(out, e.X, LValue)
-		WriteBorrowMethod(out, false)
-		out.WriteString(".as_ref().unwrap())")
-		out.WriteString("[")
-		if e.Low != nil {
-			// Indices will unwrap themselves in RValue context if needed
-			TranspileExpression(out, e.Low)
-			out.WriteString(" as usize")
-		}
-		out.WriteString("..")
-		if e.High != nil {
-			// Indices will unwrap themselves in RValue context if needed
-			TranspileExpression(out, e.High)
-			out.WriteString(" as usize")
-		}
-		// Use .to_string() for string slicing, .to_vec() for slice/array
 		isStringSlice := false
 		if typeInfo := GetTypeInfo(); typeInfo != nil {
 			isStringSlice = typeInfo.IsString(e.X)
 		}
-		if isStringSlice {
-			out.WriteString("].to_string()")
+
+		if e.Slice3 && e.Max != nil && !isStringSlice {
+			// Three-index slice: s[low:high:max] → cap = max - low
+			WriteWrapperPrefix(out)
+			out.WriteString("{ let _guard = ")
+			TranspileExpressionContext(out, e.X, LValue)
+			WriteBorrowMethod(out, false)
+			out.WriteString("; let _slice = &(*_guard.as_ref().unwrap())[")
+			if e.Low != nil {
+				TranspileExpression(out, e.Low)
+				out.WriteString(" as usize")
+			} else {
+				out.WriteString("0")
+			}
+			out.WriteString("..")
+			if e.High != nil {
+				TranspileExpression(out, e.High)
+				out.WriteString(" as usize")
+			}
+			out.WriteString("]; let mut _v = Vec::with_capacity((")
+			TranspileExpression(out, e.Max)
+			out.WriteString(" - ")
+			if e.Low != nil {
+				TranspileExpression(out, e.Low)
+			} else {
+				out.WriteString("0")
+			}
+			out.WriteString(") as usize); _v.extend_from_slice(_slice); _v }")
+			WriteWrapperSuffix(out)
 		} else {
-			out.WriteString("].to_vec()")
+			WriteWrapperPrefix(out)
+			out.WriteString("(*")
+			// Use LValue context so identifiers don't unwrap themselves
+			TranspileExpressionContext(out, e.X, LValue)
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref().unwrap())")
+			out.WriteString("[")
+			if e.Low != nil {
+				// Indices will unwrap themselves in RValue context if needed
+				TranspileExpression(out, e.Low)
+				out.WriteString(" as usize")
+			}
+			out.WriteString("..")
+			if e.High != nil {
+				// Indices will unwrap themselves in RValue context if needed
+				TranspileExpression(out, e.High)
+				out.WriteString(" as usize")
+			}
+			// Use .to_string() for string slicing, .to_vec() for slice/array
+			if isStringSlice {
+				out.WriteString("].to_string()")
+			} else {
+				out.WriteString("].to_vec()")
+			}
+			WriteWrapperSuffix(out)
 		}
-		WriteWrapperSuffix(out)
 
 	case *ast.CompositeLit:
 		// When Type is nil, try to infer from TypeInfo
