@@ -306,7 +306,7 @@ fn main() {
 
     for (rowIdx, row) in (*matrix.lock().unwrap().as_ref().unwrap()).iter().enumerate() {
         for (colIdx, cell) in row.iter().enumerate() {
-        if cell == "e".to_string() {
+        if cell == "e" {
         print!("Found center at [{}][{}]: {}\n", rowIdx, colIdx, cell);
         continue
     }

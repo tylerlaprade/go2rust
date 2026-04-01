@@ -157,7 +157,7 @@ fn main() {
     let mut c3 = fan_out(input.clone());
 
         // Fan-in: combine results from multiple goroutines
-    let mut output = fan_in(c1.clone(), c2.clone(), c3.clone());
+    let mut output = fan_in(Arc::new(Mutex::new(Some(vec![c1, c2, c3]))));
 
         // Send input
     let input_closure_clone = input.clone(); let input_thread = input.clone(); std::thread::spawn(move || {
@@ -340,7 +340,7 @@ pub fn fan_out(input: GoChannel<i32>) -> GoChannel<i32> {
     return output.clone();
 }
 
-pub fn fan_in(inputs: Arc<Mutex<Option</* TODO: Unhandled type *ast.Ellipsis */ Arc<Mutex<Option<()>>>>>>) -> GoChannel<i32> {
+pub fn fan_in(inputs: Arc<Mutex<Option<Vec<GoChannel<i32>>>>>) -> GoChannel<i32> {
 
     let mut output = GoChannel::<i32>::new();
     let mut wg = WaitGroup::new();

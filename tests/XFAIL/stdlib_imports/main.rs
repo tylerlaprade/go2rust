@@ -84,7 +84,7 @@ fn main() {
 
         // Environment variables
     let mut path = (*os.lock().unwrap().as_ref().unwrap())::getenv(Arc::new(Mutex::new(Some("PATH".to_string()))));
-    if (*path.lock().unwrap().as_ref().unwrap()) != "".to_string() {
+    if (*path.lock().unwrap().as_ref().unwrap()) != "" {
         print!("PATH length: {} characters\n", (*path.lock().unwrap().as_ref().unwrap()).len());
     } else {
         println!("{}", "PATH not found".to_string());

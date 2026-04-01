@@ -101,8 +101,8 @@ fn main() {
         // Range over string
     println!("{}", "\n=== Range over string ===".to_string());
     let mut text = Arc::new(Mutex::new(Some("Hello, 世界".to_string())));
-    for (i, char) in (*text.lock().unwrap().as_ref().unwrap()).chars().enumerate() {
-        print!("Byte {}: {} (Unicode: {:?})\n", i, (char) as u8 as char, char);
+    for (i, char) in (*text.lock().unwrap().as_ref().unwrap()).char_indices() {
+        print!("Byte {}: {} (Unicode: U+{:04X})\n", i, char, char as u32);
     }
 
         // Range over map

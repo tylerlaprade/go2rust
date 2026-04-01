@@ -17,7 +17,7 @@ where
 
 fn main() {
         // Slice with capacity
-    let mut s = Rc::new(RefCell::new(Some(vec![0; 3])));
+    let mut s = Rc::new(RefCell::new(Some({ let mut v = Vec::with_capacity(10 as usize); v.resize(3 as usize, 0); v })));
     print!("len={} cap={} {}\n", (*s.borrow().as_ref().unwrap()).len(), (*s.borrow().as_ref().unwrap()).capacity(), format_slice(&s));
 
         // Append beyond capacity
@@ -25,7 +25,7 @@ fn main() {
     print!("len={} cap={} {}\n", (*s.borrow().as_ref().unwrap()).len(), (*s.borrow().as_ref().unwrap()).capacity(), format_slice(&s));
 
         // Three-index slice
-    let mut s2 = Rc::new(RefCell::new(Some((*s.borrow().as_ref().unwrap())[2 as usize..5 as usize].to_vec())));
+    let mut s2 = Rc::new(RefCell::new(Some({ let _guard = s.borrow(); let _slice = &(*_guard.as_ref().unwrap())[2 as usize..5 as usize]; let mut _v = Vec::with_capacity((7 - 2) as usize); _v.extend_from_slice(_slice); _v })));
     print!("s2: len={} cap={} {}\n", (*s2.borrow().as_ref().unwrap()).len(), (*s2.borrow().as_ref().unwrap()).capacity(), format_slice(&s2));
 
         // Copy

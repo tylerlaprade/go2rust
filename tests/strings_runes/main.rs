@@ -12,8 +12,8 @@ fn main() {
     }
     println!();
 
-    for (_, r) in "go".to_string().chars().enumerate() {
-        print!("{} ", (r) as u8 as char);
+    for (_, r) in "go".to_string().char_indices() {
+        print!("{} ", r);
     }
     println!();
 }

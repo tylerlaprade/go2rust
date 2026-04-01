@@ -139,9 +139,9 @@ fn main() {
     print!("Byte length: {}\n", (*unicode.lock().unwrap().as_ref().unwrap()).len());
 
     let mut runeCount = Arc::new(Mutex::new(Some(0)));
-    for (_, r) in (*unicode.lock().unwrap().as_ref().unwrap()).chars().enumerate() {
+    for (_, r) in (*unicode.lock().unwrap().as_ref().unwrap()).char_indices() {
         { let mut guard = runeCount.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
-        print!("Rune: {} (U+%04X)\n", (r) as u8 as char, r);
+        print!("Rune: {} (U+%04X)\n", r, r);
     }
     print!("Rune count: {}\n", (*runeCount.lock().unwrap().as_ref().unwrap()));
 

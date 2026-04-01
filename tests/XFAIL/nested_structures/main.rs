@@ -222,7 +222,7 @@ fn main() {
     println!("{}", "=== Nested maps ===".to_string());
 
         // Map of maps
-    let mut inventory = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i32>>>>>>>>::from([("electronics".to_string(), Rc::new(RefCell::new(Some(/* ERROR: CompositeLit with nil Type - type inference failed */unimplemented!())))), ("furniture".to_string(), Rc::new(RefCell::new(Some(/* ERROR: CompositeLit with nil Type - type inference failed */unimplemented!())))), ("supplies".to_string(), Rc::new(RefCell::new(Some(/* ERROR: CompositeLit with nil Type - type inference failed */unimplemented!()))))]))));
+    let mut inventory = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i32>>>>>>>>::from([("electronics".to_string(), Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i32>>>>::from([("laptops".to_string(), Rc::new(RefCell::new(Some(50)))), ("phones".to_string(), Rc::new(RefCell::new(Some(100)))), ("tablets".to_string(), Rc::new(RefCell::new(Some(25))))]))))), ("furniture".to_string(), Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i32>>>>::from([("chairs".to_string(), Rc::new(RefCell::new(Some(200)))), ("desks".to_string(), Rc::new(RefCell::new(Some(75)))), ("lamps".to_string(), Rc::new(RefCell::new(Some(150))))]))))), ("supplies".to_string(), Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i32>>>>::from([("pens".to_string(), Rc::new(RefCell::new(Some(1000)))), ("paper".to_string(), Rc::new(RefCell::new(Some(500)))), ("folders".to_string(), Rc::new(RefCell::new(Some(300))))])))))]))));
 
     println!("{}", "Inventory:".to_string());
     for (category, items) in (*inventory.borrow().as_ref().unwrap()).clone() {
