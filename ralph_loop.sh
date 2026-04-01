@@ -7,10 +7,8 @@
 #   ./ralph_loop.sh 10        # 10 iterations
 #   ./ralph_loop.sh 50 40     # 50 iterations, 40 turns each
 
-# Prevent sleep while looping
-if [ -z "$CAFFEINATED" ]; then
-    exec env CAFFEINATED=1 caffeinate -dims "$0" "$@"
-fi
+# Prevent sleep while looping (background, tied to our PID)
+caffeinate -dims -w $$ &
 
 MAX_ITERATIONS="${1:-50}"
 MAX_TURNS="${2:-25}"
@@ -46,11 +44,15 @@ trap 'printf "\r\033[K"; echo "Loop interrupted."; exit 130' INT
 BASELINE_PASS=$(ls tests/ | grep -v XFAIL | grep -v '\.bats' | grep -v README | wc -l | tr -d ' ')
 
 ANALYSIS_EVERY=5  # check analysis queue every Nth iteration
+DEFAULT_MODEL="sonnet"
+ANALYSIS_MODEL="opus"
 BASE_PROMPT='Fix XFAIL tests. Follow the protocol in LOOP_PROTOCOL.md. HARD RULE: if ./test.sh shows any previously-passing test now failing, revert your changes immediately with git checkout -- go/ before trying anything else.'
 
+# Returns "prompt|model" — caller splits on |
 build_prompt() {
     local iter="$1"
     local prompt="$BASE_PROMPT"
+    local model="$DEFAULT_MODEL"
 
     # Only check analysis queue every Nth iteration
     if [ $(( iter % ANALYSIS_EVERY )) -eq 0 ] && [ -d "$ANALYSIS_DIR" ]; then
@@ -62,10 +64,11 @@ build_prompt() {
             prompt="$prompt
 
 OPTIONAL ANALYSIS: If you have turns to spare after fixing an XFAIL test, also read .analysis/$task_name and address it. Delete the file when done. XFAIL work comes first."
+            model="$ANALYSIS_MODEL"
         fi
     fi
 
-    echo "$prompt"
+    printf '%s|%s' "$prompt" "$model"
 }
 
 echo "ralph loop — baseline: $BASELINE_PASS passing — max $MAX_TURNS turns, ${TIMEOUT_MINS}m timeout"
@@ -105,10 +108,12 @@ for i in $(seq 1 "$MAX_ITERATIONS"); do
     fi
 
     SESSION_START=$SECONDS
-    PROMPT=$(build_prompt "$i")
+    PROMPT_MODEL=$(build_prompt "$i")
+    PROMPT="${PROMPT_MODEL%|*}"
+    MODEL="${PROMPT_MODEL##*|}"
 
     # Background spinner
-    _spinner_iter=$i _spinner_max=$MAX_ITERATIONS _spinner_pass=$PASSING _spinner_xfail=$XFAIL
+    _spinner_iter=$i _spinner_max=$MAX_ITERATIONS _spinner_pass=$PASSING _spinner_xfail=$XFAIL _spinner_model=$MODEL
     (
         FRAMES=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
         TICK=0
@@ -121,9 +126,9 @@ for i in $(seq 1 "$MAX_ITERATIONS"); do
             else
                 DUR=$(printf "%ds" "$TICK")
             fi
-            printf "\r\033[K%s  iter %d/%d  ✓%d ✗%d  %s  %s" \
+            printf "\r\033[K%s  iter %d/%d  ✓%d ✗%d  %s  %s  %s" \
                 "$F" "$_spinner_iter" "$_spinner_max" "$_spinner_pass" "$_spinner_xfail" \
-                "$DUR" "running…"
+                "$_spinner_model" "$DUR" "running…"
             sleep 1
             TICK=$((TICK + 1))
         done
@@ -134,6 +139,7 @@ for i in $(seq 1 "$MAX_ITERATIONS"); do
     timeout "${TIMEOUT_MINS}m" claude \
         --dangerously-skip-permissions \
         --verbose \
+        --model "$MODEL" \
         --max-turns "$MAX_TURNS" \
         -p "$PROMPT" \
         --output-format text \

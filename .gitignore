@@ -6,3 +6,6 @@ tests/**/target
 tests/**/Cargo.lock
 .worktrees/
 .ralph-loop-logs/
+.codex-loop-logs/
+.analysis/*.md
+!.analysis/README.md

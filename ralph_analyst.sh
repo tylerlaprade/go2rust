@@ -8,10 +8,8 @@
 #   ./ralph_analyst.sh           # 20 iterations, 5m cooldown
 #   ./ralph_analyst.sh 10 10     # 10 iterations, 10m cooldown
 
-# Prevent sleep while looping
-if [ -z "$CAFFEINATED" ]; then
-    exec env CAFFEINATED=1 caffeinate -dims "$0" "$@"
-fi
+# Prevent sleep while looping (background, tied to our PID)
+caffeinate -dims -w $$ &
 
 MAX_ITERATIONS="${1:-20}"
 COOLDOWN_MINS="${2:-5}"
@@ -76,9 +74,9 @@ IMPORTANT:
 
     echo -n "[$i/$MAX_ITERATIONS] $ANGLE_NAME... "
 
-    timeout 10m codex \
+    timeout 10m codex exec \
         --full-auto \
-        -q "$FULL_PROMPT" \
+        "$FULL_PROMPT" \
         >"$LOGFILE" 2>&1
     EXIT_CODE=$?
 
