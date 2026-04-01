@@ -49,9 +49,13 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 - ✅ Blank identifier - fully working with return values, range loops, type assertions, declarations (2026-03-26)
 - ✅ Mixed output (fmt.Fprintln/Fprintf to os.Stderr → eprintln!/eprint!)
 
-### 📋 Phase 7: Goroutines and Concurrency
+### ✅ Phase 7: Goroutines and Concurrency (Core Complete)
 
-go → thread::spawn, channels, sync primitives
+- ✅ Goroutines (thread::spawn with variable capture)
+- ✅ Channels (buffered, unbuffered, close, range)
+- ✅ Select (basic, non-blocking, default)
+- ✅ WaitGroup, Mutex, shared mutation
+- 🚧 Remaining: atomic_operations, concurrency_patterns, stateful_goroutines, worker_pools, timers, tickers, timeouts, rate_limiting
 
 ### 📋 Phase 8: Package System
 

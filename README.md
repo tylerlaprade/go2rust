@@ -108,9 +108,9 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | **`break` - Break statements** | ✅ |
 | **`case` - Case clauses** | |
 | └ Switch cases | ✅ |
-| └ Select cases | ❌ |
-| └ Type switch cases | ❌ |
-| **`chan` - Channel types** | ❌ |
+| └ Select cases | ✅ |
+| └ Type switch cases | ✅ |
+| **`chan` - Channel types** | ✅ |
 | **`const` - Constants** | |
 | └ Basic constants | ✅ |
 | └ Iota enumerations | ✅ |
@@ -118,7 +118,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | **`continue` - Continue statements** | ✅ |
 | **`default` - Default clauses** | |
 | └ Switch default | ✅ |
-| └ Select default | ❌ |
+| └ Select default | ✅ |
 | **`defer` - Defer statements** | ✅ |
 | **`else` - Else clauses** | ✅ |
 | **`fallthrough` - Fallthrough statements** | ✅ |
@@ -135,7 +135,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Function literals/closures | ✅ |
 | └ Variadic functions | ✅ |
 | **`go` - Goroutines** | ✅ |
-| **`goto` - Goto statements** | ❌ |
+| **`goto` - Goto statements** | ❌ (rare, low priority) |
 | **`if` - If statements** | |
 | └ Basic if | ✅ |
 | └ If with init statement | ✅ |
@@ -144,13 +144,13 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Single imports | ✅ |
 | └ Multiple imports | ✅ |
 | └ Package aliases | ❌ |
-| └ Blank imports | ❌ |
+| └ Blank imports | ✅ |
 | **`interface` - Interface types** | |
 | └ Interface definitions | ✅ |
 | └ Empty interface{} | ✅ |
-| └ Interface implementations | ❌ |
+| └ Interface implementations | ✅ |
 | └ Type assertions | ✅ |
-| └ Type switches | ❌ |
+| └ Type switches | ✅ |
 | **`map` - Map types** | |
 | └ Map types | ✅ |
 | └ Map literals | ✅ |
@@ -171,13 +171,13 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Single return values | ✅ |
 | └ Multiple return values | ✅ |
 | └ Named returns | ✅ |
-| **`select` - Select statements** | ❌ |
+| **`select` - Select statements** | ✅ |
 | **`struct` - Struct types** | |
 | └ Struct definitions | ✅ |
 | └ Struct literals | ✅ |
 | └ Field access | ✅ |
 | └ Embedded fields | ✅ |
-| └ Anonymous structs | 🚧 |
+| └ Anonymous structs | ✅ |
 | └ Struct tags | ✅ |
 | **`switch` - Switch statements** | |
 | └ Basic switch | ✅ |
@@ -255,6 +255,11 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Type assertions on errors | ✅ |
 | **`sort` package** | |
 | └ `sort.Strings` | ✅ |
+| **`sync` package** | |
+| └ `sync.WaitGroup` | ✅ |
+| └ `sync.Mutex` | ✅ |
+| **`strings` (Builder)** | |
+| └ `strings.Builder` | ✅ |
 
 ### XFAIL Tests (Expected Failures)
 

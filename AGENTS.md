@@ -104,16 +104,10 @@ The test script handles:
 4. **Introduce lifetimes** - replace Arc with references
 5. **Function parameters** - use `&T`/`&mut T` when address not taken
 
-## Known Limitations
-
-- No unsafe, reflection, cgo
-- Limited stdlib support
-- No circular dependencies or build tags
-
 ## ⚠️ CRITICAL: Always Use TypeInfo for Type Decisions
 
 **The transpiler has complete type information via `go/types` - USE IT!**
-See `go/typeinfo.go` and `go/README_TYPES.md` for implementation details.
+See `go/typeinfo.go` for implementation details.
 
 ### How to Make Type-Based Decisions
 
@@ -151,23 +145,11 @@ If `GetTypeInfo()` returns nil (shouldn't happen in normal operation):
 - Use `unimplemented!()` to make the issue obvious
 - Never fall back to heuristics
 
-## Known Issues
+## Known Limitations
 
-### Closures
-
-The general closure capture mechanism is now working through a two-phase approach (implemented 2025-08-22):
-
-1. ✅ **Statement preprocessing** - Analyzes closures before transpilation
-2. ✅ **Clone generation at statement level** - Generates clones before the statement
-3. ✅ **Variable renaming** - Properly renames captured variables in closure bodies
-4. ✅ **Nested closures** - Handles closures within closures correctly
-
-Remaining limitations:
-
-- Some edge cases with variadic functions
-- Cross-file function variables need more work
-- Anonymous struct methods with closures
-
-The solution uses a statement preprocessor (`stmt_preprocess.go`) that analyzes all closures
-in a statement, generates appropriate clone statements, and sets up variable renames that are
-respected during transpilation.
+- No unsafe, reflection, cgo
+- No generics
+- Limited stdlib support (see README.md for what's mapped)
+- No multi-file package support (cross_file_* tests)
+- No goto statements
+- Closure capture: some edge cases with cross-file function variables and anonymous struct methods
