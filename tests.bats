@@ -533,6 +533,10 @@ run_xfail_test() {
     run_test "tests/simple_range"
 }
 
+@test "slice_operations_advanced" {
+    run_test "tests/slice_operations_advanced"
+}
+
 @test "slices_append" {
     run_test "tests/slices_append"
 }
@@ -739,10 +743,6 @@ run_xfail_test() {
 
 @test "XFAIL: select_statements" {
     run_xfail_test "tests/XFAIL/select_statements"
-}
-
-@test "XFAIL: slice_operations_advanced" {
-    run_xfail_test "tests/XFAIL/slice_operations_advanced"
 }
 
 @test "XFAIL: stateful_goroutines" {
