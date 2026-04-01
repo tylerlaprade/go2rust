@@ -1,22 +1,22 @@
 #!/usr/bin/env bash
 # Autonomous Ralph loop for go2rust
-# Usage: ./ralph_loop.sh [phase] [max_iterations]
-#
-# Phases:
-#   a - Pick off easy/medium XFAIL tests (default)
-#   b - Build concurrency subsystem (channels, goroutines, select)
-#   c - Build multi-file package support
-#   d - Add stdlib mappings
-#   e - Extend selective wrapping (rearchitecture stages 2-5)
+# Usage: ./ralph_loop.sh [max_iterations] [max_turns]
 #
 # Examples:
-#   ./ralph_loop.sh        # Phase A, 50 iterations
-#   ./ralph_loop.sh b 10   # Phase B, 10 iterations
-#   ./ralph_loop.sh e      # Phase E, 50 iterations
+#   ./ralph_loop.sh           # 50 iterations, 25 turns each
+#   ./ralph_loop.sh 10        # 10 iterations
+#   ./ralph_loop.sh 50 40     # 50 iterations, 40 turns each
 
-PHASE="${1:-a}"
-MAX_ITERATIONS="${2:-50}"
+# Prevent sleep while looping
+if [ -z "$CAFFEINATED" ]; then
+    exec env CAFFEINATED=1 caffeinate -dims "$0" "$@"
+fi
+
+MAX_ITERATIONS="${1:-50}"
+MAX_TURNS="${2:-25}"
+TIMEOUT_MINS=15
 LOGDIR="$(pwd)/.ralph-loop-logs"
+ANALYSIS_DIR="$(pwd)/.analysis"
 mkdir -p "$LOGDIR"
 
 # Status line helpers
@@ -45,35 +45,30 @@ trap 'printf "\r\033[K"; echo "Loop interrupted."; exit 130' INT
 # Record baseline test count before starting (count test dirs)
 BASELINE_PASS=$(ls tests/ | grep -v XFAIL | grep -v '\.bats' | grep -v README | wc -l | tr -d ' ')
 
-case "$PHASE" in
-  a)
-    PHASE_NAME="Easy/Medium XFAIL tests"
-    PROMPT='AUTONOMOUS PHASE A: Pick off easy XFAIL tests. Follow the phase A protocol in .claude/loop-phases/phase-a.md. HARD RULE: if ./test.sh shows any previously-passing test now failing, revert your changes immediately with git checkout -- go/ before trying anything else.'
-    ;;
-  b)
-    PHASE_NAME="Concurrency subsystem"
-    PROMPT='AUTONOMOUS PHASE B: Build the concurrency subsystem. Follow the phase B protocol in .claude/loop-phases/phase-b.md. HARD RULE: if ./test.sh shows any previously-passing test now failing, revert your changes immediately with git checkout -- go/ before trying anything else.'
-    ;;
-  c)
-    PHASE_NAME="Multi-file package support"
-    PROMPT='AUTONOMOUS PHASE C: Build multi-file package support. Follow the phase C protocol in .claude/loop-phases/phase-c.md. HARD RULE: if ./test.sh shows any previously-passing test now failing, revert your changes immediately with git checkout -- go/ before trying anything else.'
-    ;;
-  d)
-    PHASE_NAME="Stdlib mappings"
-    PROMPT='AUTONOMOUS PHASE D: Add stdlib mappings. Follow the phase D protocol in .claude/loop-phases/phase-d.md. HARD RULE: if ./test.sh shows any previously-passing test now failing, revert your changes immediately with git checkout -- go/ before trying anything else.'
-    ;;
-  e)
-    PHASE_NAME="Selective wrapping (rearchitecture)"
-    PROMPT='AUTONOMOUS PHASE E: Extend selective wrapping. Follow the phase E protocol in .claude/loop-phases/phase-e.md. HARD RULE: if ./test.sh shows any previously-passing test now failing, revert your changes immediately with git checkout -- go/ before trying anything else.'
-    ;;
-  *)
-    echo "Unknown phase: $PHASE"
-    echo "Valid phases: a, b, c, d, e"
-    exit 1
-    ;;
-esac
+ANALYSIS_EVERY=5  # check analysis queue every Nth iteration
+BASE_PROMPT='Fix XFAIL tests. Follow the protocol in LOOP_PROTOCOL.md. HARD RULE: if ./test.sh shows any previously-passing test now failing, revert your changes immediately with git checkout -- go/ before trying anything else.'
 
-echo "ralph loop — phase $PHASE ($PHASE_NAME) — baseline: $BASELINE_PASS passing"
+build_prompt() {
+    local iter="$1"
+    local prompt="$BASE_PROMPT"
+
+    # Only check analysis queue every Nth iteration
+    if [ $(( iter % ANALYSIS_EVERY )) -eq 0 ] && [ -d "$ANALYSIS_DIR" ]; then
+        local task
+        task=$(ls -t "$ANALYSIS_DIR"/*.md 2>/dev/null | grep -v README.md | tail -1)
+        if [ -n "$task" ]; then
+            local task_name
+            task_name=$(basename "$task")
+            prompt="$prompt
+
+OPTIONAL ANALYSIS: If you have turns to spare after fixing an XFAIL test, also read .analysis/$task_name and address it. Delete the file when done. XFAIL work comes first."
+        fi
+    fi
+
+    echo "$prompt"
+}
+
+echo "ralph loop — baseline: $BASELINE_PASS passing — max $MAX_TURNS turns, ${TIMEOUT_MINS}m timeout"
 echo "logs: $LOGDIR/"
 echo ""
 
@@ -86,7 +81,7 @@ fi
 LOOP_START=$SECONDS
 
 for i in $(seq 1 "$MAX_ITERATIONS"); do
-    LOGFILE="$LOGDIR/phase-${PHASE}-$(date +%Y%m%d-%H%M%S).log"
+    LOGFILE="$LOGDIR/$(date +%Y%m%d-%H%M%S).log"
 
     # Count current passing/failing
     PASSING=$(ls tests/ | grep -v XFAIL | grep -v '\.bats' | grep -v README | wc -l | tr -d ' ')
@@ -109,10 +104,10 @@ for i in $(seq 1 "$MAX_ITERATIONS"); do
         break
     fi
 
-    # Run claude, output to log only. Spinner updates status line in background.
     SESSION_START=$SECONDS
+    PROMPT=$(build_prompt "$i")
 
-    # Background spinner — updates status line with elapsed time
+    # Background spinner
     _spinner_iter=$i _spinner_max=$MAX_ITERATIONS _spinner_pass=$PASSING _spinner_xfail=$XFAIL
     (
         FRAMES=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
@@ -128,7 +123,7 @@ for i in $(seq 1 "$MAX_ITERATIONS"); do
             fi
             printf "\r\033[K%s  iter %d/%d  ✓%d ✗%d  %s  %s" \
                 "$F" "$_spinner_iter" "$_spinner_max" "$_spinner_pass" "$_spinner_xfail" \
-                "$DUR" "running session…"
+                "$DUR" "running…"
             sleep 1
             TICK=$((TICK + 1))
         done
@@ -136,7 +131,13 @@ for i in $(seq 1 "$MAX_ITERATIONS"); do
     SPINNER_PID=$!
 
     ERRFILE="${LOGFILE%.log}.err"
-    claude --dangerously-skip-permissions -p "$PROMPT" --output-format text >"$LOGFILE" 2>"$ERRFILE"
+    timeout "${TIMEOUT_MINS}m" claude \
+        --dangerously-skip-permissions \
+        --verbose \
+        --max-turns "$MAX_TURNS" \
+        -p "$PROMPT" \
+        --output-format text \
+        >"$LOGFILE" 2>"$ERRFILE"
     EXIT_CODE=$?
 
     # Kill spinner
@@ -146,20 +147,22 @@ for i in $(seq 1 "$MAX_ITERATIONS"); do
     ELAPSED=$(( SECONDS - SESSION_START ))
     LINES=$(wc -l < "$LOGFILE" | tr -d ' ')
 
-    if [ "$LINES" -eq 0 ]; then
+    if [ "$EXIT_CODE" -eq 124 ]; then
+        event "TIMEOUT  iter $i  $(format_duration $ELAPSED)"
+    elif [ "$LINES" -eq 0 ]; then
         if [ -s "$ERRFILE" ]; then
             event "FAILED (exit $EXIT_CODE): $(head -1 "$ERRFILE")"
         else
-            event "warning: empty log — ralph may have failed to start (exit $EXIT_CODE)"
+            event "warning: empty log (exit $EXIT_CODE)"
         fi
     else
-        status "done  iter $i/$MAX_ITERATIONS  ✓$PASSING ✗$XFAIL  $(format_duration $ELAPSED)  ${LINES}L logged"
+        event "done  iter $i/$MAX_ITERATIONS  ✓$PASSING ✗$XFAIL  $(format_duration $ELAPSED)  ${LINES}L"
     fi
 
-    # Auto-stage test file changes: promoted tests, regenerated .rs/.toml output, tests.bats
+    # Safety net: auto-stage test file changes that claude forgot
     git add tests/ tests.bats 2>/dev/null
     if ! git diff --cached --quiet 2>/dev/null; then
-        git commit -q -m "Auto-commit: test output updates (phase $PHASE, session $i)"
+        git commit -q -m "Auto-commit: test output updates (session $i)"
     fi
 
     sleep 2
