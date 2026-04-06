@@ -1,0 +1,2 @@
+Random int: 35
+Random float: 0.2390592340865037

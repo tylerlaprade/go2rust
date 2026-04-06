@@ -1,3 +1,6 @@
+mod funcs;
+use funcs::*;
+
 use std::cell::{RefCell};
 use std::rc::{Rc};
 
@@ -23,12 +26,12 @@ fn main() {
     print!("17 / 5 = {} remainder {}\n", (*q.borrow().as_ref().unwrap()), (*r.borrow().as_ref().unwrap()));
 
         // Compare with regular function call
-    let mut regular = (*RegularDouble.borrow().as_ref().unwrap())(Rc::new(RefCell::new(Some(5))));
+    let mut regular = regular_double(Rc::new(RefCell::new(Some(5))));
     print!("RegularDouble(5) = {}\n", (*regular.borrow().as_ref().unwrap()));
 
         // Use function returned by function
-    let mut triple = (*MakeMultiplier.borrow().as_ref().unwrap())(Rc::new(RefCell::new(Some(3))));
-    print!("Triple(4) = {}\n", /* ERROR: Type information not available for print argument */ (*(*triple.borrow().as_ref().unwrap())(Rc::new(RefCell::new(Some(4)))).borrow().as_ref().unwrap()));
+    let mut triple = make_multiplier(Rc::new(RefCell::new(Some(3))));
+    print!("Triple(4) = {}\n", (*(*triple.borrow().as_ref().unwrap())(Rc::new(RefCell::new(Some(4)))).borrow().as_ref().unwrap()));
 
         // Call dynamically assigned function
     let mut dynamic = (*DynamicFunc.borrow().as_ref().unwrap())(Rc::new(RefCell::new(Some("test".to_string()))));
@@ -36,7 +39,7 @@ fn main() {
 
         // Assign function variable to local variable
     let mut localFunc = Rc::new(RefCell::new(Some(PROCESS_DATA)));
-    print!("Local func call: {}\n", /* ERROR: Type information not available for print argument */ (*(*localFunc.borrow().as_ref().unwrap())(Rc::new(RefCell::new(Some(7)))).borrow().as_ref().unwrap()));
+    print!("Local func call: {}\n", (*(*localFunc.borrow().as_ref().unwrap())(Rc::new(RefCell::new(Some(7)))).borrow().as_ref().unwrap()));
 
         // Function variable in conditional
     let mut conditionalFunc: Rc<RefCell<Option<Box<dyn Fn(Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>>>>>;

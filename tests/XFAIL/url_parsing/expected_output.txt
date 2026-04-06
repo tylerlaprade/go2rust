@@ -1,0 +1,4 @@
+Scheme: https
+Host: example.com
+Path: /path
+Query: key=value
