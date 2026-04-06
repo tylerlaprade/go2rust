@@ -16,7 +16,7 @@ where
 }
 
 fn main() {
-    let mut s: Rc<RefCell<Option<Vec<String>>>> = Rc::new(RefCell::new(None));
+    let mut s: Rc<RefCell<Option<Vec<String>>>> = Rc::new(RefCell::new(Some(Default::default())));
     {(*s.borrow_mut().as_mut().unwrap()).push("a".to_string()); s.clone()};
     {(*s.borrow_mut().as_mut().unwrap()).extend(vec!["b".to_string(), "c".to_string()]); s.clone()};
     println!("{} {}", "slice:".to_string(), format_slice(&s));

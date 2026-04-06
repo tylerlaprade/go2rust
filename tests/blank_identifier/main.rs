@@ -134,7 +134,7 @@ fn main() {
 
         // Ignore values, use only keys (sorted for deterministic output)
     println!("{}", "Keys only:".to_string());
-    let mut names: Arc<Mutex<Option<Vec<String>>>> = Arc::new(Mutex::new(None));
+    let mut names: Arc<Mutex<Option<Vec<String>>>> = Arc::new(Mutex::new(Some(Default::default())));
     for (name, _) in (*ages.lock().unwrap().as_ref().unwrap()).clone() {
         {(*names.lock().unwrap().as_mut().unwrap()).push(name); names.clone()};
     }
@@ -146,7 +146,7 @@ fn main() {
 
         // Ignore keys, use only values (sorted for deterministic output)
     println!("{}", "Values only:".to_string());
-    let mut sortedAges: Arc<Mutex<Option<Vec<i32>>>> = Arc::new(Mutex::new(None));
+    let mut sortedAges: Arc<Mutex<Option<Vec<i32>>>> = Arc::new(Mutex::new(Some(Default::default())));
     for (_, age) in (*ages.lock().unwrap().as_ref().unwrap()).clone() {
         {(*sortedAges.lock().unwrap().as_mut().unwrap()).push((*age.lock().unwrap().as_mut().unwrap())); sortedAges.clone()};
     }
