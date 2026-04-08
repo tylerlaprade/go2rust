@@ -5,7 +5,7 @@ fn main() {
     let mut values = Rc::new(RefCell::new(Some(vec![1, 2, 3, 4])));
 
     let mut n = (*values.borrow().as_ref().unwrap()).len();
-    { let _switch_val = (*n.borrow().as_ref().unwrap());
+    { let _switch_val = n;
     match _switch_val {
         0 => {
             println!("{}", "empty".to_string());
