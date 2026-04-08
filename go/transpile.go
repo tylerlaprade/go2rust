@@ -372,6 +372,13 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 	// Create trackers
 	imports := NewImportTracker()
 	helpers := &HelperTracker{}
+	fileExternalPackages := make(map[string]bool)
+	for _, imp := range file.Imports {
+		path := strings.Trim(imp.Path.Value, `"`)
+		if !isStdlibPackage(path) {
+			fileExternalPackages[path] = true
+		}
+	}
 
 	// Only clear import tracking if not already set (by PackageLoader)
 	if len(goPackageImports) == 0 {
@@ -712,5 +719,5 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 	}
 	output.WriteString(body.String())
 
-	return output.String(), imports, externalPackages
+	return output.String(), imports, fileExternalPackages
 }

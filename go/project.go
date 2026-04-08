@@ -7,6 +7,7 @@ import (
 	"go/token"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 )
 
@@ -85,12 +86,14 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 
 	// Parse all files first for type checking
 	var astFiles []*ast.File
+	astFilesByPath := make(map[string]*ast.File, len(pg.goFiles))
 	for _, filename := range pg.goFiles {
 		file, err := parser.ParseFile(fileSet, filename, nil, parser.ParseComments)
 		if err != nil {
 			return fmt.Errorf("parse error in %s: %v", filename, err)
 		}
 		astFiles = append(astFiles, file)
+		astFilesByPath[normalizeFilePath(filename)] = file
 	}
 
 	// Check if we have external packages
@@ -132,7 +135,8 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 		// CRITICAL: Replace our AST files with the ones from PackageLoader
 		// which have the proper type information
 		astFiles = loader.GetMainAST()
-		if len(astFiles) == 0 {
+		astFilesByPath = loader.GetMainASTByPath()
+		if len(astFilesByPath) == 0 {
 			return fmt.Errorf("no AST files from package loader")
 		}
 
@@ -211,8 +215,11 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 
 	// First pass: transpile all files and detect structure
 	for i, filename := range pg.goFiles {
-		// Use the already parsed file from astFiles
-		file := astFiles[i]
+		// Use the AST matched to this filename to avoid relying on go/packages order.
+		file := astFilesByPath[normalizeFilePath(filename)]
+		if file == nil {
+			return fmt.Errorf("no AST found for %s", filename)
+		}
 
 		// Detect package name from first file
 		if i == 0 {
@@ -294,7 +301,7 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 
 	// Second pass: generate main.rs or lib.rs with module declarations
 	if pg.hasMain {
-		err := pg.generateMainRs(fileSet, astFiles)
+		err := pg.generateMainRs(fileSet, astFilesByPath)
 		if err != nil {
 			return err
 		}
@@ -327,11 +334,15 @@ func (pg *ProjectGenerator) hasMainFile() bool {
 	return false
 }
 
-func (pg *ProjectGenerator) generateMainRs(fileSet *token.FileSet, astFiles []*ast.File) error {
-	var mainGoFile *ast.File
-	for i, filename := range pg.goFiles {
+func (pg *ProjectGenerator) generateMainRs(fileSet *token.FileSet, astFilesByPath map[string]*ast.File) error {
+	var (
+		mainGoFile *ast.File
+		mainPath   string
+	)
+	for _, filename := range pg.goFiles {
 		if filepath.Base(filename) == "main.go" {
-			mainGoFile = astFiles[i]
+			mainPath = filename
+			mainGoFile = astFilesByPath[normalizeFilePath(filename)]
 			break
 		}
 	}
@@ -365,13 +376,6 @@ func (pg *ProjectGenerator) generateMainRs(fileSet *token.FileSet, astFiles []*a
 	}
 
 	// Track external packages from main
-	mainPath := ""
-	for _, fname := range pg.goFiles {
-		if filepath.Base(fname) == "main.go" {
-			mainPath = fname
-			break
-		}
-	}
 	if mainPath != "" {
 		for pkg := range mainExternalPkgs {
 			if pg.goImports[mainPath] == nil {
@@ -396,6 +400,7 @@ func (pg *ProjectGenerator) generateMainRs(fileSet *token.FileSet, astFiles []*a
 
 func (pg *ProjectGenerator) generateCargoToml() error {
 	cargoPath := filepath.Join(pg.projectPath, "Cargo.toml")
+	crateNames := pg.sortedCrateNames()
 
 	// Check if we need the num crate from project imports
 	needsNum := false
@@ -439,7 +444,7 @@ path = "main.rs"
 	// Add workspace configuration if we have external packages
 	if len(pg.packageMapping) > 0 {
 		workspaceSection := "\n[workspace]\nmembers = [\n    \".\",\n"
-		for _, crateName := range pg.packageMapping {
+		for _, crateName := range crateNames {
 			workspaceSection += fmt.Sprintf("    \"external_stubs/%s\",\n", crateName)
 		}
 		workspaceSection += "]\n"
@@ -453,12 +458,29 @@ path = "main.rs"
 			cargoContent += "num = \"0.4\"\n"
 		}
 		// Add external package dependencies
-		for _, crateName := range pg.packageMapping {
+		for _, crateName := range crateNames {
 			cargoContent += fmt.Sprintf("%s = { path = \"external_stubs/%s\" }\n", crateName, crateName)
 		}
 	}
 
 	return os.WriteFile(cargoPath, []byte(cargoContent), 0644)
+}
+
+func (pg *ProjectGenerator) sortedCrateNames() []string {
+	crateNames := make([]string, 0, len(pg.packageMapping))
+	for _, crateName := range pg.packageMapping {
+		crateNames = append(crateNames, crateName)
+	}
+	sort.Strings(crateNames)
+	return crateNames
+}
+
+func normalizeFilePath(path string) string {
+	absPath, err := filepath.Abs(path)
+	if err == nil {
+		return absPath
+	}
+	return filepath.Clean(path)
 }
 
 func (pg *ProjectGenerator) generateLibRs() error {

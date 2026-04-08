@@ -7,6 +7,7 @@ import (
 	"golang.org/x/tools/go/packages"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 )
 
@@ -145,16 +146,8 @@ func (pl *PackageLoader) TranspileAll() error {
 	SetTypeInfo(globalTypeInfo)
 
 	// Transpile external packages first
-	for pkgPath, pkg := range pl.allPackages {
-		if pkgPath == "main" || pkgPath == pl.mainPkg.PkgPath {
-			continue // Skip main package (handled separately)
-		}
-
-		// Skip standard library
-		if !strings.Contains(pkgPath, ".") {
-			continue
-		}
-
+	for _, pkgPath := range pl.orderedPackagePaths() {
+		pkg := pl.allPackages[pkgPath]
 		fmt.Fprintf(os.Stderr, "Transpiling package %s...\n", pkgPath)
 		if err := pl.transpilePackage(pkg); err != nil {
 			fmt.Fprintf(os.Stderr, "Warning: Failed to transpile %s: %v\n", pkgPath, err)
@@ -165,6 +158,25 @@ func (pl *PackageLoader) TranspileAll() error {
 	// but now with full type information available
 
 	return nil
+}
+
+func (pl *PackageLoader) orderedPackagePaths() []string {
+	mainPkgPath := ""
+	if pl.mainPkg != nil {
+		mainPkgPath = pl.mainPkg.PkgPath
+	}
+	var paths []string
+	for pkgPath := range pl.allPackages {
+		if pkgPath == "main" || pkgPath == mainPkgPath {
+			continue
+		}
+		if !strings.Contains(pkgPath, ".") {
+			continue
+		}
+		paths = append(paths, pkgPath)
+	}
+	sort.Strings(paths)
+	return paths
 }
 
 // transpilePackage transpiles a single package
@@ -292,6 +304,21 @@ func (pl *PackageLoader) GetMainAST() []*ast.File {
 		return nil
 	}
 	return pl.mainPkg.Syntax
+}
+
+// GetMainASTByPath returns the main package AST files keyed by normalized file path.
+func (pl *PackageLoader) GetMainASTByPath() map[string]*ast.File {
+	astByPath := make(map[string]*ast.File)
+	if pl.mainPkg == nil {
+		return astByPath
+	}
+	for i, astFile := range pl.mainPkg.Syntax {
+		if i >= len(pl.mainPkg.CompiledGoFiles) {
+			continue
+		}
+		astByPath[normalizeFilePath(pl.mainPkg.CompiledGoFiles[i])] = astFile
+	}
+	return astByPath
 }
 
 // GetMainImports returns the import mapping for the main package
