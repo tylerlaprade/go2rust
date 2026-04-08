@@ -75,12 +75,6 @@ echo "ralph loop — baseline: $BASELINE_PASS passing — max $MAX_TURNS turns, 
 echo "logs: $LOGDIR/"
 echo ""
 
-# Pre-flight: verify claude can start
-if ! claude --dangerously-skip-permissions -p "ok" --output-format text --max-turns 1 >/dev/null 2>&1; then
-    echo "ERROR: claude preflight failed — check auth/network"
-    exit 1
-fi
-
 LOOP_START=$SECONDS
 
 for i in $(seq 1 "$MAX_ITERATIONS"); do
@@ -104,6 +98,17 @@ for i in $(seq 1 "$MAX_ITERATIONS"); do
 
     if [ "$XFAIL" -eq 0 ]; then
         event "all tests passing — nothing left to do"
+        break
+    fi
+
+    # Preflight: verify claude works and check overage
+    PREFLIGHT_OUT=$(timeout 30s claude --dangerously-skip-permissions -p "ok" --output-format stream-json --max-turns 1 2>&1)
+    if [ $? -ne 0 ]; then
+        event "ABORT: claude preflight failed — check auth/network"
+        break
+    fi
+    if echo "$PREFLIGHT_OUT" | grep -q '"isUsingOverage":true'; then
+        event "OVERAGE: rate limit exhausted, stopping to avoid charges"
         break
     fi
 
