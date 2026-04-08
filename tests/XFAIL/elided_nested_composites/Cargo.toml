@@ -1,0 +1,8 @@
+[package]
+name = "elided_nested_composites"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "elided_nested_composites"
+path = "main.rs"

@@ -1,0 +1,8 @@
+[package]
+name = "switch_nil_case"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "switch_nil_case"
+path = "main.rs"
