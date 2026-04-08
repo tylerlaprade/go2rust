@@ -212,7 +212,7 @@ func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.Fi
 		if fn.Type.Params != nil {
 			for _, field := range fn.Type.Params.List {
 				for _, name := range field.Names {
-					if ident, ok := field.Type.(*ast.Ident); ok && interfaceTypes[ident.Name] {
+					if ident, ok := field.Type.(*ast.Ident); ok && IsInterfaceType(ident.Name) {
 						vt.Register(name.Name, &VarInfo{
 							WrapLevel: WrapNone,
 							RustType:  "&dyn " + ident.Name,
@@ -533,7 +533,7 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 			out.WriteString(";\n")
 
 			// Track this as a type alias
-			typeAliases[typeSpec.Name.Name] = true
+			RegisterTypeAlias(typeSpec.Name.Name)
 		} else {
 			// Type definition: type A B
 			// Create a newtype wrapper in Rust
@@ -546,7 +546,7 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 
 			// Add Display implementation for numeric type definitions
 			if ident, ok := t.(*ast.Ident); ok {
-				typeDefinitions[typeSpec.Name.Name] = ident.Name
+				RegisterTypeDefinition(typeSpec.Name.Name, ident.Name)
 
 				// Add Display impl for numeric types
 				if ident.Name == "int" || ident.Name == "int64" || ident.Name == "float64" ||
@@ -630,7 +630,7 @@ func transpileConstDeclWithCase(out *strings.Builder, genDecl *ast.GenDecl, toUp
 						// For now, assume custom int types map to i32
 						if ident, ok := valueSpec.Type.(*ast.Ident); ok {
 							// Check if this is a known type definition
-							if _, isTypeDef := typeDefinitions[ident.Name]; isTypeDef {
+							if _, isTypeDef := LookupTypeDefinition(ident.Name); isTypeDef {
 								// Type definitions for constants should use the underlying type
 								// For now, assume int-based type definitions
 								baseType = "i32"
@@ -948,7 +948,7 @@ func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, a
 		if fn.Type.Params != nil {
 			for _, field := range fn.Type.Params.List {
 				for _, name := range field.Names {
-					if ident, ok := field.Type.(*ast.Ident); ok && interfaceTypes[ident.Name] {
+					if ident, ok := field.Type.(*ast.Ident); ok && IsInterfaceType(ident.Name) {
 						vt.Register(name.Name, &VarInfo{
 							WrapLevel: WrapNone,
 							RustType:  "&dyn " + ident.Name,

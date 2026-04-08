@@ -1443,7 +1443,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										out.WriteString(") as Box<dyn Any>)))")
 									} else if valueSpec.Type != nil {
 										if typeIdent, ok := valueSpec.Type.(*ast.Ident); ok {
-											if underlyingType, isTypeDef := typeDefinitions[typeIdent.Name]; isTypeDef {
+											if underlyingType, isTypeDef := LookupTypeDefinition(typeIdent.Name); isTypeDef {
 												WriteWrapperPrefix(out)
 												out.WriteString(typeIdent.Name)
 												out.WriteString("(")

@@ -67,6 +67,52 @@ func currentErrorImplTypes() map[string]bool {
 	return errorImplTypes
 }
 
+func currentInterfaceTypes() map[string]bool {
+	if currentContext != nil && currentContext.Package != nil {
+		return currentContext.Package.InterfaceTypes
+	}
+	return interfaceTypes
+}
+
+func currentTypeDefinitions() map[string]string {
+	if currentContext != nil && currentContext.Package != nil {
+		return currentContext.Package.TypeDefinitions
+	}
+	return typeDefinitions
+}
+
+func currentTypeAliases() map[string]bool {
+	if currentContext != nil && currentContext.Package != nil {
+		return currentContext.Package.TypeAliases
+	}
+	return typeAliases
+}
+
+func RegisterInterfaceType(name string) {
+	currentInterfaceTypes()[name] = true
+}
+
+func IsInterfaceType(name string) bool {
+	return currentInterfaceTypes()[name]
+}
+
+func RegisterTypeDefinition(name, underlying string) {
+	currentTypeDefinitions()[name] = underlying
+}
+
+func LookupTypeDefinition(name string) (string, bool) {
+	underlying, ok := currentTypeDefinitions()[name]
+	return underlying, ok
+}
+
+func RegisterTypeAlias(name string) {
+	currentTypeAliases()[name] = true
+}
+
+func IsTypeAlias(name string) bool {
+	return currentTypeAliases()[name]
+}
+
 // IsParamValueType checks if the parameter at the given argument index is a plain value type
 // that should be deep-cloned when passed as an argument (to preserve Go's pass-by-value semantics).
 // Returns true for basic types (int, string, etc.) and structs, false for pointers, interfaces,
@@ -97,7 +143,7 @@ func isValueType(expr ast.Expr) bool {
 	case *ast.Ident:
 		// Basic types and named types
 		// Check if it's a known interface type
-		if interfaceTypes[t.Name] {
+		if IsInterfaceType(t.Name) {
 			return false
 		}
 		// Check via TypeInfo

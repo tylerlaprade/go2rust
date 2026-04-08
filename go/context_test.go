@@ -1,6 +1,11 @@
 package main
 
-import "testing"
+import (
+	"go/ast"
+	"go/token"
+	"strings"
+	"testing"
+)
 
 func TestTranspileContextOwnsSessionPackageAndFileState(t *testing.T) {
 	typeInfo := &TypeInfo{}
@@ -75,5 +80,54 @@ func TestSetTranspileContextSyncsFileCompatibilityState(t *testing.T) {
 	}
 	if !ctx.File.HasInitFunction {
 		t.Fatalf("HasInitFunction should sync back into file state")
+	}
+}
+
+func TestPackageTypeMetadataPrefersContextState(t *testing.T) {
+	savedInterfaceTypes := interfaceTypes
+	savedTypeAliases := typeAliases
+	savedTypeDefinitions := typeDefinitions
+	defer func() {
+		interfaceTypes = savedInterfaceTypes
+		typeAliases = savedTypeAliases
+		typeDefinitions = savedTypeDefinitions
+	}()
+
+	ctx := &TranspileContext{
+		Session: NewTranspileSession(nil, nil),
+		Package: &PackageState{
+			InterfaceTypes: map[string]bool{"LocalIface": true},
+			TypeAliases:    map[string]bool{"LocalAlias": true},
+			TypeDefinitions: map[string]string{
+				"LocalInt": "int",
+			},
+		},
+		File: NewFileState(NewImportTracker(), &HelperTracker{}, nil),
+	}
+
+	SetTranspileContext(ctx)
+	defer SetTranspileContext(nil)
+
+	interfaceTypes = map[string]bool{"GlobalIface": true}
+	typeAliases = map[string]bool{}
+	typeDefinitions = map[string]string{}
+
+	if got := GoTypeToRustParam(ast.NewIdent("LocalIface")); got != "&dyn LocalIface" {
+		t.Fatalf("GoTypeToRustParam() = %q, want interface package state to win", got)
+	}
+	if got := GoTypeToRust(ast.NewIdent("LocalAlias")); got != "LocalAlias" {
+		t.Fatalf("GoTypeToRust() = %q, want type alias package state to win", got)
+	}
+	if IsParamValueType(&FunctionSignature{Params: []*ast.Field{{Type: ast.NewIdent("LocalIface")}}}, 0) {
+		t.Fatalf("IsParamValueType() should treat context-owned interface types as non-value types")
+	}
+
+	var out strings.Builder
+	TranspileTypeConversion(&out, &ast.CallExpr{
+		Fun: ast.NewIdent("LocalInt"),
+		Args: []ast.Expr{&ast.BasicLit{Kind: token.INT, Value: "1"}},
+	})
+	if !strings.Contains(out.String(), "LocalInt(") {
+		t.Fatalf("TranspileTypeConversion() = %q, want type definition package state to win", out.String())
 	}
 }

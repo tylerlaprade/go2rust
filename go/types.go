@@ -110,7 +110,7 @@ func lookupAnonymousStructName(structType *types.Struct) string {
 func GoTypeToRustParam(expr ast.Expr) string {
 	// Check if this is an interface type
 	if ident, ok := expr.(*ast.Ident); ok {
-		if interfaceTypes[ident.Name] {
+		if IsInterfaceType(ident.Name) {
 			// Interface parameter - use reference to trait object
 			return "&dyn " + ident.Name
 		}
@@ -143,7 +143,7 @@ func GoTypeToRust(expr ast.Expr) string {
 
 	// Check if this is a type alias - type aliases are already fully typed
 	if ident, ok := expr.(*ast.Ident); ok {
-		if typeAliases[ident.Name] {
+		if IsTypeAlias(ident.Name) {
 			// Type alias - already includes wrapper
 			return baseType
 		}
@@ -269,7 +269,7 @@ func goTypeToRustBase(expr ast.Expr) string {
 			return "Option<Box<dyn Error>>"
 		default:
 			// Check if this is an interface type
-			if interfaceTypes[t.Name] {
+			if IsInterfaceType(t.Name) {
 				return "Box<dyn " + t.Name + ">"
 			}
 			return t.Name

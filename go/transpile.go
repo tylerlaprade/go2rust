@@ -474,7 +474,7 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 						// Track interfaces
 						if ifaceType, ok := typeSpec.Type.(*ast.InterfaceType); ok {
 							interfaces[typeSpec.Name.Name] = ifaceType
-							interfaceTypes[typeSpec.Name.Name] = true
+							RegisterInterfaceType(typeSpec.Name.Name)
 						}
 					}
 				}

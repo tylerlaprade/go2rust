@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-set -o pipefail
 # Autonomous Ralph loop for go2rust
 # Usage: ./ralph_loop.sh [max_iterations] [max_turns]
 #
@@ -137,8 +136,8 @@ for i in $(seq 1 "$MAX_ITERATIONS"); do
         --max-turns "$MAX_TURNS" \
         -p "$PROMPT" \
         --output-format stream-json \
-        2>&1 | tee "$LOGFILE"
-    EXIT_CODE=$?
+        2>&1 | tee "$LOGFILE" | jq -r --unbuffered 'select(.type == "assistant") | .message.content[]? | select(.type == "text") | .text // empty' 2>/dev/null || true
+    EXIT_CODE=${PIPESTATUS[0]}
 
     # Kill spinner
     kill "$SPINNER_PID" 2>/dev/null

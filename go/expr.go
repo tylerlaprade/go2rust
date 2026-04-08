@@ -177,7 +177,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		} else if currentReceiver != "" && e.Name == currentReceiver {
 			// Method receiver - translate to self
 			// Check if this is a type definition that needs unwrapping
-			if _, isTypeDef := typeDefinitions[currentReceiverType]; isTypeDef {
+			if _, isTypeDef := LookupTypeDefinition(currentReceiverType); isTypeDef {
 				// For type definitions, access the inner value
 				out.WriteString("(*self.0")
 				WriteBorrowMethod(out, false)
@@ -1893,7 +1893,7 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 		return
 	default:
 		// Check for custom type definitions
-		if _, isTypeDef := typeDefinitions[targetType]; isTypeDef {
+		if _, isTypeDef := LookupTypeDefinition(targetType); isTypeDef {
 			// Custom type definition
 			out.WriteString(targetType)
 			out.WriteString("(")
@@ -2080,7 +2080,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 
 	// Check if this is a type conversion for a type definition
 	if ident, ok := call.Fun.(*ast.Ident); ok {
-		if _, isTypeDef := typeDefinitions[ident.Name]; isTypeDef {
+		if _, isTypeDef := LookupTypeDefinition(ident.Name); isTypeDef {
 			// This is a type definition constructor
 			out.WriteString(ident.Name)
 			out.WriteString("(")
