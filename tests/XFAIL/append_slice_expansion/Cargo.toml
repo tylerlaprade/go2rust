@@ -1,0 +1,8 @@
+[package]
+name = "append_slice_expansion"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "append_slice_expansion"
+path = "main.rs"

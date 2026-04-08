@@ -629,6 +629,10 @@ run_xfail_test() {
     run_xfail_test "tests/XFAIL/anonymous_structs_nested"
 }
 
+@test "XFAIL: append_slice_expansion" {
+    run_xfail_test "tests/XFAIL/append_slice_expansion"
+}
+
 @test "XFAIL: atomic_operations" {
     run_xfail_test "tests/XFAIL/atomic_operations"
 }
@@ -649,6 +653,10 @@ run_xfail_test() {
     run_xfail_test "tests/XFAIL/context_usage"
 }
 
+@test "XFAIL: copy_from_string" {
+    run_xfail_test "tests/XFAIL/copy_from_string"
+}
+
 @test "XFAIL: cross_file_func_vars" {
     run_xfail_test "tests/XFAIL/cross_file_func_vars"
 }
@@ -667,6 +675,14 @@ run_xfail_test() {
 
 @test "XFAIL: crypto_hash" {
     run_xfail_test "tests/XFAIL/crypto_hash"
+}
+
+@test "XFAIL: defer_named_returns" {
+    run_xfail_test "tests/XFAIL/defer_named_returns"
+}
+
+@test "XFAIL: elided_nested_composites" {
+    run_xfail_test "tests/XFAIL/elided_nested_composites"
 }
 
 @test "XFAIL: enums_iota" {
@@ -711,6 +727,10 @@ run_xfail_test() {
 
 @test "XFAIL: json_marshal" {
     run_xfail_test "tests/XFAIL/json_marshal"
+}
+
+@test "XFAIL: make_map_with_capacity" {
+    run_xfail_test "tests/XFAIL/make_map_with_capacity"
 }
 
 @test "XFAIL: nested_structures" {
@@ -759,6 +779,14 @@ run_xfail_test() {
 
 @test "XFAIL: struct_tags_reflection" {
     run_xfail_test "tests/XFAIL/struct_tags_reflection"
+}
+
+@test "XFAIL: switch_init_statement" {
+    run_xfail_test "tests/XFAIL/switch_init_statement"
+}
+
+@test "XFAIL: switch_nil_case" {
+    run_xfail_test "tests/XFAIL/switch_nil_case"
 }
 
 @test "XFAIL: tickers_basic" {

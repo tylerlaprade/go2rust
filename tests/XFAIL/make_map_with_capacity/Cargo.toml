@@ -1,0 +1,8 @@
+[package]
+name = "make_map_with_capacity"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "make_map_with_capacity"
+path = "main.rs"
