@@ -135,7 +135,6 @@ for i in $(seq 1 "$MAX_ITERATIONS"); do
         --verbose \
         --model "$MODEL" \
         --max-turns "$MAX_TURNS" \
-        --max-budget-usd 0 \
         -p "$PROMPT" \
         --output-format stream-json \
         2>&1 | tee "$LOGFILE"
@@ -150,8 +149,9 @@ for i in $(seq 1 "$MAX_ITERATIONS"); do
 
     if [ "$EXIT_CODE" -eq 124 ]; then
         event "TIMEOUT  iter $i  $(format_duration $ELAPSED)"
-    elif [ "$LINES" -eq 0 ]; then
-        event "warning: empty log (exit $EXIT_CODE)"
+    elif [ "$ELAPSED" -le 5 ] && [ "$EXIT_CODE" -ne 0 ]; then
+        event "ABORT: claude crashed immediately (exit $EXIT_CODE)"
+        break
     else
         event "done  iter $i/$MAX_ITERATIONS  ✓$PASSING ✗$XFAIL  $(format_duration $ELAPSED)  ${LINES}L"
     fi
