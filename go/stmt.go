@@ -1517,11 +1517,15 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										out.WriteString("Default::default()")
 										WriteWrapperSuffix(out)
 									case *ast.ArrayType:
-										// Initialize array with default values
-										// Arrays are wrapped, so we need Some(default array)
 										out.WriteString(" = ")
-										WriteWrapperPrefix(out)
-										out.WriteString("Default::default())))")
+										if t.Len == nil {
+											// Slices default to nil in Go; preserve that distinction from []T{}.
+											WriteWrappedNone(out)
+										} else {
+											WriteWrapperPrefix(out)
+											out.WriteString("Default::default()")
+											WriteWrapperSuffix(out)
+										}
 									case *ast.MapType:
 									// Initialize map variable with empty map (Go nil map)
 									out.WriteString(" = ")
