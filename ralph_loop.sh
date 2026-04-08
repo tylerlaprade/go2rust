@@ -136,7 +136,7 @@ for i in $(seq 1 "$MAX_ITERATIONS"); do
         --max-turns "$MAX_TURNS" \
         -p "$PROMPT" \
         --output-format stream-json \
-        2>&1 | tee "$LOGFILE" | jq -r --unbuffered 'select(.type == "assistant") | .message.content[]? | select(.type == "text") | .text // empty' 2>/dev/null || true
+        2>&1 | tee "$LOGFILE" | jq -r --unbuffered '.message.content[]? | select(.type == "tool_use") | "  → " + .description // .name' 2>/dev/null || true
     EXIT_CODE=${PIPESTATUS[0]}
 
     # Kill spinner
