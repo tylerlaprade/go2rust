@@ -14,7 +14,7 @@ pub fn describe(ptr: Rc<RefCell<Option<i32>>>) {
 }
 
 fn main() {
-    describe(Rc::new(RefCell::new(Some(None))));
+    describe(Rc::new(RefCell::new(None)));
     let mut x = Rc::new(RefCell::new(Some(42)));
     describe(x.clone());
 }
