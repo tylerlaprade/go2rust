@@ -111,7 +111,7 @@ fn main() {
 
     let mut sortedNames: Arc<Mutex<Option<Vec<String>>>> = Arc::new(Mutex::new(None));
     for (name, _) in (*ages.lock().unwrap().as_ref().unwrap()).clone() {
-        {(*sortedNames.lock().unwrap().as_mut().unwrap()).push(name); sortedNames.clone()};
+        {(*sortedNames.lock().unwrap()).get_or_insert_with(Vec::new).push(name); sortedNames.clone()};
     }
     (*sortedNames.lock().unwrap().as_mut().unwrap()).sort();
     for name in &(*sortedNames.lock().unwrap().as_ref().unwrap()) {

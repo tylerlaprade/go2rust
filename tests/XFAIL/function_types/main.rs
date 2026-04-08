@@ -109,7 +109,7 @@ pub fn filter(numbers: Rc<RefCell<Option<Vec<i32>>>>, pred: Rc<RefCell<Option<Pr
     let mut result: Rc<RefCell<Option<Vec<i32>>>> = Rc::new(RefCell::new(None));
     for num in (*numbers.borrow().as_ref().unwrap()).iter().copied() {
         if (*pred.borrow().as_ref().unwrap())(Rc::new(RefCell::new(Some(num)))) {
-        {(*result.borrow_mut().as_mut().unwrap()).push(num); result.clone()};
+        {(*result.borrow_mut()).get_or_insert_with(Vec::new).push(num); result.clone()};
     }
     }
     return result.clone();

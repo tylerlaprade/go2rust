@@ -21,7 +21,7 @@ fn main() {
     print!("len={} cap={} {}\n", (*s.borrow().as_ref().unwrap()).len(), (*s.borrow().as_ref().unwrap()).capacity(), format_slice(&s));
 
         // Append beyond capacity
-    {(*s.borrow_mut().as_mut().unwrap()).extend(vec![1, 2, 3, 4, 5, 6, 7, 8]); s.clone()};
+    {(*s.borrow_mut()).get_or_insert_with(Vec::new).extend(vec![1, 2, 3, 4, 5, 6, 7, 8]); s.clone()};
     print!("len={} cap={} {}\n", (*s.borrow().as_ref().unwrap()).len(), (*s.borrow().as_ref().unwrap()).capacity(), format_slice(&s));
 
         // Three-index slice

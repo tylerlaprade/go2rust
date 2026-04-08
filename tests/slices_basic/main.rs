@@ -21,7 +21,7 @@ fn main() {
     println!("{} {}", "Original slice:".to_string(), format_slice(&slice));
 
         // Append to slice
-    {(*slice.borrow_mut().as_mut().unwrap()).extend(vec![6, 7]); slice.clone()};
+    {(*slice.borrow_mut()).get_or_insert_with(Vec::new).extend(vec![6, 7]); slice.clone()};
     println!("{} {}", "After append:".to_string(), format_slice(&slice));
 
         // Slice operations

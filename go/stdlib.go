@@ -900,7 +900,8 @@ func transpileStrconvAtoi(out *strings.Builder, call *ast.CallExpr) {
 func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 	if len(call.Args) >= 2 {
 		// append() in Go returns the slice, but our slices are wrapped
-		// We need to push to the inner vector and return the wrapped slice
+		// We need to create the vector on first append so nil slices stay nil
+		// until they are actually appended to, then return the wrapped slice.
 		if len(call.Args) == 2 {
 			// Single element append
 			out.WriteString("{(*")
@@ -910,7 +911,7 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 				TranspileExpression(out, call.Args[0])
 			}
 			WriteBorrowMethod(out, true)
-			out.WriteString(".as_mut().unwrap()).push(")
+			out.WriteString(").get_or_insert_with(Vec::new).push(")
 			TranspileExpression(out, call.Args[1])
 			out.WriteString("); ")
 			// Return the wrapped slice itself
@@ -929,7 +930,7 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 				TranspileExpression(out, call.Args[0])
 			}
 			WriteBorrowMethod(out, true)
-			out.WriteString(".as_mut().unwrap()).extend(vec![")
+			out.WriteString(").get_or_insert_with(Vec::new).extend(vec![")
 			for i := 1; i < len(call.Args); i++ {
 				if i > 1 {
 					out.WriteString(", ")
