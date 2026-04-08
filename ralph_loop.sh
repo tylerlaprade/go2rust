@@ -37,8 +37,8 @@ format_duration() {
     fi
 }
 
-# Ctrl+C kills the whole loop, not just the current ralph session
-trap 'printf "\r\033[K"; echo "Loop interrupted."; exit 130' INT
+SPINNER_PID=""
+trap 'printf "\r\033[K"; [ -n "$SPINNER_PID" ] && kill "$SPINNER_PID" 2>/dev/null; echo "Loop interrupted."; exit 130' INT
 
 # Record baseline test count before starting (count test dirs)
 BASELINE_PASS=$(ls tests/ | grep -v XFAIL | grep -v '\.bats' | grep -v README | wc -l | tr -d ' ')
@@ -119,13 +119,7 @@ for i in $(seq 1 "$MAX_ITERATIONS"); do
         TICK=0
         while true; do
             F=${FRAMES[$(( TICK % ${#FRAMES[@]} ))]}
-            if [ "$TICK" -ge 3600 ]; then
-                DUR=$(printf "%dh%02dm" $((TICK/3600)) $((TICK%3600/60)))
-            elif [ "$TICK" -ge 60 ]; then
-                DUR=$(printf "%dm%02ds" $((TICK/60)) $((TICK%60)))
-            else
-                DUR=$(printf "%ds" "$TICK")
-            fi
+            DUR=$(format_duration "$TICK")
             printf "\r\033[K%s  iter %d/%d  ✓%d ✗%d  %s  %s  %s" \
                 "$F" "$_spinner_iter" "$_spinner_max" "$_spinner_pass" "$_spinner_xfail" \
                 "$_spinner_model" "$DUR" "running…"

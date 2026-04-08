@@ -48,11 +48,11 @@ for i in $(seq 1 "$MAX_ITERATIONS"); do
 
     # Skip if there are already 5+ unprocessed files (don't flood the queue)
     QUEUED=$(ls "$ANALYSIS_DIR"/*.md 2>/dev/null | grep -v README.md | wc -l | tr -d ' ')
-    if [ "$QUEUED" -ge 5 ]; then
-        echo "[$i/$MAX_ITERATIONS] queue full ($QUEUED files) — waiting ${COOLDOWN_MINS}m"
-        sleep "${COOLDOWN_MINS}m"
-        continue
-    fi
+    while [ "$QUEUED" -ge 5 ]; do
+        echo "[$i/$MAX_ITERATIONS] queue full ($QUEUED files) — polling every 30s"
+        sleep 30
+        QUEUED=$(ls "$ANALYSIS_DIR"/*.md 2>/dev/null | grep -v README.md | wc -l | tr -d ' ')
+    done
 
     TIMESTAMP=$(date +%Y%m%d-%H%M%S)
     OUTFILE="$ANALYSIS_DIR/${ANGLE_NAME}-${TIMESTAMP}.md"
