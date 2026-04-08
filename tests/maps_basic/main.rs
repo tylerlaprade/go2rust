@@ -46,7 +46,7 @@ fn main() {
     (*ages.borrow_mut().as_mut().unwrap()).remove(&"Bob".to_string());
     println!("{} {}", "After deleting Bob:".to_string(), format_map(&ages));
     println!("{}", "All colors:".to_string());
-    let mut keys: Rc<RefCell<Option<Vec<String>>>> = Rc::new(RefCell::new(Some(Default::default())));
+    let mut keys: Rc<RefCell<Option<Vec<String>>>> = Rc::new(RefCell::new(None));
     for (k, _) in (*colors.borrow().as_ref().unwrap()).clone() {
         {(*keys.borrow_mut().as_mut().unwrap()).push(k); keys.clone()};
     }

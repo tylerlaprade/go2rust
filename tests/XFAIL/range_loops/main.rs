@@ -109,7 +109,7 @@ fn main() {
     println!("{}", "\n=== Range over map ===".to_string());
     let mut ages = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i32>>>>::from([("Alice".to_string(), Arc::new(Mutex::new(Some(25)))), ("Bob".to_string(), Arc::new(Mutex::new(Some(30)))), ("Charlie".to_string(), Arc::new(Mutex::new(Some(35))))]))));
 
-    let mut sortedNames: Arc<Mutex<Option<Vec<String>>>> = Arc::new(Mutex::new(Some(Default::default())));
+    let mut sortedNames: Arc<Mutex<Option<Vec<String>>>> = Arc::new(Mutex::new(None));
     for (name, _) in (*ages.lock().unwrap().as_ref().unwrap()).clone() {
         {(*sortedNames.lock().unwrap().as_mut().unwrap()).push(name); sortedNames.clone()};
     }
@@ -176,7 +176,7 @@ fn main() {
 
         // Range over empty collections
     println!("{}", "\n=== Range over empty collections ===".to_string());
-    let mut emptySlice: Arc<Mutex<Option<Vec<i32>>>> = Arc::new(Mutex::new(Some(Default::default())));
+    let mut emptySlice: Arc<Mutex<Option<Vec<i32>>>> = Arc::new(Mutex::new(None));
     let mut emptyMap: Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i32>>>>>>> = Arc::new(Mutex::new(Some(BTreeMap::new())));
 
     println!("{}", "Empty slice:".to_string());
