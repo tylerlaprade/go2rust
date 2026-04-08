@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -o pipefail
 # Autonomous Ralph loop for go2rust
 # Usage: ./ralph_loop.sh [max_iterations] [max_turns]
 #
@@ -129,15 +130,15 @@ for i in $(seq 1 "$MAX_ITERATIONS"); do
     ) &
     SPINNER_PID=$!
 
-    ERRFILE="${LOGFILE%.log}.err"
-    timeout "${TIMEOUT_MINS}m" claude \
+    timeout --kill-after=30s "${TIMEOUT_MINS}m" claude \
         --dangerously-skip-permissions \
         --verbose \
         --model "$MODEL" \
         --max-turns "$MAX_TURNS" \
+        --max-budget-usd 0 \
         -p "$PROMPT" \
-        --output-format text \
-        >"$LOGFILE" 2>"$ERRFILE"
+        --output-format stream-json \
+        2>&1 | tee "$LOGFILE"
     EXIT_CODE=$?
 
     # Kill spinner
@@ -150,11 +151,7 @@ for i in $(seq 1 "$MAX_ITERATIONS"); do
     if [ "$EXIT_CODE" -eq 124 ]; then
         event "TIMEOUT  iter $i  $(format_duration $ELAPSED)"
     elif [ "$LINES" -eq 0 ]; then
-        if [ -s "$ERRFILE" ]; then
-            event "FAILED (exit $EXIT_CODE): $(head -1 "$ERRFILE")"
-        else
-            event "warning: empty log (exit $EXIT_CODE)"
-        fi
+        event "warning: empty log (exit $EXIT_CODE)"
     else
         event "done  iter $i/$MAX_ITERATIONS  ✓$PASSING ✗$XFAIL  $(format_duration $ELAPSED)  ${LINES}L"
     fi
