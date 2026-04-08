@@ -7,11 +7,17 @@ var currentTypeInfo *TypeInfo
 
 // SetTypeInfo sets the global type info
 func SetTypeInfo(typeInfo *TypeInfo) {
+	if currentContext != nil && currentContext.Session != nil {
+		currentContext.Session.TypeInfo = typeInfo
+	}
 	currentTypeInfo = typeInfo
 }
 
 // GetTypeInfo returns the current type info, or nil if not available
 func GetTypeInfo() *TypeInfo {
+	if currentContext != nil && currentContext.Session != nil && currentContext.Session.TypeInfo != nil {
+		return currentContext.Session.TypeInfo
+	}
 	return currentTypeInfo
 }
 
@@ -29,22 +35,36 @@ var errorImplTypes = make(map[string]bool)
 
 // RegisterErrorImplType marks a type as implementing the error interface
 func RegisterErrorImplType(name string) {
-	errorImplTypes[name] = true
+	currentErrorImplTypes()[name] = true
 }
 
 // IsErrorImplType checks if a type implements the error interface
 func IsErrorImplType(name string) bool {
-	return errorImplTypes[name]
+	return currentErrorImplTypes()[name]
 }
 
 // RegisterFunctionSignature stores a function's signature for later use
 func RegisterFunctionSignature(name string, sig *FunctionSignature) {
-	functionSignatures[name] = sig
+	currentFunctionSignatures()[name] = sig
 }
 
 // GetFunctionSignature retrieves a function's signature
 func GetFunctionSignature(name string) *FunctionSignature {
-	return functionSignatures[name]
+	return currentFunctionSignatures()[name]
+}
+
+func currentFunctionSignatures() map[string]*FunctionSignature {
+	if currentContext != nil && currentContext.Package != nil {
+		return currentContext.Package.FunctionSignatures
+	}
+	return functionSignatures
+}
+
+func currentErrorImplTypes() map[string]bool {
+	if currentContext != nil && currentContext.Package != nil {
+		return currentContext.Package.ErrorImplTypes
+	}
+	return errorImplTypes
 }
 
 // IsParamValueType checks if the parameter at the given argument index is a plain value type

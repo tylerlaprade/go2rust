@@ -83,6 +83,7 @@ func (pg *ProjectGenerator) Generate() error {
 
 func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 	fileSet := token.NewFileSet()
+	var packageImports map[string]string
 
 	// Parse all files first for type checking
 	var astFiles []*ast.File
@@ -140,9 +141,8 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 			return fmt.Errorf("no AST files from package loader")
 		}
 
-		// Set up imports for the main package (go/packages doesn't include import declarations)
-		mainImports := loader.GetMainImports()
-		SetPackageImports(mainImports)
+		// Set up imports for the main package once the package-scoped context exists.
+		packageImports = loader.GetMainImports()
 
 		// The main package will use this type info
 		SetTypeInfo(pg.typeInfo)
@@ -176,7 +176,7 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 				imports[pkgName] = importPath
 			}
 		}
-		SetPackageImports(imports)
+		packageImports = imports
 
 		// Regular type checking (will have missing types for external packages)
 		typeInfo, err := NewTypeInfo(astFiles, fileSet)
@@ -209,6 +209,17 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 	concurrencyDetector.AnalyzeProject(astFiles)
 	SetConcurrencyDetector(concurrencyDetector)
 	defer SetConcurrencyDetector(nil) // Clear when done
+
+	runCtx := &TranspileContext{
+		Session:        NewTranspileSession(pg.typeInfo, pg.packageMapping),
+		Package:        NewPackageState(),
+		PackageMapping: pg.packageMapping,
+	}
+	SetTranspileContext(runCtx)
+	defer SetTranspileContext(nil)
+	if packageImports != nil {
+		SetPackageImports(packageImports)
+	}
 
 	// Ensure we clean up TypeInfo when done
 	defer SetTypeInfo(nil)

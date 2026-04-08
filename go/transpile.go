@@ -60,11 +60,16 @@ var externalPackages = make(map[string]bool)
 // SetPackageImports sets the package imports for the current transpilation
 func SetPackageImports(imports map[string]string) {
 	goPackageImports = imports
+	externalPackages = make(map[string]bool)
 	// Also track external packages
 	for _, path := range imports {
 		if !isStdlibPackage(path) {
 			externalPackages[path] = true
 		}
+	}
+	if currentContext != nil && currentContext.Package != nil {
+		currentContext.Package.GoPackageImports = goPackageImports
+		currentContext.Package.ExternalPackages = externalPackages
 	}
 }
 
@@ -372,6 +377,18 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 	// Create trackers
 	imports := NewImportTracker()
 	helpers := &HelperTracker{}
+	parentCtx := GetTranspileContext()
+	session := NewTranspileSession(typeInfo, packageMapping)
+	packageState := NewPackageState()
+	if parentCtx != nil {
+		if parentCtx.Session != nil {
+			session = parentCtx.Session
+		}
+		if parentCtx.Package != nil {
+			packageState = parentCtx.Package
+		}
+	}
+	fileState := NewFileState(imports, helpers, NewStatementPreprocessor(fileSet))
 	fileExternalPackages := make(map[string]bool)
 	for _, imp := range file.Imports {
 		path := strings.Trim(imp.Path.Value, `"`)
@@ -380,31 +397,22 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 		}
 	}
 
-	// Only clear import tracking if not already set (by PackageLoader)
-	if len(goPackageImports) == 0 {
-		goPackageImports = make(map[string]string)
-		externalPackages = make(map[string]bool)
-	}
-
-	// Reset init function tracking
-	hasInitFunction = false
-
-	// Initialize the statement preprocessor
-	statementPreprocessor = NewStatementPreprocessor(fileSet)
-
 	// Initialize variable tracking table
 	vt := NewVarTable()
 	SetVarTable(vt)
 	defer SetVarTable(nil)
 
-	// Set up global context
+	// Set up a child context that shares session/package state but owns fresh file state.
 	ctx := &TranspileContext{
+		Session:        session,
+		Package:        packageState,
+		File:           fileState,
 		Imports:        imports,
 		Helpers:        helpers,
 		PackageMapping: packageMapping,
 	}
 	SetTranspileContext(ctx)
-	defer SetTranspileContext(nil) // Clear when done
+	defer SetTranspileContext(parentCtx)
 
 	// Transpile the body
 	var body strings.Builder
