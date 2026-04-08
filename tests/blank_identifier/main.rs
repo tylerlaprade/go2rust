@@ -136,7 +136,7 @@ fn main() {
     println!("{}", "Keys only:".to_string());
     let mut names: Arc<Mutex<Option<Vec<String>>>> = Arc::new(Mutex::new(None));
     for (name, _) in (*ages.lock().unwrap().as_ref().unwrap()).clone() {
-        {(*names.lock().unwrap().as_mut().unwrap()).push(name); names.clone()};
+        {(*names.lock().unwrap()).get_or_insert_with(Vec::new).push(name); names.clone()};
     }
     (*names.lock().unwrap().as_mut().unwrap()).sort();
     for name in &(*names.lock().unwrap().as_ref().unwrap()) {
@@ -148,7 +148,7 @@ fn main() {
     println!("{}", "Values only:".to_string());
     let mut sortedAges: Arc<Mutex<Option<Vec<i32>>>> = Arc::new(Mutex::new(None));
     for (_, age) in (*ages.lock().unwrap().as_ref().unwrap()).clone() {
-        {(*sortedAges.lock().unwrap().as_mut().unwrap()).push((*age.lock().unwrap().as_mut().unwrap())); sortedAges.clone()};
+        {(*sortedAges.lock().unwrap()).get_or_insert_with(Vec::new).push((*age.lock().unwrap().as_mut().unwrap())); sortedAges.clone()};
     }
     (*sortedAges.lock().unwrap().as_mut().unwrap()).sort();
     for age in (*sortedAges.lock().unwrap().as_ref().unwrap()).iter().copied() {

@@ -17,8 +17,8 @@ where
 
 fn main() {
     let mut s: Rc<RefCell<Option<Vec<String>>>> = Rc::new(RefCell::new(None));
-    {(*s.borrow_mut().as_mut().unwrap()).push("a".to_string()); s.clone()};
-    {(*s.borrow_mut().as_mut().unwrap()).extend(vec!["b".to_string(), "c".to_string()]); s.clone()};
+    {(*s.borrow_mut()).get_or_insert_with(Vec::new).push("a".to_string()); s.clone()};
+    {(*s.borrow_mut()).get_or_insert_with(Vec::new).extend(vec!["b".to_string(), "c".to_string()]); s.clone()};
     println!("{} {}", "slice:".to_string(), format_slice(&s));
 
     let mut c = Rc::new(RefCell::new(Some(vec!["".to_string(); (*s.borrow().as_ref().unwrap()).len()])));

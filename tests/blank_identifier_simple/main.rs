@@ -37,7 +37,7 @@ fn main() {
     println!("{}", "Keys only:".to_string());
     let mut keys = Rc::new(RefCell::new(Some(Vec::with_capacity((*ages.borrow().as_ref().unwrap()).len()))));
     for (name, _) in (*ages.borrow().as_ref().unwrap()).clone() {
-        {(*keys.borrow_mut().as_mut().unwrap()).push(name); keys.clone()};
+        {(*keys.borrow_mut()).get_or_insert_with(Vec::new).push(name); keys.clone()};
     }
     (*keys.borrow_mut().as_mut().unwrap()).sort();
     for name in &(*keys.borrow().as_ref().unwrap()) {
@@ -47,7 +47,7 @@ fn main() {
     println!("{}", "Values only:".to_string());
     let mut values = Rc::new(RefCell::new(Some(Vec::with_capacity((*ages.borrow().as_ref().unwrap()).len()))));
     for (_, age) in (*ages.borrow().as_ref().unwrap()).clone() {
-        {(*values.borrow_mut().as_mut().unwrap()).push((*age.borrow_mut().as_mut().unwrap())); values.clone()};
+        {(*values.borrow_mut()).get_or_insert_with(Vec::new).push((*age.borrow_mut().as_mut().unwrap())); values.clone()};
     }
     (*values.borrow_mut().as_mut().unwrap()).sort();
     for age in (*values.borrow().as_ref().unwrap()).iter().copied() {

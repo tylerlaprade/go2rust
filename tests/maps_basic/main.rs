@@ -48,7 +48,7 @@ fn main() {
     println!("{}", "All colors:".to_string());
     let mut keys: Rc<RefCell<Option<Vec<String>>>> = Rc::new(RefCell::new(None));
     for (k, _) in (*colors.borrow().as_ref().unwrap()).clone() {
-        {(*keys.borrow_mut().as_mut().unwrap()).push(k); keys.clone()};
+        {(*keys.borrow_mut()).get_or_insert_with(Vec::new).push(k); keys.clone()};
     }
     (*keys.borrow_mut().as_mut().unwrap()).sort();
     for k in &(*keys.borrow().as_ref().unwrap()) {
