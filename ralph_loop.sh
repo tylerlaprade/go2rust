@@ -134,14 +134,14 @@ for i in $(seq 1 "$MAX_ITERATIONS"); do
     ) &
     SPINNER_PID=$!
 
-    timeout --kill-after=30s "${TIMEOUT_MINS}m" claude \
+    timeout --foreground --kill-after=30s "${TIMEOUT_MINS}m" claude \
         --dangerously-skip-permissions \
         --verbose \
         --model "$MODEL" \
         --max-turns "$MAX_TURNS" \
         -p "$PROMPT" \
         --output-format stream-json \
-        2>&1 | tee "$LOGFILE" | jq -r --unbuffered '.message.content[]? | select(.type == "tool_use") | "  → " + .description // .name' 2>/dev/null || true
+        2>&1 | tee "$LOGFILE" | jq -r --unbuffered '.message.content[]? | select(.type == "tool_use") | "  → " + .description // .name' 2>/dev/null
     EXIT_CODE=${PIPESTATUS[0]}
 
     # Kill spinner
