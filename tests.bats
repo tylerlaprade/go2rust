@@ -585,6 +585,10 @@ run_xfail_test() {
     run_test "tests/switch_init_statement"
 }
 
+@test "switch_nil_case" {
+    run_test "tests/switch_nil_case"
+}
+
 @test "switch_statements" {
     run_test "tests/switch_statements"
 }
@@ -783,10 +787,6 @@ run_xfail_test() {
 
 @test "XFAIL: struct_tags_reflection" {
     run_xfail_test "tests/XFAIL/struct_tags_reflection"
-}
-
-@test "XFAIL: switch_nil_case" {
-    run_xfail_test "tests/XFAIL/switch_nil_case"
 }
 
 @test "XFAIL: tickers_basic" {
