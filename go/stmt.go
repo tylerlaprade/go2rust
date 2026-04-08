@@ -1265,7 +1265,29 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									} else if unary, ok := rhs.(*ast.UnaryExpr); ok && unary.Op == token.AND {
 										// Taking address - don't wrap, the & operator will handle it
 										TranspileExpression(out, rhs)
-									} else if _, isCall := rhs.(*ast.CallExpr); isCall {
+									} else if callExpr, isCall := rhs.(*ast.CallExpr); isCall {
+										// len()/cap() return bare primitives — register LHS as bare
+										if callIdent, ok := callExpr.Fun.(*ast.Ident); ok {
+											if callIdent.Name == "len" || callIdent.Name == "cap" {
+												typeInfo := GetTypeInfo()
+												if typeInfo != nil && typeInfo.info != nil {
+													if obj, ok := typeInfo.info.Uses[callIdent]; ok {
+														if builtin, ok := obj.(*types.Builtin); ok && (builtin.Name() == "len" || builtin.Name() == "cap") {
+															if len(s.Lhs) == 1 {
+																if lhsIdent, ok := s.Lhs[0].(*ast.Ident); ok {
+																	if vt := GetVarTable(); vt != nil {
+																		vt.Register(lhsIdent.Name, &VarInfo{
+																			WrapLevel: WrapNone,
+																			Source:    SourceLocal,
+																		})
+																	}
+																}
+															}
+														}
+													}
+												}
+											}
+										}
 										// Function calls already return wrapped values, don't wrap again
 										TranspileExpression(out, rhs)
 									} else if _, isFuncLit := rhs.(*ast.FuncLit); isFuncLit {
@@ -2168,65 +2190,148 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			out.WriteString("    }")
 		} else {
 			// Standard match-based code (no fallthrough)
-			if s.Tag != nil {
-				// Capture tag expression to avoid borrow-lifetime issues in match
-				out.WriteString("{ let _switch_val = ")
-				TranspileExpression(out, s.Tag)
-				out.WriteString(";\n    match _switch_val {\n")
-			} else {
-				// Switch without expression - use true
-				out.WriteString("match true {\n")
-			}
 
-			// Process cases
-			hasDefault := false
-			for _, stmt := range s.Body.List {
-				if caseClause, ok := stmt.(*ast.CaseClause); ok {
-					out.WriteString("        ")
-					if caseClause.List == nil {
-						// default case
-						out.WriteString("_")
-						hasDefault = true
-					} else {
-						// Regular case(s)
-						for i, expr := range caseClause.List {
-							if i > 0 {
-								out.WriteString(" | ")
-							}
-							// For switch without expression, we need to handle boolean conditions
-							if s.Tag == nil {
-								// The expression is a condition, we need to match on true
-								// and put the condition as a guard
-								out.WriteString("true if ")
-								TranspileExpression(out, expr)
-							} else {
-								TranspileExpression(out, expr)
+			// Check if any case is nil (pointer nil-check switch)
+			hasNilCase := false
+			if s.Tag != nil {
+				for _, stmt := range s.Body.List {
+					if caseClause, ok := stmt.(*ast.CaseClause); ok {
+						for _, expr := range caseClause.List {
+							if ident, ok := expr.(*ast.Ident); ok && ident.Name == "nil" {
+								hasNilCase = true
+								break
 							}
 						}
 					}
-					out.WriteString(" => {\n")
+				}
+			}
+			tagIsPointer := false
+			if hasNilCase {
+				typeInfo := GetTypeInfo()
+				if typeInfo != nil {
+					tagIsPointer = typeInfo.IsPointer(s.Tag)
+				}
+			}
 
-					// Case body
+			if hasNilCase && tagIsPointer {
+				// Pointer nil-check switch: generate if-else chain
+				var nonDefaultClauses []*ast.CaseClause
+				var defaultClause *ast.CaseClause
+				for _, stmt := range s.Body.List {
+					if caseClause, ok := stmt.(*ast.CaseClause); ok {
+						if caseClause.List == nil {
+							defaultClause = caseClause
+						} else {
+							nonDefaultClauses = append(nonDefaultClauses, caseClause)
+						}
+					}
+				}
+				for i, caseClause := range nonDefaultClauses {
+					if i == 0 {
+						out.WriteString("if ")
+					} else {
+						out.WriteString(" else if ")
+					}
+					for j, expr := range caseClause.List {
+						if j > 0 {
+							out.WriteString(" || ")
+						}
+						if ident, ok := expr.(*ast.Ident); ok && ident.Name == "nil" {
+							TranspileExpressionContext(out, s.Tag, AddressOf)
+							WriteBorrowMethod(out, false)
+							out.WriteString(".is_none()")
+						} else {
+							TranspileExpressionContext(out, s.Tag, AddressOf)
+							WriteBorrowMethod(out, false)
+							out.WriteString(".as_ref() == Some(&(")
+							TranspileExpression(out, expr)
+							out.WriteString("))")
+						}
+					}
+					out.WriteString(" {\n")
 					var caseBodyLastPos token.Pos = caseClause.Colon
 					for _, bodyStmt := range caseClause.Body {
 						out.WriteString("            ")
 						TranspileStatement(out, bodyStmt, fnType, fileSet, comments, &caseBodyLastPos, "            ")
 						out.WriteString("\n")
 					}
-
-					out.WriteString("        }\n")
+					out.WriteString("        }")
 				}
-			}
+				if defaultClause != nil {
+					if len(nonDefaultClauses) > 0 {
+						out.WriteString(" else {\n")
+					} else {
+						out.WriteString("{\n")
+					}
+					var caseBodyLastPos token.Pos = defaultClause.Colon
+					for _, bodyStmt := range defaultClause.Body {
+						out.WriteString("            ")
+						TranspileStatement(out, bodyStmt, fnType, fileSet, comments, &caseBodyLastPos, "            ")
+						out.WriteString("\n")
+					}
+					out.WriteString("        }")
+				}
+			} else {
+				if s.Tag != nil {
+					// Capture tag expression to avoid borrow-lifetime issues in match
+					out.WriteString("{ let _switch_val = ")
+					TranspileExpression(out, s.Tag)
+					out.WriteString(";\n    match _switch_val {\n")
+				} else {
+					// Switch without expression - use true
+					out.WriteString("match true {\n")
+				}
 
-			// Add default case if not present (required for exhaustive matching in Rust)
-			if !hasDefault {
-				out.WriteString("        _ => {}\n")
-			}
+				// Process cases
+				hasDefault := false
+				for _, stmt := range s.Body.List {
+					if caseClause, ok := stmt.(*ast.CaseClause); ok {
+						out.WriteString("        ")
+						if caseClause.List == nil {
+							// default case
+							out.WriteString("_")
+							hasDefault = true
+						} else {
+							// Regular case(s)
+							for i, expr := range caseClause.List {
+								if i > 0 {
+									out.WriteString(" | ")
+								}
+								// For switch without expression, we need to handle boolean conditions
+								if s.Tag == nil {
+									// The expression is a condition, we need to match on true
+									// and put the condition as a guard
+									out.WriteString("true if ")
+									TranspileExpression(out, expr)
+								} else {
+									TranspileExpression(out, expr)
+								}
+							}
+						}
+						out.WriteString(" => {\n")
 
-			out.WriteString("    }")
-			if s.Tag != nil {
-				// Close the extra block wrapping the _switch_val let binding
-				out.WriteString(" }")
+						// Case body
+						var caseBodyLastPos token.Pos = caseClause.Colon
+						for _, bodyStmt := range caseClause.Body {
+							out.WriteString("            ")
+							TranspileStatement(out, bodyStmt, fnType, fileSet, comments, &caseBodyLastPos, "            ")
+							out.WriteString("\n")
+						}
+
+						out.WriteString("        }\n")
+					}
+				}
+
+				// Add default case if not present (required for exhaustive matching in Rust)
+				if !hasDefault {
+					out.WriteString("        _ => {}\n")
+				}
+
+				out.WriteString("    }")
+				if s.Tag != nil {
+					// Close the extra block wrapping the _switch_val let binding
+					out.WriteString(" }")
+				}
 			}
 		}
 

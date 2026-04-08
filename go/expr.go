@@ -2697,6 +2697,9 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				} else {
 					TranspileExpression(out, arg)
 				}
+			} else if ident, ok := arg.(*ast.Ident); ok && ident.Name == "nil" {
+				// nil literal — wrap as None (not Some(None))
+				WriteWrappedNone(out)
 			} else if unary, isUnary := arg.(*ast.UnaryExpr); isUnary && unary.Op == token.AND {
 				// Address-of (&var) — produces a clone of the Rc, already wrapped
 				TranspileExpression(out, arg)
