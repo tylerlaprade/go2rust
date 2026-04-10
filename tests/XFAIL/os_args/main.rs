@@ -16,7 +16,7 @@ where
 }
 
 fn main() {
-    println!("{} {}", "Program name:".to_string(), (*(*os.borrow().as_ref().unwrap())::args.borrow().as_ref().unwrap())[0 as usize].clone());
-    println!("{} {}", "Arguments:".to_string(), format_slice(&Rc::new(RefCell::new(Some((*(*os.borrow().as_ref().unwrap())::args.borrow().as_ref().unwrap())[1 as usize..].to_vec())))));
-    println!("{} {}", "Total args:".to_string(), (*(*os.borrow().as_ref().unwrap())::args.borrow().as_ref().unwrap()).len());
+    println!("{} {}", "Program name:".to_string(), (*os::args.borrow().as_ref().unwrap())[0 as usize].clone());
+    println!("{} {}", "Arguments:".to_string(), format_slice(&Rc::new(RefCell::new(Some((*os::args.borrow().as_ref().unwrap())[1 as usize..].to_vec())))));
+    println!("{} {}", "Total args:".to_string(), (*os::args.borrow().as_ref().unwrap()).len());
 }

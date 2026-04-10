@@ -17,7 +17,7 @@ where
 
 fn main() {
     let mut pattern = Rc::new(RefCell::new(Some(`\d+`.to_string())));
-    let mut re = (*regexp.borrow().as_ref().unwrap())::must_compile(Rc::new(RefCell::new(Some((*pattern.borrow().as_ref().unwrap())))));
+    let mut re = regexp::must_compile(Rc::new(RefCell::new(Some((*pattern.borrow().as_ref().unwrap())))));
     let mut text = Rc::new(RefCell::new(Some("I have 42 apples and 7 oranges".to_string())));
     let mut matches = (*re.borrow_mut().as_mut().unwrap()).find_all_string(Rc::new(RefCell::new(Some((*text.borrow().as_ref().unwrap())))), Rc::new(RefCell::new(Some(-1))));
     println!("{} {}", "Numbers found:".to_string(), format_slice(&matches));
