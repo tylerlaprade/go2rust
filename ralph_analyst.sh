@@ -120,7 +120,7 @@ queue_summary() {
 build_prompt() {
     local queued_items="$1"
     cat <<EOF
-You are generating exactly one actionable analysis queue item for the go2rust project.
+You are generating actionable analysis queue items for the go2rust project.
 
 Read these files first:
 - AGENTS.md
@@ -128,9 +128,9 @@ Read these files first:
 - LOOP_PROTOCOL.md
 
 Your task:
-- Find the single highest-leverage next task from the repo's current state.
-- Create at most one new markdown file in .analysis/.
-- If the queue already contains the task, or you cannot find a high-value scoped task, create no file and exit cleanly.
+- Find the highest-leverage next tasks from the repo's current state.
+- Create zero or more new markdown files in .analysis/ as warranted by what you find.
+- If the queue already contains the relevant work, or you cannot find a high-value scoped task, create no file and exit cleanly.
 
 Do not rotate through canned categories or force variety for its own sake.
 Pick what matters most right now.
@@ -164,7 +164,7 @@ Quality bar:
 - Be explicitly aware of the queued items listed above and avoid restating them with different wording.
 - Read any queued file that looks adjacent before proposing overlapping work.
 - Check recent git history and avoid recently-completed work.
-- Prefer the highest-leverage task, not a broad report.
+- Prefer a small set of high-leverage tasks, not a broad report or a flood of low-value items.
 - Prefer prerequisites or complementary follow-up tasks when they clearly strengthen the existing queue.
 - If the current queue already captures the best next work, create no file.
 - If the task is to add a test, include a proposed main.go snippet in ## Suggested Change.
@@ -233,14 +233,27 @@ for ((i = 1; i <= MAX_ITERATIONS; i++)); do
         NEW_COUNT="$(wc -l < "$NEW_SNAPSHOT" | tr -d ' ')"
         if [ "$NEW_COUNT" -eq 0 ]; then
             echo "no new task"
-        elif [ "$NEW_COUNT" -eq 1 ]; then
-            NEW_FILE="$(cat "$NEW_SNAPSHOT")"
-            LINES="$(wc -l < "$NEW_FILE" | tr -d ' ')"
-            echo "queued $(basename "$NEW_FILE") (${LINES}L)"
         else
-            echo "invalid output (${NEW_COUNT} new files)"
-            rm -f "$BEFORE_SNAPSHOT" "$AFTER_SNAPSHOT" "$NEW_SNAPSHOT"
-            fail "expected at most one new queue item, but found $NEW_COUNT"
+            SUMMARY=""
+            SHOWN=0
+            while IFS= read -r NEW_FILE; do
+                [ -n "$NEW_FILE" ] || continue
+                if [ "$SHOWN" -lt 3 ]; then
+                    if [ -n "$SUMMARY" ]; then
+                        SUMMARY="$SUMMARY, "
+                    fi
+                    SUMMARY="$SUMMARY$(basename "$NEW_FILE")"
+                fi
+                SHOWN=$((SHOWN + 1))
+            done < "$NEW_SNAPSHOT"
+            if [ "$NEW_COUNT" -gt 3 ]; then
+                SUMMARY="$SUMMARY, ..."
+            fi
+            if [ "$NEW_COUNT" -eq 1 ]; then
+                echo "queued 1 task: $SUMMARY"
+            else
+                echo "queued $NEW_COUNT tasks: $SUMMARY"
+            fi
         fi
     fi
 
