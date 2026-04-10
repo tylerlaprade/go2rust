@@ -103,8 +103,13 @@ for i in $(seq 1 "$MAX_ITERATIONS"); do
 
     # Preflight: verify claude works and check overage
     PREFLIGHT_OUT=$(timeout 30s claude --dangerously-skip-permissions -p "ok" --output-format stream-json --max-turns 1 2>&1)
-    if [ $? -ne 0 ]; then
-        event "ABORT: claude preflight failed — check auth/network"
+    PREFLIGHT_EXIT=$?
+    if [ $PREFLIGHT_EXIT -ne 0 ]; then
+        if [ $PREFLIGHT_EXIT -eq 124 ]; then
+            event "ABORT: claude preflight timed out (30s)"
+        else
+            event "ABORT: claude preflight failed (exit $PREFLIGHT_EXIT): $(echo "$PREFLIGHT_OUT" | tail -1)"
+        fi
         break
     fi
     if echo "$PREFLIGHT_OUT" | grep -q '"isUsingOverage":true'; then
