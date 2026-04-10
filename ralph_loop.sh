@@ -17,6 +17,75 @@ LOGDIR="$(pwd)/.ralph-loop-logs"
 ANALYSIS_DIR="$(pwd)/.analysis"
 mkdir -p "$LOGDIR"
 
+queue_files() {
+    local path
+    shopt -s nullglob
+    for path in "$ANALYSIS_DIR"/*.md; do
+        [ "$(basename "$path")" = "README.md" ] && continue
+        printf '%s\n' "$path"
+    done
+    shopt -u nullglob
+}
+
+count_queue_files() {
+    local count=0
+    local _
+    while IFS= read -r _; do
+        count=$((count + 1))
+    done < <(queue_files)
+    printf '%s\n' "$count"
+}
+
+count_passing_tests() {
+    local count=0
+    local path
+    shopt -s nullglob
+    for path in tests/*; do
+        [ -d "$path" ] || continue
+        [ "$(basename "$path")" = "XFAIL" ] && continue
+        count=$((count + 1))
+    done
+    shopt -u nullglob
+    printf '%s\n' "$count"
+}
+
+count_xfail_tests() {
+    local count=0
+    local path
+    shopt -s nullglob
+    for path in tests/XFAIL/*; do
+        [ -d "$path" ] || continue
+        count=$((count + 1))
+    done
+    shopt -u nullglob
+    printf '%s\n' "$count"
+}
+
+file_mtime() {
+    if stat -f '%m' "$1" >/dev/null 2>&1; then
+        stat -f '%m' "$1"
+    else
+        stat -c '%Y' "$1"
+    fi
+}
+
+next_analysis_task() {
+    local path
+    local oldest_path=""
+    local oldest_mtime=""
+    local mtime
+
+    while IFS= read -r path; do
+        mtime="$(file_mtime "$path")" || continue
+        if [ -z "$oldest_path" ] || [ "$mtime" -lt "$oldest_mtime" ] || { [ "$mtime" -eq "$oldest_mtime" ] && [[ "$path" < "$oldest_path" ]]; }; then
+            oldest_path="$path"
+            oldest_mtime="$mtime"
+        fi
+    done < <(queue_files)
+
+    printf '%s\n' "$oldest_path"
+}
+
 # Status line helpers
 status() {
     printf "\r\033[K%s" "$1"
@@ -41,31 +110,29 @@ SPINNER_PID=""
 trap 'printf "\r\033[K"; [ -n "$SPINNER_PID" ] && kill "$SPINNER_PID" 2>/dev/null; echo "Loop interrupted."; exit 130' INT
 
 # Record baseline test count before starting (count test dirs)
-BASELINE_PASS=$(ls tests/ | grep -v XFAIL | grep -v '\.bats' | grep -v README | wc -l | tr -d ' ')
+BASELINE_PASS="$(count_passing_tests)"
 
-ANALYSIS_EVERY=5  # check analysis queue every Nth iteration
 DEFAULT_MODEL="sonnet"
 ANALYSIS_MODEL="opus"
 BASE_PROMPT='Fix XFAIL tests. Follow the protocol in LOOP_PROTOCOL.md. HARD RULE: if ./test.sh shows any previously-passing test now failing, revert your changes immediately with git checkout -- go/ before trying anything else.'
 
 # Returns "prompt|model" — caller splits on |
 build_prompt() {
-    local iter="$1"
+    local task="$1"
     local prompt="$BASE_PROMPT"
     local model="$DEFAULT_MODEL"
 
-    # Only check analysis queue every Nth iteration
-    if [ $(( iter % ANALYSIS_EVERY )) -eq 0 ] && [ -d "$ANALYSIS_DIR" ]; then
-        local task
-        task=$(ls -t "$ANALYSIS_DIR"/*.md 2>/dev/null | grep -v README.md | tail -1)
-        if [ -n "$task" ]; then
-            local task_name
-            task_name=$(basename "$task")
-            prompt="$prompt
+    if [ -n "$task" ]; then
+        local task_name
+        task_name=$(basename "$task")
+        prompt="$prompt
 
-OPTIONAL ANALYSIS: If you have turns to spare after fixing an XFAIL test, also read .analysis/$task_name and address it. Delete the file when done. XFAIL work comes first."
-            model="$ANALYSIS_MODEL"
-        fi
+REQUIRED ANALYSIS TASK: Read .analysis/$task_name first and handle it before any XFAIL work. Follow LOOP_PROTOCOL.md exactly:
+- Address the queued task first.
+- Delete .analysis/$task_name when done.
+- Commit that work.
+- If turns remain and there are still XFAIL tests, continue with normal XFAIL work."
+        model="$ANALYSIS_MODEL"
     fi
 
     printf '%s|%s' "$prompt" "$model"
@@ -81,8 +148,13 @@ for i in $(seq 1 "$MAX_ITERATIONS"); do
     LOGFILE="$LOGDIR/$(date +%Y%m%d-%H%M%S).log"
 
     # Count current passing/failing
-    PASSING=$(ls tests/ | grep -v XFAIL | grep -v '\.bats' | grep -v README | wc -l | tr -d ' ')
-    XFAIL=$(ls tests/XFAIL/ 2>/dev/null | wc -l | tr -d ' ')
+    PASSING="$(count_passing_tests)"
+    XFAIL="$(count_xfail_tests)"
+    QUEUED="$(count_queue_files)"
+    ANALYSIS_TASK=""
+    if [ "$QUEUED" -gt 0 ]; then
+        ANALYSIS_TASK="$(next_analysis_task)"
+    fi
 
     # REGRESSION GATE: if passing count dropped below baseline, stop
     if [ "$PASSING" -lt "$BASELINE_PASS" ]; then
@@ -96,8 +168,8 @@ for i in $(seq 1 "$MAX_ITERATIONS"); do
         BASELINE_PASS="$PASSING"
     fi
 
-    if [ "$XFAIL" -eq 0 ]; then
-        event "all tests passing — nothing left to do"
+    if [ "$XFAIL" -eq 0 ] && [ "$QUEUED" -eq 0 ]; then
+        event "all tests passing and analysis queue empty — nothing left to do"
         break
     fi
 
@@ -118,20 +190,20 @@ for i in $(seq 1 "$MAX_ITERATIONS"); do
     fi
 
     SESSION_START=$SECONDS
-    PROMPT_MODEL=$(build_prompt "$i")
+    PROMPT_MODEL=$(build_prompt "$ANALYSIS_TASK")
     PROMPT="${PROMPT_MODEL%|*}"
     MODEL="${PROMPT_MODEL##*|}"
 
     # Background spinner
-    _spinner_iter=$i _spinner_max=$MAX_ITERATIONS _spinner_pass=$PASSING _spinner_xfail=$XFAIL _spinner_model=$MODEL
+    _spinner_iter=$i _spinner_max=$MAX_ITERATIONS _spinner_pass=$PASSING _spinner_xfail=$XFAIL _spinner_queue=$QUEUED _spinner_model=$MODEL
     (
         FRAMES=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
         TICK=0
         while true; do
             F=${FRAMES[$(( TICK % ${#FRAMES[@]} ))]}
             DUR=$(format_duration "$TICK")
-            printf "\r\033[K%s  iter %d/%d  ✓%d ✗%d  %s  %s  %s" \
-                "$F" "$_spinner_iter" "$_spinner_max" "$_spinner_pass" "$_spinner_xfail" \
+            printf "\r\033[K%s  iter %d/%d  ✓%d ✗%d q%d  %s  %s  %s" \
+                "$F" "$_spinner_iter" "$_spinner_max" "$_spinner_pass" "$_spinner_xfail" "$_spinner_queue" \
                 "$_spinner_model" "$DUR" "running…"
             sleep 1
             TICK=$((TICK + 1))
@@ -162,7 +234,7 @@ for i in $(seq 1 "$MAX_ITERATIONS"); do
         event "ABORT: claude crashed immediately (exit $EXIT_CODE)"
         break
     else
-        event "done  iter $i/$MAX_ITERATIONS  ✓$PASSING ✗$XFAIL  $(format_duration $ELAPSED)  ${LINES}L"
+        event "done  iter $i/$MAX_ITERATIONS  ✓$PASSING ✗$XFAIL q$QUEUED  $(format_duration $ELAPSED)  ${LINES}L"
     fi
 
     # Safety net: auto-stage test file changes that claude forgot
@@ -175,6 +247,7 @@ for i in $(seq 1 "$MAX_ITERATIONS"); do
 done
 
 TOTAL=$(( SECONDS - LOOP_START ))
-PASSING=$(ls tests/ | grep -v XFAIL | grep -v '\.bats' | grep -v README | wc -l | tr -d ' ')
-XFAIL=$(ls tests/XFAIL/ 2>/dev/null | wc -l | tr -d ' ')
-event "done — $PASSING passing, $XFAIL xfail (started at $BASELINE_PASS) — $(format_duration $TOTAL) total"
+PASSING="$(count_passing_tests)"
+XFAIL="$(count_xfail_tests)"
+QUEUED="$(count_queue_files)"
+event "done — $PASSING passing, $XFAIL xfail, $QUEUED queued (started at $BASELINE_PASS) — $(format_duration $TOTAL) total"
