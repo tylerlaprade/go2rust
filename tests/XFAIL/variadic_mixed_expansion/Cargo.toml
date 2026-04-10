@@ -1,0 +1,8 @@
+[package]
+name = "variadic_mixed_expansion"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "variadic_mixed_expansion"
+path = "main.rs"

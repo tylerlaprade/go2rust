@@ -1,5 +1,6 @@
 use std::sync::{Arc, Mutex};
 use std::thread;
+use std::time::Duration;
 
 
 struct GoChannel<T> {
@@ -76,23 +77,23 @@ fn main() {
     }
     requests.close();
 
-    let mut limiter = (*time.lock().unwrap().as_ref().unwrap())::tick(Arc::new(Mutex::new(Some(100 * (*time.lock().unwrap().as_ref().unwrap())::millisecond))));
+    let mut limiter = go_tick(std::time::Duration::from_millis(100));
 
     for req in requests.clone() {
         limiter.recv().unwrap();
-        println!("{} {} {}", "request".to_string(), req, (*(*time.lock().unwrap().as_ref().unwrap())::now().lock().unwrap().as_ref().unwrap()));
+        println!("{} {} {}", "request".to_string(), req, (*Arc::new(Mutex::new(Some(std::time::SystemTime::now()))).lock().unwrap().as_ref().unwrap()));
     }
 
-    let mut burstyLimiter = GoChannel::<time_Time>::new_buffered(3 as usize);
+    let mut burstyLimiter = GoChannel::<std::time::SystemTime>::new_buffered(3 as usize);
 
     let mut i = Arc::new(Mutex::new(Some(0)));
     while (*i.lock().unwrap().as_ref().unwrap()) < 3 {
-        burstyLimiter.send((*time.lock().unwrap().as_ref().unwrap())::now());
+        burstyLimiter.send(Arc::new(Mutex::new(Some(std::time::SystemTime::now()))));
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
 
     let burstyLimiter_closure_clone = burstyLimiter.clone(); let burstyLimiter_thread = burstyLimiter.clone(); std::thread::spawn(move || {
-        for t in (*time.lock().unwrap().as_ref().unwrap())::tick(Arc::new(Mutex::new(Some(100 * (*time.lock().unwrap().as_ref().unwrap())::millisecond)))).clone() {
+        for t in go_tick(std::time::Duration::from_millis(100)).clone() {
         burstyLimiter_thread.send(t);
     };;
     });
@@ -106,6 +107,6 @@ fn main() {
     burstyRequests.close();
     for req in burstyRequests.clone() {
         burstyLimiter.recv().unwrap();
-        println!("{} {} {}", "request".to_string(), req, (*(*time.lock().unwrap().as_ref().unwrap())::now().lock().unwrap().as_ref().unwrap()));
+        println!("{} {} {}", "request".to_string(), req, (*Arc::new(Mutex::new(Some(std::time::SystemTime::now()))).lock().unwrap().as_ref().unwrap()));
     }
 }
