@@ -334,8 +334,11 @@ func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.Fi
 		prevStmt = stmt
 	}
 
-	// Execute defers at the end if needed
-	if hasDefer {
+	// Execute defers at the end if needed.
+	// Skip if the last statement was a return — that already emitted cleanup + return,
+	// so the trailing block would be unreachable and cause a type error in Rust.
+	_, lastIsReturn := prevStmt.(*ast.ReturnStmt)
+	if hasDefer && !lastIsReturn {
 		out.WriteString("\n    // Execute deferred functions\n")
 		out.WriteString("    while let Some(f) = __defer_stack.pop() {\n")
 		out.WriteString("        f();\n")

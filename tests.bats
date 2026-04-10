@@ -345,6 +345,10 @@ run_xfail_test() {
     run_test "tests/constants_basic"
 }
 
+@test "defer_named_returns" {
+    run_test "tests/defer_named_returns"
+}
+
 @test "defer_statements" {
     run_test "tests/defer_statements"
 }
@@ -695,10 +699,6 @@ run_xfail_test() {
 
 @test "XFAIL: crypto_hash" {
     run_xfail_test "tests/XFAIL/crypto_hash"
-}
-
-@test "XFAIL: defer_named_returns" {
-    run_xfail_test "tests/XFAIL/defer_named_returns"
 }
 
 @test "XFAIL: elided_nested_composites" {

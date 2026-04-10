@@ -19,11 +19,6 @@ pub fn compute() -> Rc<RefCell<Option<i32>>> {
         }
         return result
     }
-
-    // Execute deferred functions
-    while let Some(f) = __defer_stack.pop() {
-        f();
-    }
 }
 
 pub fn decorate() -> Rc<RefCell<Option<String>>> {
@@ -43,11 +38,6 @@ pub fn decorate() -> Rc<RefCell<Option<String>>> {
             f();
         }
         return msg
-    }
-
-    // Execute deferred functions
-    while let Some(f) = __defer_stack.pop() {
-        f();
     }
 }
 

@@ -1376,12 +1376,28 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		if genDecl, ok := s.Decl.(*ast.GenDecl); ok {
 			switch genDecl.Tok {
 			case token.VAR:
+			specLoop:
 				for _, spec := range genDecl.Specs {
 					if valueSpec, ok := spec.(*ast.ValueSpec); ok {
-						for i, name := range valueSpec.Names {
-							if i > 0 {
-								out.WriteString(", ")
+						// Multi-name, single function call: var q, r = divmod(a, b)
+						// Generate: let (mut q, mut r) = divmod(a, b);
+						if len(valueSpec.Names) > 1 && len(valueSpec.Values) == 1 {
+							if _, isCall := valueSpec.Values[0].(*ast.CallExpr); isCall {
+								out.WriteString("let (")
+								for i, name := range valueSpec.Names {
+									if i > 0 {
+										out.WriteString(", ")
+									}
+									out.WriteString("mut ")
+									out.WriteString(name.Name)
+								}
+								out.WriteString(") = ")
+								TranspileExpression(out, valueSpec.Values[0])
+								out.WriteString(";")
+								continue specLoop
 							}
+						}
+						for i, name := range valueSpec.Names {
 							// Check if this is a sync type (WaitGroup, Mutex) - bare, not wrapped
 							isSyncType := false
 							if sel, ok := valueSpec.Type.(*ast.SelectorExpr); ok {

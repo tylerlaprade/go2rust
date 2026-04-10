@@ -52,11 +52,6 @@ pub fn safe_divide(a: Rc<RefCell<Option<f64>>>, b: Rc<RefCell<Option<f64>>>) -> 
         }
         return (result.clone(), Rc::new(RefCell::new(None)))
     }
-
-    // Execute deferred functions
-    while let Some(f) = __defer_stack.pop() {
-        f();
-    }
 }
 
 pub fn process_slice(slice: Rc<RefCell<Option<Vec<i32>>>>, index: Rc<RefCell<Option<i32>>>) -> (Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<Box<dyn Error>>>>) {
@@ -82,11 +77,6 @@ pub fn process_slice(slice: Rc<RefCell<Option<Vec<i32>>>>, index: Rc<RefCell<Opt
             f();
         }
         return (value.clone(), Rc::new(RefCell::new(None)))
-    }
-
-    // Execute deferred functions
-    while let Some(f) = __defer_stack.pop() {
-        f();
     }
 }
 
