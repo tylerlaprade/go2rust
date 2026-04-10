@@ -143,6 +143,7 @@ Read these files first:
 - AGENTS.md
 - .analysis/README.md
 - LOOP_PROTOCOL.md
+- ROADMAP.md
 
 Your task:
 - Find the highest-leverage next tasks from the repo's current state.
@@ -151,14 +152,12 @@ Your task:
 
 Do not rotate through canned categories or force variety for its own sake.
 Pick what matters most right now.
+Use whatever evidence from the repo best identifies the next valuable tasks.
 
-Possible lenses to consider if they help:
-- architecture bottlenecks that block multiple future tests
-- missing regression tests for already-supported Go patterns
-- XFAIL cases with the best effort-to-impact ratio
-- concrete translation bugs or brittle code paths in go/*.go
-- missing stdlib mappings that unblock real tests
-- shared prerequisites that unlock clusters of XFAILs
+Ultimate goal:
+- Move the project toward transpiling substantial real Go projects, especially go2rust itself and projects with similar complexity such as typescript-go.
+- Prefer work that improves project-level translation, multi-file/package handling, import resolution, stdlib coverage used by real codebases, deterministic output, and other blockers to self-hosting or transpiling real repositories.
+- Deprioritize isolated toy wins unless they unlock broader real-project progress.
 
 Current queued items:
 $queued_items
@@ -183,6 +182,8 @@ Quality bar:
 - Check recent git history and avoid recently-completed work.
 - Prefer a small set of high-leverage tasks, not a broad report or a flood of low-value items.
 - Prefer prerequisites or complementary follow-up tasks when they clearly strengthen the existing queue.
+- Rank tasks by how much they reduce the gap to self-hosting and real-project transpilation, not just by how easy they are.
+- When choosing between similarly-sized tasks, prefer the one that is more likely to unblock go2rust transpiling itself or another substantial Go codebase.
 - If the current queue already captures the best next work, create no file.
 - If the task is to add a test, include a proposed main.go snippet in ## Suggested Change.
 
