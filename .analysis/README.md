@@ -7,12 +7,20 @@ The loop picks up the oldest file, tells Claude to address it, then Claude delet
 ## File format
 
 Name files descriptively: `fix-double-borrow-in-nested-access.md`, `add-test-for-string-slicing.md`, etc.
+Avoid timestamps, counters, or generic names like `architecture-review.md`.
 
 Content should be:
 - **Specific** — not "improve error handling" but "the transpiler emits `unwrap()` for map access but Go returns zero-value on missing key"
 - **Scoped** — one issue per file, addressable in a single session
 - **Actionable** — include which files to look at, what the fix might look like
 
+Recommended sections:
+- `## Why Now`
+- `## Evidence`
+- `## Suggested Change`
+- `## Acceptance`
+
 ## Who writes these?
 
 You (manually), Codex (via analysis runs), or any other tool. The loop doesn't care about the source.
+`ralph_analyst.sh` should create at most one new queue item per run.

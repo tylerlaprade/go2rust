@@ -1,99 +1,260 @@
 #!/usr/bin/env bash
 # Ralph analyst — Codex-powered strategic analysis for go2rust
-# Produces analysis documents in .analysis/ for ralph_loop.sh to consume.
+# Produces actionable queue items in .analysis/ for ralph_loop.sh to consume.
 #
-# Usage: ./ralph_analyst.sh [max_iterations] [cooldown_mins]
+# Usage: ./ralph_analyst.sh [max_iterations] [pause_mins]
 #
 # Examples:
-#   ./ralph_analyst.sh           # 20 iterations, 5m cooldown
-#   ./ralph_analyst.sh 10 10     # 10 iterations, 10m cooldown
+#   ./ralph_analyst.sh           # 20 iterations, no fixed pause
+#   ./ralph_analyst.sh 10 10     # 10 iterations, 10m pause between runs
 
-# Prevent sleep while looping (background, tied to our PID)
-caffeinate -dims -w $$ &
+set -euo pipefail
 
 MAX_ITERATIONS="${1:-20}"
-COOLDOWN_MINS="${2:-5}"
-ANALYSIS_DIR="$(pwd)/.analysis"
-LOGDIR="$(pwd)/.codex-loop-logs"
+PAUSE_MINS="${2:-0}"
+ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+ANALYSIS_DIR="$ROOT_DIR/.analysis"
+LOGDIR="${RALPH_ANALYST_LOGDIR:-$ROOT_DIR/.codex-loop-logs}"
+QUEUE_LIMIT="${RALPH_ANALYST_QUEUE_LIMIT:-5}"
+RUN_TIMEOUT_MINS="${RALPH_ANALYST_TIMEOUT_MINS:-10}"
+POLL_SECS="${RALPH_ANALYST_POLL_SECS:-30}"
+KEEP_AWAKE_PID=""
+
+fail() {
+    echo "ralph analyst: $*" >&2
+    exit 1
+}
+
+require_command() {
+    command -v "$1" >/dev/null 2>&1 || fail "missing required command: $1"
+}
+
+validate_non_negative_integer() {
+    local value="$1"
+    local name="$2"
+    [[ "$value" =~ ^[0-9]+$ ]] || fail "$name must be a non-negative integer (got: $value)"
+}
+
+validate_positive_integer() {
+    local value="$1"
+    local name="$2"
+    [[ "$value" =~ ^[1-9][0-9]*$ ]] || fail "$name must be a positive integer (got: $value)"
+}
+
+resolve_timeout_bin() {
+    if command -v timeout >/dev/null 2>&1; then
+        printf '%s\n' "timeout"
+    elif command -v gtimeout >/dev/null 2>&1; then
+        printf '%s\n' "gtimeout"
+    else
+        fail "missing required command: timeout (or gtimeout)"
+    fi
+}
+
+start_keep_awake() {
+    if command -v caffeinate >/dev/null 2>&1; then
+        caffeinate -dims -w $$ >/dev/null 2>&1 &
+        KEEP_AWAKE_PID=$!
+    fi
+}
+
+cleanup() {
+    local exit_code=$?
+    if [ -n "$KEEP_AWAKE_PID" ]; then
+        kill "$KEEP_AWAKE_PID" 2>/dev/null || true
+        wait "$KEEP_AWAKE_PID" 2>/dev/null || true
+    fi
+    if [ "$exit_code" -eq 130 ]; then
+        printf "\r\033[K"
+        echo "Ralph analyst interrupted."
+    fi
+}
+
+trap cleanup EXIT
+trap 'exit 130' INT TERM
+
+queue_files() {
+    local path
+    shopt -s nullglob
+    for path in "$ANALYSIS_DIR"/*.md; do
+        [ "$(basename "$path")" = "README.md" ] && continue
+        printf '%s\n' "$path"
+    done
+    shopt -u nullglob
+}
+
+count_queue_files() {
+    local count=0
+    local _
+    while IFS= read -r _; do
+        count=$((count + 1))
+    done < <(queue_files)
+    printf '%s\n' "$count"
+}
+
+snapshot_queue() {
+    local outfile="$1"
+    queue_files | LC_ALL=C sort >"$outfile"
+}
+
+queue_summary() {
+    local path
+    local title
+    local found=0
+
+    while IFS= read -r path; do
+        found=1
+        title="$(sed -n 's/^# //p;q' "$path")"
+        if [ -n "$title" ]; then
+            printf -- '- %s :: %s\n' "$(basename "$path")" "$title"
+        else
+            printf -- '- %s\n' "$(basename "$path")"
+        fi
+    done < <(queue_files)
+
+    if [ "$found" -eq 0 ]; then
+        printf -- '- (none)\n'
+    fi
+}
+
+build_prompt() {
+    local queued_items="$1"
+    cat <<EOF
+You are generating exactly one actionable analysis queue item for the go2rust project.
+
+Read these files first:
+- AGENTS.md
+- .analysis/README.md
+- LOOP_PROTOCOL.md
+
+Your task:
+- Find the single highest-leverage next task from the repo's current state.
+- Create at most one new markdown file in .analysis/.
+- If the queue already contains the task, or you cannot find a high-value scoped task, create no file and exit cleanly.
+
+Do not rotate through canned categories or force variety for its own sake.
+Pick what matters most right now.
+
+Possible lenses to consider if they help:
+- architecture bottlenecks that block multiple future tests
+- missing regression tests for already-supported Go patterns
+- XFAIL cases with the best effort-to-impact ratio
+- concrete translation bugs or brittle code paths in go/*.go
+- missing stdlib mappings that unblock real tests
+- shared prerequisites that unlock clusters of XFAILs
+
+Current queued items:
+$queued_items
+
+Queue item requirements:
+- One task per file, scoped so ralph_loop.sh can plausibly address it in one session.
+- Use a descriptive kebab-case filename like .analysis/fix-map-zero-value-lookup.md.
+- Do not use timestamps, counters, generic names, or the angle name as the filename.
+- Do not edit or delete existing queue items.
+- Keep the file concise and actionable.
+- Include these sections exactly:
+  - # <short title>
+  - ## Why Now
+  - ## Evidence
+  - ## Suggested Change
+  - ## Acceptance
+
+Quality bar:
+- Reference concrete files, functions, tests, and missing behaviors.
+- Be explicitly aware of the queued items listed above and avoid restating them with different wording.
+- Read any queued file that looks adjacent before proposing overlapping work.
+- Check recent git history and avoid recently-completed work.
+- Prefer the highest-leverage task, not a broad report.
+- Prefer prerequisites or complementary follow-up tasks when they clearly strengthen the existing queue.
+- If the current queue already captures the best next work, create no file.
+- If the task is to add a test, include a proposed main.go snippet in ## Suggested Change.
+
+Constraints:
+- Write only inside .analysis/.
+- Output a short status line to stdout describing what you created or why you skipped.
+- Do not make code changes outside .analysis/.
+EOF
+}
+
+validate_non_negative_integer "$MAX_ITERATIONS" "max_iterations"
+validate_non_negative_integer "$PAUSE_MINS" "pause_mins"
+validate_positive_integer "$QUEUE_LIMIT" "RALPH_ANALYST_QUEUE_LIMIT"
+validate_positive_integer "$RUN_TIMEOUT_MINS" "RALPH_ANALYST_TIMEOUT_MINS"
+validate_positive_integer "$POLL_SECS" "RALPH_ANALYST_POLL_SECS"
+
 mkdir -p "$ANALYSIS_DIR" "$LOGDIR"
+cd "$ROOT_DIR"
 
-trap 'printf "\r\033[K"; echo "Ralph analyst interrupted."; exit 130' INT
+require_command codex
+TIMEOUT_BIN="$(resolve_timeout_bin)"
+start_keep_awake
 
-# Analysis angles — each iteration picks the next one in rotation
-ANGLES=(
-    "architecture|Architecture review: Read the transpiler source in go/*.go (especially expr.go, stmt.go, types.go, decl.go). Identify the top 3 patterns or approaches that will hit a wall as coverage increases. For each, explain the problem, which XFAIL tests it blocks, and what the fix looks like. Be specific — name functions, line ranges, and concrete Go patterns that break."
-
-    "test-gaps|Test gap analysis: Read all XFAIL test main.go files AND all passing test main.go files. Identify Go language patterns that aren't covered by ANY test (passing or XFAIL). For each gap, write a short main.go that exercises the pattern. Focus on patterns the transpiler likely already handles but nobody tested, or patterns that are common in real Go code."
-
-    "xfail-triage|XFAIL triage: For each test in tests/XFAIL/, run a quick analysis: read main.go, identify which Go features it uses, estimate how many transpiler changes are needed to fix it, and whether fixing it would also fix other tests. Produce a ranked list from easiest to hardest, with specific notes on what each one needs."
-
-    "code-quality|Code quality review: Read go/*.go source files. Find bugs, incorrect translations, or fragile patterns that will cause regressions. Focus on: hardcoded string matching that should use TypeInfo, missing cases in switch statements, assumptions about wrapping that don't hold for all types. For each issue, name the file, function, and what's wrong."
-
-    "stdlib-mapping|Stdlib mapping analysis: Read the XFAIL tests that need stdlib support (file_io, file_operations, os_args, random_numbers, time_operations, json_marshal, regex_basic, etc). For each, identify exactly which Go stdlib functions are called and what the Rust equivalent would be. Produce a concrete mapping table with the Go call, the Rust replacement, and whether it needs an external crate."
-
-    "dependency-graph|Dependency analysis: Look at the remaining XFAIL tests and identify clusters — groups of tests that share a common missing feature. Which single transpiler change would unlock the most tests? Produce a dependency graph: feature X blocks tests [A, B, C], feature Y blocks [D, E], feature X+Y together block [F]. Prioritize by impact."
-)
-
-echo "ralph analyst — ${#ANGLES[@]} analysis angles, ${COOLDOWN_MINS}m cooldown between iterations"
+echo "ralph analyst — adaptive task selection, ${PAUSE_MINS}m fixed pause"
 echo "output: $ANALYSIS_DIR/"
 echo "logs: $LOGDIR/"
 echo ""
 
-for i in $(seq 1 "$MAX_ITERATIONS"); do
-    # Rotate through angles
-    IDX=$(( (i - 1) % ${#ANGLES[@]} ))
-    ANGLE_ENTRY="${ANGLES[$IDX]}"
-    ANGLE_NAME="${ANGLE_ENTRY%%|*}"
-    ANGLE_PROMPT="${ANGLE_ENTRY#*|}"
-
-    # Skip if there are already 5+ unprocessed files (don't flood the queue)
-    QUEUED=$(ls "$ANALYSIS_DIR"/*.md 2>/dev/null | grep -v README.md | wc -l | tr -d ' ')
-    while [ "$QUEUED" -ge 5 ]; do
-        echo "[$i/$MAX_ITERATIONS] queue full ($QUEUED files) — polling every 30s"
-        sleep 30
-        QUEUED=$(ls "$ANALYSIS_DIR"/*.md 2>/dev/null | grep -v README.md | wc -l | tr -d ' ')
+for ((i = 1; i <= MAX_ITERATIONS; i++)); do
+    # Skip if there are already too many unprocessed files.
+    QUEUED="$(count_queue_files)"
+    while [ "$QUEUED" -ge "$QUEUE_LIMIT" ]; do
+        echo "[$i/$MAX_ITERATIONS] queue full ($QUEUED files) — polling every ${POLL_SECS}s"
+        sleep "$POLL_SECS"
+        QUEUED="$(count_queue_files)"
     done
 
     TIMESTAMP=$(date +%Y%m%d-%H%M%S)
-    OUTFILE="$ANALYSIS_DIR/${ANGLE_NAME}-${TIMESTAMP}.md"
-    LOGFILE="$LOGDIR/${ANGLE_NAME}-${TIMESTAMP}.log"
+    LOGFILE="$LOGDIR/analysis-${TIMESTAMP}.log"
+    BEFORE_SNAPSHOT="$(mktemp)"
+    AFTER_SNAPSHOT="$(mktemp)"
+    NEW_SNAPSHOT="$(mktemp)"
+    snapshot_queue "$BEFORE_SNAPSHOT"
 
-    # Build the full prompt
-    FULL_PROMPT="You are analyzing the go2rust transpiler codebase. Your job is to produce a single, actionable analysis document. Do NOT make code changes — only produce analysis.
+    FULL_PROMPT="$(build_prompt "$(queue_summary)")"
 
-Read AGENTS.md first for project context.
+    echo -n "[$i/$MAX_ITERATIONS] analyzing... "
 
-$ANGLE_PROMPT
-
-IMPORTANT:
-- Check .analysis/ for existing files and don't duplicate work that's already queued.
-- Check recent git log to understand what's been fixed recently.
-- Be specific and actionable. Every recommendation should name files, functions, and concrete changes.
-- Write your analysis to: $OUTFILE
-- Keep it under 200 lines. One focused document, not a brain dump."
-
-    echo -n "[$i/$MAX_ITERATIONS] $ANGLE_NAME... "
-
-    timeout 10m codex exec \
+    set +e
+    "$TIMEOUT_BIN" "${RUN_TIMEOUT_MINS}m" codex exec \
         --full-auto \
         "$FULL_PROMPT" \
         >"$LOGFILE" 2>&1
     EXIT_CODE=$?
+    set -e
+
+    snapshot_queue "$AFTER_SNAPSHOT"
+    comm -13 "$BEFORE_SNAPSHOT" "$AFTER_SNAPSHOT" >"$NEW_SNAPSHOT"
 
     if [ "$EXIT_CODE" -eq 124 ]; then
         echo "timeout"
-    elif [ -f "$OUTFILE" ]; then
-        LINES=$(wc -l < "$OUTFILE" | tr -d ' ')
-        echo "done (${LINES}L)"
+    elif [ "$EXIT_CODE" -ne 0 ]; then
+        echo "failed (exit $EXIT_CODE)"
     else
-        echo "no output (exit $EXIT_CODE)"
+        NEW_COUNT="$(wc -l < "$NEW_SNAPSHOT" | tr -d ' ')"
+        if [ "$NEW_COUNT" -eq 0 ]; then
+            echo "no new task"
+        elif [ "$NEW_COUNT" -eq 1 ]; then
+            NEW_FILE="$(cat "$NEW_SNAPSHOT")"
+            LINES="$(wc -l < "$NEW_FILE" | tr -d ' ')"
+            echo "queued $(basename "$NEW_FILE") (${LINES}L)"
+        else
+            echo "invalid output (${NEW_COUNT} new files)"
+            rm -f "$BEFORE_SNAPSHOT" "$AFTER_SNAPSHOT" "$NEW_SNAPSHOT"
+            fail "expected at most one new queue item, but found $NEW_COUNT"
+        fi
     fi
 
-    # Cooldown between iterations
+    rm -f "$BEFORE_SNAPSHOT" "$AFTER_SNAPSHOT" "$NEW_SNAPSHOT"
+
+    if [ "$EXIT_CODE" -ne 0 ]; then
+        echo "  log: $LOGFILE"
+    fi
+
+    # Optional pause between iterations.
     if [ "$i" -lt "$MAX_ITERATIONS" ]; then
-        sleep "${COOLDOWN_MINS}m"
+        sleep "${PAUSE_MINS}m"
     fi
 done
 
 echo ""
-echo "ralph analyst done — $(ls "$ANALYSIS_DIR"/*.md 2>/dev/null | grep -v README.md | wc -l | tr -d ' ') files queued"
+echo "ralph analyst done — $(count_queue_files) files queued"
