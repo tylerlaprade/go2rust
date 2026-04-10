@@ -194,17 +194,21 @@ for i in $(seq 1 "$MAX_ITERATIONS"); do
     PROMPT="${PROMPT_MODEL%|*}"
     MODEL="${PROMPT_MODEL##*|}"
 
+    # Shared file for latest tool description
+    TOOL_DESC_FILE=$(mktemp)
+
     # Background spinner
-    _spinner_iter=$i _spinner_max=$MAX_ITERATIONS _spinner_pass=$PASSING _spinner_xfail=$XFAIL _spinner_queue=$QUEUED _spinner_model=$MODEL
+    _spinner_iter=$i _spinner_max=$MAX_ITERATIONS _spinner_pass=$PASSING _spinner_xfail=$XFAIL _spinner_queue=$QUEUED _spinner_model=$MODEL _spinner_desc_file=$TOOL_DESC_FILE
     (
         FRAMES=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
         TICK=0
         while true; do
             F=${FRAMES[$(( TICK % ${#FRAMES[@]} ))]}
             DUR=$(format_duration "$TICK")
-            printf "\r\033[K%s  iter %d/%d  ✓%d ✗%d q%d  %s  %s  %s" \
+            DESC=$(cat "$_spinner_desc_file" 2>/dev/null || true)
+            printf "\r\033[K%s  iter %d/%d  ✓%d ✗%d q%d  %s  %s  %s  %s" \
                 "$F" "$_spinner_iter" "$_spinner_max" "$_spinner_pass" "$_spinner_xfail" "$_spinner_queue" \
-                "$_spinner_model" "$DUR" "running…"
+                "$_spinner_model" "$DUR" "running…" "$DESC"
             sleep 1
             TICK=$((TICK + 1))
         done
@@ -218,12 +222,14 @@ for i in $(seq 1 "$MAX_ITERATIONS"); do
         --max-turns "$MAX_TURNS" \
         -p "$PROMPT" \
         --output-format stream-json \
-        2>&1 | tee "$LOGFILE" | jq -r --unbuffered '.message.content[]? | select(.type == "tool_use") | "  → " + .description // .name' 2>/dev/null
+        2>&1 | tee "$LOGFILE" | jq -r --unbuffered '.message.content[]? | select(.type == "tool_use") | "  → " + .description // .name' 2>/dev/null \
+        | while IFS= read -r line; do printf '%s' "$line" > "$TOOL_DESC_FILE"; done
     EXIT_CODE=${PIPESTATUS[0]}
 
-    # Kill spinner
+    # Kill spinner and clean up
     kill "$SPINNER_PID" 2>/dev/null
     wait "$SPINNER_PID" 2>/dev/null
+    rm -f "$TOOL_DESC_FILE"
 
     ELAPSED=$(( SECONDS - SESSION_START ))
     LINES=$(wc -l < "$LOGFILE" | tr -d ' ')
