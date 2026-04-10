@@ -1,0 +1,8 @@
+[package]
+name = "make_slice_zero_len_capacity"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "make_slice_zero_len_capacity"
+path = "main.rs"

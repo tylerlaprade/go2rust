@@ -1,0 +1,8 @@
+[package]
+name = "local_var_multi_names"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "local_var_multi_names"
+path = "main.rs"

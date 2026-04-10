@@ -1,0 +1,8 @@
+[package]
+name = "import_aliases"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "import_aliases"
+path = "main.rs"

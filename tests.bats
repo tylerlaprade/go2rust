@@ -445,6 +445,10 @@ run_xfail_test() {
     run_test "tests/library_example"
 }
 
+@test "make_slice_zero_len_capacity" {
+    run_test "tests/make_slice_zero_len_capacity"
+}
+
 @test "maps_basic" {
     run_test "tests/maps_basic"
 }
@@ -629,6 +633,10 @@ run_xfail_test() {
     run_test "tests/wrap_simple"
 }
 
+@test "XFAIL: address_of_fields_and_elements" {
+    run_xfail_test "tests/XFAIL/address_of_fields_and_elements"
+}
+
 @test "XFAIL: advanced_control_flow" {
     run_xfail_test "tests/XFAIL/advanced_control_flow"
 }
@@ -709,6 +717,10 @@ run_xfail_test() {
     run_xfail_test "tests/XFAIL/flag_parsing"
 }
 
+@test "XFAIL: full_slice_expressions" {
+    run_xfail_test "tests/XFAIL/full_slice_expressions"
+}
+
 @test "XFAIL: function_types" {
     run_xfail_test "tests/XFAIL/function_types"
 }
@@ -725,6 +737,10 @@ run_xfail_test() {
     run_xfail_test "tests/XFAIL/http_client"
 }
 
+@test "XFAIL: import_aliases" {
+    run_xfail_test "tests/XFAIL/import_aliases"
+}
+
 @test "XFAIL: init_functions" {
     run_xfail_test "tests/XFAIL/init_functions"
 }
@@ -735,6 +751,10 @@ run_xfail_test() {
 
 @test "XFAIL: json_marshal" {
     run_xfail_test "tests/XFAIL/json_marshal"
+}
+
+@test "XFAIL: local_var_multi_names" {
+    run_xfail_test "tests/XFAIL/local_var_multi_names"
 }
 
 @test "XFAIL: make_map_with_capacity" {
@@ -819,6 +839,10 @@ run_xfail_test() {
 
 @test "XFAIL: url_parsing" {
     run_xfail_test "tests/XFAIL/url_parsing"
+}
+
+@test "XFAIL: variadic_mixed_expansion" {
+    run_xfail_test "tests/XFAIL/variadic_mixed_expansion"
 }
 
 @test "XFAIL: worker_pools" {

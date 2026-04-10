@@ -1,0 +1,8 @@
+[package]
+name = "full_slice_expressions"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "full_slice_expressions"
+path = "main.rs"
