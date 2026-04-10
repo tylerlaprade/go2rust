@@ -24,10 +24,6 @@ Employee 2: Carol Worker
 
 === Nested maps ===
 Inventory:
-  electronics:
-    phones: 100
-    tablets: 25
-    laptops: 50
   furniture:
     chairs: 200
     desks: 75
@@ -36,6 +32,10 @@ Inventory:
     pens: 1000
     paper: 500
     folders: 300
+  electronics:
+    laptops: 50
+    phones: 100
+    tablets: 25
 Laptop count: 50
 
 === Nested slices ===

@@ -281,6 +281,10 @@ run_xfail_test() {
     run_test "tests/anonymous_structs_basic"
 }
 
+@test "append_slice_expansion" {
+    run_test "tests/append_slice_expansion"
+}
+
 @test "arrays_basic" {
     run_test "tests/arrays_basic"
 }
@@ -635,10 +639,6 @@ run_xfail_test() {
 
 @test "XFAIL: anonymous_structs_nested" {
     run_xfail_test "tests/XFAIL/anonymous_structs_nested"
-}
-
-@test "XFAIL: append_slice_expansion" {
-    run_xfail_test "tests/XFAIL/append_slice_expansion"
 }
 
 @test "XFAIL: atomic_operations" {

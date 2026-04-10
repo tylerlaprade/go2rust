@@ -902,7 +902,26 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 		// append() in Go returns the slice, but our slices are wrapped
 		// We need to create the vector on first append so nil slices stay nil
 		// until they are actually appended to, then return the wrapped slice.
-		if len(call.Args) == 2 {
+		if call.Ellipsis.IsValid() {
+			// Slice expansion: append(dst, src...) → extend from src
+			out.WriteString("{(*")
+			if ident, ok := call.Args[0].(*ast.Ident); ok {
+				out.WriteString(ident.Name)
+			} else {
+				TranspileExpression(out, call.Args[0])
+			}
+			WriteBorrowMethod(out, true)
+			out.WriteString(").get_or_insert_with(Vec::new).extend(")
+			TranspileExpression(out, call.Args[1])
+			out.WriteString(".iter().cloned()); ")
+			// Return the wrapped slice itself
+			if ident, ok := call.Args[0].(*ast.Ident); ok {
+				out.WriteString(ident.Name)
+			} else {
+				TranspileExpression(out, call.Args[0])
+			}
+			out.WriteString(".clone()}")
+		} else if len(call.Args) == 2 {
 			// Single element append
 			out.WriteString("{(*")
 			if ident, ok := call.Args[0].(*ast.Ident); ok {
