@@ -73,6 +73,23 @@ cleanup() {
 trap cleanup EXIT
 trap 'exit 130' INT TERM
 
+is_usage_limit_error() {
+    local logfile="$1"
+    [ -f "$logfile" ] || return 1
+
+    rg -qi \
+        -e 'usage limit' \
+        -e 'rate limit' \
+        -e 'quota' \
+        -e 'too many requests' \
+        -e 'billing limit' \
+        -e 'request limit' \
+        -e 'credit balance' \
+        -e 'insufficient credits' \
+        -e 'over.*limit' \
+        "$logfile"
+}
+
 queue_files() {
     local path
     shopt -s nullglob
@@ -261,6 +278,10 @@ for ((i = 1; i <= MAX_ITERATIONS; i++)); do
 
     if [ "$EXIT_CODE" -ne 0 ]; then
         echo "  log: $LOGFILE"
+        if is_usage_limit_error "$LOGFILE"; then
+            echo "USAGE LIMIT: codex request failed due to usage limits, stopping"
+            break
+        fi
     fi
 
     # Optional pause between iterations.
