@@ -51,7 +51,15 @@ func init() {
 		"sort.Strings":      transpileSortStrings,
 		"sort.Ints":         transpileSortInts,
 		"slices.Sort":       transpileSlicesSort,
-		"time.Sleep":        transpileTimeSleep,
+		"time.Sleep":              transpileTimeSleep,
+		"time.Now":                transpileTimeNow,
+		"time.After":              transpileTimeAfter,
+		"time.NewTicker":          transpileTimeNewTicker,
+		"time.NewTimer":           transpileTimeNewTimer,
+		"time.Tick":               transpileTimeTick,
+		"context.Background":      transpileContextBackground,
+		"context.WithTimeout":     transpileContextWithTimeout,
+		"context.WithCancel":      transpileContextWithCancel,
 	}
 
 	builtinMappings = map[string]StdlibHandler{
@@ -1427,4 +1435,158 @@ func transpileClose(out *strings.Builder, call *ast.CallExpr) {
 		TranspileExpression(out, call.Args[0])
 		out.WriteString(".close()")
 	}
+}
+
+// stdlibSelectorMappings maps non-call stdlib selectors (constants, etc.) to Rust expressions.
+// Used by TranspileExpression for SelectorExpr when the selector is on a stdlib package.
+var stdlibSelectorMappings = map[string]string{
+	"time.Hour":        "std::time::Duration::from_secs(3600)",
+	"time.Minute":      "std::time::Duration::from_secs(60)",
+	"time.Second":      "std::time::Duration::from_secs(1)",
+	"time.Millisecond": "std::time::Duration::from_millis(1)",
+	"time.Microsecond": "std::time::Duration::from_micros(1)",
+	"time.Nanosecond":  "std::time::Duration::from_nanos(1)",
+}
+
+// GetStdlibSelectorMapping returns the Rust expression for a stdlib selector constant,
+// or empty string if no mapping exists.
+func GetStdlibSelectorMapping(pkgName, selName string) string {
+	key := pkgName + "." + selName
+	if rustExpr, ok := stdlibSelectorMappings[key]; ok {
+		return rustExpr
+	}
+	return ""
+}
+
+func transpileTimeNow(out *strings.Builder, call *ast.CallExpr) {
+	TrackImport("time::SystemTime")
+	WriteWrapperPrefix(out)
+	out.WriteString("std::time::SystemTime::now()")
+	out.WriteString(")))")
+}
+
+func transpileTimeAfter(out *strings.Builder, call *ast.CallExpr) {
+	TrackImport("time::Duration")
+	// time.After returns a channel that fires after a duration
+	NeedGoChannel()
+	out.WriteString("go_channel_after(")
+	if len(call.Args) > 0 {
+		transpileDurationArg(out, call.Args[0])
+	}
+	out.WriteString(")")
+}
+
+func transpileTimeNewTicker(out *strings.Builder, call *ast.CallExpr) {
+	TrackImport("time::Duration")
+	WriteWrapperPrefix(out)
+	out.WriteString("go_new_ticker(")
+	if len(call.Args) > 0 {
+		transpileDurationArg(out, call.Args[0])
+	}
+	out.WriteString(")")
+	out.WriteString(")))")
+}
+
+func transpileTimeNewTimer(out *strings.Builder, call *ast.CallExpr) {
+	TrackImport("time::Duration")
+	WriteWrapperPrefix(out)
+	out.WriteString("go_new_timer(")
+	if len(call.Args) > 0 {
+		transpileDurationArg(out, call.Args[0])
+	}
+	out.WriteString(")")
+	out.WriteString(")))")
+}
+
+func transpileTimeTick(out *strings.Builder, call *ast.CallExpr) {
+	TrackImport("time::Duration")
+	out.WriteString("go_tick(")
+	if len(call.Args) > 0 {
+		transpileDurationArg(out, call.Args[0])
+	}
+	out.WriteString(")")
+}
+
+func transpileContextBackground(out *strings.Builder, call *ast.CallExpr) {
+	WriteWrapperPrefix(out)
+	out.WriteString("GoContext::background()")
+	out.WriteString(")))")
+}
+
+func transpileContextWithTimeout(out *strings.Builder, call *ast.CallExpr) {
+	// context.WithTimeout(ctx, duration) returns (ctx, cancel)
+	out.WriteString("GoContext::with_timeout(")
+	if len(call.Args) > 0 {
+		TranspileExpression(out, call.Args[0])
+	}
+	out.WriteString(", ")
+	if len(call.Args) > 1 {
+		transpileDurationArg(out, call.Args[1])
+	}
+	out.WriteString(")")
+}
+
+func transpileContextWithCancel(out *strings.Builder, call *ast.CallExpr) {
+	out.WriteString("GoContext::with_cancel(")
+	if len(call.Args) > 0 {
+		TranspileExpression(out, call.Args[0])
+	}
+	out.WriteString(")")
+}
+
+// transpileDurationArg handles a Go duration argument, recognizing patterns like N * time.Unit
+func transpileDurationArg(out *strings.Builder, arg ast.Expr) {
+	if binOp, ok := arg.(*ast.BinaryExpr); ok && binOp.Op == token.MUL {
+		var multiplier ast.Expr
+		var unit string
+
+		if sel, ok := binOp.Y.(*ast.SelectorExpr); ok {
+			if ident, ok := sel.X.(*ast.Ident); ok && ident.Name == "time" {
+				unit = sel.Sel.Name
+				multiplier = binOp.X
+			}
+		} else if sel, ok := binOp.X.(*ast.SelectorExpr); ok {
+			if ident, ok := sel.X.(*ast.Ident); ok && ident.Name == "time" {
+				unit = sel.Sel.Name
+				multiplier = binOp.Y
+			}
+		}
+
+		if unit != "" {
+			out.WriteString("std::time::Duration::")
+			switch unit {
+			case "Hour":
+				out.WriteString("from_secs(3600 * ")
+				TranspileExpression(out, multiplier)
+				out.WriteString(")")
+			case "Minute":
+				out.WriteString("from_secs(60 * ")
+				TranspileExpression(out, multiplier)
+				out.WriteString(")")
+			case "Second":
+				out.WriteString("from_secs(")
+				TranspileExpression(out, multiplier)
+				out.WriteString(")")
+			case "Millisecond":
+				out.WriteString("from_millis(")
+				TranspileExpression(out, multiplier)
+				out.WriteString(")")
+			case "Microsecond":
+				out.WriteString("from_micros(")
+				TranspileExpression(out, multiplier)
+				out.WriteString(")")
+			case "Nanosecond":
+				out.WriteString("from_nanos(")
+				TranspileExpression(out, multiplier)
+				out.WriteString(")")
+			default:
+				out.WriteString("from_millis(")
+				TranspileExpression(out, multiplier)
+				out.WriteString(")")
+			}
+			return
+		}
+	}
+	// Fallback: treat as raw expression
+	TranspileExpression(out, arg)
 }

@@ -1517,10 +1517,24 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 											out.WriteString("0")
 											WriteWrapperSuffix(out)
 										default:
-											out.WriteString(" = ")
-											WriteWrapperPrefix(out)
-											out.WriteString("Default::default()")
-											WriteWrapperSuffix(out)
+											// Named function types have nil zero value in Go
+											if IsTypeAlias(t.Name) {
+												typeInfo := GetTypeInfo()
+												if typeInfo != nil && typeInfo.IsFunctionType(t) {
+													out.WriteString(" = ")
+													WriteWrappedNone(out)
+												} else {
+													out.WriteString(" = ")
+													WriteWrapperPrefix(out)
+													out.WriteString("Default::default()")
+													WriteWrapperSuffix(out)
+												}
+											} else {
+												out.WriteString(" = ")
+												WriteWrapperPrefix(out)
+												out.WriteString("Default::default()")
+												WriteWrapperSuffix(out)
+											}
 										}
 									case *ast.StarExpr:
 										// Pointer type - initialize with None

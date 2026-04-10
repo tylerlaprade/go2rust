@@ -327,6 +327,24 @@ func goTypeToRustBase(expr ast.Expr) string {
 			if ident.Name == "strings" && t.Sel.Name == "Builder" {
 				return "String"
 			}
+			if ident.Name == "time" {
+				switch t.Sel.Name {
+				case "Time":
+					return "std::time::SystemTime"
+				case "Duration":
+					return "std::time::Duration"
+				case "Timer":
+					return "GoTimer"
+				case "Ticker":
+					return "GoTicker"
+				}
+			}
+			if ident.Name == "context" && t.Sel.Name == "Context" {
+				return "GoContext"
+			}
+			if ident.Name == "context" && t.Sel.Name == "CancelFunc" {
+				return "GoCancelFunc"
+			}
 		}
 		return fmt.Sprintf("%s_%s", t.X, t.Sel.Name)
 	case *ast.Ellipsis:
@@ -453,4 +471,30 @@ func goTypesTypeToRustWrapped(t types.Type) string {
 	outerWrapper := GetOuterWrapperType()
 	innerWrapper := GetInnerWrapperType()
 	return outerWrapper + "<" + innerWrapper + "<Option<" + base + ">>>"
+}
+
+// signatureToBoxDynFn converts a go/types Signature to a "Box<dyn Fn(...)>" string
+func signatureToBoxDynFn(sig *types.Signature) string {
+	var paramTypes []string
+	params := sig.Params()
+	for i := 0; i < params.Len(); i++ {
+		paramTypes = append(paramTypes, goTypesTypeToRustWrapped(params.At(i).Type()))
+	}
+
+	var returnType string
+	results := sig.Results()
+	if results.Len() == 0 {
+		returnType = "()"
+	} else if results.Len() == 1 {
+		returnType = goTypesTypeToRustWrapped(results.At(0).Type())
+	} else {
+		var retTypes []string
+		for i := 0; i < results.Len(); i++ {
+			retTypes = append(retTypes, goTypesTypeToRustWrapped(results.At(i).Type()))
+		}
+		returnType = "(" + strings.Join(retTypes, ", ") + ")"
+	}
+
+	paramsStr := strings.Join(paramTypes, ", ")
+	return fmt.Sprintf("Box<dyn Fn(%s) -> %s>", paramsStr, returnType)
 }

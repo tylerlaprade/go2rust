@@ -534,6 +534,17 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 
 			// Track this as a type alias
 			RegisterTypeAlias(typeSpec.Name.Name)
+		} else if _, isFuncType := t.(*ast.FuncType); isFuncType {
+			// Named function type: type BinaryOp func(int, int) int
+			// Emit as a type alias to the callable shape, not a newtype struct
+			out.WriteString("type ")
+			out.WriteString(typeSpec.Name.Name)
+			out.WriteString(" = ")
+			out.WriteString(GoTypeToRust(t))
+			out.WriteString(";\n")
+
+			// Track as a type alias so GoTypeToRust won't double-wrap
+			RegisterTypeAlias(typeSpec.Name.Name)
 		} else {
 			// Type definition: type A B
 			// Create a newtype wrapper in Rust

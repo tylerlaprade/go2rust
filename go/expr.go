@@ -290,9 +290,22 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				}
 			}
 			// Default behavior for stdlib or unmapped packages
-			TranspileExpression(out, e.X)
-			out.WriteString("::")
-			out.WriteString(ToSnakeCase(e.Sel.Name))
+			// Don't call TranspileExpression(e.X) which wraps the package name as a variable
+			if ident, ok := e.X.(*ast.Ident); ok {
+				// Check for known stdlib selector mappings (constants like time.Hour)
+				if rustExpr := GetStdlibSelectorMapping(ident.Name, e.Sel.Name); rustExpr != "" {
+					out.WriteString(rustExpr)
+				} else {
+					// Unknown stdlib selector - emit as package::selector
+					out.WriteString(ident.Name)
+					out.WriteString("::")
+					out.WriteString(ToSnakeCase(e.Sel.Name))
+				}
+			} else {
+				TranspileExpression(out, e.X)
+				out.WriteString("::")
+				out.WriteString(ToSnakeCase(e.Sel.Name))
+			}
 		} else if ident, ok := e.X.(*ast.Ident); ok {
 			// Field access on a variable
 			if currentReceiver != "" && ident.Name == currentReceiver {
