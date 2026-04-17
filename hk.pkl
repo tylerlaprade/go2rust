@@ -7,6 +7,9 @@ local linters = new Mapping<String, Step> {
     }
     ["go-vet"] = (Builtins.go_vet) {
         check_first = false
+        // Vet package, not individual files — per-file vet can't resolve
+        // cross-file symbols (e.g. GetTypeInfo in globals.go used by stdlib.go).
+        check = "go vet ./go"
     }
 }
 

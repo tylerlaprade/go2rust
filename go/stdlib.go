@@ -350,6 +350,15 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 		return
 	}
 
+	// Slice expressions (e.g. s[:]) emit wrapped values - unwrap for print
+	if _, ok := arg.(*ast.SliceExpr); ok {
+		out.WriteString("(*")
+		TranspileExpression(out, arg)
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap())")
+		return
+	}
+
 	// For other cases, just use regular expression transpilation
 	TranspileExpression(out, arg)
 }
