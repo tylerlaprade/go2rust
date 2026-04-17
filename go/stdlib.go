@@ -35,31 +35,31 @@ var builtinMappings map[string]StdlibHandler
 
 func init() {
 	stdlibMappings = map[string]StdlibHandler{
-		"fmt.Println":       transpileFmtPrintln,
-		"fmt.Printf":        transpileFmtPrintf,
-		"fmt.Print":         transpileFmtPrint,
-		"fmt.Sprintf":       transpileFmtSprintf,
-		"fmt.Fprintln":      transpileFmtFprintln,
-		"fmt.Fprintf":       transpileFmtFprintf,
-		"fmt.Errorf":        transpileFmtErrorf,
-		"strings.ToLower":   transpileStringsToLower,
-		"strings.ToUpper":   transpileStringsToUpper,
-		"strings.TrimSpace": transpileStringsTrimSpace,
-		"strconv.Itoa":      transpileStrconvItoa,
-		"strconv.Atoi":      transpileStrconvAtoi,
-		"errors.New":        transpileErrorsNew,
-		"sort.Strings":      transpileSortStrings,
-		"sort.Ints":         transpileSortInts,
-		"slices.Sort":       transpileSlicesSort,
-		"time.Sleep":              transpileTimeSleep,
-		"time.Now":                transpileTimeNow,
-		"time.After":              transpileTimeAfter,
-		"time.NewTicker":          transpileTimeNewTicker,
-		"time.NewTimer":           transpileTimeNewTimer,
-		"time.Tick":               transpileTimeTick,
-		"context.Background":      transpileContextBackground,
-		"context.WithTimeout":     transpileContextWithTimeout,
-		"context.WithCancel":      transpileContextWithCancel,
+		"fmt.Println":         transpileFmtPrintln,
+		"fmt.Printf":          transpileFmtPrintf,
+		"fmt.Print":           transpileFmtPrint,
+		"fmt.Sprintf":         transpileFmtSprintf,
+		"fmt.Fprintln":        transpileFmtFprintln,
+		"fmt.Fprintf":         transpileFmtFprintf,
+		"fmt.Errorf":          transpileFmtErrorf,
+		"strings.ToLower":     transpileStringsToLower,
+		"strings.ToUpper":     transpileStringsToUpper,
+		"strings.TrimSpace":   transpileStringsTrimSpace,
+		"strconv.Itoa":        transpileStrconvItoa,
+		"strconv.Atoi":        transpileStrconvAtoi,
+		"errors.New":          transpileErrorsNew,
+		"sort.Strings":        transpileSortStrings,
+		"sort.Ints":           transpileSortInts,
+		"slices.Sort":         transpileSlicesSort,
+		"time.Sleep":          transpileTimeSleep,
+		"time.Now":            transpileTimeNow,
+		"time.After":          transpileTimeAfter,
+		"time.NewTicker":      transpileTimeNewTicker,
+		"time.NewTimer":       transpileTimeNewTimer,
+		"time.Tick":           transpileTimeTick,
+		"context.Background":  transpileContextBackground,
+		"context.WithTimeout": transpileContextWithTimeout,
+		"context.WithCancel":  transpileContextWithCancel,
 	}
 
 	builtinMappings = map[string]StdlibHandler{
@@ -1108,9 +1108,15 @@ func transpileCopy(out *strings.Builder, call *ast.CallExpr) {
 	if len(call.Args) >= 2 {
 		// Go: copy(dst, src) copies min(len(dst), len(src)) elements, returns count
 		// Generate inline block that works with already-unwrapped Vec values
+		typeInfo := GetTypeInfo()
+		srcIsString := typeInfo != nil && typeInfo.IsString(call.Args[1])
 		out.WriteString("{ let _src = (")
 		TranspileExpression(out, call.Args[1])
-		out.WriteString(").clone(); let _n = std::cmp::min((")
+		if srcIsString {
+			out.WriteString(").as_bytes().to_vec(); let _n = std::cmp::min((")
+		} else {
+			out.WriteString(").clone(); let _n = std::cmp::min((")
+		}
 		TranspileExpression(out, call.Args[0])
 		out.WriteString(").len(), _src.len()); for _i in 0.._n { ")
 		// Destination needs mutable borrow for assignment

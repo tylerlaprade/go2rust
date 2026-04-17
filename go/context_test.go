@@ -124,7 +124,7 @@ func TestPackageTypeMetadataPrefersContextState(t *testing.T) {
 
 	var out strings.Builder
 	TranspileTypeConversion(&out, &ast.CallExpr{
-		Fun: ast.NewIdent("LocalInt"),
+		Fun:  ast.NewIdent("LocalInt"),
 		Args: []ast.Expr{&ast.BasicLit{Kind: token.INT, Value: "1"}},
 	})
 	if !strings.Contains(out.String(), "LocalInt(") {

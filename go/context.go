@@ -23,19 +23,19 @@ type PackageState struct {
 
 // FileState holds file-scoped scratch state for a single transpilation pass.
 type FileState struct {
-	Imports                *ImportTracker
-	Helpers                *HelperTracker
-	StatementPreprocessor  *StatementPreprocessor
-	RangeLoopVars          map[string]string
-	LocalConstants         map[string]string
-	LocalInterfaces        map[string]bool
-	CurrentReceiver        string
-	CurrentReceiverType    string
+	Imports                 *ImportTracker
+	Helpers                 *HelperTracker
+	StatementPreprocessor   *StatementPreprocessor
+	RangeLoopVars           map[string]string
+	LocalConstants          map[string]string
+	LocalInterfaces         map[string]bool
+	CurrentReceiver         string
+	CurrentReceiverType     string
 	CurrentFunctionHasDefer bool
-	CurrentCaptureRenames  map[string]string
-	PendingLoopLabel       string
-	HasInitFunction        bool
-	LabeledLoopPost        map[string]ast.Stmt
+	CurrentCaptureRenames   map[string]string
+	PendingLoopLabel        string
+	HasInitFunction         bool
+	LabeledLoopPost         map[string]ast.Stmt
 }
 
 // TranspileContext holds the active session/package/file state for a transpilation call.

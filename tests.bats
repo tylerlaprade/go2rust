@@ -345,6 +345,10 @@ run_xfail_test() {
     run_test "tests/constants_basic"
 }
 
+@test "copy_from_string" {
+    run_test "tests/copy_from_string"
+}
+
 @test "defer_named_returns" {
     run_test "tests/defer_named_returns"
 }
@@ -675,10 +679,6 @@ run_xfail_test() {
 
 @test "XFAIL: context_usage" {
     run_xfail_test "tests/XFAIL/context_usage"
-}
-
-@test "XFAIL: copy_from_string" {
-    run_xfail_test "tests/XFAIL/copy_from_string"
 }
 
 @test "XFAIL: cross_file_func_vars" {

@@ -1241,45 +1241,46 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 								out.WriteString(" = ")
 								TranspileExpression(out, s.Rhs[0])
 							} else {
-							// Regular assignment or definition
-							for i, lhs := range s.Lhs {
-								if i > 0 {
-									out.WriteString(", ")
+								// Regular assignment or definition
+								for i, lhs := range s.Lhs {
+									if i > 0 {
+										out.WriteString(", ")
+									}
+									if s.Tok == token.DEFINE {
+										out.WriteString("let mut ")
+									}
+									TranspileExpressionContext(out, lhs, LValue)
 								}
-								if s.Tok == token.DEFINE {
-									out.WriteString("let mut ")
-								}
-								TranspileExpressionContext(out, lhs, LValue)
-							}
 
-							out.WriteString(" = ")
+								out.WriteString(" = ")
 
-							for i, rhs := range s.Rhs {
-								if i > 0 {
-									out.WriteString(", ")
-								}
-								if s.Tok == token.DEFINE {
-									// Check if RHS is nil
-									if ident, ok := rhs.(*ast.Ident); ok && ident.Name == "nil" {
-										WriteWrappedNone(out)
-									} else if unary, ok := rhs.(*ast.UnaryExpr); ok && unary.Op == token.AND {
-										// Taking address - don't wrap, the & operator will handle it
-										TranspileExpression(out, rhs)
-									} else if callExpr, isCall := rhs.(*ast.CallExpr); isCall {
-										// len()/cap() return bare primitives — register LHS as bare
-										if callIdent, ok := callExpr.Fun.(*ast.Ident); ok {
-											if callIdent.Name == "len" || callIdent.Name == "cap" {
-												typeInfo := GetTypeInfo()
-												if typeInfo != nil && typeInfo.info != nil {
-													if obj, ok := typeInfo.info.Uses[callIdent]; ok {
-														if builtin, ok := obj.(*types.Builtin); ok && (builtin.Name() == "len" || builtin.Name() == "cap") {
-															if len(s.Lhs) == 1 {
-																if lhsIdent, ok := s.Lhs[0].(*ast.Ident); ok {
-																	if vt := GetVarTable(); vt != nil {
-																		vt.Register(lhsIdent.Name, &VarInfo{
-																			WrapLevel: WrapNone,
-																			Source:    SourceLocal,
-																		})
+								for i, rhs := range s.Rhs {
+									if i > 0 {
+										out.WriteString(", ")
+									}
+									if s.Tok == token.DEFINE {
+										// Check if RHS is nil
+										if ident, ok := rhs.(*ast.Ident); ok && ident.Name == "nil" {
+											WriteWrappedNone(out)
+										} else if unary, ok := rhs.(*ast.UnaryExpr); ok && unary.Op == token.AND {
+											// Taking address - don't wrap, the & operator will handle it
+											TranspileExpression(out, rhs)
+										} else if callExpr, isCall := rhs.(*ast.CallExpr); isCall {
+											// len()/cap() return bare primitives — register LHS as bare
+											if callIdent, ok := callExpr.Fun.(*ast.Ident); ok {
+												if callIdent.Name == "len" || callIdent.Name == "cap" {
+													typeInfo := GetTypeInfo()
+													if typeInfo != nil && typeInfo.info != nil {
+														if obj, ok := typeInfo.info.Uses[callIdent]; ok {
+															if builtin, ok := obj.(*types.Builtin); ok && (builtin.Name() == "len" || builtin.Name() == "cap") {
+																if len(s.Lhs) == 1 {
+																	if lhsIdent, ok := s.Lhs[0].(*ast.Ident); ok {
+																		if vt := GetVarTable(); vt != nil {
+																			vt.Register(lhsIdent.Name, &VarInfo{
+																				WrapLevel: WrapNone,
+																				Source:    SourceLocal,
+																			})
+																		}
 																	}
 																}
 															}
@@ -1287,49 +1288,48 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 													}
 												}
 											}
-										}
-										// Function calls already return wrapped values, don't wrap again
-										TranspileExpression(out, rhs)
-									} else if _, isFuncLit := rhs.(*ast.FuncLit); isFuncLit {
-										// Function literals are already wrapped by TranspileFuncLit
-										TranspileExpression(out, rhs)
-									} else if compositeLit, isCompositeLit := rhs.(*ast.CompositeLit); isCompositeLit {
-										// Check if it's a struct literal vs array/slice/map literal
-										isStructLiteral := false
-										if _, ok := compositeLit.Type.(*ast.Ident); ok {
-											isStructLiteral = true
-										} else if _, ok := compositeLit.Type.(*ast.StructType); ok {
-											isStructLiteral = true
-										}
+											// Function calls already return wrapped values, don't wrap again
+											TranspileExpression(out, rhs)
+										} else if _, isFuncLit := rhs.(*ast.FuncLit); isFuncLit {
+											// Function literals are already wrapped by TranspileFuncLit
+											TranspileExpression(out, rhs)
+										} else if compositeLit, isCompositeLit := rhs.(*ast.CompositeLit); isCompositeLit {
+											// Check if it's a struct literal vs array/slice/map literal
+											isStructLiteral := false
+											if _, ok := compositeLit.Type.(*ast.Ident); ok {
+												isStructLiteral = true
+											} else if _, ok := compositeLit.Type.(*ast.StructType); ok {
+												isStructLiteral = true
+											}
 
-										if isStructLiteral {
-											// Struct literals need to be wrapped
+											if isStructLiteral {
+												// Struct literals need to be wrapped
+												WriteWrapperPrefix(out)
+												TranspileExpression(out, rhs)
+												WriteWrapperSuffix(out)
+											} else {
+												// Array/slice/map literals already wrap themselves
+												TranspileExpression(out, rhs)
+											}
+										} else if _, isSliceExpr := rhs.(*ast.SliceExpr); isSliceExpr {
+											// Slice expressions already return wrapped values
+											TranspileExpression(out, rhs)
+										} else if rhsIsPointerType(rhs) {
+											// RHS is a pointer-typed variable (e.g., z := y where y is *int)
+											// Clone the Rc to preserve aliasing instead of copying the inner value
+											TranspileExpressionContext(out, rhs, AddressOf)
+											out.WriteString(".clone()")
+										} else {
+											// Wrap new variables
 											WriteWrapperPrefix(out)
 											TranspileExpression(out, rhs)
 											WriteWrapperSuffix(out)
-										} else {
-											// Array/slice/map literals already wrap themselves
-											TranspileExpression(out, rhs)
 										}
-									} else if _, isSliceExpr := rhs.(*ast.SliceExpr); isSliceExpr {
-										// Slice expressions already return wrapped values
-										TranspileExpression(out, rhs)
-									} else if rhsIsPointerType(rhs) {
-										// RHS is a pointer-typed variable (e.g., z := y where y is *int)
-										// Clone the Rc to preserve aliasing instead of copying the inner value
-										TranspileExpressionContext(out, rhs, AddressOf)
-										out.WriteString(".clone()")
 									} else {
-										// Wrap new variables
-										WriteWrapperPrefix(out)
 										TranspileExpression(out, rhs)
-										WriteWrapperSuffix(out)
 									}
-								} else {
-									TranspileExpression(out, rhs)
 								}
-							}
-						} // end else (non-channel var)
+							} // end else (non-channel var)
 						}
 					}
 				} else {
@@ -1579,12 +1579,12 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 											WriteWrapperSuffix(out)
 										}
 									case *ast.MapType:
-									// Initialize map variable with empty map (Go nil map)
-									out.WriteString(" = ")
-									WriteWrapperPrefix(out)
-									out.WriteString("BTreeMap::new()")
-									WriteWrapperSuffix(out)
-								case *ast.SelectorExpr:
+										// Initialize map variable with empty map (Go nil map)
+										out.WriteString(" = ")
+										WriteWrapperPrefix(out)
+										out.WriteString("BTreeMap::new()")
+										WriteWrapperSuffix(out)
+									case *ast.SelectorExpr:
 										// Package-qualified types like sync.WaitGroup, strings.Builder
 										if pkgIdent, ok := t.X.(*ast.Ident); ok {
 											if pkgIdent.Name == "sync" {
@@ -2681,7 +2681,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						argIdent = ident
 					}
 				}
-					if argIdent != nil {
+				if argIdent != nil {
 					// All variable arguments need cloning for the move closure
 					if _, isConst := localConstants[argIdent.Name]; !isConst {
 						if argIdent.Name != "true" && argIdent.Name != "false" && argIdent.Name != "nil" {

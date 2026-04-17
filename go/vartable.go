@@ -22,7 +22,7 @@ const (
 // VarInfo holds metadata about a variable tracked by VarTable.
 type VarInfo struct {
 	WrapLevel WrapLevel
-	RustType  string    // e.g. "&dyn Shape", "f64"
+	RustType  string // e.g. "&dyn Shape", "f64"
 	Source    VarSource
 	IsRef     bool // true for &dyn Trait params
 }

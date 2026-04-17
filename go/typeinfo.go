@@ -128,7 +128,7 @@ func (ti *TypeInfo) IsString(expr ast.Expr) bool {
 		return false
 	}
 	basic, ok := typ.Underlying().(*types.Basic)
-	return ok && basic.Kind() == types.String
+	return ok && (basic.Kind() == types.String || basic.Kind() == types.UntypedString)
 }
 
 // IsChannel returns true if the expression is a channel type
