@@ -7,15 +7,71 @@
 #   ./ralph_loop.sh 10        # 10 iterations
 #   ./ralph_loop.sh 50 40     # 50 iterations, 40 turns each
 
+set -euo pipefail
+
+fail() {
+    echo "ralph loop: $*" >&2
+    exit 1
+}
+
+require_command() {
+    command -v "$1" >/dev/null 2>&1 || fail "missing required command: $1"
+}
+
+validate_positive_integer() {
+    local value="$1"
+    local name="$2"
+    [[ "$value" =~ ^[1-9][0-9]*$ ]] || fail "$name must be a positive integer (got: $value)"
+}
+
+resolve_timeout_bin() {
+    if command -v timeout >/dev/null 2>&1; then
+        printf '%s\n' "timeout"
+    elif command -v gtimeout >/dev/null 2>&1; then
+        printf '%s\n' "gtimeout"
+    else
+        fail "missing required command: timeout (or gtimeout)"
+    fi
+}
+
+ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+cd "$ROOT_DIR"
+
 # Prevent sleep while looping (background, tied to our PID)
 caffeinate -dims -w $$ &
+KEEP_AWAKE_PID=$!
 
 MAX_ITERATIONS="${1:-50}"
 MAX_TURNS="${2:-25}"
 TIMEOUT_MINS=15
-LOGDIR="$(pwd)/.ralph-loop-logs"
-ANALYSIS_DIR="$(pwd)/.analysis"
+LOGDIR="$ROOT_DIR/.ralph-loop-logs"
+ANALYSIS_DIR="$ROOT_DIR/.analysis"
 mkdir -p "$LOGDIR"
+
+SPINNER_PID=""
+TOOL_DESC_FILE=""
+
+cleanup() {
+    local exit_code=$?
+    printf "\r\033[K"
+    if [ -n "${SPINNER_PID:-}" ]; then
+        kill "$SPINNER_PID" 2>/dev/null || true
+        wait "$SPINNER_PID" 2>/dev/null || true
+    fi
+    if [ -n "${KEEP_AWAKE_PID:-}" ]; then
+        kill "$KEEP_AWAKE_PID" 2>/dev/null || true
+        wait "$KEEP_AWAKE_PID" 2>/dev/null || true
+    fi
+    if [ -n "${TOOL_DESC_FILE:-}" ]; then
+        rm -f "$TOOL_DESC_FILE"
+    fi
+    if [ "$exit_code" -eq 130 ]; then
+        echo "Loop interrupted."
+    fi
+}
+
+trap cleanup EXIT
+trap 'exit 130' INT TERM
 
 queue_files() {
     local path
@@ -114,17 +170,7 @@ extract_reset_epoch() {
 is_usage_limit_error() {
     local logfile="$1"
     [ -f "$logfile" ] || return 1
-    rg -qi \
-        -e 'usage limit' \
-        -e 'rate limit' \
-        -e 'quota' \
-        -e 'too many requests' \
-        -e 'billing limit' \
-        -e 'request limit' \
-        -e 'credit balance' \
-        -e 'insufficient credits' \
-        -e 'over.*limit' \
-        "$logfile"
+    rg -q '"isUsingOverage":true' "$logfile"
 }
 
 wait_for_reset() {
@@ -148,8 +194,10 @@ wait_for_reset() {
 
 check_claude_status() {
     local out
-    out=$(timeout 30s claude --dangerously-skip-permissions --verbose -p "ok" --output-format stream-json --max-turns 1 2>&1)
+    set +e
+    out=$("$TIMEOUT_BIN" 30s claude --dangerously-skip-permissions --verbose -p "ok" --output-format stream-json --max-turns 1 2>&1)
     local rc=$?
+    set -e
     if [ $rc -ne 0 ]; then
         if [ $rc -eq 124 ]; then
             event "ABORT: claude preflight timed out (30s)" >&2
@@ -165,11 +213,16 @@ check_claude_status() {
     return 0
 }
 
-SPINNER_PID=""
-trap 'printf "\r\033[K"; [ -n "$SPINNER_PID" ] && kill "$SPINNER_PID" 2>/dev/null; echo "Loop interrupted."; exit 130' INT
-
 # Record baseline test count before starting (count test dirs)
 BASELINE_PASS="$(count_passing_tests)"
+
+require_command caffeinate
+require_command claude
+require_command jq
+require_command rg
+TIMEOUT_BIN="$(resolve_timeout_bin)"
+validate_positive_integer "$MAX_ITERATIONS" "max_iterations"
+validate_positive_integer "$MAX_TURNS" "max_turns"
 
 BASE_PROMPT='Fix XFAIL tests. Follow the protocol in LOOP_PROTOCOL.md. HARD RULE: if ./test.sh shows any previously-passing test now failing, revert your changes immediately with git checkout -- go/ before trying anything else.'
 
@@ -199,7 +252,7 @@ echo ""
 CONSEC_WAITS=0
 LOOP_START=$SECONDS
 
-for i in $(seq 1 "$MAX_ITERATIONS"); do
+for ((i = 1; i <= MAX_ITERATIONS; i++)); do
     LOGFILE="$LOGDIR/$(date +%Y%m%d-%H%M%S).log"
 
     # Count current passing/failing
@@ -229,8 +282,10 @@ for i in $(seq 1 "$MAX_ITERATIONS"); do
     fi
 
     # Preflight: verify claude works and check overage
+    set +e
     RESET_EPOCH=$(check_claude_status)
     PF_STATUS=$?
+    set -e
     if [ $PF_STATUS -eq 1 ]; then
         break
     fi
@@ -269,7 +324,8 @@ for i in $(seq 1 "$MAX_ITERATIONS"); do
     ) &
     SPINNER_PID=$!
 
-    timeout --foreground --kill-after=30s "${TIMEOUT_MINS}m" claude \
+    set +e
+    "$TIMEOUT_BIN" --foreground --kill-after=30s "${TIMEOUT_MINS}m" claude \
         --dangerously-skip-permissions \
         --verbose \
         --max-turns "$MAX_TURNS" \
@@ -278,11 +334,14 @@ for i in $(seq 1 "$MAX_ITERATIONS"); do
         2>&1 | tee "$LOGFILE" | jq -r --unbuffered '.message.content[]? | select(.type == "tool_use") | "  → " + .description // .name' 2>/dev/null \
         | while IFS= read -r line; do printf '%s' "$line" > "$TOOL_DESC_FILE"; done
     EXIT_CODE=${PIPESTATUS[0]}
+    set -e
 
     # Kill spinner and clean up
-    kill "$SPINNER_PID" 2>/dev/null
-    wait "$SPINNER_PID" 2>/dev/null
+    kill "$SPINNER_PID" 2>/dev/null || true
+    wait "$SPINNER_PID" 2>/dev/null || true
+    SPINNER_PID=""
     rm -f "$TOOL_DESC_FILE"
+    TOOL_DESC_FILE=""
 
     ELAPSED=$(( SECONDS - SESSION_START ))
     LINES=$(wc -l < "$LOGFILE" | tr -d ' ')
@@ -310,7 +369,7 @@ for i in $(seq 1 "$MAX_ITERATIONS"); do
     CONSEC_WAITS=0
 
     # Safety net: auto-stage test file changes that claude forgot
-    git add tests/ tests.bats 2>/dev/null
+    git add tests/ tests.bats 2>/dev/null || true
     if ! git diff --cached --quiet 2>/dev/null; then
         git commit -q -m "Auto-commit: test output updates (session $i)"
     fi
