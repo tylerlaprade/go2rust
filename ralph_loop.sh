@@ -220,6 +220,7 @@ require_command caffeinate
 require_command claude
 require_command jq
 require_command rg
+require_command hk
 TIMEOUT_BIN="$(resolve_timeout_bin)"
 validate_positive_integer "$MAX_ITERATIONS" "max_iterations"
 validate_positive_integer "$MAX_TURNS" "max_turns"
@@ -367,6 +368,15 @@ for ((i = 1; i <= MAX_ITERATIONS; i++)); do
         continue
     fi
     CONSEC_WAITS=0
+
+    # Autoformat + autofix lint on anything claude left uncommitted.
+    # Per-commit formatting is handled by the hk pre-commit hook; this catches
+    # in-flight state so the next iteration starts from clean, formatted code.
+    hk fix 2>/dev/null || true
+    if ! git diff --quiet -- 'go/*.go' 2>/dev/null; then
+        git add -- 'go/*.go'
+        git commit -q -m "Auto-commit: hk fix formatting (session $i)"
+    fi
 
     # Safety net: auto-stage test file changes that claude forgot
     git add tests/ tests.bats 2>/dev/null || true
