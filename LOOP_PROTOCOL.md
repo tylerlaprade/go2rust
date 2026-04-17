@@ -15,6 +15,7 @@ If the prompt includes an ANALYSIS TASK, handle it first:
 1. Build: `go build -o go2rust ./go`
 2. Run `./test.sh 2>&1 | tail -20` to see current counts
 3. Pick an XFAIL test — survey 2-3 candidates quickly:
+   - **Skip any directory containing `.ralph-skip`** — it hangs or is otherwise unworkable
    - Run `./go2rust tests/XFAIL/<name>/main.go 2>&1 | head -80`
    - Pick the one closest to passing
    - If expected_output.txt is missing or stale, delete it — test.sh regenerates it
@@ -33,3 +34,10 @@ If the prompt includes an ANALYSIS TASK, handle it first:
 - If stuck after 2 attempts on one test, skip it and try another.
 - Never break existing tests.
 - **Always `git add -A`** — include transpiler changes AND generated test output files.
+- **ALWAYS run tests via `./test.sh <name>`.** Never `cd tests/XFAIL/<name> && cargo build/run`, never bare `cargo run`. `./test.sh` enforces a 60s per-test timeout; running `cargo` directly will hang forever on buggy transpiled binaries and burn the entire session.
+- **If `./test.sh <name>` does not finish within 90 seconds, the transpiled binary is hanging.** Do not try workarounds (`timeout`, `stdbuf`, backgrounding, `Monitor`). Mark the test unworkable and move on:
+  ```
+  touch tests/XFAIL/<name>/.ralph-skip
+  git add tests/XFAIL/<name>/.ralph-skip && git commit -m "skip hanging test: <name>"
+  ```
+  Then pick a different XFAIL candidate.
