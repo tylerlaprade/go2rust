@@ -106,21 +106,76 @@ format_duration() {
     fi
 }
 
+extract_reset_epoch() {
+    jq -r 'select(.type=="rate_limit_event") | .rate_limit_info.resetsAt // empty' 2>/dev/null \
+        | tail -1
+}
+
+is_usage_limit_error() {
+    local logfile="$1"
+    [ -f "$logfile" ] || return 1
+    rg -qi \
+        -e 'usage limit' \
+        -e 'rate limit' \
+        -e 'quota' \
+        -e 'too many requests' \
+        -e 'billing limit' \
+        -e 'request limit' \
+        -e 'credit balance' \
+        -e 'insufficient credits' \
+        -e 'over.*limit' \
+        "$logfile"
+}
+
+wait_for_reset() {
+    local reset_epoch="$1"
+    local now
+    now=$(date +%s)
+    local sleep_secs
+    if [[ "$reset_epoch" =~ ^[0-9]+$ ]] && [ "$reset_epoch" -gt "$now" ]; then
+        sleep_secs=$(( reset_epoch - now + 60 ))
+    else
+        sleep_secs=3600
+    fi
+    local target=$(( now + sleep_secs ))
+    while [ "$(date +%s)" -lt "$target" ]; do
+        local remaining=$(( target - $(date +%s) ))
+        status "⏸  usage limit — resuming in $(format_duration $remaining)"
+        sleep 10
+    done
+    event "resuming after usage-limit wait"
+}
+
+check_claude_status() {
+    local out
+    out=$(timeout 30s claude --dangerously-skip-permissions --verbose -p "ok" --output-format stream-json --max-turns 1 2>&1)
+    local rc=$?
+    if [ $rc -ne 0 ]; then
+        if [ $rc -eq 124 ]; then
+            event "ABORT: claude preflight timed out (30s)" >&2
+        else
+            event "ABORT: claude preflight failed (exit $rc): $(printf '%s' "$out" | tail -1)" >&2
+        fi
+        return 1
+    fi
+    if printf '%s' "$out" | grep -q '"isUsingOverage":true'; then
+        printf '%s' "$out" | extract_reset_epoch
+        return 2
+    fi
+    return 0
+}
+
 SPINNER_PID=""
 trap 'printf "\r\033[K"; [ -n "$SPINNER_PID" ] && kill "$SPINNER_PID" 2>/dev/null; echo "Loop interrupted."; exit 130' INT
 
 # Record baseline test count before starting (count test dirs)
 BASELINE_PASS="$(count_passing_tests)"
 
-DEFAULT_MODEL="sonnet"
-ANALYSIS_MODEL="opus"
 BASE_PROMPT='Fix XFAIL tests. Follow the protocol in LOOP_PROTOCOL.md. HARD RULE: if ./test.sh shows any previously-passing test now failing, revert your changes immediately with git checkout -- go/ before trying anything else.'
 
-# Returns "prompt|model" — caller splits on |
 build_prompt() {
     local task="$1"
     local prompt="$BASE_PROMPT"
-    local model="$DEFAULT_MODEL"
 
     if [ -n "$task" ]; then
         local task_name
@@ -132,16 +187,16 @@ REQUIRED ANALYSIS TASK: Read .analysis/$task_name first and handle it before any
 - Delete .analysis/$task_name when done.
 - Commit that work.
 - If turns remain and there are still XFAIL tests, continue with normal XFAIL work."
-        model="$ANALYSIS_MODEL"
     fi
 
-    printf '%s|%s' "$prompt" "$model"
+    printf '%s' "$prompt"
 }
 
 echo "ralph loop — baseline: $BASELINE_PASS passing — max $MAX_TURNS turns, ${TIMEOUT_MINS}m timeout"
 echo "logs: $LOGDIR/"
 echo ""
 
+CONSEC_WAITS=0
 LOOP_START=$SECONDS
 
 for i in $(seq 1 "$MAX_ITERATIONS"); do
@@ -174,31 +229,30 @@ for i in $(seq 1 "$MAX_ITERATIONS"); do
     fi
 
     # Preflight: verify claude works and check overage
-    PREFLIGHT_OUT=$(timeout 30s claude --dangerously-skip-permissions --verbose -p "ok" --output-format stream-json --max-turns 1 2>&1)
-    PREFLIGHT_EXIT=$?
-    if [ $PREFLIGHT_EXIT -ne 0 ]; then
-        if [ $PREFLIGHT_EXIT -eq 124 ]; then
-            event "ABORT: claude preflight timed out (30s)"
-        else
-            event "ABORT: claude preflight failed (exit $PREFLIGHT_EXIT): $(echo "$PREFLIGHT_OUT" | tail -1)"
-        fi
+    RESET_EPOCH=$(check_claude_status)
+    PF_STATUS=$?
+    if [ $PF_STATUS -eq 1 ]; then
         break
     fi
-    if echo "$PREFLIGHT_OUT" | grep -q '"isUsingOverage":true'; then
-        event "OVERAGE: rate limit exhausted, stopping to avoid charges"
-        break
+    if [ $PF_STATUS -eq 2 ]; then
+        event "OVERAGE: rate limit exhausted, waiting for reset"
+        wait_for_reset "$RESET_EPOCH"
+        CONSEC_WAITS=$(( CONSEC_WAITS + 1 ))
+        if [ "$CONSEC_WAITS" -ge 3 ]; then
+            event "ABORT: 3 consecutive usage-limit waits, giving up"
+            break
+        fi
+        continue
     fi
 
     SESSION_START=$SECONDS
-    PROMPT_MODEL=$(build_prompt "$ANALYSIS_TASK")
-    PROMPT="${PROMPT_MODEL%|*}"
-    MODEL="${PROMPT_MODEL##*|}"
+    PROMPT=$(build_prompt "$ANALYSIS_TASK")
 
     # Shared file for latest tool description
     TOOL_DESC_FILE=$(mktemp)
 
     # Background spinner
-    _spinner_iter=$i _spinner_max=$MAX_ITERATIONS _spinner_pass=$PASSING _spinner_xfail=$XFAIL _spinner_queue=$QUEUED _spinner_model=$MODEL _spinner_desc_file=$TOOL_DESC_FILE
+    _spinner_iter=$i _spinner_max=$MAX_ITERATIONS _spinner_pass=$PASSING _spinner_xfail=$XFAIL _spinner_queue=$QUEUED _spinner_desc_file=$TOOL_DESC_FILE
     (
         FRAMES=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
         TICK=0
@@ -206,9 +260,9 @@ for i in $(seq 1 "$MAX_ITERATIONS"); do
             F=${FRAMES[$(( TICK % ${#FRAMES[@]} ))]}
             DUR=$(format_duration "$TICK")
             DESC=$(cat "$_spinner_desc_file" 2>/dev/null || true)
-            printf "\r\033[K%s  iter %d/%d  ✓%d ✗%d q%d  %s  %s  %s  %s" \
+            printf "\r\033[K%s  iter %d/%d  ✓%d ✗%d q%d  %s  %s  %s" \
                 "$F" "$_spinner_iter" "$_spinner_max" "$_spinner_pass" "$_spinner_xfail" "$_spinner_queue" \
-                "$_spinner_model" "$DUR" "running…" "$DESC"
+                "$DUR" "running…" "$DESC"
             sleep 1
             TICK=$((TICK + 1))
         done
@@ -218,7 +272,6 @@ for i in $(seq 1 "$MAX_ITERATIONS"); do
     timeout --foreground --kill-after=30s "${TIMEOUT_MINS}m" claude \
         --dangerously-skip-permissions \
         --verbose \
-        --model "$MODEL" \
         --max-turns "$MAX_TURNS" \
         -p "$PROMPT" \
         --output-format stream-json \
@@ -242,6 +295,19 @@ for i in $(seq 1 "$MAX_ITERATIONS"); do
     else
         event "done  iter $i/$MAX_ITERATIONS  ✓$PASSING ✗$XFAIL q$QUEUED  $(format_duration $ELAPSED)  ${LINES}L"
     fi
+
+    if [ "$EXIT_CODE" -ne 0 ] && is_usage_limit_error "$LOGFILE"; then
+        event "USAGE LIMIT hit mid-session — waiting for reset"
+        SESSION_RESET=$(extract_reset_epoch <"$LOGFILE")
+        wait_for_reset "$SESSION_RESET"
+        CONSEC_WAITS=$(( CONSEC_WAITS + 1 ))
+        if [ "$CONSEC_WAITS" -ge 3 ]; then
+            event "ABORT: 3 consecutive usage-limit waits, giving up"
+            break
+        fi
+        continue
+    fi
+    CONSEC_WAITS=0
 
     # Safety net: auto-stage test file changes that claude forgot
     git add tests/ tests.bats 2>/dev/null
