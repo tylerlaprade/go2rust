@@ -369,19 +369,12 @@ for ((i = 1; i <= MAX_ITERATIONS; i++)); do
     fi
     CONSEC_WAITS=0
 
-    # Autoformat + autofix lint on anything claude left uncommitted.
-    # Per-commit formatting is handled by the hk pre-commit hook; this catches
-    # in-flight state so the next iteration starts from clean, formatted code.
+    # Autoformat anything claude left uncommitted, then stage everything
+    # before committing so the hk pre-commit hook has nothing to stash/restore.
     hk fix 2>/dev/null || true
-    if ! git diff --quiet -- 'go/*.go' 2>/dev/null; then
-        git add -- 'go/*.go'
-        git commit -q -m "Auto-commit: hk fix formatting (session $i)"
-    fi
-
-    # Safety net: auto-stage test file changes that claude forgot
-    git add tests/ tests.bats 2>/dev/null || true
+    git add -- 'go/*.go' tests/ tests.bats 2>/dev/null || true
     if ! git diff --cached --quiet 2>/dev/null; then
-        git commit -q -m "Auto-commit: test output updates (session $i)"
+        git commit -q -m "Auto-commit: session $i cleanup (hk fix + test outputs)"
     fi
 
     sleep 2
