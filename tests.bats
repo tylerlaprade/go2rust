@@ -397,6 +397,10 @@ run_xfail_test() {
     run_test "tests/for_loops"
 }
 
+@test "full_slice_expressions" {
+    run_test "tests/full_slice_expressions"
+}
+
 @test "function_literals_closures" {
     run_test "tests/function_literals_closures"
 }
@@ -719,10 +723,6 @@ run_xfail_test() {
 
 @test "XFAIL: flag_parsing" {
     run_xfail_test "tests/XFAIL/flag_parsing"
-}
-
-@test "XFAIL: full_slice_expressions" {
-    run_xfail_test "tests/XFAIL/full_slice_expressions"
 }
 
 @test "XFAIL: function_types" {

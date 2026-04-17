@@ -25,8 +25,8 @@ fn main() {
         // String indexing and slicing
     print!("First character: {}\n", ((*str.lock().unwrap().as_ref().unwrap()).as_bytes()[0 as usize]) as u8 as char);
     print!("Last character: {}\n", ((*str.lock().unwrap().as_ref().unwrap()).as_bytes()[(*str.lock().unwrap().as_ref().unwrap()).len() - 1 as usize]) as u8 as char);
-    print!("Substring [0:5]: {}\n", Arc::new(Mutex::new(Some((*str.lock().unwrap().as_ref().unwrap())[0 as usize..5 as usize].to_string()))));
-    print!("Substring [7:]: {}\n", Arc::new(Mutex::new(Some((*str.lock().unwrap().as_ref().unwrap())[7 as usize..].to_string()))));
+    print!("Substring [0:5]: {}\n", (*Arc::new(Mutex::new(Some((*str.lock().unwrap().as_ref().unwrap())[0 as usize..5 as usize].to_string()))).lock().unwrap().as_ref().unwrap()));
+    print!("Substring [7:]: {}\n", (*Arc::new(Mutex::new(Some((*str.lock().unwrap().as_ref().unwrap())[7 as usize..].to_string()))).lock().unwrap().as_ref().unwrap()));
 
         // String concatenation
     println!("{}", "\n=== String concatenation ===".to_string());

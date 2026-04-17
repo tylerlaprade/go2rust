@@ -21,5 +21,5 @@ fn main() {
     println!("{} {} {}", (*all.borrow().as_ref().unwrap()).len(), (*all.borrow().as_ref().unwrap()).capacity(), format_slice(&all));
 
     let mut s = Rc::new(RefCell::new(Some("hello".to_string())));
-    println!("{}", Rc::new(RefCell::new(Some((*s.borrow().as_ref().unwrap())[..].to_string()))));
+    println!("{}", (*Rc::new(RefCell::new(Some((*s.borrow().as_ref().unwrap())[..].to_string()))).borrow().as_ref().unwrap()));
 }
