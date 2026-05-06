@@ -48,11 +48,11 @@ impl Clone for WaitGroup {
 pub fn worker(id: Rc<RefCell<Option<i32>>>, wg: WaitGroup) {
     let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-    __defer_stack.push(Box::new(move || {
-        wg.done();
+    let wg_defer_captured = wg.clone(); __defer_stack.push(Box::new(move || {
+        wg_defer_captured.done();
     }));
-    print!("Worker {} starting\n", (*id.borrow().as_ref().unwrap()));
-    print!("Worker {} done\n", (*id.borrow().as_ref().unwrap()));
+    print!("Worker {} starting\n", { let __v = (*id.borrow().as_ref().unwrap()).clone(); __v });
+    print!("Worker {} done\n", { let __v = (*id.borrow().as_ref().unwrap()).clone(); __v });
 
     // Execute deferred functions
     while let Some(f) = __defer_stack.pop() {

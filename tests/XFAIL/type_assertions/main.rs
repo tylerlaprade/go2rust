@@ -45,14 +45,14 @@ fn go_type_name(val: &dyn Any) -> &'static str {
     std::any::type_name_of_val(val)
 }
 
-trait Shape: std::fmt::Display {
+pub trait Shape: std::fmt::Display {
     fn area(&self) -> Rc<RefCell<Option<f64>>>;
 }
 
 #[derive(Debug, Clone, Default)]
-struct Rectangle {
-    width: Rc<RefCell<Option<f64>>>,
-    height: Rc<RefCell<Option<f64>>>,
+pub struct Rectangle {
+    pub width: Rc<RefCell<Option<f64>>>,
+    pub height: Rc<RefCell<Option<f64>>>,
 }
 
 impl std::fmt::Display for Rectangle {
@@ -63,8 +63,8 @@ impl std::fmt::Display for Rectangle {
 
 
 #[derive(Debug, Clone, Default)]
-struct Circle {
-    radius: Rc<RefCell<Option<f64>>>,
+pub struct Circle {
+    pub radius: Rc<RefCell<Option<f64>>>,
 }
 
 impl std::fmt::Display for Circle {
@@ -114,7 +114,7 @@ pub fn process_value(value: Rc<RefCell<Option<Box<dyn Any>>>>) {
         }
     });
     if (*ok.borrow().as_ref().unwrap()) {
-        print!("String value: {} (length: {})\n", (*str.borrow().as_ref().unwrap()), (*str.borrow().as_ref().unwrap()).len());
+        print!("String value: {} (length: {})\n", { let __v = (*str.borrow().as_ref().unwrap()).clone(); __v }, (*str.borrow().as_ref().unwrap()).len());
         return;
     }
 
@@ -132,7 +132,7 @@ pub fn process_value(value: Rc<RefCell<Option<Box<dyn Any>>>>) {
         }
     });
     if (*ok.borrow().as_ref().unwrap()) {
-        print!("Integer value: {} (doubled: {})\n", (*num.borrow().as_ref().unwrap()), (*num.borrow().as_ref().unwrap()) * 2);
+        print!("Integer value: {} (doubled: {})\n", { let __v = (*num.borrow().as_ref().unwrap()).clone(); __v }, (*num.borrow().as_ref().unwrap()) * 2);
         return;
     }
 
@@ -150,7 +150,7 @@ pub fn process_value(value: Rc<RefCell<Option<Box<dyn Any>>>>) {
         }
     });
     if (*ok.borrow().as_ref().unwrap()) {
-        print!("Float value: {:.2} (squared: {:.2})\n", (*f.borrow().as_ref().unwrap()), (*f.borrow().as_ref().unwrap()) * (*f.borrow().as_ref().unwrap()));
+        print!("Float value: {:.2} (squared: {:.2})\n", { let __v = (*f.borrow().as_ref().unwrap()).clone(); __v }, { let __bin_f = (*f.borrow().as_ref().unwrap()).clone(); __bin_f * __bin_f });
         return;
     }
 
@@ -162,12 +162,12 @@ pub fn assert_without_check(value: Rc<RefCell<Option<Box<dyn Any>>>>) {
 
         // This will panic if assertion fails
     __defer_stack.push(Box::new(move || {
-        (*Rc::new(RefCell::new(Some(Box::new(move || {
+        { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
         let mut r = Rc::new(RefCell::new(None::<String>));
     if (*r.borrow()).is_some() {
         print!("Panic recovered: {}\n", format_any(r.borrow().as_ref().unwrap().as_ref()));
     }
-    }) as Box<dyn Fn() -> ()>))).borrow().as_ref().unwrap())();
+    }) as Box<dyn Fn() -> ()>))); let __f_guard = __f_holder.borrow(); let __f = __f_guard.as_ref().unwrap(); (*__f)() };
     }));
 
     let mut str = Rc::new(RefCell::new(Some(({
@@ -179,7 +179,7 @@ pub fn assert_without_check(value: Rc<RefCell<Option<Box<dyn Any>>>>) {
             panic!("type assertion on nil interface")
         }
     }))));
-    print!("Asserted string: {}\n", (*str.borrow().as_ref().unwrap()));
+    print!("Asserted string: {}\n", { let __v = (*str.borrow().as_ref().unwrap()).clone(); __v });
 
     // Execute deferred functions
     while let Some(f) = __defer_stack.pop() {
@@ -231,9 +231,9 @@ fn main() {
     let mut values = Rc::new(RefCell::new(Some(vec![Box::new("hello world".to_string()) as Box<dyn Any>, Box::new(42) as Box<dyn Any>, Box::new(3.14159) as Box<dyn Any>, Box::new(true) as Box<dyn Any>, Box::new(Rc::new(RefCell::new(Some(vec![1, 2, 3])))) as Box<dyn Any>])));
 
     println!("{}", "=== Processing values ===".to_string());
-    for val in &(*values.borrow().as_ref().unwrap()) {
+    { let __range_guard = values.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for val in __range_values.iter() {
         process_value(val.clone());
-    }
+    } }
 
     println!("{}", "\n=== Assertion without check ===".to_string());
     assert_without_check(Rc::new(RefCell::new(Some(Box::new("valid string".to_string()) as Box<dyn Any>))));
@@ -242,31 +242,31 @@ fn main() {
     println!("{}", "\n=== Interface type assertions ===".to_string());
     let mut shapes = Rc::new(RefCell::new(Some(vec![Box::new(Rectangle { width: Rc::new(RefCell::new(Some(10.0))), height: Rc::new(RefCell::new(Some(5.0))), ..Default::default() }) as Box<dyn Shape>, Box::new(Circle { radius: Rc::new(RefCell::new(Some(3.0))), ..Default::default() }) as Box<dyn Shape>])));
 
-    for shape in &(*shapes.borrow().as_ref().unwrap()) {
+    { let __range_guard = shapes.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for shape in __range_values.iter() {
         describe_shape(shape.as_ref());
-    }
+    } }
 
     println!("{}", "\n=== Type switch alternative ===".to_string());
-    for val in &(*values.borrow().as_ref().unwrap()) {
+    { let __range_guard = values.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for val in __range_values.iter() {
         {
     let _ts_ref = val;
     let _any_val: &dyn Any = _ts_ref.as_ref();
     if _any_val.downcast_ref::<String>().is_some() {
         let v = Rc::new(RefCell::new(Some(_any_val.downcast_ref::<String>().unwrap().clone())));
-        print!("String: {}\n", (*v.borrow().as_ref().unwrap()));;
+        print!("String: {}\n", { let __v = (*v.borrow().as_ref().unwrap()).clone(); __v });;
     } else if _any_val.downcast_ref::<i32>().is_some() {
         let v = Rc::new(RefCell::new(Some(_any_val.downcast_ref::<i32>().unwrap().clone())));
-        print!("Int: {}\n", (*v.borrow().as_ref().unwrap()));;
+        print!("Int: {}\n", { let __v = (*v.borrow().as_ref().unwrap()).clone(); __v });;
     } else if _any_val.downcast_ref::<f64>().is_some() {
         let v = Rc::new(RefCell::new(Some(_any_val.downcast_ref::<f64>().unwrap().clone())));
-        print!("Float: {:.2}\n", (*v.borrow().as_ref().unwrap()));;
+        print!("Float: {:.2}\n", { let __v = (*v.borrow().as_ref().unwrap()).clone(); __v });;
     } else if _any_val.downcast_ref::<bool>().is_some() {
         let v = Rc::new(RefCell::new(Some(_any_val.downcast_ref::<bool>().unwrap().clone())));
-        print!("Bool: {}\n", (*v.borrow().as_ref().unwrap()));;
+        print!("Bool: {}\n", { let __v = (*v.borrow().as_ref().unwrap()).clone(); __v });;
     } else {
         let v = _any_val;
         print!("Other: {} = {}\n", go_type_name(v), format_any(v.borrow().as_ref().unwrap().as_ref()));;
     }
     }
-    }
+    } }
 }

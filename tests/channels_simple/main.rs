@@ -75,5 +75,5 @@ fn main() {
     });
 
     let mut msg = Arc::new(Mutex::new(Some(messages.recv().unwrap())));
-    println!("{}", (*msg.lock().unwrap().as_ref().unwrap()));
+    println!("{}", { let __v = (*msg.lock().unwrap().as_ref().unwrap()).clone(); __v });
 }

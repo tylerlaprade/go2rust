@@ -12,6 +12,19 @@ var anonymousStructCounter = 0
 var anonymousStructs = make(map[string]*ast.StructType)
 var anonymousStructTypeMap = make(map[string]string) // maps struct signature to type name
 
+func isEmptyInterfaceExpr(expr ast.Expr) bool {
+	intf, ok := expr.(*ast.InterfaceType)
+	return ok && (intf.Methods == nil || len(intf.Methods.List) == 0)
+}
+
+func isEmptyInterfaceType(typ types.Type) bool {
+	if typ == nil {
+		return false
+	}
+	intf, ok := typ.Underlying().(*types.Interface)
+	return ok && intf.NumMethods() == 0
+}
+
 // getStructSignature creates a unique signature for a struct type based on its fields
 func getStructSignature(structType *ast.StructType) string {
 	var sig strings.Builder
@@ -330,7 +343,8 @@ func goTypeToRustBase(expr ast.Expr) string {
 			if ident.Name == "time" {
 				switch t.Sel.Name {
 				case "Time":
-					return "std::time::SystemTime"
+					NeedGoTime()
+					return "GoTime"
 				case "Duration":
 					return "std::time::Duration"
 				case "Timer":
@@ -399,6 +413,34 @@ func zeroValueForGoType(expr ast.Expr) string {
 	}
 }
 
+func zeroValueForTypesType(typ types.Type) string {
+	if typ == nil {
+		return "Default::default()"
+	}
+	switch t := typ.Underlying().(type) {
+	case *types.Basic:
+		switch t.Kind() {
+		case types.String:
+			return "String::new()"
+		case types.Bool:
+			return "false"
+		case types.Float32, types.Float64:
+			return "0.0"
+		case types.Int, types.Int8, types.Int16, types.Int32, types.Int64,
+			types.Uint, types.Uint8, types.Uint16, types.Uint32, types.Uint64, types.Uintptr:
+			return "0"
+		default:
+			return "Default::default()"
+		}
+	case *types.Slice:
+		return "vec![]"
+	case *types.Map:
+		return "BTreeMap::new()"
+	default:
+		return "Default::default()"
+	}
+}
+
 // isSyncParam checks if a type expression is sync.WaitGroup, sync.Mutex, or pointers to them
 func isSyncParam(expr ast.Expr) bool {
 	// Check *sync.WaitGroup / *sync.Mutex
@@ -455,7 +497,27 @@ func goTypesTypeToRust(t types.Type) string {
 	case *types.Slice:
 		return "Vec<" + goTypesTypeToRust(ut.Elem()) + ">"
 	case *types.Map:
+		TrackImport("BTreeMap")
 		return "BTreeMap<" + goTypesTypeToRust(ut.Key()) + ", " + goTypesTypeToRustWrapped(ut.Elem()) + ">"
+	case *types.Struct:
+		if named, ok := t.(*types.Named); ok {
+			return named.Obj().Name()
+		}
+		if anonName := lookupAnonymousStructName(ut); anonName != "" {
+			return anonName
+		}
+		return "/* unknown struct */"
+	case *types.Interface:
+		if ut.NumMethods() == 0 {
+			TrackImport("Any")
+			return "Box<dyn Any>"
+		}
+		if named, ok := t.(*types.Named); ok {
+			return "Box<dyn " + named.Obj().Name() + ">"
+		}
+		return "Box<dyn Trait>"
+	case *types.Signature:
+		return signatureToBoxDynFn(ut)
 	default:
 		// Fallback for named types
 		if named, ok := t.(*types.Named); ok {

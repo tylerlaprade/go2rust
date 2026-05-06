@@ -19,9 +19,9 @@ pub fn defer_example() {
     println!("{}", "Middle of function".to_string());
 
     __defer_stack.push(Box::new(move || {
-        (*Rc::new(RefCell::new(Some(Box::new(move || {
+        { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
         println!("{}", "Anonymous deferred function".to_string());
-    }) as Box<dyn Fn() -> ()>))).borrow().as_ref().unwrap())();
+    }) as Box<dyn Fn() -> ()>))); let __f_guard = __f_holder.borrow(); let __f = __f_guard.as_ref().unwrap(); (*__f)() };
     }));
 
     println!("{}", "End of function".to_string());
@@ -37,13 +37,13 @@ pub fn defer_with_variables() {
 
     let mut x = Rc::new(RefCell::new(Some(10)));
     let x_defer_captured = x.clone(); __defer_stack.push(Box::new(move || {
-        (*Rc::new(RefCell::new(Some(Box::new(move || {
-        println!("{} {}", "Deferred x:".to_string(), (*x_defer_captured.borrow().as_ref().unwrap()));
-    }) as Box<dyn Fn() -> ()>))).borrow().as_ref().unwrap())();
+        { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
+        println!("{} {}", "Deferred x:".to_string(), { let __v = (*x_defer_captured.borrow().as_ref().unwrap()).clone(); __v });
+    }) as Box<dyn Fn() -> ()>))); let __f_guard = __f_holder.borrow(); let __f = __f_guard.as_ref().unwrap(); (*__f)() };
     }));
 
     { let new_val = 20; *x.borrow_mut() = Some(new_val); };
-    println!("{} {}", "Current x:".to_string(), (*x.borrow().as_ref().unwrap()));
+    println!("{} {}", "Current x:".to_string(), { let __v = (*x.borrow().as_ref().unwrap()).clone(); __v });
 
     // Execute deferred functions
     while let Some(f) = __defer_stack.pop() {
@@ -59,7 +59,7 @@ pub fn defer_in_loop() {
     while (*i.borrow().as_ref().unwrap()) < 3 {
         let __defer_arg_0 = Rc::new(RefCell::new(Some((*i.borrow().as_ref().unwrap()).clone()))); __defer_stack.push(Box::new(move || {
         (move |val: Rc<RefCell<Option<i32>>>| {
-        print!("Deferred loop value: {}\n", (*val.borrow().as_ref().unwrap()));; 
+        print!("Deferred loop value: {}\n", { let __v = (*val.borrow().as_ref().unwrap()).clone(); __v });;
         })(__defer_arg_0);
     }));
         { let mut guard = i.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }

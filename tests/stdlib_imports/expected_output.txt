@@ -1,0 +1,31 @@
+=== Testing multiple stdlib imports ===
+
+--- strings package ---
+Upper: HELLO WORLD
+Lower: hello world
+Trimmed: hello
+Split: [a b c]
+
+--- strconv package ---
+Number as string: 42
+Parsed number: 123
+Float as string: 3.14
+
+--- math package ---
+Pi: 3.141593
+E: 2.718282
+Sqrt(16): 4.00
+Pow(2, 8): 256
+Max(10, 20): 20
+Min(10, 20): 10
+
+--- time package ---
+Fixed timestamp: 1700000000
+One hour later: 1700003600
+
+--- os package ---
+Argument count: 1
+
+--- Combined usage ---
+Timestamp: 1700000000
+Hypotenuse of 3,4 triangle: 5.00

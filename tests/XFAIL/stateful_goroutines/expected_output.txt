@@ -1,2 +1,2 @@
-readOps: 39781
-writeOps: 3986
+readOps: 100
+writeOps: 10

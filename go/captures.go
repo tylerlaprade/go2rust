@@ -125,5 +125,25 @@ func findCapturedInCall(call *ast.CallExpr) map[string]bool {
 		}
 	}
 
-	return make(map[string]bool)
+	captured := make(map[string]bool)
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return captured
+	}
+
+	ast.Inspect(call, func(n ast.Node) bool {
+		if ident, ok := n.(*ast.Ident); ok {
+			if isBuiltinIdentifier(ident.Name) || typeInfo.IsFunction(ident) {
+				return true
+			}
+			if obj := typeInfo.GetObject(ident); obj != nil {
+				if _, isVar := obj.(*types.Var); isVar {
+					captured[ident.Name] = true
+				}
+			}
+		}
+		return true
+	})
+
+	return captured
 }

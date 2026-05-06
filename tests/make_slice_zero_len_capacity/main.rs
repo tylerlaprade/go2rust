@@ -15,6 +15,14 @@ where
     }
 }
 
+fn format_slice_values<T>(slice: &[T]) -> String
+where
+    T: Display,
+{
+    let formatted: Vec<String> = slice.iter().map(|v| v.to_string()).collect();
+    format!("[{}]", formatted.join(" "))
+}
+
 fn main() {
     let mut s = Rc::new(RefCell::new(Some(Vec::with_capacity(4))));
     println!("{} {} {}", (*s.borrow().as_ref().unwrap()).len(), (*s.borrow().as_ref().unwrap()).capacity(), (*s.borrow()).is_none());

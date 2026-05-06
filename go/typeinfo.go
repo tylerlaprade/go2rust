@@ -20,6 +20,7 @@ func NewTypeInfo(files []*ast.File, fset *token.FileSet) (*TypeInfo, error) {
 		Defs:       make(map[*ast.Ident]types.Object),
 		Uses:       make(map[*ast.Ident]types.Object),
 		Selections: make(map[*ast.SelectorExpr]*types.Selection),
+		InitOrder:  []*types.Initializer{},
 	}
 
 	config := &types.Config{
@@ -161,6 +162,40 @@ func (ti *TypeInfo) IsArray(expr ast.Expr) bool {
 	}
 	_, ok := typ.Underlying().(*types.Array)
 	return ok
+}
+
+// GetStructType returns the underlying struct type for an expression, or nil.
+func (ti *TypeInfo) GetStructType(expr ast.Expr) *types.Struct {
+	typ := ti.GetType(expr)
+	if typ == nil {
+		return nil
+	}
+	if st, ok := typ.Underlying().(*types.Struct); ok {
+		return st
+	}
+	return nil
+}
+
+// IsByteSliceOrArray returns true if the expression is []byte, []uint8, or a byte array.
+func (ti *TypeInfo) IsByteSliceOrArray(expr ast.Expr) bool {
+	typ := ti.GetType(expr)
+	if typ == nil {
+		return false
+	}
+
+	switch t := typ.Underlying().(type) {
+	case *types.Slice:
+		return isByteType(t.Elem())
+	case *types.Array:
+		return isByteType(t.Elem())
+	default:
+		return false
+	}
+}
+
+func isByteType(typ types.Type) bool {
+	basic, ok := typ.Underlying().(*types.Basic)
+	return ok && basic.Kind() == types.Uint8
 }
 
 // IsFunction returns true if the identifier refers to a function (not a variable holding a function)
@@ -404,6 +439,9 @@ func (ti *TypeInfo) NeedsUnwrapping(expr ast.Expr) bool {
 		return false
 	case *ast.UnaryExpr:
 		// Unary expressions are computed inline, don't need unwrapping
+		return false
+	case *ast.StarExpr:
+		// Dereference expressions emit the pointed-to value directly.
 		return false
 	case *ast.ParenExpr:
 		// Check the inner expression

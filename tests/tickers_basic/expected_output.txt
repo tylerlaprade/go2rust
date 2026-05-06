@@ -1,0 +1,2 @@
+Ticks: 3
+Ticker stopped

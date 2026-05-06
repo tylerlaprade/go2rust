@@ -7,5 +7,5 @@ fn main() {
     (*builder.borrow_mut().as_mut().unwrap()).push_str(" ");
     (*builder.borrow_mut().as_mut().unwrap()).push_str("World");
     let mut result = Rc::new(RefCell::new(Some((*builder.borrow().as_ref().unwrap()).clone())));
-    println!("{}", (*result.borrow().as_ref().unwrap()));
+    println!("{}", { let __v = (*result.borrow().as_ref().unwrap()).clone(); __v });
 }

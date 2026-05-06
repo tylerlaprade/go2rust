@@ -14,10 +14,10 @@ fn main() {
 
     let mut num = Rc::new(RefCell::new(Some(9)));
     if (*num.borrow().as_ref().unwrap()) < 0 {
-        println!("{} {}", (*num.borrow().as_ref().unwrap()), "is negative".to_string());
+        println!("{} {}", { let __v = (*num.borrow().as_ref().unwrap()).clone(); __v }, "is negative".to_string());
     } else if (*num.borrow().as_ref().unwrap()) < 10 {
-        println!("{} {}", (*num.borrow().as_ref().unwrap()), "has 1 digit".to_string());
+        println!("{} {}", { let __v = (*num.borrow().as_ref().unwrap()).clone(); __v }, "has 1 digit".to_string());
     } else {
-        println!("{} {}", (*num.borrow().as_ref().unwrap()), "has multiple digits".to_string());
+        println!("{} {}", { let __v = (*num.borrow().as_ref().unwrap()).clone(); __v }, "has multiple digits".to_string());
     }
 }

@@ -3,7 +3,7 @@ use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
 #[derive(Debug, Clone)]
-struct Celsius(Rc<RefCell<Option<f64>>>);
+pub struct Celsius(Rc<RefCell<Option<f64>>>);
 
 impl Display for Celsius {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
@@ -13,7 +13,7 @@ impl Display for Celsius {
 
 
 #[derive(Debug, Clone)]
-struct Fahrenheit(Rc<RefCell<Option<f64>>>);
+pub struct Fahrenheit(Rc<RefCell<Option<f64>>>);
 
 impl Display for Fahrenheit {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
@@ -22,7 +22,7 @@ impl Display for Fahrenheit {
 }
 
 
-type StringAlias = Rc<RefCell<Option<String>>>;
+pub type StringAlias = Rc<RefCell<Option<String>>>;
 
 
 impl Celsius {
@@ -39,11 +39,11 @@ impl Fahrenheit {
 
 fn main() {
     let mut temp: Rc<RefCell<Option<Celsius>>> = Rc::new(RefCell::new(Some(Celsius(Rc::new(RefCell::new(Some(100.0)))))));
-    print!("{}°C = {}°F\n", (*temp.borrow().as_ref().unwrap()), (*(*temp.borrow().as_ref().unwrap()).to_fahrenheit().borrow().as_ref().unwrap()));
+    print!("{}°C = {}°F\n", { let __v = (*temp.borrow().as_ref().unwrap()).clone(); __v }, (*(*temp.borrow().as_ref().unwrap()).to_fahrenheit().borrow().as_ref().unwrap()));
 
     let mut f: Rc<RefCell<Option<Fahrenheit>>> = Rc::new(RefCell::new(Some(Fahrenheit(Rc::new(RefCell::new(Some(212.0)))))));
-    print!("{}°F = {}°C\n", (*f.borrow().as_ref().unwrap()), (*(*f.borrow().as_ref().unwrap()).to_celsius().borrow().as_ref().unwrap()));
+    print!("{}°F = {}°C\n", { let __v = (*f.borrow().as_ref().unwrap()).clone(); __v }, (*(*f.borrow().as_ref().unwrap()).to_celsius().borrow().as_ref().unwrap()));
 
     let mut s: StringAlias = Rc::new(RefCell::new(Some("hello".to_string())));
-    println!("{}", (*s.borrow().as_ref().unwrap()));
+    println!("{}", { let __v = (*s.borrow().as_ref().unwrap()).clone(); __v });
 }

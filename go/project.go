@@ -18,6 +18,7 @@ type ProjectGenerator struct {
 	isLibrary       bool
 	hasMain         bool
 	moduleNames     []string
+	initModuleNames []string
 	typeInfo        *TypeInfo
 	projectImports  *ImportTracker // Collect imports across all files
 	externalMode    ExternalPackageMode
@@ -221,6 +222,8 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 		SetPackageImports(packageImports)
 	}
 
+	nonMainModuleNames := pg.nonMainModuleNames(astFilesByPath)
+
 	// Ensure we clean up TypeInfo when done
 	defer SetTypeInfo(nil)
 
@@ -280,6 +283,11 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 			rustFilename = strings.TrimSuffix(filename, ".go") + "_.rs"
 		}
 
+		rustCode = prefixSiblingModuleImports(rustCode, outputName, nonMainModuleNames)
+		if strings.Contains(rustCode, "__go_init_all") {
+			pg.initModuleNames = append(pg.initModuleNames, outputName)
+		}
+
 		// Write module file
 		err := os.WriteFile(rustFilename, []byte(rustCode), 0644)
 		if err != nil {
@@ -334,6 +342,45 @@ func (pg *ProjectGenerator) hasExternalPackages() bool {
 		}
 	}
 	return false
+}
+
+func (pg *ProjectGenerator) nonMainModuleNames(astFilesByPath map[string]*ast.File) []string {
+	var moduleNames []string
+	for _, filename := range pg.goFiles {
+		file := astFilesByPath[normalizeFilePath(filename)]
+		if file == nil {
+			continue
+		}
+		baseName := strings.TrimSuffix(filepath.Base(filename), ".go")
+		if baseName == "main" && file.Name.Name == "main" {
+			continue
+		}
+		outputName := baseName
+		if pg.hasMainFile() && strings.HasPrefix(baseName, "lib") && strings.TrimLeft(baseName[3:], "_") == "" {
+			outputName = baseName + "_"
+		}
+		moduleNames = append(moduleNames, outputName)
+	}
+	sort.Strings(moduleNames)
+	return moduleNames
+}
+
+func prefixSiblingModuleImports(rustCode, selfModule string, moduleNames []string) string {
+	var imports strings.Builder
+	for _, modName := range moduleNames {
+		if modName == selfModule {
+			continue
+		}
+		imports.WriteString("use crate::")
+		imports.WriteString(modName)
+		imports.WriteString("::*;\n")
+	}
+	if imports.Len() == 0 {
+		return rustCode
+	}
+	imports.WriteString("\n")
+	imports.WriteString(rustCode)
+	return imports.String()
 }
 
 func (pg *ProjectGenerator) hasMainFile() bool {
@@ -403,10 +450,34 @@ func (pg *ProjectGenerator) generateMainRs(fileSet *token.FileSet, astFilesByPat
 		}
 	}
 
+	mainContent = injectModuleInitCalls(mainContent, pg.initModuleNames)
+
 	mainRust.WriteString(mainContent)
 
 	mainRsPath := filepath.Join(pg.projectPath, "main.rs")
 	return os.WriteFile(mainRsPath, []byte(mainRust.String()), 0644)
+}
+
+func injectModuleInitCalls(rustCode string, moduleNames []string) string {
+	if len(moduleNames) == 0 {
+		return rustCode
+	}
+	const marker = "fn main() {"
+	insertAt := strings.Index(rustCode, marker)
+	if insertAt < 0 {
+		return rustCode
+	}
+	insertAt += len(marker)
+
+	var initCalls strings.Builder
+	initCalls.WriteString("\n")
+	for _, modName := range moduleNames {
+		initCalls.WriteString("    ")
+		initCalls.WriteString(modName)
+		initCalls.WriteString("::__go_init_all();\n")
+	}
+
+	return rustCode[:insertAt] + initCalls.String() + rustCode[insertAt:]
 }
 
 func (pg *ProjectGenerator) generateCargoToml() error {

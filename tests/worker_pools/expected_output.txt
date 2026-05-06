@@ -1,0 +1,2 @@
+Processed jobs: 5
+Result total: 30

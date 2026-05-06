@@ -1,11 +1,18 @@
 use std::cell::{RefCell};
 use std::collections::BTreeMap;
+use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
 #[derive(Debug, Clone, Default)]
 struct AnonymousStruct1 {
     x: Rc<RefCell<Option<i32>>>,
     y: Rc<RefCell<Option<i32>>>,
+}
+
+impl std::fmt::Display for AnonymousStruct1 {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{} {}}}", (*self.x.borrow().as_ref().unwrap()), (*self.y.borrow().as_ref().unwrap()))
+    }
 }
 
 
@@ -15,12 +22,30 @@ struct AnonymousStruct2 {
     age: Rc<RefCell<Option<i32>>>,
 }
 
+impl std::fmt::Display for AnonymousStruct2 {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{} {}}}", (*self.name.borrow().as_ref().unwrap()), (*self.age.borrow().as_ref().unwrap()))
+    }
+}
 
-#[derive(Debug, Clone, Default)]
+
+#[derive(Debug, Clone)]
 struct AnonymousStruct3 {
     host: Rc<RefCell<Option<String>>>,
     port: Rc<RefCell<Option<i32>>>,
     settings: Rc<RefCell<Option<AnonymousStruct4>>>,
+}
+
+impl Default for AnonymousStruct3 {
+    fn default() -> Self {
+        Self { host: Default::default(), port: Default::default(), settings: Rc::new(RefCell::new(Some(AnonymousStruct4::default()))) }
+    }
+}
+
+impl std::fmt::Display for AnonymousStruct3 {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{} {} {}}}", (*self.host.borrow().as_ref().unwrap()), (*self.port.borrow().as_ref().unwrap()), (*self.settings.borrow().as_ref().unwrap()))
+    }
 }
 
 
@@ -30,11 +55,23 @@ struct AnonymousStruct4 {
     verbose: Rc<RefCell<Option<bool>>>,
 }
 
+impl std::fmt::Display for AnonymousStruct4 {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{} {}}}", (*self.debug.borrow().as_ref().unwrap()), (*self.verbose.borrow().as_ref().unwrap()))
+    }
+}
+
 
 #[derive(Debug, Clone, Default)]
 struct AnonymousStruct5 {
     i_d: Rc<RefCell<Option<i32>>>,
     value: Rc<RefCell<Option<String>>>,
+}
+
+impl std::fmt::Display for AnonymousStruct5 {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{} {}}}", (*self.i_d.borrow().as_ref().unwrap()), (*self.value.borrow().as_ref().unwrap()))
+    }
 }
 
 
@@ -44,11 +81,23 @@ struct AnonymousStruct6 {
     message: Rc<RefCell<Option<String>>>,
 }
 
+impl std::fmt::Display for AnonymousStruct6 {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{} {}}}", (*self.r#type.borrow().as_ref().unwrap()), (*self.message.borrow().as_ref().unwrap()))
+    }
+}
+
 
 #[derive(Debug, Clone, Default)]
 struct AnonymousStruct7 {
     email: Rc<RefCell<Option<String>>>,
     admin: Rc<RefCell<Option<bool>>>,
+}
+
+impl std::fmt::Display for AnonymousStruct7 {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{} {}}}", (*self.email.borrow().as_ref().unwrap()), (*self.admin.borrow().as_ref().unwrap()))
+    }
 }
 
 
@@ -81,9 +130,9 @@ fn main() {
 
         // Slice of anonymous structs
     let mut events = Rc::new(RefCell::new(Some(vec![AnonymousStruct6 { r#type: Rc::new(RefCell::new(Some("info".to_string()))), message: Rc::new(RefCell::new(Some("System started".to_string()))), ..Default::default() }, AnonymousStruct6 { r#type: Rc::new(RefCell::new(Some("warning".to_string()))), message: Rc::new(RefCell::new(Some("Low memory".to_string()))), ..Default::default() }, AnonymousStruct6 { r#type: Rc::new(RefCell::new(Some("error".to_string()))), message: Rc::new(RefCell::new(Some("Connection failed".to_string()))), ..Default::default() }])));
-    for event in &(*events.borrow().as_ref().unwrap()) {
+    { let __range_guard = events.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for event in __range_values.iter() {
         print!("Event [{}]: {}\n", (*event.r#type.borrow().as_ref().unwrap()), (*event.message.borrow().as_ref().unwrap()));
-    }
+    } }
 
         // Map with anonymous struct values
     let mut users = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<AnonymousStruct7>>>>::from([("alice".to_string(), Rc::new(RefCell::new(Some(AnonymousStruct7 { email: Rc::new(RefCell::new(Some("alice@example.com".to_string()))), admin: Rc::new(RefCell::new(Some(true))), ..Default::default() })))), ("bob".to_string(), Rc::new(RefCell::new(Some(AnonymousStruct7 { email: Rc::new(RefCell::new(Some("bob@example.com".to_string()))), admin: Rc::new(RefCell::new(Some(false))), ..Default::default() }))))]))));
@@ -92,8 +141,8 @@ fn main() {
         {(*userNames.borrow_mut()).get_or_insert_with(Vec::new).push(name); userNames.clone()};
     }
     (*userNames.borrow_mut().as_mut().unwrap()).sort();
-    for name in &(*userNames.borrow().as_ref().unwrap()) {
-        let mut user = Rc::new(RefCell::new(Some((*users.borrow().as_ref().unwrap()).get(name).unwrap().borrow().as_ref().unwrap().clone())));
+    { let __range_guard = userNames.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for name in __range_values.iter() {
+        let mut user = Rc::new(RefCell::new(Some((*users.borrow().as_ref().unwrap()).get(name).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| Default::default()))));
         print!("User {}: {} (admin: {})\n", name, (*(*user.borrow().as_ref().unwrap()).email.borrow().as_ref().unwrap()), (*(*user.borrow().as_ref().unwrap()).admin.borrow().as_ref().unwrap()));
-    }
+    } }
 }

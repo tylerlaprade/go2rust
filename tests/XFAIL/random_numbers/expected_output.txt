@@ -1,2 +1,0 @@
-Random int: 41
-Random float: 0.24602537128329852

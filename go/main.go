@@ -119,7 +119,7 @@ func collectGoFiles(path string) ([]string, error) {
 			// Skip subdirectories for now
 			continue
 		}
-		if strings.HasSuffix(entry.Name(), ".go") {
+		if strings.HasSuffix(entry.Name(), ".go") && !strings.HasSuffix(entry.Name(), "_test.go") {
 			goFiles = append(goFiles, filepath.Join(path, entry.Name()))
 		}
 	}

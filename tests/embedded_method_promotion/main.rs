@@ -4,8 +4,8 @@ use std::rc::{Rc};
 
 /// Base types with methods
 #[derive(Debug, Clone, Default)]
-struct Logger {
-    prefix: Rc<RefCell<Option<String>>>,
+pub struct Logger {
+    pub prefix: Rc<RefCell<Option<String>>>,
 }
 
 impl std::fmt::Display for Logger {
@@ -16,8 +16,8 @@ impl std::fmt::Display for Logger {
 
 
 #[derive(Debug, Clone, Default)]
-struct Counter {
-    count: Rc<RefCell<Option<i32>>>,
+pub struct Counter {
+    pub count: Rc<RefCell<Option<i32>>>,
 }
 
 impl std::fmt::Display for Counter {
@@ -28,11 +28,18 @@ impl std::fmt::Display for Counter {
 
 
 /// Type that embeds both Logger and Counter
-#[derive(Debug, Clone, Default)]
-struct Service {
-    logger: Rc<RefCell<Option<Logger>>>,
-    counter: Rc<RefCell<Option<Counter>>>,
-    name: Rc<RefCell<Option<String>>>,
+#[derive(Debug, Clone)]
+pub struct Service {
+    pub logger: Rc<RefCell<Option<Logger>>>,
+    pub counter: Rc<RefCell<Option<Counter>>>,
+    pub name: Rc<RefCell<Option<String>>>,
+}
+
+
+impl Default for Service {
+    fn default() -> Self {
+        Self { logger: Rc::new(RefCell::new(Some(Logger::default()))), counter: Rc::new(RefCell::new(Some(Counter::default()))), name: Default::default() }
+    }
 }
 
 impl std::fmt::Display for Service {
@@ -44,8 +51,8 @@ impl std::fmt::Display for Service {
 
 /// Type with multiple levels of embedding
 #[derive(Debug, Clone, Default)]
-struct Base {
-    id: Rc<RefCell<Option<i32>>>,
+pub struct Base {
+    pub id: Rc<RefCell<Option<i32>>>,
 }
 
 impl std::fmt::Display for Base {
@@ -55,10 +62,17 @@ impl std::fmt::Display for Base {
 }
 
 
-#[derive(Debug, Clone, Default)]
-struct Middle {
-    base: Rc<RefCell<Option<Base>>>,
-    data: Rc<RefCell<Option<String>>>,
+#[derive(Debug, Clone)]
+pub struct Middle {
+    pub base: Rc<RefCell<Option<Base>>>,
+    pub data: Rc<RefCell<Option<String>>>,
+}
+
+
+impl Default for Middle {
+    fn default() -> Self {
+        Self { base: Rc::new(RefCell::new(Some(Base::default()))), data: Default::default() }
+    }
 }
 
 impl std::fmt::Display for Middle {
@@ -68,10 +82,17 @@ impl std::fmt::Display for Middle {
 }
 
 
-#[derive(Debug, Clone, Default)]
-struct Top {
-    middle: Rc<RefCell<Option<Middle>>>,
-    extra: Rc<RefCell<Option<String>>>,
+#[derive(Debug, Clone)]
+pub struct Top {
+    pub middle: Rc<RefCell<Option<Middle>>>,
+    pub extra: Rc<RefCell<Option<String>>>,
+}
+
+
+impl Default for Top {
+    fn default() -> Self {
+        Self { middle: Rc::new(RefCell::new(Some(Middle::default()))), extra: Default::default() }
+    }
 }
 
 impl std::fmt::Display for Top {
@@ -83,7 +104,7 @@ impl std::fmt::Display for Top {
 
 impl Logger {
     pub fn log(&self, msg: Rc<RefCell<Option<String>>>) {
-        print!("[{}] {}\n", (*self.prefix.borrow().as_ref().unwrap()), (*msg.borrow().as_ref().unwrap()));
+        print!("[{}] {}\n", (*self.prefix.borrow().as_ref().unwrap()), { let __v = (*msg.borrow().as_ref().unwrap()).clone(); __v });
     }
 
     pub fn set_prefix(&mut self, prefix: Rc<RefCell<Option<String>>>) {

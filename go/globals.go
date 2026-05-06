@@ -33,6 +33,9 @@ var functionSignatures = make(map[string]*FunctionSignature)
 // Global set of types that implement the error interface (have Error() string method)
 var errorImplTypes = make(map[string]bool)
 
+// Global set of types that implement fmt.Stringer (have String() string method)
+var stringerImplTypes = make(map[string]bool)
+
 // RegisterErrorImplType marks a type as implementing the error interface
 func RegisterErrorImplType(name string) {
 	currentErrorImplTypes()[name] = true
@@ -41,6 +44,14 @@ func RegisterErrorImplType(name string) {
 // IsErrorImplType checks if a type implements the error interface
 func IsErrorImplType(name string) bool {
 	return currentErrorImplTypes()[name]
+}
+
+func RegisterStringerImplType(name string) {
+	currentStringerImplTypes()[name] = true
+}
+
+func IsStringerImplType(name string) bool {
+	return currentStringerImplTypes()[name]
 }
 
 // RegisterFunctionSignature stores a function's signature for later use
@@ -65,6 +76,13 @@ func currentErrorImplTypes() map[string]bool {
 		return currentContext.Package.ErrorImplTypes
 	}
 	return errorImplTypes
+}
+
+func currentStringerImplTypes() map[string]bool {
+	if currentContext != nil && currentContext.Package != nil {
+		return currentContext.Package.StringerImplTypes
+	}
+	return stringerImplTypes
 }
 
 func currentInterfaceTypes() map[string]bool {

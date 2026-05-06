@@ -15,10 +15,18 @@ where
     }
 }
 
+fn format_slice_values<T>(slice: &[T]) -> String
+where
+    T: Display,
+{
+    let formatted: Vec<String> = slice.iter().map(|v| v.to_string()).collect();
+    format!("[{}]", formatted.join(" "))
+}
+
 #[derive(Debug, Clone, Default)]
-struct Person {
-    name: Rc<RefCell<Option<String>>>,
-    age: Rc<RefCell<Option<i32>>>,
+pub struct Person {
+    pub name: Rc<RefCell<Option<String>>>,
+    pub age: Rc<RefCell<Option<i32>>>,
 }
 
 impl std::fmt::Display for Person {
@@ -29,10 +37,10 @@ impl std::fmt::Display for Person {
 
 
 #[derive(Debug, Clone, Default)]
-struct Address {
-    street: Rc<RefCell<Option<String>>>,
-    city: Rc<RefCell<Option<String>>>,
-    state: Rc<RefCell<Option<String>>>,
+pub struct Address {
+    pub street: Rc<RefCell<Option<String>>>,
+    pub city: Rc<RefCell<Option<String>>>,
+    pub state: Rc<RefCell<Option<String>>>,
 }
 
 impl std::fmt::Display for Address {
@@ -42,12 +50,19 @@ impl std::fmt::Display for Address {
 }
 
 
-#[derive(Debug, Clone, Default)]
-struct Employee {
-    person: Rc<RefCell<Option<Person>>>,
-    address: Rc<RefCell<Option<Address>>>,
-    i_d: Rc<RefCell<Option<i32>>>,
-    salary: Rc<RefCell<Option<f64>>>,
+#[derive(Debug, Clone)]
+pub struct Employee {
+    pub person: Rc<RefCell<Option<Person>>>,
+    pub address: Rc<RefCell<Option<Address>>>,
+    pub i_d: Rc<RefCell<Option<i32>>>,
+    pub salary: Rc<RefCell<Option<f64>>>,
+}
+
+
+impl Default for Employee {
+    fn default() -> Self {
+        Self { person: Rc::new(RefCell::new(Some(Person::default()))), address: Rc::new(RefCell::new(Some(Address::default()))), i_d: Default::default(), salary: Default::default() }
+    }
 }
 
 impl std::fmt::Display for Employee {
@@ -57,10 +72,17 @@ impl std::fmt::Display for Employee {
 }
 
 
-#[derive(Debug, Clone, Default)]
-struct Manager {
-    employee: Rc<RefCell<Option<Employee>>>,
-    team: Rc<RefCell<Option<Vec<String>>>>,
+#[derive(Debug, Clone)]
+pub struct Manager {
+    pub employee: Rc<RefCell<Option<Employee>>>,
+    pub team: Rc<RefCell<Option<Vec<String>>>>,
+}
+
+
+impl Default for Manager {
+    fn default() -> Self {
+        Self { employee: Rc::new(RefCell::new(Some(Employee::default()))), team: Default::default() }
+    }
 }
 
 impl std::fmt::Display for Manager {
@@ -72,9 +94,9 @@ impl std::fmt::Display for Manager {
 
 /// Anonymous struct embedding
 #[derive(Debug, Clone, Default)]
-struct CompanyInfo {
-    founded: Rc<RefCell<Option<i32>>>,
-    c_e_o: Rc<RefCell<Option<String>>>,
+pub struct CompanyInfo {
+    pub founded: Rc<RefCell<Option<i32>>>,
+    pub c_e_o: Rc<RefCell<Option<String>>>,
 }
 
 impl std::fmt::Display for CompanyInfo {
@@ -84,10 +106,17 @@ impl std::fmt::Display for CompanyInfo {
 }
 
 
-#[derive(Debug, Clone, Default)]
-struct Company {
-    name: Rc<RefCell<Option<String>>>,
-    company_info: Rc<RefCell<Option<CompanyInfo>>>,
+#[derive(Debug, Clone)]
+pub struct Company {
+    pub name: Rc<RefCell<Option<String>>>,
+    pub company_info: Rc<RefCell<Option<CompanyInfo>>>,
+}
+
+
+impl Default for Company {
+    fn default() -> Self {
+        Self { name: Default::default(), company_info: Rc::new(RefCell::new(Some(CompanyInfo::default()))) }
+    }
 }
 
 impl std::fmt::Display for Company {

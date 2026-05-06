@@ -2,15 +2,15 @@ use std::cell::{RefCell};
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
-trait Shape: std::fmt::Display {
+pub trait Shape: std::fmt::Display {
     fn area(&self) -> Rc<RefCell<Option<f64>>>;
     fn perimeter(&self) -> Rc<RefCell<Option<f64>>>;
 }
 
 #[derive(Debug, Clone, Default)]
-struct Rectangle {
-    width: Rc<RefCell<Option<f64>>>,
-    height: Rc<RefCell<Option<f64>>>,
+pub struct Rectangle {
+    pub width: Rc<RefCell<Option<f64>>>,
+    pub height: Rc<RefCell<Option<f64>>>,
 }
 
 impl std::fmt::Display for Rectangle {
@@ -21,8 +21,8 @@ impl std::fmt::Display for Rectangle {
 
 
 #[derive(Debug, Clone, Default)]
-struct Circle {
-    radius: Rc<RefCell<Option<f64>>>,
+pub struct Circle {
+    pub radius: Rc<RefCell<Option<f64>>>,
 }
 
 impl std::fmt::Display for Circle {
@@ -87,8 +87,8 @@ fn main() {
         // Interface slice
     let mut shapes = Rc::new(RefCell::new(Some(vec![Box::new((*rect.borrow().as_ref().unwrap()).clone()) as Box<dyn Shape>, Box::new((*circle.borrow().as_ref().unwrap()).clone()) as Box<dyn Shape>])));
     println!("{}", "All shapes:".to_string());
-    for (i, shape) in (*shapes.borrow().as_ref().unwrap()).iter().enumerate() {
+    { let __range_guard = shapes.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for (i, shape) in __range_values.iter().enumerate() {
         print!("Shape {}: ", i + 1);
         print_shape_info(shape.as_ref());
-    }
+    } }
 }

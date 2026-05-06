@@ -8,9 +8,9 @@ pub fn vals() -> (Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) {
 
 fn main() {
     let (mut a, mut b) = vals();
-    println!("{}", (*a.borrow().as_ref().unwrap()));
-    println!("{}", (*b.borrow().as_ref().unwrap()));
+    println!("{}", { let __v = (*a.borrow().as_ref().unwrap()).clone(); __v });
+    println!("{}", { let __v = (*b.borrow().as_ref().unwrap()).clone(); __v });
 
     let (_, mut c) = vals();
-    println!("{}", (*c.borrow().as_ref().unwrap()));
+    println!("{}", { let __v = (*c.borrow().as_ref().unwrap()).clone(); __v });
 }

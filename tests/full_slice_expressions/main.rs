@@ -15,11 +15,19 @@ where
     }
 }
 
+fn format_slice_values<T>(slice: &[T]) -> String
+where
+    T: Display,
+{
+    let formatted: Vec<String> = slice.iter().map(|v| v.to_string()).collect();
+    format!("[{}]", formatted.join(" "))
+}
+
 fn main() {
     let mut nums = Rc::new(RefCell::new(Some(vec![1, 2, 3])));
-    let mut all = Rc::new(RefCell::new(Some((*nums.borrow().as_ref().unwrap())[..].to_vec())));
+    let mut all = Rc::new(RefCell::new(Some({ let __seq = { let __seq_holder = nums.clone(); let __seq_guard = __seq_holder.borrow(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[..].to_vec() })));
     println!("{} {} {}", (*all.borrow().as_ref().unwrap()).len(), (*all.borrow().as_ref().unwrap()).capacity(), format_slice(&all));
 
     let mut s = Rc::new(RefCell::new(Some("hello".to_string())));
-    println!("{}", (*Rc::new(RefCell::new(Some((*s.borrow().as_ref().unwrap())[..].to_string()))).borrow().as_ref().unwrap()));
+    println!("{}", (*Rc::new(RefCell::new(Some({ let __s = (*s.borrow().as_ref().unwrap()).clone(); __s[..].to_string() }))).borrow().as_ref().unwrap()));
 }

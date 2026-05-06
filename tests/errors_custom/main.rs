@@ -4,9 +4,9 @@ use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
 #[derive(Debug, Clone, Default)]
-struct argError {
-    arg: Rc<RefCell<Option<i32>>>,
-    prob: Rc<RefCell<Option<String>>>,
+pub struct argError {
+    pub arg: Rc<RefCell<Option<i32>>>,
+    pub prob: Rc<RefCell<Option<String>>>,
 }
 
 impl std::fmt::Display for argError {
@@ -55,7 +55,7 @@ fn main() {
     if (*e.borrow()).is_some() {
         println!("{} {}", "f1 failed:".to_string(), format!("{}", (*e.borrow().as_ref().unwrap())));
     } else {
-        println!("{} {}", "f1 worked:".to_string(), (*r.borrow().as_ref().unwrap()));
+        println!("{} {}", "f1 worked:".to_string(), { let __v = (*r.borrow().as_ref().unwrap()).clone(); __v });
     }
     }
     for i in vec![7, 42].iter().copied() {
@@ -63,7 +63,7 @@ fn main() {
     if (*e.borrow()).is_some() {
         println!("{} {}", "f2 failed:".to_string(), format!("{}", (*e.borrow().as_ref().unwrap())));
     } else {
-        println!("{} {}", "f2 worked:".to_string(), (*r.borrow().as_ref().unwrap()));
+        println!("{} {}", "f2 worked:".to_string(), { let __v = (*r.borrow().as_ref().unwrap()).clone(); __v });
     }
     }
 

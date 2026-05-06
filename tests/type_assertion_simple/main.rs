@@ -20,7 +20,7 @@ fn main() {
         }
     });
     if (*ok.borrow().as_ref().unwrap()) {
-        println!("{} {}", "x is string:".to_string(), (*s.borrow().as_ref().unwrap()));
+        println!("{} {}", "x is string:".to_string(), { let __v = (*s.borrow().as_ref().unwrap()).clone(); __v });
     }
 
         // Type assertion without comma-ok (would panic if wrong)
@@ -33,7 +33,7 @@ fn main() {
             panic!("type assertion on nil interface")
         }
     }))));
-    println!("{} {}", "Asserted string:".to_string(), (*str.borrow().as_ref().unwrap()));
+    println!("{} {}", "Asserted string:".to_string(), { let __v = (*str.borrow().as_ref().unwrap()).clone(); __v });
 
         // Failed assertion with comma-ok
     let (mut n, mut ok) = ({
@@ -50,7 +50,7 @@ fn main() {
         }
     });
     if (*ok.borrow().as_ref().unwrap()) {
-        println!("{} {}", "x is int:".to_string(), (*n.borrow().as_ref().unwrap()));
+        println!("{} {}", "x is int:".to_string(), { let __v = (*n.borrow().as_ref().unwrap()).clone(); __v });
     } else {
         println!("{}", "x is not an int".to_string());
     }

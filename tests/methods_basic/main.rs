@@ -3,8 +3,8 @@ use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
 #[derive(Debug, Clone, Default)]
-struct Counter {
-    value: Rc<RefCell<Option<i32>>>,
+pub struct Counter {
+    pub value: Rc<RefCell<Option<i32>>>,
 }
 
 impl std::fmt::Display for Counter {
@@ -15,9 +15,9 @@ impl std::fmt::Display for Counter {
 
 
 #[derive(Debug, Clone, Default)]
-struct Person {
-    name: Rc<RefCell<Option<String>>>,
-    age: Rc<RefCell<Option<i32>>>,
+pub struct Person {
+    pub name: Rc<RefCell<Option<String>>>,
+    pub age: Rc<RefCell<Option<i32>>>,
 }
 
 impl std::fmt::Display for Person {
@@ -72,7 +72,7 @@ fn main() {
     println!("{} {}", "After adding 5:".to_string(), (*(*counter.borrow().as_ref().unwrap()).get_value().borrow().as_ref().unwrap()));
 
     let mut doubled = (*counter.borrow_mut().as_mut().unwrap()).double();
-    println!("{} {}", "After doubling:".to_string(), (*doubled.borrow().as_ref().unwrap()));
+    println!("{} {}", "After doubling:".to_string(), { let __v = (*doubled.borrow().as_ref().unwrap()).clone(); __v });
 
         // Person methods
     let mut person = Rc::new(RefCell::new(Some(Person { name: Rc::new(RefCell::new(Some("Alice".to_string()))), age: Rc::new(RefCell::new(Some(25))), ..Default::default() })));

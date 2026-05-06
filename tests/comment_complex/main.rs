@@ -4,9 +4,9 @@ use std::rc::{Rc};
 
 /// Person represents a person with a name and age
 #[derive(Debug, Clone, Default)]
-struct Person {
-    name: Rc<RefCell<Option<String>>>,
-    age: Rc<RefCell<Option<i32>>>,
+pub struct Person {
+    pub name: Rc<RefCell<Option<String>>>,
+    pub age: Rc<RefCell<Option<i32>>>,
 }
 
 impl std::fmt::Display for Person {

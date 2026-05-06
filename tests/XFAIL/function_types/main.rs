@@ -15,25 +15,33 @@ where
     }
 }
 
+fn format_slice_values<T>(slice: &[T]) -> String
+where
+    T: Display,
+{
+    let formatted: Vec<String> = slice.iter().map(|v| v.to_string()).collect();
+    format!("[{}]", formatted.join(" "))
+}
+
 /// Function type definitions
-type BinaryOp = Rc<RefCell<Option<Box<dyn Fn(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>>>>>;
+pub type BinaryOp = Rc<RefCell<Option<Box<dyn Fn(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>>>>>;
 
 
-type UnaryOp = Rc<RefCell<Option<Box<dyn Fn(Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>>>>>;
+pub type UnaryOp = Rc<RefCell<Option<Box<dyn Fn(Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>>>>>;
 
 
-type Predicate = Rc<RefCell<Option<Box<dyn Fn(Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<bool>>>>>>>;
+pub type Predicate = Rc<RefCell<Option<Box<dyn Fn(Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<bool>>>>>>>;
 
 
-type StringProcessor = Rc<RefCell<Option<Box<dyn Fn(Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>>>>>>;
+pub type StringProcessor = Rc<RefCell<Option<Box<dyn Fn(Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>>>>>>;
 
 
 /// Struct with function fields
 #[derive(Debug, Clone, Default)]
-struct Calculator {
-    add: BinaryOp,
-    subtract: BinaryOp,
-    multiply: BinaryOp,
+pub struct Calculator {
+    pub add: BinaryOp,
+    pub subtract: BinaryOp,
+    pub multiply: BinaryOp,
 }
 
 impl std::fmt::Display for Calculator {
@@ -92,37 +100,37 @@ pub fn to_upper(s: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>> {
 /// Higher-order functions
 pub fn apply_binary(op: BinaryOp, a: Rc<RefCell<Option<i32>>>, b: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>> {
 
-    return Rc::new(RefCell::new(Some((*op.borrow().as_ref().unwrap())(a.clone(), b.clone()))));
+    return { let __f_guard = op.borrow(); let __f = __f_guard.as_ref().unwrap(); (*__f)(a.clone(), b.clone()) };
 }
 
 pub fn apply_unary(op: UnaryOp, x: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>> {
 
-    return Rc::new(RefCell::new(Some((*op.borrow().as_ref().unwrap())(x.clone()))));
+    return { let __f_guard = op.borrow(); let __f = __f_guard.as_ref().unwrap(); (*__f)(x.clone()) };
 }
 
 pub fn filter(numbers: Rc<RefCell<Option<Vec<i32>>>>, pred: Predicate) -> Rc<RefCell<Option<Vec<i32>>>> {
 
     let mut result: Rc<RefCell<Option<Vec<i32>>>> = Rc::new(RefCell::new(None));
-    for num in (*numbers.borrow().as_ref().unwrap()).iter().copied() {
-        if (*pred.borrow().as_ref().unwrap())(Rc::new(RefCell::new(Some(num)))) {
+    { let __range_guard = numbers.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for num in __range_values.iter().copied() {
+        if { let __f_guard = pred.borrow(); let __f = __f_guard.as_ref().unwrap(); (*__f)(Rc::new(RefCell::new(Some(num)))) } {
         {(*result.borrow_mut()).get_or_insert_with(Vec::new).push(num); result.clone()};
     }
-    }
+    } }
     return result.clone();
 }
 
 pub fn transform(numbers: Rc<RefCell<Option<Vec<i32>>>>, op: UnaryOp) -> Rc<RefCell<Option<Vec<i32>>>> {
 
     let mut result = Rc::new(RefCell::new(Some(vec![0; (*numbers.borrow().as_ref().unwrap()).len()])));
-    for (i, num) in (*numbers.borrow().as_ref().unwrap()).iter().copied().enumerate() {
-        (*result.borrow_mut().as_mut().unwrap())[i] = (*(*op.borrow().as_ref().unwrap())(Rc::new(RefCell::new(Some(num)))).borrow().as_ref().unwrap());
-    }
+    { let __range_guard = numbers.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for (i, num) in __range_values.iter().copied().enumerate() {
+        (*result.borrow_mut().as_mut().unwrap())[i] = (*{ let __f_guard = op.borrow(); let __f = __f_guard.as_ref().unwrap(); (*__f)(Rc::new(RefCell::new(Some(num)))) }.borrow().as_ref().unwrap());
+    } }
     return result.clone();
 }
 
 pub fn process_string(s: Rc<RefCell<Option<String>>>, processor: StringProcessor) -> Rc<RefCell<Option<String>>> {
 
-    return Rc::new(RefCell::new(Some((*processor.borrow().as_ref().unwrap())(s.clone()))));
+    return { let __f_guard = processor.borrow(); let __f = __f_guard.as_ref().unwrap(); (*__f)(s.clone()) };
 }
 
 /// Function that returns a function
@@ -153,28 +161,28 @@ fn main() {
     println!("{}", "=== Basic function types ===".to_string());
 
     let mut op: BinaryOp = Rc::new(RefCell::new(None));
-    { let new_val = add.borrow().as_ref().unwrap().clone(); *op.borrow_mut() = Some(new_val); };
-    print!("5 + 3 = {}\n", (*(*op.borrow().as_ref().unwrap())(Rc::new(RefCell::new(Some(5))), Rc::new(RefCell::new(Some(3)))).borrow().as_ref().unwrap()));
+    { let new_val = Box::new(move |__arg0: Rc<RefCell<Option<i32>>>, __arg1: Rc<RefCell<Option<i32>>>| -> Rc<RefCell<Option<i32>>> { add(__arg0, __arg1) }) as Box<dyn Fn(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>>; *op.borrow_mut() = Some(new_val); };
+    print!("5 + 3 = {}\n", (*{ let __f_guard = op.borrow(); let __f = __f_guard.as_ref().unwrap(); (*__f)(Rc::new(RefCell::new(Some(5))), Rc::new(RefCell::new(Some(3)))) }.borrow().as_ref().unwrap()));
 
-    { let new_val = multiply.borrow().as_ref().unwrap().clone(); *op.borrow_mut() = Some(new_val); };
-    print!("5 * 3 = {}\n", (*(*op.borrow().as_ref().unwrap())(Rc::new(RefCell::new(Some(5))), Rc::new(RefCell::new(Some(3)))).borrow().as_ref().unwrap()));
+    { let new_val = Box::new(move |__arg0: Rc<RefCell<Option<i32>>>, __arg1: Rc<RefCell<Option<i32>>>| -> Rc<RefCell<Option<i32>>> { multiply(__arg0, __arg1) }) as Box<dyn Fn(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>>; *op.borrow_mut() = Some(new_val); };
+    print!("5 * 3 = {}\n", (*{ let __f_guard = op.borrow(); let __f = __f_guard.as_ref().unwrap(); (*__f)(Rc::new(RefCell::new(Some(5))), Rc::new(RefCell::new(Some(3)))) }.borrow().as_ref().unwrap()));
 
         // Higher-order functions
     println!("{}", "\n=== Higher-order functions ===".to_string());
-    let mut result = apply_binary(Rc::new(RefCell::new(Some((*add.borrow().as_ref().unwrap()).clone()))), Rc::new(RefCell::new(Some(10))), Rc::new(RefCell::new(Some(20))));
-    print!("applyBinary(add, 10, 20) = {}\n", (*result.borrow().as_ref().unwrap()));
+    let mut result = apply_binary(Rc::new(RefCell::new(Some(Box::new(move |__arg0: Rc<RefCell<Option<i32>>>, __arg1: Rc<RefCell<Option<i32>>>| -> Rc<RefCell<Option<i32>>> { add(__arg0, __arg1) }) as Box<dyn Fn(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>>))), Rc::new(RefCell::new(Some(10))), Rc::new(RefCell::new(Some(20))));
+    print!("applyBinary(add, 10, 20) = {}\n", { let __v = (*result.borrow().as_ref().unwrap()).clone(); __v });
 
-    { let new_val = apply_binary(Rc::new(RefCell::new(Some((*multiply.borrow().as_ref().unwrap()).clone()))), Rc::new(RefCell::new(Some(4))), Rc::new(RefCell::new(Some(7)))); *result.borrow_mut() = Some(new_val); };
-    print!("applyBinary(multiply, 4, 7) = {}\n", (*result.borrow().as_ref().unwrap()));
+    { let new_val = apply_binary(Rc::new(RefCell::new(Some(Box::new(move |__arg0: Rc<RefCell<Option<i32>>>, __arg1: Rc<RefCell<Option<i32>>>| -> Rc<RefCell<Option<i32>>> { multiply(__arg0, __arg1) }) as Box<dyn Fn(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>>))), Rc::new(RefCell::new(Some(4))), Rc::new(RefCell::new(Some(7)))); *result.borrow_mut() = Some(new_val); };
+    print!("applyBinary(multiply, 4, 7) = {}\n", { let __v = (*result.borrow().as_ref().unwrap()).clone(); __v });
 
-    let mut unaryResult = apply_unary(Rc::new(RefCell::new(Some((*square.borrow().as_ref().unwrap()).clone()))), Rc::new(RefCell::new(Some(6))));
-    print!("applyUnary(square, 6) = {}\n", (*unaryResult.borrow().as_ref().unwrap()));
+    let mut unaryResult = apply_unary(Rc::new(RefCell::new(Some(Box::new(move |__arg0: Rc<RefCell<Option<i32>>>| -> Rc<RefCell<Option<i32>>> { square(__arg0) }) as Box<dyn Fn(Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>>))), Rc::new(RefCell::new(Some(6))));
+    print!("applyUnary(square, 6) = {}\n", { let __v = (*unaryResult.borrow().as_ref().unwrap()).clone(); __v });
 
         // Function slices and filtering
     println!("{}", "\n=== Function slices and filtering ===".to_string());
     let mut numbers = Rc::new(RefCell::new(Some(vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10])));
 
-    let mut evens = filter(numbers.clone(), Rc::new(RefCell::new(Some((*isEven.borrow().as_ref().unwrap()).clone()))));
+    let mut evens = filter(numbers.clone(), Rc::new(RefCell::new(Some(Box::new(move |__arg0: Rc<RefCell<Option<i32>>>| -> Rc<RefCell<Option<bool>>> { is_even(__arg0) }) as Box<dyn Fn(Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<bool>>>>))));
     print!("Even numbers: {}\n", format_slice(&evens));
 
     let mut odds = filter(numbers.clone(), Rc::new(RefCell::new(Some(Box::new(move |x: Rc<RefCell<Option<i32>>>| -> Rc<RefCell<Option<bool>>> {
@@ -184,7 +192,7 @@ fn main() {
 
         // Transform with function types
     println!("{}", "\n=== Transform operations ===".to_string());
-    let mut squared = transform(Rc::new(RefCell::new(Some(vec![1, 2, 3, 4, 5]))), Rc::new(RefCell::new(Some((*square.borrow().as_ref().unwrap()).clone()))));
+    let mut squared = transform(Rc::new(RefCell::new(Some(vec![1, 2, 3, 4, 5]))), Rc::new(RefCell::new(Some(Box::new(move |__arg0: Rc<RefCell<Option<i32>>>| -> Rc<RefCell<Option<i32>>> { square(__arg0) }) as Box<dyn Fn(Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>>))));
     print!("Squared: {}\n", format_slice(&squared));
 
     let mut doubled = transform(Rc::new(RefCell::new(Some(vec![1, 2, 3, 4, 5]))), Rc::new(RefCell::new(Some(Box::new(move |x: Rc<RefCell<Option<i32>>>| -> Rc<RefCell<Option<i32>>> {
@@ -199,8 +207,8 @@ fn main() {
         // String processing
     println!("{}", "\n=== String processing ===".to_string());
     let mut text = Rc::new(RefCell::new(Some("hello world".to_string())));
-    let mut upper = process_string(Rc::new(RefCell::new(Some((*text.borrow().as_ref().unwrap()).clone()))), Rc::new(RefCell::new(Some((*toUpper.borrow().as_ref().unwrap()).clone()))));
-    print!("'{}' -> '{}'\n", (*text.borrow().as_ref().unwrap()), (*upper.borrow().as_ref().unwrap()));
+    let mut upper = process_string(Rc::new(RefCell::new(Some((*text.borrow().as_ref().unwrap()).clone()))), Rc::new(RefCell::new(Some(Box::new(move |__arg0: Rc<RefCell<Option<String>>>| -> Rc<RefCell<Option<String>>> { to_upper(__arg0) }) as Box<dyn Fn(Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>>>))));
+    print!("'{}' -> '{}'\n", { let __v = (*text.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*upper.borrow().as_ref().unwrap()).clone(); __v });
 
     let rune_closure_clone = rune.clone(); let mut reversed = process_string(Rc::new(RefCell::new(Some("hello".to_string()))), Rc::new(RefCell::new(Some(Box::new(move |s: Rc<RefCell<Option<String>>>| -> Rc<RefCell<Option<String>>> {
         let mut runes = Rc::new(RefCell::new(Some((*s.borrow().as_ref().unwrap()).chars().map(|c| c as i32).collect::<Vec<_>>())));
@@ -211,15 +219,15 @@ fn main() {
     }
         return Rc::new(RefCell::new(Some(Rc::new(RefCell::new(Some((*runes.borrow().as_ref().unwrap()).iter().map(|&c| char::from_u32(c as u32).unwrap()).collect::<String>()))))));
     }) as Box<dyn Fn(Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>>>))));
-    print!("Reversed: {}\n", (*reversed.borrow().as_ref().unwrap()));
+    print!("Reversed: {}\n", { let __v = (*reversed.borrow().as_ref().unwrap()).clone(); __v });
 
         // Functions that return functions
     println!("{}", "\n=== Functions returning functions ===".to_string());
     let mut triple = make_multiplier(Rc::new(RefCell::new(Some(3))));
-    print!("triple(4) = {}\n", (*(*triple.borrow().as_ref().unwrap())(Rc::new(RefCell::new(Some(4)))).borrow().as_ref().unwrap()));
+    print!("triple(4) = {}\n", (*{ let __f_guard = triple.borrow(); let __f = __f_guard.as_ref().unwrap(); (*__f)(Rc::new(RefCell::new(Some(4)))) }.borrow().as_ref().unwrap()));
 
     let mut addTen = make_adder(Rc::new(RefCell::new(Some(10))));
-    print!("addTen(5, 3) = {}\n", (*(*addTen.borrow().as_ref().unwrap())(Rc::new(RefCell::new(Some(5))), Rc::new(RefCell::new(Some(3)))).borrow().as_ref().unwrap()));
+    print!("addTen(5, 3) = {}\n", (*{ let __f_guard = addTen.borrow(); let __f = __f_guard.as_ref().unwrap(); (*__f)(Rc::new(RefCell::new(Some(5))), Rc::new(RefCell::new(Some(3)))) }.borrow().as_ref().unwrap()));
 
         // Struct with function fields
     println!("{}", "\n=== Struct with function fields ===".to_string());
@@ -245,15 +253,11 @@ fn main() {
         // Function variables
     println!("{}", "\n=== Function variables ===".to_string());
     let mut processor: StringProcessor = Rc::new(RefCell::new(None));
-    { let new_val = to_upper.borrow().as_ref().unwrap().clone(); *processor.borrow_mut() = Some(new_val); };
-    print!("Using toUpper: {}\n", (*(*processor.borrow().as_ref().unwrap())(Rc::new(RefCell::new(Some("test".to_string())))).borrow().as_ref().unwrap()));
+    { let new_val = Box::new(move |__arg0: Rc<RefCell<Option<String>>>| -> Rc<RefCell<Option<String>>> { to_upper(__arg0) }) as Box<dyn Fn(Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>>>; *processor.borrow_mut() = Some(new_val); };
+    print!("Using toUpper: {}\n", (*{ let __f_guard = processor.borrow(); let __f = __f_guard.as_ref().unwrap(); (*__f)(Rc::new(RefCell::new(Some("test".to_string())))) }.borrow().as_ref().unwrap()));
 
-    { let new_val = Rc::new(RefCell::new(Some(Box::new(move |s: Rc<RefCell<Option<String>>>| -> Rc<RefCell<Option<String>>> {
-        return {
-            let __tmp_x = "processed: ".to_string();
-            let __tmp_y = (*s.borrow().as_ref().unwrap());
-            Rc::new(RefCell::new(Some(__tmp_x + __tmp_y)))
-        };
-    }) as Box<dyn Fn(Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>>>))); *processor.borrow_mut() = Some(new_val); };
-    print!("Using anonymous: {}\n", (*(*processor.borrow().as_ref().unwrap())(Rc::new(RefCell::new(Some("test".to_string())))).borrow().as_ref().unwrap()));
+    { let new_val = Box::new(move |s: Rc<RefCell<Option<String>>>| -> Rc<RefCell<Option<String>>> {
+        return Rc::new(RefCell::new(Some(format!("{}{}", "processed: ".to_string(), (*s.borrow().as_ref().unwrap())))));
+    }) as Box<dyn Fn(Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>>>; *processor.borrow_mut() = Some(new_val); };
+    print!("Using anonymous: {}\n", (*{ let __f_guard = processor.borrow(); let __f = __f_guard.as_ref().unwrap(); (*__f)(Rc::new(RefCell::new(Some("test".to_string())))) }.borrow().as_ref().unwrap()));
 }

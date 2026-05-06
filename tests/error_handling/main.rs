@@ -4,9 +4,9 @@ use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
 #[derive(Debug, Clone, Default)]
-struct CustomError {
-    code: Rc<RefCell<Option<i32>>>,
-    message: Rc<RefCell<Option<String>>>,
+pub struct CustomError {
+    pub code: Rc<RefCell<Option<i32>>>,
+    pub message: Rc<RefCell<Option<String>>>,
 }
 
 impl std::fmt::Display for CustomError {
@@ -70,7 +70,7 @@ fn main() {
     if (*err.borrow()).is_some() {
         println!("{} {}", "Error:".to_string(), format!("{}", (*err.borrow().as_ref().unwrap())));
     } else {
-        println!("{} {}", "10 / 2 =".to_string(), (*result.borrow().as_ref().unwrap()));
+        println!("{} {}", "10 / 2 =".to_string(), { let __v = (*result.borrow().as_ref().unwrap()).clone(); __v });
     }
 
         // Error case
@@ -78,7 +78,7 @@ fn main() {
     if (*err.borrow()).is_some() {
         println!("{} {}", "Error:".to_string(), format!("{}", (*err.borrow().as_ref().unwrap())));
     } else {
-        println!("{} {}", "Result:".to_string(), (*result.borrow().as_ref().unwrap()));
+        println!("{} {}", "Result:".to_string(), { let __v = (*result.borrow().as_ref().unwrap()).clone(); __v });
     }
 
         // Formatted error
@@ -86,7 +86,7 @@ fn main() {
     if (*err.borrow()).is_some() {
         println!("{} {}", "Sqrt error:".to_string(), format!("{}", (*err.borrow().as_ref().unwrap())));
     } else {
-        println!("{} {}", "Sqrt result:".to_string(), (*sqrtResult.borrow().as_ref().unwrap()));
+        println!("{} {}", "Sqrt result:".to_string(), { let __v = (*sqrtResult.borrow().as_ref().unwrap()).clone(); __v });
     }
 
         // Custom error

@@ -115,6 +115,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Basic constants | ✅ |
 | └ Iota enumerations | ✅ |
 | └ Complex iota expressions | ✅ |
+| └ Named iota-backed enum types | ✅ |
 | **`continue` - Continue statements** | ✅ |
 | **`default` - Default clauses** | |
 | └ Switch default | ✅ |
@@ -126,16 +127,18 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ C-style for loops | ✅ |
 | └ While-style loops | ✅ |
 | └ Infinite loops | ✅ |
-| └ Range loops | ✅ |
+| └ Range loops (slice/map/string/channel, nil slices) | ✅ |
 | **`func` - Functions** | |
 | └ Basic functions | ✅ |
 | └ Multiple return values | ✅ |
 | └ Method definitions | ✅ |
 | └ Method calls | ✅ |
 | └ Function literals/closures | ✅ |
+| └ Function variables and higher-order function values | ✅ |
 | └ Variadic functions | ✅ |
 | **`go` - Goroutines** | ✅ |
-| **`goto` - Goto statements** | ❌ (rare, low priority) |
+| └ Worker pool pattern with channels | ✅ |
+| **`goto` - Goto statements** | ✅ (basic top-level label patterns) |
 | **`if` - If statements** | |
 | └ Basic if | ✅ |
 | └ If with init statement | ✅ |
@@ -143,7 +146,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | **`import` - Imports** | |
 | └ Single imports | ✅ |
 | └ Multiple imports | ✅ |
-| └ Package aliases | ❌ |
+| └ Package aliases | ✅ |
 | └ Blank imports | ✅ |
 | **`interface` - Interface types** | |
 | └ Interface definitions | ✅ |
@@ -161,9 +164,11 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | **`package` - Packages** | |
 | └ Main package | ✅ |
 | └ Library packages | ✅ |
-| └ Multi-file packages | ❌ |
+| └ Package-level variable initialization | ✅ |
+| └ Init functions | ✅ |
+| └ Multi-file packages with cross-file types, methods, maps, slices, and function variables | 🚧 |
 | **`range` - Range clauses** | |
-| └ Array/slice range | ✅ |
+| └ Array/slice range, including nil slices | ✅ |
 | └ Map range | ✅ |
 | └ String range | ✅ |
 | └ Channel range | ✅ |
@@ -178,6 +183,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Field access | ✅ |
 | └ Embedded fields | ✅ |
 | └ Anonymous structs | ✅ |
+| └ Nested structs/slices/maps/interfaces and anonymous struct function boundaries | ✅ |
 | └ Struct tags | ✅ |
 | **`switch` - Switch statements** | |
 | └ Basic switch | ✅ |
@@ -190,6 +196,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Interface types | ✅ |
 | **`var` - Variable declarations** | |
 | └ Basic var declarations | ✅ |
+| └ Package-level declarations and initializer order | ✅ |
 | └ Short declarations (:=) | ✅ |
 | └ Blank identifier (_) | ✅ |
 | **Arrays & Slices** | |
@@ -198,6 +205,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Slice operations | ✅ |
 | **Operators** | |
 | └ Binary operators (+, -, *, /, etc.) | ✅ |
+| └ Complex nested expressions with function calls, indexing, fields, pointers, assertions, and channel receives | ✅ |
 | └ Assignment operators (=, +=, etc.) | ✅ |
 | └ Increment/decrement (++, --) | ✅ |
 | └ Address-of (&) | ✅ |
@@ -207,14 +215,17 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Address-of operator | ✅ |
 | └ Dereference operator | ✅ |
 | └ Pointer aliasing | ✅ |
+| └ Address-of struct fields and slice elements | ✅ |
 | **String Operations** | |
 | └ String concatenation (+) | ✅ |
 | └ String += operator | ✅ |
 | └ String comparisons | ✅ |
+| └ Raw string literals | ✅ |
 | **Closures & Anonymous Functions** | |
 | └ Function literals | ✅ |
 | └ Closure variable capture | ✅ |
 | └ Anonymous function calls | ✅ |
+| └ Cross-file function variables | ✅ |
 | └ Capture analysis framework | ✅ |
 | **`defer` - Defer statements** | |
 | └ Basic defer | ✅ |
@@ -241,23 +252,70 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ `fmt.Errorf` | ✅ |
 | └ `fmt.Fprintln` | ✅ |
 | └ `fmt.Fprintf` | ✅ |
+| └ `%x`/`%X` byte formatting | ✅ |
 | **`strings` package** | |
 | └ `strings.ToUpper` | ✅ |
 | └ `strings.ToLower` | ✅ |
 | └ `strings.TrimSpace` | ✅ |
+| └ `strings.Title` | ✅ |
+| └ `strings.Contains` | ✅ |
+| └ `strings.Index` / `strings.LastIndex` | ✅ |
+| └ `strings.Count` | ✅ |
+| └ `strings.HasPrefix` / `strings.HasSuffix` | ✅ |
+| └ `strings.Split` / `strings.Join` / `strings.Fields` | ✅ |
+| └ `strings.Replace` / `strings.ReplaceAll` | ✅ |
+| └ `strings.Repeat` | ✅ |
+| └ `strings.EqualFold` | ✅ |
+| └ `strings.Trim` / `strings.TrimLeft` / `strings.TrimRight` | ✅ |
 | **`strconv` package** | |
 | └ `strconv.Itoa` | ✅ |
 | └ `strconv.Atoi` | ✅ |
+| └ `strconv.FormatFloat` / `strconv.FormatInt` | ✅ |
+| **`math` package** | |
+| └ `math.Pi` / `math.E` | ✅ |
+| └ `math.Sqrt` | ✅ |
+| └ `math.Pow` | ✅ |
+| └ `math.Max` / `math.Min` | ✅ |
+| **`math/rand` package** | |
+| └ `rand.Seed`, `rand.Intn`, `rand.Float64` | ✅ |
+| **`encoding/json` package** | |
+| └ `json.Marshal` for structs with exported basic fields | ✅ |
+| **`encoding/base64` package** | |
+| └ `base64.StdEncoding.EncodeToString` | ✅ |
+| └ `base64.StdEncoding.DecodeString` | ✅ |
+| **`crypto/sha256` package** | |
+| └ `sha256.Sum256` | ✅ |
+| **`net/url` package** | |
+| └ `url.Parse` | ✅ |
+| **`regexp` package** | |
+| └ `regexp.MustCompile` + basic `FindAllString` (`\d+` and literal matches) | ✅ |
+| **`reflect` package** | |
+| └ `reflect.TypeOf` struct field metadata and `StructTag.Get` | ✅ |
 
 | **`errors` package** | |
 | └ `errors.New` | ✅ |
 | └ Custom error types | ✅ |
 | └ Type assertions on errors | ✅ |
+| **`flag` package** | |
+| └ `flag.String` / `flag.Parse` default values | ✅ |
+| **`time` package** | |
+| └ `time.Unix`, `Time.UTC`, `Time.Add`, `Time.Unix`, `Time.UnixNano` | ✅ |
+| └ `time.NewTimer` plus `Timer.C` receive and `Timer.Stop` | ✅ |
+| └ `time.After` timeout channels | ✅ |
+| └ `time.NewTicker` plus `Ticker.C` receive and `Ticker.Stop` | ✅ |
+| └ `time.Tick` periodic channels | ✅ |
+| **`context` package** | |
+| └ `context.Background`, `context.WithTimeout`, `Context.Done`, `Context.Err`, cancel funcs | ✅ |
+| **`os` package** | |
+| └ `os.Args` read access | ✅ |
+| └ `os.Create` / `os.Remove` plus file `WriteString` / `Close` | ✅ |
 | **`sort` package** | |
 | └ `sort.Strings` | ✅ |
 | **`sync` package** | |
 | └ `sync.WaitGroup` | ✅ |
 | └ `sync.Mutex` | ✅ |
+| **`sync/atomic` package** | |
+| └ `atomic.AddInt64` / `atomic.LoadInt64` | ✅ |
 | **`strings` (Builder)** | |
 | └ `strings.Builder` | ✅ |
 

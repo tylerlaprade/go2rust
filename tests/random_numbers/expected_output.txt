@@ -1,0 +1,2 @@
+Random int in range: true
+Random float in range: true

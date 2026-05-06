@@ -36,9 +36,208 @@ func writeUnwrappedRangeTarget(out *strings.Builder, expr ast.Expr) {
 		} else {
 			out.WriteString(s)
 		}
+	} else if ident, ok := expr.(*ast.Ident); ok {
+		if _, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar {
+			out.WriteString(ident.Name)
+			return
+		}
+		TranspileExpressionContext(out, expr, RValue)
 	} else {
 		TranspileExpressionContext(out, expr, RValue)
 	}
+}
+
+func writeWrappedValueCopyFromIdent(out *strings.Builder, ident *ast.Ident) bool {
+	if ident.Name == "_" || ident.Name == "nil" || ident.Name == "true" || ident.Name == "false" {
+		return false
+	}
+	if _, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar {
+		return false
+	}
+	if _, isLocalConst := localConstants[ident.Name]; isLocalConst {
+		return false
+	}
+	if isVarBare(ident.Name) || rhsIsPointerType(ident) {
+		return false
+	}
+
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	typ := typeInfo.GetType(ident)
+	if typ == nil {
+		return false
+	}
+
+	switch typ.Underlying().(type) {
+	case *types.Basic, *types.Struct, *types.Array:
+		varName := ident.Name
+		if currentCaptureRenames != nil {
+			if renamed, exists := currentCaptureRenames[varName]; exists {
+				varName = renamed
+			}
+		}
+		WriteWrapperPrefix(out)
+		out.WriteString(varName)
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap().clone()")
+		WriteWrapperSuffix(out)
+		return true
+	default:
+		return false
+	}
+}
+
+func writeMapWrappedValue(out *strings.Builder, expr ast.Expr) {
+	if ident, ok := expr.(*ast.Ident); ok &&
+		ident.Name != "_" && ident.Name != "nil" && ident.Name != "true" && ident.Name != "false" {
+		if _, isRangeVar := rangeLoopVars[ident.Name]; !isRangeVar {
+			if _, isLocalConst := localConstants[ident.Name]; !isLocalConst {
+				out.WriteString(ident.Name)
+				out.WriteString(".clone()")
+				return
+			}
+		}
+	}
+
+	WriteWrapperPrefix(out)
+	TranspileExpression(out, expr)
+	WriteWrapperSuffix(out)
+}
+
+func isMapIndexExpression(expr ast.Expr) (*ast.IndexExpr, bool) {
+	indexExpr, ok := expr.(*ast.IndexExpr)
+	if !ok {
+		return nil, false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return indexExpr, false
+	}
+	return indexExpr, typeInfo.IsMap(indexExpr.X)
+}
+
+func isBareBuiltinReturn(call *ast.CallExpr) bool {
+	ident, ok := call.Fun.(*ast.Ident)
+	if !ok {
+		return false
+	}
+	return ident.Name == "len" || ident.Name == "cap"
+}
+
+func isBuiltinCallNamed(call *ast.CallExpr, name string) bool {
+	ident, ok := call.Fun.(*ast.Ident)
+	if !ok || ident.Name != name {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return false
+	}
+	obj, ok := typeInfo.info.Uses[ident]
+	if !ok {
+		return false
+	}
+	builtin, ok := obj.(*types.Builtin)
+	return ok && builtin.Name() == name
+}
+
+func isAssignmentSelfWrappingExpression(expr ast.Expr) bool {
+	switch e := expr.(type) {
+	case *ast.CompositeLit:
+		return isCompositeLitSelfWrapping(e)
+	case *ast.SliceExpr:
+		return true
+	case *ast.CallExpr:
+		return isBuiltinCallNamed(e, "make")
+	default:
+		return false
+	}
+}
+
+func expressionFunctionSignature(expr ast.Expr) (*types.Signature, bool) {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return nil, false
+	}
+	typ := typeInfo.GetType(expr)
+	if typ == nil {
+		return nil, false
+	}
+	sig, ok := typ.Underlying().(*types.Signature)
+	return sig, ok
+}
+
+func writeMoveWrappedInnerAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) {
+	out.WriteString("{ ")
+	out.WriteString("let new_val = ")
+	TranspileExpression(out, rhs)
+	out.WriteString("; ")
+	out.WriteString("*")
+	TranspileExpressionContext(out, lhs, LValue)
+	WriteBorrowMethod(out, true)
+	out.WriteString(" = new_val")
+	WriteBorrowMethod(out, true)
+	out.WriteString(".take(); }")
+}
+
+func writeMapElementUpdate(out *strings.Builder, indexExpr *ast.IndexExpr, op token.Token, rhs ast.Expr) {
+	typeInfo := GetTypeInfo()
+	defaultValue := "Default::default()"
+	if typeInfo != nil {
+		defaultValue = zeroValueForTypesType(typeInfo.GetMapValueType(indexExpr.X))
+	}
+
+	out.WriteString("{ let mut __map_guard = ")
+	if ident, ok := indexExpr.X.(*ast.Ident); ok {
+		out.WriteString(ident.Name)
+	} else {
+		TranspileExpressionContext(out, indexExpr.X, LValue)
+	}
+	WriteBorrowMethod(out, true)
+	out.WriteString("; let __map = __map_guard.as_mut().unwrap(); let __entry = __map.entry(")
+	TranspileExpression(out, indexExpr.Index)
+	out.WriteString(").or_insert_with(|| ")
+	WriteWrapperPrefix(out)
+	out.WriteString(defaultValue)
+	WriteWrapperSuffix(out)
+	out.WriteString("); let mut __value = __entry")
+	WriteBorrowMethod(out, true)
+	out.WriteString("; * __value = Some(__value.as_ref().unwrap() ")
+	switch op {
+	case token.INC, token.ADD_ASSIGN:
+		out.WriteString("+")
+	case token.DEC, token.SUB_ASSIGN:
+		out.WriteString("-")
+	case token.MUL_ASSIGN:
+		out.WriteString("*")
+	case token.QUO_ASSIGN:
+		out.WriteString("/")
+	case token.REM_ASSIGN:
+		out.WriteString("%")
+	case token.AND_ASSIGN:
+		out.WriteString("&")
+	case token.OR_ASSIGN:
+		out.WriteString("|")
+	case token.XOR_ASSIGN:
+		out.WriteString("^")
+	case token.SHL_ASSIGN:
+		out.WriteString("<<")
+	case token.SHR_ASSIGN:
+		out.WriteString(">>")
+	default:
+		out.WriteString("+")
+	}
+	out.WriteString(" ")
+	if op == token.INC || op == token.DEC {
+		out.WriteString("1")
+	} else if rhs != nil {
+		TranspileExpression(out, rhs)
+	} else {
+		out.WriteString("0")
+	}
+	out.WriteString("); }")
 }
 
 // isMutexLockCall checks if an expression is a Lock() call on a sync.Mutex field
@@ -130,6 +329,19 @@ func transpileChannelValue(out *strings.Builder, expr ast.Expr) {
 		}
 	}
 
+	if call, ok := expr.(*ast.CallExpr); ok {
+		if typeInfo != nil && typeInfo.ReturnsWrappedValue(call) && !callReturnsBareChannelValue(call) {
+			out.WriteString("(*")
+			TranspileExpression(out, call)
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref().unwrap())")
+			if !isCopyType {
+				out.WriteString(".clone()")
+			}
+			return
+		}
+	}
+
 	// For identifiers that are wrapped, unwrap them
 	if ident, ok := expr.(*ast.Ident); ok {
 		// Check if it's a range loop variable, constant, or bare variable
@@ -161,6 +373,24 @@ func transpileChannelValue(out *strings.Builder, expr ast.Expr) {
 
 	// For other expressions, try to unwrap
 	TranspileExpression(out, expr)
+}
+
+func callReturnsBareChannelValue(call *ast.CallExpr) bool {
+	if ident, ok := call.Fun.(*ast.Ident); ok {
+		switch ident.Name {
+		case "len", "cap", "copy":
+			return true
+		}
+	}
+
+	if key, ok := stdlibCallKey(call.Fun); ok {
+		switch key {
+		case "time.After", "time.Tick", "context.WithTimeout", "context.WithCancel":
+			return true
+		}
+	}
+
+	return false
 }
 
 // hasBlankLineBetween checks if there's more than one line between two positions
@@ -383,6 +613,12 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 								}
 							}
 						}
+						if GetStdlibHandler(callExpr) != nil && !isBareBuiltinReturn(callExpr) {
+							needsWrapping = false
+						}
+						if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.ReturnsWrappedValue(callExpr) && !typeInfo.IsTypeConversion(callExpr) && !isBareBuiltinReturn(callExpr) {
+							needsWrapping = false
+						}
 
 						// Check if it's a call to a user-defined function (already returns wrapped type)
 						if fnIdent, ok := callExpr.Fun.(*ast.Ident); ok {
@@ -417,7 +653,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 						// First check TypeInfo
 						typeInfo := GetTypeInfo()
-						if typeInfo != nil && typeInfo.ReturnsWrappedValue(result) {
+						if isConstIdent(ident) {
+							isWrappedVariable = false
+						} else if typeInfo != nil && typeInfo.ReturnsWrappedValue(result) {
 							isWrappedVariable = true
 						} else {
 							// Fallback: check if this looks like a local variable
@@ -448,14 +686,22 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							if ident.Name == "nil" {
 								WriteWrappedNone(out)
 							} else {
-								WriteWrapperPrefix(out)
-								// Cast usize range index to i32 when wrapping
-								if varType, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar && varType == "usize" {
-									out.WriteString(ToSnakeCase(ident.Name) + " as i32")
-								} else {
-									TranspileExpression(out, result)
+								var expected ast.Expr
+								if fnType.Results != nil && i < len(fnType.Results.List) {
+									expected = fnType.Results.List[i].Type
 								}
-								WriteWrapperSuffix(out)
+								if isConstIdent(ident) {
+									writeWrappedExpressionForExpectedType(out, result, expected)
+								} else {
+									WriteWrapperPrefix(out)
+									// Cast usize range index to i32 when wrapping
+									if varType, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar && varType == "usize" {
+										out.WriteString(ToSnakeCase(ident.Name) + " as i32")
+									} else {
+										TranspileExpression(out, result)
+									}
+									WriteWrapperSuffix(out)
+								}
 							}
 						}
 					} else if _, ok := result.(*ast.SliceExpr); ok {
@@ -478,6 +724,15 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							WriteWrapperSuffix(out)
 						}
 					} else if binExpr, ok := result.(*ast.BinaryExpr); ok {
+						if binExpr.Op == token.ADD {
+							if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.IsString(binExpr) {
+								WriteWrapperPrefix(out)
+								TranspileExpression(out, result)
+								WriteWrapperSuffix(out)
+								continue
+							}
+						}
+
 						// Binary expressions need special handling to avoid multiple locks
 						// Check if operands are identifiers that would need unwrapping
 						needsExtraction := false
@@ -628,39 +883,13 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				if ident, ok := indexExpr.X.(*ast.Ident); ok {
 					out.WriteString(ident.Name)
 				} else {
-					TranspileExpression(out, indexExpr.X)
+					TranspileExpressionContext(out, indexExpr.X, LValue)
 				}
 				WriteBorrowMethod(out, true)
 				out.WriteString(".as_mut().unwrap()).insert(")
 				TranspileExpression(out, indexExpr.Index)
 				out.WriteString(", ")
-
-				// Check if RHS is a variable that's already wrapped
-				if ident, ok := s.Rhs[0].(*ast.Ident); ok && ident.Name != "_" {
-					// Check if this is a variable (not a constant)
-					if _, isRangeVar := rangeLoopVars[ident.Name]; !isRangeVar {
-						if _, isLocalConst := localConstants[ident.Name]; !isLocalConst {
-							// It's a variable, just clone it
-							out.WriteString(ident.Name)
-							out.WriteString(".clone()")
-						} else {
-							// It's a constant, wrap it
-							WriteWrapperPrefix(out)
-							TranspileExpression(out, s.Rhs[0])
-							WriteWrapperSuffix(out)
-						}
-					} else {
-						// Range variable, wrap it
-						WriteWrapperPrefix(out)
-						TranspileExpression(out, s.Rhs[0])
-						WriteWrapperSuffix(out)
-					}
-				} else {
-					// Not a simple identifier (literal or expression), wrap it
-					WriteWrapperPrefix(out)
-					TranspileExpression(out, s.Rhs[0])
-					WriteWrapperSuffix(out)
-				}
+				writeMapWrappedValue(out, s.Rhs[0])
 				out.WriteString(")")
 			}
 		} else if s.Tok == token.ADD_ASSIGN || s.Tok == token.SUB_ASSIGN ||
@@ -668,87 +897,91 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			s.Tok == token.AND_ASSIGN || s.Tok == token.OR_ASSIGN || s.Tok == token.XOR_ASSIGN ||
 			s.Tok == token.SHL_ASSIGN || s.Tok == token.SHR_ASSIGN {
 			// Compound assignment operators
-
-			isString := false
-			if s.Tok == token.ADD_ASSIGN {
-				typeInfo := GetTypeInfo()
-				if typeInfo != nil {
-					isString = typeInfo.IsString(s.Lhs[0])
-				} else {
-					// Type info not available - check if RHS is a string literal at least
-					if lit, ok := s.Rhs[0].(*ast.BasicLit); ok && lit.Kind == token.STRING {
-						isString = true
-						out.WriteString("/* WARNING: Assuming string type based on literal */ ")
-					}
-				}
-			}
-
-			if isString {
-				// For string +=, we need mutable access to the LHS
-				out.WriteString("(*")
-				TranspileExpressionContext(out, s.Lhs[0], LValue)
-				WriteBorrowMethod(out, true)
-				out.WriteString(".as_mut().unwrap()).push_str(&")
-				TranspileExpression(out, s.Rhs[0])
-				out.WriteString(")")
+			if indexExpr, isMapIndex := isMapIndexExpression(s.Lhs[0]); isMapIndex {
+				writeMapElementUpdate(out, indexExpr, s.Tok, s.Rhs[0])
 			} else {
-				// Numeric compound assignment for wrapped values
-				// Generate: { let mut guard = lhs.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() OP rhs); }
-				out.WriteString("{ let mut guard = ")
-				TranspileExpressionContext(out, s.Lhs[0], LValue)
-				WriteBorrowMethod(out, true)
-				out.WriteString("; *guard = Some(guard.as_ref().unwrap() ")
 
-				// Output the appropriate operator
-				switch s.Tok {
-				case token.ADD_ASSIGN:
-					out.WriteString("+")
-				case token.SUB_ASSIGN:
-					out.WriteString("-")
-				case token.MUL_ASSIGN:
-					out.WriteString("*")
-				case token.QUO_ASSIGN:
-					out.WriteString("/")
-				case token.REM_ASSIGN:
-					out.WriteString("%")
-				case token.AND_ASSIGN:
-					out.WriteString("&")
-				case token.OR_ASSIGN:
-					out.WriteString("|")
-				case token.XOR_ASSIGN:
-					out.WriteString("^")
-				case token.SHL_ASSIGN:
-					out.WriteString("<<")
-				case token.SHR_ASSIGN:
-					out.WriteString(">>")
-				}
-
-				out.WriteString(" ")
-				// Handle RHS based on its type
-				if ident, ok := s.Rhs[0].(*ast.Ident); ok {
-					// It's an identifier - need to unwrap it
-					// Check if it's a special identifier that shouldn't be unwrapped
-					_, isRangeVar := rangeLoopVars[ident.Name]
-					_, isLocalConst := localConstants[ident.Name]
-					if !isRangeVar && !isLocalConst && ident.Name != "true" && ident.Name != "false" &&
-						ident.Name != "nil" && ident.Name != "_" {
-						// Regular wrapped variable - unwrap it
-						out.WriteString("(*")
-						out.WriteString(ident.Name)
-						WriteBorrowMethod(out, true)
-						out.WriteString(".as_mut().unwrap())")
+				isString := false
+				if s.Tok == token.ADD_ASSIGN {
+					typeInfo := GetTypeInfo()
+					if typeInfo != nil {
+						isString = typeInfo.IsString(s.Lhs[0])
 					} else {
-						// Special identifier - use as-is
-						out.WriteString(ident.Name)
+						// Type info not available - check if RHS is a string literal at least
+						if lit, ok := s.Rhs[0].(*ast.BasicLit); ok && lit.Kind == token.STRING {
+							isString = true
+							out.WriteString("/* WARNING: Assuming string type based on literal */ ")
+						}
 					}
-				} else if lit, ok := s.Rhs[0].(*ast.BasicLit); ok {
-					// It's a literal - use directly
-					out.WriteString(lit.Value)
-				} else {
-					// It's an expression - transpile it
-					TranspileExpression(out, s.Rhs[0])
 				}
-				out.WriteString("); }")
+
+				if isString {
+					// For string +=, we need mutable access to the LHS
+					out.WriteString("(*")
+					TranspileExpressionContext(out, s.Lhs[0], LValue)
+					WriteBorrowMethod(out, true)
+					out.WriteString(".as_mut().unwrap()).push_str(&")
+					TranspileExpression(out, s.Rhs[0])
+					out.WriteString(")")
+				} else {
+					// Numeric compound assignment for wrapped values
+					// Generate: { let mut guard = lhs.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() OP rhs); }
+					out.WriteString("{ let mut guard = ")
+					TranspileExpressionContext(out, s.Lhs[0], LValue)
+					WriteBorrowMethod(out, true)
+					out.WriteString("; *guard = Some(guard.as_ref().unwrap() ")
+
+					// Output the appropriate operator
+					switch s.Tok {
+					case token.ADD_ASSIGN:
+						out.WriteString("+")
+					case token.SUB_ASSIGN:
+						out.WriteString("-")
+					case token.MUL_ASSIGN:
+						out.WriteString("*")
+					case token.QUO_ASSIGN:
+						out.WriteString("/")
+					case token.REM_ASSIGN:
+						out.WriteString("%")
+					case token.AND_ASSIGN:
+						out.WriteString("&")
+					case token.OR_ASSIGN:
+						out.WriteString("|")
+					case token.XOR_ASSIGN:
+						out.WriteString("^")
+					case token.SHL_ASSIGN:
+						out.WriteString("<<")
+					case token.SHR_ASSIGN:
+						out.WriteString(">>")
+					}
+
+					out.WriteString(" ")
+					// Handle RHS based on its type
+					if ident, ok := s.Rhs[0].(*ast.Ident); ok {
+						// It's an identifier - need to unwrap it
+						// Check if it's a special identifier that shouldn't be unwrapped
+						_, isRangeVar := rangeLoopVars[ident.Name]
+						_, isLocalConst := localConstants[ident.Name]
+						if !isRangeVar && !isLocalConst && ident.Name != "true" && ident.Name != "false" &&
+							ident.Name != "nil" && ident.Name != "_" {
+							// Regular wrapped variable - unwrap it
+							out.WriteString("(*")
+							out.WriteString(ident.Name)
+							WriteBorrowMethod(out, true)
+							out.WriteString(".as_mut().unwrap())")
+						} else {
+							// Special identifier - use as-is
+							out.WriteString(ident.Name)
+						}
+					} else if lit, ok := s.Rhs[0].(*ast.BasicLit); ok {
+						// It's a literal - use directly
+						out.WriteString(lit.Value)
+					} else {
+						// It's an expression - transpile it
+						TranspileExpression(out, s.Rhs[0])
+					}
+					out.WriteString("); }")
+				}
 			}
 		} else { // Check if we have multiple LHS with single RHS (tuple unpacking)
 			needsTupleUnpack := len(s.Lhs) > 1 && len(s.Rhs) == 1
@@ -964,6 +1197,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						} else if _, isSlice := rhs.(*ast.SliceExpr); isSlice {
 							// Slice expressions already return wrapped values
 							TranspileExpression(out, rhs)
+						} else if ident, ok := rhs.(*ast.Ident); ok && writeWrappedValueCopyFromIdent(out, ident) {
+							// Copied by value from an existing wrapped value
 						} else {
 							// Wrap new variables
 							WriteWrapperPrefix(out)
@@ -1081,6 +1316,98 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									TranspileExpressionContext(out, s.Lhs[0], LValue)
 									WriteBorrowMethod(out, true)
 									out.WriteString(" = new_val; }")
+								} else if funcLit, ok := s.Rhs[0].(*ast.FuncLit); ok {
+									if _, isFuncLHS := expressionFunctionSignature(s.Lhs[0]); isFuncLHS {
+										out.WriteString("{ ")
+										out.WriteString("let new_val = ")
+										TranspileFuncLitBox(out, funcLit)
+										out.WriteString("; ")
+										out.WriteString("*")
+										TranspileExpressionContext(out, s.Lhs[0], LValue)
+										WriteBorrowMethod(out, true)
+										out.WriteString(" = Some(new_val); }")
+									} else {
+										out.WriteString("{ ")
+										out.WriteString("let new_val = ")
+										TranspileExpression(out, s.Rhs[0])
+										out.WriteString("; ")
+										out.WriteString("*")
+										TranspileExpressionContext(out, s.Lhs[0], LValue)
+										WriteBorrowMethod(out, true)
+										out.WriteString(" = Some(new_val); }")
+									}
+								} else if rhsIdent, ok := s.Rhs[0].(*ast.Ident); ok {
+									if sig, isFuncValue := functionValueSignature(rhsIdent); isFuncValue {
+										out.WriteString("{ ")
+										out.WriteString("let new_val = ")
+										writeFunctionValueBox(out, rhsIdent, sig)
+										out.WriteString("; ")
+										out.WriteString("*")
+										TranspileExpressionContext(out, s.Lhs[0], LValue)
+										WriteBorrowMethod(out, true)
+										out.WriteString(" = Some(new_val); }")
+									} else if isAssignmentSelfWrappingExpression(s.Rhs[0]) {
+										writeMoveWrappedInnerAssignment(out, s.Lhs[0], s.Rhs[0])
+									} else {
+										// Check if LHS is interface{} type
+										isInterface := false
+										typeInfo := GetTypeInfo()
+										if typeInfo != nil {
+											if lhsType := typeInfo.GetType(s.Lhs[0]); lhsType != nil {
+												// Check if it's the empty interface
+												if intf, ok := lhsType.Underlying().(*types.Interface); ok && intf.NumMethods() == 0 {
+													isInterface = true
+												}
+											}
+										}
+
+										if isInterface {
+											// Assignment to interface{} - need to box the value
+											out.WriteString("{ ")
+											out.WriteString("let new_val = Box::new(")
+											TranspileExpression(out, s.Rhs[0])
+											out.WriteString(") as Box<dyn Any>; ")
+											out.WriteString("*")
+											TranspileExpressionContext(out, s.Lhs[0], LValue)
+											WriteBorrowMethod(out, true)
+											out.WriteString(" = Some(new_val); }")
+										} else {
+											// Check if RHS is a wrapped variable - use clone for non-Copy types
+											rhsIsWrappedVar := false
+											if rhsIdent.Name != "true" && rhsIdent.Name != "false" && rhsIdent.Name != "nil" {
+												if _, isRange := rangeLoopVars[rhsIdent.Name]; !isRange {
+													if _, isConst := localConstants[rhsIdent.Name]; !isConst {
+														if !isVarBare(rhsIdent.Name) {
+															rhsIsWrappedVar = true
+														}
+													}
+												}
+											}
+											out.WriteString("{ ")
+											out.WriteString("let new_val = ")
+											if rhsIsWrappedVar {
+												// Use clone to avoid moving non-Copy types like String
+												rhsVarName := rhsIdent.Name
+												if currentCaptureRenames != nil {
+													if renamed, exists := currentCaptureRenames[rhsVarName]; exists {
+														rhsVarName = renamed
+													}
+												}
+												out.WriteString(ToSnakeCase(rhsVarName))
+												WriteBorrowMethod(out, false)
+												out.WriteString(".as_ref().unwrap().clone()")
+											} else {
+												TranspileExpression(out, s.Rhs[0])
+											}
+											out.WriteString("; ")
+											out.WriteString("*")
+											TranspileExpressionContext(out, s.Lhs[0], LValue)
+											WriteBorrowMethod(out, true)
+											out.WriteString(" = Some(new_val); }")
+										}
+									}
+								} else if isAssignmentSelfWrappingExpression(s.Rhs[0]) {
+									writeMoveWrappedInnerAssignment(out, s.Lhs[0], s.Rhs[0])
 								} else if call, ok := s.Rhs[0].(*ast.CallExpr); ok {
 									// Check if it's an append call using TypeInfo
 									isAppend := false
@@ -1314,6 +1641,22 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										} else if _, isSliceExpr := rhs.(*ast.SliceExpr); isSliceExpr {
 											// Slice expressions already return wrapped values
 											TranspileExpression(out, rhs)
+										} else if ident, ok := rhs.(*ast.Ident); ok {
+											if sig, isFuncValue := functionValueSignature(ident); isFuncValue {
+												writeWrappedFunctionValueBox(out, ident, sig)
+											} else if writeWrappedValueCopyFromIdent(out, ident) {
+												// Copied by value from an existing wrapped value
+											} else if rhsIsPointerType(rhs) {
+												// RHS is a pointer-typed variable (e.g., z := y where y is *int)
+												// Clone the Rc to preserve aliasing instead of copying the inner value
+												TranspileExpressionContext(out, rhs, AddressOf)
+												out.WriteString(".clone()")
+											} else {
+												// Wrap new variables
+												WriteWrapperPrefix(out)
+												TranspileExpression(out, rhs)
+												WriteWrapperSuffix(out)
+											}
 										} else if rhsIsPointerType(rhs) {
 											// RHS is a pointer-typed variable (e.g., z := y where y is *int)
 											// Clone the Rc to preserve aliasing instead of copying the inner value
@@ -1464,6 +1807,62 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 								} else if unary, ok := valueSpec.Values[i].(*ast.UnaryExpr); ok && unary.Op == token.AND {
 									// Address-of operator already produces wrapped value
 									TranspileExpression(out, valueSpec.Values[i])
+								} else if ident, ok := valueSpec.Values[i].(*ast.Ident); ok {
+									if sig, isFuncValue := functionValueSignature(ident); isFuncValue {
+										writeWrappedFunctionValueBox(out, ident, sig)
+									} else if writeWrappedValueCopyFromIdent(out, ident) {
+										// Copied by value from an existing wrapped value
+									} else {
+										// Check if the target type is interface{}
+										isInterface := false
+										if valueSpec.Type != nil {
+											if intf, ok := valueSpec.Type.(*ast.InterfaceType); ok && len(intf.Methods.List) == 0 {
+												isInterface = true
+											}
+										}
+
+										if isInterface {
+											// For interface{}, box the value
+											WriteWrapperPrefix(out)
+											out.WriteString("Box::new(")
+											TranspileExpression(out, valueSpec.Values[i])
+											out.WriteString(") as Box<dyn Any>)))")
+										} else if valueSpec.Type != nil {
+											if typeIdent, ok := valueSpec.Type.(*ast.Ident); ok {
+												if underlyingType, isTypeDef := LookupTypeDefinition(typeIdent.Name); isTypeDef {
+													WriteWrapperPrefix(out)
+													out.WriteString(typeIdent.Name)
+													out.WriteString("(")
+													WriteWrapperPrefix(out)
+													isFloatType := underlyingType == "float64" || underlyingType == "float32"
+													if isFloatType {
+														if lit, ok := valueSpec.Values[i].(*ast.BasicLit); ok && lit.Kind == token.INT {
+															out.WriteString(lit.Value + ".0")
+														} else {
+															TranspileExpression(out, valueSpec.Values[i])
+														}
+													} else {
+														TranspileExpression(out, valueSpec.Values[i])
+													}
+													WriteWrapperSuffix(out)
+													out.WriteString(")")
+													WriteWrapperSuffix(out)
+												} else {
+													WriteWrapperPrefix(out)
+													TranspileExpression(out, valueSpec.Values[i])
+													WriteWrapperSuffix(out)
+												}
+											} else {
+												WriteWrapperPrefix(out)
+												TranspileExpression(out, valueSpec.Values[i])
+												WriteWrapperSuffix(out)
+											}
+										} else {
+											WriteWrapperPrefix(out)
+											TranspileExpression(out, valueSpec.Values[i])
+											WriteWrapperSuffix(out)
+										}
+									}
 								} else {
 									// Check if the target type is interface{}
 									isInterface := false
@@ -1584,6 +1983,10 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										WriteWrapperPrefix(out)
 										out.WriteString("BTreeMap::new()")
 										WriteWrapperSuffix(out)
+									case *ast.FuncType:
+										// Function variables have a nil zero value in Go.
+										out.WriteString(" = ")
+										WriteWrappedNone(out)
 									case *ast.SelectorExpr:
 										// Package-qualified types like sync.WaitGroup, strings.Builder
 										if pkgIdent, ok := t.X.(*ast.Ident); ok {
@@ -1618,6 +2021,31 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						// Skip local interface type declarations - they can't be Rust type aliases
 						if _, isIface := typeSpec.Type.(*ast.InterfaceType); isIface {
 							localInterfaces[typeSpec.Name.Name] = true
+							continue
+						}
+						if structType, isStruct := typeSpec.Type.(*ast.StructType); isStruct {
+							structDef := &StructDef{
+								Fields:        make(map[string]string),
+								EmbeddedTypes: []string{},
+								ASTType:       structType,
+							}
+							for _, field := range structType.Fields.List {
+								if len(field.Names) > 0 {
+									for _, name := range field.Names {
+										structDef.Fields[name.Name] = "regular"
+									}
+								} else {
+									typeName := getEmbeddedFieldName(field.Type)
+									structDef.EmbeddedTypes = append(structDef.EmbeddedTypes, typeName)
+								}
+							}
+							structDefs[typeSpec.Name.Name] = structDef
+							RegisterTypeAlias(typeSpec.Name.Name)
+							out.WriteString("type ")
+							out.WriteString(typeSpec.Name.Name)
+							out.WriteString(" = ")
+							out.WriteString(goTypeToRustBase(typeSpec.Type))
+							out.WriteString(";")
 							continue
 						}
 						// For now, just generate type aliases inside functions
@@ -1708,29 +2136,25 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		out.WriteString("}")
 
 	case *ast.IncDecStmt:
-		// For wrapped variables, we need to update the value inside
-		out.WriteString("{ ")
-		out.WriteString("let mut guard = ")
-		TranspileExpressionContext(out, s.X, LValue)
-		WriteBorrowMethod(out, true)
-		out.WriteString("; ")
-		out.WriteString("*guard = Some(guard.as_ref().unwrap() ")
-		if s.Tok == token.INC {
-			out.WriteString("+ 1")
+		if indexExpr, isMapIndex := isMapIndexExpression(s.X); isMapIndex {
+			writeMapElementUpdate(out, indexExpr, s.Tok, nil)
 		} else {
-			out.WriteString("- 1")
+			// For wrapped variables, we need to update the value inside
+			out.WriteString("{ ")
+			out.WriteString("let mut guard = ")
+			TranspileExpressionContext(out, s.X, LValue)
+			WriteBorrowMethod(out, true)
+			out.WriteString("; ")
+			out.WriteString("*guard = Some(guard.as_ref().unwrap() ")
+			if s.Tok == token.INC {
+				out.WriteString("+ 1")
+			} else {
+				out.WriteString("- 1")
+			}
+			out.WriteString("); }")
 		}
-		out.WriteString("); }")
 
 	case *ast.RangeStmt:
-		// Emit loop label if set by LabeledStmt
-		if pendingLoopLabel != "" {
-			out.WriteString("'" + pendingLoopLabel + ": ")
-			pendingLoopLabel = ""
-		}
-		// Handle for range loops
-		out.WriteString("for ")
-
 		// Track range loop variables so we don't try to unwrap them
 		var keyName, valueName string
 
@@ -1754,6 +2178,29 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			out.WriteString("unimplemented!(\"type info required for range statement\")")
 			return
 		}
+
+		rangeValuesVar := ""
+		closeRangeGuard := false
+		if !isMap && !isString && typeInfo.IsSlice(s.X) {
+			if ident, ok := s.X.(*ast.Ident); ok {
+				if _, isRangeVar := rangeLoopVars[ident.Name]; !isRangeVar {
+					out.WriteString("{ let __range_guard = ")
+					out.WriteString(ident.Name)
+					WriteBorrowMethod(out, false)
+					out.WriteString("; let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); ")
+					rangeValuesVar = "__range_values"
+					closeRangeGuard = true
+				}
+			}
+		}
+
+		// Emit loop label if set by LabeledStmt
+		if pendingLoopLabel != "" {
+			out.WriteString("'" + pendingLoopLabel + ": ")
+			pendingLoopLabel = ""
+		}
+		// Handle for range loops
+		out.WriteString("for ")
 
 		// Channel range: for val := range ch
 		if typeInfo != nil && typeInfo.IsChannel(s.X) {
@@ -1794,8 +2241,12 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		valueType := "T"   // Generic placeholder
 
 		if isMap {
-			keyType = "String"                    // Common key type for maps
-			valueType = "Arc<Mutex<Option<i32>>>" // Map values are wrapped
+			keyType = "String"
+			valueType = GetOuterWrapperType() + "<" + GetInnerWrapperType() + "<Option<T>>>"
+			if mapKeyType, mapValueType := typeInfo.GetMapTypes(s.X); mapKeyType != nil && mapValueType != nil {
+				keyType = goTypesTypeToRust(mapKeyType)
+				valueType = goTypesTypeToRustWrapped(mapValueType)
+			}
 		} else if typeInfo.IsSlice(s.X) {
 			// Check if it's a slice of interface{} or named interface
 			elemType := typeInfo.GetSliceElemType(s.X)
@@ -1919,7 +2370,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				if ident, ok := s.X.(*ast.Ident); ok {
 					out.WriteString(ident.Name)
 				} else {
-					TranspileExpression(out, s.X)
+					TranspileExpressionContext(out, s.X, LValue)
 				}
 				WriteBorrowMethod(out, false)
 				out.WriteString(".as_ref().unwrap()).clone()")
@@ -1936,7 +2387,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				if ident, ok := s.X.(*ast.Ident); ok {
 					out.WriteString(ident.Name)
 				} else {
-					TranspileExpression(out, s.X)
+					TranspileExpressionContext(out, s.X, LValue)
 				}
 				WriteBorrowMethod(out, false)
 				out.WriteString(".as_ref().unwrap()).clone()")
@@ -1953,7 +2404,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				if ident, ok := s.X.(*ast.Ident); ok {
 					out.WriteString(ident.Name)
 				} else {
-					TranspileExpression(out, s.X)
+					TranspileExpressionContext(out, s.X, LValue)
 				}
 				WriteBorrowMethod(out, false)
 				out.WriteString(".as_ref().unwrap()).clone()")
@@ -1983,11 +2434,21 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					}
 					if valCopied {
 						out.WriteString(" in ")
-						writeUnwrappedRangeTarget(out, s.X)
+						if rangeValuesVar != "" {
+							out.WriteString(rangeValuesVar)
+						} else {
+							writeUnwrappedRangeTarget(out, s.X)
+						}
 						out.WriteString(".iter().copied()")
 					} else {
-						out.WriteString(" in &")
-						writeUnwrappedRangeTarget(out, s.X)
+						out.WriteString(" in ")
+						if rangeValuesVar != "" {
+							out.WriteString(rangeValuesVar)
+							out.WriteString(".iter()")
+						} else {
+							out.WriteString("&")
+							writeUnwrappedRangeTarget(out, s.X)
+						}
 					}
 				} else {
 					// for i, v := range arr
@@ -2006,7 +2467,11 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					}
 					out.WriteString(") in ")
 					// Need to unwrap the collection
-					writeUnwrappedRangeTarget(out, s.X)
+					if rangeValuesVar != "" {
+						out.WriteString(rangeValuesVar)
+					} else {
+						writeUnwrappedRangeTarget(out, s.X)
+					}
 					if needsCopied {
 						out.WriteString(".iter().copied().enumerate()")
 					} else {
@@ -2033,11 +2498,21 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				}
 				if valCopied2 {
 					out.WriteString(" in ")
-					writeUnwrappedRangeTarget(out, s.X)
+					if rangeValuesVar != "" {
+						out.WriteString(rangeValuesVar)
+					} else {
+						writeUnwrappedRangeTarget(out, s.X)
+					}
 					out.WriteString(".iter().copied()")
 				} else {
-					out.WriteString(" in &")
-					writeUnwrappedRangeTarget(out, s.X)
+					out.WriteString(" in ")
+					if rangeValuesVar != "" {
+						out.WriteString(rangeValuesVar)
+						out.WriteString(".iter()")
+					} else {
+						out.WriteString("&")
+						writeUnwrappedRangeTarget(out, s.X)
+					}
 				}
 			} else if s.Key != nil {
 				// for i := range arr
@@ -2047,7 +2522,11 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					TranspileExpression(out, s.Key)
 				}
 				out.WriteString(" in 0..")
-				writeUnwrappedRangeTarget(out, s.X)
+				if rangeValuesVar != "" {
+					out.WriteString(rangeValuesVar)
+				} else {
+					writeUnwrappedRangeTarget(out, s.X)
+				}
 				out.WriteString(".len()")
 			}
 		}
@@ -2061,6 +2540,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		}
 
 		out.WriteString("    }")
+		if closeRangeGuard {
+			out.WriteString(" }")
+		}
 
 		// Clean up range loop variables
 		if keyName != "" {
@@ -2305,7 +2787,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				if s.Tag != nil {
 					// Capture tag expression to avoid borrow-lifetime issues in match
 					out.WriteString("{ let _switch_val = ")
-					TranspileExpression(out, s.Tag)
+					if !writeNamedTypeInnerExpression(out, s.Tag) {
+						TranspileExpression(out, s.Tag)
+					}
 					out.WriteString(";\n    match _switch_val {\n")
 				} else {
 					// Switch without expression - use true
@@ -2386,7 +2870,19 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				out.WriteString("continue")
 			}
 		case token.GOTO:
-			out.WriteString("// TODO: goto not supported")
+			if s.Label != nil {
+				label := ToSnakeCase(s.Label.Name)
+				if mode, ok := currentGotoLabelModes[label]; ok {
+					out.WriteString(mode)
+					out.WriteString(" '")
+					out.WriteString(label)
+				} else {
+					out.WriteString("// TODO: unsupported goto ")
+					out.WriteString(label)
+				}
+			} else {
+				out.WriteString("// TODO: malformed goto")
+			}
 		case token.FALLTHROUGH:
 			out.WriteString("// TODO: fallthrough not supported")
 		}
@@ -2633,9 +3129,12 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			out.WriteString("| {\n        ")
 
 			// Body
-			for _, stmt := range funcLit.Body.List {
+			for i, stmt := range funcLit.Body.List {
 				TranspileStatementSimple(out, stmt, funcLit.Type, fileSet)
-				out.WriteString("; ")
+				out.WriteString(";")
+				if i < len(funcLit.Body.List)-1 {
+					out.WriteString("\n        ")
+				}
 			}
 
 			out.WriteString("\n        })(")

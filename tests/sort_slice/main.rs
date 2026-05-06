@@ -15,6 +15,14 @@ where
     }
 }
 
+fn format_slice_values<T>(slice: &[T]) -> String
+where
+    T: Display,
+{
+    let formatted: Vec<String> = slice.iter().map(|v| v.to_string()).collect();
+    format!("[{}]", formatted.join(" "))
+}
+
 fn main() {
     let mut numbers = Rc::new(RefCell::new(Some(vec![64, 34, 25, 12, 22, 11, 90])));
     println!("{} {}", "Before:".to_string(), format_slice(&numbers));

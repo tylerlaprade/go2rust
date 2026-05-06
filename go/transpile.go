@@ -119,6 +119,13 @@ func trackGoImport(packagePath string, nameIdent *ast.Ident) {
 	}
 }
 
+func resolveStdlibPackageName(importName string) string {
+	if packagePath, exists := goPackageImports[importName]; exists && isStdlibPackage(packagePath) {
+		return packagePath
+	}
+	return importName
+}
+
 // resolveFieldAccess finds the path to access a field, considering embedded structs
 func resolveFieldAccess(structType string, fieldName string) FieldAccessInfo {
 	// Check if it's a direct field
@@ -446,6 +453,11 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 						RegisterErrorImplType(recvType)
 					}
 				}
+				if d.Name.Name == "String" && (d.Type.Params == nil || len(d.Type.Params.List) == 0) && d.Type.Results != nil && len(d.Type.Results.List) == 1 {
+					if resultType, ok := d.Type.Results.List[0].Type.(*ast.Ident); ok && resultType.Name == "string" {
+						RegisterStringerImplType(recvType)
+					}
+				}
 			} else {
 				// Regular function
 				functions = append(functions, d)
@@ -485,6 +497,12 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 			}
 		}
 	}
+	if len(globalVars) > 0 {
+		hasInitFunction = true
+	}
+	initFunctionNames := assignInitFunctionNames(functions)
+	SetFunctionNameOverrides(initFunctionNames)
+	defer SetFunctionNameOverrides(nil)
 
 	// Track if we need spacing between declarations
 	first := true
@@ -523,7 +541,7 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 			body.WriteString("\n\n")
 		}
 		first = false
-		body.WriteString("#[derive(Debug, Clone, Default)]\n")
+		writeStructDerive(&body, structType)
 		body.WriteString("struct ")
 		body.WriteString(typeName)
 		body.WriteString(" {\n")
@@ -545,6 +563,17 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 		}
 
 		body.WriteString("}\n")
+		generateStructDefault(&body, typeName, structType)
+		body.WriteString("\n")
+		generateStructDisplay(&body, typeName, structType)
+	}
+
+	if len(globalVars) > 0 {
+		if !first {
+			body.WriteString("\n\n")
+		}
+		first = false
+		TranspilePackageGlobals(&body, globalVars)
 	}
 
 	// Output impl blocks for types with methods in source file order
@@ -712,6 +741,13 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 		// Output doc comments if present
 		outputComment(&body, fn.Doc, "", true)
 		TranspileFunction(&body, fn, fileSet, file.Comments)
+	}
+
+	if hasInitFunction {
+		if !first {
+			body.WriteString("\n\n")
+		}
+		TranspilePackageInitAll(&body, len(globalVars) > 0, initFunctionNames)
 	}
 
 	// Now build the final output with only needed imports

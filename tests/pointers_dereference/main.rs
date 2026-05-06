@@ -11,13 +11,13 @@ pub fn zeroptr(iptr: Rc<RefCell<Option<i32>>>) {
 
 fn main() {
     let mut i = Rc::new(RefCell::new(Some(1)));
-    println!("{} {}", "initial:".to_string(), (*i.borrow().as_ref().unwrap()));
+    println!("{} {}", "initial:".to_string(), { let __v = (*i.borrow().as_ref().unwrap()).clone(); __v });
 
     zeroval(Rc::new(RefCell::new(Some((*i.borrow().as_ref().unwrap()).clone()))));
-    println!("{} {}", "zeroval:".to_string(), (*i.borrow().as_ref().unwrap()));
+    println!("{} {}", "zeroval:".to_string(), { let __v = (*i.borrow().as_ref().unwrap()).clone(); __v });
 
     zeroptr(i.clone());
-    println!("{} {}", "zeroptr:".to_string(), (*i.borrow().as_ref().unwrap()));
+    println!("{} {}", "zeroptr:".to_string(), { let __v = (*i.borrow().as_ref().unwrap()).clone(); __v });
 
     let mut p = i.clone();
     println!("{} {}", "pointer is non-nil:".to_string(), (*p.borrow()).is_some());

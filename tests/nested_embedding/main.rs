@@ -3,8 +3,8 @@ use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
 #[derive(Debug, Clone, Default)]
-struct A {
-    x: Rc<RefCell<Option<i32>>>,
+pub struct A {
+    pub x: Rc<RefCell<Option<i32>>>,
 }
 
 impl std::fmt::Display for A {
@@ -14,10 +14,17 @@ impl std::fmt::Display for A {
 }
 
 
-#[derive(Debug, Clone, Default)]
-struct B {
-    a: Rc<RefCell<Option<A>>>,
-    y: Rc<RefCell<Option<i32>>>,
+#[derive(Debug, Clone)]
+pub struct B {
+    pub a: Rc<RefCell<Option<A>>>,
+    pub y: Rc<RefCell<Option<i32>>>,
+}
+
+
+impl Default for B {
+    fn default() -> Self {
+        Self { a: Rc::new(RefCell::new(Some(A::default()))), y: Default::default() }
+    }
 }
 
 impl std::fmt::Display for B {
@@ -27,10 +34,17 @@ impl std::fmt::Display for B {
 }
 
 
-#[derive(Debug, Clone, Default)]
-struct C {
-    b: Rc<RefCell<Option<B>>>,
-    z: Rc<RefCell<Option<i32>>>,
+#[derive(Debug, Clone)]
+pub struct C {
+    pub b: Rc<RefCell<Option<B>>>,
+    pub z: Rc<RefCell<Option<i32>>>,
+}
+
+
+impl Default for C {
+    fn default() -> Self {
+        Self { b: Rc::new(RefCell::new(Some(B::default()))), z: Default::default() }
+    }
 }
 
 impl std::fmt::Display for C {

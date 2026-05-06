@@ -3,9 +3,9 @@ use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
 #[derive(Debug, Clone, Default)]
-struct Point {
-    x: Rc<RefCell<Option<i32>>>,
-    y: Rc<RefCell<Option<i32>>>,
+pub struct Point {
+    pub x: Rc<RefCell<Option<i32>>>,
+    pub y: Rc<RefCell<Option<i32>>>,
 }
 
 impl std::fmt::Display for Point {
@@ -19,13 +19,13 @@ fn main() {
         // Basic pointer operations
     let mut x = Rc::new(RefCell::new(Some(42)));
     let mut p = x.clone();
-    println!("{} {}", "Value of x:".to_string(), (*x.borrow().as_ref().unwrap()));
+    println!("{} {}", "Value of x:".to_string(), { let __v = (*x.borrow().as_ref().unwrap()).clone(); __v });
     println!("{} {}", "Pointer is non-nil:".to_string(), (*p.borrow()).is_some());
-    println!("{} {}", "Value through pointer:".to_string(), (*p.borrow().as_ref().unwrap()));
+    println!("{} {}", "Value through pointer:".to_string(), { let __v = (*p.borrow().as_ref().unwrap()).clone(); __v });
 
         // Modify through pointer
     { let new_val = 100; *p.borrow_mut() = Some(new_val); };
-    println!("{} {}", "Modified x:".to_string(), (*x.borrow().as_ref().unwrap()));
+    println!("{} {}", "Modified x:".to_string(), { let __v = (*x.borrow().as_ref().unwrap()).clone(); __v });
 
         // Pointer to struct
     let mut point = Rc::new(RefCell::new(Some(Point { x: Rc::new(RefCell::new(Some(10))), y: Rc::new(RefCell::new(Some(20))), ..Default::default() })));
@@ -41,7 +41,7 @@ fn main() {
         // Pointer aliasing
     let mut q = p.clone();
     { let new_val = 200; *q.borrow_mut() = Some(new_val); };
-    println!("{} {}", "x after modifying through q:".to_string(), (*x.borrow().as_ref().unwrap()));
+    println!("{} {}", "x after modifying through q:".to_string(), { let __v = (*x.borrow().as_ref().unwrap()).clone(); __v });
 
         // New pointer allocation
     let mut newPoint = Rc::new(RefCell::new(Some(Point::default())));

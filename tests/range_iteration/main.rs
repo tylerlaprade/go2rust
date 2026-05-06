@@ -5,16 +5,16 @@ use std::rc::{Rc};
 fn main() {
     let mut nums = Rc::new(RefCell::new(Some(vec![2, 3, 4])));
     let mut sum = Rc::new(RefCell::new(Some(0)));
-    for num in (*nums.borrow().as_ref().unwrap()).iter().copied() {
+    { let __range_guard = nums.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for num in __range_values.iter().copied() {
         { let mut guard = sum.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + num); };
-    }
-    println!("{} {}", "sum:".to_string(), (*sum.borrow().as_ref().unwrap()));
+    } }
+    println!("{} {}", "sum:".to_string(), { let __v = (*sum.borrow().as_ref().unwrap()).clone(); __v });
 
-    for (i, num) in (*nums.borrow().as_ref().unwrap()).iter().copied().enumerate() {
+    { let __range_guard = nums.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for (i, num) in __range_values.iter().copied().enumerate() {
         if num == 3 {
         println!("{} {}", "index:".to_string(), i);
     }
-    }
+    } }
 
     let mut kvs = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<String>>>>::from([("a".to_string(), Rc::new(RefCell::new(Some("apple".to_string())))), ("b".to_string(), Rc::new(RefCell::new(Some("banana".to_string()))))]))));
     let mut keys: Rc<RefCell<Option<Vec<String>>>> = Rc::new(RefCell::new(None));
@@ -22,7 +22,7 @@ fn main() {
         {(*keys.borrow_mut()).get_or_insert_with(Vec::new).push(k); keys.clone()};
     }
     (*keys.borrow_mut().as_mut().unwrap()).sort();
-    for k in &(*keys.borrow().as_ref().unwrap()) {
-        print!("{} -> {}\n", k, (*kvs.borrow().as_ref().unwrap()).get(k).unwrap().borrow().as_ref().unwrap().clone());
-    }
+    { let __range_guard = keys.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for k in __range_values.iter() {
+        print!("{} -> {}\n", k, (*kvs.borrow().as_ref().unwrap()).get(k).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| String::new()));
+    } }
 }

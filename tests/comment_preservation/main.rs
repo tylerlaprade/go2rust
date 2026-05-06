@@ -7,7 +7,7 @@ fn main() {
     let mut x = Rc::new(RefCell::new(Some(42)));
 
         // Print the value
-    println!("{} {}", "Value:".to_string(), (*x.borrow().as_ref().unwrap()));
+    println!("{} {}", "Value:".to_string(), { let __v = (*x.borrow().as_ref().unwrap()).clone(); __v });
 
         // Do some math
     let mut y = Rc::new(RefCell::new(Some((*x.borrow().as_ref().unwrap()) * 2)));
@@ -15,5 +15,5 @@ fn main() {
         // Another comment
         // spanning multiple lines
         // to test preservation
-    println!("{} {}", "Double:".to_string(), (*y.borrow().as_ref().unwrap()));
+    println!("{} {}", "Double:".to_string(), { let __v = (*y.borrow().as_ref().unwrap()).clone(); __v });
 }

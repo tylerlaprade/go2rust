@@ -3,9 +3,9 @@ use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
 #[derive(Debug, Clone, Default)]
-struct Person {
-    name: Rc<RefCell<Option<String>>>,
-    age: Rc<RefCell<Option<i32>>>,
+pub struct Person {
+    pub name: Rc<RefCell<Option<String>>>,
+    pub age: Rc<RefCell<Option<i32>>>,
 }
 
 impl std::fmt::Display for Person {
@@ -15,10 +15,17 @@ impl std::fmt::Display for Person {
 }
 
 
-#[derive(Debug, Clone, Default)]
-struct Employee {
-    person: Rc<RefCell<Option<Person>>>,
-    i_d: Rc<RefCell<Option<i32>>>,
+#[derive(Debug, Clone)]
+pub struct Employee {
+    pub person: Rc<RefCell<Option<Person>>>,
+    pub i_d: Rc<RefCell<Option<i32>>>,
+}
+
+
+impl Default for Employee {
+    fn default() -> Self {
+        Self { person: Rc::new(RefCell::new(Some(Person::default()))), i_d: Default::default() }
+    }
 }
 
 impl std::fmt::Display for Employee {

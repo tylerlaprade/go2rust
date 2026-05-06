@@ -3,9 +3,9 @@ use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
 #[derive(Debug, Clone, Default)]
-struct rect {
-    width: Rc<RefCell<Option<i32>>>,
-    height: Rc<RefCell<Option<i32>>>,
+pub struct rect {
+    pub width: Rc<RefCell<Option<i32>>>,
+    pub height: Rc<RefCell<Option<i32>>>,
 }
 
 impl std::fmt::Display for rect {

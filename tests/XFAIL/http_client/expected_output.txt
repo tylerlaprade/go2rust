@@ -1,5 +1,1 @@
-Response: {
-  "slideshow": {
-    "author": "Yours Truly", 
-    "date": "date of publication", 
-    "slides": [
+Response: {"slideshow":{"author":"Yours Truly","slides":[1,2,3]}}

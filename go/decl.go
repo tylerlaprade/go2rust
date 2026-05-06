@@ -22,7 +22,9 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 		out.WriteString(structName)
 		out.WriteString(" {\n")
 		out.WriteString("    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {\n")
-		out.WriteString("        write!(f, \"{}\", (*self.error().borrow().as_ref().unwrap()))\n")
+		out.WriteString("        write!(f, \"{}\", (*self.error()")
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap()))\n")
 		out.WriteString("    }\n")
 		out.WriteString("}\n")
 		return
@@ -36,9 +38,11 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 
 	// Collect all fields (including embedded)
 	type fieldEntry struct {
-		name       string
-		isEmbedded bool
-		isSlice    bool
+		name        string
+		isEmbedded  bool
+		isSlice     bool
+		isMap       bool
+		isInterface bool
 	}
 	var fields []fieldEntry
 	for _, field := range structType.Fields.List {
@@ -47,14 +51,28 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 			continue
 		}
 		_, isSlice := field.Type.(*ast.ArrayType)
+		_, isMap := field.Type.(*ast.MapType)
+		isInterface := isEmptyInterfaceExpr(field.Type)
 		if len(field.Names) > 0 {
 			for _, name := range field.Names {
-				fields = append(fields, fieldEntry{name: name.Name, isEmbedded: false, isSlice: isSlice})
+				fields = append(fields, fieldEntry{
+					name:        name.Name,
+					isEmbedded:  false,
+					isSlice:     isSlice,
+					isMap:       isMap,
+					isInterface: isInterface,
+				})
 			}
 		} else {
 			// Embedded field
 			typeName := getEmbeddedFieldName(field.Type)
-			fields = append(fields, fieldEntry{name: typeName, isEmbedded: true, isSlice: isSlice})
+			fields = append(fields, fieldEntry{
+				name:        typeName,
+				isEmbedded:  true,
+				isSlice:     isSlice,
+				isMap:       isMap,
+				isInterface: isInterface,
+			})
 		}
 	}
 
@@ -70,7 +88,18 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 	// Add field values
 	for _, f := range fields {
 		out.WriteString(", ")
-		if f.isSlice {
+		if f.isInterface {
+			NeedFormatAny()
+			out.WriteString("format_any(self.")
+			out.WriteString(ToSnakeCase(f.name))
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref().unwrap().as_ref())")
+		} else if f.isMap {
+			NeedFormatMap()
+			out.WriteString("format_map(&self.")
+			out.WriteString(ToSnakeCase(f.name))
+			out.WriteString(")")
+		} else if f.isSlice {
 			NeedFormatSlice()
 			out.WriteString("format_slice(&self.")
 			out.WriteString(ToSnakeCase(f.name))
@@ -78,13 +107,143 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 		} else {
 			out.WriteString("(*self.")
 			out.WriteString(ToSnakeCase(f.name))
-			out.WriteString(".borrow().as_ref().unwrap())")
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref().unwrap())")
 		}
 	}
 
 	out.WriteString(")\n")
 	out.WriteString("    }\n")
 	out.WriteString("}\n")
+}
+
+func structHasTraitField(structType *ast.StructType) bool {
+	for _, field := range structType.Fields.List {
+		if typeHasTraitField(field.Type) {
+			return true
+		}
+	}
+	return false
+}
+
+func structNeedsCustomDefault(structType *ast.StructType) bool {
+	for _, field := range structType.Fields.List {
+		if structFieldNeedsCustomDefault(field.Type) {
+			return true
+		}
+	}
+	return false
+}
+
+func structFieldNeedsCustomDefault(expr ast.Expr) bool {
+	switch t := expr.(type) {
+	case *ast.StructType:
+		return true
+	case *ast.Ident:
+		_, isStruct := structDefs[t.Name]
+		return isStruct
+	default:
+		return false
+	}
+}
+
+func writeStructDerive(out *strings.Builder, structType *ast.StructType) {
+	hasTraitField := structHasTraitField(structType)
+	needsCustomDefault := structNeedsCustomDefault(structType)
+	if hasTraitField {
+		if needsCustomDefault {
+			out.WriteString("#[derive(Clone)]\n")
+		} else {
+			out.WriteString("#[derive(Clone, Default)]\n")
+		}
+	} else {
+		if needsCustomDefault {
+			out.WriteString("#[derive(Debug, Clone)]\n")
+		} else {
+			out.WriteString("#[derive(Debug, Clone, Default)]\n")
+		}
+	}
+}
+
+func writeStructDefaultValue(out *strings.Builder, fieldType ast.Expr) {
+	if nestedStruct, ok := fieldType.(*ast.StructType); ok {
+		nestedName := generateAnonymousStructType(nestedStruct)
+		WriteWrapperPrefix(out)
+		out.WriteString(nestedName)
+		out.WriteString("::default()")
+		WriteWrapperSuffix(out)
+		return
+	}
+	if fieldIdent, ok := fieldType.(*ast.Ident); ok {
+		if _, isStruct := structDefs[fieldIdent.Name]; isStruct {
+			WriteWrapperPrefix(out)
+			out.WriteString(fieldIdent.Name)
+			out.WriteString("::default()")
+			WriteWrapperSuffix(out)
+			return
+		}
+	}
+	if isSyncParam(fieldType) {
+		out.WriteString(goTypeToRustBase(fieldType))
+		out.WriteString("::new()")
+		return
+	}
+	out.WriteString("Default::default()")
+}
+
+func generateStructDefault(out *strings.Builder, structName string, structType *ast.StructType) {
+	if !structNeedsCustomDefault(structType) {
+		return
+	}
+	out.WriteString("\nimpl Default for ")
+	out.WriteString(structName)
+	out.WriteString(" {\n")
+	out.WriteString("    fn default() -> Self {\n")
+	out.WriteString("        Self { ")
+	needComma := false
+	for _, field := range structType.Fields.List {
+		if len(field.Names) > 0 {
+			for _, name := range field.Names {
+				if needComma {
+					out.WriteString(", ")
+				}
+				needComma = true
+				out.WriteString(ToSnakeCase(name.Name))
+				out.WriteString(": ")
+				writeStructDefaultValue(out, field.Type)
+			}
+		} else {
+			if needComma {
+				out.WriteString(", ")
+			}
+			needComma = true
+			fieldName := getEmbeddedFieldName(field.Type)
+			out.WriteString(ToSnakeCase(fieldName))
+			out.WriteString(": ")
+			writeStructDefaultValue(out, field.Type)
+		}
+	}
+	out.WriteString(" }\n")
+	out.WriteString("    }\n")
+	out.WriteString("}\n")
+}
+
+func typeHasTraitField(expr ast.Expr) bool {
+	fieldType := goTypeToRustBase(expr)
+	if strings.Contains(fieldType, "dyn ") {
+		return true
+	}
+
+	switch t := expr.(type) {
+	case *ast.ArrayType:
+		return typeHasTraitField(t.Elt)
+	case *ast.MapType:
+		return typeHasTraitField(t.Value)
+	case *ast.StructType:
+		return structHasTraitField(t)
+	default:
+		return false
+	}
 }
 
 // Helper to check if a function body contains defer statements
@@ -121,6 +280,46 @@ func checkHasDefer(stmts []ast.Stmt) bool {
 	return false
 }
 
+func isOsArgsSelector(sel *ast.SelectorExpr) bool {
+	if sel.Sel.Name != "Args" {
+		return false
+	}
+
+	ident, ok := sel.X.(*ast.Ident)
+	if !ok {
+		return false
+	}
+
+	if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.info != nil {
+		if obj, ok := typeInfo.info.Uses[ident]; ok {
+			if pkgName, ok := obj.(*types.PkgName); ok {
+				return pkgName.Imported().Path() == "os"
+			}
+		}
+	}
+
+	return resolveStdlibPackageName(ident.Name) == "os"
+}
+
+func functionUsesOsArgs(fn *ast.FuncDecl) bool {
+	if fn.Body == nil {
+		return false
+	}
+
+	usesOsArgs := false
+	ast.Inspect(fn.Body, func(node ast.Node) bool {
+		if usesOsArgs {
+			return false
+		}
+		if sel, ok := node.(*ast.SelectorExpr); ok && isOsArgsSelector(sel) {
+			usesOsArgs = true
+			return false
+		}
+		return true
+	})
+	return usesOsArgs
+}
+
 func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.FileSet, comments []*ast.CommentGroup) {
 	// Check if this is a method (has receiver)
 	if fn.Recv != nil && len(fn.Recv.List) > 0 {
@@ -148,7 +347,7 @@ func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.Fi
 		out.WriteString("pub ")
 	}
 	out.WriteString("fn ")
-	out.WriteString(ToSnakeCase(fn.Name.Name))
+	out.WriteString(rustFunctionName(fn))
 	out.WriteString("(")
 
 	// Parameters
@@ -242,9 +441,17 @@ func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.Fi
 		}
 	}
 
-	// Call init() at the start of main() if present
+	// Call package initialization at the start of main() if present
 	if fn.Name.Name == "main" && hasInitFunction {
-		out.WriteString("    init();\n")
+		out.WriteString("    __go_init_all();\n")
+	}
+
+	if functionUsesOsArgs(fn) {
+		out.WriteString("    let __go_os_args = ")
+		WriteWrapperPrefix(out)
+		out.WriteString("std::env::args().collect::<Vec<String>>()")
+		WriteWrapperSuffix(out)
+		out.WriteString(";\n\n")
 	}
 
 	// Check if this function uses defer statements
@@ -321,17 +528,21 @@ func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.Fi
 	// Function body
 	var prevStmt ast.Stmt
 	var lastPos token.Pos = fn.Body.Lbrace
-	for _, stmt := range fn.Body.List {
-		// Add blank line if there was one in the source
-		if prevStmt != nil && hasBlankLineBetween(fileSet, prevStmt.End(), stmt.Pos()) {
+	if functionHasGoto(fn) {
+		prevStmt = TranspileGotoStatementList(out, fn.Body.List, fn.Type, fileSet, comments, &lastPos, "    ")
+	} else {
+		for _, stmt := range fn.Body.List {
+			// Add blank line if there was one in the source
+			if prevStmt != nil && hasBlankLineBetween(fileSet, prevStmt.End(), stmt.Pos()) {
+				out.WriteString("\n")
+			}
+
+			out.WriteString("    ")
+			TranspileStatement(out, stmt, fn.Type, fileSet, comments, &lastPos, "    ")
 			out.WriteString("\n")
+
+			prevStmt = stmt
 		}
-
-		out.WriteString("    ")
-		TranspileStatement(out, stmt, fn.Type, fileSet, comments, &lastPos, "    ")
-		out.WriteString("\n")
-
-		prevStmt = stmt
 	}
 
 	// Execute defers at the end if needed.
@@ -391,29 +602,8 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 
 		structDefs[typeSpec.Name.Name] = structDef
 
-		// Check if any field contains a trait object (dyn), which doesn't implement Debug
-		hasTraitField := false
-		for _, field := range t.Fields.List {
-			fieldType := goTypeToRustBase(field.Type)
-			if strings.Contains(fieldType, "dyn ") {
-				hasTraitField = true
-				break
-			}
-			// Also check slice of interface
-			if arrayType, ok := field.Type.(*ast.ArrayType); ok && arrayType.Len == nil {
-				elemType := goTypeToRustBase(arrayType.Elt)
-				if strings.Contains(elemType, "dyn ") {
-					hasTraitField = true
-					break
-				}
-			}
-		}
-		if hasTraitField {
-			out.WriteString("#[derive(Clone, Default)]\n")
-		} else {
-			out.WriteString("#[derive(Debug, Clone, Default)]\n")
-		}
-		out.WriteString("struct ")
+		writeStructDerive(out, t)
+		out.WriteString("pub struct ")
 		out.WriteString(typeSpec.Name.Name)
 		out.WriteString(" {\n")
 
@@ -428,7 +618,7 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 			if len(field.Names) > 0 {
 				// Handle multiple names on one line (e.g., X, Y int)
 				for _, name := range field.Names {
-					out.WriteString("    ")
+					out.WriteString("    pub ")
 					out.WriteString(ToSnakeCase(name.Name))
 					out.WriteString(": ")
 					out.WriteString(GoTypeToRust(field.Type))
@@ -437,7 +627,7 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 			} else {
 				// Embedded field - extract the type name
 				fieldName := getEmbeddedFieldName(field.Type)
-				out.WriteString("    ")
+				out.WriteString("    pub ")
 				out.WriteString(ToSnakeCase(fieldName))
 				out.WriteString(": ")
 				out.WriteString(GoTypeToRust(field.Type))
@@ -447,13 +637,18 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 
 		out.WriteString("}\n\n")
 
+		generateStructDefault(out, typeSpec.Name.Name, t)
+		if structNeedsCustomDefault(t) {
+			out.WriteString("\n")
+		}
+
 		// Generate Display implementation to match Go's format
 		generateStructDisplay(out, typeSpec.Name.Name, t)
 
 	case *ast.InterfaceType:
 		// Generate a trait for the interface
 		// Add Display and Clone as supertraits
-		out.WriteString("trait ")
+		out.WriteString("pub trait ")
 		out.WriteString(typeSpec.Name.Name)
 		out.WriteString(": std::fmt::Display {\n")
 		TrackImport("Display")
@@ -529,7 +724,7 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 		// Handle type aliases and type definitions
 		if typeSpec.Assign != 0 {
 			// Type alias: type A = B
-			out.WriteString("type ")
+			out.WriteString("pub type ")
 			out.WriteString(typeSpec.Name.Name)
 			out.WriteString(" = ")
 			out.WriteString(GoTypeToRust(t))
@@ -540,7 +735,7 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 		} else if _, isFuncType := t.(*ast.FuncType); isFuncType {
 			// Named function type: type BinaryOp func(int, int) int
 			// Emit as a type alias to the callable shape, not a newtype struct
-			out.WriteString("type ")
+			out.WriteString("pub type ")
 			out.WriteString(typeSpec.Name.Name)
 			out.WriteString(" = ")
 			out.WriteString(GoTypeToRust(t))
@@ -552,7 +747,7 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 			// Type definition: type A B
 			// Create a newtype wrapper in Rust
 			out.WriteString("#[derive(Debug, Clone)]\n")
-			out.WriteString("struct ")
+			out.WriteString("pub struct ")
 			out.WriteString(typeSpec.Name.Name)
 			out.WriteString("(")
 			out.WriteString(GoTypeToRust(t))
@@ -574,9 +769,15 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 					out.WriteString(typeSpec.Name.Name)
 					out.WriteString(" {\n")
 					out.WriteString("    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {\n")
-					out.WriteString("        write!(f, \"{}\", self.0")
-					WriteBorrowMethod(out, false)
-					out.WriteString(".as_ref().unwrap())\n")
+					if IsStringerImplType(typeSpec.Name.Name) {
+						out.WriteString("        write!(f, \"{}\", (*self.string()")
+						WriteBorrowMethod(out, false)
+						out.WriteString(".as_ref().unwrap()))\n")
+					} else {
+						out.WriteString("        write!(f, \"{}\", self.0")
+						WriteBorrowMethod(out, false)
+						out.WriteString(".as_ref().unwrap())\n")
+					}
 					out.WriteString("    }\n")
 					out.WriteString("}\n")
 				}
@@ -812,9 +1013,11 @@ func TranspileConstExpr(out *strings.Builder, expr ast.Expr, iotaValue int) {
 		} else if _, exists := localConstants[e.Name]; exists {
 			// Local constant - keep original name
 			out.WriteString(e.Name)
+		} else if isConstIdent(e) {
+			out.WriteString(rustConstName(e.Name))
 		} else if e.Name[0] >= 'a' && e.Name[0] <= 'z' {
 			// Package-level constant reference - convert to uppercase
-			out.WriteString(strings.ToUpper(ToSnakeCase(e.Name)))
+			out.WriteString(rustConstName(e.Name))
 		} else {
 			out.WriteString(e.Name)
 		}

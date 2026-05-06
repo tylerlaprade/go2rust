@@ -22,17 +22,17 @@ pub fn swap(a: Rc<RefCell<Option<String>>>, b: Rc<RefCell<Option<String>>>) -> (
 fn main() {
         // Basic multiple returns
     let (mut q, mut r) = divmod(Rc::new(RefCell::new(Some(17))), Rc::new(RefCell::new(Some(5))));
-    println!("{} {} {} {}", "Quotient:".to_string(), (*q.borrow().as_ref().unwrap()), "Remainder:".to_string(), (*r.borrow().as_ref().unwrap()));
+    println!("{} {} {} {}", "Quotient:".to_string(), { let __v = (*q.borrow().as_ref().unwrap()).clone(); __v }, "Remainder:".to_string(), { let __v = (*r.borrow().as_ref().unwrap()).clone(); __v });
 
         // Multiple assignment
     let (mut x, mut y) = (Rc::new(RefCell::new(Some("hello".to_string()))), Rc::new(RefCell::new(Some("world".to_string()))));
-    println!("{} {} {}", "Before swap:".to_string(), (*x.borrow().as_ref().unwrap()), (*y.borrow().as_ref().unwrap()));
+    println!("{} {} {}", "Before swap:".to_string(), { let __v = (*x.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*y.borrow().as_ref().unwrap()).clone(); __v });
 
         // Swap using function
     (x, y) = swap(Rc::new(RefCell::new(Some((*x.borrow().as_ref().unwrap()).clone()))), Rc::new(RefCell::new(Some((*y.borrow().as_ref().unwrap()).clone()))));
-    println!("{} {} {}", "After swap:".to_string(), (*x.borrow().as_ref().unwrap()), (*y.borrow().as_ref().unwrap()));
+    println!("{} {} {}", "After swap:".to_string(), { let __v = (*x.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*y.borrow().as_ref().unwrap()).clone(); __v });
 
         // Ignoring values
     let (_, mut r2) = divmod(Rc::new(RefCell::new(Some(23))), Rc::new(RefCell::new(Some(7))));
-    println!("{} {}", "23 mod 7 =".to_string(), (*r2.borrow().as_ref().unwrap()));
+    println!("{} {}", "23 mod 7 =".to_string(), { let __v = (*r2.borrow().as_ref().unwrap()).clone(); __v });
 }

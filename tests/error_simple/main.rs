@@ -20,7 +20,7 @@ fn main() {
     if (*err.borrow()).is_some() {
         println!("{} {}", "Error:".to_string(), format!("{}", (*err.borrow().as_ref().unwrap())));
     } else {
-        println!("{} {}", "Result:".to_string(), (*result.borrow().as_ref().unwrap()));
+        println!("{} {}", "Result:".to_string(), { let __v = (*result.borrow().as_ref().unwrap()).clone(); __v });
     }
 
         // Error case
@@ -28,6 +28,6 @@ fn main() {
     if (*err.borrow()).is_some() {
         println!("{} {}", "Error:".to_string(), format!("{}", (*err.borrow().as_ref().unwrap())));
     } else {
-        println!("{} {}", "Result:".to_string(), (*result.borrow().as_ref().unwrap()));
+        println!("{} {}", "Result:".to_string(), { let __v = (*result.borrow().as_ref().unwrap()).clone(); __v });
     }
 }

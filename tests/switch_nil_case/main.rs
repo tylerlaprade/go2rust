@@ -5,7 +5,7 @@ pub fn describe(ptr: Rc<RefCell<Option<i32>>>) {
     if ptr.borrow().is_none() {
             println!("{}", "nil pointer".to_string());
         } else {
-            println!("{}", (*ptr.borrow().as_ref().unwrap()));
+            println!("{}", { let __v = (*ptr.borrow().as_ref().unwrap()).clone(); __v });
         }
 }
 

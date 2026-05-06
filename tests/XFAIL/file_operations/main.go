@@ -128,7 +128,9 @@ func main() {
 	fmt.Printf("File name: %s\n", fileInfo.Name())
 	fmt.Printf("File size: %d bytes\n", fileInfo.Size())
 	fmt.Printf("File mode: %v\n", fileInfo.Mode())
-	fmt.Printf("Modified time: %v\n", fileInfo.ModTime())
+	// Keep the fixture deterministic; actual modification times vary per run.
+	_ = fileInfo.ModTime()
+	fmt.Println("Modified time: <deterministic>")
 	fmt.Printf("Is directory: %t\n", fileInfo.IsDir())
 
 	// Copy file

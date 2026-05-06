@@ -2,15 +2,15 @@ use std::cell::{RefCell};
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
-trait geometry: std::fmt::Display {
+pub trait geometry: std::fmt::Display {
     fn area(&self) -> Rc<RefCell<Option<f64>>>;
     fn perim(&self) -> Rc<RefCell<Option<f64>>>;
 }
 
 #[derive(Debug, Clone, Default)]
-struct rect {
-    width: Rc<RefCell<Option<f64>>>,
-    height: Rc<RefCell<Option<f64>>>,
+pub struct rect {
+    pub width: Rc<RefCell<Option<f64>>>,
+    pub height: Rc<RefCell<Option<f64>>>,
 }
 
 impl std::fmt::Display for rect {

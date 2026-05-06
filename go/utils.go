@@ -137,7 +137,7 @@ func ToSnakeCase(s string) string {
 	// Escape Rust keywords
 	resultStr := string(result)
 	switch resultStr {
-	case "type", "match", "move", "ref", "impl", "trait", "mod", "pub", "use", "where", "async", "await", "dyn":
+	case "type", "match", "move", "ref", "impl", "trait", "mod", "pub", "use", "where", "async", "await", "dyn", "loop":
 		return "r#" + resultStr
 	}
 

@@ -1,3 +1,5 @@
+use crate::string::*;
+
 use std::cell::{RefCell};
 use std::rc::{Rc};
 

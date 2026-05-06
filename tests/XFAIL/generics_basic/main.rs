@@ -1,3 +1,4 @@
+use std::any::Any;
 use std::cell::{RefCell};
 use std::collections::BTreeMap;
 use std::fmt::{Display, Formatter};
@@ -16,10 +17,18 @@ where
     }
 }
 
+fn format_slice_values<T>(slice: &[T]) -> String
+where
+    T: Display,
+{
+    let formatted: Vec<String> = slice.iter().map(|v| v.to_string()).collect();
+    format!("[{}]", formatted.join(" "))
+}
+
 #[derive(Debug, Clone, Default)]
-struct List {
-    head: Rc<RefCell<Option</* TODO: Unhandled type *ast.IndexExpr */ Rc<RefCell<Option<()>>>>>>,
-    tail: Rc<RefCell<Option</* TODO: Unhandled type *ast.IndexExpr */ Rc<RefCell<Option<()>>>>>>,
+pub struct List {
+    pub head: Rc<RefCell<Option</* TODO: Unhandled type *ast.IndexExpr */ Rc<RefCell<Option<()>>>>>>,
+    pub tail: Rc<RefCell<Option</* TODO: Unhandled type *ast.IndexExpr */ Rc<RefCell<Option<()>>>>>>,
 }
 
 impl std::fmt::Display for List {
@@ -30,9 +39,9 @@ impl std::fmt::Display for List {
 
 
 #[derive(Debug, Clone, Default)]
-struct element {
-    next: Rc<RefCell<Option</* TODO: Unhandled type *ast.IndexExpr */ Rc<RefCell<Option<()>>>>>>,
-    val: Rc<RefCell<Option<T>>>,
+pub struct element {
+    pub next: Rc<RefCell<Option</* TODO: Unhandled type *ast.IndexExpr */ Rc<RefCell<Option<()>>>>>>,
+    pub val: Rc<RefCell<Option<T>>>,
 }
 
 impl std::fmt::Display for element {
@@ -65,7 +74,9 @@ pub fn map_keys(m: Rc<RefCell<Option<BTreeMap<K, Rc<RefCell<Option<V>>>>>>>) -> 
 
 fn main() {
     let mut m = Rc::new(RefCell::new(Some(BTreeMap::<i32, Rc<RefCell<Option<String>>>>::from([(1, Rc::new(RefCell::new(Some("2".to_string())))), (2, Rc::new(RefCell::new(Some("4".to_string())))), (4, Rc::new(RefCell::new(Some("8".to_string()))))]))));
-    println!("{} {}", "keys:".to_string(), format_slice(&map_keys(m.clone())));
+    let mut keys = map_keys(m.clone());
+    (*keys.borrow_mut().as_mut().unwrap()).sort();
+    println!("{} {}", "keys:".to_string(), format_slice(&keys));
 
     let mut lst = ;
     (*lst.borrow_mut().as_mut().unwrap()).push(Rc::new(RefCell::new(Some(10))));

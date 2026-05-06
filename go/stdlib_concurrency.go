@@ -90,19 +90,22 @@ var syncStdlibFunctions = map[string]bool{
 	"strconv.Unquote":     true,
 
 	// math - All math functions are synchronous
-	"math.Abs":   true,
-	"math.Ceil":  true,
-	"math.Floor": true,
-	"math.Round": true,
-	"math.Max":   true,
-	"math.Min":   true,
-	"math.Pow":   true,
-	"math.Sqrt":  true,
-	"math.Sin":   true,
-	"math.Cos":   true,
-	"math.Tan":   true,
-	"math.Log":   true,
-	"math.Exp":   true,
+	"math.Abs":          true,
+	"math.Ceil":         true,
+	"math.Floor":        true,
+	"math.Round":        true,
+	"math.Max":          true,
+	"math.Min":          true,
+	"math.Pow":          true,
+	"math.Sqrt":         true,
+	"math.Sin":          true,
+	"math.Cos":          true,
+	"math.Tan":          true,
+	"math.Log":          true,
+	"math.Exp":          true,
+	"math/rand.Seed":    true,
+	"math/rand.Intn":    true,
+	"math/rand.Float64": true,
 
 	// io - Basic I/O is synchronous
 	"io.Copy":        true,
@@ -169,6 +172,10 @@ var syncStdlibFunctions = map[string]bool{
 	"errors.Unwrap": true,
 	"errors.Is":     true,
 	"errors.As":     true,
+
+	// flag - Parsing command-line flags is synchronous
+	"flag.String": true,
+	"flag.Parse":  true,
 
 	// reflect - Reflection is synchronous
 	"reflect.TypeOf":  true,

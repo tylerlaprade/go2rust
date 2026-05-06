@@ -1,6 +1,9 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"sort"
+)
 
 func MapKeys[K comparable, V any](m map[K]V) []K {
 	r := make([]K, 0, len(m))
@@ -31,7 +34,9 @@ func (lst *List[T]) Push(v T) {
 
 func main() {
 	var m = map[int]string{1: "2", 2: "4", 4: "8"}
-	fmt.Println("keys:", MapKeys(m))
+	keys := MapKeys(m)
+	sort.Ints(keys)
+	fmt.Println("keys:", keys)
 
 	lst := List[int]{}
 	lst.Push(10)

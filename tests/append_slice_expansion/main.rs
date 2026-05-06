@@ -15,6 +15,14 @@ where
     }
 }
 
+fn format_slice_values<T>(slice: &[T]) -> String
+where
+    T: Display,
+{
+    let formatted: Vec<String> = slice.iter().map(|v| v.to_string()).collect();
+    format!("[{}]", formatted.join(" "))
+}
+
 fn main() {
     let mut dst = Rc::new(RefCell::new(Some(vec![1, 2])));
     let mut src = Rc::new(RefCell::new(Some(vec![3, 4, 5])));

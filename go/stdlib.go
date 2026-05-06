@@ -4,6 +4,8 @@ import (
 	"go/ast"
 	"go/token"
 	"go/types"
+	"reflect"
+	"strconv"
 	"strings"
 )
 
@@ -11,12 +13,9 @@ type StdlibHandler func(*strings.Builder, *ast.CallExpr)
 
 func GetStdlibHandler(call *ast.CallExpr) StdlibHandler {
 	// Handle selector expressions like fmt.Println
-	if sel, ok := call.Fun.(*ast.SelectorExpr); ok {
-		if ident, ok := sel.X.(*ast.Ident); ok {
-			key := ident.Name + "." + sel.Sel.Name
-			if handler, exists := stdlibMappings[key]; exists {
-				return handler
-			}
+	if key, ok := stdlibCallKey(call.Fun); ok {
+		if handler, exists := stdlibMappings[key]; exists {
+			return handler
 		}
 	}
 
@@ -30,36 +29,97 @@ func GetStdlibHandler(call *ast.CallExpr) StdlibHandler {
 	return nil
 }
 
+func stdlibCallKey(expr ast.Expr) (string, bool) {
+	sel, ok := expr.(*ast.SelectorExpr)
+	if !ok {
+		return "", false
+	}
+
+	parts := []string{sel.Sel.Name}
+	current := sel.X
+	for {
+		switch x := current.(type) {
+		case *ast.SelectorExpr:
+			parts = append([]string{x.Sel.Name}, parts...)
+			current = x.X
+		case *ast.Ident:
+			return resolveStdlibPackageName(x.Name) + "." + strings.Join(parts, "."), true
+		default:
+			return "", false
+		}
+	}
+}
+
 var stdlibMappings map[string]StdlibHandler
 var builtinMappings map[string]StdlibHandler
 
 func init() {
 	stdlibMappings = map[string]StdlibHandler{
-		"fmt.Println":         transpileFmtPrintln,
-		"fmt.Printf":          transpileFmtPrintf,
-		"fmt.Print":           transpileFmtPrint,
-		"fmt.Sprintf":         transpileFmtSprintf,
-		"fmt.Fprintln":        transpileFmtFprintln,
-		"fmt.Fprintf":         transpileFmtFprintf,
-		"fmt.Errorf":          transpileFmtErrorf,
-		"strings.ToLower":     transpileStringsToLower,
-		"strings.ToUpper":     transpileStringsToUpper,
-		"strings.TrimSpace":   transpileStringsTrimSpace,
-		"strconv.Itoa":        transpileStrconvItoa,
-		"strconv.Atoi":        transpileStrconvAtoi,
-		"errors.New":          transpileErrorsNew,
-		"sort.Strings":        transpileSortStrings,
-		"sort.Ints":           transpileSortInts,
-		"slices.Sort":         transpileSlicesSort,
-		"time.Sleep":          transpileTimeSleep,
-		"time.Now":            transpileTimeNow,
-		"time.After":          transpileTimeAfter,
-		"time.NewTicker":      transpileTimeNewTicker,
-		"time.NewTimer":       transpileTimeNewTimer,
-		"time.Tick":           transpileTimeTick,
-		"context.Background":  transpileContextBackground,
-		"context.WithTimeout": transpileContextWithTimeout,
-		"context.WithCancel":  transpileContextWithCancel,
+		"fmt.Println":           transpileFmtPrintln,
+		"fmt.Printf":            transpileFmtPrintf,
+		"fmt.Print":             transpileFmtPrint,
+		"fmt.Sprintf":           transpileFmtSprintf,
+		"fmt.Fprintln":          transpileFmtFprintln,
+		"fmt.Fprintf":           transpileFmtFprintf,
+		"fmt.Errorf":            transpileFmtErrorf,
+		"strings.ToLower":       transpileStringsToLower,
+		"strings.ToUpper":       transpileStringsToUpper,
+		"strings.TrimSpace":     transpileStringsTrimSpace,
+		"strings.Title":         transpileStringsTitle,
+		"strings.Contains":      transpileStringsContains,
+		"strings.Index":         transpileStringsIndex,
+		"strings.LastIndex":     transpileStringsLastIndex,
+		"strings.Count":         transpileStringsCount,
+		"strings.HasSuffix":     transpileStringsHasSuffix,
+		"strings.HasPrefix":     transpileStringsHasPrefix,
+		"strings.Split":         transpileStringsSplit,
+		"strings.Join":          transpileStringsJoin,
+		"strings.Fields":        transpileStringsFields,
+		"strings.Replace":       transpileStringsReplace,
+		"strings.ReplaceAll":    transpileStringsReplaceAll,
+		"strings.Repeat":        transpileStringsRepeat,
+		"strings.EqualFold":     transpileStringsEqualFold,
+		"strings.TrimLeft":      transpileStringsTrimLeft,
+		"strings.TrimRight":     transpileStringsTrimRight,
+		"strings.Trim":          transpileStringsTrim,
+		"strconv.Itoa":          transpileStrconvItoa,
+		"strconv.Atoi":          transpileStrconvAtoi,
+		"strconv.FormatFloat":   transpileStrconvFormatFloat,
+		"strconv.FormatInt":     transpileStrconvFormatInt,
+		"errors.New":            transpileErrorsNew,
+		"sort.Strings":          transpileSortStrings,
+		"sort.Ints":             transpileSortInts,
+		"slices.Sort":           transpileSlicesSort,
+		"time.Sleep":            transpileTimeSleep,
+		"time.Now":              transpileTimeNow,
+		"time.Unix":             transpileTimeUnix,
+		"time.After":            transpileTimeAfter,
+		"time.NewTicker":        transpileTimeNewTicker,
+		"time.NewTimer":         transpileTimeNewTimer,
+		"time.Tick":             transpileTimeTick,
+		"context.Background":    transpileContextBackground,
+		"context.WithTimeout":   transpileContextWithTimeout,
+		"context.WithCancel":    transpileContextWithCancel,
+		"flag.String":           transpileFlagString,
+		"flag.Parse":            transpileFlagParse,
+		"os.Create":             transpileOsCreate,
+		"os.Remove":             transpileOsRemove,
+		"reflect.TypeOf":        transpileReflectTypeOf,
+		"sync/atomic.AddInt64":  transpileAtomicAddInt64,
+		"sync/atomic.LoadInt64": transpileAtomicLoadInt64,
+		"encoding/base64.StdEncoding.EncodeToString": transpileBase64EncodeToString,
+		"encoding/base64.StdEncoding.DecodeString":   transpileBase64DecodeString,
+		"crypto/sha256.Sum256":                       transpileSha256Sum256,
+		"encoding/json.Marshal":                      transpileJsonMarshal,
+		"math.Sqrt":                                  transpileMathSqrt,
+		"math.Pow":                                   transpileMathPow,
+		"math.Max":                                   transpileMathMax,
+		"math.Min":                                   transpileMathMin,
+		"math/rand.Seed":                             transpileRandSeed,
+		"math/rand.Intn":                             transpileRandIntn,
+		"math/rand.Float64":                          transpileRandFloat64,
+		"net/url.Parse":                              transpileUrlParse,
+		"regexp.MustCompile":                         transpileRegexpMustCompile,
 	}
 
 	builtinMappings = map[string]StdlibHandler{
@@ -188,6 +248,10 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 					out.WriteString(ident.Name)
 					WriteBorrowMethod(out, false)
 					out.WriteString(".as_ref().unwrap().as_ref()")
+				} else if _, ok := arg.(*ast.SelectorExpr); ok {
+					TranspileExpressionContext(out, arg, LValue)
+					WriteBorrowMethod(out, false)
+					out.WriteString(".as_ref().unwrap().as_ref()")
 				} else {
 					// Complex expression
 					out.WriteString("(")
@@ -259,14 +323,21 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 			// Regular slice - use format_slice
 			NeedFormatSlice()
 			TrackImport("Display")
-			out.WriteString("format_slice(&")
 			if ident, ok := arg.(*ast.Ident); ok {
-				// For identifiers, just use the name directly (it's already wrapped)
+				if _, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar {
+					out.WriteString("format_slice_values(")
+					out.WriteString(ident.Name)
+					out.WriteString(")")
+					return
+				}
+				out.WriteString("format_slice(&")
 				out.WriteString(ident.Name)
+				out.WriteString(")")
 			} else {
+				out.WriteString("format_slice(&")
 				TranspileExpression(out, arg)
+				out.WriteString(")")
 			}
-			out.WriteString(")")
 			return
 		}
 		// Check if it's a pointer to a struct - Go prints "&{...}" for these
@@ -281,6 +352,31 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 				WriteBorrowMethod(out, false)
 				out.WriteString(".as_ref().unwrap()))")
 				return
+			}
+		}
+		if ident, ok := arg.(*ast.Ident); ok && !isVarBare(ident.Name) {
+			if obj := typeInfo.GetObject(ident); obj != nil {
+				if _, isConst := obj.(*types.Const); isConst {
+					TranspileExpression(out, arg)
+					return
+				}
+			}
+			if _, isRangeVar := rangeLoopVars[ident.Name]; !isRangeVar {
+				if _, isLocalConst := localConstants[ident.Name]; !isLocalConst {
+					if _, ok := argType.Underlying().(*types.Basic); ok {
+						varName := ident.Name
+						if currentCaptureRenames != nil {
+							if renamed, exists := currentCaptureRenames[ident.Name]; exists {
+								varName = renamed
+							}
+						}
+						out.WriteString("{ let __v = (*")
+						out.WriteString(varName)
+						WriteBorrowMethod(out, false)
+						out.WriteString(".as_ref().unwrap()).clone(); __v }")
+						return
+					}
+				}
 			}
 		}
 		// Type is known but not a map, slice, or pointer-to-struct - fall through
@@ -364,11 +460,12 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 }
 
 // convertFormatStringWithSkips converts Go format verbs to Rust format strings
-// Returns: (format_string, skipIndices, charIndices, typeNameIndices, unicodeIndices)
-func convertFormatStringWithSkips(goFormat string) (string, []int, []int, []int, []int) {
+// Returns: (format_string, skipIndices, charIndices, typeNameIndices, unicodeIndices, hexFormats)
+func convertFormatStringWithSkips(goFormat string) (string, []int, []int, []int, []int, map[int]string) {
 	var skipIndices []int
 	var typeNameIndices []int
 	var unicodeIndices []int
+	hexFormats := make(map[int]string)
 	format := goFormat
 
 	// First, escape any literal curly braces that aren't part of Go format verbs
@@ -414,14 +511,69 @@ func convertFormatStringWithSkips(goFormat string) (string, []int, []int, []int,
 					i++
 				}
 			} else {
+				j := i + 1
+				leftAlign := false
+				zeroPad := false
+				if j < len(format) && format[j] == '-' {
+					leftAlign = true
+					j++
+				}
+				if j < len(format) && format[j] == '0' {
+					zeroPad = true
+					j++
+				}
+				widthStart := j
+				for j < len(format) && format[j] >= '0' && format[j] <= '9' {
+					j++
+				}
+				if j < len(format) && j > widthStart {
+					width := format[widthStart:j]
+					switch format[j] {
+					case 's':
+						if leftAlign {
+							result.WriteString("{:<")
+						} else {
+							result.WriteString("{:>")
+						}
+						result.WriteString(width)
+						result.WriteString("}")
+						argIndex++
+						i = j + 1
+						continue
+					case 'x', 'X':
+						result.WriteString("{}")
+						spec := ""
+						if zeroPad {
+							spec += "0"
+						}
+						spec += width
+						spec += string(format[j])
+						hexFormats[argIndex] = spec
+						argIndex++
+						i = j + 1
+						continue
+					}
+				}
+
 				// Handle single-char format verbs
 				switch format[i+1] {
 				case 'd', 's', 'v', 't':
 					result.WriteString("{}")
 					argIndex++
+				case 'q':
+					result.WriteString("{:?}")
+					argIndex++
 				case 'f':
 					// Go's %f defaults to 6 decimal places
 					result.WriteString("{:.6}")
+					argIndex++
+				case 'x':
+					result.WriteString("{}")
+					hexFormats[argIndex] = "x"
+					argIndex++
+				case 'X':
+					result.WriteString("{}")
+					hexFormats[argIndex] = "X"
 					argIndex++
 				case 'c':
 					result.WriteString("{}")
@@ -452,13 +604,136 @@ func convertFormatStringWithSkips(goFormat string) (string, []int, []int, []int,
 	finalFormat = strings.ReplaceAll(finalFormat, "__OPEN_BRACE__", "{{")
 	finalFormat = strings.ReplaceAll(finalFormat, "__CLOSE_BRACE__", "}}")
 
-	return finalFormat, skipIndices, charIndices, typeNameIndices, unicodeIndices
+	return finalFormat, skipIndices, charIndices, typeNameIndices, unicodeIndices, hexFormats
 }
 
 // convertFormatString converts Go format strings to Rust format strings
 func convertFormatString(goFormat string) string {
-	converted, _, _, _, _ := convertFormatStringWithSkips(goFormat)
+	converted, _, _, _, _, _ := convertFormatStringWithSkips(goFormat)
 	return converted
+}
+
+func formatIndexMatches(indices []int, argIndex int) bool {
+	for _, idx := range indices {
+		if idx == argIndex {
+			return true
+		}
+	}
+	return false
+}
+
+func transpilePrintHexArg(out *strings.Builder, arg ast.Expr, formatSpec string) {
+	upper := strings.Contains(formatSpec, "X")
+	typeInfo := GetTypeInfo()
+	if typeInfo != nil && typeInfo.IsByteSliceOrArray(arg) {
+		NeedHexFormat()
+		out.WriteString("go_format_hex_bytes(")
+		writeBorrowedWrappedStdlibArg(out, arg)
+		if upper {
+			out.WriteString(", true)")
+		} else {
+			out.WriteString(", false)")
+		}
+		return
+	}
+
+	if typeInfo != nil && typeInfo.IsString(arg) {
+		NeedHexFormat()
+		out.WriteString("go_format_hex_bytes(")
+		if lit, ok := arg.(*ast.BasicLit); ok && lit.Kind == token.STRING {
+			TranspileExpression(out, lit)
+			out.WriteString(".as_bytes()")
+		} else {
+			out.WriteString("(*")
+			TranspileExpressionContext(out, arg, LValue)
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref().unwrap()).as_bytes()")
+		}
+		if upper {
+			out.WriteString(", true)")
+		} else {
+			out.WriteString(", false)")
+		}
+		return
+	}
+
+	out.WriteString("format!(\"{:")
+	out.WriteString(formatSpec)
+	out.WriteString("}\", ")
+	if ident, ok := arg.(*ast.Ident); ok {
+		if _, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar {
+			transpilePrintArg(out, arg)
+			out.WriteString(" as u32")
+			out.WriteString(")")
+			return
+		}
+	}
+	transpilePrintArg(out, arg)
+	out.WriteString(")")
+}
+
+func transpileFormatArg(out *strings.Builder, arg ast.Expr, argIndex int, charIndices []int, typeNameIndices []int, unicodeIndices []int, hexFormats map[int]string) {
+	isTypeNameArg := false
+	for _, tnIdx := range typeNameIndices {
+		if tnIdx == argIndex {
+			isTypeNameArg = true
+			break
+		}
+	}
+	isCharArg := false
+	for _, charIdx := range charIndices {
+		if charIdx == argIndex {
+			isCharArg = true
+			break
+		}
+	}
+	isUnicodeArg := false
+	for _, uIdx := range unicodeIndices {
+		if uIdx == argIndex {
+			isUnicodeArg = true
+			break
+		}
+	}
+	if isTypeNameArg {
+		NeedGoTypeName()
+		if ident, ok := arg.(*ast.Ident); ok {
+			if isVarBare(ident.Name) {
+				out.WriteString("go_type_name(")
+				out.WriteString(ident.Name)
+				out.WriteString(")")
+			} else {
+				out.WriteString("go_type_name(&**")
+				out.WriteString(ident.Name)
+				WriteBorrowMethod(out, false)
+				out.WriteString(".as_ref().unwrap())")
+			}
+		} else {
+			out.WriteString("go_type_name(&*")
+			transpilePrintArg(out, arg)
+			out.WriteString(")")
+		}
+	} else if isUnicodeArg {
+		transpilePrintArg(out, arg)
+		out.WriteString(" as u32")
+	} else if hexSpec, isHexArg := hexFormats[argIndex]; isHexArg {
+		transpilePrintHexArg(out, arg, hexSpec)
+	} else if isCharArg {
+		isAlreadyChar := false
+		if ident, ok := arg.(*ast.Ident); ok {
+			if _, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar {
+				isAlreadyChar = true
+			}
+		}
+		if isAlreadyChar {
+			transpilePrintArg(out, arg)
+		} else {
+			out.WriteString("(")
+			transpilePrintArg(out, arg)
+			out.WriteString(") as u8 as char")
+		}
+	} else {
+		transpilePrintArg(out, arg)
+	}
 }
 
 func transpileFmtPrintf(out *strings.Builder, call *ast.CallExpr) {
@@ -469,15 +744,17 @@ func transpileFmtPrintf(out *strings.Builder, call *ast.CallExpr) {
 	var charIndices []int
 	var typeNameIndices []int
 	var unicodeIndices []int
+	hexFormats := make(map[int]string)
 	if len(call.Args) > 0 {
 		// First arg is the format string
 		if lit, ok := call.Args[0].(*ast.BasicLit); ok && lit.Kind == token.STRING {
 			// Convert Go format verbs to Rust and get skip/char/typeName indices
-			format, skips, chars, typeNames, unicodes := convertFormatStringWithSkips(lit.Value)
+			format, skips, chars, typeNames, unicodes, hexes := convertFormatStringWithSkips(lit.Value)
 			skipIndices = skips
 			charIndices = chars
 			typeNameIndices = typeNames
 			unicodeIndices = unicodes
+			hexFormats = hexes
 			out.WriteString(format)
 		} else {
 			TranspileExpression(out, call.Args[0])
@@ -495,75 +772,7 @@ func transpileFmtPrintf(out *strings.Builder, call *ast.CallExpr) {
 			}
 			if !shouldSkip {
 				out.WriteString(", ")
-				// Check if this arg needs %T type name
-				isTypeNameArg := false
-				for _, tnIdx := range typeNameIndices {
-					if tnIdx == i-1 {
-						isTypeNameArg = true
-						break
-					}
-				}
-				// Check if this arg needs char casting (%c verb)
-				isCharArg := false
-				for _, charIdx := range charIndices {
-					if charIdx == i-1 {
-						isCharArg = true
-						break
-					}
-				}
-				// Check if this arg needs unicode code point casting (%U verb)
-				isUnicodeArg := false
-				for _, uIdx := range unicodeIndices {
-					if uIdx == i-1 {
-						isUnicodeArg = true
-						break
-					}
-				}
-				if isTypeNameArg {
-					NeedGoTypeName()
-					// %T: pass the value to go_type_name as &dyn Any
-					if ident, ok := call.Args[i].(*ast.Ident); ok {
-						if isVarBare(ident.Name) {
-							// Bare variable (e.g., &dyn Any from type switch default) — pass directly
-							out.WriteString("go_type_name(")
-							out.WriteString(ident.Name)
-							out.WriteString(")")
-						} else {
-							// Wrapped variable with Box<dyn Any> inside
-							out.WriteString("go_type_name(&**")
-							out.WriteString(ident.Name)
-							WriteBorrowMethod(out, false)
-							out.WriteString(".as_ref().unwrap())")
-						}
-					} else {
-						// Expression — evaluate and pass
-						out.WriteString("go_type_name(&*")
-						transpilePrintArg(out, call.Args[i])
-						out.WriteString(")")
-					}
-				} else if isUnicodeArg {
-					// %U: cast to u32 for hex code point display
-					transpilePrintArg(out, call.Args[i])
-					out.WriteString(" as u32")
-				} else if isCharArg {
-					// Check if this is already a char (e.g., range loop variable over string)
-					isAlreadyChar := false
-					if ident, ok := call.Args[i].(*ast.Ident); ok {
-						if _, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar {
-							// Range vars from string iteration are already char
-							isAlreadyChar = true
-						}
-					}
-					if isAlreadyChar {
-						transpilePrintArg(out, call.Args[i])
-					} else {
-						out.WriteString("(")
-						transpilePrintArg(out, call.Args[i])
-						out.WriteString(") as u8 as char")
-					}
-				} else {
-					transpilePrintArg(out, call.Args[i])
-				}
+				transpileFormatArg(out, call.Args[i], i-1, charIndices, typeNameIndices, unicodeIndices, hexFormats)
 			}
 		}
 	}
@@ -648,12 +857,14 @@ func transpileFmtFprintf(out *strings.Builder, call *ast.CallExpr) {
 	var charIndices []int
 	var typeNameIndices []int
 	var unicodeIndices []int
+	hexFormats := make(map[int]string)
 	if lit, ok := call.Args[1].(*ast.BasicLit); ok && lit.Kind == token.STRING {
-		format, skips, chars, typeNames, unicodes := convertFormatStringWithSkips(lit.Value)
+		format, skips, chars, typeNames, unicodes, hexes := convertFormatStringWithSkips(lit.Value)
 		skipIndices = skips
 		charIndices = chars
 		typeNameIndices = typeNames
 		unicodeIndices = unicodes
+		hexFormats = hexes
 		out.WriteString(format)
 	} else {
 		TranspileExpression(out, call.Args[1])
@@ -669,42 +880,7 @@ func transpileFmtFprintf(out *strings.Builder, call *ast.CallExpr) {
 		}
 		if !shouldSkip {
 			out.WriteString(", ")
-			isTypeNameArg := false
-			for _, tnIdx := range typeNameIndices {
-				if tnIdx == i-2 {
-					isTypeNameArg = true
-					break
-				}
-			}
-			isCharArg := false
-			for _, charIdx := range charIndices {
-				if charIdx == i-2 {
-					isCharArg = true
-					break
-				}
-			}
-			isUnicodeArg := false
-			for _, uIdx := range unicodeIndices {
-				if uIdx == i-2 {
-					isUnicodeArg = true
-					break
-				}
-			}
-			if isTypeNameArg {
-				NeedGoTypeName()
-				out.WriteString("go_type_name(&*")
-				transpilePrintArg(out, call.Args[i])
-				out.WriteString(")")
-			} else if isUnicodeArg {
-				transpilePrintArg(out, call.Args[i])
-				out.WriteString(" as u32")
-			} else if isCharArg {
-				out.WriteString("(")
-				transpilePrintArg(out, call.Args[i])
-				out.WriteString(") as u8 as char")
-			} else {
-				transpilePrintArg(out, call.Args[i])
-			}
+			transpileFormatArg(out, call.Args[i], i-2, charIndices, typeNameIndices, unicodeIndices, hexFormats)
 		}
 	}
 
@@ -719,13 +895,15 @@ func transpileFmtSprintf(out *strings.Builder, call *ast.CallExpr) {
 
 	var skipIndices []int
 	var typeNameIndices []int
+	hexFormats := make(map[int]string)
 	if len(call.Args) > 0 {
 		// First arg is the format string
 		if lit, ok := call.Args[0].(*ast.BasicLit); ok && lit.Kind == token.STRING {
 			// Convert Go format verbs to Rust and get skip indices
-			format, skips, _, typeNames, _ := convertFormatStringWithSkips(lit.Value)
+			format, skips, _, typeNames, _, hexes := convertFormatStringWithSkips(lit.Value)
 			skipIndices = skips
 			typeNameIndices = typeNames
+			hexFormats = hexes
 			out.WriteString(format)
 		} else {
 			TranspileExpression(out, call.Args[0])
@@ -755,6 +933,8 @@ func transpileFmtSprintf(out *strings.Builder, call *ast.CallExpr) {
 					out.WriteString("go_type_name(&*")
 					transpilePrintArg(out, call.Args[i])
 					out.WriteString(")")
+				} else if hexSpec, isHexArg := hexFormats[i-1]; isHexArg {
+					transpilePrintHexArg(out, call.Args[i], hexSpec)
 				} else {
 					transpilePrintArg(out, call.Args[i])
 				}
@@ -817,25 +997,408 @@ func transpileErrorsNew(out *strings.Builder, call *ast.CallExpr) {
 	out.WriteString("))))")
 }
 
+func transpileFlagString(out *strings.Builder, call *ast.CallExpr) {
+	WriteWrapperPrefix(out)
+	if len(call.Args) > 1 {
+		writeOwnedStringStdlibArg(out, call.Args[1])
+	} else {
+		out.WriteString("String::new()")
+	}
+	WriteWrapperSuffix(out)
+}
+
+func transpileFlagParse(out *strings.Builder, call *ast.CallExpr) {
+	out.WriteString("()")
+}
+
+func transpileOsCreate(out *strings.Builder, call *ast.CallExpr) {
+	NeedOsFile()
+	TrackImport("Error")
+	out.WriteString("{ let __path = ")
+	if len(call.Args) > 0 {
+		writeOwnedStringStdlibArg(out, call.Args[0])
+	} else {
+		out.WriteString("String::new()")
+	}
+	out.WriteString("; match GoFile::create(&__path) { Ok(file) => (")
+	WriteWrapperPrefix(out)
+	out.WriteString("file")
+	WriteWrapperSuffix(out)
+	out.WriteString(", ")
+	writeTypedErrorNone(out)
+	out.WriteString("), Err(e) => (")
+	WriteWrapperPrefix(out)
+	out.WriteString("GoFile::empty()")
+	WriteWrapperSuffix(out)
+	out.WriteString(", ")
+	WriteWrapperPrefix(out)
+	if NeedsConcurrentWrapper() {
+		out.WriteString("Box::<dyn Error + Send + Sync>::from(e)")
+	} else {
+		out.WriteString("Box::<dyn Error>::from(e)")
+	}
+	WriteWrapperSuffix(out)
+	out.WriteString(") } }")
+}
+
+func transpileOsRemove(out *strings.Builder, call *ast.CallExpr) {
+	TrackImport("Error")
+	out.WriteString("{ let __path = ")
+	if len(call.Args) > 0 {
+		writeOwnedStringStdlibArg(out, call.Args[0])
+	} else {
+		out.WriteString("String::new()")
+	}
+	out.WriteString("; match std::fs::remove_file(&__path) { Ok(()) => ")
+	writeTypedErrorNone(out)
+	out.WriteString(", Err(e) => ")
+	WriteWrapperPrefix(out)
+	if NeedsConcurrentWrapper() {
+		out.WriteString("Box::<dyn Error + Send + Sync>::from(e)")
+	} else {
+		out.WriteString("Box::<dyn Error>::from(e)")
+	}
+	WriteWrapperSuffix(out)
+	out.WriteString(" } }")
+}
+
+func writeAtomicTarget(out *strings.Builder, expr ast.Expr) {
+	TranspileExpression(out, expr)
+}
+
+func transpileAtomicAddInt64(out *strings.Builder, call *ast.CallExpr) {
+	if len(call.Args) < 2 {
+		out.WriteString("/* ERROR: atomic.AddInt64 requires pointer and delta */ unimplemented!()")
+		return
+	}
+
+	WriteWrapperPrefix(out)
+	out.WriteString("{ let __target = ")
+	writeAtomicTarget(out, call.Args[0])
+	out.WriteString("; let __delta = ")
+	TranspileExpression(out, call.Args[1])
+	out.WriteString(" as i64; ")
+	if NeedsConcurrentWrapper() {
+		out.WriteString("let mut __guard = __target.lock().unwrap();")
+	} else {
+		out.WriteString("let mut __guard = __target.borrow_mut();")
+	}
+	out.WriteString(" let __value = __guard.as_mut().unwrap(); *__value += __delta; *__value }")
+	WriteWrapperSuffix(out)
+}
+
+func transpileAtomicLoadInt64(out *strings.Builder, call *ast.CallExpr) {
+	if len(call.Args) < 1 {
+		out.WriteString("/* ERROR: atomic.LoadInt64 requires pointer */ unimplemented!()")
+		return
+	}
+
+	WriteWrapperPrefix(out)
+	out.WriteString("{ let __target = ")
+	writeAtomicTarget(out, call.Args[0])
+	if NeedsConcurrentWrapper() {
+		out.WriteString("; let __guard = __target.lock().unwrap();")
+	} else {
+		out.WriteString("; let __guard = __target.borrow();")
+	}
+	out.WriteString(" *__guard.as_ref().unwrap() }")
+	WriteWrapperSuffix(out)
+}
+
+func writeReflectString(out *strings.Builder, value string) {
+	WriteWrapperPrefix(out)
+	out.WriteString(strconv.Quote(value))
+	out.WriteString(".to_string()")
+	WriteWrapperSuffix(out)
+}
+
+func transpileReflectTypeOf(out *strings.Builder, call *ast.CallExpr) {
+	if len(call.Args) == 0 {
+		out.WriteString("/* ERROR: reflect.TypeOf requires a value */ unimplemented!()")
+		return
+	}
+
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		out.WriteString("/* ERROR: Type information required for reflect.TypeOf */ unimplemented!()")
+		return
+	}
+
+	st := typeInfo.GetStructType(call.Args[0])
+	if st == nil {
+		out.WriteString("/* ERROR: reflect.TypeOf currently supports struct values */ unimplemented!()")
+		return
+	}
+
+	NeedReflect()
+	WriteWrapperPrefix(out)
+	out.WriteString("GoReflectType { fields: ")
+	WriteWrapperPrefix(out)
+	out.WriteString("vec![")
+	for i := 0; i < st.NumFields(); i++ {
+		if i > 0 {
+			out.WriteString(", ")
+		}
+		out.WriteString("GoReflectField { name: ")
+		writeReflectString(out, st.Field(i).Name())
+		out.WriteString(", tag: ")
+		WriteWrapperPrefix(out)
+		out.WriteString("GoReflectStructTag { raw: ")
+		writeReflectString(out, st.Tag(i))
+		out.WriteString(" }")
+		WriteWrapperSuffix(out)
+		out.WriteString(" }")
+	}
+	out.WriteString("]")
+	WriteWrapperSuffix(out)
+	out.WriteString(" }")
+	WriteWrapperSuffix(out)
+}
+
+func writeOwnedStringStdlibArg(out *strings.Builder, arg ast.Expr) {
+	if lit, ok := arg.(*ast.BasicLit); ok && lit.Kind == token.STRING {
+		TranspileExpression(out, lit)
+		return
+	}
+
+	out.WriteString("(*")
+	TranspileExpressionContext(out, arg, LValue)
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap()).clone()")
+}
+
+func writeOwnedStringSliceStdlibArg(out *strings.Builder, arg ast.Expr) {
+	out.WriteString("(*")
+	TranspileExpressionContext(out, arg, LValue)
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap()).clone()")
+}
+
+func writeStringBinaryResult(out *strings.Builder, call *ast.CallExpr, method string) {
+	if len(call.Args) < 2 {
+		return
+	}
+	WriteWrapperPrefix(out)
+	out.WriteString("{ let __s = ")
+	writeOwnedStringStdlibArg(out, call.Args[0])
+	out.WriteString("; let __arg = ")
+	writeOwnedStringStdlibArg(out, call.Args[1])
+	out.WriteString("; __s.")
+	out.WriteString(method)
+	out.WriteString("(&__arg) }")
+	WriteWrapperSuffix(out)
+}
+
 func transpileStringsToUpper(out *strings.Builder, call *ast.CallExpr) {
 	if len(call.Args) > 0 {
+		WriteWrapperPrefix(out)
 		TranspileExpression(out, call.Args[0])
 		out.WriteString(".to_uppercase()")
+		WriteWrapperSuffix(out)
 	}
 }
 
 func transpileStringsToLower(out *strings.Builder, call *ast.CallExpr) {
 	if len(call.Args) > 0 {
+		WriteWrapperPrefix(out)
 		TranspileExpression(out, call.Args[0])
 		out.WriteString(".to_lowercase()")
+		WriteWrapperSuffix(out)
 	}
 }
 
 func transpileStringsTrimSpace(out *strings.Builder, call *ast.CallExpr) {
 	if len(call.Args) > 0 {
+		WriteWrapperPrefix(out)
 		TranspileExpression(out, call.Args[0])
 		out.WriteString(".trim()")
+		out.WriteString(".to_string()")
+		WriteWrapperSuffix(out)
 	}
+}
+
+func transpileStringsTitle(out *strings.Builder, call *ast.CallExpr) {
+	if len(call.Args) == 0 {
+		return
+	}
+	WriteWrapperPrefix(out)
+	out.WriteString("{ let __s = ")
+	writeOwnedStringStdlibArg(out, call.Args[0])
+	out.WriteString("; let mut __out = String::new(); let mut __new_word = true; for __ch in __s.chars() { if __ch.is_alphanumeric() { if __new_word { for __upper in __ch.to_uppercase() { __out.push(__upper); } } else { __out.push(__ch); } __new_word = false; } else { __out.push(__ch); __new_word = true; } } __out }")
+	WriteWrapperSuffix(out)
+}
+
+func transpileStringsContains(out *strings.Builder, call *ast.CallExpr) {
+	writeStringBinaryResult(out, call, "contains")
+}
+
+func transpileStringsIndex(out *strings.Builder, call *ast.CallExpr) {
+	if len(call.Args) < 2 {
+		return
+	}
+	WriteWrapperPrefix(out)
+	out.WriteString("{ let __s = ")
+	writeOwnedStringStdlibArg(out, call.Args[0])
+	out.WriteString("; let __substr = ")
+	writeOwnedStringStdlibArg(out, call.Args[1])
+	out.WriteString("; __s.find(&__substr).map(|__i| __i as i32).unwrap_or(-1) }")
+	WriteWrapperSuffix(out)
+}
+
+func transpileStringsLastIndex(out *strings.Builder, call *ast.CallExpr) {
+	if len(call.Args) < 2 {
+		return
+	}
+	WriteWrapperPrefix(out)
+	out.WriteString("{ let __s = ")
+	writeOwnedStringStdlibArg(out, call.Args[0])
+	out.WriteString("; let __substr = ")
+	writeOwnedStringStdlibArg(out, call.Args[1])
+	out.WriteString("; __s.rfind(&__substr).map(|__i| __i as i32).unwrap_or(-1) }")
+	WriteWrapperSuffix(out)
+}
+
+func transpileStringsCount(out *strings.Builder, call *ast.CallExpr) {
+	if len(call.Args) < 2 {
+		return
+	}
+	WriteWrapperPrefix(out)
+	out.WriteString("{ let __s = ")
+	writeOwnedStringStdlibArg(out, call.Args[0])
+	out.WriteString("; let __substr = ")
+	writeOwnedStringStdlibArg(out, call.Args[1])
+	out.WriteString("; if __substr.is_empty() { __s.chars().count() as i32 + 1 } else { __s.matches(&__substr).count() as i32 } }")
+	WriteWrapperSuffix(out)
+}
+
+func transpileStringsHasSuffix(out *strings.Builder, call *ast.CallExpr) {
+	writeStringBinaryResult(out, call, "ends_with")
+}
+
+func transpileStringsHasPrefix(out *strings.Builder, call *ast.CallExpr) {
+	writeStringBinaryResult(out, call, "starts_with")
+}
+
+func transpileStringsSplit(out *strings.Builder, call *ast.CallExpr) {
+	if len(call.Args) < 2 {
+		return
+	}
+	WriteWrapperPrefix(out)
+	out.WriteString("{ let __s = ")
+	writeOwnedStringStdlibArg(out, call.Args[0])
+	out.WriteString("; let __sep = ")
+	writeOwnedStringStdlibArg(out, call.Args[1])
+	out.WriteString("; __s.split(&__sep).map(|__part| __part.to_string()).collect::<Vec<String>>() }")
+	WriteWrapperSuffix(out)
+}
+
+func transpileStringsJoin(out *strings.Builder, call *ast.CallExpr) {
+	if len(call.Args) < 2 {
+		return
+	}
+	WriteWrapperPrefix(out)
+	out.WriteString("{ let __parts = ")
+	writeOwnedStringSliceStdlibArg(out, call.Args[0])
+	out.WriteString("; let __sep = ")
+	writeOwnedStringStdlibArg(out, call.Args[1])
+	out.WriteString("; __parts.join(&__sep) }")
+	WriteWrapperSuffix(out)
+}
+
+func transpileStringsFields(out *strings.Builder, call *ast.CallExpr) {
+	if len(call.Args) == 0 {
+		return
+	}
+	WriteWrapperPrefix(out)
+	out.WriteString("{ let __s = ")
+	writeOwnedStringStdlibArg(out, call.Args[0])
+	out.WriteString("; __s.split_whitespace().map(|__part| __part.to_string()).collect::<Vec<String>>() }")
+	WriteWrapperSuffix(out)
+}
+
+func transpileStringsReplace(out *strings.Builder, call *ast.CallExpr) {
+	if len(call.Args) < 4 {
+		return
+	}
+	WriteWrapperPrefix(out)
+	out.WriteString("{ let __s = ")
+	writeOwnedStringStdlibArg(out, call.Args[0])
+	out.WriteString("; let __old = ")
+	writeOwnedStringStdlibArg(out, call.Args[1])
+	out.WriteString("; let __new = ")
+	writeOwnedStringStdlibArg(out, call.Args[2])
+	out.WriteString("; let __n = ")
+	TranspileExpression(out, call.Args[3])
+	out.WriteString("; if __n < 0 { __s.replace(&__old, &__new) } else { __s.replacen(&__old, &__new, __n as usize) } }")
+	WriteWrapperSuffix(out)
+}
+
+func transpileStringsReplaceAll(out *strings.Builder, call *ast.CallExpr) {
+	if len(call.Args) < 3 {
+		return
+	}
+	WriteWrapperPrefix(out)
+	out.WriteString("{ let __s = ")
+	writeOwnedStringStdlibArg(out, call.Args[0])
+	out.WriteString("; let __old = ")
+	writeOwnedStringStdlibArg(out, call.Args[1])
+	out.WriteString("; let __new = ")
+	writeOwnedStringStdlibArg(out, call.Args[2])
+	out.WriteString("; __s.replace(&__old, &__new) }")
+	WriteWrapperSuffix(out)
+}
+
+func transpileStringsRepeat(out *strings.Builder, call *ast.CallExpr) {
+	if len(call.Args) < 2 {
+		return
+	}
+	WriteWrapperPrefix(out)
+	out.WriteString("{ let __s = ")
+	writeOwnedStringStdlibArg(out, call.Args[0])
+	out.WriteString("; let __count = ")
+	TranspileExpression(out, call.Args[1])
+	out.WriteString("; __s.repeat(__count as usize) }")
+	WriteWrapperSuffix(out)
+}
+
+func transpileStringsEqualFold(out *strings.Builder, call *ast.CallExpr) {
+	if len(call.Args) < 2 {
+		return
+	}
+	WriteWrapperPrefix(out)
+	out.WriteString("{ let __a = ")
+	writeOwnedStringStdlibArg(out, call.Args[0])
+	out.WriteString("; let __b = ")
+	writeOwnedStringStdlibArg(out, call.Args[1])
+	out.WriteString("; __a.to_lowercase() == __b.to_lowercase() }")
+	WriteWrapperSuffix(out)
+}
+
+func transpileStringsTrimLeft(out *strings.Builder, call *ast.CallExpr) {
+	transpileStringsTrimCutset(out, call, "trim_start_matches")
+}
+
+func transpileStringsTrimRight(out *strings.Builder, call *ast.CallExpr) {
+	transpileStringsTrimCutset(out, call, "trim_end_matches")
+}
+
+func transpileStringsTrim(out *strings.Builder, call *ast.CallExpr) {
+	transpileStringsTrimCutset(out, call, "trim_matches")
+}
+
+func transpileStringsTrimCutset(out *strings.Builder, call *ast.CallExpr, method string) {
+	if len(call.Args) < 2 {
+		return
+	}
+	WriteWrapperPrefix(out)
+	out.WriteString("{ let __s = ")
+	writeOwnedStringStdlibArg(out, call.Args[0])
+	out.WriteString("; let __cutset = ")
+	writeOwnedStringStdlibArg(out, call.Args[1])
+	out.WriteString("; __s.")
+	out.WriteString(method)
+	out.WriteString("(|__ch| __cutset.contains(__ch)).to_string() }")
+	WriteWrapperSuffix(out)
 }
 
 func transpileSortStrings(out *strings.Builder, call *ast.CallExpr) {
@@ -885,8 +1448,10 @@ func transpileSlicesSort(out *strings.Builder, call *ast.CallExpr) {
 
 func transpileStrconvItoa(out *strings.Builder, call *ast.CallExpr) {
 	if len(call.Args) > 0 {
+		WriteWrapperPrefix(out)
 		TranspileExpression(out, call.Args[0])
 		out.WriteString(".to_string()")
+		WriteWrapperSuffix(out)
 	}
 }
 
@@ -914,72 +1479,442 @@ func transpileStrconvAtoi(out *strings.Builder, call *ast.CallExpr) {
 	}
 }
 
+func transpileStrconvFormatFloat(out *strings.Builder, call *ast.CallExpr) {
+	NeedStrconvFormat()
+	WriteWrapperPrefix(out)
+	out.WriteString("go_strconv_format_float(")
+	if len(call.Args) > 0 {
+		writeUnwrappedForFormat(out, call.Args[0])
+	} else {
+		out.WriteString("0.0")
+	}
+	out.WriteString(" as f64, ")
+	if len(call.Args) > 1 {
+		out.WriteString("char::from_u32((")
+		writeUnwrappedForFormat(out, call.Args[1])
+		out.WriteString(") as u32).unwrap_or('f')")
+	} else {
+		out.WriteString("'f'")
+	}
+	out.WriteString(", ")
+	if len(call.Args) > 2 {
+		writeUnwrappedForFormat(out, call.Args[2])
+	} else {
+		out.WriteString("-1")
+	}
+	out.WriteString(" as i32)")
+	WriteWrapperSuffix(out)
+}
+
+func transpileStrconvFormatInt(out *strings.Builder, call *ast.CallExpr) {
+	NeedStrconvFormat()
+	WriteWrapperPrefix(out)
+	out.WriteString("go_strconv_format_int(")
+	if len(call.Args) > 0 {
+		writeUnwrappedForFormat(out, call.Args[0])
+	} else {
+		out.WriteString("0")
+	}
+	out.WriteString(" as i64, ")
+	if len(call.Args) > 1 {
+		writeUnwrappedForFormat(out, call.Args[1])
+	} else {
+		out.WriteString("10")
+	}
+	out.WriteString(" as i32)")
+	WriteWrapperSuffix(out)
+}
+
+func writeBorrowedWrappedStdlibArg(out *strings.Builder, arg ast.Expr) {
+	if lit, ok := arg.(*ast.BasicLit); ok && lit.Kind == token.STRING {
+		out.WriteString("&")
+		TranspileExpression(out, arg)
+		return
+	}
+
+	out.WriteString("&*")
+	if ident, ok := arg.(*ast.Ident); ok {
+		out.WriteString(ident.Name)
+	} else {
+		out.WriteString("(")
+		TranspileExpression(out, arg)
+		out.WriteString(")")
+	}
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap()")
+}
+
+func transpileBase64EncodeToString(out *strings.Builder, call *ast.CallExpr) {
+	NeedBase64()
+	if len(call.Args) == 0 {
+		WriteWrapperPrefix(out)
+		out.WriteString("String::new()")
+		WriteWrapperSuffix(out)
+		return
+	}
+
+	WriteWrapperPrefix(out)
+	out.WriteString("go_base64_encode(")
+	writeBorrowedWrappedStdlibArg(out, call.Args[0])
+	out.WriteString(")")
+	WriteWrapperSuffix(out)
+}
+
+func transpileBase64DecodeString(out *strings.Builder, call *ast.CallExpr) {
+	NeedBase64()
+	TrackImport("Error")
+	out.WriteString("{ match go_base64_decode(")
+	if len(call.Args) > 0 {
+		writeBorrowedWrappedStdlibArg(out, call.Args[0])
+	} else {
+		out.WriteString("&String::new()")
+	}
+	out.WriteString(") { Ok(v) => (")
+	WriteWrapperPrefix(out)
+	out.WriteString("v")
+	WriteWrapperSuffix(out)
+	out.WriteString(", ")
+	WriteWrappedNone(out)
+	out.WriteString("), Err(e) => (")
+	WriteWrapperPrefix(out)
+	out.WriteString("Vec::<u8>::new()")
+	WriteWrapperSuffix(out)
+	out.WriteString(", ")
+	WriteWrapperPrefix(out)
+	if NeedsConcurrentWrapper() {
+		out.WriteString("Box::<dyn Error + Send + Sync>::from(e)")
+	} else {
+		out.WriteString("Box::<dyn Error>::from(e)")
+	}
+	WriteWrapperSuffix(out)
+	out.WriteString(") } }")
+}
+
+func transpileSha256Sum256(out *strings.Builder, call *ast.CallExpr) {
+	NeedSha256()
+	WriteWrapperPrefix(out)
+	out.WriteString("go_sha256_sum256(")
+	if len(call.Args) > 0 {
+		writeBorrowedWrappedStdlibArg(out, call.Args[0])
+	} else {
+		out.WriteString("&[]")
+	}
+	out.WriteString(")")
+	WriteWrapperSuffix(out)
+}
+
+type jsonMarshalField struct {
+	jsonName string
+	rustName string
+	kind     types.BasicKind
+}
+
+func jsonFieldName(goName, tag string) (string, bool) {
+	jsonTag := reflect.StructTag(tag).Get("json")
+	if jsonTag == "-" {
+		return "", false
+	}
+	if idx := strings.Index(jsonTag, ","); idx >= 0 {
+		jsonTag = jsonTag[:idx]
+	}
+	if jsonTag == "" {
+		return goName, true
+	}
+	return jsonTag, true
+}
+
+func jsonMarshalStructFields(st *types.Struct) ([]jsonMarshalField, bool) {
+	fields := []jsonMarshalField{}
+	for i := 0; i < st.NumFields(); i++ {
+		field := st.Field(i)
+		if !field.Exported() {
+			continue
+		}
+		jsonName, include := jsonFieldName(field.Name(), st.Tag(i))
+		if !include {
+			continue
+		}
+		basic, ok := field.Type().Underlying().(*types.Basic)
+		if !ok {
+			return nil, false
+		}
+		switch basic.Kind() {
+		case types.Bool,
+			types.Int, types.Int8, types.Int16, types.Int32, types.Int64,
+			types.Uint, types.Uint8, types.Uint16, types.Uint32, types.Uint64, types.Uintptr,
+			types.Float32, types.Float64,
+			types.String:
+			fields = append(fields, jsonMarshalField{
+				jsonName: jsonName,
+				rustName: ToSnakeCase(field.Name()),
+				kind:     basic.Kind(),
+			})
+		default:
+			return nil, false
+		}
+	}
+	return fields, true
+}
+
+func escapeRustFormatLiteral(s string) string {
+	s = strings.ReplaceAll(s, "{", "{{")
+	return strings.ReplaceAll(s, "}", "}}")
+}
+
+func transpileJsonMarshal(out *strings.Builder, call *ast.CallExpr) {
+	if len(call.Args) == 0 {
+		out.WriteString("/* ERROR: json.Marshal requires a value */ unimplemented!()")
+		return
+	}
+
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		out.WriteString("/* ERROR: Type information required for json.Marshal */ unimplemented!()")
+		return
+	}
+
+	st := typeInfo.GetStructType(call.Args[0])
+	if st == nil {
+		out.WriteString("/* ERROR: json.Marshal currently supports struct values with exported basic fields */ unimplemented!()")
+		return
+	}
+
+	fields, ok := jsonMarshalStructFields(st)
+	if !ok {
+		out.WriteString("/* ERROR: json.Marshal currently supports exported bool, numeric, and string struct fields */ unimplemented!()")
+		return
+	}
+
+	format := strings.Builder{}
+	format.WriteString("{{")
+	for i, field := range fields {
+		if i > 0 {
+			format.WriteString(",")
+		}
+		format.WriteString(escapeRustFormatLiteral(strconv.Quote(field.jsonName)))
+		format.WriteString(":")
+		if field.kind == types.String {
+			format.WriteString("\"{}\"")
+			NeedJsonEscape()
+		} else {
+			format.WriteString("{}")
+		}
+	}
+	format.WriteString("}}")
+
+	out.WriteString("{ let __json_input = ")
+	if ident, ok := call.Args[0].(*ast.Ident); ok {
+		out.WriteString(ident.Name)
+		out.WriteString(".clone()")
+	} else {
+		TranspileExpression(out, call.Args[0])
+	}
+	out.WriteString("; let __json_guard = __json_input")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; let __json_value = __json_guard.as_ref().unwrap(); let __json = format!(")
+	out.WriteString(strconv.Quote(format.String()))
+	for _, field := range fields {
+		out.WriteString(", ")
+		if field.kind == types.String {
+			out.WriteString("go_json_escape(&*__json_value.")
+			out.WriteString(field.rustName)
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref().unwrap())")
+		} else {
+			out.WriteString("(*__json_value.")
+			out.WriteString(field.rustName)
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref().unwrap())")
+		}
+	}
+	out.WriteString("); (")
+	WriteWrapperPrefix(out)
+	out.WriteString("__json.into_bytes()")
+	WriteWrapperSuffix(out)
+	out.WriteString(", ")
+	writeTypedErrorNone(out)
+	out.WriteString(") }")
+}
+
+func transpileMathSqrt(out *strings.Builder, call *ast.CallExpr) {
+	transpileMathUnary(out, call, "sqrt")
+}
+
+func transpileMathPow(out *strings.Builder, call *ast.CallExpr) {
+	transpileMathBinary(out, call, "powf")
+}
+
+func transpileMathMax(out *strings.Builder, call *ast.CallExpr) {
+	transpileMathBinary(out, call, "max")
+}
+
+func transpileMathMin(out *strings.Builder, call *ast.CallExpr) {
+	transpileMathBinary(out, call, "min")
+}
+
+func transpileMathUnary(out *strings.Builder, call *ast.CallExpr, method string) {
+	if len(call.Args) == 0 {
+		return
+	}
+	WriteWrapperPrefix(out)
+	out.WriteString("(")
+	writeUnwrappedForFormat(out, call.Args[0])
+	out.WriteString(" as f64).")
+	out.WriteString(method)
+	out.WriteString("()")
+	WriteWrapperSuffix(out)
+}
+
+func transpileMathBinary(out *strings.Builder, call *ast.CallExpr, method string) {
+	if len(call.Args) < 2 {
+		return
+	}
+	WriteWrapperPrefix(out)
+	out.WriteString("(")
+	writeUnwrappedForFormat(out, call.Args[0])
+	out.WriteString(" as f64).")
+	out.WriteString(method)
+	out.WriteString("(")
+	writeUnwrappedForFormat(out, call.Args[1])
+	out.WriteString(" as f64)")
+	WriteWrapperSuffix(out)
+}
+
+func transpileRandSeed(out *strings.Builder, call *ast.CallExpr) {
+	NeedGoRand()
+	out.WriteString("go_rand_seed(")
+	if len(call.Args) > 0 {
+		writeUnwrappedForFormat(out, call.Args[0])
+	} else {
+		out.WriteString("1")
+	}
+	out.WriteString(" as i64)")
+}
+
+func transpileRandIntn(out *strings.Builder, call *ast.CallExpr) {
+	NeedGoRand()
+	WriteWrapperPrefix(out)
+	out.WriteString("go_rand_intn(")
+	if len(call.Args) > 0 {
+		writeUnwrappedForFormat(out, call.Args[0])
+	} else {
+		out.WriteString("0")
+	}
+	out.WriteString(" as i32)")
+	WriteWrapperSuffix(out)
+}
+
+func transpileRandFloat64(out *strings.Builder, call *ast.CallExpr) {
+	NeedGoRand()
+	WriteWrapperPrefix(out)
+	out.WriteString("go_rand_float64()")
+	WriteWrapperSuffix(out)
+}
+
+func writeTypedErrorNone(out *strings.Builder) {
+	TrackImport("Error")
+	if NeedsConcurrentWrapper() {
+		TrackImport("Arc")
+		TrackImport("Mutex")
+		out.WriteString("Arc::new(Mutex::new(None::<Box<dyn Error + Send + Sync>>))")
+		return
+	}
+	TrackImport("Rc")
+	TrackImport("RefCell")
+	out.WriteString("Rc::new(RefCell::new(None::<Box<dyn Error>>))")
+}
+
+func transpileUrlParse(out *strings.Builder, call *ast.CallExpr) {
+	NeedUrl()
+	out.WriteString("{ let __url_input = ")
+	if len(call.Args) > 0 {
+		writeOwnedStringStdlibArg(out, call.Args[0])
+	} else {
+		out.WriteString("String::new()")
+	}
+	out.WriteString("; (")
+	WriteWrapperPrefix(out)
+	out.WriteString("go_url_parse(&__url_input)")
+	WriteWrapperSuffix(out)
+	out.WriteString(", ")
+	writeTypedErrorNone(out)
+	out.WriteString(") }")
+}
+
+func transpileRegexpMustCompile(out *strings.Builder, call *ast.CallExpr) {
+	NeedRegexp()
+	WriteWrapperPrefix(out)
+	out.WriteString("GoRegexp { pattern: ")
+	WriteWrapperPrefix(out)
+	if len(call.Args) > 0 {
+		writeOwnedStringStdlibArg(out, call.Args[0])
+	} else {
+		out.WriteString("String::new()")
+	}
+	WriteWrapperSuffix(out)
+	out.WriteString(" }")
+	WriteWrapperSuffix(out)
+}
+
 func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 	if len(call.Args) >= 2 {
+		writeAppendTarget := func(expr ast.Expr) {
+			if ident, ok := expr.(*ast.Ident); ok {
+				out.WriteString(ident.Name)
+				return
+			}
+			switch expr.(type) {
+			case *ast.SelectorExpr, *ast.IndexExpr:
+				TranspileExpressionContext(out, expr, LValue)
+			default:
+				TranspileExpression(out, expr)
+			}
+		}
+
 		// append() in Go returns the slice, but our slices are wrapped
 		// We need to create the vector on first append so nil slices stay nil
 		// until they are actually appended to, then return the wrapped slice.
 		if call.Ellipsis.IsValid() {
 			// Slice expansion: append(dst, src...) → extend from src
 			out.WriteString("{(*")
-			if ident, ok := call.Args[0].(*ast.Ident); ok {
-				out.WriteString(ident.Name)
-			} else {
-				TranspileExpression(out, call.Args[0])
-			}
+			writeAppendTarget(call.Args[0])
 			WriteBorrowMethod(out, true)
 			out.WriteString(").get_or_insert_with(Vec::new).extend(")
 			TranspileExpression(out, call.Args[1])
 			out.WriteString(".iter().cloned()); ")
 			// Return the wrapped slice itself
-			if ident, ok := call.Args[0].(*ast.Ident); ok {
-				out.WriteString(ident.Name)
-			} else {
-				TranspileExpression(out, call.Args[0])
-			}
+			writeAppendTarget(call.Args[0])
 			out.WriteString(".clone()}")
 		} else if len(call.Args) == 2 {
 			// Single element append
 			out.WriteString("{(*")
-			if ident, ok := call.Args[0].(*ast.Ident); ok {
-				out.WriteString(ident.Name)
-			} else {
-				TranspileExpression(out, call.Args[0])
-			}
+			writeAppendTarget(call.Args[0])
 			WriteBorrowMethod(out, true)
 			out.WriteString(").get_or_insert_with(Vec::new).push(")
-			TranspileExpression(out, call.Args[1])
+			if !writeOwnedExpressionValue(out, call.Args[1]) {
+				TranspileExpression(out, call.Args[1])
+			}
 			out.WriteString("); ")
 			// Return the wrapped slice itself
-			if ident, ok := call.Args[0].(*ast.Ident); ok {
-				out.WriteString(ident.Name)
-			} else {
-				TranspileExpression(out, call.Args[0])
-			}
+			writeAppendTarget(call.Args[0])
 			out.WriteString(".clone()}")
 		} else {
 			// Multiple elements, use extend
 			out.WriteString("{(*")
-			if ident, ok := call.Args[0].(*ast.Ident); ok {
-				out.WriteString(ident.Name)
-			} else {
-				TranspileExpression(out, call.Args[0])
-			}
+			writeAppendTarget(call.Args[0])
 			WriteBorrowMethod(out, true)
 			out.WriteString(").get_or_insert_with(Vec::new).extend(vec![")
 			for i := 1; i < len(call.Args); i++ {
 				if i > 1 {
 					out.WriteString(", ")
 				}
-				TranspileExpression(out, call.Args[i])
+				if !writeOwnedExpressionValue(out, call.Args[i]) {
+					TranspileExpression(out, call.Args[i])
+				}
 			}
 			out.WriteString("]); ")
 			// Return the wrapped slice itself
-			if ident, ok := call.Args[0].(*ast.Ident); ok {
-				out.WriteString(ident.Name)
-			} else {
-				TranspileExpression(out, call.Args[0])
-			}
+			writeAppendTarget(call.Args[0])
 			out.WriteString(".clone()}")
 		}
 	}
@@ -1286,6 +2221,14 @@ where
         "[]".to_string()
     }
 }
+
+fn format_slice_values<T>(slice: &[T]) -> String
+where
+    T: Display,
+{
+    let formatted: Vec<String> = slice.iter().map(|v| v.to_string()).collect();
+    format!("[{}]", formatted.join(" "))
+}
 `)
 	} else {
 		TrackImport("Rc")
@@ -1301,6 +2244,14 @@ where
     } else {
         "[]".to_string()
     }
+}
+
+fn format_slice_values<T>(slice: &[T]) -> String
+where
+    T: Display,
+{
+    let formatted: Vec<String> = slice.iter().map(|v| v.to_string()).collect();
+    format!("[{}]", formatted.join(" "))
 }
 `)
 	}
@@ -1455,6 +2406,9 @@ func transpileClose(out *strings.Builder, call *ast.CallExpr) {
 // stdlibSelectorMappings maps non-call stdlib selectors (constants, etc.) to Rust expressions.
 // Used by TranspileExpression for SelectorExpr when the selector is on a stdlib package.
 var stdlibSelectorMappings = map[string]string{
+	"math.E":           "std::f64::consts::E",
+	"math.Pi":          "std::f64::consts::PI",
+	"os.Args":          "__go_os_args.clone()",
 	"time.Hour":        "std::time::Duration::from_secs(3600)",
 	"time.Minute":      "std::time::Duration::from_secs(60)",
 	"time.Second":      "std::time::Duration::from_secs(1)",
@@ -1474,13 +2428,33 @@ func GetStdlibSelectorMapping(pkgName, selName string) string {
 }
 
 func transpileTimeNow(out *strings.Builder, call *ast.CallExpr) {
-	TrackImport("time::SystemTime")
+	NeedGoTime()
 	WriteWrapperPrefix(out)
-	out.WriteString("std::time::SystemTime::now()")
+	out.WriteString("GoTime::now()")
+	out.WriteString(")))")
+}
+
+func transpileTimeUnix(out *strings.Builder, call *ast.CallExpr) {
+	NeedGoTime()
+	WriteWrapperPrefix(out)
+	out.WriteString("GoTime::from_unix(")
+	if len(call.Args) > 0 {
+		writeUnwrappedForFormat(out, call.Args[0])
+	} else {
+		out.WriteString("0")
+	}
+	out.WriteString(" as i64, ")
+	if len(call.Args) > 1 {
+		writeUnwrappedForFormat(out, call.Args[1])
+	} else {
+		out.WriteString("0")
+	}
+	out.WriteString(" as i64)")
 	out.WriteString(")))")
 }
 
 func transpileTimeAfter(out *strings.Builder, call *ast.CallExpr) {
+	NeedGoAfter()
 	TrackImport("time::Duration")
 	// time.After returns a channel that fires after a duration
 	NeedGoChannel()
@@ -1492,6 +2466,7 @@ func transpileTimeAfter(out *strings.Builder, call *ast.CallExpr) {
 }
 
 func transpileTimeNewTicker(out *strings.Builder, call *ast.CallExpr) {
+	NeedGoTicker()
 	TrackImport("time::Duration")
 	WriteWrapperPrefix(out)
 	out.WriteString("go_new_ticker(")
@@ -1503,6 +2478,7 @@ func transpileTimeNewTicker(out *strings.Builder, call *ast.CallExpr) {
 }
 
 func transpileTimeNewTimer(out *strings.Builder, call *ast.CallExpr) {
+	NeedGoTimer()
 	TrackImport("time::Duration")
 	WriteWrapperPrefix(out)
 	out.WriteString("go_new_timer(")
@@ -1514,6 +2490,7 @@ func transpileTimeNewTimer(out *strings.Builder, call *ast.CallExpr) {
 }
 
 func transpileTimeTick(out *strings.Builder, call *ast.CallExpr) {
+	NeedGoTick()
 	TrackImport("time::Duration")
 	out.WriteString("go_tick(")
 	if len(call.Args) > 0 {
@@ -1523,12 +2500,14 @@ func transpileTimeTick(out *strings.Builder, call *ast.CallExpr) {
 }
 
 func transpileContextBackground(out *strings.Builder, call *ast.CallExpr) {
+	NeedGoContext()
 	WriteWrapperPrefix(out)
 	out.WriteString("GoContext::background()")
 	out.WriteString(")))")
 }
 
 func transpileContextWithTimeout(out *strings.Builder, call *ast.CallExpr) {
+	NeedGoContext()
 	// context.WithTimeout(ctx, duration) returns (ctx, cancel)
 	out.WriteString("GoContext::with_timeout(")
 	if len(call.Args) > 0 {
@@ -1542,6 +2521,7 @@ func transpileContextWithTimeout(out *strings.Builder, call *ast.CallExpr) {
 }
 
 func transpileContextWithCancel(out *strings.Builder, call *ast.CallExpr) {
+	NeedGoContext()
 	out.WriteString("GoContext::with_cancel(")
 	if len(call.Args) > 0 {
 		TranspileExpression(out, call.Args[0])

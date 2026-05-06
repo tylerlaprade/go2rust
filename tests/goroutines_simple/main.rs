@@ -4,8 +4,8 @@ use std::time::Duration;
 
 pub fn f(from: Arc<Mutex<Option<String>>>) {
     let mut i = Arc::new(Mutex::new(Some(0)));
-    while (*i.lock().unwrap().as_ref().unwrap()) < 3 {
-        println!("{} {} {}", (*from.lock().unwrap().as_ref().unwrap()), ":".to_string(), (*i.lock().unwrap().as_ref().unwrap()));
+    while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3; __tmp_x < __tmp_y } {
+        println!("{} {} {}", { let __v = (*from.lock().unwrap().as_ref().unwrap()).clone(); __v }, ":".to_string(), { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v });
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
 }
@@ -22,7 +22,7 @@ fn main() {
     std::thread::spawn(move || {
         let __closure = move |msg: Arc<Mutex<Option<String>>>| {
             std::thread::sleep(std::time::Duration::from_millis(10));;
-            println!("{}", (*msg.lock().unwrap().as_ref().unwrap()));;
+            println!("{}", { let __v = (*msg.lock().unwrap().as_ref().unwrap()).clone(); __v });;
         };
         __closure(Arc::new(Mutex::new(Some("going".to_string()))));
     });

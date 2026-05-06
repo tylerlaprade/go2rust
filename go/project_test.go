@@ -145,6 +145,28 @@ func TestPackageLoaderOrderedPackagePaths(t *testing.T) {
 	}
 }
 
+func TestCollectGoFilesSkipsTestFilesForDirectoryInput(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), "package main\nfunc main() {}\n")
+	writeTestFile(t, filepath.Join(tempDir, "main_test.go"), "package main\n")
+	writeTestFile(t, filepath.Join(tempDir, "helper.go"), "package main\n")
+
+	files, err := collectGoFiles(tempDir)
+	if err != nil {
+		t.Fatalf("collectGoFiles() error = %v", err)
+	}
+
+	var basenames []string
+	for _, file := range files {
+		basenames = append(basenames, filepath.Base(file))
+	}
+	got := strings.Join(basenames, ",")
+	want := "helper.go,main.go"
+	if got != want {
+		t.Fatalf("collectGoFiles() = %v, want %v", got, want)
+	}
+}
+
 func writeTestFile(t *testing.T, path string, content string) {
 	t.Helper()
 	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {

@@ -3,8 +3,8 @@ use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
 #[derive(Debug, Clone, Default)]
-struct base {
-    num: Rc<RefCell<Option<i32>>>,
+pub struct base {
+    pub num: Rc<RefCell<Option<i32>>>,
 }
 
 impl std::fmt::Display for base {
@@ -14,10 +14,17 @@ impl std::fmt::Display for base {
 }
 
 
-#[derive(Debug, Clone, Default)]
-struct container {
-    base: Rc<RefCell<Option<base>>>,
-    str: Rc<RefCell<Option<String>>>,
+#[derive(Debug, Clone)]
+pub struct container {
+    pub base: Rc<RefCell<Option<base>>>,
+    pub str: Rc<RefCell<Option<String>>>,
+}
+
+
+impl Default for container {
+    fn default() -> Self {
+        Self { base: Rc::new(RefCell::new(Some(base::default()))), str: Default::default() }
+    }
 }
 
 impl std::fmt::Display for container {

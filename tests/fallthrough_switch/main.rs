@@ -99,7 +99,7 @@ fn main() {
         if !_matched || _fallthrough {
             _matched = true;
             _fallthrough = false;
-            println!("{}", (*n.borrow().as_ref().unwrap()));
+            println!("{}", { let __v = (*n.borrow().as_ref().unwrap()).clone(); __v });
         }
     }
 }

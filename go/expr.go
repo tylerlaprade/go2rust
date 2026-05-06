@@ -5,6 +5,7 @@ import (
 	"go/ast"
 	"go/token"
 	"go/types"
+	"strconv"
 	"strings"
 )
 
@@ -97,6 +98,22 @@ func isFloatExpression(expr ast.Expr) bool {
 	return false
 }
 
+func isCopyTypeForRangeRef(expr ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	typ := typeInfo.GetType(expr)
+	if typ == nil {
+		return false
+	}
+	if basic, ok := typ.Underlying().(*types.Basic); ok {
+		info := basic.Info()
+		return info&types.IsNumeric != 0 || info&types.IsBoolean != 0
+	}
+	return false
+}
+
 // TranspileExpression transpiles an expression (defaults to RValue context)
 func TranspileExpression(out *strings.Builder, expr ast.Expr) {
 	TranspileExpressionContext(out, expr, RValue)
@@ -130,13 +147,291 @@ func writeUnwrappedForFormat(out *strings.Builder, expr ast.Expr) {
 	}
 }
 
+func writeCallArgumentValue(out *strings.Builder, arg ast.Expr) bool {
+	ident, ok := arg.(*ast.Ident)
+	if !ok || ident.Name == "_" || ident.Name == "nil" || ident.Name == "true" || ident.Name == "false" {
+		return false
+	}
+	if _, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar {
+		return false
+	}
+	if _, isLocalConst := localConstants[ident.Name]; isLocalConst {
+		return false
+	}
+	if isVarBare(ident.Name) || rhsIsPointerType(ident) {
+		return false
+	}
+
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	typ := typeInfo.GetType(ident)
+	if typ == nil {
+		return false
+	}
+	switch typ.Underlying().(type) {
+	case *types.Basic, *types.Struct, *types.Array:
+		varName := ident.Name
+		if currentCaptureRenames != nil {
+			if renamed, exists := currentCaptureRenames[ident.Name]; exists {
+				varName = renamed
+			}
+		}
+		out.WriteString("(*")
+		out.WriteString(varName)
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap()).clone()")
+		return true
+	default:
+		return false
+	}
+}
+
+func isWrappedValueIdent(ident *ast.Ident) bool {
+	if ident.Name == "_" || ident.Name == "nil" || ident.Name == "true" || ident.Name == "false" {
+		return false
+	}
+	if _, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar {
+		return false
+	}
+	if _, isLocalConst := localConstants[ident.Name]; isLocalConst {
+		return false
+	}
+	if isVarBare(ident.Name) {
+		return false
+	}
+
+	typeInfo := GetTypeInfo()
+	if typeInfo != nil && typeInfo.info != nil {
+		if obj := typeInfo.info.Uses[ident]; obj != nil {
+			switch obj.(type) {
+			case *types.Const, *types.Func, *types.TypeName, *types.PkgName, *types.Builtin:
+				return false
+			default:
+				return true
+			}
+		}
+		if obj := typeInfo.info.Defs[ident]; obj != nil {
+			switch obj.(type) {
+			case *types.Const, *types.Func, *types.TypeName, *types.PkgName, *types.Builtin:
+				return false
+			default:
+				return true
+			}
+		}
+	}
+	return true
+}
+
+func isWrappedRangeVarType(varType string) bool {
+	return strings.Contains(varType, "Arc<") || strings.Contains(varType, "Rc<")
+}
+
+func sameWrappedIdentBinary(expr *ast.BinaryExpr) (*ast.Ident, bool) {
+	if expr.Op == token.LAND || expr.Op == token.LOR {
+		return nil, false
+	}
+	left, ok := expr.X.(*ast.Ident)
+	if !ok {
+		return nil, false
+	}
+	right, ok := expr.Y.(*ast.Ident)
+	if !ok || left.Name != right.Name {
+		return nil, false
+	}
+	if !isWrappedValueIdent(left) || !isWrappedValueIdent(right) {
+		return nil, false
+	}
+	return left, true
+}
+
+func writeIdentValueClone(out *strings.Builder, ident *ast.Ident) {
+	name := ident.Name
+	if currentCaptureRenames != nil {
+		if renamed, exists := currentCaptureRenames[ident.Name]; exists {
+			name = renamed
+		}
+	}
+	out.WriteString("(*")
+	out.WriteString(name)
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap()).clone()")
+}
+
+func isCloneableNonPointerIdent(ident *ast.Ident) bool {
+	if ident == nil {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	typ := typeInfo.GetType(ident)
+	if typ == nil {
+		return false
+	}
+	if _, isPointer := typ.Underlying().(*types.Pointer); isPointer {
+		return false
+	}
+	switch typ.Underlying().(type) {
+	case *types.Basic, *types.Struct, *types.Array, *types.Slice, *types.Map:
+		return true
+	default:
+		return false
+	}
+}
+
+func writeIdentValueCloneBlock(out *strings.Builder, ident *ast.Ident) {
+	out.WriteString("{ let __v = ")
+	writeIdentValueClone(out, ident)
+	out.WriteString("; __v }")
+}
+
+func writeOwnedExpressionValue(out *strings.Builder, expr ast.Expr) bool {
+	ident, ok := expr.(*ast.Ident)
+	if !ok || !isWrappedValueIdent(ident) {
+		return false
+	}
+	writeIdentValueClone(out, ident)
+	return true
+}
+
+func writeMaybeUnwrappedExpression(out *strings.Builder, expr ast.Expr) {
+	var buf strings.Builder
+	TranspileExpression(&buf, expr)
+	s := buf.String()
+	outerWrapper := GetOuterWrapperType()
+	innerWrapper := GetInnerWrapperType()
+	wrapPrefix := outerWrapper + "::new(" + innerWrapper + "::new(Some("
+	wrapSuffix := ")))"
+	if strings.HasPrefix(s, wrapPrefix) && strings.HasSuffix(s, wrapSuffix) {
+		out.WriteString(s[len(wrapPrefix) : len(s)-len(wrapSuffix)])
+		return
+	}
+	out.WriteString(s)
+}
+
+func writeInterfaceBoxedValue(out *strings.Builder, expr ast.Expr) {
+	TrackImport("Any")
+	out.WriteString("Box::new(")
+	if !writeOwnedExpressionValue(out, expr) {
+		writeMaybeUnwrappedExpression(out, expr)
+	}
+	out.WriteString(") as Box<dyn Any>")
+}
+
+func writeWrappedStructFieldValue(out *strings.Builder, value ast.Expr, fieldExpr ast.Expr, fieldType types.Type) {
+	if isEmptyInterfaceExpr(fieldExpr) || isEmptyInterfaceType(fieldType) {
+		WriteWrapperPrefix(out)
+		writeInterfaceBoxedValue(out, value)
+		WriteWrapperSuffix(out)
+		return
+	}
+
+	// Check if the value is an identifier (parameter/variable).
+	if valIdent, ok := value.(*ast.Ident); ok {
+		// Check if it's a literal (true, false, nil) that doesn't need cloning.
+		if valIdent.Name == "true" || valIdent.Name == "false" || valIdent.Name == "nil" {
+			WriteWrapperPrefix(out)
+			TranspileExpression(out, value)
+			WriteWrapperSuffix(out)
+		} else {
+			// It's already wrapped, just clone it.
+			out.WriteString(valIdent.Name)
+			out.WriteString(".clone()")
+		}
+	} else if isCompositeLitSelfWrapping(value) {
+		// Slice/map literals already wrap themselves.
+		TranspileExpression(out, value)
+	} else {
+		// Wrap field values.
+		WriteWrapperPrefix(out)
+		TranspileExpression(out, value)
+		WriteWrapperSuffix(out)
+	}
+}
+
+func writeWrappedMapValue(out *strings.Builder, value ast.Expr, valueExpr ast.Expr, valueType types.Type) {
+	WriteWrapperPrefix(out)
+	if isEmptyInterfaceExpr(valueExpr) || isEmptyInterfaceType(valueType) {
+		writeInterfaceBoxedValue(out, value)
+	} else {
+		TranspileExpression(out, value)
+	}
+	WriteWrapperSuffix(out)
+}
+
+func findStructFieldExpr(structType *ast.StructType, fieldName string) ast.Expr {
+	if structType == nil {
+		return nil
+	}
+	for _, field := range structType.Fields.List {
+		for _, name := range field.Names {
+			if name.Name == fieldName {
+				return field.Type
+			}
+		}
+	}
+	return nil
+}
+
+func findTypesStructFieldType(structType *types.Struct, fieldName string) types.Type {
+	if structType == nil {
+		return nil
+	}
+	for i := 0; i < structType.NumFields(); i++ {
+		if structType.Field(i).Name() == fieldName {
+			return structType.Field(i).Type()
+		}
+	}
+	return nil
+}
+
+func writeMapLookupKey(out *strings.Builder, index ast.Expr) {
+	if ident, ok := index.(*ast.Ident); ok {
+		if _, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar {
+			// Range variables from slice/map iteration are already references.
+			out.WriteString(ident.Name)
+			return
+		}
+	}
+	out.WriteString("&")
+	TranspileExpression(out, index)
+}
+
+func writeClonedWrappedExpression(out *strings.Builder, expr ast.Expr, holderName string, guardName string) {
+	out.WriteString("{ let ")
+	out.WriteString(holderName)
+	out.WriteString(" = ")
+	TranspileExpressionContext(out, expr, LValue)
+	out.WriteString(".clone(); let ")
+	out.WriteString(guardName)
+	out.WriteString(" = ")
+	out.WriteString(holderName)
+	WriteBorrowMethod(out, false)
+	out.WriteString("; let __cloned = (*")
+	out.WriteString(guardName)
+	out.WriteString(".as_ref().unwrap()).clone(); drop(")
+	out.WriteString(guardName)
+	out.WriteString("); __cloned }")
+}
+
 // TranspileExpressionContext transpiles an expression with context about how it's used
 func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprContext) {
 	switch e := expr.(type) {
 	case *ast.BasicLit:
 		switch e.Kind {
 		case token.STRING:
-			out.WriteString(e.Value)
+			if strings.HasPrefix(e.Value, "`") {
+				if unquoted, err := strconv.Unquote(e.Value); err == nil {
+					out.WriteString(strconv.Quote(unquoted))
+				} else {
+					out.WriteString(e.Value)
+				}
+			} else {
+				out.WriteString(e.Value)
+			}
 			out.WriteString(".to_string()")
 		case token.CHAR:
 			// In Go, character literals are runes (int32)
@@ -185,6 +480,16 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			} else {
 				out.WriteString("self")
 			}
+		} else if isPackageGlobalIdent(e) {
+			switch ctx {
+			case RValue:
+				out.WriteString("(*")
+				out.WriteString(e.Name)
+				WriteBorrowMethod(out, false)
+				out.WriteString(".as_ref().unwrap())")
+			case AddressOf, LValue:
+				out.WriteString(e.Name)
+			}
 		} else if e.Name[0] >= 'A' && e.Name[0] <= 'Z' && e.Name != "String" {
 			// Likely a constant - convert to UPPER_SNAKE_CASE
 			out.WriteString(strings.ToUpper(ToSnakeCase(e.Name)))
@@ -192,7 +497,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			out.WriteString(e.Name)
 		} else if varType, isRangeVar := rangeLoopVars[e.Name]; isRangeVar {
 			// Check if this is a wrapped type (contains Arc)
-			if strings.Contains(varType, "Arc") {
+			if isWrappedRangeVarType(varType) {
 				// It's a wrapped value from a map, need to unwrap for display
 				if ctx == RValue {
 					out.WriteString("(*")
@@ -208,6 +513,8 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			}
 		} else if _, isLocalConst := localConstants[e.Name]; isLocalConst {
 			out.WriteString(varName)
+		} else if isConstIdent(e) {
+			out.WriteString(rustConstName(e.Name))
 		} else if isVarBare(e.Name) {
 			// VarTable says this variable is bare (e.g., interface parameter &dyn Trait)
 			out.WriteString(varName)
@@ -215,6 +522,10 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			// All variables are wrapped in Arc<Mutex<Option<T>>>
 			switch ctx {
 			case RValue:
+				if NeedsConcurrentWrapper() && isCloneableNonPointerIdent(e) {
+					writeIdentValueCloneBlock(out, e)
+					break
+				}
 				// Reading a variable requires unwrapping to get the inner value
 				out.WriteString("(*")
 				out.WriteString(varName)
@@ -293,7 +604,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			// Don't call TranspileExpression(e.X) which wraps the package name as a variable
 			if ident, ok := e.X.(*ast.Ident); ok {
 				// Check for known stdlib selector mappings (constants like time.Hour)
-				if rustExpr := GetStdlibSelectorMapping(ident.Name, e.Sel.Name); rustExpr != "" {
+				if rustExpr := GetStdlibSelectorMapping(resolveStdlibPackageName(ident.Name), e.Sel.Name); rustExpr != "" {
 					out.WriteString(rustExpr)
 				} else {
 					// Unknown stdlib selector - emit as package::selector
@@ -392,7 +703,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 
 				// Check if this variable is wrapped (not a range var, not a constant, not bare)
 				needsUnwrap := false
-				if _, isRangeVar := rangeLoopVars[ident.Name]; !isRangeVar {
+				if varType, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar {
+					needsUnwrap = isWrappedRangeVarType(varType)
+				} else {
 					if _, isLocalConst := localConstants[ident.Name]; !isLocalConst {
 						if !isVarBare(ident.Name) {
 							// Regular variable - likely wrapped
@@ -405,7 +718,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					// Accessing promoted field through embedded struct(s)
 					if needsUnwrap {
 						// Wrapped variable with promoted field
-						if ctx == LValue {
+						if ctx == LValue || ctx == AddressOf {
 							out.WriteString("(*(*")
 							out.WriteString(ident.Name)
 							WriteBorrowMethod(out, true)
@@ -467,7 +780,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					// Direct field access
 					if needsUnwrap {
 						// Access field on wrapped struct
-						if ctx == LValue {
+						if ctx == LValue || ctx == AddressOf {
 							// Immutable borrow on outer struct suffices because each
 							// field is independently wrapped in Rc<RefCell<...>>
 							out.WriteString("(*")
@@ -478,11 +791,21 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 						} else {
 							// For reading, we need immutable access
 							// Also unwrap the field itself in RValue context
-							out.WriteString("(*(*")
-							out.WriteString(ident.Name)
-							WriteBorrowMethod(out, false)
-							out.WriteString(".as_ref().unwrap()).")
-							out.WriteString(fieldInfo.FieldName)
+							out.WriteString("(*")
+							if NeedsConcurrentWrapper() {
+								out.WriteString("{ let __field = (*")
+								out.WriteString(ident.Name)
+								WriteBorrowMethod(out, false)
+								out.WriteString(".as_ref().unwrap()).")
+								out.WriteString(fieldInfo.FieldName)
+								out.WriteString(".clone(); __field }")
+							} else {
+								out.WriteString("(*")
+								out.WriteString(ident.Name)
+								WriteBorrowMethod(out, false)
+								out.WriteString(".as_ref().unwrap()).")
+								out.WriteString(fieldInfo.FieldName)
+							}
 							WriteBorrowMethod(out, false)
 							out.WriteString(".as_ref().unwrap())")
 						}
@@ -609,6 +932,19 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 	case *ast.UnaryExpr:
 		switch e.Op {
 		case token.AND: // & - address-of
+			if indexExpr, ok := e.X.(*ast.IndexExpr); ok {
+				typeInfo := GetTypeInfo()
+				if typeInfo != nil && !typeInfo.IsMap(indexExpr.X) {
+					NeedSliceElemPtr()
+					out.WriteString("GoSliceElemPtr::new(")
+					TranspileExpressionContext(out, indexExpr.X, LValue)
+					out.WriteString(".clone(), ")
+					TranspileExpression(out, indexExpr.Index)
+					out.WriteString(" as usize)")
+					return
+				}
+			}
+
 			// Check if we're taking address of a struct literal
 			if compositeLit, isCompositeLit := e.X.(*ast.CompositeLit); isCompositeLit {
 				// Special case for argError - it implements error interface
@@ -634,13 +970,17 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				out.WriteString(".clone()")
 			}
 		case token.MUL: // * - dereference
-			// Double dereference - need to unwrap twice for **p
+			if ctx == RValue {
+				out.WriteString("{ let __v = (*")
+				TranspileExpressionContext(out, e.X, LValue)
+				WriteBorrowMethod(out, false)
+				out.WriteString(".as_ref().unwrap()).clone(); __v }")
+				break
+			}
 			out.WriteString("(*")
-			TranspileExpression(out, e.X)
-			WriteBorrowMethod(out, false)
-			out.WriteString(".as_ref().unwrap()")
-			WriteBorrowMethod(out, false)
-			out.WriteString(".as_ref().unwrap())")
+			TranspileExpressionContext(out, e.X, LValue)
+			WriteBorrowMethod(out, true)
+			out.WriteString(".as_mut().unwrap())")
 		case token.ARROW:
 			// Channel receive: <-ch
 			TranspileExpression(out, e.X)
@@ -652,16 +992,18 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 
 	case *ast.StarExpr:
 		// Dereference pointer - unwrap the wrapper to get T
+		if ctx == RValue {
+			out.WriteString("{ let __v = (*")
+			TranspileExpressionContext(out, e.X, LValue)
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref().unwrap()).clone(); __v }")
+			break
+		}
 		out.WriteString("(*")
 		// Use LValue context so the identifier doesn't get unwrapped
 		TranspileExpressionContext(out, e.X, LValue)
-		if ctx == RValue {
-			WriteBorrowMethod(out, false)
-			out.WriteString(".as_ref().unwrap())")
-		} else {
-			WriteBorrowMethod(out, true)
-			out.WriteString(".as_mut().unwrap())")
-		}
+		WriteBorrowMethod(out, true)
+		out.WriteString(".as_mut().unwrap())")
 	case *ast.BinaryExpr:
 		// Special handling for comparisons with nil
 		if ident, ok := e.Y.(*ast.Ident); ok && ident.Name == "nil" {
@@ -739,6 +1081,22 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			}
 		}
 
+		if ident, ok := sameWrappedIdentBinary(e); ok {
+			tempName := "__bin_" + ToSnakeCase(ident.Name)
+			out.WriteString("{ let ")
+			out.WriteString(tempName)
+			out.WriteString(" = ")
+			writeIdentValueClone(out, ident)
+			out.WriteString("; ")
+			out.WriteString(tempName)
+			out.WriteString(" ")
+			out.WriteString(e.Op.String())
+			out.WriteString(" ")
+			out.WriteString(tempName)
+			out.WriteString(" }")
+			return
+		}
+
 		// Check if either operand is a string literal in a comparison - use &str directly
 		isComparison := e.Op == token.EQL || e.Op == token.NEQ || e.Op == token.LSS || e.Op == token.GTR || e.Op == token.LEQ || e.Op == token.GEQ
 		xIsStringLit := false
@@ -767,6 +1125,26 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			} else {
 				TranspileExpression(out, expr)
 			}
+		}
+
+		if NeedsConcurrentWrapper() && e.Op != token.LAND && e.Op != token.LOR {
+			writeTempOperand := func(expr ast.Expr, other ast.Expr, isStringLit bool, needsUnwrap bool) {
+				if lit, ok := expr.(*ast.BasicLit); ok && lit.Kind == token.INT && isFloatExpression(other) {
+					out.WriteString(lit.Value)
+					out.WriteString(".0")
+					return
+				}
+				writeOperand(expr, isStringLit, needsUnwrap)
+			}
+
+			out.WriteString("{ let __tmp_x = ")
+			writeTempOperand(e.X, e.Y, xIsStringLit, needsUnwrapX)
+			out.WriteString("; let __tmp_y = ")
+			writeTempOperand(e.Y, e.X, yIsStringLit, needsUnwrapY)
+			out.WriteString("; __tmp_x ")
+			out.WriteString(e.Op.String())
+			out.WriteString(" __tmp_y }")
+			return
 		}
 
 		if needsUnwrapX || needsUnwrapY || xIsStringLit || yIsStringLit {
@@ -835,28 +1213,33 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			return
 		}
 
-		if isMap && ctx == RValue {
+		if isMap {
 			// Map read access - need to clone the value
+			defaultValue := "Default::default()"
+			if typeInfo != nil {
+				defaultValue = zeroValueForTypesType(typeInfo.GetMapValueType(e.X))
+			}
 			if isExpressionResultBare(e.X) {
 				// e.X is a bare value (e.g., result of another index/map access)
 				// Use RValue context to get the bare map value, then .get() directly
 				TranspileExpression(out, e.X)
 				out.WriteString(".get(")
-				// Index key
-				if ident, ok := e.Index.(*ast.Ident); ok {
-					if _, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar {
-						out.WriteString(ident.Name)
-					} else {
-						out.WriteString("&")
-						TranspileExpression(out, e.Index)
-					}
-				} else {
-					out.WriteString("&")
-					TranspileExpression(out, e.Index)
-				}
-				out.WriteString(").unwrap()")
+				writeMapLookupKey(out, e.Index)
+				out.WriteString(").map(|__v| __v")
 				WriteBorrowMethod(out, false)
-				out.WriteString(".as_ref().unwrap().clone()")
+				out.WriteString(".as_ref().unwrap().clone()).unwrap_or_else(|| ")
+				out.WriteString(defaultValue)
+				out.WriteString(")")
+			} else if NeedsConcurrentWrapper() {
+				out.WriteString("{ let __map = ")
+				writeClonedWrappedExpression(out, e.X, "__map_holder", "__map_guard")
+				out.WriteString("; __map.get(")
+				writeMapLookupKey(out, e.Index)
+				out.WriteString(").map(|__v| __v")
+				WriteBorrowMethod(out, false)
+				out.WriteString(".as_ref().unwrap().clone()).unwrap_or_else(|| ")
+				out.WriteString(defaultValue)
+				out.WriteString(") }")
 			} else {
 				out.WriteString("(*")
 				if ident, ok := e.X.(*ast.Ident); ok {
@@ -866,24 +1249,12 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				}
 				WriteBorrowMethod(out, false)
 				out.WriteString(".as_ref().unwrap()).get(")
-				// Check if the index is a range loop variable that's already a reference
-				if ident, ok := e.Index.(*ast.Ident); ok {
-					if _, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar {
-						// Range variables from slice iteration are already references
-						out.WriteString(ident.Name)
-					} else {
-						// Normal variables need &
-						out.WriteString("&")
-						TranspileExpression(out, e.Index)
-					}
-				} else {
-					// Non-identifier expressions need &
-					out.WriteString("&")
-					TranspileExpression(out, e.Index)
-				}
-				out.WriteString(").unwrap()")
+				writeMapLookupKey(out, e.Index)
+				out.WriteString(").map(|__v| __v")
 				WriteBorrowMethod(out, false)
-				out.WriteString(".as_ref().unwrap().clone()")
+				out.WriteString(".as_ref().unwrap().clone()).unwrap_or_else(|| ")
+				out.WriteString(defaultValue)
+				out.WriteString(")")
 			}
 		} else {
 			// Regular array/slice/string indexing
@@ -897,10 +1268,10 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 
 			if isString {
 				// String indexing returns a byte (u8)
-				out.WriteString("(*")
+				out.WriteString("{ let __s = (*")
 				TranspileExpressionContext(out, e.X, LValue)
 				WriteBorrowMethod(out, false)
-				out.WriteString(".as_ref().unwrap()).as_bytes()[")
+				out.WriteString(".as_ref().unwrap()).clone(); __s.as_bytes()[")
 				// Check if index needs unwrapping
 				if typeInfo != nil && typeInfo.NeedsUnwrapping(e.Index) {
 					out.WriteString("(*")
@@ -911,7 +1282,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					TranspileExpression(out, e.Index)
 					out.WriteString(" as usize")
 				}
-				out.WriteString("]")
+				out.WriteString("] }")
 			} else {
 				// Array/slice indexing
 				if isExpressionResultBare(e.X) {
@@ -922,6 +1293,12 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					TranspileExpression(out, e.Index)
 					out.WriteString(" as usize]")
 					out.WriteString(".clone()")
+				} else if NeedsConcurrentWrapper() {
+					out.WriteString("{ let __seq = ")
+					writeClonedWrappedExpression(out, e.X, "__seq_holder", "__seq_guard")
+					out.WriteString("; __seq[")
+					TranspileExpression(out, e.Index)
+					out.WriteString(" as usize].clone() }")
 				} else {
 					out.WriteString("(*")
 					// Use LValue context so identifiers don't unwrap themselves
@@ -948,10 +1325,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		if e.Slice3 && e.Max != nil && !isStringSlice {
 			// Three-index slice: s[low:high:max] → cap = max - low
 			WriteWrapperPrefix(out)
-			out.WriteString("{ let _guard = ")
-			TranspileExpressionContext(out, e.X, LValue)
-			WriteBorrowMethod(out, false)
-			out.WriteString("; let _slice = &(*_guard.as_ref().unwrap())[")
+			out.WriteString("{ let __seq = ")
+			writeClonedWrappedExpression(out, e.X, "__seq_holder", "__seq_guard")
+			out.WriteString("; let _slice = &__seq[")
 			if e.Low != nil {
 				TranspileExpression(out, e.Low)
 				out.WriteString(" as usize")
@@ -973,14 +1349,28 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			}
 			out.WriteString(") as usize); _v.extend_from_slice(_slice); _v }")
 			WriteWrapperSuffix(out)
-		} else {
+		} else if isStringSlice {
 			WriteWrapperPrefix(out)
-			out.WriteString("(*")
-			// Use LValue context so identifiers don't unwrap themselves
+			out.WriteString("{ let __s = (*")
 			TranspileExpressionContext(out, e.X, LValue)
 			WriteBorrowMethod(out, false)
-			out.WriteString(".as_ref().unwrap())")
-			out.WriteString("[")
+			out.WriteString(".as_ref().unwrap()).clone(); __s[")
+			if e.Low != nil {
+				TranspileExpression(out, e.Low)
+				out.WriteString(" as usize")
+			}
+			out.WriteString("..")
+			if e.High != nil {
+				TranspileExpression(out, e.High)
+				out.WriteString(" as usize")
+			}
+			out.WriteString("].to_string() }")
+			WriteWrapperSuffix(out)
+		} else {
+			WriteWrapperPrefix(out)
+			out.WriteString("{ let __seq = ")
+			writeClonedWrappedExpression(out, e.X, "__seq_holder", "__seq_guard")
+			out.WriteString("; __seq[")
 			if e.Low != nil {
 				// Indices will unwrap themselves in RValue context if needed
 				TranspileExpression(out, e.Low)
@@ -992,12 +1382,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				TranspileExpression(out, e.High)
 				out.WriteString(" as usize")
 			}
-			// Use .to_string() for string slicing, .to_vec() for slice/array
-			if isStringSlice {
-				out.WriteString("].to_string()")
-			} else {
-				out.WriteString("].to_vec()")
-			}
+			out.WriteString("].to_vec() }")
 			WriteWrapperSuffix(out)
 		}
 
@@ -1020,7 +1405,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 								out.WriteString(", ")
 							}
 							// Recursively transpile elements
-							TranspileExpression(out, elt)
+							if !writeOwnedExpressionValue(out, elt) {
+								TranspileExpression(out, elt)
+							}
 						}
 						out.WriteString("]")
 						return
@@ -1044,10 +1431,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 								out.WriteString("(")
 								TranspileExpression(out, kv.Key)
 								out.WriteString(", ")
-								// Wrap map values
-								WriteWrapperPrefix(out)
-								TranspileExpression(out, kv.Value)
-								WriteWrapperSuffix(out)
+								writeWrappedMapValue(out, kv.Value, nil, mapType.Elem())
 								out.WriteString(")")
 							}
 						}
@@ -1055,12 +1439,13 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 						return
 					case *types.Struct:
 						// Handle struct literal with inferred type
+						structUnder := typ.Underlying().(*types.Struct)
 						structTypeName := ""
 						if named, ok := typ.(*types.Named); ok {
 							structTypeName = named.Obj().Name()
 						} else {
 							// Anonymous struct - look up by field matching
-							structTypeName = lookupAnonymousStructName(typ.Underlying().(*types.Struct))
+							structTypeName = lookupAnonymousStructName(structUnder)
 						}
 						if structTypeName == "" {
 							out.WriteString("/* Anonymous struct literal */")
@@ -1079,28 +1464,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 								if key, ok := kv.Key.(*ast.Ident); ok {
 									out.WriteString(ToSnakeCase(key.Name))
 									out.WriteString(": ")
-									// Check if the value is an identifier (parameter/variable)
-									if valIdent, ok := kv.Value.(*ast.Ident); ok {
-										// Check if it's a literal (true, false, nil) that doesn't need cloning
-										if valIdent.Name == "true" || valIdent.Name == "false" || valIdent.Name == "nil" {
-											// Wrap literal values
-											WriteWrapperPrefix(out)
-											TranspileExpression(out, kv.Value)
-											WriteWrapperSuffix(out)
-										} else {
-											// It's already wrapped, just clone it
-											out.WriteString(valIdent.Name)
-											out.WriteString(".clone()")
-										}
-									} else if isCompositeLitSelfWrapping(kv.Value) {
-										// Slice/map literals already wrap themselves
-										TranspileExpression(out, kv.Value)
-									} else {
-										// Wrap field values
-										WriteWrapperPrefix(out)
-										TranspileExpression(out, kv.Value)
-										WriteWrapperSuffix(out)
-									}
+									writeWrappedStructFieldValue(out, kv.Value, nil, findTypesStructFieldType(structUnder, key.Name))
 								}
 							}
 						}
@@ -1188,7 +1552,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					out.WriteString(interfaceName)
 					out.WriteString(">")
 				} else {
-					TranspileExpression(out, elt)
+					if !writeOwnedExpressionValue(out, elt) {
+						TranspileExpression(out, elt)
+					}
 				}
 			}
 			if arrayType.Len != nil {
@@ -1208,9 +1574,22 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			TrackImport("BTreeMap")
 			WriteWrapperPrefix(out)
 			out.WriteString("BTreeMap::<")
-			out.WriteString(goTypeToRustBase(mapType.Key))
+			keyRust := goTypeToRustBase(mapType.Key)
+			valueRust := GoTypeToRust(mapType.Value)
+			var mapValueType types.Type
+			typeInfo := GetTypeInfo()
+			if typeInfo != nil {
+				if typ := typeInfo.GetType(e); typ != nil {
+					if checkedMap, ok := typ.Underlying().(*types.Map); ok {
+						keyRust = goTypesTypeToRust(checkedMap.Key())
+						valueRust = goTypesTypeToRustWrapped(checkedMap.Elem())
+						mapValueType = checkedMap.Elem()
+					}
+				}
+			}
+			out.WriteString(keyRust)
 			out.WriteString(", ")
-			out.WriteString(GoTypeToRust(mapType.Value))
+			out.WriteString(valueRust)
 			out.WriteString(">::from([")
 			for i, elt := range e.Elts {
 				if i > 0 {
@@ -1220,10 +1599,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					out.WriteString("(")
 					TranspileExpression(out, kv.Key)
 					out.WriteString(", ")
-					// Wrap map values in Arc<Mutex<Option<>>>
-					WriteWrapperPrefix(out)
-					TranspileExpression(out, kv.Value)
-					WriteWrapperSuffix(out)
+					writeWrappedMapValue(out, kv.Value, mapType.Value, mapValueType)
 					out.WriteString(")")
 				}
 			}
@@ -1295,28 +1671,11 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 						if key, ok := kv.Key.(*ast.Ident); ok {
 							out.WriteString(ToSnakeCase(key.Name))
 							out.WriteString(": ")
-							// Check if the value is an identifier (parameter/variable)
-							if valIdent, ok := kv.Value.(*ast.Ident); ok {
-								// Check if it's a literal (true, false, nil) that doesn't need cloning
-								if valIdent.Name == "true" || valIdent.Name == "false" || valIdent.Name == "nil" {
-									// Wrap literal values
-									WriteWrapperPrefix(out)
-									TranspileExpression(out, kv.Value)
-									WriteWrapperSuffix(out)
-								} else {
-									// It's already wrapped, just clone it
-									out.WriteString(valIdent.Name)
-									out.WriteString(".clone()")
-								}
-							} else if isCompositeLitSelfWrapping(kv.Value) {
-								// Slice/map literals already wrap themselves
-								TranspileExpression(out, kv.Value)
-							} else {
-								// Wrap field values in Arc<Mutex<Option<T>>>
-								WriteWrapperPrefix(out)
-								TranspileExpression(out, kv.Value)
-								WriteWrapperSuffix(out)
+							var fieldType ast.Expr
+							if sd, exists := structDefs[ident.Name]; exists {
+								fieldType = findStructFieldExpr(sd.ASTType, key.Name)
 							}
+							writeWrappedStructFieldValue(out, kv.Value, fieldType, nil)
 						}
 					}
 				}
@@ -1338,7 +1697,10 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				for _, field := range sd.ASTType.Fields.List {
 					for _, name := range field.Names {
 						if !initializedFields[name.Name] {
-							if fieldIdent, ok := field.Type.(*ast.Ident); ok {
+							if nestedStruct, ok := field.Type.(*ast.StructType); ok {
+								generateAnonymousStructType(nestedStruct)
+								hasStructFields = true
+							} else if fieldIdent, ok := field.Type.(*ast.Ident); ok {
 								if _, isStruct := structDefs[fieldIdent.Name]; isStruct {
 									hasStructFields = true
 								}
@@ -1366,6 +1728,14 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 									out.WriteString(", ")
 									out.WriteString(ToSnakeCase(name.Name))
 									out.WriteString(": ")
+									if nestedStruct, ok := field.Type.(*ast.StructType); ok {
+										nestedName := generateAnonymousStructType(nestedStruct)
+										WriteWrapperPrefix(out)
+										out.WriteString(nestedName)
+										out.WriteString("::default()")
+										WriteWrapperSuffix(out)
+										continue
+									}
 									if fieldIdent, ok := field.Type.(*ast.Ident); ok {
 										if _, isStruct := structDefs[fieldIdent.Name]; isStruct {
 											WriteWrapperPrefix(out)
@@ -1429,28 +1799,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					if key, ok := kv.Key.(*ast.Ident); ok {
 						out.WriteString(ToSnakeCase(key.Name))
 						out.WriteString(": ")
-						// Check if the value is an identifier (parameter/variable)
-						if valIdent, ok := kv.Value.(*ast.Ident); ok {
-							// Check if it's a literal (true, false, nil) that doesn't need cloning
-							if valIdent.Name == "true" || valIdent.Name == "false" || valIdent.Name == "nil" {
-								// Wrap literal values
-								WriteWrapperPrefix(out)
-								TranspileExpression(out, kv.Value)
-								WriteWrapperSuffix(out)
-							} else {
-								// It's already wrapped, just clone it
-								out.WriteString(valIdent.Name)
-								out.WriteString(".clone()")
-							}
-						} else if isCompositeLitSelfWrapping(kv.Value) {
-							// Slice/map literals already wrap themselves
-							TranspileExpression(out, kv.Value)
-						} else {
-							// Wrap field values in Arc<Mutex<Option<T>>>
-							WriteWrapperPrefix(out)
-							TranspileExpression(out, kv.Value)
-							WriteWrapperSuffix(out)
-						}
+						writeWrappedStructFieldValue(out, kv.Value, findStructFieldExpr(structType, key.Name), nil)
 					}
 				}
 			}
@@ -1587,6 +1936,85 @@ func isFunctionName(ident *ast.Ident) bool {
 	return false
 }
 
+func functionValueSignature(ident *ast.Ident) (*types.Signature, bool) {
+	if ident == nil {
+		return nil, false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return nil, false
+	}
+	typ := typeInfo.GetType(ident)
+	if typ == nil {
+		return nil, false
+	}
+	sig, ok := typ.Underlying().(*types.Signature)
+	if !ok {
+		return nil, false
+	}
+	if typeInfo.IsFunction(ident) || isPackageGlobalIdent(ident) {
+		return sig, true
+	}
+	return nil, false
+}
+
+func writeFunctionValueBox(out *strings.Builder, ident *ast.Ident, sig *types.Signature) {
+	out.WriteString("Box::new(move |")
+	params := sig.Params()
+	for i := 0; i < params.Len(); i++ {
+		if i > 0 {
+			out.WriteString(", ")
+		}
+		out.WriteString(fmt.Sprintf("__arg%d: %s", i, goTypesTypeToRustWrapped(params.At(i).Type())))
+	}
+	out.WriteString("|")
+
+	results := sig.Results()
+	if results.Len() > 0 {
+		out.WriteString(" -> ")
+		if results.Len() == 1 {
+			out.WriteString(goTypesTypeToRustWrapped(results.At(0).Type()))
+		} else {
+			retTypes := make([]string, 0, results.Len())
+			for i := 0; i < results.Len(); i++ {
+				retTypes = append(retTypes, goTypesTypeToRustWrapped(results.At(i).Type()))
+			}
+			out.WriteString("(")
+			out.WriteString(strings.Join(retTypes, ", "))
+			out.WriteString(")")
+		}
+	}
+
+	out.WriteString(" { ")
+	if isPackageGlobalIdent(ident) {
+		out.WriteString("{ let __f_guard = ")
+		out.WriteString(ident.Name)
+		WriteBorrowMethod(out, false)
+		out.WriteString("; let __f = __f_guard.as_ref().unwrap(); (*__f)(")
+	} else {
+		out.WriteString(ToSnakeCase(ident.Name))
+		out.WriteString("(")
+	}
+	for i := 0; i < params.Len(); i++ {
+		if i > 0 {
+			out.WriteString(", ")
+		}
+		out.WriteString(fmt.Sprintf("__arg%d", i))
+	}
+	out.WriteString(")")
+	if isPackageGlobalIdent(ident) {
+		out.WriteString(" }")
+	}
+	out.WriteString(" }) as ")
+	out.WriteString(signatureToBoxDynFn(sig))
+}
+
+func writeWrappedFunctionValueBox(out *strings.Builder, ident *ast.Ident, sig *types.Signature) {
+	WriteWrapperPrefix(out)
+	writeFunctionValueBox(out, ident, sig)
+	WriteWrapperSuffix(out)
+}
+
 // Helper to check if a name is a builtin function
 func isBuiltinFunction(name string) bool {
 	builtins := map[string]bool{
@@ -1599,6 +2027,13 @@ func isBuiltinFunction(name string) bool {
 
 // TranspileFuncLit transpiles a function literal (closure)
 func TranspileFuncLit(out *strings.Builder, funcLit *ast.FuncLit) {
+	// Wrap the closure in Arc<Mutex<Option<Box<dyn Fn>>>
+	WriteWrapperPrefix(out)
+	TranspileFuncLitBox(out, funcLit)
+	WriteWrapperSuffix(out)
+}
+
+func TranspileFuncLitBox(out *strings.Builder, funcLit *ast.FuncLit) {
 	// Find captured variables
 	captured := findCapturedVars(funcLit)
 
@@ -1626,9 +2061,6 @@ func TranspileFuncLit(out *strings.Builder, funcLit *ast.FuncLit) {
 	oldCaptureRenames := currentCaptureRenames
 	currentCaptureRenames = captureRenames
 	defer func() { currentCaptureRenames = oldCaptureRenames }()
-
-	// Wrap the closure in Arc<Mutex<Option<Box<dyn Fn>>>
-	WriteWrapperPrefix(out)
 
 	// Generate the closure wrapped in Box
 	out.WriteString("Box::new(move |")
@@ -1688,7 +2120,6 @@ func TranspileFuncLit(out *strings.Builder, funcLit *ast.FuncLit) {
 	// Cast to the right type and close wrappers
 	out.WriteString(" as ")
 	out.WriteString(generateClosureType(funcLit.Type))
-	WriteWrapperSuffix(out)
 }
 
 // TranspileTypeConversion handles type conversions like int(x), float64(y), etc.
@@ -2035,6 +2466,84 @@ func TranspileTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr) 
 		defaultValue = "Default::default()"
 	}
 
+	if indexExpr, ok := e.X.(*ast.IndexExpr); ok {
+		typeInfo := GetTypeInfo()
+		if typeInfo != nil && isEmptyInterfaceType(typeInfo.GetMapValueType(indexExpr.X)) {
+			out.WriteString("({\n")
+			out.WriteString("        if let Some(__v) = (*")
+			if ident, ok := indexExpr.X.(*ast.Ident); ok {
+				out.WriteString(ident.Name)
+			} else {
+				TranspileExpression(out, indexExpr.X)
+			}
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref().unwrap()).get(")
+			if ident, ok := indexExpr.Index.(*ast.Ident); ok {
+				if _, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar {
+					out.WriteString(ident.Name)
+				} else {
+					out.WriteString("&")
+					TranspileExpression(out, indexExpr.Index)
+				}
+			} else {
+				out.WriteString("&")
+				TranspileExpression(out, indexExpr.Index)
+			}
+			out.WriteString(") {\n")
+			out.WriteString("            let guard = __v")
+			WriteBorrowMethod(out, false)
+			out.WriteString(";\n")
+			out.WriteString("            if let Some(ref any_val) = *guard {\n")
+			out.WriteString("                if let Some(typed_val) = any_val.downcast_ref::<")
+			out.WriteString(rustType)
+			out.WriteString(">() {\n")
+			out.WriteString("                    (")
+			WriteWrapperPrefix(out)
+			out.WriteString("typed_val.clone()")
+			WriteWrapperSuffix(out)
+			out.WriteString(", ")
+			WriteWrapperPrefix(out)
+			out.WriteString("true")
+			WriteWrapperSuffix(out)
+			out.WriteString(")\n")
+			out.WriteString("                } else {\n")
+			out.WriteString("                    (")
+			WriteWrapperPrefix(out)
+			out.WriteString(defaultValue)
+			WriteWrapperSuffix(out)
+			out.WriteString(", ")
+			WriteWrapperPrefix(out)
+			out.WriteString("false")
+			WriteWrapperSuffix(out)
+			out.WriteString(")\n")
+			out.WriteString("                }\n")
+			out.WriteString("            } else {\n")
+			out.WriteString("                (")
+			WriteWrapperPrefix(out)
+			out.WriteString(defaultValue)
+			WriteWrapperSuffix(out)
+			out.WriteString(", ")
+			WriteWrapperPrefix(out)
+			out.WriteString("false")
+			WriteWrapperSuffix(out)
+			out.WriteString(")\n")
+			out.WriteString("            }\n")
+			out.WriteString("        } else {\n")
+			out.WriteString("            (")
+			WriteWrapperPrefix(out)
+			out.WriteString(defaultValue)
+			WriteWrapperSuffix(out)
+			out.WriteString(", ")
+			WriteWrapperPrefix(out)
+			out.WriteString("false")
+			WriteWrapperSuffix(out)
+			out.WriteString(")\n")
+			out.WriteString("        }\n")
+			out.WriteString("    })")
+			return
+		}
+	}
+
 	// Generate the type assertion code that returns (value, ok)
 	out.WriteString("({\n")
 	out.WriteString("        let val = ")
@@ -2174,6 +2683,14 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 							out.WriteString(".as_ref().unwrap()).clone()")
 							WriteWrapperSuffix(out)
 							return
+						case "Len":
+							WriteWrapperPrefix(out)
+							out.WriteString("(*")
+							out.WriteString(recvName)
+							WriteBorrowMethod(out, false)
+							out.WriteString(".as_ref().unwrap()).len() as i32")
+							WriteWrapperSuffix(out)
+							return
 						}
 					}
 				}
@@ -2294,7 +2811,9 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 			} else {
 				// For method calls, wrap arguments normally
 				WriteWrapperPrefix(out)
-				TranspileExpression(out, arg)
+				if !writeCallArgumentValue(out, arg) {
+					TranspileExpression(out, arg)
+				}
 				WriteWrapperSuffix(out)
 			}
 		}
@@ -2303,6 +2822,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 	}
 
 	// Check if this is a closure call (calling a variable that holds a function)
+	closureCallBlock := false
 	if ident, ok := call.Fun.(*ast.Ident); ok {
 		// Check if this is a known function or a variable
 		if isBuiltinFunction(ident.Name) || isFunctionName(ident) {
@@ -2317,17 +2837,20 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 					varName = renamed
 				}
 			}
-			out.WriteString("(*")
+			out.WriteString("{ let __f_guard = ")
 			out.WriteString(varName)
 			WriteBorrowMethod(out, false)
-			out.WriteString(".as_ref().unwrap())")
+			out.WriteString("; let __f = __f_guard.as_ref().unwrap(); (*__f)")
+			closureCallBlock = true
 		}
 	} else {
 		// Complex expression for the function (e.g., function returning a function)
-		out.WriteString("(*")
+		out.WriteString("{ let __f_holder = ")
 		TranspileExpression(out, call.Fun)
+		out.WriteString("; let __f_guard = __f_holder")
 		WriteBorrowMethod(out, false)
-		out.WriteString(".as_ref().unwrap())")
+		out.WriteString("; let __f = __f_guard.as_ref().unwrap(); (*__f)")
+		closureCallBlock = true
 	}
 
 	out.WriteString("(")
@@ -2410,6 +2933,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 		expectsInterfaceParam := false
 		expectsEmptyInterface := false
 		var interfaceName string
+		var paramTypeForArg ast.Expr
 		if funcSig != nil && i < len(funcSig.Params) {
 			// Get the parameter type — account for multi-name fields
 			paramField := funcSig.Params[i]
@@ -2426,6 +2950,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				idx += numNames
 			}
 			paramType := paramField.Type
+			paramTypeForArg = paramType
 			if ident, ok := paramType.(*ast.Ident); ok {
 				// Check if this is an interface type using TypeInfo
 				typeInfo := GetTypeInfo()
@@ -2598,6 +3123,16 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 					}
 				}
 
+				if sig, ok := functionValueSignature(ident); ok {
+					writeWrappedFunctionValueBox(out, ident, sig)
+					continue
+				}
+
+				if isConstIdent(ident) {
+					writeWrappedExpressionForExpectedType(out, arg, paramTypeForArg)
+					continue
+				}
+
 				// Check if this is a channel parameter - pass with clone, no wrapping
 				if isVarBare(ident.Name) {
 					out.WriteString(argVarName)
@@ -2679,10 +3214,16 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 							out.WriteString(ident.Name)
 							out.WriteString(".clone())))")
 						} else {
-							// Regular ref value, dereference it
+							// Regular ref value. Copy scalars can be dereferenced, but owned
+							// values such as Vec/String must be cloned out of the reference.
 							WriteWrapperPrefix(out)
-							out.WriteString("*")
-							TranspileExpression(out, arg)
+							if isCopyTypeForRangeRef(arg) {
+								out.WriteString("*")
+								TranspileExpression(out, arg)
+							} else {
+								TranspileExpression(out, arg)
+								out.WriteString(".clone()")
+							}
 							WriteWrapperSuffix(out)
 						}
 					} else {
@@ -2698,6 +3239,15 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 			} else if _, isSliceExpr := arg.(*ast.SliceExpr); isSliceExpr {
 				// Slice expressions already wrap themselves
 				TranspileExpression(out, arg)
+			} else if callArg, isCallArg := arg.(*ast.CallExpr); isCallArg {
+				typeInfo := GetTypeInfo()
+				if typeInfo != nil && typeInfo.ReturnsWrappedValue(callArg) && !callReturnsBareChannelValue(callArg) {
+					TranspileExpression(out, arg)
+				} else {
+					WriteWrapperPrefix(out)
+					TranspileExpression(out, arg)
+					WriteWrapperSuffix(out)
+				}
 			} else if compositeLit, isCompLit := arg.(*ast.CompositeLit); isCompLit {
 				// Composite literals (slice/map/array) already wrap themselves
 				// But struct literals passed to functions need wrapping
@@ -2748,4 +3298,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 		}
 	}
 	out.WriteString(")")
+	if closureCallBlock {
+		out.WriteString(" }")
+	}
 }

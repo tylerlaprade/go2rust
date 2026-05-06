@@ -41,7 +41,7 @@ fn main() {
     println!("{} {}", "Colors map:".to_string(), format_map(&colors));
     let (mut age, mut exists) = match (*ages.borrow().as_ref().unwrap()).get(&"Alice".to_string()) { /* MAP_COMMA_OK */ Some(v) => (v.clone(), Rc::new(RefCell::new(Some(true)))), None => (Rc::new(RefCell::new(Some(0))), Rc::new(RefCell::new(Some(false)))) };
     if (*exists.borrow().as_ref().unwrap()) {
-        println!("{} {}", "Alice's age:".to_string(), (*age.borrow().as_ref().unwrap()));
+        println!("{} {}", "Alice's age:".to_string(), { let __v = (*age.borrow().as_ref().unwrap()).clone(); __v });
     }
     (*ages.borrow_mut().as_mut().unwrap()).remove(&"Bob".to_string());
     println!("{} {}", "After deleting Bob:".to_string(), format_map(&ages));
@@ -51,7 +51,7 @@ fn main() {
         {(*keys.borrow_mut()).get_or_insert_with(Vec::new).push(k); keys.clone()};
     }
     (*keys.borrow_mut().as_mut().unwrap()).sort();
-    for k in &(*keys.borrow().as_ref().unwrap()) {
-        println!("{} {} {}", k, "->".to_string(), (*colors.borrow().as_ref().unwrap()).get(k).unwrap().borrow().as_ref().unwrap().clone());
-    }
+    { let __range_guard = keys.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for k in __range_values.iter() {
+        println!("{} {} {}", k, "->".to_string(), (*colors.borrow().as_ref().unwrap()).get(k).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| String::new()));
+    } }
 }

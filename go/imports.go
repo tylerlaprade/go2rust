@@ -123,6 +123,24 @@ type HelperTracker struct {
 	needsWaitGroup      bool
 	needsGoMutex        bool
 	needsGoTypeName     bool
+	needsBase64         bool
+	needsSha256         bool
+	needsHexFormat      bool
+	needsStrconvFormat  bool
+	needsUrl            bool
+	needsRegexp         bool
+	needsJsonEscape     bool
+	needsOsFile         bool
+	needsSliceElemPtr   bool
+	needsGoTime         bool
+	needsGoTimer        bool
+	needsGoAfter        bool
+	needsGoTicker       bool
+	needsGoTick         bool
+	needsGoContext      bool
+	needsGoRand         bool
+	needsReflect        bool
+	needsGoHttpResponse bool
 }
 
 // GenerateHelpers returns the helper function definitions
@@ -159,6 +177,74 @@ func (ht *HelperTracker) GenerateHelpers() string {
 
 	if ht.needsGoTypeName {
 		generateGoTypeNameHelper(&result)
+	}
+
+	if ht.needsBase64 {
+		generateBase64Helper(&result)
+	}
+
+	if ht.needsSha256 {
+		generateSha256Helper(&result)
+	}
+
+	if ht.needsHexFormat {
+		generateHexFormatHelper(&result)
+	}
+
+	if ht.needsStrconvFormat {
+		generateStrconvFormatHelper(&result)
+	}
+
+	if ht.needsUrl {
+		generateUrlHelper(&result)
+	}
+
+	if ht.needsRegexp {
+		generateRegexpHelper(&result)
+	}
+
+	if ht.needsJsonEscape {
+		generateJsonEscapeHelper(&result)
+	}
+
+	if ht.needsOsFile {
+		generateOsFileHelper(&result)
+	}
+
+	if ht.needsSliceElemPtr {
+		generateSliceElemPtrHelper(&result)
+	}
+
+	if ht.needsGoTime {
+		generateGoTimeHelper(&result)
+	}
+
+	if ht.needsGoTimer {
+		generateGoTimerHelper(&result)
+	}
+
+	if ht.needsGoAfter {
+		generateGoAfterHelper(&result)
+	}
+
+	if ht.needsGoTick {
+		generateGoTickHelper(&result)
+	}
+
+	if ht.needsGoTicker {
+		generateGoTickerHelper(&result)
+	}
+
+	if ht.needsGoContext {
+		generateGoContextHelper(&result)
+	}
+
+	if ht.needsGoRand {
+		generateGoRandHelper(&result)
+	}
+
+	if ht.needsReflect {
+		generateReflectHelper(&result)
 	}
 
 	return result.String()
@@ -396,6 +482,1293 @@ fn go_type_name(val: &dyn Any) -> &'static str {
     if val.is::<Vec<String>>() { return "[]string" }
     if val.is::<Vec<bool>>() { return "[]bool" }
     std::any::type_name_of_val(val)
+}
+`)
+}
+
+func generateBase64Helper(out *strings.Builder) {
+	out.WriteString(`
+fn go_base64_encode(data: &[u8]) -> String {
+    const TABLE: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    let mut out = String::new();
+    let mut i = 0;
+    while i < data.len() {
+        let b0 = data[i];
+        let b1 = if i + 1 < data.len() { data[i + 1] } else { 0 };
+        let b2 = if i + 2 < data.len() { data[i + 2] } else { 0 };
+
+        out.push(TABLE[(b0 >> 2) as usize] as char);
+        out.push(TABLE[(((b0 & 0x03) << 4) | (b1 >> 4)) as usize] as char);
+        if i + 1 < data.len() {
+            out.push(TABLE[(((b1 & 0x0f) << 2) | (b2 >> 6)) as usize] as char);
+        } else {
+            out.push('=');
+        }
+        if i + 2 < data.len() {
+            out.push(TABLE[(b2 & 0x3f) as usize] as char);
+        } else {
+            out.push('=');
+        }
+
+        i += 3;
+    }
+    out
+}
+
+fn go_base64_value(byte: u8) -> Option<u8> {
+    match byte {
+        b'A'..=b'Z' => Some(byte - b'A'),
+        b'a'..=b'z' => Some(byte - b'a' + 26),
+        b'0'..=b'9' => Some(byte - b'0' + 52),
+        b'+' => Some(62),
+        b'/' => Some(63),
+        _ => None,
+    }
+}
+
+fn go_base64_decode(input: &str) -> Result<Vec<u8>, String> {
+    let bytes = input.as_bytes();
+    if bytes.len() % 4 != 0 {
+        return Err(format!("illegal base64 data at input byte {}", bytes.len()));
+    }
+
+    let mut out = Vec::new();
+    let mut i = 0;
+    while i < bytes.len() {
+        let c0 = go_base64_value(bytes[i])
+            .ok_or_else(|| format!("illegal base64 data at input byte {}", i))?;
+        let c1 = go_base64_value(bytes[i + 1])
+            .ok_or_else(|| format!("illegal base64 data at input byte {}", i + 1))?;
+        let pad2 = bytes[i + 2] == b'=';
+        let pad3 = bytes[i + 3] == b'=';
+        let c2 = if pad2 {
+            0
+        } else {
+            go_base64_value(bytes[i + 2])
+                .ok_or_else(|| format!("illegal base64 data at input byte {}", i + 2))?
+        };
+        let c3 = if pad3 {
+            0
+        } else {
+            go_base64_value(bytes[i + 3])
+                .ok_or_else(|| format!("illegal base64 data at input byte {}", i + 3))?
+        };
+
+        out.push((c0 << 2) | (c1 >> 4));
+        if !pad2 {
+            out.push((c1 << 4) | (c2 >> 2));
+        }
+        if !pad3 {
+            out.push((c2 << 6) | c3);
+        }
+
+        i += 4;
+    }
+    Ok(out)
+}
+`)
+}
+
+func generateSha256Helper(out *strings.Builder) {
+	out.WriteString(`
+fn go_sha256_sum256(data: &[u8]) -> Vec<u8> {
+    const H0: [u32; 8] = [
+        0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
+        0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19,
+    ];
+    const K: [u32; 64] = [
+        0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5,
+        0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
+        0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3,
+        0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
+        0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc,
+        0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
+        0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7,
+        0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
+        0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13,
+        0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
+        0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3,
+        0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
+        0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5,
+        0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
+        0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208,
+        0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2,
+    ];
+
+    let mut h = H0;
+    let mut msg = data.to_vec();
+    let bit_len = (msg.len() as u64) * 8;
+    msg.push(0x80);
+    while msg.len() % 64 != 56 {
+        msg.push(0);
+    }
+    msg.extend_from_slice(&bit_len.to_be_bytes());
+
+    for chunk in msg.chunks(64) {
+        let mut w = [0u32; 64];
+        for i in 0..16 {
+            let j = i * 4;
+            w[i] = u32::from_be_bytes([chunk[j], chunk[j + 1], chunk[j + 2], chunk[j + 3]]);
+        }
+        for i in 16..64 {
+            let s0 = w[i - 15].rotate_right(7) ^ w[i - 15].rotate_right(18) ^ (w[i - 15] >> 3);
+            let s1 = w[i - 2].rotate_right(17) ^ w[i - 2].rotate_right(19) ^ (w[i - 2] >> 10);
+            w[i] = w[i - 16]
+                .wrapping_add(s0)
+                .wrapping_add(w[i - 7])
+                .wrapping_add(s1);
+        }
+
+        let mut a = h[0];
+        let mut b = h[1];
+        let mut c = h[2];
+        let mut d = h[3];
+        let mut e = h[4];
+        let mut f = h[5];
+        let mut g = h[6];
+        let mut hh = h[7];
+
+        for i in 0..64 {
+            let s1 = e.rotate_right(6) ^ e.rotate_right(11) ^ e.rotate_right(25);
+            let ch = (e & f) ^ ((!e) & g);
+            let temp1 = hh
+                .wrapping_add(s1)
+                .wrapping_add(ch)
+                .wrapping_add(K[i])
+                .wrapping_add(w[i]);
+            let s0 = a.rotate_right(2) ^ a.rotate_right(13) ^ a.rotate_right(22);
+            let maj = (a & b) ^ (a & c) ^ (b & c);
+            let temp2 = s0.wrapping_add(maj);
+
+            hh = g;
+            g = f;
+            f = e;
+            e = d.wrapping_add(temp1);
+            d = c;
+            c = b;
+            b = a;
+            a = temp1.wrapping_add(temp2);
+        }
+
+        h[0] = h[0].wrapping_add(a);
+        h[1] = h[1].wrapping_add(b);
+        h[2] = h[2].wrapping_add(c);
+        h[3] = h[3].wrapping_add(d);
+        h[4] = h[4].wrapping_add(e);
+        h[5] = h[5].wrapping_add(f);
+        h[6] = h[6].wrapping_add(g);
+        h[7] = h[7].wrapping_add(hh);
+    }
+
+    let mut out = Vec::with_capacity(32);
+    for word in h {
+        out.extend_from_slice(&word.to_be_bytes());
+    }
+    out
+}
+`)
+}
+
+func generateHexFormatHelper(out *strings.Builder) {
+	out.WriteString(`
+fn go_format_hex_bytes(data: &[u8], upper: bool) -> String {
+    let table = if upper {
+        b"0123456789ABCDEF"
+    } else {
+        b"0123456789abcdef"
+    };
+    let mut out = String::with_capacity(data.len() * 2);
+    for b in data {
+        out.push(table[(b >> 4) as usize] as char);
+        out.push(table[(b & 0x0f) as usize] as char);
+    }
+    out
+}
+`)
+}
+
+func generateUrlHelper(out *strings.Builder) {
+	if NeedsConcurrentWrapper() {
+		TrackImport("Arc")
+		TrackImport("Mutex")
+		out.WriteString(`
+#[derive(Debug, Clone, Default)]
+struct GoUrl {
+    scheme: Arc<Mutex<Option<String>>>,
+    host: Arc<Mutex<Option<String>>>,
+    path: Arc<Mutex<Option<String>>>,
+    raw_query: Arc<Mutex<Option<String>>>,
+}
+
+fn go_url_parse(input: &str) -> GoUrl {
+    let (scheme, rest) = input.split_once("://").unwrap_or(("", input));
+    let (before_query, raw_query) = rest.split_once('?').unwrap_or((rest, ""));
+    let slash = before_query.find('/').unwrap_or(before_query.len());
+    let host = &before_query[..slash];
+    let path = if slash < before_query.len() { &before_query[slash..] } else { "" };
+    GoUrl {
+        scheme: Arc::new(Mutex::new(Some(scheme.to_string()))),
+        host: Arc::new(Mutex::new(Some(host.to_string()))),
+        path: Arc::new(Mutex::new(Some(path.to_string()))),
+        raw_query: Arc::new(Mutex::new(Some(raw_query.to_string()))),
+    }
+}
+`)
+		return
+	}
+
+	TrackImport("Rc")
+	TrackImport("RefCell")
+	out.WriteString(`
+#[derive(Debug, Clone, Default)]
+struct GoUrl {
+    scheme: Rc<RefCell<Option<String>>>,
+    host: Rc<RefCell<Option<String>>>,
+    path: Rc<RefCell<Option<String>>>,
+    raw_query: Rc<RefCell<Option<String>>>,
+}
+
+fn go_url_parse(input: &str) -> GoUrl {
+    let (scheme, rest) = input.split_once("://").unwrap_or(("", input));
+    let (before_query, raw_query) = rest.split_once('?').unwrap_or((rest, ""));
+    let slash = before_query.find('/').unwrap_or(before_query.len());
+    let host = &before_query[..slash];
+    let path = if slash < before_query.len() { &before_query[slash..] } else { "" };
+    GoUrl {
+        scheme: Rc::new(RefCell::new(Some(scheme.to_string()))),
+        host: Rc::new(RefCell::new(Some(host.to_string()))),
+        path: Rc::new(RefCell::new(Some(path.to_string()))),
+        raw_query: Rc::new(RefCell::new(Some(raw_query.to_string()))),
+    }
+}
+`)
+}
+
+func generateRegexpHelper(out *strings.Builder) {
+	if NeedsConcurrentWrapper() {
+		TrackImport("Arc")
+		TrackImport("Mutex")
+		out.WriteString(`
+#[derive(Debug, Clone, Default)]
+struct GoRegexp {
+    pattern: Arc<Mutex<Option<String>>>,
+}
+
+impl GoRegexp {
+    fn find_all_string(&self, text: Arc<Mutex<Option<String>>>, n: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<Vec<String>>>> {
+        let pattern = (*self.pattern.lock().unwrap().as_ref().unwrap()).clone();
+        let text = (*text.lock().unwrap().as_ref().unwrap()).clone();
+        let limit = *n.lock().unwrap().as_ref().unwrap();
+        Arc::new(Mutex::new(Some(go_regexp_find_all_string(&pattern, &text, limit))))
+    }
+}
+
+fn go_regexp_find_all_string(pattern: &str, text: &str, limit: i32) -> Vec<String> {
+    if limit == 0 {
+        return Vec::new();
+    }
+
+    if pattern == r"\d+" {
+        let mut matches = Vec::new();
+        let mut current = String::new();
+        for ch in text.chars() {
+            if ch.is_ascii_digit() {
+                current.push(ch);
+            } else if !current.is_empty() {
+                matches.push(std::mem::take(&mut current));
+                if limit > 0 && matches.len() >= limit as usize {
+                    return matches;
+                }
+            }
+        }
+        if !current.is_empty() {
+            matches.push(current);
+        }
+        if limit > 0 {
+            matches.truncate(limit as usize);
+        }
+        return matches;
+    }
+
+    if pattern.is_empty() {
+        return Vec::new();
+    }
+
+    let mut matches = Vec::new();
+    let mut rest = text;
+    while let Some(index) = rest.find(pattern) {
+        matches.push(pattern.to_string());
+        if limit > 0 && matches.len() >= limit as usize {
+            break;
+        }
+        rest = &rest[index + pattern.len()..];
+    }
+    matches
+}
+`)
+		return
+	}
+
+	TrackImport("Rc")
+	TrackImport("RefCell")
+	out.WriteString(`
+#[derive(Debug, Clone, Default)]
+struct GoRegexp {
+    pattern: Rc<RefCell<Option<String>>>,
+}
+
+impl GoRegexp {
+    fn find_all_string(&self, text: Rc<RefCell<Option<String>>>, n: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<Vec<String>>>> {
+        let pattern = (*self.pattern.borrow().as_ref().unwrap()).clone();
+        let text = (*text.borrow().as_ref().unwrap()).clone();
+        let limit = *n.borrow().as_ref().unwrap();
+        Rc::new(RefCell::new(Some(go_regexp_find_all_string(&pattern, &text, limit))))
+    }
+}
+
+fn go_regexp_find_all_string(pattern: &str, text: &str, limit: i32) -> Vec<String> {
+    if limit == 0 {
+        return Vec::new();
+    }
+
+    if pattern == r"\d+" {
+        let mut matches = Vec::new();
+        let mut current = String::new();
+        for ch in text.chars() {
+            if ch.is_ascii_digit() {
+                current.push(ch);
+            } else if !current.is_empty() {
+                matches.push(std::mem::take(&mut current));
+                if limit > 0 && matches.len() >= limit as usize {
+                    return matches;
+                }
+            }
+        }
+        if !current.is_empty() {
+            matches.push(current);
+        }
+        if limit > 0 {
+            matches.truncate(limit as usize);
+        }
+        return matches;
+    }
+
+    if pattern.is_empty() {
+        return Vec::new();
+    }
+
+    let mut matches = Vec::new();
+    let mut rest = text;
+    while let Some(index) = rest.find(pattern) {
+        matches.push(pattern.to_string());
+        if limit > 0 && matches.len() >= limit as usize {
+            break;
+        }
+        rest = &rest[index + pattern.len()..];
+    }
+    matches
+}
+`)
+}
+
+func generateJsonEscapeHelper(out *strings.Builder) {
+	out.WriteString(`
+fn go_json_escape(input: &str) -> String {
+    let mut escaped = String::new();
+    for ch in input.chars() {
+        match ch {
+            '"' => escaped.push_str("\\\""),
+            '\\' => escaped.push_str("\\\\"),
+            '\n' => escaped.push_str("\\n"),
+            '\r' => escaped.push_str("\\r"),
+            '\t' => escaped.push_str("\\t"),
+            c if c < ' ' => escaped.push_str(&format!("\\u{:04x}", c as u32)),
+            c => escaped.push(c),
+        }
+    }
+    escaped
+}
+`)
+}
+
+func generateStrconvFormatHelper(out *strings.Builder) {
+	out.WriteString(`
+fn go_strconv_format_int(value: i64, base: i32) -> String {
+    if base == 10 {
+        return value.to_string();
+    }
+    if !(2..=36).contains(&base) {
+        return value.to_string();
+    }
+
+    let negative = value < 0;
+    let mut n = if negative {
+        value.wrapping_neg() as u64
+    } else {
+        value as u64
+    };
+    let base = base as u64;
+    let digits = b"0123456789abcdefghijklmnopqrstuvwxyz";
+    let mut out = Vec::new();
+    if n == 0 {
+        out.push(b'0');
+    }
+    while n > 0 {
+        out.push(digits[(n % base) as usize]);
+        n /= base;
+    }
+    if negative {
+        out.push(b'-');
+    }
+    out.reverse();
+    String::from_utf8(out).unwrap()
+}
+
+fn go_strconv_format_float(value: f64, fmt: char, precision: i32) -> String {
+    let precision = if precision < 0 { 6 } else { precision as usize };
+    match fmt {
+        'e' => format!("{:.*e}", precision, value),
+        'E' => format!("{:.*E}", precision, value),
+        'f' => format!("{:.*}", precision, value),
+        'g' | 'G' => {
+            if precision == 0 {
+                format!("{:.0}", value)
+            } else {
+                format!("{:.*}", precision, value)
+            }
+        }
+        _ => value.to_string(),
+    }
+}
+`)
+}
+
+func generateSliceElemPtrHelper(out *strings.Builder) {
+	if NeedsConcurrentWrapper() {
+		TrackImport("Arc")
+		TrackImport("Mutex")
+		out.WriteString(`
+#[derive(Clone)]
+struct GoSliceElemPtr<T: Clone> {
+    slice: Arc<Mutex<Option<Vec<T>>>>,
+    index: usize,
+}
+
+struct GoSliceElemRef<T: Clone> {
+    value: Option<T>,
+}
+
+struct GoSliceElemMutRef<T: Clone> {
+    slice: Arc<Mutex<Option<Vec<T>>>>,
+    index: usize,
+    value: Option<T>,
+}
+
+impl<T: Clone> GoSliceElemPtr<T> {
+    fn new(slice: Arc<Mutex<Option<Vec<T>>>>, index: usize) -> Self {
+        GoSliceElemPtr { slice, index }
+    }
+
+    fn borrow(&self) -> GoSliceElemRef<T> {
+        let guard = self.slice.lock().unwrap();
+        GoSliceElemRef {
+            value: guard.as_ref().and_then(|values| values.get(self.index).cloned()),
+        }
+    }
+
+    fn borrow_mut(&self) -> GoSliceElemMutRef<T> {
+        let guard = self.slice.lock().unwrap();
+        GoSliceElemMutRef {
+            slice: self.slice.clone(),
+            index: self.index,
+            value: guard.as_ref().and_then(|values| values.get(self.index).cloned()),
+        }
+    }
+}
+
+impl<T: Clone> std::ops::Deref for GoSliceElemRef<T> {
+    type Target = Option<T>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.value
+    }
+}
+
+impl<T: Clone> std::ops::Deref for GoSliceElemMutRef<T> {
+    type Target = Option<T>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.value
+    }
+}
+
+impl<T: Clone> std::ops::DerefMut for GoSliceElemMutRef<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.value
+    }
+}
+
+impl<T: Clone> Drop for GoSliceElemMutRef<T> {
+    fn drop(&mut self) {
+        if let Some(value) = self.value.clone() {
+            if let Some(values) = self.slice.lock().unwrap().as_mut() {
+                values[self.index] = value;
+            }
+        }
+    }
+}
+`)
+	} else {
+		TrackImport("Rc")
+		TrackImport("RefCell")
+		out.WriteString(`
+#[derive(Clone)]
+struct GoSliceElemPtr<T: Clone> {
+    slice: Rc<RefCell<Option<Vec<T>>>>,
+    index: usize,
+}
+
+struct GoSliceElemRef<T: Clone> {
+    value: Option<T>,
+}
+
+struct GoSliceElemMutRef<T: Clone> {
+    slice: Rc<RefCell<Option<Vec<T>>>>,
+    index: usize,
+    value: Option<T>,
+}
+
+impl<T: Clone> GoSliceElemPtr<T> {
+    fn new(slice: Rc<RefCell<Option<Vec<T>>>>, index: usize) -> Self {
+        GoSliceElemPtr { slice, index }
+    }
+
+    fn borrow(&self) -> GoSliceElemRef<T> {
+        let guard = self.slice.borrow();
+        GoSliceElemRef {
+            value: guard.as_ref().and_then(|values| values.get(self.index).cloned()),
+        }
+    }
+
+    fn borrow_mut(&self) -> GoSliceElemMutRef<T> {
+        let guard = self.slice.borrow();
+        GoSliceElemMutRef {
+            slice: self.slice.clone(),
+            index: self.index,
+            value: guard.as_ref().and_then(|values| values.get(self.index).cloned()),
+        }
+    }
+}
+
+impl<T: Clone> std::ops::Deref for GoSliceElemRef<T> {
+    type Target = Option<T>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.value
+    }
+}
+
+impl<T: Clone> std::ops::Deref for GoSliceElemMutRef<T> {
+    type Target = Option<T>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.value
+    }
+}
+
+impl<T: Clone> std::ops::DerefMut for GoSliceElemMutRef<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.value
+    }
+}
+
+impl<T: Clone> Drop for GoSliceElemMutRef<T> {
+    fn drop(&mut self) {
+        if let Some(value) = self.value.clone() {
+            if let Some(values) = self.slice.borrow_mut().as_mut() {
+                values[self.index] = value;
+            }
+        }
+    }
+}
+`)
+	}
+}
+
+func generateGoTimeHelper(out *strings.Builder) {
+	out.WriteString(`
+#[derive(Clone, Debug)]
+struct GoTime {
+    seconds: i64,
+    nanos: i32,
+}
+
+fn go_time_civil_from_days(days: i64) -> (i64, u32, u32) {
+    let z = days + 719_468;
+    let era = if z >= 0 { z } else { z - 146_096 } / 146_097;
+    let doe = z - era * 146_097;
+    let yoe = (doe - doe / 1_460 + doe / 36_524 - doe / 146_096) / 365;
+    let y = yoe + era * 400;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+    let mp = (5 * doy + 2) / 153;
+    let d = doy - (153 * mp + 2) / 5 + 1;
+    let m = mp + if mp < 10 { 3 } else { -9 };
+    let year = y + if m <= 2 { 1 } else { 0 };
+    (year, m as u32, d as u32)
+}
+
+impl GoTime {
+    fn now() -> Self {
+        let duration = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap();
+        GoTime {
+            seconds: duration.as_secs() as i64,
+            nanos: duration.subsec_nanos() as i32,
+        }
+    }
+
+    fn from_unix(seconds: i64, nanos: i64) -> Self {
+        let seconds = seconds + nanos.div_euclid(1_000_000_000);
+        let nanos = nanos.rem_euclid(1_000_000_000);
+        GoTime {
+            seconds,
+            nanos: nanos as i32,
+        }
+    }
+`)
+	if NeedsConcurrentWrapper() {
+		TrackImport("Arc")
+		TrackImport("Mutex")
+		out.WriteString(`
+    fn add(&self, duration: Arc<Mutex<Option<std::time::Duration>>>) -> Arc<Mutex<Option<GoTime>>> {
+        let duration = *duration.lock().unwrap().as_ref().unwrap();
+        Arc::new(Mutex::new(Some(GoTime::from_unix(
+            self.seconds + duration.as_secs() as i64,
+            self.nanos as i64 + duration.subsec_nanos() as i64,
+        ))))
+    }
+
+    fn u_t_c(&self) -> Arc<Mutex<Option<GoTime>>> {
+        Arc::new(Mutex::new(Some(self.clone())))
+    }
+
+    fn unix(&self) -> Arc<Mutex<Option<i64>>> {
+        Arc::new(Mutex::new(Some(self.seconds)))
+    }
+
+    fn unix_nano(&self) -> Arc<Mutex<Option<i64>>> {
+        Arc::new(Mutex::new(Some(
+            self.seconds * 1_000_000_000 + self.nanos as i64,
+        )))
+    }
+}
+`)
+	} else {
+		TrackImport("Rc")
+		TrackImport("RefCell")
+		out.WriteString(`
+    fn add(&self, duration: Rc<RefCell<Option<std::time::Duration>>>) -> Rc<RefCell<Option<GoTime>>> {
+        let duration = *duration.borrow().as_ref().unwrap();
+        Rc::new(RefCell::new(Some(GoTime::from_unix(
+            self.seconds + duration.as_secs() as i64,
+            self.nanos as i64 + duration.subsec_nanos() as i64,
+        ))))
+    }
+
+    fn u_t_c(&self) -> Rc<RefCell<Option<GoTime>>> {
+        Rc::new(RefCell::new(Some(self.clone())))
+    }
+
+    fn unix(&self) -> Rc<RefCell<Option<i64>>> {
+        Rc::new(RefCell::new(Some(self.seconds)))
+    }
+
+    fn unix_nano(&self) -> Rc<RefCell<Option<i64>>> {
+        Rc::new(RefCell::new(Some(
+            self.seconds * 1_000_000_000 + self.nanos as i64,
+        )))
+    }
+}
+`)
+	}
+	out.WriteString(`
+impl std::fmt::Display for GoTime {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let days = self.seconds.div_euclid(86_400);
+        let secs_of_day = self.seconds.rem_euclid(86_400);
+        let (year, month, day) = go_time_civil_from_days(days);
+        let hour = secs_of_day / 3_600;
+        let minute = (secs_of_day % 3_600) / 60;
+        let second = secs_of_day % 60;
+        if self.nanos == 0 {
+            write!(
+                f,
+                "{:04}-{:02}-{:02} {:02}:{:02}:{:02} +0000 UTC",
+                year, month, day, hour, minute, second
+            )
+        } else {
+            let mut fraction = format!("{:09}", self.nanos);
+            while fraction.ends_with('0') {
+                fraction.pop();
+            }
+            write!(
+                f,
+                "{:04}-{:02}-{:02} {:02}:{:02}:{:02}.{} +0000 UTC",
+                year, month, day, hour, minute, second, fraction
+            )
+        }
+    }
+}
+`)
+}
+
+func generateGoTimerHelper(out *strings.Builder) {
+	NeedGoChannel()
+	NeedGoTime()
+	if NeedsConcurrentWrapper() {
+		TrackImport("Arc")
+		TrackImport("Mutex")
+		out.WriteString(`
+#[derive(Clone)]
+struct GoTimer {
+    c: Arc<Mutex<Option<GoChannel<GoTime>>>>,
+    stopped: Arc<std::sync::atomic::AtomicBool>,
+}
+
+fn go_new_timer(duration: std::time::Duration) -> GoTimer {
+    let channel = GoChannel::<GoTime>::new_buffered(1);
+    let thread_channel = channel.clone();
+    let stopped = Arc::new(std::sync::atomic::AtomicBool::new(false));
+    let thread_stopped = stopped.clone();
+    std::thread::spawn(move || {
+        std::thread::sleep(duration);
+        if !thread_stopped.load(std::sync::atomic::Ordering::SeqCst) {
+            thread_channel.send(GoTime::now());
+        }
+        thread_channel.close();
+    });
+
+    GoTimer {
+        c: Arc::new(Mutex::new(Some(channel))),
+        stopped,
+    }
+}
+
+impl GoTimer {
+    fn stop(&self) -> Arc<Mutex<Option<bool>>> {
+        let was_stopped = self.stopped.swap(true, std::sync::atomic::Ordering::SeqCst);
+        Arc::new(Mutex::new(Some(!was_stopped)))
+    }
+}
+`)
+	} else {
+		TrackImport("Rc")
+		TrackImport("RefCell")
+		TrackImport("Arc")
+		TrackImport("Mutex")
+		out.WriteString(`
+#[derive(Clone)]
+struct GoTimer {
+    c: Rc<RefCell<Option<GoChannel<GoTime>>>>,
+    stopped: Arc<std::sync::atomic::AtomicBool>,
+}
+
+fn go_new_timer(duration: std::time::Duration) -> GoTimer {
+    let channel = GoChannel::<GoTime>::new_buffered(1);
+    let thread_channel = channel.clone();
+    let stopped = Arc::new(std::sync::atomic::AtomicBool::new(false));
+    let thread_stopped = stopped.clone();
+    std::thread::spawn(move || {
+        std::thread::sleep(duration);
+        if !thread_stopped.load(std::sync::atomic::Ordering::SeqCst) {
+            thread_channel.send(GoTime::now());
+        }
+        thread_channel.close();
+    });
+
+    GoTimer {
+        c: Rc::new(RefCell::new(Some(channel))),
+        stopped,
+    }
+}
+
+impl GoTimer {
+    fn stop(&self) -> Rc<RefCell<Option<bool>>> {
+        let was_stopped = self.stopped.swap(true, std::sync::atomic::Ordering::SeqCst);
+        Rc::new(RefCell::new(Some(!was_stopped)))
+    }
+}
+`)
+	}
+}
+
+func generateGoAfterHelper(out *strings.Builder) {
+	NeedGoChannel()
+	NeedGoTime()
+	out.WriteString(`
+fn go_channel_after(duration: std::time::Duration) -> GoChannel<GoTime> {
+    let channel = GoChannel::<GoTime>::new_buffered(1);
+    let thread_channel = channel.clone();
+    std::thread::spawn(move || {
+        std::thread::sleep(duration);
+        thread_channel.send(GoTime::now());
+        thread_channel.close();
+    });
+    channel
+}
+`)
+}
+
+func generateGoTickHelper(out *strings.Builder) {
+	NeedGoChannel()
+	NeedGoTime()
+	out.WriteString(`
+fn go_tick(duration: std::time::Duration) -> GoChannel<GoTime> {
+    let channel = GoChannel::<GoTime>::new_buffered(1);
+    let thread_channel = channel.clone();
+    std::thread::spawn(move || {
+        loop {
+            std::thread::sleep(duration);
+            let _ = thread_channel.try_send(GoTime::now());
+        }
+    });
+    channel
+}
+`)
+}
+
+func generateGoTickerHelper(out *strings.Builder) {
+	NeedGoChannel()
+	NeedGoTime()
+	if NeedsConcurrentWrapper() {
+		TrackImport("Arc")
+		TrackImport("Mutex")
+		out.WriteString(`
+#[derive(Clone)]
+struct GoTicker {
+    c: Arc<Mutex<Option<GoChannel<GoTime>>>>,
+    stopped: Arc<std::sync::atomic::AtomicBool>,
+}
+
+fn go_new_ticker(duration: std::time::Duration) -> GoTicker {
+    let channel = GoChannel::<GoTime>::new_buffered(1);
+    let thread_channel = channel.clone();
+    let stopped = Arc::new(std::sync::atomic::AtomicBool::new(false));
+    let thread_stopped = stopped.clone();
+    std::thread::spawn(move || {
+        while !thread_stopped.load(std::sync::atomic::Ordering::SeqCst) {
+            std::thread::sleep(duration);
+            if !thread_stopped.load(std::sync::atomic::Ordering::SeqCst) {
+                let _ = thread_channel.try_send(GoTime::now());
+            }
+        }
+        thread_channel.close();
+    });
+
+    GoTicker {
+        c: Arc::new(Mutex::new(Some(channel))),
+        stopped,
+    }
+}
+
+impl GoTicker {
+    fn stop(&self) {
+        self.stopped.store(true, std::sync::atomic::Ordering::SeqCst);
+    }
+}
+`)
+	} else {
+		TrackImport("Rc")
+		TrackImport("RefCell")
+		TrackImport("Arc")
+		TrackImport("Mutex")
+		out.WriteString(`
+#[derive(Clone)]
+struct GoTicker {
+    c: Rc<RefCell<Option<GoChannel<GoTime>>>>,
+    stopped: Arc<std::sync::atomic::AtomicBool>,
+}
+
+fn go_new_ticker(duration: std::time::Duration) -> GoTicker {
+    let channel = GoChannel::<GoTime>::new_buffered(1);
+    let thread_channel = channel.clone();
+    let stopped = Arc::new(std::sync::atomic::AtomicBool::new(false));
+    let thread_stopped = stopped.clone();
+    std::thread::spawn(move || {
+        while !thread_stopped.load(std::sync::atomic::Ordering::SeqCst) {
+            std::thread::sleep(duration);
+            if !thread_stopped.load(std::sync::atomic::Ordering::SeqCst) {
+                let _ = thread_channel.try_send(GoTime::now());
+            }
+        }
+        thread_channel.close();
+    });
+
+    GoTicker {
+        c: Rc::new(RefCell::new(Some(channel))),
+        stopped,
+    }
+}
+
+impl GoTicker {
+    fn stop(&self) {
+        self.stopped.store(true, std::sync::atomic::Ordering::SeqCst);
+    }
+}
+`)
+	}
+}
+
+func generateGoContextHelper(out *strings.Builder) {
+	NeedGoChannel()
+	TrackImport("Arc")
+	TrackImport("Mutex")
+	out.WriteString(`
+#[derive(Clone)]
+struct GoContext {
+    done: GoChannel<bool>,
+    err: std::sync::Arc<std::sync::Mutex<Option<String>>>,
+    cancelled: std::sync::Arc<std::sync::atomic::AtomicBool>,
+}
+
+type GoCancelFunc = std::sync::Arc<dyn Fn() + Send + Sync>;
+
+impl GoContext {
+    fn background() -> GoContext {
+        GoContext {
+            done: GoChannel::<bool>::new(),
+            err: std::sync::Arc::new(std::sync::Mutex::new(None)),
+            cancelled: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
+        }
+    }
+
+    fn with_timeout(_parent: Arc<Mutex<Option<GoContext>>>, duration: std::time::Duration) -> (Arc<Mutex<Option<GoContext>>>, Arc<Mutex<Option<GoCancelFunc>>>) {
+        let done = GoChannel::<bool>::new_buffered(1);
+        let err = std::sync::Arc::new(std::sync::Mutex::new(None));
+        let cancelled = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+
+        let context = GoContext {
+            done: done.clone(),
+            err: err.clone(),
+            cancelled: cancelled.clone(),
+        };
+
+        let timeout_done = done.clone();
+        let timeout_err = err.clone();
+        let timeout_cancelled = cancelled.clone();
+        std::thread::spawn(move || {
+            std::thread::sleep(duration);
+            if !timeout_cancelled.swap(true, std::sync::atomic::Ordering::SeqCst) {
+                *timeout_err.lock().unwrap() = Some("context deadline exceeded".to_string());
+                timeout_done.send(true);
+                timeout_done.close();
+            }
+        });
+
+        let cancel_done = done.clone();
+        let cancel_err = err.clone();
+        let cancel_cancelled = cancelled.clone();
+        let cancel: GoCancelFunc = std::sync::Arc::new(move || {
+            if !cancel_cancelled.swap(true, std::sync::atomic::Ordering::SeqCst) {
+                *cancel_err.lock().unwrap() = Some("context canceled".to_string());
+                cancel_done.send(true);
+                cancel_done.close();
+            }
+        });
+
+        (
+            Arc::new(Mutex::new(Some(context))),
+            Arc::new(Mutex::new(Some(cancel))),
+        )
+    }
+
+    fn with_cancel(parent: Arc<Mutex<Option<GoContext>>>) -> (Arc<Mutex<Option<GoContext>>>, Arc<Mutex<Option<GoCancelFunc>>>) {
+        let _ = parent;
+        let done = GoChannel::<bool>::new_buffered(1);
+        let err = std::sync::Arc::new(std::sync::Mutex::new(None));
+        let cancelled = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+
+        let context = GoContext {
+            done: done.clone(),
+            err: err.clone(),
+            cancelled: cancelled.clone(),
+        };
+
+        let cancel_done = done.clone();
+        let cancel_err = err.clone();
+        let cancel_cancelled = cancelled.clone();
+        let cancel: GoCancelFunc = std::sync::Arc::new(move || {
+            if !cancel_cancelled.swap(true, std::sync::atomic::Ordering::SeqCst) {
+                *cancel_err.lock().unwrap() = Some("context canceled".to_string());
+                cancel_done.send(true);
+                cancel_done.close();
+            }
+        });
+
+        (
+            Arc::new(Mutex::new(Some(context))),
+            Arc::new(Mutex::new(Some(cancel))),
+        )
+    }
+
+    fn done(&self) -> GoChannel<bool> {
+        self.done.clone()
+    }
+
+    fn err(&self) -> Arc<Mutex<Option<String>>> {
+        self.err.clone()
+    }
+}
+`)
+}
+
+func generateGoRandHelper(out *strings.Builder) {
+	out.WriteString(`
+fn go_rand_state() -> &'static std::sync::Mutex<u64> {
+    static STATE: std::sync::OnceLock<std::sync::Mutex<u64>> = std::sync::OnceLock::new();
+    STATE.get_or_init(|| std::sync::Mutex::new(1))
+}
+
+fn go_rand_seed(seed: i64) {
+    *go_rand_state().lock().unwrap() = seed as u64;
+}
+
+fn go_rand_next_u64() -> u64 {
+    let mut state = go_rand_state().lock().unwrap();
+    *state = state
+        .wrapping_mul(6364136223846793005)
+        .wrapping_add(1442695040888963407);
+    *state
+}
+
+fn go_rand_intn(n: i32) -> i32 {
+    if n <= 0 {
+        panic!("invalid argument to Intn");
+    }
+    (go_rand_next_u64() % n as u64) as i32
+}
+
+fn go_rand_float64() -> f64 {
+    ((go_rand_next_u64() >> 11) as f64) / ((1u64 << 53) as f64)
+}
+`)
+}
+
+func generateOsFileHelper(out *strings.Builder) {
+	if NeedsConcurrentWrapper() {
+		TrackImport("Arc")
+		TrackImport("Mutex")
+		out.WriteString(`
+struct GoFile {
+    file: Option<std::fs::File>,
+}
+
+impl GoFile {
+    fn create(path: &str) -> Result<Self, std::io::Error> {
+        std::fs::OpenOptions::new()
+            .create(true)
+            .truncate(true)
+            .write(true)
+            .open(path)
+            .map(|file| GoFile { file: Some(file) })
+    }
+
+    fn empty() -> Self {
+        GoFile { file: None }
+    }
+
+    fn write_string(&mut self, text: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<Box<dyn std::error::Error + Send + Sync>>>>) {
+        let text = (*text.lock().unwrap().as_ref().unwrap()).clone();
+        match self.file.as_mut() {
+            Some(file) => match std::io::Write::write_all(file, text.as_bytes()) {
+                Ok(()) => (Arc::new(Mutex::new(Some(text.len() as i32))), Arc::new(Mutex::new(None))),
+                Err(e) => (Arc::new(Mutex::new(Some(0))), Arc::new(Mutex::new(Some(Box::<dyn std::error::Error + Send + Sync>::from(e))))),
+            },
+            None => (
+                Arc::new(Mutex::new(Some(0))),
+                Arc::new(Mutex::new(Some(Box::<dyn std::error::Error + Send + Sync>::from(std::io::Error::new(std::io::ErrorKind::Other, "invalid file"))))),
+            ),
+        }
+    }
+
+    fn close(&mut self) -> Arc<Mutex<Option<Box<dyn std::error::Error + Send + Sync>>>> {
+        self.file = None;
+        Arc::new(Mutex::new(None))
+    }
+}
+`)
+		return
+	}
+
+	TrackImport("Rc")
+	TrackImport("RefCell")
+	out.WriteString(`
+struct GoFile {
+    file: Option<std::fs::File>,
+}
+
+impl GoFile {
+    fn create(path: &str) -> Result<Self, std::io::Error> {
+        std::fs::OpenOptions::new()
+            .create(true)
+            .truncate(true)
+            .write(true)
+            .open(path)
+            .map(|file| GoFile { file: Some(file) })
+    }
+
+    fn empty() -> Self {
+        GoFile { file: None }
+    }
+
+    fn write_string(&mut self, text: Rc<RefCell<Option<String>>>) -> (Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<Box<dyn std::error::Error>>>>) {
+        let text = (*text.borrow().as_ref().unwrap()).clone();
+        match self.file.as_mut() {
+            Some(file) => match std::io::Write::write_all(file, text.as_bytes()) {
+                Ok(()) => (Rc::new(RefCell::new(Some(text.len() as i32))), Rc::new(RefCell::new(None))),
+                Err(e) => (Rc::new(RefCell::new(Some(0))), Rc::new(RefCell::new(Some(Box::<dyn std::error::Error>::from(e))))),
+            },
+            None => (
+                Rc::new(RefCell::new(Some(0))),
+                Rc::new(RefCell::new(Some(Box::<dyn std::error::Error>::from(std::io::Error::new(std::io::ErrorKind::Other, "invalid file"))))),
+            ),
+        }
+    }
+
+    fn close(&mut self) -> Rc<RefCell<Option<Box<dyn std::error::Error>>>> {
+        self.file = None;
+        Rc::new(RefCell::new(None))
+    }
+}
+`)
+}
+
+func generateReflectHelper(out *strings.Builder) {
+	if NeedsConcurrentWrapper() {
+		TrackImport("Arc")
+		TrackImport("Mutex")
+		out.WriteString(`
+#[derive(Debug, Clone, Default)]
+struct GoReflectStructTag {
+    raw: Arc<Mutex<Option<String>>>,
+}
+
+impl GoReflectStructTag {
+    fn get(&self, key: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<String>>> {
+        let raw = (*self.raw.lock().unwrap().as_ref().unwrap()).clone();
+        let key = (*key.lock().unwrap().as_ref().unwrap()).clone();
+        Arc::new(Mutex::new(Some(go_reflect_tag_get(&raw, &key))))
+    }
+}
+
+#[derive(Debug, Clone, Default)]
+struct GoReflectField {
+    name: Arc<Mutex<Option<String>>>,
+    tag: Arc<Mutex<Option<GoReflectStructTag>>>,
+}
+
+#[derive(Debug, Clone, Default)]
+struct GoReflectType {
+    fields: Arc<Mutex<Option<Vec<GoReflectField>>>>,
+}
+
+impl GoReflectType {
+    fn num_field(&self) -> Arc<Mutex<Option<i32>>> {
+        Arc::new(Mutex::new(Some(self.fields.lock().unwrap().as_ref().unwrap().len() as i32)))
+    }
+
+    fn field(&self, index: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<GoReflectField>>> {
+        let index = *index.lock().unwrap().as_ref().unwrap() as usize;
+        Arc::new(Mutex::new(Some(self.fields.lock().unwrap().as_ref().unwrap()[index].clone())))
+    }
+}
+
+fn go_reflect_tag_get(raw: &str, key: &str) -> String {
+    let prefix = format!("{}:\"", key);
+    let Some(start) = raw.find(&prefix) else {
+        return String::new();
+    };
+    let rest = &raw[start + prefix.len()..];
+    let mut value = String::new();
+    let mut escaped = false;
+    for ch in rest.chars() {
+        if escaped {
+            value.push(ch);
+            escaped = false;
+        } else if ch == '\\' {
+            escaped = true;
+        } else if ch == '"' {
+            break;
+        } else {
+            value.push(ch);
+        }
+    }
+    value
+}
+`)
+		return
+	}
+
+	TrackImport("Rc")
+	TrackImport("RefCell")
+	out.WriteString(`
+#[derive(Debug, Clone, Default)]
+struct GoReflectStructTag {
+    raw: Rc<RefCell<Option<String>>>,
+}
+
+impl GoReflectStructTag {
+    fn get(&self, key: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>> {
+        let raw = (*self.raw.borrow().as_ref().unwrap()).clone();
+        let key = (*key.borrow().as_ref().unwrap()).clone();
+        Rc::new(RefCell::new(Some(go_reflect_tag_get(&raw, &key))))
+    }
+}
+
+#[derive(Debug, Clone, Default)]
+struct GoReflectField {
+    name: Rc<RefCell<Option<String>>>,
+    tag: Rc<RefCell<Option<GoReflectStructTag>>>,
+}
+
+#[derive(Debug, Clone, Default)]
+struct GoReflectType {
+    fields: Rc<RefCell<Option<Vec<GoReflectField>>>>,
+}
+
+impl GoReflectType {
+    fn num_field(&self) -> Rc<RefCell<Option<i32>>> {
+        Rc::new(RefCell::new(Some(self.fields.borrow().as_ref().unwrap().len() as i32)))
+    }
+
+    fn field(&self, index: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<GoReflectField>>> {
+        let index = *index.borrow().as_ref().unwrap() as usize;
+        Rc::new(RefCell::new(Some(self.fields.borrow().as_ref().unwrap()[index].clone())))
+    }
+}
+
+fn go_reflect_tag_get(raw: &str, key: &str) -> String {
+    let prefix = format!("{}:\"", key);
+    let Some(start) = raw.find(&prefix) else {
+        return String::new();
+    };
+    let rest = &raw[start + prefix.len()..];
+    let mut value = String::new();
+    let mut escaped = false;
+    for ch in rest.chars() {
+        if escaped {
+            value.push(ch);
+            escaped = false;
+        } else if ch == '\\' {
+            escaped = true;
+        } else if ch == '"' {
+            break;
+        } else {
+            value.push(ch);
+        }
+    }
+    value
 }
 `)
 }

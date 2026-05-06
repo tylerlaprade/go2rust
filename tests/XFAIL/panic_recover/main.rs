@@ -31,13 +31,13 @@ pub fn safe_divide(a: Rc<RefCell<Option<f64>>>, b: Rc<RefCell<Option<f64>>>) -> 
     let mut err: Rc<RefCell<Option<Box<dyn Error>>>> = Rc::new(RefCell::new(None));
 
     let err_defer_captured = err.clone(); let result_defer_captured = result.clone(); __defer_stack.push(Box::new(move || {
-        (*Rc::new(RefCell::new(Some(Box::new(move || {
+        { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
         let mut r = Rc::new(RefCell::new(None::<String>));
     if (*r.borrow()).is_some() {
         err_defer_captured = Rc::new(RefCell::new(Some(Box::<dyn Error>::from(format!("panic occurred: {}", (*r.borrow().as_ref().unwrap()))))));
         { let new_val = 0.0; *result_defer_captured.borrow_mut() = Some(new_val); };
     }
-    }) as Box<dyn Fn() -> ()>))).borrow().as_ref().unwrap())();
+    }) as Box<dyn Fn() -> ()>))); let __f_guard = __f_holder.borrow(); let __f = __f_guard.as_ref().unwrap(); (*__f)() };
     }));
 
     if (*b.borrow().as_ref().unwrap()) == 0.0 {
@@ -61,13 +61,13 @@ pub fn process_slice(slice: Rc<RefCell<Option<Vec<i32>>>>, index: Rc<RefCell<Opt
     let mut err: Rc<RefCell<Option<Box<dyn Error>>>> = Rc::new(RefCell::new(None));
 
     let err_defer_captured = err.clone(); let value_defer_captured = value.clone(); __defer_stack.push(Box::new(move || {
-        (*Rc::new(RefCell::new(Some(Box::new(move || {
+        { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
         let mut r = Rc::new(RefCell::new(None::<String>));
     if (*r.borrow()).is_some() {
         err_defer_captured = Rc::new(RefCell::new(Some(Box::<dyn Error>::from(format!("index out of bounds: {}", (*r.borrow().as_ref().unwrap()))))));
         { let new_val = -1; *value_defer_captured.borrow_mut() = Some(new_val); };
     }
-    }) as Box<dyn Fn() -> ()>))).borrow().as_ref().unwrap())();
+    }) as Box<dyn Fn() -> ()>))); let __f_guard = __f_holder.borrow(); let __f = __f_guard.as_ref().unwrap(); (*__f)() };
     }));
 
     { let new_val = (*slice.borrow().as_ref().unwrap())[(*index.borrow().as_ref().unwrap()) as usize].clone(); *value.borrow_mut() = Some(new_val); };
@@ -84,26 +84,26 @@ pub fn nested_panic() {
     let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
     __defer_stack.push(Box::new(move || {
-        (*Rc::new(RefCell::new(Some(Box::new(move || {
+        { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
         let mut r = Rc::new(RefCell::new(None::<String>));
     if (*r.borrow()).is_some() {
         print!("Recovered from nested panic: {}\n", format_any(r.borrow().as_ref().unwrap().as_ref()));
     }
-    }) as Box<dyn Fn() -> ()>))).borrow().as_ref().unwrap())();
+    }) as Box<dyn Fn() -> ()>))); let __f_guard = __f_holder.borrow(); let __f = __f_guard.as_ref().unwrap(); (*__f)() };
     }));
 
-    (*Rc::new(RefCell::new(Some(Box::new(move || {
+    { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
         __defer_stack.push(Box::new(move || {
-        (*Rc::new(RefCell::new(Some(Box::new(move || {
+        { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
         let mut r = Rc::new(RefCell::new(None::<String>));
     if (*r.borrow()).is_some() {
         print!("Inner recovery: {}\n", format_any(r.borrow().as_ref().unwrap().as_ref()));
         panic!("re-panicking from inner function");
     }
-    }) as Box<dyn Fn() -> ()>))).borrow().as_ref().unwrap())();
+    }) as Box<dyn Fn() -> ()>))); let __f_guard = __f_holder.borrow(); let __f = __f_guard.as_ref().unwrap(); (*__f)() };
     }));
         panic!("original panic");
-    }) as Box<dyn Fn() -> ()>))).borrow().as_ref().unwrap())();
+    }) as Box<dyn Fn() -> ()>))); let __f_guard = __f_holder.borrow(); let __f = __f_guard.as_ref().unwrap(); (*__f)() };
 
     // Execute deferred functions
     while let Some(f) = __defer_stack.pop() {
@@ -116,31 +116,31 @@ pub fn demonstrate_panic_types() {
 
         // String panic
     __defer_stack.push(Box::new(move || {
-        (*Rc::new(RefCell::new(Some(Box::new(move || {
+        { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
         let mut r = Rc::new(RefCell::new(None::<String>));
     if (*r.borrow()).is_some() {
         print!("Recovered string panic: {}\n", format_any(r.borrow().as_ref().unwrap().as_ref()));
     }
-    }) as Box<dyn Fn() -> ()>))).borrow().as_ref().unwrap())();
+    }) as Box<dyn Fn() -> ()>))); let __f_guard = __f_holder.borrow(); let __f = __f_guard.as_ref().unwrap(); (*__f)() };
     }));
 
     __defer_stack.push(Box::new(move || {
-        (*Rc::new(RefCell::new(Some(Box::new(move || {
+        { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
         panic!("string panic message");
-    }) as Box<dyn Fn() -> ()>))).borrow().as_ref().unwrap())();
+    }) as Box<dyn Fn() -> ()>))); let __f_guard = __f_holder.borrow(); let __f = __f_guard.as_ref().unwrap(); (*__f)() };
     }));
 
     __defer_stack.push(Box::new(move || {
-        (*Rc::new(RefCell::new(Some(Box::new(move || {
+        { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
         panic!("{:?}", 42);
-    }) as Box<dyn Fn() -> ()>))).borrow().as_ref().unwrap())();
+    }) as Box<dyn Fn() -> ()>))); let __f_guard = __f_holder.borrow(); let __f = __f_guard.as_ref().unwrap(); (*__f)() };
     }));
 
         // Integer panic
     __defer_stack.push(Box::new(move || {
-        (*Rc::new(RefCell::new(Some(Box::new(move || {
+        { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
         panic!("error panic");
-    }) as Box<dyn Fn() -> ()>))).borrow().as_ref().unwrap())();
+    }) as Box<dyn Fn() -> ()>))); let __f_guard = __f_holder.borrow(); let __f = __f_guard.as_ref().unwrap(); (*__f)() };
     }));
 
     // Execute deferred functions
@@ -153,31 +153,31 @@ pub fn chained_defers() {
     let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
     __defer_stack.push(Box::new(move || {
-        (*Rc::new(RefCell::new(Some(Box::new(move || {
+        { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
         let mut r = Rc::new(RefCell::new(None::<String>));
     if (*r.borrow()).is_some() {
         print!("Final recovery: {}\n", format_any(r.borrow().as_ref().unwrap().as_ref()));
     }
-    }) as Box<dyn Fn() -> ()>))).borrow().as_ref().unwrap())();
+    }) as Box<dyn Fn() -> ()>))); let __f_guard = __f_holder.borrow(); let __f = __f_guard.as_ref().unwrap(); (*__f)() };
     }));
 
     __defer_stack.push(Box::new(move || {
-        (*Rc::new(RefCell::new(Some(Box::new(move || {
+        { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
         println!("{}", "Defer 1: This runs".to_string());
-    }) as Box<dyn Fn() -> ()>))).borrow().as_ref().unwrap())();
+    }) as Box<dyn Fn() -> ()>))); let __f_guard = __f_holder.borrow(); let __f = __f_guard.as_ref().unwrap(); (*__f)() };
     }));
 
     __defer_stack.push(Box::new(move || {
-        (*Rc::new(RefCell::new(Some(Box::new(move || {
+        { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
         println!("{}", "Defer 2: This also runs".to_string());
         panic!("panic from defer");
-    }) as Box<dyn Fn() -> ()>))).borrow().as_ref().unwrap())();
+    }) as Box<dyn Fn() -> ()>))); let __f_guard = __f_holder.borrow(); let __f = __f_guard.as_ref().unwrap(); (*__f)() };
     }));
 
     __defer_stack.push(Box::new(move || {
-        (*Rc::new(RefCell::new(Some(Box::new(move || {
+        { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
         println!("{}", "Defer 3: This runs first".to_string());
-    }) as Box<dyn Fn() -> ()>))).borrow().as_ref().unwrap())();
+    }) as Box<dyn Fn() -> ()>))); let __f_guard = __f_holder.borrow(); let __f = __f_guard.as_ref().unwrap(); (*__f)() };
     }));
 
     println!("{}", "About to return normally".to_string());
@@ -195,14 +195,14 @@ fn main() {
     if (*err.borrow()).is_some() {
         print!("Error: {}\n", format!("{}", (*err.borrow().as_ref().unwrap())));
     } else {
-        print!("10 / 2 = {:.2}\n", (*result.borrow().as_ref().unwrap()));
+        print!("10 / 2 = {:.2}\n", { let __v = (*result.borrow().as_ref().unwrap()).clone(); __v });
     }
 
     (result, err) = safe_divide(Rc::new(RefCell::new(Some(10.0))), Rc::new(RefCell::new(Some(0.0))));
     if (*err.borrow()).is_some() {
         print!("Error: {}\n", format!("{}", (*err.borrow().as_ref().unwrap())));
     } else {
-        print!("Result: {:.2}\n", (*result.borrow().as_ref().unwrap()));
+        print!("Result: {:.2}\n", { let __v = (*result.borrow().as_ref().unwrap()).clone(); __v });
     }
 
     println!("{}", "\n=== Slice access examples ===".to_string());
@@ -213,14 +213,14 @@ fn main() {
     if (*err.borrow()).is_some() {
         print!("Error: {}\n", format!("{}", (*err.borrow().as_ref().unwrap())));
     } else {
-        print!("numbers[2] = {}\n", (*value.borrow().as_ref().unwrap()));
+        print!("numbers[2] = {}\n", { let __v = (*value.borrow().as_ref().unwrap()).clone(); __v });
     }
 
     (value, err) = process_slice(numbers.clone(), Rc::new(RefCell::new(Some(10))));
     if (*err.borrow()).is_some() {
         print!("Error: {}\n", format!("{}", (*err.borrow().as_ref().unwrap())));
     } else {
-        print!("Value: {}\n", (*value.borrow().as_ref().unwrap()));
+        print!("Value: {}\n", { let __v = (*value.borrow().as_ref().unwrap()).clone(); __v });
     }
 
     println!("{}", "\n=== Nested panic example ===".to_string());

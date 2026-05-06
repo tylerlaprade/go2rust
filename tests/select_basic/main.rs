@@ -82,16 +82,16 @@ fn main() {
     });
 
     let mut i = Arc::new(Mutex::new(Some(0)));
-    while (*i.lock().unwrap().as_ref().unwrap()) < 2 {
+    while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2; __tmp_x < __tmp_y } {
         loop {
         if let Some(msg1) = c1.try_recv() {
             let mut msg1 = Arc::new(Mutex::new(Some(msg1)));
-            println!("{} {}", "received".to_string(), (*msg1.lock().unwrap().as_ref().unwrap()));
+            println!("{} {}", "received".to_string(), { let __v = (*msg1.lock().unwrap().as_ref().unwrap()).clone(); __v });
             break;
         }
         if let Some(msg2) = c2.try_recv() {
             let mut msg2 = Arc::new(Mutex::new(Some(msg2)));
-            println!("{} {}", "received".to_string(), (*msg2.lock().unwrap().as_ref().unwrap()));
+            println!("{} {}", "received".to_string(), { let __v = (*msg2.lock().unwrap().as_ref().unwrap()).clone(); __v });
             break;
         }
         std::thread::sleep(std::time::Duration::from_millis(1));

@@ -124,16 +124,16 @@ pub fn type_switch(value: Rc<RefCell<Option<Box<dyn Any>>>>) {
     let _any_val: &dyn Any = _ts_guard.as_ref().unwrap().as_ref();
     if _any_val.downcast_ref::<i32>().is_some() {
         let v = Rc::new(RefCell::new(Some(_any_val.downcast_ref::<i32>().unwrap().clone())));
-        print!("Integer: {}\n", (*v.borrow().as_ref().unwrap()));;
+        print!("Integer: {}\n", { let __v = (*v.borrow().as_ref().unwrap()).clone(); __v });;
     } else if _any_val.downcast_ref::<String>().is_some() {
         let v = Rc::new(RefCell::new(Some(_any_val.downcast_ref::<String>().unwrap().clone())));
-        print!("String: {}\n", (*v.borrow().as_ref().unwrap()));;
+        print!("String: {}\n", { let __v = (*v.borrow().as_ref().unwrap()).clone(); __v });;
     } else if _any_val.downcast_ref::<bool>().is_some() {
         let v = Rc::new(RefCell::new(Some(_any_val.downcast_ref::<bool>().unwrap().clone())));
-        print!("Boolean: {}\n", (*v.borrow().as_ref().unwrap()));;
+        print!("Boolean: {}\n", { let __v = (*v.borrow().as_ref().unwrap()).clone(); __v });;
     } else if _any_val.downcast_ref::<f64>().is_some() {
         let v = Rc::new(RefCell::new(Some(_any_val.downcast_ref::<f64>().unwrap().clone())));
-        print!("Float: {:.2}\n", (*v.borrow().as_ref().unwrap()));;
+        print!("Float: {:.2}\n", { let __v = (*v.borrow().as_ref().unwrap()).clone(); __v });;
     } else {
         let v = _any_val;
         print!("Unknown type: {}\n", go_type_name(v));;

@@ -273,6 +273,14 @@ run_xfail_test() {
 
 
 # BEGIN GENERATED TESTS - DO NOT EDIT
+@test "address_of_fields_and_elements" {
+    run_test "tests/address_of_fields_and_elements"
+}
+
+@test "advanced_control_flow" {
+    run_test "tests/advanced_control_flow"
+}
+
 @test "aliasing_mutation" {
     run_test "tests/aliasing_mutation"
 }
@@ -281,12 +289,28 @@ run_xfail_test() {
     run_test "tests/anonymous_structs_basic"
 }
 
+@test "anonymous_structs_functions" {
+    run_test "tests/anonymous_structs_functions"
+}
+
+@test "anonymous_structs_nested" {
+    run_test "tests/anonymous_structs_nested"
+}
+
 @test "append_slice_expansion" {
     run_test "tests/append_slice_expansion"
 }
 
 @test "arrays_basic" {
     run_test "tests/arrays_basic"
+}
+
+@test "atomic_operations" {
+    run_test "tests/atomic_operations"
+}
+
+@test "base64_encoding" {
+    run_test "tests/base64_encoding"
 }
 
 @test "blank_identifier" {
@@ -333,6 +357,10 @@ run_xfail_test() {
     run_test "tests/comment_preservation"
 }
 
+@test "complex_expressions" {
+    run_test "tests/complex_expressions"
+}
+
 @test "compound_assignments" {
     run_test "tests/compound_assignments"
 }
@@ -345,8 +373,32 @@ run_xfail_test() {
     run_test "tests/constants_basic"
 }
 
+@test "context_usage" {
+    run_test "tests/context_usage"
+}
+
 @test "copy_from_string" {
     run_test "tests/copy_from_string"
+}
+
+@test "cross_file_func_vars" {
+    run_test "tests/cross_file_func_vars"
+}
+
+@test "cross_file_maps" {
+    run_test "tests/cross_file_maps"
+}
+
+@test "cross_file_methods" {
+    run_test "tests/cross_file_methods"
+}
+
+@test "cross_file_types" {
+    run_test "tests/cross_file_types"
+}
+
+@test "crypto_hash" {
+    run_test "tests/crypto_hash"
 }
 
 @test "defer_named_returns" {
@@ -357,12 +409,20 @@ run_xfail_test() {
     run_test "tests/defer_statements"
 }
 
+@test "elided_nested_composites" {
+    run_test "tests/elided_nested_composites"
+}
+
 @test "embedded_method_promotion" {
     run_test "tests/embedded_method_promotion"
 }
 
 @test "embedded_structs" {
     run_test "tests/embedded_structs"
+}
+
+@test "enums_iota" {
+    run_test "tests/enums_iota"
 }
 
 @test "error_handling" {
@@ -387,6 +447,14 @@ run_xfail_test() {
 
 @test "fallthrough_switch" {
     run_test "tests/fallthrough_switch"
+}
+
+@test "file_io" {
+    run_test "tests/file_io"
+}
+
+@test "flag_parsing" {
+    run_test "tests/flag_parsing"
 }
 
 @test "fmt_println" {
@@ -417,12 +485,28 @@ run_xfail_test() {
     run_test "tests/goroutines_simple"
 }
 
+@test "goto_labels" {
+    run_test "tests/goto_labels"
+}
+
 @test "hello_world" {
     run_test "tests/hello_world"
 }
 
 @test "if_else_basic" {
     run_test "tests/if_else_basic"
+}
+
+@test "import_aliases" {
+    run_test "tests/import_aliases"
+}
+
+@test "init_functions" {
+    run_test "tests/init_functions"
+}
+
+@test "init_order_complex" {
+    run_test "tests/init_order_complex"
 }
 
 @test "interface_basic" {
@@ -445,6 +529,10 @@ run_xfail_test() {
     run_test "tests/iota_enums"
 }
 
+@test "json_marshal" {
+    run_test "tests/json_marshal"
+}
+
 @test "labeled_statements" {
     run_test "tests/labeled_statements"
 }
@@ -459,6 +547,10 @@ run_xfail_test() {
 
 @test "local_var_multi_names" {
     run_test "tests/local_var_multi_names"
+}
+
+@test "make_map_with_capacity" {
+    run_test "tests/make_map_with_capacity"
 }
 
 @test "make_slice_zero_len_capacity" {
@@ -501,12 +593,20 @@ run_xfail_test() {
     run_test "tests/nested_embedding"
 }
 
+@test "nested_structures" {
+    run_test "tests/nested_structures"
+}
+
 @test "nil_basic" {
     run_test "tests/nil_basic"
 }
 
 @test "non_blocking_channels" {
     run_test "tests/non_blocking_channels"
+}
+
+@test "os_args" {
+    run_test "tests/os_args"
 }
 
 @test "pointers_basic" {
@@ -521,8 +621,20 @@ run_xfail_test() {
     run_test "tests/pointers_simple"
 }
 
+@test "random_numbers" {
+    run_test "tests/random_numbers"
+}
+
 @test "range_iteration" {
     run_test "tests/range_iteration"
+}
+
+@test "range_loops" {
+    run_test "tests/range_loops"
+}
+
+@test "rate_limiting" {
+    run_test "tests/rate_limiting"
 }
 
 @test "recursion_basic" {
@@ -533,8 +645,16 @@ run_xfail_test() {
     run_test "tests/recursion_factorial"
 }
 
+@test "regex_basic" {
+    run_test "tests/regex_basic"
+}
+
 @test "select_basic" {
     run_test "tests/select_basic"
+}
+
+@test "select_statements" {
+    run_test "tests/select_statements"
 }
 
 @test "shared_mutation" {
@@ -573,6 +693,14 @@ run_xfail_test() {
     run_test "tests/sort_slice"
 }
 
+@test "stdlib_imports" {
+    run_test "tests/stdlib_imports"
+}
+
+@test "stdlib_strings" {
+    run_test "tests/stdlib_strings"
+}
+
 @test "strconv_parse" {
     run_test "tests/strconv_parse"
 }
@@ -597,6 +725,10 @@ run_xfail_test() {
     run_test "tests/struct_methods"
 }
 
+@test "struct_tags_reflection" {
+    run_test "tests/struct_tags_reflection"
+}
+
 @test "structs_basic" {
     run_test "tests/structs_basic"
 }
@@ -617,12 +749,32 @@ run_xfail_test() {
     run_test "tests/switch_statements"
 }
 
+@test "tickers_basic" {
+    run_test "tests/tickers_basic"
+}
+
+@test "time_operations" {
+    run_test "tests/time_operations"
+}
+
+@test "timeouts_basic" {
+    run_test "tests/timeouts_basic"
+}
+
+@test "timers_basic" {
+    run_test "tests/timers_basic"
+}
+
 @test "type_assertion_simple" {
     run_test "tests/type_assertion_simple"
 }
 
 @test "type_embedding" {
     run_test "tests/type_embedding"
+}
+
+@test "url_parsing" {
+    run_test "tests/url_parsing"
 }
 
 @test "values_basic" {
@@ -637,8 +789,16 @@ run_xfail_test() {
     run_test "tests/variadic_functions"
 }
 
+@test "variadic_mixed_expansion" {
+    run_test "tests/variadic_mixed_expansion"
+}
+
 @test "waitgroup_sync" {
     run_test "tests/waitgroup_sync"
+}
+
+@test "worker_pools" {
+    run_test "tests/worker_pools"
 }
 
 @test "wrap_everything" {
@@ -649,80 +809,12 @@ run_xfail_test() {
     run_test "tests/wrap_simple"
 }
 
-@test "XFAIL: address_of_fields_and_elements" {
-    run_xfail_test "tests/XFAIL/address_of_fields_and_elements"
-}
-
-@test "XFAIL: advanced_control_flow" {
-    run_xfail_test "tests/XFAIL/advanced_control_flow"
-}
-
-@test "XFAIL: anonymous_structs_functions" {
-    run_xfail_test "tests/XFAIL/anonymous_structs_functions"
-}
-
-@test "XFAIL: anonymous_structs_nested" {
-    run_xfail_test "tests/XFAIL/anonymous_structs_nested"
-}
-
-@test "XFAIL: atomic_operations" {
-    run_xfail_test "tests/XFAIL/atomic_operations"
-}
-
-@test "XFAIL: base64_encoding" {
-    run_xfail_test "tests/XFAIL/base64_encoding"
-}
-
-@test "XFAIL: complex_expressions" {
-    run_xfail_test "tests/XFAIL/complex_expressions"
-}
-
 @test "XFAIL: concurrency_patterns" {
     run_xfail_test "tests/XFAIL/concurrency_patterns"
 }
 
-@test "XFAIL: context_usage" {
-    run_xfail_test "tests/XFAIL/context_usage"
-}
-
-@test "XFAIL: cross_file_func_vars" {
-    run_xfail_test "tests/XFAIL/cross_file_func_vars"
-}
-
-@test "XFAIL: cross_file_maps" {
-    run_xfail_test "tests/XFAIL/cross_file_maps"
-}
-
-@test "XFAIL: cross_file_methods" {
-    run_xfail_test "tests/XFAIL/cross_file_methods"
-}
-
-@test "XFAIL: cross_file_types" {
-    run_xfail_test "tests/XFAIL/cross_file_types"
-}
-
-@test "XFAIL: crypto_hash" {
-    run_xfail_test "tests/XFAIL/crypto_hash"
-}
-
-@test "XFAIL: elided_nested_composites" {
-    run_xfail_test "tests/XFAIL/elided_nested_composites"
-}
-
-@test "XFAIL: enums_iota" {
-    run_xfail_test "tests/XFAIL/enums_iota"
-}
-
-@test "XFAIL: file_io" {
-    run_xfail_test "tests/XFAIL/file_io"
-}
-
 @test "XFAIL: file_operations" {
     run_xfail_test "tests/XFAIL/file_operations"
-}
-
-@test "XFAIL: flag_parsing" {
-    run_xfail_test "tests/XFAIL/flag_parsing"
 }
 
 @test "XFAIL: function_types" {
@@ -733,96 +825,16 @@ run_xfail_test() {
     run_xfail_test "tests/XFAIL/generics_basic"
 }
 
-@test "XFAIL: goto_labels" {
-    run_xfail_test "tests/XFAIL/goto_labels"
-}
-
 @test "XFAIL: http_client" {
     run_xfail_test "tests/XFAIL/http_client"
-}
-
-@test "XFAIL: import_aliases" {
-    run_xfail_test "tests/XFAIL/import_aliases"
-}
-
-@test "XFAIL: init_functions" {
-    run_xfail_test "tests/XFAIL/init_functions"
-}
-
-@test "XFAIL: init_order_complex" {
-    run_xfail_test "tests/XFAIL/init_order_complex"
-}
-
-@test "XFAIL: json_marshal" {
-    run_xfail_test "tests/XFAIL/json_marshal"
-}
-
-@test "XFAIL: make_map_with_capacity" {
-    run_xfail_test "tests/XFAIL/make_map_with_capacity"
-}
-
-@test "XFAIL: nested_structures" {
-    run_xfail_test "tests/XFAIL/nested_structures"
-}
-
-@test "XFAIL: os_args" {
-    run_xfail_test "tests/XFAIL/os_args"
 }
 
 @test "XFAIL: panic_recover" {
     run_xfail_test "tests/XFAIL/panic_recover"
 }
 
-@test "XFAIL: random_numbers" {
-    run_xfail_test "tests/XFAIL/random_numbers"
-}
-
-@test "XFAIL: range_loops" {
-    run_xfail_test "tests/XFAIL/range_loops"
-}
-
-@test "XFAIL: rate_limiting" {
-    run_xfail_test "tests/XFAIL/rate_limiting"
-}
-
-@test "XFAIL: regex_basic" {
-    run_xfail_test "tests/XFAIL/regex_basic"
-}
-
-@test "XFAIL: select_statements" {
-    run_xfail_test "tests/XFAIL/select_statements"
-}
-
 @test "XFAIL: stateful_goroutines" {
     run_xfail_test "tests/XFAIL/stateful_goroutines"
-}
-
-@test "XFAIL: stdlib_imports" {
-    run_xfail_test "tests/XFAIL/stdlib_imports"
-}
-
-@test "XFAIL: stdlib_strings" {
-    run_xfail_test "tests/XFAIL/stdlib_strings"
-}
-
-@test "XFAIL: struct_tags_reflection" {
-    run_xfail_test "tests/XFAIL/struct_tags_reflection"
-}
-
-@test "XFAIL: tickers_basic" {
-    run_xfail_test "tests/XFAIL/tickers_basic"
-}
-
-@test "XFAIL: time_operations" {
-    run_xfail_test "tests/XFAIL/time_operations"
-}
-
-@test "XFAIL: timeouts_basic" {
-    run_xfail_test "tests/XFAIL/timeouts_basic"
-}
-
-@test "XFAIL: timers_basic" {
-    run_xfail_test "tests/XFAIL/timers_basic"
 }
 
 @test "XFAIL: type_assertions" {
@@ -835,17 +847,5 @@ run_xfail_test() {
 
 @test "XFAIL: unsafe_pointer_ops" {
     run_xfail_test "tests/XFAIL/unsafe_pointer_ops"
-}
-
-@test "XFAIL: url_parsing" {
-    run_xfail_test "tests/XFAIL/url_parsing"
-}
-
-@test "XFAIL: variadic_mixed_expansion" {
-    run_xfail_test "tests/XFAIL/variadic_mixed_expansion"
-}
-
-@test "XFAIL: worker_pools" {
-    run_xfail_test "tests/XFAIL/worker_pools"
 }
 # END GENERATED TESTS

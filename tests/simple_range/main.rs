@@ -6,17 +6,17 @@ fn main() {
     let mut numbers = Rc::new(RefCell::new(Some(vec![10, 20, 30])));
 
         // Index and value
-    for (i, num) in (*numbers.borrow().as_ref().unwrap()).iter().copied().enumerate() {
+    { let __range_guard = numbers.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for (i, num) in __range_values.iter().copied().enumerate() {
         println!("{} {} {} {}", "Index:".to_string(), i, "Value:".to_string(), num);
-    }
+    } }
 
         // Value only
-    for num in (*numbers.borrow().as_ref().unwrap()).iter().copied() {
+    { let __range_guard = numbers.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for num in __range_values.iter().copied() {
         println!("{} {}", "Value:".to_string(), num);
-    }
+    } }
 
         // Index only
-    for i in 0..(*numbers.borrow().as_ref().unwrap()).len() {
+    { let __range_guard = numbers.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for i in 0..__range_values.len() {
         println!("{} {}", "Index:".to_string(), i);
-    }
+    } }
 }

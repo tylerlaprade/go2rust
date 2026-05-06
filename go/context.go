@@ -12,6 +12,7 @@ type TranspileSession struct {
 type PackageState struct {
 	FunctionSignatures map[string]*FunctionSignature
 	ErrorImplTypes     map[string]bool
+	StringerImplTypes  map[string]bool
 	InterfaceTypes     map[string]bool
 	TypeDefinitions    map[string]string
 	TypeAliases        map[string]bool
@@ -59,6 +60,7 @@ func NewPackageState() *PackageState {
 	return &PackageState{
 		FunctionSignatures: make(map[string]*FunctionSignature),
 		ErrorImplTypes:     make(map[string]bool),
+		StringerImplTypes:  make(map[string]bool),
 		InterfaceTypes:     make(map[string]bool),
 		TypeDefinitions:    make(map[string]string),
 		TypeAliases:        make(map[string]bool),
@@ -118,6 +120,9 @@ func (ctx *TranspileContext) ensureDefaults() {
 		if ctx.Package.ErrorImplTypes == nil {
 			ctx.Package.ErrorImplTypes = make(map[string]bool)
 		}
+		if ctx.Package.StringerImplTypes == nil {
+			ctx.Package.StringerImplTypes = make(map[string]bool)
+		}
 		if ctx.Package.InterfaceTypes == nil {
 			ctx.Package.InterfaceTypes = make(map[string]bool)
 		}
@@ -174,6 +179,7 @@ func (ctx *TranspileContext) captureCompatibilityState() {
 	if ctx.Package != nil {
 		ctx.Package.FunctionSignatures = functionSignatures
 		ctx.Package.ErrorImplTypes = errorImplTypes
+		ctx.Package.StringerImplTypes = stringerImplTypes
 		ctx.Package.InterfaceTypes = interfaceTypes
 		ctx.Package.TypeDefinitions = typeDefinitions
 		ctx.Package.TypeAliases = typeAliases
@@ -209,6 +215,7 @@ func (ctx *TranspileContext) applyCompatibilityState() {
 	if ctx.Package != nil {
 		functionSignatures = ctx.Package.FunctionSignatures
 		errorImplTypes = ctx.Package.ErrorImplTypes
+		stringerImplTypes = ctx.Package.StringerImplTypes
 		interfaceTypes = ctx.Package.InterfaceTypes
 		typeDefinitions = ctx.Package.TypeDefinitions
 		typeAliases = ctx.Package.TypeAliases
@@ -301,5 +308,140 @@ func NeedGoTypeName() {
 	if currentContext != nil && currentContext.Helpers != nil {
 		currentContext.Helpers.needsGoTypeName = true
 		TrackImport("Any")
+	}
+}
+
+// NeedBase64 marks that we need the base64 helper functions
+func NeedBase64() {
+	if currentContext != nil && currentContext.Helpers != nil {
+		currentContext.Helpers.needsBase64 = true
+	}
+}
+
+// NeedSha256 marks that we need the SHA-256 helper function
+func NeedSha256() {
+	if currentContext != nil && currentContext.Helpers != nil {
+		currentContext.Helpers.needsSha256 = true
+	}
+}
+
+// NeedHexFormat marks that we need byte-slice hexadecimal formatting
+func NeedHexFormat() {
+	if currentContext != nil && currentContext.Helpers != nil {
+		currentContext.Helpers.needsHexFormat = true
+	}
+}
+
+// NeedStrconvFormat marks that we need strconv formatting helpers
+func NeedStrconvFormat() {
+	if currentContext != nil && currentContext.Helpers != nil {
+		currentContext.Helpers.needsStrconvFormat = true
+	}
+}
+
+// NeedUrl marks that we need URL parsing helpers
+func NeedUrl() {
+	if currentContext != nil && currentContext.Helpers != nil {
+		currentContext.Helpers.needsUrl = true
+	}
+}
+
+// NeedRegexp marks that we need regexp helpers
+func NeedRegexp() {
+	if currentContext != nil && currentContext.Helpers != nil {
+		currentContext.Helpers.needsRegexp = true
+	}
+}
+
+// NeedJsonEscape marks that we need JSON string escaping helpers
+func NeedJsonEscape() {
+	if currentContext != nil && currentContext.Helpers != nil {
+		currentContext.Helpers.needsJsonEscape = true
+	}
+}
+
+// NeedOsFile marks that we need OS file helpers
+func NeedOsFile() {
+	if currentContext != nil && currentContext.Helpers != nil {
+		currentContext.Helpers.needsOsFile = true
+	}
+}
+
+// NeedSliceElemPtr marks that we need slice element pointer helpers.
+func NeedSliceElemPtr() {
+	if currentContext != nil && currentContext.Helpers != nil {
+		currentContext.Helpers.needsSliceElemPtr = true
+	}
+}
+
+// NeedGoTime marks that we need time.Time helpers
+func NeedGoTime() {
+	if currentContext != nil && currentContext.Helpers != nil {
+		currentContext.Helpers.needsGoTime = true
+	}
+}
+
+// NeedGoTimer marks that we need time.Timer helpers
+func NeedGoTimer() {
+	if currentContext != nil && currentContext.Helpers != nil {
+		currentContext.Helpers.needsGoTimer = true
+		currentContext.Helpers.needsGoChannel = true
+		currentContext.Helpers.needsGoTime = true
+	}
+}
+
+// NeedGoAfter marks that we need time.After helpers
+func NeedGoAfter() {
+	if currentContext != nil && currentContext.Helpers != nil {
+		currentContext.Helpers.needsGoAfter = true
+		currentContext.Helpers.needsGoChannel = true
+		currentContext.Helpers.needsGoTime = true
+	}
+}
+
+// NeedGoTicker marks that we need time.Ticker helpers
+func NeedGoTicker() {
+	if currentContext != nil && currentContext.Helpers != nil {
+		currentContext.Helpers.needsGoTicker = true
+		currentContext.Helpers.needsGoChannel = true
+		currentContext.Helpers.needsGoTime = true
+	}
+}
+
+// NeedGoTick marks that we need time.Tick helpers
+func NeedGoTick() {
+	if currentContext != nil && currentContext.Helpers != nil {
+		currentContext.Helpers.needsGoTick = true
+		currentContext.Helpers.needsGoChannel = true
+		currentContext.Helpers.needsGoTime = true
+	}
+}
+
+// NeedGoContext marks that we need context.Context helpers
+func NeedGoContext() {
+	if currentContext != nil && currentContext.Helpers != nil {
+		currentContext.Helpers.needsGoContext = true
+		currentContext.Helpers.needsGoChannel = true
+	}
+}
+
+// NeedGoRand marks that we need math/rand helpers
+func NeedGoRand() {
+	if currentContext != nil && currentContext.Helpers != nil {
+		currentContext.Helpers.needsGoRand = true
+	}
+}
+
+// NeedReflect marks that we need reflection metadata helpers
+func NeedReflect() {
+	if currentContext != nil && currentContext.Helpers != nil {
+		currentContext.Helpers.needsReflect = true
+	}
+}
+
+// NeedGoHttpResponse marks that we need minimal HTTP response/body helpers.
+func NeedGoHttpResponse() {
+	if currentContext != nil && currentContext.Helpers != nil {
+		currentContext.Helpers.needsGoHttpResponse = true
 	}
 }

@@ -12,7 +12,7 @@ fn main() {
         if (*i.borrow().as_ref().unwrap()) == 2 && (*j.borrow().as_ref().unwrap()) == 1 {
         break 'outer
     }
-        print!("({}, {}) ", (*i.borrow().as_ref().unwrap()), (*j.borrow().as_ref().unwrap()));
+        print!("({}, {}) ", { let __v = (*i.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*j.borrow().as_ref().unwrap()).clone(); __v });
         { let mut guard = j.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
         println!();

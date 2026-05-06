@@ -38,9 +38,9 @@ impl std::fmt::Debug for GoMutex {
 }
 
 #[derive(Debug, Clone, Default)]
-struct Counter {
-    mu: GoMutex,
-    value: Rc<RefCell<Option<i32>>>,
+pub struct Counter {
+    pub mu: GoMutex,
+    pub value: Rc<RefCell<Option<i32>>>,
 }
 
 impl std::fmt::Display for Counter {

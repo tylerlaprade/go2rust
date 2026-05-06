@@ -3,9 +3,9 @@ use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
 #[derive(Debug, Clone, Default)]
-struct Person {
-    name: Rc<RefCell<Option<String>>>,
-    age: Rc<RefCell<Option<i32>>>,
+pub struct Person {
+    pub name: Rc<RefCell<Option<String>>>,
+    pub age: Rc<RefCell<Option<i32>>>,
 }
 
 impl std::fmt::Display for Person {
@@ -16,10 +16,10 @@ impl std::fmt::Display for Person {
 
 
 #[derive(Debug, Clone, Default)]
-struct Address {
-    street: Rc<RefCell<Option<String>>>,
-    city: Rc<RefCell<Option<String>>>,
-    state: Rc<RefCell<Option<String>>>,
+pub struct Address {
+    pub street: Rc<RefCell<Option<String>>>,
+    pub city: Rc<RefCell<Option<String>>>,
+    pub state: Rc<RefCell<Option<String>>>,
 }
 
 impl std::fmt::Display for Address {
@@ -29,12 +29,19 @@ impl std::fmt::Display for Address {
 }
 
 
-#[derive(Debug, Clone, Default)]
-struct Employee {
-    person: Rc<RefCell<Option<Person>>>,
-    address: Rc<RefCell<Option<Address>>>,
-    i_d: Rc<RefCell<Option<i32>>>,
-    salary: Rc<RefCell<Option<f64>>>,
+#[derive(Debug, Clone)]
+pub struct Employee {
+    pub person: Rc<RefCell<Option<Person>>>,
+    pub address: Rc<RefCell<Option<Address>>>,
+    pub i_d: Rc<RefCell<Option<i32>>>,
+    pub salary: Rc<RefCell<Option<f64>>>,
+}
+
+
+impl Default for Employee {
+    fn default() -> Self {
+        Self { person: Rc::new(RefCell::new(Some(Person::default()))), address: Rc::new(RefCell::new(Some(Address::default()))), i_d: Default::default(), salary: Default::default() }
+    }
 }
 
 impl std::fmt::Display for Employee {
