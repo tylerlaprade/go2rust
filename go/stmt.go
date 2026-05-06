@@ -38,7 +38,7 @@ func writeUnwrappedRangeTarget(out *strings.Builder, expr ast.Expr) {
 		}
 	} else if ident, ok := expr.(*ast.Ident); ok {
 		if _, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar {
-			out.WriteString(ident.Name)
+			out.WriteString(EscapeRustIdent(ident.Name))
 			return
 		}
 		TranspileExpressionContext(out, expr, RValue)
@@ -72,10 +72,10 @@ func writeWrappedValueCopyFromIdent(out *strings.Builder, ident *ast.Ident) bool
 
 	switch typ.Underlying().(type) {
 	case *types.Basic, *types.Struct, *types.Array:
-		varName := ident.Name
+		varName := EscapeRustIdent(ident.Name)
 		if currentCaptureRenames != nil {
-			if renamed, exists := currentCaptureRenames[varName]; exists {
-				varName = renamed
+			if renamed, exists := currentCaptureRenames[ident.Name]; exists {
+				varName = EscapeRustIdent(renamed)
 			}
 		}
 		WriteWrapperPrefix(out)
@@ -94,7 +94,7 @@ func writeMapWrappedValue(out *strings.Builder, expr ast.Expr) {
 		ident.Name != "_" && ident.Name != "nil" && ident.Name != "true" && ident.Name != "false" {
 		if _, isRangeVar := rangeLoopVars[ident.Name]; !isRangeVar {
 			if _, isLocalConst := localConstants[ident.Name]; !isLocalConst {
-				out.WriteString(ident.Name)
+				out.WriteString(EscapeRustIdent(ident.Name))
 				out.WriteString(".clone()")
 				return
 			}
@@ -696,7 +696,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									WriteWrapperPrefix(out)
 									// Cast usize range index to i32 when wrapping
 									if varType, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar && varType == "usize" {
-										out.WriteString(ToSnakeCase(ident.Name) + " as i32")
+										out.WriteString(EscapeRustIdent(ident.Name) + " as i32")
 									} else {
 										TranspileExpression(out, result)
 									}
@@ -966,12 +966,12 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							ident.Name != "nil" && ident.Name != "_" {
 							// Regular wrapped variable - unwrap it
 							out.WriteString("(*")
-							out.WriteString(ident.Name)
+							out.WriteString(EscapeRustIdent(ident.Name))
 							WriteBorrowMethod(out, true)
 							out.WriteString(".as_mut().unwrap())")
 						} else {
 							// Special identifier - use as-is
-							out.WriteString(ident.Name)
+							out.WriteString(EscapeRustIdent(ident.Name))
 						}
 					} else if lit, ok := s.Rhs[0].(*ast.BasicLit); ok {
 						// It's a literal - use directly
@@ -1017,11 +1017,11 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					// Generate: let (value, ok) = match ch.recv() { ... }
 					out.WriteString("let (mut ")
 					if ident, ok := s.Lhs[0].(*ast.Ident); ok {
-						out.WriteString(ident.Name)
+						out.WriteString(EscapeRustIdent(ident.Name))
 					}
 					out.WriteString(", mut ")
 					if ident, ok := s.Lhs[1].(*ast.Ident); ok {
-						out.WriteString(ident.Name)
+						out.WriteString(EscapeRustIdent(ident.Name))
 					}
 					out.WriteString(") = match ")
 					TranspileExpression(out, unary.X)
@@ -1069,7 +1069,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					// First variable for value
 					if ident, ok := s.Lhs[0].(*ast.Ident); ok && ident.Name != "_" {
 						out.WriteString("mut ")
-						out.WriteString(ident.Name)
+						out.WriteString(EscapeRustIdent(ident.Name))
 					} else {
 						out.WriteString("_")
 					}
@@ -1077,7 +1077,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					// Second variable for ok
 					if ident, ok := s.Lhs[1].(*ast.Ident); ok && ident.Name != "_" {
 						out.WriteString("mut ")
-						out.WriteString(ident.Name)
+						out.WriteString(EscapeRustIdent(ident.Name))
 					} else {
 						out.WriteString("_")
 					}
@@ -1101,7 +1101,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					// First variable for value
 					if ident, ok := s.Lhs[0].(*ast.Ident); ok && ident.Name != "_" {
 						out.WriteString("mut ")
-						out.WriteString(ident.Name)
+						out.WriteString(EscapeRustIdent(ident.Name))
 					} else {
 						out.WriteString("_")
 					}
@@ -1109,7 +1109,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					// Second variable for existence
 					if ident, ok := s.Lhs[1].(*ast.Ident); ok && ident.Name != "_" {
 						out.WriteString("mut ")
-						out.WriteString(ident.Name)
+						out.WriteString(EscapeRustIdent(ident.Name))
 					} else {
 						out.WriteString("_")
 					}
@@ -1126,7 +1126,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				out.WriteString("match (*")
 				// For map access, we need the raw identifier, not the unwrapped value
 				if ident, ok := indexExpr.X.(*ast.Ident); ok {
-					out.WriteString(ident.Name)
+					out.WriteString(EscapeRustIdent(ident.Name))
 				} else {
 					TranspileExpression(out, indexExpr.X)
 				}
@@ -1223,7 +1223,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					for i, lhs := range s.Lhs {
 						out.WriteString(" *")
 						if ident, ok := lhs.(*ast.Ident); ok {
-							out.WriteString(ToSnakeCase(ident.Name))
+							out.WriteString(EscapeRustIdent(ident.Name))
 						} else {
 							TranspileExpressionContext(out, lhs, LValue)
 						}
@@ -2185,7 +2185,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			if ident, ok := s.X.(*ast.Ident); ok {
 				if _, isRangeVar := rangeLoopVars[ident.Name]; !isRangeVar {
 					out.WriteString("{ let __range_guard = ")
-					out.WriteString(ident.Name)
+					out.WriteString(EscapeRustIdent(ident.Name))
 					WriteBorrowMethod(out, false)
 					out.WriteString("; let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); ")
 					rangeValuesVar = "__range_values"
@@ -2212,7 +2212,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				}
 			}
 			if valueName != "" {
-				out.WriteString(valueName)
+				out.WriteString(EscapeRustIdent(valueName))
 			} else {
 				out.WriteString("_")
 			}
@@ -2323,7 +2323,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					out.WriteString(") in (*")
 					// Use raw identifier to avoid double-unwrapping
 					if ident, ok := s.X.(*ast.Ident); ok {
-						out.WriteString(ident.Name)
+						out.WriteString(EscapeRustIdent(ident.Name))
 					} else {
 						TranspileExpression(out, s.X)
 					}
@@ -2341,7 +2341,23 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					out.WriteString(" in (*")
 					// Use raw identifier to avoid double-unwrapping
 					if ident, ok := s.X.(*ast.Ident); ok {
-						out.WriteString(ident.Name)
+						out.WriteString(EscapeRustIdent(ident.Name))
+					} else {
+						TranspileExpression(out, s.X)
+					}
+					WriteBorrowMethod(out, false)
+					out.WriteString(".as_ref().unwrap()).chars()")
+				}
+			} else {
+				// for range str
+				out.WriteString("_ in ")
+				if isStringLit {
+					TranspileExpression(out, s.X)
+					out.WriteString(".chars()")
+				} else {
+					out.WriteString("(*")
+					if ident, ok := s.X.(*ast.Ident); ok {
+						out.WriteString(EscapeRustIdent(ident.Name))
 					} else {
 						TranspileExpression(out, s.X)
 					}
@@ -2355,20 +2371,20 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				// for k, v := range map
 				out.WriteString("(")
 				if ident, ok := s.Key.(*ast.Ident); ok {
-					out.WriteString(ident.Name)
+					out.WriteString(EscapeRustIdent(ident.Name))
 				} else {
 					TranspileExpression(out, s.Key)
 				}
 				out.WriteString(", ")
 				if ident, ok := s.Value.(*ast.Ident); ok {
-					out.WriteString(ident.Name)
+					out.WriteString(EscapeRustIdent(ident.Name))
 				} else {
 					TranspileExpression(out, s.Value)
 				}
 				out.WriteString(") in (*")
 				// For map access, we need the raw identifier, not the unwrapped value
 				if ident, ok := s.X.(*ast.Ident); ok {
-					out.WriteString(ident.Name)
+					out.WriteString(EscapeRustIdent(ident.Name))
 				} else {
 					TranspileExpressionContext(out, s.X, LValue)
 				}
@@ -2378,14 +2394,14 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				// for _, v := range map (values only)
 				out.WriteString("(_, ")
 				if ident, ok := s.Value.(*ast.Ident); ok {
-					out.WriteString(ident.Name)
+					out.WriteString(EscapeRustIdent(ident.Name))
 				} else {
 					TranspileExpression(out, s.Value)
 				}
 				out.WriteString(") in (*")
 				// For map access, we need the raw identifier, not the unwrapped value
 				if ident, ok := s.X.(*ast.Ident); ok {
-					out.WriteString(ident.Name)
+					out.WriteString(EscapeRustIdent(ident.Name))
 				} else {
 					TranspileExpressionContext(out, s.X, LValue)
 				}
@@ -2395,14 +2411,24 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				// for k := range map (keys only)
 				out.WriteString("(")
 				if ident, ok := s.Key.(*ast.Ident); ok {
-					out.WriteString(ident.Name)
+					out.WriteString(EscapeRustIdent(ident.Name))
 				} else {
 					TranspileExpression(out, s.Key)
 				}
 				out.WriteString(", _) in (*")
 				// For map access, we need the raw identifier, not the unwrapped value
 				if ident, ok := s.X.(*ast.Ident); ok {
-					out.WriteString(ident.Name)
+					out.WriteString(EscapeRustIdent(ident.Name))
+				} else {
+					TranspileExpressionContext(out, s.X, LValue)
+				}
+				WriteBorrowMethod(out, false)
+				out.WriteString(".as_ref().unwrap()).clone()")
+			} else {
+				// for range map
+				out.WriteString("_ in (*")
+				if ident, ok := s.X.(*ast.Ident); ok {
+					out.WriteString(EscapeRustIdent(ident.Name))
 				} else {
 					TranspileExpressionContext(out, s.X, LValue)
 				}
@@ -2416,7 +2442,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				if keyIdent, ok := s.Key.(*ast.Ident); ok && keyIdent.Name == "_" {
 					// for _, v := range arr - just iterate values
 					if ident, ok := s.Value.(*ast.Ident); ok {
-						out.WriteString(ident.Name)
+						out.WriteString(EscapeRustIdent(ident.Name))
 					} else {
 						TranspileExpression(out, s.Value)
 					}
@@ -2455,13 +2481,13 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					out.WriteString("(")
 					// Just output the identifier names, don't wrap them
 					if ident, ok := s.Key.(*ast.Ident); ok {
-						out.WriteString(ident.Name)
+						out.WriteString(EscapeRustIdent(ident.Name))
 					} else {
 						TranspileExpression(out, s.Key)
 					}
 					out.WriteString(", ")
 					if ident, ok := s.Value.(*ast.Ident); ok {
-						out.WriteString(ident.Name)
+						out.WriteString(EscapeRustIdent(ident.Name))
 					} else {
 						TranspileExpression(out, s.Value)
 					}
@@ -2481,7 +2507,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			} else if s.Value != nil {
 				// for _, v := range arr
 				if ident, ok := s.Value.(*ast.Ident); ok {
-					out.WriteString(ident.Name)
+					out.WriteString(EscapeRustIdent(ident.Name))
 				} else {
 					TranspileExpression(out, s.Value)
 				}
@@ -2517,7 +2543,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			} else if s.Key != nil {
 				// for i := range arr
 				if ident, ok := s.Key.(*ast.Ident); ok {
-					out.WriteString(ident.Name)
+					out.WriteString(EscapeRustIdent(ident.Name))
 				} else {
 					TranspileExpression(out, s.Key)
 				}
@@ -2528,6 +2554,15 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					writeUnwrappedRangeTarget(out, s.X)
 				}
 				out.WriteString(".len()")
+			} else {
+				// for range arr
+				out.WriteString("_ in ")
+				if rangeValuesVar != "" {
+					out.WriteString(rangeValuesVar)
+				} else {
+					writeUnwrappedRangeTarget(out, s.X)
+				}
+				out.WriteString(".iter()")
 			}
 		}
 		out.WriteString(" {\n")
@@ -2784,47 +2819,43 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					out.WriteString("        }")
 				}
 			} else {
+				// Use an if/else chain instead of Rust match patterns. Go case
+				// expressions can be strings, calls, named constants, or other
+				// non-pattern values, so explicit comparisons are the general form.
 				if s.Tag != nil {
-					// Capture tag expression to avoid borrow-lifetime issues in match
 					out.WriteString("{ let _switch_val = ")
 					if !writeNamedTypeInnerExpression(out, s.Tag) {
-						TranspileExpression(out, s.Tag)
+						writeMaybeUnwrappedExpression(out, s.Tag)
 					}
-					out.WriteString(";\n    match _switch_val {\n")
-				} else {
-					// Switch without expression - use true
-					out.WriteString("match true {\n")
+					out.WriteString(";\n    ")
 				}
 
-				// Process cases
-				hasDefault := false
+				emittedCase := false
+				var defaultClause *ast.CaseClause
 				for _, stmt := range s.Body.List {
 					if caseClause, ok := stmt.(*ast.CaseClause); ok {
-						out.WriteString("        ")
 						if caseClause.List == nil {
-							// default case
-							out.WriteString("_")
-							hasDefault = true
-						} else {
-							// Regular case(s)
-							for i, expr := range caseClause.List {
-								if i > 0 {
-									out.WriteString(" | ")
-								}
-								// For switch without expression, we need to handle boolean conditions
-								if s.Tag == nil {
-									// The expression is a condition, we need to match on true
-									// and put the condition as a guard
-									out.WriteString("true if ")
-									TranspileExpression(out, expr)
-								} else {
-									TranspileExpression(out, expr)
-								}
+							defaultClause = caseClause
+							continue
+						}
+						if emittedCase {
+							out.WriteString(" else ")
+						}
+						out.WriteString("if ")
+						for i, expr := range caseClause.List {
+							if i > 0 {
+								out.WriteString(" || ")
+							}
+							if s.Tag != nil {
+								out.WriteString("_switch_val == (")
+								TranspileExpression(out, expr)
+								out.WriteString(")")
+							} else {
+								TranspileExpression(out, expr)
 							}
 						}
-						out.WriteString(" => {\n")
+						out.WriteString(" {\n")
 
-						// Case body
 						var caseBodyLastPos token.Pos = caseClause.Colon
 						for _, bodyStmt := range caseClause.Body {
 							out.WriteString("            ")
@@ -2832,19 +2863,28 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							out.WriteString("\n")
 						}
 
-						out.WriteString("        }\n")
+						out.WriteString("        }")
+						emittedCase = true
 					}
 				}
 
-				// Add default case if not present (required for exhaustive matching in Rust)
-				if !hasDefault {
-					out.WriteString("        _ => {}\n")
+				if defaultClause != nil {
+					if emittedCase {
+						out.WriteString(" else {\n")
+					} else {
+						out.WriteString("{\n")
+					}
+					var caseBodyLastPos token.Pos = defaultClause.Colon
+					for _, bodyStmt := range defaultClause.Body {
+						out.WriteString("            ")
+						TranspileStatement(out, bodyStmt, fnType, fileSet, comments, &caseBodyLastPos, "            ")
+						out.WriteString("\n")
+					}
+					out.WriteString("        }")
 				}
 
-				out.WriteString("    }")
 				if s.Tag != nil {
-					// Close the extra block wrapping the _switch_val let binding
-					out.WriteString(" }")
+					out.WriteString("\n    }")
 				}
 			}
 		}
@@ -2918,14 +2958,14 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						// Variable name(s)
 						if len(comm.Lhs) == 1 {
 							if ident, ok := comm.Lhs[0].(*ast.Ident); ok {
-								out.WriteString(ident.Name)
+								out.WriteString(EscapeRustIdent(ident.Name))
 								// Register as range var so it's not unwrapped
 								rangeLoopVars[ident.Name] = "select_val"
 							}
 						} else if len(comm.Lhs) == 2 {
 							// val, ok := <-ch — just bind val
 							if ident, ok := comm.Lhs[0].(*ast.Ident); ok {
-								out.WriteString(ident.Name)
+								out.WriteString(EscapeRustIdent(ident.Name))
 								rangeLoopVars[ident.Name] = "select_val"
 							}
 						}
@@ -2937,7 +2977,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						if len(comm.Lhs) == 2 {
 							if okIdent, ok := comm.Lhs[1].(*ast.Ident); ok && okIdent.Name != "_" {
 								out.WriteString("            let mut ")
-								out.WriteString(okIdent.Name)
+								out.WriteString(EscapeRustIdent(okIdent.Name))
 								out.WriteString(" = ")
 								WriteWrapperPrefix(out)
 								out.WriteString("true")
@@ -2950,10 +2990,10 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						if len(comm.Lhs) >= 1 {
 							if ident, ok := comm.Lhs[0].(*ast.Ident); ok && ident.Name != "_" {
 								out.WriteString("            let mut ")
-								out.WriteString(ident.Name)
+								out.WriteString(EscapeRustIdent(ident.Name))
 								out.WriteString(" = ")
 								WriteWrapperPrefix(out)
-								out.WriteString(ident.Name)
+								out.WriteString(EscapeRustIdent(ident.Name))
 								WriteWrapperSuffix(out)
 								out.WriteString(";\n")
 								// Now it's wrapped, remove from rangeLoopVars

@@ -134,10 +134,11 @@ func ToSnakeCase(s string) string {
 		result = append(result, toLower(r))
 	}
 
-	// Escape Rust keywords
 	resultStr := string(result)
-	switch resultStr {
-	case "type", "match", "move", "ref", "impl", "trait", "mod", "pub", "use", "where", "async", "await", "dyn", "loop":
+	if isRustPathKeyword(resultStr) {
+		return resultStr + "_"
+	}
+	if isRustKeyword(resultStr) {
 		return "r#" + resultStr
 	}
 
@@ -160,10 +161,11 @@ func SanitizeRustModuleName(s string) string {
 		}
 	}
 
-	// Escape Rust keywords
 	resultStr := string(result)
-	switch resultStr {
-	case "type", "match", "move", "ref", "impl", "trait", "mod", "pub", "use", "where", "async", "await", "dyn":
+	if isRustPathKeyword(resultStr) {
+		return resultStr + "_"
+	}
+	if isRustKeyword(resultStr) {
 		return "r#" + resultStr
 	}
 
@@ -173,6 +175,39 @@ func SanitizeRustModuleName(s string) string {
 	}
 
 	return resultStr
+}
+
+func EscapeRustIdent(s string) string {
+	if isRustPathKeyword(s) {
+		return s + "_"
+	}
+	if isRustKeyword(s) {
+		return "r#" + s
+	}
+	return s
+}
+
+func isRustPathKeyword(s string) bool {
+	switch s {
+	case "crate", "self", "super":
+		return true
+	default:
+		return false
+	}
+}
+
+func isRustKeyword(s string) bool {
+	switch s {
+	case "as", "async", "await", "break", "const", "continue", "dyn",
+		"else", "enum", "extern", "fn", "for", "if", "impl", "in", "let",
+		"loop", "match", "mod", "move", "mut", "pub", "ref", "return",
+		"static", "struct", "trait", "type", "unsafe", "use", "where",
+		"while", "abstract", "become", "box", "do", "final", "macro", "override",
+		"priv", "try", "typeof", "unsized", "virtual", "yield":
+		return true
+	default:
+		return false
+	}
 }
 
 func isUpper(r rune) bool {

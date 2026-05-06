@@ -4,28 +4,20 @@ use std::rc::{Rc};
 fn main() {
     let mut i = Rc::new(RefCell::new(Some(2)));
     { let _switch_val = (*i.borrow().as_ref().unwrap());
-    match _switch_val {
-        1 => {
+    if _switch_val == (1) {
             println!("{}", "one".to_string());
-        }
-        2 => {
+        } else if _switch_val == (2) {
             println!("{}", "two".to_string());
-        }
-        3 => {
+        } else if _switch_val == (3) {
             println!("{}", "three".to_string());
         }
-        _ => {}
-    } }
+    }
 
-    match true {
-        true if (*i.borrow().as_ref().unwrap()) < 2 => {
+    if (*i.borrow().as_ref().unwrap()) < 2 {
             println!("{}", "less than 2".to_string());
-        }
-        true if (*i.borrow().as_ref().unwrap()) > 2 => {
+        } else if (*i.borrow().as_ref().unwrap()) > 2 {
             println!("{}", "greater than 2".to_string());
-        }
-        _ => {
+        } else {
             println!("{}", "equal to 2".to_string());
         }
-    }
 }

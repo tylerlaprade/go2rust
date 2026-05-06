@@ -26,66 +26,50 @@ fn go_type_name(val: &dyn Any) -> &'static str {
 
 pub fn basic_switch(day: Rc<RefCell<Option<i32>>>) {
     { let _switch_val = (*day.borrow().as_ref().unwrap());
-    match _switch_val {
-        1 => {
+    if _switch_val == (1) {
             println!("{}", "Monday".to_string());
-        }
-        2 => {
+        } else if _switch_val == (2) {
             println!("{}", "Tuesday".to_string());
-        }
-        3 => {
+        } else if _switch_val == (3) {
             println!("{}", "Wednesday".to_string());
-        }
-        4 => {
+        } else if _switch_val == (4) {
             println!("{}", "Thursday".to_string());
-        }
-        5 => {
+        } else if _switch_val == (5) {
             println!("{}", "Friday".to_string());
-        }
-        6 | 7 => {
+        } else if _switch_val == (6) || _switch_val == (7) {
             println!("{}", "Weekend".to_string());
-        }
-        _ => {
+        } else {
             println!("{}", "Invalid day".to_string());
         }
-    } }
+    }
 }
 
 pub fn switch_with_expression() {
     let mut x = Rc::new(RefCell::new(Some(10)));
     { let _switch_val = (*x.borrow().as_ref().unwrap()) * 2;
-    match _switch_val {
-        20 => {
+    if _switch_val == (20) {
             println!("{}", "x * 2 equals 20".to_string());
-        }
-        30 => {
+        } else if _switch_val == (30) {
             println!("{}", "x * 2 equals 30".to_string());
-        }
-        _ => {
+        } else {
             println!("{}", "x * 2 is something else".to_string());
         }
-    } }
+    }
 }
 
 pub fn switch_without_expression() {
     let mut score = Rc::new(RefCell::new(Some(85)));
-    match true {
-        true if (*score.borrow().as_ref().unwrap()) >= 90 => {
+    if (*score.borrow().as_ref().unwrap()) >= 90 {
             println!("{}", "Grade: A".to_string());
-        }
-        true if (*score.borrow().as_ref().unwrap()) >= 80 => {
+        } else if (*score.borrow().as_ref().unwrap()) >= 80 {
             println!("{}", "Grade: B".to_string());
-        }
-        true if (*score.borrow().as_ref().unwrap()) >= 70 => {
+        } else if (*score.borrow().as_ref().unwrap()) >= 70 {
             println!("{}", "Grade: C".to_string());
-        }
-        true if (*score.borrow().as_ref().unwrap()) >= 60 => {
+        } else if (*score.borrow().as_ref().unwrap()) >= 60 {
             println!("{}", "Grade: D".to_string());
-        }
-        _ => {
+        } else {
             println!("{}", "Grade: F".to_string());
         }
-    }
 }
 
 pub fn switch_with_fallthrough(num: Rc<RefCell<Option<i32>>>) {

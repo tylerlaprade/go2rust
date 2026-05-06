@@ -649,6 +649,10 @@ run_xfail_test() {
     run_test "tests/regex_basic"
 }
 
+@test "rust_keyword_identifiers" {
+    run_test "tests/rust_keyword_identifiers"
+}
+
 @test "select_basic" {
     run_test "tests/select_basic"
 }
@@ -747,6 +751,10 @@ run_xfail_test() {
 
 @test "switch_statements" {
     run_test "tests/switch_statements"
+}
+
+@test "switch_strings" {
+    run_test "tests/switch_strings"
 }
 
 @test "tickers_basic" {

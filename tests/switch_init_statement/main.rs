@@ -6,25 +6,19 @@ fn main() {
 
     let mut n = (*values.borrow().as_ref().unwrap()).len();
     { let _switch_val = n;
-    match _switch_val {
-        0 => {
+    if _switch_val == (0) {
             println!("{}", "empty".to_string());
-        }
-        4 => {
+        } else if _switch_val == (4) {
             println!("{}", "len is four".to_string());
-        }
-        _ => {
+        } else {
             println!("{}", "other".to_string());
         }
-    } }
+    }
 
     let mut x = Rc::new(RefCell::new(Some((*values.borrow().as_ref().unwrap())[1 as usize].clone() * 10)));
-    match true {
-        true if (*x.borrow().as_ref().unwrap()) > 30 => {
+    if (*x.borrow().as_ref().unwrap()) > 30 {
             println!("{}", "large".to_string());
-        }
-        _ => {
+        } else {
             println!("{}", "small".to_string());
         }
-    }
 }

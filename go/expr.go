@@ -247,10 +247,10 @@ func sameWrappedIdentBinary(expr *ast.BinaryExpr) (*ast.Ident, bool) {
 }
 
 func writeIdentValueClone(out *strings.Builder, ident *ast.Ident) {
-	name := ident.Name
+	name := EscapeRustIdent(ident.Name)
 	if currentCaptureRenames != nil {
 		if renamed, exists := currentCaptureRenames[ident.Name]; exists {
-			name = renamed
+			name = EscapeRustIdent(renamed)
 		}
 	}
 	out.WriteString("(*")
@@ -460,10 +460,10 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 
 	case *ast.Ident:
 		// Check if this variable has been renamed (captured in closure)
-		varName := e.Name
+		varName := EscapeRustIdent(e.Name)
 		if currentCaptureRenames != nil {
 			if renamed, exists := currentCaptureRenames[e.Name]; exists {
-				varName = renamed
+				varName = EscapeRustIdent(renamed)
 			}
 		}
 
@@ -484,11 +484,11 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			switch ctx {
 			case RValue:
 				out.WriteString("(*")
-				out.WriteString(e.Name)
+				out.WriteString(EscapeRustIdent(e.Name))
 				WriteBorrowMethod(out, false)
 				out.WriteString(".as_ref().unwrap())")
 			case AddressOf, LValue:
-				out.WriteString(e.Name)
+				out.WriteString(EscapeRustIdent(e.Name))
 			}
 		} else if e.Name[0] >= 'A' && e.Name[0] <= 'Z' && e.Name != "String" {
 			// Likely a constant - convert to UPPER_SNAKE_CASE
@@ -720,7 +720,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 						// Wrapped variable with promoted field
 						if ctx == LValue || ctx == AddressOf {
 							out.WriteString("(*(*")
-							out.WriteString(ident.Name)
+							out.WriteString(EscapeRustIdent(ident.Name))
 							WriteBorrowMethod(out, true)
 							out.WriteString(".as_mut().unwrap()).")
 							for i, embedded := range fieldInfo.EmbeddedPath {
@@ -736,7 +736,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 						} else {
 							// RValue context - need to unwrap the field value too
 							out.WriteString("(*(*(*")
-							out.WriteString(ident.Name)
+							out.WriteString(EscapeRustIdent(ident.Name))
 							WriteBorrowMethod(out, false)
 							out.WriteString(".as_ref().unwrap()).")
 							for i, embedded := range fieldInfo.EmbeddedPath {
@@ -757,7 +757,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 						// The field itself is still wrapped, so unwrap it in RValue context
 						if ctx == RValue {
 							out.WriteString("(*")
-							out.WriteString(ident.Name)
+							out.WriteString(EscapeRustIdent(ident.Name))
 							for _, embedded := range fieldInfo.EmbeddedPath {
 								out.WriteString(".")
 								out.WriteString(ToSnakeCase(embedded))
@@ -767,7 +767,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 							WriteBorrowMethod(out, false)
 							out.WriteString(".as_ref().unwrap())")
 						} else {
-							out.WriteString(ident.Name)
+							out.WriteString(EscapeRustIdent(ident.Name))
 							for _, embedded := range fieldInfo.EmbeddedPath {
 								out.WriteString(".")
 								out.WriteString(ToSnakeCase(embedded))
@@ -784,7 +784,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 							// Immutable borrow on outer struct suffices because each
 							// field is independently wrapped in Rc<RefCell<...>>
 							out.WriteString("(*")
-							out.WriteString(ident.Name)
+							out.WriteString(EscapeRustIdent(ident.Name))
 							WriteBorrowMethod(out, false)
 							out.WriteString(".as_ref().unwrap()).")
 							out.WriteString(fieldInfo.FieldName)
@@ -794,14 +794,14 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 							out.WriteString("(*")
 							if NeedsConcurrentWrapper() {
 								out.WriteString("{ let __field = (*")
-								out.WriteString(ident.Name)
+								out.WriteString(EscapeRustIdent(ident.Name))
 								WriteBorrowMethod(out, false)
 								out.WriteString(".as_ref().unwrap()).")
 								out.WriteString(fieldInfo.FieldName)
 								out.WriteString(".clone(); __field }")
 							} else {
 								out.WriteString("(*")
-								out.WriteString(ident.Name)
+								out.WriteString(EscapeRustIdent(ident.Name))
 								WriteBorrowMethod(out, false)
 								out.WriteString(".as_ref().unwrap()).")
 								out.WriteString(fieldInfo.FieldName)
@@ -814,14 +814,14 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 						if ctx == RValue {
 							// Unwrap the field in RValue context
 							out.WriteString("(*")
-							out.WriteString(ident.Name)
+							out.WriteString(EscapeRustIdent(ident.Name))
 							out.WriteString(".")
 							out.WriteString(fieldInfo.FieldName)
 							WriteBorrowMethod(out, false)
 							out.WriteString(".as_ref().unwrap())")
 						} else {
 							// Direct access in LValue context
-							out.WriteString(ident.Name)
+							out.WriteString(EscapeRustIdent(ident.Name))
 							out.WriteString(".")
 							out.WriteString(fieldInfo.FieldName)
 						}
@@ -1988,7 +1988,7 @@ func writeFunctionValueBox(out *strings.Builder, ident *ast.Ident, sig *types.Si
 	out.WriteString(" { ")
 	if isPackageGlobalIdent(ident) {
 		out.WriteString("{ let __f_guard = ")
-		out.WriteString(ident.Name)
+		out.WriteString(EscapeRustIdent(ident.Name))
 		WriteBorrowMethod(out, false)
 		out.WriteString("; let __f = __f_guard.as_ref().unwrap(); (*__f)(")
 	} else {
@@ -2831,10 +2831,10 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 		} else {
 			// Likely a closure variable - need to unwrap and call
 			// Check if this variable has been renamed (captured in closure)
-			varName := ident.Name
+			varName := EscapeRustIdent(ident.Name)
 			if currentCaptureRenames != nil {
 				if renamed, exists := currentCaptureRenames[ident.Name]; exists {
-					varName = renamed
+					varName = EscapeRustIdent(renamed)
 				}
 			}
 			out.WriteString("{ let __f_guard = ")
@@ -2895,7 +2895,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 			// The last arg is already a slice, just clone it
 			lastArg := call.Args[len(call.Args)-1]
 			if ident, ok := lastArg.(*ast.Ident); ok {
-				out.WriteString(ident.Name)
+				out.WriteString(EscapeRustIdent(ident.Name))
 				out.WriteString(".clone()")
 			} else {
 				TranspileExpression(out, lastArg)
@@ -2990,15 +2990,15 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 					if isRangeVar && strings.HasPrefix(varType, "&Box<dyn ") {
 						// Range variable that's already &Box<dyn Trait>
 						// Convert to &dyn Trait via as_ref()
-						out.WriteString(ident.Name)
+						out.WriteString(EscapeRustIdent(ident.Name))
 						out.WriteString(".as_ref()")
 					} else if isVarBare(ident.Name) {
 						// Already a bare interface reference (&dyn Trait) - pass directly
-						out.WriteString(ident.Name)
+						out.WriteString(EscapeRustIdent(ident.Name))
 					} else {
 						// Regular wrapped variable - unwrap to get &T which coerces to &dyn Trait
 						// r.borrow().as_ref().unwrap() gives &T from Rc<RefCell<Option<T>>>
-						out.WriteString(ident.Name)
+						out.WriteString(EscapeRustIdent(ident.Name))
 						out.WriteString(".borrow().as_ref().unwrap()")
 					}
 				} else {
@@ -3026,7 +3026,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				if argIsInterface {
 					// Argument is already interface{} — just clone the Rc
 					if ident, ok := arg.(*ast.Ident); ok {
-						out.WriteString(ident.Name)
+						out.WriteString(EscapeRustIdent(ident.Name))
 						out.WriteString(".clone()")
 					} else {
 						TranspileExpression(out, arg)
@@ -3056,7 +3056,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 						ident := arg.(*ast.Ident)
 						// Variable — unwrap to get the inner value, then box it
 						out.WriteString("(*")
-						out.WriteString(ident.Name)
+						out.WriteString(EscapeRustIdent(ident.Name))
 						WriteBorrowMethod(out, false)
 						out.WriteString(".as_ref().unwrap()).clone()")
 					} else {
@@ -3090,10 +3090,10 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				// Sync parameter - pass bare clone, unwrap &x to just x.clone()
 				if unary, ok := arg.(*ast.UnaryExpr); ok && unary.Op == token.AND {
 					if ident, ok := unary.X.(*ast.Ident); ok {
-						argVarName := ident.Name
+						argVarName := EscapeRustIdent(ident.Name)
 						if currentCaptureRenames != nil {
 							if renamed, exists := currentCaptureRenames[ident.Name]; exists {
-								argVarName = renamed
+								argVarName = EscapeRustIdent(renamed)
 							}
 						}
 						out.WriteString(argVarName)
@@ -3101,10 +3101,10 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 						continue
 					}
 				} else if ident, ok := arg.(*ast.Ident); ok {
-					argVarName := ident.Name
+					argVarName := EscapeRustIdent(ident.Name)
 					if currentCaptureRenames != nil {
 						if renamed, exists := currentCaptureRenames[ident.Name]; exists {
-							argVarName = renamed
+							argVarName = EscapeRustIdent(renamed)
 						}
 					}
 					out.WriteString(argVarName)
@@ -3116,10 +3116,10 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 			// Check if the argument is already a wrapped variable
 			if ident, ok := arg.(*ast.Ident); ok && ident.Name != "nil" && ident.Name != "_" {
 				// Apply capture renames if applicable
-				argVarName := ident.Name
+				argVarName := EscapeRustIdent(ident.Name)
 				if currentCaptureRenames != nil {
 					if renamed, exists := currentCaptureRenames[ident.Name]; exists {
-						argVarName = renamed
+						argVarName = EscapeRustIdent(renamed)
 					}
 				}
 
@@ -3151,13 +3151,13 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 								// It's a reference from a range loop over interface slice
 								// The value is already &Box<dyn Interface>, just clone it
 								WriteWrapperPrefix(out)
-								out.WriteString(ident.Name)
+								out.WriteString(EscapeRustIdent(ident.Name))
 								out.WriteString(".clone()))")
 							} else {
 								// Regular variable needs boxing
 								WriteWrapperPrefix(out)
 								out.WriteString("Box::new((*")
-								out.WriteString(ident.Name)
+								out.WriteString(EscapeRustIdent(ident.Name))
 								WriteBorrowMethod(out, false)
 								out.WriteString(".as_ref().unwrap()).clone()) as Box<dyn ")
 								out.WriteString(interfaceName)
@@ -3197,12 +3197,12 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 							WriteWrapperPrefix(out)
 							// This will still fail because shape.clone() clones the reference, not the Box
 							// We need a different approach - maybe pass as is without Some()
-							out.WriteString(ident.Name)
+							out.WriteString(EscapeRustIdent(ident.Name))
 							WriteWrapperSuffix(out)
 						} else {
 							// Not an interface parameter, just wrap the reference
 							WriteWrapperPrefix(out)
-							out.WriteString(ident.Name)
+							out.WriteString(EscapeRustIdent(ident.Name))
 							WriteWrapperSuffix(out)
 						}
 					} else if varType == "ref_value" {
@@ -3211,7 +3211,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 							// It's already a &Box<dyn Interface>
 							// We can't clone Box<dyn Trait> directly, so just clone the reference
 							WriteWrapperPrefix(out)
-							out.WriteString(ident.Name)
+							out.WriteString(EscapeRustIdent(ident.Name))
 							out.WriteString(".clone())))")
 						} else {
 							// Regular ref value. Copy scalars can be dereferenced, but owned

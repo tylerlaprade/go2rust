@@ -174,33 +174,24 @@ fn main() {
         print!("Category {}, Item {}: ", { let __v = (*category.lock().unwrap().as_ref().unwrap()).clone(); __v }, { let __v = (*item.lock().unwrap().as_ref().unwrap()).clone(); __v });
 
         { let _switch_val = { let __v = (*category.lock().unwrap().as_ref().unwrap()).clone(); __v };
-    match _switch_val {
-        1 => {
+    if _switch_val == (1) {
             { let _switch_val = { let __v = (*item.lock().unwrap().as_ref().unwrap()).clone(); __v };
-    match _switch_val {
-        1 => {
+    if _switch_val == (1) {
             println!("{}", "Electronics - Phone".to_string());
-        }
-        2 => {
+        } else if _switch_val == (2) {
             println!("{}", "Electronics - Laptop".to_string());
         }
-        _ => {}
-    } }
-        }
-        2 => {
+    }
+        } else if _switch_val == (2) {
             { let _switch_val = { let __v = (*item.lock().unwrap().as_ref().unwrap()).clone(); __v };
-    match _switch_val {
-        1 => {
+    if _switch_val == (1) {
             println!("{}", "Books - Fiction".to_string());
-        }
-        2 => {
+        } else if _switch_val == (2) {
             println!("{}", "Books - Non-fiction".to_string());
         }
-        _ => {}
-    } }
+    }
         }
-        _ => {}
-    } }
+    }
         { let mut guard = item.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
         { let mut guard = category.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }

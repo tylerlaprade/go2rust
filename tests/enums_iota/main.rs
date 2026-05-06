@@ -65,20 +65,16 @@ fn main() {
 pub fn transition(s: Rc<RefCell<Option<ServerState>>>) -> Rc<RefCell<Option<ServerState>>> {
 
     { let _switch_val = (*(*s.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap());
-    match _switch_val {
-        STATE_IDLE => {
+    if _switch_val == (STATE_IDLE) {
             return Rc::new(RefCell::new(Some(ServerState(Rc::new(RefCell::new(Some(STATE_CONNECTED)))))));
-        }
-        STATE_CONNECTED | STATE_RETRYING => {
+        } else if _switch_val == (STATE_CONNECTED) || _switch_val == (STATE_RETRYING) {
             return Rc::new(RefCell::new(Some(ServerState(Rc::new(RefCell::new(Some(STATE_IDLE)))))));
-        }
-        STATE_ERROR => {
+        } else if _switch_val == (STATE_ERROR) {
             return Rc::new(RefCell::new(Some(ServerState(Rc::new(RefCell::new(Some(STATE_ERROR)))))));
-        }
-        _ => {
+        } else {
             panic!("unknown state: {}", { let __v = (*s.borrow().as_ref().unwrap()).clone(); __v });
         }
-    } }
+    }
 }
 
 pub(crate) fn __go_init_all() {

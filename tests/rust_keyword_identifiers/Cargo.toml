@@ -1,0 +1,8 @@
+[package]
+name = "rust_keyword_identifiers"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "rust_keyword_identifiers"
+path = "main.rs"
