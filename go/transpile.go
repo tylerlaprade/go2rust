@@ -423,6 +423,7 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 
 	// Transpile the body
 	var body strings.Builder
+	packageGlobalNames = make(map[string]bool)
 
 	// Collect methods by receiver type
 	methods := make(map[string][]*ast.FuncDecl)

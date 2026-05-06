@@ -2,6 +2,7 @@ package main
 
 import (
 	"go/ast"
+	"go/types"
 	"strconv"
 	"strings"
 )
@@ -186,6 +187,32 @@ func EscapeRustIdent(s string) string {
 		return "r#" + s
 	}
 	return s
+}
+
+func RustLocalIdent(s string) string {
+	if isPackageGlobalName(s) {
+		return EscapeRustIdent(s + "_local")
+	}
+	return EscapeRustIdent(s)
+}
+
+func isPackageGlobalName(s string) bool {
+	if packageGlobalNames[s] {
+		return true
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.pkg == nil || typeInfo.pkg.Scope() == nil {
+		return false
+	}
+	_, ok := typeInfo.pkg.Scope().Lookup(s).(*types.Var)
+	return ok
+}
+
+func RustIdentForUse(ident *ast.Ident) string {
+	if isPackageGlobalIdent(ident) {
+		return EscapeRustIdent(ident.Name)
+	}
+	return RustLocalIdent(ident.Name)
 }
 
 func RustStringLiteral(goLiteral string) string {

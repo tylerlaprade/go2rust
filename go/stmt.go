@@ -38,7 +38,7 @@ func writeUnwrappedRangeTarget(out *strings.Builder, expr ast.Expr) {
 		}
 	} else if ident, ok := expr.(*ast.Ident); ok {
 		if _, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar {
-			out.WriteString(EscapeRustIdent(ident.Name))
+			out.WriteString(RustLocalIdent(ident.Name))
 			return
 		}
 		TranspileExpressionContext(out, expr, RValue)
@@ -72,10 +72,10 @@ func writeWrappedValueCopyFromIdent(out *strings.Builder, ident *ast.Ident) bool
 
 	switch typ.Underlying().(type) {
 	case *types.Basic, *types.Struct, *types.Array:
-		varName := EscapeRustIdent(ident.Name)
+		varName := RustIdentForUse(ident)
 		if currentCaptureRenames != nil {
 			if renamed, exists := currentCaptureRenames[ident.Name]; exists {
-				varName = EscapeRustIdent(renamed)
+				varName = RustLocalIdent(renamed)
 			}
 		}
 		WriteWrapperPrefix(out)
@@ -592,7 +592,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							out.WriteString(", ")
 						}
 						first = false
-						out.WriteString(EscapeRustIdent(name.Name))
+						out.WriteString(RustLocalIdent(name.Name))
 					}
 				}
 
@@ -712,10 +712,10 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						if isWrappedVariable {
 							// This is a wrapped variable - clone it to avoid move errors
 							// Check if this variable has been renamed (captured in closure)
-							varName := EscapeRustIdent(ident.Name)
+							varName := RustIdentForUse(ident)
 							if currentCaptureRenames != nil {
 								if renamed, exists := currentCaptureRenames[ident.Name]; exists {
-									varName = EscapeRustIdent(renamed)
+									varName = RustLocalIdent(renamed)
 								}
 							}
 							out.WriteString(varName)
@@ -1771,7 +1771,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										out.WriteString(", ")
 									}
 									out.WriteString("mut ")
-									out.WriteString(EscapeRustIdent(name.Name))
+									out.WriteString(RustLocalIdent(name.Name))
 								}
 								out.WriteString(") = ")
 								TranspileExpression(out, valueSpec.Values[0])
@@ -1797,7 +1797,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							}
 
 							out.WriteString("let mut ")
-							out.WriteString(EscapeRustIdent(name.Name))
+							out.WriteString(RustLocalIdent(name.Name))
 
 							// Add type annotation if type is specified (skip for sync types and local interfaces)
 							isLocalInterface := false

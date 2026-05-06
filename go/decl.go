@@ -360,7 +360,7 @@ func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.Fi
 				if j > 0 {
 					out.WriteString(", ")
 				}
-				out.WriteString(EscapeRustIdent(name.Name))
+				out.WriteString(RustLocalIdent(name.Name))
 				out.WriteString(": ")
 				out.WriteString(GoTypeToRustParam(field.Type))
 			}
@@ -471,7 +471,7 @@ func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.Fi
 			if len(result.Names) > 0 {
 				for _, name := range result.Names {
 					out.WriteString("    let mut ")
-					out.WriteString(EscapeRustIdent(name.Name))
+					out.WriteString(RustLocalIdent(name.Name))
 					out.WriteString(": ")
 					out.WriteString(GoTypeToRust(result.Type))
 					// Initialize with wrapped default values
@@ -674,7 +674,7 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 							if j > 0 {
 								out.WriteString(", ")
 							}
-							out.WriteString(EscapeRustIdent(name.Name))
+							out.WriteString(RustLocalIdent(name.Name))
 							out.WriteString(": ")
 							out.WriteString(GoTypeToRust(param.Type))
 						}
@@ -1114,7 +1114,7 @@ func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, a
 				if j > 0 {
 					out.WriteString(", ")
 				}
-				out.WriteString(EscapeRustIdent(name.Name))
+				out.WriteString(RustLocalIdent(name.Name))
 				out.WriteString(": ")
 				out.WriteString(GoTypeToRustParam(field.Type))
 			}

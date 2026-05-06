@@ -8,6 +8,7 @@ import (
 )
 
 var functionNameOverrides map[*ast.FuncDecl]string
+var packageGlobalNames = make(map[string]bool)
 
 func SetFunctionNameOverrides(overrides map[*ast.FuncDecl]string) {
 	functionNameOverrides = overrides
@@ -91,6 +92,7 @@ func collectPackageGlobals(globalVars []*ast.GenDecl) []packageGlobal {
 					rustType: rustType,
 					typ:      typ,
 				})
+				packageGlobalNames[name.Name] = true
 			}
 		}
 	}

@@ -617,6 +617,10 @@ run_xfail_test() {
     run_test "tests/os_args"
 }
 
+@test "package_global_shadowing" {
+    run_test "tests/package_global_shadowing"
+}
+
 @test "pointers_basic" {
     run_test "tests/pointers_basic"
 }

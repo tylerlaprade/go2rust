@@ -225,7 +225,7 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 					// It's the builtin error type - use Display formatting
 					if ident, ok := arg.(*ast.Ident); ok {
 						out.WriteString("format!(\"{}\", (*")
-						out.WriteString(ident.Name)
+						out.WriteString(RustIdentForUse(ident))
 						WriteBorrowMethod(out, false)
 						out.WriteString(".as_ref().unwrap()))")
 					} else {
@@ -245,7 +245,7 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 				NeedFormatAny()
 				out.WriteString("format_any(")
 				if ident, ok := arg.(*ast.Ident); ok {
-					out.WriteString(ident.Name)
+					out.WriteString(RustIdentForUse(ident))
 					WriteBorrowMethod(out, false)
 					out.WriteString(".as_ref().unwrap().as_ref()")
 				} else if _, ok := arg.(*ast.SelectorExpr); ok {
@@ -266,13 +266,13 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 				// Check if it's a bare interface param (&dyn Trait) - use directly
 				if ident, ok := arg.(*ast.Ident); ok && isVarBare(ident.Name) {
 					// Interface parameter is already &dyn Trait with Display supertrait
-					out.WriteString(ident.Name)
+					out.WriteString(RustIdentForUse(ident))
 				} else {
 					// This will use the Display impl of the concrete type
 					out.WriteString("format!(\"{}\", ")
 					if ident, ok := arg.(*ast.Ident); ok {
 						out.WriteString("(*")
-						out.WriteString(ident.Name)
+						out.WriteString(RustIdentForUse(ident))
 						WriteBorrowMethod(out, false)
 						out.WriteString(".as_ref().unwrap())")
 					} else {
@@ -296,7 +296,7 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 			out.WriteString("format_map(&")
 			if ident, ok := arg.(*ast.Ident); ok {
 				// For identifiers, just use the name directly (it's already wrapped)
-				out.WriteString(ident.Name)
+				out.WriteString(RustIdentForUse(ident))
 			} else {
 				TranspileExpression(out, arg)
 			}
@@ -312,7 +312,7 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 					TrackImport("Any")
 					out.WriteString("format_any_slice(&")
 					if ident, ok := arg.(*ast.Ident); ok {
-						out.WriteString(ident.Name)
+						out.WriteString(RustIdentForUse(ident))
 					} else {
 						TranspileExpression(out, arg)
 					}
@@ -326,12 +326,12 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 			if ident, ok := arg.(*ast.Ident); ok {
 				if _, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar {
 					out.WriteString("format_slice_values(")
-					out.WriteString(ident.Name)
+					out.WriteString(RustIdentForUse(ident))
 					out.WriteString(")")
 					return
 				}
 				out.WriteString("format_slice(&")
-				out.WriteString(ident.Name)
+				out.WriteString(RustIdentForUse(ident))
 				out.WriteString(")")
 			} else {
 				out.WriteString("format_slice(&")
@@ -345,7 +345,7 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 			if _, ok := ptr.Elem().Underlying().(*types.Struct); ok {
 				out.WriteString("format!(\"&{}\", (*")
 				if ident, ok := arg.(*ast.Ident); ok {
-					out.WriteString(ident.Name)
+					out.WriteString(RustIdentForUse(ident))
 				} else {
 					TranspileExpression(out, arg)
 				}
@@ -364,10 +364,10 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 			if _, isRangeVar := rangeLoopVars[ident.Name]; !isRangeVar {
 				if _, isLocalConst := localConstants[ident.Name]; !isLocalConst {
 					if _, ok := argType.Underlying().(*types.Basic); ok {
-						varName := ident.Name
+						varName := RustIdentForUse(ident)
 						if currentCaptureRenames != nil {
 							if renamed, exists := currentCaptureRenames[ident.Name]; exists {
-								varName = renamed
+								varName = RustLocalIdent(renamed)
 							}
 						}
 						out.WriteString("{ let __v = (*")

@@ -171,10 +171,10 @@ func writeCallArgumentValue(out *strings.Builder, arg ast.Expr) bool {
 	}
 	switch typ.Underlying().(type) {
 	case *types.Basic, *types.Struct, *types.Array:
-		varName := EscapeRustIdent(ident.Name)
+		varName := RustIdentForUse(ident)
 		if currentCaptureRenames != nil {
 			if renamed, exists := currentCaptureRenames[ident.Name]; exists {
-				varName = EscapeRustIdent(renamed)
+				varName = RustLocalIdent(renamed)
 			}
 		}
 		out.WriteString("(*")
@@ -246,10 +246,10 @@ func sameWrappedIdentBinary(expr *ast.BinaryExpr) (*ast.Ident, bool) {
 }
 
 func writeIdentValueClone(out *strings.Builder, ident *ast.Ident) {
-	name := EscapeRustIdent(ident.Name)
+	name := RustIdentForUse(ident)
 	if currentCaptureRenames != nil {
 		if renamed, exists := currentCaptureRenames[ident.Name]; exists {
-			name = EscapeRustIdent(renamed)
+			name = RustLocalIdent(renamed)
 		}
 	}
 	out.WriteString("(*")
@@ -451,10 +451,10 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 
 	case *ast.Ident:
 		// Check if this variable has been renamed (captured in closure)
-		varName := EscapeRustIdent(e.Name)
+		varName := RustIdentForUse(e)
 		if currentCaptureRenames != nil {
 			if renamed, exists := currentCaptureRenames[e.Name]; exists {
-				varName = EscapeRustIdent(renamed)
+				varName = RustLocalIdent(renamed)
 			}
 		}
 
@@ -2676,7 +2676,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 						// Get receiver name
 						recvName := ""
 						if ident, ok := sel.X.(*ast.Ident); ok {
-							recvName = EscapeRustIdent(ident.Name)
+							recvName = RustIdentForUse(ident)
 						}
 						switch sel.Sel.Name {
 						case "WriteString":
@@ -2742,10 +2742,10 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 			}
 
 			// Apply capture renames for defer closures
-			receiverName := EscapeRustIdent(ident.Name)
+			receiverName := RustIdentForUse(ident)
 			if currentCaptureRenames != nil {
 				if renamed, exists := currentCaptureRenames[ident.Name]; exists {
-					receiverName = EscapeRustIdent(renamed)
+					receiverName = RustLocalIdent(renamed)
 				}
 			}
 
@@ -2855,10 +2855,10 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 		} else {
 			// Likely a closure variable - need to unwrap and call
 			// Check if this variable has been renamed (captured in closure)
-			varName := EscapeRustIdent(ident.Name)
+			varName := RustIdentForUse(ident)
 			if currentCaptureRenames != nil {
 				if renamed, exists := currentCaptureRenames[ident.Name]; exists {
-					varName = EscapeRustIdent(renamed)
+					varName = RustLocalIdent(renamed)
 				}
 			}
 			out.WriteString("{ let __f_guard = ")
@@ -3114,10 +3114,10 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				// Sync parameter - pass bare clone, unwrap &x to just x.clone()
 				if unary, ok := arg.(*ast.UnaryExpr); ok && unary.Op == token.AND {
 					if ident, ok := unary.X.(*ast.Ident); ok {
-						argVarName := EscapeRustIdent(ident.Name)
+						argVarName := RustIdentForUse(ident)
 						if currentCaptureRenames != nil {
 							if renamed, exists := currentCaptureRenames[ident.Name]; exists {
-								argVarName = EscapeRustIdent(renamed)
+								argVarName = RustLocalIdent(renamed)
 							}
 						}
 						out.WriteString(argVarName)
@@ -3125,10 +3125,10 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 						continue
 					}
 				} else if ident, ok := arg.(*ast.Ident); ok {
-					argVarName := EscapeRustIdent(ident.Name)
+					argVarName := RustIdentForUse(ident)
 					if currentCaptureRenames != nil {
 						if renamed, exists := currentCaptureRenames[ident.Name]; exists {
-							argVarName = EscapeRustIdent(renamed)
+							argVarName = RustLocalIdent(renamed)
 						}
 					}
 					out.WriteString(argVarName)
@@ -3140,10 +3140,10 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 			// Check if the argument is already a wrapped variable
 			if ident, ok := arg.(*ast.Ident); ok && ident.Name != "nil" && ident.Name != "_" {
 				// Apply capture renames if applicable
-				argVarName := EscapeRustIdent(ident.Name)
+				argVarName := RustIdentForUse(ident)
 				if currentCaptureRenames != nil {
 					if renamed, exists := currentCaptureRenames[ident.Name]; exists {
-						argVarName = EscapeRustIdent(renamed)
+						argVarName = RustLocalIdent(renamed)
 					}
 				}
 

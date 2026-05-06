@@ -1,0 +1,8 @@
+[package]
+name = "package_global_shadowing"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "package_global_shadowing"
+path = "main.rs"
