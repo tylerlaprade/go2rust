@@ -467,6 +467,11 @@ func convertFormatStringWithSkips(goFormat string) (string, []int, []int, []int,
 	var unicodeIndices []int
 	hexFormats := make(map[int]string)
 	format := goFormat
+	quoted := false
+	if unquoted, err := strconv.Unquote(goFormat); err == nil {
+		format = unquoted
+		quoted = true
+	}
 
 	// First, escape any literal curly braces that aren't part of Go format verbs
 	// We need to do this before converting format verbs
@@ -603,6 +608,9 @@ func convertFormatStringWithSkips(goFormat string) (string, []int, []int, []int,
 	finalFormat := result.String()
 	finalFormat = strings.ReplaceAll(finalFormat, "__OPEN_BRACE__", "{{")
 	finalFormat = strings.ReplaceAll(finalFormat, "__CLOSE_BRACE__", "}}")
+	if quoted {
+		finalFormat = strconv.Quote(finalFormat)
+	}
 
 	return finalFormat, skipIndices, charIndices, typeNameIndices, unicodeIndices, hexFormats
 }
@@ -986,7 +994,7 @@ func transpileErrorsNew(out *strings.Builder, call *ast.CallExpr) {
 		// The argument is the error message
 		if lit, ok := call.Args[0].(*ast.BasicLit); ok && lit.Kind == token.STRING {
 			// String literal - already has quotes
-			out.WriteString(lit.Value)
+			out.WriteString(RustStringLiteral(lit.Value))
 			out.WriteString(".to_string()")
 		} else {
 			// Expression - might already be a string
@@ -2264,7 +2272,7 @@ func transpilePanic(out *strings.Builder, call *ast.CallExpr) {
 		// Check if the argument is a string literal
 		if lit, ok := call.Args[0].(*ast.BasicLit); ok && lit.Kind == token.STRING {
 			// String literal - use it directly
-			out.WriteString(lit.Value)
+			out.WriteString(RustStringLiteral(lit.Value))
 		} else if callExpr, ok := call.Args[0].(*ast.CallExpr); ok {
 			// Check if it's fmt.Errorf - handle specially
 			if sel, ok := callExpr.Fun.(*ast.SelectorExpr); ok {

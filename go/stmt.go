@@ -295,7 +295,7 @@ func transpileChannelValue(out *strings.Builder, expr ast.Expr) {
 	// For string literals, just output the value directly
 	if lit, ok := expr.(*ast.BasicLit); ok {
 		if lit.Kind == token.STRING {
-			out.WriteString(lit.Value)
+			out.WriteString(RustStringLiteral(lit.Value))
 			out.WriteString(".to_string()")
 		} else {
 			out.WriteString(lit.Value)
@@ -458,6 +458,45 @@ func outputComment(out *strings.Builder, cg *ast.CommentGroup, indent string, is
 func TranspileStatementSimple(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncType, fileSet *token.FileSet) {
 	var lastPos token.Pos
 	TranspileStatement(out, stmt, fnType, fileSet, nil, &lastPos, "")
+}
+
+func transpileElseBranch(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncType, fileSet *token.FileSet) {
+	if elseIf, ok := stmt.(*ast.IfStmt); ok {
+		if elseIf.Init != nil {
+			transpileIfWithInitAsBlock(out, elseIf, fnType, fileSet)
+		} else {
+			TranspileStatementSimple(out, elseIf, fnType, fileSet)
+		}
+		return
+	}
+	if block, ok := stmt.(*ast.BlockStmt); ok {
+		out.WriteString("{\n")
+		for _, stmt := range block.List {
+			out.WriteString("            ")
+			TranspileStatementSimple(out, stmt, fnType, fileSet)
+			out.WriteString(";\n")
+		}
+		out.WriteString("        }")
+	}
+}
+
+func transpileIfWithInitAsBlock(out *strings.Builder, stmt *ast.IfStmt, fnType *ast.FuncType, fileSet *token.FileSet) {
+	out.WriteString("{\n        ")
+	TranspileStatementSimple(out, stmt.Init, fnType, fileSet)
+	out.WriteString(";\n        if ")
+	TranspileExpression(out, stmt.Cond)
+	out.WriteString(" {\n")
+	for _, bodyStmt := range stmt.Body.List {
+		out.WriteString("            ")
+		TranspileStatementSimple(out, bodyStmt, fnType, fileSet)
+		out.WriteString(";\n")
+	}
+	out.WriteString("        }")
+	if stmt.Else != nil {
+		out.WriteString(" else ")
+		transpileElseBranch(out, stmt.Else, fnType, fileSet)
+	}
+	out.WriteString("\n    }")
 }
 
 func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncType, fileSet *token.FileSet, comments []*ast.CommentGroup, lastPos *token.Pos, indent string) {
@@ -834,7 +873,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 							// Special handling for string literals
 							if lit, ok := result.(*ast.BasicLit); ok && lit.Kind == token.STRING {
-								out.WriteString(lit.Value)
+								out.WriteString(RustStringLiteral(lit.Value))
 								out.WriteString(".to_string()")
 							} else {
 								TranspileExpression(out, result)
@@ -2613,36 +2652,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			if elseIf, ok := s.Else.(*ast.IfStmt); ok {
 				// else if case
 				if elseIf.Init != nil {
-					// If the else-if has an init statement, we need to wrap it in a block
-					out.WriteString("{\n        ")
-					TranspileStatementSimple(out, elseIf.Init, fnType, fileSet)
-					out.WriteString(";\n        ")
-					out.WriteString("if ")
-					TranspileExpression(out, elseIf.Cond)
-					out.WriteString(" {\n")
-					for _, stmt := range elseIf.Body.List {
-						out.WriteString("            ")
-						TranspileStatementSimple(out, stmt, fnType, fileSet)
-						out.WriteString(";\n")
-					}
-					out.WriteString("        }")
-					// Handle nested else
-					if elseIf.Else != nil {
-						out.WriteString(" else ")
-						if nestedElseIf, ok := elseIf.Else.(*ast.IfStmt); ok {
-							// Recursively handle nested else-if
-							TranspileStatementSimple(out, nestedElseIf, fnType, fileSet)
-						} else if block, ok := elseIf.Else.(*ast.BlockStmt); ok {
-							out.WriteString("{\n")
-							for _, stmt := range block.List {
-								out.WriteString("            ")
-								TranspileStatementSimple(out, stmt, fnType, fileSet)
-								out.WriteString(";\n")
-							}
-							out.WriteString("        }")
-						}
-					}
-					out.WriteString("\n    }")
+					transpileIfWithInitAsBlock(out, elseIf, fnType, fileSet)
 				} else {
 					// No init statement, handle normally
 					TranspileStatementSimple(out, elseIf, fnType, fileSet)

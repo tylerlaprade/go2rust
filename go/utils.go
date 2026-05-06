@@ -2,6 +2,7 @@ package main
 
 import (
 	"go/ast"
+	"strconv"
 	"strings"
 )
 
@@ -185,6 +186,14 @@ func EscapeRustIdent(s string) string {
 		return "r#" + s
 	}
 	return s
+}
+
+func RustStringLiteral(goLiteral string) string {
+	unquoted, err := strconv.Unquote(goLiteral)
+	if err != nil {
+		return goLiteral
+	}
+	return strconv.Quote(unquoted)
 }
 
 func isRustPathKeyword(s string) bool {

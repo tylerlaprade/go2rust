@@ -413,6 +413,10 @@ run_xfail_test() {
     run_test "tests/elided_nested_composites"
 }
 
+@test "else_if_init" {
+    run_test "tests/else_if_init"
+}
+
 @test "embedded_method_promotion" {
     run_test "tests/embedded_method_promotion"
 }
@@ -635,6 +639,10 @@ run_xfail_test() {
 
 @test "rate_limiting" {
     run_test "tests/rate_limiting"
+}
+
+@test "raw_string_literals" {
+    run_test "tests/raw_string_literals"
 }
 
 @test "recursion_basic" {

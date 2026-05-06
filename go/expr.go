@@ -5,7 +5,6 @@ import (
 	"go/ast"
 	"go/token"
 	"go/types"
-	"strconv"
 	"strings"
 )
 
@@ -423,15 +422,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 	case *ast.BasicLit:
 		switch e.Kind {
 		case token.STRING:
-			if strings.HasPrefix(e.Value, "`") {
-				if unquoted, err := strconv.Unquote(e.Value); err == nil {
-					out.WriteString(strconv.Quote(unquoted))
-				} else {
-					out.WriteString(e.Value)
-				}
-			} else {
-				out.WriteString(e.Value)
-			}
+			out.WriteString(RustStringLiteral(e.Value))
 			out.WriteString(".to_string()")
 		case token.CHAR:
 			// In Go, character literals are runes (int32)
@@ -1121,7 +1112,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				// Emit string literal as &str (without .to_string())
 				// This works for comparing with String, &String, and &str
 				lit := expr.(*ast.BasicLit)
-				out.WriteString(lit.Value)
+				out.WriteString(RustStringLiteral(lit.Value))
 			} else {
 				TranspileExpression(out, expr)
 			}
@@ -2664,7 +2655,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 							if len(call.Args) > 0 {
 								if lit, ok := call.Args[0].(*ast.BasicLit); ok && lit.Kind == token.STRING {
 									// String literal - use directly
-									out.WriteString(lit.Value)
+									out.WriteString(RustStringLiteral(lit.Value))
 								} else {
 									// Variable - unwrap and borrow
 									out.WriteString("&(*")

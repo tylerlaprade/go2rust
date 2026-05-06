@@ -1,0 +1,8 @@
+[package]
+name = "else_if_init"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "else_if_init"
+path = "main.rs"
