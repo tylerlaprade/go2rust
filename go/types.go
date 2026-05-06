@@ -496,12 +496,16 @@ func goTypesTypeToRust(t types.Type) string {
 		}
 	case *types.Slice:
 		return "Vec<" + goTypesTypeToRust(ut.Elem()) + ">"
+	case *types.Pointer:
+		outerWrapper := GetOuterWrapperType()
+		innerWrapper := GetInnerWrapperType()
+		return outerWrapper + "<" + innerWrapper + "<Option<" + goTypesTypeToRust(ut.Elem()) + ">>>"
 	case *types.Map:
 		TrackImport("BTreeMap")
 		return "BTreeMap<" + goTypesTypeToRust(ut.Key()) + ", " + goTypesTypeToRustWrapped(ut.Elem()) + ">"
 	case *types.Struct:
 		if named, ok := t.(*types.Named); ok {
-			return named.Obj().Name()
+			return goTypesNamedTypeToRust(named)
 		}
 		if anonName := lookupAnonymousStructName(ut); anonName != "" {
 			return anonName
@@ -513,7 +517,7 @@ func goTypesTypeToRust(t types.Type) string {
 			return "Box<dyn Any>"
 		}
 		if named, ok := t.(*types.Named); ok {
-			return "Box<dyn " + named.Obj().Name() + ">"
+			return "Box<dyn " + goTypesNamedTypeToRust(named) + ">"
 		}
 		return "Box<dyn Trait>"
 	case *types.Signature:
@@ -521,10 +525,25 @@ func goTypesTypeToRust(t types.Type) string {
 	default:
 		// Fallback for named types
 		if named, ok := t.(*types.Named); ok {
-			return named.Obj().Name()
+			return goTypesNamedTypeToRust(named)
 		}
 		return "/* unknown type */"
 	}
+}
+
+func goTypesNamedTypeToRust(named *types.Named) string {
+	if named == nil || named.Obj() == nil {
+		return "Unknown"
+	}
+	obj := named.Obj()
+	if obj.Pkg() == nil {
+		return obj.Name()
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo != nil && typeInfo.pkg != nil && obj.Pkg() == typeInfo.pkg {
+		return obj.Name()
+	}
+	return obj.Pkg().Name() + "_" + obj.Name()
 }
 
 // goTypesTypeToRustWrapped converts a go/types.Type to the wrapped Rust type string

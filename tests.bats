@@ -297,6 +297,10 @@ run_xfail_test() {
     run_test "tests/anonymous_structs_nested"
 }
 
+@test "anonymous_structs_positional" {
+    run_test "tests/anonymous_structs_positional"
+}
+
 @test "append_slice_expansion" {
     run_test "tests/append_slice_expansion"
 }

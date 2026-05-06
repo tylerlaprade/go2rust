@@ -171,10 +171,10 @@ func writeCallArgumentValue(out *strings.Builder, arg ast.Expr) bool {
 	}
 	switch typ.Underlying().(type) {
 	case *types.Basic, *types.Struct, *types.Array:
-		varName := ident.Name
+		varName := EscapeRustIdent(ident.Name)
 		if currentCaptureRenames != nil {
 			if renamed, exists := currentCaptureRenames[ident.Name]; exists {
-				varName = renamed
+				varName = EscapeRustIdent(renamed)
 			}
 		}
 		out.WriteString("(*")
@@ -1472,6 +1472,12 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			return
 		}
 		// Handle array/slice literals
+		if sel, ok := e.Type.(*ast.SelectorExpr); ok {
+			if ident, ok := sel.X.(*ast.Ident); ok && ident.Name == "strings" && sel.Sel.Name == "Builder" {
+				out.WriteString("String::new()")
+				return
+			}
+		}
 		if arrayType, ok := e.Type.(*ast.ArrayType); ok {
 			// Ensure anonymous struct element types are registered
 			if structElt, ok := arrayType.Elt.(*ast.StructType); ok {
@@ -1769,28 +1775,55 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			out.WriteString(typeName)
 			out.WriteString(" { ")
 
-			// Track which fields are initialized
-			initializedFields := make(map[string]bool)
+			allPositional := true
 			for _, elt := range e.Elts {
-				if kv, ok := elt.(*ast.KeyValueExpr); ok {
-					if key, ok := kv.Key.(*ast.Ident); ok {
-						initializedFields[key.Name] = true
-					}
+				if _, ok := elt.(*ast.KeyValueExpr); ok {
+					allPositional = false
+					break
 				}
 			}
 
-			// Output initialized fields
+			initializedFields := make(map[string]bool)
 			needComma := false
-			for _, elt := range e.Elts {
-				if needComma {
-					out.WriteString(", ")
-				}
-				needComma = true
-				if kv, ok := elt.(*ast.KeyValueExpr); ok {
-					if key, ok := kv.Key.(*ast.Ident); ok {
-						out.WriteString(ToSnakeCase(key.Name))
+
+			if allPositional {
+				eltIndex := 0
+				for _, field := range structType.Fields.List {
+					fieldNames := field.Names
+					if len(fieldNames) == 0 {
+						fieldNames = []*ast.Ident{ast.NewIdent(getEmbeddedFieldName(field.Type))}
+					}
+					for _, name := range fieldNames {
+						if eltIndex >= len(e.Elts) {
+							break
+						}
+						if needComma {
+							out.WriteString(", ")
+						}
+						needComma = true
+						initializedFields[name.Name] = true
+						out.WriteString(ToSnakeCase(name.Name))
 						out.WriteString(": ")
-						writeWrappedStructFieldValue(out, kv.Value, findStructFieldExpr(structType, key.Name), nil)
+						writeWrappedStructFieldValue(out, e.Elts[eltIndex], field.Type, nil)
+						eltIndex++
+					}
+					if eltIndex >= len(e.Elts) {
+						break
+					}
+				}
+			} else {
+				for _, elt := range e.Elts {
+					if kv, ok := elt.(*ast.KeyValueExpr); ok {
+						if key, ok := kv.Key.(*ast.Ident); ok {
+							if needComma {
+								out.WriteString(", ")
+							}
+							needComma = true
+							initializedFields[key.Name] = true
+							out.WriteString(ToSnakeCase(key.Name))
+							out.WriteString(": ")
+							writeWrappedStructFieldValue(out, kv.Value, findStructFieldExpr(structType, key.Name), nil)
+						}
 					}
 				}
 			}
@@ -2643,7 +2676,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 						// Get receiver name
 						recvName := ""
 						if ident, ok := sel.X.(*ast.Ident); ok {
-							recvName = ident.Name
+							recvName = EscapeRustIdent(ident.Name)
 						}
 						switch sel.Sel.Name {
 						case "WriteString":
@@ -2709,10 +2742,10 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 			}
 
 			// Apply capture renames for defer closures
-			receiverName := ident.Name
+			receiverName := EscapeRustIdent(ident.Name)
 			if currentCaptureRenames != nil {
 				if renamed, exists := currentCaptureRenames[ident.Name]; exists {
-					receiverName = renamed
+					receiverName = EscapeRustIdent(renamed)
 				}
 			}
 

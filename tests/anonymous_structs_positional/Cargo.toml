@@ -1,0 +1,8 @@
+[package]
+name = "anonymous_structs_positional"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "anonymous_structs_positional"
+path = "main.rs"
