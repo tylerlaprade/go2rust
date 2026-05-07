@@ -4275,6 +4275,15 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 							}
 							WriteWrapperSuffix(out)
 						}
+					} else if isWrappedRangeVarType(varType) {
+						if strings.HasPrefix(varType, "&") {
+							out.WriteString("(*")
+							out.WriteString(EscapeRustIdent(ident.Name))
+							out.WriteString(").clone()")
+						} else {
+							out.WriteString(EscapeRustIdent(ident.Name))
+							out.WriteString(".clone()")
+						}
 					} else {
 						// Regular range variable, wrap it normally
 						WriteWrapperPrefix(out)

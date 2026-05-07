@@ -810,6 +810,10 @@ run_xfail_test() {
     run_test "tests/range_over_integer"
 }
 
+@test "range_pointer_fields" {
+    run_test "tests/range_pointer_fields"
+}
+
 @test "rate_limiting" {
     run_test "tests/rate_limiting"
 }

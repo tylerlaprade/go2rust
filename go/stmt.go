@@ -2902,7 +2902,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			// Check if it's a slice of interface{} or named interface
 			elemType := typeInfo.GetSliceElemType(s.X)
 			if elemType != nil {
-				if intf, ok := elemType.Underlying().(*types.Interface); ok {
+				if _, ok := elemType.Underlying().(*types.Pointer); ok {
+					valueType = "&" + goTypesTypeToRust(elemType)
+				} else if intf, ok := elemType.Underlying().(*types.Interface); ok {
 					if intf.NumMethods() == 0 {
 						// It's []interface{} - elements are Box<dyn Any>
 						// When iterating with &, we get &Box<dyn Any>

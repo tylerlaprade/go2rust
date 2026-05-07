@@ -18,6 +18,7 @@ Pointer types, &/*, new() builtin, struct fields, nil handling
 
 - ✅ Address-of struct fields and slice elements preserve mutation aliases (address_of_fields_and_elements promoted, 2026-05-06)
 - ✅ Pointer receiver nil branches - receiver comparisons lower without referencing the old Go receiver name, and pointer variables pass through method calls as wrapped pointer values (pointer_receiver_nil_compare added, 2026-05-07)
+- ✅ Ranged pointer fields - range variables from `[]*T` preserve pointer-wrapper type information for field access and call arguments (range_pointer_fields added, 2026-05-07)
 
 ### ✅ Phase 4: Functions and Methods
 

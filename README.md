@@ -134,6 +134,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ While-style loops | ✅ |
 | └ Infinite loops | ✅ |
 | └ Range loops (slice/map/string/channel, nil slices) | ✅ |
+| └ Range value field access for pointer slices | ✅ |
 | └ Range over integers | ✅ |
 | **`func` - Functions** | |
 | └ Basic functions | ✅ |
@@ -266,6 +267,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Pointer aliasing | ✅ |
 | └ Pointer receiver nil comparisons and pointer variable call arguments | ✅ |
 | └ Address-of struct fields and slice elements | ✅ |
+| └ Field access through ranged slice pointers | ✅ |
 | **String Operations** | |
 | └ String concatenation (+) | ✅ |
 | └ String += operator | ✅ |
