@@ -320,31 +320,37 @@ func (ut *UnifiedTranspiler) transpilePackage(pkg *PackageInfo) error {
 	// Generate lib.rs with all modules
 	var libRs strings.Builder
 	var modules []string
-
-	// Process each file in the package
+	moduleNamesByIndex := make([]string, len(pkg.ASTFiles))
 	for i, astFile := range pkg.ASTFiles {
-		// Get base name for module
+		if len(astFile.Decls) == 0 {
+			continue
+		}
 		baseName := strings.TrimSuffix(filepath.Base(pkg.GoFiles[i]), ".go")
 		if baseName == pkg.PackageName {
 			baseName = "mod" // Avoid module name collision with package name
 		}
 		moduleName := SanitizeRustModuleName(baseName)
+		moduleNamesByIndex[i] = moduleName
+		modules = append(modules, moduleName)
+	}
 
+	// Process each file in the package
+	for i, astFile := range pkg.ASTFiles {
 		// Skip empty files or doc-only files
 		if len(astFile.Decls) == 0 {
 			continue
 		}
+		moduleName := moduleNamesByIndex[i]
 
 		// Transpile the file with shared type info and package mapping
 		rustCode, _, _ := TranspileWithMapping(astFile, ut.fileSet, ut.globalTypeInfo, ut.packageMapping)
+		rustCode = prefixSiblingModuleImports(rustCode, moduleName, modules)
 
 		// Write the module file
 		moduleFile := filepath.Join(pkg.OutputPath, SanitizeRustModuleFileName(moduleName)+".rs")
 		if err := os.WriteFile(moduleFile, []byte(rustCode), 0644); err != nil {
 			return fmt.Errorf("failed to write module %s: %v", moduleName, err)
 		}
-
-		modules = append(modules, moduleName)
 	}
 
 	// Generate lib.rs

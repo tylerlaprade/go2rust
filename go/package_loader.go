@@ -200,6 +200,20 @@ func (pl *PackageLoader) transpilePackage(pkg *packages.Package) error {
 	// Generate lib.rs with all modules
 	var libRs strings.Builder
 	var modules []string
+	moduleNamesByIndex := make([]string, len(pkg.Syntax))
+	for i, astFile := range pkg.Syntax {
+		if len(astFile.Decls) == 0 {
+			continue
+		}
+		fileName := packageFileName(pkg, i)
+		baseName := strings.TrimSuffix(fileName, ".go")
+		if baseName == pkg.Name {
+			baseName = "mod" // Avoid name collision
+		}
+		moduleName := SanitizeRustModuleName(baseName)
+		moduleNamesByIndex[i] = moduleName
+		modules = append(modules, moduleName)
+	}
 
 	// Process each file in the package
 	for i, astFile := range pkg.Syntax {
@@ -207,30 +221,17 @@ func (pl *PackageLoader) transpilePackage(pkg *packages.Package) error {
 			continue // Skip empty files
 		}
 
-		// Get the file name
-		var fileName string
-		if i < len(pkg.CompiledGoFiles) {
-			fileName = filepath.Base(pkg.CompiledGoFiles[i])
-		} else {
-			fileName = fmt.Sprintf("file%d.go", i)
-		}
-
-		baseName := strings.TrimSuffix(fileName, ".go")
-		if baseName == pkg.Name {
-			baseName = "mod" // Avoid name collision
-		}
-		moduleName := SanitizeRustModuleName(baseName)
+		moduleName := moduleNamesByIndex[i]
 
 		// Transpile with the package's type info and global package mapping
 		rustCode, _, _ := TranspileWithMapping(astFile, pkg.Fset, pkgTypeInfo, pl.packageMapping)
+		rustCode = prefixSiblingModuleImports(rustCode, moduleName, modules)
 
 		// Write the module file
 		moduleFile := filepath.Join(outputDir, SanitizeRustModuleFileName(moduleName)+".rs")
 		if err := os.WriteFile(moduleFile, []byte(rustCode), 0644); err != nil {
 			return fmt.Errorf("failed to write module %s: %v", moduleName, err)
 		}
-
-		modules = append(modules, moduleName)
 	}
 
 	// Generate lib.rs
@@ -267,6 +268,13 @@ path = "lib.rs"
 	}
 
 	return nil
+}
+
+func packageFileName(pkg *packages.Package, index int) string {
+	if index < len(pkg.CompiledGoFiles) {
+		return filepath.Base(pkg.CompiledGoFiles[index])
+	}
+	return fmt.Sprintf("file%d.go", index)
 }
 
 // goPathToRustCrate converts a Go import path to a Rust-compatible crate name
