@@ -247,6 +247,13 @@ func sameWrappedIdentBinary(expr *ast.BinaryExpr) (*ast.Ident, bool) {
 	return left, true
 }
 
+func rustBinaryOp(op token.Token) string {
+	if op == token.AND_NOT {
+		return "& !"
+	}
+	return op.String()
+}
+
 func writeIdentValueClone(out *strings.Builder, ident *ast.Ident) {
 	name := RustIdentForUse(ident)
 	if currentCaptureRenames != nil {
@@ -1199,7 +1206,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			out.WriteString("; ")
 			out.WriteString(tempName)
 			out.WriteString(" ")
-			out.WriteString(e.Op.String())
+			out.WriteString(rustBinaryOp(e.Op))
 			out.WriteString(" ")
 			out.WriteString(tempName)
 			out.WriteString(" }")
@@ -1251,7 +1258,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			out.WriteString("; let __tmp_y = ")
 			writeTempOperand(e.Y, e.X, yIsStringLit, needsUnwrapY)
 			out.WriteString("; __tmp_x ")
-			out.WriteString(e.Op.String())
+			out.WriteString(rustBinaryOp(e.Op))
 			out.WriteString(" __tmp_y }")
 			return
 		}
@@ -1266,7 +1273,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				writeOperand(e.X, xIsStringLit, needsUnwrapX)
 			}
 			out.WriteString(" ")
-			out.WriteString(e.Op.String())
+			out.WriteString(rustBinaryOp(e.Op))
 			out.WriteString(" ")
 			// Handle Y operand
 			if yLit, ok := e.Y.(*ast.BasicLit); ok && yLit.Kind == token.INT && isFloatExpression(e.X) {
@@ -1291,7 +1298,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			}
 
 			out.WriteString(" ")
-			out.WriteString(e.Op.String())
+			out.WriteString(rustBinaryOp(e.Op))
 			out.WriteString(" ")
 
 			if lit, ok := e.Y.(*ast.BasicLit); ok && lit.Kind == token.INT {
