@@ -212,7 +212,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Struct types | ✅ |
 | └ Type aliases | ✅ |
 | └ Type definitions | ✅ |
-| └ Methods on named slice type definitions | ✅ |
+| └ Methods on named slice type definitions, including receiver range loops | ✅ |
 | └ Interface types | ✅ |
 | **`var` - Variable declarations** | |
 | └ Basic var declarations | ✅ |

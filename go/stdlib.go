@@ -2145,7 +2145,10 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 	if len(call.Args) >= 2 {
 		writeAppendTarget := func(expr ast.Expr) {
 			if ident, ok := expr.(*ast.Ident); ok {
-				out.WriteString(ident.Name)
+				if writeCurrentReceiverStorage(out, ident) {
+					return
+				}
+				out.WriteString(EscapeRustIdent(ident.Name))
 				return
 			}
 			switch expr.(type) {

@@ -47,6 +47,28 @@ func writeUnwrappedRangeTarget(out *strings.Builder, expr ast.Expr) {
 	}
 }
 
+func writeCurrentReceiverStorage(out *strings.Builder, ident *ast.Ident) bool {
+	if ident == nil || currentReceiver == "" || ident.Name != currentReceiver {
+		return false
+	}
+	if _, isTypeDef := LookupTypeDefinition(currentReceiverType); !isTypeDef {
+		return false
+	}
+	out.WriteString("self.0")
+	return true
+}
+
+func writeWrappedHandleExpression(out *strings.Builder, expr ast.Expr) {
+	if ident, ok := expr.(*ast.Ident); ok {
+		if writeCurrentReceiverStorage(out, ident) {
+			return
+		}
+		out.WriteString(EscapeRustIdent(ident.Name))
+		return
+	}
+	TranspileExpressionContext(out, expr, LValue)
+}
+
 func isIntegerRangeExpr(typeInfo *TypeInfo, expr ast.Expr) bool {
 	if typeInfo == nil {
 		return false
@@ -922,6 +944,12 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						// Function literal - already wrapped by TranspileFuncLit
 						TranspileExpression(out, result)
 					} else if ident, ok := result.(*ast.Ident); ok {
+						if currentReceiver != "" && ident.Name == currentReceiver {
+							WriteWrapperPrefix(out)
+							out.WriteString("self.clone()")
+							WriteWrapperSuffix(out)
+							continue
+						}
 						// Check if this is a wrapped variable that needs cloning
 						// Use a combination of TypeInfo and heuristics
 						isWrappedVariable := false
@@ -2499,7 +2527,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			if ident, ok := s.X.(*ast.Ident); ok {
 				if _, isRangeVar := rangeLoopVars[ident.Name]; !isRangeVar {
 					out.WriteString("{ let __range_guard = ")
-					out.WriteString(EscapeRustIdent(ident.Name))
+					writeWrappedHandleExpression(out, s.X)
 					WriteBorrowMethod(out, false)
 					out.WriteString("; let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); ")
 					rangeValuesVar = "__range_values"
