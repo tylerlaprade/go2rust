@@ -749,6 +749,10 @@ run_xfail_test() {
     run_test "tests/slice_operations_advanced"
 }
 
+@test "slice_parallel_swap" {
+    run_test "tests/slice_parallel_swap"
+}
+
 @test "slices_append" {
     run_test "tests/slices_append"
 }

@@ -284,6 +284,38 @@ func writeMapElementUpdate(out *strings.Builder, indexExpr *ast.IndexExpr, op to
 	out.WriteString("); }")
 }
 
+func writeParallelAssignmentTarget(out *strings.Builder, lhs ast.Expr, tmpName string) {
+	if indexExpr, ok := lhs.(*ast.IndexExpr); ok {
+		typeInfo := GetTypeInfo()
+		if typeInfo == nil {
+			out.WriteString(" /* ERROR: Cannot determine indexed assignment target - type information required */ ")
+			return
+		}
+		if !typeInfo.IsMap(indexExpr.X) {
+			out.WriteString(" (*")
+			TranspileExpressionContext(out, indexExpr.X, LValue)
+			WriteBorrowMethod(out, true)
+			out.WriteString(".as_mut().unwrap())[")
+			writeExpressionAsUsize(out, indexExpr.Index)
+			out.WriteString("] = ")
+			out.WriteString(tmpName)
+			out.WriteString(";")
+			return
+		}
+	}
+
+	out.WriteString(" *")
+	if ident, ok := lhs.(*ast.Ident); ok {
+		out.WriteString(EscapeRustIdent(ident.Name))
+	} else {
+		TranspileExpressionContext(out, lhs, LValue)
+	}
+	WriteBorrowMethod(out, true)
+	out.WriteString(" = Some(")
+	out.WriteString(tmpName)
+	out.WriteString(");")
+}
+
 // isMutexLockCall checks if an expression is a Lock() call on a sync.Mutex field
 func isMutexLockCall(expr ast.Expr) bool {
 	call, ok := expr.(*ast.CallExpr)
@@ -1373,14 +1405,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					}
 					// Then assign all LHS from temporaries
 					for i, lhs := range s.Lhs {
-						out.WriteString(" *")
-						if ident, ok := lhs.(*ast.Ident); ok {
-							out.WriteString(EscapeRustIdent(ident.Name))
-						} else {
-							TranspileExpressionContext(out, lhs, LValue)
-						}
-						WriteBorrowMethod(out, true)
-						out.WriteString(fmt.Sprintf(" = Some(__tmp_%d);", i))
+						writeParallelAssignmentTarget(out, lhs, fmt.Sprintf("__tmp_%d", i))
 					}
 					out.WriteString(" }")
 				}

@@ -1,0 +1,8 @@
+[package]
+name = "slice_parallel_swap"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "slice_parallel_swap"
+path = "main.rs"
