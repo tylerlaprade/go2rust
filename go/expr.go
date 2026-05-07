@@ -347,6 +347,8 @@ func writeWrappedStructFieldValue(out *strings.Builder, value ast.Expr, fieldExp
 			WriteWrapperPrefix(out)
 			TranspileExpression(out, value)
 			WriteWrapperSuffix(out)
+		} else if sig, ok := functionValueSignature(valIdent); ok {
+			writeWrappedFunctionValueBox(out, valIdent, sig)
 		} else if _, isLocalConst := localConstants[valIdent.Name]; isLocalConst || isConstIdent(valIdent) {
 			WriteWrapperPrefix(out)
 			if !writeExpressionForExpectedType(out, value, fieldExpr) && !writeExpressionForExpectedTypesType(out, value, fieldType) {
@@ -2941,6 +2943,11 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 			return
 		}
 
+		if isFunctionValueSelector(sel) {
+			writeFunctionValueSelectorCall(out, sel, call.Args)
+			return
+		}
+
 		// Check if receiver is a strings.Builder (mapped to String) - handle before receiver unwrap
 		if recvTypeInfo := GetTypeInfo(); recvTypeInfo != nil {
 			recvType := recvTypeInfo.GetType(sel.X)
@@ -3610,4 +3617,79 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 	if closureCallBlock {
 		out.WriteString(" }")
 	}
+}
+
+func isFunctionValueSelector(sel *ast.SelectorExpr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	obj := typeInfo.GetObject(sel.Sel)
+	if _, ok := obj.(*types.Var); !ok {
+		return false
+	}
+	return typeInfo.IsFunctionType(sel)
+}
+
+func writeFunctionValueSelectorCall(out *strings.Builder, sel *ast.SelectorExpr, args []ast.Expr) {
+	out.WriteString("{ let __f_holder = ")
+	TranspileExpression(out, sel)
+	out.WriteString("; let __f_guard = __f_holder")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; let __f = __f_guard.as_ref().unwrap(); (*__f)(")
+	for i, arg := range args {
+		if i > 0 {
+			out.WriteString(", ")
+		}
+		writeFunctionValueArgument(out, arg)
+	}
+	out.WriteString(") }")
+}
+
+func writeFunctionValueArgument(out *strings.Builder, arg ast.Expr) {
+	if ident, ok := arg.(*ast.Ident); ok && ident.Name != "_" {
+		if ident.Name == "nil" {
+			WriteWrappedNone(out)
+			return
+		}
+		if ident.Name == "true" || ident.Name == "false" {
+			WriteWrapperPrefix(out)
+			out.WriteString(ident.Name)
+			WriteWrapperSuffix(out)
+			return
+		}
+		if isConstIdent(ident) {
+			writeWrappedExpressionForExpectedType(out, arg, nil)
+			return
+		}
+		argVarName := RustIdentForUse(ident)
+		if currentCaptureRenames != nil {
+			if renamed, exists := currentCaptureRenames[ident.Name]; exists {
+				argVarName = RustLocalIdent(renamed)
+			}
+		}
+		out.WriteString(argVarName)
+		out.WriteString(".clone()")
+		return
+	}
+
+	if _, ok := arg.(*ast.SelectorExpr); ok {
+		TranspileExpression(out, arg)
+		return
+	}
+	if _, ok := arg.(*ast.FuncLit); ok {
+		TranspileExpression(out, arg)
+		return
+	}
+	if callArg, ok := arg.(*ast.CallExpr); ok {
+		typeInfo := GetTypeInfo()
+		if typeInfo != nil && typeInfo.ReturnsWrappedValue(callArg) && !callReturnsBareChannelValue(callArg) {
+			TranspileExpression(out, arg)
+			return
+		}
+	}
+
+	WriteWrapperPrefix(out)
+	TranspileExpression(out, arg)
+	WriteWrapperSuffix(out)
 }

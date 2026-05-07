@@ -23,6 +23,7 @@ Pointer types, &/*, new() builtin, struct fields, nil handling
 Method receivers (value and pointer), multiple returns (including named returns, naked returns, swap via multi-assignment), method calls including receiver self-calls
 
 - ✅ Function variables across files - package-level function values, function-valued locals, higher-order function parameters, and init-time function assignments (cross_file_func_vars promoted, 2026-05-06)
+- ✅ Function-valued struct field calls - named functions initialize function fields, function fields format safely, and selector calls unwrap the stored function value (function_field_calls promoted, 2026-05-07)
 
 ### ✅ Phase 4.5: Advanced Types and Structs
 

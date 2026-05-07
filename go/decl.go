@@ -43,6 +43,7 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 		isSlice     bool
 		isMap       bool
 		isInterface bool
+		isFunction  bool
 	}
 	var fields []fieldEntry
 	for _, field := range structType.Fields.List {
@@ -53,6 +54,7 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 		_, isSlice := field.Type.(*ast.ArrayType)
 		_, isMap := field.Type.(*ast.MapType)
 		isInterface := isEmptyInterfaceExpr(field.Type)
+		_, isFunction := field.Type.(*ast.FuncType)
 		if len(field.Names) > 0 {
 			for _, name := range field.Names {
 				fields = append(fields, fieldEntry{
@@ -61,6 +63,7 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 					isSlice:     isSlice,
 					isMap:       isMap,
 					isInterface: isInterface,
+					isFunction:  isFunction,
 				})
 			}
 		} else {
@@ -72,6 +75,7 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 				isSlice:     isSlice,
 				isMap:       isMap,
 				isInterface: isInterface,
+				isFunction:  isFunction,
 			})
 		}
 	}
@@ -94,6 +98,8 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 			out.WriteString(ToSnakeCase(f.name))
 			WriteBorrowMethod(out, false)
 			out.WriteString(".as_ref().unwrap().as_ref())")
+		} else if f.isFunction {
+			out.WriteString("\"<func>\"")
 		} else if f.isMap {
 			NeedFormatMap()
 			out.WriteString("format_map(&self.")

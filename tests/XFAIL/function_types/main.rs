@@ -243,12 +243,12 @@ fn main() {
             let __tmp_y = (*b.borrow().as_ref().unwrap());
             Rc::new(RefCell::new(Some(__tmp_x - __tmp_y)))
         };
-    }) as Box<dyn Fn(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>>)))))), multiply: multiply.clone(), ..Default::default() })));
+    }) as Box<dyn Fn(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>>)))))), multiply: Rc::new(RefCell::new(Some(Box::new(move |__arg0: Rc<RefCell<Option<i32>>>, __arg1: Rc<RefCell<Option<i32>>>| -> Rc<RefCell<Option<i32>>> { multiply(__arg0, __arg1) }) as Box<dyn Fn(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>>))), ..Default::default() })));
 
         // Reuse existing function
-    print!("calc.Add(10, 5) = {}\n", (*(*calc.borrow().as_ref().unwrap()).add(Rc::new(RefCell::new(Some(10))), Rc::new(RefCell::new(Some(5)))).borrow().as_ref().unwrap()));
-    print!("calc.Subtract(10, 5) = {}\n", (*(*calc.borrow().as_ref().unwrap()).subtract(Rc::new(RefCell::new(Some(10))), Rc::new(RefCell::new(Some(5)))).borrow().as_ref().unwrap()));
-    print!("calc.Multiply(10, 5) = {}\n", (*(*calc.borrow().as_ref().unwrap()).multiply(Rc::new(RefCell::new(Some(10))), Rc::new(RefCell::new(Some(5)))).borrow().as_ref().unwrap()));
+    print!("calc.Add(10, 5) = {}\n", (*{ let __f_holder = (*(*calc.borrow().as_ref().unwrap()).add.borrow().as_ref().unwrap()); let __f_guard = __f_holder.borrow(); let __f = __f_guard.as_ref().unwrap(); (*__f)(Rc::new(RefCell::new(Some(10))), Rc::new(RefCell::new(Some(5)))) }.borrow().as_ref().unwrap()));
+    print!("calc.Subtract(10, 5) = {}\n", (*{ let __f_holder = (*(*calc.borrow().as_ref().unwrap()).subtract.borrow().as_ref().unwrap()); let __f_guard = __f_holder.borrow(); let __f = __f_guard.as_ref().unwrap(); (*__f)(Rc::new(RefCell::new(Some(10))), Rc::new(RefCell::new(Some(5)))) }.borrow().as_ref().unwrap()));
+    print!("calc.Multiply(10, 5) = {}\n", (*{ let __f_holder = (*(*calc.borrow().as_ref().unwrap()).multiply.borrow().as_ref().unwrap()); let __f_guard = __f_holder.borrow(); let __f = __f_guard.as_ref().unwrap(); (*__f)(Rc::new(RefCell::new(Some(10))), Rc::new(RefCell::new(Some(5)))) }.borrow().as_ref().unwrap()));
 
         // Function variables
     println!("{}", "\n=== Function variables ===".to_string());

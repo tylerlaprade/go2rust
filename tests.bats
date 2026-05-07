@@ -489,6 +489,10 @@ run_xfail_test() {
     run_test "tests/func_literal_keyword_params"
 }
 
+@test "function_field_calls" {
+    run_test "tests/function_field_calls"
+}
+
 @test "function_literals_closures" {
     run_test "tests/function_literals_closures"
 }

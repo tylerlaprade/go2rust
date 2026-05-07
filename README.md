@@ -134,6 +134,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Multiple return values | ✅ |
 | └ Method definitions | ✅ |
 | └ Method calls, including receiver self-calls | ✅ |
+| └ Function-valued struct field calls | ✅ |
 | └ Function literals/closures | ✅ |
 | └ Function variables and higher-order function values | ✅ |
 | └ Variadic functions | ✅ |

@@ -1,0 +1,8 @@
+[package]
+name = "function_field_calls"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "function_field_calls"
+path = "main.rs"
