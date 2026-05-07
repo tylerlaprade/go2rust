@@ -1,0 +1,6 @@
+has 3: true
+has 4: false
+has green: true
+has yellow: false
+condition number hit
+condition word miss

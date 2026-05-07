@@ -317,6 +317,8 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ `os.Create` / `os.Remove` plus file `WriteString` / `Close` | ✅ |
 | **`sort` package** | |
 | └ `sort.Strings` | ✅ |
+| **`slices` package** | |
+| └ `slices.Sort` / `slices.Contains` | ✅ |
 | **`sync` package** | |
 | └ `sync.WaitGroup` | ✅ |
 | └ `sync.Mutex` | ✅ |

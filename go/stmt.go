@@ -484,7 +484,7 @@ func transpileIfWithInitAsBlock(out *strings.Builder, stmt *ast.IfStmt, fnType *
 	out.WriteString("{\n        ")
 	TranspileStatementSimple(out, stmt.Init, fnType, fileSet)
 	out.WriteString(";\n        if ")
-	TranspileExpression(out, stmt.Cond)
+	transpileCondition(out, stmt.Cond)
 	out.WriteString(" {\n")
 	for _, bodyStmt := range stmt.Body.List {
 		out.WriteString("            ")
@@ -497,6 +497,44 @@ func transpileIfWithInitAsBlock(out *strings.Builder, stmt *ast.IfStmt, fnType *
 		transpileElseBranch(out, stmt.Else, fnType, fileSet)
 	}
 	out.WriteString("\n    }")
+}
+
+func transpileCondition(out *strings.Builder, expr ast.Expr) {
+	switch e := expr.(type) {
+	case *ast.ParenExpr:
+		out.WriteString("(")
+		transpileCondition(out, e.X)
+		out.WriteString(")")
+		return
+	case *ast.UnaryExpr:
+		if e.Op == token.NOT {
+			out.WriteString("!")
+			transpileCondition(out, e.X)
+			return
+		}
+	case *ast.CallExpr:
+		if callReturnsWrappedBool(e) {
+			out.WriteString("(*")
+			TranspileExpression(out, e)
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref().unwrap())")
+			return
+		}
+	}
+	TranspileExpression(out, expr)
+}
+
+func callReturnsWrappedBool(call *ast.CallExpr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || callReturnsBareChannelValue(call) || !typeInfo.ReturnsWrappedValue(call) {
+		return false
+	}
+	callType := typeInfo.GetType(call)
+	if callType == nil {
+		return false
+	}
+	basic, ok := callType.Underlying().(*types.Basic)
+	return ok && basic.Kind() == types.Bool
 }
 
 func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncType, fileSet *token.FileSet, comments []*ast.CommentGroup, lastPos *token.Pos, indent string) {
@@ -2137,7 +2175,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		}
 		out.WriteString("while ")
 		if s.Cond != nil {
-			TranspileExpression(out, s.Cond)
+			transpileCondition(out, s.Cond)
 		} else {
 			out.WriteString("true")
 		}
@@ -2653,7 +2691,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		}
 
 		out.WriteString("if ")
-		TranspileExpression(out, s.Cond)
+		transpileCondition(out, s.Cond)
 		out.WriteString(" {\n")
 
 		// Use comment-aware transpilation for the body

@@ -122,7 +122,7 @@ fn main() {
     let mut scanner = bufio::new_scanner(Arc::new(Mutex::new(Some((*file.lock().unwrap().as_ref().unwrap())))));
     let mut lineNum = Arc::new(Mutex::new(Some(1)));
 
-    while (*scanner.lock().unwrap().as_mut().unwrap()).scan() {
+    while (*(*scanner.lock().unwrap().as_mut().unwrap()).scan().lock().unwrap().as_ref().unwrap()) {
         let mut line = (*scanner.lock().unwrap().as_mut().unwrap()).text();
         print!("Line {}: {}\n", { let __v = (*lineNum.lock().unwrap().as_ref().unwrap()).clone(); __v }, { let __v = (*line.lock().unwrap().as_ref().unwrap()).clone(); __v });
         { let mut guard = lineNum.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
@@ -288,7 +288,7 @@ fn main() {
     let mut lineCount = Arc::new(Mutex::new(Some(0)));
     let mut charCount = Arc::new(Mutex::new(Some(0)));
 
-    while (*scanner.lock().unwrap().as_mut().unwrap()).scan() {
+    while (*(*scanner.lock().unwrap().as_mut().unwrap()).scan().lock().unwrap().as_ref().unwrap()) {
         let mut line = (*scanner.lock().unwrap().as_mut().unwrap()).text();
         { let mut guard = lineCount.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
         { let mut guard = charCount.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + (*line.lock().unwrap().as_ref().unwrap()).len()); };
@@ -297,7 +297,7 @@ fn main() {
         { let mut guard = wordCount.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + (*words.lock().unwrap().as_ref().unwrap()).len()); };
 
                 // Process lines containing numbers
-        if Arc::new(Mutex::new(Some({ let __s = (*line.lock().unwrap().as_ref().unwrap()).clone(); let __arg = "123".to_string(); __s.contains(&__arg) }))) {
+        if (*Arc::new(Mutex::new(Some({ let __s = (*line.lock().unwrap().as_ref().unwrap()).clone(); let __arg = "123".to_string(); __s.contains(&__arg) }))).lock().unwrap().as_ref().unwrap()) {
         print!("Found line with numbers: {}\n", { let __v = (*line.lock().unwrap().as_ref().unwrap()).clone(); __v });
     }
     }
@@ -361,7 +361,7 @@ fn main() {
         let (_, mut err) = os::stat(Arc::new(Mutex::new(Some(f))));
     if (*err.lock().unwrap()).is_none() {
         print!("File '{}' exists\n", f);
-    } else if os::is_not_exist(Arc::new(Mutex::new(Some((*err.lock().unwrap().as_ref().unwrap()))))) {
+    } else if (*os::is_not_exist(Arc::new(Mutex::new(Some((*err.lock().unwrap().as_ref().unwrap()))))).lock().unwrap().as_ref().unwrap()) {
         print!("File '{}' does not exist\n", f);
     } else {
         print!("Error checking file '{}': {}\n", f, format!("{}", (*err.lock().unwrap().as_ref().unwrap())));
@@ -387,7 +387,7 @@ fn main() {
 
     { let __range_guard = filesToRemove.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for f in __range_values.iter() {
         let (_, mut err) = os::stat(Arc::new(Mutex::new(Some(f))));
-    if os::is_not_exist(Arc::new(Mutex::new(Some((*err.lock().unwrap().as_ref().unwrap()))))) {
+    if (*os::is_not_exist(Arc::new(Mutex::new(Some((*err.lock().unwrap().as_ref().unwrap()))))).lock().unwrap().as_ref().unwrap()) {
         print!("File '{}' successfully removed\n", f);
     } else {
         print!("File '{}' still exists\n", f);

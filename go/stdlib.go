@@ -93,6 +93,7 @@ func init() {
 		"sort.Strings":          transpileSortStrings,
 		"sort.Ints":             transpileSortInts,
 		"slices.Sort":           transpileSlicesSort,
+		"slices.Contains":       transpileSlicesContains,
 		"time.Sleep":            transpileTimeSleep,
 		"time.Now":              transpileTimeNow,
 		"time.Unix":             transpileTimeUnix,
@@ -1567,6 +1568,21 @@ func transpileSlicesSort(out *strings.Builder, call *ast.CallExpr) {
 		WriteBorrowMethod(out, true)
 		out.WriteString(".as_mut().unwrap()).sort()")
 	}
+}
+
+func transpileSlicesContains(out *strings.Builder, call *ast.CallExpr) {
+	if len(call.Args) < 2 {
+		return
+	}
+	WriteWrapperPrefix(out)
+	out.WriteString("{ let __slice_holder = ")
+	TranspileExpressionContext(out, call.Args[0], LValue)
+	out.WriteString(".clone(); let __slice_guard = __slice_holder")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; let __slice = __slice_guard.as_ref().unwrap(); let __value = ")
+	writeMaybeUnwrappedExpression(out, call.Args[1])
+	out.WriteString("; __slice.contains(&__value) }")
+	WriteWrapperSuffix(out)
 }
 
 func transpileStrconvItoa(out *strings.Builder, call *ast.CallExpr) {

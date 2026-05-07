@@ -162,6 +162,7 @@ var syncStdlibFunctions = map[string]bool{
 	"sort.Search":      true,
 
 	// slices - Generic slice helpers are synchronous
+	"slices.Contains":       true,
 	"slices.Sort":           true,
 	"slices.SortFunc":       true,
 	"slices.SortStableFunc": true,
