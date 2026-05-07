@@ -1,2 +1,2 @@
-Println 2
-Point.X 3
+Println 2 1
+Point.X 3 0

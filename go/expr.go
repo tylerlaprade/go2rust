@@ -725,7 +725,7 @@ func writeWrappedStructFieldValue(out *strings.Builder, value ast.Expr, fieldExp
 			WriteWrapperSuffix(out)
 		} else if sig, ok := functionValueSignature(valIdent); ok {
 			writeWrappedFunctionValueBox(out, valIdent, sig)
-		} else if _, isLocalConst := localConstants[valIdent.Name]; isLocalConst || isConstIdent(valIdent) {
+		} else if _, isLocalConst := localConstants[valIdent.Name]; isLocalConst || isConstIdent(valIdent) || isConstantExpression(value) {
 			WriteWrapperPrefix(out)
 			if !writeExpressionForExpectedType(out, value, fieldExpr) && !writeExpressionForExpectedTypesType(out, value, fieldType) {
 				TranspileExpression(out, value)
@@ -742,9 +742,22 @@ func writeWrappedStructFieldValue(out *strings.Builder, value ast.Expr, fieldExp
 	} else {
 		// Wrap field values.
 		WriteWrapperPrefix(out)
-		TranspileExpression(out, value)
+		if !isConstantExpression(value) || (!writeExpressionForExpectedType(out, value, fieldExpr) && !writeExpressionForExpectedTypesType(out, value, fieldType)) {
+			TranspileExpression(out, value)
+		}
 		WriteWrapperSuffix(out)
 	}
+}
+
+func isConstantExpression(expr ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo != nil && typeInfo.info != nil {
+		if tv, ok := typeInfo.info.Types[expr]; ok && tv.Value != nil {
+			return true
+		}
+	}
+	_, ok := expr.(*ast.BasicLit)
+	return ok
 }
 
 func isChannelFieldExpr(expr ast.Expr) bool {

@@ -810,7 +810,7 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 			out.WriteString("#[derive(Debug, Clone)]\n")
 			out.WriteString("pub struct ")
 			out.WriteString(typeSpec.Name.Name)
-			out.WriteString("(")
+			out.WriteString("(pub ")
 			out.WriteString(GoTypeToRust(t))
 			out.WriteString(");\n")
 

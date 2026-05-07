@@ -9,7 +9,7 @@ pub const YELLOW: i32 = 3;
 
 
 #[derive(Debug, Clone)]
-pub struct Color(Rc<RefCell<Option<i32>>>);
+pub struct Color(pub Rc<RefCell<Option<i32>>>);
 
 impl Display for Color {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {

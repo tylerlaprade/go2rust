@@ -3,7 +3,7 @@ use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
 #[derive(Debug, Clone)]
-pub struct Celsius(Rc<RefCell<Option<f64>>>);
+pub struct Celsius(pub Rc<RefCell<Option<f64>>>);
 
 impl Display for Celsius {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
@@ -13,7 +13,7 @@ impl Display for Celsius {
 
 
 #[derive(Debug, Clone)]
-pub struct Fahrenheit(Rc<RefCell<Option<f64>>>);
+pub struct Fahrenheit(pub Rc<RefCell<Option<f64>>>);
 
 impl Display for Fahrenheit {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {

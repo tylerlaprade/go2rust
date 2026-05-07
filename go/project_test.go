@@ -303,6 +303,64 @@ func main() {
 	}
 }
 
+func TestMultiFileNamedScalarLiteralFieldsUseAccessibleNewtypes(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "defs.go"), `package main
+
+type Kind int8
+type Version int8
+
+const (
+	Invalid Kind = iota
+	Func
+)
+
+type Symbol struct {
+	Name    string
+	Kind    Kind
+	Version Version
+}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "manifest.go"), `package main
+
+func Symbols() []Symbol {
+	return []Symbol{{Name: "Println", Kind: Func, Version: 0}}
+}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+func main() {
+	println(Symbols()[0].Name)
+}
+`)
+
+	generator := NewProjectGenerator([]string{
+		filepath.Join(tempDir, "defs.go"),
+		filepath.Join(tempDir, "manifest.go"),
+		filepath.Join(tempDir, "main.go"),
+	})
+
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	defsRS := mustReadFile(t, filepath.Join(tempDir, "defs.rs"))
+	if !strings.Contains(defsRS, "pub struct Kind(pub Rc<RefCell<Option<i8>>>);") {
+		t.Fatalf("named scalar newtype should expose its tuple field for sibling modules, got:\n%s", defsRS)
+	}
+	if !strings.Contains(defsRS, "pub struct Version(pub Rc<RefCell<Option<i8>>>);") {
+		t.Fatalf("named scalar newtype should expose its tuple field for sibling modules, got:\n%s", defsRS)
+	}
+
+	manifestRS := mustReadFile(t, filepath.Join(tempDir, "manifest.rs"))
+	if !strings.Contains(manifestRS, "kind: Rc::new(RefCell::new(Some(Kind(") {
+		t.Fatalf("typed constant field should convert through Kind, got:\n%s", manifestRS)
+	}
+	if !strings.Contains(manifestRS, "version: Rc::new(RefCell::new(Some(Version(") {
+		t.Fatalf("untyped literal field should convert through Version, got:\n%s", manifestRS)
+	}
+}
+
 func TestGenerateCargoTomlIsDeterministic(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "main.go"), "package main\nfunc main() {}\n")

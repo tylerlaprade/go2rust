@@ -2,7 +2,7 @@ use std::cell::{RefCell};
 use std::rc::{Rc};
 
 #[derive(Debug, Clone)]
-pub struct Names(Rc<RefCell<Option<Vec<String>>>>);
+pub struct Names(pub Rc<RefCell<Option<Vec<String>>>>);
 
 
 impl Names {

@@ -119,7 +119,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Basic constants | ✅ |
 | └ Iota enumerations | ✅ |
 | └ Complex iota expressions | ✅ |
-| └ Named iota-backed enum types, including struct fields and underlying const widths | ✅ |
+| └ Named iota-backed enum types, including struct fields, untyped literal fields, and underlying const widths | ✅ |
 | **`continue` - Continue statements** | ✅ |
 | **`default` - Default clauses** | |
 | └ Switch default | ✅ |
@@ -223,6 +223,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Struct types | ✅ |
 | └ Type aliases | ✅ |
 | └ Type definitions | ✅ |
+| └ Named scalar newtypes usable across generated modules | ✅ |
 | └ Methods on named slice type definitions, including receiver range loops | ✅ |
 | └ Interface types | ✅ |
 | **`var` - Variable declarations** | |
