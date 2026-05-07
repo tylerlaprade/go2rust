@@ -64,6 +64,7 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 - ✅ Select statements - receive, send, default, timeout, and loop cases (select_basic, select_statements promoted)
 - ✅ Advanced deterministic control-flow combinations - labeled break/continue, nested switch, fallthrough, complex loop conditions, nested ranges, select, and error-flow smoke coverage (advanced_control_flow promoted, 2026-05-06)
 - ✅ Full range-loop fixture - slice/map/string/channel ranges, nil slice iteration, and repeated wrapped reads in channel sends (range_loops promoted, 2026-05-06)
+- ✅ Range over integers - Go 1.22 integer range expressions lower to Rust integer ranges (range_over_integer promoted, 2026-05-07)
 - ✅ Goto and labels - labeled break/continue plus basic top-level goto patterns with backward loop jumps and forward block exits (goto_labels promoted, 2026-05-06)
 - ✅ Fallthrough in switch - if-chain with _fallthrough/_matched flags (fallthrough_switch promoted)
 - ✅ Type switch - downcast_ref-based if-else chain with shared borrow guard (2026-03-27)

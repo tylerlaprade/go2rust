@@ -130,6 +130,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ While-style loops | ✅ |
 | └ Infinite loops | ✅ |
 | └ Range loops (slice/map/string/channel, nil slices) | ✅ |
+| └ Range over integers | ✅ |
 | **`func` - Functions** | |
 | └ Basic functions | ✅ |
 | └ Multiple return values | ✅ |

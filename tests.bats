@@ -709,6 +709,10 @@ run_xfail_test() {
     run_test "tests/range_loops"
 }
 
+@test "range_over_integer" {
+    run_test "tests/range_over_integer"
+}
+
 @test "rate_limiting" {
     run_test "tests/rate_limiting"
 }

@@ -47,6 +47,18 @@ func writeUnwrappedRangeTarget(out *strings.Builder, expr ast.Expr) {
 	}
 }
 
+func isIntegerRangeExpr(typeInfo *TypeInfo, expr ast.Expr) bool {
+	if typeInfo == nil {
+		return false
+	}
+	typ := typeInfo.GetType(expr)
+	if typ == nil {
+		return false
+	}
+	basic, ok := typ.Underlying().(*types.Basic)
+	return ok && basic.Info()&types.IsInteger != 0
+}
+
 func writeWrappedValueCopyFromIdent(out *strings.Builder, ident *ast.Ident) bool {
 	if ident.Name == "_" || ident.Name == "nil" || ident.Name == "true" || ident.Name == "false" {
 		return false
@@ -2416,10 +2428,12 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		typeInfo := GetTypeInfo()
 		isMap := false
 		isString := false
+		isInteger := false
 
 		if typeInfo != nil {
 			isMap = typeInfo.IsMap(s.X)
 			isString = typeInfo.IsString(s.X)
+			isInteger = isIntegerRangeExpr(typeInfo, s.X)
 			// Also check for string literals directly
 			if !isString {
 				if lit, ok := s.X.(*ast.BasicLit); ok && lit.Kind == token.STRING {
@@ -2501,6 +2515,12 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				keyType = goTypesTypeToRust(mapKeyType)
 				valueType = goTypesTypeToRustWrapped(mapValueType)
 			}
+		} else if isInteger {
+			if rangeType := typeInfo.GetType(s.X); rangeType != nil {
+				keyType = goTypesTypeToRust(rangeType)
+			} else {
+				keyType = "i32"
+			}
 		} else if typeInfo.IsSlice(s.X) {
 			// Check if it's a slice of interface{} or named interface
 			elemType := typeInfo.GetSliceElemType(s.X)
@@ -2559,7 +2579,25 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			}
 		}
 
-		if isString {
+		if isInteger {
+			if s.Value != nil {
+				out.WriteString("/* ERROR: integer range permits at most one iteration variable */\n")
+				out.WriteString("unimplemented!(\"invalid integer range\")")
+			} else {
+				if s.Key != nil {
+					if ident, ok := s.Key.(*ast.Ident); ok {
+						out.WriteString(EscapeRustIdent(ident.Name))
+					} else {
+						TranspileExpression(out, s.Key)
+					}
+				} else {
+					out.WriteString("_")
+				}
+				out.WriteString(" in 0..(")
+				writeUnwrappedRangeTarget(out, s.X)
+				out.WriteString(")")
+			}
+		} else if isString {
 			// String iteration - iterate over chars
 			// Check if the range target is a string literal (no wrapping needed)
 			_, isStringLit := s.X.(*ast.BasicLit)
