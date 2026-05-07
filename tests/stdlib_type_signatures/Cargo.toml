@@ -1,0 +1,8 @@
+[package]
+name = "stdlib_type_signatures"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "stdlib_type_signatures"
+path = "main.rs"

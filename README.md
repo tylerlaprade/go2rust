@@ -148,6 +148,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Multiple imports | ✅ |
 | └ Package aliases | ✅ |
 | └ Blank imports | ✅ |
+| └ Stdlib type signatures | ✅ |
 | **`interface` - Interface types** | |
 | └ Interface definitions | ✅ |
 | └ Empty interface{} | ✅ |

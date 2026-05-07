@@ -745,6 +745,10 @@ run_xfail_test() {
     run_test "tests/stdlib_strings"
 }
 
+@test "stdlib_type_signatures" {
+    run_test "tests/stdlib_type_signatures"
+}
+
 @test "strconv_parse" {
     run_test "tests/strconv_parse"
 }

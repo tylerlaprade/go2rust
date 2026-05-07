@@ -38,6 +38,7 @@ type FileState struct {
 	CurrentReceiverType     string
 	CurrentFunctionHasDefer bool
 	CurrentCaptureRenames   map[string]string
+	ExternalTypeStubs       map[string]bool
 	PendingLoopLabel        string
 	HasInitFunction         bool
 	LabeledLoopPost         map[string]ast.Stmt
@@ -92,6 +93,7 @@ func NewFileState(imports *ImportTracker, helpers *HelperTracker, statementPrepr
 		RangeLoopVars:         make(map[string]string),
 		LocalConstants:        make(map[string]string),
 		LocalInterfaces:       make(map[string]bool),
+		ExternalTypeStubs:     make(map[string]bool),
 		LabeledLoopPost:       make(map[string]ast.Stmt),
 	}
 }
@@ -177,6 +179,9 @@ func (ctx *TranspileContext) ensureDefaults() {
 		if ctx.File.LocalInterfaces == nil {
 			ctx.File.LocalInterfaces = make(map[string]bool)
 		}
+		if ctx.File.ExternalTypeStubs == nil {
+			ctx.File.ExternalTypeStubs = make(map[string]bool)
+		}
 		if ctx.File.LabeledLoopPost == nil {
 			ctx.File.LabeledLoopPost = make(map[string]ast.Stmt)
 		}
@@ -219,6 +224,7 @@ func (ctx *TranspileContext) captureCompatibilityState() {
 		ctx.File.CurrentReceiverType = currentReceiverType
 		ctx.File.CurrentFunctionHasDefer = currentFunctionHasDefer
 		ctx.File.CurrentCaptureRenames = currentCaptureRenames
+		ctx.File.ExternalTypeStubs = externalTypeStubs
 		ctx.File.PendingLoopLabel = pendingLoopLabel
 		ctx.File.HasInitFunction = hasInitFunction
 		ctx.File.LabeledLoopPost = labeledLoopPost
@@ -259,6 +265,7 @@ func (ctx *TranspileContext) applyCompatibilityState() {
 		currentReceiverType = ctx.File.CurrentReceiverType
 		currentFunctionHasDefer = ctx.File.CurrentFunctionHasDefer
 		currentCaptureRenames = ctx.File.CurrentCaptureRenames
+		externalTypeStubs = ctx.File.ExternalTypeStubs
 		pendingLoopLabel = ctx.File.PendingLoopLabel
 		hasInitFunction = ctx.File.HasInitFunction
 		labeledLoopPost = ctx.File.LabeledLoopPost

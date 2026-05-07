@@ -769,6 +769,11 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 	if helpersStr != "" {
 		output.WriteString("\n")
 	}
+	stubsStr := GenerateExternalTypeStubs()
+	output.WriteString(stubsStr)
+	if stubsStr != "" {
+		output.WriteString("\n\n")
+	}
 	output.WriteString(body.String())
 
 	return output.String(), imports, fileExternalPackages

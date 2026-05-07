@@ -373,7 +373,11 @@ func goTypeToRustBase(expr ast.Expr) string {
 				return rustName
 			}
 		}
-		return fmt.Sprintf("%s_%s", t.X, t.Sel.Name)
+		rustName := fmt.Sprintf("%s_%s", t.X, t.Sel.Name)
+		if ident, ok := t.X.(*ast.Ident); ok && isStdlibPackage(goPackageImports[ident.Name]) {
+			RegisterExternalTypeStub(rustName)
+		}
+		return rustName
 	case *ast.Ellipsis:
 		// Variadic parameter ...T is treated as []T (slice) in Go
 		elemType := goTypeToRustBase(t.Elt)
@@ -570,7 +574,11 @@ func goTypesNamedTypeToRust(named *types.Named) string {
 	if rustName, ok := rustTypeNameForImportedPackagePath(obj.Pkg().Path(), obj.Name()); ok {
 		return rustName
 	}
-	return obj.Pkg().Name() + "_" + obj.Name()
+	rustName := obj.Pkg().Name() + "_" + obj.Name()
+	if isStdlibPackage(obj.Pkg().Path()) {
+		RegisterExternalTypeStub(rustName)
+	}
+	return rustName
 }
 
 func rustTypeNameForImportedPackagePath(pkgPath, name string) (string, bool) {
