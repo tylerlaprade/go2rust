@@ -650,6 +650,10 @@ run_xfail_test() {
     run_test "tests/make_slice_zero_len_capacity"
 }
 
+@test "map_comma_ok_bool_default" {
+    run_test "tests/map_comma_ok_bool_default"
+}
+
 @test "maps_basic" {
     run_test "tests/maps_basic"
 }

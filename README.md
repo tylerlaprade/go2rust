@@ -176,6 +176,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Map literals | ✅ |
 | └ Map operations (insert, delete) | ✅ |
 | └ Map access with existence check | ✅ |
+| └ Comma-ok map access with typed zero values | ✅ |
 | └ Pointer keys in map literals and lookups | ✅ |
 | └ Map iteration (for range) | ✅ |
 | └ Map printing (sorted keys, Go 1.12+) | ✅ |

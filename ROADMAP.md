@@ -55,6 +55,7 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 - ✅ Embedded method promotion - multi-level embedding, promoted method calls, field method chains (2026-03-26)
 - ✅ Map value type consistency - map literal values and type annotations now consistently wrap values (2026-03-26)
 - ✅ Map capacity and element update semantics - make(map[K]V, cap), missing-key zero values, and map element ++/+= (make_map_with_capacity promoted, 2026-05-06)
+- ✅ Comma-ok map zero values - missing keys now emit typed zero values from go/types, including bool map values instead of assuming int (map_comma_ok_bool_default promoted, 2026-05-07)
 - ✅ Composite literal arguments - slice/map/array literals passed to functions no longer double-wrap (2026-03-26)
 - ✅ Elided nested composite literals - nested slice/map composites and map-value indexing work (elided_nested_composites promoted, 2026-05-06)
 - ✅ Complex expressions - nested arithmetic, boolean, bitwise, closure-call, slice/map/field/pointer/type-assertion/channel operands evaluate with sequenced concurrent lock lifetimes (complex_expressions promoted, 2026-05-06)

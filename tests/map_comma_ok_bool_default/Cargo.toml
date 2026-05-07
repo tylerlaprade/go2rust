@@ -1,0 +1,8 @@
+[package]
+name = "map_comma_ok_bool_default"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "map_comma_ok_bool_default"
+path = "main.rs"

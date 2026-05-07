@@ -526,6 +526,28 @@ func writeMapElementUpdate(out *strings.Builder, indexExpr *ast.IndexExpr, op to
 	out.WriteString("); }")
 }
 
+func writeMapCommaOkMissingValue(out *strings.Builder, indexExpr *ast.IndexExpr) {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		out.WriteString("/* ERROR: Type information required for map comma-ok zero value */ unimplemented!(\"type info required for map comma-ok zero value\")")
+		return
+	}
+
+	valueType := typeInfo.GetMapValueType(indexExpr.X)
+	if valueType == nil {
+		out.WriteString("/* ERROR: Map value type required for map comma-ok zero value */ unimplemented!(\"map value type required for map comma-ok zero value\")")
+		return
+	}
+	if _, ok := valueType.Underlying().(*types.Interface); ok {
+		WriteWrappedNone(out)
+		return
+	}
+
+	WriteWrapperPrefix(out)
+	out.WriteString(zeroValueForTypesType(valueType))
+	WriteWrapperSuffix(out)
+}
+
 func writeParallelAssignmentTarget(out *strings.Builder, lhs ast.Expr, tmpName string, rhs ast.Expr) {
 	tmpWrapped := tempHoldsWrappedValue(rhs)
 	if indexExpr, ok := lhs.(*ast.IndexExpr); ok {
@@ -1626,11 +1648,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				out.WriteString("true")
 				WriteWrapperSuffix(out)
 				out.WriteString("), None => (")
-				WriteWrapperPrefix(out)
-				// Default value for the type - for now assume i32
-				// TODO: Use proper type information
-				out.WriteString("0")
-				WriteWrapperSuffix(out)
+				writeMapCommaOkMissingValue(out, indexExpr)
 				out.WriteString(", ")
 				WriteWrapperPrefix(out)
 				out.WriteString("false")
