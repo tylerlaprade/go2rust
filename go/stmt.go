@@ -220,6 +220,116 @@ func writeBareBuiltinReturnForExpectedType(out *strings.Builder, call *ast.CallE
 	return true
 }
 
+func returnResultTypeExpr(fnType *ast.FuncType, index int) ast.Expr {
+	if fnType == nil || fnType.Results == nil || index < 0 {
+		return nil
+	}
+	for _, result := range fnType.Results.List {
+		count := len(result.Names)
+		if count == 0 {
+			count = 1
+		}
+		if index < count {
+			return result.Type
+		}
+		index -= count
+	}
+	return nil
+}
+
+func namedTypeForTypeExpr(expr ast.Expr) (*types.Named, bool) {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || expr == nil {
+		return nil, false
+	}
+	if typ := typeInfo.GetType(expr); typ != nil {
+		if named, ok := typ.(*types.Named); ok {
+			return named, true
+		}
+	}
+	if typeInfo.info == nil {
+		return nil, false
+	}
+	switch e := expr.(type) {
+	case *ast.Ident:
+		if obj, ok := typeInfo.info.Uses[e].(*types.TypeName); ok {
+			if named, ok := obj.Type().(*types.Named); ok {
+				return named, true
+			}
+		}
+	case *ast.SelectorExpr:
+		if obj, ok := typeInfo.info.Uses[e.Sel].(*types.TypeName); ok {
+			if named, ok := obj.Type().(*types.Named); ok {
+				return named, true
+			}
+		}
+	}
+	return nil, false
+}
+
+func stdlibInterfaceReturnConversion(result ast.Expr, expected ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || result == nil || expected == nil {
+		return false
+	}
+	targetNamed, ok := namedTypeForTypeExpr(expected)
+	if !ok || targetNamed.Obj() == nil || targetNamed.Obj().Pkg() == nil {
+		return false
+	}
+	if !isStdlibPackage(targetNamed.Obj().Pkg().Path()) {
+		return false
+	}
+	targetInterface, ok := targetNamed.Underlying().(*types.Interface)
+	if !ok {
+		return false
+	}
+	sourceType := typeInfo.GetType(result)
+	if sourceType == nil {
+		return false
+	}
+	sourceNamedType := sourceType
+	if ptr, ok := sourceType.(*types.Pointer); ok {
+		sourceNamedType = ptr.Elem()
+	}
+	sourceNamed, ok := sourceNamedType.(*types.Named)
+	if !ok || sourceNamed.Obj() == nil || sourceNamed.Obj().Pkg() == nil {
+		return false
+	}
+	if !isStdlibPackage(sourceNamed.Obj().Pkg().Path()) {
+		return false
+	}
+	if isKnownStdlibHelperType(sourceNamed.Obj().Pkg().Path(), sourceNamed.Obj().Name()) {
+		return false
+	}
+	targetInterface.Complete()
+	if !types.Implements(sourceType, targetInterface) {
+		return false
+	}
+	targetRust := goTypesNamedTypeToRust(targetNamed)
+	sourceRust := goTypesNamedTypeToRust(sourceNamed)
+	RegisterExternalTypeStubConversion(targetRust, sourceRust)
+	return true
+}
+
+func writeStdlibInterfaceReturnConversion(out *strings.Builder, result ast.Expr, expected ast.Expr) bool {
+	unaryExpr, ok := result.(*ast.UnaryExpr)
+	if !ok || unaryExpr.Op != token.AND {
+		return false
+	}
+	compositeLit, ok := unaryExpr.X.(*ast.CompositeLit)
+	if !ok {
+		return false
+	}
+	if !stdlibInterfaceReturnConversion(result, expected) {
+		return false
+	}
+	WriteWrapperPrefix(out)
+	TranspileExpressionContext(out, compositeLit, AddressOf)
+	out.WriteString(".into()")
+	WriteWrapperSuffix(out)
+	return true
+}
+
 func isBuiltinCallNamed(call *ast.CallExpr, name string) bool {
 	ident, ok := call.Fun.(*ast.Ident)
 	if !ok || ident.Name != name {
@@ -1038,6 +1148,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					} else if _, ok := result.(*ast.SliceExpr); ok {
 						// Slice expressions already return wrapped values (Arc<Mutex<Option<Vec<T>>>>)
 						TranspileExpression(out, result)
+					} else if writeStdlibInterfaceReturnConversion(out, result, returnResultTypeExpr(fnType, i)) {
 					} else if unaryExpr, ok := result.(*ast.UnaryExpr); ok {
 						// Check if this is address-of a struct literal
 						if unaryExpr.Op == token.AND {

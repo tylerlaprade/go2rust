@@ -846,6 +846,10 @@ run_xfail_test() {
     run_test "tests/stdlib_imports"
 }
 
+@test "stdlib_interface_return" {
+    run_test "tests/stdlib_interface_return"
+}
+
 @test "stdlib_method_stubs" {
     run_test "tests/stdlib_method_stubs"
 }

@@ -111,6 +111,7 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 - ✅ Stdlib struct field stubs - selected fields on imported stdlib structs generate typed Rust stub fields, including `go/types.Info.FileVersions` (stdlib_struct_field_map promoted, 2026-05-07)
 - ✅ Stdlib method stubs - selected methods on imported stdlib receiver types generate typed Rust stub methods from selector signatures (stdlib_method_stubs promoted, 2026-05-07)
 - ✅ Stdlib package function/constant/variable stubs - unmapped stdlib package selectors generate typed Rust stub modules, including untyped constants and wrapped package variables, and dependency crates share those stubs package-wide to avoid cross-file type splits (stdlib_package_func_stubs added, 2026-05-07)
+- ✅ Stdlib interface return conversions - concrete stdlib pointer literals returned as stdlib interface results emit deterministic stub `From` conversions when go/types proves implementation (stdlib_interface_return promoted, 2026-05-07)
 - ✅ Single-file package initialization - package-level variables use Go type-checker init order and multiple init functions run before main (init_functions, init_order_complex promoted, 2026-05-06)
 - ✅ Import aliases - aliased stdlib package selectors resolve through the import map (import_aliases promoted, 2026-05-06)
 - Import side effects (blank_imports_side_effects)

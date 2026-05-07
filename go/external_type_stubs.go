@@ -11,6 +11,7 @@ import (
 var externalTypeStubs = make(map[string]bool)
 var externalTypeStubFields = make(map[string]map[string]string)
 var externalTypeStubMethods = make(map[string]map[string]externalTypeStubMethod)
+var externalTypeStubConversions = make(map[string]map[string]bool)
 var externalPackageStubs = make(map[string]*externalPackageStub)
 
 type externalTypeStubMethod struct {
@@ -68,6 +69,19 @@ func RegisterExternalTypeStubMethod(typeName string, methodName string, sig *typ
 		methods[typeName] = make(map[string]externalTypeStubMethod)
 	}
 	methods[typeName][methodName] = method
+}
+
+func RegisterExternalTypeStubConversion(targetType string, sourceType string) {
+	if targetType == "" || sourceType == "" || targetType == sourceType {
+		return
+	}
+	RegisterExternalTypeStub(targetType)
+	RegisterExternalTypeStub(sourceType)
+	conversions := currentExternalTypeStubConversions()
+	if conversions[targetType] == nil {
+		conversions[targetType] = make(map[string]bool)
+	}
+	conversions[targetType][sourceType] = true
 }
 
 func RegisterExternalSelectorField(sel *ast.SelectorExpr) {
@@ -370,6 +384,19 @@ func currentExternalTypeStubMethods() map[string]map[string]externalTypeStubMeth
 	return externalTypeStubMethods
 }
 
+func currentExternalTypeStubConversions() map[string]map[string]bool {
+	if usePackageExternalStubs() {
+		return currentContext.Package.ExternalTypeStubConversions
+	}
+	if currentContext != nil && currentContext.File != nil {
+		if currentContext.File.ExternalTypeStubConversions == nil {
+			currentContext.File.ExternalTypeStubConversions = make(map[string]map[string]bool)
+		}
+		return currentContext.File.ExternalTypeStubConversions
+	}
+	return externalTypeStubConversions
+}
+
 func currentExternalPackageStubs() map[string]*externalPackageStub {
 	if usePackageExternalStubs() {
 		return currentContext.Package.ExternalPackageStubs
@@ -391,14 +418,14 @@ func GenerateExternalTypeStubs() string {
 	if usePackageExternalStubs() {
 		return ""
 	}
-	return generateExternalStubs(currentExternalTypeStubs(), currentExternalTypeStubFields(), currentExternalTypeStubMethods(), currentExternalPackageStubs())
+	return generateExternalStubs(currentExternalTypeStubs(), currentExternalTypeStubFields(), currentExternalTypeStubMethods(), currentExternalTypeStubConversions(), currentExternalPackageStubs())
 }
 
 func GeneratePackageExternalStubs(pkg *PackageState) string {
 	if pkg == nil {
 		return ""
 	}
-	return generateExternalStubs(pkg.ExternalTypeStubs, pkg.ExternalTypeStubFields, pkg.ExternalTypeStubMethods, pkg.ExternalPackageStubs)
+	return generateExternalStubs(pkg.ExternalTypeStubs, pkg.ExternalTypeStubFields, pkg.ExternalTypeStubMethods, pkg.ExternalTypeStubConversions, pkg.ExternalPackageStubs)
 }
 
 func GenerateExternalStubModuleImports() string {
@@ -415,8 +442,8 @@ func GenerateExternalStubModuleImports() string {
 	return out.String()
 }
 
-func generateExternalStubs(stubs map[string]bool, fieldsByType map[string]map[string]string, methodsByType map[string]map[string]externalTypeStubMethod, packageStubs map[string]*externalPackageStub) string {
-	if len(stubs) == 0 && len(packageStubs) == 0 {
+func generateExternalStubs(stubs map[string]bool, fieldsByType map[string]map[string]string, methodsByType map[string]map[string]externalTypeStubMethod, conversions map[string]map[string]bool, packageStubs map[string]*externalPackageStub) string {
+	if len(stubs) == 0 && len(conversions) == 0 && len(packageStubs) == 0 {
 		return ""
 	}
 	names := make([]string, 0, len(stubs))
@@ -480,8 +507,46 @@ func generateExternalStubs(stubs map[string]bool, fieldsByType map[string]map[st
 		}
 		out.WriteString("}\n")
 	}
+	writeExternalTypeStubConversions(&out, conversions)
 	writeExternalPackageStubs(&out, packageStubs, len(names) > 0)
 	return out.String()
+}
+
+func writeExternalTypeStubConversions(out *strings.Builder, conversions map[string]map[string]bool) {
+	if len(conversions) == 0 {
+		return
+	}
+	targetNames := make([]string, 0, len(conversions))
+	for targetName, sourceNames := range conversions {
+		if len(sourceNames) == 0 {
+			continue
+		}
+		targetNames = append(targetNames, targetName)
+	}
+	slices.Sort(targetNames)
+	for _, targetName := range targetNames {
+		sourceNames := make([]string, 0, len(conversions[targetName]))
+		for sourceName := range conversions[targetName] {
+			sourceNames = append(sourceNames, sourceName)
+		}
+		slices.Sort(sourceNames)
+		for _, sourceName := range sourceNames {
+			if out.Len() > 0 {
+				out.WriteString("\n\n")
+			}
+			out.WriteString("impl From<")
+			out.WriteString(sourceName)
+			out.WriteString("> for ")
+			out.WriteString(targetName)
+			out.WriteString(" {\n")
+			out.WriteString("    fn from(_value: ")
+			out.WriteString(sourceName)
+			out.WriteString(") -> Self {\n")
+			out.WriteString("        Self::default()\n")
+			out.WriteString("    }\n")
+			out.WriteString("}\n")
+		}
+	}
 }
 
 func writeExternalTypeStubDowncastMethod(out *strings.Builder) {

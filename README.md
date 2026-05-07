@@ -167,6 +167,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Type assertions | ✅ |
 | └ `any(x)` conversions feeding type assertions | ✅ |
 | └ Static `any(x).(interface{...})` assertions when TypeInfo proves implementation | ✅ |
+| └ Stdlib concrete pointer returns to stdlib interface types | ✅ |
 | └ Type switches, including nil and selector pointer cases | ✅ |
 | **`map` - Map types** | |
 | └ Map types | ✅ |
