@@ -1,0 +1,8 @@
+[package]
+name = "tuple_return_reassignment"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "tuple_return_reassignment"
+path = "main.rs"

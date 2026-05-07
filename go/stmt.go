@@ -196,6 +196,19 @@ func writeMoveWrappedInnerAssignment(out *strings.Builder, lhs ast.Expr, rhs ast
 	out.WriteString(".take(); }")
 }
 
+func writeMoveWrappedInnerAssignmentFromTemp(out *strings.Builder, lhs ast.Expr, tmpName string) {
+	if ident, ok := lhs.(*ast.Ident); ok && ident.Name == "_" {
+		return
+	}
+	out.WriteString(" *")
+	TranspileExpressionContext(out, lhs, LValue)
+	WriteBorrowMethod(out, true)
+	out.WriteString(" = ")
+	out.WriteString(tmpName)
+	WriteBorrowMethod(out, true)
+	out.WriteString(".take();")
+}
+
 func isErrorAssignment(lhs ast.Expr, rhs ast.Expr) bool {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil {
@@ -1337,25 +1350,38 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			} else if needsTupleUnpack {
 				if s.Tok == token.DEFINE {
 					out.WriteString("let ")
-				}
-				out.WriteString("(")
-				for i, lhs := range s.Lhs {
-					if i > 0 {
-						out.WriteString(", ")
-					}
-					if s.Tok == token.DEFINE {
+					out.WriteString("(")
+					for i, lhs := range s.Lhs {
+						if i > 0 {
+							out.WriteString(", ")
+						}
 						// Don't add mut before blank identifier
 						if ident, ok := lhs.(*ast.Ident); !ok || ident.Name != "_" {
 							out.WriteString("mut ")
 						}
+						TranspileExpressionContext(out, lhs, LValue)
 					}
-					TranspileExpressionContext(out, lhs, LValue)
+					out.WriteString(")")
+
+					out.WriteString(" = ")
+
+					TranspileExpression(out, s.Rhs[0])
+				} else {
+					out.WriteString("{ let (")
+					for i := range s.Lhs {
+						if i > 0 {
+							out.WriteString(", ")
+						}
+						out.WriteString(fmt.Sprintf("__tmp_%d", i))
+					}
+					out.WriteString(") = ")
+					TranspileExpression(out, s.Rhs[0])
+					out.WriteString(";")
+					for i, lhs := range s.Lhs {
+						writeMoveWrappedInnerAssignmentFromTemp(out, lhs, fmt.Sprintf("__tmp_%d", i))
+					}
+					out.WriteString(" }")
 				}
-				out.WriteString(")")
-
-				out.WriteString(" = ")
-
-				TranspileExpression(out, s.Rhs[0])
 			} else if len(s.Lhs) > 1 && len(s.Rhs) > 1 {
 				// Multiple assignments - need to handle specially
 				// For now, just handle the simple case of parallel assignment

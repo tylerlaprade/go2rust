@@ -873,6 +873,10 @@ run_xfail_test() {
     run_test "tests/timers_basic"
 }
 
+@test "tuple_return_reassignment" {
+    run_test "tests/tuple_return_reassignment"
+}
+
 @test "type_assertion_simple" {
     run_test "tests/type_assertion_simple"
 }

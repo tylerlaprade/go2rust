@@ -104,7 +104,7 @@ fn main() {
         // Read file line by line
     println!("{}", "\n--- Reading file line by line ---".to_string());
 
-    (file, err) = os::open(Arc::new(Mutex::new(Some({ let __v = (*filename.lock().unwrap().as_ref().unwrap()).clone(); __v }))));
+    { let (__tmp_0, __tmp_1) = os::open(Arc::new(Mutex::new(Some({ let __v = (*filename.lock().unwrap().as_ref().unwrap()).clone(); __v })))); *file.lock().unwrap() = __tmp_0.lock().unwrap().take(); *err.lock().unwrap() = __tmp_1.lock().unwrap().take(); };
     if (*err.lock().unwrap()).is_some() {
         print!("Error opening file: {}\n", format!("{}", (*err.lock().unwrap().as_ref().unwrap())));
         {
@@ -143,7 +143,7 @@ fn main() {
         // Append to file
     println!("{}", "\n--- Appending to file ---".to_string());
 
-    (file, err) = os::open_file(Arc::new(Mutex::new(Some({ let __v = (*filename.lock().unwrap().as_ref().unwrap()).clone(); __v }))), Arc::new(Mutex::new(Some({ let __tmp_x = os::o__a_p_p_e_n_d; let __tmp_y = os::o__w_r_o_n_l_y; __tmp_x | __tmp_y }))), Arc::new(Mutex::new(Some(0644))));
+    { let (__tmp_0, __tmp_1) = os::open_file(Arc::new(Mutex::new(Some({ let __v = (*filename.lock().unwrap().as_ref().unwrap()).clone(); __v }))), Arc::new(Mutex::new(Some({ let __tmp_x = os::o__a_p_p_e_n_d; let __tmp_y = os::o__w_r_o_n_l_y; __tmp_x | __tmp_y }))), Arc::new(Mutex::new(Some(0644)))); *file.lock().unwrap() = __tmp_0.lock().unwrap().take(); *err.lock().unwrap() = __tmp_1.lock().unwrap().take(); };
     if (*err.lock().unwrap()).is_some() {
         print!("Error opening file for append: {}\n", format!("{}", (*err.lock().unwrap().as_ref().unwrap())));
         {
@@ -178,7 +178,7 @@ fn main() {
         // Read updated file
     println!("{}", "\n--- Reading updated file ---".to_string());
 
-    (data, err) = os::read_file(Arc::new(Mutex::new(Some({ let __v = (*filename.lock().unwrap().as_ref().unwrap()).clone(); __v }))));
+    { let (__tmp_0, __tmp_1) = os::read_file(Arc::new(Mutex::new(Some({ let __v = (*filename.lock().unwrap().as_ref().unwrap()).clone(); __v })))); *data.lock().unwrap() = __tmp_0.lock().unwrap().take(); *err.lock().unwrap() = __tmp_1.lock().unwrap().take(); };
     if (*err.lock().unwrap()).is_some() {
         print!("Error reading updated file: {}\n", format!("{}", (*err.lock().unwrap().as_ref().unwrap())));
         {
@@ -268,7 +268,7 @@ fn main() {
         // Read and process file content
     println!("{}", "\n--- Processing file content ---".to_string());
 
-    (file, err) = os::open(Arc::new(Mutex::new(Some({ let __v = (*filename.lock().unwrap().as_ref().unwrap()).clone(); __v }))));
+    { let (__tmp_0, __tmp_1) = os::open(Arc::new(Mutex::new(Some({ let __v = (*filename.lock().unwrap().as_ref().unwrap()).clone(); __v })))); *file.lock().unwrap() = __tmp_0.lock().unwrap().take(); *err.lock().unwrap() = __tmp_1.lock().unwrap().take(); };
     if (*err.lock().unwrap()).is_some() {
         print!("Error opening file: {}\n", format!("{}", (*err.lock().unwrap().as_ref().unwrap())));
         {
@@ -312,7 +312,7 @@ fn main() {
     println!("{}", "\n--- Writing formatted data ---".to_string());
 
     let mut dataFile = Arc::new(Mutex::new(Some("data.txt".to_string())));
-    (file, err) = { let __path = (*dataFile.lock().unwrap().as_ref().unwrap()).clone(); match GoFile::create(&__path) { Ok(file) => (Arc::new(Mutex::new(Some(file))), Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>))), Err(e) => (Arc::new(Mutex::new(Some(GoFile::empty()))), Arc::new(Mutex::new(Some(Box::<dyn StdError + Send + Sync>::from(e))))) } };
+    { let (__tmp_0, __tmp_1) = { let __path = (*dataFile.lock().unwrap().as_ref().unwrap()).clone(); match GoFile::create(&__path) { Ok(file) => (Arc::new(Mutex::new(Some(file))), Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>))), Err(e) => (Arc::new(Mutex::new(Some(GoFile::empty()))), Arc::new(Mutex::new(Some(Box::<dyn StdError + Send + Sync>::from(e))))) } }; *file.lock().unwrap() = __tmp_0.lock().unwrap().take(); *err.lock().unwrap() = __tmp_1.lock().unwrap().take(); };
     if (*err.lock().unwrap()).is_some() {
         print!("Error creating data file: {}\n", format!("{}", (*err.lock().unwrap().as_ref().unwrap())));
         {
@@ -338,7 +338,7 @@ fn main() {
         // Read and parse formatted data
     println!("{}", "\n--- Reading formatted data ---".to_string());
 
-    (data, err) = os::read_file(Arc::new(Mutex::new(Some({ let __v = (*dataFile.lock().unwrap().as_ref().unwrap()).clone(); __v }))));
+    { let (__tmp_0, __tmp_1) = os::read_file(Arc::new(Mutex::new(Some({ let __v = (*dataFile.lock().unwrap().as_ref().unwrap()).clone(); __v })))); *data.lock().unwrap() = __tmp_0.lock().unwrap().take(); *err.lock().unwrap() = __tmp_1.lock().unwrap().take(); };
     if (*err.lock().unwrap()).is_some() {
         print!("Error reading data file: {}\n", format!("{}", (*err.lock().unwrap().as_ref().unwrap())));
         {
