@@ -1042,6 +1042,10 @@ run_xfail_test() {
     run_test "tests/wrapped_bool_not"
 }
 
+@test "wrapped_call_argument" {
+    run_test "tests/wrapped_call_argument"
+}
+
 @test "XFAIL: concurrency_patterns" {
     run_xfail_test "tests/XFAIL/concurrency_patterns"
 }

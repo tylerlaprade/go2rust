@@ -429,6 +429,19 @@ func writeExternalStubCallArgument(out *strings.Builder, arg ast.Expr) {
 	TranspileExpression(out, arg)
 }
 
+func writeAlreadyWrappedCallArgument(out *strings.Builder, arg ast.Expr) bool {
+	callArg, ok := arg.(*ast.CallExpr)
+	if !ok {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo != nil && typeInfo.ReturnsWrappedValue(callArg) && !callReturnsBareChannelValue(callArg) {
+		TranspileExpression(out, arg)
+		return true
+	}
+	return false
+}
+
 func isWrappedValueIdent(ident *ast.Ident) bool {
 	if ident.Name == "_" || ident.Name == "nil" || ident.Name == "true" || ident.Name == "false" {
 		return false
@@ -3369,6 +3382,9 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 					writeExternalStubCallArgument(out, arg)
 					continue
 				}
+				if writeAlreadyWrappedCallArgument(out, arg) {
+					continue
+				}
 				// Wrap arguments in Rc<RefCell<Option<>>>
 				WriteWrapperPrefix(out)
 				if !writeCallArgumentValue(out, arg) {
@@ -3580,6 +3596,8 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 			} else if typeInfo != nil && typeInfo.IsChannel(arg) {
 				TranspileExpression(out, arg)
 				out.WriteString(".clone()")
+			} else if writeAlreadyWrappedCallArgument(out, arg) {
+				continue
 			} else {
 				// For method calls, wrap arguments normally
 				WriteWrapperPrefix(out)
