@@ -337,12 +337,17 @@ func writeWrappedStructFieldValue(out *strings.Builder, value ast.Expr, fieldExp
 		return
 	}
 
-	// Check if the value is an identifier (parameter/variable).
+	// Check if the value is an identifier (parameter/variable/constant).
 	if valIdent, ok := value.(*ast.Ident); ok {
-		// Check if it's a literal (true, false, nil) that doesn't need cloning.
 		if valIdent.Name == "true" || valIdent.Name == "false" || valIdent.Name == "nil" {
 			WriteWrapperPrefix(out)
 			TranspileExpression(out, value)
+			WriteWrapperSuffix(out)
+		} else if _, isLocalConst := localConstants[valIdent.Name]; isLocalConst || isConstIdent(valIdent) {
+			WriteWrapperPrefix(out)
+			if !writeExpressionForExpectedType(out, value, fieldExpr) && !writeExpressionForExpectedTypesType(out, value, fieldType) {
+				TranspileExpression(out, value)
+			}
 			WriteWrapperSuffix(out)
 		} else {
 			// It's already wrapped, just clone it.
@@ -358,6 +363,26 @@ func writeWrappedStructFieldValue(out *strings.Builder, value ast.Expr, fieldExp
 		TranspileExpression(out, value)
 		WriteWrapperSuffix(out)
 	}
+}
+
+func writeExpressionForExpectedTypesType(out *strings.Builder, value ast.Expr, expected types.Type) bool {
+	named, ok := expected.(*types.Named)
+	if !ok {
+		return false
+	}
+	out.WriteString(goTypesNamedTypeToRust(named))
+	out.WriteString("(")
+	WriteWrapperPrefix(out)
+	TranspileExpression(out, value)
+	if basic, ok := named.Underlying().(*types.Basic); ok {
+		if _, ok := rustCastTypeForDefinedUnderlying(basic.Name()); ok {
+			out.WriteString(" as ")
+			out.WriteString(goTypesTypeToRust(named.Underlying()))
+		}
+	}
+	WriteWrapperSuffix(out)
+	out.WriteString(")")
+	return true
 }
 
 func arrayLiteralIndex(expr ast.Expr) (int64, bool) {

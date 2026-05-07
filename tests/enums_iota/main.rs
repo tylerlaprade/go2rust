@@ -55,7 +55,7 @@ impl ServerState {
 
 fn main() {
     __go_init_all();
-    let mut ns = transition(Rc::new(RefCell::new(Some(ServerState(Rc::new(RefCell::new(Some(STATE_IDLE))))))));
+    let mut ns = transition(Rc::new(RefCell::new(Some(ServerState(Rc::new(RefCell::new(Some(STATE_IDLE as i32))))))));
     println!("{}", { let __v = (*ns.borrow().as_ref().unwrap()).clone(); __v });
 
     let mut ns2 = transition(Rc::new(RefCell::new(Some((*ns.borrow().as_ref().unwrap()).clone()))));
@@ -66,11 +66,11 @@ pub fn transition(s: Rc<RefCell<Option<ServerState>>>) -> Rc<RefCell<Option<Serv
 
     { let _switch_val = (*(*s.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap());
     if _switch_val == (STATE_IDLE) {
-            return Rc::new(RefCell::new(Some(ServerState(Rc::new(RefCell::new(Some(STATE_CONNECTED)))))));
+            return Rc::new(RefCell::new(Some(ServerState(Rc::new(RefCell::new(Some(STATE_CONNECTED as i32)))))));
         } else if _switch_val == (STATE_CONNECTED) || _switch_val == (STATE_RETRYING) {
-            return Rc::new(RefCell::new(Some(ServerState(Rc::new(RefCell::new(Some(STATE_IDLE)))))));
+            return Rc::new(RefCell::new(Some(ServerState(Rc::new(RefCell::new(Some(STATE_IDLE as i32)))))));
         } else if _switch_val == (STATE_ERROR) {
-            return Rc::new(RefCell::new(Some(ServerState(Rc::new(RefCell::new(Some(STATE_ERROR)))))));
+            return Rc::new(RefCell::new(Some(ServerState(Rc::new(RefCell::new(Some(STATE_ERROR as i32)))))));
         } else {
             panic!("unknown state: {}", { let __v = (*s.borrow().as_ref().unwrap()).clone(); __v });
         }

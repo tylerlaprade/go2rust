@@ -1,0 +1,2 @@
+Println 2
+Point.X 3

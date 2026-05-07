@@ -27,16 +27,43 @@ func writeExpressionForExpectedType(out *strings.Builder, value ast.Expr, expect
 	if !ok {
 		return false
 	}
-	if _, isTypeDef := LookupTypeDefinition(expectedIdent.Name); !isTypeDef {
+	underlying, isTypeDef := LookupTypeDefinition(expectedIdent.Name)
+	if !isTypeDef {
 		return false
 	}
 	out.WriteString(expectedIdent.Name)
 	out.WriteString("(")
 	WriteWrapperPrefix(out)
 	TranspileExpression(out, value)
+	if rustType, ok := rustCastTypeForDefinedUnderlying(underlying); ok {
+		out.WriteString(" as ")
+		out.WriteString(rustType)
+	}
 	WriteWrapperSuffix(out)
 	out.WriteString(")")
 	return true
+}
+
+func rustCastTypeForDefinedUnderlying(underlying string) (string, bool) {
+	switch underlying {
+	case "int", "int8", "int16", "int32", "int64", "rune",
+		"uint", "uint8", "uint16", "uint32", "uint64", "uintptr", "byte",
+		"float32", "float64":
+		return goTypeToRustBase(ast.NewIdent(underlying)), true
+	default:
+		return "", false
+	}
+}
+
+func isDisplayableDefinedUnderlying(underlying string) bool {
+	switch underlying {
+	case "string", "bool", "int", "int8", "int16", "int32", "int64", "rune",
+		"uint", "uint8", "uint16", "uint32", "uint64", "uintptr", "byte",
+		"float32", "float64":
+		return true
+	default:
+		return false
+	}
 }
 
 func writeWrappedExpressionForExpectedType(out *strings.Builder, value ast.Expr, expected ast.Expr) {

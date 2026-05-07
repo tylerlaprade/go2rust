@@ -757,6 +757,10 @@ run_xfail_test() {
     run_test "tests/strings_runes"
 }
 
+@test "struct_const_fields" {
+    run_test "tests/struct_const_fields"
+}
+
 @test "struct_embedding" {
     run_test "tests/struct_embedding"
 }

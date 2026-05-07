@@ -763,13 +763,12 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 			out.WriteString(GoTypeToRust(t))
 			out.WriteString(");\n")
 
-			// Add Display implementation for numeric type definitions
+			// Add Display implementation for displayable scalar type definitions
 			if ident, ok := t.(*ast.Ident); ok {
 				RegisterTypeDefinition(typeSpec.Name.Name, ident.Name)
 
-				// Add Display impl for numeric types
-				if ident.Name == "int" || ident.Name == "int64" || ident.Name == "float64" ||
-					ident.Name == "float32" || ident.Name == "uint" || ident.Name == "uint64" {
+				// Add Display impl when the underlying Rust type is displayable.
+				if isDisplayableDefinedUnderlying(ident.Name) {
 					// Track necessary imports
 					TrackImport("Display")
 					TrackImport("Formatter")
