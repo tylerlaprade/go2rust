@@ -1,0 +1,8 @@
+[package]
+name = "dynamic_format_strings"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "dynamic_format_strings"
+path = "main.rs"

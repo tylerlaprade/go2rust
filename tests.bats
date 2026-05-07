@@ -417,6 +417,10 @@ run_xfail_test() {
     run_test "tests/defer_statements"
 }
 
+@test "dynamic_format_strings" {
+    run_test "tests/dynamic_format_strings"
+}
+
 @test "elided_nested_composites" {
     run_test "tests/elided_nested_composites"
 }

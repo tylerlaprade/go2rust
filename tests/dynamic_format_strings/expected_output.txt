@@ -1,0 +1,2 @@
+dynamic message
+dynamic error

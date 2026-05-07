@@ -927,7 +927,8 @@ func transpileFmtSprintf(out *strings.Builder, call *ast.CallExpr) {
 		} else {
 			out.WriteString("\"{}\"")
 			out.WriteString(", ")
-			TranspileExpression(out, call.Args[0])
+			writeOwnedStringStdlibArg(out, call.Args[0])
+			out.WriteString(")")
 			WriteWrapperSuffix(out)
 			return
 		}
@@ -969,6 +970,7 @@ func transpileFmtSprintf(out *strings.Builder, call *ast.CallExpr) {
 }
 
 func transpileFmtErrorf(out *strings.Builder, call *ast.CallExpr) {
+	TrackImport("Error")
 	WriteWrapperPrefix(out)
 	if NeedsConcurrentWrapper() {
 		out.WriteString("Box::<dyn StdError + Send + Sync>::from(format!")
@@ -979,18 +981,23 @@ func transpileFmtErrorf(out *strings.Builder, call *ast.CallExpr) {
 
 	if len(call.Args) > 0 {
 		// First arg is the format string
+		literalFormat := false
 		if lit, ok := call.Args[0].(*ast.BasicLit); ok && lit.Kind == token.STRING {
 			// Convert Go format verbs to Rust
 			format := convertFormatString(lit.Value)
 			out.WriteString(format)
+			literalFormat = true
 		} else {
-			TranspileExpression(out, call.Args[0])
+			out.WriteString("\"{}\", ")
+			writeOwnedStringStdlibArg(out, call.Args[0])
 		}
 
 		// Rest of the arguments
-		for i := 1; i < len(call.Args); i++ {
-			out.WriteString(", ")
-			TranspileExpression(out, call.Args[i])
+		if literalFormat {
+			for i := 1; i < len(call.Args); i++ {
+				out.WriteString(", ")
+				TranspileExpression(out, call.Args[i])
+			}
 		}
 	}
 
