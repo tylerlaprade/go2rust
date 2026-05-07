@@ -7,7 +7,7 @@ pub const STRING: i8 = 1;
 pub const BOOL: i8 = 2;
 
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct Kind(pub Rc<RefCell<Option<i8>>>);
 
 impl Display for Kind {

@@ -8,7 +8,7 @@ pub const BLUE: i32 = 2;
 pub const YELLOW: i32 = 3;
 
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct Color(pub Rc<RefCell<Option<i32>>>);
 
 impl Display for Color {

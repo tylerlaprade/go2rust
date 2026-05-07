@@ -9,7 +9,7 @@ pub const STATE_ERROR: i32 = 2;
 pub const STATE_RETRYING: i32 = 3;
 
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct ServerState(pub Rc<RefCell<Option<i32>>>);
 
 impl Display for ServerState {

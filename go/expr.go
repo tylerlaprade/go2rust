@@ -265,6 +265,88 @@ func isBareMapSelectorExpression(expr ast.Expr) bool {
 	return typeInfo != nil && typeInfo.IsMap(expr)
 }
 
+func namedSliceTypeFromType(typ types.Type) (*types.Named, *types.Slice, bool) {
+	if typ == nil {
+		return nil, nil, false
+	}
+	typ = types.Unalias(typ)
+	named, ok := typ.(*types.Named)
+	if !ok || named.Obj() == nil {
+		return nil, nil, false
+	}
+	sliceType, ok := named.Underlying().(*types.Slice)
+	if !ok {
+		return nil, nil, false
+	}
+	return named, sliceType, true
+}
+
+func namedSliceTypeForExpr(expr ast.Expr) (*types.Named, *types.Slice, bool) {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return nil, nil, false
+	}
+	return namedSliceTypeFromType(typeInfo.GetType(expr))
+}
+
+func isNamedSliceExpression(expr ast.Expr) bool {
+	_, _, ok := namedSliceTypeForExpr(expr)
+	return ok
+}
+
+func writeNamedSliceInnerHandleClone(out *strings.Builder, expr ast.Expr) bool {
+	if _, _, ok := namedSliceTypeForExpr(expr); !ok {
+		return false
+	}
+	if ident, ok := expr.(*ast.Ident); ok && currentReceiver != "" && ident.Name == currentReceiver {
+		out.WriteString("self.0.clone()")
+		return true
+	}
+	out.WriteString("{ let __named_slice = (*")
+	TranspileExpressionContext(out, expr, LValue)
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap()).0.clone(); __named_slice }")
+	return true
+}
+
+func writeNamedSliceLen(out *strings.Builder, expr ast.Expr) bool {
+	if !isNamedSliceExpression(expr) {
+		return false
+	}
+	out.WriteString("{ let __slice_holder = ")
+	writeNamedSliceInnerHandleClone(out, expr)
+	out.WriteString("; let __slice_guard = __slice_holder")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }")
+	return true
+}
+
+func writeNamedSliceCap(out *strings.Builder, expr ast.Expr) bool {
+	if !isNamedSliceExpression(expr) {
+		return false
+	}
+	out.WriteString("{ let __slice_holder = ")
+	writeNamedSliceInnerHandleClone(out, expr)
+	out.WriteString("; let __slice_guard = __slice_holder")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; __slice_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0) }")
+	return true
+}
+
+func writeNamedSliceIndexValue(out *strings.Builder, expr ast.Expr, index ast.Expr) bool {
+	if !isNamedSliceExpression(expr) {
+		return false
+	}
+	out.WriteString("{ let __seq_holder = ")
+	writeNamedSliceInnerHandleClone(out, expr)
+	out.WriteString("; let __seq_guard = __seq_holder")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; let __seq = __seq_guard.as_ref().unwrap(); __seq[")
+	writeExpressionAsUsize(out, index)
+	out.WriteString("].clone() }")
+	return true
+}
+
 // isCompositeLitSelfWrapping checks if a CompositeLit expression will
 // self-wrap with Rc<RefCell<Option<>>> when transpiled. Slice and map
 // literals self-wrap; struct literals do not.
@@ -1951,6 +2033,8 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				out.WriteString(".as_ref().unwrap()).clone(); __s.as_bytes()[")
 				writeExpressionAsUsize(out, e.Index)
 				out.WriteString("] }")
+			} else if writeNamedSliceIndexValue(out, e.X, e.Index) {
+				// Named slice element emitted by helper.
 			} else {
 				// Array/slice indexing
 				if isExpressionResultBare(e.X) {

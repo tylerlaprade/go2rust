@@ -153,7 +153,7 @@ pub const FIELD: i8 = 1;
 pub const METHOD: i8 = 2;
 
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct Kind(pub Arc<Mutex<Option<i8>>>);
 
 impl Display for Kind {

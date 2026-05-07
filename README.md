@@ -229,7 +229,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Named scalar equality comparisons | ✅ |
 | └ Instantiated generic function type aliases | ✅ |
 | └ Numeric conversions from literals and expressions | ✅ |
-| └ Methods on named slice type definitions, including receiver range loops | ✅ |
+| └ Named slice type definitions in methods, parameters, ranges, indexing, and append | ✅ |
 | └ Interface types | ✅ |
 | **`var` - Variable declarations** | |
 | └ Basic var declarations | ✅ |

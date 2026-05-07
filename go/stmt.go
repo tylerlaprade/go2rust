@@ -2045,9 +2045,13 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									}
 
 									if isAppend {
-										// append() returns the same wrapped type, don't wrap in Some()
-										// Just execute the append for its side effect
-										TranspileExpression(out, s.Rhs[0])
+										if isNamedSliceExpression(s.Rhs[0]) {
+											writeMoveWrappedInnerAssignment(out, s.Lhs[0], s.Rhs[0])
+										} else {
+											// append() returns the same wrapped type, don't wrap in Some()
+											// Just execute the append for its side effect
+											TranspileExpression(out, s.Rhs[0])
+										}
 									} else if isErrorFunc {
 										// Error functions return the full wrapped type Rc<RefCell<Option<Box<dyn StdError>>>>
 										// Just replace the Rc pointer directly
@@ -2805,7 +2809,15 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 		rangeValuesVar := ""
 		closeRangeGuard := false
-		if !isMap && !isString && typeInfo.IsSlice(s.X) {
+		if !isMap && !isString && typeInfo.IsSlice(s.X) && isNamedSliceExpression(s.X) {
+			out.WriteString("{ let __range_holder = ")
+			writeNamedSliceInnerHandleClone(out, s.X)
+			out.WriteString("; let __range_guard = __range_holder")
+			WriteBorrowMethod(out, false)
+			out.WriteString("; let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); ")
+			rangeValuesVar = "__range_values"
+			closeRangeGuard = true
+		} else if !isMap && !isString && typeInfo.IsSlice(s.X) {
 			if ident, ok := s.X.(*ast.Ident); ok {
 				if _, isRangeVar := rangeLoopVars[ident.Name]; !isRangeVar {
 					out.WriteString("{ let __range_guard = ")

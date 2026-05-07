@@ -2143,6 +2143,9 @@ func transpileRegexpMustCompile(out *strings.Builder, call *ast.CallExpr) {
 
 func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 	if len(call.Args) >= 2 {
+		if transpileNamedSliceAppend(out, call) {
+			return
+		}
 		writeAppendTarget := func(expr ast.Expr) {
 			if ident, ok := expr.(*ast.Ident); ok {
 				if writeCurrentReceiverStorage(out, ident) {
@@ -2208,6 +2211,58 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 	}
 }
 
+func transpileNamedSliceAppend(out *strings.Builder, call *ast.CallExpr) bool {
+	named, _, ok := namedSliceTypeForExpr(call.Args[0])
+	if !ok {
+		return false
+	}
+	out.WriteString("{ let __base = ")
+	writeNamedSliceInnerHandleClone(out, call.Args[0])
+	out.WriteString("; let __base_guard = __base")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; let mut __values = __base_guard.as_ref().cloned().unwrap_or_else(Vec::new); drop(__base_guard); ")
+	if call.Ellipsis.IsValid() {
+		if isNamedSliceExpression(call.Args[1]) {
+			out.WriteString("let __src = ")
+			writeNamedSliceInnerHandleClone(out, call.Args[1])
+			out.WriteString("; let __src_guard = __src")
+			WriteBorrowMethod(out, false)
+			out.WriteString("; if let Some(__src_values) = __src_guard.as_ref() { __values.extend(__src_values.iter().cloned()); }; ")
+		} else {
+			out.WriteString("__values.extend(")
+			TranspileExpression(out, call.Args[1])
+			out.WriteString(".iter().cloned()); ")
+		}
+	} else if len(call.Args) == 2 {
+		out.WriteString("__values.push(")
+		if !writeOwnedExpressionValue(out, call.Args[1]) {
+			TranspileExpression(out, call.Args[1])
+		}
+		out.WriteString("); ")
+	} else {
+		out.WriteString("__values.extend(vec![")
+		for i := 1; i < len(call.Args); i++ {
+			if i > 1 {
+				out.WriteString(", ")
+			}
+			if !writeOwnedExpressionValue(out, call.Args[i]) {
+				TranspileExpression(out, call.Args[i])
+			}
+		}
+		out.WriteString("]); ")
+	}
+	WriteWrapperPrefix(out)
+	out.WriteString(goTypesNamedTypeToRust(named))
+	out.WriteString("(")
+	WriteWrapperPrefix(out)
+	out.WriteString("__values")
+	WriteWrapperSuffix(out)
+	out.WriteString(")")
+	WriteWrapperSuffix(out)
+	out.WriteString(" }")
+	return true
+}
+
 func transpileLen(out *strings.Builder, call *ast.CallExpr) {
 	if len(call.Args) > 0 {
 		if lit, ok := call.Args[0].(*ast.BasicLit); ok && lit.Kind == token.STRING {
@@ -2220,6 +2275,10 @@ func transpileLen(out *strings.Builder, call *ast.CallExpr) {
 		if typeInfo != nil && typeInfo.IsChannel(call.Args[0]) {
 			writeChannelExpression(out, call.Args[0])
 			out.WriteString(".len()")
+			return
+		}
+
+		if writeNamedSliceLen(out, call.Args[0]) {
 			return
 		}
 
@@ -2330,6 +2389,10 @@ func transpileCap(out *strings.Builder, call *ast.CallExpr) {
 		if typeInfo != nil && typeInfo.IsChannel(call.Args[0]) {
 			writeChannelExpression(out, call.Args[0])
 			out.WriteString(".capacity()")
+			return
+		}
+
+		if writeNamedSliceLen(out, call.Args[0]) {
 			return
 		}
 

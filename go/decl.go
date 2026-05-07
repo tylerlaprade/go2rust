@@ -807,7 +807,7 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 			// Type definition: type A B
 			// Create a newtype wrapper in Rust
 			RegisterTypeDefinition(typeSpec.Name.Name, typeDefinitionUnderlyingName(t))
-			out.WriteString("#[derive(Debug, Clone)]\n")
+			out.WriteString("#[derive(Debug, Clone, Default)]\n")
 			out.WriteString("pub struct ")
 			out.WriteString(typeSpec.Name.Name)
 			out.WriteString("(pub ")
@@ -815,7 +815,20 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 			out.WriteString(");\n")
 
 			// Add Display implementation for displayable scalar type definitions
-			if ident, ok := t.(*ast.Ident); ok {
+			if IsStringerImplType(typeSpec.Name.Name) {
+				TrackImport("Display")
+				TrackImport("Formatter")
+
+				out.WriteString("\nimpl Display for ")
+				out.WriteString(typeSpec.Name.Name)
+				out.WriteString(" {\n")
+				out.WriteString("    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {\n")
+				out.WriteString("        write!(f, \"{}\", (*self.string()")
+				WriteBorrowMethod(out, false)
+				out.WriteString(".as_ref().unwrap()))\n")
+				out.WriteString("    }\n")
+				out.WriteString("}\n")
+			} else if ident, ok := t.(*ast.Ident); ok {
 				// Add Display impl when the underlying Rust type is displayable.
 				if isDisplayableDefinedUnderlying(ident.Name) {
 					// Track necessary imports

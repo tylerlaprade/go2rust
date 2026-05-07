@@ -722,6 +722,10 @@ run_xfail_test() {
     run_test "tests/named_slice_methods"
 }
 
+@test "named_slice_parameters" {
+    run_test "tests/named_slice_parameters"
+}
+
 @test "named_type_comparisons" {
     run_test "tests/named_type_comparisons"
 }

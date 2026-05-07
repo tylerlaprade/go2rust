@@ -8,7 +8,7 @@ pub const FUNC: i8 = 2;
 pub const FIELD: i8 = 3;
 
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct Kind(pub Rc<RefCell<Option<i8>>>);
 
 impl Display for Kind {
@@ -24,7 +24,7 @@ impl PartialEq for Kind {
 }
 
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct Version(pub Rc<RefCell<Option<i8>>>);
 
 impl Display for Version {

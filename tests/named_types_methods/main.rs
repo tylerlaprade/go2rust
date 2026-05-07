@@ -2,7 +2,7 @@ use std::cell::{RefCell};
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct Celsius(pub Rc<RefCell<Option<f64>>>);
 
 impl Display for Celsius {
@@ -18,7 +18,7 @@ impl PartialEq for Celsius {
 }
 
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct Fahrenheit(pub Rc<RefCell<Option<f64>>>);
 
 impl Display for Fahrenheit {
