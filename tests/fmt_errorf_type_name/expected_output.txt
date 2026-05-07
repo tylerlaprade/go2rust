@@ -1,0 +1,2 @@
+bad type string
+stored type string

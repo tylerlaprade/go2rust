@@ -748,13 +748,29 @@ func transpileFormatArg(out *strings.Builder, arg ast.Expr, argIndex int, charIn
 				out.WriteString(ident.Name)
 				out.WriteString(")")
 			} else {
-				out.WriteString("go_type_name(&**")
-				out.WriteString(ident.Name)
-				WriteBorrowMethod(out, false)
-				out.WriteString(".as_ref().unwrap())")
+				typeInfo := GetTypeInfo()
+				isEmptyInterface := false
+				if typeInfo != nil {
+					if typ := typeInfo.GetType(ident); typ != nil {
+						if intf, ok := typ.Underlying().(*types.Interface); ok && intf.NumMethods() == 0 {
+							isEmptyInterface = true
+						}
+					}
+				}
+				if isEmptyInterface {
+					out.WriteString("go_type_name(&**")
+					out.WriteString(ident.Name)
+					WriteBorrowMethod(out, false)
+					out.WriteString(".as_ref().unwrap())")
+				} else {
+					out.WriteString("go_type_name(")
+					out.WriteString(ident.Name)
+					WriteBorrowMethod(out, false)
+					out.WriteString(".as_ref().unwrap())")
+				}
 			}
 		} else {
-			out.WriteString("go_type_name(&*")
+			out.WriteString("go_type_name(&")
 			transpilePrintArg(out, arg)
 			out.WriteString(")")
 		}
@@ -1014,12 +1030,22 @@ func transpileFmtErrorf(out *strings.Builder, call *ast.CallExpr) {
 	}
 	out.WriteString("(")
 
+	var skipIndices []int
+	var charIndices []int
+	var typeNameIndices []int
+	var unicodeIndices []int
+	hexFormats := make(map[int]string)
 	if len(call.Args) > 0 {
 		// First arg is the format string
 		literalFormat := false
 		if lit, ok := call.Args[0].(*ast.BasicLit); ok && lit.Kind == token.STRING {
 			// Convert Go format verbs to Rust
-			format := convertFormatString(lit.Value)
+			format, skips, chars, typeNames, unicodes, hexes := convertFormatStringWithSkips(lit.Value)
+			skipIndices = skips
+			charIndices = chars
+			typeNameIndices = typeNames
+			unicodeIndices = unicodes
+			hexFormats = hexes
 			out.WriteString(format)
 			literalFormat = true
 		} else {
@@ -1030,8 +1056,18 @@ func transpileFmtErrorf(out *strings.Builder, call *ast.CallExpr) {
 		// Rest of the arguments
 		if literalFormat {
 			for i := 1; i < len(call.Args); i++ {
+				shouldSkip := false
+				for _, skipIdx := range skipIndices {
+					if skipIdx == i-1 {
+						shouldSkip = true
+						break
+					}
+				}
+				if shouldSkip {
+					continue
+				}
 				out.WriteString(", ")
-				TranspileExpression(out, call.Args[i])
+				transpileFormatArg(out, call.Args[i], i-1, charIndices, typeNameIndices, unicodeIndices, hexFormats)
 			}
 		}
 	}

@@ -538,6 +538,10 @@ run_xfail_test() {
     run_test "tests/flag_parsing"
 }
 
+@test "fmt_errorf_type_name" {
+    run_test "tests/fmt_errorf_type_name"
+}
+
 @test "fmt_println" {
     run_test "tests/fmt_println"
 }

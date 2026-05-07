@@ -34,7 +34,7 @@ pub fn safe_divide(a: Rc<RefCell<Option<f64>>>, b: Rc<RefCell<Option<f64>>>) -> 
         { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
         let mut r = Rc::new(RefCell::new(None::<String>));
     if (*r.borrow()).is_some() {
-        { let __rhs_holder = Rc::new(RefCell::new(Some(Box::<dyn StdError>::from(format!("panic occurred: {}", (*r.borrow().as_ref().unwrap())))))).clone(); let new_val = { let mut guard = __rhs_holder.borrow_mut(); guard.take() }; *err_defer_captured.borrow_mut() = new_val; };
+        { let __rhs_holder = Rc::new(RefCell::new(Some(Box::<dyn StdError>::from(format!("panic occurred: {}", format_any(r.borrow().as_ref().unwrap().as_ref())))))).clone(); let new_val = { let mut guard = __rhs_holder.borrow_mut(); guard.take() }; *err_defer_captured.borrow_mut() = new_val; };
         { let new_val = 0.0; *result_defer_captured.borrow_mut() = Some(new_val); };
     }
     }) as Box<dyn Fn() -> ()>))); let __f_guard = __f_holder.borrow(); let __f = __f_guard.as_ref().unwrap(); (*__f)() };
@@ -66,7 +66,7 @@ pub fn process_slice(slice: Rc<RefCell<Option<Vec<i32>>>>, index: Rc<RefCell<Opt
         { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
         let mut r = Rc::new(RefCell::new(None::<String>));
     if (*r.borrow()).is_some() {
-        { let __rhs_holder = Rc::new(RefCell::new(Some(Box::<dyn StdError>::from(format!("index out of bounds: {}", (*r.borrow().as_ref().unwrap())))))).clone(); let new_val = { let mut guard = __rhs_holder.borrow_mut(); guard.take() }; *err_defer_captured.borrow_mut() = new_val; };
+        { let __rhs_holder = Rc::new(RefCell::new(Some(Box::<dyn StdError>::from(format!("index out of bounds: {}", format_any(r.borrow().as_ref().unwrap().as_ref())))))).clone(); let new_val = { let mut guard = __rhs_holder.borrow_mut(); guard.take() }; *err_defer_captured.borrow_mut() = new_val; };
         { let new_val = -1; *value_defer_captured.borrow_mut() = Some(new_val); };
     }
     }) as Box<dyn Fn() -> ()>))); let __f_guard = __f_holder.borrow(); let __f = __f_guard.as_ref().unwrap(); (*__f)() };

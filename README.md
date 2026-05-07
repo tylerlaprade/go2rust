@@ -310,6 +310,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ `fmt.Fprintln` | ✅ |
 | └ `fmt.Fprintf` | ✅ |
 | └ `%w` error formatting | ✅ |
+| └ `%T` type-name formatting in errors | ✅ |
 | └ `%+v` debug and `%#x` alternate hex formatting | ✅ |
 | └ `%x`/`%X` byte formatting | ✅ |
 | **`strings` package** | |
