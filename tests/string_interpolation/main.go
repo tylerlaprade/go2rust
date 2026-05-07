@@ -8,4 +8,6 @@ func main() {
 	fmt.Printf("Hello %s! You are %d years old.\n", name, age)
 	result := fmt.Sprintf("Formatted: %v", []int{1, 2, 3})
 	fmt.Println(result)
+	flags := fmt.Sprintf("Flags: %+v %#x", age, age)
+	fmt.Println(flags)
 }

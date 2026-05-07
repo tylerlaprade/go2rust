@@ -499,6 +499,35 @@ func convertFormatStringWithSkips(goFormat string) (string, []int, []int, []int,
 				result.WriteString("{}")
 				argIndex++
 				i += 2
+			} else if format[i+1] == '+' && i+2 < len(format) {
+				switch format[i+2] {
+				case 'v':
+					result.WriteString("{:?}")
+					argIndex++
+					i += 3
+				default:
+					// Unknown flagged format, keep as-is
+					result.WriteByte(format[i])
+					result.WriteByte(format[i+1])
+					i += 2
+				}
+			} else if format[i+1] == '#' && i+2 < len(format) {
+				switch format[i+2] {
+				case 'x', 'X':
+					result.WriteString("{}")
+					hexFormats[argIndex] = "#" + string(format[i+2])
+					argIndex++
+					i += 3
+				case 'v':
+					result.WriteString("{:?}")
+					argIndex++
+					i += 3
+				default:
+					// Unknown flagged format, keep as-is
+					result.WriteByte(format[i])
+					result.WriteByte(format[i+1])
+					i += 2
+				}
 			} else if format[i+1] == '.' {
 				// Handle precision format like %.10f, %.2d, etc.
 				j := i + 2
