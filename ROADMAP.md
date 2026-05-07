@@ -118,6 +118,7 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 - ✅ Vendor crate dependencies - transpiled external package crates emit deterministic sibling crate dependencies, and external selected types use mapped crate-qualified Rust paths (2026-05-07)
 - ✅ Stdlib type signatures - named stdlib types in signatures emit deterministic Rust stand-ins instead of unresolved identifiers (stdlib_type_signatures promoted, 2026-05-07)
 - ✅ External package workspace wrapper policy - root and transpiled dependency crates share one goroutine/channel detection result before wrapper selection, preventing cross-crate wrapper mismatches (2026-05-07)
+- ✅ Package-level map literal initialization - global map literals lower through source-ordered local `BTreeMap` inserts followed by one assignment, avoiding multi-megabyte Rust expressions in generated dependency crates (package_global_map_incremental added, 2026-05-07)
 - ✅ Stdlib struct field stubs - selected fields on imported stdlib structs generate typed Rust stub fields, including `go/types.Info.FileVersions` (stdlib_struct_field_map promoted, 2026-05-07)
 - ✅ Stdlib method stubs - selected methods on imported stdlib receiver types generate typed Rust stub methods from selector signatures (stdlib_method_stubs promoted, 2026-05-07)
 - ✅ Stdlib indexed and range pointer receiver methods - method calls on indexed or ranged `*stdlib.Type` values unwrap the pointer stand-in before invoking generated stub methods (stdlib_indexed_pointer_method promoted, 2026-05-07)

@@ -1,0 +1,8 @@
+[package]
+name = "package_global_map_incremental"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "package_global_map_incremental"
+path = "main.rs"

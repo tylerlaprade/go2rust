@@ -49,7 +49,14 @@ pub(crate) static stateName: GoGlobal<BTreeMap<i32, Rc<RefCell<Option<String>>>>
 
 pub(crate) fn __go_init_globals() {
     *stateName.borrow_mut() = Some(BTreeMap::new());
-    *stateName.borrow_mut() = Some((*Rc::new(RefCell::new(Some(BTreeMap::<i32, Rc<RefCell<Option<String>>>>::from([(STATE_IDLE, Rc::new(RefCell::new(Some("idle".to_string())))), (STATE_CONNECTED, Rc::new(RefCell::new(Some("connected".to_string())))), (STATE_ERROR, Rc::new(RefCell::new(Some("error".to_string())))), (STATE_RETRYING, Rc::new(RefCell::new(Some("retrying".to_string()))))])))).borrow().as_ref().unwrap()).clone());
+    {
+        let mut __go_map = BTreeMap::<i32, Rc<RefCell<Option<String>>>>::new();
+        __go_map.insert(STATE_IDLE, Rc::new(RefCell::new(Some("idle".to_string()))));
+        __go_map.insert(STATE_CONNECTED, Rc::new(RefCell::new(Some("connected".to_string()))));
+        __go_map.insert(STATE_ERROR, Rc::new(RefCell::new(Some("error".to_string()))));
+        __go_map.insert(STATE_RETRYING, Rc::new(RefCell::new(Some("retrying".to_string()))));
+        *stateName.borrow_mut() = Some(__go_map);
+    }
 }
 
 

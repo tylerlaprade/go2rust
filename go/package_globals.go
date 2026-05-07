@@ -261,17 +261,24 @@ func transpilePackageGlobalInit(out *strings.Builder, globals []packageGlobal) {
 		return
 	}
 
-	globalNames := make(map[string]bool, len(globals))
+	globalByName := make(map[string]packageGlobal, len(globals))
 	for _, global := range globals {
-		globalNames[global.name] = true
+		globalByName[global.name] = global
 	}
 	for _, init := range typeInfo.info.InitOrder {
-		if len(init.Lhs) == 0 || !globalNames[init.Lhs[0].Name()] {
+		if len(init.Lhs) == 0 {
+			continue
+		}
+		global, ok := globalByName[init.Lhs[0].Name()]
+		if !ok {
 			continue
 		}
 		if len(init.Lhs) != 1 {
 			out.WriteString("    /* ERROR: Type information required for multi-value package variable initialization */\n")
 			out.WriteString("    unimplemented!();\n")
+			continue
+		}
+		if writePackageGlobalCompositeInit(out, global, init.Rhs) {
 			continue
 		}
 		out.WriteString("    *")
@@ -282,6 +289,126 @@ func transpilePackageGlobalInit(out *strings.Builder, globals []packageGlobal) {
 		out.WriteString(");\n")
 	}
 	out.WriteString("}\n")
+}
+
+func writePackageGlobalCompositeInit(out *strings.Builder, global packageGlobal, expr ast.Expr) bool {
+	lit, ok := expr.(*ast.CompositeLit)
+	if !ok {
+		return false
+	}
+	mapType := packageGlobalMapLiteralType(global.typ, lit)
+	if mapType == nil {
+		return false
+	}
+	writePackageGlobalMapLiteralInit(out, global.name, mapType, lit)
+	return true
+}
+
+func packageGlobalMapLiteralType(globalType types.Type, lit *ast.CompositeLit) *types.Map {
+	typeInfo := GetTypeInfo()
+	if typeInfo != nil {
+		if typ := typeInfo.GetType(lit); typ != nil {
+			if mapType := underlyingMapType(typ); mapType != nil {
+				return mapType
+			}
+		}
+	}
+	return underlyingMapType(globalType)
+}
+
+func underlyingMapType(typ types.Type) *types.Map {
+	if typ == nil {
+		return nil
+	}
+	typ = types.Unalias(typ)
+	if mapType, ok := typ.Underlying().(*types.Map); ok {
+		return mapType
+	}
+	return nil
+}
+
+func writePackageGlobalMapLiteralInit(out *strings.Builder, name string, mapType *types.Map, lit *ast.CompositeLit) {
+	TrackImport("BTreeMap")
+	out.WriteString("    {\n")
+	out.WriteString("        let mut __go_map = BTreeMap::<")
+	out.WriteString(goTypesTypeToRust(mapType.Key()))
+	out.WriteString(", ")
+	out.WriteString(goTypesTypeToRustWrapped(mapType.Elem()))
+	out.WriteString(">::new();\n")
+	for _, elt := range lit.Elts {
+		kv, ok := elt.(*ast.KeyValueExpr)
+		if !ok {
+			out.WriteString("        /* ERROR: Type information required for package map literal element */\n")
+			out.WriteString("        unimplemented!();\n")
+			continue
+		}
+		if writePackageGlobalMapSliceValueInsert(out, kv, mapType.Elem()) {
+			continue
+		}
+		out.WriteString("        __go_map.insert(")
+		writeMapLiteralKey(out, kv.Key)
+		out.WriteString(", ")
+		writeWrappedMapValue(out, kv.Value, nil, mapType.Elem())
+		out.WriteString(");\n")
+	}
+	out.WriteString("        *")
+	out.WriteString(name)
+	WriteBorrowMethod(out, true)
+	out.WriteString(" = Some(__go_map);\n")
+	out.WriteString("    }\n")
+}
+
+func writePackageGlobalMapSliceValueInsert(out *strings.Builder, kv *ast.KeyValueExpr, valueType types.Type) bool {
+	valueLit, ok := kv.Value.(*ast.CompositeLit)
+	if !ok {
+		return false
+	}
+	sliceType := underlyingSliceType(valueType)
+	if sliceType == nil {
+		return false
+	}
+	keyName := fmt.Sprintf("__go_map_key_%d", valueLit.Pos())
+	valueName := fmt.Sprintf("__go_map_value_%d", valueLit.Pos())
+	out.WriteString("        let ")
+	out.WriteString(keyName)
+	out.WriteString(" = ")
+	writeMapLiteralKey(out, kv.Key)
+	out.WriteString(";\n")
+	out.WriteString("        let mut ")
+	out.WriteString(valueName)
+	out.WriteString(" = Vec::<")
+	out.WriteString(goTypesTypeToRust(sliceType.Elem()))
+	out.WriteString(">::new();\n")
+	for _, elt := range orderedArrayLiteralValues(valueLit.Elts) {
+		out.WriteString("        ")
+		out.WriteString(valueName)
+		out.WriteString(".push(")
+		if elt == nil {
+			out.WriteString(zeroValueForTypesType(sliceType.Elem()))
+		} else if !writeOwnedExpressionValue(out, elt) {
+			TranspileExpression(out, elt)
+		}
+		out.WriteString(");\n")
+	}
+	out.WriteString("        __go_map.insert(")
+	out.WriteString(keyName)
+	out.WriteString(", ")
+	WriteWrapperPrefix(out)
+	out.WriteString(valueName)
+	WriteWrapperSuffix(out)
+	out.WriteString(");\n")
+	return true
+}
+
+func underlyingSliceType(typ types.Type) *types.Slice {
+	if typ == nil {
+		return nil
+	}
+	typ = types.Unalias(typ)
+	if sliceType, ok := typ.Underlying().(*types.Slice); ok {
+		return sliceType
+	}
+	return nil
 }
 
 func writePackageGlobalInitValue(out *strings.Builder, expr ast.Expr) {

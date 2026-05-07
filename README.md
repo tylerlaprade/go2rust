@@ -189,6 +189,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Main package | ✅ |
 | └ Library packages | ✅ |
 | └ Package-level variable initialization | ✅ |
+| └ Package-level map literal initialization | ✅ |
 | └ Init functions | ✅ |
 | └ Multi-file packages with cross-file types, methods, maps, slices, and function variables | 🚧 |
 | └ Workspace-wide wrapper selection for transpiled external packages | ✅ |
