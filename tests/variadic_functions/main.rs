@@ -12,7 +12,7 @@ pub fn sum(numbers: Rc<RefCell<Option<Vec<i32>>>>) -> Rc<RefCell<Option<i32>>> {
 
 pub fn average(numbers: Rc<RefCell<Option<Vec<f64>>>>) -> Rc<RefCell<Option<f64>>> {
 
-    if (*numbers.borrow().as_ref().unwrap()).len() == 0 {
+    if ((*numbers.borrow().as_ref().unwrap()).len() as i32) == (0 as i32) {
         return Rc::new(RefCell::new(Some(0.0)));
     }
     let mut total = Rc::new(RefCell::new(Some(0.0)));
@@ -50,7 +50,7 @@ pub fn min(first: Rc<RefCell<Option<i32>>>, rest: Rc<RefCell<Option<Vec<i32>>>>)
 
 pub fn concat(separator: Rc<RefCell<Option<String>>>, strings: Rc<RefCell<Option<Vec<String>>>>) -> Rc<RefCell<Option<String>>> {
 
-    if (*strings.borrow().as_ref().unwrap()).len() == 0 {
+    if ((*strings.borrow().as_ref().unwrap()).len() as i32) == (0 as i32) {
         return Rc::new(RefCell::new(Some("".to_string())));
     }
     let mut result = Rc::new(RefCell::new(Some((*strings.borrow().as_ref().unwrap())[(0) as usize].clone())));

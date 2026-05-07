@@ -21,7 +21,7 @@ fn main() {
 
         // Access slice - transpiler needs to know Numbers is a slice
     print!("First number: {}\n", (*Numbers.borrow().as_ref().unwrap())[(0) as usize].clone());
-    print!("Last number: {}\n", (*Numbers.borrow().as_ref().unwrap())[((*Numbers.borrow().as_ref().unwrap()).len() - 1) as usize].clone());
+    print!("Last number: {}\n", (*Numbers.borrow().as_ref().unwrap())[(((*Numbers.borrow().as_ref().unwrap()).len() as i32) - (1 as i32)) as usize].clone());
 
         // Access map of slices - complex type resolution
     let mut admins = Rc::new(RefCell::new(Some((*Groups.borrow().as_ref().unwrap()).get(&"admins".to_string()).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| vec![]))));

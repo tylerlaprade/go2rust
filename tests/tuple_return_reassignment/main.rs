@@ -16,7 +16,7 @@ impl std::fmt::Display for parsed {
 
 pub fn split_version(v: Rc<RefCell<Option<String>>>) -> (Rc<RefCell<Option<String>>>, Rc<RefCell<Option<String>>>, Rc<RefCell<Option<bool>>>) {
 
-    if (*v.borrow().as_ref().unwrap()).len() == 0 {
+    if ((*v.borrow().as_ref().unwrap()).len() as i32) == (0 as i32) {
         return (Rc::new(RefCell::new(Some("".to_string()))), Rc::new(RefCell::new(Some("".to_string()))), Rc::new(RefCell::new(Some(false))));
     }
     return (Rc::new(RefCell::new(Some({ let __s = (*v.borrow().as_ref().unwrap()).clone(); __s[..(1) as usize].to_string() }))), Rc::new(RefCell::new(Some({ let __s = (*v.borrow().as_ref().unwrap()).clone(); __s[(1) as usize..].to_string() }))), Rc::new(RefCell::new(Some(true))));

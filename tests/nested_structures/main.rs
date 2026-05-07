@@ -288,7 +288,7 @@ fn main() {
         print!("Row {}: ", i);
         for (j, val) in row.iter().copied().enumerate() {
         print!("{} ", val);
-        if j < row.len() - 1 {
+        if (j as i32) < (row.len() as i32) - (1 as i32) {
         print!("{}", " ".to_string());
     }
     }

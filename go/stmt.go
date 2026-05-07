@@ -1204,7 +1204,11 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							// Extract X operand
 							out.WriteString("            let __tmp_x = ")
 							// Check if X returns a wrapped value that needs unwrapping
-							if typeInfo != nil && typeInfo.ReturnsWrappedValue(binExpr.X) {
+							if writeLenCapBinaryOperand(out, binExpr.X, binExpr.Y) {
+								// len/cap emitted as Go int representation for this return expression.
+							} else if writeIntPeerForLenCapBinaryOperand(out, binExpr.X, binExpr.Y, typeInfo != nil && typeInfo.ReturnsWrappedValue(binExpr.X)) {
+								// typed int peer emitted as Go int representation for this return expression.
+							} else if typeInfo != nil && typeInfo.ReturnsWrappedValue(binExpr.X) {
 								// Expression returns wrapped value, unwrap it
 								out.WriteString("(*")
 								TranspileExpression(out, binExpr.X)
@@ -1219,7 +1223,11 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							// Extract Y operand
 							out.WriteString("            let __tmp_y = ")
 							// Check if Y returns a wrapped value that needs unwrapping
-							if typeInfo != nil && typeInfo.ReturnsWrappedValue(binExpr.Y) {
+							if writeLenCapBinaryOperand(out, binExpr.Y, binExpr.X) {
+								// len/cap emitted as Go int representation for this return expression.
+							} else if writeIntPeerForLenCapBinaryOperand(out, binExpr.Y, binExpr.X, typeInfo != nil && typeInfo.ReturnsWrappedValue(binExpr.Y)) {
+								// typed int peer emitted as Go int representation for this return expression.
+							} else if typeInfo != nil && typeInfo.ReturnsWrappedValue(binExpr.Y) {
 								// Expression returns wrapped value, unwrap it
 								out.WriteString("(*")
 								TranspileExpression(out, binExpr.Y)

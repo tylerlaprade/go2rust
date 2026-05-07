@@ -630,6 +630,10 @@ run_xfail_test() {
     run_test "tests/late_address_of"
 }
 
+@test "len_typed_int_comparison" {
+    run_test "tests/len_typed_int_comparison"
+}
+
 @test "library_example" {
     run_test "tests/library_example"
 }

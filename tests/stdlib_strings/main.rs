@@ -32,7 +32,7 @@ fn main() {
 
         // String indexing and slicing
     print!("First character: {}\n", ({ let __s = (*str.lock().unwrap().as_ref().unwrap()).clone(); __s.as_bytes()[(0) as usize] }) as u8 as char);
-    print!("Last character: {}\n", ({ let __s = (*str.lock().unwrap().as_ref().unwrap()).clone(); __s.as_bytes()[({ let __tmp_x = (*str.lock().unwrap().as_ref().unwrap()).len(); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize] }) as u8 as char);
+    print!("Last character: {}\n", ({ let __s = (*str.lock().unwrap().as_ref().unwrap()).clone(); __s.as_bytes()[({ let __tmp_x = ((*str.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = (1 as i32); __tmp_x - __tmp_y }) as usize] }) as u8 as char);
     print!("Substring [0:5]: {}\n", (*Arc::new(Mutex::new(Some({ let __s = (*str.lock().unwrap().as_ref().unwrap()).clone(); __s[(0) as usize..(5) as usize].to_string() }))).lock().unwrap().as_ref().unwrap()));
     print!("Substring [7:]: {}\n", (*Arc::new(Mutex::new(Some({ let __s = (*str.lock().unwrap().as_ref().unwrap()).clone(); __s[(7) as usize..].to_string() }))).lock().unwrap().as_ref().unwrap()));
 

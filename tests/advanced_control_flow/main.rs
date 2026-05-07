@@ -455,7 +455,7 @@ fn main() {
     println!("{}", "\n=== Complex error handling flow ===".to_string());
 
     let mut processData = Arc::new(Mutex::new(Some(Box::new(move |data: Arc<Mutex<Option<Vec<i32>>>>| -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
-        if { let __tmp_x = (*data.lock().unwrap().as_ref().unwrap()).len(); let __tmp_y = 0; __tmp_x == __tmp_y } {
+        if { let __tmp_x = ((*data.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = (0 as i32); __tmp_x == __tmp_y } {
         return Arc::new(Mutex::new(Some(Box::<dyn StdError + Send + Sync>::from(format!("empty data")))));
     }
         { let __range_guard = data.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for (i, val) in __range_values.iter().copied().enumerate() {

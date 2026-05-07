@@ -59,6 +59,7 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 - ✅ Elided nested composite literals - nested slice/map composites and map-value indexing work (elided_nested_composites promoted, 2026-05-06)
 - ✅ Complex expressions - nested arithmetic, boolean, bitwise, closure-call, slice/map/field/pointer/type-assertion/channel operands evaluate with sequenced concurrent lock lifetimes (complex_expressions promoted, 2026-05-06)
 - ✅ Concurrent len/cap comparisons - binary temp operands preserve bare builtin results instead of treating them as wrapped values (concurrent_len_comparison promoted, 2026-05-07)
+- ✅ len/cap with typed int peers - binary expressions cast bare length/capacity results to the transpiler's Go `int` representation when compared or combined with typed `int` values (len_typed_int_comparison promoted, 2026-05-07)
 
 ### 📋 Phase 6: Control Flow Extensions
 

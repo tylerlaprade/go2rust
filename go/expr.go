@@ -99,6 +99,123 @@ func isBareBuiltinCall(expr ast.Expr) bool {
 	}
 }
 
+func isBareBuiltinCallName(expr ast.Expr, name string) bool {
+	call, ok := expr.(*ast.CallExpr)
+	if !ok {
+		return false
+	}
+	ident, ok := call.Fun.(*ast.Ident)
+	if !ok || ident.Name != name {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return true
+	}
+	obj := typeInfo.GetObject(ident)
+	if obj == nil {
+		return true
+	}
+	builtin, ok := obj.(*types.Builtin)
+	return ok && builtin.Name() == name
+}
+
+func isBareLenCapCall(expr ast.Expr) bool {
+	return isBareBuiltinCallName(expr, "len") || isBareBuiltinCallName(expr, "cap")
+}
+
+func expressionIsUsizeRangeVar(expr ast.Expr) bool {
+	switch e := expr.(type) {
+	case *ast.Ident:
+		return rangeLoopVars[e.Name] == "usize"
+	case *ast.ParenExpr:
+		return expressionIsUsizeRangeVar(e.X)
+	default:
+		return false
+	}
+}
+
+func expressionContainsBareLenCap(expr ast.Expr) bool {
+	switch e := expr.(type) {
+	case *ast.CallExpr:
+		return isBareLenCapCall(e)
+	case *ast.ParenExpr:
+		return expressionContainsBareLenCap(e.X)
+	case *ast.BinaryExpr:
+		return expressionContainsBareLenCap(e.X) || expressionContainsBareLenCap(e.Y)
+	default:
+		return false
+	}
+}
+
+func shouldCastLenCapForBinaryPeer(expr ast.Expr, other ast.Expr) bool {
+	if !isBareLenCapCall(expr) || isBareLenCapCall(other) {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	otherType := typeInfo.GetType(other)
+	if otherType == nil {
+		return false
+	}
+	basic, ok := otherType.Underlying().(*types.Basic)
+	if !ok {
+		return false
+	}
+	return basic.Kind() == types.Int || basic.Kind() == types.UntypedInt
+}
+
+func shouldCastIntPeerForLenCapBinaryOperand(expr ast.Expr, other ast.Expr) bool {
+	if isBareLenCapCall(expr) || !expressionContainsBareLenCap(other) {
+		return false
+	}
+	if expressionIsUsizeRangeVar(expr) {
+		return true
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	exprType := typeInfo.GetType(expr)
+	if exprType == nil {
+		return false
+	}
+	basic, ok := exprType.Underlying().(*types.Basic)
+	if !ok {
+		return false
+	}
+	return basic.Kind() == types.Int || basic.Kind() == types.UntypedInt
+}
+
+func writeLenCapBinaryOperand(out *strings.Builder, expr ast.Expr, other ast.Expr) bool {
+	if !shouldCastLenCapForBinaryPeer(expr, other) {
+		return false
+	}
+	out.WriteString("(")
+	TranspileExpression(out, expr)
+	out.WriteString(" as i32)")
+	return true
+}
+
+func writeIntPeerForLenCapBinaryOperand(out *strings.Builder, expr ast.Expr, other ast.Expr, needsUnwrap bool) bool {
+	if !shouldCastIntPeerForLenCapBinaryOperand(expr, other) {
+		return false
+	}
+	out.WriteString("(")
+	if needsUnwrap {
+		out.WriteString("(*")
+		TranspileExpression(out, expr)
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap())")
+	} else {
+		TranspileExpression(out, expr)
+	}
+	out.WriteString(" as i32)")
+	return true
+}
+
 // isExpressionResultBare checks if an expression produces a bare (non-wrapped) result
 // in LValue context. If true, the result should NOT have .borrow()/.lock() applied.
 // This is used to avoid adding extra unwrap layers in nested indexing like matrix[1][1].
@@ -1487,6 +1604,12 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			if lit, ok := expr.(*ast.BasicLit); ok && writeCharLiteralForPeer(out, lit, other) {
 				return
 			}
+			if writeLenCapBinaryOperand(out, expr, other) {
+				return
+			}
+			if writeIntPeerForLenCapBinaryOperand(out, expr, other, needsUnwrap) {
+				return
+			}
 			if needsUnwrap && isBareBuiltinCall(expr) {
 				needsUnwrap = false
 			}
@@ -1547,7 +1670,11 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		} else {
 			// No unwrapping needed
 			// Special handling for numeric literals with float operations
-			if lit, ok := e.X.(*ast.BasicLit); ok && writeCharLiteralForPeer(out, lit, e.Y) {
+			if writeLenCapBinaryOperand(out, e.X, e.Y) {
+				// len/cap emitted as Go int representation for this binary expression.
+			} else if writeIntPeerForLenCapBinaryOperand(out, e.X, e.Y, false) {
+				// typed int peer emitted as Go int representation for this binary expression.
+			} else if lit, ok := e.X.(*ast.BasicLit); ok && writeCharLiteralForPeer(out, lit, e.Y) {
 				// Character literal emitted as byte.
 			} else if lit, ok := e.X.(*ast.BasicLit); ok && lit.Kind == token.INT {
 				// Check if the other operand might be a float
@@ -1565,7 +1692,11 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			out.WriteString(rustBinaryOp(e.Op))
 			out.WriteString(" ")
 
-			if lit, ok := e.Y.(*ast.BasicLit); ok && writeCharLiteralForPeer(out, lit, e.X) {
+			if writeLenCapBinaryOperand(out, e.Y, e.X) {
+				// len/cap emitted as Go int representation for this binary expression.
+			} else if writeIntPeerForLenCapBinaryOperand(out, e.Y, e.X, false) {
+				// typed int peer emitted as Go int representation for this binary expression.
+			} else if lit, ok := e.Y.(*ast.BasicLit); ok && writeCharLiteralForPeer(out, lit, e.X) {
 				// Character literal emitted as byte.
 			} else if lit, ok := e.Y.(*ast.BasicLit); ok && lit.Kind == token.INT {
 				// Check if the other operand might be a float

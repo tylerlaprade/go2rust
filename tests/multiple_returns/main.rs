@@ -67,7 +67,7 @@ pub fn process_data(data: Rc<RefCell<Option<Vec<i32>>>>) -> (Rc<RefCell<Option<i
     let mut max: Rc<RefCell<Option<i32>>> = Rc::new(RefCell::new(Some(0)));
     let mut sum: Rc<RefCell<Option<i32>>> = Rc::new(RefCell::new(Some(0)));
 
-    if (*data.borrow().as_ref().unwrap()).len() == 0 {
+    if ((*data.borrow().as_ref().unwrap()).len() as i32) == (0 as i32) {
         return (Rc::new(RefCell::new(Some(0))), Rc::new(RefCell::new(Some(0))), Rc::new(RefCell::new(Some(0))));
     }
 

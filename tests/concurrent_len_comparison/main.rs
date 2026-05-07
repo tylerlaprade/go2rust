@@ -149,12 +149,12 @@ impl<T> Iterator for GoChannel<T> {
 pub fn consumed_all(v: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<bool>>> {
 
     let mut i = Arc::new(Mutex::new(Some(0)));
-    while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*v.lock().unwrap().as_ref().unwrap()).len(); __tmp_x < __tmp_y } {
+    while { let __tmp_x = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v } as i32); let __tmp_y = ((*v.lock().unwrap().as_ref().unwrap()).len() as i32); __tmp_x < __tmp_y } {
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
     return {
-            let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v };
-            let __tmp_y = (*v.lock().unwrap().as_ref().unwrap()).len();
+            let __tmp_x = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v } as i32);
+            let __tmp_y = ((*v.lock().unwrap().as_ref().unwrap()).len() as i32);
             Arc::new(Mutex::new(Some(__tmp_x == __tmp_y)))
         };
 }
