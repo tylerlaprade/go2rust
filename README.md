@@ -320,6 +320,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | **`sync` package** | |
 | └ `sync.WaitGroup` | ✅ |
 | └ `sync.Mutex` | ✅ |
+| └ `sync.Once` | ✅ |
 | **`sync/atomic` package** | |
 | └ `atomic.AddInt64` / `atomic.LoadInt64` | ✅ |
 | **`strings` (Builder)** | |

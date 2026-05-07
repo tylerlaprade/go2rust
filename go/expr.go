@@ -2994,24 +2994,14 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				out.WriteString(".")
 			}
 		} else if fieldSel, ok := sel.X.(*ast.SelectorExpr); ok {
-			// Check if this is a sync.Mutex method call (e.g., c.mu.Lock())
-			isMutexMethodCall := false
-			if sel.Sel.Name == "Lock" || sel.Sel.Name == "Unlock" {
-				// Check if the field type is sync.Mutex via TypeInfo
-				typeInfo := GetTypeInfo()
-				if typeInfo != nil {
-					fieldType := typeInfo.GetType(fieldSel)
-					if fieldType != nil {
-						if named, ok := fieldType.(*types.Named); ok {
-							if named.Obj() != nil && named.Obj().Pkg() != nil && named.Obj().Pkg().Name() == "sync" && named.Obj().Name() == "Mutex" {
-								isMutexMethodCall = true
-							}
-						}
-					}
-				}
+			isBareSyncFieldMethodCall := false
+			typeInfo := GetTypeInfo()
+			if typeInfo != nil {
+				fieldType := typeInfo.GetType(fieldSel)
+				isBareSyncFieldMethodCall = isGoSyncNamedType(fieldType)
 			}
-			if isMutexMethodCall {
-				// Mutex field — access directly without unwrapping
+			if isBareSyncFieldMethodCall {
+				// sync fields are bare helper types, not wrapped fields.
 				TranspileExpression(out, fieldSel.X)
 				out.WriteString(".")
 				out.WriteString(ToSnakeCase(fieldSel.Sel.Name))
@@ -3046,6 +3036,11 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 		if ident, ok := sel.X.(*ast.Ident); ok {
 			if isVarBare(ident.Name) {
 				bareMethodCall = true
+			}
+		} else if fieldSel, ok := sel.X.(*ast.SelectorExpr); ok {
+			typeInfo := GetTypeInfo()
+			if typeInfo != nil {
+				bareMethodCall = isGoSyncNamedType(typeInfo.GetType(fieldSel))
 			}
 		}
 

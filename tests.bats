@@ -793,6 +793,10 @@ run_xfail_test() {
     run_test "tests/switch_strings"
 }
 
+@test "sync_once" {
+    run_test "tests/sync_once"
+}
+
 @test "tickers_basic" {
     run_test "tests/tickers_basic"
 }

@@ -122,6 +122,7 @@ type HelperTracker struct {
 	needsGoChannel      bool
 	needsWaitGroup      bool
 	needsGoMutex        bool
+	needsGoOnce         bool
 	needsGoTypeName     bool
 	needsBase64         bool
 	needsSha256         bool
@@ -173,6 +174,10 @@ func (ht *HelperTracker) GenerateHelpers() string {
 
 	if ht.needsGoMutex {
 		generateGoMutexHelper(&result)
+	}
+
+	if ht.needsGoOnce {
+		generateGoOnceHelper(&result)
 	}
 
 	if ht.needsGoTypeName {
@@ -456,6 +461,76 @@ impl Clone for GoMutex {
 impl std::fmt::Debug for GoMutex {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "Mutex")
+    }
+}
+`)
+}
+
+func generateGoOnceHelper(out *strings.Builder) {
+	if NeedsConcurrentWrapper() {
+		out.WriteString(`
+#[derive(Clone, Debug)]
+struct GoOnce {
+    done: std::sync::Arc<std::sync::Mutex<bool>>,
+}
+
+impl GoOnce {
+    fn new() -> Self {
+        GoOnce {
+            done: std::sync::Arc::new(std::sync::Mutex::new(false)),
+        }
+    }
+
+    fn r#do(&self, f: std::sync::Arc<std::sync::Mutex<Option<Box<dyn Fn() -> () + Send + Sync>>>>) {
+        let mut done = self.done.lock().unwrap();
+        if !*done {
+            *done = true;
+            drop(done);
+            let guard = f.lock().unwrap();
+            if let Some(callback) = guard.as_ref() {
+                callback();
+            }
+        }
+    }
+}
+
+impl Default for GoOnce {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+`)
+		return
+	}
+	out.WriteString(`
+#[derive(Clone, Debug)]
+struct GoOnce {
+    done: std::rc::Rc<std::cell::RefCell<bool>>,
+}
+
+impl GoOnce {
+    fn new() -> Self {
+        GoOnce {
+            done: std::rc::Rc::new(std::cell::RefCell::new(false)),
+        }
+    }
+
+    fn r#do(&self, f: Rc<RefCell<Option<Box<dyn Fn() -> ()>>>>) {
+        let mut done = self.done.borrow_mut();
+        if !*done {
+            *done = true;
+            drop(done);
+            let guard = f.borrow();
+            if let Some(callback) = guard.as_ref() {
+                callback();
+            }
+        }
+    }
+}
+
+impl Default for GoOnce {
+    fn default() -> Self {
+        Self::new()
     }
 }
 `)

@@ -1782,12 +1782,20 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							}
 						}
 						for i, name := range valueSpec.Names {
-							// Check if this is a sync type (WaitGroup, Mutex) - bare, not wrapped
+							// Check if this is a sync type - bare, not wrapped
 							isSyncType := false
 							if sel, ok := valueSpec.Type.(*ast.SelectorExpr); ok {
 								if pkgIdent, ok := sel.X.(*ast.Ident); ok && pkgIdent.Name == "sync" {
-									if sel.Sel.Name == "WaitGroup" || sel.Sel.Name == "Mutex" {
+									if isBareSyncTypeName(sel.Sel.Name) {
 										isSyncType = true
+										switch sel.Sel.Name {
+										case "WaitGroup":
+											NeedWaitGroup()
+										case "Mutex":
+											NeedGoMutex()
+										case "Once":
+											NeedGoOnce()
+										}
 										if vt := GetVarTable(); vt != nil {
 											vt.Register(name.Name, &VarInfo{
 												WrapLevel: WrapNone,
@@ -2038,9 +2046,14 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 											if pkgIdent.Name == "sync" {
 												switch t.Sel.Name {
 												case "WaitGroup":
+													NeedWaitGroup()
 													out.WriteString(" = WaitGroup::new()")
 												case "Mutex":
+													NeedGoMutex()
 													out.WriteString(" = GoMutex::new()")
+												case "Once":
+													NeedGoOnce()
+													out.WriteString(" = GoOnce::new()")
 												}
 											} else if pkgIdent.Name == "strings" && t.Sel.Name == "Builder" {
 												out.WriteString(" = ")

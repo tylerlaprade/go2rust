@@ -339,6 +339,9 @@ func goTypeToRustBase(expr ast.Expr) string {
 				case "Mutex":
 					NeedGoMutex()
 					return "GoMutex"
+				case "Once":
+					NeedGoOnce()
+					return "GoOnce"
 				}
 			}
 			if ident.Name == "strings" && t.Sel.Name == "Builder" {
@@ -451,19 +454,30 @@ func zeroValueForTypesType(typ types.Type) string {
 	}
 }
 
-// isSyncParam checks if a type expression is sync.WaitGroup, sync.Mutex, or pointers to them
+// isSyncParam checks if a type expression is sync.WaitGroup, sync.Mutex,
+// sync.Once, or pointers to them.
 func isSyncParam(expr ast.Expr) bool {
-	// Check *sync.WaitGroup / *sync.Mutex
 	if star, ok := expr.(*ast.StarExpr); ok {
 		return isSyncParam(star.X)
 	}
-	// Check sync.WaitGroup / sync.Mutex
 	if sel, ok := expr.(*ast.SelectorExpr); ok {
 		if ident, ok := sel.X.(*ast.Ident); ok && ident.Name == "sync" {
-			return sel.Sel.Name == "WaitGroup" || sel.Sel.Name == "Mutex"
+			return isBareSyncTypeName(sel.Sel.Name)
 		}
 	}
 	return false
+}
+
+func isBareSyncTypeName(name string) bool {
+	return name == "WaitGroup" || name == "Mutex" || name == "Once"
+}
+
+func isGoSyncNamedType(typ types.Type) bool {
+	named, ok := typ.(*types.Named)
+	if !ok || named.Obj() == nil || named.Obj().Pkg() == nil {
+		return false
+	}
+	return named.Obj().Pkg().Path() == "sync" && isBareSyncTypeName(named.Obj().Name())
 }
 
 // goTypesTypeToRust converts a go/types.Type to the base Rust type string (unwrapped)

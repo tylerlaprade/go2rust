@@ -1,0 +1,8 @@
+[package]
+name = "sync_once"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "sync_once"
+path = "main.rs"

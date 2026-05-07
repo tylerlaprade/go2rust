@@ -327,6 +327,13 @@ func NeedGoMutex() {
 	}
 }
 
+// NeedGoOnce marks that we need the GoOnce helper struct
+func NeedGoOnce() {
+	if currentContext != nil && currentContext.Helpers != nil {
+		currentContext.Helpers.needsGoOnce = true
+	}
+}
+
 // NeedGoTypeName marks that we need the go_type_name helper function
 func NeedGoTypeName() {
 	if currentContext != nil && currentContext.Helpers != nil {
