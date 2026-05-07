@@ -250,21 +250,22 @@ fn main() {
     { let __range_guard = values.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for val in __range_values.iter() {
         {
     let _ts_ref = val;
-    let _any_val: &dyn Any = _ts_ref.as_ref();
-    if _any_val.downcast_ref::<String>().is_some() {
-        let v = Rc::new(RefCell::new(Some(_any_val.downcast_ref::<String>().unwrap().clone())));
+    let _ts_is_nil = false;
+    let _ts_val: Option<&dyn Any> = Some(_ts_ref.as_ref() as &dyn Any);
+    if _ts_val.and_then(|__v| __v.downcast_ref::<String>()).is_some() {
+        let v = Rc::new(RefCell::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<String>()).unwrap().clone())));
         print!("String: {}\n", { let __v = (*v.borrow().as_ref().unwrap()).clone(); __v });;
-    } else if _any_val.downcast_ref::<i32>().is_some() {
-        let v = Rc::new(RefCell::new(Some(_any_val.downcast_ref::<i32>().unwrap().clone())));
+    } else if _ts_val.and_then(|__v| __v.downcast_ref::<i32>()).is_some() {
+        let v = Rc::new(RefCell::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<i32>()).unwrap().clone())));
         print!("Int: {}\n", { let __v = (*v.borrow().as_ref().unwrap()).clone(); __v });;
-    } else if _any_val.downcast_ref::<f64>().is_some() {
-        let v = Rc::new(RefCell::new(Some(_any_val.downcast_ref::<f64>().unwrap().clone())));
+    } else if _ts_val.and_then(|__v| __v.downcast_ref::<f64>()).is_some() {
+        let v = Rc::new(RefCell::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<f64>()).unwrap().clone())));
         print!("Float: {:.2}\n", { let __v = (*v.borrow().as_ref().unwrap()).clone(); __v });;
-    } else if _any_val.downcast_ref::<bool>().is_some() {
-        let v = Rc::new(RefCell::new(Some(_any_val.downcast_ref::<bool>().unwrap().clone())));
+    } else if _ts_val.and_then(|__v| __v.downcast_ref::<bool>()).is_some() {
+        let v = Rc::new(RefCell::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<bool>()).unwrap().clone())));
         print!("Bool: {}\n", { let __v = (*v.borrow().as_ref().unwrap()).clone(); __v });;
     } else {
-        let v = _any_val;
+        let v = _ts_val.unwrap();
         print!("Other: {} = {}\n", go_type_name(v), format_any(v.borrow().as_ref().unwrap().as_ref()));;
     }
     }

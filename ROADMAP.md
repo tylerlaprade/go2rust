@@ -67,7 +67,7 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 - ✅ Range over integers - Go 1.22 integer range expressions lower to Rust integer ranges (range_over_integer promoted, 2026-05-07)
 - ✅ Goto and labels - labeled break/continue plus basic top-level goto patterns with backward loop jumps and forward block exits (goto_labels promoted, 2026-05-06)
 - ✅ Fallthrough in switch - if-chain with _fallthrough/_matched flags (fallthrough_switch promoted)
-- ✅ Type switch - downcast_ref-based if-else chain with shared borrow guard (2026-03-27)
+- ✅ Type switch - downcast_ref-based if-else chain with shared borrow guard, nil cases, and selector pointer cases from TypeInfo (2026-03-27, updated 2026-05-07)
 - ✅ Switch expression lifetime - tag captured in let binding to avoid borrow issues (2026-03-27)
 - ✅ Variadic functions - ellipsis params as Vec<T>, call-site arg collection into vec![] (2026-03-27)
 - ✅ Format verbs - %T maps Rust types to Go type names at runtime; %+v and %#x consume flagged format arguments (2026-03-27, updated 2026-05-07)

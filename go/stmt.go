@@ -59,6 +59,52 @@ func isIntegerRangeExpr(typeInfo *TypeInfo, expr ast.Expr) bool {
 	return ok && basic.Info()&types.IsInteger != 0
 }
 
+func typeSwitchCaseRustType(typeInfo *TypeInfo, typeExpr ast.Expr) (rustType string, isNil bool) {
+	if ident, ok := typeExpr.(*ast.Ident); ok && ident.Name == "nil" {
+		return "", true
+	}
+	if typeInfo == nil {
+		return "/* ERROR: Type information required for type switch case */", false
+	}
+	typ := typeInfo.GetType(typeExpr)
+	if typ == nil {
+		return "/* ERROR: Type information required for type switch case */", false
+	}
+	if ptr, ok := typ.(*types.Pointer); ok {
+		return goTypesTypeToRust(ptr.Elem()), false
+	}
+	return goTypesTypeToRust(typ), false
+}
+
+func writeTypeSwitchCaseCondition(out *strings.Builder, typeInfo *TypeInfo, typeExpr ast.Expr) {
+	rustType, isNil := typeSwitchCaseRustType(typeInfo, typeExpr)
+	if isNil {
+		out.WriteString("_ts_is_nil")
+		return
+	}
+	out.WriteString("_ts_val.and_then(|__v| __v.downcast_ref::<")
+	out.WriteString(rustType)
+	out.WriteString(">()).is_some()")
+}
+
+func writeTypeSwitchOriginalBinding(out *strings.Builder, varName string, expr ast.Expr, isRangeVar bool) {
+	out.WriteString("        let ")
+	out.WriteString(varName)
+	out.WriteString(" = ")
+	if isRangeVar {
+		out.WriteString("_ts_val.unwrap();\n")
+		if vt := GetVarTable(); vt != nil {
+			vt.Register(varName, &VarInfo{
+				WrapLevel: WrapNone,
+				Source:    SourceLocal,
+			})
+		}
+		return
+	}
+	TranspileExpressionContext(out, expr, LValue)
+	out.WriteString(".clone();\n")
+}
+
 func writeWrappedValueCopyFromIdent(out *strings.Builder, ident *ast.Ident) bool {
 	if ident.Name == "_" || ident.Name == "nil" || ident.Name == "true" || ident.Name == "false" {
 		return false
@@ -3693,31 +3739,10 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			break
 		}
 
-		// Get the Rust type name for type switch cases
-		getRustTypeName := func(typeExpr ast.Expr) string {
-			if ident, ok := typeExpr.(*ast.Ident); ok {
-				switch ident.Name {
-				case "string":
-					return "String"
-				case "int":
-					return "i32"
-				case "float64":
-					return "f64"
-				case "float32":
-					return "f32"
-				case "bool":
-					return "bool"
-				default:
-					return ident.Name
-				}
-			}
-			if arr, ok := typeExpr.(*ast.ArrayType); ok {
-				if arr.Len == nil {
-					elemType := goTypeToRustBase(arr.Elt)
-					return "Vec<" + elemType + ">"
-				}
-			}
-			return "Unknown"
+		typeInfo := GetTypeInfo()
+		subjectUsesAny := typeInfo != nil && isEmptyInterfaceType(typeInfo.GetType(expr))
+		if subjectUsesAny {
+			TrackImport("Any")
 		}
 
 		// Check if this is a range variable from an interface{} slice
@@ -3725,6 +3750,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		if ident, ok := expr.(*ast.Ident); ok {
 			if varType, exists := rangeLoopVars[ident.Name]; exists && strings.Contains(varType, "&Box<dyn Any>") {
 				isRangeVar = true
+				subjectUsesAny = true
+				TrackImport("Any")
 			}
 		}
 
@@ -3734,13 +3761,22 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			out.WriteString("    let _ts_ref = ")
 			TranspileExpression(out, expr)
 			out.WriteString(";\n")
-			out.WriteString("    let _any_val: &dyn Any = _ts_ref.as_ref();\n")
+			out.WriteString("    let _ts_is_nil = false;\n")
+			out.WriteString("    let _ts_val: Option<&dyn Any> = Some(_ts_ref.as_ref() as &dyn Any);\n")
+		} else if subjectUsesAny {
+			out.WriteString("    let _ts_guard = ")
+			TranspileExpressionContext(out, expr, LValue)
+			WriteBorrowMethod(out, false)
+			out.WriteString(";\n")
+			out.WriteString("    let _ts_is_nil = _ts_guard.as_ref().is_none();\n")
+			out.WriteString("    let _ts_val: Option<&dyn Any> = _ts_guard.as_ref().map(|__v| __v.as_ref() as &dyn Any);\n")
 		} else {
 			out.WriteString("    let _ts_guard = ")
 			TranspileExpressionContext(out, expr, LValue)
 			WriteBorrowMethod(out, false)
 			out.WriteString(";\n")
-			out.WriteString("    let _any_val: &dyn Any = _ts_guard.as_ref().unwrap().as_ref();\n")
+			out.WriteString("    let _ts_is_nil = _ts_guard.as_ref().is_none();\n")
+			out.WriteString("    let _ts_val = _ts_guard.as_ref();\n")
 		}
 
 		// Generate if-else chain for type cases
@@ -3757,17 +3793,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				}
 				if varName != "" {
 					// In default case, v is the original interface{} value
-					// Use the already-borrowed _any_val reference
-					out.WriteString("        let ")
-					out.WriteString(varName)
-					out.WriteString(" = _any_val;\n")
-					// Register as bare in VarTable so print handlers don't try to unwrap
-					if vt := GetVarTable(); vt != nil {
-						vt.Register(varName, &VarInfo{
-							WrapLevel: WrapNone,
-							Source:    SourceLocal,
-						})
-					}
+					writeTypeSwitchOriginalBinding(out, varName, expr, isRangeVar)
 				}
 			} else {
 				// Type case(s)
@@ -3779,20 +3805,22 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				firstCase = false
 
 				if len(caseClause.List) == 1 {
-					rustType := getRustTypeName(caseClause.List[0])
-					out.WriteString("if _any_val.downcast_ref::<")
-					out.WriteString(rustType)
-					out.WriteString(">().is_some() {\n")
+					rustType, isNil := typeSwitchCaseRustType(typeInfo, caseClause.List[0])
+					out.WriteString("if ")
+					writeTypeSwitchCaseCondition(out, typeInfo, caseClause.List[0])
+					out.WriteString(" {\n")
 
 					// Create typed variable if needed
-					if varName != "" {
+					if varName != "" && isNil {
+						writeTypeSwitchOriginalBinding(out, varName, expr, isRangeVar)
+					} else if varName != "" {
 						out.WriteString("        let ")
 						out.WriteString(varName)
 						out.WriteString(" = ")
 						WriteWrapperPrefix(out)
-						out.WriteString("_any_val.downcast_ref::<")
+						out.WriteString("_ts_val.and_then(|__v| __v.downcast_ref::<")
 						out.WriteString(rustType)
-						out.WriteString(">().unwrap().clone()")
+						out.WriteString(">()).unwrap().clone()")
 						WriteWrapperSuffix(out)
 						out.WriteString(";\n")
 					}
@@ -3803,12 +3831,12 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						if j > 0 {
 							out.WriteString(" || ")
 						}
-						rustType := getRustTypeName(typeExpr)
-						out.WriteString("_any_val.downcast_ref::<")
-						out.WriteString(rustType)
-						out.WriteString(">().is_some()")
+						writeTypeSwitchCaseCondition(out, typeInfo, typeExpr)
 					}
 					out.WriteString(" {\n")
+					if varName != "" {
+						writeTypeSwitchOriginalBinding(out, varName, expr, isRangeVar)
+					}
 				}
 			}
 

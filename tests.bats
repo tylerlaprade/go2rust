@@ -921,6 +921,10 @@ run_xfail_test() {
     run_test "tests/type_embedding"
 }
 
+@test "type_switch_stdlib_selectors" {
+    run_test "tests/type_switch_stdlib_selectors"
+}
+
 @test "unary_plus_bitwise_not" {
     run_test "tests/unary_plus_bitwise_not"
 }
