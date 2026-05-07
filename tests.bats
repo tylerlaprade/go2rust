@@ -337,6 +337,10 @@ run_xfail_test() {
     run_test "tests/builtin_functions"
 }
 
+@test "byte_char_comparisons" {
+    run_test "tests/byte_char_comparisons"
+}
+
 @test "channel_buffering" {
     run_test "tests/channel_buffering"
 }

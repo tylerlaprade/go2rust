@@ -63,6 +63,7 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 - ✅ Switch expression lifetime - tag captured in let binding to avoid borrow issues (2026-03-27)
 - ✅ Variadic functions - ellipsis params as Vec<T>, call-site arg collection into vec![] (2026-03-27)
 - ✅ Format verbs - %T maps Rust types to Go type names at runtime; %+v and %#x consume flagged format arguments (2026-03-27, updated 2026-05-07)
+- ✅ Byte/rune comparison contexts - character literals emit as `u8` when compared with `byte` values or string indexing results (byte_char_comparisons promoted, 2026-05-07)
 - ✅ interface{} arg boxing - values auto-boxed as Box<dyn Any> when passed to interface{} params (2026-03-27)
 - ✅ Blank identifier - fully working with return values, range loops, type assertions, declarations (2026-03-26)
 - ✅ Mixed output (fmt.Fprintln/Fprintf to os.Stderr → eprintln!/eprint!)

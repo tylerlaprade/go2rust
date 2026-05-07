@@ -25,6 +25,55 @@ func writeExpressionAsUsize(out *strings.Builder, expr ast.Expr) {
 	out.WriteString(") as usize")
 }
 
+func isByteLikeExpression(expr ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	typ := typeInfo.GetType(expr)
+	if typ == nil {
+		return false
+	}
+	basic, ok := typ.Underlying().(*types.Basic)
+	return ok && basic.Kind() == types.Uint8
+}
+
+func isByteLikeTypeExpr(expr ast.Expr) bool {
+	if expr == nil {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo != nil {
+		if typ := typeInfo.GetType(expr); typ != nil {
+			if basic, ok := typ.Underlying().(*types.Basic); ok && basic.Kind() == types.Uint8 {
+				return true
+			}
+		}
+	}
+	ident, ok := expr.(*ast.Ident)
+	return ok && (ident.Name == "byte" || ident.Name == "uint8")
+}
+
+func writeCharLiteralForPeer(out *strings.Builder, lit *ast.BasicLit, peer ast.Expr) bool {
+	if lit == nil || lit.Kind != token.CHAR || !isByteLikeExpression(peer) {
+		return false
+	}
+	out.WriteString("(")
+	out.WriteString(lit.Value)
+	out.WriteString(" as u8)")
+	return true
+}
+
+func writeCharLiteralForExpectedType(out *strings.Builder, lit *ast.BasicLit, expected ast.Expr) bool {
+	if lit == nil || lit.Kind != token.CHAR || !isByteLikeTypeExpr(expected) {
+		return false
+	}
+	out.WriteString("(")
+	out.WriteString(lit.Value)
+	out.WriteString(" as u8)")
+	return true
+}
+
 // isExpressionResultBare checks if an expression produces a bare (non-wrapped) result
 // in LValue context. If true, the result should NOT have .borrow()/.lock() applied.
 // This is used to avoid adding extra unwrap layers in nested indexing like matrix[1][1].
@@ -1330,7 +1379,10 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		}
 
 		// Helper to write an operand, using bare &str for string literals in comparisons
-		writeOperand := func(expr ast.Expr, isStringLit bool, needsUnwrap bool) {
+		writeOperand := func(expr ast.Expr, other ast.Expr, isStringLit bool, needsUnwrap bool) {
+			if lit, ok := expr.(*ast.BasicLit); ok && writeCharLiteralForPeer(out, lit, other) {
+				return
+			}
 			if needsUnwrap {
 				out.WriteString("(*")
 				TranspileExpression(out, expr)
@@ -1353,7 +1405,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					out.WriteString(".0")
 					return
 				}
-				writeOperand(expr, isStringLit, needsUnwrap)
+				writeOperand(expr, other, isStringLit, needsUnwrap)
 			}
 
 			out.WriteString("{ let __tmp_x = ")
@@ -1373,7 +1425,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				out.WriteString(xLit.Value)
 				out.WriteString(".0")
 			} else {
-				writeOperand(e.X, xIsStringLit, needsUnwrapX)
+				writeOperand(e.X, e.Y, xIsStringLit, needsUnwrapX)
 			}
 			out.WriteString(" ")
 			out.WriteString(rustBinaryOp(e.Op))
@@ -1383,12 +1435,14 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				out.WriteString(yLit.Value)
 				out.WriteString(".0")
 			} else {
-				writeOperand(e.Y, yIsStringLit, needsUnwrapY)
+				writeOperand(e.Y, e.X, yIsStringLit, needsUnwrapY)
 			}
 		} else {
 			// No unwrapping needed
 			// Special handling for numeric literals with float operations
-			if lit, ok := e.X.(*ast.BasicLit); ok && lit.Kind == token.INT {
+			if lit, ok := e.X.(*ast.BasicLit); ok && writeCharLiteralForPeer(out, lit, e.Y) {
+				// Character literal emitted as byte.
+			} else if lit, ok := e.X.(*ast.BasicLit); ok && lit.Kind == token.INT {
 				// Check if the other operand might be a float
 				if isFloatExpression(e.Y) {
 					out.WriteString(lit.Value)
@@ -1404,7 +1458,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			out.WriteString(rustBinaryOp(e.Op))
 			out.WriteString(" ")
 
-			if lit, ok := e.Y.(*ast.BasicLit); ok && lit.Kind == token.INT {
+			if lit, ok := e.Y.(*ast.BasicLit); ok && writeCharLiteralForPeer(out, lit, e.X) {
+				// Character literal emitted as byte.
+			} else if lit, ok := e.Y.(*ast.BasicLit); ok && lit.Kind == token.INT {
 				// Check if the other operand might be a float
 				if isFloatExpression(e.X) {
 					out.WriteString(lit.Value)
@@ -3647,6 +3703,8 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 					if !strings.Contains(argStr, ".") && !strings.Contains(argStr, "as f") {
 						out.WriteString(".0")
 					}
+				} else if lit, ok := arg.(*ast.BasicLit); ok && writeCharLiteralForExpectedType(out, lit, paramTypeForArg) {
+					// Character literal emitted as byte.
 				} else {
 					TranspileExpression(out, arg)
 				}

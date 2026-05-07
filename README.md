@@ -229,6 +229,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ String concatenation (+) | ✅ |
 | └ String += operator | ✅ |
 | └ String comparisons | ✅ |
+| └ Byte comparisons with character literals | ✅ |
 | └ Raw string literals | ✅ |
 | **Closures & Anonymous Functions** | |
 | └ Function literals | ✅ |
