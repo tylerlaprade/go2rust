@@ -39,6 +39,7 @@ type FileState struct {
 	CurrentFunctionHasDefer bool
 	CurrentCaptureRenames   map[string]string
 	ExternalTypeStubs       map[string]bool
+	ExternalTypeStubFields  map[string]map[string]string
 	PendingLoopLabel        string
 	HasInitFunction         bool
 	LabeledLoopPost         map[string]ast.Stmt
@@ -87,14 +88,15 @@ func NewFileState(imports *ImportTracker, helpers *HelperTracker, statementPrepr
 		helpers = &HelperTracker{}
 	}
 	return &FileState{
-		Imports:               imports,
-		Helpers:               helpers,
-		StatementPreprocessor: statementPreprocessor,
-		RangeLoopVars:         make(map[string]string),
-		LocalConstants:        make(map[string]string),
-		LocalInterfaces:       make(map[string]bool),
-		ExternalTypeStubs:     make(map[string]bool),
-		LabeledLoopPost:       make(map[string]ast.Stmt),
+		Imports:                imports,
+		Helpers:                helpers,
+		StatementPreprocessor:  statementPreprocessor,
+		RangeLoopVars:          make(map[string]string),
+		LocalConstants:         make(map[string]string),
+		LocalInterfaces:        make(map[string]bool),
+		ExternalTypeStubs:      make(map[string]bool),
+		ExternalTypeStubFields: make(map[string]map[string]string),
+		LabeledLoopPost:        make(map[string]ast.Stmt),
 	}
 }
 

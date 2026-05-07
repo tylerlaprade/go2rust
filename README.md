@@ -167,6 +167,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Map literals | ✅ |
 | └ Map operations (insert, delete) | ✅ |
 | └ Map access with existence check | ✅ |
+| └ Pointer keys in map literals and lookups | ✅ |
 | └ Map iteration (for range) | ✅ |
 | └ Map printing (sorted keys, Go 1.12+) | ✅ |
 | **`package` - Packages** | |
@@ -191,6 +192,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Comparable struct literals in equality expressions | ✅ |
 | └ Channel fields in struct literals | ✅ |
 | └ Selector-qualified struct literals (`pkg.Type{}`) | ✅ |
+| └ Stdlib struct field stubs from selector type information | ✅ |
 | └ Field access | ✅ |
 | └ Owned string field returns and arguments | ✅ |
 | └ Embedded fields | ✅ |

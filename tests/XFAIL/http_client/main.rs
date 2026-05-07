@@ -1,5 +1,27 @@
 use std::sync::{Arc, Mutex};
 
+#[derive(Debug, Clone, Default)]
+pub struct http_Response {
+    pub body: Arc<Mutex<Option<Box<dyn io_ReadCloser>>>>,
+}
+
+impl std::fmt::Display for http_Response {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<http_Response>")
+    }
+}
+
+
+#[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord)]
+pub struct io_ReadCloser;
+
+impl std::fmt::Display for io_ReadCloser {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<io_ReadCloser>")
+    }
+}
+
+
 fn main() {
     let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 

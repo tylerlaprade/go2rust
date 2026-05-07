@@ -82,17 +82,24 @@ func GetOuterWrapperType() string {
 	return "Rc"
 }
 
-// WriteWrapperPrefix writes the beginning of a wrapper (e.g., "Arc::new(Mutex::new(Some(")
-func WriteWrapperPrefix(out *strings.Builder) {
+func trackWrapperImports() {
 	if NeedsConcurrentWrapper() {
 		TrackImport("Arc")
 		TrackImport("Mutex")
+	} else {
+		TrackImport("Rc")
+		TrackImport("RefCell")
+	}
+}
+
+// WriteWrapperPrefix writes the beginning of a wrapper (e.g., "Arc::new(Mutex::new(Some(")
+func WriteWrapperPrefix(out *strings.Builder) {
+	trackWrapperImports()
+	if NeedsConcurrentWrapper() {
 		out.WriteString("Arc::new(Mutex::new(Some(")
 		// DEBUG
 		// fmt.Fprintf(os.Stderr, "DEBUG: Using Arc<Mutex<>> wrapper\n")
 	} else {
-		TrackImport("Rc")
-		TrackImport("RefCell")
 		out.WriteString("Rc::new(RefCell::new(Some(")
 		// DEBUG
 		// fmt.Fprintf(os.Stderr, "DEBUG: Using Rc<RefCell<>> wrapper\n")

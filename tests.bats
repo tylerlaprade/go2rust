@@ -797,6 +797,10 @@ run_xfail_test() {
     run_test "tests/stdlib_strings"
 }
 
+@test "stdlib_struct_field_map" {
+    run_test "tests/stdlib_struct_field_map"
+}
+
 @test "stdlib_type_signatures" {
     run_test "tests/stdlib_type_signatures"
 }

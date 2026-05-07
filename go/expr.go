@@ -126,6 +126,14 @@ func isExpressionResultBare(expr ast.Expr) bool {
 	}
 }
 
+func isBareMapSelectorExpression(expr ast.Expr) bool {
+	if _, ok := expr.(*ast.SelectorExpr); !ok {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	return typeInfo != nil && typeInfo.IsMap(expr)
+}
+
 // isCompositeLitSelfWrapping checks if a CompositeLit expression will
 // self-wrap with Rc<RefCell<Option<>>> when transpiled. Slice and map
 // literals self-wrap; struct literals do not.
@@ -653,7 +661,20 @@ func writeMapLookupKey(out *strings.Builder, index ast.Expr) {
 		}
 	}
 	out.WriteString("&")
-	TranspileExpression(out, index)
+	if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.IsPointer(index) {
+		TranspileExpressionContext(out, index, LValue)
+	} else {
+		TranspileExpression(out, index)
+	}
+}
+
+func writeMapLiteralKey(out *strings.Builder, key ast.Expr) {
+	if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.IsPointer(key) {
+		TranspileExpressionContext(out, key, LValue)
+		out.WriteString(".clone()")
+		return
+	}
+	TranspileExpression(out, key)
 }
 
 func writeClonedWrappedExpression(out *strings.Builder, expr ast.Expr, holderName string, guardName string) {
@@ -818,6 +839,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		// Check if this is a type assertion first (e.g., x.(Type))
 		typeInfo := GetTypeInfo()
 		isPackageSelector := false
+		RegisterExternalSelectorField(e)
 
 		if typeInfo != nil && typeInfo.info != nil {
 			// Check if this is a package selector
@@ -1542,7 +1564,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			if typeInfo != nil {
 				defaultValue = zeroValueForTypesType(typeInfo.GetMapValueType(e.X))
 			}
-			if isExpressionResultBare(e.X) {
+			if isExpressionResultBare(e.X) || isBareMapSelectorExpression(e.X) {
 				// e.X is a bare value (e.g., result of another index/map access)
 				// Use RValue context to get the bare map value, then .get() directly
 				TranspileExpression(out, e.X)
@@ -1920,7 +1942,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				}
 				if kv, ok := elt.(*ast.KeyValueExpr); ok {
 					out.WriteString("(")
-					TranspileExpression(out, kv.Key)
+					writeMapLiteralKey(out, kv.Key)
 					out.WriteString(", ")
 					writeWrappedMapValue(out, kv.Value, mapType.Value, mapValueType)
 					out.WriteString(")")
