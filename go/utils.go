@@ -5,6 +5,7 @@ import (
 	"go/types"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 )
 
 // WrapInArcMutex wraps an expression in Arc<Mutex<Option<...>>>
@@ -234,7 +235,36 @@ func RustStringLiteral(goLiteral string) string {
 	if err != nil {
 		return goLiteral
 	}
-	return strconv.Quote(unquoted)
+	if !utf8.ValidString(unquoted) {
+		return "/* ERROR: Go string literal contains invalid UTF-8 bytes */ unimplemented!()"
+	}
+
+	var out strings.Builder
+	out.WriteByte('"')
+	for _, r := range unquoted {
+		switch r {
+		case '\\':
+			out.WriteString("\\\\")
+		case '"':
+			out.WriteString("\\\"")
+		case '\n':
+			out.WriteString("\\n")
+		case '\r':
+			out.WriteString("\\r")
+		case '\t':
+			out.WriteString("\\t")
+		default:
+			if r < 0x20 || r == 0x7f || r > 0x7e {
+				out.WriteString("\\u{")
+				out.WriteString(strconv.FormatInt(int64(r), 16))
+				out.WriteByte('}')
+			} else {
+				out.WriteRune(r)
+			}
+		}
+	}
+	out.WriteByte('"')
+	return out.String()
 }
 
 func isRustPathKeyword(s string) bool {

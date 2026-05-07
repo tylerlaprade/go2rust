@@ -819,7 +819,7 @@ func transpileConstDeclWithCase(out *strings.Builder, genDecl *ast.GenDecl, toUp
 				out.WriteString("const ")
 				var constName string
 				if toUpper {
-					constName = strings.ToUpper(ToSnakeCase(name.Name))
+					constName = rustConstName(name.Name)
 				} else {
 					// Keep original name for local constants
 					constName = name.Name

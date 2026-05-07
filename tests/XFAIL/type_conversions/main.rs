@@ -140,7 +140,7 @@ fn main() {
     print!("string to bytes: {}\n", format_slice(&backToBytes));
 
         // String to rune slice
-    let mut runes = Rc::new(RefCell::new(Some((*"Hello, 世界".to_string().borrow().as_ref().unwrap()).chars().map(|c| c as i32).collect::<Vec<_>>())));
+    let mut runes = Rc::new(RefCell::new(Some((*"Hello, \u{4e16}\u{754c}".to_string().borrow().as_ref().unwrap()).chars().map(|c| c as i32).collect::<Vec<_>>())));
     print!("string to runes: {}\n", format_slice(&runes));
     print!("rune count: {}\n", (*runes.borrow().as_ref().unwrap()).len());
 

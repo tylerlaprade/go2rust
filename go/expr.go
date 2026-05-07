@@ -529,7 +529,7 @@ func writeIdentExpression(out *strings.Builder, e *ast.Ident, ctx ExprContext, v
 		}
 	} else if e.Name[0] >= 'A' && e.Name[0] <= 'Z' && e.Name != "String" {
 		// Likely a constant - convert to UPPER_SNAKE_CASE
-		out.WriteString(strings.ToUpper(ToSnakeCase(e.Name)))
+		out.WriteString(rustConstName(e.Name))
 	} else if e.Name == "true" || e.Name == "false" || e.Name == "_" {
 		out.WriteString(e.Name)
 	} else if varType, isRangeVar := rangeLoopVars[e.Name]; isRangeVar {

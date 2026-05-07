@@ -142,7 +142,7 @@ fn main() {
 
         // Rune iteration (Unicode support)
     println!("{}", "\n=== Unicode and runes ===".to_string());
-    let mut unicode = Arc::new(Mutex::new(Some("Hello, 世界! 🌍".to_string())));
+    let mut unicode = Arc::new(Mutex::new(Some("Hello, \u{4e16}\u{754c}! \u{1f30d}".to_string())));
     print!("Unicode string: {}\n", { let __v = (*unicode.lock().unwrap().as_ref().unwrap()).clone(); __v });
     print!("Byte length: {}\n", (*unicode.lock().unwrap().as_ref().unwrap()).len());
 

@@ -100,7 +100,7 @@ fn main() {
 
         // Range over string
     println!("{}", "\n=== Range over string ===".to_string());
-    let mut text = Arc::new(Mutex::new(Some("Hello, 世界".to_string())));
+    let mut text = Arc::new(Mutex::new(Some("Hello, \u{4e16}\u{754c}".to_string())));
     for (i, char) in (*text.lock().unwrap().as_ref().unwrap()).char_indices() {
         print!("Byte {}: {} (Unicode: U+{:04X})\n", i, char, char as u32);
     }

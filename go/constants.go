@@ -19,7 +19,7 @@ func isConstIdent(ident *ast.Ident) bool {
 }
 
 func rustConstName(name string) string {
-	return strings.ToUpper(ToSnakeCase(name))
+	return strings.ToUpper(strings.TrimPrefix(ToSnakeCase(name), "r#"))
 }
 
 func writeExpressionForExpectedType(out *strings.Builder, value ast.Expr, expected ast.Expr) bool {
