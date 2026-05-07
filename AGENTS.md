@@ -124,6 +124,7 @@ The test script handles:
 
 - Use `./test.sh <name>` for focused fixtures and `./test.sh` before committing.
 - Run the default parallel test mode when the machine has memory headroom. Use `./test.sh -n 1 ...` only for memory pressure, hard-to-read interleaving, or self-transpile follow-up checks.
+- On this machine, `./test.sh -n 4` is the safer full-suite parallel setting. `-n 6` can starve timer fixtures such as `timeouts_basic` and `timers_basic` even when those tests pass alone.
 - If `./test.sh` reports `Passing: 0/0`, treat that as an invalid run, not success. Inspect the filter, dependencies such as GNU parallel, and the raw script output.
 - For Go unit tests, prefer `GOCACHE=$(mktemp -d)` or another temp cache outside the repo when doing heavy local validation, and delete it afterward.
 - For expensive Rust validation, set `CARGO_TARGET_DIR` to a temp directory. Do not leave permanent target trees in the repo or home directory.
@@ -134,6 +135,8 @@ The test script handles:
 - When self-transpiling, copy the repo to a temp workspace, run the generated package checks there, and remove the workspace afterward unless the user explicitly asks to inspect it.
 - Limit jobs for self-transpile Cargo checks if the machine is under memory pressure.
 - Use self-hosting errors as real feedback. A generated Rust compile error usually points to a translator boundary issue; reduce it to a focused fixture before patching broadly.
+- If `rustc` is killed on a generated dependency crate, inspect the generated Rust shape before assuming a semantic type error. Multi-megabyte single expressions can kill the compiler even when the code is otherwise valid.
+- For large package-level composite literals, prefer statement lowering: build local maps/slices in source order, then assign to the package global once. Do not mutate the target global while evaluating its initializer.
 
 ## Future Optimizations (Post-MVP)
 
