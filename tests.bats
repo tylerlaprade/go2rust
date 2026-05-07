@@ -558,6 +558,10 @@ run_xfail_test() {
     run_test "tests/functions_multiple_return"
 }
 
+@test "generic_function_type_alias" {
+    run_test "tests/generic_function_type_alias"
+}
+
 @test "goroutine_function_param_capture" {
     run_test "tests/goroutine_function_param_capture"
 }

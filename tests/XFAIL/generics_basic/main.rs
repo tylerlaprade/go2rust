@@ -27,8 +27,8 @@ where
 
 #[derive(Debug, Clone, Default)]
 pub struct List {
-    pub head: Rc<RefCell<Option</* TODO: Unhandled type *ast.IndexExpr */ Rc<RefCell<Option<()>>>>>>,
-    pub tail: Rc<RefCell<Option</* TODO: Unhandled type *ast.IndexExpr */ Rc<RefCell<Option<()>>>>>>,
+    pub head: Rc<RefCell<Option</* ERROR: Unsupported instantiated generic type */ Rc<RefCell<Option<()>>>>>>,
+    pub tail: Rc<RefCell<Option</* ERROR: Unsupported instantiated generic type */ Rc<RefCell<Option<()>>>>>>,
 }
 
 impl std::fmt::Display for List {
@@ -40,7 +40,7 @@ impl std::fmt::Display for List {
 
 #[derive(Debug, Clone, Default)]
 pub struct element {
-    pub next: Rc<RefCell<Option</* TODO: Unhandled type *ast.IndexExpr */ Rc<RefCell<Option<()>>>>>>,
+    pub next: Rc<RefCell<Option</* ERROR: Unsupported instantiated generic type */ Rc<RefCell<Option<()>>>>>>,
     pub val: Rc<RefCell<Option<T>>>,
 }
 

@@ -144,6 +144,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Function-valued struct field calls | ✅ |
 | └ Function literals/closures with scoped nested captures | ✅ |
 | └ Function variables and higher-order function values | ✅ |
+| └ Instantiated generic function type aliases | ✅ |
 | └ Assignment from function return values | ✅ |
 | └ Variadic functions | ✅ |
 | **`go` - Goroutines** | ✅ |
@@ -224,6 +225,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Type aliases | ✅ |
 | └ Type definitions | ✅ |
 | └ Named scalar newtypes usable across generated modules | ✅ |
+| └ Instantiated generic function type aliases | ✅ |
 | └ Numeric conversions from literals and expressions | ✅ |
 | └ Methods on named slice type definitions, including receiver range loops | ✅ |
 | └ Interface types | ✅ |

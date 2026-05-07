@@ -1252,43 +1252,36 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 							// Get TypeInfo to check if expressions return wrapped values
 							typeInfo := GetTypeInfo()
+							writeTempOperand := func(expr ast.Expr, other ast.Expr) {
+								if writeLenCapBinaryOperand(out, expr, other) {
+									// len/cap emitted as Go int representation for this return expression.
+								} else if writeIntPeerForLenCapBinaryOperand(out, expr, other, typeInfo != nil && typeInfo.ReturnsWrappedValue(expr)) {
+									// typed int peer emitted as Go int representation for this return expression.
+								} else if typeInfo != nil && typeInfo.ReturnsWrappedValue(expr) {
+									// Expression returns wrapped value, unwrap it.
+									out.WriteString("(*")
+									TranspileExpression(out, expr)
+									WriteBorrowMethod(out, false)
+									out.WriteString(".as_ref().unwrap())")
+									if isCloneableNonPointerExpr(expr) && !isCopyTypeExpression(expr) {
+										out.WriteString(".clone()")
+									}
+								} else if !isCopyTypeExpression(expr) && writeOwnedExpressionValue(out, expr) {
+									// Wrapped identifiers/selectors with owned values must clone out of the borrow.
+								} else {
+									// Either a literal/constant or an identifier that will unwrap itself in RValue context
+									TranspileExpressionContext(out, expr, RValue)
+								}
+							}
 
 							// Extract X operand
 							out.WriteString("            let __tmp_x = ")
-							// Check if X returns a wrapped value that needs unwrapping
-							if writeLenCapBinaryOperand(out, binExpr.X, binExpr.Y) {
-								// len/cap emitted as Go int representation for this return expression.
-							} else if writeIntPeerForLenCapBinaryOperand(out, binExpr.X, binExpr.Y, typeInfo != nil && typeInfo.ReturnsWrappedValue(binExpr.X)) {
-								// typed int peer emitted as Go int representation for this return expression.
-							} else if typeInfo != nil && typeInfo.ReturnsWrappedValue(binExpr.X) {
-								// Expression returns wrapped value, unwrap it
-								out.WriteString("(*")
-								TranspileExpression(out, binExpr.X)
-								WriteBorrowMethod(out, false)
-								out.WriteString(".as_ref().unwrap())")
-							} else {
-								// Either a literal/constant or an identifier that will unwrap itself in RValue context
-								TranspileExpressionContext(out, binExpr.X, RValue)
-							}
+							writeTempOperand(binExpr.X, binExpr.Y)
 							out.WriteString(";\n")
 
 							// Extract Y operand
 							out.WriteString("            let __tmp_y = ")
-							// Check if Y returns a wrapped value that needs unwrapping
-							if writeLenCapBinaryOperand(out, binExpr.Y, binExpr.X) {
-								// len/cap emitted as Go int representation for this return expression.
-							} else if writeIntPeerForLenCapBinaryOperand(out, binExpr.Y, binExpr.X, typeInfo != nil && typeInfo.ReturnsWrappedValue(binExpr.Y)) {
-								// typed int peer emitted as Go int representation for this return expression.
-							} else if typeInfo != nil && typeInfo.ReturnsWrappedValue(binExpr.Y) {
-								// Expression returns wrapped value, unwrap it
-								out.WriteString("(*")
-								TranspileExpression(out, binExpr.Y)
-								WriteBorrowMethod(out, false)
-								out.WriteString(".as_ref().unwrap())")
-							} else {
-								// Either a literal/constant or an identifier that will unwrap itself in RValue context
-								TranspileExpressionContext(out, binExpr.Y, RValue)
-							}
+							writeTempOperand(binExpr.Y, binExpr.X)
 							out.WriteString(";\n")
 
 							out.WriteString("            ")

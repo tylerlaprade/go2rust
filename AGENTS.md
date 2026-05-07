@@ -187,7 +187,7 @@ If `GetTypeInfo()` returns nil (shouldn't happen in normal operation):
 ## Known Limitations
 
 - No unsafe, reflection, cgo
-- No generics
+- No general generics yet; only focused instantiated generic function type aliases such as `iter.Seq[string]`
 - Limited stdlib support (see README.md for what's mapped)
 - No multi-file package support (cross_file_* tests)
 - No goto statements

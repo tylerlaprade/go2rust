@@ -648,6 +648,31 @@ func isCloneableNonPointerExpr(expr ast.Expr) bool {
 	}
 }
 
+func isCopyTypeExpression(expr ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	typ := typeInfo.GetType(expr)
+	if typ == nil {
+		return false
+	}
+	basic, ok := typ.Underlying().(*types.Basic)
+	if !ok {
+		return false
+	}
+	switch basic.Kind() {
+	case types.Bool,
+		types.Int, types.Int8, types.Int16, types.Int32, types.Int64,
+		types.Uint, types.Uint8, types.Uint16, types.Uint32, types.Uint64, types.Uintptr,
+		types.Float32, types.Float64,
+		types.UntypedBool, types.UntypedInt, types.UntypedRune, types.UntypedFloat:
+		return true
+	default:
+		return false
+	}
+}
+
 func isCloneableNonPointerIdent(ident *ast.Ident) bool {
 	return isCloneableNonPointerExpr(ident)
 }

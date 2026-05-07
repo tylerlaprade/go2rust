@@ -1,0 +1,8 @@
+[package]
+name = "generic_function_type_alias"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "generic_function_type_alias"
+path = "main.rs"

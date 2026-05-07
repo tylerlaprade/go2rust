@@ -325,6 +325,20 @@ func goTypeToRustBase(expr ast.Expr) string {
 	case *ast.FuncType:
 		// Function type - generate a closure type
 		return generateClosureType(t)
+	case *ast.IndexExpr:
+		if rustType, ok := goCallableTypeFromTypeInfo(t); ok {
+			return rustType
+		}
+		outerWrapper := GetOuterWrapperType()
+		innerWrapper := GetInnerWrapperType()
+		return fmt.Sprintf("/* ERROR: Unsupported instantiated generic type */ %s<%s<Option<()>>>", outerWrapper, innerWrapper)
+	case *ast.IndexListExpr:
+		if rustType, ok := goCallableTypeFromTypeInfo(t); ok {
+			return rustType
+		}
+		outerWrapper := GetOuterWrapperType()
+		innerWrapper := GetInnerWrapperType()
+		return fmt.Sprintf("/* ERROR: Unsupported instantiated generic type */ %s<%s<Option<()>>>", outerWrapper, innerWrapper)
 	case *ast.ChanType:
 		elemType := goTypeToRustBase(t.Value)
 		return "GoChannel<" + elemType + ">"
@@ -397,6 +411,22 @@ func goTypeToRustBase(expr ast.Expr) string {
 		innerWrapper := GetInnerWrapperType()
 		return fmt.Sprintf("/* TODO: Unhandled type %T */ %s<%s<Option<()>>>", t, outerWrapper, innerWrapper)
 	}
+}
+
+func goCallableTypeFromTypeInfo(expr ast.Expr) (string, bool) {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return "", false
+	}
+	typ := typeInfo.GetType(expr)
+	if typ == nil {
+		return "", false
+	}
+	sig, ok := signatureFromType(typ)
+	if !ok {
+		return "", false
+	}
+	return signatureToBoxDynFn(sig), true
 }
 
 // zeroValueForGoType returns the Rust zero value for a Go type expression
@@ -492,6 +522,9 @@ func isGoSyncNamedType(typ types.Type) bool {
 
 // goTypesTypeToRust converts a go/types.Type to the base Rust type string (unwrapped)
 func goTypesTypeToRust(t types.Type) string {
+	if sig, ok := signatureFromType(t); ok {
+		return signatureToBoxDynFn(sig)
+	}
 	if named, ok := t.(*types.Named); ok && named.Obj() != nil {
 		obj := named.Obj()
 		if obj.Pkg() == nil && obj.Name() == "error" {
@@ -660,6 +693,22 @@ func goTypesTypeToRustWrapped(t types.Type) string {
 	return outerWrapper + "<" + innerWrapper + "<Option<" + base + ">>>"
 }
 
+func signatureFromType(t types.Type) (*types.Signature, bool) {
+	t = types.Unalias(t)
+	if sig, ok := t.(*types.Signature); ok {
+		return sig, true
+	}
+	if named, ok := t.(*types.Named); ok {
+		if sig, ok := types.Unalias(named.Underlying()).(*types.Signature); ok {
+			return sig, true
+		}
+	}
+	if sig, ok := types.Unalias(t.Underlying()).(*types.Signature); ok {
+		return sig, true
+	}
+	return nil, false
+}
+
 // signatureToBoxDynFn converts a go/types Signature to a "Box<dyn Fn(...)>" string
 func signatureToBoxDynFn(sig *types.Signature) string {
 	var paramTypes []string
@@ -683,5 +732,8 @@ func signatureToBoxDynFn(sig *types.Signature) string {
 	}
 
 	paramsStr := strings.Join(paramTypes, ", ")
+	if NeedsConcurrentWrapper() {
+		return fmt.Sprintf("Box<dyn Fn(%s) -> %s + Send + Sync>", paramsStr, returnType)
+	}
 	return fmt.Sprintf("Box<dyn Fn(%s) -> %s>", paramsStr, returnType)
 }
