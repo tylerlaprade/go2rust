@@ -260,6 +260,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Address-of operator | ✅ |
 | └ Dereference operator | ✅ |
 | └ Pointer aliasing | ✅ |
+| └ Pointer receiver nil comparisons and pointer variable call arguments | ✅ |
 | └ Address-of struct fields and slice elements | ✅ |
 | **String Operations** | |
 | └ String concatenation (+) | ✅ |

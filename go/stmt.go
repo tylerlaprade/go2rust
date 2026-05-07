@@ -1302,6 +1302,15 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 								continue
 							}
 						}
+						if binExpr.Op == token.EQL || binExpr.Op == token.NEQ {
+							var cmp strings.Builder
+							if writeCurrentReceiverPointerComparison(&cmp, binExpr) {
+								WriteWrapperPrefix(out)
+								out.WriteString(cmp.String())
+								WriteWrapperSuffix(out)
+								continue
+							}
+						}
 
 						// Binary expressions need special handling to avoid multiple locks
 						// Check if operands are identifiers that would need unwrapping

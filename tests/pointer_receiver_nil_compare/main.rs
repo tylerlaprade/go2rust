@@ -1,0 +1,30 @@
+use std::cell::{RefCell};
+use std::fmt::{Display, Formatter};
+use std::rc::{Rc};
+
+#[derive(Debug, Clone, Default)]
+pub struct node {
+    pub value: Rc<RefCell<Option<i32>>>,
+}
+
+impl std::fmt::Display for node {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{}}}", (*self.value.borrow().as_ref().unwrap()))
+    }
+}
+
+
+impl node {
+    pub fn same(&mut self, other: Rc<RefCell<Option<node>>>) -> Rc<RefCell<Option<bool>>> {
+        if false || (*other.borrow()).is_none() {
+        return Rc::new(RefCell::new(Some(false)));
+    }
+        return Rc::new(RefCell::new(Some((*self.value.clone().borrow().as_ref().unwrap()) == (*(*other.borrow().as_ref().unwrap()).value.borrow().as_ref().unwrap()))));
+    }
+}
+
+fn main() {
+    let mut left = Rc::new(RefCell::new(Some(node { value: Rc::new(RefCell::new(Some(7))), ..Default::default() })));
+    let mut missing: Rc<RefCell<Option<node>>> = Rc::new(RefCell::new(None));
+    println!("{}", (*(*left.borrow_mut().as_mut().unwrap()).same(missing.clone()).borrow().as_ref().unwrap()));
+}

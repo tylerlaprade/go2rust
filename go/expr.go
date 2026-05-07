@@ -512,6 +512,14 @@ func writeExternalStubCallArgument(out *strings.Builder, arg ast.Expr) {
 }
 
 func writeAlreadyWrappedCallArgument(out *strings.Builder, arg ast.Expr) bool {
+	if ident, ok := arg.(*ast.Ident); ok && ident.Name != "nil" {
+		typeInfo := GetTypeInfo()
+		if typeInfo != nil && typeInfo.IsPointer(ident) {
+			out.WriteString(RustIdentForUse(ident))
+			out.WriteString(".clone()")
+			return true
+		}
+	}
 	callArg, ok := arg.(*ast.CallExpr)
 	if !ok {
 		return false
@@ -689,6 +697,23 @@ func rustBinaryOp(op token.Token) string {
 		return "& !"
 	}
 	return op.String()
+}
+
+func writeCurrentReceiverPointerComparison(out *strings.Builder, expr *ast.BinaryExpr) bool {
+	if currentReceiver == "" || (expr.Op != token.EQL && expr.Op != token.NEQ) {
+		return false
+	}
+	left, leftIsIdent := expr.X.(*ast.Ident)
+	right, rightIsIdent := expr.Y.(*ast.Ident)
+	if !(leftIsIdent && left.Name == currentReceiver) && !(rightIsIdent && right.Name == currentReceiver) {
+		return false
+	}
+	if expr.Op == token.EQL {
+		out.WriteString("false")
+	} else {
+		out.WriteString("true")
+	}
+	return true
 }
 
 func writeIdentValueClone(out *strings.Builder, ident *ast.Ident) {
@@ -1762,6 +1787,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				out.WriteString(").is_none()")
 				return
 			}
+		}
+		if writeCurrentReceiverPointerComparison(out, e) {
+			return
 		}
 
 		// Special handling for string concatenation
