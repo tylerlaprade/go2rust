@@ -382,6 +382,10 @@ run_xfail_test() {
     run_test "tests/byte_char_comparisons"
 }
 
+@test "byte_slice_from_global_array_field" {
+    run_test "tests/byte_slice_from_global_array_field"
+}
+
 @test "channel_buffering" {
     run_test "tests/channel_buffering"
 }
@@ -568,6 +572,14 @@ run_xfail_test() {
 
 @test "generic_function_type_alias" {
     run_test "tests/generic_function_type_alias"
+}
+
+@test "global_fixed_array" {
+    run_test "tests/global_fixed_array"
+}
+
+@test "global_inferred_array" {
+    run_test "tests/global_inferred_array"
 }
 
 @test "goroutine_function_param_capture" {

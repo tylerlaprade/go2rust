@@ -2942,33 +2942,15 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 			case "byte", "uint8":
 				// []byte(string) conversion
 				WriteWrapperPrefix(out)
-				if ident, ok := call.Args[0].(*ast.Ident); ok && ident.Name != "nil" {
-					out.WriteString("(*")
-					out.WriteString(ident.Name)
-					WriteBorrowMethod(out, false)
-					out.WriteString(".as_ref().unwrap()).as_bytes().to_vec()")
-				} else {
-					out.WriteString("(*")
-					TranspileExpression(out, call.Args[0])
-					WriteBorrowMethod(out, false)
-					out.WriteString(".as_ref().unwrap()).as_bytes().to_vec()")
-				}
+				writeStringConversionSource(out, call.Args[0])
+				out.WriteString(".as_bytes().to_vec()")
 				WriteWrapperSuffix(out)
 				return
 			case "rune", "int32":
 				// []rune(string) conversion
 				WriteWrapperPrefix(out)
-				if ident, ok := call.Args[0].(*ast.Ident); ok && ident.Name != "nil" {
-					out.WriteString("(*")
-					out.WriteString(ident.Name)
-					WriteBorrowMethod(out, false)
-					out.WriteString(".as_ref().unwrap()).chars().map(|c| c as i32).collect::<Vec<_>>()")
-				} else {
-					out.WriteString("(*")
-					TranspileExpression(out, call.Args[0])
-					WriteBorrowMethod(out, false)
-					out.WriteString(".as_ref().unwrap()).chars().map(|c| c as i32).collect::<Vec<_>>()")
-				}
+				writeStringConversionSource(out, call.Args[0])
+				out.WriteString(".chars().map(|c| c as i32).collect::<Vec<_>>()")
 				WriteWrapperSuffix(out)
 				return
 			}
@@ -3214,6 +3196,23 @@ func typeConversionEmitsWrappedValue(call *ast.CallExpr) bool {
 	}
 	_, isTypeDef := LookupTypeDefinition(targetType)
 	return !isTypeDef
+}
+
+func writeStringConversionSource(out *strings.Builder, arg ast.Expr) {
+	if call, ok := arg.(*ast.CallExpr); ok {
+		typeInfo := GetTypeInfo()
+		if typeInfo != nil && typeInfo.ReturnsWrappedValue(call) && !isBareBuiltinReturn(call) && !callReturnsBareChannelValue(call) {
+			out.WriteString("(*")
+			TranspileExpression(out, arg)
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref().unwrap())")
+			return
+		}
+	}
+
+	out.WriteString("(")
+	TranspileExpression(out, arg)
+	out.WriteString(")")
 }
 
 func writeNumericConversionValue(out *strings.Builder, arg ast.Expr) {

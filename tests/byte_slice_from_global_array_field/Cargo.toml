@@ -1,0 +1,8 @@
+[package]
+name = "byte_slice_from_global_array_field"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "byte_slice_from_global_array_field"
+path = "main.rs"

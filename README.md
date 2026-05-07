@@ -233,10 +233,12 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | **`var` - Variable declarations** | |
 | └ Basic var declarations | ✅ |
 | └ Package-level declarations and initializer order | ✅ |
+| └ Package-level fixed and inferred array declarations | ✅ |
 | └ Short declarations (:=) | ✅ |
 | └ Blank identifier (_) | ✅ |
 | **Arrays & Slices** | |
 | └ Fixed arrays | ✅ |
+| └ Fixed array zero values above Rust's built-in `Default` array sizes | ✅ |
 | └ Slices | ✅ |
 | └ Slice operations | ✅ |
 | └ Parallel slice element swaps | ✅ |
@@ -266,6 +268,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Byte comparisons with character literals | ✅ |
 | └ Raw string literals | ✅ |
 | └ `len` on string literals in slice bounds | ✅ |
+| └ `[]byte`/`[]rune` conversions from selector expressions | ✅ |
 | **Closures & Anonymous Functions** | |
 | └ Function literals | ✅ |
 | └ Closure variable capture | ✅ |

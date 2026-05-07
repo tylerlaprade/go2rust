@@ -113,6 +113,6 @@ fn go_format_hex_bytes(data: &[u8], upper: bool) -> String {
 
 fn main() {
     let mut data = Arc::new(Mutex::new(Some("Hello, World!".to_string())));
-    let mut hash = Arc::new(Mutex::new(Some(go_sha256_sum256(&*(Arc::new(Mutex::new(Some((*data.lock().unwrap().as_ref().unwrap()).as_bytes().to_vec())))).lock().unwrap().as_ref().unwrap()))));
+    let mut hash = Arc::new(Mutex::new(Some(go_sha256_sum256(&*(Arc::new(Mutex::new(Some(({ let __v = (*data.lock().unwrap().as_ref().unwrap()).clone(); __v }).as_bytes().to_vec())))).lock().unwrap().as_ref().unwrap()))));
     print!("SHA256: {}\n", go_format_hex_bytes(&*hash.lock().unwrap().as_ref().unwrap(), false));
 }

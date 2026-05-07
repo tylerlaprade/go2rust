@@ -1876,7 +1876,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									out.WriteString("(*")
 									TranspileExpression(out, s.Rhs[0])
 									WriteBorrowMethod(out, false)
-									out.WriteString(".as_ref().unwrap())")
+									out.WriteString(".as_ref().unwrap()).clone()")
 								} else {
 									TranspileExpression(out, s.Rhs[0])
 								}

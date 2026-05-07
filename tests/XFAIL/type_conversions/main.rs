@@ -136,11 +136,11 @@ fn main() {
     print!("bytes to string: {}\n", { let __v = (*strFromBytes.borrow().as_ref().unwrap()).clone(); __v });
 
         // String to byte slice
-    let mut backToBytes = Rc::new(RefCell::new(Some((*strFromBytes.borrow().as_ref().unwrap()).as_bytes().to_vec())));
+    let mut backToBytes = Rc::new(RefCell::new(Some(((*strFromBytes.borrow().as_ref().unwrap())).as_bytes().to_vec())));
     print!("string to bytes: {}\n", format_slice(&backToBytes));
 
         // String to rune slice
-    let mut runes = Rc::new(RefCell::new(Some((*"Hello, \u{4e16}\u{754c}".to_string().borrow().as_ref().unwrap()).chars().map(|c| c as i32).collect::<Vec<_>>())));
+    let mut runes = Rc::new(RefCell::new(Some(("Hello, \u{4e16}\u{754c}".to_string()).chars().map(|c| c as i32).collect::<Vec<_>>())));
     print!("string to runes: {}\n", format_slice(&runes));
     print!("rune count: {}\n", (*runes.borrow().as_ref().unwrap()).len());
 

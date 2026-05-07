@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"go/ast"
 	"go/types"
+	"strconv"
 	"strings"
 )
 
@@ -487,6 +488,8 @@ func zeroValueForTypesType(typ types.Type) string {
 		}
 	case *types.Slice:
 		return "vec![]"
+	case *types.Array:
+		return "std::array::from_fn(|_| " + zeroValueForTypesType(t.Elem()) + ")"
 	case *types.Map:
 		return "BTreeMap::new()"
 	default:
@@ -588,6 +591,8 @@ func goTypesTypeToRust(t types.Type) string {
 		}
 	case *types.Slice:
 		return "Vec<" + goTypesTypeToRust(ut.Elem()) + ">"
+	case *types.Array:
+		return "[" + goTypesTypeToRust(ut.Elem()) + "; " + strconv.FormatInt(ut.Len(), 10) + "]"
 	case *types.Pointer:
 		outerWrapper := GetOuterWrapperType()
 		innerWrapper := GetInnerWrapperType()

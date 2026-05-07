@@ -61,11 +61,13 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 - ✅ Map capacity and element update semantics - make(map[K]V, cap), missing-key zero values, and map element ++/+= (make_map_with_capacity promoted, 2026-05-06)
 - ✅ Comma-ok map zero values - missing keys now emit typed zero values from go/types, including bool map values instead of assuming int (map_comma_ok_bool_default promoted, 2026-05-07)
 - ✅ Composite literal arguments - slice/map/array literals passed to functions no longer double-wrap (2026-03-26)
+- ✅ Array zero values - fixed array globals initialize through `std::array::from_fn`, including arrays larger than Rust's built-in `Default` implementations (global_fixed_array added, 2026-05-07)
 - ✅ Elided nested composite literals - nested slice/map composites and map-value indexing work (elided_nested_composites promoted, 2026-05-06)
 - ✅ Complex expressions - nested arithmetic, boolean, bitwise, closure-call, slice/map/field/pointer/type-assertion/channel operands evaluate with sequenced concurrent lock lifetimes (complex_expressions promoted, 2026-05-06)
 - ✅ Concurrent len/cap comparisons - binary temp operands preserve bare builtin results instead of treating them as wrapped values (concurrent_len_comparison promoted, 2026-05-07)
 - ✅ len/cap with typed int peers - binary expressions cast bare length/capacity results to the transpiler's Go `int` representation when compared or combined with typed `int` values (len_typed_int_comparison promoted, 2026-05-07)
 - ✅ Slice bound and indexed compound expression edges - string-literal `len` operands stay bare in slice bounds, and concurrent byte slice element `|=` mutates the underlying Vec element directly (len_string_literal_slice_bounds and concurrent_byte_index_or_assign added, 2026-05-07)
+- ✅ String conversions from fields - `[]byte`/`[]rune` conversions consume already-unwrapped string selector expressions without adding a second wrapper borrow (byte_slice_from_global_array_field added, 2026-05-07)
 
 ### 📋 Phase 6: Control Flow Extensions
 
@@ -124,6 +126,7 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 - ✅ Stdlib interface return conversions - concrete stdlib pointer literals and values returned as stdlib interface results emit deterministic stub `From` conversions when go/types proves implementation (stdlib_interface_return, stdlib_interface_return_variable promoted, 2026-05-07)
 - ✅ Stdlib interface call arguments - concrete stdlib call results convert through generated stub `From` impls when passed to stdlib interface-typed function and method parameters (stdlib_interface_call_argument promoted, 2026-05-07)
 - ✅ Copyable fieldless stdlib stubs - zero-state external type placeholders derive `Copy` so enum-like stdlib values can be compared after method calls (stdlib_stub_value_comparison promoted, 2026-05-07)
+- ✅ Package-level array globals - go/types arrays emit fixed Rust array types for explicit `[N]T` and inferred `[...]T` package variables (global_fixed_array and global_inferred_array added, 2026-05-07)
 - ✅ Single-file package initialization - package-level variables use Go type-checker init order and multiple init functions run before main (init_functions, init_order_complex promoted, 2026-05-06)
 - ✅ Import aliases - aliased stdlib package selectors resolve through the import map (import_aliases promoted, 2026-05-06)
 - Import side effects (blank_imports_side_effects)
