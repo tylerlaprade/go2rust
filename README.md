@@ -189,6 +189,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Main package | ✅ |
 | └ Library packages | ✅ |
 | └ Package-level variable initialization | ✅ |
+| └ Package-level error initialization | ✅ |
 | └ Package-level map literal initialization | ✅ |
 | └ Package-level named slice declarations | ✅ |
 | └ Init functions | ✅ |
@@ -352,6 +353,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 
 | **`errors` package** | |
 | └ `errors.New` | ✅ |
+| └ Package-level `errors.New` values | ✅ |
 | └ Custom error types | ✅ |
 | └ Type assertions on errors | ✅ |
 | **`flag` package** | |

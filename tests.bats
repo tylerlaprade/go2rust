@@ -758,6 +758,10 @@ run_xfail_test() {
     run_test "tests/os_args"
 }
 
+@test "package_global_error" {
+    run_test "tests/package_global_error"
+}
+
 @test "package_global_map_incremental" {
     run_test "tests/package_global_map_incremental"
 }

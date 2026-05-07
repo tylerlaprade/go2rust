@@ -244,7 +244,12 @@ func transpilePackageGlobalInit(out *strings.Builder, globals []packageGlobal) {
 		out.WriteString("    *")
 		out.WriteString(global.name)
 		WriteBorrowMethod(out, true)
-		out.WriteString(" = Some(")
+		out.WriteString(" = ")
+		if isGoErrorType(global.typ) {
+			out.WriteString("None;\n")
+			continue
+		}
+		out.WriteString("Some(")
 		if global.typ != nil {
 			out.WriteString(zeroValueForTypesType(global.typ))
 		} else {
@@ -276,6 +281,9 @@ func transpilePackageGlobalInit(out *strings.Builder, globals []packageGlobal) {
 		if len(init.Lhs) != 1 {
 			out.WriteString("    /* ERROR: Type information required for multi-value package variable initialization */\n")
 			out.WriteString("    unimplemented!();\n")
+			continue
+		}
+		if writePackageGlobalErrorCallInit(out, global, init.Rhs) {
 			continue
 		}
 		if writePackageGlobalCompositeInit(out, global, init.Rhs) {
@@ -409,6 +417,29 @@ func underlyingSliceType(typ types.Type) *types.Slice {
 		return sliceType
 	}
 	return nil
+}
+
+func writePackageGlobalErrorCallInit(out *strings.Builder, global packageGlobal, expr ast.Expr) bool {
+	if !isGoErrorType(global.typ) {
+		return false
+	}
+	call, ok := expr.(*ast.CallExpr)
+	if !ok {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || !isGoErrorType(typeInfo.GetType(call)) {
+		return false
+	}
+	out.WriteString("    { let __rhs_holder = ")
+	TranspileExpressionContext(out, call, LValue)
+	out.WriteString(".clone(); let new_val = { let mut guard = __rhs_holder")
+	WriteBorrowMethod(out, true)
+	out.WriteString("; guard.take() }; *")
+	out.WriteString(global.name)
+	WriteBorrowMethod(out, true)
+	out.WriteString(" = new_val; }\n")
+	return true
 }
 
 func writePackageGlobalInitValue(out *strings.Builder, expr ast.Expr) {
