@@ -74,6 +74,7 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 - ✅ Wrapped bool negation - unary `!` unwraps bool-returning calls before negating (wrapped_bool_not promoted, 2026-05-07)
 - ✅ String constant returns - string constants returned from `string` functions are converted to owned Rust `String` values before wrapping (return_string_const promoted, 2026-05-07)
 - ✅ interface{} arg boxing - values auto-boxed as Box<dyn Any> when passed to interface{} params (2026-03-27)
+- ✅ `any(x)` conversions - converted values are boxed as `Box<dyn Any>` so comma-ok type assertions can downcast them (any_type_conversion promoted, 2026-05-07)
 - ✅ Blank identifier - fully working with return values, range loops, type assertions, declarations (2026-03-26)
 - ✅ Mixed output (fmt.Fprintln/Fprintf to os.Stderr → eprintln!/eprint!)
 

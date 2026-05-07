@@ -2679,6 +2679,45 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 		rustType = "u64"
 	case "uintptr":
 		rustType = "usize"
+	case "any":
+		arg := call.Args[0]
+		typeInfo := GetTypeInfo()
+		if typeInfo != nil {
+			if argType := typeInfo.GetType(arg); argType != nil {
+				if iface, ok := argType.Underlying().(*types.Interface); ok && iface.NumMethods() == 0 {
+					if ident, ok := arg.(*ast.Ident); ok && ident.Name != "nil" {
+						out.WriteString(RustIdentForUse(ident))
+						out.WriteString(".clone()")
+					} else {
+						TranspileExpression(out, arg)
+					}
+					return
+				}
+			}
+		}
+		TrackImport("Any")
+		WriteWrapperPrefix(out)
+		out.WriteString("Box::new(")
+		if ident, ok := arg.(*ast.Ident); ok && ident.Name != "nil" {
+			out.WriteString("(*")
+			out.WriteString(RustIdentForUse(ident))
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref().unwrap()).clone()")
+		} else {
+			var argBuf strings.Builder
+			TranspileExpression(&argBuf, arg)
+			argStr := argBuf.String()
+			wrapPrefix := GetOuterWrapperType() + "::new(" + GetInnerWrapperType() + "::new(Some("
+			wrapSuffix := ")))"
+			if strings.HasPrefix(argStr, wrapPrefix) && strings.HasSuffix(argStr, wrapSuffix) {
+				out.WriteString(argStr[len(wrapPrefix) : len(argStr)-len(wrapSuffix)])
+			} else {
+				out.WriteString(argStr)
+			}
+		}
+		out.WriteString(") as Box<dyn Any>")
+		WriteWrapperSuffix(out)
+		return
 	// Float types
 	case "float32":
 		rustType = "f32"

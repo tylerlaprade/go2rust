@@ -161,6 +161,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Empty interface{} | ✅ |
 | └ Interface implementations | ✅ |
 | └ Type assertions | ✅ |
+| └ `any(x)` conversions feeding type assertions | ✅ |
 | └ Type switches | ✅ |
 | **`map` - Map types** | |
 | └ Map types | ✅ |
