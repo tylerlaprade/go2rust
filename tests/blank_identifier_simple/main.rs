@@ -44,7 +44,7 @@ fn main() {
 
         // Ignore value, use only index
     println!("{}", "Indices only:".to_string());
-    { let __range_guard = slice.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for (i, _) in __range_values.iter().copied().enumerate() {
+    { let __range_guard = slice.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for i in 0..__range_values.len() {
         print!("{} ", i);
     } }
     println!();
