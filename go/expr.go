@@ -650,15 +650,23 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 	case *ast.Ident:
 		// Check if this variable has been renamed (captured in closure)
 		varName := RustIdentForUse(e)
+		renamedReceiver := ""
 		if currentCaptureRenames != nil {
 			if renamed, exists := currentCaptureRenames[e.Name]; exists {
 				varName = RustLocalIdent(renamed)
+				if currentReceiver != "" && e.Name == currentReceiver {
+					renamedReceiver = varName
+				}
 			}
 		}
 
 		if e.Name == "nil" {
 			out.WriteString("None")
 		} else if currentReceiver != "" && e.Name == currentReceiver {
+			if renamedReceiver != "" {
+				out.WriteString(renamedReceiver)
+				return
+			}
 			// Method receiver - translate to self
 			// Check if this is a type definition that needs unwrapping
 			if _, isTypeDef := LookupTypeDefinition(currentReceiverType); isTypeDef {
@@ -758,7 +766,13 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		} else if ident, ok := e.X.(*ast.Ident); ok {
 			// Field access on a variable
 			if currentReceiver != "" && ident.Name == currentReceiver {
-				// Field access on method receiver - use self directly
+				// Field access on method receiver - use self directly unless a moved closure captured it.
+				receiverName := "self"
+				if currentCaptureRenames != nil {
+					if renamed, exists := currentCaptureRenames[ident.Name]; exists {
+						receiverName = RustLocalIdent(renamed)
+					}
+				}
 				fieldInfo := resolveFieldAccess(currentReceiverType, e.Sel.Name)
 
 				if fieldInfo.IsPromoted {
@@ -768,7 +782,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 
 					if len(fieldInfo.EmbeddedPath) == 1 {
 						// Simple case: one level of embedding
-						out.WriteString("(*self.")
+						out.WriteString("(*")
+						out.WriteString(receiverName)
+						out.WriteString(".")
 						out.WriteString(ToSnakeCase(fieldInfo.EmbeddedPath[0]))
 						WriteBorrowMethod(out, false)
 						out.WriteString(".as_ref().unwrap()).")
@@ -776,7 +792,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					} else {
 						// Complex case: multiple levels of embedding
 						// Start with the first embedded struct
-						out.WriteString("(*(*self.")
+						out.WriteString("(*(*")
+						out.WriteString(receiverName)
+						out.WriteString(".")
 						out.WriteString(ToSnakeCase(fieldInfo.EmbeddedPath[0]))
 						WriteBorrowMethod(out, false)
 						out.WriteString(".as_ref().unwrap())")
@@ -801,7 +819,8 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					}
 				} else {
 					// Direct field access
-					out.WriteString("self.")
+					out.WriteString(receiverName)
+					out.WriteString(".")
 					out.WriteString(fieldInfo.FieldName)
 					// For return statements, we need to clone the Arc
 					if ctx == RValue {
@@ -2987,7 +3006,16 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 		// Check if the receiver is a simple identifier (local variable)
 		if ident, ok := sel.X.(*ast.Ident); ok {
 			if currentReceiver != "" && ident.Name == currentReceiver {
-				out.WriteString("self.")
+				if currentCaptureRenames != nil {
+					if renamed, exists := currentCaptureRenames[ident.Name]; exists {
+						out.WriteString(RustLocalIdent(renamed))
+						out.WriteString(".")
+					} else {
+						out.WriteString("self.")
+					}
+				} else {
+					out.WriteString("self.")
+				}
 			} else {
 				// Check if this variable is wrapped (not a range var, not a constant, not bare)
 				if _, isRangeVar := rangeLoopVars[ident.Name]; !isRangeVar {
@@ -3086,6 +3114,9 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 			if bareMethodCall {
 				// Bare type methods take bare arguments
 				TranspileExpression(out, arg)
+			} else if typeInfo != nil && typeInfo.IsChannel(arg) {
+				TranspileExpression(out, arg)
+				out.WriteString(".clone()")
 			} else {
 				// For method calls, wrap arguments normally
 				WriteWrapperPrefix(out)

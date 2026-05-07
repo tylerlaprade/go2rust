@@ -593,6 +593,10 @@ run_xfail_test() {
     run_test "tests/method_receiver_calls"
 }
 
+@test "method_receiver_goroutine_capture" {
+    run_test "tests/method_receiver_goroutine_capture"
+}
+
 @test "methods" {
     run_test "tests/methods"
 }

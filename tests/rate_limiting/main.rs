@@ -195,7 +195,7 @@ fn main() {
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
 
-    let burstyLimiter_closure_clone = burstyLimiter.clone(); let burstyLimiter_thread = burstyLimiter.clone(); std::thread::spawn(move || {
+    let burstyLimiter_thread = burstyLimiter.clone(); std::thread::spawn(move || {
         for t in go_tick(std::time::Duration::from_millis(100)).clone() {
         burstyLimiter_thread.send(t);
     };;

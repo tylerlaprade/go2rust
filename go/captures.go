@@ -58,42 +58,47 @@ func findCapturedVars(funcLit *ast.FuncLit) map[string]bool {
 	})
 
 	// Second pass: find all variable references that aren't local
-	ast.Inspect(funcLit.Body, func(n ast.Node) bool {
-		if ident, ok := n.(*ast.Ident); ok {
-			// Skip if it's a local variable or parameter
-			if localVars[ident.Name] {
-				return true
-			}
-
-			// Skip built-in identifiers
-			if isBuiltinIdentifier(ident.Name) {
-				return true
-			}
-
-			// Use type info to check if this is actually a variable
-			typeInfo := GetTypeInfo()
-			if typeInfo != nil {
-				// Check if it's a function - functions aren't captured
-				if typeInfo.IsFunction(ident) {
+	var inspectRefs func(ast.Node)
+	inspectRefs = func(node ast.Node) {
+		ast.Inspect(node, func(n ast.Node) bool {
+			switch node := n.(type) {
+			case *ast.SelectorExpr:
+				inspectRefs(node.X)
+				return false
+			case *ast.Ident:
+				// Skip if it's a local variable or parameter
+				if localVars[node.Name] {
 					return true
 				}
 
-				// Check if it's actually a variable reference
-				if obj := typeInfo.GetObject(ident); obj != nil {
-					if _, isVar := obj.(*types.Var); isVar {
-						// It's a variable from outer scope
-						captured[ident.Name] = true
-					}
+				// Skip built-in identifiers
+				if isBuiltinIdentifier(node.Name) {
+					return true
 				}
-			} else {
-				// No type info available - we cannot determine if this should be captured
-				// Add a comment to indicate the issue
-				// We'll conservatively NOT capture to avoid incorrect behavior
-				// The developer should ensure TypeInfo is available
+
+				// Use type info to check if this is actually a variable
+				typeInfo := GetTypeInfo()
+				if typeInfo != nil {
+					// Check if it's a function - functions aren't captured
+					if typeInfo.IsFunction(node) {
+						return true
+					}
+
+					// Check if it's actually a variable reference
+					if obj := typeInfo.GetObject(node); obj != nil {
+						if _, isVar := obj.(*types.Var); isVar {
+							// It's a variable from outer scope
+							captured[node.Name] = true
+						}
+					}
+				} else {
+					// No type info available - we cannot determine if this should be captured.
+				}
 			}
-		}
-		return true
-	})
+			return true
+		})
+	}
+	inspectRefs(funcLit.Body)
 
 	return captured
 }
@@ -131,19 +136,27 @@ func findCapturedInCall(call *ast.CallExpr) map[string]bool {
 		return captured
 	}
 
-	ast.Inspect(call, func(n ast.Node) bool {
-		if ident, ok := n.(*ast.Ident); ok {
-			if isBuiltinIdentifier(ident.Name) || typeInfo.IsFunction(ident) {
-				return true
-			}
-			if obj := typeInfo.GetObject(ident); obj != nil {
-				if _, isVar := obj.(*types.Var); isVar {
-					captured[ident.Name] = true
+	var inspectRefs func(ast.Node)
+	inspectRefs = func(node ast.Node) {
+		ast.Inspect(node, func(n ast.Node) bool {
+			switch node := n.(type) {
+			case *ast.SelectorExpr:
+				inspectRefs(node.X)
+				return false
+			case *ast.Ident:
+				if isBuiltinIdentifier(node.Name) || typeInfo.IsFunction(node) {
+					return true
+				}
+				if obj := typeInfo.GetObject(node); obj != nil {
+					if _, isVar := obj.(*types.Var); isVar {
+						captured[node.Name] = true
+					}
 				}
 			}
-		}
-		return true
-	})
+			return true
+		})
+	}
+	inspectRefs(call)
 
 	return captured
 }

@@ -240,24 +240,28 @@ func (sp *StatementPreprocessor) findCapturedVars(node ast.Node, localVars map[s
 			return false
 		}
 
-		if ident, ok := n.(*ast.Ident); ok {
+		switch node := n.(type) {
+		case *ast.SelectorExpr:
+			sp.findCapturedVars(node.X, localVars, captured, parentClosure)
+			return false
+		case *ast.Ident:
 			// Skip if it's a local variable or parameter
-			if localVars[ident.Name] {
+			if localVars[node.Name] {
 				return true
 			}
 
 			// Skip if it's a type name, function name, or constant
-			if isBuiltinIdentifier(ident.Name) || isFunctionName(ident) {
+			if isBuiltinIdentifier(node.Name) || isFunctionName(node) {
 				return true
 			}
 
 			// Skip special identifiers
-			if ident.Name == "_" || ident.Name == "nil" || ident.Name == "true" || ident.Name == "false" {
+			if node.Name == "_" || node.Name == "nil" || node.Name == "true" || node.Name == "false" {
 				return true
 			}
 
 			// This is a captured variable
-			captured[ident.Name] = true
+			captured[node.Name] = true
 		}
 		return true
 	})
@@ -333,9 +337,22 @@ func (sp *StatementPreprocessor) GenerateCloneStatements(out *strings.Builder, i
 	for _, varName := range varNames {
 		cloneName := info.CapturedVars[varName]
 		out.WriteString("let ")
+		if currentReceiver != "" && varName == currentReceiver {
+			out.WriteString("mut ")
+		}
 		out.WriteString(cloneName)
 		out.WriteString(" = ")
-		out.WriteString(varName)
+		if currentCaptureRenames != nil {
+			if renamed, exists := currentCaptureRenames[varName]; exists {
+				out.WriteString(RustLocalIdent(renamed))
+			} else {
+				out.WriteString(varName)
+			}
+		} else if currentReceiver != "" && varName == currentReceiver {
+			out.WriteString("self")
+		} else {
+			out.WriteString(varName)
+		}
 		out.WriteString(".clone(); ")
 	}
 }

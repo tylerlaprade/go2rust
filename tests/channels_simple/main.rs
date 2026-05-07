@@ -70,7 +70,7 @@ impl<T> Iterator for GoChannel<T> {
 fn main() {
     let mut messages = GoChannel::<String>::new();
 
-    let messages_closure_clone = messages.clone(); let messages_thread = messages.clone(); std::thread::spawn(move || {
+    let messages_thread = messages.clone(); std::thread::spawn(move || {
         messages_thread.send("ping".to_string());;;
     });
 

@@ -119,7 +119,7 @@ fn main() {
 
         // Channel range
     let mut numbers = GoChannel::<i32>::new_buffered(5 as usize);
-    let numbers_closure_clone = numbers.clone(); let numbers_thread = numbers.clone(); std::thread::spawn(move || {
+    let numbers_thread = numbers.clone(); std::thread::spawn(move || {
         let mut i = Arc::new(Mutex::new(Some(10)));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 15; __tmp_x < __tmp_y } {
         numbers_thread.send((*i.lock().unwrap().as_ref().unwrap()));

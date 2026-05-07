@@ -1,6 +1,6 @@
+use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
 use std::thread;
-use std::time::Duration;
 
 
 struct GoChannel<T> {
@@ -68,34 +68,40 @@ impl<T> Iterator for GoChannel<T> {
     }
 }
 
+#[derive(Debug, Clone, Default)]
+pub struct Runner {
+    pub name: Arc<Mutex<Option<String>>>,
+}
+
+impl std::fmt::Display for Runner {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{}}}", (*self.name.lock().unwrap().as_ref().unwrap()))
+    }
+}
+
+
+impl Runner {
+    pub fn after(&mut self) {
+        let _ = self.name.clone();
+    }
+
+    pub fn run(&mut self, done: GoChannel<String>) {
+        let done_thread = done.clone(); let mut r_thread = self.clone(); std::thread::spawn(move || {
+        let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
+        let mut r_defer_captured = r_thread.clone(); __defer_stack.push(Box::new(move || {
+        r_defer_captured.after();
+    }));;
+        done_thread.send(r_thread.name.clone().lock().unwrap().as_ref().unwrap().clone());;
+        while let Some(f) = __defer_stack.pop() {
+            f();
+        };
+    });
+    }
+}
+
 fn main() {
-    let mut c1 = GoChannel::<String>::new();
-    let mut c2 = GoChannel::<String>::new();
-
-    let c1_thread = c1.clone(); std::thread::spawn(move || {
-        std::thread::sleep(std::time::Duration::from_millis(500));;
-        c1_thread.send("one".to_string());;;
-    });
-    let c2_thread = c2.clone(); std::thread::spawn(move || {
-        std::thread::sleep(std::time::Duration::from_secs(1));;
-        c2_thread.send("two".to_string());;;
-    });
-
-    let mut i = Arc::new(Mutex::new(Some(0)));
-    while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2; __tmp_x < __tmp_y } {
-        loop {
-        if let Some(msg1) = c1.try_recv() {
-            let mut msg1 = Arc::new(Mutex::new(Some(msg1)));
-            println!("{} {}", "received".to_string(), { let __v = (*msg1.lock().unwrap().as_ref().unwrap()).clone(); __v });
-            break;
-        }
-        if let Some(msg2) = c2.try_recv() {
-            let mut msg2 = Arc::new(Mutex::new(Some(msg2)));
-            println!("{} {}", "received".to_string(), { let __v = (*msg2.lock().unwrap().as_ref().unwrap()).clone(); __v });
-            break;
-        }
-        std::thread::sleep(std::time::Duration::from_millis(1));
-    }
-        { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
-    }
+    let mut done = GoChannel::<String>::new();
+    let mut r = Arc::new(Mutex::new(Some(Runner { name: Arc::new(Mutex::new(Some("ok".to_string()))), ..Default::default() })));
+    (*r.lock().unwrap().as_mut().unwrap()).run(done.clone());
+    println!("{}", done.recv().unwrap());
 }

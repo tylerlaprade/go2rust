@@ -16,7 +16,7 @@ fn main() {
         return
     }
     }
-    let Body_defer_captured = Body.clone(); let resp_defer_captured = resp.clone(); __defer_stack.push(Box::new(move || {
+    let resp_defer_captured = resp.clone(); __defer_stack.push(Box::new(move || {
         (*(*resp.lock().unwrap().as_ref().unwrap()).body.lock().unwrap().as_ref().unwrap()).close();
     }));
 

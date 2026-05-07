@@ -174,12 +174,12 @@ pub fn basic_select() {
     let mut ch1 = GoChannel::<String>::new();
     let mut ch2 = GoChannel::<String>::new();
 
-    let ch1_closure_clone = ch1.clone(); let ch1_thread = ch1.clone(); std::thread::spawn(move || {
+    let ch1_thread = ch1.clone(); std::thread::spawn(move || {
         std::thread::sleep(std::time::Duration::from_millis(100));;
         ch1_thread.send("from ch1".to_string());;;
     });
 
-    let ch2_closure_clone = ch2.clone(); let ch2_thread = ch2.clone(); std::thread::spawn(move || {
+    let ch2_thread = ch2.clone(); std::thread::spawn(move || {
         std::thread::sleep(std::time::Duration::from_millis(200));;
         ch2_thread.send("from ch2".to_string());;;
     });
@@ -203,7 +203,7 @@ pub fn select_with_timeout() {
     let mut ch = GoChannel::<String>::new();
     let mut timeout = go_channel_after(std::time::Duration::from_millis(100));
 
-    let ch_closure_clone = ch.clone(); let ch_thread = ch.clone(); std::thread::spawn(move || {
+    let ch_thread = ch.clone(); std::thread::spawn(move || {
         std::thread::sleep(std::time::Duration::from_millis(300));;
         ch_thread.send("delayed message".to_string());;;
     });
@@ -263,7 +263,7 @@ pub fn select_loop() {
     let mut ch2 = GoChannel::<i32>::new();
     let mut quit = GoChannel::<bool>::new();
 
-    let ch1_closure_clone = ch1.clone(); let ch2_closure_clone = ch2.clone(); let quit_closure_clone = quit.clone(); let ch1_thread = ch1.clone(); let ch2_thread = ch2.clone(); let quit_thread = quit.clone(); std::thread::spawn(move || {
+    let ch1_thread = ch1.clone(); let ch2_thread = ch2.clone(); let quit_thread = quit.clone(); std::thread::spawn(move || {
         std::thread::sleep(std::time::Duration::from_millis(50));;
         ch1_thread.send(0);;
         std::thread::sleep(std::time::Duration::from_millis(50));;

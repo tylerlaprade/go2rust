@@ -371,6 +371,20 @@ func transpileChannelValue(out *strings.Builder, expr ast.Expr) {
 		return
 	}
 
+	if _, ok := expr.(*ast.SelectorExpr); ok {
+		if isCopyType {
+			out.WriteString("(*")
+			TranspileExpression(out, expr)
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref().unwrap())")
+		} else {
+			TranspileExpression(out, expr)
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref().unwrap().clone()")
+		}
+		return
+	}
+
 	// For other expressions, try to unwrap
 	TranspileExpression(out, expr)
 }
@@ -544,9 +558,12 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 	}
 
 	// Preprocess the statement to find closures and generate clone statements
-	// Skip defer statements as they handle captures themselves
+	// Skip defer/go statements as they handle captures themselves
 	var captureInfo *CaptureInfo
-	if _, isDefer := stmt.(*ast.DeferStmt); !isDefer && statementPreprocessor != nil {
+	_, isDefer := stmt.(*ast.DeferStmt)
+	_, isGo := stmt.(*ast.GoStmt)
+	_, isIf := stmt.(*ast.IfStmt)
+	if !isDefer && !isGo && !isIf && statementPreprocessor != nil {
 		captureInfo = statementPreprocessor.PreprocessStatement(stmt, fnType)
 		if captureInfo != nil && len(captureInfo.CapturedVars) > 0 {
 			// Generate clone statements before the actual statement
@@ -3155,9 +3172,22 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			cloneName := varName + "_defer_captured"
 			captureRenames[varName] = cloneName
 			out.WriteString("let ")
+			if currentReceiver != "" && varName == currentReceiver {
+				out.WriteString("mut ")
+			}
 			out.WriteString(cloneName)
 			out.WriteString(" = ")
-			out.WriteString(varName)
+			if currentCaptureRenames != nil {
+				if renamed, exists := currentCaptureRenames[varName]; exists {
+					out.WriteString(RustLocalIdent(renamed))
+				} else {
+					out.WriteString(varName)
+				}
+			} else if currentReceiver != "" && varName == currentReceiver {
+				out.WriteString("self")
+			} else {
+				out.WriteString(varName)
+			}
 			out.WriteString(".clone(); ")
 		}
 
@@ -3311,9 +3341,14 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 		for _, varName := range capturedVars {
 			out.WriteString("let ")
+			if currentReceiver != "" && varName == currentReceiver {
+				out.WriteString("mut ")
+			}
 			out.WriteString(varName)
 			out.WriteString("_thread = ")
-			if isVarBare(varName) {
+			if currentReceiver != "" && varName == currentReceiver {
+				out.WriteString("self.clone(); ")
+			} else if isVarBare(varName) {
 				// Bare variables (channels, sync types) — clone the handle
 				out.WriteString(varName)
 				out.WriteString(".clone(); ")
@@ -3343,6 +3378,14 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 		// Check if it's an immediately invoked function literal
 		if funcLit, ok := s.Call.Fun.(*ast.FuncLit); ok {
+			hasClosureDefer := checkHasDefer(funcLit.Body.List)
+			oldFunctionHasDefer := currentFunctionHasDefer
+			currentFunctionHasDefer = hasClosureDefer
+			defer func() { currentFunctionHasDefer = oldFunctionHasDefer }()
+			if hasClosureDefer {
+				out.WriteString("let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();\n        ")
+			}
+
 			// Generate the closure body inline
 			if len(s.Call.Args) > 0 {
 				// Has arguments - need to create parameter bindings
@@ -3367,6 +3410,12 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					}
 					TranspileStatementSimple(out, stmt, funcLit.Type, fileSet)
 					out.WriteString(";")
+				}
+
+				if hasClosureDefer {
+					out.WriteString("\n            while let Some(f) = __defer_stack.pop() {\n")
+					out.WriteString("                f();\n")
+					out.WriteString("            }")
 				}
 
 				out.WriteString("\n        };\n")
@@ -3417,6 +3466,11 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					}
 					TranspileStatementSimple(out, stmt, funcLit.Type, fileSet)
 					out.WriteString(";")
+				}
+				if hasClosureDefer {
+					out.WriteString("\n        while let Some(f) = __defer_stack.pop() {\n")
+					out.WriteString("            f();\n")
+					out.WriteString("        }")
 				}
 			}
 		} else {
