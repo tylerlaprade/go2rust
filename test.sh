@@ -175,6 +175,11 @@ if [ -z "$JOBS" ]; then
     [ $JOBS -lt 2 ] && JOBS=2
 fi
 
+if [ "$JOBS" -gt 1 ] && ! command -v parallel >/dev/null 2>&1; then
+    echo "GNU parallel is not installed; running tests sequentially."
+    JOBS=1
+fi
+
 # Function to colorize test output
 colorize_output() {
     local in_failure=false
@@ -275,7 +280,7 @@ if [ "$JOBS" -eq 1 ]; then
     BATS_CMD="bats -T --tap"
 else
     echo "Running tests in parallel with $JOBS jobs (timeout: $TIMEOUT per test)..."
-    BATS_CMD="bats -T -j $JOBS"
+    BATS_CMD="bats -T --tap -j $JOBS"
 fi
 
 # Add filter if specified
@@ -284,7 +289,8 @@ if [ -n "$FILTER_PATTERN" ]; then
 fi
 
 # Run tests and capture output
-TEST_OUTPUT=$(eval "$BATS_CMD tests.bats")
+TEST_OUTPUT=$(eval "$BATS_CMD tests.bats" 2>&1)
+BATS_STATUS=$?
 
 # Display the output with colors
 echo "$TEST_OUTPUT" | colorize_output
@@ -306,6 +312,14 @@ FAILING=$(echo "$TEST_OUTPUT" | grep "^not ok " | grep -v "XFAIL" | wc -l | tr -
 XFAIL_TOTAL=$(echo "$TEST_OUTPUT" | grep -E "^(ok |not ok )" | grep "XFAIL" | wc -l | tr -d ' ')
 TOTAL=$((PASSING + FAILING + XFAIL_TOTAL))
 
+if [ "$TOTAL" -eq 0 ]; then
+    echo -e "\033[31m✗ No test results were reported.\033[0m"
+    if [ -n "$TEST_OUTPUT" ]; then
+        echo "$TEST_OUTPUT"
+    fi
+    exit 1
+fi
+
 # Display with colors and symbols
 echo -e "\033[32m✓ Passing: $PASSING/$TOTAL\033[0m"
 if [ "$FAILING" -gt 0 ]; then
@@ -320,3 +334,5 @@ if [ "$FAILING" -gt 0 ]; then
         echo -e "\033[31m  - $(echo "$line" | sed 's/^not ok [0-9]* //')\033[0m"
     done
 fi
+
+exit "$BATS_STATUS"
