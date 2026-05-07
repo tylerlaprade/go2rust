@@ -9,55 +9,17 @@ import (
 // findCapturedVars analyzes a function literal to find variables it captures from outer scope
 func findCapturedVars(funcLit *ast.FuncLit) map[string]bool {
 	captured := make(map[string]bool)
-
-	// Build a set of local variables and parameters
-	localVars := make(map[string]bool)
-
-	// Add parameters to local vars
-	if funcLit.Type.Params != nil {
-		for _, field := range funcLit.Type.Params.List {
-			for _, name := range field.Names {
-				localVars[name.Name] = true
-			}
-		}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return captured
 	}
 
-	// First pass: find all variables declared in the function body
-	ast.Inspect(funcLit.Body, func(n ast.Node) bool {
-		switch node := n.(type) {
-		case *ast.AssignStmt:
-			// Track variables declared with :=
-			if node.Tok == token.DEFINE {
-				for _, lhs := range node.Lhs {
-					if ident, ok := lhs.(*ast.Ident); ok {
-						localVars[ident.Name] = true
-					}
-				}
-			}
-		case *ast.DeclStmt:
-			// Track variables declared with var
-			if genDecl, ok := node.Decl.(*ast.GenDecl); ok && genDecl.Tok == token.VAR {
-				for _, spec := range genDecl.Specs {
-					if valueSpec, ok := spec.(*ast.ValueSpec); ok {
-						for _, name := range valueSpec.Names {
-							localVars[name.Name] = true
-						}
-					}
-				}
-			}
-		case *ast.RangeStmt:
-			// Track range variables
-			if ident, ok := node.Key.(*ast.Ident); ok {
-				localVars[ident.Name] = true
-			}
-			if ident, ok := node.Value.(*ast.Ident); ok {
-				localVars[ident.Name] = true
-			}
-		}
-		return true
-	})
+	localObjects := declaredVarObjectsInFuncLit(funcLit, typeInfo)
 
-	// Second pass: find all variable references that aren't local
+	// Find all variable references that aren't declared inside this function
+	// literal. References inside nested function literals still count if they
+	// refer to variables outside this literal, since the outer literal must make
+	// those bindings available when it creates the nested closure.
 	var inspectRefs func(ast.Node)
 	inspectRefs = func(node ast.Node) {
 		ast.Inspect(node, func(n ast.Node) bool {
@@ -66,34 +28,11 @@ func findCapturedVars(funcLit *ast.FuncLit) map[string]bool {
 				inspectRefs(node.X)
 				return false
 			case *ast.Ident:
-				// Skip if it's a local variable or parameter
-				if localVars[node.Name] {
+				obj, ok := typeInfo.info.Uses[node].(*types.Var)
+				if !ok || localObjects[obj] || isPackageScopeObject(obj) {
 					return true
 				}
-
-				// Skip built-in identifiers
-				if isBuiltinIdentifier(node.Name) {
-					return true
-				}
-
-				// Use type info to check if this is actually a variable
-				typeInfo := GetTypeInfo()
-				if typeInfo != nil {
-					// Check if it's a function - functions aren't captured
-					if typeInfo.IsFunction(node) {
-						return true
-					}
-
-					// Check if it's actually a variable reference
-					if obj := typeInfo.GetObject(node); obj != nil {
-						if _, isVar := obj.(*types.Var); isVar {
-							// It's a variable from outer scope
-							captured[node.Name] = true
-						}
-					}
-				} else {
-					// No type info available - we cannot determine if this should be captured.
-				}
+				captured[node.Name] = true
 			}
 			return true
 		})
@@ -101,6 +40,83 @@ func findCapturedVars(funcLit *ast.FuncLit) map[string]bool {
 	inspectRefs(funcLit.Body)
 
 	return captured
+}
+
+func declaredVarObjectsInFuncLit(funcLit *ast.FuncLit, typeInfo *TypeInfo) map[types.Object]bool {
+	localObjects := make(map[types.Object]bool)
+	if funcLit == nil || typeInfo == nil || typeInfo.info == nil {
+		return localObjects
+	}
+
+	addDef := func(ident *ast.Ident) {
+		if ident == nil || ident.Name == "_" {
+			return
+		}
+		if obj, ok := typeInfo.info.Defs[ident].(*types.Var); ok {
+			localObjects[obj] = true
+		}
+	}
+
+	addFieldNames := func(fields *ast.FieldList) {
+		if fields == nil {
+			return
+		}
+		for _, field := range fields.List {
+			for _, name := range field.Names {
+				addDef(name)
+			}
+		}
+	}
+
+	ast.Inspect(funcLit, func(n ast.Node) bool {
+		switch node := n.(type) {
+		case *ast.FuncLit:
+			addFieldNames(node.Type.Params)
+			addFieldNames(node.Type.Results)
+		case *ast.AssignStmt:
+			if node.Tok == token.DEFINE {
+				for _, lhs := range node.Lhs {
+					if ident, ok := lhs.(*ast.Ident); ok {
+						addDef(ident)
+					}
+				}
+			}
+		case *ast.DeclStmt:
+			if genDecl, ok := node.Decl.(*ast.GenDecl); ok && genDecl.Tok == token.VAR {
+				for _, spec := range genDecl.Specs {
+					if valueSpec, ok := spec.(*ast.ValueSpec); ok {
+						for _, name := range valueSpec.Names {
+							addDef(name)
+						}
+					}
+				}
+			}
+		case *ast.RangeStmt:
+			if node.Tok == token.DEFINE {
+				if ident, ok := node.Key.(*ast.Ident); ok {
+					addDef(ident)
+				}
+				if ident, ok := node.Value.(*ast.Ident); ok {
+					addDef(ident)
+				}
+			}
+		case *ast.TypeSwitchStmt:
+			if assign, ok := node.Assign.(*ast.AssignStmt); ok && assign.Tok == token.DEFINE {
+				for _, lhs := range assign.Lhs {
+					if ident, ok := lhs.(*ast.Ident); ok {
+						addDef(ident)
+					}
+				}
+			}
+		}
+		return true
+	})
+
+	return localObjects
+}
+
+func isPackageScopeObject(obj types.Object) bool {
+	return obj != nil && obj.Pkg() != nil && obj.Parent() == obj.Pkg().Scope()
 }
 
 // isBuiltinIdentifier checks if an identifier is a built-in
@@ -144,14 +160,11 @@ func findCapturedInCall(call *ast.CallExpr) map[string]bool {
 				inspectRefs(node.X)
 				return false
 			case *ast.Ident:
-				if isBuiltinIdentifier(node.Name) || typeInfo.IsFunction(node) {
+				obj, ok := typeInfo.info.Uses[node].(*types.Var)
+				if !ok || isPackageScopeObject(obj) {
 					return true
 				}
-				if obj := typeInfo.GetObject(node); obj != nil {
-					if _, isVar := obj.(*types.Var); isVar {
-						captured[node.Name] = true
-					}
-				}
+				captured[node.Name] = true
 			}
 			return true
 		})

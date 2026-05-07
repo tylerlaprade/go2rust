@@ -142,7 +142,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Method calls, including receiver self-calls | ✅ |
 | └ Wrapped call results passed as method/function arguments | ✅ |
 | └ Function-valued struct field calls | ✅ |
-| └ Function literals/closures | ✅ |
+| └ Function literals/closures with scoped nested captures | ✅ |
 | └ Function variables and higher-order function values | ✅ |
 | └ Assignment from function return values | ✅ |
 | └ Variadic functions | ✅ |

@@ -24,10 +24,10 @@ fn main() {
 
         // Function returning closure
     let mut makeMultiplier = Rc::new(RefCell::new(Some(Box::new(move |factor: Rc<RefCell<Option<i32>>>| -> Rc<RefCell<Option<Box<dyn Fn(Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>>>>> {
-        return Rc::new(RefCell::new(Some(Box::new(move |x: Rc<RefCell<Option<i32>>>| -> Rc<RefCell<Option<i32>>> {
+        let factor_closure_clone = factor.clone(); return Rc::new(RefCell::new(Some(Box::new(move |x: Rc<RefCell<Option<i32>>>| -> Rc<RefCell<Option<i32>>> {
         return {
             let __tmp_x = (*x.borrow().as_ref().unwrap());
-            let __tmp_y = (*factor.borrow().as_ref().unwrap());
+            let __tmp_y = (*factor_closure_clone.borrow().as_ref().unwrap());
             Rc::new(RefCell::new(Some(__tmp_x * __tmp_y)))
         };
     }) as Box<dyn Fn(Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>>)));

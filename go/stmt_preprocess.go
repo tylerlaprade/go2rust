@@ -77,42 +77,12 @@ func (sp *StatementPreprocessor) PreprocessStatement(stmt ast.Stmt, fnType *ast.
 				allCaptured[varName] = true
 			}
 		}
-
-		// Check for nested closures
-		nestedClosures := sp.findClosuresInFunction(closure)
-		if len(nestedClosures) > 0 {
-			nestedInfo := &CaptureInfo{
-				CapturedVars:   make(map[string]string),
-				Closures:       nestedClosures,
-				NestedCaptures: make(map[*ast.FuncLit]*CaptureInfo),
-			}
-
-			// Analyze nested closures
-			for _, nested := range nestedClosures {
-				nestedCaptured := sp.analyzeClosure(nested, stmt)
-				for varName := range nestedCaptured {
-					// Only capture from current scope, not from intermediate closures
-					if scopeVars == nil || scopeVars[varName] {
-						allCaptured[varName] = true
-					}
-				}
-			}
-
-			info.NestedCaptures[closure] = nestedInfo
-		}
 	}
 
 	// Generate clone names for all captured variables
 	for varName := range allCaptured {
 		// Skip if it's a constant or builtin
 		if isBuiltinIdentifier(varName) {
-			continue
-		}
-
-		// Skip variables that don't look like they should exist in this scope
-		// This is a heuristic to avoid capturing function parameters from nested closures
-		// TODO: Implement proper scope tracking
-		if sp.shouldSkipCapture(varName, stmt) {
 			continue
 		}
 
@@ -129,12 +99,35 @@ func (sp *StatementPreprocessor) PreprocessStatement(stmt ast.Stmt, fnType *ast.
 func (sp *StatementPreprocessor) findClosuresInStatement(stmt ast.Stmt) []*ast.FuncLit {
 	var closures []*ast.FuncLit
 
-	ast.Inspect(stmt, func(n ast.Node) bool {
-		if funcLit, ok := n.(*ast.FuncLit); ok {
-			closures = append(closures, funcLit)
+	inspect := func(node ast.Node) {
+		if node == nil {
+			return
 		}
-		return true
-	})
+		ast.Inspect(node, func(n ast.Node) bool {
+			if funcLit, ok := n.(*ast.FuncLit); ok {
+				closures = append(closures, funcLit)
+				return false
+			}
+			return true
+		})
+	}
+
+	switch s := stmt.(type) {
+	case *ast.RangeStmt:
+		inspect(s.X)
+	case *ast.ForStmt:
+		inspect(s.Init)
+		inspect(s.Cond)
+	case *ast.SwitchStmt:
+		inspect(s.Init)
+		inspect(s.Tag)
+	case *ast.TypeSwitchStmt:
+		inspect(s.Init)
+		inspect(s.Assign)
+	case *ast.SelectStmt:
+	default:
+		inspect(stmt)
+	}
 
 	return closures
 }
@@ -163,29 +156,7 @@ func (sp *StatementPreprocessor) findClosuresInFunction(funcLit *ast.FuncLit) []
 // analyzeClosure analyzes a closure to find captured variables
 // It returns variables captured from the outer scope, excluding nested closure captures
 func (sp *StatementPreprocessor) analyzeClosure(closure *ast.FuncLit, containingStmt ast.Stmt) map[string]bool {
-	captured := make(map[string]bool)
-
-	// Get closure's own parameters and locally defined variables
-	localVars := make(map[string]bool)
-
-	// Add closure parameters to local vars
-	if closure.Type.Params != nil {
-		for _, field := range closure.Type.Params.List {
-			for _, name := range field.Names {
-				localVars[name.Name] = true
-			}
-		}
-	}
-
-	// Find all variable declarations within the closure
-	// We need to be careful not to look inside nested closures
-	sp.findLocalVars(closure.Body, localVars, closure)
-
-	// Now find all variable references and check if they're captured
-	// Again, don't look inside nested closures - they handle their own captures
-	sp.findCapturedVars(closure.Body, localVars, captured, closure)
-
-	return captured
+	return findCapturedVars(closure)
 }
 
 // findLocalVars finds all locally declared variables in a function body
@@ -340,18 +311,18 @@ func (sp *StatementPreprocessor) GenerateCloneStatements(out *strings.Builder, i
 		if currentReceiver != "" && varName == currentReceiver {
 			out.WriteString("mut ")
 		}
-		out.WriteString(cloneName)
+		out.WriteString(RustLocalIdent(cloneName))
 		out.WriteString(" = ")
 		if currentCaptureRenames != nil {
 			if renamed, exists := currentCaptureRenames[varName]; exists {
 				out.WriteString(RustLocalIdent(renamed))
 			} else {
-				out.WriteString(varName)
+				out.WriteString(RustLocalIdent(varName))
 			}
 		} else if currentReceiver != "" && varName == currentReceiver {
 			out.WriteString("self")
 		} else {
-			out.WriteString(varName)
+			out.WriteString(RustLocalIdent(varName))
 		}
 		out.WriteString(".clone(); ")
 	}

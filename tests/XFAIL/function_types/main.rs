@@ -136,10 +136,10 @@ pub fn process_string(s: Rc<RefCell<Option<String>>>, processor: StringProcessor
 /// Function that returns a function
 pub fn make_multiplier(factor: Rc<RefCell<Option<i32>>>) -> UnaryOp {
 
-    return Rc::new(RefCell::new(Some(Box::new(move |x: Rc<RefCell<Option<i32>>>| -> Rc<RefCell<Option<i32>>> {
+    let factor_closure_clone = factor.clone(); return Rc::new(RefCell::new(Some(Box::new(move |x: Rc<RefCell<Option<i32>>>| -> Rc<RefCell<Option<i32>>> {
         return {
             let __tmp_x = (*x.borrow().as_ref().unwrap());
-            let __tmp_y = (*factor.borrow().as_ref().unwrap());
+            let __tmp_y = (*factor_closure_clone.borrow().as_ref().unwrap());
             Rc::new(RefCell::new(Some(__tmp_x * __tmp_y)))
         };
     }) as Box<dyn Fn(Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>>)));
@@ -210,7 +210,7 @@ fn main() {
     let mut upper = process_string(Rc::new(RefCell::new(Some((*text.borrow().as_ref().unwrap()).clone()))), Rc::new(RefCell::new(Some(Box::new(move |__arg0: Rc<RefCell<Option<String>>>| -> Rc<RefCell<Option<String>>> { to_upper(__arg0) }) as Box<dyn Fn(Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>>>))));
     print!("'{}' -> '{}'\n", { let __v = (*text.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*upper.borrow().as_ref().unwrap()).clone(); __v });
 
-    let rune_closure_clone = rune.clone(); let mut reversed = process_string(Rc::new(RefCell::new(Some("hello".to_string()))), Rc::new(RefCell::new(Some(Box::new(move |s: Rc<RefCell<Option<String>>>| -> Rc<RefCell<Option<String>>> {
+    let mut reversed = process_string(Rc::new(RefCell::new(Some("hello".to_string()))), Rc::new(RefCell::new(Some(Box::new(move |s: Rc<RefCell<Option<String>>>| -> Rc<RefCell<Option<String>>> {
         let mut runes = Rc::new(RefCell::new(Some((*s.borrow().as_ref().unwrap()).chars().map(|c| c as i32).collect::<Vec<_>>())));
         let (mut i, mut j) = (Rc::new(RefCell::new(Some(0))), Rc::new(RefCell::new(Some(((*runes.borrow().as_ref().unwrap()).len() as i32) - (1 as i32)))));
     while (*i.borrow().as_ref().unwrap()) < (*j.borrow().as_ref().unwrap()) {
