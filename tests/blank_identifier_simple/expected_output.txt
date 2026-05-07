@@ -19,3 +19,4 @@ Values only:
 
 === Blank identifier in declarations ===
 a=1, c=3 (middle value ignored)
+blank named result ok=true

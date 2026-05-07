@@ -9,6 +9,10 @@ func multipleReturns() (int, string, bool) {
 	return 42, "hello", true
 }
 
+func namedBlankResult() (_ string, ok bool) {
+	return "ignored", true
+}
+
 func main() {
 	// Ignoring return values
 	fmt.Println("=== Ignoring return values ===")
@@ -39,7 +43,7 @@ func main() {
 
 	// Ignore value, use only index
 	fmt.Println("Indices only:")
-	for i, _ := range slice {
+	for i := range slice {
 		fmt.Printf("%d ", i)
 	}
 	fmt.Println()
@@ -63,7 +67,7 @@ func main() {
 	// Ignore values, use only keys
 	fmt.Println("Keys only:")
 	keys := make([]string, 0, len(ages))
-	for name, _ := range ages {
+	for name := range ages {
 		keys = append(keys, name)
 	}
 	slices.Sort(keys)
@@ -93,4 +97,7 @@ func main() {
 	// Multiple assignments with blank identifier
 	a, _, c := 1, 2, 3
 	fmt.Printf("a=%d, c=%d (middle value ignored)\n", a, c)
+
+	_, ok := namedBlankResult()
+	fmt.Printf("blank named result ok=%t\n", ok)
 }

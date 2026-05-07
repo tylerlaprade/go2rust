@@ -476,7 +476,11 @@ func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.Fi
 		for _, result := range fn.Type.Results.List {
 			if len(result.Names) > 0 {
 				for _, name := range result.Names {
-					out.WriteString("    let mut ")
+					if name.Name == "_" {
+						out.WriteString("    let ")
+					} else {
+						out.WriteString("    let mut ")
+					}
 					out.WriteString(RustLocalIdent(name.Name))
 					out.WriteString(": ")
 					out.WriteString(GoTypeToRust(result.Type))

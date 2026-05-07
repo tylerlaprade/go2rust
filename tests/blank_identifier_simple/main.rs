@@ -7,6 +7,13 @@ pub fn multiple_returns() -> (Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<String
     return (Rc::new(RefCell::new(Some(42))), Rc::new(RefCell::new(Some("hello".to_string()))), Rc::new(RefCell::new(Some(true))));
 }
 
+pub fn named_blank_result() -> (Rc<RefCell<Option<String>>>, Rc<RefCell<Option<bool>>>) {
+    let _: Rc<RefCell<Option<String>>> = Rc::new(RefCell::new(Some(String::new())));
+    let mut ok: Rc<RefCell<Option<bool>>> = Rc::new(RefCell::new(Some(false)));
+
+    return (Rc::new(RefCell::new(Some("ignored".to_string()))), Rc::new(RefCell::new(Some(true))));
+}
+
 fn main() {
         // Ignoring return values
     println!("{}", "=== Ignoring return values ===".to_string());
@@ -87,4 +94,7 @@ fn main() {
         // Multiple assignments with blank identifier
     let (mut a, _, mut c) = (Rc::new(RefCell::new(Some(1))), Rc::new(RefCell::new(Some(2))), Rc::new(RefCell::new(Some(3))));
     print!("a={}, c={} (middle value ignored)\n", { let __v = (*a.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*c.borrow().as_ref().unwrap()).clone(); __v });
+
+    let (_, mut ok) = named_blank_result();
+    print!("blank named result ok={}\n", { let __v = (*ok.borrow().as_ref().unwrap()).clone(); __v });
 }
