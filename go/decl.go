@@ -840,8 +840,25 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 					out.WriteString("}\n")
 				}
 			}
+			if ident, ok := t.(*ast.Ident); ok && isEqualityComparableDefinedUnderlying(ident.Name) {
+				writeScalarTypeDefinitionPartialEq(out, typeSpec.Name.Name)
+			}
 		}
 	}
+}
+
+func writeScalarTypeDefinitionPartialEq(out *strings.Builder, typeName string) {
+	out.WriteString("\nimpl PartialEq for ")
+	out.WriteString(typeName)
+	out.WriteString(" {\n")
+	out.WriteString("    fn eq(&self, other: &Self) -> bool {\n")
+	out.WriteString("        self.0")
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap() == other.0")
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap()\n")
+	out.WriteString("    }\n")
+	out.WriteString("}\n")
 }
 
 func TranspileConstDecl(out *strings.Builder, genDecl *ast.GenDecl) {

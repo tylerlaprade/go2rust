@@ -11,6 +11,12 @@ impl Display for Celsius {
     }
 }
 
+impl PartialEq for Celsius {
+    fn eq(&self, other: &Self) -> bool {
+        self.0.borrow().as_ref().unwrap() == other.0.borrow().as_ref().unwrap()
+    }
+}
+
 
 #[derive(Debug, Clone)]
 pub struct Fahrenheit(pub Rc<RefCell<Option<f64>>>);
@@ -18,6 +24,12 @@ pub struct Fahrenheit(pub Rc<RefCell<Option<f64>>>);
 impl Display for Fahrenheit {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
         write!(f, "{}", self.0.borrow().as_ref().unwrap())
+    }
+}
+
+impl PartialEq for Fahrenheit {
+    fn eq(&self, other: &Self) -> bool {
+        self.0.borrow().as_ref().unwrap() == other.0.borrow().as_ref().unwrap()
     }
 }
 

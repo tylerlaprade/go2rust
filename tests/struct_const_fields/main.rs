@@ -17,6 +17,12 @@ impl Display for Kind {
     }
 }
 
+impl PartialEq for Kind {
+    fn eq(&self, other: &Self) -> bool {
+        self.0.borrow().as_ref().unwrap() == other.0.borrow().as_ref().unwrap()
+    }
+}
+
 
 #[derive(Debug, Clone)]
 pub struct Version(pub Rc<RefCell<Option<i8>>>);
@@ -24,6 +30,12 @@ pub struct Version(pub Rc<RefCell<Option<i8>>>);
 impl Display for Version {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
         write!(f, "{}", self.0.borrow().as_ref().unwrap())
+    }
+}
+
+impl PartialEq for Version {
+    fn eq(&self, other: &Self) -> bool {
+        self.0.borrow().as_ref().unwrap() == other.0.borrow().as_ref().unwrap()
     }
 }
 

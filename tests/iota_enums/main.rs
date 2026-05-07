@@ -17,6 +17,12 @@ impl Display for Color {
     }
 }
 
+impl PartialEq for Color {
+    fn eq(&self, other: &Self) -> bool {
+        self.0.borrow().as_ref().unwrap() == other.0.borrow().as_ref().unwrap()
+    }
+}
+
 
 fn main() {
     println!("{} {}", "Red:".to_string(), RED);

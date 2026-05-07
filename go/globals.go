@@ -136,8 +136,16 @@ func IsTypeAlias(name string) bool {
 // Returns true for basic types (int, string, etc.) and structs, false for pointers, interfaces,
 // slices, maps, channels, and function types.
 func IsParamValueType(funcSig *FunctionSignature, argIndex int) bool {
-	if funcSig == nil {
+	field := ParamFieldForArg(funcSig, argIndex)
+	if field == nil {
 		return false
+	}
+	return isValueType(field.Type)
+}
+
+func ParamFieldForArg(funcSig *FunctionSignature, argIndex int) *ast.Field {
+	if funcSig == nil {
+		return nil
 	}
 	idx := 0
 	for _, field := range funcSig.Params {
@@ -146,11 +154,11 @@ func IsParamValueType(funcSig *FunctionSignature, argIndex int) bool {
 			numNames = 1
 		}
 		if argIndex < idx+numNames {
-			return isValueType(field.Type)
+			return field
 		}
 		idx += numNames
 	}
-	return false
+	return nil
 }
 
 // isValueType returns true if the AST type expression represents a plain value type

@@ -225,6 +225,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Type aliases | ✅ |
 | └ Type definitions | ✅ |
 | └ Named scalar newtypes usable across generated modules | ✅ |
+| └ Named scalar equality comparisons | ✅ |
 | └ Instantiated generic function type aliases | ✅ |
 | └ Numeric conversions from literals and expressions | ✅ |
 | └ Methods on named slice type definitions, including receiver range loops | ✅ |

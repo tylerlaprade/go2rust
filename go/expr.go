@@ -657,6 +657,11 @@ func isCopyTypeExpression(expr ast.Expr) bool {
 	if typ == nil {
 		return false
 	}
+	if named, ok := types.Unalias(typ).(*types.Named); ok && named.Obj() != nil {
+		if _, isTypeDef := LookupTypeDefinition(named.Obj().Name()); isTypeDef {
+			return false
+		}
+	}
 	basic, ok := typ.Underlying().(*types.Basic)
 	if !ok {
 		return false
@@ -3872,21 +3877,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 		var interfaceName string
 		var paramTypeForArg ast.Expr
 		var expectedArgType types.Type
-		if funcSig != nil && i < len(funcSig.Params) {
-			// Get the parameter type — account for multi-name fields
-			paramField := funcSig.Params[i]
-			idx := 0
-			for _, field := range funcSig.Params {
-				numNames := len(field.Names)
-				if numNames == 0 {
-					numNames = 1
-				}
-				if i < idx+numNames {
-					paramField = field
-					break
-				}
-				idx += numNames
-			}
+		if paramField := ParamFieldForArg(funcSig, i); paramField != nil {
 			paramType := paramField.Type
 			paramTypeForArg = paramType
 			expectedArgType = expectedTypeFromParamExpr(paramType)
@@ -4019,8 +4010,8 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 
 			// Check if this parameter expects a sync type (WaitGroup, Mutex)
 			expectsSyncParam := false
-			if funcSig != nil && i < len(funcSig.Params) {
-				if isSyncParam(funcSig.Params[i].Type) {
+			if paramField := ParamFieldForArg(funcSig, i); paramField != nil {
+				if isSyncParam(paramField.Type) {
 					expectsSyncParam = true
 				}
 			}
@@ -4212,8 +4203,8 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				WriteWrapperPrefix(out)
 				// Check if parameter expects float but arg is integer literal
 				isFloatParam := false
-				if funcSig != nil && i < len(funcSig.Params) {
-					if paramIdent, ok := funcSig.Params[i].Type.(*ast.Ident); ok {
+				if paramField := ParamFieldForArg(funcSig, i); paramField != nil {
+					if paramIdent, ok := paramField.Type.(*ast.Ident); ok {
 						if paramIdent.Name == "float64" || paramIdent.Name == "float32" {
 							isFloatParam = true
 						}

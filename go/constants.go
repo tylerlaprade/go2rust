@@ -115,6 +115,10 @@ func isDisplayableDefinedUnderlying(underlying string) bool {
 	}
 }
 
+func isEqualityComparableDefinedUnderlying(underlying string) bool {
+	return isDisplayableDefinedUnderlying(underlying)
+}
+
 func writeWrappedExpressionForExpectedType(out *strings.Builder, value ast.Expr, expected ast.Expr) {
 	WriteWrapperPrefix(out)
 	if expectsStringType(expected) && isStringConstExpr(value) {

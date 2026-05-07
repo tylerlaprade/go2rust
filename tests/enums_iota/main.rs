@@ -18,6 +18,12 @@ impl Display for ServerState {
     }
 }
 
+impl PartialEq for ServerState {
+    fn eq(&self, other: &Self) -> bool {
+        self.0.borrow().as_ref().unwrap() == other.0.borrow().as_ref().unwrap()
+    }
+}
+
 
 pub(crate) struct GoGlobal<T> {
     value: std::cell::UnsafeCell<Option<T>>,

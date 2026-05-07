@@ -698,6 +698,10 @@ run_xfail_test() {
     run_test "tests/named_slice_methods"
 }
 
+@test "named_type_comparisons" {
+    run_test "tests/named_type_comparisons"
+}
+
 @test "named_types_methods" {
     run_test "tests/named_types_methods"
 }
