@@ -459,7 +459,7 @@ func generateExternalStubs(stubs map[string]bool, fieldsByType map[string]map[st
 		}
 		fields := fieldsByType[name]
 		if len(fields) == 0 {
-			out.WriteString("#[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord)]\n")
+			out.WriteString("#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]\n")
 			out.WriteString("pub struct ")
 			out.WriteString(name)
 			out.WriteString(";\n\n")

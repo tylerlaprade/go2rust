@@ -858,6 +858,10 @@ run_xfail_test() {
     run_test "tests/stdlib_interface_return"
 }
 
+@test "stdlib_interface_return_variable" {
+    run_test "tests/stdlib_interface_return_variable"
+}
+
 @test "stdlib_method_stubs" {
     run_test "tests/stdlib_method_stubs"
 }
@@ -872,6 +876,10 @@ run_xfail_test() {
 
 @test "stdlib_struct_field_map" {
     run_test "tests/stdlib_struct_field_map"
+}
+
+@test "stdlib_stub_value_comparison" {
+    run_test "tests/stdlib_stub_value_comparison"
 }
 
 @test "stdlib_type_signatures" {

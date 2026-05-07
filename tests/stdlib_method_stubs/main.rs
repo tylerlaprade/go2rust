@@ -1,7 +1,7 @@
 use std::cell::{RefCell};
 use std::rc::{Rc};
 
-#[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct types_Alias;
 
 impl std::fmt::Display for types_Alias {
@@ -21,7 +21,7 @@ impl types_Alias {
 }
 
 
-#[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct types_Type;
 
 impl std::fmt::Display for types_Type {

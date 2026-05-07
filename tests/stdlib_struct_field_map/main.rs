@@ -2,7 +2,7 @@ use std::cell::{RefCell};
 use std::collections::BTreeMap;
 use std::rc::{Rc};
 
-#[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ast_File;
 
 impl std::fmt::Display for ast_File {

@@ -1,7 +1,7 @@
 use std::cell::{RefCell};
 use std::rc::{Rc};
 
-#[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ast_Expr;
 
 impl std::fmt::Display for ast_Expr {
@@ -18,7 +18,7 @@ impl ast_Expr {
 }
 
 
-#[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ast_Ident;
 
 impl std::fmt::Display for ast_Ident {

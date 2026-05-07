@@ -40,7 +40,7 @@ impl GoFile {
     }
 }
 
-#[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct bufio_Scanner;
 
 impl std::fmt::Display for bufio_Scanner {
@@ -66,7 +66,7 @@ impl bufio_Scanner {
 }
 
 
-#[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct os_File;
 
 impl std::fmt::Display for os_File {

@@ -1,7 +1,7 @@
 use std::error::Error as StdError;
 use std::sync::{Arc, Mutex};
 
-#[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ast_File;
 
 impl std::fmt::Display for ast_File {
@@ -18,7 +18,7 @@ impl ast_File {
 }
 
 
-#[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct parser_Mode;
 
 impl std::fmt::Display for parser_Mode {
@@ -35,7 +35,7 @@ impl parser_Mode {
 }
 
 
-#[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct token_FileSet;
 
 impl std::fmt::Display for token_FileSet {
@@ -52,7 +52,7 @@ impl token_FileSet {
 }
 
 
-#[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct types_Alias;
 
 impl std::fmt::Display for types_Alias {
@@ -69,7 +69,7 @@ impl types_Alias {
 }
 
 
-#[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct types_Basic;
 
 impl std::fmt::Display for types_Basic {
@@ -86,7 +86,7 @@ impl types_Basic {
 }
 
 
-#[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct types_Config;
 
 impl std::fmt::Display for types_Config {
@@ -106,7 +106,7 @@ impl types_Config {
 }
 
 
-#[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct types_Info;
 
 impl std::fmt::Display for types_Info {
@@ -123,7 +123,7 @@ impl types_Info {
 }
 
 
-#[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct types_Package;
 
 impl std::fmt::Display for types_Package {
@@ -140,7 +140,7 @@ impl types_Package {
 }
 
 
-#[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct types_Type;
 
 impl std::fmt::Display for types_Type {

@@ -1,7 +1,7 @@
 use std::error::Error as StdError;
 use std::sync::{Arc, Mutex};
 
-#[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct bufio_Reader;
 
 impl std::fmt::Display for bufio_Reader {
@@ -37,7 +37,7 @@ impl http_Response {
 }
 
 
-#[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct io_ReadCloser;
 
 impl std::fmt::Display for io_ReadCloser {
@@ -57,7 +57,7 @@ impl io_ReadCloser {
 }
 
 
-#[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct strings_Reader;
 
 impl std::fmt::Display for strings_Reader {

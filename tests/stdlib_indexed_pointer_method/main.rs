@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 
-#[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct types_Term;
 
 impl std::fmt::Display for types_Term {
@@ -20,7 +20,7 @@ impl types_Term {
 }
 
 
-#[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct types_Type;
 
 impl std::fmt::Display for types_Type {

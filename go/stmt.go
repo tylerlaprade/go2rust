@@ -295,6 +295,9 @@ func stdlibInterfaceReturnConversion(result ast.Expr, expected ast.Expr) bool {
 	if !ok || sourceNamed.Obj() == nil || sourceNamed.Obj().Pkg() == nil {
 		return false
 	}
+	if sourceNamed.Obj() == targetNamed.Obj() {
+		return false
+	}
 	if !isStdlibPackage(sourceNamed.Obj().Pkg().Path()) {
 		return false
 	}
@@ -308,6 +311,25 @@ func stdlibInterfaceReturnConversion(result ast.Expr, expected ast.Expr) bool {
 	targetRust := goTypesNamedTypeToRust(targetNamed)
 	sourceRust := goTypesNamedTypeToRust(sourceNamed)
 	RegisterExternalTypeStubConversion(targetRust, sourceRust)
+	return true
+}
+
+func writeStdlibInterfaceIdentReturnConversion(out *strings.Builder, ident *ast.Ident, expected ast.Expr) bool {
+	if !stdlibInterfaceReturnConversion(ident, expected) {
+		return false
+	}
+	varName := RustIdentForUse(ident)
+	if currentCaptureRenames != nil {
+		if renamed, exists := currentCaptureRenames[ident.Name]; exists {
+			varName = RustLocalIdent(renamed)
+		}
+	}
+	WriteWrapperPrefix(out)
+	out.WriteString("(*")
+	out.WriteString(varName)
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap()).clone().into()")
+	WriteWrapperSuffix(out)
 	return true
 }
 
@@ -1083,6 +1105,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							WriteWrapperPrefix(out)
 							out.WriteString("self.clone()")
 							WriteWrapperSuffix(out)
+							continue
+						}
+						if writeStdlibInterfaceIdentReturnConversion(out, ident, returnResultTypeExpr(fnType, i)) {
 							continue
 						}
 						// Check if this is a wrapped variable that needs cloning
