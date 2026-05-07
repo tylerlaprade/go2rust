@@ -231,9 +231,10 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 	// First pass: transpile all files and detect structure
 	for i, filename := range pg.goFiles {
 		// Use the AST matched to this filename to avoid relying on go/packages order.
-		file := astFilesByPath[normalizeFilePath(filename)]
+		normalizedFilename := normalizeFilePath(filename)
+		file := astFilesByPath[normalizedFilename]
 		if file == nil {
-			return fmt.Errorf("no AST found for %s", filename)
+			return fmt.Errorf("no AST found for %s (normalized %s; available %s)", filename, normalizedFilename, sampleASTPathKeys(astFilesByPath, 5))
 		}
 
 		// Detect package name from first file
@@ -333,6 +334,21 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 	}
 
 	return pg.generateCargoToml()
+}
+
+func sampleASTPathKeys(astFilesByPath map[string]*ast.File, limit int) string {
+	if len(astFilesByPath) == 0 {
+		return "[]"
+	}
+	keys := make([]string, 0, len(astFilesByPath))
+	for key := range astFilesByPath {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	if limit > 0 && len(keys) > limit {
+		keys = keys[:limit]
+	}
+	return "[" + strings.Join(keys, ", ") + "]"
 }
 
 // hasExternalPackages checks if any external packages were found
@@ -568,10 +584,14 @@ func (pg *ProjectGenerator) sortedCrateNames() []string {
 
 func normalizeFilePath(path string) string {
 	absPath, err := filepath.Abs(path)
-	if err == nil {
-		return absPath
+	if err != nil {
+		return filepath.Clean(path)
 	}
-	return filepath.Clean(path)
+	resolvedPath, err := filepath.EvalSymlinks(absPath)
+	if err == nil {
+		return resolvedPath
+	}
+	return filepath.Clean(absPath)
 }
 
 func (pg *ProjectGenerator) generateLibRs() error {

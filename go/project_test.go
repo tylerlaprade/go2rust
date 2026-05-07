@@ -1,6 +1,7 @@
 package main
 
 import (
+	"go/ast"
 	"go/parser"
 	"go/token"
 	"os"
@@ -10,6 +11,39 @@ import (
 
 	"golang.org/x/tools/go/packages"
 )
+
+func TestPackageLoaderMainASTByPathUsesWorkDirForRelativeCompiledFiles(t *testing.T) {
+	tempDir := t.TempDir()
+	workDir := filepath.Join(tempDir, "go")
+	file, err := parser.ParseFile(token.NewFileSet(), filepath.Join(workDir, "captures.go"), "package main\n", 0)
+	if err != nil {
+		t.Fatalf("ParseFile() error = %v", err)
+	}
+
+	loader := &PackageLoader{
+		workDir: workDir,
+		mainPkg: &packages.Package{
+			Syntax:          []*ast.File{file},
+			CompiledGoFiles: []string{"captures.go"},
+		},
+	}
+
+	astByPath := loader.GetMainASTByPath()
+	if got := astByPath[normalizeFilePath(filepath.Join(workDir, "captures.go"))]; got != file {
+		t.Fatalf("GetMainASTByPath() did not key relative compiled file against workDir; got %#v", astByPath)
+	}
+}
+
+func TestPackageLoaderNormalizePackageFilePathDoesNotDoubleRelativeWorkDir(t *testing.T) {
+	loader := &PackageLoader{workDir: "go"}
+
+	if got, want := loader.normalizePackageFilePath("captures.go"), normalizeFilePath("go/captures.go"); got != want {
+		t.Fatalf("normalizePackageFilePath(captures.go) = %q, want %q", got, want)
+	}
+	if got, want := loader.normalizePackageFilePath("go/captures.go"), normalizeFilePath("go/captures.go"); got != want {
+		t.Fatalf("normalizePackageFilePath(go/captures.go) = %q, want %q", got, want)
+	}
+}
 
 func TestGenerateWithExternalPackagesPreservesMainFileMapping(t *testing.T) {
 	tempDir := t.TempDir()

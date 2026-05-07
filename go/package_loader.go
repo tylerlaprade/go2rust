@@ -366,9 +366,24 @@ func (pl *PackageLoader) GetMainASTByPath() map[string]*ast.File {
 		if i >= len(pl.mainPkg.CompiledGoFiles) {
 			continue
 		}
-		astByPath[normalizeFilePath(pl.mainPkg.CompiledGoFiles[i])] = astFile
+		astByPath[pl.normalizePackageFilePath(pl.mainPkg.CompiledGoFiles[i])] = astFile
 	}
 	return astByPath
+}
+
+func (pl *PackageLoader) normalizePackageFilePath(path string) string {
+	if filepath.IsAbs(path) {
+		return normalizeFilePath(path)
+	}
+	cleanPath := filepath.Clean(path)
+	cleanWorkDir := filepath.Clean(pl.workDir)
+	if cleanWorkDir == "." || cleanWorkDir == "" {
+		return normalizeFilePath(cleanPath)
+	}
+	if cleanPath == cleanWorkDir || strings.HasPrefix(cleanPath, cleanWorkDir+string(filepath.Separator)) {
+		return normalizeFilePath(cleanPath)
+	}
+	return normalizeFilePath(filepath.Join(cleanWorkDir, cleanPath))
 }
 
 // GetMainImports returns the import mapping for the main package
