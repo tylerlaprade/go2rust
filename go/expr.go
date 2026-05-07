@@ -153,6 +153,10 @@ func writeCallArgumentValue(out *strings.Builder, arg ast.Expr) bool {
 	if !ok || ident.Name == "_" || ident.Name == "nil" || ident.Name == "true" || ident.Name == "false" {
 		return false
 	}
+	if currentReceiver != "" && ident.Name == currentReceiver {
+		out.WriteString("self.clone()")
+		return true
+	}
 	if _, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar {
 		return false
 	}
@@ -2982,41 +2986,45 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 
 		// Check if the receiver is a simple identifier (local variable)
 		if ident, ok := sel.X.(*ast.Ident); ok {
-			// Check if this variable is wrapped (not a range var, not a constant, not bare)
-			if _, isRangeVar := rangeLoopVars[ident.Name]; !isRangeVar {
-				if _, isLocalConst := localConstants[ident.Name]; !isLocalConst {
-					if !isVarBare(ident.Name) {
-						// Regular variable - it's wrapped in Arc<Mutex<Option<>>>
-						needsUnwrap = true
+			if currentReceiver != "" && ident.Name == currentReceiver {
+				out.WriteString("self.")
+			} else {
+				// Check if this variable is wrapped (not a range var, not a constant, not bare)
+				if _, isRangeVar := rangeLoopVars[ident.Name]; !isRangeVar {
+					if _, isLocalConst := localConstants[ident.Name]; !isLocalConst {
+						if !isVarBare(ident.Name) {
+							// Regular variable - it's wrapped in Arc<Mutex<Option<>>>
+							needsUnwrap = true
+						}
 					}
 				}
-			}
 
-			// Apply capture renames for defer closures
-			receiverName := RustIdentForUse(ident)
-			if currentCaptureRenames != nil {
-				if renamed, exists := currentCaptureRenames[ident.Name]; exists {
-					receiverName = RustLocalIdent(renamed)
+				// Apply capture renames for defer closures
+				receiverName := RustIdentForUse(ident)
+				if currentCaptureRenames != nil {
+					if renamed, exists := currentCaptureRenames[ident.Name]; exists {
+						receiverName = RustLocalIdent(renamed)
+					}
 				}
-			}
 
-			if needsUnwrap {
-				// Wrapped type - need to unwrap
-				// Use mutable borrow only for pointer receiver methods
-				typeInfo := GetTypeInfo()
-				needsMut := typeInfo != nil && typeInfo.HasPointerReceiver(sel)
-				out.WriteString("(*")
-				out.WriteString(receiverName)
-				WriteBorrowMethod(out, needsMut)
-				if needsMut {
-					out.WriteString(".as_mut().unwrap()).")
+				if needsUnwrap {
+					// Wrapped type - need to unwrap
+					// Use mutable borrow only for pointer receiver methods
+					typeInfo := GetTypeInfo()
+					needsMut := typeInfo != nil && typeInfo.HasPointerReceiver(sel)
+					out.WriteString("(*")
+					out.WriteString(receiverName)
+					WriteBorrowMethod(out, needsMut)
+					if needsMut {
+						out.WriteString(".as_mut().unwrap()).")
+					} else {
+						out.WriteString(".as_ref().unwrap()).")
+					}
 				} else {
-					out.WriteString(".as_ref().unwrap()).")
+					// Direct struct variable (range var or constant) - call method directly
+					out.WriteString(receiverName)
+					out.WriteString(".")
 				}
-			} else {
-				// Direct struct variable (range var or constant) - call method directly
-				out.WriteString(receiverName)
-				out.WriteString(".")
 			}
 		} else if fieldSel, ok := sel.X.(*ast.SelectorExpr); ok {
 			isBareSyncFieldMethodCall := false

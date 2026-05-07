@@ -132,7 +132,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Basic functions | ✅ |
 | └ Multiple return values | ✅ |
 | └ Method definitions | ✅ |
-| └ Method calls | ✅ |
+| └ Method calls, including receiver self-calls | ✅ |
 | └ Function literals/closures | ✅ |
 | └ Function variables and higher-order function values | ✅ |
 | └ Variadic functions | ✅ |

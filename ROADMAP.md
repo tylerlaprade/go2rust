@@ -20,7 +20,7 @@ Pointer types, &/*, new() builtin, struct fields, nil handling
 
 ### ✅ Phase 4: Functions and Methods
 
-Method receivers (value and pointer), multiple returns (including named returns, naked returns, swap via multi-assignment), method calls
+Method receivers (value and pointer), multiple returns (including named returns, naked returns, swap via multi-assignment), method calls including receiver self-calls
 
 - ✅ Function variables across files - package-level function values, function-valued locals, higher-order function parameters, and init-time function assignments (cross_file_func_vars promoted, 2026-05-06)
 
