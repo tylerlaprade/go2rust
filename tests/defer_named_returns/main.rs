@@ -1,5 +1,39 @@
 use std::cell::{RefCell};
+use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
+
+#[derive(Debug, Clone, Default)]
+pub struct counter {
+}
+
+impl std::fmt::Display for counter {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{}}")
+    }
+}
+
+
+impl counter {
+    pub fn method(&self) -> Rc<RefCell<Option<i32>>> {
+        let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
+
+    let mut result: Rc<RefCell<Option<i32>>> = Rc::new(RefCell::new(Some(0)));
+
+        let result_defer_captured = result.clone(); __defer_stack.push(Box::new(move || {
+        { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
+        { let mut guard = result_defer_captured.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 3); };
+    }) as Box<dyn Fn() -> ()>))); let __f_guard = __f_holder.borrow(); let __f = __f_guard.as_ref().unwrap(); (*__f)() };
+    }));
+        {
+        { let new_val = 4; *result.borrow_mut() = Some(new_val); };;
+        // Execute deferred functions
+        while let Some(f) = __defer_stack.pop() {
+            f();
+        }
+        return result
+    }
+    }
+}
 
 pub fn compute() -> Rc<RefCell<Option<i32>>> {
     let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
@@ -44,4 +78,6 @@ pub fn decorate() -> Rc<RefCell<Option<String>>> {
 fn main() {
     println!("{}", (*compute().borrow().as_ref().unwrap()));
     println!("{}", (*decorate().borrow().as_ref().unwrap()));
+    let mut c: Rc<RefCell<Option<counter>>> = Rc::new(RefCell::new(Some(Default::default())));
+    println!("{}", (*(*c.borrow().as_ref().unwrap()).method().borrow().as_ref().unwrap()));
 }

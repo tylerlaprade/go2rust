@@ -18,7 +18,18 @@ func decorate() (msg string) {
 	return
 }
 
+type counter struct{}
+
+func (counter) method() (result int) {
+	defer func() {
+		result += 3
+	}()
+	return 4
+}
+
 func main() {
 	fmt.Println(compute())
 	fmt.Println(decorate())
+	var c counter
+	fmt.Println(c.method())
 }

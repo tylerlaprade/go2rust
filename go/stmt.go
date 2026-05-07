@@ -795,6 +795,31 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		out.WriteString(";")
 
 	case *ast.ReturnStmt:
+		if currentFunctionHasDefer && len(s.Results) > 0 && hasNamedReturns(fnType) {
+			names := namedReturnIdents(fnType)
+			out.WriteString("{\n")
+			for i, result := range s.Results {
+				if i >= len(names) {
+					break
+				}
+				out.WriteString("        ")
+				TranspileStatementSimple(out, &ast.AssignStmt{
+					Lhs: []ast.Expr{names[i]},
+					Tok: token.ASSIGN,
+					Rhs: []ast.Expr{result},
+				}, fnType, fileSet)
+				out.WriteString(";\n")
+			}
+			out.WriteString("        // Execute deferred functions\n")
+			out.WriteString("        while let Some(f) = __defer_stack.pop() {\n")
+			out.WriteString("            f();\n")
+			out.WriteString("        }\n")
+			out.WriteString("        return ")
+			writeNamedReturnValues(out, fnType)
+			out.WriteString("\n    }")
+			break
+		}
+
 		// Execute defers before returning if needed
 		if currentFunctionHasDefer {
 			out.WriteString("{\n")

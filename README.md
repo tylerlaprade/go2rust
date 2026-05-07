@@ -123,6 +123,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Switch default | ✅ |
 | └ Select default | ✅ |
 | **`defer` - Defer statements** | ✅ |
+| └ Methods with named returns and deferred result mutation | ✅ |
 | **`else` - Else clauses** | ✅ |
 | **`fallthrough` - Fallthrough statements** | ✅ |
 | **`for` - For loops** | |

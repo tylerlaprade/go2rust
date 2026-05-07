@@ -270,6 +270,9 @@ func checkHasDefer(stmts []ast.Stmt) bool {
 	for _, stmt := range stmts {
 		switch s := stmt.(type) {
 		case *ast.DeferStmt:
+			if isMutexUnlockDefer(s.Call) {
+				continue
+			}
 			return true
 		case *ast.BlockStmt:
 			if checkHasDefer(s.List) {
@@ -1114,6 +1117,105 @@ func TranspileMethodImpl(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.
 	transpileMethodImplWithVisibility(out, fn, true, fileSet, comments)
 }
 
+func namedReturnIdents(fnType *ast.FuncType) []*ast.Ident {
+	if fnType == nil || fnType.Results == nil {
+		return nil
+	}
+	var names []*ast.Ident
+	for _, result := range fnType.Results.List {
+		names = append(names, result.Names...)
+	}
+	return names
+}
+
+func hasNamedReturns(fnType *ast.FuncType) bool {
+	return len(namedReturnIdents(fnType)) > 0
+}
+
+func writeNamedReturnDeclarations(out *strings.Builder, fnType *ast.FuncType) {
+	if fnType == nil || fnType.Results == nil {
+		return
+	}
+	wrote := false
+	for _, result := range fnType.Results.List {
+		if len(result.Names) == 0 {
+			continue
+		}
+		for _, name := range result.Names {
+			if name.Name == "_" {
+				out.WriteString("    let ")
+			} else {
+				out.WriteString("    let mut ")
+			}
+			out.WriteString(RustLocalIdent(name.Name))
+			out.WriteString(": ")
+			out.WriteString(GoTypeToRust(result.Type))
+			out.WriteString(" = ")
+
+			if t, ok := result.Type.(*ast.Ident); ok && t.Name == "error" {
+				if NeedsConcurrentWrapper() {
+					TrackImport("Arc")
+					TrackImport("Mutex")
+					out.WriteString("Arc::new(Mutex::new(None))")
+				} else {
+					TrackImport("Rc")
+					TrackImport("RefCell")
+					out.WriteString("Rc::new(RefCell::new(None))")
+				}
+				out.WriteString(";\n")
+				wrote = true
+				continue
+			}
+
+			WriteWrapperPrefix(out)
+			switch t := result.Type.(type) {
+			case *ast.Ident:
+				switch t.Name {
+				case "string":
+					out.WriteString("String::new()")
+				case "int", "int64", "int32", "int16", "int8":
+					out.WriteString("0")
+				case "uint", "uint64", "uint32", "uint16", "uint8":
+					out.WriteString("0")
+				case "float64", "float32":
+					out.WriteString("0.0")
+				case "bool":
+					out.WriteString("false")
+				default:
+					out.WriteString("Default::default()")
+				}
+			default:
+				out.WriteString("Default::default()")
+			}
+			out.WriteString(")))")
+			out.WriteString(";\n")
+			wrote = true
+		}
+	}
+	if wrote {
+		out.WriteString("\n")
+	}
+}
+
+func writeNamedReturnValues(out *strings.Builder, fnType *ast.FuncType) {
+	names := namedReturnIdents(fnType)
+	if len(names) == 0 {
+		return
+	}
+	if len(names) > 1 {
+		out.WriteString("(")
+	}
+	for i, name := range names {
+		if i > 0 {
+			out.WriteString(", ")
+		}
+		out.WriteString(RustLocalIdent(name.Name))
+	}
+	if len(names) > 1 {
+		out.WriteString(")")
+	}
+}
+
 func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, addPub bool, fileSet *token.FileSet, comments []*ast.CommentGroup) {
 	// Store the receiver name and type for self translation
 	if fn.Recv != nil && len(fn.Recv.List) > 0 {
@@ -1215,6 +1317,17 @@ func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, a
 
 	out.WriteString(" {\n")
 
+	if fn.Body != nil {
+		hasDefer := checkHasDefer(fn.Body.List)
+		oldFunctionHasDefer := currentFunctionHasDefer
+		currentFunctionHasDefer = hasDefer
+		defer func() { currentFunctionHasDefer = oldFunctionHasDefer }()
+		if hasDefer {
+			out.WriteString("        let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();\n\n")
+		}
+		writeNamedReturnDeclarations(out, fn.Type)
+	}
+
 	// Register method parameters in VarTable
 	if vt := GetVarTable(); vt != nil {
 		vt.PushScope()
@@ -1260,11 +1373,21 @@ func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, a
 		return
 	}
 
+	var prevStmt ast.Stmt
 	var lastPos token.Pos = fn.Body.Lbrace
 	for _, stmt := range fn.Body.List {
 		out.WriteString("        ")
 		TranspileStatement(out, stmt, fn.Type, fileSet, comments, &lastPos, "        ")
 		out.WriteString("\n")
+		prevStmt = stmt
+	}
+
+	_, lastIsReturn := prevStmt.(*ast.ReturnStmt)
+	if currentFunctionHasDefer && !lastIsReturn {
+		out.WriteString("\n        // Execute deferred functions\n")
+		out.WriteString("        while let Some(f) = __defer_stack.pop() {\n")
+		out.WriteString("            f();\n")
+		out.WriteString("        }\n")
 	}
 
 	out.WriteString("    }\n")
