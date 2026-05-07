@@ -39,6 +39,7 @@ compile_and_run_rust() {
     local input_file="$2"
     local temp_dir
     temp_dir=$(mktemp -d)
+    local exit_code=0
 
     mkdir -p "$temp_dir/src"
     cp "$rust_file" "$temp_dir/src/main.rs"
@@ -51,12 +52,21 @@ edition = "2021"
 CARGO_EOF
 
     if [ -n "$input_file" ]; then
-        (cd "$temp_dir" && run_with_prefix cargo run --quiet < "$input_file")
+        if (cd "$temp_dir" && run_with_prefix cargo run --quiet < "$input_file"); then
+            exit_code=0
+        else
+            exit_code=$?
+        fi
     else
-        (cd "$temp_dir" && run_with_prefix cargo run --quiet)
+        if (cd "$temp_dir" && run_with_prefix cargo run --quiet); then
+            exit_code=0
+        else
+            exit_code=$?
+        fi
     fi
 
     rm -rf "$temp_dir"
+    return $exit_code
 }
 
 # Simple comparison function
@@ -104,8 +114,25 @@ run_transpile_and_compare() {
     # -A warnings: Allow all warnings (don't spend time on lints)
     # -C opt-level=0: No optimizations (fastest compilation)
     # -C debuginfo=0: No debug symbols (smaller binary, faster linking)
-    rust_output=$(cd "$test_dir" && RUSTFLAGS="-A warnings -C opt-level=0 -C debuginfo=0" cargo run --quiet 2>&1)
-    rust_exit_code=$?
+    local cargo_target_dir
+    local remove_cargo_target=false
+    if [ -n "${GO2RUST_TEST_TMP:-}" ]; then
+        cargo_target_dir="$GO2RUST_TEST_TMP/cargo-target"
+        mkdir -p "$cargo_target_dir"
+    else
+        cargo_target_dir=$(mktemp -d "${TMPDIR:-/tmp}/go2rust-cargo-target.XXXXXX")
+        remove_cargo_target=true
+    fi
+
+    if rust_output=$(cd "$test_dir" && CARGO_TARGET_DIR="$cargo_target_dir" RUSTFLAGS="-A warnings -C opt-level=0 -C debuginfo=0" cargo run --quiet 2>&1); then
+        rust_exit_code=0
+    else
+        rust_exit_code=$?
+    fi
+
+    if [ "$remove_cargo_target" = true ]; then
+        rm -rf "$cargo_target_dir"
+    fi
     
     if [ $rust_exit_code -ne 0 ]; then
         echo ""
@@ -142,6 +169,9 @@ run_test() {
     # shellcheck disable=SC2016
     if ! timeout "$timeout" bash -c '
         test_dir="$1"
+        test_tmp_root=$(mktemp -d "${TMPDIR:-/tmp}/go2rust-test.XXXXXX")
+        trap '"'"'rm -rf "$test_tmp_root"'"'"' EXIT
+        export GO2RUST_TEST_TMP="$test_tmp_root"
         
         # Run Go version
         go_output=$(cd "$test_dir" && go run . 2>&1)
@@ -202,6 +232,9 @@ run_xfail_test() {
     if ! timeout "$timeout" bash -c '
         test_dir="$1"
         test_name="$2"
+        test_tmp_root=$(mktemp -d "${TMPDIR:-/tmp}/go2rust-test.XXXXXX")
+        trap '"'"'rm -rf "$test_tmp_root"'"'"' EXIT
+        export GO2RUST_TEST_TMP="$test_tmp_root"
         
         # Build Go version
         go_build_output=$(cd "$test_dir" && go build -o "$test_name" . 2>&1)
