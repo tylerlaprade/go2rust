@@ -126,6 +126,17 @@ func isExpressionResultBare(expr ast.Expr) bool {
 	}
 }
 
+func methodReceiverExpressionNeedsUnwrap(expr ast.Expr) bool {
+	switch e := expr.(type) {
+	case *ast.CallExpr:
+		return true
+	case *ast.ParenExpr:
+		return methodReceiverExpressionNeedsUnwrap(e.X)
+	default:
+		return false
+	}
+}
+
 func isBareMapSelectorExpression(expr ast.Expr) bool {
 	if _, ok := expr.(*ast.SelectorExpr); !ok {
 		return false
@@ -283,6 +294,19 @@ func writeCallArgumentValue(out *strings.Builder, arg ast.Expr) bool {
 	default:
 		return false
 	}
+}
+
+func writeExternalStubCallArgument(out *strings.Builder, arg ast.Expr) {
+	if ident, ok := arg.(*ast.Ident); ok && ident.Name == "nil" {
+		out.WriteString("()")
+		return
+	}
+	if ident, ok := arg.(*ast.Ident); ok && isWrappedValueIdent(ident) {
+		out.WriteString(RustIdentForUse(ident))
+		out.WriteString(".clone()")
+		return
+	}
+	TranspileExpression(out, arg)
 }
 
 func isWrappedValueIdent(ident *ast.Ident) bool {
@@ -901,6 +925,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					out.WriteString(rustExpr)
 				} else {
 					// Unknown stdlib selector - emit as package::selector
+					RegisterExternalPackageSelector(e)
 					out.WriteString(ident.Name)
 					out.WriteString("::")
 					out.WriteString(ToSnakeCase(e.Sel.Name))
@@ -3190,15 +3215,22 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 		if isPackageCall {
 			// This is a package function call, not a method call
 			// Just transpile the selector expression and add the arguments
+			_, _, isExternalStdlibStubCall := externalStdlibPackageSelector(sel)
 			TranspileExpression(out, sel)
 			out.WriteString("(")
 			for i, arg := range call.Args {
 				if i > 0 {
 					out.WriteString(", ")
 				}
+				if isExternalStdlibStubCall {
+					writeExternalStubCallArgument(out, arg)
+					continue
+				}
 				// Wrap arguments in Rc<RefCell<Option<>>>
 				WriteWrapperPrefix(out)
-				TranspileExpression(out, arg)
+				if !writeCallArgumentValue(out, arg) {
+					TranspileExpression(out, arg)
+				}
 				out.WriteString(")))")
 			}
 			out.WriteString(")")
@@ -3271,6 +3303,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 
 		// Check what kind of receiver we have
 		needsUnwrap := false
+		closeReceiverBlock := false
 
 		// Check if the receiver is a simple identifier (local variable)
 		if ident, ok := sel.X.(*ast.Ident); ok {
@@ -3355,6 +3388,19 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 					out.WriteString(".as_ref().unwrap()).")
 				}
 			}
+		} else if methodReceiverExpressionNeedsUnwrap(sel.X) {
+			typeInfo := GetTypeInfo()
+			needsMut := typeInfo != nil && typeInfo.HasPointerReceiver(sel)
+			out.WriteString("{ let __recv = ")
+			TranspileExpression(out, sel.X)
+			out.WriteString("; let __result = (*__recv")
+			WriteBorrowMethod(out, needsMut)
+			if needsMut {
+				out.WriteString(".as_mut().unwrap()).")
+			} else {
+				out.WriteString(".as_ref().unwrap()).")
+			}
+			closeReceiverBlock = true
 		} else {
 			// Other complex expression - just transpile it
 			TranspileExpression(out, sel.X)
@@ -3363,6 +3409,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 
 		// Check if receiver is a bare sync type (WaitGroup, Mutex)
 		bareMethodCall := false
+		externalStdlibStubMethodCall := IsExternalStdlibSelectorMethod(sel)
 		if ident, ok := sel.X.(*ast.Ident); ok {
 			if isVarBare(ident.Name) {
 				bareMethodCall = true
@@ -3380,7 +3427,9 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 			if i > 0 {
 				out.WriteString(", ")
 			}
-			if bareMethodCall {
+			if externalStdlibStubMethodCall {
+				writeExternalStubCallArgument(out, arg)
+			} else if bareMethodCall {
 				// Bare type methods take bare arguments
 				TranspileExpression(out, arg)
 			} else if typeInfo != nil && typeInfo.IsChannel(arg) {
@@ -3396,6 +3445,9 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 			}
 		}
 		out.WriteString(")")
+		if closeReceiverBlock {
+			out.WriteString("; __result }")
+		}
 		return
 	}
 

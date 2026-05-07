@@ -80,23 +80,6 @@ fn go_regexp_find_all_string(pattern: &str, text: &str, limit: i32) -> Vec<Strin
     matches
 }
 
-#[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord)]
-pub struct regexp_Regexp;
-
-impl std::fmt::Display for regexp_Regexp {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "<regexp_Regexp>")
-    }
-}
-
-
-impl regexp_Regexp {
-    pub fn find_all_string<T0, T1>(&self, _arg0: T0, _arg1: T1) -> Rc<RefCell<Option<Vec<String>>>> {
-        Rc::new(RefCell::new(Some::<Vec<String>>(Default::default())))
-    }
-}
-
-
 fn main() {
     let mut pattern = Rc::new(RefCell::new(Some("\\d+".to_string())));
     let mut re = Rc::new(RefCell::new(Some(GoRegexp { pattern: Rc::new(RefCell::new(Some((*pattern.borrow().as_ref().unwrap()).clone()))) })));

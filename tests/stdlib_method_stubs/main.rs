@@ -12,6 +12,9 @@ impl std::fmt::Display for types_Alias {
 
 
 impl types_Alias {
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        None
+    }
     pub fn rhs(&self) -> Rc<RefCell<Option<types_Type>>> {
         Rc::new(RefCell::new(Some::<types_Type>(Default::default())))
     }
@@ -24,6 +27,13 @@ pub struct types_Type;
 impl std::fmt::Display for types_Type {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "<types_Type>")
+    }
+}
+
+
+impl types_Type {
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        None
     }
 }
 

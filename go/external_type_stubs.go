@@ -11,8 +11,19 @@ import (
 var externalTypeStubs = make(map[string]bool)
 var externalTypeStubFields = make(map[string]map[string]string)
 var externalTypeStubMethods = make(map[string]map[string]externalTypeStubMethod)
+var externalPackageStubs = make(map[string]*externalPackageStub)
 
 type externalTypeStubMethod struct {
+	ParamCount  int
+	ReturnTypes []string
+}
+
+type externalPackageStub struct {
+	Functions map[string]externalPackageStubFunction
+	Constants map[string]string
+}
+
+type externalPackageStubFunction struct {
 	ParamCount  int
 	ReturnTypes []string
 }
@@ -122,6 +133,29 @@ func RegisterExternalSelectorMethod(sel *ast.SelectorExpr) {
 	RegisterExternalTypeStubMethod(goTypesNamedTypeToRust(named), ToSnakeCase(fn.Name()), sig)
 }
 
+func IsExternalStdlibSelectorMethod(sel *ast.SelectorExpr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return false
+	}
+	selection, ok := typeInfo.info.Selections[sel]
+	if !ok || (selection.Kind() != types.MethodVal && selection.Kind() != types.MethodExpr) {
+		return false
+	}
+	recv := selection.Recv()
+	if ptr, ok := recv.(*types.Pointer); ok {
+		recv = ptr.Elem()
+	}
+	named, ok := recv.(*types.Named)
+	if !ok || named.Obj() == nil || named.Obj().Pkg() == nil {
+		return false
+	}
+	if !isStdlibPackage(named.Obj().Pkg().Path()) {
+		return false
+	}
+	return !isKnownStdlibHelperType(named.Obj().Pkg().Path(), named.Obj().Name())
+}
+
 func RegisterExternalInterfaceMethodsForSource(source types.Type, iface *types.Interface) {
 	if source == nil || iface == nil {
 		return
@@ -153,14 +187,110 @@ func RegisterExternalInterfaceMethodsForSource(source types.Type, iface *types.I
 	}
 }
 
+func RegisterExternalPackageSelector(sel *ast.SelectorExpr) {
+	pkgName, pkgPath, ok := externalStdlibPackageSelector(sel)
+	if !ok {
+		return
+	}
+	if rustExpr := GetStdlibSelectorMapping(pkgPath, sel.Sel.Name); rustExpr != "" {
+		return
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return
+	}
+	obj := typeInfo.info.Uses[sel.Sel]
+	if obj == nil {
+		return
+	}
+	switch obj := obj.(type) {
+	case *types.Func:
+		sig, ok := obj.Type().(*types.Signature)
+		if !ok {
+			return
+		}
+		RegisterExternalPackageStubFunction(pkgName, ToSnakeCase(sel.Sel.Name), sig)
+	case *types.Const:
+		RegisterExternalPackageStubConstant(pkgName, ToSnakeCase(sel.Sel.Name), obj.Type())
+	case *types.Var:
+		RegisterExternalPackageStubConstant(pkgName, ToSnakeCase(sel.Sel.Name), obj.Type())
+	}
+}
+
+func RegisterExternalPackageStubFunction(pkgName string, funcName string, sig *types.Signature) {
+	if pkgName == "" || funcName == "" || sig == nil {
+		return
+	}
+	trackWrapperImports()
+	fn := externalPackageStubFunction{
+		ParamCount: sig.Params().Len(),
+	}
+	results := sig.Results()
+	for i := 0; i < results.Len(); i++ {
+		fn.ReturnTypes = append(fn.ReturnTypes, goTypesReturnTypeToRust(results.At(i).Type()))
+	}
+	pkg := ensureExternalPackageStub(pkgName)
+	pkg.Functions[funcName] = fn
+}
+
+func RegisterExternalPackageStubConstant(pkgName string, constName string, constType types.Type) {
+	if pkgName == "" || constName == "" || constType == nil {
+		return
+	}
+	pkg := ensureExternalPackageStub(pkgName)
+	pkg.Constants[constName] = goTypesTypeToRust(constType)
+}
+
+func ensureExternalPackageStub(pkgName string) *externalPackageStub {
+	stubs := currentExternalPackageStubs()
+	if stubs[pkgName] == nil {
+		stubs[pkgName] = &externalPackageStub{
+			Functions: make(map[string]externalPackageStubFunction),
+			Constants: make(map[string]string),
+		}
+	}
+	if stubs[pkgName].Functions == nil {
+		stubs[pkgName].Functions = make(map[string]externalPackageStubFunction)
+	}
+	if stubs[pkgName].Constants == nil {
+		stubs[pkgName].Constants = make(map[string]string)
+	}
+	return stubs[pkgName]
+}
+
+func externalStdlibPackageSelector(sel *ast.SelectorExpr) (string, string, bool) {
+	if sel == nil {
+		return "", "", false
+	}
+	ident, ok := sel.X.(*ast.Ident)
+	if !ok {
+		return "", "", false
+	}
+	pkgPath, ok := goPackageImports[ident.Name]
+	if !ok || !isStdlibPackage(pkgPath) {
+		return "", "", false
+	}
+	ctx := GetTranspileContext()
+	if ctx != nil && ctx.PackageMapping != nil {
+		if _, hasCrate := ctx.PackageMapping[pkgPath]; hasCrate {
+			return "", "", false
+		}
+	}
+	return ident.Name, pkgPath, true
+}
+
 func isKnownStdlibHelperType(pkgPath string, name string) bool {
 	switch pkgPath {
 	case "context":
 		return name == "Context" || name == "CancelFunc" || name == "CancelCauseFunc"
 	case "net/url":
 		return name == "URL"
+	case "os":
+		return name == "File"
 	case "reflect":
 		return name == "StructField" || name == "StructTag" || name == "Type"
+	case "regexp":
+		return name == "Regexp"
 	case "strings":
 		return name == "Builder"
 	case "sync":
@@ -175,6 +305,9 @@ func isKnownStdlibHelperType(pkgPath string, name string) bool {
 }
 
 func currentExternalTypeStubs() map[string]bool {
+	if usePackageExternalStubs() {
+		return currentContext.Package.ExternalTypeStubs
+	}
 	if currentContext != nil && currentContext.File != nil {
 		if currentContext.File.ExternalTypeStubs == nil {
 			currentContext.File.ExternalTypeStubs = make(map[string]bool)
@@ -185,6 +318,9 @@ func currentExternalTypeStubs() map[string]bool {
 }
 
 func currentExternalTypeStubFields() map[string]map[string]string {
+	if usePackageExternalStubs() {
+		return currentContext.Package.ExternalTypeStubFields
+	}
 	if currentContext != nil && currentContext.File != nil {
 		if currentContext.File.ExternalTypeStubFields == nil {
 			currentContext.File.ExternalTypeStubFields = make(map[string]map[string]string)
@@ -195,6 +331,9 @@ func currentExternalTypeStubFields() map[string]map[string]string {
 }
 
 func currentExternalTypeStubMethods() map[string]map[string]externalTypeStubMethod {
+	if usePackageExternalStubs() {
+		return currentContext.Package.ExternalTypeStubMethods
+	}
 	if currentContext != nil && currentContext.File != nil {
 		if currentContext.File.ExternalTypeStubMethods == nil {
 			currentContext.File.ExternalTypeStubMethods = make(map[string]map[string]externalTypeStubMethod)
@@ -204,12 +343,55 @@ func currentExternalTypeStubMethods() map[string]map[string]externalTypeStubMeth
 	return externalTypeStubMethods
 }
 
+func currentExternalPackageStubs() map[string]*externalPackageStub {
+	if usePackageExternalStubs() {
+		return currentContext.Package.ExternalPackageStubs
+	}
+	if currentContext != nil && currentContext.File != nil {
+		if currentContext.File.ExternalPackageStubs == nil {
+			currentContext.File.ExternalPackageStubs = make(map[string]*externalPackageStub)
+		}
+		return currentContext.File.ExternalPackageStubs
+	}
+	return externalPackageStubs
+}
+
+func usePackageExternalStubs() bool {
+	return currentContext != nil && currentContext.UsePackageExternalStubs && currentContext.Package != nil
+}
+
 func GenerateExternalTypeStubs() string {
-	stubs := currentExternalTypeStubs()
-	if len(stubs) == 0 {
+	if usePackageExternalStubs() {
 		return ""
 	}
+	return generateExternalStubs(currentExternalTypeStubs(), currentExternalTypeStubFields(), currentExternalTypeStubMethods(), currentExternalPackageStubs())
+}
 
+func GeneratePackageExternalStubs(pkg *PackageState) string {
+	if pkg == nil {
+		return ""
+	}
+	return generateExternalStubs(pkg.ExternalTypeStubs, pkg.ExternalTypeStubFields, pkg.ExternalTypeStubMethods, pkg.ExternalPackageStubs)
+}
+
+func GenerateExternalStubModuleImports() string {
+	var out strings.Builder
+	if NeedsConcurrentWrapper() {
+		out.WriteString("use std::sync::{Arc, Mutex};\n")
+	} else {
+		out.WriteString("use std::cell::{RefCell};\n")
+		out.WriteString("use std::rc::{Rc};\n")
+	}
+	out.WriteString("use std::any::Any;\n")
+	out.WriteString("use std::collections::BTreeMap;\n")
+	out.WriteString("use std::error::Error as StdError;\n")
+	return out.String()
+}
+
+func generateExternalStubs(stubs map[string]bool, fieldsByType map[string]map[string]string, methodsByType map[string]map[string]externalTypeStubMethod, packageStubs map[string]*externalPackageStub) string {
+	if len(stubs) == 0 && len(packageStubs) == 0 {
+		return ""
+	}
 	names := make([]string, 0, len(stubs))
 	for name := range stubs {
 		names = append(names, name)
@@ -217,8 +399,6 @@ func GenerateExternalTypeStubs() string {
 	slices.Sort(names)
 
 	var out strings.Builder
-	fieldsByType := currentExternalTypeStubFields()
-	methodsByType := currentExternalTypeStubMethods()
 	for i, name := range names {
 		if i > 0 {
 			out.WriteString("\n\n")
@@ -258,23 +438,29 @@ func GenerateExternalTypeStubs() string {
 		out.WriteString("    }\n")
 		out.WriteString("}\n")
 		methods := methodsByType[name]
-		if len(methods) > 0 {
-			out.WriteString("\n\nimpl ")
-			out.WriteString(name)
-			out.WriteString(" {\n")
-			methodNames := make([]string, 0, len(methods))
-			for methodName := range methods {
-				methodNames = append(methodNames, methodName)
-			}
-			slices.Sort(methodNames)
-			for _, methodName := range methodNames {
-				method := methods[methodName]
-				writeExternalTypeStubMethod(&out, methodName, method)
-			}
-			out.WriteString("}\n")
+		out.WriteString("\n\nimpl ")
+		out.WriteString(name)
+		out.WriteString(" {\n")
+		writeExternalTypeStubDowncastMethod(&out)
+		methodNames := make([]string, 0, len(methods))
+		for methodName := range methods {
+			methodNames = append(methodNames, methodName)
 		}
+		slices.Sort(methodNames)
+		for _, methodName := range methodNames {
+			method := methods[methodName]
+			writeExternalTypeStubMethod(&out, methodName, method)
+		}
+		out.WriteString("}\n")
 	}
+	writeExternalPackageStubs(&out, packageStubs, len(names) > 0)
 	return out.String()
+}
+
+func writeExternalTypeStubDowncastMethod(out *strings.Builder) {
+	out.WriteString("    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {\n")
+	out.WriteString("        None\n")
+	out.WriteString("    }\n")
 }
 
 func writeExternalTypeStubMethod(out *strings.Builder, methodName string, method externalTypeStubMethod) {
@@ -334,6 +520,128 @@ func writeExternalTypeStubMethod(out *strings.Builder, methodName string, method
 	out.WriteString("    }\n")
 }
 
+func writeExternalPackageStubs(out *strings.Builder, packageStubs map[string]*externalPackageStub, needsSeparator bool) {
+	if len(packageStubs) == 0 {
+		return
+	}
+	pkgNames := make([]string, 0, len(packageStubs))
+	for pkgName := range packageStubs {
+		pkgNames = append(pkgNames, pkgName)
+	}
+	slices.Sort(pkgNames)
+	for _, pkgName := range pkgNames {
+		pkg := packageStubs[pkgName]
+		if pkg == nil || (len(pkg.Functions) == 0 && len(pkg.Constants) == 0) {
+			continue
+		}
+		if needsSeparator || out.Len() > 0 {
+			out.WriteString("\n\n")
+		}
+		needsSeparator = true
+		out.WriteString("pub mod ")
+		out.WriteString(ToSnakeCase(pkgName))
+		out.WriteString(" {\n")
+		out.WriteString("    use super::*;\n")
+		constNames := make([]string, 0, len(pkg.Constants))
+		for constName := range pkg.Constants {
+			constNames = append(constNames, constName)
+		}
+		slices.Sort(constNames)
+		for _, constName := range constNames {
+			out.WriteString("    pub const ")
+			out.WriteString(constName)
+			out.WriteString(": ")
+			out.WriteString(pkg.Constants[constName])
+			out.WriteString(" = ")
+			writeExternalStubConstDefaultValue(out, pkg.Constants[constName])
+			out.WriteString(";\n")
+		}
+		if len(constNames) > 0 && len(pkg.Functions) > 0 {
+			out.WriteString("\n")
+		}
+		funcNames := make([]string, 0, len(pkg.Functions))
+		for funcName := range pkg.Functions {
+			funcNames = append(funcNames, funcName)
+		}
+		slices.Sort(funcNames)
+		for i, funcName := range funcNames {
+			if i > 0 {
+				out.WriteString("\n")
+			}
+			writeExternalPackageStubFunction(out, funcName, pkg.Functions[funcName])
+		}
+		out.WriteString("}\n")
+	}
+}
+
+func writeExternalPackageStubFunction(out *strings.Builder, funcName string, fn externalPackageStubFunction) {
+	out.WriteString("    pub fn ")
+	out.WriteString(funcName)
+	if fn.ParamCount > 0 {
+		out.WriteString("<")
+		for i := 0; i < fn.ParamCount; i++ {
+			if i > 0 {
+				out.WriteString(", ")
+			}
+			out.WriteString("T")
+			out.WriteString(strconv.Itoa(i))
+		}
+		out.WriteString(">")
+	}
+	out.WriteString("(")
+	for i := 0; i < fn.ParamCount; i++ {
+		if i > 0 {
+			out.WriteString(", ")
+		}
+		out.WriteString("_arg")
+		out.WriteString(strconv.Itoa(i))
+		out.WriteString(": T")
+		out.WriteString(strconv.Itoa(i))
+	}
+	out.WriteString(")")
+	if len(fn.ReturnTypes) > 0 {
+		out.WriteString(" -> ")
+		writeExternalStubReturnType(out, fn.ReturnTypes)
+	}
+	out.WriteString(" {\n")
+	if len(fn.ReturnTypes) > 0 {
+		out.WriteString("        ")
+		writeExternalStubReturnValues(out, fn.ReturnTypes)
+		out.WriteString("\n")
+	}
+	out.WriteString("    }\n")
+}
+
+func writeExternalStubReturnType(out *strings.Builder, returnTypes []string) {
+	if len(returnTypes) == 1 {
+		out.WriteString(returnTypes[0])
+		return
+	}
+	out.WriteString("(")
+	for i, returnType := range returnTypes {
+		if i > 0 {
+			out.WriteString(", ")
+		}
+		out.WriteString(returnType)
+	}
+	out.WriteString(")")
+}
+
+func writeExternalStubReturnValues(out *strings.Builder, returnTypes []string) {
+	if len(returnTypes) > 1 {
+		out.WriteString("(")
+	}
+	for i, returnType := range returnTypes {
+		if i > 0 {
+			out.WriteString(", ")
+		}
+		writeExternalStubDefaultValue(out, returnType)
+	}
+	if len(returnTypes) > 1 {
+		out.WriteString(")")
+	}
+}
+
 func writeExternalStubDefaultValue(out *strings.Builder, rustType string) {
 	outerWrapper := GetOuterWrapperType()
 	innerWrapper := GetInnerWrapperType()
@@ -358,4 +666,17 @@ func writeExternalStubDefaultValue(out *strings.Builder, rustType string) {
 		return
 	}
 	out.WriteString("Default::default()")
+}
+
+func writeExternalStubConstDefaultValue(out *strings.Builder, rustType string) {
+	switch rustType {
+	case "String":
+		out.WriteString("String::new()")
+	case "bool":
+		out.WriteString("false")
+	case "i8", "i16", "i32", "i64", "u8", "u16", "u32", "u64", "usize", "f32", "f64":
+		out.WriteString("0")
+	default:
+		out.WriteString(rustType)
+	}
 }

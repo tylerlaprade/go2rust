@@ -455,6 +455,9 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 		Helpers:        helpers,
 		PackageMapping: packageMapping,
 	}
+	if parentCtx != nil {
+		ctx.UsePackageExternalStubs = parentCtx.UsePackageExternalStubs
+	}
 	SetTranspileContext(ctx)
 	defer SetTranspileContext(parentCtx)
 

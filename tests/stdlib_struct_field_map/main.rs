@@ -12,6 +12,13 @@ impl std::fmt::Display for ast_File {
 }
 
 
+impl ast_File {
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        None
+    }
+}
+
+
 #[derive(Debug, Clone, Default)]
 pub struct types_Info {
     pub file_versions: Rc<RefCell<Option<BTreeMap<Rc<RefCell<Option<ast_File>>>, Rc<RefCell<Option<String>>>>>>>,
@@ -20,6 +27,13 @@ pub struct types_Info {
 impl std::fmt::Display for types_Info {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "<types_Info>")
+    }
+}
+
+
+impl types_Info {
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        None
     }
 }
 

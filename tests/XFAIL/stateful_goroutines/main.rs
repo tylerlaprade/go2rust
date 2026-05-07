@@ -177,6 +177,18 @@ fn go_rand_float64() -> f64 {
     ((go_rand_next_u64() >> 11) as f64) / ((1u64 << 53) as f64)
 }
 
+pub mod atomic {
+    use super::*;
+    pub fn add_uint64<T0, T1>(_arg0: T0, _arg1: T1) -> Arc<Mutex<Option<u64>>> {
+        Arc::new(Mutex::new(Some::<u64>(Default::default())))
+    }
+
+    pub fn load_uint64<T0>(_arg0: T0) -> Arc<Mutex<Option<u64>>> {
+        Arc::new(Mutex::new(Some::<u64>(Default::default())))
+    }
+}
+
+
 #[derive(Debug, Clone, Default)]
 pub struct readOp {
     pub key: Arc<Mutex<Option<i32>>>,
@@ -238,7 +250,7 @@ fn main() {
         let mut read = Arc::new(Mutex::new(Some(readOp { key: Arc::new(Mutex::new(Some(Arc::new(Mutex::new(Some(go_rand_intn(5 as i32))))))), resp: GoChannel::<i32>::new(), ..Default::default() })));;
         reads_thread.send(read.lock().unwrap().as_ref().unwrap().clone());;
         (*read.lock().unwrap().as_ref().unwrap()).resp.recv().unwrap();;
-        atomic::add_uint64(Arc::new(Mutex::new(Some(readOps_thread.clone()))), Arc::new(Mutex::new(Some(1))));;
+        atomic::add_uint64(readOps_thread.clone(), 1);;
         done_thread.send(true);;;
     });
         { let mut guard = r.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
@@ -250,7 +262,7 @@ fn main() {
         let mut write = Arc::new(Mutex::new(Some(writeOp { key: Arc::new(Mutex::new(Some(Arc::new(Mutex::new(Some(go_rand_intn(5 as i32))))))), val: Arc::new(Mutex::new(Some(Arc::new(Mutex::new(Some(go_rand_intn(100 as i32))))))), resp: GoChannel::<bool>::new(), ..Default::default() })));;
         writes_thread.send(write.lock().unwrap().as_ref().unwrap().clone());;
         (*write.lock().unwrap().as_ref().unwrap()).resp.recv().unwrap();;
-        atomic::add_uint64(Arc::new(Mutex::new(Some(writeOps_thread.clone()))), Arc::new(Mutex::new(Some(1))));;
+        atomic::add_uint64(writeOps_thread.clone(), 1);;
         done_thread.send(true);;;
     });
         { let mut guard = w.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
@@ -262,8 +274,8 @@ fn main() {
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
 
-    let mut readOpsFinal = atomic::load_uint64(Arc::new(Mutex::new(Some(readOps.clone()))));
+    let mut readOpsFinal = atomic::load_uint64(readOps.clone());
     println!("{} {}", "readOps:".to_string(), { let __v = (*readOpsFinal.lock().unwrap().as_ref().unwrap()).clone(); __v });
-    let mut writeOpsFinal = atomic::load_uint64(Arc::new(Mutex::new(Some(writeOps.clone()))));
+    let mut writeOpsFinal = atomic::load_uint64(writeOps.clone());
     println!("{} {}", "writeOps:".to_string(), { let __v = (*writeOpsFinal.lock().unwrap().as_ref().unwrap()).clone(); __v });
 }

@@ -207,15 +207,17 @@ func (pl *PackageLoader) transpilePackage(pkg *packages.Package) error {
 	pkgState := NewPackageState()
 	pkgState.FunctionNameOverrides = assignPackageFunctionNames(pkg.Syntax)
 	SetTranspileContext(&TranspileContext{
-		Session:        NewTranspileSession(pkgTypeInfo, pl.packageMapping),
-		Package:        pkgState,
-		PackageMapping: pl.packageMapping,
+		Session:                 NewTranspileSession(pkgTypeInfo, pl.packageMapping),
+		Package:                 pkgState,
+		PackageMapping:          pl.packageMapping,
+		UsePackageExternalStubs: true,
 	})
 	defer SetTranspileContext(parentCtx)
 
 	// Generate lib.rs with all modules
 	var libRs strings.Builder
 	var modules []string
+	const externalStubModuleName = "go2rust_stdlib_stubs"
 	moduleNamesByIndex := make([]string, len(pkg.Syntax))
 	for i, astFile := range pkg.Syntax {
 		if len(astFile.Decls) == 0 {
@@ -241,7 +243,7 @@ func (pl *PackageLoader) transpilePackage(pkg *packages.Package) error {
 
 		// Transpile with the package's type info and global package mapping
 		rustCode, _, _ := TranspileWithMapping(astFile, pkg.Fset, pkgTypeInfo, pl.packageMapping)
-		rustCode = prefixSiblingModuleImports(rustCode, moduleName, modules)
+		rustCode = prefixSiblingModuleImports(rustCode, moduleName, append([]string{externalStubModuleName}, modules...))
 
 		// Write the module file
 		moduleFile := filepath.Join(outputDir, SanitizeRustModuleFileName(moduleName)+".rs")
@@ -250,12 +252,23 @@ func (pl *PackageLoader) transpilePackage(pkg *packages.Package) error {
 		}
 	}
 
+	stubCode := GeneratePackageExternalStubs(pkgState)
+	if stubCode != "" {
+		stubCode = GenerateExternalStubModuleImports() + "\n" + stubCode
+	}
+	stubPath := filepath.Join(outputDir, externalStubModuleName+".rs")
+	if err := os.WriteFile(stubPath, []byte(stubCode), 0644); err != nil {
+		return fmt.Errorf("failed to write stdlib stubs module: %v", err)
+	}
+
 	// Generate lib.rs
+	libRs.WriteString(fmt.Sprintf("pub mod %s;\n", externalStubModuleName))
 	for _, mod := range modules {
 		libRs.WriteString(fmt.Sprintf("pub mod %s;\n", mod))
 	}
 	if len(modules) > 0 {
 		libRs.WriteString("\n")
+		libRs.WriteString(fmt.Sprintf("pub use %s::*;\n", externalStubModuleName))
 		for _, mod := range modules {
 			libRs.WriteString(fmt.Sprintf("pub use %s::*;\n", mod))
 		}

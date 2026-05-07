@@ -51,6 +51,9 @@ impl std::fmt::Display for bufio_Scanner {
 
 
 impl bufio_Scanner {
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        None
+    }
     pub fn err(&self) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
         Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>))
     }
@@ -74,11 +77,51 @@ impl std::fmt::Display for os_File {
 
 
 impl os_File {
-    pub fn close(&self) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
-        Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>))
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        None
     }
-    pub fn write_string<T0>(&self, _arg0: T0) -> (Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
-        (Arc::new(Mutex::new(Some::<i32>(Default::default()))), Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>)))
+}
+
+
+pub mod bufio {
+    use super::*;
+    pub fn new_scanner<T0>(_arg0: T0) -> Arc<Mutex<Option<bufio_Scanner>>> {
+        Arc::new(Mutex::new(Some::<bufio_Scanner>(Default::default())))
+    }
+}
+
+
+pub mod io {
+    use super::*;
+    pub fn copy<T0, T1>(_arg0: T0, _arg1: T1) -> (Arc<Mutex<Option<i64>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+        (Arc::new(Mutex::new(Some::<i64>(Default::default()))), Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>)))
+    }
+}
+
+
+pub mod os {
+    use super::*;
+    pub const o__a_p_p_e_n_d: i32 = 0;
+    pub const o__w_r_o_n_l_y: i32 = 0;
+
+    pub fn is_not_exist<T0>(_arg0: T0) -> Arc<Mutex<Option<bool>>> {
+        Arc::new(Mutex::new(Some::<bool>(Default::default())))
+    }
+
+    pub fn open<T0>(_arg0: T0) -> (Arc<Mutex<Option<os_File>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+        (Arc::new(Mutex::new(Some::<os_File>(Default::default()))), Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>)))
+    }
+
+    pub fn open_file<T0, T1, T2>(_arg0: T0, _arg1: T1, _arg2: T2) -> (Arc<Mutex<Option<os_File>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+        (Arc::new(Mutex::new(Some::<os_File>(Default::default()))), Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>)))
+    }
+
+    pub fn read_file<T0>(_arg0: T0) -> (Arc<Mutex<Option<Vec<u8>>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+        (Arc::new(Mutex::new(Some::<Vec<u8>>(Default::default()))), Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>)))
+    }
+
+    pub fn stat<T0>(_arg0: T0) -> (Arc<Mutex<Option<Box<dyn Trait>>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+        (Arc::new(Mutex::new(Some::<Box<dyn Trait>>(Default::default()))), Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>)))
     }
 }
 
@@ -130,7 +173,7 @@ fn main() {
         // Read entire file
     println!("{}", "\n--- Reading entire file ---".to_string());
 
-    let (mut data, mut err) = os::read_file(Arc::new(Mutex::new(Some({ let __v = (*filename.lock().unwrap().as_ref().unwrap()).clone(); __v }))));
+    let (mut data, mut err) = os::read_file(filename.clone());
     if (*err.lock().unwrap()).is_some() {
         print!("Error reading file: {}\n", format!("{}", (*err.lock().unwrap().as_ref().unwrap())));
         {
@@ -147,7 +190,7 @@ fn main() {
         // Read file line by line
     println!("{}", "\n--- Reading file line by line ---".to_string());
 
-    { let (__tmp_0, __tmp_1) = os::open(Arc::new(Mutex::new(Some({ let __v = (*filename.lock().unwrap().as_ref().unwrap()).clone(); __v })))); *file.lock().unwrap() = __tmp_0.lock().unwrap().take(); *err.lock().unwrap() = __tmp_1.lock().unwrap().take(); };
+    { let (__tmp_0, __tmp_1) = os::open(filename.clone()); *file.lock().unwrap() = __tmp_0.lock().unwrap().take(); *err.lock().unwrap() = __tmp_1.lock().unwrap().take(); };
     if (*err.lock().unwrap()).is_some() {
         print!("Error opening file: {}\n", format!("{}", (*err.lock().unwrap().as_ref().unwrap())));
         {
@@ -162,7 +205,7 @@ fn main() {
         (*file_defer_captured.lock().unwrap().as_mut().unwrap()).close();
     }));
 
-    let mut scanner = bufio::new_scanner(Arc::new(Mutex::new(Some((*file.lock().unwrap().as_ref().unwrap())))));
+    let mut scanner = bufio::new_scanner(file.clone());
     let mut lineNum = Arc::new(Mutex::new(Some(1)));
 
     while (*(*scanner.lock().unwrap().as_mut().unwrap()).scan().lock().unwrap().as_ref().unwrap()) {
@@ -186,7 +229,7 @@ fn main() {
         // Append to file
     println!("{}", "\n--- Appending to file ---".to_string());
 
-    { let (__tmp_0, __tmp_1) = os::open_file(Arc::new(Mutex::new(Some({ let __v = (*filename.lock().unwrap().as_ref().unwrap()).clone(); __v }))), Arc::new(Mutex::new(Some({ let __tmp_x = os::o__a_p_p_e_n_d; let __tmp_y = os::o__w_r_o_n_l_y; __tmp_x | __tmp_y }))), Arc::new(Mutex::new(Some(0644)))); *file.lock().unwrap() = __tmp_0.lock().unwrap().take(); *err.lock().unwrap() = __tmp_1.lock().unwrap().take(); };
+    { let (__tmp_0, __tmp_1) = os::open_file(filename.clone(), { let __tmp_x = os::o__a_p_p_e_n_d; let __tmp_y = os::o__w_r_o_n_l_y; __tmp_x | __tmp_y }, 0644); *file.lock().unwrap() = __tmp_0.lock().unwrap().take(); *err.lock().unwrap() = __tmp_1.lock().unwrap().take(); };
     if (*err.lock().unwrap()).is_some() {
         print!("Error opening file for append: {}\n", format!("{}", (*err.lock().unwrap().as_ref().unwrap())));
         {
@@ -221,7 +264,7 @@ fn main() {
         // Read updated file
     println!("{}", "\n--- Reading updated file ---".to_string());
 
-    { let (__tmp_0, __tmp_1) = os::read_file(Arc::new(Mutex::new(Some({ let __v = (*filename.lock().unwrap().as_ref().unwrap()).clone(); __v })))); *data.lock().unwrap() = __tmp_0.lock().unwrap().take(); *err.lock().unwrap() = __tmp_1.lock().unwrap().take(); };
+    { let (__tmp_0, __tmp_1) = os::read_file(filename.clone()); *data.lock().unwrap() = __tmp_0.lock().unwrap().take(); *err.lock().unwrap() = __tmp_1.lock().unwrap().take(); };
     if (*err.lock().unwrap()).is_some() {
         print!("Error reading updated file: {}\n", format!("{}", (*err.lock().unwrap().as_ref().unwrap())));
         {
@@ -238,7 +281,7 @@ fn main() {
         // File information
     println!("{}", "\n--- File information ---".to_string());
 
-    let (mut fileInfo, mut err) = os::stat(Arc::new(Mutex::new(Some({ let __v = (*filename.lock().unwrap().as_ref().unwrap()).clone(); __v }))));
+    let (mut fileInfo, mut err) = os::stat(filename.clone());
     if (*err.lock().unwrap()).is_some() {
         print!("Error getting file info: {}\n", format!("{}", (*err.lock().unwrap().as_ref().unwrap())));
         {
@@ -264,7 +307,7 @@ fn main() {
 
     let mut copyFilename = Arc::new(Mutex::new(Some("test_file_copy.txt".to_string())));
 
-    let (mut sourceFile, mut err) = os::open(Arc::new(Mutex::new(Some({ let __v = (*filename.lock().unwrap().as_ref().unwrap()).clone(); __v }))));
+    let (mut sourceFile, mut err) = os::open(filename.clone());
     if (*err.lock().unwrap()).is_some() {
         print!("Error opening source file: {}\n", format!("{}", (*err.lock().unwrap().as_ref().unwrap())));
         {
@@ -294,7 +337,7 @@ fn main() {
         (*destFile_defer_captured.lock().unwrap().as_mut().unwrap()).close();
     }));
 
-    let (mut bytesWritten, mut err) = io::copy(Arc::new(Mutex::new(Some((*destFile.lock().unwrap().as_ref().unwrap())))), Arc::new(Mutex::new(Some((*sourceFile.lock().unwrap().as_ref().unwrap())))));
+    let (mut bytesWritten, mut err) = io::copy(destFile.clone(), sourceFile.clone());
     if (*err.lock().unwrap()).is_some() {
         print!("Error copying file: {}\n", format!("{}", (*err.lock().unwrap().as_ref().unwrap())));
         {
@@ -311,7 +354,7 @@ fn main() {
         // Read and process file content
     println!("{}", "\n--- Processing file content ---".to_string());
 
-    { let (__tmp_0, __tmp_1) = os::open(Arc::new(Mutex::new(Some({ let __v = (*filename.lock().unwrap().as_ref().unwrap()).clone(); __v })))); *file.lock().unwrap() = __tmp_0.lock().unwrap().take(); *err.lock().unwrap() = __tmp_1.lock().unwrap().take(); };
+    { let (__tmp_0, __tmp_1) = os::open(filename.clone()); *file.lock().unwrap() = __tmp_0.lock().unwrap().take(); *err.lock().unwrap() = __tmp_1.lock().unwrap().take(); };
     if (*err.lock().unwrap()).is_some() {
         print!("Error opening file: {}\n", format!("{}", (*err.lock().unwrap().as_ref().unwrap())));
         {
@@ -326,7 +369,7 @@ fn main() {
         (*file_defer_captured.lock().unwrap().as_mut().unwrap()).close();
     }));
 
-    { let new_val = bufio::new_scanner(Arc::new(Mutex::new(Some((*file.lock().unwrap().as_ref().unwrap()))))); *scanner.lock().unwrap() = new_val.lock().unwrap().take(); };
+    { let new_val = bufio::new_scanner(file.clone()); *scanner.lock().unwrap() = new_val.lock().unwrap().take(); };
     let mut wordCount = Arc::new(Mutex::new(Some(0)));
     let mut lineCount = Arc::new(Mutex::new(Some(0)));
     let mut charCount = Arc::new(Mutex::new(Some(0)));
@@ -381,7 +424,7 @@ fn main() {
         // Read and parse formatted data
     println!("{}", "\n--- Reading formatted data ---".to_string());
 
-    { let (__tmp_0, __tmp_1) = os::read_file(Arc::new(Mutex::new(Some({ let __v = (*dataFile.lock().unwrap().as_ref().unwrap()).clone(); __v })))); *data.lock().unwrap() = __tmp_0.lock().unwrap().take(); *err.lock().unwrap() = __tmp_1.lock().unwrap().take(); };
+    { let (__tmp_0, __tmp_1) = os::read_file(dataFile.clone()); *data.lock().unwrap() = __tmp_0.lock().unwrap().take(); *err.lock().unwrap() = __tmp_1.lock().unwrap().take(); };
     if (*err.lock().unwrap()).is_some() {
         print!("Error reading data file: {}\n", format!("{}", (*err.lock().unwrap().as_ref().unwrap())));
         {
@@ -401,10 +444,10 @@ fn main() {
     let mut files = Arc::new(Mutex::new(Some(vec![(*filename.lock().unwrap().as_ref().unwrap()).clone(), (*copyFilename.lock().unwrap().as_ref().unwrap()).clone(), (*dataFile.lock().unwrap().as_ref().unwrap()).clone(), "nonexistent.txt".to_string()])));
 
     { let __range_guard = files.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for f in __range_values.iter() {
-        let (_, mut err) = os::stat(Arc::new(Mutex::new(Some(f))));
+        let (_, mut err) = os::stat(f);
     if (*err.lock().unwrap()).is_none() {
         print!("File '{}' exists\n", f);
-    } else if (*os::is_not_exist(Arc::new(Mutex::new(Some((*err.lock().unwrap().as_ref().unwrap()))))).lock().unwrap().as_ref().unwrap()) {
+    } else if (*os::is_not_exist(err.clone()).lock().unwrap().as_ref().unwrap()) {
         print!("File '{}' does not exist\n", f);
     } else {
         print!("Error checking file '{}': {}\n", f, format!("{}", (*err.lock().unwrap().as_ref().unwrap())));
@@ -429,8 +472,8 @@ fn main() {
     println!("{}", "\n--- Verifying cleanup ---".to_string());
 
     { let __range_guard = filesToRemove.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for f in __range_values.iter() {
-        let (_, mut err) = os::stat(Arc::new(Mutex::new(Some(f))));
-    if (*os::is_not_exist(Arc::new(Mutex::new(Some((*err.lock().unwrap().as_ref().unwrap()))))).lock().unwrap().as_ref().unwrap()) {
+        let (_, mut err) = os::stat(f);
+    if (*os::is_not_exist(err.clone()).lock().unwrap().as_ref().unwrap()) {
         print!("File '{}' successfully removed\n", f);
     } else {
         print!("File '{}' still exists\n", f);

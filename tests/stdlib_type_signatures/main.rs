@@ -11,6 +11,13 @@ impl std::fmt::Display for ast_File {
 }
 
 
+impl ast_File {
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        None
+    }
+}
+
+
 pub fn label(file: Rc<RefCell<Option<ast_File>>>) -> Rc<RefCell<Option<String>>> {
 
     return Rc::new(RefCell::new(Some("ok".to_string())));

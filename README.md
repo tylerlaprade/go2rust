@@ -157,6 +157,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Blank imports | ✅ |
 | └ Stdlib type signatures | ✅ |
 | └ Stdlib method stubs from selector type information | ✅ |
+| └ Stdlib package function/constant stubs | ✅ |
 | **`interface` - Interface types** | |
 | └ Interface definitions | ✅ |
 | └ Empty interface{} | ✅ |

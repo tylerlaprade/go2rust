@@ -10,20 +10,24 @@ type TranspileSession struct {
 
 // PackageState holds package-scoped registries that should be shared across files.
 type PackageState struct {
-	FunctionSignatures     map[string]*FunctionSignature
-	FunctionNameOverrides  map[string]string
-	ErrorImplTypes         map[string]bool
-	StringerImplTypes      map[string]bool
-	InterfaceTypes         map[string]bool
-	TypeDefinitions        map[string]string
-	TypeAliases            map[string]bool
-	GoPackageImports       map[string]string
-	ExternalPackages       map[string]bool
-	StructDefs             map[string]*StructDef
-	EmbeddedFields         map[string]map[string]string
-	AnonymousStructCounter int
-	AnonymousStructs       map[string]*ast.StructType
-	AnonymousStructTypeMap map[string]string
+	FunctionSignatures      map[string]*FunctionSignature
+	FunctionNameOverrides   map[string]string
+	ErrorImplTypes          map[string]bool
+	StringerImplTypes       map[string]bool
+	InterfaceTypes          map[string]bool
+	TypeDefinitions         map[string]string
+	TypeAliases             map[string]bool
+	GoPackageImports        map[string]string
+	ExternalPackages        map[string]bool
+	StructDefs              map[string]*StructDef
+	EmbeddedFields          map[string]map[string]string
+	AnonymousStructCounter  int
+	AnonymousStructs        map[string]*ast.StructType
+	AnonymousStructTypeMap  map[string]string
+	ExternalTypeStubs       map[string]bool
+	ExternalTypeStubFields  map[string]map[string]string
+	ExternalTypeStubMethods map[string]map[string]externalTypeStubMethod
+	ExternalPackageStubs    map[string]*externalPackageStub
 }
 
 // FileState holds file-scoped scratch state for a single transpilation pass.
@@ -41,6 +45,7 @@ type FileState struct {
 	ExternalTypeStubs       map[string]bool
 	ExternalTypeStubFields  map[string]map[string]string
 	ExternalTypeStubMethods map[string]map[string]externalTypeStubMethod
+	ExternalPackageStubs    map[string]*externalPackageStub
 	PendingLoopLabel        string
 	HasInitFunction         bool
 	LabeledLoopPost         map[string]ast.Stmt
@@ -48,12 +53,13 @@ type FileState struct {
 
 // TranspileContext holds the active session/package/file state for a transpilation call.
 type TranspileContext struct {
-	Session        *TranspileSession
-	Package        *PackageState
-	File           *FileState
-	Imports        *ImportTracker
-	Helpers        *HelperTracker
-	PackageMapping map[string]string // Go import path -> Rust crate name
+	Session                 *TranspileSession
+	Package                 *PackageState
+	File                    *FileState
+	Imports                 *ImportTracker
+	Helpers                 *HelperTracker
+	PackageMapping          map[string]string // Go import path -> Rust crate name
+	UsePackageExternalStubs bool
 }
 
 func NewTranspileSession(typeInfo *TypeInfo, packageMapping map[string]string) *TranspileSession {
@@ -65,19 +71,23 @@ func NewTranspileSession(typeInfo *TypeInfo, packageMapping map[string]string) *
 
 func NewPackageState() *PackageState {
 	return &PackageState{
-		FunctionSignatures:     make(map[string]*FunctionSignature),
-		FunctionNameOverrides:  make(map[string]string),
-		ErrorImplTypes:         make(map[string]bool),
-		StringerImplTypes:      make(map[string]bool),
-		InterfaceTypes:         make(map[string]bool),
-		TypeDefinitions:        make(map[string]string),
-		TypeAliases:            make(map[string]bool),
-		GoPackageImports:       make(map[string]string),
-		ExternalPackages:       make(map[string]bool),
-		StructDefs:             make(map[string]*StructDef),
-		EmbeddedFields:         make(map[string]map[string]string),
-		AnonymousStructs:       make(map[string]*ast.StructType),
-		AnonymousStructTypeMap: make(map[string]string),
+		FunctionSignatures:      make(map[string]*FunctionSignature),
+		FunctionNameOverrides:   make(map[string]string),
+		ErrorImplTypes:          make(map[string]bool),
+		StringerImplTypes:       make(map[string]bool),
+		InterfaceTypes:          make(map[string]bool),
+		TypeDefinitions:         make(map[string]string),
+		TypeAliases:             make(map[string]bool),
+		GoPackageImports:        make(map[string]string),
+		ExternalPackages:        make(map[string]bool),
+		StructDefs:              make(map[string]*StructDef),
+		EmbeddedFields:          make(map[string]map[string]string),
+		AnonymousStructs:        make(map[string]*ast.StructType),
+		AnonymousStructTypeMap:  make(map[string]string),
+		ExternalTypeStubs:       make(map[string]bool),
+		ExternalTypeStubFields:  make(map[string]map[string]string),
+		ExternalTypeStubMethods: make(map[string]map[string]externalTypeStubMethod),
+		ExternalPackageStubs:    make(map[string]*externalPackageStub),
 	}
 }
 
@@ -98,6 +108,7 @@ func NewFileState(imports *ImportTracker, helpers *HelperTracker, statementPrepr
 		ExternalTypeStubs:       make(map[string]bool),
 		ExternalTypeStubFields:  make(map[string]map[string]string),
 		ExternalTypeStubMethods: make(map[string]map[string]externalTypeStubMethod),
+		ExternalPackageStubs:    make(map[string]*externalPackageStub),
 		LabeledLoopPost:         make(map[string]ast.Stmt),
 	}
 }
@@ -166,6 +177,18 @@ func (ctx *TranspileContext) ensureDefaults() {
 		if ctx.Package.AnonymousStructTypeMap == nil {
 			ctx.Package.AnonymousStructTypeMap = make(map[string]string)
 		}
+		if ctx.Package.ExternalTypeStubs == nil {
+			ctx.Package.ExternalTypeStubs = make(map[string]bool)
+		}
+		if ctx.Package.ExternalTypeStubFields == nil {
+			ctx.Package.ExternalTypeStubFields = make(map[string]map[string]string)
+		}
+		if ctx.Package.ExternalTypeStubMethods == nil {
+			ctx.Package.ExternalTypeStubMethods = make(map[string]map[string]externalTypeStubMethod)
+		}
+		if ctx.Package.ExternalPackageStubs == nil {
+			ctx.Package.ExternalPackageStubs = make(map[string]*externalPackageStub)
+		}
 	}
 	if ctx.File != nil {
 		if ctx.File.Imports == nil {
@@ -191,6 +214,9 @@ func (ctx *TranspileContext) ensureDefaults() {
 		}
 		if ctx.File.ExternalTypeStubMethods == nil {
 			ctx.File.ExternalTypeStubMethods = make(map[string]map[string]externalTypeStubMethod)
+		}
+		if ctx.File.ExternalPackageStubs == nil {
+			ctx.File.ExternalPackageStubs = make(map[string]*externalPackageStub)
 		}
 		if ctx.File.LabeledLoopPost == nil {
 			ctx.File.LabeledLoopPost = make(map[string]ast.Stmt)
@@ -237,6 +263,7 @@ func (ctx *TranspileContext) captureCompatibilityState() {
 		ctx.File.ExternalTypeStubs = externalTypeStubs
 		ctx.File.ExternalTypeStubFields = externalTypeStubFields
 		ctx.File.ExternalTypeStubMethods = externalTypeStubMethods
+		ctx.File.ExternalPackageStubs = externalPackageStubs
 		ctx.File.PendingLoopLabel = pendingLoopLabel
 		ctx.File.HasInitFunction = hasInitFunction
 		ctx.File.LabeledLoopPost = labeledLoopPost
@@ -280,6 +307,7 @@ func (ctx *TranspileContext) applyCompatibilityState() {
 		externalTypeStubs = ctx.File.ExternalTypeStubs
 		externalTypeStubFields = ctx.File.ExternalTypeStubFields
 		externalTypeStubMethods = ctx.File.ExternalTypeStubMethods
+		externalPackageStubs = ctx.File.ExternalPackageStubs
 		pendingLoopLabel = ctx.File.PendingLoopLabel
 		hasInitFunction = ctx.File.HasInitFunction
 		labeledLoopPost = ctx.File.LabeledLoopPost
