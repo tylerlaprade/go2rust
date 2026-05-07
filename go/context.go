@@ -40,6 +40,7 @@ type FileState struct {
 	CurrentCaptureRenames   map[string]string
 	ExternalTypeStubs       map[string]bool
 	ExternalTypeStubFields  map[string]map[string]string
+	ExternalTypeStubMethods map[string]map[string]externalTypeStubMethod
 	PendingLoopLabel        string
 	HasInitFunction         bool
 	LabeledLoopPost         map[string]ast.Stmt
@@ -88,15 +89,16 @@ func NewFileState(imports *ImportTracker, helpers *HelperTracker, statementPrepr
 		helpers = &HelperTracker{}
 	}
 	return &FileState{
-		Imports:                imports,
-		Helpers:                helpers,
-		StatementPreprocessor:  statementPreprocessor,
-		RangeLoopVars:          make(map[string]string),
-		LocalConstants:         make(map[string]string),
-		LocalInterfaces:        make(map[string]bool),
-		ExternalTypeStubs:      make(map[string]bool),
-		ExternalTypeStubFields: make(map[string]map[string]string),
-		LabeledLoopPost:        make(map[string]ast.Stmt),
+		Imports:                 imports,
+		Helpers:                 helpers,
+		StatementPreprocessor:   statementPreprocessor,
+		RangeLoopVars:           make(map[string]string),
+		LocalConstants:          make(map[string]string),
+		LocalInterfaces:         make(map[string]bool),
+		ExternalTypeStubs:       make(map[string]bool),
+		ExternalTypeStubFields:  make(map[string]map[string]string),
+		ExternalTypeStubMethods: make(map[string]map[string]externalTypeStubMethod),
+		LabeledLoopPost:         make(map[string]ast.Stmt),
 	}
 }
 
@@ -184,6 +186,12 @@ func (ctx *TranspileContext) ensureDefaults() {
 		if ctx.File.ExternalTypeStubs == nil {
 			ctx.File.ExternalTypeStubs = make(map[string]bool)
 		}
+		if ctx.File.ExternalTypeStubFields == nil {
+			ctx.File.ExternalTypeStubFields = make(map[string]map[string]string)
+		}
+		if ctx.File.ExternalTypeStubMethods == nil {
+			ctx.File.ExternalTypeStubMethods = make(map[string]map[string]externalTypeStubMethod)
+		}
 		if ctx.File.LabeledLoopPost == nil {
 			ctx.File.LabeledLoopPost = make(map[string]ast.Stmt)
 		}
@@ -227,6 +235,8 @@ func (ctx *TranspileContext) captureCompatibilityState() {
 		ctx.File.CurrentFunctionHasDefer = currentFunctionHasDefer
 		ctx.File.CurrentCaptureRenames = currentCaptureRenames
 		ctx.File.ExternalTypeStubs = externalTypeStubs
+		ctx.File.ExternalTypeStubFields = externalTypeStubFields
+		ctx.File.ExternalTypeStubMethods = externalTypeStubMethods
 		ctx.File.PendingLoopLabel = pendingLoopLabel
 		ctx.File.HasInitFunction = hasInitFunction
 		ctx.File.LabeledLoopPost = labeledLoopPost
@@ -268,6 +278,8 @@ func (ctx *TranspileContext) applyCompatibilityState() {
 		currentFunctionHasDefer = ctx.File.CurrentFunctionHasDefer
 		currentCaptureRenames = ctx.File.CurrentCaptureRenames
 		externalTypeStubs = ctx.File.ExternalTypeStubs
+		externalTypeStubFields = ctx.File.ExternalTypeStubFields
+		externalTypeStubMethods = ctx.File.ExternalTypeStubMethods
 		pendingLoopLabel = ctx.File.PendingLoopLabel
 		hasInitFunction = ctx.File.HasInitFunction
 		labeledLoopPost = ctx.File.LabeledLoopPost

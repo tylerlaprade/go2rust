@@ -106,6 +106,7 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 - ✅ Stdlib type signatures - named stdlib types in signatures emit deterministic Rust stand-ins instead of unresolved identifiers (stdlib_type_signatures promoted, 2026-05-07)
 - ✅ External package concurrency detection - loaded dependency packages run package-local goroutine/channel detection before wrapper selection (2026-05-07)
 - ✅ Stdlib struct field stubs - selected fields on imported stdlib structs generate typed Rust stub fields, including `go/types.Info.FileVersions` (stdlib_struct_field_map promoted, 2026-05-07)
+- ✅ Stdlib method stubs - selected methods on imported stdlib receiver types generate typed Rust stub methods from selector signatures (stdlib_method_stubs promoted, 2026-05-07)
 - ✅ Single-file package initialization - package-level variables use Go type-checker init order and multiple init functions run before main (init_functions, init_order_complex promoted, 2026-05-06)
 - ✅ Import aliases - aliased stdlib package selectors resolve through the import map (import_aliases promoted, 2026-05-06)
 - Import side effects (blank_imports_side_effects)

@@ -2932,6 +2932,7 @@ func staticallyKnownAnyInterfaceAssertionSource(e *ast.TypeAssertExpr) (ast.Expr
 	if !types.Implements(sourceType, targetInterface) {
 		return nil, false
 	}
+	RegisterExternalInterfaceMethodsForSource(sourceType, targetInterface)
 	return call.Args[0], true
 }
 
@@ -3176,6 +3177,8 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 
 	// Check if this is a method call (selector expression)
 	if sel, ok := call.Fun.(*ast.SelectorExpr); ok {
+		RegisterExternalSelectorMethod(sel)
+
 		// First check if this is a package function call
 		isPackageCall := false
 		if ident, ok := sel.X.(*ast.Ident); ok {

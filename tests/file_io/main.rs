@@ -41,6 +41,26 @@ impl GoFile {
     }
 }
 
+#[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord)]
+pub struct os_File;
+
+impl std::fmt::Display for os_File {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<os_File>")
+    }
+}
+
+
+impl os_File {
+    pub fn close(&self) -> Rc<RefCell<Option<Box<dyn StdError>>>> {
+        Rc::new(RefCell::new(None::<Box<dyn StdError>>))
+    }
+    pub fn write_string<T0>(&self, _arg0: T0) -> (Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<Box<dyn StdError>>>>) {
+        (Rc::new(RefCell::new(Some::<i32>(Default::default()))), Rc::new(RefCell::new(None::<Box<dyn StdError>>)))
+    }
+}
+
+
 fn main() {
     let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 

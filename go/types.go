@@ -492,6 +492,19 @@ func isGoSyncNamedType(typ types.Type) bool {
 
 // goTypesTypeToRust converts a go/types.Type to the base Rust type string (unwrapped)
 func goTypesTypeToRust(t types.Type) string {
+	if named, ok := t.(*types.Named); ok && named.Obj() != nil {
+		obj := named.Obj()
+		if obj.Pkg() == nil && obj.Name() == "error" {
+			TrackImport("Error")
+			if NeedsConcurrentWrapper() {
+				return "Box<dyn StdError + Send + Sync>"
+			}
+			return "Box<dyn StdError>"
+		}
+		if obj.Pkg() != nil && isStdlibPackage(obj.Pkg().Path()) {
+			return goTypesNamedTypeToRust(named)
+		}
+	}
 	switch ut := t.Underlying().(type) {
 	case *types.Basic:
 		switch ut.Kind() {
@@ -563,6 +576,13 @@ func goTypesTypeToRust(t types.Type) string {
 		}
 		return "/* unknown type */"
 	}
+}
+
+func goTypesReturnTypeToRust(t types.Type) string {
+	if _, ok := t.Underlying().(*types.Pointer); ok {
+		return goTypesTypeToRust(t)
+	}
+	return goTypesTypeToRustWrapped(t)
 }
 
 func goTypesNamedTypeToRust(named *types.Named) string {

@@ -1,0 +1,8 @@
+[package]
+name = "stdlib_method_stubs"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "stdlib_method_stubs"
+path = "main.rs"

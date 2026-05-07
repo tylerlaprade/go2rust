@@ -801,6 +801,10 @@ run_xfail_test() {
     run_test "tests/stdlib_imports"
 }
 
+@test "stdlib_method_stubs" {
+    run_test "tests/stdlib_method_stubs"
+}
+
 @test "stdlib_strings" {
     run_test "tests/stdlib_strings"
 }

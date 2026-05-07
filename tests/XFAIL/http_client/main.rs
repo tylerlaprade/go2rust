@@ -1,8 +1,9 @@
+use std::error::Error as StdError;
 use std::sync::{Arc, Mutex};
 
 #[derive(Debug, Clone, Default)]
 pub struct http_Response {
-    pub body: Arc<Mutex<Option<Box<dyn io_ReadCloser>>>>,
+    pub body: Arc<Mutex<Option<io_ReadCloser>>>,
 }
 
 impl std::fmt::Display for http_Response {
@@ -18,6 +19,13 @@ pub struct io_ReadCloser;
 impl std::fmt::Display for io_ReadCloser {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "<io_ReadCloser>")
+    }
+}
+
+
+impl io_ReadCloser {
+    pub fn close(&self) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
+        Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>))
     }
 }
 

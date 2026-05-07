@@ -40,6 +40,49 @@ impl GoFile {
     }
 }
 
+#[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord)]
+pub struct bufio_Scanner;
+
+impl std::fmt::Display for bufio_Scanner {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<bufio_Scanner>")
+    }
+}
+
+
+impl bufio_Scanner {
+    pub fn err(&self) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
+        Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>))
+    }
+    pub fn scan(&self) -> Arc<Mutex<Option<bool>>> {
+        Arc::new(Mutex::new(Some::<bool>(Default::default())))
+    }
+    pub fn text(&self) -> Arc<Mutex<Option<String>>> {
+        Arc::new(Mutex::new(Some::<String>(Default::default())))
+    }
+}
+
+
+#[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord)]
+pub struct os_File;
+
+impl std::fmt::Display for os_File {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<os_File>")
+    }
+}
+
+
+impl os_File {
+    pub fn close(&self) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
+        Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>))
+    }
+    pub fn write_string<T0>(&self, _arg0: T0) -> (Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+        (Arc::new(Mutex::new(Some::<i32>(Default::default()))), Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>)))
+    }
+}
+
+
 fn main() {
     let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
