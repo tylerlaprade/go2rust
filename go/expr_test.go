@@ -2,6 +2,8 @@ package main
 
 import (
 	"go/ast"
+	"go/parser"
+	"go/token"
 	"strings"
 	"testing"
 )
@@ -25,5 +27,51 @@ func TestUnknownPositionalStructLiteralFallbackParses(t *testing.T) {
 	}
 	if !strings.Contains(got, "External { /* ERROR: Type information required for positional struct literal */ ..Default::default() }") {
 		t.Fatalf("unexpected fallback for unknown positional struct literal:\n%s", got)
+	}
+}
+
+func TestSelectorStructCompositeLiteralUsesTypeInfo(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+import "go/types"
+
+func main() {
+	_ = &types.Info{}
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(main.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+	SetTypeInfo(typeInfo)
+	defer SetTypeInfo(nil)
+
+	var composite *ast.CompositeLit
+	ast.Inspect(file, func(n ast.Node) bool {
+		if lit, ok := n.(*ast.CompositeLit); ok {
+			if _, ok := lit.Type.(*ast.SelectorExpr); ok {
+				composite = lit
+				return false
+			}
+		}
+		return true
+	})
+	if composite == nil {
+		t.Fatal("did not find selector-qualified composite literal")
+	}
+
+	var out strings.Builder
+	TranspileExpression(&out, composite)
+
+	got := out.String()
+	if !strings.Contains(got, "types_Info {") {
+		t.Fatalf("selector-qualified struct literal should use package-qualified Rust type:\n%s", got)
+	}
+	if strings.Contains(got, "Some()") || strings.Contains(got, "(*.borrow") {
+		t.Fatalf("selector-qualified struct literal emitted missing expression:\n%s", got)
 	}
 }

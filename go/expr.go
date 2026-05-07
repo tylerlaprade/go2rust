@@ -404,7 +404,7 @@ func orderedArrayLiteralValues(elts []ast.Expr) []ast.Expr {
 
 func typesStructLiteralName(typ types.Type, structUnder *types.Struct) string {
 	if named, ok := typ.(*types.Named); ok {
-		return named.Obj().Name()
+		return goTypesNamedTypeToRust(named)
 	}
 	return lookupAnonymousStructName(structUnder)
 }
@@ -1591,6 +1591,17 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			if ident, ok := sel.X.(*ast.Ident); ok && ident.Name == "strings" && sel.Sel.Name == "Builder" {
 				out.WriteString("String::new()")
 				return
+			}
+			if typeInfo := GetTypeInfo(); typeInfo != nil {
+				if typ := typeInfo.GetType(e); typ != nil {
+					if structUnder, ok := typ.Underlying().(*types.Struct); ok {
+						structTypeName := typesStructLiteralName(typ, structUnder)
+						if structTypeName != "" {
+							writeTypesStructCompositeLiteral(out, structTypeName, structUnder, e.Elts)
+							return
+						}
+					}
+				}
 			}
 		}
 		if arrayType, ok := e.Type.(*ast.ArrayType); ok {

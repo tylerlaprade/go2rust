@@ -79,6 +79,7 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 ### 📋 Phase 8: Package System
 
 - 🚧 Multiple file packages - cross-file structs, methods, package-level map/slice globals, and function variables resolve through generated Rust modules (cross_file_types, cross_file_methods, cross_file_maps, cross_file_func_vars promoted, 2026-05-06)
+- ✅ Selector-qualified struct literals - external `pkg.Type{}` composites use TypeInfo-derived Rust type names instead of emitting empty expressions (2026-05-07)
 - ✅ Single-file package initialization - package-level variables use Go type-checker init order and multiple init functions run before main (init_functions, init_order_complex promoted, 2026-05-06)
 - ✅ Import aliases - aliased stdlib package selectors resolve through the import map (import_aliases promoted, 2026-05-06)
 - Import side effects (blank_imports_side_effects)

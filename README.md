@@ -180,6 +180,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | **`struct` - Struct types** | |
 | └ Struct definitions | ✅ |
 | └ Struct literals | ✅ |
+| └ Selector-qualified struct literals (`pkg.Type{}`) | ✅ |
 | └ Field access | ✅ |
 | └ Embedded fields | ✅ |
 | └ Anonymous structs | ✅ |
