@@ -381,6 +381,10 @@ run_xfail_test() {
     run_test "tests/compound_assignments"
 }
 
+@test "concurrent_len_comparison" {
+    run_test "tests/concurrent_len_comparison"
+}
+
 @test "const_basic" {
     run_test "tests/const_basic"
 }

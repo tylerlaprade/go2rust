@@ -330,6 +330,9 @@ func (ti *TypeInfo) IsInterface(ident *ast.Ident) bool {
 func (ti *TypeInfo) ReturnsWrappedValue(expr ast.Expr) bool {
 	switch e := expr.(type) {
 	case *ast.CallExpr:
+		if isBareBuiltinCall(e) {
+			return false
+		}
 		// Both function calls and type conversions return wrapped values
 		// (TranspileTypeConversion wraps its output with WriteWrapperPrefix/Suffix)
 		return true
@@ -386,12 +389,8 @@ func (ti *TypeInfo) NeedsUnwrapping(expr ast.Expr) bool {
 		// so we should NOT unwrap them again in binary expressions
 		return false
 	case *ast.CallExpr:
-		// Check if it's a built-in function that returns a primitive
-		if ident, ok := e.Fun.(*ast.Ident); ok {
-			switch ident.Name {
-			case "len", "cap":
-				return false // These return primitives (usize)
-			}
+		if isBareBuiltinCall(e) {
+			return false
 		}
 		// Function calls that return wrapped values need unwrapping
 		return ti.ReturnsWrappedValue(expr)

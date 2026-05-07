@@ -74,6 +74,31 @@ func writeCharLiteralForExpectedType(out *strings.Builder, lit *ast.BasicLit, ex
 	return true
 }
 
+func isBareBuiltinCall(expr ast.Expr) bool {
+	call, ok := expr.(*ast.CallExpr)
+	if !ok {
+		return false
+	}
+	ident, ok := call.Fun.(*ast.Ident)
+	if !ok {
+		return false
+	}
+	switch ident.Name {
+	case "len", "cap":
+		typeInfo := GetTypeInfo()
+		if typeInfo == nil {
+			return true
+		}
+		obj := typeInfo.GetObject(ident)
+		if obj == nil {
+			return true
+		}
+		return obj.Parent() == types.Universe
+	default:
+		return false
+	}
+}
+
 // isExpressionResultBare checks if an expression produces a bare (non-wrapped) result
 // in LValue context. If true, the result should NOT have .borrow()/.lock() applied.
 // This is used to avoid adding extra unwrap layers in nested indexing like matrix[1][1].
@@ -1392,6 +1417,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		writeOperand := func(expr ast.Expr, other ast.Expr, isStringLit bool, needsUnwrap bool) {
 			if lit, ok := expr.(*ast.BasicLit); ok && writeCharLiteralForPeer(out, lit, other) {
 				return
+			}
+			if needsUnwrap && isBareBuiltinCall(expr) {
+				needsUnwrap = false
 			}
 			if needsUnwrap {
 				out.WriteString("(*")

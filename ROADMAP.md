@@ -51,6 +51,7 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 - ✅ Composite literal arguments - slice/map/array literals passed to functions no longer double-wrap (2026-03-26)
 - ✅ Elided nested composite literals - nested slice/map composites and map-value indexing work (elided_nested_composites promoted, 2026-05-06)
 - ✅ Complex expressions - nested arithmetic, boolean, bitwise, closure-call, slice/map/field/pointer/type-assertion/channel operands evaluate with sequenced concurrent lock lifetimes (complex_expressions promoted, 2026-05-06)
+- ✅ Concurrent len/cap comparisons - binary temp operands preserve bare builtin results instead of treating them as wrapped values (concurrent_len_comparison promoted, 2026-05-07)
 
 ### 📋 Phase 6: Control Flow Extensions
 
