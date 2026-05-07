@@ -115,7 +115,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Basic constants | ✅ |
 | └ Iota enumerations | ✅ |
 | └ Complex iota expressions | ✅ |
-| └ Named iota-backed enum types, including struct fields | ✅ |
+| └ Named iota-backed enum types, including struct fields and underlying const widths | ✅ |
 | **`continue` - Continue statements** | ✅ |
 | **`default` - Default clauses** | |
 | └ Switch default | ✅ |

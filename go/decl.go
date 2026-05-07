@@ -803,6 +803,7 @@ func transpileConstDeclWithCase(out *strings.Builder, genDecl *ast.GenDecl, toUp
 	// Track iota value and the last expression pattern for each position
 	iotaValue := 0
 	var lastExpressions []ast.Expr
+	var lastType ast.Expr
 
 	for specIndex, spec := range genDecl.Specs {
 		if valueSpec, ok := spec.(*ast.ValueSpec); ok {
@@ -812,6 +813,9 @@ func transpileConstDeclWithCase(out *strings.Builder, genDecl *ast.GenDecl, toUp
 			// Update lastExpressions if this spec has values
 			if len(valueSpec.Values) > 0 {
 				lastExpressions = valueSpec.Values
+			}
+			if valueSpec.Type != nil {
+				lastType = valueSpec.Type
 			}
 
 			for i, name := range valueSpec.Names {
@@ -836,7 +840,9 @@ func transpileConstDeclWithCase(out *strings.Builder, genDecl *ast.GenDecl, toUp
 					// Track local constants with their actual type
 					var constType string
 					if valueSpec.Type != nil {
-						constType = goTypeToRustBase(valueSpec.Type)
+						constType = rustConstTypeForTypeExpr(valueSpec.Type)
+					} else if len(valueSpec.Values) == 0 && lastType != nil {
+						constType = rustConstTypeForTypeExpr(lastType)
 					} else if len(valueSpec.Values) > i && valueSpec.Values[i] != nil {
 						constType = inferConstType(valueSpec.Values[i])
 					} else if len(lastExpressions) > i && lastExpressions[i] != nil {
@@ -851,24 +857,9 @@ func transpileConstDeclWithCase(out *strings.Builder, genDecl *ast.GenDecl, toUp
 
 				// Determine type - constants should not be wrapped
 				if valueSpec.Type != nil {
-					// For const string type, use &'static str
-					if ident, ok := valueSpec.Type.(*ast.Ident); ok && ident.Name == "string" {
-						out.WriteString("&'static str")
-					} else {
-						// Check if this is a type definition and get underlying type
-						baseType := goTypeToRustBase(valueSpec.Type)
-						// If it's a custom type, we need to use the underlying type
-						// For now, assume custom int types map to i32
-						if ident, ok := valueSpec.Type.(*ast.Ident); ok {
-							// Check if this is a known type definition
-							if _, isTypeDef := LookupTypeDefinition(ident.Name); isTypeDef {
-								// Type definitions for constants should use the underlying type
-								// For now, assume int-based type definitions
-								baseType = "i32"
-							}
-						}
-						out.WriteString(baseType)
-					}
+					out.WriteString(rustConstTypeForTypeExpr(valueSpec.Type))
+				} else if len(valueSpec.Values) == 0 && lastType != nil {
+					out.WriteString(rustConstTypeForTypeExpr(lastType))
 				} else if len(valueSpec.Values) > i && valueSpec.Values[i] != nil {
 					// Infer type from value
 					out.WriteString(inferConstType(valueSpec.Values[i]))

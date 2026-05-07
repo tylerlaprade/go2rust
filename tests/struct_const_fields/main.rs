@@ -2,10 +2,10 @@ use std::cell::{RefCell};
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
-pub const INVALID: i32 = 0;
-pub const TYPE: i32 = 1;
-pub const FUNC: i32 = 2;
-pub const FIELD: i32 = 3;
+pub const INVALID: i8 = 0;
+pub const TYPE: i8 = 1;
+pub const FUNC: i8 = 2;
+pub const FIELD: i8 = 3;
 
 
 #[derive(Debug, Clone)]

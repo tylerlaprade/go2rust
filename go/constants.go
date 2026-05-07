@@ -55,6 +55,50 @@ func rustCastTypeForDefinedUnderlying(underlying string) (string, bool) {
 	}
 }
 
+func rustConstTypeForDefinedUnderlying(underlying string) (string, bool) {
+	switch underlying {
+	case "string":
+		return "&'static str", true
+	case "bool":
+		return "bool", true
+	default:
+		return rustCastTypeForDefinedUnderlying(underlying)
+	}
+}
+
+func rustConstTypeForGoTypesType(typ types.Type) (string, bool) {
+	switch t := typ.(type) {
+	case *types.Named:
+		return rustConstTypeForGoTypesType(t.Underlying())
+	case *types.Basic:
+		return rustConstTypeForDefinedUnderlying(t.Name())
+	default:
+		return "", false
+	}
+}
+
+func rustConstTypeForTypeExpr(expr ast.Expr) string {
+	if ident, ok := expr.(*ast.Ident); ok {
+		if ident.Name == "string" {
+			return "&'static str"
+		}
+		if underlying, isTypeDef := LookupTypeDefinition(ident.Name); isTypeDef {
+			if rustType, ok := rustConstTypeForDefinedUnderlying(underlying); ok {
+				return rustType
+			}
+		}
+	}
+
+	typeInfo := GetTypeInfo()
+	if typeInfo != nil {
+		if rustType, ok := rustConstTypeForGoTypesType(typeInfo.GetType(expr)); ok {
+			return rustType
+		}
+	}
+
+	return goTypeToRustBase(expr)
+}
+
 func isDisplayableDefinedUnderlying(underlying string) bool {
 	switch underlying {
 	case "string", "bool", "int", "int8", "int16", "int32", "int64", "rune",

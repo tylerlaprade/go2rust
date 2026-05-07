@@ -484,6 +484,13 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 							spec *ast.TypeSpec
 							decl *ast.GenDecl
 						}{typeSpec, d})
+						if typeSpec.Assign != 0 {
+							RegisterTypeAlias(typeSpec.Name.Name)
+						} else if _, isFuncType := typeSpec.Type.(*ast.FuncType); isFuncType {
+							RegisterTypeAlias(typeSpec.Name.Name)
+						} else if ident, ok := typeSpec.Type.(*ast.Ident); ok {
+							RegisterTypeDefinition(typeSpec.Name.Name, ident.Name)
+						}
 						// Track interfaces
 						if ifaceType, ok := typeSpec.Type.(*ast.InterfaceType); ok {
 							interfaces[typeSpec.Name.Name] = ifaceType
