@@ -1,0 +1,22 @@
+
+[workspace]
+members = [
+    ".",
+    "vendor/example_com_sharedstubmain_aliases",
+    "vendor/example_com_sharedstubmain_typeparams",
+    "vendor/go2rust_stdlib_stubs",
+]
+
+[package]
+name = "shared_stdlib_stubs_external"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "shared_stdlib_stubs_external"
+path = "main.rs"
+
+[dependencies]
+example_com_sharedstubmain_aliases = { path = "vendor/example_com_sharedstubmain_aliases" }
+example_com_sharedstubmain_typeparams = { path = "vendor/example_com_sharedstubmain_typeparams" }
+go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }

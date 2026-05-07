@@ -806,6 +806,10 @@ run_xfail_test() {
     run_test "tests/shared_mutation"
 }
 
+@test "shared_stdlib_stubs_external" {
+    run_test "tests/shared_stdlib_stubs_external"
+}
+
 @test "simple_embedding" {
     run_test "tests/simple_embedding"
 }
