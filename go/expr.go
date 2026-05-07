@@ -1239,6 +1239,16 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			// Go's unary ^ is bitwise complement; Rust spells it as !.
 			out.WriteString("!")
 			TranspileExpression(out, e.X)
+		case token.NOT:
+			if call, ok := e.X.(*ast.CallExpr); ok && callReturnsWrappedBool(call) {
+				out.WriteString("!(")
+				TranspileExpression(out, e.X)
+				WriteBorrowMethod(out, false)
+				out.WriteString(".as_ref().unwrap())")
+				return
+			}
+			out.WriteString("!")
+			TranspileExpression(out, e.X)
 		default:
 			out.WriteString(e.Op.String())
 			TranspileExpression(out, e.X)

@@ -1,0 +1,8 @@
+[package]
+name = "wrapped_bool_not"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "wrapped_bool_not"
+path = "main.rs"

@@ -215,6 +215,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | **Operators** | |
 | └ Binary operators (+, -, *, /, etc.) | ✅ |
 | └ Complex nested expressions with function calls, indexing, fields, pointers, assertions, and channel receives | ✅ |
+| └ Unary NOT on bool-returning calls | ✅ |
 | └ Assignment operators (=, +=, etc.) | ✅ |
 | └ Increment/decrement (++, --) | ✅ |
 | └ Address-of (&) | ✅ |
