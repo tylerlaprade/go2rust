@@ -509,6 +509,10 @@ run_xfail_test() {
     run_test "tests/function_literals_closures"
 }
 
+@test "function_return_assignment" {
+    run_test "tests/function_return_assignment"
+}
+
 @test "functions_multiple_return" {
     run_test "tests/functions_multiple_return"
 }

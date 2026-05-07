@@ -283,7 +283,7 @@ fn main() {
         (*file_defer_captured.lock().unwrap().as_mut().unwrap()).close();
     }));
 
-    { let new_val = bufio::new_scanner(Arc::new(Mutex::new(Some((*file.lock().unwrap().as_ref().unwrap()))))); *scanner.lock().unwrap() = Some(new_val); };
+    { let new_val = bufio::new_scanner(Arc::new(Mutex::new(Some((*file.lock().unwrap().as_ref().unwrap()))))); *scanner.lock().unwrap() = new_val.lock().unwrap().take(); };
     let mut wordCount = Arc::new(Mutex::new(Some(0)));
     let mut lineCount = Arc::new(Mutex::new(Some(0)));
     let mut charCount = Arc::new(Mutex::new(Some(0)));

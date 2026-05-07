@@ -1633,6 +1633,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										TranspileExpressionContext(out, s.Lhs[0], LValue)
 										out.WriteString(" = ")
 										TranspileExpression(out, s.Rhs[0])
+									} else if typeInfo != nil && typeInfo.ReturnsWrappedValue(call) && !isBareBuiltinReturn(call) {
+										writeMoveWrappedInnerAssignment(out, s.Lhs[0], s.Rhs[0])
 									} else { // Regular function call
 										// Check if RHS is len() which returns usize but LHS expects i32
 										isLenCall := false

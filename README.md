@@ -138,6 +138,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Function-valued struct field calls | ✅ |
 | └ Function literals/closures | ✅ |
 | └ Function variables and higher-order function values | ✅ |
+| └ Assignment from function return values | ✅ |
 | └ Variadic functions | ✅ |
 | **`go` - Goroutines** | ✅ |
 | └ Worker pool pattern with channels | ✅ |
