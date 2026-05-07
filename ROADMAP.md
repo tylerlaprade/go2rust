@@ -47,7 +47,7 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 - ✅ Basic constants - simple const declarations working
 - ✅ Complex constants and iota - multiple constants per line, bit shifts, blank identifier all working (2025-08-23)
 - ✅ Named iota enum types - iota-backed defined integer types preserve newtype semantics and underlying const widths across constants, switch cases, maps, returns, struct fields, untyped literal fields, multi-module struct literals, and String methods (enums_iota promoted, 2026-05-06; struct_const_fields promoted, 2026-05-07; const width fix, 2026-05-07; multi-file newtype constructor fix, 2026-05-07)
-- ✅ Named scalar equality comparisons - scalar type definitions derive equality and typed constants wrap correctly for multi-name parameters (named_type_comparisons added, 2026-05-07)
+- ✅ Named scalar equality comparisons - scalar type definitions compare across wrapper modes, and typed constants wrap correctly for multi-name parameters and selector comparisons (named_type_comparisons and concurrent_named_type_comparisons added, 2026-05-07)
 - ✅ Closures and function literals - type-info-scoped capture analysis handles nested closures, package selectors, type conversions, and Rust keyword parameters
 - ✅ Instantiated generic function type aliases - go/types-backed lowering handles callable aliases such as `iter.Seq[string]` without falling back to unknown `()` types (generic_function_type_alias added, 2026-05-07)
 - ✅ Numeric type conversions - literal and raw expression conversions such as `byte(1)` and `uint64(1) << n` cast directly instead of borrowing a wrapped value (numeric_conversion_literals promoted, 2026-05-07)

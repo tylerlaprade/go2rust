@@ -1257,6 +1257,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									// len/cap emitted as Go int representation for this return expression.
 								} else if writeIntPeerForLenCapBinaryOperand(out, expr, other, typeInfo != nil && typeInfo.ReturnsWrappedValue(expr)) {
 									// typed int peer emitted as Go int representation for this return expression.
+								} else if writeNamedConstForBinaryPeer(out, expr, other) {
+									// typed named constants are constructed as their named newtype when compared with named values.
 								} else if typeInfo != nil && typeInfo.ReturnsWrappedValue(expr) {
 									// Expression returns wrapped value, unwrap it.
 									out.WriteString("(*")

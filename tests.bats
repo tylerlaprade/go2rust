@@ -426,6 +426,10 @@ run_xfail_test() {
     run_test "tests/concurrent_len_comparison"
 }
 
+@test "concurrent_named_type_comparisons" {
+    run_test "tests/concurrent_named_type_comparisons"
+}
+
 @test "const_basic" {
     run_test "tests/const_basic"
 }

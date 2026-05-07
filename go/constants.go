@@ -119,6 +119,55 @@ func isEqualityComparableDefinedUnderlying(underlying string) bool {
 	return isDisplayableDefinedUnderlying(underlying)
 }
 
+func namedTypeDefinitionFromType(typ types.Type) (*types.Named, bool) {
+	named, ok := types.Unalias(typ).(*types.Named)
+	if !ok || named.Obj() == nil {
+		return nil, false
+	}
+	if _, isTypeDef := LookupTypeDefinition(named.Obj().Name()); !isTypeDef {
+		return nil, false
+	}
+	return named, true
+}
+
+func sameNamedTypeDefinition(left *types.Named, right *types.Named) bool {
+	if left == nil || right == nil || left.Obj() == nil || right.Obj() == nil {
+		return false
+	}
+	if left.Obj() == right.Obj() {
+		return true
+	}
+	leftPkg := ""
+	if left.Obj().Pkg() != nil {
+		leftPkg = left.Obj().Pkg().Path()
+	}
+	rightPkg := ""
+	if right.Obj().Pkg() != nil {
+		rightPkg = right.Obj().Pkg().Path()
+	}
+	return left.Obj().Name() == right.Obj().Name() && leftPkg == rightPkg
+}
+
+func writeNamedConstForBinaryPeer(out *strings.Builder, expr ast.Expr, other ast.Expr) bool {
+	if !isConstantExpression(expr) {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	exprNamed, ok := namedTypeDefinitionFromType(typeInfo.GetType(expr))
+	if !ok {
+		return false
+	}
+	otherNamed, ok := namedTypeDefinitionFromType(typeInfo.GetType(other))
+	if !ok || !sameNamedTypeDefinition(exprNamed, otherNamed) {
+		return false
+	}
+	writeExpressionForExpectedTypesType(out, expr, otherNamed)
+	return true
+}
+
 func writeWrappedExpressionForExpectedType(out *strings.Builder, value ast.Expr, expected ast.Expr) {
 	WriteWrapperPrefix(out)
 	if expectsStringType(expected) && isStringConstExpr(value) {

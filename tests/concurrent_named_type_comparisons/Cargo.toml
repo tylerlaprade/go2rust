@@ -1,0 +1,8 @@
+[package]
+name = "concurrent_named_type_comparisons"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "concurrent_named_type_comparisons"
+path = "main.rs"

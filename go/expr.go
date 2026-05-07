@@ -1768,6 +1768,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			if writeIntPeerForLenCapBinaryOperand(out, expr, other, needsUnwrap) {
 				return
 			}
+			if writeNamedConstForBinaryPeer(out, expr, other) {
+				return
+			}
 			if needsUnwrap && isBareBuiltinCall(expr) {
 				needsUnwrap = false
 			}
@@ -1776,6 +1779,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				TranspileExpression(out, expr)
 				WriteBorrowMethod(out, false)
 				out.WriteString(".as_ref().unwrap())")
+				if isCloneableNonPointerExpr(expr) && !isCopyTypeExpression(expr) {
+					out.WriteString(".clone()")
+				}
 			} else if isStringLit {
 				// Emit string literal as &str (without .to_string())
 				// This works for comparing with String, &String, and &str

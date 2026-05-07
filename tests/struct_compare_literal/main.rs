@@ -25,7 +25,7 @@ pub fn parse(x: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<version>>> {
 
 pub fn valid(x: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<bool>>> {
 
-    return Rc::new(RefCell::new(Some((*parse(Rc::new(RefCell::new(Some((*x.borrow().as_ref().unwrap()).clone())))).borrow().as_ref().unwrap()) != version { major: Rc::new(RefCell::new(Some(String::new()))), minor: Rc::new(RefCell::new(Some(String::new()))) })));
+    return Rc::new(RefCell::new(Some((*parse(Rc::new(RefCell::new(Some((*x.borrow().as_ref().unwrap()).clone())))).borrow().as_ref().unwrap()).clone() != version { major: Rc::new(RefCell::new(Some(String::new()))), minor: Rc::new(RefCell::new(Some(String::new()))) })));
 }
 
 fn main() {
