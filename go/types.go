@@ -471,6 +471,11 @@ func zeroValueForTypesType(typ types.Type) string {
 	if typ == nil {
 		return "Default::default()"
 	}
+	if named, ok := types.Unalias(typ).(*types.Named); ok {
+		if _, isSlice := types.Unalias(named.Underlying()).(*types.Slice); isSlice {
+			return "Default::default()"
+		}
+	}
 	switch t := typ.Underlying().(type) {
 	case *types.Basic:
 		switch t.Kind() {
@@ -538,6 +543,9 @@ func goTypesTypeToRust(t types.Type) string {
 			return "Box<dyn StdError>"
 		}
 		if obj.Pkg() != nil && isStdlibPackage(obj.Pkg().Path()) {
+			return goTypesNamedTypeToRust(named)
+		}
+		if _, isSlice := types.Unalias(named.Underlying()).(*types.Slice); isSlice {
 			return goTypesNamedTypeToRust(named)
 		}
 	}

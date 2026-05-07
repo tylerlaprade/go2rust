@@ -190,6 +190,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Library packages | ✅ |
 | └ Package-level variable initialization | ✅ |
 | └ Package-level map literal initialization | ✅ |
+| └ Package-level named slice declarations | ✅ |
 | └ Init functions | ✅ |
 | └ Multi-file packages with cross-file types, methods, maps, slices, and function variables | 🚧 |
 | └ Workspace-wide wrapper selection for transpiled external packages | ✅ |
@@ -230,6 +231,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Instantiated generic function type aliases | ✅ |
 | └ Numeric conversions from literals and expressions | ✅ |
 | └ Named slice type definitions in methods, parameters, ranges, indexing, and append | ✅ |
+| └ Named slice type definitions in package globals | ✅ |
 | └ Interface types | ✅ |
 | **`var` - Variable declarations** | |
 | └ Basic var declarations | ✅ |

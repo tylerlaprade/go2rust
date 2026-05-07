@@ -762,6 +762,10 @@ run_xfail_test() {
     run_test "tests/package_global_map_incremental"
 }
 
+@test "package_global_named_slice" {
+    run_test "tests/package_global_named_slice"
+}
+
 @test "package_global_shadowing" {
     run_test "tests/package_global_shadowing"
 }
