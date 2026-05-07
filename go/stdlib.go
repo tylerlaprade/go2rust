@@ -115,6 +115,9 @@ func init() {
 		"math.Pow":                                   transpileMathPow,
 		"math.Max":                                   transpileMathMax,
 		"math.Min":                                   transpileMathMin,
+		"unsafe.Sizeof":                              transpileUnsafeSizeof,
+		"unsafe.Alignof":                             transpileUnsafeAlignof,
+		"unsafe.Offsetof":                            transpileUnsafeOffsetof,
 		"math/rand.Seed":                             transpileRandSeed,
 		"math/rand.Intn":                             transpileRandIntn,
 		"math/rand.Float64":                          transpileRandFloat64,
@@ -1798,6 +1801,62 @@ func transpileMathBinary(out *strings.Builder, call *ast.CallExpr, method string
 	writeUnwrappedForFormat(out, call.Args[1])
 	out.WriteString(" as f64)")
 	WriteWrapperSuffix(out)
+}
+
+func transpileUnsafeSizeof(out *strings.Builder, call *ast.CallExpr) {
+	transpileUnsafeTypeSizeCall(out, call, "Sizeof", "size_of")
+}
+
+func transpileUnsafeAlignof(out *strings.Builder, call *ast.CallExpr) {
+	transpileUnsafeTypeSizeCall(out, call, "Alignof", "align_of")
+}
+
+func transpileUnsafeTypeSizeCall(out *strings.Builder, call *ast.CallExpr, goFunc string, rustFunc string) {
+	WriteWrapperPrefix(out)
+	if len(call.Args) == 0 {
+		out.WriteString("/* ERROR: unsafe.")
+		out.WriteString(goFunc)
+		out.WriteString(" requires an argument */ unimplemented!()")
+		WriteWrapperSuffix(out)
+		return
+	}
+
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		out.WriteString("/* ERROR: Type information required for unsafe.")
+		out.WriteString(goFunc)
+		out.WriteString(" */ unimplemented!()")
+		WriteWrapperSuffix(out)
+		return
+	}
+
+	argType := typeInfo.GetType(call.Args[0])
+	if argType == nil {
+		out.WriteString("/* ERROR: Type information unavailable for unsafe.")
+		out.WriteString(goFunc)
+		out.WriteString(" */ unimplemented!()")
+		WriteWrapperSuffix(out)
+		return
+	}
+
+	out.WriteString("std::mem::")
+	out.WriteString(rustFunc)
+	out.WriteString("::<")
+	out.WriteString(goTypesTypeToRust(argType))
+	out.WriteString(">()")
+	WriteWrapperSuffix(out)
+}
+
+func transpileUnsafeOffsetof(out *strings.Builder, call *ast.CallExpr) {
+	if NeedsConcurrentWrapper() {
+		TrackImport("Arc")
+		TrackImport("Mutex")
+		out.WriteString("Arc::new(Mutex::new(Some::<usize>(unimplemented!(\"unsafe.Offsetof requires struct layout support\"))))")
+		return
+	}
+	TrackImport("Rc")
+	TrackImport("RefCell")
+	out.WriteString("Rc::new(RefCell::new(Some::<usize>(unimplemented!(\"unsafe.Offsetof requires struct layout support\"))))")
 }
 
 func transpileRandSeed(out *strings.Builder, call *ast.CallExpr) {

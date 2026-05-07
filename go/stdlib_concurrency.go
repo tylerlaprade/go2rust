@@ -111,6 +111,11 @@ var syncStdlibFunctions = map[string]bool{
 	"math/rand.Intn":    true,
 	"math/rand.Float64": true,
 
+	// unsafe - compile-time layout queries are synchronous
+	"unsafe.Sizeof":   true,
+	"unsafe.Alignof":  true,
+	"unsafe.Offsetof": true,
+
 	// io - Basic I/O is synchronous
 	"io.Copy":        true,
 	"io.CopyN":       true,

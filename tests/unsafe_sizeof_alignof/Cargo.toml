@@ -1,0 +1,8 @@
+[package]
+name = "unsafe_sizeof_alignof"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "unsafe_sizeof_alignof"
+path = "main.rs"

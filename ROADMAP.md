@@ -88,7 +88,7 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 
 - Generics (generics_basic)
 - ✅ Basic reflection metadata - reflect.TypeOf for struct fields plus StructTag.Get (struct_tags_reflection promoted, 2026-05-06)
-- Unsafe operations (unsafe_pointer_ops)
+- 🚧 Unsafe operations - Sizeof/Alignof lower to Rust representation layout; pointer arithmetic and Offsetof remain unsupported (unsafe_sizeof_alignof promoted, 2026-05-07)
 - 🚧 JSON/encoding/crypto support - json.Marshal supports structs with exported basic fields (json_marshal promoted, 2026-05-06); encoding/base64 StdEncoding EncodeToString/DecodeString and crypto/sha256 Sum256 supported (base64_encoding, crypto_hash promoted, 2026-05-06)
 - ✅ Extended strings package coverage - search, split/join, replace, repeat, trim variants, EqualFold, Title, and Builder Len (stdlib_strings promoted, 2026-05-06)
 - ✅ Basic net/url parsing - url.Parse exposes Scheme, Host, Path, and RawQuery fields (url_parsing promoted, 2026-05-06)

@@ -817,6 +817,10 @@ run_xfail_test() {
     run_test "tests/unary_plus_bitwise_not"
 }
 
+@test "unsafe_sizeof_alignof" {
+    run_test "tests/unsafe_sizeof_alignof"
+}
+
 @test "url_parsing" {
     run_test "tests/url_parsing"
 }
