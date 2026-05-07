@@ -168,7 +168,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Stdlib pointer method calls from indexed and range receivers | ✅ |
 | └ Stdlib package function/constant/variable stubs | ✅ |
 | └ Shared stdlib stubs across transpiled dependency crates | ✅ |
-| └ Stdlib concrete call results passed to stdlib interface parameters | ✅ |
+| └ Stdlib concrete values passed to stdlib interface parameters | ✅ |
 | **`interface` - Interface types** | |
 | └ Interface definitions | ✅ |
 | └ Empty interface{} | ✅ |

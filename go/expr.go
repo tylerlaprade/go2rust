@@ -552,6 +552,28 @@ func selectedMethodParamType(sel *ast.SelectorExpr, index int) types.Type {
 	return sig.Params().At(index).Type()
 }
 
+func callParamTypeFromTypeInfo(call *ast.CallExpr, index int) types.Type {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || call == nil {
+		return nil
+	}
+	sig, ok := typeInfo.GetType(call.Fun).(*types.Signature)
+	if !ok || sig.Params() == nil {
+		return nil
+	}
+	params := sig.Params()
+	if sig.Variadic() && index >= params.Len()-1 {
+		if slice, ok := params.At(params.Len() - 1).Type().(*types.Slice); ok {
+			return slice.Elem()
+		}
+		return params.At(params.Len() - 1).Type()
+	}
+	if index >= params.Len() {
+		return nil
+	}
+	return params.At(index).Type()
+}
+
 func expectedTypeFromParamExpr(expr ast.Expr) types.Type {
 	if expr == nil {
 		return nil
@@ -616,14 +638,22 @@ func stdlibInterfaceArgumentConversion(arg ast.Expr, expectedType types.Type) (t
 }
 
 func writeStdlibInterfaceCallArgumentConversion(out *strings.Builder, arg ast.Expr, expectedType types.Type) bool {
-	if _, ok := arg.(*ast.CallExpr); !ok {
-		return false
-	}
 	if _, _, ok := stdlibInterfaceArgumentConversion(arg, expectedType); !ok {
 		return false
 	}
 	out.WriteString("{ let __arg = ")
-	TranspileExpression(out, arg)
+	if ident, ok := arg.(*ast.Ident); ok {
+		argVarName := RustIdentForUse(ident)
+		if currentCaptureRenames != nil {
+			if renamed, exists := currentCaptureRenames[ident.Name]; exists {
+				argVarName = RustLocalIdent(renamed)
+			}
+		}
+		out.WriteString(argVarName)
+		out.WriteString(".clone()")
+	} else {
+		TranspileExpression(out, arg)
+	}
 	out.WriteString("; let __converted = { let __arg_guard = __arg")
 	WriteBorrowMethod(out, false)
 	out.WriteString("; (*__arg_guard.as_ref().unwrap()).clone().into() }; ")
@@ -4018,6 +4048,9 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				}
 			}
 		}
+		if expectedArgType == nil {
+			expectedArgType = callParamTypeFromTypeInfo(call, i)
+		}
 
 		// Check if we're calling a closure - closures take wrapped arguments
 		isClosureCall := false
@@ -4160,6 +4193,10 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 					out.WriteString(".clone()")
 					continue
 				}
+			}
+
+			if writeStdlibInterfaceCallArgumentConversion(out, arg, expectedArgType) {
+				continue
 			}
 
 			// Check if the argument is already a wrapped variable

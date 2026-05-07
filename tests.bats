@@ -934,6 +934,10 @@ run_xfail_test() {
     run_test "tests/stdlib_interface_call_argument"
 }
 
+@test "stdlib_interface_ident_argument" {
+    run_test "tests/stdlib_interface_ident_argument"
+}
+
 @test "stdlib_interface_return" {
     run_test "tests/stdlib_interface_return"
 }
