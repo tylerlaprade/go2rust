@@ -107,6 +107,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | Keyword | Status |
 |---------|--------|
 | **`break` - Break statements** | ✅ |
+| └ Direct `break` in switch and type-switch cases | ✅ |
 | **`case` - Case clauses** | |
 | └ Switch cases | ✅ |
 | └ Select cases | ✅ |

@@ -934,6 +934,10 @@ run_xfail_test() {
     run_test "tests/switch_basic"
 }
 
+@test "switch_break_statements" {
+    run_test "tests/switch_break_statements"
+}
+
 @test "switch_init_statement" {
     run_test "tests/switch_init_statement"
 }

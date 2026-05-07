@@ -127,6 +127,11 @@ func writeTypeSwitchOriginalBinding(out *strings.Builder, varName string, expr a
 	out.WriteString(".clone();\n")
 }
 
+func isUnlabeledBreakStmt(stmt ast.Stmt) bool {
+	branch, ok := stmt.(*ast.BranchStmt)
+	return ok && branch.Tok == token.BREAK && branch.Label == nil
+}
+
 func writeWrappedValueCopyFromIdent(out *strings.Builder, ident *ast.Ident) bool {
 	if ident.Name == "_" || ident.Name == "nil" || ident.Name == "true" || ident.Name == "false" {
 		return false
@@ -3231,6 +3236,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					// Case body — replace fallthrough with flag set
 					var caseBodyLastPos token.Pos = caseClause.Colon
 					for _, bodyStmt := range caseClause.Body {
+						if isUnlabeledBreakStmt(bodyStmt) {
+							break
+						}
 						if branch, ok := bodyStmt.(*ast.BranchStmt); ok && branch.Tok == token.FALLTHROUGH {
 							out.WriteString("            _fallthrough = true;\n")
 							continue
@@ -3308,6 +3316,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					out.WriteString(" {\n")
 					var caseBodyLastPos token.Pos = caseClause.Colon
 					for _, bodyStmt := range caseClause.Body {
+						if isUnlabeledBreakStmt(bodyStmt) {
+							break
+						}
 						out.WriteString("            ")
 						TranspileStatement(out, bodyStmt, fnType, fileSet, comments, &caseBodyLastPos, "            ")
 						out.WriteString("\n")
@@ -3322,6 +3333,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					}
 					var caseBodyLastPos token.Pos = defaultClause.Colon
 					for _, bodyStmt := range defaultClause.Body {
+						if isUnlabeledBreakStmt(bodyStmt) {
+							break
+						}
 						out.WriteString("            ")
 						TranspileStatement(out, bodyStmt, fnType, fileSet, comments, &caseBodyLastPos, "            ")
 						out.WriteString("\n")
@@ -3368,6 +3382,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 						var caseBodyLastPos token.Pos = caseClause.Colon
 						for _, bodyStmt := range caseClause.Body {
+							if isUnlabeledBreakStmt(bodyStmt) {
+								break
+							}
 							out.WriteString("            ")
 							TranspileStatement(out, bodyStmt, fnType, fileSet, comments, &caseBodyLastPos, "            ")
 							out.WriteString("\n")
@@ -3386,6 +3403,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					}
 					var caseBodyLastPos token.Pos = defaultClause.Colon
 					for _, bodyStmt := range defaultClause.Body {
+						if isUnlabeledBreakStmt(bodyStmt) {
+							break
+						}
 						out.WriteString("            ")
 						TranspileStatement(out, bodyStmt, fnType, fileSet, comments, &caseBodyLastPos, "            ")
 						out.WriteString("\n")
@@ -4043,6 +4063,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 			// Case body
 			for _, stmt := range caseClause.Body {
+				if isUnlabeledBreakStmt(stmt) {
+					break
+				}
 				out.WriteString("        ")
 				TranspileStatementSimple(out, stmt, fnType, fileSet)
 				out.WriteString(";\n")

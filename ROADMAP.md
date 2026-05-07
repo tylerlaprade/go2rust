@@ -68,6 +68,7 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 - ✅ Full range-loop fixture - slice/map/string/channel ranges, nil slice iteration, and repeated wrapped reads in channel sends (range_loops promoted, 2026-05-06)
 - ✅ Range over integers - Go 1.22 integer range expressions lower to Rust integer ranges (range_over_integer promoted, 2026-05-07)
 - ✅ Goto and labels - labeled break/continue plus basic top-level goto patterns with backward loop jumps and forward block exits (goto_labels promoted, 2026-05-06)
+- ✅ Direct switch-case breaks - unlabeled `break` statements directly in switch and type-switch case bodies stop emitting the rest of that case body instead of producing invalid Rust (switch_break_statements promoted, 2026-05-07)
 - ✅ Fallthrough in switch - if-chain with _fallthrough/_matched flags (fallthrough_switch promoted)
 - ✅ Defer in methods - named method results are initialized before deferred closures and explicit returns assign named results before running defers (defer_named_returns updated, 2026-05-07)
 - ✅ Type switch - downcast_ref-based if-else chain with shared borrow guard, nil cases, and selector pointer cases from TypeInfo (2026-03-27, updated 2026-05-07)
