@@ -929,6 +929,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					out.WriteString(ident.Name)
 					out.WriteString("::")
 					out.WriteString(ToSnakeCase(e.Sel.Name))
+					if IsExternalStdlibPackageVariableSelector(e) {
+						out.WriteString("()")
+					}
 				}
 			} else {
 				TranspileExpression(out, e.X)

@@ -21,6 +21,7 @@ type externalTypeStubMethod struct {
 type externalPackageStub struct {
 	Functions map[string]externalPackageStubFunction
 	Constants map[string]string
+	Variables map[string]string
 }
 
 type externalPackageStubFunction struct {
@@ -213,7 +214,7 @@ func RegisterExternalPackageSelector(sel *ast.SelectorExpr) {
 	case *types.Const:
 		RegisterExternalPackageStubConstant(pkgName, ToSnakeCase(sel.Sel.Name), obj.Type())
 	case *types.Var:
-		RegisterExternalPackageStubConstant(pkgName, ToSnakeCase(sel.Sel.Name), obj.Type())
+		RegisterExternalPackageStubVariable(pkgName, ToSnakeCase(sel.Sel.Name), obj.Type())
 	}
 }
 
@@ -238,7 +239,16 @@ func RegisterExternalPackageStubConstant(pkgName string, constName string, const
 		return
 	}
 	pkg := ensureExternalPackageStub(pkgName)
-	pkg.Constants[constName] = goTypesTypeToRust(constType)
+	pkg.Constants[constName] = goTypesConstTypeToRust(constType)
+}
+
+func RegisterExternalPackageStubVariable(pkgName string, varName string, varType types.Type) {
+	if pkgName == "" || varName == "" || varType == nil {
+		return
+	}
+	trackWrapperImports()
+	pkg := ensureExternalPackageStub(pkgName)
+	pkg.Variables[varName] = goTypesTypeToRustWrapped(varType)
 }
 
 func ensureExternalPackageStub(pkgName string) *externalPackageStub {
@@ -247,6 +257,7 @@ func ensureExternalPackageStub(pkgName string) *externalPackageStub {
 		stubs[pkgName] = &externalPackageStub{
 			Functions: make(map[string]externalPackageStubFunction),
 			Constants: make(map[string]string),
+			Variables: make(map[string]string),
 		}
 	}
 	if stubs[pkgName].Functions == nil {
@@ -255,7 +266,23 @@ func ensureExternalPackageStub(pkgName string) *externalPackageStub {
 	if stubs[pkgName].Constants == nil {
 		stubs[pkgName].Constants = make(map[string]string)
 	}
+	if stubs[pkgName].Variables == nil {
+		stubs[pkgName].Variables = make(map[string]string)
+	}
 	return stubs[pkgName]
+}
+
+func IsExternalStdlibPackageVariableSelector(sel *ast.SelectorExpr) bool {
+	_, _, ok := externalStdlibPackageSelector(sel)
+	if !ok {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return false
+	}
+	_, ok = typeInfo.info.Uses[sel.Sel].(*types.Var)
+	return ok
 }
 
 func externalStdlibPackageSelector(sel *ast.SelectorExpr) (string, string, bool) {
@@ -531,7 +558,7 @@ func writeExternalPackageStubs(out *strings.Builder, packageStubs map[string]*ex
 	slices.Sort(pkgNames)
 	for _, pkgName := range pkgNames {
 		pkg := packageStubs[pkgName]
-		if pkg == nil || (len(pkg.Functions) == 0 && len(pkg.Constants) == 0) {
+		if pkg == nil || (len(pkg.Functions) == 0 && len(pkg.Constants) == 0 && len(pkg.Variables) == 0) {
 			continue
 		}
 		if needsSeparator || out.Len() > 0 {
@@ -556,7 +583,21 @@ func writeExternalPackageStubs(out *strings.Builder, packageStubs map[string]*ex
 			writeExternalStubConstDefaultValue(out, pkg.Constants[constName])
 			out.WriteString(";\n")
 		}
-		if len(constNames) > 0 && len(pkg.Functions) > 0 {
+		if len(constNames) > 0 && (len(pkg.Functions) > 0 || len(pkg.Variables) > 0) {
+			out.WriteString("\n")
+		}
+		varNames := make([]string, 0, len(pkg.Variables))
+		for varName := range pkg.Variables {
+			varNames = append(varNames, varName)
+		}
+		slices.Sort(varNames)
+		for i, varName := range varNames {
+			if i > 0 {
+				out.WriteString("\n")
+			}
+			writeExternalPackageStubVariable(out, varName, pkg.Variables[varName])
+		}
+		if len(varNames) > 0 && len(pkg.Functions) > 0 {
 			out.WriteString("\n")
 		}
 		funcNames := make([]string, 0, len(pkg.Functions))
@@ -572,6 +613,18 @@ func writeExternalPackageStubs(out *strings.Builder, packageStubs map[string]*ex
 		}
 		out.WriteString("}\n")
 	}
+}
+
+func writeExternalPackageStubVariable(out *strings.Builder, varName string, rustType string) {
+	out.WriteString("    pub fn ")
+	out.WriteString(varName)
+	out.WriteString("() -> ")
+	out.WriteString(rustType)
+	out.WriteString(" {\n")
+	out.WriteString("        ")
+	writeExternalStubDefaultValue(out, rustType)
+	out.WriteString("\n")
+	out.WriteString("    }\n")
 }
 
 func writeExternalPackageStubFunction(out *strings.Builder, funcName string, fn externalPackageStubFunction) {

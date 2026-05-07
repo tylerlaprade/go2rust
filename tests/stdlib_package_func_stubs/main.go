@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/binary"
 	"fmt"
 	"go/ast"
 	"go/parser"
@@ -15,6 +16,8 @@ func main() {
 		_, _ = new(types.Config).Check("p", fset, []*ast.File{f}, new(types.Info))
 		var alias *types.Alias
 		_ = types.Unalias(alias)
+		_ = binary.MaxVarintLen64
+		_ = types.Typ
 	}
 	fmt.Println("ok")
 }

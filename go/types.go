@@ -510,7 +510,13 @@ func goTypesTypeToRust(t types.Type) string {
 		switch ut.Kind() {
 		case types.String:
 			return "String"
+		case types.UntypedString:
+			return "String"
 		case types.Int:
+			return "i32"
+		case types.UntypedInt:
+			return "i32"
+		case types.UntypedRune:
 			return "i32"
 		case types.Int8:
 			return "i8"
@@ -536,7 +542,11 @@ func goTypesTypeToRust(t types.Type) string {
 			return "f32"
 		case types.Float64:
 			return "f64"
+		case types.UntypedFloat:
+			return "f64"
 		case types.Bool:
+			return "bool"
+		case types.UntypedBool:
 			return "bool"
 		default:
 			return fmt.Sprintf("/* unknown basic type: %s */", ut.Name())
@@ -576,6 +586,22 @@ func goTypesTypeToRust(t types.Type) string {
 		}
 		return "/* unknown type */"
 	}
+}
+
+func goTypesConstTypeToRust(t types.Type) string {
+	if basic, ok := t.Underlying().(*types.Basic); ok {
+		switch basic.Kind() {
+		case types.UntypedString:
+			return "String"
+		case types.UntypedBool:
+			return "bool"
+		case types.UntypedInt, types.UntypedRune:
+			return "i32"
+		case types.UntypedFloat:
+			return "f64"
+		}
+	}
+	return goTypesTypeToRust(t)
 }
 
 func goTypesReturnTypeToRust(t types.Type) string {

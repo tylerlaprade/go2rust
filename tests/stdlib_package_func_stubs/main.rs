@@ -70,6 +70,23 @@ impl types_Alias {
 
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord)]
+pub struct types_Basic;
+
+impl std::fmt::Display for types_Basic {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<types_Basic>")
+    }
+}
+
+
+impl types_Basic {
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        None
+    }
+}
+
+
+#[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct types_Config;
 
 impl std::fmt::Display for types_Config {
@@ -140,6 +157,12 @@ impl types_Type {
 }
 
 
+pub mod binary {
+    use super::*;
+    pub const max_varint_len64: i32 = 0;
+}
+
+
 pub mod parser {
     use super::*;
     pub const skip_object_resolution: parser_Mode = parser_Mode;
@@ -160,6 +183,10 @@ pub mod token {
 
 pub mod types {
     use super::*;
+    pub fn typ() -> Arc<Mutex<Option<Vec<Arc<Mutex<Option<types_Basic>>>>>>> {
+        Arc::new(Mutex::new(Some::<Vec<Arc<Mutex<Option<types_Basic>>>>>(Default::default())))
+    }
+
     pub fn unalias<T0>(_arg0: T0) -> Arc<Mutex<Option<types_Type>>> {
         Arc::new(Mutex::new(Some::<types_Type>(Default::default())))
     }
@@ -173,6 +200,8 @@ fn main() {
         { let (__tmp_0, __tmp_1) = { let __recv = Arc::new(Mutex::new(Some(types_Config::default()))); let __result = (*__recv.lock().unwrap().as_mut().unwrap()).check("p".to_string(), fset.clone(), Arc::new(Mutex::new(Some(vec![(*f.lock().unwrap().as_ref().unwrap()).clone()]))), Arc::new(Mutex::new(Some(types_Info::default())))); __result }; };
         let mut alias: Arc<Mutex<Option<types_Alias>>> = Arc::new(Mutex::new(None));
         let _ = types::unalias(alias.clone());
+        let _ = binary::max_varint_len64;
+        let _ = types::typ();
     }
     println!("{}", "ok".to_string());
 }
