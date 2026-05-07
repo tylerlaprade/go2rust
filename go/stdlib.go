@@ -2248,9 +2248,34 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 }
 
 func transpileNamedSliceAppend(out *strings.Builder, call *ast.CallExpr) bool {
-	named, _, ok := namedSliceTypeForExpr(call.Args[0])
+	named, sliceType, ok := namedSliceTypeForExpr(call.Args[0])
 	if !ok {
 		return false
+	}
+	elemIsPointer := false
+	if _, ok := sliceType.Elem().(*types.Pointer); ok {
+		elemIsPointer = true
+	}
+	writeElement := func(expr ast.Expr) {
+		if elemIsPointer {
+			if ident, ok := expr.(*ast.Ident); ok {
+				if isWrappedValueIdent(ident) {
+					out.WriteString(RustIdentForUse(ident))
+					out.WriteString(".clone()")
+					return
+				}
+				if _, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar {
+					out.WriteString(EscapeRustIdent(ident.Name))
+					out.WriteString(".clone()")
+					return
+				}
+			}
+			TranspileExpression(out, expr)
+			return
+		}
+		if !writeOwnedExpressionValue(out, expr) {
+			TranspileExpression(out, expr)
+		}
 	}
 	out.WriteString("{ let __base = ")
 	writeNamedSliceInnerHandleClone(out, call.Args[0])
@@ -2271,9 +2296,7 @@ func transpileNamedSliceAppend(out *strings.Builder, call *ast.CallExpr) bool {
 		}
 	} else if len(call.Args) == 2 {
 		out.WriteString("__values.push(")
-		if !writeOwnedExpressionValue(out, call.Args[1]) {
-			TranspileExpression(out, call.Args[1])
-		}
+		writeElement(call.Args[1])
 		out.WriteString("); ")
 	} else {
 		out.WriteString("__values.extend(vec![")
@@ -2281,9 +2304,7 @@ func transpileNamedSliceAppend(out *strings.Builder, call *ast.CallExpr) bool {
 			if i > 1 {
 				out.WriteString(", ")
 			}
-			if !writeOwnedExpressionValue(out, call.Args[i]) {
-				TranspileExpression(out, call.Args[i])
-			}
+			writeElement(call.Args[i])
 		}
 		out.WriteString("]); ")
 	}

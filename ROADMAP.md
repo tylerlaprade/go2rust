@@ -38,7 +38,7 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 - ✅ Nested structures - nested structs, slices, maps, interface slices, nested mutation, and append to nested slice fields (nested_structures promoted, 2026-05-06)
 - ✅ Nested anonymous structs - anonymous struct fields, slices of anonymous structs, map values with anonymous structs, and interface{} fields (anonymous_structs_nested promoted, 2026-05-06)
 - ✅ Anonymous struct function boundaries - parameters, returns, multiple returns, pointer parameters, and channel values (anonymous_structs_functions promoted, 2026-05-06)
-- ✅ Named slice type definitions - non-scalar newtype wrappers work in methods, parameters, range loops, indexing, append assignment, variadic append expansion, and package-level globals (named_slice_methods and named_slice_parameters promoted; package_global_named_slice added, updated 2026-05-07)
+- ✅ Named slice type definitions - non-scalar newtype wrappers work in methods, parameters, range loops, indexing, append assignment including pointer elements, variadic append expansion, and package-level globals (named_slice_methods and named_slice_parameters promoted; package_global_named_slice added, updated 2026-05-07)
 - ✅ Parallel slice element swaps - multi-assignment writes indexed Vec elements directly, including named slice receivers (slice_parallel_swap promoted, 2026-05-07)
 - ✅ Owned selector values - cloneable non-pointer fields clone when returned or passed into wrapped call arguments (selector_string_clone, return_selector_values promoted, 2026-05-07)
 - ✅ Comparable struct literals - struct literals in equality expressions remain bare and compared named structs derive PartialEq when needed (struct_compare_literal promoted, 2026-05-07)

@@ -734,6 +734,10 @@ run_xfail_test() {
     run_test "tests/named_slice_parameters"
 }
 
+@test "named_slice_pointer_append" {
+    run_test "tests/named_slice_pointer_append"
+}
+
 @test "named_type_comparisons" {
     run_test "tests/named_type_comparisons"
 }

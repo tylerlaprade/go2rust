@@ -234,7 +234,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Named scalar equality comparisons | ✅ |
 | └ Instantiated generic function type aliases | ✅ |
 | └ Numeric conversions from literals and expressions | ✅ |
-| └ Named slice type definitions in methods, parameters, ranges, indexing, and append | ✅ |
+| └ Named slice type definitions in methods, parameters, ranges, indexing, and append, including pointer elements | ✅ |
 | └ Named slice type definitions in package globals | ✅ |
 | └ Interface types | ✅ |
 | **`var` - Variable declarations** | |
