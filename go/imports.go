@@ -93,7 +93,7 @@ func (it *ImportTracker) GenerateImports() string {
 
 	// Other imports
 	if it.needs["Error"] {
-		imports = append(imports, "use std::error::Error;")
+		imports = append(imports, "use std::error::Error as StdError;")
 	}
 	if it.needs["Any"] {
 		imports = append(imports, "use std::any::Any;")

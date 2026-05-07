@@ -8,10 +8,17 @@ import (
 )
 
 var functionNameOverrides map[*ast.FuncDecl]string
+var functionNameOverridesByGoName map[string]string
 var packageGlobalNames = make(map[string]bool)
 
 func SetFunctionNameOverrides(overrides map[*ast.FuncDecl]string) {
 	functionNameOverrides = overrides
+	functionNameOverridesByGoName = make(map[string]string)
+	for fn, name := range overrides {
+		if fn.Name.Name != "init" {
+			functionNameOverridesByGoName[fn.Name.Name] = name
+		}
+	}
 }
 
 func rustFunctionName(fn *ast.FuncDecl) string {
@@ -20,18 +27,34 @@ func rustFunctionName(fn *ast.FuncDecl) string {
 			return name
 		}
 	}
-	return ToSnakeCase(fn.Name.Name)
+	return RustFunctionName(fn.Name.Name)
 }
 
-func assignInitFunctionNames(functions []*ast.FuncDecl) map[*ast.FuncDecl]string {
+func rustFunctionNameForUse(name string) string {
+	if functionNameOverridesByGoName != nil {
+		if rustName, ok := functionNameOverridesByGoName[name]; ok {
+			return rustName
+		}
+	}
+	return RustFunctionName(name)
+}
+
+func assignFunctionNames(functions []*ast.FuncDecl) map[*ast.FuncDecl]string {
 	names := make(map[*ast.FuncDecl]string)
+	used := make(map[string]int)
 	initIndex := 0
 	for _, fn := range functions {
-		if fn.Name.Name != "init" {
-			continue
+		rustName := RustFunctionName(fn.Name.Name)
+		if fn.Name.Name == "init" {
+			rustName = fmt.Sprintf("__go_init_%d", initIndex)
+			initIndex++
+		} else if count := used[rustName]; count > 0 {
+			rustName = fmt.Sprintf("%s_%d", rustName, count)
 		}
-		names[fn] = fmt.Sprintf("__go_init_%d", initIndex)
-		initIndex++
+		used[RustFunctionName(fn.Name.Name)]++
+		if rustName != RustFunctionName(fn.Name.Name) {
+			names[fn] = rustName
+		}
 	}
 	return names
 }

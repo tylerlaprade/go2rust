@@ -1,4 +1,4 @@
-use std::error::Error;
+use std::error::Error as StdError;
 use std::fmt::{Display};
 use std::sync::{Arc, Mutex};
 
@@ -374,20 +374,20 @@ fn main() {
         // Complex error handling flow
     println!("{}", "\n=== Complex error handling flow ===".to_string());
 
-    let mut processData = Arc::new(Mutex::new(Some(Box::new(move |data: Arc<Mutex<Option<Vec<i32>>>>| -> Arc<Mutex<Option<Box<dyn Error + Send + Sync>>>> {
+    let mut processData = Arc::new(Mutex::new(Some(Box::new(move |data: Arc<Mutex<Option<Vec<i32>>>>| -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
         if { let __tmp_x = (*data.lock().unwrap().as_ref().unwrap()).len(); let __tmp_y = 0; __tmp_x == __tmp_y } {
-        return Arc::new(Mutex::new(Some(Box::<dyn Error + Send + Sync>::from(format!("empty data")))));
+        return Arc::new(Mutex::new(Some(Box::<dyn StdError + Send + Sync>::from(format!("empty data")))));
     }
         { let __range_guard = data.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for (i, val) in __range_values.iter().copied().enumerate() {
         if { let __tmp_x = val; let __tmp_y = 0; __tmp_x < __tmp_y } {
-        return Arc::new(Mutex::new(Some(Box::<dyn Error + Send + Sync>::from(format!("negative value at index {}: {}", i, val)))));
+        return Arc::new(Mutex::new(Some(Box::<dyn StdError + Send + Sync>::from(format!("negative value at index {}: {}", i, val)))));
     }
         if { let __tmp_x = val; let __tmp_y = 100; __tmp_x > __tmp_y } {
-        return Arc::new(Mutex::new(Some(Box::<dyn Error + Send + Sync>::from(format!("value too large at index {}: {}", i, val)))));
+        return Arc::new(Mutex::new(Some(Box::<dyn StdError + Send + Sync>::from(format!("value too large at index {}: {}", i, val)))));
     }
     } }
         return Arc::new(Mutex::new(None));
-    }) as Box<dyn Fn(Arc<Mutex<Option<Vec<i32>>>>) -> Arc<Mutex<Option<Box<dyn Error + Send + Sync>>>> + Send + Sync>)));
+    }) as Box<dyn Fn(Arc<Mutex<Option<Vec<i32>>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> + Send + Sync>)));
 
     let mut testData = Arc::new(Mutex::new(Some(vec![vec![1, 2, 3], vec![], vec![1, -2, 3], vec![1, 200, 3], vec![10, 20, 30]])));
 

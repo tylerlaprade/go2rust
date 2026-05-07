@@ -274,12 +274,15 @@ func goTypeToRustBase(expr ast.Expr) string {
 			return "num::Complex<f64>"
 		case "bool":
 			return "bool"
+		case "any":
+			TrackImport("Any")
+			return "Box<dyn Any>"
 		case "error":
 			TrackImport("Error")
 			if NeedsConcurrentWrapper() {
-				return "Option<Box<dyn Error + Send + Sync>>"
+				return "Option<Box<dyn StdError + Send + Sync>>"
 			}
-			return "Option<Box<dyn Error>>"
+			return "Option<Box<dyn StdError>>"
 		default:
 			// Check if this is an interface type
 			if IsInterfaceType(t.Name) {
@@ -305,6 +308,7 @@ func goTypeToRustBase(expr ast.Expr) string {
 		// Slice
 		return "Vec<" + elemType + ">"
 	case *ast.MapType:
+		TrackImport("BTreeMap")
 		keyType := goTypeToRustBase(t.Key)
 		valueType := GoTypeToRust(t.Value)
 		return "BTreeMap<" + keyType + ", " + valueType + ">"
@@ -339,6 +343,9 @@ func goTypeToRustBase(expr ast.Expr) string {
 			}
 			if ident.Name == "strings" && t.Sel.Name == "Builder" {
 				return "String"
+			}
+			if ident.Name == "unsafe" && t.Sel.Name == "Pointer" {
+				return "*mut std::ffi::c_void"
 			}
 			if ident.Name == "time" {
 				switch t.Sel.Name {

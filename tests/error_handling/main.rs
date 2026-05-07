@@ -1,5 +1,5 @@
 use std::cell::{RefCell};
-use std::error::Error;
+use std::error::Error as StdError;
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
@@ -22,10 +22,10 @@ impl CustomError {
     }
 }
 
-impl Error for CustomError {}
+impl StdError for CustomError {}
 
 
-pub fn divide(a: Rc<RefCell<Option<f64>>>, b: Rc<RefCell<Option<f64>>>) -> (Rc<RefCell<Option<f64>>>, Rc<RefCell<Option<Box<dyn Error>>>>) {
+pub fn divide(a: Rc<RefCell<Option<f64>>>, b: Rc<RefCell<Option<f64>>>) -> (Rc<RefCell<Option<f64>>>, Rc<RefCell<Option<Box<dyn StdError>>>>) {
 
     if (*b.borrow().as_ref().unwrap()) == 0.0 {
         return (Rc::new(RefCell::new(Some(0.0))), Rc::new(RefCell::new(Some(Box::<dyn std::error::Error>::from("division by zero".to_string())))));
@@ -37,10 +37,10 @@ pub fn divide(a: Rc<RefCell<Option<f64>>>, b: Rc<RefCell<Option<f64>>>) -> (Rc<R
         }, Rc::new(RefCell::new(None)));
 }
 
-pub fn sqrt(x: Rc<RefCell<Option<f64>>>) -> (Rc<RefCell<Option<f64>>>, Rc<RefCell<Option<Box<dyn Error>>>>) {
+pub fn sqrt(x: Rc<RefCell<Option<f64>>>) -> (Rc<RefCell<Option<f64>>>, Rc<RefCell<Option<Box<dyn StdError>>>>) {
 
     if (*x.borrow().as_ref().unwrap()) < 0.0 {
-        return (Rc::new(RefCell::new(Some(0.0))), Rc::new(RefCell::new(Some(Box::<dyn Error>::from(format!("cannot take square root of negative number: {:.6}", (*x.borrow().as_ref().unwrap())))))));
+        return (Rc::new(RefCell::new(Some(0.0))), Rc::new(RefCell::new(Some(Box::<dyn StdError>::from(format!("cannot take square root of negative number: {:.6}", (*x.borrow().as_ref().unwrap())))))));
     }
 
         // Simple approximation
@@ -53,13 +53,13 @@ pub fn sqrt(x: Rc<RefCell<Option<f64>>>) -> (Rc<RefCell<Option<f64>>>, Rc<RefCel
     return (result.clone(), Rc::new(RefCell::new(None)));
 }
 
-pub fn process_value(val: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<Box<dyn Error>>>> {
+pub fn process_value(val: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<Box<dyn StdError>>>> {
 
     if (*val.borrow().as_ref().unwrap()) < 0 {
-        return Rc::new(RefCell::new(Some(Box::new(CustomError { code: Rc::new(RefCell::new(Some(100))), message: Rc::new(RefCell::new(Some("negative value not allowed".to_string()))), ..Default::default() }) as Box<dyn Error>)));
+        return Rc::new(RefCell::new(Some(Box::new(CustomError { code: Rc::new(RefCell::new(Some(100))), message: Rc::new(RefCell::new(Some("negative value not allowed".to_string()))), ..Default::default() }) as Box<dyn StdError>)));
     }
     if (*val.borrow().as_ref().unwrap()) > 100 {
-        return Rc::new(RefCell::new(Some(Box::new(CustomError { code: Rc::new(RefCell::new(Some(200))), message: Rc::new(RefCell::new(Some("value too large".to_string()))), ..Default::default() }) as Box<dyn Error>)));
+        return Rc::new(RefCell::new(Some(Box::new(CustomError { code: Rc::new(RefCell::new(Some(200))), message: Rc::new(RefCell::new(Some("value too large".to_string()))), ..Default::default() }) as Box<dyn StdError>)));
     }
     return Rc::new(RefCell::new(None));
 }

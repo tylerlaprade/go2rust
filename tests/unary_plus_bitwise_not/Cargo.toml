@@ -1,0 +1,8 @@
+[package]
+name = "unary_plus_bitwise_not"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "unary_plus_bitwise_not"
+path = "main.rs"

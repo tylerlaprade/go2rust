@@ -1,5 +1,5 @@
 use std::cell::{RefCell};
-use std::error::Error;
+use std::error::Error as StdError;
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
@@ -37,6 +37,6 @@ impl std::fmt::Display for User {
 
 fn main() {
     let mut u = Rc::new(RefCell::new(Some(User { name: Rc::new(RefCell::new(Some("Alice".to_string()))), age: Rc::new(RefCell::new(Some(30))), ..Default::default() })));
-    let (mut data, _) = { let __json_input = u.clone(); let __json_guard = __json_input.borrow(); let __json_value = __json_guard.as_ref().unwrap(); let __json = format!("{{\"name\":\"{}\",\"age\":{}}}", go_json_escape(&*__json_value.name.borrow().as_ref().unwrap()), (*__json_value.age.borrow().as_ref().unwrap())); (Rc::new(RefCell::new(Some(__json.into_bytes()))), Rc::new(RefCell::new(None::<Box<dyn Error>>))) };
+    let (mut data, _) = { let __json_input = u.clone(); let __json_guard = __json_input.borrow(); let __json_value = __json_guard.as_ref().unwrap(); let __json = format!("{{\"name\":\"{}\",\"age\":{}}}", go_json_escape(&*__json_value.name.borrow().as_ref().unwrap()), (*__json_value.age.borrow().as_ref().unwrap())); (Rc::new(RefCell::new(Some(__json.into_bytes()))), Rc::new(RefCell::new(None::<Box<dyn StdError>>))) };
     println!("{}", (*Rc::new(RefCell::new(Some(String::from_utf8((*data.borrow().as_ref().unwrap()).clone()).unwrap()))).borrow().as_ref().unwrap()));
 }

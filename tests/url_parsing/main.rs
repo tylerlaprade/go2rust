@@ -1,4 +1,4 @@
-use std::error::Error;
+use std::error::Error as StdError;
 use std::sync::{Arc, Mutex};
 
 
@@ -25,7 +25,7 @@ fn go_url_parse(input: &str) -> GoUrl {
 }
 
 fn main() {
-    let (mut u, mut err) = { let __url_input = "https://example.com/path?key=value".to_string(); (Arc::new(Mutex::new(Some(go_url_parse(&__url_input)))), Arc::new(Mutex::new(None::<Box<dyn Error + Send + Sync>>))) };
+    let (mut u, mut err) = { let __url_input = "https://example.com/path?key=value".to_string(); (Arc::new(Mutex::new(Some(go_url_parse(&__url_input)))), Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>))) };
     if (*err.lock().unwrap()).is_some() {
         println!("{} {}", "Error:".to_string(), format!("{}", (*err.lock().unwrap().as_ref().unwrap())));
         return;

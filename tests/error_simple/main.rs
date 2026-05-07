@@ -1,8 +1,8 @@
 use std::cell::{RefCell};
-use std::error::Error;
+use std::error::Error as StdError;
 use std::rc::{Rc};
 
-pub fn divide(a: Rc<RefCell<Option<i32>>>, b: Rc<RefCell<Option<i32>>>) -> (Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<Box<dyn Error>>>>) {
+pub fn divide(a: Rc<RefCell<Option<i32>>>, b: Rc<RefCell<Option<i32>>>) -> (Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<Box<dyn StdError>>>>) {
 
     if (*b.borrow().as_ref().unwrap()) == 0 {
         return (Rc::new(RefCell::new(Some(0))), Rc::new(RefCell::new(Some(Box::<dyn std::error::Error>::from("division by zero".to_string())))));

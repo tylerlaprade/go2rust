@@ -454,6 +454,12 @@ func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.Fi
 		out.WriteString(";\n\n")
 	}
 
+	if fn.Body == nil {
+		out.WriteString("    unimplemented!(\"Go function declaration has no body\");\n")
+		out.WriteString("}\n")
+		return
+	}
+
 	// Check if this function uses defer statements
 	hasDefer := checkHasDefer(fn.Body.List)
 	currentFunctionHasDefer = hasDefer
@@ -1076,7 +1082,7 @@ func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, a
 		out.WriteString("pub ")
 	}
 	out.WriteString("fn ")
-	out.WriteString(ToSnakeCase(fn.Name.Name))
+	out.WriteString(RustFunctionName(fn.Name.Name))
 	out.WriteString("(")
 
 	// Receiver
@@ -1196,6 +1202,13 @@ func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, a
 	}
 
 	// Method body - need to handle self references
+	if fn.Body == nil {
+		out.WriteString("        unimplemented!(\"Go method declaration has no body\");\n")
+		out.WriteString("    }\n")
+		currentReceiver = ""
+		return
+	}
+
 	var lastPos token.Pos = fn.Body.Lbrace
 	for _, stmt := range fn.Body.List {
 		out.WriteString("        ")

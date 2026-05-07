@@ -862,9 +862,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							out.WriteString("Box::new(")
 							TranspileExpression(out, result)
 							if NeedsConcurrentWrapper() {
-								out.WriteString(") as Box<dyn Error + Send + Sync>")
+								out.WriteString(") as Box<dyn StdError + Send + Sync>")
 							} else {
-								out.WriteString(") as Box<dyn Error>")
+								out.WriteString(") as Box<dyn StdError>")
 							}
 							WriteWrapperSuffix(out)
 						} else {
@@ -1488,7 +1488,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										// Just execute the append for its side effect
 										TranspileExpression(out, s.Rhs[0])
 									} else if isErrorFunc {
-										// Error functions return the full wrapped type Rc<RefCell<Option<Box<dyn Error>>>>
+										// Error functions return the full wrapped type Rc<RefCell<Option<Box<dyn StdError>>>>
 										// Just replace the Rc pointer directly
 										TranspileExpressionContext(out, s.Lhs[0], LValue)
 										out.WriteString(" = ")
@@ -1770,7 +1770,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									if i > 0 {
 										out.WriteString(", ")
 									}
-									out.WriteString("mut ")
+									if name.Name != "_" {
+										out.WriteString("mut ")
+									}
 									out.WriteString(RustLocalIdent(name.Name))
 								}
 								out.WriteString(") = ")
@@ -1796,7 +1798,11 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 								}
 							}
 
-							out.WriteString("let mut ")
+							if name.Name == "_" {
+								out.WriteString("let ")
+							} else {
+								out.WriteString("let mut ")
+							}
 							out.WriteString(RustLocalIdent(name.Name))
 
 							// Add type annotation if type is specified (skip for sync types and local interfaces)

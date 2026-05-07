@@ -1,5 +1,5 @@
 use std::cell::{RefCell};
-use std::error::Error;
+use std::error::Error as StdError;
 use std::rc::{Rc};
 
 
@@ -45,10 +45,10 @@ fn main() {
     let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
     __defer_stack.push(Box::new(move || {
-        { let __path = "test.txt".to_string(); match std::fs::remove_file(&__path) { Ok(()) => Rc::new(RefCell::new(None::<Box<dyn Error>>)), Err(e) => Rc::new(RefCell::new(Some(Box::<dyn Error>::from(e)))) } };
+        { let __path = "test.txt".to_string(); match std::fs::remove_file(&__path) { Ok(()) => Rc::new(RefCell::new(None::<Box<dyn StdError>>)), Err(e) => Rc::new(RefCell::new(Some(Box::<dyn StdError>::from(e)))) } };
     }));
 
-    let (mut file, mut err) = { let __path = "test.txt".to_string(); match GoFile::create(&__path) { Ok(file) => (Rc::new(RefCell::new(Some(file))), Rc::new(RefCell::new(None::<Box<dyn Error>>))), Err(e) => (Rc::new(RefCell::new(Some(GoFile::empty()))), Rc::new(RefCell::new(Some(Box::<dyn Error>::from(e))))) } };
+    let (mut file, mut err) = { let __path = "test.txt".to_string(); match GoFile::create(&__path) { Ok(file) => (Rc::new(RefCell::new(Some(file))), Rc::new(RefCell::new(None::<Box<dyn StdError>>))), Err(e) => (Rc::new(RefCell::new(Some(GoFile::empty()))), Rc::new(RefCell::new(Some(Box::<dyn StdError>::from(e))))) } };
     if (*err.borrow()).is_some() {
         println!("{} {}", "Error:".to_string(), format!("{}", (*err.borrow().as_ref().unwrap())));
         {

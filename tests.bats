@@ -317,6 +317,10 @@ run_xfail_test() {
     run_test "tests/base64_encoding"
 }
 
+@test "blank_function_name" {
+    run_test "tests/blank_function_name"
+}
+
 @test "blank_identifier" {
     run_test "tests/blank_identifier"
 }
@@ -477,6 +481,10 @@ run_xfail_test() {
     run_test "tests/full_slice_expressions"
 }
 
+@test "func_literal_keyword_params" {
+    run_test "tests/func_literal_keyword_params"
+}
+
 @test "function_literals_closures" {
     run_test "tests/function_literals_closures"
 }
@@ -539,6 +547,10 @@ run_xfail_test() {
 
 @test "json_marshal" {
     run_test "tests/json_marshal"
+}
+
+@test "keyed_array_literal" {
+    run_test "tests/keyed_array_literal"
 }
 
 @test "labeled_statements" {
@@ -753,6 +765,10 @@ run_xfail_test() {
     run_test "tests/structs_basic"
 }
 
+@test "structs_positional" {
+    run_test "tests/structs_positional"
+}
+
 @test "switch_basic" {
     run_test "tests/switch_basic"
 }
@@ -795,6 +811,10 @@ run_xfail_test() {
 
 @test "type_embedding" {
     run_test "tests/type_embedding"
+}
+
+@test "unary_plus_bitwise_not" {
+    run_test "tests/unary_plus_bitwise_not"
 }
 
 @test "url_parsing" {

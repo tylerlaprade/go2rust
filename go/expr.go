@@ -3,8 +3,10 @@ package main
 import (
 	"fmt"
 	"go/ast"
+	"go/constant"
 	"go/token"
 	"go/types"
+	"strconv"
 	"strings"
 )
 
@@ -337,7 +339,7 @@ func writeWrappedStructFieldValue(out *strings.Builder, value ast.Expr, fieldExp
 			WriteWrapperSuffix(out)
 		} else {
 			// It's already wrapped, just clone it.
-			out.WriteString(valIdent.Name)
+			out.WriteString(RustIdentForUse(valIdent))
 			out.WriteString(".clone()")
 		}
 	} else if isCompositeLitSelfWrapping(value) {
@@ -349,6 +351,104 @@ func writeWrappedStructFieldValue(out *strings.Builder, value ast.Expr, fieldExp
 		TranspileExpression(out, value)
 		WriteWrapperSuffix(out)
 	}
+}
+
+func arrayLiteralIndex(expr ast.Expr) (int64, bool) {
+	typeInfo := GetTypeInfo()
+	if typeInfo != nil && typeInfo.info != nil {
+		if tv, ok := typeInfo.info.Types[expr]; ok && tv.Value != nil {
+			if value, exact := constant.Int64Val(tv.Value); exact {
+				return value, true
+			}
+		}
+	}
+	if lit, ok := expr.(*ast.BasicLit); ok && lit.Kind == token.INT {
+		value, err := strconv.ParseInt(lit.Value, 0, 64)
+		if err == nil {
+			return value, true
+		}
+	}
+	return 0, false
+}
+
+func orderedArrayLiteralValues(elts []ast.Expr) []ast.Expr {
+	var values []ast.Expr
+	nextIndex := int64(0)
+	for _, elt := range elts {
+		value := elt
+		index := nextIndex
+		if kv, ok := elt.(*ast.KeyValueExpr); ok {
+			value = kv.Value
+			if keyedIndex, ok := arrayLiteralIndex(kv.Key); ok {
+				index = keyedIndex
+			}
+		}
+		if index < 0 {
+			index = nextIndex
+		}
+		for int64(len(values)) <= index {
+			values = append(values, nil)
+		}
+		values[index] = value
+		nextIndex = index + 1
+	}
+	return values
+}
+
+func typesStructLiteralName(typ types.Type, structUnder *types.Struct) string {
+	if named, ok := typ.(*types.Named); ok {
+		return named.Obj().Name()
+	}
+	return lookupAnonymousStructName(structUnder)
+}
+
+func writeTypesStructCompositeLiteral(out *strings.Builder, structTypeName string, structUnder *types.Struct, elts []ast.Expr) {
+	out.WriteString(structTypeName)
+	out.WriteString(" { ")
+
+	allPositional := true
+	for _, elt := range elts {
+		if _, ok := elt.(*ast.KeyValueExpr); ok {
+			allPositional = false
+			break
+		}
+	}
+
+	wroteFields := false
+	if allPositional {
+		for i, elt := range elts {
+			if i >= structUnder.NumFields() {
+				break
+			}
+			field := structUnder.Field(i)
+			if wroteFields {
+				out.WriteString(", ")
+			}
+			wroteFields = true
+			out.WriteString(ToSnakeCase(field.Name()))
+			out.WriteString(": ")
+			writeWrappedStructFieldValue(out, elt, nil, field.Type())
+		}
+	} else {
+		for _, elt := range elts {
+			if kv, ok := elt.(*ast.KeyValueExpr); ok {
+				if key, ok := kv.Key.(*ast.Ident); ok {
+					if wroteFields {
+						out.WriteString(", ")
+					}
+					wroteFields = true
+					out.WriteString(ToSnakeCase(key.Name))
+					out.WriteString(": ")
+					writeWrappedStructFieldValue(out, kv.Value, nil, findTypesStructFieldType(structUnder, key.Name))
+				}
+			}
+		}
+	}
+	if wroteFields {
+		out.WriteString(", ")
+	}
+	out.WriteString("..Default::default()")
+	out.WriteString(" }")
 }
 
 func writeWrappedMapValue(out *strings.Builder, value ast.Expr, valueExpr ast.Expr, valueType types.Type) {
@@ -416,6 +516,68 @@ func writeClonedWrappedExpression(out *strings.Builder, expr ast.Expr, holderNam
 	out.WriteString("); __cloned }")
 }
 
+func writeIdentExpression(out *strings.Builder, e *ast.Ident, ctx ExprContext, varName string) {
+	if isPackageGlobalIdent(e) {
+		switch ctx {
+		case RValue:
+			out.WriteString("(*")
+			out.WriteString(EscapeRustIdent(e.Name))
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref().unwrap())")
+		case AddressOf, LValue:
+			out.WriteString(EscapeRustIdent(e.Name))
+		}
+	} else if e.Name[0] >= 'A' && e.Name[0] <= 'Z' && e.Name != "String" {
+		// Likely a constant - convert to UPPER_SNAKE_CASE
+		out.WriteString(strings.ToUpper(ToSnakeCase(e.Name)))
+	} else if e.Name == "true" || e.Name == "false" || e.Name == "_" {
+		out.WriteString(e.Name)
+	} else if varType, isRangeVar := rangeLoopVars[e.Name]; isRangeVar {
+		// Check if this is a wrapped type (contains Arc)
+		if isWrappedRangeVarType(varType) {
+			// It's a wrapped value from a map, need to unwrap for display
+			if ctx == RValue {
+				out.WriteString("(*")
+				out.WriteString(varName)
+				WriteBorrowMethod(out, true)
+				out.WriteString(".as_mut().unwrap())")
+			} else {
+				out.WriteString(varName)
+			}
+		} else {
+			// Simple type (like usize for array indices)
+			out.WriteString(varName)
+		}
+	} else if _, isLocalConst := localConstants[e.Name]; isLocalConst {
+		out.WriteString(varName)
+	} else if isConstIdent(e) {
+		out.WriteString(rustConstName(e.Name))
+	} else if isVarBare(e.Name) {
+		// VarTable says this variable is bare (e.g., interface parameter &dyn Trait)
+		out.WriteString(varName)
+	} else {
+		// All variables are wrapped in Arc<Mutex<Option<T>>>
+		switch ctx {
+		case RValue:
+			if NeedsConcurrentWrapper() && isCloneableNonPointerIdent(e) {
+				writeIdentValueCloneBlock(out, e)
+				break
+			}
+			// Reading a variable requires unwrapping to get the inner value
+			out.WriteString("(*")
+			out.WriteString(varName)
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref().unwrap())")
+		case AddressOf:
+			// Taking address just returns the Arc itself
+			out.WriteString(varName)
+		case LValue:
+			// Writing to a variable - we'll handle the actual assignment in AssignStmt
+			out.WriteString(varName)
+		}
+	}
+}
+
 // TranspileExpressionContext transpiles an expression with context about how it's used
 func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprContext) {
 	switch e := expr.(type) {
@@ -471,66 +633,15 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			} else {
 				out.WriteString("self")
 			}
-		} else if isPackageGlobalIdent(e) {
-			switch ctx {
-			case RValue:
-				out.WriteString("(*")
-				out.WriteString(EscapeRustIdent(e.Name))
-				WriteBorrowMethod(out, false)
-				out.WriteString(".as_ref().unwrap())")
-			case AddressOf, LValue:
-				out.WriteString(EscapeRustIdent(e.Name))
-			}
-		} else if e.Name[0] >= 'A' && e.Name[0] <= 'Z' && e.Name != "String" {
-			// Likely a constant - convert to UPPER_SNAKE_CASE
-			out.WriteString(strings.ToUpper(ToSnakeCase(e.Name)))
-		} else if e.Name == "true" || e.Name == "false" || e.Name == "_" {
-			out.WriteString(e.Name)
-		} else if varType, isRangeVar := rangeLoopVars[e.Name]; isRangeVar {
-			// Check if this is a wrapped type (contains Arc)
-			if isWrappedRangeVarType(varType) {
-				// It's a wrapped value from a map, need to unwrap for display
-				if ctx == RValue {
-					out.WriteString("(*")
-					out.WriteString(varName)
-					WriteBorrowMethod(out, true)
-					out.WriteString(".as_mut().unwrap())")
-				} else {
-					out.WriteString(varName)
-				}
+		} else if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.info != nil {
+			if _, ok := typeInfo.info.Uses[e].(*types.Func); ok {
+				out.WriteString(rustFunctionNameForUse(e.Name))
 			} else {
-				// Simple type (like usize for array indices)
-				out.WriteString(varName)
+				writeIdentExpression(out, e, ctx, varName)
 			}
-		} else if _, isLocalConst := localConstants[e.Name]; isLocalConst {
-			out.WriteString(varName)
-		} else if isConstIdent(e) {
-			out.WriteString(rustConstName(e.Name))
-		} else if isVarBare(e.Name) {
-			// VarTable says this variable is bare (e.g., interface parameter &dyn Trait)
-			out.WriteString(varName)
 		} else {
-			// All variables are wrapped in Arc<Mutex<Option<T>>>
-			switch ctx {
-			case RValue:
-				if NeedsConcurrentWrapper() && isCloneableNonPointerIdent(e) {
-					writeIdentValueCloneBlock(out, e)
-					break
-				}
-				// Reading a variable requires unwrapping to get the inner value
-				out.WriteString("(*")
-				out.WriteString(varName)
-				WriteBorrowMethod(out, false)
-				out.WriteString(".as_ref().unwrap())")
-			case AddressOf:
-				// Taking address just returns the Arc itself
-				out.WriteString(varName)
-			case LValue:
-				// Writing to a variable - we'll handle the actual assignment in AssignStmt
-				out.WriteString(varName)
-			}
+			writeIdentExpression(out, e, ctx, varName)
 		}
-
 	case *ast.CallExpr:
 		TranspileCall(out, e)
 
@@ -945,9 +1056,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					out.WriteString("Rc::new(RefCell::new(Some(Box::new(")
 					TranspileExpressionContext(out, e.X, AddressOf)
 					if NeedsConcurrentWrapper() {
-						out.WriteString(") as Box<dyn Error + Send + Sync>)))")
+						out.WriteString(") as Box<dyn StdError + Send + Sync>)))")
 					} else {
-						out.WriteString(") as Box<dyn Error>)))")
+						out.WriteString(") as Box<dyn StdError>)))")
 					}
 				} else {
 					// For struct literals, wrap the whole thing
@@ -976,6 +1087,13 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			// Channel receive: <-ch
 			TranspileExpression(out, e.X)
 			out.WriteString(".recv().unwrap()")
+		case token.ADD:
+			// Unary plus is a no-op in Rust.
+			TranspileExpression(out, e.X)
+		case token.XOR:
+			// Go's unary ^ is bitwise complement; Rust spells it as !.
+			out.WriteString("!")
+			TranspileExpression(out, e.X)
 		default:
 			out.WriteString(e.Op.String())
 			TranspileExpression(out, e.X)
@@ -1431,38 +1549,28 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					case *types.Struct:
 						// Handle struct literal with inferred type
 						structUnder := typ.Underlying().(*types.Struct)
-						structTypeName := ""
-						if named, ok := typ.(*types.Named); ok {
-							structTypeName = named.Obj().Name()
-						} else {
-							// Anonymous struct - look up by field matching
-							structTypeName = lookupAnonymousStructName(structUnder)
-						}
+						structTypeName := typesStructLiteralName(typ, structUnder)
 						if structTypeName == "" {
 							out.WriteString("/* Anonymous struct literal */")
 							out.WriteString("unimplemented!()")
 							return
 						}
-						out.WriteString(structTypeName)
-						out.WriteString(" { ")
-
-						// Output the fields
-						for i, elt := range e.Elts {
-							if i > 0 {
-								out.WriteString(", ")
-							}
-							if kv, ok := elt.(*ast.KeyValueExpr); ok {
-								if key, ok := kv.Key.(*ast.Ident); ok {
-									out.WriteString(ToSnakeCase(key.Name))
-									out.WriteString(": ")
-									writeWrappedStructFieldValue(out, kv.Value, nil, findTypesStructFieldType(structUnder, key.Name))
-								}
-							}
-						}
-						// Go zero-initializes uninitialized fields
-						out.WriteString(", ..Default::default()")
-						out.WriteString(" }")
+						writeTypesStructCompositeLiteral(out, structTypeName, structUnder, e.Elts)
 						return
+					case *types.Pointer:
+						ptr := typ.Underlying().(*types.Pointer)
+						if structUnder, ok := ptr.Elem().Underlying().(*types.Struct); ok {
+							structTypeName := typesStructLiteralName(ptr.Elem(), structUnder)
+							if structTypeName == "" {
+								out.WriteString("/* Anonymous struct pointer literal */")
+								out.WriteString("unimplemented!()")
+								return
+							}
+							WriteWrapperPrefix(out)
+							writeTypesStructCompositeLiteral(out, structTypeName, structUnder, e.Elts)
+							WriteWrapperSuffix(out)
+							return
+						}
 					}
 				}
 			}
@@ -1517,9 +1625,14 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					out.WriteString("vec![")
 				}
 			}
-			for i, elt := range e.Elts {
+			values := orderedArrayLiteralValues(e.Elts)
+			for i, elt := range values {
 				if i > 0 {
 					out.WriteString(", ")
+				}
+				if elt == nil {
+					out.WriteString(zeroValueForGoType(arrayType.Elt))
+					continue
 				}
 				if isInterfaceSlice {
 					// Box each element for interface slices
@@ -1602,6 +1715,39 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			}
 			out.WriteString("]))))")
 		} else if ident, ok := e.Type.(*ast.Ident); ok {
+			if typeInfo := GetTypeInfo(); typeInfo != nil {
+				if typ := typeInfo.GetType(e); typ != nil {
+					if sliceType, ok := typ.Underlying().(*types.Slice); ok {
+						wrapInTypeDefinition := !IsTypeAlias(ident.Name)
+						if wrapInTypeDefinition {
+							out.WriteString(ident.Name)
+							out.WriteString("(")
+						}
+						WriteWrapperPrefix(out)
+						out.WriteString("vec![")
+						values := orderedArrayLiteralValues(e.Elts)
+						for i, elt := range values {
+							if i > 0 {
+								out.WriteString(", ")
+							}
+							if elt == nil {
+								out.WriteString(zeroValueForTypesType(sliceType.Elem()))
+								continue
+							}
+							if !writeOwnedExpressionValue(out, elt) {
+								TranspileExpression(out, elt)
+							}
+						}
+						out.WriteString("]")
+						WriteWrapperSuffix(out)
+						if wrapInTypeDefinition {
+							out.WriteString(")")
+						}
+						return
+					}
+				}
+			}
+
 			// Empty struct literal — generate explicit zero-value fields
 			if len(e.Elts) == 0 {
 				if sd, exists := structDefs[ident.Name]; exists && sd.ASTType != nil {
@@ -1637,6 +1783,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			// Struct literal
 			out.WriteString(ident.Name)
 			out.WriteString(" { ")
+			wroteFields := false
 
 			// Check if all elements are positional (no KeyValueExpr)
 			allPositional := true
@@ -1658,14 +1805,45 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				WriteWrapperPrefix(out)
 				TranspileExpression(out, e.Elts[1])
 				WriteWrapperSuffix(out)
+				wroteFields = true
+			} else if allPositional {
+				if sd, exists := structDefs[ident.Name]; exists && sd.ASTType != nil {
+					eltIndex := 0
+					for _, field := range sd.ASTType.Fields.List {
+						fieldNames := field.Names
+						if len(fieldNames) == 0 {
+							fieldNames = []*ast.Ident{ast.NewIdent(getEmbeddedFieldName(field.Type))}
+						}
+						for _, name := range fieldNames {
+							if eltIndex >= len(e.Elts) {
+								break
+							}
+							if wroteFields {
+								out.WriteString(", ")
+							}
+							wroteFields = true
+							out.WriteString(ToSnakeCase(name.Name))
+							out.WriteString(": ")
+							writeWrappedStructFieldValue(out, e.Elts[eltIndex], field.Type, nil)
+							eltIndex++
+						}
+						if eltIndex >= len(e.Elts) {
+							break
+						}
+					}
+				} else {
+					out.WriteString("/* ERROR: Type information required for positional struct literal */")
+					wroteFields = true
+				}
 			} else {
 				// For named struct types with field names specified
-				for i, elt := range e.Elts {
-					if i > 0 {
-						out.WriteString(", ")
-					}
+				for _, elt := range e.Elts {
 					if kv, ok := elt.(*ast.KeyValueExpr); ok {
 						if key, ok := kv.Key.(*ast.Ident); ok {
+							if wroteFields {
+								out.WriteString(", ")
+							}
+							wroteFields = true
 							out.WriteString(ToSnakeCase(key.Name))
 							out.WriteString(": ")
 							var fieldType ast.Expr
@@ -1681,10 +1859,32 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			// Go zero-initializes uninitialized fields
 			// Collect initialized field names
 			initializedFields := make(map[string]bool)
-			for _, elt := range e.Elts {
-				if kv, ok := elt.(*ast.KeyValueExpr); ok {
-					if key, ok := kv.Key.(*ast.Ident); ok {
-						initializedFields[key.Name] = true
+			if allPositional {
+				if sd, exists := structDefs[ident.Name]; exists && sd.ASTType != nil {
+					eltIndex := 0
+					for _, field := range sd.ASTType.Fields.List {
+						fieldNames := field.Names
+						if len(fieldNames) == 0 {
+							fieldNames = []*ast.Ident{ast.NewIdent(getEmbeddedFieldName(field.Type))}
+						}
+						for _, name := range fieldNames {
+							if eltIndex >= len(e.Elts) {
+								break
+							}
+							initializedFields[name.Name] = true
+							eltIndex++
+						}
+						if eltIndex >= len(e.Elts) {
+							break
+						}
+					}
+				}
+			} else {
+				for _, elt := range e.Elts {
+					if kv, ok := elt.(*ast.KeyValueExpr); ok {
+						if key, ok := kv.Key.(*ast.Ident); ok {
+							initializedFields[key.Name] = true
+						}
 					}
 				}
 			}
@@ -1722,7 +1922,10 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 						if len(field.Names) > 0 {
 							for _, name := range field.Names {
 								if !initializedFields[name.Name] {
-									out.WriteString(", ")
+									if wroteFields {
+										out.WriteString(", ")
+									}
+									wroteFields = true
 									out.WriteString(ToSnakeCase(name.Name))
 									out.WriteString(": ")
 									if nestedStruct, ok := field.Type.(*ast.StructType); ok {
@@ -1749,7 +1952,10 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 							// Embedded field
 							typeName := getEmbeddedFieldName(field.Type)
 							if !initializedFields[typeName] {
-								out.WriteString(", ")
+								if wroteFields {
+									out.WriteString(", ")
+								}
+								wroteFields = true
 								out.WriteString(ToSnakeCase(typeName))
 								out.WriteString(": ")
 								if _, isStruct := structDefs[typeName]; isStruct {
@@ -1765,7 +1971,10 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					}
 				}
 			} else {
-				out.WriteString(", ..Default::default()")
+				if wroteFields {
+					out.WriteString(", ")
+				}
+				out.WriteString("..Default::default()")
 			}
 
 			out.WriteString(" }")
@@ -2095,7 +2304,7 @@ func TranspileFuncLitBox(out *strings.Builder, funcLit *ast.FuncLit) {
 		for _, field := range funcLit.Type.Params.List {
 			paramType := GoTypeToRust(field.Type)
 			for _, name := range field.Names {
-				params = append(params, name.Name+": "+paramType)
+				params = append(params, RustLocalIdent(name.Name)+": "+paramType)
 			}
 			// Handle unnamed parameters
 			if len(field.Names) == 0 {
@@ -2851,7 +3060,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 		// Check if this is a known function or a variable
 		if isBuiltinFunction(ident.Name) || isFunctionName(ident) {
 			// Regular function call
-			out.WriteString(ToSnakeCase(ident.Name))
+			out.WriteString(rustFunctionNameForUse(ident.Name))
 		} else {
 			// Likely a closure variable - need to unwrap and call
 			// Check if this variable has been renamed (captured in closure)

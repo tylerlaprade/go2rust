@@ -1,5 +1,5 @@
 use std::cell::{RefCell};
-use std::error::Error;
+use std::error::Error as StdError;
 use std::fmt::{Display};
 use std::rc::{Rc};
 
@@ -189,7 +189,7 @@ fn main() {
     let mut str = Rc::new(RefCell::new(Some((*num.borrow().as_ref().unwrap()).to_string())));
     println!("{} {}", "Number as string:".to_string(), { let __v = (*str.borrow().as_ref().unwrap()).clone(); __v });
 
-    let (mut parsed, mut err) = { let __atoi_input = "123".to_string().clone(); match __atoi_input.parse::<i32>() { Ok(n) => (Rc::new(RefCell::new(Some(n))), Rc::new(RefCell::new(None))), Err(e) => (Rc::new(RefCell::new(Some(0))), Rc::new(RefCell::new(Some(Box::<dyn Error>::from(format!("strconv.Atoi: parsing \"{}\": invalid syntax", __atoi_input)))))) } };
+    let (mut parsed, mut err) = { let __atoi_input = "123".to_string().clone(); match __atoi_input.parse::<i32>() { Ok(n) => (Rc::new(RefCell::new(Some(n))), Rc::new(RefCell::new(None))), Err(e) => (Rc::new(RefCell::new(Some(0))), Rc::new(RefCell::new(Some(Box::<dyn StdError>::from(format!("strconv.Atoi: parsing \"{}\": invalid syntax", __atoi_input)))))) } };
     if (*err.borrow()).is_some() {
         println!("{} {}", "Parse error:".to_string(), format!("{}", (*err.borrow().as_ref().unwrap())));
     } else {

@@ -8,32 +8,53 @@ pub fn multiple_returns() -> (Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<String
 }
 
 fn main() {
+        // Ignoring return values
     println!("{}", "=== Ignoring return values ===".to_string());
+
+        // Ignore all but first return value
     let (mut num, _, _) = multiple_returns();
     print!("Only using first return: {}\n", { let __v = (*num.borrow().as_ref().unwrap()).clone(); __v });
+
+        // Ignore first and last return values
     let (_, mut str, _) = multiple_returns();
     print!("Only using middle return: {}\n", { let __v = (*str.borrow().as_ref().unwrap()).clone(); __v });
+
+        // Ignore first two return values
     let (_, _, mut flag) = multiple_returns();
     print!("Only using last return: {}\n", { let __v = (*flag.borrow().as_ref().unwrap()).clone(); __v });
+
+        // Ignoring in range loops
     println!("{}", "\n=== Ignoring in range loops ===".to_string());
+
     let mut slice = Rc::new(RefCell::new(Some(vec![10, 20, 30, 40, 50])));
+
+        // Ignore index, use only value
     println!("{}", "Values only:".to_string());
     { let __range_guard = slice.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for val in __range_values.iter().copied() {
         print!("{} ", val);
     } }
     println!();
+
+        // Ignore value, use only index
     println!("{}", "Indices only:".to_string());
     { let __range_guard = slice.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for (i, _) in __range_values.iter().copied().enumerate() {
         print!("{} ", i);
     } }
     println!();
+
+        // Alternative: just use index (more idiomatic)
     println!("{}", "Indices (idiomatic):".to_string());
     { let __range_guard = slice.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for i in 0..__range_values.len() {
         print!("{} ", i);
     } }
     println!();
+
+        // Ignoring in map iteration
     println!("{}", "\n=== Ignoring in map iteration ===".to_string());
+
     let mut ages = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i32>>>>::from([("Alice".to_string(), Rc::new(RefCell::new(Some(25)))), ("Bob".to_string(), Rc::new(RefCell::new(Some(30)))), ("Carol".to_string(), Rc::new(RefCell::new(Some(35))))]))));
+
+        // Ignore values, use only keys
     println!("{}", "Keys only:".to_string());
     let mut keys = Rc::new(RefCell::new(Some(Vec::with_capacity((*ages.borrow().as_ref().unwrap()).len()))));
     for (name, _) in (*ages.borrow().as_ref().unwrap()).clone() {
@@ -44,6 +65,8 @@ fn main() {
         print!("{} ", name);
     } }
     println!();
+
+        // Ignore keys, use only values
     println!("{}", "Values only:".to_string());
     let mut values = Rc::new(RefCell::new(Some(Vec::with_capacity((*ages.borrow().as_ref().unwrap()).len()))));
     for (_, age) in (*ages.borrow().as_ref().unwrap()).clone() {
@@ -54,8 +77,14 @@ fn main() {
         print!("{} ", age);
     } }
     println!();
+
+        // Using blank identifier in variable declarations
     println!("{}", "\n=== Blank identifier in declarations ===".to_string());
+
+        // This would be useful for side effects only
     let _ = "This string is assigned but not used".to_string();
+
+        // Multiple assignments with blank identifier
     let (mut a, _, mut c) = (Rc::new(RefCell::new(Some(1))), Rc::new(RefCell::new(Some(2))), Rc::new(RefCell::new(Some(3))));
     print!("a={}, c={} (middle value ignored)\n", { let __v = (*a.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*c.borrow().as_ref().unwrap()).clone(); __v });
 }

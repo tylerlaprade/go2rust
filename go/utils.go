@@ -179,6 +179,12 @@ func SanitizeRustModuleName(s string) string {
 	return resultStr
 }
 
+// SanitizeRustModuleFileName converts a module name to the Rust source file
+// stem that rustc expects for `mod <name>;`.
+func SanitizeRustModuleFileName(moduleName string) string {
+	return strings.TrimPrefix(moduleName, "r#")
+}
+
 func EscapeRustIdent(s string) string {
 	if isRustPathKeyword(s) {
 		return s + "_"
@@ -213,6 +219,14 @@ func RustIdentForUse(ident *ast.Ident) string {
 		return EscapeRustIdent(ident.Name)
 	}
 	return RustLocalIdent(ident.Name)
+}
+
+func RustFunctionName(name string) string {
+	rustName := ToSnakeCase(name)
+	if rustName == "_" {
+		return "__blank"
+	}
+	return rustName
 }
 
 func RustStringLiteral(goLiteral string) string {

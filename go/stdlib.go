@@ -765,7 +765,11 @@ func transpileFmtPrintf(out *strings.Builder, call *ast.CallExpr) {
 			hexFormats = hexes
 			out.WriteString(format)
 		} else {
+			out.WriteString("\"{}\"")
+			out.WriteString(", ")
 			TranspileExpression(out, call.Args[0])
+			out.WriteString(")")
+			return
 		}
 
 		// Rest of the arguments, skipping those no longer needed
@@ -875,7 +879,11 @@ func transpileFmtFprintf(out *strings.Builder, call *ast.CallExpr) {
 		hexFormats = hexes
 		out.WriteString(format)
 	} else {
+		out.WriteString("\"{}\"")
+		out.WriteString(", ")
 		TranspileExpression(out, call.Args[1])
+		out.WriteString(")")
+		return
 	}
 
 	for i := 2; i < len(call.Args); i++ {
@@ -914,7 +922,11 @@ func transpileFmtSprintf(out *strings.Builder, call *ast.CallExpr) {
 			hexFormats = hexes
 			out.WriteString(format)
 		} else {
+			out.WriteString("\"{}\"")
+			out.WriteString(", ")
 			TranspileExpression(out, call.Args[0])
+			WriteWrapperSuffix(out)
+			return
 		}
 
 		// Rest of the arguments, skipping those no longer needed
@@ -956,9 +968,9 @@ func transpileFmtSprintf(out *strings.Builder, call *ast.CallExpr) {
 func transpileFmtErrorf(out *strings.Builder, call *ast.CallExpr) {
 	WriteWrapperPrefix(out)
 	if NeedsConcurrentWrapper() {
-		out.WriteString("Box::<dyn Error + Send + Sync>::from(format!")
+		out.WriteString("Box::<dyn StdError + Send + Sync>::from(format!")
 	} else {
-		out.WriteString("Box::<dyn Error>::from(format!")
+		out.WriteString("Box::<dyn StdError>::from(format!")
 	}
 	out.WriteString("(")
 
@@ -1041,9 +1053,9 @@ func transpileOsCreate(out *strings.Builder, call *ast.CallExpr) {
 	out.WriteString(", ")
 	WriteWrapperPrefix(out)
 	if NeedsConcurrentWrapper() {
-		out.WriteString("Box::<dyn Error + Send + Sync>::from(e)")
+		out.WriteString("Box::<dyn StdError + Send + Sync>::from(e)")
 	} else {
-		out.WriteString("Box::<dyn Error>::from(e)")
+		out.WriteString("Box::<dyn StdError>::from(e)")
 	}
 	WriteWrapperSuffix(out)
 	out.WriteString(") } }")
@@ -1062,9 +1074,9 @@ func transpileOsRemove(out *strings.Builder, call *ast.CallExpr) {
 	out.WriteString(", Err(e) => ")
 	WriteWrapperPrefix(out)
 	if NeedsConcurrentWrapper() {
-		out.WriteString("Box::<dyn Error + Send + Sync>::from(e)")
+		out.WriteString("Box::<dyn StdError + Send + Sync>::from(e)")
 	} else {
-		out.WriteString("Box::<dyn Error>::from(e)")
+		out.WriteString("Box::<dyn StdError>::from(e)")
 	}
 	WriteWrapperSuffix(out)
 	out.WriteString(" } }")
@@ -1480,9 +1492,9 @@ func transpileStrconvAtoi(out *strings.Builder, call *ast.CallExpr) {
 		out.WriteString("0))), ")
 		WriteWrapperPrefix(out)
 		if NeedsConcurrentWrapper() {
-			out.WriteString("Box::<dyn Error + Send + Sync>::from(format!(\"strconv.Atoi: parsing \\\"{}\\\": invalid syntax\", __atoi_input)))))) } }")
+			out.WriteString("Box::<dyn StdError + Send + Sync>::from(format!(\"strconv.Atoi: parsing \\\"{}\\\": invalid syntax\", __atoi_input)))))) } }")
 		} else {
-			out.WriteString("Box::<dyn Error>::from(format!(\"strconv.Atoi: parsing \\\"{}\\\": invalid syntax\", __atoi_input)))))) } }")
+			out.WriteString("Box::<dyn StdError>::from(format!(\"strconv.Atoi: parsing \\\"{}\\\": invalid syntax\", __atoi_input)))))) } }")
 		}
 	}
 }
@@ -1590,9 +1602,9 @@ func transpileBase64DecodeString(out *strings.Builder, call *ast.CallExpr) {
 	out.WriteString(", ")
 	WriteWrapperPrefix(out)
 	if NeedsConcurrentWrapper() {
-		out.WriteString("Box::<dyn Error + Send + Sync>::from(e)")
+		out.WriteString("Box::<dyn StdError + Send + Sync>::from(e)")
 	} else {
-		out.WriteString("Box::<dyn Error>::from(e)")
+		out.WriteString("Box::<dyn StdError>::from(e)")
 	}
 	WriteWrapperSuffix(out)
 	out.WriteString(") } }")
@@ -1824,12 +1836,12 @@ func writeTypedErrorNone(out *strings.Builder) {
 	if NeedsConcurrentWrapper() {
 		TrackImport("Arc")
 		TrackImport("Mutex")
-		out.WriteString("Arc::new(Mutex::new(None::<Box<dyn Error + Send + Sync>>))")
+		out.WriteString("Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>))")
 		return
 	}
 	TrackImport("Rc")
 	TrackImport("RefCell")
-	out.WriteString("Rc::new(RefCell::new(None::<Box<dyn Error>>))")
+	out.WriteString("Rc::new(RefCell::new(None::<Box<dyn StdError>>))")
 }
 
 func transpileUrlParse(out *strings.Builder, call *ast.CallExpr) {

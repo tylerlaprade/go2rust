@@ -1,6 +1,6 @@
 use std::any::Any;
 use std::cell::{RefCell};
-use std::error::Error;
+use std::error::Error as StdError;
 use std::rc::{Rc};
 
 
@@ -24,17 +24,17 @@ fn format_any(value: &dyn Any) -> String {
     }
 }
 
-pub fn safe_divide(a: Rc<RefCell<Option<f64>>>, b: Rc<RefCell<Option<f64>>>) -> (Rc<RefCell<Option<f64>>>, Rc<RefCell<Option<Box<dyn Error>>>>) {
+pub fn safe_divide(a: Rc<RefCell<Option<f64>>>, b: Rc<RefCell<Option<f64>>>) -> (Rc<RefCell<Option<f64>>>, Rc<RefCell<Option<Box<dyn StdError>>>>) {
     let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
     let mut result: Rc<RefCell<Option<f64>>> = Rc::new(RefCell::new(Some(0.0)));
-    let mut err: Rc<RefCell<Option<Box<dyn Error>>>> = Rc::new(RefCell::new(None));
+    let mut err: Rc<RefCell<Option<Box<dyn StdError>>>> = Rc::new(RefCell::new(None));
 
     let err_defer_captured = err.clone(); let result_defer_captured = result.clone(); __defer_stack.push(Box::new(move || {
         { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
         let mut r = Rc::new(RefCell::new(None::<String>));
     if (*r.borrow()).is_some() {
-        err_defer_captured = Rc::new(RefCell::new(Some(Box::<dyn Error>::from(format!("panic occurred: {}", (*r.borrow().as_ref().unwrap()))))));
+        err_defer_captured = Rc::new(RefCell::new(Some(Box::<dyn StdError>::from(format!("panic occurred: {}", (*r.borrow().as_ref().unwrap()))))));
         { let new_val = 0.0; *result_defer_captured.borrow_mut() = Some(new_val); };
     }
     }) as Box<dyn Fn() -> ()>))); let __f_guard = __f_holder.borrow(); let __f = __f_guard.as_ref().unwrap(); (*__f)() };
@@ -54,17 +54,17 @@ pub fn safe_divide(a: Rc<RefCell<Option<f64>>>, b: Rc<RefCell<Option<f64>>>) -> 
     }
 }
 
-pub fn process_slice(slice: Rc<RefCell<Option<Vec<i32>>>>, index: Rc<RefCell<Option<i32>>>) -> (Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<Box<dyn Error>>>>) {
+pub fn process_slice(slice: Rc<RefCell<Option<Vec<i32>>>>, index: Rc<RefCell<Option<i32>>>) -> (Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<Box<dyn StdError>>>>) {
     let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
     let mut value: Rc<RefCell<Option<i32>>> = Rc::new(RefCell::new(Some(0)));
-    let mut err: Rc<RefCell<Option<Box<dyn Error>>>> = Rc::new(RefCell::new(None));
+    let mut err: Rc<RefCell<Option<Box<dyn StdError>>>> = Rc::new(RefCell::new(None));
 
     let err_defer_captured = err.clone(); let value_defer_captured = value.clone(); __defer_stack.push(Box::new(move || {
         { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
         let mut r = Rc::new(RefCell::new(None::<String>));
     if (*r.borrow()).is_some() {
-        err_defer_captured = Rc::new(RefCell::new(Some(Box::<dyn Error>::from(format!("index out of bounds: {}", (*r.borrow().as_ref().unwrap()))))));
+        err_defer_captured = Rc::new(RefCell::new(Some(Box::<dyn StdError>::from(format!("index out of bounds: {}", (*r.borrow().as_ref().unwrap()))))));
         { let new_val = -1; *value_defer_captured.borrow_mut() = Some(new_val); };
     }
     }) as Box<dyn Fn() -> ()>))); let __f_guard = __f_holder.borrow(); let __f = __f_guard.as_ref().unwrap(); (*__f)() };

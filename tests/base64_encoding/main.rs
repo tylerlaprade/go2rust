@@ -1,5 +1,5 @@
 use std::cell::{RefCell};
-use std::error::Error;
+use std::error::Error as StdError;
 use std::rc::{Rc};
 
 
@@ -87,6 +87,6 @@ fn main() {
     let mut encoded = Rc::new(RefCell::new(Some(go_base64_encode(&*(Rc::new(RefCell::new(Some((*data.borrow().as_ref().unwrap()).as_bytes().to_vec())))).borrow().as_ref().unwrap()))));
     println!("{} {}", "Encoded:".to_string(), { let __v = (*encoded.borrow().as_ref().unwrap()).clone(); __v });
 
-    let (mut decoded, _) = { match go_base64_decode(&*encoded.borrow().as_ref().unwrap()) { Ok(v) => (Rc::new(RefCell::new(Some(v))), Rc::new(RefCell::new(None))), Err(e) => (Rc::new(RefCell::new(Some(Vec::<u8>::new()))), Rc::new(RefCell::new(Some(Box::<dyn Error>::from(e))))) } };
+    let (mut decoded, _) = { match go_base64_decode(&*encoded.borrow().as_ref().unwrap()) { Ok(v) => (Rc::new(RefCell::new(Some(v))), Rc::new(RefCell::new(None))), Err(e) => (Rc::new(RefCell::new(Some(Vec::<u8>::new()))), Rc::new(RefCell::new(Some(Box::<dyn StdError>::from(e))))) } };
     println!("{} {}", "Decoded:".to_string(), (*Rc::new(RefCell::new(Some(String::from_utf8((*decoded.borrow().as_ref().unwrap()).clone()).unwrap()))).borrow().as_ref().unwrap()));
 }
