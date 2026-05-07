@@ -5,3 +5,4 @@ Worker 2 done
 Worker 3 starting
 Worker 3 done
 All workers done
+Struct WaitGroup done

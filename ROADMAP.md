@@ -73,6 +73,7 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 - ✅ Channel struct fields - bare `GoChannel` fields support zero values, explicit literals, nil assignment/checks, send/receive, len, and cap (channel_struct_fields promoted, 2026-05-07)
 - ✅ Select (basic, non-blocking, default)
 - ✅ WaitGroup, Mutex, Once, shared mutation
+- ✅ Zero-value WaitGroup struct fields - `WaitGroup` implements Default/Debug for derived source structs (waitgroup_sync expanded, 2026-05-07)
 - ✅ Basic sync/atomic int64 operations - AddInt64 and LoadInt64 (atomic_operations promoted, 2026-05-06)
 - ✅ Worker pool pattern with goroutines and channels (worker_pools promoted, 2026-05-06)
 - ✅ Rate limiting with `time.Tick` periodic channels (rate_limiting promoted, 2026-05-06)

@@ -505,6 +505,18 @@ impl Clone for WaitGroup {
         }
     }
 }
+
+impl Default for WaitGroup {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl std::fmt::Debug for WaitGroup {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "WaitGroup")
+    }
+}
 `)
 }
 

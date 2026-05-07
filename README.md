@@ -328,6 +328,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ `slices.Sort` / `slices.Contains` | ✅ |
 | **`sync` package** | |
 | └ `sync.WaitGroup` | ✅ |
+| └ Zero-value `sync.WaitGroup` struct fields | ✅ |
 | └ `sync.Mutex` | ✅ |
 | └ `sync.Once` | ✅ |
 | **`sync/atomic` package** | |
