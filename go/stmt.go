@@ -1731,13 +1731,13 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 											out.WriteString("let new_val = ")
 											if rhsIsWrappedVar {
 												// Use clone to avoid moving non-Copy types like String
-												rhsVarName := rhsIdent.Name
+												rhsVarName := RustIdentForUse(rhsIdent)
 												if currentCaptureRenames != nil {
-													if renamed, exists := currentCaptureRenames[rhsVarName]; exists {
-														rhsVarName = renamed
+													if renamed, exists := currentCaptureRenames[rhsIdent.Name]; exists {
+														rhsVarName = RustLocalIdent(renamed)
 													}
 												}
-												out.WriteString(ToSnakeCase(rhsVarName))
+												out.WriteString(rhsVarName)
 												WriteBorrowMethod(out, false)
 												out.WriteString(".as_ref().unwrap().clone()")
 											} else {
@@ -1865,13 +1865,14 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										out.WriteString("let new_val = ")
 										if rhsIsWrappedVar {
 											// Use clone to avoid moving non-Copy types like String
-											rhsVarName := s.Rhs[0].(*ast.Ident).Name
+											rhsIdent := s.Rhs[0].(*ast.Ident)
+											rhsVarName := RustIdentForUse(rhsIdent)
 											if currentCaptureRenames != nil {
-												if renamed, exists := currentCaptureRenames[rhsVarName]; exists {
-													rhsVarName = renamed
+												if renamed, exists := currentCaptureRenames[rhsIdent.Name]; exists {
+													rhsVarName = RustLocalIdent(renamed)
 												}
 											}
-											out.WriteString(ToSnakeCase(rhsVarName))
+											out.WriteString(rhsVarName)
 											WriteBorrowMethod(out, false)
 											out.WriteString(".as_ref().unwrap().clone()")
 										} else {

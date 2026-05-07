@@ -22,9 +22,16 @@ impl<T> GoGlobal<T> {
 
 pub(crate) static value: GoGlobal<i32> = GoGlobal::new();
 
+pub(crate) static allValues: GoGlobal<i32> = GoGlobal::new();
+
+pub(crate) static copiedValue: GoGlobal<i32> = GoGlobal::new();
+
 
 pub(crate) fn __go_init_globals() {
     *value.borrow_mut() = Some(0);
+    *allValues.borrow_mut() = Some(0);
+    *copiedValue.borrow_mut() = Some(0);
+    *allValues.borrow_mut() = Some(5);
 }
 
 
@@ -35,8 +42,10 @@ pub fn print_value(value_local: Rc<RefCell<Option<i32>>>) {
 fn main() {
     __go_init_all();
     { let new_val = 3; *value.borrow_mut() = Some(new_val); };
+    { let new_val = allValues.borrow().as_ref().unwrap().clone(); *copiedValue.borrow_mut() = Some(new_val); };
     print_value(Rc::new(RefCell::new(Some(7))));
     println!("{}", { let __v = (*value.borrow().as_ref().unwrap()).clone(); __v });
+    println!("{}", { let __v = (*copiedValue.borrow().as_ref().unwrap()).clone(); __v });
 }
 
 pub(crate) fn __go_init_all() {
