@@ -51,6 +51,7 @@ func main() {
 
 	fmt.Printf("Index of 'fox': %d\n", strings.Index(searchText, "fox"))
 	fmt.Printf("Index of 'cat': %d\n", strings.Index(searchText, "cat"))
+	fmt.Printf("IndexAny of vowels: %d\n", strings.IndexAny(searchText, "aeiou"))
 
 	fmt.Printf("Last index of 'the': %d\n", strings.LastIndex(searchText, "the"))
 
@@ -74,6 +75,10 @@ func main() {
 
 	rejoined := strings.Join(fruits, " | ")
 	fmt.Printf("Rejoined: %s\n", rejoined)
+	before, after, found := strings.Cut(csv, ",")
+	fmt.Printf("Cut first comma: %s | %s | %t\n", before, after, found)
+	before, after, found = strings.Cut(csv, ";")
+	fmt.Printf("Cut semicolon: %s | %s | %t\n", before, after, found)
 
 	// Fields (split on whitespace)
 	sentence := "The quick brown fox"
@@ -106,6 +111,9 @@ func main() {
 	fmt.Printf("'%s' == '%s': %t\n", str1, str2, str1 == str2)
 	fmt.Printf("'%s' == '%s': %t\n", str1, str3, str1 == str3)
 	fmt.Printf("'%s' < '%s': %t\n", str1, str2, str1 < str2)
+	fmt.Printf("Compare('%s', '%s'): %d\n", str1, str2, strings.Compare(str1, str2))
+	fmt.Printf("Compare('%s', '%s'): %d\n", str2, str1, strings.Compare(str2, str1))
+	fmt.Printf("Compare('%s', '%s'): %d\n", str1, str3, strings.Compare(str1, str3))
 
 	// Case-insensitive comparison
 	fmt.Printf("EqualFold('Apple', 'APPLE'): %t\n", strings.EqualFold("Apple", "APPLE"))

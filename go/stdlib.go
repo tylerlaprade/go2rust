@@ -70,8 +70,11 @@ func init() {
 		"strings.Index":         transpileStringsIndex,
 		"strings.LastIndex":     transpileStringsLastIndex,
 		"strings.Count":         transpileStringsCount,
+		"strings.Compare":       transpileStringsCompare,
+		"strings.Cut":           transpileStringsCut,
 		"strings.HasSuffix":     transpileStringsHasSuffix,
 		"strings.HasPrefix":     transpileStringsHasPrefix,
+		"strings.IndexAny":      transpileStringsIndexAny,
 		"strings.Split":         transpileStringsSplit,
 		"strings.Join":          transpileStringsJoin,
 		"strings.Fields":        transpileStringsFields,
@@ -1330,12 +1333,73 @@ func transpileStringsCount(out *strings.Builder, call *ast.CallExpr) {
 	WriteWrapperSuffix(out)
 }
 
+func transpileStringsCompare(out *strings.Builder, call *ast.CallExpr) {
+	if len(call.Args) < 2 {
+		return
+	}
+	WriteWrapperPrefix(out)
+	out.WriteString("{ let __a = ")
+	writeOwnedStringStdlibArg(out, call.Args[0])
+	out.WriteString("; let __b = ")
+	writeOwnedStringStdlibArg(out, call.Args[1])
+	out.WriteString("; match __a.cmp(&__b) { std::cmp::Ordering::Less => -1, std::cmp::Ordering::Equal => 0, std::cmp::Ordering::Greater => 1 } }")
+	WriteWrapperSuffix(out)
+}
+
+func transpileStringsCut(out *strings.Builder, call *ast.CallExpr) {
+	if len(call.Args) < 2 {
+		return
+	}
+	out.WriteString("{ let __s = ")
+	writeOwnedStringStdlibArg(out, call.Args[0])
+	out.WriteString("; let __sep = ")
+	writeOwnedStringStdlibArg(out, call.Args[1])
+	out.WriteString("; if let Some(__idx) = __s.find(&__sep) { let __before = __s[..__idx].to_string(); let __after = __s[__idx + __sep.len()..].to_string(); (")
+	WriteWrapperPrefix(out)
+	out.WriteString("__before")
+	WriteWrapperSuffix(out)
+	out.WriteString(", ")
+	WriteWrapperPrefix(out)
+	out.WriteString("__after")
+	WriteWrapperSuffix(out)
+	out.WriteString(", ")
+	WriteWrapperPrefix(out)
+	out.WriteString("true")
+	WriteWrapperSuffix(out)
+	out.WriteString(") } else { (")
+	WriteWrapperPrefix(out)
+	out.WriteString("__s")
+	WriteWrapperSuffix(out)
+	out.WriteString(", ")
+	WriteWrapperPrefix(out)
+	out.WriteString("String::new()")
+	WriteWrapperSuffix(out)
+	out.WriteString(", ")
+	WriteWrapperPrefix(out)
+	out.WriteString("false")
+	WriteWrapperSuffix(out)
+	out.WriteString(") } }")
+}
+
 func transpileStringsHasSuffix(out *strings.Builder, call *ast.CallExpr) {
 	writeStringBinaryResult(out, call, "ends_with")
 }
 
 func transpileStringsHasPrefix(out *strings.Builder, call *ast.CallExpr) {
 	writeStringBinaryResult(out, call, "starts_with")
+}
+
+func transpileStringsIndexAny(out *strings.Builder, call *ast.CallExpr) {
+	if len(call.Args) < 2 {
+		return
+	}
+	WriteWrapperPrefix(out)
+	out.WriteString("{ let __s = ")
+	writeOwnedStringStdlibArg(out, call.Args[0])
+	out.WriteString("; let __chars = ")
+	writeOwnedStringStdlibArg(out, call.Args[1])
+	out.WriteString("; __s.char_indices().find(|(_, __ch)| __chars.contains(*__ch)).map(|(__i, _)| __i as i32).unwrap_or(-1) }")
+	WriteWrapperSuffix(out)
 }
 
 func transpileStringsSplit(out *strings.Builder, call *ast.CallExpr) {

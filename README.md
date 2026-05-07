@@ -262,8 +262,9 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ `strings.TrimSpace` | ✅ |
 | └ `strings.Title` | ✅ |
 | └ `strings.Contains` | ✅ |
-| └ `strings.Index` / `strings.LastIndex` | ✅ |
+| └ `strings.Index` / `strings.LastIndex` / `strings.IndexAny` | ✅ |
 | └ `strings.Count` | ✅ |
+| └ `strings.Compare` / `strings.Cut` | ✅ |
 | └ `strings.HasPrefix` / `strings.HasSuffix` | ✅ |
 | └ `strings.Split` / `strings.Join` / `strings.Fields` | ✅ |
 | └ `strings.Replace` / `strings.ReplaceAll` | ✅ |

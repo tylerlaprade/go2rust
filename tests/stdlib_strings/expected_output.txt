@@ -22,6 +22,7 @@ Contains 'fox': true
 Contains 'cat': false
 Index of 'fox': 16
 Index of 'cat': -1
+IndexAny of vowels: 2
 Last index of 'the': 31
 Count of 'the': 1
 
@@ -35,6 +36,8 @@ Has 'doc' prefix: true
 CSV: apple,banana,cherry,date
 Split result: [apple banana cherry date]
 Rejoined: apple | banana | cherry | date
+Cut first comma: apple | banana,cherry,date | true
+Cut semicolon: apple,banana,cherry,date |  | false
 Words: [The quick brown fox]
 
 === String replacement ===
@@ -49,6 +52,9 @@ Repeated: Go! Go! Go!
 'apple' == 'banana': false
 'apple' == 'apple': true
 'apple' < 'banana': true
+Compare('apple', 'banana'): -1
+Compare('banana', 'apple'): 1
+Compare('apple', 'apple'): 0
 EqualFold('Apple', 'APPLE'): true
 
 === String building ===

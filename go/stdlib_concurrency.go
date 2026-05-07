@@ -64,9 +64,12 @@ var syncStdlibFunctions = map[string]bool{
 
 	// strings - All string functions are synchronous
 	"strings.Contains":   true,
+	"strings.Compare":    true,
+	"strings.Cut":        true,
 	"strings.HasPrefix":  true,
 	"strings.HasSuffix":  true,
 	"strings.Index":      true,
+	"strings.IndexAny":   true,
 	"strings.Join":       true,
 	"strings.Split":      true,
 	"strings.Replace":    true,
