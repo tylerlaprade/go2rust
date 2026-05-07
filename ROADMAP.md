@@ -83,7 +83,7 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 - ✅ Defer in methods - named method results are initialized before deferred closures and explicit returns assign named results before running defers (defer_named_returns updated, 2026-05-07)
 - ✅ Type switch - downcast_ref-based if-else chain with shared borrow guard, nil cases, and selector pointer cases from TypeInfo (2026-03-27, updated 2026-05-07)
 - ✅ Switch expression lifetime - tag captured in let binding to avoid borrow issues (2026-03-27)
-- ✅ Variadic functions - ellipsis params as Vec<T>, call-site arg collection into vec![] (2026-03-27)
+- ✅ Variadic functions - ellipsis params as Vec<T>, call-site arg collection into vec![], including boxed `...any` elements (2026-03-27, updated 2026-05-07)
 - ✅ Format verbs - %T maps Rust types to Go type names at runtime, including fmt.Errorf; %+v and %#x consume flagged format arguments (2026-03-27, updated 2026-05-07)
 - ✅ Byte/rune comparison contexts - character literals emit as `u8` when compared with `byte` values or string indexing results (byte_char_comparisons promoted, 2026-05-07)
 - ✅ Wrapped bool negation - unary `!` unwraps bool-returning calls before negating (wrapped_bool_not promoted, 2026-05-07)

@@ -1098,6 +1098,10 @@ run_xfail_test() {
     run_test "tests/variable_declarations"
 }
 
+@test "variadic_any_arguments" {
+    run_test "tests/variadic_any_arguments"
+}
+
 @test "variadic_functions" {
     run_test "tests/variadic_functions"
 }

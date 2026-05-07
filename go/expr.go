@@ -843,6 +843,11 @@ func writeOwnedExpressionValue(out *strings.Builder, expr ast.Expr) bool {
 	return false
 }
 
+func isErrorInterfaceType(typ types.Type) bool {
+	named, ok := typ.(*types.Named)
+	return ok && named.Obj() != nil && named.Obj().Pkg() == nil && named.Obj().Name() == "error"
+}
+
 func writeMaybeUnwrappedExpression(out *strings.Builder, expr ast.Expr) {
 	var buf strings.Builder
 	TranspileExpression(&buf, expr)
@@ -860,8 +865,25 @@ func writeMaybeUnwrappedExpression(out *strings.Builder, expr ast.Expr) {
 
 func writeInterfaceBoxedValue(out *strings.Builder, expr ast.Expr) {
 	TrackImport("Any")
+	if typeInfo := GetTypeInfo(); typeInfo != nil && isErrorInterfaceType(typeInfo.GetType(expr)) {
+		out.WriteString("Box::new(format!(\"{}\", ")
+		writeUnwrappedForFormat(out, expr)
+		out.WriteString(")) as Box<dyn Any>")
+		return
+	}
 	out.WriteString("Box::new(")
-	if !writeOwnedExpressionValue(out, expr) {
+	if call, ok := expr.(*ast.CallExpr); ok {
+		typeInfo := GetTypeInfo()
+		if typeInfo != nil && typeInfo.ReturnsWrappedValue(call) && !callReturnsBareChannelValue(call) {
+			out.WriteString("{ let __v = ")
+			TranspileExpression(out, call)
+			out.WriteString("; let __owned = (*__v")
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref().unwrap()).clone(); __owned }")
+		} else if !writeOwnedExpressionValue(out, expr) {
+			writeMaybeUnwrappedExpression(out, expr)
+		}
+	} else if !writeOwnedExpressionValue(out, expr) {
 		writeMaybeUnwrappedExpression(out, expr)
 	}
 	out.WriteString(") as Box<dyn Any>")
@@ -3993,13 +4015,19 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 			}
 		} else if variadicStart < len(call.Args) {
 			// Individual variadic args: sum(1, 2, 3) → sum(vec![1, 2, 3])
+			variadicElemType := callParamTypeFromTypeInfo(call, variadicStart)
+			variadicElemIsAny := isEmptyInterfaceType(variadicElemType)
 			WriteWrapperPrefix(out)
 			out.WriteString("vec![")
 			for i := variadicStart; i < len(call.Args); i++ {
 				if i > variadicStart {
 					out.WriteString(", ")
 				}
-				TranspileExpression(out, call.Args[i])
+				if variadicElemIsAny {
+					writeInterfaceBoxedValue(out, call.Args[i])
+				} else {
+					TranspileExpression(out, call.Args[i])
+				}
 			}
 			out.WriteString("]")
 			WriteWrapperSuffix(out)

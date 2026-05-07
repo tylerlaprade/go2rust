@@ -172,6 +172,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | **`interface` - Interface types** | |
 | └ Interface definitions | ✅ |
 | └ Empty interface{} | ✅ |
+| └ Variadic `any` arguments | ✅ |
 | └ Interface implementations | ✅ |
 | └ Type assertions | ✅ |
 | └ `any(x)` conversions feeding type assertions | ✅ |
