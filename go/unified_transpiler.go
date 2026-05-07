@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"strings"
 )
 
@@ -389,6 +390,13 @@ edition = "2021"
 name = "%s"
 path = "lib.rs"
 `, pkg.CrateName, pkg.CrateName)
+	dependencyCrates := ut.packageDependencyCrates(pkg)
+	if len(dependencyCrates) > 0 {
+		cargoToml += "\n[dependencies]\n"
+		for _, depCrate := range dependencyCrates {
+			cargoToml += fmt.Sprintf("%s = { path = \"../%s\" }\n", depCrate, depCrate)
+		}
+	}
 
 	cargoPath := filepath.Join(pkg.OutputPath, "Cargo.toml")
 	if err := os.WriteFile(cargoPath, []byte(cargoToml), 0644); err != nil {
@@ -396,6 +404,29 @@ path = "lib.rs"
 	}
 
 	return nil
+}
+
+func (ut *UnifiedTranspiler) packageDependencyCrates(pkg *PackageInfo) []string {
+	seen := make(map[string]bool)
+	for _, astFile := range pkg.ASTFiles {
+		for _, imp := range astFile.Imports {
+			importPath := strings.Trim(imp.Path.Value, `"`)
+			if isStdlibPackage(importPath) {
+				continue
+			}
+			crateName, ok := ut.packageMapping[importPath]
+			if !ok || crateName == "" || crateName == pkg.CrateName {
+				continue
+			}
+			seen[crateName] = true
+		}
+	}
+	crateNames := make([]string, 0, len(seen))
+	for crateName := range seen {
+		crateNames = append(crateNames, crateName)
+	}
+	sort.Strings(crateNames)
+	return crateNames
 }
 
 // cleanupVendor removes Go source files and keeps only transpiled Rust code
@@ -418,17 +449,7 @@ func (ut *UnifiedTranspiler) cleanupVendor() error {
 
 // goPathToRustCrate converts a Go import path to a Rust-compatible crate name
 func (ut *UnifiedTranspiler) goPathToRustCrate(goPath string) string {
-	// Replace special characters with underscores
-	crate := strings.ReplaceAll(goPath, "/", "_")
-	crate = strings.ReplaceAll(crate, ".", "_")
-	crate = strings.ReplaceAll(crate, "-", "_")
-
-	// Ensure it starts with a letter
-	if len(crate) > 0 && (crate[0] >= '0' && crate[0] <= '9') {
-		crate = "pkg_" + crate
-	}
-
-	return crate
+	return RustCrateNameForGoImportPath(goPath)
 }
 
 // GetPackageMapping returns the Go import path to Rust crate name mapping

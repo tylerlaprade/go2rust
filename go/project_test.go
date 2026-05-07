@@ -96,6 +96,26 @@ func TestGenerateCargoTomlIsDeterministic(t *testing.T) {
 	}
 }
 
+func TestPackageDependencyCratesAreDeterministic(t *testing.T) {
+	imports := map[string]*packages.Package{
+		"example.com/zeta":  {},
+		"fmt":               {},
+		"example.com/alpha": {},
+		"example.com/self":  {},
+	}
+	mapping := map[string]string{
+		"example.com/zeta":  "zeta",
+		"example.com/alpha": "alpha",
+		"example.com/self":  "self",
+	}
+
+	got := packageDependencyCrates(imports, "self", mapping)
+	want := []string{"alpha", "zeta"}
+	if strings.Join(got, ",") != strings.Join(want, ",") {
+		t.Fatalf("packageDependencyCrates() = %#v, want %#v", got, want)
+	}
+}
+
 func TestTranspileWithMappingReturnsPerFileExternalPackages(t *testing.T) {
 	fset := token.NewFileSet()
 	fileA, err := parser.ParseFile(fset, "a.go", `package main

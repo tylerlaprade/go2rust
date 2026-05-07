@@ -186,6 +186,16 @@ func SanitizeRustModuleFileName(moduleName string) string {
 	return strings.TrimPrefix(moduleName, "r#")
 }
 
+func RustCrateNameForGoImportPath(goPath string) string {
+	crate := strings.ReplaceAll(goPath, "/", "_")
+	crate = strings.ReplaceAll(crate, ".", "_")
+	crate = strings.ReplaceAll(crate, "-", "_")
+	if len(crate) > 0 && crate[0] >= '0' && crate[0] <= '9' {
+		crate = "pkg_" + crate
+	}
+	return crate
+}
+
 func EscapeRustIdent(s string) string {
 	if isRustPathKeyword(s) {
 		return s + "_"

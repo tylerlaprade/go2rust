@@ -366,6 +366,9 @@ func goTypeToRustBase(expr ast.Expr) string {
 			if ident.Name == "context" && t.Sel.Name == "CancelFunc" {
 				return "GoCancelFunc"
 			}
+			if rustName, ok := rustTypeNameForImportedPackagePath(goPackageImports[ident.Name], t.Sel.Name); ok {
+				return rustName
+			}
 		}
 		return fmt.Sprintf("%s_%s", t.X, t.Sel.Name)
 	case *ast.Ellipsis:
@@ -550,7 +553,23 @@ func goTypesNamedTypeToRust(named *types.Named) string {
 	if typeInfo != nil && typeInfo.pkg != nil && obj.Pkg() == typeInfo.pkg {
 		return obj.Name()
 	}
+	if rustName, ok := rustTypeNameForImportedPackagePath(obj.Pkg().Path(), obj.Name()); ok {
+		return rustName
+	}
 	return obj.Pkg().Name() + "_" + obj.Name()
+}
+
+func rustTypeNameForImportedPackagePath(pkgPath, name string) (string, bool) {
+	if pkgPath == "" || isStdlibPackage(pkgPath) {
+		return "", false
+	}
+	ctx := GetTranspileContext()
+	if ctx != nil && ctx.PackageMapping != nil {
+		if crateName, ok := ctx.PackageMapping[pkgPath]; ok {
+			return crateName + "::" + name, true
+		}
+	}
+	return RustCrateNameForGoImportPath(pkgPath) + "::" + name, true
 }
 
 // goTypesTypeToRustWrapped converts a go/types.Type to the wrapped Rust type string

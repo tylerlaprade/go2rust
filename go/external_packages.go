@@ -226,17 +226,7 @@ func (h *ExternalPackageHandler) findGoFiles(dir string) ([]string, error) {
 
 // goPathToRustCrate converts a Go import path to a Rust-compatible crate name
 func (h *ExternalPackageHandler) goPathToRustCrate(goPath string) string {
-	// Replace special characters with underscores
-	crate := strings.ReplaceAll(goPath, "/", "_")
-	crate = strings.ReplaceAll(crate, ".", "_")
-	crate = strings.ReplaceAll(crate, "-", "_")
-
-	// Ensure it starts with a letter
-	if len(crate) > 0 && (crate[0] >= '0' && crate[0] <= '9') {
-		crate = "pkg_" + crate
-	}
-
-	return crate
+	return RustCrateNameForGoImportPath(goPath)
 }
 
 // GetPackageMapping returns the mapping from Go import paths to Rust crate names

@@ -4,6 +4,7 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
+	gotypes "go/types"
 	"strings"
 	"testing"
 )
@@ -160,6 +161,43 @@ func compare(x string) string { return x }
 	}
 	if got := rustFunctionNameForUse("compare"); got != "compare_1" {
 		t.Fatalf("rustFunctionNameForUse(compare) = %q, want compare_1", got)
+	}
+}
+
+func TestExternalPackageTypesUseMappedCratePaths(t *testing.T) {
+	savedTypeInfo := currentTypeInfo
+	savedGoImports := goPackageImports
+	savedExternalPackages := externalPackages
+	defer func() {
+		currentTypeInfo = savedTypeInfo
+		goPackageImports = savedGoImports
+		externalPackages = savedExternalPackages
+		SetTranspileContext(nil)
+	}()
+
+	mainPkg := gotypes.NewPackage("example.com/main", "main")
+	depPkg := gotypes.NewPackage("example.com/dep", "dep")
+	typeName := gotypes.NewTypeName(token.NoPos, depPkg, "Thing", nil)
+	named := gotypes.NewNamed(typeName, gotypes.NewStruct(nil, nil), nil)
+
+	SetTranspileContext(&TranspileContext{
+		Session: NewTranspileSession(&TypeInfo{pkg: mainPkg}, map[string]string{
+			"example.com/dep": "example_com_dep",
+		}),
+		Package: NewPackageState(),
+		File:    NewFileState(NewImportTracker(), &HelperTracker{}, nil),
+	})
+	SetPackageImports(map[string]string{"dep": "example.com/dep"})
+
+	if got := goTypesNamedTypeToRust(named); got != "example_com_dep::Thing" {
+		t.Fatalf("goTypesNamedTypeToRust() = %q, want mapped crate type", got)
+	}
+	got := goTypeToRustBase(&ast.SelectorExpr{
+		X:   ast.NewIdent("dep"),
+		Sel: ast.NewIdent("Thing"),
+	})
+	if got != "example_com_dep::Thing" {
+		t.Fatalf("goTypeToRustBase(selector) = %q, want mapped crate type", got)
 	}
 }
 
