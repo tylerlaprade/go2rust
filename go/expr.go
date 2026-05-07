@@ -130,6 +130,9 @@ func methodReceiverExpressionNeedsUnwrap(expr ast.Expr) bool {
 	switch e := expr.(type) {
 	case *ast.CallExpr:
 		return true
+	case *ast.IndexExpr:
+		typeInfo := GetTypeInfo()
+		return typeInfo != nil && typeInfo.IsPointer(e)
 	case *ast.ParenExpr:
 		return methodReceiverExpressionNeedsUnwrap(e.X)
 	default:
@@ -3329,7 +3332,10 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				}
 			} else {
 				// Check if this variable is wrapped (not a range var, not a constant, not bare)
-				if _, isRangeVar := rangeLoopVars[ident.Name]; !isRangeVar {
+				typeInfo := GetTypeInfo()
+				if _, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar {
+					needsUnwrap = typeInfo != nil && typeInfo.IsPointer(ident)
+				} else {
 					if _, isLocalConst := localConstants[ident.Name]; !isLocalConst {
 						if !isVarBare(ident.Name) {
 							// Regular variable - it's wrapped in Arc<Mutex<Option<>>>
@@ -3349,7 +3355,6 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				if needsUnwrap {
 					// Wrapped type - need to unwrap
 					// Use mutable borrow only for pointer receiver methods
-					typeInfo := GetTypeInfo()
 					needsMut := typeInfo != nil && typeInfo.HasPointerReceiver(sel)
 					out.WriteString("(*")
 					out.WriteString(receiverName)

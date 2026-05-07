@@ -1,0 +1,8 @@
+[package]
+name = "stdlib_indexed_pointer_method"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "stdlib_indexed_pointer_method"
+path = "main.rs"
