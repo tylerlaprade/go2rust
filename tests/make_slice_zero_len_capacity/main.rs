@@ -24,7 +24,7 @@ where
 }
 
 fn main() {
-    let mut s = Rc::new(RefCell::new(Some(Vec::with_capacity(4))));
+    let mut s = Rc::new(RefCell::new(Some(Vec::with_capacity((4) as usize))));
     println!("{} {} {}", (*s.borrow().as_ref().unwrap()).len(), (*s.borrow().as_ref().unwrap()).capacity(), (*s.borrow()).is_none());
     {(*s.borrow_mut()).get_or_insert_with(Vec::new).extend(vec![7, 8]); s.clone()};
     println!("{} {} {}", (*s.borrow().as_ref().unwrap()).len(), (*s.borrow().as_ref().unwrap()).capacity(), format_slice(&s));

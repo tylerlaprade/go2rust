@@ -33,7 +33,7 @@ fn main() {
     println!("{} {}", "After append:".to_string(), format_slice(&slice));
 
         // Slice operations
-    let mut subSlice = Rc::new(RefCell::new(Some({ let __seq = { let __seq_holder = slice.clone(); let __seq_guard = __seq_holder.borrow(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[1 as usize..4 as usize].to_vec() })));
+    let mut subSlice = Rc::new(RefCell::new(Some({ let __seq = { let __seq_holder = slice.clone(); let __seq_guard = __seq_holder.borrow(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(1) as usize..(4) as usize].to_vec() })));
     println!("{} {}", "Sub-slice [1:4]:".to_string(), format_slice(&subSlice));
 
         // Length and capacity
@@ -41,7 +41,7 @@ fn main() {
     println!("{} {}", "Capacity:".to_string(), (*slice.borrow().as_ref().unwrap()).capacity());
 
         // Make slice
-    let mut made = Rc::new(RefCell::new(Some({ let mut v = Vec::with_capacity(5 as usize); v.resize(3 as usize, 0); v })));
+    let mut made = Rc::new(RefCell::new(Some({ let mut v = Vec::with_capacity((5) as usize); v.resize((3) as usize, 0); v })));
     (*made.borrow_mut().as_mut().unwrap())[0] = 10;
     (*made.borrow_mut().as_mut().unwrap())[1] = 20;
     (*made.borrow_mut().as_mut().unwrap())[2] = 30;

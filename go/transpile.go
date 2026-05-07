@@ -488,8 +488,12 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 							RegisterTypeAlias(typeSpec.Name.Name)
 						} else if _, isFuncType := typeSpec.Type.(*ast.FuncType); isFuncType {
 							RegisterTypeAlias(typeSpec.Name.Name)
-						} else if ident, ok := typeSpec.Type.(*ast.Ident); ok {
-							RegisterTypeDefinition(typeSpec.Name.Name, ident.Name)
+						} else {
+							_, isStruct := typeSpec.Type.(*ast.StructType)
+							_, isInterface := typeSpec.Type.(*ast.InterfaceType)
+							if !isStruct && !isInterface {
+								RegisterTypeDefinition(typeSpec.Name.Name, typeDefinitionUnderlyingName(typeSpec.Type))
+							}
 						}
 						// Track interfaces
 						if ifaceType, ok := typeSpec.Type.(*ast.InterfaceType); ok {

@@ -19,6 +19,12 @@ const (
 	AddressOf                    // Expression is having its address taken
 )
 
+func writeExpressionAsUsize(out *strings.Builder, expr ast.Expr) {
+	out.WriteString("(")
+	TranspileExpression(out, expr)
+	out.WriteString(") as usize")
+}
+
 // isExpressionResultBare checks if an expression produces a bare (non-wrapped) result
 // in LValue context. If true, the result should NOT have .borrow()/.lock() applied.
 // This is used to avoid adding extra unwrap layers in nested indexing like matrix[1][1].
@@ -701,10 +707,14 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			// Method receiver - translate to self
 			// Check if this is a type definition that needs unwrapping
 			if _, isTypeDef := LookupTypeDefinition(currentReceiverType); isTypeDef {
-				// For type definitions, access the inner value
-				out.WriteString("(*self.0")
-				WriteBorrowMethod(out, false)
-				out.WriteString(".as_ref().unwrap())")
+				if ctx == LValue || ctx == AddressOf {
+					out.WriteString("self.0")
+				} else {
+					// For type definitions, access the inner value
+					out.WriteString("(*self.0")
+					WriteBorrowMethod(out, false)
+					out.WriteString(".as_ref().unwrap())")
+				}
 			} else {
 				out.WriteString("self")
 			}
@@ -1481,16 +1491,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				TranspileExpressionContext(out, e.X, LValue)
 				WriteBorrowMethod(out, false)
 				out.WriteString(".as_ref().unwrap()).clone(); __s.as_bytes()[")
-				// Check if index needs unwrapping
-				if typeInfo != nil && typeInfo.NeedsUnwrapping(e.Index) {
-					out.WriteString("(*")
-					TranspileExpression(out, e.Index)
-					WriteBorrowMethod(out, false)
-					out.WriteString(".as_ref().unwrap()) as usize")
-				} else {
-					TranspileExpression(out, e.Index)
-					out.WriteString(" as usize")
-				}
+				writeExpressionAsUsize(out, e.Index)
 				out.WriteString("] }")
 			} else {
 				// Array/slice indexing
@@ -1499,15 +1500,15 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					// Don't add borrow/unwrap - just index directly
 					TranspileExpressionContext(out, e.X, LValue)
 					out.WriteString("[")
-					TranspileExpression(out, e.Index)
-					out.WriteString(" as usize]")
+					writeExpressionAsUsize(out, e.Index)
+					out.WriteString("]")
 					out.WriteString(".clone()")
 				} else if NeedsConcurrentWrapper() {
 					out.WriteString("{ let __seq = ")
 					writeClonedWrappedExpression(out, e.X, "__seq_holder", "__seq_guard")
 					out.WriteString("; __seq[")
-					TranspileExpression(out, e.Index)
-					out.WriteString(" as usize].clone() }")
+					writeExpressionAsUsize(out, e.Index)
+					out.WriteString("].clone() }")
 				} else {
 					out.WriteString("(*")
 					// Use LValue context so identifiers don't unwrap themselves
@@ -1515,8 +1516,8 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					WriteBorrowMethod(out, false)
 					out.WriteString(".as_ref().unwrap())[")
 					// Index handling - identifiers will unwrap themselves in RValue context
-					TranspileExpression(out, e.Index)
-					out.WriteString(" as usize]")
+					writeExpressionAsUsize(out, e.Index)
+					out.WriteString("]")
 					// Array/slice elements are wrapped, so we need to clone
 					out.WriteString(".clone()")
 				}
@@ -1538,21 +1539,22 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			writeClonedWrappedExpression(out, e.X, "__seq_holder", "__seq_guard")
 			out.WriteString("; let _slice = &__seq[")
 			if e.Low != nil {
-				TranspileExpression(out, e.Low)
-				out.WriteString(" as usize")
+				writeExpressionAsUsize(out, e.Low)
 			} else {
 				out.WriteString("0")
 			}
 			out.WriteString("..")
 			if e.High != nil {
-				TranspileExpression(out, e.High)
-				out.WriteString(" as usize")
+				writeExpressionAsUsize(out, e.High)
 			}
 			out.WriteString("]; let mut _v = Vec::with_capacity((")
+			out.WriteString("(")
 			TranspileExpression(out, e.Max)
-			out.WriteString(" - ")
+			out.WriteString(") - ")
 			if e.Low != nil {
+				out.WriteString("(")
 				TranspileExpression(out, e.Low)
+				out.WriteString(")")
 			} else {
 				out.WriteString("0")
 			}
@@ -1565,13 +1567,11 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			WriteBorrowMethod(out, false)
 			out.WriteString(".as_ref().unwrap()).clone(); __s[")
 			if e.Low != nil {
-				TranspileExpression(out, e.Low)
-				out.WriteString(" as usize")
+				writeExpressionAsUsize(out, e.Low)
 			}
 			out.WriteString("..")
 			if e.High != nil {
-				TranspileExpression(out, e.High)
-				out.WriteString(" as usize")
+				writeExpressionAsUsize(out, e.High)
 			}
 			out.WriteString("].to_string() }")
 			WriteWrapperSuffix(out)
@@ -1582,14 +1582,12 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			out.WriteString("; __seq[")
 			if e.Low != nil {
 				// Indices will unwrap themselves in RValue context if needed
-				TranspileExpression(out, e.Low)
-				out.WriteString(" as usize")
+				writeExpressionAsUsize(out, e.Low)
 			}
 			out.WriteString("..")
 			if e.High != nil {
 				// Indices will unwrap themselves in RValue context if needed
-				TranspileExpression(out, e.High)
-				out.WriteString(" as usize")
+				writeExpressionAsUsize(out, e.High)
 			}
 			out.WriteString("].to_vec() }")
 			WriteWrapperSuffix(out)

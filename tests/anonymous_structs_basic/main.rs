@@ -120,10 +120,10 @@ fn main() {
 
         // Array of anonymous structs
     let mut items: Rc<RefCell<Option<[AnonymousStruct5; 2]>>> = Rc::new(RefCell::new(Some(Default::default())));
-    { let new_val = 1; *(*items.borrow().as_ref().unwrap())[0 as usize].clone().i_d.borrow_mut() = Some(new_val); };
-    { let new_val = "first".to_string(); *(*items.borrow().as_ref().unwrap())[0 as usize].clone().value.borrow_mut() = Some(new_val); };
-    { let new_val = 2; *(*items.borrow().as_ref().unwrap())[1 as usize].clone().i_d.borrow_mut() = Some(new_val); };
-    { let new_val = "second".to_string(); *(*items.borrow().as_ref().unwrap())[1 as usize].clone().value.borrow_mut() = Some(new_val); };
+    { let new_val = 1; *(*items.borrow().as_ref().unwrap())[(0) as usize].clone().i_d.borrow_mut() = Some(new_val); };
+    { let new_val = "first".to_string(); *(*items.borrow().as_ref().unwrap())[(0) as usize].clone().value.borrow_mut() = Some(new_val); };
+    { let new_val = 2; *(*items.borrow().as_ref().unwrap())[(1) as usize].clone().i_d.borrow_mut() = Some(new_val); };
+    { let new_val = "second".to_string(); *(*items.borrow().as_ref().unwrap())[(1) as usize].clone().value.borrow_mut() = Some(new_val); };
     for (i, item) in (*items.borrow().as_ref().unwrap()).iter().enumerate() {
         print!("Item {}: {{ID: {}, Value: {}}}\n", i, (*item.i_d.borrow().as_ref().unwrap()), (*item.value.borrow().as_ref().unwrap()));
     }

@@ -53,8 +53,8 @@ pub fn concat(separator: Rc<RefCell<Option<String>>>, strings: Rc<RefCell<Option
     if (*strings.borrow().as_ref().unwrap()).len() == 0 {
         return Rc::new(RefCell::new(Some("".to_string())));
     }
-    let mut result = Rc::new(RefCell::new(Some((*strings.borrow().as_ref().unwrap())[0 as usize].clone())));
-    for str in &{ let __seq = { let __seq_holder = strings.clone(); let __seq_guard = __seq_holder.borrow(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[1 as usize..].to_vec() } {
+    let mut result = Rc::new(RefCell::new(Some((*strings.borrow().as_ref().unwrap())[(0) as usize].clone())));
+    for str in &{ let __seq = { let __seq_holder = strings.clone(); let __seq_guard = __seq_holder.borrow(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(1) as usize..].to_vec() } {
         (*result.borrow_mut().as_mut().unwrap()).push_str(&format!("{}{}", (*separator.borrow().as_ref().unwrap()), str));
     }
     return result.clone();

@@ -2196,7 +2196,7 @@ func transpileMake(out *strings.Builder, call *ast.CallExpr) {
 					// Empty vector with capacity
 					out.WriteString("Vec::with_capacity(")
 					if len(call.Args) >= 3 {
-						TranspileExpression(out, call.Args[2])
+						writeExpressionAsUsize(out, call.Args[2])
 					} else {
 						out.WriteString("0")
 					}
@@ -2204,10 +2204,10 @@ func transpileMake(out *strings.Builder, call *ast.CallExpr) {
 				} else if len(call.Args) >= 3 {
 					// Vector with initial size AND capacity: make([]T, len, cap)
 					out.WriteString("{ let mut v = Vec::with_capacity(")
-					TranspileExpression(out, call.Args[2])
-					out.WriteString(" as usize); v.resize(")
-					TranspileExpression(out, call.Args[1])
-					out.WriteString(" as usize, ")
+					writeExpressionAsUsize(out, call.Args[2])
+					out.WriteString("); v.resize(")
+					writeExpressionAsUsize(out, call.Args[1])
+					out.WriteString(", ")
 					out.WriteString(elementType)
 					out.WriteString("); v }")
 				} else {
@@ -2215,7 +2215,7 @@ func transpileMake(out *strings.Builder, call *ast.CallExpr) {
 					out.WriteString("vec![")
 					out.WriteString(elementType)
 					out.WriteString("; ")
-					TranspileExpression(out, call.Args[1])
+					writeExpressionAsUsize(out, call.Args[1])
 					out.WriteString("]")
 				}
 			} else {

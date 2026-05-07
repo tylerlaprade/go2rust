@@ -10,7 +10,7 @@ fn main() {
     println!("{}", "Array elements:".to_string());
     let mut i = Rc::new(RefCell::new(Some(0)));
     while (*i.borrow().as_ref().unwrap()) < (*arr.borrow().as_ref().unwrap()).len() {
-        println!("{}", (*arr.borrow().as_ref().unwrap())[(*i.borrow().as_ref().unwrap()) as usize].clone());
+        println!("{}", (*arr.borrow().as_ref().unwrap())[((*i.borrow().as_ref().unwrap())) as usize].clone());
         { let mut guard = i.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
 

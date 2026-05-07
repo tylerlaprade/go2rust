@@ -15,7 +15,7 @@ fn main() {
         }
     }
 
-    let mut x = Rc::new(RefCell::new(Some((*values.borrow().as_ref().unwrap())[1 as usize].clone() * 10)));
+    let mut x = Rc::new(RefCell::new(Some((*values.borrow().as_ref().unwrap())[(1) as usize].clone() * 10)));
     if (*x.borrow().as_ref().unwrap()) > 30 {
             println!("{}", "large".to_string());
         } else {

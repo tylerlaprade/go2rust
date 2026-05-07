@@ -63,7 +63,7 @@ fn main() {
 
         // Ignore values, use only keys
     println!("{}", "Keys only:".to_string());
-    let mut keys = Rc::new(RefCell::new(Some(Vec::with_capacity((*ages.borrow().as_ref().unwrap()).len()))));
+    let mut keys = Rc::new(RefCell::new(Some(Vec::with_capacity(((*ages.borrow().as_ref().unwrap()).len()) as usize))));
     for (name, _) in (*ages.borrow().as_ref().unwrap()).clone() {
         {(*keys.borrow_mut()).get_or_insert_with(Vec::new).push(name); keys.clone()};
     }
@@ -75,7 +75,7 @@ fn main() {
 
         // Ignore keys, use only values
     println!("{}", "Values only:".to_string());
-    let mut values = Rc::new(RefCell::new(Some(Vec::with_capacity((*ages.borrow().as_ref().unwrap()).len()))));
+    let mut values = Rc::new(RefCell::new(Some(Vec::with_capacity(((*ages.borrow().as_ref().unwrap()).len()) as usize))));
     for (_, age) in (*ages.borrow().as_ref().unwrap()).clone() {
         {(*values.borrow_mut()).get_or_insert_with(Vec::new).push((*age.borrow_mut().as_mut().unwrap())); values.clone()};
     }

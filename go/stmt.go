@@ -126,6 +126,20 @@ func isBareBuiltinReturn(call *ast.CallExpr) bool {
 	return ident.Name == "len" || ident.Name == "cap"
 }
 
+func expectsGoInt(expr ast.Expr) bool {
+	ident, ok := expr.(*ast.Ident)
+	return ok && ident.Name == "int"
+}
+
+func writeBareBuiltinReturnForExpectedType(out *strings.Builder, call *ast.CallExpr, expected ast.Expr) bool {
+	if !isBareBuiltinReturn(call) || !expectsGoInt(expected) {
+		return false
+	}
+	TranspileExpression(out, call)
+	out.WriteString(" as i32")
+	return true
+}
+
 func isBuiltinCallNamed(call *ast.CallExpr, name string) bool {
 	ident, ok := call.Fun.(*ast.Ident)
 	if !ok || ident.Name != name {
@@ -761,7 +775,13 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 						if needsWrapping {
 							WriteWrapperPrefix(out)
-							TranspileExpression(out, result)
+							var expected ast.Expr
+							if fnType.Results != nil && i < len(fnType.Results.List) {
+								expected = fnType.Results.List[i].Type
+							}
+							if !writeBareBuiltinReturnForExpectedType(out, callExpr, expected) {
+								TranspileExpression(out, result)
+							}
 							WriteWrapperSuffix(out)
 						} else {
 							// Already wrapped

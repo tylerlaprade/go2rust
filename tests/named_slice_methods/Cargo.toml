@@ -1,0 +1,8 @@
+[package]
+name = "named_slice_methods"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "named_slice_methods"
+path = "main.rs"

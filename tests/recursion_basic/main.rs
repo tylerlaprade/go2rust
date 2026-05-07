@@ -80,9 +80,9 @@ pub fn sum_array(arr: Rc<RefCell<Option<Vec<i32>>>>) -> Rc<RefCell<Option<i32>>>
         return Rc::new(RefCell::new(Some(0)));
     }
     if (*arr.borrow().as_ref().unwrap()).len() == 1 {
-        return Rc::new(RefCell::new(Some((*arr.borrow().as_ref().unwrap())[0 as usize].clone())));
+        return Rc::new(RefCell::new(Some((*arr.borrow().as_ref().unwrap())[(0) as usize].clone())));
     }
-    return Rc::new(RefCell::new(Some((*arr.borrow().as_ref().unwrap())[0 as usize].clone() + (*sum_array(Rc::new(RefCell::new(Some({ let __seq = { let __seq_holder = arr.clone(); let __seq_guard = __seq_holder.borrow(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[1 as usize..].to_vec() })))).borrow().as_ref().unwrap()))));
+    return Rc::new(RefCell::new(Some((*arr.borrow().as_ref().unwrap())[(0) as usize].clone() + (*sum_array(Rc::new(RefCell::new(Some({ let __seq = { let __seq_holder = arr.clone(); let __seq_guard = __seq_holder.borrow(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(1) as usize..].to_vec() })))).borrow().as_ref().unwrap()))));
 }
 
 pub fn reverse_string(s: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>> {
@@ -90,7 +90,7 @@ pub fn reverse_string(s: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<Strin
     if (*s.borrow().as_ref().unwrap()).len() <= 1 {
         return s.clone();
     }
-    return Rc::new(RefCell::new(Some(format!("{}{}", (*reverse_string(Rc::new(RefCell::new(Some({ let __s = (*s.borrow().as_ref().unwrap()).clone(); __s[1 as usize..].to_string() })))).borrow().as_ref().unwrap()), (*Rc::new(RefCell::new(Some(({ let __s = (*s.borrow().as_ref().unwrap()).clone(); __s.as_bytes()[0 as usize] } as char).to_string()))).borrow().as_ref().unwrap())))));
+    return Rc::new(RefCell::new(Some(format!("{}{}", (*reverse_string(Rc::new(RefCell::new(Some({ let __s = (*s.borrow().as_ref().unwrap()).clone(); __s[(1) as usize..].to_string() })))).borrow().as_ref().unwrap()), (*Rc::new(RefCell::new(Some(({ let __s = (*s.borrow().as_ref().unwrap()).clone(); __s.as_bytes()[(0) as usize] } as char).to_string()))).borrow().as_ref().unwrap())))));
 }
 
 fn main() {

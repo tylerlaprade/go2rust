@@ -20,13 +20,13 @@ fn main() {
     }
 
         // Access slice - transpiler needs to know Numbers is a slice
-    print!("First number: {}\n", (*Numbers.borrow().as_ref().unwrap())[0 as usize].clone());
-    print!("Last number: {}\n", (*Numbers.borrow().as_ref().unwrap())[(*Numbers.borrow().as_ref().unwrap()).len() - 1 as usize].clone());
+    print!("First number: {}\n", (*Numbers.borrow().as_ref().unwrap())[(0) as usize].clone());
+    print!("Last number: {}\n", (*Numbers.borrow().as_ref().unwrap())[((*Numbers.borrow().as_ref().unwrap()).len() - 1) as usize].clone());
 
         // Access map of slices - complex type resolution
     let mut admins = Rc::new(RefCell::new(Some((*Groups.borrow().as_ref().unwrap()).get(&"admins".to_string()).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| vec![]))));
     print!("Admin count: {}\n", (*admins.borrow().as_ref().unwrap()).len());
-    print!("First admin: {}\n", (*admins.borrow().as_ref().unwrap())[0 as usize].clone());
+    print!("First admin: {}\n", (*admins.borrow().as_ref().unwrap())[(0) as usize].clone());
 
         // Iterate over map - requires knowing the type
         // Note: map iteration order is non-deterministic, so we'll just count
@@ -37,7 +37,7 @@ fn main() {
     print!("User count: {}\n", { let __v = (*count.borrow().as_ref().unwrap()).clone(); __v });
 
         // Access slice of maps - another complex case
-    let mut firstRecord = Rc::new(RefCell::new(Some((*Records.borrow().as_ref().unwrap())[0 as usize].clone())));
+    let mut firstRecord = Rc::new(RefCell::new(Some((*Records.borrow().as_ref().unwrap())[(0) as usize].clone())));
     let (mut name, mut ok) = ({
         if let Some(__v) = (*firstRecord.borrow().as_ref().unwrap()).get(&"name".to_string()) {
             let guard = __v.borrow();

@@ -596,6 +596,34 @@ func getEmbeddedFieldName(expr ast.Expr) string {
 	}
 }
 
+func typeDefinitionUnderlyingName(expr ast.Expr) string {
+	switch t := expr.(type) {
+	case *ast.Ident:
+		return t.Name
+	case *ast.ArrayType:
+		prefix := "[]"
+		if t.Len != nil {
+			prefix = "[_]"
+		}
+		return prefix + typeDefinitionUnderlyingName(t.Elt)
+	case *ast.MapType:
+		return "map[" + typeDefinitionUnderlyingName(t.Key) + "]" + typeDefinitionUnderlyingName(t.Value)
+	case *ast.StarExpr:
+		return "*" + typeDefinitionUnderlyingName(t.X)
+	case *ast.SelectorExpr:
+		if ident, ok := t.X.(*ast.Ident); ok {
+			return ident.Name + "." + t.Sel.Name
+		}
+		return t.Sel.Name
+	case *ast.ChanType:
+		return "chan " + typeDefinitionUnderlyingName(t.Value)
+	case *ast.FuncType:
+		return "func"
+	default:
+		return fmt.Sprintf("%T", expr)
+	}
+}
+
 func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *ast.GenDecl) {
 	switch t := typeSpec.Type.(type) {
 	case *ast.StructType:
@@ -766,6 +794,7 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 		} else {
 			// Type definition: type A B
 			// Create a newtype wrapper in Rust
+			RegisterTypeDefinition(typeSpec.Name.Name, typeDefinitionUnderlyingName(t))
 			out.WriteString("#[derive(Debug, Clone)]\n")
 			out.WriteString("pub struct ")
 			out.WriteString(typeSpec.Name.Name)
@@ -775,8 +804,6 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 
 			// Add Display implementation for displayable scalar type definitions
 			if ident, ok := t.(*ast.Ident); ok {
-				RegisterTypeDefinition(typeSpec.Name.Name, ident.Name)
-
 				// Add Display impl when the underlying Rust type is displayable.
 				if isDisplayableDefinedUnderlying(ident.Name) {
 					// Track necessary imports

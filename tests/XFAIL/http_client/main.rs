@@ -23,7 +23,7 @@ fn main() {
     let (mut body, _) = io::read_all(Arc::new(Mutex::new(Some((*{ let __field = (*resp.lock().unwrap().as_ref().unwrap()).body.clone(); __field }.lock().unwrap().as_ref().unwrap())))));
     let mut text = Arc::new(Mutex::new(Some(String::from_utf8((*body.lock().unwrap().as_ref().unwrap()).clone()).unwrap())));
     if { let __tmp_x = (*text.lock().unwrap().as_ref().unwrap()).len(); let __tmp_y = 100; __tmp_x > __tmp_y } {
-        { let new_val = Arc::new(Mutex::new(Some({ let __s = (*text.lock().unwrap().as_ref().unwrap()).clone(); __s[..100 as usize].to_string() }))); *text.lock().unwrap() = new_val.lock().unwrap().take(); };
+        { let new_val = Arc::new(Mutex::new(Some({ let __s = (*text.lock().unwrap().as_ref().unwrap()).clone(); __s[..(100) as usize].to_string() }))); *text.lock().unwrap() = new_val.lock().unwrap().take(); };
     }
     println!("{} {}", "Response:".to_string(), { let __v = (*text.lock().unwrap().as_ref().unwrap()).clone(); __v });
 

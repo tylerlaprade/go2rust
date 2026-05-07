@@ -71,8 +71,8 @@ pub fn process_data(data: Rc<RefCell<Option<Vec<i32>>>>) -> (Rc<RefCell<Option<i
         return (Rc::new(RefCell::new(Some(0))), Rc::new(RefCell::new(Some(0))), Rc::new(RefCell::new(Some(0))));
     }
 
-    { let new_val = (*data.borrow().as_ref().unwrap())[0 as usize].clone(); *min.borrow_mut() = Some(new_val); };
-    { let new_val = (*data.borrow().as_ref().unwrap())[0 as usize].clone(); *max.borrow_mut() = Some(new_val); };
+    { let new_val = (*data.borrow().as_ref().unwrap())[(0) as usize].clone(); *min.borrow_mut() = Some(new_val); };
+    { let new_val = (*data.borrow().as_ref().unwrap())[(0) as usize].clone(); *max.borrow_mut() = Some(new_val); };
     { let new_val = 0; *sum.borrow_mut() = Some(new_val); };
 
     { let __range_guard = data.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for val in __range_values.iter().copied() {

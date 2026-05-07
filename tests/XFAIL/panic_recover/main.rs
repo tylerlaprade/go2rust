@@ -70,7 +70,7 @@ pub fn process_slice(slice: Rc<RefCell<Option<Vec<i32>>>>, index: Rc<RefCell<Opt
     }) as Box<dyn Fn() -> ()>))); let __f_guard = __f_holder.borrow(); let __f = __f_guard.as_ref().unwrap(); (*__f)() };
     }));
 
-    { let new_val = (*slice.borrow().as_ref().unwrap())[(*index.borrow().as_ref().unwrap()) as usize].clone(); *value.borrow_mut() = Some(new_val); };
+    { let new_val = (*slice.borrow().as_ref().unwrap())[((*index.borrow().as_ref().unwrap())) as usize].clone(); *value.borrow_mut() = Some(new_val); };
     {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
