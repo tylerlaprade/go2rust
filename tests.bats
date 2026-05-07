@@ -301,6 +301,10 @@ run_xfail_test() {
     run_test "tests/anonymous_structs_positional"
 }
 
+@test "any_interface_static_assertion" {
+    run_test "tests/any_interface_static_assertion"
+}
+
 @test "any_type_conversion" {
     run_test "tests/any_type_conversion"
 }

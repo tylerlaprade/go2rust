@@ -2903,9 +2903,60 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 	}
 }
 
+func staticallyKnownAnyInterfaceAssertionSource(e *ast.TypeAssertExpr) (ast.Expr, bool) {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || e.Type == nil {
+		return nil, false
+	}
+	call, ok := e.X.(*ast.CallExpr)
+	if !ok || len(call.Args) != 1 {
+		return nil, false
+	}
+	ident, ok := call.Fun.(*ast.Ident)
+	if !ok || ident.Name != "any" || !typeInfo.IsTypeConversion(call) {
+		return nil, false
+	}
+	targetType := typeInfo.GetType(e.Type)
+	if targetType == nil {
+		return nil, false
+	}
+	targetInterface, ok := targetType.Underlying().(*types.Interface)
+	if !ok || targetInterface.NumMethods() == 0 {
+		return nil, false
+	}
+	sourceType := typeInfo.GetType(call.Args[0])
+	if sourceType == nil {
+		return nil, false
+	}
+	targetInterface.Complete()
+	if !types.Implements(sourceType, targetInterface) {
+		return nil, false
+	}
+	return call.Args[0], true
+}
+
 // TranspileTypeAssertionCommaOk generates code for type assertion with comma-ok form
 func TranspileTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr) {
 	if e.Type == nil {
+		return
+	}
+
+	if arg, ok := staticallyKnownAnyInterfaceAssertionSource(e); ok {
+		out.WriteString("({\n")
+		out.WriteString("        let __asserted = ")
+		if ident, ok := arg.(*ast.Ident); ok && ident.Name != "nil" {
+			out.WriteString(RustIdentForUse(ident))
+			out.WriteString(".clone()")
+		} else {
+			TranspileExpression(out, arg)
+		}
+		out.WriteString(";\n")
+		out.WriteString("        (__asserted.clone(), ")
+		WriteWrapperPrefix(out)
+		out.WriteString("true")
+		WriteWrapperSuffix(out)
+		out.WriteString(")\n")
+		out.WriteString("    })")
 		return
 	}
 

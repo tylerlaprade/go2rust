@@ -162,6 +162,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Interface implementations | ✅ |
 | └ Type assertions | ✅ |
 | └ `any(x)` conversions feeding type assertions | ✅ |
+| └ Static `any(x).(interface{...})` assertions when TypeInfo proves implementation | ✅ |
 | └ Type switches | ✅ |
 | **`map` - Map types** | |
 | └ Map types | ✅ |
