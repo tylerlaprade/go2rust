@@ -766,6 +766,10 @@ run_xfail_test() {
     run_test "tests/regex_basic"
 }
 
+@test "return_selector_values" {
+    run_test "tests/return_selector_values"
+}
+
 @test "return_slice_literal" {
     run_test "tests/return_slice_literal"
 }

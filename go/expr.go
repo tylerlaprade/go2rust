@@ -387,15 +387,15 @@ func writeIdentValueClone(out *strings.Builder, ident *ast.Ident) {
 	out.WriteString(".as_ref().unwrap()).clone()")
 }
 
-func isCloneableNonPointerIdent(ident *ast.Ident) bool {
-	if ident == nil {
+func isCloneableNonPointerExpr(expr ast.Expr) bool {
+	if expr == nil {
 		return false
 	}
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil {
 		return false
 	}
-	typ := typeInfo.GetType(ident)
+	typ := typeInfo.GetType(expr)
 	if typ == nil {
 		return false
 	}
@@ -405,9 +405,16 @@ func isCloneableNonPointerIdent(ident *ast.Ident) bool {
 	switch typ.Underlying().(type) {
 	case *types.Basic, *types.Struct, *types.Array, *types.Slice, *types.Map:
 		return true
+	case *types.Interface:
+		named, ok := typ.(*types.Named)
+		return ok && named.Obj() != nil && named.Obj().Pkg() != nil && isStdlibPackage(named.Obj().Pkg().Path())
 	default:
 		return false
 	}
+}
+
+func isCloneableNonPointerIdent(ident *ast.Ident) bool {
+	return isCloneableNonPointerExpr(ident)
 }
 
 func writeIdentValueCloneBlock(out *strings.Builder, ident *ast.Ident) {
@@ -425,8 +432,7 @@ func writeOwnedExpressionValue(out *strings.Builder, expr ast.Expr) bool {
 		return true
 	}
 	if _, ok := expr.(*ast.SelectorExpr); ok {
-		typeInfo := GetTypeInfo()
-		if typeInfo != nil && typeInfo.IsString(expr) {
+		if isCloneableNonPointerExpr(expr) {
 			TranspileExpression(out, expr)
 			out.WriteString(".clone()")
 			return true

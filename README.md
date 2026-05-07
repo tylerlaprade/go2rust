@@ -201,7 +201,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Selector-qualified struct literals (`pkg.Type{}`) | ✅ |
 | └ Stdlib struct field stubs from selector type information | ✅ |
 | └ Field access | ✅ |
-| └ Owned string field returns and arguments | ✅ |
+| └ Owned selector field returns and arguments | ✅ |
 | └ Embedded fields | ✅ |
 | └ Anonymous structs | ✅ |
 | └ Nested structs/slices/maps/interfaces and anonymous struct function boundaries | ✅ |
