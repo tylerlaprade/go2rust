@@ -436,6 +436,8 @@ func (ti *TypeInfo) NeedsUnwrapping(expr ast.Expr) bool {
 	case *ast.BinaryExpr:
 		// Binary expressions are computed inline, don't need unwrapping
 		return false
+	case *ast.CompositeLit:
+		return isCompositeLitSelfWrapping(e)
 	case *ast.UnaryExpr:
 		// Unary expressions are computed inline, don't need unwrapping
 		return false

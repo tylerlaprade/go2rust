@@ -673,6 +673,10 @@ run_xfail_test() {
     run_test "tests/package_global_shadowing"
 }
 
+@test "parallel_slice_field_assign" {
+    run_test "tests/parallel_slice_field_assign"
+}
+
 @test "pointers_basic" {
     run_test "tests/pointers_basic"
 }
@@ -807,6 +811,10 @@ run_xfail_test() {
 
 @test "strings_runes" {
     run_test "tests/strings_runes"
+}
+
+@test "struct_compare_literal" {
+    run_test "tests/struct_compare_literal"
 }
 
 @test "struct_const_fields" {

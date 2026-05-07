@@ -3,6 +3,7 @@ package main
 import (
 	"go/ast"
 	"go/token"
+	"go/types"
 	"slices"
 	"sort"
 	"strings"
@@ -50,6 +51,9 @@ var typeDefinitions = make(map[string]string) // maps type name to underlying ty
 // typeAliases tracks which types are type aliases
 var typeAliases = make(map[string]bool)
 
+// comparableStructTypes tracks named structs that appear in == or != expressions.
+var comparableStructTypes = make(map[string]bool)
+
 // goPackageImports tracks imported Go packages for the current file
 // map[alias]packagePath (alias can be empty for default)
 var goPackageImports = make(map[string]string)
@@ -92,6 +96,39 @@ type FieldAccessInfo struct {
 	IsPromoted   bool     // True if field comes from embedded struct
 	EmbeddedPath []string // Path of embedded types to traverse (e.g., ["B", "A"] for C.B.A)
 	FieldName    string   // The actual field name (snake_case)
+}
+
+func collectComparableStructTypes(file *ast.File) map[string]bool {
+	result := make(map[string]bool)
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return result
+	}
+
+	ast.Inspect(file, func(node ast.Node) bool {
+		bin, ok := node.(*ast.BinaryExpr)
+		if !ok {
+			return true
+		}
+		if bin.Op != token.EQL && bin.Op != token.NEQ {
+			return true
+		}
+		markComparableStructType(result, typeInfo.GetType(bin.X))
+		markComparableStructType(result, typeInfo.GetType(bin.Y))
+		return true
+	})
+
+	return result
+}
+
+func markComparableStructType(result map[string]bool, typ types.Type) {
+	named, ok := typ.(*types.Named)
+	if !ok {
+		return
+	}
+	if _, ok := named.Underlying().(*types.Struct); ok {
+		result[named.Obj().Name()] = true
+	}
 }
 
 // trackGoImport tracks a Go import statement
@@ -424,6 +461,11 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 	// Transpile the body
 	var body strings.Builder
 	packageGlobalNames = make(map[string]bool)
+	prevComparableStructTypes := comparableStructTypes
+	comparableStructTypes = collectComparableStructTypes(file)
+	defer func() {
+		comparableStructTypes = prevComparableStructTypes
+	}()
 
 	// Collect methods by receiver type
 	methods := make(map[string][]*ast.FuncDecl)
@@ -553,7 +595,7 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 			body.WriteString("\n\n")
 		}
 		first = false
-		writeStructDerive(&body, structType)
+		writeStructDerive(&body, "", structType)
 		body.WriteString("struct ")
 		body.WriteString(typeName)
 		body.WriteString(" {\n")

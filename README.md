@@ -188,6 +188,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | **`struct` - Struct types** | |
 | └ Struct definitions | ✅ |
 | └ Struct literals | ✅ |
+| └ Comparable struct literals in equality expressions | ✅ |
 | └ Channel fields in struct literals | ✅ |
 | └ Selector-qualified struct literals (`pkg.Type{}`) | ✅ |
 | └ Field access | ✅ |
@@ -216,6 +217,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Slices | ✅ |
 | └ Slice operations | ✅ |
 | └ Parallel slice element swaps | ✅ |
+| └ Parallel slice-expression assignments into wrapped fields | ✅ |
 | **Operators** | |
 | └ Binary operators (+, -, *, /, etc.) | ✅ |
 | └ Complex nested expressions with function calls, indexing, fields, pointers, assertions, and channel receives | ✅ |

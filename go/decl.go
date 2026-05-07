@@ -157,9 +157,10 @@ func structFieldNeedsCustomDefault(expr ast.Expr) bool {
 	}
 }
 
-func writeStructDerive(out *strings.Builder, structType *ast.StructType) {
+func writeStructDerive(out *strings.Builder, structName string, structType *ast.StructType) {
 	hasTraitField := structHasTraitField(structType)
 	needsCustomDefault := structNeedsCustomDefault(structType)
+	needsPartialEq := !hasTraitField && structName != "" && comparableStructTypes[structName]
 	if hasTraitField {
 		if needsCustomDefault {
 			out.WriteString("#[derive(Clone)]\n")
@@ -168,9 +169,17 @@ func writeStructDerive(out *strings.Builder, structType *ast.StructType) {
 		}
 	} else {
 		if needsCustomDefault {
-			out.WriteString("#[derive(Debug, Clone)]\n")
+			if needsPartialEq {
+				out.WriteString("#[derive(Debug, Clone, PartialEq)]\n")
+			} else {
+				out.WriteString("#[derive(Debug, Clone)]\n")
+			}
 		} else {
-			out.WriteString("#[derive(Debug, Clone, Default)]\n")
+			if needsPartialEq {
+				out.WriteString("#[derive(Debug, Clone, Default, PartialEq)]\n")
+			} else {
+				out.WriteString("#[derive(Debug, Clone, Default)]\n")
+			}
 		}
 	}
 }
@@ -650,7 +659,7 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 
 		structDefs[typeSpec.Name.Name] = structDef
 
-		writeStructDerive(out, t)
+		writeStructDerive(out, typeSpec.Name.Name, t)
 		out.WriteString("pub struct ")
 		out.WriteString(typeSpec.Name.Name)
 		out.WriteString(" {\n")

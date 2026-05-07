@@ -209,6 +209,18 @@ func writeMoveWrappedInnerAssignmentFromTemp(out *strings.Builder, lhs ast.Expr,
 	out.WriteString(".take();")
 }
 
+func tempHoldsWrappedValue(rhs ast.Expr) bool {
+	if isAssignmentSelfWrappingExpression(rhs) {
+		return true
+	}
+	call, ok := rhs.(*ast.CallExpr)
+	if !ok {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	return typeInfo != nil && typeInfo.ReturnsWrappedValue(call) && !isBareBuiltinReturn(call)
+}
+
 func isErrorAssignment(lhs ast.Expr, rhs ast.Expr) bool {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil {
@@ -297,7 +309,8 @@ func writeMapElementUpdate(out *strings.Builder, indexExpr *ast.IndexExpr, op to
 	out.WriteString("); }")
 }
 
-func writeParallelAssignmentTarget(out *strings.Builder, lhs ast.Expr, tmpName string) {
+func writeParallelAssignmentTarget(out *strings.Builder, lhs ast.Expr, tmpName string, rhs ast.Expr) {
+	tmpWrapped := tempHoldsWrappedValue(rhs)
 	if indexExpr, ok := lhs.(*ast.IndexExpr); ok {
 		typeInfo := GetTypeInfo()
 		if typeInfo == nil {
@@ -311,7 +324,13 @@ func writeParallelAssignmentTarget(out *strings.Builder, lhs ast.Expr, tmpName s
 			out.WriteString(".as_mut().unwrap())[")
 			writeExpressionAsUsize(out, indexExpr.Index)
 			out.WriteString("] = ")
-			out.WriteString(tmpName)
+			if tmpWrapped {
+				out.WriteString(tmpName)
+				WriteBorrowMethod(out, true)
+				out.WriteString(".take().unwrap_or_default()")
+			} else {
+				out.WriteString(tmpName)
+			}
 			out.WriteString(";")
 			return
 		}
@@ -324,9 +343,16 @@ func writeParallelAssignmentTarget(out *strings.Builder, lhs ast.Expr, tmpName s
 		TranspileExpressionContext(out, lhs, LValue)
 	}
 	WriteBorrowMethod(out, true)
-	out.WriteString(" = Some(")
-	out.WriteString(tmpName)
-	out.WriteString(");")
+	out.WriteString(" = ")
+	if tmpWrapped {
+		out.WriteString(tmpName)
+		WriteBorrowMethod(out, true)
+		out.WriteString(".take();")
+	} else {
+		out.WriteString("Some(")
+		out.WriteString(tmpName)
+		out.WriteString(");")
+	}
 }
 
 // isMutexLockCall checks if an expression is a Lock() call on a sync.Mutex field
@@ -1433,7 +1459,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					}
 					// Then assign all LHS from temporaries
 					for i, lhs := range s.Lhs {
-						writeParallelAssignmentTarget(out, lhs, fmt.Sprintf("__tmp_%d", i))
+						writeParallelAssignmentTarget(out, lhs, fmt.Sprintf("__tmp_%d", i), s.Rhs[i])
 					}
 					out.WriteString(" }")
 				}
