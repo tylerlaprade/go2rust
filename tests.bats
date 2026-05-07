@@ -766,6 +766,10 @@ run_xfail_test() {
     run_test "tests/regex_basic"
 }
 
+@test "return_slice_literal" {
+    run_test "tests/return_slice_literal"
+}
+
 @test "return_string_const" {
     run_test "tests/return_string_const"
 }

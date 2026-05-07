@@ -26,6 +26,7 @@ Method receivers (value and pointer), multiple returns (including named returns,
 - ✅ Function-valued struct field calls - named functions initialize function fields, function fields format safely, and selector calls unwrap the stored function value (function_field_calls promoted, 2026-05-07)
 - ✅ Assignment from function returns - wrapped call results move their inner value into existing variables instead of nesting wrappers (function_return_assignment promoted, 2026-05-07)
 - ✅ Tuple return reassignment - existing fields, locals, and parameters receive inner values from returned wrapped tuple elements (tuple_return_reassignment promoted, 2026-05-07)
+- ✅ Slice literal returns - return statements pass self-wrapping slice literals through without nesting wrappers (return_slice_literal promoted, 2026-05-07)
 
 ### ✅ Phase 4.5: Advanced Types and Structs
 

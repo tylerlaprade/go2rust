@@ -1032,6 +1032,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 								}
 							}
 						}
+					} else if compositeLit, ok := result.(*ast.CompositeLit); ok && isCompositeLitSelfWrapping(compositeLit) {
+						// Slice and map literals already return wrapped values.
+						TranspileExpression(out, result)
 					} else if _, ok := result.(*ast.SliceExpr); ok {
 						// Slice expressions already return wrapped values (Arc<Mutex<Option<Vec<T>>>>)
 						TranspileExpression(out, result)

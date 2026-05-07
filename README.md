@@ -191,6 +191,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Single return values | ✅ |
 | └ Multiple return values | ✅ |
 | └ Named returns | ✅ |
+| └ Slice and map literal returns | ✅ |
 | **`select` - Select statements** | ✅ |
 | **`struct` - Struct types** | |
 | └ Struct definitions | ✅ |
