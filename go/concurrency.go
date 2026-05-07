@@ -30,6 +30,16 @@ func (cd *ConcurrencyDetector) NeedsConcurrency() bool {
 	return cd.hasGoroutines || cd.hasChannels || cd.hasAsyncCalls
 }
 
+func (cd *ConcurrencyDetector) Merge(other *ConcurrencyDetector) {
+	if cd == nil || other == nil {
+		return
+	}
+	cd.hasGoroutines = cd.hasGoroutines || other.hasGoroutines
+	cd.hasChannels = cd.hasChannels || other.hasChannels
+	cd.hasAsyncCalls = cd.hasAsyncCalls || other.hasAsyncCalls
+	cd.hasUnknownImports = cd.hasUnknownImports || other.hasUnknownImports
+}
+
 // AnalyzeFile analyzes a single Go file for concurrency
 func (cd *ConcurrencyDetector) AnalyzeFile(file *ast.File) {
 	// First, collect all imports

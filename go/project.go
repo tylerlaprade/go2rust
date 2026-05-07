@@ -12,19 +12,20 @@ import (
 )
 
 type ProjectGenerator struct {
-	goFiles         []string
-	projectPath     string
-	packageName     string
-	isLibrary       bool
-	hasMain         bool
-	moduleNames     []string
-	initModuleNames []string
-	typeInfo        *TypeInfo
-	projectImports  *ImportTracker // Collect imports across all files
-	externalMode    ExternalPackageMode
-	goImports       map[string][]string // package path -> list of imports
-	packageMapping  map[string]string   // Go import path -> Rust crate name
-	isVendorPackage bool                // True if this is a vendor package (no go.mod required)
+	goFiles                  []string
+	projectPath              string
+	packageName              string
+	isLibrary                bool
+	hasMain                  bool
+	moduleNames              []string
+	initModuleNames          []string
+	typeInfo                 *TypeInfo
+	projectImports           *ImportTracker // Collect imports across all files
+	externalMode             ExternalPackageMode
+	goImports                map[string][]string // package path -> list of imports
+	packageMapping           map[string]string   // Go import path -> Rust crate name
+	isVendorPackage          bool                // True if this is a vendor package (no go.mod required)
+	useSharedStdlibStubCrate bool                // True when transpiled packages share one stdlib stub crate
 }
 
 func NewProjectGenerator(goFiles []string) *ProjectGenerator {
@@ -85,6 +86,8 @@ func (pg *ProjectGenerator) Generate() error {
 func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 	fileSet := token.NewFileSet()
 	var packageImports map[string]string
+	var packageLoader *PackageLoader
+	var workspaceConcurrencyDetector *ConcurrencyDetector
 
 	// Parse all files first for type checking
 	var astFiles []*ast.File
@@ -129,10 +132,13 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 		if err := loader.TranspileAll(); err != nil {
 			return fmt.Errorf("failed to transpile dependencies: %v", err)
 		}
+		packageLoader = loader
+		workspaceConcurrencyDetector = loader.GetConcurrencyDetector()
 
 		// Get type info and package mapping
 		pg.typeInfo = loader.GetTypeInfo()
 		pg.packageMapping = loader.GetPackageMapping()
+		pg.useSharedStdlibStubCrate = len(pg.packageMapping) > 0
 
 		// CRITICAL: Replace our AST files with the ones from PackageLoader
 		// which have the proper type information
@@ -206,15 +212,20 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 	}
 
 	// Detect concurrency in the project
-	concurrencyDetector := NewConcurrencyDetector()
-	concurrencyDetector.AnalyzeProject(astFiles)
+	concurrencyDetector := workspaceConcurrencyDetector
+	if concurrencyDetector == nil {
+		concurrencyDetector = NewConcurrencyDetector()
+		concurrencyDetector.AnalyzeProject(astFiles)
+	}
 	SetConcurrencyDetector(concurrencyDetector)
 	defer SetConcurrencyDetector(nil) // Clear when done
 
+	packageState := NewPackageState()
 	runCtx := &TranspileContext{
-		Session:        NewTranspileSession(pg.typeInfo, pg.packageMapping),
-		Package:        NewPackageState(),
-		PackageMapping: pg.packageMapping,
+		Session:                 NewTranspileSession(pg.typeInfo, pg.packageMapping),
+		Package:                 packageState,
+		PackageMapping:          pg.packageMapping,
+		UsePackageExternalStubs: pg.useSharedStdlibStubCrate,
 	}
 	runCtx.Package.FunctionNameOverrides = assignPackageFunctionNames(astFiles)
 	SetTranspileContext(runCtx)
@@ -286,6 +297,9 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 		}
 
 		rustCode = prefixSiblingModuleImports(rustCode, outputName, nonMainModuleNames)
+		if pg.useSharedStdlibStubCrate {
+			rustCode = prefixSharedStdlibStubImport(rustCode)
+		}
 		if strings.Contains(rustCode, "__go_init_all") {
 			pg.initModuleNames = append(pg.initModuleNames, outputName)
 		}
@@ -329,6 +343,17 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 	} else if pg.isLibrary {
 		err := pg.generateLibRs()
 		if err != nil {
+			return err
+		}
+	}
+
+	if pg.useSharedStdlibStubCrate {
+		var states []*PackageState
+		if packageLoader != nil {
+			states = append(states, packageLoader.GetPackageStates()...)
+		}
+		states = append(states, packageState)
+		if err := WriteSharedStdlibStubCrate(pg.projectPath, states); err != nil {
 			return err
 		}
 	}
@@ -430,6 +455,9 @@ func (pg *ProjectGenerator) generateMainRs(fileSet *token.FileSet, astFilesByPat
 
 	var mainRust strings.Builder
 
+	if pg.useSharedStdlibStubCrate {
+		mainRust.WriteString(fmt.Sprintf("use %s::*;\n", sharedStdlibStubCrateName))
+	}
 	for _, modName := range pg.moduleNames {
 		mainRust.WriteString(fmt.Sprintf("mod %s;\n", modName))
 	}
@@ -500,6 +528,10 @@ func injectModuleInitCalls(rustCode string, moduleNames []string) string {
 func (pg *ProjectGenerator) generateCargoToml() error {
 	cargoPath := filepath.Join(pg.projectPath, "Cargo.toml")
 	crateNames := pg.sortedCrateNames()
+	dependencyCrateNames := crateNames
+	if pg.useSharedStdlibStubCrate {
+		dependencyCrateNames = addSharedStdlibStubCrateDependency(dependencyCrateNames)
+	}
 
 	// Check if we need the num crate from project imports
 	needsNum := false
@@ -541,13 +573,13 @@ path = "main.rs"
 	}
 
 	// Add workspace configuration if we have external packages
-	if len(pg.packageMapping) > 0 {
+	if len(dependencyCrateNames) > 0 {
 		depDir := "external_stubs"
 		if pg.externalMode == ModeTranspile {
 			depDir = "vendor"
 		}
 		workspaceSection := "\n[workspace]\nmembers = [\n    \".\",\n"
-		for _, crateName := range crateNames {
+		for _, crateName := range dependencyCrateNames {
 			workspaceSection += fmt.Sprintf("    \"%s/%s\",\n", depDir, crateName)
 		}
 		workspaceSection += "]\n"
@@ -555,13 +587,13 @@ path = "main.rs"
 	}
 
 	// Add dependencies section
-	if needsNum || len(pg.packageMapping) > 0 {
+	if needsNum || len(dependencyCrateNames) > 0 {
 		cargoContent += "\n[dependencies]\n"
 		if needsNum {
 			cargoContent += "num = \"0.4\"\n"
 		}
 		// Add external package dependencies
-		for _, crateName := range crateNames {
+		for _, crateName := range dependencyCrateNames {
 			depDir := "external_stubs"
 			if pg.externalMode == ModeTranspile {
 				depDir = "vendor"
@@ -597,6 +629,9 @@ func normalizeFilePath(path string) string {
 func (pg *ProjectGenerator) generateLibRs() error {
 	var libRust strings.Builder
 
+	if pg.useSharedStdlibStubCrate {
+		libRust.WriteString(fmt.Sprintf("pub use %s::*;\n", sharedStdlibStubCrateName))
+	}
 	for _, modName := range pg.moduleNames {
 		libRust.WriteString(fmt.Sprintf("pub mod %s;\n", modName))
 	}

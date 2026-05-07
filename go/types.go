@@ -538,6 +538,8 @@ func goTypesTypeToRust(t types.Type) string {
 			return "u64"
 		case types.Uintptr:
 			return "usize"
+		case types.UnsafePointer:
+			return "usize"
 		case types.Float32:
 			return "f32"
 		case types.Float64:
@@ -576,7 +578,11 @@ func goTypesTypeToRust(t types.Type) string {
 		if named, ok := t.(*types.Named); ok {
 			return "Box<dyn " + goTypesNamedTypeToRust(named) + ">"
 		}
-		return "Box<dyn Trait>"
+		TrackImport("Any")
+		if NeedsConcurrentWrapper() {
+			return "Box<dyn Any + Send + Sync>"
+		}
+		return "Box<dyn Any>"
 	case *types.Signature:
 		return signatureToBoxDynFn(ut)
 	default:

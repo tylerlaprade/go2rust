@@ -1,8 +1,11 @@
 package main
 
 import (
+	"fmt"
 	"go/ast"
 	"go/types"
+	"os"
+	"path/filepath"
 	"slices"
 	"strconv"
 	"strings"
@@ -428,6 +431,133 @@ func GeneratePackageExternalStubs(pkg *PackageState) string {
 	return generateExternalStubs(pkg.ExternalTypeStubs, pkg.ExternalTypeStubFields, pkg.ExternalTypeStubMethods, pkg.ExternalTypeStubConversions, pkg.ExternalPackageStubs)
 }
 
+func WriteSharedStdlibStubCrate(workDir string, states []*PackageState) error {
+	outputDir := filepath.Join(workDir, "vendor", sharedStdlibStubCrateName)
+	if err := os.MkdirAll(outputDir, 0755); err != nil {
+		return fmt.Errorf("failed to create shared stdlib stub crate: %v", err)
+	}
+
+	mergedState := MergeExternalStubPackageStates(states...)
+	stubCode := GeneratePackageExternalStubs(mergedState)
+	if stubCode != "" {
+		stubCode = GenerateExternalStubModuleImports() + "\n" + stubCode
+	}
+
+	libPath := filepath.Join(outputDir, "lib.rs")
+	if err := os.WriteFile(libPath, []byte(stubCode), 0644); err != nil {
+		return fmt.Errorf("failed to write shared stdlib stub lib.rs: %v", err)
+	}
+
+	cargoToml := fmt.Sprintf(`[package]
+name = "%s"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "%s"
+path = "lib.rs"
+`, sharedStdlibStubCrateName, sharedStdlibStubCrateName)
+	cargoPath := filepath.Join(outputDir, "Cargo.toml")
+	if err := os.WriteFile(cargoPath, []byte(cargoToml), 0644); err != nil {
+		return fmt.Errorf("failed to write shared stdlib stub Cargo.toml: %v", err)
+	}
+
+	return nil
+}
+
+func MergeExternalStubPackageStates(states ...*PackageState) *PackageState {
+	merged := NewPackageState()
+	for _, state := range states {
+		if state == nil {
+			continue
+		}
+		mergeBoolMap(merged.ExternalTypeStubs, state.ExternalTypeStubs)
+		mergeNestedStringMap(merged.ExternalTypeStubFields, state.ExternalTypeStubFields)
+		mergeNestedMethodMap(merged.ExternalTypeStubMethods, state.ExternalTypeStubMethods)
+		mergeNestedBoolMap(merged.ExternalTypeStubConversions, state.ExternalTypeStubConversions)
+		mergeExternalPackageStubs(merged.ExternalPackageStubs, state.ExternalPackageStubs)
+	}
+	return merged
+}
+
+func mergeBoolMap(dst map[string]bool, src map[string]bool) {
+	for key, value := range src {
+		if value {
+			dst[key] = true
+		}
+	}
+}
+
+func mergeNestedStringMap(dst map[string]map[string]string, src map[string]map[string]string) {
+	for outerKey, srcInner := range src {
+		if dst[outerKey] == nil {
+			dst[outerKey] = make(map[string]string)
+		}
+		for innerKey, value := range srcInner {
+			dst[outerKey][innerKey] = value
+		}
+	}
+}
+
+func mergeNestedMethodMap(dst map[string]map[string]externalTypeStubMethod, src map[string]map[string]externalTypeStubMethod) {
+	for outerKey, srcInner := range src {
+		if dst[outerKey] == nil {
+			dst[outerKey] = make(map[string]externalTypeStubMethod)
+		}
+		for innerKey, value := range srcInner {
+			dst[outerKey][innerKey] = value
+		}
+	}
+}
+
+func mergeNestedBoolMap(dst map[string]map[string]bool, src map[string]map[string]bool) {
+	for outerKey, srcInner := range src {
+		if dst[outerKey] == nil {
+			dst[outerKey] = make(map[string]bool)
+		}
+		for innerKey, value := range srcInner {
+			if value {
+				dst[outerKey][innerKey] = true
+			}
+		}
+	}
+}
+
+func mergeExternalPackageStubs(dst map[string]*externalPackageStub, src map[string]*externalPackageStub) {
+	for pkgName, srcStub := range src {
+		if srcStub == nil {
+			continue
+		}
+		dstStub := dst[pkgName]
+		if dstStub == nil {
+			dstStub = &externalPackageStub{
+				Functions: make(map[string]externalPackageStubFunction),
+				Constants: make(map[string]string),
+				Variables: make(map[string]string),
+			}
+			dst[pkgName] = dstStub
+		}
+		if dstStub.Functions == nil {
+			dstStub.Functions = make(map[string]externalPackageStubFunction)
+		}
+		if dstStub.Constants == nil {
+			dstStub.Constants = make(map[string]string)
+		}
+		if dstStub.Variables == nil {
+			dstStub.Variables = make(map[string]string)
+		}
+		for name, fn := range srcStub.Functions {
+			dstStub.Functions[name] = fn
+		}
+		for name, constantType := range srcStub.Constants {
+			dstStub.Constants[name] = constantType
+		}
+		for name, variableType := range srcStub.Variables {
+			dstStub.Variables[name] = variableType
+		}
+	}
+}
+
 func GenerateExternalStubModuleImports() string {
 	var out strings.Builder
 	if NeedsConcurrentWrapper() {
@@ -766,7 +896,7 @@ func writeExternalStubDefaultValue(out *strings.Builder, rustType string) {
 	wrappedPrefix := outerWrapper + "<" + innerWrapper + "<Option<"
 	if strings.HasPrefix(rustType, wrappedPrefix) && strings.HasSuffix(rustType, ">>>") {
 		innerType := strings.TrimSuffix(strings.TrimPrefix(rustType, wrappedPrefix), ">>>")
-		if strings.HasPrefix(innerType, "Box<dyn StdError") {
+		if strings.HasPrefix(innerType, "Box<dyn StdError") || strings.HasPrefix(innerType, "Box<dyn Any") {
 			out.WriteString(outerWrapper)
 			out.WriteString("::new(")
 			out.WriteString(innerWrapper)

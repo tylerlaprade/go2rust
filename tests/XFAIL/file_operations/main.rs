@@ -1,3 +1,4 @@
+use std::any::Any;
 use std::error::Error as StdError;
 use std::sync::{Arc, Mutex};
 
@@ -120,8 +121,8 @@ pub mod os {
         (Arc::new(Mutex::new(Some::<Vec<u8>>(Default::default()))), Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>)))
     }
 
-    pub fn stat<T0>(_arg0: T0) -> (Arc<Mutex<Option<Box<dyn Trait>>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
-        (Arc::new(Mutex::new(Some::<Box<dyn Trait>>(Default::default()))), Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>)))
+    pub fn stat<T0>(_arg0: T0) -> (Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+        (Arc::new(Mutex::new(None::<Box<dyn Any + Send + Sync>>)), Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>)))
     }
 }
 

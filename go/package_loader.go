@@ -13,12 +13,16 @@ import (
 
 // PackageLoader loads Go packages with full type information
 type PackageLoader struct {
-	workDir        string
-	mainPkg        *packages.Package
-	allPackages    map[string]*packages.Package // import path -> package
-	packageMapping map[string]string            // Go import -> Rust crate name
-	fileSet        *token.FileSet
+	workDir             string
+	mainPkg             *packages.Package
+	allPackages         map[string]*packages.Package // import path -> package
+	packageMapping      map[string]string            // Go import -> Rust crate name
+	packageStates       map[string]*PackageState
+	concurrencyDetector *ConcurrencyDetector
+	fileSet             *token.FileSet
 }
+
+const sharedStdlibStubCrateName = "go2rust_stdlib_stubs"
 
 // NewPackageLoader creates a new package loader
 func NewPackageLoader(workDir string) *PackageLoader {
@@ -26,6 +30,7 @@ func NewPackageLoader(workDir string) *PackageLoader {
 		workDir:        workDir,
 		allPackages:    make(map[string]*packages.Package),
 		packageMapping: make(map[string]string),
+		packageStates:  make(map[string]*PackageState),
 	}
 }
 
@@ -140,6 +145,7 @@ func (pl *PackageLoader) TranspileAll() error {
 		pkg:  pl.mainPkg.Types,
 	}
 	SetTypeInfo(globalTypeInfo)
+	pl.concurrencyDetector = pl.buildWorkspaceConcurrencyDetector()
 
 	// Transpile external packages first
 	for _, pkgPath := range pl.orderedPackagePaths() {
@@ -154,6 +160,32 @@ func (pl *PackageLoader) TranspileAll() error {
 	// but now with full type information available
 
 	return nil
+}
+
+func (pl *PackageLoader) buildWorkspaceConcurrencyDetector() *ConcurrencyDetector {
+	workspaceDetector := NewConcurrencyDetector()
+	for _, pkgPath := range pl.orderedAllPackagePaths() {
+		pkg := pl.allPackages[pkgPath]
+		if pkg == nil {
+			continue
+		}
+		pkgDetector := NewConcurrencyDetector()
+		pkgDetector.AnalyzeProject(pkg.Syntax)
+		workspaceDetector.Merge(pkgDetector)
+	}
+	return workspaceDetector
+}
+
+func (pl *PackageLoader) orderedAllPackagePaths() []string {
+	var paths []string
+	for pkgPath := range pl.allPackages {
+		if isStdlibPackage(pkgPath) {
+			continue
+		}
+		paths = append(paths, pkgPath)
+	}
+	sort.Strings(paths)
+	return paths
 }
 
 func (pl *PackageLoader) orderedPackagePaths() []string {
@@ -198,8 +230,11 @@ func (pl *PackageLoader) transpilePackage(pkg *packages.Package) error {
 	}
 
 	parentDetector := GetConcurrencyDetector()
-	concurrencyDetector := NewConcurrencyDetector()
-	concurrencyDetector.AnalyzeProject(pkg.Syntax)
+	concurrencyDetector := pl.concurrencyDetector
+	if concurrencyDetector == nil {
+		concurrencyDetector = NewConcurrencyDetector()
+		concurrencyDetector.AnalyzeProject(pkg.Syntax)
+	}
 	SetConcurrencyDetector(concurrencyDetector)
 	defer SetConcurrencyDetector(parentDetector)
 
@@ -217,7 +252,6 @@ func (pl *PackageLoader) transpilePackage(pkg *packages.Package) error {
 	// Generate lib.rs with all modules
 	var libRs strings.Builder
 	var modules []string
-	const externalStubModuleName = "go2rust_stdlib_stubs"
 	moduleNamesByIndex := make([]string, len(pkg.Syntax))
 	for i, astFile := range pkg.Syntax {
 		if len(astFile.Decls) == 0 {
@@ -243,7 +277,7 @@ func (pl *PackageLoader) transpilePackage(pkg *packages.Package) error {
 
 		// Transpile with the package's type info and global package mapping
 		rustCode, _, _ := TranspileWithMapping(astFile, pkg.Fset, pkgTypeInfo, pl.packageMapping)
-		rustCode = prefixSiblingModuleImports(rustCode, moduleName, append([]string{externalStubModuleName}, modules...))
+		rustCode = prefixExternalPackageModuleImports(rustCode, moduleName, modules)
 
 		// Write the module file
 		moduleFile := filepath.Join(outputDir, SanitizeRustModuleFileName(moduleName)+".rs")
@@ -252,23 +286,13 @@ func (pl *PackageLoader) transpilePackage(pkg *packages.Package) error {
 		}
 	}
 
-	stubCode := GeneratePackageExternalStubs(pkgState)
-	if stubCode != "" {
-		stubCode = GenerateExternalStubModuleImports() + "\n" + stubCode
-	}
-	stubPath := filepath.Join(outputDir, externalStubModuleName+".rs")
-	if err := os.WriteFile(stubPath, []byte(stubCode), 0644); err != nil {
-		return fmt.Errorf("failed to write stdlib stubs module: %v", err)
-	}
-
 	// Generate lib.rs
-	libRs.WriteString(fmt.Sprintf("pub mod %s;\n", externalStubModuleName))
+	libRs.WriteString(fmt.Sprintf("pub use %s::*;\n", sharedStdlibStubCrateName))
 	for _, mod := range modules {
 		libRs.WriteString(fmt.Sprintf("pub mod %s;\n", mod))
 	}
 	if len(modules) > 0 {
 		libRs.WriteString("\n")
-		libRs.WriteString(fmt.Sprintf("pub use %s::*;\n", externalStubModuleName))
 		for _, mod := range modules {
 			libRs.WriteString(fmt.Sprintf("pub use %s::*;\n", mod))
 		}
@@ -291,6 +315,7 @@ name = "%s"
 path = "lib.rs"
 `, crateName, crateName)
 	dependencyCrates := packageDependencyCrates(pkg.Imports, crateName, pl.packageMapping)
+	dependencyCrates = addSharedStdlibStubCrateDependency(dependencyCrates)
 	if len(dependencyCrates) > 0 {
 		cargoToml += "\n[dependencies]\n"
 		for _, depCrate := range dependencyCrates {
@@ -303,7 +328,34 @@ path = "lib.rs"
 		return fmt.Errorf("failed to write Cargo.toml: %v", err)
 	}
 
+	pl.packageStates[pkg.PkgPath] = pkgState
 	return nil
+}
+
+func prefixExternalPackageModuleImports(rustCode, selfModule string, moduleNames []string) string {
+	rustCode = prefixSiblingModuleImports(rustCode, selfModule, moduleNames)
+	return prefixSharedStdlibStubImport(rustCode)
+}
+
+func prefixSharedStdlibStubImport(rustCode string) string {
+	return fmt.Sprintf("use %s::*;\n\n%s", sharedStdlibStubCrateName, rustCode)
+}
+
+func addSharedStdlibStubCrateDependency(crateNames []string) []string {
+	seen := make(map[string]bool, len(crateNames)+1)
+	for _, crateName := range crateNames {
+		if crateName == "" {
+			continue
+		}
+		seen[crateName] = true
+	}
+	seen[sharedStdlibStubCrateName] = true
+	result := make([]string, 0, len(seen))
+	for crateName := range seen {
+		result = append(result, crateName)
+	}
+	sort.Strings(result)
+	return result
 }
 
 func packageFileName(pkg *packages.Package, index int) string {
@@ -341,6 +393,20 @@ func (pl *PackageLoader) goPathToRustCrate(goPath string) string {
 // GetPackageMapping returns the package mapping
 func (pl *PackageLoader) GetPackageMapping() map[string]string {
 	return pl.packageMapping
+}
+
+func (pl *PackageLoader) GetPackageStates() []*PackageState {
+	states := make([]*PackageState, 0, len(pl.packageStates))
+	for _, pkgPath := range pl.orderedPackagePaths() {
+		if state := pl.packageStates[pkgPath]; state != nil {
+			states = append(states, state)
+		}
+	}
+	return states
+}
+
+func (pl *PackageLoader) GetConcurrencyDetector() *ConcurrencyDetector {
+	return pl.concurrencyDetector
 }
 
 // GetMainPackage returns the main package with all type info

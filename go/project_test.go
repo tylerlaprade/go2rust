@@ -156,6 +156,153 @@ func main() {
 	}
 }
 
+func TestTranspiledExternalPackagesShareWorkspaceConcurrencyDetector(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+
+require example.com/dep v0.0.0
+
+replace example.com/dep => ./dep
+`)
+	writeTestFile(t, filepath.Join(tempDir, "dep", "go.mod"), `module example.com/dep
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "dep", "dep.go"), `package dep
+
+func Value(value int) int {
+	return value
+}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+import "example.com/dep"
+
+func main() {
+	done := make(chan bool)
+	go func() {
+		done <- true
+	}()
+	<-done
+	println(dep.Value(3))
+}
+`)
+
+	generator := NewProjectGenerator([]string{filepath.Join(tempDir, "main.go")})
+	generator.SetExternalPackageMode(ModeTranspile)
+
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	depRS := mustReadFile(t, filepath.Join(tempDir, "vendor", "example_com_dep", "mod.rs"))
+	if !strings.Contains(depRS, "pub fn value(value: Arc<Mutex<Option<i32>>>)") {
+		t.Fatalf("external package should use the workspace wrapper policy, got:\n%s", depRS)
+	}
+	if strings.Contains(depRS, "Rc<RefCell") {
+		t.Fatalf("external package should not emit Rc<RefCell> when the workspace needs Arc/Mutex, got:\n%s", depRS)
+	}
+}
+
+func TestTranspiledExternalPackagesUseSharedStdlibStubs(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+
+require (
+	example.com/aliases v0.0.0
+	example.com/typeparams v0.0.0
+)
+
+replace example.com/aliases => ./aliases
+replace example.com/typeparams => ./typeparams
+`)
+	writeTestFile(t, filepath.Join(tempDir, "aliases", "go.mod"), `module example.com/aliases
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "aliases", "aliases.go"), `package aliases
+
+import "go/types"
+
+func Tuple() *types.Tuple {
+	return nil
+}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "typeparams", "go.mod"), `module example.com/typeparams
+
+go 1.22
+
+require example.com/aliases v0.0.0
+
+replace example.com/aliases => ../aliases
+`)
+	writeTestFile(t, filepath.Join(tempDir, "typeparams", "typeparams.go"), `package typeparams
+
+import "example.com/aliases"
+
+func Count() int {
+	tuple := aliases.Tuple()
+	if tuple == nil {
+		return 0
+	}
+	return tuple.Len()
+}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+import "example.com/typeparams"
+
+func main() {
+	println(typeparams.Count())
+}
+`)
+
+	generator := NewProjectGenerator([]string{filepath.Join(tempDir, "main.go")})
+	generator.SetExternalPackageMode(ModeTranspile)
+
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	sharedLib := mustReadFile(t, filepath.Join(tempDir, "vendor", sharedStdlibStubCrateName, "lib.rs"))
+	if !strings.Contains(sharedLib, "pub struct types_Tuple") {
+		t.Fatalf("shared stdlib stub crate should contain the returned stdlib type, got:\n%s", sharedLib)
+	}
+	if !strings.Contains(sharedLib, "pub fn len(&self)") {
+		t.Fatalf("shared stdlib stub crate should contain methods needed by dependent crates, got:\n%s", sharedLib)
+	}
+
+	aliasesLib := mustReadFile(t, filepath.Join(tempDir, "vendor", "example_com_aliases", "lib.rs"))
+	if strings.Contains(aliasesLib, "pub mod go2rust_stdlib_stubs") {
+		t.Fatalf("external package should not declare a private stdlib stub module, got:\n%s", aliasesLib)
+	}
+	if !strings.Contains(aliasesLib, "pub use go2rust_stdlib_stubs::*;") {
+		t.Fatalf("external package should re-export shared stdlib stubs, got:\n%s", aliasesLib)
+	}
+
+	typeparamsRS := mustReadFile(t, filepath.Join(tempDir, "vendor", "example_com_typeparams", "mod.rs"))
+	if !strings.Contains(typeparamsRS, "use go2rust_stdlib_stubs::*;") {
+		t.Fatalf("external package module should import shared stdlib stubs, got:\n%s", typeparamsRS)
+	}
+
+	typeparamsCargo := mustReadFile(t, filepath.Join(tempDir, "vendor", "example_com_typeparams", "Cargo.toml"))
+	if !strings.Contains(typeparamsCargo, `go2rust_stdlib_stubs = { path = "../go2rust_stdlib_stubs" }`) {
+		t.Fatalf("external package should depend on shared stdlib stub crate, got:\n%s", typeparamsCargo)
+	}
+
+	rootCargo := mustReadFile(t, filepath.Join(tempDir, "Cargo.toml"))
+	if !strings.Contains(rootCargo, `"vendor/go2rust_stdlib_stubs"`) {
+		t.Fatalf("root workspace should include shared stdlib stub crate, got:\n%s", rootCargo)
+	}
+	if !strings.Contains(rootCargo, `go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }`) {
+		t.Fatalf("root package should depend on shared stdlib stub crate, got:\n%s", rootCargo)
+	}
+}
+
 func TestGenerateCargoTomlIsDeterministic(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "main.go"), "package main\nfunc main() {}\n")
