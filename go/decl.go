@@ -820,6 +820,13 @@ func transpileConstDeclWithCase(out *strings.Builder, genDecl *ast.GenDecl, toUp
 				if name.Name == "_" {
 					continue
 				}
+				if toUpper {
+					if ast.IsExported(name.Name) {
+						out.WriteString("pub ")
+					} else {
+						out.WriteString("pub(crate) ")
+					}
+				}
 				out.WriteString("const ")
 				var constName string
 				if toUpper {

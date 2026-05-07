@@ -1,42 +1,42 @@
 use std::cell::{RefCell};
 use std::rc::{Rc};
 
-const PI: f64 = 3.14159;
-const EULER: f64 = 2.71828;
-const MAX_USERS: i32 = 100;
+pub const PI: f64 = 3.14159;
+pub const EULER: f64 = 2.71828;
+pub const MAX_USERS: i32 = 100;
 
 
-const NAME: &'static str = "Go2Rust";
-const VERSION: f64 = 1.0;
-const DEBUG: bool = true;
+pub const NAME: &'static str = "Go2Rust";
+pub const VERSION: f64 = 1.0;
+pub const DEBUG: bool = true;
 
 
-const SUNDAY: i32 = 0;
-const MONDAY: i32 = 1;
-const TUESDAY: i32 = 2;
-const WEDNESDAY: i32 = 3;
-const THURSDAY: i32 = 4;
-const FRIDAY: i32 = 5;
-const SATURDAY: i32 = 6;
+pub const SUNDAY: i32 = 0;
+pub const MONDAY: i32 = 1;
+pub const TUESDAY: i32 = 2;
+pub const WEDNESDAY: i32 = 3;
+pub const THURSDAY: i32 = 4;
+pub const FRIDAY: i32 = 5;
+pub const SATURDAY: i32 = 6;
 
 
-const K_B: i64 = 1 << (10 * 1);
-const M_B: i64 = 1 << (10 * 2);
-const G_B: i64 = 1 << (10 * 3);
-const T_B: i64 = 1 << (10 * 4);
+pub const K_B: i64 = 1 << (10 * 1);
+pub const M_B: i64 = 1 << (10 * 2);
+pub const G_B: i64 = 1 << (10 * 3);
+pub const T_B: i64 = 1 << (10 * 4);
 
 
-const RED: i32 = 0;
-const GREEN: i32 = 1;
-const BLUE: i32 = 2;
+pub const RED: i32 = 0;
+pub const GREEN: i32 = 1;
+pub const BLUE: i32 = 2;
 
 
-const A: i32 = 0 * 2;
-const B: i32 = 1 * 2;
-const C: i32 = 2 * 2;
-const D: i32 = 3 + 10;
-const E_E: i32 = 4 + 10;
-const F: i32 = 5 + 10;
+pub const A: i32 = 0 * 2;
+pub const B: i32 = 1 * 2;
+pub const C: i32 = 2 * 2;
+pub const D: i32 = 3 + 10;
+pub const E_E: i32 = 4 + 10;
+pub const F: i32 = 5 + 10;
 
 
 fn main() {

@@ -1,9 +1,9 @@
 use std::cell::{RefCell};
 use std::rc::{Rc};
 
-const FIRST: i32 = 0;
-const SECOND: i32 = 1;
-const THIRD: i32 = 2;
+pub const FIRST: i32 = 0;
+pub const SECOND: i32 = 1;
+pub const THIRD: i32 = 2;
 
 
 fn main() {

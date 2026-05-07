@@ -1,7 +1,7 @@
-const PI: f64 = 3.14159;
+pub const PI: f64 = 3.14159;
 
 
-const MAX_USERS: i32 = 100;
+pub const MAX_USERS: i32 = 100;
 
 
 fn main() {

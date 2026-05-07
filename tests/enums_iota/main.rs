@@ -3,10 +3,10 @@ use std::collections::BTreeMap;
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
-const STATE_IDLE: i32 = 0;
-const STATE_CONNECTED: i32 = 1;
-const STATE_ERROR: i32 = 2;
-const STATE_RETRYING: i32 = 3;
+pub const STATE_IDLE: i32 = 0;
+pub const STATE_CONNECTED: i32 = 1;
+pub const STATE_ERROR: i32 = 2;
+pub const STATE_RETRYING: i32 = 3;
 
 
 #[derive(Debug, Clone)]

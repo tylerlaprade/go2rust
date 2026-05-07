@@ -196,6 +196,15 @@ func (pl *PackageLoader) transpilePackage(pkg *packages.Package) error {
 		info: pkg.TypesInfo,
 		pkg:  pkg.Types,
 	}
+	parentCtx := GetTranspileContext()
+	pkgState := NewPackageState()
+	pkgState.FunctionNameOverrides = assignPackageFunctionNames(pkg.Syntax)
+	SetTranspileContext(&TranspileContext{
+		Session:        NewTranspileSession(pkgTypeInfo, pl.packageMapping),
+		Package:        pkgState,
+		PackageMapping: pl.packageMapping,
+	})
+	defer SetTranspileContext(parentCtx)
 
 	// Generate lib.rs with all modules
 	var libRs strings.Builder

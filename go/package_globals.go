@@ -3,12 +3,15 @@ package main
 import (
 	"fmt"
 	"go/ast"
+	"go/token"
 	"go/types"
+	"sort"
 	"strings"
 )
 
 var functionNameOverrides map[*ast.FuncDecl]string
 var functionNameOverridesByGoName map[string]string
+var packageFunctionNameOverrides map[string]string
 var packageGlobalNames = make(map[string]bool)
 
 func SetFunctionNameOverrides(overrides map[*ast.FuncDecl]string) {
@@ -27,12 +30,22 @@ func rustFunctionName(fn *ast.FuncDecl) string {
 			return name
 		}
 	}
+	if packageFunctionNameOverrides != nil {
+		if name, ok := packageFunctionNameOverrides[fn.Name.Name]; ok {
+			return name
+		}
+	}
 	return RustFunctionName(fn.Name.Name)
 }
 
 func rustFunctionNameForUse(name string) string {
 	if functionNameOverridesByGoName != nil {
 		if rustName, ok := functionNameOverridesByGoName[name]; ok {
+			return rustName
+		}
+	}
+	if packageFunctionNameOverrides != nil {
+		if rustName, ok := packageFunctionNameOverrides[name]; ok {
 			return rustName
 		}
 	}
@@ -57,6 +70,57 @@ func assignFunctionNames(functions []*ast.FuncDecl) map[*ast.FuncDecl]string {
 		}
 	}
 	return names
+}
+
+type packageFunctionName struct {
+	goName   string
+	rustName string
+	pos      token.Pos
+	exported bool
+}
+
+func assignPackageFunctionNames(files []*ast.File) map[string]string {
+	byRustName := make(map[string][]packageFunctionName)
+	seenGoNames := make(map[string]bool)
+	for _, file := range files {
+		for _, decl := range file.Decls {
+			fn, ok := decl.(*ast.FuncDecl)
+			if !ok || fn.Recv != nil || fn.Name.Name == "init" || seenGoNames[fn.Name.Name] {
+				continue
+			}
+			seenGoNames[fn.Name.Name] = true
+			rustName := RustFunctionName(fn.Name.Name)
+			byRustName[rustName] = append(byRustName[rustName], packageFunctionName{
+				goName:   fn.Name.Name,
+				rustName: rustName,
+				pos:      fn.Pos(),
+				exported: ast.IsExported(fn.Name.Name),
+			})
+		}
+	}
+
+	overrides := make(map[string]string)
+	for rustName, functions := range byRustName {
+		if len(functions) <= 1 {
+			continue
+		}
+		sort.Slice(functions, func(i, j int) bool {
+			if functions[i].exported != functions[j].exported {
+				return functions[i].exported
+			}
+			if functions[i].pos != functions[j].pos {
+				return functions[i].pos < functions[j].pos
+			}
+			return functions[i].goName < functions[j].goName
+		})
+		for i, fn := range functions {
+			if i == 0 {
+				continue
+			}
+			overrides[fn.goName] = fmt.Sprintf("%s_%d", rustName, i)
+		}
+	}
+	return overrides
 }
 
 type packageGlobal struct {

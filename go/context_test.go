@@ -2,6 +2,7 @@ package main
 
 import (
 	"go/ast"
+	"go/parser"
 	"go/token"
 	"strings"
 	"testing"
@@ -122,6 +123,43 @@ func TestTranspileContextScopesAnonymousStructsToPackage(t *testing.T) {
 	}})
 	if secondName != "AnonymousStruct1" {
 		t.Fatalf("second package anonymous struct = %q, want AnonymousStruct1", secondName)
+	}
+}
+
+func TestPackageFunctionNameOverridesDisambiguateCaseCollisions(t *testing.T) {
+	fset := token.NewFileSet()
+	exportedFile, err := parser.ParseFile(fset, "versions.go", `package versions
+
+func Compare(x string) string { return compare(x) }
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile exported: %v", err)
+	}
+	privateFile, err := parser.ParseFile(fset, "gover.go", `package versions
+
+func compare(x string) string { return x }
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile private: %v", err)
+	}
+
+	overrides := assignPackageFunctionNames([]*ast.File{privateFile, exportedFile})
+	if overrides["Compare"] != "" {
+		t.Fatalf("Compare should keep the base Rust name, got override %q", overrides["Compare"])
+	}
+	if overrides["compare"] != "compare_1" {
+		t.Fatalf("compare override = %q, want compare_1", overrides["compare"])
+	}
+
+	savedOverrides := packageFunctionNameOverrides
+	packageFunctionNameOverrides = overrides
+	defer func() { packageFunctionNameOverrides = savedOverrides }()
+
+	if got := rustFunctionNameForUse("Compare"); got != "compare" {
+		t.Fatalf("rustFunctionNameForUse(Compare) = %q, want compare", got)
+	}
+	if got := rustFunctionNameForUse("compare"); got != "compare_1" {
+		t.Fatalf("rustFunctionNameForUse(compare) = %q, want compare_1", got)
 	}
 }
 

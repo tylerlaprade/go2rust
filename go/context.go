@@ -11,6 +11,7 @@ type TranspileSession struct {
 // PackageState holds package-scoped registries that should be shared across files.
 type PackageState struct {
 	FunctionSignatures     map[string]*FunctionSignature
+	FunctionNameOverrides  map[string]string
 	ErrorImplTypes         map[string]bool
 	StringerImplTypes      map[string]bool
 	InterfaceTypes         map[string]bool
@@ -62,6 +63,7 @@ func NewTranspileSession(typeInfo *TypeInfo, packageMapping map[string]string) *
 func NewPackageState() *PackageState {
 	return &PackageState{
 		FunctionSignatures:     make(map[string]*FunctionSignature),
+		FunctionNameOverrides:  make(map[string]string),
 		ErrorImplTypes:         make(map[string]bool),
 		StringerImplTypes:      make(map[string]bool),
 		InterfaceTypes:         make(map[string]bool),
@@ -121,6 +123,9 @@ func (ctx *TranspileContext) ensureDefaults() {
 	if ctx.Package != nil {
 		if ctx.Package.FunctionSignatures == nil {
 			ctx.Package.FunctionSignatures = make(map[string]*FunctionSignature)
+		}
+		if ctx.Package.FunctionNameOverrides == nil {
+			ctx.Package.FunctionNameOverrides = make(map[string]string)
 		}
 		if ctx.Package.ErrorImplTypes == nil {
 			ctx.Package.ErrorImplTypes = make(map[string]bool)
@@ -189,6 +194,7 @@ func (ctx *TranspileContext) captureCompatibilityState() {
 	}
 	if ctx.Package != nil {
 		ctx.Package.FunctionSignatures = functionSignatures
+		ctx.Package.FunctionNameOverrides = packageFunctionNameOverrides
 		ctx.Package.ErrorImplTypes = errorImplTypes
 		ctx.Package.StringerImplTypes = stringerImplTypes
 		ctx.Package.InterfaceTypes = interfaceTypes
@@ -228,6 +234,7 @@ func (ctx *TranspileContext) applyCompatibilityState() {
 	}
 	if ctx.Package != nil {
 		functionSignatures = ctx.Package.FunctionSignatures
+		packageFunctionNameOverrides = ctx.Package.FunctionNameOverrides
 		errorImplTypes = ctx.Package.ErrorImplTypes
 		stringerImplTypes = ctx.Package.StringerImplTypes
 		interfaceTypes = ctx.Package.InterfaceTypes

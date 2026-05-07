@@ -316,6 +316,15 @@ func (ut *UnifiedTranspiler) transpilePackage(pkg *PackageInfo) error {
 	if err := os.MkdirAll(pkg.OutputPath, 0755); err != nil {
 		return fmt.Errorf("failed to create output directory: %v", err)
 	}
+	parentCtx := GetTranspileContext()
+	pkgState := NewPackageState()
+	pkgState.FunctionNameOverrides = assignPackageFunctionNames(pkg.ASTFiles)
+	SetTranspileContext(&TranspileContext{
+		Session:        NewTranspileSession(ut.globalTypeInfo, ut.packageMapping),
+		Package:        pkgState,
+		PackageMapping: ut.packageMapping,
+	})
+	defer SetTranspileContext(parentCtx)
 
 	// Generate lib.rs with all modules
 	var libRs strings.Builder

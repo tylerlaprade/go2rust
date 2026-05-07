@@ -216,6 +216,7 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 		Package:        NewPackageState(),
 		PackageMapping: pg.packageMapping,
 	}
+	runCtx.Package.FunctionNameOverrides = assignPackageFunctionNames(astFiles)
 	SetTranspileContext(runCtx)
 	defer SetTranspileContext(nil)
 	if packageImports != nil {

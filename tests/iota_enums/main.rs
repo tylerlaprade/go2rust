@@ -2,10 +2,10 @@ use std::cell::{RefCell};
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
-const RED: i32 = 0;
-const GREEN: i32 = 1;
-const BLUE: i32 = 2;
-const YELLOW: i32 = 3;
+pub const RED: i32 = 0;
+pub const GREEN: i32 = 1;
+pub const BLUE: i32 = 2;
+pub const YELLOW: i32 = 3;
 
 
 #[derive(Debug, Clone)]
