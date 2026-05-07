@@ -1,3 +1,5 @@
 raw\ntext
 [package]
 name = "demo"
+[package]
+name = "demo"

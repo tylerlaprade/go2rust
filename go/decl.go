@@ -968,10 +968,8 @@ func evaluateConstStringExpr(expr ast.Expr) string {
 	switch e := expr.(type) {
 	case *ast.BasicLit:
 		if e.Kind == token.STRING {
-			// Remove quotes
-			str := e.Value
-			if len(str) >= 2 && str[0] == '"' && str[len(str)-1] == '"' {
-				return str[1 : len(str)-1]
+			if value, err := strconv.Unquote(e.Value); err == nil {
+				return value
 			}
 		}
 	case *ast.Ident:
@@ -1006,7 +1004,7 @@ func TranspileConstExpr(out *strings.Builder, expr ast.Expr, iotaValue int) {
 	case *ast.BasicLit:
 		if e.Kind == token.STRING {
 			// For const strings, use &str instead of String
-			out.WriteString(e.Value)
+			out.WriteString(RustStringLiteral(e.Value))
 		} else {
 			out.WriteString(e.Value)
 		}
@@ -1034,7 +1032,7 @@ func TranspileConstExpr(out *strings.Builder, expr ast.Expr, iotaValue int) {
 			result := evaluateConstStringExpr(expr)
 			if result != "" {
 				// Successfully evaluated the entire expression
-				out.WriteString(fmt.Sprintf("%q", result))
+				out.WriteString(RustStringLiteral(strconv.Quote(result)))
 			} else {
 				// Fall back - this won't work for const but at least generates something
 				out.WriteString("/* TODO: Complex string concatenation in const */ ")
