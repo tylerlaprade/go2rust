@@ -565,7 +565,7 @@ func convertFormatStringWithSkips(goFormat string) (string, []int, []int, []int,
 
 				// Handle single-char format verbs
 				switch format[i+1] {
-				case 'd', 's', 'v', 't':
+				case 'd', 's', 'v', 't', 'w':
 					result.WriteString("{}")
 					argIndex++
 				case 'q':

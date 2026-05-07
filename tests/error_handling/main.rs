@@ -77,6 +77,8 @@ fn main() {
     (result, err) = divide(Rc::new(RefCell::new(Some(10.0))), Rc::new(RefCell::new(Some(0.0))));
     if (*err.borrow()).is_some() {
         println!("{} {}", "Error:".to_string(), format!("{}", (*err.borrow().as_ref().unwrap())));
+        let mut wrapped = Rc::new(RefCell::new(Some(Box::<dyn StdError>::from(format!("wrapped division: {}", (*err.borrow().as_ref().unwrap()))))));
+        println!("{} {}", "Wrapped error:".to_string(), format!("{}", (*wrapped.borrow().as_ref().unwrap())));
     } else {
         println!("{} {}", "Result:".to_string(), { let __v = (*result.borrow().as_ref().unwrap()).clone(); __v });
     }

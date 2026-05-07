@@ -56,6 +56,8 @@ func main() {
 	result, err = divide(10, 0)
 	if err != nil {
 		fmt.Println("Error:", err)
+		wrapped := fmt.Errorf("wrapped division: %w", err)
+		fmt.Println("Wrapped error:", wrapped)
 	} else {
 		fmt.Println("Result:", result)
 	}
