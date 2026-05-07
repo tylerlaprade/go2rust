@@ -182,6 +182,36 @@ func writeMoveWrappedInnerAssignment(out *strings.Builder, lhs ast.Expr, rhs ast
 	out.WriteString(".take(); }")
 }
 
+func isErrorAssignment(lhs ast.Expr, rhs ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	return isGoErrorType(typeInfo.GetType(lhs)) && isGoErrorType(typeInfo.GetType(rhs))
+}
+
+func isGoErrorType(typ types.Type) bool {
+	if typ == nil {
+		return false
+	}
+	errorObj := types.Universe.Lookup("error")
+	if errorObj == nil {
+		return false
+	}
+	return types.Identical(typ, errorObj.Type())
+}
+
+func writeMoveErrorAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) {
+	out.WriteString("{ let __rhs_holder = ")
+	TranspileExpressionContext(out, rhs, LValue)
+	out.WriteString(".clone(); let new_val = { let mut guard = __rhs_holder")
+	WriteBorrowMethod(out, true)
+	out.WriteString("; guard.take() }; *")
+	TranspileExpressionContext(out, lhs, LValue)
+	WriteBorrowMethod(out, true)
+	out.WriteString(" = new_val; }")
+}
+
 func writeMapElementUpdate(out *strings.Builder, indexExpr *ast.IndexExpr, op token.Token, rhs ast.Expr) {
 	typeInfo := GetTypeInfo()
 	defaultValue := "Default::default()"
@@ -1438,6 +1468,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										WriteBorrowMethod(out, true)
 										out.WriteString(" = Some(new_val); }")
 									}
+								} else if isErrorAssignment(s.Lhs[0], s.Rhs[0]) {
+									writeMoveErrorAssignment(out, s.Lhs[0], s.Rhs[0])
 								} else if rhsIdent, ok := s.Rhs[0].(*ast.Ident); ok {
 									if sig, isFuncValue := functionValueSignature(rhsIdent); isFuncValue {
 										out.WriteString("{ ")

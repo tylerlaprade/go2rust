@@ -92,20 +92,25 @@ fn main() {
     }
 
         // Custom error
-    err = process_value(Rc::new(RefCell::new(Some(-5))));
+    { let __rhs_holder = process_value(Rc::new(RefCell::new(Some(-5)))).clone(); let new_val = { let mut guard = __rhs_holder.borrow_mut(); guard.take() }; *err.borrow_mut() = new_val; };
     if (*err.borrow()).is_some() {
         println!("{} {}", "Process error:".to_string(), format!("{}", (*err.borrow().as_ref().unwrap())));
     }
 
-    err = process_value(Rc::new(RefCell::new(Some(150))));
+    { let __rhs_holder = process_value(Rc::new(RefCell::new(Some(150)))).clone(); let new_val = { let mut guard = __rhs_holder.borrow_mut(); guard.take() }; *err.borrow_mut() = new_val; };
     if (*err.borrow()).is_some() {
         println!("{} {}", "Process error:".to_string(), format!("{}", (*err.borrow().as_ref().unwrap())));
     }
 
-    err = process_value(Rc::new(RefCell::new(Some(50))));
+    { let __rhs_holder = process_value(Rc::new(RefCell::new(Some(50)))).clone(); let new_val = { let mut guard = __rhs_holder.borrow_mut(); guard.take() }; *err.borrow_mut() = new_val; };
     if (*err.borrow()).is_some() {
         println!("{} {}", "Process error:".to_string(), format!("{}", (*err.borrow().as_ref().unwrap())));
     } else {
         println!("{}", "Value processed successfully".to_string());
     }
+
+    let mut base = Rc::new(RefCell::new(Some(Box::<dyn std::error::Error>::from("stored error".to_string()))));
+    let mut stored = Rc::new(RefCell::new(Some(Box::<dyn std::error::Error>::from("placeholder".to_string()))));
+    { let __rhs_holder = base.clone(); let new_val = { let mut guard = __rhs_holder.borrow_mut(); guard.take() }; *stored.borrow_mut() = new_val; };
+    println!("{} {}", "Stored error:".to_string(), format!("{}", (*stored.borrow().as_ref().unwrap())));
 }

@@ -87,4 +87,9 @@ func main() {
 	} else {
 		fmt.Println("Value processed successfully")
 	}
+
+	base := errors.New("stored error")
+	stored := errors.New("placeholder")
+	stored = base
+	fmt.Println("Stored error:", stored)
 }
