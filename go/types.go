@@ -364,10 +364,16 @@ func goTypeToRustBase(expr ast.Expr) string {
 				}
 			}
 			if ident.Name == "context" && t.Sel.Name == "Context" {
+				NeedGoContext()
 				return "GoContext"
 			}
 			if ident.Name == "context" && t.Sel.Name == "CancelFunc" {
+				NeedGoContext()
 				return "GoCancelFunc"
+			}
+			if ident.Name == "context" && t.Sel.Name == "CancelCauseFunc" {
+				NeedGoContext()
+				return "GoCancelCauseFunc"
 			}
 			if rustName, ok := rustTypeNameForImportedPackagePath(goPackageImports[ident.Name], t.Sel.Name); ok {
 				return rustName

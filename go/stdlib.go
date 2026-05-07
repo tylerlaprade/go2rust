@@ -55,62 +55,63 @@ var builtinMappings map[string]StdlibHandler
 
 func init() {
 	stdlibMappings = map[string]StdlibHandler{
-		"fmt.Println":           transpileFmtPrintln,
-		"fmt.Printf":            transpileFmtPrintf,
-		"fmt.Print":             transpileFmtPrint,
-		"fmt.Sprintf":           transpileFmtSprintf,
-		"fmt.Fprintln":          transpileFmtFprintln,
-		"fmt.Fprintf":           transpileFmtFprintf,
-		"fmt.Errorf":            transpileFmtErrorf,
-		"strings.ToLower":       transpileStringsToLower,
-		"strings.ToUpper":       transpileStringsToUpper,
-		"strings.TrimSpace":     transpileStringsTrimSpace,
-		"strings.Title":         transpileStringsTitle,
-		"strings.Contains":      transpileStringsContains,
-		"strings.Index":         transpileStringsIndex,
-		"strings.LastIndex":     transpileStringsLastIndex,
-		"strings.Count":         transpileStringsCount,
-		"strings.Compare":       transpileStringsCompare,
-		"strings.Cut":           transpileStringsCut,
-		"strings.HasSuffix":     transpileStringsHasSuffix,
-		"strings.HasPrefix":     transpileStringsHasPrefix,
-		"strings.IndexAny":      transpileStringsIndexAny,
-		"strings.Split":         transpileStringsSplit,
-		"strings.Join":          transpileStringsJoin,
-		"strings.Fields":        transpileStringsFields,
-		"strings.Replace":       transpileStringsReplace,
-		"strings.ReplaceAll":    transpileStringsReplaceAll,
-		"strings.Repeat":        transpileStringsRepeat,
-		"strings.EqualFold":     transpileStringsEqualFold,
-		"strings.TrimLeft":      transpileStringsTrimLeft,
-		"strings.TrimRight":     transpileStringsTrimRight,
-		"strings.Trim":          transpileStringsTrim,
-		"strconv.Itoa":          transpileStrconvItoa,
-		"strconv.Atoi":          transpileStrconvAtoi,
-		"strconv.FormatFloat":   transpileStrconvFormatFloat,
-		"strconv.FormatInt":     transpileStrconvFormatInt,
-		"errors.New":            transpileErrorsNew,
-		"sort.Strings":          transpileSortStrings,
-		"sort.Ints":             transpileSortInts,
-		"slices.Sort":           transpileSlicesSort,
-		"slices.Contains":       transpileSlicesContains,
-		"time.Sleep":            transpileTimeSleep,
-		"time.Now":              transpileTimeNow,
-		"time.Unix":             transpileTimeUnix,
-		"time.After":            transpileTimeAfter,
-		"time.NewTicker":        transpileTimeNewTicker,
-		"time.NewTimer":         transpileTimeNewTimer,
-		"time.Tick":             transpileTimeTick,
-		"context.Background":    transpileContextBackground,
-		"context.WithTimeout":   transpileContextWithTimeout,
-		"context.WithCancel":    transpileContextWithCancel,
-		"flag.String":           transpileFlagString,
-		"flag.Parse":            transpileFlagParse,
-		"os.Create":             transpileOsCreate,
-		"os.Remove":             transpileOsRemove,
-		"reflect.TypeOf":        transpileReflectTypeOf,
-		"sync/atomic.AddInt64":  transpileAtomicAddInt64,
-		"sync/atomic.LoadInt64": transpileAtomicLoadInt64,
+		"fmt.Println":             transpileFmtPrintln,
+		"fmt.Printf":              transpileFmtPrintf,
+		"fmt.Print":               transpileFmtPrint,
+		"fmt.Sprintf":             transpileFmtSprintf,
+		"fmt.Fprintln":            transpileFmtFprintln,
+		"fmt.Fprintf":             transpileFmtFprintf,
+		"fmt.Errorf":              transpileFmtErrorf,
+		"strings.ToLower":         transpileStringsToLower,
+		"strings.ToUpper":         transpileStringsToUpper,
+		"strings.TrimSpace":       transpileStringsTrimSpace,
+		"strings.Title":           transpileStringsTitle,
+		"strings.Contains":        transpileStringsContains,
+		"strings.Index":           transpileStringsIndex,
+		"strings.LastIndex":       transpileStringsLastIndex,
+		"strings.Count":           transpileStringsCount,
+		"strings.Compare":         transpileStringsCompare,
+		"strings.Cut":             transpileStringsCut,
+		"strings.HasSuffix":       transpileStringsHasSuffix,
+		"strings.HasPrefix":       transpileStringsHasPrefix,
+		"strings.IndexAny":        transpileStringsIndexAny,
+		"strings.Split":           transpileStringsSplit,
+		"strings.Join":            transpileStringsJoin,
+		"strings.Fields":          transpileStringsFields,
+		"strings.Replace":         transpileStringsReplace,
+		"strings.ReplaceAll":      transpileStringsReplaceAll,
+		"strings.Repeat":          transpileStringsRepeat,
+		"strings.EqualFold":       transpileStringsEqualFold,
+		"strings.TrimLeft":        transpileStringsTrimLeft,
+		"strings.TrimRight":       transpileStringsTrimRight,
+		"strings.Trim":            transpileStringsTrim,
+		"strconv.Itoa":            transpileStrconvItoa,
+		"strconv.Atoi":            transpileStrconvAtoi,
+		"strconv.FormatFloat":     transpileStrconvFormatFloat,
+		"strconv.FormatInt":       transpileStrconvFormatInt,
+		"errors.New":              transpileErrorsNew,
+		"sort.Strings":            transpileSortStrings,
+		"sort.Ints":               transpileSortInts,
+		"slices.Sort":             transpileSlicesSort,
+		"slices.Contains":         transpileSlicesContains,
+		"time.Sleep":              transpileTimeSleep,
+		"time.Now":                transpileTimeNow,
+		"time.Unix":               transpileTimeUnix,
+		"time.After":              transpileTimeAfter,
+		"time.NewTicker":          transpileTimeNewTicker,
+		"time.NewTimer":           transpileTimeNewTimer,
+		"time.Tick":               transpileTimeTick,
+		"context.Background":      transpileContextBackground,
+		"context.WithTimeout":     transpileContextWithTimeout,
+		"context.WithCancel":      transpileContextWithCancel,
+		"context.WithCancelCause": transpileContextWithCancelCause,
+		"flag.String":             transpileFlagString,
+		"flag.Parse":              transpileFlagParse,
+		"os.Create":               transpileOsCreate,
+		"os.Remove":               transpileOsRemove,
+		"reflect.TypeOf":          transpileReflectTypeOf,
+		"sync/atomic.AddInt64":    transpileAtomicAddInt64,
+		"sync/atomic.LoadInt64":   transpileAtomicLoadInt64,
 		"encoding/base64.StdEncoding.EncodeToString": transpileBase64EncodeToString,
 		"encoding/base64.StdEncoding.DecodeString":   transpileBase64DecodeString,
 		"crypto/sha256.Sum256":                       transpileSha256Sum256,
@@ -2720,7 +2721,7 @@ func transpileContextWithTimeout(out *strings.Builder, call *ast.CallExpr) {
 	// context.WithTimeout(ctx, duration) returns (ctx, cancel)
 	out.WriteString("GoContext::with_timeout(")
 	if len(call.Args) > 0 {
-		TranspileExpression(out, call.Args[0])
+		writeContextParentArg(out, call.Args[0])
 	}
 	out.WriteString(", ")
 	if len(call.Args) > 1 {
@@ -2733,9 +2734,23 @@ func transpileContextWithCancel(out *strings.Builder, call *ast.CallExpr) {
 	NeedGoContext()
 	out.WriteString("GoContext::with_cancel(")
 	if len(call.Args) > 0 {
-		TranspileExpression(out, call.Args[0])
+		writeContextParentArg(out, call.Args[0])
 	}
 	out.WriteString(")")
+}
+
+func transpileContextWithCancelCause(out *strings.Builder, call *ast.CallExpr) {
+	NeedGoContext()
+	out.WriteString("GoContext::with_cancel_cause(")
+	if len(call.Args) > 0 {
+		writeContextParentArg(out, call.Args[0])
+	}
+	out.WriteString(")")
+}
+
+func writeContextParentArg(out *strings.Builder, arg ast.Expr) {
+	TranspileExpressionContext(out, arg, LValue)
+	out.WriteString(".clone()")
 }
 
 // transpileDurationArg handles a Go duration argument, recognizing patterns like N * time.Unit

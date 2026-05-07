@@ -318,7 +318,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ `time.NewTicker` plus `Ticker.C` receive and `Ticker.Stop` | ✅ |
 | └ `time.Tick` periodic channels | ✅ |
 | **`context` package** | |
-| └ `context.Background`, `context.WithTimeout`, `Context.Done`, `Context.Err`, cancel funcs | ✅ |
+| └ `context.Background`, `context.WithTimeout`, `context.WithCancelCause`, `Context.Done`, `Context.Err`, cancel funcs | ✅ |
 | **`os` package** | |
 | └ `os.Args` read access | ✅ |
 | └ `os.Create` / `os.Remove` plus file `WriteString` / `Close` | ✅ |

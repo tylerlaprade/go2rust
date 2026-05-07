@@ -25,9 +25,10 @@ var asyncStdlibFunctions = map[string]bool{
 	"time.Tick":      true,
 
 	// context - Often used with goroutines
-	"context.WithCancel":   true,
-	"context.WithTimeout":  true,
-	"context.WithDeadline": true,
+	"context.WithCancel":      true,
+	"context.WithCancelCause": true,
+	"context.WithTimeout":     true,
+	"context.WithDeadline":    true,
 
 	// sync - Concurrent primitives
 	"sync.Once.Do": true, // Callback might be called from multiple goroutines

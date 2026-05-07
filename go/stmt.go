@@ -399,7 +399,7 @@ func callReturnsBareChannelValue(call *ast.CallExpr) bool {
 
 	if key, ok := stdlibCallKey(call.Fun); ok {
 		switch key {
-		case "time.After", "time.Tick", "context.WithTimeout", "context.WithCancel":
+		case "time.After", "time.Tick", "context.WithTimeout", "context.WithCancel", "context.WithCancelCause":
 			return true
 		}
 	}
