@@ -29,7 +29,8 @@ Go2Rust provides four modes for handling external package imports:
 1. **`transpile` (default)**: Recursively transpiles all dependencies to Rust
    - Pure Rust output with no Go runtime dependency
    - Currently in development
-   - Runs concurrency detection per dependency package before selecting wrappers
+   - Uses one workspace wrapper policy across the root package and transpiled dependencies
+   - Emits shared stdlib stand-ins in `vendor/go2rust_stdlib_stubs` so dependency crates agree on imported stdlib type identities
 
 2. **`stub`**: Generates stub implementations for external packages
    - Creates placeholder Rust modules with helpful TODO comments
@@ -163,6 +164,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Stdlib method stubs from selector type information | ✅ |
 | └ Stdlib pointer method calls from indexed and range receivers | ✅ |
 | └ Stdlib package function/constant/variable stubs | ✅ |
+| └ Shared stdlib stubs across transpiled dependency crates | ✅ |
 | └ Stdlib concrete call results passed to stdlib interface parameters | ✅ |
 | **`interface` - Interface types** | |
 | └ Interface definitions | ✅ |
@@ -188,6 +190,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Package-level variable initialization | ✅ |
 | └ Init functions | ✅ |
 | └ Multi-file packages with cross-file types, methods, maps, slices, and function variables | 🚧 |
+| └ Workspace-wide wrapper selection for transpiled external packages | ✅ |
 | **`range` - Range clauses** | |
 | └ Array/slice range, including nil slices | ✅ |
 | └ Map range | ✅ |
