@@ -757,6 +757,10 @@ run_xfail_test() {
     run_test "tests/slices_contains"
 }
 
+@test "slices_sort_func" {
+    run_test "tests/slices_sort_func"
+}
+
 @test "sort_slice" {
     run_test "tests/sort_slice"
 }

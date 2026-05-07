@@ -93,6 +93,7 @@ func init() {
 		"sort.Strings":            transpileSortStrings,
 		"sort.Ints":               transpileSortInts,
 		"slices.Sort":             transpileSlicesSort,
+		"slices.SortFunc":         transpileSlicesSortFunc,
 		"slices.Contains":         transpileSlicesContains,
 		"time.Sleep":              transpileTimeSleep,
 		"time.Now":                transpileTimeNow,
@@ -1568,6 +1569,94 @@ func transpileSlicesSort(out *strings.Builder, call *ast.CallExpr) {
 		}
 		WriteBorrowMethod(out, true)
 		out.WriteString(".as_mut().unwrap()).sort()")
+	}
+}
+
+func writeSortFuncWrappedElement(out *strings.Builder, name string) {
+	WriteWrapperPrefix(out)
+	out.WriteString(name)
+	out.WriteString(".clone()")
+	WriteWrapperSuffix(out)
+}
+
+func writeSortFuncComparatorCall(out *strings.Builder, cmp ast.Expr) {
+	if writeDirectFunctionReference(out, cmp) {
+		out.WriteString("(")
+		writeSortFuncWrappedElement(out, "__a")
+		out.WriteString(", ")
+		writeSortFuncWrappedElement(out, "__b")
+		out.WriteString(")")
+		return
+	}
+
+	out.WriteString("{ let __cmp_guard = __cmp_holder")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; let __cmp_fn = __cmp_guard.as_ref().unwrap(); (*__cmp_fn)(")
+	writeSortFuncWrappedElement(out, "__a")
+	out.WriteString(", ")
+	writeSortFuncWrappedElement(out, "__b")
+	out.WriteString(") }")
+}
+
+func writeDirectFunctionReference(out *strings.Builder, expr ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+
+	switch e := expr.(type) {
+	case *ast.Ident:
+		if _, ok := typeInfo.GetObject(e).(*types.Func); !ok {
+			return false
+		}
+		out.WriteString(rustFunctionNameForUse(e.Name))
+		return true
+	case *ast.SelectorExpr:
+		if _, ok := typeInfo.GetObject(e.Sel).(*types.Func); !ok {
+			return false
+		}
+		TranspileExpression(out, e)
+		return true
+	default:
+		return false
+	}
+}
+
+func transpileSlicesSortFunc(out *strings.Builder, call *ast.CallExpr) {
+	if len(call.Args) < 2 {
+		return
+	}
+
+	usesFunctionValue := false
+	var direct strings.Builder
+	if !writeDirectFunctionReference(&direct, call.Args[1]) {
+		usesFunctionValue = true
+	}
+
+	if usesFunctionValue {
+		out.WriteString("{ let __cmp_holder = ")
+		TranspileExpression(out, call.Args[1])
+		out.WriteString("; ")
+	}
+	out.WriteString("(*")
+	TranspileExpressionContext(out, call.Args[0], LValue)
+	WriteBorrowMethod(out, true)
+	out.WriteString(".as_mut().unwrap()).sort_by(|__a, __b| { let __cmp = ")
+	if usesFunctionValue {
+		writeSortFuncComparatorCall(out, call.Args[1])
+	} else {
+		out.WriteString(direct.String())
+		out.WriteString("(")
+		writeSortFuncWrappedElement(out, "__a")
+		out.WriteString(", ")
+		writeSortFuncWrappedElement(out, "__b")
+		out.WriteString(")")
+	}
+	out.WriteString("; let __ord = (*__cmp")
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap()).cmp(&0); __ord })")
+	if usesFunctionValue {
+		out.WriteString(" }")
 	}
 }
 

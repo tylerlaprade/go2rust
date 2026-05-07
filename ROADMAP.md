@@ -112,7 +112,7 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 - ✅ Basic math/rand support - Seed, Intn, and Float64 with deterministic range assertions (random_numbers promoted, 2026-05-06)
 - ✅ Basic flag parsing defaults - flag.String default values and flag.Parse no-op path (flag_parsing promoted, 2026-05-06)
 - ✅ Basic process arguments - os.Args read access (os_args promoted, 2026-05-06)
-- ✅ Basic generic slices helpers - slices.Sort and slices.Contains for ordered/comparable values (sort_slice promoted, 2026-05-06; slices_contains promoted, 2026-05-07)
+- ✅ Basic generic slices helpers - slices.Sort, slices.SortFunc, and slices.Contains for ordered/comparable values and comparator-based ordering (sort_slice promoted, 2026-05-06; slices_contains promoted, 2026-05-07; slices_sort_func promoted, 2026-05-07)
 - ✅ Basic deterministic time values - time.Unix plus Time.UTC/Add/Unix/UnixNano (time_operations promoted, 2026-05-06)
 - ✅ Basic file creation - os.Create/os.Remove plus file WriteString/Close (file_io promoted, 2026-05-06)
 - ✅ Multi-stdlib deterministic smoke coverage - strings/strconv/math/time/os together (stdlib_imports promoted, 2026-05-06)
