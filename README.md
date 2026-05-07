@@ -190,6 +190,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Channel fields in struct literals | ✅ |
 | └ Selector-qualified struct literals (`pkg.Type{}`) | ✅ |
 | └ Field access | ✅ |
+| └ Owned string field returns and arguments | ✅ |
 | └ Embedded fields | ✅ |
 | └ Anonymous structs | ✅ |
 | └ Nested structs/slices/maps/interfaces and anonymous struct function boundaries | ✅ |

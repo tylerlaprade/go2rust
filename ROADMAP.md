@@ -35,6 +35,7 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 - ✅ Anonymous struct function boundaries - parameters, returns, multiple returns, pointer parameters, and channel values (anonymous_structs_functions promoted, 2026-05-06)
 - ✅ Named slice type methods - non-scalar type definitions register as newtype wrappers and receiver reads unwrap through `.0` (named_slice_methods promoted, 2026-05-07)
 - ✅ Parallel slice element swaps - multi-assignment writes indexed Vec elements directly, including named slice receivers (slice_parallel_swap promoted, 2026-05-07)
+- ✅ Owned string selector values - string fields clone when returned or passed into wrapped call arguments (selector_string_clone promoted, 2026-05-07)
 
 ### ✅ Phase 5: Core Language Features (90% Complete)
 

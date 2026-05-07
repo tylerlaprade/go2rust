@@ -729,6 +729,10 @@ run_xfail_test() {
     run_test "tests/select_statements"
 }
 
+@test "selector_string_clone" {
+    run_test "tests/selector_string_clone"
+}
+
 @test "shared_mutation" {
     run_test "tests/shared_mutation"
 }

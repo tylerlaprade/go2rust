@@ -385,12 +385,22 @@ func writeIdentValueCloneBlock(out *strings.Builder, ident *ast.Ident) {
 }
 
 func writeOwnedExpressionValue(out *strings.Builder, expr ast.Expr) bool {
-	ident, ok := expr.(*ast.Ident)
-	if !ok || !isWrappedValueIdent(ident) {
-		return false
+	if ident, ok := expr.(*ast.Ident); ok {
+		if !isWrappedValueIdent(ident) {
+			return false
+		}
+		writeIdentValueClone(out, ident)
+		return true
 	}
-	writeIdentValueClone(out, ident)
-	return true
+	if _, ok := expr.(*ast.SelectorExpr); ok {
+		typeInfo := GetTypeInfo()
+		if typeInfo != nil && typeInfo.IsString(expr) {
+			TranspileExpression(out, expr)
+			out.WriteString(".clone()")
+			return true
+		}
+	}
+	return false
 }
 
 func writeMaybeUnwrappedExpression(out *strings.Builder, expr ast.Expr) {
@@ -3743,6 +3753,8 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 					}
 				} else if lit, ok := arg.(*ast.BasicLit); ok && writeCharLiteralForExpectedType(out, lit, paramTypeForArg) {
 					// Character literal emitted as byte.
+				} else if writeOwnedExpressionValue(out, arg) {
+					// Owned selector values such as string fields need cloning.
 				} else {
 					TranspileExpression(out, arg)
 				}

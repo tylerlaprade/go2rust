@@ -763,7 +763,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						} else {
 							// Regular selector - wrap it
 							WriteWrapperPrefix(out)
-							TranspileExpression(out, result)
+							if !writeOwnedExpressionValue(out, result) {
+								TranspileExpression(out, result)
+							}
 							WriteWrapperSuffix(out)
 						}
 					} else if callExpr, ok := result.(*ast.CallExpr); ok {
