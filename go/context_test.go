@@ -83,6 +83,48 @@ func TestSetTranspileContextSyncsFileCompatibilityState(t *testing.T) {
 	}
 }
 
+func TestTranspileContextScopesAnonymousStructsToPackage(t *testing.T) {
+	savedCounter := anonymousStructCounter
+	savedStructs := anonymousStructs
+	savedTypeMap := anonymousStructTypeMap
+	defer func() {
+		anonymousStructCounter = savedCounter
+		anonymousStructs = savedStructs
+		anonymousStructTypeMap = savedTypeMap
+		SetTranspileContext(nil)
+	}()
+
+	ctxA := &TranspileContext{
+		Session: NewTranspileSession(nil, nil),
+		Package: NewPackageState(),
+		File:    NewFileState(NewImportTracker(), &HelperTracker{}, nil),
+	}
+	SetTranspileContext(ctxA)
+	firstName := generateAnonymousStructType(&ast.StructType{Fields: &ast.FieldList{
+		List: []*ast.Field{{Names: []*ast.Ident{ast.NewIdent("A")}, Type: ast.NewIdent("int")}},
+	}})
+	if firstName != "AnonymousStruct1" {
+		t.Fatalf("first package anonymous struct = %q, want AnonymousStruct1", firstName)
+	}
+	SetTranspileContext(nil)
+
+	ctxB := &TranspileContext{
+		Session: NewTranspileSession(nil, nil),
+		Package: NewPackageState(),
+		File:    NewFileState(NewImportTracker(), &HelperTracker{}, nil),
+	}
+	SetTranspileContext(ctxB)
+	if len(anonymousStructs) != 0 {
+		t.Fatalf("new package should not see prior anonymous structs, got %#v", anonymousStructs)
+	}
+	secondName := generateAnonymousStructType(&ast.StructType{Fields: &ast.FieldList{
+		List: []*ast.Field{{Names: []*ast.Ident{ast.NewIdent("B")}, Type: ast.NewIdent("int")}},
+	}})
+	if secondName != "AnonymousStruct1" {
+		t.Fatalf("second package anonymous struct = %q, want AnonymousStruct1", secondName)
+	}
+}
+
 func TestPackageTypeMetadataPrefersContextState(t *testing.T) {
 	savedInterfaceTypes := interfaceTypes
 	savedTypeAliases := typeAliases

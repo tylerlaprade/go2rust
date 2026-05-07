@@ -10,16 +10,19 @@ type TranspileSession struct {
 
 // PackageState holds package-scoped registries that should be shared across files.
 type PackageState struct {
-	FunctionSignatures map[string]*FunctionSignature
-	ErrorImplTypes     map[string]bool
-	StringerImplTypes  map[string]bool
-	InterfaceTypes     map[string]bool
-	TypeDefinitions    map[string]string
-	TypeAliases        map[string]bool
-	GoPackageImports   map[string]string
-	ExternalPackages   map[string]bool
-	StructDefs         map[string]*StructDef
-	EmbeddedFields     map[string]map[string]string
+	FunctionSignatures     map[string]*FunctionSignature
+	ErrorImplTypes         map[string]bool
+	StringerImplTypes      map[string]bool
+	InterfaceTypes         map[string]bool
+	TypeDefinitions        map[string]string
+	TypeAliases            map[string]bool
+	GoPackageImports       map[string]string
+	ExternalPackages       map[string]bool
+	StructDefs             map[string]*StructDef
+	EmbeddedFields         map[string]map[string]string
+	AnonymousStructCounter int
+	AnonymousStructs       map[string]*ast.StructType
+	AnonymousStructTypeMap map[string]string
 }
 
 // FileState holds file-scoped scratch state for a single transpilation pass.
@@ -58,16 +61,18 @@ func NewTranspileSession(typeInfo *TypeInfo, packageMapping map[string]string) *
 
 func NewPackageState() *PackageState {
 	return &PackageState{
-		FunctionSignatures: make(map[string]*FunctionSignature),
-		ErrorImplTypes:     make(map[string]bool),
-		StringerImplTypes:  make(map[string]bool),
-		InterfaceTypes:     make(map[string]bool),
-		TypeDefinitions:    make(map[string]string),
-		TypeAliases:        make(map[string]bool),
-		GoPackageImports:   make(map[string]string),
-		ExternalPackages:   make(map[string]bool),
-		StructDefs:         make(map[string]*StructDef),
-		EmbeddedFields:     make(map[string]map[string]string),
+		FunctionSignatures:     make(map[string]*FunctionSignature),
+		ErrorImplTypes:         make(map[string]bool),
+		StringerImplTypes:      make(map[string]bool),
+		InterfaceTypes:         make(map[string]bool),
+		TypeDefinitions:        make(map[string]string),
+		TypeAliases:            make(map[string]bool),
+		GoPackageImports:       make(map[string]string),
+		ExternalPackages:       make(map[string]bool),
+		StructDefs:             make(map[string]*StructDef),
+		EmbeddedFields:         make(map[string]map[string]string),
+		AnonymousStructs:       make(map[string]*ast.StructType),
+		AnonymousStructTypeMap: make(map[string]string),
 	}
 }
 
@@ -144,6 +149,12 @@ func (ctx *TranspileContext) ensureDefaults() {
 		if ctx.Package.EmbeddedFields == nil {
 			ctx.Package.EmbeddedFields = make(map[string]map[string]string)
 		}
+		if ctx.Package.AnonymousStructs == nil {
+			ctx.Package.AnonymousStructs = make(map[string]*ast.StructType)
+		}
+		if ctx.Package.AnonymousStructTypeMap == nil {
+			ctx.Package.AnonymousStructTypeMap = make(map[string]string)
+		}
 	}
 	if ctx.File != nil {
 		if ctx.File.Imports == nil {
@@ -187,6 +198,9 @@ func (ctx *TranspileContext) captureCompatibilityState() {
 		ctx.Package.ExternalPackages = externalPackages
 		ctx.Package.StructDefs = structDefs
 		ctx.Package.EmbeddedFields = embeddedFields
+		ctx.Package.AnonymousStructCounter = anonymousStructCounter
+		ctx.Package.AnonymousStructs = anonymousStructs
+		ctx.Package.AnonymousStructTypeMap = anonymousStructTypeMap
 	}
 	if ctx.File != nil {
 		ctx.File.Imports = ctx.Imports
@@ -223,6 +237,9 @@ func (ctx *TranspileContext) applyCompatibilityState() {
 		externalPackages = ctx.Package.ExternalPackages
 		structDefs = ctx.Package.StructDefs
 		embeddedFields = ctx.Package.EmbeddedFields
+		anonymousStructCounter = ctx.Package.AnonymousStructCounter
+		anonymousStructs = ctx.Package.AnonymousStructs
+		anonymousStructTypeMap = ctx.Package.AnonymousStructTypeMap
 	}
 	if ctx.File != nil {
 		ctx.Imports = ctx.File.Imports
