@@ -474,6 +474,10 @@ run_xfail_test() {
     run_test "tests/crypto_hash"
 }
 
+@test "defer_named_error_return" {
+    run_test "tests/defer_named_error_return"
+}
+
 @test "defer_named_returns" {
     run_test "tests/defer_named_returns"
 }

@@ -1037,6 +1037,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				if i >= len(names) {
 					break
 				}
+				if ident, ok := result.(*ast.Ident); ok && ident.Name == names[i].Name {
+					continue
+				}
 				out.WriteString("        ")
 				TranspileStatementSimple(out, &ast.AssignStmt{
 					Lhs: []ast.Expr{names[i]},
