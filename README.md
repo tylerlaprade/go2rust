@@ -117,6 +117,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Channel struct fields with nil checks, send/receive, `len`, and `cap` | ✅ |
 | **`const` - Constants** | |
 | └ Basic constants | ✅ |
+| └ String constants passed to `strings.Builder` | ✅ |
 | └ Iota enumerations | ✅ |
 | └ Complex iota expressions | ✅ |
 | └ Named iota-backed enum types, including struct fields, untyped literal fields, and underlying const widths | ✅ |
@@ -382,6 +383,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ `atomic.AddInt64` / `atomic.LoadInt64` | ✅ |
 | **`strings` (Builder)** | |
 | └ `strings.Builder` | ✅ |
+| └ `Builder.WriteString` with string constants | ✅ |
 
 ### XFAIL Tests (Expected Failures)
 

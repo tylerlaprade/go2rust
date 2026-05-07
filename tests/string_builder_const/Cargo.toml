@@ -1,0 +1,8 @@
+[package]
+name = "string_builder_const"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "string_builder_const"
+path = "main.rs"

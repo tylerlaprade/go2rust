@@ -141,7 +141,7 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 - ✅ Basic reflection metadata - reflect.TypeOf for struct fields plus StructTag.Get (struct_tags_reflection promoted, 2026-05-06)
 - 🚧 Unsafe operations - Sizeof/Alignof lower to Rust representation layout; pointer arithmetic and Offsetof remain unsupported (unsafe_sizeof_alignof promoted, 2026-05-07)
 - 🚧 JSON/encoding/crypto support - json.Marshal supports structs with exported basic fields (json_marshal promoted, 2026-05-06); encoding/base64 StdEncoding EncodeToString/DecodeString and crypto/sha256 Sum256 supported (base64_encoding, crypto_hash promoted, 2026-05-06)
-- ✅ Extended strings package coverage - search, IndexAny, Compare/Cut, split/join, replace, repeat, trim variants, EqualFold, Title, and Builder Len (stdlib_strings promoted, 2026-05-06; expanded 2026-05-07)
+- ✅ Extended strings package coverage - search, IndexAny, Compare/Cut, split/join, replace, repeat, trim variants, EqualFold, Title, Builder Len, and Builder.WriteString with string constants (stdlib_strings promoted, 2026-05-06; expanded 2026-05-07)
 - ✅ Basic net/url parsing - url.Parse exposes Scheme, Host, Path, and RawQuery fields (url_parsing promoted, 2026-05-06)
 - ✅ Basic regexp support - regexp.MustCompile plus FindAllString for `\d+` and literal matches (regex_basic promoted, 2026-05-06)
 - ✅ Basic math/rand support - Seed, Intn, and Float64 with deterministic range assertions (random_numbers promoted, 2026-05-06)

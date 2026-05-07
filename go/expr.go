@@ -3687,6 +3687,8 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 								if lit, ok := call.Args[0].(*ast.BasicLit); ok && lit.Kind == token.STRING {
 									// String literal - use directly
 									out.WriteString(RustStringLiteral(lit.Value))
+								} else if isStringConstExpr(call.Args[0]) {
+									TranspileExpression(out, call.Args[0])
 								} else {
 									// Variable - unwrap and borrow
 									out.WriteString("&(*")
