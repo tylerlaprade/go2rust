@@ -86,7 +86,7 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 - ✅ Variadic functions - ellipsis params as Vec<T>, call-site arg collection into vec![], including boxed `...any` elements (2026-03-27, updated 2026-05-07)
 - ✅ Format verbs - %T maps Rust types to Go type names at runtime, including fmt.Errorf; %+v and %#x consume flagged format arguments (2026-03-27, updated 2026-05-07)
 - ✅ Byte/rune comparison contexts - character literals emit as `u8` when compared with `byte` values or string indexing results (byte_char_comparisons promoted, 2026-05-07)
-- ✅ Wrapped bool negation - unary `!` unwraps bool-returning calls before negating (wrapped_bool_not promoted, 2026-05-07)
+- ✅ Wrapped bool conditions - unary `!`, tagless switch cases, and receiver-field conditions unwrap bool wrappers before use (wrapped_bool_not promoted, 2026-05-07; wrapped_bool_field_conditions added, 2026-05-07)
 - ✅ String constant returns - string constants returned from `string` functions are converted to owned Rust `String` values before wrapping (return_string_const promoted, 2026-05-07)
 - ✅ interface{} arg boxing - values auto-boxed as Box<dyn Any> when passed to interface{} params (2026-03-27)
 - ✅ `any(x)` conversions - converted values are boxed as `Box<dyn Any>` so comma-ok type assertions can downcast them (any_type_conversion promoted, 2026-05-07)

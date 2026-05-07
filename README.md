@@ -254,7 +254,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | **Operators** | |
 | └ Binary operators (+, -, *, /, etc.) | ✅ |
 | └ Complex nested expressions with function calls, indexing, fields, pointers, assertions, and channel receives | ✅ |
-| └ Unary NOT on bool-returning calls | ✅ |
+| └ Unary NOT and conditions on wrapped bools | ✅ |
 | └ Concurrent binary comparisons with bare `len`/`cap` operands | ✅ |
 | └ Binary `len`/`cap` operands with typed `int` peers | ✅ |
 | └ Assignment operators (=, +=, etc.) | ✅ |

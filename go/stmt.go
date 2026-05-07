@@ -950,6 +950,15 @@ func transpileCondition(out *strings.Builder, expr ast.Expr) {
 		transpileCondition(out, e.X)
 		out.WriteString(")")
 		return
+	case *ast.BinaryExpr:
+		if e.Op == token.LAND || e.Op == token.LOR {
+			transpileCondition(out, e.X)
+			out.WriteString(" ")
+			out.WriteString(rustBinaryOp(e.Op))
+			out.WriteString(" ")
+			transpileCondition(out, e.Y)
+			return
+		}
 	case *ast.UnaryExpr:
 		if e.Op == token.NOT {
 			out.WriteString("!")
@@ -957,13 +966,14 @@ func transpileCondition(out *strings.Builder, expr ast.Expr) {
 			return
 		}
 	case *ast.CallExpr:
-		if callReturnsWrappedBool(e) {
-			out.WriteString("(*")
-			TranspileExpression(out, e)
-			WriteBorrowMethod(out, false)
-			out.WriteString(".as_ref().unwrap())")
+		if exprNeedsBoolWrapperUnwrap(e) {
+			writeUnwrappedBoolExpression(out, e)
 			return
 		}
+	}
+	if exprNeedsBoolWrapperUnwrap(expr) {
+		writeUnwrappedBoolExpression(out, expr)
+		return
 	}
 	TranspileExpression(out, expr)
 }
@@ -3505,7 +3515,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 								TranspileExpression(out, expr)
 								out.WriteString(")")
 							} else {
-								TranspileExpression(out, expr)
+								transpileCondition(out, expr)
 							}
 						}
 						out.WriteString(" {\n")

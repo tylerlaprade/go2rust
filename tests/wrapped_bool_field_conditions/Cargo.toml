@@ -1,0 +1,8 @@
+[package]
+name = "wrapped_bool_field_conditions"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "wrapped_bool_field_conditions"
+path = "main.rs"

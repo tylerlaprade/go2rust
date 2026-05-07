@@ -1130,6 +1130,10 @@ run_xfail_test() {
     run_test "tests/wrap_simple"
 }
 
+@test "wrapped_bool_field_conditions" {
+    run_test "tests/wrapped_bool_field_conditions"
+}
+
 @test "wrapped_bool_not" {
     run_test "tests/wrapped_bool_not"
 }

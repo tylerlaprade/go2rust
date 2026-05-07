@@ -453,6 +453,34 @@ func writeUnwrappedForFormat(out *strings.Builder, expr ast.Expr) {
 	}
 }
 
+func isBoolExpressionType(expr ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	typ := typeInfo.GetType(expr)
+	if typ == nil {
+		return false
+	}
+	basic, ok := typ.Underlying().(*types.Basic)
+	return ok && basic.Kind() == types.Bool
+}
+
+func exprNeedsBoolWrapperUnwrap(expr ast.Expr) bool {
+	if call, ok := expr.(*ast.CallExpr); ok && callReturnsWrappedBool(call) {
+		return true
+	}
+	typeInfo := GetTypeInfo()
+	return typeInfo != nil && isBoolExpressionType(expr) && typeInfo.NeedsUnwrapping(expr)
+}
+
+func writeUnwrappedBoolExpression(out *strings.Builder, expr ast.Expr) {
+	out.WriteString("(*")
+	TranspileExpression(out, expr)
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap())")
+}
+
 func writeCallArgumentValue(out *strings.Builder, arg ast.Expr) bool {
 	ident, ok := arg.(*ast.Ident)
 	if !ok || ident.Name == "_" || ident.Name == "nil" || ident.Name == "true" || ident.Name == "false" {
@@ -1768,11 +1796,10 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			out.WriteString("!")
 			TranspileExpression(out, e.X)
 		case token.NOT:
-			if call, ok := e.X.(*ast.CallExpr); ok && callReturnsWrappedBool(call) {
+			if exprNeedsBoolWrapperUnwrap(e.X) {
 				out.WriteString("!(")
-				TranspileExpression(out, e.X)
-				WriteBorrowMethod(out, false)
-				out.WriteString(".as_ref().unwrap())")
+				writeUnwrappedBoolExpression(out, e.X)
+				out.WriteString(")")
 				return
 			}
 			out.WriteString("!")
