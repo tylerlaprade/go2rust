@@ -1832,8 +1832,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 						}
 					}
 				} else {
-					out.WriteString("/* ERROR: Type information required for positional struct literal */")
-					wroteFields = true
+					out.WriteString("/* ERROR: Type information required for positional struct literal */ ")
 				}
 			} else {
 				// For named struct types with field names specified
