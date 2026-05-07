@@ -272,6 +272,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | **Closures & Anonymous Functions** | |
 | └ Function literals | ✅ |
 | └ Closure variable capture | ✅ |
+| └ Recursive closure assignment through function variables | ✅ |
 | └ Anonymous function calls | ✅ |
 | └ Cross-file function variables | ✅ |
 | └ Capture analysis framework | ✅ |

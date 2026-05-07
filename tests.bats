@@ -806,6 +806,10 @@ run_xfail_test() {
     run_test "tests/recursion_factorial"
 }
 
+@test "recursive_closure_assignment" {
+    run_test "tests/recursive_closure_assignment"
+}
+
 @test "regex_basic" {
     run_test "tests/regex_basic"
 }

@@ -1904,11 +1904,24 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 								} else if funcLit, ok := s.Rhs[0].(*ast.FuncLit); ok {
 									if _, isFuncLHS := expressionFunctionSignature(s.Lhs[0]); isFuncLHS {
 										out.WriteString("{ ")
+										cloneFuncLitTarget := false
+										if ident, ok := s.Lhs[0].(*ast.Ident); ok {
+											cloneFuncLitTarget = findCapturedVars(funcLit)[ident.Name]
+										}
+										if cloneFuncLitTarget {
+											out.WriteString("let __func_lit_target = ")
+											TranspileExpressionContext(out, s.Lhs[0], LValue)
+											out.WriteString(".clone(); ")
+										}
 										out.WriteString("let new_val = ")
 										TranspileFuncLitBox(out, funcLit)
 										out.WriteString("; ")
 										out.WriteString("*")
-										TranspileExpressionContext(out, s.Lhs[0], LValue)
+										if cloneFuncLitTarget {
+											out.WriteString("__func_lit_target")
+										} else {
+											TranspileExpressionContext(out, s.Lhs[0], LValue)
+										}
 										WriteBorrowMethod(out, true)
 										out.WriteString(" = Some(new_val); }")
 									} else {
