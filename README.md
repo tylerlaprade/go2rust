@@ -241,6 +241,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Slice operations | ✅ |
 | └ Parallel slice element swaps | ✅ |
 | └ Parallel slice-expression assignments into wrapped fields | ✅ |
+| └ Concurrent indexed byte compound assignments | ✅ |
 | **Operators** | |
 | └ Binary operators (+, -, *, /, etc.) | ✅ |
 | └ Complex nested expressions with function calls, indexing, fields, pointers, assertions, and channel receives | ✅ |
@@ -264,6 +265,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ String comparisons | ✅ |
 | └ Byte comparisons with character literals | ✅ |
 | └ Raw string literals | ✅ |
+| └ `len` on string literals in slice bounds | ✅ |
 | **Closures & Anonymous Functions** | |
 | └ Function literals | ✅ |
 | └ Closure variable capture | ✅ |

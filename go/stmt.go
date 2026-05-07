@@ -526,6 +526,82 @@ func writeMapElementUpdate(out *strings.Builder, indexExpr *ast.IndexExpr, op to
 	out.WriteString("); }")
 }
 
+func writeCompoundAssignOperator(out *strings.Builder, op token.Token) {
+	switch op {
+	case token.ADD_ASSIGN:
+		out.WriteString("+")
+	case token.SUB_ASSIGN:
+		out.WriteString("-")
+	case token.MUL_ASSIGN:
+		out.WriteString("*")
+	case token.QUO_ASSIGN:
+		out.WriteString("/")
+	case token.REM_ASSIGN:
+		out.WriteString("%")
+	case token.AND_ASSIGN:
+		out.WriteString("&")
+	case token.OR_ASSIGN:
+		out.WriteString("|")
+	case token.XOR_ASSIGN:
+		out.WriteString("^")
+	case token.SHL_ASSIGN:
+		out.WriteString("<<")
+	case token.SHR_ASSIGN:
+		out.WriteString(">>")
+	}
+}
+
+func writeBareCompoundAssignValue(out *strings.Builder, expr ast.Expr) {
+	if ident, ok := expr.(*ast.Ident); ok {
+		_, isRangeVar := rangeLoopVars[ident.Name]
+		_, isLocalConst := localConstants[ident.Name]
+		if !isRangeVar && !isLocalConst && ident.Name != "true" && ident.Name != "false" &&
+			ident.Name != "nil" && ident.Name != "_" {
+			out.WriteString("(*")
+			out.WriteString(EscapeRustIdent(ident.Name))
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref().unwrap())")
+			if !isCopyTypeExpression(expr) && isCloneableNonPointerExpr(expr) {
+				out.WriteString(".clone()")
+			}
+			return
+		}
+		out.WriteString(EscapeRustIdent(ident.Name))
+		return
+	}
+	if lit, ok := expr.(*ast.BasicLit); ok {
+		out.WriteString(lit.Value)
+		return
+	}
+	if !isCopyTypeExpression(expr) && writeOwnedExpressionValue(out, expr) {
+		return
+	}
+	TranspileExpression(out, expr)
+}
+
+func writeIndexedCompoundAssign(out *strings.Builder, indexExpr *ast.IndexExpr, op token.Token, rhs ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		out.WriteString("/* ERROR: Cannot determine indexed compound assignment target - type information required */ ")
+		return true
+	}
+	if typeInfo.IsMap(indexExpr.X) {
+		return false
+	}
+
+	out.WriteString("{ let __idx = ")
+	TranspileExpression(out, indexExpr.Index)
+	out.WriteString(" as usize; let __rhs = ")
+	writeBareCompoundAssignValue(out, rhs)
+	out.WriteString("; let mut __seq_guard = ")
+	TranspileExpressionContext(out, indexExpr.X, LValue)
+	WriteBorrowMethod(out, true)
+	out.WriteString("; let __seq = __seq_guard.as_mut().unwrap(); __seq[__idx] = __seq[__idx] ")
+	writeCompoundAssignOperator(out, op)
+	out.WriteString(" __rhs; }")
+	return true
+}
+
 func writeMapCommaOkMissingValue(out *strings.Builder, indexExpr *ast.IndexExpr) {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil {
@@ -1404,6 +1480,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			// Compound assignment operators
 			if indexExpr, isMapIndex := isMapIndexExpression(s.Lhs[0]); isMapIndex {
 				writeMapElementUpdate(out, indexExpr, s.Tok, s.Rhs[0])
+			} else if indexExpr, ok := s.Lhs[0].(*ast.IndexExpr); ok && writeIndexedCompoundAssign(out, indexExpr, s.Tok, s.Rhs[0]) {
+				// array/slice element compound assignment mutates the underlying sequence directly.
 			} else {
 
 				isString := false

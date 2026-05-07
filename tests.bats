@@ -422,6 +422,10 @@ run_xfail_test() {
     run_test "tests/compound_assignments"
 }
 
+@test "concurrent_byte_index_or_assign" {
+    run_test "tests/concurrent_byte_index_or_assign"
+}
+
 @test "concurrent_len_comparison" {
     run_test "tests/concurrent_len_comparison"
 }
@@ -636,6 +640,10 @@ run_xfail_test() {
 
 @test "late_address_of" {
     run_test "tests/late_address_of"
+}
+
+@test "len_string_literal_slice_bounds" {
+    run_test "tests/len_string_literal_slice_bounds"
 }
 
 @test "len_typed_int_comparison" {

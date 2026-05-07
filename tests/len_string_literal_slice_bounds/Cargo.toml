@@ -1,0 +1,8 @@
+[package]
+name = "len_string_literal_slice_bounds"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "len_string_literal_slice_bounds"
+path = "main.rs"

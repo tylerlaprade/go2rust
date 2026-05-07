@@ -2210,6 +2210,12 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 
 func transpileLen(out *strings.Builder, call *ast.CallExpr) {
 	if len(call.Args) > 0 {
+		if lit, ok := call.Args[0].(*ast.BasicLit); ok && lit.Kind == token.STRING {
+			out.WriteString(RustStringLiteral(lit.Value))
+			out.WriteString(".len()")
+			return
+		}
+
 		typeInfo := GetTypeInfo()
 		if typeInfo != nil && typeInfo.IsChannel(call.Args[0]) {
 			writeChannelExpression(out, call.Args[0])

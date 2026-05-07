@@ -1,0 +1,8 @@
+[package]
+name = "concurrent_byte_index_or_assign"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "concurrent_byte_index_or_assign"
+path = "main.rs"
