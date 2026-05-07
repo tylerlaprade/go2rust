@@ -1,0 +1,8 @@
+[package]
+name = "goroutine_function_param_capture"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "goroutine_function_param_capture"
+path = "main.rs"

@@ -3348,7 +3348,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			out.WriteString("_thread = ")
 			if currentReceiver != "" && varName == currentReceiver {
 				out.WriteString("self.clone(); ")
-			} else if isVarBare(varName) {
+			} else if isVarBare(varName) || isFunctionTypedNameInFunc(varName, fnType) {
 				// Bare variables (channels, sync types) — clone the handle
 				out.WriteString(varName)
 				out.WriteString(".clone(); ")
@@ -3655,4 +3655,25 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 	default:
 		out.WriteString("// TODO: Unhandled statement type: " + strings.TrimPrefix(fmt.Sprintf("%T", s), "*ast."))
 	}
+}
+
+func isFunctionTypedNameInFunc(name string, fnType *ast.FuncType) bool {
+	if fnType == nil || fnType.Params == nil {
+		return false
+	}
+
+	for _, field := range fnType.Params.List {
+		for _, paramName := range field.Names {
+			if paramName.Name != name {
+				continue
+			}
+			if _, ok := field.Type.(*ast.FuncType); ok {
+				return true
+			}
+			typeInfo := GetTypeInfo()
+			return typeInfo != nil && typeInfo.IsFunctionType(field.Type)
+		}
+	}
+
+	return false
 }

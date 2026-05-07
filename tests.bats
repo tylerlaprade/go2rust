@@ -501,6 +501,10 @@ run_xfail_test() {
     run_test "tests/functions_multiple_return"
 }
 
+@test "goroutine_function_param_capture" {
+    run_test "tests/goroutine_function_param_capture"
+}
+
 @test "goroutines_basic" {
     run_test "tests/goroutines_basic"
 }

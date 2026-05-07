@@ -141,6 +141,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | **`go` - Goroutines** | ✅ |
 | └ Worker pool pattern with channels | ✅ |
 | └ Method receiver captures with deferred receiver calls | ✅ |
+| └ Function-typed parameter captures | ✅ |
 | **`goto` - Goto statements** | ✅ (basic top-level label patterns) |
 | **`if` - If statements** | |
 | └ Basic if | ✅ |
