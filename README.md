@@ -29,6 +29,7 @@ Go2Rust provides four modes for handling external package imports:
 1. **`transpile` (default)**: Recursively transpiles all dependencies to Rust
    - Pure Rust output with no Go runtime dependency
    - Currently in development
+   - Runs concurrency detection per dependency package before selecting wrappers
 
 2. **`stub`**: Generates stub implementations for external packages
    - Creates placeholder Rust modules with helpful TODO comments

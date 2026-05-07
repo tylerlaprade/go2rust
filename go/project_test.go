@@ -69,6 +69,59 @@ func main() {
 	}
 }
 
+func TestExternalPackageUsesOwnConcurrencyDetector(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+
+require example.com/dep v0.0.0
+
+replace example.com/dep => ./dep
+`)
+	writeTestFile(t, filepath.Join(tempDir, "dep", "go.mod"), `module example.com/dep
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "dep", "dep.go"), `package dep
+
+func Run(value int) int {
+	done := make(chan bool)
+	go func() {
+		done <- true
+	}()
+	<-done
+	return value
+}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+import "example.com/dep"
+
+func main() {
+	println(dep.Run(3))
+}
+`)
+
+	generator := NewProjectGenerator([]string{filepath.Join(tempDir, "main.go")})
+	generator.SetExternalPackageMode(ModeTranspile)
+
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	depRS := mustReadFile(t, filepath.Join(tempDir, "vendor", "example_com_dep", "mod.rs"))
+	if !strings.Contains(depRS, "use std::sync::{Arc, Mutex};") {
+		t.Fatalf("external package with goroutine should import Arc/Mutex wrappers, got:\n%s", depRS)
+	}
+	if strings.Contains(depRS, "Rc<RefCell") {
+		t.Fatalf("external package with goroutine should not emit Rc<RefCell> wrappers, got:\n%s", depRS)
+	}
+	if !strings.Contains(depRS, "pub fn run(value: Arc<Mutex<Option<i32>>>)") {
+		t.Fatalf("external package function signature should use Arc/Mutex wrappers, got:\n%s", depRS)
+	}
+}
+
 func TestGenerateCargoTomlIsDeterministic(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "main.go"), "package main\nfunc main() {}\n")

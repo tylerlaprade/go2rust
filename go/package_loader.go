@@ -196,6 +196,13 @@ func (pl *PackageLoader) transpilePackage(pkg *packages.Package) error {
 		info: pkg.TypesInfo,
 		pkg:  pkg.Types,
 	}
+
+	parentDetector := GetConcurrencyDetector()
+	concurrencyDetector := NewConcurrencyDetector()
+	concurrencyDetector.AnalyzeProject(pkg.Syntax)
+	SetConcurrencyDetector(concurrencyDetector)
+	defer SetConcurrencyDetector(parentDetector)
+
 	parentCtx := GetTranspileContext()
 	pkgState := NewPackageState()
 	pkgState.FunctionNameOverrides = assignPackageFunctionNames(pkg.Syntax)
