@@ -2117,6 +2117,13 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 
 func transpileLen(out *strings.Builder, call *ast.CallExpr) {
 	if len(call.Args) > 0 {
+		typeInfo := GetTypeInfo()
+		if typeInfo != nil && typeInfo.IsChannel(call.Args[0]) {
+			writeChannelExpression(out, call.Args[0])
+			out.WriteString(".len()")
+			return
+		}
+
 		// len() returns the length of arrays, slices, maps, strings, or channels
 		if isExpressionResultBare(call.Args[0]) {
 			// Bare value (range var, index result, etc.) - access directly
@@ -2220,6 +2227,13 @@ func transpileMake(out *strings.Builder, call *ast.CallExpr) {
 
 func transpileCap(out *strings.Builder, call *ast.CallExpr) {
 	if len(call.Args) > 0 {
+		typeInfo := GetTypeInfo()
+		if typeInfo != nil && typeInfo.IsChannel(call.Args[0]) {
+			writeChannelExpression(out, call.Args[0])
+			out.WriteString(".capacity()")
+			return
+		}
+
 		TranspileExpression(out, call.Args[0])
 		out.WriteString(".capacity()")
 	}
@@ -2593,7 +2607,7 @@ func transpileTimeSleep(out *strings.Builder, call *ast.CallExpr) {
 
 func transpileClose(out *strings.Builder, call *ast.CallExpr) {
 	if len(call.Args) > 0 {
-		TranspileExpression(out, call.Args[0])
+		writeChannelExpression(out, call.Args[0])
 		out.WriteString(".close()")
 	}
 }

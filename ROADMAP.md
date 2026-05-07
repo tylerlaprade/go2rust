@@ -70,6 +70,7 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 
 - ✅ Goroutines (thread::spawn with variable capture)
 - ✅ Channels (buffered, unbuffered, close, range)
+- ✅ Channel struct fields - bare `GoChannel` fields support zero values, explicit literals, nil assignment/checks, send/receive, len, and cap (channel_struct_fields promoted, 2026-05-07)
 - ✅ Select (basic, non-blocking, default)
 - ✅ WaitGroup, Mutex, Once, shared mutation
 - ✅ Basic sync/atomic int64 operations - AddInt64 and LoadInt64 (atomic_operations promoted, 2026-05-06)

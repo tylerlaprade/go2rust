@@ -55,6 +55,10 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 		_, isMap := field.Type.(*ast.MapType)
 		isInterface := isEmptyInterfaceExpr(field.Type)
 		_, isFunction := field.Type.(*ast.FuncType)
+		_, isChannel := field.Type.(*ast.ChanType)
+		if isChannel {
+			continue
+		}
 		if len(field.Names) > 0 {
 			for _, name := range field.Names {
 				fields = append(fields, fieldEntry{

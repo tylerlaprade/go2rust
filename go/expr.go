@@ -120,6 +120,10 @@ func TranspileExpression(out *strings.Builder, expr ast.Expr) {
 	TranspileExpressionContext(out, expr, RValue)
 }
 
+func writeChannelExpression(out *strings.Builder, expr ast.Expr) {
+	TranspileExpressionContext(out, expr, LValue)
+}
+
 // writeUnwrappedForFormat writes an expression suitable for use in format!() macro.
 // If the expression produces a wrapped value, it unwraps it first.
 func writeUnwrappedForFormat(out *strings.Builder, expr ast.Expr) {
@@ -341,6 +345,15 @@ func writeWrappedStructFieldValue(out *strings.Builder, value ast.Expr, fieldExp
 		return
 	}
 
+	if isChannelFieldExpr(fieldExpr) || isChannelFieldType(fieldType) {
+		if ident, ok := value.(*ast.Ident); ok && ident.Name == "nil" {
+			out.WriteString("Default::default()")
+			return
+		}
+		TranspileExpression(out, value)
+		return
+	}
+
 	// Check if the value is an identifier (parameter/variable/constant).
 	if valIdent, ok := value.(*ast.Ident); ok {
 		if valIdent.Name == "true" || valIdent.Name == "false" || valIdent.Name == "nil" {
@@ -369,6 +382,22 @@ func writeWrappedStructFieldValue(out *strings.Builder, value ast.Expr, fieldExp
 		TranspileExpression(out, value)
 		WriteWrapperSuffix(out)
 	}
+}
+
+func isChannelFieldExpr(expr ast.Expr) bool {
+	if expr == nil {
+		return false
+	}
+	_, ok := expr.(*ast.ChanType)
+	return ok
+}
+
+func isChannelFieldType(typ types.Type) bool {
+	if typ == nil {
+		return false
+	}
+	_, ok := typ.Underlying().(*types.Chan)
+	return ok
 }
 
 func writeExpressionForExpectedTypesType(out *strings.Builder, value ast.Expr, expected types.Type) bool {
@@ -1142,7 +1171,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			out.WriteString(".as_mut().unwrap())")
 		case token.ARROW:
 			// Channel receive: <-ch
-			TranspileExpression(out, e.X)
+			writeChannelExpression(out, e.X)
 			out.WriteString(".recv().unwrap()")
 		case token.ADD:
 			// Unary plus is a no-op in Rust.
@@ -1173,6 +1202,20 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 	case *ast.BinaryExpr:
 		// Special handling for comparisons with nil
 		if ident, ok := e.Y.(*ast.Ident); ok && ident.Name == "nil" {
+			typeInfo := GetTypeInfo()
+			if typeInfo != nil && typeInfo.IsChannel(e.X) {
+				if e.Op.String() == "!=" {
+					out.WriteString("!")
+					writeChannelExpression(out, e.X)
+					out.WriteString(".is_nil()")
+					return
+				} else if e.Op.String() == "==" {
+					writeChannelExpression(out, e.X)
+					out.WriteString(".is_nil()")
+					return
+				}
+			}
+
 			// Check if left side is the receiver (self)
 			if leftIdent, ok := e.X.(*ast.Ident); ok && currentReceiver != "" && leftIdent.Name == currentReceiver {
 				// Receiver nil check - this is a Go pattern that doesn't translate well
@@ -1832,6 +1875,8 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 							if isSyncParam(field.Type) {
 								out.WriteString(goTypeToRustBase(field.Type))
 								out.WriteString("::new()")
+							} else if isChannelFieldExpr(field.Type) {
+								out.WriteString("Default::default()")
 							} else {
 								WriteWrapperPrefix(out)
 								out.WriteString(zeroValueForGoType(field.Type))

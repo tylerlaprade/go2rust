@@ -579,7 +579,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 	switch s := stmt.(type) {
 	case *ast.SendStmt:
 		// Channel send: ch <- val
-		TranspileExpression(out, s.Chan)
+		writeChannelExpression(out, s.Chan)
 		out.WriteString(".send(")
 		// Unwrap the value if it's wrapped
 		typeInfo := GetTypeInfo()
@@ -985,6 +985,14 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				out.WriteString(", ")
 				writeMapWrappedValue(out, s.Rhs[0])
 				out.WriteString(")")
+			}
+		} else if isChannelAssignment(s) {
+			TranspileExpressionContext(out, s.Lhs[0], LValue)
+			out.WriteString(" = ")
+			if ident, ok := s.Rhs[0].(*ast.Ident); ok && ident.Name == "nil" {
+				out.WriteString("Default::default()")
+			} else {
+				TranspileExpression(out, s.Rhs[0])
 			}
 		} else if s.Tok == token.ADD_ASSIGN || s.Tok == token.SUB_ASSIGN ||
 			s.Tok == token.MUL_ASSIGN || s.Tok == token.QUO_ASSIGN || s.Tok == token.REM_ASSIGN ||
@@ -3054,7 +3062,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							}
 						}
 						out.WriteString(") = ")
-						TranspileExpression(out, unary.X)
+						writeChannelExpression(out, unary.X)
 						out.WriteString(".try_recv() {\n")
 
 						// Handle ok variable if present
@@ -3100,7 +3108,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				// case <-ch (receive without assignment)
 				if unary, ok := comm.X.(*ast.UnaryExpr); ok && unary.Op == token.ARROW {
 					out.WriteString("        if let Some(_) = ")
-					TranspileExpression(out, unary.X)
+					writeChannelExpression(out, unary.X)
 					out.WriteString(".try_recv() {\n")
 
 					for _, bodyStmt := range cc.Body {
@@ -3115,7 +3123,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			case *ast.SendStmt:
 				// case ch <- val (send case) — use try_send for non-blocking
 				out.WriteString("        if ")
-				TranspileExpression(out, comm.Chan)
+				writeChannelExpression(out, comm.Chan)
 				out.WriteString(".try_send(")
 				transpileChannelValue(out, comm.Value)
 				out.WriteString(") {\n")
@@ -3655,6 +3663,14 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 	default:
 		out.WriteString("// TODO: Unhandled statement type: " + strings.TrimPrefix(fmt.Sprintf("%T", s), "*ast."))
 	}
+}
+
+func isChannelAssignment(s *ast.AssignStmt) bool {
+	if len(s.Lhs) != 1 || len(s.Rhs) != 1 || s.Tok != token.ASSIGN {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	return typeInfo != nil && typeInfo.IsChannel(s.Lhs[0])
 }
 
 func isFunctionTypedNameInFunc(name string, fnType *ast.FuncType) bool {

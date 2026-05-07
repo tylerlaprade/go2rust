@@ -1,6 +1,5 @@
 use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
-use std::thread;
 
 
 struct GoChannel<T> {
@@ -149,39 +148,44 @@ impl<T> Iterator for GoChannel<T> {
 }
 
 #[derive(Debug, Clone, Default)]
-pub struct Runner {
-    pub name: Arc<Mutex<Option<String>>>,
+pub struct Holder {
+    pub ch: GoChannel<i32>,
 }
 
-impl std::fmt::Display for Runner {
+impl std::fmt::Display for Holder {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.name.lock().unwrap().as_ref().unwrap()))
+        write!(f, "{{}}")
     }
 }
 
 
-impl Runner {
-    pub fn after(&mut self) {
-        let _ = self.name.clone();
+impl Holder {
+    pub fn ready(&mut self) -> Arc<Mutex<Option<bool>>> {
+        return Arc::new(Mutex::new(Some(!self.ch.is_nil())));
     }
 
-    pub fn run(&mut self, done: GoChannel<String>) {
-        let done_thread = done.clone(); let mut r_thread = self.clone(); std::thread::spawn(move || {
-        let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
-        let mut r_defer_captured = r_thread.clone(); __defer_stack.push(Box::new(move || {
-        r_defer_captured.after();
-    }));;
-        done_thread.send(r_thread.name.clone().lock().unwrap().as_ref().unwrap().clone());;
-        while let Some(f) = __defer_stack.pop() {
-            f();
-        };
-    });
+    pub fn fill(&mut self) {
+        self.ch = GoChannel::<i32>::new_buffered(2 as usize);
+        self.ch.send(1);
+        println!("{} {} {}", !self.ch.is_nil(), self.ch.len(), self.ch.capacity());
+        println!("{}", self.ch.recv().unwrap());
+        self.ch = Default::default();
+        println!("{}", self.ch.is_nil());
     }
 }
 
 fn main() {
-    let mut done = GoChannel::<String>::new();
-    let mut r = Arc::new(Mutex::new(Some(Runner { name: Arc::new(Mutex::new(Some("ok".to_string()))), ..Default::default() })));
-    (*r.lock().unwrap().as_mut().unwrap()).run(done.clone());
-    println!("{}", done.recv().unwrap());
+    let mut h = Arc::new(Mutex::new(Some(Holder { ch: Default::default() })));
+    println!("{}", (*(*h.lock().unwrap().as_mut().unwrap()).ready().lock().unwrap().as_ref().unwrap()));
+    (*h.lock().unwrap().as_mut().unwrap()).fill();
+
+    let mut h2 = Arc::new(Mutex::new(Some(Holder { ch: GoChannel::<i32>::new_buffered(1 as usize), ..Default::default() })));
+    println!("{}", (*(*h2.lock().unwrap().as_mut().unwrap()).ready().lock().unwrap().as_ref().unwrap()));
+    println!("{}", (*h2.lock().unwrap().as_ref().unwrap()).ch.len());
+    println!("{}", (*h2.lock().unwrap().as_ref().unwrap()).ch.capacity());
+    (*h2.lock().unwrap().as_ref().unwrap()).ch.send(7);
+    println!("{}", (*h2.lock().unwrap().as_ref().unwrap()).ch.recv().unwrap());
+
+    let mut h3 = Arc::new(Mutex::new(Some(Holder { ch: Default::default(), ..Default::default() })));
+    println!("{}", (*(*h3.lock().unwrap().as_mut().unwrap()).ready().lock().unwrap().as_ref().unwrap()));
 }

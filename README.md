@@ -112,6 +112,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Select cases | ✅ |
 | └ Type switch cases | ✅ |
 | **`chan` - Channel types** | ✅ |
+| └ Channel struct fields with nil checks, send/receive, `len`, and `cap` | ✅ |
 | **`const` - Constants** | |
 | └ Basic constants | ✅ |
 | └ Iota enumerations | ✅ |
@@ -185,6 +186,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | **`struct` - Struct types** | |
 | └ Struct definitions | ✅ |
 | └ Struct literals | ✅ |
+| └ Channel fields in struct literals | ✅ |
 | └ Selector-qualified struct literals (`pkg.Type{}`) | ✅ |
 | └ Field access | ✅ |
 | └ Embedded fields | ✅ |

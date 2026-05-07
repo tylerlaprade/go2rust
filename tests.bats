@@ -341,6 +341,10 @@ run_xfail_test() {
     run_test "tests/channel_buffering"
 }
 
+@test "channel_struct_fields" {
+    run_test "tests/channel_struct_fields"
+}
+
 @test "channel_sync" {
     run_test "tests/channel_sync"
 }

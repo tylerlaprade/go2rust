@@ -1,0 +1,8 @@
+[package]
+name = "channel_struct_fields"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "channel_struct_fields"
+path = "main.rs"
