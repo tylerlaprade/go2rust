@@ -525,9 +525,13 @@ path = "main.rs"
 
 	// Add workspace configuration if we have external packages
 	if len(pg.packageMapping) > 0 {
+		depDir := "external_stubs"
+		if pg.externalMode == ModeTranspile {
+			depDir = "vendor"
+		}
 		workspaceSection := "\n[workspace]\nmembers = [\n    \".\",\n"
 		for _, crateName := range crateNames {
-			workspaceSection += fmt.Sprintf("    \"external_stubs/%s\",\n", crateName)
+			workspaceSection += fmt.Sprintf("    \"%s/%s\",\n", depDir, crateName)
 		}
 		workspaceSection += "]\n"
 		cargoContent = workspaceSection + "\n" + cargoContent
@@ -541,7 +545,11 @@ path = "main.rs"
 		}
 		// Add external package dependencies
 		for _, crateName := range crateNames {
-			cargoContent += fmt.Sprintf("%s = { path = \"external_stubs/%s\" }\n", crateName, crateName)
+			depDir := "external_stubs"
+			if pg.externalMode == ModeTranspile {
+				depDir = "vendor"
+			}
+			cargoContent += fmt.Sprintf("%s = { path = \"%s/%s\" }\n", crateName, depDir, crateName)
 		}
 	}
 

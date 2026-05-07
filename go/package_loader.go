@@ -101,13 +101,9 @@ func (pl *PackageLoader) collectAllPackages(pkg *packages.Package) {
 		return
 	}
 
-	// Skip standard library packages (we don't transpile those)
-	// External packages have dots in their path (e.g., github.com/...)
-	isExternal := strings.Contains(pkg.PkgPath, ".")
-	isMain := pkg.PkgPath == "main"
+	isMain := pkg == pl.mainPkg || pkg.PkgPath == "main"
 
-	if !isExternal && !isMain {
-		// Standard library package - skip
+	if !isMain && isStdlibPackage(pkg.PkgPath) {
 		return
 	}
 
@@ -115,7 +111,7 @@ func (pl *PackageLoader) collectAllPackages(pkg *packages.Package) {
 	pl.allPackages[pkg.PkgPath] = pkg
 
 	// Generate Rust crate name for external packages
-	if pkg.PkgPath != "main" && strings.Contains(pkg.PkgPath, ".") {
+	if !isMain {
 		crateName := pl.goPathToRustCrate(pkg.PkgPath)
 		pl.packageMapping[pkg.PkgPath] = crateName
 		fmt.Fprintf(os.Stderr, "Found package: %s -> %s\n", pkg.PkgPath, crateName)
@@ -170,7 +166,7 @@ func (pl *PackageLoader) orderedPackagePaths() []string {
 		if pkgPath == "main" || pkgPath == mainPkgPath {
 			continue
 		}
-		if !strings.Contains(pkgPath, ".") {
+		if isStdlibPackage(pkgPath) {
 			continue
 		}
 		paths = append(paths, pkgPath)
@@ -229,7 +225,7 @@ func (pl *PackageLoader) transpilePackage(pkg *packages.Package) error {
 		rustCode, _, _ := TranspileWithMapping(astFile, pkg.Fset, pkgTypeInfo, pl.packageMapping)
 
 		// Write the module file
-		moduleFile := filepath.Join(outputDir, moduleName+".rs")
+		moduleFile := filepath.Join(outputDir, SanitizeRustModuleFileName(moduleName)+".rs")
 		if err := os.WriteFile(moduleFile, []byte(rustCode), 0644); err != nil {
 			return fmt.Errorf("failed to write module %s: %v", moduleName, err)
 		}

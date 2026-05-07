@@ -339,7 +339,7 @@ func (ut *UnifiedTranspiler) transpilePackage(pkg *PackageInfo) error {
 		rustCode, _, _ := TranspileWithMapping(astFile, ut.fileSet, ut.globalTypeInfo, ut.packageMapping)
 
 		// Write the module file
-		moduleFile := filepath.Join(pkg.OutputPath, moduleName+".rs")
+		moduleFile := filepath.Join(pkg.OutputPath, SanitizeRustModuleFileName(moduleName)+".rs")
 		if err := os.WriteFile(moduleFile, []byte(rustCode), 0644); err != nil {
 			return fmt.Errorf("failed to write module %s: %v", moduleName, err)
 		}

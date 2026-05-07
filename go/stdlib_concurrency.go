@@ -1,6 +1,10 @@
 package main
 
-import "strings"
+import (
+	"go/build"
+	"path/filepath"
+	"strings"
+)
 
 // asyncStdlibFunctions contains stdlib functions that spawn goroutines
 // or pass user data to goroutines. When these are called, we must use
@@ -149,6 +153,13 @@ var syncStdlibFunctions = map[string]bool{
 	"sort.SliceStable": true,
 	"sort.Search":      true,
 
+	// slices - Generic slice helpers are synchronous
+	"slices.Sort":           true,
+	"slices.SortFunc":       true,
+	"slices.SortStableFunc": true,
+	"slices.IsSorted":       true,
+	"slices.IsSortedFunc":   true,
+
 	// json - JSON operations are synchronous
 	"encoding/json.Marshal":       true,
 	"encoding/json.MarshalIndent": true,
@@ -212,31 +223,29 @@ func isAsyncStdlibFunction(pkgName, funcName string) bool {
 
 // isStdlibPackage checks if a package is part of the Go standard library
 func isStdlibPackage(pkgName string) bool {
+	if pkgName == "" || pkgName == "main" {
+		return false
+	}
+
 	// Check if it starts with a domain (has a dot in first component)
 	parts := strings.Split(pkgName, "/")
 	if len(parts) > 0 && strings.Contains(parts[0], ".") {
 		return false // External package (e.g., github.com/...)
 	}
 
-	// List of known stdlib root packages
-	stdlibRoots := map[string]bool{
-		"fmt": true, "strings": true, "strconv": true, "math": true,
-		"io": true, "os": true, "bytes": true, "sort": true,
-		"time": true, "errors": true, "reflect": true, "regexp": true,
-		"net": true, "encoding": true, "crypto": true, "hash": true,
-		"sync": true, "context": true, "database": true,
-		"path": true, "runtime": true, "unsafe": true,
-		"log": true, "flag": true, "bufio": true, "compress": true,
-		"container": true, "debug": true, "image": true, "testing": true,
-		"archive": true, "html": true, "text": true, "unicode": true,
-		"go": true, "cmd": true, "internal": true, "vendor": true,
-		"embed": true, "expvar": true, "index": true, "mime": true,
+	pkg, err := build.Default.Import(pkgName, "", build.FindOnly)
+	if err != nil {
+		return false
 	}
 
-	// Check if the package or its root is a stdlib package
-	if len(parts) > 0 {
-		return stdlibRoots[parts[0]]
+	goroot, err := filepath.Abs(build.Default.GOROOT)
+	if err != nil {
+		goroot = build.Default.GOROOT
+	}
+	dir, err := filepath.Abs(pkg.Dir)
+	if err != nil {
+		dir = pkg.Dir
 	}
 
-	return false
+	return pkg.Goroot && (dir == goroot || strings.HasPrefix(dir, goroot+string(filepath.Separator)))
 }
