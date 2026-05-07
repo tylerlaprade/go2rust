@@ -163,6 +163,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Stdlib method stubs from selector type information | ✅ |
 | └ Stdlib pointer method calls from indexed and range receivers | ✅ |
 | └ Stdlib package function/constant/variable stubs | ✅ |
+| └ Stdlib concrete call results passed to stdlib interface parameters | ✅ |
 | **`interface` - Interface types** | |
 | └ Interface definitions | ✅ |
 | └ Empty interface{} | ✅ |

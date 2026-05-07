@@ -442,6 +442,108 @@ func writeAlreadyWrappedCallArgument(out *strings.Builder, arg ast.Expr) bool {
 	return false
 }
 
+func selectedMethodParamType(sel *ast.SelectorExpr, index int) types.Type {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return nil
+	}
+	selection, ok := typeInfo.info.Selections[sel]
+	if !ok {
+		return nil
+	}
+	fn, ok := selection.Obj().(*types.Func)
+	if !ok {
+		return nil
+	}
+	sig, ok := fn.Type().(*types.Signature)
+	if !ok || sig.Params() == nil || index >= sig.Params().Len() {
+		return nil
+	}
+	return sig.Params().At(index).Type()
+}
+
+func expectedTypeFromParamExpr(expr ast.Expr) types.Type {
+	if expr == nil {
+		return nil
+	}
+	if named, ok := namedTypeForTypeExpr(expr); ok {
+		return named
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return nil
+	}
+	return typeInfo.GetType(expr)
+}
+
+func stdlibInterfaceArgumentConversion(arg ast.Expr, expectedType types.Type) (targetRust string, sourceRust string, ok bool) {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || expectedType == nil {
+		return "", "", false
+	}
+	targetNamed, ok := expectedType.(*types.Named)
+	if !ok || targetNamed.Obj() == nil || targetNamed.Obj().Pkg() == nil {
+		return "", "", false
+	}
+	if !isStdlibPackage(targetNamed.Obj().Pkg().Path()) {
+		return "", "", false
+	}
+	targetInterface, ok := targetNamed.Underlying().(*types.Interface)
+	if !ok {
+		return "", "", false
+	}
+
+	sourceType := typeInfo.GetType(arg)
+	if sourceType == nil {
+		return "", "", false
+	}
+	sourceNamedType := sourceType
+	if ptr, ok := sourceType.(*types.Pointer); ok {
+		sourceNamedType = ptr.Elem()
+	}
+	sourceNamed, ok := sourceNamedType.(*types.Named)
+	if !ok || sourceNamed.Obj() == nil || sourceNamed.Obj().Pkg() == nil {
+		return "", "", false
+	}
+	if sourceNamed.Obj() == targetNamed.Obj() {
+		return "", "", false
+	}
+	if !isStdlibPackage(sourceNamed.Obj().Pkg().Path()) {
+		return "", "", false
+	}
+	if isKnownStdlibHelperType(sourceNamed.Obj().Pkg().Path(), sourceNamed.Obj().Name()) {
+		return "", "", false
+	}
+	targetInterface.Complete()
+	if !types.Implements(sourceType, targetInterface) {
+		return "", "", false
+	}
+
+	targetRust = goTypesNamedTypeToRust(targetNamed)
+	sourceRust = goTypesNamedTypeToRust(sourceNamed)
+	RegisterExternalTypeStubConversion(targetRust, sourceRust)
+	return targetRust, sourceRust, true
+}
+
+func writeStdlibInterfaceCallArgumentConversion(out *strings.Builder, arg ast.Expr, expectedType types.Type) bool {
+	if _, ok := arg.(*ast.CallExpr); !ok {
+		return false
+	}
+	if _, _, ok := stdlibInterfaceArgumentConversion(arg, expectedType); !ok {
+		return false
+	}
+	out.WriteString("{ let __arg = ")
+	TranspileExpression(out, arg)
+	out.WriteString("; let __converted = { let __arg_guard = __arg")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; (*__arg_guard.as_ref().unwrap()).clone().into() }; ")
+	WriteWrapperPrefix(out)
+	out.WriteString("__converted")
+	WriteWrapperSuffix(out)
+	out.WriteString(" }")
+	return true
+}
+
 func isWrappedValueIdent(ident *ast.Ident) bool {
 	if ident.Name == "_" || ident.Name == "nil" || ident.Name == "true" || ident.Name == "false" {
 		return false
@@ -3596,6 +3698,8 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 			} else if typeInfo != nil && typeInfo.IsChannel(arg) {
 				TranspileExpression(out, arg)
 				out.WriteString(".clone()")
+			} else if writeStdlibInterfaceCallArgumentConversion(out, arg, selectedMethodParamType(sel, i)) {
+				continue
 			} else if writeAlreadyWrappedCallArgument(out, arg) {
 				continue
 			} else {
@@ -3727,6 +3831,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 		expectsEmptyInterface := false
 		var interfaceName string
 		var paramTypeForArg ast.Expr
+		var expectedArgType types.Type
 		if funcSig != nil && i < len(funcSig.Params) {
 			// Get the parameter type — account for multi-name fields
 			paramField := funcSig.Params[i]
@@ -3744,6 +3849,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 			}
 			paramType := paramField.Type
 			paramTypeForArg = paramType
+			expectedArgType = expectedTypeFromParamExpr(paramType)
 			if ident, ok := paramType.(*ast.Ident); ok {
 				// Check if this is an interface type using TypeInfo
 				typeInfo := GetTypeInfo()
@@ -4034,7 +4140,9 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				TranspileExpression(out, arg)
 			} else if callArg, isCallArg := arg.(*ast.CallExpr); isCallArg {
 				typeInfo := GetTypeInfo()
-				if typeInfo != nil && typeInfo.ReturnsWrappedValue(callArg) && !callReturnsBareChannelValue(callArg) {
+				if writeStdlibInterfaceCallArgumentConversion(out, arg, expectedArgType) {
+					continue
+				} else if typeInfo != nil && typeInfo.ReturnsWrappedValue(callArg) && !callReturnsBareChannelValue(callArg) {
 					TranspileExpression(out, arg)
 				} else {
 					WriteWrapperPrefix(out)
