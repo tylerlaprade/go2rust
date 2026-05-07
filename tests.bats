@@ -721,6 +721,10 @@ run_xfail_test() {
     run_test "tests/regex_basic"
 }
 
+@test "return_string_const" {
+    run_test "tests/return_string_const"
+}
+
 @test "rust_keyword_identifiers" {
     run_test "tests/rust_keyword_identifiers"
 }

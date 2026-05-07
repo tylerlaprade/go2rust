@@ -44,6 +44,11 @@ func writeExpressionForExpectedType(out *strings.Builder, value ast.Expr, expect
 	return true
 }
 
+func expectsStringType(expected ast.Expr) bool {
+	expectedIdent, ok := expected.(*ast.Ident)
+	return ok && expectedIdent.Name == "string"
+}
+
 func rustCastTypeForDefinedUnderlying(underlying string) (string, bool) {
 	switch underlying {
 	case "int", "int8", "int16", "int32", "int64", "rune",
@@ -112,7 +117,10 @@ func isDisplayableDefinedUnderlying(underlying string) bool {
 
 func writeWrappedExpressionForExpectedType(out *strings.Builder, value ast.Expr, expected ast.Expr) {
 	WriteWrapperPrefix(out)
-	if !writeExpressionForExpectedType(out, value, expected) {
+	if expectsStringType(expected) && isStringConstExpr(value) {
+		TranspileExpression(out, value)
+		out.WriteString(".to_string()")
+	} else if !writeExpressionForExpectedType(out, value, expected) {
 		TranspileExpression(out, value)
 	}
 	WriteWrapperSuffix(out)

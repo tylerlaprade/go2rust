@@ -236,6 +236,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | **String Operations** | |
 | └ String concatenation (+) | ✅ |
 | └ String += operator | ✅ |
+| └ Returning string constants from string functions | ✅ |
 | └ String comparisons | ✅ |
 | └ Byte comparisons with character literals | ✅ |
 | └ Raw string literals | ✅ |

@@ -999,6 +999,12 @@ func isStringConstExpr(expr ast.Expr) bool {
 		if constType, exists := localConstants[e.Name]; exists {
 			return constType == "&'static str"
 		}
+		typeInfo := GetTypeInfo()
+		if typeInfo != nil {
+			if obj, ok := typeInfo.GetObject(e).(*types.Const); ok {
+				return obj.Val() != nil && obj.Val().Kind() == constant.String
+			}
+		}
 		return false
 	case *ast.BinaryExpr:
 		// String concatenation
