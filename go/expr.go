@@ -3155,48 +3155,50 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 	}
 
 	if needsCast && rustType != "" {
-		// Check if the argument is a builtin call that returns a bare value (not wrapped)
-		argReturnsBare := false
-		if argCall, ok := call.Args[0].(*ast.CallExpr); ok {
-			if argIdent, ok := argCall.Fun.(*ast.Ident); ok {
-				switch argIdent.Name {
-				case "len", "cap":
-					argReturnsBare = true
-				}
-			}
-		}
-
-		if argReturnsBare {
-			// Builtin returns bare value (e.g., len() → usize), just cast directly
-			WriteWrapperPrefix(out)
-			TranspileExpression(out, call.Args[0])
-			out.WriteString(" as ")
-			out.WriteString(rustType)
-			WriteWrapperSuffix(out)
-		} else {
-			// Perform the type cast on a wrapped value
-			WriteWrapperPrefix(out)
-			out.WriteString("(*")
-			if ident, ok := call.Args[0].(*ast.Ident); ok && ident.Name != "nil" {
-				// It's a variable (Rc<RefCell<Option<T>>>), unwrap it
-				out.WriteString(ident.Name)
-				WriteBorrowMethod(out, false)
-				out.WriteString(".as_ref().unwrap()")
-			} else {
-				// It's an expression — TranspileExpression returns wrapped value
-				// so unwrap the result
-				TranspileExpression(out, call.Args[0])
-				WriteBorrowMethod(out, false)
-				out.WriteString(".as_ref().unwrap()")
-			}
-			out.WriteString(") as ")
-			out.WriteString(rustType)
-			WriteWrapperSuffix(out)
-		}
+		WriteWrapperPrefix(out)
+		writeNumericConversionValue(out, call.Args[0])
+		out.WriteString(" as ")
+		out.WriteString(rustType)
+		WriteWrapperSuffix(out)
 	} else {
 		// No cast needed or unknown type
 		TranspileExpression(out, call.Args[0])
 	}
+}
+
+func typeConversionEmitsWrappedValue(call *ast.CallExpr) bool {
+	targetType := ""
+	if ident, ok := call.Fun.(*ast.Ident); ok {
+		targetType = ident.Name
+	} else if sel, ok := call.Fun.(*ast.SelectorExpr); ok {
+		targetType = sel.Sel.Name
+	}
+	if targetType == "" {
+		return true
+	}
+	_, isTypeDef := LookupTypeDefinition(targetType)
+	return !isTypeDef
+}
+
+func writeNumericConversionValue(out *strings.Builder, arg ast.Expr) {
+	if ident, ok := arg.(*ast.Ident); ok && ident.Name != "nil" {
+		out.WriteString("(*")
+		out.WriteString(RustIdentForUse(ident))
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap())")
+		return
+	}
+
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.ReturnsWrappedValue(arg) {
+		out.WriteString("(*")
+		TranspileExpression(out, arg)
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap())")
+		return
+	}
+
+	TranspileExpression(out, arg)
 }
 
 func staticallyKnownAnyInterfaceAssertionSource(e *ast.TypeAssertExpr) (ast.Expr, bool) {

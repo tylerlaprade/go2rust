@@ -217,7 +217,7 @@ fn main() {
         { let __tmp_0 = (*runes.borrow().as_ref().unwrap())[((*j.borrow().as_ref().unwrap())) as usize].clone(); let __tmp_1 = (*runes.borrow().as_ref().unwrap())[((*i.borrow().as_ref().unwrap())) as usize].clone(); (*runes.borrow_mut().as_mut().unwrap())[((*i.borrow().as_ref().unwrap())) as usize] = __tmp_0; (*runes.borrow_mut().as_mut().unwrap())[((*j.borrow().as_ref().unwrap())) as usize] = __tmp_1; };
         { let __tmp_0 = (*i.borrow().as_ref().unwrap()) + 1; let __tmp_1 = (*j.borrow().as_ref().unwrap()) - 1; *i.borrow_mut() = Some(__tmp_0); *j.borrow_mut() = Some(__tmp_1); };
     }
-        return Rc::new(RefCell::new(Some(Rc::new(RefCell::new(Some((*runes.borrow().as_ref().unwrap()).iter().map(|&c| char::from_u32(c as u32).unwrap()).collect::<String>()))))));
+        return Rc::new(RefCell::new(Some((*runes.borrow().as_ref().unwrap()).iter().map(|&c| char::from_u32(c as u32).unwrap()).collect::<String>())));
     }) as Box<dyn Fn(Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>>>))));
     print!("Reversed: {}\n", { let __v = (*reversed.borrow().as_ref().unwrap()).clone(); __v });
 

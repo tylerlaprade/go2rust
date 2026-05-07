@@ -714,6 +714,10 @@ run_xfail_test() {
     run_test "tests/non_blocking_channels"
 }
 
+@test "numeric_conversion_literals" {
+    run_test "tests/numeric_conversion_literals"
+}
+
 @test "os_args" {
     run_test "tests/os_args"
 }

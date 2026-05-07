@@ -48,6 +48,7 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 - ✅ Complex constants and iota - multiple constants per line, bit shifts, blank identifier all working (2025-08-23)
 - ✅ Named iota enum types - iota-backed defined integer types preserve newtype semantics and underlying const widths across constants, switch cases, maps, returns, struct fields, untyped literal fields, multi-module struct literals, and String methods (enums_iota promoted, 2026-05-06; struct_const_fields promoted, 2026-05-07; const width fix, 2026-05-07; multi-file newtype constructor fix, 2026-05-07)
 - ✅ Closures and function literals - type-info-scoped capture analysis handles nested closures, package selectors, type conversions, and Rust keyword parameters
+- ✅ Numeric type conversions - literal and raw expression conversions such as `byte(1)` and `uint64(1) << n` cast directly instead of borrowing a wrapped value (numeric_conversion_literals promoted, 2026-05-07)
 - ✅ Defer statements - fully working with proper LIFO execution and variable capture
 - 🚧 Panic and recover - basic panic working, recover needs catch_unwind integration
 - ✅ Interfaces - empty interface{} and named interfaces working with trait generation (2025-09-04)

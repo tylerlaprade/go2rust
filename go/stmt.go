@@ -1091,7 +1091,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						if GetStdlibHandler(callExpr) != nil && !isBareBuiltinReturn(callExpr) {
 							needsWrapping = false
 						}
-						if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.ReturnsWrappedValue(callExpr) && !typeInfo.IsTypeConversion(callExpr) && !isBareBuiltinReturn(callExpr) {
+						if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.ReturnsWrappedValue(callExpr) && !isBareBuiltinReturn(callExpr) && (!typeInfo.IsTypeConversion(callExpr) || typeConversionEmitsWrappedValue(callExpr)) {
 							needsWrapping = false
 						}
 
