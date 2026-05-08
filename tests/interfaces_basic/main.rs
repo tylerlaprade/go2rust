@@ -1,13 +1,23 @@
+use std::any::Any;
 use std::cell::{RefCell};
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
-pub trait Shape: std::fmt::Display {
+pub trait Shape: std::fmt::Display + Any {
+    fn __go_clone_box(&self) -> Box<dyn Shape>;
+    fn __go_as_any(&self) -> &dyn Any;
+    fn __go_eq(&self, other: &dyn Shape) -> bool;
     fn area(&self) -> Rc<RefCell<Option<f64>>>;
     fn perimeter(&self) -> Rc<RefCell<Option<f64>>>;
 }
 
-#[derive(Debug, Clone, Default)]
+impl Clone for Box<dyn Shape> {
+    fn clone(&self) -> Self {
+        self.__go_clone_box()
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq)]
 pub struct Rectangle {
     pub width: Rc<RefCell<Option<f64>>>,
     pub height: Rc<RefCell<Option<f64>>>,
@@ -20,7 +30,7 @@ impl std::fmt::Display for Rectangle {
 }
 
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq)]
 pub struct Circle {
     pub radius: Rc<RefCell<Option<f64>>>,
 }
@@ -49,6 +59,19 @@ impl Shape for Rectangle {
     fn perimeter(&self) -> Rc<RefCell<Option<f64>>> {
         return Rc::new(RefCell::new(Some(2.0 * ((*self.width.clone().borrow().as_ref().unwrap()) + (*self.height.clone().borrow().as_ref().unwrap())))));
     }
+    fn __go_clone_box(&self) -> Box<dyn Shape> {
+        Box::new(self.clone()) as Box<dyn Shape>
+    }
+    fn __go_as_any(&self) -> &dyn Any {
+        self
+    }
+    fn __go_eq(&self, other: &dyn Shape) -> bool {
+        if let Some(__other) = other.__go_as_any().downcast_ref::<Rectangle>() {
+            self == __other
+        } else {
+            false
+        }
+    }
 }
 
 impl Circle {
@@ -67,6 +90,19 @@ impl Shape for Circle {
     }
     fn perimeter(&self) -> Rc<RefCell<Option<f64>>> {
         return Rc::new(RefCell::new(Some(2.0 * 3.14159 * (*self.radius.clone().borrow().as_ref().unwrap()))));
+    }
+    fn __go_clone_box(&self) -> Box<dyn Shape> {
+        Box::new(self.clone()) as Box<dyn Shape>
+    }
+    fn __go_as_any(&self) -> &dyn Any {
+        self
+    }
+    fn __go_eq(&self, other: &dyn Shape) -> bool {
+        if let Some(__other) = other.__go_as_any().downcast_ref::<Circle>() {
+            self == __other
+        } else {
+            false
+        }
     }
 }
 

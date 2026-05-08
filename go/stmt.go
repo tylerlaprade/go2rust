@@ -73,6 +73,41 @@ func writeLocalInterfaceConcreteReturnConversion(out *strings.Builder, result as
 	if !ok {
 		return false
 	}
+	if ident, ok := result.(*ast.Ident); ok && ident.Name == "nil" {
+		WriteWrappedNone(out)
+		return true
+	}
+	if isBareLocalInterfaceValue(result) {
+		WriteWrapperPrefix(out)
+		writeLocalInterfaceBareClone(out, result)
+		WriteWrapperSuffix(out)
+		return true
+	}
+	if typeInfo := GetTypeInfo(); typeInfo != nil {
+		if _, ok := localNamedInterfaceTypeNameFromTypes(typeInfo.GetType(result)); ok {
+			if typeInfo.ReturnsWrappedValue(result) {
+				TranspileExpressionContext(out, result, LValue)
+				out.WriteString(".clone()")
+			} else {
+				WriteWrapperPrefix(out)
+				TranspileExpression(out, result)
+				WriteWrapperSuffix(out)
+			}
+			return true
+		}
+	}
+	if ident, ok := result.(*ast.Ident); ok && ident.Name != "_" {
+		WriteWrapperPrefix(out)
+		if !writeConcreteLocalInterfaceBox(out, result, interfaceName) {
+			out.WriteString("Box::new((*")
+			out.WriteString(RustIdentForUse(ident))
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref().unwrap()).clone()) as ")
+			out.WriteString(rustLocalInterfaceTraitObject(interfaceName))
+		}
+		WriteWrapperSuffix(out)
+		return true
+	}
 	if unary, ok := result.(*ast.UnaryExpr); ok && unary.Op == token.AND {
 		if composite, ok := unary.X.(*ast.CompositeLit); ok {
 			WriteWrapperPrefix(out)
@@ -1395,6 +1430,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							continue
 						}
 						if writeStdlibInterfaceIdentReturnConversion(out, ident, returnResultTypeExpr(fnType, i)) {
+							continue
+						}
+						if writeLocalInterfaceConcreteReturnConversion(out, result, returnResultTypeExpr(fnType, i)) {
 							continue
 						}
 						// Check if this is a wrapped variable that needs cloning

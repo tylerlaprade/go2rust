@@ -1,9 +1,19 @@
+use std::any::Any;
 use std::cell::{RefCell};
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
-pub trait Reader: std::fmt::Display {
+pub trait Reader: std::fmt::Display + Any {
+    fn __go_clone_box(&self) -> Box<dyn Reader>;
+    fn __go_as_any(&self) -> &dyn Any;
+    fn __go_eq(&self, other: &dyn Reader) -> bool;
     fn read(&self) -> Rc<RefCell<Option<i32>>>;
+}
+
+impl Clone for Box<dyn Reader> {
+    fn clone(&self) -> Self {
+        self.__go_clone_box()
+    }
 }
 
 #[derive(Clone, Default)]

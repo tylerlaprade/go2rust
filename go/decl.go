@@ -742,11 +742,19 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 
 	case *ast.InterfaceType:
 		// Generate a trait for the interface
-		// Add Display and Clone as supertraits
+		// Add Display plus Any so trait object equality can downcast.
+		TrackImport("Any")
 		out.WriteString("pub trait ")
 		out.WriteString(typeSpec.Name.Name)
-		out.WriteString(": std::fmt::Display {\n")
+		out.WriteString(": std::fmt::Display + Any {\n")
 		TrackImport("Display")
+		out.WriteString("    fn __go_clone_box(&self) -> ")
+		out.WriteString(rustLocalInterfaceTraitObject(typeSpec.Name.Name))
+		out.WriteString(";\n")
+		out.WriteString("    fn __go_as_any(&self) -> &dyn Any;\n")
+		out.WriteString("    fn __go_eq(&self, other: ")
+		out.WriteString(rustLocalInterfaceParam(typeSpec.Name.Name))
+		out.WriteString(") -> bool;\n")
 
 		// Generate method signatures
 		for _, method := range t.Methods.List {
@@ -813,6 +821,13 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 			}
 		}
 
+		out.WriteString("}")
+		out.WriteString("\n\nimpl Clone for ")
+		out.WriteString(rustLocalInterfaceTraitObject(typeSpec.Name.Name))
+		out.WriteString(" {\n")
+		out.WriteString("    fn clone(&self) -> Self {\n")
+		out.WriteString("        self.__go_clone_box()\n")
+		out.WriteString("    }\n")
 		out.WriteString("}")
 
 	default:
@@ -929,6 +944,46 @@ func writeScalarTypeDefinitionPartialEq(out *strings.Builder, typeName string) {
 	out.WriteString(".as_ref().unwrap()\n")
 	out.WriteString("    }\n")
 	out.WriteString("}\n")
+}
+
+func localConcreteTypeCanUsePartialEq(typeName string) bool {
+	if comparableStructTypes[typeName] {
+		return true
+	}
+	if underlying, ok := LookupTypeDefinition(typeName); ok {
+		return isEqualityComparableDefinedUnderlying(underlying)
+	}
+	return false
+}
+
+func writeLocalInterfaceSupportImpl(out *strings.Builder, ifaceName, typeName string) {
+	out.WriteString("    fn __go_clone_box(&self) -> ")
+	out.WriteString(rustLocalInterfaceTraitObject(ifaceName))
+	out.WriteString(" {\n")
+	out.WriteString("        Box::new(self.clone()) as ")
+	out.WriteString(rustLocalInterfaceTraitObject(ifaceName))
+	out.WriteString("\n")
+	out.WriteString("    }\n")
+	out.WriteString("    fn __go_as_any(&self) -> &dyn Any {\n")
+	out.WriteString("        self\n")
+	out.WriteString("    }\n")
+	out.WriteString("    fn __go_eq(&self, other: ")
+	out.WriteString(rustLocalInterfaceParam(ifaceName))
+	out.WriteString(") -> bool {\n")
+	out.WriteString("        if let Some(__other) = other.__go_as_any().downcast_ref::<")
+	out.WriteString(typeName)
+	out.WriteString(">() {\n")
+	if localConcreteTypeCanUsePartialEq(typeName) {
+		out.WriteString("            self == __other\n")
+	} else if localInterfaceEqualityTypes[ifaceName] {
+		out.WriteString("            panic!(\"interface comparison with uncomparable dynamic type\")\n")
+	} else {
+		out.WriteString("            false\n")
+	}
+	out.WriteString("        } else {\n")
+	out.WriteString("            false\n")
+	out.WriteString("        }\n")
+	out.WriteString("    }\n")
 }
 
 func TranspileConstDecl(out *strings.Builder, genDecl *ast.GenDecl) {

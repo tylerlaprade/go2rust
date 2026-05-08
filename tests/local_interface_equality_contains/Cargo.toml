@@ -1,0 +1,8 @@
+[package]
+name = "local_interface_equality_contains"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "local_interface_equality_contains"
+path = "main.rs"

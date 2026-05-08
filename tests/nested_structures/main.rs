@@ -1,3 +1,4 @@
+use std::any::Any;
 use std::cell::{RefCell};
 use std::collections::BTreeMap;
 use std::fmt::{Display, Formatter};
@@ -25,12 +26,21 @@ where
 }
 
 /// Interface for drawing
-pub trait Drawable: std::fmt::Display {
+pub trait Drawable: std::fmt::Display + Any {
+    fn __go_clone_box(&self) -> Box<dyn Drawable>;
+    fn __go_as_any(&self) -> &dyn Any;
+    fn __go_eq(&self, other: &dyn Drawable) -> bool;
     fn draw(&self) -> Rc<RefCell<Option<String>>>;
 }
 
+impl Clone for Box<dyn Drawable> {
+    fn clone(&self) -> Self {
+        self.__go_clone_box()
+    }
+}
+
 /// Shape types
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq)]
 pub struct Circle {
     pub radius: Rc<RefCell<Option<f64>>>,
 }
@@ -42,7 +52,7 @@ impl std::fmt::Display for Circle {
 }
 
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq)]
 pub struct Rectangle {
     pub width: Rc<RefCell<Option<f64>>>,
     pub height: Rc<RefCell<Option<f64>>>,
@@ -173,6 +183,19 @@ impl Drawable for Circle {
     fn draw(&self) -> Rc<RefCell<Option<String>>> {
         return Rc::new(RefCell::new(Some(format!("Circle(r={:.1})", (*self.radius.borrow().as_ref().unwrap())))));
     }
+    fn __go_clone_box(&self) -> Box<dyn Drawable> {
+        Box::new(self.clone()) as Box<dyn Drawable>
+    }
+    fn __go_as_any(&self) -> &dyn Any {
+        self
+    }
+    fn __go_eq(&self, other: &dyn Drawable) -> bool {
+        if let Some(__other) = other.__go_as_any().downcast_ref::<Circle>() {
+            self == __other
+        } else {
+            false
+        }
+    }
 }
 
 impl Rectangle {
@@ -184,6 +207,19 @@ impl Rectangle {
 impl Drawable for Rectangle {
     fn draw(&self) -> Rc<RefCell<Option<String>>> {
         return Rc::new(RefCell::new(Some(format!("Rectangle({:.1}x{:.1})", (*self.width.borrow().as_ref().unwrap()), (*self.height.borrow().as_ref().unwrap())))));
+    }
+    fn __go_clone_box(&self) -> Box<dyn Drawable> {
+        Box::new(self.clone()) as Box<dyn Drawable>
+    }
+    fn __go_as_any(&self) -> &dyn Any {
+        self
+    }
+    fn __go_eq(&self, other: &dyn Drawable) -> bool {
+        if let Some(__other) = other.__go_as_any().downcast_ref::<Rectangle>() {
+            self == __other
+        } else {
+            false
+        }
     }
 }
 

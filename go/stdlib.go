@@ -1688,6 +1688,29 @@ func transpileSlicesContains(out *strings.Builder, call *ast.CallExpr) {
 	if len(call.Args) < 2 {
 		return
 	}
+	if typeInfo := GetTypeInfo(); typeInfo != nil {
+		if _, ok := localInterfaceSliceElemName(typeInfo.GetType(call.Args[0])); ok {
+			WriteWrapperPrefix(out)
+			out.WriteString("{ let __slice_holder = ")
+			TranspileExpressionContext(out, call.Args[0], LValue)
+			out.WriteString(".clone(); let __slice_guard = __slice_holder")
+			WriteBorrowMethod(out, false)
+			out.WriteString("; let __slice = __slice_guard.as_ref().unwrap(); ")
+			if isBareLocalInterfaceValue(call.Args[1]) {
+				out.WriteString("let __value = ")
+				TranspileExpression(out, call.Args[1])
+				out.WriteString("; __slice.iter().any(|__item| __item.__go_eq(__value)) }")
+			} else {
+				out.WriteString("let __value_holder = ")
+				TranspileExpressionContext(out, call.Args[1], LValue)
+				out.WriteString(".clone(); let __value_guard = __value_holder")
+				WriteBorrowMethod(out, false)
+				out.WriteString("; let __value = __value_guard.as_ref().unwrap().as_ref(); __slice.iter().any(|__item| __item.__go_eq(__value)) }")
+			}
+			WriteWrapperSuffix(out)
+			return
+		}
+	}
 	WriteWrapperPrefix(out)
 	out.WriteString("{ let __slice_holder = ")
 	TranspileExpressionContext(out, call.Args[0], LValue)
@@ -2173,6 +2196,10 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 		writeAppendElement := func(expr ast.Expr) {
 			if typeInfo := GetTypeInfo(); typeInfo != nil {
 				if elemType := typeInfo.GetSliceElemType(call.Args[0]); elemType != nil {
+					if _, ok := localNamedInterfaceTypeNameFromTypes(elemType); ok && isBareLocalInterfaceValue(expr) {
+						writeLocalInterfaceBareClone(out, expr)
+						return
+					}
 					if _, ok := types.Unalias(elemType).Underlying().(*types.Pointer); ok && typeInfo.IsPointer(expr) {
 						TranspileExpressionContext(out, expr, LValue)
 						out.WriteString(".clone()")

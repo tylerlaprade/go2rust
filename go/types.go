@@ -50,6 +50,25 @@ func localNamedInterfaceTypeName(typ types.Type) (string, bool) {
 	return name, ok
 }
 
+func localNamedInterfaceTypeNameFromTypes(typ types.Type) (string, bool) {
+	if typ == nil {
+		return "", false
+	}
+	named, ok := types.Unalias(typ).(*types.Named)
+	if !ok || named.Obj() == nil {
+		return "", false
+	}
+	intf, ok := named.Underlying().(*types.Interface)
+	if !ok || intf.NumMethods() == 0 {
+		return "", false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.pkg == nil || named.Obj().Pkg() != typeInfo.pkg {
+		return "", false
+	}
+	return named.Obj().Name(), true
+}
+
 func localInterfaceNameFromTypeExpr(expr ast.Expr) (string, bool) {
 	ident, ok := expr.(*ast.Ident)
 	if !ok || !IsInterfaceType(ident.Name) {

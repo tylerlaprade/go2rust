@@ -857,6 +857,89 @@ func rustBinaryOp(op token.Token) string {
 	return op.String()
 }
 
+func localInterfaceExpressionName(expr ast.Expr) (string, bool) {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return "", false
+	}
+	return localNamedInterfaceTypeNameFromTypes(typeInfo.GetType(expr))
+}
+
+func writeLocalInterfaceNilComparison(out *strings.Builder, expr ast.Expr, op token.Token) bool {
+	if op != token.EQL && op != token.NEQ {
+		return false
+	}
+	if _, ok := localInterfaceExpressionName(expr); !ok {
+		return false
+	}
+	isNil := op == token.EQL
+	if isBareLocalInterfaceValue(expr) {
+		if isNil {
+			out.WriteString("false")
+		} else {
+			out.WriteString("true")
+		}
+		return true
+	}
+	out.WriteString("(*")
+	TranspileExpressionContext(out, expr, LValue)
+	WriteBorrowMethod(out, false)
+	out.WriteString(").is_")
+	if isNil {
+		out.WriteString("none()")
+	} else {
+		out.WriteString("some()")
+	}
+	return true
+}
+
+func writeLocalInterfaceReferenceBinding(out *strings.Builder, name string, expr ast.Expr) (bare bool) {
+	if isBareLocalInterfaceValue(expr) {
+		out.WriteString("let ")
+		out.WriteString(name)
+		out.WriteString(" = ")
+		TranspileExpression(out, expr)
+		out.WriteString("; ")
+		return true
+	}
+	out.WriteString("let ")
+	out.WriteString(name)
+	out.WriteString("_holder = ")
+	TranspileExpressionContext(out, expr, LValue)
+	out.WriteString(".clone(); let ")
+	out.WriteString(name)
+	out.WriteString("_guard = ")
+	out.WriteString(name)
+	out.WriteString("_holder")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; let ")
+	out.WriteString(name)
+	out.WriteString(" = ")
+	out.WriteString(name)
+	out.WriteString("_guard.as_ref().unwrap().as_ref(); ")
+	return false
+}
+
+func writeLocalInterfaceEquality(out *strings.Builder, left ast.Expr, right ast.Expr, op token.Token) bool {
+	if op != token.EQL && op != token.NEQ {
+		return false
+	}
+	leftName, leftOK := localInterfaceExpressionName(left)
+	rightName, rightOK := localInterfaceExpressionName(right)
+	if !leftOK || !rightOK || leftName != rightName {
+		return false
+	}
+	out.WriteString("{ ")
+	writeLocalInterfaceReferenceBinding(out, "__left", left)
+	writeLocalInterfaceReferenceBinding(out, "__right", right)
+	out.WriteString("let __eq = __left.__go_eq(__right); ")
+	if op == token.NEQ {
+		out.WriteString("!")
+	}
+	out.WriteString("__eq }")
+	return true
+}
+
 func writeCurrentReceiverPointerComparison(out *strings.Builder, expr *ast.BinaryExpr) bool {
 	if currentReceiver == "" || (expr.Op != token.EQL && expr.Op != token.NEQ) {
 		return false
@@ -1019,7 +1102,7 @@ func writeInterfaceBoxedValue(out *strings.Builder, expr ast.Expr) {
 	out.WriteString("Box::new(")
 	if call, ok := expr.(*ast.CallExpr); ok {
 		typeInfo := GetTypeInfo()
-		if typeInfo != nil && typeInfo.ReturnsWrappedValue(call) && !callReturnsBareChannelValue(call) {
+		if typeInfo != nil && typeInfo.ReturnsWrappedValue(call) && !callReturnsBareChannelValue(call) && (!typeInfo.IsTypeConversion(call) || typeConversionEmitsWrappedValue(call)) {
 			out.WriteString("{ let __v = ")
 			TranspileExpression(out, call)
 			out.WriteString("; let __owned = (*__v")
@@ -1095,6 +1178,10 @@ func writeEmptyInterfaceIdentAssignment(out *strings.Builder, lhs ast.Expr, rhs 
 }
 
 func writeWrappedStructFieldValue(out *strings.Builder, value ast.Expr, fieldExpr ast.Expr, fieldType types.Type) {
+	if writeLocalInterfaceFieldValue(out, value, fieldExpr, fieldType) {
+		return
+	}
+
 	if isEmptyInterfaceExpr(fieldExpr) || isEmptyInterfaceType(fieldType) {
 		if writeEmptyInterfaceHandleClone(out, value) {
 			return
@@ -1146,6 +1233,17 @@ func writeWrappedStructFieldValue(out *strings.Builder, value ast.Expr, fieldExp
 	} else if isCompositeLitSelfWrapping(value) {
 		// Slice/map literals already wrap themselves.
 		TranspileExpression(out, value)
+	} else if call, ok := value.(*ast.CallExpr); ok {
+		typeInfo := GetTypeInfo()
+		if typeInfo != nil && typeInfo.ReturnsWrappedValue(call) && !isBareBuiltinReturn(call) && !callReturnsBareChannelValue(call) && (!typeInfo.IsTypeConversion(call) || typeConversionEmitsWrappedValue(call)) {
+			TranspileExpression(out, value)
+		} else {
+			WriteWrapperPrefix(out)
+			if !isConstantExpression(value) || (!writeExpressionForExpectedType(out, value, fieldExpr) && !writeExpressionForExpectedTypesType(out, value, fieldType)) {
+				TranspileExpression(out, value)
+			}
+			WriteWrapperSuffix(out)
+		}
 	} else {
 		// Wrap field values.
 		WriteWrapperPrefix(out)
@@ -1154,6 +1252,139 @@ func writeWrappedStructFieldValue(out *strings.Builder, value ast.Expr, fieldExp
 		}
 		WriteWrapperSuffix(out)
 	}
+}
+
+func localInterfaceNameFromExpected(fieldExpr ast.Expr, fieldType types.Type) (string, bool) {
+	if name, ok := localInterfaceNameFromTypeExpr(fieldExpr); ok {
+		return name, true
+	}
+	return localNamedInterfaceTypeName(fieldType)
+}
+
+func isBareLocalInterfaceValue(expr ast.Expr) bool {
+	ident, ok := expr.(*ast.Ident)
+	if !ok {
+		return false
+	}
+	if isVarBare(ident.Name) {
+		return true
+	}
+	varType, isRangeVar := rangeLoopVars[ident.Name]
+	return isRangeVar && strings.HasPrefix(varType, "&Box<dyn ")
+}
+
+func writeLocalInterfaceBareClone(out *strings.Builder, expr ast.Expr) bool {
+	ident, ok := expr.(*ast.Ident)
+	if !ok {
+		return false
+	}
+	name := RustIdentForUse(ident)
+	if currentCaptureRenames != nil {
+		if renamed, exists := currentCaptureRenames[ident.Name]; exists {
+			name = RustLocalIdent(renamed)
+		}
+	}
+	if isVarBare(ident.Name) {
+		out.WriteString(name)
+		out.WriteString(".__go_clone_box()")
+		return true
+	}
+	if varType, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar && strings.HasPrefix(varType, "&Box<dyn ") {
+		out.WriteString("(*")
+		out.WriteString(name)
+		out.WriteString(")")
+		out.WriteString(".clone()")
+		return true
+	}
+	return false
+}
+
+func writeConcreteLocalInterfaceBox(out *strings.Builder, value ast.Expr, interfaceName string) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	if !typeInfo.IsPointer(value) {
+		if ident, ok := value.(*ast.Ident); ok && ident.Name != "_" {
+			out.WriteString("Box::new((*")
+			out.WriteString(RustIdentForUse(ident))
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref().unwrap()).clone()) as ")
+			out.WriteString(rustLocalInterfaceTraitObject(interfaceName))
+			return true
+		}
+		return false
+	}
+	out.WriteString("Box::new((*")
+	if ident, ok := value.(*ast.Ident); ok && isPackageGlobalIdent(ident) {
+		TranspileExpression(out, value)
+	} else {
+		TranspileExpressionContext(out, value, LValue)
+	}
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap()).clone()) as ")
+	out.WriteString(rustLocalInterfaceTraitObject(interfaceName))
+	return true
+}
+
+func writeLocalInterfaceFieldValue(out *strings.Builder, value ast.Expr, fieldExpr ast.Expr, fieldType types.Type) bool {
+	interfaceName, ok := localInterfaceNameFromExpected(fieldExpr, fieldType)
+	if !ok {
+		return false
+	}
+	if ident, ok := value.(*ast.Ident); ok && ident.Name == "nil" {
+		WriteWrappedNone(out)
+		return true
+	}
+	if isBareLocalInterfaceValue(value) {
+		WriteWrapperPrefix(out)
+		writeLocalInterfaceBareClone(out, value)
+		WriteWrapperSuffix(out)
+		return true
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo != nil {
+		if _, ok := localNamedInterfaceTypeNameFromTypes(typeInfo.GetType(value)); ok {
+			TranspileExpressionContext(out, value, LValue)
+			out.WriteString(".clone()")
+			return true
+		}
+	}
+	if ident, ok := value.(*ast.Ident); ok && ident.Name != "_" {
+		WriteWrapperPrefix(out)
+		if !writeConcreteLocalInterfaceBox(out, value, interfaceName) {
+			out.WriteString("Box::new((*")
+			out.WriteString(RustIdentForUse(ident))
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref().unwrap()).clone()) as ")
+			out.WriteString(rustLocalInterfaceTraitObject(interfaceName))
+		}
+		WriteWrapperSuffix(out)
+		return true
+	}
+	if unary, ok := value.(*ast.UnaryExpr); ok && unary.Op == token.AND {
+		if composite, ok := unary.X.(*ast.CompositeLit); ok {
+			WriteWrapperPrefix(out)
+			out.WriteString("Box::new(")
+			TranspileExpressionContext(out, composite, AddressOf)
+			out.WriteString(") as ")
+			out.WriteString(rustLocalInterfaceTraitObject(interfaceName))
+			WriteWrapperSuffix(out)
+			return true
+		}
+	}
+	if composite, ok := value.(*ast.CompositeLit); ok {
+		if _, isStructType := composite.Type.(*ast.Ident); isStructType {
+			WriteWrapperPrefix(out)
+			out.WriteString("Box::new(")
+			TranspileExpressionContext(out, composite, AddressOf)
+			out.WriteString(") as ")
+			out.WriteString(rustLocalInterfaceTraitObject(interfaceName))
+			WriteWrapperSuffix(out)
+			return true
+		}
+	}
+	return false
 }
 
 func isPointerFieldExpr(expr ast.Expr) bool {
@@ -2186,6 +2417,10 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				return
 			}
 
+			if writeLocalInterfaceNilComparison(out, e.X, e.Op) {
+				return
+			}
+
 			if e.Op.String() == "!=" {
 				if leftIdent, ok := e.X.(*ast.Ident); ok && isSliceElemPtrVar(leftIdent.Name) {
 					out.WriteString(RustIdentForUse(leftIdent))
@@ -2211,6 +2446,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			}
 		}
 		if writeCurrentReceiverPointerComparison(out, e) {
+			return
+		}
+		if writeLocalInterfaceEquality(out, e.X, e.Y, e.Op) {
 			return
 		}
 
@@ -3924,7 +4162,7 @@ func writeNumericConversionValue(out *strings.Builder, arg ast.Expr) {
 
 	if typeInfo == nil || typeInfo.ReturnsWrappedValue(arg) {
 		out.WriteString("(*")
-		TranspileExpression(out, arg)
+		TranspileExpressionContext(out, arg, LValue)
 		WriteBorrowMethod(out, false)
 		out.WriteString(".as_ref().unwrap())")
 		writeExternalIntegerTupleField(out, argType)

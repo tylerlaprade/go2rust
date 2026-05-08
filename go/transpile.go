@@ -54,6 +54,10 @@ var typeAliases = make(map[string]bool)
 // comparableStructTypes tracks named structs that appear in == or != expressions.
 var comparableStructTypes = make(map[string]bool)
 
+// localInterfaceEqualityTypes tracks local interfaces used in ==, !=, or
+// slices.Contains comparisons in the current file.
+var localInterfaceEqualityTypes = make(map[string]bool)
+
 // goPackageImports tracks imported Go packages for the current file
 // map[alias]packagePath (alias can be empty for default)
 var goPackageImports = make(map[string]string)
@@ -121,6 +125,67 @@ func collectComparableStructTypes(file *ast.File) map[string]bool {
 	return result
 }
 
+func collectLocalInterfaceEqualityTypes(file *ast.File) map[string]bool {
+	result := make(map[string]bool)
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return result
+	}
+
+	ast.Inspect(file, func(node ast.Node) bool {
+		switch n := node.(type) {
+		case *ast.BinaryExpr:
+			if n.Op != token.EQL && n.Op != token.NEQ {
+				return true
+			}
+			if name, ok := localNamedInterfaceTypeNameFromTypes(typeInfo.GetType(n.X)); ok {
+				result[name] = true
+			}
+			if name, ok := localNamedInterfaceTypeNameFromTypes(typeInfo.GetType(n.Y)); ok {
+				result[name] = true
+			}
+		case *ast.CallExpr:
+			if !isSlicesContainsCall(n) || len(n.Args) < 2 {
+				return true
+			}
+			if name, ok := localInterfaceSliceElemName(typeInfo.GetType(n.Args[0])); ok {
+				result[name] = true
+			}
+		}
+		return true
+	})
+
+	return result
+}
+
+func isSlicesContainsCall(call *ast.CallExpr) bool {
+	sel, ok := call.Fun.(*ast.SelectorExpr)
+	if !ok || sel.Sel.Name != "Contains" {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return false
+	}
+	ident, ok := sel.X.(*ast.Ident)
+	if !ok {
+		return false
+	}
+	pkgName, ok := typeInfo.info.Uses[ident].(*types.PkgName)
+	return ok && pkgName.Imported() != nil && pkgName.Imported().Path() == "slices"
+}
+
+func localInterfaceSliceElemName(typ types.Type) (string, bool) {
+	switch t := types.Unalias(typ).(type) {
+	case *types.Slice:
+		return localNamedInterfaceTypeNameFromTypes(t.Elem())
+	case *types.Array:
+		return localNamedInterfaceTypeNameFromTypes(t.Elem())
+	default:
+		return "", false
+	}
+}
+
 func markComparableStructType(result map[string]bool, typ types.Type) {
 	named, ok := typ.(*types.Named)
 	if !ok {
@@ -128,6 +193,35 @@ func markComparableStructType(result map[string]bool, typ types.Type) {
 	}
 	if _, ok := named.Underlying().(*types.Struct); ok {
 		result[named.Obj().Name()] = true
+	}
+}
+
+func markComparableInterfaceImplementorStructs(typeDecls []struct {
+	spec *ast.TypeSpec
+	decl *ast.GenDecl
+}, methods map[string][]*ast.FuncDecl, interfaces map[string]*ast.InterfaceType) {
+	if NeedsConcurrentWrapper() {
+		return
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return
+	}
+	for _, decl := range typeDecls {
+		structType, isStruct := decl.spec.Type.(*ast.StructType)
+		if !isStruct || structHasTraitField(structType) {
+			continue
+		}
+		obj, ok := typeInfo.info.Defs[decl.spec.Name].(*types.TypeName)
+		if !ok || obj == nil || obj.Type() == nil || !types.Comparable(obj.Type()) {
+			continue
+		}
+		for _, ifaceType := range interfaces {
+			if implementsInterface(methods[decl.spec.Name.Name], ifaceType) {
+				comparableStructTypes[decl.spec.Name.Name] = true
+				break
+			}
+		}
 	}
 }
 
@@ -465,9 +559,12 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 	var body strings.Builder
 	packageGlobalNames = make(map[string]bool)
 	prevComparableStructTypes := comparableStructTypes
+	prevLocalInterfaceEqualityTypes := localInterfaceEqualityTypes
 	comparableStructTypes = collectComparableStructTypes(file)
+	localInterfaceEqualityTypes = collectLocalInterfaceEqualityTypes(file)
 	defer func() {
 		comparableStructTypes = prevComparableStructTypes
+		localInterfaceEqualityTypes = prevLocalInterfaceEqualityTypes
 	}()
 
 	// Collect methods by receiver type
@@ -579,6 +676,7 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 			registerStructDef(t.spec.Name.Name, structType)
 		}
 	}
+	markComparableInterfaceImplementorStructs(types, methods, interfaces)
 	for _, t := range types {
 		if !first {
 			body.WriteString("\n\n")
@@ -789,6 +887,7 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 					}
 				}
 
+				writeLocalInterfaceSupportImpl(&body, ifaceName, typeName)
 				body.WriteString("}")
 			}
 		}

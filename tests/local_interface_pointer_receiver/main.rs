@@ -1,3 +1,4 @@
+use std::any::Any;
 use std::cell::{RefCell};
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
@@ -23,9 +24,18 @@ where
     format!("[{}]", formatted.join(" "))
 }
 
-pub trait List: std::fmt::Display {
+pub trait List: std::fmt::Display + Any {
+    fn __go_clone_box(&self) -> Box<dyn List>;
+    fn __go_as_any(&self) -> &dyn Any;
+    fn __go_eq(&self, other: &dyn List) -> bool;
     fn valid(&self, index: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<bool>>>;
     fn label(&self, index: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>;
+}
+
+impl Clone for Box<dyn List> {
+    fn clone(&self) -> Self {
+        self.__go_clone_box()
+    }
 }
 
 #[derive(Debug, Clone, Default)]
@@ -56,6 +66,19 @@ impl List for list {
     }
     fn label(&self, index: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>> {
         return Rc::new(RefCell::new(Some((*self.labels.borrow().as_ref().unwrap())[((*index.borrow().as_ref().unwrap())) as usize].clone())));
+    }
+    fn __go_clone_box(&self) -> Box<dyn List> {
+        Box::new(self.clone()) as Box<dyn List>
+    }
+    fn __go_as_any(&self) -> &dyn Any {
+        self
+    }
+    fn __go_eq(&self, other: &dyn List) -> bool {
+        if let Some(__other) = other.__go_as_any().downcast_ref::<list>() {
+            false
+        } else {
+            false
+        }
     }
 }
 

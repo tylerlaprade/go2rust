@@ -183,6 +183,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Existing `any` values assigned to `any` fields preserve the interface handle | ✅ |
 | └ Empty struct literals with `any` fields default to nil | ✅ |
 | └ Concurrent `any` and local-interface fields/globals use `Send + Sync` trait objects | ✅ |
+| └ Local interface values clone, store, return, compare, and work with `slices.Contains` via generated trait-object helpers | ✅ |
 | └ Variadic `any` arguments | ✅ |
 | └ Interface implementations | ✅ |
 | └ Type assertions | ✅ |

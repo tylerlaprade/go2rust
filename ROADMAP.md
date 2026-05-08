@@ -59,6 +59,7 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 - 🚧 Panic and recover - basic panic working, recover needs catch_unwind integration
 - ✅ Interfaces - empty interface{} and named interfaces working with trait generation (2025-09-04)
 - ✅ VarTable selective wrapping - scope-aware variable tracking, interface params as bare `&dyn Trait` (2026-03-05)
+- ✅ Local interface trait-object helpers - generated local interface traits now clone boxed values, compare interface values, store concrete values in interface fields, return interface globals, and support `slices.Contains` over interface slices (local_interface_equality_contains promoted, 2026-05-08)
 - ✅ Error handling - custom error types with Error() method, Box<dyn Error> returns, package-level error globals, error assignment, error-to-error moves, type assertions on errors, and fmt.Errorf `%w` formatting (2026-03-26, updated 2026-05-07)
 - ✅ Embedded method promotion - multi-level embedding, promoted method calls, field method chains (2026-03-26)
 - ✅ Map value type consistency - map literal values and type annotations now consistently wrap values (2026-03-26)

@@ -754,6 +754,10 @@ run_xfail_test() {
     run_test "tests/local_interface_concrete_return"
 }
 
+@test "local_interface_equality_contains" {
+    run_test "tests/local_interface_equality_contains"
+}
+
 @test "local_interface_field_zero" {
     run_test "tests/local_interface_field_zero"
 }
