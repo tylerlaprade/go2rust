@@ -199,6 +199,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Pointer keys in map literals and lookups | ✅ |
 | └ Pointer keys and values in `make(map)` plus slice-range pointer key lookups | ✅ |
 | └ Append results assigned into map slice values | ✅ |
+| └ Nested range over map slice values | ✅ |
 | └ Map iteration (for range) | ✅ |
 | └ Map printing (sorted keys, Go 1.12+) | ✅ |
 | **`package` - Packages** | |

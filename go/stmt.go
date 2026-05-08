@@ -47,6 +47,15 @@ func writeUnwrappedRangeTarget(out *strings.Builder, expr ast.Expr) {
 	}
 }
 
+func isWrappedSliceRangeVar(name string) bool {
+	varType, ok := rangeLoopVars[name]
+	if !ok {
+		return false
+	}
+	prefix := GetOuterWrapperType() + "<" + GetInnerWrapperType() + "<Option<Vec<"
+	return strings.HasPrefix(varType, prefix)
+}
+
 func writeCurrentReceiverStorage(out *strings.Builder, ident *ast.Ident) bool {
 	if ident == nil || currentReceiver == "" || ident.Name != currentReceiver {
 		return false
@@ -2964,7 +2973,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			closeRangeGuard = true
 		} else if !isMap && !isString && typeInfo.IsSlice(s.X) {
 			if ident, ok := s.X.(*ast.Ident); ok {
-				if _, isRangeVar := rangeLoopVars[ident.Name]; !isRangeVar {
+				if _, isRangeVar := rangeLoopVars[ident.Name]; !isRangeVar || isWrappedSliceRangeVar(ident.Name) {
 					out.WriteString("{ let __range_guard = ")
 					writeWrappedHandleExpression(out, s.X)
 					WriteBorrowMethod(out, false)

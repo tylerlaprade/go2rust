@@ -882,6 +882,10 @@ run_xfail_test() {
     run_test "tests/range_loops"
 }
 
+@test "range_map_slice_value" {
+    run_test "tests/range_map_slice_value"
+}
+
 @test "range_over_integer" {
     run_test "tests/range_over_integer"
 }
