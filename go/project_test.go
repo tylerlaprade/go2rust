@@ -1421,6 +1421,34 @@ func usedIdent() int {
 	}
 }
 
+func TestLocalAnonymousStructTypeEmitsDefinition(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+func check() {
+	var x [1]struct{}
+	_ = x[0]
+}
+`)
+
+	generator := NewProjectGenerator([]string{filepath.Join(tempDir, "main.go")})
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
+	if !strings.Contains(mainRS, "struct AnonymousStruct1") {
+		t.Fatalf("local anonymous struct type should emit a struct definition, got:\n%s", mainRS)
+	}
+	if !strings.Contains(mainRS, "[AnonymousStruct1; 1]") {
+		t.Fatalf("local anonymous struct array should use the generated type, got:\n%s", mainRS)
+	}
+}
+
 func TestStructWithImportedFieldDoesNotDeriveDebug(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod

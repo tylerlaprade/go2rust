@@ -831,46 +831,8 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 		TranspileTypeDecl(&body, t.spec, t.decl)
 	}
 
-	// Output anonymous struct definitions if any were generated
-	// Sort the type names for deterministic output
-	var anonTypeNames []string
-	for typeName := range anonymousStructs {
-		anonTypeNames = append(anonTypeNames, typeName)
-	}
-	slices.Sort(anonTypeNames)
-
-	for _, typeName := range anonTypeNames {
-		structType := anonymousStructs[typeName]
-		if !first {
-			body.WriteString("\n\n")
-		}
-		first = false
-		writeStructDerive(&body, "", structType)
-		body.WriteString("struct ")
-		body.WriteString(typeName)
-		body.WriteString(" {\n")
-
-		for _, field := range structType.Fields.List {
-			if len(field.Names) > 0 {
-				// Handle multiple names on one line (e.g., X, Y int)
-				for _, name := range field.Names {
-					body.WriteString("    ")
-					body.WriteString(ToSnakeCase(name.Name))
-					body.WriteString(": ")
-					body.WriteString(GoTypeToRust(field.Type))
-					body.WriteString(",\n")
-				}
-			} else {
-				// Anonymous/embedded field - should not happen in anonymous structs
-				body.WriteString("    // WARNING: embedded field in anonymous struct\n")
-			}
-		}
-
-		body.WriteString("}\n")
-		generateStructDefault(&body, typeName, structType)
-		body.WriteString("\n")
-		generateStructDisplay(&body, typeName, structType)
-	}
+	emittedAnonymousStructs := make(map[string]bool)
+	writeAnonymousStructDefinitions(&body, &first, emittedAnonymousStructs)
 
 	if len(globalVars) > 0 {
 		if !first {
@@ -1077,6 +1039,8 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 		TranspileFunction(&body, fn, fileSet, file.Comments)
 	}
 
+	writeAnonymousStructDefinitions(&body, &first, emittedAnonymousStructs)
+
 	if hasInitFunction {
 		if !first {
 			body.WriteString("\n\n")
@@ -1104,4 +1068,48 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 	output.WriteString(body.String())
 
 	return output.String(), imports, fileExternalPackages
+}
+
+func writeAnonymousStructDefinitions(body *strings.Builder, first *bool, emitted map[string]bool) {
+	var anonTypeNames []string
+	for typeName := range anonymousStructs {
+		if !emitted[typeName] {
+			anonTypeNames = append(anonTypeNames, typeName)
+		}
+	}
+	slices.Sort(anonTypeNames)
+
+	for _, typeName := range anonTypeNames {
+		structType := anonymousStructs[typeName]
+		if !*first {
+			body.WriteString("\n\n")
+		}
+		*first = false
+		writeStructDerive(body, "", structType)
+		body.WriteString("struct ")
+		body.WriteString(typeName)
+		body.WriteString(" {\n")
+
+		for _, field := range structType.Fields.List {
+			if len(field.Names) > 0 {
+				// Handle multiple names on one line (e.g., X, Y int)
+				for _, name := range field.Names {
+					body.WriteString("    ")
+					body.WriteString(ToSnakeCase(name.Name))
+					body.WriteString(": ")
+					body.WriteString(GoTypeToRust(field.Type))
+					body.WriteString(",\n")
+				}
+			} else {
+				// Anonymous/embedded field - should not happen in anonymous structs
+				body.WriteString("    // WARNING: embedded field in anonymous struct\n")
+			}
+		}
+
+		body.WriteString("}\n")
+		generateStructDefault(body, typeName, structType)
+		body.WriteString("\n")
+		generateStructDisplay(body, typeName, structType)
+		emitted[typeName] = true
+	}
 }
