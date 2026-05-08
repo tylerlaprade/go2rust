@@ -782,7 +782,7 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 						// Find the corresponding method implementation
 						for _, impl := range methods[typeName] {
 							if impl.Name.Name == methodName {
-								transpileMethodImplWithVisibility(&body, impl, false, fileSet, file.Comments)
+								TranspileTraitMethodImpl(&body, impl, fileSet, file.Comments)
 								break
 							}
 						}

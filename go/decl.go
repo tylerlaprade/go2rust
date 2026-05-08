@@ -1201,7 +1201,11 @@ func TranspileConstExpr(out *strings.Builder, expr ast.Expr, iotaValue int) {
 
 // TranspileMethodImpl transpiles a method inside an impl block
 func TranspileMethodImpl(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.FileSet, comments []*ast.CommentGroup) {
-	transpileMethodImplWithVisibility(out, fn, true, fileSet, comments)
+	transpileMethodImplWithVisibility(out, fn, true, false, fileSet, comments)
+}
+
+func TranspileTraitMethodImpl(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.FileSet, comments []*ast.CommentGroup) {
+	transpileMethodImplWithVisibility(out, fn, false, true, fileSet, comments)
 }
 
 func namedReturnIdents(fnType *ast.FuncType) []*ast.Ident {
@@ -1310,7 +1314,7 @@ func writeNamedReturnValues(out *strings.Builder, fnType *ast.FuncType) {
 	}
 }
 
-func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, addPub bool, fileSet *token.FileSet, comments []*ast.CommentGroup) {
+func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, addPub bool, forceSharedReceiver bool, fileSet *token.FileSet, comments []*ast.CommentGroup) {
 	// Store the receiver name and type for self translation
 	if fn.Recv != nil && len(fn.Recv.List) > 0 {
 		recv := fn.Recv.List[0]
@@ -1341,7 +1345,9 @@ func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, a
 		}
 
 		// Check if pointer receiver
-		if _, isPointer := recv.Type.(*ast.StarExpr); isPointer {
+		if forceSharedReceiver {
+			out.WriteString("&self")
+		} else if _, isPointer := recv.Type.(*ast.StarExpr); isPointer {
 			// Error() methods should use &self since they only read
 			if fn.Name.Name == "Error" {
 				out.WriteString("&self")
