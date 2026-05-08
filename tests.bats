@@ -342,6 +342,10 @@ run_xfail_test() {
     run_test "tests/any_named_return_zero"
 }
 
+@test "any_selector_return" {
+    run_test "tests/any_selector_return"
+}
+
 @test "any_struct_empty_literal" {
     run_test "tests/any_struct_empty_literal"
 }

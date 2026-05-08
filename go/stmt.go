@@ -1212,6 +1212,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						} else if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.IsPointer(result) {
 							TranspileExpressionContext(out, result, LValue)
 							out.WriteString(".clone()")
+						} else if typeInfo := GetTypeInfo(); typeInfo != nil && isEmptyInterfaceType(typeInfo.GetType(result)) && isEmptyInterfaceExpr(returnResultTypeExpr(fnType, i)) {
+							TranspileExpressionContext(out, result, LValue)
+							out.WriteString(".clone()")
 						} else {
 							// Regular selector - wrap it
 							WriteWrapperPrefix(out)

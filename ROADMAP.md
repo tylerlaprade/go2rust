@@ -95,6 +95,7 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 - ✅ String constant returns - string constants returned from `string` functions are converted to owned Rust `String` values before wrapping (return_string_const promoted, 2026-05-07)
 - ✅ interface{} arg boxing - values auto-boxed as Box<dyn Any> when passed to interface{} params (2026-03-27)
 - ✅ Named `any` returns - named empty-interface results initialize to nil instead of attempting to default-construct `Box<dyn Any>` (any_named_return_zero promoted, 2026-05-07)
+- ✅ Selector `any` returns - empty-interface fields returned from structs clone the interface handle instead of moving `Box<dyn Any>` out of a borrow (any_selector_return promoted, 2026-05-07)
 - ✅ Empty struct literals with `any` fields - explicit zero-field emission initializes empty-interface fields to nil instead of default-constructing `Box<dyn Any>` (any_struct_empty_literal promoted, 2026-05-07)
 - ✅ `any(x)` conversions - converted values are boxed as `Box<dyn Any>` so comma-ok type assertions can downcast them (any_type_conversion promoted, 2026-05-07)
 - ✅ Static `any(x).(interface{...})` assertions - when TypeInfo proves the converted concrete value implements the asserted interface, emit the source handle and `ok=true` instead of an unknown downcast target (any_interface_static_assertion promoted, 2026-05-07)
