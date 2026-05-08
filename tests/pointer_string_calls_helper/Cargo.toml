@@ -1,0 +1,8 @@
+[package]
+name = "pointer_string_calls_helper"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "pointer_string_calls_helper"
+path = "main.rs"

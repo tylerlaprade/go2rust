@@ -866,6 +866,10 @@ run_xfail_test() {
     run_test "tests/pointer_receiver_nil_compare"
 }
 
+@test "pointer_string_calls_helper" {
+    run_test "tests/pointer_string_calls_helper"
+}
+
 @test "pointers_basic" {
     run_test "tests/pointers_basic"
 }
