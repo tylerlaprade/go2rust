@@ -122,7 +122,7 @@ impl Counter {
     }
 
     pub fn add(&mut self, n: Rc<RefCell<Option<i32>>>) {
-        { let mut guard = self.count.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + (*n.borrow_mut().as_mut().unwrap())); };
+        { let mut guard = self.count.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + (*n.borrow().as_ref().unwrap())); };
     }
 }
 

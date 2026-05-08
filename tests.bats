@@ -446,6 +446,10 @@ run_xfail_test() {
     run_test "tests/complex_expressions"
 }
 
+@test "compound_assign_wrapped_call" {
+    run_test "tests/compound_assign_wrapped_call"
+}
+
 @test "compound_assignments" {
     run_test "tests/compound_assignments"
 }

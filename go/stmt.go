@@ -650,6 +650,19 @@ func writeBareCompoundAssignValue(out *strings.Builder, expr ast.Expr) {
 		out.WriteString(lit.Value)
 		return
 	}
+	if call, ok := expr.(*ast.CallExpr); ok {
+		typeInfo := GetTypeInfo()
+		if typeInfo != nil && typeInfo.ReturnsWrappedValue(call) && !isBareBuiltinReturn(call) && !callReturnsBareChannelValue(call) {
+			out.WriteString("(*")
+			TranspileExpression(out, call)
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref().unwrap())")
+			if !isCopyTypeExpression(expr) && isCloneableNonPointerExpr(expr) {
+				out.WriteString(".clone()")
+			}
+			return
+		}
+	}
 	if !isCopyTypeExpression(expr) && writeOwnedExpressionValue(out, expr) {
 		return
 	}
@@ -1646,30 +1659,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					}
 
 					out.WriteString(" ")
-					// Handle RHS based on its type
-					if ident, ok := s.Rhs[0].(*ast.Ident); ok {
-						// It's an identifier - need to unwrap it
-						// Check if it's a special identifier that shouldn't be unwrapped
-						_, isRangeVar := rangeLoopVars[ident.Name]
-						_, isLocalConst := localConstants[ident.Name]
-						if !isRangeVar && !isLocalConst && ident.Name != "true" && ident.Name != "false" &&
-							ident.Name != "nil" && ident.Name != "_" {
-							// Regular wrapped variable - unwrap it
-							out.WriteString("(*")
-							out.WriteString(EscapeRustIdent(ident.Name))
-							WriteBorrowMethod(out, true)
-							out.WriteString(".as_mut().unwrap())")
-						} else {
-							// Special identifier - use as-is
-							out.WriteString(EscapeRustIdent(ident.Name))
-						}
-					} else if lit, ok := s.Rhs[0].(*ast.BasicLit); ok {
-						// It's a literal - use directly
-						out.WriteString(lit.Value)
-					} else {
-						// It's an expression - transpile it
-						TranspileExpression(out, s.Rhs[0])
-					}
+					writeBareCompoundAssignValue(out, s.Rhs[0])
 					out.WriteString("); }")
 				}
 			}
