@@ -87,6 +87,13 @@ See `ROADMAP.md` for the detailed implementation phases and progress.
 - Use `TypeInfo.ReturnsWrappedValue` and `TypeInfo.NeedsUnwrapping`, but verify the exact caller context. Some AST nodes return raw values in binary operands but wrapped values as standalone expressions.
 - When a missing method such as `.borrow()` or `.lock()` appears on a literal, integer, string, or other primitive in generated Rust, suspect a wrapped/raw boundary bug first.
 - Map-valued selector fields are bare in single-threaded output but wrapped handles in concurrent output. If generated Rust calls `.get()` on an `Arc<Mutex<Option<BTreeMap<...>>>>`, or calls `.borrow()` on an already bare `BTreeMap`, check this selector-map boundary before changing general map lookup lowering.
+- `usize` contexts such as slice indexes, bounds, and `make([]T, len, cap)` capacities need raw integers. If the expression is a method/function call returning a wrapped Go integer, unwrap the returned handle before emitting `as usize`.
+
+### Call Argument Wrapping
+
+- Most function and method parameters expect a wrapped handle. The caller often opens that wrapper before delegating to helpers.
+- If an argument helper is called from inside an already-open wrapper, emit the raw inner value for that context. For function literals, that means `TranspileFuncLitBox`, not `TranspileExpression`, because `TranspileExpression` wraps the closure itself.
+- If generated Rust contains `Some(Arc<Mutex<Option<Box<dyn Fn...>>>>)` where the parameter expected `Some(Box<dyn Fn...>)`, suspect nested function-literal wrapping before changing method signature generation.
 
 ### Closure Capture Rules
 
