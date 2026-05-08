@@ -1274,6 +1274,10 @@ run_xfail_test() {
     run_test "tests/unary_plus_bitwise_not"
 }
 
+@test "unsafe_pointer_named_uintptr" {
+    run_test "tests/unsafe_pointer_named_uintptr"
+}
+
 @test "unsafe_pointer_uintptr" {
     run_test "tests/unsafe_pointer_uintptr"
 }

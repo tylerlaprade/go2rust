@@ -991,6 +991,23 @@ func writeMaybeUnwrappedExpression(out *strings.Builder, expr ast.Expr) {
 	out.WriteString(s)
 }
 
+func writeOwnedNamedTypeDefinitionValue(out *strings.Builder, expr ast.Expr) {
+	typeInfo := GetTypeInfo()
+	if call, ok := expr.(*ast.CallExpr); ok && typeInfo != nil && typeInfo.ReturnsWrappedValue(call) && !isBareBuiltinReturn(call) && !callReturnsBareChannelValue(call) {
+		out.WriteString("(*")
+		TranspileExpression(out, expr)
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap()).clone()")
+		return
+	}
+	if ident, ok := expr.(*ast.Ident); ok && isWrappedValueIdent(ident) {
+		writeIdentValueClone(out, ident)
+		return
+	}
+	TranspileExpression(out, expr)
+	out.WriteString(".clone()")
+}
+
 func writeInterfaceBoxedValue(out *strings.Builder, expr ast.Expr) {
 	if typeInfo := GetTypeInfo(); typeInfo != nil && isErrorInterfaceType(typeInfo.GetType(expr)) {
 		out.WriteString("Box::new(format!(\"{}\", ")
@@ -1011,6 +1028,8 @@ func writeInterfaceBoxedValue(out *strings.Builder, expr ast.Expr) {
 		} else if !writeOwnedExpressionValue(out, expr) {
 			writeMaybeUnwrappedExpression(out, expr)
 		}
+	} else if isNamedTypeDefinitionValue(expr) {
+		writeOwnedNamedTypeDefinitionValue(out, expr)
 	} else if !writeOwnedExpressionValue(out, expr) {
 		writeMaybeUnwrappedExpression(out, expr)
 	}
@@ -3525,6 +3544,9 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 	case "uint64":
 		rustType = "u64"
 	case "uintptr":
+		if writeUnsafePointerLikeUintptrConversion(out, call.Args[0]) {
+			return
+		}
 		rustType = "usize"
 	case "any":
 		arg := call.Args[0]
@@ -3693,6 +3715,9 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 	default:
 		// Check for custom type definitions
 		if _, isTypeDef := LookupTypeDefinition(targetType); isTypeDef {
+			if writeUnsafePointerTypeDefinitionConversion(out, call, targetType) {
+				return
+			}
 			// Custom type definition
 			out.WriteString(targetType)
 			out.WriteString("(")
@@ -3754,6 +3779,100 @@ func writePointerTypeConversion(out *strings.Builder, target ast.Expr) {
 	out.WriteString(goTypeToRustBase(target))
 	out.WriteString("::default()")
 	WriteWrapperSuffix(out)
+}
+
+func isUnsafePointerLikeType(typ types.Type) bool {
+	if typ == nil {
+		return false
+	}
+	basic, ok := types.Unalias(typ).Underlying().(*types.Basic)
+	return ok && basic.Kind() == types.UnsafePointer
+}
+
+func isNamedUnsafePointerTypeDefinition(typ types.Type) bool {
+	named, ok := types.Unalias(typ).(*types.Named)
+	if !ok || named.Obj() == nil {
+		return false
+	}
+	if _, isTypeDef := LookupTypeDefinition(named.Obj().Name()); !isTypeDef {
+		return false
+	}
+	return isUnsafePointerLikeType(named)
+}
+
+func writeUnsafePointerLikeUintptrConversion(out *strings.Builder, arg ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	argType := typeInfo.GetType(arg)
+	if !isUnsafePointerLikeType(argType) {
+		return false
+	}
+	WriteWrapperPrefix(out)
+	if isNamedUnsafePointerTypeDefinition(argType) {
+		out.WriteString("(*")
+		writeNamedTypeDefinitionAccess(out, arg)
+		out.WriteString(".0")
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap()) as usize")
+	} else {
+		out.WriteString("(*")
+		TranspileExpression(out, arg)
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap()) as usize")
+	}
+	WriteWrapperSuffix(out)
+	return true
+}
+
+func writeUnsafePointerTypeDefinitionConversion(out *strings.Builder, call *ast.CallExpr, targetType string) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || !isNamedUnsafePointerTypeDefinition(typeInfo.GetType(call)) {
+		return false
+	}
+	out.WriteString(targetType)
+	out.WriteString("(")
+	WriteWrapperPrefix(out)
+	writeUnsafePointerConversionValue(out, call.Args[0])
+	WriteWrapperSuffix(out)
+	out.WriteString(")")
+	return true
+}
+
+func writeUnsafePointerConversionValue(out *strings.Builder, arg ast.Expr) {
+	typeInfo := GetTypeInfo()
+	argType := typeInfo.GetType(arg)
+	if isNamedUnsafePointerTypeDefinition(argType) {
+		out.WriteString("(*")
+		writeNamedTypeDefinitionAccess(out, arg)
+		out.WriteString(".0")
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap())")
+		return
+	}
+	if isUnsafePointerLikeType(argType) {
+		out.WriteString("(*")
+		TranspileExpression(out, arg)
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap())")
+		return
+	}
+	writeNumericConversionValue(out, arg)
+}
+
+func writeNamedTypeDefinitionAccess(out *strings.Builder, expr ast.Expr) {
+	if call, ok := expr.(*ast.CallExpr); ok {
+		typeInfo := GetTypeInfo()
+		if typeInfo != nil && typeInfo.ReturnsWrappedValue(call) && !isBareBuiltinReturn(call) && !callReturnsBareChannelValue(call) {
+			out.WriteString("(*")
+			TranspileExpression(out, expr)
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref().unwrap())")
+			return
+		}
+	}
+	TranspileExpression(out, expr)
 }
 
 func typeConversionEmitsWrappedValue(call *ast.CallExpr) bool {

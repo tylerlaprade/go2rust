@@ -415,7 +415,7 @@ func goTypeToRustBase(expr ast.Expr) string {
 				return "String"
 			}
 			if ident.Name == "unsafe" && t.Sel.Name == "Pointer" {
-				return "*mut std::ffi::c_void"
+				return "usize"
 			}
 			if ident.Name == "time" {
 				switch t.Sel.Name {

@@ -225,6 +225,17 @@ func writeWrappedValueCopyFromIdent(out *strings.Builder, ident *ast.Ident) bool
 	}
 }
 
+func writeCallExpressionForInitializer(out *strings.Builder, call *ast.CallExpr) {
+	typeInfo := GetTypeInfo()
+	if typeInfo != nil && typeInfo.IsTypeConversion(call) && !typeConversionEmitsWrappedValue(call) {
+		WriteWrapperPrefix(out)
+		TranspileExpression(out, call)
+		WriteWrapperSuffix(out)
+		return
+	}
+	TranspileExpression(out, call)
+}
+
 func isStdlibNamedInterfaceValueType(typ types.Type) bool {
 	named, ok := typ.(*types.Named)
 	if !ok || named.Obj() == nil || named.Obj().Pkg() == nil {
@@ -1948,9 +1959,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							out.WriteString(", ")
 						}
 						// Check if RHS already returns wrapped values
-						if _, isCall := rhs.(*ast.CallExpr); isCall {
+						if call, isCall := rhs.(*ast.CallExpr); isCall {
 							// Function calls already return wrapped values
-							TranspileExpression(out, rhs)
+							writeCallExpressionForInitializer(out, call)
 						} else if _, isSlice := rhs.(*ast.SliceExpr); isSlice {
 							// Slice expressions already return wrapped values
 							TranspileExpression(out, rhs)
@@ -2411,7 +2422,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 												}
 											}
 											// Function calls already return wrapped values, don't wrap again
-											TranspileExpression(out, rhs)
+											writeCallExpressionForInitializer(out, callExpr)
 										} else if _, isFuncLit := rhs.(*ast.FuncLit); isFuncLit {
 											// Function literals are already wrapped by TranspileFuncLit
 											TranspileExpression(out, rhs)
@@ -2494,9 +2505,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						}
 						if s.Tok == token.DEFINE {
 							// Check if RHS is an expression that already returns wrapped values
-							if _, isCall := rhs.(*ast.CallExpr); isCall {
+							if call, isCall := rhs.(*ast.CallExpr); isCall {
 								// Function calls already return wrapped values, don't wrap again
-								TranspileExpression(out, rhs)
+								writeCallExpressionForInitializer(out, call)
 							} else if _, isSlice := rhs.(*ast.SliceExpr); isSlice {
 								// Slice expressions already return wrapped values
 								TranspileExpression(out, rhs)
@@ -2618,9 +2629,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									} else {
 										TranspileExpression(out, valueSpec.Values[i])
 									}
-								} else if _, isCall := valueSpec.Values[i].(*ast.CallExpr); isCall {
+								} else if call, isCall := valueSpec.Values[i].(*ast.CallExpr); isCall {
 									// Function calls already return wrapped values, don't wrap again
-									TranspileExpression(out, valueSpec.Values[i])
+									writeCallExpressionForInitializer(out, call)
 								} else if compositeLit, isCompositeLit := valueSpec.Values[i].(*ast.CompositeLit); isCompositeLit {
 									// Check if it's a struct literal vs array/slice/map literal
 									isStructLiteral := false
@@ -2643,23 +2654,21 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									// Address-of operator already produces wrapped value
 									TranspileExpression(out, valueSpec.Values[i])
 								} else if ident, ok := valueSpec.Values[i].(*ast.Ident); ok {
-									if sig, isFuncValue := functionValueSignature(ident); isFuncValue {
+									isInterface := false
+									if valueSpec.Type != nil {
+										isInterface = isEmptyInterfaceTypeExpr(valueSpec.Type)
+									}
+									if isInterface {
+										// For interface{}, box the value
+										WriteWrapperPrefix(out)
+										writeInterfaceBoxedValue(out, valueSpec.Values[i])
+										WriteWrapperSuffix(out)
+									} else if sig, isFuncValue := functionValueSignature(ident); isFuncValue {
 										writeWrappedFunctionValueBox(out, ident, sig)
 									} else if writeWrappedValueCopyFromIdent(out, ident) {
 										// Copied by value from an existing wrapped value
 									} else {
-										// Check if the target type is interface{}
-										isInterface := false
 										if valueSpec.Type != nil {
-											isInterface = isEmptyInterfaceTypeExpr(valueSpec.Type)
-										}
-
-										if isInterface {
-											// For interface{}, box the value
-											WriteWrapperPrefix(out)
-											writeInterfaceBoxedValue(out, valueSpec.Values[i])
-											WriteWrapperSuffix(out)
-										} else if valueSpec.Type != nil {
 											if typeIdent, ok := valueSpec.Type.(*ast.Ident); ok {
 												if underlyingType, isTypeDef := LookupTypeDefinition(typeIdent.Name); isTypeDef {
 													WriteWrapperPrefix(out)

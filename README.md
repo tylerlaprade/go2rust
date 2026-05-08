@@ -373,6 +373,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Pointer conversions to reflected struct header stand-ins | ✅ |
 | **`unsafe` package** | |
 | └ `unsafe.Sizeof` / `unsafe.Alignof` for Rust representation layout | ✅ |
+| └ Named `unsafe.Pointer` definitions round-trip through `uintptr` and `any` | ✅ |
 
 | **`errors` package** | |
 | └ `errors.New` | ✅ |
