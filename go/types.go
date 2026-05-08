@@ -50,6 +50,14 @@ func localNamedInterfaceTypeName(typ types.Type) (string, bool) {
 	return name, ok
 }
 
+func localInterfaceNameFromTypeExpr(expr ast.Expr) (string, bool) {
+	ident, ok := expr.(*ast.Ident)
+	if !ok || !IsInterfaceType(ident.Name) {
+		return "", false
+	}
+	return ident.Name, true
+}
+
 // getStructSignature creates a unique signature for a struct type based on its fields
 func getStructSignature(structType *ast.StructType) string {
 	var sig strings.Builder

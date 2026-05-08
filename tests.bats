@@ -750,6 +750,10 @@ run_xfail_test() {
     run_test "tests/local_interface_concrete_return"
 }
 
+@test "local_interface_field_zero" {
+    run_test "tests/local_interface_field_zero"
+}
+
 @test "local_interface_method_param" {
     run_test "tests/local_interface_method_param"
 }

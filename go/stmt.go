@@ -68,14 +68,6 @@ func rangeTargetNeedsWrappedSliceGuard(expr ast.Expr) bool {
 	}
 }
 
-func localInterfaceNameFromTypeExpr(expr ast.Expr) (string, bool) {
-	ident, ok := expr.(*ast.Ident)
-	if !ok || !IsInterfaceType(ident.Name) {
-		return "", false
-	}
-	return ident.Name, true
-}
-
 func writeLocalInterfaceConcreteReturnConversion(out *strings.Builder, result ast.Expr, expected ast.Expr) bool {
 	interfaceName, ok := localInterfaceNameFromTypeExpr(expected)
 	if !ok {

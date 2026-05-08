@@ -2848,6 +2848,8 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 								out.WriteString("::new()")
 							} else if isEmptyInterfaceExpr(field.Type) {
 								WriteWrappedNone(out)
+							} else if _, ok := localInterfaceNameFromTypeExpr(field.Type); ok {
+								WriteWrappedNone(out)
 							} else if isChannelFieldExpr(field.Type) {
 								out.WriteString("Default::default()")
 							} else {
@@ -3029,6 +3031,10 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 											WriteWrapperSuffix(out)
 											continue
 										}
+									}
+									if _, ok := localInterfaceNameFromTypeExpr(field.Type); ok {
+										WriteWrappedNone(out)
+										continue
 									}
 									out.WriteString("Default::default()")
 								}
