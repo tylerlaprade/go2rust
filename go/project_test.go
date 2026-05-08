@@ -808,6 +808,37 @@ func main() {
 	}
 }
 
+func TestNonLiteralFixedArrayLengthUsesTypeInfo(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+var deps = [...]string{"a", "b", "c"}
+
+func Use() byte {
+	var seen [1 + len(deps)/8]byte
+	seen[0] = 1
+	return seen[0]
+}
+`)
+
+	generator := NewProjectGenerator([]string{filepath.Join(tempDir, "main.go")})
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
+	if strings.Contains(mainRS, "Option<Vec<u8>>") {
+		t.Fatalf("non-literal fixed array length should not be translated as a Vec, got:\n%s", mainRS)
+	}
+	if !strings.Contains(mainRS, "Option<[u8; 1]>") {
+		t.Fatalf("non-literal fixed array length should use go/types length, got:\n%s", mainRS)
+	}
+}
+
 func TestTranspiledExternalPackagesUseSharedStdlibStubs(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod

@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"go/ast"
+	"go/constant"
 	"go/token"
 	"go/types"
 	"strconv"
@@ -365,6 +366,27 @@ func generateClosureType(funcType *ast.FuncType) string {
 	}
 }
 
+func fixedArrayLengthFromTypeInfo(arrayType *ast.ArrayType) (int64, bool) {
+	if arrayType == nil || arrayType.Len == nil {
+		return 0, false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return 0, false
+	}
+	if tv, ok := typeInfo.info.Types[arrayType.Len]; ok && tv.Value != nil {
+		if n, exact := constant.Int64Val(tv.Value); exact && n >= 0 {
+			return n, true
+		}
+	}
+	if tv, ok := typeInfo.info.Types[arrayType]; ok && tv.Type != nil {
+		if array, ok := types.Unalias(tv.Type).Underlying().(*types.Array); ok {
+			return array.Len(), true
+		}
+	}
+	return 0, false
+}
+
 func goTypeToRustBase(expr ast.Expr) string {
 	switch t := expr.(type) {
 	case *ast.Ident:
@@ -438,6 +460,9 @@ func goTypeToRustBase(expr ast.Expr) string {
 			// Fixed-size array
 			if lit, ok := t.Len.(*ast.BasicLit); ok {
 				return "[" + elemType + "; " + lit.Value + "]"
+			}
+			if length, ok := fixedArrayLengthFromTypeInfo(t); ok {
+				return "[" + elemType + "; " + strconv.FormatInt(length, 10) + "]"
 			}
 		}
 		// Slice
