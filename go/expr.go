@@ -521,6 +521,11 @@ func writeUnwrappedBoolExpression(out *strings.Builder, expr ast.Expr) {
 }
 
 func writeCallArgumentValue(out *strings.Builder, arg ast.Expr) bool {
+	if funcLit, ok := arg.(*ast.FuncLit); ok {
+		TranspileFuncLitBox(out, funcLit)
+		return true
+	}
+
 	ident, ok := arg.(*ast.Ident)
 	if !ok {
 		if !isCopyTypeExpression(arg) && writeOwnedExpressionValue(out, arg) {
