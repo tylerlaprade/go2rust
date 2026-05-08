@@ -2778,6 +2778,8 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				// This works for comparing with String, &String, and &str
 				lit := expr.(*ast.BasicLit)
 				out.WriteString(RustStringLiteral(lit.Value))
+			} else if isCloneableNonPointerExpr(expr) && !isCopyTypeExpression(expr) && writeOwnedExpressionValue(out, expr) {
+				return
 			} else {
 				TranspileExpression(out, expr)
 			}

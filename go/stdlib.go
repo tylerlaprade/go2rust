@@ -2194,15 +2194,21 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 			return
 		}
 		writeAppendElement := func(expr ast.Expr) {
+			var elemType types.Type
 			if typeInfo := GetTypeInfo(); typeInfo != nil {
+				elemType = typeInfo.GetSliceElemType(call.Args[0])
 				if callExpr, ok := expr.(*ast.CallExpr); ok && typeInfo.ReturnsWrappedValue(callExpr) && !callReturnsBareChannelValue(callExpr) {
+					if compositeLiteralElementKeepsHandle(elemType) {
+						TranspileExpression(out, expr)
+						return
+					}
 					out.WriteString("(*")
 					TranspileExpression(out, expr)
 					WriteBorrowMethod(out, false)
 					out.WriteString(".as_ref().unwrap()).clone()")
 					return
 				}
-				if elemType := typeInfo.GetSliceElemType(call.Args[0]); elemType != nil {
+				if elemType != nil {
 					if _, ok := localNamedInterfaceTypeNameFromTypes(elemType); ok && isBareLocalInterfaceValue(expr) {
 						writeLocalInterfaceBareClone(out, expr)
 						return

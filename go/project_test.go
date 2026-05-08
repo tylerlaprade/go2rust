@@ -1011,8 +1011,11 @@ func main() {
 	clockRS := mustReadFile(t, filepath.Join(tempDir, "clock.rs"))
 	consumeRS := mustReadFile(t, filepath.Join(tempDir, "consume.rs"))
 	for name, code := range map[string]string{"clock.rs": clockRS, "consume.rs": consumeRS} {
-		if !strings.Contains(code, "use crate::*;") {
+		if !strings.Contains(code, "use crate::{GoTime, go_time_civil_from_days};") {
 			t.Fatalf("%s should import crate-root helpers, got:\n%s", name, code)
+		}
+		if strings.Contains(code, "use crate::*;") {
+			t.Fatalf("%s should not glob-import the crate root for helpers, got:\n%s", name, code)
 		}
 		if strings.Contains(code, "struct GoTime") {
 			t.Fatalf("%s should not define a file-local GoTime, got:\n%s", name, code)
@@ -1079,12 +1082,156 @@ func main() {
 	clockRS := mustReadFile(t, filepath.Join(depDir, "clock.rs"))
 	consumeRS := mustReadFile(t, filepath.Join(depDir, "consume.rs"))
 	for name, code := range map[string]string{"clock.rs": clockRS, "consume.rs": consumeRS} {
-		if !strings.Contains(code, "use crate::*;") {
+		if !strings.Contains(code, "use crate::{GoTime, go_time_civil_from_days};") {
 			t.Fatalf("%s should import crate-root helpers, got:\n%s", name, code)
+		}
+		if strings.Contains(code, "use crate::*;") {
+			t.Fatalf("%s should not glob-import the crate root for helpers, got:\n%s", name, code)
 		}
 		if strings.Contains(code, "struct GoTime") {
 			t.Fatalf("%s should not define a file-local GoTime, got:\n%s", name, code)
 		}
+	}
+}
+
+func TestPackageHelperImportsAvoidSiblingModuleTypeCollisions(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "termlist.go"), `package main
+
+type termlist struct{}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "normalize.go"), `package main
+
+import "fmt"
+
+type termSet struct {
+	terms termlist
+}
+
+func TypeName(v any) string {
+	return fmt.Sprintf("%T", v)
+}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+func main() {
+	println(TypeName(termSet{}))
+}
+`)
+
+	generator := NewProjectGenerator([]string{
+		filepath.Join(tempDir, "termlist.go"),
+		filepath.Join(tempDir, "normalize.go"),
+		filepath.Join(tempDir, "main.go"),
+	})
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	normalizeRS := mustReadFile(t, filepath.Join(tempDir, "normalize.rs"))
+	if strings.Contains(normalizeRS, "use crate::*;") {
+		t.Fatalf("module should not glob-import crate root and shadow termlist type with termlist module, got:\n%s", normalizeRS)
+	}
+	if !strings.Contains(normalizeRS, "use crate::{go_type_name};") {
+		t.Fatalf("module should import only the needed crate-root helper, got:\n%s", normalizeRS)
+	}
+	if !strings.Contains(normalizeRS, "pub terms: Rc<RefCell<Option<termlist>>>") {
+		t.Fatalf("sibling termlist type should remain usable through sibling module imports, got:\n%s", normalizeRS)
+	}
+
+	helpersRS := mustReadFile(t, filepath.Join(tempDir, packageHelperIncludeFile))
+	if !strings.Contains(helpersRS, "use std::any::Any;") {
+		t.Fatalf("helper include should import Any for go_type_name, got:\n%s", helpersRS)
+	}
+}
+
+func TestAppendPointerReturnKeepsHandle(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+type Item struct {
+	Value int
+}
+
+func NewItem() *Item {
+	return &Item{Value: 1}
+}
+
+func Use() []*Item {
+	var items []*Item
+	items = append(items, NewItem())
+	return items
+}
+`)
+
+	generator := NewProjectGenerator([]string{filepath.Join(tempDir, "main.go")})
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
+	if strings.Contains(mainRS, "push((*new_item()") {
+		t.Fatalf("append of pointer-returning call should keep the pointer handle, got:\n%s", mainRS)
+	}
+	if !strings.Contains(mainRS, "push(new_item())") {
+		t.Fatalf("append of pointer-returning call should push the returned handle, got:\n%s", mainRS)
+	}
+}
+
+func TestConcurrentComparableStructUsesCustomPartialEq(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+type version struct {
+	major string
+	minor string
+}
+
+func start() {
+	go func() {}()
+}
+
+func valid(x string) bool {
+	return version{major: x} != version{}
+}
+
+func lang(v version) bool {
+	return v.minor == ""
+}
+`)
+
+	generator := NewProjectGenerator([]string{filepath.Join(tempDir, "main.go")})
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
+	if strings.Contains(mainRS, "#[derive(Debug, Clone, Default, PartialEq)]") {
+		t.Fatalf("concurrent comparable struct should not derive PartialEq over Mutex fields, got:\n%s", mainRS)
+	}
+	if !strings.Contains(mainRS, "impl PartialEq for version") {
+		t.Fatalf("concurrent comparable struct should get custom PartialEq, got:\n%s", mainRS)
+	}
+	if !strings.Contains(mainRS, "__left.as_ref() == __right.as_ref()") {
+		t.Fatalf("custom PartialEq should compare locked field values by reference, got:\n%s", mainRS)
+	}
+	if strings.Contains(mainRS, "let __tmp_x = (*{ let __field = (*v.lock().unwrap().as_ref().unwrap()).minor.clone(); __field }.lock().unwrap().as_ref().unwrap());") {
+		t.Fatalf("string selector comparison should not move String out of a shared reference, got:\n%s", mainRS)
+	}
+	if !strings.Contains(mainRS, "let __tmp_x = (*{ let __field = (*v.lock().unwrap().as_ref().unwrap()).minor.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone();") {
+		t.Fatalf("string selector comparison should clone the selected String value, got:\n%s", mainRS)
 	}
 }
 

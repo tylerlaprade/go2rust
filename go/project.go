@@ -358,7 +358,11 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 
 	helpersNeeded := pg.packageHelpersNeeded(packageState)
 	for _, module := range generatedModules {
-		rustCode := pg.prefixModuleImports(module.rustCode, module.name, nonMainModuleNames, helpersNeeded)
+		var helpers *HelperTracker
+		if helpersNeeded {
+			helpers = packageState.Helpers
+		}
+		rustCode := pg.prefixModuleImports(module.rustCode, module.name, nonMainModuleNames, helpers)
 		if err := os.WriteFile(module.path, []byte(rustCode), 0644); err != nil {
 			return fmt.Errorf("error writing %s: %v", module.path, err)
 		}
@@ -448,14 +452,18 @@ func prefixSiblingModuleImports(rustCode, selfModule string, moduleNames []strin
 	return imports.String()
 }
 
-func prefixPackageHelperImports(rustCode string) string {
-	return "use crate::*;\n\n" + rustCode
+func prefixPackageHelperImports(rustCode string, helpers *HelperTracker) string {
+	names := helpers.ImportNames()
+	if len(names) == 0 {
+		return rustCode
+	}
+	return "use crate::{" + strings.Join(names, ", ") + "};\n\n" + rustCode
 }
 
-func (pg *ProjectGenerator) prefixModuleImports(rustCode, selfModule string, moduleNames []string, helpersNeeded bool) string {
+func (pg *ProjectGenerator) prefixModuleImports(rustCode, selfModule string, moduleNames []string, helpers *HelperTracker) string {
 	rustCode = prefixSiblingModuleImports(rustCode, selfModule, moduleNames)
-	if helpersNeeded {
-		rustCode = prefixPackageHelperImports(rustCode)
+	if helpers != nil && helpers.HasAny() {
+		rustCode = prefixPackageHelperImports(rustCode, helpers)
 	}
 	if pg.useSharedStdlibStubCrate {
 		rustCode = prefixSharedStdlibStubImport(rustCode)

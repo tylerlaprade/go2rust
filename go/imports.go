@@ -318,6 +318,109 @@ func (ht *HelperTracker) GenerateHelperModule() string {
 	return output.String()
 }
 
+func (ht *HelperTracker) ImportNames() []string {
+	if ht == nil {
+		return nil
+	}
+	seen := make(map[string]bool)
+	add := func(names ...string) {
+		for _, name := range names {
+			if name != "" {
+				seen[name] = true
+			}
+		}
+	}
+
+	if ht.needsFormatMap {
+		add("format_map")
+	}
+	if ht.needsFormatSlice {
+		add("format_slice", "format_slice_values")
+	}
+	if ht.needsFormatAny {
+		add("format_any")
+	}
+	if ht.needsFormatAnySlice {
+		add("format_any_slice")
+	}
+	if ht.needsGoChannel {
+		add("GoChannel")
+	}
+	if ht.needsWaitGroup {
+		add("WaitGroup")
+	}
+	if ht.needsGoMutex {
+		add("GoMutex")
+	}
+	if ht.needsGoOnce {
+		add("GoOnce")
+	}
+	if ht.needsGoTypeName {
+		add("go_type_name")
+	}
+	if ht.needsBase64 {
+		add("go_base64_encode", "go_base64_decode", "go_base64_value")
+	}
+	if ht.needsSha256 {
+		add("go_sha256_sum256")
+	}
+	if ht.needsHexFormat {
+		add("go_format_hex_bytes")
+	}
+	if ht.needsStrconvFormat {
+		add("go_strconv_format_int", "go_strconv_format_float")
+	}
+	if ht.needsUrl {
+		add("GoUrl", "go_url_parse")
+	}
+	if ht.needsRegexp {
+		add("GoRegexp", "go_regexp_find_all_string")
+	}
+	if ht.needsJsonEscape {
+		add("go_json_escape")
+	}
+	if ht.needsOsFile {
+		add("GoFile")
+	}
+	if ht.needsSliceElemPtr {
+		add("GoSliceElemPtr", "GoSliceElemRef", "GoSliceElemMutRef")
+	}
+	if ht.needsGoTime {
+		add("GoTime", "go_time_civil_from_days")
+	}
+	if ht.needsGoTimer {
+		add("GoTimer", "go_new_timer")
+	}
+	if ht.needsGoAfter {
+		add("go_channel_after")
+	}
+	if ht.needsGoTicker {
+		add("GoTicker", "go_new_ticker")
+	}
+	if ht.needsGoTick {
+		add("go_tick")
+	}
+	if ht.needsGoContext {
+		add("GoContext", "GoCancelFunc", "GoCancelCauseFunc")
+	}
+	if ht.needsGoRand {
+		add("go_rand_seed", "go_rand_intn", "go_rand_float64", "go_rand_state", "go_rand_next_u64")
+	}
+	if ht.needsReflect {
+		add("GoReflectStructTag", "GoReflectField", "GoReflectType", "go_reflect_tag_get")
+	}
+	if ht.needsGoPtrKey {
+		add("GoLocalPtrKey")
+	}
+
+	names := make([]string, 0, len(seen))
+	for name := range seen {
+		names = append(names, name)
+	}
+	slices.Sort(names)
+	return names
+}
+
 func generateGoPtrKeyHelper(out *strings.Builder, name string) {
 	if NeedsConcurrentWrapper() {
 		out.WriteString(`
@@ -754,6 +857,7 @@ impl Default for GoOnce {
 }
 
 func generateGoTypeNameHelper(out *strings.Builder) {
+	TrackImport("Any")
 	out.WriteString(`
 fn go_type_name(val: &dyn Any) -> &'static str {
     if val.is::<i32>() { return "int" }

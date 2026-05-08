@@ -321,7 +321,11 @@ func (pl *PackageLoader) transpilePackage(pkg *packages.Package) error {
 	}
 
 	for _, module := range generatedModules {
-		rustCode := prefixExternalPackageModuleImports(module.rustCode, module.name, modules, helpersNeeded)
+		var helpers *HelperTracker
+		if helpersNeeded {
+			helpers = pkgState.Helpers
+		}
+		rustCode := prefixExternalPackageModuleImports(module.rustCode, module.name, modules, helpers)
 		if err := os.WriteFile(module.path, []byte(rustCode), 0644); err != nil {
 			return fmt.Errorf("failed to write module %s: %v", module.name, err)
 		}
@@ -363,10 +367,10 @@ path = "lib.rs"
 	return nil
 }
 
-func prefixExternalPackageModuleImports(rustCode, selfModule string, moduleNames []string, usePackageHelpers bool) string {
+func prefixExternalPackageModuleImports(rustCode, selfModule string, moduleNames []string, helpers *HelperTracker) string {
 	rustCode = prefixSiblingModuleImports(rustCode, selfModule, moduleNames)
-	if usePackageHelpers {
-		rustCode = prefixPackageHelperImports(rustCode)
+	if helpers != nil && helpers.HasAny() {
+		rustCode = prefixPackageHelperImports(rustCode, helpers)
 	}
 	return prefixSharedStdlibStubImport(rustCode)
 }

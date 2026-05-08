@@ -186,6 +186,7 @@ func writeStructDerive(out *strings.Builder, structName string, structType *ast.
 	canDeriveDebug := !hasTraitField && structCanDeriveDebug(structType)
 	needsCustomDefault := structNeedsCustomDefault(structType)
 	needsPartialEq := !hasTraitField && structName != "" && comparableStructTypes[structName]
+	derivePartialEq := needsPartialEq && !structNeedsCustomPartialEq(structName, structType)
 	if hasTraitField {
 		if needsCustomDefault {
 			out.WriteString("#[derive(Clone)]\n")
@@ -194,7 +195,7 @@ func writeStructDerive(out *strings.Builder, structName string, structType *ast.
 		}
 	} else {
 		if needsCustomDefault {
-			if needsPartialEq {
+			if derivePartialEq {
 				if canDeriveDebug {
 					out.WriteString("#[derive(Debug, Clone, PartialEq)]\n")
 				} else {
@@ -208,7 +209,7 @@ func writeStructDerive(out *strings.Builder, structName string, structType *ast.
 				}
 			}
 		} else {
-			if needsPartialEq {
+			if derivePartialEq {
 				if canDeriveDebug {
 					out.WriteString("#[derive(Debug, Clone, Default, PartialEq)]\n")
 				} else {
@@ -223,6 +224,55 @@ func writeStructDerive(out *strings.Builder, structName string, structType *ast.
 			}
 		}
 	}
+}
+
+func structNeedsCustomPartialEq(structName string, structType *ast.StructType) bool {
+	return structName != "" && structType != nil && comparableStructTypes[structName] && NeedsConcurrentWrapper()
+}
+
+func generateStructPartialEq(out *strings.Builder, structName string, structType *ast.StructType) {
+	if !structNeedsCustomPartialEq(structName, structType) {
+		return
+	}
+
+	rustStructName := RustTypeNameForUse(structName)
+	out.WriteString("impl PartialEq for ")
+	out.WriteString(rustStructName)
+	out.WriteString(" {\n")
+	out.WriteString("    fn eq(&self, other: &Self) -> bool {\n")
+
+	var fields []string
+	for _, field := range structType.Fields.List {
+		if len(field.Names) > 0 {
+			for _, name := range field.Names {
+				fields = append(fields, ToSnakeCase(name.Name))
+			}
+			continue
+		}
+		fields = append(fields, ToSnakeCase(getEmbeddedFieldName(field.Type)))
+	}
+
+	if len(fields) == 0 {
+		out.WriteString("        true\n")
+	} else {
+		out.WriteString("        (\n")
+		for i, fieldName := range fields {
+			if i > 0 {
+				out.WriteString("\n                && ")
+			} else {
+				out.WriteString("            ")
+			}
+			out.WriteString("{ let __left = self.")
+			out.WriteString(fieldName)
+			out.WriteString(".lock().unwrap(); let __right = other.")
+			out.WriteString(fieldName)
+			out.WriteString(".lock().unwrap(); __left.as_ref() == __right.as_ref() }")
+		}
+		out.WriteString("\n        )\n")
+	}
+
+	out.WriteString("    }\n")
+	out.WriteString("}\n")
 }
 
 func writeStructDefaultValue(out *strings.Builder, fieldType ast.Expr) {
@@ -876,6 +926,7 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 
 		// Generate Display implementation to match Go's format
 		generateStructDisplay(out, typeSpec.Name.Name, t)
+		generateStructPartialEq(out, typeSpec.Name.Name, t)
 
 	case *ast.InterfaceType:
 		// Generate a trait for the interface
