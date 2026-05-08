@@ -571,6 +571,12 @@ func writeCallArgumentValue(out *strings.Builder, arg ast.Expr) bool {
 		WriteBorrowMethod(out, false)
 		out.WriteString(".as_ref().unwrap()).clone()")
 		return true
+	case *types.Interface:
+		if named, ok := typ.(*types.Named); ok && named.Obj() != nil && named.Obj().Pkg() != nil && isStdlibPackage(named.Obj().Pkg().Path()) {
+			writeIdentValueClone(out, ident)
+			return true
+		}
+		return false
 	default:
 		return false
 	}
@@ -1331,6 +1337,11 @@ func writeOwnedMapKeyExpression(out *strings.Builder, expr ast.Expr) bool {
 			out.WriteString("; let __guard = __v")
 			WriteBorrowMethod(out, false)
 			out.WriteString("; let __owned = (*__guard.as_ref().unwrap()).clone(); __owned }")
+			return true
+		}
+	}
+	if ident, ok := expr.(*ast.Ident); ok {
+		if (currentReceiver == "" || ident.Name != currentReceiver) && !isCopyTypeExpression(expr) && writeOwnedExpressionValue(out, ident) {
 			return true
 		}
 	}

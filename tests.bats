@@ -1054,6 +1054,10 @@ run_xfail_test() {
     run_test "tests/stdlib_interface_field_assignment"
 }
 
+@test "stdlib_interface_handle_arguments" {
+    run_test "tests/stdlib_interface_handle_arguments"
+}
+
 @test "stdlib_interface_ident_argument" {
     run_test "tests/stdlib_interface_ident_argument"
 }
