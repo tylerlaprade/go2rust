@@ -179,6 +179,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Interface definitions | ✅ |
 | └ Empty interface{} | ✅ |
 | └ Named `any` returns default to nil | ✅ |
+| └ Empty struct literals with `any` fields default to nil | ✅ |
 | └ Variadic `any` arguments | ✅ |
 | └ Interface implementations | ✅ |
 | └ Type assertions | ✅ |

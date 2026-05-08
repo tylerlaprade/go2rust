@@ -2615,6 +2615,8 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 							if isSyncParam(field.Type) {
 								out.WriteString(goTypeToRustBase(field.Type))
 								out.WriteString("::new()")
+							} else if isEmptyInterfaceExpr(field.Type) {
+								WriteWrappedNone(out)
 							} else if isChannelFieldExpr(field.Type) {
 								out.WriteString("Default::default()")
 							} else {
