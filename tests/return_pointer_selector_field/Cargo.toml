@@ -1,0 +1,8 @@
+[package]
+name = "return_pointer_selector_field"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "return_pointer_selector_field"
+path = "main.rs"

@@ -1,0 +1,8 @@
+[package]
+name = "concurrent_pointer_range_map_append"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "concurrent_pointer_range_map_append"
+path = "main.rs"

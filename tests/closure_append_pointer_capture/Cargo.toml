@@ -1,0 +1,8 @@
+[package]
+name = "closure_append_pointer_capture"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "closure_append_pointer_capture"
+path = "main.rs"

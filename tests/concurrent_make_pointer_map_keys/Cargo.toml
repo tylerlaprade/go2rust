@@ -1,0 +1,8 @@
+[package]
+name = "concurrent_make_pointer_map_keys"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "concurrent_make_pointer_map_keys"
+path = "main.rs"

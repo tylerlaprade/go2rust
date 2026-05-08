@@ -232,6 +232,13 @@ func writeMapWrappedValue(out *strings.Builder, expr ast.Expr) {
 }
 
 func writeMapKeyExpression(out *strings.Builder, expr ast.Expr) {
+	if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.IsPointer(expr) {
+		out.WriteString(goPtrKeyHelperNameForType(typeInfo.GetType(expr)))
+		out.WriteString("::new(")
+		TranspileExpressionContext(out, expr, LValue)
+		out.WriteString(".clone())")
+		return
+	}
 	if !isCopyTypeExpression(expr) && writeOwnedExpressionValue(out, expr) {
 		return
 	}
@@ -1198,6 +1205,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							// Returning self.field - just clone it, don't double-wrap
 							out.WriteString("self.")
 							out.WriteString(ToSnakeCase(sel.Sel.Name))
+							out.WriteString(".clone()")
+						} else if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.IsPointer(result) {
+							TranspileExpressionContext(out, result, LValue)
 							out.WriteString(".clone()")
 						} else {
 							// Regular selector - wrap it
@@ -2953,8 +2963,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			keyType = "String"
 			valueType = GetOuterWrapperType() + "<" + GetInnerWrapperType() + "<Option<T>>>"
 			if mapKeyType, mapValueType := typeInfo.GetMapTypes(s.X); mapKeyType != nil && mapValueType != nil {
-				keyType = goTypesTypeToRust(mapKeyType)
-				valueType = goTypesTypeToRustWrapped(mapValueType)
+				keyType = goTypesMapKeyToRust(mapKeyType)
+				valueType = goTypesMapValueToRust(mapValueType)
 			}
 		} else if isInteger {
 			if rangeType := typeInfo.GetType(s.X); rangeType != nil {

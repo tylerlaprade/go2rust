@@ -310,7 +310,7 @@ func goTypeToRustBase(expr ast.Expr) string {
 		return "Vec<" + elemType + ">"
 	case *ast.MapType:
 		TrackImport("BTreeMap")
-		keyType := goTypeToRustBase(t.Key)
+		keyType := goMapKeyTypeToRustBase(t.Key)
 		valueType := GoTypeToRust(t.Value)
 		return "BTreeMap<" + keyType + ", " + valueType + ">"
 	case *ast.StarExpr:
@@ -412,6 +412,35 @@ func goTypeToRustBase(expr ast.Expr) string {
 		innerWrapper := GetInnerWrapperType()
 		return fmt.Sprintf("/* TODO: Unhandled type %T */ %s<%s<Option<()>>>", t, outerWrapper, innerWrapper)
 	}
+}
+
+func goMapKeyTypeToRustBase(expr ast.Expr) string {
+	if star, ok := expr.(*ast.StarExpr); ok {
+		NeedGoPtrKey()
+		return "GoLocalPtrKey<" + goTypeToRustBase(star.X) + ">"
+	}
+	return goTypeToRustBase(expr)
+}
+
+func isStdlibStubBackedType(t types.Type) bool {
+	t = types.Unalias(t)
+	switch typ := t.(type) {
+	case *types.Named:
+		return typ.Obj() != nil && typ.Obj().Pkg() != nil && isStdlibPackage(typ.Obj().Pkg().Path())
+	case *types.Pointer:
+		return isStdlibStubBackedType(typ.Elem())
+	default:
+		return false
+	}
+}
+
+func goPtrKeyHelperNameForType(t types.Type) string {
+	if ptr, ok := types.Unalias(t).Underlying().(*types.Pointer); ok && isStdlibStubBackedType(ptr.Elem()) &&
+		currentContext != nil && currentContext.UsePackageExternalStubs {
+		return "GoPtrKey"
+	}
+	NeedGoPtrKey()
+	return "GoLocalPtrKey"
 }
 
 func goCallableTypeFromTypeInfo(expr ast.Expr) (string, bool) {
@@ -607,7 +636,7 @@ func goTypesTypeToRust(t types.Type) string {
 		return outerWrapper + "<" + innerWrapper + "<Option<" + goTypesTypeToRust(ut.Elem()) + ">>>"
 	case *types.Map:
 		TrackImport("BTreeMap")
-		return "BTreeMap<" + goTypesTypeToRust(ut.Key()) + ", " + goTypesTypeToRustWrapped(ut.Elem()) + ">"
+		return "BTreeMap<" + goTypesMapKeyToRust(ut.Key()) + ", " + goTypesMapValueToRust(ut.Elem()) + ">"
 	case *types.Struct:
 		if named, ok := t.(*types.Named); ok {
 			return goTypesNamedTypeToRust(named)
@@ -638,6 +667,26 @@ func goTypesTypeToRust(t types.Type) string {
 		}
 		return "/* unknown type */"
 	}
+}
+
+func goTypesMapKeyToRust(t types.Type) string {
+	if t == nil {
+		return "()"
+	}
+	if ptr, ok := types.Unalias(t).Underlying().(*types.Pointer); ok {
+		return goPtrKeyHelperNameForType(t) + "<" + goTypesTypeToRust(ptr.Elem()) + ">"
+	}
+	return goTypesTypeToRust(t)
+}
+
+func goTypesMapValueToRust(t types.Type) string {
+	if t == nil {
+		return "()"
+	}
+	if _, ok := types.Unalias(t).Underlying().(*types.Pointer); ok {
+		return goTypesTypeToRust(t)
+	}
+	return goTypesTypeToRustWrapped(t)
 }
 
 func goTypesConstTypeToRust(t types.Type) string {

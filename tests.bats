@@ -406,6 +406,10 @@ run_xfail_test() {
     run_test "tests/channels_simple"
 }
 
+@test "closure_append_pointer_capture" {
+    run_test "tests/closure_append_pointer_capture"
+}
+
 @test "closures_basic" {
     run_test "tests/closures_basic"
 }
@@ -434,8 +438,24 @@ run_xfail_test() {
     run_test "tests/concurrent_len_comparison"
 }
 
+@test "concurrent_make_pointer_map_keys" {
+    run_test "tests/concurrent_make_pointer_map_keys"
+}
+
+@test "concurrent_make_pointer_map_values" {
+    run_test "tests/concurrent_make_pointer_map_values"
+}
+
 @test "concurrent_named_type_comparisons" {
     run_test "tests/concurrent_named_type_comparisons"
+}
+
+@test "concurrent_pointer_map_keys" {
+    run_test "tests/concurrent_pointer_map_keys"
+}
+
+@test "concurrent_pointer_range_map_append" {
+    run_test "tests/concurrent_pointer_range_map_append"
 }
 
 @test "const_basic" {
@@ -862,6 +882,10 @@ run_xfail_test() {
     run_test "tests/regex_basic"
 }
 
+@test "return_pointer_selector_field" {
+    run_test "tests/return_pointer_selector_field"
+}
+
 @test "return_selector_values" {
     run_test "tests/return_selector_values"
 }
@@ -976,6 +1000,10 @@ run_xfail_test() {
 
 @test "stdlib_package_func_stubs" {
     run_test "tests/stdlib_package_func_stubs"
+}
+
+@test "stdlib_pointer_field_stub" {
+    run_test "tests/stdlib_pointer_field_stub"
 }
 
 @test "stdlib_strings" {

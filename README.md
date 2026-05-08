@@ -174,6 +174,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Shared stdlib stubs across transpiled dependency crates | ✅ |
 | └ Stdlib concrete values passed to stdlib interface parameters | ✅ |
 | └ Stdlib interface field copies | ✅ |
+| └ Stdlib pointer field stubs without nested wrappers | ✅ |
 | **`interface` - Interface types** | |
 | └ Interface definitions | ✅ |
 | └ Empty interface{} | ✅ |
@@ -191,6 +192,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Map access with existence check | ✅ |
 | └ Comma-ok map access with typed zero values | ✅ |
 | └ Pointer keys in map literals and lookups | ✅ |
+| └ Pointer keys and values in `make(map)` plus slice-range pointer key lookups | ✅ |
 | └ Map iteration (for range) | ✅ |
 | └ Map printing (sorted keys, Go 1.12+) | ✅ |
 | **`package` - Packages** | |

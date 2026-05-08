@@ -339,9 +339,9 @@ func writePackageGlobalMapLiteralInit(out *strings.Builder, name string, mapType
 	TrackImport("BTreeMap")
 	out.WriteString("    {\n")
 	out.WriteString("        let mut __go_map = BTreeMap::<")
-	out.WriteString(goTypesTypeToRust(mapType.Key()))
+	out.WriteString(goTypesMapKeyToRust(mapType.Key()))
 	out.WriteString(", ")
-	out.WriteString(goTypesTypeToRustWrapped(mapType.Elem()))
+	out.WriteString(goTypesMapValueToRust(mapType.Elem()))
 	out.WriteString(">::new();\n")
 	for _, elt := range lit.Elts {
 		kv, ok := elt.(*ast.KeyValueExpr)

@@ -142,6 +142,7 @@ type HelperTracker struct {
 	needsGoRand         bool
 	needsReflect        bool
 	needsGoHttpResponse bool
+	needsGoPtrKey       bool
 }
 
 // GenerateHelpers returns the helper function definitions
@@ -252,7 +253,71 @@ func (ht *HelperTracker) GenerateHelpers() string {
 		generateReflectHelper(&result)
 	}
 
+	if ht.needsGoPtrKey {
+		generateGoPtrKeyHelper(&result, "GoLocalPtrKey")
+	}
+
 	return result.String()
+}
+
+func generateGoPtrKeyHelper(out *strings.Builder, name string) {
+	if NeedsConcurrentWrapper() {
+		out.WriteString(`
+#[derive(Clone)]
+pub struct ` + name + `<T>(pub Arc<Mutex<Option<T>>>);
+
+impl<T> ` + name + `<T> {
+    pub fn new(value: Arc<Mutex<Option<T>>>) -> Self { ` + name + `(value) }
+    pub fn value(&self) -> Arc<Mutex<Option<T>>> { self.0.clone() }
+    fn addr(&self) -> usize { Arc::as_ptr(&self.0) as usize }
+}
+
+impl<T> PartialEq for ` + name + `<T> {
+    fn eq(&self, other: &Self) -> bool { self.addr() == other.addr() }
+}
+impl<T> Eq for ` + name + `<T> {}
+impl<T> PartialOrd for ` + name + `<T> {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> { Some(self.cmp(other)) }
+}
+impl<T> Ord for ` + name + `<T> {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering { self.addr().cmp(&other.addr()) }
+}
+impl<T> std::fmt::Debug for ` + name + `<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { write!(f, "0x{:x}", self.addr()) }
+}
+impl<T> std::fmt::Display for ` + name + `<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { write!(f, "0x{:x}", self.addr()) }
+}
+`)
+	} else {
+		out.WriteString(`
+#[derive(Clone)]
+pub struct ` + name + `<T>(pub Rc<RefCell<Option<T>>>);
+
+impl<T> ` + name + `<T> {
+    pub fn new(value: Rc<RefCell<Option<T>>>) -> Self { ` + name + `(value) }
+    pub fn value(&self) -> Rc<RefCell<Option<T>>> { self.0.clone() }
+    fn addr(&self) -> usize { Rc::as_ptr(&self.0) as usize }
+}
+
+impl<T> PartialEq for ` + name + `<T> {
+    fn eq(&self, other: &Self) -> bool { self.addr() == other.addr() }
+}
+impl<T> Eq for ` + name + `<T> {}
+impl<T> PartialOrd for ` + name + `<T> {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> { Some(self.cmp(other)) }
+}
+impl<T> Ord for ` + name + `<T> {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering { self.addr().cmp(&other.addr()) }
+}
+impl<T> std::fmt::Debug for ` + name + `<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { write!(f, "0x{:x}", self.addr()) }
+}
+impl<T> std::fmt::Display for ` + name + `<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { write!(f, "0x{:x}", self.addr()) }
+}
+`)
+	}
 }
 
 func generateAnyFormatter(out *strings.Builder) {

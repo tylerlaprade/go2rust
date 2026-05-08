@@ -367,6 +367,12 @@ func NeedFormatAnySlice() {
 	}
 }
 
+func NeedGoPtrKey() {
+	if currentContext != nil && currentContext.Helpers != nil {
+		currentContext.Helpers.needsGoPtrKey = true
+	}
+}
+
 // NeedGoChannel marks that we need the GoChannel helper struct
 func NeedGoChannel() {
 	if currentContext != nil && currentContext.Helpers != nil {

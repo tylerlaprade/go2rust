@@ -1208,24 +1208,45 @@ func findTypesStructFieldType(structType *types.Struct, fieldName string) types.
 
 func writeMapLookupKey(out *strings.Builder, index ast.Expr) {
 	if ident, ok := index.(*ast.Ident); ok {
-		if _, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar {
+		if varType, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar {
+			if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.IsPointer(index) && !isPointerKeyRangeVarType(varType) {
+				out.WriteString("&")
+				out.WriteString(goPtrKeyHelperNameForType(typeInfo.GetType(index)))
+				out.WriteString("::new(")
+				TranspileExpressionContext(out, index, LValue)
+				out.WriteString(".clone())")
+				return
+			}
 			// Range variables from slice/map iteration are already references.
 			out.WriteString(ident.Name)
 			return
 		}
 	}
-	out.WriteString("&")
 	if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.IsPointer(index) {
+		out.WriteString("&")
+		out.WriteString(goPtrKeyHelperNameForType(typeInfo.GetType(index)))
+		out.WriteString("::new(")
 		TranspileExpressionContext(out, index, LValue)
+		out.WriteString(".clone())")
 	} else {
+		out.WriteString("&")
 		TranspileExpression(out, index)
 	}
 }
 
+func isPointerKeyRangeVarType(varType string) bool {
+	return strings.HasPrefix(varType, "GoPtrKey<") ||
+		strings.HasPrefix(varType, "GoLocalPtrKey<") ||
+		strings.HasPrefix(varType, "&GoPtrKey<") ||
+		strings.HasPrefix(varType, "&GoLocalPtrKey<")
+}
+
 func writeMapLiteralKey(out *strings.Builder, key ast.Expr) {
 	if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.IsPointer(key) {
+		out.WriteString(goPtrKeyHelperNameForType(typeInfo.GetType(key)))
+		out.WriteString("::new(")
 		TranspileExpressionContext(out, key, LValue)
-		out.WriteString(".clone()")
+		out.WriteString(".clone())")
 		return
 	}
 	TranspileExpression(out, key)
@@ -2344,8 +2365,8 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 						// Don't wrap - the outer container wraps the value
 						mapType := typ.Underlying().(*types.Map)
 						TrackImport("BTreeMap")
-						keyRust := goTypesTypeToRust(mapType.Key())
-						valRust := goTypesTypeToRustWrapped(mapType.Elem())
+						keyRust := goTypesMapKeyToRust(mapType.Key())
+						valRust := goTypesMapValueToRust(mapType.Elem())
 						out.WriteString("BTreeMap::<")
 						out.WriteString(keyRust)
 						out.WriteString(", ")
@@ -2514,15 +2535,15 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			TrackImport("BTreeMap")
 			WriteWrapperPrefix(out)
 			out.WriteString("BTreeMap::<")
-			keyRust := goTypeToRustBase(mapType.Key)
+			keyRust := goMapKeyTypeToRustBase(mapType.Key)
 			valueRust := GoTypeToRust(mapType.Value)
 			var mapValueType types.Type
 			typeInfo := GetTypeInfo()
 			if typeInfo != nil {
 				if typ := typeInfo.GetType(e); typ != nil {
 					if checkedMap, ok := typ.Underlying().(*types.Map); ok {
-						keyRust = goTypesTypeToRust(checkedMap.Key())
-						valueRust = goTypesTypeToRustWrapped(checkedMap.Elem())
+						keyRust = goTypesMapKeyToRust(checkedMap.Key())
+						valueRust = goTypesMapValueToRust(checkedMap.Elem())
 						mapValueType = checkedMap.Elem()
 					}
 				}

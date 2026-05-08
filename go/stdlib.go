@@ -2182,12 +2182,32 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 		if transpileNamedSliceAppend(out, call) {
 			return
 		}
+		writeAppendElement := func(expr ast.Expr) {
+			if typeInfo := GetTypeInfo(); typeInfo != nil {
+				if elemType := typeInfo.GetSliceElemType(call.Args[0]); elemType != nil {
+					if _, ok := types.Unalias(elemType).Underlying().(*types.Pointer); ok && typeInfo.IsPointer(expr) {
+						TranspileExpressionContext(out, expr, LValue)
+						out.WriteString(".clone()")
+						return
+					}
+				}
+			}
+			if !writeOwnedExpressionValue(out, expr) {
+				TranspileExpression(out, expr)
+			}
+		}
 		writeAppendTarget := func(expr ast.Expr) {
 			if ident, ok := expr.(*ast.Ident); ok {
 				if writeCurrentReceiverStorage(out, ident) {
 					return
 				}
-				out.WriteString(EscapeRustIdent(ident.Name))
+				varName := RustIdentForUse(ident)
+				if currentCaptureRenames != nil {
+					if renamed, exists := currentCaptureRenames[ident.Name]; exists {
+						varName = RustLocalIdent(renamed)
+					}
+				}
+				out.WriteString(varName)
 				return
 			}
 			switch expr.(type) {
@@ -2218,9 +2238,7 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 			writeAppendTarget(call.Args[0])
 			WriteBorrowMethod(out, true)
 			out.WriteString(").get_or_insert_with(Vec::new).push(")
-			if !writeOwnedExpressionValue(out, call.Args[1]) {
-				TranspileExpression(out, call.Args[1])
-			}
+			writeAppendElement(call.Args[1])
 			out.WriteString("); ")
 			// Return the wrapped slice itself
 			writeAppendTarget(call.Args[0])
@@ -2235,9 +2253,7 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 				if i > 1 {
 					out.WriteString(", ")
 				}
-				if !writeOwnedExpressionValue(out, call.Args[i]) {
-					TranspileExpression(out, call.Args[i])
-				}
+				writeAppendElement(call.Args[i])
 			}
 			out.WriteString("]); ")
 			// Return the wrapped slice itself
@@ -2381,10 +2397,20 @@ func transpileMake(out *strings.Builder, call *ast.CallExpr) {
 		if mapType, ok := call.Args[0].(*ast.MapType); ok {
 			WriteWrapperPrefix(out)
 			TrackImport("BTreeMap")
+			keyType := goMapKeyTypeToRustBase(mapType.Key)
+			valueType := GoTypeToRust(mapType.Value)
+			if typeInfo := GetTypeInfo(); typeInfo != nil {
+				if typ := typeInfo.GetType(call.Args[0]); typ != nil {
+					if checkedMap, ok := typ.Underlying().(*types.Map); ok {
+						keyType = goTypesMapKeyToRust(checkedMap.Key())
+						valueType = goTypesMapValueToRust(checkedMap.Elem())
+					}
+				}
+			}
 			out.WriteString("BTreeMap::<")
-			out.WriteString(goTypeToRustBase(mapType.Key))
+			out.WriteString(keyType)
 			out.WriteString(", ")
-			out.WriteString(GoTypeToRust(mapType.Value))
+			out.WriteString(valueType)
 			out.WriteString(">::new()")
 			out.WriteString(")))")
 		} else if arrayType, ok := call.Args[0].(*ast.ArrayType); ok && arrayType.Len == nil {

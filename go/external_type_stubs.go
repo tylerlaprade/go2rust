@@ -46,12 +46,19 @@ func RegisterExternalTypeStubField(typeName string, fieldName string, fieldType 
 	}
 	RegisterExternalTypeStub(typeName)
 	trackWrapperImports()
-	fieldTypeRust := goTypesTypeToRustWrapped(fieldType)
+	fieldTypeRust := goTypesFieldTypeToRust(fieldType)
 	fields := currentExternalTypeStubFields()
 	if fields[typeName] == nil {
 		fields[typeName] = make(map[string]string)
 	}
 	fields[typeName][fieldName] = fieldTypeRust
+}
+
+func goTypesFieldTypeToRust(t types.Type) string {
+	if _, ok := types.Unalias(t).Underlying().(*types.Pointer); ok {
+		return goTypesTypeToRust(t)
+	}
+	return goTypesTypeToRustWrapped(t)
 }
 
 func RegisterExternalTypeStubMethod(typeName string, methodName string, sig *types.Signature) {
@@ -569,6 +576,7 @@ func GenerateExternalStubModuleImports() string {
 	out.WriteString("use std::any::Any;\n")
 	out.WriteString("use std::collections::BTreeMap;\n")
 	out.WriteString("use std::error::Error as StdError;\n")
+	generateGoPtrKeyHelper(&out, "GoPtrKey")
 	return out.String()
 }
 
