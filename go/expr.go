@@ -1236,6 +1236,15 @@ func writeWrappedMapValue(out *strings.Builder, value ast.Expr, valueExpr ast.Ex
 	if (isEmptyInterfaceExpr(valueExpr) || isEmptyInterfaceType(valueType)) && writeEmptyInterfaceHandleClone(out, value) {
 		return
 	}
+	if isPointerFieldExpr(valueExpr) || isPointerFieldType(valueType) {
+		if ident, ok := value.(*ast.Ident); ok && ident.Name == "nil" {
+			out.WriteString("Default::default()")
+			return
+		}
+		TranspileExpressionContext(out, value, LValue)
+		out.WriteString(".clone()")
+		return
+	}
 	WriteWrapperPrefix(out)
 	if isEmptyInterfaceExpr(valueExpr) || isEmptyInterfaceType(valueType) {
 		writeInterfaceBoxedValue(out, value)
@@ -1299,6 +1308,18 @@ func writeMapLookupKey(out *strings.Builder, index ast.Expr) {
 			TranspileExpression(out, index)
 		}
 	}
+}
+
+func writeMapLookupValue(out *strings.Builder, valueType types.Type, defaultValue string) {
+	if isPointerFieldType(valueType) || isEmptyInterfaceType(valueType) {
+		out.WriteString(".map(|__v| __v.clone()).unwrap_or_else(|| Default::default())")
+		return
+	}
+	out.WriteString(".map(|__v| __v")
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap().clone()).unwrap_or_else(|| ")
+	out.WriteString(defaultValue)
+	out.WriteString(")")
 }
 
 func writeOwnedMapKeyExpression(out *strings.Builder, expr ast.Expr) bool {
@@ -1862,6 +1883,24 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				}
 			} else {
 				// Direct field access
+				if typeInfo != nil && typeInfo.IsPointer(e.X) {
+					if ctx == RValue {
+						out.WriteString("(*(*")
+						TranspileExpression(out, e.X)
+						WriteBorrowMethod(out, false)
+						out.WriteString(".as_ref().unwrap()).")
+						out.WriteString(fieldInfo.FieldName)
+						WriteBorrowMethod(out, false)
+						out.WriteString(".as_ref().unwrap())")
+					} else {
+						out.WriteString("(*")
+						TranspileExpression(out, e.X)
+						WriteBorrowMethod(out, false)
+						out.WriteString(".as_ref().unwrap()).")
+						out.WriteString(fieldInfo.FieldName)
+					}
+					break
+				}
 				if _, isCallReceiver := e.X.(*ast.CallExpr); isCallReceiver && typeInfo != nil && typeInfo.ReturnsWrappedValue(e.X) {
 					if ctx == RValue && !typeInfo.IsPointer(e) {
 						out.WriteString("(*(*")
@@ -2306,8 +2345,10 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		if isMap {
 			// Map read access - need to clone the value
 			defaultValue := "Default::default()"
+			var valueType types.Type
 			if typeInfo != nil {
-				defaultValue = zeroValueForTypesType(typeInfo.GetMapValueType(e.X))
+				valueType = typeInfo.GetMapValueType(e.X)
+				defaultValue = zeroValueForTypesType(valueType)
 			}
 			if isExpressionResultBare(e.X) || (!NeedsConcurrentWrapper() && isBareMapSelectorExpression(e.X)) {
 				// e.X is a bare value (e.g., result of another index/map access)
@@ -2315,21 +2356,16 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				TranspileExpression(out, e.X)
 				out.WriteString(".get(")
 				writeMapLookupKey(out, e.Index)
-				out.WriteString(").map(|__v| __v")
-				WriteBorrowMethod(out, false)
-				out.WriteString(".as_ref().unwrap().clone()).unwrap_or_else(|| ")
-				out.WriteString(defaultValue)
 				out.WriteString(")")
+				writeMapLookupValue(out, valueType, defaultValue)
 			} else if NeedsConcurrentWrapper() {
 				out.WriteString("{ let __map = ")
 				writeClonedWrappedExpression(out, e.X, "__map_holder", "__map_guard")
 				out.WriteString("; __map.get(")
 				writeMapLookupKey(out, e.Index)
-				out.WriteString(").map(|__v| __v")
-				WriteBorrowMethod(out, false)
-				out.WriteString(".as_ref().unwrap().clone()).unwrap_or_else(|| ")
-				out.WriteString(defaultValue)
-				out.WriteString(") }")
+				out.WriteString(")")
+				writeMapLookupValue(out, valueType, defaultValue)
+				out.WriteString(" }")
 			} else {
 				out.WriteString("(*")
 				if ident, ok := e.X.(*ast.Ident); ok {
@@ -2340,11 +2376,8 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				WriteBorrowMethod(out, false)
 				out.WriteString(".as_ref().unwrap()).get(")
 				writeMapLookupKey(out, e.Index)
-				out.WriteString(").map(|__v| __v")
-				WriteBorrowMethod(out, false)
-				out.WriteString(".as_ref().unwrap().clone()).unwrap_or_else(|| ")
-				out.WriteString(defaultValue)
 				out.WriteString(")")
+				writeMapLookupValue(out, valueType, defaultValue)
 			}
 		} else {
 			// Regular array/slice/string indexing

@@ -766,6 +766,10 @@ run_xfail_test() {
     run_test "tests/map_lookup_wrapped_call_key"
 }
 
+@test "map_pointer_key_comma_ok" {
+    run_test "tests/map_pointer_key_comma_ok"
+}
+
 @test "map_slice_append_assignment" {
     run_test "tests/map_slice_append_assignment"
 }

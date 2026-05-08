@@ -1811,8 +1811,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					TranspileExpression(out, indexExpr.X)
 				}
 				WriteBorrowMethod(out, false)
-				out.WriteString(".as_ref().unwrap()).get(&")
-				TranspileExpression(out, indexExpr.Index)
+				out.WriteString(".as_ref().unwrap()).get(")
+				writeMapLookupKey(out, indexExpr.Index)
 				out.WriteString(") { /* MAP_COMMA_OK */ Some(v) => (v.clone(), ")
 				WriteWrapperPrefix(out)
 				out.WriteString("true")

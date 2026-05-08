@@ -22,5 +22,5 @@ fn main() {
     let mut n = Arc::new(Mutex::new(Some(node { value: Arc::new(Mutex::new(Some(5))), ..Default::default() })));
     let mut byName = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<node>>>>::new())));
     (*byName.lock().unwrap().as_mut().unwrap()).insert("x".to_string(), n.clone());
-    println!("{}", (*{ let __map = { let __map_holder = byName.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = (*__map_guard.as_ref().unwrap()).clone(); drop(__map_guard); __cloned }; __map.get(&"x".to_string()).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| Default::default()) }.value.lock().unwrap().as_ref().unwrap()));
+    println!("{}", (*(*{ let __map = { let __map_holder = byName.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = (*__map_guard.as_ref().unwrap()).clone(); drop(__map_guard); __cloned }; __map.get(&"x".to_string()).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.lock().unwrap().as_ref().unwrap()).value.lock().unwrap().as_ref().unwrap()));
 }

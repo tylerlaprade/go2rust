@@ -419,8 +419,17 @@ func goTypeToRustBase(expr ast.Expr) string {
 
 func goMapKeyTypeToRustBase(expr ast.Expr) string {
 	if star, ok := expr.(*ast.StarExpr); ok {
-		NeedGoPtrKey()
-		return "GoLocalPtrKey<" + goTypeToRustBase(star.X) + ">"
+		keyHelper := "GoLocalPtrKey"
+		if typeInfo := GetTypeInfo(); typeInfo != nil {
+			if typ := typeInfo.GetType(expr); typ != nil {
+				keyHelper = goPtrKeyHelperNameForType(typ)
+			} else {
+				NeedGoPtrKey()
+			}
+		} else {
+			NeedGoPtrKey()
+		}
+		return keyHelper + "<" + goTypeToRustBase(star.X) + ">"
 	}
 	return goTypeToRustBase(expr)
 }
