@@ -3589,24 +3589,40 @@ func writeStringConversionSource(out *strings.Builder, arg ast.Expr) {
 }
 
 func writeNumericConversionValue(out *strings.Builder, arg ast.Expr) {
+	typeInfo := GetTypeInfo()
+	var argType types.Type
+	if typeInfo != nil {
+		argType = typeInfo.GetType(arg)
+	}
+
 	if ident, ok := arg.(*ast.Ident); ok && ident.Name != "nil" {
 		out.WriteString("(*")
 		out.WriteString(RustIdentForUse(ident))
 		WriteBorrowMethod(out, false)
 		out.WriteString(".as_ref().unwrap())")
+		writeExternalIntegerTupleField(out, argType)
 		return
 	}
 
-	typeInfo := GetTypeInfo()
 	if typeInfo == nil || typeInfo.ReturnsWrappedValue(arg) {
 		out.WriteString("(*")
 		TranspileExpression(out, arg)
 		WriteBorrowMethod(out, false)
 		out.WriteString(".as_ref().unwrap())")
+		writeExternalIntegerTupleField(out, argType)
 		return
 	}
 
 	TranspileExpression(out, arg)
+	writeExternalIntegerTupleField(out, argType)
+}
+
+func writeExternalIntegerTupleField(out *strings.Builder, typ types.Type) {
+	if named, ok := typ.(*types.Named); ok {
+		if _, ok := externalIntegerRustTypeForNamed(named); ok {
+			out.WriteString(".0")
+		}
+	}
 }
 
 func staticallyKnownAnyInterfaceAssertionSource(e *ast.TypeAssertExpr) (ast.Expr, bool) {

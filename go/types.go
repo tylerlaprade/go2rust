@@ -399,7 +399,7 @@ func goTypeToRustBase(expr ast.Expr) string {
 		}
 		rustName := fmt.Sprintf("%s_%s", t.X, t.Sel.Name)
 		if ident, ok := t.X.(*ast.Ident); ok && isStdlibPackage(goPackageImports[ident.Name]) {
-			RegisterExternalTypeStub(rustName)
+			RegisterExternalTypeStubForTypeExpr(t, rustName)
 		}
 		return rustName
 	case *ast.Ellipsis:
@@ -732,7 +732,7 @@ func goTypesNamedTypeToRust(named *types.Named) string {
 	}
 	rustName := obj.Pkg().Name() + "_" + obj.Name()
 	if isStdlibPackage(obj.Pkg().Path()) {
-		RegisterExternalTypeStub(rustName)
+		RegisterExternalTypeStubNamed(named, rustName)
 	}
 	return rustName
 }

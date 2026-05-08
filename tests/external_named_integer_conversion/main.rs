@@ -2,21 +2,18 @@ use std::cell::{RefCell};
 use std::rc::{Rc};
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
-pub struct types_Chan;
+pub struct types_BasicKind(pub i32);
 
-impl std::fmt::Display for types_Chan {
+impl std::fmt::Display for types_BasicKind {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "<types_Chan>")
+        write!(f, "<types_BasicKind>")
     }
 }
 
 
-impl types_Chan {
+impl types_BasicKind {
     pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
         None
-    }
-    pub fn dir(&self) -> Rc<RefCell<Option<types_ChanDir>>> {
-        Rc::new(RefCell::new(Some::<types_ChanDir>(Default::default())))
     }
 }
 
@@ -40,18 +37,24 @@ impl types_ChanDir {
 
 pub mod types {
     use super::*;
+    pub const int: types_BasicKind = types_BasicKind(0);
     pub const send_recv: types_ChanDir = types_ChanDir(0);
 }
 
 
-pub fn is_bidirectional(ch: Rc<RefCell<Option<types_Chan>>>) -> Rc<RefCell<Option<bool>>> {
+pub fn kind() -> Rc<RefCell<Option<types_BasicKind>>> {
 
-    return Rc::new(RefCell::new(Some((*(*ch.borrow_mut().as_mut().unwrap()).dir().borrow().as_ref().unwrap()) == types::send_recv)));
+    return Rc::new(RefCell::new(Some(types::int.clone())));
+}
+
+pub fn dir() -> Rc<RefCell<Option<types_ChanDir>>> {
+
+    return Rc::new(RefCell::new(Some(types::send_recv.clone())));
 }
 
 fn main() {
     if false {
-        println!("{}", (*is_bidirectional(Rc::new(RefCell::new(None))).borrow().as_ref().unwrap()));
+        println!("{} {}", (*Rc::new(RefCell::new(Some((*kind().borrow().as_ref().unwrap()).0 as u32))).borrow().as_ref().unwrap()), (*Rc::new(RefCell::new(Some((*dir().borrow().as_ref().unwrap()).0 as u32))).borrow().as_ref().unwrap()));
     }
     println!("{}", "ok".to_string());
 }

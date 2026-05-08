@@ -10,47 +10,49 @@ type TranspileSession struct {
 
 // PackageState holds package-scoped registries that should be shared across files.
 type PackageState struct {
-	FunctionSignatures          map[string]*FunctionSignature
-	FunctionNameOverrides       map[string]string
-	ErrorImplTypes              map[string]bool
-	StringerImplTypes           map[string]bool
-	InterfaceTypes              map[string]bool
-	TypeDefinitions             map[string]string
-	TypeAliases                 map[string]bool
-	GoPackageImports            map[string]string
-	ExternalPackages            map[string]bool
-	StructDefs                  map[string]*StructDef
-	EmbeddedFields              map[string]map[string]string
-	AnonymousStructCounter      int
-	AnonymousStructs            map[string]*ast.StructType
-	AnonymousStructTypeMap      map[string]string
-	ExternalTypeStubs           map[string]bool
-	ExternalTypeStubFields      map[string]map[string]string
-	ExternalTypeStubMethods     map[string]map[string]externalTypeStubMethod
-	ExternalTypeStubConversions map[string]map[string]bool
-	ExternalPackageStubs        map[string]*externalPackageStub
+	FunctionSignatures           map[string]*FunctionSignature
+	FunctionNameOverrides        map[string]string
+	ErrorImplTypes               map[string]bool
+	StringerImplTypes            map[string]bool
+	InterfaceTypes               map[string]bool
+	TypeDefinitions              map[string]string
+	TypeAliases                  map[string]bool
+	GoPackageImports             map[string]string
+	ExternalPackages             map[string]bool
+	StructDefs                   map[string]*StructDef
+	EmbeddedFields               map[string]map[string]string
+	AnonymousStructCounter       int
+	AnonymousStructs             map[string]*ast.StructType
+	AnonymousStructTypeMap       map[string]string
+	ExternalTypeStubs            map[string]bool
+	ExternalTypeStubIntegerTypes map[string]string
+	ExternalTypeStubFields       map[string]map[string]string
+	ExternalTypeStubMethods      map[string]map[string]externalTypeStubMethod
+	ExternalTypeStubConversions  map[string]map[string]bool
+	ExternalPackageStubs         map[string]*externalPackageStub
 }
 
 // FileState holds file-scoped scratch state for a single transpilation pass.
 type FileState struct {
-	Imports                     *ImportTracker
-	Helpers                     *HelperTracker
-	StatementPreprocessor       *StatementPreprocessor
-	RangeLoopVars               map[string]string
-	LocalConstants              map[string]string
-	LocalInterfaces             map[string]bool
-	CurrentReceiver             string
-	CurrentReceiverType         string
-	CurrentFunctionHasDefer     bool
-	CurrentCaptureRenames       map[string]string
-	ExternalTypeStubs           map[string]bool
-	ExternalTypeStubFields      map[string]map[string]string
-	ExternalTypeStubMethods     map[string]map[string]externalTypeStubMethod
-	ExternalTypeStubConversions map[string]map[string]bool
-	ExternalPackageStubs        map[string]*externalPackageStub
-	PendingLoopLabel            string
-	HasInitFunction             bool
-	LabeledLoopPost             map[string]ast.Stmt
+	Imports                      *ImportTracker
+	Helpers                      *HelperTracker
+	StatementPreprocessor        *StatementPreprocessor
+	RangeLoopVars                map[string]string
+	LocalConstants               map[string]string
+	LocalInterfaces              map[string]bool
+	CurrentReceiver              string
+	CurrentReceiverType          string
+	CurrentFunctionHasDefer      bool
+	CurrentCaptureRenames        map[string]string
+	ExternalTypeStubs            map[string]bool
+	ExternalTypeStubIntegerTypes map[string]string
+	ExternalTypeStubFields       map[string]map[string]string
+	ExternalTypeStubMethods      map[string]map[string]externalTypeStubMethod
+	ExternalTypeStubConversions  map[string]map[string]bool
+	ExternalPackageStubs         map[string]*externalPackageStub
+	PendingLoopLabel             string
+	HasInitFunction              bool
+	LabeledLoopPost              map[string]ast.Stmt
 }
 
 // TranspileContext holds the active session/package/file state for a transpilation call.
@@ -73,24 +75,25 @@ func NewTranspileSession(typeInfo *TypeInfo, packageMapping map[string]string) *
 
 func NewPackageState() *PackageState {
 	return &PackageState{
-		FunctionSignatures:          make(map[string]*FunctionSignature),
-		FunctionNameOverrides:       make(map[string]string),
-		ErrorImplTypes:              make(map[string]bool),
-		StringerImplTypes:           make(map[string]bool),
-		InterfaceTypes:              make(map[string]bool),
-		TypeDefinitions:             make(map[string]string),
-		TypeAliases:                 make(map[string]bool),
-		GoPackageImports:            make(map[string]string),
-		ExternalPackages:            make(map[string]bool),
-		StructDefs:                  make(map[string]*StructDef),
-		EmbeddedFields:              make(map[string]map[string]string),
-		AnonymousStructs:            make(map[string]*ast.StructType),
-		AnonymousStructTypeMap:      make(map[string]string),
-		ExternalTypeStubs:           make(map[string]bool),
-		ExternalTypeStubFields:      make(map[string]map[string]string),
-		ExternalTypeStubMethods:     make(map[string]map[string]externalTypeStubMethod),
-		ExternalTypeStubConversions: make(map[string]map[string]bool),
-		ExternalPackageStubs:        make(map[string]*externalPackageStub),
+		FunctionSignatures:           make(map[string]*FunctionSignature),
+		FunctionNameOverrides:        make(map[string]string),
+		ErrorImplTypes:               make(map[string]bool),
+		StringerImplTypes:            make(map[string]bool),
+		InterfaceTypes:               make(map[string]bool),
+		TypeDefinitions:              make(map[string]string),
+		TypeAliases:                  make(map[string]bool),
+		GoPackageImports:             make(map[string]string),
+		ExternalPackages:             make(map[string]bool),
+		StructDefs:                   make(map[string]*StructDef),
+		EmbeddedFields:               make(map[string]map[string]string),
+		AnonymousStructs:             make(map[string]*ast.StructType),
+		AnonymousStructTypeMap:       make(map[string]string),
+		ExternalTypeStubs:            make(map[string]bool),
+		ExternalTypeStubIntegerTypes: make(map[string]string),
+		ExternalTypeStubFields:       make(map[string]map[string]string),
+		ExternalTypeStubMethods:      make(map[string]map[string]externalTypeStubMethod),
+		ExternalTypeStubConversions:  make(map[string]map[string]bool),
+		ExternalPackageStubs:         make(map[string]*externalPackageStub),
 	}
 }
 
@@ -102,18 +105,19 @@ func NewFileState(imports *ImportTracker, helpers *HelperTracker, statementPrepr
 		helpers = &HelperTracker{}
 	}
 	return &FileState{
-		Imports:                     imports,
-		Helpers:                     helpers,
-		StatementPreprocessor:       statementPreprocessor,
-		RangeLoopVars:               make(map[string]string),
-		LocalConstants:              make(map[string]string),
-		LocalInterfaces:             make(map[string]bool),
-		ExternalTypeStubs:           make(map[string]bool),
-		ExternalTypeStubFields:      make(map[string]map[string]string),
-		ExternalTypeStubMethods:     make(map[string]map[string]externalTypeStubMethod),
-		ExternalTypeStubConversions: make(map[string]map[string]bool),
-		ExternalPackageStubs:        make(map[string]*externalPackageStub),
-		LabeledLoopPost:             make(map[string]ast.Stmt),
+		Imports:                      imports,
+		Helpers:                      helpers,
+		StatementPreprocessor:        statementPreprocessor,
+		RangeLoopVars:                make(map[string]string),
+		LocalConstants:               make(map[string]string),
+		LocalInterfaces:              make(map[string]bool),
+		ExternalTypeStubs:            make(map[string]bool),
+		ExternalTypeStubIntegerTypes: make(map[string]string),
+		ExternalTypeStubFields:       make(map[string]map[string]string),
+		ExternalTypeStubMethods:      make(map[string]map[string]externalTypeStubMethod),
+		ExternalTypeStubConversions:  make(map[string]map[string]bool),
+		ExternalPackageStubs:         make(map[string]*externalPackageStub),
+		LabeledLoopPost:              make(map[string]ast.Stmt),
 	}
 }
 
@@ -184,6 +188,9 @@ func (ctx *TranspileContext) ensureDefaults() {
 		if ctx.Package.ExternalTypeStubs == nil {
 			ctx.Package.ExternalTypeStubs = make(map[string]bool)
 		}
+		if ctx.Package.ExternalTypeStubIntegerTypes == nil {
+			ctx.Package.ExternalTypeStubIntegerTypes = make(map[string]string)
+		}
 		if ctx.Package.ExternalTypeStubFields == nil {
 			ctx.Package.ExternalTypeStubFields = make(map[string]map[string]string)
 		}
@@ -215,6 +222,9 @@ func (ctx *TranspileContext) ensureDefaults() {
 		}
 		if ctx.File.ExternalTypeStubs == nil {
 			ctx.File.ExternalTypeStubs = make(map[string]bool)
+		}
+		if ctx.File.ExternalTypeStubIntegerTypes == nil {
+			ctx.File.ExternalTypeStubIntegerTypes = make(map[string]string)
 		}
 		if ctx.File.ExternalTypeStubFields == nil {
 			ctx.File.ExternalTypeStubFields = make(map[string]map[string]string)
@@ -271,6 +281,7 @@ func (ctx *TranspileContext) captureCompatibilityState() {
 		ctx.File.CurrentFunctionHasDefer = currentFunctionHasDefer
 		ctx.File.CurrentCaptureRenames = currentCaptureRenames
 		ctx.File.ExternalTypeStubs = externalTypeStubs
+		ctx.File.ExternalTypeStubIntegerTypes = externalTypeStubIntegerTypes
 		ctx.File.ExternalTypeStubFields = externalTypeStubFields
 		ctx.File.ExternalTypeStubMethods = externalTypeStubMethods
 		ctx.File.ExternalTypeStubConversions = externalTypeStubConversions
@@ -316,6 +327,7 @@ func (ctx *TranspileContext) applyCompatibilityState() {
 		currentFunctionHasDefer = ctx.File.CurrentFunctionHasDefer
 		currentCaptureRenames = ctx.File.CurrentCaptureRenames
 		externalTypeStubs = ctx.File.ExternalTypeStubs
+		externalTypeStubIntegerTypes = ctx.File.ExternalTypeStubIntegerTypes
 		externalTypeStubFields = ctx.File.ExternalTypeStubFields
 		externalTypeStubMethods = ctx.File.ExternalTypeStubMethods
 		externalTypeStubConversions = ctx.File.ExternalTypeStubConversions

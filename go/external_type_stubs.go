@@ -12,6 +12,7 @@ import (
 )
 
 var externalTypeStubs = make(map[string]bool)
+var externalTypeStubIntegerTypes = make(map[string]string)
 var externalTypeStubFields = make(map[string]map[string]string)
 var externalTypeStubMethods = make(map[string]map[string]externalTypeStubMethod)
 var externalTypeStubConversions = make(map[string]map[string]bool)
@@ -38,6 +39,74 @@ func RegisterExternalTypeStub(name string) {
 		return
 	}
 	currentExternalTypeStubs()[name] = true
+}
+
+func RegisterExternalTypeStubNamed(named *types.Named, rustName string) {
+	RegisterExternalTypeStub(rustName)
+	if rustType, ok := externalIntegerRustTypeForNamed(named); ok {
+		currentExternalTypeStubIntegerTypes()[rustName] = rustType
+	}
+}
+
+func RegisterExternalTypeStubForTypeExpr(expr ast.Expr, rustName string) {
+	RegisterExternalTypeStub(rustName)
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return
+	}
+	var named *types.Named
+	if typ := typeInfo.GetType(expr); typ != nil {
+		named, _ = typ.(*types.Named)
+	}
+	if named == nil {
+		if sel, ok := expr.(*ast.SelectorExpr); ok {
+			if obj, ok := typeInfo.info.Uses[sel.Sel].(*types.TypeName); ok {
+				named, _ = obj.Type().(*types.Named)
+			}
+		}
+	}
+	if rustType, ok := externalIntegerRustTypeForNamed(named); ok {
+		currentExternalTypeStubIntegerTypes()[rustName] = rustType
+	}
+}
+
+func externalIntegerRustTypeForNamed(named *types.Named) (string, bool) {
+	if named == nil || named.Obj() == nil || named.Obj().Pkg() == nil {
+		return "", false
+	}
+	if !isStdlibPackage(named.Obj().Pkg().Path()) {
+		return "", false
+	}
+	basic, ok := types.Unalias(named.Underlying()).(*types.Basic)
+	if !ok {
+		return "", false
+	}
+	switch basic.Kind() {
+	case types.Int:
+		return "i32", true
+	case types.Int8:
+		return "i8", true
+	case types.Int16:
+		return "i16", true
+	case types.Int32:
+		return "i32", true
+	case types.Int64:
+		return "i64", true
+	case types.Uint:
+		return "u32", true
+	case types.Uint8:
+		return "u8", true
+	case types.Uint16:
+		return "u16", true
+	case types.Uint32:
+		return "u32", true
+	case types.Uint64:
+		return "u64", true
+	case types.Uintptr:
+		return "usize", true
+	default:
+		return "", false
+	}
 }
 
 func RegisterExternalTypeStubField(typeName string, fieldName string, fieldType types.Type) {
@@ -357,6 +426,9 @@ func isKnownStdlibHelperType(pkgPath string, name string) bool {
 
 func currentExternalTypeStubs() map[string]bool {
 	if usePackageExternalStubs() {
+		if currentContext.Package.ExternalTypeStubs == nil {
+			currentContext.Package.ExternalTypeStubs = make(map[string]bool)
+		}
 		return currentContext.Package.ExternalTypeStubs
 	}
 	if currentContext != nil && currentContext.File != nil {
@@ -368,8 +440,27 @@ func currentExternalTypeStubs() map[string]bool {
 	return externalTypeStubs
 }
 
+func currentExternalTypeStubIntegerTypes() map[string]string {
+	if usePackageExternalStubs() {
+		if currentContext.Package.ExternalTypeStubIntegerTypes == nil {
+			currentContext.Package.ExternalTypeStubIntegerTypes = make(map[string]string)
+		}
+		return currentContext.Package.ExternalTypeStubIntegerTypes
+	}
+	if currentContext != nil && currentContext.File != nil {
+		if currentContext.File.ExternalTypeStubIntegerTypes == nil {
+			currentContext.File.ExternalTypeStubIntegerTypes = make(map[string]string)
+		}
+		return currentContext.File.ExternalTypeStubIntegerTypes
+	}
+	return externalTypeStubIntegerTypes
+}
+
 func currentExternalTypeStubFields() map[string]map[string]string {
 	if usePackageExternalStubs() {
+		if currentContext.Package.ExternalTypeStubFields == nil {
+			currentContext.Package.ExternalTypeStubFields = make(map[string]map[string]string)
+		}
 		return currentContext.Package.ExternalTypeStubFields
 	}
 	if currentContext != nil && currentContext.File != nil {
@@ -383,6 +474,9 @@ func currentExternalTypeStubFields() map[string]map[string]string {
 
 func currentExternalTypeStubMethods() map[string]map[string]externalTypeStubMethod {
 	if usePackageExternalStubs() {
+		if currentContext.Package.ExternalTypeStubMethods == nil {
+			currentContext.Package.ExternalTypeStubMethods = make(map[string]map[string]externalTypeStubMethod)
+		}
 		return currentContext.Package.ExternalTypeStubMethods
 	}
 	if currentContext != nil && currentContext.File != nil {
@@ -396,6 +490,9 @@ func currentExternalTypeStubMethods() map[string]map[string]externalTypeStubMeth
 
 func currentExternalTypeStubConversions() map[string]map[string]bool {
 	if usePackageExternalStubs() {
+		if currentContext.Package.ExternalTypeStubConversions == nil {
+			currentContext.Package.ExternalTypeStubConversions = make(map[string]map[string]bool)
+		}
 		return currentContext.Package.ExternalTypeStubConversions
 	}
 	if currentContext != nil && currentContext.File != nil {
@@ -409,6 +506,9 @@ func currentExternalTypeStubConversions() map[string]map[string]bool {
 
 func currentExternalPackageStubs() map[string]*externalPackageStub {
 	if usePackageExternalStubs() {
+		if currentContext.Package.ExternalPackageStubs == nil {
+			currentContext.Package.ExternalPackageStubs = make(map[string]*externalPackageStub)
+		}
 		return currentContext.Package.ExternalPackageStubs
 	}
 	if currentContext != nil && currentContext.File != nil {
@@ -428,14 +528,14 @@ func GenerateExternalTypeStubs() string {
 	if usePackageExternalStubs() {
 		return ""
 	}
-	return generateExternalStubs(currentExternalTypeStubs(), currentExternalTypeStubFields(), currentExternalTypeStubMethods(), currentExternalTypeStubConversions(), currentExternalPackageStubs())
+	return generateExternalStubs(currentExternalTypeStubs(), currentExternalTypeStubIntegerTypes(), currentExternalTypeStubFields(), currentExternalTypeStubMethods(), currentExternalTypeStubConversions(), currentExternalPackageStubs())
 }
 
 func GeneratePackageExternalStubs(pkg *PackageState) string {
 	if pkg == nil {
 		return ""
 	}
-	return generateExternalStubs(pkg.ExternalTypeStubs, pkg.ExternalTypeStubFields, pkg.ExternalTypeStubMethods, pkg.ExternalTypeStubConversions, pkg.ExternalPackageStubs)
+	return generateExternalStubs(pkg.ExternalTypeStubs, pkg.ExternalTypeStubIntegerTypes, pkg.ExternalTypeStubFields, pkg.ExternalTypeStubMethods, pkg.ExternalTypeStubConversions, pkg.ExternalPackageStubs)
 }
 
 func WriteSharedStdlibStubCrate(workDir string, states []*PackageState) error {
@@ -479,6 +579,7 @@ func MergeExternalStubPackageStates(states ...*PackageState) *PackageState {
 			continue
 		}
 		mergeBoolMap(merged.ExternalTypeStubs, state.ExternalTypeStubs)
+		mergeStringMap(merged.ExternalTypeStubIntegerTypes, state.ExternalTypeStubIntegerTypes)
 		mergeNestedStringMap(merged.ExternalTypeStubFields, state.ExternalTypeStubFields)
 		mergeNestedMethodMap(merged.ExternalTypeStubMethods, state.ExternalTypeStubMethods)
 		mergeNestedBoolMap(merged.ExternalTypeStubConversions, state.ExternalTypeStubConversions)
@@ -491,6 +592,14 @@ func mergeBoolMap(dst map[string]bool, src map[string]bool) {
 	for key, value := range src {
 		if value {
 			dst[key] = true
+		}
+	}
+}
+
+func mergeStringMap(dst map[string]string, src map[string]string) {
+	for key, value := range src {
+		if value != "" {
+			dst[key] = value
 		}
 	}
 }
@@ -580,7 +689,7 @@ func GenerateExternalStubModuleImports() string {
 	return out.String()
 }
 
-func generateExternalStubs(stubs map[string]bool, fieldsByType map[string]map[string]string, methodsByType map[string]map[string]externalTypeStubMethod, conversions map[string]map[string]bool, packageStubs map[string]*externalPackageStub) string {
+func generateExternalStubs(stubs map[string]bool, integerTypes map[string]string, fieldsByType map[string]map[string]string, methodsByType map[string]map[string]externalTypeStubMethod, conversions map[string]map[string]bool, packageStubs map[string]*externalPackageStub) string {
 	if len(stubs) == 0 && len(conversions) == 0 && len(packageStubs) == 0 {
 		return ""
 	}
@@ -600,7 +709,13 @@ func generateExternalStubs(stubs map[string]bool, fieldsByType map[string]map[st
 			out.WriteString("#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]\n")
 			out.WriteString("pub struct ")
 			out.WriteString(name)
-			out.WriteString(";\n\n")
+			if integerType := integerTypes[name]; integerType != "" {
+				out.WriteString("(pub ")
+				out.WriteString(integerType)
+				out.WriteString(");\n\n")
+			} else {
+				out.WriteString(";\n\n")
+			}
 		} else {
 			out.WriteString("#[derive(Debug, Clone, Default)]\n")
 			out.WriteString("pub struct ")
@@ -646,7 +761,7 @@ func generateExternalStubs(stubs map[string]bool, fieldsByType map[string]map[st
 		out.WriteString("}\n")
 	}
 	writeExternalTypeStubConversions(&out, conversions)
-	writeExternalPackageStubs(&out, packageStubs, len(names) > 0)
+	writeExternalPackageStubs(&out, packageStubs, integerTypes, len(names) > 0)
 	return out.String()
 }
 
@@ -750,7 +865,7 @@ func writeExternalTypeStubMethod(out *strings.Builder, methodName string, method
 	out.WriteString("    }\n")
 }
 
-func writeExternalPackageStubs(out *strings.Builder, packageStubs map[string]*externalPackageStub, needsSeparator bool) {
+func writeExternalPackageStubs(out *strings.Builder, packageStubs map[string]*externalPackageStub, integerTypes map[string]string, needsSeparator bool) {
 	if len(packageStubs) == 0 {
 		return
 	}
@@ -783,7 +898,7 @@ func writeExternalPackageStubs(out *strings.Builder, packageStubs map[string]*ex
 			out.WriteString(": ")
 			out.WriteString(pkg.Constants[constName])
 			out.WriteString(" = ")
-			writeExternalStubConstDefaultValue(out, pkg.Constants[constName])
+			writeExternalStubConstDefaultValue(out, pkg.Constants[constName], integerTypes)
 			out.WriteString(";\n")
 		}
 		if len(constNames) > 0 && (len(pkg.Functions) > 0 || len(pkg.Variables) > 0) {
@@ -924,7 +1039,12 @@ func writeExternalStubDefaultValue(out *strings.Builder, rustType string) {
 	out.WriteString("Default::default()")
 }
 
-func writeExternalStubConstDefaultValue(out *strings.Builder, rustType string) {
+func writeExternalStubConstDefaultValue(out *strings.Builder, rustType string, integerTypes map[string]string) {
+	if integerTypes[rustType] != "" {
+		out.WriteString(rustType)
+		out.WriteString("(0)")
+		return
+	}
 	switch rustType {
 	case "String":
 		out.WriteString("String::new()")

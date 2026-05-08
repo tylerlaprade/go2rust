@@ -582,6 +582,10 @@ run_xfail_test() {
     run_test "tests/errors_custom"
 }
 
+@test "external_named_integer_conversion" {
+    run_test "tests/external_named_integer_conversion"
+}
+
 @test "external_packages" {
     run_test "tests/external_packages"
 }

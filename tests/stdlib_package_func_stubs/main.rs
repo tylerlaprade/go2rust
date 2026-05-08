@@ -19,7 +19,7 @@ impl ast_File {
 
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
-pub struct parser_Mode;
+pub struct parser_Mode(pub u32);
 
 impl std::fmt::Display for parser_Mode {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -165,7 +165,7 @@ pub mod binary {
 
 pub mod parser {
     use super::*;
-    pub const skip_object_resolution: parser_Mode = parser_Mode;
+    pub const skip_object_resolution: parser_Mode = parser_Mode(0);
 
     pub fn parse_file<T0, T1, T2, T3>(_arg0: T0, _arg1: T1, _arg2: T2, _arg3: T3) -> (Arc<Mutex<Option<ast_File>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
         (Arc::new(Mutex::new(Some::<ast_File>(Default::default()))), Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>)))
