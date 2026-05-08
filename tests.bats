@@ -942,8 +942,16 @@ run_xfail_test() {
     run_test "tests/range_over_integer"
 }
 
+@test "range_over_slice_field" {
+    run_test "tests/range_over_slice_field"
+}
+
 @test "range_pointer_fields" {
     run_test "tests/range_pointer_fields"
+}
+
+@test "range_return_struct_value" {
+    run_test "tests/range_return_struct_value"
 }
 
 @test "rate_limiting" {

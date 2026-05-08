@@ -68,7 +68,7 @@ fn main() {
     (*keys.borrow_mut().as_mut().unwrap()).sort();
 
         // Print in sorted order
-    { let __range_guard = keys.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for k in __range_values.iter() {
+    { let __range_holder = keys.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for k in __range_values.iter() {
         println!("{} {} {}", k, "->".to_string(), (*colors.borrow().as_ref().unwrap()).get(k).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| String::new()));
     } }
 }

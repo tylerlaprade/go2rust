@@ -68,7 +68,7 @@ fn main() {
         };
     }) as Box<dyn Fn(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>>)))])));
 
-    { let __range_guard = operations.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for (i, op) in __range_values.iter().enumerate() {
+    { let __range_holder = operations.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for (i, op) in __range_values.iter().enumerate() {
         print!("operations[{}](10, 5) = {}\n", i, (*{ let __f_guard = op.borrow(); let __f = __f_guard.as_ref().unwrap(); (*__f)(Rc::new(RefCell::new(Some(10))), Rc::new(RefCell::new(Some(5)))) }.borrow().as_ref().unwrap()));
     } }
 }

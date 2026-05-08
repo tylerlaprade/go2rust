@@ -238,14 +238,14 @@ fn main() {
         // Iterate through employees
     println!("{}", "\n=== Department employees ===".to_string());
 
-    for (i, emp) in (*(*(*company.borrow().as_ref().unwrap()).departments.borrow().as_ref().unwrap())[(0) as usize].clone().employees.borrow().as_ref().unwrap()).iter().enumerate() {
+    { let __range_holder = (*(*company.borrow().as_ref().unwrap()).departments.borrow().as_ref().unwrap())[(0) as usize].clone().employees.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for (i, emp) in __range_values.iter().enumerate() {
         print!("Employee {}: {}\n", i + 1, (*emp.name.borrow().as_ref().unwrap()));
         print!("  Age: {}\n", (*emp.age.borrow().as_ref().unwrap()));
         print!("  Email: {}\n", (*(*emp.contact.borrow().as_ref().unwrap()).email.borrow().as_ref().unwrap()));
         print!("  Phone: {}\n", (*(*emp.contact.borrow().as_ref().unwrap()).phone.borrow().as_ref().unwrap()));
         print!("  Address: {}, {}, {}\n", (*(*emp.address.borrow().as_ref().unwrap()).street.borrow().as_ref().unwrap()), (*(*emp.address.borrow().as_ref().unwrap()).city.borrow().as_ref().unwrap()), (*(*emp.address.borrow().as_ref().unwrap()).state.borrow().as_ref().unwrap()));
         println!();
-    }
+    } }
 
         // Nested maps
     println!("{}", "=== Nested maps ===".to_string());
@@ -259,7 +259,7 @@ fn main() {
         {(*categories.borrow_mut()).get_or_insert_with(Vec::new).push(category); categories.clone()};
     }
     (*categories.borrow_mut().as_mut().unwrap()).sort();
-    { let __range_guard = categories.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for category in __range_values.iter() {
+    { let __range_holder = categories.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for category in __range_values.iter() {
         let mut items = Rc::new(RefCell::new(Some((*inventory.borrow().as_ref().unwrap()).get(category).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| BTreeMap::new()))));
         print!("  {}:\n", category);
         let mut itemNames: Rc<RefCell<Option<Vec<String>>>> = Rc::new(RefCell::new(None));
@@ -267,7 +267,7 @@ fn main() {
         {(*itemNames.borrow_mut()).get_or_insert_with(Vec::new).push(item); itemNames.clone()};
     }
         (*itemNames.borrow_mut().as_mut().unwrap()).sort();
-        { let __range_guard = itemNames.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for item in __range_values.iter() {
+        { let __range_holder = itemNames.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for item in __range_values.iter() {
         let mut count = Rc::new(RefCell::new(Some((*items.borrow().as_ref().unwrap()).get(item).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| 0))));
         print!("    {}: {}\n", item, { let __v = (*count.borrow().as_ref().unwrap()).clone(); __v });
     } }
@@ -284,7 +284,7 @@ fn main() {
     let mut matrix = Rc::new(RefCell::new(Some(vec![vec![1, 2, 3], vec![4, 5, 6], vec![7, 8, 9]])));
 
     println!("{}", "Matrix:".to_string());
-    { let __range_guard = matrix.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for (i, row) in __range_values.iter().enumerate() {
+    { let __range_holder = matrix.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for (i, row) in __range_values.iter().enumerate() {
         print!("Row {}: ", i);
         for (j, val) in row.iter().copied().enumerate() {
         print!("{} ", val);
@@ -303,7 +303,7 @@ fn main() {
     let mut cube = Rc::new(RefCell::new(Some(vec![vec![vec![1, 2], vec![3, 4]], vec![vec![5, 6], vec![7, 8]]])));
 
     println!("{}", "\n3D Cube:".to_string());
-    { let __range_guard = cube.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for (i, layer) in __range_values.iter().enumerate() {
+    { let __range_holder = cube.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for (i, layer) in __range_values.iter().enumerate() {
         print!("Layer {}:\n", i);
         for (j, row) in layer.iter().enumerate() {
         print!("  Row {}: ", j);
@@ -320,9 +320,9 @@ fn main() {
     let mut canvas = Rc::new(RefCell::new(Some(Canvas { name: Rc::new(RefCell::new(Some("My Drawing".to_string()))), shapes: Rc::new(RefCell::new(Some(vec![Box::new(Circle { radius: Rc::new(RefCell::new(Some(5.0))), ..Default::default() }) as Box<dyn Drawable>, Box::new(Rectangle { width: Rc::new(RefCell::new(Some(10.0))), height: Rc::new(RefCell::new(Some(8.0))), ..Default::default() }) as Box<dyn Drawable>, Box::new(Circle { radius: Rc::new(RefCell::new(Some(3.0))), ..Default::default() }) as Box<dyn Drawable>]))), ..Default::default() })));
 
     print!("Canvas: {}\n", (*(*canvas.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()));
-    for (i, shape) in (*(*canvas.borrow().as_ref().unwrap()).shapes.borrow().as_ref().unwrap()).iter().enumerate() {
+    { let __range_holder = (*canvas.borrow().as_ref().unwrap()).shapes.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for (i, shape) in __range_values.iter().enumerate() {
         print!("Shape {}: {}\n", i + 1, (*shape.draw().borrow().as_ref().unwrap()));
-    }
+    } }
 
         // Modify nested structures
     println!("{}", "\n=== Modifying nested structures ===".to_string());

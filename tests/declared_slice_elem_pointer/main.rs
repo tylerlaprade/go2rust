@@ -94,7 +94,7 @@ fn main() {
     let mut bucket = Arc::new(Mutex::new(Some(vec![entry { key: Arc::new(Mutex::new(Some(1))), value: Arc::new(Mutex::new(Some("old".to_string()))), ..Default::default() }])));
     let mut hole: Option<GoSliceElemPtr<entry>> = None;
 
-    { let __range_guard = bucket.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for (i, e) in __range_values.iter().enumerate() {
+    { let __range_holder = bucket.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for (i, e) in __range_values.iter().enumerate() {
         if { let __tmp_x = (*e.key.lock().unwrap().as_ref().unwrap()); let __tmp_y = 1; __tmp_x == __tmp_y } {
         hole = Some(GoSliceElemPtr::new(bucket.clone(), i as usize));
     }

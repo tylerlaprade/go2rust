@@ -48,7 +48,7 @@ pub mod types {
 fn main() {
     let mut terms = Arc::new(Mutex::new(Some(vec![types::new_term(false, ())])));
     { let __recv = { let __seq = { let __seq_holder = terms.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }; let __result = (*__recv.lock().unwrap().as_mut().unwrap()).r#type(); __result };
-    { let __range_guard = terms.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for term in __range_values.iter() {
+    { let __range_holder = terms.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for term in __range_values.iter() {
         (*term.lock().unwrap().as_mut().unwrap()).r#type();
     } }
     println!("{}", "ok".to_string());

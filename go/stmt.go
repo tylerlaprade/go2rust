@@ -56,6 +56,18 @@ func isWrappedSliceRangeVar(name string) bool {
 	return strings.HasPrefix(varType, prefix)
 }
 
+func rangeTargetNeedsWrappedSliceGuard(expr ast.Expr) bool {
+	switch e := expr.(type) {
+	case *ast.Ident:
+		_, isRangeVar := rangeLoopVars[e.Name]
+		return !isRangeVar || isWrappedSliceRangeVar(e.Name)
+	case *ast.SelectorExpr:
+		return true
+	default:
+		return false
+	}
+}
+
 func writeCurrentReceiverStorage(out *strings.Builder, ident *ast.Ident) bool {
 	if ident == nil || currentReceiver == "" || ident.Name != currentReceiver {
 		return false
@@ -1394,6 +1406,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									// Cast usize range index to i32 when wrapping
 									if varType, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar && varType == "usize" {
 										out.WriteString(EscapeRustIdent(ident.Name) + " as i32")
+									} else if varType, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar && varType == "ref_value" {
+										out.WriteString(EscapeRustIdent(ident.Name))
+										out.WriteString(".clone()")
 									} else {
 										TranspileExpression(out, result)
 									}
@@ -2983,15 +2998,14 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			rangeValuesVar = "__range_values"
 			closeRangeGuard = true
 		} else if !isMap && !isString && typeInfo.IsSlice(s.X) {
-			if ident, ok := s.X.(*ast.Ident); ok {
-				if _, isRangeVar := rangeLoopVars[ident.Name]; !isRangeVar || isWrappedSliceRangeVar(ident.Name) {
-					out.WriteString("{ let __range_guard = ")
-					writeWrappedHandleExpression(out, s.X)
-					WriteBorrowMethod(out, false)
-					out.WriteString("; let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); ")
-					rangeValuesVar = "__range_values"
-					closeRangeGuard = true
-				}
+			if rangeTargetNeedsWrappedSliceGuard(s.X) {
+				out.WriteString("{ let __range_holder = ")
+				writeWrappedHandleExpression(out, s.X)
+				out.WriteString(".clone(); let __range_guard = __range_holder")
+				WriteBorrowMethod(out, false)
+				out.WriteString("; let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); ")
+				rangeValuesVar = "__range_values"
+				closeRangeGuard = true
 			}
 		}
 

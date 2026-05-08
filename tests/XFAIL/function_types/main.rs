@@ -111,7 +111,7 @@ pub fn apply_unary(op: UnaryOp, x: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Optio
 pub fn filter(numbers: Rc<RefCell<Option<Vec<i32>>>>, pred: Predicate) -> Rc<RefCell<Option<Vec<i32>>>> {
 
     let mut result: Rc<RefCell<Option<Vec<i32>>>> = Rc::new(RefCell::new(None));
-    { let __range_guard = numbers.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for num in __range_values.iter().copied() {
+    { let __range_holder = numbers.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for num in __range_values.iter().copied() {
         if (*{ let __f_guard = pred.borrow(); let __f = __f_guard.as_ref().unwrap(); (*__f)(Rc::new(RefCell::new(Some(num)))) }.borrow().as_ref().unwrap()) {
         {(*result.borrow_mut()).get_or_insert_with(Vec::new).push(num); result.clone()};
     }
@@ -122,7 +122,7 @@ pub fn filter(numbers: Rc<RefCell<Option<Vec<i32>>>>, pred: Predicate) -> Rc<Ref
 pub fn transform(numbers: Rc<RefCell<Option<Vec<i32>>>>, op: UnaryOp) -> Rc<RefCell<Option<Vec<i32>>>> {
 
     let mut result = Rc::new(RefCell::new(Some(vec![0; ((*numbers.borrow().as_ref().unwrap()).len()) as usize])));
-    { let __range_guard = numbers.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for (i, num) in __range_values.iter().copied().enumerate() {
+    { let __range_holder = numbers.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for (i, num) in __range_values.iter().copied().enumerate() {
         (*result.borrow_mut().as_mut().unwrap())[i] = (*{ let __f_guard = op.borrow(); let __f = __f_guard.as_ref().unwrap(); (*__f)(Rc::new(RefCell::new(Some(num)))) }.borrow().as_ref().unwrap()).clone();
     } }
     return result.clone();

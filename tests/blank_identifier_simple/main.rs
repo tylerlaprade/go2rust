@@ -37,21 +37,21 @@ fn main() {
 
         // Ignore index, use only value
     println!("{}", "Values only:".to_string());
-    { let __range_guard = slice.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for val in __range_values.iter().copied() {
+    { let __range_holder = slice.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for val in __range_values.iter().copied() {
         print!("{} ", val);
     } }
     println!();
 
         // Ignore value, use only index
     println!("{}", "Indices only:".to_string());
-    { let __range_guard = slice.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for i in 0..__range_values.len() {
+    { let __range_holder = slice.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for i in 0..__range_values.len() {
         print!("{} ", i);
     } }
     println!();
 
         // Alternative: just use index (more idiomatic)
     println!("{}", "Indices (idiomatic):".to_string());
-    { let __range_guard = slice.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for i in 0..__range_values.len() {
+    { let __range_holder = slice.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for i in 0..__range_values.len() {
         print!("{} ", i);
     } }
     println!();
@@ -68,7 +68,7 @@ fn main() {
         {(*keys.borrow_mut()).get_or_insert_with(Vec::new).push(name); keys.clone()};
     }
     (*keys.borrow_mut().as_mut().unwrap()).sort();
-    { let __range_guard = keys.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for name in __range_values.iter() {
+    { let __range_holder = keys.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for name in __range_values.iter() {
         print!("{} ", name);
     } }
     println!();
@@ -80,7 +80,7 @@ fn main() {
         {(*values.borrow_mut()).get_or_insert_with(Vec::new).push((*age.borrow_mut().as_mut().unwrap())); values.clone()};
     }
     (*values.borrow_mut().as_mut().unwrap()).sort();
-    { let __range_guard = values.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for age in __range_values.iter().copied() {
+    { let __range_holder = values.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for age in __range_values.iter().copied() {
         print!("{} ", age);
     } }
     println!();

@@ -152,7 +152,7 @@ fn main() {
 
     let mut content = Arc::new(Mutex::new(Some(vec!["Hello, World!".to_string(), "This is line 2".to_string(), "Go file operations".to_string(), "Line 4 with numbers: 123".to_string(), "Final line".to_string()])));
 
-    { let __range_guard = content.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for (i, line) in __range_values.iter().enumerate() {
+    { let __range_holder = content.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for (i, line) in __range_values.iter().enumerate() {
         let (_, mut err) = (*file.lock().unwrap().as_mut().unwrap()).write_string(Arc::new(Mutex::new(Some(format!("{}{}", line, "\n".to_string())))));
         if (*err.lock().unwrap()).is_some() {
         print!("Error writing line {}: {}\n", { let __tmp_x = i; let __tmp_y = 1; __tmp_x + __tmp_y }, format!("{}", (*err.lock().unwrap().as_ref().unwrap())));
@@ -244,7 +244,7 @@ fn main() {
 
     let mut appendContent = Arc::new(Mutex::new(Some(vec!["Appended line 1".to_string(), "Appended line 2".to_string()])));
 
-    { let __range_guard = appendContent.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for line in __range_values.iter() {
+    { let __range_holder = appendContent.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for line in __range_values.iter() {
         let (_, mut err) = (*file.lock().unwrap().as_mut().unwrap()).write_string(Arc::new(Mutex::new(Some(format!("{}{}", line, "\n".to_string())))));
         if (*err.lock().unwrap()).is_some() {
         print!("Error appending: {}\n", format!("{}", (*err.lock().unwrap().as_ref().unwrap())));
@@ -444,7 +444,7 @@ fn main() {
 
     let mut files = Arc::new(Mutex::new(Some(vec![(*filename.lock().unwrap().as_ref().unwrap()).clone(), (*copyFilename.lock().unwrap().as_ref().unwrap()).clone(), (*dataFile.lock().unwrap().as_ref().unwrap()).clone(), "nonexistent.txt".to_string()])));
 
-    { let __range_guard = files.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for f in __range_values.iter() {
+    { let __range_holder = files.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for f in __range_values.iter() {
         let (_, mut err) = os::stat(f);
     if (*err.lock().unwrap()).is_none() {
         print!("File '{}' exists\n", f);
@@ -460,7 +460,7 @@ fn main() {
 
     let mut filesToRemove = Arc::new(Mutex::new(Some(vec![(*filename.lock().unwrap().as_ref().unwrap()).clone(), (*copyFilename.lock().unwrap().as_ref().unwrap()).clone(), (*dataFile.lock().unwrap().as_ref().unwrap()).clone()])));
 
-    { let __range_guard = filesToRemove.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for f in __range_values.iter() {
+    { let __range_holder = filesToRemove.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for f in __range_values.iter() {
         let mut err = { let __path = (*f.lock().unwrap().as_ref().unwrap()).clone(); match std::fs::remove_file(&__path) { Ok(()) => Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>)), Err(e) => Arc::new(Mutex::new(Some(Box::<dyn StdError + Send + Sync>::from(e)))) } };
         if (*err.lock().unwrap()).is_some() {
         print!("Error removing file '{}': {}\n", f, format!("{}", (*err.lock().unwrap().as_ref().unwrap())));
@@ -472,7 +472,7 @@ fn main() {
         // Verify cleanup
     println!("{}", "\n--- Verifying cleanup ---".to_string());
 
-    { let __range_guard = filesToRemove.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for f in __range_values.iter() {
+    { let __range_holder = filesToRemove.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for f in __range_values.iter() {
         let (_, mut err) = os::stat(f);
     if (*os::is_not_exist(err.clone()).lock().unwrap().as_ref().unwrap()) {
         print!("File '{}' successfully removed\n", f);

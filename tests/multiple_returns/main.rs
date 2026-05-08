@@ -75,7 +75,7 @@ pub fn process_data(data: Rc<RefCell<Option<Vec<i32>>>>) -> (Rc<RefCell<Option<i
     { let new_val = (*data.borrow().as_ref().unwrap())[(0) as usize].clone(); *max.borrow_mut() = Some(new_val); };
     { let new_val = 0; *sum.borrow_mut() = Some(new_val); };
 
-    { let __range_guard = data.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for val in __range_values.iter().copied() {
+    { let __range_holder = data.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for val in __range_values.iter().copied() {
         if val < (*min.borrow().as_ref().unwrap()) {
         { let new_val = val; *min.borrow_mut() = Some(new_val); };
     }
@@ -108,7 +108,7 @@ pub fn find_in_slice(slice: Rc<RefCell<Option<Vec<i32>>>>, target: Rc<RefCell<Op
     let mut index: Rc<RefCell<Option<i32>>> = Rc::new(RefCell::new(Some(0)));
     let mut found: Rc<RefCell<Option<bool>>> = Rc::new(RefCell::new(Some(false)));
 
-    { let __range_guard = slice.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for (i, val) in __range_values.iter().copied().enumerate() {
+    { let __range_holder = slice.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for (i, val) in __range_values.iter().copied().enumerate() {
         if val == (*target.borrow().as_ref().unwrap()) {
         return (Rc::new(RefCell::new(Some(i as i32))), Rc::new(RefCell::new(Some(true))));
     }

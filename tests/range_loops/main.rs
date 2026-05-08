@@ -153,20 +153,20 @@ fn main() {
     let mut numbers = Arc::new(Mutex::new(Some(vec![10, 20, 30, 40, 50])));
 
         // With index and value
-    { let __range_guard = numbers.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for (i, num) in __range_values.iter().copied().enumerate() {
+    { let __range_holder = numbers.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for (i, num) in __range_values.iter().copied().enumerate() {
         print!("Index {}: {}\n", i, num);
     } }
 
         // Only value
     println!("{}", "Values only:".to_string());
-    { let __range_guard = numbers.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for num in __range_values.iter().copied() {
+    { let __range_holder = numbers.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for num in __range_values.iter().copied() {
         print!("{} ", num);
     } }
     println!();
 
         // Only index
     println!("{}", "Indices only:".to_string());
-    { let __range_guard = numbers.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for i in 0..__range_values.len() {
+    { let __range_holder = numbers.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for i in 0..__range_values.len() {
         print!("{} ", i);
     } }
     println!();
@@ -194,13 +194,13 @@ fn main() {
         {(*sortedNames.lock().unwrap()).get_or_insert_with(Vec::new).push(name); sortedNames.clone()};
     }
     (*sortedNames.lock().unwrap().as_mut().unwrap()).sort();
-    { let __range_guard = sortedNames.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for name in __range_values.iter() {
+    { let __range_holder = sortedNames.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for name in __range_values.iter() {
         print!("{} is {} years old\n", name, { let __map = { let __map_holder = ages.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = (*__map_guard.as_ref().unwrap()).clone(); drop(__map_guard); __cloned }; __map.get(name).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) });
     } }
 
         // Only keys
     println!("{}", "Keys only:".to_string());
-    { let __range_guard = sortedNames.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for name in __range_values.iter() {
+    { let __range_holder = sortedNames.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for name in __range_values.iter() {
         print!("{} ", name);
     } }
     println!();
@@ -227,7 +227,7 @@ fn main() {
     let mut data = Arc::new(Mutex::new(Some(vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10])));
 
     println!("{}", "Even numbers only (with continue):".to_string());
-    { let __range_guard = data.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for num in __range_values.iter().copied() {
+    { let __range_holder = data.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for num in __range_values.iter().copied() {
         if { let __tmp_x = { let __tmp_x = num; let __tmp_y = 2; __tmp_x % __tmp_y }; let __tmp_y = 0; __tmp_x != __tmp_y } {
         continue
     }
@@ -236,7 +236,7 @@ fn main() {
     println!();
 
     println!("{}", "Numbers until 6 (with break):".to_string());
-    { let __range_guard = data.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for num in __range_values.iter().copied() {
+    { let __range_holder = data.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for num in __range_values.iter().copied() {
         if { let __tmp_x = num; let __tmp_y = 6; __tmp_x > __tmp_y } {
         break
     }
@@ -248,7 +248,7 @@ fn main() {
     println!("{}", "\n=== Nested range loops ===".to_string());
     let mut matrix = Arc::new(Mutex::new(Some(vec![vec![1, 2, 3], vec![4, 5, 6], vec![7, 8, 9]])));
 
-    { let __range_guard = matrix.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for (i, row) in __range_values.iter().enumerate() {
+    { let __range_holder = matrix.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for (i, row) in __range_values.iter().enumerate() {
         for (j, val) in row.iter().copied().enumerate() {
         print!("matrix[{}][{}] = {}\n", i, j, val);
     }
@@ -260,7 +260,7 @@ fn main() {
     let mut emptyMap: Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i32>>>>>>> = Arc::new(Mutex::new(Some(BTreeMap::new())));
 
     println!("{}", "Empty slice:".to_string());
-    { let __range_guard = emptySlice.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for (i, v) in __range_values.iter().copied().enumerate() {
+    { let __range_holder = emptySlice.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for (i, v) in __range_values.iter().copied().enumerate() {
         print!("This won't print: {}, {}\n", i, v);
     } }
     println!("{}", "Empty slice range completed".to_string());

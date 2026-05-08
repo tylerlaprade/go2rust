@@ -130,7 +130,7 @@ fn main() {
 
         // Slice of anonymous structs
     let mut events = Rc::new(RefCell::new(Some(vec![AnonymousStruct6 { r#type: Rc::new(RefCell::new(Some("info".to_string()))), message: Rc::new(RefCell::new(Some("System started".to_string()))), ..Default::default() }, AnonymousStruct6 { r#type: Rc::new(RefCell::new(Some("warning".to_string()))), message: Rc::new(RefCell::new(Some("Low memory".to_string()))), ..Default::default() }, AnonymousStruct6 { r#type: Rc::new(RefCell::new(Some("error".to_string()))), message: Rc::new(RefCell::new(Some("Connection failed".to_string()))), ..Default::default() }])));
-    { let __range_guard = events.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for event in __range_values.iter() {
+    { let __range_holder = events.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for event in __range_values.iter() {
         print!("Event [{}]: {}\n", (*event.r#type.borrow().as_ref().unwrap()), (*event.message.borrow().as_ref().unwrap()));
     } }
 
@@ -141,7 +141,7 @@ fn main() {
         {(*userNames.borrow_mut()).get_or_insert_with(Vec::new).push(name); userNames.clone()};
     }
     (*userNames.borrow_mut().as_mut().unwrap()).sort();
-    { let __range_guard = userNames.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for name in __range_values.iter() {
+    { let __range_holder = userNames.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for name in __range_values.iter() {
         let mut user = Rc::new(RefCell::new(Some((*users.borrow().as_ref().unwrap()).get(name).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| Default::default()))));
         print!("User {}: {} (admin: {})\n", name, (*(*user.borrow().as_ref().unwrap()).email.borrow().as_ref().unwrap()), (*(*user.borrow().as_ref().unwrap()).admin.borrow().as_ref().unwrap()));
     } }
