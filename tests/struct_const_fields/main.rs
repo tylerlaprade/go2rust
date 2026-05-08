@@ -23,6 +23,78 @@ impl PartialEq for Kind {
     }
 }
 
+impl PartialEq<i8> for Kind {
+    fn eq(&self, other: &i8) -> bool {
+        *self.0.borrow().as_ref().unwrap() == *other
+    }
+}
+
+impl PartialOrd for Kind {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        self.0.borrow().as_ref().unwrap().partial_cmp(other.0.borrow().as_ref().unwrap())
+    }
+}
+
+impl PartialOrd<i8> for Kind {
+    fn partial_cmp(&self, other: &i8) -> Option<std::cmp::Ordering> {
+        self.0.borrow().as_ref().unwrap().partial_cmp(other)
+    }
+}
+
+impl PartialEq<Kind> for i8 {
+    fn eq(&self, other: &Kind) -> bool {
+        *self == *other.0.borrow().as_ref().unwrap()
+    }
+}
+
+impl PartialOrd<Kind> for i8 {
+    fn partial_cmp(&self, other: &Kind) -> Option<std::cmp::Ordering> {
+        self.partial_cmp(other.0.borrow().as_ref().unwrap())
+    }
+}
+
+impl std::ops::Add for Kind {
+    type Output = i8;
+    fn add(self, other: Self) -> i8 {
+        *self.0.borrow().as_ref().unwrap() + *other.0.borrow().as_ref().unwrap()
+    }
+}
+
+impl std::ops::Add<i8> for Kind {
+    type Output = i8;
+    fn add(self, other: i8) -> i8 {
+        *self.0.borrow().as_ref().unwrap() + other
+    }
+}
+
+impl std::ops::Add<Kind> for i8 {
+    type Output = i8;
+    fn add(self, other: Kind) -> i8 {
+        self + *other.0.borrow().as_ref().unwrap()
+    }
+}
+
+impl std::ops::Sub for Kind {
+    type Output = i8;
+    fn sub(self, other: Self) -> i8 {
+        *self.0.borrow().as_ref().unwrap() - *other.0.borrow().as_ref().unwrap()
+    }
+}
+
+impl std::ops::Sub<i8> for Kind {
+    type Output = i8;
+    fn sub(self, other: i8) -> i8 {
+        *self.0.borrow().as_ref().unwrap() - other
+    }
+}
+
+impl std::ops::Sub<Kind> for i8 {
+    type Output = i8;
+    fn sub(self, other: Kind) -> i8 {
+        self - *other.0.borrow().as_ref().unwrap()
+    }
+}
+
 
 #[derive(Debug, Clone, Default)]
 pub struct Version(pub Rc<RefCell<Option<i8>>>);
@@ -36,6 +108,78 @@ impl Display for Version {
 impl PartialEq for Version {
     fn eq(&self, other: &Self) -> bool {
         self.0.borrow().as_ref().unwrap() == other.0.borrow().as_ref().unwrap()
+    }
+}
+
+impl PartialEq<i8> for Version {
+    fn eq(&self, other: &i8) -> bool {
+        *self.0.borrow().as_ref().unwrap() == *other
+    }
+}
+
+impl PartialOrd for Version {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        self.0.borrow().as_ref().unwrap().partial_cmp(other.0.borrow().as_ref().unwrap())
+    }
+}
+
+impl PartialOrd<i8> for Version {
+    fn partial_cmp(&self, other: &i8) -> Option<std::cmp::Ordering> {
+        self.0.borrow().as_ref().unwrap().partial_cmp(other)
+    }
+}
+
+impl PartialEq<Version> for i8 {
+    fn eq(&self, other: &Version) -> bool {
+        *self == *other.0.borrow().as_ref().unwrap()
+    }
+}
+
+impl PartialOrd<Version> for i8 {
+    fn partial_cmp(&self, other: &Version) -> Option<std::cmp::Ordering> {
+        self.partial_cmp(other.0.borrow().as_ref().unwrap())
+    }
+}
+
+impl std::ops::Add for Version {
+    type Output = i8;
+    fn add(self, other: Self) -> i8 {
+        *self.0.borrow().as_ref().unwrap() + *other.0.borrow().as_ref().unwrap()
+    }
+}
+
+impl std::ops::Add<i8> for Version {
+    type Output = i8;
+    fn add(self, other: i8) -> i8 {
+        *self.0.borrow().as_ref().unwrap() + other
+    }
+}
+
+impl std::ops::Add<Version> for i8 {
+    type Output = i8;
+    fn add(self, other: Version) -> i8 {
+        self + *other.0.borrow().as_ref().unwrap()
+    }
+}
+
+impl std::ops::Sub for Version {
+    type Output = i8;
+    fn sub(self, other: Self) -> i8 {
+        *self.0.borrow().as_ref().unwrap() - *other.0.borrow().as_ref().unwrap()
+    }
+}
+
+impl std::ops::Sub<i8> for Version {
+    type Output = i8;
+    fn sub(self, other: i8) -> i8 {
+        *self.0.borrow().as_ref().unwrap() - other
+    }
+}
+
+impl std::ops::Sub<Version> for i8 {
+    type Output = i8;
+    fn sub(self, other: Version) -> i8 {
+        self - *other.0.borrow().as_ref().unwrap()
     }
 }
 

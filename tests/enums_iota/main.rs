@@ -24,6 +24,78 @@ impl PartialEq for ServerState {
     }
 }
 
+impl PartialEq<i32> for ServerState {
+    fn eq(&self, other: &i32) -> bool {
+        *self.0.borrow().as_ref().unwrap() == *other
+    }
+}
+
+impl PartialOrd for ServerState {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        self.0.borrow().as_ref().unwrap().partial_cmp(other.0.borrow().as_ref().unwrap())
+    }
+}
+
+impl PartialOrd<i32> for ServerState {
+    fn partial_cmp(&self, other: &i32) -> Option<std::cmp::Ordering> {
+        self.0.borrow().as_ref().unwrap().partial_cmp(other)
+    }
+}
+
+impl PartialEq<ServerState> for i32 {
+    fn eq(&self, other: &ServerState) -> bool {
+        *self == *other.0.borrow().as_ref().unwrap()
+    }
+}
+
+impl PartialOrd<ServerState> for i32 {
+    fn partial_cmp(&self, other: &ServerState) -> Option<std::cmp::Ordering> {
+        self.partial_cmp(other.0.borrow().as_ref().unwrap())
+    }
+}
+
+impl std::ops::Add for ServerState {
+    type Output = i32;
+    fn add(self, other: Self) -> i32 {
+        *self.0.borrow().as_ref().unwrap() + *other.0.borrow().as_ref().unwrap()
+    }
+}
+
+impl std::ops::Add<i32> for ServerState {
+    type Output = i32;
+    fn add(self, other: i32) -> i32 {
+        *self.0.borrow().as_ref().unwrap() + other
+    }
+}
+
+impl std::ops::Add<ServerState> for i32 {
+    type Output = i32;
+    fn add(self, other: ServerState) -> i32 {
+        self + *other.0.borrow().as_ref().unwrap()
+    }
+}
+
+impl std::ops::Sub for ServerState {
+    type Output = i32;
+    fn sub(self, other: Self) -> i32 {
+        *self.0.borrow().as_ref().unwrap() - *other.0.borrow().as_ref().unwrap()
+    }
+}
+
+impl std::ops::Sub<i32> for ServerState {
+    type Output = i32;
+    fn sub(self, other: i32) -> i32 {
+        *self.0.borrow().as_ref().unwrap() - other
+    }
+}
+
+impl std::ops::Sub<ServerState> for i32 {
+    type Output = i32;
+    fn sub(self, other: ServerState) -> i32 {
+        self - *other.0.borrow().as_ref().unwrap()
+    }
+}
+
 
 pub(crate) struct GoGlobal<T> {
     value: std::cell::UnsafeCell<Option<T>>,

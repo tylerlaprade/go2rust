@@ -17,7 +17,7 @@ impl std::fmt::Display for version {
 
 pub fn parse(x: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<version>>> {
 
-    if (*x.borrow().as_ref().unwrap()) == "" {
+    if (*x.borrow().as_ref().unwrap()).clone() == "" {
         return Rc::new(RefCell::new(Some(version { major: Rc::new(RefCell::new(Some(String::new()))), minor: Rc::new(RefCell::new(Some(String::new()))) })));
     }
     return Rc::new(RefCell::new(Some(version { major: x.clone(), minor: Rc::new(RefCell::new(Some("0".to_string()))), ..Default::default() })));

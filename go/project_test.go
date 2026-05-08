@@ -1345,6 +1345,46 @@ func (xs Items) subset(ys Items) bool {
 	}
 }
 
+func TestNumericTypeDefinitionOps(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+type Code int
+
+func start() {
+	go func() {}()
+}
+
+func (c Code) Check() bool {
+	return 1 <= c && c <= 3 && c+1 == 4 && 1+c == 4 && c-1 == 2 && c-c == 0
+}
+`)
+
+	generator := NewProjectGenerator([]string{filepath.Join(tempDir, "main.go")})
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
+	for _, want := range []string{
+		"impl PartialEq<i32> for Code",
+		"impl PartialOrd<i32> for Code",
+		"impl PartialEq<Code> for i32",
+		"impl PartialOrd<Code> for i32",
+		"impl std::ops::Add<i32> for Code",
+		"impl std::ops::Add<Code> for i32",
+		"impl std::ops::Sub for Code",
+	} {
+		if !strings.Contains(mainRS, want) {
+			t.Fatalf("numeric type definition should generate %q, got:\n%s", want, mainRS)
+		}
+	}
+}
+
 func TestStructWithImportedFieldDoesNotDeriveDebug(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
