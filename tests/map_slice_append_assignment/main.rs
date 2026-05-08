@@ -1,0 +1,29 @@
+use std::collections::BTreeMap;
+use std::fmt::{Display, Formatter};
+use std::sync::{Arc, Mutex};
+use std::thread;
+
+#[derive(Debug, Clone, Default)]
+pub struct entry {
+    pub key: Arc<Mutex<Option<i32>>>,
+}
+
+impl std::fmt::Display for entry {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{}}}", (*self.key.lock().unwrap().as_ref().unwrap()))
+    }
+}
+
+
+fn main() {
+    std::thread::spawn(move || {
+        ;
+    });
+
+    let mut table = Arc::new(Mutex::new(Some(BTreeMap::<i32, Arc<Mutex<Option<Vec<entry>>>>>::from([(1, Arc::new(Mutex::new(Some(vec![entry { key: Arc::new(Mutex::new(Some(1))), ..Default::default() }]))))]))));
+    let mut bucket = Arc::new(Mutex::new(Some({ let __map = { let __map_holder = table.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = (*__map_guard.as_ref().unwrap()).clone(); drop(__map_guard); __cloned }; __map.get(&1).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| vec![]) })));
+    (*table.lock().unwrap().as_mut().unwrap()).insert(1, {(*bucket.lock().unwrap()).get_or_insert_with(Vec::new).push(entry { key: Arc::new(Mutex::new(Some(2))), ..Default::default() }); bucket.clone()});
+
+    println!("{}", { let __map = { let __map_holder = table.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = (*__map_guard.as_ref().unwrap()).clone(); drop(__map_guard); __cloned }; __map.get(&1).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| vec![]) }.len());
+    println!("{}", (*{ let __map = { let __map_holder = table.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = (*__map_guard.as_ref().unwrap()).clone(); drop(__map_guard); __cloned }; __map.get(&1).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| vec![]) }[(1) as usize].clone().key.lock().unwrap().as_ref().unwrap()));
+}

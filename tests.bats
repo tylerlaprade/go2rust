@@ -746,6 +746,10 @@ run_xfail_test() {
     run_test "tests/map_lookup_wrapped_call_key"
 }
 
+@test "map_slice_append_assignment" {
+    run_test "tests/map_slice_append_assignment"
+}
+
 @test "maps_basic" {
     run_test "tests/maps_basic"
 }

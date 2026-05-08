@@ -225,6 +225,17 @@ func writeMapWrappedValue(out *strings.Builder, expr ast.Expr) {
 			}
 		}
 	}
+	if call, ok := expr.(*ast.CallExpr); ok {
+		typeInfo := GetTypeInfo()
+		if typeInfo != nil && typeInfo.ReturnsWrappedValue(call) && !isBareBuiltinReturn(call) && !callReturnsBareChannelValue(call) {
+			TranspileExpression(out, expr)
+			return
+		}
+	}
+	if _, ok := expr.(*ast.SliceExpr); ok {
+		TranspileExpression(out, expr)
+		return
+	}
 
 	WriteWrapperPrefix(out)
 	TranspileExpression(out, expr)
