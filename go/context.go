@@ -42,6 +42,7 @@ type FileState struct {
 	LocalInterfaces              map[string]bool
 	CurrentReceiver              string
 	CurrentReceiverType          string
+	CurrentTypeMethods           []*ast.FuncDecl
 	CurrentFunctionHasDefer      bool
 	CurrentCaptureRenames        map[string]string
 	ExternalTypeStubs            map[string]bool
@@ -278,6 +279,7 @@ func (ctx *TranspileContext) captureCompatibilityState() {
 		ctx.File.LocalInterfaces = localInterfaces
 		ctx.File.CurrentReceiver = currentReceiver
 		ctx.File.CurrentReceiverType = currentReceiverType
+		ctx.File.CurrentTypeMethods = currentTypeMethods
 		ctx.File.CurrentFunctionHasDefer = currentFunctionHasDefer
 		ctx.File.CurrentCaptureRenames = currentCaptureRenames
 		ctx.File.ExternalTypeStubs = externalTypeStubs
@@ -324,6 +326,7 @@ func (ctx *TranspileContext) applyCompatibilityState() {
 		localInterfaces = ctx.File.LocalInterfaces
 		currentReceiver = ctx.File.CurrentReceiver
 		currentReceiverType = ctx.File.CurrentReceiverType
+		currentTypeMethods = ctx.File.CurrentTypeMethods
 		currentFunctionHasDefer = ctx.File.CurrentFunctionHasDefer
 		currentCaptureRenames = ctx.File.CurrentCaptureRenames
 		externalTypeStubs = ctx.File.ExternalTypeStubs

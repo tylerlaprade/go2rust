@@ -51,13 +51,13 @@ fn main() {
         let val = v.clone();
         let guard = val.lock().unwrap();
         if let Some(ref any_val) = *guard {
-            if let Some(typed_val) = any_val.downcast_ref::<String>() {
+            if let Some(typed_val) = any_val.downcast_ref::<std::string::String>() {
                 (Arc::new(Mutex::new(Some(typed_val.clone()))), Arc::new(Mutex::new(Some(true))))
             } else {
-                (Arc::new(Mutex::new(Some(String::new()))), Arc::new(Mutex::new(Some(false))))
+                (Arc::new(Mutex::new(Some(std::string::String::new()))), Arc::new(Mutex::new(Some(false))))
             }
         } else {
-            (Arc::new(Mutex::new(Some(String::new()))), Arc::new(Mutex::new(Some(false))))
+            (Arc::new(Mutex::new(Some(std::string::String::new()))), Arc::new(Mutex::new(Some(false))))
         }
     });
     if { let __v = (*ok.lock().unwrap().as_ref().unwrap()).clone(); __v } {

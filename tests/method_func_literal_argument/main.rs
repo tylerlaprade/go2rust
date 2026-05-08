@@ -14,7 +14,7 @@ impl std::fmt::Display for runner {
 
 
 impl runner {
-    pub fn run(&mut self, f: Arc<Mutex<Option<Box<dyn Fn() -> () + Send + Sync>>>>) {
+    pub fn run(&self, f: Arc<Mutex<Option<Box<dyn Fn() -> () + Send + Sync>>>>) {
         { let __f_guard = f.lock().unwrap(); let __f = __f_guard.as_ref().unwrap(); (*__f)() };
     }
 }

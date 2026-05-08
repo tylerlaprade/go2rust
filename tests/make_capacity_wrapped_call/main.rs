@@ -15,7 +15,7 @@ impl std::fmt::Display for counter {
 
 
 impl counter {
-    pub fn len(&mut self) -> Arc<Mutex<Option<i32>>> {
+    pub fn len(&self) -> Arc<Mutex<Option<i32>>> {
         return self.n.clone();
     }
 }

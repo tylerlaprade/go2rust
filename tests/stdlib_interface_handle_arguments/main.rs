@@ -32,7 +32,7 @@ impl std::fmt::Display for cache {
 
 
 impl cache {
-    pub fn r#use(&mut self, T: Rc<RefCell<Option<types_Type>>>) {
+    pub fn r#use(&self, T: Rc<RefCell<Option<types_Type>>>) {
         let _ = T;
     }
 }

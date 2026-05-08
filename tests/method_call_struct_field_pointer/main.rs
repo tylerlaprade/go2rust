@@ -39,11 +39,11 @@ impl std::fmt::Display for AnonymousStruct1 {
 
 
 impl cache {
-    pub fn lookup(&mut self) -> Rc<RefCell<Option<AnonymousStruct1>>> {
+    pub fn lookup(&self) -> Rc<RefCell<Option<AnonymousStruct1>>> {
         return Rc::new(RefCell::new(Some(AnonymousStruct1 { child: self.child.clone() })));
     }
 
-    pub fn get(&mut self) -> Rc<RefCell<Option<node>>> {
+    pub fn get(&self) -> Rc<RefCell<Option<node>>> {
         return (*self.lookup().borrow().as_ref().unwrap()).child.clone();
     }
 }

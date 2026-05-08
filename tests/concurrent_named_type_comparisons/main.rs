@@ -190,7 +190,7 @@ impl Symbol {
         };
     }
 
-    pub fn is_not_method(&mut self) -> Arc<Mutex<Option<bool>>> {
+    pub fn is_not_method(&self) -> Arc<Mutex<Option<bool>>> {
         return {
             let __tmp_x = (*self.kind.clone().lock().unwrap().as_ref().unwrap()).clone();
             let __tmp_y = Kind(Arc::new(Mutex::new(Some(METHOD as i8))));

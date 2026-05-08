@@ -293,7 +293,7 @@ func transpilePackageGlobalInit(out *strings.Builder, globals []packageGlobal) {
 		out.WriteString(init.Lhs[0].Name())
 		WriteBorrowMethod(out, true)
 		out.WriteString(" = Some(")
-		writePackageGlobalInitValue(out, init.Rhs)
+		writePackageGlobalInitValue(out, init.Rhs, global.typ)
 		out.WriteString(");\n")
 	}
 	out.WriteString("}\n")
@@ -442,7 +442,15 @@ func writePackageGlobalErrorCallInit(out *strings.Builder, global packageGlobal,
 	return true
 }
 
-func writePackageGlobalInitValue(out *strings.Builder, expr ast.Expr) {
+func isPointerGlobalType(typ types.Type) bool {
+	if typ == nil {
+		return false
+	}
+	_, ok := types.Unalias(typ).Underlying().(*types.Pointer)
+	return ok
+}
+
+func writePackageGlobalInitValue(out *strings.Builder, expr ast.Expr, targetType types.Type) {
 	if funcLit, ok := expr.(*ast.FuncLit); ok {
 		TranspileFuncLitBox(out, funcLit)
 		return
@@ -458,6 +466,10 @@ func writePackageGlobalInitValue(out *strings.Builder, expr ast.Expr) {
 		}
 		typeInfo := GetTypeInfo()
 		if typeInfo != nil && typeInfo.ReturnsWrappedValue(call) && !callReturnsBareChannelValue(call) {
+			if isPointerGlobalType(targetType) {
+				TranspileExpression(out, expr)
+				return
+			}
 			out.WriteString("(*")
 			TranspileExpression(out, expr)
 			WriteBorrowMethod(out, false)

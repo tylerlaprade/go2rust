@@ -118,3 +118,89 @@ func TestCallParamTypeFromTypeInfoUsesPackageSelectorObject(t *testing.T) {
 		t.Fatalf("callParamTypeFromTypeInfo(package selector) = %v, want %v", got, paramType)
 	}
 }
+
+func TestCollectImportedInterfaceImplsRecordsCurrentConcreteArgs(t *testing.T) {
+	labelPkg := types.NewPackage("example.com/label", "label")
+	keysPkg := types.NewPackage("example.com/keys", "keys")
+	stringType := types.Typ[types.String]
+
+	nameMethod := types.NewFunc(
+		token.NoPos,
+		labelPkg,
+		"Name",
+		types.NewSignatureType(
+			nil,
+			nil,
+			nil,
+			types.NewTuple(),
+			types.NewTuple(types.NewVar(token.NoPos, nil, "", stringType)),
+			false,
+		),
+	)
+	keyIface := types.NewInterfaceType([]*types.Func{nameMethod}, nil).Complete()
+	keyNamed := types.NewNamed(types.NewTypeName(token.NoPos, labelPkg, "Key", nil), keyIface, nil)
+
+	valueNamed := types.NewNamed(types.NewTypeName(token.NoPos, keysPkg, "Value", nil), types.NewStruct(nil, nil), nil)
+	valuePtr := types.NewPointer(valueNamed)
+	valueNameMethod := types.NewFunc(
+		token.NoPos,
+		keysPkg,
+		"Name",
+		types.NewSignatureType(
+			types.NewVar(token.NoPos, keysPkg, "", valuePtr),
+			nil,
+			nil,
+			types.NewTuple(),
+			types.NewTuple(types.NewVar(token.NoPos, nil, "", stringType)),
+			false,
+		),
+	)
+	valueNamed.AddMethod(valueNameMethod)
+
+	of64 := types.NewFunc(
+		token.NoPos,
+		labelPkg,
+		"Of64",
+		types.NewSignatureType(
+			nil,
+			nil,
+			nil,
+			types.NewTuple(types.NewVar(token.NoPos, nil, "key", keyNamed)),
+			types.NewTuple(),
+			false,
+		),
+	)
+
+	arg := ast.NewIdent("k")
+	sel := &ast.SelectorExpr{X: ast.NewIdent("label"), Sel: ast.NewIdent("Of64")}
+	file := &ast.File{
+		Name: ast.NewIdent("keys"),
+		Decls: []ast.Decl{
+			&ast.FuncDecl{
+				Name: ast.NewIdent("useKey"),
+				Type: &ast.FuncType{},
+				Body: &ast.BlockStmt{
+					List: []ast.Stmt{
+						&ast.ExprStmt{X: &ast.CallExpr{Fun: sel, Args: []ast.Expr{arg}}},
+					},
+				},
+			},
+		},
+	}
+
+	SetTypeInfo(&TypeInfo{
+		info: &types.Info{
+			Uses: map[*ast.Ident]types.Object{
+				sel.Sel: of64,
+				arg:     types.NewVar(token.NoPos, keysPkg, "k", valuePtr),
+			},
+		},
+		pkg: keysPkg,
+	})
+	defer SetTypeInfo(nil)
+
+	impls := collectImportedInterfaceImpls(file)
+	if _, ok := impls["Value"]["example_com_label::Key"]; !ok {
+		t.Fatalf("collectImportedInterfaceImpls() = %#v, want Value to implement imported Key", impls)
+	}
+}

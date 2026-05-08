@@ -15,7 +15,7 @@ impl std::fmt::Display for Runner {
 
 
 impl Runner {
-    pub fn run(&mut self) {
+    pub fn run(&self) {
         { let __f_holder = self.callback.clone(); let __f_guard = __f_holder.borrow(); let __f = __f_guard.as_ref().unwrap(); (*__f)(Rc::new(RefCell::new(Some("ok".to_string())))) };
     }
 }

@@ -15,11 +15,12 @@ import (
 func generateStructDisplay(out *strings.Builder, structName string, structType *ast.StructType) {
 	TrackImport("Display")
 	TrackImport("Formatter")
+	rustStructName := RustTypeNameForUse(structName)
 
 	// If this type implements the error interface, Display should delegate to error()
 	if IsErrorImplType(structName) {
 		out.WriteString("impl std::fmt::Display for ")
-		out.WriteString(structName)
+		out.WriteString(rustStructName)
 		out.WriteString(" {\n")
 		out.WriteString("    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {\n")
 		out.WriteString("        write!(f, \"{}\", (*self.error()")
@@ -31,7 +32,7 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 	}
 
 	out.WriteString("impl std::fmt::Display for ")
-	out.WriteString(structName)
+	out.WriteString(rustStructName)
 	out.WriteString(" {\n")
 	out.WriteString("    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {\n")
 	out.WriteString("        write!(f, \"{{")
@@ -206,7 +207,7 @@ func writeStructDefaultValue(out *strings.Builder, fieldType ast.Expr) {
 	if fieldIdent, ok := fieldType.(*ast.Ident); ok {
 		if _, isStruct := structDefs[fieldIdent.Name]; isStruct {
 			WriteWrapperPrefix(out)
-			out.WriteString(fieldIdent.Name)
+			out.WriteString(RustTypeNameForUse(fieldIdent.Name))
 			out.WriteString("::default()")
 			WriteWrapperSuffix(out)
 			return
@@ -225,7 +226,7 @@ func generateStructDefault(out *strings.Builder, structName string, structType *
 		return
 	}
 	out.WriteString("\nimpl Default for ")
-	out.WriteString(structName)
+	out.WriteString(RustTypeNameForUse(structName))
 	out.WriteString(" {\n")
 	out.WriteString("    fn default() -> Self {\n")
 	out.WriteString("        Self { ")
@@ -701,13 +702,14 @@ func typeDefinitionUnderlyingName(expr ast.Expr) string {
 }
 
 func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *ast.GenDecl) {
+	rustTypeName := RustTypeNameForUse(typeSpec.Name.Name)
 	switch t := typeSpec.Type.(type) {
 	case *ast.StructType:
 		registerStructDef(typeSpec.Name.Name, t)
 
 		writeStructDerive(out, typeSpec.Name.Name, t)
 		out.WriteString("pub struct ")
-		out.WriteString(typeSpec.Name.Name)
+		out.WriteString(rustTypeName)
 		out.WriteString(" {\n")
 
 		for _, field := range t.Fields.List {
@@ -753,15 +755,15 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 		// Add Display plus Any so trait object equality can downcast.
 		TrackImport("Any")
 		out.WriteString("pub trait ")
-		out.WriteString(typeSpec.Name.Name)
+		out.WriteString(rustTypeName)
 		out.WriteString(": std::fmt::Display + Any {\n")
 		TrackImport("Display")
 		out.WriteString("    fn __go_clone_box(&self) -> ")
-		out.WriteString(rustLocalInterfaceTraitObject(typeSpec.Name.Name))
+		out.WriteString(rustLocalInterfaceTraitObject(rustTypeName))
 		out.WriteString(";\n")
 		out.WriteString("    fn __go_as_any(&self) -> &dyn Any;\n")
 		out.WriteString("    fn __go_eq(&self, other: ")
-		out.WriteString(rustLocalInterfaceParam(typeSpec.Name.Name))
+		out.WriteString(rustLocalInterfaceParam(rustTypeName))
 		out.WriteString(") -> bool;\n")
 
 		// Generate method signatures
@@ -831,7 +833,7 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 
 		out.WriteString("}")
 		out.WriteString("\n\nimpl Clone for ")
-		out.WriteString(rustLocalInterfaceTraitObject(typeSpec.Name.Name))
+		out.WriteString(rustLocalInterfaceTraitObject(rustTypeName))
 		out.WriteString(" {\n")
 		out.WriteString("    fn clone(&self) -> Self {\n")
 		out.WriteString("        self.__go_clone_box()\n")
@@ -843,7 +845,7 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 		if typeSpec.Assign != 0 {
 			// Type alias: type A = B
 			out.WriteString("pub type ")
-			out.WriteString(typeSpec.Name.Name)
+			out.WriteString(rustTypeName)
 			out.WriteString(" = ")
 			out.WriteString(GoTypeToRust(t))
 			out.WriteString(";\n")
@@ -854,7 +856,7 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 			// Named function type: type BinaryOp func(int, int) int
 			// Emit as a type alias to the callable shape, not a newtype struct
 			out.WriteString("pub type ")
-			out.WriteString(typeSpec.Name.Name)
+			out.WriteString(rustTypeName)
 			out.WriteString(" = ")
 			out.WriteString(GoTypeToRust(t))
 			out.WriteString(";\n")
@@ -867,7 +869,7 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 			RegisterTypeDefinition(typeSpec.Name.Name, typeDefinitionUnderlyingName(t))
 			out.WriteString("#[derive(Debug, Clone, Default)]\n")
 			out.WriteString("pub struct ")
-			out.WriteString(typeSpec.Name.Name)
+			out.WriteString(rustTypeName)
 			out.WriteString("(pub ")
 			out.WriteString(GoTypeToRust(t))
 			out.WriteString(");\n")
@@ -878,7 +880,7 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 				TrackImport("Formatter")
 
 				out.WriteString("\nimpl Display for ")
-				out.WriteString(typeSpec.Name.Name)
+				out.WriteString(rustTypeName)
 				out.WriteString(" {\n")
 				out.WriteString("    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {\n")
 				out.WriteString("        write!(f, \"{}\", (*self.string()")
@@ -895,7 +897,7 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 					TrackImport("fmt")
 
 					out.WriteString("\nimpl Display for ")
-					out.WriteString(typeSpec.Name.Name)
+					out.WriteString(rustTypeName)
 					out.WriteString(" {\n")
 					out.WriteString("    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {\n")
 					if IsStringerImplType(typeSpec.Name.Name) {
@@ -942,7 +944,7 @@ func registerStructDef(name string, structType *ast.StructType) {
 
 func writeScalarTypeDefinitionPartialEq(out *strings.Builder, typeName string) {
 	out.WriteString("\nimpl PartialEq for ")
-	out.WriteString(typeName)
+	out.WriteString(RustTypeNameForUse(typeName))
 	out.WriteString(" {\n")
 	out.WriteString("    fn eq(&self, other: &Self) -> bool {\n")
 	out.WriteString("        self.0")
@@ -979,7 +981,7 @@ func writeLocalInterfaceSupportImpl(out *strings.Builder, ifaceName, typeName st
 	out.WriteString(rustLocalInterfaceParam(ifaceName))
 	out.WriteString(") -> bool {\n")
 	out.WriteString("        if let Some(__other) = other.__go_as_any().downcast_ref::<")
-	out.WriteString(typeName)
+	out.WriteString(RustTypeNameForUse(typeName))
 	out.WriteString(">() {\n")
 	if localConcreteTypeCanUsePartialEq(typeName) {
 		out.WriteString("            self == __other\n")
@@ -1377,6 +1379,79 @@ func writeNamedReturnValues(out *strings.Builder, fnType *ast.FuncType) {
 	}
 }
 
+func exprReferencesReceiver(expr ast.Expr, receiverName string) bool {
+	switch e := expr.(type) {
+	case *ast.Ident:
+		return e.Name == receiverName
+	case *ast.SelectorExpr:
+		return exprReferencesReceiver(e.X, receiverName)
+	case *ast.IndexExpr:
+		return exprReferencesReceiver(e.X, receiverName)
+	case *ast.StarExpr:
+		return exprReferencesReceiver(e.X, receiverName)
+	case *ast.ParenExpr:
+		return exprReferencesReceiver(e.X, receiverName)
+	default:
+		return false
+	}
+}
+
+func receiverNameForMethod(fn *ast.FuncDecl) string {
+	if fn == nil || fn.Recv == nil || len(fn.Recv.List) == 0 || len(fn.Recv.List[0].Names) == 0 {
+		return ""
+	}
+	return fn.Recv.List[0].Names[0].Name
+}
+
+func methodMutatesReceiver(fn *ast.FuncDecl, receiverName string) bool {
+	return methodMutatesReceiverWithSeen(fn, receiverName, make(map[*ast.FuncDecl]bool))
+}
+
+func methodMutatesReceiverWithSeen(fn *ast.FuncDecl, receiverName string, seen map[*ast.FuncDecl]bool) bool {
+	if fn == nil || fn.Body == nil || receiverName == "" {
+		return false
+	}
+	if seen[fn] {
+		return false
+	}
+	seen[fn] = true
+	mutates := false
+	ast.Inspect(fn.Body, func(n ast.Node) bool {
+		if mutates {
+			return false
+		}
+		switch stmt := n.(type) {
+		case *ast.AssignStmt:
+			for _, lhs := range stmt.Lhs {
+				if exprReferencesReceiver(lhs, receiverName) {
+					mutates = true
+					return false
+				}
+			}
+		case *ast.IncDecStmt:
+			if exprReferencesReceiver(stmt.X, receiverName) {
+				mutates = true
+				return false
+			}
+		case *ast.CallExpr:
+			sel, ok := stmt.Fun.(*ast.SelectorExpr)
+			if !ok || !exprReferencesReceiver(sel.X, receiverName) {
+				return true
+			}
+			called := methodDeclByName(currentTypeMethods, sel.Sel.Name)
+			if called == nil {
+				return true
+			}
+			if methodMutatesReceiverWithSeen(called, receiverNameForMethod(called), seen) {
+				mutates = true
+				return false
+			}
+		}
+		return true
+	})
+	return mutates
+}
+
 func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, addPub bool, forceSharedReceiver bool, fileSet *token.FileSet, comments []*ast.CommentGroup) {
 	// Store the receiver name and type for self translation
 	if fn.Recv != nil && len(fn.Recv.List) > 0 {
@@ -1411,8 +1486,7 @@ func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, a
 		if forceSharedReceiver {
 			out.WriteString("&self")
 		} else if _, isPointer := recv.Type.(*ast.StarExpr); isPointer {
-			// Error() methods should use &self since they only read
-			if fn.Name.Name == "Error" {
+			if !methodMutatesReceiver(fn, currentReceiver) {
 				out.WriteString("&self")
 			} else {
 				out.WriteString("&mut self")

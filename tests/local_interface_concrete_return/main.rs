@@ -54,7 +54,7 @@ impl std::fmt::Display for number {
 
 
 impl counter {
-    pub fn read(&mut self) -> Rc<RefCell<Option<i32>>> {
+    pub fn read(&self) -> Rc<RefCell<Option<i32>>> {
         return self.n.clone();
     }
 }

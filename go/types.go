@@ -136,6 +136,29 @@ func rustLocalInterfaceParam(name string) string {
 	return "&dyn " + name
 }
 
+func goTypeParamConstraintToRust(t types.Type) (string, bool) {
+	tp, ok := types.Unalias(t).(*types.TypeParam)
+	if !ok || tp.Constraint() == nil {
+		return "", false
+	}
+	iface, ok := tp.Constraint().Underlying().(*types.Interface)
+	if !ok {
+		return "", false
+	}
+	for i := 0; i < iface.NumEmbeddeds(); i++ {
+		switch embedded := types.Unalias(iface.EmbeddedType(i)).(type) {
+		case *types.Union:
+			if embedded.Len() == 0 {
+				continue
+			}
+			return goTypesTypeToRust(embedded.Term(0).Type()), true
+		default:
+			return goTypesTypeToRust(embedded), true
+		}
+	}
+	return "", false
+}
+
 // getStructSignature creates a unique signature for a struct type based on its fields
 func getStructSignature(structType *ast.StructType) string {
 	var sig strings.Builder
@@ -390,11 +413,17 @@ func goTypeToRustBase(expr ast.Expr) string {
 			}
 			return "Option<Box<dyn StdError>>"
 		default:
+			typeInfo := GetTypeInfo()
+			if typeInfo != nil {
+				if rustType, ok := goTypeParamConstraintToRust(typeInfo.GetType(t)); ok {
+					return rustType
+				}
+			}
 			// Check if this is an interface type
 			if IsInterfaceType(t.Name) {
-				return rustLocalInterfaceTraitObject(t.Name)
+				return rustLocalInterfaceTraitObject(RustTypeNameForUse(t.Name))
 			}
-			return t.Name
+			return RustTypeNameForUse(t.Name)
 		}
 	case *ast.InterfaceType:
 		// Empty interface{} becomes Box<dyn Any>
@@ -672,6 +701,9 @@ func isGoSyncNamedType(typ types.Type) bool {
 
 // goTypesTypeToRust converts a go/types.Type to the base Rust type string (unwrapped)
 func goTypesTypeToRust(t types.Type) string {
+	if rustType, ok := goTypeParamConstraintToRust(t); ok {
+		return rustType
+	}
 	if sig, ok := signatureFromType(t); ok {
 		return signatureToBoxDynFn(sig)
 	}
@@ -826,16 +858,16 @@ func goTypesNamedTypeToRust(named *types.Named) string {
 	}
 	obj := named.Obj()
 	if obj.Pkg() == nil {
-		return obj.Name()
+		return RustTypeNameForUse(obj.Name())
 	}
 	typeInfo := GetTypeInfo()
 	if typeInfo != nil && typeInfo.pkg != nil && obj.Pkg() == typeInfo.pkg {
-		return obj.Name()
+		return RustTypeNameForUse(obj.Name())
 	}
 	if rustName, ok := rustTypeNameForImportedPackagePath(obj.Pkg().Path(), obj.Name()); ok {
 		return rustName
 	}
-	rustName := obj.Pkg().Name() + "_" + obj.Name()
+	rustName := obj.Pkg().Name() + "_" + RustTypeNameForUse(obj.Name())
 	if isStdlibPackage(obj.Pkg().Path()) {
 		RegisterExternalTypeStubNamed(named, rustName)
 	}
@@ -849,10 +881,10 @@ func rustTypeNameForImportedPackagePath(pkgPath, name string) (string, bool) {
 	ctx := GetTranspileContext()
 	if ctx != nil && ctx.PackageMapping != nil {
 		if crateName, ok := ctx.PackageMapping[pkgPath]; ok {
-			return crateName + "::" + name, true
+			return crateName + "::" + RustTypeNameForUse(name), true
 		}
 	}
-	return RustCrateNameForGoImportPath(pkgPath) + "::" + name, true
+	return RustCrateNameForGoImportPath(pkgPath) + "::" + RustTypeNameForUse(name), true
 }
 
 // goTypesTypeToRustWrapped converts a go/types.Type to the wrapped Rust type string

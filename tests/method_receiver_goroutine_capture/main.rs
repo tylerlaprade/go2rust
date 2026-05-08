@@ -161,11 +161,11 @@ impl std::fmt::Display for Runner {
 
 
 impl Runner {
-    pub fn after(&mut self) {
+    pub fn after(&self) {
         let _ = self.name.clone();
     }
 
-    pub fn run(&mut self, done: GoChannel<String>) {
+    pub fn run(&self, done: GoChannel<String>) {
         let done_thread = done.clone(); let mut r_thread = self.clone(); std::thread::spawn(move || {
         let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
         let mut r_defer_captured = r_thread.clone(); __defer_stack.push(Box::new(move || {

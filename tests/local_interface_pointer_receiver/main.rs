@@ -51,11 +51,11 @@ impl std::fmt::Display for list {
 
 
 impl list {
-    pub fn valid(&mut self, index: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<bool>>> {
+    pub fn valid(&self, index: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<bool>>> {
         return Rc::new(RefCell::new(Some((*index.borrow().as_ref().unwrap()) >= 0 && ((*index.borrow().as_ref().unwrap()) as i32) < ((*self.labels.borrow().as_ref().unwrap()).len() as i32))));
     }
 
-    pub fn label(&mut self, index: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>> {
+    pub fn label(&self, index: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>> {
         return Rc::new(RefCell::new(Some((*self.labels.borrow().as_ref().unwrap())[((*index.borrow().as_ref().unwrap())) as usize].clone())));
     }
 }

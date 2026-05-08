@@ -45,6 +45,7 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 - ✅ Comparable struct literals - struct literals in equality expressions remain bare and compared named structs derive PartialEq when needed (struct_compare_literal promoted, 2026-05-07)
 - ✅ Parallel slice-expression field assignment - multi-assignment moves wrapped slice-expression temporaries into wrapped fields and locals (parallel_slice_field_assign promoted, 2026-05-07)
 - ✅ Struct fields with trait-bearing map values - forward struct metadata prevents invalid Debug derives and formats opaque nested map values without requiring `any` contents to implement Display (struct_map_trait_value_display promoted, 2026-05-07)
+- ✅ Rust prelude type-name collisions - Go type definitions such as `String` emit escaped Rust type names consistently across declarations, constructors, impls, and imported package paths (2026-05-08)
 
 ### ✅ Phase 5: Core Language Features (90% Complete)
 
@@ -54,12 +55,14 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 - ✅ Named scalar equality comparisons - scalar type definitions compare across wrapper modes, and typed constants wrap correctly for multi-name parameters and selector comparisons (named_type_comparisons and concurrent_named_type_comparisons added, 2026-05-07)
 - ✅ Closures and function literals - type-info-scoped capture analysis handles nested closures, package selectors, type conversions, Rust keyword parameters, and recursive function-variable closure assignment
 - ✅ Instantiated generic function type aliases - go/types-backed lowering handles callable aliases such as `iter.Seq[string]` without falling back to unknown `()` types (generic_function_type_alias added, 2026-05-07)
+- ✅ Focused type-parameter constraints - concrete helper signatures using constraints such as `S ~[]T, T ~string` lower to usable Rust parameter types during self-hosting (2026-05-08)
 - ✅ Numeric type conversions - literal and raw expression conversions such as `byte(1)` and `uint64(1) << n` cast directly instead of borrowing a wrapped value (numeric_conversion_literals promoted, 2026-05-07)
 - ✅ Defer statements - fully working with proper LIFO execution and variable capture
 - 🚧 Panic and recover - basic panic working, recover needs catch_unwind integration
 - ✅ Interfaces - empty interface{} and named interfaces working with trait generation (2025-09-04)
 - ✅ VarTable selective wrapping - scope-aware variable tracking, interface params as bare `&dyn Trait` (2026-03-05)
 - ✅ Local interface trait-object helpers - generated local interface traits now clone boxed values, compare interface values, store concrete values in interface fields, return interface globals, and support `slices.Contains` over interface slices (local_interface_equality_contains promoted, 2026-05-08)
+- ✅ Imported transpiled interface implementations - current-package concrete values passed to dependency interface parameters generate imported trait impls when go/types proves the implementation (2026-05-08)
 - ✅ Error handling - custom error types with Error() method, Box<dyn Error> returns, package-level error globals, error assignment, error-to-error moves, type assertions on errors, and fmt.Errorf `%w` formatting (2026-03-26, updated 2026-05-07)
 - ✅ Embedded method promotion - multi-level embedding, promoted method calls, field method chains (2026-03-26)
 - ✅ Map value type consistency - map literal values and type annotations now consistently wrap values (2026-03-26)
@@ -136,6 +139,7 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 - ✅ External package workspace wrapper policy - root and transpiled dependency crates share one goroutine/channel detection result before wrapper selection, preventing cross-crate wrapper mismatches (2026-05-07)
 - ✅ Package-level map literal initialization - global map literals lower through source-ordered local `BTreeMap` inserts followed by one assignment, avoiding multi-megabyte Rust expressions in generated dependency crates (package_global_map_incremental added, 2026-05-07)
 - ✅ Package-level named slice globals - go/types-backed package global declarations preserve named slice newtypes instead of erasing them to raw `Vec` values (package_global_named_slice added, 2026-05-07)
+- ✅ Package-level pointer constructor globals - pointer globals initialized from constructor calls keep the returned pointer handle instead of unwrapping to the pointee (2026-05-08)
 - ✅ Stdlib struct field stubs - selected fields on imported stdlib structs generate typed Rust stub fields, including `go/types.Info.FileVersions` and pointer fields without nested wrappers (stdlib_struct_field_map and stdlib_pointer_field_stub promoted, 2026-05-07)
 - ✅ Stdlib method stubs - selected methods on imported stdlib receiver types generate typed Rust stub methods from selector signatures (stdlib_method_stubs promoted, 2026-05-07)
 - ✅ Stdlib indexed and range pointer receiver methods - method calls on indexed or ranged `*stdlib.Type` values unwrap the pointer stand-in before invoking generated stub methods (stdlib_indexed_pointer_method promoted, 2026-05-07)

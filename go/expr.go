@@ -3071,7 +3071,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					if sliceType, ok := typ.Underlying().(*types.Slice); ok {
 						wrapInTypeDefinition := !IsTypeAlias(ident.Name)
 						if wrapInTypeDefinition {
-							out.WriteString(ident.Name)
+							out.WriteString(RustTypeNameForUse(ident.Name))
 							out.WriteString("(")
 						}
 						WriteWrapperPrefix(out)
@@ -3102,7 +3102,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			// Empty struct literal — generate explicit zero-value fields
 			if len(e.Elts) == 0 {
 				if sd, exists := structDefs[ident.Name]; exists && sd.ASTType != nil {
-					out.WriteString(ident.Name)
+					out.WriteString(RustTypeNameForUse(ident.Name))
 					out.WriteString(" { ")
 					fieldIdx := 0
 					for _, field := range sd.ASTType.Fields.List {
@@ -3131,14 +3131,14 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					}
 					out.WriteString(" }")
 				} else {
-					out.WriteString(ident.Name)
+					out.WriteString(RustTypeNameForUse(ident.Name))
 					out.WriteString("::default()")
 				}
 				break
 			}
 
 			// Struct literal
-			out.WriteString(ident.Name)
+			out.WriteString(RustTypeNameForUse(ident.Name))
 			out.WriteString(" { ")
 			wroteFields := false
 
@@ -3295,7 +3295,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 									if fieldIdent, ok := field.Type.(*ast.Ident); ok {
 										if _, isStruct := structDefs[fieldIdent.Name]; isStruct {
 											WriteWrapperPrefix(out)
-											out.WriteString(fieldIdent.Name)
+											out.WriteString(RustTypeNameForUse(fieldIdent.Name))
 											out.WriteString("::default()")
 											WriteWrapperSuffix(out)
 											continue
@@ -3320,7 +3320,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 								out.WriteString(": ")
 								if _, isStruct := structDefs[typeName]; isStruct {
 									WriteWrapperPrefix(out)
-									out.WriteString(typeName)
+									out.WriteString(RustTypeNameForUse(typeName))
 									out.WriteString("::default()")
 									WriteWrapperSuffix(out)
 								} else {
@@ -3916,14 +3916,22 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 		}
 		// Default string conversion
 		WriteWrapperPrefix(out)
-		out.WriteString("(*")
 		if ident, ok := arg.(*ast.Ident); ok && ident.Name != "nil" {
-			out.WriteString(ident.Name)
+			if _, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar {
+				out.WriteString(RustIdentForUse(ident))
+				out.WriteString(".to_string()")
+			} else {
+				out.WriteString("(*")
+				out.WriteString(RustIdentForUse(ident))
+				WriteBorrowMethod(out, false)
+				out.WriteString(".as_ref().unwrap()).to_string()")
+			}
 		} else {
+			out.WriteString("(*")
 			TranspileExpression(out, arg)
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref().unwrap()).to_string()")
 		}
-		WriteBorrowMethod(out, false)
-		out.WriteString(".as_ref().unwrap()).to_string()")
 		WriteWrapperSuffix(out)
 		return
 	case "rune":
@@ -3968,7 +3976,7 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 				return
 			}
 			// Custom type definition
-			out.WriteString(targetType)
+			out.WriteString(RustTypeNameForUse(targetType))
 			out.WriteString("(")
 			WriteWrapperPrefix(out)
 			TranspileExpression(out, call.Args[0])
@@ -4277,11 +4285,21 @@ func TranspileTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr) 
 	// Get the Rust type for the assertion
 	rustType := ""
 	defaultValue := ""
+	targetIsError := false
 	if ident, ok := e.Type.(*ast.Ident); ok {
 		switch ident.Name {
 		case "string":
-			rustType = "String"
-			defaultValue = "String::new()"
+			rustType = "std::string::String"
+			defaultValue = "std::string::String::new()"
+		case "error":
+			TrackImport("Error")
+			rustType = "std::string::String"
+			if NeedsConcurrentWrapper() {
+				defaultValue = "Box::<dyn StdError + Send + Sync>::from(std::string::String::new())"
+			} else {
+				defaultValue = "Box::<dyn StdError>::from(std::string::String::new())"
+			}
+			targetIsError = true
 		case "int":
 			rustType = "i32"
 			defaultValue = "0"
@@ -4322,13 +4340,13 @@ func TranspileTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr) 
 			rustType = "f64"
 			defaultValue = "0.0"
 		default:
-			rustType = ident.Name
+			rustType = RustTypeNameForUse(ident.Name)
 			defaultValue = "Default::default()"
 		}
 	} else if star, ok := e.Type.(*ast.StarExpr); ok {
 		// Pointer type assertion (*T) - downcast to the bare type T
 		if ident, ok := star.X.(*ast.Ident); ok {
-			rustType = ident.Name
+			rustType = RustTypeNameForUse(ident.Name)
 		} else {
 			rustType = goTypeToRustBase(star.X)
 		}
@@ -4436,7 +4454,16 @@ func TranspileTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr) 
 	out.WriteString(">() {\n")
 	out.WriteString("                (")
 	WriteWrapperPrefix(out)
-	out.WriteString("typed_val.clone()))), ")
+	if targetIsError {
+		if NeedsConcurrentWrapper() {
+			out.WriteString("Box::<dyn StdError + Send + Sync>::from(typed_val.clone())")
+		} else {
+			out.WriteString("Box::<dyn StdError>::from(typed_val.clone())")
+		}
+	} else {
+		out.WriteString("typed_val.clone()")
+	}
+	out.WriteString("))), ")
 	WriteWrapperPrefix(out)
 	out.WriteString("true))))\n")
 	out.WriteString("            } else {\n")
@@ -4480,11 +4507,23 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 		}
 	}
 
+	if sel, ok := call.Fun.(*ast.SelectorExpr); ok && sel.Sel.Name == "Error" {
+		if typeInfo != nil && isGoErrorType(typeInfo.GetType(sel.X)) {
+			WriteWrapperPrefix(out)
+			out.WriteString("format!(\"{}\", (*")
+			TranspileExpression(out, sel.X)
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref().unwrap()))")
+			WriteWrapperSuffix(out)
+			return
+		}
+	}
+
 	// Check if this is a type conversion for a type definition
 	if ident, ok := call.Fun.(*ast.Ident); ok {
 		if _, isTypeDef := LookupTypeDefinition(ident.Name); isTypeDef {
 			// This is a type definition constructor
-			out.WriteString(ident.Name)
+			out.WriteString(RustTypeNameForUse(ident.Name))
 			out.WriteString("(")
 			WriteWrapperPrefix(out)
 			if len(call.Args) > 0 {
@@ -4528,6 +4567,20 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 					}
 				}
 				if isEmptyInterfaceType(expectedArgType) {
+					if ident, ok := arg.(*ast.Ident); ok && ident.Name == "nil" {
+						if NeedsConcurrentWrapper() {
+							TrackImport("Arc")
+							TrackImport("Mutex")
+							out.WriteString("Arc::new(Mutex::new(None::<")
+						} else {
+							TrackImport("Rc")
+							TrackImport("RefCell")
+							out.WriteString("Rc::new(RefCell::new(None::<")
+						}
+						out.WriteString(rustAnyTraitObject())
+						out.WriteString(">))")
+						continue
+					}
 					if writeEmptyInterfaceHandleClone(out, arg) {
 						continue
 					}

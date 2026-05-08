@@ -19,7 +19,7 @@ impl Counter {
         { let mut guard = self.value.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
 
-    pub fn value(&mut self) -> Rc<RefCell<Option<i32>>> {
+    pub fn value(&self) -> Rc<RefCell<Option<i32>>> {
         return self.value.clone();
     }
 }

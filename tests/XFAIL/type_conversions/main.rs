@@ -202,13 +202,13 @@ fn main() {
         let val = any.clone();
         let guard = val.borrow();
         if let Some(ref any_val) = *guard {
-            if let Some(typed_val) = any_val.downcast_ref::<String>() {
+            if let Some(typed_val) = any_val.downcast_ref::<std::string::String>() {
                 (Rc::new(RefCell::new(Some(typed_val.clone()))), Rc::new(RefCell::new(Some(true))))
             } else {
-                (Rc::new(RefCell::new(Some(String::new()))), Rc::new(RefCell::new(Some(false))))
+                (Rc::new(RefCell::new(Some(std::string::String::new()))), Rc::new(RefCell::new(Some(false))))
             }
         } else {
-            (Rc::new(RefCell::new(Some(String::new()))), Rc::new(RefCell::new(Some(false))))
+            (Rc::new(RefCell::new(Some(std::string::String::new()))), Rc::new(RefCell::new(Some(false))))
         }
     });
     if (*ok.borrow().as_ref().unwrap()) {

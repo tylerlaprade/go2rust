@@ -2930,7 +2930,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							structDefs[typeSpec.Name.Name] = structDef
 							RegisterTypeAlias(typeSpec.Name.Name)
 							out.WriteString("type ")
-							out.WriteString(typeSpec.Name.Name)
+							out.WriteString(RustTypeNameForUse(typeSpec.Name.Name))
 							out.WriteString(" = ")
 							out.WriteString(goTypeToRustBase(typeSpec.Type))
 							out.WriteString(";")
@@ -2939,7 +2939,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						// For now, just generate type aliases inside functions
 						// These should be hoisted to module level in a real implementation
 						out.WriteString("type ")
-						out.WriteString(typeSpec.Name.Name)
+						out.WriteString(RustTypeNameForUse(typeSpec.Name.Name))
 						out.WriteString(" = ")
 						out.WriteString(GoTypeToRust(typeSpec.Type))
 						out.WriteString(";")

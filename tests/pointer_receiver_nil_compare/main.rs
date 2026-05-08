@@ -15,7 +15,7 @@ impl std::fmt::Display for node {
 
 
 impl node {
-    pub fn same(&mut self, other: Rc<RefCell<Option<node>>>) -> Rc<RefCell<Option<bool>>> {
+    pub fn same(&self, other: Rc<RefCell<Option<node>>>) -> Rc<RefCell<Option<bool>>> {
         if false || (*other.borrow()).is_none() {
         return Rc::new(RefCell::new(Some(false)));
     }

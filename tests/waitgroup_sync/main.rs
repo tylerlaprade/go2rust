@@ -71,7 +71,7 @@ impl std::fmt::Display for Group {
 
 
 impl Group {
-    pub fn run(&mut self) {
+    pub fn run(&self) {
         self.wg.add(1);
         self.wg.done();
         self.wg.wait();

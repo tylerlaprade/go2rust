@@ -160,7 +160,7 @@ impl std::fmt::Display for Holder {
 
 
 impl Holder {
-    pub fn ready(&mut self) -> Arc<Mutex<Option<bool>>> {
+    pub fn ready(&self) -> Arc<Mutex<Option<bool>>> {
         return Arc::new(Mutex::new(Some(!self.ch.is_nil())));
     }
 

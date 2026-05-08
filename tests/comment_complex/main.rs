@@ -18,7 +18,7 @@ impl std::fmt::Display for Person {
 
 impl Person {
     /// Greet prints a greeting message
-    pub fn greet(&mut self) {
+    pub fn greet(&self) {
                 // Check if person is valid
         if false {
                 // Handle nil receiver

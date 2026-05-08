@@ -92,6 +92,8 @@ See `ROADMAP.md` for the detailed implementation phases and progress.
 - Pointer and interface map values are handles. Do not unwrap and deep-copy them during map lookup, literal generation, or assignment unless Go value semantics require a real copy and the inner type is cloneable.
 - `interface{}`/`any` values are represented by handles to `Box<dyn Any>`. When assigning or passing an existing `any`, clone the handle; do not re-box `*value.as_ref().unwrap()`, because `Box<dyn Any>` is not cloneable and moving from a shared reference fails.
 - The predeclared `any` alias must follow the same paths as an explicit `interface{}`. If generated Rust calls `.borrow()` in concurrent mode for an `any` argument, the alias probably escaped the empty-interface path.
+- Go type names can collide with Rust prelude names. Escaped Rust names such as `String_` must be used consistently in type declarations, constructors, impl blocks, composite literals, local aliases, and imported package paths.
+- Package-level pointer globals initialized from constructor calls should keep the returned pointer handle. Unwrapping the initializer to the pointee usually creates an `Option<T>` vs `Option<Arc<Mutex<Option<T>>>>` mismatch.
 
 ### Call Argument Wrapping
 
@@ -99,6 +101,7 @@ See `ROADMAP.md` for the detailed implementation phases and progress.
 - If an argument helper is called from inside an already-open wrapper, emit the raw inner value for that context. For function literals, that means `TranspileFuncLitBox`, not `TranspileExpression`, because `TranspileExpression` wraps the closure itself.
 - If generated Rust contains `Some(Arc<Mutex<Option<Box<dyn Fn...>>>>)` where the parameter expected `Some(Box<dyn Fn...>)`, suspect nested function-literal wrapping before changing method signature generation.
 - Named stdlib interfaces such as `go/types.Type` are still wrapped at function boundaries, but calls that pass one wrapped interface into another wrapped interface need to unwrap/clone the raw stub value before the caller's wrapper is applied.
+- Imported transpiled interfaces are Rust traits in dependency crates. When a current-package concrete value is passed to an imported interface parameter, prove the relationship with `go/types.Implements` and generate the dependency trait impl; do not infer this from names.
 
 ### Sync Helpers
 
@@ -161,7 +164,7 @@ The test script handles:
 - Use self-hosting errors as real feedback. A generated Rust compile error usually points to a translator boundary issue; reduce it to a focused fixture before patching broadly.
 - If `rustc` is killed on a generated dependency crate, inspect the generated Rust shape before assuming a semantic type error. Multi-megabyte single expressions can kill the compiler even when the code is otherwise valid.
 - For large package-level composite literals, prefer statement lowering: build local maps/slices in source order, then assign to the package global once. Do not mutate the target global while evaluating its initializer.
-- Current self-hosting checkpoint: `golang_org_x_tools_go_types_typeutil` cargo-checks successfully. The broad workspace check currently reaches `golang_org_x_tools_internal_event_label`; next blockers there are local interface/trait-object lowering, `reflect.StringHeader`, wrapped slice/list iteration, and trait-object comparability/default handling.
+- Current self-hosting checkpoint: focused cargo-checks have reached and passed `golang_org_x_tools_internal_event_keys`. The next broad run should continue from the following dependency package, likely `golang_org_x_tools_internal_event_core` or the full serialized workspace check; verify the live error set before patching.
 
 ## Source-Preserving Fixes
 

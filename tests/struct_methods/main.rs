@@ -16,7 +16,7 @@ impl std::fmt::Display for rect {
 
 
 impl rect {
-    pub fn area(&mut self) -> Rc<RefCell<Option<i32>>> {
+    pub fn area(&self) -> Rc<RefCell<Option<i32>>> {
         return Rc::new(RefCell::new(Some((*self.width.clone().borrow().as_ref().unwrap()) * (*self.height.clone().borrow().as_ref().unwrap()))));
     }
 

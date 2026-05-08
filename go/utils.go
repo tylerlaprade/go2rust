@@ -213,6 +213,15 @@ func EscapeRustIdent(s string) string {
 	return s
 }
 
+func RustTypeNameForUse(s string) string {
+	switch s {
+	case "Box", "Option", "Result", "String", "Vec":
+		return s + "_"
+	default:
+		return EscapeRustIdent(s)
+	}
+}
+
 func RustLocalIdent(s string) string {
 	if isPackageGlobalName(s) {
 		return EscapeRustIdent(s + "_local")

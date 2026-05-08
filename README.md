@@ -150,6 +150,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Function literals/closures with scoped nested captures | ✅ |
 | └ Function variables and higher-order function values | ✅ |
 | └ Instantiated generic function type aliases | ✅ |
+| └ Focused type-parameter constraints in concrete helper signatures such as `S ~[]T, T ~string` | ✅ |
 | └ Assignment from function return values | ✅ |
 | └ Variadic functions | ✅ |
 | **`go` - Goroutines** | ✅ |
@@ -190,6 +191,8 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ `any(x)` conversions feeding type assertions | ✅ |
 | └ Static `any(x).(interface{...})` assertions when TypeInfo proves implementation | ✅ |
 | └ Stdlib concrete pointer literals and values returned as stdlib interface types | ✅ |
+| └ Imported transpiled interfaces implemented by current-package concrete types | ✅ |
+| └ Boxed error values asserted back to `error` | ✅ |
 | └ Type switches, including nil and selector pointer cases | ✅ |
 | **`map` - Map types** | |
 | └ Map types | ✅ |
@@ -211,6 +214,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Package-level error initialization | ✅ |
 | └ Package-level map literal initialization | ✅ |
 | └ Package-level named slice declarations | ✅ |
+| └ Package-level pointer globals initialized from constructor calls | ✅ |
 | └ Init functions | ✅ |
 | └ Multi-file packages with cross-file types, methods, maps, slices, and function variables | 🚧 |
 | └ Workspace-wide wrapper selection for transpiled external packages | ✅ |
@@ -247,6 +251,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Struct types | ✅ |
 | └ Type aliases | ✅ |
 | └ Type definitions | ✅ |
+| └ Go type names that collide with Rust prelude types are escaped in generated Rust | ✅ |
 | └ Named scalar newtypes usable across generated modules | ✅ |
 | └ Named scalar equality comparisons | ✅ |
 | └ Instantiated generic function type aliases | ✅ |

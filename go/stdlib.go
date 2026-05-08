@@ -2195,6 +2195,13 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 		}
 		writeAppendElement := func(expr ast.Expr) {
 			if typeInfo := GetTypeInfo(); typeInfo != nil {
+				if callExpr, ok := expr.(*ast.CallExpr); ok && typeInfo.ReturnsWrappedValue(callExpr) && !callReturnsBareChannelValue(callExpr) {
+					out.WriteString("(*")
+					TranspileExpression(out, expr)
+					WriteBorrowMethod(out, false)
+					out.WriteString(".as_ref().unwrap()).clone()")
+					return
+				}
 				if elemType := typeInfo.GetSliceElemType(call.Args[0]); elemType != nil {
 					if _, ok := localNamedInterfaceTypeNameFromTypes(elemType); ok && isBareLocalInterfaceValue(expr) {
 						writeLocalInterfaceBareClone(out, expr)
