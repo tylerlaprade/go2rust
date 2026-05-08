@@ -1878,6 +1878,14 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				out.WriteString(".clone()")
 			}
 		case token.MUL: // * - dereference
+			if ident, ok := e.X.(*ast.Ident); ok && isSliceElemPtrVar(ident.Name) {
+				if ctx == RValue {
+					writeSliceElemPtrDerefRead(out, ident)
+				} else {
+					writeSliceElemPtrDerefLValue(out, ident)
+				}
+				break
+			}
 			if ctx == RValue {
 				out.WriteString("{ let __v = (*")
 				TranspileExpressionContext(out, e.X, LValue)
@@ -1915,6 +1923,14 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		}
 
 	case *ast.StarExpr:
+		if ident, ok := e.X.(*ast.Ident); ok && isSliceElemPtrVar(ident.Name) {
+			if ctx == RValue {
+				writeSliceElemPtrDerefRead(out, ident)
+			} else {
+				writeSliceElemPtrDerefLValue(out, ident)
+			}
+			break
+		}
 		// Dereference pointer - unwrap the wrapper to get T
 		if ctx == RValue {
 			out.WriteString("{ let __v = (*")
@@ -1959,12 +1975,22 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			}
 
 			if e.Op.String() == "!=" {
+				if leftIdent, ok := e.X.(*ast.Ident); ok && isSliceElemPtrVar(leftIdent.Name) {
+					out.WriteString(RustIdentForUse(leftIdent))
+					out.WriteString(".is_some()")
+					return
+				}
 				out.WriteString("(*")
 				TranspileExpressionContext(out, e.X, LValue)
 				WriteBorrowMethod(out, false)
 				out.WriteString(").is_some()")
 				return
 			} else if e.Op.String() == "==" {
+				if leftIdent, ok := e.X.(*ast.Ident); ok && isSliceElemPtrVar(leftIdent.Name) {
+					out.WriteString(RustIdentForUse(leftIdent))
+					out.WriteString(".is_none()")
+					return
+				}
 				out.WriteString("(*")
 				TranspileExpressionContext(out, e.X, LValue)
 				WriteBorrowMethod(out, false)

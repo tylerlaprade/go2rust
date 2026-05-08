@@ -510,6 +510,10 @@ run_xfail_test() {
     run_test "tests/crypto_hash"
 }
 
+@test "declared_slice_elem_pointer" {
+    run_test "tests/declared_slice_elem_pointer"
+}
+
 @test "defer_field_capture_rename" {
     run_test "tests/defer_field_capture_rename"
 }

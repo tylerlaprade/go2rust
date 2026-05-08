@@ -19,12 +19,22 @@ const (
 	SourceRangeVal                  // range loop value variable
 )
 
+// PointerKind describes local pointer representations that are not the default
+// Go pointer wrapper.
+type PointerKind int
+
+const (
+	PointerDefault PointerKind = iota
+	PointerSliceElem
+)
+
 // VarInfo holds metadata about a variable tracked by VarTable.
 type VarInfo struct {
-	WrapLevel WrapLevel
-	RustType  string // e.g. "&dyn Shape", "f64"
-	Source    VarSource
-	IsRef     bool // true for &dyn Trait params
+	WrapLevel   WrapLevel
+	RustType    string // e.g. "&dyn Shape", "f64"
+	Source      VarSource
+	IsRef       bool // true for &dyn Trait params
+	PointerKind PointerKind
 }
 
 // Scope holds variables at one nesting level.
@@ -90,4 +100,18 @@ func isVarBare(name string) bool {
 		}
 	}
 	return false
+}
+
+func sliceElemPtrVarInfo(name string) (*VarInfo, bool) {
+	if vt := GetVarTable(); vt != nil {
+		if info := vt.Lookup(name); info != nil && info.PointerKind == PointerSliceElem {
+			return info, true
+		}
+	}
+	return nil, false
+}
+
+func isSliceElemPtrVar(name string) bool {
+	_, ok := sliceElemPtrVarInfo(name)
+	return ok
 }

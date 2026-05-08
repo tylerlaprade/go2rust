@@ -1921,17 +1921,32 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						// Normal single assignment
 						if s.Tok == token.ASSIGN {
 							// Assignment to wrapped variable
-							// Check if LHS is a dereference (*p = value)
-							if star, ok := s.Lhs[0].(*ast.StarExpr); ok {
+							if ident, ok := s.Lhs[0].(*ast.Ident); ok && isSliceElemPtrVar(ident.Name) {
+								TranspileExpressionContext(out, ident, LValue)
+								out.WriteString(" = ")
+								if !writeSliceElemPtrOptionValue(out, s.Rhs[0]) {
+									out.WriteString("/* ERROR: slice element pointer assignment requires nil or &slice[index] */ unimplemented!(\"slice element pointer assignment\")")
+								}
+							} else if star, ok := s.Lhs[0].(*ast.StarExpr); ok {
+								// Check if LHS is a dereference (*p = value)
 								// Assignment through pointer: *p = value
-								out.WriteString("{ ")
-								out.WriteString("let new_val = ")
-								TranspileExpression(out, s.Rhs[0])
-								out.WriteString("; ")
-								out.WriteString("*")
-								TranspileExpressionContext(out, star.X, LValue)
-								WriteBorrowMethod(out, true)
-								out.WriteString(" = Some(new_val); }")
+								if ident, ok := star.X.(*ast.Ident); ok && isSliceElemPtrVar(ident.Name) {
+									out.WriteString("{ ")
+									out.WriteString("let new_val = ")
+									TranspileExpression(out, s.Rhs[0])
+									out.WriteString("; *")
+									out.WriteString(RustIdentForUse(ident))
+									out.WriteString(".as_ref().unwrap().borrow_mut() = Some(new_val); }")
+								} else {
+									out.WriteString("{ ")
+									out.WriteString("let new_val = ")
+									TranspileExpression(out, s.Rhs[0])
+									out.WriteString("; ")
+									out.WriteString("*")
+									TranspileExpressionContext(out, star.X, LValue)
+									WriteBorrowMethod(out, true)
+									out.WriteString(" = Some(new_val); }")
+								}
 							} else if indexExpr, ok := s.Lhs[0].(*ast.IndexExpr); ok && !isMapIndexAssign {
 								// Array/slice element assignment: arr[i] = value
 								out.WriteString("(*")
@@ -2469,6 +2484,18 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 								out.WriteString("let mut ")
 							}
 							out.WriteString(RustLocalIdent(name.Name))
+							sliceElemPtrRustType, isSliceElemPtr := sliceElemPtrCandidateForDecl(name)
+							if isSliceElemPtr {
+								NeedSliceElemPtr()
+								if vt := GetVarTable(); vt != nil {
+									vt.Register(name.Name, &VarInfo{
+										WrapLevel:   WrapOption,
+										RustType:    "Option<GoSliceElemPtr<" + sliceElemPtrRustType + ">>",
+										Source:      SourceLocal,
+										PointerKind: PointerSliceElem,
+									})
+								}
+							}
 
 							// Add type annotation if type is specified (skip for sync types and local interfaces)
 							isLocalInterface := false
@@ -2477,13 +2504,23 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							}
 							if valueSpec.Type != nil && !isSyncType && !isLocalInterface {
 								out.WriteString(": ")
-								out.WriteString(GoTypeToRust(valueSpec.Type))
+								if isSliceElemPtr {
+									out.WriteString("Option<GoSliceElemPtr<")
+									out.WriteString(sliceElemPtrRustType)
+									out.WriteString(">>")
+								} else {
+									out.WriteString(GoTypeToRust(valueSpec.Type))
+								}
 							}
 
 							if len(valueSpec.Values) > i {
 								out.WriteString(" = ")
 								// Check if value is nil
-								if ident, ok := valueSpec.Values[i].(*ast.Ident); ok && ident.Name == "nil" {
+								if isSliceElemPtr {
+									if !writeSliceElemPtrOptionValue(out, valueSpec.Values[i]) {
+										out.WriteString("/* ERROR: slice element pointer initializer requires nil or &slice[index] */ unimplemented!(\"slice element pointer initializer\")")
+									}
+								} else if ident, ok := valueSpec.Values[i].(*ast.Ident); ok && ident.Name == "nil" {
 									// Initializing with nil
 									WriteWrappedNone(out)
 								} else if isLocalInterface {
@@ -2627,7 +2664,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 								}
 							} else {
 								// Default initialization for uninitialized vars
-								if valueSpec.Type != nil {
+								if isSliceElemPtr {
+									out.WriteString(" = None")
+								} else if valueSpec.Type != nil {
 									switch t := valueSpec.Type.(type) {
 									case *ast.Ident:
 										switch t.Name {
