@@ -86,6 +86,7 @@ See `ROADMAP.md` for the detailed implementation phases and progress.
 - Raw expression conversions like `byte(1)`, `uint64(1) << n`, `len(x)`, indexing, binary expressions, and literals should cast the raw expression, not borrow from it as if it were wrapped.
 - Use `TypeInfo.ReturnsWrappedValue` and `TypeInfo.NeedsUnwrapping`, but verify the exact caller context. Some AST nodes return raw values in binary operands but wrapped values as standalone expressions.
 - When a missing method such as `.borrow()` or `.lock()` appears on a literal, integer, string, or other primitive in generated Rust, suspect a wrapped/raw boundary bug first.
+- Map-valued selector fields are bare in single-threaded output but wrapped handles in concurrent output. If generated Rust calls `.get()` on an `Arc<Mutex<Option<BTreeMap<...>>>>`, or calls `.borrow()` on an already bare `BTreeMap`, check this selector-map boundary before changing general map lookup lowering.
 
 ### Closure Capture Rules
 
@@ -123,6 +124,7 @@ The test script handles:
 ### Test Runtime Guidance
 
 - Use `./test.sh <name>` for focused fixtures and `./test.sh` before committing.
+- Run only one `./test.sh` process at a time. The script already parallelizes internally and rewrites `tests.bats`; separate concurrent invocations can race on `tests.bats.new`.
 - Run the default parallel test mode when the machine has memory headroom. Use `./test.sh -n 1 ...` only for memory pressure, hard-to-read interleaving, or self-transpile follow-up checks.
 - On this machine, `./test.sh -n 4` is the safer full-suite parallel setting. `-n 6` can starve timer fixtures such as `timeouts_basic` and `timers_basic` even when those tests pass alone.
 - If `./test.sh` reports `Passing: 0/0`, treat that as an invalid run, not success. Inspect the filter, dependencies such as GNU parallel, and the raw script output.
