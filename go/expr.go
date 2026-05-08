@@ -1023,6 +1023,16 @@ func writeWrappedStructFieldValue(out *strings.Builder, value ast.Expr, fieldExp
 		return
 	}
 
+	if isPointerFieldExpr(fieldExpr) || isPointerFieldType(fieldType) {
+		if ident, ok := value.(*ast.Ident); ok && ident.Name == "nil" {
+			out.WriteString("Default::default()")
+			return
+		}
+		TranspileExpressionContext(out, value, LValue)
+		out.WriteString(".clone()")
+		return
+	}
+
 	if isChannelFieldExpr(fieldExpr) || isChannelFieldType(fieldType) {
 		if ident, ok := value.(*ast.Ident); ok && ident.Name == "nil" {
 			out.WriteString("Default::default()")
@@ -1062,6 +1072,19 @@ func writeWrappedStructFieldValue(out *strings.Builder, value ast.Expr, fieldExp
 		}
 		WriteWrapperSuffix(out)
 	}
+}
+
+func isPointerFieldExpr(expr ast.Expr) bool {
+	_, ok := expr.(*ast.StarExpr)
+	return ok
+}
+
+func isPointerFieldType(t types.Type) bool {
+	if t == nil {
+		return false
+	}
+	_, ok := types.Unalias(t).Underlying().(*types.Pointer)
+	return ok
 }
 
 func isConstantExpression(expr ast.Expr) bool {
@@ -1839,6 +1862,27 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				}
 			} else {
 				// Direct field access
+				if _, isCallReceiver := e.X.(*ast.CallExpr); isCallReceiver && typeInfo != nil && typeInfo.ReturnsWrappedValue(e.X) {
+					if ctx == RValue && !typeInfo.IsPointer(e) {
+						out.WriteString("(*(*")
+						TranspileExpression(out, e.X)
+						WriteBorrowMethod(out, false)
+						out.WriteString(".as_ref().unwrap()).")
+						out.WriteString(fieldInfo.FieldName)
+						WriteBorrowMethod(out, false)
+						out.WriteString(".as_ref().unwrap())")
+					} else {
+						out.WriteString("(*")
+						TranspileExpression(out, e.X)
+						WriteBorrowMethod(out, false)
+						out.WriteString(".as_ref().unwrap()).")
+						out.WriteString(fieldInfo.FieldName)
+						if ctx == RValue {
+							out.WriteString(".clone()")
+						}
+					}
+					break
+				}
 				// Check if e.X is a selector expression that returns a wrapped struct field
 				if _, isSelector := e.X.(*ast.SelectorExpr); isSelector {
 					// e.X is a field access that returns a wrapped value, need to unwrap it

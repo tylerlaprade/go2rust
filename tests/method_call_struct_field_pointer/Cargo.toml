@@ -1,0 +1,8 @@
+[package]
+name = "method_call_struct_field_pointer"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "method_call_struct_field_pointer"
+path = "main.rs"

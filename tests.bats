@@ -778,6 +778,10 @@ run_xfail_test() {
     run_test "tests/maps_operations"
 }
 
+@test "method_call_struct_field_pointer" {
+    run_test "tests/method_call_struct_field_pointer"
+}
+
 @test "method_func_literal_argument" {
     run_test "tests/method_func_literal_argument"
 }
