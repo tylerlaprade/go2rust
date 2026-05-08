@@ -636,6 +636,25 @@ func selectedMethodParamType(sel *ast.SelectorExpr, index int) types.Type {
 	return sig.Params().At(index).Type()
 }
 
+func writeLocalInterfaceReferenceCallArgument(out *strings.Builder, arg ast.Expr) bool {
+	if ident, ok := arg.(*ast.Ident); ok {
+		if varType, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar && strings.HasPrefix(varType, "&Box<dyn ") {
+			out.WriteString(EscapeRustIdent(ident.Name))
+			out.WriteString(".as_ref()")
+			return true
+		}
+		if isVarBare(ident.Name) {
+			out.WriteString(EscapeRustIdent(ident.Name))
+			return true
+		}
+		out.WriteString(EscapeRustIdent(ident.Name))
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap()")
+		return true
+	}
+	return false
+}
+
 func callParamTypeFromTypeInfo(call *ast.CallExpr, index int) types.Type {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil || call == nil {
@@ -4288,6 +4307,8 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 			} else if typeInfo != nil && typeInfo.IsChannel(arg) {
 				TranspileExpression(out, arg)
 				out.WriteString(".clone()")
+			} else if _, ok := localNamedInterfaceTypeName(selectedMethodParamType(sel, i)); ok && writeLocalInterfaceReferenceCallArgument(out, arg) {
+				continue
 			} else if writeStdlibInterfaceCallArgumentConversion(out, arg, selectedMethodParamType(sel, i)) {
 				continue
 			} else if writeAlreadyWrappedCallArgument(out, arg) {

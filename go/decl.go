@@ -771,7 +771,7 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 							}
 							out.WriteString(RustLocalIdent(name.Name))
 							out.WriteString(": ")
-							out.WriteString(GoTypeToRust(param.Type))
+							out.WriteString(GoTypeToRustParam(param.Type))
 						}
 					}
 				}

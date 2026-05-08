@@ -37,6 +37,19 @@ func isEmptyInterfaceType(typ types.Type) bool {
 	return ok && intf.NumMethods() == 0
 }
 
+func localNamedInterfaceTypeName(typ types.Type) (string, bool) {
+	named, ok := typ.(*types.Named)
+	if !ok || named.Obj() == nil {
+		return "", false
+	}
+	name := named.Obj().Name()
+	if !IsInterfaceType(name) {
+		return "", false
+	}
+	_, ok = named.Underlying().(*types.Interface)
+	return name, ok
+}
+
 // getStructSignature creates a unique signature for a struct type based on its fields
 func getStructSignature(structType *ast.StructType) string {
 	var sig strings.Builder
