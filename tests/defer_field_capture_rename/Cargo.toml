@@ -1,0 +1,8 @@
+[package]
+name = "defer_field_capture_rename"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "defer_field_capture_rename"
+path = "main.rs"

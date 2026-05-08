@@ -1569,6 +1569,12 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 						}
 					}
 				}
+				baseName := RustIdentForUse(ident)
+				if currentCaptureRenames != nil {
+					if renamed, exists := currentCaptureRenames[ident.Name]; exists {
+						baseName = RustLocalIdent(renamed)
+					}
+				}
 
 				if fieldInfo.IsPromoted {
 					// Accessing promoted field through embedded struct(s)
@@ -1576,7 +1582,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 						// Wrapped variable with promoted field
 						if ctx == LValue || ctx == AddressOf {
 							out.WriteString("(*(*")
-							out.WriteString(EscapeRustIdent(ident.Name))
+							out.WriteString(baseName)
 							WriteBorrowMethod(out, true)
 							out.WriteString(".as_mut().unwrap()).")
 							for i, embedded := range fieldInfo.EmbeddedPath {
@@ -1592,7 +1598,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 						} else {
 							// RValue context - need to unwrap the field value too
 							out.WriteString("(*(*(*")
-							out.WriteString(EscapeRustIdent(ident.Name))
+							out.WriteString(baseName)
 							WriteBorrowMethod(out, false)
 							out.WriteString(".as_ref().unwrap()).")
 							for i, embedded := range fieldInfo.EmbeddedPath {
@@ -1613,7 +1619,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 						// The field itself is still wrapped, so unwrap it in RValue context
 						if ctx == RValue {
 							out.WriteString("(*")
-							out.WriteString(EscapeRustIdent(ident.Name))
+							out.WriteString(baseName)
 							for _, embedded := range fieldInfo.EmbeddedPath {
 								out.WriteString(".")
 								out.WriteString(ToSnakeCase(embedded))
@@ -1623,7 +1629,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 							WriteBorrowMethod(out, false)
 							out.WriteString(".as_ref().unwrap())")
 						} else {
-							out.WriteString(EscapeRustIdent(ident.Name))
+							out.WriteString(baseName)
 							for _, embedded := range fieldInfo.EmbeddedPath {
 								out.WriteString(".")
 								out.WriteString(ToSnakeCase(embedded))
@@ -1640,7 +1646,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 							// Immutable borrow on outer struct suffices because each
 							// field is independently wrapped in Rc<RefCell<...>>
 							out.WriteString("(*")
-							out.WriteString(EscapeRustIdent(ident.Name))
+							out.WriteString(baseName)
 							WriteBorrowMethod(out, false)
 							out.WriteString(".as_ref().unwrap()).")
 							out.WriteString(fieldInfo.FieldName)
@@ -1650,14 +1656,14 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 							out.WriteString("(*")
 							if NeedsConcurrentWrapper() {
 								out.WriteString("{ let __field = (*")
-								out.WriteString(EscapeRustIdent(ident.Name))
+								out.WriteString(baseName)
 								WriteBorrowMethod(out, false)
 								out.WriteString(".as_ref().unwrap()).")
 								out.WriteString(fieldInfo.FieldName)
 								out.WriteString(".clone(); __field }")
 							} else {
 								out.WriteString("(*")
-								out.WriteString(EscapeRustIdent(ident.Name))
+								out.WriteString(baseName)
 								WriteBorrowMethod(out, false)
 								out.WriteString(".as_ref().unwrap()).")
 								out.WriteString(fieldInfo.FieldName)
@@ -1670,14 +1676,14 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 						if ctx == RValue {
 							// Unwrap the field in RValue context
 							out.WriteString("(*")
-							out.WriteString(EscapeRustIdent(ident.Name))
+							out.WriteString(baseName)
 							out.WriteString(".")
 							out.WriteString(fieldInfo.FieldName)
 							WriteBorrowMethod(out, false)
 							out.WriteString(".as_ref().unwrap())")
 						} else {
 							// Direct access in LValue context
-							out.WriteString(EscapeRustIdent(ident.Name))
+							out.WriteString(baseName)
 							out.WriteString(".")
 							out.WriteString(fieldInfo.FieldName)
 						}

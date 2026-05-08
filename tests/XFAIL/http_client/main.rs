@@ -123,7 +123,7 @@ fn main() {
     }
     }
     let resp_defer_captured = resp.clone(); __defer_stack.push(Box::new(move || {
-        (*(*resp.lock().unwrap().as_ref().unwrap()).body.lock().unwrap().as_ref().unwrap()).close();
+        (*(*resp_defer_captured.lock().unwrap().as_ref().unwrap()).body.lock().unwrap().as_ref().unwrap()).close();
     }));
 
     let (mut body, _) = io::read_all((*{ let __field = (*resp.lock().unwrap().as_ref().unwrap()).body.clone(); __field }.lock().unwrap().as_ref().unwrap()));
