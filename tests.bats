@@ -1038,6 +1038,14 @@ run_xfail_test() {
     run_test "tests/simple_range"
 }
 
+@test "slice_expr_call_argument" {
+    run_test "tests/slice_expr_call_argument"
+}
+
+@test "slice_expr_method_argument" {
+    run_test "tests/slice_expr_method_argument"
+}
+
 @test "slice_operations_advanced" {
     run_test "tests/slice_operations_advanced"
 }

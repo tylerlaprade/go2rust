@@ -604,6 +604,10 @@ func writeAlreadyWrappedCallArgument(out *strings.Builder, arg ast.Expr) bool {
 			return true
 		}
 	}
+	if _, ok := arg.(*ast.SliceExpr); ok {
+		TranspileExpression(out, arg)
+		return true
+	}
 	callArg, ok := arg.(*ast.CallExpr)
 	if !ok {
 		return false

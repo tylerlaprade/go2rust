@@ -1,0 +1,8 @@
+[package]
+name = "slice_expr_method_argument"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "slice_expr_method_argument"
+path = "main.rs"
