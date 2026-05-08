@@ -2178,7 +2178,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			if typeInfo != nil {
 				defaultValue = zeroValueForTypesType(typeInfo.GetMapValueType(e.X))
 			}
-			if isExpressionResultBare(e.X) || isBareMapSelectorExpression(e.X) {
+			if isExpressionResultBare(e.X) || (!NeedsConcurrentWrapper() && isBareMapSelectorExpression(e.X)) {
 				// e.X is a bare value (e.g., result of another index/map access)
 				// Use RValue context to get the bare map value, then .get() directly
 				TranspileExpression(out, e.X)

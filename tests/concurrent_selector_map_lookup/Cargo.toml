@@ -1,0 +1,8 @@
+[package]
+name = "concurrent_selector_map_lookup"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "concurrent_selector_map_lookup"
+path = "main.rs"

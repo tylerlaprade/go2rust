@@ -458,6 +458,10 @@ run_xfail_test() {
     run_test "tests/concurrent_pointer_range_map_append"
 }
 
+@test "concurrent_selector_map_lookup" {
+    run_test "tests/concurrent_selector_map_lookup"
+}
+
 @test "const_basic" {
     run_test "tests/const_basic"
 }
