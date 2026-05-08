@@ -1210,6 +1210,10 @@ run_xfail_test() {
     run_test "tests/unary_plus_bitwise_not"
 }
 
+@test "unsafe_pointer_uintptr" {
+    run_test "tests/unsafe_pointer_uintptr"
+}
+
 @test "unsafe_sizeof_alignof" {
     run_test "tests/unsafe_sizeof_alignof"
 }

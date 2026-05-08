@@ -3335,6 +3335,10 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 		targetType = ident.Name
 	} else if sel, ok := call.Fun.(*ast.SelectorExpr); ok {
 		// Handle package.Type conversions
+		if pkg, ok := sel.X.(*ast.Ident); ok && pkg.Name == "unsafe" && sel.Sel.Name == "Pointer" {
+			writeUnsafePointerConversion(out, call.Args[0])
+			return
+		}
 		targetType = sel.Sel.Name
 	}
 
@@ -3615,6 +3619,30 @@ func writeNumericConversionValue(out *strings.Builder, arg ast.Expr) {
 
 	TranspileExpression(out, arg)
 	writeExternalIntegerTupleField(out, argType)
+}
+
+func writeUnsafePointerConversion(out *strings.Builder, arg ast.Expr) {
+	WriteWrapperPrefix(out)
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		out.WriteString("/* ERROR: Type information required for unsafe.Pointer */ unimplemented!()")
+		WriteWrapperSuffix(out)
+		return
+	}
+	if typeInfo.IsPointer(arg) {
+		out.WriteString(GetOuterWrapperType())
+		out.WriteString("::as_ptr(&")
+		if ident, ok := arg.(*ast.Ident); ok && ident.Name != "nil" {
+			out.WriteString(RustIdentForUse(ident))
+		} else {
+			TranspileExpression(out, arg)
+		}
+		out.WriteString(") as usize")
+		WriteWrapperSuffix(out)
+		return
+	}
+	writeNumericConversionValue(out, arg)
+	WriteWrapperSuffix(out)
 }
 
 func writeExternalIntegerTupleField(out *strings.Builder, typ types.Type) {

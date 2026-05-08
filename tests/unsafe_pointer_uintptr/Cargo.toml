@@ -1,0 +1,8 @@
+[package]
+name = "unsafe_pointer_uintptr"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "unsafe_pointer_uintptr"
+path = "main.rs"
