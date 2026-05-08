@@ -193,6 +193,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Map operations (insert, delete) | ✅ |
 | └ Map access with existence check | ✅ |
 | └ Comma-ok map access with typed zero values | ✅ |
+| └ Wrapped call results as map lookup keys | ✅ |
 | └ Pointer keys in map literals and lookups | ✅ |
 | └ Pointer keys and values in `make(map)` plus slice-range pointer key lookups | ✅ |
 | └ Map iteration (for range) | ✅ |

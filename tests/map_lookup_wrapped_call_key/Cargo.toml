@@ -1,0 +1,8 @@
+[package]
+name = "map_lookup_wrapped_call_key"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "map_lookup_wrapped_call_key"
+path = "main.rs"

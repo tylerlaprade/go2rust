@@ -63,6 +63,7 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 - ✅ Map value type consistency - map literal values and type annotations now consistently wrap values (2026-03-26)
 - ✅ Map capacity and element update semantics - make(map[K]V, cap), missing-key zero values, and map element ++/+= (make_map_with_capacity promoted, 2026-05-06)
 - ✅ Comma-ok map zero values - missing keys now emit typed zero values from go/types, including bool map values instead of assuming int (map_comma_ok_bool_default promoted, 2026-05-07)
+- ✅ Wrapped call map keys - map lookups and literal keys unwrap function-call results before borrowing them for key comparison or insertion (map_lookup_wrapped_call_key promoted, 2026-05-07)
 - ✅ Pointer map keys and values - pointer keys lower through identity-preserving key wrappers in map literals, make(map), lookups, and slice-range variables; pointer map values avoid nested wrappers (concurrent_pointer_map_keys, concurrent_make_pointer_map_keys, concurrent_make_pointer_map_values, concurrent_pointer_range_map_append promoted, 2026-05-07)
 - ✅ Composite literal arguments - slice/map/array literals passed to functions no longer double-wrap (2026-03-26)
 - ✅ Array zero values - fixed array globals initialize through `std::array::from_fn`, including arrays larger than Rust's built-in `Default` implementations (global_fixed_array added, 2026-05-07)

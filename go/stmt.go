@@ -239,6 +239,9 @@ func writeMapKeyExpression(out *strings.Builder, expr ast.Expr) {
 		out.WriteString(".clone())")
 		return
 	}
+	if writeOwnedMapKeyExpression(out, expr) {
+		return
+	}
 	if !isCopyTypeExpression(expr) && writeOwnedExpressionValue(out, expr) {
 		return
 	}

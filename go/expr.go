@@ -1230,8 +1230,25 @@ func writeMapLookupKey(out *strings.Builder, index ast.Expr) {
 		out.WriteString(".clone())")
 	} else {
 		out.WriteString("&")
-		TranspileExpression(out, index)
+		if !writeOwnedMapKeyExpression(out, index) {
+			TranspileExpression(out, index)
+		}
 	}
+}
+
+func writeOwnedMapKeyExpression(out *strings.Builder, expr ast.Expr) bool {
+	if call, ok := expr.(*ast.CallExpr); ok {
+		typeInfo := GetTypeInfo()
+		if typeInfo != nil && typeInfo.ReturnsWrappedValue(call) && !callReturnsBareChannelValue(call) {
+			out.WriteString("{ let __v = ")
+			TranspileExpression(out, call)
+			out.WriteString("; let __guard = __v")
+			WriteBorrowMethod(out, false)
+			out.WriteString("; let __owned = (*__guard.as_ref().unwrap()).clone(); __owned }")
+			return true
+		}
+	}
+	return false
 }
 
 func isPointerKeyRangeVarType(varType string) bool {
@@ -1249,7 +1266,9 @@ func writeMapLiteralKey(out *strings.Builder, key ast.Expr) {
 		out.WriteString(".clone())")
 		return
 	}
-	TranspileExpression(out, key)
+	if !writeOwnedMapKeyExpression(out, key) {
+		TranspileExpression(out, key)
+	}
 }
 
 func writeClonedWrappedExpression(out *strings.Builder, expr ast.Expr, holderName string, guardName string) {
