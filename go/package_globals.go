@@ -505,14 +505,22 @@ func TranspilePackageInitAll(out *strings.Builder, hasGlobals bool, initFunction
 	if hasGlobals {
 		out.WriteString("    __go_init_globals();\n")
 	}
-	initNames := make([]string, 0, len(initFunctionNames))
-	for _, name := range initFunctionNames {
-		initNames = append(initNames, name)
+	initNames := make([]packageFunctionName, 0, len(initFunctionNames))
+	for fn, name := range initFunctionNames {
+		if fn.Name.Name != "init" {
+			continue
+		}
+		initNames = append(initNames, packageFunctionName{
+			rustName: name,
+			pos:      fn.Pos(),
+		})
 	}
-	for i := 0; i < len(initNames); i++ {
-		name := fmt.Sprintf("__go_init_%d", i)
+	sort.Slice(initNames, func(i, j int) bool {
+		return initNames[i].pos < initNames[j].pos
+	})
+	for _, initName := range initNames {
 		out.WriteString("    ")
-		out.WriteString(name)
+		out.WriteString(initName.rustName)
 		out.WriteString("();\n")
 	}
 	out.WriteString("}\n")

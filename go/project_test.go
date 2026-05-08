@@ -1385,6 +1385,42 @@ func (c Code) Check() bool {
 	}
 }
 
+func TestGlobalInitDoesNotCallDuplicateNameOverrides(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+var names = []string{"one"}
+
+func UsedIdent() int {
+	return 1
+}
+
+func usedIdent() int {
+	return 2
+}
+`)
+
+	generator := NewProjectGenerator([]string{filepath.Join(tempDir, "main.go")})
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
+	if !strings.Contains(mainRS, "__go_init_globals();") {
+		t.Fatalf("package globals should still be initialized, got:\n%s", mainRS)
+	}
+	if strings.Contains(mainRS, "__go_init_0();") {
+		t.Fatalf("duplicate function name override should not be treated as an init function, got:\n%s", mainRS)
+	}
+	if !strings.Contains(mainRS, "pub fn used_ident_1()") {
+		t.Fatalf("duplicate Rust function name should still get an override, got:\n%s", mainRS)
+	}
+}
+
 func TestStructWithImportedFieldDoesNotDeriveDebug(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
