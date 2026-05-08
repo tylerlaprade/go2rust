@@ -515,7 +515,13 @@ func writeUnwrappedBoolExpression(out *strings.Builder, expr ast.Expr) {
 
 func writeCallArgumentValue(out *strings.Builder, arg ast.Expr) bool {
 	ident, ok := arg.(*ast.Ident)
-	if !ok || ident.Name == "_" || ident.Name == "nil" || ident.Name == "true" || ident.Name == "false" {
+	if !ok {
+		if !isCopyTypeExpression(arg) && writeOwnedExpressionValue(out, arg) {
+			return true
+		}
+		return false
+	}
+	if ident.Name == "_" || ident.Name == "nil" || ident.Name == "true" || ident.Name == "false" {
 		return false
 	}
 	if currentReceiver != "" && ident.Name == currentReceiver {

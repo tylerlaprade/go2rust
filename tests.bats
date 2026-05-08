@@ -734,6 +734,10 @@ run_xfail_test() {
     run_test "tests/mutex_counter"
 }
 
+@test "named_slice_field_method_argument" {
+    run_test "tests/named_slice_field_method_argument"
+}
+
 @test "named_slice_methods" {
     run_test "tests/named_slice_methods"
 }

@@ -1,0 +1,8 @@
+[package]
+name = "named_slice_field_method_argument"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "named_slice_field_method_argument"
+path = "main.rs"
