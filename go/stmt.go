@@ -2782,6 +2782,11 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 												WriteWrapperPrefix(out)
 												out.WriteString("String::new()")
 												WriteWrapperSuffix(out)
+											} else if pkgIdent.Name == "bytes" && t.Sel.Name == "Buffer" {
+												out.WriteString(" = ")
+												WriteWrapperPrefix(out)
+												out.WriteString("Default::default()")
+												WriteWrapperSuffix(out)
 											}
 										}
 									}

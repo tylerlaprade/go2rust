@@ -402,6 +402,10 @@ run_xfail_test() {
     run_test "tests/byte_slice_from_global_array_field"
 }
 
+@test "bytes_buffer_zero_value" {
+    run_test "tests/bytes_buffer_zero_value"
+}
+
 @test "channel_buffering" {
     run_test "tests/channel_buffering"
 }
