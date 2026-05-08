@@ -55,7 +55,8 @@ impl types_Type {
 pub fn classify(t: Rc<RefCell<Option<types_Type>>>) -> Rc<RefCell<Option<String>>> {
 
     {
-    let _ts_guard = t.borrow();
+    let _ts_subject = t.clone();
+    let _ts_guard = _ts_subject.borrow();
     let _ts_is_nil = _ts_guard.as_ref().is_none();
     let _ts_val = _ts_guard.as_ref();
     if _ts_is_nil || _ts_val.and_then(|__v| __v.downcast_ref::<types_Basic>()).is_some() {

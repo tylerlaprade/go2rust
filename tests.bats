@@ -1102,6 +1102,10 @@ run_xfail_test() {
     run_test "tests/type_switch_stdlib_selectors"
 }
 
+@test "type_switch_temporary_subject" {
+    run_test "tests/type_switch_temporary_subject"
+}
+
 @test "unary_plus_bitwise_not" {
     run_test "tests/unary_plus_bitwise_not"
 }

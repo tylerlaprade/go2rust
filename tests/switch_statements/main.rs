@@ -104,7 +104,8 @@ pub fn switch_with_fallthrough(num: Rc<RefCell<Option<i32>>>) {
 
 pub fn type_switch(value: Rc<RefCell<Option<Box<dyn Any>>>>) {
     {
-    let _ts_guard = value.borrow();
+    let _ts_subject = value.clone();
+    let _ts_guard = _ts_subject.borrow();
     let _ts_is_nil = _ts_guard.as_ref().is_none();
     let _ts_val: Option<&dyn Any> = _ts_guard.as_ref().map(|__v| __v.as_ref() as &dyn Any);
     if _ts_val.and_then(|__v| __v.downcast_ref::<i32>()).is_some() {

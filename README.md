@@ -113,6 +113,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Switch cases | ✅ |
 | └ Select cases | ✅ |
 | └ Type switch cases | ✅ |
+| └ Type switches over temporary call results | ✅ |
 | **`chan` - Channel types** | ✅ |
 | └ Channel struct fields with nil checks, send/receive, `len`, and `cap` | ✅ |
 | **`const` - Constants** | |
