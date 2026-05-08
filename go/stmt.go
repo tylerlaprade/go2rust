@@ -1351,7 +1351,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							// Get TypeInfo to check if expressions return wrapped values
 							typeInfo := GetTypeInfo()
 							writeTempOperand := func(expr ast.Expr, other ast.Expr) {
-								if writeLenCapBinaryOperand(out, expr, other) {
+								if typeInfo != nil && writeStdlibInterfaceComparableConversion(out, expr, typeInfo.GetType(other)) {
+									// Concrete stdlib value converted for comparison with stdlib interface.
+								} else if writeLenCapBinaryOperand(out, expr, other) {
 									// len/cap emitted as Go int representation for this return expression.
 								} else if writeIntPeerForLenCapBinaryOperand(out, expr, other, typeInfo != nil && typeInfo.ReturnsWrappedValue(expr)) {
 									// typed int peer emitted as Go int representation for this return expression.

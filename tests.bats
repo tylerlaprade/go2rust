@@ -978,6 +978,10 @@ run_xfail_test() {
     run_test "tests/stdlib_type_signatures"
 }
 
+@test "stdlib_typed_const_index" {
+    run_test "tests/stdlib_typed_const_index"
+}
+
 @test "strconv_parse" {
     run_test "tests/strconv_parse"
 }

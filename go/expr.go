@@ -20,9 +20,41 @@ const (
 )
 
 func writeExpressionAsUsize(out *strings.Builder, expr ast.Expr) {
+	if writeStdlibSelectorConstAsUsize(out, expr) {
+		return
+	}
 	out.WriteString("(")
 	TranspileExpression(out, expr)
 	out.WriteString(") as usize")
+}
+
+func writeStdlibSelectorConstAsUsize(out *strings.Builder, expr ast.Expr) bool {
+	sel, ok := expr.(*ast.SelectorExpr)
+	if !ok {
+		return false
+	}
+	ident, ok := sel.X.(*ast.Ident)
+	if !ok {
+		return false
+	}
+	pkgPath, ok := goPackageImports[ident.Name]
+	if !ok || !isStdlibPackage(pkgPath) {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return false
+	}
+	obj, ok := typeInfo.info.Uses[sel.Sel].(*types.Const)
+	if !ok || obj.Val() == nil {
+		return false
+	}
+	if value, exact := constant.Int64Val(obj.Val()); exact {
+		out.WriteString(strconv.FormatInt(value, 10))
+		out.WriteString("usize")
+		return true
+	}
+	return false
 }
 
 func isByteLikeExpression(expr ast.Expr) bool {
@@ -670,6 +702,18 @@ func writeStdlibInterfaceCallArgumentConversion(out *strings.Builder, arg ast.Ex
 		return false
 	}
 	out.WriteString("{ let __arg = ")
+	writeStdlibInterfaceSourceHandle(out, arg)
+	out.WriteString("; let __converted = { let __arg_guard = __arg")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; (*__arg_guard.as_ref().unwrap()).clone().into() }; ")
+	WriteWrapperPrefix(out)
+	out.WriteString("__converted")
+	WriteWrapperSuffix(out)
+	out.WriteString(" }")
+	return true
+}
+
+func writeStdlibInterfaceSourceHandle(out *strings.Builder, arg ast.Expr) {
 	if ident, ok := arg.(*ast.Ident); ok {
 		argVarName := RustIdentForUse(ident)
 		if currentCaptureRenames != nil {
@@ -682,12 +726,21 @@ func writeStdlibInterfaceCallArgumentConversion(out *strings.Builder, arg ast.Ex
 	} else {
 		TranspileExpression(out, arg)
 	}
+}
+
+func writeStdlibInterfaceComparableConversion(out *strings.Builder, arg ast.Expr, expectedType types.Type) bool {
+	targetRust, _, ok := stdlibInterfaceArgumentConversion(arg, expectedType)
+	if !ok {
+		return false
+	}
+	out.WriteString("{ let __arg = ")
+	writeStdlibInterfaceSourceHandle(out, arg)
 	out.WriteString("; let __converted = { let __arg_guard = __arg")
 	WriteBorrowMethod(out, false)
-	out.WriteString("; (*__arg_guard.as_ref().unwrap()).clone().into() }; ")
-	WriteWrapperPrefix(out)
+	out.WriteString("; let __converted: ")
+	out.WriteString(targetRust)
+	out.WriteString(" = (*__arg_guard.as_ref().unwrap()).clone().into(); __converted }; ")
 	out.WriteString("__converted")
-	WriteWrapperSuffix(out)
 	out.WriteString(" }")
 	return true
 }
@@ -1948,6 +2001,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 
 		// Helper to write an operand, using bare &str for string literals in comparisons
 		writeOperand := func(expr ast.Expr, other ast.Expr, isStringLit bool, needsUnwrap bool) {
+			if typeInfo != nil && writeStdlibInterfaceComparableConversion(out, expr, typeInfo.GetType(other)) {
+				return
+			}
 			if lit, ok := expr.(*ast.BasicLit); ok && writeCharLiteralForPeer(out, lit, other) {
 				return
 			}
@@ -2023,7 +2079,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		} else {
 			// No unwrapping needed
 			// Special handling for numeric literals with float operations
-			if writeLenCapBinaryOperand(out, e.X, e.Y) {
+			if typeInfo != nil && writeStdlibInterfaceComparableConversion(out, e.X, typeInfo.GetType(e.Y)) {
+				// Concrete stdlib value converted for comparison with stdlib interface.
+			} else if writeLenCapBinaryOperand(out, e.X, e.Y) {
 				// len/cap emitted as Go int representation for this binary expression.
 			} else if writeIntPeerForLenCapBinaryOperand(out, e.X, e.Y, false) {
 				// typed int peer emitted as Go int representation for this binary expression.
@@ -2045,7 +2103,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			out.WriteString(rustBinaryOp(e.Op))
 			out.WriteString(" ")
 
-			if writeLenCapBinaryOperand(out, e.Y, e.X) {
+			if typeInfo != nil && writeStdlibInterfaceComparableConversion(out, e.Y, typeInfo.GetType(e.X)) {
+				// Concrete stdlib value converted for comparison with stdlib interface.
+			} else if writeLenCapBinaryOperand(out, e.Y, e.X) {
 				// len/cap emitted as Go int representation for this binary expression.
 			} else if writeIntPeerForLenCapBinaryOperand(out, e.Y, e.X, false) {
 				// typed int peer emitted as Go int representation for this binary expression.
