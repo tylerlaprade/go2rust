@@ -462,6 +462,10 @@ run_xfail_test() {
     run_test "tests/concurrent_byte_index_or_assign"
 }
 
+@test "concurrent_interface_field_global" {
+    run_test "tests/concurrent_interface_field_global"
+}
+
 @test "concurrent_len_comparison" {
     run_test "tests/concurrent_len_comparison"
 }

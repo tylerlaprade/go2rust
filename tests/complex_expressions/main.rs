@@ -255,7 +255,7 @@ fn main() {
         // Type assertion expressions
     println!("{}", "\n=== Type assertion expressions ===".to_string());
 
-    let mut iface: Arc<Mutex<Option<Box<dyn Any>>>> = Arc::new(Mutex::new(Some(Box::new(100) as Box<dyn Any>)));
+    let mut iface: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new(100) as Box<dyn Any + Send + Sync>)));
 
     let (mut intVal, mut ok) = ({
         let val = iface.clone();

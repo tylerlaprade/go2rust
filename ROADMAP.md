@@ -101,6 +101,7 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 - ✅ Selector `any` returns - empty-interface fields returned from structs clone the interface handle instead of moving `Box<dyn Any>` out of a borrow (any_selector_return promoted, 2026-05-07)
 - ✅ Existing `any` field values - struct literals and short declarations sourced from empty-interface values clone the interface handle instead of cloning `Box<dyn Any>` (any_struct_field_from_any promoted, 2026-05-07)
 - ✅ Empty struct literals with `any` fields - explicit zero-field emission initializes empty-interface fields to nil instead of default-constructing `Box<dyn Any>` (any_struct_empty_literal promoted, 2026-05-07)
+- ✅ Concurrent interface storage - `any` and local-interface fields/globals emit `Send + Sync` trait objects when goroutines or channels require `Arc<Mutex<...>>` wrappers (concurrent_interface_field_global promoted, 2026-05-08)
 - ✅ `any(x)` conversions - converted values are boxed as `Box<dyn Any>` so comma-ok type assertions can downcast them (any_type_conversion promoted, 2026-05-07)
 - ✅ Static `any(x).(interface{...})` assertions - when TypeInfo proves the converted concrete value implements the asserted interface, emit the source handle and `ok=true` instead of an unknown downcast target (any_interface_static_assertion promoted, 2026-05-07)
 - ✅ Blank identifier - fully working with return values, range loops, type assertions, declarations (2026-03-26)

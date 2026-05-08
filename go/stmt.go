@@ -78,9 +78,8 @@ func writeLocalInterfaceConcreteReturnConversion(out *strings.Builder, result as
 			WriteWrapperPrefix(out)
 			out.WriteString("Box::new(")
 			TranspileExpressionContext(out, composite, AddressOf)
-			out.WriteString(") as Box<dyn ")
-			out.WriteString(interfaceName)
-			out.WriteString(">")
+			out.WriteString(") as ")
+			out.WriteString(rustLocalInterfaceTraitObject(interfaceName))
 			WriteWrapperSuffix(out)
 			return true
 		}
@@ -90,9 +89,8 @@ func writeLocalInterfaceConcreteReturnConversion(out *strings.Builder, result as
 			WriteWrapperPrefix(out)
 			out.WriteString("Box::new(")
 			TranspileExpressionContext(out, composite, AddressOf)
-			out.WriteString(") as Box<dyn ")
-			out.WriteString(interfaceName)
-			out.WriteString(">")
+			out.WriteString(") as ")
+			out.WriteString(rustLocalInterfaceTraitObject(interfaceName))
 			WriteWrapperSuffix(out)
 			return true
 		}
@@ -2149,7 +2147,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 												out.WriteString("{ ")
 												out.WriteString("let new_val = Box::new(")
 												TranspileExpression(out, s.Rhs[0])
-												out.WriteString(") as Box<dyn Any>; ")
+												out.WriteString(") as ")
+												out.WriteString(rustAnyTraitObject())
+												out.WriteString("; ")
 												out.WriteString("*")
 												TranspileExpressionContext(out, s.Lhs[0], LValue)
 												WriteBorrowMethod(out, true)
@@ -2287,7 +2287,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 											out.WriteString("{ ")
 											out.WriteString("let new_val = Box::new(")
 											TranspileExpression(out, s.Rhs[0])
-											out.WriteString(") as Box<dyn Any>; ")
+											out.WriteString(") as ")
+											out.WriteString(rustAnyTraitObject())
+											out.WriteString("; ")
 											out.WriteString("*")
 											TranspileExpressionContext(out, s.Lhs[0], LValue)
 											WriteBorrowMethod(out, true)
@@ -3111,12 +3113,12 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					if intf.NumMethods() == 0 {
 						// It's []interface{} - elements are Box<dyn Any>
 						// When iterating with &, we get &Box<dyn Any>
-						valueType = "&Box<dyn Any>"
+						valueType = "&" + rustAnyTraitObject()
 					} else {
 						// It's a slice of named interface - elements are Box<dyn InterfaceName>
 						// We need to get the interface name
 						if namedType, ok := elemType.(*types.Named); ok {
-							valueType = "&Box<dyn " + namedType.Obj().Name() + ">"
+							valueType = "&" + rustLocalInterfaceTraitObject(namedType.Obj().Name())
 						} else {
 							// Generic named interface
 							valueType = "&Box<dyn Trait>"
@@ -4299,7 +4301,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		// Check if this is a range variable from an interface{} slice
 		isRangeVar := false
 		if ident, ok := expr.(*ast.Ident); ok {
-			if varType, exists := rangeLoopVars[ident.Name]; exists && strings.Contains(varType, "&Box<dyn Any>") {
+			if varType, exists := rangeLoopVars[ident.Name]; exists && strings.Contains(varType, "dyn Any") {
 				isRangeVar = true
 				subjectUsesAny = true
 				TrackImport("Any")

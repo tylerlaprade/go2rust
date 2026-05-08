@@ -26,7 +26,7 @@ fn format_any(value: &dyn Any) -> String {
 
 #[derive(Clone, Default)]
 pub struct entry {
-    pub value: Arc<Mutex<Option<Box<dyn Any>>>>,
+    pub value: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>,
 }
 
 impl std::fmt::Display for entry {
@@ -36,11 +36,11 @@ impl std::fmt::Display for entry {
 }
 
 
-pub fn assign(e: Arc<Mutex<Option<entry>>>, value: Arc<Mutex<Option<Box<dyn Any>>>>) {
+pub fn assign(e: Arc<Mutex<Option<entry>>>, value: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) {
     { let new_val = value.clone(); (*e.lock().unwrap().as_mut().unwrap()).value = new_val; };
 }
 
-pub fn each(e: Arc<Mutex<Option<entry>>>, f: Arc<Mutex<Option<Box<dyn Fn(Arc<Mutex<Option<Box<dyn Any>>>>) -> () + Send + Sync>>>>) {
+pub fn each(e: Arc<Mutex<Option<entry>>>, f: Arc<Mutex<Option<Box<dyn Fn(Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> () + Send + Sync>>>>) {
     { let __f_guard = f.lock().unwrap(); let __f = __f_guard.as_ref().unwrap(); (*__f)((*e.lock().unwrap().as_ref().unwrap()).value.clone()) };
 }
 
@@ -49,10 +49,10 @@ fn main() {
         ;
     });
 
-    let mut value: Arc<Mutex<Option<Box<dyn Any>>>> = Arc::new(Mutex::new(Some(Box::new("ok".to_string()) as Box<dyn Any>)));
+    let mut value: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new("ok".to_string()) as Box<dyn Any + Send + Sync>)));
     let mut e = Arc::new(Mutex::new(Some(entry { value: Arc::new(Mutex::new(None)) })));
     assign(e.clone(), value.clone());
-    each(e.clone(), Arc::new(Mutex::new(Some(Box::new(move |v: Arc<Mutex<Option<Box<dyn Any>>>>| {
+    each(e.clone(), Arc::new(Mutex::new(Some(Box::new(move |v: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>| {
         println!("{}", format_any(v.lock().unwrap().as_ref().unwrap().as_ref()));
-    }) as Box<dyn Fn(Arc<Mutex<Option<Box<dyn Any>>>>) -> () + Send + Sync>))));
+    }) as Box<dyn Fn(Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> () + Send + Sync>))));
 }

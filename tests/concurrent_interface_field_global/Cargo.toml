@@ -1,0 +1,8 @@
+[package]
+name = "concurrent_interface_field_global"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "concurrent_interface_field_global"
+path = "main.rs"

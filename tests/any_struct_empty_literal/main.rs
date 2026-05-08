@@ -26,7 +26,7 @@ fn format_any(value: &dyn Any) -> String {
 
 #[derive(Clone, Default)]
 pub struct entry {
-    pub value: Arc<Mutex<Option<Box<dyn Any>>>>,
+    pub value: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>,
 }
 
 impl std::fmt::Display for entry {

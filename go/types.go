@@ -58,6 +58,28 @@ func localInterfaceNameFromTypeExpr(expr ast.Expr) (string, bool) {
 	return ident.Name, true
 }
 
+func rustAnyTraitObject() string {
+	TrackImport("Any")
+	if NeedsConcurrentWrapper() {
+		return "Box<dyn Any + Send + Sync>"
+	}
+	return "Box<dyn Any>"
+}
+
+func rustLocalInterfaceTraitObject(name string) string {
+	if NeedsConcurrentWrapper() {
+		return "Box<dyn " + name + " + Send + Sync>"
+	}
+	return "Box<dyn " + name + ">"
+}
+
+func rustLocalInterfaceParam(name string) string {
+	if NeedsConcurrentWrapper() {
+		return "&(dyn " + name + " + Send + Sync)"
+	}
+	return "&dyn " + name
+}
+
 // getStructSignature creates a unique signature for a struct type based on its fields
 func getStructSignature(structType *ast.StructType) string {
 	var sig strings.Builder
@@ -158,7 +180,7 @@ func GoTypeToRustParam(expr ast.Expr) string {
 	if ident, ok := expr.(*ast.Ident); ok {
 		if IsInterfaceType(ident.Name) {
 			// Interface parameter - use reference to trait object
-			return "&dyn " + ident.Name
+			return rustLocalInterfaceParam(ident.Name)
 		}
 	}
 
@@ -308,8 +330,7 @@ func goTypeToRustBase(expr ast.Expr) string {
 		case "bool":
 			return "bool"
 		case "any":
-			TrackImport("Any")
-			return "Box<dyn Any>"
+			return rustAnyTraitObject()
 		case "error":
 			TrackImport("Error")
 			if NeedsConcurrentWrapper() {
@@ -319,15 +340,14 @@ func goTypeToRustBase(expr ast.Expr) string {
 		default:
 			// Check if this is an interface type
 			if IsInterfaceType(t.Name) {
-				return "Box<dyn " + t.Name + ">"
+				return rustLocalInterfaceTraitObject(t.Name)
 			}
 			return t.Name
 		}
 	case *ast.InterfaceType:
 		// Empty interface{} becomes Box<dyn Any>
 		if len(t.Methods.List) == 0 {
-			TrackImport("Any")
-			return "Box<dyn Any>"
+			return rustAnyTraitObject()
 		}
 		return "Unknown"
 	case *ast.ArrayType:
@@ -688,17 +708,12 @@ func goTypesTypeToRust(t types.Type) string {
 		return "/* unknown struct */"
 	case *types.Interface:
 		if ut.NumMethods() == 0 {
-			TrackImport("Any")
-			return "Box<dyn Any>"
+			return rustAnyTraitObject()
 		}
 		if named, ok := t.(*types.Named); ok {
-			return "Box<dyn " + goTypesNamedTypeToRust(named) + ">"
+			return rustLocalInterfaceTraitObject(goTypesNamedTypeToRust(named))
 		}
-		TrackImport("Any")
-		if NeedsConcurrentWrapper() {
-			return "Box<dyn Any + Send + Sync>"
-		}
-		return "Box<dyn Any>"
+		return rustAnyTraitObject()
 	case *types.Signature:
 		return signatureToBoxDynFn(ut)
 	default:

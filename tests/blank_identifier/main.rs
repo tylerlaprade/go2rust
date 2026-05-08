@@ -258,7 +258,7 @@ fn main() {
         // Blank identifier with type assertion
     println!("{}", "\n=== Blank identifier with type assertion ===".to_string());
 
-    let mut value: Arc<Mutex<Option<Box<dyn Any>>>> = Arc::new(Mutex::new(Some(Box::new("hello world".to_string()) as Box<dyn Any>)));
+    let mut value: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new("hello world".to_string()) as Box<dyn Any + Send + Sync>)));
 
         // Check if it's a string, but don't use the value
     let (_, mut ok) = ({

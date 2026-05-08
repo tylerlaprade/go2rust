@@ -24,32 +24,39 @@ fn format_any(value: &dyn Any) -> String {
     }
 }
 
+pub trait Reader: std::fmt::Display {
+    fn read(&self) -> Arc<Mutex<Option<i32>>>;
+}
+
 #[derive(Clone, Default)]
-pub struct entry {
+pub struct holder {
+    pub reader: Arc<Mutex<Option<Box<dyn Reader + Send + Sync>>>>,
     pub value: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>,
 }
 
-impl std::fmt::Display for entry {
+impl std::fmt::Display for holder {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", format_any(self.value.lock().unwrap().as_ref().unwrap().as_ref()))
+        write!(f, "{{{} {}}}", (*self.reader.lock().unwrap().as_ref().unwrap()), format_any(self.value.lock().unwrap().as_ref().unwrap().as_ref()))
     }
 }
 
 
-pub fn make_entry(value: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> Arc<Mutex<Option<entry>>> {
+pub(crate) static global: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<holder>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));
 
-    return Arc::new(Mutex::new(Some(entry { value: value.clone(), ..Default::default() })));
+
+pub(crate) fn __go_init_globals() {
+    *global.lock().unwrap() = Some(Default::default());
 }
 
+
 fn main() {
+    __go_init_all();
     std::thread::spawn(move || {
         ;
     });
+    println!("{}", (*(*global.lock().unwrap().as_ref().unwrap()).value.lock().unwrap()).is_none());
+}
 
-    let mut value: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new("new".to_string()) as Box<dyn Any + Send + Sync>)));
-    let mut e = make_entry(value.clone());
-    let mut prev = (*e.lock().unwrap().as_ref().unwrap()).value.clone();
-
-    println!("{}", format_any((*e.lock().unwrap().as_ref().unwrap()).value.lock().unwrap().as_ref().unwrap().as_ref()));
-    println!("{}", format_any(prev.lock().unwrap().as_ref().unwrap().as_ref()));
+pub(crate) fn __go_init_all() {
+    __go_init_globals();
 }

@@ -182,6 +182,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Selector fields returned as `any` preserve the interface handle | ✅ |
 | └ Existing `any` values assigned to `any` fields preserve the interface handle | ✅ |
 | └ Empty struct literals with `any` fields default to nil | ✅ |
+| └ Concurrent `any` and local-interface fields/globals use `Send + Sync` trait objects | ✅ |
 | └ Variadic `any` arguments | ✅ |
 | └ Interface implementations | ✅ |
 | └ Type assertions | ✅ |

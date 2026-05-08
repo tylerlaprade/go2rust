@@ -992,11 +992,11 @@ func writeMaybeUnwrappedExpression(out *strings.Builder, expr ast.Expr) {
 }
 
 func writeInterfaceBoxedValue(out *strings.Builder, expr ast.Expr) {
-	TrackImport("Any")
 	if typeInfo := GetTypeInfo(); typeInfo != nil && isErrorInterfaceType(typeInfo.GetType(expr)) {
 		out.WriteString("Box::new(format!(\"{}\", ")
 		writeUnwrappedForFormat(out, expr)
-		out.WriteString(")) as Box<dyn Any>")
+		out.WriteString(")) as ")
+		out.WriteString(rustAnyTraitObject())
 		return
 	}
 	out.WriteString("Box::new(")
@@ -1014,7 +1014,8 @@ func writeInterfaceBoxedValue(out *strings.Builder, expr ast.Expr) {
 	} else if !writeOwnedExpressionValue(out, expr) {
 		writeMaybeUnwrappedExpression(out, expr)
 	}
-	out.WriteString(") as Box<dyn Any>")
+	out.WriteString(") as ")
+	out.WriteString(rustAnyTraitObject())
 }
 
 func isEmptyInterfaceValueExpr(expr ast.Expr) bool {
@@ -3536,7 +3537,6 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 				}
 			}
 		}
-		TrackImport("Any")
 		WriteWrapperPrefix(out)
 		out.WriteString("Box::new(")
 		if ident, ok := arg.(*ast.Ident); ok && ident.Name != "nil" {
@@ -3556,7 +3556,8 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 				out.WriteString(argStr)
 			}
 		}
-		out.WriteString(") as Box<dyn Any>")
+		out.WriteString(") as ")
+		out.WriteString(rustAnyTraitObject())
 		WriteWrapperSuffix(out)
 		return
 	// Float types
@@ -4592,7 +4593,9 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 							out.WriteString(s)
 						}
 					}
-					out.WriteString(") as Box<dyn Any>)))")
+					out.WriteString(") as ")
+					out.WriteString(rustAnyTraitObject())
+					out.WriteString(")))")
 				}
 				continue
 			}

@@ -26,7 +26,7 @@ fn format_any(value: &dyn Any) -> String {
 
 #[derive(Clone, Default)]
 pub struct entry {
-    pub value: Arc<Mutex<Option<Box<dyn Any>>>>,
+    pub value: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>,
 }
 
 impl std::fmt::Display for entry {
@@ -36,7 +36,7 @@ impl std::fmt::Display for entry {
 }
 
 
-pub fn get(e: Arc<Mutex<Option<entry>>>) -> Arc<Mutex<Option<Box<dyn Any>>>> {
+pub fn get(e: Arc<Mutex<Option<entry>>>) -> Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> {
 
     return (*e.lock().unwrap().as_ref().unwrap()).value.clone();
 }
@@ -45,7 +45,7 @@ fn main() {
     std::thread::spawn(move || {
         ;
     });
-    let mut e = Arc::new(Mutex::new(Some(entry { value: Arc::new(Mutex::new(Some(Box::new("ok".to_string()) as Box<dyn Any>))), ..Default::default() })));
+    let mut e = Arc::new(Mutex::new(Some(entry { value: Arc::new(Mutex::new(Some(Box::new("ok".to_string()) as Box<dyn Any + Send + Sync>))), ..Default::default() })));
     let mut v = get(Arc::new(Mutex::new(Some((*e.lock().unwrap().as_ref().unwrap()).clone()))));
     let (_, mut ok) = ({
         let val = v.clone();

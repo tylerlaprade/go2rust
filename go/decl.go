@@ -483,7 +483,7 @@ func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.Fi
 					if ident, ok := field.Type.(*ast.Ident); ok && IsInterfaceType(ident.Name) {
 						vt.Register(name.Name, &VarInfo{
 							WrapLevel: WrapNone,
-							RustType:  "&dyn " + ident.Name,
+							RustType:  rustLocalInterfaceParam(ident.Name),
 							Source:    SourceParam,
 							IsRef:     true,
 						})
@@ -1441,7 +1441,7 @@ func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, a
 					if ident, ok := field.Type.(*ast.Ident); ok && IsInterfaceType(ident.Name) {
 						vt.Register(name.Name, &VarInfo{
 							WrapLevel: WrapNone,
-							RustType:  "&dyn " + ident.Name,
+							RustType:  rustLocalInterfaceParam(ident.Name),
 							Source:    SourceParam,
 							IsRef:     true,
 						})
