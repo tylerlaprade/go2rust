@@ -23,6 +23,13 @@ func writeExpressionAsUsize(out *strings.Builder, expr ast.Expr) {
 	if writeStdlibSelectorConstAsUsize(out, expr) {
 		return
 	}
+	if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.NeedsUnwrapping(expr) {
+		out.WriteString("(*")
+		TranspileExpression(out, expr)
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap()) as usize")
+		return
+	}
 	out.WriteString("(")
 	TranspileExpression(out, expr)
 	out.WriteString(") as usize")

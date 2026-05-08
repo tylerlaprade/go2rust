@@ -730,6 +730,10 @@ run_xfail_test() {
     run_test "tests/local_var_multi_names"
 }
 
+@test "make_capacity_wrapped_call" {
+    run_test "tests/make_capacity_wrapped_call"
+}
+
 @test "make_map_with_capacity" {
     run_test "tests/make_map_with_capacity"
 }
