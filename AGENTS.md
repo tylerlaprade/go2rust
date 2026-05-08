@@ -126,17 +126,23 @@ The test script handles:
 - Run the default parallel test mode when the machine has memory headroom. Use `./test.sh -n 1 ...` only for memory pressure, hard-to-read interleaving, or self-transpile follow-up checks.
 - On this machine, `./test.sh -n 4` is the safer full-suite parallel setting. `-n 6` can starve timer fixtures such as `timeouts_basic` and `timers_basic` even when those tests pass alone.
 - If `./test.sh` reports `Passing: 0/0`, treat that as an invalid run, not success. Inspect the filter, dependencies such as GNU parallel, and the raw script output.
-- For Go unit tests, prefer `GOCACHE=$(mktemp -d)` or another temp cache outside the repo when doing heavy local validation, and delete it afterward.
+- For Go unit tests and fixture runs in this repo, prefer `GOCACHE=/private/tmp/go2rust-go-cache` or another temp cache outside the repo when doing repeated local validation, and delete it afterward.
 - For expensive Rust validation, set `CARGO_TARGET_DIR` to a temp directory. Do not leave permanent target trees in the repo or home directory.
 
 ## Self-Hosting Workflow
 
 - Self-transpiling this repo is a high-memory integration check, not the first validation step. Prove the behavior with focused fixtures and `go test ./go` first.
 - When self-transpiling, copy the repo to a temp workspace, run the generated package checks there, and remove the workspace afterward unless the user explicitly asks to inspect it.
-- Limit jobs for self-transpile Cargo checks if the machine is under memory pressure.
+- Use the single-job cargo check shape under memory pressure: `CARGO_BUILD_JOBS=1 CARGO_INCREMENTAL=0 RUSTFLAGS=-Awarnings GOCACHE=/private/tmp/go2rust-go-cache ./self_transpile_check.sh --cargo-check --package golang_org_x_tools_internal_typeparams`.
+- If a self-transpile check gets past the previous Rust errors and exposes later errors, that is progress. Record the old and new error sets before patching the next boundary.
 - Use self-hosting errors as real feedback. A generated Rust compile error usually points to a translator boundary issue; reduce it to a focused fixture before patching broadly.
 - If `rustc` is killed on a generated dependency crate, inspect the generated Rust shape before assuming a semantic type error. Multi-megabyte single expressions can kill the compiler even when the code is otherwise valid.
 - For large package-level composite literals, prefer statement lowering: build local maps/slices in source order, then assign to the package global once. Do not mutate the target global while evaluating its initializer.
+
+## Source-Preserving Fixes
+
+- Do not fix a self-hosting blocker by broadly folding source constructs into constants. For example, array indexes should preserve user constants and expressions such as `First` or `"(".len()`; only special-case stdlib selector constants when the generated Rust has no usable selector value.
+- When a code generator helper changes many unrelated `tests/*/main.rs` snapshots, stop and narrow the helper before committing. Broad snapshot churn is usually a sign the translator started optimizing instead of translating.
 
 ## Future Optimizations (Post-MVP)
 
