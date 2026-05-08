@@ -88,12 +88,23 @@ See `ROADMAP.md` for the detailed implementation phases and progress.
 - When a missing method such as `.borrow()` or `.lock()` appears on a literal, integer, string, or other primitive in generated Rust, suspect a wrapped/raw boundary bug first.
 - Map-valued selector fields are bare in single-threaded output but wrapped handles in concurrent output. If generated Rust calls `.get()` on an `Arc<Mutex<Option<BTreeMap<...>>>>`, or calls `.borrow()` on an already bare `BTreeMap`, check this selector-map boundary before changing general map lookup lowering.
 - `usize` contexts such as slice indexes, bounds, and `make([]T, len, cap)` capacities need raw integers. If the expression is a method/function call returning a wrapped Go integer, unwrap the returned handle before emitting `as usize`.
+- Map keys must be the raw key type, not the wrapper handle, except for pointer-key helper wrappers. For `map[types.Type]...`, unwrap the `types.Type` handle to the comparable stub key before lookup/insert; for `map[*T]...`, preserve pointer identity through the existing pointer-key helper.
+- Pointer and interface map values are handles. Do not unwrap and deep-copy them during map lookup, literal generation, or assignment unless Go value semantics require a real copy and the inner type is cloneable.
+- `interface{}`/`any` values are represented by handles to `Box<dyn Any>`. When assigning or passing an existing `any`, clone the handle; do not re-box `*value.as_ref().unwrap()`, because `Box<dyn Any>` is not cloneable and moving from a shared reference fails.
+- The predeclared `any` alias must follow the same paths as an explicit `interface{}`. If generated Rust calls `.borrow()` in concurrent mode for an `any` argument, the alias probably escaped the empty-interface path.
 
 ### Call Argument Wrapping
 
 - Most function and method parameters expect a wrapped handle. The caller often opens that wrapper before delegating to helpers.
 - If an argument helper is called from inside an already-open wrapper, emit the raw inner value for that context. For function literals, that means `TranspileFuncLitBox`, not `TranspileExpression`, because `TranspileExpression` wraps the closure itself.
 - If generated Rust contains `Some(Arc<Mutex<Option<Box<dyn Fn...>>>>)` where the parameter expected `Some(Box<dyn Fn...>)`, suspect nested function-literal wrapping before changing method signature generation.
+- Named stdlib interfaces such as `go/types.Type` are still wrapped at function boundaries, but calls that pass one wrapped interface into another wrapped interface need to unwrap/clone the raw stub value before the caller's wrapper is applied.
+
+### Sync Helpers
+
+- `sync.Mutex` fields are bare helper values, but the helper must clone to the same underlying lock. A `Clone` implementation that creates a fresh mutex breaks Go semantics.
+- For `mu.Lock(); defer mu.Unlock()`, emit a local cloned mutex handle and lock that local. Locking `self.mu` directly can hold an immutable borrow of `self` for the guard lifetime and block later `&mut self` calls in the same method.
+- Suppressing `defer mu.Unlock()` is correct only when the generated RAII guard stays alive for the intended Go scope.
 
 ### Closure Capture Rules
 
@@ -134,6 +145,7 @@ The test script handles:
 - Run only one `./test.sh` process at a time. The script already parallelizes internally and rewrites `tests.bats`; separate concurrent invocations can race on `tests.bats.new`.
 - Run the default parallel test mode when the machine has memory headroom. Use `./test.sh -n 1 ...` only for memory pressure, hard-to-read interleaving, or self-transpile follow-up checks.
 - On this machine, `./test.sh -n 4` is the safer full-suite parallel setting. `-n 6` can starve timer fixtures such as `timeouts_basic` and `timers_basic` even when those tests pass alone.
+- Prefer `./test.sh -n 4 -t 30s` for full-suite validation while self-hosting work is active. It stays parallel without creating as much CPU and memory pressure as the default six workers.
 - If `./test.sh` reports `Passing: 0/0`, treat that as an invalid run, not success. Inspect the filter, dependencies such as GNU parallel, and the raw script output.
 - For Go unit tests and fixture runs in this repo, prefer `GOCACHE=/private/tmp/go2rust-go-cache` or another temp cache outside the repo when doing repeated local validation, and delete it afterward.
 - For expensive Rust validation, set `CARGO_TARGET_DIR` to a temp directory. Do not leave permanent target trees in the repo or home directory.
@@ -141,12 +153,15 @@ The test script handles:
 ## Self-Hosting Workflow
 
 - Self-transpiling this repo is a high-memory integration check, not the first validation step. Prove the behavior with focused fixtures and `go test ./go` first.
-- When self-transpiling, copy the repo to a temp workspace, run the generated package checks there, and remove the workspace afterward unless the user explicitly asks to inspect it.
-- Use the single-job cargo check shape under memory pressure: `CARGO_BUILD_JOBS=1 CARGO_INCREMENTAL=0 RUSTFLAGS=-Awarnings GOCACHE=/private/tmp/go2rust-go-cache ./self_transpile_check.sh --cargo-check --package golang_org_x_tools_internal_typeparams`.
+- When self-transpiling, copy the repo to a temp workspace, run the generated package checks there, and remove the workspace afterward unless the user explicitly asks to inspect it. `KEEP_SELF_TRANSPILE=1` is for short-lived inspection only.
+- Use package-targeted checks to burn down errors incrementally, then run the broader workspace check. Keep cargo single-job under memory pressure:
+  - Focused: `CARGO_BUILD_JOBS=1 CARGO_INCREMENTAL=0 RUSTFLAGS=-Awarnings GOCACHE=/private/tmp/go2rust-go-cache ./self_transpile_check.sh --cargo-check --package <crate>`
+  - Broad: `CARGO_BUILD_JOBS=1 CARGO_INCREMENTAL=0 RUSTFLAGS=-Awarnings GOCACHE=/private/tmp/go2rust-go-cache ./self_transpile_check.sh --cargo-check`
 - If a self-transpile check gets past the previous Rust errors and exposes later errors, that is progress. Record the old and new error sets before patching the next boundary.
 - Use self-hosting errors as real feedback. A generated Rust compile error usually points to a translator boundary issue; reduce it to a focused fixture before patching broadly.
 - If `rustc` is killed on a generated dependency crate, inspect the generated Rust shape before assuming a semantic type error. Multi-megabyte single expressions can kill the compiler even when the code is otherwise valid.
 - For large package-level composite literals, prefer statement lowering: build local maps/slices in source order, then assign to the package global once. Do not mutate the target global while evaluating its initializer.
+- Current self-hosting checkpoint: `golang_org_x_tools_go_types_typeutil` cargo-checks successfully. The broad workspace check currently reaches `golang_org_x_tools_internal_event_label`; next blockers there are local interface/trait-object lowering, `reflect.StringHeader`, wrapped slice/list iteration, and trait-object comparability/default handling.
 
 ## Source-Preserving Fixes
 
