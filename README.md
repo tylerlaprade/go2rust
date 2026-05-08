@@ -170,6 +170,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Stdlib typed constants as indexes | ✅ |
 | └ Shared stdlib stubs across transpiled dependency crates | ✅ |
 | └ Stdlib concrete values passed to stdlib interface parameters | ✅ |
+| └ Stdlib interface field copies | ✅ |
 | **`interface` - Interface types** | |
 | └ Interface definitions | ✅ |
 | └ Empty interface{} | ✅ |

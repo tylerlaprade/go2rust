@@ -174,6 +174,40 @@ func writeWrappedValueCopyFromIdent(out *strings.Builder, ident *ast.Ident) bool
 	}
 }
 
+func isStdlibNamedInterfaceValueType(typ types.Type) bool {
+	named, ok := typ.(*types.Named)
+	if !ok || named.Obj() == nil || named.Obj().Pkg() == nil {
+		return false
+	}
+	if !isStdlibPackage(named.Obj().Pkg().Path()) {
+		return false
+	}
+	_, ok = named.Underlying().(*types.Interface)
+	return ok
+}
+
+func writeStdlibInterfaceFieldValueCopy(out *strings.Builder, expr ast.Expr) bool {
+	sel, ok := expr.(*ast.SelectorExpr)
+	if !ok {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || !isStdlibNamedInterfaceValueType(typeInfo.GetType(expr)) {
+		return false
+	}
+	out.WriteString("{ let __src = ")
+	TranspileExpressionContext(out, sel, LValue)
+	out.WriteString(".clone(); ")
+	out.WriteString("let __copied = (*__src")
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap()).clone(); ")
+	WriteWrapperPrefix(out)
+	out.WriteString("__copied")
+	WriteWrapperSuffix(out)
+	out.WriteString(" }")
+	return true
+}
+
 func writeMapWrappedValue(out *strings.Builder, expr ast.Expr) {
 	if ident, ok := expr.(*ast.Ident); ok &&
 		ident.Name != "_" && ident.Name != "nil" && ident.Name != "true" && ident.Name != "false" {
@@ -2272,6 +2306,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										} else if _, isSliceExpr := rhs.(*ast.SliceExpr); isSliceExpr {
 											// Slice expressions already return wrapped values
 											TranspileExpression(out, rhs)
+										} else if writeStdlibInterfaceFieldValueCopy(out, rhs) {
+											// Copied by value from an existing stdlib interface field.
 										} else if ident, ok := rhs.(*ast.Ident); ok {
 											if sig, isFuncValue := functionValueSignature(ident); isFuncValue {
 												writeWrappedFunctionValueBox(out, ident, sig)
