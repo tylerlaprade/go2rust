@@ -69,6 +69,43 @@ func localNamedInterfaceTypeNameFromTypes(typ types.Type) (string, bool) {
 	return named.Obj().Name(), true
 }
 
+func transpiledNamedInterfaceTypeNameFromTypes(typ types.Type) (string, bool) {
+	if typ == nil {
+		return "", false
+	}
+	named, ok := types.Unalias(typ).(*types.Named)
+	if !ok || named.Obj() == nil {
+		return "", false
+	}
+	intf, ok := named.Underlying().(*types.Interface)
+	if !ok || intf.NumMethods() == 0 {
+		return "", false
+	}
+	obj := named.Obj()
+	if obj.Pkg() == nil {
+		return "", false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo != nil && typeInfo.pkg != nil && obj.Pkg() == typeInfo.pkg {
+		return obj.Name(), true
+	}
+	if isStdlibPackage(obj.Pkg().Path()) {
+		return "", false
+	}
+	return goTypesNamedTypeToRust(named), true
+}
+
+func transpiledNamedInterfaceTypeNameFromExpr(expr ast.Expr) (string, bool) {
+	if ident, ok := expr.(*ast.Ident); ok && IsInterfaceType(ident.Name) {
+		return ident.Name, true
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return "", false
+	}
+	return transpiledNamedInterfaceTypeNameFromTypes(typeInfo.GetType(expr))
+}
+
 func localInterfaceNameFromTypeExpr(expr ast.Expr) (string, bool) {
 	ident, ok := expr.(*ast.Ident)
 	if !ok || !IsInterfaceType(ident.Name) {
@@ -195,12 +232,8 @@ func lookupAnonymousStructName(structType *types.Struct) string {
 // GoTypeToRustParam generates Rust type for function parameters
 // Interface parameters are not wrapped to avoid trait object issues
 func GoTypeToRustParam(expr ast.Expr) string {
-	// Check if this is an interface type
-	if ident, ok := expr.(*ast.Ident); ok {
-		if IsInterfaceType(ident.Name) {
-			// Interface parameter - use reference to trait object
-			return rustLocalInterfaceParam(ident.Name)
-		}
+	if interfaceName, ok := transpiledNamedInterfaceTypeNameFromExpr(expr); ok {
+		return rustLocalInterfaceParam(interfaceName)
 	}
 
 	// For non-interface types, use regular wrapping

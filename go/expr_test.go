@@ -75,3 +75,17 @@ func main() {
 		t.Fatalf("selector-qualified struct literal emitted missing expression:\n%s", got)
 	}
 }
+
+func TestLocalInterfaceReferenceCallArgumentUsesCurrentReceiver(t *testing.T) {
+	prevReceiver := currentReceiver
+	currentReceiver = "k"
+	defer func() { currentReceiver = prevReceiver }()
+
+	var out strings.Builder
+	if !writeLocalInterfaceReferenceCallArgument(&out, ast.NewIdent("k")) {
+		t.Fatal("writeLocalInterfaceReferenceCallArgument returned false")
+	}
+	if got, want := out.String(), "self"; got != want {
+		t.Fatalf("receiver argument = %q, want %q", got, want)
+	}
+}

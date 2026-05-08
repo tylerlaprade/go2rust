@@ -642,16 +642,20 @@ func selectedMethodParamType(sel *ast.SelectorExpr, index int) types.Type {
 
 func writeLocalInterfaceReferenceCallArgument(out *strings.Builder, arg ast.Expr) bool {
 	if ident, ok := arg.(*ast.Ident); ok {
+		if currentReceiver != "" && ident.Name == currentReceiver {
+			out.WriteString("self")
+			return true
+		}
 		if varType, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar && strings.HasPrefix(varType, "&Box<dyn ") {
-			out.WriteString(EscapeRustIdent(ident.Name))
+			out.WriteString(RustIdentForUse(ident))
 			out.WriteString(".as_ref()")
 			return true
 		}
 		if isVarBare(ident.Name) {
-			out.WriteString(EscapeRustIdent(ident.Name))
+			out.WriteString(RustIdentForUse(ident))
 			return true
 		}
-		out.WriteString(EscapeRustIdent(ident.Name))
+		out.WriteString(RustIdentForUse(ident))
 		WriteBorrowMethod(out, false)
 		out.WriteString(".as_ref().unwrap()")
 		return true
@@ -665,6 +669,13 @@ func callParamTypeFromTypeInfo(call *ast.CallExpr, index int) types.Type {
 		return nil
 	}
 	sig, ok := typeInfo.GetType(call.Fun).(*types.Signature)
+	if !ok && typeInfo.info != nil {
+		if sel, isSelector := call.Fun.(*ast.SelectorExpr); isSelector {
+			if fn, isFunc := typeInfo.info.Uses[sel.Sel].(*types.Func); isFunc {
+				sig, ok = fn.Type().(*types.Signature)
+			}
+		}
+	}
 	if !ok || sig.Params() == nil {
 		return nil
 	}
@@ -4510,6 +4521,21 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 					writeExternalStubCallArgument(out, arg)
 					continue
 				}
+				expectedArgType := callParamTypeFromTypeInfo(call, i)
+				if _, ok := transpiledNamedInterfaceTypeNameFromTypes(expectedArgType); ok {
+					if writeLocalInterfaceReferenceCallArgument(out, arg) {
+						continue
+					}
+				}
+				if isEmptyInterfaceType(expectedArgType) {
+					if writeEmptyInterfaceHandleClone(out, arg) {
+						continue
+					}
+					WriteWrapperPrefix(out)
+					writeInterfaceBoxedValue(out, arg)
+					WriteWrapperSuffix(out)
+					continue
+				}
 				if writeAlreadyWrappedCallArgument(out, arg) {
 					continue
 				}
@@ -4726,7 +4752,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 			} else if typeInfo != nil && typeInfo.IsChannel(arg) {
 				TranspileExpression(out, arg)
 				out.WriteString(".clone()")
-			} else if _, ok := localNamedInterfaceTypeName(selectedMethodParamType(sel, i)); ok && writeLocalInterfaceReferenceCallArgument(out, arg) {
+			} else if _, ok := transpiledNamedInterfaceTypeNameFromTypes(selectedMethodParamType(sel, i)); ok && writeLocalInterfaceReferenceCallArgument(out, arg) {
 				continue
 			} else if writeStdlibInterfaceCallArgumentConversion(out, arg, selectedMethodParamType(sel, i)) {
 				continue
@@ -4897,6 +4923,11 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 		if expectedArgType == nil {
 			expectedArgType = callParamTypeFromTypeInfo(call, i)
 		}
+		if interfaceNameFromTypes, ok := transpiledNamedInterfaceTypeNameFromTypes(expectedArgType); ok {
+			expectsInterfaceParam = true
+			interfaceName = interfaceNameFromTypes
+			needsInterfaceBoxing = false
+		}
 		if isEmptyInterfaceType(expectedArgType) {
 			expectsEmptyInterface = true
 		}
@@ -4916,23 +4947,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 			// Special handling for interface parameters that now use &dyn Trait
 			if expectsInterfaceParam {
 				// Interface parameter - pass as reference without wrapper
-				if ident, ok := arg.(*ast.Ident); ok {
-					varType, isRangeVar := rangeLoopVars[ident.Name]
-					if isRangeVar && strings.HasPrefix(varType, "&Box<dyn ") {
-						// Range variable that's already &Box<dyn Trait>
-						// Convert to &dyn Trait via as_ref()
-						out.WriteString(EscapeRustIdent(ident.Name))
-						out.WriteString(".as_ref()")
-					} else if isVarBare(ident.Name) {
-						// Already a bare interface reference (&dyn Trait) - pass directly
-						out.WriteString(EscapeRustIdent(ident.Name))
-					} else {
-						// Regular wrapped variable - unwrap to get &T which coerces to &dyn Trait
-						// r.borrow().as_ref().unwrap() gives &T from Rc<RefCell<Option<T>>>
-						out.WriteString(EscapeRustIdent(ident.Name))
-						out.WriteString(".borrow().as_ref().unwrap()")
-					}
-				} else {
+				if !writeLocalInterfaceReferenceCallArgument(out, arg) {
 					// Complex expression - need to evaluate and reference
 					out.WriteString("&*")
 					TranspileExpression(out, arg)

@@ -389,6 +389,19 @@ func functionUsesOsArgs(fn *ast.FuncDecl) bool {
 	return usesOsArgs
 }
 
+func interfaceParamVarInfo(typeExpr ast.Expr) (*VarInfo, bool) {
+	interfaceName, ok := transpiledNamedInterfaceTypeNameFromExpr(typeExpr)
+	if !ok {
+		return nil, false
+	}
+	return &VarInfo{
+		WrapLevel: WrapNone,
+		RustType:  rustLocalInterfaceParam(interfaceName),
+		Source:    SourceParam,
+		IsRef:     true,
+	}, true
+}
+
 func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.FileSet, comments []*ast.CommentGroup) {
 	// Check if this is a method (has receiver)
 	if fn.Recv != nil && len(fn.Recv.List) > 0 {
@@ -480,13 +493,8 @@ func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.Fi
 		if fn.Type.Params != nil {
 			for _, field := range fn.Type.Params.List {
 				for _, name := range field.Names {
-					if ident, ok := field.Type.(*ast.Ident); ok && IsInterfaceType(ident.Name) {
-						vt.Register(name.Name, &VarInfo{
-							WrapLevel: WrapNone,
-							RustType:  rustLocalInterfaceParam(ident.Name),
-							Source:    SourceParam,
-							IsRef:     true,
-						})
+					if varInfo, ok := interfaceParamVarInfo(field.Type); ok {
+						vt.Register(name.Name, varInfo)
 					} else if _, ok := field.Type.(*ast.ChanType); ok {
 						// Channel parameters are bare (GoChannel<T>)
 						vt.Register(name.Name, &VarInfo{
@@ -1493,13 +1501,8 @@ func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, a
 		if fn.Type.Params != nil {
 			for _, field := range fn.Type.Params.List {
 				for _, name := range field.Names {
-					if ident, ok := field.Type.(*ast.Ident); ok && IsInterfaceType(ident.Name) {
-						vt.Register(name.Name, &VarInfo{
-							WrapLevel: WrapNone,
-							RustType:  rustLocalInterfaceParam(ident.Name),
-							Source:    SourceParam,
-							IsRef:     true,
-						})
+					if varInfo, ok := interfaceParamVarInfo(field.Type); ok {
+						vt.Register(name.Name, varInfo)
 					} else if _, ok := field.Type.(*ast.ChanType); ok {
 						// Channel parameters are bare (GoChannel<T>)
 						vt.Register(name.Name, &VarInfo{
