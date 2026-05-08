@@ -24,7 +24,7 @@ impl<T> GoGlobal<T> {
     }
 }
 
-pub(crate) static All: GoGlobal<Items> = GoGlobal::new();
+pub static All: GoGlobal<Items> = GoGlobal::new();
 
 
 pub(crate) fn __go_init_globals() {

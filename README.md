@@ -215,6 +215,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Package-level map literal initialization | ✅ |
 | └ Package-level named slice declarations | ✅ |
 | └ Package-level pointer globals initialized from constructor calls | ✅ |
+| └ Exported package globals from transpiled dependency crates keep their Go names and public visibility | ✅ |
 | └ Init functions | ✅ |
 | └ Multi-file packages with cross-file types, methods, maps, slices, and function variables | 🚧 |
 | └ Workspace-wide wrapper selection for transpiled external packages | ✅ |

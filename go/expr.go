@@ -1708,11 +1708,11 @@ func writeIdentExpression(out *strings.Builder, e *ast.Ident, ctx ExprContext, v
 		switch ctx {
 		case RValue:
 			out.WriteString("(*")
-			out.WriteString(EscapeRustIdent(e.Name))
+			out.WriteString(rustPackageGlobalName(e.Name))
 			WriteBorrowMethod(out, false)
 			out.WriteString(".as_ref().unwrap())")
 		case AddressOf, LValue:
-			out.WriteString(EscapeRustIdent(e.Name))
+			out.WriteString(rustPackageGlobalName(e.Name))
 		}
 	} else if e.Name[0] >= 'A' && e.Name[0] <= 'Z' && e.Name != "String" {
 		// Likely a constant - convert to UPPER_SNAKE_CASE
@@ -1763,6 +1763,28 @@ func writeIdentExpression(out *strings.Builder, e *ast.Ident, ctx ExprContext, v
 			out.WriteString(varName)
 		}
 	}
+}
+
+func isPackageVarSelector(sel *ast.SelectorExpr) bool {
+	if sel == nil {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return false
+	}
+	obj, ok := typeInfo.GetObject(sel.Sel).(*types.Var)
+	if !ok || obj.Pkg() == nil {
+		return false
+	}
+	return obj.Parent() == obj.Pkg().Scope()
+}
+
+func rustPackageSelectorName(sel *ast.SelectorExpr) string {
+	if isPackageVarSelector(sel) {
+		return rustPackageGlobalName(sel.Sel.Name)
+	}
+	return ToSnakeCase(sel.Sel.Name)
 }
 
 // TranspileExpressionContext transpiles an expression with context about how it's used
@@ -1888,7 +1910,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 								out.WriteString(ident.Name)
 							}
 							out.WriteString("::")
-							out.WriteString(ToSnakeCase(e.Sel.Name))
+							out.WriteString(rustPackageSelectorName(e))
 							break
 						}
 					}
@@ -1897,7 +1919,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 						// External package without mapping - use sanitized name
 						out.WriteString(strings.ReplaceAll(strings.ReplaceAll(pkgPath, "/", "_"), ".", "_"))
 						out.WriteString("::")
-						out.WriteString(ToSnakeCase(e.Sel.Name))
+						out.WriteString(rustPackageSelectorName(e))
 						break
 					}
 				}
@@ -3581,7 +3603,7 @@ func writeFunctionValueBox(out *strings.Builder, ident *ast.Ident, sig *types.Si
 	out.WriteString(" { ")
 	if isPackageGlobalIdent(ident) {
 		out.WriteString("{ let __f_guard = ")
-		out.WriteString(EscapeRustIdent(ident.Name))
+		out.WriteString(rustPackageGlobalName(ident.Name))
 		WriteBorrowMethod(out, false)
 		out.WriteString("; let __f = __f_guard.as_ref().unwrap(); (*__f)(")
 	} else {

@@ -21,9 +21,9 @@ impl<T> GoGlobal<T> {
     }
 }
 
-pub(crate) static ErrUnset: GoGlobal<Box<dyn StdError>> = GoGlobal::new();
+pub static ErrUnset: GoGlobal<Box<dyn StdError>> = GoGlobal::new();
 
-pub(crate) static ErrBoom: GoGlobal<Box<dyn StdError>> = GoGlobal::new();
+pub static ErrBoom: GoGlobal<Box<dyn StdError>> = GoGlobal::new();
 
 
 pub(crate) fn __go_init_globals() {

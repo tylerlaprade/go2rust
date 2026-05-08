@@ -129,6 +129,17 @@ type packageGlobal struct {
 	typ      types.Type
 }
 
+func rustPackageGlobalName(name string) string {
+	return EscapeRustIdent(name)
+}
+
+func packageGlobalVisibility(name string) string {
+	if ast.IsExported(name) {
+		return "pub"
+	}
+	return "pub(crate)"
+}
+
 func isPackageGlobalIdent(ident *ast.Ident) bool {
 	if ident == nil || ident.Name == "_" || ident.Name == "nil" || ident.Name == "true" || ident.Name == "false" {
 		return false
@@ -216,14 +227,16 @@ func TranspilePackageGlobals(out *strings.Builder, globalVars []*ast.GenDecl) {
 			out.WriteString("\n")
 		}
 		if NeedsConcurrentWrapper() {
-			out.WriteString("pub(crate) static ")
-			out.WriteString(global.name)
+			out.WriteString(packageGlobalVisibility(global.name))
+			out.WriteString(" static ")
+			out.WriteString(rustPackageGlobalName(global.name))
 			out.WriteString(": std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<")
 			out.WriteString(global.rustType)
 			out.WriteString(">>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));\n")
 		} else {
-			out.WriteString("pub(crate) static ")
-			out.WriteString(global.name)
+			out.WriteString(packageGlobalVisibility(global.name))
+			out.WriteString(" static ")
+			out.WriteString(rustPackageGlobalName(global.name))
 			out.WriteString(": GoGlobal<")
 			out.WriteString(global.rustType)
 			out.WriteString("> = GoGlobal::new();\n")
@@ -242,7 +255,7 @@ func transpilePackageGlobalInit(out *strings.Builder, globals []packageGlobal) {
 			}
 		}
 		out.WriteString("    *")
-		out.WriteString(global.name)
+		out.WriteString(rustPackageGlobalName(global.name))
 		WriteBorrowMethod(out, true)
 		out.WriteString(" = ")
 		if isGoErrorType(global.typ) {
@@ -290,7 +303,7 @@ func transpilePackageGlobalInit(out *strings.Builder, globals []packageGlobal) {
 			continue
 		}
 		out.WriteString("    *")
-		out.WriteString(init.Lhs[0].Name())
+		out.WriteString(rustPackageGlobalName(init.Lhs[0].Name()))
 		WriteBorrowMethod(out, true)
 		out.WriteString(" = Some(")
 		writePackageGlobalInitValue(out, init.Rhs, global.typ)
@@ -308,7 +321,7 @@ func writePackageGlobalCompositeInit(out *strings.Builder, global packageGlobal,
 	if mapType == nil {
 		return false
 	}
-	writePackageGlobalMapLiteralInit(out, global.name, mapType, lit)
+	writePackageGlobalMapLiteralInit(out, rustPackageGlobalName(global.name), mapType, lit)
 	return true
 }
 
@@ -436,7 +449,7 @@ func writePackageGlobalErrorCallInit(out *strings.Builder, global packageGlobal,
 	out.WriteString(".clone(); let new_val = { let mut guard = __rhs_holder")
 	WriteBorrowMethod(out, true)
 	out.WriteString("; guard.take() }; *")
-	out.WriteString(global.name)
+	out.WriteString(rustPackageGlobalName(global.name))
 	WriteBorrowMethod(out, true)
 	out.WriteString(" = new_val; }\n")
 	return true

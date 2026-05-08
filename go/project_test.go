@@ -206,6 +206,58 @@ func main() {
 	}
 }
 
+func TestTranspiledExternalPackageExportedGlobalUsesGoName(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+
+require example.com/dep v0.0.0
+
+replace example.com/dep => ./dep
+`)
+	writeTestFile(t, filepath.Join(tempDir, "dep", "go.mod"), `module example.com/dep
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "dep", "dep.go"), `package dep
+
+var Public = 7
+
+func Value() int {
+	return Public
+}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+import "example.com/dep"
+
+func main() {
+	println(dep.Public)
+	println(dep.Value())
+}
+`)
+
+	generator := NewProjectGenerator([]string{filepath.Join(tempDir, "main.go")})
+	generator.SetExternalPackageMode(ModeTranspile)
+
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	depRS := mustReadFile(t, filepath.Join(tempDir, "vendor", "example_com_dep", "mod.rs"))
+	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
+	if !strings.Contains(depRS, "pub static Public:") {
+		t.Fatalf("exported external package global should be public and keep its Go name, got:\n%s", depRS)
+	}
+	if !strings.Contains(mainRS, "example_com_dep::Public") {
+		t.Fatalf("external package global selector should use the generated global name, got:\n%s", mainRS)
+	}
+	if strings.Contains(mainRS, "example_com_dep::public") {
+		t.Fatalf("external package global selector should not be snake-cased, got:\n%s", mainRS)
+	}
+}
+
 func TestTranspiledExternalPackagesUseSharedStdlibStubs(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod

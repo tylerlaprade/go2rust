@@ -22,13 +22,13 @@ impl<T> GoGlobal<T> {
     }
 }
 
-pub(crate) static Users: GoGlobal<BTreeMap<String, Rc<RefCell<Option<i32>>>>> = GoGlobal::new();
+pub static Users: GoGlobal<BTreeMap<String, Rc<RefCell<Option<i32>>>>> = GoGlobal::new();
 
-pub(crate) static Numbers: GoGlobal<Vec<i32>> = GoGlobal::new();
+pub static Numbers: GoGlobal<Vec<i32>> = GoGlobal::new();
 
-pub(crate) static Groups: GoGlobal<BTreeMap<String, Rc<RefCell<Option<Vec<String>>>>>> = GoGlobal::new();
+pub static Groups: GoGlobal<BTreeMap<String, Rc<RefCell<Option<Vec<String>>>>>> = GoGlobal::new();
 
-pub(crate) static Records: GoGlobal<Vec<BTreeMap<String, Rc<RefCell<Option<Box<dyn Any>>>>>>> = GoGlobal::new();
+pub static Records: GoGlobal<Vec<BTreeMap<String, Rc<RefCell<Option<Box<dyn Any>>>>>>> = GoGlobal::new();
 
 
 pub(crate) fn __go_init_globals() {

@@ -20,17 +20,17 @@ impl<T> GoGlobal<T> {
     }
 }
 
-pub(crate) static ProcessData: GoGlobal<Box<dyn Fn(Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>>> = GoGlobal::new();
+pub static ProcessData: GoGlobal<Box<dyn Fn(Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>>> = GoGlobal::new();
 
-pub(crate) static CombineStrings: GoGlobal<Box<dyn Fn(Rc<RefCell<Option<String>>>, Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>>>> = GoGlobal::new();
+pub static CombineStrings: GoGlobal<Box<dyn Fn(Rc<RefCell<Option<String>>>, Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>>>> = GoGlobal::new();
 
-pub(crate) static ApplyTwice: GoGlobal<Box<dyn Fn(Rc<RefCell<Option<Box<dyn Fn(Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>>>>>, Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>>> = GoGlobal::new();
+pub static ApplyTwice: GoGlobal<Box<dyn Fn(Rc<RefCell<Option<Box<dyn Fn(Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>>>>>, Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>>> = GoGlobal::new();
 
-pub(crate) static GetGreeting: GoGlobal<Box<dyn Fn() -> Rc<RefCell<Option<String>>>>> = GoGlobal::new();
+pub static GetGreeting: GoGlobal<Box<dyn Fn() -> Rc<RefCell<Option<String>>>>> = GoGlobal::new();
 
-pub(crate) static DivMod: GoGlobal<Box<dyn Fn(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> (Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>)>> = GoGlobal::new();
+pub static DivMod: GoGlobal<Box<dyn Fn(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> (Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>)>> = GoGlobal::new();
 
-pub(crate) static DynamicFunc: GoGlobal<Box<dyn Fn(Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>>>> = GoGlobal::new();
+pub static DynamicFunc: GoGlobal<Box<dyn Fn(Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>>>> = GoGlobal::new();
 
 
 pub(crate) fn __go_init_globals() {
