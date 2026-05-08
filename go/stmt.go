@@ -68,6 +68,46 @@ func rangeTargetNeedsWrappedSliceGuard(expr ast.Expr) bool {
 	}
 }
 
+func localInterfaceNameFromTypeExpr(expr ast.Expr) (string, bool) {
+	ident, ok := expr.(*ast.Ident)
+	if !ok || !IsInterfaceType(ident.Name) {
+		return "", false
+	}
+	return ident.Name, true
+}
+
+func writeLocalInterfaceConcreteReturnConversion(out *strings.Builder, result ast.Expr, expected ast.Expr) bool {
+	interfaceName, ok := localInterfaceNameFromTypeExpr(expected)
+	if !ok {
+		return false
+	}
+	if unary, ok := result.(*ast.UnaryExpr); ok && unary.Op == token.AND {
+		if composite, ok := unary.X.(*ast.CompositeLit); ok {
+			WriteWrapperPrefix(out)
+			out.WriteString("Box::new(")
+			TranspileExpressionContext(out, composite, AddressOf)
+			out.WriteString(") as Box<dyn ")
+			out.WriteString(interfaceName)
+			out.WriteString(">")
+			WriteWrapperSuffix(out)
+			return true
+		}
+	}
+	if composite, ok := result.(*ast.CompositeLit); ok {
+		if _, isStructType := composite.Type.(*ast.Ident); isStructType {
+			WriteWrapperPrefix(out)
+			out.WriteString("Box::new(")
+			TranspileExpressionContext(out, composite, AddressOf)
+			out.WriteString(") as Box<dyn ")
+			out.WriteString(interfaceName)
+			out.WriteString(">")
+			WriteWrapperSuffix(out)
+			return true
+		}
+	}
+	return false
+}
+
 func writeCurrentReceiverStorage(out *strings.Builder, ident *ast.Ident) bool {
 	if ident == nil || currentReceiver == "" || ident.Name != currentReceiver {
 		return false
@@ -1416,6 +1456,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 								}
 							}
 						}
+					} else if writeLocalInterfaceConcreteReturnConversion(out, result, returnResultTypeExpr(fnType, i)) {
 					} else if compositeLit, ok := result.(*ast.CompositeLit); ok && isCompositeLitSelfWrapping(compositeLit) {
 						// Slice and map literals already return wrapped values.
 						TranspileExpression(out, result)

@@ -746,6 +746,10 @@ run_xfail_test() {
     run_test "tests/library_example"
 }
 
+@test "local_interface_concrete_return" {
+    run_test "tests/local_interface_concrete_return"
+}
+
 @test "local_interface_method_param" {
     run_test "tests/local_interface_method_param"
 }
