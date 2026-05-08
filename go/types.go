@@ -21,6 +21,14 @@ func isEmptyInterfaceExpr(expr ast.Expr) bool {
 	return ok && (intf.Methods == nil || len(intf.Methods.List) == 0)
 }
 
+func isEmptyInterfaceTypeExpr(expr ast.Expr) bool {
+	if isEmptyInterfaceExpr(expr) {
+		return true
+	}
+	typeInfo := GetTypeInfo()
+	return typeInfo != nil && isEmptyInterfaceType(typeInfo.GetType(expr))
+}
+
 func isEmptyInterfaceType(typ types.Type) bool {
 	if typ == nil {
 		return false

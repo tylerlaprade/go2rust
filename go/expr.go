@@ -1009,13 +1009,46 @@ func writeEmptyInterfaceHandleClone(out *strings.Builder, expr ast.Expr) bool {
 }
 
 func writeEmptyInterfaceIdentAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
-	if _, ok := lhs.(*ast.Ident); !ok || !isEmptyInterfaceValueExpr(rhs) {
+	if !isEmptyInterfaceValueExpr(rhs) || !isEmptyInterfaceValueExpr(lhs) {
 		return false
 	}
-	TranspileExpressionContext(out, lhs, LValue)
-	out.WriteString(" = ")
-	writeEmptyInterfaceHandleClone(out, rhs)
-	return true
+	if _, ok := lhs.(*ast.Ident); ok {
+		TranspileExpressionContext(out, lhs, LValue)
+		out.WriteString(" = ")
+		writeEmptyInterfaceHandleClone(out, rhs)
+		return true
+	}
+	if sel, ok := lhs.(*ast.SelectorExpr); ok {
+		out.WriteString("{ let new_val = ")
+		writeEmptyInterfaceHandleClone(out, rhs)
+		out.WriteString("; ")
+		if index, ok := sel.X.(*ast.IndexExpr); ok {
+			if typeInfo := GetTypeInfo(); typeInfo != nil && !typeInfo.IsMap(index.X) {
+				out.WriteString("(*")
+				TranspileExpressionContext(out, index.X, LValue)
+				WriteBorrowMethod(out, true)
+				out.WriteString(".as_mut().unwrap())[")
+				TranspileExpression(out, index.Index)
+				out.WriteString(" as usize].")
+				out.WriteString(ToSnakeCase(sel.Sel.Name))
+				out.WriteString(" = new_val; }")
+				return true
+			}
+		}
+		if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.IsPointer(sel.X) {
+			out.WriteString("(*")
+			TranspileExpressionContext(out, sel.X, LValue)
+			WriteBorrowMethod(out, true)
+			out.WriteString(".as_mut().unwrap()).")
+			out.WriteString(ToSnakeCase(sel.Sel.Name))
+			out.WriteString(" = new_val; }")
+			return true
+		}
+		TranspileExpressionContext(out, sel, LValue)
+		out.WriteString(" = new_val; }")
+		return true
+	}
+	return false
 }
 
 func writeWrappedStructFieldValue(out *strings.Builder, value ast.Expr, fieldExpr ast.Expr, fieldType types.Type) {
@@ -4403,11 +4436,15 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				// Check if this is an interface type using TypeInfo
 				typeInfo := GetTypeInfo()
 				if typeInfo != nil && typeInfo.IsInterface(ident) {
-					// Interface parameters now use &dyn Trait, not wrapped
-					expectsInterfaceParam = true
-					interfaceName = ident.Name
-					// We no longer need interface boxing since params changed
-					needsInterfaceBoxing = false
+					if isEmptyInterfaceTypeExpr(ident) {
+						expectsEmptyInterface = true
+					} else {
+						// Interface parameters now use &dyn Trait, not wrapped
+						expectsInterfaceParam = true
+						interfaceName = ident.Name
+						// We no longer need interface boxing since params changed
+						needsInterfaceBoxing = false
+					}
 				}
 			}
 			// Check for anonymous empty interface{} parameter → Box<dyn Any>
@@ -4419,6 +4456,9 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 		}
 		if expectedArgType == nil {
 			expectedArgType = callParamTypeFromTypeInfo(call, i)
+		}
+		if isEmptyInterfaceType(expectedArgType) {
+			expectsEmptyInterface = true
 		}
 
 		// Check if we're calling a closure - closures take wrapped arguments
@@ -4476,10 +4516,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 
 				if argIsInterface {
 					// Argument is already interface{} — just clone the Rc
-					if ident, ok := arg.(*ast.Ident); ok {
-						out.WriteString(EscapeRustIdent(ident.Name))
-						out.WriteString(".clone()")
-					} else {
+					if !writeEmptyInterfaceHandleClone(out, arg) {
 						TranspileExpression(out, arg)
 					}
 				} else {

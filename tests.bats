@@ -334,6 +334,10 @@ run_xfail_test() {
     run_test "tests/anonymous_structs_positional"
 }
 
+@test "any_field_handle_reuse" {
+    run_test "tests/any_field_handle_reuse"
+}
+
 @test "any_interface_static_assertion" {
     run_test "tests/any_interface_static_assertion"
 }

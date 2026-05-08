@@ -2601,17 +2601,14 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										// Check if the target type is interface{}
 										isInterface := false
 										if valueSpec.Type != nil {
-											if intf, ok := valueSpec.Type.(*ast.InterfaceType); ok && len(intf.Methods.List) == 0 {
-												isInterface = true
-											}
+											isInterface = isEmptyInterfaceTypeExpr(valueSpec.Type)
 										}
 
 										if isInterface {
 											// For interface{}, box the value
 											WriteWrapperPrefix(out)
-											out.WriteString("Box::new(")
-											TranspileExpression(out, valueSpec.Values[i])
-											out.WriteString(") as Box<dyn Any>)))")
+											writeInterfaceBoxedValue(out, valueSpec.Values[i])
+											WriteWrapperSuffix(out)
 										} else if valueSpec.Type != nil {
 											if typeIdent, ok := valueSpec.Type.(*ast.Ident); ok {
 												if underlyingType, isTypeDef := LookupTypeDefinition(typeIdent.Name); isTypeDef {
@@ -2652,17 +2649,14 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									// Check if the target type is interface{}
 									isInterface := false
 									if valueSpec.Type != nil {
-										if intf, ok := valueSpec.Type.(*ast.InterfaceType); ok && len(intf.Methods.List) == 0 {
-											isInterface = true
-										}
+										isInterface = isEmptyInterfaceTypeExpr(valueSpec.Type)
 									}
 
 									if isInterface {
 										// For interface{}, box the value
 										WriteWrapperPrefix(out)
-										out.WriteString("Box::new(")
-										TranspileExpression(out, valueSpec.Values[i])
-										out.WriteString(") as Box<dyn Any>)))")
+										writeInterfaceBoxedValue(out, valueSpec.Values[i])
+										WriteWrapperSuffix(out)
 									} else if valueSpec.Type != nil {
 										if typeIdent, ok := valueSpec.Type.(*ast.Ident); ok {
 											if underlyingType, isTypeDef := LookupTypeDefinition(typeIdent.Name); isTypeDef {
