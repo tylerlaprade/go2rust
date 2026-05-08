@@ -588,13 +588,13 @@ impl std::fmt::Debug for WaitGroup {
 func generateGoMutexHelper(out *strings.Builder) {
 	out.WriteString(`
 struct GoMutex {
-    inner: std::sync::Mutex<()>,
+    inner: std::sync::Arc<std::sync::Mutex<()>>,
 }
 
 impl GoMutex {
     fn new() -> Self {
         GoMutex {
-            inner: std::sync::Mutex::new(()),
+            inner: std::sync::Arc::new(std::sync::Mutex::new(())),
         }
     }
 
@@ -611,7 +611,9 @@ impl Default for GoMutex {
 
 impl Clone for GoMutex {
     fn clone(&self) -> Self {
-        Self::new()
+        GoMutex {
+            inner: self.inner.clone(),
+        }
     }
 }
 

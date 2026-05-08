@@ -760,31 +760,53 @@ func writeParallelAssignmentTarget(out *strings.Builder, lhs ast.Expr, tmpName s
 	}
 }
 
-// isMutexLockCall checks if an expression is a Lock() call on a sync.Mutex field
-func isMutexLockCall(expr ast.Expr) bool {
+// mutexLockReceiver returns the receiver for a Lock() call on a sync.Mutex field.
+func mutexLockReceiver(expr ast.Expr) (ast.Expr, bool) {
 	call, ok := expr.(*ast.CallExpr)
 	if !ok {
-		return false
+		return nil, false
 	}
 	sel, ok := call.Fun.(*ast.SelectorExpr)
 	if !ok || sel.Sel.Name != "Lock" {
-		return false
+		return nil, false
 	}
 	// Check if the receiver field is a sync.Mutex
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil {
-		return false
+		return nil, false
 	}
 	fieldType := typeInfo.GetType(sel.X)
 	if fieldType == nil {
-		return false
+		return nil, false
 	}
 	if named, ok := fieldType.(*types.Named); ok {
 		if named.Obj() != nil && named.Obj().Pkg() != nil && named.Obj().Pkg().Name() == "sync" && named.Obj().Name() == "Mutex" {
-			return true
+			return sel.X, true
 		}
 	}
-	return false
+	return nil, false
+}
+
+func writeMutexLockStatement(out *strings.Builder, expr ast.Expr) bool {
+	receiver, ok := mutexLockReceiver(expr)
+	if !ok {
+		return false
+	}
+	id := int(expr.Pos())
+	sourceName := fmt.Sprintf("__mutex_guard_source_%d", id)
+	guardName := fmt.Sprintf("__mutex_guard_%d", id)
+
+	out.WriteString("let ")
+	out.WriteString(sourceName)
+	out.WriteString(" = ")
+	TranspileExpressionContext(out, receiver, LValue)
+	out.WriteString(".clone(); ")
+	out.WriteString("let ")
+	out.WriteString(guardName)
+	out.WriteString(" = ")
+	out.WriteString(sourceName)
+	out.WriteString(".lock();")
+	return true
 }
 
 // isMutexUnlockDefer checks if a defer statement is mu.Unlock() on a sync.Mutex
@@ -1123,8 +1145,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 	case *ast.ExprStmt:
 		// Check if this is a mutex Lock() call — needs guard binding
-		if isMutexLockCall(s.X) {
-			out.WriteString("let _guard = ")
+		if writeMutexLockStatement(out, s.X) {
+			break
 		}
 		TranspileExpression(out, s.X)
 		out.WriteString(";")

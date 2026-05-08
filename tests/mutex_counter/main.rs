@@ -4,13 +4,13 @@ use std::rc::{Rc};
 
 
 struct GoMutex {
-    inner: std::sync::Mutex<()>,
+    inner: std::sync::Arc<std::sync::Mutex<()>>,
 }
 
 impl GoMutex {
     fn new() -> Self {
         GoMutex {
-            inner: std::sync::Mutex::new(()),
+            inner: std::sync::Arc::new(std::sync::Mutex::new(())),
         }
     }
 
@@ -27,7 +27,9 @@ impl Default for GoMutex {
 
 impl Clone for GoMutex {
     fn clone(&self) -> Self {
-        Self::new()
+        GoMutex {
+            inner: self.inner.clone(),
+        }
     }
 }
 
@@ -52,13 +54,13 @@ impl std::fmt::Display for Counter {
 
 impl Counter {
     pub fn increment(&mut self) {
-        let _guard = self.mu.lock();
+        let __mutex_guard_source_129 = self.mu.clone(); let __mutex_guard_129 = __mutex_guard_source_129.lock();
         // mu.Unlock() handled by RAII guard
         { let mut guard = self.value.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
 
     pub fn value(&mut self) -> Rc<RefCell<Option<i32>>> {
-        let _guard = self.mu.lock();
+        let __mutex_guard_source_209 = self.mu.clone(); let __mutex_guard_209 = __mutex_guard_source_209.lock();
         // mu.Unlock() handled by RAII guard
         return self.value.clone();
     }
