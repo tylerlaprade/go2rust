@@ -154,7 +154,7 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 ### 📋 Phase 9: Advanced Features (Optional/Future)
 
 - Generics (generics_basic)
-- ✅ Basic reflection metadata - reflect.TypeOf for struct fields plus StructTag.Get (struct_tags_reflection promoted, 2026-05-06)
+- ✅ Basic reflection metadata - reflect.TypeOf for struct fields plus StructTag.Get, plus pointer conversions to reflected struct header stand-ins (struct_tags_reflection promoted, 2026-05-06; reflect_string_header_pointer promoted, 2026-05-08)
 - 🚧 Unsafe operations - Sizeof/Alignof lower to Rust representation layout; pointer arithmetic and Offsetof remain unsupported (unsafe_sizeof_alignof promoted, 2026-05-07)
 - 🚧 JSON/encoding/crypto support - json.Marshal supports structs with exported basic fields (json_marshal promoted, 2026-05-06); encoding/base64 StdEncoding EncodeToString/DecodeString and crypto/sha256 Sum256 supported (base64_encoding, crypto_hash promoted, 2026-05-06)
 - ✅ Extended strings package coverage - search, IndexAny, Compare/Cut, split/join, replace, repeat, trim variants, EqualFold, Title, Builder Len, and Builder.WriteString with string constants (stdlib_strings promoted, 2026-05-06; expanded 2026-05-07)

@@ -1,0 +1,8 @@
+[package]
+name = "reflect_string_header_pointer"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "reflect_string_header_pointer"
+path = "main.rs"

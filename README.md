@@ -370,6 +370,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ `regexp.MustCompile` + basic `FindAllString` (`\d+` and literal matches) | ✅ |
 | **`reflect` package** | |
 | └ `reflect.TypeOf` struct field metadata and `StructTag.Get` | ✅ |
+| └ Pointer conversions to reflected struct header stand-ins | ✅ |
 | **`unsafe` package** | |
 | └ `unsafe.Sizeof` / `unsafe.Alignof` for Rust representation layout | ✅ |
 

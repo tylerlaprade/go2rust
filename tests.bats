@@ -990,6 +990,10 @@ run_xfail_test() {
     run_test "tests/recursive_closure_assignment"
 }
 
+@test "reflect_string_header_pointer" {
+    run_test "tests/reflect_string_header_pointer"
+}
+
 @test "regex_basic" {
     run_test "tests/regex_basic"
 }

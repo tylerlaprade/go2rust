@@ -3454,6 +3454,11 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 		return
 	}
 
+	if target, ok := pointerTypeConversionTarget(call.Fun); ok {
+		writePointerTypeConversion(out, target)
+		return
+	}
+
 	// Check for []byte(string) and []rune(string) conversions
 	if compLit, ok := call.Fun.(*ast.ArrayType); ok {
 		if compLit.Len == nil { // It's a slice
@@ -3710,6 +3715,45 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 		// No cast needed or unknown type
 		TranspileExpression(out, call.Args[0])
 	}
+}
+
+func pointerTypeConversionTarget(expr ast.Expr) (ast.Expr, bool) {
+	if paren, ok := expr.(*ast.ParenExpr); ok {
+		expr = paren.X
+	}
+	star, ok := expr.(*ast.StarExpr)
+	if !ok {
+		return nil, false
+	}
+	switch star.X.(type) {
+	case *ast.SelectorExpr, *ast.StructType:
+		return star.X, true
+	default:
+		return nil, false
+	}
+}
+
+func pointerTypeConversionTargetFromCall(call *ast.CallExpr) (ast.Expr, bool) {
+	target, ok := pointerTypeConversionTarget(call.Fun)
+	if !ok {
+		return nil, false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo != nil && typeInfo.IsTypeConversion(call) {
+		return target, true
+	}
+	switch target.(type) {
+	case *ast.SelectorExpr, *ast.StructType:
+		return target, true
+	}
+	return nil, false
+}
+
+func writePointerTypeConversion(out *strings.Builder, target ast.Expr) {
+	WriteWrapperPrefix(out)
+	out.WriteString(goTypeToRustBase(target))
+	out.WriteString("::default()")
+	WriteWrapperSuffix(out)
 }
 
 func typeConversionEmitsWrappedValue(call *ast.CallExpr) bool {
@@ -4059,6 +4103,13 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 		// Handle type conversion
 		TranspileTypeConversion(out, call)
 		return
+	}
+
+	if len(call.Args) == 1 {
+		if target, ok := pointerTypeConversionTargetFromCall(call); ok {
+			writePointerTypeConversion(out, target)
+			return
+		}
 	}
 
 	// Check if this is a type conversion for a type definition
