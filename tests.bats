@@ -350,6 +350,10 @@ run_xfail_test() {
     run_test "tests/any_struct_empty_literal"
 }
 
+@test "any_struct_field_from_any" {
+    run_test "tests/any_struct_field_from_any"
+}
+
 @test "any_type_conversion" {
     run_test "tests/any_type_conversion"
 }

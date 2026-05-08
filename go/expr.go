@@ -976,8 +976,35 @@ func writeInterfaceBoxedValue(out *strings.Builder, expr ast.Expr) {
 	out.WriteString(") as Box<dyn Any>")
 }
 
+func isEmptyInterfaceValueExpr(expr ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	return typeInfo != nil && isEmptyInterfaceType(typeInfo.GetType(expr))
+}
+
+func writeEmptyInterfaceHandleClone(out *strings.Builder, expr ast.Expr) bool {
+	if !isEmptyInterfaceValueExpr(expr) {
+		return false
+	}
+	TranspileExpressionContext(out, expr, LValue)
+	out.WriteString(".clone()")
+	return true
+}
+
+func writeEmptyInterfaceIdentAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
+	if _, ok := lhs.(*ast.Ident); !ok || !isEmptyInterfaceValueExpr(rhs) {
+		return false
+	}
+	TranspileExpressionContext(out, lhs, LValue)
+	out.WriteString(" = ")
+	writeEmptyInterfaceHandleClone(out, rhs)
+	return true
+}
+
 func writeWrappedStructFieldValue(out *strings.Builder, value ast.Expr, fieldExpr ast.Expr, fieldType types.Type) {
 	if isEmptyInterfaceExpr(fieldExpr) || isEmptyInterfaceType(fieldType) {
+		if writeEmptyInterfaceHandleClone(out, value) {
+			return
+		}
 		WriteWrapperPrefix(out)
 		writeInterfaceBoxedValue(out, value)
 		WriteWrapperSuffix(out)
@@ -1171,6 +1198,9 @@ func writeTypesStructCompositeLiteral(out *strings.Builder, structTypeName strin
 }
 
 func writeWrappedMapValue(out *strings.Builder, value ast.Expr, valueExpr ast.Expr, valueType types.Type) {
+	if (isEmptyInterfaceExpr(valueExpr) || isEmptyInterfaceType(valueType)) && writeEmptyInterfaceHandleClone(out, value) {
+		return
+	}
 	WriteWrapperPrefix(out)
 	if isEmptyInterfaceExpr(valueExpr) || isEmptyInterfaceType(valueType) {
 		writeInterfaceBoxedValue(out, value)

@@ -180,6 +180,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Empty interface{} | ✅ |
 | └ Named `any` returns default to nil | ✅ |
 | └ Selector fields returned as `any` preserve the interface handle | ✅ |
+| └ Existing `any` values assigned to `any` fields preserve the interface handle | ✅ |
 | └ Empty struct literals with `any` fields default to nil | ✅ |
 | └ Variadic `any` arguments | ✅ |
 | └ Interface implementations | ✅ |

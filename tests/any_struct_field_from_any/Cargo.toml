@@ -1,0 +1,8 @@
+[package]
+name = "any_struct_field_from_any"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "any_struct_field_from_any"
+path = "main.rs"

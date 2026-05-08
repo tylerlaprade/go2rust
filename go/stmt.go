@@ -2065,14 +2065,16 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 										if isInterface {
 											// Assignment to interface{} - need to box the value
-											out.WriteString("{ ")
-											out.WriteString("let new_val = Box::new(")
-											TranspileExpression(out, s.Rhs[0])
-											out.WriteString(") as Box<dyn Any>; ")
-											out.WriteString("*")
-											TranspileExpressionContext(out, s.Lhs[0], LValue)
-											WriteBorrowMethod(out, true)
-											out.WriteString(" = Some(new_val); }")
+											if !writeEmptyInterfaceIdentAssignment(out, s.Lhs[0], s.Rhs[0]) {
+												out.WriteString("{ ")
+												out.WriteString("let new_val = Box::new(")
+												TranspileExpression(out, s.Rhs[0])
+												out.WriteString(") as Box<dyn Any>; ")
+												out.WriteString("*")
+												TranspileExpressionContext(out, s.Lhs[0], LValue)
+												WriteBorrowMethod(out, true)
+												out.WriteString(" = Some(new_val); }")
+											}
 										} else {
 											// Check if RHS is a wrapped variable - use clone for non-Copy types
 											rhsIsWrappedVar := false
@@ -2201,14 +2203,16 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 									if isInterface {
 										// Assignment to interface{} - need to box the value
-										out.WriteString("{ ")
-										out.WriteString("let new_val = Box::new(")
-										TranspileExpression(out, s.Rhs[0])
-										out.WriteString(") as Box<dyn Any>; ")
-										out.WriteString("*")
-										TranspileExpressionContext(out, s.Lhs[0], LValue)
-										WriteBorrowMethod(out, true)
-										out.WriteString(" = Some(new_val); }")
+										if !writeEmptyInterfaceIdentAssignment(out, s.Lhs[0], s.Rhs[0]) {
+											out.WriteString("{ ")
+											out.WriteString("let new_val = Box::new(")
+											TranspileExpression(out, s.Rhs[0])
+											out.WriteString(") as Box<dyn Any>; ")
+											out.WriteString("*")
+											TranspileExpressionContext(out, s.Lhs[0], LValue)
+											WriteBorrowMethod(out, true)
+											out.WriteString(" = Some(new_val); }")
+										}
 									} else {
 										// Check if RHS is a wrapped variable - use clone for non-Copy types
 										rhsIsWrappedVar := false
@@ -2350,6 +2354,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										} else if _, isSliceExpr := rhs.(*ast.SliceExpr); isSliceExpr {
 											// Slice expressions already return wrapped values
 											TranspileExpression(out, rhs)
+										} else if writeEmptyInterfaceHandleClone(out, rhs) {
+											// Existing interface values are already represented by a handle.
 										} else if writeStdlibInterfaceFieldValueCopy(out, rhs) {
 											// Copied by value from an existing stdlib interface field.
 										} else if ident, ok := rhs.(*ast.Ident); ok {
