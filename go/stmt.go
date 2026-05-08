@@ -1536,6 +1536,12 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 								WriteWrapperSuffix(out)
 								continue
 							}
+							if writeLocalInterfaceEquality(&cmp, binExpr.X, binExpr.Y, binExpr.Op) {
+								WriteWrapperPrefix(out)
+								out.WriteString(cmp.String())
+								WriteWrapperSuffix(out)
+								continue
+							}
 						}
 
 						// Binary expressions need special handling to avoid multiple locks
@@ -2459,6 +2465,19 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 													}
 												}
 											}
+											if len(s.Lhs) == 1 {
+												if lhsIdent, ok := s.Lhs[0].(*ast.Ident); ok {
+													if target, ok := pointerTypeConversionTarget(callExpr.Fun); ok && isFunctionSignatureTypeExpr(target) {
+														if vt := GetVarTable(); vt != nil {
+															vt.Register(lhsIdent.Name, &VarInfo{
+																WrapLevel: WrapFull,
+																RustType:  "function_signature_pointer",
+																Source:    SourceLocal,
+															})
+														}
+													}
+												}
+											}
 											// Function calls already return wrapped values, don't wrap again
 											writeCallExpressionForInitializer(out, callExpr)
 										} else if _, isFuncLit := rhs.(*ast.FuncLit); isFuncLit {
@@ -2938,6 +2957,10 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						}
 						// For now, just generate type aliases inside functions
 						// These should be hoisted to module level in a real implementation
+						RegisterTypeAlias(typeSpec.Name.Name)
+						if _, isFuncType := typeSpec.Type.(*ast.FuncType); isFuncType {
+							RegisterFunctionTypeAlias(typeSpec.Name.Name)
+						}
 						out.WriteString("type ")
 						out.WriteString(RustTypeNameForUse(typeSpec.Name.Name))
 						out.WriteString(" = ")
@@ -3051,11 +3074,15 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		isMap := false
 		isString := false
 		isInteger := false
+		isSlice := false
+		isArray := false
 
 		if typeInfo != nil {
 			isMap = typeInfo.IsMap(s.X)
 			isString = typeInfo.IsString(s.X)
 			isInteger = isIntegerRangeExpr(typeInfo, s.X)
+			isSlice = typeInfo.IsSlice(s.X)
+			isArray = typeInfo.IsArray(s.X)
 			// Also check for string literals directly
 			if !isString {
 				if lit, ok := s.X.(*ast.BasicLit); ok && lit.Kind == token.STRING {
@@ -3071,7 +3098,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 		rangeValuesVar := ""
 		closeRangeGuard := false
-		if !isMap && !isString && typeInfo.IsSlice(s.X) && isNamedSliceExpression(s.X) {
+		if !isMap && !isString && isSlice && isNamedSliceExpression(s.X) {
 			out.WriteString("{ let __range_holder = ")
 			writeNamedSliceInnerHandleClone(out, s.X)
 			out.WriteString("; let __range_guard = __range_holder")
@@ -3079,7 +3106,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			out.WriteString("; let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); ")
 			rangeValuesVar = "__range_values"
 			closeRangeGuard = true
-		} else if !isMap && !isString && typeInfo.IsSlice(s.X) {
+		} else if !isMap && !isString && (isSlice || isArray) {
 			if rangeTargetNeedsWrappedSliceGuard(s.X) {
 				out.WriteString("{ let __range_holder = ")
 				writeWrappedHandleExpression(out, s.X)
@@ -3150,9 +3177,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			} else {
 				keyType = "i32"
 			}
-		} else if typeInfo.IsSlice(s.X) {
+		} else if isSlice || isArray {
 			// Check if it's a slice of interface{} or named interface
-			elemType := typeInfo.GetSliceElemType(s.X)
+			elemType := typeInfo.GetArrayOrSliceElemType(s.X)
 			if elemType != nil {
 				if _, ok := elemType.Underlying().(*types.Pointer); ok {
 					valueType = "&" + goTypesTypeToRust(elemType)
@@ -3190,7 +3217,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				// For basic/Copy types, use .copied() to get owned values
 				if s.Key != nil && !isMap && !isString && valueType == "T" {
 					// Check if element type is a numeric/bool (Rust Copy) type
-					elemType := typeInfo.GetSliceElemType(s.X)
+					elemType := typeInfo.GetArrayOrSliceElemType(s.X)
 					if elemType != nil {
 						if basic, ok := elemType.Underlying().(*types.Basic); ok {
 							info := basic.Info()
@@ -3371,7 +3398,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					}
 					// For numeric/bool (Rust Copy) types, use .iter().copied()
 					// to get owned values instead of &(...) which gives references
-					elemTypeV := typeInfo.GetSliceElemType(s.X)
+					elemTypeV := typeInfo.GetArrayOrSliceElemType(s.X)
 					valCopied := false
 					if elemTypeV != nil {
 						if basic, ok := elemTypeV.Underlying().(*types.Basic); ok {
@@ -3435,7 +3462,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					TranspileExpression(out, s.Value)
 				}
 				// For numeric/bool (Rust Copy) types, use .iter().copied()
-				elemTypeV2 := typeInfo.GetSliceElemType(s.X)
+				elemTypeV2 := typeInfo.GetArrayOrSliceElemType(s.X)
 				valCopied2 := false
 				if elemTypeV2 != nil {
 					if basic, ok := elemTypeV2.Underlying().(*types.Basic); ok {

@@ -188,14 +188,31 @@ func expressionContainsBareLenCap(expr ast.Expr) bool {
 }
 
 func shouldCastLenCapForBinaryPeer(expr ast.Expr, other ast.Expr) bool {
-	if !isBareLenCapCall(expr) || isBareLenCapCall(other) {
+	if !isBareLenCapCall(expr) {
 		return false
+	}
+	if isBareLenCapCall(other) {
+		return true
+	}
+	return isGoIntPeerForLenCap(other)
+}
+
+func shouldCastLenCapExpressionForBinaryPeer(expr ast.Expr, other ast.Expr) bool {
+	if isBareLenCapCall(expr) || !expressionContainsBareLenCap(expr) || expressionContainsBareLenCap(other) {
+		return false
+	}
+	return isGoIntPeerForLenCap(other)
+}
+
+func isGoIntPeerForLenCap(expr ast.Expr) bool {
+	if expressionIsUsizeRangeVar(expr) {
+		return true
 	}
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil {
 		return false
 	}
-	otherType := typeInfo.GetType(other)
+	otherType := typeInfo.GetType(expr)
 	if otherType == nil {
 		return false
 	}
@@ -230,6 +247,16 @@ func shouldCastIntPeerForLenCapBinaryOperand(expr ast.Expr, other ast.Expr) bool
 
 func writeLenCapBinaryOperand(out *strings.Builder, expr ast.Expr, other ast.Expr) bool {
 	if !shouldCastLenCapForBinaryPeer(expr, other) {
+		return false
+	}
+	out.WriteString("(")
+	TranspileExpression(out, expr)
+	out.WriteString(" as i32)")
+	return true
+}
+
+func writeLenCapExpressionBinaryOperand(out *strings.Builder, expr ast.Expr, other ast.Expr) bool {
+	if !shouldCastLenCapExpressionForBinaryPeer(expr, other) {
 		return false
 	}
 	out.WriteString("(")
@@ -668,11 +695,15 @@ func callParamTypeFromTypeInfo(call *ast.CallExpr, index int) types.Type {
 	if typeInfo == nil || call == nil {
 		return nil
 	}
-	sig, ok := typeInfo.GetType(call.Fun).(*types.Signature)
+	sig, ok := signatureFromType(typeInfo.GetType(call.Fun))
 	if !ok && typeInfo.info != nil {
-		if sel, isSelector := call.Fun.(*ast.SelectorExpr); isSelector {
+		if ident, isIdent := call.Fun.(*ast.Ident); isIdent {
+			if fn, isFunc := typeInfo.info.Uses[ident].(*types.Func); isFunc {
+				sig, ok = signatureFromType(fn.Type())
+			}
+		} else if sel, isSelector := call.Fun.(*ast.SelectorExpr); isSelector {
 			if fn, isFunc := typeInfo.info.Uses[sel.Sel].(*types.Func); isFunc {
-				sig, ok = fn.Type().(*types.Signature)
+				sig, ok = signatureFromType(fn.Type())
 			}
 		}
 	}
@@ -873,7 +904,7 @@ func localInterfaceExpressionName(expr ast.Expr) (string, bool) {
 	if typeInfo == nil {
 		return "", false
 	}
-	return localNamedInterfaceTypeNameFromTypes(typeInfo.GetType(expr))
+	return transpiledNamedInterfaceTypeNameFromTypes(expressionTypeForInterfaceEquality(typeInfo, expr))
 }
 
 func writeLocalInterfaceNilComparison(out *strings.Builder, expr ast.Expr, op token.Token) bool {
@@ -935,9 +966,7 @@ func writeLocalInterfaceEquality(out *strings.Builder, left ast.Expr, right ast.
 	if op != token.EQL && op != token.NEQ {
 		return false
 	}
-	leftName, leftOK := localInterfaceExpressionName(left)
-	rightName, rightOK := localInterfaceExpressionName(right)
-	if !leftOK || !rightOK || leftName != rightName {
+	if !interfaceExpressionsCanUseTraitEquality(left, right) {
 		return false
 	}
 	out.WriteString("{ ")
@@ -949,6 +978,62 @@ func writeLocalInterfaceEquality(out *strings.Builder, left ast.Expr, right ast.
 	}
 	out.WriteString("__eq }")
 	return true
+}
+
+func interfaceExpressionsCanUseTraitEquality(left ast.Expr, right ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	leftType := expressionTypeForInterfaceEquality(typeInfo, left)
+	rightType := expressionTypeForInterfaceEquality(typeInfo, right)
+	if !isNonEmptyInterfaceType(leftType) || !isNonEmptyInterfaceType(rightType) {
+		return false
+	}
+	if !types.AssignableTo(leftType, rightType) || !types.AssignableTo(rightType, leftType) {
+		return false
+	}
+	if _, ok := transpiledNamedInterfaceTypeNameFromTypes(leftType); ok {
+		return true
+	}
+	if _, ok := transpiledNamedInterfaceTypeNameFromTypes(rightType); ok {
+		return true
+	}
+	return false
+}
+
+func expressionTypeForInterfaceEquality(typeInfo *TypeInfo, expr ast.Expr) types.Type {
+	if typeInfo == nil {
+		return nil
+	}
+	if typ := typeInfo.GetType(expr); typ != nil {
+		return typ
+	}
+	call, ok := expr.(*ast.CallExpr)
+	if !ok {
+		return nil
+	}
+	if sel, ok := call.Fun.(*ast.SelectorExpr); ok && typeInfo.info != nil {
+		if selection, ok := typeInfo.info.Selections[sel]; ok {
+			if fn, ok := selection.Obj().(*types.Func); ok {
+				if sig, ok := fn.Type().(*types.Signature); ok && sig.Results() != nil && sig.Results().Len() == 1 {
+					return sig.Results().At(0).Type()
+				}
+			}
+		}
+	}
+	if sig, ok := typeInfo.GetType(call.Fun).(*types.Signature); ok && sig.Results() != nil && sig.Results().Len() == 1 {
+		return sig.Results().At(0).Type()
+	}
+	return nil
+}
+
+func isNonEmptyInterfaceType(typ types.Type) bool {
+	if typ == nil {
+		return false
+	}
+	intf, ok := types.Unalias(typ).Underlying().(*types.Interface)
+	return ok && intf.NumMethods() > 0
 }
 
 func writeCurrentReceiverPointerComparison(out *strings.Builder, expr *ast.BinaryExpr) bool {
@@ -1063,6 +1148,50 @@ func writeOwnedExpressionValue(out *strings.Builder, expr ast.Expr) bool {
 		}
 	}
 	return false
+}
+
+func compositeLiteralElementType(expr *ast.CompositeLit) types.Type {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return nil
+	}
+	typ := typeInfo.GetType(expr)
+	if typ == nil {
+		return nil
+	}
+	switch underlying := types.Unalias(typ).Underlying().(type) {
+	case *types.Array:
+		return underlying.Elem()
+	case *types.Slice:
+		return underlying.Elem()
+	}
+	return nil
+}
+
+func compositeLiteralElementKeepsHandle(typ types.Type) bool {
+	if typ == nil {
+		return true
+	}
+	switch types.Unalias(typ).Underlying().(type) {
+	case *types.Pointer, *types.Interface, *types.Chan:
+		return true
+	}
+	return false
+}
+
+func writeArraySliceLiteralElementValue(out *strings.Builder, expr ast.Expr, elemType types.Type) bool {
+	typeInfo := GetTypeInfo()
+	if call, ok := expr.(*ast.CallExpr); ok && typeInfo != nil && !compositeLiteralElementKeepsHandle(elemType) {
+		if typeInfo.ReturnsWrappedValue(call) && !isBareBuiltinReturn(call) && !callReturnsBareChannelValue(call) && (!typeInfo.IsTypeConversion(call) || typeConversionEmitsWrappedValue(call)) {
+			out.WriteString("{ let __v = ")
+			TranspileExpression(out, call)
+			out.WriteString("; let __owned = (*__v")
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref().unwrap()).clone(); __owned }")
+			return true
+		}
+	}
+	return writeOwnedExpressionValue(out, expr)
 }
 
 func isErrorInterfaceType(typ types.Type) bool {
@@ -1269,7 +1398,7 @@ func localInterfaceNameFromExpected(fieldExpr ast.Expr, fieldType types.Type) (s
 	if name, ok := localInterfaceNameFromTypeExpr(fieldExpr); ok {
 		return name, true
 	}
-	return localNamedInterfaceTypeName(fieldType)
+	return transpiledNamedInterfaceTypeNameFromTypes(fieldType)
 }
 
 func isBareLocalInterfaceValue(expr ast.Expr) bool {
@@ -1498,6 +1627,29 @@ func orderedArrayLiteralValues(elts []ast.Expr) []ast.Expr {
 		nextIndex = index + 1
 	}
 	return values
+}
+
+func orderedArrayLiteralValuesForLength(elts []ast.Expr, length int64) []ast.Expr {
+	values := orderedArrayLiteralValues(elts)
+	for int64(len(values)) < length {
+		values = append(values, nil)
+	}
+	return values
+}
+
+func fixedArrayLiteralLength(lit *ast.CompositeLit, arrayType *ast.ArrayType) (int64, bool) {
+	typeInfo := GetTypeInfo()
+	if typeInfo != nil {
+		if typ := typeInfo.GetType(lit); typ != nil {
+			if array, ok := types.Unalias(typ).Underlying().(*types.Array); ok {
+				return array.Len(), true
+			}
+		}
+	}
+	if arrayType != nil && arrayType.Len != nil {
+		return arrayLiteralIndex(arrayType.Len)
+	}
+	return 0, false
 }
 
 func typesStructLiteralName(typ types.Type, structUnder *types.Struct) string {
@@ -1785,6 +1937,36 @@ func rustPackageSelectorName(sel *ast.SelectorExpr) string {
 		return rustPackageGlobalName(sel.Sel.Name)
 	}
 	return ToSnakeCase(sel.Sel.Name)
+}
+
+func writePackageGlobalSelectorMethodReceiver(out *strings.Builder, receiver *ast.SelectorExpr, method *ast.SelectorExpr) (bool, bool) {
+	if !isPackageVarSelector(receiver) {
+		return false, false
+	}
+	typeInfo := GetTypeInfo()
+	needsMut := typeInfo != nil && typeInfo.HasPointerReceiver(method)
+	if typeInfo != nil && typeInfo.IsPointer(receiver) {
+		out.WriteString("{ let __recv_holder = ")
+		TranspileExpressionContext(out, receiver, LValue)
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap().clone(); let __result = (*__recv_holder")
+		WriteBorrowMethod(out, needsMut)
+		if needsMut {
+			out.WriteString(".as_mut().unwrap()).")
+		} else {
+			out.WriteString(".as_ref().unwrap()).")
+		}
+		return true, true
+	}
+	out.WriteString("(*")
+	TranspileExpressionContext(out, receiver, LValue)
+	WriteBorrowMethod(out, needsMut)
+	if needsMut {
+		out.WriteString(".as_mut().unwrap()).")
+	} else {
+		out.WriteString(".as_ref().unwrap()).")
+	}
+	return true, false
 }
 
 // TranspileExpressionContext transpiles an expression with context about how it's used
@@ -2571,6 +2753,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			if writeLenCapBinaryOperand(out, expr, other) {
 				return
 			}
+			if writeLenCapExpressionBinaryOperand(out, expr, other) {
+				return
+			}
 			if writeIntPeerForLenCapBinaryOperand(out, expr, other, needsUnwrap) {
 				return
 			}
@@ -2644,6 +2829,8 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				// Concrete stdlib value converted for comparison with stdlib interface.
 			} else if writeLenCapBinaryOperand(out, e.X, e.Y) {
 				// len/cap emitted as Go int representation for this binary expression.
+			} else if writeLenCapExpressionBinaryOperand(out, e.X, e.Y) {
+				// len/cap expression emitted as Go int representation for this binary expression.
 			} else if writeIntPeerForLenCapBinaryOperand(out, e.X, e.Y, false) {
 				// typed int peer emitted as Go int representation for this binary expression.
 			} else if lit, ok := e.X.(*ast.BasicLit); ok && writeCharLiteralForPeer(out, lit, e.Y) {
@@ -2668,6 +2855,8 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				// Concrete stdlib value converted for comparison with stdlib interface.
 			} else if writeLenCapBinaryOperand(out, e.Y, e.X) {
 				// len/cap emitted as Go int representation for this binary expression.
+			} else if writeLenCapExpressionBinaryOperand(out, e.Y, e.X) {
+				// len/cap expression emitted as Go int representation for this binary expression.
 			} else if writeIntPeerForLenCapBinaryOperand(out, e.Y, e.X, false) {
 				// typed int peer emitted as Go int representation for this binary expression.
 			} else if lit, ok := e.Y.(*ast.BasicLit); ok && writeCharLiteralForPeer(out, lit, e.X) {
@@ -2875,8 +3064,8 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 							if i > 0 {
 								out.WriteString(", ")
 							}
-							// Recursively transpile elements
-							if !writeOwnedExpressionValue(out, elt) {
+							// Recursively transpile elements.
+							if !writeArraySliceLiteralElementValue(out, elt, typ.Underlying().(*types.Slice).Elem()) {
 								TranspileExpression(out, elt)
 							}
 						}
@@ -2984,6 +3173,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 
 			// Wrap the entire array/slice in Arc<Mutex<Option<>>>
 			WriteWrapperPrefix(out)
+			elemType := compositeLiteralElementType(e)
 			if arrayType.Len != nil {
 				// Fixed-size array
 				out.WriteString("[")
@@ -2999,6 +3189,11 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				}
 			}
 			values := orderedArrayLiteralValues(e.Elts)
+			if arrayType.Len != nil {
+				if length, ok := fixedArrayLiteralLength(e, arrayType); ok {
+					values = orderedArrayLiteralValuesForLength(e.Elts, length)
+				}
+			}
 			for i, elt := range values {
 				if i > 0 {
 					out.WriteString(", ")
@@ -3035,7 +3230,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					out.WriteString(interfaceName)
 					out.WriteString(">")
 				} else {
-					if !writeOwnedExpressionValue(out, elt) {
+					if !writeArraySliceLiteralElementValue(out, elt, elemType) {
 						TranspileExpression(out, elt)
 					}
 				}
@@ -4029,12 +4224,22 @@ func pointerTypeConversionTarget(expr ast.Expr) (ast.Expr, bool) {
 	if !ok {
 		return nil, false
 	}
-	switch star.X.(type) {
+	switch target := star.X.(type) {
 	case *ast.SelectorExpr, *ast.StructType:
 		return star.X, true
+	case *ast.Ident:
+		if IsFunctionTypeAlias(target.Name) {
+			return target, true
+		}
+		if named, ok := namedTypeForTypeExpr(target); ok {
+			if _, ok := signatureFromType(named); ok {
+				return target, true
+			}
+		}
 	default:
 		return nil, false
 	}
+	return nil, false
 }
 
 func pointerTypeConversionTargetFromCall(call *ast.CallExpr) (ast.Expr, bool) {
@@ -4748,6 +4953,11 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 					out.WriteString(".")
 				}
 			}
+		} else if receiverSel, ok := sel.X.(*ast.SelectorExpr); ok && isPackageVarSelector(receiverSel) {
+			wrote, shouldClose := writePackageGlobalSelectorMethodReceiver(out, receiverSel, sel)
+			if wrote {
+				closeReceiverBlock = shouldClose
+			}
 		} else if fieldSel, ok := sel.X.(*ast.SelectorExpr); ok {
 			isBareSyncFieldMethodCall := false
 			typeInfo := GetTypeInfo()
@@ -5301,6 +5511,11 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 			} else if unary, isUnary := arg.(*ast.UnaryExpr); isUnary && unary.Op == token.AND {
 				// Address-of (&var) — produces a clone of the Rc, already wrapped
 				TranspileExpression(out, arg)
+			} else if isFunctionSignatureDerefExpression(arg) ||
+				(isPointerDerefExpression(arg) && (isFunctionSignatureTypeExpr(paramTypeForArg) || isFunctionSignatureType(expectedArgType))) {
+				// Dereferencing *FuncAlias yields the alias value, which is already
+				// represented by the generated wrapped closure handle.
+				TranspileExpression(out, arg)
 			} else {
 				// Not a simple identifier or function literal, wrap it
 				WriteWrapperPrefix(out)
@@ -5346,6 +5561,16 @@ func isFunctionValueSelector(sel *ast.SelectorExpr) bool {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil {
 		return false
+	}
+	if selection, ok := typeInfo.info.Selections[sel]; ok && selection.Kind() != types.FieldVal {
+		return false
+	}
+	if recvType := typeInfo.GetType(sel.X); recvType != nil {
+		if obj, _, _ := types.LookupFieldOrMethod(recvType, true, typeInfo.pkg, sel.Sel.Name); obj != nil {
+			if _, ok := obj.(*types.Func); ok {
+				return false
+			}
+		}
 	}
 	obj := typeInfo.GetObject(sel.Sel)
 	if _, ok := obj.(*types.Var); !ok {

@@ -26,6 +26,15 @@ type ProjectGenerator struct {
 	packageMapping           map[string]string   // Go import path -> Rust crate name
 	isVendorPackage          bool                // True if this is a vendor package (no go.mod required)
 	useSharedStdlibStubCrate bool                // True when transpiled packages share one stdlib stub crate
+	usePackageHelpers        bool                // True when helper definitions must be shared across generated modules
+}
+
+const packageHelperIncludeFile = "__go2rust_helpers.rs"
+
+type generatedRustModule struct {
+	name     string
+	path     string
+	rustCode string
 }
 
 func NewProjectGenerator(goFiles []string) *ProjectGenerator {
@@ -221,11 +230,13 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 	defer SetConcurrencyDetector(nil) // Clear when done
 
 	packageState := NewPackageState()
+	pg.usePackageHelpers = len(astFiles) > 1
 	runCtx := &TranspileContext{
 		Session:                 NewTranspileSession(pg.typeInfo, pg.packageMapping),
 		Package:                 packageState,
 		PackageMapping:          pg.packageMapping,
 		UsePackageExternalStubs: pg.useSharedStdlibStubCrate,
+		UsePackageHelpers:       pg.usePackageHelpers,
 	}
 	runCtx.Package.FunctionNameOverrides = assignPackageFunctionNames(astFiles)
 	SetTranspileContext(runCtx)
@@ -233,11 +244,14 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 	if packageImports != nil {
 		SetPackageImports(packageImports)
 	}
+	packageState.ImportedInterfaceImpls = collectImportedInterfaceImplsFromFiles(astFiles)
 
 	nonMainModuleNames := pg.nonMainModuleNames(astFilesByPath)
 
 	// Ensure we clean up TypeInfo when done
 	defer SetTypeInfo(nil)
+
+	var generatedModules []generatedRustModule
 
 	// First pass: transpile all files and detect structure
 	for i, filename := range pg.goFiles {
@@ -296,20 +310,15 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 			rustFilename = strings.TrimSuffix(filename, ".go") + "_.rs"
 		}
 
-		rustCode = prefixSiblingModuleImports(rustCode, outputName, nonMainModuleNames)
-		if pg.useSharedStdlibStubCrate {
-			rustCode = prefixSharedStdlibStubImport(rustCode)
-		}
 		if strings.Contains(rustCode, "__go_init_all") {
 			pg.initModuleNames = append(pg.initModuleNames, outputName)
 		}
 
-		// Write module file
-		err := os.WriteFile(rustFilename, []byte(rustCode), 0644)
-		if err != nil {
-			return fmt.Errorf("error writing %s: %v", rustFilename, err)
-		}
-
+		generatedModules = append(generatedModules, generatedRustModule{
+			name:     outputName,
+			path:     rustFilename,
+			rustCode: rustCode,
+		})
 		pg.moduleNames = append(pg.moduleNames, outputName)
 	}
 
@@ -336,14 +345,22 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 
 	// Second pass: generate main.rs or lib.rs with module declarations
 	if pg.hasMain {
-		err := pg.generateMainRs(fileSet, astFilesByPath)
+		err := pg.generateMainRs(fileSet, astFilesByPath, packageState)
 		if err != nil {
 			return err
 		}
 	} else if pg.isLibrary {
-		err := pg.generateLibRs()
+		err := pg.generateLibRs(packageState)
 		if err != nil {
 			return err
+		}
+	}
+
+	helpersNeeded := pg.packageHelpersNeeded(packageState)
+	for _, module := range generatedModules {
+		rustCode := pg.prefixModuleImports(module.rustCode, module.name, nonMainModuleNames, helpersNeeded)
+		if err := os.WriteFile(module.path, []byte(rustCode), 0644); err != nil {
+			return fmt.Errorf("error writing %s: %v", module.path, err)
 		}
 	}
 
@@ -354,6 +371,12 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 		}
 		states = append(states, packageState)
 		if err := WriteSharedStdlibStubCrate(pg.projectPath, states); err != nil {
+			return err
+		}
+	}
+
+	if helpersNeeded {
+		if err := pg.writePackageHelperFile(packageState); err != nil {
 			return err
 		}
 	}
@@ -425,6 +448,25 @@ func prefixSiblingModuleImports(rustCode, selfModule string, moduleNames []strin
 	return imports.String()
 }
 
+func prefixPackageHelperImports(rustCode string) string {
+	return "use crate::*;\n\n" + rustCode
+}
+
+func (pg *ProjectGenerator) prefixModuleImports(rustCode, selfModule string, moduleNames []string, helpersNeeded bool) string {
+	rustCode = prefixSiblingModuleImports(rustCode, selfModule, moduleNames)
+	if helpersNeeded {
+		rustCode = prefixPackageHelperImports(rustCode)
+	}
+	if pg.useSharedStdlibStubCrate {
+		rustCode = prefixSharedStdlibStubImport(rustCode)
+	}
+	return rustCode
+}
+
+func (pg *ProjectGenerator) packageHelpersNeeded(packageState *PackageState) bool {
+	return pg.usePackageHelpers && packageState != nil && packageState.Helpers.HasAny()
+}
+
 func (pg *ProjectGenerator) hasMainFile() bool {
 	for _, file := range pg.goFiles {
 		if filepath.Base(file) == "main.go" {
@@ -434,7 +476,7 @@ func (pg *ProjectGenerator) hasMainFile() bool {
 	return false
 }
 
-func (pg *ProjectGenerator) generateMainRs(fileSet *token.FileSet, astFilesByPath map[string]*ast.File) error {
+func (pg *ProjectGenerator) generateMainRs(fileSet *token.FileSet, astFilesByPath map[string]*ast.File, packageState *PackageState) error {
 	var (
 		mainGoFile *ast.File
 		mainPath   string
@@ -452,21 +494,6 @@ func (pg *ProjectGenerator) generateMainRs(fileSet *token.FileSet, astFilesByPat
 	}
 
 	file := mainGoFile
-
-	var mainRust strings.Builder
-
-	if pg.useSharedStdlibStubCrate {
-		mainRust.WriteString(fmt.Sprintf("use %s::*;\n", sharedStdlibStubCrateName))
-	}
-	for _, modName := range pg.moduleNames {
-		mainRust.WriteString(fmt.Sprintf("mod %s;\n", modName))
-	}
-	if len(pg.moduleNames) > 0 {
-		for _, modName := range pg.moduleNames {
-			mainRust.WriteString(fmt.Sprintf("use %s::*;\n", modName))
-		}
-		mainRust.WriteString("\n")
-	}
 
 	var mainContent string
 	var mainImports *ImportTracker
@@ -497,6 +524,22 @@ func (pg *ProjectGenerator) generateMainRs(fileSet *token.FileSet, astFilesByPat
 
 	mainContent = injectModuleInitCalls(mainContent, pg.initModuleNames)
 
+	var mainRust strings.Builder
+	if pg.packageHelpersNeeded(packageState) {
+		mainRust.WriteString(fmt.Sprintf("include!(\"%s\");\n", packageHelperIncludeFile))
+	}
+	if pg.useSharedStdlibStubCrate {
+		mainRust.WriteString(fmt.Sprintf("use %s::*;\n", sharedStdlibStubCrateName))
+	}
+	for _, modName := range pg.moduleNames {
+		mainRust.WriteString(fmt.Sprintf("mod %s;\n", modName))
+	}
+	if len(pg.moduleNames) > 0 {
+		for _, modName := range pg.moduleNames {
+			mainRust.WriteString(fmt.Sprintf("use %s::*;\n", modName))
+		}
+		mainRust.WriteString("\n")
+	}
 	mainRust.WriteString(mainContent)
 
 	mainRsPath := filepath.Join(pg.projectPath, "main.rs")
@@ -626,9 +669,12 @@ func normalizeFilePath(path string) string {
 	return filepath.Clean(absPath)
 }
 
-func (pg *ProjectGenerator) generateLibRs() error {
+func (pg *ProjectGenerator) generateLibRs(packageState *PackageState) error {
 	var libRust strings.Builder
 
+	if pg.packageHelpersNeeded(packageState) {
+		libRust.WriteString(fmt.Sprintf("include!(\"%s\");\n", packageHelperIncludeFile))
+	}
 	if pg.useSharedStdlibStubCrate {
 		libRust.WriteString(fmt.Sprintf("pub use %s::*;\n", sharedStdlibStubCrateName))
 	}
@@ -646,4 +692,13 @@ func (pg *ProjectGenerator) generateLibRs() error {
 
 	libRsPath := filepath.Join(pg.projectPath, "lib.rs")
 	return os.WriteFile(libRsPath, []byte(libRust.String()), 0644)
+}
+
+func (pg *ProjectGenerator) writePackageHelperFile(packageState *PackageState) error {
+	helpers := ""
+	if packageState != nil && packageState.Helpers != nil {
+		helpers = packageState.Helpers.GenerateHelperModule()
+	}
+	helperPath := filepath.Join(pg.projectPath, packageHelperIncludeFile)
+	return os.WriteFile(helperPath, []byte(helpers), 0644)
 }

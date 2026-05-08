@@ -20,8 +20,18 @@ pub fn last_index(values: Rc<RefCell<Option<Vec<i32>>>>) -> Rc<RefCell<Option<i3
     return Rc::new(RefCell::new(Some(((*values.borrow().as_ref().unwrap()).len() as i32) - (1 as i32))));
 }
 
+pub fn within_double(values: Rc<RefCell<Option<Vec<i32>>>>, i: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<bool>>> {
+
+    return {
+            let __tmp_x = ((*i.borrow().as_ref().unwrap()) as i32);
+            let __tmp_y = ((*values.borrow().as_ref().unwrap()).len() as i32) + ((*values.borrow().as_ref().unwrap()).len() as i32);
+            Rc::new(RefCell::new(Some(__tmp_x < __tmp_y)))
+        };
+}
+
 fn main() {
     let mut values = Rc::new(RefCell::new(Some(vec![1, 2, 3])));
     println!("{}", (*consumed_all(values.clone()).borrow().as_ref().unwrap()));
     println!("{}", (*last_index(values.clone()).borrow().as_ref().unwrap()));
+    println!("{}", (*within_double(values.clone(), Rc::new(RefCell::new(Some(4)))).borrow().as_ref().unwrap()));
 }

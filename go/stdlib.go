@@ -311,7 +311,7 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 			}
 			out.WriteString(")")
 			return
-		} else if typeInfo.IsSlice(arg) {
+		} else if typeInfo.IsSlice(arg) || typeInfo.IsArray(arg) {
 			// Check if it's a slice of interface{}
 			elemType := typeInfo.GetSliceElemType(arg)
 			if elemType != nil {
@@ -2614,6 +2614,7 @@ func transpileImag(out *strings.Builder, call *ast.CallExpr) {
 
 // Helper function to format maps like Go does
 func generateMapFormatter(out *strings.Builder) {
+	TrackImport("BTreeMap")
 	TrackImport("Display")
 	TrackImport("Ord")
 
@@ -2682,16 +2683,18 @@ where
 
 // Helper function to format slices like Go does
 func generateSliceFormatter(out *strings.Builder) {
+	TrackImport("Display")
 	if NeedsConcurrentWrapper() {
 		TrackImport("Arc")
 		TrackImport("Mutex")
-		out.WriteString(`fn format_slice<T>(slice: &Arc<Mutex<Option<Vec<T>>>>) -> String 
+		out.WriteString(`fn format_slice<T, C>(slice: &Arc<Mutex<Option<C>>>) -> String
 where
+    C: AsRef<[T]>,
     T: Display,
 {
     let guard = slice.lock().unwrap();
     if let Some(ref s) = *guard {
-        let formatted: Vec<String> = s.iter().map(|v| v.to_string()).collect();
+        let formatted: Vec<String> = s.as_ref().iter().map(|v| v.to_string()).collect();
         format!("[{}]", formatted.join(" "))
     } else {
         "[]".to_string()
@@ -2709,13 +2712,14 @@ where
 	} else {
 		TrackImport("Rc")
 		TrackImport("RefCell")
-		out.WriteString(`fn format_slice<T>(slice: &Rc<RefCell<Option<Vec<T>>>>) -> String 
+		out.WriteString(`fn format_slice<T, C>(slice: &Rc<RefCell<Option<C>>>) -> String
 where
+    C: AsRef<[T]>,
     T: Display,
 {
     let guard = slice.borrow();
     if let Some(ref s) = *guard {
-        let formatted: Vec<String> = s.iter().map(|v| v.to_string()).collect();
+        let formatted: Vec<String> = s.as_ref().iter().map(|v| v.to_string()).collect();
         format!("[{}]", formatted.join(" "))
     } else {
         "[]".to_string()

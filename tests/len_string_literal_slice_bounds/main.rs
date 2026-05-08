@@ -3,7 +3,7 @@ use std::rc::{Rc};
 
 pub fn trim_parens(s: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>> {
 
-    return Rc::new(RefCell::new(Some({ let __s = (*s.borrow().as_ref().unwrap()).clone(); __s[("(".len()) as usize..((*s.borrow().as_ref().unwrap()).len() - ")".len()) as usize].to_string() })));
+    return Rc::new(RefCell::new(Some({ let __s = (*s.borrow().as_ref().unwrap()).clone(); __s[("(".len()) as usize..(((*s.borrow().as_ref().unwrap()).len() as i32) - (")".len() as i32)) as usize].to_string() })));
 }
 
 fn main() {

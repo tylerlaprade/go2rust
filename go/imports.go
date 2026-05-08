@@ -260,6 +260,64 @@ func (ht *HelperTracker) GenerateHelpers() string {
 	return result.String()
 }
 
+func (ht *HelperTracker) HasAny() bool {
+	return ht != nil && (ht.needsFormatMap ||
+		ht.needsFormatSlice ||
+		ht.needsFormatAny ||
+		ht.needsFormatAnySlice ||
+		ht.needsGoChannel ||
+		ht.needsWaitGroup ||
+		ht.needsGoMutex ||
+		ht.needsGoOnce ||
+		ht.needsGoTypeName ||
+		ht.needsBase64 ||
+		ht.needsSha256 ||
+		ht.needsHexFormat ||
+		ht.needsStrconvFormat ||
+		ht.needsUrl ||
+		ht.needsRegexp ||
+		ht.needsJsonEscape ||
+		ht.needsOsFile ||
+		ht.needsSliceElemPtr ||
+		ht.needsGoTime ||
+		ht.needsGoTimer ||
+		ht.needsGoAfter ||
+		ht.needsGoTicker ||
+		ht.needsGoTick ||
+		ht.needsGoContext ||
+		ht.needsGoRand ||
+		ht.needsReflect ||
+		ht.needsGoHttpResponse ||
+		ht.needsGoPtrKey)
+}
+
+func (ht *HelperTracker) GenerateHelperModule() string {
+	if ht == nil {
+		return ""
+	}
+
+	imports := NewImportTracker()
+	helperCopy := *ht
+	fileState := NewFileState(imports, &helperCopy, nil)
+	parentCtx := GetTranspileContext()
+	SetTranspileContext(&TranspileContext{
+		File:    fileState,
+		Imports: imports,
+		Helpers: &helperCopy,
+	})
+	helpersStr := helperCopy.GenerateHelpers()
+	SetTranspileContext(parentCtx)
+
+	var output strings.Builder
+	importsStr := imports.GenerateImports()
+	output.WriteString(importsStr)
+	if importsStr != "" && helpersStr != "" {
+		output.WriteString("\n")
+	}
+	output.WriteString(helpersStr)
+	return output.String()
+}
+
 func generateGoPtrKeyHelper(out *strings.Builder, name string) {
 	if NeedsConcurrentWrapper() {
 		out.WriteString(`
@@ -1396,6 +1454,14 @@ impl GoTime {
             self.seconds * 1_000_000_000 + self.nanos as i64,
         )))
     }
+
+    fn is_zero(&self) -> Arc<Mutex<Option<bool>>> {
+        Arc::new(Mutex::new(Some(self.seconds == 0 && self.nanos == 0)))
+    }
+
+    fn format(&self, _layout: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<String>>> {
+        Arc::new(Mutex::new(Some(self.to_string())))
+    }
 }
 `)
 	} else {
@@ -1422,6 +1488,14 @@ impl GoTime {
         Rc::new(RefCell::new(Some(
             self.seconds * 1_000_000_000 + self.nanos as i64,
         )))
+    }
+
+    fn is_zero(&self) -> Rc<RefCell<Option<bool>>> {
+        Rc::new(RefCell::new(Some(self.seconds == 0 && self.nanos == 0)))
+    }
+
+    fn format(&self, _layout: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>> {
+        Rc::new(RefCell::new(Some(self.to_string())))
     }
 }
 `)

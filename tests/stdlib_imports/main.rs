@@ -3,13 +3,14 @@ use std::error::Error as StdError;
 use std::fmt::{Display};
 use std::rc::{Rc};
 
-fn format_slice<T>(slice: &Rc<RefCell<Option<Vec<T>>>>) -> String 
+fn format_slice<T, C>(slice: &Rc<RefCell<Option<C>>>) -> String
 where
+    C: AsRef<[T]>,
     T: Display,
 {
     let guard = slice.borrow();
     if let Some(ref s) = *guard {
-        let formatted: Vec<String> = s.iter().map(|v| v.to_string()).collect();
+        let formatted: Vec<String> = s.as_ref().iter().map(|v| v.to_string()).collect();
         format!("[{}]", formatted.join(" "))
     } else {
         "[]".to_string()
@@ -132,6 +133,14 @@ impl GoTime {
         Rc::new(RefCell::new(Some(
             self.seconds * 1_000_000_000 + self.nanos as i64,
         )))
+    }
+
+    fn is_zero(&self) -> Rc<RefCell<Option<bool>>> {
+        Rc::new(RefCell::new(Some(self.seconds == 0 && self.nanos == 0)))
+    }
+
+    fn format(&self, _layout: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>> {
+        Rc::new(RefCell::new(Some(self.to_string())))
     }
 }
 

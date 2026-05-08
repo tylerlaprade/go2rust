@@ -4,13 +4,14 @@ use std::cell::{RefCell};
 use std::fmt::{Display};
 use std::rc::{Rc};
 
-fn format_slice<T>(slice: &Rc<RefCell<Option<Vec<T>>>>) -> String 
+fn format_slice<T, C>(slice: &Rc<RefCell<Option<C>>>) -> String
 where
+    C: AsRef<[T]>,
     T: Display,
 {
     let guard = slice.borrow();
     if let Some(ref s) = *guard {
-        let formatted: Vec<String> = s.iter().map(|v| v.to_string()).collect();
+        let formatted: Vec<String> = s.as_ref().iter().map(|v| v.to_string()).collect();
         format!("[{}]", formatted.join(" "))
     } else {
         "[]".to_string()
@@ -254,17 +255,17 @@ fn main() {
     type MyInt = Rc<RefCell<Option<i32>>>;
     type MyString = Rc<RefCell<Option<String>>>;
 
-    let mut mi: Rc<RefCell<Option<MyInt>>> = Rc::new(RefCell::new(Some(42)));
+    let mut mi: MyInt = Rc::new(RefCell::new(Some(42)));
     let mut regularInt: Rc<RefCell<Option<i32>>> = Rc::new(RefCell::new(Some((*mi.borrow().as_ref().unwrap()) as i32)));
-    let mut backToMyInt: Rc<RefCell<Option<MyInt>>> = (*regularInt.borrow().as_ref().unwrap());
+    let mut backToMyInt: MyInt = (*regularInt.borrow().as_ref().unwrap());
 
     print!("MyInt: {}\n", { let __v = (*mi.borrow().as_ref().unwrap()).clone(); __v });
     print!("regular int: {}\n", { let __v = (*regularInt.borrow().as_ref().unwrap()).clone(); __v });
     print!("back to MyInt: {}\n", { let __v = (*backToMyInt.borrow().as_ref().unwrap()).clone(); __v });
 
-    let mut ms: Rc<RefCell<Option<MyString>>> = Rc::new(RefCell::new(Some("hello".to_string())));
+    let mut ms: MyString = Rc::new(RefCell::new(Some("hello".to_string())));
     let mut regularString: Rc<RefCell<Option<String>>> = Rc::new(RefCell::new(Some((*ms.borrow().as_ref().unwrap()).to_string())));
-    let mut backToMyString: Rc<RefCell<Option<MyString>>> = (*regularString.borrow().as_ref().unwrap());
+    let mut backToMyString: MyString = (*regularString.borrow().as_ref().unwrap());
 
     print!("MyString: {}\n", { let __v = (*ms.borrow().as_ref().unwrap()).clone(); __v });
     print!("regular string: {}\n", { let __v = (*regularString.borrow().as_ref().unwrap()).clone(); __v });

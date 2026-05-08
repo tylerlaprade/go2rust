@@ -147,6 +147,9 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Method calls, including receiver self-calls | ✅ |
 | └ Wrapped call results passed as method/function arguments | ✅ |
 | └ Function-valued struct field calls | ✅ |
+| └ Method selectors returning function values stay method calls | ✅ |
+| └ Named function type conversions | ✅ |
+| └ Function type aliases with imported interface parameters | ✅ |
 | └ Function literals/closures with scoped nested captures | ✅ |
 | └ Function variables and higher-order function values | ✅ |
 | └ Instantiated generic function type aliases | ✅ |
@@ -216,8 +219,10 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Package-level named slice declarations | ✅ |
 | └ Package-level pointer globals initialized from constructor calls | ✅ |
 | └ Exported package globals from transpiled dependency crates keep their Go names and public visibility | ✅ |
+| └ Method calls on exported pointer globals from transpiled dependency crates | ✅ |
 | └ Init functions | ✅ |
 | └ Multi-file packages with cross-file types, methods, maps, slices, and function variables | 🚧 |
+| └ Package-scoped generated helpers for multi-file stdlib/time/context types | ✅ |
 | └ Workspace-wide wrapper selection for transpiled external packages | ✅ |
 | **`range` - Range clauses** | |
 | └ Array/slice range, including nil slices | ✅ |
@@ -268,8 +273,10 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Blank identifier (_) | ✅ |
 | **Arrays & Slices** | |
 | └ Fixed arrays | ✅ |
+| └ Fixed array literals with omitted trailing zero values | ✅ |
 | └ Fixed array zero values above Rust's built-in `Default` array sizes | ✅ |
 | └ Slices | ✅ |
+| └ Array/slice literal elements from wrapped call results | ✅ |
 | └ Slice operations | ✅ |
 | └ Parallel slice element swaps | ✅ |
 | └ Parallel slice-expression assignments into wrapped fields | ✅ |

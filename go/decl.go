@@ -147,6 +147,19 @@ func structHasTraitField(structType *ast.StructType) bool {
 	return false
 }
 
+func structCanDeriveDebug(structType *ast.StructType) bool {
+	return structCanDeriveDebugSeen(structType, make(map[string]bool))
+}
+
+func structCanDeriveDebugSeen(structType *ast.StructType, seen map[string]bool) bool {
+	for _, field := range structType.Fields.List {
+		if !typeCanDeriveDebug(field.Type, seen) {
+			return false
+		}
+	}
+	return true
+}
+
 func structNeedsCustomDefault(structType *ast.StructType) bool {
 	for _, field := range structType.Fields.List {
 		if structFieldNeedsCustomDefault(field.Type) {
@@ -170,6 +183,7 @@ func structFieldNeedsCustomDefault(expr ast.Expr) bool {
 
 func writeStructDerive(out *strings.Builder, structName string, structType *ast.StructType) {
 	hasTraitField := structHasTraitField(structType)
+	canDeriveDebug := !hasTraitField && structCanDeriveDebug(structType)
 	needsCustomDefault := structNeedsCustomDefault(structType)
 	needsPartialEq := !hasTraitField && structName != "" && comparableStructTypes[structName]
 	if hasTraitField {
@@ -181,15 +195,31 @@ func writeStructDerive(out *strings.Builder, structName string, structType *ast.
 	} else {
 		if needsCustomDefault {
 			if needsPartialEq {
-				out.WriteString("#[derive(Debug, Clone, PartialEq)]\n")
+				if canDeriveDebug {
+					out.WriteString("#[derive(Debug, Clone, PartialEq)]\n")
+				} else {
+					out.WriteString("#[derive(Clone, PartialEq)]\n")
+				}
 			} else {
-				out.WriteString("#[derive(Debug, Clone)]\n")
+				if canDeriveDebug {
+					out.WriteString("#[derive(Debug, Clone)]\n")
+				} else {
+					out.WriteString("#[derive(Clone)]\n")
+				}
 			}
 		} else {
 			if needsPartialEq {
-				out.WriteString("#[derive(Debug, Clone, Default, PartialEq)]\n")
+				if canDeriveDebug {
+					out.WriteString("#[derive(Debug, Clone, Default, PartialEq)]\n")
+				} else {
+					out.WriteString("#[derive(Clone, Default, PartialEq)]\n")
+				}
 			} else {
-				out.WriteString("#[derive(Debug, Clone, Default)]\n")
+				if canDeriveDebug {
+					out.WriteString("#[derive(Debug, Clone, Default)]\n")
+				} else {
+					out.WriteString("#[derive(Clone, Default)]\n")
+				}
 			}
 		}
 	}
@@ -260,6 +290,87 @@ func generateStructDefault(out *strings.Builder, structName string, structType *
 
 func typeHasTraitField(expr ast.Expr) bool {
 	return typeHasTraitFieldSeen(expr, make(map[string]bool))
+}
+
+func typeCanDeriveDebug(expr ast.Expr, seen map[string]bool) bool {
+	fieldType := goTypeToRustBase(expr)
+	if strings.Contains(fieldType, "dyn ") {
+		return false
+	}
+
+	if typeInfo := GetTypeInfo(); typeInfo != nil {
+		if typ := typeInfo.GetType(expr); typ != nil && typeReferencesExternalNamedType(typ) {
+			return false
+		}
+	}
+
+	switch t := expr.(type) {
+	case *ast.ArrayType:
+		return typeCanDeriveDebug(t.Elt, seen)
+	case *ast.MapType:
+		return typeCanDeriveDebug(t.Key, seen) && typeCanDeriveDebug(t.Value, seen)
+	case *ast.StarExpr:
+		return typeCanDeriveDebug(t.X, seen)
+	case *ast.StructType:
+		return structCanDeriveDebug(t)
+	case *ast.FuncType, *ast.InterfaceType:
+		return false
+	case *ast.Ident:
+		if seen[t.Name] {
+			return true
+		}
+		if def, ok := structDefs[t.Name]; ok && def.ASTType != nil {
+			seen[t.Name] = true
+			return structCanDeriveDebugSeen(def.ASTType, seen)
+		}
+	case *ast.SelectorExpr:
+		if ident, ok := t.X.(*ast.Ident); ok {
+			return goPackageImports[ident.Name] == "" || isStdlibPackage(goPackageImports[ident.Name])
+		}
+	}
+	return true
+}
+
+func typeReferencesExternalNamedType(typ types.Type) bool {
+	return typeReferencesExternalNamedTypeSeen(types.Unalias(typ), make(map[types.Type]bool))
+}
+
+func typeReferencesExternalNamedTypeSeen(typ types.Type, seen map[types.Type]bool) bool {
+	if typ == nil {
+		return false
+	}
+	typ = types.Unalias(typ)
+	if seen[typ] {
+		return false
+	}
+	seen[typ] = true
+
+	switch t := typ.(type) {
+	case *types.Named:
+		if t.Obj() != nil && t.Obj().Pkg() != nil {
+			if typeInfo := GetTypeInfo(); typeInfo == nil || typeInfo.pkg == nil || t.Obj().Pkg() != typeInfo.pkg {
+				if !isStdlibPackage(t.Obj().Pkg().Path()) {
+					return true
+				}
+			}
+		}
+		return typeReferencesExternalNamedTypeSeen(t.Underlying(), seen)
+	case *types.Array:
+		return typeReferencesExternalNamedTypeSeen(t.Elem(), seen)
+	case *types.Slice:
+		return typeReferencesExternalNamedTypeSeen(t.Elem(), seen)
+	case *types.Map:
+		return typeReferencesExternalNamedTypeSeen(t.Key(), seen) || typeReferencesExternalNamedTypeSeen(t.Elem(), seen)
+	case *types.Pointer:
+		return typeReferencesExternalNamedTypeSeen(t.Elem(), seen)
+	case *types.Struct:
+		for i := 0; i < t.NumFields(); i++ {
+			if typeReferencesExternalNamedTypeSeen(t.Field(i).Type(), seen) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func mapFieldNeedsOpaqueDisplay(expr ast.Expr) bool {
@@ -403,15 +514,7 @@ func interfaceParamVarInfo(typeExpr ast.Expr) (*VarInfo, bool) {
 	}, true
 }
 
-func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.FileSet, comments []*ast.CommentGroup) {
-	// Check if this is a method (has receiver)
-	if fn.Recv != nil && len(fn.Recv.List) > 0 {
-		// Methods will be collected and generated in impl blocks
-		// For now, skip them here
-		return
-	}
-
-	// Register the function signature for later use
+func registerFunctionSignatureDecl(fn *ast.FuncDecl) {
 	var params []*ast.Field
 	if fn.Type.Params != nil {
 		params = fn.Type.Params.List
@@ -424,6 +527,18 @@ func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.Fi
 		Params:  params,
 		Results: results,
 	})
+}
+
+func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.FileSet, comments []*ast.CommentGroup) {
+	// Check if this is a method (has receiver)
+	if fn.Recv != nil && len(fn.Recv.List) > 0 {
+		// Methods will be collected and generated in impl blocks
+		// For now, skip them here
+		return
+	}
+
+	// Register the function signature for later use
+	registerFunctionSignatureDecl(fn)
 
 	// Regular function
 	if fn.Name.Name != "main" {
@@ -701,6 +816,18 @@ func typeDefinitionUnderlyingName(expr ast.Expr) string {
 	}
 }
 
+func functionTypeSpecRustType(typeSpec *ast.TypeSpec, fallback *ast.FuncType) string {
+	typeInfo := GetTypeInfo()
+	if typeInfo != nil && typeInfo.info != nil {
+		if obj, ok := typeInfo.info.Defs[typeSpec.Name].(*types.TypeName); ok {
+			if _, ok := signatureFromType(obj.Type()); ok {
+				return goTypesTypeToRustWrapped(obj.Type())
+			}
+		}
+	}
+	return GoTypeToRust(fallback)
+}
+
 func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *ast.GenDecl) {
 	rustTypeName := RustTypeNameForUse(typeSpec.Name.Name)
 	switch t := typeSpec.Type.(type) {
@@ -847,22 +974,30 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 			out.WriteString("pub type ")
 			out.WriteString(rustTypeName)
 			out.WriteString(" = ")
-			out.WriteString(GoTypeToRust(t))
+			if funcType, ok := t.(*ast.FuncType); ok {
+				out.WriteString(functionTypeSpecRustType(typeSpec, funcType))
+			} else {
+				out.WriteString(GoTypeToRust(t))
+			}
 			out.WriteString(";\n")
 
 			// Track this as a type alias
 			RegisterTypeAlias(typeSpec.Name.Name)
+			if _, isFuncType := t.(*ast.FuncType); isFuncType {
+				RegisterFunctionTypeAlias(typeSpec.Name.Name)
+			}
 		} else if _, isFuncType := t.(*ast.FuncType); isFuncType {
 			// Named function type: type BinaryOp func(int, int) int
 			// Emit as a type alias to the callable shape, not a newtype struct
 			out.WriteString("pub type ")
 			out.WriteString(rustTypeName)
 			out.WriteString(" = ")
-			out.WriteString(GoTypeToRust(t))
+			out.WriteString(functionTypeSpecRustType(typeSpec, t.(*ast.FuncType)))
 			out.WriteString(";\n")
 
 			// Track as a type alias so GoTypeToRust won't double-wrap
 			RegisterTypeAlias(typeSpec.Name.Name)
+			RegisterFunctionTypeAlias(typeSpec.Name.Name)
 		} else {
 			// Type definition: type A B
 			// Create a newtype wrapper in Rust
@@ -967,6 +1102,7 @@ func localConcreteTypeCanUsePartialEq(typeName string) bool {
 }
 
 func writeLocalInterfaceSupportImpl(out *strings.Builder, ifaceName, typeName string) {
+	TrackImport("Any")
 	out.WriteString("    fn __go_clone_box(&self) -> ")
 	out.WriteString(rustLocalInterfaceTraitObject(ifaceName))
 	out.WriteString(" {\n")

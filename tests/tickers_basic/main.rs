@@ -208,6 +208,14 @@ impl GoTime {
             self.seconds * 1_000_000_000 + self.nanos as i64,
         )))
     }
+
+    fn is_zero(&self) -> Arc<Mutex<Option<bool>>> {
+        Arc::new(Mutex::new(Some(self.seconds == 0 && self.nanos == 0)))
+    }
+
+    fn format(&self, _layout: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<String>>> {
+        Arc::new(Mutex::new(Some(self.to_string())))
+    }
 }
 
 impl std::fmt::Display for GoTime {

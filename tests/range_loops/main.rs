@@ -174,9 +174,9 @@ fn main() {
         // Range over array
     println!("{}", "\n=== Range over array ===".to_string());
     let mut arr = Arc::new(Mutex::new(Some(["apple".to_string(), "banana".to_string(), "cherry".to_string(), "date".to_string()])));
-    for (i, fruit) in { let __v = (*arr.lock().unwrap().as_ref().unwrap()).clone(); __v }.iter().enumerate() {
+    { let __range_holder = arr.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for (i, fruit) in __range_values.iter().enumerate() {
         print!("{}: {}\n", i, fruit);
-    }
+    } }
 
         // Range over string
     println!("{}", "\n=== Range over string ===".to_string());

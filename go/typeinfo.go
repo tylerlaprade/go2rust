@@ -272,6 +272,22 @@ func (ti *TypeInfo) GetSliceElemType(expr ast.Expr) types.Type {
 	return nil
 }
 
+// GetArrayOrSliceElemType returns the element type of an array or slice.
+func (ti *TypeInfo) GetArrayOrSliceElemType(expr ast.Expr) types.Type {
+	typ := ti.GetType(expr)
+	if typ == nil {
+		return nil
+	}
+	switch t := typ.Underlying().(type) {
+	case *types.Slice:
+		return t.Elem()
+	case *types.Array:
+		return t.Elem()
+	default:
+		return nil
+	}
+}
+
 // GetMapValueType returns the value type of a map, or nil if not a map
 func (ti *TypeInfo) GetMapValueType(expr ast.Expr) types.Type {
 	typ := ti.GetType(expr)
@@ -477,6 +493,10 @@ func (ti *TypeInfo) IsTypeConversion(call *ast.CallExpr) bool {
 			}
 		}
 		return false
+	}
+
+	if tv, ok := ti.info.Types[call.Fun]; ok && tv.IsType() {
+		return true
 	}
 
 	// Check if the function is actually a type

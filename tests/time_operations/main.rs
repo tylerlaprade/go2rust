@@ -63,6 +63,14 @@ impl GoTime {
             self.seconds * 1_000_000_000 + self.nanos as i64,
         )))
     }
+
+    fn is_zero(&self) -> Rc<RefCell<Option<bool>>> {
+        Rc::new(RefCell::new(Some(self.seconds == 0 && self.nanos == 0)))
+    }
+
+    fn format(&self, _layout: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>> {
+        Rc::new(RefCell::new(Some(self.to_string())))
+    }
 }
 
 impl std::fmt::Display for GoTime {

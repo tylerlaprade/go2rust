@@ -54,6 +54,9 @@ var typeDefinitions = make(map[string]string) // maps type name to underlying ty
 // typeAliases tracks which types are type aliases
 var typeAliases = make(map[string]bool)
 
+// functionTypeAliases tracks named Go function types that are emitted as Rust aliases.
+var functionTypeAliases = make(map[string]bool)
+
 // comparableStructTypes tracks named structs that appear in == or != expressions.
 var comparableStructTypes = make(map[string]bool)
 
@@ -270,6 +273,13 @@ func currentPackageConcreteTypeName(typ types.Type) (string, bool) {
 }
 
 func collectImportedInterfaceImpls(file *ast.File) map[string]map[string]*types.Interface {
+	if file == nil {
+		return nil
+	}
+	return collectImportedInterfaceImplsFromFiles([]*ast.File{file})
+}
+
+func collectImportedInterfaceImplsFromFiles(files []*ast.File) map[string]map[string]*types.Interface {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil || typeInfo.info == nil {
 		return nil
@@ -296,20 +306,29 @@ func collectImportedInterfaceImpls(file *ast.File) map[string]map[string]*types.
 		}
 		impls[typeName][ifaceName] = ifaceType
 	}
-	ast.Inspect(file, func(n ast.Node) bool {
-		call, ok := n.(*ast.CallExpr)
-		if !ok {
-			return true
-		}
-		for i, arg := range call.Args {
-			record(callParamTypeFromTypeInfo(call, i), arg)
-			if sel, ok := call.Fun.(*ast.SelectorExpr); ok {
-				record(selectedMethodParamType(sel, i), arg)
+	for _, file := range files {
+		ast.Inspect(file, func(n ast.Node) bool {
+			call, ok := n.(*ast.CallExpr)
+			if !ok {
+				return true
 			}
-		}
-		return true
-	})
+			for i, arg := range call.Args {
+				record(callParamTypeFromTypeInfo(call, i), arg)
+				if sel, ok := call.Fun.(*ast.SelectorExpr); ok {
+					record(selectedMethodParamType(sel, i), arg)
+				}
+			}
+			return true
+		})
+	}
 	return impls
+}
+
+func importedInterfaceImplsForFile(file *ast.File) map[string]map[string]*types.Interface {
+	if ctx := GetTranspileContext(); ctx != nil && ctx.Package != nil && len(ctx.Package.ImportedInterfaceImpls) > 0 {
+		return ctx.Package.ImportedInterfaceImpls
+	}
+	return collectImportedInterfaceImpls(file)
 }
 
 func typeMethodsImplementTypesInterface(typeMethods []*ast.FuncDecl, iface *types.Interface) bool {
@@ -667,6 +686,7 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 	}
 	if parentCtx != nil {
 		ctx.UsePackageExternalStubs = parentCtx.UsePackageExternalStubs
+		ctx.UsePackageHelpers = parentCtx.UsePackageHelpers
 	}
 	SetTranspileContext(ctx)
 	defer SetTranspileContext(parentCtx)
@@ -744,8 +764,12 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 						}{typeSpec, d})
 						if typeSpec.Assign != 0 {
 							RegisterTypeAlias(typeSpec.Name.Name)
+							if _, isFuncType := typeSpec.Type.(*ast.FuncType); isFuncType {
+								RegisterFunctionTypeAlias(typeSpec.Name.Name)
+							}
 						} else if _, isFuncType := typeSpec.Type.(*ast.FuncType); isFuncType {
 							RegisterTypeAlias(typeSpec.Name.Name)
+							RegisterFunctionTypeAlias(typeSpec.Name.Name)
 						} else {
 							_, isStruct := typeSpec.Type.(*ast.StructType)
 							_, isInterface := typeSpec.Type.(*ast.InterfaceType)
@@ -770,6 +794,9 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 	if len(globalVars) > 0 {
 		hasInitFunction = true
 	}
+	for _, fn := range functions {
+		registerFunctionSignatureDecl(fn)
+	}
 	functionNames := assignFunctionNames(functions)
 	SetFunctionNameOverrides(functionNames)
 	defer SetFunctionNameOverrides(nil)
@@ -793,7 +820,7 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 		}
 	}
 	markComparableInterfaceImplementorStructs(types, methods, interfaces)
-	importedInterfaceImpls := collectImportedInterfaceImpls(file)
+	importedInterfaceImpls := importedInterfaceImplsForFile(file)
 	for _, t := range types {
 		if !first {
 			body.WriteString("\n\n")
@@ -1059,11 +1086,12 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 
 	// Now build the final output with only needed imports
 	var output strings.Builder
-	output.WriteString(imports.GenerateImports())
-	if imports.GenerateImports() != "" {
+	helpersStr := helpers.GenerateHelpers()
+	importsStr := imports.GenerateImports()
+	output.WriteString(importsStr)
+	if importsStr != "" {
 		output.WriteString("\n")
 	}
-	helpersStr := helpers.GenerateHelpers()
 	output.WriteString(helpersStr)
 	if helpersStr != "" {
 		output.WriteString("\n")

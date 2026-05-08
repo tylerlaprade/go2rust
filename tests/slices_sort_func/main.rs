@@ -2,13 +2,14 @@ use std::cell::{RefCell};
 use std::fmt::{Display};
 use std::rc::{Rc};
 
-fn format_slice<T>(slice: &Rc<RefCell<Option<Vec<T>>>>) -> String 
+fn format_slice<T, C>(slice: &Rc<RefCell<Option<C>>>) -> String
 where
+    C: AsRef<[T]>,
     T: Display,
 {
     let guard = slice.borrow();
     if let Some(ref s) = *guard {
-        let formatted: Vec<String> = s.iter().map(|v| v.to_string()).collect();
+        let formatted: Vec<String> = s.as_ref().iter().map(|v| v.to_string()).collect();
         format!("[{}]", formatted.join(" "))
     } else {
         "[]".to_string()
@@ -25,10 +26,10 @@ where
 
 pub fn compare_length(a: Rc<RefCell<Option<String>>>, b: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<i32>>> {
 
-    if (*a.borrow().as_ref().unwrap()).len() < (*b.borrow().as_ref().unwrap()).len() {
+    if ((*a.borrow().as_ref().unwrap()).len() as i32) < ((*b.borrow().as_ref().unwrap()).len() as i32) {
         return Rc::new(RefCell::new(Some(-1)));
     }
-    if (*a.borrow().as_ref().unwrap()).len() > (*b.borrow().as_ref().unwrap()).len() {
+    if ((*a.borrow().as_ref().unwrap()).len() as i32) > ((*b.borrow().as_ref().unwrap()).len() as i32) {
         return Rc::new(RefCell::new(Some(1)));
     }
     if (*a.borrow().as_ref().unwrap()) < (*b.borrow().as_ref().unwrap()) {

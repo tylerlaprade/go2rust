@@ -247,7 +247,11 @@ func (pl *PackageLoader) transpilePackage(pkg *packages.Package) error {
 		PackageMapping:          pl.packageMapping,
 		UsePackageExternalStubs: true,
 	})
+	pkgCtx := GetTranspileContext()
 	defer SetTranspileContext(parentCtx)
+	parentTypeInfo := GetTypeInfo()
+	SetTypeInfo(pkgTypeInfo)
+	defer SetTypeInfo(parentTypeInfo)
 
 	// Generate lib.rs with all modules
 	var libRs strings.Builder
@@ -266,6 +270,13 @@ func (pl *PackageLoader) transpilePackage(pkg *packages.Package) error {
 		moduleNamesByIndex[i] = moduleName
 		modules = append(modules, moduleName)
 	}
+	usePackageHelpers := len(modules) > 1
+	if pkgCtx != nil {
+		pkgCtx.UsePackageHelpers = usePackageHelpers
+	}
+	pkgState.ImportedInterfaceImpls = collectImportedInterfaceImplsFromFiles(pkg.Syntax)
+
+	var generatedModules []generatedRustModule
 
 	// Process each file in the package
 	for i, astFile := range pkg.Syntax {
@@ -277,16 +288,21 @@ func (pl *PackageLoader) transpilePackage(pkg *packages.Package) error {
 
 		// Transpile with the package's type info and global package mapping
 		rustCode, _, _ := TranspileWithMapping(astFile, pkg.Fset, pkgTypeInfo, pl.packageMapping)
-		rustCode = prefixExternalPackageModuleImports(rustCode, moduleName, modules)
 
-		// Write the module file
 		moduleFile := filepath.Join(outputDir, SanitizeRustModuleFileName(moduleName)+".rs")
-		if err := os.WriteFile(moduleFile, []byte(rustCode), 0644); err != nil {
-			return fmt.Errorf("failed to write module %s: %v", moduleName, err)
-		}
+		generatedModules = append(generatedModules, generatedRustModule{
+			name:     moduleName,
+			path:     moduleFile,
+			rustCode: rustCode,
+		})
 	}
 
+	helpersNeeded := usePackageHelpers && pkgState.Helpers.HasAny()
+
 	// Generate lib.rs
+	if helpersNeeded {
+		libRs.WriteString(fmt.Sprintf("include!(\"%s\");\n", packageHelperIncludeFile))
+	}
 	libRs.WriteString(fmt.Sprintf("pub use %s::*;\n", sharedStdlibStubCrateName))
 	for _, mod := range modules {
 		libRs.WriteString(fmt.Sprintf("pub mod %s;\n", mod))
@@ -302,6 +318,21 @@ func (pl *PackageLoader) transpilePackage(pkg *packages.Package) error {
 	libRsPath := filepath.Join(outputDir, "lib.rs")
 	if err := os.WriteFile(libRsPath, []byte(libRs.String()), 0644); err != nil {
 		return fmt.Errorf("failed to write lib.rs: %v", err)
+	}
+
+	for _, module := range generatedModules {
+		rustCode := prefixExternalPackageModuleImports(module.rustCode, module.name, modules, helpersNeeded)
+		if err := os.WriteFile(module.path, []byte(rustCode), 0644); err != nil {
+			return fmt.Errorf("failed to write module %s: %v", module.name, err)
+		}
+	}
+
+	if helpersNeeded {
+		helperPath := filepath.Join(outputDir, packageHelperIncludeFile)
+		helperCode := pkgState.Helpers.GenerateHelperModule()
+		if err := os.WriteFile(helperPath, []byte(helperCode), 0644); err != nil {
+			return fmt.Errorf("failed to write package helper module: %v", err)
+		}
 	}
 
 	// Generate Cargo.toml
@@ -332,8 +363,11 @@ path = "lib.rs"
 	return nil
 }
 
-func prefixExternalPackageModuleImports(rustCode, selfModule string, moduleNames []string) string {
+func prefixExternalPackageModuleImports(rustCode, selfModule string, moduleNames []string, usePackageHelpers bool) string {
 	rustCode = prefixSiblingModuleImports(rustCode, selfModule, moduleNames)
+	if usePackageHelpers {
+		rustCode = prefixPackageHelperImports(rustCode)
+	}
 	return prefixSharedStdlibStubImport(rustCode)
 }
 

@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"go/ast"
+	"go/token"
 	"go/types"
 	"strconv"
 	"strings"
@@ -704,6 +705,9 @@ func goTypesTypeToRust(t types.Type) string {
 	if rustType, ok := goTypeParamConstraintToRust(t); ok {
 		return rustType
 	}
+	if rustType, ok := goTypesKnownStdlibNamedTypeToRust(t); ok {
+		return rustType
+	}
 	if sig, ok := signatureFromType(t); ok {
 		return signatureToBoxDynFn(sig)
 	}
@@ -856,6 +860,9 @@ func goTypesNamedTypeToRust(named *types.Named) string {
 	if named == nil || named.Obj() == nil {
 		return "Unknown"
 	}
+	if rustType, ok := goTypesKnownStdlibNamedTypeToRust(named); ok {
+		return rustType
+	}
 	obj := named.Obj()
 	if obj.Pkg() == nil {
 		return RustTypeNameForUse(obj.Name())
@@ -872,6 +879,59 @@ func goTypesNamedTypeToRust(named *types.Named) string {
 		RegisterExternalTypeStubNamed(named, rustName)
 	}
 	return rustName
+}
+
+func goTypesKnownStdlibNamedTypeToRust(t types.Type) (string, bool) {
+	named, ok := t.(*types.Named)
+	if !ok || named.Obj() == nil || named.Obj().Pkg() == nil {
+		return "", false
+	}
+	obj := named.Obj()
+	switch obj.Pkg().Path() {
+	case "sync":
+		switch obj.Name() {
+		case "WaitGroup":
+			NeedWaitGroup()
+			return "WaitGroup", true
+		case "Mutex":
+			NeedGoMutex()
+			return "GoMutex", true
+		case "Once":
+			NeedGoOnce()
+			return "GoOnce", true
+		}
+	case "strings":
+		if obj.Name() == "Builder" {
+			return "String", true
+		}
+	case "time":
+		switch obj.Name() {
+		case "Time":
+			NeedGoTime()
+			return "GoTime", true
+		case "Duration":
+			return "std::time::Duration", true
+		case "Timer":
+			NeedGoTimer()
+			return "GoTimer", true
+		case "Ticker":
+			NeedGoTicker()
+			return "GoTicker", true
+		}
+	case "context":
+		switch obj.Name() {
+		case "Context":
+			NeedGoContext()
+			return "GoContext", true
+		case "CancelFunc":
+			NeedGoContext()
+			return "GoCancelFunc", true
+		case "CancelCauseFunc":
+			NeedGoContext()
+			return "GoCancelCauseFunc", true
+		}
+	}
+	return "", false
 }
 
 func rustTypeNameForImportedPackagePath(pkgPath, name string) (string, bool) {
@@ -895,7 +955,84 @@ func goTypesTypeToRustWrapped(t types.Type) string {
 	return outerWrapper + "<" + innerWrapper + "<Option<" + base + ">>>"
 }
 
+func goTypesParamTypeToRust(t types.Type) string {
+	if interfaceName, ok := transpiledNamedInterfaceTypeNameFromTypes(t); ok {
+		return rustLocalInterfaceParam(interfaceName)
+	}
+	return goTypesTypeToRustWrapped(t)
+}
+
+func isFunctionSignatureType(t types.Type) bool {
+	_, ok := signatureFromType(t)
+	return ok
+}
+
+func isFunctionSignatureDerefExpression(expr ast.Expr) bool {
+	if paren, ok := expr.(*ast.ParenExpr); ok {
+		expr = paren.X
+	}
+	var target ast.Expr
+	switch deref := expr.(type) {
+	case *ast.StarExpr:
+		target = deref.X
+	case *ast.UnaryExpr:
+		if deref.Op != token.MUL {
+			return false
+		}
+		target = deref.X
+	default:
+		return false
+	}
+	if ident, ok := target.(*ast.Ident); ok {
+		if vt := GetVarTable(); vt != nil {
+			if info := vt.Lookup(ident.Name); info != nil && info.RustType == "function_signature_pointer" {
+				return true
+			}
+		}
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	if isFunctionSignatureType(typeInfo.GetType(expr)) {
+		return true
+	}
+	if ptrType := typeInfo.GetType(target); ptrType != nil {
+		if ptr, ok := types.Unalias(ptrType).Underlying().(*types.Pointer); ok {
+			return isFunctionSignatureType(ptr.Elem())
+		}
+	}
+	return false
+}
+
+func isPointerDerefExpression(expr ast.Expr) bool {
+	if paren, ok := expr.(*ast.ParenExpr); ok {
+		expr = paren.X
+	}
+	switch deref := expr.(type) {
+	case *ast.StarExpr:
+		return true
+	case *ast.UnaryExpr:
+		return deref.Op == token.MUL
+	default:
+		return false
+	}
+}
+
+func isFunctionSignatureTypeExpr(expr ast.Expr) bool {
+	if ident, ok := expr.(*ast.Ident); ok && IsFunctionTypeAlias(ident.Name) {
+		return true
+	}
+	if named, ok := namedTypeForTypeExpr(expr); ok {
+		return isFunctionSignatureType(named)
+	}
+	return false
+}
+
 func signatureFromType(t types.Type) (*types.Signature, bool) {
+	if t == nil {
+		return nil, false
+	}
 	t = types.Unalias(t)
 	if sig, ok := t.(*types.Signature); ok {
 		return sig, true
@@ -916,7 +1053,7 @@ func signatureToBoxDynFn(sig *types.Signature) string {
 	var paramTypes []string
 	params := sig.Params()
 	for i := 0; i < params.Len(); i++ {
-		paramTypes = append(paramTypes, goTypesTypeToRustWrapped(params.At(i).Type()))
+		paramTypes = append(paramTypes, goTypesParamTypeToRust(params.At(i).Type()))
 	}
 
 	var returnType string

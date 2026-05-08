@@ -106,6 +106,13 @@ func currentTypeAliases() map[string]bool {
 	return typeAliases
 }
 
+func currentFunctionTypeAliases() map[string]bool {
+	if currentContext != nil && currentContext.Package != nil {
+		return currentContext.Package.FunctionTypeAliases
+	}
+	return functionTypeAliases
+}
+
 func RegisterInterfaceType(name string) {
 	currentInterfaceTypes()[name] = true
 }
@@ -129,6 +136,14 @@ func RegisterTypeAlias(name string) {
 
 func IsTypeAlias(name string) bool {
 	return currentTypeAliases()[name]
+}
+
+func RegisterFunctionTypeAlias(name string) {
+	currentFunctionTypeAliases()[name] = true
+}
+
+func IsFunctionTypeAlias(name string) bool {
+	return currentFunctionTypeAliases()[name]
 }
 
 // IsParamValueType checks if the parameter at the given argument index is a plain value type

@@ -1,6 +1,9 @@
 package main
 
-import "go/ast"
+import (
+	"go/ast"
+	"go/types"
+)
 
 // TranspileSession holds run-scoped state shared across package transpilation.
 type TranspileSession struct {
@@ -17,6 +20,7 @@ type PackageState struct {
 	InterfaceTypes               map[string]bool
 	TypeDefinitions              map[string]string
 	TypeAliases                  map[string]bool
+	FunctionTypeAliases          map[string]bool
 	GoPackageImports             map[string]string
 	ExternalPackages             map[string]bool
 	StructDefs                   map[string]*StructDef
@@ -24,12 +28,14 @@ type PackageState struct {
 	AnonymousStructCounter       int
 	AnonymousStructs             map[string]*ast.StructType
 	AnonymousStructTypeMap       map[string]string
+	ImportedInterfaceImpls       map[string]map[string]*types.Interface
 	ExternalTypeStubs            map[string]bool
 	ExternalTypeStubIntegerTypes map[string]string
 	ExternalTypeStubFields       map[string]map[string]string
 	ExternalTypeStubMethods      map[string]map[string]externalTypeStubMethod
 	ExternalTypeStubConversions  map[string]map[string]bool
 	ExternalPackageStubs         map[string]*externalPackageStub
+	Helpers                      *HelperTracker
 }
 
 // FileState holds file-scoped scratch state for a single transpilation pass.
@@ -65,6 +71,7 @@ type TranspileContext struct {
 	Helpers                 *HelperTracker
 	PackageMapping          map[string]string // Go import path -> Rust crate name
 	UsePackageExternalStubs bool
+	UsePackageHelpers       bool
 }
 
 func NewTranspileSession(typeInfo *TypeInfo, packageMapping map[string]string) *TranspileSession {
@@ -83,18 +90,21 @@ func NewPackageState() *PackageState {
 		InterfaceTypes:               make(map[string]bool),
 		TypeDefinitions:              make(map[string]string),
 		TypeAliases:                  make(map[string]bool),
+		FunctionTypeAliases:          make(map[string]bool),
 		GoPackageImports:             make(map[string]string),
 		ExternalPackages:             make(map[string]bool),
 		StructDefs:                   make(map[string]*StructDef),
 		EmbeddedFields:               make(map[string]map[string]string),
 		AnonymousStructs:             make(map[string]*ast.StructType),
 		AnonymousStructTypeMap:       make(map[string]string),
+		ImportedInterfaceImpls:       make(map[string]map[string]*types.Interface),
 		ExternalTypeStubs:            make(map[string]bool),
 		ExternalTypeStubIntegerTypes: make(map[string]string),
 		ExternalTypeStubFields:       make(map[string]map[string]string),
 		ExternalTypeStubMethods:      make(map[string]map[string]externalTypeStubMethod),
 		ExternalTypeStubConversions:  make(map[string]map[string]bool),
 		ExternalPackageStubs:         make(map[string]*externalPackageStub),
+		Helpers:                      &HelperTracker{},
 	}
 }
 
@@ -168,6 +178,9 @@ func (ctx *TranspileContext) ensureDefaults() {
 		if ctx.Package.TypeAliases == nil {
 			ctx.Package.TypeAliases = make(map[string]bool)
 		}
+		if ctx.Package.FunctionTypeAliases == nil {
+			ctx.Package.FunctionTypeAliases = make(map[string]bool)
+		}
 		if ctx.Package.GoPackageImports == nil {
 			ctx.Package.GoPackageImports = make(map[string]string)
 		}
@@ -186,6 +199,9 @@ func (ctx *TranspileContext) ensureDefaults() {
 		if ctx.Package.AnonymousStructTypeMap == nil {
 			ctx.Package.AnonymousStructTypeMap = make(map[string]string)
 		}
+		if ctx.Package.ImportedInterfaceImpls == nil {
+			ctx.Package.ImportedInterfaceImpls = make(map[string]map[string]*types.Interface)
+		}
 		if ctx.Package.ExternalTypeStubs == nil {
 			ctx.Package.ExternalTypeStubs = make(map[string]bool)
 		}
@@ -203,6 +219,9 @@ func (ctx *TranspileContext) ensureDefaults() {
 		}
 		if ctx.Package.ExternalPackageStubs == nil {
 			ctx.Package.ExternalPackageStubs = make(map[string]*externalPackageStub)
+		}
+		if ctx.Package.Helpers == nil {
+			ctx.Package.Helpers = &HelperTracker{}
 		}
 	}
 	if ctx.File != nil {
@@ -262,6 +281,7 @@ func (ctx *TranspileContext) captureCompatibilityState() {
 		ctx.Package.InterfaceTypes = interfaceTypes
 		ctx.Package.TypeDefinitions = typeDefinitions
 		ctx.Package.TypeAliases = typeAliases
+		ctx.Package.FunctionTypeAliases = functionTypeAliases
 		ctx.Package.GoPackageImports = goPackageImports
 		ctx.Package.ExternalPackages = externalPackages
 		ctx.Package.StructDefs = structDefs
@@ -309,6 +329,7 @@ func (ctx *TranspileContext) applyCompatibilityState() {
 		interfaceTypes = ctx.Package.InterfaceTypes
 		typeDefinitions = ctx.Package.TypeDefinitions
 		typeAliases = ctx.Package.TypeAliases
+		functionTypeAliases = ctx.Package.FunctionTypeAliases
 		goPackageImports = ctx.Package.GoPackageImports
 		externalPackages = ctx.Package.ExternalPackages
 		structDefs = ctx.Package.StructDefs
@@ -348,24 +369,37 @@ func TrackImport(importName string) {
 	}
 }
 
+func activeHelperTracker() *HelperTracker {
+	if currentContext == nil {
+		return nil
+	}
+	if currentContext.UsePackageHelpers && currentContext.Package != nil {
+		if currentContext.Package.Helpers == nil {
+			currentContext.Package.Helpers = &HelperTracker{}
+		}
+		return currentContext.Package.Helpers
+	}
+	return currentContext.Helpers
+}
+
 // NeedFormatMap marks that we need the format_map helper
 func NeedFormatMap() {
-	if currentContext != nil && currentContext.Helpers != nil {
-		currentContext.Helpers.needsFormatMap = true
+	if helpers := activeHelperTracker(); helpers != nil {
+		helpers.needsFormatMap = true
 	}
 }
 
 // NeedFormatSlice marks that we need the format_slice helper
 func NeedFormatSlice() {
-	if currentContext != nil && currentContext.Helpers != nil {
-		currentContext.Helpers.needsFormatSlice = true
+	if helpers := activeHelperTracker(); helpers != nil {
+		helpers.needsFormatSlice = true
 	}
 }
 
 // NeedFormatAny marks that we need the format_any helper
 func NeedFormatAny() {
-	if currentContext != nil && currentContext.Helpers != nil {
-		currentContext.Helpers.needsFormatAny = true
+	if helpers := activeHelperTracker(); helpers != nil {
+		helpers.needsFormatAny = true
 		// Also track the Any import that the helper will need
 		TrackImport("Any")
 	}
@@ -373,188 +407,188 @@ func NeedFormatAny() {
 
 // NeedFormatAnySlice marks that we need the format_any_slice helper
 func NeedFormatAnySlice() {
-	if currentContext != nil && currentContext.Helpers != nil {
-		currentContext.Helpers.needsFormatAnySlice = true
+	if helpers := activeHelperTracker(); helpers != nil {
+		helpers.needsFormatAnySlice = true
 		// Also need the regular format_any helper
-		currentContext.Helpers.needsFormatAny = true
+		helpers.needsFormatAny = true
 		// Track the Any import that the helpers will need
 		TrackImport("Any")
 	}
 }
 
 func NeedGoPtrKey() {
-	if currentContext != nil && currentContext.Helpers != nil {
-		currentContext.Helpers.needsGoPtrKey = true
+	if helpers := activeHelperTracker(); helpers != nil {
+		helpers.needsGoPtrKey = true
 	}
 }
 
 // NeedGoChannel marks that we need the GoChannel helper struct
 func NeedGoChannel() {
-	if currentContext != nil && currentContext.Helpers != nil {
-		currentContext.Helpers.needsGoChannel = true
+	if helpers := activeHelperTracker(); helpers != nil {
+		helpers.needsGoChannel = true
 	}
 }
 
 // NeedWaitGroup marks that we need the WaitGroup helper struct
 func NeedWaitGroup() {
-	if currentContext != nil && currentContext.Helpers != nil {
-		currentContext.Helpers.needsWaitGroup = true
+	if helpers := activeHelperTracker(); helpers != nil {
+		helpers.needsWaitGroup = true
 	}
 }
 
 // NeedGoMutex marks that we need the GoMutex helper struct
 func NeedGoMutex() {
-	if currentContext != nil && currentContext.Helpers != nil {
-		currentContext.Helpers.needsGoMutex = true
+	if helpers := activeHelperTracker(); helpers != nil {
+		helpers.needsGoMutex = true
 	}
 }
 
 // NeedGoOnce marks that we need the GoOnce helper struct
 func NeedGoOnce() {
-	if currentContext != nil && currentContext.Helpers != nil {
-		currentContext.Helpers.needsGoOnce = true
+	if helpers := activeHelperTracker(); helpers != nil {
+		helpers.needsGoOnce = true
 	}
 }
 
 // NeedGoTypeName marks that we need the go_type_name helper function
 func NeedGoTypeName() {
-	if currentContext != nil && currentContext.Helpers != nil {
-		currentContext.Helpers.needsGoTypeName = true
+	if helpers := activeHelperTracker(); helpers != nil {
+		helpers.needsGoTypeName = true
 		TrackImport("Any")
 	}
 }
 
 // NeedBase64 marks that we need the base64 helper functions
 func NeedBase64() {
-	if currentContext != nil && currentContext.Helpers != nil {
-		currentContext.Helpers.needsBase64 = true
+	if helpers := activeHelperTracker(); helpers != nil {
+		helpers.needsBase64 = true
 	}
 }
 
 // NeedSha256 marks that we need the SHA-256 helper function
 func NeedSha256() {
-	if currentContext != nil && currentContext.Helpers != nil {
-		currentContext.Helpers.needsSha256 = true
+	if helpers := activeHelperTracker(); helpers != nil {
+		helpers.needsSha256 = true
 	}
 }
 
 // NeedHexFormat marks that we need byte-slice hexadecimal formatting
 func NeedHexFormat() {
-	if currentContext != nil && currentContext.Helpers != nil {
-		currentContext.Helpers.needsHexFormat = true
+	if helpers := activeHelperTracker(); helpers != nil {
+		helpers.needsHexFormat = true
 	}
 }
 
 // NeedStrconvFormat marks that we need strconv formatting helpers
 func NeedStrconvFormat() {
-	if currentContext != nil && currentContext.Helpers != nil {
-		currentContext.Helpers.needsStrconvFormat = true
+	if helpers := activeHelperTracker(); helpers != nil {
+		helpers.needsStrconvFormat = true
 	}
 }
 
 // NeedUrl marks that we need URL parsing helpers
 func NeedUrl() {
-	if currentContext != nil && currentContext.Helpers != nil {
-		currentContext.Helpers.needsUrl = true
+	if helpers := activeHelperTracker(); helpers != nil {
+		helpers.needsUrl = true
 	}
 }
 
 // NeedRegexp marks that we need regexp helpers
 func NeedRegexp() {
-	if currentContext != nil && currentContext.Helpers != nil {
-		currentContext.Helpers.needsRegexp = true
+	if helpers := activeHelperTracker(); helpers != nil {
+		helpers.needsRegexp = true
 	}
 }
 
 // NeedJsonEscape marks that we need JSON string escaping helpers
 func NeedJsonEscape() {
-	if currentContext != nil && currentContext.Helpers != nil {
-		currentContext.Helpers.needsJsonEscape = true
+	if helpers := activeHelperTracker(); helpers != nil {
+		helpers.needsJsonEscape = true
 	}
 }
 
 // NeedOsFile marks that we need OS file helpers
 func NeedOsFile() {
-	if currentContext != nil && currentContext.Helpers != nil {
-		currentContext.Helpers.needsOsFile = true
+	if helpers := activeHelperTracker(); helpers != nil {
+		helpers.needsOsFile = true
 	}
 }
 
 // NeedSliceElemPtr marks that we need slice element pointer helpers.
 func NeedSliceElemPtr() {
-	if currentContext != nil && currentContext.Helpers != nil {
-		currentContext.Helpers.needsSliceElemPtr = true
+	if helpers := activeHelperTracker(); helpers != nil {
+		helpers.needsSliceElemPtr = true
 	}
 }
 
 // NeedGoTime marks that we need time.Time helpers
 func NeedGoTime() {
-	if currentContext != nil && currentContext.Helpers != nil {
-		currentContext.Helpers.needsGoTime = true
+	if helpers := activeHelperTracker(); helpers != nil {
+		helpers.needsGoTime = true
 	}
 }
 
 // NeedGoTimer marks that we need time.Timer helpers
 func NeedGoTimer() {
-	if currentContext != nil && currentContext.Helpers != nil {
-		currentContext.Helpers.needsGoTimer = true
-		currentContext.Helpers.needsGoChannel = true
-		currentContext.Helpers.needsGoTime = true
+	if helpers := activeHelperTracker(); helpers != nil {
+		helpers.needsGoTimer = true
+		helpers.needsGoChannel = true
+		helpers.needsGoTime = true
 	}
 }
 
 // NeedGoAfter marks that we need time.After helpers
 func NeedGoAfter() {
-	if currentContext != nil && currentContext.Helpers != nil {
-		currentContext.Helpers.needsGoAfter = true
-		currentContext.Helpers.needsGoChannel = true
-		currentContext.Helpers.needsGoTime = true
+	if helpers := activeHelperTracker(); helpers != nil {
+		helpers.needsGoAfter = true
+		helpers.needsGoChannel = true
+		helpers.needsGoTime = true
 	}
 }
 
 // NeedGoTicker marks that we need time.Ticker helpers
 func NeedGoTicker() {
-	if currentContext != nil && currentContext.Helpers != nil {
-		currentContext.Helpers.needsGoTicker = true
-		currentContext.Helpers.needsGoChannel = true
-		currentContext.Helpers.needsGoTime = true
+	if helpers := activeHelperTracker(); helpers != nil {
+		helpers.needsGoTicker = true
+		helpers.needsGoChannel = true
+		helpers.needsGoTime = true
 	}
 }
 
 // NeedGoTick marks that we need time.Tick helpers
 func NeedGoTick() {
-	if currentContext != nil && currentContext.Helpers != nil {
-		currentContext.Helpers.needsGoTick = true
-		currentContext.Helpers.needsGoChannel = true
-		currentContext.Helpers.needsGoTime = true
+	if helpers := activeHelperTracker(); helpers != nil {
+		helpers.needsGoTick = true
+		helpers.needsGoChannel = true
+		helpers.needsGoTime = true
 	}
 }
 
 // NeedGoContext marks that we need context.Context helpers
 func NeedGoContext() {
-	if currentContext != nil && currentContext.Helpers != nil {
-		currentContext.Helpers.needsGoContext = true
-		currentContext.Helpers.needsGoChannel = true
+	if helpers := activeHelperTracker(); helpers != nil {
+		helpers.needsGoContext = true
+		helpers.needsGoChannel = true
 	}
 }
 
 // NeedGoRand marks that we need math/rand helpers
 func NeedGoRand() {
-	if currentContext != nil && currentContext.Helpers != nil {
-		currentContext.Helpers.needsGoRand = true
+	if helpers := activeHelperTracker(); helpers != nil {
+		helpers.needsGoRand = true
 	}
 }
 
 // NeedReflect marks that we need reflection metadata helpers
 func NeedReflect() {
-	if currentContext != nil && currentContext.Helpers != nil {
-		currentContext.Helpers.needsReflect = true
+	if helpers := activeHelperTracker(); helpers != nil {
+		helpers.needsReflect = true
 	}
 }
 
 // NeedGoHttpResponse marks that we need minimal HTTP response/body helpers.
 func NeedGoHttpResponse() {
-	if currentContext != nil && currentContext.Helpers != nil {
-		currentContext.Helpers.needsGoHttpResponse = true
+	if helpers := activeHelperTracker(); helpers != nil {
+		helpers.needsGoHttpResponse = true
 	}
 }

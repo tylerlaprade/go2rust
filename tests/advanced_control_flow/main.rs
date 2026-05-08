@@ -2,13 +2,14 @@ use std::error::Error as StdError;
 use std::fmt::{Display};
 use std::sync::{Arc, Mutex};
 
-fn format_slice<T>(slice: &Arc<Mutex<Option<Vec<T>>>>) -> String 
+fn format_slice<T, C>(slice: &Arc<Mutex<Option<C>>>) -> String
 where
+    C: AsRef<[T]>,
     T: Display,
 {
     let guard = slice.lock().unwrap();
     if let Some(ref s) = *guard {
-        let formatted: Vec<String> = s.iter().map(|v| v.to_string()).collect();
+        let formatted: Vec<String> = s.as_ref().iter().map(|v| v.to_string()).collect();
         format!("[{}]", formatted.join(" "))
     } else {
         "[]".to_string()
