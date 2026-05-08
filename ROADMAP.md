@@ -81,6 +81,7 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 - ✅ Direct switch-case breaks - unlabeled `break` statements directly in switch and type-switch case bodies stop emitting the rest of that case body instead of producing invalid Rust (switch_break_statements promoted, 2026-05-07)
 - ✅ Fallthrough in switch - if-chain with _fallthrough/_matched flags (fallthrough_switch promoted)
 - ✅ Defer in named returns - named results are initialized before deferred closures, explicit returns assign named results before running defers, and self-returned error handles avoid inner error cloning (defer_named_returns updated, 2026-05-07)
+- ✅ Deferred map writes capture named returns - map assignments inside deferred closures honor capture renames for named result wrappers and clone owned keys before insert (defer_named_return_map_capture promoted, 2026-05-07)
 - ✅ Type switch - downcast_ref-based if-else chain with shared borrow guard, nil cases, and selector pointer cases from TypeInfo (2026-03-27, updated 2026-05-07)
 - ✅ Switch expression lifetime - tag captured in let binding to avoid borrow issues (2026-03-27)
 - ✅ Variadic functions - ellipsis params as Vec<T>, call-site arg collection into vec![], including boxed `...any` elements (2026-03-27, updated 2026-05-07)

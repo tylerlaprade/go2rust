@@ -478,6 +478,10 @@ run_xfail_test() {
     run_test "tests/defer_named_error_return"
 }
 
+@test "defer_named_return_map_capture" {
+    run_test "tests/defer_named_return_map_capture"
+}
+
 @test "defer_named_returns" {
     run_test "tests/defer_named_returns"
 }

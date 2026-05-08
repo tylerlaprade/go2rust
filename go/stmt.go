@@ -213,7 +213,13 @@ func writeMapWrappedValue(out *strings.Builder, expr ast.Expr) {
 		ident.Name != "_" && ident.Name != "nil" && ident.Name != "true" && ident.Name != "false" {
 		if _, isRangeVar := rangeLoopVars[ident.Name]; !isRangeVar {
 			if _, isLocalConst := localConstants[ident.Name]; !isLocalConst {
-				out.WriteString(EscapeRustIdent(ident.Name))
+				varName := RustIdentForUse(ident)
+				if currentCaptureRenames != nil {
+					if renamed, exists := currentCaptureRenames[ident.Name]; exists {
+						varName = RustLocalIdent(renamed)
+					}
+				}
+				out.WriteString(varName)
 				out.WriteString(".clone()")
 				return
 			}
@@ -223,6 +229,13 @@ func writeMapWrappedValue(out *strings.Builder, expr ast.Expr) {
 	WriteWrapperPrefix(out)
 	TranspileExpression(out, expr)
 	WriteWrapperSuffix(out)
+}
+
+func writeMapKeyExpression(out *strings.Builder, expr ast.Expr) {
+	if !isCopyTypeExpression(expr) && writeOwnedExpressionValue(out, expr) {
+		return
+	}
+	TranspileExpression(out, expr)
 }
 
 func isMapIndexExpression(expr ast.Expr) (*ast.IndexExpr, bool) {
@@ -517,7 +530,7 @@ func writeMapElementUpdate(out *strings.Builder, indexExpr *ast.IndexExpr, op to
 	}
 	WriteBorrowMethod(out, true)
 	out.WriteString("; let __map = __map_guard.as_mut().unwrap(); let __entry = __map.entry(")
-	TranspileExpression(out, indexExpr.Index)
+	writeMapKeyExpression(out, indexExpr.Index)
 	out.WriteString(").or_insert_with(|| ")
 	WriteWrapperPrefix(out)
 	out.WriteString(defaultValue)
@@ -1518,7 +1531,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				}
 				WriteBorrowMethod(out, true)
 				out.WriteString(".as_mut().unwrap()).insert(")
-				TranspileExpression(out, indexExpr.Index)
+				writeMapKeyExpression(out, indexExpr.Index)
 				out.WriteString(", ")
 				writeMapWrappedValue(out, s.Rhs[0])
 				out.WriteString(")")
