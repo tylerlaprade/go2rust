@@ -964,15 +964,19 @@ func transpileFmtSprintf(out *strings.Builder, call *ast.CallExpr) {
 	out.WriteString("(")
 
 	var skipIndices []int
+	var charIndices []int
 	var typeNameIndices []int
+	var unicodeIndices []int
 	hexFormats := make(map[int]string)
 	if len(call.Args) > 0 {
 		// First arg is the format string
 		if lit, ok := call.Args[0].(*ast.BasicLit); ok && lit.Kind == token.STRING {
 			// Convert Go format verbs to Rust and get skip indices
-			format, skips, _, typeNames, _, hexes := convertFormatStringWithSkips(lit.Value)
+			format, skips, chars, typeNames, unicodes, hexes := convertFormatStringWithSkips(lit.Value)
 			skipIndices = skips
+			charIndices = chars
 			typeNameIndices = typeNames
+			unicodeIndices = unicodes
 			hexFormats = hexes
 			out.WriteString(format)
 		} else {
@@ -996,23 +1000,7 @@ func transpileFmtSprintf(out *strings.Builder, call *ast.CallExpr) {
 			}
 			if !shouldSkip {
 				out.WriteString(", ")
-				isTypeNameArg := false
-				for _, tnIdx := range typeNameIndices {
-					if tnIdx == i-1 {
-						isTypeNameArg = true
-						break
-					}
-				}
-				if isTypeNameArg {
-					NeedGoTypeName()
-					out.WriteString("go_type_name(&*")
-					transpilePrintArg(out, call.Args[i])
-					out.WriteString(")")
-				} else if hexSpec, isHexArg := hexFormats[i-1]; isHexArg {
-					transpilePrintHexArg(out, call.Args[i], hexSpec)
-				} else {
-					transpilePrintArg(out, call.Args[i])
-				}
+				transpileFormatArg(out, call.Args[i], i-1, charIndices, typeNameIndices, unicodeIndices, hexFormats)
 			}
 		}
 	}

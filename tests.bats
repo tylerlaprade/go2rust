@@ -610,6 +610,10 @@ run_xfail_test() {
     run_test "tests/fmt_println"
 }
 
+@test "fmt_sprintf_type_name_call" {
+    run_test "tests/fmt_sprintf_type_name_call"
+}
+
 @test "for_loops" {
     run_test "tests/for_loops"
 }

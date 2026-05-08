@@ -1,0 +1,8 @@
+[package]
+name = "fmt_sprintf_type_name_call"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "fmt_sprintf_type_name_call"
+path = "main.rs"
