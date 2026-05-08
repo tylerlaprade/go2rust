@@ -364,6 +364,9 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 			}
 		}
 		if ident, ok := arg.(*ast.Ident); ok && !isVarBare(ident.Name) {
+			if writeCurrentReceiverValueClone(out, ident) {
+				return
+			}
 			if obj := typeInfo.GetObject(ident); obj != nil {
 				if _, isConst := obj.(*types.Const); isConst {
 					TranspileExpression(out, arg)

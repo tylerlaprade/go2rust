@@ -1266,6 +1266,85 @@ func lang(v version) bool {
 	}
 }
 
+func TestTypeDefinitionMethodReceiverUsesSelfValue(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+import "fmt"
+
+type Code int
+
+func start() {
+	go func() {}()
+}
+
+func (c Code) String() string {
+	i := int(c)
+	return fmt.Sprintf("Code(%d)", c) + fmt.Sprintf("%d", i)
+}
+`)
+
+	generator := NewProjectGenerator([]string{filepath.Join(tempDir, "main.go")})
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
+	if strings.Contains(mainRS, "c.lock().unwrap()") {
+		t.Fatalf("type-definition method body should translate receiver uses through self, got:\n%s", mainRS)
+	}
+	if !strings.Contains(mainRS, "(*self.0.lock().unwrap().as_ref().unwrap()) as i32") {
+		t.Fatalf("type-definition receiver conversion should use self.0, got:\n%s", mainRS)
+	}
+	if !strings.Contains(mainRS, "(*self.0.lock().unwrap().as_ref().unwrap()).clone()") {
+		t.Fatalf("type-definition receiver format argument should clone from self.0, got:\n%s", mainRS)
+	}
+}
+
+func TestNamedSliceMethodReceiverUsesSelfValue(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+type Items []int
+
+func start() {
+	go func() {}()
+}
+
+func (xs Items) equal(ys Items) bool {
+	return xs.subset(ys) && ys.subset(xs)
+}
+
+func (xs Items) subset(ys Items) bool {
+	return len(xs) <= len(ys)
+}
+`)
+
+	generator := NewProjectGenerator([]string{filepath.Join(tempDir, "main.go")})
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
+	if strings.Contains(mainRS, "xs.lock().unwrap()") {
+		t.Fatalf("named-slice method body should translate receiver uses through self, got:\n%s", mainRS)
+	}
+	if strings.Contains(mainRS, "Some((*self.0.lock().unwrap().as_ref().unwrap()).clone())") {
+		t.Fatalf("named-slice receiver argument should pass the named slice value, not its inner Vec, got:\n%s", mainRS)
+	}
+	if !strings.Contains(mainRS, "Some(self.clone())") {
+		t.Fatalf("named-slice receiver argument should pass self.clone(), got:\n%s", mainRS)
+	}
+}
+
 func TestStructWithImportedFieldDoesNotDeriveDebug(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod

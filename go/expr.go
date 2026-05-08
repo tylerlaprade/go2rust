@@ -564,6 +564,9 @@ func writeCallArgumentValue(out *strings.Builder, arg ast.Expr) bool {
 		return false
 	}
 	if currentReceiver != "" && ident.Name == currentReceiver {
+		if writeCurrentReceiverValueClone(out, ident) {
+			return true
+		}
 		out.WriteString("self.clone()")
 		return true
 	}
@@ -1054,6 +1057,13 @@ func writeCurrentReceiverPointerComparison(out *strings.Builder, expr *ast.Binar
 }
 
 func writeIdentValueClone(out *strings.Builder, ident *ast.Ident) {
+	if writeCurrentReceiverValueClone(out, ident) {
+		return
+	}
+	if ident != nil && currentReceiver != "" && ident.Name == currentReceiver {
+		out.WriteString("self.clone()")
+		return
+	}
 	name := RustIdentForUse(ident)
 	if currentCaptureRenames != nil {
 		if renamed, exists := currentCaptureRenames[ident.Name]; exists {
@@ -1064,6 +1074,35 @@ func writeIdentValueClone(out *strings.Builder, ident *ast.Ident) {
 	out.WriteString(name)
 	WriteBorrowMethod(out, false)
 	out.WriteString(".as_ref().unwrap()).clone()")
+}
+
+func writeCurrentReceiverValueClone(out *strings.Builder, ident *ast.Ident) bool {
+	if ident == nil || currentReceiver == "" || ident.Name != currentReceiver {
+		return false
+	}
+	if !currentReceiverScalarTypeDefinition() {
+		return false
+	}
+	out.WriteString("(*self.0")
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap()).clone()")
+	return true
+}
+
+func currentReceiverScalarTypeDefinition() bool {
+	underlying, isTypeDef := LookupTypeDefinition(currentReceiverType)
+	if !isTypeDef {
+		return false
+	}
+	switch underlying {
+	case "string", "bool",
+		"int", "int8", "int16", "int32", "int64",
+		"uint", "uint8", "uint16", "uint32", "uint64", "uintptr",
+		"byte", "rune", "float32", "float64":
+		return true
+	default:
+		return false
+	}
 }
 
 func isCloneableNonPointerExpr(expr ast.Expr) bool {
@@ -4400,6 +4439,11 @@ func writeNumericConversionValue(out *strings.Builder, arg ast.Expr) {
 	}
 
 	if ident, ok := arg.(*ast.Ident); ok && ident.Name != "nil" {
+		if currentReceiver != "" && ident.Name == currentReceiver && currentReceiverScalarTypeDefinition() {
+			TranspileExpression(out, ident)
+			writeExternalIntegerTupleField(out, argType)
+			return
+		}
 		out.WriteString("(*")
 		out.WriteString(RustIdentForUse(ident))
 		WriteBorrowMethod(out, false)
