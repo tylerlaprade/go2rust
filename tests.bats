@@ -754,6 +754,10 @@ run_xfail_test() {
     run_test "tests/local_interface_pointer_receiver"
 }
 
+@test "local_large_fixed_array_zero" {
+    run_test "tests/local_large_fixed_array_zero"
+}
+
 @test "local_var_multi_names" {
     run_test "tests/local_var_multi_names"
 }

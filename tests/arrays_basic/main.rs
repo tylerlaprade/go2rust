@@ -2,7 +2,7 @@ use std::cell::{RefCell};
 use std::rc::{Rc};
 
 fn main() {
-    let mut arr: Rc<RefCell<Option<[i32; 3]>>> = Rc::new(RefCell::new(Some(Default::default())));
+    let mut arr: Rc<RefCell<Option<[i32; 3]>>> = Rc::new(RefCell::new(Some(std::array::from_fn(|_| 0))));
     (*arr.borrow_mut().as_mut().unwrap())[0] = 10;
     (*arr.borrow_mut().as_mut().unwrap())[1] = 20;
     (*arr.borrow_mut().as_mut().unwrap())[2] = 30;

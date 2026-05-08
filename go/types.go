@@ -519,7 +519,7 @@ func zeroValueForGoType(expr ast.Expr) string {
 		return "Default::default()"
 	case *ast.ArrayType:
 		if t.Len != nil {
-			return "Default::default()"
+			return "std::array::from_fn(|_| " + zeroValueForGoType(t.Elt) + ")"
 		}
 		return "vec![]"
 	case *ast.MapType:

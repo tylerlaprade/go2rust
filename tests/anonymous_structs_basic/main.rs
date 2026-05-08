@@ -119,7 +119,7 @@ fn main() {
     print!("Config: {}:{} (Debug: {}, Verbose: {})\n", (*(*config.borrow().as_ref().unwrap()).host.borrow().as_ref().unwrap()), (*(*config.borrow().as_ref().unwrap()).port.borrow().as_ref().unwrap()), (*(*(*config.borrow().as_ref().unwrap()).settings.borrow().as_ref().unwrap()).debug.borrow().as_ref().unwrap()), (*(*(*config.borrow().as_ref().unwrap()).settings.borrow().as_ref().unwrap()).verbose.borrow().as_ref().unwrap()));
 
         // Array of anonymous structs
-    let mut items: Rc<RefCell<Option<[AnonymousStruct5; 2]>>> = Rc::new(RefCell::new(Some(Default::default())));
+    let mut items: Rc<RefCell<Option<[AnonymousStruct5; 2]>>> = Rc::new(RefCell::new(Some(std::array::from_fn(|_| Default::default()))));
     { let new_val = 1; *(*items.borrow().as_ref().unwrap())[(0) as usize].clone().i_d.borrow_mut() = Some(new_val); };
     { let new_val = "first".to_string(); *(*items.borrow().as_ref().unwrap())[(0) as usize].clone().value.borrow_mut() = Some(new_val); };
     { let new_val = 2; *(*items.borrow().as_ref().unwrap())[(1) as usize].clone().i_d.borrow_mut() = Some(new_val); };

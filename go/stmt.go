@@ -2770,7 +2770,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 											WriteWrappedNone(out)
 										} else {
 											WriteWrapperPrefix(out)
-											out.WriteString("Default::default()")
+											out.WriteString(zeroValueForGoType(t))
 											WriteWrapperSuffix(out)
 										}
 									case *ast.MapType:
