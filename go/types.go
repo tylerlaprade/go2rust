@@ -14,6 +14,9 @@ var anonymousStructs = make(map[string]*ast.StructType)
 var anonymousStructTypeMap = make(map[string]string) // maps struct signature to type name
 
 func isEmptyInterfaceExpr(expr ast.Expr) bool {
+	if ident, ok := expr.(*ast.Ident); ok && ident.Name == "any" {
+		return true
+	}
 	intf, ok := expr.(*ast.InterfaceType)
 	return ok && (intf.Methods == nil || len(intf.Methods.List) == 0)
 }

@@ -1058,6 +1058,10 @@ run_xfail_test() {
     run_test "tests/struct_embedding"
 }
 
+@test "struct_map_trait_value_display" {
+    run_test "tests/struct_map_trait_value_display"
+}
+
 @test "struct_methods" {
     run_test "tests/struct_methods"
 }

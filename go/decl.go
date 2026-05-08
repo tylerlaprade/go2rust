@@ -44,6 +44,8 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 		isMap       bool
 		isInterface bool
 		isFunction  bool
+		hasTrait    bool
+		mapOpaque   bool
 	}
 	var fields []fieldEntry
 	for _, field := range structType.Fields.List {
@@ -56,6 +58,8 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 		isInterface := isEmptyInterfaceExpr(field.Type)
 		_, isFunction := field.Type.(*ast.FuncType)
 		_, isChannel := field.Type.(*ast.ChanType)
+		hasTrait := typeHasTraitField(field.Type)
+		mapOpaque := mapFieldNeedsOpaqueDisplay(field.Type)
 		if isChannel {
 			continue
 		}
@@ -68,6 +72,8 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 					isMap:       isMap,
 					isInterface: isInterface,
 					isFunction:  isFunction,
+					hasTrait:    hasTrait,
+					mapOpaque:   mapOpaque,
 				})
 			}
 		} else {
@@ -80,6 +86,8 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 				isMap:       isMap,
 				isInterface: isInterface,
 				isFunction:  isFunction,
+				hasTrait:    hasTrait,
+				mapOpaque:   mapOpaque,
 			})
 		}
 	}
@@ -104,6 +112,8 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 			out.WriteString(".as_ref().unwrap().as_ref())")
 		} else if f.isFunction {
 			out.WriteString("\"<func>\"")
+		} else if f.isMap && f.mapOpaque {
+			out.WriteString("\"<map>\"")
 		} else if f.isMap {
 			NeedFormatMap()
 			out.WriteString("format_map(&self.")
@@ -248,6 +258,30 @@ func generateStructDefault(out *strings.Builder, structName string, structType *
 }
 
 func typeHasTraitField(expr ast.Expr) bool {
+	return typeHasTraitFieldSeen(expr, make(map[string]bool))
+}
+
+func mapFieldNeedsOpaqueDisplay(expr ast.Expr) bool {
+	mapType, ok := expr.(*ast.MapType)
+	if !ok {
+		return false
+	}
+	return !mapValueCanUseDisplay(mapType.Value)
+}
+
+func mapValueCanUseDisplay(expr ast.Expr) bool {
+	if isEmptyInterfaceExpr(expr) {
+		return false
+	}
+	switch expr.(type) {
+	case *ast.ArrayType, *ast.MapType, *ast.FuncType:
+		return false
+	default:
+		return true
+	}
+}
+
+func typeHasTraitFieldSeen(expr ast.Expr, seen map[string]bool) bool {
 	fieldType := goTypeToRustBase(expr)
 	if strings.Contains(fieldType, "dyn ") {
 		return true
@@ -255,14 +289,27 @@ func typeHasTraitField(expr ast.Expr) bool {
 
 	switch t := expr.(type) {
 	case *ast.ArrayType:
-		return typeHasTraitField(t.Elt)
+		return typeHasTraitFieldSeen(t.Elt, seen)
 	case *ast.MapType:
-		return typeHasTraitField(t.Value)
+		return typeHasTraitFieldSeen(t.Value, seen)
 	case *ast.StructType:
 		return structHasTraitField(t)
+	case *ast.Ident:
+		if seen[t.Name] {
+			return false
+		}
+		if def, ok := structDefs[t.Name]; ok && def.ASTType != nil {
+			seen[t.Name] = true
+			for _, field := range def.ASTType.Fields.List {
+				if typeHasTraitFieldSeen(field.Type, seen) {
+					return true
+				}
+			}
+		}
 	default:
 		return false
 	}
+	return false
 }
 
 // Helper to check if a function body contains defer statements
@@ -639,28 +686,7 @@ func typeDefinitionUnderlyingName(expr ast.Expr) string {
 func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *ast.GenDecl) {
 	switch t := typeSpec.Type.(type) {
 	case *ast.StructType:
-		// Track struct definition
-		structDef := &StructDef{
-			Fields:        make(map[string]string),
-			EmbeddedTypes: []string{},
-			ASTType:       t,
-		}
-
-		// First pass: collect field information
-		for _, field := range t.Fields.List {
-			if len(field.Names) > 0 {
-				// Named fields
-				for _, name := range field.Names {
-					structDef.Fields[name.Name] = "regular"
-				}
-			} else {
-				// Embedded field
-				typeName := getEmbeddedFieldName(field.Type)
-				structDef.EmbeddedTypes = append(structDef.EmbeddedTypes, typeName)
-			}
-		}
-
-		structDefs[typeSpec.Name.Name] = structDef
+		registerStructDef(typeSpec.Name.Name, t)
 
 		writeStructDerive(out, typeSpec.Name.Name, t)
 		out.WriteString("pub struct ")
@@ -858,6 +884,28 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 			}
 		}
 	}
+}
+
+func registerStructDef(name string, structType *ast.StructType) {
+	if name == "" || structType == nil {
+		return
+	}
+	structDef := &StructDef{
+		Fields:        make(map[string]string),
+		EmbeddedTypes: []string{},
+		ASTType:       structType,
+	}
+	for _, field := range structType.Fields.List {
+		if len(field.Names) > 0 {
+			for _, name := range field.Names {
+				structDef.Fields[name.Name] = "regular"
+			}
+		} else {
+			typeName := getEmbeddedFieldName(field.Type)
+			structDef.EmbeddedTypes = append(structDef.EmbeddedTypes, typeName)
+		}
+	}
+	structDefs[name] = structDef
 }
 
 func writeScalarTypeDefinitionPartialEq(out *strings.Builder, typeName string) {

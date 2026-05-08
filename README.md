@@ -228,6 +228,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Embedded fields | ✅ |
 | └ Anonymous structs | ✅ |
 | └ Nested structs/slices/maps/interfaces and anonymous struct function boundaries | ✅ |
+| └ Struct fields containing map values with `any` contents | ✅ |
 | └ Struct tags | ✅ |
 | **`switch` - Switch statements** | |
 | └ Basic switch | ✅ |

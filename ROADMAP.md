@@ -43,6 +43,7 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 - ✅ Owned selector values - cloneable non-pointer fields clone when returned or passed into wrapped call arguments (selector_string_clone, return_selector_values promoted, 2026-05-07)
 - ✅ Comparable struct literals - struct literals in equality expressions remain bare and compared named structs derive PartialEq when needed (struct_compare_literal promoted, 2026-05-07)
 - ✅ Parallel slice-expression field assignment - multi-assignment moves wrapped slice-expression temporaries into wrapped fields and locals (parallel_slice_field_assign promoted, 2026-05-07)
+- ✅ Struct fields with trait-bearing map values - forward struct metadata prevents invalid Debug derives and formats opaque nested map values without requiring `any` contents to implement Display (struct_map_trait_value_display promoted, 2026-05-07)
 
 ### ✅ Phase 5: Core Language Features (90% Complete)
 

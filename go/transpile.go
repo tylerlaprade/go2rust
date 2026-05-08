@@ -575,6 +575,11 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 
 	// Output type declarations
 	for _, t := range types {
+		if structType, ok := t.spec.Type.(*ast.StructType); ok {
+			registerStructDef(t.spec.Name.Name, structType)
+		}
+	}
+	for _, t := range types {
 		if !first {
 			body.WriteString("\n\n")
 		}
