@@ -573,6 +573,12 @@ func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.Fi
 						continue
 					}
 
+					if isEmptyInterfaceExpr(result.Type) {
+						WriteWrappedNone(out)
+						out.WriteString(";\n")
+						continue
+					}
+
 					// For all other types
 					WriteWrapperPrefix(out)
 					switch t := result.Type.(type) {
@@ -1240,6 +1246,13 @@ func writeNamedReturnDeclarations(out *strings.Builder, fnType *ast.FuncType) {
 					TrackImport("RefCell")
 					out.WriteString("Rc::new(RefCell::new(None))")
 				}
+				out.WriteString(";\n")
+				wrote = true
+				continue
+			}
+
+			if isEmptyInterfaceExpr(result.Type) {
+				WriteWrappedNone(out)
 				out.WriteString(";\n")
 				wrote = true
 				continue

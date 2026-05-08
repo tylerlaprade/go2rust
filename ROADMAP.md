@@ -93,6 +93,7 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 - ✅ Wrapped bool conditions - unary `!`, tagless switch cases, and receiver-field conditions unwrap bool wrappers before use (wrapped_bool_not promoted, 2026-05-07; wrapped_bool_field_conditions added, 2026-05-07)
 - ✅ String constant returns - string constants returned from `string` functions are converted to owned Rust `String` values before wrapping (return_string_const promoted, 2026-05-07)
 - ✅ interface{} arg boxing - values auto-boxed as Box<dyn Any> when passed to interface{} params (2026-03-27)
+- ✅ Named `any` returns - named empty-interface results initialize to nil instead of attempting to default-construct `Box<dyn Any>` (any_named_return_zero promoted, 2026-05-07)
 - ✅ `any(x)` conversions - converted values are boxed as `Box<dyn Any>` so comma-ok type assertions can downcast them (any_type_conversion promoted, 2026-05-07)
 - ✅ Static `any(x).(interface{...})` assertions - when TypeInfo proves the converted concrete value implements the asserted interface, emit the source handle and `ok=true` instead of an unknown downcast target (any_interface_static_assertion promoted, 2026-05-07)
 - ✅ Blank identifier - fully working with return values, range loops, type assertions, declarations (2026-03-26)
