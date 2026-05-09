@@ -429,6 +429,11 @@ func (ti *TypeInfo) NeedsUnwrapping(expr ast.Expr) bool {
 			// Regular variable field access - already unwrapped by SelectorExpr handler
 			return false
 		}
+		if exprType := ti.GetType(e); exprType != nil {
+			if _, ok := exprType.Underlying().(*types.Basic); ok {
+				return false
+			}
+		}
 		return ti.ReturnsWrappedValue(expr)
 	case *ast.IndexExpr:
 		// Array/slice indexing: the IndexExpr handler already unwraps and adds .clone()

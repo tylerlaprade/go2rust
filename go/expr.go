@@ -2654,7 +2654,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				if typeInfo != nil && typeInfo.IsPointer(e.X) {
 					if ctx == RValue {
 						out.WriteString("(*(*")
-						TranspileExpression(out, e.X)
+						TranspileExpressionContext(out, e.X, LValue)
 						WriteBorrowMethod(out, false)
 						out.WriteString(".as_ref().unwrap()).")
 						out.WriteString(fieldInfo.FieldName)
@@ -2662,7 +2662,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 						out.WriteString(".as_ref().unwrap())")
 					} else {
 						out.WriteString("(*")
-						TranspileExpression(out, e.X)
+						TranspileExpressionContext(out, e.X, LValue)
 						WriteBorrowMethod(out, false)
 						out.WriteString(".as_ref().unwrap()).")
 						out.WriteString(fieldInfo.FieldName)

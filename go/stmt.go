@@ -359,7 +359,11 @@ func writeMapWrappedValue(out *strings.Builder, expr ast.Expr) {
 	}
 
 	WriteWrapperPrefix(out)
-	TranspileExpression(out, expr)
+	if !isCopyTypeExpression(expr) && writeOwnedExpressionValue(out, expr) {
+		// owned expression written above
+	} else {
+		TranspileExpression(out, expr)
+	}
 	WriteWrapperSuffix(out)
 }
 
