@@ -98,6 +98,8 @@ See `ROADMAP.md` for the detailed implementation phases and progress.
 - String constants are bare Rust values (`&'static str`), not wrappers. String indexing and slicing must use them directly, for example `let __s = NAME`, instead of emitting `.borrow()` or `.lock()`.
 - Named scalar type methods must translate receiver references through `self.0`; named slice methods should pass the named slice handle with `self.clone()`, not the inner `Vec`.
 - Named numeric type definitions need Rust operator/comparison impls for Go-style mixed operations such as `1 <= code`, `code + 1`, and `code - otherCode`. Keep those impls tied to the actual numeric underlying type from type information.
+- External stdlib named integers such as `go/token.Pos` and `go/types.BasicKind` are bare tuple structs in the stub crate, not local wrapper newtypes. Expected-type literal returns and explicit conversions should construct the tuple struct directly from the raw numeric value.
+- Typed nil local declarations for interfaces, pointers, signatures, and slices need explicit `None` initialization when `go/types` says the zero value is nil. Keep named slice definitions on their existing default-wrapper path unless type information proves a nil handle is required.
 
 ### Call Argument Wrapping
 
@@ -173,8 +175,8 @@ The test script handles:
 - If `rustc` is killed on a generated dependency crate, inspect the generated Rust shape before assuming a semantic type error. Multi-megabyte single expressions can kill the compiler even when the code is otherwise valid.
 - For large package-level composite literals, prefer statement lowering: build local maps/slices in source order, then assign to the package global once. Do not mutate the target global while evaluating its initializer.
 - Anonymous struct types can be discovered while transpiling function bodies, after the early type-definition pass. Emit anonymous struct definitions a second time after functions for any names not already emitted.
-- Current self-hosting checkpoint: package-targeted checks pass for `golang_org_x_tools_internal_versions`, `golang_org_x_tools_internal_stdlib`, and `golang_org_x_tools_internal_typeparams`. `golang_org_x_tools_internal_typesinternal` is down to 97 Rust errors after fixing receiver lowering, nonliteral fixed array lengths, numeric type-definition ops, package selector/stub naming, duplicate-name init calls, late anonymous struct definitions, string-constant slicing, named integer bitwise ops, and local-only init helper visibility.
-- Current `typesinternal` remaining clusters include incomplete `go/types` and `go/ast` stdlib stubs, interface/AST wrapper mismatches, `ast.ChanDir` versus `types.ChanDir` conversion in `zerovalue.rs`, type-switch handling around `Unknown`, and move/uninitialized issues in `toonew.rs`.
+- Current self-hosting checkpoint: package-targeted checks pass for `golang_org_x_tools_internal_versions`, `golang_org_x_tools_internal_stdlib`, and `golang_org_x_tools_internal_typeparams`. `golang_org_x_tools_internal_typesinternal` is down to 78 Rust errors after fixing receiver lowering, nonliteral fixed array lengths, numeric type-definition ops, package selector/stub naming, duplicate-name init calls, late anonymous struct definitions, string-constant slicing, named integer bitwise ops, local-only init helper visibility, named switch-value cloning, typed nil locals, named literal returns, and external named integer conversions.
+- Current `typesinternal` remaining clusters include incomplete `go/types` and `go/ast` stdlib stubs, interface/AST wrapper mismatches, `ast.ChanDir` versus `types.ChanDir` conversion in `zerovalue.rs`, type-switch handling around `Unknown`, qualifier function wrapper mismatches, and range/index contexts that still treat raw integers as wrapped handles.
 
 ## Source-Preserving Fixes
 
