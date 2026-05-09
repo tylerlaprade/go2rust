@@ -1880,15 +1880,56 @@ func writeNamedReturnValues(out *strings.Builder, fnType *ast.FuncType) {
 	if len(names) > 1 {
 		out.WriteString("(")
 	}
-	for i, name := range names {
-		if i > 0 {
-			out.WriteString(", ")
+	first := true
+	for _, result := range fnType.Results.List {
+		for _, name := range result.Names {
+			if !first {
+				out.WriteString(", ")
+			}
+			first = false
+			if name.Name == "_" {
+				writeNamedReturnZeroValue(out, result.Type)
+			} else {
+				out.WriteString(RustLocalIdent(name.Name))
+			}
 		}
-		out.WriteString(RustLocalIdent(name.Name))
 	}
 	if len(names) > 1 {
 		out.WriteString(")")
 	}
+}
+
+func writeNamedReturnZeroValue(out *strings.Builder, typeExpr ast.Expr) {
+	if t, ok := typeExpr.(*ast.Ident); ok && t.Name == "error" {
+		WriteWrappedNone(out)
+		return
+	}
+	if isEmptyInterfaceExpr(typeExpr) {
+		WriteWrappedNone(out)
+		return
+	}
+
+	WriteWrapperPrefix(out)
+	switch t := typeExpr.(type) {
+	case *ast.Ident:
+		switch t.Name {
+		case "string":
+			out.WriteString("String::new()")
+		case "int", "int64", "int32", "int16", "int8":
+			out.WriteString("0")
+		case "uint", "uint64", "uint32", "uint16", "uint8":
+			out.WriteString("0")
+		case "float64", "float32":
+			out.WriteString("0.0")
+		case "bool":
+			out.WriteString("false")
+		default:
+			out.WriteString("Default::default()")
+		}
+	default:
+		out.WriteString("Default::default()")
+	}
+	WriteWrapperSuffix(out)
 }
 
 func exprReferencesReceiver(expr ast.Expr, receiverName string) bool {

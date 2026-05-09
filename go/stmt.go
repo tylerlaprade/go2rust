@@ -1213,6 +1213,10 @@ func writeMapCommaOkMissingValue(out *strings.Builder, indexExpr *ast.IndexExpr)
 }
 
 func writeParallelAssignmentTarget(out *strings.Builder, lhs ast.Expr, tmpName string, rhs ast.Expr) {
+	if ident, ok := lhs.(*ast.Ident); ok && ident.Name == "_" {
+		return
+	}
+
 	tmpWrapped := tempHoldsWrappedValue(rhs)
 	if indexExpr, ok := lhs.(*ast.IndexExpr); ok {
 		typeInfo := GetTypeInfo()
@@ -1725,7 +1729,11 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							out.WriteString(", ")
 						}
 						first = false
-						out.WriteString(RustLocalIdent(name.Name))
+						if name.Name == "_" {
+							writeNamedReturnZeroValue(out, result.Type)
+						} else {
+							out.WriteString(RustLocalIdent(name.Name))
+						}
 					}
 				}
 

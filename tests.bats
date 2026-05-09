@@ -400,6 +400,14 @@ run_xfail_test() {
     run_test "tests/blank_imports_side_effects"
 }
 
+@test "blank_multi_assignment_discard" {
+    run_test "tests/blank_multi_assignment_discard"
+}
+
+@test "blank_named_return" {
+    run_test "tests/blank_named_return"
+}
+
 @test "builtin_functions" {
     run_test "tests/builtin_functions"
 }
