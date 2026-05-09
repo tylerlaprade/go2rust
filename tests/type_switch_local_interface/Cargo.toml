@@ -1,0 +1,8 @@
+[package]
+name = "type_switch_local_interface"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "type_switch_local_interface"
+path = "main.rs"

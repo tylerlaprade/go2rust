@@ -132,6 +132,33 @@ func writeLocalInterfaceConcreteReturnConversion(out *strings.Builder, result as
 			}
 			return true
 		}
+		targetType := expectedTypeFromParamExpr(expected)
+		if targetType != nil {
+			targetNamed, targetIsNamed := types.Unalias(targetType).(*types.Named)
+			sourceType := typeInfo.GetType(result)
+			if targetIsNamed && targetNamed.Obj() != nil && sourceType != nil {
+				if targetInterface, ok := targetNamed.Underlying().(*types.Interface); ok {
+					sourceNamedType := sourceType
+					if ptr, ok := sourceType.(*types.Pointer); ok {
+						sourceNamedType = ptr.Elem()
+					}
+					sourceNamed, sourceIsNamed := types.Unalias(sourceNamedType).(*types.Named)
+					targetInterface.Complete()
+					if sourceIsNamed && sourceNamed.Obj() != targetNamed.Obj() && types.Implements(sourceType, targetInterface) {
+						if call, ok := result.(*ast.CallExpr); ok && typeInfo.ReturnsWrappedValue(call) && !isBareBuiltinReturn(call) && !callReturnsBareChannelValue(call) && (!typeInfo.IsTypeConversion(call) || typeConversionEmitsWrappedValue(call)) {
+							WriteWrapperPrefix(out)
+							out.WriteString("Box::new((*")
+							TranspileExpression(out, call)
+							WriteBorrowMethod(out, false)
+							out.WriteString(".as_ref().unwrap()).clone()) as ")
+							out.WriteString(rustLocalInterfaceTraitObject(interfaceName))
+							WriteWrapperSuffix(out)
+							return true
+						}
+					}
+				}
+			}
+		}
 	}
 	if ident, ok := result.(*ast.Ident); ok && ident.Name != "_" {
 		WriteWrapperPrefix(out)
@@ -248,6 +275,37 @@ func writeTypeSwitchOriginalBinding(out *strings.Builder, varName string, expr a
 	}
 	TranspileExpressionContext(out, expr, LValue)
 	out.WriteString(".clone();\n")
+}
+
+func isLocalInterfaceRefIdent(expr ast.Expr) bool {
+	ident, ok := expr.(*ast.Ident)
+	if !ok {
+		return false
+	}
+	vt := GetVarTable()
+	if vt == nil {
+		return false
+	}
+	info := vt.Lookup(ident.Name)
+	return info != nil && info.IsRef
+}
+
+func pushTypeSwitchCaseVarScope(varName string, isTypedSingleCase bool) func() {
+	if varName == "" {
+		return func() {}
+	}
+	vt := GetVarTable()
+	if vt == nil {
+		return func() {}
+	}
+	vt.PushScope()
+	if isTypedSingleCase {
+		vt.Register(varName, &VarInfo{
+			WrapLevel: WrapFull,
+			Source:    SourceLocal,
+		})
+	}
+	return vt.PopScope
 }
 
 func isUnlabeledBreakStmt(stmt ast.Stmt) bool {
@@ -1513,6 +1571,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							WriteWrapperSuffix(out)
 						}
 					} else if callExpr, ok := result.(*ast.CallExpr); ok {
+						if writeLocalInterfaceConcreteReturnConversion(out, result, returnResultTypeExpr(fnType, i)) {
+							continue
+						}
 						if writeStdlibInterfaceReturnConversion(out, result, returnResultTypeExpr(fnType, i)) {
 							continue
 						}
@@ -4529,7 +4590,11 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 		typeInfo := GetTypeInfo()
 		subjectUsesAny := typeInfo != nil && isEmptyInterfaceType(typeInfo.GetType(expr))
+		subjectIsLocalInterfaceRef := isLocalInterfaceRefIdent(expr)
 		if subjectUsesAny {
+			TrackImport("Any")
+		}
+		if subjectIsLocalInterfaceRef {
 			TrackImport("Any")
 		}
 
@@ -4560,6 +4625,12 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			out.WriteString(";\n")
 			out.WriteString("    let _ts_is_nil = _ts_guard.as_ref().is_none();\n")
 			out.WriteString("    let _ts_val: Option<&dyn Any> = _ts_guard.as_ref().map(|__v| __v.as_ref() as &dyn Any);\n")
+		} else if subjectIsLocalInterfaceRef {
+			out.WriteString("    let _ts_subject = ")
+			TranspileExpressionContext(out, expr, LValue)
+			out.WriteString(";\n")
+			out.WriteString("    let _ts_is_nil = false;\n")
+			out.WriteString("    let _ts_val: Option<&dyn Any> = Some(_ts_subject.__go_as_any());\n")
 		} else {
 			out.WriteString("    let _ts_subject = ")
 			TranspileExpressionContext(out, expr, LValue)
@@ -4575,6 +4646,13 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		firstCase := true
 		for _, clause := range s.Body.List {
 			caseClause := clause.(*ast.CaseClause)
+			isTypedSingleCase := varName != "" && len(caseClause.List) == 1
+			if isTypedSingleCase {
+				if _, isNil := typeSwitchCaseRustType(typeInfo, caseClause.List[0]); isNil {
+					isTypedSingleCase = false
+				}
+			}
+			popCaseVarScope := pushTypeSwitchCaseVarScope(varName, isTypedSingleCase)
 
 			if len(caseClause.List) == 0 {
 				// default case
@@ -4643,6 +4721,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				out.WriteString(";\n")
 			}
 			restoreCaptureRename()
+			popCaseVarScope()
 
 			out.WriteString("    }")
 		}

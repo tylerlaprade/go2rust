@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"go/ast"
 	"go/token"
 	"go/types"
@@ -331,6 +332,89 @@ func importedInterfaceImplsForFile(file *ast.File) map[string]map[string]*types.
 	return collectImportedInterfaceImpls(file)
 }
 
+type externalLocalInterfaceImpl struct {
+	ifaceAST *ast.InterfaceType
+}
+
+func collectExternalLocalInterfaceImpls(file *ast.File, interfaces map[string]*ast.InterfaceType) map[string]map[string]externalLocalInterfaceImpl {
+	typeInfo := GetTypeInfo()
+	if file == nil || typeInfo == nil || typeInfo.pkg == nil {
+		return nil
+	}
+	impls := make(map[string]map[string]externalLocalInterfaceImpl)
+	record := func(ifaceName string, ifaceType *types.Interface, concrete types.Type) {
+		if ifaceName == "" || ifaceType == nil || concrete == nil {
+			return
+		}
+		if !types.Implements(concrete, ifaceType) {
+			return
+		}
+		concreteType := concrete
+		if ptr, ok := concreteType.(*types.Pointer); ok {
+			concreteType = ptr.Elem()
+		}
+		named, ok := types.Unalias(concreteType).(*types.Named)
+		if !ok || named.Obj() == nil || named.Obj().Pkg() == nil || named.Obj().Pkg() == typeInfo.pkg {
+			return
+		}
+		rustType := goTypesNamedTypeToRust(named)
+		if impls[ifaceName] == nil {
+			impls[ifaceName] = make(map[string]externalLocalInterfaceImpl)
+		}
+		impls[ifaceName][rustType] = externalLocalInterfaceImpl{
+			ifaceAST: interfaces[ifaceName],
+		}
+	}
+
+	ast.Inspect(file, func(n ast.Node) bool {
+		stmt, ok := n.(*ast.TypeSwitchStmt)
+		if !ok || stmt.Assign == nil {
+			return true
+		}
+		var expr ast.Expr
+		switch assign := stmt.Assign.(type) {
+		case *ast.ExprStmt:
+			if typeAssert, ok := assign.X.(*ast.TypeAssertExpr); ok {
+				expr = typeAssert.X
+			}
+		case *ast.AssignStmt:
+			if len(assign.Rhs) == 1 {
+				if typeAssert, ok := assign.Rhs[0].(*ast.TypeAssertExpr); ok {
+					expr = typeAssert.X
+				}
+			}
+		}
+		if expr == nil {
+			return true
+		}
+		subjectType := typeInfo.GetType(expr)
+		ifaceName, ok := localNamedInterfaceTypeNameFromTypes(subjectType)
+		if !ok {
+			return true
+		}
+		named, ok := types.Unalias(subjectType).(*types.Named)
+		if !ok {
+			return true
+		}
+		ifaceType, ok := named.Underlying().(*types.Interface)
+		if !ok {
+			return true
+		}
+		ifaceType.Complete()
+		for _, clauseNode := range stmt.Body.List {
+			clause := clauseNode.(*ast.CaseClause)
+			for _, caseExpr := range clause.List {
+				if ident, ok := caseExpr.(*ast.Ident); ok && ident.Name == "nil" {
+					continue
+				}
+				record(ifaceName, ifaceType, typeInfo.GetType(caseExpr))
+			}
+		}
+		return true
+	})
+	return impls
+}
+
 func typeMethodsImplementTypesInterface(typeMethods []*ast.FuncDecl, iface *types.Interface) bool {
 	if iface == nil {
 		return false
@@ -358,6 +442,135 @@ func methodDeclByName(typeMethods []*ast.FuncDecl, name string) *ast.FuncDecl {
 		}
 	}
 	return nil
+}
+
+func writeExternalLocalInterfaceMethod(out *strings.Builder, methodName string, funcType *ast.FuncType) {
+	out.WriteString("    fn ")
+	out.WriteString(ToSnakeCase(methodName))
+	out.WriteString("(&self")
+	argNames := make([]string, 0)
+	if funcType.Params != nil {
+		argIndex := 0
+		for _, param := range funcType.Params.List {
+			names := param.Names
+			if len(names) == 0 {
+				names = []*ast.Ident{ast.NewIdent(fmt.Sprintf("arg%d", argIndex))}
+			}
+			for _, name := range names {
+				argNames = append(argNames, RustLocalIdent(name.Name))
+				out.WriteString(", ")
+				out.WriteString(RustLocalIdent(name.Name))
+				out.WriteString(": ")
+				out.WriteString(GoTypeToRustParam(param.Type))
+				argIndex++
+			}
+		}
+	}
+	out.WriteString(")")
+	if funcType.Results != nil && len(funcType.Results.List) > 0 {
+		out.WriteString(" -> ")
+		if len(funcType.Results.List) == 1 && len(funcType.Results.List[0].Names) <= 1 {
+			out.WriteString(GoTypeToRust(funcType.Results.List[0].Type))
+		} else {
+			out.WriteString("(")
+			first := true
+			for _, result := range funcType.Results.List {
+				count := len(result.Names)
+				if count == 0 {
+					count = 1
+				}
+				for range count {
+					if !first {
+						out.WriteString(", ")
+					}
+					first = false
+					out.WriteString(GoTypeToRust(result.Type))
+				}
+			}
+			out.WriteString(")")
+		}
+	}
+	out.WriteString(" {\n")
+	out.WriteString("        self.")
+	out.WriteString(ToSnakeCase(methodName))
+	out.WriteString("(")
+	for i, argName := range argNames {
+		if i > 0 {
+			out.WriteString(", ")
+		}
+		out.WriteString(argName)
+	}
+	out.WriteString(")\n")
+	out.WriteString("    }\n")
+}
+
+func writeExternalLocalInterfaceSupportImpl(out *strings.Builder, ifaceName, concreteType string) {
+	TrackImport("Any")
+	out.WriteString("    fn __go_clone_box(&self) -> ")
+	out.WriteString(rustLocalInterfaceTraitObject(ifaceName))
+	out.WriteString(" {\n")
+	out.WriteString("        Box::new(self.clone()) as ")
+	out.WriteString(rustLocalInterfaceTraitObject(ifaceName))
+	out.WriteString("\n")
+	out.WriteString("    }\n")
+	out.WriteString("    fn __go_as_any(&self) -> &dyn Any {\n")
+	out.WriteString("        self\n")
+	out.WriteString("    }\n")
+	out.WriteString("    fn __go_eq(&self, other: ")
+	out.WriteString(rustLocalInterfaceParam(ifaceName))
+	out.WriteString(") -> bool {\n")
+	out.WriteString("        if let Some(_other) = other.__go_as_any().downcast_ref::<")
+	out.WriteString(concreteType)
+	out.WriteString(">() {\n")
+	out.WriteString("            false\n")
+	out.WriteString("        } else {\n")
+	out.WriteString("            false\n")
+	out.WriteString("        }\n")
+	out.WriteString("    }\n")
+}
+
+func writeExternalLocalInterfaceImpls(out *strings.Builder, first *bool, impls map[string]map[string]externalLocalInterfaceImpl) {
+	if len(impls) == 0 {
+		return
+	}
+	var ifaceNames []string
+	for ifaceName := range impls {
+		ifaceNames = append(ifaceNames, ifaceName)
+	}
+	slices.Sort(ifaceNames)
+	for _, ifaceName := range ifaceNames {
+		var concreteTypes []string
+		for concreteType := range impls[ifaceName] {
+			concreteTypes = append(concreteTypes, concreteType)
+		}
+		slices.Sort(concreteTypes)
+		for _, concreteType := range concreteTypes {
+			impl := impls[ifaceName][concreteType]
+			if !*first {
+				out.WriteString("\n\n")
+			}
+			*first = false
+			out.WriteString("impl ")
+			out.WriteString(ifaceName)
+			out.WriteString(" for ")
+			out.WriteString(concreteType)
+			out.WriteString(" {\n")
+			if impl.ifaceAST != nil {
+				for _, method := range impl.ifaceAST.Methods.List {
+					if len(method.Names) == 0 {
+						continue
+					}
+					funcType, ok := method.Type.(*ast.FuncType)
+					if !ok {
+						continue
+					}
+					writeExternalLocalInterfaceMethod(out, method.Names[0].Name, funcType)
+				}
+			}
+			writeExternalLocalInterfaceSupportImpl(out, ifaceName, concreteType)
+			out.WriteString("}")
+		}
+	}
 }
 
 // trackGoImport tracks a Go import statement
@@ -822,6 +1035,7 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 	}
 	markComparableInterfaceImplementorStructs(types, methods, interfaces)
 	importedInterfaceImpls := importedInterfaceImplsForFile(file)
+	externalLocalInterfaceImpls := collectExternalLocalInterfaceImpls(file, interfaces)
 	for _, t := range types {
 		if !first {
 			body.WriteString("\n\n")
@@ -1028,6 +1242,8 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 		}
 		currentTypeMethods = previousTypeMethods
 	}
+
+	writeExternalLocalInterfaceImpls(&body, &first, externalLocalInterfaceImpls)
 
 	// Output regular functions
 	for _, fn := range functions {
