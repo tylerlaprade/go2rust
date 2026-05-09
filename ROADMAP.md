@@ -87,6 +87,7 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 - ✅ Array zero values - fixed array globals initialize through `std::array::from_fn`, including arrays larger than Rust's built-in `Default` implementations (global_fixed_array added, 2026-05-07)
 - ✅ Elided nested composite literals - nested slice/map composites and map-value indexing work (elided_nested_composites promoted, 2026-05-06)
 - ✅ Complex expressions - nested arithmetic, boolean, bitwise, closure-call, slice/map/field/pointer/type-assertion/channel operands evaluate with sequenced concurrent lock lifetimes (complex_expressions promoted, 2026-05-06)
+- ✅ Range wrapped call and pointer-array targets - range over slice-returning calls, `&array` targets, and nested reference range variables use borrowed slice views without adding duplicate references (range_wrapped_call_and_array_pointer promoted, 2026-05-09)
 - ✅ Concurrent len/cap comparisons - binary temp operands preserve bare builtin results instead of treating them as wrapped values (concurrent_len_comparison promoted, 2026-05-07)
 - ✅ len/cap with typed int peers - binary expressions cast bare length/capacity results to the transpiler's Go `int` representation when compared or combined with typed `int` values (len_typed_int_comparison promoted, 2026-05-07)
 - ✅ cap on wrapped slice fields - selector expressions such as `cap(pr.scratchRelocEnt)` unwrap the inner Vec before reading capacity, named slices use the cap helper, and arrays lower through `.len()` (cap_struct_slice_field promoted, 2026-05-09)

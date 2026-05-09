@@ -1042,6 +1042,10 @@ run_xfail_test() {
     run_test "tests/range_return_struct_value"
 }
 
+@test "range_wrapped_call_and_array_pointer" {
+    run_test "tests/range_wrapped_call_and_array_pointer"
+}
+
 @test "rate_limiting" {
     run_test "tests/rate_limiting"
 }

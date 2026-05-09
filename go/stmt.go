@@ -93,6 +93,15 @@ func isWrappedSliceRangeVar(name string) bool {
 	return strings.HasPrefix(varType, prefix)
 }
 
+func isReferenceRangeTarget(expr ast.Expr) bool {
+	ident, ok := expr.(*ast.Ident)
+	if !ok {
+		return false
+	}
+	varType, ok := rangeLoopVars[ident.Name]
+	return ok && (varType == "ref_value" || strings.HasPrefix(varType, "&"))
+}
+
 func rangeTargetNeedsWrappedSliceGuard(expr ast.Expr) bool {
 	switch e := expr.(type) {
 	case *ast.Ident:
@@ -100,6 +109,12 @@ func rangeTargetNeedsWrappedSliceGuard(expr ast.Expr) bool {
 		return !isRangeVar || isWrappedSliceRangeVar(e.Name)
 	case *ast.SelectorExpr:
 		return true
+	case *ast.CallExpr:
+		typeInfo := GetTypeInfo()
+		return typeInfo != nil && typeInfo.ReturnsWrappedValue(e)
+	case *ast.UnaryExpr:
+		typeInfo := GetTypeInfo()
+		return e.Op == token.AND && typeInfo != nil && typeInfo.IsPointerToArray(e)
 	default:
 		return false
 	}
@@ -3394,7 +3409,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			isString = typeInfo.IsString(s.X)
 			isInteger = isIntegerRangeExpr(typeInfo, s.X)
 			isSlice = typeInfo.IsSlice(s.X)
-			isArray = typeInfo.IsArray(s.X)
+			isArray = typeInfo.IsArray(s.X) || typeInfo.IsPointerToArray(s.X)
 			// Also check for string literals directly
 			if !isString {
 				if lit, ok := s.X.(*ast.BasicLit); ok && lit.Kind == token.STRING {
@@ -3733,6 +3748,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						if rangeValuesVar != "" {
 							out.WriteString(rangeValuesVar)
 							out.WriteString(".iter()")
+						} else if isReferenceRangeTarget(s.X) {
+							writeUnwrappedRangeTarget(out, s.X)
+							out.WriteString(".iter()")
 						} else {
 							out.WriteString("&")
 							writeUnwrappedRangeTarget(out, s.X)
@@ -3796,6 +3814,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					out.WriteString(" in ")
 					if rangeValuesVar != "" {
 						out.WriteString(rangeValuesVar)
+						out.WriteString(".iter()")
+					} else if isReferenceRangeTarget(s.X) {
+						writeUnwrappedRangeTarget(out, s.X)
 						out.WriteString(".iter()")
 					} else {
 						out.WriteString("&")

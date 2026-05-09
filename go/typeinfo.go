@@ -164,6 +164,20 @@ func (ti *TypeInfo) IsArray(expr ast.Expr) bool {
 	return ok
 }
 
+// IsPointerToArray returns true if the expression is a pointer to an array.
+func (ti *TypeInfo) IsPointerToArray(expr ast.Expr) bool {
+	typ := ti.GetType(expr)
+	if typ == nil {
+		return false
+	}
+	ptr, ok := typ.Underlying().(*types.Pointer)
+	if !ok {
+		return false
+	}
+	_, ok = ptr.Elem().Underlying().(*types.Array)
+	return ok
+}
+
 // GetStructType returns the underlying struct type for an expression, or nil.
 func (ti *TypeInfo) GetStructType(expr ast.Expr) *types.Struct {
 	typ := ti.GetType(expr)
@@ -283,6 +297,11 @@ func (ti *TypeInfo) GetArrayOrSliceElemType(expr ast.Expr) types.Type {
 		return t.Elem()
 	case *types.Array:
 		return t.Elem()
+	case *types.Pointer:
+		if array, ok := t.Elem().Underlying().(*types.Array); ok {
+			return array.Elem()
+		}
+		return nil
 	default:
 		return nil
 	}
