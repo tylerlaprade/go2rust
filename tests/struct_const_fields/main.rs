@@ -95,6 +95,48 @@ impl std::ops::Sub<Kind> for i8 {
     }
 }
 
+impl std::ops::BitAnd for Kind {
+    type Output = Kind;
+    fn bitand(self, other: Self) -> Kind {
+        Kind(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() & *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::BitAnd<i8> for Kind {
+    type Output = i8;
+    fn bitand(self, other: i8) -> i8 {
+        *self.0.borrow().as_ref().unwrap() & other
+    }
+}
+
+impl std::ops::BitAnd<Kind> for i8 {
+    type Output = i8;
+    fn bitand(self, other: Kind) -> i8 {
+        self & *other.0.borrow().as_ref().unwrap()
+    }
+}
+
+impl std::ops::BitOr for Kind {
+    type Output = Kind;
+    fn bitor(self, other: Self) -> Kind {
+        Kind(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() | *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::BitOr<i8> for Kind {
+    type Output = i8;
+    fn bitor(self, other: i8) -> i8 {
+        *self.0.borrow().as_ref().unwrap() | other
+    }
+}
+
+impl std::ops::BitOr<Kind> for i8 {
+    type Output = i8;
+    fn bitor(self, other: Kind) -> i8 {
+        self | *other.0.borrow().as_ref().unwrap()
+    }
+}
+
 
 #[derive(Debug, Clone, Default)]
 pub struct Version(pub Rc<RefCell<Option<i8>>>);
@@ -180,6 +222,48 @@ impl std::ops::Sub<Version> for i8 {
     type Output = i8;
     fn sub(self, other: Version) -> i8 {
         self - *other.0.borrow().as_ref().unwrap()
+    }
+}
+
+impl std::ops::BitAnd for Version {
+    type Output = Version;
+    fn bitand(self, other: Self) -> Version {
+        Version(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() & *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::BitAnd<i8> for Version {
+    type Output = i8;
+    fn bitand(self, other: i8) -> i8 {
+        *self.0.borrow().as_ref().unwrap() & other
+    }
+}
+
+impl std::ops::BitAnd<Version> for i8 {
+    type Output = i8;
+    fn bitand(self, other: Version) -> i8 {
+        self & *other.0.borrow().as_ref().unwrap()
+    }
+}
+
+impl std::ops::BitOr for Version {
+    type Output = Version;
+    fn bitor(self, other: Self) -> Version {
+        Version(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() | *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::BitOr<i8> for Version {
+    type Output = i8;
+    fn bitor(self, other: i8) -> i8 {
+        *self.0.borrow().as_ref().unwrap() | other
+    }
+}
+
+impl std::ops::BitOr<Version> for i8 {
+    type Output = i8;
+    fn bitor(self, other: Version) -> i8 {
+        self | *other.0.borrow().as_ref().unwrap()
     }
 }
 

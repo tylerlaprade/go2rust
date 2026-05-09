@@ -95,6 +95,48 @@ impl std::ops::Sub<Color> for i32 {
     }
 }
 
+impl std::ops::BitAnd for Color {
+    type Output = Color;
+    fn bitand(self, other: Self) -> Color {
+        Color(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() & *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::BitAnd<i32> for Color {
+    type Output = i32;
+    fn bitand(self, other: i32) -> i32 {
+        *self.0.borrow().as_ref().unwrap() & other
+    }
+}
+
+impl std::ops::BitAnd<Color> for i32 {
+    type Output = i32;
+    fn bitand(self, other: Color) -> i32 {
+        self & *other.0.borrow().as_ref().unwrap()
+    }
+}
+
+impl std::ops::BitOr for Color {
+    type Output = Color;
+    fn bitor(self, other: Self) -> Color {
+        Color(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() | *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::BitOr<i32> for Color {
+    type Output = i32;
+    fn bitor(self, other: i32) -> i32 {
+        *self.0.borrow().as_ref().unwrap() | other
+    }
+}
+
+impl std::ops::BitOr<Color> for i32 {
+    type Output = i32;
+    fn bitor(self, other: Color) -> i32 {
+        self | *other.0.borrow().as_ref().unwrap()
+    }
+}
+
 
 fn main() {
     println!("{} {}", "Red:".to_string(), RED);

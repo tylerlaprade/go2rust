@@ -96,6 +96,48 @@ impl std::ops::Sub<ServerState> for i32 {
     }
 }
 
+impl std::ops::BitAnd for ServerState {
+    type Output = ServerState;
+    fn bitand(self, other: Self) -> ServerState {
+        ServerState(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() & *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::BitAnd<i32> for ServerState {
+    type Output = i32;
+    fn bitand(self, other: i32) -> i32 {
+        *self.0.borrow().as_ref().unwrap() & other
+    }
+}
+
+impl std::ops::BitAnd<ServerState> for i32 {
+    type Output = i32;
+    fn bitand(self, other: ServerState) -> i32 {
+        self & *other.0.borrow().as_ref().unwrap()
+    }
+}
+
+impl std::ops::BitOr for ServerState {
+    type Output = ServerState;
+    fn bitor(self, other: Self) -> ServerState {
+        ServerState(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() | *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::BitOr<i32> for ServerState {
+    type Output = i32;
+    fn bitor(self, other: i32) -> i32 {
+        *self.0.borrow().as_ref().unwrap() | other
+    }
+}
+
+impl std::ops::BitOr<ServerState> for i32 {
+    type Output = i32;
+    fn bitor(self, other: ServerState) -> i32 {
+        self | *other.0.borrow().as_ref().unwrap()
+    }
+}
+
 
 pub(crate) struct GoGlobal<T> {
     value: std::cell::UnsafeCell<Option<T>>,

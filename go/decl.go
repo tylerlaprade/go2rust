@@ -1102,7 +1102,7 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 			if ident, ok := t.(*ast.Ident); ok && isEqualityComparableDefinedUnderlying(ident.Name) {
 				writeScalarTypeDefinitionPartialEq(out, typeSpec.Name.Name)
 				if rustType, ok := rustCastTypeForDefinedUnderlying(ident.Name); ok {
-					writeScalarTypeDefinitionNumericOps(out, typeSpec.Name.Name, rustType)
+					writeScalarTypeDefinitionNumericOps(out, typeSpec.Name.Name, rustType, ident.Name)
 				}
 			}
 		}
@@ -1145,11 +1145,15 @@ func writeScalarTypeDefinitionPartialEq(out *strings.Builder, typeName string) {
 	out.WriteString("}\n")
 }
 
-func writeScalarTypeDefinitionNumericOps(out *strings.Builder, typeName string, rustType string) {
+func writeScalarTypeDefinitionNumericOps(out *strings.Builder, typeName string, rustType string, underlying string) {
 	rustTypeName := RustTypeNameForUse(typeName)
 	writeScalarTypeDefinitionPartialOrd(out, rustTypeName, rustType)
-	writeScalarTypeDefinitionBinaryOp(out, rustTypeName, rustType, "Add", "add", "+")
-	writeScalarTypeDefinitionBinaryOp(out, rustTypeName, rustType, "Sub", "sub", "-")
+	writeScalarTypeDefinitionBinaryOp(out, rustTypeName, rustType, "Add", "add", "+", false)
+	writeScalarTypeDefinitionBinaryOp(out, rustTypeName, rustType, "Sub", "sub", "-", false)
+	if isBitwiseDefinedUnderlying(underlying) {
+		writeScalarTypeDefinitionBinaryOp(out, rustTypeName, rustType, "BitAnd", "bitand", "&", true)
+		writeScalarTypeDefinitionBinaryOp(out, rustTypeName, rustType, "BitOr", "bitor", "|", true)
+	}
 }
 
 func writeScalarTypeDefinitionPartialOrd(out *strings.Builder, rustTypeName string, rustType string) {
@@ -1222,27 +1226,46 @@ func writeScalarTypeDefinitionPartialOrd(out *strings.Builder, rustTypeName stri
 	out.WriteString("}\n")
 }
 
-func writeScalarTypeDefinitionBinaryOp(out *strings.Builder, rustTypeName string, rustType string, traitName string, methodName string, op string) {
+func writeScalarTypeDefinitionBinaryOp(out *strings.Builder, rustTypeName string, rustType string, traitName string, methodName string, op string, sameTypeOutput bool) {
 	out.WriteString("\nimpl std::ops::")
 	out.WriteString(traitName)
 	out.WriteString(" for ")
 	out.WriteString(rustTypeName)
 	out.WriteString(" {\n")
 	out.WriteString("    type Output = ")
-	out.WriteString(rustType)
+	if sameTypeOutput {
+		out.WriteString(rustTypeName)
+	} else {
+		out.WriteString(rustType)
+	}
 	out.WriteString(";\n")
 	out.WriteString("    fn ")
 	out.WriteString(methodName)
 	out.WriteString("(self, other: Self) -> ")
-	out.WriteString(rustType)
+	if sameTypeOutput {
+		out.WriteString(rustTypeName)
+	} else {
+		out.WriteString(rustType)
+	}
 	out.WriteString(" {\n")
-	out.WriteString("        *self.0")
+	out.WriteString("        ")
+	if sameTypeOutput {
+		out.WriteString(rustTypeName)
+		out.WriteString("(")
+		WriteWrapperPrefix(out)
+	}
+	out.WriteString("*self.0")
 	WriteBorrowMethod(out, false)
 	out.WriteString(".as_ref().unwrap() ")
 	out.WriteString(op)
 	out.WriteString(" *other.0")
 	WriteBorrowMethod(out, false)
-	out.WriteString(".as_ref().unwrap()\n")
+	out.WriteString(".as_ref().unwrap()")
+	if sameTypeOutput {
+		WriteWrapperSuffix(out)
+		out.WriteString(")")
+	}
+	out.WriteString("\n")
 	out.WriteString("    }\n")
 	out.WriteString("}\n")
 

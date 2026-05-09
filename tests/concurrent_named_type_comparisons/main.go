@@ -22,6 +22,10 @@ func (s *Symbol) isNotMethod() bool {
 	return s.Kind != Method
 }
 
+func (s Symbol) hasFieldFlag() bool {
+	return s.Kind&Field != 0 && s.Kind|Method != Invalid
+}
+
 func main() {
 	done := make(chan bool, 1)
 	sym := Symbol{Kind: Field}
@@ -30,4 +34,5 @@ func main() {
 	}()
 	fmt.Println(<-done)
 	fmt.Println(sym.isNotMethod())
+	fmt.Println(sym.hasFieldFlag())
 }

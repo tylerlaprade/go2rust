@@ -240,6 +240,48 @@ impl std::ops::Sub<Kind> for i8 {
     }
 }
 
+impl std::ops::BitAnd for Kind {
+    type Output = Kind;
+    fn bitand(self, other: Self) -> Kind {
+        Kind(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() & *other.0.lock().unwrap().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::BitAnd<i8> for Kind {
+    type Output = i8;
+    fn bitand(self, other: i8) -> i8 {
+        *self.0.lock().unwrap().as_ref().unwrap() & other
+    }
+}
+
+impl std::ops::BitAnd<Kind> for i8 {
+    type Output = i8;
+    fn bitand(self, other: Kind) -> i8 {
+        self & *other.0.lock().unwrap().as_ref().unwrap()
+    }
+}
+
+impl std::ops::BitOr for Kind {
+    type Output = Kind;
+    fn bitor(self, other: Self) -> Kind {
+        Kind(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() | *other.0.lock().unwrap().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::BitOr<i8> for Kind {
+    type Output = i8;
+    fn bitor(self, other: i8) -> i8 {
+        *self.0.lock().unwrap().as_ref().unwrap() | other
+    }
+}
+
+impl std::ops::BitOr<Kind> for i8 {
+    type Output = i8;
+    fn bitor(self, other: Kind) -> i8 {
+        self | *other.0.lock().unwrap().as_ref().unwrap()
+    }
+}
+
 
 #[derive(Debug, Clone, Default)]
 pub struct Symbol {
@@ -269,6 +311,10 @@ impl Symbol {
             Arc::new(Mutex::new(Some(__tmp_x != __tmp_y)))
         };
     }
+
+    pub fn has_field_flag(&self) -> Arc<Mutex<Option<bool>>> {
+        return Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = (*self.kind.clone().lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = Kind(Arc::new(Mutex::new(Some(FIELD as i8)))); __tmp_x & __tmp_y }; let __tmp_y = Kind(Arc::new(Mutex::new(Some(0 as i8)))); __tmp_x != __tmp_y } && { let __tmp_x = { let __tmp_x = (*self.kind.clone().lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = Kind(Arc::new(Mutex::new(Some(METHOD as i8)))); __tmp_x | __tmp_y }; let __tmp_y = Kind(Arc::new(Mutex::new(Some(INVALID as i8)))); __tmp_x != __tmp_y })));
+    }
 }
 
 fn main() {
@@ -279,4 +325,5 @@ fn main() {
     });
     println!("{}", done.recv().unwrap());
     println!("{}", (*(*sym.lock().unwrap().as_mut().unwrap()).is_not_method().lock().unwrap().as_ref().unwrap()));
+    println!("{}", (*(*sym.lock().unwrap().as_ref().unwrap()).has_field_flag().lock().unwrap().as_ref().unwrap()));
 }

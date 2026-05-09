@@ -60,6 +60,16 @@ func rustCastTypeForDefinedUnderlying(underlying string) (string, bool) {
 	}
 }
 
+func isBitwiseDefinedUnderlying(underlying string) bool {
+	switch underlying {
+	case "int", "int8", "int16", "int32", "int64", "rune",
+		"uint", "uint8", "uint16", "uint32", "uint64", "uintptr", "byte":
+		return true
+	default:
+		return false
+	}
+}
+
 func rustConstTypeForDefinedUnderlying(underlying string) (string, bool) {
 	switch underlying {
 	case "string":

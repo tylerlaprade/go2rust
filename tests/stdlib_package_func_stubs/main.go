@@ -18,6 +18,9 @@ func main() {
 		_ = types.Unalias(alias)
 		_ = binary.MaxVarintLen64
 		_ = types.Typ
+		dir := ast.SEND
+		dir = ast.SEND | ast.RECV
+		_ = dir
 	}
 	fmt.Println("ok")
 }
