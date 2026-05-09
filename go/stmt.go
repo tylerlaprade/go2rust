@@ -824,6 +824,41 @@ func returnResultTypeExpr(fnType *ast.FuncType, index int) ast.Expr {
 	return nil
 }
 
+func typeExprIsPointer(expr ast.Expr) bool {
+	if expr == nil {
+		return false
+	}
+	if _, ok := expr.(*ast.StarExpr); ok {
+		return true
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	typ := typeInfo.GetType(expr)
+	if typ == nil {
+		return false
+	}
+	_, ok := types.Unalias(typ).Underlying().(*types.Pointer)
+	return ok
+}
+
+func writePointerNamedReturnAssignment(out *strings.Builder, name *ast.Ident, resultType ast.Expr, rhs ast.Expr) bool {
+	if name == nil || name.Name == "_" || !typeExprIsPointer(resultType) {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || !typeInfo.IsPointer(rhs) {
+		return false
+	}
+	out.WriteString("{ let new_val = ")
+	TranspileExpressionContext(out, rhs, AddressOf)
+	out.WriteString(".clone(); ")
+	out.WriteString(RustLocalIdent(name.Name))
+	out.WriteString(" = new_val; }")
+	return true
+}
+
 func namedTypeForTypeExpr(expr ast.Expr) (*types.Named, bool) {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil || expr == nil {
@@ -1828,11 +1863,13 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					continue
 				}
 				out.WriteString("        ")
-				TranspileStatementSimple(out, &ast.AssignStmt{
-					Lhs: []ast.Expr{names[i]},
-					Tok: token.ASSIGN,
-					Rhs: []ast.Expr{result},
-				}, fnType, fileSet)
+				if !writePointerNamedReturnAssignment(out, names[i], returnResultTypeExpr(fnType, i), result) {
+					TranspileStatementSimple(out, &ast.AssignStmt{
+						Lhs: []ast.Expr{names[i]},
+						Tok: token.ASSIGN,
+						Rhs: []ast.Expr{result},
+					}, fnType, fileSet)
+				}
 				out.WriteString(";\n")
 			}
 			out.WriteString("        // Execute deferred functions\n")

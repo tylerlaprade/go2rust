@@ -988,6 +988,10 @@ run_xfail_test() {
     run_test "tests/named_integer_negative_index"
 }
 
+@test "named_pointer_defer_return" {
+    run_test "tests/named_pointer_defer_return"
+}
+
 @test "named_slice_field_method_argument" {
     run_test "tests/named_slice_field_method_argument"
 }

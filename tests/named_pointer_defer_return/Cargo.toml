@@ -1,0 +1,8 @@
+[package]
+name = "named_pointer_defer_return"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "named_pointer_defer_return"
+path = "main.rs"
