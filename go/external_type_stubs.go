@@ -23,6 +23,13 @@ type externalTypeStubMethod struct {
 	ReturnTypes []string
 }
 
+type externalPromotedMethod struct {
+	EmbeddedFieldName string
+	MethodName        string
+	RustMethodName    string
+	Signature         *types.Signature
+}
+
 type externalPackageStub struct {
 	Functions map[string]externalPackageStubFunction
 	Constants map[string]string
@@ -294,6 +301,97 @@ func RegisterExternalInterfaceMethodsForSource(source types.Type, iface *types.I
 		}
 		RegisterExternalTypeStubMethod(typeName, ToSnakeCase(method.Name()), sig)
 	}
+}
+
+func collectExternalPromotedMethods(structDef *StructDef, existing map[string]bool) []externalPromotedMethod {
+	if structDef == nil || structDef.ASTType == nil {
+		return nil
+	}
+
+	var promoted []externalPromotedMethod
+	for _, field := range structDef.ASTType.Fields.List {
+		if len(field.Names) > 0 {
+			continue
+		}
+		named, ok := externalEmbeddedNamed(field.Type)
+		if !ok {
+			continue
+		}
+
+		rustTypeName := goTypesNamedTypeToRust(named)
+		methodSet := types.NewMethodSet(types.NewPointer(named))
+		for i := 0; i < methodSet.Len(); i++ {
+			fn, ok := methodSet.At(i).Obj().(*types.Func)
+			if !ok || !fn.Exported() {
+				continue
+			}
+			methodName := fn.Name()
+			if existing[methodName] {
+				continue
+			}
+			sig, ok := fn.Type().(*types.Signature)
+			if !ok {
+				continue
+			}
+
+			rustMethodName := ToSnakeCase(methodName)
+			RegisterExternalTypeStubMethod(rustTypeName, rustMethodName, sig)
+			existing[methodName] = true
+			promoted = append(promoted, externalPromotedMethod{
+				EmbeddedFieldName: ToSnakeCase(getEmbeddedFieldName(field.Type)),
+				MethodName:        methodName,
+				RustMethodName:    rustMethodName,
+				Signature:         sig,
+			})
+		}
+	}
+
+	slices.SortFunc(promoted, func(a, b externalPromotedMethod) int {
+		if a.MethodName < b.MethodName {
+			return -1
+		}
+		if a.MethodName > b.MethodName {
+			return 1
+		}
+		return 0
+	})
+	return promoted
+}
+
+func externalEmbeddedNamed(expr ast.Expr) (*types.Named, bool) {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil || expr == nil {
+		return nil, false
+	}
+	if star, ok := expr.(*ast.StarExpr); ok {
+		return externalEmbeddedNamed(star.X)
+	}
+
+	var typ types.Type
+	if typ = typeInfo.GetType(expr); typ == nil {
+		if sel, ok := expr.(*ast.SelectorExpr); ok {
+			if obj, ok := typeInfo.info.Uses[sel.Sel].(*types.TypeName); ok {
+				typ = obj.Type()
+			}
+		}
+	}
+	if typ == nil {
+		return nil, false
+	}
+	if ptr, ok := types.Unalias(typ).(*types.Pointer); ok {
+		typ = ptr.Elem()
+	}
+	named, ok := types.Unalias(typ).(*types.Named)
+	if !ok || named.Obj() == nil || named.Obj().Pkg() == nil {
+		return nil, false
+	}
+	if !isStdlibPackage(named.Obj().Pkg().Path()) {
+		return nil, false
+	}
+	if isKnownStdlibHelperType(named.Obj().Pkg().Path(), named.Obj().Name()) {
+		return nil, false
+	}
+	return named, true
 }
 
 func externalSelectorReceiverNamed(recv types.Type) (*types.Named, bool) {

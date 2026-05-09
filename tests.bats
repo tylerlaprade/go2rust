@@ -624,6 +624,10 @@ run_xfail_test() {
     run_test "tests/else_if_init"
 }
 
+@test "embedded_external_method_promotion" {
+    run_test "tests/embedded_external_method_promotion"
+}
+
 @test "embedded_method_promotion" {
     run_test "tests/embedded_method_promotion"
 }

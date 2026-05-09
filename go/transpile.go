@@ -1025,6 +1025,67 @@ func generatePromotedMethod(out *strings.Builder, method *ast.FuncDecl, embedded
 	out.WriteString("    }\n")
 }
 
+func generateExternalPromotedMethod(out *strings.Builder, method externalPromotedMethod) {
+	sig := method.Signature
+	if sig == nil {
+		return
+	}
+	params := sig.Params()
+	results := sig.Results()
+
+	out.WriteString("    pub fn ")
+	out.WriteString(method.RustMethodName)
+	if params.Len() > 0 {
+		out.WriteString("<")
+		for i := 0; i < params.Len(); i++ {
+			if i > 0 {
+				out.WriteString(", ")
+			}
+			fmt.Fprintf(out, "T%d", i)
+		}
+		out.WriteString(">")
+	}
+	out.WriteString("(&self")
+	for i := 0; i < params.Len(); i++ {
+		fmt.Fprintf(out, ", _arg%d: T%d", i, i)
+	}
+	out.WriteString(")")
+	if results.Len() > 0 {
+		out.WriteString(" -> ")
+		if results.Len() == 1 {
+			out.WriteString(goTypesReturnTypeToRust(results.At(0).Type()))
+		} else {
+			out.WriteString("(")
+			for i := 0; i < results.Len(); i++ {
+				if i > 0 {
+					out.WriteString(", ")
+				}
+				out.WriteString(goTypesReturnTypeToRust(results.At(i).Type()))
+			}
+			out.WriteString(")")
+		}
+	}
+	out.WriteString(" {\n")
+	out.WriteString("        let embedded = self.")
+	out.WriteString(method.EmbeddedFieldName)
+	out.WriteString(".clone();\n")
+	out.WriteString("        let guard = embedded")
+	WriteBorrowMethod(out, false)
+	out.WriteString(";\n")
+	out.WriteString("        let embedded_ref = guard.as_ref().unwrap();\n")
+	out.WriteString("        embedded_ref.")
+	out.WriteString(method.RustMethodName)
+	out.WriteString("(")
+	for i := 0; i < params.Len(); i++ {
+		if i > 0 {
+			out.WriteString(", ")
+		}
+		fmt.Fprintf(out, "_arg%d", i)
+	}
+	out.WriteString(")\n")
+	out.WriteString("    }\n")
+}
+
 // getReceiverType extracts the type name from a receiver type expression
 func getReceiverType(expr ast.Expr) string {
 	switch t := expr.(type) {
@@ -1298,6 +1359,10 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 	// Also include types that have embedded types (for method promotion)
 	var typeNames []string
 	typesWithImpls := make(map[string]bool)
+	declaredTypeNames := make(map[string]bool)
+	for _, t := range types {
+		declaredTypeNames[t.spec.Name.Name] = true
+	}
 
 	// Add types that have methods
 	for typeName := range methods {
@@ -1307,7 +1372,7 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 
 	// Add types that have embedded types (even if they don't have their own methods)
 	for typeName, structDef := range structDefs {
-		if len(structDef.EmbeddedTypes) > 0 && !typesWithImpls[typeName] {
+		if declaredTypeNames[typeName] && len(structDef.EmbeddedTypes) > 0 && !typesWithImpls[typeName] {
 			typeNames = append(typeNames, typeName)
 			typesWithImpls[typeName] = true
 		}
@@ -1353,7 +1418,12 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 		}
 
 		// Generate promoted methods from embedded types
-		if structDef, exists := structDefs[typeName]; exists {
+		if structDef, exists := structDefs[typeName]; exists && declaredTypeNames[typeName] {
+			existingMethodNames := make(map[string]bool)
+			for _, ownMethod := range typeMethods {
+				existingMethodNames[ownMethod.Name.Name] = true
+			}
+
 			// Collect all methods that should be promoted (including from nested embeds)
 			promotedMethods := make(map[string]struct {
 				embeddedType string
@@ -1372,22 +1442,23 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 			for _, methodName := range promotedMethodNames {
 				methodInfo := promotedMethods[methodName]
 				// Check if this method is already defined by the outer type (shadowing)
-				shadowed := false
-				for _, ownMethod := range typeMethods {
-					if ownMethod.Name.Name == methodName {
-						shadowed = true
-						break
-					}
-				}
-
-				if !shadowed {
+				if !existingMethodNames[methodName] {
 					// Generate a forwarding method
 					if methodCount > 0 {
 						body.WriteString("\n")
 					}
 					generatePromotedMethod(&body, methodInfo.method, methodInfo.embeddedType)
+					existingMethodNames[methodName] = true
 					methodCount++
 				}
+			}
+
+			for _, promotedMethod := range collectExternalPromotedMethods(structDef, existingMethodNames) {
+				if methodCount > 0 {
+					body.WriteString("\n")
+				}
+				generateExternalPromotedMethod(&body, promotedMethod)
+				methodCount++
 			}
 		}
 

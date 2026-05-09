@@ -1,0 +1,8 @@
+[package]
+name = "embedded_external_method_promotion"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "embedded_external_method_promotion"
+path = "main.rs"
