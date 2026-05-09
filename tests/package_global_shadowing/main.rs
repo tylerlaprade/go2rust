@@ -27,7 +27,7 @@ pub(crate) static allValues: GoGlobal<i32> = GoGlobal::new();
 pub(crate) static copiedValue: GoGlobal<i32> = GoGlobal::new();
 
 
-pub(crate) fn __go_init_globals() {
+fn __go_init_globals() {
     *value.borrow_mut() = Some(0);
     *allValues.borrow_mut() = Some(0);
     *copiedValue.borrow_mut() = Some(0);
@@ -49,5 +49,5 @@ fn main() {
 }
 
 pub(crate) fn __go_init_all() {
-    __go_init_globals();
+    self::__go_init_globals();
 }

@@ -27,7 +27,7 @@ impl<T> GoGlobal<T> {
 pub static All: GoGlobal<Items> = GoGlobal::new();
 
 
-pub(crate) fn __go_init_globals() {
+fn __go_init_globals() {
     *All.borrow_mut() = Some(Default::default());
     *All.borrow_mut() = Some(Items(Rc::new(RefCell::new(Some(vec!["alpha".to_string(), "beta".to_string()])))));
 }
@@ -50,5 +50,5 @@ fn main() {
 }
 
 pub(crate) fn __go_init_all() {
-    __go_init_globals();
+    self::__go_init_globals();
 }

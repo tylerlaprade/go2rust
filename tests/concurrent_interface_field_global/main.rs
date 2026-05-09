@@ -53,7 +53,7 @@ impl std::fmt::Display for holder {
 pub(crate) static global: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<holder>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));
 
 
-pub(crate) fn __go_init_globals() {
+fn __go_init_globals() {
     *global.lock().unwrap() = Some(Default::default());
 }
 
@@ -67,5 +67,5 @@ fn main() {
 }
 
 pub(crate) fn __go_init_all() {
-    __go_init_globals();
+    self::__go_init_globals();
 }

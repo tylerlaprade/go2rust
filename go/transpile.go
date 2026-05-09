@@ -794,6 +794,7 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 	if len(globalVars) > 0 {
 		hasInitFunction = true
 	}
+	hasGlobals := hasNamedPackageGlobals(globalVars)
 	for _, fn := range functions {
 		registerFunctionSignatureDecl(fn)
 	}
@@ -834,7 +835,7 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 	emittedAnonymousStructs := make(map[string]bool)
 	writeAnonymousStructDefinitions(&body, &first, emittedAnonymousStructs)
 
-	if len(globalVars) > 0 {
+	if hasGlobals {
 		if !first {
 			body.WriteString("\n\n")
 		}
@@ -1045,7 +1046,7 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 		if !first {
 			body.WriteString("\n\n")
 		}
-		TranspilePackageInitAll(&body, len(globalVars) > 0, functionNames)
+		TranspilePackageInitAll(&body, hasGlobals, functionNames)
 	}
 
 	// Now build the final output with only needed imports

@@ -38,7 +38,7 @@ impl<T> GoGlobal<T> {
 pub(crate) static symbols: GoGlobal<BTreeMap<String, Rc<RefCell<Option<Vec<symbol>>>>>> = GoGlobal::new();
 
 
-pub(crate) fn __go_init_globals() {
+fn __go_init_globals() {
     *symbols.borrow_mut() = Some(BTreeMap::new());
     {
         let mut __go_map = BTreeMap::<String, Rc<RefCell<Option<Vec<symbol>>>>>::new();
@@ -67,5 +67,5 @@ fn main() {
 }
 
 pub(crate) fn __go_init_all() {
-    __go_init_globals();
+    self::__go_init_globals();
 }

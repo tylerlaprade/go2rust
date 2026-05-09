@@ -1,4 +1,4 @@
-pub fn __go_init_0() {
+fn __go_init_0() {
     println!("{}", "main package init".to_string());
 }
 
@@ -8,5 +8,5 @@ fn main() {
 }
 
 pub(crate) fn __go_init_all() {
-    __go_init_0();
+    self::__go_init_0();
 }

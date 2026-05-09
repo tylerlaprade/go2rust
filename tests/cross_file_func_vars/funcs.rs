@@ -33,7 +33,7 @@ pub static DivMod: GoGlobal<Box<dyn Fn(Rc<RefCell<Option<i32>>>, Rc<RefCell<Opti
 pub static DynamicFunc: GoGlobal<Box<dyn Fn(Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>>>> = GoGlobal::new();
 
 
-pub(crate) fn __go_init_globals() {
+fn __go_init_globals() {
     *ProcessData.borrow_mut() = Some(Box::new(move |x: Rc<RefCell<Option<i32>>>| -> Rc<RefCell<Option<i32>>> {
         return {
             let __tmp_x = (*x.borrow().as_ref().unwrap());
@@ -86,7 +86,7 @@ pub fn make_multiplier(factor: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<Bo
     }) as Box<dyn Fn(Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>>)));
 }
 
-pub fn __go_init_0() {
+fn __go_init_0() {
         // Assign function to variable in init
     { let new_val = Box::new(move |s: Rc<RefCell<Option<String>>>| -> Rc<RefCell<Option<String>>> {
         return Rc::new(RefCell::new(Some(format!("Dynamic: {}", { let __v = (*s.borrow().as_ref().unwrap()).clone(); __v }))));
@@ -94,6 +94,6 @@ pub fn __go_init_0() {
 }
 
 pub(crate) fn __go_init_all() {
-    __go_init_globals();
-    __go_init_0();
+    self::__go_init_globals();
+    self::__go_init_0();
 }

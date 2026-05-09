@@ -29,7 +29,7 @@ pub(crate) static c: GoGlobal<i32> = GoGlobal::new();
 pub(crate) static d: GoGlobal<i32> = GoGlobal::new();
 
 
-pub(crate) fn __go_init_globals() {
+fn __go_init_globals() {
     *a.borrow_mut() = Some(0);
     *b.borrow_mut() = Some(0);
     *c.borrow_mut() = Some(0);
@@ -47,12 +47,12 @@ pub fn f() -> Rc<RefCell<Option<i32>>> {
     return d.clone();
 }
 
-pub fn __go_init_0() {
+fn __go_init_0() {
     println!("{}", "First init".to_string());
     { let mut guard = d.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
 }
 
-pub fn __go_init_1() {
+fn __go_init_1() {
     println!("{}", "Second init".to_string());
     print!("a={}, b={}, c={}, d={}\n", { let __v = (*a.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*b.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*c.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*d.borrow().as_ref().unwrap()).clone(); __v });
 }
@@ -63,7 +63,7 @@ fn main() {
 }
 
 pub(crate) fn __go_init_all() {
-    __go_init_globals();
-    __go_init_0();
-    __go_init_1();
+    self::__go_init_globals();
+    self::__go_init_0();
+    self::__go_init_1();
 }

@@ -31,7 +31,7 @@ pub static Groups: GoGlobal<BTreeMap<String, Rc<RefCell<Option<Vec<String>>>>>> 
 pub static Records: GoGlobal<Vec<BTreeMap<String, Rc<RefCell<Option<Box<dyn Any>>>>>>> = GoGlobal::new();
 
 
-pub(crate) fn __go_init_globals() {
+fn __go_init_globals() {
     *Users.borrow_mut() = Some(BTreeMap::new());
     *Numbers.borrow_mut() = Some(vec![]);
     *Groups.borrow_mut() = Some(BTreeMap::new());
@@ -64,5 +64,5 @@ pub(crate) fn __go_init_globals() {
 
 
 pub(crate) fn __go_init_all() {
-    __go_init_globals();
+    self::__go_init_globals();
 }

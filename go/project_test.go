@@ -1532,6 +1532,72 @@ func usedIdent() int {
 	}
 }
 
+func TestPackageInitAllQualifiesLocalInitHelpers(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+var count = 1
+
+func init() {
+	count = 2
+}
+`)
+
+	generator := NewProjectGenerator([]string{filepath.Join(tempDir, "main.go")})
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
+	for _, want := range []string{
+		"fn __go_init_globals()",
+		"fn __go_init_0()",
+		"self::__go_init_globals();",
+		"self::__go_init_0();",
+	} {
+		if !strings.Contains(mainRS, want) {
+			t.Fatalf("package init helper should be qualified as %q, got:\n%s", want, mainRS)
+		}
+	}
+	if strings.Contains(mainRS, "\n    __go_init_globals();") || strings.Contains(mainRS, "\n    __go_init_0();") {
+		t.Fatalf("package init helper calls should not be unqualified, got:\n%s", mainRS)
+	}
+}
+
+func TestBlankPackageVarDoesNotRequireGlobalInit(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+type Named interface {
+	Name() string
+}
+
+type thing struct{}
+
+func (*thing) Name() string { return "thing" }
+
+var _ Named = (*thing)(nil)
+`)
+
+	generator := NewProjectGenerator([]string{filepath.Join(tempDir, "main.go")})
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
+	if strings.Contains(mainRS, "__go_init_globals") {
+		t.Fatalf("blank package var should not require a missing global init helper, got:\n%s", mainRS)
+	}
+}
+
 func TestLocalAnonymousStructTypeEmitsDefinition(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod

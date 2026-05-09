@@ -161,7 +161,7 @@ impl<T> GoGlobal<T> {
 pub(crate) static stateName: GoGlobal<BTreeMap<i32, Rc<RefCell<Option<String>>>>> = GoGlobal::new();
 
 
-pub(crate) fn __go_init_globals() {
+fn __go_init_globals() {
     *stateName.borrow_mut() = Some(BTreeMap::new());
     {
         let mut __go_map = BTreeMap::<i32, Rc<RefCell<Option<String>>>>::new();
@@ -205,5 +205,5 @@ pub fn transition(s: Rc<RefCell<Option<ServerState>>>) -> Rc<RefCell<Option<Serv
 }
 
 pub(crate) fn __go_init_all() {
-    __go_init_globals();
+    self::__go_init_globals();
 }

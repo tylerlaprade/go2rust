@@ -591,7 +591,7 @@ func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.Fi
 	registerFunctionSignatureDecl(fn)
 
 	// Regular function
-	if fn.Name.Name != "main" {
+	if fn.Name.Name != "main" && fn.Name.Name != "init" {
 		out.WriteString("pub ")
 	}
 	out.WriteString("fn ")

@@ -36,7 +36,7 @@ impl<T> GoGlobal<T> {
 pub(crate) static items: GoGlobal<[item; 2]> = GoGlobal::new();
 
 
-pub(crate) fn __go_init_globals() {
+fn __go_init_globals() {
     *items.borrow_mut() = Some(std::array::from_fn(|_| Default::default()));
     *items.borrow_mut() = Some((*Rc::new(RefCell::new(Some([item { name: Rc::new(RefCell::new(Some("first".to_string()))), ..Default::default() }, item { name: Rc::new(RefCell::new(Some("second".to_string()))), ..Default::default() }]))).borrow().as_ref().unwrap()).clone());
 }
@@ -48,5 +48,5 @@ fn main() {
 }
 
 pub(crate) fn __go_init_all() {
-    __go_init_globals();
+    self::__go_init_globals();
 }

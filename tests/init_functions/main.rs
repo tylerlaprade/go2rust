@@ -48,7 +48,7 @@ pub(crate) static computedValue: GoGlobal<i32> = GoGlobal::new();
 pub(crate) static appConfig: GoGlobal<Config> = GoGlobal::new();
 
 
-pub(crate) fn __go_init_globals() {
+fn __go_init_globals() {
     *globalCounter.borrow_mut() = Some(0);
     *initialized.borrow_mut() = Some(false);
     *configData.borrow_mut() = Some(BTreeMap::new());
@@ -59,14 +59,14 @@ pub(crate) fn __go_init_globals() {
 
 
 /// First init function
-pub fn __go_init_0() {
+fn __go_init_0() {
     println!("{}", "First init function called".to_string());
     { let new_val = 10; *globalCounter.borrow_mut() = Some(new_val); };
     { let new_val = true; *initialized.borrow_mut() = Some(new_val); };
 }
 
 /// Second init function (they run in order)
-pub fn __go_init_1() {
+fn __go_init_1() {
     println!("{}", "Second init function called".to_string());
     { let mut guard = globalCounter.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 5); };
 
@@ -77,7 +77,7 @@ pub fn __go_init_1() {
 }
 
 /// Third init function
-pub fn __go_init_2() {
+fn __go_init_2() {
     println!("{}", "Third init function called".to_string());
     if (*initialized.borrow().as_ref().unwrap()) {
         print!("Global counter initialized to: {}\n", { let __v = (*globalCounter.borrow().as_ref().unwrap()).clone(); __v });
@@ -95,7 +95,7 @@ pub fn compute_initial_value() -> Rc<RefCell<Option<i32>>> {
 }
 
 /// Another init function that runs after variable initialization
-pub fn __go_init_3() {
+fn __go_init_3() {
     println!("{}", "Fourth init function called".to_string());
     print!("Computed value is: {}\n", { let __v = (*computedValue.borrow().as_ref().unwrap()).clone(); __v });
 
@@ -103,13 +103,13 @@ pub fn __go_init_3() {
     { let mut guard = computedValue.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 10); };
 }
 
-pub fn __go_init_4() {
+fn __go_init_4() {
     println!("{}", "Fifth init function - initializing app config".to_string());
     { let new_val = Config { name: Rc::new(RefCell::new(Some("Go2Rust Transpiler".to_string()))), version: Rc::new(RefCell::new(Some("0.1.0".to_string()))), debug: Rc::new(RefCell::new(Some(true))), ..Default::default() }; *appConfig.borrow_mut() = Some(new_val); };
 }
 
 /// Init function that might panic (for testing error handling)
-pub fn __go_init_5() {
+fn __go_init_5() {
     println!("{}", "Sixth init function - with potential panic handling".to_string());
     println!("{}", "Sixth init function completed successfully".to_string());
 }
@@ -119,7 +119,7 @@ pub fn setup_logging() {
     println!("{}", "Setting up logging system...".to_string());
 }
 
-pub fn __go_init_6() {
+fn __go_init_6() {
     println!("{}", "Seventh init function - setting up subsystems".to_string());
     setup_logging();
 
@@ -170,12 +170,12 @@ fn main() {
 }
 
 pub(crate) fn __go_init_all() {
-    __go_init_globals();
-    __go_init_0();
-    __go_init_1();
-    __go_init_2();
-    __go_init_3();
-    __go_init_4();
-    __go_init_5();
-    __go_init_6();
+    self::__go_init_globals();
+    self::__go_init_0();
+    self::__go_init_1();
+    self::__go_init_2();
+    self::__go_init_3();
+    self::__go_init_4();
+    self::__go_init_5();
+    self::__go_init_6();
 }

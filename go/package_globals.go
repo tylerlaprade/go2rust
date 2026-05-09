@@ -197,6 +197,23 @@ func collectPackageGlobals(globalVars []*ast.GenDecl) []packageGlobal {
 	return globals
 }
 
+func hasNamedPackageGlobals(globalVars []*ast.GenDecl) bool {
+	for _, genDecl := range globalVars {
+		for _, spec := range genDecl.Specs {
+			valueSpec, ok := spec.(*ast.ValueSpec)
+			if !ok {
+				continue
+			}
+			for _, name := range valueSpec.Names {
+				if name.Name != "_" {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
 func TranspilePackageGlobals(out *strings.Builder, globalVars []*ast.GenDecl) {
 	globals := collectPackageGlobals(globalVars)
 	if len(globals) == 0 {
@@ -247,7 +264,7 @@ func TranspilePackageGlobals(out *strings.Builder, globalVars []*ast.GenDecl) {
 }
 
 func transpilePackageGlobalInit(out *strings.Builder, globals []packageGlobal) {
-	out.WriteString("pub(crate) fn __go_init_globals() {\n")
+	out.WriteString("fn __go_init_globals() {\n")
 	for _, global := range globals {
 		if global.typ != nil {
 			if _, isFunc := global.typ.Underlying().(*types.Signature); isFunc {
@@ -503,7 +520,7 @@ func writePackageGlobalInitValue(out *strings.Builder, expr ast.Expr, targetType
 func TranspilePackageInitAll(out *strings.Builder, hasGlobals bool, initFunctionNames map[*ast.FuncDecl]string) {
 	out.WriteString("pub(crate) fn __go_init_all() {\n")
 	if hasGlobals {
-		out.WriteString("    __go_init_globals();\n")
+		out.WriteString("    self::__go_init_globals();\n")
 	}
 	initNames := make([]packageFunctionName, 0, len(initFunctionNames))
 	for fn, name := range initFunctionNames {
@@ -519,7 +536,7 @@ func TranspilePackageInitAll(out *strings.Builder, hasGlobals bool, initFunction
 		return initNames[i].pos < initNames[j].pos
 	})
 	for _, initName := range initNames {
-		out.WriteString("    ")
+		out.WriteString("    self::")
 		out.WriteString(initName.rustName)
 		out.WriteString("();\n")
 	}
