@@ -1708,6 +1708,9 @@ func writeWrappedStructFieldValue(out *strings.Builder, value ast.Expr, fieldExp
 			out.WriteString("Default::default()")
 			return
 		}
+		if writeCurrentReceiverPointerFieldValue(out, value, fieldExpr, fieldType) {
+			return
+		}
 		TranspileExpressionContext(out, value, LValue)
 		out.WriteString(".clone()")
 		return
@@ -1770,6 +1773,35 @@ func writeWrappedStructFieldValue(out *strings.Builder, value ast.Expr, fieldExp
 		}
 		WriteWrapperSuffix(out)
 	}
+}
+
+func writeCurrentReceiverPointerFieldValue(out *strings.Builder, value ast.Expr, fieldExpr ast.Expr, fieldType types.Type) bool {
+	ident, ok := value.(*ast.Ident)
+	if !ok || currentReceiver == "" || ident.Name != currentReceiver {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	expectedType := fieldType
+	if expectedType == nil && fieldExpr != nil {
+		expectedType = typeInfo.GetType(fieldExpr)
+	}
+	if expectedType == nil {
+		return false
+	}
+	if _, ok := types.Unalias(expectedType).Underlying().(*types.Pointer); !ok {
+		return false
+	}
+	valueType := typeInfo.GetType(value)
+	if valueType == nil || !types.AssignableTo(valueType, expectedType) {
+		return false
+	}
+	WriteWrapperPrefix(out)
+	out.WriteString("self.clone()")
+	WriteWrapperSuffix(out)
+	return true
 }
 
 func localInterfaceNameFromExpected(fieldExpr ast.Expr, fieldType types.Type) (string, bool) {

@@ -1038,6 +1038,10 @@ run_xfail_test() {
     run_test "tests/raw_string_literals"
 }
 
+@test "receiver_pointer_field_literal" {
+    run_test "tests/receiver_pointer_field_literal"
+}
+
 @test "recursion_basic" {
     run_test "tests/recursion_basic"
 }

@@ -1,0 +1,8 @@
+[package]
+name = "receiver_pointer_field_literal"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "receiver_pointer_field_literal"
+path = "main.rs"
