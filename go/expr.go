@@ -819,6 +819,18 @@ func writeStdlibInterfaceCallArgumentConversion(out *strings.Builder, arg ast.Ex
 	return true
 }
 
+func writeStdlibInterfaceBareConversion(out *strings.Builder, arg ast.Expr, expectedType types.Type) bool {
+	if _, _, ok := stdlibInterfaceArgumentConversion(arg, expectedType); !ok {
+		return false
+	}
+	out.WriteString("{ let __arg = ")
+	writeStdlibInterfaceSourceHandle(out, arg)
+	out.WriteString("; let __arg_guard = __arg")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; (*__arg_guard.as_ref().unwrap()).clone().into() }")
+	return true
+}
+
 func writeStdlibInterfaceSourceHandle(out *strings.Builder, arg ast.Expr) {
 	if ident, ok := arg.(*ast.Ident); ok {
 		argVarName := RustIdentForUse(ident)
@@ -1465,6 +1477,10 @@ func writeWrappedStructFieldValue(out *strings.Builder, value ast.Expr, fieldExp
 		return
 	}
 
+	if writeStdlibInterfaceCallArgumentConversion(out, value, fieldType) {
+		return
+	}
+
 	if isEmptyInterfaceExpr(fieldExpr) || isEmptyInterfaceType(fieldType) {
 		if writeEmptyInterfaceHandleClone(out, value) {
 			return
@@ -1718,6 +1734,9 @@ func isChannelFieldType(typ types.Type) bool {
 }
 
 func writeExpressionForExpectedTypesType(out *strings.Builder, value ast.Expr, expected types.Type) bool {
+	if writeStdlibInterfaceBareConversion(out, value, expected) {
+		return true
+	}
 	named, ok := expected.(*types.Named)
 	if !ok {
 		return false

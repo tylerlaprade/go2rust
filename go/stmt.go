@@ -532,6 +532,10 @@ func writeStdlibInterfaceIdentReturnConversion(out *strings.Builder, ident *ast.
 }
 
 func writeStdlibInterfaceReturnConversion(out *strings.Builder, result ast.Expr, expected ast.Expr) bool {
+	if writeStdlibInterfaceCallArgumentConversion(out, result, expectedTypeFromParamExpr(expected)) {
+		return true
+	}
+
 	unaryExpr, ok := result.(*ast.UnaryExpr)
 	if !ok || unaryExpr.Op != token.AND {
 		return false
@@ -1395,6 +1399,10 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							WriteWrapperSuffix(out)
 						}
 					} else if callExpr, ok := result.(*ast.CallExpr); ok {
+						if writeStdlibInterfaceReturnConversion(out, result, returnResultTypeExpr(fnType, i)) {
+							continue
+						}
+
 						// Check if this is a function that returns an already-wrapped value
 						needsWrapping := true
 
