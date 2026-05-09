@@ -1786,7 +1786,8 @@ func typesStructLiteralName(typ types.Type, structUnder *types.Struct) string {
 	return lookupAnonymousStructName(structUnder)
 }
 
-func writeTypesStructCompositeLiteral(out *strings.Builder, structTypeName string, structUnder *types.Struct, elts []ast.Expr) {
+func writeTypesStructCompositeLiteral(out *strings.Builder, structTypeName string, structType types.Type, structUnder *types.Struct, elts []ast.Expr) {
+	registerExternalStructCompositeLiteralFields(structType, structUnder, elts)
 	out.WriteString(structTypeName)
 	out.WriteString(" { ")
 
@@ -1833,6 +1834,61 @@ func writeTypesStructCompositeLiteral(out *strings.Builder, structTypeName strin
 	}
 	out.WriteString("..Default::default()")
 	out.WriteString(" }")
+}
+
+func registerExternalStructCompositeLiteralFields(structType types.Type, structUnder *types.Struct, elts []ast.Expr) {
+	if structType == nil || structUnder == nil {
+		return
+	}
+	if ptr, ok := structType.(*types.Pointer); ok {
+		structType = ptr.Elem()
+	}
+	named, ok := types.Unalias(structType).(*types.Named)
+	if !ok || named.Obj() == nil || named.Obj().Pkg() == nil {
+		return
+	}
+	if !isStdlibPackage(named.Obj().Pkg().Path()) {
+		return
+	}
+	if isKnownStdlibHelperType(named.Obj().Pkg().Path(), named.Obj().Name()) {
+		return
+	}
+
+	typeName := goTypesNamedTypeToRust(named)
+	allPositional := true
+	for _, elt := range elts {
+		if _, ok := elt.(*ast.KeyValueExpr); ok {
+			allPositional = false
+			break
+		}
+	}
+	if allPositional {
+		for i := range elts {
+			if i >= structUnder.NumFields() {
+				break
+			}
+			field := structUnder.Field(i)
+			RegisterExternalTypeStubField(typeName, ToSnakeCase(field.Name()), field.Type())
+		}
+		return
+	}
+	for _, elt := range elts {
+		kv, ok := elt.(*ast.KeyValueExpr)
+		if !ok {
+			continue
+		}
+		key, ok := kv.Key.(*ast.Ident)
+		if !ok {
+			continue
+		}
+		for i := 0; i < structUnder.NumFields(); i++ {
+			field := structUnder.Field(i)
+			if field.Name() == key.Name {
+				RegisterExternalTypeStubField(typeName, ToSnakeCase(field.Name()), field.Type())
+				break
+			}
+		}
+	}
 }
 
 func writeWrappedMapValue(out *strings.Builder, value ast.Expr, valueExpr ast.Expr, valueType types.Type) {
@@ -3251,7 +3307,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 							out.WriteString("unimplemented!()")
 							return
 						}
-						writeTypesStructCompositeLiteral(out, structTypeName, structUnder, e.Elts)
+						writeTypesStructCompositeLiteral(out, structTypeName, typ, structUnder, e.Elts)
 						return
 					case *types.Pointer:
 						ptr := typ.Underlying().(*types.Pointer)
@@ -3263,7 +3319,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 								return
 							}
 							WriteWrapperPrefix(out)
-							writeTypesStructCompositeLiteral(out, structTypeName, structUnder, e.Elts)
+							writeTypesStructCompositeLiteral(out, structTypeName, ptr.Elem(), structUnder, e.Elts)
 							WriteWrapperSuffix(out)
 							return
 						}
@@ -3286,7 +3342,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					if structUnder, ok := typ.Underlying().(*types.Struct); ok {
 						structTypeName := typesStructLiteralName(typ, structUnder)
 						if structTypeName != "" {
-							writeTypesStructCompositeLiteral(out, structTypeName, structUnder, e.Elts)
+							writeTypesStructCompositeLiteral(out, structTypeName, typ, structUnder, e.Elts)
 							return
 						}
 					}
@@ -4578,6 +4634,11 @@ func writeNumericConversionValue(out *strings.Builder, arg ast.Expr) {
 		out.WriteString(RustIdentForUse(ident))
 		WriteBorrowMethod(out, false)
 		out.WriteString(".as_ref().unwrap())")
+		writeExternalIntegerTupleField(out, argType)
+		return
+	}
+	if sel, ok := arg.(*ast.SelectorExpr); ok && isPackageConstSelector(sel) {
+		TranspileExpression(out, arg)
 		writeExternalIntegerTupleField(out, argType)
 		return
 	}

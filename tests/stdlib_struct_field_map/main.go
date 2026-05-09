@@ -20,5 +20,11 @@ func main() {
 			file: "go1.22",
 		},
 	}
+	_ = &types.Info{
+		Instances: map[*ast.Ident]types.Instance{},
+		Implicits: map[ast.Node]types.Object{},
+		Scopes:    map[ast.Node]*types.Scope{},
+	}
+	_ = &ast.ChanType{Dir: ast.SEND}
 	fmt.Println(version(info, file))
 }
