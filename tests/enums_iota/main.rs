@@ -192,11 +192,11 @@ fn main() {
 pub fn transition(s: Rc<RefCell<Option<ServerState>>>) -> Rc<RefCell<Option<ServerState>>> {
 
     { let _switch_val = (*s.borrow().as_ref().unwrap()).clone();
-    if _switch_val == (STATE_IDLE) {
+    if _switch_val == (ServerState(Rc::new(RefCell::new(Some(STATE_IDLE as i32))))) {
             return Rc::new(RefCell::new(Some(ServerState(Rc::new(RefCell::new(Some(STATE_CONNECTED as i32)))))));
-        } else if _switch_val == (STATE_CONNECTED) || _switch_val == (STATE_RETRYING) {
+        } else if _switch_val == (ServerState(Rc::new(RefCell::new(Some(STATE_CONNECTED as i32))))) || _switch_val == (ServerState(Rc::new(RefCell::new(Some(STATE_RETRYING as i32))))) {
             return Rc::new(RefCell::new(Some(ServerState(Rc::new(RefCell::new(Some(STATE_IDLE as i32)))))));
-        } else if _switch_val == (STATE_ERROR) {
+        } else if _switch_val == (ServerState(Rc::new(RefCell::new(Some(STATE_ERROR as i32))))) {
             return Rc::new(RefCell::new(Some(ServerState(Rc::new(RefCell::new(Some(STATE_ERROR as i32)))))));
         } else {
             panic!("unknown state: {}", { let __v = (*s.borrow().as_ref().unwrap()).clone(); __v });

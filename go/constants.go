@@ -104,6 +104,9 @@ func constExpressionInt64Value(expr ast.Expr) (int64, bool) {
 }
 
 func writeConstExpressionForExpectedGoType(out *strings.Builder, value ast.Expr, expected types.Type) bool {
+	if writeConstExpressionForExpectedNamedInteger(out, value, expected) {
+		return true
+	}
 	if !isByteLikeGoType(expected) {
 		return false
 	}
@@ -126,12 +129,52 @@ func writeConstExpressionForExpectedGoType(out *strings.Builder, value ast.Expr,
 	return true
 }
 
+func writeConstExpressionForExpectedNamedInteger(out *strings.Builder, value ast.Expr, expected types.Type) bool {
+	if !isConstantExpression(value) {
+		return false
+	}
+	named, ok := constNamedIntegerTargetType(value, expected)
+	if !ok {
+		return false
+	}
+	return writeExpressionForExpectedTypesType(out, value, named)
+}
+
+func constNamedIntegerTargetType(value ast.Expr, expected types.Type) (*types.Named, bool) {
+	named, ok := types.Unalias(expected).(*types.Named)
+	if !ok && expected == nil {
+		typeInfo := GetTypeInfo()
+		if typeInfo == nil {
+			return nil, false
+		}
+		named, ok = types.Unalias(typeInfo.GetType(value)).(*types.Named)
+	}
+	if !ok || named.Obj() == nil || !isNamedIntegerType(named) {
+		return nil, false
+	}
+	if _, isTypeDef := LookupTypeDefinition(named.Obj().Name()); !isTypeDef {
+		typeInfo := GetTypeInfo()
+		isCurrentPackageType := typeInfo != nil && typeInfo.pkg != nil && named.Obj().Pkg() == typeInfo.pkg
+		isKnownStdlibHelper := named.Obj().Pkg() != nil && isKnownStdlibHelperType(named.Obj().Pkg().Path(), named.Obj().Name())
+		_, isExternalInteger := externalIntegerRustTypeForNamed(named)
+		isExternalInteger = isExternalInteger && !isKnownStdlibHelper
+		if !isCurrentPackageType && !isExternalInteger {
+			return nil, false
+		}
+	}
+	return named, true
+}
+
 func writeConstExpressionForBinaryPeer(out *strings.Builder, expr ast.Expr, other ast.Expr) bool {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil {
 		return false
 	}
-	return writeConstExpressionForExpectedGoType(out, expr, typeInfo.GetType(other))
+	expected := typeInfo.GetType(other)
+	if named, ok := types.Unalias(expected).(*types.Named); ok && isNamedIntegerType(named) {
+		return false
+	}
+	return writeConstExpressionForExpectedGoType(out, expr, expected)
 }
 
 func writeSwitchCaseValueForTag(out *strings.Builder, expr ast.Expr, tag ast.Expr) {

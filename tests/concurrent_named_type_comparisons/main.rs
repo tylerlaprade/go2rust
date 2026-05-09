@@ -318,9 +318,9 @@ impl Symbol {
 
     pub fn kind_name(&self) -> Arc<Mutex<Option<String>>> {
         { let _switch_val = (*self.kind.clone().lock().unwrap().as_ref().unwrap()).clone();
-    if _switch_val == (FIELD) {
+    if _switch_val == (Kind(Arc::new(Mutex::new(Some(FIELD as i8))))) {
             return Arc::new(Mutex::new(Some("field".to_string())));
-        } else if _switch_val == (METHOD) {
+        } else if _switch_val == (Kind(Arc::new(Mutex::new(Some(METHOD as i8))))) {
             return Arc::new(Mutex::new(Some("method".to_string())));
         } else {
             return Arc::new(Mutex::new(Some("invalid".to_string())));

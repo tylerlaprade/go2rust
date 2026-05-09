@@ -164,7 +164,7 @@ pub fn int_value() -> Arc<Mutex<Option<i32>>> {
 pub fn kind_name() -> Arc<Mutex<Option<String>>> {
 
     { let _switch_val = { let __v = kind(); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned };
-    if _switch_val == (types::INT.clone()) {
+    if _switch_val == (types_BasicKind(types::INT.0 as i32)) {
             return Arc::new(Mutex::new(Some("int".to_string())));
         } else {
             return Arc::new(Mutex::new(Some("other".to_string())));

@@ -546,6 +546,10 @@ run_xfail_test() {
     run_test "tests/cross_file_methods"
 }
 
+@test "cross_file_named_integer_const_arguments" {
+    run_test "tests/cross_file_named_integer_const_arguments"
+}
+
 @test "cross_file_types" {
     run_test "tests/cross_file_types"
 }
@@ -884,6 +888,10 @@ run_xfail_test() {
 
 @test "mutex_guard_method_call" {
     run_test "tests/mutex_guard_method_call"
+}
+
+@test "named_integer_const_arguments" {
+    run_test "tests/named_integer_const_arguments"
 }
 
 @test "named_integer_conversion" {

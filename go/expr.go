@@ -848,6 +848,9 @@ func selectedMethodParamType(sel *ast.SelectorExpr, index int) types.Type {
 	if !ok {
 		return nil
 	}
+	if sig, ok := signatureFromType(selection.Type()); ok && sig.Params() != nil && index < sig.Params().Len() {
+		return sig.Params().At(index).Type()
+	}
 	fn, ok := selection.Obj().(*types.Func)
 	if !ok {
 		return nil
