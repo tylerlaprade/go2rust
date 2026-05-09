@@ -1,0 +1,8 @@
+[package]
+name = "named_string_conversions"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "named_string_conversions"
+path = "main.rs"

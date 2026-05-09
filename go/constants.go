@@ -57,7 +57,11 @@ func writeExpressionForExpectedType(out *strings.Builder, value ast.Expr, expect
 		}
 		return false
 	}
-	out.WriteString(expectedIdent.Name)
+	if underlying == "string" {
+		writeStringTypeDefinitionConstructor(out, RustTypeNameForUse(expectedIdent.Name), value)
+		return true
+	}
+	out.WriteString(RustTypeNameForUse(expectedIdent.Name))
 	out.WriteString("(")
 	WriteWrapperPrefix(out)
 	TranspileExpression(out, value)

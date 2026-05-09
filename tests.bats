@@ -878,6 +878,10 @@ run_xfail_test() {
     run_test "tests/named_slice_pointer_append"
 }
 
+@test "named_string_conversions" {
+    run_test "tests/named_string_conversions"
+}
+
 @test "named_type_comparisons" {
     run_test "tests/named_type_comparisons"
 }

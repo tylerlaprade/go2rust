@@ -1770,6 +1770,10 @@ func writeExpressionForExpectedTypesType(out *strings.Builder, value ast.Expr, e
 	if !ok {
 		return false
 	}
+	if basic.Name() == "string" {
+		writeStringTypeDefinitionConstructor(out, goTypesNamedTypeToRust(named), value)
+		return true
+	}
 	out.WriteString(goTypesNamedTypeToRust(named))
 	out.WriteString("(")
 	WriteWrapperPrefix(out)
@@ -4483,16 +4487,20 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 		return
 	default:
 		// Check for custom type definitions
-		if _, isTypeDef := LookupTypeDefinition(targetType); isTypeDef {
+		if underlying, isTypeDef := LookupTypeDefinition(targetType); isTypeDef {
 			if writeUnsafePointerTypeDefinitionConversion(out, call, targetType) {
 				return
 			}
 			// Custom type definition
-			out.WriteString(RustTypeNameForUse(targetType))
-			out.WriteString("(")
-			WriteWrapperPrefix(out)
-			TranspileExpression(out, call.Args[0])
-			out.WriteString("))))")
+			if underlying == "string" {
+				writeStringTypeDefinitionConstructor(out, RustTypeNameForUse(targetType), call.Args[0])
+			} else {
+				out.WriteString(RustTypeNameForUse(targetType))
+				out.WriteString("(")
+				WriteWrapperPrefix(out)
+				TranspileExpression(out, call.Args[0])
+				out.WriteString("))))")
+			}
 			return
 		}
 		// Unknown type, just pass through
@@ -4682,6 +4690,87 @@ func externalIntegerConversionTarget(call *ast.CallExpr) (*types.Named, string, 
 	}
 	rustType, ok := externalIntegerRustTypeForNamed(named)
 	return named, rustType, ok
+}
+
+func writeUnwrappedSliceClone(out *strings.Builder, arg ast.Expr) {
+	if ident, ok := arg.(*ast.Ident); ok && ident.Name != "nil" {
+		out.WriteString("(*")
+		out.WriteString(RustIdentForUse(ident))
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap()).clone()")
+		return
+	}
+	out.WriteString("(*")
+	TranspileExpression(out, arg)
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap()).clone()")
+}
+
+func writeStringTypeDefinitionInnerValue(out *strings.Builder, arg ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	var argType types.Type
+	if typeInfo != nil {
+		argType = typeInfo.GetType(arg)
+	}
+	if argType != nil {
+		if slice, ok := types.Unalias(argType).Underlying().(*types.Slice); ok {
+			if basic, ok := types.Unalias(slice.Elem()).(*types.Basic); ok {
+				switch basic.Kind() {
+				case types.Uint8:
+					out.WriteString("String::from_utf8(")
+					writeUnwrappedSliceClone(out, arg)
+					out.WriteString(").unwrap()")
+					return true
+				case types.Int32:
+					out.WriteString("(*")
+					if ident, ok := arg.(*ast.Ident); ok && ident.Name != "nil" {
+						out.WriteString(RustIdentForUse(ident))
+					} else {
+						TranspileExpression(out, arg)
+					}
+					WriteBorrowMethod(out, false)
+					out.WriteString(".as_ref().unwrap()).iter().map(|&c| char::from_u32(c as u32).unwrap()).collect::<String>()")
+					return true
+				}
+			}
+		}
+	}
+	if lit, ok := arg.(*ast.BasicLit); ok && lit.Kind == token.STRING {
+		out.WriteString(RustStringLiteral(lit.Value))
+		out.WriteString(".to_string()")
+		return true
+	}
+	if call, ok := arg.(*ast.CallExpr); ok && typeInfo != nil && typeInfo.ReturnsWrappedValue(call) && !isBareBuiltinReturn(call) && !callReturnsBareChannelValue(call) && (!typeInfo.IsTypeConversion(call) || typeConversionEmitsWrappedValue(call)) {
+		out.WriteString("(*")
+		TranspileExpression(out, arg)
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap()).clone()")
+		return true
+	}
+	if ident, ok := arg.(*ast.Ident); ok && ident.Name != "nil" {
+		if _, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar {
+			out.WriteString(RustIdentForUse(ident))
+			out.WriteString(".to_string()")
+			return true
+		}
+		out.WriteString("(*")
+		out.WriteString(RustIdentForUse(ident))
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap()).clone()")
+		return true
+	}
+	return false
+}
+
+func writeStringTypeDefinitionConstructor(out *strings.Builder, rustTypeName string, arg ast.Expr) {
+	out.WriteString(rustTypeName)
+	out.WriteString("(")
+	WriteWrapperPrefix(out)
+	if !writeStringTypeDefinitionInnerValue(out, arg) {
+		TranspileExpression(out, arg)
+	}
+	WriteWrapperSuffix(out)
+	out.WriteString(")")
 }
 
 func writeStringConversionSource(out *strings.Builder, arg ast.Expr) {
