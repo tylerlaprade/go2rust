@@ -1664,7 +1664,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 			// Set up capture renames for this statement
 			oldCaptureRenames := currentCaptureRenames
-			currentCaptureRenames = captureInfo.CapturedVars
+			currentCaptureRenames = mergeCaptureRenames(oldCaptureRenames, captureInfo.CapturedVars)
 			defer func() { currentCaptureRenames = oldCaptureRenames }()
 		}
 	}

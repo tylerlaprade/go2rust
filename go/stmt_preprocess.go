@@ -307,25 +307,42 @@ func (sp *StatementPreprocessor) GenerateCloneStatements(out *strings.Builder, i
 	// Generate clone statements
 	for _, varName := range varNames {
 		cloneName := info.CapturedVars[varName]
+		sourceName := varName
+		if currentCaptureRenames != nil {
+			if renamed, exists := currentCaptureRenames[varName]; exists {
+				sourceName = renamed
+				cloneName = renamed + "_closure_clone"
+				info.CapturedVars[varName] = cloneName
+			}
+		}
+
 		out.WriteString("let ")
 		if currentReceiver != "" && varName == currentReceiver {
 			out.WriteString("mut ")
 		}
 		out.WriteString(RustLocalIdent(cloneName))
 		out.WriteString(" = ")
-		if currentCaptureRenames != nil {
-			if renamed, exists := currentCaptureRenames[varName]; exists {
-				out.WriteString(RustLocalIdent(renamed))
-			} else {
-				out.WriteString(RustLocalIdent(varName))
-			}
-		} else if currentReceiver != "" && varName == currentReceiver {
+		if currentReceiver != "" && varName == currentReceiver && sourceName == varName {
 			out.WriteString("self")
 		} else {
-			out.WriteString(RustLocalIdent(varName))
+			out.WriteString(RustLocalIdent(sourceName))
 		}
 		out.WriteString(".clone(); ")
 	}
+}
+
+func mergeCaptureRenames(outer map[string]string, inner map[string]string) map[string]string {
+	if len(outer) == 0 {
+		return inner
+	}
+	merged := make(map[string]string, len(outer)+len(inner))
+	for name, renamed := range outer {
+		merged[name] = renamed
+	}
+	for name, renamed := range inner {
+		merged[name] = renamed
+	}
+	return merged
 }
 
 // GetCaptureRenames returns the variable rename map for a statement

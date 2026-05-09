@@ -1,0 +1,8 @@
+[package]
+name = "nested_closure_type_assert_capture"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "nested_closure_type_assert_capture"
+path = "main.rs"

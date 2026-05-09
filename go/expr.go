@@ -4564,7 +4564,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			out.WriteString("        let val = ")
 			// Check if e.X is an identifier (simple variable)
 			if ident, ok := e.X.(*ast.Ident); ok && ident.Name != "nil" {
-				out.WriteString(ident.Name)
+				out.WriteString(rustIdentForUseWithCapture(ident))
 			} else {
 				TranspileExpressionContext(out, e.X, LValue)
 			}
@@ -5551,7 +5551,7 @@ func staticallyKnownInterfaceAssertionSource(e *ast.TypeAssertExpr) (ast.Expr, b
 
 func writeInterfaceAssertionSourceClone(out *strings.Builder, expr ast.Expr) {
 	if ident, ok := expr.(*ast.Ident); ok && ident.Name != "nil" {
-		out.WriteString(RustIdentForUse(ident))
+		out.WriteString(rustIdentForUseWithCapture(ident))
 		out.WriteString(".clone()")
 		return
 	}
@@ -5561,7 +5561,7 @@ func writeInterfaceAssertionSourceClone(out *strings.Builder, expr ast.Expr) {
 
 func writeTypeAssertionInputClone(out *strings.Builder, expr ast.Expr) {
 	if ident, ok := expr.(*ast.Ident); ok && ident.Name != "nil" {
-		out.WriteString(RustIdentForUse(ident))
+		out.WriteString(rustIdentForUseWithCapture(ident))
 		out.WriteString(".clone()")
 		return
 	}
@@ -5717,7 +5717,7 @@ func TranspileTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr) 
 		out.WriteString("({\n")
 		out.WriteString("        let __asserted = ")
 		if ident, ok := arg.(*ast.Ident); ok && ident.Name != "nil" {
-			out.WriteString(RustIdentForUse(ident))
+			out.WriteString(rustIdentForUseWithCapture(ident))
 			out.WriteString(".clone()")
 		} else {
 			TranspileExpression(out, arg)
@@ -5903,7 +5903,7 @@ func TranspileTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr) 
 		out.WriteString("({\n")
 		out.WriteString("        let val = ")
 		if ident, ok := e.X.(*ast.Ident); ok && ident.Name != "nil" {
-			out.WriteString(RustIdentForUse(ident))
+			out.WriteString(rustIdentForUseWithCapture(ident))
 		} else {
 			TranspileExpression(out, e.X)
 		}
@@ -5948,7 +5948,7 @@ func TranspileTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr) 
 	out.WriteString("        let val = ")
 	// Check if e.X is an identifier (simple variable)
 	if ident, ok := e.X.(*ast.Ident); ok && ident.Name != "nil" {
-		out.WriteString(ident.Name)
+		out.WriteString(rustIdentForUseWithCapture(ident))
 	} else {
 		TranspileExpression(out, e.X)
 	}
@@ -6833,7 +6833,7 @@ func writeFunctionTypeAssertionCallTarget(out *strings.Builder, e *ast.TypeAsser
 	out.WriteString("({\n")
 	out.WriteString("        let val = ")
 	if ident, ok := e.X.(*ast.Ident); ok && ident.Name != "nil" {
-		out.WriteString(RustIdentForUse(ident))
+		out.WriteString(rustIdentForUseWithCapture(ident))
 	} else {
 		TranspileExpressionContext(out, e.X, LValue)
 	}

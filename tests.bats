@@ -1020,6 +1020,10 @@ run_xfail_test() {
     run_test "tests/named_types_methods"
 }
 
+@test "nested_closure_type_assert_capture" {
+    run_test "tests/nested_closure_type_assert_capture"
+}
+
 @test "nested_embedding" {
     run_test "tests/nested_embedding"
 }
