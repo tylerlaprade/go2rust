@@ -47,6 +47,30 @@ func writeUnwrappedRangeTarget(out *strings.Builder, expr ast.Expr) {
 	}
 }
 
+func writeNilZeroValueInitializerFromTypeInfo(out *strings.Builder, typeExpr ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	typ := typeInfo.GetType(typeExpr)
+	if typ == nil {
+		return false
+	}
+	if named, ok := types.Unalias(typ).(*types.Named); ok {
+		if _, isSlice := types.Unalias(named.Underlying()).(*types.Slice); isSlice {
+			return false
+		}
+	}
+	switch types.Unalias(typ).Underlying().(type) {
+	case *types.Interface, *types.Pointer, *types.Signature, *types.Slice:
+		out.WriteString(" = ")
+		WriteWrappedNone(out)
+		return true
+	default:
+		return false
+	}
+}
+
 func isWrappedSliceRangeVar(name string) bool {
 	varType, ok := rangeLoopVars[name]
 	if !ok {
@@ -2814,6 +2838,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 								// Default initialization for uninitialized vars
 								if isSliceElemPtr {
 									out.WriteString(" = None")
+								} else if valueSpec.Type != nil && writeNilZeroValueInitializerFromTypeInfo(out, valueSpec.Type) {
+									// nil zero value supplied from go/types
 								} else if valueSpec.Type != nil {
 									switch t := valueSpec.Type.(type) {
 									case *ast.Ident:

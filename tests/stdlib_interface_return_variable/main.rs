@@ -19,6 +19,23 @@ impl types_Chan {
 
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
+pub struct types_Object;
+
+impl std::fmt::Display for types_Object {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<types_Object>")
+    }
+}
+
+
+impl types_Object {
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        None
+    }
+}
+
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct types_Type;
 
 impl std::fmt::Display for types_Type {
@@ -63,9 +80,19 @@ pub fn as_type(t: Rc<RefCell<Option<types_Type>>>) -> Rc<RefCell<Option<types_Ty
     return t.clone();
 }
 
+pub fn zero_object() -> Rc<RefCell<Option<types_Object>>> {
+
+    let mut obj: Rc<RefCell<Option<types_Object>>> = Rc::new(RefCell::new(None));
+    if (*obj.borrow()).is_none() {
+        return Rc::new(RefCell::new(None));
+    }
+    return obj.clone();
+}
+
 fn main() {
     if false {
         println!("{}", format!("{}", (*(as_type(Rc::new(RefCell::new(None)))).borrow().as_ref().unwrap())));
+        println!("{}", (*zero_object().borrow()).is_none());
     }
     println!("{}", "ok".to_string());
 }
