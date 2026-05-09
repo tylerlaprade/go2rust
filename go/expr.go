@@ -1938,6 +1938,13 @@ func writeArraySliceLiteralElementValue(out *strings.Builder, expr ast.Expr, ele
 	if writeBareFixedArrayCompositeLiteral(out, expr, elemType) {
 		return true
 	}
+	if compositeLiteralElementKeepsHandle(elemType) {
+		if writeAlreadyWrappedCallArgument(out, expr) {
+			return true
+		}
+		TranspileExpression(out, expr)
+		return true
+	}
 	if writeStdlibInterfaceBareConversion(out, expr, elemType) {
 		return true
 	}

@@ -1296,6 +1296,10 @@ run_xfail_test() {
     run_test "tests/slice_parallel_swap"
 }
 
+@test "slice_pointer_variable_literal" {
+    run_test "tests/slice_pointer_variable_literal"
+}
+
 @test "slices_append" {
     run_test "tests/slices_append"
 }

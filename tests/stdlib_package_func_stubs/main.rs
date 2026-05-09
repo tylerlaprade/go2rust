@@ -273,7 +273,7 @@ fn main() {
     if false {
         let mut fset = token::new_file_set();
         let (mut f, _) = parser::parse_file(fset.clone(), "a.go".to_string(), "package p; type A = int".to_string(), parser::SKIP_OBJECT_RESOLUTION.clone());
-        { let (__tmp_0, __tmp_1) = { let __recv = Arc::new(Mutex::new(Some(types_Config::default()))); let __result = (*__recv.lock().unwrap().as_mut().unwrap()).check("p".to_string(), fset.clone(), Arc::new(Mutex::new(Some(vec![(*f.lock().unwrap().as_ref().unwrap()).clone()]))), Arc::new(Mutex::new(Some(types_Info::default())))); __result }; };
+        { let (__tmp_0, __tmp_1) = { let __recv = Arc::new(Mutex::new(Some(types_Config::default()))); let __result = (*__recv.lock().unwrap().as_mut().unwrap()).check("p".to_string(), fset.clone(), Arc::new(Mutex::new(Some(vec![f.clone()]))), Arc::new(Mutex::new(Some(types_Info::default())))); __result }; };
         let mut alias: Arc<Mutex<Option<types_Alias>>> = Arc::new(Mutex::new(None));
         let _ = types::unalias(alias.clone());
         let _ = binary::MAX_VARINT_LEN64;
