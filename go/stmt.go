@@ -1161,6 +1161,15 @@ func writeBareCompoundAssignValue(out *strings.Builder, expr ast.Expr, expected 
 		return
 	}
 	if call, ok := expr.(*ast.CallExpr); ok {
+		if expected != nil {
+			if basic, ok := types.Unalias(expected).Underlying().(*types.Basic); ok && basic.Kind() == types.Int {
+				if isBareBuiltinCallName(call, "len") || isBareBuiltinCallName(call, "cap") {
+					TranspileExpression(out, call)
+					out.WriteString(" as i32")
+					return
+				}
+			}
+		}
 		typeInfo := GetTypeInfo()
 		if typeInfo != nil && typeInfo.ReturnsWrappedValue(call) && !isBareBuiltinReturn(call) && !callReturnsBareChannelValue(call) {
 			out.WriteString("(*")

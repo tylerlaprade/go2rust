@@ -468,6 +468,10 @@ run_xfail_test() {
     run_test "tests/complex_expressions"
 }
 
+@test "compound_assign_len_int" {
+    run_test "tests/compound_assign_len_int"
+}
+
 @test "compound_assign_wrapped_call" {
     run_test "tests/compound_assign_wrapped_call"
 }
