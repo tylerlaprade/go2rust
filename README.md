@@ -123,6 +123,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Complex iota expressions | ✅ |
 | └ Named iota-backed enum types, including struct fields, untyped literal fields, and underlying const widths | ✅ |
 | └ Named integer constants passed to function and method parameters | ✅ |
+| └ Named integer constants in binary expressions with typed peers | ✅ |
 | └ Cross-file package constants in compound assignments | ✅ |
 | **`continue` - Continue statements** | ✅ |
 | **`default` - Default clauses** | |
@@ -295,6 +296,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Unary NOT and conditions on wrapped bools | ✅ |
 | └ Concurrent binary comparisons with bare `len`/`cap` operands | ✅ |
 | └ Binary `len`/`cap` operands with typed `int` peers | ✅ |
+| └ Untyped constants compared with named and typed integer operands | ✅ |
 | └ Cross-file named integer conversions from wrapped calls | ✅ |
 | └ Assignment operators (=, +=, etc.) | ✅ |
 | └ Increment/decrement (++, --) | ✅ |

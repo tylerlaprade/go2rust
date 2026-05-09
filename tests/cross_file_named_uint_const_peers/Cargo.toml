@@ -1,0 +1,8 @@
+[package]
+name = "cross_file_named_uint_const_peers"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "cross_file_named_uint_const_peers"
+path = "main.rs"

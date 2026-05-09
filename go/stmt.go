@@ -866,7 +866,7 @@ func tempHoldsWrappedValue(rhs ast.Expr) bool {
 		return false
 	}
 	typeInfo := GetTypeInfo()
-	return typeInfo != nil && typeInfo.ReturnsWrappedValue(call) && !isBareBuiltinReturn(call)
+	return typeInfo != nil && typeInfo.ReturnsWrappedValue(call) && !isBareBuiltinReturn(call) && (!typeInfo.IsTypeConversion(call) || typeConversionEmitsWrappedValue(call))
 }
 
 func isErrorAssignment(lhs ast.Expr, rhs ast.Expr) bool {
@@ -2409,7 +2409,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 								if call, ok := s.Rhs[0].(*ast.CallExpr); ok {
 									// Use TypeInfo to check if this returns a wrapped value
 									typeInfo := GetTypeInfo()
-									if typeInfo != nil && typeInfo.ReturnsWrappedValue(call) {
+									if typeInfo != nil && typeInfo.ReturnsWrappedValue(call) && (!typeInfo.IsTypeConversion(call) || typeConversionEmitsWrappedValue(call)) {
 										needsUnwrap = true
 									} else {
 										// Fallback: Check if it's calling a closure variable
@@ -2614,7 +2614,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										TranspileExpressionContext(out, s.Lhs[0], LValue)
 										out.WriteString(" = ")
 										TranspileExpression(out, s.Rhs[0])
-									} else if typeInfo != nil && typeInfo.ReturnsWrappedValue(call) && !isBareBuiltinReturn(call) {
+									} else if typeInfo != nil && typeInfo.ReturnsWrappedValue(call) && !isBareBuiltinReturn(call) && (!typeInfo.IsTypeConversion(call) || typeConversionEmitsWrappedValue(call)) {
 										writeMoveWrappedInnerAssignment(out, s.Lhs[0], s.Rhs[0])
 									} else { // Regular function call
 										// Check if RHS is len() which returns usize but LHS expects i32

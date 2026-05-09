@@ -1419,6 +1419,8 @@ func transpileConstDeclWithCase(out *strings.Builder, genDecl *ast.GenDecl, toUp
 					constType = rustConstTypeForTypeExpr(valueSpec.Type)
 				} else if len(valueSpec.Values) == 0 && lastType != nil {
 					constType = rustConstTypeForTypeExpr(lastType)
+				} else if inferredType, ok := rustConstTypeForConstObject(name); ok {
+					constType = inferredType
 				} else if len(valueSpec.Values) > i && valueSpec.Values[i] != nil {
 					constType = inferConstType(valueSpec.Values[i])
 				} else if len(lastExpressions) > i && lastExpressions[i] != nil {
@@ -1442,20 +1444,7 @@ func transpileConstDeclWithCase(out *strings.Builder, genDecl *ast.GenDecl, toUp
 				out.WriteString(": ")
 
 				// Determine type - constants should not be wrapped
-				if valueSpec.Type != nil {
-					out.WriteString(rustConstTypeForTypeExpr(valueSpec.Type))
-				} else if len(valueSpec.Values) == 0 && lastType != nil {
-					out.WriteString(rustConstTypeForTypeExpr(lastType))
-				} else if len(valueSpec.Values) > i && valueSpec.Values[i] != nil {
-					// Infer type from value
-					out.WriteString(inferConstType(valueSpec.Values[i]))
-				} else if len(lastExpressions) > i && lastExpressions[i] != nil {
-					// Infer type from the last expression pattern
-					out.WriteString(inferConstType(lastExpressions[i]))
-				} else {
-					// Default to i32 for iota
-					out.WriteString("i32")
-				}
+				out.WriteString(constType)
 
 				out.WriteString(" = ")
 
@@ -1478,6 +1467,18 @@ func transpileConstDeclWithCase(out *strings.Builder, genDecl *ast.GenDecl, toUp
 			}
 		}
 	}
+}
+
+func rustConstTypeForConstObject(name *ast.Ident) (string, bool) {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || name == nil {
+		return "", false
+	}
+	obj, ok := typeInfo.GetObject(name).(*types.Const)
+	if !ok || obj.Type() == nil {
+		return "", false
+	}
+	return rustConstTypeForGoTypesType(obj.Type())
 }
 
 func inferConstType(expr ast.Expr) string {

@@ -558,6 +558,10 @@ run_xfail_test() {
     run_test "tests/cross_file_named_integer_const_arguments"
 }
 
+@test "cross_file_named_uint_const_peers" {
+    run_test "tests/cross_file_named_uint_const_peers"
+}
+
 @test "cross_file_types" {
     run_test "tests/cross_file_types"
 }

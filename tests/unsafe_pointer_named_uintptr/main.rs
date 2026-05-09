@@ -22,5 +22,5 @@ fn main() {
         } else {
             panic!("type assertion on nil interface")
         }
-    }).0.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 0; __tmp_x == __tmp_y });
+    }).0.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as usize; __tmp_x == __tmp_y });
 }

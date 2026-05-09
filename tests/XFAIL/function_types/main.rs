@@ -89,8 +89,8 @@ pub fn to_upper(s: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>> {
 
     let mut result = Rc::new(RefCell::new(Some("".to_string())));
     for (_, char) in (*s.borrow().as_ref().unwrap()).char_indices() {
-        if char >= ('a' as i32) && char <= ('z' as i32) {
-        (*result.borrow_mut().as_mut().unwrap()).push_str(&Rc::new(RefCell::new(Some(char::from_u32((*char - 32.borrow().as_ref().unwrap()) as u32).unwrap().to_string()))));
+        if char >= ('a' as i32) as i32 && char <= ('z' as i32) as i32 {
+        (*result.borrow_mut().as_mut().unwrap()).push_str(&Rc::new(RefCell::new(Some(char::from_u32((*char - 32 as i32.borrow().as_ref().unwrap()) as u32).unwrap().to_string()))));
     } else {
         (*result.borrow_mut().as_mut().unwrap()).push_str(&Rc::new(RefCell::new(Some(char::from_u32((*char.borrow().as_ref().unwrap()) as u32).unwrap().to_string()))));
     }

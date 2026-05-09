@@ -129,6 +129,44 @@ func writeConstExpressionForExpectedGoType(out *strings.Builder, value ast.Expr,
 	return true
 }
 
+func writeConstExpressionForExpectedInteger(out *strings.Builder, value ast.Expr, expected types.Type) bool {
+	if !isConstantExpression(value) {
+		return false
+	}
+	rustType, ok := rustIntegerCastTypeForExpected(expected)
+	if !ok {
+		return false
+	}
+	TranspileExpression(out, value)
+	out.WriteString(" as ")
+	out.WriteString(rustType)
+	return true
+}
+
+func rustIntegerCastTypeForExpected(expected types.Type) (string, bool) {
+	if expected == nil {
+		return "", false
+	}
+	if named, ok := types.Unalias(expected).(*types.Named); ok && isNamedIntegerType(named) {
+		basic, ok := types.Unalias(named.Underlying()).(*types.Basic)
+		if !ok {
+			return "", false
+		}
+		return rustCastTypeForDefinedUnderlying(basic.Name())
+	}
+	basic, ok := types.Unalias(expected).(*types.Basic)
+	if !ok || !isIntegerBasicKind(basic.Kind()) {
+		return "", false
+	}
+	if basic.Kind() == types.UntypedInt || basic.Kind() == types.UntypedRune {
+		return "", false
+	}
+	if basic.Kind() == types.Int {
+		return "", false
+	}
+	return rustCastTypeForDefinedUnderlying(basic.Name())
+}
+
 func writeConstExpressionForExpectedNamedInteger(out *strings.Builder, value ast.Expr, expected types.Type) bool {
 	if !isConstantExpression(value) {
 		return false
@@ -166,15 +204,29 @@ func constNamedIntegerTargetType(value ast.Expr, expected types.Type) (*types.Na
 }
 
 func writeConstExpressionForBinaryPeer(out *strings.Builder, expr ast.Expr, other ast.Expr) bool {
+	if !isConstantExpression(expr) {
+		return false
+	}
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil {
 		return false
 	}
 	expected := typeInfo.GetType(other)
-	if named, ok := types.Unalias(expected).(*types.Named); ok && isNamedIntegerType(named) {
-		return false
+	if expectedNamed, ok := types.Unalias(expected).(*types.Named); ok && isNamedIntegerType(expectedNamed) {
+		if exprNamed, ok := types.Unalias(typeInfo.GetType(expr)).(*types.Named); ok && sameNamedTypeDefinition(exprNamed, expectedNamed) {
+			if _, ok := externalIntegerRustTypeForNamed(expectedNamed); ok {
+				return writeExpressionForExpectedTypesType(out, expr, expectedNamed)
+			}
+			if call, ok := expr.(*ast.CallExpr); ok && typeInfo.IsTypeConversion(call) {
+				return writeNamedIntegerConversionConstForBinaryPeer(out, call, expectedNamed)
+			}
+			return writeNamedIntegerConstForExpected(out, expr, expectedNamed)
+		}
 	}
-	return writeConstExpressionForExpectedGoType(out, expr, expected)
+	if writeConstExpressionForExpectedGoType(out, expr, expected) {
+		return true
+	}
+	return writeConstExpressionForExpectedInteger(out, expr, expected)
 }
 
 func writeSwitchCaseValueForTag(out *strings.Builder, expr ast.Expr, tag ast.Expr) {
@@ -338,6 +390,30 @@ func writeNamedIntegerConversionConstForBinaryPeer(out *strings.Builder, call *a
 	out.WriteString("(")
 	WriteWrapperPrefix(out)
 	writeNumericConversionValue(out, call.Args[0])
+	out.WriteString(" as ")
+	out.WriteString(rustType)
+	WriteWrapperSuffix(out)
+	out.WriteString(")")
+	return true
+}
+
+func writeNamedIntegerConstForExpected(out *strings.Builder, value ast.Expr, named *types.Named) bool {
+	basic, ok := types.Unalias(named.Underlying()).(*types.Basic)
+	if !ok || !isIntegerBasicKind(basic.Kind()) {
+		return false
+	}
+	rustType, ok := rustCastTypeForDefinedUnderlying(basic.Name())
+	if !ok {
+		return false
+	}
+	out.WriteString(goTypesNamedTypeToRust(named))
+	out.WriteString("(")
+	WriteWrapperPrefix(out)
+	if isConstantExpression(value) {
+		TranspileConstExpr(out, value, 0)
+	} else {
+		writeNumericConversionValue(out, value)
+	}
 	out.WriteString(" as ")
 	out.WriteString(rustType)
 	WriteWrapperSuffix(out)

@@ -87,7 +87,10 @@ func main() {
 	comparison := firstEquality(t, file)
 
 	var out strings.Builder
-	if writeConstExpressionForBinaryPeer(&out, comparison.Y, comparison.X) {
-		t.Fatalf("named byte-like peer should not use bare u8 conversion, got %q", out.String())
+	if !writeConstExpressionForBinaryPeer(&out, comparison.Y, comparison.X) {
+		t.Fatal("const expression was not converted for named byte-like peer")
+	}
+	if got, want := out.String(), "VarKind(Rc::new(RefCell::new(Some(LOCAL_VAR as u8))))"; got != want {
+		t.Fatalf("converted const = %q, want %q", got, want)
 	}
 }
