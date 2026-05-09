@@ -24,5 +24,7 @@ func main() {
 	made[0] = 10
 	made[1] = 20
 	made[2] = 30
+	idx := 1
+	made[idx] = 25
 	fmt.Println("Made slice:", made)
 }

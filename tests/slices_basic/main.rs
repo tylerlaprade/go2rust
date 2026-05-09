@@ -43,8 +43,10 @@ fn main() {
 
         // Make slice
     let mut made = Rc::new(RefCell::new(Some({ let mut v = Vec::with_capacity((5) as usize); v.resize((3) as usize, 0); v })));
-    (*made.borrow_mut().as_mut().unwrap())[0] = 10;
-    (*made.borrow_mut().as_mut().unwrap())[1] = 20;
-    (*made.borrow_mut().as_mut().unwrap())[2] = 30;
+    (*made.borrow_mut().as_mut().unwrap())[(0) as usize] = 10;
+    (*made.borrow_mut().as_mut().unwrap())[(1) as usize] = 20;
+    (*made.borrow_mut().as_mut().unwrap())[(2) as usize] = 30;
+    let mut idx = Rc::new(RefCell::new(Some(1)));
+    (*made.borrow_mut().as_mut().unwrap())[((*idx.borrow().as_ref().unwrap())) as usize] = 25;
     println!("{} {}", "Made slice:".to_string(), format_slice(&made));
 }

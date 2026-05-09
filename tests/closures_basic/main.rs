@@ -48,7 +48,7 @@ pub fn apply_operation(nums: Rc<RefCell<Option<Vec<i32>>>>, op: Rc<RefCell<Optio
 
     let mut result = Rc::new(RefCell::new(Some(vec![0; ((*nums.borrow().as_ref().unwrap()).len()) as usize])));
     { let __range_holder = nums.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for (i, num) in __range_values.iter().copied().enumerate() {
-        (*result.borrow_mut().as_mut().unwrap())[i] = (*{ let __f_guard = op.borrow(); let __f = __f_guard.as_ref().unwrap(); (*__f)(Rc::new(RefCell::new(Some(num)))) }.borrow().as_ref().unwrap()).clone();
+        (*result.borrow_mut().as_mut().unwrap())[(i) as usize] = (*{ let __f_guard = op.borrow(); let __f = __f_guard.as_ref().unwrap(); (*__f)(Rc::new(RefCell::new(Some(num)))) }.borrow().as_ref().unwrap()).clone();
     } }
     return result.clone();
 }

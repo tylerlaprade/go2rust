@@ -2115,7 +2115,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 								TranspileExpressionContext(out, indexExpr.X, LValue)
 								WriteBorrowMethod(out, true)
 								out.WriteString(".as_mut().unwrap())[")
-								TranspileExpression(out, indexExpr.Index)
+								writeExpressionAsUsize(out, indexExpr.Index)
 								out.WriteString("] = ")
 
 								// Check if RHS is a call that returns a wrapped value
