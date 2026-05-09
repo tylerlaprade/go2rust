@@ -13,6 +13,7 @@ import (
 // These maps track the names and types of special variables that shouldn't be unwrapped
 var rangeLoopVars = make(map[string]string)
 var localConstants = make(map[string]string)
+var packageConstants = make(map[string]string)
 
 // localInterfaces tracks locally-defined interface type names (inside functions)
 var localInterfaces = make(map[string]bool)

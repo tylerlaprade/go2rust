@@ -21,6 +21,7 @@ type PackageState struct {
 	TypeDefinitions              map[string]string
 	TypeAliases                  map[string]bool
 	FunctionTypeAliases          map[string]bool
+	PackageConstants             map[string]string
 	GoPackageImports             map[string]string
 	ExternalPackages             map[string]bool
 	StructDefs                   map[string]*StructDef
@@ -91,6 +92,7 @@ func NewPackageState() *PackageState {
 		TypeDefinitions:              make(map[string]string),
 		TypeAliases:                  make(map[string]bool),
 		FunctionTypeAliases:          make(map[string]bool),
+		PackageConstants:             make(map[string]string),
 		GoPackageImports:             make(map[string]string),
 		ExternalPackages:             make(map[string]bool),
 		StructDefs:                   make(map[string]*StructDef),
@@ -282,6 +284,7 @@ func (ctx *TranspileContext) captureCompatibilityState() {
 		ctx.Package.TypeDefinitions = typeDefinitions
 		ctx.Package.TypeAliases = typeAliases
 		ctx.Package.FunctionTypeAliases = functionTypeAliases
+		ctx.Package.PackageConstants = packageConstants
 		ctx.Package.GoPackageImports = goPackageImports
 		ctx.Package.ExternalPackages = externalPackages
 		ctx.Package.StructDefs = structDefs
@@ -330,6 +333,7 @@ func (ctx *TranspileContext) applyCompatibilityState() {
 		typeDefinitions = ctx.Package.TypeDefinitions
 		typeAliases = ctx.Package.TypeAliases
 		functionTypeAliases = ctx.Package.FunctionTypeAliases
+		packageConstants = ctx.Package.PackageConstants
 		goPackageImports = ctx.Package.GoPackageImports
 		externalPackages = ctx.Package.ExternalPackages
 		structDefs = ctx.Package.StructDefs

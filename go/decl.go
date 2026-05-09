@@ -1398,24 +1398,28 @@ func transpileConstDeclWithCase(out *strings.Builder, genDecl *ast.GenDecl, toUp
 				}
 				out.WriteString("const ")
 				var constName string
+				var constType string
+				if valueSpec.Type != nil {
+					constType = rustConstTypeForTypeExpr(valueSpec.Type)
+				} else if len(valueSpec.Values) == 0 && lastType != nil {
+					constType = rustConstTypeForTypeExpr(lastType)
+				} else if len(valueSpec.Values) > i && valueSpec.Values[i] != nil {
+					constType = inferConstType(valueSpec.Values[i])
+				} else if len(lastExpressions) > i && lastExpressions[i] != nil {
+					constType = inferConstType(lastExpressions[i])
+				} else {
+					constType = "i32"
+				}
 				if toUpper {
 					constName = rustConstName(name.Name)
+					if packageConstants == nil {
+						packageConstants = make(map[string]string)
+					}
+					packageConstants[name.Name] = constType
 				} else {
 					// Keep original name for local constants
 					constName = name.Name
 					// Track local constants with their actual type
-					var constType string
-					if valueSpec.Type != nil {
-						constType = rustConstTypeForTypeExpr(valueSpec.Type)
-					} else if len(valueSpec.Values) == 0 && lastType != nil {
-						constType = rustConstTypeForTypeExpr(lastType)
-					} else if len(valueSpec.Values) > i && valueSpec.Values[i] != nil {
-						constType = inferConstType(valueSpec.Values[i])
-					} else if len(lastExpressions) > i && lastExpressions[i] != nil {
-						constType = inferConstType(lastExpressions[i])
-					} else {
-						constType = "i32"
-					}
 					localConstants[name.Name] = constType
 				}
 				out.WriteString(constName)
@@ -1578,6 +1582,10 @@ func TranspileConstExpr(out *strings.Builder, expr ast.Expr, iotaValue int) {
 		if e.Kind == token.STRING {
 			// For const strings, use &str instead of String
 			out.WriteString(RustStringLiteral(e.Value))
+		} else if e.Kind == token.CHAR {
+			out.WriteString("(")
+			out.WriteString(e.Value)
+			out.WriteString(" as i32)")
 		} else {
 			out.WriteString(e.Value)
 		}

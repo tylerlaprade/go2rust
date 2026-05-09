@@ -71,7 +71,7 @@ fn __go_init_1() {
     { let mut guard = globalCounter.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 5); };
 
         // Initialize map
-    { let new_val = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<String>>>>::new()))); *configData.borrow_mut() = new_val.borrow_mut().take(); };
+    { let new_val = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<String>>>>::new()))); let __moved_val = { let mut __guard = new_val.borrow_mut(); __guard.take() }; *configData.borrow_mut() = __moved_val; };
     (*configData.borrow_mut().as_mut().unwrap()).insert("version".to_string(), Rc::new(RefCell::new(Some("1.0".to_string()))));
     (*configData.borrow_mut().as_mut().unwrap()).insert("author".to_string(), Rc::new(RefCell::new(Some("go2rust".to_string()))));
 }

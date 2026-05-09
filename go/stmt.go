@@ -799,26 +799,32 @@ func writeMoveWrappedInnerAssignment(out *strings.Builder, lhs ast.Expr, rhs ast
 	out.WriteString("{ ")
 	out.WriteString("let new_val = ")
 	TranspileExpression(out, rhs)
-	out.WriteString("; ")
+	out.WriteString("; let __moved_val = { let mut __guard = new_val")
+	WriteBorrowMethod(out, true)
+	out.WriteString("; __guard.take() }; ")
 	out.WriteString("*")
 	TranspileExpressionContext(out, lhs, LValue)
 	WriteBorrowMethod(out, true)
-	out.WriteString(" = new_val")
-	WriteBorrowMethod(out, true)
-	out.WriteString(".take(); }")
+	out.WriteString(" = __moved_val; }")
 }
 
 func writeMoveWrappedInnerAssignmentFromTemp(out *strings.Builder, lhs ast.Expr, tmpName string) {
 	if ident, ok := lhs.(*ast.Ident); ok && ident.Name == "_" {
 		return
 	}
+	movedName := "__moved_" + strings.TrimLeft(tmpName, "_")
+	out.WriteString(" let ")
+	out.WriteString(movedName)
+	out.WriteString(" = { let mut __guard = ")
+	out.WriteString(tmpName)
+	WriteBorrowMethod(out, true)
+	out.WriteString("; __guard.take() };")
 	out.WriteString(" *")
 	TranspileExpressionContext(out, lhs, LValue)
 	WriteBorrowMethod(out, true)
 	out.WriteString(" = ")
-	out.WriteString(tmpName)
-	WriteBorrowMethod(out, true)
-	out.WriteString(".take();")
+	out.WriteString(movedName)
+	out.WriteString(";")
 }
 
 func tempHoldsWrappedValue(rhs ast.Expr) bool {
@@ -3880,8 +3886,10 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							}
 							if s.Tag != nil {
 								out.WriteString("_switch_val == ")
+								writeSwitchCaseValueForTag(out, expr, s.Tag)
+							} else {
+								writeSwitchCaseValue(out, expr)
 							}
-							writeSwitchCaseValue(out, expr)
 						}
 						out.WriteString(") || _fallthrough {\n")
 					}
@@ -4026,7 +4034,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							}
 							if s.Tag != nil {
 								out.WriteString("_switch_val == (")
-								writeSwitchCaseValue(out, expr)
+								writeSwitchCaseValueForTag(out, expr, s.Tag)
 								out.WriteString(")")
 							} else {
 								transpileCondition(out, expr)

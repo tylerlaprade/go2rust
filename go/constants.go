@@ -2,6 +2,7 @@ package main
 
 import (
 	"go/ast"
+	"go/constant"
 	"go/types"
 	"strings"
 )
@@ -14,8 +15,22 @@ func isConstIdent(ident *ast.Ident) bool {
 	if typeInfo == nil || typeInfo.info == nil {
 		return false
 	}
-	_, ok := typeInfo.GetObject(ident).(*types.Const)
-	return ok
+	if _, ok := typeInfo.GetObject(ident).(*types.Const); ok {
+		return true
+	}
+	if vt := GetVarTable(); vt != nil {
+		if vt.Lookup(ident.Name) != nil {
+			return false
+		}
+	}
+	if _, ok := packageConstants[ident.Name]; ok {
+		return true
+	}
+	if typeInfo.pkg != nil && typeInfo.pkg.Scope() != nil {
+		_, ok := typeInfo.pkg.Scope().Lookup(ident.Name).(*types.Const)
+		return ok
+	}
+	return false
 }
 
 func rustConstName(name string) string {
@@ -23,6 +38,11 @@ func rustConstName(name string) string {
 }
 
 func writeExpressionForExpectedType(out *strings.Builder, value ast.Expr, expected ast.Expr) bool {
+	if typeInfo := GetTypeInfo(); typeInfo != nil {
+		if writeConstExpressionForExpectedGoType(out, value, typeInfo.GetType(expected)) {
+			return true
+		}
+	}
 	expectedIdent, ok := expected.(*ast.Ident)
 	if !ok {
 		if typeInfo := GetTypeInfo(); typeInfo != nil {
@@ -48,6 +68,74 @@ func writeExpressionForExpectedType(out *strings.Builder, value ast.Expr, expect
 	WriteWrapperSuffix(out)
 	out.WriteString(")")
 	return true
+}
+
+func isByteLikeGoType(typ types.Type) bool {
+	if typ == nil {
+		return false
+	}
+	basic, ok := types.Unalias(typ).(*types.Basic)
+	return ok && basic.Kind() == types.Uint8
+}
+
+func constExpressionInt64Value(expr ast.Expr) (int64, bool) {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return 0, false
+	}
+	if tv, ok := typeInfo.info.Types[expr]; ok && tv.Value != nil {
+		return constant.Int64Val(tv.Value)
+	}
+	if ident, ok := expr.(*ast.Ident); ok {
+		if obj, ok := typeInfo.GetObject(ident).(*types.Const); ok && obj.Val() != nil {
+			return constant.Int64Val(obj.Val())
+		}
+		if typeInfo.pkg != nil && typeInfo.pkg.Scope() != nil {
+			if obj, ok := typeInfo.pkg.Scope().Lookup(ident.Name).(*types.Const); ok && obj.Val() != nil {
+				return constant.Int64Val(obj.Val())
+			}
+		}
+	}
+	return 0, false
+}
+
+func writeConstExpressionForExpectedGoType(out *strings.Builder, value ast.Expr, expected types.Type) bool {
+	if !isByteLikeGoType(expected) {
+		return false
+	}
+	intValue, ok := constExpressionInt64Value(value)
+	if ok {
+		if intValue < 0 || intValue > 255 {
+			return false
+		}
+	} else {
+		ident, isIdent := value.(*ast.Ident)
+		if !isIdent {
+			return false
+		}
+		if _, isPackageConst := packageConstants[ident.Name]; !isPackageConst {
+			return false
+		}
+	}
+	TranspileExpression(out, value)
+	out.WriteString(" as u8")
+	return true
+}
+
+func writeConstExpressionForBinaryPeer(out *strings.Builder, expr ast.Expr, other ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	return writeConstExpressionForExpectedGoType(out, expr, typeInfo.GetType(other))
+}
+
+func writeSwitchCaseValueForTag(out *strings.Builder, expr ast.Expr, tag ast.Expr) {
+	typeInfo := GetTypeInfo()
+	if typeInfo != nil && writeConstExpressionForExpectedGoType(out, expr, typeInfo.GetType(tag)) {
+		return
+	}
+	writeSwitchCaseValue(out, expr)
 }
 
 func expectsStringType(expected ast.Expr) bool {

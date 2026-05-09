@@ -200,7 +200,7 @@ fn main() {
         print!("10 / 2 = {:.2}\n", { let __v = (*result.borrow().as_ref().unwrap()).clone(); __v });
     }
 
-    { let (__tmp_0, __tmp_1) = safe_divide(Rc::new(RefCell::new(Some(10.0))), Rc::new(RefCell::new(Some(0.0)))); *result.borrow_mut() = __tmp_0.borrow_mut().take(); *err.borrow_mut() = __tmp_1.borrow_mut().take(); };
+    { let (__tmp_0, __tmp_1) = safe_divide(Rc::new(RefCell::new(Some(10.0))), Rc::new(RefCell::new(Some(0.0)))); let __moved_tmp_0 = { let mut __guard = __tmp_0.borrow_mut(); __guard.take() }; *result.borrow_mut() = __moved_tmp_0; let __moved_tmp_1 = { let mut __guard = __tmp_1.borrow_mut(); __guard.take() }; *err.borrow_mut() = __moved_tmp_1; };
     if (*err.borrow()).is_some() {
         print!("Error: {}\n", format!("{}", (*err.borrow().as_ref().unwrap())));
     } else {
@@ -218,7 +218,7 @@ fn main() {
         print!("numbers[2] = {}\n", { let __v = (*value.borrow().as_ref().unwrap()).clone(); __v });
     }
 
-    { let (__tmp_0, __tmp_1) = process_slice(numbers.clone(), Rc::new(RefCell::new(Some(10)))); *value.borrow_mut() = __tmp_0.borrow_mut().take(); *err.borrow_mut() = __tmp_1.borrow_mut().take(); };
+    { let (__tmp_0, __tmp_1) = process_slice(numbers.clone(), Rc::new(RefCell::new(Some(10)))); let __moved_tmp_0 = { let mut __guard = __tmp_0.borrow_mut(); __guard.take() }; *value.borrow_mut() = __moved_tmp_0; let __moved_tmp_1 = { let mut __guard = __tmp_1.borrow_mut(); __guard.take() }; *err.borrow_mut() = __moved_tmp_1; };
     if (*err.borrow()).is_some() {
         print!("Error: {}\n", format!("{}", (*err.borrow().as_ref().unwrap())));
     } else {

@@ -50,7 +50,7 @@ impl Free {
     let mut res: Rc<RefCell<Option<bool>>> = Rc::new(RefCell::new(Some(false)));
 
         if (*self.seen.borrow()).is_none() {
-        { let new_val = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<bool>>>>::new()))); *self.seen.borrow_mut() = new_val.borrow_mut().take(); };
+        { let new_val = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<bool>>>>::new()))); let __moved_val = { let mut __guard = new_val.borrow_mut(); __guard.take() }; *self.seen.borrow_mut() = __moved_val; };
     }
         let mut f_defer_captured = self.clone(); let key_defer_captured = key.clone(); let res_defer_captured = res.clone(); __defer_stack.push(Box::new(move || {
         { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {

@@ -26,7 +26,7 @@ pub fn parse(v: Rc<RefCell<Option<String>>>) -> (Rc<RefCell<Option<parsed>>>, Rc
 
     let mut p = Rc::new(RefCell::new(Some(parsed { major: Rc::new(RefCell::new(Some(String::new()))) })));
     let mut ok = Rc::new(RefCell::new(Some(false)));
-    { let (__tmp_0, __tmp_1, __tmp_2) = split_version(Rc::new(RefCell::new(Some((*v.borrow().as_ref().unwrap()).clone())))); *(*p.borrow().as_ref().unwrap()).major.borrow_mut() = __tmp_0.borrow_mut().take(); *v.borrow_mut() = __tmp_1.borrow_mut().take(); *ok.borrow_mut() = __tmp_2.borrow_mut().take(); };
+    { let (__tmp_0, __tmp_1, __tmp_2) = split_version(Rc::new(RefCell::new(Some((*v.borrow().as_ref().unwrap()).clone())))); let __moved_tmp_0 = { let mut __guard = __tmp_0.borrow_mut(); __guard.take() }; *(*p.borrow().as_ref().unwrap()).major.borrow_mut() = __moved_tmp_0; let __moved_tmp_1 = { let mut __guard = __tmp_1.borrow_mut(); __guard.take() }; *v.borrow_mut() = __moved_tmp_1; let __moved_tmp_2 = { let mut __guard = __tmp_2.borrow_mut(); __guard.take() }; *ok.borrow_mut() = __moved_tmp_2; };
     println!("{} {}", "rest:".to_string(), { let __v = (*v.borrow().as_ref().unwrap()).clone(); __v });
     return (p.clone(), ok.clone());
 }

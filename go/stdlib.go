@@ -2215,6 +2215,9 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 					return
 				}
 				if elemType != nil {
+					if writeConstExpressionForExpectedGoType(out, expr, elemType) {
+						return
+					}
 					if _, ok := localNamedInterfaceTypeNameFromTypes(elemType); ok && isBareLocalInterfaceValue(expr) {
 						writeLocalInterfaceBareClone(out, expr)
 						return

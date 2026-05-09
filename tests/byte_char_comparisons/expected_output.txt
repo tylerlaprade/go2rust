@@ -2,3 +2,6 @@ digit 5: true
 digit x: false
 version v1: true
 version x1: false
+op type: true type
+op elem: true elem
+op method: true elem

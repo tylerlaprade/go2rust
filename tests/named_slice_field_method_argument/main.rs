@@ -34,7 +34,7 @@ impl numbers {
         { let __range_holder = self.0.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for left in __range_values.iter().copied() {
         { let __range_holder = { let __named_slice = (*other.borrow().as_ref().unwrap()).0.clone(); __named_slice }; let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for right in __range_values.iter().copied() {
         if left == right {
-        { let new_val = { let __base = { let __named_slice = (*out.borrow().as_ref().unwrap()).0.clone(); __named_slice }; let __base_guard = __base.borrow(); let mut __values = __base_guard.as_ref().cloned().unwrap_or_else(Vec::new); drop(__base_guard); __values.push(left); Rc::new(RefCell::new(Some(numbers(Rc::new(RefCell::new(Some(__values))))))) }; *out.borrow_mut() = new_val.borrow_mut().take(); };
+        { let new_val = { let __base = { let __named_slice = (*out.borrow().as_ref().unwrap()).0.clone(); __named_slice }; let __base_guard = __base.borrow(); let mut __values = __base_guard.as_ref().cloned().unwrap_or_else(Vec::new); drop(__base_guard); __values.push(left); Rc::new(RefCell::new(Some(numbers(Rc::new(RefCell::new(Some(__values))))))) }; let __moved_val = { let mut __guard = new_val.borrow_mut(); __guard.take() }; *out.borrow_mut() = __moved_val; };
     }
     } }
     } }
@@ -43,7 +43,7 @@ impl numbers {
 }
 
 pub fn combine(a: Rc<RefCell<Option<holder>>>, b: Rc<RefCell<Option<holder>>>) {
-    { let new_val = (*(*a.borrow().as_ref().unwrap()).terms.borrow().as_ref().unwrap()).intersect(Rc::new(RefCell::new(Some((*(*b.borrow().as_ref().unwrap()).terms.borrow().as_ref().unwrap()).clone())))); *(*a.borrow().as_ref().unwrap()).terms.borrow_mut() = new_val.borrow_mut().take(); };
+    { let new_val = (*(*a.borrow().as_ref().unwrap()).terms.borrow().as_ref().unwrap()).intersect(Rc::new(RefCell::new(Some((*(*b.borrow().as_ref().unwrap()).terms.borrow().as_ref().unwrap()).clone())))); let __moved_val = { let mut __guard = new_val.borrow_mut(); __guard.take() }; *(*a.borrow().as_ref().unwrap()).terms.borrow_mut() = __moved_val; };
 }
 
 pub fn copied_len(src: Rc<RefCell<Option<holder>>>) -> Rc<RefCell<Option<i32>>> {

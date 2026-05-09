@@ -173,7 +173,7 @@ fn main() {
     let mut result = apply_binary(Rc::new(RefCell::new(Some(Box::new(move |__arg0: Rc<RefCell<Option<i32>>>, __arg1: Rc<RefCell<Option<i32>>>| -> Rc<RefCell<Option<i32>>> { add(__arg0, __arg1) }) as Box<dyn Fn(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>>))), Rc::new(RefCell::new(Some(10))), Rc::new(RefCell::new(Some(20))));
     print!("applyBinary(add, 10, 20) = {}\n", { let __v = (*result.borrow().as_ref().unwrap()).clone(); __v });
 
-    { let new_val = apply_binary(Rc::new(RefCell::new(Some(Box::new(move |__arg0: Rc<RefCell<Option<i32>>>, __arg1: Rc<RefCell<Option<i32>>>| -> Rc<RefCell<Option<i32>>> { multiply(__arg0, __arg1) }) as Box<dyn Fn(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>>))), Rc::new(RefCell::new(Some(4))), Rc::new(RefCell::new(Some(7)))); *result.borrow_mut() = new_val.borrow_mut().take(); };
+    { let new_val = apply_binary(Rc::new(RefCell::new(Some(Box::new(move |__arg0: Rc<RefCell<Option<i32>>>, __arg1: Rc<RefCell<Option<i32>>>| -> Rc<RefCell<Option<i32>>> { multiply(__arg0, __arg1) }) as Box<dyn Fn(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>>))), Rc::new(RefCell::new(Some(4))), Rc::new(RefCell::new(Some(7)))); let __moved_val = { let mut __guard = new_val.borrow_mut(); __guard.take() }; *result.borrow_mut() = __moved_val; };
     print!("applyBinary(multiply, 4, 7) = {}\n", { let __v = (*result.borrow().as_ref().unwrap()).clone(); __v });
 
     let mut unaryResult = apply_unary(Rc::new(RefCell::new(Some(Box::new(move |__arg0: Rc<RefCell<Option<i32>>>| -> Rc<RefCell<Option<i32>>> { square(__arg0) }) as Box<dyn Fn(Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>>))), Rc::new(RefCell::new(Some(6))));

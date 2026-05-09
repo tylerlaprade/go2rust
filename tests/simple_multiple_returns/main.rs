@@ -29,7 +29,7 @@ fn main() {
     println!("{} {} {}", "Before swap:".to_string(), { let __v = (*x.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*y.borrow().as_ref().unwrap()).clone(); __v });
 
         // Swap using function
-    { let (__tmp_0, __tmp_1) = swap(Rc::new(RefCell::new(Some((*x.borrow().as_ref().unwrap()).clone()))), Rc::new(RefCell::new(Some((*y.borrow().as_ref().unwrap()).clone())))); *x.borrow_mut() = __tmp_0.borrow_mut().take(); *y.borrow_mut() = __tmp_1.borrow_mut().take(); };
+    { let (__tmp_0, __tmp_1) = swap(Rc::new(RefCell::new(Some((*x.borrow().as_ref().unwrap()).clone()))), Rc::new(RefCell::new(Some((*y.borrow().as_ref().unwrap()).clone())))); let __moved_tmp_0 = { let mut __guard = __tmp_0.borrow_mut(); __guard.take() }; *x.borrow_mut() = __moved_tmp_0; let __moved_tmp_1 = { let mut __guard = __tmp_1.borrow_mut(); __guard.take() }; *y.borrow_mut() = __moved_tmp_1; };
     println!("{} {} {}", "After swap:".to_string(), { let __v = (*x.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*y.borrow().as_ref().unwrap()).clone(); __v });
 
         // Ignoring values

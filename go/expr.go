@@ -587,6 +587,9 @@ func writeCallArgumentValue(out *strings.Builder, arg ast.Expr) bool {
 	if _, isLocalConst := localConstants[ident.Name]; isLocalConst {
 		return false
 	}
+	if isConstIdent(ident) {
+		return false
+	}
 	if isVarBare(ident.Name) || rhsIsPointerType(ident) {
 		return false
 	}
@@ -641,11 +644,21 @@ func writeExternalStubCallArgument(out *strings.Builder, arg ast.Expr) {
 
 func writeAlreadyWrappedCallArgument(out *strings.Builder, arg ast.Expr) bool {
 	if ident, ok := arg.(*ast.Ident); ok && ident.Name != "nil" {
+		if currentReceiver != "" && ident.Name == currentReceiver {
+			return false
+		}
 		typeInfo := GetTypeInfo()
-		if typeInfo != nil && typeInfo.IsPointer(ident) {
-			out.WriteString(RustIdentForUse(ident))
-			out.WriteString(".clone()")
-			return true
+		if typeInfo != nil {
+			if _, isLocalConst := localConstants[ident.Name]; !isLocalConst && !isConstIdent(ident) {
+				if typ := typeInfo.GetType(ident); typ != nil {
+					switch types.Unalias(typ).Underlying().(type) {
+					case *types.Pointer, *types.Slice, *types.Map:
+						out.WriteString(RustIdentForUse(ident))
+						out.WriteString(".clone()")
+						return true
+					}
+				}
+			}
 		}
 	}
 	if _, ok := arg.(*ast.SliceExpr); ok {
@@ -3007,6 +3020,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			if lit, ok := expr.(*ast.BasicLit); ok && writeCharLiteralForPeer(out, lit, other) {
 				return
 			}
+			if writeConstExpressionForBinaryPeer(out, expr, other) {
+				return
+			}
 			if writeLenCapBinaryOperand(out, expr, other) {
 				return
 			}
@@ -3094,6 +3110,8 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				// typed int peer emitted as Go int representation for this binary expression.
 			} else if lit, ok := e.X.(*ast.BasicLit); ok && writeCharLiteralForPeer(out, lit, e.Y) {
 				// Character literal emitted as byte.
+			} else if writeConstExpressionForBinaryPeer(out, e.X, e.Y) {
+				// Constant emitted in the peer's expected representation.
 			} else if lit, ok := e.X.(*ast.BasicLit); ok && lit.Kind == token.INT {
 				// Check if the other operand might be a float
 				if isFloatExpression(e.Y) {
@@ -3120,6 +3138,8 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				// typed int peer emitted as Go int representation for this binary expression.
 			} else if lit, ok := e.Y.(*ast.BasicLit); ok && writeCharLiteralForPeer(out, lit, e.X) {
 				// Character literal emitted as byte.
+			} else if writeConstExpressionForBinaryPeer(out, e.Y, e.X) {
+				// Constant emitted in the peer's expected representation.
 			} else if lit, ok := e.Y.(*ast.BasicLit); ok && lit.Kind == token.INT {
 				// Check if the other operand might be a float
 				if isFloatExpression(e.X) {
@@ -3439,7 +3459,11 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				if len(e.Elts) == 0 {
 					// Empty slice needs explicit type
 					out.WriteString("Vec::<")
-					out.WriteString(GoTypeToRust(arrayType.Elt))
+					if elemType != nil {
+						out.WriteString(goTypesTypeToRust(elemType))
+					} else {
+						out.WriteString(goTypeToRustBase(arrayType.Elt))
+					}
 					out.WriteString(">::new(")
 				} else {
 					out.WriteString("vec![")
@@ -5142,7 +5166,9 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				}
 				// Wrap arguments in Rc<RefCell<Option<>>>
 				WriteWrapperPrefix(out)
-				if !writeCallArgumentValue(out, arg) {
+				if writeConstExpressionForExpectedGoType(out, arg, expectedArgType) {
+					// Constant emitted in the parameter's expected representation.
+				} else if !writeCallArgumentValue(out, arg) {
 					TranspileExpression(out, arg)
 				}
 				out.WriteString(")))")
@@ -5369,7 +5395,10 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 			} else {
 				// For method calls, wrap arguments normally
 				WriteWrapperPrefix(out)
-				if !writeCallArgumentValue(out, arg) {
+				expectedArgType := selectedMethodParamType(sel, i)
+				if writeConstExpressionForExpectedGoType(out, arg, expectedArgType) {
+					// Constant emitted in the parameter's expected representation.
+				} else if !writeCallArgumentValue(out, arg) {
 					TranspileExpression(out, arg)
 				}
 				WriteWrapperSuffix(out)

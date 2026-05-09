@@ -191,7 +191,7 @@ fn main() {
         // Read file line by line
     println!("{}", "\n--- Reading file line by line ---".to_string());
 
-    { let (__tmp_0, __tmp_1) = os::open(filename.clone()); *file.lock().unwrap() = __tmp_0.lock().unwrap().take(); *err.lock().unwrap() = __tmp_1.lock().unwrap().take(); };
+    { let (__tmp_0, __tmp_1) = os::open(filename.clone()); let __moved_tmp_0 = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take() }; *file.lock().unwrap() = __moved_tmp_0; let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1; };
     if (*err.lock().unwrap()).is_some() {
         print!("Error opening file: {}\n", format!("{}", (*err.lock().unwrap().as_ref().unwrap())));
         {
@@ -230,7 +230,7 @@ fn main() {
         // Append to file
     println!("{}", "\n--- Appending to file ---".to_string());
 
-    { let (__tmp_0, __tmp_1) = os::open_file(filename.clone(), { let __tmp_x = os::O__A_P_P_E_N_D; let __tmp_y = os::O__W_R_O_N_L_Y; __tmp_x | __tmp_y }, 0644); *file.lock().unwrap() = __tmp_0.lock().unwrap().take(); *err.lock().unwrap() = __tmp_1.lock().unwrap().take(); };
+    { let (__tmp_0, __tmp_1) = os::open_file(filename.clone(), { let __tmp_x = os::O__A_P_P_E_N_D; let __tmp_y = os::O__W_R_O_N_L_Y; __tmp_x | __tmp_y }, 0644); let __moved_tmp_0 = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take() }; *file.lock().unwrap() = __moved_tmp_0; let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1; };
     if (*err.lock().unwrap()).is_some() {
         print!("Error opening file for append: {}\n", format!("{}", (*err.lock().unwrap().as_ref().unwrap())));
         {
@@ -265,7 +265,7 @@ fn main() {
         // Read updated file
     println!("{}", "\n--- Reading updated file ---".to_string());
 
-    { let (__tmp_0, __tmp_1) = os::read_file(filename.clone()); *data.lock().unwrap() = __tmp_0.lock().unwrap().take(); *err.lock().unwrap() = __tmp_1.lock().unwrap().take(); };
+    { let (__tmp_0, __tmp_1) = os::read_file(filename.clone()); let __moved_tmp_0 = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take() }; *data.lock().unwrap() = __moved_tmp_0; let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1; };
     if (*err.lock().unwrap()).is_some() {
         print!("Error reading updated file: {}\n", format!("{}", (*err.lock().unwrap().as_ref().unwrap())));
         {
@@ -355,7 +355,7 @@ fn main() {
         // Read and process file content
     println!("{}", "\n--- Processing file content ---".to_string());
 
-    { let (__tmp_0, __tmp_1) = os::open(filename.clone()); *file.lock().unwrap() = __tmp_0.lock().unwrap().take(); *err.lock().unwrap() = __tmp_1.lock().unwrap().take(); };
+    { let (__tmp_0, __tmp_1) = os::open(filename.clone()); let __moved_tmp_0 = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take() }; *file.lock().unwrap() = __moved_tmp_0; let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1; };
     if (*err.lock().unwrap()).is_some() {
         print!("Error opening file: {}\n", format!("{}", (*err.lock().unwrap().as_ref().unwrap())));
         {
@@ -370,7 +370,7 @@ fn main() {
         (*file_defer_captured.lock().unwrap().as_mut().unwrap()).close();
     }));
 
-    { let new_val = bufio::new_scanner(file.clone()); *scanner.lock().unwrap() = new_val.lock().unwrap().take(); };
+    { let new_val = bufio::new_scanner(file.clone()); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *scanner.lock().unwrap() = __moved_val; };
     let mut wordCount = Arc::new(Mutex::new(Some(0)));
     let mut lineCount = Arc::new(Mutex::new(Some(0)));
     let mut charCount = Arc::new(Mutex::new(Some(0)));
@@ -399,7 +399,7 @@ fn main() {
     println!("{}", "\n--- Writing formatted data ---".to_string());
 
     let mut dataFile = Arc::new(Mutex::new(Some("data.txt".to_string())));
-    { let (__tmp_0, __tmp_1) = { let __path = (*dataFile.lock().unwrap().as_ref().unwrap()).clone(); match GoFile::create(&__path) { Ok(file) => (Arc::new(Mutex::new(Some(file))), Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>))), Err(e) => (Arc::new(Mutex::new(Some(GoFile::empty()))), Arc::new(Mutex::new(Some(Box::<dyn StdError + Send + Sync>::from(e))))) } }; *file.lock().unwrap() = __tmp_0.lock().unwrap().take(); *err.lock().unwrap() = __tmp_1.lock().unwrap().take(); };
+    { let (__tmp_0, __tmp_1) = { let __path = (*dataFile.lock().unwrap().as_ref().unwrap()).clone(); match GoFile::create(&__path) { Ok(file) => (Arc::new(Mutex::new(Some(file))), Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>))), Err(e) => (Arc::new(Mutex::new(Some(GoFile::empty()))), Arc::new(Mutex::new(Some(Box::<dyn StdError + Send + Sync>::from(e))))) } }; let __moved_tmp_0 = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take() }; *file.lock().unwrap() = __moved_tmp_0; let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1; };
     if (*err.lock().unwrap()).is_some() {
         print!("Error creating data file: {}\n", format!("{}", (*err.lock().unwrap().as_ref().unwrap())));
         {
@@ -425,7 +425,7 @@ fn main() {
         // Read and parse formatted data
     println!("{}", "\n--- Reading formatted data ---".to_string());
 
-    { let (__tmp_0, __tmp_1) = os::read_file(dataFile.clone()); *data.lock().unwrap() = __tmp_0.lock().unwrap().take(); *err.lock().unwrap() = __tmp_1.lock().unwrap().take(); };
+    { let (__tmp_0, __tmp_1) = os::read_file(dataFile.clone()); let __moved_tmp_0 = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take() }; *data.lock().unwrap() = __moved_tmp_0; let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1; };
     if (*err.lock().unwrap()).is_some() {
         print!("Error reading data file: {}\n", format!("{}", (*err.lock().unwrap().as_ref().unwrap())));
         {

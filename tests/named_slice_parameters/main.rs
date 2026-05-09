@@ -29,7 +29,7 @@ pub fn total(ns: Rc<RefCell<Option<Numbers>>>) -> Rc<RefCell<Option<i32>>> {
 
 pub fn grow(ns: Rc<RefCell<Option<Numbers>>>) -> Rc<RefCell<Option<Numbers>>> {
 
-    { let new_val = { let __base = { let __named_slice = (*ns.borrow().as_ref().unwrap()).0.clone(); __named_slice }; let __base_guard = __base.borrow(); let mut __values = __base_guard.as_ref().cloned().unwrap_or_else(Vec::new); drop(__base_guard); __values.push(4); Rc::new(RefCell::new(Some(Numbers(Rc::new(RefCell::new(Some(__values))))))) }; *ns.borrow_mut() = new_val.borrow_mut().take(); };
+    { let new_val = { let __base = { let __named_slice = (*ns.borrow().as_ref().unwrap()).0.clone(); __named_slice }; let __base_guard = __base.borrow(); let mut __values = __base_guard.as_ref().cloned().unwrap_or_else(Vec::new); drop(__base_guard); __values.push(4); Rc::new(RefCell::new(Some(Numbers(Rc::new(RefCell::new(Some(__values))))))) }; let __moved_val = { let mut __guard = new_val.borrow_mut(); __guard.take() }; *ns.borrow_mut() = __moved_val; };
     return ns.clone();
 }
 

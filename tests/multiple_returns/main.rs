@@ -150,7 +150,7 @@ fn main() {
         print!("Parsed number: {}\n", { let __v = (*num.borrow().as_ref().unwrap()).clone(); __v });
     }
 
-    { let (__tmp_0, __tmp_1) = parse_number(Rc::new(RefCell::new(Some("abc".to_string())))); *num.borrow_mut() = __tmp_0.borrow_mut().take(); *err.borrow_mut() = __tmp_1.borrow_mut().take(); };
+    { let (__tmp_0, __tmp_1) = parse_number(Rc::new(RefCell::new(Some("abc".to_string())))); let __moved_tmp_0 = { let mut __guard = __tmp_0.borrow_mut(); __guard.take() }; *num.borrow_mut() = __moved_tmp_0; let __moved_tmp_1 = { let mut __guard = __tmp_1.borrow_mut(); __guard.take() }; *err.borrow_mut() = __moved_tmp_1; };
     if (*err.borrow()).is_some() {
         print!("Error: {}\n", format!("{}", (*err.borrow().as_ref().unwrap())));
     } else {
@@ -172,7 +172,7 @@ fn main() {
     println!("{}", "\n=== Swapping values ===".to_string());
     let (mut x, mut y) = (Rc::new(RefCell::new(Some("hello".to_string()))), Rc::new(RefCell::new(Some("world".to_string()))));
     print!("Before swap: x={}, y={}\n", { let __v = (*x.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*y.borrow().as_ref().unwrap()).clone(); __v });
-    { let (__tmp_0, __tmp_1) = swap(Rc::new(RefCell::new(Some((*x.borrow().as_ref().unwrap()).clone()))), Rc::new(RefCell::new(Some((*y.borrow().as_ref().unwrap()).clone())))); *x.borrow_mut() = __tmp_0.borrow_mut().take(); *y.borrow_mut() = __tmp_1.borrow_mut().take(); };
+    { let (__tmp_0, __tmp_1) = swap(Rc::new(RefCell::new(Some((*x.borrow().as_ref().unwrap()).clone()))), Rc::new(RefCell::new(Some((*y.borrow().as_ref().unwrap()).clone())))); let __moved_tmp_0 = { let mut __guard = __tmp_0.borrow_mut(); __guard.take() }; *x.borrow_mut() = __moved_tmp_0; let __moved_tmp_1 = { let mut __guard = __tmp_1.borrow_mut(); __guard.take() }; *y.borrow_mut() = __moved_tmp_1; };
     print!("After swap: x={}, y={}\n", { let __v = (*x.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*y.borrow().as_ref().unwrap()).clone(); __v });
 
         // Multiple returns of different types
@@ -191,7 +191,7 @@ fn main() {
         println!("{}", "30 not found".to_string());
     }
 
-    { let (__tmp_0, __tmp_1) = find_in_slice(numbers.clone(), Rc::new(RefCell::new(Some(99)))); *index.borrow_mut() = __tmp_0.borrow_mut().take(); *found.borrow_mut() = __tmp_1.borrow_mut().take(); };
+    { let (__tmp_0, __tmp_1) = find_in_slice(numbers.clone(), Rc::new(RefCell::new(Some(99)))); let __moved_tmp_0 = { let mut __guard = __tmp_0.borrow_mut(); __guard.take() }; *index.borrow_mut() = __moved_tmp_0; let __moved_tmp_1 = { let mut __guard = __tmp_1.borrow_mut(); __guard.take() }; *found.borrow_mut() = __moved_tmp_1; };
     if (*found.borrow().as_ref().unwrap()) {
         print!("Found 99 at index {}\n", { let __v = (*index.borrow().as_ref().unwrap()).clone(); __v });
     } else {
@@ -207,7 +207,7 @@ fn main() {
         print!("10.0 / 3.0 = {:.2}\n", { let __v = (*result.borrow().as_ref().unwrap()).clone(); __v });
     }
 
-    { let (__tmp_0, __tmp_1) = safe_divide(Rc::new(RefCell::new(Some(10.0))), Rc::new(RefCell::new(Some(0.0)))); *result.borrow_mut() = __tmp_0.borrow_mut().take(); *err.borrow_mut() = __tmp_1.borrow_mut().take(); };
+    { let (__tmp_0, __tmp_1) = safe_divide(Rc::new(RefCell::new(Some(10.0))), Rc::new(RefCell::new(Some(0.0)))); let __moved_tmp_0 = { let mut __guard = __tmp_0.borrow_mut(); __guard.take() }; *result.borrow_mut() = __moved_tmp_0; let __moved_tmp_1 = { let mut __guard = __tmp_1.borrow_mut(); __guard.take() }; *err.borrow_mut() = __moved_tmp_1; };
     if (*err.borrow()).is_some() {
         print!("Error: {}\n", format!("{}", (*err.borrow().as_ref().unwrap())));
     } else {

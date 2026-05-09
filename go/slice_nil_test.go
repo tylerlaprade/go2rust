@@ -35,7 +35,7 @@ func main() {
 	if !strings.Contains(rust, "let mut s4: Rc<RefCell<Option<Vec<i32>>>> = Rc::new(RefCell::new(None));") {
 		t.Fatalf("nil slice declaration should transpile to None, got:\n%s", rust)
 	}
-	if !strings.Contains(rust, "let mut s5 = Rc::new(RefCell::new(Some(Vec::<Rc<RefCell<Option<i32>>>>::new())));") {
+	if !strings.Contains(rust, "let mut s5 = Rc::new(RefCell::new(Some(Vec::<i32>::new())));") {
 		t.Fatalf("empty slice literal should remain a wrapped empty Vec, got:\n%s", rust)
 	}
 }

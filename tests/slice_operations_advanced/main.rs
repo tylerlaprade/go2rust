@@ -44,6 +44,6 @@ fn main() {
 
         // Nil slice vs empty slice
     let mut s4: Rc<RefCell<Option<Vec<i32>>>> = Rc::new(RefCell::new(None));
-    let mut s5 = Rc::new(RefCell::new(Some(Vec::<Rc<RefCell<Option<i32>>>>::new())));
+    let mut s5 = Rc::new(RefCell::new(Some(Vec::<i32>::new())));
     print!("s4==nil: {}, s5==nil: {}\n", (*s4.borrow()).is_none(), (*s5.borrow()).is_none());
 }

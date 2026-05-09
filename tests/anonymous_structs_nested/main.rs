@@ -271,11 +271,11 @@ fn main() {
     let mut system: Rc<RefCell<Option<AnonymousStruct6>>> = Rc::new(RefCell::new(Some(Default::default())));
 
     { let new_val = "1.0.0".to_string(); *(*system.borrow().as_ref().unwrap()).version.borrow_mut() = Some(new_val); };
-    { let new_val = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<AnonymousStruct7>>>>::new()))); *(*system.borrow().as_ref().unwrap()).modules.borrow_mut() = new_val.borrow_mut().take(); };
+    { let new_val = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<AnonymousStruct7>>>>::new()))); let __moved_val = { let mut __guard = new_val.borrow_mut(); __guard.take() }; *(*system.borrow().as_ref().unwrap()).modules.borrow_mut() = __moved_val; };
 
         // Add a module with settings
     let mut authModule = Rc::new(RefCell::new(Some(AnonymousStruct7 { enabled: Rc::new(RefCell::new(Some(true))), settings: Rc::new(RefCell::new(Some(AnonymousStruct8::default()))) })));
-    { let new_val = Rc::new(RefCell::new(Some(vec![AnonymousStruct9 { key: Rc::new(RefCell::new(Some("timeout".to_string()))), value: Rc::new(RefCell::new(Some(Box::new(3600) as Box<dyn Any>))), ..Default::default() }, AnonymousStruct9 { key: Rc::new(RefCell::new(Some("max_attempts".to_string()))), value: Rc::new(RefCell::new(Some(Box::new(3) as Box<dyn Any>))), ..Default::default() }]))); *(*(*authModule.borrow().as_ref().unwrap()).settings.borrow().as_ref().unwrap()).options.borrow_mut() = new_val.borrow_mut().take(); };
+    { let new_val = Rc::new(RefCell::new(Some(vec![AnonymousStruct9 { key: Rc::new(RefCell::new(Some("timeout".to_string()))), value: Rc::new(RefCell::new(Some(Box::new(3600) as Box<dyn Any>))), ..Default::default() }, AnonymousStruct9 { key: Rc::new(RefCell::new(Some("max_attempts".to_string()))), value: Rc::new(RefCell::new(Some(Box::new(3) as Box<dyn Any>))), ..Default::default() }]))); let __moved_val = { let mut __guard = new_val.borrow_mut(); __guard.take() }; *(*(*authModule.borrow().as_ref().unwrap()).settings.borrow().as_ref().unwrap()).options.borrow_mut() = __moved_val; };
     (*(*system.borrow().as_ref().unwrap()).modules.borrow_mut().as_mut().unwrap()).insert("auth".to_string(), authModule.clone());
 
     print!("\nSystem version: {}\n", (*(*system.borrow().as_ref().unwrap()).version.borrow().as_ref().unwrap()));
