@@ -543,6 +543,75 @@ func isUnlabeledBreakStmt(stmt ast.Stmt) bool {
 	return ok && branch.Tok == token.BREAK && branch.Label == nil
 }
 
+func pushBreakTarget(label string) func() {
+	breakTargetStack = append(breakTargetStack, label)
+	return func() {
+		breakTargetStack = breakTargetStack[:len(breakTargetStack)-1]
+	}
+}
+
+func currentBreakTarget() string {
+	if len(breakTargetStack) == 0 {
+		return ""
+	}
+	return breakTargetStack[len(breakTargetStack)-1]
+}
+
+func nextSwitchBreakLabel() string {
+	switchBreakLabelCounter++
+	return fmt.Sprintf("__go_switch_%d", switchBreakLabelCounter)
+}
+
+func stmtContainsBreakForCurrentSwitch(stmt ast.Stmt) bool {
+	switch s := stmt.(type) {
+	case *ast.BranchStmt:
+		return s.Tok == token.BREAK && s.Label == nil
+	case *ast.BlockStmt:
+		return stmtListContainsBreakForCurrentSwitch(s.List)
+	case *ast.IfStmt:
+		if stmtListContainsBreakForCurrentSwitch(s.Body.List) {
+			return true
+		}
+		if s.Else != nil {
+			return stmtContainsBreakForCurrentSwitch(s.Else)
+		}
+		return false
+	case *ast.LabeledStmt:
+		return stmtContainsBreakForCurrentSwitch(s.Stmt)
+	case *ast.ForStmt, *ast.RangeStmt, *ast.SwitchStmt, *ast.TypeSwitchStmt:
+		return false
+	default:
+		return false
+	}
+}
+
+func stmtListContainsBreakForCurrentSwitch(stmts []ast.Stmt) bool {
+	for _, stmt := range stmts {
+		if stmtContainsBreakForCurrentSwitch(stmt) {
+			return true
+		}
+	}
+	return false
+}
+
+func switchNeedsSyntheticBreakTarget(body *ast.BlockStmt) bool {
+	for _, stmt := range body.List {
+		caseClause, ok := stmt.(*ast.CaseClause)
+		if !ok {
+			continue
+		}
+		for _, bodyStmt := range caseClause.Body {
+			if isUnlabeledBreakStmt(bodyStmt) {
+				continue
+			}
+			if stmtContainsBreakForCurrentSwitch(bodyStmt) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 func stmtTerminates(stmt ast.Stmt) bool {
 	switch s := stmt.(type) {
 	case *ast.ReturnStmt:
@@ -4255,6 +4324,16 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			out.WriteString("\n    ")
 		}
 
+		needsBreakTarget := switchNeedsSyntheticBreakTarget(s.Body)
+		var restoreBreakTarget func()
+		if needsBreakTarget {
+			breakLabel := nextSwitchBreakLabel()
+			restoreBreakTarget = pushBreakTarget(breakLabel)
+			out.WriteString("'")
+			out.WriteString(breakLabel)
+			out.WriteString(": loop {\n        ")
+		}
+
 		// Check if any case has fallthrough
 		hasFallthrough := false
 		for _, stmt := range s.Body.List {
@@ -4491,6 +4570,10 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				}
 			}
 		}
+		if needsBreakTarget {
+			out.WriteString(";\n        break;\n    }")
+			restoreBreakTarget()
+		}
 
 	case *ast.BranchStmt:
 		switch s.Tok {
@@ -4498,6 +4581,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			out.WriteString("break")
 			if s.Label != nil {
 				out.WriteString(" '" + ToSnakeCase(s.Label.Name))
+			} else if target := currentBreakTarget(); target != "" {
+				out.WriteString(" '")
+				out.WriteString(target)
 			}
 		case token.CONTINUE:
 			// In Go, `continue label` executes the for-loop's post-statement.
@@ -5037,6 +5123,16 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			break
 		}
 
+		needsBreakTarget := switchNeedsSyntheticBreakTarget(s.Body)
+		var restoreBreakTarget func()
+		if needsBreakTarget {
+			breakLabel := nextSwitchBreakLabel()
+			restoreBreakTarget = pushBreakTarget(breakLabel)
+			out.WriteString("'")
+			out.WriteString(breakLabel)
+			out.WriteString(": loop {\n    ")
+		}
+
 		typeInfo := GetTypeInfo()
 		subjectUsesAny := typeInfo != nil && isEmptyInterfaceType(typeInfo.GetType(expr))
 		subjectIsLocalInterfaceRef := isLocalInterfaceRefIdent(expr)
@@ -5177,6 +5273,10 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		out.WriteString("\n    }")
 		if typeSwitchStmtTerminates(s) {
 			out.WriteString("\n    unreachable!()")
+		}
+		if needsBreakTarget {
+			out.WriteString(";\n    break;\n}")
+			restoreBreakTarget()
 		}
 
 	case *ast.LabeledStmt:

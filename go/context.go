@@ -60,6 +60,8 @@ type FileState struct {
 	ExternalTypeStubConversions  map[string]map[string]bool
 	ExternalPackageStubs         map[string]*externalPackageStub
 	PendingLoopLabel             string
+	BreakTargetStack             []string
+	SwitchBreakLabelCounter      int
 	HasInitFunction              bool
 	LabeledLoopPost              map[string]ast.Stmt
 }
@@ -320,6 +322,8 @@ func (ctx *TranspileContext) captureCompatibilityState() {
 		ctx.File.ExternalTypeStubConversions = externalTypeStubConversions
 		ctx.File.ExternalPackageStubs = externalPackageStubs
 		ctx.File.PendingLoopLabel = pendingLoopLabel
+		ctx.File.BreakTargetStack = breakTargetStack
+		ctx.File.SwitchBreakLabelCounter = switchBreakLabelCounter
 		ctx.File.HasInitFunction = hasInitFunction
 		ctx.File.LabeledLoopPost = labeledLoopPost
 	}
@@ -369,6 +373,8 @@ func (ctx *TranspileContext) applyCompatibilityState() {
 		externalTypeStubConversions = ctx.File.ExternalTypeStubConversions
 		externalPackageStubs = ctx.File.ExternalPackageStubs
 		pendingLoopLabel = ctx.File.PendingLoopLabel
+		breakTargetStack = ctx.File.BreakTargetStack
+		switchBreakLabelCounter = ctx.File.SwitchBreakLabelCounter
 		hasInitFunction = ctx.File.HasInitFunction
 		labeledLoopPost = ctx.File.LabeledLoopPost
 	}

@@ -39,6 +39,13 @@ var statementPreprocessor *StatementPreprocessor
 // pendingLoopLabel is set by LabeledStmt and consumed by ForStmt/RangeStmt
 var pendingLoopLabel string
 
+// breakTargetStack tracks synthetic Rust labels for unlabeled Go breaks whose
+// nearest breakable construct is not represented by a Rust loop.
+var breakTargetStack []string
+
+// switchBreakLabelCounter generates unique labels for switch one-shot loops.
+var switchBreakLabelCounter int
+
 // hasInitFunction tracks whether the current file has an init() function
 var hasInitFunction bool
 
