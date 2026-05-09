@@ -309,6 +309,17 @@ func isExpressionResultBare(expr ast.Expr) bool {
 	}
 }
 
+func writeStringSequenceValue(out *strings.Builder, expr ast.Expr) {
+	if isStringConstExpr(expr) || isExpressionResultBare(expr) {
+		TranspileExpression(out, expr)
+		return
+	}
+	out.WriteString("(*")
+	TranspileExpressionContext(out, expr, LValue)
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap()).clone()")
+}
+
 func methodReceiverExpressionNeedsUnwrap(expr ast.Expr) bool {
 	switch e := expr.(type) {
 	case *ast.CallExpr:
@@ -2979,10 +2990,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 
 			if isString {
 				// String indexing returns a byte (u8)
-				out.WriteString("{ let __s = (*")
-				TranspileExpressionContext(out, e.X, LValue)
-				WriteBorrowMethod(out, false)
-				out.WriteString(".as_ref().unwrap()).clone(); __s.as_bytes()[")
+				out.WriteString("{ let __s = ")
+				writeStringSequenceValue(out, e.X)
+				out.WriteString("; __s.as_bytes()[")
 				writeExpressionAsUsize(out, e.Index)
 				out.WriteString("] }")
 			} else if writeNamedSliceIndexValue(out, e.X, e.Index) {
@@ -3056,10 +3066,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			WriteWrapperSuffix(out)
 		} else if isStringSlice {
 			WriteWrapperPrefix(out)
-			out.WriteString("{ let __s = (*")
-			TranspileExpressionContext(out, e.X, LValue)
-			WriteBorrowMethod(out, false)
-			out.WriteString(".as_ref().unwrap()).clone(); __s[")
+			out.WriteString("{ let __s = ")
+			writeStringSequenceValue(out, e.X)
+			out.WriteString("; __s[")
 			if e.Low != nil {
 				writeExpressionAsUsize(out, e.Low)
 			}
