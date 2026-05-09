@@ -308,6 +308,32 @@ func pushTypeSwitchCaseVarScope(varName string, isTypedSingleCase bool) func() {
 	return vt.PopScope
 }
 
+func isUnsafePointerDerefAssignmentTarget(expr ast.Expr) bool {
+	star, ok := expr.(*ast.StarExpr)
+	if !ok {
+		return false
+	}
+	target := star.X
+	if paren, ok := target.(*ast.ParenExpr); ok {
+		target = paren.X
+	}
+	call, ok := target.(*ast.CallExpr)
+	if !ok || len(call.Args) != 1 {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || !isUnsafePointerLikeType(typeInfo.GetType(call.Args[0])) {
+		return false
+	}
+	if typ := typeInfo.GetType(call); typ != nil {
+		if _, ok := types.Unalias(typ).Underlying().(*types.Pointer); ok {
+			return true
+		}
+	}
+	_, ok = pointerTypeConversionTarget(call.Fun)
+	return ok
+}
+
 func isUnlabeledBreakStmt(stmt ast.Stmt) bool {
 	branch, ok := stmt.(*ast.BranchStmt)
 	return ok && branch.Tok == token.BREAK && branch.Label == nil
@@ -2282,6 +2308,10 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									out.WriteString("; *")
 									out.WriteString(RustIdentForUse(ident))
 									out.WriteString(".as_ref().unwrap().borrow_mut() = Some(new_val); }")
+								} else if isUnsafePointerDerefAssignmentTarget(star) {
+									out.WriteString("{ let _ = ")
+									TranspileExpression(out, s.Rhs[0])
+									out.WriteString("; }")
 								} else {
 									out.WriteString("{ ")
 									out.WriteString("let new_val = ")
