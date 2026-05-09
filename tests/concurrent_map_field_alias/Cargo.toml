@@ -1,0 +1,8 @@
+[package]
+name = "concurrent_map_field_alias"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "concurrent_map_field_alias"
+path = "main.rs"

@@ -482,6 +482,10 @@ run_xfail_test() {
     run_test "tests/concurrent_make_pointer_map_values"
 }
 
+@test "concurrent_map_field_alias" {
+    run_test "tests/concurrent_map_field_alias"
+}
+
 @test "concurrent_named_type_comparisons" {
     run_test "tests/concurrent_named_type_comparisons"
 }
@@ -496,6 +500,10 @@ run_xfail_test() {
 
 @test "concurrent_selector_map_lookup" {
     run_test "tests/concurrent_selector_map_lookup"
+}
+
+@test "concurrent_stdlib_map_slice_comma_ok" {
+    run_test "tests/concurrent_stdlib_map_slice_comma_ok"
 }
 
 @test "const_basic" {

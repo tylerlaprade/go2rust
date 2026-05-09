@@ -462,6 +462,21 @@ func writeWrappedValueCopyFromIdent(out *strings.Builder, ident *ast.Ident) bool
 	}
 }
 
+func writeConcurrentMapSelectorHandleClone(out *strings.Builder, expr ast.Expr) bool {
+	if !NeedsConcurrentWrapper() {
+		return false
+	}
+	if _, ok := expr.(*ast.SelectorExpr); !ok {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || !typeInfo.IsMap(expr) {
+		return false
+	}
+	TranspileExpression(out, expr)
+	return true
+}
+
 func writeCallExpressionForInitializer(out *strings.Builder, call *ast.CallExpr) {
 	typeInfo := GetTypeInfo()
 	if typeInfo != nil && typeInfo.IsTypeConversion(call) && !typeConversionEmitsWrappedValue(call) {
@@ -2756,6 +2771,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										} else if _, isSliceExpr := rhs.(*ast.SliceExpr); isSliceExpr {
 											// Slice expressions already return wrapped values
 											TranspileExpression(out, rhs)
+										} else if writeConcurrentMapSelectorHandleClone(out, rhs) {
+											// Concurrent map fields are already wrapped handles; clone the handle.
 										} else if writeEmptyInterfaceHandleClone(out, rhs) {
 											// Existing interface values are already represented by a handle.
 										} else if writeStdlibInterfaceFieldValueCopy(out, rhs) {
@@ -2964,6 +2981,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 								} else if unary, ok := valueSpec.Values[i].(*ast.UnaryExpr); ok && unary.Op == token.AND {
 									// Address-of operator already produces wrapped value
 									TranspileExpression(out, valueSpec.Values[i])
+								} else if writeConcurrentMapSelectorHandleClone(out, valueSpec.Values[i]) {
+									// Concurrent map fields are already wrapped handles; clone the handle.
 								} else if ident, ok := valueSpec.Values[i].(*ast.Ident); ok {
 									isInterface := false
 									if valueSpec.Type != nil {

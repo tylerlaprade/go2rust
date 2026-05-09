@@ -2471,6 +2471,13 @@ func transpileMake(out *strings.Builder, call *ast.CallExpr) {
 		} else if arrayType, ok := call.Args[0].(*ast.ArrayType); ok && arrayType.Len == nil {
 			// Slice type - check element type
 			elementType := "0" // default
+			if typeInfo := GetTypeInfo(); typeInfo != nil {
+				if typ := typeInfo.GetType(call.Args[0]); typ != nil {
+					if sliceType, ok := types.Unalias(typ).Underlying().(*types.Slice); ok {
+						elementType = zeroValueForTypesType(sliceType.Elem())
+					}
+				}
+			}
 			if ident, ok := arrayType.Elt.(*ast.Ident); ok {
 				switch ident.Name {
 				case "string":
