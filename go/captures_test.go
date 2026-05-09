@@ -128,3 +128,53 @@ func makeSeq(pkgs []string) func(func(string) bool) {
 		t.Fatalf("keyword parameter capture should use raw identifier, got %q", got)
 	}
 }
+
+func TestClosureParameterDoesNotCaptureOuterName(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+func use(T any) func(any) any {
+	visit := func(T any) any {
+		return T
+	}
+	return visit
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(main.go) error = %v", err)
+	}
+
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+	SetTypeInfo(typeInfo)
+	defer SetTypeInfo(nil)
+
+	var assignStmt *ast.AssignStmt
+	ast.Inspect(file, func(n ast.Node) bool {
+		if assignStmt != nil {
+			return false
+		}
+		assign, ok := n.(*ast.AssignStmt)
+		if !ok || len(assign.Rhs) != 1 {
+			return true
+		}
+		if _, ok := assign.Rhs[0].(*ast.FuncLit); ok {
+			assignStmt = assign
+			return false
+		}
+		return true
+	})
+	if assignStmt == nil {
+		t.Fatal("did not find assignment statement with closure")
+	}
+
+	sp := NewStatementPreprocessor(fset)
+	info := sp.PreprocessStatement(assignStmt, nil)
+	if info != nil {
+		if _, ok := info.CapturedVars["T"]; ok {
+			t.Fatalf("closure parameter T should not capture outer T, got %#v", info.CapturedVars)
+		}
+	}
+}

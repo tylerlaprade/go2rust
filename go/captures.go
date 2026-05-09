@@ -15,6 +15,7 @@ func findCapturedVars(funcLit *ast.FuncLit) map[string]bool {
 	}
 
 	localObjects := declaredVarObjectsInFuncLit(funcLit, typeInfo)
+	paramNames := parameterNamesInFuncLit(funcLit)
 
 	// Find all variable references that aren't declared inside this function
 	// literal. References inside nested function literals still count if they
@@ -29,7 +30,7 @@ func findCapturedVars(funcLit *ast.FuncLit) map[string]bool {
 				return false
 			case *ast.Ident:
 				obj, ok := typeInfo.info.Uses[node].(*types.Var)
-				if !ok || localObjects[obj] || isPackageScopeObject(obj) {
+				if !ok || localObjects[obj] || paramNames[node.Name] || isPackageScopeObject(obj) {
 					return true
 				}
 				captured[node.Name] = true
@@ -40,6 +41,21 @@ func findCapturedVars(funcLit *ast.FuncLit) map[string]bool {
 	inspectRefs(funcLit.Body)
 
 	return captured
+}
+
+func parameterNamesInFuncLit(funcLit *ast.FuncLit) map[string]bool {
+	names := make(map[string]bool)
+	if funcLit == nil || funcLit.Type == nil || funcLit.Type.Params == nil {
+		return names
+	}
+	for _, field := range funcLit.Type.Params.List {
+		for _, name := range field.Names {
+			if name != nil && name.Name != "_" {
+				names[name.Name] = true
+			}
+		}
+	}
+	return names
 }
 
 func declaredVarObjectsInFuncLit(funcLit *ast.FuncLit, typeInfo *TypeInfo) map[types.Object]bool {
