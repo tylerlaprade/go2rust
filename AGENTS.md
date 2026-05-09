@@ -95,6 +95,9 @@ See `ROADMAP.md` for the detailed implementation phases and progress.
 - Go type names can collide with Rust prelude names. Escaped Rust names such as `String_` must be used consistently in type declarations, constructors, impl blocks, composite literals, local aliases, and imported package paths.
 - Package-level pointer globals initialized from constructor calls should keep the returned pointer handle. Unwrapping the initializer to the pointee usually creates an `Option<T>` vs `Option<Arc<Mutex<Option<T>>>>` mismatch.
 - Generated helper types with Rust identity, such as `GoTime`, `GoContext`, and `GoChannel`, must be package-scoped for multi-file crates. File-local helper structs make sibling module signatures incompatible even when the Go type is the same.
+- String constants are bare Rust values (`&'static str`), not wrappers. String indexing and slicing must use them directly, for example `let __s = NAME`, instead of emitting `.borrow()` or `.lock()`.
+- Named scalar type methods must translate receiver references through `self.0`; named slice methods should pass the named slice handle with `self.clone()`, not the inner `Vec`.
+- Named numeric type definitions need Rust operator/comparison impls for Go-style mixed operations such as `1 <= code`, `code + 1`, and `code - otherCode`. Keep those impls tied to the actual numeric underlying type from type information.
 
 ### Call Argument Wrapping
 
@@ -105,6 +108,7 @@ See `ROADMAP.md` for the detailed implementation phases and progress.
 - Imported transpiled interfaces are Rust traits in dependency crates. When a current-package concrete value is passed to an imported interface parameter, prove the relationship with `go/types.Implements` and generate the dependency trait impl; do not infer this from names.
 - Imported interface impls can be required by a call in one file for a concrete type declared in another file. Collect these relationships at package scope before emitting per-file modules, then emit the impl beside the concrete type.
 - Named Go function types are Rust aliases to wrapped closure handles. Track function-type aliases separately from general aliases, and when `*FuncAlias` is dereferenced for a function parameter or call, pass the alias handle directly rather than wrapping it again.
+- Package init aggregators must call only real Go `init` functions. Do not derive `__go_init_N` calls from the count of all function-name overrides; duplicate Rust names such as `UsedIdent`/`usedIdent` also create overrides.
 
 ### Sync Helpers
 
@@ -168,7 +172,9 @@ The test script handles:
 - Use self-hosting errors as real feedback. A generated Rust compile error usually points to a translator boundary issue; reduce it to a focused fixture before patching broadly.
 - If `rustc` is killed on a generated dependency crate, inspect the generated Rust shape before assuming a semantic type error. Multi-megabyte single expressions can kill the compiler even when the code is otherwise valid.
 - For large package-level composite literals, prefer statement lowering: build local maps/slices in source order, then assign to the package global once. Do not mutate the target global while evaluating its initializer.
-- Current self-hosting checkpoint: focused cargo-checks have reached and passed `golang_org_x_tools_internal_event_core`. The next broad run should continue with the full serialized workspace check; verify the live error set before patching.
+- Anonymous struct types can be discovered while transpiling function bodies, after the early type-definition pass. Emit anonymous struct definitions a second time after functions for any names not already emitted.
+- Current self-hosting checkpoint: package-targeted checks pass for `golang_org_x_tools_internal_versions`, `golang_org_x_tools_internal_stdlib`, and `golang_org_x_tools_internal_typeparams`. `golang_org_x_tools_internal_typesinternal` is down to 106 Rust errors after fixing receiver lowering, nonliteral fixed array lengths, numeric type-definition ops, duplicate-name init calls, late anonymous struct definitions, and string-constant slicing.
+- Current `typesinternal` remaining clusters include missing unexported stdlib constants in `toonew.rs`, ambiguous `__go_init_globals` imports in `types.rs`, incomplete `go/types` and `go/ast` stdlib stubs, interface/AST wrapper mismatches, named numeric bitwise ops for stub types such as `types_BasicInfo`, and type-switch handling around `Unknown`.
 
 ## Source-Preserving Fixes
 
