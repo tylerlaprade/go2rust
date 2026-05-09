@@ -42,7 +42,15 @@ func makeExprSliceLen() int {
 	return len(exprs)
 }
 
+func assertedFieldElement() ast.Expr {
+	field := &ast.Field{Type: &ast.ArrayType{Elt: ast.NewIdent("int")}}
+	return field.Type.(*ast.ArrayType).Elt
+}
+
 func main() {
+	if false {
+		fmt.Println(assertedFieldElement() != nil)
+	}
 	fmt.Println(makeExpr() != nil)
 	fmt.Println(makeIdentExpr() != nil)
 	fmt.Println(makeUnaryExpr() != nil)

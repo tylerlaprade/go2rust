@@ -1,5 +1,24 @@
 use std::sync::{Arc, Mutex};
 
+#[derive(Debug, Clone, Default)]
+pub struct ast_ArrayType {
+    pub elt: Arc<Mutex<Option<ast_Expr>>>,
+}
+
+impl std::fmt::Display for ast_ArrayType {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<ast_ArrayType>")
+    }
+}
+
+
+impl ast_ArrayType {
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        None
+    }
+}
+
+
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ast_Expr;
 
@@ -11,6 +30,25 @@ impl std::fmt::Display for ast_Expr {
 
 
 impl ast_Expr {
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        None
+    }
+}
+
+
+#[derive(Debug, Clone, Default)]
+pub struct ast_Field {
+    pub r#type: Arc<Mutex<Option<ast_Expr>>>,
+}
+
+impl std::fmt::Display for ast_Field {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<ast_Field>")
+    }
+}
+
+
+impl ast_Field {
     pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
         None
     }
@@ -69,6 +107,13 @@ impl std::fmt::Display for ast_UnaryExpr {
 impl ast_UnaryExpr {
     pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
         None
+    }
+}
+
+
+impl From<ast_ArrayType> for ast_Expr {
+    fn from(_value: ast_ArrayType) -> Self {
+        Self::default()
     }
 }
 
@@ -139,7 +184,24 @@ pub fn make_expr_slice_len() -> Arc<Mutex<Option<i32>>> {
     return Arc::new(Mutex::new(Some((*exprs.lock().unwrap().as_ref().unwrap()).len() as i32)));
 }
 
+pub fn asserted_field_element() -> Arc<Mutex<Option<ast_Expr>>> {
+
+    let mut field = Arc::new(Mutex::new(Some(ast_Field { r#type: { let __arg = Arc::new(Mutex::new(Some(ast_ArrayType { elt: { let __arg = ast::new_ident("int".to_string()); let __converted = { let __arg_guard = __arg.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone().into() }; Arc::new(Mutex::new(Some(__converted))) }, ..Default::default() }))); let __converted = { let __arg_guard = __arg.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone().into() }; Arc::new(Mutex::new(Some(__converted))) }, ..Default::default() })));
+    return Arc::new(Mutex::new(Some((*(*({
+        let val = (*field.lock().unwrap().as_ref().unwrap()).r#type.clone();
+        let guard = val.lock().unwrap();
+        if let Some(ref any_val) = *guard {
+            any_val.downcast_ref::<Arc<Mutex<Option<ast_ArrayType>>>>().expect("type assertion failed").clone()
+        } else {
+            panic!("type assertion on nil interface")
+        }
+    }).lock().unwrap().as_ref().unwrap()).elt.lock().unwrap().as_ref().unwrap()).clone())));
+}
+
 fn main() {
+    if false {
+        println!("{}", (*asserted_field_element().lock().unwrap()).is_some());
+    }
     println!("{}", (*make_expr().lock().unwrap()).is_some());
     println!("{}", (*make_ident_expr().lock().unwrap()).is_some());
     println!("{}", (*make_unary_expr().lock().unwrap()).is_some());

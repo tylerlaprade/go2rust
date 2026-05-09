@@ -3956,7 +3956,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			if ident, ok := e.X.(*ast.Ident); ok && ident.Name != "nil" {
 				out.WriteString(ident.Name)
 			} else {
-				TranspileExpression(out, e.X)
+				TranspileExpressionContext(out, e.X, LValue)
 			}
 			out.WriteString(".clone();\n")
 			out.WriteString("        let guard = val.")
