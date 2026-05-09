@@ -549,6 +549,13 @@ func goTypeToRustBase(expr ast.Expr) string {
 				NeedGoContext()
 				return "GoCancelCauseFunc"
 			}
+			if isStdlibPackage(goPackageImports[ident.Name]) {
+				if named, ok := namedTypeForTypeExpr(t); ok {
+					if sig, ok := signatureFromType(named); ok {
+						return signatureToBoxDynFn(sig)
+					}
+				}
+			}
 			if rustName, ok := rustTypeNameForImportedPackagePath(goPackageImports[ident.Name], t.Sel.Name); ok {
 				return rustName
 			}
@@ -983,6 +990,9 @@ func goTypesTypeToRustWrapped(t types.Type) string {
 func goTypesParamTypeToRust(t types.Type) string {
 	if interfaceName, ok := transpiledNamedInterfaceTypeNameFromTypes(t); ok {
 		return rustLocalInterfaceParam(interfaceName)
+	}
+	if _, ok := types.Unalias(t).Underlying().(*types.Pointer); ok {
+		return goTypesTypeToRust(t)
 	}
 	return goTypesTypeToRustWrapped(t)
 }
