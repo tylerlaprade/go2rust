@@ -726,8 +726,11 @@ func selectedMethodParamType(sel *ast.SelectorExpr, index int) types.Type {
 	return sig.Params().At(index).Type()
 }
 
-func writeLocalInterfaceReferenceCallArgument(out *strings.Builder, arg ast.Expr) bool {
+func writeLocalInterfaceReferenceCallArgument(out *strings.Builder, arg ast.Expr, expected types.Type) bool {
 	if ident, ok := arg.(*ast.Ident); ok {
+		if writeLocalInterfaceConstReferenceCallArgument(out, ident, expected) {
+			return true
+		}
 		if currentReceiver != "" && ident.Name == currentReceiver {
 			out.WriteString("self")
 			return true
@@ -747,6 +750,34 @@ func writeLocalInterfaceReferenceCallArgument(out *strings.Builder, arg ast.Expr
 		return true
 	}
 	return false
+}
+
+func writeLocalInterfaceConstReferenceCallArgument(out *strings.Builder, ident *ast.Ident, expected types.Type) bool {
+	if ident == nil || expected == nil {
+		return false
+	}
+	if _, isLocalConst := localConstants[ident.Name]; !isLocalConst && !isConstIdent(ident) {
+		return false
+	}
+	expectedInterface, ok := types.Unalias(expected).Underlying().(*types.Interface)
+	if !ok {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	named, ok := types.Unalias(typeInfo.GetType(ident)).(*types.Named)
+	if !ok || !types.Implements(named, expectedInterface) {
+		return false
+	}
+	var value strings.Builder
+	if !writeExpressionForExpectedTypesType(&value, ident, named) {
+		return false
+	}
+	out.WriteString("&")
+	out.WriteString(value.String())
+	return true
 }
 
 func callParamTypeFromTypeInfo(call *ast.CallExpr, index int) types.Type {
@@ -5484,7 +5515,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				}
 				expectedArgType := callParamTypeFromTypeInfo(call, i)
 				if _, ok := transpiledNamedInterfaceTypeNameFromTypes(expectedArgType); ok {
-					if writeLocalInterfaceReferenceCallArgument(out, arg) {
+					if writeLocalInterfaceReferenceCallArgument(out, arg, expectedArgType) {
 						continue
 					}
 				}
@@ -5706,6 +5737,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 			if i > 0 {
 				out.WriteString(", ")
 			}
+			expectedArgType := selectedMethodParamType(sel, i)
 			if externalStdlibStubMethodCall {
 				writeExternalStubCallArgument(out, arg)
 			} else if bareMethodCall {
@@ -5714,18 +5746,17 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 			} else if typeInfo != nil && typeInfo.IsChannel(arg) {
 				TranspileExpression(out, arg)
 				out.WriteString(".clone()")
-			} else if _, ok := transpiledNamedInterfaceTypeNameFromTypes(selectedMethodParamType(sel, i)); ok && writeLocalInterfaceReferenceCallArgument(out, arg) {
+			} else if _, ok := transpiledNamedInterfaceTypeNameFromTypes(expectedArgType); ok && writeLocalInterfaceReferenceCallArgument(out, arg, expectedArgType) {
 				continue
-			} else if writeEmptyInterfaceCallArgument(out, arg, selectedMethodParamType(sel, i)) {
+			} else if writeEmptyInterfaceCallArgument(out, arg, expectedArgType) {
 				continue
-			} else if writeStdlibInterfaceCallArgumentConversion(out, arg, selectedMethodParamType(sel, i)) {
+			} else if writeStdlibInterfaceCallArgumentConversion(out, arg, expectedArgType) {
 				continue
 			} else if writeAlreadyWrappedCallArgument(out, arg) {
 				continue
 			} else {
 				// For method calls, wrap arguments normally
 				WriteWrapperPrefix(out)
-				expectedArgType := selectedMethodParamType(sel, i)
 				if writeConstExpressionForExpectedGoType(out, arg, expectedArgType) {
 					// Constant emitted in the parameter's expected representation.
 				} else if !writeCallArgumentValue(out, arg) {
@@ -5914,7 +5945,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 			// Special handling for interface parameters that now use &dyn Trait
 			if expectsInterfaceParam {
 				// Interface parameter - pass as reference without wrapper
-				if !writeLocalInterfaceReferenceCallArgument(out, arg) {
+				if !writeLocalInterfaceReferenceCallArgument(out, arg, expectedArgType) {
 					// Complex expression - need to evaluate and reference
 					out.WriteString("&*")
 					TranspileExpression(out, arg)

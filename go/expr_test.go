@@ -82,7 +82,7 @@ func TestLocalInterfaceReferenceCallArgumentUsesCurrentReceiver(t *testing.T) {
 	defer func() { currentReceiver = prevReceiver }()
 
 	var out strings.Builder
-	if !writeLocalInterfaceReferenceCallArgument(&out, ast.NewIdent("k")) {
+	if !writeLocalInterfaceReferenceCallArgument(&out, ast.NewIdent("k"), nil) {
 		t.Fatal("writeLocalInterfaceReferenceCallArgument returned false")
 	}
 	if got, want := out.String(), "self"; got != want {

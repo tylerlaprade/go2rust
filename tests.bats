@@ -530,6 +530,10 @@ run_xfail_test() {
     run_test "tests/cross_file_func_vars"
 }
 
+@test "cross_file_interface_typed_const_argument" {
+    run_test "tests/cross_file_interface_typed_const_argument"
+}
+
 @test "cross_file_lower_const_compound" {
     run_test "tests/cross_file_lower_const_compound"
 }
