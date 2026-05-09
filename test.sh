@@ -166,6 +166,12 @@ fi
 # Export for use in tests.bats
 export SHOW_XFAIL_ERRORS
 
+# Build the transpiler once before running the suite. Bats parallelism is
+# file-level, so sharded runs would otherwise race multiple setup_file builds
+# against the same ./go2rust output path.
+go build -o go2rust ./go
+export GO2RUST_TEST_BINARY_READY=1
+
 # Set default job count if not specified
 if [ -z "$JOBS" ]; then
     # Detect CPU cores but leave some headroom for Rust's memory usage
@@ -179,6 +185,61 @@ if [ "$JOBS" -gt 1 ] && ! command -v parallel >/dev/null 2>&1; then
     echo "GNU parallel is not installed; running tests sequentially."
     JOBS=1
 fi
+
+create_bats_shards() {
+    local shard_dir="$1"
+    local jobs="$2"
+    local preamble_file="$shard_dir/preamble.bats"
+
+    awk '/^# BEGIN GENERATED TESTS/ { exit } { print }' tests.bats > "$preamble_file"
+
+    for ((shard = 1; shard <= jobs; shard++)); do
+        local shard_file
+        shard_file=$(printf "%s/tests-shard-%02d.bats" "$shard_dir" "$shard")
+        cp "$preamble_file" "$shard_file"
+        echo "# BEGIN GENERATED TESTS - SHARD $shard/$jobs" >> "$shard_file"
+    done
+
+    awk -v shard_dir="$shard_dir" -v jobs="$jobs" '
+        function emit_block() {
+            if (block == "") {
+                return
+            }
+            shard = (test_index % jobs) + 1
+            file = sprintf("%s/tests-shard-%02d.bats", shard_dir, shard)
+            printf "%s", block >> file
+            close(file)
+            block = ""
+            test_index++
+        }
+        /^# BEGIN GENERATED TESTS/ {
+            in_tests = 1
+            next
+        }
+        /^# END GENERATED TESTS/ {
+            emit_block()
+            in_tests = 0
+            next
+        }
+        in_tests && /^@test / {
+            emit_block()
+            block = $0 ORS
+            next
+        }
+        in_tests {
+            if (block != "") {
+                block = block $0 ORS
+            }
+            next
+        }
+    ' tests.bats
+
+    for ((shard = 1; shard <= jobs; shard++)); do
+        local shard_file
+        shard_file=$(printf "%s/tests-shard-%02d.bats" "$shard_dir" "$shard")
+        echo "# END GENERATED TESTS" >> "$shard_file"
+    done
+}
 
 # Function to colorize test output
 colorize_output() {
@@ -275,21 +336,27 @@ fi
 START_TIME=$(date +%s)
 
 # Build bats command based on mode
+BATS_ARGS=(-T --tap)
+BATS_TARGETS=(tests.bats)
+SHARD_DIR=""
 if [ "$JOBS" -eq 1 ]; then
     echo "Running tests sequentially (timeout: $TIMEOUT per test)..."
-    BATS_CMD="bats -T --tap"
 else
     echo "Running tests in parallel with $JOBS jobs (timeout: $TIMEOUT per test)..."
-    BATS_CMD="bats -T --tap -j $JOBS"
+    SHARD_DIR=$(mktemp -d "${TMPDIR:-/tmp}/go2rust-bats-shards.XXXXXX")
+    trap 'if [ -n "$SHARD_DIR" ]; then rm -rf "$SHARD_DIR"; fi' EXIT
+    create_bats_shards "$SHARD_DIR" "$JOBS"
+    BATS_ARGS+=(-j "$JOBS")
+    BATS_TARGETS=("$SHARD_DIR"/tests-shard-*.bats)
 fi
 
 # Add filter if specified
 if [ -n "$FILTER_PATTERN" ]; then
-    BATS_CMD="$BATS_CMD --filter \"$FILTER_PATTERN\""
+    BATS_ARGS+=(--filter "$FILTER_PATTERN")
 fi
 
 # Run tests and capture output
-TEST_OUTPUT=$(eval "$BATS_CMD tests.bats" 2>&1)
+TEST_OUTPUT=$(bats "${BATS_ARGS[@]}" "${BATS_TARGETS[@]}" 2>&1)
 BATS_STATUS=$?
 
 # Display the output with colors

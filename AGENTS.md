@@ -167,6 +167,7 @@ The test script handles:
 
 - Use `./test.sh <name>` for focused fixtures and `./test.sh` before committing.
 - Run only one `./test.sh` process at a time. The script already parallelizes internally and rewrites `tests.bats`; separate concurrent invocations can race on `tests.bats.new`.
+- Bats `-j` parallelizes test files, not individual `@test` blocks. `test.sh -n N` must run generated shard files; if process inspection shows only one `bats-exec-file`, the suite is effectively sequential even when GNU parallel is installed.
 - Run the default parallel test mode when the machine has memory headroom. Use `./test.sh -n 1 ...` only for memory pressure, hard-to-read interleaving, or self-transpile follow-up checks.
 - On this machine, `./test.sh -n 4` is the safer full-suite parallel setting. `-n 6` can starve timer fixtures such as `timeouts_basic` and `timers_basic` even when those tests pass alone.
 - Prefer `./test.sh -n 4 -t 30s` for full-suite validation while self-hosting work is active. It stays parallel without creating as much CPU and memory pressure as the default six workers.

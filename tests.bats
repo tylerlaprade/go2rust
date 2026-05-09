@@ -4,8 +4,10 @@ setup_file() {
     # find tests -name "*.rs" -type f -delete 2>/dev/null || true
     # find tests -name "Cargo.toml" -type f -delete 2>/dev/null || true
     # find tests -name "Cargo.lock" -type f -delete 2>/dev/null || true
-    
-    go build -o go2rust ./go
+
+    if [ "${GO2RUST_TEST_BINARY_READY:-}" != "1" ]; then
+        go build -o go2rust ./go
+    fi
 }
 
 # Helper to run a command and prefix stdout/stderr
