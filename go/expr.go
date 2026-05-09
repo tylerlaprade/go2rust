@@ -1282,12 +1282,52 @@ func writeMaybeUnwrappedExpression(out *strings.Builder, expr ast.Expr) {
 }
 
 func writeSwitchTagValue(out *strings.Builder, expr ast.Expr) {
+	if writeSwitchWrappedCallValue(out, expr) {
+		return
+	}
 	if !isCopyTypeExpression(expr) && writeOwnedExpressionValue(out, expr) {
 		return
 	}
 	if !writeNamedTypeInnerExpression(out, expr) {
 		writeMaybeUnwrappedExpression(out, expr)
 	}
+}
+
+func writeSwitchCaseValue(out *strings.Builder, expr ast.Expr) {
+	if writeSwitchWrappedCallValue(out, expr) {
+		return
+	}
+	if !isCopyTypeExpression(expr) && writeOwnedExpressionValue(out, expr) {
+		return
+	}
+	writeMaybeUnwrappedExpression(out, expr)
+}
+
+func writeSwitchWrappedCallValue(out *strings.Builder, expr ast.Expr) bool {
+	call, ok := expr.(*ast.CallExpr)
+	if !ok {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || !typeInfo.ReturnsWrappedValue(call) || isBareBuiltinReturn(call) || callReturnsBareChannelValue(call) {
+		return false
+	}
+	if typeInfo.IsTypeConversion(call) && !typeConversionEmitsWrappedValue(call) {
+		return false
+	}
+	typ := typeInfo.GetType(call)
+	if typ == nil {
+		return false
+	}
+	if _, ok := types.Unalias(typ).Underlying().(*types.Basic); !ok {
+		return false
+	}
+	out.WriteString("{ let __v = ")
+	TranspileExpression(out, call)
+	out.WriteString("; let __owned = (*__v")
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap()).clone(); __owned }")
+	return true
 }
 
 func writeOwnedNamedTypeDefinitionValue(out *strings.Builder, expr ast.Expr) {

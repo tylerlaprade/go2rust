@@ -3658,7 +3658,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							if s.Tag != nil {
 								out.WriteString("_switch_val == ")
 							}
-							TranspileExpression(out, expr)
+							writeSwitchCaseValue(out, expr)
 						}
 						out.WriteString(") || _fallthrough {\n")
 					}
@@ -3803,7 +3803,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							}
 							if s.Tag != nil {
 								out.WriteString("_switch_val == (")
-								TranspileExpression(out, expr)
+								writeSwitchCaseValue(out, expr)
 								out.WriteString(")")
 							} else {
 								transpileCondition(out, expr)

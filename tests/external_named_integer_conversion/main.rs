@@ -156,9 +156,36 @@ pub fn pos_from_int(n: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<token_Pos>>>
     return Arc::new(Mutex::new(Some(token_Pos((*n.lock().unwrap().as_ref().unwrap()) as i32))));
 }
 
+pub fn int_value() -> Arc<Mutex<Option<i32>>> {
+
+    return Arc::new(Mutex::new(Some(1)));
+}
+
+pub fn kind_name() -> Arc<Mutex<Option<String>>> {
+
+    { let _switch_val = { let __v = kind(); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned };
+    if _switch_val == (types::INT.clone()) {
+            return Arc::new(Mutex::new(Some("int".to_string())));
+        } else {
+            return Arc::new(Mutex::new(Some("other".to_string())));
+        }
+    }
+}
+
+pub fn int_name() -> Arc<Mutex<Option<String>>> {
+
+    { let _switch_val = { let __v = int_value(); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned };
+    if _switch_val == (1) {
+            return Arc::new(Mutex::new(Some("one".to_string())));
+        } else {
+            return Arc::new(Mutex::new(Some("other".to_string())));
+        }
+    }
+}
+
 fn main() {
     if false {
-        println!("{} {} {} {}", (*Arc::new(Mutex::new(Some((*kind().lock().unwrap().as_ref().unwrap()).0 as u32))).lock().unwrap().as_ref().unwrap()), (*Arc::new(Mutex::new(Some((*dir().lock().unwrap().as_ref().unwrap()).0 as u32))).lock().unwrap().as_ref().unwrap()), (*Arc::new(Mutex::new(Some((*zero_kind().lock().unwrap().as_ref().unwrap()).0 as u32))).lock().unwrap().as_ref().unwrap()), (*pos_from_int(Arc::new(Mutex::new(Some(1)))).lock().unwrap().as_ref().unwrap()));
+        println!("{} {} {} {} {} {}", (*Arc::new(Mutex::new(Some((*kind().lock().unwrap().as_ref().unwrap()).0 as u32))).lock().unwrap().as_ref().unwrap()), (*Arc::new(Mutex::new(Some((*dir().lock().unwrap().as_ref().unwrap()).0 as u32))).lock().unwrap().as_ref().unwrap()), (*Arc::new(Mutex::new(Some((*zero_kind().lock().unwrap().as_ref().unwrap()).0 as u32))).lock().unwrap().as_ref().unwrap()), (*pos_from_int(Arc::new(Mutex::new(Some(1)))).lock().unwrap().as_ref().unwrap()), (*kind_name().lock().unwrap().as_ref().unwrap()), (*int_name().lock().unwrap().as_ref().unwrap()));
     }
     println!("{}", "ok".to_string());
 }
