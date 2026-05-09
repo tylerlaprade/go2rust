@@ -1764,8 +1764,50 @@ func compositeLiteralElementKeepsHandle(typ types.Type) bool {
 	return false
 }
 
+func writeBareFixedArrayCompositeLiteral(out *strings.Builder, expr ast.Expr, expected types.Type) bool {
+	lit, ok := expr.(*ast.CompositeLit)
+	if !ok || expected == nil {
+		return false
+	}
+	arrayType, ok := types.Unalias(expected).Underlying().(*types.Array)
+	if !ok {
+		return false
+	}
+	out.WriteString("[")
+	values := orderedArrayLiteralValuesForLength(lit.Elts, arrayType.Len())
+	elemType := arrayType.Elem()
+	for i, elt := range values {
+		if i > 0 {
+			out.WriteString(", ")
+		}
+		if elt == nil {
+			out.WriteString(zeroValueForTypesType(elemType))
+			continue
+		}
+		if !writeArraySliceLiteralElementValue(out, elt, elemType) {
+			TranspileExpression(out, elt)
+		}
+	}
+	out.WriteString("]")
+	return true
+}
+
 func writeArraySliceLiteralElementValue(out *strings.Builder, expr ast.Expr, elemType types.Type) bool {
 	typeInfo := GetTypeInfo()
+	if ident, ok := expr.(*ast.Ident); ok {
+		if varType, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar && varType == "usize" {
+			if elemType != nil {
+				if basic, ok := types.Unalias(elemType).Underlying().(*types.Basic); ok && basic.Kind() == types.Int {
+					out.WriteString(RustLocalIdent(ident.Name))
+					out.WriteString(" as i32")
+					return true
+				}
+			}
+		}
+	}
+	if writeBareFixedArrayCompositeLiteral(out, expr, elemType) {
+		return true
+	}
 	if writeStdlibInterfaceBareConversion(out, expr, elemType) {
 		return true
 	}

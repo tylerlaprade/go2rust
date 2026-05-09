@@ -2276,6 +2276,9 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 					return
 				}
 				if elemType != nil {
+					if writeBareFixedArrayCompositeLiteral(out, expr, elemType) {
+						return
+					}
 					if writeConstExpressionForExpectedGoType(out, expr, elemType) {
 						return
 					}

@@ -1,0 +1,8 @@
+[package]
+name = "range_index_array_literal"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "range_index_array_literal"
+path = "main.rs"
