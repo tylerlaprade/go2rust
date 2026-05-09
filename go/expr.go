@@ -4710,7 +4710,13 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 				out.WriteString(RustTypeNameForUse(targetType))
 				out.WriteString("(")
 				WriteWrapperPrefix(out)
-				TranspileExpression(out, call.Args[0])
+				if rustType, ok := rustCastTypeForDefinedUnderlying(underlying); ok {
+					writeNumericConversionValue(out, call.Args[0])
+					out.WriteString(" as ")
+					out.WriteString(rustType)
+				} else {
+					TranspileExpression(out, call.Args[0])
+				}
 				out.WriteString("))))")
 			}
 			return

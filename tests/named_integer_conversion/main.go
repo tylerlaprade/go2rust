@@ -8,6 +8,8 @@ type Entry struct {
 	Kind Kind
 }
 
+var kindIndex = [...]uint16{0, 2, 4}
+
 func asInt(k Kind) int {
 	return int(k)
 }
@@ -32,6 +34,14 @@ func (k Kind) methodPlus() int {
 	return int(k + 1)
 }
 
+func limitKind() Kind {
+	return Kind(len(kindIndex) - 1)
+}
+
+func overLimit(k Kind) bool {
+	return k >= Kind(len(kindIndex)-1)
+}
+
 func main() {
 	var k Kind = 3
 	entry := Entry{Kind: k}
@@ -41,4 +51,6 @@ func main() {
 	fmt.Println(plusAsInt(k))
 	fmt.Println(k.methodInt())
 	fmt.Println(k.methodPlus())
+	fmt.Println(asInt(limitKind()))
+	fmt.Println(overLimit(k))
 }

@@ -183,13 +183,13 @@ pub type StringAlias = Rc<RefCell<Option<String>>>;
 
 impl Celsius {
     pub fn to_fahrenheit(&self) -> Rc<RefCell<Option<Fahrenheit>>> {
-        return Rc::new(RefCell::new(Some(Fahrenheit(Rc::new(RefCell::new(Some((*self.0.borrow().as_ref().unwrap()) * 9.0 / 5.0 + 32.0)))))));
+        return Rc::new(RefCell::new(Some(Fahrenheit(Rc::new(RefCell::new(Some((*self.0.borrow().as_ref().unwrap()) * 9.0 / 5.0 + 32.0 as f64)))))));
     }
 }
 
 impl Fahrenheit {
     pub fn to_celsius(&self) -> Rc<RefCell<Option<Celsius>>> {
-        return Rc::new(RefCell::new(Some(Celsius(Rc::new(RefCell::new(Some(((*self.0.borrow().as_ref().unwrap()) - 32.0) * 5.0 / 9.0)))))));
+        return Rc::new(RefCell::new(Some(Celsius(Rc::new(RefCell::new(Some(((*self.0.borrow().as_ref().unwrap()) - 32.0) * 5.0 / 9.0 as f64)))))));
     }
 }
 

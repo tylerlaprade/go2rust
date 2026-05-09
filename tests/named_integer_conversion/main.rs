@@ -144,6 +144,34 @@ impl std::fmt::Display for Entry {
 }
 
 
+pub(crate) struct GoGlobal<T> {
+    value: std::cell::UnsafeCell<Option<T>>,
+}
+unsafe impl<T> Sync for GoGlobal<T> {}
+impl<T> GoGlobal<T> {
+    pub(crate) const fn new() -> Self {
+        Self { value: std::cell::UnsafeCell::new(None) }
+    }
+    pub(crate) fn borrow(&'static self) -> &'static Option<T> {
+        unsafe { &*self.value.get() }
+    }
+    pub(crate) fn borrow_mut(&'static self) -> &'static mut Option<T> {
+        unsafe { &mut *self.value.get() }
+    }
+    pub(crate) fn clone(&'static self) -> std::rc::Rc<std::cell::RefCell<Option<T>>> where T: Clone {
+        std::rc::Rc::new(std::cell::RefCell::new(self.borrow().clone()))
+    }
+}
+
+pub(crate) static kindIndex: GoGlobal<[u16; 3]> = GoGlobal::new();
+
+
+fn __go_init_globals() {
+    *kindIndex.borrow_mut() = Some(std::array::from_fn(|_| 0));
+    *kindIndex.borrow_mut() = Some((*Rc::new(RefCell::new(Some([0, 2, 4]))).borrow().as_ref().unwrap()).clone());
+}
+
+
 impl Kind {
     pub fn method_int(&self) -> Rc<RefCell<Option<i32>>> {
         return Rc::new(RefCell::new(Some((*self.0.borrow().as_ref().unwrap()) as i32)));
@@ -174,7 +202,22 @@ pub fn plus_as_int(k: Rc<RefCell<Option<Kind>>>) -> Rc<RefCell<Option<i32>>> {
     return Rc::new(RefCell::new(Some(((*(*k.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) + 1) as i32)));
 }
 
+pub fn limit_kind() -> Rc<RefCell<Option<Kind>>> {
+
+    return Rc::new(RefCell::new(Some(Kind(Rc::new(RefCell::new(Some(((*kindIndex.borrow().as_ref().unwrap()).len() as i32) - (1 as i32) as i32)))))));
+}
+
+pub fn over_limit(k: Rc<RefCell<Option<Kind>>>) -> Rc<RefCell<Option<bool>>> {
+
+    return {
+            let __tmp_x = (*k.borrow().as_ref().unwrap()).clone();
+            let __tmp_y = Kind(Rc::new(RefCell::new(Some(((*kindIndex.borrow().as_ref().unwrap()).len() as i32) - (1 as i32) as i32))));
+            Rc::new(RefCell::new(Some(__tmp_x >= __tmp_y)))
+        };
+}
+
 fn main() {
+    __go_init_all();
     let mut k: Rc<RefCell<Option<Kind>>> = Rc::new(RefCell::new(Some(Kind(Rc::new(RefCell::new(Some(3)))))));
     let mut entry = Rc::new(RefCell::new(Some(Entry { kind: k.clone(), ..Default::default() })));
     println!("{}", (*as_int(Rc::new(RefCell::new(Some((*k.borrow().as_ref().unwrap()).clone())))).borrow().as_ref().unwrap()));
@@ -183,4 +226,10 @@ fn main() {
     println!("{}", (*plus_as_int(Rc::new(RefCell::new(Some((*k.borrow().as_ref().unwrap()).clone())))).borrow().as_ref().unwrap()));
     println!("{}", (*(*k.borrow().as_ref().unwrap()).method_int().borrow().as_ref().unwrap()));
     println!("{}", (*(*k.borrow().as_ref().unwrap()).method_plus().borrow().as_ref().unwrap()));
+    println!("{}", (*as_int(limit_kind()).borrow().as_ref().unwrap()));
+    println!("{}", (*over_limit(Rc::new(RefCell::new(Some((*k.borrow().as_ref().unwrap()).clone())))).borrow().as_ref().unwrap()));
+}
+
+pub(crate) fn __go_init_all() {
+    self::__go_init_globals();
 }

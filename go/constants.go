@@ -315,7 +315,33 @@ func writeNamedConstForBinaryPeer(out *strings.Builder, expr ast.Expr, other ast
 	if !ok || !sameNamedTypeDefinition(exprNamed, otherNamed) {
 		return false
 	}
+	if call, ok := expr.(*ast.CallExpr); ok && typeInfo.IsTypeConversion(call) {
+		return writeNamedIntegerConversionConstForBinaryPeer(out, call, otherNamed)
+	}
 	writeExpressionForExpectedTypesType(out, expr, otherNamed)
+	return true
+}
+
+func writeNamedIntegerConversionConstForBinaryPeer(out *strings.Builder, call *ast.CallExpr, named *types.Named) bool {
+	if len(call.Args) != 1 || named == nil {
+		return false
+	}
+	basic, ok := types.Unalias(named.Underlying()).(*types.Basic)
+	if !ok || !isIntegerBasicKind(basic.Kind()) {
+		return false
+	}
+	rustType, ok := rustCastTypeForDefinedUnderlying(basic.Name())
+	if !ok {
+		return false
+	}
+	out.WriteString(goTypesNamedTypeToRust(named))
+	out.WriteString("(")
+	WriteWrapperPrefix(out)
+	writeNumericConversionValue(out, call.Args[0])
+	out.WriteString(" as ")
+	out.WriteString(rustType)
+	WriteWrapperSuffix(out)
+	out.WriteString(")")
 	return true
 }
 
