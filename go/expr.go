@@ -1252,7 +1252,7 @@ func compositeLiteralElementKeepsHandle(typ types.Type) bool {
 		return true
 	}
 	switch types.Unalias(typ).Underlying().(type) {
-	case *types.Pointer, *types.Interface, *types.Chan:
+	case *types.Pointer, *types.Chan:
 		return true
 	}
 	return false
@@ -1260,6 +1260,9 @@ func compositeLiteralElementKeepsHandle(typ types.Type) bool {
 
 func writeArraySliceLiteralElementValue(out *strings.Builder, expr ast.Expr, elemType types.Type) bool {
 	typeInfo := GetTypeInfo()
+	if writeStdlibInterfaceBareConversion(out, expr, elemType) {
+		return true
+	}
 	if call, ok := expr.(*ast.CallExpr); ok && typeInfo != nil && !compositeLiteralElementKeepsHandle(elemType) {
 		if typeInfo.ReturnsWrappedValue(call) && !isBareBuiltinReturn(call) && !callReturnsBareChannelValue(call) && (!typeInfo.IsTypeConversion(call) || typeConversionEmitsWrappedValue(call)) {
 			out.WriteString("{ let __v = ")

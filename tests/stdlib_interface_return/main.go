@@ -31,10 +31,22 @@ func makeAssignedSelectorExpr() ast.Expr {
 	return expr
 }
 
+func makeExprSliceLen() int {
+	exprs := []ast.Expr{ast.NewIdent("x")}
+	exprs = append(exprs, ast.NewIdent("y"))
+	exprs = append(exprs, makeIdentExpr())
+	exprs = append(exprs, &ast.SelectorExpr{
+		X:   ast.NewIdent("pkg"),
+		Sel: ast.NewIdent("Name"),
+	})
+	return len(exprs)
+}
+
 func main() {
 	fmt.Println(makeExpr() != nil)
 	fmt.Println(makeIdentExpr() != nil)
 	fmt.Println(makeUnaryExpr() != nil)
 	fmt.Println(makeVarExpr() != nil)
 	fmt.Println(makeAssignedSelectorExpr() != nil)
+	fmt.Println(makeExprSliceLen())
 }

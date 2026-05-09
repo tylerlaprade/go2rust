@@ -2200,6 +2200,9 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 			var elemType types.Type
 			if typeInfo := GetTypeInfo(); typeInfo != nil {
 				elemType = typeInfo.GetSliceElemType(call.Args[0])
+				if writeStdlibInterfaceBareConversion(out, expr, elemType) {
+					return
+				}
 				if callExpr, ok := expr.(*ast.CallExpr); ok && typeInfo.ReturnsWrappedValue(callExpr) && !callReturnsBareChannelValue(callExpr) {
 					if compositeLiteralElementKeepsHandle(elemType) {
 						TranspileExpression(out, expr)
