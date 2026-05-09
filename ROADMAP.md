@@ -22,6 +22,7 @@ Pointer types, &/*, new() builtin, struct fields, nil handling
 - ✅ Address-of local pointer arguments - method calls such as `h.Store(&value)` pass the existing local wrapper clone instead of nesting the wrapper inside a new pointer handle (method_address_local_pointer_arg promoted, 2026-05-09)
 - ✅ Pointer handle equality - non-nil `*T == *T` comparisons lower to wrapper handle identity with a both-nil check instead of comparing copied pointees (stdlib_pointer_map_slice_values expanded, 2026-05-09)
 - ✅ Declared pointers to slice elements - explicit `var p *T` locals assigned from `&slice[i]` lower to optional slice-element handles for nil checks and dereference assignment (declared_slice_elem_pointer promoted, 2026-05-07)
+- ✅ Pointer slice literal variables - pointer-valued identifiers in `[]*T{ptr}` preserve the existing wrapper handle so aliases observe later field mutations (slice_pointer_variable_literal added, 2026-05-09)
 - ✅ Ranged pointer fields - range variables from `[]*T` preserve pointer-wrapper type information for field access and call arguments (range_pointer_fields added, 2026-05-07)
 
 ### ✅ Phase 4: Functions and Methods
@@ -37,6 +38,7 @@ Method receivers (value and pointer), multiple returns (including named returns,
 - ✅ Assignment from function returns - wrapped call results move their inner value into existing variables instead of nesting wrappers (function_return_assignment promoted, 2026-05-07)
 - ✅ Wrapped call arguments - call expressions that already return wrappers pass through to method and package-function arguments without nesting wrappers again (wrapped_call_argument promoted, 2026-05-07)
 - ✅ Indexed pointer call arguments - indexed values from `[]*T` passed to `*T` parameters preserve the existing pointer handle instead of nesting it in another wrapper (stdlib_pointer_map_slice_values expanded, 2026-05-09)
+- ✅ Method nil pointer arguments - `nil` passed to `*T` method parameters lowers to a typed empty wrapper instead of nesting `None` inside `Some` (method_nil_pointer_argument added, 2026-05-09)
 - ✅ Tuple return reassignment - existing fields, locals, and parameters receive inner values from returned wrapped tuple elements (tuple_return_reassignment promoted, 2026-05-07)
 - ✅ Slice literal returns - return statements pass self-wrapping slice literals through without nesting wrappers (return_slice_literal promoted, 2026-05-07)
 
@@ -193,7 +195,7 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 ### 📋 Phase 9: Advanced Features (Optional/Future)
 
 - Generics (generics_basic)
-- ✅ Basic reflection metadata - reflect.TypeOf for struct fields plus StructTag.Get, plus pointer conversions to reflected struct header stand-ins (struct_tags_reflection promoted, 2026-05-06; reflect_string_header_pointer promoted, 2026-05-08)
+- ✅ Basic reflection metadata - reflect.TypeOf for struct fields plus StructTag.Get, non-struct TypeOf names, and pointer conversions to reflected struct header stand-ins (struct_tags_reflection promoted, 2026-05-06; reflect_string_header_pointer promoted, 2026-05-08; reflect_typeof_non_struct added, 2026-05-09)
 - 🚧 Unsafe operations - Sizeof/Alignof lower to Rust representation layout, `unsafe.Sizeof` works in integer comparisons/conversions, and named `unsafe.Pointer` definitions round-trip through `uintptr` and `any`; pointer arithmetic and Offsetof remain unsupported (unsafe_sizeof_alignof promoted, 2026-05-07; unsafe_pointer_named_uintptr promoted, 2026-05-08; unsafe_sizeof_comparison promoted, 2026-05-09)
 - 🚧 JSON/encoding/crypto support - json.Marshal supports structs with exported basic fields (json_marshal promoted, 2026-05-06); encoding/base64 StdEncoding EncodeToString/DecodeString and crypto/sha256 Sum256 supported (base64_encoding, crypto_hash promoted, 2026-05-06)
 - ✅ Extended strings package coverage - search, IndexAny, Compare/Cut, split/join, replace, repeat, trim variants, EqualFold, Title, Builder Len, and Builder.WriteString with string constants (stdlib_strings promoted, 2026-05-06; expanded 2026-05-07)
@@ -216,4 +218,4 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 
 go2rust transpiles itself!
 
-- 🚧 Self-transpile cargo check now reaches `golang_org_x_tools_internal_gcimporter` with prior range-shadowing, stdlib interface map-key, pointer-key map slice append, stdlib map-range, indexed pointer call-argument, pointer-handle equality, and untyped integer constant argument blockers fixed; the next first error is type inference in generated `iexport.rs:898`, with 194 reported gcimporter errors remaining in the package-targeted check (2026-05-09)
+- 🚧 Self-transpile cargo check now reaches `golang_org_x_tools_internal_gcimporter` with prior range-shadowing, stdlib interface map-key, pointer-key map slice append, stdlib map-range, indexed pointer call-argument, pointer-handle equality, untyped integer constant argument, non-struct `reflect.TypeOf`, method nil pointer argument, and pointer-slice literal variable blockers fixed; the next first error is a function-value wrapper mismatch in generated `iexport.rs:1540`, with 175 reported gcimporter errors remaining in the package-targeted check (2026-05-09)
