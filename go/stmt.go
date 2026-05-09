@@ -1046,9 +1046,79 @@ func writePointerHandleAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Ex
 	out.WriteString("{ let new_val = ")
 	TranspileExpressionContext(out, rhs, AddressOf)
 	out.WriteString(".clone(); ")
-	TranspileExpressionContext(out, lhs, LValue)
+	writePointerHandleAssignmentTarget(out, lhs)
 	out.WriteString(" = new_val; }")
 	return true
+}
+
+func writePointerHandleAssignmentTarget(out *strings.Builder, lhs ast.Expr) {
+	if sel, ok := lhs.(*ast.SelectorExpr); ok && writePointerHandleSelectorTarget(out, sel) {
+		return
+	}
+	TranspileExpressionContext(out, lhs, LValue)
+}
+
+func writePointerHandleSelectorTarget(out *strings.Builder, sel *ast.SelectorExpr) bool {
+	typeInfo := GetTypeInfo()
+	fieldName := ToSnakeCase(sel.Sel.Name)
+
+	if ident, ok := sel.X.(*ast.Ident); ok {
+		if currentReceiver != "" && ident.Name == currentReceiver {
+			fieldInfo := resolveFieldAccess(currentReceiverType, sel.Sel.Name)
+			out.WriteString("self.")
+			out.WriteString(fieldInfo.FieldName)
+			return true
+		}
+
+		needsUnwrap := false
+		if varType, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar {
+			needsUnwrap = isWrappedRangeVarType(varType)
+		} else if _, isLocalConst := localConstants[ident.Name]; !isLocalConst && !isVarBare(ident.Name) {
+			needsUnwrap = true
+		}
+
+		baseName := RustIdentForUse(ident)
+		if currentCaptureRenames != nil {
+			if renamed, exists := currentCaptureRenames[ident.Name]; exists {
+				baseName = RustLocalIdent(renamed)
+			}
+		}
+
+		if typeInfo != nil {
+			if t := typeInfo.GetType(sel.X); t != nil {
+				typeStr := t.String()
+				if idx := strings.LastIndex(typeStr, "."); idx >= 0 {
+					typeStr = typeStr[idx+1:]
+				}
+				typeStr = strings.TrimPrefix(typeStr, "*")
+				fieldName = resolveFieldAccess(typeStr, sel.Sel.Name).FieldName
+			}
+		}
+
+		if needsUnwrap {
+			out.WriteString("(*")
+			out.WriteString(baseName)
+			WriteBorrowMethod(out, true)
+			out.WriteString(".as_mut().unwrap()).")
+			out.WriteString(fieldName)
+		} else {
+			out.WriteString(baseName)
+			out.WriteString(".")
+			out.WriteString(fieldName)
+		}
+		return true
+	}
+
+	if typeInfo != nil && typeInfo.IsPointer(sel.X) {
+		out.WriteString("(*")
+		TranspileExpressionContext(out, sel.X, LValue)
+		WriteBorrowMethod(out, true)
+		out.WriteString(".as_mut().unwrap()).")
+		out.WriteString(fieldName)
+		return true
+	}
+
+	return false
 }
 
 func tempHoldsWrappedValue(rhs ast.Expr) bool {

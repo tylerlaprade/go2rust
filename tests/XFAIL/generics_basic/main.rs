@@ -58,7 +58,7 @@ impl Unknown {
         { let new_val = Rc::new(RefCell::new(Some())).clone(); self.head = new_val; };
         { let new_val = self.head.clone(); self.tail = new_val; };
     } else {
-        { let new_val = Rc::new(RefCell::new(Some())).clone(); (*self.tail.borrow().as_ref().unwrap()).next = new_val; };
+        { let new_val = Rc::new(RefCell::new(Some())).clone(); (*self.tail.borrow_mut().as_mut().unwrap()).next = new_val; };
         { let new_val = (*self.tail.borrow().as_ref().unwrap()).next.clone(); self.tail = new_val; };
     }
     }

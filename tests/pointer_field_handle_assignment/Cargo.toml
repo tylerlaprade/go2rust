@@ -1,0 +1,8 @@
+[package]
+name = "pointer_field_handle_assignment"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "pointer_field_handle_assignment"
+path = "main.rs"
