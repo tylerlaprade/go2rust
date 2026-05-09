@@ -199,6 +199,11 @@ impl std::fmt::Display for Holder {
 }
 
 
+pub fn replacement() -> Arc<Mutex<Option<String>>> {
+
+    return Arc::new(Mutex::new(Some("delta".to_string())));
+}
+
 fn main() {
     let mut done = GoChannel::<bool>::new_buffered(1 as usize);
     let done_thread = done.clone(); std::thread::spawn(move || {
@@ -210,6 +215,7 @@ fn main() {
     { (*(*h.lock().unwrap().as_ref().unwrap()).elems.lock().unwrap().as_mut().unwrap())[(0) as usize].push("alpha".to_string()); (*(*h.lock().unwrap().as_ref().unwrap()).elems.lock().unwrap().as_ref().unwrap())[(0) as usize].clone() };
     { (*(*h.lock().unwrap().as_ref().unwrap()).elems.lock().unwrap().as_mut().unwrap())[(0) as usize].push("beta".to_string()); (*(*h.lock().unwrap().as_ref().unwrap()).elems.lock().unwrap().as_ref().unwrap())[(0) as usize].clone() };
     { (*(*h.lock().unwrap().as_ref().unwrap()).elems.lock().unwrap().as_mut().unwrap())[(1) as usize].push("gamma".to_string()); (*(*h.lock().unwrap().as_ref().unwrap()).elems.lock().unwrap().as_ref().unwrap())[(1) as usize].clone() };
+    (*(*h.lock().unwrap().as_ref().unwrap()).elems.lock().unwrap().as_mut().unwrap())[(0) as usize][(1) as usize] = (*replacement().lock().unwrap().as_ref().unwrap()).clone();
 
     println!("{} {} {}", { let __seq = { let __seq_holder = (*h.lock().unwrap().as_ref().unwrap()).elems.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.len(), { let __seq = { let __seq_holder = (*h.lock().unwrap().as_ref().unwrap()).elems.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }[(0) as usize].clone(), { let __seq = { let __seq_holder = (*h.lock().unwrap().as_ref().unwrap()).elems.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }[(1) as usize].clone());
     println!("{} {}", { let __seq = { let __seq_holder = (*h.lock().unwrap().as_ref().unwrap()).elems.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }.len(), { let __seq = { let __seq_holder = (*h.lock().unwrap().as_ref().unwrap()).elems.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }[(0) as usize].clone());

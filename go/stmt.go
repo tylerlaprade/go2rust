@@ -23,6 +23,69 @@ func sameExpressionSyntax(a ast.Expr, b ast.Expr) bool {
 	return left.String() == right.String()
 }
 
+func writeArraySliceElementAssignmentValue(out *strings.Builder, rhs ast.Expr) {
+	needsUnwrap := false
+	if call, ok := rhs.(*ast.CallExpr); ok {
+		typeInfo := GetTypeInfo()
+		if appendCallReturnsBareIndexedSlice(call) {
+			needsUnwrap = false
+		} else if typeInfo != nil && typeInfo.ReturnsWrappedValue(call) && (!typeInfo.IsTypeConversion(call) || typeConversionEmitsWrappedValue(call)) {
+			needsUnwrap = true
+		} else if ident, ok := call.Fun.(*ast.Ident); ok {
+			if !isBuiltinFunction(ident.Name) && !isFunctionName(ident) {
+				needsUnwrap = true
+			}
+		}
+	}
+
+	if needsUnwrap {
+		out.WriteString("(*")
+		TranspileExpression(out, rhs)
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap()).clone()")
+	} else {
+		TranspileExpression(out, rhs)
+	}
+}
+
+func writeNestedSliceElementAssignment(out *strings.Builder, indexExpr *ast.IndexExpr, rhs ast.Expr) bool {
+	innerIndex, ok := indexExpr.X.(*ast.IndexExpr)
+	if !ok {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.IsMap(innerIndex.X) {
+		return false
+	}
+	innerType := typeInfo.GetType(innerIndex)
+	if innerType == nil {
+		return false
+	}
+	if _, ok := types.Unalias(innerType).Underlying().(*types.Slice); !ok {
+		return false
+	}
+	containerType := typeInfo.GetType(innerIndex.X)
+	if containerType == nil {
+		return false
+	}
+	switch types.Unalias(containerType).Underlying().(type) {
+	case *types.Array, *types.Slice:
+	default:
+		return false
+	}
+
+	out.WriteString("(*")
+	TranspileExpressionContext(out, innerIndex.X, LValue)
+	WriteBorrowMethod(out, true)
+	out.WriteString(".as_mut().unwrap())[")
+	writeExpressionAsUsize(out, innerIndex.Index)
+	out.WriteString("][")
+	writeExpressionAsUsize(out, indexExpr.Index)
+	out.WriteString("] = ")
+	writeArraySliceElementAssignmentValue(out, rhs)
+	return true
+}
+
 // writeUnwrappedRangeTarget writes a range target expression unwrapped for iteration.
 // For CompositeLits (inline slices), generates the bare vec![...] without Rc wrapping.
 // For identifiers (variables), delegates to TranspileExpressionContext which already unwraps.
@@ -2440,7 +2503,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 								}
 							} else if indexExpr, ok := s.Lhs[0].(*ast.IndexExpr); ok && !isMapIndexAssign {
 								// Array/slice element assignment: arr[i] = value
-								if call, ok := s.Rhs[0].(*ast.CallExpr); ok && appendCallReturnsBareIndexedSlice(call) {
+								if writeNestedSliceElementAssignment(out, indexExpr, s.Rhs[0]) {
+									// Nested slice element assignment emitted by helper.
+								} else if call, ok := s.Rhs[0].(*ast.CallExpr); ok && appendCallReturnsBareIndexedSlice(call) {
 									if appendTarget, ok := call.Args[0].(*ast.IndexExpr); ok && sameExpressionSyntax(indexExpr, appendTarget) {
 										TranspileExpression(out, call)
 									} else {
@@ -2460,34 +2525,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									writeExpressionAsUsize(out, indexExpr.Index)
 									out.WriteString("] = ")
 
-									// Check if RHS is a call that returns a wrapped value
-									needsUnwrap := false
-									if call, ok := s.Rhs[0].(*ast.CallExpr); ok {
-										// Use TypeInfo to check if this returns a wrapped value
-										typeInfo := GetTypeInfo()
-										if appendCallReturnsBareIndexedSlice(call) {
-											needsUnwrap = false
-										} else if typeInfo != nil && typeInfo.ReturnsWrappedValue(call) && (!typeInfo.IsTypeConversion(call) || typeConversionEmitsWrappedValue(call)) {
-											needsUnwrap = true
-										} else {
-											// Fallback: Check if it's calling a closure variable
-											if ident, ok := call.Fun.(*ast.Ident); ok {
-												// If it's not a known function, it might be a closure variable
-												if !isBuiltinFunction(ident.Name) && !isFunctionName(ident) {
-													needsUnwrap = true
-												}
-											}
-										}
-									}
-
-									if needsUnwrap {
-										out.WriteString("(*")
-										TranspileExpression(out, s.Rhs[0])
-										WriteBorrowMethod(out, false)
-										out.WriteString(".as_ref().unwrap()).clone()")
-									} else {
-										TranspileExpression(out, s.Rhs[0])
-									}
+									writeArraySliceElementAssignmentValue(out, s.Rhs[0])
 								}
 							} else {
 								// Direct assignment: x = value

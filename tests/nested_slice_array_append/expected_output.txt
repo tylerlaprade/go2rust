@@ -1,2 +1,2 @@
-2 alpha beta
+2 alpha delta
 1 gamma
