@@ -166,9 +166,9 @@ fn main() {
 
         // Only index
     println!("{}", "Indices only:".to_string());
-    { let __range_holder = numbers.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for i in 0..__range_values.len() {
+    for i in 0..({ let __range_holder = numbers.clone(); let __range_guard = __range_holder.lock().unwrap(); __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) {
         print!("{} ", i);
-    } }
+    }
     println!();
 
         // Range over array

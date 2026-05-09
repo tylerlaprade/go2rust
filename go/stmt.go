@@ -23,7 +23,19 @@ func sameExpressionSyntax(a ast.Expr, b ast.Expr) bool {
 	return left.String() == right.String()
 }
 
-func writeArraySliceElementAssignmentValue(out *strings.Builder, rhs ast.Expr) {
+func writeArraySliceElementAssignmentValue(out *strings.Builder, rhs ast.Expr, expected types.Type) {
+	if ident, ok := rhs.(*ast.Ident); ok {
+		if varType, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar && varType == "usize" {
+			if expected != nil {
+				if basic, ok := types.Unalias(expected).Underlying().(*types.Basic); ok && basic.Kind() == types.Int {
+					out.WriteString(RustLocalIdent(ident.Name))
+					out.WriteString(" as i32")
+					return
+				}
+			}
+		}
+	}
+
 	needsUnwrap := false
 	if call, ok := rhs.(*ast.CallExpr); ok {
 		typeInfo := GetTypeInfo()
@@ -108,7 +120,7 @@ func writeNestedSliceElementAssignment(out *strings.Builder, indexExpr *ast.Inde
 	out.WriteString("][")
 	writeExpressionAsUsize(out, indexExpr.Index)
 	out.WriteString("] = ")
-	writeArraySliceElementAssignmentValue(out, rhs)
+	writeArraySliceElementAssignmentValue(out, rhs, typeInfo.GetArrayOrSliceElemType(indexExpr.X))
 	return true
 }
 
@@ -161,6 +173,24 @@ func writeIntegerRangeLimit(out *strings.Builder, expr ast.Expr) {
 		return
 	}
 	writeUnwrappedRangeTarget(out, expr)
+}
+
+func writeRangeLengthExpression(out *strings.Builder, expr ast.Expr) {
+	if rangeTargetNeedsWrappedSliceGuard(expr) {
+		out.WriteString("({ let __range_holder = ")
+		if isNamedSliceExpression(expr) {
+			writeNamedSliceInnerHandleClone(out, expr)
+		} else {
+			writeWrappedHandleExpression(out, expr)
+			out.WriteString(".clone()")
+		}
+		out.WriteString("; let __range_guard = __range_holder")
+		WriteBorrowMethod(out, false)
+		out.WriteString("; __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })")
+		return
+	}
+	writeUnwrappedRangeTarget(out, expr)
+	out.WriteString(".len()")
 }
 
 func writeNilZeroValueInitializerFromTypeInfo(out *strings.Builder, typeExpr ast.Expr) bool {
@@ -2565,7 +2595,11 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									writeExpressionAsUsize(out, indexExpr.Index)
 									out.WriteString("] = ")
 
-									writeArraySliceElementAssignmentValue(out, s.Rhs[0])
+									var elemType types.Type
+									if typeInfo := GetTypeInfo(); typeInfo != nil {
+										elemType = typeInfo.GetArrayOrSliceElemType(indexExpr.X)
+									}
+									writeArraySliceElementAssignmentValue(out, s.Rhs[0], elemType)
 								}
 							} else {
 								// Direct assignment: x = value
@@ -3569,7 +3603,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 		rangeValuesVar := ""
 		closeRangeGuard := false
-		if !isMap && !isString && isSlice && isNamedSliceExpression(s.X) {
+		needsSliceValues := !(s.Key != nil && s.Value == nil)
+		if needsSliceValues && !isMap && !isString && isSlice && isNamedSliceExpression(s.X) {
 			out.WriteString("{ let __range_holder = ")
 			writeNamedSliceInnerHandleClone(out, s.X)
 			out.WriteString("; let __range_guard = __range_holder")
@@ -3577,7 +3612,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			out.WriteString("; let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); ")
 			rangeValuesVar = "__range_values"
 			closeRangeGuard = true
-		} else if !isMap && !isString && (isSlice || isArray) {
+		} else if needsSliceValues && !isMap && !isString && (isSlice || isArray) {
 			if rangeTargetNeedsWrappedSliceGuard(s.X) {
 				out.WriteString("{ let __range_holder = ")
 				writeWrappedHandleExpression(out, s.X)
@@ -3977,10 +4012,10 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				out.WriteString(" in 0..")
 				if rangeValuesVar != "" {
 					out.WriteString(rangeValuesVar)
+					out.WriteString(".len()")
 				} else {
-					writeUnwrappedRangeTarget(out, s.X)
+					writeRangeLengthExpression(out, s.X)
 				}
-				out.WriteString(".len()")
 			} else {
 				// for range arr
 				out.WriteString("_ in ")

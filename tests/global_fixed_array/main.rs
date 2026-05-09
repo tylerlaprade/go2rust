@@ -29,9 +29,9 @@ fn __go_init_globals() {
 
 
 fn __go_init_0() {
-    { let __range_holder = labels.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for i in 0..__range_values.len() {
+    for i in 0..({ let __range_holder = labels.clone(); let __range_guard = __range_holder.borrow(); __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) {
         (*labels.borrow_mut().as_mut().unwrap())[(i) as usize] = (*Rc::new(RefCell::new(Some(format!("label-{}", i)))).borrow().as_ref().unwrap()).clone();
-    } }
+    }
 }
 
 fn main() {

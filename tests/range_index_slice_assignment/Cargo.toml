@@ -1,0 +1,8 @@
+[package]
+name = "range_index_slice_assignment"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "range_index_slice_assignment"
+path = "main.rs"

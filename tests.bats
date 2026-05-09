@@ -1080,6 +1080,10 @@ run_xfail_test() {
     run_test "tests/random_numbers"
 }
 
+@test "range_index_slice_assignment" {
+    run_test "tests/range_index_slice_assignment"
+}
+
 @test "range_iteration" {
     run_test "tests/range_iteration"
 }
