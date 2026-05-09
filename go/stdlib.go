@@ -1508,7 +1508,7 @@ func transpileStringsRepeat(out *strings.Builder, call *ast.CallExpr) {
 	out.WriteString("{ let __s = ")
 	writeOwnedStringStdlibArg(out, call.Args[0])
 	out.WriteString("; let __count = ")
-	TranspileExpression(out, call.Args[1])
+	writeNumericConversionValue(out, call.Args[1])
 	out.WriteString("; __s.repeat(__count as usize) }")
 	WriteWrapperSuffix(out)
 }

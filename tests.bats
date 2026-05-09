@@ -1396,6 +1396,10 @@ run_xfail_test() {
     run_test "tests/string_interpolation"
 }
 
+@test "strings_repeat_selector_count" {
+    run_test "tests/strings_repeat_selector_count"
+}
+
 @test "strings_runes" {
     run_test "tests/strings_runes"
 }

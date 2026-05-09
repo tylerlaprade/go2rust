@@ -1,0 +1,8 @@
+[package]
+name = "strings_repeat_selector_count"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "strings_repeat_selector_count"
+path = "main.rs"
