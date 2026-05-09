@@ -530,6 +530,10 @@ run_xfail_test() {
     run_test "tests/cross_file_func_vars"
 }
 
+@test "cross_file_lower_const_compound" {
+    run_test "tests/cross_file_lower_const_compound"
+}
+
 @test "cross_file_maps" {
     run_test "tests/cross_file_maps"
 }

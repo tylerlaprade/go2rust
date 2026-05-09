@@ -139,6 +139,7 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 - ✅ External package sibling modules - transpiled vendor crate modules import same-package sibling modules before compilation (2026-05-07)
 - ✅ Package-level Rust name disambiguation - case-distinct Go functions that collapse to the same Rust snake_case name keep exported APIs on the base name and suffix private helpers (2026-05-07)
 - ✅ Cross-file package constants - package constants emit `pub`/`pub(crate)` visibility so split Rust modules can resolve Go package-scope consts (2026-05-07)
+- ✅ Cross-file package constants in compound assignments - package constants used as bare operands in `+=`/`|=` style updates cast through go/types to the left-hand numeric type (cross_file_lower_const_compound added, 2026-05-09)
 - ✅ Vendor crate dependencies - transpiled external package crates emit deterministic sibling crate dependencies, and external selected types use mapped crate-qualified Rust paths (2026-05-07)
 - ✅ Stdlib type signatures - named stdlib types in signatures emit deterministic Rust stand-ins instead of unresolved identifiers (stdlib_type_signatures promoted, 2026-05-07)
 - ✅ External package workspace wrapper policy - root and transpiled dependency crates share one goroutine/channel detection result before wrapper selection, preventing cross-crate wrapper mismatches (2026-05-07)

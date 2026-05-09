@@ -967,10 +967,24 @@ func writeCompoundAssignOperator(out *strings.Builder, op token.Token) {
 	}
 }
 
-func writeBareCompoundAssignValue(out *strings.Builder, expr ast.Expr) {
+func writeBareCompoundAssignValue(out *strings.Builder, expr ast.Expr, expected types.Type) {
 	if ident, ok := expr.(*ast.Ident); ok {
 		_, isRangeVar := rangeLoopVars[ident.Name]
 		_, isLocalConst := localConstants[ident.Name]
+		if isLocalConst {
+			if writeConstIdentForCompoundExpected(out, ident, expected, RustIdentForUse(ident)) {
+				return
+			}
+			out.WriteString(RustIdentForUse(ident))
+			return
+		}
+		if isConstIdent(ident) {
+			if writeConstIdentForCompoundExpected(out, ident, expected, rustConstName(ident.Name)) {
+				return
+			}
+			out.WriteString(rustConstName(ident.Name))
+			return
+		}
 		if !isRangeVar && !isLocalConst && ident.Name != "true" && ident.Name != "false" &&
 			ident.Name != "nil" && ident.Name != "_" {
 			out.WriteString("(*")
@@ -1008,6 +1022,24 @@ func writeBareCompoundAssignValue(out *strings.Builder, expr ast.Expr) {
 	TranspileExpression(out, expr)
 }
 
+func writeConstIdentForCompoundExpected(out *strings.Builder, ident *ast.Ident, expected types.Type, rustName string) bool {
+	if ident == nil || expected == nil {
+		return false
+	}
+	basic, ok := types.Unalias(expected).Underlying().(*types.Basic)
+	if !ok {
+		return false
+	}
+	rustType, ok := rustCastTypeForDefinedUnderlying(basic.Name())
+	if !ok {
+		return false
+	}
+	out.WriteString(rustName)
+	out.WriteString(" as ")
+	out.WriteString(rustType)
+	return true
+}
+
 func writeIndexedCompoundAssign(out *strings.Builder, indexExpr *ast.IndexExpr, op token.Token, rhs ast.Expr) bool {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil {
@@ -1021,7 +1053,7 @@ func writeIndexedCompoundAssign(out *strings.Builder, indexExpr *ast.IndexExpr, 
 	out.WriteString("{ let __idx = ")
 	TranspileExpression(out, indexExpr.Index)
 	out.WriteString(" as usize; let __rhs = ")
-	writeBareCompoundAssignValue(out, rhs)
+	writeBareCompoundAssignValue(out, rhs, typeInfo.GetArrayOrSliceElemType(indexExpr.X))
 	out.WriteString("; let mut __seq_guard = ")
 	TranspileExpressionContext(out, indexExpr.X, LValue)
 	WriteBorrowMethod(out, true)
@@ -2041,7 +2073,12 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					}
 
 					out.WriteString(" ")
-					writeBareCompoundAssignValue(out, s.Rhs[0])
+					typeInfo := GetTypeInfo()
+					var expected types.Type
+					if typeInfo != nil {
+						expected = typeInfo.GetType(s.Lhs[0])
+					}
+					writeBareCompoundAssignValue(out, s.Rhs[0], expected)
 					out.WriteString("); }")
 				}
 			}

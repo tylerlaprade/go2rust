@@ -1,0 +1,8 @@
+[package]
+name = "cross_file_lower_const_compound"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "cross_file_lower_const_compound"
+path = "main.rs"
