@@ -2202,6 +2202,57 @@ func appendExpandsStringIntoByteSlice(call *ast.CallExpr) bool {
 	return typeInfo.IsByteSliceOrArray(call.Args[0]) && typeInfo.IsString(call.Args[1])
 }
 
+func isBuiltinAppendCall(call *ast.CallExpr) bool {
+	if call == nil {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return false
+	}
+	ident, ok := call.Fun.(*ast.Ident)
+	if !ok {
+		return false
+	}
+	obj, ok := typeInfo.info.Uses[ident]
+	if !ok {
+		return false
+	}
+	builtin, ok := obj.(*types.Builtin)
+	return ok && builtin.Name() == "append"
+}
+
+func appendCallReturnsBareIndexedSlice(call *ast.CallExpr) bool {
+	if !isBuiltinAppendCall(call) || len(call.Args) == 0 {
+		return false
+	}
+	indexExpr, ok := call.Args[0].(*ast.IndexExpr)
+	if !ok {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.IsMap(indexExpr.X) {
+		return false
+	}
+	targetType := typeInfo.GetType(indexExpr)
+	if targetType == nil {
+		return false
+	}
+	if _, ok := types.Unalias(targetType).Underlying().(*types.Slice); !ok {
+		return false
+	}
+	containerType := typeInfo.GetType(indexExpr.X)
+	if containerType == nil {
+		return false
+	}
+	switch types.Unalias(containerType).Underlying().(type) {
+	case *types.Array, *types.Slice:
+		return true
+	default:
+		return false
+	}
+}
+
 func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 	if len(call.Args) >= 2 {
 		if transpileNamedSliceAppend(out, call) {
@@ -2265,10 +2316,64 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 				TranspileExpression(out, expr)
 			}
 		}
+		writeIndexedSliceAppend := func(indexExpr *ast.IndexExpr) bool {
+			if !appendCallReturnsBareIndexedSlice(call) {
+				return false
+			}
+			writeMutableTarget := func() {
+				out.WriteString("(*")
+				TranspileExpressionContext(out, indexExpr.X, LValue)
+				WriteBorrowMethod(out, true)
+				out.WriteString(".as_mut().unwrap())[")
+				writeExpressionAsUsize(out, indexExpr.Index)
+				out.WriteString("]")
+			}
+			writeReadTarget := func() {
+				out.WriteString("(*")
+				TranspileExpressionContext(out, indexExpr.X, LValue)
+				WriteBorrowMethod(out, false)
+				out.WriteString(".as_ref().unwrap())[")
+				writeExpressionAsUsize(out, indexExpr.Index)
+				out.WriteString("]")
+			}
+			out.WriteString("{ ")
+			writeMutableTarget()
+			if call.Ellipsis.IsValid() {
+				out.WriteString(".extend(")
+				if appendExpandsStringIntoByteSlice(call) {
+					writeOwnedStringStdlibArg(out, call.Args[1])
+					out.WriteString(".as_bytes().iter().cloned()")
+				} else {
+					TranspileExpression(out, call.Args[1])
+					out.WriteString(".iter().cloned()")
+				}
+				out.WriteString(")")
+			} else if len(call.Args) == 2 {
+				out.WriteString(".push(")
+				writeAppendElement(call.Args[1])
+				out.WriteString(")")
+			} else {
+				out.WriteString(".extend(vec![")
+				for i := 1; i < len(call.Args); i++ {
+					if i > 1 {
+						out.WriteString(", ")
+					}
+					writeAppendElement(call.Args[i])
+				}
+				out.WriteString("])")
+			}
+			out.WriteString("; ")
+			writeReadTarget()
+			out.WriteString(".clone() }")
+			return true
+		}
 
 		// append() in Go returns the slice, but our slices are wrapped
 		// We need to create the vector on first append so nil slices stay nil
 		// until they are actually appended to, then return the wrapped slice.
+		if indexExpr, ok := call.Args[0].(*ast.IndexExpr); ok && writeIndexedSliceAppend(indexExpr) {
+			return
+		}
 		if call.Ellipsis.IsValid() {
 			// Slice expansion: append(dst, src...) → extend from src.
 			// Go also permits append([]byte, string...), which expands bytes.
@@ -2839,6 +2944,55 @@ where
 {
     let formatted: Vec<String> = slice.iter().map(|v| v.to_string()).collect();
     format!("[{}]", formatted.join(" "))
+}
+`)
+	}
+}
+
+func generateNestedSliceFormatter(out *strings.Builder) {
+	TrackImport("Display")
+	if NeedsConcurrentWrapper() {
+		TrackImport("Arc")
+		TrackImport("Mutex")
+		out.WriteString(`fn format_nested_slice<T, C, Inner>(slice: &Arc<Mutex<Option<C>>>) -> String
+where
+    C: AsRef<[Inner]>,
+    Inner: AsRef<[T]>,
+    T: Display,
+{
+    let guard = slice.lock().unwrap();
+    if let Some(ref s) = *guard {
+        let formatted: Vec<String> = s
+            .as_ref()
+            .iter()
+            .map(|inner| format_slice_values(inner.as_ref()))
+            .collect();
+        format!("[{}]", formatted.join(" "))
+    } else {
+        "[]".to_string()
+    }
+}
+`)
+	} else {
+		TrackImport("Rc")
+		TrackImport("RefCell")
+		out.WriteString(`fn format_nested_slice<T, C, Inner>(slice: &Rc<RefCell<Option<C>>>) -> String
+where
+    C: AsRef<[Inner]>,
+    Inner: AsRef<[T]>,
+    T: Display,
+{
+    let guard = slice.borrow();
+    if let Some(ref s) = *guard {
+        let formatted: Vec<String> = s
+            .as_ref()
+            .iter()
+            .map(|inner| format_slice_values(inner.as_ref()))
+            .collect();
+        format!("[{}]", formatted.join(" "))
+    } else {
+        "[]".to_string()
+    }
 }
 `)
 	}

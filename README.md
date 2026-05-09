@@ -286,6 +286,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Slices | ✅ |
 | └ Array/slice literal elements from wrapped call results | ✅ |
 | └ Slice operations | ✅ |
+| └ Append into indexed slice elements inside arrays/slices | ✅ |
 | └ `cap` on wrapped slice fields | ✅ |
 | └ Range over wrapped call results and pointer-to-array targets | ✅ |
 | └ Named integer values as array/slice indexes | ✅ |

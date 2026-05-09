@@ -408,6 +408,14 @@ func NeedFormatSlice() {
 	}
 }
 
+// NeedFormatNestedSlice marks that we need the format_nested_slice helper
+func NeedFormatNestedSlice() {
+	if helpers := activeHelperTracker(); helpers != nil {
+		helpers.needsFormatSlice = true
+		helpers.needsFormatNestedSlice = true
+	}
+}
+
 // NeedFormatAny marks that we need the format_any helper
 func NeedFormatAny() {
 	if helpers := activeHelperTracker(); helpers != nil {

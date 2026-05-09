@@ -115,34 +115,35 @@ func (it *ImportTracker) GenerateImports() string {
 
 // HelperTracker tracks which helper functions are needed
 type HelperTracker struct {
-	needsFormatMap      bool
-	needsFormatSlice    bool
-	needsFormatAny      bool
-	needsFormatAnySlice bool
-	needsGoChannel      bool
-	needsWaitGroup      bool
-	needsGoMutex        bool
-	needsGoOnce         bool
-	needsGoTypeName     bool
-	needsBase64         bool
-	needsSha256         bool
-	needsHexFormat      bool
-	needsStrconvFormat  bool
-	needsUrl            bool
-	needsRegexp         bool
-	needsJsonEscape     bool
-	needsOsFile         bool
-	needsSliceElemPtr   bool
-	needsGoTime         bool
-	needsGoTimer        bool
-	needsGoAfter        bool
-	needsGoTicker       bool
-	needsGoTick         bool
-	needsGoContext      bool
-	needsGoRand         bool
-	needsReflect        bool
-	needsGoHttpResponse bool
-	needsGoPtrKey       bool
+	needsFormatMap         bool
+	needsFormatSlice       bool
+	needsFormatNestedSlice bool
+	needsFormatAny         bool
+	needsFormatAnySlice    bool
+	needsGoChannel         bool
+	needsWaitGroup         bool
+	needsGoMutex           bool
+	needsGoOnce            bool
+	needsGoTypeName        bool
+	needsBase64            bool
+	needsSha256            bool
+	needsHexFormat         bool
+	needsStrconvFormat     bool
+	needsUrl               bool
+	needsRegexp            bool
+	needsJsonEscape        bool
+	needsOsFile            bool
+	needsSliceElemPtr      bool
+	needsGoTime            bool
+	needsGoTimer           bool
+	needsGoAfter           bool
+	needsGoTicker          bool
+	needsGoTick            bool
+	needsGoContext         bool
+	needsGoRand            bool
+	needsReflect           bool
+	needsGoHttpResponse    bool
+	needsGoPtrKey          bool
 }
 
 // GenerateHelpers returns the helper function definitions
@@ -155,6 +156,10 @@ func (ht *HelperTracker) GenerateHelpers() string {
 
 	if ht.needsFormatSlice {
 		generateSliceFormatter(&result)
+	}
+
+	if ht.needsFormatNestedSlice {
+		generateNestedSliceFormatter(&result)
 	}
 
 	if ht.needsFormatAny {
@@ -336,6 +341,9 @@ func (ht *HelperTracker) ImportNames() []string {
 	}
 	if ht.needsFormatSlice {
 		add("format_slice", "format_slice_values")
+	}
+	if ht.needsFormatNestedSlice {
+		add("format_nested_slice")
 	}
 	if ht.needsFormatAny {
 		add("format_any")

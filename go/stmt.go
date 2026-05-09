@@ -1,13 +1,27 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"go/ast"
+	"go/format"
 	"go/token"
 	"go/types"
 	"slices"
 	"strings"
 )
+
+func sameExpressionSyntax(a ast.Expr, b ast.Expr) bool {
+	var left bytes.Buffer
+	var right bytes.Buffer
+	if format.Node(&left, token.NewFileSet(), a) != nil {
+		return false
+	}
+	if format.Node(&right, token.NewFileSet(), b) != nil {
+		return false
+	}
+	return left.String() == right.String()
+}
 
 // writeUnwrappedRangeTarget writes a range target expression unwrapped for iteration.
 // For CompositeLits (inline slices), generates the bare vec![...] without Rc wrapping.
@@ -2426,38 +2440,54 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 								}
 							} else if indexExpr, ok := s.Lhs[0].(*ast.IndexExpr); ok && !isMapIndexAssign {
 								// Array/slice element assignment: arr[i] = value
-								out.WriteString("(*")
-								TranspileExpressionContext(out, indexExpr.X, LValue)
-								WriteBorrowMethod(out, true)
-								out.WriteString(".as_mut().unwrap())[")
-								writeExpressionAsUsize(out, indexExpr.Index)
-								out.WriteString("] = ")
-
-								// Check if RHS is a call that returns a wrapped value
-								needsUnwrap := false
-								if call, ok := s.Rhs[0].(*ast.CallExpr); ok {
-									// Use TypeInfo to check if this returns a wrapped value
-									typeInfo := GetTypeInfo()
-									if typeInfo != nil && typeInfo.ReturnsWrappedValue(call) && (!typeInfo.IsTypeConversion(call) || typeConversionEmitsWrappedValue(call)) {
-										needsUnwrap = true
+								if call, ok := s.Rhs[0].(*ast.CallExpr); ok && appendCallReturnsBareIndexedSlice(call) {
+									if appendTarget, ok := call.Args[0].(*ast.IndexExpr); ok && sameExpressionSyntax(indexExpr, appendTarget) {
+										TranspileExpression(out, call)
 									} else {
-										// Fallback: Check if it's calling a closure variable
-										if ident, ok := call.Fun.(*ast.Ident); ok {
-											// If it's not a known function, it might be a closure variable
-											if !isBuiltinFunction(ident.Name) && !isFunctionName(ident) {
-												needsUnwrap = true
+										out.WriteString("(*")
+										TranspileExpressionContext(out, indexExpr.X, LValue)
+										WriteBorrowMethod(out, true)
+										out.WriteString(".as_mut().unwrap())[")
+										writeExpressionAsUsize(out, indexExpr.Index)
+										out.WriteString("] = ")
+										TranspileExpression(out, call)
+									}
+								} else {
+									out.WriteString("(*")
+									TranspileExpressionContext(out, indexExpr.X, LValue)
+									WriteBorrowMethod(out, true)
+									out.WriteString(".as_mut().unwrap())[")
+									writeExpressionAsUsize(out, indexExpr.Index)
+									out.WriteString("] = ")
+
+									// Check if RHS is a call that returns a wrapped value
+									needsUnwrap := false
+									if call, ok := s.Rhs[0].(*ast.CallExpr); ok {
+										// Use TypeInfo to check if this returns a wrapped value
+										typeInfo := GetTypeInfo()
+										if appendCallReturnsBareIndexedSlice(call) {
+											needsUnwrap = false
+										} else if typeInfo != nil && typeInfo.ReturnsWrappedValue(call) && (!typeInfo.IsTypeConversion(call) || typeConversionEmitsWrappedValue(call)) {
+											needsUnwrap = true
+										} else {
+											// Fallback: Check if it's calling a closure variable
+											if ident, ok := call.Fun.(*ast.Ident); ok {
+												// If it's not a known function, it might be a closure variable
+												if !isBuiltinFunction(ident.Name) && !isFunctionName(ident) {
+													needsUnwrap = true
+												}
 											}
 										}
 									}
-								}
 
-								if needsUnwrap {
-									out.WriteString("(*")
-									TranspileExpression(out, s.Rhs[0])
-									WriteBorrowMethod(out, false)
-									out.WriteString(".as_ref().unwrap()).clone()")
-								} else {
-									TranspileExpression(out, s.Rhs[0])
+									if needsUnwrap {
+										out.WriteString("(*")
+										TranspileExpression(out, s.Rhs[0])
+										WriteBorrowMethod(out, false)
+										out.WriteString(".as_ref().unwrap()).clone()")
+									} else {
+										TranspileExpression(out, s.Rhs[0])
+									}
 								}
 							} else {
 								// Direct assignment: x = value

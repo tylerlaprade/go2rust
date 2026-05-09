@@ -962,6 +962,10 @@ run_xfail_test() {
     run_test "tests/nested_embedding"
 }
 
+@test "nested_slice_array_append" {
+    run_test "tests/nested_slice_array_append"
+}
+
 @test "nested_structures" {
     run_test "tests/nested_structures"
 }
