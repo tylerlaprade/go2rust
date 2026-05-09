@@ -1,0 +1,8 @@
+[package]
+name = "exec_exit_error_assertion"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "exec_exit_error_assertion"
+path = "main.rs"

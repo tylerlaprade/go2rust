@@ -656,6 +656,10 @@ run_xfail_test() {
     run_test "tests/errors_custom"
 }
 
+@test "exec_exit_error_assertion" {
+    run_test "tests/exec_exit_error_assertion"
+}
+
 @test "external_named_integer_conversion" {
     run_test "tests/external_named_integer_conversion"
 }

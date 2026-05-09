@@ -46,6 +46,7 @@ func RegisterExternalTypeStubNamed(named *types.Named, rustName string) {
 	if rustType, ok := externalIntegerRustTypeForNamed(named); ok {
 		currentExternalTypeStubIntegerTypes()[rustName] = rustType
 	}
+	RegisterExternalErrorMethodForNamed(named, rustName)
 }
 
 func RegisterExternalTypeStubForTypeExpr(expr ast.Expr, rustName string) {
@@ -148,6 +149,35 @@ func RegisterExternalTypeStubMethod(typeName string, methodName string, sig *typ
 		methods[typeName] = make(map[string]externalTypeStubMethod)
 	}
 	methods[typeName][methodName] = method
+}
+
+func RegisterExternalErrorMethodForNamed(named *types.Named, rustName string) {
+	if named == nil || rustName == "" {
+		return
+	}
+	if sig, ok := externalErrorMethodSignature(named); ok {
+		RegisterExternalTypeStubMethod(rustName, "error", sig)
+	}
+}
+
+func externalErrorMethodSignature(named *types.Named) (*types.Signature, bool) {
+	for _, recv := range []types.Type{named, types.NewPointer(named)} {
+		methods := types.NewMethodSet(recv)
+		for i := 0; i < methods.Len(); i++ {
+			fn, ok := methods.At(i).Obj().(*types.Func)
+			if !ok || fn.Name() != "Error" {
+				continue
+			}
+			sig, ok := fn.Type().(*types.Signature)
+			if !ok || sig.Params().Len() != 0 || sig.Results().Len() != 1 {
+				continue
+			}
+			if basic, ok := types.Unalias(sig.Results().At(0).Type()).(*types.Basic); ok && basic.Kind() == types.String {
+				return sig, true
+			}
+		}
+	}
+	return nil, false
 }
 
 func RegisterExternalTypeStubConversion(targetType string, sourceType string) {
@@ -744,6 +774,11 @@ func generateExternalStubs(stubs map[string]bool, integerTypes map[string]string
 		out.WriteString("    }\n")
 		out.WriteString("}\n")
 		methods := methodsByType[name]
+		if externalTypeStubHasErrorMethod(methods) {
+			out.WriteString("\nimpl std::error::Error for ")
+			out.WriteString(name)
+			out.WriteString(" {}\n")
+		}
 		out.WriteString("\n\nimpl ")
 		out.WriteString(name)
 		out.WriteString(" {\n")
@@ -762,6 +797,11 @@ func generateExternalStubs(stubs map[string]bool, integerTypes map[string]string
 	writeExternalTypeStubConversions(&out, conversions)
 	writeExternalPackageStubs(&out, packageStubs, integerTypes, len(names) > 0)
 	return out.String()
+}
+
+func externalTypeStubHasErrorMethod(methods map[string]externalTypeStubMethod) bool {
+	method, ok := methods["error"]
+	return ok && len(method.ReturnTypes) == 1 && strings.Contains(method.ReturnTypes[0], "String")
 }
 
 func writeExternalIntegerStubOps(out *strings.Builder, name string, integerType string) {
