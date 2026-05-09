@@ -2778,7 +2778,13 @@ func writePackageGlobalSelectorMethodReceiver(out *strings.Builder, receiver *as
 	}
 	typeInfo := GetTypeInfo()
 	needsMut := typeInfo != nil && typeInfo.HasPointerReceiver(method)
-	if typeInfo != nil && typeInfo.IsPointer(receiver) {
+	isStdlibReceiver := false
+	if ident, ok := receiver.X.(*ast.Ident); ok {
+		if pkgPath, ok := goPackageImports[ident.Name]; ok {
+			isStdlibReceiver = isStdlibPackage(pkgPath)
+		}
+	}
+	if typeInfo != nil && typeInfo.IsPointer(receiver) && !isStdlibReceiver {
 		out.WriteString("{ let __recv_holder = ")
 		TranspileExpressionContext(out, receiver, LValue)
 		WriteBorrowMethod(out, false)
