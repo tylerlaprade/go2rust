@@ -488,6 +488,10 @@ run_xfail_test() {
     run_test "tests/concurrent_byte_index_or_assign"
 }
 
+@test "concurrent_for_method_len" {
+    run_test "tests/concurrent_for_method_len"
+}
+
 @test "concurrent_interface_field_global" {
     run_test "tests/concurrent_interface_field_global"
 }

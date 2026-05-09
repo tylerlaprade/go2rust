@@ -111,6 +111,7 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 - ✅ Full range-loop fixture - slice/map/string/channel ranges, nil slice iteration, and repeated wrapped reads in channel sends (range_loops promoted, 2026-05-06)
 - ✅ Range string call arguments - range values from `[]string` clone out of iterator references when passed to methods/functions expecting owned `string` parameters (range_string_method_argument promoted, 2026-05-09)
 - ✅ Range over integers - Go 1.22 integer range expressions lower to Rust integer ranges (range_over_integer promoted, 2026-05-07)
+- ✅ Range-variable shadowing in nested loops - a `for` init short declaration can shadow an active outer range variable without inheriting the outer bare range binding (concurrent_for_method_len added, 2026-05-09)
 - ✅ Goto and labels - labeled break/continue plus basic top-level goto patterns with backward loop jumps and forward block exits (goto_labels promoted, 2026-05-06)
 - ✅ Direct switch-case breaks - unlabeled `break` statements directly in switch and type-switch case bodies stop emitting the rest of that case body instead of producing invalid Rust (switch_break_statements promoted, 2026-05-07)
 - ✅ Fallthrough in switch - if-chain with _fallthrough/_matched flags (fallthrough_switch promoted)
@@ -210,3 +211,5 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 ### 🚀 Phase 10: Bootstrap Test
 
 go2rust transpiles itself!
+
+- 🚧 Self-transpile cargo check now reaches `golang_org_x_tools_internal_gcimporter` with prior `iexport.rs:464` range-shadowing failure fixed; the next first error is a `types_Object` vs `GoPtrKey<types_TypeName>` map-key mismatch in generated `iexport.rs:468` (2026-05-09)

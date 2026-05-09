@@ -1,0 +1,8 @@
+[package]
+name = "concurrent_for_method_len"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "concurrent_for_method_len"
+path = "main.rs"

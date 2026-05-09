@@ -291,6 +291,51 @@ func writeRangeBinding(out *strings.Builder, expr ast.Expr, mutable bool) {
 	TranspileExpression(out, expr)
 }
 
+func shortDeclNames(stmt ast.Stmt) []string {
+	assign, ok := stmt.(*ast.AssignStmt)
+	if !ok || assign.Tok != token.DEFINE {
+		return nil
+	}
+	names := make([]string, 0, len(assign.Lhs))
+	seen := make(map[string]bool)
+	for _, lhs := range assign.Lhs {
+		ident, ok := lhs.(*ast.Ident)
+		if !ok || ident.Name == "_" || seen[ident.Name] {
+			continue
+		}
+		seen[ident.Name] = true
+		names = append(names, ident.Name)
+	}
+	return names
+}
+
+func shadowRangeLoopVars(names []string) func() {
+	if len(names) == 0 {
+		return func() {}
+	}
+	saved := make(map[string]string)
+	for _, name := range names {
+		if varType, ok := rangeLoopVars[name]; ok {
+			saved[name] = varType
+			delete(rangeLoopVars, name)
+		}
+	}
+	return func() {
+		for name, varType := range saved {
+			rangeLoopVars[name] = varType
+		}
+	}
+}
+
+func shortDeclShadowsRangeVar(names []string) bool {
+	for _, name := range names {
+		if _, ok := rangeLoopVars[name]; ok {
+			return true
+		}
+	}
+	return false
+}
+
 func rangeTargetNeedsWrappedSliceGuard(expr ast.Expr) bool {
 	switch e := expr.(type) {
 	case *ast.Ident:
@@ -3734,8 +3779,22 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		}
 
 	case *ast.ForStmt:
+		shortNames := shortDeclNames(s.Init)
+		wrapForScope := shortDeclShadowsRangeVar(shortNames)
+		var popForInitScope func()
+		if s.Init != nil {
+			if vt := GetVarTable(); vt != nil {
+				vt.PushScope()
+				popForInitScope = vt.PopScope
+			}
+		}
+		restoreRangeLoopVars := func() {}
+		if wrapForScope {
+			out.WriteString("{\n    ")
+		}
 		if s.Init != nil {
 			TranspileStatementSimple(out, s.Init, fnType, fileSet)
+			restoreRangeLoopVars = shadowRangeLoopVars(shortNames)
 			out.WriteString("\n    ")
 		}
 
@@ -3785,6 +3844,13 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		// Clean up label tracking
 		if currentLoopLabel != "" {
 			delete(labeledLoopPost, currentLoopLabel)
+		}
+		if wrapForScope {
+			out.WriteString("\n    }")
+		}
+		restoreRangeLoopVars()
+		if popForInitScope != nil {
+			popForInitScope()
 		}
 
 	case *ast.BlockStmt:
