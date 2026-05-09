@@ -6592,6 +6592,13 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 		funcSig = GetFunctionSignature(funcName)
 	}
 
+	closeFunctionCall := func() {
+		out.WriteString(")")
+		if closureCallSuffix != "" {
+			out.WriteString(closureCallSuffix)
+		}
+	}
+
 	// Handle variadic function calls
 	variadicStart := GetVariadicParamIndex(funcSig)
 	if variadicStart >= 0 {
@@ -6650,7 +6657,12 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 			WriteWrapperSuffix(out)
 		}
 
-		out.WriteString(")")
+		closeFunctionCall()
+		return
+	}
+	if sig, ok := callSignatureFromTypeInfo(call); ok && sig.Variadic() {
+		writeVariadicCallArgumentsFromTypes(out, call, sig)
+		closeFunctionCall()
 		return
 	}
 
@@ -7046,10 +7058,53 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 			TranspileExpression(out, arg)
 		}
 	}
-	out.WriteString(")")
-	if closureCallSuffix != "" {
-		out.WriteString(closureCallSuffix)
+	closeFunctionCall()
+}
+
+func writeVariadicCallArgumentsFromTypes(out *strings.Builder, call *ast.CallExpr, sig *types.Signature) {
+	params := sig.Params()
+	variadicStart := params.Len() - 1
+	for i := 0; i < variadicStart && i < len(call.Args); i++ {
+		if i > 0 {
+			out.WriteString(", ")
+		}
+		writeFunctionValueArgument(out, call.Args[i])
 	}
+
+	if variadicStart > 0 {
+		out.WriteString(", ")
+	}
+	if call.Ellipsis.IsValid() {
+		lastArg := call.Args[len(call.Args)-1]
+		if ident, ok := lastArg.(*ast.Ident); ok {
+			out.WriteString(RustIdentForUse(ident))
+			out.WriteString(".clone()")
+			return
+		}
+		TranspileExpression(out, lastArg)
+		return
+	}
+
+	variadicType := params.At(variadicStart).Type()
+	variadicElemType := variadicType
+	if slice, ok := types.Unalias(variadicType).Underlying().(*types.Slice); ok {
+		variadicElemType = slice.Elem()
+	}
+	variadicElemIsAny := isEmptyInterfaceType(variadicElemType)
+	WriteWrapperPrefix(out)
+	out.WriteString("vec![")
+	for i := variadicStart; i < len(call.Args); i++ {
+		if i > variadicStart {
+			out.WriteString(", ")
+		}
+		if variadicElemIsAny {
+			writeInterfaceBoxedValue(out, call.Args[i])
+		} else {
+			TranspileExpression(out, call.Args[i])
+		}
+	}
+	out.WriteString("]")
+	WriteWrapperSuffix(out)
 }
 
 func typeAssertionEmitsBareFunctionValue(expr ast.Expr) bool {

@@ -1608,6 +1608,10 @@ run_xfail_test() {
     run_test "tests/variadic_any_arguments"
 }
 
+@test "variadic_function_value_empty" {
+    run_test "tests/variadic_function_value_empty"
+}
+
 @test "variadic_functions" {
     run_test "tests/variadic_functions"
 }
