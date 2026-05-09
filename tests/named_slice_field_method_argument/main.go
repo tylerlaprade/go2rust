@@ -28,9 +28,16 @@ func combine(a, b *holder) {
 	a.terms = a.terms.intersect(b.terms)
 }
 
+func copiedLen(src *holder) int {
+	var terms numbers
+	terms = src.terms
+	return len(terms)
+}
+
 func main() {
 	a := &holder{terms: numbers{1, 2, 3}}
 	b := &holder{terms: numbers{2, 4}}
 	combine(a, b)
 	fmt.Println(len(a.terms), a.terms[0])
+	fmt.Println(copiedLen(b))
 }

@@ -18,7 +18,17 @@ pub fn regular(v: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<String>>> {
 pub fn typed(v: Rc<RefCell<Option<Box<dyn Any>>>>) -> Rc<RefCell<Option<String>>> {
 
     let mut result = Rc::new(RefCell::new(Some("start".to_string())));
-    // ERROR: Invalid type switch format
+    {
+    let _ts_subject = v.clone();
+    let _ts_guard = _ts_subject.borrow();
+    let _ts_is_nil = _ts_guard.as_ref().is_none();
+    let _ts_val: Option<&dyn Any> = _ts_guard.as_ref().map(|__v| __v.as_ref() as &dyn Any);
+    if _ts_is_nil || _ts_val.and_then(|__v| __v.downcast_ref::<i32>()).is_some() {
+        { let new_val = "simple".to_string(); *result.borrow_mut() = Some(new_val); };;
+    } else {
+        { let new_val = "other".to_string(); *result.borrow_mut() = Some(new_val); };;
+    }
+    }
     return result.clone();
 }
 

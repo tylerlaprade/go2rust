@@ -46,9 +46,17 @@ pub fn combine(a: Rc<RefCell<Option<holder>>>, b: Rc<RefCell<Option<holder>>>) {
     { let new_val = (*(*a.borrow().as_ref().unwrap()).terms.borrow().as_ref().unwrap()).intersect(Rc::new(RefCell::new(Some((*(*b.borrow().as_ref().unwrap()).terms.borrow().as_ref().unwrap()).clone())))); *(*a.borrow().as_ref().unwrap()).terms.borrow_mut() = new_val.borrow_mut().take(); };
 }
 
+pub fn copied_len(src: Rc<RefCell<Option<holder>>>) -> Rc<RefCell<Option<i32>>> {
+
+    let mut terms: Rc<RefCell<Option<numbers>>> = Rc::new(RefCell::new(Some(Default::default())));
+    { let new_val = (*(*src.borrow().as_ref().unwrap()).terms.borrow().as_ref().unwrap()).clone(); *terms.borrow_mut() = Some(new_val); };
+    return Rc::new(RefCell::new(Some({ let __slice_holder = { let __named_slice = (*terms.borrow().as_ref().unwrap()).0.clone(); __named_slice }; let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) } as i32)));
+}
+
 fn main() {
     let mut a = Rc::new(RefCell::new(Some(holder { terms: Rc::new(RefCell::new(Some(numbers(Rc::new(RefCell::new(Some(vec![1, 2, 3]))))))), ..Default::default() })));
     let mut b = Rc::new(RefCell::new(Some(holder { terms: Rc::new(RefCell::new(Some(numbers(Rc::new(RefCell::new(Some(vec![2, 4]))))))), ..Default::default() })));
     combine(a.clone(), b.clone());
     println!("{} {}", { let __slice_holder = { let __named_slice = (*(*a.borrow().as_ref().unwrap()).terms.borrow().as_ref().unwrap()).0.clone(); __named_slice }; let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }, { let __seq_holder = { let __named_slice = (*(*a.borrow().as_ref().unwrap()).terms.borrow().as_ref().unwrap()).0.clone(); __named_slice }; let __seq_guard = __seq_holder.borrow(); let __seq = __seq_guard.as_ref().unwrap(); __seq[(0) as usize].clone() });
+    println!("{}", (*copied_len(b.clone()).borrow().as_ref().unwrap()));
 }

@@ -1,0 +1,8 @@
+[package]
+name = "type_switch_no_binding"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "type_switch_no_binding"
+path = "main.rs"

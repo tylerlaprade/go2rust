@@ -2437,6 +2437,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 											out.WriteString(rhsVarName)
 											WriteBorrowMethod(out, false)
 											out.WriteString(".as_ref().unwrap().clone()")
+										} else if !isCopyTypeExpression(s.Rhs[0]) && writeOwnedExpressionValue(out, s.Rhs[0]) {
+											// Copied by value from an existing wrapped field or handle.
 										} else {
 											TranspileExpression(out, s.Rhs[0])
 										}
@@ -4408,7 +4410,11 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 		if s.Assign != nil {
 			// Has assignment: v := x.(type)
-			if assign, ok := s.Assign.(*ast.AssignStmt); ok && len(assign.Lhs) == 1 && len(assign.Rhs) == 1 {
+			if exprStmt, ok := s.Assign.(*ast.ExprStmt); ok {
+				if typeAssert, ok := exprStmt.X.(*ast.TypeAssertExpr); ok {
+					expr = typeAssert.X
+				}
+			} else if assign, ok := s.Assign.(*ast.AssignStmt); ok && len(assign.Lhs) == 1 && len(assign.Rhs) == 1 {
 				if ident, ok := assign.Lhs[0].(*ast.Ident); ok {
 					varName = ident.Name
 				}
