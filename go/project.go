@@ -230,6 +230,7 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 	defer SetConcurrencyDetector(nil) // Clear when done
 
 	packageState := NewPackageState()
+	packageState.MapKeyStructTypes = collectMapKeyStructTypesFromFiles(astFiles, pg.typeInfo)
 	pg.usePackageHelpers = len(astFiles) > 1
 	runCtx := &TranspileContext{
 		Session:                 NewTranspileSession(pg.typeInfo, pg.packageMapping),

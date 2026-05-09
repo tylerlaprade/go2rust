@@ -130,3 +130,13 @@ impl std::ops::BitOr<Marker> for i32 {
         self | *other.0.borrow().as_ref().unwrap()
     }
 }
+
+impl Eq for Marker {}
+
+impl Ord for Marker {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        let __left = { self.0.borrow().as_ref().cloned() };
+        let __right = { other.0.borrow().as_ref().cloned() };
+        __left.cmp(&__right)
+    }
+}

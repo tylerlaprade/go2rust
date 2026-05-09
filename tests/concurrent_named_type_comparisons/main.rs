@@ -282,6 +282,16 @@ impl std::ops::BitOr<Kind> for i8 {
     }
 }
 
+impl Eq for Kind {}
+
+impl Ord for Kind {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        let __left = { self.0.lock().unwrap().as_ref().cloned() };
+        let __right = { other.0.lock().unwrap().as_ref().cloned() };
+        __left.cmp(&__right)
+    }
+}
+
 
 #[derive(Debug, Clone, Default)]
 pub struct Symbol {

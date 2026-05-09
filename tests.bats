@@ -1290,6 +1290,10 @@ run_xfail_test() {
     run_test "tests/struct_methods"
 }
 
+@test "struct_named_integer_map_key" {
+    run_test "tests/struct_named_integer_map_key"
+}
+
 @test "struct_tags_reflection" {
     run_test "tests/struct_tags_reflection"
 }

@@ -143,6 +143,16 @@ impl std::ops::BitOr<RelocKind> for i32 {
     }
 }
 
+impl Eq for RelocKind {}
+
+impl Ord for RelocKind {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        let __left = { self.0.borrow().as_ref().cloned() };
+        let __right = { other.0.borrow().as_ref().cloned() };
+        __left.cmp(&__right)
+    }
+}
+
 
 #[derive(Debug, Clone, Default)]
 pub struct SyncMarker(pub Rc<RefCell<Option<i32>>>);
@@ -273,6 +283,16 @@ impl std::ops::BitOr<SyncMarker> for i32 {
     }
 }
 
+impl Eq for SyncMarker {}
+
+impl Ord for SyncMarker {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        let __left = { self.0.borrow().as_ref().cloned() };
+        let __right = { other.0.borrow().as_ref().cloned() };
+        __left.cmp(&__right)
+    }
+}
+
 
 #[derive(Debug, Clone, Default)]
 pub struct Field(pub Rc<RefCell<Option<i32>>>);
@@ -400,6 +420,16 @@ impl std::ops::BitOr<Field> for i32 {
     type Output = i32;
     fn bitor(self, other: Field) -> i32 {
         self | *other.0.borrow().as_ref().unwrap()
+    }
+}
+
+impl Eq for Field {}
+
+impl Ord for Field {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        let __left = { self.0.borrow().as_ref().cloned() };
+        let __right = { other.0.borrow().as_ref().cloned() };
+        __left.cmp(&__right)
     }
 }
 

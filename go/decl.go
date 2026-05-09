@@ -187,6 +187,7 @@ func writeStructDerive(out *strings.Builder, structName string, structType *ast.
 	needsCustomDefault := structNeedsCustomDefault(structType)
 	needsPartialEq := !hasTraitField && structName != "" && comparableStructTypes[structName]
 	derivePartialEq := needsPartialEq && !structNeedsCustomPartialEq(structName, structType)
+	deriveOrd := derivePartialEq && structNeedsOrd(structName)
 	if hasTraitField {
 		if needsCustomDefault {
 			out.WriteString("#[derive(Clone)]\n")
@@ -195,7 +196,13 @@ func writeStructDerive(out *strings.Builder, structName string, structType *ast.
 		}
 	} else {
 		if needsCustomDefault {
-			if derivePartialEq {
+			if deriveOrd {
+				if canDeriveDebug {
+					out.WriteString("#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]\n")
+				} else {
+					out.WriteString("#[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]\n")
+				}
+			} else if derivePartialEq {
 				if canDeriveDebug {
 					out.WriteString("#[derive(Debug, Clone, PartialEq)]\n")
 				} else {
@@ -209,7 +216,13 @@ func writeStructDerive(out *strings.Builder, structName string, structType *ast.
 				}
 			}
 		} else {
-			if derivePartialEq {
+			if deriveOrd {
+				if canDeriveDebug {
+					out.WriteString("#[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord)]\n")
+				} else {
+					out.WriteString("#[derive(Clone, Default, PartialEq, Eq, PartialOrd, Ord)]\n")
+				}
+			} else if derivePartialEq {
 				if canDeriveDebug {
 					out.WriteString("#[derive(Debug, Clone, Default, PartialEq)]\n")
 				} else {
@@ -226,8 +239,40 @@ func writeStructDerive(out *strings.Builder, structName string, structType *ast.
 	}
 }
 
+func structNeedsOrd(structName string) bool {
+	return structName != "" && currentMapKeyStructTypes()[structName]
+}
+
+func currentMapKeyStructTypes() map[string]bool {
+	if currentContext != nil && currentContext.Package != nil {
+		return currentContext.Package.MapKeyStructTypes
+	}
+	return nil
+}
+
 func structNeedsCustomPartialEq(structName string, structType *ast.StructType) bool {
 	return structName != "" && structType != nil && comparableStructTypes[structName] && NeedsConcurrentWrapper()
+}
+
+func structNeedsCustomOrd(structName string, structType *ast.StructType) bool {
+	return structName != "" && structType != nil && structNeedsOrd(structName) && NeedsConcurrentWrapper()
+}
+
+func structComparableFieldNames(structType *ast.StructType) []string {
+	var fields []string
+	if structType == nil {
+		return fields
+	}
+	for _, field := range structType.Fields.List {
+		if len(field.Names) > 0 {
+			for _, name := range field.Names {
+				fields = append(fields, ToSnakeCase(name.Name))
+			}
+			continue
+		}
+		fields = append(fields, ToSnakeCase(getEmbeddedFieldName(field.Type)))
+	}
+	return fields
 }
 
 func generateStructPartialEq(out *strings.Builder, structName string, structType *ast.StructType) {
@@ -241,17 +286,7 @@ func generateStructPartialEq(out *strings.Builder, structName string, structType
 	out.WriteString(" {\n")
 	out.WriteString("    fn eq(&self, other: &Self) -> bool {\n")
 
-	var fields []string
-	for _, field := range structType.Fields.List {
-		if len(field.Names) > 0 {
-			for _, name := range field.Names {
-				fields = append(fields, ToSnakeCase(name.Name))
-			}
-			continue
-		}
-		fields = append(fields, ToSnakeCase(getEmbeddedFieldName(field.Type)))
-	}
-
+	fields := structComparableFieldNames(structType)
 	if len(fields) == 0 {
 		out.WriteString("        true\n")
 	} else {
@@ -271,6 +306,49 @@ func generateStructPartialEq(out *strings.Builder, structName string, structType
 		out.WriteString("\n        )\n")
 	}
 
+	out.WriteString("    }\n")
+	out.WriteString("}\n")
+}
+
+func generateStructOrd(out *strings.Builder, structName string, structType *ast.StructType) {
+	if !structNeedsCustomOrd(structName, structType) {
+		return
+	}
+
+	rustStructName := RustTypeNameForUse(structName)
+	out.WriteString("\nimpl Eq for ")
+	out.WriteString(rustStructName)
+	out.WriteString(" {}\n")
+
+	out.WriteString("\nimpl PartialOrd for ")
+	out.WriteString(rustStructName)
+	out.WriteString(" {\n")
+	out.WriteString("    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {\n")
+	out.WriteString("        Some(self.cmp(other))\n")
+	out.WriteString("    }\n")
+	out.WriteString("}\n")
+
+	out.WriteString("\nimpl Ord for ")
+	out.WriteString(rustStructName)
+	out.WriteString(" {\n")
+	out.WriteString("    fn cmp(&self, other: &Self) -> std::cmp::Ordering {\n")
+
+	fields := structComparableFieldNames(structType)
+	for _, fieldName := range fields {
+		out.WriteString("        {\n")
+		out.WriteString("            let __left = { self.")
+		out.WriteString(fieldName)
+		out.WriteString(".lock().unwrap().as_ref().cloned() };\n")
+		out.WriteString("            let __right = { other.")
+		out.WriteString(fieldName)
+		out.WriteString(".lock().unwrap().as_ref().cloned() };\n")
+		out.WriteString("            match __left.cmp(&__right) {\n")
+		out.WriteString("                std::cmp::Ordering::Equal => {}\n")
+		out.WriteString("                __ord => return __ord,\n")
+		out.WriteString("            }\n")
+		out.WriteString("        }\n")
+	}
+	out.WriteString("        std::cmp::Ordering::Equal\n")
 	out.WriteString("    }\n")
 	out.WriteString("}\n")
 }
@@ -943,6 +1021,7 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 		// Generate Display implementation to match Go's format
 		generateStructDisplay(out, typeSpec.Name.Name, t)
 		generateStructPartialEq(out, typeSpec.Name.Name, t)
+		generateStructOrd(out, typeSpec.Name.Name, t)
 
 	case *ast.InterfaceType:
 		// Generate a trait for the interface
@@ -1120,6 +1199,9 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 				if rustType, ok := rustCastTypeForDefinedUnderlying(ident.Name); ok {
 					writeScalarTypeDefinitionNumericOps(out, typeSpec.Name.Name, rustType, ident.Name)
 				}
+				if isBitwiseDefinedUnderlying(ident.Name) {
+					writeScalarTypeDefinitionOrd(out, typeSpec.Name.Name)
+				}
 			}
 		}
 	}
@@ -1238,6 +1320,28 @@ func writeScalarTypeDefinitionPartialOrd(out *strings.Builder, rustTypeName stri
 	out.WriteString("        self.partial_cmp(other.0")
 	WriteBorrowMethod(out, false)
 	out.WriteString(".as_ref().unwrap())\n")
+	out.WriteString("    }\n")
+	out.WriteString("}\n")
+}
+
+func writeScalarTypeDefinitionOrd(out *strings.Builder, typeName string) {
+	rustTypeName := RustTypeNameForUse(typeName)
+
+	out.WriteString("\nimpl Eq for ")
+	out.WriteString(rustTypeName)
+	out.WriteString(" {}\n")
+
+	out.WriteString("\nimpl Ord for ")
+	out.WriteString(rustTypeName)
+	out.WriteString(" {\n")
+	out.WriteString("    fn cmp(&self, other: &Self) -> std::cmp::Ordering {\n")
+	out.WriteString("        let __left = { self.0")
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().cloned() };\n")
+	out.WriteString("        let __right = { other.0")
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().cloned() };\n")
+	out.WriteString("        __left.cmp(&__right)\n")
 	out.WriteString("    }\n")
 	out.WriteString("}\n")
 }

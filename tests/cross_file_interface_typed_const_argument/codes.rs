@@ -149,6 +149,16 @@ impl std::ops::BitOr<CodeVal> for i32 {
     }
 }
 
+impl Eq for CodeVal {}
+
+impl Ord for CodeVal {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        let __left = { self.0.borrow().as_ref().cloned() };
+        let __right = { other.0.borrow().as_ref().cloned() };
+        __left.cmp(&__right)
+    }
+}
+
 
 impl CodeVal {
     pub fn value(&self) -> Rc<RefCell<Option<i32>>> {

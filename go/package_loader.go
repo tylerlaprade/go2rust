@@ -240,6 +240,7 @@ func (pl *PackageLoader) transpilePackage(pkg *packages.Package) error {
 
 	parentCtx := GetTranspileContext()
 	pkgState := NewPackageState()
+	pkgState.MapKeyStructTypes = collectMapKeyStructTypesFromFiles(pkg.Syntax, pkgTypeInfo)
 	pkgState.FunctionNameOverrides = assignPackageFunctionNames(pkg.Syntax)
 	SetTranspileContext(&TranspileContext{
 		Session:                 NewTranspileSession(pkgTypeInfo, pl.packageMapping),

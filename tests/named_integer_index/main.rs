@@ -131,6 +131,16 @@ impl std::ops::BitOr<Kind> for i32 {
     }
 }
 
+impl Eq for Kind {}
+
+impl Ord for Kind {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        let __left = { self.0.borrow().as_ref().cloned() };
+        let __right = { other.0.borrow().as_ref().cloned() };
+        __left.cmp(&__right)
+    }
+}
+
 
 impl Kind {
     pub fn method_pick(&self, values: Rc<RefCell<Option<Vec<i32>>>>) -> Rc<RefCell<Option<i32>>> {

@@ -80,6 +80,7 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 - ✅ Comma-ok map zero values - missing keys now emit typed zero values from go/types, including bool map values instead of assuming int (map_comma_ok_bool_default promoted, 2026-05-07)
 - ✅ Wrapped call map keys - map lookups and literal keys unwrap function-call results before borrowing them for key comparison or insertion (map_lookup_wrapped_call_key promoted, 2026-05-07)
 - ✅ Pointer map keys and values - pointer keys lower through identity-preserving key wrappers in map literals, make(map), lookups, and slice-range variables; pointer map values avoid nested wrappers (concurrent_pointer_map_keys, concurrent_make_pointer_map_keys, concurrent_make_pointer_map_values, concurrent_pointer_range_map_append promoted, 2026-05-07)
+- ✅ Struct map keys - package-wide map-key discovery emits Eq/Ord support for named struct keys declared in sibling modules, including concurrent wrappers with named integer fields (struct_named_integer_map_key promoted, 2026-05-09)
 - ✅ Map slice append assignment - map value writes fed by wrapped append results pass through the returned slice handle instead of nesting another wrapper (map_slice_append_assignment promoted, 2026-05-07)
 - ✅ Nested range over map slice values - range variables holding wrapped map slice values borrow their inner Vec before nested iteration (range_map_slice_value promoted, 2026-05-07)
 - ✅ Composite literal arguments - slice/map/array literals passed to functions no longer double-wrap (2026-03-26)

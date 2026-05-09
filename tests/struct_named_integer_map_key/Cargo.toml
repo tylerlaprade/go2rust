@@ -1,0 +1,8 @@
+[package]
+name = "struct_named_integer_map_key"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "struct_named_integer_map_key"
+path = "main.rs"

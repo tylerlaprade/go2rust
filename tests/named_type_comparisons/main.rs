@@ -136,6 +136,16 @@ impl std::ops::BitOr<Kind> for i8 {
     }
 }
 
+impl Eq for Kind {}
+
+impl Ord for Kind {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        let __left = { self.0.borrow().as_ref().cloned() };
+        let __right = { other.0.borrow().as_ref().cloned() };
+        __left.cmp(&__right)
+    }
+}
+
 
 pub fn different(a: Rc<RefCell<Option<Kind>>>, b: Rc<RefCell<Option<Kind>>>) -> Rc<RefCell<Option<bool>>> {
 

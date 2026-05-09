@@ -137,6 +137,16 @@ impl std::ops::BitOr<Kind> for i8 {
     }
 }
 
+impl Eq for Kind {}
+
+impl Ord for Kind {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        let __left = { self.0.borrow().as_ref().cloned() };
+        let __right = { other.0.borrow().as_ref().cloned() };
+        __left.cmp(&__right)
+    }
+}
+
 
 #[derive(Debug, Clone, Default)]
 pub struct Version(pub Rc<RefCell<Option<i8>>>);
@@ -264,6 +274,16 @@ impl std::ops::BitOr<Version> for i8 {
     type Output = i8;
     fn bitor(self, other: Version) -> i8 {
         self | *other.0.borrow().as_ref().unwrap()
+    }
+}
+
+impl Eq for Version {}
+
+impl Ord for Version {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        let __left = { self.0.borrow().as_ref().cloned() };
+        let __right = { other.0.borrow().as_ref().cloned() };
+        __left.cmp(&__right)
     }
 }
 

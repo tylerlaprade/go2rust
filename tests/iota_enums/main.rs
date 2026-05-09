@@ -137,6 +137,16 @@ impl std::ops::BitOr<Color> for i32 {
     }
 }
 
+impl Eq for Color {}
+
+impl Ord for Color {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        let __left = { self.0.borrow().as_ref().cloned() };
+        let __right = { other.0.borrow().as_ref().cloned() };
+        __left.cmp(&__right)
+    }
+}
+
 
 fn main() {
     println!("{} {}", "Red:".to_string(), RED);

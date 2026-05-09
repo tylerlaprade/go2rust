@@ -211,6 +211,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Wrapped call results as map lookup keys | ✅ |
 | └ Pointer keys in map literals and lookups | ✅ |
 | └ Pointer keys and values in `make(map)` plus slice-range pointer key lookups | ✅ |
+| └ Struct keys with named integer fields across split modules | ✅ |
 | └ Append results assigned into map slice values | ✅ |
 | └ Nested range over map slice values | ✅ |
 | └ Map iteration (for range) | ✅ |

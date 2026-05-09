@@ -118,19 +118,47 @@ func collectComparableStructTypes(file *ast.File) map[string]bool {
 	}
 
 	ast.Inspect(file, func(node ast.Node) bool {
-		bin, ok := node.(*ast.BinaryExpr)
-		if !ok {
-			return true
+		switch n := node.(type) {
+		case *ast.BinaryExpr:
+			if n.Op != token.EQL && n.Op != token.NEQ {
+				return true
+			}
+			markComparableStructType(result, typeInfo.GetType(n.X))
+			markComparableStructType(result, typeInfo.GetType(n.Y))
+		case *ast.MapType:
+			markMapKeyStructType(result, mapKeyTypeFromMapType(typeInfo, n), typeInfo)
 		}
-		if bin.Op != token.EQL && bin.Op != token.NEQ {
-			return true
-		}
-		markComparableStructType(result, typeInfo.GetType(bin.X))
-		markComparableStructType(result, typeInfo.GetType(bin.Y))
 		return true
 	})
 
 	return result
+}
+
+func collectMapKeyStructTypesFromFiles(files []*ast.File, typeInfo *TypeInfo) map[string]bool {
+	result := make(map[string]bool)
+	for _, file := range files {
+		ast.Inspect(file, func(node ast.Node) bool {
+			mapType, ok := node.(*ast.MapType)
+			if !ok {
+				return true
+			}
+			markMapKeyStructType(result, mapKeyTypeFromMapType(typeInfo, mapType), typeInfo)
+			return true
+		})
+	}
+	return result
+}
+
+func mapKeyTypeFromMapType(typeInfo *TypeInfo, mapType *ast.MapType) types.Type {
+	if typeInfo == nil || mapType == nil {
+		return nil
+	}
+	if typ := typeInfo.GetType(mapType); typ != nil {
+		if typedMap, ok := types.Unalias(typ).Underlying().(*types.Map); ok {
+			return typedMap.Key()
+		}
+	}
+	return typeInfo.GetType(mapType.Key)
 }
 
 func collectLocalInterfaceEqualityTypes(file *ast.File) map[string]bool {
@@ -195,8 +223,27 @@ func localInterfaceSliceElemName(typ types.Type) (string, bool) {
 }
 
 func markComparableStructType(result map[string]bool, typ types.Type) {
-	named, ok := typ.(*types.Named)
+	if typ == nil {
+		return
+	}
+	named, ok := types.Unalias(typ).(*types.Named)
 	if !ok {
+		return
+	}
+	if _, ok := named.Underlying().(*types.Struct); ok {
+		result[named.Obj().Name()] = true
+	}
+}
+
+func markMapKeyStructType(result map[string]bool, typ types.Type, typeInfo *TypeInfo) {
+	if typ == nil {
+		return
+	}
+	named, ok := types.Unalias(typ).(*types.Named)
+	if !ok || named.Obj() == nil {
+		return
+	}
+	if typeInfo != nil && typeInfo.pkg != nil && named.Obj().Pkg() != typeInfo.pkg {
 		return
 	}
 	if _, ok := named.Underlying().(*types.Struct); ok {
@@ -1073,6 +1120,11 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 	prevComparableStructTypes := comparableStructTypes
 	prevLocalInterfaceEqualityTypes := localInterfaceEqualityTypes
 	comparableStructTypes = collectComparableStructTypes(file)
+	if currentContext != nil && currentContext.Package != nil {
+		for name := range currentContext.Package.MapKeyStructTypes {
+			comparableStructTypes[name] = true
+		}
+	}
 	localInterfaceEqualityTypes = collectLocalInterfaceEqualityTypes(file)
 	defer func() {
 		comparableStructTypes = prevComparableStructTypes

@@ -131,6 +131,16 @@ impl std::ops::BitOr<Kind> for i32 {
     }
 }
 
+impl Eq for Kind {}
+
+impl Ord for Kind {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        let __left = { self.0.borrow().as_ref().cloned() };
+        let __right = { other.0.borrow().as_ref().cloned() };
+        __left.cmp(&__right)
+    }
+}
+
 
 #[derive(Debug, Clone, Default)]
 pub struct Entry {
