@@ -5030,7 +5030,10 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 		// Default string conversion
 		WriteWrapperPrefix(out)
 		if ident, ok := arg.(*ast.Ident); ok && ident.Name != "nil" {
-			if _, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar {
+			if currentReceiver != "" && ident.Name == currentReceiver {
+				TranspileExpression(out, ident)
+				out.WriteString(".to_string()")
+			} else if _, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar {
 				out.WriteString(RustIdentForUse(ident))
 				out.WriteString(".to_string()")
 			} else {
