@@ -1228,6 +1228,10 @@ run_xfail_test() {
     run_test "tests/regex_basic"
 }
 
+@test "return_indexed_pointer" {
+    run_test "tests/return_indexed_pointer"
+}
+
 @test "return_pointer_selector_field" {
     run_test "tests/return_pointer_selector_field"
 }

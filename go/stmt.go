@@ -1115,6 +1115,29 @@ func writeStdlibInterfaceReturnConversion(out *strings.Builder, result ast.Expr,
 	return true
 }
 
+func isPointerReturnExpected(expected ast.Expr) bool {
+	if expected == nil {
+		return false
+	}
+	if _, ok := expected.(*ast.StarExpr); ok {
+		return true
+	}
+	expectedType := expectedTypeFromParamExpr(expected)
+	if expectedType == nil {
+		return false
+	}
+	_, ok := types.Unalias(expectedType).Underlying().(*types.Pointer)
+	return ok
+}
+
+func isPointerReturnExpression(result ast.Expr, expected ast.Expr) bool {
+	if !isPointerReturnExpected(expected) {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	return typeInfo != nil && typeInfo.IsPointer(result)
+}
+
 func writeStdlibInterfaceAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil {
@@ -2258,6 +2281,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							}
 						}
 					} else if writeLocalInterfaceConcreteReturnConversion(out, result, returnResultTypeExpr(fnType, i)) {
+					} else if isPointerReturnExpression(result, returnResultTypeExpr(fnType, i)) {
+						TranspileExpression(out, result)
 					} else if compositeLit, ok := result.(*ast.CompositeLit); ok && isCompositeLitSelfWrapping(compositeLit) {
 						// Slice and map literals already return wrapped values.
 						TranspileExpression(out, result)
