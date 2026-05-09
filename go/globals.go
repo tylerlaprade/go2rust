@@ -180,6 +180,10 @@ func ParamFieldForArg(funcSig *FunctionSignature, argIndex int) *ast.Field {
 // (basic types, named types that aren't interfaces). Returns false for pointers,
 // interfaces, slices, maps, channels, and function types.
 func isValueType(expr ast.Expr) bool {
+	if isFunctionSignatureTypeExpr(expr) {
+		return false
+	}
+
 	switch t := expr.(type) {
 	case *ast.Ident:
 		// Basic types and named types

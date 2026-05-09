@@ -29,6 +29,11 @@ pub fn use_qualifier(qualifier: Arc<Mutex<Option<Box<dyn Fn(Arc<Mutex<Option<typ
     return { let __f_guard = qualifier.lock().unwrap(); let __f = __f_guard.as_ref().unwrap(); (*__f)(Arc::new(Mutex::new(None))) };
 }
 
+pub fn forward_qualifier(qualifier: Arc<Mutex<Option<Box<dyn Fn(Arc<Mutex<Option<types_Package>>>) -> Arc<Mutex<Option<String>>> + Send + Sync>>>>) -> Arc<Mutex<Option<String>>> {
+
+    return use_qualifier(qualifier.clone());
+}
+
 fn main() {
-    println!("{}", format!("{}{}", "qualifier:".to_string(), (*use_qualifier(make_qualifier()).lock().unwrap().as_ref().unwrap())));
+    println!("{}", format!("{}{}", "qualifier:".to_string(), (*forward_qualifier(make_qualifier()).lock().unwrap().as_ref().unwrap())));
 }

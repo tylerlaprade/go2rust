@@ -15,6 +15,10 @@ func useQualifier(qualifier types.Qualifier) string {
 	return qualifier(nil)
 }
 
+func forwardQualifier(qualifier types.Qualifier) string {
+	return useQualifier(qualifier)
+}
+
 func main() {
-	fmt.Println("qualifier:" + useQualifier(makeQualifier()))
+	fmt.Println("qualifier:" + forwardQualifier(makeQualifier()))
 }
