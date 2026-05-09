@@ -1081,8 +1081,7 @@ func transpileErrorsNew(out *strings.Builder, call *ast.CallExpr) {
 			out.WriteString(RustStringLiteral(lit.Value))
 			out.WriteString(".to_string()")
 		} else {
-			// Expression - might already be a string
-			TranspileExpression(out, call.Args[0])
+			writeOwnedStringStdlibArg(out, call.Args[0])
 		}
 	}
 

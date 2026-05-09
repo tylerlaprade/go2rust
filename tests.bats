@@ -656,6 +656,10 @@ run_xfail_test() {
     run_test "tests/errors_custom"
 }
 
+@test "errors_new_string_from_byte_field" {
+    run_test "tests/errors_new_string_from_byte_field"
+}
+
 @test "exec_exit_error_assertion" {
     run_test "tests/exec_exit_error_assertion"
 }

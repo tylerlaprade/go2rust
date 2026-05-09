@@ -1,0 +1,8 @@
+[package]
+name = "errors_new_string_from_byte_field"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "errors_new_string_from_byte_field"
+path = "main.rs"

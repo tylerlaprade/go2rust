@@ -4970,18 +4970,9 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 							// []byte to string
 							WriteWrapperPrefix(out)
 							out.WriteString("String::from_utf8(")
-							if ident, ok := arg.(*ast.Ident); ok && ident.Name != "nil" {
-								out.WriteString("(*")
-								out.WriteString(ident.Name)
-								WriteBorrowMethod(out, false)
-								out.WriteString(".as_ref().unwrap()).clone()")
-							} else {
-								out.WriteString("(*")
-								TranspileExpression(out, arg)
-								WriteBorrowMethod(out, false)
-								out.WriteString(".as_ref().unwrap()).clone()")
-							}
-							out.WriteString(").unwrap())))")
+							writeUnwrappedSliceClone(out, arg)
+							out.WriteString(").unwrap()")
+							WriteWrapperSuffix(out)
 							return
 						} else if basic.Kind() == types.Rune || basic.Kind() == types.Int32 {
 							// []rune to string
@@ -5325,6 +5316,13 @@ func writeUnwrappedSliceClone(out *strings.Builder, arg ast.Expr) {
 	if ident, ok := arg.(*ast.Ident); ok && ident.Name != "nil" {
 		out.WriteString("(*")
 		out.WriteString(RustIdentForUse(ident))
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap()).clone()")
+		return
+	}
+	if _, ok := arg.(*ast.SelectorExpr); ok {
+		out.WriteString("(*")
+		TranspileExpressionContext(out, arg, LValue)
 		WriteBorrowMethod(out, false)
 		out.WriteString(".as_ref().unwrap()).clone()")
 		return
