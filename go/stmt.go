@@ -235,6 +235,47 @@ func isReferenceRangeTarget(expr ast.Expr) bool {
 	return ok && (varType == "ref_value" || strings.HasPrefix(varType, "&"))
 }
 
+func rangeLoopIdentAssigned(body *ast.BlockStmt, name string) bool {
+	if body == nil || name == "" || name == "_" {
+		return false
+	}
+	assigned := false
+	ast.Inspect(body, func(n ast.Node) bool {
+		if assigned {
+			return false
+		}
+		switch node := n.(type) {
+		case *ast.FuncLit:
+			return false
+		case *ast.AssignStmt:
+			for _, lhs := range node.Lhs {
+				if ident, ok := lhs.(*ast.Ident); ok && ident.Name == name {
+					assigned = true
+					return false
+				}
+			}
+		case *ast.IncDecStmt:
+			if ident, ok := node.X.(*ast.Ident); ok && ident.Name == name {
+				assigned = true
+				return false
+			}
+		}
+		return true
+	})
+	return assigned
+}
+
+func writeRangeBinding(out *strings.Builder, expr ast.Expr, mutable bool) {
+	if ident, ok := expr.(*ast.Ident); ok {
+		if mutable && ident.Name != "_" {
+			out.WriteString("mut ")
+		}
+		out.WriteString(EscapeRustIdent(ident.Name))
+		return
+	}
+	TranspileExpression(out, expr)
+}
+
 func rangeTargetNeedsWrappedSliceGuard(expr ast.Expr) bool {
 	switch e := expr.(type) {
 	case *ast.Ident:
@@ -3597,6 +3638,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 	case *ast.RangeStmt:
 		// Track range loop variables so we don't try to unwrap them
 		var keyName, valueName string
+		keyAssigned := false
+		valueAssigned := false
 
 		// Use type information to determine what we're iterating over
 		typeInfo := GetTypeInfo()
@@ -3736,6 +3779,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			if ident, ok := s.Key.(*ast.Ident); ok {
 				keyName = ident.Name
 				rangeLoopVars[keyName] = keyType
+				keyAssigned = rangeLoopIdentAssigned(s.Body, keyName)
 			}
 		}
 		// Track whether we need .copied() on the iterator to get owned values
@@ -3743,6 +3787,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		if s.Value != nil {
 			if ident, ok := s.Value.(*ast.Ident); ok {
 				valueName = ident.Name
+				valueAssigned = rangeLoopIdentAssigned(s.Body, valueName)
 				// When using iter().enumerate(), the value is a reference
 				// For basic/Copy types, use .copied() to get owned values
 				if s.Key != nil && !isMap && !isString && valueType == "T" {
@@ -3756,11 +3801,13 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							}
 						}
 					}
-					if needsCopied {
+					if needsCopied || valueAssigned {
 						rangeLoopVars[valueName] = valueType
 					} else {
 						rangeLoopVars[valueName] = "ref_value"
 					}
+				} else if valueAssigned && strings.HasPrefix(valueType, "&") {
+					rangeLoopVars[valueName] = strings.TrimPrefix(valueType, "&")
 				} else {
 					rangeLoopVars[valueName] = valueType
 				}
@@ -3774,7 +3821,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			} else {
 				if s.Key != nil {
 					if ident, ok := s.Key.(*ast.Ident); ok {
-						out.WriteString(EscapeRustIdent(ident.Name))
+						writeRangeBinding(out, ident, keyAssigned)
 					} else {
 						TranspileExpression(out, s.Key)
 					}
@@ -3792,9 +3839,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			if s.Key != nil && s.Value != nil {
 				// for i, c := range str
 				out.WriteString("(")
-				TranspileExpression(out, s.Key)
+				writeRangeBinding(out, s.Key, keyAssigned)
 				out.WriteString(", ")
-				TranspileExpression(out, s.Value)
+				writeRangeBinding(out, s.Value, valueAssigned)
 				if isStringLit {
 					out.WriteString(") in ")
 					TranspileExpression(out, s.X)
@@ -3812,7 +3859,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				}
 			} else if s.Value != nil {
 				// for _, c := range str
-				TranspileExpression(out, s.Value)
+				writeRangeBinding(out, s.Value, valueAssigned)
 				if isStringLit {
 					out.WriteString(" in ")
 					TranspileExpression(out, s.X)
@@ -3850,17 +3897,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			if s.Key != nil && s.Value != nil {
 				// for k, v := range map
 				out.WriteString("(")
-				if ident, ok := s.Key.(*ast.Ident); ok {
-					out.WriteString(EscapeRustIdent(ident.Name))
-				} else {
-					TranspileExpression(out, s.Key)
-				}
+				writeRangeBinding(out, s.Key, keyAssigned)
 				out.WriteString(", ")
-				if ident, ok := s.Value.(*ast.Ident); ok {
-					out.WriteString(EscapeRustIdent(ident.Name))
-				} else {
-					TranspileExpression(out, s.Value)
-				}
+				writeRangeBinding(out, s.Value, valueAssigned)
 				out.WriteString(") in (*")
 				// For map access, we need the raw identifier, not the unwrapped value
 				if ident, ok := s.X.(*ast.Ident); ok {
@@ -3873,11 +3912,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			} else if s.Value != nil {
 				// for _, v := range map (values only)
 				out.WriteString("(_, ")
-				if ident, ok := s.Value.(*ast.Ident); ok {
-					out.WriteString(EscapeRustIdent(ident.Name))
-				} else {
-					TranspileExpression(out, s.Value)
-				}
+				writeRangeBinding(out, s.Value, valueAssigned)
 				out.WriteString(") in (*")
 				// For map access, we need the raw identifier, not the unwrapped value
 				if ident, ok := s.X.(*ast.Ident); ok {
@@ -3890,11 +3925,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			} else if s.Key != nil {
 				// for k := range map (keys only)
 				out.WriteString("(")
-				if ident, ok := s.Key.(*ast.Ident); ok {
-					out.WriteString(EscapeRustIdent(ident.Name))
-				} else {
-					TranspileExpression(out, s.Key)
-				}
+				writeRangeBinding(out, s.Key, keyAssigned)
 				out.WriteString(", _) in (*")
 				// For map access, we need the raw identifier, not the unwrapped value
 				if ident, ok := s.X.(*ast.Ident); ok {
@@ -3921,11 +3952,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				// Check if key is blank identifier
 				if keyIdent, ok := s.Key.(*ast.Ident); ok && keyIdent.Name == "_" {
 					// for _, v := range arr - just iterate values
-					if ident, ok := s.Value.(*ast.Ident); ok {
-						out.WriteString(EscapeRustIdent(ident.Name))
-					} else {
-						TranspileExpression(out, s.Value)
-					}
+					writeRangeBinding(out, s.Value, valueAssigned)
 					// For numeric/bool (Rust Copy) types, use .iter().copied()
 					// to get owned values instead of &(...) which gives references
 					elemTypeV := typeInfo.GetArrayOrSliceElemType(s.X)
@@ -3946,6 +3973,14 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							writeUnwrappedRangeTarget(out, s.X)
 						}
 						out.WriteString(".iter().copied()")
+					} else if valueAssigned {
+						out.WriteString(" in ")
+						if rangeValuesVar != "" {
+							out.WriteString(rangeValuesVar)
+						} else {
+							writeUnwrappedRangeTarget(out, s.X)
+						}
+						out.WriteString(".iter().cloned()")
 					} else {
 						out.WriteString(" in ")
 						if rangeValuesVar != "" {
@@ -3963,17 +3998,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					// for i, v := range arr
 					out.WriteString("(")
 					// Just output the identifier names, don't wrap them
-					if ident, ok := s.Key.(*ast.Ident); ok {
-						out.WriteString(EscapeRustIdent(ident.Name))
-					} else {
-						TranspileExpression(out, s.Key)
-					}
+					writeRangeBinding(out, s.Key, keyAssigned)
 					out.WriteString(", ")
-					if ident, ok := s.Value.(*ast.Ident); ok {
-						out.WriteString(EscapeRustIdent(ident.Name))
-					} else {
-						TranspileExpression(out, s.Value)
-					}
+					writeRangeBinding(out, s.Value, valueAssigned)
 					out.WriteString(") in ")
 					// Need to unwrap the collection
 					if rangeValuesVar != "" {
@@ -3983,17 +4010,15 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					}
 					if needsCopied {
 						out.WriteString(".iter().copied().enumerate()")
+					} else if valueAssigned {
+						out.WriteString(".iter().cloned().enumerate()")
 					} else {
 						out.WriteString(".iter().enumerate()")
 					}
 				}
 			} else if s.Value != nil {
 				// for _, v := range arr
-				if ident, ok := s.Value.(*ast.Ident); ok {
-					out.WriteString(EscapeRustIdent(ident.Name))
-				} else {
-					TranspileExpression(out, s.Value)
-				}
+				writeRangeBinding(out, s.Value, valueAssigned)
 				// For numeric/bool (Rust Copy) types, use .iter().copied()
 				elemTypeV2 := typeInfo.GetArrayOrSliceElemType(s.X)
 				valCopied2 := false
@@ -4013,6 +4038,14 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						writeUnwrappedRangeTarget(out, s.X)
 					}
 					out.WriteString(".iter().copied()")
+				} else if valueAssigned {
+					out.WriteString(" in ")
+					if rangeValuesVar != "" {
+						out.WriteString(rangeValuesVar)
+					} else {
+						writeUnwrappedRangeTarget(out, s.X)
+					}
+					out.WriteString(".iter().cloned()")
 				} else {
 					out.WriteString(" in ")
 					if rangeValuesVar != "" {
@@ -4028,11 +4061,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				}
 			} else if s.Key != nil {
 				// for i := range arr
-				if ident, ok := s.Key.(*ast.Ident); ok {
-					out.WriteString(EscapeRustIdent(ident.Name))
-				} else {
-					TranspileExpression(out, s.Key)
-				}
+				writeRangeBinding(out, s.Key, keyAssigned)
 				out.WriteString(" in 0..")
 				if rangeValuesVar != "" {
 					out.WriteString(rangeValuesVar)
