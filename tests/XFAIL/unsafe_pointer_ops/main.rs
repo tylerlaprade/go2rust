@@ -15,7 +15,7 @@ impl std::fmt::Display for Point {
 
 
 fn main() {
-    let mut p = Arc::new(Mutex::new(Some(Point { x: Arc::new(Mutex::new(Some(10))), y: Arc::new(Mutex::new(Some(20))), ..Default::default() })));
+    let mut p = Arc::new(Mutex::new(Some(Point { x: Arc::new(Mutex::new(Some(10 as i32))), y: Arc::new(Mutex::new(Some(20 as i32))), ..Default::default() })));
 
         // Get pointer to X field
     let mut xPtr = Arc::new(Mutex::new(Some(Arc::as_ptr(&p) as usize)));

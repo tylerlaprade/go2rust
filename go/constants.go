@@ -3,6 +3,7 @@ package main
 import (
 	"go/ast"
 	"go/constant"
+	"go/token"
 	"go/types"
 	"strings"
 )
@@ -107,6 +108,9 @@ func writeConstExpressionForExpectedGoType(out *strings.Builder, value ast.Expr,
 	if writeConstExpressionForExpectedNamedInteger(out, value, expected) {
 		return true
 	}
+	if writeConstExpressionForExpectedInteger(out, value, expected) {
+		return true
+	}
 	if !isByteLikeGoType(expected) {
 		return false
 	}
@@ -133,6 +137,12 @@ func writeConstExpressionForExpectedInteger(out *strings.Builder, value ast.Expr
 	if !isConstantExpression(value) {
 		return false
 	}
+	if hasStdlibSelectorMapping(value) {
+		return false
+	}
+	if lit, ok := value.(*ast.BasicLit); ok && lit.Kind == token.CHAR {
+		return false
+	}
 	rustType, ok := rustIntegerCastTypeForExpected(expected)
 	if !ok {
 		return false
@@ -141,6 +151,18 @@ func writeConstExpressionForExpectedInteger(out *strings.Builder, value ast.Expr
 	out.WriteString(" as ")
 	out.WriteString(rustType)
 	return true
+}
+
+func hasStdlibSelectorMapping(expr ast.Expr) bool {
+	sel, ok := expr.(*ast.SelectorExpr)
+	if !ok {
+		return false
+	}
+	ident, ok := sel.X.(*ast.Ident)
+	if !ok {
+		return false
+	}
+	return GetStdlibSelectorMapping(resolveStdlibPackageName(ident.Name), sel.Sel.Name) != ""
 }
 
 func writeConstExpressionCastValue(out *strings.Builder, value ast.Expr) {

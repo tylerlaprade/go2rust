@@ -4,7 +4,7 @@ use std::thread;
 
 pub fn key() -> Arc<Mutex<Option<u32>>> {
 
-    return Arc::new(Mutex::new(Some(1)));
+    return Arc::new(Mutex::new(Some(1 as u32)));
 }
 
 fn main() {

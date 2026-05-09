@@ -536,6 +536,10 @@ run_xfail_test() {
     run_test "tests/const_basic"
 }
 
+@test "const_integer_call_argument" {
+    run_test "tests/const_integer_call_argument"
+}
+
 @test "constants_basic" {
     run_test "tests/constants_basic"
 }

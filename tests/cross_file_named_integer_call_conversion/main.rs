@@ -6,7 +6,7 @@ use std::rc::{Rc};
 
 pub fn raw_marker() -> Rc<RefCell<Option<u64>>> {
 
-    return Rc::new(RefCell::new(Some(5)));
+    return Rc::new(RefCell::new(Some(5 as u64)));
 }
 
 fn main() {
