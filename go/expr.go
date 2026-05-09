@@ -23,6 +23,9 @@ func writeExpressionAsUsize(out *strings.Builder, expr ast.Expr) {
 	if writeStdlibSelectorConstAsUsize(out, expr) {
 		return
 	}
+	if writeNamedIntegerExpressionAsUsize(out, expr) {
+		return
+	}
 	if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.NeedsUnwrapping(expr) {
 		out.WriteString("(*")
 		TranspileExpression(out, expr)
@@ -33,6 +36,109 @@ func writeExpressionAsUsize(out *strings.Builder, expr ast.Expr) {
 	out.WriteString("(")
 	TranspileExpression(out, expr)
 	out.WriteString(") as usize")
+}
+
+func writeNamedIntegerExpressionAsUsize(out *strings.Builder, expr ast.Expr) bool {
+	if binary, ok := expr.(*ast.BinaryExpr); ok {
+		typeInfo := GetTypeInfo()
+		if typeInfo == nil || !isNamedIntegerType(typeInfo.GetType(binary)) {
+			return false
+		}
+		out.WriteString("(")
+		if !writeNamedIntegerPrimitiveExpression(out, binary.X) {
+			TranspileExpression(out, binary.X)
+		}
+		out.WriteString(" ")
+		out.WriteString(rustBinaryOp(binary.Op))
+		out.WriteString(" ")
+		if !writeNamedIntegerPrimitiveExpression(out, binary.Y) {
+			TranspileExpression(out, binary.Y)
+		}
+		out.WriteString(") as usize")
+		return true
+	}
+	if !writeNamedIntegerPrimitiveExpression(out, expr) {
+		return false
+	}
+	out.WriteString(" as usize")
+	return true
+}
+
+func writeNamedIntegerPrimitiveExpression(out *strings.Builder, expr ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	named, ok := types.Unalias(typeInfo.GetType(expr)).(*types.Named)
+	if !ok || !isNamedIntegerType(named) {
+		return false
+	}
+	if lit, ok := expr.(*ast.BasicLit); ok {
+		out.WriteString(lit.Value)
+		return true
+	}
+	if isConstExpressionForUsize(expr) {
+		TranspileExpression(out, expr)
+		return true
+	}
+	if ident, ok := expr.(*ast.Ident); ok && currentReceiver != "" && ident.Name == currentReceiver && currentReceiverScalarTypeDefinition() {
+		TranspileExpression(out, expr)
+		return true
+	}
+	var value strings.Builder
+	if typeInfo.ReturnsWrappedValue(expr) {
+		value.WriteString("(*")
+		TranspileExpressionContext(&value, expr, LValue)
+		WriteBorrowMethod(&value, false)
+		value.WriteString(".as_ref().unwrap())")
+	} else {
+		TranspileExpression(&value, expr)
+	}
+	out.WriteString("(*")
+	out.WriteString(value.String())
+	out.WriteString(".0")
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap())")
+	return true
+}
+
+func isNamedIntegerType(typ types.Type) bool {
+	named, ok := types.Unalias(typ).(*types.Named)
+	if !ok {
+		return false
+	}
+	basic, ok := types.Unalias(named.Underlying()).(*types.Basic)
+	return ok && isIntegerBasicKind(basic.Kind())
+}
+
+func isConstExpressionForUsize(expr ast.Expr) bool {
+	switch e := expr.(type) {
+	case *ast.Ident:
+		if _, ok := localConstants[e.Name]; ok {
+			return true
+		}
+		return isConstIdent(e)
+	case *ast.SelectorExpr:
+		typeInfo := GetTypeInfo()
+		if typeInfo == nil || typeInfo.info == nil {
+			return false
+		}
+		_, ok := typeInfo.GetObject(e.Sel).(*types.Const)
+		return ok
+	default:
+		return false
+	}
+}
+
+func isIntegerBasicKind(kind types.BasicKind) bool {
+	switch kind {
+	case types.Int, types.Int8, types.Int16, types.Int32, types.Int64,
+		types.Uint, types.Uint8, types.Uint16, types.Uint32, types.Uint64, types.Uintptr,
+		types.UntypedInt, types.UntypedRune:
+		return true
+	default:
+		return false
+	}
 }
 
 func writeStdlibSelectorConstAsUsize(out *strings.Builder, expr ast.Expr) bool {

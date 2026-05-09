@@ -280,6 +280,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Slices | ✅ |
 | └ Array/slice literal elements from wrapped call results | ✅ |
 | └ Slice operations | ✅ |
+| └ Named integer values as array/slice indexes | ✅ |
 | └ Parallel slice element swaps | ✅ |
 | └ Parallel slice-expression assignments into wrapped fields | ✅ |
 | └ Concurrent indexed byte compound assignments | ✅ |
