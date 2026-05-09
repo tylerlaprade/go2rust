@@ -1,6 +1,42 @@
 use std::any::Any;
 use std::cell::{RefCell};
+use std::fmt::{Display};
 use std::rc::{Rc};
+
+pub trait hasName: std::fmt::Display + Any {
+    fn __go_clone_box(&self) -> Box<dyn hasName>;
+    fn __go_as_any(&self) -> &dyn Any;
+    fn __go_eq(&self, other: &dyn hasName) -> bool;
+    fn name(&self) -> Rc<RefCell<Option<String>>>;
+}
+
+impl Clone for Box<dyn hasName> {
+    fn clone(&self) -> Self {
+        self.__go_clone_box()
+    }
+}
+
+pub trait hasNameAndString: std::fmt::Display + Any {
+    fn __go_clone_box(&self) -> Box<dyn hasNameAndString>;
+    fn __go_as_any(&self) -> &dyn Any;
+    fn __go_eq(&self, other: &dyn hasNameAndString) -> bool;
+    fn string(&self) -> Rc<RefCell<Option<String>>>;
+}
+
+impl Clone for Box<dyn hasNameAndString> {
+    fn clone(&self) -> Self {
+        self.__go_clone_box()
+    }
+}
+
+pub fn asserted_anonymous_interface(v: &dyn hasNameAndString) -> Rc<RefCell<Option<bool>>> {
+
+    let (_, mut ok) = ({
+        let __asserted = v.clone();
+        (__asserted.clone(), Rc::new(RefCell::new(Some(true))))
+    });
+    return ok.clone();
+}
 
 fn main() {
     let mut x: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new("hello".to_string()) as Box<dyn Any>)));

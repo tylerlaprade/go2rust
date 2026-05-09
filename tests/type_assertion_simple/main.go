@@ -2,6 +2,20 @@ package main
 
 import "fmt"
 
+type hasName interface {
+	Name() string
+}
+
+type hasNameAndString interface {
+	hasName
+	String() string
+}
+
+func assertedAnonymousInterface(v hasNameAndString) bool {
+	_, ok := v.(interface{ Name() string })
+	return ok
+}
+
 func main() {
 	var x interface{} = "hello"
 

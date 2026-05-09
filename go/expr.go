@@ -4777,6 +4777,40 @@ func staticallyKnownAnyInterfaceAssertionSource(e *ast.TypeAssertExpr) (ast.Expr
 	return call.Args[0], true
 }
 
+func staticallyKnownInterfaceAssertionSource(e *ast.TypeAssertExpr) (ast.Expr, bool) {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || e.Type == nil {
+		return nil, false
+	}
+	targetType := typeInfo.GetType(e.Type)
+	if targetType == nil {
+		return nil, false
+	}
+	targetInterface, ok := targetType.Underlying().(*types.Interface)
+	if !ok || targetInterface.NumMethods() == 0 {
+		return nil, false
+	}
+	sourceType := typeInfo.GetType(e.X)
+	if sourceType == nil {
+		return nil, false
+	}
+	targetInterface.Complete()
+	if !types.Implements(sourceType, targetInterface) {
+		return nil, false
+	}
+	return e.X, true
+}
+
+func writeInterfaceAssertionSourceClone(out *strings.Builder, expr ast.Expr) {
+	if ident, ok := expr.(*ast.Ident); ok && ident.Name != "nil" {
+		out.WriteString(RustIdentForUse(ident))
+		out.WriteString(".clone()")
+		return
+	}
+	TranspileExpressionContext(out, expr, LValue)
+	out.WriteString(".clone()")
+}
+
 // TranspileTypeAssertionCommaOk generates code for type assertion with comma-ok form
 func TranspileTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr) {
 	if e.Type == nil {
@@ -4792,6 +4826,20 @@ func TranspileTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr) 
 		} else {
 			TranspileExpression(out, arg)
 		}
+		out.WriteString(";\n")
+		out.WriteString("        (__asserted.clone(), ")
+		WriteWrapperPrefix(out)
+		out.WriteString("true")
+		WriteWrapperSuffix(out)
+		out.WriteString(")\n")
+		out.WriteString("    })")
+		return
+	}
+
+	if arg, ok := staticallyKnownInterfaceAssertionSource(e); ok {
+		out.WriteString("({\n")
+		out.WriteString("        let __asserted = ")
+		writeInterfaceAssertionSourceClone(out, arg)
 		out.WriteString(";\n")
 		out.WriteString("        (__asserted.clone(), ")
 		WriteWrapperPrefix(out)
