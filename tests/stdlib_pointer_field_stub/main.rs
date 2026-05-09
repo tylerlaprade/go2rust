@@ -87,7 +87,7 @@ pub fn has_selector_name(sel: Rc<RefCell<Option<ast_SelectorExpr>>>) -> Rc<RefCe
 pub fn selector_name_map(sel: Rc<RefCell<Option<ast_SelectorExpr>>>) -> Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<String>>>>>>> {
 
     let mut names = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<String>>>>::new())));
-    (*names.borrow_mut().as_mut().unwrap()).insert("selector".to_string(), Rc::new(RefCell::new(Some((*(*(*sel.borrow().as_ref().unwrap()).sel.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()).clone()))));
+    { let __map_key = "selector".to_string(); let __map_value = Rc::new(RefCell::new(Some((*(*(*sel.borrow().as_ref().unwrap()).sel.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()).clone()))); (*names.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
     return names.clone();
 }
 

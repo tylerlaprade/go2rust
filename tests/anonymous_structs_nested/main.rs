@@ -296,7 +296,7 @@ fn main() {
         // Add a module with settings
     let mut authModule = Rc::new(RefCell::new(Some(AnonymousStruct7 { enabled: Rc::new(RefCell::new(Some(true))), settings: Rc::new(RefCell::new(Some(AnonymousStruct8::default()))) })));
     { let new_val = Rc::new(RefCell::new(Some(vec![AnonymousStruct9 { key: Rc::new(RefCell::new(Some("timeout".to_string()))), value: Rc::new(RefCell::new(Some(Box::new(3600) as Box<dyn Any>))), ..Default::default() }, AnonymousStruct9 { key: Rc::new(RefCell::new(Some("max_attempts".to_string()))), value: Rc::new(RefCell::new(Some(Box::new(3) as Box<dyn Any>))), ..Default::default() }]))); let __moved_val = { let mut __guard = new_val.borrow_mut(); __guard.take() }; *(*(*authModule.borrow().as_ref().unwrap()).settings.borrow().as_ref().unwrap()).options.borrow_mut() = __moved_val; };
-    (*(*system.borrow().as_ref().unwrap()).modules.borrow_mut().as_mut().unwrap()).insert("auth".to_string(), authModule.clone());
+    { let __map_key = "auth".to_string(); let __map_value = authModule.clone(); (*(*system.borrow().as_ref().unwrap()).modules.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
 
     print!("\nSystem version: {}\n", (*(*system.borrow().as_ref().unwrap()).version.borrow().as_ref().unwrap()));
     for (name, module) in (*(*system.borrow().as_ref().unwrap()).modules.borrow().as_ref().unwrap()).clone() {

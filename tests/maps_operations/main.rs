@@ -33,8 +33,8 @@ where
 
 fn main() {
     let mut m = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i32>>>>::new())));
-    (*m.borrow_mut().as_mut().unwrap()).insert("k1".to_string(), Rc::new(RefCell::new(Some(7))));
-    (*m.borrow_mut().as_mut().unwrap()).insert("k2".to_string(), Rc::new(RefCell::new(Some(13))));
+    { let __map_key = "k1".to_string(); let __map_value = Rc::new(RefCell::new(Some(7))); (*m.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
+    { let __map_key = "k2".to_string(); let __map_value = Rc::new(RefCell::new(Some(13))); (*m.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
     println!("{} {}", "map:".to_string(), format_map(&m));
 
     let mut v1 = Rc::new(RefCell::new(Some((*m.borrow().as_ref().unwrap()).get(&"k1".to_string()).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| 0))));

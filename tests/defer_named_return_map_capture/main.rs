@@ -54,7 +54,7 @@ impl Free {
     }
         let mut f_defer_captured = self.clone(); let key_defer_captured = key.clone(); let res_defer_captured = res.clone(); __defer_stack.push(Box::new(move || {
         { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
-        (*f_defer_captured.seen.borrow_mut().as_mut().unwrap()).insert((*key_defer_captured.borrow().as_ref().unwrap()).clone(), res_defer_captured.clone());
+        { let __map_key = (*key_defer_captured.borrow().as_ref().unwrap()).clone(); let __map_value = res_defer_captured.clone(); (*f_defer_captured.seen.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
     }) as Box<dyn Fn() -> ()>))); let __f_guard = __f_holder.borrow(); let __f = __f_guard.as_ref().unwrap(); (*__f)() };
     }));
         { let new_val = true; *res.borrow_mut() = Some(new_val); };

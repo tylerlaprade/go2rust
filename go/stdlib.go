@@ -2369,10 +2369,70 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 			out.WriteString(".clone() }")
 			return true
 		}
+		writeMapIndexSliceAppend := func(indexExpr *ast.IndexExpr) bool {
+			typeInfo := GetTypeInfo()
+			if typeInfo == nil || !typeInfo.IsMap(indexExpr.X) {
+				return false
+			}
+			keyType, valueType := typeInfo.GetMapTypes(indexExpr.X)
+			if valueType == nil {
+				return false
+			}
+			if _, ok := types.Unalias(valueType).Underlying().(*types.Slice); !ok {
+				return false
+			}
+			writeMapHandle := func() {
+				if ident, ok := indexExpr.X.(*ast.Ident); ok {
+					out.WriteString(ident.Name)
+				} else {
+					TranspileExpressionContext(out, indexExpr.X, LValue)
+				}
+			}
+			out.WriteString("{ let __slice = { let __map_holder = ")
+			writeMapHandle()
+			out.WriteString(".clone(); let __map_guard = __map_holder")
+			WriteBorrowMethod(out, false)
+			out.WriteString("; __map_guard.as_ref().unwrap().get(")
+			writeMapLookupKeyWithType(out, indexExpr.Index, keyType)
+			out.WriteString(").cloned().unwrap_or_else(|| ")
+			WriteWrappedNone(out)
+			out.WriteString(") }; (*__slice")
+			WriteBorrowMethod(out, true)
+			out.WriteString(").get_or_insert_with(Vec::new)")
+			if call.Ellipsis.IsValid() {
+				out.WriteString(".extend(")
+				if appendExpandsStringIntoByteSlice(call) {
+					writeOwnedStringStdlibArg(out, call.Args[1])
+					out.WriteString(".as_bytes().iter().cloned()")
+				} else {
+					TranspileExpression(out, call.Args[1])
+					out.WriteString(".iter().cloned()")
+				}
+				out.WriteString(")")
+			} else if len(call.Args) == 2 {
+				out.WriteString(".push(")
+				writeAppendElement(call.Args[1])
+				out.WriteString(")")
+			} else {
+				out.WriteString(".extend(vec![")
+				for i := 1; i < len(call.Args); i++ {
+					if i > 1 {
+						out.WriteString(", ")
+					}
+					writeAppendElement(call.Args[i])
+				}
+				out.WriteString("])")
+			}
+			out.WriteString("; __slice.clone() }")
+			return true
+		}
 
 		// append() in Go returns the slice, but our slices are wrapped
 		// We need to create the vector on first append so nil slices stay nil
 		// until they are actually appended to, then return the wrapped slice.
+		if indexExpr, ok := call.Args[0].(*ast.IndexExpr); ok && writeMapIndexSliceAppend(indexExpr) {
+			return
+		}
 		if indexExpr, ok := call.Args[0].(*ast.IndexExpr); ok && writeIndexedSliceAppend(indexExpr) {
 			return
 		}

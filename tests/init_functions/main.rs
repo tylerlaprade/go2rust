@@ -72,8 +72,8 @@ fn __go_init_1() {
 
         // Initialize map
     { let new_val = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<String>>>>::new()))); let __moved_val = { let mut __guard = new_val.borrow_mut(); __guard.take() }; *configData.borrow_mut() = __moved_val; };
-    (*configData.borrow_mut().as_mut().unwrap()).insert("version".to_string(), Rc::new(RefCell::new(Some("1.0".to_string()))));
-    (*configData.borrow_mut().as_mut().unwrap()).insert("author".to_string(), Rc::new(RefCell::new(Some("go2rust".to_string()))));
+    { let __map_key = "version".to_string(); let __map_value = Rc::new(RefCell::new(Some("1.0".to_string()))); (*configData.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
+    { let __map_key = "author".to_string(); let __map_value = Rc::new(RefCell::new(Some("go2rust".to_string()))); (*configData.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
 }
 
 /// Third init function
@@ -84,8 +84,8 @@ fn __go_init_2() {
     }
 
         // Add more config
-    (*configData.borrow_mut().as_mut().unwrap()).insert("build".to_string(), Rc::new(RefCell::new(Some("debug".to_string()))));
-    (*configData.borrow_mut().as_mut().unwrap()).insert("target".to_string(), Rc::new(RefCell::new(Some("rust".to_string()))));
+    { let __map_key = "build".to_string(); let __map_value = Rc::new(RefCell::new(Some("debug".to_string()))); (*configData.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
+    { let __map_key = "target".to_string(); let __map_value = Rc::new(RefCell::new(Some("rust".to_string()))); (*configData.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
 }
 
 pub fn compute_initial_value() -> Rc<RefCell<Option<i32>>> {

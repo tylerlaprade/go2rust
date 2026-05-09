@@ -840,7 +840,11 @@ func writeStdlibInterfaceFieldValueCopy(out *strings.Builder, expr ast.Expr) boo
 	return true
 }
 
-func writeMapWrappedValue(out *strings.Builder, expr ast.Expr) {
+func writeMapWrappedValue(out *strings.Builder, expr ast.Expr, valueType types.Type) {
+	if ident, ok := expr.(*ast.Ident); ok && ident.Name == "nil" && isNilableWrappedMapValueType(valueType) {
+		WriteWrappedNone(out)
+		return
+	}
 	if ident, ok := expr.(*ast.Ident); ok &&
 		ident.Name != "_" && ident.Name != "nil" && ident.Name != "true" && ident.Name != "false" {
 		if _, isRangeVar := rangeLoopVars[ident.Name]; !isRangeVar {
@@ -883,6 +887,9 @@ func writeMapKeyExpression(out *strings.Builder, expr ast.Expr) {
 }
 
 func writeMapKeyExpressionWithType(out *strings.Builder, expr ast.Expr, keyType types.Type) {
+	if keyType != nil && writeStdlibInterfaceComparableConversion(out, expr, keyType) {
+		return
+	}
 	if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.IsPointer(expr) {
 		out.WriteString(goPtrKeyHelperNameForType(typeInfo.GetType(expr)))
 		out.WriteString("::new(")
@@ -2457,10 +2464,15 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			// Handle map[key] = value as map.insert(key, value)
 			if indexExpr, ok := s.Lhs[0].(*ast.IndexExpr); ok {
 				var keyType types.Type
+				var valueType types.Type
 				if typeInfo := GetTypeInfo(); typeInfo != nil {
-					keyType, _ = typeInfo.GetMapTypes(indexExpr.X)
+					keyType, valueType = typeInfo.GetMapTypes(indexExpr.X)
 				}
-				out.WriteString("(*")
+				out.WriteString("{ let __map_key = ")
+				writeMapKeyExpressionWithType(out, indexExpr.Index, keyType)
+				out.WriteString("; let __map_value = ")
+				writeMapWrappedValue(out, s.Rhs[0], valueType)
+				out.WriteString("; (*")
 				// For map access, we need the raw identifier, not the unwrapped value
 				if ident, ok := indexExpr.X.(*ast.Ident); ok {
 					out.WriteString(ident.Name)
@@ -2468,11 +2480,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					TranspileExpressionContext(out, indexExpr.X, LValue)
 				}
 				WriteBorrowMethod(out, true)
-				out.WriteString(".as_mut().unwrap()).insert(")
-				writeMapKeyExpressionWithType(out, indexExpr.Index, keyType)
-				out.WriteString(", ")
-				writeMapWrappedValue(out, s.Rhs[0])
-				out.WriteString(")")
+				out.WriteString(".as_mut().unwrap()).insert(__map_key, __map_value); }")
 			}
 		} else if isChannelAssignment(s) {
 			TranspileExpressionContext(out, s.Lhs[0], LValue)
@@ -3927,6 +3935,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		}
 
 		rangeValuesVar := ""
+		rangePrelude := ""
 		closeRangeGuard := false
 		needsSliceValues := !(s.Key != nil && s.Value == nil)
 		if needsSliceValues && !isMap && !isString && isSlice && isNamedSliceExpression(s.X) {
@@ -3994,13 +4003,31 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		// Determine types based on what we're iterating over
 		keyType := "usize" // Default for slice indices
 		valueType := "T"   // Generic placeholder
+		keyRangeVarType := keyType
+		var mapKeyType types.Type
+		mapKeyNeedsValueBinding := false
+		mapKeyNeedsWrappedBinding := false
 
 		if isMap {
 			keyType = "String"
 			valueType = GetOuterWrapperType() + "<" + GetInnerWrapperType() + "<Option<T>>>"
-			if mapKeyType, mapValueType := typeInfo.GetMapTypes(s.X); mapKeyType != nil && mapValueType != nil {
-				keyType = goTypesMapKeyToRust(mapKeyType)
+			keyRangeVarType = keyType
+			if mapValueType := typeInfo.GetMapValueType(s.X); mapValueType != nil {
+				if mapKeyType, _ = typeInfo.GetMapTypes(s.X); mapKeyType != nil {
+					keyType = goTypesMapKeyToRust(mapKeyType)
+					keyRangeVarType = keyType
+					if _, ok := types.Unalias(mapKeyType).Underlying().(*types.Pointer); ok {
+						keyRangeVarType = goTypesTypeToRust(mapKeyType)
+						mapKeyNeedsValueBinding = true
+					} else if isStdlibNamedInterfaceValueType(mapKeyType) {
+						keyRangeVarType = goTypesTypeToRustWrapped(mapKeyType)
+						mapKeyNeedsWrappedBinding = true
+					}
+				}
 				valueType = goTypesMapValueToRust(mapValueType)
+			}
+			if mapKeyType != nil {
+				keyType = goTypesMapKeyToRust(mapKeyType)
 			}
 		} else if isInteger {
 			if rangeType := typeInfo.GetType(s.X); rangeType != nil {
@@ -4032,11 +4059,14 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				}
 			}
 		}
+		if !isMap {
+			keyRangeVarType = keyType
+		}
 
 		if s.Key != nil {
 			if ident, ok := s.Key.(*ast.Ident); ok {
 				keyName = ident.Name
-				rangeLoopVars[keyName] = keyType
+				rangeLoopVars[keyName] = keyRangeVarType
 				keyAssigned = rangeLoopIdentAssigned(s.Body, keyName)
 			}
 		}
@@ -4065,6 +4095,31 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					rangeLoopVars[valueName] = valueType
 				}
 			}
+		}
+		writeMapRangeKeyBinding := func() {
+			if (mapKeyNeedsValueBinding || mapKeyNeedsWrappedBinding) && keyName != "" && keyName != "_" {
+				out.WriteString("__range_key")
+				return
+			}
+			writeRangeBinding(out, s.Key, keyAssigned)
+		}
+		if (mapKeyNeedsValueBinding || mapKeyNeedsWrappedBinding) && keyName != "" && keyName != "_" {
+			var prelude strings.Builder
+			prelude.WriteString("        let ")
+			if keyAssigned {
+				prelude.WriteString("mut ")
+			}
+			prelude.WriteString(EscapeRustIdent(keyName))
+			prelude.WriteString(" = ")
+			if mapKeyNeedsValueBinding {
+				prelude.WriteString("__range_key.value()")
+			} else {
+				WriteWrapperPrefix(&prelude)
+				prelude.WriteString("__range_key.clone()")
+				WriteWrapperSuffix(&prelude)
+			}
+			prelude.WriteString(";\n")
+			rangePrelude = prelude.String()
 		}
 
 		if isInteger {
@@ -4150,7 +4205,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			if s.Key != nil && s.Value != nil {
 				// for k, v := range map
 				out.WriteString("(")
-				writeRangeBinding(out, s.Key, keyAssigned)
+				writeMapRangeKeyBinding()
 				out.WriteString(", ")
 				writeRangeBinding(out, s.Value, valueAssigned)
 				out.WriteString(") in (*")
@@ -4178,7 +4233,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			} else if s.Key != nil {
 				// for k := range map (keys only)
 				out.WriteString("(")
-				writeRangeBinding(out, s.Key, keyAssigned)
+				writeMapRangeKeyBinding()
 				out.WriteString(", _) in (*")
 				// For map access, we need the raw identifier, not the unwrapped value
 				if ident, ok := s.X.(*ast.Ident); ok {
@@ -4318,6 +4373,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			}
 		}
 		out.WriteString(" {\n")
+		out.WriteString(rangePrelude)
 
 		var rangeBodyLastPos token.Pos = s.Body.Lbrace
 		for _, stmt := range s.Body.List {

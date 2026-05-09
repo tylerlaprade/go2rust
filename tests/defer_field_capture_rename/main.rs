@@ -26,7 +26,7 @@ pub fn compute() -> Rc<RefCell<Option<bool>>> {
         { let new_val = true; *(*tset_defer_captured.borrow().as_ref().unwrap()).complete.borrow_mut() = Some(new_val); };
     }) as Box<dyn Fn() -> ()>))); let __f_guard = __f_holder.borrow(); let __f = __f_guard.as_ref().unwrap(); (*__f)() };
     }));
-    (*seen.borrow_mut().as_mut().unwrap()).insert("x".to_string(), tset.clone());
+    { let __map_key = "x".to_string(); let __map_value = tset.clone(); (*seen.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
     {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {

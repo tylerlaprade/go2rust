@@ -448,6 +448,9 @@ func isExpressionResultBare(expr ast.Expr) bool {
 	case *ast.Ident:
 		// Range loop variables are bare
 		if _, isRangeVar := rangeLoopVars[e.Name]; isRangeVar {
+			if isWrappedSliceRangeVar(e.Name) {
+				return false
+			}
 			return true
 		}
 		// VarTable bare variables (interface params, channel vars, etc.)
@@ -1361,6 +1364,11 @@ func stdlibInterfaceArgumentConversion(arg ast.Expr, expectedType types.Type) (t
 	sourceRust = goTypesNamedTypeToRust(sourceNamed)
 	RegisterExternalTypeStubConversion(targetRust, sourceRust)
 	return targetRust, sourceRust, true
+}
+
+func stdlibInterfaceArgumentConversionExists(arg ast.Expr, expectedType types.Type) bool {
+	_, _, ok := stdlibInterfaceArgumentConversion(arg, expectedType)
+	return ok
 }
 
 func writeStdlibInterfaceCallArgumentConversion(out *strings.Builder, arg ast.Expr, expectedType types.Type) bool {
@@ -2589,6 +2597,10 @@ func registerExternalStructCompositeLiteralFields(structType types.Type, structU
 }
 
 func writeWrappedMapValue(out *strings.Builder, value ast.Expr, valueExpr ast.Expr, valueType types.Type) {
+	if ident, ok := value.(*ast.Ident); ok && ident.Name == "nil" && isNilableWrappedMapValueType(valueType) {
+		WriteWrappedNone(out)
+		return
+	}
 	if (isEmptyInterfaceExpr(valueExpr) || isEmptyInterfaceType(valueType)) && writeEmptyInterfaceHandleClone(out, value) {
 		return
 	}
@@ -2608,6 +2620,18 @@ func writeWrappedMapValue(out *strings.Builder, value ast.Expr, valueExpr ast.Ex
 		TranspileExpression(out, value)
 	}
 	WriteWrapperSuffix(out)
+}
+
+func isNilableWrappedMapValueType(valueType types.Type) bool {
+	if valueType == nil {
+		return false
+	}
+	switch types.Unalias(valueType).Underlying().(type) {
+	case *types.Slice, *types.Map, *types.Chan:
+		return true
+	default:
+		return false
+	}
 }
 
 func findStructFieldExpr(structType *ast.StructType, fieldName string) ast.Expr {
@@ -2659,6 +2683,11 @@ func writeMapLookupKey(out *strings.Builder, index ast.Expr) {
 }
 
 func writeMapLookupKeyWithType(out *strings.Builder, index ast.Expr, keyType types.Type) {
+	if keyType != nil && stdlibInterfaceArgumentConversionExists(index, keyType) {
+		out.WriteString("&")
+		writeStdlibInterfaceComparableConversion(out, index, keyType)
+		return
+	}
 	if ident, ok := index.(*ast.Ident); ok {
 		if varType, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar {
 			if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.IsPointer(index) && !isPointerKeyRangeVarType(varType) {
@@ -2735,6 +2764,9 @@ func writeMapLiteralKey(out *strings.Builder, key ast.Expr) {
 }
 
 func writeMapLiteralKeyWithType(out *strings.Builder, key ast.Expr, keyType types.Type) {
+	if keyType != nil && writeStdlibInterfaceComparableConversion(out, key, keyType) {
+		return
+	}
 	if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.IsPointer(key) {
 		out.WriteString(goPtrKeyHelperNameForType(typeInfo.GetType(key)))
 		out.WriteString("::new(")
@@ -6299,8 +6331,8 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 			} else {
 				// Check if this variable is wrapped (not a range var, not a constant, not bare)
 				typeInfo := GetTypeInfo()
-				if _, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar {
-					needsUnwrap = typeInfo != nil && typeInfo.IsPointer(ident)
+				if varType, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar {
+					needsUnwrap = typeInfo != nil && (typeInfo.IsPointer(ident) || isWrappedRangeVarType(varType) && isStdlibNamedInterfaceValueType(typeInfo.GetType(ident)))
 				} else {
 					if _, isLocalConst := localConstants[ident.Name]; !isLocalConst {
 						if !isVarBare(ident.Name) {

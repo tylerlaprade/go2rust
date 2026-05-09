@@ -59,6 +59,6 @@ fn main() {
     }
 
         // Modify map - requires proper type handling
-    (*Users.borrow_mut().as_mut().unwrap()).insert("dave".to_string(), Rc::new(RefCell::new(Some(4))));
+    { let __map_key = "dave".to_string(); let __map_value = Rc::new(RefCell::new(Some(4))); (*Users.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
     print!("Dave added with ID: {}\n", (*Users.borrow().as_ref().unwrap()).get(&"dave".to_string()).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| 0));
 }

@@ -9,7 +9,7 @@ fn main() {
     println!("{} {} {}", (*counts.borrow().as_ref().unwrap()).get(&"go".to_string()).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| 0), (*counts.borrow().as_ref().unwrap()).get(&"rust".to_string()).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| 0), (*counts.borrow().as_ref().unwrap()).len());
 
     let mut seen = Rc::new(RefCell::new(Some(BTreeMap::<i32, Rc<RefCell<Option<bool>>>>::new())));
-    (*seen.borrow_mut().as_mut().unwrap()).insert(10, Rc::new(RefCell::new(Some(true))));
-    (*seen.borrow_mut().as_mut().unwrap()).insert(20, Rc::new(RefCell::new(Some(true))));
+    { let __map_key = 10; let __map_value = Rc::new(RefCell::new(Some(true))); (*seen.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
+    { let __map_key = 20; let __map_value = Rc::new(RefCell::new(Some(true))); (*seen.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
     println!("{} {} {}", (*seen.borrow().as_ref().unwrap()).get(&10).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| false), (*seen.borrow().as_ref().unwrap()).get(&30).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| false), (*seen.borrow().as_ref().unwrap()).len());
 }

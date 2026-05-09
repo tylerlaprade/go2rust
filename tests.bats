@@ -1336,6 +1336,10 @@ run_xfail_test() {
     run_test "tests/stdlib_interface_ident_argument"
 }
 
+@test "stdlib_interface_map_key" {
+    run_test "tests/stdlib_interface_map_key"
+}
+
 @test "stdlib_interface_range_assertion" {
     run_test "tests/stdlib_interface_range_assertion"
 }
@@ -1370,6 +1374,10 @@ run_xfail_test() {
 
 @test "stdlib_pointer_field_stub" {
     run_test "tests/stdlib_pointer_field_stub"
+}
+
+@test "stdlib_pointer_map_slice_values" {
+    run_test "tests/stdlib_pointer_map_slice_values"
 }
 
 @test "stdlib_strings" {

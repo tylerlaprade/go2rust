@@ -83,7 +83,8 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 - ✅ Pointer map keys and values - pointer keys lower through identity-preserving key wrappers in map literals, make(map), lookups, and slice-range variables; pointer map values avoid nested wrappers (concurrent_pointer_map_keys, concurrent_make_pointer_map_keys, concurrent_make_pointer_map_values, concurrent_pointer_range_map_append promoted, 2026-05-07)
 - ✅ Named integer map values - map value types preserve local named scalar definitions, comma-ok missing values construct typed zero newtypes, and concurrent selector-map comma-ok paths avoid double-locking bare map values (map_named_integer_values promoted, 2026-05-09)
 - ✅ Struct map keys - package-wide map-key discovery emits Eq/Ord support for named struct keys declared in sibling modules, including concurrent wrappers with named integer fields (struct_named_integer_map_key promoted, 2026-05-09)
-- ✅ Map slice append assignment - map value writes fed by wrapped append results pass through the returned slice handle instead of nesting another wrapper (map_slice_append_assignment promoted, 2026-05-07)
+- ✅ Map slice append assignment - map value writes fed by wrapped append results pass through the returned slice handle instead of nesting another wrapper, including `m[k] = nil` and `m[k] = append(m[k], x)` for slice-valued maps (map_slice_append_assignment promoted, 2026-05-07; stdlib_pointer_map_slice_values added, 2026-05-09)
+- ✅ Stdlib map key lowering - concrete stdlib values convert to comparable stdlib interface map keys before pointer-key lowering, and range over stdlib pointer/interface map keys exposes the Go loop variable representation instead of the internal Rust key helper (stdlib_interface_map_key and stdlib_pointer_map_slice_values added, 2026-05-09)
 - ✅ Nested range over map slice values - range variables holding wrapped map slice values borrow their inner Vec before nested iteration (range_map_slice_value promoted, 2026-05-07)
 - ✅ Composite literal arguments - slice/map/array literals passed to functions no longer double-wrap (2026-03-26)
 - ✅ Array/slice literal wrapped call elements - go/types element types decide when wrapped call results such as dependency method calls unwrap to raw literal elements while pointer/interface/channel elements keep handles (2026-05-08)
@@ -212,4 +213,4 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 
 go2rust transpiles itself!
 
-- 🚧 Self-transpile cargo check now reaches `golang_org_x_tools_internal_gcimporter` with prior `iexport.rs:464` range-shadowing failure fixed; the next first error is a `types_Object` vs `GoPtrKey<types_TypeName>` map-key mismatch in generated `iexport.rs:468` (2026-05-09)
+- 🚧 Self-transpile cargo check now reaches `golang_org_x_tools_internal_gcimporter` with prior range-shadowing, stdlib interface map-key, pointer-key map slice append, and stdlib map-range blockers fixed; the next first error is a `types_Package` handle-vs-bare mismatch in generated `iexport.rs:561` around sorted package pointers in `writeIndex` (2026-05-09)
