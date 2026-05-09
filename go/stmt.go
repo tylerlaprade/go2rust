@@ -554,6 +554,26 @@ func writeStdlibInterfaceReturnConversion(out *strings.Builder, result ast.Expr,
 	return true
 }
 
+func writeStdlibInterfaceAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	lhsType := typeInfo.GetType(lhs)
+	var value strings.Builder
+	if !writeStdlibInterfaceBareConversion(&value, rhs, lhsType) {
+		return false
+	}
+
+	out.WriteString("{ let new_val = ")
+	out.WriteString(value.String())
+	out.WriteString("; *")
+	TranspileExpressionContext(out, lhs, LValue)
+	WriteBorrowMethod(out, true)
+	out.WriteString(" = Some(new_val); }")
+	return true
+}
+
 func isBuiltinCallNamed(call *ast.CallExpr, name string) bool {
 	ident, ok := call.Fun.(*ast.Ident)
 	if !ok || ident.Name != name {
@@ -2161,6 +2181,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									TranspileExpressionContext(out, s.Lhs[0], LValue)
 									WriteBorrowMethod(out, true)
 									out.WriteString(" = None")
+								} else if writeStdlibInterfaceAssignment(out, s.Lhs[0], s.Rhs[0]) {
+									// Converted concrete stdlib values assigned through a stdlib interface handle.
 								} else if unary, ok := s.Rhs[0].(*ast.UnaryExpr); ok && unary.Op == token.AND {
 									// Special case: p = &x where p is a pointer
 									// We need to extract the value from x, not clone the whole Arc
@@ -2716,6 +2738,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 								} else if ident, ok := valueSpec.Values[i].(*ast.Ident); ok && ident.Name == "nil" {
 									// Initializing with nil
 									WriteWrappedNone(out)
+								} else if valueSpec.Type != nil && writeStdlibInterfaceCallArgumentConversion(out, valueSpec.Values[i], expectedTypeFromParamExpr(valueSpec.Type)) {
+									// Converted concrete stdlib values assigned to a stdlib interface variable.
 								} else if isLocalInterface {
 									// Assigning to a local interface variable - keep wrapped, just clone the Rc
 									if ident, ok := valueSpec.Values[i].(*ast.Ident); ok {

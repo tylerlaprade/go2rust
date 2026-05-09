@@ -35,6 +35,26 @@ impl ast_Ident {
 
 
 #[derive(Debug, Clone, Default)]
+pub struct ast_SelectorExpr {
+    pub sel: Arc<Mutex<Option<ast_Ident>>>,
+    pub x: Arc<Mutex<Option<ast_Expr>>>,
+}
+
+impl std::fmt::Display for ast_SelectorExpr {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<ast_SelectorExpr>")
+    }
+}
+
+
+impl ast_SelectorExpr {
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        None
+    }
+}
+
+
+#[derive(Debug, Clone, Default)]
 pub struct ast_UnaryExpr {
     pub x: Arc<Mutex<Option<ast_Expr>>>,
 }
@@ -55,6 +75,13 @@ impl ast_UnaryExpr {
 
 impl From<ast_Ident> for ast_Expr {
     fn from(_value: ast_Ident) -> Self {
+        Self::default()
+    }
+}
+
+
+impl From<ast_SelectorExpr> for ast_Expr {
+    fn from(_value: ast_SelectorExpr) -> Self {
         Self::default()
     }
 }
@@ -90,8 +117,23 @@ pub fn make_unary_expr() -> Arc<Mutex<Option<ast_Expr>>> {
     return { let __arg = Arc::new(Mutex::new(Some(ast_UnaryExpr { x: { let __arg = ast::new_ident("x".to_string()); let __converted = { let __arg_guard = __arg.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone().into() }; Arc::new(Mutex::new(Some(__converted))) }, ..Default::default() }))); let __converted = { let __arg_guard = __arg.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone().into() }; Arc::new(Mutex::new(Some(__converted))) };
 }
 
+pub fn make_var_expr() -> Arc<Mutex<Option<ast_Expr>>> {
+
+    let mut expr: Arc<Mutex<Option<ast_Expr>>> = { let __arg = ast::new_ident("x".to_string()); let __converted = { let __arg_guard = __arg.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone().into() }; Arc::new(Mutex::new(Some(__converted))) };
+    return expr.clone();
+}
+
+pub fn make_assigned_selector_expr() -> Arc<Mutex<Option<ast_Expr>>> {
+
+    let mut expr: Arc<Mutex<Option<ast_Expr>>> = { let __arg = ast::new_ident("x".to_string()); let __converted = { let __arg_guard = __arg.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone().into() }; Arc::new(Mutex::new(Some(__converted))) };
+    { let new_val = { let __arg = Arc::new(Mutex::new(Some(ast_SelectorExpr { x: { let __arg = ast::new_ident("pkg".to_string()); let __converted = { let __arg_guard = __arg.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone().into() }; Arc::new(Mutex::new(Some(__converted))) }, sel: ast::new_ident("Name".to_string()).clone(), ..Default::default() }))); let __arg_guard = __arg.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone().into() }; *expr.lock().unwrap() = Some(new_val); };
+    return expr.clone();
+}
+
 fn main() {
     println!("{}", (*make_expr().lock().unwrap()).is_some());
     println!("{}", (*make_ident_expr().lock().unwrap()).is_some());
     println!("{}", (*make_unary_expr().lock().unwrap()).is_some());
+    println!("{}", (*make_var_expr().lock().unwrap()).is_some());
+    println!("{}", (*make_assigned_selector_expr().lock().unwrap()).is_some());
 }
