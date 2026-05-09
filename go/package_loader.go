@@ -276,6 +276,7 @@ func (pl *PackageLoader) transpilePackage(pkg *packages.Package) error {
 		pkgCtx.UsePackageHelpers = usePackageHelpers
 	}
 	pkgState.ImportedInterfaceImpls = collectImportedInterfaceImplsFromFiles(pkg.Syntax)
+	registerPackageTypeFactsFromFiles(pkg.Syntax)
 	registerFunctionSignaturesFromFiles(pkg.Syntax)
 
 	var generatedModules []generatedRustModule

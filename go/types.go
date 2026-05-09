@@ -272,14 +272,7 @@ func GoTypeToRust(expr ast.Expr) string {
 	outerWrapper := GetOuterWrapperType()
 	innerWrapper := GetInnerWrapperType()
 
-	// Track imports for the wrappers we're using
-	if NeedsConcurrentWrapper() {
-		TrackImport("Arc")
-		TrackImport("Mutex")
-	} else {
-		TrackImport("Rc")
-		TrackImport("RefCell")
-	}
+	trackWrapperImports()
 
 	// Special case for error type - it's already Option
 	if ident, ok := expr.(*ast.Ident); ok && ident.Name == "error" {
@@ -847,6 +840,7 @@ func goTypesTypeToRust(t types.Type) string {
 	case *types.Pointer:
 		outerWrapper := GetOuterWrapperType()
 		innerWrapper := GetInnerWrapperType()
+		trackWrapperImports()
 		return outerWrapper + "<" + innerWrapper + "<Option<" + goTypesTypeToRust(ut.Elem()) + ">>>"
 	case *types.Map:
 		TrackImport("BTreeMap")
@@ -1017,6 +1011,7 @@ func goTypesTypeToRustWrapped(t types.Type) string {
 	base := goTypesTypeToRust(t)
 	outerWrapper := GetOuterWrapperType()
 	innerWrapper := GetInnerWrapperType()
+	trackWrapperImports()
 	return outerWrapper + "<" + innerWrapper + "<Option<" + base + ">>>"
 }
 

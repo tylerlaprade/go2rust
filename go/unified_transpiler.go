@@ -326,6 +326,7 @@ func (ut *UnifiedTranspiler) transpilePackage(pkg *PackageInfo) error {
 		PackageMapping: ut.packageMapping,
 	})
 	defer SetTranspileContext(parentCtx)
+	registerPackageTypeFactsFromFiles(pkg.ASTFiles)
 	registerFunctionSignaturesFromFiles(pkg.ASTFiles)
 
 	// Generate lib.rs with all modules

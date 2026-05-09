@@ -709,6 +709,75 @@ func registerFunctionSignaturesFromFile(file *ast.File) {
 	}
 }
 
+func registerPackageTypeFactsFromFiles(files []*ast.File) {
+	for _, file := range files {
+		registerPackageTypeFactsFromFile(file)
+	}
+}
+
+func registerPackageTypeFactsFromFile(file *ast.File) {
+	for _, decl := range file.Decls {
+		genDecl, ok := decl.(*ast.GenDecl)
+		if !ok || genDecl.Tok != token.TYPE {
+			continue
+		}
+		for _, spec := range genDecl.Specs {
+			typeSpec, ok := spec.(*ast.TypeSpec)
+			if !ok {
+				continue
+			}
+			registerPackageTypeFact(typeSpec)
+		}
+	}
+}
+
+func registerPackageTypeFact(typeSpec *ast.TypeSpec) {
+	if typeSpec == nil {
+		return
+	}
+	isFunctionType := typeSpecHasFunctionSignature(typeSpec)
+	if typeSpec.Assign != 0 || isFunctionType {
+		RegisterTypeAlias(typeSpec.Name.Name)
+		if isFunctionType {
+			RegisterFunctionTypeAlias(typeSpec.Name.Name)
+		}
+		return
+	}
+
+	_, isStruct := typeSpec.Type.(*ast.StructType)
+	if _, isInterface := typeSpec.Type.(*ast.InterfaceType); isInterface {
+		RegisterInterfaceType(typeSpec.Name.Name)
+		return
+	}
+	if !isStruct {
+		RegisterTypeDefinition(typeSpec.Name.Name, typeDefinitionUnderlyingName(typeSpec.Type))
+	}
+}
+
+func typeSpecHasFunctionSignature(typeSpec *ast.TypeSpec) bool {
+	if typeSpec == nil {
+		return false
+	}
+	if _, ok := typeSpec.Type.(*ast.FuncType); ok {
+		return true
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return false
+	}
+	if obj, ok := typeInfo.info.Defs[typeSpec.Name].(*types.TypeName); ok {
+		if _, ok := signatureFromType(obj.Type()); ok {
+			return true
+		}
+	}
+	if typ := typeInfo.GetType(typeSpec.Type); typ != nil {
+		if _, ok := signatureFromType(typ); ok {
+			return true
+		}
+	}
+	return false
+}
+
 func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.FileSet, comments []*ast.CommentGroup) {
 	// Check if this is a method (has receiver)
 	if fn.Recv != nil && len(fn.Recv.List) > 0 {
