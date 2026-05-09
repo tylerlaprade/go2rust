@@ -1274,6 +1274,10 @@ run_xfail_test() {
     run_test "tests/type_embedding"
 }
 
+@test "type_switch_shadow_capture" {
+    run_test "tests/type_switch_shadow_capture"
+}
+
 @test "type_switch_stdlib_selectors" {
     run_test "tests/type_switch_stdlib_selectors"
 }

@@ -4497,6 +4497,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			}
 
 			// Case body
+			restoreCaptureRename := suppressCaptureRename(varName)
 			for _, stmt := range caseClause.Body {
 				if isUnlabeledBreakStmt(stmt) {
 					break
@@ -4505,6 +4506,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				TranspileStatementSimple(out, stmt, fnType, fileSet)
 				out.WriteString(";\n")
 			}
+			restoreCaptureRename()
 
 			out.WriteString("    }")
 		}
@@ -4550,4 +4552,18 @@ func isFunctionTypedNameInFunc(name string, fnType *ast.FuncType) bool {
 	}
 
 	return false
+}
+
+func suppressCaptureRename(name string) func() {
+	if name == "" || currentCaptureRenames == nil {
+		return func() {}
+	}
+	renamed, exists := currentCaptureRenames[name]
+	if !exists {
+		return func() {}
+	}
+	delete(currentCaptureRenames, name)
+	return func() {
+		currentCaptureRenames[name] = renamed
+	}
 }
