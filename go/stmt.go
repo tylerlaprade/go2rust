@@ -47,6 +47,19 @@ func writeUnwrappedRangeTarget(out *strings.Builder, expr ast.Expr) {
 	}
 }
 
+func writeIntegerRangeLimit(out *strings.Builder, expr ast.Expr) {
+	typeInfo := GetTypeInfo()
+	if call, ok := expr.(*ast.CallExpr); ok && typeInfo != nil && typeInfo.ReturnsWrappedValue(call) && !isBareBuiltinReturn(call) && !callReturnsBareChannelValue(call) && (!typeInfo.IsTypeConversion(call) || typeConversionEmitsWrappedValue(call)) {
+		out.WriteString("{ let __v = ")
+		TranspileExpression(out, call)
+		out.WriteString("; let __owned = (*__v")
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap()).clone(); __owned }")
+		return
+	}
+	writeUnwrappedRangeTarget(out, expr)
+}
+
 func writeNilZeroValueInitializerFromTypeInfo(out *strings.Builder, typeExpr ast.Expr) bool {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil {
@@ -3398,7 +3411,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					out.WriteString("_")
 				}
 				out.WriteString(" in 0..(")
-				writeUnwrappedRangeTarget(out, s.X)
+				writeIntegerRangeLimit(out, s.X)
 				out.WriteString(")")
 			}
 		} else if isString {
