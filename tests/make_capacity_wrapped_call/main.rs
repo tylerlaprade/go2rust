@@ -30,5 +30,5 @@ fn main() {
     {(*xs.lock().unwrap()).get_or_insert_with(Vec::new).extend(vec![1, 2, 3]); xs.clone()};
 
     println!("{}", (*xs.lock().unwrap().as_ref().unwrap()).len());
-    println!("{}", { let __v = (*xs.lock().unwrap().as_ref().unwrap()).clone(); __v }.capacity());
+    println!("{}", (*xs.lock().unwrap().as_ref().unwrap()).capacity());
 }

@@ -414,6 +414,10 @@ run_xfail_test() {
     run_test "tests/bytes_buffer_zero_value"
 }
 
+@test "cap_struct_slice_field" {
+    run_test "tests/cap_struct_slice_field"
+}
+
 @test "channel_buffering" {
     run_test "tests/channel_buffering"
 }

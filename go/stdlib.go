@@ -2537,12 +2537,26 @@ func transpileCap(out *strings.Builder, call *ast.CallExpr) {
 			return
 		}
 
-		if writeNamedSliceLen(out, call.Args[0]) {
+		if writeNamedSliceCap(out, call.Args[0]) {
 			return
 		}
 
-		TranspileExpression(out, call.Args[0])
-		out.WriteString(".capacity()")
+		member := "capacity()"
+		if typeInfo != nil && typeInfo.IsArray(call.Args[0]) {
+			member = "len()"
+		}
+
+		if isExpressionResultBare(call.Args[0]) {
+			TranspileExpressionContext(out, call.Args[0], LValue)
+			out.WriteString(".")
+			out.WriteString(member)
+		} else {
+			out.WriteString("(*")
+			TranspileExpressionContext(out, call.Args[0], LValue)
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref().unwrap()).")
+			out.WriteString(member)
+		}
 	}
 }
 

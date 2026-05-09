@@ -1,0 +1,50 @@
+use std::cell::{RefCell};
+use std::fmt::{Display, Formatter};
+use std::rc::{Rc};
+
+fn format_slice<T, C>(slice: &Rc<RefCell<Option<C>>>) -> String
+where
+    C: AsRef<[T]>,
+    T: Display,
+{
+    let guard = slice.borrow();
+    if let Some(ref s) = *guard {
+        let formatted: Vec<String> = s.as_ref().iter().map(|v| v.to_string()).collect();
+        format!("[{}]", formatted.join(" "))
+    } else {
+        "[]".to_string()
+    }
+}
+
+fn format_slice_values<T>(slice: &[T]) -> String
+where
+    T: Display,
+{
+    let formatted: Vec<String> = slice.iter().map(|v| v.to_string()).collect();
+    format!("[{}]", formatted.join(" "))
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct bucket {
+    pub values: Rc<RefCell<Option<Vec<i32>>>>,
+}
+
+impl std::fmt::Display for bucket {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{}}}", format_slice(&self.values))
+    }
+}
+
+
+impl bucket {
+    pub fn has_room(&self) -> Rc<RefCell<Option<bool>>> {
+        return Rc::new(RefCell::new(Some(((*self.values.borrow().as_ref().unwrap()).capacity() as i32) >= (3 as i32))));
+    }
+}
+
+fn main() {
+    let mut b = Rc::new(RefCell::new(Some(bucket { values: Rc::new(RefCell::new(Some({ let mut v = Vec::with_capacity((3) as usize); v.resize((1) as usize, 0); v }))), ..Default::default() })));
+    println!("{}", (*(*b.borrow().as_ref().unwrap()).values.borrow().as_ref().unwrap()).len());
+    println!("{}", (*(*b.borrow().as_ref().unwrap()).values.borrow().as_ref().unwrap()).capacity());
+    println!("{}", (*(*b.borrow_mut().as_mut().unwrap()).has_room().borrow().as_ref().unwrap()));
+}
