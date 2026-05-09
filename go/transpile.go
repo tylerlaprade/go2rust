@@ -337,6 +337,156 @@ type externalLocalInterfaceImpl struct {
 	ifaceAST *ast.InterfaceType
 }
 
+type localInterfaceAssertionCandidate struct {
+	rustType string
+	external bool
+	typ      types.Type
+}
+
+func collectFunctionLocalInterfaces(file *ast.File) map[string]*ast.InterfaceType {
+	result := make(map[string]*ast.InterfaceType)
+	if file == nil {
+		return result
+	}
+	for _, decl := range file.Decls {
+		fn, ok := decl.(*ast.FuncDecl)
+		if !ok || fn.Body == nil {
+			continue
+		}
+		ast.Inspect(fn.Body, func(n ast.Node) bool {
+			genDecl, ok := n.(*ast.GenDecl)
+			if !ok || genDecl.Tok != token.TYPE {
+				return true
+			}
+			for _, spec := range genDecl.Specs {
+				typeSpec, ok := spec.(*ast.TypeSpec)
+				if !ok {
+					continue
+				}
+				if iface, ok := typeSpec.Type.(*ast.InterfaceType); ok {
+					result[typeSpec.Name.Name] = iface
+				}
+			}
+			return true
+		})
+	}
+	return result
+}
+
+func sourceAllowsInterfaceAssertionCandidate(candidate types.Type, source types.Type) bool {
+	if source == nil {
+		return true
+	}
+	source = types.Unalias(source)
+	if iface, ok := source.Underlying().(*types.Interface); ok {
+		if iface.NumMethods() == 0 {
+			return true
+		}
+		iface.Complete()
+		return types.Implements(candidate, iface)
+	}
+	return types.AssignableTo(candidate, source)
+}
+
+func localInterfaceAssertionCandidates(ifaceType *types.Interface, sourceType types.Type) []localInterfaceAssertionCandidate {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || ifaceType == nil {
+		return nil
+	}
+	ifaceType.Complete()
+	seen := make(map[string]bool)
+	var candidates []localInterfaceAssertionCandidate
+	recordNamed := func(named *types.Named) {
+		if named == nil || named.Obj() == nil {
+			return
+		}
+		if _, isInterface := named.Underlying().(*types.Interface); isInterface {
+			return
+		}
+		forms := []types.Type{named, types.NewPointer(named)}
+		var matchedForm types.Type
+		for _, form := range forms {
+			if types.Implements(form, ifaceType) && sourceAllowsInterfaceAssertionCandidate(form, sourceType) {
+				matchedForm = form
+				break
+			}
+		}
+		if matchedForm == nil {
+			return
+		}
+		rustType := goTypesNamedTypeToRust(named)
+		if rustType == "" || seen[rustType] {
+			return
+		}
+		seen[rustType] = true
+		external := typeInfo.pkg == nil || named.Obj().Pkg() != typeInfo.pkg
+		candidates = append(candidates, localInterfaceAssertionCandidate{
+			rustType: rustType,
+			external: external,
+			typ:      matchedForm,
+		})
+	}
+	visitPackage := func(pkg *types.Package) {
+		if pkg == nil || pkg.Scope() == nil {
+			return
+		}
+		for _, name := range pkg.Scope().Names() {
+			obj, ok := pkg.Scope().Lookup(name).(*types.TypeName)
+			if !ok {
+				continue
+			}
+			if named, ok := types.Unalias(obj.Type()).(*types.Named); ok {
+				recordNamed(named)
+			}
+		}
+	}
+	visitPackage(typeInfo.pkg)
+	if typeInfo.pkg != nil {
+		for _, pkg := range typeInfo.pkg.Imports() {
+			visitPackage(pkg)
+		}
+	}
+	slices.SortFunc(candidates, func(a, b localInterfaceAssertionCandidate) int {
+		return strings.Compare(a.rustType, b.rustType)
+	})
+	return candidates
+}
+
+func localInterfaceAssertionTarget(e *ast.TypeAssertExpr) (string, *types.Interface, types.Type, []localInterfaceAssertionCandidate, bool) {
+	if e == nil || e.Type == nil {
+		return "", nil, nil, nil, false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return "", nil, nil, nil, false
+	}
+	targetType := typeInfo.GetType(e.Type)
+	ifaceName, ok := localNamedInterfaceTypeNameFromTypes(targetType)
+	if !ok {
+		if ident, identOK := e.Type.(*ast.Ident); identOK && IsInterfaceType(ident.Name) {
+			ifaceName = ident.Name
+			ok = true
+		}
+	}
+	if !ok {
+		return "", nil, nil, nil, false
+	}
+	if !localInterfaces[ifaceName] {
+		return "", nil, nil, nil, false
+	}
+	named, ok := types.Unalias(targetType).(*types.Named)
+	if !ok {
+		return "", nil, nil, nil, false
+	}
+	ifaceType, ok := named.Underlying().(*types.Interface)
+	if !ok || ifaceType.NumMethods() == 0 {
+		return "", nil, nil, nil, false
+	}
+	sourceType := typeInfo.GetType(e.X)
+	candidates := localInterfaceAssertionCandidates(ifaceType, sourceType)
+	return ifaceName, ifaceType, sourceType, candidates, true
+}
+
 func collectExternalLocalInterfaceImpls(file *ast.File, interfaces map[string]*ast.InterfaceType) map[string]map[string]externalLocalInterfaceImpl {
 	typeInfo := GetTypeInfo()
 	if file == nil || typeInfo == nil || typeInfo.pkg == nil {
@@ -368,47 +518,59 @@ func collectExternalLocalInterfaceImpls(file *ast.File, interfaces map[string]*a
 	}
 
 	ast.Inspect(file, func(n ast.Node) bool {
-		stmt, ok := n.(*ast.TypeSwitchStmt)
-		if !ok || stmt.Assign == nil {
-			return true
-		}
-		var expr ast.Expr
-		switch assign := stmt.Assign.(type) {
-		case *ast.ExprStmt:
-			if typeAssert, ok := assign.X.(*ast.TypeAssertExpr); ok {
-				expr = typeAssert.X
+		switch node := n.(type) {
+		case *ast.TypeAssertExpr:
+			ifaceName, ifaceType, _, candidates, ok := localInterfaceAssertionTarget(node)
+			if !ok {
+				return true
 			}
-		case *ast.AssignStmt:
-			if len(assign.Rhs) == 1 {
-				if typeAssert, ok := assign.Rhs[0].(*ast.TypeAssertExpr); ok {
+			for _, candidate := range candidates {
+				if candidate.external {
+					record(ifaceName, ifaceType, candidate.typ)
+				}
+			}
+		case *ast.TypeSwitchStmt:
+			if node.Assign == nil {
+				return true
+			}
+			var expr ast.Expr
+			switch assign := node.Assign.(type) {
+			case *ast.ExprStmt:
+				if typeAssert, ok := assign.X.(*ast.TypeAssertExpr); ok {
 					expr = typeAssert.X
 				}
-			}
-		}
-		if expr == nil {
-			return true
-		}
-		subjectType := typeInfo.GetType(expr)
-		ifaceName, ok := localNamedInterfaceTypeNameFromTypes(subjectType)
-		if !ok {
-			return true
-		}
-		named, ok := types.Unalias(subjectType).(*types.Named)
-		if !ok {
-			return true
-		}
-		ifaceType, ok := named.Underlying().(*types.Interface)
-		if !ok {
-			return true
-		}
-		ifaceType.Complete()
-		for _, clauseNode := range stmt.Body.List {
-			clause := clauseNode.(*ast.CaseClause)
-			for _, caseExpr := range clause.List {
-				if ident, ok := caseExpr.(*ast.Ident); ok && ident.Name == "nil" {
-					continue
+			case *ast.AssignStmt:
+				if len(assign.Rhs) == 1 {
+					if typeAssert, ok := assign.Rhs[0].(*ast.TypeAssertExpr); ok {
+						expr = typeAssert.X
+					}
 				}
-				record(ifaceName, ifaceType, typeInfo.GetType(caseExpr))
+			}
+			if expr == nil {
+				return true
+			}
+			subjectType := typeInfo.GetType(expr)
+			ifaceName, ok := localNamedInterfaceTypeNameFromTypes(subjectType)
+			if !ok {
+				return true
+			}
+			named, ok := types.Unalias(subjectType).(*types.Named)
+			if !ok {
+				return true
+			}
+			ifaceType, ok := named.Underlying().(*types.Interface)
+			if !ok {
+				return true
+			}
+			ifaceType.Complete()
+			for _, clauseNode := range node.Body.List {
+				clause := clauseNode.(*ast.CaseClause)
+				for _, caseExpr := range clause.List {
+					if ident, ok := caseExpr.(*ast.Ident); ok && ident.Name == "nil" {
+						continue
+					}
+					record(ifaceName, ifaceType, typeInfo.GetType(caseExpr))
+				}
 			}
 		}
 		return true
@@ -1008,6 +1170,12 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 	if len(globalVars) > 0 {
 		hasInitFunction = true
 	}
+	localFunctionInterfaces := collectFunctionLocalInterfaces(file)
+	for name, ifaceType := range localFunctionInterfaces {
+		interfaces[name] = ifaceType
+		localInterfaces[name] = true
+		RegisterInterfaceType(name)
+	}
 	hasGlobals := hasNamedPackageGlobals(globalVars)
 	for _, fn := range functions {
 		registerFunctionSignatureDecl(fn)
@@ -1026,6 +1194,22 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 		}
 		first = false
 		TranspileConstDecl(&body, c)
+	}
+
+	var localInterfaceNames []string
+	for name := range localFunctionInterfaces {
+		localInterfaceNames = append(localInterfaceNames, name)
+	}
+	slices.Sort(localInterfaceNames)
+	for _, name := range localInterfaceNames {
+		if !first {
+			body.WriteString("\n\n")
+		}
+		first = false
+		TranspileTypeDecl(&body, &ast.TypeSpec{
+			Name: ast.NewIdent(name),
+			Type: localFunctionInterfaces[name],
+		}, nil)
 	}
 
 	// Output type declarations

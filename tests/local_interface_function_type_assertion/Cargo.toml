@@ -1,0 +1,8 @@
+[package]
+name = "local_interface_function_type_assertion"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "local_interface_function_type_assertion"
+path = "main.rs"

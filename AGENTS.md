@@ -96,6 +96,7 @@ See `ROADMAP.md` for the detailed implementation phases and progress.
 - Package-level pointer globals initialized from constructor calls should keep the returned pointer handle. Unwrapping the initializer to the pointee usually creates an `Option<T>` vs `Option<Arc<Mutex<Option<T>>>>` mismatch.
 - Generated helper types with Rust identity, such as `GoTime`, `GoContext`, and `GoChannel`, must be package-scoped for multi-file crates. File-local helper structs make sibling module signatures incompatible even when the Go type is the same.
 - String constants are bare Rust values (`&'static str`), not wrappers. String indexing and slicing must use them directly, for example `let __s = NAME`, instead of emitting `.borrow()` or `.lock()`.
+- Byte-like constants are raw scalar values. Use `go/constant` plus the expected `go/types` context for byte/rune constants passed to calls, appended into `[]byte`, used in byte comparisons, or matched in switches; do not infer from names or rewrap them as variables.
 - Named scalar type methods must translate receiver references through `self.0`; named slice methods should pass the named slice handle with `self.clone()`, not the inner `Vec`.
 - Named numeric type definitions need Rust operator/comparison impls for Go-style mixed operations such as `1 <= code`, `code + 1`, and `code - otherCode`. Keep those impls tied to the actual numeric underlying type from type information.
 - External stdlib named integers such as `go/token.Pos` and `go/types.BasicKind` are bare tuple structs in the stub crate, not local wrapper newtypes. Expected-type literal returns and explicit conversions should construct the tuple struct directly from the raw numeric value.
@@ -117,6 +118,11 @@ See `ROADMAP.md` for the detailed implementation phases and progress.
 - `sync.Mutex` fields are bare helper values, but the helper must clone to the same underlying lock. A `Clone` implementation that creates a fresh mutex breaks Go semantics.
 - For `mu.Lock(); defer mu.Unlock()`, emit a local cloned mutex handle and lock that local. Locking `self.mu` directly can hold an immutable borrow of `self` for the guard lifetime and block later `&mut self` calls in the same method.
 - Suppressing `defer mu.Unlock()` is correct only when the generated RAII guard stays alive for the intended Go scope.
+
+### Assignment Evaluation Order
+
+- When assigning into a wrapped target, evaluate the right-hand side before opening the mutable borrow for the left-hand side. Patterns like `x = f(x)` can otherwise panic at runtime from nested `RefCell`/`Mutex` borrows even though the Go evaluation order is valid.
+- The same rule applies to temporary wrapped moves in multi-assignment lowering: compute and store the moved value in its own block, then borrow the destination and assign.
 
 ### Closure Capture Rules
 
@@ -177,6 +183,8 @@ The test script handles:
 - Anonymous struct types can be discovered while transpiling function bodies, after the early type-definition pass. Emit anonymous struct definitions a second time after functions for any names not already emitted.
 - Current self-hosting checkpoint: package-targeted checks pass for `golang_org_x_tools_internal_versions`, `golang_org_x_tools_internal_stdlib`, and `golang_org_x_tools_internal_typeparams`. `golang_org_x_tools_internal_typesinternal` is down to 78 Rust errors after fixing receiver lowering, nonliteral fixed array lengths, numeric type-definition ops, package selector/stub naming, duplicate-name init calls, late anonymous struct definitions, string-constant slicing, named integer bitwise ops, local-only init helper visibility, named switch-value cloning, typed nil locals, named literal returns, and external named integer conversions.
 - Current `typesinternal` remaining clusters include incomplete `go/types` and `go/ast` stdlib stubs, interface/AST wrapper mismatches, `ast.ChanDir` versus `types.ChanDir` conversion in `zerovalue.rs`, type-switch handling around `Unknown`, qualifier function wrapper mismatches, and range/index contexts that still treat raw integers as wrapped handles.
+- Current `objectpath` frontier: package-constant, byte-context, and function-local interface assertion errors are fixed; `golang_org_x_tools_go_types_objectpath` is now down to 43 Rust errors. The first remaining cluster is named `Path` versus raw `String`, followed by wrapped `go/types` receiver/method calls and wrapped map-field boundaries.
+- Function-local interface declarations used in type assertions or type switches should be hoisted into emitted Rust traits. Preserve the Go interface identity from `go/types`, emit concrete assertion arms from actual `types.Implements` relationships, and avoid direct `downcast_ref::<Trait>()` because Rust can downcast to concrete types, not unsized traits.
 
 ## Source-Preserving Fixes
 

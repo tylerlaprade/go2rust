@@ -1,8 +1,22 @@
+use std::any::Any;
 use std::cell::{RefCell};
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
-#[derive(Debug, Clone, Default)]
+pub trait describer: std::fmt::Display + Any {
+    fn __go_clone_box(&self) -> Box<dyn describer>;
+    fn __go_as_any(&self) -> &dyn Any;
+    fn __go_eq(&self, other: &dyn describer) -> bool;
+    fn describe(&self) -> Rc<RefCell<Option<String>>>;
+}
+
+impl Clone for Box<dyn describer> {
+    fn clone(&self) -> Self {
+        self.__go_clone_box()
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq)]
 pub struct base {
     pub num: Rc<RefCell<Option<i32>>>,
 }
@@ -37,6 +51,25 @@ impl std::fmt::Display for container {
 impl base {
     pub fn describe(&self) -> Rc<RefCell<Option<String>>> {
         return Rc::new(RefCell::new(Some(format!("base with num={}", (*self.num.borrow().as_ref().unwrap())))));
+    }
+}
+
+impl describer for base {
+    fn describe(&self) -> Rc<RefCell<Option<String>>> {
+        return Rc::new(RefCell::new(Some(format!("base with num={}", (*self.num.borrow().as_ref().unwrap())))));
+    }
+    fn __go_clone_box(&self) -> Box<dyn describer> {
+        Box::new(self.clone()) as Box<dyn describer>
+    }
+    fn __go_as_any(&self) -> &dyn Any {
+        self
+    }
+    fn __go_eq(&self, other: &dyn describer) -> bool {
+        if let Some(__other) = other.__go_as_any().downcast_ref::<base>() {
+            self == __other
+        } else {
+            false
+        }
     }
 }
 

@@ -762,6 +762,10 @@ run_xfail_test() {
     run_test "tests/local_interface_field_zero"
 }
 
+@test "local_interface_function_type_assertion" {
+    run_test "tests/local_interface_function_type_assertion"
+}
+
 @test "local_interface_method_param" {
     run_test "tests/local_interface_method_param"
 }
