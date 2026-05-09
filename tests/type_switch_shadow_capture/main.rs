@@ -76,6 +76,7 @@ fn main() {
         return Rc::new(RefCell::new(Some(0)));;
     }
     }
+    unreachable!()
     }) as Box<dyn Fn() -> Rc<RefCell<Option<i32>>>>)));
     println!("{}", (*{ let __f_guard = visit.borrow(); let __f = __f_guard.as_ref().unwrap(); (*__f)() }.borrow().as_ref().unwrap()));
 }

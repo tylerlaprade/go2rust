@@ -57,6 +57,7 @@ pub fn classify(b: Rc<RefCell<Option<sampleBox>>>) -> Rc<RefCell<Option<String>>
         return Rc::new(RefCell::new(Some("other".to_string())));;
     }
     }
+    unreachable!()
 }
 
 fn main() {

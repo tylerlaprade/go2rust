@@ -71,6 +71,7 @@ pub fn classify(t: Rc<RefCell<Option<types_Type>>>) -> Rc<RefCell<Option<String>
         return Rc::new(RefCell::new(Some("other".to_string())));;
     }
     }
+    unreachable!()
 }
 
 fn main() {

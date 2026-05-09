@@ -242,6 +242,87 @@ func isUnlabeledBreakStmt(stmt ast.Stmt) bool {
 	return ok && branch.Tok == token.BREAK && branch.Label == nil
 }
 
+func stmtTerminates(stmt ast.Stmt) bool {
+	switch s := stmt.(type) {
+	case *ast.ReturnStmt:
+		return true
+	case *ast.ExprStmt:
+		call, ok := s.X.(*ast.CallExpr)
+		return ok && isBuiltinCallNamed(call, "panic")
+	case *ast.BlockStmt:
+		return stmtListTerminates(s.List)
+	case *ast.SwitchStmt:
+		return switchStmtTerminates(s)
+	case *ast.TypeSwitchStmt:
+		return typeSwitchStmtTerminates(s)
+	default:
+		return false
+	}
+}
+
+func stmtListTerminates(stmts []ast.Stmt) bool {
+	for _, stmt := range stmts {
+		if isUnlabeledBreakStmt(stmt) {
+			return false
+		}
+		if stmtTerminates(stmt) {
+			return true
+		}
+	}
+	return false
+}
+
+func stmtListFallsThrough(stmts []ast.Stmt) bool {
+	for i := len(stmts) - 1; i >= 0; i-- {
+		if branch, ok := stmts[i].(*ast.BranchStmt); ok {
+			return branch.Tok == token.FALLTHROUGH
+		}
+		return false
+	}
+	return false
+}
+
+func switchStmtTerminates(s *ast.SwitchStmt) bool {
+	hasDefault := false
+	nextTerminates := false
+	for i := len(s.Body.List) - 1; i >= 0; i-- {
+		stmt := s.Body.List[i]
+		clause, ok := stmt.(*ast.CaseClause)
+		if !ok {
+			return false
+		}
+		if len(clause.List) == 0 {
+			hasDefault = true
+		}
+		terminates := stmtListTerminates(clause.Body)
+		if stmtListFallsThrough(clause.Body) {
+			terminates = nextTerminates
+		}
+		if !terminates {
+			return false
+		}
+		nextTerminates = true
+	}
+	return hasDefault
+}
+
+func typeSwitchStmtTerminates(s *ast.TypeSwitchStmt) bool {
+	hasDefault := false
+	for _, stmt := range s.Body.List {
+		clause, ok := stmt.(*ast.CaseClause)
+		if !ok {
+			return false
+		}
+		if len(clause.List) == 0 {
+			hasDefault = true
+		}
+		if !stmtListTerminates(clause.Body) {
+			return false
+		}
+	}
+	return hasDefault
+}
+
 func writeWrappedValueCopyFromIdent(out *strings.Builder, ident *ast.Ident) bool {
 	if ident.Name == "_" || ident.Name == "nil" || ident.Name == "true" || ident.Name == "false" {
 		return false
@@ -4553,6 +4634,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			out.WriteString("    }")
 		}
 		out.WriteString("\n    }")
+		if typeSwitchStmtTerminates(s) {
+			out.WriteString("\n    unreachable!()")
+		}
 
 	case *ast.LabeledStmt:
 		label := ToSnakeCase(s.Label.Name)
