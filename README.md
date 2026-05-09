@@ -336,6 +336,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ `len` | ✅ |
 | └ `cap` | ✅ |
 | └ `append` | ✅ |
+| └ `copy` | ✅ |
 | └ `make` | ✅ |
 | └ `delete` | ✅ |
 | └ `new` | ✅ |

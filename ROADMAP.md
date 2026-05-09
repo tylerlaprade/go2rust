@@ -88,6 +88,7 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 - ✅ len/cap with typed int peers - binary expressions cast bare length/capacity results to the transpiler's Go `int` representation when compared or combined with typed `int` values (len_typed_int_comparison promoted, 2026-05-07)
 - ✅ Named integer indexes - array/slice indexes using named integer values, binary expressions, and scalar method receivers unwrap to primitive scalars before `usize` casts (named_integer_index added, 2026-05-09)
 - ✅ Slice bound and indexed compound expression edges - string-literal `len` operands stay bare in slice bounds, and concurrent byte slice element `|=` mutates the underlying Vec element directly (len_string_literal_slice_bounds and concurrent_byte_index_or_assign added, 2026-05-07)
+- ✅ Copy into slice expressions - `copy(dst[lo:hi], src[lo:hi])` and `copy(array[:], string[lo:])` unwrap source slices/strings and mutate the backing destination instead of a cloned slice temporary (copy_from_string expanded, 2026-05-09)
 - ✅ String conversions from fields - `[]byte`/`[]rune` conversions consume already-unwrapped string selector expressions without adding a second wrapper borrow (byte_slice_from_global_array_field added, 2026-05-07)
 
 ### 📋 Phase 6: Control Flow Extensions

@@ -2567,16 +2567,30 @@ func transpileDelete(out *strings.Builder, call *ast.CallExpr) {
 func transpileCopy(out *strings.Builder, call *ast.CallExpr) {
 	if len(call.Args) >= 2 {
 		// Go: copy(dst, src) copies min(len(dst), len(src)) elements, returns count
-		// Generate inline block that works with already-unwrapped Vec values
 		typeInfo := GetTypeInfo()
 		srcIsString := typeInfo != nil && typeInfo.IsString(call.Args[1])
-		out.WriteString("{ let _src = (")
-		TranspileExpression(out, call.Args[1])
-		if srcIsString {
-			out.WriteString(").as_bytes().to_vec(); let _n = std::cmp::min((")
-		} else {
-			out.WriteString(").clone(); let _n = std::cmp::min((")
+
+		if dstSlice, ok := call.Args[0].(*ast.SliceExpr); ok {
+			out.WriteString("{ let _dst_start = ")
+			writeCopySliceLow(out, dstSlice)
+			out.WriteString("; let _dst_len = ")
+			writeCopySliceLen(out, dstSlice)
+			out.WriteString("; let _src = ")
+			writeCopySourceValue(out, call.Args[1], srcIsString)
+			out.WriteString("; let _n = std::cmp::min(_dst_len, _src.len()); for _i in 0.._n { (*")
+			TranspileExpressionContext(out, dstSlice.X, LValue)
+			WriteBorrowMethod(out, true)
+			out.WriteString(".as_mut().unwrap())[_dst_start + _i] = _src[_i].clone(); } ")
+			WriteWrapperPrefix(out)
+			out.WriteString("_n as i32")
+			WriteWrapperSuffix(out)
+			out.WriteString(" }")
+			return
 		}
+
+		out.WriteString("{ let _src = ")
+		writeCopySourceValue(out, call.Args[1], srcIsString)
+		out.WriteString("; let _n = std::cmp::min((")
 		TranspileExpression(out, call.Args[0])
 		out.WriteString(").len(), _src.len()); for _i in 0.._n { ")
 		// Destination needs mutable borrow for assignment
@@ -2595,6 +2609,45 @@ func transpileCopy(out *strings.Builder, call *ast.CallExpr) {
 		out.WriteString("_n as i32")
 		WriteWrapperSuffix(out)
 		out.WriteString(" }")
+	}
+}
+
+func writeCopySourceValue(out *strings.Builder, expr ast.Expr, isString bool) {
+	if isString {
+		writeStringSequenceValue(out, expr)
+		out.WriteString(".as_bytes().to_vec()")
+		return
+	}
+	if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.ReturnsWrappedValue(expr) && !isExpressionResultBare(expr) {
+		out.WriteString("(*")
+		TranspileExpression(out, expr)
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap()).clone()")
+		return
+	}
+	out.WriteString("(")
+	TranspileExpression(out, expr)
+	out.WriteString(").clone()")
+}
+
+func writeCopySliceLow(out *strings.Builder, slice *ast.SliceExpr) {
+	if slice.Low != nil {
+		writeExpressionAsUsize(out, slice.Low)
+	} else {
+		out.WriteString("0")
+	}
+}
+
+func writeCopySliceLen(out *strings.Builder, slice *ast.SliceExpr) {
+	if slice.High != nil {
+		out.WriteString("(")
+		writeExpressionAsUsize(out, slice.High)
+		out.WriteString(") - _dst_start")
+	} else {
+		out.WriteString("(*")
+		TranspileExpressionContext(out, slice.X, LValue)
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap()).len() - _dst_start")
 	}
 }
 
