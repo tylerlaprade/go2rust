@@ -327,6 +327,9 @@ func methodReceiverExpressionNeedsUnwrap(expr ast.Expr) bool {
 	case *ast.IndexExpr:
 		typeInfo := GetTypeInfo()
 		return typeInfo != nil && typeInfo.IsPointer(e)
+	case *ast.TypeAssertExpr:
+		typeInfo := GetTypeInfo()
+		return typeInfo != nil && typeInfo.IsPointer(e)
 	case *ast.ParenExpr:
 		return methodReceiverExpressionNeedsUnwrap(e.X)
 	default:
@@ -3942,6 +3945,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			}
 			// Get the Rust type for the assertion
 			rustType := ""
+			assertionReturnsPointer := false
 			if ident, ok := e.Type.(*ast.Ident); ok {
 				switch ident.Name {
 				case "string":
@@ -3975,6 +3979,13 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				default:
 					rustType = ident.Name
 				}
+			} else if star, ok := e.Type.(*ast.StarExpr); ok {
+				assertionReturnsPointer = true
+				if ident, ok := star.X.(*ast.Ident); ok {
+					rustType = RustTypeNameForUse(ident.Name)
+				} else {
+					rustType = goTypeToRustBase(star.X)
+				}
 			} else {
 				// Complex type - use the base type
 				rustType = goTypeToRustBase(e.Type)
@@ -3999,9 +4010,17 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			}
 			out.WriteString(";\n")
 			out.WriteString("        if let Some(ref any_val) = *guard {\n")
-			out.WriteString("            any_val.downcast_ref::<")
+			out.WriteString("            ")
+			if assertionReturnsPointer {
+				WriteWrapperPrefix(out)
+			}
+			out.WriteString("any_val.downcast_ref::<")
 			out.WriteString(rustType)
-			out.WriteString(">().expect(\"type assertion failed\").clone()\n")
+			out.WriteString(">().expect(\"type assertion failed\").clone()")
+			if assertionReturnsPointer {
+				WriteWrapperSuffix(out)
+			}
+			out.WriteString("\n")
 			out.WriteString("        } else {\n")
 			out.WriteString("            panic!(\"type assertion on nil interface\")\n")
 			out.WriteString("        }\n")

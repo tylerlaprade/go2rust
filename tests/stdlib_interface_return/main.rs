@@ -191,7 +191,7 @@ pub fn asserted_field_element() -> Arc<Mutex<Option<ast_Expr>>> {
         let val = (*field.lock().unwrap().as_ref().unwrap()).r#type.clone();
         let guard = val.lock().unwrap();
         if let Some(ref any_val) = *guard {
-            any_val.downcast_ref::<Arc<Mutex<Option<ast_ArrayType>>>>().expect("type assertion failed").clone()
+            Arc::new(Mutex::new(Some(any_val.downcast_ref::<ast_ArrayType>().expect("type assertion failed").clone())))
         } else {
             panic!("type assertion on nil interface")
         }
