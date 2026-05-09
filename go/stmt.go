@@ -923,7 +923,8 @@ func stdlibInterfaceReturnConversion(result ast.Expr, expected ast.Expr) bool {
 	if !isStdlibPackage(sourceNamed.Obj().Pkg().Path()) {
 		return false
 	}
-	if isKnownStdlibHelperType(sourceNamed.Obj().Pkg().Path(), sourceNamed.Obj().Name()) {
+	if isKnownStdlibHelperType(sourceNamed.Obj().Pkg().Path(), sourceNamed.Obj().Name()) &&
+		!stdlibHelperTypeAllowsInterfaceConversion(sourceNamed.Obj().Pkg().Path(), sourceNamed.Obj().Name()) {
 		return false
 	}
 	targetInterface.Complete()

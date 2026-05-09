@@ -1,0 +1,8 @@
+[package]
+name = "os_file_readcloser_assignment"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "os_file_readcloser_assignment"
+path = "main.rs"

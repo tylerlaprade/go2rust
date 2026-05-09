@@ -1056,6 +1056,10 @@ run_xfail_test() {
     run_test "tests/os_args"
 }
 
+@test "os_file_readcloser_assignment" {
+    run_test "tests/os_file_readcloser_assignment"
+}
+
 @test "os_stat_fileinfo_isdir" {
     run_test "tests/os_stat_fileinfo_isdir"
 }

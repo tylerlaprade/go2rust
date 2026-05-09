@@ -448,6 +448,10 @@ func isKnownStdlibHelperType(pkgPath string, name string) bool {
 	}
 }
 
+func stdlibHelperTypeAllowsInterfaceConversion(pkgPath string, name string) bool {
+	return pkgPath == "os" && name == "File"
+}
+
 func currentExternalTypeStubs() map[string]bool {
 	if usePackageExternalStubs() {
 		if currentContext.Package.ExternalTypeStubs == nil {
