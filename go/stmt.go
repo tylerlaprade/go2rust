@@ -2579,17 +2579,21 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 								} else if writeStdlibInterfaceAssignment(out, s.Lhs[0], s.Rhs[0]) {
 									// Converted concrete stdlib values assigned through a stdlib interface handle.
 								} else if unary, ok := s.Rhs[0].(*ast.UnaryExpr); ok && unary.Op == token.AND {
-									// Special case: p = &x where p is a pointer
-									// We need to extract the value from x, not clone the whole Arc
-									out.WriteString("{ ")
-									out.WriteString("let new_val = (*")
-									TranspileExpressionContext(out, unary.X, LValue)
-									WriteBorrowMethod(out, false)
-									out.WriteString(").clone(); ")
-									out.WriteString("*")
-									TranspileExpressionContext(out, s.Lhs[0], LValue)
-									WriteBorrowMethod(out, true)
-									out.WriteString(" = new_val; }")
+									if _, isComposite := unary.X.(*ast.CompositeLit); isComposite {
+										writeMoveWrappedInnerAssignment(out, s.Lhs[0], s.Rhs[0])
+									} else {
+										// Special case: p = &x where p is a pointer
+										// We need to extract the value from x, not clone the whole Arc
+										out.WriteString("{ ")
+										out.WriteString("let new_val = (*")
+										TranspileExpressionContext(out, unary.X, LValue)
+										WriteBorrowMethod(out, false)
+										out.WriteString(").clone(); ")
+										out.WriteString("*")
+										TranspileExpressionContext(out, s.Lhs[0], LValue)
+										WriteBorrowMethod(out, true)
+										out.WriteString(" = new_val; }")
+									}
 								} else if funcLit, ok := s.Rhs[0].(*ast.FuncLit); ok {
 									if _, isFuncLHS := expressionFunctionSignature(s.Lhs[0]); isFuncLHS {
 										out.WriteString("{ ")

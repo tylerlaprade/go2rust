@@ -1052,6 +1052,10 @@ run_xfail_test() {
     run_test "tests/parallel_slice_field_assign"
 }
 
+@test "pointer_composite_assignment" {
+    run_test "tests/pointer_composite_assignment"
+}
+
 @test "pointer_receiver_nil_compare" {
     run_test "tests/pointer_receiver_nil_compare"
 }

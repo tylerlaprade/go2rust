@@ -55,10 +55,10 @@ impl std::fmt::Display for element {
 impl Unknown {
     pub fn push(&mut self, v: Rc<RefCell<Option<T>>>) {
         if (*self.tail.borrow()).is_none() {
-        { let new_val = (*.borrow()).clone(); *self.head.borrow_mut() = new_val; };
+        { let new_val = Rc::new(RefCell::new(Some())); let __moved_val = { let mut __guard = new_val.borrow_mut(); __guard.take() }; *self.head.borrow_mut() = __moved_val; };
         { let new_val = self.head.clone(); *self.tail.borrow_mut() = Some(new_val); };
     } else {
-        { let new_val = (*.borrow()).clone(); *(*self.tail.borrow().as_ref().unwrap()).next.borrow_mut() = new_val; };
+        { let new_val = Rc::new(RefCell::new(Some())); let __moved_val = { let mut __guard = new_val.borrow_mut(); __guard.take() }; *(*self.tail.borrow().as_ref().unwrap()).next.borrow_mut() = __moved_val; };
         { let new_val = (*(*self.tail.borrow().as_ref().unwrap()).next.borrow().as_ref().unwrap()); *self.tail.borrow_mut() = Some(new_val); };
     }
     }
