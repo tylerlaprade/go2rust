@@ -1390,6 +1390,33 @@ func writeEmptyInterfaceHandleClone(out *strings.Builder, expr ast.Expr) bool {
 	return true
 }
 
+func writeEmptyInterfaceCallArgument(out *strings.Builder, arg ast.Expr, expectedType types.Type) bool {
+	if !isEmptyInterfaceType(expectedType) {
+		return false
+	}
+	if ident, ok := arg.(*ast.Ident); ok && ident.Name == "nil" {
+		if NeedsConcurrentWrapper() {
+			TrackImport("Arc")
+			TrackImport("Mutex")
+			out.WriteString("Arc::new(Mutex::new(None::<")
+		} else {
+			TrackImport("Rc")
+			TrackImport("RefCell")
+			out.WriteString("Rc::new(RefCell::new(None::<")
+		}
+		out.WriteString(rustAnyTraitObject())
+		out.WriteString(">))")
+		return true
+	}
+	if writeEmptyInterfaceHandleClone(out, arg) {
+		return true
+	}
+	WriteWrapperPrefix(out)
+	writeInterfaceBoxedValue(out, arg)
+	WriteWrapperSuffix(out)
+	return true
+}
+
 func writeEmptyInterfaceIdentAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
 	if !isEmptyInterfaceValueExpr(rhs) || !isEmptyInterfaceValueExpr(lhs) {
 		return false
@@ -5037,27 +5064,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 						continue
 					}
 				}
-				if isEmptyInterfaceType(expectedArgType) {
-					if ident, ok := arg.(*ast.Ident); ok && ident.Name == "nil" {
-						if NeedsConcurrentWrapper() {
-							TrackImport("Arc")
-							TrackImport("Mutex")
-							out.WriteString("Arc::new(Mutex::new(None::<")
-						} else {
-							TrackImport("Rc")
-							TrackImport("RefCell")
-							out.WriteString("Rc::new(RefCell::new(None::<")
-						}
-						out.WriteString(rustAnyTraitObject())
-						out.WriteString(">))")
-						continue
-					}
-					if writeEmptyInterfaceHandleClone(out, arg) {
-						continue
-					}
-					WriteWrapperPrefix(out)
-					writeInterfaceBoxedValue(out, arg)
-					WriteWrapperSuffix(out)
+				if writeEmptyInterfaceCallArgument(out, arg, expectedArgType) {
 					continue
 				}
 				if writeAlreadyWrappedCallArgument(out, arg) {
@@ -5282,6 +5289,8 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				TranspileExpression(out, arg)
 				out.WriteString(".clone()")
 			} else if _, ok := transpiledNamedInterfaceTypeNameFromTypes(selectedMethodParamType(sel, i)); ok && writeLocalInterfaceReferenceCallArgument(out, arg) {
+				continue
+			} else if writeEmptyInterfaceCallArgument(out, arg, selectedMethodParamType(sel, i)) {
 				continue
 			} else if writeStdlibInterfaceCallArgumentConversion(out, arg, selectedMethodParamType(sel, i)) {
 				continue

@@ -1,0 +1,8 @@
+[package]
+name = "method_any_argument"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "method_any_argument"
+path = "main.rs"
