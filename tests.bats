@@ -732,6 +732,10 @@ run_xfail_test() {
     run_test "tests/function_return_assignment"
 }
 
+@test "function_type_assertion_call" {
+    run_test "tests/function_type_assertion_call"
+}
+
 @test "functions_multiple_return" {
     run_test "tests/functions_multiple_return"
 }

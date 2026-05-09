@@ -1088,6 +1088,9 @@ func isPointerDerefExpression(expr ast.Expr) bool {
 }
 
 func isFunctionSignatureTypeExpr(expr ast.Expr) bool {
+	if _, ok := expr.(*ast.FuncType); ok {
+		return true
+	}
 	if ident, ok := expr.(*ast.Ident); ok && IsFunctionTypeAlias(ident.Name) {
 		return true
 	}

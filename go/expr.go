@@ -6320,7 +6320,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 	}
 
 	// Check if this is a closure call (calling a variable that holds a function)
-	closureCallBlock := false
+	closureCallSuffix := ""
 	if ident, ok := call.Fun.(*ast.Ident); ok {
 		// Check if this is a known function or a variable
 		if isBuiltinFunction(ident.Name) || isFunctionName(ident) {
@@ -6339,8 +6339,11 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 			out.WriteString(varName)
 			WriteBorrowMethod(out, false)
 			out.WriteString("; let __f = __f_guard.as_ref().unwrap(); (*__f)")
-			closureCallBlock = true
+			closureCallSuffix = " }"
 		}
+	} else if typeAssert, ok := call.Fun.(*ast.TypeAssertExpr); ok && typeAssertionEmitsBareFunctionValue(typeAssert) {
+		writeFunctionTypeAssertionCallTarget(out, typeAssert)
+		closureCallSuffix = "\n        } else {\n            panic!(\"type assertion on nil interface\")\n        }\n    })"
 	} else {
 		// Complex expression for the function (e.g., function returning a function)
 		out.WriteString("{ let __f_holder = ")
@@ -6348,7 +6351,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 		out.WriteString("; let __f_guard = __f_holder")
 		WriteBorrowMethod(out, false)
 		out.WriteString("; let __f = __f_guard.as_ref().unwrap(); (*__f)")
-		closureCallBlock = true
+		closureCallSuffix = " }"
 	}
 
 	out.WriteString("(")
@@ -6816,9 +6819,33 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 		}
 	}
 	out.WriteString(")")
-	if closureCallBlock {
-		out.WriteString(" }")
+	if closureCallSuffix != "" {
+		out.WriteString(closureCallSuffix)
 	}
+}
+
+func typeAssertionEmitsBareFunctionValue(expr ast.Expr) bool {
+	typeAssert, ok := expr.(*ast.TypeAssertExpr)
+	return ok && typeAssert.Type != nil && isFunctionSignatureTypeExpr(typeAssert.Type)
+}
+
+func writeFunctionTypeAssertionCallTarget(out *strings.Builder, e *ast.TypeAssertExpr) {
+	out.WriteString("({\n")
+	out.WriteString("        let val = ")
+	if ident, ok := e.X.(*ast.Ident); ok && ident.Name != "nil" {
+		out.WriteString(RustIdentForUse(ident))
+	} else {
+		TranspileExpressionContext(out, e.X, LValue)
+	}
+	out.WriteString(".clone();\n")
+	out.WriteString("        let guard = val")
+	WriteBorrowMethod(out, false)
+	out.WriteString(";\n")
+	out.WriteString("        if let Some(ref any_val) = *guard {\n")
+	out.WriteString("            let __f = any_val.downcast_ref::<")
+	out.WriteString(goTypeToRustBase(e.Type))
+	out.WriteString(">().expect(\"type assertion failed\");\n")
+	out.WriteString("            (*__f)")
 }
 
 func isFunctionValueSelector(sel *ast.SelectorExpr) bool {
