@@ -679,22 +679,30 @@ func zeroValueForTypesType(typ types.Type) string {
 		if _, isSlice := types.Unalias(named.Underlying()).(*types.Slice); isSlice {
 			return "Default::default()"
 		}
+		if basic, ok := types.Unalias(named.Underlying()).(*types.Basic); ok {
+			zeroValue := zeroValueForBasicType(basic)
+			if zeroValue != "" {
+				rustType := goTypesNamedTypeToRust(named)
+				if _, isExternalInteger := externalIntegerRustTypeForNamed(named); isExternalInteger {
+					return rustType + "(" + zeroValue + ")"
+				}
+				var out strings.Builder
+				out.WriteString(rustType)
+				out.WriteString("(")
+				WriteWrapperPrefix(&out)
+				out.WriteString(zeroValue)
+				WriteWrapperSuffix(&out)
+				out.WriteString(")")
+				return out.String()
+			}
+		}
 	}
 	switch t := typ.Underlying().(type) {
 	case *types.Basic:
-		switch t.Kind() {
-		case types.String:
-			return "String::new()"
-		case types.Bool:
-			return "false"
-		case types.Float32, types.Float64:
-			return "0.0"
-		case types.Int, types.Int8, types.Int16, types.Int32, types.Int64,
-			types.Uint, types.Uint8, types.Uint16, types.Uint32, types.Uint64, types.Uintptr:
-			return "0"
-		default:
-			return "Default::default()"
+		if zeroValue := zeroValueForBasicType(t); zeroValue != "" {
+			return zeroValue
 		}
+		return "Default::default()"
 	case *types.Slice:
 		return "vec![]"
 	case *types.Array:
@@ -703,6 +711,25 @@ func zeroValueForTypesType(typ types.Type) string {
 		return "BTreeMap::new()"
 	default:
 		return "Default::default()"
+	}
+}
+
+func zeroValueForBasicType(t *types.Basic) string {
+	if t == nil {
+		return ""
+	}
+	switch t.Kind() {
+	case types.String:
+		return "String::new()"
+	case types.Bool:
+		return "false"
+	case types.Float32, types.Float64:
+		return "0.0"
+	case types.Int, types.Int8, types.Int16, types.Int32, types.Int64,
+		types.Uint, types.Uint8, types.Uint16, types.Uint32, types.Uint64, types.Uintptr:
+		return "0"
+	default:
+		return ""
 	}
 }
 
@@ -753,6 +780,9 @@ func goTypesTypeToRust(t types.Type) string {
 			return "Box<dyn StdError>"
 		}
 		if obj.Pkg() != nil && isStdlibPackage(obj.Pkg().Path()) {
+			return goTypesNamedTypeToRust(named)
+		}
+		if _, isBasic := types.Unalias(named.Underlying()).(*types.Basic); isBasic {
 			return goTypesNamedTypeToRust(named)
 		}
 		if _, isSlice := types.Unalias(named.Underlying()).(*types.Slice); isSlice {

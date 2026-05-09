@@ -846,6 +846,10 @@ run_xfail_test() {
     run_test "tests/map_lookup_wrapped_call_key"
 }
 
+@test "map_named_integer_values" {
+    run_test "tests/map_named_integer_values"
+}
+
 @test "map_pointer_key_comma_ok" {
     run_test "tests/map_pointer_key_comma_ok"
 }
@@ -912,6 +916,10 @@ run_xfail_test() {
 
 @test "named_integer_const_arguments" {
     run_test "tests/named_integer_const_arguments"
+}
+
+@test "named_integer_const_array_literal" {
+    run_test "tests/named_integer_const_array_literal"
 }
 
 @test "named_integer_conversion" {

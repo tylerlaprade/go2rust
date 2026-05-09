@@ -5,7 +5,7 @@ use std::collections::BTreeMap;
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
-fn format_map<K: Display + Ord + Clone, V>(map: &Rc<RefCell<Option<BTreeMap<K, Rc<RefCell<Option<V>>>>>>>) -> String 
+fn format_map<K: Display + Ord + Clone, V>(map: &Rc<RefCell<Option<BTreeMap<K, Rc<RefCell<Option<V>>>>>>>) -> String
 where
     V: Display,
 {
@@ -13,7 +13,7 @@ where
     if let Some(ref m) = *guard {
         let mut items: Vec<_> = m.iter().collect();
         items.sort_by_key(|(k, _)| (*k).clone());
-        
+
         let formatted: Vec<String> = items
             .into_iter()
             .map(|(k, v)| {
@@ -25,7 +25,7 @@ where
                 }
             })
             .collect();
-        
+
         format!("map[{}]", formatted.join(" "))
     } else {
         "map[]".to_string()

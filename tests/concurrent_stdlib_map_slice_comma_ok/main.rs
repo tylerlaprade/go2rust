@@ -82,7 +82,7 @@ impl std::fmt::Display for scope {
 
 pub fn lookup(m: Arc<Mutex<Option<BTreeMap<GoLocalPtrKey<scope>, Arc<Mutex<Option<Vec<types_Object>>>>>>>>, s: Arc<Mutex<Option<scope>>>) -> Arc<Mutex<Option<Vec<types_Object>>>> {
 
-    let (mut objs, mut ok) = match (*m.lock().unwrap().as_ref().unwrap()).get(&GoLocalPtrKey::new(s.clone())) { /* MAP_COMMA_OK */ Some(v) => (v.clone(), Arc::new(Mutex::new(Some(true)))), None => (Arc::new(Mutex::new(Some(vec![]))), Arc::new(Mutex::new(Some(false)))) };
+    let (mut objs, mut ok) = { let __map = { let __map_holder = m.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = (*__map_guard.as_ref().unwrap()).clone(); drop(__map_guard); __cloned }; match __map.get(&GoLocalPtrKey::new(s.clone())) { /* MAP_COMMA_OK */ Some(v) => (v.clone(), Arc::new(Mutex::new(Some(true)))), None => (Arc::new(Mutex::new(Some(vec![]))), Arc::new(Mutex::new(Some(false)))) } };
     if !{ let __v = (*ok.lock().unwrap().as_ref().unwrap()).clone(); __v } {
         { let new_val = Arc::new(Mutex::new(Some(vec![Default::default(); (1) as usize]))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *objs.lock().unwrap() = __moved_val; };
         (*m.lock().unwrap().as_mut().unwrap()).insert(GoLocalPtrKey::new(s.clone()), objs.clone());

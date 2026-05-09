@@ -380,11 +380,11 @@ func writePackageGlobalMapLiteralInit(out *strings.Builder, name string, mapType
 			out.WriteString("        unimplemented!();\n")
 			continue
 		}
-		if writePackageGlobalMapSliceValueInsert(out, kv, mapType.Elem()) {
+		if writePackageGlobalMapSliceValueInsert(out, kv, mapType.Key(), mapType.Elem()) {
 			continue
 		}
 		out.WriteString("        __go_map.insert(")
-		writeMapLiteralKey(out, kv.Key)
+		writeMapLiteralKeyWithType(out, kv.Key, mapType.Key())
 		out.WriteString(", ")
 		writeWrappedMapValue(out, kv.Value, nil, mapType.Elem())
 		out.WriteString(");\n")
@@ -396,7 +396,7 @@ func writePackageGlobalMapLiteralInit(out *strings.Builder, name string, mapType
 	out.WriteString("    }\n")
 }
 
-func writePackageGlobalMapSliceValueInsert(out *strings.Builder, kv *ast.KeyValueExpr, valueType types.Type) bool {
+func writePackageGlobalMapSliceValueInsert(out *strings.Builder, kv *ast.KeyValueExpr, keyType types.Type, valueType types.Type) bool {
 	valueLit, ok := kv.Value.(*ast.CompositeLit)
 	if !ok {
 		return false
@@ -410,7 +410,7 @@ func writePackageGlobalMapSliceValueInsert(out *strings.Builder, kv *ast.KeyValu
 	out.WriteString("        let ")
 	out.WriteString(keyName)
 	out.WriteString(" = ")
-	writeMapLiteralKey(out, kv.Key)
+	writeMapLiteralKeyWithType(out, kv.Key, keyType)
 	out.WriteString(";\n")
 	out.WriteString("        let mut ")
 	out.WriteString(valueName)

@@ -2728,7 +2728,7 @@ func generateMapFormatter(out *strings.Builder) {
 	if NeedsConcurrentWrapper() {
 		TrackImport("Arc")
 		TrackImport("Mutex")
-		out.WriteString(`fn format_map<K: Display + Ord + Clone, V>(map: &Arc<Mutex<Option<BTreeMap<K, Arc<Mutex<Option<V>>>>>>>) -> String 
+		out.WriteString(`fn format_map<K: Display + Ord + Clone, V>(map: &Arc<Mutex<Option<BTreeMap<K, Arc<Mutex<Option<V>>>>>>>) -> String
 where
     V: Display,
 {
@@ -2736,7 +2736,7 @@ where
     if let Some(ref m) = *guard {
         let mut items: Vec<_> = m.iter().collect();
         items.sort_by_key(|(k, _)| (*k).clone());
-        
+
         let formatted: Vec<String> = items
             .into_iter()
             .map(|(k, v)| {
@@ -2748,7 +2748,7 @@ where
                 }
             })
             .collect();
-        
+
         format!("map[{}]", formatted.join(" "))
     } else {
         "map[]".to_string()
@@ -2758,7 +2758,7 @@ where
 	} else {
 		TrackImport("Rc")
 		TrackImport("RefCell")
-		out.WriteString(`fn format_map<K: Display + Ord + Clone, V>(map: &Rc<RefCell<Option<BTreeMap<K, Rc<RefCell<Option<V>>>>>>>) -> String 
+		out.WriteString(`fn format_map<K: Display + Ord + Clone, V>(map: &Rc<RefCell<Option<BTreeMap<K, Rc<RefCell<Option<V>>>>>>>) -> String
 where
     V: Display,
 {
@@ -2766,7 +2766,7 @@ where
     if let Some(ref m) = *guard {
         let mut items: Vec<_> = m.iter().collect();
         items.sort_by_key(|(k, _)| (*k).clone());
-        
+
         let formatted: Vec<String> = items
             .into_iter()
             .map(|(k, v)| {
@@ -2778,7 +2778,7 @@ where
                 }
             })
             .collect();
-        
+
         format!("map[{}]", formatted.join(" "))
     } else {
         "map[]".to_string()

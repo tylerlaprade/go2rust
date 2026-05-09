@@ -576,6 +576,10 @@ func writeMapWrappedValue(out *strings.Builder, expr ast.Expr) {
 }
 
 func writeMapKeyExpression(out *strings.Builder, expr ast.Expr) {
+	writeMapKeyExpressionWithType(out, expr, nil)
+}
+
+func writeMapKeyExpressionWithType(out *strings.Builder, expr ast.Expr, keyType types.Type) {
 	if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.IsPointer(expr) {
 		out.WriteString(goPtrKeyHelperNameForType(typeInfo.GetType(expr)))
 		out.WriteString("::new(")
@@ -584,6 +588,9 @@ func writeMapKeyExpression(out *strings.Builder, expr ast.Expr) {
 		return
 	}
 	if writeOwnedMapKeyExpression(out, expr) {
+		return
+	}
+	if keyType != nil && writeMapKeyForExpectedType(out, expr, keyType) {
 		return
 	}
 	if !isCopyTypeExpression(expr) && writeOwnedExpressionValue(out, expr) {
@@ -902,7 +909,9 @@ func writeMoveErrorAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) 
 func writeMapElementUpdate(out *strings.Builder, indexExpr *ast.IndexExpr, op token.Token, rhs ast.Expr) {
 	typeInfo := GetTypeInfo()
 	defaultValue := "Default::default()"
+	var keyType types.Type
 	if typeInfo != nil {
+		keyType, _ = typeInfo.GetMapTypes(indexExpr.X)
 		defaultValue = zeroValueForTypesType(typeInfo.GetMapValueType(indexExpr.X))
 	}
 
@@ -914,7 +923,7 @@ func writeMapElementUpdate(out *strings.Builder, indexExpr *ast.IndexExpr, op to
 	}
 	WriteBorrowMethod(out, true)
 	out.WriteString("; let __map = __map_guard.as_mut().unwrap(); let __entry = __map.entry(")
-	writeMapKeyExpression(out, indexExpr.Index)
+	writeMapKeyExpressionWithType(out, indexExpr.Index, keyType)
 	out.WriteString(").or_insert_with(|| ")
 	WriteWrapperPrefix(out)
 	out.WriteString(defaultValue)
@@ -2000,6 +2009,10 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		if isMapIndexAssign {
 			// Handle map[key] = value as map.insert(key, value)
 			if indexExpr, ok := s.Lhs[0].(*ast.IndexExpr); ok {
+				var keyType types.Type
+				if typeInfo := GetTypeInfo(); typeInfo != nil {
+					keyType, _ = typeInfo.GetMapTypes(indexExpr.X)
+				}
 				out.WriteString("(*")
 				// For map access, we need the raw identifier, not the unwrapped value
 				if ident, ok := indexExpr.X.(*ast.Ident); ok {
@@ -2009,7 +2022,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				}
 				WriteBorrowMethod(out, true)
 				out.WriteString(".as_mut().unwrap()).insert(")
-				writeMapKeyExpression(out, indexExpr.Index)
+				writeMapKeyExpressionWithType(out, indexExpr.Index, keyType)
 				out.WriteString(", ")
 				writeMapWrappedValue(out, s.Rhs[0])
 				out.WriteString(")")
@@ -2209,6 +2222,10 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			} else if isMapAccess && needsTupleUnpack {
 				// Handle map access with existence check
 				indexExpr := s.Rhs[0].(*ast.IndexExpr)
+				var keyType types.Type
+				if typeInfo := GetTypeInfo(); typeInfo != nil {
+					keyType, _ = typeInfo.GetMapTypes(indexExpr.X)
+				}
 
 				if s.Tok == token.DEFINE {
 					out.WriteString("let (")
@@ -2236,17 +2253,26 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					out.WriteString(") = ")
 				}
 
-				// Generate the map access code
-				out.WriteString("match (*")
-				// For map access, we need the raw identifier, not the unwrapped value
-				if ident, ok := indexExpr.X.(*ast.Ident); ok {
-					out.WriteString(EscapeRustIdent(ident.Name))
-				} else {
+				// Generate the map access code.
+				if isExpressionResultBare(indexExpr.X) || (!NeedsConcurrentWrapper() && isBareMapSelectorExpression(indexExpr.X)) {
+					out.WriteString("match ")
 					TranspileExpression(out, indexExpr.X)
+					out.WriteString(".get(")
+				} else if NeedsConcurrentWrapper() {
+					out.WriteString("{ let __map = ")
+					writeClonedWrappedExpression(out, indexExpr.X, "__map_holder", "__map_guard")
+					out.WriteString("; match __map.get(")
+				} else {
+					out.WriteString("match (*")
+					if ident, ok := indexExpr.X.(*ast.Ident); ok {
+						out.WriteString(EscapeRustIdent(ident.Name))
+					} else {
+						TranspileExpression(out, indexExpr.X)
+					}
+					WriteBorrowMethod(out, false)
+					out.WriteString(".as_ref().unwrap()).get(")
 				}
-				WriteBorrowMethod(out, false)
-				out.WriteString(".as_ref().unwrap()).get(")
-				writeMapLookupKey(out, indexExpr.Index)
+				writeMapLookupKeyWithType(out, indexExpr.Index, keyType)
 				out.WriteString(") { /* MAP_COMMA_OK */ Some(v) => (v.clone(), ")
 				WriteWrapperPrefix(out)
 				out.WriteString("true")
@@ -2258,6 +2284,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				out.WriteString("false")
 				WriteWrapperSuffix(out)
 				out.WriteString(") }")
+				if NeedsConcurrentWrapper() && !isExpressionResultBare(indexExpr.X) {
+					out.WriteString(" }")
+				}
 			} else if needsTupleUnpack {
 				if s.Tok == token.DEFINE {
 					out.WriteString("let ")

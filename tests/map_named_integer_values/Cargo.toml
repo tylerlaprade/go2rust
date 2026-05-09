@@ -1,0 +1,8 @@
+[package]
+name = "map_named_integer_values"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "map_named_integer_values"
+path = "main.rs"

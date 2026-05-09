@@ -48,6 +48,6 @@ fn main() {
     });
     let mut n = Arc::new(Mutex::new(Some(node { value: Arc::new(Mutex::new(Some(4))), ..Default::default() })));
     let mut seen = Arc::new(Mutex::new(Some(BTreeMap::<GoLocalPtrKey<node>, Arc<Mutex<Option<node>>>>::from([(GoLocalPtrKey::new(n.clone()), n.clone())]))));
-    let (mut got, mut ok) = match (*seen.lock().unwrap().as_ref().unwrap()).get(&GoLocalPtrKey::new(n.clone())) { /* MAP_COMMA_OK */ Some(v) => (v.clone(), Arc::new(Mutex::new(Some(true)))), None => (Arc::new(Mutex::new(Some(Default::default()))), Arc::new(Mutex::new(Some(false)))) };
+    let (mut got, mut ok) = { let __map = { let __map_holder = seen.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = (*__map_guard.as_ref().unwrap()).clone(); drop(__map_guard); __cloned }; match __map.get(&GoLocalPtrKey::new(n.clone())) { /* MAP_COMMA_OK */ Some(v) => (v.clone(), Arc::new(Mutex::new(Some(true)))), None => (Arc::new(Mutex::new(Some(Default::default()))), Arc::new(Mutex::new(Some(false)))) } };
     println!("{} {}", { let __v = (*ok.lock().unwrap().as_ref().unwrap()).clone(); __v }, (*{ let __field = (*got.lock().unwrap().as_ref().unwrap()).value.clone(); __field }.lock().unwrap().as_ref().unwrap()));
 }

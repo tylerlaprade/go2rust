@@ -1490,6 +1490,9 @@ func writeArraySliceLiteralElementValue(out *strings.Builder, expr ast.Expr, ele
 	if writeStdlibInterfaceBareConversion(out, expr, elemType) {
 		return true
 	}
+	if isConstantExpression(expr) && writeExpressionForExpectedTypesType(out, expr, elemType) {
+		return true
+	}
 	if call, ok := expr.(*ast.CallExpr); ok && typeInfo != nil && !compositeLiteralElementKeepsHandle(elemType) {
 		if typeInfo.ReturnsWrappedValue(call) && !isBareBuiltinReturn(call) && !callReturnsBareChannelValue(call) && (!typeInfo.IsTypeConversion(call) || typeConversionEmitsWrappedValue(call)) {
 			out.WriteString("{ let __v = ")
@@ -2258,7 +2261,29 @@ func findTypesStructFieldType(structType *types.Struct, fieldName string) types.
 	return nil
 }
 
+func writeMapKeyForExpectedType(out *strings.Builder, key ast.Expr, keyType types.Type) bool {
+	named, ok := types.Unalias(keyType).(*types.Named)
+	if !ok || named.Obj() == nil {
+		return false
+	}
+	if _, ok := types.Unalias(named.Underlying()).(*types.Basic); !ok {
+		return false
+	}
+	if ident, ok := key.(*ast.Ident); ok && currentReceiver != "" && ident.Name == currentReceiver {
+		out.WriteString("self.clone()")
+		return true
+	}
+	if isConstantExpression(key) {
+		return writeExpressionForExpectedTypesType(out, key, named)
+	}
+	return writeOwnedExpressionValue(out, key)
+}
+
 func writeMapLookupKey(out *strings.Builder, index ast.Expr) {
+	writeMapLookupKeyWithType(out, index, nil)
+}
+
+func writeMapLookupKeyWithType(out *strings.Builder, index ast.Expr, keyType types.Type) {
 	if ident, ok := index.(*ast.Ident); ok {
 		if varType, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar {
 			if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.IsPointer(index) && !isPointerKeyRangeVarType(varType) {
@@ -2282,6 +2307,9 @@ func writeMapLookupKey(out *strings.Builder, index ast.Expr) {
 		out.WriteString(".clone())")
 	} else {
 		out.WriteString("&")
+		if keyType != nil && writeMapKeyForExpectedType(out, index, keyType) {
+			return
+		}
 		if !writeOwnedMapKeyExpression(out, index) {
 			TranspileExpression(out, index)
 		}
@@ -2328,11 +2356,18 @@ func isPointerKeyRangeVarType(varType string) bool {
 }
 
 func writeMapLiteralKey(out *strings.Builder, key ast.Expr) {
+	writeMapLiteralKeyWithType(out, key, nil)
+}
+
+func writeMapLiteralKeyWithType(out *strings.Builder, key ast.Expr, keyType types.Type) {
 	if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.IsPointer(key) {
 		out.WriteString(goPtrKeyHelperNameForType(typeInfo.GetType(key)))
 		out.WriteString("::new(")
 		TranspileExpressionContext(out, key, LValue)
 		out.WriteString(".clone())")
+		return
+	}
+	if keyType != nil && writeMapKeyForExpectedType(out, key, keyType) {
 		return
 	}
 	if !writeOwnedMapKeyExpression(out, key) {
@@ -3421,9 +3456,10 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		if isMap {
 			// Map read access - need to clone the value
 			defaultValue := "Default::default()"
+			var keyType types.Type
 			var valueType types.Type
 			if typeInfo != nil {
-				valueType = typeInfo.GetMapValueType(e.X)
+				keyType, valueType = typeInfo.GetMapTypes(e.X)
 				defaultValue = zeroValueForTypesType(valueType)
 			}
 			if isExpressionResultBare(e.X) || (!NeedsConcurrentWrapper() && isBareMapSelectorExpression(e.X)) {
@@ -3431,14 +3467,14 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				// Use RValue context to get the bare map value, then .get() directly
 				TranspileExpression(out, e.X)
 				out.WriteString(".get(")
-				writeMapLookupKey(out, e.Index)
+				writeMapLookupKeyWithType(out, e.Index, keyType)
 				out.WriteString(")")
 				writeMapLookupValue(out, valueType, defaultValue)
 			} else if NeedsConcurrentWrapper() {
 				out.WriteString("{ let __map = ")
 				writeClonedWrappedExpression(out, e.X, "__map_holder", "__map_guard")
 				out.WriteString("; __map.get(")
-				writeMapLookupKey(out, e.Index)
+				writeMapLookupKeyWithType(out, e.Index, keyType)
 				out.WriteString(")")
 				writeMapLookupValue(out, valueType, defaultValue)
 				out.WriteString(" }")
@@ -3451,7 +3487,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				}
 				WriteBorrowMethod(out, false)
 				out.WriteString(".as_ref().unwrap()).get(")
-				writeMapLookupKey(out, e.Index)
+				writeMapLookupKeyWithType(out, e.Index, keyType)
 				out.WriteString(")")
 				writeMapLookupValue(out, valueType, defaultValue)
 			}
@@ -3605,6 +3641,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 						TrackImport("BTreeMap")
 						keyRust := goTypesMapKeyToRust(mapType.Key())
 						valRust := goTypesMapValueToRust(mapType.Elem())
+						mapKeyType := mapType.Key()
 						out.WriteString("BTreeMap::<")
 						out.WriteString(keyRust)
 						out.WriteString(", ")
@@ -3616,7 +3653,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 							}
 							if kv, ok := elt.(*ast.KeyValueExpr); ok {
 								out.WriteString("(")
-								TranspileExpression(out, kv.Key)
+								writeMapLiteralKeyWithType(out, kv.Key, mapKeyType)
 								out.WriteString(", ")
 								writeWrappedMapValue(out, kv.Value, nil, mapType.Elem())
 								out.WriteString(")")
@@ -3730,7 +3767,11 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					out.WriteString(", ")
 				}
 				if elt == nil {
-					out.WriteString(zeroValueForGoType(arrayType.Elt))
+					if elemType != nil {
+						out.WriteString(zeroValueForTypesType(elemType))
+					} else {
+						out.WriteString(zeroValueForGoType(arrayType.Elt))
+					}
 					continue
 				}
 				if isInterfaceSlice {
@@ -3785,6 +3826,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			out.WriteString("BTreeMap::<")
 			keyRust := goMapKeyTypeToRustBase(mapType.Key)
 			valueRust := GoTypeToRust(mapType.Value)
+			var mapKeyType types.Type
 			var mapValueType types.Type
 			typeInfo := GetTypeInfo()
 			if typeInfo != nil {
@@ -3792,6 +3834,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					if checkedMap, ok := typ.Underlying().(*types.Map); ok {
 						keyRust = goTypesMapKeyToRust(checkedMap.Key())
 						valueRust = goTypesMapValueToRust(checkedMap.Elem())
+						mapKeyType = checkedMap.Key()
 						mapValueType = checkedMap.Elem()
 					}
 				}
@@ -3806,7 +3849,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				}
 				if kv, ok := elt.(*ast.KeyValueExpr); ok {
 					out.WriteString("(")
-					writeMapLiteralKey(out, kv.Key)
+					writeMapLiteralKeyWithType(out, kv.Key, mapKeyType)
 					out.WriteString(", ")
 					writeWrappedMapValue(out, kv.Value, mapType.Value, mapValueType)
 					out.WriteString(")")

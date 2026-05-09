@@ -18,7 +18,7 @@ fn main() {
     let mut idx = Arc::new(Mutex::new(Some(Index(Arc::new(Mutex::new(Some(3 as i32)))))));
     let mut e = Arc::new(Mutex::new(Some(Entry { kind: k.clone(), index: idx.clone(), ..Default::default() })));
     (*seen.lock().unwrap().as_mut().unwrap()).insert((*e.lock().unwrap().as_ref().unwrap()).clone(), Arc::new(Mutex::new(Some(0))));
-    let (mut got, mut ok) = match (*seen.lock().unwrap().as_ref().unwrap()).get(&(*e.lock().unwrap().as_ref().unwrap()).clone()) { /* MAP_COMMA_OK */ Some(v) => (v.clone(), Arc::new(Mutex::new(Some(true)))), None => (Arc::new(Mutex::new(Some(0))), Arc::new(Mutex::new(Some(false)))) };
+    let (mut got, mut ok) = { let __map = { let __map_holder = seen.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = (*__map_guard.as_ref().unwrap()).clone(); drop(__map_guard); __cloned }; match __map.get(&(*e.lock().unwrap().as_ref().unwrap()).clone()) { /* MAP_COMMA_OK */ Some(v) => (v.clone(), Arc::new(Mutex::new(Some(true)))), None => (Arc::new(Mutex::new(Some(0))), Arc::new(Mutex::new(Some(false)))) } };
     if { let __v = (*ok.lock().unwrap().as_ref().unwrap()).clone(); __v } {
         println!("{}", { let __v = (*got.lock().unwrap().as_ref().unwrap()).clone(); __v });
     }

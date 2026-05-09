@@ -168,17 +168,17 @@ impl<T> GoGlobal<T> {
     }
 }
 
-pub(crate) static stateName: GoGlobal<BTreeMap<i32, Rc<RefCell<Option<String>>>>> = GoGlobal::new();
+pub(crate) static stateName: GoGlobal<BTreeMap<ServerState, Rc<RefCell<Option<String>>>>> = GoGlobal::new();
 
 
 fn __go_init_globals() {
     *stateName.borrow_mut() = Some(BTreeMap::new());
     {
-        let mut __go_map = BTreeMap::<i32, Rc<RefCell<Option<String>>>>::new();
-        __go_map.insert(STATE_IDLE, Rc::new(RefCell::new(Some("idle".to_string()))));
-        __go_map.insert(STATE_CONNECTED, Rc::new(RefCell::new(Some("connected".to_string()))));
-        __go_map.insert(STATE_ERROR, Rc::new(RefCell::new(Some("error".to_string()))));
-        __go_map.insert(STATE_RETRYING, Rc::new(RefCell::new(Some("retrying".to_string()))));
+        let mut __go_map = BTreeMap::<ServerState, Rc<RefCell<Option<String>>>>::new();
+        __go_map.insert(ServerState(Rc::new(RefCell::new(Some(STATE_IDLE as i32)))), Rc::new(RefCell::new(Some("idle".to_string()))));
+        __go_map.insert(ServerState(Rc::new(RefCell::new(Some(STATE_CONNECTED as i32)))), Rc::new(RefCell::new(Some("connected".to_string()))));
+        __go_map.insert(ServerState(Rc::new(RefCell::new(Some(STATE_ERROR as i32)))), Rc::new(RefCell::new(Some("error".to_string()))));
+        __go_map.insert(ServerState(Rc::new(RefCell::new(Some(STATE_RETRYING as i32)))), Rc::new(RefCell::new(Some("retrying".to_string()))));
         *stateName.borrow_mut() = Some(__go_map);
     }
 }
@@ -186,7 +186,7 @@ fn __go_init_globals() {
 
 impl ServerState {
     pub fn string(&self) -> Rc<RefCell<Option<String>>> {
-        return Rc::new(RefCell::new(Some((*stateName.borrow().as_ref().unwrap()).get(&(*self.0.borrow().as_ref().unwrap())).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| String::new()))));
+        return Rc::new(RefCell::new(Some((*stateName.borrow().as_ref().unwrap()).get(&self.clone()).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| String::new()))));
     }
 }
 
