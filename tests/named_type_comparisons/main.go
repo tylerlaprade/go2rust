@@ -18,7 +18,12 @@ func same(a, b Kind) bool {
 	return a == b
 }
 
+func zeroKind() Kind {
+	return 0
+}
+
 func main() {
 	fmt.Println(different(Invalid, String))
 	fmt.Println(same(Bool, Bool))
+	fmt.Println(zeroKind() == Invalid)
 }

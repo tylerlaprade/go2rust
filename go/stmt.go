@@ -1676,6 +1676,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							if lit, ok := result.(*ast.BasicLit); ok && lit.Kind == token.STRING {
 								out.WriteString(RustStringLiteral(lit.Value))
 								out.WriteString(".to_string()")
+							} else if writeExpressionForExpectedType(out, result, returnResultTypeExpr(fnType, i)) {
 							} else {
 								TranspileExpression(out, result)
 							}

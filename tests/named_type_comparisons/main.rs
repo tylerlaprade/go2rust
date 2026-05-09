@@ -155,7 +155,13 @@ pub fn same(a: Rc<RefCell<Option<Kind>>>, b: Rc<RefCell<Option<Kind>>>) -> Rc<Re
         };
 }
 
+pub fn zero_kind() -> Rc<RefCell<Option<Kind>>> {
+
+    return Rc::new(RefCell::new(Some(Kind(Rc::new(RefCell::new(Some(0 as i8)))))));
+}
+
 fn main() {
     println!("{}", (*different(Rc::new(RefCell::new(Some(Kind(Rc::new(RefCell::new(Some(INVALID as i8))))))), Rc::new(RefCell::new(Some(Kind(Rc::new(RefCell::new(Some(STRING as i8)))))))).borrow().as_ref().unwrap()));
     println!("{}", (*same(Rc::new(RefCell::new(Some(Kind(Rc::new(RefCell::new(Some(BOOL as i8))))))), Rc::new(RefCell::new(Some(Kind(Rc::new(RefCell::new(Some(BOOL as i8)))))))).borrow().as_ref().unwrap()));
+    println!("{}", (*zero_kind().borrow().as_ref().unwrap()).clone() == Kind(Rc::new(RefCell::new(Some(INVALID as i8)))));
 }
