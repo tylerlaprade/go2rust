@@ -786,6 +786,10 @@ run_xfail_test() {
     run_test "tests/len_call_argument"
 }
 
+@test "len_short_decl" {
+    run_test "tests/len_short_decl"
+}
+
 @test "len_string_literal_slice_bounds" {
     run_test "tests/len_string_literal_slice_bounds"
 }

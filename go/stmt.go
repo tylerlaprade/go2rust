@@ -48,6 +48,32 @@ func writeArraySliceElementAssignmentValue(out *strings.Builder, rhs ast.Expr) {
 	}
 }
 
+func writeLenCapShortDeclInitializer(out *strings.Builder, call *ast.CallExpr, lhs ast.Expr) bool {
+	if call == nil || !isBareBuiltinCallName(call, "len") && !isBareBuiltinCallName(call, "cap") {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	lhsType := typeInfo.GetType(lhs)
+	if lhsType == nil {
+		lhsType = typeInfo.GetType(call)
+	}
+	if lhsType == nil {
+		return false
+	}
+	basic, ok := types.Unalias(lhsType).Underlying().(*types.Basic)
+	if !ok || basic.Kind() != types.Int {
+		return false
+	}
+	WriteWrapperPrefix(out)
+	TranspileExpression(out, call)
+	out.WriteString(" as i32")
+	WriteWrapperSuffix(out)
+	return true
+}
+
 func writeNestedSliceElementAssignment(out *strings.Builder, indexExpr *ast.IndexExpr, rhs ast.Expr) bool {
 	innerIndex, ok := indexExpr.X.(*ast.IndexExpr)
 	if !ok {
@@ -2859,6 +2885,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 											// Taking address - don't wrap, the & operator will handle it
 											TranspileExpression(out, rhs)
 										} else if callExpr, isCall := rhs.(*ast.CallExpr); isCall {
+											if len(s.Lhs) == 1 && writeLenCapShortDeclInitializer(out, callExpr, s.Lhs[0]) {
+												continue
+											}
 											// len()/cap() return bare primitives — register LHS as bare
 											if callIdent, ok := callExpr.Fun.(*ast.Ident); ok {
 												if callIdent.Name == "len" || callIdent.Name == "cap" {

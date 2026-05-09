@@ -4,8 +4,8 @@ use std::rc::{Rc};
 fn main() {
     let mut values = Rc::new(RefCell::new(Some(vec![1, 2, 3, 4])));
 
-    let mut n = (*values.borrow().as_ref().unwrap()).len();
-    { let _switch_val = n;
+    let mut n = Rc::new(RefCell::new(Some((*values.borrow().as_ref().unwrap()).len() as i32)));
+    { let _switch_val = (*n.borrow().as_ref().unwrap());
     if _switch_val == (0) {
             println!("{}", "empty".to_string());
         } else if _switch_val == (4) {

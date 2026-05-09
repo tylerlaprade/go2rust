@@ -349,6 +349,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ `len` | ✅ |
 | └ `cap` | ✅ |
 | └ `len`/`cap` passed to Go `int` parameters | ✅ |
+| └ `len`/`cap` short declarations as Go `int` values | ✅ |
 | └ `append` | ✅ |
 | └ `copy` | ✅ |
 | └ `make` | ✅ |
