@@ -886,6 +886,10 @@ run_xfail_test() {
     run_test "tests/mutex_guard_method_call"
 }
 
+@test "named_integer_conversion" {
+    run_test "tests/named_integer_conversion"
+}
+
 @test "named_integer_index" {
     run_test "tests/named_integer_index"
 }

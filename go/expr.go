@@ -39,24 +39,6 @@ func writeExpressionAsUsize(out *strings.Builder, expr ast.Expr) {
 }
 
 func writeNamedIntegerExpressionAsUsize(out *strings.Builder, expr ast.Expr) bool {
-	if binary, ok := expr.(*ast.BinaryExpr); ok {
-		typeInfo := GetTypeInfo()
-		if typeInfo == nil || !isNamedIntegerType(typeInfo.GetType(binary)) {
-			return false
-		}
-		out.WriteString("(")
-		if !writeNamedIntegerPrimitiveExpression(out, binary.X) {
-			TranspileExpression(out, binary.X)
-		}
-		out.WriteString(" ")
-		out.WriteString(rustBinaryOp(binary.Op))
-		out.WriteString(" ")
-		if !writeNamedIntegerPrimitiveExpression(out, binary.Y) {
-			TranspileExpression(out, binary.Y)
-		}
-		out.WriteString(") as usize")
-		return true
-	}
 	if !writeNamedIntegerPrimitiveExpression(out, expr) {
 		return false
 	}
@@ -65,6 +47,9 @@ func writeNamedIntegerExpressionAsUsize(out *strings.Builder, expr ast.Expr) boo
 }
 
 func writeNamedIntegerPrimitiveExpression(out *strings.Builder, expr ast.Expr) bool {
+	if binary, ok := expr.(*ast.BinaryExpr); ok {
+		return writeNamedIntegerBinaryPrimitiveExpression(out, binary)
+	}
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil {
 		return false
@@ -75,6 +60,22 @@ func writeNamedIntegerPrimitiveExpression(out *strings.Builder, expr ast.Expr) b
 	}
 	if lit, ok := expr.(*ast.BasicLit); ok {
 		out.WriteString(lit.Value)
+		return true
+	}
+	if _, ok := externalIntegerRustTypeForNamed(named); ok {
+		var value strings.Builder
+		if isConstExpressionForUsize(expr) {
+			TranspileExpression(&value, expr)
+		} else if typeInfo.ReturnsWrappedValue(expr) {
+			value.WriteString("(*")
+			TranspileExpressionContext(&value, expr, LValue)
+			WriteBorrowMethod(&value, false)
+			value.WriteString(".as_ref().unwrap())")
+		} else {
+			TranspileExpression(&value, expr)
+		}
+		out.WriteString(value.String())
+		out.WriteString(".0")
 		return true
 	}
 	if isConstExpressionForUsize(expr) {
@@ -100,6 +101,32 @@ func writeNamedIntegerPrimitiveExpression(out *strings.Builder, expr ast.Expr) b
 	WriteBorrowMethod(out, false)
 	out.WriteString(".as_ref().unwrap())")
 	return true
+}
+
+func writeNamedIntegerBinaryPrimitiveExpression(out *strings.Builder, expr *ast.BinaryExpr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || !isNamedIntegerType(typeInfo.GetType(expr)) {
+		return false
+	}
+	out.WriteString("(")
+	writeNamedIntegerPrimitiveOperand(out, expr.X)
+	out.WriteString(" ")
+	out.WriteString(rustBinaryOp(expr.Op))
+	out.WriteString(" ")
+	writeNamedIntegerPrimitiveOperand(out, expr.Y)
+	out.WriteString(")")
+	return true
+}
+
+func writeNamedIntegerPrimitiveOperand(out *strings.Builder, expr ast.Expr) {
+	if lit, ok := expr.(*ast.BasicLit); ok {
+		out.WriteString(lit.Value)
+		return
+	}
+	if writeNamedIntegerPrimitiveExpression(out, expr) {
+		return
+	}
+	TranspileExpression(out, expr)
 }
 
 func isNamedIntegerType(typ types.Type) bool {
@@ -4977,6 +5004,10 @@ func writeNumericConversionValue(out *strings.Builder, arg ast.Expr) {
 	var argType types.Type
 	if typeInfo != nil {
 		argType = typeInfo.GetType(arg)
+	}
+
+	if writeNamedIntegerPrimitiveExpression(out, arg) {
+		return
 	}
 
 	if ident, ok := arg.(*ast.Ident); ok && ident.Name != "nil" {

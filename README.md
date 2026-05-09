@@ -264,6 +264,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Named scalar equality comparisons | ✅ |
 | └ Instantiated generic function type aliases | ✅ |
 | └ Numeric conversions from literals and expressions | ✅ |
+| └ Numeric conversions from named integer values | ✅ |
 | └ Named slice type definitions in methods, parameters, ranges, indexing, append, and field method arguments | ✅ |
 | └ Named slice type definitions in package globals | ✅ |
 | └ Interface types | ✅ |

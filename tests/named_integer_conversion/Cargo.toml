@@ -1,0 +1,8 @@
+[package]
+name = "named_integer_conversion"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "named_integer_conversion"
+path = "main.rs"

@@ -148,7 +148,7 @@ pub fn dir() -> Arc<Mutex<Option<types_ChanDir>>> {
 
 pub fn zero_kind() -> Arc<Mutex<Option<types_BasicKind>>> {
 
-    return Arc::new(Mutex::new(Some(types_BasicKind(0.0 as i32))));
+    return Arc::new(Mutex::new(Some(types_BasicKind(0 as i32))));
 }
 
 pub fn pos_from_int(n: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<token_Pos>>> {
