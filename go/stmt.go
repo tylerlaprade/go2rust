@@ -235,6 +235,21 @@ func isReferenceRangeTarget(expr ast.Expr) bool {
 	return ok && (varType == "ref_value" || strings.HasPrefix(varType, "&"))
 }
 
+func rangeElementUsesCopied(typ types.Type) bool {
+	if typ == nil {
+		return false
+	}
+	switch underlying := types.Unalias(typ).Underlying().(type) {
+	case *types.Basic:
+		info := underlying.Info()
+		return info&types.IsNumeric != 0 || info&types.IsBoolean != 0
+	case *types.Array:
+		return rangeElementUsesCopied(underlying.Elem())
+	default:
+		return false
+	}
+}
+
 func rangeLoopIdentAssigned(body *ast.BlockStmt, name string) bool {
 	if body == nil || name == "" || name == "_" {
 		return false
@@ -3901,13 +3916,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				if s.Key != nil && !isMap && !isString && valueType == "T" {
 					// Check if element type is a numeric/bool (Rust Copy) type
 					elemType := typeInfo.GetArrayOrSliceElemType(s.X)
-					if elemType != nil {
-						if basic, ok := elemType.Underlying().(*types.Basic); ok {
-							info := basic.Info()
-							if info&types.IsNumeric != 0 || info&types.IsBoolean != 0 {
-								needsCopied = true
-							}
-						}
+					if rangeElementUsesCopied(elemType) {
+						needsCopied = true
 					}
 					if needsCopied || valueAssigned {
 						rangeLoopVars[valueName] = valueType
@@ -4064,15 +4074,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					// For numeric/bool (Rust Copy) types, use .iter().copied()
 					// to get owned values instead of &(...) which gives references
 					elemTypeV := typeInfo.GetArrayOrSliceElemType(s.X)
-					valCopied := false
-					if elemTypeV != nil {
-						if basic, ok := elemTypeV.Underlying().(*types.Basic); ok {
-							info := basic.Info()
-							if info&types.IsNumeric != 0 || info&types.IsBoolean != 0 {
-								valCopied = true
-							}
-						}
-					}
+					valCopied := rangeElementUsesCopied(elemTypeV)
 					if valCopied {
 						out.WriteString(" in ")
 						if rangeValuesVar != "" {
@@ -4129,15 +4131,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				writeRangeBinding(out, s.Value, valueAssigned)
 				// For numeric/bool (Rust Copy) types, use .iter().copied()
 				elemTypeV2 := typeInfo.GetArrayOrSliceElemType(s.X)
-				valCopied2 := false
-				if elemTypeV2 != nil {
-					if basic, ok := elemTypeV2.Underlying().(*types.Basic); ok {
-						info := basic.Info()
-						if info&types.IsNumeric != 0 || info&types.IsBoolean != 0 {
-							valCopied2 = true
-						}
-					}
-				}
+				valCopied2 := rangeElementUsesCopied(elemTypeV2)
 				if valCopied2 {
 					out.WriteString(" in ")
 					if rangeValuesVar != "" {
