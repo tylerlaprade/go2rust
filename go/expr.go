@@ -788,6 +788,36 @@ func writeCallArgumentValue(out *strings.Builder, arg ast.Expr) bool {
 	}
 }
 
+func writeRangeStringCallArgumentValue(out *strings.Builder, arg ast.Expr, expected types.Type) bool {
+	ident, ok := arg.(*ast.Ident)
+	if !ok || expected == nil {
+		return false
+	}
+	varType, isRangeVar := rangeLoopVars[ident.Name]
+	if !isRangeVar {
+		return false
+	}
+	basic, ok := types.Unalias(expected).Underlying().(*types.Basic)
+	if !ok || basic.Kind() != types.String {
+		return false
+	}
+	argName := RustIdentForUse(ident)
+	if currentCaptureRenames != nil {
+		if renamed, exists := currentCaptureRenames[ident.Name]; exists {
+			argName = RustLocalIdent(renamed)
+		}
+	}
+	if varType == "ref_value" || strings.HasPrefix(varType, "&") {
+		out.WriteString("(*")
+		out.WriteString(argName)
+		out.WriteString(").clone()")
+	} else {
+		out.WriteString(argName)
+		out.WriteString(".clone()")
+	}
+	return true
+}
+
 func writeExternalStubCallArgument(out *strings.Builder, arg ast.Expr) {
 	if ident, ok := arg.(*ast.Ident); ok && ident.Name == "nil" {
 		out.WriteString("()")
@@ -5802,6 +5832,8 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				WriteWrapperPrefix(out)
 				if writeConstExpressionForExpectedGoType(out, arg, expectedArgType) {
 					// Constant emitted in the parameter's expected representation.
+				} else if writeRangeStringCallArgumentValue(out, arg, expectedArgType) {
+					// Range string reference cloned for an owned string parameter.
 				} else if !writeCallArgumentValue(out, arg) {
 					TranspileExpression(out, arg)
 				}
@@ -6032,6 +6064,8 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				WriteWrapperPrefix(out)
 				if writeConstExpressionForExpectedGoType(out, arg, expectedArgType) {
 					// Constant emitted in the parameter's expected representation.
+				} else if writeRangeStringCallArgumentValue(out, arg, expectedArgType) {
+					// Range string reference cloned for an owned string parameter.
 				} else if !writeCallArgumentValue(out, arg) {
 					TranspileExpression(out, arg)
 				}
