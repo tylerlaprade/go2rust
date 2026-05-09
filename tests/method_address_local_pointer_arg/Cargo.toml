@@ -1,0 +1,8 @@
+[package]
+name = "method_address_local_pointer_arg"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "method_address_local_pointer_arg"
+path = "main.rs"

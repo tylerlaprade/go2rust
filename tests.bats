@@ -854,6 +854,10 @@ run_xfail_test() {
     run_test "tests/maps_operations"
 }
 
+@test "method_address_local_pointer_arg" {
+    run_test "tests/method_address_local_pointer_arg"
+}
+
 @test "method_any_argument" {
     run_test "tests/method_any_argument"
 }

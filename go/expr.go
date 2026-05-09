@@ -805,6 +805,24 @@ func writeExternalStubCallArgument(out *strings.Builder, arg ast.Expr) {
 }
 
 func writeAlreadyWrappedCallArgument(out *strings.Builder, arg ast.Expr) bool {
+	if unary, ok := arg.(*ast.UnaryExpr); ok && unary.Op == token.AND {
+		if ident, ok := unary.X.(*ast.Ident); ok && ident.Name != "_" && ident.Name != "nil" {
+			if currentReceiver != "" && ident.Name == currentReceiver {
+				return false
+			}
+			typeInfo := GetTypeInfo()
+			if typeInfo != nil {
+				if typ := typeInfo.GetType(arg); typ != nil {
+					if _, ok := types.Unalias(typ).Underlying().(*types.Pointer); ok {
+						if _, isLocalConst := localConstants[ident.Name]; !isLocalConst && !isConstIdent(ident) {
+							TranspileExpression(out, arg)
+							return true
+						}
+					}
+				}
+			}
+		}
+	}
 	if ident, ok := arg.(*ast.Ident); ok && ident.Name != "nil" {
 		if currentReceiver != "" && ident.Name == currentReceiver {
 			return false

@@ -19,6 +19,7 @@ Pointer types, &/*, new() builtin, struct fields, nil handling
 - ✅ Address-of struct fields and slice elements preserve mutation aliases (address_of_fields_and_elements promoted, 2026-05-06)
 - ✅ Pointer receiver nil branches - receiver comparisons lower without referencing the old Go receiver name, and pointer variables pass through method calls as wrapped pointer values (pointer_receiver_nil_compare added, 2026-05-07)
 - ✅ Pointer receiver field literals - pointer receivers assigned into pointer fields in struct literals rewrap `self.clone()` as the field handle using go/types assignability (receiver_pointer_field_literal added, 2026-05-09)
+- ✅ Address-of local pointer arguments - method calls such as `h.Store(&value)` pass the existing local wrapper clone instead of nesting the wrapper inside a new pointer handle (method_address_local_pointer_arg promoted, 2026-05-09)
 - ✅ Declared pointers to slice elements - explicit `var p *T` locals assigned from `&slice[i]` lower to optional slice-element handles for nil checks and dereference assignment (declared_slice_elem_pointer promoted, 2026-05-07)
 - ✅ Ranged pointer fields - range variables from `[]*T` preserve pointer-wrapper type information for field access and call arguments (range_pointer_fields added, 2026-05-07)
 
