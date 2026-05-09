@@ -25,10 +25,16 @@ func rustConstName(name string) string {
 func writeExpressionForExpectedType(out *strings.Builder, value ast.Expr, expected ast.Expr) bool {
 	expectedIdent, ok := expected.(*ast.Ident)
 	if !ok {
+		if typeInfo := GetTypeInfo(); typeInfo != nil {
+			return writeExpressionForExpectedTypesType(out, value, typeInfo.GetType(expected))
+		}
 		return false
 	}
 	underlying, isTypeDef := LookupTypeDefinition(expectedIdent.Name)
 	if !isTypeDef {
+		if typeInfo := GetTypeInfo(); typeInfo != nil {
+			return writeExpressionForExpectedTypesType(out, value, typeInfo.GetType(expected))
+		}
 		return false
 	}
 	out.WriteString(expectedIdent.Name)

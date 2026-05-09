@@ -1648,15 +1648,26 @@ func writeExpressionForExpectedTypesType(out *strings.Builder, value ast.Expr, e
 	if !ok {
 		return false
 	}
+	if rustType, ok := externalIntegerRustTypeForNamed(named); ok {
+		out.WriteString(goTypesNamedTypeToRust(named))
+		out.WriteString("(")
+		writeNumericConversionValue(out, value)
+		out.WriteString(" as ")
+		out.WriteString(rustType)
+		out.WriteString(")")
+		return true
+	}
+	basic, ok := named.Underlying().(*types.Basic)
+	if !ok {
+		return false
+	}
 	out.WriteString(goTypesNamedTypeToRust(named))
 	out.WriteString("(")
 	WriteWrapperPrefix(out)
 	TranspileExpression(out, value)
-	if basic, ok := named.Underlying().(*types.Basic); ok {
-		if _, ok := rustCastTypeForDefinedUnderlying(basic.Name()); ok {
-			out.WriteString(" as ")
-			out.WriteString(goTypesTypeToRust(named.Underlying()))
-		}
+	if _, ok := rustCastTypeForDefinedUnderlying(basic.Name()); ok {
+		out.WriteString(" as ")
+		out.WriteString(goTypesTypeToRust(named.Underlying()))
 	}
 	WriteWrapperSuffix(out)
 	out.WriteString(")")
@@ -4077,6 +4088,16 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 		targetType = sel.Sel.Name
 	}
 
+	if named, rustType, ok := externalIntegerConversionTarget(call); ok {
+		out.WriteString(goTypesNamedTypeToRust(named))
+		out.WriteString("(")
+		writeNumericConversionValue(out, call.Args[0])
+		out.WriteString(" as ")
+		out.WriteString(rustType)
+		out.WriteString(")")
+		return
+	}
+
 	// Map Go types to Rust types and handle the conversion
 	rustType := ""
 	needsCast := true
@@ -4454,6 +4475,9 @@ func writeNamedTypeDefinitionAccess(out *strings.Builder, expr ast.Expr) {
 }
 
 func typeConversionEmitsWrappedValue(call *ast.CallExpr) bool {
+	if _, _, ok := externalIntegerConversionTarget(call); ok {
+		return false
+	}
 	targetType := ""
 	if ident, ok := call.Fun.(*ast.Ident); ok {
 		targetType = ident.Name
@@ -4465,6 +4489,19 @@ func typeConversionEmitsWrappedValue(call *ast.CallExpr) bool {
 	}
 	_, isTypeDef := LookupTypeDefinition(targetType)
 	return !isTypeDef
+}
+
+func externalIntegerConversionTarget(call *ast.CallExpr) (*types.Named, string, bool) {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || call == nil {
+		return nil, "", false
+	}
+	named, ok := typeInfo.GetType(call).(*types.Named)
+	if !ok {
+		return nil, "", false
+	}
+	rustType, ok := externalIntegerRustTypeForNamed(named)
+	return named, rustType, ok
 }
 
 func writeStringConversionSource(out *strings.Builder, arg ast.Expr) {
