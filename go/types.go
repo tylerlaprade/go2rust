@@ -770,6 +770,9 @@ func goTypesTypeToRust(t types.Type) string {
 	if sig, ok := signatureFromType(t); ok {
 		return signatureToBoxDynFn(sig)
 	}
+	if named, ok := types.Unalias(t).(*types.Named); ok && named.Obj() != nil && named.Obj().Pkg() != nil && isStdlibPackage(named.Obj().Pkg().Path()) {
+		return goTypesNamedTypeToRust(named)
+	}
 	if named, ok := t.(*types.Named); ok && named.Obj() != nil {
 		obj := named.Obj()
 		if obj.Pkg() == nil && obj.Name() == "error" {

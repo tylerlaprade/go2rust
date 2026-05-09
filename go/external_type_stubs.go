@@ -172,11 +172,7 @@ func RegisterExternalSelectorField(sel *ast.SelectorExpr) {
 	if !ok || selection.Kind() != types.FieldVal {
 		return
 	}
-	recv := selection.Recv()
-	if ptr, ok := recv.(*types.Pointer); ok {
-		recv = ptr.Elem()
-	}
-	named, ok := recv.(*types.Named)
+	named, ok := externalSelectorReceiverNamed(selection.Recv())
 	if !ok || named.Obj() == nil || named.Obj().Pkg() == nil {
 		return
 	}
@@ -202,11 +198,7 @@ func RegisterExternalSelectorMethod(sel *ast.SelectorExpr) {
 	if !ok || (selection.Kind() != types.MethodVal && selection.Kind() != types.MethodExpr) {
 		return
 	}
-	recv := selection.Recv()
-	if ptr, ok := recv.(*types.Pointer); ok {
-		recv = ptr.Elem()
-	}
-	named, ok := recv.(*types.Named)
+	named, ok := externalSelectorReceiverNamed(selection.Recv())
 	if !ok || named.Obj() == nil || named.Obj().Pkg() == nil {
 		return
 	}
@@ -236,11 +228,7 @@ func IsExternalStdlibSelectorMethod(sel *ast.SelectorExpr) bool {
 	if !ok || (selection.Kind() != types.MethodVal && selection.Kind() != types.MethodExpr) {
 		return false
 	}
-	recv := selection.Recv()
-	if ptr, ok := recv.(*types.Pointer); ok {
-		recv = ptr.Elem()
-	}
-	named, ok := recv.(*types.Named)
+	named, ok := externalSelectorReceiverNamed(selection.Recv())
 	if !ok || named.Obj() == nil || named.Obj().Pkg() == nil {
 		return false
 	}
@@ -254,10 +242,7 @@ func RegisterExternalInterfaceMethodsForSource(source types.Type, iface *types.I
 	if source == nil || iface == nil {
 		return
 	}
-	if ptr, ok := source.(*types.Pointer); ok {
-		source = ptr.Elem()
-	}
-	named, ok := source.(*types.Named)
+	named, ok := externalSelectorReceiverNamed(source)
 	if !ok || named.Obj() == nil || named.Obj().Pkg() == nil {
 		return
 	}
@@ -279,6 +264,15 @@ func RegisterExternalInterfaceMethodsForSource(source types.Type, iface *types.I
 		}
 		RegisterExternalTypeStubMethod(typeName, ToSnakeCase(method.Name()), sig)
 	}
+}
+
+func externalSelectorReceiverNamed(recv types.Type) (*types.Named, bool) {
+	recv = types.Unalias(recv)
+	if ptr, ok := recv.(*types.Pointer); ok {
+		recv = types.Unalias(ptr.Elem())
+	}
+	named, ok := recv.(*types.Named)
+	return named, ok
 }
 
 func RegisterExternalPackageSelector(sel *ast.SelectorExpr) {

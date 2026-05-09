@@ -1036,6 +1036,10 @@ run_xfail_test() {
     run_test "tests/os_args"
 }
 
+@test "os_stat_fileinfo_isdir" {
+    run_test "tests/os_stat_fileinfo_isdir"
+}
+
 @test "package_global_error" {
     run_test "tests/package_global_error"
 }

@@ -1,0 +1,8 @@
+[package]
+name = "os_stat_fileinfo_isdir"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "os_stat_fileinfo_isdir"
+path = "main.rs"

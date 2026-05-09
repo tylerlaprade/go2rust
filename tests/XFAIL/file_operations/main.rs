@@ -1,4 +1,3 @@
-use std::any::Any;
 use std::error::Error as StdError;
 use std::sync::{Arc, Mutex};
 
@@ -41,6 +40,105 @@ impl GoFile {
     }
 }
 
+#[derive(Clone, Debug)]
+struct GoTime {
+    seconds: i64,
+    nanos: i32,
+}
+
+fn go_time_civil_from_days(days: i64) -> (i64, u32, u32) {
+    let z = days + 719_468;
+    let era = if z >= 0 { z } else { z - 146_096 } / 146_097;
+    let doe = z - era * 146_097;
+    let yoe = (doe - doe / 1_460 + doe / 36_524 - doe / 146_096) / 365;
+    let y = yoe + era * 400;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+    let mp = (5 * doy + 2) / 153;
+    let d = doy - (153 * mp + 2) / 5 + 1;
+    let m = mp + if mp < 10 { 3 } else { -9 };
+    let year = y + if m <= 2 { 1 } else { 0 };
+    (year, m as u32, d as u32)
+}
+
+impl GoTime {
+    fn now() -> Self {
+        let duration = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap();
+        GoTime {
+            seconds: duration.as_secs() as i64,
+            nanos: duration.subsec_nanos() as i32,
+        }
+    }
+
+    fn from_unix(seconds: i64, nanos: i64) -> Self {
+        let seconds = seconds + nanos.div_euclid(1_000_000_000);
+        let nanos = nanos.rem_euclid(1_000_000_000);
+        GoTime {
+            seconds,
+            nanos: nanos as i32,
+        }
+    }
+
+    fn add(&self, duration: Arc<Mutex<Option<std::time::Duration>>>) -> Arc<Mutex<Option<GoTime>>> {
+        let duration = *duration.lock().unwrap().as_ref().unwrap();
+        Arc::new(Mutex::new(Some(GoTime::from_unix(
+            self.seconds + duration.as_secs() as i64,
+            self.nanos as i64 + duration.subsec_nanos() as i64,
+        ))))
+    }
+
+    fn u_t_c(&self) -> Arc<Mutex<Option<GoTime>>> {
+        Arc::new(Mutex::new(Some(self.clone())))
+    }
+
+    fn unix(&self) -> Arc<Mutex<Option<i64>>> {
+        Arc::new(Mutex::new(Some(self.seconds)))
+    }
+
+    fn unix_nano(&self) -> Arc<Mutex<Option<i64>>> {
+        Arc::new(Mutex::new(Some(
+            self.seconds * 1_000_000_000 + self.nanos as i64,
+        )))
+    }
+
+    fn is_zero(&self) -> Arc<Mutex<Option<bool>>> {
+        Arc::new(Mutex::new(Some(self.seconds == 0 && self.nanos == 0)))
+    }
+
+    fn format(&self, _layout: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<String>>> {
+        Arc::new(Mutex::new(Some(self.to_string())))
+    }
+}
+
+impl std::fmt::Display for GoTime {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let days = self.seconds.div_euclid(86_400);
+        let secs_of_day = self.seconds.rem_euclid(86_400);
+        let (year, month, day) = go_time_civil_from_days(days);
+        let hour = secs_of_day / 3_600;
+        let minute = (secs_of_day % 3_600) / 60;
+        let second = secs_of_day % 60;
+        if self.nanos == 0 {
+            write!(
+                f,
+                "{:04}-{:02}-{:02} {:02}:{:02}:{:02} +0000 UTC",
+                year, month, day, hour, minute, second
+            )
+        } else {
+            let mut fraction = format!("{:09}", self.nanos);
+            while fraction.ends_with('0') {
+                fraction.pop();
+            }
+            write!(
+                f,
+                "{:04}-{:02}-{:02} {:02}:{:02}:{:02}.{} +0000 UTC",
+                year, month, day, hour, minute, second, fraction
+            )
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct bufio_Scanner;
 
@@ -63,6 +161,81 @@ impl bufio_Scanner {
     }
     pub fn text(&self) -> Arc<Mutex<Option<String>>> {
         Arc::new(Mutex::new(Some::<String>(Default::default())))
+    }
+}
+
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
+pub struct fs_FileInfo;
+
+impl std::fmt::Display for fs_FileInfo {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<fs_FileInfo>")
+    }
+}
+
+
+impl fs_FileInfo {
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        None
+    }
+    pub fn is_dir(&self) -> Arc<Mutex<Option<bool>>> {
+        Arc::new(Mutex::new(Some::<bool>(Default::default())))
+    }
+    pub fn mod_time(&self) -> Arc<Mutex<Option<GoTime>>> {
+        Arc::new(Mutex::new(Some::<GoTime>(Default::default())))
+    }
+    pub fn mode(&self) -> Arc<Mutex<Option<fs_FileMode>>> {
+        Arc::new(Mutex::new(Some::<fs_FileMode>(Default::default())))
+    }
+    pub fn name(&self) -> Arc<Mutex<Option<String>>> {
+        Arc::new(Mutex::new(Some::<String>(Default::default())))
+    }
+    pub fn size(&self) -> Arc<Mutex<Option<i64>>> {
+        Arc::new(Mutex::new(Some::<i64>(Default::default())))
+    }
+}
+
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
+pub struct fs_FileMode(pub u32);
+
+impl PartialEq<u32> for fs_FileMode {
+    fn eq(&self, other: &u32) -> bool {
+        self.0 == *other
+    }
+}
+
+impl PartialEq<fs_FileMode> for u32 {
+    fn eq(&self, other: &fs_FileMode) -> bool {
+        *self == other.0
+    }
+}
+
+impl std::ops::BitAnd for fs_FileMode {
+    type Output = fs_FileMode;
+    fn bitand(self, other: Self) -> fs_FileMode {
+        fs_FileMode(self.0 & other.0)
+    }
+}
+
+impl std::ops::BitOr for fs_FileMode {
+    type Output = fs_FileMode;
+    fn bitor(self, other: Self) -> fs_FileMode {
+        fs_FileMode(self.0 | other.0)
+    }
+}
+
+impl std::fmt::Display for fs_FileMode {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<fs_FileMode>")
+    }
+}
+
+
+impl fs_FileMode {
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        None
     }
 }
 
@@ -121,8 +294,8 @@ pub mod os {
         (Arc::new(Mutex::new(Some::<Vec<u8>>(Default::default()))), Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>)))
     }
 
-    pub fn stat<T0>(_arg0: T0) -> (Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
-        (Arc::new(Mutex::new(None::<Box<dyn Any + Send + Sync>>)), Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>)))
+    pub fn stat<T0>(_arg0: T0) -> (Arc<Mutex<Option<fs_FileInfo>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+        (Arc::new(Mutex::new(Some::<fs_FileInfo>(Default::default()))), Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>)))
     }
 }
 
