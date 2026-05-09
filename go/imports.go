@@ -340,7 +340,7 @@ func (ht *HelperTracker) ImportNames() []string {
 		add("format_map")
 	}
 	if ht.needsFormatSlice {
-		add("format_slice", "format_slice_values")
+		add("format_slice", "format_slice_values", "format_slice_wrapped")
 	}
 	if ht.needsFormatNestedSlice {
 		add("format_nested_slice")
