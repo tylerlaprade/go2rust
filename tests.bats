@@ -554,6 +554,10 @@ run_xfail_test() {
     run_test "tests/cross_file_types"
 }
 
+@test "cross_file_variadic_any_call" {
+    run_test "tests/cross_file_variadic_any_call"
+}
+
 @test "crypto_hash" {
     run_test "tests/crypto_hash"
 }

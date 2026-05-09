@@ -158,6 +158,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Focused type-parameter constraints in concrete helper signatures such as `S ~[]T, T ~string` | ✅ |
 | └ Assignment from function return values | ✅ |
 | └ Variadic functions | ✅ |
+| └ Cross-file variadic function calls | ✅ |
 | **`go` - Goroutines** | ✅ |
 | └ Worker pool pattern with channels | ✅ |
 | └ Method receiver captures with deferred receiver calls | ✅ |

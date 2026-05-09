@@ -105,7 +105,7 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 - ✅ Deferred field writes capture renamed bases - selector field access inside deferred closures uses cloned capture names for the base object instead of moving the original wrapper (defer_field_capture_rename promoted, 2026-05-07)
 - ✅ Type switch - downcast_ref-based if-else chain with shared borrow guard, nil cases, selector pointer cases, and temporary call-result subjects from TypeInfo (2026-03-27, updated 2026-05-07)
 - ✅ Switch expression lifetime - tag captured in let binding to avoid borrow issues (2026-03-27)
-- ✅ Variadic functions - ellipsis params as Vec<T>, call-site arg collection into vec![], including boxed `...any` elements (2026-03-27, updated 2026-05-07)
+- ✅ Variadic functions - ellipsis params as Vec<T>, call-site arg collection into vec![], including boxed `...any` elements and cross-file helper calls using package-wide signatures (2026-03-27, updated 2026-05-09)
 - ✅ Format verbs - %T maps Rust types to Go type names at runtime, including fmt.Errorf; %+v and %#x consume flagged format arguments (2026-03-27, updated 2026-05-07)
 - ✅ Byte/rune comparison contexts - character literals emit as `u8` when compared with `byte` values or string indexing results (byte_char_comparisons promoted, 2026-05-07)
 - ✅ Wrapped bool conditions - unary `!`, tagless switch cases, and receiver-field conditions unwrap bool wrappers before use (wrapped_bool_not promoted, 2026-05-07; wrapped_bool_field_conditions added, 2026-05-07)

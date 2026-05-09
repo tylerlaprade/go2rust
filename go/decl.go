@@ -579,6 +579,22 @@ func registerFunctionSignatureDecl(fn *ast.FuncDecl) {
 	})
 }
 
+func registerFunctionSignaturesFromFiles(files []*ast.File) {
+	for _, file := range files {
+		registerFunctionSignaturesFromFile(file)
+	}
+}
+
+func registerFunctionSignaturesFromFile(file *ast.File) {
+	for _, decl := range file.Decls {
+		fn, ok := decl.(*ast.FuncDecl)
+		if !ok || fn.Recv != nil {
+			continue
+		}
+		registerFunctionSignatureDecl(fn)
+	}
+}
+
 func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.FileSet, comments []*ast.CommentGroup) {
 	// Check if this is a method (has receiver)
 	if fn.Recv != nil && len(fn.Recv.List) > 0 {

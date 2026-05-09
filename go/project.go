@@ -245,6 +245,7 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 		SetPackageImports(packageImports)
 	}
 	packageState.ImportedInterfaceImpls = collectImportedInterfaceImplsFromFiles(astFiles)
+	registerFunctionSignaturesFromFiles(astFiles)
 
 	nonMainModuleNames := pg.nonMainModuleNames(astFilesByPath)
 
