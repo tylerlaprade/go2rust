@@ -106,7 +106,7 @@ fn main() {
     let mut base = (*localBase.borrow().as_ref().unwrap()).u_t_c();
     println!("{} {}", "Base time:".to_string(), (*base.borrow().as_ref().unwrap()));
 
-    let mut future = (*base.borrow().as_ref().unwrap()).add(Rc::new(RefCell::new(Some(std::time::Duration::from_secs(3600)))));
+    let mut future = (*base.borrow().as_ref().unwrap()).add(Rc::new(RefCell::new(Some(std::time::Duration::from_secs(3600).clone()))));
     println!("{} {}", "One hour later:".to_string(), (*future.borrow().as_ref().unwrap()));
 
     println!("{} {}", "Unix timestamp:".to_string(), (*(*base.borrow().as_ref().unwrap()).unix().borrow().as_ref().unwrap()));

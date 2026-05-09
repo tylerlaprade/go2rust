@@ -3610,7 +3610,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 			if s.Tag != nil {
 				out.WriteString("        let _switch_val = ")
-				TranspileExpression(out, s.Tag)
+				writeSwitchTagValue(out, s.Tag)
 				out.WriteString(";\n")
 			}
 			out.WriteString("        let mut _fallthrough = false;\n")
@@ -3754,9 +3754,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				// non-pattern values, so explicit comparisons are the general form.
 				if s.Tag != nil {
 					out.WriteString("{ let _switch_val = ")
-					if !writeNamedTypeInnerExpression(out, s.Tag) {
-						writeMaybeUnwrappedExpression(out, s.Tag)
-					}
+					writeSwitchTagValue(out, s.Tag)
 					out.WriteString(";\n    ")
 				}
 

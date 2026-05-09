@@ -633,6 +633,9 @@ func writeExternalStubCallArgument(out *strings.Builder, arg ast.Expr) {
 		out.WriteString(".clone()")
 		return
 	}
+	if !isCopyTypeExpression(arg) && writeOwnedExpressionValue(out, arg) {
+		return
+	}
 	TranspileExpression(out, arg)
 }
 
@@ -1152,9 +1155,7 @@ func isCopyTypeExpression(expr ast.Expr) bool {
 		return false
 	}
 	if named, ok := types.Unalias(typ).(*types.Named); ok && named.Obj() != nil {
-		if _, isTypeDef := LookupTypeDefinition(named.Obj().Name()); isTypeDef {
-			return false
-		}
+		return false
 	}
 	basic, ok := typ.Underlying().(*types.Basic)
 	if !ok {
@@ -1192,12 +1193,28 @@ func writeOwnedExpressionValue(out *strings.Builder, expr ast.Expr) bool {
 	}
 	if _, ok := expr.(*ast.SelectorExpr); ok {
 		if isCloneableNonPointerExpr(expr) {
-			TranspileExpression(out, expr)
-			out.WriteString(".clone()")
+			if selectorRValueReturnsWrappedHandle(expr) {
+				out.WriteString("(*")
+				TranspileExpression(out, expr)
+				WriteBorrowMethod(out, false)
+				out.WriteString(".as_ref().unwrap()).clone()")
+			} else {
+				TranspileExpression(out, expr)
+				out.WriteString(".clone()")
+			}
 			return true
 		}
 	}
 	return false
+}
+
+func selectorRValueReturnsWrappedHandle(expr ast.Expr) bool {
+	sel, ok := expr.(*ast.SelectorExpr)
+	if !ok || currentReceiver == "" {
+		return false
+	}
+	ident, ok := sel.X.(*ast.Ident)
+	return ok && ident.Name == currentReceiver
 }
 
 func compositeLiteralElementType(expr *ast.CompositeLit) types.Type {
@@ -1262,6 +1279,15 @@ func writeMaybeUnwrappedExpression(out *strings.Builder, expr ast.Expr) {
 		return
 	}
 	out.WriteString(s)
+}
+
+func writeSwitchTagValue(out *strings.Builder, expr ast.Expr) {
+	if !isCopyTypeExpression(expr) && writeOwnedExpressionValue(out, expr) {
+		return
+	}
+	if !writeNamedTypeInnerExpression(out, expr) {
+		writeMaybeUnwrappedExpression(out, expr)
+	}
 }
 
 func writeOwnedNamedTypeDefinitionValue(out *strings.Builder, expr ast.Expr) {

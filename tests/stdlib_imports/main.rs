@@ -222,7 +222,7 @@ fn main() {
     let mut localFixed = Rc::new(RefCell::new(Some(GoTime::from_unix(1700000000 as i64, 0 as i64))));
     let mut fixed = (*localFixed.borrow().as_ref().unwrap()).u_t_c();
     println!("{} {}", "Fixed timestamp:".to_string(), (*(*fixed.borrow().as_ref().unwrap()).unix().borrow().as_ref().unwrap()));
-    let mut later = (*fixed.borrow().as_ref().unwrap()).add(Rc::new(RefCell::new(Some(std::time::Duration::from_secs(3600)))));
+    let mut later = (*fixed.borrow().as_ref().unwrap()).add(Rc::new(RefCell::new(Some(std::time::Duration::from_secs(3600).clone()))));
     println!("{} {}", "One hour later:".to_string(), (*(*later.borrow().as_ref().unwrap()).unix().borrow().as_ref().unwrap()));
 
         // os package

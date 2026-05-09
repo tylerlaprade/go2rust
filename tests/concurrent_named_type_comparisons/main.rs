@@ -315,6 +315,18 @@ impl Symbol {
     pub fn has_field_flag(&self) -> Arc<Mutex<Option<bool>>> {
         return Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = (*self.kind.clone().lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = Kind(Arc::new(Mutex::new(Some(FIELD as i8)))); __tmp_x & __tmp_y }; let __tmp_y = Kind(Arc::new(Mutex::new(Some(0 as i8)))); __tmp_x != __tmp_y } && { let __tmp_x = { let __tmp_x = (*self.kind.clone().lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = Kind(Arc::new(Mutex::new(Some(METHOD as i8)))); __tmp_x | __tmp_y }; let __tmp_y = Kind(Arc::new(Mutex::new(Some(INVALID as i8)))); __tmp_x != __tmp_y })));
     }
+
+    pub fn kind_name(&self) -> Arc<Mutex<Option<String>>> {
+        { let _switch_val = (*self.kind.clone().lock().unwrap().as_ref().unwrap()).clone();
+    if _switch_val == (FIELD) {
+            return Arc::new(Mutex::new(Some("field".to_string())));
+        } else if _switch_val == (METHOD) {
+            return Arc::new(Mutex::new(Some("method".to_string())));
+        } else {
+            return Arc::new(Mutex::new(Some("invalid".to_string())));
+        }
+    }
+    }
 }
 
 fn main() {
@@ -326,4 +338,5 @@ fn main() {
     println!("{}", done.recv().unwrap());
     println!("{}", (*(*sym.lock().unwrap().as_mut().unwrap()).is_not_method().lock().unwrap().as_ref().unwrap()));
     println!("{}", (*(*sym.lock().unwrap().as_ref().unwrap()).has_field_flag().lock().unwrap().as_ref().unwrap()));
+    println!("{}", (*(*sym.lock().unwrap().as_ref().unwrap()).kind_name().lock().unwrap().as_ref().unwrap()));
 }
