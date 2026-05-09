@@ -1138,6 +1138,10 @@ run_xfail_test() {
     run_test "tests/stdlib_interface_ident_argument"
 }
 
+@test "stdlib_interface_range_assertion" {
+    run_test "tests/stdlib_interface_range_assertion"
+}
+
 @test "stdlib_interface_return" {
     run_test "tests/stdlib_interface_return"
 }

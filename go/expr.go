@@ -337,6 +337,29 @@ func methodReceiverExpressionNeedsUnwrap(expr ast.Expr) bool {
 	}
 }
 
+func typeAssertionSourceIsBareStdlibInterfaceValue(expr ast.Expr) bool {
+	if !isExpressionResultBare(expr) {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	typ := typeInfo.GetType(expr)
+	if typ == nil {
+		return false
+	}
+	named, ok := types.Unalias(typ).(*types.Named)
+	if !ok || named.Obj() == nil || named.Obj().Pkg() == nil {
+		return false
+	}
+	if !isStdlibPackage(named.Obj().Pkg().Path()) {
+		return false
+	}
+	intf, ok := named.Underlying().(*types.Interface)
+	return ok && intf.NumMethods() > 0
+}
+
 func isBareMapSelectorExpression(expr ast.Expr) bool {
 	if _, ok := expr.(*ast.SelectorExpr); !ok {
 		return false
@@ -5285,6 +5308,50 @@ func TranspileTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr) 
 			out.WriteString("    })")
 			return
 		}
+	}
+
+	if typeAssertionSourceIsBareStdlibInterfaceValue(e.X) {
+		out.WriteString("({\n")
+		out.WriteString("        let val = ")
+		if ident, ok := e.X.(*ast.Ident); ok && ident.Name != "nil" {
+			out.WriteString(RustIdentForUse(ident))
+		} else {
+			TranspileExpression(out, e.X)
+		}
+		out.WriteString(".clone();\n")
+		out.WriteString("        if let Some(typed_val) = val.downcast_ref::<")
+		out.WriteString(rustType)
+		out.WriteString(">() {\n")
+		out.WriteString("            (")
+		WriteWrapperPrefix(out)
+		if targetIsError {
+			if NeedsConcurrentWrapper() {
+				out.WriteString("Box::<dyn StdError + Send + Sync>::from(typed_val.clone())")
+			} else {
+				out.WriteString("Box::<dyn StdError>::from(typed_val.clone())")
+			}
+		} else {
+			out.WriteString("typed_val.clone()")
+		}
+		WriteWrapperSuffix(out)
+		out.WriteString(", ")
+		WriteWrapperPrefix(out)
+		out.WriteString("true")
+		WriteWrapperSuffix(out)
+		out.WriteString(")\n")
+		out.WriteString("        } else {\n")
+		out.WriteString("            (")
+		WriteWrapperPrefix(out)
+		out.WriteString(defaultValue)
+		WriteWrapperSuffix(out)
+		out.WriteString(", ")
+		WriteWrapperPrefix(out)
+		out.WriteString("false")
+		WriteWrapperSuffix(out)
+		out.WriteString(")\n")
+		out.WriteString("        }\n")
+		out.WriteString("    })")
+		return
 	}
 
 	// Generate the type assertion code that returns (value, ok)
