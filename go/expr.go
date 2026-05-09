@@ -572,6 +572,10 @@ func writeRegularMethodCallArgument(out *strings.Builder, sel *ast.SelectorExpr,
 	if writeEmptyInterfaceCallArgument(out, arg, expectedArgType) {
 		return
 	}
+	if ident, ok := arg.(*ast.Ident); ok && ident.Name == "nil" {
+		WriteWrappedNone(out)
+		return
+	}
 	if writeStdlibInterfaceCallArgumentConversion(out, arg, expectedArgType) {
 		return
 	}

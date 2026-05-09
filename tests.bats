@@ -948,6 +948,10 @@ run_xfail_test() {
     run_test "tests/method_func_literal_argument"
 }
 
+@test "method_nil_pointer_argument" {
+    run_test "tests/method_nil_pointer_argument"
+}
+
 @test "method_receiver_calls" {
     run_test "tests/method_receiver_calls"
 }
