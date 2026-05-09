@@ -575,6 +575,9 @@ func writeRegularMethodCallArgument(out *strings.Builder, sel *ast.SelectorExpr,
 	if writeStdlibInterfaceCallArgumentConversion(out, arg, expectedArgType) {
 		return
 	}
+	if writeIndexedPointerHandleCallArgument(out, arg, expectedArgType) {
+		return
+	}
 	if writeAlreadyWrappedCallArgument(out, arg) {
 		return
 	}
@@ -1128,6 +1131,24 @@ func writeAlreadyWrappedCallArgument(out *strings.Builder, arg ast.Expr) bool {
 	return false
 }
 
+func writeIndexedPointerHandleCallArgument(out *strings.Builder, arg ast.Expr, expected types.Type) bool {
+	if expected == nil {
+		return false
+	}
+	if _, ok := types.Unalias(expected).Underlying().(*types.Pointer); !ok {
+		return false
+	}
+	if _, ok := arg.(*ast.IndexExpr); !ok {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || !typeInfo.IsPointer(arg) {
+		return false
+	}
+	TranspileExpression(out, arg)
+	return true
+}
+
 func writeGoErrorCallArgument(out *strings.Builder, arg ast.Expr, expected types.Type) bool {
 	if !isGoErrorType(expected) {
 		return false
@@ -1647,6 +1668,49 @@ func writeCurrentReceiverPointerComparison(out *strings.Builder, expr *ast.Binar
 	} else {
 		out.WriteString("true")
 	}
+	return true
+}
+
+func writePointerHandleExpression(out *strings.Builder, expr ast.Expr) {
+	switch expr.(type) {
+	case *ast.Ident, *ast.SelectorExpr:
+		TranspileExpressionContext(out, expr, LValue)
+		out.WriteString(".clone()")
+	default:
+		TranspileExpression(out, expr)
+	}
+}
+
+func writePointerEquality(out *strings.Builder, expr *ast.BinaryExpr) bool {
+	if expr == nil || expr.Op != token.EQL && expr.Op != token.NEQ {
+		return false
+	}
+	if sel, ok := expr.X.(*ast.SelectorExpr); ok && IsExternalStdlibPackageVariableSelector(sel) {
+		return false
+	}
+	if sel, ok := expr.Y.(*ast.SelectorExpr); ok && IsExternalStdlibPackageVariableSelector(sel) {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || !typeInfo.IsPointer(expr.X) || !typeInfo.IsPointer(expr.Y) {
+		return false
+	}
+	trackWrapperImports()
+	out.WriteString("{ let __left = ")
+	writePointerHandleExpression(out, expr.X)
+	out.WriteString("; let __right = ")
+	writePointerHandleExpression(out, expr.Y)
+	out.WriteString("; let __both_nil = (*__left")
+	WriteBorrowMethod(out, false)
+	out.WriteString(").is_none() && (*__right")
+	WriteBorrowMethod(out, false)
+	out.WriteString(").is_none(); let __eq = __both_nil || ")
+	out.WriteString(GetOuterWrapperType())
+	out.WriteString("::ptr_eq(&__left, &__right); ")
+	if expr.Op == token.NEQ {
+		out.WriteString("!")
+	}
+	out.WriteString("__eq }")
 	return true
 }
 
@@ -3632,6 +3696,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			return
 		}
 		if writeCurrentReceiverPointerComparison(out, e) {
+			return
+		}
+		if writePointerEquality(out, e) {
 			return
 		}
 		if writeLocalInterfaceEquality(out, e.X, e.Y, e.Op) {
@@ -6222,6 +6289,9 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				if writeEmptyInterfaceCallArgument(out, arg, expectedArgType) {
 					continue
 				}
+				if writeIndexedPointerHandleCallArgument(out, arg, expectedArgType) {
+					continue
+				}
 				if writeAlreadyWrappedCallArgument(out, arg) {
 					continue
 				}
@@ -6754,6 +6824,10 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 			}
 
 			if writeStdlibInterfaceCallArgumentConversion(out, arg, expectedArgType) {
+				continue
+			}
+
+			if writeIndexedPointerHandleCallArgument(out, arg, expectedArgType) {
 				continue
 			}
 

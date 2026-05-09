@@ -20,6 +20,7 @@ Pointer types, &/*, new() builtin, struct fields, nil handling
 - ✅ Pointer receiver nil branches - receiver comparisons lower without referencing the old Go receiver name, and pointer variables pass through method calls as wrapped pointer values (pointer_receiver_nil_compare added, 2026-05-07)
 - ✅ Pointer receiver field literals - pointer receivers assigned into pointer fields in struct literals rewrap `self.clone()` as the field handle using go/types assignability (receiver_pointer_field_literal added, 2026-05-09)
 - ✅ Address-of local pointer arguments - method calls such as `h.Store(&value)` pass the existing local wrapper clone instead of nesting the wrapper inside a new pointer handle (method_address_local_pointer_arg promoted, 2026-05-09)
+- ✅ Pointer handle equality - non-nil `*T == *T` comparisons lower to wrapper handle identity with a both-nil check instead of comparing copied pointees (stdlib_pointer_map_slice_values expanded, 2026-05-09)
 - ✅ Declared pointers to slice elements - explicit `var p *T` locals assigned from `&slice[i]` lower to optional slice-element handles for nil checks and dereference assignment (declared_slice_elem_pointer promoted, 2026-05-07)
 - ✅ Ranged pointer fields - range variables from `[]*T` preserve pointer-wrapper type information for field access and call arguments (range_pointer_fields added, 2026-05-07)
 
@@ -35,6 +36,7 @@ Method receivers (value and pointer), multiple returns (including named returns,
 - ✅ Function type aliases with imported interfaces - named function declarations use go/types signatures so parameters such as `label.Map` lower to wrapped trait objects instead of bare trait names (2026-05-08)
 - ✅ Assignment from function returns - wrapped call results move their inner value into existing variables instead of nesting wrappers (function_return_assignment promoted, 2026-05-07)
 - ✅ Wrapped call arguments - call expressions that already return wrappers pass through to method and package-function arguments without nesting wrappers again (wrapped_call_argument promoted, 2026-05-07)
+- ✅ Indexed pointer call arguments - indexed values from `[]*T` passed to `*T` parameters preserve the existing pointer handle instead of nesting it in another wrapper (stdlib_pointer_map_slice_values expanded, 2026-05-09)
 - ✅ Tuple return reassignment - existing fields, locals, and parameters receive inner values from returned wrapped tuple elements (tuple_return_reassignment promoted, 2026-05-07)
 - ✅ Slice literal returns - return statements pass self-wrapping slice literals through without nesting wrappers (return_slice_literal promoted, 2026-05-07)
 
@@ -213,4 +215,4 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 
 go2rust transpiles itself!
 
-- 🚧 Self-transpile cargo check now reaches `golang_org_x_tools_internal_gcimporter` with prior range-shadowing, stdlib interface map-key, pointer-key map slice append, and stdlib map-range blockers fixed; the next first error is a `types_Package` handle-vs-bare mismatch in generated `iexport.rs:561` around sorted package pointers in `writeIndex` (2026-05-09)
+- 🚧 Self-transpile cargo check now reaches `golang_org_x_tools_internal_gcimporter` with prior range-shadowing, stdlib interface map-key, pointer-key map slice append, stdlib map-range, indexed pointer call-argument, and pointer-handle equality blockers fixed; the next first error is an `i64`/`i32` mismatch in generated `iexport.rs:665`, with 198 reported gcimporter errors remaining in the package-targeted check (2026-05-09)
