@@ -2191,6 +2191,17 @@ func transpileRegexpMustCompile(out *strings.Builder, call *ast.CallExpr) {
 	WriteWrapperSuffix(out)
 }
 
+func appendExpandsStringIntoByteSlice(call *ast.CallExpr) bool {
+	if call == nil || !call.Ellipsis.IsValid() || len(call.Args) != 2 {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	return typeInfo.IsByteSliceOrArray(call.Args[0]) && typeInfo.IsString(call.Args[1])
+}
+
 func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 	if len(call.Args) >= 2 {
 		if transpileNamedSliceAppend(out, call) {
@@ -2259,13 +2270,20 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 		// We need to create the vector on first append so nil slices stay nil
 		// until they are actually appended to, then return the wrapped slice.
 		if call.Ellipsis.IsValid() {
-			// Slice expansion: append(dst, src...) → extend from src
+			// Slice expansion: append(dst, src...) → extend from src.
+			// Go also permits append([]byte, string...), which expands bytes.
 			out.WriteString("{(*")
 			writeAppendTarget(call.Args[0])
 			WriteBorrowMethod(out, true)
 			out.WriteString(").get_or_insert_with(Vec::new).extend(")
-			TranspileExpression(out, call.Args[1])
-			out.WriteString(".iter().cloned()); ")
+			if appendExpandsStringIntoByteSlice(call) {
+				writeOwnedStringStdlibArg(out, call.Args[1])
+				out.WriteString(".as_bytes().iter().cloned()")
+			} else {
+				TranspileExpression(out, call.Args[1])
+				out.WriteString(".iter().cloned()")
+			}
+			out.WriteString("); ")
 			// Return the wrapped slice itself
 			writeAppendTarget(call.Args[0])
 			out.WriteString(".clone()}")

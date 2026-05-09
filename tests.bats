@@ -366,6 +366,10 @@ run_xfail_test() {
     run_test "tests/append_slice_expansion"
 }
 
+@test "append_string_to_bytes" {
+    run_test "tests/append_string_to_bytes"
+}
+
 @test "arrays_basic" {
     run_test "tests/arrays_basic"
 }
