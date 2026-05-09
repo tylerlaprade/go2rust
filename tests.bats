@@ -956,6 +956,10 @@ run_xfail_test() {
     run_test "tests/named_integer_index"
 }
 
+@test "named_integer_negative_index" {
+    run_test "tests/named_integer_negative_index"
+}
+
 @test "named_slice_field_method_argument" {
     run_test "tests/named_slice_field_method_argument"
 }
@@ -1454,6 +1458,10 @@ run_xfail_test() {
 
 @test "unsafe_sizeof_alignof" {
     run_test "tests/unsafe_sizeof_alignof"
+}
+
+@test "unsafe_sizeof_comparison" {
+    run_test "tests/unsafe_sizeof_comparison"
 }
 
 @test "url_parsing" {

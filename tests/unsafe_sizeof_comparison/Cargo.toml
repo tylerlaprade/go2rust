@@ -1,0 +1,8 @@
+[package]
+name = "unsafe_sizeof_comparison"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "unsafe_sizeof_comparison"
+path = "main.rs"

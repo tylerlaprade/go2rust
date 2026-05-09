@@ -50,6 +50,9 @@ func writeNamedIntegerPrimitiveExpression(out *strings.Builder, expr ast.Expr) b
 	if binary, ok := expr.(*ast.BinaryExpr); ok {
 		return writeNamedIntegerBinaryPrimitiveExpression(out, binary)
 	}
+	if writeUnaryIntegerLiteral(out, expr) {
+		return true
+	}
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil {
 		return false
@@ -123,10 +126,29 @@ func writeNamedIntegerPrimitiveOperand(out *strings.Builder, expr ast.Expr) {
 		out.WriteString(lit.Value)
 		return
 	}
+	if writeUnaryIntegerLiteral(out, expr) {
+		return
+	}
 	if writeNamedIntegerPrimitiveExpression(out, expr) {
 		return
 	}
 	TranspileExpression(out, expr)
+}
+
+func writeUnaryIntegerLiteral(out *strings.Builder, expr ast.Expr) bool {
+	unary, ok := expr.(*ast.UnaryExpr)
+	if !ok || (unary.Op != token.ADD && unary.Op != token.SUB) {
+		return false
+	}
+	lit, ok := unary.X.(*ast.BasicLit)
+	if !ok || lit.Kind != token.INT {
+		return false
+	}
+	if unary.Op == token.SUB {
+		out.WriteString("-")
+	}
+	out.WriteString(lit.Value)
+	return true
 }
 
 func isNamedIntegerType(typ types.Type) bool {

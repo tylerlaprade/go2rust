@@ -137,10 +137,23 @@ func writeConstExpressionForExpectedInteger(out *strings.Builder, value ast.Expr
 	if !ok {
 		return false
 	}
-	TranspileExpression(out, value)
+	writeConstExpressionCastValue(out, value)
 	out.WriteString(" as ")
 	out.WriteString(rustType)
 	return true
+}
+
+func writeConstExpressionCastValue(out *strings.Builder, value ast.Expr) {
+	typeInfo := GetTypeInfo()
+	call, isCall := value.(*ast.CallExpr)
+	if typeInfo != nil && isCall && typeInfo.ReturnsWrappedValue(call) && !isBareBuiltinReturn(call) && (!typeInfo.IsTypeConversion(call) || typeConversionEmitsWrappedValue(call)) {
+		out.WriteString("(*")
+		TranspileExpression(out, value)
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap())")
+		return
+	}
+	TranspileExpression(out, value)
 }
 
 func rustIntegerCastTypeForExpected(expected types.Type) (string, bool) {
