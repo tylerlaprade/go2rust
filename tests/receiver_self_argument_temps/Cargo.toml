@@ -1,0 +1,8 @@
+[package]
+name = "receiver_self_argument_temps"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "receiver_self_argument_temps"
+path = "main.rs"

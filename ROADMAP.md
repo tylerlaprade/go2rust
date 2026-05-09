@@ -30,6 +30,7 @@ Method receivers (value and pointer), multiple returns (including named returns,
 - ✅ Function variables across files - package-level function values, function-valued locals, higher-order function parameters, and init-time function assignments (cross_file_func_vars promoted, 2026-05-06)
 - ✅ Function-valued struct field calls - named functions initialize function fields, function fields format safely, and selector calls unwrap the stored function value (function_field_calls promoted, 2026-05-07)
 - ✅ Method selectors returning function values - go/types selection kind keeps methods such as `atomic.Pointer[T].Load` out of the function-valued field call path (2026-05-08)
+- ✅ Current receiver argument staging - pointer-receiver calls such as `b.Print(len(b.items))` and `b.Print(b.Add(len(b.items)))` evaluate receiver-referencing arguments before borrowing `self` for the method call (receiver_self_argument_temps promoted, 2026-05-09)
 - ✅ Named function type conversions - go/types `TypeAndValue.IsType` catches conversions such as `Exporter(fn)` before closure-call lowering (2026-05-08)
 - ✅ Function type aliases with imported interfaces - named function declarations use go/types signatures so parameters such as `label.Map` lower to wrapped trait objects instead of bare trait names (2026-05-08)
 - ✅ Assignment from function returns - wrapped call results move their inner value into existing variables instead of nesting wrappers (function_return_assignment promoted, 2026-05-07)

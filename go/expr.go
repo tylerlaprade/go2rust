@@ -473,6 +473,99 @@ func methodReceiverExpressionNeedsUnwrap(expr ast.Expr) bool {
 	}
 }
 
+func argsReferenceCurrentReceiver(args []ast.Expr) bool {
+	if currentReceiver == "" {
+		return false
+	}
+	for _, arg := range args {
+		found := false
+		ast.Inspect(arg, func(node ast.Node) bool {
+			if found || node == nil {
+				return false
+			}
+			if ident, ok := node.(*ast.Ident); ok && ident.Name == currentReceiver {
+				found = true
+				return false
+			}
+			return true
+		})
+		if found {
+			return true
+		}
+	}
+	return false
+}
+
+func writeCurrentReceiverPointerMethodCallWithArgTemps(out *strings.Builder, sel *ast.SelectorExpr, call *ast.CallExpr) bool {
+	if currentReceiver == "" || len(call.Args) == 0 {
+		return false
+	}
+	ident, ok := sel.X.(*ast.Ident)
+	if !ok || ident.Name != currentReceiver {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || !typeInfo.HasPointerReceiver(sel) || !argsReferenceCurrentReceiver(call.Args) {
+		return false
+	}
+	out.WriteString("{ ")
+	for i, arg := range call.Args {
+		out.WriteString("let __method_arg")
+		out.WriteString(strconv.Itoa(i))
+		out.WriteString(" = ")
+		writeRegularMethodCallArgument(out, sel, arg, i)
+		out.WriteString("; ")
+	}
+	out.WriteString("self.")
+	out.WriteString(ToSnakeCase(sel.Sel.Name))
+	out.WriteString("(")
+	for i := range call.Args {
+		if i > 0 {
+			out.WriteString(", ")
+		}
+		out.WriteString("__method_arg")
+		out.WriteString(strconv.Itoa(i))
+	}
+	out.WriteString(") }")
+	return true
+}
+
+func writeRegularMethodCallArgument(out *strings.Builder, sel *ast.SelectorExpr, arg ast.Expr, index int) {
+	typeInfo := GetTypeInfo()
+	expectedArgType := selectedMethodParamType(sel, index)
+	if writeGoErrorCallArgument(out, arg, expectedArgType) {
+		return
+	}
+	if typeInfo != nil && typeInfo.IsChannel(arg) {
+		TranspileExpression(out, arg)
+		out.WriteString(".clone()")
+		return
+	}
+	if _, ok := transpiledNamedInterfaceTypeNameFromTypes(expectedArgType); ok && writeLocalInterfaceReferenceCallArgument(out, arg, expectedArgType) {
+		return
+	}
+	if writeEmptyInterfaceCallArgument(out, arg, expectedArgType) {
+		return
+	}
+	if writeStdlibInterfaceCallArgumentConversion(out, arg, expectedArgType) {
+		return
+	}
+	if writeAlreadyWrappedCallArgument(out, arg) {
+		return
+	}
+	WriteWrapperPrefix(out)
+	if writeConstExpressionForExpectedGoType(out, arg, expectedArgType) {
+		// Constant emitted in the parameter's expected representation.
+	} else if writeRangeStringCallArgumentValue(out, arg, expectedArgType) {
+		// Range string reference cloned for an owned string parameter.
+	} else if writeLenCapCallArgumentForExpectedType(out, arg, expectedArgType) {
+		// len/cap emits usize, but Go int parameters use i32.
+	} else if !writeCallArgumentValue(out, arg) {
+		TranspileExpression(out, arg)
+	}
+	WriteWrapperSuffix(out)
+}
+
 func typeAssertionSourceIsBareStdlibInterfaceValue(expr ast.Expr) bool {
 	if !isExpressionResultBare(expr) {
 		return false
@@ -5989,6 +6082,9 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 			writeFunctionValueSelectorCall(out, sel, call.Args)
 			return
 		}
+		if writeCurrentReceiverPointerMethodCallWithArgTemps(out, sel, call) {
+			return
+		}
 
 		// Check if receiver is a strings.Builder (mapped to String) - handle before receiver unwrap
 		if recvTypeInfo := GetTypeInfo(); recvTypeInfo != nil {
@@ -6184,38 +6280,13 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 			if i > 0 {
 				out.WriteString(", ")
 			}
-			expectedArgType := selectedMethodParamType(sel, i)
 			if externalStdlibStubMethodCall {
 				writeExternalStubCallArgument(out, arg)
 			} else if bareMethodCall {
 				// Bare type methods take bare arguments
 				TranspileExpression(out, arg)
-			} else if writeGoErrorCallArgument(out, arg, expectedArgType) {
-				continue
-			} else if typeInfo != nil && typeInfo.IsChannel(arg) {
-				TranspileExpression(out, arg)
-				out.WriteString(".clone()")
-			} else if _, ok := transpiledNamedInterfaceTypeNameFromTypes(expectedArgType); ok && writeLocalInterfaceReferenceCallArgument(out, arg, expectedArgType) {
-				continue
-			} else if writeEmptyInterfaceCallArgument(out, arg, expectedArgType) {
-				continue
-			} else if writeStdlibInterfaceCallArgumentConversion(out, arg, expectedArgType) {
-				continue
-			} else if writeAlreadyWrappedCallArgument(out, arg) {
-				continue
 			} else {
-				// For method calls, wrap arguments normally
-				WriteWrapperPrefix(out)
-				if writeConstExpressionForExpectedGoType(out, arg, expectedArgType) {
-					// Constant emitted in the parameter's expected representation.
-				} else if writeRangeStringCallArgumentValue(out, arg, expectedArgType) {
-					// Range string reference cloned for an owned string parameter.
-				} else if writeLenCapCallArgumentForExpectedType(out, arg, expectedArgType) {
-					// len/cap emits usize, but Go int parameters use i32.
-				} else if !writeCallArgumentValue(out, arg) {
-					TranspileExpression(out, arg)
-				}
-				WriteWrapperSuffix(out)
+				writeRegularMethodCallArgument(out, sel, arg, i)
 			}
 		}
 		out.WriteString(")")

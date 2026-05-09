@@ -1106,6 +1106,10 @@ run_xfail_test() {
     run_test "tests/receiver_pointer_field_literal"
 }
 
+@test "receiver_self_argument_temps" {
+    run_test "tests/receiver_self_argument_temps"
+}
+
 @test "recursion_basic" {
     run_test "tests/recursion_basic"
 }
