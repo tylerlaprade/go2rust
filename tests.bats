@@ -550,6 +550,10 @@ run_xfail_test() {
     run_test "tests/cross_file_methods"
 }
 
+@test "cross_file_named_integer_call_conversion" {
+    run_test "tests/cross_file_named_integer_call_conversion"
+}
+
 @test "cross_file_named_integer_const_arguments" {
     run_test "tests/cross_file_named_integer_const_arguments"
 }

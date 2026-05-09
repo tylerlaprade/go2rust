@@ -294,6 +294,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Unary NOT and conditions on wrapped bools | ✅ |
 | └ Concurrent binary comparisons with bare `len`/`cap` operands | ✅ |
 | └ Binary `len`/`cap` operands with typed `int` peers | ✅ |
+| └ Cross-file named integer conversions from wrapped calls | ✅ |
 | └ Assignment operators (=, +=, etc.) | ✅ |
 | └ Increment/decrement (++, --) | ✅ |
 | └ Address-of (&) | ✅ |

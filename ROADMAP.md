@@ -64,6 +64,7 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 - ✅ Focused type-parameter constraints - concrete helper signatures using constraints such as `S ~[]T, T ~string` lower to usable Rust parameter types during self-hosting (2026-05-08)
 - ✅ Numeric type conversions - literal and raw expression conversions such as `byte(1)` and `uint64(1) << n` cast directly instead of borrowing a wrapped value (numeric_conversion_literals promoted, 2026-05-07)
 - ✅ Named integer numeric conversions - local named scalar wrappers and external integer tuple stubs unwrap to primitive scalars before conversions such as `int(k)`, `uint64(kind())`, and same-type comparison constants like `Kind(len(index)-1)` (named_integer_conversion added, expanded 2026-05-09)
+- ✅ Cross-file named integer call conversions - go/types drives conversions such as `Marker(raw())` and `SyncMarker(r.rawUvarint())` when the target named type is declared in another file/module (cross_file_named_integer_call_conversion promoted, 2026-05-09)
 - ✅ Defer statements - fully working with proper LIFO execution and variable capture
 - 🚧 Panic and recover - basic panic working, recover needs catch_unwind integration
 - ✅ Interfaces - empty interface{} and named interfaces working with trait generation (2025-09-04)

@@ -257,7 +257,7 @@ fn main() {
 
     let mut mi: MyInt = Rc::new(RefCell::new(Some(42)));
     let mut regularInt: Rc<RefCell<Option<i32>>> = Rc::new(RefCell::new(Some((*(*mi.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) as i32)));
-    let mut backToMyInt: MyInt = (*regularInt.borrow().as_ref().unwrap());
+    let mut backToMyInt: MyInt = Rc::new(RefCell::new(Some(MyInt(Rc::new(RefCell::new(Some((*regularInt.borrow().as_ref().unwrap()) as i32)))))));
 
     print!("MyInt: {}\n", { let __v = (*mi.borrow().as_ref().unwrap()).clone(); __v });
     print!("regular int: {}\n", { let __v = (*regularInt.borrow().as_ref().unwrap()).clone(); __v });

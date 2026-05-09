@@ -1,0 +1,8 @@
+[package]
+name = "cross_file_named_integer_call_conversion"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "cross_file_named_integer_call_conversion"
+path = "main.rs"

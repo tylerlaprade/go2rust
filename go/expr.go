@@ -4543,6 +4543,17 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 		out.WriteString(")")
 		return
 	}
+	if named, rustType, ok := namedIntegerConversionTarget(call); ok {
+		out.WriteString(goTypesNamedTypeToRust(named))
+		out.WriteString("(")
+		WriteWrapperPrefix(out)
+		writeNumericConversionValue(out, call.Args[0])
+		out.WriteString(" as ")
+		out.WriteString(rustType)
+		WriteWrapperSuffix(out)
+		out.WriteString(")")
+		return
+	}
 
 	// Map Go types to Rust types and handle the conversion
 	rustType := ""
@@ -4934,6 +4945,9 @@ func typeConversionEmitsWrappedValue(call *ast.CallExpr) bool {
 	if _, _, ok := externalIntegerConversionTarget(call); ok {
 		return false
 	}
+	if _, _, ok := namedIntegerConversionTarget(call); ok {
+		return false
+	}
 	targetType := ""
 	if ident, ok := call.Fun.(*ast.Ident); ok {
 		targetType = ident.Name
@@ -4957,6 +4971,26 @@ func externalIntegerConversionTarget(call *ast.CallExpr) (*types.Named, string, 
 		return nil, "", false
 	}
 	rustType, ok := externalIntegerRustTypeForNamed(named)
+	return named, rustType, ok
+}
+
+func namedIntegerConversionTarget(call *ast.CallExpr) (*types.Named, string, bool) {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || call == nil {
+		return nil, "", false
+	}
+	named, ok := types.Unalias(typeInfo.GetType(call)).(*types.Named)
+	if !ok || !isNamedIntegerType(named) {
+		return nil, "", false
+	}
+	if _, ok := externalIntegerRustTypeForNamed(named); ok {
+		return nil, "", false
+	}
+	basic, ok := types.Unalias(named.Underlying()).(*types.Basic)
+	if !ok {
+		return nil, "", false
+	}
+	rustType, ok := rustCastTypeForDefinedUnderlying(basic.Name())
 	return named, rustType, ok
 }
 
