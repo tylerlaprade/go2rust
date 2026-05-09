@@ -782,6 +782,10 @@ run_xfail_test() {
     run_test "tests/late_address_of"
 }
 
+@test "len_call_argument" {
+    run_test "tests/len_call_argument"
+}
+
 @test "len_string_literal_slice_bounds" {
     run_test "tests/len_string_literal_slice_bounds"
 }

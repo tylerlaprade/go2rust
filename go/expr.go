@@ -818,6 +818,20 @@ func writeRangeStringCallArgumentValue(out *strings.Builder, arg ast.Expr, expec
 	return true
 }
 
+func writeLenCapCallArgumentForExpectedType(out *strings.Builder, arg ast.Expr, expected types.Type) bool {
+	call, ok := arg.(*ast.CallExpr)
+	if !ok || expected == nil || !isBareBuiltinCallName(call, "len") && !isBareBuiltinCallName(call, "cap") {
+		return false
+	}
+	basic, ok := types.Unalias(expected).Underlying().(*types.Basic)
+	if !ok || basic.Kind() != types.Int {
+		return false
+	}
+	TranspileExpression(out, arg)
+	out.WriteString(" as i32")
+	return true
+}
+
 func writeExternalStubCallArgument(out *strings.Builder, arg ast.Expr) {
 	if ident, ok := arg.(*ast.Ident); ok && ident.Name == "nil" {
 		out.WriteString("()")
@@ -5834,6 +5848,8 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 					// Constant emitted in the parameter's expected representation.
 				} else if writeRangeStringCallArgumentValue(out, arg, expectedArgType) {
 					// Range string reference cloned for an owned string parameter.
+				} else if writeLenCapCallArgumentForExpectedType(out, arg, expectedArgType) {
+					// len/cap emits usize, but Go int parameters use i32.
 				} else if !writeCallArgumentValue(out, arg) {
 					TranspileExpression(out, arg)
 				}
@@ -6066,6 +6082,8 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 					// Constant emitted in the parameter's expected representation.
 				} else if writeRangeStringCallArgumentValue(out, arg, expectedArgType) {
 					// Range string reference cloned for an owned string parameter.
+				} else if writeLenCapCallArgumentForExpectedType(out, arg, expectedArgType) {
+					// len/cap emits usize, but Go int parameters use i32.
 				} else if !writeCallArgumentValue(out, arg) {
 					TranspileExpression(out, arg)
 				}
