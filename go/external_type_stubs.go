@@ -718,7 +718,11 @@ func generateExternalStubs(stubs map[string]bool, integerTypes map[string]string
 				out.WriteString(";\n\n")
 			}
 		} else {
-			out.WriteString("#[derive(Debug, Clone, Default)]\n")
+			if externalStubFieldsCanDeriveDebug(fields) {
+				out.WriteString("#[derive(Debug, Clone, Default)]\n")
+			} else {
+				out.WriteString("#[derive(Clone, Default)]\n")
+			}
 			out.WriteString("pub struct ")
 			out.WriteString(name)
 			out.WriteString(" {\n")
@@ -1038,6 +1042,15 @@ func writeExternalPackageStubFunction(out *strings.Builder, funcName string, fn 
 		out.WriteString("\n")
 	}
 	out.WriteString("    }\n")
+}
+
+func externalStubFieldsCanDeriveDebug(fields map[string]string) bool {
+	for _, fieldType := range fields {
+		if strings.Contains(fieldType, "dyn Fn(") {
+			return false
+		}
+	}
+	return true
 }
 
 func writeExternalStubReturnType(out *strings.Builder, returnTypes []string) {

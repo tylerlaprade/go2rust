@@ -1467,6 +1467,13 @@ func writeWrappedStructFieldValue(out *strings.Builder, value ast.Expr, fieldExp
 		return
 	}
 
+	if isFunctionSignatureTypeExpr(fieldExpr) || isFunctionSignatureType(fieldType) {
+		if _, ok := value.(*ast.FuncLit); ok {
+			TranspileExpression(out, value)
+			return
+		}
+	}
+
 	// Check if the value is an identifier (parameter/variable/constant).
 	if valIdent, ok := value.(*ast.Ident); ok {
 		if valIdent.Name == "true" || valIdent.Name == "false" || valIdent.Name == "nil" {

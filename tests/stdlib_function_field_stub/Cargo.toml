@@ -1,0 +1,8 @@
+[package]
+name = "stdlib_function_field_stub"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "stdlib_function_field_stub"
+path = "main.rs"

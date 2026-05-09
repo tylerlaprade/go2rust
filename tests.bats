@@ -1094,6 +1094,10 @@ run_xfail_test() {
     run_test "tests/sort_slice"
 }
 
+@test "stdlib_function_field_stub" {
+    run_test "tests/stdlib_function_field_stub"
+}
+
 @test "stdlib_function_type_alias" {
     run_test "tests/stdlib_function_type_alias"
 }
