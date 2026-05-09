@@ -1982,9 +1982,27 @@ func isPackageVarSelector(sel *ast.SelectorExpr) bool {
 	return obj.Parent() == obj.Pkg().Scope()
 }
 
+func isPackageConstSelector(sel *ast.SelectorExpr) bool {
+	if sel == nil {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return false
+	}
+	obj, ok := typeInfo.GetObject(sel.Sel).(*types.Const)
+	if !ok || obj.Pkg() == nil {
+		return false
+	}
+	return obj.Parent() == obj.Pkg().Scope()
+}
+
 func rustPackageSelectorName(sel *ast.SelectorExpr) string {
 	if isPackageVarSelector(sel) {
 		return rustPackageGlobalName(sel.Sel.Name)
+	}
+	if isPackageConstSelector(sel) {
+		return rustConstName(sel.Sel.Name)
 	}
 	return ToSnakeCase(sel.Sel.Name)
 }
@@ -2167,7 +2185,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					RegisterExternalPackageSelector(e)
 					out.WriteString(ident.Name)
 					out.WriteString("::")
-					out.WriteString(ToSnakeCase(e.Sel.Name))
+					out.WriteString(rustPackageSelectorName(e))
 					if IsExternalStdlibPackageVariableSelector(e) {
 						out.WriteString("()")
 					}

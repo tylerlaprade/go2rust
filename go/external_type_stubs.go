@@ -305,9 +305,9 @@ func RegisterExternalPackageSelector(sel *ast.SelectorExpr) {
 		}
 		RegisterExternalPackageStubFunction(pkgName, ToSnakeCase(sel.Sel.Name), sig)
 	case *types.Const:
-		RegisterExternalPackageStubConstant(pkgName, ToSnakeCase(sel.Sel.Name), obj.Type())
+		RegisterExternalPackageStubConstant(pkgName, rustConstName(sel.Sel.Name), obj.Type())
 	case *types.Var:
-		RegisterExternalPackageStubVariable(pkgName, ToSnakeCase(sel.Sel.Name), obj.Type())
+		RegisterExternalPackageStubVariable(pkgName, rustPackageGlobalName(sel.Sel.Name), obj.Type())
 	}
 }
 

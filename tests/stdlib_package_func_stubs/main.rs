@@ -159,13 +159,13 @@ impl types_Type {
 
 pub mod binary {
     use super::*;
-    pub const max_varint_len64: i32 = 0;
+    pub const MAX_VARINT_LEN64: i32 = 0;
 }
 
 
 pub mod parser {
     use super::*;
-    pub const skip_object_resolution: parser_Mode = parser_Mode(0);
+    pub const SKIP_OBJECT_RESOLUTION: parser_Mode = parser_Mode(0);
 
     pub fn parse_file<T0, T1, T2, T3>(_arg0: T0, _arg1: T1, _arg2: T2, _arg3: T3) -> (Arc<Mutex<Option<ast_File>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
         (Arc::new(Mutex::new(Some::<ast_File>(Default::default()))), Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>)))
@@ -183,7 +183,7 @@ pub mod token {
 
 pub mod types {
     use super::*;
-    pub fn typ() -> Arc<Mutex<Option<Vec<Arc<Mutex<Option<types_Basic>>>>>>> {
+    pub fn Typ() -> Arc<Mutex<Option<Vec<Arc<Mutex<Option<types_Basic>>>>>>> {
         Arc::new(Mutex::new(Some::<Vec<Arc<Mutex<Option<types_Basic>>>>>(Default::default())))
     }
 
@@ -196,12 +196,12 @@ pub mod types {
 fn main() {
     if false {
         let mut fset = token::new_file_set();
-        let (mut f, _) = parser::parse_file(fset.clone(), "a.go".to_string(), "package p; type A = int".to_string(), parser::skip_object_resolution);
+        let (mut f, _) = parser::parse_file(fset.clone(), "a.go".to_string(), "package p; type A = int".to_string(), parser::SKIP_OBJECT_RESOLUTION);
         { let (__tmp_0, __tmp_1) = { let __recv = Arc::new(Mutex::new(Some(types_Config::default()))); let __result = (*__recv.lock().unwrap().as_mut().unwrap()).check("p".to_string(), fset.clone(), Arc::new(Mutex::new(Some(vec![(*f.lock().unwrap().as_ref().unwrap()).clone()]))), Arc::new(Mutex::new(Some(types_Info::default())))); __result }; };
         let mut alias: Arc<Mutex<Option<types_Alias>>> = Arc::new(Mutex::new(None));
         let _ = types::unalias(alias.clone());
-        let _ = binary::max_varint_len64;
-        let _ = types::typ();
+        let _ = binary::MAX_VARINT_LEN64;
+        let _ = types::Typ();
     }
     println!("{}", "ok".to_string());
 }

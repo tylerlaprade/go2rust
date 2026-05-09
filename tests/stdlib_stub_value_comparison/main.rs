@@ -40,13 +40,13 @@ impl types_ChanDir {
 
 pub mod types {
     use super::*;
-    pub const send_recv: types_ChanDir = types_ChanDir(0);
+    pub const SEND_RECV: types_ChanDir = types_ChanDir(0);
 }
 
 
 pub fn is_bidirectional(ch: Rc<RefCell<Option<types_Chan>>>) -> Rc<RefCell<Option<bool>>> {
 
-    return Rc::new(RefCell::new(Some((*(*ch.borrow_mut().as_mut().unwrap()).dir().borrow().as_ref().unwrap()) == types::send_recv)));
+    return Rc::new(RefCell::new(Some((*(*ch.borrow_mut().as_mut().unwrap()).dir().borrow().as_ref().unwrap()) == types::SEND_RECV)));
 }
 
 fn main() {

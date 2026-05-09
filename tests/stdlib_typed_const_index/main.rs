@@ -44,7 +44,7 @@ impl From<types_Basic> for types_Type {
 
 pub mod types {
     use super::*;
-    pub fn typ() -> Rc<RefCell<Option<Vec<Rc<RefCell<Option<types_Basic>>>>>>> {
+    pub fn Typ() -> Rc<RefCell<Option<Vec<Rc<RefCell<Option<types_Basic>>>>>>> {
         Rc::new(RefCell::new(Some::<Vec<Rc<RefCell<Option<types_Basic>>>>>(Default::default())))
     }
 }
@@ -54,14 +54,14 @@ pub fn is_invalid(t: Rc<RefCell<Option<types_Type>>>) -> Rc<RefCell<Option<bool>
 
     return {
             let __tmp_x = (*t.borrow().as_ref().unwrap()).clone();
-            let __tmp_y = { let __arg = (*types::typ().borrow().as_ref().unwrap())[0usize].clone(); let __converted = { let __arg_guard = __arg.borrow(); let __converted: types_Type = (*__arg_guard.as_ref().unwrap()).clone().into(); __converted }; __converted };
+            let __tmp_y = { let __arg = (*types::Typ().borrow().as_ref().unwrap())[0usize].clone(); let __converted = { let __arg_guard = __arg.borrow(); let __converted: types_Type = (*__arg_guard.as_ref().unwrap()).clone().into(); __converted }; __converted };
             Rc::new(RefCell::new(Some(__tmp_x == __tmp_y)))
         };
 }
 
 fn main() {
     if false {
-        println!("{}", (*is_invalid({ let __arg = (*types::typ().borrow().as_ref().unwrap())[0usize].clone(); let __converted = { let __arg_guard = __arg.borrow(); (*__arg_guard.as_ref().unwrap()).clone().into() }; Rc::new(RefCell::new(Some(__converted))) }).borrow().as_ref().unwrap()));
+        println!("{}", (*is_invalid({ let __arg = (*types::Typ().borrow().as_ref().unwrap())[0usize].clone(); let __converted = { let __arg_guard = __arg.borrow(); (*__arg_guard.as_ref().unwrap()).clone().into() }; Rc::new(RefCell::new(Some(__converted))) }).borrow().as_ref().unwrap()));
     }
     println!("{}", "ok".to_string());
 }

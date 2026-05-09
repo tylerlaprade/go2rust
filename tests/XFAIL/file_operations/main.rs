@@ -102,8 +102,8 @@ pub mod io {
 
 pub mod os {
     use super::*;
-    pub const o__a_p_p_e_n_d: i32 = 0;
-    pub const o__w_r_o_n_l_y: i32 = 0;
+    pub const O__A_P_P_E_N_D: i32 = 0;
+    pub const O__W_R_O_N_L_Y: i32 = 0;
 
     pub fn is_not_exist<T0>(_arg0: T0) -> Arc<Mutex<Option<bool>>> {
         Arc::new(Mutex::new(Some::<bool>(Default::default())))
@@ -230,7 +230,7 @@ fn main() {
         // Append to file
     println!("{}", "\n--- Appending to file ---".to_string());
 
-    { let (__tmp_0, __tmp_1) = os::open_file(filename.clone(), { let __tmp_x = os::o__a_p_p_e_n_d; let __tmp_y = os::o__w_r_o_n_l_y; __tmp_x | __tmp_y }, 0644); *file.lock().unwrap() = __tmp_0.lock().unwrap().take(); *err.lock().unwrap() = __tmp_1.lock().unwrap().take(); };
+    { let (__tmp_0, __tmp_1) = os::open_file(filename.clone(), { let __tmp_x = os::O__A_P_P_E_N_D; let __tmp_y = os::O__W_R_O_N_L_Y; __tmp_x | __tmp_y }, 0644); *file.lock().unwrap() = __tmp_0.lock().unwrap().take(); *err.lock().unwrap() = __tmp_1.lock().unwrap().take(); };
     if (*err.lock().unwrap()).is_some() {
         print!("Error opening file for append: {}\n", format!("{}", (*err.lock().unwrap().as_ref().unwrap())));
         {

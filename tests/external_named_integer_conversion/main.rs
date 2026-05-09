@@ -37,19 +37,19 @@ impl types_ChanDir {
 
 pub mod types {
     use super::*;
-    pub const int: types_BasicKind = types_BasicKind(0);
-    pub const send_recv: types_ChanDir = types_ChanDir(0);
+    pub const INT: types_BasicKind = types_BasicKind(0);
+    pub const SEND_RECV: types_ChanDir = types_ChanDir(0);
 }
 
 
 pub fn kind() -> Rc<RefCell<Option<types_BasicKind>>> {
 
-    return Rc::new(RefCell::new(Some(types::int.clone())));
+    return Rc::new(RefCell::new(Some(types::INT.clone())));
 }
 
 pub fn dir() -> Rc<RefCell<Option<types_ChanDir>>> {
 
-    return Rc::new(RefCell::new(Some(types::send_recv.clone())));
+    return Rc::new(RefCell::new(Some(types::SEND_RECV.clone())));
 }
 
 fn main() {

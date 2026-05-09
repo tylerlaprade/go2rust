@@ -258,6 +258,53 @@ func main() {
 	}
 }
 
+func TestTranspiledExternalPackageConstSelectorUsesConstName(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+
+require example.com/dep v0.0.0
+
+replace example.com/dep => ./dep
+`)
+	writeTestFile(t, filepath.Join(tempDir, "dep", "go.mod"), `module example.com/dep
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "dep", "dep.go"), `package dep
+
+const Func = 2
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+import "example.com/dep"
+
+func value() int {
+	return dep.Func
+}
+`)
+
+	generator := NewProjectGenerator([]string{filepath.Join(tempDir, "main.go")})
+	generator.SetExternalPackageMode(ModeTranspile)
+
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	depRS := mustReadFile(t, filepath.Join(tempDir, "vendor", "example_com_dep", "mod.rs"))
+	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
+	if !strings.Contains(depRS, "pub const FUNC") {
+		t.Fatalf("external package should emit exported const with const naming, got:\n%s", depRS)
+	}
+	if !strings.Contains(mainRS, "example_com_dep::FUNC") {
+		t.Fatalf("external package const selector should use the generated const name, got:\n%s", mainRS)
+	}
+	if strings.Contains(mainRS, "example_com_dep::func") {
+		t.Fatalf("external package const selector should not use snake-case function naming, got:\n%s", mainRS)
+	}
+}
+
 func TestTranspiledExternalPackagePointerGlobalMethodCall(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
@@ -933,6 +980,70 @@ func main() {
 	}
 	if !strings.Contains(rootCargo, `go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }`) {
 		t.Fatalf("root package should depend on shared stdlib stub crate, got:\n%s", rootCargo)
+	}
+}
+
+func TestStdlibConstStubUsesConstName(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+import "go/parser"
+
+func mode() parser.Mode {
+	return parser.SkipObjectResolution
+}
+`)
+
+	generator := NewProjectGenerator([]string{filepath.Join(tempDir, "main.go")})
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
+	if !strings.Contains(mainRS, "pub const SKIP_OBJECT_RESOLUTION") {
+		t.Fatalf("stdlib const stub should use Rust const naming, got:\n%s", mainRS)
+	}
+	if !strings.Contains(mainRS, "parser::SKIP_OBJECT_RESOLUTION") {
+		t.Fatalf("stdlib const selector should use the generated const name, got:\n%s", mainRS)
+	}
+	if strings.Contains(mainRS, "parser::skip_object_resolution") {
+		t.Fatalf("stdlib const selector should not use snake-case function naming, got:\n%s", mainRS)
+	}
+}
+
+func TestStdlibVariableStubUsesGlobalName(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+import "go/types"
+
+func invalid() types.Type {
+	return types.Typ[types.Invalid]
+}
+`)
+
+	generator := NewProjectGenerator([]string{filepath.Join(tempDir, "main.go")})
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
+	if !strings.Contains(mainRS, "pub fn Typ()") {
+		t.Fatalf("stdlib variable stub should keep the generated global name, got:\n%s", mainRS)
+	}
+	if !strings.Contains(mainRS, "types::Typ()") {
+		t.Fatalf("stdlib variable selector should use the generated global accessor, got:\n%s", mainRS)
+	}
+	if strings.Contains(mainRS, "types::typ()") {
+		t.Fatalf("stdlib variable selector should not use snake-case function naming, got:\n%s", mainRS)
 	}
 }
 
