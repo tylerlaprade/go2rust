@@ -1215,35 +1215,52 @@ func transpileReflectTypeOf(out *strings.Builder, call *ast.CallExpr) {
 		return
 	}
 
-	st := typeInfo.GetStructType(call.Args[0])
-	if st == nil {
-		out.WriteString("/* ERROR: reflect.TypeOf currently supports struct values */ unimplemented!()")
+	typ := typeInfo.GetType(call.Args[0])
+	if typ == nil {
+		out.WriteString("/* ERROR: Type information required for reflect.TypeOf */ unimplemented!()")
 		return
 	}
 
+	st := typeInfo.GetStructType(call.Args[0])
 	NeedReflect()
 	WriteWrapperPrefix(out)
-	out.WriteString("GoReflectType { fields: ")
+	out.WriteString("GoReflectType { name: ")
+	writeReflectString(out, reflectTypeName(typ))
+	out.WriteString(", fields: ")
 	WriteWrapperPrefix(out)
 	out.WriteString("vec![")
-	for i := 0; i < st.NumFields(); i++ {
-		if i > 0 {
-			out.WriteString(", ")
+	if st != nil {
+		for i := 0; i < st.NumFields(); i++ {
+			if i > 0 {
+				out.WriteString(", ")
+			}
+			out.WriteString("GoReflectField { name: ")
+			writeReflectString(out, st.Field(i).Name())
+			out.WriteString(", tag: ")
+			WriteWrapperPrefix(out)
+			out.WriteString("GoReflectStructTag { raw: ")
+			writeReflectString(out, st.Tag(i))
+			out.WriteString(" }")
+			WriteWrapperSuffix(out)
+			out.WriteString(" }")
 		}
-		out.WriteString("GoReflectField { name: ")
-		writeReflectString(out, st.Field(i).Name())
-		out.WriteString(", tag: ")
-		WriteWrapperPrefix(out)
-		out.WriteString("GoReflectStructTag { raw: ")
-		writeReflectString(out, st.Tag(i))
-		out.WriteString(" }")
-		WriteWrapperSuffix(out)
-		out.WriteString(" }")
 	}
 	out.WriteString("]")
 	WriteWrapperSuffix(out)
 	out.WriteString(" }")
 	WriteWrapperSuffix(out)
+}
+
+func reflectTypeName(typ types.Type) string {
+	if typ == nil {
+		return ""
+	}
+	return types.TypeString(typ, func(pkg *types.Package) string {
+		if pkg == nil {
+			return ""
+		}
+		return pkg.Name()
+	})
 }
 
 func writeOwnedStringStdlibArg(out *strings.Builder, arg ast.Expr) {

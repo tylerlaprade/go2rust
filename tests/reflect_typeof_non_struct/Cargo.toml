@@ -1,0 +1,8 @@
+[package]
+name = "reflect_typeof_non_struct"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "reflect_typeof_non_struct"
+path = "main.rs"

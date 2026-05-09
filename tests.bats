@@ -1212,6 +1212,10 @@ run_xfail_test() {
     run_test "tests/reflect_string_header_pointer"
 }
 
+@test "reflect_typeof_non_struct" {
+    run_test "tests/reflect_typeof_non_struct"
+}
+
 @test "regex_basic" {
     run_test "tests/regex_basic"
 }

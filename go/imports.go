@@ -2120,10 +2120,21 @@ struct GoReflectField {
 
 #[derive(Debug, Clone, Default)]
 struct GoReflectType {
+    name: Arc<Mutex<Option<String>>>,
     fields: Arc<Mutex<Option<Vec<GoReflectField>>>>,
 }
 
+impl std::fmt::Display for GoReflectType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.name.lock().unwrap().as_ref().unwrap())
+    }
+}
+
 impl GoReflectType {
+    fn string(&self) -> Arc<Mutex<Option<String>>> {
+        Arc::new(Mutex::new(Some((*self.name.lock().unwrap().as_ref().unwrap()).clone())))
+    }
+
     fn num_field(&self) -> Arc<Mutex<Option<i32>>> {
         Arc::new(Mutex::new(Some(self.fields.lock().unwrap().as_ref().unwrap().len() as i32)))
     }
@@ -2184,10 +2195,21 @@ struct GoReflectField {
 
 #[derive(Debug, Clone, Default)]
 struct GoReflectType {
+    name: Rc<RefCell<Option<String>>>,
     fields: Rc<RefCell<Option<Vec<GoReflectField>>>>,
 }
 
+impl std::fmt::Display for GoReflectType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.name.borrow().as_ref().unwrap())
+    }
+}
+
 impl GoReflectType {
+    fn string(&self) -> Rc<RefCell<Option<String>>> {
+        Rc::new(RefCell::new(Some((*self.name.borrow().as_ref().unwrap()).clone())))
+    }
+
     fn num_field(&self) -> Rc<RefCell<Option<i32>>> {
         Rc::new(RefCell::new(Some(self.fields.borrow().as_ref().unwrap().len() as i32)))
     }
