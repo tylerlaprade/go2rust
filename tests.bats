@@ -1360,6 +1360,10 @@ run_xfail_test() {
     run_test "tests/stdlib_package_pointer_var_method"
 }
 
+@test "stdlib_package_var_comparison" {
+    run_test "tests/stdlib_package_var_comparison"
+}
+
 @test "stdlib_pointer_field_stub" {
     run_test "tests/stdlib_pointer_field_stub"
 }

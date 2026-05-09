@@ -3597,6 +3597,12 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				}
 			}
 		}
+		if sel, ok := e.X.(*ast.SelectorExpr); ok && IsExternalStdlibPackageVariableSelector(sel) {
+			needsUnwrapX = true
+		}
+		if sel, ok := e.Y.(*ast.SelectorExpr); ok && IsExternalStdlibPackageVariableSelector(sel) {
+			needsUnwrapY = true
+		}
 
 		if ident, ok := sameWrappedIdentBinary(e); ok {
 			tempName := "__bin_" + ToSnakeCase(ident.Name)
