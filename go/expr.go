@@ -588,6 +588,60 @@ func writeRegularMethodCallArgument(out *strings.Builder, sel *ast.SelectorExpr,
 	WriteWrapperSuffix(out)
 }
 
+func writeMethodCallArguments(out *strings.Builder, sel *ast.SelectorExpr, call *ast.CallExpr, externalStdlibStubMethodCall bool, bareMethodCall bool) bool {
+	sig, ok := callSignatureFromTypeInfo(call)
+	if !ok || !sig.Variadic() || sig.Params() == nil || sig.Params().Len() == 0 {
+		return false
+	}
+
+	variadicStart := sig.Params().Len() - 1
+	for i := 0; i < variadicStart && i < len(call.Args); i++ {
+		if i > 0 {
+			out.WriteString(", ")
+		}
+		if externalStdlibStubMethodCall {
+			writeExternalStubCallArgument(out, call.Args[i])
+		} else if bareMethodCall {
+			TranspileExpression(out, call.Args[i])
+		} else {
+			writeRegularMethodCallArgument(out, sel, call.Args[i], i)
+		}
+	}
+
+	if variadicStart > 0 {
+		out.WriteString(", ")
+	}
+
+	if call.Ellipsis.IsValid() {
+		lastArg := call.Args[len(call.Args)-1]
+		if ident, ok := lastArg.(*ast.Ident); ok {
+			out.WriteString(RustIdentForUse(ident))
+			out.WriteString(".clone()")
+		} else {
+			TranspileExpression(out, lastArg)
+		}
+		return true
+	}
+
+	variadicElemType := callParamTypeFromTypeInfo(call, variadicStart)
+	variadicElemIsAny := isEmptyInterfaceType(variadicElemType)
+	WriteWrapperPrefix(out)
+	out.WriteString("vec![")
+	for i := variadicStart; i < len(call.Args); i++ {
+		if i > variadicStart {
+			out.WriteString(", ")
+		}
+		if variadicElemIsAny {
+			writeInterfaceBoxedValue(out, call.Args[i])
+		} else {
+			TranspileExpression(out, call.Args[i])
+		}
+	}
+	out.WriteString("]")
+	WriteWrapperSuffix(out)
+	return true
+}
+
 func typeAssertionSourceIsBareStdlibInterfaceValue(expr ast.Expr) bool {
 	if !isExpressionResultBare(expr) {
 		return false
@@ -6354,17 +6408,19 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 
 		out.WriteString(ToSnakeCase(sel.Sel.Name))
 		out.WriteString("(")
-		for i, arg := range call.Args {
-			if i > 0 {
-				out.WriteString(", ")
-			}
-			if externalStdlibStubMethodCall {
-				writeExternalStubCallArgument(out, arg)
-			} else if bareMethodCall {
-				// Bare type methods take bare arguments
-				TranspileExpression(out, arg)
-			} else {
-				writeRegularMethodCallArgument(out, sel, arg, i)
+		if !writeMethodCallArguments(out, sel, call, externalStdlibStubMethodCall, bareMethodCall) {
+			for i, arg := range call.Args {
+				if i > 0 {
+					out.WriteString(", ")
+				}
+				if externalStdlibStubMethodCall {
+					writeExternalStubCallArgument(out, arg)
+				} else if bareMethodCall {
+					// Bare type methods take bare arguments
+					TranspileExpression(out, arg)
+				} else {
+					writeRegularMethodCallArgument(out, sel, arg, i)
+				}
 			}
 		}
 		out.WriteString(")")

@@ -1,0 +1,8 @@
+[package]
+name = "variadic_method_any"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "variadic_method_any"
+path = "main.rs"

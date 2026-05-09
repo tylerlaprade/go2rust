@@ -1576,6 +1576,10 @@ run_xfail_test() {
     run_test "tests/variadic_functions"
 }
 
+@test "variadic_method_any" {
+    run_test "tests/variadic_method_any"
+}
+
 @test "variadic_mixed_expansion" {
     run_test "tests/variadic_mixed_expansion"
 }
