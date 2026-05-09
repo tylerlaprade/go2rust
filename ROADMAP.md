@@ -23,6 +23,7 @@ Pointer types, &/*, new() builtin, struct fields, nil handling
 - ✅ Pointer handle equality - non-nil `*T == *T` comparisons lower to wrapper handle identity with a both-nil check instead of comparing copied pointees (stdlib_pointer_map_slice_values expanded, 2026-05-09)
 - ✅ Declared pointers to slice elements - explicit `var p *T` locals assigned from `&slice[i]` lower to optional slice-element handles for nil checks and dereference assignment (declared_slice_elem_pointer promoted, 2026-05-07)
 - ✅ Pointer slice literal variables - pointer-valued identifiers in `[]*T{ptr}` preserve the existing wrapper handle so aliases observe later field mutations (slice_pointer_variable_literal added, 2026-05-09)
+- ✅ Indexed pointer returns - values returned from `[]*T` indexes pass through as existing pointer handles when the declared return type is `*T` (return_indexed_pointer added, 2026-05-09)
 - ✅ Ranged pointer fields - range variables from `[]*T` preserve pointer-wrapper type information for field access and call arguments (range_pointer_fields added, 2026-05-07)
 
 ### ✅ Phase 4: Functions and Methods
@@ -35,6 +36,7 @@ Method receivers (value and pointer), multiple returns (including named returns,
 - ✅ Current receiver argument staging - pointer-receiver calls such as `b.Print(len(b.items))` and `b.Print(b.Add(len(b.items)))` evaluate receiver-referencing arguments before borrowing `self` for the method call (receiver_self_argument_temps promoted, 2026-05-09)
 - ✅ Named function type conversions - go/types `TypeAndValue.IsType` catches conversions such as `Exporter(fn)` before closure-call lowering (2026-05-08)
 - ✅ Function type aliases with imported interfaces - named function declarations use go/types signatures so parameters such as `label.Map` lower to wrapped trait objects instead of bare trait names (2026-05-08)
+- ✅ Cross-file function type alias parameters - package-wide type fact registration lets sibling modules use named callback aliases before the declaring file is emitted (cross_file_function_alias_param added, 2026-05-09)
 - ✅ Assignment from function returns - wrapped call results move their inner value into existing variables instead of nesting wrappers (function_return_assignment promoted, 2026-05-07)
 - ✅ Wrapped call arguments - call expressions that already return wrappers pass through to method and package-function arguments without nesting wrappers again (wrapped_call_argument promoted, 2026-05-07)
 - ✅ Indexed pointer call arguments - indexed values from `[]*T` passed to `*T` parameters preserve the existing pointer handle instead of nesting it in another wrapper (stdlib_pointer_map_slice_values expanded, 2026-05-09)
@@ -126,7 +128,7 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 - ✅ Deferred field writes capture renamed bases - selector field access inside deferred closures uses cloned capture names for the base object instead of moving the original wrapper (defer_field_capture_rename promoted, 2026-05-07)
 - ✅ Type switch - downcast_ref-based if-else chain with shared borrow guard, nil cases, selector pointer cases, and temporary call-result subjects from TypeInfo (2026-03-27, updated 2026-05-07)
 - ✅ Switch expression lifetime - tag captured in let binding to avoid borrow issues (2026-03-27)
-- ✅ Variadic functions - ellipsis params as Vec<T>, call-site arg collection into vec![], including boxed `...any` elements and cross-file helper calls using package-wide signatures (2026-03-27, updated 2026-05-09)
+- ✅ Variadic functions - ellipsis params as Vec<T>, call-site arg collection into vec![], including boxed `...any` elements, cross-file helper calls using package-wide signatures, and function-value calls with omitted variadic operands (2026-03-27, updated 2026-05-09)
 - ✅ Format verbs - %T maps Rust types to Go type names at runtime, including fmt.Errorf; %+v and %#x consume flagged format arguments (2026-03-27, updated 2026-05-07)
 - ✅ Byte/rune comparison contexts - character literals emit as `u8` when compared with `byte` values or string indexing results (byte_char_comparisons promoted, 2026-05-07)
 - ✅ Wrapped bool conditions - unary `!`, tagless switch cases, and receiver-field conditions unwrap bool wrappers before use (wrapped_bool_not promoted, 2026-05-07; wrapped_bool_field_conditions added, 2026-05-07)
@@ -218,4 +220,4 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 
 go2rust transpiles itself!
 
-- 🚧 Self-transpile cargo check now reaches `golang_org_x_tools_internal_gcimporter` with prior range-shadowing, stdlib interface map-key, pointer-key map slice append, stdlib map-range, indexed pointer call-argument, pointer-handle equality, untyped integer constant argument, non-struct `reflect.TypeOf`, method nil pointer argument, and pointer-slice literal variable blockers fixed; the next first error is a function-value wrapper mismatch in generated `iexport.rs:1540`, with 175 reported gcimporter errors remaining in the package-targeted check (2026-05-09)
+- 🚧 Self-transpile cargo check now reaches `golang_org_x_tools_internal_gcimporter` with prior range-shadowing, stdlib interface map-key, pointer-key map slice append, stdlib map-range, indexed pointer call-argument, pointer-handle equality, untyped integer constant argument, non-struct `reflect.TypeOf`, method nil pointer argument, pointer-slice literal variable, cross-file named function type alias, indexed pointer-slice return, and omitted variadic function-value argument blockers fixed; the next first error is a `downcast_ref` call on `&String` in generated `iexport.rs:1586`, with 171 reported gcimporter errors remaining in the package-targeted check (2026-05-09)
