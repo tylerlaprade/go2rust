@@ -16,6 +16,6 @@ impl std::fmt::Display for info {
 
 fn main() {
     let mut p: Rc<RefCell<Option<info>>> = Rc::new(RefCell::new(None));
-    { let new_val = Rc::new(RefCell::new(Some(info { name: Rc::new(RefCell::new(Some("ready".to_string()))), ..Default::default() }))); let __moved_val = { let mut __guard = new_val.borrow_mut(); __guard.take() }; *p.borrow_mut() = __moved_val; };
+    { let new_val = Rc::new(RefCell::new(Some(info { name: Rc::new(RefCell::new(Some("ready".to_string()))), ..Default::default() }))).clone(); p = new_val; };
     println!("{}", (*(*p.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()));
 }

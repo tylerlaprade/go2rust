@@ -1328,6 +1328,10 @@ run_xfail_test() {
     run_test "tests/stdlib_package_func_stubs"
 }
 
+@test "stdlib_package_pointer_var" {
+    run_test "tests/stdlib_package_pointer_var"
+}
+
 @test "stdlib_pointer_field_stub" {
     run_test "tests/stdlib_pointer_field_stub"
 }

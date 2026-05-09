@@ -365,7 +365,7 @@ func RegisterExternalPackageStubVariable(pkgName string, varName string, varType
 	}
 	trackWrapperImports()
 	pkg := ensureExternalPackageStub(pkgName)
-	pkg.Variables[varName] = goTypesTypeToRustWrapped(varType)
+	pkg.Variables[varName] = goTypesReturnTypeToRust(varType)
 }
 
 func ensureExternalPackageStub(pkgName string) *externalPackageStub {

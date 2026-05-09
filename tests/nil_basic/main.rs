@@ -16,7 +16,7 @@ fn main() {
 
         // Non-nil pointer
     let mut x = Rc::new(RefCell::new(Some(42)));
-    { let new_val = (*x.borrow()).clone(); *p.borrow_mut() = new_val; };
+    { let new_val = x.clone().clone(); p = new_val; };
     if (*p.borrow()).is_some() {
         println!("{} {}", "p is not nil, value:".to_string(), { let __v = (*p.borrow().as_ref().unwrap()).clone(); __v });
     }

@@ -543,7 +543,7 @@ fn main() {
         (*file_defer_captured.lock().unwrap().as_mut().unwrap()).close();
     }));
 
-    { let new_val = bufio::new_scanner(file.clone()); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *scanner.lock().unwrap() = __moved_val; };
+    { let new_val = bufio::new_scanner(file.clone()).clone(); scanner = new_val; };
     let mut wordCount = Arc::new(Mutex::new(Some(0)));
     let mut lineCount = Arc::new(Mutex::new(Some(0)));
     let mut charCount = Arc::new(Mutex::new(Some(0)));

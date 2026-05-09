@@ -28,7 +28,7 @@ impl std::fmt::Display for holder {
 
 impl holder {
     pub fn store(&mut self, ptr: Rc<RefCell<Option<item>>>) {
-        { let new_val = ptr.borrow().as_ref().unwrap().clone(); *self.ptr.borrow_mut() = Some(new_val); };
+        { let new_val = ptr.clone(); self.ptr = new_val; };
     }
 }
 

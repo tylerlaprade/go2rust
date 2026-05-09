@@ -997,6 +997,19 @@ func writeMoveWrappedInnerAssignmentFromTemp(out *strings.Builder, lhs ast.Expr,
 	out.WriteString(";")
 }
 
+func writePointerHandleAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || !typeInfo.IsPointer(lhs) || !typeInfo.IsPointer(rhs) {
+		return false
+	}
+	out.WriteString("{ let new_val = ")
+	TranspileExpressionContext(out, rhs, AddressOf)
+	out.WriteString(".clone(); ")
+	TranspileExpressionContext(out, lhs, LValue)
+	out.WriteString(" = new_val; }")
+	return true
+}
+
 func tempHoldsWrappedValue(rhs ast.Expr) bool {
 	if isAssignmentSelfWrappingExpression(rhs) {
 		return true
@@ -2619,6 +2632,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									TranspileExpressionContext(out, s.Lhs[0], LValue)
 									WriteBorrowMethod(out, true)
 									out.WriteString(" = None")
+								} else if writePointerHandleAssignment(out, s.Lhs[0], s.Rhs[0]) {
+									// Pointer assignment replaces the handle to preserve aliasing.
 								} else if writeStdlibInterfaceAssignment(out, s.Lhs[0], s.Rhs[0]) {
 									// Converted concrete stdlib values assigned through a stdlib interface handle.
 								} else if unary, ok := s.Rhs[0].(*ast.UnaryExpr); ok && unary.Op == token.AND {
