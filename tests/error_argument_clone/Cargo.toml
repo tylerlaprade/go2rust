@@ -1,0 +1,8 @@
+[package]
+name = "error_argument_clone"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "error_argument_clone"
+path = "main.rs"

@@ -1,0 +1,8 @@
+[package]
+name = "panic_fmt_errorf_dynamic"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "panic_fmt_errorf_dynamic"
+path = "main.rs"

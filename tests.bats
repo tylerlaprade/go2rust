@@ -622,8 +622,16 @@ run_xfail_test() {
     run_test "tests/enums_iota"
 }
 
+@test "error_argument_clone" {
+    run_test "tests/error_argument_clone"
+}
+
 @test "error_handling" {
     run_test "tests/error_handling"
+}
+
+@test "error_sentinel_comparison" {
+    run_test "tests/error_sentinel_comparison"
 }
 
 @test "error_simple" {
@@ -1016,6 +1024,10 @@ run_xfail_test() {
 
 @test "package_global_shadowing" {
     run_test "tests/package_global_shadowing"
+}
+
+@test "panic_fmt_errorf_dynamic" {
+    run_test "tests/panic_fmt_errorf_dynamic"
 }
 
 @test "parallel_slice_field_assign" {

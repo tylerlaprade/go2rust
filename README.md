@@ -203,6 +203,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Stdlib concrete pointer literals and values returned as stdlib interface types | ✅ |
 | └ Imported transpiled interfaces implemented by current-package concrete types | ✅ |
 | └ Boxed error values asserted back to `error` | ✅ |
+| └ Wrapped `error` arguments and sentinel comparisons | ✅ |
 | └ Type switches, including nil and selector pointer cases | ✅ |
 | **`map` - Map types** | |
 | └ Map types | ✅ |
@@ -365,6 +366,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ `fmt.Fprintf` | ✅ |
 | └ `%w` error formatting | ✅ |
 | └ `%T` type-name formatting in errors | ✅ |
+| └ Dynamic-format `panic(fmt.Errorf(...))` | ✅ |
 | └ `%+v` debug and `%#x` alternate hex formatting | ✅ |
 | └ `%x`/`%X` byte formatting | ✅ |
 | **`strings` package** | |
@@ -416,6 +418,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Package-level `errors.New` values | ✅ |
 | └ Custom error types | ✅ |
 | └ Type assertions on errors | ✅ |
+| └ Error handle arguments and equality comparisons | ✅ |
 | **`flag` package** | |
 | └ `flag.String` / `flag.Parse` default values | ✅ |
 | **`time` package** | |

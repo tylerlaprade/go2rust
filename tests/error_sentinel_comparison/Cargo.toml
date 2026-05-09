@@ -1,0 +1,8 @@
+[package]
+name = "error_sentinel_comparison"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "error_sentinel_comparison"
+path = "main.rs"

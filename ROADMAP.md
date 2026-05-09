@@ -73,7 +73,7 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 - ✅ Local interface trait-object helpers - generated local interface traits now clone boxed values, compare interface values, store concrete values in interface fields, return interface globals, and support `slices.Contains` over interface slices (local_interface_equality_contains promoted, 2026-05-08)
 - ✅ Typed constants as local interface arguments - package constants with named concrete types construct that named type before passing `&dyn Trait` parameters (cross_file_interface_typed_const_argument added, 2026-05-09)
 - ✅ Imported transpiled interface implementations - current-package concrete values passed to dependency interface parameters generate imported trait impls when go/types proves the implementation (2026-05-08)
-- ✅ Error handling - custom error types with Error() method, Box<dyn Error> returns, package-level error globals, error assignment, error-to-error moves, type assertions on errors, and fmt.Errorf `%w` formatting (2026-03-26, updated 2026-05-07)
+- ✅ Error handling - custom error types with Error() method, Box<dyn Error> returns, package-level error globals, error assignment, error-to-error moves, error handle arguments, error equality comparisons, type assertions on errors, and fmt.Errorf `%w` formatting (2026-03-26, updated 2026-05-09)
 - ✅ Embedded method promotion - multi-level embedding, promoted method calls, field method chains (2026-03-26)
 - ✅ Map value type consistency - map literal values and type annotations now consistently wrap values (2026-03-26)
 - ✅ Map capacity and element update semantics - make(map[K]V, cap), missing-key zero values, and map element ++/+= (make_map_with_capacity promoted, 2026-05-06)

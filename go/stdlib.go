@@ -3024,7 +3024,7 @@ func transpilePanic(out *strings.Builder, call *ast.CallExpr) {
 						} else {
 							// Non-literal format string
 							out.WriteString("\"{}\", ")
-							TranspileExpression(out, call.Args[0])
+							writeOwnedStringStdlibArg(out, callExpr.Args[0])
 						}
 					}
 				} else {

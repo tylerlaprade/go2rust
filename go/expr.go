@@ -918,10 +918,15 @@ func writeAlreadyWrappedCallArgument(out *strings.Builder, arg ast.Expr) bool {
 		}
 	}
 	if ident, ok := arg.(*ast.Ident); ok && ident.Name != "nil" {
+		typeInfo := GetTypeInfo()
+		if typeInfo != nil && isGoErrorType(typeInfo.GetType(ident)) {
+			out.WriteString(rustIdentForUseWithCapture(ident))
+			out.WriteString(".clone()")
+			return true
+		}
 		if currentReceiver != "" && ident.Name == currentReceiver {
 			return false
 		}
-		typeInfo := GetTypeInfo()
 		if typeInfo != nil {
 			if _, isLocalConst := localConstants[ident.Name]; !isLocalConst && !isConstIdent(ident) {
 				if typ := typeInfo.GetType(ident); typ != nil {
@@ -945,6 +950,36 @@ func writeAlreadyWrappedCallArgument(out *strings.Builder, arg ast.Expr) bool {
 	}
 	typeInfo := GetTypeInfo()
 	if typeInfo != nil && typeInfo.ReturnsWrappedValue(callArg) && !callReturnsBareChannelValue(callArg) {
+		TranspileExpression(out, arg)
+		return true
+	}
+	return false
+}
+
+func writeGoErrorCallArgument(out *strings.Builder, arg ast.Expr, expected types.Type) bool {
+	if !isGoErrorType(expected) {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if ident, ok := arg.(*ast.Ident); ok {
+		if ident.Name == "nil" {
+			WriteWrappedNone(out)
+			return true
+		}
+		if typeInfo != nil && isGoErrorType(typeInfo.GetType(ident)) {
+			out.WriteString(rustIdentForUseWithCapture(ident))
+			out.WriteString(".clone()")
+			return true
+		}
+	}
+	if call, ok := arg.(*ast.CallExpr); ok {
+		typeInfo := GetTypeInfo()
+		if typeInfo != nil && typeInfo.ReturnsWrappedValue(call) {
+			TranspileExpression(out, arg)
+			return true
+		}
+	}
+	if typeInfo != nil && isGoErrorType(typeInfo.GetType(arg)) {
 		TranspileExpression(out, arg)
 		return true
 	}
@@ -1068,6 +1103,31 @@ func callSignatureFromTypeInfo(call *ast.CallExpr) (*types.Signature, bool) {
 		}
 	}
 	return nil, false
+}
+
+func writeGoErrorEquality(out *strings.Builder, expr *ast.BinaryExpr) bool {
+	if expr == nil || expr.Op != token.EQL && expr.Op != token.NEQ {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || !isGoErrorType(typeInfo.GetType(expr.X)) || !isGoErrorType(typeInfo.GetType(expr.Y)) {
+		return false
+	}
+	writeGoErrorNilState(out, expr.X)
+	if expr.Op == token.EQL {
+		out.WriteString(" == ")
+	} else {
+		out.WriteString(" != ")
+	}
+	writeGoErrorNilState(out, expr.Y)
+	return true
+}
+
+func writeGoErrorNilState(out *strings.Builder, expr ast.Expr) {
+	out.WriteString("(*")
+	TranspileExpressionContext(out, expr, LValue)
+	WriteBorrowMethod(out, false)
+	out.WriteString(").is_none()")
 }
 
 func expectedTypeFromParamExpr(expr ast.Expr) types.Type {
@@ -3317,6 +3377,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				out.WriteString(").is_none()")
 				return
 			}
+		}
+		if writeGoErrorEquality(out, e) {
+			return
 		}
 		if writeCurrentReceiverPointerComparison(out, e) {
 			return
@@ -6127,6 +6190,8 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 			} else if bareMethodCall {
 				// Bare type methods take bare arguments
 				TranspileExpression(out, arg)
+			} else if writeGoErrorCallArgument(out, arg, expectedArgType) {
+				continue
 			} else if typeInfo != nil && typeInfo.IsChannel(arg) {
 				TranspileExpression(out, arg)
 				out.WriteString(".clone()")
@@ -6330,6 +6395,10 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 		// Wrap arguments appropriately
 		handler := GetStdlibHandler(call)
 		if isClosureCall || handler == nil {
+			if writeGoErrorCallArgument(out, arg, expectedArgType) {
+				continue
+			}
+
 			// Special handling for interface parameters that now use &dyn Trait
 			if expectsInterfaceParam {
 				// Interface parameter - pass as reference without wrapper
