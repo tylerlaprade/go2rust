@@ -24,6 +24,26 @@ where
     format!("[{}]", formatted.join(" "))
 }
 
+fn format_slice_wrapped<T, C>(slice: &Arc<Mutex<Option<C>>>) -> String
+where
+    C: AsRef<[Arc<Mutex<Option<T>>>]>,
+    T: Display,
+{
+    let guard = slice.lock().unwrap();
+    if let Some(ref s) = *guard {
+        let formatted: Vec<String> = s.as_ref().iter().map(|v| {
+            let inner = v.lock().unwrap();
+            match inner.as_ref() {
+                Some(value) => format!("&{}", value),
+                None => "<nil>".to_string(),
+            }
+        }).collect();
+        format!("[{}]", formatted.join(" "))
+    } else {
+        "[]".to_string()
+    }
+}
+
 struct GoChannel<T> {
     tx: std::sync::Arc<std::sync::Mutex<Option<std::sync::mpsc::SyncSender<T>>>>,
     rx: std::sync::Arc<std::sync::Mutex<std::sync::mpsc::Receiver<T>>>,

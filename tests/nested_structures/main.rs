@@ -26,6 +26,26 @@ where
     format!("[{}]", formatted.join(" "))
 }
 
+fn format_slice_wrapped<T, C>(slice: &Rc<RefCell<Option<C>>>) -> String
+where
+    C: AsRef<[Rc<RefCell<Option<T>>>]>,
+    T: Display,
+{
+    let guard = slice.borrow();
+    if let Some(ref s) = *guard {
+        let formatted: Vec<String> = s.as_ref().iter().map(|v| {
+            let inner = v.borrow();
+            match inner.as_ref() {
+                Some(value) => format!("&{}", value),
+                None => "<nil>".to_string(),
+            }
+        }).collect();
+        format!("[{}]", formatted.join(" "))
+    } else {
+        "[]".to_string()
+    }
+}
+
 /// Interface for drawing
 pub trait Drawable: std::fmt::Display + Any {
     fn __go_clone_box(&self) -> Box<dyn Drawable>;

@@ -24,6 +24,26 @@ where
     format!("[{}]", formatted.join(" "))
 }
 
+fn format_slice_wrapped<T, C>(slice: &Rc<RefCell<Option<C>>>) -> String
+where
+    C: AsRef<[Rc<RefCell<Option<T>>>]>,
+    T: Display,
+{
+    let guard = slice.borrow();
+    if let Some(ref s) = *guard {
+        let formatted: Vec<String> = s.as_ref().iter().map(|v| {
+            let inner = v.borrow();
+            match inner.as_ref() {
+                Some(value) => format!("&{}", value),
+                None => "<nil>".to_string(),
+            }
+        }).collect();
+        format!("[{}]", formatted.join(" "))
+    } else {
+        "[]".to_string()
+    }
+}
+
 pub fn compare_length(a: Rc<RefCell<Option<String>>>, b: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<i32>>> {
 
     if ((*a.borrow().as_ref().unwrap()).len() as i32) < ((*b.borrow().as_ref().unwrap()).len() as i32) {

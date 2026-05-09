@@ -1,5 +1,5 @@
 use std::cell::{RefCell};
-use std::fmt::{Display};
+use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
 fn format_slice<T, C>(slice: &Rc<RefCell<Option<C>>>) -> String
@@ -44,11 +44,32 @@ where
     }
 }
 
-fn main() {
-    let mut nums = Rc::new(RefCell::new(Some(vec![1, 2, 3])));
-    let mut all = Rc::new(RefCell::new(Some({ let __seq = { let __seq_holder = nums.clone(); let __seq_guard = __seq_holder.borrow(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[..].to_vec() })));
-    println!("{} {} {}", (*all.borrow().as_ref().unwrap()).len(), (*all.borrow().as_ref().unwrap()).capacity(), format_slice(&all));
+#[derive(Debug, Clone, Default)]
+pub struct item {
+    pub n: Rc<RefCell<Option<i32>>>,
+}
 
-    let mut s = Rc::new(RefCell::new(Some("hello".to_string())));
-    println!("{}", (*Rc::new(RefCell::new(Some({ let __s = (*s.borrow().as_ref().unwrap()).clone(); __s[..].to_string() }))).borrow().as_ref().unwrap()));
+impl std::fmt::Display for item {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{}}}", (*self.n.borrow().as_ref().unwrap()))
+    }
+}
+
+
+#[derive(Debug, Clone, Default)]
+pub struct holder {
+    pub items: Rc<RefCell<Option<Vec<Rc<RefCell<Option<item>>>>>>>,
+}
+
+impl std::fmt::Display for holder {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{}}}", format_slice_wrapped(&self.items))
+    }
+}
+
+
+fn main() {
+    let mut h = Rc::new(RefCell::new(Some(holder { items: Rc::new(RefCell::new(Some(vec![Rc::new(RefCell::new(Some(item { n: Rc::new(RefCell::new(Some(1))), ..Default::default() }))), Rc::new(RefCell::new(Some(item { n: Rc::new(RefCell::new(Some(2))), ..Default::default() })))]))), ..Default::default() })));
+    let _ = Rc::new(RefCell::new(Some(format!("{}", (*h.borrow().as_ref().unwrap())))));
+    println!("{}", "ok".to_string());
 }

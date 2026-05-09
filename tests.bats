@@ -1420,6 +1420,10 @@ run_xfail_test() {
     run_test "tests/struct_named_integer_map_key"
 }
 
+@test "struct_pointer_slice_format" {
+    run_test "tests/struct_pointer_slice_format"
+}
+
 @test "struct_tags_reflection" {
     run_test "tests/struct_tags_reflection"
 }

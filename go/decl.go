@@ -48,6 +48,7 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 		hasTrait    bool
 		mapOpaque   bool
 		nestedSlice bool
+		ptrSlice    bool
 	}
 	var fields []fieldEntry
 	for _, field := range structType.Fields.List {
@@ -63,6 +64,7 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 		hasTrait := typeHasTraitField(field.Type)
 		mapOpaque := mapFieldNeedsOpaqueDisplay(field.Type)
 		nestedSlice := arrayFieldContainsSlice(field.Type)
+		ptrSlice := arrayFieldContainsPointer(field.Type)
 		if isChannel {
 			continue
 		}
@@ -78,6 +80,7 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 					hasTrait:    hasTrait,
 					mapOpaque:   mapOpaque,
 					nestedSlice: nestedSlice,
+					ptrSlice:    ptrSlice,
 				})
 			}
 		} else {
@@ -93,6 +96,7 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 				hasTrait:    hasTrait,
 				mapOpaque:   mapOpaque,
 				nestedSlice: nestedSlice,
+				ptrSlice:    ptrSlice,
 			})
 		}
 	}
@@ -129,6 +133,11 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 			out.WriteString("format_nested_slice(&self.")
 			out.WriteString(ToSnakeCase(f.name))
 			out.WriteString(")")
+		} else if f.ptrSlice {
+			NeedFormatSlice()
+			out.WriteString("format_slice_wrapped(&self.")
+			out.WriteString(ToSnakeCase(f.name))
+			out.WriteString(")")
 		} else if f.isSlice {
 			NeedFormatSlice()
 			out.WriteString("format_slice(&self.")
@@ -153,6 +162,15 @@ func arrayFieldContainsSlice(expr ast.Expr) bool {
 		return false
 	}
 	_, ok = arrayType.Elt.(*ast.ArrayType)
+	return ok
+}
+
+func arrayFieldContainsPointer(expr ast.Expr) bool {
+	arrayType, ok := expr.(*ast.ArrayType)
+	if !ok {
+		return false
+	}
+	_, ok = arrayType.Elt.(*ast.StarExpr)
 	return ok
 }
 
