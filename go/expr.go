@@ -838,7 +838,7 @@ func writeExternalStubCallArgument(out *strings.Builder, arg ast.Expr) {
 		return
 	}
 	if ident, ok := arg.(*ast.Ident); ok && isWrappedValueIdent(ident) {
-		out.WriteString(RustIdentForUse(ident))
+		out.WriteString(rustIdentForUseWithCapture(ident))
 		out.WriteString(".clone()")
 		return
 	}
@@ -846,6 +846,56 @@ func writeExternalStubCallArgument(out *strings.Builder, arg ast.Expr) {
 		return
 	}
 	TranspileExpression(out, arg)
+}
+
+func rustIdentForUseWithCapture(ident *ast.Ident) string {
+	if ident == nil {
+		return ""
+	}
+	if currentCaptureRenames != nil {
+		if renamed, exists := currentCaptureRenames[ident.Name]; exists {
+			return RustLocalIdent(renamed)
+		}
+	}
+	if currentReceiver != "" && ident.Name == currentReceiver {
+		return "self"
+	}
+	return RustIdentForUse(ident)
+}
+
+func writeExternalStubCallArguments(out *strings.Builder, call *ast.CallExpr) bool {
+	sig, ok := callSignatureFromTypeInfo(call)
+	if !ok || !sig.Variadic() || sig.Params() == nil || sig.Params().Len() == 0 {
+		return false
+	}
+	fixedCount := sig.Params().Len() - 1
+	for i := 0; i < fixedCount && i < len(call.Args); i++ {
+		if i > 0 {
+			out.WriteString(", ")
+		}
+		writeExternalStubCallArgument(out, call.Args[i])
+	}
+	if fixedCount > 0 {
+		out.WriteString(", ")
+	}
+	if call.Ellipsis.IsValid() && len(call.Args) > fixedCount {
+		writeExternalStubCallArgument(out, call.Args[len(call.Args)-1])
+		return true
+	}
+	out.WriteString("(")
+	variadicCount := 0
+	for i := fixedCount; i < len(call.Args); i++ {
+		if i > fixedCount {
+			out.WriteString(", ")
+		}
+		writeExternalStubCallArgument(out, call.Args[i])
+		variadicCount++
+	}
+	if variadicCount == 1 {
+		out.WriteString(",")
+	}
+	out.WriteString(")")
+	return true
 }
 
 func writeAlreadyWrappedCallArgument(out *strings.Builder, arg ast.Expr) bool {
@@ -979,22 +1029,7 @@ func writeLocalInterfaceConstReferenceCallArgument(out *strings.Builder, ident *
 }
 
 func callParamTypeFromTypeInfo(call *ast.CallExpr, index int) types.Type {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || call == nil {
-		return nil
-	}
-	sig, ok := signatureFromType(typeInfo.GetType(call.Fun))
-	if !ok && typeInfo.info != nil {
-		if ident, isIdent := call.Fun.(*ast.Ident); isIdent {
-			if fn, isFunc := typeInfo.info.Uses[ident].(*types.Func); isFunc {
-				sig, ok = signatureFromType(fn.Type())
-			}
-		} else if sel, isSelector := call.Fun.(*ast.SelectorExpr); isSelector {
-			if fn, isFunc := typeInfo.info.Uses[sel.Sel].(*types.Func); isFunc {
-				sig, ok = signatureFromType(fn.Type())
-			}
-		}
-	}
+	sig, ok := callSignatureFromTypeInfo(call)
 	if !ok || sig.Params() == nil {
 		return nil
 	}
@@ -1009,6 +1044,30 @@ func callParamTypeFromTypeInfo(call *ast.CallExpr, index int) types.Type {
 		return nil
 	}
 	return params.At(index).Type()
+}
+
+func callSignatureFromTypeInfo(call *ast.CallExpr) (*types.Signature, bool) {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || call == nil {
+		return nil, false
+	}
+	sig, ok := signatureFromType(typeInfo.GetType(call.Fun))
+	if ok {
+		return sig, true
+	}
+	if typeInfo.info == nil {
+		return nil, false
+	}
+	if ident, isIdent := call.Fun.(*ast.Ident); isIdent {
+		if fn, isFunc := typeInfo.info.Uses[ident].(*types.Func); isFunc {
+			return signatureFromType(fn.Type())
+		}
+	} else if sel, isSelector := call.Fun.(*ast.SelectorExpr); isSelector {
+		if fn, isFunc := typeInfo.info.Uses[sel.Sel].(*types.Func); isFunc {
+			return signatureFromType(fn.Type())
+		}
+	}
+	return nil, false
 }
 
 func expectedTypeFromParamExpr(expr ast.Expr) types.Type {
@@ -5822,6 +5881,10 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 			_, _, isExternalStdlibStubCall := externalStdlibPackageSelector(sel)
 			TranspileExpression(out, sel)
 			out.WriteString("(")
+			if isExternalStdlibStubCall && writeExternalStubCallArguments(out, call) {
+				out.WriteString(")")
+				return
+			}
 			for i, arg := range call.Args {
 				if i > 0 {
 					out.WriteString(", ")

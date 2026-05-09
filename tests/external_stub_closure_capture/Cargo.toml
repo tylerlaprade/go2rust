@@ -1,0 +1,8 @@
+[package]
+name = "external_stub_closure_capture"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "external_stub_closure_capture"
+path = "main.rs"

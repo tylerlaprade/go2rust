@@ -646,6 +646,14 @@ run_xfail_test() {
     run_test "tests/external_simple"
 }
 
+@test "external_stdlib_variadic" {
+    run_test "tests/external_stdlib_variadic"
+}
+
+@test "external_stub_closure_capture" {
+    run_test "tests/external_stub_closure_capture"
+}
+
 @test "fallthrough_switch" {
     run_test "tests/fallthrough_switch"
 }

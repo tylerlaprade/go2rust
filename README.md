@@ -179,6 +179,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Stdlib method stubs from selector type information | ✅ |
 | └ Stdlib pointer method calls from indexed and range receivers | ✅ |
 | └ Stdlib package function/constant/variable stubs | ✅ |
+| └ Stdlib package variadic stub calls | ✅ |
 | └ Stdlib typed constants as indexes | ✅ |
 | └ Shared stdlib stubs across transpiled dependency crates | ✅ |
 | └ Stdlib concrete values passed to stdlib interface parameters | ✅ |
