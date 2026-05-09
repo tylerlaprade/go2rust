@@ -330,6 +330,9 @@ func methodReceiverExpressionNeedsUnwrap(expr ast.Expr) bool {
 	case *ast.TypeAssertExpr:
 		typeInfo := GetTypeInfo()
 		return typeInfo != nil && typeInfo.IsPointer(e)
+	case *ast.UnaryExpr:
+		typeInfo := GetTypeInfo()
+		return e.Op == token.AND && typeInfo != nil && typeInfo.IsPointer(e)
 	case *ast.ParenExpr:
 		return methodReceiverExpressionNeedsUnwrap(e.X)
 	default:

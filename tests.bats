@@ -462,6 +462,10 @@ run_xfail_test() {
     run_test "tests/compound_assignments"
 }
 
+@test "concurrent_address_composite_method" {
+    run_test "tests/concurrent_address_composite_method"
+}
+
 @test "concurrent_byte_index_or_assign" {
     run_test "tests/concurrent_byte_index_or_assign"
 }

@@ -1,0 +1,8 @@
+[package]
+name = "concurrent_address_composite_method"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "concurrent_address_composite_method"
+path = "main.rs"
