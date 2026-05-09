@@ -160,7 +160,7 @@ pub fn sender(ch: GoChannel<i32>) {
 }
 
 pub fn receiver(ch: GoChannel<i32>) {
-    while true {
+    loop {
         let (mut value, mut ok) = match ch.recv() { Some(v) => (Arc::new(Mutex::new(Some(v))), Arc::new(Mutex::new(Some(true)))), None => (Arc::new(Mutex::new(Some(Default::default()))), Arc::new(Mutex::new(Some(false)))) };
         if !{ let __v = (*ok.lock().unwrap().as_ref().unwrap()).clone(); __v } {
         println!("{}", "Channel closed".to_string());

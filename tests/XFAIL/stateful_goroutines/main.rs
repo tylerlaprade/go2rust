@@ -226,7 +226,7 @@ fn main() {
 
     let reads_thread = reads.clone(); let writes_thread = writes.clone(); std::thread::spawn(move || {
         let mut state = Arc::new(Mutex::new(Some(BTreeMap::<i32, Arc<Mutex<Option<i32>>>>::new())));;
-        while true {
+        loop {
         loop {
         if let Some(read) = reads_thread.try_recv() {
             let mut read = Arc::new(Mutex::new(Some(read)));

@@ -768,6 +768,10 @@ run_xfail_test() {
     run_test "tests/import_aliases"
 }
 
+@test "infinite_loop_tuple_return" {
+    run_test "tests/infinite_loop_tuple_return"
+}
+
 @test "init_functions" {
     run_test "tests/init_functions"
 }

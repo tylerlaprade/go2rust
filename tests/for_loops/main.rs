@@ -14,7 +14,7 @@ fn main() {
         { let mut guard = j.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
 
-    while true {
+    loop {
         println!("{}", "loop".to_string());
         break
     }

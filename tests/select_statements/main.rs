@@ -369,7 +369,7 @@ pub fn select_loop() {
     });
 
     println!("{}", "Starting select loop:".to_string());
-    while true {
+    loop {
         loop {
         if let Some(val1) = ch1.try_recv() {
             let mut val1 = Arc::new(Mutex::new(Some(val1)));

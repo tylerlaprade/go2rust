@@ -3502,11 +3502,11 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			}
 			pendingLoopLabel = ""
 		}
-		out.WriteString("while ")
 		if s.Cond != nil {
+			out.WriteString("while ")
 			transpileCondition(out, s.Cond)
 		} else {
-			out.WriteString("true")
+			out.WriteString("loop")
 		}
 		out.WriteString(" {\n")
 

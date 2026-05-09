@@ -1,0 +1,8 @@
+[package]
+name = "infinite_loop_tuple_return"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "infinite_loop_tuple_return"
+path = "main.rs"
