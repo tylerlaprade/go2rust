@@ -1,0 +1,8 @@
+[package]
+name = "slices_clone_pointer_slice"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "slices_clone_pointer_slice"
+path = "main.rs"

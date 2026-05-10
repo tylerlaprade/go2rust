@@ -95,6 +95,7 @@ func init() {
 		"slices.Sort":             transpileSlicesSort,
 		"slices.SortFunc":         transpileSlicesSortFunc,
 		"slices.Contains":         transpileSlicesContains,
+		"slices.Clone":            transpileSlicesClone,
 		"time.Sleep":              transpileTimeSleep,
 		"time.Now":                transpileTimeNow,
 		"time.Unix":               transpileTimeUnix,
@@ -1742,6 +1743,16 @@ func transpileSlicesContains(out *strings.Builder, call *ast.CallExpr) {
 	out.WriteString("; let __slice = __slice_guard.as_ref().unwrap(); let __value = ")
 	writeMaybeUnwrappedExpression(out, call.Args[1])
 	out.WriteString("; __slice.contains(&__value) }")
+	WriteWrapperSuffix(out)
+}
+
+func transpileSlicesClone(out *strings.Builder, call *ast.CallExpr) {
+	if len(call.Args) != 1 {
+		out.WriteString("/* ERROR: slices.Clone expects 1 argument */")
+		return
+	}
+	WriteWrapperPrefix(out)
+	writeUnwrappedSliceClone(out, call.Args[0])
 	WriteWrapperSuffix(out)
 }
 

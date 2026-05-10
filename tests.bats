@@ -1388,6 +1388,10 @@ run_xfail_test() {
     run_test "tests/slices_basic"
 }
 
+@test "slices_clone_pointer_slice" {
+    run_test "tests/slices_clone_pointer_slice"
+}
+
 @test "slices_contains" {
     run_test "tests/slices_contains"
 }
