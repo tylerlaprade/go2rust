@@ -1,0 +1,8 @@
+[package]
+name = "local_const_shadows_param"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "local_const_shadows_param"
+path = "main.rs"

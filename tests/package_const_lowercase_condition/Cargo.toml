@@ -1,0 +1,8 @@
+[package]
+name = "package_const_lowercase_condition"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "package_const_lowercase_condition"
+path = "main.rs"

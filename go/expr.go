@@ -163,7 +163,7 @@ func isNamedIntegerType(typ types.Type) bool {
 func isConstExpressionForUsize(expr ast.Expr) bool {
 	switch e := expr.(type) {
 	case *ast.Ident:
-		if _, ok := localConstants[e.Name]; ok {
+		if isLocalConstantIdent(e) {
 			return true
 		}
 		return isConstIdent(e)
@@ -177,6 +177,25 @@ func isConstExpressionForUsize(expr ast.Expr) bool {
 	default:
 		return false
 	}
+}
+
+func isLocalConstantIdent(ident *ast.Ident) bool {
+	if ident == nil {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo != nil && typeInfo.info != nil {
+		if obj := typeInfo.info.Uses[ident]; obj != nil {
+			constObj, ok := obj.(*types.Const)
+			return ok && !isPackageScopeObject(constObj)
+		}
+		if obj := typeInfo.info.Defs[ident]; obj != nil {
+			constObj, ok := obj.(*types.Const)
+			return ok && !isPackageScopeObject(constObj)
+		}
+	}
+	_, ok := localConstants[ident.Name]
+	return ok
 }
 
 func isIntegerBasicKind(kind types.BasicKind) bool {
@@ -458,7 +477,7 @@ func isExpressionResultBare(expr ast.Expr) bool {
 			return true
 		}
 		// Local constants are bare
-		if _, isConst := localConstants[e.Name]; isConst {
+		if isLocalConstantIdent(e) {
 			return true
 		}
 		return false
@@ -925,7 +944,7 @@ func writeCallArgumentValue(out *strings.Builder, arg ast.Expr) bool {
 	if _, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar {
 		return false
 	}
-	if _, isLocalConst := localConstants[ident.Name]; isLocalConst {
+	if isLocalConstantIdent(ident) {
 		return false
 	}
 	if isConstIdent(ident) {
@@ -2906,7 +2925,7 @@ func writeIdentExpression(out *strings.Builder, e *ast.Ident, ctx ExprContext, v
 			// Simple type (like usize for array indices)
 			out.WriteString(varName)
 		}
-	} else if _, isLocalConst := localConstants[e.Name]; isLocalConst {
+	} else if isLocalConstantIdent(e) {
 		out.WriteString(varName)
 	} else if isConstIdent(e) {
 		out.WriteString(rustConstName(e.Name))

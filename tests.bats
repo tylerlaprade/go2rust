@@ -868,6 +868,10 @@ run_xfail_test() {
     run_test "tests/library_example"
 }
 
+@test "local_const_shadows_param" {
+    run_test "tests/local_const_shadows_param"
+}
+
 @test "local_interface_concrete_return" {
     run_test "tests/local_interface_concrete_return"
 }
@@ -1086,6 +1090,10 @@ run_xfail_test() {
 
 @test "os_stat_fileinfo_isdir" {
     run_test "tests/os_stat_fileinfo_isdir"
+}
+
+@test "package_const_lowercase_condition" {
+    run_test "tests/package_const_lowercase_condition"
 }
 
 @test "package_global_error" {
