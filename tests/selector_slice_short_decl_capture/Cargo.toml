@@ -1,0 +1,8 @@
+[package]
+name = "selector_slice_short_decl_capture"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "selector_slice_short_decl_capture"
+path = "main.rs"

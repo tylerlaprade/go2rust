@@ -1364,6 +1364,10 @@ run_xfail_test() {
     run_test "tests/select_statements"
 }
 
+@test "selector_slice_short_decl_capture" {
+    run_test "tests/selector_slice_short_decl_capture"
+}
+
 @test "selector_string_clone" {
     run_test "tests/selector_string_clone"
 }

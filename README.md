@@ -292,6 +292,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Package-level declarations and initializer order | ✅ |
 | └ Package-level fixed and inferred array declarations | ✅ |
 | └ Short declarations (:=) | ✅ |
+| └ Selector slice field short declarations | ✅ |
 | └ Blank identifier (_) | ✅ |
 | **Arrays & Slices** | |
 | └ Fixed arrays | ✅ |

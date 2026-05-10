@@ -895,6 +895,29 @@ func writeConcurrentMapSelectorHandleClone(out *strings.Builder, expr ast.Expr) 
 	return true
 }
 
+func writeSliceSelectorHandleClone(out *strings.Builder, expr ast.Expr) bool {
+	if _, ok := expr.(*ast.SelectorExpr); !ok {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	typ := typeInfo.GetType(expr)
+	if typ == nil {
+		return false
+	}
+	if _, isNamed := types.Unalias(typ).(*types.Named); isNamed {
+		return false
+	}
+	if _, ok := types.Unalias(typ).Underlying().(*types.Slice); !ok {
+		return false
+	}
+	TranspileExpressionContext(out, expr, LValue)
+	out.WriteString(".clone()")
+	return true
+}
+
 func writeCallExpressionForInitializer(out *strings.Builder, call *ast.CallExpr) {
 	typeInfo := GetTypeInfo()
 	if typeInfo != nil && typeInfo.IsTypeConversion(call) && !typeConversionEmitsWrappedValue(call) {
@@ -3659,6 +3682,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 											// Function values are already represented by cloneable handles.
 										} else if writeConcurrentMapSelectorHandleClone(out, rhs) {
 											// Concurrent map fields are already wrapped handles; clone the handle.
+										} else if writeSliceSelectorHandleClone(out, rhs) {
+											// Slice fields are already wrapped handles; clone the handle.
 										} else if writeEmptyInterfaceHandleClone(out, rhs) {
 											// Existing interface values are already represented by a handle.
 										} else if writeStdlibInterfaceFieldValueCopy(out, rhs) {
@@ -3871,6 +3896,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									TranspileExpression(out, valueSpec.Values[i])
 								} else if writeConcurrentMapSelectorHandleClone(out, valueSpec.Values[i]) {
 									// Concurrent map fields are already wrapped handles; clone the handle.
+								} else if writeSliceSelectorHandleClone(out, valueSpec.Values[i]) {
+									// Slice fields are already wrapped handles; clone the handle.
 								} else if ident, ok := valueSpec.Values[i].(*ast.Ident); ok {
 									isInterface := false
 									if valueSpec.Type != nil {
