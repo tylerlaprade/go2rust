@@ -1220,6 +1220,10 @@ run_xfail_test() {
     run_test "tests/package_function_type_conversion"
 }
 
+@test "package_global_anonymous_struct_array" {
+    run_test "tests/package_global_anonymous_struct_array"
+}
+
 @test "package_global_error" {
     run_test "tests/package_global_error"
 }

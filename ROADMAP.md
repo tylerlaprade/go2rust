@@ -213,7 +213,7 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 - ✅ Stdlib interface field copies - short declarations from fields typed as stdlib interfaces copy the inner interface stub value instead of wrapping the field handle itself (stdlib_interface_field_assignment promoted, 2026-05-07)
 - ✅ Stdlib interface selector type assertions - comma-ok assertions from fields such as `cmd.Stdout.(*os.File)` borrow the wrapped interface field handle and use nil pointer zero values on failure (stdlib_interface_selector_assertion added, 2026-05-10)
 - ✅ Copyable fieldless stdlib stubs - zero-state external type placeholders derive `Copy` so enum-like stdlib values can be compared after method calls (stdlib_stub_value_comparison promoted, 2026-05-07)
-- ✅ Package-level array globals - go/types arrays emit fixed Rust array types for explicit `[N]T` and inferred `[...]T` package variables (global_fixed_array and global_inferred_array added, 2026-05-07)
+- ✅ Package-level array globals - go/types arrays emit fixed Rust array types for explicit `[N]T`, inferred `[...]T`, and inferred arrays of anonymous structs at package scope (global_fixed_array and global_inferred_array added, 2026-05-07; package_global_anonymous_struct_array added, 2026-05-10)
 - ✅ Single-file package initialization - package-level variables use Go type-checker init order and multiple init functions run before main (init_functions, init_order_complex promoted, 2026-05-06)
 - ✅ Import aliases - aliased stdlib package selectors resolve through the import map (import_aliases promoted, 2026-05-06)
 - Import side effects (blank_imports_side_effects)
@@ -246,4 +246,4 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 
 go2rust transpiles itself!
 
-- 🚧 Broad self-transpile cargo check now reaches `golang_org_x_tools_go_packages`. The latest fixed blockers were Go 1.21 predeclared `min`/`max` lowering and blank named result slots in deferred explicit returns; package-targeted `gcexportdata` now passes, and the broad check reports the next larger `go/packages` translation boundary (2026-05-10)
+- 🚧 Broad self-transpile cargo check now reaches `golang_org_x_tools_go_packages`. The latest fixed blockers were Go 1.21 predeclared `min`/`max` lowering, blank named result slots in deferred explicit returns, and package-global inferred arrays of anonymous structs; package-targeted `gcexportdata` now passes, and the broad check reports the next larger `go/packages` translation boundary (2026-05-10)

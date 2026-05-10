@@ -323,6 +323,7 @@ func collectPackageGlobals(globalVars []*ast.GenDecl) []packageGlobal {
 				if name.Name == "_" {
 					continue
 				}
+				registerAnonymousStructsForPackageGlobal(valueSpec, name)
 				var typ types.Type
 				if typeInfo != nil && typeInfo.info != nil {
 					if obj, ok := typeInfo.info.Defs[name].(*types.Var); ok {
@@ -345,6 +346,56 @@ func collectPackageGlobals(globalVars []*ast.GenDecl) []packageGlobal {
 		}
 	}
 	return globals
+}
+
+func registerAnonymousStructsForPackageGlobal(valueSpec *ast.ValueSpec, name *ast.Ident) {
+	if valueSpec == nil || name == nil {
+		return
+	}
+	registerAnonymousStructsInTypeExpr(valueSpec.Type)
+	for i, candidate := range valueSpec.Names {
+		if candidate != name {
+			continue
+		}
+		if i < len(valueSpec.Values) {
+			if lit, ok := valueSpec.Values[i].(*ast.CompositeLit); ok {
+				registerAnonymousStructsInTypeExpr(lit.Type)
+			}
+		}
+		return
+	}
+}
+
+func registerAnonymousStructsInTypeExpr(expr ast.Expr) {
+	switch t := expr.(type) {
+	case nil:
+		return
+	case *ast.StructType:
+		generateAnonymousStructType(t)
+	case *ast.ArrayType:
+		registerAnonymousStructsInTypeExpr(t.Elt)
+	case *ast.MapType:
+		registerAnonymousStructsInTypeExpr(t.Key)
+		registerAnonymousStructsInTypeExpr(t.Value)
+	case *ast.StarExpr:
+		registerAnonymousStructsInTypeExpr(t.X)
+	case *ast.ChanType:
+		registerAnonymousStructsInTypeExpr(t.Value)
+	case *ast.Ellipsis:
+		registerAnonymousStructsInTypeExpr(t.Elt)
+	case *ast.FuncType:
+		registerAnonymousStructsInFieldList(t.Params)
+		registerAnonymousStructsInFieldList(t.Results)
+	}
+}
+
+func registerAnonymousStructsInFieldList(fields *ast.FieldList) {
+	if fields == nil {
+		return
+	}
+	for _, field := range fields.List {
+		registerAnonymousStructsInTypeExpr(field.Type)
+	}
 }
 
 func hasNamedPackageGlobals(globalVars []*ast.GenDecl) bool {

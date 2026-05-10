@@ -251,6 +251,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Package-level error initialization | ✅ |
 | └ Package-level map literal initialization | ✅ |
 | └ Package-level named slice declarations | ✅ |
+| └ Package-level inferred arrays of anonymous structs | ✅ |
 | └ Package-level pointer globals initialized from constructor calls | ✅ |
 | └ Exported package globals from transpiled dependency crates keep their Go names and public visibility | ✅ |
 | └ Method calls on exported pointer globals from transpiled dependency crates | ✅ |
@@ -310,6 +311,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Package-qualified local zero values | ✅ |
 | └ Package-level declarations and initializer order | ✅ |
 | └ Package-level fixed and inferred array declarations | ✅ |
+| └ Package-level inferred anonymous struct array declarations | ✅ |
 | └ Short declarations (:=) | ✅ |
 | └ Selector slice field short declarations | ✅ |
 | └ Blank identifier (_) | ✅ |
