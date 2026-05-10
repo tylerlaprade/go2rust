@@ -1564,6 +1564,10 @@ run_xfail_test() {
     run_test "tests/struct_embedding"
 }
 
+@test "struct_function_slice_field" {
+    run_test "tests/struct_function_slice_field"
+}
+
 @test "struct_map_trait_value_display" {
     run_test "tests/struct_map_trait_value_display"
 }

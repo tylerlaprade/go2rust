@@ -45,6 +45,7 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 		isMap       bool
 		isInterface bool
 		isFunction  bool
+		funcSlice   bool
 		hasTrait    bool
 		mapOpaque   bool
 		nestedSlice bool
@@ -60,6 +61,7 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 		_, isMap := field.Type.(*ast.MapType)
 		isInterface := isEmptyInterfaceExpr(field.Type)
 		isFunction := isFunctionSignatureTypeExpr(field.Type)
+		funcSlice := arrayFieldContainsFunction(field.Type)
 		_, isChannel := field.Type.(*ast.ChanType)
 		hasTrait := typeHasTraitField(field.Type)
 		mapOpaque := mapFieldNeedsOpaqueDisplay(field.Type)
@@ -77,6 +79,7 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 					isMap:       isMap,
 					isInterface: isInterface,
 					isFunction:  isFunction,
+					funcSlice:   funcSlice,
 					hasTrait:    hasTrait,
 					mapOpaque:   mapOpaque,
 					nestedSlice: nestedSlice,
@@ -93,6 +96,7 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 				isMap:       isMap,
 				isInterface: isInterface,
 				isFunction:  isFunction,
+				funcSlice:   funcSlice,
 				hasTrait:    hasTrait,
 				mapOpaque:   mapOpaque,
 				nestedSlice: nestedSlice,
@@ -121,6 +125,11 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 			out.WriteString(".as_ref().unwrap().as_ref())")
 		} else if f.isFunction {
 			out.WriteString("\"<func>\"")
+		} else if f.funcSlice {
+			out.WriteString("{ let __guard = self.")
+			out.WriteString(ToSnakeCase(f.name))
+			WriteBorrowMethod(out, false)
+			out.WriteString("; match __guard.as_ref() { Some(__v) => format!(\"[{}]\", std::iter::repeat(\"<func>\").take(__v.len()).collect::<Vec<_>>().join(\" \")), None => \"[]\".to_string() } }")
 		} else if f.isMap && f.mapOpaque {
 			out.WriteString("\"<map>\"")
 		} else if f.isMap {
@@ -172,6 +181,14 @@ func arrayFieldContainsPointer(expr ast.Expr) bool {
 	}
 	_, ok = arrayType.Elt.(*ast.StarExpr)
 	return ok
+}
+
+func arrayFieldContainsFunction(expr ast.Expr) bool {
+	arrayType, ok := expr.(*ast.ArrayType)
+	if !ok {
+		return false
+	}
+	return isFunctionSignatureTypeExpr(arrayType.Elt)
 }
 
 func structHasTraitField(structType *ast.StructType) bool {
