@@ -24,6 +24,10 @@ func sameExpressionSyntax(a ast.Expr, b ast.Expr) bool {
 }
 
 func writeArraySliceElementAssignmentValue(out *strings.Builder, rhs ast.Expr, expected types.Type) {
+	if writePointerArraySliceElementAssignmentValue(out, rhs, expected) {
+		return
+	}
+
 	if ident, ok := rhs.(*ast.Ident); ok {
 		if varType, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar && varType == "usize" {
 			if expected != nil {
@@ -58,6 +62,43 @@ func writeArraySliceElementAssignmentValue(out *strings.Builder, rhs ast.Expr, e
 	} else {
 		TranspileExpression(out, rhs)
 	}
+}
+
+func writePointerArraySliceElementAssignmentValue(out *strings.Builder, rhs ast.Expr, expected types.Type) bool {
+	if expected == nil {
+		return false
+	}
+	if _, ok := types.Unalias(expected).Underlying().(*types.Pointer); !ok {
+		return false
+	}
+	if ident, ok := rhs.(*ast.Ident); ok && ident.Name == "nil" {
+		out.WriteString("Default::default()")
+		return true
+	}
+	if unary, ok := rhs.(*ast.UnaryExpr); ok && unary.Op == token.AND {
+		TranspileExpression(out, rhs)
+		return true
+	}
+	if call, ok := rhs.(*ast.CallExpr); ok {
+		typeInfo := GetTypeInfo()
+		if typeInfo != nil && typeInfo.ReturnsWrappedValue(call) && (!typeInfo.IsTypeConversion(call) || typeConversionEmitsWrappedValue(call)) {
+			TranspileExpression(out, rhs)
+			return true
+		}
+	}
+	if !rhsIsPointerType(rhs) {
+		return false
+	}
+	switch rhs.(type) {
+	case *ast.Ident, *ast.SelectorExpr:
+		TranspileExpressionContext(out, rhs, LValue)
+		out.WriteString(".clone()")
+	case *ast.IndexExpr:
+		TranspileExpression(out, rhs)
+	default:
+		return false
+	}
+	return true
 }
 
 func writeLenCapShortDeclInitializer(out *strings.Builder, call *ast.CallExpr, lhs ast.Expr) bool {
