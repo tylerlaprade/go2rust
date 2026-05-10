@@ -1,0 +1,8 @@
+[package]
+name = "make_default_slice_type_annotation"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "make_default_slice_type_annotation"
+path = "main.rs"

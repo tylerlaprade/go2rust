@@ -1249,6 +1249,66 @@ func isBuiltinCallNamed(call *ast.CallExpr, name string) bool {
 	return ok && builtin.Name() == name
 }
 
+func shortDeclDefaultMakeSliceTypeAnnotation(rhs ast.Expr) (string, bool) {
+	call, ok := rhs.(*ast.CallExpr)
+	if !ok || len(call.Args) < 2 || !isBuiltinCallNamed(call, "make") {
+		return "", false
+	}
+	arrayType, ok := call.Args[0].(*ast.ArrayType)
+	if !ok || arrayType.Len != nil {
+		return "", false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return "", false
+	}
+	typ := typeInfo.GetType(call)
+	if typ == nil {
+		typ = typeInfo.GetType(call.Args[0])
+	}
+	if typ == nil {
+		return "", false
+	}
+	if typeContainsTypeParam(typ) {
+		return "", false
+	}
+	sliceType, ok := types.Unalias(typ).Underlying().(*types.Slice)
+	if !ok || zeroValueForTypesType(sliceType.Elem()) != "Default::default()" {
+		return "", false
+	}
+	return goTypesTypeToRustWrapped(typ), true
+}
+
+func typeContainsTypeParam(typ types.Type) bool {
+	if typ == nil {
+		return false
+	}
+	switch t := types.Unalias(typ).(type) {
+	case *types.TypeParam:
+		return true
+	case *types.Named:
+		if args := t.TypeArgs(); args != nil {
+			for i := 0; i < args.Len(); i++ {
+				if typeContainsTypeParam(args.At(i)) {
+					return true
+				}
+			}
+		}
+		return false
+	}
+	switch t := types.Unalias(typ).Underlying().(type) {
+	case *types.Slice:
+		return typeContainsTypeParam(t.Elem())
+	case *types.Array:
+		return typeContainsTypeParam(t.Elem())
+	case *types.Pointer:
+		return typeContainsTypeParam(t.Elem())
+	case *types.Map:
+		return typeContainsTypeParam(t.Key()) || typeContainsTypeParam(t.Elem())
+	}
+	return false
+}
+
 func isAssignmentSelfWrappingExpression(expr ast.Expr) bool {
 	switch e := expr.(type) {
 	case *ast.CompositeLit:
@@ -3415,6 +3475,14 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										out.WriteString("let mut ")
 									}
 									TranspileExpressionContext(out, lhs, LValue)
+									if s.Tok == token.DEFINE && len(s.Lhs) == 1 && len(s.Rhs) == 1 {
+										if ident, ok := lhs.(*ast.Ident); ok && ident.Name != "_" {
+											if rustType, ok := shortDeclDefaultMakeSliceTypeAnnotation(s.Rhs[0]); ok {
+												out.WriteString(": ")
+												out.WriteString(rustType)
+											}
+										}
+									}
 								}
 
 								out.WriteString(" = ")

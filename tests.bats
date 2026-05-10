@@ -936,6 +936,10 @@ run_xfail_test() {
     run_test "tests/make_capacity_wrapped_call"
 }
 
+@test "make_default_slice_type_annotation" {
+    run_test "tests/make_default_slice_type_annotation"
+}
+
 @test "make_map_with_capacity" {
     run_test "tests/make_map_with_capacity"
 }
