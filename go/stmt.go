@@ -3161,6 +3161,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						} else if _, isSlice := rhs.(*ast.SliceExpr); isSlice {
 							// Slice expressions already return wrapped values
 							TranspileExpression(out, rhs)
+						} else if unary, ok := rhs.(*ast.UnaryExpr); ok && unary.Op == token.AND {
+							// Address-of expressions already return wrapped handles.
+							TranspileExpression(out, rhs)
 						} else if ident, ok := rhs.(*ast.Ident); ok && writeWrappedValueCopyFromIdent(out, ident) {
 							// Copied by value from an existing wrapped value
 						} else {

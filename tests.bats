@@ -312,6 +312,10 @@ run_xfail_test() {
     run_test "tests/address_of_fields_and_elements"
 }
 
+@test "address_of_stdlib_struct_literal" {
+    run_test "tests/address_of_stdlib_struct_literal"
+}
+
 @test "advanced_control_flow" {
     run_test "tests/advanced_control_flow"
 }
