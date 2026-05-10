@@ -15,9 +15,22 @@ func countTypeNames(objs []types.Object) int {
 	return count
 }
 
+type exporter struct{}
+
+func (e *exporter) accept(obj types.Object) {
+	_ = obj
+}
+
+func acceptObjectKeys(index map[types.Object]uint64, e *exporter) {
+	for obj := range index {
+		e.accept(obj)
+	}
+}
+
 func main() {
 	if false {
 		fmt.Println(countTypeNames(nil))
+		acceptObjectKeys(nil, nil)
 	}
 	fmt.Println("ok")
 }

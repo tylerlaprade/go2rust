@@ -185,6 +185,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Stdlib typed constants as indexes | ✅ |
 | └ Shared stdlib stubs across transpiled dependency crates | ✅ |
 | └ Stdlib concrete values passed to stdlib interface parameters | ✅ |
+| └ Stdlib interface map range keys passed to interface parameters | ✅ |
 | └ Stdlib interface field copies | ✅ |
 | └ Stdlib pointer field stubs without nested wrappers | ✅ |
 | **`interface` - Interface types** | |

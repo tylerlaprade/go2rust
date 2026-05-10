@@ -1,4 +1,6 @@
 use std::cell::{RefCell};
+use std::collections::BTreeMap;
+use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
@@ -35,6 +37,23 @@ impl types_TypeName {
 }
 
 
+#[derive(Debug, Clone, Default)]
+pub struct exporter {
+}
+
+impl std::fmt::Display for exporter {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{}}")
+    }
+}
+
+
+impl exporter {
+    pub fn accept(&self, obj: Rc<RefCell<Option<types_Object>>>) {
+        let _ = (*obj.borrow().as_ref().unwrap());
+    }
+}
+
 pub fn count_type_names(objs: Rc<RefCell<Option<Vec<types_Object>>>>) -> Rc<RefCell<Option<i32>>> {
 
     let mut count = Rc::new(RefCell::new(Some(0)));
@@ -54,9 +73,17 @@ pub fn count_type_names(objs: Rc<RefCell<Option<Vec<types_Object>>>>) -> Rc<RefC
     return count.clone();
 }
 
+pub fn accept_object_keys(index: Rc<RefCell<Option<BTreeMap<types_Object, Rc<RefCell<Option<u64>>>>>>>, e: Rc<RefCell<Option<exporter>>>) {
+    for (__range_key, _) in (*index.borrow().as_ref().unwrap()).clone() {
+        let obj = Rc::new(RefCell::new(Some(__range_key.clone())));
+        (*e.borrow_mut().as_mut().unwrap()).accept(obj.clone());
+    }
+}
+
 fn main() {
     if false {
         println!("{}", (*count_type_names(Rc::new(RefCell::new(None))).borrow().as_ref().unwrap()));
+        accept_object_keys(Rc::new(RefCell::new(None)), Rc::new(RefCell::new(None)));
     }
     println!("{}", "ok".to_string());
 }

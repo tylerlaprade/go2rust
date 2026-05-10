@@ -628,6 +628,9 @@ func writeRegularMethodCallArgument(out *strings.Builder, sel *ast.SelectorExpr,
 	if writeStdlibInterfaceCallArgumentConversion(out, arg, expectedArgType) {
 		return
 	}
+	if writeAlreadyWrappedStdlibInterfaceCallArgument(out, arg, expectedArgType) {
+		return
+	}
 	if writeAddressOfSelectorCallArgument(out, arg, expectedArgType) {
 		return
 	}
@@ -7548,6 +7551,9 @@ func writeFunctionSignatureCallArgument(out *strings.Builder, arg ast.Expr, expe
 	if writeStdlibInterfaceCallArgumentConversion(out, arg, expected) {
 		return
 	}
+	if writeAlreadyWrappedStdlibInterfaceCallArgument(out, arg, expected) {
+		return
+	}
 	if writeAddressOfSelectorCallArgument(out, arg, expected) {
 		return
 	}
@@ -7594,6 +7600,33 @@ func writeAlreadyWrappedSelectorCallArgument(out *strings.Builder, arg ast.Expr,
 		return false
 	}
 	TranspileExpressionContext(out, sel, LValue)
+	out.WriteString(".clone()")
+	return true
+}
+
+func writeAlreadyWrappedStdlibInterfaceCallArgument(out *strings.Builder, arg ast.Expr, expected types.Type) bool {
+	if expected == nil || !isStdlibNamedInterfaceValueType(types.Unalias(expected)) {
+		return false
+	}
+	ident, ok := arg.(*ast.Ident)
+	if !ok || ident.Name == "nil" || ident.Name == "_" {
+		return false
+	}
+	if isLocalConstantIdent(ident) || isConstIdent(ident) {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	actual := typeInfo.GetType(ident)
+	if actual == nil || !isStdlibNamedInterfaceValueType(types.Unalias(actual)) || !types.AssignableTo(actual, expected) {
+		return false
+	}
+	if varType, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar && !isWrappedRangeVarType(varType) {
+		return false
+	}
+	out.WriteString(rustIdentForUseWithCapture(ident))
 	out.WriteString(".clone()")
 	return true
 }

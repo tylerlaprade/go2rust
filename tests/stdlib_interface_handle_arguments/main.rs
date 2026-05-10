@@ -38,7 +38,7 @@ impl cache {
 }
 
 pub fn exercise(T: Rc<RefCell<Option<types_Type>>>, c: Rc<RefCell<Option<cache>>>) {
-    (*c.borrow_mut().as_mut().unwrap()).r#use(Rc::new(RefCell::new(Some((*T.borrow().as_ref().unwrap()).clone()))));
+    (*c.borrow_mut().as_mut().unwrap()).r#use(T.clone());
     let mut seen = Rc::new(RefCell::new(Some(BTreeMap::<types_Type, Rc<RefCell<Option<i32>>>>::from([((*T.borrow().as_ref().unwrap()).clone(), Rc::new(RefCell::new(Some(1))))]))));
     println!("{}", (*seen.borrow().as_ref().unwrap()).get(&(*T.borrow().as_ref().unwrap()).clone()).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| 0));
 }
