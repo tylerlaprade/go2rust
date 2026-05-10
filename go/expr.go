@@ -3276,6 +3276,11 @@ func writeMapLookupKeyWithType(out *strings.Builder, index ast.Expr, keyType typ
 				out.WriteString(".clone())")
 				return
 			}
+			if isWrappedRangeVarType(varType) {
+				out.WriteString("&")
+				writeWrappedRangeValueClone(out, ident, varType)
+				return
+			}
 			// Range variables from slice/map iteration are already references.
 			out.WriteString(ident.Name)
 			return
@@ -3367,6 +3372,25 @@ func writeOwnedRangeValue(out *strings.Builder, ident *ast.Ident) bool {
 		return true
 	}
 	return false
+}
+
+func writeWrappedRangeValueClone(out *strings.Builder, ident *ast.Ident, varType string) {
+	name := RustIdentForUse(ident)
+	if currentCaptureRenames != nil {
+		if renamed, exists := currentCaptureRenames[ident.Name]; exists {
+			name = RustLocalIdent(renamed)
+		}
+	}
+	out.WriteString("(*")
+	if strings.HasPrefix(varType, "&") {
+		out.WriteString("(*")
+		out.WriteString(name)
+		out.WriteString(")")
+	} else {
+		out.WriteString(name)
+	}
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap()).clone()")
 }
 
 func isPointerKeyRangeVarType(varType string) bool {

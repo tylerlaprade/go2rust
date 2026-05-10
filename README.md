@@ -237,6 +237,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Map operations (insert, delete) | ✅ |
 | └ Delete through selector map fields | ✅ |
 | └ Selector map fields in lookup, comma-ok, and range contexts | ✅ |
+| └ Wrapped map range values used as lookup/delete keys | ✅ |
 | └ Map access with existence check | ✅ |
 | └ Comma-ok map access with typed zero values | ✅ |
 | └ Wrapped call results as map lookup keys | ✅ |

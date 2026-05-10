@@ -1052,6 +1052,10 @@ run_xfail_test() {
     run_test "tests/map_pointer_value_literal_assignment"
 }
 
+@test "map_range_value_delete_key" {
+    run_test "tests/map_range_value_delete_key"
+}
+
 @test "map_slice_append_assignment" {
     run_test "tests/map_slice_append_assignment"
 }
