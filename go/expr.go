@@ -209,6 +209,36 @@ func isIntegerBasicKind(kind types.BasicKind) bool {
 	}
 }
 
+func isUnsignedIntegerType(typ types.Type) bool {
+	if typ == nil {
+		return false
+	}
+	if named, ok := types.Unalias(typ).(*types.Named); ok {
+		typ = named.Underlying()
+	}
+	basic, ok := types.Unalias(typ).(*types.Basic)
+	if !ok {
+		return false
+	}
+	switch basic.Kind() {
+	case types.Uint, types.Uint8, types.Uint16, types.Uint32, types.Uint64, types.Uintptr:
+		return true
+	default:
+		return false
+	}
+}
+
+func writeUnsignedUnaryMinus(out *strings.Builder, expr ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || !isUnsignedIntegerType(typeInfo.GetType(expr)) {
+		return false
+	}
+	out.WriteString("(")
+	writeNumericConversionValue(out, expr)
+	out.WriteString(").wrapping_neg()")
+	return true
+}
+
 func writeStdlibSelectorConstAsUsize(out *strings.Builder, expr ast.Expr) bool {
 	sel, ok := expr.(*ast.SelectorExpr)
 	if !ok {
@@ -3690,6 +3720,12 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			out.WriteString(".recv().unwrap()")
 		case token.ADD:
 			// Unary plus is a no-op in Rust.
+			TranspileExpression(out, e.X)
+		case token.SUB:
+			if writeUnsignedUnaryMinus(out, e.X) {
+				return
+			}
+			out.WriteString("-")
 			TranspileExpression(out, e.X)
 		case token.XOR:
 			// Go's unary ^ is bitwise complement; Rust spells it as !.

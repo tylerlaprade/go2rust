@@ -1,0 +1,8 @@
+[package]
+name = "unary_minus_unsigned"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "unary_minus_unsigned"
+path = "main.rs"

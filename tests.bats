@@ -1632,6 +1632,10 @@ run_xfail_test() {
     run_test "tests/type_switch_temporary_subject"
 }
 
+@test "unary_minus_unsigned" {
+    run_test "tests/unary_minus_unsigned"
+}
+
 @test "unary_plus_bitwise_not" {
     run_test "tests/unary_plus_bitwise_not"
 }
