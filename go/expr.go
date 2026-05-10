@@ -2839,9 +2839,48 @@ func writeOwnedMapKeyExpression(out *strings.Builder, expr ast.Expr) bool {
 		}
 	}
 	if ident, ok := expr.(*ast.Ident); ok {
+		if writeOwnedRangeValue(out, ident) {
+			return true
+		}
 		if (currentReceiver == "" || ident.Name != currentReceiver) && !isCopyTypeExpression(expr) && writeOwnedExpressionValue(out, ident) {
 			return true
 		}
+	}
+	return false
+}
+
+func writeOwnedRangeValue(out *strings.Builder, ident *ast.Ident) bool {
+	varType, isRangeVar := rangeLoopVars[ident.Name]
+	if !isRangeVar {
+		return false
+	}
+	name := RustIdentForUse(ident)
+	if currentCaptureRenames != nil {
+		if renamed, exists := currentCaptureRenames[ident.Name]; exists {
+			name = RustLocalIdent(renamed)
+		}
+	}
+	if varType == "ref_value" || strings.HasPrefix(varType, "&") {
+		if isCopyTypeForRangeRef(ident) {
+			out.WriteString("*")
+			out.WriteString(name)
+			return true
+		}
+		out.WriteString("(*")
+		out.WriteString(name)
+		out.WriteString(").clone()")
+		return true
+	}
+	if isWrappedRangeVarType(varType) {
+		if strings.HasPrefix(varType, "&") {
+			out.WriteString("(*")
+			out.WriteString(name)
+			out.WriteString(").clone()")
+		} else {
+			out.WriteString(name)
+			out.WriteString(".clone()")
+		}
+		return true
 	}
 	return false
 }
@@ -5667,6 +5706,11 @@ func writeNumericConversionValue(out *strings.Builder, arg ast.Expr) {
 	}
 
 	if ident, ok := arg.(*ast.Ident); ok && ident.Name != "nil" {
+		if _, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar {
+			TranspileExpression(out, ident)
+			writeExternalIntegerTupleField(out, argType)
+			return
+		}
 		if currentReceiver != "" && ident.Name == currentReceiver && currentReceiverScalarTypeDefinition() {
 			TranspileExpression(out, ident)
 			writeExternalIntegerTupleField(out, argType)

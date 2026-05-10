@@ -1156,6 +1156,10 @@ run_xfail_test() {
     run_test "tests/range_index_array_literal"
 }
 
+@test "range_index_conversion_map_key" {
+    run_test "tests/range_index_conversion_map_key"
+}
+
 @test "range_index_slice_assignment" {
     run_test "tests/range_index_slice_assignment"
 }
