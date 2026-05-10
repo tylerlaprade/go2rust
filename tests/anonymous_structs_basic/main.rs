@@ -138,7 +138,7 @@ fn main() {
     let mut users = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<AnonymousStruct7>>>>::from([("alice".to_string(), Rc::new(RefCell::new(Some(AnonymousStruct7 { email: Rc::new(RefCell::new(Some("alice@example.com".to_string()))), admin: Rc::new(RefCell::new(Some(true))), ..Default::default() })))), ("bob".to_string(), Rc::new(RefCell::new(Some(AnonymousStruct7 { email: Rc::new(RefCell::new(Some("bob@example.com".to_string()))), admin: Rc::new(RefCell::new(Some(false))), ..Default::default() }))))]))));
     let mut userNames: Rc<RefCell<Option<Vec<String>>>> = Rc::new(RefCell::new(None));
     for (name, _) in (*users.borrow().as_ref().unwrap()).clone() {
-        {(*userNames.borrow_mut()).get_or_insert_with(Vec::new).push(name); userNames.clone()};
+        {(*userNames.borrow_mut()).get_or_insert_with(Vec::new).push(name.clone()); userNames.clone()};
     }
     (*userNames.borrow_mut().as_mut().unwrap()).sort();
     { let __range_holder = userNames.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for name in __range_values.iter() {

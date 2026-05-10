@@ -1273,6 +1273,9 @@ func writeOwnedStringStdlibArg(out *strings.Builder, arg ast.Expr) {
 		TranspileExpression(out, arg)
 		return
 	}
+	if writeRangeStringValue(out, arg) {
+		return
+	}
 
 	out.WriteString("(*")
 	TranspileExpressionContext(out, arg, LValue)
@@ -2315,6 +2318,9 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 						return
 					}
 					if writeConstExpressionForExpectedGoType(out, expr, elemType) {
+						return
+					}
+					if basic, ok := types.Unalias(elemType).Underlying().(*types.Basic); ok && basic.Kind() == types.String && writeRangeStringValue(out, expr) {
 						return
 					}
 					if _, ok := localNamedInterfaceTypeNameFromTypes(elemType); ok && isBareLocalInterfaceValue(expr) {

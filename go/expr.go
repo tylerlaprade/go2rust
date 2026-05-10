@@ -1065,16 +1065,27 @@ func writeCompositeLiteralHandleCallArgument(out *strings.Builder, arg ast.Expr)
 }
 
 func writeRangeStringCallArgumentValue(out *strings.Builder, arg ast.Expr, expected types.Type) bool {
-	ident, ok := arg.(*ast.Ident)
-	if !ok || expected == nil {
-		return false
-	}
-	varType, isRangeVar := rangeLoopVars[ident.Name]
-	if !isRangeVar {
+	if expected == nil {
 		return false
 	}
 	basic, ok := types.Unalias(expected).Underlying().(*types.Basic)
 	if !ok || basic.Kind() != types.String {
+		return false
+	}
+	return writeRangeStringValue(out, arg)
+}
+
+func writeRangeStringValue(out *strings.Builder, arg ast.Expr) bool {
+	ident, ok := arg.(*ast.Ident)
+	if !ok {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || !typeInfo.IsString(arg) {
+		return false
+	}
+	varType, isRangeVar := rangeLoopVars[ident.Name]
+	if !isRangeVar {
 		return false
 	}
 	argName := RustIdentForUse(ident)
@@ -4301,6 +4312,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			if writeNamedConstForBinaryPeer(out, expr, other) {
 				return
 			}
+			if isComparison && writeRangeStringValue(out, expr) {
+				return
+			}
 			if needsUnwrap && isBareBuiltinCall(expr) {
 				needsUnwrap = false
 			}
@@ -4378,6 +4392,8 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				// Character literal emitted as byte.
 			} else if writeConstExpressionForBinaryPeer(out, e.X, e.Y) {
 				// Constant emitted in the peer's expected representation.
+			} else if isComparison && writeRangeStringValue(out, e.X) {
+				// Range string reference cloned for comparison.
 			} else if lit, ok := e.X.(*ast.BasicLit); ok && lit.Kind == token.INT {
 				// Check if the other operand might be a float
 				if isFloatExpression(e.Y) {
@@ -4406,6 +4422,8 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				// Character literal emitted as byte.
 			} else if writeConstExpressionForBinaryPeer(out, e.Y, e.X) {
 				// Constant emitted in the peer's expected representation.
+			} else if isComparison && writeRangeStringValue(out, e.Y) {
+				// Range string reference cloned for comparison.
 			} else if lit, ok := e.Y.(*ast.BasicLit); ok && lit.Kind == token.INT {
 				// Check if the other operand might be a float
 				if isFloatExpression(e.X) {

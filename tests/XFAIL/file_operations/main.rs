@@ -634,7 +634,7 @@ fn main() {
     let mut filesToRemove = Arc::new(Mutex::new(Some(vec![(*filename.lock().unwrap().as_ref().unwrap()).clone(), (*copyFilename.lock().unwrap().as_ref().unwrap()).clone(), (*dataFile.lock().unwrap().as_ref().unwrap()).clone()])));
 
     { let __range_holder = filesToRemove.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for f in __range_values.iter() {
-        let mut err = { let __path = (*f.lock().unwrap().as_ref().unwrap()).clone(); match std::fs::remove_file(&__path) { Ok(()) => Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>)), Err(e) => Arc::new(Mutex::new(Some(Box::<dyn StdError + Send + Sync>::from(e)))) } };
+        let mut err = { let __path = (*f).clone(); match std::fs::remove_file(&__path) { Ok(()) => Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>)), Err(e) => Arc::new(Mutex::new(Some(Box::<dyn StdError + Send + Sync>::from(e)))) } };
         if (*err.lock().unwrap()).is_some() {
         print!("Error removing file '{}': {}\n", f, format!("{}", (*err.lock().unwrap().as_ref().unwrap())));
     } else {

@@ -128,7 +128,7 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 - ✅ Select statements - receive, send, default, timeout, and loop cases (select_basic, select_statements promoted)
 - ✅ Advanced deterministic control-flow combinations - labeled break/continue, nested switch, fallthrough, complex loop conditions, nested ranges, select, and error-flow smoke coverage (advanced_control_flow promoted, 2026-05-06)
 - ✅ Full range-loop fixture - slice/map/string/channel ranges, nil slice iteration, and repeated wrapped reads in channel sends (range_loops promoted, 2026-05-06)
-- ✅ Range string call arguments - range values from `[]string` clone out of iterator references when passed to methods/functions expecting owned `string` parameters (range_string_method_argument promoted, 2026-05-09)
+- ✅ Range string values - range values from `[]string` clone out of iterator references when passed to owned `string` parameters, used in stdlib string calls, compared with owned strings, or appended to `[]string` (range_string_method_argument promoted, 2026-05-09; range_selector_string_values added, 2026-05-10)
 - ✅ Range struct call arguments - non-copy range values clone out of iterator references when passed to function or selector-method parameters (range_return_struct_value expanded, 2026-05-10)
 - ✅ Range index conversion and map-key ownership - bare `.enumerate()` indexes cast directly for numeric conversions, and ranged values used as map insertion keys clone into owned keys (range_index_conversion_map_key added, 2026-05-09)
 - ✅ Range over integers - Go 1.22 integer range expressions lower to Rust integer ranges (range_over_integer promoted, 2026-05-07)
@@ -238,4 +238,4 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 
 go2rust transpiles itself!
 
-- 🚧 Broad self-transpile cargo check now reaches `golang_org_x_tools_internal_gocommand`. The latest fixed blocker was selector slice expansion in `append`; the package-targeted `gocommand` check is down to 37 Rust errors, with remaining clusters around writer conversions, error wrapping, wrapped range string values, and function handle lowering (2026-05-10)
+- 🚧 Broad self-transpile cargo check now reaches `golang_org_x_tools_internal_gocommand`. The latest fixed blocker was ranged string values from selector slice fields in comparisons, stdlib string helpers, and `append`; the package-targeted `gocommand` check is down to 34 Rust errors, with remaining clusters around writer conversions, error wrapping, and function handle lowering (2026-05-10)

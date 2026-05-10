@@ -82,7 +82,7 @@ fn main() {
     let mut total = Rc::new(RefCell::new(Some(0)));
     { let __range_holder = groups.clone().clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for group in __range_values.iter() {
         for name in group.iter() {
-        if name != "" {
+        if (*name).clone() != "" {
         { let mut guard = total.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
     }

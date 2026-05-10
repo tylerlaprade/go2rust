@@ -61,7 +61,7 @@ fn main() {
         // Collect all keys into a slice
     let mut keys: Rc<RefCell<Option<Vec<String>>>> = Rc::new(RefCell::new(None));
     for (k, _) in (*colors.borrow().as_ref().unwrap()).clone() {
-        {(*keys.borrow_mut()).get_or_insert_with(Vec::new).push(k); keys.clone()};
+        {(*keys.borrow_mut()).get_or_insert_with(Vec::new).push(k.clone()); keys.clone()};
     }
 
         // Sort the keys

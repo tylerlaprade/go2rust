@@ -1316,6 +1316,10 @@ run_xfail_test() {
     run_test "tests/range_return_struct_value"
 }
 
+@test "range_selector_string_values" {
+    run_test "tests/range_selector_string_values"
+}
+
 @test "range_stdlib_interface_map_value" {
     run_test "tests/range_stdlib_interface_map_value"
 }

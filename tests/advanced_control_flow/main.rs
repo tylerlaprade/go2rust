@@ -391,7 +391,7 @@ fn main() {
 
     { let __range_holder = matrix.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for (rowIdx, row) in __range_values.iter().enumerate() {
         for (colIdx, cell) in row.iter().enumerate() {
-        if { let __tmp_x = cell; let __tmp_y = "e"; __tmp_x == __tmp_y } {
+        if { let __tmp_x = (*cell).clone(); let __tmp_y = "e"; __tmp_x == __tmp_y } {
         print!("Found center at [{}][{}]: {}\n", rowIdx, colIdx, cell);
         continue
     }
