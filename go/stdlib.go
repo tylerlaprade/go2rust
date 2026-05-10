@@ -2353,6 +2353,15 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 				TranspileExpression(out, expr)
 			}
 		}
+		writeAppendExpansionSource := func(expr ast.Expr) {
+			if appendExpandsStringIntoByteSlice(call) {
+				writeOwnedStringStdlibArg(out, expr)
+				out.WriteString(".as_bytes().iter().cloned()")
+			} else {
+				writeUnwrappedSliceClone(out, expr)
+				out.WriteString(".iter().cloned()")
+			}
+		}
 		writeIndexedSliceAppend := func(indexExpr *ast.IndexExpr) bool {
 			if !appendCallReturnsBareIndexedSlice(call) {
 				return false
@@ -2377,13 +2386,7 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 			writeMutableTarget()
 			if call.Ellipsis.IsValid() {
 				out.WriteString(".extend(")
-				if appendExpandsStringIntoByteSlice(call) {
-					writeOwnedStringStdlibArg(out, call.Args[1])
-					out.WriteString(".as_bytes().iter().cloned()")
-				} else {
-					TranspileExpression(out, call.Args[1])
-					out.WriteString(".iter().cloned()")
-				}
+				writeAppendExpansionSource(call.Args[1])
 				out.WriteString(")")
 			} else if len(call.Args) == 2 {
 				out.WriteString(".push(")
@@ -2436,13 +2439,7 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 			out.WriteString(").get_or_insert_with(Vec::new)")
 			if call.Ellipsis.IsValid() {
 				out.WriteString(".extend(")
-				if appendExpandsStringIntoByteSlice(call) {
-					writeOwnedStringStdlibArg(out, call.Args[1])
-					out.WriteString(".as_bytes().iter().cloned()")
-				} else {
-					TranspileExpression(out, call.Args[1])
-					out.WriteString(".iter().cloned()")
-				}
+				writeAppendExpansionSource(call.Args[1])
 				out.WriteString(")")
 			} else if len(call.Args) == 2 {
 				out.WriteString(".push(")
@@ -2478,13 +2475,7 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 			writeAppendTarget(call.Args[0])
 			WriteBorrowMethod(out, true)
 			out.WriteString(").get_or_insert_with(Vec::new).extend(")
-			if appendExpandsStringIntoByteSlice(call) {
-				writeOwnedStringStdlibArg(out, call.Args[1])
-				out.WriteString(".as_bytes().iter().cloned()")
-			} else {
-				TranspileExpression(out, call.Args[1])
-				out.WriteString(".iter().cloned()")
-			}
+			writeAppendExpansionSource(call.Args[1])
 			out.WriteString("); ")
 			// Return the wrapped slice itself
 			writeAppendTarget(call.Args[0])

@@ -107,6 +107,7 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 - ✅ Fixed array literal length completion - explicit `[N]T{...}` literals fill omitted trailing elements with the element zero value instead of emitting short Rust arrays (2026-05-08)
 - ✅ Named integer array literals - constant elements and omitted trailing elements in fixed arrays construct the expected named scalar newtype instead of raw primitives or nil defaults (named_integer_const_array_literal promoted, 2026-05-09)
 - ✅ Indexed slice element append and assignment - array/slice elements that are themselves slices, such as `[N][]string`, mutate the inner bare Vec for `arr[i] = append(arr[i], x)` and `arr[i][j] = value`, and format nested slice fields without requiring `Vec<T>: Display` (nested_slice_array_append promoted, expanded 2026-05-09)
+- ✅ Selector slice append expansion - variadic `append(dst, holder.Items...)` unwraps selector slice fields before extending the destination (append_selector_slice_expansion added, 2026-05-10)
 - ✅ Array zero values - fixed array globals initialize through `std::array::from_fn`, including arrays larger than Rust's built-in `Default` implementations (global_fixed_array added, 2026-05-07)
 - ✅ Elided nested composite literals - nested slice/map composites and map-value indexing work (elided_nested_composites promoted, 2026-05-06)
 - ✅ Complex expressions - nested arithmetic, boolean, bitwise, closure-call, slice/map/field/pointer/type-assertion/channel operands evaluate with sequenced concurrent lock lifetimes (complex_expressions promoted, 2026-05-06)
@@ -237,4 +238,4 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 
 go2rust transpiles itself!
 
-- 🚧 Broad self-transpile cargo check now reaches `golang_org_x_tools_internal_gocommand`. The latest fixed blocker was string constants in `[]string` literals; the package-targeted `gocommand` check is down to 44 Rust errors, with remaining clusters around writer conversions, error wrapping, wrapped slice iteration, and function handle lowering (2026-05-10)
+- 🚧 Broad self-transpile cargo check now reaches `golang_org_x_tools_internal_gocommand`. The latest fixed blocker was selector slice expansion in `append`; the package-targeted `gocommand` check is down to 37 Rust errors, with remaining clusters around writer conversions, error wrapping, wrapped range string values, and function handle lowering (2026-05-10)

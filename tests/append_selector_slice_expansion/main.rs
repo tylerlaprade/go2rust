@@ -1,5 +1,5 @@
 use std::cell::{RefCell};
-use std::fmt::{Display};
+use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
 fn format_slice<T, C>(slice: &Rc<RefCell<Option<C>>>) -> String
@@ -44,14 +44,21 @@ where
     }
 }
 
-fn main() {
-    let mut dst = Rc::new(RefCell::new(Some(vec![1, 2])));
-    let mut src = Rc::new(RefCell::new(Some(vec![3, 4, 5])));
-    {(*dst.borrow_mut()).get_or_insert_with(Vec::new).extend((*src.borrow().as_ref().unwrap()).clone().iter().cloned()); dst.clone()};
-    println!("{}", format_slice(&dst));
+#[derive(Debug, Clone, Default)]
+pub struct Holder {
+    pub items: Rc<RefCell<Option<Vec<String>>>>,
+}
 
-    let mut words = Rc::new(RefCell::new(Some(vec!["go".to_string(), "to".to_string(), "rust".to_string()])));
-    let mut prefix = Rc::new(RefCell::new(Some(vec!["transpile".to_string()])));
-    {(*prefix.borrow_mut()).get_or_insert_with(Vec::new).extend((*words.borrow().as_ref().unwrap()).clone().iter().cloned()); prefix.clone()};
-    println!("{}", format_slice(&prefix));
+impl std::fmt::Display for Holder {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{}}}", format_slice(&self.items))
+    }
+}
+
+
+fn main() {
+    let mut holder = Rc::new(RefCell::new(Some(Holder { items: Rc::new(RefCell::new(Some(vec!["beta".to_string(), "gamma".to_string()]))), ..Default::default() })));
+    let mut values = Rc::new(RefCell::new(Some(vec!["alpha".to_string()])));
+    {(*values.borrow_mut()).get_or_insert_with(Vec::new).extend((*(*holder.borrow().as_ref().unwrap()).items.borrow().as_ref().unwrap()).clone().iter().cloned()); values.clone()};
+    println!("{} {}", (*values.borrow().as_ref().unwrap()).len(), (*values.borrow().as_ref().unwrap())[(2) as usize].clone());
 }
