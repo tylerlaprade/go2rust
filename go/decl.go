@@ -1923,6 +1923,70 @@ func TranspileTraitMethodImpl(out *strings.Builder, fn *ast.FuncDecl, fileSet *t
 	transpileMethodImplWithVisibility(out, fn, false, true, fileSet, comments)
 }
 
+func writeFunctionTypeAliasMethodImpl(out *strings.Builder, rustTypeName string, methods []*ast.FuncDecl, fileSet *token.FileSet, comments []*ast.CommentGroup) {
+	traitName := rustTypeName + "Methods"
+	out.WriteString("pub trait ")
+	out.WriteString(traitName)
+	out.WriteString(" {\n")
+	for _, method := range methods {
+		writeFunctionTypeAliasMethodSignature(out, method)
+	}
+	out.WriteString("}\n\n")
+	out.WriteString("impl ")
+	out.WriteString(traitName)
+	out.WriteString(" for ")
+	out.WriteString(rustTypeName)
+	out.WriteString(" {\n")
+	for i, method := range methods {
+		if i > 0 {
+			out.WriteString("\n")
+		}
+		TranspileTraitMethodImpl(out, method, fileSet, comments)
+	}
+	out.WriteString("}")
+}
+
+func writeFunctionTypeAliasMethodSignature(out *strings.Builder, fn *ast.FuncDecl) {
+	out.WriteString("    fn ")
+	out.WriteString(rustMethodName(fn))
+	out.WriteString("(&self")
+	if fn.Type.Params != nil {
+		for _, field := range fn.Type.Params.List {
+			for _, name := range field.Names {
+				out.WriteString(", ")
+				out.WriteString(RustLocalIdent(name.Name))
+				out.WriteString(": ")
+				out.WriteString(GoTypeToRustParam(field.Type))
+			}
+		}
+	}
+	out.WriteString(")")
+	if fn.Type.Results != nil && len(fn.Type.Results.List) > 0 {
+		out.WriteString(" -> ")
+		if len(fn.Type.Results.List) == 1 && len(fn.Type.Results.List[0].Names) <= 1 {
+			out.WriteString(GoTypeToRust(fn.Type.Results.List[0].Type))
+		} else {
+			out.WriteString("(")
+			first := true
+			for _, result := range fn.Type.Results.List {
+				count := len(result.Names)
+				if count == 0 {
+					count = 1
+				}
+				for i := 0; i < count; i++ {
+					if !first {
+						out.WriteString(", ")
+					}
+					first = false
+					out.WriteString(GoTypeToRust(result.Type))
+				}
+			}
+			out.WriteString(")")
+		}
+	}
+	out.WriteString(";\n")
+}
+
 func namedReturnIdents(fnType *ast.FuncType) []*ast.Ident {
 	if fnType == nil || fnType.Results == nil {
 		return nil

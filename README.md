@@ -370,6 +370,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Function literals | ✅ |
 | └ Closure variable capture | ✅ |
 | └ Struct literal field keys are excluded from closure capture | ✅ |
+| └ Methods on named function types | ✅ |
 | └ Recursive closure assignment through function variables | ✅ |
 | └ Anonymous function calls | ✅ |
 | └ Cross-file function variables | ✅ |

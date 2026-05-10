@@ -1425,6 +1425,11 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 			body.WriteString("\n\n")
 		}
 		first = false
+		if IsFunctionTypeAlias(typeName) {
+			writeFunctionTypeAliasMethodImpl(&body, rustTypeName, typeMethods, fileSet, file.Comments)
+			currentTypeMethods = previousTypeMethods
+			continue
+		}
 		body.WriteString("impl ")
 		body.WriteString(rustTypeName)
 		body.WriteString(" {\n")

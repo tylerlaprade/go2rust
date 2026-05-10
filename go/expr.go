@@ -6948,6 +6948,15 @@ func TranspileTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr) 
 	out.WriteString("    })")
 }
 
+func isFunctionTypeAliasValue(expr ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	named, ok := typeInfo.GetType(expr).(*types.Named)
+	return ok && IsFunctionTypeAlias(named.Obj().Name())
+}
+
 func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 	// Check if this is a stdlib function we need to replace
 	if handler := GetStdlibHandler(call); handler != nil {
@@ -7188,7 +7197,9 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 					needsUnwrap = typeInfo != nil && (typeInfo.IsPointer(ident) || isWrappedRangeVarType(varType) && isStdlibNamedInterfaceValueType(typeInfo.GetType(ident)))
 				} else {
 					if _, isLocalConst := localConstants[ident.Name]; !isLocalConst {
-						if !isVarBare(ident.Name) {
+						if isFunctionTypeAliasValue(ident) {
+							needsUnwrap = false
+						} else if !isVarBare(ident.Name) {
 							// Regular variable - it's wrapped in Arc<Mutex<Option<>>>
 							needsUnwrap = true
 						}
@@ -7333,6 +7344,9 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 			// Likely a closure variable - need to unwrap and call
 			// Check if this variable has been renamed (captured in closure)
 			varName := RustIdentForUse(ident)
+			if currentReceiver != "" && ident.Name == currentReceiver {
+				varName = "self"
+			}
 			if currentCaptureRenames != nil {
 				if renamed, exists := currentCaptureRenames[ident.Name]; exists {
 					varName = RustLocalIdent(renamed)

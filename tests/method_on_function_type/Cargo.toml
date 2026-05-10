@@ -1,0 +1,8 @@
+[package]
+name = "method_on_function_type"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "method_on_function_type"
+path = "main.rs"
