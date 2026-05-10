@@ -628,6 +628,9 @@ func writeRegularMethodCallArgument(out *strings.Builder, sel *ast.SelectorExpr,
 	if writeStdlibInterfaceCallArgumentConversion(out, arg, expectedArgType) {
 		return
 	}
+	if writeAddressOfSelectorCallArgument(out, arg, expectedArgType) {
+		return
+	}
 	if writeIndexedPointerHandleCallArgument(out, arg, expectedArgType) {
 		return
 	}
@@ -1199,6 +1202,32 @@ func writeIndexedPointerHandleCallArgument(out *strings.Builder, arg ast.Expr, e
 	}
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil || !typeInfo.IsPointer(arg) {
+		return false
+	}
+	TranspileExpression(out, arg)
+	return true
+}
+
+func writeAddressOfSelectorCallArgument(out *strings.Builder, arg ast.Expr, expected types.Type) bool {
+	if expected == nil {
+		return false
+	}
+	if _, ok := types.Unalias(expected).Underlying().(*types.Pointer); !ok {
+		return false
+	}
+	unary, ok := arg.(*ast.UnaryExpr)
+	if !ok || unary.Op != token.AND {
+		return false
+	}
+	if _, ok := unary.X.(*ast.SelectorExpr); !ok {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	actual := typeInfo.GetType(arg)
+	if actual == nil || !types.AssignableTo(actual, expected) {
 		return false
 	}
 	TranspileExpression(out, arg)
@@ -7517,6 +7546,9 @@ func writeFunctionSignatureCallArgument(out *strings.Builder, arg ast.Expr, expe
 		return
 	}
 	if writeStdlibInterfaceCallArgumentConversion(out, arg, expected) {
+		return
+	}
+	if writeAddressOfSelectorCallArgument(out, arg, expected) {
 		return
 	}
 	if writeIndexedPointerHandleCallArgument(out, arg, expected) {

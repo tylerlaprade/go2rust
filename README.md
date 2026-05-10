@@ -319,6 +319,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Pointer receiver nil comparisons and pointer variable call arguments | ✅ |
 | └ Pointer receivers stored in pointer fields | ✅ |
 | └ Address-of local values passed to pointer parameters | ✅ |
+| └ Address-of selector fields passed to pointer parameters | ✅ |
 | └ Address-of struct fields and slice elements | ✅ |
 | └ Declared pointers to slice elements | ✅ |
 | └ Field access through ranged slice pointers | ✅ |
