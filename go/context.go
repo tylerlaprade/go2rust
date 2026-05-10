@@ -400,6 +400,16 @@ func activeHelperTracker() *HelperTracker {
 	return currentContext.Helpers
 }
 
+func markSharedStdlibHelper(update func(*HelperTracker)) {
+	if currentContext == nil || !currentContext.UsePackageExternalStubs || currentContext.Package == nil {
+		return
+	}
+	if currentContext.Package.Helpers == nil {
+		currentContext.Package.Helpers = &HelperTracker{}
+	}
+	update(currentContext.Package.Helpers)
+}
+
 // NeedFormatMap marks that we need the format_map helper
 func NeedFormatMap() {
 	if helpers := activeHelperTracker(); helpers != nil {
@@ -453,6 +463,9 @@ func NeedGoChannel() {
 	if helpers := activeHelperTracker(); helpers != nil {
 		helpers.needsGoChannel = true
 	}
+	markSharedStdlibHelper(func(helpers *HelperTracker) {
+		helpers.needsGoChannel = true
+	})
 }
 
 // NeedWaitGroup marks that we need the WaitGroup helper struct
@@ -596,6 +609,10 @@ func NeedGoContext() {
 		helpers.needsGoContext = true
 		helpers.needsGoChannel = true
 	}
+	markSharedStdlibHelper(func(helpers *HelperTracker) {
+		helpers.needsGoContext = true
+		helpers.needsGoChannel = true
+	})
 }
 
 // NeedGoRand marks that we need math/rand helpers

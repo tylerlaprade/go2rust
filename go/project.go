@@ -455,8 +455,13 @@ func prefixSiblingModuleImports(rustCode, selfModule string, moduleNames []strin
 	return imports.String()
 }
 
-func prefixPackageHelperImports(rustCode string, helpers *HelperTracker) string {
-	names := helpers.ImportNames()
+func prefixPackageHelperImports(rustCode string, helpers *HelperTracker, omitSharedStdlibHelpers bool) string {
+	var names []string
+	if omitSharedStdlibHelpers {
+		names = helpers.ImportNamesOmittingSharedStdlibHelpers()
+	} else {
+		names = helpers.ImportNames()
+	}
 	if len(names) == 0 {
 		return rustCode
 	}
@@ -466,7 +471,7 @@ func prefixPackageHelperImports(rustCode string, helpers *HelperTracker) string 
 func (pg *ProjectGenerator) prefixModuleImports(rustCode, selfModule string, moduleNames []string, helpers *HelperTracker) string {
 	rustCode = prefixSiblingModuleImports(rustCode, selfModule, moduleNames)
 	if helpers != nil && helpers.HasAny() {
-		rustCode = prefixPackageHelperImports(rustCode, helpers)
+		rustCode = prefixPackageHelperImports(rustCode, helpers, pg.useSharedStdlibStubCrate)
 	}
 	if pg.useSharedStdlibStubCrate {
 		rustCode = prefixSharedStdlibStubImport(rustCode)
@@ -475,7 +480,13 @@ func (pg *ProjectGenerator) prefixModuleImports(rustCode, selfModule string, mod
 }
 
 func (pg *ProjectGenerator) packageHelpersNeeded(packageState *PackageState) bool {
-	return pg.usePackageHelpers && packageState != nil && packageState.Helpers.HasAny()
+	if !pg.usePackageHelpers || packageState == nil || packageState.Helpers == nil {
+		return false
+	}
+	if pg.useSharedStdlibStubCrate {
+		return packageState.Helpers.HasAnyOmittingSharedStdlibHelpers()
+	}
+	return packageState.Helpers.HasAny()
 }
 
 func (pg *ProjectGenerator) hasMainFile() bool {
@@ -708,7 +719,11 @@ func (pg *ProjectGenerator) generateLibRs(packageState *PackageState) error {
 func (pg *ProjectGenerator) writePackageHelperFile(packageState *PackageState) error {
 	helpers := ""
 	if packageState != nil && packageState.Helpers != nil {
-		helpers = packageState.Helpers.GenerateHelperModule()
+		if pg.useSharedStdlibStubCrate {
+			helpers = packageState.Helpers.GenerateHelperModuleOmittingSharedStdlibHelpers()
+		} else {
+			helpers = packageState.Helpers.GenerateHelperModule()
+		}
 	}
 	helperPath := filepath.Join(pg.projectPath, packageHelperIncludeFile)
 	return os.WriteFile(helperPath, []byte(helpers), 0644)

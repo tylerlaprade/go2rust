@@ -690,10 +690,14 @@ func WriteSharedStdlibStubCrate(workDir string, states []*PackageState) error {
 	}
 
 	mergedState := MergeExternalStubPackageStates(states...)
-	stubCode := GeneratePackageExternalStubs(mergedState)
-	if stubCode != "" {
-		stubCode = GenerateExternalStubModuleImports() + "\n" + stubCode
+	var parts []string
+	if helperCode := mergedState.Helpers.GenerateSharedStdlibHelperModule(); helperCode != "" {
+		parts = append(parts, helperCode)
 	}
+	if stubCode := GeneratePackageExternalStubs(mergedState); stubCode != "" {
+		parts = append(parts, GenerateExternalStubModuleImports(), stubCode)
+	}
+	stubCode := hoistAndDedupeUseLines(strings.Join(parts, "\n"))
 
 	libPath := filepath.Join(outputDir, "lib.rs")
 	if err := os.WriteFile(libPath, []byte(stubCode), 0644); err != nil {
@@ -729,8 +733,69 @@ func MergeExternalStubPackageStates(states ...*PackageState) *PackageState {
 		mergeNestedMethodMap(merged.ExternalTypeStubMethods, state.ExternalTypeStubMethods)
 		mergeNestedBoolMap(merged.ExternalTypeStubConversions, state.ExternalTypeStubConversions)
 		mergeExternalPackageStubs(merged.ExternalPackageStubs, state.ExternalPackageStubs)
+		mergeHelperTracker(merged.Helpers, state.Helpers)
 	}
 	return merged
+}
+
+func hoistAndDedupeUseLines(code string) string {
+	if code == "" {
+		return ""
+	}
+	lines := strings.Split(code, "\n")
+	seenUses := make(map[string]bool)
+	var uses []string
+	var body []string
+	for _, line := range lines {
+		if strings.HasPrefix(line, "use ") {
+			if !seenUses[line] {
+				seenUses[line] = true
+				uses = append(uses, line)
+			}
+			continue
+		}
+		body = append(body, line)
+	}
+	slices.Sort(uses)
+	if len(uses) == 0 {
+		return strings.Join(body, "\n")
+	}
+	return strings.Join(uses, "\n") + "\n\n" + strings.TrimLeft(strings.Join(body, "\n"), "\n")
+}
+
+func mergeHelperTracker(dst *HelperTracker, src *HelperTracker) {
+	if dst == nil || src == nil {
+		return
+	}
+	dst.needsFormatMap = dst.needsFormatMap || src.needsFormatMap
+	dst.needsFormatSlice = dst.needsFormatSlice || src.needsFormatSlice
+	dst.needsFormatNestedSlice = dst.needsFormatNestedSlice || src.needsFormatNestedSlice
+	dst.needsFormatAny = dst.needsFormatAny || src.needsFormatAny
+	dst.needsFormatAnySlice = dst.needsFormatAnySlice || src.needsFormatAnySlice
+	dst.needsGoChannel = dst.needsGoChannel || src.needsGoChannel
+	dst.needsWaitGroup = dst.needsWaitGroup || src.needsWaitGroup
+	dst.needsGoMutex = dst.needsGoMutex || src.needsGoMutex
+	dst.needsGoOnce = dst.needsGoOnce || src.needsGoOnce
+	dst.needsGoTypeName = dst.needsGoTypeName || src.needsGoTypeName
+	dst.needsBase64 = dst.needsBase64 || src.needsBase64
+	dst.needsSha256 = dst.needsSha256 || src.needsSha256
+	dst.needsHexFormat = dst.needsHexFormat || src.needsHexFormat
+	dst.needsStrconvFormat = dst.needsStrconvFormat || src.needsStrconvFormat
+	dst.needsUrl = dst.needsUrl || src.needsUrl
+	dst.needsRegexp = dst.needsRegexp || src.needsRegexp
+	dst.needsJsonEscape = dst.needsJsonEscape || src.needsJsonEscape
+	dst.needsOsFile = dst.needsOsFile || src.needsOsFile
+	dst.needsSliceElemPtr = dst.needsSliceElemPtr || src.needsSliceElemPtr
+	dst.needsGoTime = dst.needsGoTime || src.needsGoTime
+	dst.needsGoTimer = dst.needsGoTimer || src.needsGoTimer
+	dst.needsGoAfter = dst.needsGoAfter || src.needsGoAfter
+	dst.needsGoTicker = dst.needsGoTicker || src.needsGoTicker
+	dst.needsGoTick = dst.needsGoTick || src.needsGoTick
+	dst.needsGoContext = dst.needsGoContext || src.needsGoContext
+	dst.needsGoRand = dst.needsGoRand || src.needsGoRand
+	dst.needsReflect = dst.needsReflect || src.needsReflect
+	dst.needsGoHttpResponse = dst.needsGoHttpResponse || src.needsGoHttpResponse
+	dst.needsGoPtrKey = dst.needsGoPtrKey || src.needsGoPtrKey
 }
 
 func mergeBoolMap(dst map[string]bool, src map[string]bool) {

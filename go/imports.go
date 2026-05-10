@@ -146,6 +146,32 @@ type HelperTracker struct {
 	needsGoPtrKey          bool
 }
 
+var generatingPublicHelpers bool
+
+func (ht *HelperTracker) withoutSharedStdlibHelpers() *HelperTracker {
+	if ht == nil {
+		return nil
+	}
+	helperCopy := *ht
+	helperCopy.needsGoChannel = false
+	helperCopy.needsGoContext = false
+	return &helperCopy
+}
+
+func (ht *HelperTracker) sharedStdlibHelpersOnly() *HelperTracker {
+	if ht == nil {
+		return nil
+	}
+	helperCopy := &HelperTracker{}
+	if ht.needsGoChannel || ht.needsGoContext {
+		helperCopy.needsGoChannel = true
+	}
+	if ht.needsGoContext {
+		helperCopy.needsGoContext = true
+	}
+	return helperCopy
+}
+
 // GenerateHelpers returns the helper function definitions
 func (ht *HelperTracker) GenerateHelpers() string {
 	var result strings.Builder
@@ -265,6 +291,11 @@ func (ht *HelperTracker) GenerateHelpers() string {
 	return result.String()
 }
 
+func (ht *HelperTracker) HasAnyOmittingSharedStdlibHelpers() bool {
+	filtered := ht.withoutSharedStdlibHelpers()
+	return filtered != nil && filtered.HasAny()
+}
+
 func (ht *HelperTracker) HasAny() bool {
 	return ht != nil && (ht.needsFormatMap ||
 		ht.needsFormatSlice ||
@@ -297,7 +328,22 @@ func (ht *HelperTracker) HasAny() bool {
 }
 
 func (ht *HelperTracker) GenerateHelperModule() string {
+	return ht.generateHelperModule(false)
+}
+
+func (ht *HelperTracker) GenerateHelperModuleOmittingSharedStdlibHelpers() string {
+	return ht.withoutSharedStdlibHelpers().generateHelperModule(false)
+}
+
+func (ht *HelperTracker) GenerateSharedStdlibHelperModule() string {
+	return ht.sharedStdlibHelpersOnly().generateHelperModule(true)
+}
+
+func (ht *HelperTracker) generateHelperModule(publicHelpers bool) string {
 	if ht == nil {
+		return ""
+	}
+	if !ht.HasAny() {
 		return ""
 	}
 
@@ -305,6 +351,11 @@ func (ht *HelperTracker) GenerateHelperModule() string {
 	helperCopy := *ht
 	fileState := NewFileState(imports, &helperCopy, nil)
 	parentCtx := GetTranspileContext()
+	prevPublicHelpers := generatingPublicHelpers
+	generatingPublicHelpers = publicHelpers
+	defer func() {
+		generatingPublicHelpers = prevPublicHelpers
+	}()
 	SetTranspileContext(&TranspileContext{
 		File:    fileState,
 		Imports: imports,
@@ -321,6 +372,10 @@ func (ht *HelperTracker) GenerateHelperModule() string {
 	}
 	output.WriteString(helpersStr)
 	return output.String()
+}
+
+func (ht *HelperTracker) ImportNamesOmittingSharedStdlibHelpers() []string {
+	return ht.withoutSharedStdlibHelpers().ImportNames()
 }
 
 func (ht *HelperTracker) ImportNames() []string {
@@ -547,7 +602,7 @@ fn format_any_slice(slice: &Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) -> String {
 }
 
 func generateGoChannelHelper(out *strings.Builder) {
-	out.WriteString(`
+	code := `
 struct GoChannel<T> {
     tx: std::sync::Arc<std::sync::Mutex<Option<std::sync::mpsc::SyncSender<T>>>>,
     rx: std::sync::Arc<std::sync::Mutex<std::sync::mpsc::Receiver<T>>>,
@@ -692,7 +747,21 @@ impl<T> Iterator for GoChannel<T> {
         self.recv()
     }
 }
-`)
+`
+	if generatingPublicHelpers {
+		code = strings.ReplaceAll(code, "struct GoChannel<T>", "pub struct GoChannel<T>")
+		code = strings.ReplaceAll(code, "    fn new(", "    pub fn new(")
+		code = strings.ReplaceAll(code, "    fn new_buffered(", "    pub fn new_buffered(")
+		code = strings.ReplaceAll(code, "    fn send(", "    pub fn send(")
+		code = strings.ReplaceAll(code, "    fn try_send(", "    pub fn try_send(")
+		code = strings.ReplaceAll(code, "    fn recv(", "    pub fn recv(")
+		code = strings.ReplaceAll(code, "    fn try_recv(", "    pub fn try_recv(")
+		code = strings.ReplaceAll(code, "    fn close(", "    pub fn close(")
+		code = strings.ReplaceAll(code, "    fn is_nil(", "    pub fn is_nil(")
+		code = strings.ReplaceAll(code, "    fn len(", "    pub fn len(")
+		code = strings.ReplaceAll(code, "    fn capacity(", "    pub fn capacity(")
+	}
+	out.WriteString(code)
 }
 
 func generateWaitGroupHelper(out *strings.Builder) {
@@ -1844,7 +1913,7 @@ func generateGoContextHelper(out *strings.Builder) {
 	NeedGoChannel()
 	TrackImport("Arc")
 	TrackImport("Mutex")
-	out.WriteString(`
+	code := `
 #[derive(Clone)]
 struct GoContext {
     done: GoChannel<bool>,
@@ -1970,7 +2039,19 @@ impl GoContext {
         self.err.clone()
     }
 }
-`)
+`
+	if generatingPublicHelpers {
+		code = strings.ReplaceAll(code, "struct GoContext", "pub struct GoContext")
+		code = strings.ReplaceAll(code, "type GoCancelFunc", "pub type GoCancelFunc")
+		code = strings.ReplaceAll(code, "type GoCancelCauseFunc", "pub type GoCancelCauseFunc")
+		code = strings.ReplaceAll(code, "    fn background(", "    pub fn background(")
+		code = strings.ReplaceAll(code, "    fn with_timeout(", "    pub fn with_timeout(")
+		code = strings.ReplaceAll(code, "    fn with_cancel(", "    pub fn with_cancel(")
+		code = strings.ReplaceAll(code, "    fn with_cancel_cause(", "    pub fn with_cancel_cause(")
+		code = strings.ReplaceAll(code, "    fn done(", "    pub fn done(")
+		code = strings.ReplaceAll(code, "    fn err(", "    pub fn err(")
+	}
+	out.WriteString(code)
 }
 
 func generateGoRandHelper(out *strings.Builder) {

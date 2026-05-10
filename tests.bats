@@ -1152,6 +1152,10 @@ run_xfail_test() {
     run_test "tests/package_const_lowercase_condition"
 }
 
+@test "package_context_shared_helper" {
+    run_test "tests/package_context_shared_helper"
+}
+
 @test "package_function_array_literal_argument" {
     run_test "tests/package_function_array_literal_argument"
 }

@@ -300,7 +300,7 @@ func (pl *PackageLoader) transpilePackage(pkg *packages.Package) error {
 		})
 	}
 
-	helpersNeeded := usePackageHelpers && pkgState.Helpers.HasAny()
+	helpersNeeded := usePackageHelpers && pkgState.Helpers.HasAnyOmittingSharedStdlibHelpers()
 
 	// Generate lib.rs
 	if helpersNeeded {
@@ -336,7 +336,7 @@ func (pl *PackageLoader) transpilePackage(pkg *packages.Package) error {
 
 	if helpersNeeded {
 		helperPath := filepath.Join(outputDir, packageHelperIncludeFile)
-		helperCode := pkgState.Helpers.GenerateHelperModule()
+		helperCode := pkgState.Helpers.GenerateHelperModuleOmittingSharedStdlibHelpers()
 		if err := os.WriteFile(helperPath, []byte(helperCode), 0644); err != nil {
 			return fmt.Errorf("failed to write package helper module: %v", err)
 		}
@@ -373,7 +373,7 @@ path = "lib.rs"
 func prefixExternalPackageModuleImports(rustCode, selfModule string, moduleNames []string, helpers *HelperTracker) string {
 	rustCode = prefixSiblingModuleImports(rustCode, selfModule, moduleNames)
 	if helpers != nil && helpers.HasAny() {
-		rustCode = prefixPackageHelperImports(rustCode, helpers)
+		rustCode = prefixPackageHelperImports(rustCode, helpers, true)
 	}
 	return prefixSharedStdlibStubImport(rustCode)
 }

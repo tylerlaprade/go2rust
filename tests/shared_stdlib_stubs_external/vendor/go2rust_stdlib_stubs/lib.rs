@@ -1,8 +1,8 @@
-use std::cell::{RefCell};
-use std::rc::{Rc};
 use std::any::Any;
+use std::cell::{RefCell};
 use std::collections::BTreeMap;
 use std::error::Error as StdError;
+use std::rc::{Rc};
 
 #[derive(Clone)]
 pub struct GoPtrKey<T>(pub Rc<RefCell<Option<T>>>);

@@ -1,0 +1,22 @@
+
+[workspace]
+members = [
+    ".",
+    "vendor/example_com_contextshared_core",
+    "vendor/example_com_contextshared_event",
+    "vendor/go2rust_stdlib_stubs",
+]
+
+[package]
+name = "package_context_shared_helper"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "package_context_shared_helper"
+path = "main.rs"
+
+[dependencies]
+example_com_contextshared_core = { path = "vendor/example_com_contextshared_core" }
+example_com_contextshared_event = { path = "vendor/example_com_contextshared_event" }
+go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }

@@ -30,7 +30,7 @@ Go2Rust provides four modes for handling external package imports:
    - Pure Rust output with no Go runtime dependency
    - Currently in development
    - Uses one workspace wrapper policy across the root package and transpiled dependencies
-   - Emits shared stdlib stand-ins in `vendor/go2rust_stdlib_stubs` so dependency crates agree on imported stdlib type identities
+   - Emits shared stdlib stand-ins and shared helper types in `vendor/go2rust_stdlib_stubs` so dependency crates agree on imported stdlib type identities
 
 2. **`stub`**: Generates stub implementations for external packages
    - Creates placeholder Rust modules with helpful TODO comments
@@ -190,6 +190,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Stdlib package stub calls from wrapped range variables | ✅ |
 | └ Stdlib typed constants as indexes | ✅ |
 | └ Shared stdlib stubs across transpiled dependency crates | ✅ |
+| └ Shared context/channel helpers across transpiled dependency crates | ✅ |
 | └ Stdlib concrete values passed to stdlib interface parameters | ✅ |
 | └ Stdlib interface map range keys passed to interface parameters | ✅ |
 | └ Stdlib interface field copies | ✅ |
@@ -245,6 +246,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Init functions | ✅ |
 | └ Multi-file packages with cross-file types, methods, maps, slices, and function variables | 🚧 |
 | └ Package-scoped generated helpers for multi-file stdlib/time/context types | ✅ |
+| └ Stdlib helper types crossing dependency crate boundaries use shared stub crate identities | ✅ |
 | └ Workspace-wide wrapper selection for transpiled external packages | ✅ |
 | **`range` - Range clauses** | |
 | └ Array/slice range, including nil slices | ✅ |

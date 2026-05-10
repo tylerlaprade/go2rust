@@ -1593,7 +1593,11 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 
 	// Now build the final output with only needed imports
 	var output strings.Builder
-	helpersStr := helpers.GenerateHelpers()
+	helpersForFile := helpers
+	if ctx.UsePackageExternalStubs {
+		helpersForFile = helpers.withoutSharedStdlibHelpers()
+	}
+	helpersStr := helpersForFile.GenerateHelpers()
 	importsStr := imports.GenerateImports()
 	output.WriteString(importsStr)
 	if importsStr != "" {
