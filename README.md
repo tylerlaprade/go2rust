@@ -241,7 +241,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Comma-ok map access with typed zero values | ✅ |
 | └ Wrapped call results as map lookup keys | ✅ |
 | └ Pointer keys in map literals and lookups | ✅ |
-| └ Pointer keys and values in `make(map)` plus slice-range pointer key lookups | ✅ |
+| └ Pointer keys and values in `make(map)`, address-of literal map writes, and slice-range pointer key lookups | ✅ |
 | └ Named integer values in map literals, writes, lookups, and comma-ok zero values | ✅ |
 | └ Struct keys with named integer fields across split modules | ✅ |
 | └ Append results assigned into map slice values | ✅ |

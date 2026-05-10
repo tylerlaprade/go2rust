@@ -972,6 +972,14 @@ func writeMapWrappedValue(out *strings.Builder, expr ast.Expr, valueType types.T
 		WriteWrappedNone(out)
 		return
 	}
+	if isPointerMapValueType(valueType) {
+		if unary, ok := expr.(*ast.UnaryExpr); ok && unary.Op == token.AND {
+			if _, isComposite := unary.X.(*ast.CompositeLit); isComposite {
+				TranspileExpression(out, expr)
+				return
+			}
+		}
+	}
 	if isNilableWrappedMapValueType(valueType) && isTypedAssignmentSelfWrappingExpression(expr) {
 		TranspileExpression(out, expr)
 		return
@@ -1027,6 +1035,14 @@ func writeMapWrappedValue(out *strings.Builder, expr ast.Expr, valueType types.T
 		TranspileExpression(out, expr)
 	}
 	WriteWrapperSuffix(out)
+}
+
+func isPointerMapValueType(valueType types.Type) bool {
+	if valueType == nil {
+		return false
+	}
+	_, ok := types.Unalias(valueType).Underlying().(*types.Pointer)
+	return ok
 }
 
 func writeMapKeyExpression(out *strings.Builder, expr ast.Expr) {
