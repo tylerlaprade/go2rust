@@ -993,6 +993,12 @@ func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.Fi
 						continue
 					}
 
+					if _, ok := functionSignatureFromTypeExpr(result.Type); ok {
+						WriteWrappedNone(out)
+						out.WriteString(";\n")
+						continue
+					}
+
 					if isEmptyInterfaceExpr(result.Type) {
 						WriteWrappedNone(out)
 						out.WriteString(";\n")
@@ -1967,6 +1973,13 @@ func writeNamedReturnDeclarations(out *strings.Builder, fnType *ast.FuncType) {
 				continue
 			}
 
+			if _, ok := functionSignatureFromTypeExpr(result.Type); ok {
+				WriteWrappedNone(out)
+				out.WriteString(";\n")
+				wrote = true
+				continue
+			}
+
 			if isEmptyInterfaceExpr(result.Type) {
 				WriteWrappedNone(out)
 				out.WriteString(";\n")
@@ -2033,6 +2046,10 @@ func writeNamedReturnValues(out *strings.Builder, fnType *ast.FuncType) {
 
 func writeNamedReturnZeroValue(out *strings.Builder, typeExpr ast.Expr) {
 	if t, ok := typeExpr.(*ast.Ident); ok && t.Name == "error" {
+		WriteWrappedNone(out)
+		return
+	}
+	if _, ok := functionSignatureFromTypeExpr(typeExpr); ok {
 		WriteWrappedNone(out)
 		return
 	}

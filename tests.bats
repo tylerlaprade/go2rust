@@ -1084,6 +1084,10 @@ run_xfail_test() {
     run_test "tests/mutex_guard_method_call"
 }
 
+@test "named_func_return_defer" {
+    run_test "tests/named_func_return_defer"
+}
+
 @test "named_integer_const_arguments" {
     run_test "tests/named_integer_const_arguments"
 }

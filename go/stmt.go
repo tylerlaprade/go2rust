@@ -1170,6 +1170,33 @@ func writeErrorChannelNamedReturnAssignment(out *strings.Builder, name *ast.Iden
 	return true
 }
 
+func writeFunctionNamedReturnAssignment(out *strings.Builder, name *ast.Ident, resultType ast.Expr, rhs ast.Expr) bool {
+	if name == nil || name.Name == "_" {
+		return false
+	}
+	if _, ok := functionSignatureFromTypeExpr(resultType); !ok {
+		return false
+	}
+	if ident, ok := rhs.(*ast.Ident); ok && ident.Name == "nil" {
+		out.WriteString("*")
+		out.WriteString(RustLocalIdent(name.Name))
+		WriteBorrowMethod(out, true)
+		out.WriteString(" = None")
+		return true
+	}
+	funcLit, ok := rhs.(*ast.FuncLit)
+	if !ok {
+		return false
+	}
+	out.WriteString("{ let new_val = ")
+	TranspileFuncLitBox(out, funcLit)
+	out.WriteString("; *")
+	out.WriteString(RustLocalIdent(name.Name))
+	WriteBorrowMethod(out, true)
+	out.WriteString(" = Some(new_val); }")
+	return true
+}
+
 func namedTypeForTypeExpr(expr ast.Expr) (*types.Named, bool) {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil || expr == nil {
@@ -1436,6 +1463,18 @@ func expressionFunctionSignature(expr ast.Expr) (*types.Signature, bool) {
 		return nil, false
 	}
 	sig, ok := typ.Underlying().(*types.Signature)
+	return sig, ok
+}
+
+func functionSignatureFromTypeExpr(expr ast.Expr) (*types.Signature, bool) {
+	if _, ok := expr.(*ast.FuncType); ok {
+		return nil, true
+	}
+	typ := expectedTypeFromParamExpr(expr)
+	if typ == nil {
+		return nil, false
+	}
+	sig, ok := types.Unalias(typ).Underlying().(*types.Signature)
 	return sig, ok
 }
 
@@ -2440,6 +2479,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				resultType := returnResultTypeExpr(fnType, i)
 				if !writeStdlibInterfaceNamedReturnAssignment(out, names[i], resultType, result) &&
 					!writeErrorChannelNamedReturnAssignment(out, names[i], resultType, result) &&
+					!writeFunctionNamedReturnAssignment(out, names[i], resultType, result) &&
 					!writePointerNamedReturnAssignment(out, names[i], resultType, result) {
 					TranspileStatementSimple(out, &ast.AssignStmt{
 						Lhs: []ast.Expr{names[i]},

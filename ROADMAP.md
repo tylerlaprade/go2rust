@@ -43,6 +43,7 @@ Method receivers (value and pointer), multiple returns (including named returns,
 - ✅ Named function type conversions - go/types `TypeAndValue.IsType` catches conversions such as `Exporter(fn)` before closure-call lowering, and cross-package conversions such as `dep.Exporter(e)` preserve the wrapped function handle instead of unwrapping to the inner closure box (2026-05-08; package_function_type_conversion added, 2026-05-10)
 - ✅ Function type aliases with imported interfaces - named function declarations use go/types signatures so parameters such as `label.Map` lower to wrapped trait objects instead of bare trait names (2026-05-08)
 - ✅ Cross-file function type alias parameters - package-wide type fact registration lets sibling modules use named callback aliases before the declaring file is emitted (cross_file_function_alias_param added, 2026-05-09)
+- ✅ Function-typed named returns - named `func` results initialize to nil handles, explicit `return func(){...}` assigns the boxed closure into the result slot before defers, and deferred closures can replace or nil out cleanup callbacks (named_func_return_defer added, 2026-05-10)
 - ✅ Parameter reassignment - function and method parameters that are rebound in the body emit mutable Rust bindings instead of immutable arguments (parameter_reassignment added, 2026-05-10)
 - ✅ Assignment from function returns - wrapped call results move their inner value into existing variables instead of nesting wrappers (function_return_assignment promoted, 2026-05-07)
 - ✅ Wrapped call arguments - call expressions that already return wrappers pass through to method and package-function arguments without nesting wrappers again (wrapped_call_argument promoted, 2026-05-07)
@@ -243,4 +244,4 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 
 go2rust transpiles itself!
 
-- 🚧 Broad self-transpile cargo check now reaches `golang_org_x_tools_internal_gocommand`. The latest fixed blocker was `chan error` payload lowering through sends, receives, named-return `return <-ch`, and select case returns; the package-targeted `gocommand` check is down to 5 Rust errors, with remaining clusters around `FnMut` closure lowering, generated cleanup function result defaults, and `json.Marshal` for a local struct (2026-05-10)
+- 🚧 Broad self-transpile cargo check now reaches `golang_org_x_tools_internal_gocommand`. The latest fixed blocker was function-typed named results for cleanup callbacks; the package-targeted `gocommand` check is down to 3 Rust errors, with remaining clusters around `FnMut` closure lowering and `json.Marshal` for a local struct (2026-05-10)
