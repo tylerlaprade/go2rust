@@ -52,7 +52,7 @@ fn main() {
     }
 
         // Delete from map
-    (*ages.borrow_mut().as_mut().unwrap()).remove(&"Bob".to_string());
+    { let __map_handle = ages.clone(); let mut __map_guard = __map_handle.borrow_mut(); __map_guard.as_mut().unwrap().remove(&"Bob".to_string()); };
     println!("{} {}", "After deleting Bob:".to_string(), format_map(&ages));
 
         // Iterate over map in sorted order for deterministic output

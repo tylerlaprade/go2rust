@@ -210,6 +210,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Map types | ✅ |
 | └ Map literals | ✅ |
 | └ Map operations (insert, delete) | ✅ |
+| └ Delete through selector map fields | ✅ |
 | └ Map access with existence check | ✅ |
 | └ Comma-ok map access with typed zero values | ✅ |
 | └ Wrapped call results as map lookup keys | ✅ |

@@ -2764,19 +2764,21 @@ func transpileCap(out *strings.Builder, call *ast.CallExpr) {
 
 func transpileDelete(out *strings.Builder, call *ast.CallExpr) {
 	if len(call.Args) >= 2 {
-		out.WriteString("(*")
-		// For delete, we need the raw identifier, not the unwrapped value
+		var keyType types.Type
+		if typeInfo := GetTypeInfo(); typeInfo != nil {
+			keyType, _ = typeInfo.GetMapTypes(call.Args[0])
+		}
+		out.WriteString("{ let __map_handle = ")
 		if ident, ok := call.Args[0].(*ast.Ident); ok {
 			out.WriteString(ident.Name)
 		} else {
-			// For complex expressions, we'd need to handle differently
-			// For now, just use the expression as-is
-			TranspileExpression(out, call.Args[0])
+			TranspileExpressionContext(out, call.Args[0], LValue)
 		}
+		out.WriteString(".clone(); let mut __map_guard = __map_handle")
 		WriteBorrowMethod(out, true)
-		out.WriteString(".as_mut().unwrap()).remove(&")
-		TranspileExpression(out, call.Args[1])
-		out.WriteString(")")
+		out.WriteString("; __map_guard.as_mut().unwrap().remove(")
+		writeMapLookupKeyWithType(out, call.Args[1], keyType)
+		out.WriteString("); }")
 	}
 }
 
