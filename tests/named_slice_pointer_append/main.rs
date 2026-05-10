@@ -18,7 +18,7 @@ impl std::fmt::Display for node {
 pub struct nodes(pub Rc<RefCell<Option<Vec<Rc<RefCell<Option<node>>>>>>>);
 
 
-pub fn add(xs: Rc<RefCell<Option<nodes>>>, n: Rc<RefCell<Option<node>>>) -> Rc<RefCell<Option<nodes>>> {
+pub fn add(mut xs: Rc<RefCell<Option<nodes>>>, n: Rc<RefCell<Option<node>>>) -> Rc<RefCell<Option<nodes>>> {
 
     { let new_val = { let __base = { let __named_slice = (*xs.borrow().as_ref().unwrap()).0.clone(); __named_slice }; let __base_guard = __base.borrow(); let mut __values = __base_guard.as_ref().cloned().unwrap_or_else(Vec::new); drop(__base_guard); __values.push(n.clone()); Rc::new(RefCell::new(Some(nodes(Rc::new(RefCell::new(Some(__values))))))) }; let __moved_val = { let mut __guard = new_val.borrow_mut(); __guard.take() }; *xs.borrow_mut() = __moved_val; };
     return xs.clone();

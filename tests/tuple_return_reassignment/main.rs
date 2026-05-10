@@ -22,7 +22,7 @@ pub fn split_version(v: Rc<RefCell<Option<String>>>) -> (Rc<RefCell<Option<Strin
     return (Rc::new(RefCell::new(Some({ let __s = (*v.borrow().as_ref().unwrap()).clone(); __s[..(1) as usize].to_string() }))), Rc::new(RefCell::new(Some({ let __s = (*v.borrow().as_ref().unwrap()).clone(); __s[(1) as usize..].to_string() }))), Rc::new(RefCell::new(Some(true))));
 }
 
-pub fn parse(v: Rc<RefCell<Option<String>>>) -> (Rc<RefCell<Option<parsed>>>, Rc<RefCell<Option<bool>>>) {
+pub fn parse(mut v: Rc<RefCell<Option<String>>>) -> (Rc<RefCell<Option<parsed>>>, Rc<RefCell<Option<bool>>>) {
 
     let mut p = Rc::new(RefCell::new(Some(parsed { major: Rc::new(RefCell::new(Some(String::new()))) })));
     let mut ok = Rc::new(RefCell::new(Some(false)));

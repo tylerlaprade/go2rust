@@ -831,6 +831,9 @@ func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.Fi
 				if j > 0 {
 					out.WriteString(", ")
 				}
+				if blockIdentAssigned(fn.Body, name.Name) {
+					out.WriteString("mut ")
+				}
 				out.WriteString(RustLocalIdent(name.Name))
 				out.WriteString(": ")
 				out.WriteString(GoTypeToRustParam(field.Type))
@@ -2174,6 +2177,9 @@ func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, a
 			for j, name := range field.Names {
 				if j > 0 {
 					out.WriteString(", ")
+				}
+				if blockIdentAssigned(fn.Body, name.Name) {
+					out.WriteString("mut ")
 				}
 				out.WriteString(RustLocalIdent(name.Name))
 				out.WriteString(": ")

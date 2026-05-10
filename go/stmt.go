@@ -291,7 +291,7 @@ func rangeElementUsesCopied(typ types.Type) bool {
 	}
 }
 
-func rangeLoopIdentAssigned(body *ast.BlockStmt, name string) bool {
+func blockIdentAssigned(body *ast.BlockStmt, name string) bool {
 	if body == nil || name == "" || name == "_" {
 		return false
 	}
@@ -319,6 +319,10 @@ func rangeLoopIdentAssigned(body *ast.BlockStmt, name string) bool {
 		return true
 	})
 	return assigned
+}
+
+func rangeLoopIdentAssigned(body *ast.BlockStmt, name string) bool {
+	return blockIdentAssigned(body, name)
 }
 
 func writeRangeBinding(out *strings.Builder, expr ast.Expr, mutable bool) {

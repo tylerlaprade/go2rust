@@ -1180,6 +1180,10 @@ run_xfail_test() {
     run_test "tests/parallel_slice_field_assign"
 }
 
+@test "parameter_reassignment" {
+    run_test "tests/parameter_reassignment"
+}
+
 @test "pointer_composite_assignment" {
     run_test "tests/pointer_composite_assignment"
 }

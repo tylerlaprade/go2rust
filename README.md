@@ -148,6 +148,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Basic functions | ✅ |
 | └ Multiple return values | ✅ |
 | └ Method definitions | ✅ |
+| └ Reassigned function and method parameters | ✅ |
 | └ Tuple return reassignment to fields and parameters | ✅ |
 | └ Method calls, including receiver self-calls | ✅ |
 | └ Current receiver method calls with receiver-referencing arguments | ✅ |

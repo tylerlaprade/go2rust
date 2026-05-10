@@ -15,7 +15,7 @@ impl std::fmt::Display for parsed {
 }
 
 
-pub fn split(x: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<parsed>>> {
+pub fn split(mut x: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<parsed>>> {
 
     let mut p: Rc<RefCell<Option<parsed>>> = Rc::new(RefCell::new(Some(Default::default())));
     { let __tmp_0 = Rc::new(RefCell::new(Some({ let __s = (*x.borrow().as_ref().unwrap()).clone(); __s[..(1) as usize].to_string() }))); let __tmp_1 = Rc::new(RefCell::new(Some({ let __s = (*x.borrow().as_ref().unwrap()).clone(); __s[(1) as usize..].to_string() }))); *(*p.borrow().as_ref().unwrap()).kind.borrow_mut() = __tmp_0.borrow_mut().take(); *x.borrow_mut() = __tmp_1.borrow_mut().take(); };

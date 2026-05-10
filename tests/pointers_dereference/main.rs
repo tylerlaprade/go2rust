@@ -1,7 +1,7 @@
 use std::cell::{RefCell};
 use std::rc::{Rc};
 
-pub fn zeroval(ival: Rc<RefCell<Option<i32>>>) {
+pub fn zeroval(mut ival: Rc<RefCell<Option<i32>>>) {
     { let new_val = 0; *ival.borrow_mut() = Some(new_val); };
 }
 
