@@ -1172,7 +1172,9 @@ func writeRangeStringValue(out *strings.Builder, arg ast.Expr) bool {
 			argName = RustLocalIdent(renamed)
 		}
 	}
-	if varType == "ref_value" || strings.HasPrefix(varType, "&") {
+	if isWrappedRangeVarType(varType) {
+		writeWrappedRangeValueClone(out, ident, varType)
+	} else if varType == "ref_value" || strings.HasPrefix(varType, "&") {
 		out.WriteString("(*")
 		out.WriteString(argName)
 		out.WriteString(").clone()")
