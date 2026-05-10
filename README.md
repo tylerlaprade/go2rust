@@ -256,6 +256,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Field access | ✅ |
 | └ Owned selector field returns and arguments | ✅ |
 | └ Embedded fields | ✅ |
+| └ Embedded method promotion from transpiled dependency packages | ✅ |
 | └ Anonymous structs | ✅ |
 | └ Nested structs/slices/maps/interfaces and anonymous struct function boundaries | ✅ |
 | └ Struct fields containing map values with `any` contents | ✅ |

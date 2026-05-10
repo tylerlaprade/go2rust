@@ -1,0 +1,20 @@
+
+[workspace]
+members = [
+    ".",
+    "vendor/example_com_importedembed_base",
+    "vendor/go2rust_stdlib_stubs",
+]
+
+[package]
+name = "imported_embedded_method_promotion"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "imported_embedded_method_promotion"
+path = "main.rs"
+
+[dependencies]
+example_com_importedembed_base = { path = "vendor/example_com_importedembed_base" }
+go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }

@@ -28,6 +28,8 @@ type externalPromotedMethod struct {
 	MethodName        string
 	RustMethodName    string
 	Signature         *types.Signature
+	GenericArguments  bool
+	MutableReceiver   bool
 }
 
 type externalPackageStub struct {
@@ -335,13 +337,18 @@ func collectExternalPromotedMethods(structDef *StructDef, existing map[string]bo
 			}
 
 			rustMethodName := ToSnakeCase(methodName)
-			RegisterExternalTypeStubMethod(rustTypeName, rustMethodName, sig)
+			stubBacked := isStdlibPackage(named.Obj().Pkg().Path())
+			if stubBacked {
+				RegisterExternalTypeStubMethod(rustTypeName, rustMethodName, sig)
+			}
 			existing[methodName] = true
 			promoted = append(promoted, externalPromotedMethod{
 				EmbeddedFieldName: ToSnakeCase(getEmbeddedFieldName(field.Type)),
 				MethodName:        methodName,
 				RustMethodName:    rustMethodName,
 				Signature:         sig,
+				GenericArguments:  stubBacked,
+				MutableReceiver:   !stubBacked && signatureHasPointerReceiver(sig),
 			})
 		}
 	}
@@ -385,13 +392,25 @@ func externalEmbeddedNamed(expr ast.Expr) (*types.Named, bool) {
 	if !ok || named.Obj() == nil || named.Obj().Pkg() == nil {
 		return nil, false
 	}
-	if !isStdlibPackage(named.Obj().Pkg().Path()) {
-		return nil, false
+	pkgPath := named.Obj().Pkg().Path()
+	if isStdlibPackage(pkgPath) {
+		if isKnownStdlibHelperType(pkgPath, named.Obj().Name()) {
+			return nil, false
+		}
+		return named, true
 	}
-	if isKnownStdlibHelperType(named.Obj().Pkg().Path(), named.Obj().Name()) {
+	if typeInfo.pkg != nil && named.Obj().Pkg() == typeInfo.pkg {
 		return nil, false
 	}
 	return named, true
+}
+
+func signatureHasPointerReceiver(sig *types.Signature) bool {
+	if sig == nil || sig.Recv() == nil {
+		return false
+	}
+	_, ok := types.Unalias(sig.Recv().Type()).(*types.Pointer)
+	return ok
 }
 
 func externalSelectorReceiverNamed(recv types.Type) (*types.Named, bool) {

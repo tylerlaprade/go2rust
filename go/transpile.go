@@ -1042,7 +1042,7 @@ func generateExternalPromotedMethod(out *strings.Builder, method externalPromote
 
 	out.WriteString("    pub fn ")
 	out.WriteString(method.RustMethodName)
-	if params.Len() > 0 {
+	if method.GenericArguments && params.Len() > 0 {
 		out.WriteString("<")
 		for i := 0; i < params.Len(); i++ {
 			if i > 0 {
@@ -1054,7 +1054,11 @@ func generateExternalPromotedMethod(out *strings.Builder, method externalPromote
 	}
 	out.WriteString("(&self")
 	for i := 0; i < params.Len(); i++ {
-		fmt.Fprintf(out, ", _arg%d: T%d", i, i)
+		if method.GenericArguments {
+			fmt.Fprintf(out, ", _arg%d: T%d", i, i)
+		} else {
+			fmt.Fprintf(out, ", _arg%d: %s", i, goTypesParamTypeToRust(params.At(i).Type()))
+		}
 	}
 	out.WriteString(")")
 	if results.Len() > 0 {
@@ -1076,10 +1080,17 @@ func generateExternalPromotedMethod(out *strings.Builder, method externalPromote
 	out.WriteString("        let embedded = self.")
 	out.WriteString(method.EmbeddedFieldName)
 	out.WriteString(".clone();\n")
-	out.WriteString("        let guard = embedded")
-	WriteBorrowMethod(out, false)
-	out.WriteString(";\n")
-	out.WriteString("        let embedded_ref = guard.as_ref().unwrap();\n")
+	if method.MutableReceiver {
+		out.WriteString("        let mut guard = embedded")
+		WriteBorrowMethod(out, true)
+		out.WriteString(";\n")
+		out.WriteString("        let embedded_ref = guard.as_mut().unwrap();\n")
+	} else {
+		out.WriteString("        let guard = embedded")
+		WriteBorrowMethod(out, false)
+		out.WriteString(";\n")
+		out.WriteString("        let embedded_ref = guard.as_ref().unwrap();\n")
+	}
 	out.WriteString("        embedded_ref.")
 	out.WriteString(method.RustMethodName)
 	out.WriteString("(")
