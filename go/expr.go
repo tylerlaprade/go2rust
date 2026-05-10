@@ -1214,7 +1214,19 @@ func writeAlreadyWrappedCallArgument(out *strings.Builder, arg ast.Expr) bool {
 			if _, isLocalConst := localConstants[ident.Name]; !isLocalConst && !isConstIdent(ident) {
 				if typ := typeInfo.GetType(ident); typ != nil {
 					switch types.Unalias(typ).Underlying().(type) {
-					case *types.Pointer, *types.Slice, *types.Map:
+					case *types.Pointer:
+						if isPackageGlobalObjectIdent(ident) {
+							out.WriteString("(*")
+							out.WriteString(rustPackageGlobalName(ident.Name))
+							WriteBorrowMethod(out, false)
+							out.WriteString(".as_ref().unwrap())")
+							out.WriteString(".clone()")
+							return true
+						}
+						out.WriteString(RustIdentForUse(ident))
+						out.WriteString(".clone()")
+						return true
+					case *types.Slice, *types.Map:
 						out.WriteString(RustIdentForUse(ident))
 						out.WriteString(".clone()")
 						return true
@@ -3429,6 +3441,35 @@ func writePackageGlobalSelectorMethodReceiver(out *strings.Builder, receiver *as
 		out.WriteString(".as_ref().unwrap()).")
 	}
 	return true, false
+}
+
+func writePackageGlobalIdentMethodReceiver(out *strings.Builder, receiver *ast.Ident, method *ast.SelectorExpr) bool {
+	if !isPackageGlobalObjectIdent(receiver) {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	typ := typeInfo.GetType(receiver)
+	if typ == nil {
+		return false
+	}
+	if _, ok := types.Unalias(typ).Underlying().(*types.Pointer); !ok {
+		return false
+	}
+	needsMut := typeInfo.HasPointerReceiver(method)
+	out.WriteString("(*(*")
+	out.WriteString(rustPackageGlobalName(receiver.Name))
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap())")
+	WriteBorrowMethod(out, needsMut)
+	if needsMut {
+		out.WriteString(".as_mut().unwrap()).")
+	} else {
+		out.WriteString(".as_ref().unwrap()).")
+	}
+	return true
 }
 
 // TranspileExpressionContext transpiles an expression with context about how it's used
@@ -6903,7 +6944,9 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 
 		// Check if the receiver is a simple identifier (local variable)
 		if ident, ok := sel.X.(*ast.Ident); ok {
-			if currentReceiver != "" && ident.Name == currentReceiver {
+			if writePackageGlobalIdentMethodReceiver(out, ident, sel) {
+				// Package-global pointer receiver handled above.
+			} else if currentReceiver != "" && ident.Name == currentReceiver {
 				if currentCaptureRenames != nil {
 					if renamed, exists := currentCaptureRenames[ident.Name]; exists {
 						out.WriteString(RustLocalIdent(renamed))
@@ -7388,6 +7431,21 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				if isConstIdent(ident) {
 					writeWrappedExpressionForExpectedType(out, arg, paramTypeForArg)
 					continue
+				}
+
+				if isPackageGlobalObjectIdent(ident) {
+					if typeInfo := GetTypeInfo(); typeInfo != nil {
+						if typ := typeInfo.GetType(ident); typ != nil {
+							switch types.Unalias(typ).Underlying().(type) {
+							case *types.Pointer:
+								out.WriteString("(*")
+								out.WriteString(rustPackageGlobalName(ident.Name))
+								WriteBorrowMethod(out, false)
+								out.WriteString(".as_ref().unwrap()).clone()")
+								continue
+							}
+						}
+					}
 				}
 
 				// Check if this is a channel parameter - pass with clone, no wrapping

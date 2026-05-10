@@ -1,0 +1,8 @@
+[package]
+name = "regexp_methods"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "regexp_methods"
+path = "main.rs"

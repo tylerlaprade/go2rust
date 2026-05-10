@@ -292,6 +292,13 @@ func isPackageGlobalIdent(ident *ast.Ident) bool {
 			return false
 		}
 	}
+	return isPackageGlobalObjectIdent(ident)
+}
+
+func isPackageGlobalObjectIdent(ident *ast.Ident) bool {
+	if ident == nil || ident.Name == "_" || ident.Name == "nil" || ident.Name == "true" || ident.Name == "false" {
+		return false
+	}
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil || typeInfo.info == nil || typeInfo.pkg == nil {
 		return false

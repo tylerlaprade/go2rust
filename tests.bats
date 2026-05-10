@@ -1364,6 +1364,10 @@ run_xfail_test() {
     run_test "tests/regex_basic"
 }
 
+@test "regexp_methods" {
+    run_test "tests/regexp_methods"
+}
+
 @test "return_indexed_pointer" {
     run_test "tests/return_indexed_pointer"
 }

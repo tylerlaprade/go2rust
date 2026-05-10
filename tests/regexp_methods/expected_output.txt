@@ -1,0 +1,5 @@
+vendor
+vendor
+true
+go1.22.0
+1234

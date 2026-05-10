@@ -1,48 +1,6 @@
 use std::cell::{RefCell};
-use std::fmt::{Display};
 use std::rc::{Rc};
 
-fn format_slice<T, C>(slice: &Rc<RefCell<Option<C>>>) -> String
-where
-    C: AsRef<[T]>,
-    T: Display,
-{
-    let guard = slice.borrow();
-    if let Some(ref s) = *guard {
-        let formatted: Vec<String> = s.as_ref().iter().map(|v| v.to_string()).collect();
-        format!("[{}]", formatted.join(" "))
-    } else {
-        "[]".to_string()
-    }
-}
-
-fn format_slice_values<T>(slice: &[T]) -> String
-where
-    T: Display,
-{
-    let formatted: Vec<String> = slice.iter().map(|v| v.to_string()).collect();
-    format!("[{}]", formatted.join(" "))
-}
-
-fn format_slice_wrapped<T, C>(slice: &Rc<RefCell<Option<C>>>) -> String
-where
-    C: AsRef<[Rc<RefCell<Option<T>>>]>,
-    T: Display,
-{
-    let guard = slice.borrow();
-    if let Some(ref s) = *guard {
-        let formatted: Vec<String> = s.as_ref().iter().map(|v| {
-            let inner = v.borrow();
-            match inner.as_ref() {
-                Some(value) => format!("&{}", value),
-                None => "<nil>".to_string(),
-            }
-        }).collect();
-        format!("[{}]", formatted.join(" "))
-    } else {
-        "[]".to_string()
-    }
-}
 
 #[derive(Debug, Clone, Default)]
 struct GoRegexp {
@@ -205,10 +163,55 @@ fn go_regexp_replace_all_string(pattern: &str, text: &str, repl: &str) -> String
     text.replace(pattern, repl)
 }
 
+pub(crate) struct GoGlobal<T> {
+    value: std::cell::UnsafeCell<Option<T>>,
+}
+unsafe impl<T> Sync for GoGlobal<T> {}
+impl<T> GoGlobal<T> {
+    pub(crate) const fn new() -> Self {
+        Self { value: std::cell::UnsafeCell::new(None) }
+    }
+    pub(crate) fn borrow(&'static self) -> &'static Option<T> {
+        unsafe { &*self.value.get() }
+    }
+    pub(crate) fn borrow_mut(&'static self) -> &'static mut Option<T> {
+        unsafe { &mut *self.value.get() }
+    }
+    pub(crate) fn clone(&'static self) -> std::rc::Rc<std::cell::RefCell<Option<T>>> where T: Clone {
+        std::rc::Rc::new(std::cell::RefCell::new(self.borrow().clone()))
+    }
+}
+
+pub(crate) static modFlagRegexp: GoGlobal<Rc<RefCell<Option<GoRegexp>>>> = GoGlobal::new();
+
+
+fn __go_init_globals() {
+    *modFlagRegexp.borrow_mut() = Some(Default::default());
+    *modFlagRegexp.borrow_mut() = Some(Rc::new(RefCell::new(Some(GoRegexp { pattern: Rc::new(RefCell::new(Some("-mod[ =](\\w+)".to_string()))) }))));
+}
+
+
+pub fn capture(re: Rc<RefCell<Option<GoRegexp>>>, text: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<Vec<String>>>> {
+
+    return (*re.borrow_mut().as_mut().unwrap()).find_string_submatch(Rc::new(RefCell::new(Some((*text.borrow().as_ref().unwrap()).clone()))));
+}
+
 fn main() {
-    let mut pattern = Rc::new(RefCell::new(Some("\\d+".to_string())));
-    let mut re = Rc::new(RefCell::new(Some(GoRegexp { pattern: Rc::new(RefCell::new(Some((*pattern.borrow().as_ref().unwrap()).clone()))) })));
-    let mut text = Rc::new(RefCell::new(Some("I have 42 apples and 7 oranges".to_string())));
-    let mut matches = (*re.borrow_mut().as_mut().unwrap()).find_all_string(Rc::new(RefCell::new(Some((*text.borrow().as_ref().unwrap()).clone()))), Rc::new(RefCell::new(Some(-1))));
-    println!("{} {}", "Numbers found:".to_string(), format_slice(&matches));
+    __go_init_all();
+    let mut modMatches = capture((*modFlagRegexp.borrow().as_ref().unwrap()).clone(), Rc::new(RefCell::new(Some("-mod=vendor".to_string()))));
+    println!("{}", (*modMatches.borrow().as_ref().unwrap())[(1) as usize].clone());
+    println!("{}", (*(*(*modFlagRegexp.borrow().as_ref().unwrap()).borrow_mut().as_mut().unwrap()).find_string_submatch(Rc::new(RefCell::new(Some("-mod vendor".to_string())))).borrow().as_ref().unwrap())[(1) as usize].clone());
+
+    let mut changed = Rc::new(RefCell::new(Some(GoRegexp { pattern: Rc::new(RefCell::new(Some("go:.*go.mod.*contents have changed".to_string()))) })));
+    println!("{}", (*(*changed.borrow_mut().as_mut().unwrap()).match_string(Rc::new(RefCell::new(Some("go: updates to go.mod needed, but contents have changed".to_string())))).borrow().as_ref().unwrap()));
+
+    let mut version = Rc::new(RefCell::new(Some(GoRegexp { pattern: Rc::new(RefCell::new(Some("^go version (go\\S+|devel \\S+)".to_string()))) })));
+    println!("{}", (*(*version.borrow_mut().as_mut().unwrap()).find_string_submatch(Rc::new(RefCell::new(Some("go version go1.22.0 darwin/arm64".to_string())))).borrow().as_ref().unwrap())[(1) as usize].clone());
+
+    let mut currency = Rc::new(RefCell::new(Some(GoRegexp { pattern: Rc::new(RefCell::new(Some("[$,]".to_string()))) })));
+    println!("{}", (*(*currency.borrow_mut().as_mut().unwrap()).replace_all_string(Rc::new(RefCell::new(Some("$1,234".to_string()))), Rc::new(RefCell::new(Some("".to_string())))).borrow().as_ref().unwrap()));
+}
+
+pub(crate) fn __go_init_all() {
+    self::__go_init_globals();
 }

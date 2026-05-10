@@ -218,7 +218,7 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 - 🚧 JSON/encoding/crypto support - json.Marshal supports structs with exported basic fields (json_marshal promoted, 2026-05-06); encoding/base64 StdEncoding EncodeToString/DecodeString and crypto/sha256 Sum256 supported (base64_encoding, crypto_hash promoted, 2026-05-06)
 - ✅ Extended strings package coverage - search, IndexAny, Compare/Cut, split/join, replace, repeat, trim variants, EqualFold, Title, Builder Len, Builder.WriteString, and go/types-proven string constants as stdlib string args (stdlib_strings promoted, 2026-05-06; expanded 2026-05-09)
 - ✅ Basic net/url parsing - url.Parse exposes Scheme, Host, Path, and RawQuery fields (url_parsing promoted, 2026-05-06)
-- ✅ Basic regexp support - regexp.MustCompile plus FindAllString for `\d+` and literal matches (regex_basic promoted, 2026-05-06)
+- ✅ Basic regexp support - regexp.MustCompile, FindAllString for `\d+` and literal matches, and focused MatchString/FindStringSubmatch/ReplaceAllString patterns used by self-hosting dependencies (regex_basic promoted, 2026-05-06; regexp_methods added, 2026-05-10)
 - ✅ Basic math/rand support - Seed, Intn, and Float64 with deterministic range assertions (random_numbers promoted, 2026-05-06)
 - ✅ Basic flag parsing defaults - flag.String default values and flag.Parse no-op path (flag_parsing promoted, 2026-05-06)
 - ✅ Basic process arguments - os.Args read access (os_args promoted, 2026-05-06)
@@ -237,4 +237,4 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 
 go2rust transpiles itself!
 
-- 🚧 Broad self-transpile cargo check now reaches `golang_org_x_tools_internal_gocommand`. The latest fixed blocker was receiver-scoped method name disambiguation for case-distinct Go methods that collapse to the same Rust `snake_case` name; the package-targeted `gocommand` check is down to 53 Rust errors, with remaining clusters around regexp stubs, writer conversions, error wrapping, and wrapped slice iteration (2026-05-10)
+- 🚧 Broad self-transpile cargo check now reaches `golang_org_x_tools_internal_gocommand`. The latest fixed blocker was regexp helper/type lowering for package-global and parameter `*regexp.Regexp` values; the package-targeted `gocommand` check is down to 46 Rust errors, with remaining clusters around writer conversions, error wrapping, wrapped slice iteration, and function handle lowering (2026-05-10)

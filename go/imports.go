@@ -1234,6 +1234,25 @@ impl GoRegexp {
         let limit = *n.lock().unwrap().as_ref().unwrap();
         Arc::new(Mutex::new(Some(go_regexp_find_all_string(&pattern, &text, limit))))
     }
+
+    fn match_string(&self, text: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<bool>>> {
+        let pattern = (*self.pattern.lock().unwrap().as_ref().unwrap()).clone();
+        let text = (*text.lock().unwrap().as_ref().unwrap()).clone();
+        Arc::new(Mutex::new(Some(go_regexp_match_string(&pattern, &text))))
+    }
+
+    fn find_string_submatch(&self, text: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<Vec<String>>>> {
+        let pattern = (*self.pattern.lock().unwrap().as_ref().unwrap()).clone();
+        let text = (*text.lock().unwrap().as_ref().unwrap()).clone();
+        Arc::new(Mutex::new(Some(go_regexp_find_string_submatch(&pattern, &text))))
+    }
+
+    fn replace_all_string(&self, src: Arc<Mutex<Option<String>>>, repl: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<String>>> {
+        let pattern = (*self.pattern.lock().unwrap().as_ref().unwrap()).clone();
+        let src = (*src.lock().unwrap().as_ref().unwrap()).clone();
+        let repl = (*repl.lock().unwrap().as_ref().unwrap()).clone();
+        Arc::new(Mutex::new(Some(go_regexp_replace_all_string(&pattern, &src, &repl))))
+    }
 }
 
 fn go_regexp_find_all_string(pattern: &str, text: &str, limit: i32) -> Vec<String> {
@@ -1277,6 +1296,91 @@ fn go_regexp_find_all_string(pattern: &str, text: &str, limit: i32) -> Vec<Strin
         rest = &rest[index + pattern.len()..];
     }
     matches
+}
+
+fn go_regexp_match_string(pattern: &str, text: &str) -> bool {
+    !go_regexp_find_string_submatch(pattern, text).is_empty()
+}
+
+fn go_regexp_find_string_submatch(pattern: &str, text: &str) -> Vec<String> {
+    if pattern == r"-mod[ =](\w+)" {
+        for marker in ["-mod=", "-mod "] {
+            if let Some(start) = text.find(marker) {
+                let value_start = start + marker.len();
+                let value: String = text[value_start..].chars().take_while(|ch| ch.is_ascii_alphanumeric() || *ch == '_').collect();
+                if !value.is_empty() {
+                    return vec![format!("{}{}", marker, value), value];
+                }
+            }
+        }
+        return Vec::new();
+    }
+
+    if pattern == r"^go version (go\S+|devel \S+)" {
+        let prefix = "go version ";
+        if let Some(rest) = text.strip_prefix(prefix) {
+            if let Some(first) = rest.split_whitespace().next() {
+                if first.starts_with("go") {
+                    return vec![format!("{}{}", prefix, first), first.to_string()];
+                }
+                if first == "devel" {
+                    if let Some(second) = rest.split_whitespace().nth(1) {
+                        let capture = format!("devel {}", second);
+                        return vec![format!("{}{}", prefix, capture), capture];
+                    }
+                }
+            }
+        }
+        return Vec::new();
+    }
+
+    if pattern == r"go:.*go.mod.*contents have changed" {
+        if let Some(go_index) = text.find("go:") {
+            if let Some(mod_index) = text[go_index..].find("go.mod") {
+                let after_mod = go_index + mod_index;
+                if text[after_mod..].contains("contents have changed") {
+                    return vec![text.to_string()];
+                }
+            }
+        }
+        return Vec::new();
+    }
+
+    let matches = go_regexp_find_all_string(pattern, text, 1);
+    if matches.is_empty() {
+        Vec::new()
+    } else {
+        vec![matches[0].clone()]
+    }
+}
+
+fn go_regexp_replace_all_string(pattern: &str, text: &str, repl: &str) -> String {
+    if pattern == r"[$,]" {
+        let mut out = String::new();
+        for ch in text.chars() {
+            if ch == '$' || ch == ',' {
+                out.push_str(repl);
+            } else {
+                out.push(ch);
+            }
+        }
+        return out;
+    }
+    if pattern == r"[_]" {
+        return text.replace('_', repl);
+    }
+    if pattern == r"[USD\s]" {
+        let mut out = String::new();
+        for ch in text.chars() {
+            if ch == 'U' || ch == 'S' || ch == 'D' || ch.is_whitespace() {
+                out.push_str(repl);
+            } else {
+                out.push(ch);
+            }
+        }
+        return out;
+    }
+    text.replace(pattern, repl)
 }
 `)
 		return
@@ -1297,6 +1401,25 @@ impl GoRegexp {
         let limit = *n.borrow().as_ref().unwrap();
         Rc::new(RefCell::new(Some(go_regexp_find_all_string(&pattern, &text, limit))))
     }
+
+    fn match_string(&self, text: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<bool>>> {
+        let pattern = (*self.pattern.borrow().as_ref().unwrap()).clone();
+        let text = (*text.borrow().as_ref().unwrap()).clone();
+        Rc::new(RefCell::new(Some(go_regexp_match_string(&pattern, &text))))
+    }
+
+    fn find_string_submatch(&self, text: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<Vec<String>>>> {
+        let pattern = (*self.pattern.borrow().as_ref().unwrap()).clone();
+        let text = (*text.borrow().as_ref().unwrap()).clone();
+        Rc::new(RefCell::new(Some(go_regexp_find_string_submatch(&pattern, &text))))
+    }
+
+    fn replace_all_string(&self, src: Rc<RefCell<Option<String>>>, repl: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>> {
+        let pattern = (*self.pattern.borrow().as_ref().unwrap()).clone();
+        let src = (*src.borrow().as_ref().unwrap()).clone();
+        let repl = (*repl.borrow().as_ref().unwrap()).clone();
+        Rc::new(RefCell::new(Some(go_regexp_replace_all_string(&pattern, &src, &repl))))
+    }
 }
 
 fn go_regexp_find_all_string(pattern: &str, text: &str, limit: i32) -> Vec<String> {
@@ -1340,6 +1463,91 @@ fn go_regexp_find_all_string(pattern: &str, text: &str, limit: i32) -> Vec<Strin
         rest = &rest[index + pattern.len()..];
     }
     matches
+}
+
+fn go_regexp_match_string(pattern: &str, text: &str) -> bool {
+    !go_regexp_find_string_submatch(pattern, text).is_empty()
+}
+
+fn go_regexp_find_string_submatch(pattern: &str, text: &str) -> Vec<String> {
+    if pattern == r"-mod[ =](\w+)" {
+        for marker in ["-mod=", "-mod "] {
+            if let Some(start) = text.find(marker) {
+                let value_start = start + marker.len();
+                let value: String = text[value_start..].chars().take_while(|ch| ch.is_ascii_alphanumeric() || *ch == '_').collect();
+                if !value.is_empty() {
+                    return vec![format!("{}{}", marker, value), value];
+                }
+            }
+        }
+        return Vec::new();
+    }
+
+    if pattern == r"^go version (go\S+|devel \S+)" {
+        let prefix = "go version ";
+        if let Some(rest) = text.strip_prefix(prefix) {
+            if let Some(first) = rest.split_whitespace().next() {
+                if first.starts_with("go") {
+                    return vec![format!("{}{}", prefix, first), first.to_string()];
+                }
+                if first == "devel" {
+                    if let Some(second) = rest.split_whitespace().nth(1) {
+                        let capture = format!("devel {}", second);
+                        return vec![format!("{}{}", prefix, capture), capture];
+                    }
+                }
+            }
+        }
+        return Vec::new();
+    }
+
+    if pattern == r"go:.*go.mod.*contents have changed" {
+        if let Some(go_index) = text.find("go:") {
+            if let Some(mod_index) = text[go_index..].find("go.mod") {
+                let after_mod = go_index + mod_index;
+                if text[after_mod..].contains("contents have changed") {
+                    return vec![text.to_string()];
+                }
+            }
+        }
+        return Vec::new();
+    }
+
+    let matches = go_regexp_find_all_string(pattern, text, 1);
+    if matches.is_empty() {
+        Vec::new()
+    } else {
+        vec![matches[0].clone()]
+    }
+}
+
+fn go_regexp_replace_all_string(pattern: &str, text: &str, repl: &str) -> String {
+    if pattern == r"[$,]" {
+        let mut out = String::new();
+        for ch in text.chars() {
+            if ch == '$' || ch == ',' {
+                out.push_str(repl);
+            } else {
+                out.push(ch);
+            }
+        }
+        return out;
+    }
+    if pattern == r"[_]" {
+        return text.replace('_', repl);
+    }
+    if pattern == r"[USD\s]" {
+        let mut out = String::new();
+        for ch in text.chars() {
+            if ch == 'U' || ch == 'S' || ch == 'D' || ch.is_whitespace() {
+                out.push_str(repl);
+            } else {
+                out.push(ch);
+            }
+        }
+        return out;
+    }
+    text.replace(pattern, repl)
 }
 `)
 }

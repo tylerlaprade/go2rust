@@ -429,6 +429,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ `url.Parse` | ✅ |
 | **`regexp` package** | |
 | └ `regexp.MustCompile` + basic `FindAllString` (`\d+` and literal matches) | ✅ |
+| └ `MatchString`, `FindStringSubmatch`, and `ReplaceAllString` for supported patterns | ✅ |
 | **`reflect` package** | |
 | └ `reflect.TypeOf` struct field metadata and `StructTag.Get` | ✅ |
 | └ Pointer conversions to reflected struct header stand-ins | ✅ |
