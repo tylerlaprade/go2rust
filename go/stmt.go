@@ -2152,6 +2152,38 @@ func writeErrorHandleFromOptionValue(out *strings.Builder, value string) {
 	out.WriteString("))")
 }
 
+func writeErrorHandleFromChannelReceive(out *strings.Builder, channel ast.Expr) {
+	trackWrapperImports()
+	if NeedsConcurrentWrapper() {
+		out.WriteString("Arc::new(Mutex::new(")
+	} else {
+		out.WriteString("Rc::new(RefCell::new(")
+	}
+	writeChannelExpression(out, channel)
+	out.WriteString(".recv().unwrap()))")
+}
+
+func writeEmptyErrorHandle(out *strings.Builder) {
+	trackWrapperImports()
+	if NeedsConcurrentWrapper() {
+		out.WriteString("Arc::new(Mutex::new(None::<")
+		out.WriteString(rustStdErrorBoxType())
+		out.WriteString(">))")
+		return
+	}
+	out.WriteString("Rc::new(RefCell::new(None::<")
+	out.WriteString(rustStdErrorBoxType())
+	out.WriteString(">))")
+}
+
+func isRightNilComparison(expr *ast.BinaryExpr) bool {
+	if expr == nil || expr.Op != token.EQL && expr.Op != token.NEQ {
+		return false
+	}
+	ident, ok := expr.Y.(*ast.Ident)
+	return ok && ident.Name == "nil"
+}
+
 func writeErrorChannelReceiveAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
 	unary, ok := rhs.(*ast.UnaryExpr)
 	if !ok || unary.Op != token.ARROW || !channelElementIsGoError(unary.X) {
@@ -2838,6 +2870,12 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							}
 						}
 						if binExpr.Op == token.EQL || binExpr.Op == token.NEQ {
+							if isRightNilComparison(binExpr) {
+								WriteWrapperPrefix(out)
+								TranspileExpression(out, result)
+								WriteWrapperSuffix(out)
+								continue
+							}
 							var cmp strings.Builder
 							if writeCurrentReceiverPointerComparison(&cmp, binExpr) {
 								WriteWrapperPrefix(out)
@@ -3148,6 +3186,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			if isChannelRecv && needsTupleUnpack {
 				// Handle channel receive with comma-ok: value, ok := <-ch
 				unary := s.Rhs[0].(*ast.UnaryExpr)
+				isErrorChannelRecv := channelElementIsGoError(unary.X)
 				if s.Tok == token.DEFINE {
 					// Generate: let (value, ok) = match ch.recv() { ... }
 					out.WriteString("let (mut ")
@@ -3161,17 +3200,25 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					out.WriteString(") = match ")
 					TranspileExpression(out, unary.X)
 					out.WriteString(".recv() { Some(v) => (")
-					WriteWrapperPrefix(out)
-					out.WriteString("v")
-					WriteWrapperSuffix(out)
+					if isErrorChannelRecv {
+						writeErrorHandleFromOptionValue(out, "v")
+					} else {
+						WriteWrapperPrefix(out)
+						out.WriteString("v")
+						WriteWrapperSuffix(out)
+					}
 					out.WriteString(", ")
 					WriteWrapperPrefix(out)
 					out.WriteString("true")
 					WriteWrapperSuffix(out)
 					out.WriteString("), None => (")
-					WriteWrapperPrefix(out)
-					out.WriteString("Default::default()")
-					WriteWrapperSuffix(out)
+					if isErrorChannelRecv {
+						writeEmptyErrorHandle(out)
+					} else {
+						WriteWrapperPrefix(out)
+						out.WriteString("Default::default()")
+						WriteWrapperSuffix(out)
+					}
 					out.WriteString(", ")
 					WriteWrapperPrefix(out)
 					out.WriteString("false")
@@ -3184,13 +3231,23 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					out.WriteString(".recv() { Some(v) => { *")
 					TranspileExpressionContext(out, s.Lhs[0], LValue)
 					WriteBorrowMethod(out, true)
-					out.WriteString(" = Some(v); *")
+					if isErrorChannelRecv {
+						out.WriteString(" = v; *")
+					} else {
+						out.WriteString(" = Some(v); *")
+					}
 					TranspileExpressionContext(out, s.Lhs[1], LValue)
 					WriteBorrowMethod(out, true)
 					out.WriteString(" = Some(true); }, None => { *")
 					TranspileExpressionContext(out, s.Lhs[0], LValue)
 					WriteBorrowMethod(out, true)
-					out.WriteString(" = Some(Default::default()); *")
+					if isErrorChannelRecv {
+						out.WriteString(" = None::<")
+						out.WriteString(rustStdErrorBoxType())
+						out.WriteString(">; *")
+					} else {
+						out.WriteString(" = Some(Default::default()); *")
+					}
 					TranspileExpressionContext(out, s.Lhs[1], LValue)
 					WriteBorrowMethod(out, true)
 					out.WriteString(" = Some(false); } }")
@@ -3813,6 +3870,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										} else if unary, ok := rhs.(*ast.UnaryExpr); ok && unary.Op == token.AND {
 											// Taking address - don't wrap, the & operator will handle it
 											TranspileExpression(out, rhs)
+										} else if unary, ok := rhs.(*ast.UnaryExpr); ok && unary.Op == token.ARROW && channelElementIsGoError(unary.X) {
+											writeErrorHandleFromChannelReceive(out, unary.X)
 										} else if callExpr, isCall := rhs.(*ast.CallExpr); isCall {
 											if len(s.Lhs) == 1 && writeBareBuiltinShortDeclInitializer(out, callExpr, s.Lhs[0]) {
 												continue
