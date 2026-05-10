@@ -2230,6 +2230,10 @@ func writeWrappedStructFieldValue(out *strings.Builder, value ast.Expr, fieldExp
 		}
 	}
 
+	if writeAlreadyWrappedSelectorFieldValue(out, value, fieldExpr, fieldType) {
+		return
+	}
+
 	// Check if the value is an identifier (parameter/variable/constant).
 	if valIdent, ok := value.(*ast.Ident); ok {
 		if valIdent.Name == "true" || valIdent.Name == "false" || valIdent.Name == "nil" {
@@ -2271,6 +2275,32 @@ func writeWrappedStructFieldValue(out *strings.Builder, value ast.Expr, fieldExp
 		}
 		WriteWrapperSuffix(out)
 	}
+}
+
+func writeAlreadyWrappedSelectorFieldValue(out *strings.Builder, value ast.Expr, fieldExpr ast.Expr, fieldType types.Type) bool {
+	sel, ok := value.(*ast.SelectorExpr)
+	if !ok {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return false
+	}
+	selection, ok := typeInfo.info.Selections[sel]
+	if !ok || selection.Kind() != types.FieldVal {
+		return false
+	}
+	expected := fieldType
+	if expected == nil && fieldExpr != nil {
+		expected = typeInfo.GetType(fieldExpr)
+	}
+	actual := typeInfo.GetType(sel)
+	if expected == nil || actual == nil || !types.AssignableTo(actual, expected) {
+		return false
+	}
+	TranspileExpressionContext(out, sel, LValue)
+	out.WriteString(".clone()")
+	return true
 }
 
 func writeCurrentReceiverPointerFieldValue(out *strings.Builder, value ast.Expr, fieldExpr ast.Expr, fieldType types.Type) bool {

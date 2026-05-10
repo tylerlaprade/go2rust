@@ -600,6 +600,10 @@ run_xfail_test() {
     run_test "tests/crypto_hash"
 }
 
+@test "current_receiver_selector_struct_field" {
+    run_test "tests/current_receiver_selector_struct_field"
+}
+
 @test "declared_slice_elem_pointer" {
     run_test "tests/declared_slice_elem_pointer"
 }

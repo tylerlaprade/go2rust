@@ -1,0 +1,8 @@
+[package]
+name = "current_receiver_selector_struct_field"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "current_receiver_selector_struct_field"
+path = "main.rs"
