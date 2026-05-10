@@ -1204,6 +1204,10 @@ run_xfail_test() {
     run_test "tests/receiver_self_argument_temps"
 }
 
+@test "recover_named_type_assertion" {
+    run_test "tests/recover_named_type_assertion"
+}
+
 @test "recursion_basic" {
     run_test "tests/recursion_basic"
 }

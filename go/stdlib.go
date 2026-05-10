@@ -3174,14 +3174,19 @@ func transpileRecover(out *strings.Builder, call *ast.CallExpr) {
 	// A proper implementation would need to track defer context and use catch_unwind
 	// This is a simplified version that always returns None
 	// Don't use WriteWrapperPrefix as it adds Some() which we don't want for None
+	anyType := rustAnyTraitObject()
 	if NeedsConcurrentWrapper() {
 		TrackImport("Arc")
 		TrackImport("Mutex")
-		out.WriteString("Arc::new(Mutex::new(None::<String>))")
+		out.WriteString("Arc::new(Mutex::new(None::<")
+		out.WriteString(anyType)
+		out.WriteString(">))")
 	} else {
 		TrackImport("Rc")
 		TrackImport("RefCell")
-		out.WriteString("Rc::new(RefCell::new(None::<String>))")
+		out.WriteString("Rc::new(RefCell::new(None::<")
+		out.WriteString(anyType)
+		out.WriteString(">))")
 	}
 }
 
