@@ -89,7 +89,7 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 - ✅ Typed constants as local interface arguments - package constants with named concrete types construct that named type before passing `&dyn Trait` parameters (cross_file_interface_typed_const_argument added, 2026-05-09)
 - ✅ Interface equality against concrete package globals - comparisons such as `l.Key() == keys.Msg` bind the concrete package-global pointer as a trait reference and dispatch through `__go_eq` instead of emitting raw Rust trait-object equality (package_interface_concrete_equality added, 2026-05-10)
 - ✅ Imported transpiled interface implementations - current-package concrete values passed to dependency interface parameters generate imported trait impls when go/types proves the implementation (2026-05-08)
-- ✅ Error handling - custom error types with Error() method, concrete named-error assignment/return boxing, Box<dyn Error> returns, package-level error globals, error assignment, error-to-error moves, error handle arguments, error equality comparisons, type assertions on errors, and fmt.Errorf `%w` formatting (2026-03-26, updated 2026-05-09)
+- ✅ Error handling - custom error types with Error() method, concrete named-error assignment/return boxing, Box<dyn Error> returns, package-level error globals, error assignment, error-to-error moves, error handle arguments, `Error()` calls on wrapped error interfaces, error equality comparisons, type assertions on errors, and fmt.Errorf `%w` formatting (2026-03-26, updated 2026-05-10)
 - ✅ Embedded method promotion - multi-level embedding, promoted method calls, field method chains, and imported transpiled embedded method forwarding from go/types method sets (2026-03-26, expanded 2026-05-10)
 - ✅ Map value type consistency - map literal values and type annotations now consistently wrap values (2026-03-26)
 - ✅ Map capacity and element update semantics - make(map[K]V, cap), missing-key zero values, and map element ++/+= (make_map_with_capacity promoted, 2026-05-06)
@@ -240,4 +240,4 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 
 go2rust transpiles itself!
 
-- 🚧 Broad self-transpile cargo check now reaches `golang_org_x_tools_internal_gocommand`. The latest fixed blocker was `context.Context.Err` returning string handles instead of boxed error handles; the package-targeted `gocommand` check is down to 23 Rust errors, with remaining clusters around writer conversions, error wrapping, and function handle lowering (2026-05-10)
+- 🚧 Broad self-transpile cargo check now reaches `golang_org_x_tools_internal_gocommand`. The latest fixed blocker was `Error()` calls on wrapped `error` interface values; the package-targeted `gocommand` check is down to 22 Rust errors, with remaining clusters around writer conversions, error wrapping, imported variadic calls, and function handle lowering (2026-05-10)

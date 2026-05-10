@@ -220,6 +220,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Imported transpiled interfaces implemented by current-package concrete types | ✅ |
 | └ Boxed error values asserted back to `error` | ✅ |
 | └ Wrapped `error` arguments and sentinel comparisons | ✅ |
+| └ `Error()` calls on wrapped `error` interface values | ✅ |
 | └ Type switches, including nil and selector pointer cases | ✅ |
 | **`map` - Map types** | |
 | └ Map types | ✅ |

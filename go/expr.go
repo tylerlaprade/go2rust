@@ -6806,6 +6806,19 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 
 	if sel, ok := call.Fun.(*ast.SelectorExpr); ok && sel.Sel.Name == "Error" {
 		if typeInfo != nil && isGoErrorType(typeInfo.GetType(sel.X)) {
+			if ident, ok := sel.X.(*ast.Ident); ok && !isVarBare(ident.Name) {
+				receiverName := rustIdentForUseWithCapture(ident)
+				if isPackageGlobalObjectIdent(ident) {
+					receiverName = rustPackageGlobalName(ident.Name)
+				}
+				WriteWrapperPrefix(out)
+				out.WriteString("format!(\"{}\", ")
+				out.WriteString(receiverName)
+				WriteBorrowMethod(out, false)
+				out.WriteString(".as_ref().unwrap())")
+				WriteWrapperSuffix(out)
+				return
+			}
 			WriteWrapperPrefix(out)
 			out.WriteString("format!(\"{}\", (*")
 			TranspileExpression(out, sel.X)
