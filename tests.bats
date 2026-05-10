@@ -1240,6 +1240,10 @@ run_xfail_test() {
     run_test "tests/range_return_struct_value"
 }
 
+@test "range_stdlib_interface_map_value" {
+    run_test "tests/range_stdlib_interface_map_value"
+}
+
 @test "range_string_method_argument" {
     run_test "tests/range_string_method_argument"
 }

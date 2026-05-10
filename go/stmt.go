@@ -889,6 +889,17 @@ func writeMapWrappedValue(out *strings.Builder, expr ast.Expr, valueType types.T
 	if writeStdlibInterfaceCallArgumentConversion(out, expr, valueType) {
 		return
 	}
+	if ident, ok := expr.(*ast.Ident); ok && isCloneableNonPointerExpr(ident) {
+		if varType, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar &&
+			(varType == "ref_value" || strings.HasPrefix(varType, "&")) {
+			WriteWrapperPrefix(out)
+			out.WriteString("(*")
+			out.WriteString(RustIdentForUse(ident))
+			out.WriteString(").clone()")
+			WriteWrapperSuffix(out)
+			return
+		}
+	}
 	if ident, ok := expr.(*ast.Ident); ok &&
 		ident.Name != "_" && ident.Name != "nil" && ident.Name != "true" && ident.Name != "false" {
 		if _, isRangeVar := rangeLoopVars[ident.Name]; !isRangeVar {
