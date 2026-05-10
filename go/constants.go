@@ -227,8 +227,13 @@ func constNamedIntegerTargetType(value ast.Expr, expected types.Type) (*types.Na
 	}
 	if _, isTypeDef := LookupTypeDefinition(named.Obj().Name()); !isTypeDef {
 		typeInfo := GetTypeInfo()
-		isCurrentPackageType := typeInfo != nil && typeInfo.pkg != nil && named.Obj().Pkg() == typeInfo.pkg
 		isKnownStdlibHelper := named.Obj().Pkg() != nil && isKnownStdlibHelperType(named.Obj().Pkg().Path(), named.Obj().Name())
+		if typeInfo != nil && !isKnownStdlibHelper {
+			if valueNamed, ok := types.Unalias(typeInfo.GetType(value)).(*types.Named); ok && sameNamedTypeDefinition(valueNamed, named) {
+				return named, true
+			}
+		}
+		isCurrentPackageType := typeInfo != nil && typeInfo.pkg != nil && named.Obj().Pkg() == typeInfo.pkg
 		_, isExternalInteger := externalIntegerRustTypeForNamed(named)
 		isExternalInteger = isExternalInteger && !isKnownStdlibHelper
 		if !isCurrentPackageType && !isExternalInteger {

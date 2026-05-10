@@ -1,0 +1,20 @@
+
+[workspace]
+members = [
+    ".",
+    "vendor/example_com_package_named_const_argument_helper",
+    "vendor/go2rust_stdlib_stubs",
+]
+
+[package]
+name = "package_named_const_argument"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "package_named_const_argument"
+path = "main.rs"
+
+[dependencies]
+example_com_package_named_const_argument_helper = { path = "vendor/example_com_package_named_const_argument_helper" }
+go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }

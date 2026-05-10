@@ -1128,6 +1128,10 @@ run_xfail_test() {
     run_test "tests/package_global_shadowing"
 }
 
+@test "package_named_const_argument" {
+    run_test "tests/package_named_const_argument"
+}
+
 @test "package_selector_pointer_argument" {
     run_test "tests/package_selector_pointer_argument"
 }
