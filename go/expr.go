@@ -1777,12 +1777,13 @@ func writeLocalInterfaceEquality(out *strings.Builder, left ast.Expr, right ast.
 	if op != token.EQL && op != token.NEQ {
 		return false
 	}
-	if !interfaceExpressionsCanUseTraitEquality(left, right) {
+	leftKind, rightKind, ifaceName, ok := interfaceEqualityKinds(left, right)
+	if !ok {
 		return false
 	}
 	out.WriteString("{ ")
-	writeLocalInterfaceReferenceBinding(out, "__left", left)
-	writeLocalInterfaceReferenceBinding(out, "__right", right)
+	writeInterfaceEqualityReferenceBinding(out, "__left", left, ifaceName, leftKind)
+	writeInterfaceEqualityReferenceBinding(out, "__right", right, ifaceName, rightKind)
 	out.WriteString("let __eq = __left.__go_eq(__right); ")
 	if op == token.NEQ {
 		out.WriteString("!")
@@ -1791,26 +1792,106 @@ func writeLocalInterfaceEquality(out *strings.Builder, left ast.Expr, right ast.
 	return true
 }
 
-func interfaceExpressionsCanUseTraitEquality(left ast.Expr, right ast.Expr) bool {
+type interfaceEqualityOperandKind int
+
+const (
+	interfaceEqualityOperandInterface interfaceEqualityOperandKind = iota
+	interfaceEqualityOperandConcrete
+)
+
+func writeInterfaceEqualityReferenceBinding(out *strings.Builder, name string, expr ast.Expr, ifaceName string, kind interfaceEqualityOperandKind) {
+	if kind == interfaceEqualityOperandInterface {
+		writeLocalInterfaceReferenceBinding(out, name, expr)
+		return
+	}
+	out.WriteString("let ")
+	out.WriteString(name)
+	out.WriteString("_holder = ")
+	writePointerConcreteInterfaceHandle(out, expr)
+	out.WriteString("; let ")
+	out.WriteString(name)
+	out.WriteString("_guard = ")
+	out.WriteString(name)
+	out.WriteString("_holder")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; let ")
+	out.WriteString(name)
+	out.WriteString("_value = ")
+	out.WriteString(name)
+	out.WriteString("_guard.as_ref().unwrap(); let ")
+	out.WriteString(name)
+	out.WriteString(": ")
+	out.WriteString(rustLocalInterfaceParam(ifaceName))
+	out.WriteString(" = ")
+	out.WriteString(name)
+	out.WriteString("_value; ")
+}
+
+func writePointerConcreteInterfaceHandle(out *strings.Builder, expr ast.Expr) {
+	if sel, ok := expr.(*ast.SelectorExpr); ok && isPackageVarSelector(sel) {
+		TranspileExpressionContext(out, expr, LValue)
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap().clone()")
+		return
+	}
+	if ident, ok := expr.(*ast.Ident); ok && isPackageGlobalIdent(ident) {
+		TranspileExpression(out, expr)
+		out.WriteString(".clone()")
+		return
+	}
+	TranspileExpressionContext(out, expr, LValue)
+	out.WriteString(".clone()")
+}
+
+func interfaceEqualityKinds(left ast.Expr, right ast.Expr) (interfaceEqualityOperandKind, interfaceEqualityOperandKind, string, bool) {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil {
-		return false
+		return 0, 0, "", false
 	}
 	leftType := expressionTypeForInterfaceEquality(typeInfo, left)
 	rightType := expressionTypeForInterfaceEquality(typeInfo, right)
-	if !isNonEmptyInterfaceType(leftType) || !isNonEmptyInterfaceType(rightType) {
+	leftIfaceName, leftIface := namedInterfaceForTraitEquality(leftType)
+	rightIfaceName, rightIface := namedInterfaceForTraitEquality(rightType)
+	if leftIface && rightIface {
+		if !types.AssignableTo(leftType, rightType) || !types.AssignableTo(rightType, leftType) {
+			return 0, 0, "", false
+		}
+		if leftIfaceName != "" {
+			return interfaceEqualityOperandInterface, interfaceEqualityOperandInterface, leftIfaceName, true
+		}
+		if rightIfaceName != "" {
+			return interfaceEqualityOperandInterface, interfaceEqualityOperandInterface, rightIfaceName, true
+		}
+		return 0, 0, "", false
+	}
+	if leftIface && leftIfaceName != "" && concreteAssignableToInterface(rightType, leftType) {
+		return interfaceEqualityOperandInterface, interfaceEqualityOperandConcrete, leftIfaceName, true
+	}
+	if rightIface && rightIfaceName != "" && concreteAssignableToInterface(leftType, rightType) {
+		return interfaceEqualityOperandConcrete, interfaceEqualityOperandInterface, rightIfaceName, true
+	}
+	return 0, 0, "", false
+}
+
+func namedInterfaceForTraitEquality(typ types.Type) (string, bool) {
+	if !isNonEmptyInterfaceType(typ) {
+		return "", false
+	}
+	name, ok := transpiledNamedInterfaceTypeNameFromTypes(typ)
+	if !ok {
+		return "", true
+	}
+	return name, true
+}
+
+func concreteAssignableToInterface(concrete types.Type, iface types.Type) bool {
+	if concrete == nil || iface == nil || isNonEmptyInterfaceType(concrete) {
 		return false
 	}
-	if !types.AssignableTo(leftType, rightType) || !types.AssignableTo(rightType, leftType) {
+	if _, ok := types.Unalias(concrete).Underlying().(*types.Pointer); !ok {
 		return false
 	}
-	if _, ok := transpiledNamedInterfaceTypeNameFromTypes(leftType); ok {
-		return true
-	}
-	if _, ok := transpiledNamedInterfaceTypeNameFromTypes(rightType); ok {
-		return true
-	}
-	return false
+	return types.AssignableTo(concrete, iface)
 }
 
 func expressionTypeForInterfaceEquality(typeInfo *TypeInfo, expr ast.Expr) types.Type {

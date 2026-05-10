@@ -1180,6 +1180,10 @@ run_xfail_test() {
     run_test "tests/package_global_shadowing"
 }
 
+@test "package_interface_concrete_equality" {
+    run_test "tests/package_interface_concrete_equality"
+}
+
 @test "package_named_const_argument" {
     run_test "tests/package_named_const_argument"
 }

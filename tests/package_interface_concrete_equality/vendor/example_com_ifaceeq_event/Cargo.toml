@@ -1,0 +1,13 @@
+[package]
+name = "example_com_ifaceeq_event"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "example_com_ifaceeq_event"
+path = "lib.rs"
+
+[dependencies]
+example_com_ifaceeq_keys = { path = "../example_com_ifaceeq_keys" }
+example_com_ifaceeq_label = { path = "../example_com_ifaceeq_label" }
+go2rust_stdlib_stubs = { path = "../go2rust_stdlib_stubs" }

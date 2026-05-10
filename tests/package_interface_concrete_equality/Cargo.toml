@@ -1,0 +1,24 @@
+
+[workspace]
+members = [
+    ".",
+    "vendor/example_com_ifaceeq_event",
+    "vendor/example_com_ifaceeq_keys",
+    "vendor/example_com_ifaceeq_label",
+    "vendor/go2rust_stdlib_stubs",
+]
+
+[package]
+name = "package_interface_concrete_equality"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "package_interface_concrete_equality"
+path = "main.rs"
+
+[dependencies]
+example_com_ifaceeq_event = { path = "vendor/example_com_ifaceeq_event" }
+example_com_ifaceeq_keys = { path = "vendor/example_com_ifaceeq_keys" }
+example_com_ifaceeq_label = { path = "vendor/example_com_ifaceeq_label" }
+go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }
