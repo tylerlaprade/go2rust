@@ -12,6 +12,7 @@ import (
 var functionNameOverrides map[*ast.FuncDecl]string
 var functionNameOverridesByGoName map[string]string
 var packageFunctionNameOverrides map[string]string
+var packageMethodNameOverrides map[string]string
 var packageGlobalNames = make(map[string]bool)
 
 func SetFunctionNameOverrides(overrides map[*ast.FuncDecl]string) {
@@ -52,6 +53,86 @@ func rustFunctionNameForUse(name string) string {
 	return RustFunctionName(name)
 }
 
+func methodFuncForDecl(fn *ast.FuncDecl, typeInfo *TypeInfo) *types.Func {
+	if fn == nil || typeInfo == nil || typeInfo.info == nil {
+		return nil
+	}
+	obj, ok := typeInfo.info.Defs[fn.Name].(*types.Func)
+	if !ok {
+		return nil
+	}
+	return obj
+}
+
+func methodReceiverKey(recv types.Type) string {
+	if recv == nil {
+		return ""
+	}
+	recv = types.Unalias(recv)
+	if ptr, ok := recv.(*types.Pointer); ok {
+		recv = types.Unalias(ptr.Elem())
+	}
+	if named, ok := recv.(*types.Named); ok && named.Obj() != nil {
+		obj := named.Obj()
+		if obj.Pkg() != nil {
+			return obj.Pkg().Path() + "." + obj.Name()
+		}
+		return obj.Name()
+	}
+	return types.TypeString(recv, func(pkg *types.Package) string {
+		if pkg == nil {
+			return ""
+		}
+		return pkg.Path()
+	})
+}
+
+func methodOverrideKey(fn *types.Func) string {
+	if fn == nil {
+		return ""
+	}
+	sig, ok := fn.Type().(*types.Signature)
+	if !ok || sig.Recv() == nil {
+		return ""
+	}
+	recvKey := methodReceiverKey(sig.Recv().Type())
+	if recvKey == "" {
+		return ""
+	}
+	pkgPath := ""
+	if fn.Pkg() != nil {
+		pkgPath = fn.Pkg().Path()
+	}
+	return pkgPath + "\x00" + recvKey + "\x00" + fn.Name()
+}
+
+func rustMethodName(fn *ast.FuncDecl) string {
+	if packageMethodNameOverrides != nil {
+		if key := methodOverrideKey(methodFuncForDecl(fn, GetTypeInfo())); key != "" {
+			if name, ok := packageMethodNameOverrides[key]; ok {
+				return name
+			}
+		}
+	}
+	return RustFunctionName(fn.Name.Name)
+}
+
+func rustMethodSelectorName(sel *ast.SelectorExpr) string {
+	typeInfo := GetTypeInfo()
+	if typeInfo != nil && typeInfo.info != nil {
+		if selection, ok := typeInfo.info.Selections[sel]; ok && selection.Kind() != types.FieldVal {
+			if fn, ok := selection.Obj().(*types.Func); ok {
+				if key := methodOverrideKey(fn); key != "" && packageMethodNameOverrides != nil {
+					if name, ok := packageMethodNameOverrides[key]; ok {
+						return name
+					}
+				}
+			}
+		}
+	}
+	return RustFunctionName(sel.Sel.Name)
+}
+
 func assignFunctionNames(functions []*ast.FuncDecl) map[*ast.FuncDecl]string {
 	names := make(map[*ast.FuncDecl]string)
 	used := make(map[string]int)
@@ -73,6 +154,14 @@ func assignFunctionNames(functions []*ast.FuncDecl) map[*ast.FuncDecl]string {
 }
 
 type packageFunctionName struct {
+	goName   string
+	rustName string
+	pos      token.Pos
+	exported bool
+}
+
+type packageMethodName struct {
+	key      string
 	goName   string
 	rustName string
 	pos      token.Pos
@@ -118,6 +207,60 @@ func assignPackageFunctionNames(files []*ast.File) map[string]string {
 				continue
 			}
 			overrides[fn.goName] = fmt.Sprintf("%s_%d", rustName, i)
+		}
+	}
+	return overrides
+}
+
+func assignPackageMethodNames(files []*ast.File, typeInfo *TypeInfo) map[string]string {
+	byReceiverRustName := make(map[string][]packageMethodName)
+	seenMethodKeys := make(map[string]bool)
+	for _, file := range files {
+		for _, decl := range file.Decls {
+			fn, ok := decl.(*ast.FuncDecl)
+			if !ok || fn.Recv == nil {
+				continue
+			}
+			methodObj := methodFuncForDecl(fn, typeInfo)
+			key := methodOverrideKey(methodObj)
+			if key == "" || seenMethodKeys[key] {
+				continue
+			}
+			seenMethodKeys[key] = true
+			sig, _ := methodObj.Type().(*types.Signature)
+			receiverKey := methodReceiverKey(sig.Recv().Type())
+			rustName := RustFunctionName(fn.Name.Name)
+			groupKey := receiverKey + "\x00" + rustName
+			byReceiverRustName[groupKey] = append(byReceiverRustName[groupKey], packageMethodName{
+				key:      key,
+				goName:   fn.Name.Name,
+				rustName: rustName,
+				pos:      fn.Pos(),
+				exported: ast.IsExported(fn.Name.Name),
+			})
+		}
+	}
+
+	overrides := make(map[string]string)
+	for _, methods := range byReceiverRustName {
+		if len(methods) <= 1 {
+			continue
+		}
+		rustName := methods[0].rustName
+		sort.Slice(methods, func(i, j int) bool {
+			if methods[i].exported != methods[j].exported {
+				return methods[i].exported
+			}
+			if methods[i].pos != methods[j].pos {
+				return methods[i].pos < methods[j].pos
+			}
+			return methods[i].goName < methods[j].goName
+		})
+		for i, method := range methods {
+			if i == 0 {
+				continue
+			}
+			overrides[method.key] = fmt.Sprintf("%s_%d", rustName, i)
 		}
 	}
 	return overrides

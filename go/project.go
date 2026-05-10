@@ -240,6 +240,7 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 		UsePackageHelpers:       pg.usePackageHelpers,
 	}
 	runCtx.Package.FunctionNameOverrides = assignPackageFunctionNames(astFiles)
+	runCtx.Package.MethodNameOverrides = assignPackageMethodNames(astFiles, pg.typeInfo)
 	SetTranspileContext(runCtx)
 	defer SetTranspileContext(nil)
 	if packageImports != nil {

@@ -2156,7 +2156,7 @@ func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, a
 		out.WriteString("pub ")
 	}
 	out.WriteString("fn ")
-	out.WriteString(RustFunctionName(fn.Name.Name))
+	out.WriteString(rustMethodName(fn))
 	out.WriteString("(")
 
 	// Receiver

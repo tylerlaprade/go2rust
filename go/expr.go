@@ -591,7 +591,7 @@ func writeCurrentReceiverPointerMethodCallWithArgTemps(out *strings.Builder, sel
 		out.WriteString("; ")
 	}
 	out.WriteString("self.")
-	out.WriteString(ToSnakeCase(sel.Sel.Name))
+	out.WriteString(rustMethodSelectorName(sel))
 	out.WriteString("(")
 	for i := range call.Args {
 		if i > 0 {
@@ -7031,7 +7031,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 			}
 		}
 
-		out.WriteString(ToSnakeCase(sel.Sel.Name))
+		out.WriteString(rustMethodSelectorName(sel))
 		out.WriteString("(")
 		if !writeMethodCallArguments(out, sel, call, externalStdlibStubMethodCall, bareMethodCall) {
 			for i, arg := range call.Args {

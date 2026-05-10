@@ -929,7 +929,7 @@ func collectPromotedMethods(structDef *StructDef, methods map[string][]*ast.Func
 // generatePromotedMethod generates a forwarding method that delegates to an embedded type's method
 func generatePromotedMethod(out *strings.Builder, method *ast.FuncDecl, embeddedTypeName string) {
 	out.WriteString("    pub fn ")
-	out.WriteString(ToSnakeCase(method.Name.Name))
+	out.WriteString(rustMethodName(method))
 	out.WriteString("(")
 
 	// Receiver
@@ -1010,7 +1010,7 @@ func generatePromotedMethod(out *strings.Builder, method *ast.FuncDecl, embedded
 	out.WriteString(";\n")
 	out.WriteString("        let embedded_ref = guard.as_mut().unwrap();\n")
 	out.WriteString("        embedded_ref.")
-	out.WriteString(ToSnakeCase(method.Name.Name))
+	out.WriteString(rustMethodName(method))
 	out.WriteString("(")
 
 	// Pass through parameters
@@ -1192,6 +1192,10 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 	}
 	SetTranspileContext(ctx)
 	defer SetTranspileContext(parentCtx)
+	if currentContext != nil && currentContext.Package != nil && len(currentContext.Package.MethodNameOverrides) == 0 {
+		currentContext.Package.MethodNameOverrides = assignPackageMethodNames([]*ast.File{file}, typeInfo)
+		packageMethodNameOverrides = currentContext.Package.MethodNameOverrides
+	}
 
 	// Transpile the body
 	var body strings.Builder

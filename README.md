@@ -150,6 +150,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Basic functions | ✅ |
 | └ Multiple return values | ✅ |
 | └ Method definitions | ✅ |
+| └ Case-distinct methods that collapse to the same Rust name on one receiver | ✅ |
 | └ Reassigned function and method parameters | ✅ |
 | └ Tuple return reassignment to fields and parameters | ✅ |
 | └ Method calls, including receiver self-calls | ✅ |

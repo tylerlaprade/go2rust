@@ -320,6 +320,7 @@ func (ut *UnifiedTranspiler) transpilePackage(pkg *PackageInfo) error {
 	parentCtx := GetTranspileContext()
 	pkgState := NewPackageState()
 	pkgState.FunctionNameOverrides = assignPackageFunctionNames(pkg.ASTFiles)
+	pkgState.MethodNameOverrides = assignPackageMethodNames(pkg.ASTFiles, ut.globalTypeInfo)
 	SetTranspileContext(&TranspileContext{
 		Session:        NewTranspileSession(ut.globalTypeInfo, ut.packageMapping),
 		Package:        pkgState,

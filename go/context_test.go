@@ -164,6 +164,49 @@ func compare(x string) string { return x }
 	}
 }
 
+func TestPackageMethodNameOverridesAreReceiverScoped(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "runner.go", `package runner
+
+type Runner struct{}
+type Other struct{}
+
+func (r *Runner) RunPiped() string { return r.runPiped() }
+func (r *Runner) runPiped() string { return "runner" }
+func (o *Other) runPiped() string { return "other" }
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile: %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo: %v", err)
+	}
+
+	overrides := assignPackageMethodNames([]*ast.File{file}, typeInfo)
+	methodOverride := func(receiver, name string) string {
+		for _, decl := range file.Decls {
+			fn, ok := decl.(*ast.FuncDecl)
+			if !ok || fn.Recv == nil || fn.Name.Name != name || getReceiverType(fn.Recv.List[0].Type) != receiver {
+				continue
+			}
+			return overrides[methodOverrideKey(methodFuncForDecl(fn, typeInfo))]
+		}
+		t.Fatalf("method %s.%s not found", receiver, name)
+		return ""
+	}
+
+	if got := methodOverride("Runner", "RunPiped"); got != "" {
+		t.Fatalf("Runner.RunPiped should keep the base Rust name, got override %q", got)
+	}
+	if got := methodOverride("Runner", "runPiped"); got != "run_piped_1" {
+		t.Fatalf("Runner.runPiped override = %q, want run_piped_1", got)
+	}
+	if got := methodOverride("Other", "runPiped"); got != "" {
+		t.Fatalf("Other.runPiped should not inherit Runner override, got %q", got)
+	}
+}
+
 func TestExternalPackageTypesUseMappedCratePaths(t *testing.T) {
 	savedTypeInfo := currentTypeInfo
 	savedGoImports := goPackageImports

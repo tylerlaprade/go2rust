@@ -1,0 +1,8 @@
+[package]
+name = "method_case_collision"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "method_case_collision"
+path = "main.rs"

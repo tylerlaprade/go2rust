@@ -1012,6 +1012,10 @@ run_xfail_test() {
     run_test "tests/method_call_struct_field_pointer"
 }
 
+@test "method_case_collision" {
+    run_test "tests/method_case_collision"
+}
+
 @test "method_closure_receiver_capture" {
     run_test "tests/method_closure_receiver_capture"
 }
