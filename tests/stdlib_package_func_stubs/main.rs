@@ -278,7 +278,7 @@ fn main() {
         let _ = types::unalias(alias.clone());
         let _ = binary::MAX_VARINT_LEN64;
         let _ = types::Typ();
-        let mut dir = Arc::new(Mutex::new(Some(ast::S_E_N_D)));
+        let mut dir = Arc::new(Mutex::new(Some(ast::S_E_N_D.clone())));
         { let new_val = { let __tmp_x = ast_ChanDir(ast::S_E_N_D.0 as i32); let __tmp_y = ast_ChanDir(ast::R_E_C_V.0 as i32); __tmp_x | __tmp_y }; *dir.lock().unwrap() = Some(new_val); };
         let _ = { let __v = (*dir.lock().unwrap().as_ref().unwrap()).clone(); __v };
     }

@@ -825,6 +825,36 @@ func writeWrappedValueCopyFromIdent(out *strings.Builder, ident *ast.Ident) bool
 	}
 }
 
+func writeWrappedOwnedExpressionValue(out *strings.Builder, expr ast.Expr) bool {
+	if isCopyTypeExpression(expr) {
+		return false
+	}
+	if _, ok := expr.(*ast.SelectorExpr); !ok {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	typ := typeInfo.GetType(expr)
+	if typ == nil {
+		return false
+	}
+	switch typ.Underlying().(type) {
+	case *types.Basic, *types.Struct, *types.Array:
+	default:
+		return false
+	}
+	var inner strings.Builder
+	if !writeOwnedExpressionValue(&inner, expr) {
+		return false
+	}
+	WriteWrapperPrefix(out)
+	out.WriteString(inner.String())
+	WriteWrapperSuffix(out)
+	return true
+}
+
 func writeConcurrentMapSelectorHandleClone(out *strings.Builder, expr ast.Expr) bool {
 	if !NeedsConcurrentWrapper() {
 		return false
@@ -3583,6 +3613,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 											// Existing interface values are already represented by a handle.
 										} else if writeStdlibInterfaceFieldValueCopy(out, rhs) {
 											// Copied by value from an existing stdlib interface field.
+										} else if writeWrappedOwnedExpressionValue(out, rhs) {
+											// Copied by value from an existing wrapped field or handle.
 										} else if ident, ok := rhs.(*ast.Ident); ok {
 											if sig, isFuncValue := functionValueSignature(ident); isFuncValue {
 												writeWrappedFunctionValueBox(out, ident, sig)

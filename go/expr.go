@@ -738,7 +738,7 @@ func isBareMapSelectorExpression(expr ast.Expr) bool {
 		return false
 	}
 	typeInfo := GetTypeInfo()
-	return typeInfo != nil && typeInfo.IsMap(expr)
+	return typeInfo != nil && typeInfo.IsMap(expr) && !selectorRValueReturnsWrappedHandle(expr)
 }
 
 func namedSliceTypeFromType(typ types.Type) (*types.Named, *types.Slice, bool) {

@@ -215,6 +215,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Map literals | ✅ |
 | └ Map operations (insert, delete) | ✅ |
 | └ Delete through selector map fields | ✅ |
+| └ Selector map fields in lookup, comma-ok, and range contexts | ✅ |
 | └ Map access with existence check | ✅ |
 | └ Comma-ok map access with typed zero values | ✅ |
 | └ Wrapped call results as map lookup keys | ✅ |
@@ -260,6 +261,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Stdlib struct field stubs from selector type information | ✅ |
 | └ Field access | ✅ |
 | └ Owned selector field returns and arguments | ✅ |
+| └ Owned selector field short declarations | ✅ |
 | └ Embedded fields | ✅ |
 | └ Embedded method promotion from transpiled dependency packages | ✅ |
 | └ Anonymous structs | ✅ |
