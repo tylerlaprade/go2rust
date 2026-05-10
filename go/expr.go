@@ -5395,6 +5395,9 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 		writePointerTypeConversion(out, target)
 		return
 	}
+	if writeFunctionSignatureTypeConversion(out, call) {
+		return
+	}
 
 	// Check for []byte(string) and []rune(string) conversions
 	if compLit, ok := call.Fun.(*ast.ArrayType); ok {
@@ -5695,6 +5698,24 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 		// No cast needed or unknown type
 		TranspileExpression(out, call.Args[0])
 	}
+}
+
+func writeFunctionSignatureTypeConversion(out *strings.Builder, call *ast.CallExpr) bool {
+	if call == nil || len(call.Args) != 1 {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	if !isFunctionSignatureType(typeInfo.GetType(call)) {
+		return false
+	}
+	argType := typeInfo.GetType(call.Args[0])
+	if argType != nil && !isFunctionSignatureType(argType) {
+		return false
+	}
+	return writeFunctionValueHandle(out, call.Args[0])
 }
 
 func pointerTypeConversionTarget(expr ast.Expr) (ast.Expr, bool) {

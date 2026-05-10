@@ -1156,6 +1156,10 @@ run_xfail_test() {
     run_test "tests/package_function_array_literal_argument"
 }
 
+@test "package_function_type_conversion" {
+    run_test "tests/package_function_type_conversion"
+}
+
 @test "package_global_error" {
     run_test "tests/package_global_error"
 }

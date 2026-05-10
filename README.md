@@ -158,6 +158,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Function-valued struct field calls | ✅ |
 | └ Method selectors returning function values stay method calls | ✅ |
 | └ Named function type conversions | ✅ |
+| └ Cross-package named function type conversions | ✅ |
 | └ Function type aliases with imported interface parameters | ✅ |
 | └ Function literals/closures with scoped nested captures | ✅ |
 | └ Function variables and higher-order function values | ✅ |
