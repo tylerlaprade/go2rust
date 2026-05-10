@@ -552,6 +552,10 @@ run_xfail_test() {
     run_test "tests/constants_basic"
 }
 
+@test "context_err_error_return" {
+    run_test "tests/context_err_error_return"
+}
+
 @test "context_usage" {
     run_test "tests/context_usage"
 }

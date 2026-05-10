@@ -1,0 +1,8 @@
+[package]
+name = "context_err_error_return"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "context_err_error_return"
+path = "main.rs"

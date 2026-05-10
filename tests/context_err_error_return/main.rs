@@ -1,6 +1,8 @@
+use std::error::Error as StdError;
 use std::sync::{Arc, Mutex};
 
-pub struct GoChannel<T> {
+
+struct GoChannel<T> {
     tx: std::sync::Arc<std::sync::Mutex<Option<std::sync::mpsc::SyncSender<T>>>>,
     rx: std::sync::Arc<std::sync::Mutex<std::sync::mpsc::Receiver<T>>>,
     is_nil: std::sync::Arc<std::sync::atomic::AtomicBool>,
@@ -9,7 +11,7 @@ pub struct GoChannel<T> {
 }
 
 impl<T> GoChannel<T> {
-    pub fn new() -> Self {
+    fn new() -> Self {
         let (tx, rx) = std::sync::mpsc::sync_channel(0);
         GoChannel {
             tx: std::sync::Arc::new(std::sync::Mutex::new(Some(tx))),
@@ -20,7 +22,7 @@ impl<T> GoChannel<T> {
         }
     }
 
-    pub fn new_buffered(cap: usize) -> Self {
+    fn new_buffered(cap: usize) -> Self {
         let (tx, rx) = std::sync::mpsc::sync_channel(cap);
         GoChannel {
             tx: std::sync::Arc::new(std::sync::Mutex::new(Some(tx))),
@@ -31,7 +33,7 @@ impl<T> GoChannel<T> {
         }
     }
 
-    pub fn send(&self, val: T) {
+    fn send(&self, val: T) {
         if self.is_nil() {
             return;
         }
@@ -42,7 +44,7 @@ impl<T> GoChannel<T> {
         }
     }
 
-    pub fn try_send(&self, val: T) -> bool {
+    fn try_send(&self, val: T) -> bool {
         if self.is_nil() {
             return false;
         }
@@ -60,7 +62,7 @@ impl<T> GoChannel<T> {
         }
     }
 
-    pub fn recv(&self) -> Option<T> {
+    fn recv(&self) -> Option<T> {
         if self.is_nil() {
             return None;
         }
@@ -75,7 +77,7 @@ impl<T> GoChannel<T> {
         value
     }
 
-    pub fn try_recv(&self) -> Option<T> {
+    fn try_recv(&self) -> Option<T> {
         if self.is_nil() {
             return None;
         }
@@ -90,19 +92,19 @@ impl<T> GoChannel<T> {
         value
     }
 
-    pub fn close(&self) {
+    fn close(&self) {
         *self.tx.lock().unwrap() = None;
     }
 
-    pub fn is_nil(&self) -> bool {
+    fn is_nil(&self) -> bool {
         self.is_nil.load(std::sync::atomic::Ordering::SeqCst)
     }
 
-    pub fn len(&self) -> usize {
+    fn len(&self) -> usize {
         self.len.load(std::sync::atomic::Ordering::SeqCst)
     }
 
-    pub fn capacity(&self) -> usize {
+    fn capacity(&self) -> usize {
         self.capacity
     }
 }
@@ -146,17 +148,17 @@ impl<T> Iterator for GoChannel<T> {
 }
 
 #[derive(Clone)]
-pub struct GoContext {
+struct GoContext {
     done: GoChannel<bool>,
     err: std::sync::Arc<std::sync::Mutex<Option<Box<dyn std::error::Error + Send + Sync>>>>,
     cancelled: std::sync::Arc<std::sync::atomic::AtomicBool>,
 }
 
-pub type GoCancelFunc = std::sync::Arc<dyn Fn() + Send + Sync>;
-pub type GoCancelCauseFunc = Box<dyn Fn(Arc<Mutex<Option<Box<dyn std::error::Error + Send + Sync>>>>) -> () + Send + Sync>;
+type GoCancelFunc = std::sync::Arc<dyn Fn() + Send + Sync>;
+type GoCancelCauseFunc = Box<dyn Fn(Arc<Mutex<Option<Box<dyn std::error::Error + Send + Sync>>>>) -> () + Send + Sync>;
 
 impl GoContext {
-    pub fn background() -> GoContext {
+    fn background() -> GoContext {
         GoContext {
             done: GoChannel::<bool>::new(),
             err: std::sync::Arc::new(std::sync::Mutex::new(None)),
@@ -164,7 +166,7 @@ impl GoContext {
         }
     }
 
-    pub fn with_timeout(_parent: Arc<Mutex<Option<GoContext>>>, duration: std::time::Duration) -> (Arc<Mutex<Option<GoContext>>>, Arc<Mutex<Option<GoCancelFunc>>>) {
+    fn with_timeout(_parent: Arc<Mutex<Option<GoContext>>>, duration: std::time::Duration) -> (Arc<Mutex<Option<GoContext>>>, Arc<Mutex<Option<GoCancelFunc>>>) {
         let done = GoChannel::<bool>::new_buffered(1);
         let err = std::sync::Arc::new(std::sync::Mutex::new(None::<Box<dyn std::error::Error + Send + Sync>>));
         let cancelled = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
@@ -204,7 +206,7 @@ impl GoContext {
         )
     }
 
-    pub fn with_cancel(parent: Arc<Mutex<Option<GoContext>>>) -> (Arc<Mutex<Option<GoContext>>>, Arc<Mutex<Option<GoCancelFunc>>>) {
+    fn with_cancel(parent: Arc<Mutex<Option<GoContext>>>) -> (Arc<Mutex<Option<GoContext>>>, Arc<Mutex<Option<GoCancelFunc>>>) {
         let _ = parent;
         let done = GoChannel::<bool>::new_buffered(1);
         let err = std::sync::Arc::new(std::sync::Mutex::new(None::<Box<dyn std::error::Error + Send + Sync>>));
@@ -233,7 +235,7 @@ impl GoContext {
         )
     }
 
-    pub fn with_cancel_cause(parent: Arc<Mutex<Option<GoContext>>>) -> (Arc<Mutex<Option<GoContext>>>, Arc<Mutex<Option<GoCancelCauseFunc>>>) {
+    fn with_cancel_cause(parent: Arc<Mutex<Option<GoContext>>>) -> (Arc<Mutex<Option<GoContext>>>, Arc<Mutex<Option<GoCancelCauseFunc>>>) {
         let _ = parent;
         let done = GoChannel::<bool>::new_buffered(1);
         let err = std::sync::Arc::new(std::sync::Mutex::new(None::<Box<dyn std::error::Error + Send + Sync>>));
@@ -262,11 +264,28 @@ impl GoContext {
         )
     }
 
-    pub fn done(&self) -> GoChannel<bool> {
+    fn done(&self) -> GoChannel<bool> {
         self.done.clone()
     }
 
-    pub fn err(&self) -> Arc<Mutex<Option<Box<dyn std::error::Error + Send + Sync>>>> {
+    fn err(&self) -> Arc<Mutex<Option<Box<dyn std::error::Error + Send + Sync>>>> {
         self.err.clone()
     }
+}
+
+pub fn fail(ctx: Arc<Mutex<Option<GoContext>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
+
+    return (*ctx.lock().unwrap().as_ref().unwrap()).err();
+}
+
+fn main() {
+    let (mut ctx, mut cancel) = GoContext::with_cancel(Arc::new(Mutex::new(Some(GoContext::background()))).clone());
+    { let __f_guard = cancel.lock().unwrap(); let __f = __f_guard.as_ref().unwrap(); (*__f)() };
+
+    let mut err = fail(Arc::new(Mutex::new(Some((*ctx.lock().unwrap().as_ref().unwrap()).clone()))));
+    if (*err.lock().unwrap()).is_some() {
+        println!("{}", format!("{}", (*err.lock().unwrap().as_ref().unwrap())));
+        return;
+    }
+    println!("{}", "no error".to_string());
 }

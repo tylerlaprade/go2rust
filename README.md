@@ -195,6 +195,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Stdlib typed constants as indexes | ✅ |
 | └ Shared stdlib stubs across transpiled dependency crates | ✅ |
 | └ Shared context/channel helpers across transpiled dependency crates | ✅ |
+| └ `context.Context.Err` returns boxed error handles | ✅ |
 | └ Stdlib concrete values passed to stdlib interface parameters | ✅ |
 | └ Stdlib interface map range keys passed to interface parameters | ✅ |
 | └ Stdlib interface field copies | ✅ |
