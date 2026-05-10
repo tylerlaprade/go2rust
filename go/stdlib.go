@@ -1744,7 +1744,7 @@ func transpileSlicesContains(out *strings.Builder, call *ast.CallExpr) {
 func transpileStrconvItoa(out *strings.Builder, call *ast.CallExpr) {
 	if len(call.Args) > 0 {
 		WriteWrapperPrefix(out)
-		TranspileExpression(out, call.Args[0])
+		writeNumericConversionValue(out, call.Args[0])
 		out.WriteString(".to_string()")
 		WriteWrapperSuffix(out)
 	}

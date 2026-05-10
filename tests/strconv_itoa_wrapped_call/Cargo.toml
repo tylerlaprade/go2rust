@@ -1,0 +1,8 @@
+[package]
+name = "strconv_itoa_wrapped_call"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "strconv_itoa_wrapped_call"
+path = "main.rs"

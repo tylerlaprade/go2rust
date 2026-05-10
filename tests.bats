@@ -1448,6 +1448,10 @@ run_xfail_test() {
     run_test "tests/stdlib_typed_const_index"
 }
 
+@test "strconv_itoa_wrapped_call" {
+    run_test "tests/strconv_itoa_wrapped_call"
+}
+
 @test "strconv_parse" {
     run_test "tests/strconv_parse"
 }
