@@ -200,6 +200,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Stdlib concrete values passed to stdlib interface parameters | ✅ |
 | └ Stdlib interface map range keys passed to interface parameters | ✅ |
 | └ Stdlib interface field copies | ✅ |
+| └ Stdlib interface selector type assertions | ✅ |
 | └ Stdlib pointer field stubs without nested wrappers | ✅ |
 | **`interface` - Interface types** | |
 | └ Interface definitions | ✅ |
@@ -218,6 +219,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ `any(x)` conversions feeding type assertions | ✅ |
 | └ Static `any(x).(interface{...})` assertions when TypeInfo proves implementation | ✅ |
 | └ Stdlib concrete pointer literals and values returned as stdlib interface types | ✅ |
+| └ Stdlib interface selector type assertions | ✅ |
 | └ Imported transpiled interfaces implemented by current-package concrete types | ✅ |
 | └ Boxed error values asserted back to `error` | ✅ |
 | └ Wrapped `error` arguments and sentinel comparisons | ✅ |

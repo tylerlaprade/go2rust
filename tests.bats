@@ -1564,6 +1564,10 @@ run_xfail_test() {
     run_test "tests/stdlib_interface_return_variable"
 }
 
+@test "stdlib_interface_selector_assertion" {
+    run_test "tests/stdlib_interface_selector_assertion"
+}
+
 @test "stdlib_interface_struct_literal_concrete" {
     run_test "tests/stdlib_interface_struct_literal_concrete"
 }

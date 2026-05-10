@@ -72,10 +72,10 @@ fn main() {
             if let Some(typed_val) = any_val.downcast_ref::<types_TypeName>() {
                 (Rc::new(RefCell::new(Some(typed_val.clone()))), Rc::new(RefCell::new(Some(true))))
             } else {
-                (Rc::new(RefCell::new(Some(Default::default()))), Rc::new(RefCell::new(Some(false))))
+                (Rc::new(RefCell::new(None::<types_TypeName>)), Rc::new(RefCell::new(Some(false))))
             }
         } else {
-            (Rc::new(RefCell::new(Some(Default::default()))), Rc::new(RefCell::new(Some(false))))
+            (Rc::new(RefCell::new(None::<types_TypeName>)), Rc::new(RefCell::new(Some(false))))
         }
     });
     if (*ok.borrow().as_ref().unwrap()) {

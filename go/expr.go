@@ -752,6 +752,17 @@ func typeAssertionSourceIsBareStdlibInterfaceValue(expr ast.Expr) bool {
 	return ok && intf.NumMethods() > 0
 }
 
+func typeAssertionSourceIsWrappedStdlibInterfaceValue(expr ast.Expr) bool {
+	if isExpressionResultBare(expr) {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	return isStdlibNamedInterfaceValueType(types.Unalias(typeInfo.GetType(expr)))
+}
+
 func isBareMapSelectorExpression(expr ast.Expr) bool {
 	if _, ok := expr.(*ast.SelectorExpr); !ok {
 		return false
@@ -6539,6 +6550,7 @@ func TranspileTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr) 
 	rustType := ""
 	defaultValue := ""
 	targetIsError := false
+	targetIsPointer := false
 	if ident, ok := e.Type.(*ast.Ident); ok {
 		switch ident.Name {
 		case "string":
@@ -6598,6 +6610,7 @@ func TranspileTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr) 
 		}
 	} else if star, ok := e.Type.(*ast.StarExpr); ok {
 		// Pointer type assertion (*T) - downcast to the bare type T
+		targetIsPointer = true
 		if ident, ok := star.X.(*ast.Ident); ok {
 			rustType = RustTypeNameForUse(ident.Name)
 		} else {
@@ -6686,6 +6699,69 @@ func TranspileTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr) 
 			out.WriteString("    })")
 			return
 		}
+	}
+
+	if typeAssertionSourceIsWrappedStdlibInterfaceValue(e.X) {
+		out.WriteString("({\n")
+		out.WriteString("        let val = ")
+		writeInterfaceAssertionSourceClone(out, e.X)
+		out.WriteString(";\n")
+		out.WriteString("        let guard = val")
+		WriteBorrowMethod(out, false)
+		out.WriteString(";\n")
+		out.WriteString("        if let Some(ref any_val) = *guard {\n")
+		out.WriteString("            if let Some(typed_val) = any_val.downcast_ref::<")
+		out.WriteString(rustType)
+		out.WriteString(">() {\n")
+		out.WriteString("                (")
+		WriteWrapperPrefix(out)
+		if targetIsError {
+			if NeedsConcurrentWrapper() {
+				out.WriteString("Box::<dyn StdError + Send + Sync>::from(typed_val.clone())")
+			} else {
+				out.WriteString("Box::<dyn StdError>::from(typed_val.clone())")
+			}
+		} else {
+			out.WriteString("typed_val.clone()")
+		}
+		WriteWrapperSuffix(out)
+		out.WriteString(", ")
+		WriteWrapperPrefix(out)
+		out.WriteString("true")
+		WriteWrapperSuffix(out)
+		out.WriteString(")\n")
+		out.WriteString("            } else {\n")
+		out.WriteString("                (")
+		if targetIsPointer {
+			writeTypedWrappedNone(out, rustType)
+		} else {
+			WriteWrapperPrefix(out)
+			out.WriteString(defaultValue)
+			WriteWrapperSuffix(out)
+		}
+		out.WriteString(", ")
+		WriteWrapperPrefix(out)
+		out.WriteString("false")
+		WriteWrapperSuffix(out)
+		out.WriteString(")\n")
+		out.WriteString("            }\n")
+		out.WriteString("        } else {\n")
+		out.WriteString("            (")
+		if targetIsPointer {
+			writeTypedWrappedNone(out, rustType)
+		} else {
+			WriteWrapperPrefix(out)
+			out.WriteString(defaultValue)
+			WriteWrapperSuffix(out)
+		}
+		out.WriteString(", ")
+		WriteWrapperPrefix(out)
+		out.WriteString("false")
+		WriteWrapperSuffix(out)
+		out.WriteString(")\n")
+		out.WriteString("        }\n")
+		out.WriteString("    })")
+		return
 	}
 
 	if typeAssertionSourceIsBareStdlibInterfaceValue(e.X) {
