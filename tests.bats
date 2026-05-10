@@ -900,6 +900,10 @@ run_xfail_test() {
     run_test "tests/json_marshal"
 }
 
+@test "json_marshal_map_field" {
+    run_test "tests/json_marshal_map_field"
+}
+
 @test "keyed_array_literal" {
     run_test "tests/keyed_array_literal"
 }

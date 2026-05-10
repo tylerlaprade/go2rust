@@ -1917,23 +1917,52 @@ func transpileSha256Sum256(out *strings.Builder, call *ast.CallExpr) {
 }
 
 type jsonMarshalField struct {
-	jsonName string
-	rustName string
-	kind     types.BasicKind
+	jsonName  string
+	rustName  string
+	kind      jsonMarshalFieldKind
+	basicKind types.BasicKind
+	omitEmpty bool
 }
 
-func jsonFieldName(goName, tag string) (string, bool) {
+type jsonMarshalFieldKind int
+
+const (
+	jsonMarshalBasicField jsonMarshalFieldKind = iota
+	jsonMarshalStringMapField
+)
+
+func jsonFieldName(goName, tag string) (string, bool, bool) {
 	jsonTag := reflect.StructTag(tag).Get("json")
 	if jsonTag == "-" {
-		return "", false
+		return "", false, false
 	}
+	omitEmpty := false
 	if idx := strings.Index(jsonTag, ","); idx >= 0 {
+		options := strings.Split(jsonTag[idx+1:], ",")
 		jsonTag = jsonTag[:idx]
+		for _, option := range options {
+			if option == "omitempty" {
+				omitEmpty = true
+			}
+		}
 	}
 	if jsonTag == "" {
-		return goName, true
+		return goName, true, omitEmpty
 	}
-	return jsonTag, true
+	return jsonTag, true, omitEmpty
+}
+
+func isJsonStringMapType(typ types.Type) bool {
+	m, ok := types.Unalias(typ).Underlying().(*types.Map)
+	if !ok {
+		return false
+	}
+	key, ok := types.Unalias(m.Key()).Underlying().(*types.Basic)
+	if !ok || key.Kind() != types.String {
+		return false
+	}
+	elem, ok := types.Unalias(m.Elem()).Underlying().(*types.Basic)
+	return ok && elem.Kind() == types.String
 }
 
 func jsonMarshalStructFields(st *types.Struct) ([]jsonMarshalField, bool) {
@@ -1943,28 +1972,40 @@ func jsonMarshalStructFields(st *types.Struct) ([]jsonMarshalField, bool) {
 		if !field.Exported() {
 			continue
 		}
-		jsonName, include := jsonFieldName(field.Name(), st.Tag(i))
+		jsonName, include, omitEmpty := jsonFieldName(field.Name(), st.Tag(i))
 		if !include {
 			continue
 		}
 		basic, ok := field.Type().Underlying().(*types.Basic)
-		if !ok {
-			return nil, false
+		if ok {
+			switch basic.Kind() {
+			case types.Bool,
+				types.Int, types.Int8, types.Int16, types.Int32, types.Int64,
+				types.Uint, types.Uint8, types.Uint16, types.Uint32, types.Uint64, types.Uintptr,
+				types.Float32, types.Float64,
+				types.String:
+				fields = append(fields, jsonMarshalField{
+					jsonName:  jsonName,
+					rustName:  ToSnakeCase(field.Name()),
+					kind:      jsonMarshalBasicField,
+					basicKind: basic.Kind(),
+					omitEmpty: omitEmpty,
+				})
+				continue
+			default:
+				return nil, false
+			}
 		}
-		switch basic.Kind() {
-		case types.Bool,
-			types.Int, types.Int8, types.Int16, types.Int32, types.Int64,
-			types.Uint, types.Uint8, types.Uint16, types.Uint32, types.Uint64, types.Uintptr,
-			types.Float32, types.Float64,
-			types.String:
+		if isJsonStringMapType(field.Type()) {
 			fields = append(fields, jsonMarshalField{
-				jsonName: jsonName,
-				rustName: ToSnakeCase(field.Name()),
-				kind:     basic.Kind(),
+				jsonName:  jsonName,
+				rustName:  ToSnakeCase(field.Name()),
+				kind:      jsonMarshalStringMapField,
+				omitEmpty: omitEmpty,
 			})
-		default:
-			return nil, false
+			continue
 		}
+		return nil, false
 	}
 	return fields, true
 }
@@ -1972,6 +2013,95 @@ func jsonMarshalStructFields(st *types.Struct) ([]jsonMarshalField, bool) {
 func escapeRustFormatLiteral(s string) string {
 	s = strings.ReplaceAll(s, "{", "{{")
 	return strings.ReplaceAll(s, "}", "}}")
+}
+
+func writeJsonMarshalValueBinding(out *strings.Builder, arg ast.Expr) {
+	if _, ok := arg.(*ast.CompositeLit); ok {
+		TranspileExpression(out, arg)
+		return
+	}
+	if isExpressionResultBare(arg) {
+		TranspileExpression(out, arg)
+		return
+	}
+	out.WriteString("(*")
+	TranspileExpressionContext(out, arg, LValue)
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap()).clone()")
+}
+
+func writeJsonFieldBorrow(out *strings.Builder, field jsonMarshalField) {
+	out.WriteString("__json_value.")
+	out.WriteString(field.rustName)
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref()")
+}
+
+func writeJsonBasicEmptyCondition(out *strings.Builder, field jsonMarshalField) {
+	out.WriteString("!(")
+	writeJsonFieldBorrow(out, field)
+	out.WriteString(".map(|__v| ")
+	switch field.basicKind {
+	case types.String:
+		out.WriteString("__v.is_empty()")
+	case types.Bool:
+		out.WriteString("!*__v")
+	case types.Float32, types.Float64:
+		out.WriteString("*__v == 0.0")
+	default:
+		out.WriteString("*__v == 0")
+	}
+	out.WriteString(").unwrap_or(true))")
+}
+
+func writeJsonBasicFieldPush(out *strings.Builder, field jsonMarshalField) {
+	if field.omitEmpty {
+		out.WriteString("if ")
+		writeJsonBasicEmptyCondition(out, field)
+		out.WriteString(" { ")
+	}
+	out.WriteString("__json_fields.push(format!(")
+	if field.basicKind == types.String {
+		out.WriteString(strconv.Quote(strconv.Quote(field.jsonName) + ":\"{}\""))
+		out.WriteString(", go_json_escape(")
+		writeJsonFieldBorrow(out, field)
+		out.WriteString(".unwrap())")
+	} else {
+		out.WriteString(strconv.Quote(strconv.Quote(field.jsonName) + ":{}"))
+		out.WriteString(", *")
+		writeJsonFieldBorrow(out, field)
+		out.WriteString(".unwrap()")
+	}
+	out.WriteString("));")
+	if field.omitEmpty {
+		out.WriteString(" }")
+	}
+}
+
+func writeJsonStringMapFieldPush(out *strings.Builder, field jsonMarshalField) {
+	out.WriteString("{ let __map_guard = __json_value.")
+	out.WriteString(field.rustName)
+	WriteBorrowMethod(out, false)
+	out.WriteString("; ")
+	if field.omitEmpty {
+		out.WriteString("if let Some(__map) = __map_guard.as_ref() { if !__map.is_empty() { ")
+	} else {
+		out.WriteString("if let Some(__map) = __map_guard.as_ref() { ")
+	}
+	out.WriteString("let __map_entries = __map.iter().map(|(__k, __v)| { let __v_guard = __v")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; format!(\"\\\"{}\\\":\\\"{}\\\"\", go_json_escape(__k), go_json_escape(__v_guard.as_ref().unwrap())) }).collect::<Vec<_>>().join(\",\"); ")
+	out.WriteString("__json_fields.push(format!(")
+	out.WriteString(strconv.Quote(strconv.Quote(field.jsonName) + ":{{{}}}"))
+	out.WriteString(", __map_entries));")
+	if field.omitEmpty {
+		out.WriteString(" } }")
+	} else {
+		out.WriteString(" } else { __json_fields.push(")
+		out.WriteString(strconv.Quote(strconv.Quote(field.jsonName) + ":null"))
+		out.WriteString(".to_string()); }")
+	}
+	out.WriteString(" }")
 }
 
 func transpileJsonMarshal(out *strings.Builder, call *ast.CallExpr) {
@@ -1994,53 +2124,29 @@ func transpileJsonMarshal(out *strings.Builder, call *ast.CallExpr) {
 
 	fields, ok := jsonMarshalStructFields(st)
 	if !ok {
-		out.WriteString("/* ERROR: json.Marshal currently supports exported bool, numeric, and string struct fields */ unimplemented!()")
+		out.WriteString("/* ERROR: json.Marshal currently supports exported bool, numeric, string, and map[string]string struct fields */ unimplemented!()")
 		return
 	}
 
-	format := strings.Builder{}
-	format.WriteString("{{")
-	for i, field := range fields {
-		if i > 0 {
-			format.WriteString(",")
-		}
-		format.WriteString(escapeRustFormatLiteral(strconv.Quote(field.jsonName)))
-		format.WriteString(":")
-		if field.kind == types.String {
-			format.WriteString("\"{}\"")
-			NeedJsonEscape()
-		} else {
-			format.WriteString("{}")
-		}
-	}
-	format.WriteString("}}")
-
-	out.WriteString("{ let __json_input = ")
-	if ident, ok := call.Args[0].(*ast.Ident); ok {
-		out.WriteString(ident.Name)
-		out.WriteString(".clone()")
-	} else {
-		TranspileExpression(out, call.Args[0])
-	}
-	out.WriteString("; let __json_guard = __json_input")
-	WriteBorrowMethod(out, false)
-	out.WriteString("; let __json_value = __json_guard.as_ref().unwrap(); let __json = format!(")
-	out.WriteString(strconv.Quote(format.String()))
 	for _, field := range fields {
-		out.WriteString(", ")
-		if field.kind == types.String {
-			out.WriteString("go_json_escape(&*__json_value.")
-			out.WriteString(field.rustName)
-			WriteBorrowMethod(out, false)
-			out.WriteString(".as_ref().unwrap())")
-		} else {
-			out.WriteString("(*__json_value.")
-			out.WriteString(field.rustName)
-			WriteBorrowMethod(out, false)
-			out.WriteString(".as_ref().unwrap())")
+		if field.kind == jsonMarshalStringMapField || field.basicKind == types.String {
+			NeedJsonEscape()
 		}
 	}
-	out.WriteString("); (")
+
+	out.WriteString("{ let __json_value = ")
+	writeJsonMarshalValueBinding(out, call.Args[0])
+	out.WriteString("; let mut __json_fields: Vec<String> = Vec::new(); ")
+	for _, field := range fields {
+		switch field.kind {
+		case jsonMarshalBasicField:
+			writeJsonBasicFieldPush(out, field)
+		case jsonMarshalStringMapField:
+			writeJsonStringMapFieldPush(out, field)
+		}
+		out.WriteString(" ")
+	}
+	out.WriteString("let __json = format!(\"{{{}}}\", __json_fields.join(\",\")); (")
 	WriteWrapperPrefix(out)
 	out.WriteString("__json.into_bytes()")
 	WriteWrapperSuffix(out)

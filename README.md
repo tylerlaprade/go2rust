@@ -433,6 +433,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ `rand.Seed`, `rand.Intn`, `rand.Float64` | ✅ |
 | **`encoding/json` package** | |
 | └ `json.Marshal` for structs with exported basic fields | ✅ |
+| └ `json.Marshal` for struct `map[string]string` fields with `omitempty` | ✅ |
 | **`encoding/base64` package** | |
 | └ `base64.StdEncoding.EncodeToString` | ✅ |
 | └ `base64.StdEncoding.DecodeString` | ✅ |

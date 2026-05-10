@@ -89,3 +89,36 @@ func TestLocalInterfaceReferenceCallArgumentUsesCurrentReceiver(t *testing.T) {
 		t.Fatalf("receiver argument = %q, want %q", got, want)
 	}
 }
+
+func TestExternalStubCallClonesMapRangeStringKey(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+import "path/filepath"
+
+func f(overlay map[string]string) {
+	overlays := make(map[string]string)
+	for k, v := range overlay {
+		_ = filepath.Base(k)
+		overlays[k] = v
+	}
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(main.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+	SetTypeInfo(typeInfo)
+	defer SetTypeInfo(nil)
+
+	rust, _, _ := Transpile(file, fset, typeInfo)
+	if !strings.Contains(rust, "filepath::base(k.clone())") {
+		t.Fatalf("external stub call should clone map range key before later reuse:\n%s", rust)
+	}
+	if strings.Contains(rust, "filepath::base(k)") {
+		t.Fatalf("external stub call moved map range key:\n%s", rust)
+	}
+}

@@ -624,7 +624,7 @@ fn main() {
     let mut files = Arc::new(Mutex::new(Some(vec![(*filename.lock().unwrap().as_ref().unwrap()).clone(), (*copyFilename.lock().unwrap().as_ref().unwrap()).clone(), (*dataFile.lock().unwrap().as_ref().unwrap()).clone(), "nonexistent.txt".to_string()])));
 
     { let __range_holder = files.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for f in __range_values.iter() {
-        let (_, mut err) = os::stat(f);
+        let (_, mut err) = os::stat(f.clone());
     if (*err.lock().unwrap()).is_none() {
         print!("File '{}' exists\n", f);
     } else if (*os::is_not_exist(err.clone()).lock().unwrap().as_ref().unwrap()) {
@@ -652,7 +652,7 @@ fn main() {
     println!("{}", "\n--- Verifying cleanup ---".to_string());
 
     { let __range_holder = filesToRemove.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for f in __range_values.iter() {
-        let (_, mut err) = os::stat(f);
+        let (_, mut err) = os::stat(f.clone());
     if (*os::is_not_exist(err.clone()).lock().unwrap().as_ref().unwrap()) {
         print!("File '{}' successfully removed\n", f);
     } else {

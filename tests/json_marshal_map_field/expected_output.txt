@@ -1,0 +1,2 @@
+{"replace":{"a.go":"tmp-a","b.go":"tmp-b"}}
+{}

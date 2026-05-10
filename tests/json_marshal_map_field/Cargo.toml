@@ -1,0 +1,8 @@
+[package]
+name = "json_marshal_map_field"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "json_marshal_map_field"
+path = "main.rs"
