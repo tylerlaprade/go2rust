@@ -3172,6 +3172,10 @@ func writeWrappedMapValue(out *strings.Builder, value ast.Expr, valueExpr ast.Ex
 		WriteWrappedNone(out)
 		return
 	}
+	if isNilableWrappedMapValueType(valueType) && isTypedAssignmentSelfWrappingExpression(value) {
+		TranspileExpression(out, value)
+		return
+	}
 	if writeStdlibInterfaceCallArgumentConversion(out, value, valueType) {
 		return
 	}
@@ -5456,11 +5460,11 @@ func writeFunctionValueBox(out *strings.Builder, ident *ast.Ident, sig *types.Si
 	if results.Len() > 0 {
 		out.WriteString(" -> ")
 		if results.Len() == 1 {
-			out.WriteString(goTypesTypeToRustWrapped(results.At(0).Type()))
+			out.WriteString(goTypesReturnTypeToRust(results.At(0).Type()))
 		} else {
 			retTypes := make([]string, 0, results.Len())
 			for i := 0; i < results.Len(); i++ {
-				retTypes = append(retTypes, goTypesTypeToRustWrapped(results.At(i).Type()))
+				retTypes = append(retTypes, goTypesReturnTypeToRust(results.At(i).Type()))
 			}
 			out.WriteString("(")
 			out.WriteString(strings.Join(retTypes, ", "))

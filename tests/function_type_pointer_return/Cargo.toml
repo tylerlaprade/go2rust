@@ -1,0 +1,8 @@
+[package]
+name = "function_type_pointer_return"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "function_type_pointer_return"
+path = "main.rs"

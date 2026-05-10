@@ -165,6 +165,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Named function type conversions | ✅ |
 | └ Cross-package named function type conversions | ✅ |
 | └ Function type aliases with imported interface parameters | ✅ |
+| └ Function type aliases with pointer returns | ✅ |
 | └ Function literals/closures with scoped nested captures | ✅ |
 | └ Function literal named result parameters | ✅ |
 | └ Function variables and higher-order function values | ✅ |
@@ -443,6 +444,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | **`encoding/json` package** | |
 | └ `json.Marshal` for structs with exported basic fields | ✅ |
 | └ `json.Marshal` for struct `map[string]string` fields with `omitempty` | ✅ |
+| └ `json.Marshal` for named scalar, `[]string`, and `map[string][]byte` struct fields | ✅ |
 | **`encoding/base64` package** | |
 | └ `base64.StdEncoding.EncodeToString` | ✅ |
 | └ `base64.StdEncoding.DecodeString` | ✅ |
@@ -484,6 +486,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ `sort.Strings` | ✅ |
 | **`slices` package** | |
 | └ `slices.Sort` / `slices.SortFunc` / `slices.Contains` | ✅ |
+| └ `slices.Clone` / `slices.Clip` | ✅ |
 | **`sync` package** | |
 | └ `sync.WaitGroup` | ✅ |
 | └ Zero-value `sync.WaitGroup` struct fields | ✅ |

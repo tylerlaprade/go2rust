@@ -19,7 +19,7 @@ impl std::fmt::Display for opAppender {
 
 impl opAppender {
     pub fn append_op(&self, path: Rc<RefCell<Option<Vec<u8>>>>, op: Rc<RefCell<Option<u8>>>) -> Rc<RefCell<Option<Vec<u8>>>> {
-        return {(*path.borrow_mut()).get_or_insert_with(Vec::new).push((*op.borrow().as_ref().unwrap()).clone()); path.clone()};
+        return { let __append_target = path.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push((*op.borrow().as_ref().unwrap()).clone()); __append_target.clone() };
     }
 }
 
@@ -35,7 +35,7 @@ pub fn starts_with_v(s: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<bool>>
 
 pub fn append_op(path: Rc<RefCell<Option<Vec<u8>>>>, op: Rc<RefCell<Option<u8>>>) -> Rc<RefCell<Option<Vec<u8>>>> {
 
-    return {(*path.borrow_mut()).get_or_insert_with(Vec::new).push((*op.borrow().as_ref().unwrap()).clone()); path.clone()};
+    return { let __append_target = path.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push((*op.borrow().as_ref().unwrap()).clone()); __append_target.clone() };
 }
 
 pub fn classify_op(op: Rc<RefCell<Option<u8>>>) -> Rc<RefCell<Option<String>>> {
@@ -57,7 +57,7 @@ fn main() {
     println!("{} {}", "version v1:".to_string(), (*starts_with_v(Rc::new(RefCell::new(Some("v1.0.0".to_string())))).borrow().as_ref().unwrap()));
     println!("{} {}", "version x1:".to_string(), (*starts_with_v(Rc::new(RefCell::new(Some("x1.0.0".to_string())))).borrow().as_ref().unwrap()));
     let mut path = Rc::new(RefCell::new(Some(Vec::<u8>::new())));
-    {(*path.borrow_mut()).get_or_insert_with(Vec::new).push(OP_TYPE as u8); path.clone()};
+    { let __append_target = path.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push(OP_TYPE as u8); __append_target.clone() };
     { let new_val = append_op(path.clone(), Rc::new(RefCell::new(Some(OP_ELEM as u8)))); let __moved_val = { let mut __guard = new_val.borrow_mut(); __guard.take() }; *path.borrow_mut() = __moved_val; };
     { let new_val = opAppender {  }.append_op(path.clone(), Rc::new(RefCell::new(Some(OP_ELEM as u8)))); let __moved_val = { let mut __guard = new_val.borrow_mut(); __guard.take() }; *path.borrow_mut() = __moved_val; };
     println!("{} {} {}", "op type:".to_string(), (*path.borrow().as_ref().unwrap())[(0) as usize].clone() == OP_TYPE as u8, (*classify_op(Rc::new(RefCell::new(Some((*path.borrow().as_ref().unwrap())[(0) as usize].clone())))).borrow().as_ref().unwrap()));

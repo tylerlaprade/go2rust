@@ -22,12 +22,12 @@ impl label {
 
 pub fn append_string(dst: Rc<RefCell<Option<Vec<u8>>>>, s: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<Vec<u8>>>> {
 
-    return {(*dst.borrow_mut()).get_or_insert_with(Vec::new).extend((*s.borrow().as_ref().unwrap()).clone().as_bytes().iter().cloned()); dst.clone()};
+    return { let __append_target = dst.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).extend((*s.borrow().as_ref().unwrap()).clone().as_bytes().iter().cloned()); __append_target.clone() };
 }
 
 pub fn append_method(dst: Rc<RefCell<Option<Vec<u8>>>>, l: Rc<RefCell<Option<label>>>) -> Rc<RefCell<Option<Vec<u8>>>> {
 
-    return {(*dst.borrow_mut()).get_or_insert_with(Vec::new).extend((*(*l.borrow().as_ref().unwrap()).name().borrow().as_ref().unwrap()).clone().as_bytes().iter().cloned()); dst.clone()};
+    return { let __append_target = dst.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).extend((*(*l.borrow().as_ref().unwrap()).name().borrow().as_ref().unwrap()).clone().as_bytes().iter().cloned()); __append_target.clone() };
 }
 
 fn main() {

@@ -972,6 +972,10 @@ func writeMapWrappedValue(out *strings.Builder, expr ast.Expr, valueType types.T
 		WriteWrappedNone(out)
 		return
 	}
+	if isNilableWrappedMapValueType(valueType) && isTypedAssignmentSelfWrappingExpression(expr) {
+		TranspileExpression(out, expr)
+		return
+	}
 	if writeStdlibInterfaceCallArgumentConversion(out, expr, valueType) {
 		return
 	}
@@ -1454,6 +1458,13 @@ func isAssignmentSelfWrappingExpression(expr ast.Expr) bool {
 	default:
 		return false
 	}
+}
+
+func isTypedAssignmentSelfWrappingExpression(expr ast.Expr) bool {
+	if lit, ok := expr.(*ast.CompositeLit); ok && lit.Type == nil {
+		return false
+	}
+	return isAssignmentSelfWrappingExpression(expr)
 }
 
 func expressionFunctionSignature(expr ast.Expr) (*types.Signature, bool) {

@@ -88,7 +88,7 @@ pub fn map_keys(m: Rc<RefCell<Option<BTreeMap<K, Rc<RefCell<Option<V>>>>>>>) -> 
 
     let mut r = Rc::new(RefCell::new(Some(Vec::with_capacity(((*m.borrow().as_ref().unwrap()).len()) as usize))));
     for (k, _) in (*m.borrow().as_ref().unwrap()).clone() {
-        {(*r.borrow_mut()).get_or_insert_with(Vec::new).push(k); r.clone()};
+        { let __append_target = r.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push(k); __append_target.clone() };
     }
     return r.clone();
 }

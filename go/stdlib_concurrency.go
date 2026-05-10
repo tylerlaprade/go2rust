@@ -169,6 +169,8 @@ var syncStdlibFunctions = map[string]bool{
 	"slices.SortStableFunc": true,
 	"slices.IsSorted":       true,
 	"slices.IsSortedFunc":   true,
+	"slices.Clone":          true,
+	"slices.Clip":           true,
 
 	// json - JSON operations are synchronous
 	"encoding/json.Marshal":       true,

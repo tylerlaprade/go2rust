@@ -1,0 +1,1 @@
+{"mode":3,"env":["B=2","A=1"],"build_flags":["-tags","dev"],"tests":true,"overlay":{"a.go":"dG1wLWE=","b.go":"AAH/"}}

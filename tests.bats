@@ -784,6 +784,10 @@ run_xfail_test() {
     run_test "tests/flag_parsing"
 }
 
+@test "fmt_errorf_interface_field" {
+    run_test "tests/fmt_errorf_interface_field"
+}
+
 @test "fmt_errorf_type_name" {
     run_test "tests/fmt_errorf_type_name"
 }
@@ -830,6 +834,10 @@ run_xfail_test() {
 
 @test "function_type_assertion_call" {
     run_test "tests/function_type_assertion_call"
+}
+
+@test "function_type_pointer_return" {
+    run_test "tests/function_type_pointer_return"
 }
 
 @test "functions_multiple_return" {
@@ -914,6 +922,10 @@ run_xfail_test() {
 
 @test "json_marshal" {
     run_test "tests/json_marshal"
+}
+
+@test "json_marshal_driver_request_shape" {
+    run_test "tests/json_marshal_driver_request_shape"
 }
 
 @test "json_marshal_map_field" {
@@ -1530,6 +1542,10 @@ run_xfail_test() {
 
 @test "slices_basic" {
     run_test "tests/slices_basic"
+}
+
+@test "slices_clip_append" {
+    run_test "tests/slices_clip_append"
 }
 
 @test "slices_clone_pointer_slice" {

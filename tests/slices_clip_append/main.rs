@@ -1,5 +1,5 @@
 use std::cell::{RefCell};
-use std::fmt::{Display, Formatter};
+use std::fmt::{Display};
 use std::rc::{Rc};
 
 fn format_slice<T, C>(slice: &Rc<RefCell<Option<C>>>) -> String
@@ -44,21 +44,13 @@ where
     }
 }
 
-#[derive(Debug, Clone, Default)]
-pub struct Holder {
-    pub items: Rc<RefCell<Option<Vec<String>>>>,
-}
-
-impl std::fmt::Display for Holder {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", format_slice(&self.items))
-    }
-}
-
-
 fn main() {
-    let mut holder = Rc::new(RefCell::new(Some(Holder { items: Rc::new(RefCell::new(Some(vec!["beta".to_string(), "gamma".to_string()]))), ..Default::default() })));
-    let mut values = Rc::new(RefCell::new(Some(vec!["alpha".to_string()])));
-    { let __append_target = values.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).extend((*(*holder.borrow().as_ref().unwrap()).items.borrow().as_ref().unwrap()).clone().iter().cloned()); __append_target.clone() };
-    println!("{} {}", (*values.borrow().as_ref().unwrap()).len(), (*values.borrow().as_ref().unwrap())[(2) as usize].clone());
+    let mut env = Rc::new(RefCell::new(Some({ let mut v = Vec::with_capacity((2) as usize); v.resize((1) as usize, "".to_string()); v })));
+    (*env.borrow_mut().as_mut().unwrap())[(0) as usize] = "A=1".to_string();
+
+    let mut combined = { let __append_target = Rc::new(RefCell::new(Some((*env.borrow().as_ref().unwrap()).clone()))).clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push("PWD=/tmp".to_string()); __append_target.clone() };
+    (*combined.borrow_mut().as_mut().unwrap())[(0) as usize] = "B=2".to_string();
+
+    println!("{}", format_slice(&env));
+    println!("{}", format_slice(&combined));
 }

@@ -96,6 +96,7 @@ func init() {
 		"slices.SortFunc":         transpileSlicesSortFunc,
 		"slices.Contains":         transpileSlicesContains,
 		"slices.Clone":            transpileSlicesClone,
+		"slices.Clip":             transpileSlicesClip,
 		"time.Sleep":              transpileTimeSleep,
 		"time.Now":                transpileTimeNow,
 		"time.Unix":               transpileTimeUnix,
@@ -285,6 +286,11 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 					if ident, ok := arg.(*ast.Ident); ok {
 						out.WriteString("(*")
 						out.WriteString(RustIdentForUse(ident))
+						WriteBorrowMethod(out, false)
+						out.WriteString(".as_ref().unwrap())")
+					} else if _, ok := arg.(*ast.SelectorExpr); ok {
+						out.WriteString("(*")
+						TranspileExpressionContext(out, arg, LValue)
 						WriteBorrowMethod(out, false)
 						out.WriteString(".as_ref().unwrap())")
 					} else {
@@ -1761,6 +1767,16 @@ func transpileSlicesClone(out *strings.Builder, call *ast.CallExpr) {
 	WriteWrapperSuffix(out)
 }
 
+func transpileSlicesClip(out *strings.Builder, call *ast.CallExpr) {
+	if len(call.Args) != 1 {
+		out.WriteString("/* ERROR: slices.Clip expects 1 argument */")
+		return
+	}
+	WriteWrapperPrefix(out)
+	writeUnwrappedSliceClone(out, call.Args[0])
+	WriteWrapperSuffix(out)
+}
+
 func transpileStrconvItoa(out *strings.Builder, call *ast.CallExpr) {
 	if len(call.Args) > 0 {
 		WriteWrapperPrefix(out)
@@ -1921,9 +1937,11 @@ func transpileSha256Sum256(out *strings.Builder, call *ast.CallExpr) {
 type jsonMarshalField struct {
 	jsonName  string
 	rustName  string
+	typ       types.Type
 	kind      jsonMarshalFieldKind
 	basicKind types.BasicKind
 	omitEmpty bool
+	named     bool
 }
 
 type jsonMarshalFieldKind int
@@ -1931,6 +1949,8 @@ type jsonMarshalFieldKind int
 const (
 	jsonMarshalBasicField jsonMarshalFieldKind = iota
 	jsonMarshalStringMapField
+	jsonMarshalStringSliceField
+	jsonMarshalByteSliceMapField
 )
 
 func jsonFieldName(goName, tag string) (string, bool, bool) {
@@ -1967,6 +1987,33 @@ func isJsonStringMapType(typ types.Type) bool {
 	return ok && elem.Kind() == types.String
 }
 
+func isJsonStringSliceType(typ types.Type) bool {
+	slice, ok := types.Unalias(typ).Underlying().(*types.Slice)
+	if !ok {
+		return false
+	}
+	elem, ok := types.Unalias(slice.Elem()).Underlying().(*types.Basic)
+	return ok && elem.Kind() == types.String
+}
+
+func isJsonByteSliceType(typ types.Type) bool {
+	slice, ok := types.Unalias(typ).Underlying().(*types.Slice)
+	if !ok {
+		return false
+	}
+	elem, ok := types.Unalias(slice.Elem()).Underlying().(*types.Basic)
+	return ok && elem.Kind() == types.Uint8
+}
+
+func isJsonStringByteSliceMapType(typ types.Type) bool {
+	m, ok := types.Unalias(typ).Underlying().(*types.Map)
+	if !ok {
+		return false
+	}
+	key, ok := types.Unalias(m.Key()).Underlying().(*types.Basic)
+	return ok && key.Kind() == types.String && isJsonByteSliceType(m.Elem())
+}
+
 func jsonMarshalStructFields(st *types.Struct) ([]jsonMarshalField, bool) {
 	fields := []jsonMarshalField{}
 	for i := 0; i < st.NumFields(); i++ {
@@ -1978,7 +2025,8 @@ func jsonMarshalStructFields(st *types.Struct) ([]jsonMarshalField, bool) {
 		if !include {
 			continue
 		}
-		basic, ok := field.Type().Underlying().(*types.Basic)
+		_, named := types.Unalias(field.Type()).(*types.Named)
+		basic, ok := types.Unalias(field.Type()).Underlying().(*types.Basic)
 		if ok {
 			switch basic.Kind() {
 			case types.Bool,
@@ -1989,9 +2037,11 @@ func jsonMarshalStructFields(st *types.Struct) ([]jsonMarshalField, bool) {
 				fields = append(fields, jsonMarshalField{
 					jsonName:  jsonName,
 					rustName:  ToSnakeCase(field.Name()),
+					typ:       field.Type(),
 					kind:      jsonMarshalBasicField,
 					basicKind: basic.Kind(),
 					omitEmpty: omitEmpty,
+					named:     named,
 				})
 				continue
 			default:
@@ -2002,7 +2052,28 @@ func jsonMarshalStructFields(st *types.Struct) ([]jsonMarshalField, bool) {
 			fields = append(fields, jsonMarshalField{
 				jsonName:  jsonName,
 				rustName:  ToSnakeCase(field.Name()),
+				typ:       field.Type(),
 				kind:      jsonMarshalStringMapField,
+				omitEmpty: omitEmpty,
+			})
+			continue
+		}
+		if isJsonStringSliceType(field.Type()) {
+			fields = append(fields, jsonMarshalField{
+				jsonName:  jsonName,
+				rustName:  ToSnakeCase(field.Name()),
+				typ:       field.Type(),
+				kind:      jsonMarshalStringSliceField,
+				omitEmpty: omitEmpty,
+			})
+			continue
+		}
+		if isJsonStringByteSliceMapType(field.Type()) {
+			fields = append(fields, jsonMarshalField{
+				jsonName:  jsonName,
+				rustName:  ToSnakeCase(field.Name()),
+				typ:       field.Type(),
+				kind:      jsonMarshalByteSliceMapField,
 				omitEmpty: omitEmpty,
 			})
 			continue
@@ -2039,19 +2110,57 @@ func writeJsonFieldBorrow(out *strings.Builder, field jsonMarshalField) {
 	out.WriteString(".as_ref()")
 }
 
+func writeJsonFieldValueRef(out *strings.Builder, field jsonMarshalField) {
+	writeJsonFieldBorrow(out, field)
+	out.WriteString(".unwrap()")
+	if field.named {
+		out.WriteString(".0")
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap()")
+	}
+}
+
+func writeJsonNamedClosureValueRef(out *strings.Builder) {
+	out.WriteString("__v.0")
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap()")
+}
+
 func writeJsonBasicEmptyCondition(out *strings.Builder, field jsonMarshalField) {
 	out.WriteString("!(")
 	writeJsonFieldBorrow(out, field)
 	out.WriteString(".map(|__v| ")
 	switch field.basicKind {
 	case types.String:
-		out.WriteString("__v.is_empty()")
+		if field.named {
+			writeJsonNamedClosureValueRef(out)
+			out.WriteString(".is_empty()")
+		} else {
+			out.WriteString("__v.is_empty()")
+		}
 	case types.Bool:
-		out.WriteString("!*__v")
+		out.WriteString("!*")
+		if field.named {
+			writeJsonNamedClosureValueRef(out)
+		} else {
+			out.WriteString("__v")
+		}
 	case types.Float32, types.Float64:
-		out.WriteString("*__v == 0.0")
+		out.WriteString("*")
+		if field.named {
+			writeJsonNamedClosureValueRef(out)
+		} else {
+			out.WriteString("__v")
+		}
+		out.WriteString(" == 0.0")
 	default:
-		out.WriteString("*__v == 0")
+		out.WriteString("*")
+		if field.named {
+			writeJsonNamedClosureValueRef(out)
+		} else {
+			out.WriteString("__v")
+		}
+		out.WriteString(" == 0")
 	}
 	out.WriteString(").unwrap_or(true))")
 }
@@ -2066,13 +2175,12 @@ func writeJsonBasicFieldPush(out *strings.Builder, field jsonMarshalField) {
 	if field.basicKind == types.String {
 		out.WriteString(strconv.Quote(strconv.Quote(field.jsonName) + ":\"{}\""))
 		out.WriteString(", go_json_escape(")
-		writeJsonFieldBorrow(out, field)
-		out.WriteString(".unwrap())")
+		writeJsonFieldValueRef(out, field)
+		out.WriteString(")")
 	} else {
 		out.WriteString(strconv.Quote(strconv.Quote(field.jsonName) + ":{}"))
 		out.WriteString(", *")
-		writeJsonFieldBorrow(out, field)
-		out.WriteString(".unwrap()")
+		writeJsonFieldValueRef(out, field)
 	}
 	out.WriteString("));")
 	if field.omitEmpty {
@@ -2106,6 +2214,56 @@ func writeJsonStringMapFieldPush(out *strings.Builder, field jsonMarshalField) {
 	out.WriteString(" }")
 }
 
+func writeJsonStringSliceFieldPush(out *strings.Builder, field jsonMarshalField) {
+	out.WriteString("{ let __slice_guard = __json_value.")
+	out.WriteString(field.rustName)
+	WriteBorrowMethod(out, false)
+	out.WriteString("; ")
+	if field.omitEmpty {
+		out.WriteString("if let Some(__slice) = __slice_guard.as_ref() { if !__slice.is_empty() { ")
+	} else {
+		out.WriteString("if let Some(__slice) = __slice_guard.as_ref() { ")
+	}
+	out.WriteString("let __slice_entries = __slice.iter().map(|__v| format!(\"\\\"{}\\\"\", go_json_escape(__v))).collect::<Vec<_>>().join(\",\"); ")
+	out.WriteString("__json_fields.push(format!(")
+	out.WriteString(strconv.Quote(strconv.Quote(field.jsonName) + ":[{}]"))
+	out.WriteString(", __slice_entries));")
+	if field.omitEmpty {
+		out.WriteString(" } }")
+	} else {
+		out.WriteString(" } else { __json_fields.push(")
+		out.WriteString(strconv.Quote(strconv.Quote(field.jsonName) + ":null"))
+		out.WriteString(".to_string()); }")
+	}
+	out.WriteString(" }")
+}
+
+func writeJsonByteSliceMapFieldPush(out *strings.Builder, field jsonMarshalField) {
+	out.WriteString("{ let __map_guard = __json_value.")
+	out.WriteString(field.rustName)
+	WriteBorrowMethod(out, false)
+	out.WriteString("; ")
+	if field.omitEmpty {
+		out.WriteString("if let Some(__map) = __map_guard.as_ref() { if !__map.is_empty() { ")
+	} else {
+		out.WriteString("if let Some(__map) = __map_guard.as_ref() { ")
+	}
+	out.WriteString("let __map_entries = __map.iter().map(|(__k, __v)| { let __v_guard = __v")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; if let Some(__bytes) = __v_guard.as_ref() { format!(\"\\\"{}\\\":\\\"{}\\\"\", go_json_escape(__k), go_base64_encode(__bytes)) } else { format!(\"\\\"{}\\\":null\", go_json_escape(__k)) } }).collect::<Vec<_>>().join(\",\"); ")
+	out.WriteString("__json_fields.push(format!(")
+	out.WriteString(strconv.Quote(strconv.Quote(field.jsonName) + ":{{{}}}"))
+	out.WriteString(", __map_entries));")
+	if field.omitEmpty {
+		out.WriteString(" } }")
+	} else {
+		out.WriteString(" } else { __json_fields.push(")
+		out.WriteString(strconv.Quote(strconv.Quote(field.jsonName) + ":null"))
+		out.WriteString(".to_string()); }")
+	}
+	out.WriteString(" }")
+}
+
 func transpileJsonMarshal(out *strings.Builder, call *ast.CallExpr) {
 	if len(call.Args) == 0 {
 		out.WriteString("/* ERROR: json.Marshal requires a value */ unimplemented!()")
@@ -2126,13 +2284,16 @@ func transpileJsonMarshal(out *strings.Builder, call *ast.CallExpr) {
 
 	fields, ok := jsonMarshalStructFields(st)
 	if !ok {
-		out.WriteString("/* ERROR: json.Marshal currently supports exported bool, numeric, string, and map[string]string struct fields */ unimplemented!()")
+		out.WriteString("/* ERROR: json.Marshal currently supports exported basic, []string, map[string]string, and map[string][]byte struct fields */ unimplemented!()")
 		return
 	}
 
 	for _, field := range fields {
-		if field.kind == jsonMarshalStringMapField || field.basicKind == types.String {
+		if field.kind == jsonMarshalStringMapField || field.kind == jsonMarshalStringSliceField || field.kind == jsonMarshalByteSliceMapField || field.basicKind == types.String {
 			NeedJsonEscape()
+		}
+		if field.kind == jsonMarshalByteSliceMapField {
+			NeedBase64()
 		}
 	}
 
@@ -2145,6 +2306,10 @@ func transpileJsonMarshal(out *strings.Builder, call *ast.CallExpr) {
 			writeJsonBasicFieldPush(out, field)
 		case jsonMarshalStringMapField:
 			writeJsonStringMapFieldPush(out, field)
+		case jsonMarshalStringSliceField:
+			writeJsonStringSliceFieldPush(out, field)
+		case jsonMarshalByteSliceMapField:
+			writeJsonByteSliceMapFieldPush(out, field)
 		}
 		out.WriteString(" ")
 	}
@@ -2648,45 +2813,43 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 		if indexExpr, ok := call.Args[0].(*ast.IndexExpr); ok && writeIndexedSliceAppend(indexExpr) {
 			return
 		}
+		writeAppendTargetMutationPrefix := func() {
+			out.WriteString("{ let __append_target = ")
+			writeAppendTarget(call.Args[0])
+			out.WriteString(".clone(); (*__append_target")
+			WriteBorrowMethod(out, true)
+			out.WriteString(").get_or_insert_with(Vec::new)")
+		}
+		writeAppendTargetMutationSuffix := func() {
+			out.WriteString("; __append_target.clone() }")
+		}
 		if call.Ellipsis.IsValid() {
 			// Slice expansion: append(dst, src...) → extend from src.
 			// Go also permits append([]byte, string...), which expands bytes.
-			out.WriteString("{(*")
-			writeAppendTarget(call.Args[0])
-			WriteBorrowMethod(out, true)
-			out.WriteString(").get_or_insert_with(Vec::new).extend(")
+			writeAppendTargetMutationPrefix()
+			out.WriteString(".extend(")
 			writeAppendExpansionSource(call.Args[1])
-			out.WriteString("); ")
-			// Return the wrapped slice itself
-			writeAppendTarget(call.Args[0])
-			out.WriteString(".clone()}")
+			out.WriteString(")")
+			writeAppendTargetMutationSuffix()
 		} else if len(call.Args) == 2 {
 			// Single element append
-			out.WriteString("{(*")
-			writeAppendTarget(call.Args[0])
-			WriteBorrowMethod(out, true)
-			out.WriteString(").get_or_insert_with(Vec::new).push(")
+			writeAppendTargetMutationPrefix()
+			out.WriteString(".push(")
 			writeAppendElement(call.Args[1])
-			out.WriteString("); ")
-			// Return the wrapped slice itself
-			writeAppendTarget(call.Args[0])
-			out.WriteString(".clone()}")
+			out.WriteString(")")
+			writeAppendTargetMutationSuffix()
 		} else {
 			// Multiple elements, use extend
-			out.WriteString("{(*")
-			writeAppendTarget(call.Args[0])
-			WriteBorrowMethod(out, true)
-			out.WriteString(").get_or_insert_with(Vec::new).extend(vec![")
+			writeAppendTargetMutationPrefix()
+			out.WriteString(".extend(vec![")
 			for i := 1; i < len(call.Args); i++ {
 				if i > 1 {
 					out.WriteString(", ")
 				}
 				writeAppendElement(call.Args[i])
 			}
-			out.WriteString("]); ")
-			// Return the wrapped slice itself
-			writeAppendTarget(call.Args[0])
-			out.WriteString(".clone()}")
+			out.WriteString("])")
+			writeAppendTargetMutationSuffix()
 		}
 	}
 }

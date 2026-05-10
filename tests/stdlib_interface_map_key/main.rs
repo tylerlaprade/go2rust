@@ -83,7 +83,7 @@ pub fn remember(names: Rc<RefCell<Option<BTreeMap<types_Object, Rc<RefCell<Optio
     for (__range_key, _) in (*names.borrow().as_ref().unwrap()).clone() {
         let key = Rc::new(RefCell::new(Some(__range_key.clone())));
         let _ = (*key.borrow().as_ref().unwrap()).pkg();
-        {(*entries.borrow_mut()).get_or_insert_with(Vec::new).push(entry { obj: key.clone(), ..Default::default() }); entries.clone()};
+        { let __append_target = entries.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push(entry { obj: key.clone(), ..Default::default() }); __append_target.clone() };
     }
     let _ = (*entries.borrow().as_ref().unwrap());
 }

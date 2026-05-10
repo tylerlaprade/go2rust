@@ -1175,11 +1175,11 @@ func signatureToBoxDynFn(sig *types.Signature) string {
 	if results.Len() == 0 {
 		returnType = "()"
 	} else if results.Len() == 1 {
-		returnType = goTypesTypeToRustWrapped(results.At(0).Type())
+		returnType = goTypesReturnTypeToRust(results.At(0).Type())
 	} else {
 		var retTypes []string
 		for i := 0; i < results.Len(); i++ {
-			retTypes = append(retTypes, goTypesTypeToRustWrapped(results.At(i).Type()))
+			retTypes = append(retTypes, goTypesReturnTypeToRust(results.At(i).Type()))
 		}
 		returnType = "(" + strings.Join(retTypes, ", ") + ")"
 	}

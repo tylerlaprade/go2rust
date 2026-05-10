@@ -62,7 +62,7 @@ impl r#box {
     }
 
     pub fn add(&mut self, x: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>> {
-        {(*self.items.borrow_mut()).get_or_insert_with(Vec::new).push((*x.borrow().as_ref().unwrap()).clone()); self.items.clone()};
+        { let __append_target = self.items.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push((*x.borrow().as_ref().unwrap()).clone()); __append_target.clone() };
         return Rc::new(RefCell::new(Some((*self.items.borrow().as_ref().unwrap()).len() as i32)));
     }
 

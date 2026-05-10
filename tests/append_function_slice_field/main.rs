@@ -16,7 +16,7 @@ impl std::fmt::Display for queue {
 
 impl queue {
     pub fn add(&mut self, r#fn: Arc<Mutex<Option<Box<dyn Fn() -> () + Send + Sync>>>>) {
-        {(*self.later.lock().unwrap()).get_or_insert_with(Vec::new).push(r#fn.clone()); self.later.clone()};
+        { let __append_target = self.later.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(r#fn.clone()); __append_target.clone() };
     }
 }
 

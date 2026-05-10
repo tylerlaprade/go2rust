@@ -27,7 +27,7 @@ fn main() {
 
     let mut c = Arc::new(Mutex::new(Some(counter { n: Arc::new(Mutex::new(Some(3))), ..Default::default() })));
     let mut xs = Arc::new(Mutex::new(Some(Vec::with_capacity((*(*c.lock().unwrap().as_mut().unwrap()).len().lock().unwrap().as_ref().unwrap()) as usize))));
-    {(*xs.lock().unwrap()).get_or_insert_with(Vec::new).extend(vec![1, 2, 3]); xs.clone()};
+    { let __append_target = xs.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).extend(vec![1, 2, 3]); __append_target.clone() };
 
     println!("{}", (*xs.lock().unwrap().as_ref().unwrap()).len());
     println!("{}", (*xs.lock().unwrap().as_ref().unwrap()).capacity());

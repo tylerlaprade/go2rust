@@ -21,10 +21,10 @@ fn main() {
     let mut n = Arc::new(Mutex::new(Some(node { value: Arc::new(Mutex::new(Some(7))), ..Default::default() })));
     let mut items: Arc<Mutex<Option<Vec<Arc<Mutex<Option<node>>>>>>> = Arc::new(Mutex::new(None));
     let mut result: Arc<Mutex<Option<Vec<Arc<Mutex<Option<node>>>>>>> = Arc::new(Mutex::new(None));
-    {(*items.lock().unwrap()).get_or_insert_with(Vec::new).push(n.clone()); items.clone()};
+    { let __append_target = items.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(n.clone()); __append_target.clone() };
     let result_closure_clone = result.clone(); let mut visit = Arc::new(Mutex::new(Some(Box::new(move |xs: Arc<Mutex<Option<Vec<Arc<Mutex<Option<node>>>>>>>| {
         { let __range_holder = xs.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for p in __range_values.iter() {
-        {(*result_closure_clone.lock().unwrap()).get_or_insert_with(Vec::new).push(p.clone()); result_closure_clone.clone()};
+        { let __append_target = result_closure_clone.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(p.clone()); __append_target.clone() };
     } }
     }) as Box<dyn Fn(Arc<Mutex<Option<Vec<Arc<Mutex<Option<node>>>>>>>) -> () + Send + Sync>)));
     { let __f_guard = visit.lock().unwrap(); let __f = __f_guard.as_ref().unwrap(); (*__f)(items.clone()) };
