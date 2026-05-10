@@ -58,7 +58,7 @@ pub type StringProcessor = Rc<RefCell<Option<Box<dyn Fn(Rc<RefCell<Option<String
 
 
 /// Struct with function fields
-#[derive(Debug, Clone, Default)]
+#[derive(Clone, Default)]
 pub struct Calculator {
     pub add: BinaryOp,
     pub subtract: BinaryOp,
@@ -67,7 +67,7 @@ pub struct Calculator {
 
 impl std::fmt::Display for Calculator {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {}}}", (*self.add.borrow().as_ref().unwrap()), (*self.subtract.borrow().as_ref().unwrap()), (*self.multiply.borrow().as_ref().unwrap()))
+        write!(f, "{{{} {} {}}}", "<func>", "<func>", "<func>")
     }
 }
 
@@ -267,9 +267,9 @@ fn main() {
     }) as Box<dyn Fn(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>>))), multiply: Rc::new(RefCell::new(Some(Box::new(move |__arg0: Rc<RefCell<Option<i32>>>, __arg1: Rc<RefCell<Option<i32>>>| -> Rc<RefCell<Option<i32>>> { multiply(__arg0, __arg1) }) as Box<dyn Fn(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>>))), ..Default::default() })));
 
         // Reuse existing function
-    print!("calc.Add(10, 5) = {}\n", (*{ let __f_holder = (*(*calc.borrow().as_ref().unwrap()).add.borrow().as_ref().unwrap()); let __f_guard = __f_holder.borrow(); let __f = __f_guard.as_ref().unwrap(); (*__f)(Rc::new(RefCell::new(Some(10))), Rc::new(RefCell::new(Some(5)))) }.borrow().as_ref().unwrap()));
-    print!("calc.Subtract(10, 5) = {}\n", (*{ let __f_holder = (*(*calc.borrow().as_ref().unwrap()).subtract.borrow().as_ref().unwrap()); let __f_guard = __f_holder.borrow(); let __f = __f_guard.as_ref().unwrap(); (*__f)(Rc::new(RefCell::new(Some(10))), Rc::new(RefCell::new(Some(5)))) }.borrow().as_ref().unwrap()));
-    print!("calc.Multiply(10, 5) = {}\n", (*{ let __f_holder = (*(*calc.borrow().as_ref().unwrap()).multiply.borrow().as_ref().unwrap()); let __f_guard = __f_holder.borrow(); let __f = __f_guard.as_ref().unwrap(); (*__f)(Rc::new(RefCell::new(Some(10))), Rc::new(RefCell::new(Some(5)))) }.borrow().as_ref().unwrap()));
+    print!("calc.Add(10, 5) = {}\n", (*{ let __f_holder = (*calc.borrow().as_ref().unwrap()).add.clone(); let __f_guard = __f_holder.borrow(); let __f = __f_guard.as_ref().unwrap(); (*__f)(Rc::new(RefCell::new(Some(10))), Rc::new(RefCell::new(Some(5)))) }.borrow().as_ref().unwrap()));
+    print!("calc.Subtract(10, 5) = {}\n", (*{ let __f_holder = (*calc.borrow().as_ref().unwrap()).subtract.clone(); let __f_guard = __f_holder.borrow(); let __f = __f_guard.as_ref().unwrap(); (*__f)(Rc::new(RefCell::new(Some(10))), Rc::new(RefCell::new(Some(5)))) }.borrow().as_ref().unwrap()));
+    print!("calc.Multiply(10, 5) = {}\n", (*{ let __f_holder = (*calc.borrow().as_ref().unwrap()).multiply.clone(); let __f_guard = __f_holder.borrow(); let __f = __f_guard.as_ref().unwrap(); (*__f)(Rc::new(RefCell::new(Some(10))), Rc::new(RefCell::new(Some(5)))) }.borrow().as_ref().unwrap()));
 
         // Function variables
     println!("{}", "\n=== Function variables ===".to_string());

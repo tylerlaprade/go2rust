@@ -59,7 +59,7 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 		_, isSlice := field.Type.(*ast.ArrayType)
 		_, isMap := field.Type.(*ast.MapType)
 		isInterface := isEmptyInterfaceExpr(field.Type)
-		_, isFunction := field.Type.(*ast.FuncType)
+		isFunction := isFunctionSignatureTypeExpr(field.Type)
 		_, isChannel := field.Type.(*ast.ChanType)
 		hasTrait := typeHasTraitField(field.Type)
 		mapOpaque := mapFieldNeedsOpaqueDisplay(field.Type)
@@ -457,6 +457,10 @@ func typeHasTraitField(expr ast.Expr) bool {
 }
 
 func typeCanDeriveDebug(expr ast.Expr, seen map[string]bool) bool {
+	if isFunctionSignatureTypeExpr(expr) {
+		return false
+	}
+
 	fieldType := goTypeToRustBase(expr)
 	if strings.Contains(fieldType, "dyn ") {
 		return false
@@ -547,6 +551,9 @@ func mapFieldNeedsOpaqueDisplay(expr ast.Expr) bool {
 
 func mapValueCanUseDisplay(expr ast.Expr) bool {
 	if isEmptyInterfaceExpr(expr) {
+		return false
+	}
+	if isFunctionSignatureTypeExpr(expr) {
 		return false
 	}
 	switch expr.(type) {

@@ -6396,7 +6396,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 		}
 
 		if isFunctionValueSelector(sel) {
-			writeFunctionValueSelectorCall(out, sel, call.Args)
+			writeFunctionValueSelectorCall(out, sel, call)
 			return
 		}
 		if writeCurrentReceiverPointerMethodCallWithArgTemps(out, sel, call) {
@@ -7140,7 +7140,7 @@ func writeVariadicCallArgumentsFromTypes(out *strings.Builder, call *ast.CallExp
 		if i > 0 {
 			out.WriteString(", ")
 		}
-		writeFunctionValueArgument(out, call.Args[i])
+		writeFunctionSignatureCallArgument(out, call.Args[i], params.At(i).Type())
 	}
 
 	if variadicStart > 0 {
@@ -7225,19 +7225,74 @@ func isFunctionValueSelector(sel *ast.SelectorExpr) bool {
 	return typeInfo.IsFunctionType(sel)
 }
 
-func writeFunctionValueSelectorCall(out *strings.Builder, sel *ast.SelectorExpr, args []ast.Expr) {
+func writeFunctionValueSelectorCall(out *strings.Builder, sel *ast.SelectorExpr, call *ast.CallExpr) {
 	out.WriteString("{ let __f_holder = ")
-	TranspileExpression(out, sel)
+	TranspileExpressionContext(out, sel, LValue)
+	out.WriteString(".clone()")
 	out.WriteString("; let __f_guard = __f_holder")
 	WriteBorrowMethod(out, false)
 	out.WriteString("; let __f = __f_guard.as_ref().unwrap(); (*__f)(")
-	for i, arg := range args {
+	if typeInfo := GetTypeInfo(); typeInfo != nil {
+		if sig, ok := signatureFromType(typeInfo.GetType(sel)); ok {
+			if sig.Variadic() {
+				writeVariadicCallArgumentsFromTypes(out, call, sig)
+			} else {
+				params := sig.Params()
+				for i, arg := range call.Args {
+					if i > 0 {
+						out.WriteString(", ")
+					}
+					var expected types.Type
+					if params != nil && i < params.Len() {
+						expected = params.At(i).Type()
+					}
+					writeFunctionSignatureCallArgument(out, arg, expected)
+				}
+			}
+			out.WriteString(") }")
+			return
+		}
+	}
+	for i, arg := range call.Args {
 		if i > 0 {
 			out.WriteString(", ")
 		}
 		writeFunctionValueArgument(out, arg)
 	}
 	out.WriteString(") }")
+}
+
+func writeFunctionSignatureCallArgument(out *strings.Builder, arg ast.Expr, expected types.Type) {
+	if writeGoErrorCallArgument(out, arg, expected) {
+		return
+	}
+	if writeEmptyInterfaceCallArgument(out, arg, expected) {
+		return
+	}
+	if ident, ok := arg.(*ast.Ident); ok && ident.Name == "nil" {
+		WriteWrappedNone(out)
+		return
+	}
+	if writeStdlibInterfaceCallArgumentConversion(out, arg, expected) {
+		return
+	}
+	if writeIndexedPointerHandleCallArgument(out, arg, expected) {
+		return
+	}
+	if writeAlreadyWrappedCallArgument(out, arg) {
+		return
+	}
+	WriteWrapperPrefix(out)
+	if writeConstExpressionForExpectedGoType(out, arg, expected) {
+		// Constant emitted in the parameter's expected representation.
+	} else if writeRangeStringCallArgumentValue(out, arg, expected) {
+		// Range string reference cloned for an owned string parameter.
+	} else if writeLenCapCallArgumentForExpectedType(out, arg, expected) {
+		// len/cap emits usize, but Go int parameters use i32.
+	} else if !writeCallArgumentValue(out, arg) {
+		TranspileExpression(out, arg)
+	}
+	WriteWrapperSuffix(out)
 }
 
 func writeFunctionValueArgument(out *strings.Builder, arg ast.Expr) {
