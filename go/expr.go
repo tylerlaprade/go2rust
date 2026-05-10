@@ -6866,6 +6866,13 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				out.WriteString(")")
 				return
 			}
+			if !isExternalStdlibStubCall {
+				if sig, ok := callSignatureFromTypeInfo(call); ok && sig.Variadic() {
+					writeVariadicCallArgumentsFromTypes(out, call, sig)
+					out.WriteString(")")
+					return
+				}
+			}
 			for i, arg := range call.Args {
 				if i > 0 {
 					out.WriteString(", ")

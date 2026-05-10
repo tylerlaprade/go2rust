@@ -1,0 +1,20 @@
+
+[workspace]
+members = [
+    ".",
+    "vendor/example_com_packagevariadic_label",
+    "vendor/go2rust_stdlib_stubs",
+]
+
+[package]
+name = "package_variadic_import"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "package_variadic_import"
+path = "main.rs"
+
+[dependencies]
+example_com_packagevariadic_label = { path = "vendor/example_com_packagevariadic_label" }
+go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }

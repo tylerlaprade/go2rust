@@ -171,6 +171,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Assignment from function return values | ✅ |
 | └ Variadic functions | ✅ |
 | └ Cross-file variadic function calls | ✅ |
+| └ Imported transpiled package variadic calls | ✅ |
 | **`go` - Goroutines** | ✅ |
 | └ Worker pool pattern with channels | ✅ |
 | └ Method receiver captures with deferred receiver calls | ✅ |

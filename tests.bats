@@ -1232,6 +1232,10 @@ run_xfail_test() {
     run_test "tests/package_selector_zero_values"
 }
 
+@test "package_variadic_import" {
+    run_test "tests/package_variadic_import"
+}
+
 @test "panic_fmt_errorf_dynamic" {
     run_test "tests/panic_fmt_errorf_dynamic"
 }
