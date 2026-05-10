@@ -1039,6 +1039,25 @@ func writePointerNamedReturnAssignment(out *strings.Builder, name *ast.Ident, re
 	return true
 }
 
+func writeStdlibInterfaceNamedReturnAssignment(out *strings.Builder, name *ast.Ident, resultType ast.Expr, rhs ast.Expr) bool {
+	if name == nil || name.Name == "_" {
+		return false
+	}
+	var converted strings.Builder
+	if !writeStdlibInterfaceCallArgumentConversion(&converted, rhs, expectedTypeFromParamExpr(resultType)) {
+		return false
+	}
+	out.WriteString("{ let new_val = ")
+	out.WriteString(converted.String())
+	out.WriteString("; let __moved_val = { let mut __guard = new_val")
+	WriteBorrowMethod(out, true)
+	out.WriteString("; __guard.take() }; *")
+	out.WriteString(RustLocalIdent(name.Name))
+	WriteBorrowMethod(out, true)
+	out.WriteString(" = __moved_val; }")
+	return true
+}
+
 func namedTypeForTypeExpr(expr ast.Expr) (*types.Named, bool) {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil || expr == nil {
@@ -2141,7 +2160,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					continue
 				}
 				out.WriteString("        ")
-				if !writePointerNamedReturnAssignment(out, names[i], returnResultTypeExpr(fnType, i), result) {
+				if !writeStdlibInterfaceNamedReturnAssignment(out, names[i], returnResultTypeExpr(fnType, i), result) &&
+					!writePointerNamedReturnAssignment(out, names[i], returnResultTypeExpr(fnType, i), result) {
 					TranspileStatementSimple(out, &ast.AssignStmt{
 						Lhs: []ast.Expr{names[i]},
 						Tok: token.ASSIGN,

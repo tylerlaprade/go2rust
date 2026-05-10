@@ -1416,6 +1416,10 @@ run_xfail_test() {
     run_test "tests/stdlib_interface_map_value_assignment"
 }
 
+@test "stdlib_interface_named_return_defer" {
+    run_test "tests/stdlib_interface_named_return_defer"
+}
+
 @test "stdlib_interface_range_assertion" {
     run_test "tests/stdlib_interface_range_assertion"
 }
