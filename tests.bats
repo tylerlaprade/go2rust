@@ -1696,6 +1696,10 @@ run_xfail_test() {
     run_test "tests/strconv_parse"
 }
 
+@test "string_append_sprintf_selector_slice" {
+    run_test "tests/string_append_sprintf_selector_slice"
+}
+
 @test "string_builder" {
     run_test "tests/string_builder"
 }

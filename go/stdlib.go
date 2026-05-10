@@ -351,6 +351,10 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 				out.WriteString("format_slice(&")
 				out.WriteString(RustIdentForUse(ident))
 				out.WriteString(")")
+			} else if formatSliceArgumentIsBareValue(arg) {
+				out.WriteString("format_slice_values(&")
+				TranspileExpression(out, arg)
+				out.WriteString(")")
 			} else {
 				out.WriteString("format_slice(&")
 				TranspileExpression(out, arg)
@@ -967,6 +971,16 @@ func transpileFmtFprintf(out *strings.Builder, call *ast.CallExpr) {
 	}
 
 	out.WriteString(")")
+}
+
+func formatSliceArgumentIsBareValue(arg ast.Expr) bool {
+	if isExpressionResultBare(arg) {
+		return true
+	}
+	if _, ok := arg.(*ast.SelectorExpr); ok {
+		return !selectorRValueReturnsWrappedHandle(arg)
+	}
+	return false
 }
 
 func transpileFmtSprintf(out *strings.Builder, call *ast.CallExpr) {

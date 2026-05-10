@@ -366,6 +366,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | **String Operations** | |
 | └ String concatenation (+) | ✅ |
 | └ String += operator | ✅ |
+| └ String += from wrapped formatted string calls | ✅ |
 | └ Returning string constants from string functions | ✅ |
 | └ String comparisons | ✅ |
 | └ Byte comparisons with character literals | ✅ |
@@ -409,6 +410,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ `fmt.Println` | ✅ |
 | └ `fmt.Printf` | ✅ |
 | └ `fmt.Sprintf` | ✅ |
+| └ `fmt.Sprintf("%v", selectorSlice)` | ✅ |
 | └ `fmt.Errorf` | ✅ |
 | └ `fmt.Fprintln` | ✅ |
 | └ `fmt.Fprintf` | ✅ |

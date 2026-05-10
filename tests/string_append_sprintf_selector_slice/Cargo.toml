@@ -1,0 +1,8 @@
+[package]
+name = "string_append_sprintf_selector_slice"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "string_append_sprintf_selector_slice"
+path = "main.rs"

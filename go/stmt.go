@@ -3073,7 +3073,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					out.WriteString("(*")
 					writeWrappedMutationTargetRef(out, s.Lhs[0], true)
 					out.WriteString(".as_mut().unwrap()).push_str(&")
-					TranspileExpression(out, s.Rhs[0])
+					writeStringAppendExpression(out, s.Rhs[0])
 					out.WriteString("); }")
 				} else {
 					// Numeric compound assignment for wrapped values
@@ -5990,6 +5990,21 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 	default:
 		out.WriteString("// TODO: Unhandled statement type: " + strings.TrimPrefix(fmt.Sprintf("%T", s), "*ast."))
 	}
+}
+
+func writeStringAppendExpression(out *strings.Builder, rhs ast.Expr) {
+	if call, ok := rhs.(*ast.CallExpr); ok {
+		typeInfo := GetTypeInfo()
+		if typeInfo != nil && typeInfo.IsString(call) && typeInfo.ReturnsWrappedValue(call) && !isBareBuiltinReturn(call) && !callReturnsBareChannelValue(call) {
+			out.WriteString("{ let __s = ")
+			TranspileExpression(out, rhs)
+			out.WriteString("; let __value = (*__s")
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref().unwrap()).clone(); __value }")
+			return
+		}
+	}
+	TranspileExpression(out, rhs)
 }
 
 func isChannelAssignment(s *ast.AssignStmt) bool {
