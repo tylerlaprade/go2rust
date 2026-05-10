@@ -61,7 +61,7 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 
 ### ✅ Phase 5: Core Language Features (90% Complete)
 
-- ✅ Basic constants - simple const declarations working
+- ✅ Basic constants - simple const declarations working, with local constants resolved by go/types object identity so name reuse does not leak across scopes while package-scope lowercase constants still resolve across split modules
 - ✅ Complex constants and iota - multiple constants per line, bit shifts, blank identifier all working (2025-08-23)
 - ✅ Named iota enum types - iota-backed defined integer types preserve newtype semantics and underlying const widths across constants, switch cases, maps, returns, struct fields, untyped literal fields, multi-module struct literals, and String methods (enums_iota promoted, 2026-05-06; struct_const_fields promoted, 2026-05-07; const width fix, 2026-05-07; multi-file newtype constructor fix, 2026-05-07)
 - ✅ Named scalar equality comparisons - scalar type definitions compare across wrapper modes, and typed constants wrap correctly for multi-name parameters and selector comparisons (named_type_comparisons and concurrent_named_type_comparisons added, 2026-05-07)
@@ -74,14 +74,14 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 - ✅ Numeric type conversions - literal and raw expression conversions such as `byte(1)` and `uint64(1) << n` cast directly instead of borrowing a wrapped value (numeric_conversion_literals promoted, 2026-05-07)
 - ✅ Named integer numeric conversions - local named scalar wrappers and external integer tuple stubs unwrap to primitive scalars before conversions such as `int(k)`, `uint64(kind())`, and same-type comparison constants like `Kind(len(index)-1)` (named_integer_conversion added, expanded 2026-05-09)
 - ✅ Cross-file named integer call conversions - go/types drives conversions such as `Marker(raw())` and `SyncMarker(r.rawUvarint())` when the target named type is declared in another file/module (cross_file_named_integer_call_conversion promoted, 2026-05-09)
-- ✅ Defer statements - fully working with proper LIFO execution and variable capture
-- 🚧 Panic and recover - basic panic working, recover needs catch_unwind integration
+- ✅ Defer statements - fully working with proper LIFO execution, variable capture, and function-literal-local defer state
+- 🚧 Panic and recover - basic panic working, recover emits a nil empty-interface-shaped value, and catch_unwind integration is still needed
 - ✅ Interfaces - empty interface{} and named interfaces working with trait generation (2025-09-04)
 - ✅ VarTable selective wrapping - scope-aware variable tracking, interface params as bare `&dyn Trait` (2026-03-05)
 - ✅ Local interface trait-object helpers - generated local interface traits now clone boxed values, compare interface values, store concrete values in interface fields, return interface globals, and support `slices.Contains` over interface slices (local_interface_equality_contains promoted, 2026-05-08)
 - ✅ Typed constants as local interface arguments - package constants with named concrete types construct that named type before passing `&dyn Trait` parameters (cross_file_interface_typed_const_argument added, 2026-05-09)
 - ✅ Imported transpiled interface implementations - current-package concrete values passed to dependency interface parameters generate imported trait impls when go/types proves the implementation (2026-05-08)
-- ✅ Error handling - custom error types with Error() method, Box<dyn Error> returns, package-level error globals, error assignment, error-to-error moves, error handle arguments, error equality comparisons, type assertions on errors, and fmt.Errorf `%w` formatting (2026-03-26, updated 2026-05-09)
+- ✅ Error handling - custom error types with Error() method, concrete named-error assignment/return boxing, Box<dyn Error> returns, package-level error globals, error assignment, error-to-error moves, error handle arguments, error equality comparisons, type assertions on errors, and fmt.Errorf `%w` formatting (2026-03-26, updated 2026-05-09)
 - ✅ Embedded method promotion - multi-level embedding, promoted method calls, field method chains (2026-03-26)
 - ✅ Map value type consistency - map literal values and type annotations now consistently wrap values (2026-03-26)
 - ✅ Map capacity and element update semantics - make(map[K]V, cap), missing-key zero values, and map element ++/+= (make_map_with_capacity promoted, 2026-05-06)
@@ -118,6 +118,7 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 - ✅ Advanced deterministic control-flow combinations - labeled break/continue, nested switch, fallthrough, complex loop conditions, nested ranges, select, and error-flow smoke coverage (advanced_control_flow promoted, 2026-05-06)
 - ✅ Full range-loop fixture - slice/map/string/channel ranges, nil slice iteration, and repeated wrapped reads in channel sends (range_loops promoted, 2026-05-06)
 - ✅ Range string call arguments - range values from `[]string` clone out of iterator references when passed to methods/functions expecting owned `string` parameters (range_string_method_argument promoted, 2026-05-09)
+- ✅ Range index conversion and map-key ownership - bare `.enumerate()` indexes cast directly for numeric conversions, and ranged values used as map insertion keys clone into owned keys (range_index_conversion_map_key added, 2026-05-09)
 - ✅ Range over integers - Go 1.22 integer range expressions lower to Rust integer ranges (range_over_integer promoted, 2026-05-07)
 - ✅ Range-variable shadowing in nested loops - a `for` init short declaration can shadow an active outer range variable without inheriting the outer bare range binding (concurrent_for_method_len added, 2026-05-09)
 - ✅ Goto and labels - labeled break/continue plus basic top-level goto patterns with backward loop jumps and forward block exits (goto_labels promoted, 2026-05-06)
@@ -200,7 +201,7 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 - ✅ Basic reflection metadata - reflect.TypeOf for struct fields plus StructTag.Get, non-struct TypeOf names, and pointer conversions to reflected struct header stand-ins (struct_tags_reflection promoted, 2026-05-06; reflect_string_header_pointer promoted, 2026-05-08; reflect_typeof_non_struct added, 2026-05-09)
 - 🚧 Unsafe operations - Sizeof/Alignof lower to Rust representation layout, `unsafe.Sizeof` works in integer comparisons/conversions, and named `unsafe.Pointer` definitions round-trip through `uintptr` and `any`; pointer arithmetic and Offsetof remain unsupported (unsafe_sizeof_alignof promoted, 2026-05-07; unsafe_pointer_named_uintptr promoted, 2026-05-08; unsafe_sizeof_comparison promoted, 2026-05-09)
 - 🚧 JSON/encoding/crypto support - json.Marshal supports structs with exported basic fields (json_marshal promoted, 2026-05-06); encoding/base64 StdEncoding EncodeToString/DecodeString and crypto/sha256 Sum256 supported (base64_encoding, crypto_hash promoted, 2026-05-06)
-- ✅ Extended strings package coverage - search, IndexAny, Compare/Cut, split/join, replace, repeat, trim variants, EqualFold, Title, Builder Len, and Builder.WriteString with string constants (stdlib_strings promoted, 2026-05-06; expanded 2026-05-07)
+- ✅ Extended strings package coverage - search, IndexAny, Compare/Cut, split/join, replace, repeat, trim variants, EqualFold, Title, Builder Len, Builder.WriteString, and go/types-proven string constants as stdlib string args (stdlib_strings promoted, 2026-05-06; expanded 2026-05-09)
 - ✅ Basic net/url parsing - url.Parse exposes Scheme, Host, Path, and RawQuery fields (url_parsing promoted, 2026-05-06)
 - ✅ Basic regexp support - regexp.MustCompile plus FindAllString for `\d+` and literal matches (regex_basic promoted, 2026-05-06)
 - ✅ Basic math/rand support - Seed, Intn, and Float64 with deterministic range assertions (random_numbers promoted, 2026-05-06)
@@ -209,7 +210,7 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 - ✅ Basic generic slices helpers - slices.Sort, slices.SortFunc, and slices.Contains for ordered/comparable values and comparator-based ordering (sort_slice promoted, 2026-05-06; slices_contains promoted, 2026-05-07; slices_sort_func promoted, 2026-05-07)
 - ✅ Basic deterministic time values - time.Unix plus Time.UTC/Add/Unix/UnixNano (time_operations promoted, 2026-05-06)
 - ✅ Basic file creation - os.Create/os.Remove plus file WriteString/Close (file_io promoted, 2026-05-06)
-- ✅ Multi-stdlib deterministic smoke coverage - strings/strconv/math/time/os together (stdlib_imports promoted, 2026-05-06)
+- ✅ Multi-stdlib deterministic smoke coverage - strings/strconv/math/time/os together, including `strconv.Itoa` on wrapped numeric method-call results (stdlib_imports promoted, 2026-05-06; expanded 2026-05-09)
 - ✅ Basic timers - time.NewTimer with Timer.C receive and Stop (timers_basic promoted, 2026-05-06)
 - ✅ Basic timeouts - pre-bound time.After channels in select polling loops (timeouts_basic promoted, 2026-05-06)
 - ✅ Basic tickers - time.NewTicker with Ticker.C receive and Stop (tickers_basic promoted, 2026-05-06)
@@ -220,4 +221,4 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 
 go2rust transpiles itself!
 
-- 🚧 Self-transpile cargo check now reaches `golang_org_x_tools_internal_gcimporter` with prior range-shadowing, stdlib interface map-key, pointer-key map slice append, stdlib map-range, indexed pointer call-argument, pointer-handle equality, untyped integer constant argument, non-struct `reflect.TypeOf`, method nil pointer argument, pointer-slice literal variable, cross-file named function type alias, indexed pointer-slice return, and omitted variadic function-value argument blockers fixed; the next first error is a `downcast_ref` call on `&String` in generated `iexport.rs:1586`, with 171 reported gcimporter errors remaining in the package-targeted check (2026-05-09)
+- 🚧 Self-transpile cargo check now reaches `golang_org_x_tools_internal_gcimporter` with prior recover empty-interface nil, concrete named-error assignment/return, local-const name leakage, range-index numeric conversion, range-value map-key cloning, nested defer-state leakage, `strconv.Itoa` wrapped numeric args, and string-constant stdlib argument blockers fixed; the next first error is generated Debug formatting for a function-typed field in `iimport.rs:307`, with 152 reported gcimporter errors remaining in the package-targeted check (2026-05-09)
