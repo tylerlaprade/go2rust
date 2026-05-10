@@ -299,7 +299,7 @@ fn main() {
     { let __map_key = "auth".to_string(); let __map_value = authModule.clone(); (*(*system.borrow().as_ref().unwrap()).modules.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
 
     print!("\nSystem version: {}\n", (*(*system.borrow().as_ref().unwrap()).version.borrow().as_ref().unwrap()));
-    for (name, module) in (*(*system.borrow().as_ref().unwrap()).modules.borrow().as_ref().unwrap()).clone() {
+    for (name, module) in ((*(*system.borrow().as_ref().unwrap()).modules.borrow().as_ref().unwrap())).clone() {
         print!("Module {}: enabled={}\n", name, (*(*module.borrow().as_ref().unwrap()).enabled.borrow().as_ref().unwrap()));
         { let __range_holder = (*(*module.borrow().as_ref().unwrap()).settings.borrow().as_ref().unwrap()).options.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for opt in __range_values.iter() {
         print!("  - {}: {}\n", (*opt.key.borrow().as_ref().unwrap()), format_any(opt.value.borrow().as_ref().unwrap().as_ref()));

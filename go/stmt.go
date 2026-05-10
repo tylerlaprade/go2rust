@@ -4373,6 +4373,22 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			prelude.WriteString(";\n")
 			rangePrelude = prelude.String()
 		}
+		writeMapRangeSource := func() {
+			if isExpressionResultBare(s.X) || (!NeedsConcurrentWrapper() && isBareMapSelectorExpression(s.X)) {
+				out.WriteString("(")
+				TranspileExpression(out, s.X)
+				out.WriteString(").clone()")
+				return
+			}
+			out.WriteString("(*")
+			if ident, ok := s.X.(*ast.Ident); ok {
+				out.WriteString(EscapeRustIdent(ident.Name))
+			} else {
+				TranspileExpressionContext(out, s.X, LValue)
+			}
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref().unwrap()).clone()")
+		}
 
 		if isInteger {
 			if s.Value != nil {
@@ -4460,51 +4476,24 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				writeMapRangeKeyBinding()
 				out.WriteString(", ")
 				writeRangeBinding(out, s.Value, valueAssigned)
-				out.WriteString(") in (*")
-				// For map access, we need the raw identifier, not the unwrapped value
-				if ident, ok := s.X.(*ast.Ident); ok {
-					out.WriteString(EscapeRustIdent(ident.Name))
-				} else {
-					TranspileExpressionContext(out, s.X, LValue)
-				}
-				WriteBorrowMethod(out, false)
-				out.WriteString(".as_ref().unwrap()).clone()")
+				out.WriteString(") in ")
+				writeMapRangeSource()
 			} else if s.Value != nil {
 				// for _, v := range map (values only)
 				out.WriteString("(_, ")
 				writeRangeBinding(out, s.Value, valueAssigned)
-				out.WriteString(") in (*")
-				// For map access, we need the raw identifier, not the unwrapped value
-				if ident, ok := s.X.(*ast.Ident); ok {
-					out.WriteString(EscapeRustIdent(ident.Name))
-				} else {
-					TranspileExpressionContext(out, s.X, LValue)
-				}
-				WriteBorrowMethod(out, false)
-				out.WriteString(".as_ref().unwrap()).clone()")
+				out.WriteString(") in ")
+				writeMapRangeSource()
 			} else if s.Key != nil {
 				// for k := range map (keys only)
 				out.WriteString("(")
 				writeMapRangeKeyBinding()
-				out.WriteString(", _) in (*")
-				// For map access, we need the raw identifier, not the unwrapped value
-				if ident, ok := s.X.(*ast.Ident); ok {
-					out.WriteString(EscapeRustIdent(ident.Name))
-				} else {
-					TranspileExpressionContext(out, s.X, LValue)
-				}
-				WriteBorrowMethod(out, false)
-				out.WriteString(".as_ref().unwrap()).clone()")
+				out.WriteString(", _) in ")
+				writeMapRangeSource()
 			} else {
 				// for range map
-				out.WriteString("_ in (*")
-				if ident, ok := s.X.(*ast.Ident); ok {
-					out.WriteString(EscapeRustIdent(ident.Name))
-				} else {
-					TranspileExpressionContext(out, s.X, LValue)
-				}
-				WriteBorrowMethod(out, false)
-				out.WriteString(".as_ref().unwrap()).clone()")
+				out.WriteString("_ in ")
+				writeMapRangeSource()
 			}
 		} else {
 			// Array/slice iteration

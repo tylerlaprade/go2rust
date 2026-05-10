@@ -1224,6 +1224,10 @@ run_xfail_test() {
     run_test "tests/range_map_slice_value"
 }
 
+@test "range_nested_map_lookup_keys" {
+    run_test "tests/range_nested_map_lookup_keys"
+}
+
 @test "range_over_integer" {
     run_test "tests/range_over_integer"
 }
