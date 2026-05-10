@@ -34,6 +34,14 @@ func forceConcurrentWrappers() {
 	<-done
 }
 
+func pickName(names []string, idx base.Index) string {
+	return names[idx]
+}
+
+func touchNamePtr(names []string, idx base.Index) {
+	_ = &names[idx]
+}
+
 func main() {
 	forceConcurrentWrappers()
 
@@ -59,4 +67,8 @@ func main() {
 	fmt.Println(fromPkg.Label("frompkg"))
 	pr.retireReader(fromPkg)
 	fmt.Println(fromPkg.Label("retired"))
+
+	idx := base.Index(1)
+	fmt.Println(pickName([]string{"zero", "one", "two"}, idx))
+	touchNamePtr([]string{"zero", "one", "two"}, idx)
 }

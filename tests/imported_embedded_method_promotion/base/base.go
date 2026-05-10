@@ -10,6 +10,8 @@ type PkgDecoder struct {
 	Base int
 }
 
+type Index int32
+
 func (d *Decoder) Add(n int) {
 	d.Value += n
 }

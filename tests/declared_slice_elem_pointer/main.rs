@@ -96,7 +96,7 @@ fn main() {
 
     { let __range_holder = bucket.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for (i, e) in __range_values.iter().enumerate() {
         if { let __tmp_x = (*e.key.lock().unwrap().as_ref().unwrap()); let __tmp_y = 1; __tmp_x == __tmp_y } {
-        hole = Some(GoSliceElemPtr::new(bucket.clone(), i as usize));
+        hole = Some(GoSliceElemPtr::new(bucket.clone(), (i) as usize));
     }
     } }
 

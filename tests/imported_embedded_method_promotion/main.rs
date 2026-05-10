@@ -149,6 +149,76 @@ impl<T> Iterator for GoChannel<T> {
     }
 }
 
+#[derive(Clone)]
+struct GoSliceElemPtr<T: Clone> {
+    slice: Arc<Mutex<Option<Vec<T>>>>,
+    index: usize,
+}
+
+struct GoSliceElemRef<T: Clone> {
+    value: Option<T>,
+}
+
+struct GoSliceElemMutRef<T: Clone> {
+    slice: Arc<Mutex<Option<Vec<T>>>>,
+    index: usize,
+    value: Option<T>,
+}
+
+impl<T: Clone> GoSliceElemPtr<T> {
+    fn new(slice: Arc<Mutex<Option<Vec<T>>>>, index: usize) -> Self {
+        GoSliceElemPtr { slice, index }
+    }
+
+    fn borrow(&self) -> GoSliceElemRef<T> {
+        let guard = self.slice.lock().unwrap();
+        GoSliceElemRef {
+            value: guard.as_ref().and_then(|values| values.get(self.index).cloned()),
+        }
+    }
+
+    fn borrow_mut(&self) -> GoSliceElemMutRef<T> {
+        let guard = self.slice.lock().unwrap();
+        GoSliceElemMutRef {
+            slice: self.slice.clone(),
+            index: self.index,
+            value: guard.as_ref().and_then(|values| values.get(self.index).cloned()),
+        }
+    }
+}
+
+impl<T: Clone> std::ops::Deref for GoSliceElemRef<T> {
+    type Target = Option<T>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.value
+    }
+}
+
+impl<T: Clone> std::ops::Deref for GoSliceElemMutRef<T> {
+    type Target = Option<T>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.value
+    }
+}
+
+impl<T: Clone> std::ops::DerefMut for GoSliceElemMutRef<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.value
+    }
+}
+
+impl<T: Clone> Drop for GoSliceElemMutRef<T> {
+    fn drop(&mut self) {
+        if let Some(value) = self.value.clone() {
+            if let Some(values) = self.slice.lock().unwrap().as_mut() {
+                values[self.index] = value;
+            }
+        }
+    }
+}
+
 #[derive(Clone, Default)]
 pub struct Reader {
     pub decoder: Arc<Mutex<Option<example_com_importedembed_base::Decoder>>>,
@@ -236,6 +306,15 @@ pub fn force_concurrent_wrappers() {
     done.recv().unwrap();
 }
 
+pub fn pick_name(names: Arc<Mutex<Option<Vec<String>>>>, idx: Arc<Mutex<Option<example_com_importedembed_base::Index>>>) -> Arc<Mutex<Option<String>>> {
+
+    return Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = names.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(*{ let __v = (*idx.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as usize].clone() })));
+}
+
+pub fn touch_name_ptr(names: Arc<Mutex<Option<Vec<String>>>>, idx: Arc<Mutex<Option<example_com_importedembed_base::Index>>>) {
+    let _ = GoSliceElemPtr::new(names.clone(), (*{ let __v = (*idx.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as usize);
+}
+
 fn main() {
     force_concurrent_wrappers();
     let mut r = Arc::new(Mutex::new(Some(Reader { decoder: Arc::new(Mutex::new(Some(example_com_importedembed_base::Decoder { value: Arc::new(Mutex::new(Some(3))), ..Default::default() }))), name: Arc::new(Mutex::new(Some("reader".to_string()))), ..Default::default() })));
@@ -249,4 +328,7 @@ fn main() {
     println!("{}", (*(*fromPkg.lock().unwrap().as_mut().unwrap()).label(Arc::new(Mutex::new(Some("frompkg".to_string())))).lock().unwrap().as_ref().unwrap()));
     (*pr.lock().unwrap().as_mut().unwrap()).retire_reader(fromPkg.clone());
     println!("{}", (*(*fromPkg.lock().unwrap().as_mut().unwrap()).label(Arc::new(Mutex::new(Some("retired".to_string())))).lock().unwrap().as_ref().unwrap()));
+    let mut idx = Arc::new(Mutex::new(Some(example_com_importedembed_base::Index(Arc::new(Mutex::new(Some(1 as i32)))))));
+    println!("{}", (*pick_name(Arc::new(Mutex::new(Some(vec!["zero".to_string(), "one".to_string(), "two".to_string()]))), Arc::new(Mutex::new(Some((*idx.lock().unwrap().as_ref().unwrap()).clone())))).lock().unwrap().as_ref().unwrap()));
+    touch_name_ptr(Arc::new(Mutex::new(Some(vec!["zero".to_string(), "one".to_string(), "two".to_string()]))), Arc::new(Mutex::new(Some((*idx.lock().unwrap().as_ref().unwrap()).clone()))));
 }

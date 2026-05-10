@@ -132,7 +132,7 @@ fn main() {
     { let new_val = 20; *px.borrow_mut() = Some(new_val); };
 
     let mut nums = Rc::new(RefCell::new(Some(vec![1, 2, 3])));
-    let mut first = GoSliceElemPtr::new(nums.clone(), 0 as usize);
+    let mut first = GoSliceElemPtr::new(nums.clone(), (0) as usize);
     { let new_val = 9; *first.borrow_mut() = Some(new_val); };
 
     println!("{} {}", (*(*p.borrow().as_ref().unwrap()).x.borrow().as_ref().unwrap()), format_slice(&nums));

@@ -3833,8 +3833,8 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					out.WriteString("GoSliceElemPtr::new(")
 					TranspileExpressionContext(out, indexExpr.X, LValue)
 					out.WriteString(".clone(), ")
-					TranspileExpression(out, indexExpr.Index)
-					out.WriteString(" as usize)")
+					writeExpressionAsUsize(out, indexExpr.Index)
+					out.WriteString(")")
 					return
 				}
 			}
