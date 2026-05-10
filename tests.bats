@@ -1236,6 +1236,10 @@ run_xfail_test() {
     run_test "tests/package_global_anonymous_struct_array"
 }
 
+@test "package_global_channel_make" {
+    run_test "tests/package_global_channel_make"
+}
+
 @test "package_global_error" {
     run_test "tests/package_global_error"
 }

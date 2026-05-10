@@ -2811,8 +2811,8 @@ func transpileMake(out *strings.Builder, call *ast.CallExpr) {
 				out.WriteString("GoChannel::<")
 				out.WriteString(elemType)
 				out.WriteString(">::new_buffered(")
-				TranspileExpression(out, call.Args[1])
-				out.WriteString(" as usize)")
+				writeChannelCapacityAsUsize(out, call.Args[1])
+				out.WriteString(")")
 			} else {
 				// Unbuffered: make(chan T)
 				out.WriteString("GoChannel::<")
@@ -2899,6 +2899,15 @@ func transpileMake(out *strings.Builder, call *ast.CallExpr) {
 			out.WriteString(")))")
 		}
 	}
+}
+
+func writeChannelCapacityAsUsize(out *strings.Builder, expr ast.Expr) {
+	if lit, ok := expr.(*ast.BasicLit); ok && lit.Kind == token.INT {
+		out.WriteString(lit.Value)
+		out.WriteString(" as usize")
+		return
+	}
+	writeExpressionAsUsize(out, expr)
 }
 
 func transpileCap(out *strings.Builder, call *ast.CallExpr) {

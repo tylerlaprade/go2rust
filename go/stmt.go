@@ -1450,7 +1450,7 @@ func isAssignmentSelfWrappingExpression(expr ast.Expr) bool {
 	case *ast.SliceExpr:
 		return true
 	case *ast.CallExpr:
-		return isBuiltinCallNamed(e, "make")
+		return isBuiltinCallNamed(e, "make") && !isMakeChannelCall(e)
 	default:
 		return false
 	}
@@ -2252,6 +2252,8 @@ func callReturnsBareChannelValue(call *ast.CallExpr) bool {
 		switch ident.Name {
 		case "len", "cap", "copy":
 			return true
+		case "make":
+			return isMakeChannelCall(call)
 		}
 	}
 
@@ -2262,6 +2264,23 @@ func callReturnsBareChannelValue(call *ast.CallExpr) bool {
 		}
 	}
 
+	return false
+}
+
+func isMakeChannelCall(call *ast.CallExpr) bool {
+	if call == nil || !isBuiltinCallNamed(call, "make") || len(call.Args) == 0 {
+		return false
+	}
+	if _, ok := call.Args[0].(*ast.ChanType); ok {
+		return true
+	}
+	if typeInfo := GetTypeInfo(); typeInfo != nil {
+		if typ := typeInfo.GetType(call); typ != nil {
+			if _, ok := types.Unalias(typ).Underlying().(*types.Chan); ok {
+				return true
+			}
+		}
+	}
 	return false
 }
 

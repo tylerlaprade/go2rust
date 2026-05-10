@@ -986,6 +986,15 @@ func TranspileExpression(out *strings.Builder, expr ast.Expr) {
 }
 
 func writeChannelExpression(out *strings.Builder, expr ast.Expr) {
+	if ident, ok := expr.(*ast.Ident); ok && isPackageGlobalIdent(ident) {
+		if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.IsChannel(ident) {
+			out.WriteString("{ let __channel = ")
+			out.WriteString(rustPackageGlobalName(ident.Name))
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref().unwrap().clone(); __channel }")
+			return
+		}
+	}
 	TranspileExpressionContext(out, expr, LValue)
 }
 

@@ -867,6 +867,9 @@ func goTypesTypeToRust(t types.Type) string {
 	case *types.Map:
 		TrackImport("BTreeMap")
 		return "BTreeMap<" + goTypesMapKeyToRust(ut.Key()) + ", " + goTypesMapValueToRust(ut.Elem()) + ">"
+	case *types.Chan:
+		NeedGoChannel()
+		return "GoChannel<" + goTypesChannelElemTypeToRust(ut.Elem()) + ">"
 	case *types.Struct:
 		if named, ok := t.(*types.Named); ok {
 			return goTypesNamedTypeToRust(named)
@@ -897,6 +900,17 @@ func goTypesTypeToRust(t types.Type) string {
 func goTypesCollectionElemTypeToRust(t types.Type) string {
 	if isFunctionSignatureType(t) {
 		return goTypesTypeToRustWrapped(t)
+	}
+	return goTypesTypeToRust(t)
+}
+
+func goTypesChannelElemTypeToRust(t types.Type) string {
+	if isGoErrorType(t) {
+		TrackImport("Error")
+		if NeedsConcurrentWrapper() {
+			return "Option<Box<dyn StdError + Send + Sync>>"
+		}
+		return "Option<Box<dyn StdError>>"
 	}
 	return goTypesTypeToRust(t)
 }

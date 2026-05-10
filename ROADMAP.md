@@ -168,6 +168,7 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 - ✅ Goroutines (thread::spawn with variable capture)
 - ✅ Channels (buffered, unbuffered, close, range)
 - ✅ Channel struct fields - bare `GoChannel` fields support zero values, explicit literals, nil assignment/checks, send/receive, len, and cap (channel_struct_fields promoted, 2026-05-07)
+- ✅ Package-level channel globals - go/types channel types emit `GoChannel<T>` static slots, `make(chan T, n)` initializes bare channel handles, and package-global channel send/receive/len clone the stored channel before use (package_global_channel_make added, 2026-05-10)
 - ✅ Select (basic, non-blocking, default)
 - ✅ WaitGroup, Mutex, Once, shared mutation
 - ✅ `sync.Once.Do` receiver-field initialization callbacks - callbacks such as `r.once.Do(func(){ r.ch = make(chan struct{}, n) })` inline as `FnMut`-capable helper calls and mutate the real receiver, not a cloned receiver (sync_once_receiver_init added, 2026-05-10)
@@ -193,6 +194,7 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 - ✅ External package workspace wrapper policy - root and transpiled dependency crates share one goroutine/channel detection result before wrapper selection, preventing cross-crate wrapper mismatches (2026-05-07)
 - ✅ Package-level map literal initialization - global map literals lower through source-ordered local `BTreeMap` inserts followed by one assignment, avoiding multi-megabyte Rust expressions in generated dependency crates (package_global_map_incremental added, 2026-05-07)
 - ✅ Package-level named slice globals - go/types-backed package global declarations preserve named slice newtypes instead of erasing them to raw `Vec` values (package_global_named_slice added, 2026-05-07)
+- ✅ Package-level channel globals - inferred channel declarations such as `var sem = make(chan unit, runtime.GOMAXPROCS(0))` preserve the `GoChannel<unit>` type and unwrap wrapped capacity expressions (package_global_channel_make added, 2026-05-10)
 - ✅ Package-level pointer constructor globals - pointer globals initialized from constructor calls keep the returned pointer handle instead of unwrapping to the pointee (2026-05-08)
 - ✅ Exported dependency package globals - transpiled external crates keep exported Go variable names and emit public statics so external selectors resolve across crates (2026-05-08)
 - ✅ Dependency pointer-global method calls - method calls through exported dependency pointer globals clone the stored pointer handle before borrowing the pointed-to receiver (2026-05-08)
@@ -246,4 +248,4 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 
 go2rust transpiles itself!
 
-- 🚧 Broad self-transpile cargo check now reaches `golang_org_x_tools_go_packages`. The latest fixed blockers were Go 1.21 predeclared `min`/`max` lowering, blank named result slots in deferred explicit returns, package-global inferred arrays of anonymous structs, keyed struct literal field names inside closure capture analysis, methods on named function types, and function literal named result declarations; package-targeted `gcexportdata` now passes, and the targeted `go_packages` check is down to 115 Rust errors at the next larger translation boundary (2026-05-10)
+- 🚧 Broad self-transpile cargo check now reaches `golang_org_x_tools_go_packages`. The latest fixed blockers were Go 1.21 predeclared `min`/`max` lowering, blank named result slots in deferred explicit returns, package-global inferred arrays of anonymous structs, keyed struct literal field names inside closure capture analysis, methods on named function types, function literal named result declarations, and package-level channel globals initialized with `make`; package-targeted `gcexportdata` now passes, and the targeted `go_packages` check is down to 110 Rust errors at the next larger translation boundary (2026-05-10)

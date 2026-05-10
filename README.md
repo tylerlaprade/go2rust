@@ -116,6 +116,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Type switches over temporary call results | ✅ |
 | **`chan` - Channel types** | ✅ |
 | └ Channel struct fields with nil checks, send/receive, `len`, and `cap` | ✅ |
+| └ Package-level channel globals initialized with `make` | ✅ |
 | **`const` - Constants** | |
 | └ Basic constants | ✅ |
 | └ String constants passed to `strings.Builder` | ✅ |
@@ -253,6 +254,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Package-level map literal initialization | ✅ |
 | └ Package-level named slice declarations | ✅ |
 | └ Package-level inferred arrays of anonymous structs | ✅ |
+| └ Package-level channel globals initialized with `make` | ✅ |
 | └ Package-level pointer globals initialized from constructor calls | ✅ |
 | └ Exported package globals from transpiled dependency crates keep their Go names and public visibility | ✅ |
 | └ Method calls on exported pointer globals from transpiled dependency crates | ✅ |

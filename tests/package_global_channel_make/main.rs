@@ -1,5 +1,5 @@
+use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
-use std::thread;
 
 
 struct GoChannel<T> {
@@ -147,41 +147,39 @@ impl<T> Iterator for GoChannel<T> {
     }
 }
 
-pub fn worker(id: Arc<Mutex<Option<i32>>>, jobs: GoChannel<i32>, results: GoChannel<i32>) {
-    let _ = { let __v = (*id.lock().unwrap().as_ref().unwrap()).clone(); __v };
-    for j in jobs.clone() {
-        results.send({ let __tmp_x = j; let __tmp_y = 2; __tmp_x * __tmp_y });
+#[derive(Debug, Clone, Default)]
+pub struct token {
+}
+
+impl std::fmt::Display for token {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{}}")
     }
 }
 
+
+pub(crate) static sem: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<GoChannel<token>>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));
+
+
+fn __go_init_globals() {
+    *sem.lock().unwrap() = Some(Default::default());
+    *sem.lock().unwrap() = Some(GoChannel::<token>::new_buffered((*size().lock().unwrap().as_ref().unwrap()) as usize));
+}
+
+
+pub fn size() -> Arc<Mutex<Option<i32>>> {
+
+    return Arc::new(Mutex::new(Some(2)));
+}
+
 fn main() {
-    const numJobs: i32 = 5;
+    __go_init_all();
+    { let __channel = sem.lock().unwrap().as_ref().unwrap().clone(); __channel }.send(token {  });
+    println!("{}", { let __channel = sem.lock().unwrap().as_ref().unwrap().clone(); __channel }.len());
+    { let __channel = sem.lock().unwrap().as_ref().unwrap().clone(); __channel }.recv().unwrap();
+    println!("{}", { let __channel = sem.lock().unwrap().as_ref().unwrap().clone(); __channel }.len());
+}
 
-    let mut jobs = GoChannel::<i32>::new_buffered((numJobs) as usize);
-    let mut results = GoChannel::<i32>::new_buffered((numJobs) as usize);
-
-    let mut w = Arc::new(Mutex::new(Some(1)));
-    while { let __tmp_x = { let __v = (*w.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3; __tmp_x <= __tmp_y } {
-        let jobs_thread = jobs.clone(); let results_thread = results.clone(); let w_thread = Arc::new(Mutex::new(Some((*w.lock().unwrap().as_ref().unwrap()).clone()))); std::thread::spawn(move || {
-        worker(Arc::new(Mutex::new(Some((*w_thread.lock().unwrap().as_ref().unwrap()).clone()))), jobs_thread.clone(), results_thread.clone());
-    });
-        { let mut guard = w.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
-    }
-
-    let mut j = Arc::new(Mutex::new(Some(1)));
-    while { let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = numJobs; __tmp_x <= __tmp_y } {
-        jobs.send((*j.lock().unwrap().as_ref().unwrap()));
-        { let mut guard = j.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
-    }
-    jobs.close();
-
-    let mut total = Arc::new(Mutex::new(Some(0)));
-    let mut a = Arc::new(Mutex::new(Some(1)));
-    while { let __tmp_x = { let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = numJobs; __tmp_x <= __tmp_y } {
-        { let mut guard = total.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + results.recv().unwrap()); };
-        { let mut guard = a.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
-    }
-
-    println!("{} {}", "Processed jobs:".to_string(), numJobs);
-    println!("{} {}", "Result total:".to_string(), { let __v = (*total.lock().unwrap().as_ref().unwrap()).clone(); __v });
+pub(crate) fn __go_init_all() {
+    self::__go_init_globals();
 }
