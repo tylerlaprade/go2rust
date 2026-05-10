@@ -3281,8 +3281,12 @@ func writeMapLookupKeyWithType(out *strings.Builder, index ast.Expr, keyType typ
 				writeWrappedRangeValueClone(out, ident, varType)
 				return
 			}
-			// Range variables from slice/map iteration are already references.
-			out.WriteString(ident.Name)
+			if varType == "ref_value" || strings.HasPrefix(varType, "&") {
+				out.WriteString(ident.Name)
+			} else {
+				out.WriteString("&")
+				out.WriteString(ident.Name)
+			}
 			return
 		}
 	}
