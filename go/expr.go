@@ -327,16 +327,8 @@ func isBareBuiltinCall(expr ast.Expr) bool {
 		return false
 	}
 	switch ident.Name {
-	case "len", "cap":
-		typeInfo := GetTypeInfo()
-		if typeInfo == nil {
-			return true
-		}
-		obj := typeInfo.GetObject(ident)
-		if obj == nil {
-			return true
-		}
-		return obj.Parent() == types.Universe
+	case "len", "cap", "min", "max":
+		return isBuiltinIdent(ident)
 	default:
 		return false
 	}
@@ -5501,10 +5493,40 @@ func writeWrappedFunctionValueBox(out *strings.Builder, ident *ast.Ident, sig *t
 func isBuiltinFunction(name string) bool {
 	builtins := map[string]bool{
 		"len": true, "cap": true, "make": true, "new": true,
-		"append": true, "copy": true, "delete": true,
+		"append": true, "copy": true, "delete": true, "close": true,
+		"complex": true, "real": true, "imag": true,
 		"panic": true, "recover": true, "print": true, "println": true,
+		"min": true, "max": true,
 	}
 	return builtins[name]
+}
+
+func isBuiltinIdent(ident *ast.Ident) bool {
+	if ident == nil || !isBuiltinFunction(ident.Name) {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return true
+	}
+	obj := typeInfo.GetObject(ident)
+	if obj == nil {
+		return true
+	}
+	builtin, ok := obj.(*types.Builtin)
+	return ok && builtin.Name() == ident.Name
+}
+
+func isBuiltinCallTarget(ident *ast.Ident) bool {
+	if ident == nil || !isBuiltinFunction(ident.Name) {
+		return false
+	}
+	switch ident.Name {
+	case "min", "max":
+		return isBuiltinIdent(ident)
+	default:
+		return true
+	}
 }
 
 // TranspileFuncLit transpiles a function literal (closure)
@@ -7304,7 +7326,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 	closureCallSuffix := ""
 	if ident, ok := call.Fun.(*ast.Ident); ok {
 		// Check if this is a known function or a variable
-		if isBuiltinFunction(ident.Name) || isFunctionName(ident) {
+		if isBuiltinCallTarget(ident) || isFunctionName(ident) {
 			// Regular function call
 			out.WriteString(rustFunctionNameForUse(ident.Name))
 		} else {
@@ -7345,8 +7367,10 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 
 	// Get function signature to check for interface parameters
 	var funcSig *FunctionSignature
-	if funcName != "" && !isBuiltinFunction(funcName) {
-		funcSig = GetFunctionSignature(funcName)
+	if funcName != "" {
+		if ident, ok := call.Fun.(*ast.Ident); !ok || !isBuiltinCallTarget(ident) {
+			funcSig = GetFunctionSignature(funcName)
+		}
 	}
 
 	closeFunctionCall := func() {
@@ -7476,7 +7500,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 		// Check if we're calling a closure - closures take wrapped arguments
 		isClosureCall := false
 		if ident, ok := call.Fun.(*ast.Ident); ok {
-			isClosureCall = !isBuiltinFunction(ident.Name) && !isFunctionName(ident)
+			isClosureCall = !isBuiltinCallTarget(ident) && !isFunctionName(ident)
 		} else {
 			// Complex expression, likely a closure
 			isClosureCall = true

@@ -1,0 +1,8 @@
+[package]
+name = "builtin_min_max"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "builtin_min_max"
+path = "main.rs"

@@ -21,7 +21,7 @@ func GetStdlibHandler(call *ast.CallExpr) StdlibHandler {
 
 	// Handle builtin functions like println, append, len
 	if ident, ok := call.Fun.(*ast.Ident); ok {
-		if handler, exists := builtinMappings[ident.Name]; exists {
+		if handler, exists := builtinMappings[ident.Name]; exists && isBuiltinCallTarget(ident) {
 			return handler
 		}
 	}
@@ -147,6 +147,8 @@ func init() {
 		"panic":   transpilePanic,
 		"recover": transpileRecover,
 		"close":   transpileClose,
+		"min":     transpileMin,
+		"max":     transpileMax,
 	}
 }
 
@@ -2169,6 +2171,72 @@ func transpileMathMax(out *strings.Builder, call *ast.CallExpr) {
 
 func transpileMathMin(out *strings.Builder, call *ast.CallExpr) {
 	transpileMathBinary(out, call, "min")
+}
+
+func transpileMin(out *strings.Builder, call *ast.CallExpr) {
+	transpileBuiltinMinMax(out, call, "min")
+}
+
+func transpileMax(out *strings.Builder, call *ast.CallExpr) {
+	transpileBuiltinMinMax(out, call, "max")
+}
+
+func transpileBuiltinMinMax(out *strings.Builder, call *ast.CallExpr, op string) {
+	if len(call.Args) == 0 {
+		out.WriteString("/* ERROR: ")
+		out.WriteString(op)
+		out.WriteString(" requires at least one argument */ unimplemented!()")
+		return
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		out.WriteString("/* ERROR: Type information required for ")
+		out.WriteString(op)
+		out.WriteString(" */ unimplemented!()")
+		return
+	}
+	resultType := typeInfo.GetType(call)
+	if resultType == nil {
+		out.WriteString("/* ERROR: Type information required for ")
+		out.WriteString(op)
+		out.WriteString(" */ unimplemented!()")
+		return
+	}
+	basic, ok := types.Unalias(resultType).Underlying().(*types.Basic)
+	if !ok {
+		out.WriteString("/* ERROR: ")
+		out.WriteString(op)
+		out.WriteString(" requires an ordered basic type */ unimplemented!()")
+		return
+	}
+
+	args := make([]string, 0, len(call.Args))
+	for _, arg := range call.Args {
+		var argOut strings.Builder
+		writeBuiltinMinMaxArg(&argOut, arg, basic)
+		args = append(args, argOut.String())
+	}
+	expr := args[0]
+	for _, arg := range args[1:] {
+		if basic.Kind() == types.Float32 || basic.Kind() == types.Float64 {
+			expr = "(" + expr + ")." + op + "(" + arg + ")"
+		} else {
+			expr = "std::cmp::" + op + "(" + expr + ", " + arg + ")"
+		}
+	}
+	out.WriteString(expr)
+}
+
+func writeBuiltinMinMaxArg(out *strings.Builder, arg ast.Expr, basic *types.Basic) {
+	if basic.Kind() == types.String || basic.Kind() == types.UntypedString {
+		writeStringSequenceValue(out, arg)
+		return
+	}
+	out.WriteString("(")
+	writeUnwrappedForFormat(out, arg)
+	out.WriteString(" as ")
+	out.WriteString(goTypesTypeToRust(basic))
+	out.WriteString(")")
 }
 
 func transpileMathUnary(out *strings.Builder, call *ast.CallExpr, method string) {

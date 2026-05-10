@@ -48,7 +48,7 @@ func writeArraySliceElementAssignmentValue(out *strings.Builder, rhs ast.Expr, e
 		} else if typeInfo != nil && typeInfo.ReturnsWrappedValue(call) && (!typeInfo.IsTypeConversion(call) || typeConversionEmitsWrappedValue(call)) {
 			needsUnwrap = true
 		} else if ident, ok := call.Fun.(*ast.Ident); ok {
-			if !isBuiltinFunction(ident.Name) && !isFunctionName(ident) {
+			if !isBuiltinCallTarget(ident) && !isFunctionName(ident) {
 				needsUnwrap = true
 			}
 		}
@@ -101,8 +101,8 @@ func writePointerArraySliceElementAssignmentValue(out *strings.Builder, rhs ast.
 	return true
 }
 
-func writeLenCapShortDeclInitializer(out *strings.Builder, call *ast.CallExpr, lhs ast.Expr) bool {
-	if call == nil || !isBareBuiltinCallName(call, "len") && !isBareBuiltinCallName(call, "cap") {
+func writeBareBuiltinShortDeclInitializer(out *strings.Builder, call *ast.CallExpr, lhs ast.Expr) bool {
+	if call == nil || !isBareBuiltinReturn(call) {
 		return false
 	}
 	typeInfo := GetTypeInfo()
@@ -118,11 +118,15 @@ func writeLenCapShortDeclInitializer(out *strings.Builder, call *ast.CallExpr, l
 	}
 	basic, ok := types.Unalias(lhsType).Underlying().(*types.Basic)
 	if !ok || basic.Kind() != types.Int {
-		return false
+		if !isBareBuiltinCallName(call, "min") && !isBareBuiltinCallName(call, "max") {
+			return false
+		}
 	}
 	WriteWrapperPrefix(out)
 	TranspileExpression(out, call)
-	out.WriteString(" as i32")
+	if isBareBuiltinCallName(call, "len") || isBareBuiltinCallName(call, "cap") {
+		out.WriteString(" as i32")
+	}
 	WriteWrapperSuffix(out)
 	return true
 }
@@ -1061,11 +1065,10 @@ func isMapIndexExpression(expr ast.Expr) (*ast.IndexExpr, bool) {
 }
 
 func isBareBuiltinReturn(call *ast.CallExpr) bool {
-	ident, ok := call.Fun.(*ast.Ident)
-	if !ok {
-		return false
-	}
-	return ident.Name == "len" || ident.Name == "cap"
+	return isBareBuiltinCallName(call, "len") ||
+		isBareBuiltinCallName(call, "cap") ||
+		isBareBuiltinCallName(call, "min") ||
+		isBareBuiltinCallName(call, "max")
 }
 
 func expectsGoInt(expr ast.Expr) bool {
@@ -2478,6 +2481,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				if i >= len(names) {
 					break
 				}
+				if names[i].Name == "_" {
+					continue
+				}
 				if ident, ok := result.(*ast.Ident); ok && ident.Name == names[i].Name {
 					continue
 				}
@@ -3762,7 +3768,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 											// Taking address - don't wrap, the & operator will handle it
 											TranspileExpression(out, rhs)
 										} else if callExpr, isCall := rhs.(*ast.CallExpr); isCall {
-											if len(s.Lhs) == 1 && writeLenCapShortDeclInitializer(out, callExpr, s.Lhs[0]) {
+											if len(s.Lhs) == 1 && writeBareBuiltinShortDeclInitializer(out, callExpr, s.Lhs[0]) {
 												continue
 											}
 											// len()/cap() return bare primitives — register LHS as bare

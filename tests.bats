@@ -416,12 +416,20 @@ run_xfail_test() {
     run_test "tests/blank_multi_assignment_discard"
 }
 
+@test "blank_named_result_defer" {
+    run_test "tests/blank_named_result_defer"
+}
+
 @test "blank_named_return" {
     run_test "tests/blank_named_return"
 }
 
 @test "builtin_functions" {
     run_test "tests/builtin_functions"
+}
+
+@test "builtin_min_max" {
+    run_test "tests/builtin_min_max"
 }
 
 @test "byte_char_comparisons" {
