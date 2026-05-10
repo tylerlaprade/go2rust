@@ -1390,6 +1390,12 @@ func isConcreteGoErrorValue(typ types.Type) bool {
 }
 
 func writeConcreteErrorValue(out *strings.Builder, expr ast.Expr) {
+	if unary, ok := expr.(*ast.UnaryExpr); ok && unary.Op == token.AND {
+		if composite, ok := unary.X.(*ast.CompositeLit); ok {
+			TranspileExpressionContext(out, composite, AddressOf)
+			return
+		}
+	}
 	if !writeOwnedExpressionValue(out, expr) {
 		TranspileExpression(out, expr)
 	}

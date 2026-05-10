@@ -3614,23 +3614,10 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 
 			// Check if we're taking address of a struct literal
 			if compositeLit, isCompositeLit := e.X.(*ast.CompositeLit); isCompositeLit {
-				// Special case for argError - it implements error interface
-				if ident, ok := compositeLit.Type.(*ast.Ident); ok && ident.Name == "argError" {
-					// This implements error interface, box it
-					TrackImport("Error")
-					out.WriteString("Rc::new(RefCell::new(Some(Box::new(")
-					TranspileExpressionContext(out, e.X, AddressOf)
-					if NeedsConcurrentWrapper() {
-						out.WriteString(") as Box<dyn StdError + Send + Sync>)))")
-					} else {
-						out.WriteString(") as Box<dyn StdError>)))")
-					}
-				} else {
-					// For struct literals, wrap the whole thing
-					WriteWrapperPrefix(out)
-					TranspileExpressionContext(out, e.X, AddressOf)
-					WriteWrapperSuffix(out)
-				}
+				// For struct literals, wrap the whole thing
+				WriteWrapperPrefix(out)
+				TranspileExpressionContext(out, compositeLit, AddressOf)
+				WriteWrapperSuffix(out)
 			} else {
 				// Taking address of existing value just clones the Arc
 				TranspileExpressionContext(out, e.X, AddressOf)
