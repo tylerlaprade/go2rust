@@ -660,6 +660,10 @@ run_xfail_test() {
     run_test "tests/error_handling"
 }
 
+@test "error_named_string_assignment" {
+    run_test "tests/error_named_string_assignment"
+}
+
 @test "error_sentinel_comparison" {
     run_test "tests/error_sentinel_comparison"
 }

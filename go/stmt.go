@@ -1336,6 +1336,32 @@ func isErrorAssignment(lhs ast.Expr, rhs ast.Expr) bool {
 	return isGoErrorType(typeInfo.GetType(lhs)) && isGoErrorType(typeInfo.GetType(rhs))
 }
 
+func isConcreteErrorInterfaceAssignment(lhs ast.Expr, rhs ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	if !isGoErrorType(typeInfo.GetType(lhs)) {
+		return false
+	}
+	return isConcreteGoErrorValue(typeInfo.GetType(rhs))
+}
+
+func isConcreteErrorReturnValue(result ast.Expr, expected ast.Expr) bool {
+	if expected == nil {
+		return false
+	}
+	targetType := expectedTypeFromParamExpr(expected)
+	if !isGoErrorType(targetType) {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	return isConcreteGoErrorValue(typeInfo.GetType(result))
+}
+
 func isGoErrorType(typ types.Type) bool {
 	if typ == nil {
 		return false
@@ -1345,6 +1371,48 @@ func isGoErrorType(typ types.Type) bool {
 		return false
 	}
 	return types.Identical(typ, errorObj.Type())
+}
+
+func isConcreteGoErrorValue(typ types.Type) bool {
+	if typ == nil || isGoErrorType(typ) {
+		return false
+	}
+	errorObj := types.Universe.Lookup("error")
+	if errorObj == nil {
+		return false
+	}
+	errorInterface, ok := errorObj.Type().Underlying().(*types.Interface)
+	if !ok {
+		return false
+	}
+	errorInterface.Complete()
+	return types.Implements(typ, errorInterface)
+}
+
+func writeConcreteErrorValue(out *strings.Builder, expr ast.Expr) {
+	if !writeOwnedExpressionValue(out, expr) {
+		TranspileExpression(out, expr)
+	}
+}
+
+func writeConcreteErrorBox(out *strings.Builder, expr ast.Expr) {
+	TrackImport("Error")
+	out.WriteString("Box::new(")
+	writeConcreteErrorValue(out, expr)
+	if NeedsConcurrentWrapper() {
+		out.WriteString(") as Box<dyn StdError + Send + Sync>")
+	} else {
+		out.WriteString(") as Box<dyn StdError>")
+	}
+}
+
+func writeConcreteErrorInterfaceAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) {
+	out.WriteString("{ let new_val = ")
+	writeConcreteErrorBox(out, rhs)
+	out.WriteString("; *")
+	TranspileExpressionContext(out, lhs, LValue)
+	WriteBorrowMethod(out, true)
+	out.WriteString(" = Some(new_val); }")
 }
 
 func writeMoveErrorAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) {
@@ -2124,7 +2192,11 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					WriteWrappedNone(out)
 				} else {
 					// Check if this is a field access on self (already wrapped)
-					if sel, ok := result.(*ast.SelectorExpr); ok {
+					if isConcreteErrorReturnValue(result, returnResultTypeExpr(fnType, i)) {
+						WriteWrapperPrefix(out)
+						writeConcreteErrorBox(out, result)
+						WriteWrapperSuffix(out)
+					} else if sel, ok := result.(*ast.SelectorExpr); ok {
 						if ident, ok := sel.X.(*ast.Ident); ok && currentReceiver != "" && ident.Name == currentReceiver {
 							// Returning self.field - just clone it, don't double-wrap
 							out.WriteString("self.")
@@ -2436,6 +2508,10 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							} else {
 								out.WriteString(") as Box<dyn StdError>")
 							}
+							WriteWrapperSuffix(out)
+						} else if isConcreteErrorReturnValue(result, returnResultTypeExpr(fnType, i)) {
+							WriteWrapperPrefix(out)
+							writeConcreteErrorBox(out, result)
 							WriteWrapperSuffix(out)
 						} else {
 							// Wrap all other return values in Arc<Mutex<Option<>>>
@@ -2947,6 +3023,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									// Pointer assignment replaces the handle to preserve aliasing.
 								} else if writeStdlibInterfaceAssignment(out, s.Lhs[0], s.Rhs[0]) {
 									// Converted concrete stdlib values assigned through a stdlib interface handle.
+								} else if isConcreteErrorInterfaceAssignment(s.Lhs[0], s.Rhs[0]) {
+									writeConcreteErrorInterfaceAssignment(out, s.Lhs[0], s.Rhs[0])
 								} else if unary, ok := s.Rhs[0].(*ast.UnaryExpr); ok && unary.Op == token.AND {
 									if _, isComposite := unary.X.(*ast.CompositeLit); isComposite {
 										writeMoveWrappedInnerAssignment(out, s.Lhs[0], s.Rhs[0])
