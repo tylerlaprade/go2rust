@@ -601,6 +601,9 @@ func writeRegularMethodCallArgument(out *strings.Builder, sel *ast.SelectorExpr,
 	if writeIndexedPointerHandleCallArgument(out, arg, expectedArgType) {
 		return
 	}
+	if writeAlreadyWrappedSelectorCallArgument(out, arg, expectedArgType) {
+		return
+	}
 	if writeAlreadyWrappedCallArgument(out, arg) {
 		return
 	}
@@ -6405,6 +6408,9 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				if writeIndexedPointerHandleCallArgument(out, arg, expectedArgType) {
 					continue
 				}
+				if writeAlreadyWrappedSelectorCallArgument(out, arg, expectedArgType) {
+					continue
+				}
 				if writeAlreadyWrappedCallArgument(out, arg) {
 					continue
 				}
@@ -6956,6 +6962,10 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				continue
 			}
 
+			if writeAlreadyWrappedSelectorCallArgument(out, arg, expectedArgType) {
+				continue
+			}
+
 			// Check if the argument is already a wrapped variable
 			if ident, ok := arg.(*ast.Ident); ok && ident.Name != "nil" && ident.Name != "_" {
 				// Apply capture renames if applicable
@@ -7309,6 +7319,9 @@ func writeFunctionSignatureCallArgument(out *strings.Builder, arg ast.Expr, expe
 	if writeIndexedPointerHandleCallArgument(out, arg, expected) {
 		return
 	}
+	if writeAlreadyWrappedSelectorCallArgument(out, arg, expected) {
+		return
+	}
 	if writeAlreadyWrappedCallArgument(out, arg) {
 		return
 	}
@@ -7323,6 +7336,31 @@ func writeFunctionSignatureCallArgument(out *strings.Builder, arg ast.Expr, expe
 		TranspileExpression(out, arg)
 	}
 	WriteWrapperSuffix(out)
+}
+
+func writeAlreadyWrappedSelectorCallArgument(out *strings.Builder, arg ast.Expr, expected types.Type) bool {
+	if expected == nil {
+		return false
+	}
+	sel, ok := arg.(*ast.SelectorExpr)
+	if !ok {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return false
+	}
+	selection, ok := typeInfo.info.Selections[sel]
+	if !ok || selection.Kind() != types.FieldVal {
+		return false
+	}
+	actual := typeInfo.GetType(sel)
+	if actual == nil || !types.AssignableTo(actual, expected) {
+		return false
+	}
+	TranspileExpressionContext(out, sel, LValue)
+	out.WriteString(".clone()")
+	return true
 }
 
 func writeFunctionValueArgument(out *strings.Builder, arg ast.Expr) {

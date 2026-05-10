@@ -43,7 +43,7 @@ impl numbers {
 }
 
 pub fn combine(a: Rc<RefCell<Option<holder>>>, b: Rc<RefCell<Option<holder>>>) {
-    { let new_val = (*(*a.borrow().as_ref().unwrap()).terms.borrow().as_ref().unwrap()).intersect(Rc::new(RefCell::new(Some((*(*b.borrow().as_ref().unwrap()).terms.borrow().as_ref().unwrap()).clone())))); let __moved_val = { let mut __guard = new_val.borrow_mut(); __guard.take() }; *(*a.borrow().as_ref().unwrap()).terms.borrow_mut() = __moved_val; };
+    { let new_val = (*(*a.borrow().as_ref().unwrap()).terms.borrow().as_ref().unwrap()).intersect((*b.borrow().as_ref().unwrap()).terms.clone()); let __moved_val = { let mut __guard = new_val.borrow_mut(); __guard.take() }; *(*a.borrow().as_ref().unwrap()).terms.borrow_mut() = __moved_val; };
 }
 
 pub fn copied_len(src: Rc<RefCell<Option<holder>>>) -> Rc<RefCell<Option<i32>>> {

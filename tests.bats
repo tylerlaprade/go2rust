@@ -600,6 +600,10 @@ run_xfail_test() {
     run_test "tests/crypto_hash"
 }
 
+@test "current_receiver_selector_pointer_argument" {
+    run_test "tests/current_receiver_selector_pointer_argument"
+}
+
 @test "current_receiver_selector_struct_field" {
     run_test "tests/current_receiver_selector_struct_field"
 }
@@ -1122,6 +1126,10 @@ run_xfail_test() {
 
 @test "package_global_shadowing" {
     run_test "tests/package_global_shadowing"
+}
+
+@test "package_selector_pointer_argument" {
+    run_test "tests/package_selector_pointer_argument"
 }
 
 @test "panic_fmt_errorf_dynamic" {
