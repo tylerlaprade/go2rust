@@ -134,6 +134,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Named return captures in deferred map writes | ✅ |
 | └ Deferred field writes honor capture renames | ✅ |
 | └ Deferred nested pointer field updates | ✅ |
+| └ Defer statements inside select case bodies | ✅ |
 | **`else` - Else clauses** | ✅ |
 | **`fallthrough` - Fallthrough statements** | ✅ |
 | **`for` - For loops** | |

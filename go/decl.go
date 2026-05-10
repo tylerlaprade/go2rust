@@ -615,33 +615,50 @@ func typeHasTraitFieldSeen(expr ast.Expr, seen map[string]bool) bool {
 // Helper to check if a function body contains defer statements
 func checkHasDefer(stmts []ast.Stmt) bool {
 	for _, stmt := range stmts {
-		switch s := stmt.(type) {
-		case *ast.DeferStmt:
-			if isMutexUnlockDefer(s.Call) {
-				continue
-			}
+		if checkStmtHasDefer(stmt) {
 			return true
-		case *ast.BlockStmt:
-			if checkHasDefer(s.List) {
+		}
+	}
+	return false
+}
+
+func checkStmtHasDefer(stmt ast.Stmt) bool {
+	switch s := stmt.(type) {
+	case *ast.DeferStmt:
+		return !isMutexUnlockDefer(s.Call)
+	case *ast.BlockStmt:
+		return checkHasDefer(s.List)
+	case *ast.IfStmt:
+		return checkHasDefer(s.Body.List) || checkStmtHasDefer(s.Else)
+	case *ast.ForStmt:
+		return s.Body != nil && checkHasDefer(s.Body.List)
+	case *ast.RangeStmt:
+		return s.Body != nil && checkHasDefer(s.Body.List)
+	case *ast.SwitchStmt:
+		return checkHasDeferClauses(s.Body)
+	case *ast.TypeSwitchStmt:
+		return checkHasDeferClauses(s.Body)
+	case *ast.SelectStmt:
+		return checkHasDeferClauses(s.Body)
+	case *ast.LabeledStmt:
+		return checkStmtHasDefer(s.Stmt)
+	default:
+		return false
+	}
+}
+
+func checkHasDeferClauses(body *ast.BlockStmt) bool {
+	if body == nil {
+		return false
+	}
+	for _, stmt := range body.List {
+		switch clause := stmt.(type) {
+		case *ast.CaseClause:
+			if checkHasDefer(clause.Body) {
 				return true
 			}
-		case *ast.IfStmt:
-			if s.Body != nil && checkHasDefer(s.Body.List) {
-				return true
-			}
-			if s.Else != nil {
-				if elseBlock, ok := s.Else.(*ast.BlockStmt); ok {
-					if checkHasDefer(elseBlock.List) {
-						return true
-					}
-				}
-			}
-		case *ast.ForStmt:
-			if s.Body != nil && checkHasDefer(s.Body.List) {
-				return true
-			}
-		case *ast.RangeStmt:
-			if s.Body != nil && checkHasDefer(s.Body.List) {
+		case *ast.CommClause:
+			if checkHasDefer(clause.Body) {
 				return true
 			}
 		}

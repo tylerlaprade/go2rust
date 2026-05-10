@@ -652,6 +652,10 @@ run_xfail_test() {
     run_test "tests/defer_nested_pointer_field_capture"
 }
 
+@test "defer_select_case" {
+    run_test "tests/defer_select_case"
+}
+
 @test "defer_statements" {
     run_test "tests/defer_statements"
 }

@@ -138,6 +138,7 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 - ✅ Deferred map writes capture named returns - map assignments inside deferred closures honor capture renames for named result wrappers and clone owned keys before insert (defer_named_return_map_capture promoted, 2026-05-07)
 - ✅ Deferred field writes capture renamed bases - selector field access inside deferred closures uses cloned capture names for the base object instead of moving the original wrapper (defer_field_capture_rename promoted, 2026-05-07)
 - ✅ Deferred nested pointer field updates - increment/decrement and compound assignment clone the target field handle before borrowing it, so `w.p.indent--` inside deferred closures does not borrow through a dropped owner temporary (defer_nested_pointer_field_capture added, 2026-05-10)
+- ✅ Defer inside select cases - function defer-stack detection now scans select/switch case bodies so `defer` inside communication cases initializes and drains `__defer_stack` correctly (defer_select_case added, 2026-05-10)
 - ✅ Type switch - downcast_ref-based if-else chain with shared borrow guard, nil cases, selector pointer cases, and temporary call-result subjects from TypeInfo (2026-03-27, updated 2026-05-07)
 - ✅ Switch expression lifetime - tag captured in let binding to avoid borrow issues (2026-03-27)
 - ✅ Variadic functions - ellipsis params as Vec<T>, call-site arg collection into vec![], including boxed `...any` elements, cross-file helper calls using package-wide signatures, and function-value calls with omitted variadic operands (2026-03-27, updated 2026-05-09)
@@ -234,4 +235,4 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 
 go2rust transpiles itself!
 
-- 🚧 Package-targeted self-transpile cargo checks now pass through `golang_org_x_tools_internal_event`; the latest fixed blocker was duplicate `GoContext`/`GoChannel` helper identities across dependency crates. The broad self-transpile checkpoint was previously confirmed through `golang_org_x_tools_internal_gcimporter`; rerun the broad check to identify the next package after the shared-helper fix (2026-05-10)
+- 🚧 Broad self-transpile cargo check now reaches `golang_org_x_tools_internal_gocommand`. The latest fixed blocker was missing `__defer_stack` initialization for defers inside select cases; the package-targeted `gocommand` check is down to 59 Rust errors, with remaining clusters around `time.Duration` constants, private/exported method name collisions, regexp stubs, writer conversions, error wrapping, and wrapped slice iteration (2026-05-10)

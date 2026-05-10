@@ -1,0 +1,8 @@
+[package]
+name = "defer_select_case"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "defer_select_case"
+path = "main.rs"
