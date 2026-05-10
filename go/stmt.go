@@ -1148,6 +1148,9 @@ func stdlibInterfaceReturnConversion(result ast.Expr, expected ast.Expr) bool {
 }
 
 func writeStdlibInterfaceIdentReturnConversion(out *strings.Builder, ident *ast.Ident, expected ast.Expr) bool {
+	if writeStdlibInterfaceCallArgumentConversion(out, ident, expectedTypeFromParamExpr(expected)) {
+		return true
+	}
 	if !stdlibInterfaceReturnConversion(ident, expected) {
 		return false
 	}
@@ -2422,6 +2425,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						TranspileExpression(out, result)
 					} else if ident, ok := result.(*ast.Ident); ok {
 						if currentReceiver != "" && ident.Name == currentReceiver {
+							if writeStdlibInterfaceCallArgumentConversion(out, ident, expectedTypeFromParamExpr(returnResultTypeExpr(fnType, i))) {
+								continue
+							}
 							WriteWrapperPrefix(out)
 							out.WriteString("self.clone()")
 							WriteWrapperSuffix(out)

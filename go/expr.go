@@ -1445,11 +1445,22 @@ func stdlibInterfaceArgumentConversion(arg ast.Expr, expectedType types.Type) (t
 
 func stdlibInterfaceArgumentConversionExists(arg ast.Expr, expectedType types.Type) bool {
 	_, _, ok := stdlibInterfaceArgumentConversion(arg, expectedType)
+	if ok {
+		return true
+	}
+	_, ok = localConcreteToStdlibInterfaceConversion(arg, expectedType)
 	return ok
 }
 
 func writeStdlibInterfaceCallArgumentConversion(out *strings.Builder, arg ast.Expr, expectedType types.Type) bool {
 	if _, _, ok := stdlibInterfaceArgumentConversion(arg, expectedType); !ok {
+		if targetRust, ok := localConcreteToStdlibInterfaceConversion(arg, expectedType); ok {
+			WriteWrapperPrefix(out)
+			out.WriteString(targetRust)
+			out.WriteString("::default()")
+			WriteWrapperSuffix(out)
+			return true
+		}
 		return false
 	}
 	out.WriteString("{ let __arg = ")
@@ -1466,6 +1477,11 @@ func writeStdlibInterfaceCallArgumentConversion(out *strings.Builder, arg ast.Ex
 
 func writeStdlibInterfaceBareConversion(out *strings.Builder, arg ast.Expr, expectedType types.Type) bool {
 	if _, _, ok := stdlibInterfaceArgumentConversion(arg, expectedType); !ok {
+		if targetRust, ok := localConcreteToStdlibInterfaceConversion(arg, expectedType); ok {
+			out.WriteString(targetRust)
+			out.WriteString("::default()")
+			return true
+		}
 		return false
 	}
 	out.WriteString("{ let __arg = ")
@@ -1494,6 +1510,11 @@ func writeStdlibInterfaceSourceHandle(out *strings.Builder, arg ast.Expr) {
 func writeStdlibInterfaceComparableConversion(out *strings.Builder, arg ast.Expr, expectedType types.Type) bool {
 	targetRust, _, ok := stdlibInterfaceArgumentConversion(arg, expectedType)
 	if !ok {
+		if targetRust, ok := localConcreteToStdlibInterfaceConversion(arg, expectedType); ok {
+			out.WriteString(targetRust)
+			out.WriteString("::default()")
+			return true
+		}
 		return false
 	}
 	out.WriteString("{ let __arg = ")
@@ -1506,6 +1527,44 @@ func writeStdlibInterfaceComparableConversion(out *strings.Builder, arg ast.Expr
 	out.WriteString("__converted")
 	out.WriteString(" }")
 	return true
+}
+
+func localConcreteToStdlibInterfaceConversion(arg ast.Expr, expectedType types.Type) (targetRust string, ok bool) {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || expectedType == nil {
+		return "", false
+	}
+	targetNamed, ok := expectedType.(*types.Named)
+	if !ok || targetNamed.Obj() == nil || targetNamed.Obj().Pkg() == nil {
+		return "", false
+	}
+	if !isStdlibPackage(targetNamed.Obj().Pkg().Path()) {
+		return "", false
+	}
+	targetInterface, ok := targetNamed.Underlying().(*types.Interface)
+	if !ok {
+		return "", false
+	}
+	sourceType := typeInfo.GetType(arg)
+	if sourceType == nil {
+		return "", false
+	}
+	sourceNamedType := sourceType
+	if ptr, ok := sourceType.(*types.Pointer); ok {
+		sourceNamedType = ptr.Elem()
+	}
+	sourceNamed, ok := sourceNamedType.(*types.Named)
+	if !ok || sourceNamed.Obj() == nil || sourceNamed.Obj().Pkg() == nil {
+		return "", false
+	}
+	if sourceNamed.Obj() == targetNamed.Obj() || isStdlibPackage(sourceNamed.Obj().Pkg().Path()) {
+		return "", false
+	}
+	targetInterface.Complete()
+	if !types.Implements(sourceType, targetInterface) {
+		return "", false
+	}
+	return goTypesNamedTypeToRust(targetNamed), true
 }
 
 func isWrappedValueIdent(ident *ast.Ident) bool {
