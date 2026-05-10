@@ -25,6 +25,11 @@ func findCapturedVars(funcLit *ast.FuncLit) map[string]bool {
 	inspectRefs = func(node ast.Node) {
 		ast.Inspect(node, func(n ast.Node) bool {
 			switch node := n.(type) {
+			case *ast.KeyValueExpr:
+				if ident, ok := node.Key.(*ast.Ident); ok && isStructFieldKeyIdent(typeInfo, ident) {
+					inspectRefs(node.Value)
+					return false
+				}
 			case *ast.SelectorExpr:
 				inspectRefs(node.X)
 				return false
@@ -41,6 +46,14 @@ func findCapturedVars(funcLit *ast.FuncLit) map[string]bool {
 	inspectRefs(funcLit.Body)
 
 	return captured
+}
+
+func isStructFieldKeyIdent(typeInfo *TypeInfo, ident *ast.Ident) bool {
+	if typeInfo == nil || typeInfo.info == nil || ident == nil {
+		return false
+	}
+	obj, ok := typeInfo.info.Uses[ident].(*types.Var)
+	return ok && obj.IsField()
 }
 
 func parameterNamesInFuncLit(funcLit *ast.FuncLit) map[string]bool {
@@ -172,6 +185,11 @@ func findCapturedInCall(call *ast.CallExpr) map[string]bool {
 	inspectRefs = func(node ast.Node) {
 		ast.Inspect(node, func(n ast.Node) bool {
 			switch node := n.(type) {
+			case *ast.KeyValueExpr:
+				if ident, ok := node.Key.(*ast.Ident); ok && isStructFieldKeyIdent(typeInfo, ident) {
+					inspectRefs(node.Value)
+					return false
+				}
 			case *ast.SelectorExpr:
 				inspectRefs(node.X)
 				return false

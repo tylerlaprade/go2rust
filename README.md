@@ -369,6 +369,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | **Closures & Anonymous Functions** | |
 | └ Function literals | ✅ |
 | └ Closure variable capture | ✅ |
+| └ Struct literal field keys are excluded from closure capture | ✅ |
 | └ Recursive closure assignment through function variables | ✅ |
 | └ Anonymous function calls | ✅ |
 | └ Cross-file function variables | ✅ |

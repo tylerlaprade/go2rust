@@ -246,7 +246,7 @@ fn main() {
 
     let mut r = Arc::new(Mutex::new(Some(0)));
     while { let __tmp_x = { let __v = (*r.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 100; __tmp_x < __tmp_y } {
-        let done_thread = done.clone(); let key_thread = Arc::new(Mutex::new(Some((*key.lock().unwrap().as_ref().unwrap()).clone()))); let readOps_thread = Arc::new(Mutex::new(Some((*readOps.lock().unwrap().as_ref().unwrap()).clone()))); let reads_thread = reads.clone(); let resp_thread = Arc::new(Mutex::new(Some((*resp.lock().unwrap().as_ref().unwrap()).clone()))); std::thread::spawn(move || {
+        let done_thread = done.clone(); let readOps_thread = Arc::new(Mutex::new(Some((*readOps.lock().unwrap().as_ref().unwrap()).clone()))); let reads_thread = reads.clone(); std::thread::spawn(move || {
         let mut read = Arc::new(Mutex::new(Some(readOp { key: Arc::new(Mutex::new(Some(go_rand_intn(5 as i32)))), resp: GoChannel::<i32>::new(), ..Default::default() })));;
         reads_thread.send(read.lock().unwrap().as_ref().unwrap().clone());;
         (*read.lock().unwrap().as_ref().unwrap()).resp.recv().unwrap();;
@@ -258,7 +258,7 @@ fn main() {
 
     let mut w = Arc::new(Mutex::new(Some(0)));
     while { let __tmp_x = { let __v = (*w.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 10; __tmp_x < __tmp_y } {
-        let done_thread = done.clone(); let key_thread = Arc::new(Mutex::new(Some((*key.lock().unwrap().as_ref().unwrap()).clone()))); let resp_thread = Arc::new(Mutex::new(Some((*resp.lock().unwrap().as_ref().unwrap()).clone()))); let val_thread = Arc::new(Mutex::new(Some((*val.lock().unwrap().as_ref().unwrap()).clone()))); let writeOps_thread = Arc::new(Mutex::new(Some((*writeOps.lock().unwrap().as_ref().unwrap()).clone()))); let writes_thread = writes.clone(); std::thread::spawn(move || {
+        let done_thread = done.clone(); let writeOps_thread = Arc::new(Mutex::new(Some((*writeOps.lock().unwrap().as_ref().unwrap()).clone()))); let writes_thread = writes.clone(); std::thread::spawn(move || {
         let mut write = Arc::new(Mutex::new(Some(writeOp { key: Arc::new(Mutex::new(Some(go_rand_intn(5 as i32)))), val: Arc::new(Mutex::new(Some(go_rand_intn(100 as i32)))), resp: GoChannel::<bool>::new(), ..Default::default() })));;
         writes_thread.send(write.lock().unwrap().as_ref().unwrap().clone());;
         (*write.lock().unwrap().as_ref().unwrap()).resp.recv().unwrap();;

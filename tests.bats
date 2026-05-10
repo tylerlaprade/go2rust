@@ -476,6 +476,10 @@ run_xfail_test() {
     run_test "tests/closure_append_pointer_capture"
 }
 
+@test "closure_struct_literal_field_keys" {
+    run_test "tests/closure_struct_literal_field_keys"
+}
+
 @test "closures_basic" {
     run_test "tests/closures_basic"
 }

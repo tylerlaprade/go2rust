@@ -1,0 +1,8 @@
+[package]
+name = "closure_struct_literal_field_keys"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "closure_struct_literal_field_keys"
+path = "main.rs"

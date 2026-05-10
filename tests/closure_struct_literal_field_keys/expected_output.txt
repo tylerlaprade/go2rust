@@ -1,0 +1,4 @@
+driver:load
+GOOS=darwin
+-mod=vendor
+true
