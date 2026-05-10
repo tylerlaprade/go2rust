@@ -15,4 +15,8 @@ func main() {
 		fmt.Printf("%c ", r)
 	}
 	fmt.Println()
+
+	for _, r := range "go" {
+		fmt.Println(r < 'n')
+	}
 }

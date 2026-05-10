@@ -4671,6 +4671,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			} else {
 				keyType = "i32"
 			}
+		} else if isString {
+			valueType = "char"
 		} else if isSlice || isArray {
 			// Check if it's a slice of interface{} or named interface
 			elemType := typeInfo.GetArrayOrSliceElemType(s.X)

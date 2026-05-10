@@ -16,4 +16,8 @@ fn main() {
         print!("{} ", r);
     }
     println!();
+
+    for (_, r) in "go".to_string().char_indices() {
+        println!("{}", r < 'n');
+    }
 }

@@ -298,13 +298,28 @@ func isByteLikeTypeExpr(expr ast.Expr) bool {
 }
 
 func writeCharLiteralForPeer(out *strings.Builder, lit *ast.BasicLit, peer ast.Expr) bool {
-	if lit == nil || lit.Kind != token.CHAR || !isByteLikeExpression(peer) {
+	if lit == nil || lit.Kind != token.CHAR {
+		return false
+	}
+	if rangeVarRustType(peer) == "char" {
+		out.WriteString(lit.Value)
+		return true
+	}
+	if !isByteLikeExpression(peer) {
 		return false
 	}
 	out.WriteString("(")
 	out.WriteString(lit.Value)
 	out.WriteString(" as u8)")
 	return true
+}
+
+func rangeVarRustType(expr ast.Expr) string {
+	ident, ok := expr.(*ast.Ident)
+	if !ok {
+		return ""
+	}
+	return rangeLoopVars[ident.Name]
 }
 
 func writeCharLiteralForExpectedType(out *strings.Builder, lit *ast.BasicLit, expected ast.Expr) bool {
