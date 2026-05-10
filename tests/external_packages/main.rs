@@ -6,7 +6,7 @@ fn main() {
     println!("{}", "Testing external package imports".to_string());
 
         // This would normally use testify
-    if github_com_stretchr_testify_assert::equal(Rc::new(RefCell::new(Some(None))), Rc::new(RefCell::new(Some(1))), Rc::new(RefCell::new(Some(1)))) {
+    if github_com_stretchr_testify_assert::equal(Rc::new(RefCell::new(None)), Rc::new(RefCell::new(Some(1))), Rc::new(RefCell::new(Some(1)))) {
         println!("{}", "Assert would work here".to_string());
     }
 }

@@ -1,0 +1,20 @@
+
+[workspace]
+members = [
+    ".",
+    "vendor/example_com_nilslice_dep",
+    "vendor/go2rust_stdlib_stubs",
+]
+
+[package]
+name = "package_function_nil_slice_argument"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "package_function_nil_slice_argument"
+path = "main.rs"
+
+[dependencies]
+example_com_nilslice_dep = { path = "vendor/example_com_nilslice_dep" }
+go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }

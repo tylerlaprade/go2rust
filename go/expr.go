@@ -6719,6 +6719,10 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				if writeCompositeLiteralHandleCallArgument(out, arg) {
 					continue
 				}
+				if ident, ok := arg.(*ast.Ident); ok && ident.Name == "nil" {
+					WriteWrappedNone(out)
+					continue
+				}
 				// Wrap arguments in Rc<RefCell<Option<>>>
 				WriteWrapperPrefix(out)
 				if writeConstExpressionForExpectedGoType(out, arg, expectedArgType) {

@@ -155,6 +155,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Current receiver method calls with receiver-referencing arguments | ✅ |
 | └ Method calls with function-literal arguments that capture the receiver | ✅ |
 | └ Wrapped call results passed as method/function arguments | ✅ |
+| └ Typed nil arguments passed to package functions | ✅ |
 | └ Function-valued struct field calls | ✅ |
 | └ Method selectors returning function values stay method calls | ✅ |
 | └ Named function type conversions | ✅ |
