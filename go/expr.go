@@ -2269,6 +2269,19 @@ func writeBareFixedArrayCompositeLiteral(out *strings.Builder, expr ast.Expr, ex
 	return true
 }
 
+func writeStringConstForExpectedBasicType(out *strings.Builder, expr ast.Expr, expected types.Type) bool {
+	if !isStringConstExpr(expr) || expected == nil {
+		return false
+	}
+	basic, ok := types.Unalias(expected).Underlying().(*types.Basic)
+	if !ok || basic.Kind() != types.String {
+		return false
+	}
+	TranspileConstExpr(out, expr, 0)
+	out.WriteString(".to_string()")
+	return true
+}
+
 func writeArraySliceLiteralElementValue(out *strings.Builder, expr ast.Expr, elemType types.Type) bool {
 	typeInfo := GetTypeInfo()
 	if ident, ok := expr.(*ast.Ident); ok {
@@ -2296,6 +2309,9 @@ func writeArraySliceLiteralElementValue(out *strings.Builder, expr ast.Expr, ele
 		return true
 	}
 	if writeStdlibInterfaceBareConversion(out, expr, elemType) {
+		return true
+	}
+	if writeStringConstForExpectedBasicType(out, expr, elemType) {
 		return true
 	}
 	if isConstantExpression(expr) && writeExpressionForExpectedTypesType(out, expr, elemType) {

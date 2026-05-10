@@ -68,7 +68,7 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 
 ### ✅ Phase 5: Core Language Features (90% Complete)
 
-- ✅ Basic constants - simple const declarations working, with local constants resolved by go/types object identity so name reuse does not leak across scopes while package-scope lowercase constants still resolve across split modules
+- ✅ Basic constants - simple const declarations working, with local constants resolved by go/types object identity so name reuse does not leak across scopes while package-scope lowercase constants still resolve across split modules; string constants in array/slice literals lower to owned `String` elements (local_const_string_slice added, 2026-05-10)
 - ✅ Complex constants and iota - multiple constants per line, bit shifts, blank identifier all working (2025-08-23)
 - ✅ Named iota enum types - iota-backed defined integer types preserve newtype semantics and underlying const widths across constants, switch cases, maps, returns, struct fields, untyped literal fields, multi-module struct literals, and String methods (enums_iota promoted, 2026-05-06; struct_const_fields promoted, 2026-05-07; const width fix, 2026-05-07; multi-file newtype constructor fix, 2026-05-07)
 - ✅ Named scalar equality comparisons - scalar type definitions compare across wrapper modes, and typed constants wrap correctly for multi-name parameters and selector comparisons (named_type_comparisons and concurrent_named_type_comparisons added, 2026-05-07)
@@ -237,4 +237,4 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 
 go2rust transpiles itself!
 
-- 🚧 Broad self-transpile cargo check now reaches `golang_org_x_tools_internal_gocommand`. The latest fixed blocker was regexp helper/type lowering for package-global and parameter `*regexp.Regexp` values; the package-targeted `gocommand` check is down to 46 Rust errors, with remaining clusters around writer conversions, error wrapping, wrapped slice iteration, and function handle lowering (2026-05-10)
+- 🚧 Broad self-transpile cargo check now reaches `golang_org_x_tools_internal_gocommand`. The latest fixed blocker was string constants in `[]string` literals; the package-targeted `gocommand` check is down to 44 Rust errors, with remaining clusters around writer conversions, error wrapping, wrapped slice iteration, and function handle lowering (2026-05-10)

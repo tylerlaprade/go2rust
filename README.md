@@ -119,6 +119,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | **`const` - Constants** | |
 | └ Basic constants | ✅ |
 | └ String constants passed to `strings.Builder` | ✅ |
+| └ String constants in array/slice literals | ✅ |
 | └ Iota enumerations | ✅ |
 | └ Complex iota expressions | ✅ |
 | └ Named iota-backed enum types, including struct fields, untyped literal fields, and underlying const widths | ✅ |

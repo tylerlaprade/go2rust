@@ -920,6 +920,10 @@ run_xfail_test() {
     run_test "tests/local_const_shadows_param"
 }
 
+@test "local_const_string_slice" {
+    run_test "tests/local_const_string_slice"
+}
+
 @test "local_interface_concrete_return" {
     run_test "tests/local_interface_concrete_return"
 }

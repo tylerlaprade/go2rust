@@ -1,0 +1,8 @@
+[package]
+name = "local_const_string_slice"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "local_const_string_slice"
+path = "main.rs"
