@@ -1770,6 +1770,37 @@ func writePointerEquality(out *strings.Builder, expr *ast.BinaryExpr) bool {
 	return true
 }
 
+func isStringLiteralExpr(expr ast.Expr) bool {
+	lit, ok := expr.(*ast.BasicLit)
+	return ok && lit.Kind == token.STRING
+}
+
+func isNamedStringExpr(expr ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	named, ok := types.Unalias(typeInfo.GetType(expr)).(*types.Named)
+	if !ok {
+		return false
+	}
+	basic, ok := named.Underlying().(*types.Basic)
+	return ok && basic.Kind() == types.String
+}
+
+func writeNamedStringComparisonValue(out *strings.Builder, expr ast.Expr) bool {
+	if !isNamedStringExpr(expr) {
+		return false
+	}
+	out.WriteString("(*")
+	TranspileExpressionContext(out, expr, LValue)
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap()).0")
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap().clone()")
+	return true
+}
+
 func writeIdentValueClone(out *strings.Builder, ident *ast.Ident) {
 	if writeCurrentReceiverValueClone(out, ident) {
 		return
@@ -3921,6 +3952,15 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 
 		// Helper to write an operand, using bare &str for string literals in comparisons
 		writeOperand := func(expr ast.Expr, other ast.Expr, isStringLit bool, needsUnwrap bool) {
+			if isComparison && isStringLiteralExpr(other) && writeNamedStringComparisonValue(out, expr) {
+				return
+			}
+			if isComparison && isStringLit && isNamedStringExpr(other) {
+				lit := expr.(*ast.BasicLit)
+				out.WriteString(RustStringLiteral(lit.Value))
+				out.WriteString(".to_string()")
+				return
+			}
 			if typeInfo != nil && writeStdlibInterfaceComparableConversion(out, expr, typeInfo.GetType(other)) {
 				return
 			}
@@ -5230,6 +5270,10 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 		out.WriteString(")")
 		return
 	}
+	if named, ok := externalStringConversionTarget(call); ok {
+		writeStringTypeDefinitionConstructor(out, goTypesNamedTypeToRust(named), call.Args[0])
+		return
+	}
 	if named, rustType, ok := namedIntegerConversionTarget(call); ok {
 		out.WriteString(goTypesNamedTypeToRust(named))
 		out.WriteString("(")
@@ -5626,6 +5670,9 @@ func typeConversionEmitsWrappedValue(call *ast.CallExpr) bool {
 	if _, _, ok := externalIntegerConversionTarget(call); ok {
 		return false
 	}
+	if _, ok := externalStringConversionTarget(call); ok {
+		return false
+	}
 	if _, _, ok := namedIntegerConversionTarget(call); ok {
 		return false
 	}
@@ -5640,6 +5687,22 @@ func typeConversionEmitsWrappedValue(call *ast.CallExpr) bool {
 	}
 	_, isTypeDef := LookupTypeDefinition(targetType)
 	return !isTypeDef
+}
+
+func externalStringConversionTarget(call *ast.CallExpr) (*types.Named, bool) {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || call == nil {
+		return nil, false
+	}
+	named, ok := types.Unalias(typeInfo.GetType(call)).(*types.Named)
+	if !ok || named.Obj() == nil {
+		return nil, false
+	}
+	if _, isLocal := LookupTypeDefinition(named.Obj().Name()); isLocal {
+		return nil, false
+	}
+	basic, ok := named.Underlying().(*types.Basic)
+	return named, ok && basic.Kind() == types.String
 }
 
 func externalIntegerConversionTarget(call *ast.CallExpr) (*types.Named, string, bool) {

@@ -1,0 +1,20 @@
+
+[workspace]
+members = [
+    ".",
+    "vendor/example_com_package_named_string_conversion_helper",
+    "vendor/go2rust_stdlib_stubs",
+]
+
+[package]
+name = "package_named_string_conversion"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "package_named_string_conversion"
+path = "main.rs"
+
+[dependencies]
+example_com_package_named_string_conversion_helper = { path = "vendor/example_com_package_named_string_conversion_helper" }
+go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }

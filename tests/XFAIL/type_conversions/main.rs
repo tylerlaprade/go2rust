@@ -285,7 +285,7 @@ fn main() {
 
     let mut ms: MyString = Rc::new(RefCell::new(Some("hello".to_string())));
     let mut regularString: Rc<RefCell<Option<String>>> = Rc::new(RefCell::new(Some((*ms.borrow().as_ref().unwrap()).to_string())));
-    let mut backToMyString: MyString = (*regularString.borrow().as_ref().unwrap());
+    let mut backToMyString: MyString = Rc::new(RefCell::new(Some(MyString(Rc::new(RefCell::new(Some((*regularString.borrow().as_ref().unwrap()).clone())))))));
 
     print!("MyString: {}\n", { let __v = (*ms.borrow().as_ref().unwrap()).clone(); __v });
     print!("regular string: {}\n", { let __v = (*regularString.borrow().as_ref().unwrap()).clone(); __v });
