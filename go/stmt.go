@@ -929,7 +929,9 @@ func writeMapWrappedValue(out *strings.Builder, expr ast.Expr, valueType types.T
 	}
 
 	WriteWrapperPrefix(out)
-	if !isCopyTypeExpression(expr) && writeOwnedExpressionValue(out, expr) {
+	if writeLenCapCallArgumentForExpectedType(out, expr, valueType) {
+		// len/cap emits usize, but Go int map values use i32.
+	} else if !isCopyTypeExpression(expr) && writeOwnedExpressionValue(out, expr) {
 		// owned expression written above
 	} else {
 		TranspileExpression(out, expr)
