@@ -2837,6 +2837,10 @@ func writeExpressionForExpectedTypesType(out *strings.Builder, value ast.Expr, e
 	if !ok {
 		return false
 	}
+	if isTimeDurationType(named) {
+		writeTimeDurationValue(out, value)
+		return true
+	}
 	if rustType, ok := externalIntegerRustTypeForNamed(named); ok {
 		out.WriteString(goTypesNamedTypeToRust(named))
 		out.WriteString("(")
@@ -4121,6 +4125,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			return
 		}
 		if writeLocalInterfaceEquality(out, e.X, e.Y, e.Op) {
+			return
+		}
+		if writeTimeDurationBinaryExpression(out, e) {
 			return
 		}
 

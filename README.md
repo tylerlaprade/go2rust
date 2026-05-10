@@ -449,6 +449,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ `time.After` timeout channels | ✅ |
 | └ `time.NewTicker` plus `Ticker.C` receive and `Ticker.Stop` | ✅ |
 | └ `time.Tick` periodic channels | ✅ |
+| └ `time.Duration` unit expressions in assignments and comparisons | ✅ |
 | **`context` package** | |
 | └ `context.Background`, `context.WithTimeout`, `context.WithCancelCause`, `Context.Done`, `Context.Err`, cancel funcs | ✅ |
 | **`os` package** | |

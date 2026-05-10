@@ -3223,23 +3223,7 @@ func transpileTimeSleep(out *strings.Builder, call *ast.CallExpr) {
 
 		// Check if it's a simple multiplication like 500 * time.Millisecond
 		if binOp, ok := call.Args[0].(*ast.BinaryExpr); ok && binOp.Op == token.MUL {
-			// Check if one side is time.Millisecond, time.Second, etc.
-			var multiplier ast.Expr
-			var unit string
-
-			if sel, ok := binOp.Y.(*ast.SelectorExpr); ok {
-				if ident, ok := sel.X.(*ast.Ident); ok && ident.Name == "time" {
-					unit = sel.Sel.Name
-					multiplier = binOp.X
-				}
-			} else if sel, ok := binOp.X.(*ast.SelectorExpr); ok {
-				if ident, ok := sel.X.(*ast.Ident); ok && ident.Name == "time" {
-					unit = sel.Sel.Name
-					multiplier = binOp.Y
-				}
-			}
-
-			if unit != "" {
+			if multiplier, unit, ok := durationBinaryParts(binOp); ok {
 				out.WriteString("std::thread::sleep(std::time::Duration::")
 				switch unit {
 				case "Millisecond":
@@ -3431,22 +3415,7 @@ func writeContextParentArg(out *strings.Builder, arg ast.Expr) {
 // transpileDurationArg handles a Go duration argument, recognizing patterns like N * time.Unit
 func transpileDurationArg(out *strings.Builder, arg ast.Expr) {
 	if binOp, ok := arg.(*ast.BinaryExpr); ok && binOp.Op == token.MUL {
-		var multiplier ast.Expr
-		var unit string
-
-		if sel, ok := binOp.Y.(*ast.SelectorExpr); ok {
-			if ident, ok := sel.X.(*ast.Ident); ok && ident.Name == "time" {
-				unit = sel.Sel.Name
-				multiplier = binOp.X
-			}
-		} else if sel, ok := binOp.X.(*ast.SelectorExpr); ok {
-			if ident, ok := sel.X.(*ast.Ident); ok && ident.Name == "time" {
-				unit = sel.Sel.Name
-				multiplier = binOp.Y
-			}
-		}
-
-		if unit != "" {
+		if multiplier, unit, ok := durationBinaryParts(binOp); ok {
 			out.WriteString("std::time::Duration::")
 			switch unit {
 			case "Hour":
@@ -3483,4 +3452,77 @@ func transpileDurationArg(out *strings.Builder, arg ast.Expr) {
 	}
 	// Fallback: treat as raw expression
 	TranspileExpression(out, arg)
+}
+
+func writeTimeDurationBinaryExpression(out *strings.Builder, expr *ast.BinaryExpr) bool {
+	if expr == nil || expr.Op != token.MUL {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || !isTimeDurationType(typeInfo.GetType(expr)) {
+		return false
+	}
+	if _, _, ok := durationBinaryParts(expr); !ok {
+		return false
+	}
+	transpileDurationArg(out, expr)
+	return true
+}
+
+func writeTimeDurationValue(out *strings.Builder, value ast.Expr) {
+	if binOp, ok := value.(*ast.BinaryExpr); ok && binOp.Op == token.MUL {
+		if _, _, ok := durationBinaryParts(binOp); ok {
+			transpileDurationArg(out, value)
+			return
+		}
+	}
+	if hasStdlibSelectorMapping(value) {
+		TranspileExpression(out, value)
+		return
+	}
+	if isConstantExpression(value) {
+		out.WriteString("std::time::Duration::from_nanos(")
+		writeConstExpressionCastValue(out, value)
+		out.WriteString(" as u64)")
+		return
+	}
+	TranspileExpression(out, value)
+}
+
+func isTimeDurationType(typ types.Type) bool {
+	named, ok := types.Unalias(typ).(*types.Named)
+	if !ok || named.Obj() == nil || named.Obj().Pkg() == nil {
+		return false
+	}
+	return named.Obj().Pkg().Path() == "time" && named.Obj().Name() == "Duration"
+}
+
+func durationBinaryParts(expr *ast.BinaryExpr) (ast.Expr, string, bool) {
+	if expr == nil || expr.Op != token.MUL {
+		return nil, "", false
+	}
+	if unit, ok := timeDurationUnitName(expr.Y); ok {
+		return expr.X, unit, true
+	}
+	if unit, ok := timeDurationUnitName(expr.X); ok {
+		return expr.Y, unit, true
+	}
+	return nil, "", false
+}
+
+func timeDurationUnitName(expr ast.Expr) (string, bool) {
+	sel, ok := expr.(*ast.SelectorExpr)
+	if !ok {
+		return "", false
+	}
+	ident, ok := sel.X.(*ast.Ident)
+	if !ok || resolveStdlibPackageName(ident.Name) != "time" {
+		return "", false
+	}
+	switch sel.Sel.Name {
+	case "Hour", "Minute", "Second", "Millisecond", "Microsecond", "Nanosecond":
+		return sel.Sel.Name, true
+	default:
+		return "", false
+	}
 }

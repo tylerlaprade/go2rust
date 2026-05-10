@@ -669,6 +669,9 @@ func zeroValueForTypesType(typ types.Type) string {
 		return "Default::default()"
 	}
 	if named, ok := types.Unalias(typ).(*types.Named); ok {
+		if isTimeDurationType(named) {
+			return "std::time::Duration::from_nanos(0)"
+		}
 		if _, isSlice := types.Unalias(named.Underlying()).(*types.Slice); isSlice {
 			return "Default::default()"
 		}

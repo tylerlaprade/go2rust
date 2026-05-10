@@ -229,10 +229,11 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 - ✅ Basic timeouts - pre-bound time.After channels in select polling loops (timeouts_basic promoted, 2026-05-06)
 - ✅ Basic tickers - time.NewTicker with Ticker.C receive and Stop (tickers_basic promoted, 2026-05-06)
 - ✅ Basic periodic tick channels - time.Tick for deterministic rate limiting loops (rate_limiting promoted, 2026-05-06)
+- ✅ Duration unit expressions - `time.Duration` unit arithmetic such as `30*time.Second` lowers to `std::time::Duration` constructors in assignments and comparisons instead of tuple-struct syntax (time_duration_field_assignment added, 2026-05-10)
 - ✅ Basic context timeout and cancellation - context.Background/WithTimeout/WithCancelCause, Done, Err, and cancel funcs (context_usage promoted, 2026-05-06; WithCancelCause expanded, 2026-05-07)
 
 ### 🚀 Phase 10: Bootstrap Test
 
 go2rust transpiles itself!
 
-- 🚧 Broad self-transpile cargo check now reaches `golang_org_x_tools_internal_gocommand`. The latest fixed blocker was missing `__defer_stack` initialization for defers inside select cases; the package-targeted `gocommand` check is down to 59 Rust errors, with remaining clusters around `time.Duration` constants, private/exported method name collisions, regexp stubs, writer conversions, error wrapping, and wrapped slice iteration (2026-05-10)
+- 🚧 Broad self-transpile cargo check now reaches `golang_org_x_tools_internal_gocommand`. The latest fixed blocker was invalid `std::time::Duration(...)` tuple-struct syntax for duration unit expressions; the package-targeted `gocommand` check is down to 56 Rust errors, with remaining clusters around private/exported method name collisions, regexp stubs, writer conversions, error wrapping, and wrapped slice iteration (2026-05-10)

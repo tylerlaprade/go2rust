@@ -1688,6 +1688,10 @@ run_xfail_test() {
     run_test "tests/tickers_basic"
 }
 
+@test "time_duration_field_assignment" {
+    run_test "tests/time_duration_field_assignment"
+}
+
 @test "time_operations" {
     run_test "tests/time_operations"
 }
