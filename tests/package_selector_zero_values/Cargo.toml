@@ -1,0 +1,20 @@
+
+[workspace]
+members = [
+    ".",
+    "vendor/example_com_selectorzero_model",
+    "vendor/go2rust_stdlib_stubs",
+]
+
+[package]
+name = "package_selector_zero_values"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "package_selector_zero_values"
+path = "main.rs"
+
+[dependencies]
+example_com_selectorzero_model = { path = "vendor/example_com_selectorzero_model" }
+go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }

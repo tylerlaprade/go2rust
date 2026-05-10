@@ -11,6 +11,7 @@ Basic program transpilation
 Variables, basic types, maps, nil, interface{}, type assertions, control flow
 
 - ✅ Raw string literals - backtick strings emit valid escaped Rust strings (regex_basic promoted, 2026-05-06)
+- ✅ Package-qualified local zero values - uninitialized local declarations such as `var idx model.Index` use go/types zero values inside the wrapper instead of leaving Rust bindings uninitialized (package_selector_zero_values added, 2026-05-10)
 
 ### ✅ Phase 3: Pointers and Mutation
 
@@ -228,4 +229,4 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 
 go2rust transpiles itself!
 
-- 🚧 Self-transpile cargo check now reaches `golang_org_x_tools_internal_gcimporter` with prior recover empty-interface nil, concrete named-error assignment/return, local-const name leakage, range-index numeric conversion, range-value map-key cloning, nested defer-state leakage, `strconv.Itoa` wrapped numeric args, string-constant stdlib arguments, function-slice Display, typed `[]func` handles, `len` map values, imported embedded method promotion, address-of selector pointer arguments, address-of named-indexed slice elements, selector map field access, range struct method arguments, stdlib-interface map range keys, parameter reassignment, wrapped range values passed to external stdlib stubs, owned selector field short declarations, and deferred nested pointer field updates fixed; the next first error is `iexport.rs:1078`, where `i` is used before initialization, with 9 reported gcimporter errors remaining in the package-targeted check (2026-05-10)
+- 🚧 Self-transpile cargo check now reaches `golang_org_x_tools_internal_gcimporter` with prior recover empty-interface nil, concrete named-error assignment/return, local-const name leakage, range-index numeric conversion, range-value map-key cloning, nested defer-state leakage, `strconv.Itoa` wrapped numeric args, string-constant stdlib arguments, function-slice Display, typed `[]func` handles, `len` map values, imported embedded method promotion, address-of selector pointer arguments, address-of named-indexed slice elements, selector map field access, range struct method arguments, stdlib-interface map range keys, parameter reassignment, wrapped range values passed to external stdlib stubs, owned selector field short declarations, deferred nested pointer field updates, and package-qualified local zero values fixed; the next first error is `ureader_yes.rs:345`, where a closure capture is moved while borrowed, with 2 reported gcimporter errors remaining in the package-targeted check (2026-05-10)

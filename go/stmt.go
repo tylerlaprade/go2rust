@@ -258,6 +258,31 @@ func writeNilZeroValueInitializerFromTypeInfo(out *strings.Builder, typeExpr ast
 	}
 }
 
+func writeWrappedZeroValueInitializerFromTypeInfo(out *strings.Builder, typeExpr ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	typ := typeInfo.GetType(typeExpr)
+	if typ == nil {
+		return false
+	}
+	if named, ok := types.Unalias(typ).(*types.Named); ok {
+		if _, isSlice := types.Unalias(named.Underlying()).(*types.Slice); isSlice {
+			return false
+		}
+	}
+	switch types.Unalias(typ).Underlying().(type) {
+	case *types.Interface, *types.Pointer, *types.Signature, *types.Slice:
+		return false
+	}
+	out.WriteString(" = ")
+	WriteWrapperPrefix(out)
+	out.WriteString(zeroValueForTypesType(typ))
+	WriteWrapperSuffix(out)
+	return true
+}
+
 func isWrappedSliceRangeVar(name string) bool {
 	varType, ok := rangeLoopVars[name]
 	if !ok {
@@ -3952,6 +3977,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									out.WriteString(" = None")
 								} else if valueSpec.Type != nil && writeNilZeroValueInitializerFromTypeInfo(out, valueSpec.Type) {
 									// nil zero value supplied from go/types
+								} else if valueSpec.Type != nil && !isSyncType && writeWrappedZeroValueInitializerFromTypeInfo(out, valueSpec.Type) {
+									// non-nil zero value supplied from go/types
 								} else if valueSpec.Type != nil {
 									switch t := valueSpec.Type.(type) {
 									case *ast.Ident:

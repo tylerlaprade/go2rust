@@ -11,7 +11,7 @@ fn main() {
         ;
     });
 
-    let mut zero: Arc<Mutex<Option<usize>>> = Arc::new(Mutex::new(Some(Default::default())));
+    let mut zero: Arc<Mutex<Option<usize>>> = Arc::new(Mutex::new(Some(0)));
     let mut p = Arc::new(Mutex::new(Some(raw(Arc::new(Mutex::new(Some((*Arc::new(Mutex::new(Some((*zero.lock().unwrap().as_ref().unwrap())))).lock().unwrap().as_ref().unwrap()))))))));
     let mut value: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new((*p.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn Any + Send + Sync>)));
     println!("{}", { let __tmp_x = (*Arc::new(Mutex::new(Some((*({

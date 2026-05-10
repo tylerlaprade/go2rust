@@ -6,7 +6,7 @@ use std::rc::{Rc};
 
 pub fn set_flag() -> Rc<RefCell<Option<u32>>> {
 
-    let mut flags: Rc<RefCell<Option<u32>>> = Rc::new(RefCell::new(Some(Default::default())));
+    let mut flags: Rc<RefCell<Option<u32>>> = Rc::new(RefCell::new(Some(0)));
     { let mut guard = flags.borrow_mut(); *guard = Some(guard.as_ref().unwrap() | FLAG_SYNC_MARKERS as u32); };
     return flags.clone();
 }

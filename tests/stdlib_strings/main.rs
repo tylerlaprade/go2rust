@@ -158,7 +158,7 @@ fn main() {
 
         // String building with strings.Builder
     println!("{}", "\n=== String building ===".to_string());
-    let mut builder: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(Some(String::new())));
+    let mut builder: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(Some(Default::default())));
 
     (*builder.lock().unwrap().as_mut().unwrap()).push_str("Building ");
     (*builder.lock().unwrap().as_mut().unwrap()).push_str("a ");

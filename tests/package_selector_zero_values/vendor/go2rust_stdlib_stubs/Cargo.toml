@@ -1,0 +1,8 @@
+[package]
+name = "go2rust_stdlib_stubs"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "go2rust_stdlib_stubs"
+path = "lib.rs"

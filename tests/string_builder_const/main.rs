@@ -5,7 +5,7 @@ pub(crate) const SEPARATOR: &'static str = " | ";
 
 
 fn main() {
-    let mut b: Rc<RefCell<Option<String>>> = Rc::new(RefCell::new(Some(String::new())));
+    let mut b: Rc<RefCell<Option<String>>> = Rc::new(RefCell::new(Some(Default::default())));
     (*b.borrow_mut().as_mut().unwrap()).push_str("left");
     (*b.borrow_mut().as_mut().unwrap()).push_str(SEPARATOR);
     (*b.borrow_mut().as_mut().unwrap()).push_str("right");

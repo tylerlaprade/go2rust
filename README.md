@@ -288,6 +288,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Interface types | ✅ |
 | **`var` - Variable declarations** | |
 | └ Basic var declarations | ✅ |
+| └ Package-qualified local zero values | ✅ |
 | └ Package-level declarations and initializer order | ✅ |
 | └ Package-level fixed and inferred array declarations | ✅ |
 | └ Short declarations (:=) | ✅ |

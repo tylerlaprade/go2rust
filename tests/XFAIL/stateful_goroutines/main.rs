@@ -217,8 +217,8 @@ impl std::fmt::Display for writeOp {
 
 
 fn main() {
-    let mut readOps: Arc<Mutex<Option<u64>>> = Arc::new(Mutex::new(Some(Default::default())));
-    let mut writeOps: Arc<Mutex<Option<u64>>> = Arc::new(Mutex::new(Some(Default::default())));
+    let mut readOps: Arc<Mutex<Option<u64>>> = Arc::new(Mutex::new(Some(0)));
+    let mut writeOps: Arc<Mutex<Option<u64>>> = Arc::new(Mutex::new(Some(0)));
 
     let mut reads = GoChannel::<readOp>::new();
     let mut writes = GoChannel::<writeOp>::new();
