@@ -46,6 +46,6 @@ fn main() {
 
         // String compound assignment
     let mut s = Rc::new(RefCell::new(Some("Hello".to_string())));
-    (*s.borrow_mut().as_mut().unwrap()).push_str(&" World".to_string());
+    { (*s.borrow_mut().as_mut().unwrap()).push_str(&" World".to_string()); };
     print!("s += \" World\": {}\n", { let __v = (*s.borrow().as_ref().unwrap()).clone(); __v });
 }

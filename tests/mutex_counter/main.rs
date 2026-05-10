@@ -56,7 +56,7 @@ impl Counter {
     pub fn increment(&mut self) {
         let __mutex_guard_source_129 = self.mu.clone(); let __mutex_guard_129 = __mutex_guard_source_129.lock();
         // mu.Unlock() handled by RAII guard
-        { let mut guard = self.value.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
+        { let __target = self.value.clone(); let mut guard = __target.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
 
     pub fn value(&self) -> Rc<RefCell<Option<i32>>> {

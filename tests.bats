@@ -648,6 +648,10 @@ run_xfail_test() {
     run_test "tests/defer_named_returns"
 }
 
+@test "defer_nested_pointer_field_capture" {
+    run_test "tests/defer_nested_pointer_field_capture"
+}
+
 @test "defer_statements" {
     run_test "tests/defer_statements"
 }

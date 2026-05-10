@@ -118,11 +118,11 @@ impl Counter {
     }
 
     pub fn increment(&mut self) {
-        { let mut guard = self.count.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
+        { let __target = self.count.clone(); let mut guard = __target.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
 
     pub fn add(&mut self, n: Rc<RefCell<Option<i32>>>) {
-        { let mut guard = self.count.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + (*n.borrow().as_ref().unwrap())); };
+        { let __target = self.count.clone(); let mut guard = __target.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + (*n.borrow().as_ref().unwrap())); };
     }
 }
 

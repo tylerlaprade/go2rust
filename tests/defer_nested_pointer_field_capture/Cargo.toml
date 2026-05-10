@@ -1,0 +1,8 @@
+[package]
+name = "defer_nested_pointer_field_capture"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "defer_nested_pointer_field_capture"
+path = "main.rs"

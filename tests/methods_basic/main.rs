@@ -35,16 +35,16 @@ impl Counter {
 
     /// Method with pointer receiver
     pub fn increment(&mut self) {
-        { let mut guard = self.value.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
+        { let __target = self.value.clone(); let mut guard = __target.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
 
     pub fn add(&mut self, n: Rc<RefCell<Option<i32>>>) {
-        { let mut guard = self.value.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + (*n.borrow().as_ref().unwrap())); };
+        { let __target = self.value.clone(); let mut guard = __target.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + (*n.borrow().as_ref().unwrap())); };
     }
 
     /// Method with return value
     pub fn double(&mut self) -> Rc<RefCell<Option<i32>>> {
-        { let mut guard = self.value.borrow_mut(); *guard = Some(guard.as_ref().unwrap() * 2); };
+        { let __target = self.value.clone(); let mut guard = __target.borrow_mut(); *guard = Some(guard.as_ref().unwrap() * 2); };
         return self.value.clone();
     }
 }
@@ -55,7 +55,7 @@ impl Person {
     }
 
     pub fn have_birthday(&mut self) {
-        { let mut guard = self.age.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
+        { let __target = self.age.clone(); let mut guard = __target.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
         print!("{} is now {} years old\n", (*self.name.borrow().as_ref().unwrap()), (*self.age.borrow().as_ref().unwrap()));
     }
 }

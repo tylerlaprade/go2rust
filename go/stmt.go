@@ -1690,6 +1690,29 @@ func writeCompoundAssignOperator(out *strings.Builder, op token.Token) {
 	}
 }
 
+func writeWrappedMutationTargetClone(out *strings.Builder, expr ast.Expr) {
+	out.WriteString("let __target = ")
+	TranspileExpressionContext(out, expr, LValue)
+	out.WriteString(".clone(); ")
+}
+
+func writeWrappedMutationTargetPrelude(out *strings.Builder, expr ast.Expr) bool {
+	if _, ok := expr.(*ast.SelectorExpr); !ok {
+		return false
+	}
+	writeWrappedMutationTargetClone(out, expr)
+	return true
+}
+
+func writeWrappedMutationTargetRef(out *strings.Builder, expr ast.Expr, mutable bool) {
+	if _, ok := expr.(*ast.SelectorExpr); ok {
+		out.WriteString("__target")
+	} else {
+		TranspileExpressionContext(out, expr, LValue)
+	}
+	WriteBorrowMethod(out, mutable)
+}
+
 func writeBareCompoundAssignValue(out *strings.Builder, expr ast.Expr, expected types.Type) {
 	if ident, ok := expr.(*ast.Ident); ok {
 		_, isRangeVar := rangeLoopVars[ident.Name]
@@ -2801,18 +2824,20 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 				if isString {
 					// For string +=, we need mutable access to the LHS
+					out.WriteString("{ ")
+					writeWrappedMutationTargetPrelude(out, s.Lhs[0])
 					out.WriteString("(*")
-					TranspileExpressionContext(out, s.Lhs[0], LValue)
-					WriteBorrowMethod(out, true)
+					writeWrappedMutationTargetRef(out, s.Lhs[0], true)
 					out.WriteString(".as_mut().unwrap()).push_str(&")
 					TranspileExpression(out, s.Rhs[0])
-					out.WriteString(")")
+					out.WriteString("); }")
 				} else {
 					// Numeric compound assignment for wrapped values
 					// Generate: { let mut guard = lhs.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() OP rhs); }
-					out.WriteString("{ let mut guard = ")
-					TranspileExpressionContext(out, s.Lhs[0], LValue)
-					WriteBorrowMethod(out, true)
+					out.WriteString("{ ")
+					writeWrappedMutationTargetPrelude(out, s.Lhs[0])
+					out.WriteString("let mut guard = ")
+					writeWrappedMutationTargetRef(out, s.Lhs[0], true)
 					out.WriteString("; *guard = Some(guard.as_ref().unwrap() ")
 
 					// Output the appropriate operator
@@ -4186,9 +4211,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		} else {
 			// For wrapped variables, we need to update the value inside
 			out.WriteString("{ ")
+			writeWrappedMutationTargetPrelude(out, s.X)
 			out.WriteString("let mut guard = ")
-			TranspileExpressionContext(out, s.X, LValue)
-			WriteBorrowMethod(out, true)
+			writeWrappedMutationTargetRef(out, s.X, true)
 			out.WriteString("; ")
 			out.WriteString("*guard = Some(guard.as_ref().unwrap() ")
 			if s.Tok == token.INC {

@@ -6,11 +6,11 @@ use std::rc::{Rc};
 impl Counter {
     /// Methods for Counter type
     pub fn increment(&mut self) {
-        { let mut guard = self.value.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
+        { let __target = self.value.clone(); let mut guard = __target.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
 
     pub fn add(&mut self, n: Rc<RefCell<Option<i32>>>) {
-        { let mut guard = self.value.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + (*n.borrow().as_ref().unwrap())); };
+        { let __target = self.value.clone(); let mut guard = __target.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + (*n.borrow().as_ref().unwrap())); };
     }
 
     pub fn value(&self) -> Rc<RefCell<Option<i32>>> {
@@ -27,7 +27,7 @@ impl Point {
     }
 
     pub fn r#move(&mut self, dx: Rc<RefCell<Option<f64>>>, dy: Rc<RefCell<Option<f64>>>) {
-        { let mut guard = self.x.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + (*dx.borrow().as_ref().unwrap())); };
-        { let mut guard = self.y.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + (*dy.borrow().as_ref().unwrap())); };
+        { let __target = self.x.clone(); let mut guard = __target.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + (*dx.borrow().as_ref().unwrap())); };
+        { let __target = self.y.clone(); let mut guard = __target.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + (*dy.borrow().as_ref().unwrap())); };
     }
 }

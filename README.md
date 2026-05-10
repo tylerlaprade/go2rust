@@ -133,6 +133,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Methods with named returns and deferred result mutation | ✅ |
 | └ Named return captures in deferred map writes | ✅ |
 | └ Deferred field writes honor capture renames | ✅ |
+| └ Deferred nested pointer field updates | ✅ |
 | **`else` - Else clauses** | ✅ |
 | **`fallthrough` - Fallthrough statements** | ✅ |
 | **`for` - For loops** | |

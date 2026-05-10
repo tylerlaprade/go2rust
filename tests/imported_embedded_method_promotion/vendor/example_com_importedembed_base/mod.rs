@@ -169,7 +169,7 @@ impl Ord for Index {
 
 impl Decoder {
     pub fn add(&mut self, n: Arc<Mutex<Option<i32>>>) {
-        { let mut guard = self.value.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + (*n.lock().unwrap().as_ref().unwrap())); };
+        { let __target = self.value.clone(); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + (*n.lock().unwrap().as_ref().unwrap())); };
     }
 
     pub fn label(&self, prefix: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<String>>> {
