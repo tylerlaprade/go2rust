@@ -37,6 +37,9 @@ func remember(m map[*types.Package][]pkgObj, pkg *types.Package, obj types.Objec
 	var pkgs []*types.Package
 	for p, objs := range m {
 		pkgs = append(pkgs, p)
+		sort.Slice(objs, func(i, j int) bool {
+			return objs[i].name < objs[j].name
+		})
 		_ = len(objs)
 	}
 	sort.Slice(pkgs, func(i, j int) bool {

@@ -1074,6 +1074,13 @@ func writeExternalStubCallArgument(out *strings.Builder, arg ast.Expr) {
 		out.WriteString("()")
 		return
 	}
+	if ident, ok := arg.(*ast.Ident); ok {
+		if varType, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar && isWrappedRangeVarType(varType) {
+			out.WriteString(rustIdentForUseWithCapture(ident))
+			out.WriteString(".clone()")
+			return
+		}
+	}
 	if ident, ok := arg.(*ast.Ident); ok && isWrappedValueIdent(ident) {
 		out.WriteString(rustIdentForUseWithCapture(ident))
 		out.WriteString(".clone()")
