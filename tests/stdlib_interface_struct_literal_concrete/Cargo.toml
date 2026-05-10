@@ -1,0 +1,8 @@
+[package]
+name = "stdlib_interface_struct_literal_concrete"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "stdlib_interface_struct_literal_concrete"
+path = "main.rs"

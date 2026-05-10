@@ -2186,15 +2186,20 @@ func writeEmptyInterfaceIdentAssignment(out *strings.Builder, lhs ast.Expr, rhs 
 }
 
 func writeWrappedStructFieldValue(out *strings.Builder, value ast.Expr, fieldExpr ast.Expr, fieldType types.Type) {
+	expectedFieldType := fieldType
+	if expectedFieldType == nil && fieldExpr != nil {
+		expectedFieldType = expectedTypeFromParamExpr(fieldExpr)
+	}
+
 	if writeLocalInterfaceFieldValue(out, value, fieldExpr, fieldType) {
 		return
 	}
 
-	if writeStdlibInterfaceCallArgumentConversion(out, value, fieldType) {
+	if writeStdlibInterfaceCallArgumentConversion(out, value, expectedFieldType) {
 		return
 	}
 
-	if isEmptyInterfaceExpr(fieldExpr) || isEmptyInterfaceType(fieldType) {
+	if isEmptyInterfaceExpr(fieldExpr) || isEmptyInterfaceType(expectedFieldType) {
 		if writeEmptyInterfaceHandleClone(out, value) {
 			return
 		}
@@ -2204,12 +2209,12 @@ func writeWrappedStructFieldValue(out *strings.Builder, value ast.Expr, fieldExp
 		return
 	}
 
-	if isPointerFieldExpr(fieldExpr) || isPointerFieldType(fieldType) {
+	if isPointerFieldExpr(fieldExpr) || isPointerFieldType(expectedFieldType) {
 		if ident, ok := value.(*ast.Ident); ok && ident.Name == "nil" {
 			out.WriteString("Default::default()")
 			return
 		}
-		if writeCurrentReceiverPointerFieldValue(out, value, fieldExpr, fieldType) {
+		if writeCurrentReceiverPointerFieldValue(out, value, fieldExpr, expectedFieldType) {
 			return
 		}
 		TranspileExpressionContext(out, value, LValue)
@@ -2217,7 +2222,7 @@ func writeWrappedStructFieldValue(out *strings.Builder, value ast.Expr, fieldExp
 		return
 	}
 
-	if isChannelFieldExpr(fieldExpr) || isChannelFieldType(fieldType) {
+	if isChannelFieldExpr(fieldExpr) || isChannelFieldType(expectedFieldType) {
 		if ident, ok := value.(*ast.Ident); ok && ident.Name == "nil" {
 			out.WriteString("Default::default()")
 			return
@@ -2226,14 +2231,14 @@ func writeWrappedStructFieldValue(out *strings.Builder, value ast.Expr, fieldExp
 		return
 	}
 
-	if isFunctionSignatureTypeExpr(fieldExpr) || isFunctionSignatureType(fieldType) {
+	if isFunctionSignatureTypeExpr(fieldExpr) || isFunctionSignatureType(expectedFieldType) {
 		if _, ok := value.(*ast.FuncLit); ok {
 			TranspileExpression(out, value)
 			return
 		}
 	}
 
-	if writeAlreadyWrappedSelectorFieldValue(out, value, fieldExpr, fieldType) {
+	if writeAlreadyWrappedSelectorFieldValue(out, value, fieldExpr, expectedFieldType) {
 		return
 	}
 
@@ -2726,6 +2731,9 @@ func registerExternalStructCompositeLiteralFields(structType types.Type, structU
 func writeWrappedMapValue(out *strings.Builder, value ast.Expr, valueExpr ast.Expr, valueType types.Type) {
 	if ident, ok := value.(*ast.Ident); ok && ident.Name == "nil" && isNilableWrappedMapValueType(valueType) {
 		WriteWrappedNone(out)
+		return
+	}
+	if writeStdlibInterfaceCallArgumentConversion(out, value, valueType) {
 		return
 	}
 	if (isEmptyInterfaceExpr(valueExpr) || isEmptyInterfaceType(valueType)) && writeEmptyInterfaceHandleClone(out, value) {

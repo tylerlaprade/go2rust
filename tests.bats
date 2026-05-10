@@ -1408,6 +1408,10 @@ run_xfail_test() {
     run_test "tests/stdlib_interface_map_key"
 }
 
+@test "stdlib_interface_map_value_assignment" {
+    run_test "tests/stdlib_interface_map_value_assignment"
+}
+
 @test "stdlib_interface_range_assertion" {
     run_test "tests/stdlib_interface_range_assertion"
 }
@@ -1418,6 +1422,10 @@ run_xfail_test() {
 
 @test "stdlib_interface_return_variable" {
     run_test "tests/stdlib_interface_return_variable"
+}
+
+@test "stdlib_interface_struct_literal_concrete" {
+    run_test "tests/stdlib_interface_struct_literal_concrete"
 }
 
 @test "stdlib_method_stubs" {

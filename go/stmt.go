@@ -886,6 +886,9 @@ func writeMapWrappedValue(out *strings.Builder, expr ast.Expr, valueType types.T
 		WriteWrappedNone(out)
 		return
 	}
+	if writeStdlibInterfaceCallArgumentConversion(out, expr, valueType) {
+		return
+	}
 	if ident, ok := expr.(*ast.Ident); ok &&
 		ident.Name != "_" && ident.Name != "nil" && ident.Name != "true" && ident.Name != "false" {
 		if _, isRangeVar := rangeLoopVars[ident.Name]; !isRangeVar {
