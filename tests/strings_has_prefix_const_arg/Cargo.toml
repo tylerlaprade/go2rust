@@ -1,0 +1,8 @@
+[package]
+name = "strings_has_prefix_const_arg"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "strings_has_prefix_const_arg"
+path = "main.rs"

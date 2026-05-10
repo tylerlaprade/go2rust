@@ -1468,6 +1468,10 @@ run_xfail_test() {
     run_test "tests/string_interpolation"
 }
 
+@test "strings_has_prefix_const_arg" {
+    run_test "tests/strings_has_prefix_const_arg"
+}
+
 @test "strings_repeat_selector_count" {
     run_test "tests/strings_repeat_selector_count"
 }

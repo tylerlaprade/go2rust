@@ -1268,6 +1268,10 @@ func writeOwnedStringStdlibArg(out *strings.Builder, arg ast.Expr) {
 		TranspileExpression(out, lit)
 		return
 	}
+	if isConstantExpression(arg) {
+		TranspileExpression(out, arg)
+		return
+	}
 
 	out.WriteString("(*")
 	TranspileExpressionContext(out, arg, LValue)
