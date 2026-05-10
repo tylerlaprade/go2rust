@@ -1,0 +1,34 @@
+use go2rust_stdlib_stubs::*;
+
+use std::cell::{RefCell};
+use std::fmt::{Display, Formatter};
+use std::rc::{Rc};
+
+#[derive(Debug, Clone, Default)]
+pub struct Item {
+    pub v: Rc<RefCell<Option<i32>>>,
+}
+
+impl std::fmt::Display for Item {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{}}}", (*self.v.borrow().as_ref().unwrap()))
+    }
+}
+
+
+pub fn of(v: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<Item>>> {
+
+    return Rc::new(RefCell::new(Some(Item { v: v.clone(), ..Default::default() })));
+}
+
+pub fn make(r#static: Rc<RefCell<Option<[Item; 3]>>>, labels: Rc<RefCell<Option<Vec<Item>>>>) -> Rc<RefCell<Option<i32>>> {
+
+    let mut total = Rc::new(RefCell::new(Some(0)));
+    { let __range_holder = r#static.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for item in __range_values.iter() {
+        { let mut guard = total.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + (*item.v.borrow().as_ref().unwrap())); };
+    } }
+    { let __range_holder = labels.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for item in __range_values.iter() {
+        { let mut guard = total.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + (*item.v.borrow().as_ref().unwrap())); };
+    } }
+    return total.clone();
+}

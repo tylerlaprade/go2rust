@@ -301,6 +301,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Fixed array zero values above Rust's built-in `Default` array sizes | ✅ |
 | └ Slices | ✅ |
 | └ Array/slice literal elements from wrapped call results | ✅ |
+| └ Array/slice/map literals passed to package functions | ✅ |
 | └ Slice operations | ✅ |
 | └ Append into indexed slice elements inside arrays/slices | ✅ |
 | └ Assignment into nested indexed slice elements | ✅ |

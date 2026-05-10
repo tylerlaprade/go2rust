@@ -1044,6 +1044,26 @@ func writeCallArgumentValue(out *strings.Builder, arg ast.Expr) bool {
 	}
 }
 
+func writeCompositeLiteralHandleCallArgument(out *strings.Builder, arg ast.Expr) bool {
+	lit, ok := arg.(*ast.CompositeLit)
+	if !ok {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo != nil {
+		if typ := typeInfo.GetType(lit); typ != nil {
+			if _, ok := types.Unalias(typ).Underlying().(*types.Struct); ok {
+				return false
+			}
+		}
+	}
+	if _, ok := lit.Type.(*ast.StructType); ok {
+		return false
+	}
+	TranspileExpression(out, arg)
+	return true
+}
+
 func writeRangeStringCallArgumentValue(out *strings.Builder, arg ast.Expr, expected types.Type) bool {
 	ident, ok := arg.(*ast.Ident)
 	if !ok || expected == nil {
@@ -6673,6 +6693,9 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 					continue
 				}
 				if writeAlreadyWrappedCallArgument(out, arg) {
+					continue
+				}
+				if writeCompositeLiteralHandleCallArgument(out, arg) {
 					continue
 				}
 				// Wrap arguments in Rc<RefCell<Option<>>>
