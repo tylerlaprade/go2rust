@@ -1153,6 +1153,23 @@ func writeStdlibInterfaceNamedReturnAssignment(out *strings.Builder, name *ast.I
 	return true
 }
 
+func writeErrorChannelNamedReturnAssignment(out *strings.Builder, name *ast.Ident, resultType ast.Expr, rhs ast.Expr) bool {
+	if name == nil || name.Name == "_" || !isGoErrorType(expectedTypeFromParamExpr(resultType)) {
+		return false
+	}
+	unary, ok := rhs.(*ast.UnaryExpr)
+	if !ok || unary.Op != token.ARROW || !channelElementIsGoError(unary.X) {
+		return false
+	}
+	out.WriteString("{ let new_val = ")
+	writeChannelExpression(out, unary.X)
+	out.WriteString(".recv().unwrap(); *")
+	out.WriteString(RustLocalIdent(name.Name))
+	WriteBorrowMethod(out, true)
+	out.WriteString(" = new_val; }")
+	return true
+}
+
 func namedTypeForTypeExpr(expr ast.Expr) (*types.Named, bool) {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil || expr == nil {
@@ -2009,6 +2026,81 @@ func isMutexUnlockDefer(call *ast.CallExpr) bool {
 	return false
 }
 
+// channelElementIsGoError reports whether a channel expression carries Go error values.
+func channelElementIsGoError(expr ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	typ := typeInfo.GetType(expr)
+	if typ == nil {
+		return false
+	}
+	ch, ok := types.Unalias(typ).Underlying().(*types.Chan)
+	return ok && isGoErrorType(ch.Elem())
+}
+
+func rustStdErrorBoxType() string {
+	TrackImport("Error")
+	if NeedsConcurrentWrapper() {
+		return "Box<dyn StdError + Send + Sync>"
+	}
+	return "Box<dyn StdError>"
+}
+
+func writeErrorOptionFromHandleExpression(out *strings.Builder, expr ast.Expr) {
+	if ident, ok := expr.(*ast.Ident); ok && ident.Name == "nil" {
+		out.WriteString("None::<")
+		out.WriteString(rustStdErrorBoxType())
+		out.WriteString(">")
+		return
+	}
+	out.WriteString("{ let __err_handle = ")
+	if ident, ok := expr.(*ast.Ident); ok && ident.Name != "nil" {
+		out.WriteString(rustIdentForUseWithCapture(ident))
+		out.WriteString(".clone()")
+	} else if call, ok := expr.(*ast.CallExpr); ok {
+		TranspileExpression(out, call)
+	} else {
+		TranspileExpressionContext(out, expr, LValue)
+		out.WriteString(".clone()")
+	}
+	out.WriteString("; let mut __err_guard = __err_handle")
+	WriteBorrowMethod(out, true)
+	out.WriteString("; __err_guard.take() }")
+}
+
+func writeErrorHandleFromOptionValue(out *strings.Builder, value string) {
+	trackWrapperImports()
+	if NeedsConcurrentWrapper() {
+		out.WriteString("Arc::new(Mutex::new(")
+		out.WriteString(value)
+		out.WriteString("))")
+		return
+	}
+	out.WriteString("Rc::new(RefCell::new(")
+	out.WriteString(value)
+	out.WriteString("))")
+}
+
+func writeErrorChannelReceiveAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
+	unary, ok := rhs.(*ast.UnaryExpr)
+	if !ok || unary.Op != token.ARROW || !channelElementIsGoError(unary.X) {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || !isGoErrorType(typeInfo.GetType(lhs)) {
+		return false
+	}
+	out.WriteString("{ let new_val = ")
+	writeChannelExpression(out, unary.X)
+	out.WriteString(".recv().unwrap(); *")
+	TranspileExpressionContext(out, lhs, LValue)
+	WriteBorrowMethod(out, true)
+	out.WriteString(" = new_val; }")
+	return true
+}
+
 // transpileChannelValue writes a value suitable for sending on a channel.
 // Channel values are bare (unwrapped), so we need to unwrap wrapped variables.
 func transpileChannelValue(out *strings.Builder, expr ast.Expr) {
@@ -2037,6 +2129,10 @@ func transpileChannelValue(out *strings.Builder, expr ast.Expr) {
 	if typeInfo != nil {
 		exprType := typeInfo.GetType(expr)
 		if exprType != nil {
+			if isGoErrorType(exprType) {
+				writeErrorOptionFromHandleExpression(out, expr)
+				return
+			}
 			if basic, ok := exprType.Underlying().(*types.Basic); ok {
 				switch basic.Kind() {
 				case types.Int, types.Int8, types.Int16, types.Int32, types.Int64,
@@ -2341,8 +2437,10 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					continue
 				}
 				out.WriteString("        ")
-				if !writeStdlibInterfaceNamedReturnAssignment(out, names[i], returnResultTypeExpr(fnType, i), result) &&
-					!writePointerNamedReturnAssignment(out, names[i], returnResultTypeExpr(fnType, i), result) {
+				resultType := returnResultTypeExpr(fnType, i)
+				if !writeStdlibInterfaceNamedReturnAssignment(out, names[i], resultType, result) &&
+					!writeErrorChannelNamedReturnAssignment(out, names[i], resultType, result) &&
+					!writePointerNamedReturnAssignment(out, names[i], resultType, result) {
 					TranspileStatementSimple(out, &ast.AssignStmt{
 						Lhs: []ast.Expr{names[i]},
 						Tok: token.ASSIGN,
@@ -3215,6 +3313,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 								if !writeSliceElemPtrOptionValue(out, s.Rhs[0]) {
 									out.WriteString("/* ERROR: slice element pointer assignment requires nil or &slice[index] */ unimplemented!(\"slice element pointer assignment\")")
 								}
+							} else if writeErrorChannelReceiveAssignment(out, s.Lhs[0], s.Rhs[0]) {
 							} else if star, ok := s.Lhs[0].(*ast.StarExpr); ok {
 								// Check if LHS is a dereference (*p = value)
 								// Assignment through pointer: *p = value
@@ -5172,9 +5271,13 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 								out.WriteString("            let mut ")
 								out.WriteString(EscapeRustIdent(ident.Name))
 								out.WriteString(" = ")
-								WriteWrapperPrefix(out)
-								out.WriteString(EscapeRustIdent(ident.Name))
-								WriteWrapperSuffix(out)
+								if channelElementIsGoError(unary.X) {
+									writeErrorHandleFromOptionValue(out, EscapeRustIdent(ident.Name))
+								} else {
+									WriteWrapperPrefix(out)
+									out.WriteString(EscapeRustIdent(ident.Name))
+									WriteWrapperSuffix(out)
+								}
 								out.WriteString(";\n")
 								// Now it's wrapped, remove from rangeLoopVars
 								delete(rangeLoopVars, ident.Name)
@@ -5187,7 +5290,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							TranspileStatementSimple(out, bodyStmt, fnType, fileSet)
 							out.WriteString("\n")
 						}
-						out.WriteString("            break;\n")
+						if !stmtListTerminates(cc.Body) {
+							out.WriteString("            break;\n")
+						}
 						out.WriteString("        }\n")
 					}
 				}
@@ -5204,7 +5309,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						TranspileStatementSimple(out, bodyStmt, fnType, fileSet)
 						out.WriteString("\n")
 					}
-					out.WriteString("            break;\n")
+					if !stmtListTerminates(cc.Body) {
+						out.WriteString("            break;\n")
+					}
 					out.WriteString("        }\n")
 				}
 
@@ -5221,7 +5328,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					TranspileStatementSimple(out, bodyStmt, fnType, fileSet)
 					out.WriteString("\n")
 				}
-				out.WriteString("            break;\n")
+				if !stmtListTerminates(cc.Body) {
+					out.WriteString("            break;\n")
+				}
 				out.WriteString("        }\n")
 			}
 		}
@@ -5235,7 +5344,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						TranspileStatementSimple(out, bodyStmt, fnType, fileSet)
 						out.WriteString("\n")
 					}
-					out.WriteString("        break;\n")
+					if !stmtListTerminates(cc.Body) {
+						out.WriteString("        break;\n")
+					}
 				}
 			}
 		} else {

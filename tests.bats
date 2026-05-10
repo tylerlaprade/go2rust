@@ -444,6 +444,10 @@ run_xfail_test() {
     run_test "tests/channel_buffering"
 }
 
+@test "channel_error_values" {
+    run_test "tests/channel_error_values"
+}
+
 @test "channel_struct_fields" {
     run_test "tests/channel_struct_fields"
 }

@@ -224,6 +224,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Boxed error values asserted back to `error` | ✅ |
 | └ Wrapped `error` arguments and sentinel comparisons | ✅ |
 | └ `Error()` calls on wrapped `error` interface values | ✅ |
+| └ Error values sent, received, and returned through channels | ✅ |
 | └ Type switches, including nil and selector pointer cases | ✅ |
 | **`map` - Map types** | |
 | └ Map types | ✅ |
@@ -269,6 +270,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Named returns | ✅ |
 | └ Slice and map literal returns | ✅ |
 | **`select` - Select statements** | ✅ |
+| └ Returning from select communication and default cases | ✅ |
 | **`struct` - Struct types** | |
 | └ Struct definitions | ✅ |
 | └ Struct literals | ✅ |

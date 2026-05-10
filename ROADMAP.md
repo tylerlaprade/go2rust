@@ -91,7 +91,7 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 - ✅ Interface equality against concrete package globals - comparisons such as `l.Key() == keys.Msg` bind the concrete package-global pointer as a trait reference and dispatch through `__go_eq` instead of emitting raw Rust trait-object equality (package_interface_concrete_equality added, 2026-05-10)
 - ✅ Imported transpiled interface implementations - current-package concrete values passed to dependency interface parameters generate imported trait impls when go/types proves the implementation (2026-05-08)
 - ✅ Imported transpiled variadic package calls - package selector calls into transpiled dependency crates use the go/types variadic signature path, including empty variadic vectors when no trailing arguments are provided (package_variadic_import added, 2026-05-10)
-- ✅ Error handling - custom error types with Error() method, concrete named-error assignment/return boxing, Box<dyn Error> returns, package-level error globals, error assignment, error-to-error moves, error handle arguments, `Error()` calls on wrapped error interfaces, error equality comparisons, type assertions on errors, and fmt.Errorf `%w` formatting (2026-03-26, updated 2026-05-10)
+- ✅ Error handling - custom error types with Error() method, concrete named-error assignment/return boxing, Box<dyn Error> returns, package-level error globals, error assignment, error-to-error moves, error handle arguments, `Error()` calls on wrapped error interfaces, error equality comparisons, type assertions on errors, `chan error` send/receive/return flows, and fmt.Errorf `%w` formatting (2026-03-26, updated 2026-05-10)
 - ✅ Embedded method promotion - multi-level embedding, promoted method calls, field method chains, and imported transpiled embedded method forwarding from go/types method sets (2026-03-26, expanded 2026-05-10)
 - ✅ Map value type consistency - map literal values and type annotations now consistently wrap values (2026-03-26)
 - ✅ Map capacity and element update semantics - make(map[K]V, cap), missing-key zero values, and map element ++/+= (make_map_with_capacity promoted, 2026-05-06)
@@ -127,7 +127,7 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 
 ### 📋 Phase 6: Control Flow Extensions
 
-- ✅ Select statements - receive, send, default, timeout, and loop cases (select_basic, select_statements promoted)
+- ✅ Select statements - receive, send, default, timeout, loop cases, and terminating return cases (select_basic, select_statements promoted; channel_error_values added, 2026-05-10)
 - ✅ Advanced deterministic control-flow combinations - labeled break/continue, nested switch, fallthrough, complex loop conditions, nested ranges, select, and error-flow smoke coverage (advanced_control_flow promoted, 2026-05-06)
 - ✅ Full range-loop fixture - slice/map/string/channel ranges, nil slice iteration, and repeated wrapped reads in channel sends (range_loops promoted, 2026-05-06)
 - ✅ Range string values - range values from `[]string` clone out of iterator references when passed to owned `string` parameters, used in stdlib string calls, compared with owned strings, or appended to `[]string` (range_string_method_argument promoted, 2026-05-09; range_selector_string_values added, 2026-05-10)
@@ -243,4 +243,4 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 
 go2rust transpiles itself!
 
-- 🚧 Broad self-transpile cargo check now reaches `golang_org_x_tools_internal_gocommand`. The latest fixed blocker was imported transpiled package variadic calls missing the variadic vector argument; the package-targeted `gocommand` check is down to 21 Rust errors, with remaining clusters around writer conversions, error wrapping, and function handle lowering (2026-05-10)
+- 🚧 Broad self-transpile cargo check now reaches `golang_org_x_tools_internal_gocommand`. The latest fixed blocker was `chan error` payload lowering through sends, receives, named-return `return <-ch`, and select case returns; the package-targeted `gocommand` check is down to 5 Rust errors, with remaining clusters around `FnMut` closure lowering, generated cleanup function result defaults, and `json.Marshal` for a local struct (2026-05-10)

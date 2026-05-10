@@ -384,7 +384,6 @@ pub fn select_loop() {
         if let Some(_) = quit.try_recv() {
             println!("{}", "Quit signal received".to_string());
             return;
-            break;
         }
         std::thread::sleep(std::time::Duration::from_millis(1));
     }
