@@ -254,6 +254,12 @@ impl os_File {
     pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
         None
     }
+    pub fn close(&self) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
+        Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>))
+    }
+    pub fn write_string<T0>(&self, _arg0: T0) -> (Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+        (Arc::new(Mutex::new(Some::<i32>(Default::default()))), Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>)))
+    }
 }
 
 

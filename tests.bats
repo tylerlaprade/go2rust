@@ -1156,6 +1156,10 @@ run_xfail_test() {
     run_test "tests/os_args"
 }
 
+@test "os_file_direct_close" {
+    run_test "tests/os_file_direct_close"
+}
+
 @test "os_file_readcloser_assignment" {
     run_test "tests/os_file_readcloser_assignment"
 }

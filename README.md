@@ -188,6 +188,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Stdlib type signatures | ✅ |
 | └ Stdlib method stubs from selector type information | ✅ |
 | └ Stdlib pointer method calls from indexed and range receivers | ✅ |
+| └ Stdlib `os.File` direct method stubs from external package returns | ✅ |
 | └ Stdlib package function/constant/variable stubs | ✅ |
 | └ Stdlib package variadic stub calls | ✅ |
 | └ Stdlib package stub calls from wrapped range variables | ✅ |

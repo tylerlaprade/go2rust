@@ -244,7 +244,7 @@ func RegisterExternalSelectorMethod(sel *ast.SelectorExpr) {
 	if !isStdlibPackage(named.Obj().Pkg().Path()) {
 		return
 	}
-	if isKnownStdlibHelperType(named.Obj().Pkg().Path(), named.Obj().Name()) {
+	if isKnownStdlibHelperType(named.Obj().Pkg().Path(), named.Obj().Name()) && !knownStdlibHelperNeedsExternalMethodStub(named.Obj().Pkg().Path(), named.Obj().Name()) {
 		return
 	}
 	fn, ok := selection.Obj().(*types.Func)
@@ -275,6 +275,10 @@ func IsExternalStdlibSelectorMethod(sel *ast.SelectorExpr) bool {
 		return false
 	}
 	return !isKnownStdlibHelperType(named.Obj().Pkg().Path(), named.Obj().Name())
+}
+
+func knownStdlibHelperNeedsExternalMethodStub(pkgPath string, name string) bool {
+	return pkgPath == "os" && name == "File"
 }
 
 func RegisterExternalInterfaceMethodsForSource(source types.Type, iface *types.Interface) {
