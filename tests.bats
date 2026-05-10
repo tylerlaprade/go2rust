@@ -576,6 +576,10 @@ run_xfail_test() {
     run_test "tests/context_err_error_return"
 }
 
+@test "context_struct_display" {
+    run_test "tests/context_struct_display"
+}
+
 @test "context_usage" {
     run_test "tests/context_usage"
 }

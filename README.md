@@ -200,6 +200,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Stdlib typed constants as indexes | ✅ |
 | └ Shared stdlib stubs across transpiled dependency crates | ✅ |
 | └ Shared context/channel helpers across transpiled dependency crates | ✅ |
+| └ `context.Context` helpers implement formatting traits for generated structs and format calls | ✅ |
 | └ `context.Context.Err` returns boxed error handles | ✅ |
 | └ Stdlib concrete values passed to stdlib interface parameters | ✅ |
 | └ Stdlib interface map range keys passed to interface parameters | ✅ |
@@ -479,6 +480,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ `time.Duration` unit expressions in assignments and comparisons | ✅ |
 | **`context` package** | |
 | └ `context.Background`, `context.WithTimeout`, `context.WithCancelCause`, `Context.Done`, `Context.Err`, cancel funcs | ✅ |
+| └ `context.Context` formatting through generated helper `Display`/`Debug` traits | ✅ |
 | **`os` package** | |
 | └ `os.Args` read access | ✅ |
 | └ `os.Create` / `os.Remove` plus file `WriteString` / `Close` | ✅ |

@@ -1,0 +1,8 @@
+[package]
+name = "context_struct_display"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "context_struct_display"
+path = "main.rs"

@@ -152,6 +152,7 @@ struct GoContext {
     done: GoChannel<bool>,
     err: std::sync::Arc<std::sync::Mutex<Option<Box<dyn std::error::Error + Send + Sync>>>>,
     cancelled: std::sync::Arc<std::sync::atomic::AtomicBool>,
+    label: String,
 }
 
 type GoCancelFunc = std::sync::Arc<dyn Fn() + Send + Sync>;
@@ -163,10 +164,21 @@ impl GoContext {
             done: GoChannel::<bool>::new(),
             err: std::sync::Arc::new(std::sync::Mutex::new(None)),
             cancelled: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
+            label: "context.Background".to_string(),
         }
     }
 
-    fn with_timeout(_parent: Arc<Mutex<Option<GoContext>>>, duration: std::time::Duration) -> (Arc<Mutex<Option<GoContext>>>, Arc<Mutex<Option<GoCancelFunc>>>) {
+    fn parent_label(parent: &Arc<Mutex<Option<GoContext>>>) -> String {
+        parent
+            .lock()
+            .unwrap()
+            .as_ref()
+            .map(|ctx| ctx.label.clone())
+            .unwrap_or_else(|| "context.Context".to_string())
+    }
+
+    fn with_timeout(parent: Arc<Mutex<Option<GoContext>>>, duration: std::time::Duration) -> (Arc<Mutex<Option<GoContext>>>, Arc<Mutex<Option<GoCancelFunc>>>) {
+        let label = format!("{}.WithDeadline", GoContext::parent_label(&parent));
         let done = GoChannel::<bool>::new_buffered(1);
         let err = std::sync::Arc::new(std::sync::Mutex::new(None::<Box<dyn std::error::Error + Send + Sync>>));
         let cancelled = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
@@ -175,6 +187,7 @@ impl GoContext {
             done: done.clone(),
             err: err.clone(),
             cancelled: cancelled.clone(),
+            label,
         };
 
         let timeout_done = done.clone();
@@ -207,7 +220,7 @@ impl GoContext {
     }
 
     fn with_cancel(parent: Arc<Mutex<Option<GoContext>>>) -> (Arc<Mutex<Option<GoContext>>>, Arc<Mutex<Option<GoCancelFunc>>>) {
-        let _ = parent;
+        let label = format!("{}.WithCancel", GoContext::parent_label(&parent));
         let done = GoChannel::<bool>::new_buffered(1);
         let err = std::sync::Arc::new(std::sync::Mutex::new(None::<Box<dyn std::error::Error + Send + Sync>>));
         let cancelled = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
@@ -216,6 +229,7 @@ impl GoContext {
             done: done.clone(),
             err: err.clone(),
             cancelled: cancelled.clone(),
+            label,
         };
 
         let cancel_done = done.clone();
@@ -236,7 +250,7 @@ impl GoContext {
     }
 
     fn with_cancel_cause(parent: Arc<Mutex<Option<GoContext>>>) -> (Arc<Mutex<Option<GoContext>>>, Arc<Mutex<Option<GoCancelCauseFunc>>>) {
-        let _ = parent;
+        let label = format!("{}.WithCancelCause", GoContext::parent_label(&parent));
         let done = GoChannel::<bool>::new_buffered(1);
         let err = std::sync::Arc::new(std::sync::Mutex::new(None::<Box<dyn std::error::Error + Send + Sync>>));
         let cancelled = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
@@ -245,6 +259,7 @@ impl GoContext {
             done: done.clone(),
             err: err.clone(),
             cancelled: cancelled.clone(),
+            label,
         };
 
         let cancel_done = done.clone();
@@ -270,6 +285,18 @@ impl GoContext {
 
     fn err(&self) -> Arc<Mutex<Option<Box<dyn std::error::Error + Send + Sync>>>> {
         self.err.clone()
+    }
+}
+
+impl std::fmt::Display for GoContext {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.label)
+    }
+}
+
+impl std::fmt::Debug for GoContext {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.label)
     }
 }
 
