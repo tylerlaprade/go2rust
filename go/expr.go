@@ -978,7 +978,7 @@ func writeCallArgumentValue(out *strings.Builder, arg ast.Expr) bool {
 		return true
 	}
 	if _, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar {
-		return false
+		return writeOwnedRangeValue(out, ident)
 	}
 	if isLocalConstantIdent(ident) {
 		return false
@@ -6819,7 +6819,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				}
 				out.WriteString("(*")
 				TranspileExpressionContext(out, fieldSel, LValue)
-				WriteBorrowMethod(out, false)
+				WriteBorrowMethod(out, fieldNeedsMut)
 				if fieldNeedsMut {
 					out.WriteString(".as_mut().unwrap()).")
 				} else {

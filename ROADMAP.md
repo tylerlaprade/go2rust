@@ -121,6 +121,7 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 - ✅ Advanced deterministic control-flow combinations - labeled break/continue, nested switch, fallthrough, complex loop conditions, nested ranges, select, and error-flow smoke coverage (advanced_control_flow promoted, 2026-05-06)
 - ✅ Full range-loop fixture - slice/map/string/channel ranges, nil slice iteration, and repeated wrapped reads in channel sends (range_loops promoted, 2026-05-06)
 - ✅ Range string call arguments - range values from `[]string` clone out of iterator references when passed to methods/functions expecting owned `string` parameters (range_string_method_argument promoted, 2026-05-09)
+- ✅ Range struct call arguments - non-copy range values clone out of iterator references when passed to function or selector-method parameters (range_return_struct_value expanded, 2026-05-10)
 - ✅ Range index conversion and map-key ownership - bare `.enumerate()` indexes cast directly for numeric conversions, and ranged values used as map insertion keys clone into owned keys (range_index_conversion_map_key added, 2026-05-09)
 - ✅ Range over integers - Go 1.22 integer range expressions lower to Rust integer ranges (range_over_integer promoted, 2026-05-07)
 - ✅ Range-variable shadowing in nested loops - a `for` init short declaration can shadow an active outer range variable without inheriting the outer bare range binding (concurrent_for_method_len added, 2026-05-09)

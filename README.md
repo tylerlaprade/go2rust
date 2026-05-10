@@ -142,6 +142,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Range loops (slice/map/string/channel, nil slices) | ✅ |
 | └ Range value field access for pointer slices | ✅ |
 | └ Range string values passed to string parameters | ✅ |
+| └ Range struct values passed to function and method parameters | ✅ |
 | └ Range over integers | ✅ |
 | **`func` - Functions** | |
 | └ Basic functions | ✅ |
