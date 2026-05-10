@@ -812,6 +812,10 @@ run_xfail_test() {
     run_test "tests/function_field_calls"
 }
 
+@test "function_literal_named_result" {
+    run_test "tests/function_literal_named_result"
+}
+
 @test "function_literals_closures" {
     run_test "tests/function_literals_closures"
 }

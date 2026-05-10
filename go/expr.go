@@ -5623,6 +5623,7 @@ func TranspileFuncLitBox(out *strings.Builder, funcLit *ast.FuncLit) {
 	if hasClosureDefer {
 		out.WriteString("        let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();\n")
 	}
+	writeNamedReturnDeclarations(out, funcLit.Type)
 	if funcLit.Body != nil {
 		for _, stmt := range funcLit.Body.List {
 			out.WriteString("        ") // Indent for closure body

@@ -165,6 +165,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Cross-package named function type conversions | ✅ |
 | └ Function type aliases with imported interface parameters | ✅ |
 | └ Function literals/closures with scoped nested captures | ✅ |
+| └ Function literal named result parameters | ✅ |
 | └ Function variables and higher-order function values | ✅ |
 | └ Function-typed named returns and deferred assignments | ✅ |
 | └ Instantiated generic function type aliases | ✅ |
@@ -369,6 +370,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | **Closures & Anonymous Functions** | |
 | └ Function literals | ✅ |
 | └ Closure variable capture | ✅ |
+| └ Function literal named result parameters | ✅ |
 | └ Struct literal field keys are excluded from closure capture | ✅ |
 | └ Methods on named function types | ✅ |
 | └ Recursive closure assignment through function variables | ✅ |
