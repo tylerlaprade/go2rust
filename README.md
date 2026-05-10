@@ -479,6 +479,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Zero-value `sync.WaitGroup` struct fields | ✅ |
 | └ `sync.Mutex` | ✅ |
 | └ `sync.Once` | ✅ |
+| └ `sync.Once.Do` callbacks that initialize receiver fields | ✅ |
 | **`sync/atomic` package** | |
 | └ `atomic.AddInt64` / `atomic.LoadInt64` | ✅ |
 | **`strings` (Builder)** | |

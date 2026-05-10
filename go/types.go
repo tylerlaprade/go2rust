@@ -766,6 +766,14 @@ func isGoSyncNamedType(typ types.Type) bool {
 	return named.Obj().Pkg().Path() == "sync" && isBareSyncTypeName(named.Obj().Name())
 }
 
+func isGoSyncOnceNamedType(typ types.Type) bool {
+	named, ok := types.Unalias(typ).(*types.Named)
+	if !ok || named.Obj() == nil || named.Obj().Pkg() == nil {
+		return false
+	}
+	return named.Obj().Pkg().Path() == "sync" && named.Obj().Name() == "Once"
+}
+
 // goTypesTypeToRust converts a go/types.Type to the base Rust type string (unwrapped)
 func goTypesTypeToRust(t types.Type) string {
 	if rustType, ok := goTypeParamConstraintToRust(t); ok {

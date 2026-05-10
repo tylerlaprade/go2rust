@@ -878,15 +878,15 @@ impl GoOnce {
         }
     }
 
-    fn r#do(&self, f: std::sync::Arc<std::sync::Mutex<Option<Box<dyn Fn() -> () + Send + Sync>>>>) {
+    fn r#do<F>(&self, mut f: F)
+    where
+        F: FnMut(),
+    {
         let mut done = self.done.lock().unwrap();
         if !*done {
             *done = true;
             drop(done);
-            let guard = f.lock().unwrap();
-            if let Some(callback) = guard.as_ref() {
-                callback();
-            }
+            f();
         }
     }
 }
@@ -912,15 +912,15 @@ impl GoOnce {
         }
     }
 
-    fn r#do(&self, f: Rc<RefCell<Option<Box<dyn Fn() -> ()>>>>) {
+    fn r#do<F>(&self, mut f: F)
+    where
+        F: FnMut(),
+    {
         let mut done = self.done.borrow_mut();
         if !*done {
             *done = true;
             drop(done);
-            let guard = f.borrow();
-            if let Some(callback) = guard.as_ref() {
-                callback();
-            }
+            f();
         }
     }
 }

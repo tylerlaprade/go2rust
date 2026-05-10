@@ -729,6 +729,72 @@ func methodCallFuncLitArgCapturesReceiver(call *ast.CallExpr, receiver string) b
 	return false
 }
 
+func isSyncOnceDoFuncLitCall(call *ast.CallExpr) bool {
+	if call == nil || len(call.Args) != 1 {
+		return false
+	}
+	if _, ok := call.Args[0].(*ast.FuncLit); !ok {
+		return false
+	}
+	sel, ok := call.Fun.(*ast.SelectorExpr)
+	if !ok || sel.Sel.Name != "Do" {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	return typeInfo != nil && isGoSyncOnceNamedType(typeInfo.GetType(sel.X))
+}
+
+func writeSyncOnceReceiverClone(out *strings.Builder, expr ast.Expr) {
+	if fieldSel, ok := expr.(*ast.SelectorExpr); ok {
+		TranspileExpression(out, fieldSel.X)
+		out.WriteString(".")
+		out.WriteString(ToSnakeCase(fieldSel.Sel.Name))
+		out.WriteString(".clone()")
+		return
+	}
+	TranspileExpression(out, expr)
+	out.WriteString(".clone()")
+}
+
+func writeSyncOnceDoFuncLitCall(out *strings.Builder, call *ast.CallExpr) bool {
+	if !isSyncOnceDoFuncLitCall(call) {
+		return false
+	}
+	sel := call.Fun.(*ast.SelectorExpr)
+	funcLit := call.Args[0].(*ast.FuncLit)
+	hasClosureDefer := funcLit.Body != nil && checkHasDefer(funcLit.Body.List)
+	oldFunctionHasDefer := currentFunctionHasDefer
+	currentFunctionHasDefer = hasClosureDefer
+	defer func() { currentFunctionHasDefer = oldFunctionHasDefer }()
+
+	out.WriteString("{ let __once = ")
+	writeSyncOnceReceiverClone(out, sel.X)
+	out.WriteString("; __once.r#do(|| {\n")
+	if hasClosureDefer {
+		out.WriteString("        let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();\n")
+	}
+	if funcLit.Body != nil {
+		for _, stmt := range funcLit.Body.List {
+			out.WriteString("        ")
+			TranspileStatementSimple(out, stmt, funcLit.Type, nil)
+			out.WriteString("\n")
+		}
+		if hasClosureDefer {
+			var lastStmt ast.Stmt
+			if len(funcLit.Body.List) > 0 {
+				lastStmt = funcLit.Body.List[len(funcLit.Body.List)-1]
+			}
+			if _, lastIsReturn := lastStmt.(*ast.ReturnStmt); !lastIsReturn {
+				out.WriteString("        while let Some(f) = __defer_stack.pop() {\n")
+				out.WriteString("            f();\n")
+				out.WriteString("        }\n")
+			}
+		}
+	}
+	out.WriteString("    }); }")
+	return true
+}
+
 func typeAssertionSourceIsBareStdlibInterfaceValue(expr ast.Expr) bool {
 	if !isExpressionResultBare(expr) {
 		return false
@@ -6870,6 +6936,10 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 	if typeInfo != nil && typeInfo.IsTypeConversion(call) {
 		// Handle type conversion
 		TranspileTypeConversion(out, call)
+		return
+	}
+
+	if writeSyncOnceDoFuncLitCall(out, call) {
 		return
 	}
 

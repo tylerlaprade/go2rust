@@ -169,6 +169,7 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 - ✅ Channel struct fields - bare `GoChannel` fields support zero values, explicit literals, nil assignment/checks, send/receive, len, and cap (channel_struct_fields promoted, 2026-05-07)
 - ✅ Select (basic, non-blocking, default)
 - ✅ WaitGroup, Mutex, Once, shared mutation
+- ✅ `sync.Once.Do` receiver-field initialization callbacks - callbacks such as `r.once.Do(func(){ r.ch = make(chan struct{}, n) })` inline as `FnMut`-capable helper calls and mutate the real receiver, not a cloned receiver (sync_once_receiver_init added, 2026-05-10)
 - ✅ Zero-value WaitGroup struct fields - `WaitGroup` implements Default/Debug for derived source structs (waitgroup_sync expanded, 2026-05-07)
 - ✅ Basic sync/atomic int64 operations - AddInt64 and LoadInt64 (atomic_operations promoted, 2026-05-06)
 - ✅ Worker pool pattern with goroutines and channels (worker_pools promoted, 2026-05-06)
@@ -244,4 +245,4 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 
 go2rust transpiles itself!
 
-- 🚧 Broad self-transpile cargo check now reaches `golang_org_x_tools_internal_gocommand`. The latest fixed blocker was function-typed named results for cleanup callbacks; the package-targeted `gocommand` check is down to 3 Rust errors, with remaining clusters around `FnMut` closure lowering and `json.Marshal` for a local struct (2026-05-10)
+- 🚧 Broad self-transpile cargo check now reaches `golang_org_x_tools_internal_gocommand`. The latest fixed blocker was `sync.Once.Do` receiver-field initialization callbacks; the package-targeted `gocommand` check is down to 2 Rust errors, both around `json.Marshal` for a local struct (2026-05-10)

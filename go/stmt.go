@@ -2428,7 +2428,13 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 	_, isDefer := stmt.(*ast.DeferStmt)
 	_, isGo := stmt.(*ast.GoStmt)
 	_, isIf := stmt.(*ast.IfStmt)
-	if !isDefer && !isGo && !isIf && statementPreprocessor != nil {
+	isSyncOnceDo := false
+	if exprStmt, ok := stmt.(*ast.ExprStmt); ok {
+		if call, ok := exprStmt.X.(*ast.CallExpr); ok {
+			isSyncOnceDo = isSyncOnceDoFuncLitCall(call)
+		}
+	}
+	if !isDefer && !isGo && !isIf && !isSyncOnceDo && statementPreprocessor != nil {
 		captureInfo = statementPreprocessor.PreprocessStatement(stmt, fnType)
 		if captureInfo != nil && len(captureInfo.CapturedVars) > 0 {
 			// Generate clone statements before the actual statement

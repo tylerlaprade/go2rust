@@ -1736,6 +1736,10 @@ run_xfail_test() {
     run_test "tests/sync_once"
 }
 
+@test "sync_once_receiver_init" {
+    run_test "tests/sync_once_receiver_init"
+}
+
 @test "tickers_basic" {
     run_test "tests/tickers_basic"
 }
