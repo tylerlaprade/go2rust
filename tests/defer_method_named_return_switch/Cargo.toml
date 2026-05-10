@@ -1,0 +1,8 @@
+[package]
+name = "defer_method_named_return_switch"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "defer_method_named_return_switch"
+path = "main.rs"

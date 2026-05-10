@@ -1014,10 +1014,11 @@ func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.Fi
 	}
 
 	// Execute defers at the end if needed.
-	// Skip if the last statement was a return — that already emitted cleanup + return,
-	// so the trailing block would be unreachable and cause a type error in Rust.
-	_, lastIsReturn := prevStmt.(*ast.ReturnStmt)
-	if hasDefer && !lastIsReturn {
+	// Skip if the last statement already terminates; those paths emitted their own
+	// cleanup and return, so a trailing defer block would become the function's
+	// final Rust expression.
+	lastTerminates := prevStmt != nil && stmtTerminates(prevStmt)
+	if hasDefer && !lastTerminates {
 		out.WriteString("\n    // Execute deferred functions\n")
 		out.WriteString("    while let Some(f) = __defer_stack.pop() {\n")
 		out.WriteString("        f();\n")
@@ -2264,8 +2265,8 @@ func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, a
 		prevStmt = stmt
 	}
 
-	_, lastIsReturn := prevStmt.(*ast.ReturnStmt)
-	if currentFunctionHasDefer && !lastIsReturn {
+	lastTerminates := prevStmt != nil && stmtTerminates(prevStmt)
+	if currentFunctionHasDefer && !lastTerminates {
 		out.WriteString("\n        // Execute deferred functions\n")
 		out.WriteString("        while let Some(f) = __defer_stack.pop() {\n")
 		out.WriteString("            f();\n")

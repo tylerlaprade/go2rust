@@ -620,12 +620,24 @@ run_xfail_test() {
     run_test "tests/defer_field_capture_rename"
 }
 
+@test "defer_method_named_return_switch" {
+    run_test "tests/defer_method_named_return_switch"
+}
+
 @test "defer_named_error_return" {
     run_test "tests/defer_named_error_return"
 }
 
 @test "defer_named_return_map_capture" {
     run_test "tests/defer_named_return_map_capture"
+}
+
+@test "defer_named_return_switch_default_first" {
+    run_test "tests/defer_named_return_switch_default_first"
+}
+
+@test "defer_named_return_switch_terminates" {
+    run_test "tests/defer_named_return_switch_terminates"
 }
 
 @test "defer_named_returns" {
