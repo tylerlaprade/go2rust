@@ -71,7 +71,7 @@ fn main() {
     print!("Original: '{}'\n", { let __v = (*text.lock().unwrap().as_ref().unwrap()).clone(); __v });
 
         // Trimming
-    let mut trimmed = Arc::new(Mutex::new(Some({ let __v = (*text.lock().unwrap().as_ref().unwrap()).clone(); __v }.trim().to_string())));
+    let mut trimmed = Arc::new(Mutex::new(Some({ let __s = (*text.lock().unwrap().as_ref().unwrap()).clone(); __s.trim().to_string() })));
     print!("Trimmed: '{}'\n", { let __v = (*trimmed.lock().unwrap().as_ref().unwrap()).clone(); __v });
 
         // Case conversion

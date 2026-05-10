@@ -206,7 +206,7 @@ fn main() {
     let mut lower = Rc::new(RefCell::new(Some("HELLO WORLD".to_string().to_lowercase())));
     println!("{} {}", "Lower:".to_string(), { let __v = (*lower.borrow().as_ref().unwrap()).clone(); __v });
 
-    let mut trimmed = Rc::new(RefCell::new(Some("  hello  ".to_string().trim().to_string())));
+    let mut trimmed = Rc::new(RefCell::new(Some({ let __s = "  hello  ".to_string(); __s.trim().to_string() })));
     println!("{} {}", "Trimmed:".to_string(), { let __v = (*trimmed.borrow().as_ref().unwrap()).clone(); __v });
 
     let mut split = Rc::new(RefCell::new(Some({ let __s = "a,b,c".to_string(); let __sep = ",".to_string(); __s.split(&__sep).map(|__part| __part.to_string()).collect::<Vec<String>>() })));

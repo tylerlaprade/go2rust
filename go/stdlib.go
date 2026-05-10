@@ -1348,9 +1348,9 @@ func transpileStringsToLower(out *strings.Builder, call *ast.CallExpr) {
 func transpileStringsTrimSpace(out *strings.Builder, call *ast.CallExpr) {
 	if len(call.Args) > 0 {
 		WriteWrapperPrefix(out)
-		TranspileExpression(out, call.Args[0])
-		out.WriteString(".trim()")
-		out.WriteString(".to_string()")
+		out.WriteString("{ let __s = ")
+		writeOwnedStringStdlibArg(out, call.Args[0])
+		out.WriteString("; __s.trim().to_string() }")
 		WriteWrapperSuffix(out)
 	}
 }

@@ -425,6 +425,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ `strings.ToUpper` | ✅ |
 | └ `strings.ToLower` | ✅ |
 | └ `strings.TrimSpace` | ✅ |
+| └ `strings.TrimSpace` on string slice expressions | ✅ |
 | └ `strings.Title` | ✅ |
 | └ `strings.Contains` | ✅ |
 | └ `strings.Index` / `strings.LastIndex` / `strings.IndexAny` | ✅ |

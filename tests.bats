@@ -1736,6 +1736,10 @@ run_xfail_test() {
     run_test "tests/strings_runes"
 }
 
+@test "strings_trim_space_slice_expr" {
+    run_test "tests/strings_trim_space_slice_expr"
+}
+
 @test "struct_compare_literal" {
     run_test "tests/struct_compare_literal"
 }
