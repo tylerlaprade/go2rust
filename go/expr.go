@@ -710,6 +710,25 @@ func writeMethodCallArguments(out *strings.Builder, sel *ast.SelectorExpr, call 
 	return true
 }
 
+func methodCallFuncLitArgCapturesReceiver(call *ast.CallExpr, receiver string) bool {
+	if call == nil || receiver == "" || currentCaptureRenames == nil {
+		return false
+	}
+	if _, ok := currentCaptureRenames[receiver]; !ok {
+		return false
+	}
+	for _, arg := range call.Args {
+		funcLit, ok := arg.(*ast.FuncLit)
+		if !ok {
+			continue
+		}
+		if findCapturedVars(funcLit)[receiver] {
+			return true
+		}
+	}
+	return false
+}
+
 func typeAssertionSourceIsBareStdlibInterfaceValue(expr ast.Expr) bool {
 	if !isExpressionResultBare(expr) {
 		return false
@@ -6785,8 +6804,15 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 					// Wrapped type - need to unwrap
 					// Use mutable borrow only for pointer receiver methods
 					needsMut := typeInfo != nil && typeInfo.HasPointerReceiver(sel)
-					out.WriteString("(*")
-					out.WriteString(receiverName)
+					if methodCallFuncLitArgCapturesReceiver(call, ident.Name) {
+						out.WriteString("{ let __recv = ")
+						out.WriteString(receiverName)
+						out.WriteString(".clone(); let __result = (*__recv")
+						closeReceiverBlock = true
+					} else {
+						out.WriteString("(*")
+						out.WriteString(receiverName)
+					}
 					WriteBorrowMethod(out, needsMut)
 					if needsMut {
 						out.WriteString(".as_mut().unwrap()).")

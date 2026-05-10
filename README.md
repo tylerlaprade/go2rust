@@ -153,6 +153,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Tuple return reassignment to fields and parameters | ✅ |
 | └ Method calls, including receiver self-calls | ✅ |
 | └ Current receiver method calls with receiver-referencing arguments | ✅ |
+| └ Method calls with function-literal arguments that capture the receiver | ✅ |
 | └ Wrapped call results passed as method/function arguments | ✅ |
 | └ Function-valued struct field calls | ✅ |
 | └ Method selectors returning function values stay method calls | ✅ |

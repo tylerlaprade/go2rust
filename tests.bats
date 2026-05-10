@@ -1008,6 +1008,10 @@ run_xfail_test() {
     run_test "tests/method_call_struct_field_pointer"
 }
 
+@test "method_closure_receiver_capture" {
+    run_test "tests/method_closure_receiver_capture"
+}
+
 @test "method_func_literal_argument" {
     run_test "tests/method_func_literal_argument"
 }
