@@ -604,6 +604,10 @@ run_xfail_test() {
     run_test "tests/declared_slice_elem_pointer"
 }
 
+@test "defer_closure_return_scope" {
+    run_test "tests/defer_closure_return_scope"
+}
+
 @test "defer_field_capture_rename" {
     run_test "tests/defer_field_capture_rename"
 }

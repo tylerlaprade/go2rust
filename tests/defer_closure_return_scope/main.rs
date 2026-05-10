@@ -1,0 +1,27 @@
+use std::cell::{RefCell};
+use std::rc::{Rc};
+
+pub fn run() -> Rc<RefCell<Option<i32>>> {
+    let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
+
+    let mut result: Rc<RefCell<Option<i32>>> = Rc::new(RefCell::new(Some(0)));
+
+    let result_defer_captured = result.clone(); __defer_stack.push(Box::new(move || {
+        { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
+        { let new_val = 7; *result_defer_captured.borrow_mut() = Some(new_val); };
+        return;
+    }) as Box<dyn Fn() -> ()>))); let __f_guard = __f_holder.borrow(); let __f = __f_guard.as_ref().unwrap(); (*__f)() };
+    }));
+    {
+        { let new_val = 3; *result.borrow_mut() = Some(new_val); };;
+        // Execute deferred functions
+        while let Some(f) = __defer_stack.pop() {
+            f();
+        }
+        return result
+    }
+}
+
+fn main() {
+    println!("{}", (*run().borrow().as_ref().unwrap()));
+}

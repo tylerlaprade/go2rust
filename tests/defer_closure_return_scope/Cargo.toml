@@ -1,0 +1,8 @@
+[package]
+name = "defer_closure_return_scope"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "defer_closure_return_scope"
+path = "main.rs"
