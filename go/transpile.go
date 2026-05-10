@@ -101,6 +101,7 @@ type StructDef struct {
 	Fields        map[string]string // field name -> field type
 	EmbeddedTypes []string          // list of embedded type names
 	ASTType       *ast.StructType   // original AST type for zero-value generation
+	EmbedsError   bool              // true when the struct embeds the predeclared error interface
 }
 
 var structDefs = make(map[string]*StructDef)
@@ -926,6 +927,32 @@ func collectPromotedMethods(structDef *StructDef, methods map[string][]*ast.Func
 	}
 }
 
+func typeHasExplicitErrorStringMethod(typeMethods []*ast.FuncDecl) bool {
+	for _, method := range typeMethods {
+		if method.Name.Name != "Error" || method.Type.Results == nil || len(method.Type.Results.List) != 1 {
+			continue
+		}
+		if resultType, ok := method.Type.Results.List[0].Type.(*ast.Ident); ok && resultType.Name == "string" {
+			return true
+		}
+	}
+	return false
+}
+
+func writeEmbeddedGoErrorMethod(out *strings.Builder) {
+	out.WriteString("    pub fn error(&self) -> ")
+	out.WriteString(GoTypeToRust(ast.NewIdent("string")))
+	out.WriteString(" {\n")
+	out.WriteString("        ")
+	WriteWrapperPrefix(out)
+	out.WriteString("format!(\"{}\", (*self.error")
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap()))")
+	WriteWrapperSuffix(out)
+	out.WriteString("\n")
+	out.WriteString("    }\n")
+}
+
 // generatePromotedMethod generates a forwarding method that delegates to an embedded type's method
 func generatePromotedMethod(out *strings.Builder, method *ast.FuncDecl, embeddedTypeName string) {
 	out.WriteString("    pub fn ")
@@ -1444,6 +1471,14 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 			methodCount++
 		}
 
+		if structDef, exists := structDefs[typeName]; exists && declaredTypeNames[typeName] && structDef.EmbedsError && !typeHasExplicitErrorStringMethod(typeMethods) {
+			if methodCount > 0 {
+				body.WriteString("\n")
+			}
+			writeEmbeddedGoErrorMethod(&body)
+			methodCount++
+		}
+
 		// Generate promoted methods from embedded types
 		if structDef, exists := structDefs[typeName]; exists && declaredTypeNames[typeName] {
 			existingMethodNames := make(map[string]bool)
@@ -1491,14 +1526,11 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 
 		body.WriteString("}")
 
-		// Check if this type has an Error() string method
-		hasErrorMethod := false
-		for _, method := range methods[typeName] {
-			if method.Name.Name == "Error" && method.Type.Results != nil && len(method.Type.Results.List) == 1 {
-				if resultType, ok := method.Type.Results.List[0].Type.(*ast.Ident); ok && resultType.Name == "string" {
-					hasErrorMethod = true
-					break
-				}
+		// Check if this type has or promotes an Error() string method.
+		hasErrorMethod := typeHasExplicitErrorStringMethod(methods[typeName])
+		if !hasErrorMethod {
+			if structDef, exists := structDefs[typeName]; exists && structDef.EmbedsError {
+				hasErrorMethod = true
 			}
 		}
 

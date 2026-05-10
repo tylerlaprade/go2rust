@@ -165,6 +165,17 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 	out.WriteString("}\n")
 }
 
+func generateStructDebug(out *strings.Builder, structName string) {
+	rustStructName := RustTypeNameForUse(structName)
+	out.WriteString("impl std::fmt::Debug for ")
+	out.WriteString(rustStructName)
+	out.WriteString(" {\n")
+	out.WriteString("    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {\n")
+	out.WriteString("        write!(f, \"{}\", self)\n")
+	out.WriteString("    }\n")
+	out.WriteString("}\n")
+}
+
 func arrayFieldContainsSlice(expr ast.Expr) bool {
 	arrayType, ok := expr.(*ast.ArrayType)
 	if !ok {
@@ -1176,6 +1187,9 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 
 		// Generate Display implementation to match Go's format
 		generateStructDisplay(out, typeSpec.Name.Name, t)
+		if IsErrorImplType(typeSpec.Name.Name) && !structCanDeriveDebug(t) {
+			generateStructDebug(out, typeSpec.Name.Name)
+		}
 		generateStructPartialEq(out, typeSpec.Name.Name, t)
 		generateStructOrd(out, typeSpec.Name.Name, t)
 
@@ -1380,9 +1394,24 @@ func registerStructDef(name string, structType *ast.StructType) {
 		} else {
 			typeName := getEmbeddedFieldName(field.Type)
 			structDef.EmbeddedTypes = append(structDef.EmbeddedTypes, typeName)
+			if structFieldEmbedsGoError(field) {
+				structDef.EmbedsError = true
+				RegisterErrorImplType(name)
+			}
 		}
 	}
 	structDefs[name] = structDef
+}
+
+func structFieldEmbedsGoError(field *ast.Field) bool {
+	if field == nil || len(field.Names) > 0 {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	return isGoErrorType(typeInfo.GetType(field.Type))
 }
 
 func writeScalarTypeDefinitionPartialEq(out *strings.Builder, typeName string) {

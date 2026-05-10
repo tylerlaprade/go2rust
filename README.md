@@ -231,6 +231,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Wrapped `error` arguments and sentinel comparisons | ✅ |
 | └ `Error()` calls on wrapped `error` interface values | ✅ |
 | └ Error values sent, received, and returned through channels | ✅ |
+| └ Structs embedding the predeclared `error` interface | ✅ |
 | └ Type switches, including nil and selector pointer cases | ✅ |
 | **`map` - Map types** | |
 | └ Map types | ✅ |
@@ -292,6 +293,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Owned selector field returns and arguments | ✅ |
 | └ Owned selector field short declarations | ✅ |
 | └ Embedded fields | ✅ |
+| └ Embedded predeclared `error` promotion | ✅ |
 | └ Embedded method promotion from transpiled dependency packages | ✅ |
 | └ Anonymous structs | ✅ |
 | └ Nested structs/slices/maps/interfaces and anonymous struct function boundaries | ✅ |
