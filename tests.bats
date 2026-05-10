@@ -364,6 +364,10 @@ run_xfail_test() {
     run_test "tests/any_type_conversion"
 }
 
+@test "append_function_slice_field" {
+    run_test "tests/append_function_slice_field"
+}
+
 @test "append_slice_expansion" {
     run_test "tests/append_slice_expansion"
 }

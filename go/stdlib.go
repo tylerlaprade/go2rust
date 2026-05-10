@@ -2308,6 +2308,9 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 					return
 				}
 				if elemType != nil {
+					if isFunctionSignatureType(elemType) && writeFunctionValueHandle(out, expr) {
+						return
+					}
 					if writeBareFixedArrayCompositeLiteral(out, expr, elemType) {
 						return
 					}

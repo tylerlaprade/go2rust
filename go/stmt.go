@@ -3569,6 +3569,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										} else if _, isSliceExpr := rhs.(*ast.SliceExpr); isSliceExpr {
 											// Slice expressions already return wrapped values
 											TranspileExpression(out, rhs)
+										} else if typeInfo := GetTypeInfo(); typeInfo != nil && isFunctionSignatureType(typeInfo.GetType(rhs)) && writeFunctionValueHandle(out, rhs) {
+											// Function values are already represented by cloneable handles.
 										} else if writeConcurrentMapSelectorHandleClone(out, rhs) {
 											// Concurrent map fields are already wrapped handles; clone the handle.
 										} else if writeEmptyInterfaceHandleClone(out, rhs) {

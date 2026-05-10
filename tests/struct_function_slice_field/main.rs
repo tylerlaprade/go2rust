@@ -4,7 +4,7 @@ use std::rc::{Rc};
 
 #[derive(Clone, Default)]
 pub struct queue {
-    pub later: Rc<RefCell<Option<Vec<Box<dyn Fn() -> ()>>>>>,
+    pub later: Rc<RefCell<Option<Vec<Rc<RefCell<Option<Box<dyn Fn() -> ()>>>>>>>>,
 }
 
 impl std::fmt::Display for queue {
@@ -15,6 +15,6 @@ impl std::fmt::Display for queue {
 
 
 fn main() {
-    let mut q = Rc::new(RefCell::new(Some(queue { later: Rc::new(RefCell::new(Some(Vec::<Box<dyn Fn() -> ()>>::new()))), ..Default::default() })));
+    let mut q = Rc::new(RefCell::new(Some(queue { later: Rc::new(RefCell::new(Some(Vec::<Rc<RefCell<Option<Box<dyn Fn() -> ()>>>>>::new()))), ..Default::default() })));
     println!("{}", (*q.borrow().as_ref().unwrap()));
 }

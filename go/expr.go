@@ -2029,8 +2029,42 @@ func compositeLiteralElementKeepsHandle(typ types.Type) bool {
 	if typ == nil {
 		return true
 	}
+	if isFunctionSignatureType(typ) {
+		return true
+	}
 	switch types.Unalias(typ).Underlying().(type) {
 	case *types.Pointer, *types.Chan:
+		return true
+	}
+	return false
+}
+
+func writeFunctionValueHandle(out *strings.Builder, expr ast.Expr) bool {
+	if ident, ok := expr.(*ast.Ident); ok {
+		if ident.Name == "nil" {
+			WriteWrappedNone(out)
+			return true
+		}
+		if sig, ok := functionValueSignature(ident); ok {
+			writeWrappedFunctionValueBox(out, ident, sig)
+			return true
+		}
+		TranspileExpressionContext(out, ident, LValue)
+		out.WriteString(".clone()")
+		return true
+	}
+	if _, ok := expr.(*ast.FuncLit); ok {
+		TranspileExpression(out, expr)
+		return true
+	}
+	if _, ok := expr.(*ast.CallExpr); ok {
+		TranspileExpression(out, expr)
+		return true
+	}
+	switch expr.(type) {
+	case *ast.SelectorExpr, *ast.IndexExpr:
+		TranspileExpressionContext(out, expr, LValue)
+		out.WriteString(".clone()")
 		return true
 	}
 	return false
@@ -2081,6 +2115,9 @@ func writeArraySliceLiteralElementValue(out *strings.Builder, expr ast.Expr, ele
 		return true
 	}
 	if compositeLiteralElementKeepsHandle(elemType) {
+		if isFunctionSignatureType(elemType) && writeFunctionValueHandle(out, expr) {
+			return true
+		}
 		if writeAlreadyWrappedCallArgument(out, expr) {
 			return true
 		}
@@ -4468,9 +4505,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					// Empty slice needs explicit type
 					out.WriteString("Vec::<")
 					if elemType != nil {
-						out.WriteString(goTypesTypeToRust(elemType))
+						out.WriteString(goTypesCollectionElemTypeToRust(elemType))
 					} else {
-						out.WriteString(goTypeToRustBase(arrayType.Elt))
+						out.WriteString(goCollectionElemTypeToRust(arrayType.Elt))
 					}
 					out.WriteString(">::new(")
 				} else {

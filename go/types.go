@@ -448,7 +448,7 @@ func goTypeToRustBase(expr ast.Expr) string {
 		}
 		return "Unknown"
 	case *ast.ArrayType:
-		elemType := goTypeToRustBase(t.Elt)
+		elemType := goCollectionElemTypeToRust(t.Elt)
 		if t.Len != nil {
 			// Fixed-size array
 			if lit, ok := t.Len.(*ast.BasicLit); ok {
@@ -560,7 +560,7 @@ func goTypeToRustBase(expr ast.Expr) string {
 		return rustName
 	case *ast.Ellipsis:
 		// Variadic parameter ...T is treated as []T (slice) in Go
-		elemType := goTypeToRustBase(t.Elt)
+		elemType := goCollectionElemTypeToRust(t.Elt)
 		return "Vec<" + elemType + ">"
 	case *ast.StructType:
 		// Anonymous struct type - generate a unique type name
@@ -740,6 +740,13 @@ func isSyncParam(expr ast.Expr) bool {
 	return false
 }
 
+func goCollectionElemTypeToRust(expr ast.Expr) string {
+	if isFunctionSignatureTypeExpr(expr) {
+		return GoTypeToRust(expr)
+	}
+	return goTypeToRustBase(expr)
+}
+
 func isBareSyncTypeName(name string) bool {
 	return name == "WaitGroup" || name == "Mutex" || name == "Once"
 }
@@ -834,9 +841,9 @@ func goTypesTypeToRust(t types.Type) string {
 			return fmt.Sprintf("/* unknown basic type: %s */", ut.Name())
 		}
 	case *types.Slice:
-		return "Vec<" + goTypesTypeToRust(ut.Elem()) + ">"
+		return "Vec<" + goTypesCollectionElemTypeToRust(ut.Elem()) + ">"
 	case *types.Array:
-		return "[" + goTypesTypeToRust(ut.Elem()) + "; " + strconv.FormatInt(ut.Len(), 10) + "]"
+		return "[" + goTypesCollectionElemTypeToRust(ut.Elem()) + "; " + strconv.FormatInt(ut.Len(), 10) + "]"
 	case *types.Pointer:
 		outerWrapper := GetOuterWrapperType()
 		innerWrapper := GetInnerWrapperType()
@@ -870,6 +877,13 @@ func goTypesTypeToRust(t types.Type) string {
 		}
 		return "/* unknown type */"
 	}
+}
+
+func goTypesCollectionElemTypeToRust(t types.Type) string {
+	if isFunctionSignatureType(t) {
+		return goTypesTypeToRustWrapped(t)
+	}
+	return goTypesTypeToRust(t)
 }
 
 func goTypesMapKeyToRust(t types.Type) string {
