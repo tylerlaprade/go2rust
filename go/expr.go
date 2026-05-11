@@ -1750,7 +1750,7 @@ func writeStdlibInterfaceCallArgumentConversion(out *strings.Builder, arg ast.Ex
 		return false
 	}
 	out.WriteString("{ let __arg = ")
-	writeStdlibInterfaceSourceHandle(out, arg)
+	writeStdlibInterfaceSourceHandle(out, arg, expectedType)
 	out.WriteString("; let __converted = { let __arg_guard = __arg")
 	WriteBorrowMethod(out, false)
 	out.WriteString("; (*__arg_guard.as_ref().unwrap()).clone().into() }; ")
@@ -1771,14 +1771,19 @@ func writeStdlibInterfaceBareConversion(out *strings.Builder, arg ast.Expr, expe
 		return false
 	}
 	out.WriteString("{ let __arg = ")
-	writeStdlibInterfaceSourceHandle(out, arg)
+	writeStdlibInterfaceSourceHandle(out, arg, expectedType)
 	out.WriteString("; let __arg_guard = __arg")
 	WriteBorrowMethod(out, false)
 	out.WriteString("; (*__arg_guard.as_ref().unwrap()).clone().into() }")
 	return true
 }
 
-func writeStdlibInterfaceSourceHandle(out *strings.Builder, arg ast.Expr) {
+func writeStdlibInterfaceSourceHandle(out *strings.Builder, arg ast.Expr, expectedType types.Type) {
+	if sel, ok := arg.(*ast.SelectorExpr); ok && selectorFieldCanProvideStdlibInterfaceHandle(sel, expectedType) {
+		TranspileExpressionContext(out, sel, LValue)
+		out.WriteString(".clone()")
+		return
+	}
 	if ident, ok := arg.(*ast.Ident); ok {
 		argVarName := RustIdentForUse(ident)
 		if currentCaptureRenames != nil {
@@ -1793,6 +1798,18 @@ func writeStdlibInterfaceSourceHandle(out *strings.Builder, arg ast.Expr) {
 	}
 }
 
+func selectorFieldCanProvideStdlibInterfaceHandle(sel *ast.SelectorExpr, expectedType types.Type) bool {
+	if _, _, ok := stdlibInterfaceArgumentConversion(sel, expectedType); !ok {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return false
+	}
+	selection, ok := typeInfo.info.Selections[sel]
+	return ok && selection.Kind() == types.FieldVal
+}
+
 func writeStdlibInterfaceComparableConversion(out *strings.Builder, arg ast.Expr, expectedType types.Type) bool {
 	targetRust, _, ok := stdlibInterfaceArgumentConversion(arg, expectedType)
 	if !ok {
@@ -1804,7 +1821,7 @@ func writeStdlibInterfaceComparableConversion(out *strings.Builder, arg ast.Expr
 		return false
 	}
 	out.WriteString("{ let __arg = ")
-	writeStdlibInterfaceSourceHandle(out, arg)
+	writeStdlibInterfaceSourceHandle(out, arg, expectedType)
 	out.WriteString("; let __converted = { let __arg_guard = __arg")
 	WriteBorrowMethod(out, false)
 	out.WriteString("; let __converted: ")
