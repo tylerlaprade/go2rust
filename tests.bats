@@ -1528,6 +1528,10 @@ run_xfail_test() {
     run_test "tests/select_statements"
 }
 
+@test "selector_map_field_short_decl_range" {
+    run_test "tests/selector_map_field_short_decl_range"
+}
+
 @test "selector_slice_short_decl_capture" {
     run_test "tests/selector_slice_short_decl_capture"
 }

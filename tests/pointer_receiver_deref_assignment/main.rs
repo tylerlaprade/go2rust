@@ -48,7 +48,7 @@ impl std::fmt::Display for Package {
 impl Package {
     pub fn reset(&mut self, id: Rc<RefCell<Option<String>>>, name: Rc<RefCell<Option<String>>>) {
         { let new_val = Package { i_d: id.clone(), name: name.clone(), ..Default::default() }; *self = new_val; };
-        { let new_val = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<Package>>>>::new()))); let __moved_val = { let mut __guard = new_val.borrow_mut(); __guard.take() }; *self.imports.borrow_mut() = __moved_val; };
+        { let new_val = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<Package>>>>::new()))); self.imports = new_val; };
         { let __map_key = "self".to_string(); let __map_value = Rc::new(RefCell::new(Some(Package { i_d: self.i_d.clone(), ..Default::default() }))); (*self.imports.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
     }
 }

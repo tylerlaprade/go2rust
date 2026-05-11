@@ -926,7 +926,41 @@ func writeConcurrentMapSelectorHandleClone(out *strings.Builder, expr ast.Expr) 
 	if typeInfo == nil || !typeInfo.IsMap(expr) {
 		return false
 	}
-	TranspileExpression(out, expr)
+	TranspileExpressionContext(out, expr, LValue)
+	out.WriteString(".clone()")
+	return true
+}
+
+func writeMapHandleAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || !typeInfo.IsMap(lhs) {
+		return false
+	}
+	if ident, ok := lhs.(*ast.Ident); ok && isPackageGlobalIdent(ident) {
+		return false
+	}
+	if ident, ok := rhs.(*ast.Ident); ok && ident.Name == "nil" {
+		out.WriteString("{ let new_val = ")
+		WriteWrappedNone(out)
+		out.WriteString("; ")
+		writePointerHandleAssignmentTarget(out, lhs)
+		out.WriteString(" = new_val; }")
+		return true
+	}
+	if !typeInfo.IsMap(rhs) {
+		return false
+	}
+	out.WriteString("{ let new_val = ")
+	switch rhs.(type) {
+	case *ast.Ident, *ast.SelectorExpr:
+		TranspileExpressionContext(out, rhs, LValue)
+		out.WriteString(".clone()")
+	default:
+		TranspileExpression(out, rhs)
+	}
+	out.WriteString("; ")
+	writePointerHandleAssignmentTarget(out, lhs)
+	out.WriteString(" = new_val; }")
 	return true
 }
 
@@ -3608,7 +3642,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							} else {
 								// Direct assignment: x = value
 								// Check if RHS is nil
-								if ident, ok := s.Rhs[0].(*ast.Ident); ok && ident.Name == "nil" {
+								if writeMapHandleAssignment(out, s.Lhs[0], s.Rhs[0]) {
+									// Map assignment replaces the map handle, matching Go map-header semantics.
+								} else if ident, ok := s.Rhs[0].(*ast.Ident); ok && ident.Name == "nil" {
 									// Assigning nil to pointer
 									out.WriteString("*")
 									TranspileExpressionContext(out, s.Lhs[0], LValue)
@@ -4028,7 +4064,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										} else if typeInfo := GetTypeInfo(); typeInfo != nil && isFunctionSignatureType(typeInfo.GetType(rhs)) && writeFunctionValueHandle(out, rhs) {
 											// Function values are already represented by cloneable handles.
 										} else if writeConcurrentMapSelectorHandleClone(out, rhs) {
-											// Concurrent map fields are already wrapped handles; clone the handle.
+											// Concurrent map fields are map handles; clone the handle.
 										} else if writeSliceSelectorHandleClone(out, rhs) {
 											// Slice fields are already wrapped handles; clone the handle.
 										} else if writeEmptyInterfaceHandleClone(out, rhs) {
@@ -4242,7 +4278,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									// Address-of operator already produces wrapped value
 									TranspileExpression(out, valueSpec.Values[i])
 								} else if writeConcurrentMapSelectorHandleClone(out, valueSpec.Values[i]) {
-									// Concurrent map fields are already wrapped handles; clone the handle.
+									// Concurrent map fields are map handles; clone the handle.
 								} else if writeSliceSelectorHandleClone(out, valueSpec.Values[i]) {
 									// Slice fields are already wrapped handles; clone the handle.
 								} else if ident, ok := valueSpec.Values[i].(*ast.Ident); ok {

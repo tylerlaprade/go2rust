@@ -291,7 +291,7 @@ fn main() {
     let mut system: Rc<RefCell<Option<AnonymousStruct6>>> = Rc::new(RefCell::new(Some(Default::default())));
 
     { let new_val = "1.0.0".to_string(); *(*system.borrow().as_ref().unwrap()).version.borrow_mut() = Some(new_val); };
-    { let new_val = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<AnonymousStruct7>>>>::new()))); let __moved_val = { let mut __guard = new_val.borrow_mut(); __guard.take() }; *(*system.borrow().as_ref().unwrap()).modules.borrow_mut() = __moved_val; };
+    { let new_val = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<AnonymousStruct7>>>>::new()))); (*system.borrow_mut().as_mut().unwrap()).modules = new_val; };
 
         // Add a module with settings
     let mut authModule = Rc::new(RefCell::new(Some(AnonymousStruct7 { enabled: Rc::new(RefCell::new(Some(true))), settings: Rc::new(RefCell::new(Some(AnonymousStruct8::default()))) })));

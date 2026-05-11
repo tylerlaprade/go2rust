@@ -239,6 +239,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Map operations (insert, delete) | ✅ |
 | └ Delete through selector map fields | ✅ |
 | └ Selector map fields in lookup, comma-ok, and range contexts | ✅ |
+| └ Selector map field short declarations preserve map-header copy semantics | ✅ |
 | └ Wrapped map range values used as lookup/delete keys | ✅ |
 | └ Owned map range keys used in comma-ok lookups | ✅ |
 | └ Map access with existence check | ✅ |
