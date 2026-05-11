@@ -24,6 +24,9 @@ func sameExpressionSyntax(a ast.Expr, b ast.Expr) bool {
 }
 
 func writeArraySliceElementAssignmentValue(out *strings.Builder, rhs ast.Expr, expected types.Type) {
+	if isGoErrorType(expected) && writeGoErrorHandleValue(out, rhs) {
+		return
+	}
 	if writePointerArraySliceElementAssignmentValue(out, rhs, expected) {
 		return
 	}
@@ -330,6 +333,10 @@ func rangeElementUsesCopied(typ types.Type) bool {
 	default:
 		return false
 	}
+}
+
+func rangeElementUsesCloned(typ types.Type) bool {
+	return isGoErrorType(typ) || isFunctionSignatureType(typ)
 }
 
 func blockIdentAssigned(body *ast.BlockStmt, name string) bool {
@@ -1033,6 +1040,9 @@ func writeStdlibInterfaceFieldValueCopy(out *strings.Builder, expr ast.Expr) boo
 }
 
 func writeMapWrappedValue(out *strings.Builder, expr ast.Expr, valueType types.Type) {
+	if isGoErrorType(valueType) && writeGoErrorHandleValue(out, expr) {
+		return
+	}
 	if ident, ok := expr.(*ast.Ident); ok && ident.Name == "nil" && isNilableWrappedMapValueType(valueType) {
 		WriteWrappedNone(out)
 		return
@@ -1867,6 +1877,34 @@ func writeConcreteErrorBox(out *strings.Builder, expr ast.Expr) {
 	}
 }
 
+func writeGoErrorHandleValue(out *strings.Builder, expr ast.Expr) bool {
+	if ident, ok := expr.(*ast.Ident); ok && ident.Name == "nil" {
+		writeEmptyErrorHandle(out)
+		return true
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	typ := typeInfo.GetType(expr)
+	if isGoErrorType(typ) {
+		if errorObj := types.Universe.Lookup("error"); errorObj != nil {
+			if writeGoErrorCallArgument(out, expr, errorObj.Type()) {
+				return true
+			}
+		}
+		TranspileExpression(out, expr)
+		return true
+	}
+	if isConcreteGoErrorValue(typ) {
+		WriteWrapperPrefix(out)
+		writeConcreteErrorBox(out, expr)
+		WriteWrapperSuffix(out)
+		return true
+	}
+	return false
+}
+
 func writeConcreteErrorInterfaceAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) {
 	out.WriteString("{ let new_val = ")
 	writeConcreteErrorBox(out, rhs)
@@ -2340,6 +2378,12 @@ func writeEmptyErrorHandle(out *strings.Builder) {
 	out.WriteString("Rc::new(RefCell::new(None::<")
 	out.WriteString(rustStdErrorBoxType())
 	out.WriteString(">))")
+}
+
+func rustEmptyErrorHandleValue() string {
+	var out strings.Builder
+	writeEmptyErrorHandle(&out)
+	return out.String()
 }
 
 func isRightNilComparison(expr *ast.BinaryExpr) bool {
@@ -4127,6 +4171,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 											// Slice fields are already wrapped handles; clone the handle.
 										} else if writeEmptyInterfaceHandleClone(out, rhs) {
 											// Existing interface values are already represented by a handle.
+										} else if typeInfo := GetTypeInfo(); typeInfo != nil && isGoErrorType(typeInfo.GetType(rhs)) && writeGoErrorHandleValue(out, rhs) {
+											// Existing error values are already represented by a handle.
 										} else if writeStdlibInterfaceFieldValueCopy(out, rhs) {
 											// Copied by value from an existing stdlib interface field.
 										} else if writeWrappedOwnedExpressionValue(out, rhs) {
@@ -4859,7 +4905,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			// Check if it's a slice of interface{} or named interface
 			elemType := typeInfo.GetArrayOrSliceElemType(s.X)
 			if elemType != nil {
-				if _, ok := elemType.Underlying().(*types.Pointer); ok {
+				if isGoErrorType(elemType) {
+					valueType = goTypesTypeToRustWrapped(elemType)
+				} else if _, ok := elemType.Underlying().(*types.Pointer); ok {
 					valueType = "&" + goTypesTypeToRust(elemType)
 				} else if intf, ok := elemType.Underlying().(*types.Interface); ok {
 					if intf.NumMethods() == 0 {
@@ -4892,22 +4940,28 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		}
 		// Track whether we need .copied() on the iterator to get owned values
 		needsCopied := false
+		needsCloned := false
 		if s.Value != nil {
 			if ident, ok := s.Value.(*ast.Ident); ok {
 				valueName = ident.Name
 				valueAssigned = rangeLoopIdentAssigned(s.Body, valueName)
 				// When using iter().enumerate(), the value is a reference
 				// For basic/Copy types, use .copied() to get owned values
-				if s.Key != nil && !isMap && !isString && valueType == "T" {
+				if s.Key != nil && !isMap && !isString {
 					// Check if element type is a numeric/bool (Rust Copy) type
 					elemType := typeInfo.GetArrayOrSliceElemType(s.X)
 					if rangeElementUsesCopied(elemType) {
 						needsCopied = true
 					}
-					if needsCopied || valueAssigned {
+					if rangeElementUsesCloned(elemType) {
+						needsCloned = true
+					}
+					if valueType == "T" && (needsCopied || valueAssigned) {
 						rangeLoopVars[valueName] = valueType
-					} else {
+					} else if valueType == "T" {
 						rangeLoopVars[valueName] = "ref_value"
+					} else {
+						rangeLoopVars[valueName] = valueType
 					}
 				} else if valueAssigned && strings.HasPrefix(valueType, "&") {
 					rangeLoopVars[valueName] = strings.TrimPrefix(valueType, "&")
@@ -5075,7 +5129,16 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					// to get owned values instead of &(...) which gives references
 					elemTypeV := typeInfo.GetArrayOrSliceElemType(s.X)
 					valCopied := rangeElementUsesCopied(elemTypeV)
-					if valCopied {
+					valCloned := rangeElementUsesCloned(elemTypeV)
+					if valCloned {
+						out.WriteString(" in ")
+						if rangeValuesVar != "" {
+							out.WriteString(rangeValuesVar)
+						} else {
+							writeUnwrappedRangeTarget(out, s.X)
+						}
+						out.WriteString(".iter().cloned()")
+					} else if valCopied {
 						out.WriteString(" in ")
 						if rangeValuesVar != "" {
 							out.WriteString(rangeValuesVar)
@@ -5118,7 +5181,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					} else {
 						writeUnwrappedRangeTarget(out, s.X)
 					}
-					if needsCopied {
+					if needsCloned {
+						out.WriteString(".iter().cloned().enumerate()")
+					} else if needsCopied {
 						out.WriteString(".iter().copied().enumerate()")
 					} else if valueAssigned {
 						out.WriteString(".iter().cloned().enumerate()")
@@ -5132,7 +5197,16 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				// For numeric/bool (Rust Copy) types, use .iter().copied()
 				elemTypeV2 := typeInfo.GetArrayOrSliceElemType(s.X)
 				valCopied2 := rangeElementUsesCopied(elemTypeV2)
-				if valCopied2 {
+				valCloned2 := rangeElementUsesCloned(elemTypeV2)
+				if valCloned2 {
+					out.WriteString(" in ")
+					if rangeValuesVar != "" {
+						out.WriteString(rangeValuesVar)
+					} else {
+						writeUnwrappedRangeTarget(out, s.X)
+					}
+					out.WriteString(".iter().cloned()")
+				} else if valCopied2 {
 					out.WriteString(" in ")
 					if rangeValuesVar != "" {
 						out.WriteString(rangeValuesVar)

@@ -744,6 +744,10 @@ run_xfail_test() {
     run_test "tests/error_handling"
 }
 
+@test "error_map_values" {
+    run_test "tests/error_map_values"
+}
+
 @test "error_method_on_error_field" {
     run_test "tests/error_method_on_error_field"
 }
@@ -762,6 +766,10 @@ run_xfail_test() {
 
 @test "error_simple" {
     run_test "tests/error_simple"
+}
+
+@test "error_slice_range" {
+    run_test "tests/error_slice_range"
 }
 
 @test "errors_custom" {

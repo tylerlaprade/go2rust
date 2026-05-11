@@ -646,6 +646,8 @@ func zeroValueForGoType(expr ast.Expr) string {
 			return "0.0"
 		case "bool":
 			return "false"
+		case "error":
+			return rustEmptyErrorHandleValue()
 		default:
 			return "Default::default()"
 		}
@@ -671,6 +673,9 @@ func zeroValueForGoType(expr ast.Expr) string {
 func zeroValueForTypesType(typ types.Type) string {
 	if typ == nil {
 		return "Default::default()"
+	}
+	if isGoErrorType(typ) {
+		return rustEmptyErrorHandleValue()
 	}
 	if named, ok := types.Unalias(typ).(*types.Named); ok {
 		if isTimeDurationType(named) {
@@ -749,6 +754,9 @@ func isSyncParam(expr ast.Expr) bool {
 
 func goCollectionElemTypeToRust(expr ast.Expr) string {
 	if isFunctionSignatureTypeExpr(expr) {
+		return GoTypeToRust(expr)
+	}
+	if ident, ok := expr.(*ast.Ident); ok && ident.Name == "error" {
 		return GoTypeToRust(expr)
 	}
 	return goTypeToRustBase(expr)
@@ -899,6 +907,9 @@ func goTypesTypeToRust(t types.Type) string {
 
 func goTypesCollectionElemTypeToRust(t types.Type) string {
 	if isFunctionSignatureType(t) {
+		return goTypesTypeToRustWrapped(t)
+	}
+	if isGoErrorType(t) {
 		return goTypesTypeToRustWrapped(t)
 	}
 	return goTypesTypeToRust(t)

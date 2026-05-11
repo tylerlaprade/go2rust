@@ -2694,6 +2694,9 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 			var elemType types.Type
 			if typeInfo := GetTypeInfo(); typeInfo != nil {
 				elemType = typeInfo.GetSliceElemType(call.Args[0])
+				if isGoErrorType(elemType) && writeGoErrorHandleValue(out, expr) {
+					return
+				}
 				if writeStdlibInterfaceBareConversion(out, expr, elemType) {
 					return
 				}

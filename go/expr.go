@@ -2365,6 +2365,9 @@ func compositeLiteralElementKeepsHandle(typ types.Type) bool {
 	if typ == nil {
 		return true
 	}
+	if isGoErrorType(typ) {
+		return true
+	}
 	if isFunctionSignatureType(typ) {
 		return true
 	}
@@ -2449,6 +2452,9 @@ func writeStringConstForExpectedBasicType(out *strings.Builder, expr ast.Expr, e
 
 func writeArraySliceLiteralElementValue(out *strings.Builder, expr ast.Expr, elemType types.Type) bool {
 	typeInfo := GetTypeInfo()
+	if isGoErrorType(elemType) {
+		return writeGoErrorHandleValue(out, expr)
+	}
 	if ident, ok := expr.(*ast.Ident); ok {
 		if varType, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar && varType == "usize" {
 			if elemType != nil {
@@ -3242,6 +3248,9 @@ func registerExternalStructCompositeLiteralFields(structType types.Type, structU
 }
 
 func writeWrappedMapValue(out *strings.Builder, value ast.Expr, valueExpr ast.Expr, valueType types.Type) {
+	if isGoErrorMapValueType(valueExpr, valueType) && writeGoErrorHandleValue(out, value) {
+		return
+	}
 	if ident, ok := value.(*ast.Ident); ok && ident.Name == "nil" && isNilableWrappedMapValueType(valueType) {
 		WriteWrappedNone(out)
 		return
@@ -3284,6 +3293,15 @@ func isNilableWrappedMapValueType(valueType types.Type) bool {
 	default:
 		return false
 	}
+}
+
+func isGoErrorTypeExpr(expr ast.Expr) bool {
+	ident, ok := expr.(*ast.Ident)
+	return ok && ident.Name == "error"
+}
+
+func isGoErrorMapValueType(valueExpr ast.Expr, valueType types.Type) bool {
+	return isGoErrorType(valueType) || isGoErrorTypeExpr(valueExpr)
 }
 
 func findStructFieldExpr(structType *ast.StructType, fieldName string) ast.Expr {
@@ -3382,7 +3400,7 @@ func writeMapLookupKeyWithType(out *strings.Builder, index ast.Expr, keyType typ
 }
 
 func writeMapLookupValue(out *strings.Builder, valueType types.Type, defaultValue string) {
-	if isPointerFieldType(valueType) || isEmptyInterfaceType(valueType) {
+	if isGoErrorType(valueType) || isPointerFieldType(valueType) || isEmptyInterfaceType(valueType) {
 		out.WriteString(".map(|__v| __v.clone()).unwrap_or_else(|| Default::default())")
 		return
 	}
@@ -4945,7 +4963,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				isInterfaceSlice = true
 				interfaceName = "Any"
 				TrackImport("Any")
-			} else if ident, ok := arrayType.Elt.(*ast.Ident); ok {
+			} else if ident, ok := arrayType.Elt.(*ast.Ident); ok && ident.Name != "error" {
 				// Check if it's a named interface using TypeInfo
 				typeInfo := GetTypeInfo()
 				if typeInfo != nil && typeInfo.IsInterface(ident) {
@@ -5095,7 +5113,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 								out.WriteString(zeroValueForTypesType(sliceType.Elem()))
 								continue
 							}
-							if !writeOwnedExpressionValue(out, elt) {
+							if !writeArraySliceLiteralElementValue(out, elt, sliceType.Elem()) && !writeOwnedExpressionValue(out, elt) {
 								TranspileExpression(out, elt)
 							}
 						}
