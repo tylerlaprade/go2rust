@@ -1,0 +1,8 @@
+[package]
+name = "var_len_make"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "var_len_make"
+path = "main.rs"

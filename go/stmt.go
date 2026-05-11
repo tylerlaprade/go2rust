@@ -4481,8 +4481,12 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										TranspileExpression(out, valueSpec.Values[i])
 									}
 								} else if call, isCall := valueSpec.Values[i].(*ast.CallExpr); isCall {
-									// Function calls already return wrapped values, don't wrap again
-									writeCallExpressionForInitializer(out, call)
+									if writeBareBuiltinShortDeclInitializer(out, call, name) {
+										// len/cap/min/max var initializers use normal Go value wrappers.
+									} else {
+										// Function calls already return wrapped values, don't wrap again
+										writeCallExpressionForInitializer(out, call)
+									}
 								} else if compositeLit, isCompositeLit := valueSpec.Values[i].(*ast.CompositeLit); isCompositeLit {
 									// Check if it's a struct literal vs array/slice/map literal
 									isStructLiteral := false

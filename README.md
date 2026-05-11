@@ -416,6 +416,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ `cap` | ✅ |
 | └ `len`/`cap` passed to Go `int` parameters | ✅ |
 | └ `len`/`cap` short declarations as Go `int` values | ✅ |
+| └ `len`/`cap` var declarations as Go `int` values | ✅ |
 | └ `min`/`max` over ordered basic values | ✅ |
 | └ `append` | ✅ |
 | └ `append` expansion from selector slice fields | ✅ |

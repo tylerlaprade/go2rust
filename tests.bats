@@ -1984,6 +1984,10 @@ run_xfail_test() {
     run_test "tests/values_basic"
 }
 
+@test "var_len_make" {
+    run_test "tests/var_len_make"
+}
+
 @test "variable_declarations" {
     run_test "tests/variable_declarations"
 }
