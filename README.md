@@ -361,6 +361,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Pointer aliasing | ✅ |
 | └ Pointer receiver nil comparisons and pointer variable call arguments | ✅ |
 | └ Pointer receivers stored in pointer fields | ✅ |
+| └ Pointer receiver dereference assignment (`*p = T{...}`) | ✅ |
 | └ Address-of struct literals in multi-name short declarations | ✅ |
 | └ Address-of local values passed to pointer parameters | ✅ |
 | └ Address-of selector fields passed to pointer parameters | ✅ |

@@ -657,6 +657,25 @@ func isUnsafePointerDerefAssignmentTarget(expr ast.Expr) bool {
 	return ok
 }
 
+func writeCurrentReceiverDerefAssignment(out *strings.Builder, star *ast.StarExpr, rhs ast.Expr) bool {
+	ident, ok := star.X.(*ast.Ident)
+	if !ok || currentReceiver == "" || ident.Name != currentReceiver {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo != nil {
+		lhsType := typeInfo.GetType(star)
+		rhsType := typeInfo.GetType(rhs)
+		if lhsType != nil && rhsType != nil && !types.AssignableTo(rhsType, lhsType) {
+			return false
+		}
+	}
+	out.WriteString("{ let new_val = ")
+	TranspileExpression(out, rhs)
+	out.WriteString("; *self = new_val; }")
+	return true
+}
+
 func isUnlabeledBreakStmt(stmt ast.Stmt) bool {
 	branch, ok := stmt.(*ast.BranchStmt)
 	return ok && branch.Tok == token.BREAK && branch.Label == nil
@@ -3519,7 +3538,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							} else if star, ok := s.Lhs[0].(*ast.StarExpr); ok {
 								// Check if LHS is a dereference (*p = value)
 								// Assignment through pointer: *p = value
-								if ident, ok := star.X.(*ast.Ident); ok && isSliceElemPtrVar(ident.Name) {
+								if writeCurrentReceiverDerefAssignment(out, star, s.Rhs[0]) {
+									// Pointer-receiver self is already &mut T, not a wrapped pointer handle.
+								} else if ident, ok := star.X.(*ast.Ident); ok && isSliceElemPtrVar(ident.Name) {
 									out.WriteString("{ ")
 									out.WriteString("let new_val = ")
 									TranspileExpression(out, s.Rhs[0])
