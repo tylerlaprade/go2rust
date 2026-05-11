@@ -1874,6 +1874,10 @@ run_xfail_test() {
     run_test "tests/string_builder_const"
 }
 
+@test "string_builder_pointer" {
+    run_test "tests/string_builder_pointer"
+}
+
 @test "string_interpolation" {
     run_test "tests/string_interpolation"
 }

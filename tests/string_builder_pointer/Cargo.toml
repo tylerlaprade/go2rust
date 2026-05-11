@@ -1,0 +1,8 @@
+[package]
+name = "string_builder_pointer"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "string_builder_pointer"
+path = "main.rs"

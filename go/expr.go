@@ -7387,6 +7387,127 @@ func isFunctionTypeAliasValue(expr ast.Expr) bool {
 	return ok && IsFunctionTypeAlias(named.Obj().Name())
 }
 
+func writeStringsBuilderMethodCall(out *strings.Builder, sel *ast.SelectorExpr, call *ast.CallExpr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || !isStringsBuilderReceiverType(typeInfo.GetType(sel.X)) {
+		return false
+	}
+
+	switch sel.Sel.Name {
+	case "WriteString":
+		out.WriteString("(*")
+		writeStringsBuilderReceiverHandle(out, sel.X)
+		WriteBorrowMethod(out, true)
+		out.WriteString(".as_mut().unwrap()).push_str(")
+		if len(call.Args) > 0 {
+			writeStringsBuilderStringArg(out, call.Args[0])
+		}
+		out.WriteString(")")
+		return true
+	case "WriteByte":
+		out.WriteString("(*")
+		writeStringsBuilderReceiverHandle(out, sel.X)
+		WriteBorrowMethod(out, true)
+		out.WriteString(".as_mut().unwrap()).push(")
+		if len(call.Args) > 0 {
+			writeStringsBuilderByteArg(out, call.Args[0])
+		}
+		out.WriteString(")")
+		return true
+	case "WriteRune":
+		out.WriteString("(*")
+		writeStringsBuilderReceiverHandle(out, sel.X)
+		WriteBorrowMethod(out, true)
+		out.WriteString(".as_mut().unwrap()).push(")
+		if len(call.Args) > 0 {
+			writeStringsBuilderRuneArg(out, call.Args[0])
+		}
+		out.WriteString(")")
+		return true
+	case "String":
+		WriteWrapperPrefix(out)
+		out.WriteString("(*")
+		writeStringsBuilderReceiverHandle(out, sel.X)
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap()).clone()")
+		WriteWrapperSuffix(out)
+		return true
+	case "Len":
+		WriteWrapperPrefix(out)
+		out.WriteString("(*")
+		writeStringsBuilderReceiverHandle(out, sel.X)
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap()).len() as i32")
+		WriteWrapperSuffix(out)
+		return true
+	default:
+		return false
+	}
+}
+
+func isStringsBuilderReceiverType(typ types.Type) bool {
+	if typ == nil {
+		return false
+	}
+	if ptr, ok := types.Unalias(typ).(*types.Pointer); ok {
+		return isStringsBuilderReceiverType(ptr.Elem())
+	}
+	named, ok := types.Unalias(typ).(*types.Named)
+	if !ok || named.Obj() == nil || named.Obj().Pkg() == nil {
+		return false
+	}
+	return named.Obj().Pkg().Path() == "strings" && named.Obj().Name() == "Builder"
+}
+
+func writeStringsBuilderReceiverHandle(out *strings.Builder, recv ast.Expr) {
+	TranspileExpressionContext(out, recv, LValue)
+}
+
+func writeStringsBuilderStringArg(out *strings.Builder, arg ast.Expr) {
+	if lit, ok := arg.(*ast.BasicLit); ok && lit.Kind == token.STRING {
+		out.WriteString(RustStringLiteral(lit.Value))
+		return
+	}
+	if isStringConstExpr(arg) {
+		TranspileExpression(out, arg)
+		return
+	}
+	out.WriteString("&")
+	writeStringSequenceValue(out, arg)
+}
+
+func writeStringsBuilderByteArg(out *strings.Builder, arg ast.Expr) {
+	out.WriteString("(")
+	writeStringsBuilderRawScalarArg(out, arg)
+	out.WriteString(") as u8 as char")
+}
+
+func writeStringsBuilderRuneArg(out *strings.Builder, arg ast.Expr) {
+	if lit, ok := arg.(*ast.BasicLit); ok && lit.Kind == token.CHAR {
+		out.WriteString(lit.Value)
+		return
+	}
+	if ident, ok := arg.(*ast.Ident); ok && rangeLoopVars[ident.Name] == "char" {
+		TranspileExpression(out, arg)
+		return
+	}
+	out.WriteString("std::char::from_u32((")
+	writeStringsBuilderRawScalarArg(out, arg)
+	out.WriteString(") as u32).unwrap_or('\\u{FFFD}')")
+}
+
+func writeStringsBuilderRawScalarArg(out *strings.Builder, arg ast.Expr) {
+	typeInfo := GetTypeInfo()
+	if typeInfo != nil && typeInfo.NeedsUnwrapping(arg) {
+		out.WriteString("*")
+		TranspileExpression(out, arg)
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap()")
+		return
+	}
+	TranspileExpression(out, arg)
+}
+
 func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 	// Check if this is a stdlib function we need to replace
 	if handler := GetStdlibHandler(call); handler != nil {
@@ -7541,60 +7662,8 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 			return
 		}
 
-		// Check if receiver is a strings.Builder (mapped to String) - handle before receiver unwrap
-		if recvTypeInfo := GetTypeInfo(); recvTypeInfo != nil {
-			recvType := recvTypeInfo.GetType(sel.X)
-			if recvType != nil {
-				if named, ok := recvType.(*types.Named); ok {
-					if named.Obj() != nil && named.Obj().Pkg() != nil && named.Obj().Pkg().Path() == "strings" && named.Obj().Name() == "Builder" {
-						// Get receiver name
-						recvName := ""
-						if ident, ok := sel.X.(*ast.Ident); ok {
-							recvName = RustIdentForUse(ident)
-						}
-						switch sel.Sel.Name {
-						case "WriteString":
-							out.WriteString("(*")
-							out.WriteString(recvName)
-							WriteBorrowMethod(out, true)
-							out.WriteString(".as_mut().unwrap()).push_str(")
-							// Arg is a string - need &str, not wrapped
-							if len(call.Args) > 0 {
-								if lit, ok := call.Args[0].(*ast.BasicLit); ok && lit.Kind == token.STRING {
-									// String literal - use directly
-									out.WriteString(RustStringLiteral(lit.Value))
-								} else if isStringConstExpr(call.Args[0]) {
-									TranspileExpression(out, call.Args[0])
-								} else {
-									// Variable - unwrap and borrow
-									out.WriteString("&(*")
-									TranspileExpression(out, call.Args[0])
-									WriteBorrowMethod(out, false)
-									out.WriteString(".as_ref().unwrap())")
-								}
-							}
-							out.WriteString(")")
-							return
-						case "String":
-							WriteWrapperPrefix(out)
-							out.WriteString("(*")
-							out.WriteString(recvName)
-							WriteBorrowMethod(out, false)
-							out.WriteString(".as_ref().unwrap()).clone()")
-							WriteWrapperSuffix(out)
-							return
-						case "Len":
-							WriteWrapperPrefix(out)
-							out.WriteString("(*")
-							out.WriteString(recvName)
-							WriteBorrowMethod(out, false)
-							out.WriteString(".as_ref().unwrap()).len() as i32")
-							WriteWrapperSuffix(out)
-							return
-						}
-					}
-				}
-			}
+		if writeStringsBuilderMethodCall(out, sel, call) {
+			return
 		}
 
 		// This is a method call - handle it specially
