@@ -492,6 +492,107 @@ func (pg *ProjectGenerator) packageHelpersNeeded(packageState *PackageState) boo
 	return packageState.Helpers.HasAny()
 }
 
+func (pg *ProjectGenerator) packageHelperModuleCode(packageState *PackageState) string {
+	if packageState == nil || packageState.Helpers == nil {
+		return ""
+	}
+	if pg.useSharedStdlibStubCrate {
+		return packageState.Helpers.GenerateHelperModuleOmittingSharedStdlibHelpers()
+	}
+	return packageState.Helpers.GenerateHelperModule()
+}
+
+func stripRustUseImportsProvidedByHelperModule(rustCode, helperCode string) string {
+	provided := rustUseImportKeys(helperCode)
+	if len(provided) == 0 {
+		return rustCode
+	}
+
+	hasTrailingNewline := strings.HasSuffix(rustCode, "\n")
+	lines := strings.Split(rustCode, "\n")
+	out := make([]string, 0, len(lines))
+	for _, line := range lines {
+		rewritten, keep := stripRustUseLineProvidedBy(line, provided)
+		if keep {
+			out = append(out, rewritten)
+		}
+	}
+
+	result := strings.Join(out, "\n")
+	if hasTrailingNewline && !strings.HasSuffix(result, "\n") {
+		result += "\n"
+	}
+	return result
+}
+
+func stripRustUseLineProvidedBy(line string, provided map[string]bool) (string, bool) {
+	trimmed := strings.TrimSpace(line)
+	if !strings.HasPrefix(trimmed, "use ") || !strings.HasSuffix(trimmed, ";") {
+		return line, true
+	}
+
+	body := strings.TrimSuffix(strings.TrimPrefix(trimmed, "use "), ";")
+	if prefix, names, ok := parseRustGroupedUse(body); ok {
+		kept := make([]string, 0, len(names))
+		for _, name := range names {
+			if !provided[prefix+"::"+name] {
+				kept = append(kept, name)
+			}
+		}
+		if len(kept) == 0 {
+			return "", false
+		}
+		return leadingWhitespace(line) + "use " + prefix + "::{" + strings.Join(kept, ", ") + "};", true
+	}
+
+	if provided[body] {
+		return "", false
+	}
+	return line, true
+}
+
+func rustUseImportKeys(rustCode string) map[string]bool {
+	keys := make(map[string]bool)
+	for _, line := range strings.Split(rustCode, "\n") {
+		trimmed := strings.TrimSpace(line)
+		if !strings.HasPrefix(trimmed, "use ") || !strings.HasSuffix(trimmed, ";") {
+			continue
+		}
+
+		body := strings.TrimSuffix(strings.TrimPrefix(trimmed, "use "), ";")
+		if prefix, names, ok := parseRustGroupedUse(body); ok {
+			for _, name := range names {
+				keys[prefix+"::"+name] = true
+			}
+			continue
+		}
+		keys[body] = true
+	}
+	return keys
+}
+
+func parseRustGroupedUse(body string) (string, []string, bool) {
+	open := strings.LastIndex(body, "::{")
+	if open < 0 || !strings.HasSuffix(body, "}") {
+		return "", nil, false
+	}
+
+	prefix := body[:open]
+	rawNames := strings.Split(body[open+3:len(body)-1], ",")
+	names := make([]string, 0, len(rawNames))
+	for _, rawName := range rawNames {
+		name := strings.TrimSpace(rawName)
+		if name != "" {
+			names = append(names, name)
+		}
+	}
+	return prefix, names, true
+}
+
+func leadingWhitespace(line string) string {
+	return line[:len(line)-len(strings.TrimLeft(line, " \t"))]
+}
+
 func (pg *ProjectGenerator) hasMainFile() bool {
 	for _, file := range pg.goFiles {
 		if filepath.Base(file) == "main.go" {
@@ -551,6 +652,8 @@ func (pg *ProjectGenerator) generateMainRs(fileSet *token.FileSet, astFilesByPat
 
 	var mainRust strings.Builder
 	if pg.packageHelpersNeeded(packageState) {
+		helperCode := pg.packageHelperModuleCode(packageState)
+		mainContent = stripRustUseImportsProvidedByHelperModule(mainContent, helperCode)
 		mainRust.WriteString(fmt.Sprintf("include!(\"%s\");\n", packageHelperIncludeFile))
 	}
 	if pg.useSharedStdlibStubCrate {
@@ -720,14 +823,7 @@ func (pg *ProjectGenerator) generateLibRs(packageState *PackageState) error {
 }
 
 func (pg *ProjectGenerator) writePackageHelperFile(packageState *PackageState) error {
-	helpers := ""
-	if packageState != nil && packageState.Helpers != nil {
-		if pg.useSharedStdlibStubCrate {
-			helpers = packageState.Helpers.GenerateHelperModuleOmittingSharedStdlibHelpers()
-		} else {
-			helpers = packageState.Helpers.GenerateHelperModule()
-		}
-	}
+	helpers := pg.packageHelperModuleCode(packageState)
 	helperPath := filepath.Join(pg.projectPath, packageHelperIncludeFile)
 	return os.WriteFile(helperPath, []byte(helpers), 0644)
 }

@@ -1165,6 +1165,61 @@ func main() {
 	}
 }
 
+func TestMainPackageHelperIncludeDeduplicatesRootImports(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "helper.go"), `package main
+
+import "fmt"
+
+func PrintMap(m map[string]int) {
+	go func() {}()
+	fmt.Println(m)
+}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+type Item struct {
+	Value int
+}
+
+func main() {}
+`)
+
+	generator := NewProjectGenerator([]string{
+		filepath.Join(tempDir, "helper.go"),
+		filepath.Join(tempDir, "main.go"),
+	})
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
+	if !strings.Contains(mainRS, `include!("__go2rust_helpers.rs");`) {
+		t.Fatalf("main.rs should include package-scoped helpers, got:\n%s", mainRS)
+	}
+	if strings.Contains(mainRS, "use std::sync::{Arc, Mutex};") {
+		t.Fatalf("main.rs should rely on helper include for Arc/Mutex imports, got:\n%s", mainRS)
+	}
+	if strings.Contains(mainRS, "use std::fmt::{Display") {
+		t.Fatalf("main.rs should rely on helper include for Display import, got:\n%s", mainRS)
+	}
+	if !strings.Contains(mainRS, "use std::fmt::{Formatter};") {
+		t.Fatalf("main.rs should keep non-helper fmt imports, got:\n%s", mainRS)
+	}
+
+	helpersRS := mustReadFile(t, filepath.Join(tempDir, packageHelperIncludeFile))
+	if !strings.Contains(helpersRS, "use std::sync::{Arc, Mutex};") {
+		t.Fatalf("helper include should import Arc/Mutex for shared helpers, got:\n%s", helpersRS)
+	}
+	if !strings.Contains(helpersRS, "use std::fmt::{Display};") {
+		t.Fatalf("helper include should import Display for shared helpers, got:\n%s", helpersRS)
+	}
+}
+
 func TestTranspiledExternalMultiFilePackageHelpersUseSharedCrateRootInclude(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
