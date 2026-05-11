@@ -1,0 +1,2 @@
+src/a.go
+b.go

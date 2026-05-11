@@ -1424,6 +1424,10 @@ run_xfail_test() {
     run_test "tests/range_string_method_argument"
 }
 
+@test "range_string_value_reassign" {
+    run_test "tests/range_string_value_reassign"
+}
+
 @test "range_wrapped_call_and_array_pointer" {
     run_test "tests/range_wrapped_call_and_array_pointer"
 }

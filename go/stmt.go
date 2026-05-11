@@ -1540,6 +1540,29 @@ func writeMoveWrappedInnerAssignmentFromTemp(out *strings.Builder, lhs ast.Expr,
 	out.WriteString(";")
 }
 
+func writeBareRangeVarAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
+	ident, ok := lhs.(*ast.Ident)
+	if !ok || ident.Name == "_" {
+		return false
+	}
+	varType, ok := rangeLoopVars[ident.Name]
+	if !ok || varType == "ref_value" || strings.HasPrefix(varType, "&") || isWrappedRangeVarType(varType) {
+		return false
+	}
+
+	var expected types.Type
+	if typeInfo := GetTypeInfo(); typeInfo != nil {
+		expected = typeInfo.GetType(lhs)
+	}
+
+	out.WriteString("{ let new_val = ")
+	writeBareCompoundAssignValue(out, rhs, expected)
+	out.WriteString("; ")
+	out.WriteString(RustIdentForUse(ident))
+	out.WriteString(" = new_val; }")
+	return true
+}
+
 func writePointerHandleAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil || !typeInfo.IsPointer(lhs) || !typeInfo.IsPointer(rhs) {
@@ -3534,6 +3557,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									out.WriteString(" = None")
 								} else if writePointerHandleAssignment(out, s.Lhs[0], s.Rhs[0]) {
 									// Pointer assignment replaces the handle to preserve aliasing.
+								} else if writeBareRangeVarAssignment(out, s.Lhs[0], s.Rhs[0]) {
+									// Assigned range variables are local bare Rust bindings, not wrapper handles.
 								} else if writeStdlibInterfaceAssignment(out, s.Lhs[0], s.Rhs[0]) {
 									// Converted concrete stdlib values assigned through a stdlib interface handle.
 								} else if isConcreteErrorInterfaceAssignment(s.Lhs[0], s.Rhs[0]) {
