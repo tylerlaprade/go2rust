@@ -1,0 +1,8 @@
+[package]
+name = "closure_map_assignment_capture"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "closure_map_assignment_capture"
+path = "main.rs"

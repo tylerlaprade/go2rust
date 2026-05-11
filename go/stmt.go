@@ -2106,7 +2106,7 @@ func writeMapElementUpdate(out *strings.Builder, indexExpr *ast.IndexExpr, op to
 
 	out.WriteString("{ let mut __map_guard = ")
 	if ident, ok := indexExpr.X.(*ast.Ident); ok {
-		out.WriteString(ident.Name)
+		out.WriteString(rustIdentForUseWithCapture(ident))
 	} else {
 		TranspileExpressionContext(out, indexExpr.X, LValue)
 	}
@@ -3568,7 +3568,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				out.WriteString("; (*")
 				// For map access, we need the raw identifier, not the unwrapped value
 				if ident, ok := indexExpr.X.(*ast.Ident); ok {
-					out.WriteString(ident.Name)
+					out.WriteString(rustIdentForUseWithCapture(ident))
 				} else {
 					TranspileExpressionContext(out, indexExpr.X, LValue)
 				}
@@ -3840,7 +3840,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				} else {
 					out.WriteString("match (*")
 					if ident, ok := indexExpr.X.(*ast.Ident); ok {
-						out.WriteString(EscapeRustIdent(ident.Name))
+						out.WriteString(rustIdentForUseWithCapture(ident))
 					} else {
 						TranspileExpression(out, indexExpr.X)
 					}

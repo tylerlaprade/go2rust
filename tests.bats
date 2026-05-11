@@ -494,6 +494,10 @@ run_xfail_test() {
     run_test "tests/closure_append_pointer_capture"
 }
 
+@test "closure_map_assignment_capture" {
+    run_test "tests/closure_map_assignment_capture"
+}
+
 @test "closure_receiver_func_param_fnmut" {
     run_test "tests/closure_receiver_func_param_fnmut"
 }
