@@ -247,6 +247,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Pointer keys in map literals and lookups | ✅ |
 | └ Pointer keys and values in `make(map)`, address-of literal map writes, and slice-range pointer key lookups | ✅ |
 | └ Named integer values in map literals, writes, lookups, and comma-ok zero values | ✅ |
+| └ Range indexes assigned into Go `int` map values | ✅ |
 | └ Struct keys with named integer fields across split modules | ✅ |
 | └ Append results assigned into map slice values | ✅ |
 | └ Nested range over map slice values | ✅ |
@@ -273,6 +274,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Array/slice range, including nil slices | ✅ |
 | └ Map range | ✅ |
 | └ String range | ✅ |
+| └ Range indexes assigned into Go `int` map values | ✅ |
 | └ Range string values from slice fields in comparisons, string helpers, and append calls | ✅ |
 | └ Channel range | ✅ |
 | **`return` - Return statements** | |

@@ -1248,6 +1248,23 @@ func writeLenCapCallArgumentForExpectedType(out *strings.Builder, arg ast.Expr, 
 	return true
 }
 
+func writeRangeIndexForExpectedType(out *strings.Builder, arg ast.Expr, expected types.Type) bool {
+	ident, ok := arg.(*ast.Ident)
+	if !ok || expected == nil {
+		return false
+	}
+	if varType, isRangeVar := rangeLoopVars[ident.Name]; !isRangeVar || varType != "usize" {
+		return false
+	}
+	basic, ok := types.Unalias(expected).Underlying().(*types.Basic)
+	if !ok || basic.Kind() != types.Int {
+		return false
+	}
+	out.WriteString(RustIdentForUse(ident))
+	out.WriteString(" as i32")
+	return true
+}
+
 func writeExternalStubCallArgument(out *strings.Builder, arg ast.Expr) {
 	if ident, ok := arg.(*ast.Ident); ok && ident.Name == "nil" {
 		out.WriteString("()")
