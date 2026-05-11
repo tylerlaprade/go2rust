@@ -1481,6 +1481,11 @@ func writeGoErrorCallArgument(out *strings.Builder, arg ast.Expr, expected types
 			return true
 		}
 	}
+	if sel, ok := arg.(*ast.SelectorExpr); ok && typeInfo != nil && isGoErrorType(typeInfo.GetType(sel)) {
+		TranspileExpressionContext(out, sel, LValue)
+		out.WriteString(".clone()")
+		return true
+	}
 	if call, ok := arg.(*ast.CallExpr); ok {
 		typeInfo := GetTypeInfo()
 		if typeInfo != nil && typeInfo.ReturnsWrappedValue(call) {

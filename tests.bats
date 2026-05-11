@@ -758,6 +758,10 @@ run_xfail_test() {
     run_test "tests/error_argument_clone"
 }
 
+@test "error_field_return" {
+    run_test "tests/error_field_return"
+}
+
 @test "error_handling" {
     run_test "tests/error_handling"
 }
@@ -788,6 +792,10 @@ run_xfail_test() {
 
 @test "error_slice_range" {
     run_test "tests/error_slice_range"
+}
+
+@test "error_slice_tuple_assignment" {
+    run_test "tests/error_slice_tuple_assignment"
 }
 
 @test "errors_custom" {

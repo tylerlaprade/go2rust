@@ -1,0 +1,8 @@
+[package]
+name = "error_slice_tuple_assignment"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "error_slice_tuple_assignment"
+path = "main.rs"

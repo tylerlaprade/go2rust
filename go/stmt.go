@@ -1708,6 +1708,9 @@ func writeMoveWrappedInnerAssignmentFromTemp(out *strings.Builder, lhs ast.Expr,
 	if ident, ok := lhs.(*ast.Ident); ok && ident.Name == "_" {
 		return
 	}
+	if indexExpr, ok := lhs.(*ast.IndexExpr); ok && writeIndexedSequenceAssignmentFromTemp(out, indexExpr, tmpName, true) {
+		return
+	}
 	movedName := "__moved_" + strings.TrimLeft(tmpName, "_")
 	out.WriteString(" let ")
 	out.WriteString(movedName)
@@ -1721,6 +1724,46 @@ func writeMoveWrappedInnerAssignmentFromTemp(out *strings.Builder, lhs ast.Expr,
 	out.WriteString(" = ")
 	out.WriteString(movedName)
 	out.WriteString(";")
+}
+
+func writeIndexedSequenceAssignmentFromTemp(out *strings.Builder, indexExpr *ast.IndexExpr, tmpName string, tmpWrapped bool) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.IsMap(indexExpr.X) {
+		return false
+	}
+	elemType := typeInfo.GetArrayOrSliceElemType(indexExpr.X)
+	out.WriteString(" (*")
+	TranspileExpressionContext(out, indexExpr.X, LValue)
+	WriteBorrowMethod(out, true)
+	out.WriteString(".as_mut().unwrap())[")
+	writeExpressionAsUsize(out, indexExpr.Index)
+	out.WriteString("] = ")
+	if tupleTempAssignsHandleToElement(elemType) {
+		out.WriteString(tmpName)
+	} else if tmpWrapped {
+		out.WriteString(tmpName)
+		WriteBorrowMethod(out, true)
+		out.WriteString(".take().unwrap_or_default()")
+	} else {
+		out.WriteString(tmpName)
+	}
+	out.WriteString(";")
+	return true
+}
+
+func tupleTempAssignsHandleToElement(elemType types.Type) bool {
+	if elemType == nil {
+		return false
+	}
+	if isGoErrorType(elemType) {
+		return true
+	}
+	switch types.Unalias(elemType).Underlying().(type) {
+	case *types.Pointer, *types.Slice, *types.Map, *types.Chan, *types.Signature, *types.Interface:
+		return true
+	default:
+		return false
+	}
 }
 
 func writeBareRangeVarAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
@@ -1940,6 +1983,18 @@ func isConcreteErrorReturnValue(result ast.Expr, expected ast.Expr) bool {
 		return false
 	}
 	return isConcreteGoErrorValue(typeInfo.GetType(result))
+}
+
+func writeGoErrorReturnValue(out *strings.Builder, result ast.Expr, expected ast.Expr) bool {
+	targetType := expectedTypeFromParamExpr(expected)
+	if !isGoErrorType(targetType) {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || !isGoErrorType(typeInfo.GetType(result)) {
+		return false
+	}
+	return writeGoErrorHandleValue(out, result)
 }
 
 func isGoErrorType(typ types.Type) bool {
@@ -2353,21 +2408,7 @@ func writeParallelAssignmentTarget(out *strings.Builder, lhs ast.Expr, tmpName s
 			out.WriteString(" /* ERROR: Cannot determine indexed assignment target - type information required */ ")
 			return
 		}
-		if !typeInfo.IsMap(indexExpr.X) {
-			out.WriteString(" (*")
-			TranspileExpressionContext(out, indexExpr.X, LValue)
-			WriteBorrowMethod(out, true)
-			out.WriteString(".as_mut().unwrap())[")
-			writeExpressionAsUsize(out, indexExpr.Index)
-			out.WriteString("] = ")
-			if tmpWrapped {
-				out.WriteString(tmpName)
-				WriteBorrowMethod(out, true)
-				out.WriteString(".take().unwrap_or_default()")
-			} else {
-				out.WriteString(tmpName)
-			}
-			out.WriteString(";")
+		if writeIndexedSequenceAssignmentFromTemp(out, indexExpr, tmpName, tmpWrapped) {
 			return
 		}
 	}
@@ -3142,6 +3183,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							out.WriteString("self.")
 							out.WriteString(ToSnakeCase(sel.Sel.Name))
 							out.WriteString(".clone()")
+						} else if writeGoErrorReturnValue(out, result, returnResultTypeExpr(fnType, i)) {
 						} else if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.IsPointer(result) {
 							TranspileExpressionContext(out, result, LValue)
 							out.WriteString(".clone()")
@@ -3458,6 +3500,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 								out.WriteString(") as Box<dyn StdError>")
 							}
 							WriteWrapperSuffix(out)
+						} else if writeGoErrorReturnValue(out, result, returnResultTypeExpr(fnType, i)) {
 						} else if isConcreteErrorReturnValue(result, returnResultTypeExpr(fnType, i)) {
 							WriteWrapperPrefix(out)
 							writeConcreteErrorBox(out, result)

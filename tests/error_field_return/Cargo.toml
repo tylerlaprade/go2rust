@@ -1,0 +1,8 @@
+[package]
+name = "error_field_return"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "error_field_return"
+path = "main.rs"

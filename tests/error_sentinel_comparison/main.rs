@@ -16,5 +16,5 @@ pub fn same(err: Rc<RefCell<Option<Box<dyn StdError>>>>) -> Rc<RefCell<Option<bo
 }
 
 fn main() {
-    println!("{}", (*same(io::EOF()).borrow().as_ref().unwrap()));
+    println!("{}", (*same(io::EOF().clone()).borrow().as_ref().unwrap()));
 }

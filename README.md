@@ -242,6 +242,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Concrete values implementing `error` passed to `error` parameters | ✅ |
 | └ Package-qualified stdlib concrete error variables passed to `error` parameters | ✅ |
 | └ `Error()` calls on wrapped `error` interface values and fields | ✅ |
+| └ Error selector fields returned through `error` results | ✅ |
 | └ Error values sent, received, and returned through channels | ✅ |
 | └ Error values stored, assigned, looked up, appended, and ranged through slices and maps | ✅ |
 | └ Error slices allocated with `make` in inferred local declarations | ✅ |
@@ -358,6 +359,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Append into indexed slice elements inside arrays/slices | ✅ |
 | └ Append slice values into nested slices | ✅ |
 | └ Assignment into nested indexed slice elements | ✅ |
+| └ Tuple-return assignments into indexed slice elements | ✅ |
 | └ `cap` on wrapped slice fields | ✅ |
 | └ Range over wrapped call results and pointer-to-array targets | ✅ |
 | └ Named integer values as array/slice indexes | ✅ |
