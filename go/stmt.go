@@ -746,6 +746,20 @@ func currentBreakTarget() string {
 	return breakTargetStack[len(breakTargetStack)-1]
 }
 
+func pushForPost(post ast.Stmt) func() {
+	forPostStack = append(forPostStack, post)
+	return func() {
+		forPostStack = forPostStack[:len(forPostStack)-1]
+	}
+}
+
+func currentForPost() ast.Stmt {
+	if len(forPostStack) == 0 {
+		return nil
+	}
+	return forPostStack[len(forPostStack)-1]
+}
+
 func nextSwitchBreakLabel() string {
 	switchBreakLabelCounter++
 	return fmt.Sprintf("__go_switch_%d", switchBreakLabelCounter)
@@ -880,6 +894,17 @@ func typeSwitchStmtTerminates(s *ast.TypeSwitchStmt) bool {
 		}
 	}
 	return hasDefault
+}
+
+func stmtNeedsSeparatorBeforeFollowingStatement(stmt ast.Stmt) bool {
+	typeSwitch, ok := stmt.(*ast.TypeSwitchStmt)
+	return ok && typeSwitchStmtTerminates(typeSwitch)
+}
+
+func writeStatementSeparatorBeforeFollowingStatement(out *strings.Builder, stmt ast.Stmt, hasFollowing bool) {
+	if hasFollowing && stmtNeedsSeparatorBeforeFollowingStatement(stmt) {
+		out.WriteString(";")
+	}
 }
 
 func writeWrappedValueCopyFromIdent(out *strings.Builder, ident *ast.Ident) bool {
@@ -5054,10 +5079,11 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			out.WriteString("loop")
 		}
 		out.WriteString(" {\n")
+		popForPost := pushForPost(s.Post)
 
 		var prevStmt ast.Stmt
 		var forBodyLastPos token.Pos = s.Body.Lbrace
-		for _, stmt := range s.Body.List {
+		for i, stmt := range s.Body.List {
 			// Add blank line if there was one in the source
 			if prevStmt != nil && hasBlankLineBetween(fileSet, prevStmt.End(), stmt.Pos()) {
 				out.WriteString("\n")
@@ -5065,6 +5091,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 			out.WriteString("        ")
 			TranspileStatement(out, stmt, fnType, fileSet, comments, &forBodyLastPos, "        ")
+			writeStatementSeparatorBeforeFollowingStatement(out, stmt, i < len(s.Body.List)-1 || s.Post != nil)
 			out.WriteString("\n")
 
 			prevStmt = stmt
@@ -5076,6 +5103,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			TranspileStatementSimple(out, s.Post, fnType, fileSet)
 			out.WriteString("\n")
 		}
+		popForPost()
 
 		out.WriteString("    }")
 
@@ -5095,7 +5123,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		out.WriteString("{\n")
 		var prevStmt ast.Stmt
 		var blockLastPos token.Pos = s.Lbrace
-		for _, stmt := range s.List {
+		for i, stmt := range s.List {
 			// Add blank line if there was one in the source
 			if prevStmt != nil && hasBlankLineBetween(fileSet, prevStmt.End(), stmt.Pos()) {
 				out.WriteString("\n")
@@ -5105,6 +5133,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			out.WriteString("    ")
 			// Pass comments through for nested blocks
 			TranspileStatement(out, stmt, fnType, fileSet, comments, &blockLastPos, indent+"    ")
+			writeStatementSeparatorBeforeFollowingStatement(out, stmt, i < len(s.List)-1)
 			out.WriteString("\n")
 
 			prevStmt = stmt
@@ -5163,6 +5192,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			out.WriteString("unimplemented!(\"type info required for range statement\")")
 			return
 		}
+		popForPost := pushForPost(nil)
 
 		rangeValuesVar := ""
 		rangePrelude := ""
@@ -5216,9 +5246,10 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			out.WriteString(" {\n")
 
 			var rangeBodyLastPos token.Pos = s.Body.Lbrace
-			for _, stmt := range s.Body.List {
+			for i, stmt := range s.Body.List {
 				out.WriteString("        ")
 				TranspileStatement(out, stmt, fnType, fileSet, comments, &rangeBodyLastPos, "        ")
+				writeStatementSeparatorBeforeFollowingStatement(out, stmt, i < len(s.Body.List)-1)
 				out.WriteString("\n")
 			}
 
@@ -5626,9 +5657,10 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		out.WriteString(rangePrelude)
 
 		var rangeBodyLastPos token.Pos = s.Body.Lbrace
-		for _, stmt := range s.Body.List {
+		for i, stmt := range s.Body.List {
 			out.WriteString("        ")
 			TranspileStatement(out, stmt, fnType, fileSet, comments, &rangeBodyLastPos, "        ")
+			writeStatementSeparatorBeforeFollowingStatement(out, stmt, i < len(s.Body.List)-1)
 			out.WriteString("\n")
 		}
 
@@ -5644,6 +5676,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		if valueName != "" {
 			delete(rangeLoopVars, valueName)
 		}
+		popForPost()
 
 	case *ast.IfStmt:
 		// Handle init statement if present
@@ -5660,9 +5693,10 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		// Use comment-aware transpilation for the body
 		activeMutexGuards = cloneMutexGuards(beforeGuards)
 		var ifBodyLastPos token.Pos = s.Body.Lbrace
-		for _, stmt := range s.Body.List {
+		for i, stmt := range s.Body.List {
 			out.WriteString("        ")
 			TranspileStatement(out, stmt, fnType, fileSet, comments, &ifBodyLastPos, "        ")
+			writeStatementSeparatorBeforeFollowingStatement(out, stmt, i < len(s.Body.List)-1)
 			out.WriteString("\n")
 		}
 		thenGuards := cloneMutexGuards(activeMutexGuards)
@@ -5685,9 +5719,10 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				// else block
 				out.WriteString("{\n")
 				var elseBodyLastPos token.Pos = block.Lbrace
-				for _, stmt := range block.List {
+				for i, stmt := range block.List {
 					out.WriteString("        ")
 					TranspileStatement(out, stmt, fnType, fileSet, comments, &elseBodyLastPos, "        ")
+					writeStatementSeparatorBeforeFollowingStatement(out, stmt, i < len(block.List)-1)
 					out.WriteString("\n")
 				}
 				out.WriteString("    }")
@@ -5975,6 +6010,10 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				}
 				out.WriteString("continue '" + label)
 			} else {
+				if postStmt := currentForPost(); postStmt != nil {
+					TranspileStatementSimple(out, postStmt, fnType, fileSet)
+					out.WriteString("; ")
+				}
 				out.WriteString("continue")
 			}
 		case token.GOTO:

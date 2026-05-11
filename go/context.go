@@ -68,6 +68,7 @@ type FileState struct {
 	SwitchBreakLabelCounter      int
 	HasInitFunction              bool
 	LabeledLoopPost              map[string]ast.Stmt
+	ForPostStack                 []ast.Stmt
 }
 
 // TranspileContext holds the active session/package/file state for a transpilation call.
@@ -348,6 +349,7 @@ func (ctx *TranspileContext) captureCompatibilityState() {
 		ctx.File.SwitchBreakLabelCounter = switchBreakLabelCounter
 		ctx.File.HasInitFunction = hasInitFunction
 		ctx.File.LabeledLoopPost = labeledLoopPost
+		ctx.File.ForPostStack = forPostStack
 	}
 }
 
@@ -401,6 +403,7 @@ func (ctx *TranspileContext) applyCompatibilityState() {
 		switchBreakLabelCounter = ctx.File.SwitchBreakLabelCounter
 		hasInitFunction = ctx.File.HasInitFunction
 		labeledLoopPost = ctx.File.LabeledLoopPost
+		forPostStack = ctx.File.ForPostStack
 	}
 }
 

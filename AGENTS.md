@@ -351,6 +351,7 @@ The test script handles:
 - The builtin `cap` on ordinary wrapped slices should use the same LValue unwrap shape as `len`, then call `.capacity()` on the inner Vec. Named slice expressions need the named-slice cap helper, not the len helper; arrays lower to `.len()` because Rust arrays have no capacity.
 - Address-of a local value passed to a pointer parameter, such as `method(&local)`, should pass the existing local wrapper clone when go/types proves the argument type is a pointer. Do not emit `Arc/Rc::new(...Some(local.clone()))`, which nests the handle instead of passing `*T`.
 - An unlabeled `break` nested inside `if`/block statements within a switch or type switch breaks the switch, not an outer Rust loop. Emit a one-shot labeled loop only for switches that need this synthetic target; direct top-level case breaks can still be handled by stopping case-body emission.
+- In `for init; cond; post` loops, Go runs the post statement before any unlabeled `continue`, even when the `continue` is nested inside a switch or type switch. Track the nearest loop post separately from labeled loop posts, and hide outer posts inside nested loops without post statements.
 
 ## Source-Preserving Fixes
 

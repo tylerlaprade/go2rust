@@ -2014,6 +2014,10 @@ run_xfail_test() {
     run_test "tests/type_embedding"
 }
 
+@test "type_switch_for_post" {
+    run_test "tests/type_switch_for_post"
+}
+
 @test "type_switch_local_interface" {
     run_test "tests/type_switch_local_interface"
 }

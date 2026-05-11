@@ -130,6 +130,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ External stdlib named-integer const expressions | ✅ |
 | └ Cross-file package constants in compound assignments | ✅ |
 | **`continue` - Continue statements** | ✅ |
+| └ Unlabeled `continue` in `for init; cond; post` executes the post statement before continuing | ✅ |
 | **`default` - Default clauses** | |
 | └ Switch default | ✅ |
 | └ Select default | ✅ |

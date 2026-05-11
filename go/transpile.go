@@ -58,6 +58,10 @@ var hasInitFunction bool
 // since Go's `continue label` executes the post-statement but Rust's doesn't.
 var labeledLoopPost = make(map[string]ast.Stmt)
 
+// forPostStack tracks the nearest loop's post statement for unlabeled
+// continues. Nil entries represent loops without a post statement.
+var forPostStack []ast.Stmt
+
 // interfaceTypes tracks which type names are interfaces
 var interfaceTypes = make(map[string]bool)
 
