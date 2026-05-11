@@ -436,6 +436,10 @@ run_xfail_test() {
     run_test "tests/byte_char_comparisons"
 }
 
+@test "byte_const_field_assignment" {
+    run_test "tests/byte_const_field_assignment"
+}
+
 @test "byte_slice_from_global_array_field" {
     run_test "tests/byte_slice_from_global_array_field"
 }

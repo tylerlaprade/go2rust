@@ -64,6 +64,18 @@ func writeArraySliceElementAssignmentValue(out *strings.Builder, rhs ast.Expr, e
 	}
 }
 
+func writeByteConstAssignmentValue(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	expected := typeInfo.GetType(lhs)
+	if !isByteLikeGoType(expected) {
+		return false
+	}
+	return writeConstExpressionForExpectedGoType(out, rhs, expected)
+}
+
 func writePointerArraySliceElementAssignmentValue(out *strings.Builder, rhs ast.Expr, expected types.Type) bool {
 	if expected == nil {
 		return false
@@ -3725,6 +3737,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 												out.WriteString(rhsVarName)
 												WriteBorrowMethod(out, false)
 												out.WriteString(".as_ref().unwrap().clone()")
+											} else if writeByteConstAssignmentValue(out, s.Lhs[0], s.Rhs[0]) {
+												// Byte constants assigned to byte slots need the same go/types context as call arguments.
 											} else {
 												TranspileExpression(out, s.Rhs[0])
 											}
@@ -3868,6 +3882,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 											out.WriteString(rhsVarName)
 											WriteBorrowMethod(out, false)
 											out.WriteString(".as_ref().unwrap().clone()")
+										} else if writeByteConstAssignmentValue(out, s.Lhs[0], s.Rhs[0]) {
+											// Byte constants assigned to byte slots need the same go/types context as call arguments.
 										} else if !isCopyTypeExpression(s.Rhs[0]) && writeOwnedExpressionValue(out, s.Rhs[0]) {
 											// Copied by value from an existing wrapped field or handle.
 										} else {
