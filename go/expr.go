@@ -2500,6 +2500,13 @@ func writeArraySliceLiteralElementValue(out *strings.Builder, expr ast.Expr, ele
 	if writeStringConstForExpectedBasicType(out, expr, elemType) {
 		return true
 	}
+	if elemType != nil {
+		if basic, ok := types.Unalias(elemType).Underlying().(*types.Basic); ok && basic.Kind() == types.String {
+			if writeRangeStringValue(out, expr) {
+				return true
+			}
+		}
+	}
 	if isConstantExpression(expr) && writeExpressionForExpectedTypesType(out, expr, elemType) {
 		return true
 	}

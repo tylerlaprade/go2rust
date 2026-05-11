@@ -1,0 +1,8 @@
+[package]
+name = "range_string_key_slice_literal_reuse"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "range_string_key_slice_literal_reuse"
+path = "main.rs"

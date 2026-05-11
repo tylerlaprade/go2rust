@@ -1510,6 +1510,10 @@ run_xfail_test() {
     run_test "tests/range_string_closure_capture"
 }
 
+@test "range_string_key_slice_literal_reuse" {
+    run_test "tests/range_string_key_slice_literal_reuse"
+}
+
 @test "range_string_method_argument" {
     run_test "tests/range_string_method_argument"
 }
