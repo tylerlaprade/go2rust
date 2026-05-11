@@ -174,6 +174,16 @@ run_test() {
         test_tmp_root=$(mktemp -d "${TMPDIR:-/tmp}/go2rust-test.XXXXXX")
         trap '"'"'rm -rf "$test_tmp_root"'"'"' EXIT
         export GO2RUST_TEST_TMP="$test_tmp_root"
+
+        if [ -f "$test_dir/go.mod" ]; then
+            mod_download_output=$(cd "$test_dir" && go mod download 2>&1)
+            mod_download_exit_code=$?
+            if [ $mod_download_exit_code -ne 0 ]; then
+                echo "Go module download failed:"
+                echo "$mod_download_output"
+                exit 1
+            fi
+        fi
         
         # Run Go version
         go_output=$(cd "$test_dir" && go run . 2>&1)
