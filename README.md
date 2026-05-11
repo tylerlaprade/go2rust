@@ -163,6 +163,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Method calls, including receiver self-calls | ✅ |
 | └ Current receiver method calls with receiver-referencing arguments | ✅ |
 | └ Method calls with function-literal arguments that capture the receiver | ✅ |
+| └ Cross-file receiver mutability analysis | ✅ |
 | └ Wrapped call results passed as method/function arguments | ✅ |
 | └ Typed nil arguments passed to package functions | ✅ |
 | └ Function-valued struct field calls | ✅ |

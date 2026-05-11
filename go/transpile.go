@@ -715,6 +715,24 @@ func methodDeclByName(typeMethods []*ast.FuncDecl, name string) *ast.FuncDecl {
 	return nil
 }
 
+func collectPackageMethods(files []*ast.File) map[string][]*ast.FuncDecl {
+	methods := make(map[string][]*ast.FuncDecl)
+	for _, file := range files {
+		if file == nil {
+			continue
+		}
+		for _, decl := range file.Decls {
+			fn, ok := decl.(*ast.FuncDecl)
+			if !ok || fn.Recv == nil || len(fn.Recv.List) == 0 {
+				continue
+			}
+			recvType := getReceiverType(fn.Recv.List[0].Type)
+			methods[recvType] = append(methods[recvType], fn)
+		}
+	}
+	return methods
+}
+
 func writeExternalLocalInterfaceMethod(out *strings.Builder, methodName string, funcType *ast.FuncType) {
 	out.WriteString("    fn ")
 	out.WriteString(ToSnakeCase(methodName))
@@ -1275,6 +1293,9 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 	if currentContext != nil && currentContext.Package != nil && len(currentContext.Package.MethodNameOverrides) == 0 {
 		currentContext.Package.MethodNameOverrides = assignPackageMethodNames([]*ast.File{file}, typeInfo)
 		packageMethodNameOverrides = currentContext.Package.MethodNameOverrides
+	}
+	if currentContext != nil && currentContext.Package != nil && len(currentContext.Package.MethodsByType) == 0 {
+		currentContext.Package.MethodsByType = collectPackageMethods([]*ast.File{file})
 	}
 
 	// Transpile the body

@@ -2307,10 +2307,26 @@ func receiverNameForMethod(fn *ast.FuncDecl) string {
 }
 
 func methodMutatesReceiver(fn *ast.FuncDecl, receiverName string) bool {
-	return methodMutatesReceiverWithSeen(fn, receiverName, make(map[*ast.FuncDecl]bool))
+	return methodMutatesReceiverWithSeen(fn, receiverName, getMethodReceiverType(fn), make(map[*ast.FuncDecl]bool))
 }
 
-func methodMutatesReceiverWithSeen(fn *ast.FuncDecl, receiverName string, seen map[*ast.FuncDecl]bool) bool {
+func getMethodReceiverType(fn *ast.FuncDecl) string {
+	if fn == nil || fn.Recv == nil || len(fn.Recv.List) == 0 {
+		return ""
+	}
+	return getReceiverType(fn.Recv.List[0].Type)
+}
+
+func methodsForReceiverType(receiverType string) []*ast.FuncDecl {
+	if receiverType != "" {
+		if ctx := GetTranspileContext(); ctx != nil && ctx.Package != nil && len(ctx.Package.MethodsByType[receiverType]) > 0 {
+			return ctx.Package.MethodsByType[receiverType]
+		}
+	}
+	return currentTypeMethods
+}
+
+func methodMutatesReceiverWithSeen(fn *ast.FuncDecl, receiverName string, receiverType string, seen map[*ast.FuncDecl]bool) bool {
 	if fn == nil || fn.Body == nil || receiverName == "" {
 		return false
 	}
@@ -2341,11 +2357,11 @@ func methodMutatesReceiverWithSeen(fn *ast.FuncDecl, receiverName string, seen m
 			if !ok || !exprReferencesReceiver(sel.X, receiverName) {
 				return true
 			}
-			called := methodDeclByName(currentTypeMethods, sel.Sel.Name)
+			called := methodDeclByName(methodsForReceiverType(receiverType), sel.Sel.Name)
 			if called == nil {
 				return true
 			}
-			if methodMutatesReceiverWithSeen(called, receiverNameForMethod(called), seen) {
+			if methodMutatesReceiverWithSeen(called, receiverNameForMethod(called), getMethodReceiverType(called), seen) {
 				mutates = true
 				return false
 			}

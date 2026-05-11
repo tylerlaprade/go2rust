@@ -16,6 +16,7 @@ type PackageState struct {
 	FunctionSignatures           map[string]*FunctionSignature
 	FunctionNameOverrides        map[string]string
 	MethodNameOverrides          map[string]string
+	MethodsByType                map[string][]*ast.FuncDecl
 	ErrorImplTypes               map[string]bool
 	StringerImplTypes            map[string]bool
 	InterfaceTypes               map[string]bool
@@ -93,6 +94,7 @@ func NewPackageState() *PackageState {
 		FunctionSignatures:           make(map[string]*FunctionSignature),
 		FunctionNameOverrides:        make(map[string]string),
 		MethodNameOverrides:          make(map[string]string),
+		MethodsByType:                make(map[string][]*ast.FuncDecl),
 		ErrorImplTypes:               make(map[string]bool),
 		StringerImplTypes:            make(map[string]bool),
 		InterfaceTypes:               make(map[string]bool),
@@ -177,6 +179,9 @@ func (ctx *TranspileContext) ensureDefaults() {
 		}
 		if ctx.Package.MethodNameOverrides == nil {
 			ctx.Package.MethodNameOverrides = make(map[string]string)
+		}
+		if ctx.Package.MethodsByType == nil {
+			ctx.Package.MethodsByType = make(map[string][]*ast.FuncDecl)
 		}
 		if ctx.Package.ErrorImplTypes == nil {
 			ctx.Package.ErrorImplTypes = make(map[string]bool)
