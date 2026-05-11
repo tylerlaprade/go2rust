@@ -763,7 +763,7 @@ func methodCallFuncLitArgCapturesReceiver(call *ast.CallExpr, receiver string) b
 		if !ok {
 			continue
 		}
-		if findCapturedVars(funcLit)[receiver] {
+		if capturedVarsForFuncLit(funcLit)[receiver] {
 			return true
 		}
 	}
@@ -5726,7 +5726,7 @@ func TranspileFuncLitBox(out *strings.Builder, funcLit *ast.FuncLit) {
 	defer func() { currentFunctionHasDefer = oldFunctionHasDefer }()
 
 	// Find captured variables
-	captured := findCapturedVars(funcLit)
+	captured := capturedVarsForFuncLit(funcLit)
 
 	// Build capture renames but don't generate clones here
 	// The clones need to be generated at the statement level

@@ -3901,7 +3901,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										out.WriteString("{ ")
 										cloneFuncLitTarget := false
 										if ident, ok := s.Lhs[0].(*ast.Ident); ok {
-											cloneFuncLitTarget = findCapturedVars(funcLit)[ident.Name]
+											cloneFuncLitTarget = capturedVarsForFuncLit(funcLit)[ident.Name]
 										}
 										if cloneFuncLitTarget {
 											out.WriteString("let __func_lit_target = ")

@@ -48,6 +48,21 @@ func findCapturedVars(funcLit *ast.FuncLit) map[string]bool {
 	return captured
 }
 
+func capturedVarsForFuncLit(funcLit *ast.FuncLit) map[string]bool {
+	if statementPreprocessor != nil {
+		return statementPreprocessor.CapturedVarsForFuncLit(funcLit)
+	}
+	return cloneCapturedVars(findCapturedVars(funcLit))
+}
+
+func cloneCapturedVars(captured map[string]bool) map[string]bool {
+	clone := make(map[string]bool, len(captured))
+	for name, isCaptured := range captured {
+		clone[name] = isCaptured
+	}
+	return clone
+}
+
 func isStructFieldKeyIdent(typeInfo *TypeInfo, ident *ast.Ident) bool {
 	if typeInfo == nil || typeInfo.info == nil || ident == nil {
 		return false
@@ -165,13 +180,13 @@ func isBuiltinIdentifier(name string) bool {
 func findCapturedInCall(call *ast.CallExpr) map[string]bool {
 	// Check if the call is a function literal
 	if funcLit, ok := call.Fun.(*ast.FuncLit); ok {
-		return findCapturedVars(funcLit)
+		return capturedVarsForFuncLit(funcLit)
 	}
 
 	// Check if it's a call with a closure argument
 	for _, arg := range call.Args {
 		if funcLit, ok := arg.(*ast.FuncLit); ok {
-			return findCapturedVars(funcLit)
+			return capturedVarsForFuncLit(funcLit)
 		}
 	}
 

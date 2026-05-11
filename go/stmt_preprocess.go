@@ -13,6 +13,9 @@ type StatementPreprocessor struct {
 	// Map from statement to its closure capture information
 	captures map[ast.Stmt]*CaptureInfo
 
+	// Map from function literal to captured variables found by type-aware capture analysis.
+	funcLitCaptures map[*ast.FuncLit]map[string]bool
+
 	// Current function scope for determining what variables are local
 	currentFunc *ast.FuncType
 
@@ -36,8 +39,9 @@ type CaptureInfo struct {
 // NewStatementPreprocessor creates a new preprocessor
 func NewStatementPreprocessor(fileSet *token.FileSet) *StatementPreprocessor {
 	return &StatementPreprocessor{
-		captures: make(map[ast.Stmt]*CaptureInfo),
-		fileSet:  fileSet,
+		captures:        make(map[ast.Stmt]*CaptureInfo),
+		funcLitCaptures: make(map[*ast.FuncLit]map[string]bool),
+		fileSet:         fileSet,
 	}
 }
 
@@ -156,7 +160,19 @@ func (sp *StatementPreprocessor) findClosuresInFunction(funcLit *ast.FuncLit) []
 // analyzeClosure analyzes a closure to find captured variables
 // It returns variables captured from the outer scope, excluding nested closure captures
 func (sp *StatementPreprocessor) analyzeClosure(closure *ast.FuncLit, containingStmt ast.Stmt) map[string]bool {
-	return findCapturedVars(closure)
+	return sp.CapturedVarsForFuncLit(closure)
+}
+
+func (sp *StatementPreprocessor) CapturedVarsForFuncLit(funcLit *ast.FuncLit) map[string]bool {
+	if sp == nil || funcLit == nil {
+		return map[string]bool{}
+	}
+	if captured, exists := sp.funcLitCaptures[funcLit]; exists {
+		return cloneCapturedVars(captured)
+	}
+	captured := findCapturedVars(funcLit)
+	sp.funcLitCaptures[funcLit] = captured
+	return cloneCapturedVars(captured)
 }
 
 // findLocalVars finds all locally declared variables in a function body

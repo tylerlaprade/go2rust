@@ -179,6 +179,64 @@ func use(T any) func(any) any {
 	}
 }
 
+func TestCachedFuncLitCapturesReturnCopy(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+func outer(prefix string) func(string) string {
+	return func(name string) string {
+		return prefix + name
+	}
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(main.go) error = %v", err)
+	}
+
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+	SetTypeInfo(typeInfo)
+	defer SetTypeInfo(nil)
+
+	var funcLit *ast.FuncLit
+	ast.Inspect(file, func(n ast.Node) bool {
+		if funcLit != nil {
+			return false
+		}
+		if node, ok := n.(*ast.FuncLit); ok {
+			funcLit = node
+			return false
+		}
+		return true
+	})
+	if funcLit == nil {
+		t.Fatal("did not find closure")
+	}
+
+	sp := NewStatementPreprocessor(fset)
+	captured := sp.CapturedVarsForFuncLit(funcLit)
+	if _, ok := captured["prefix"]; !ok {
+		t.Fatalf("closure should capture prefix, got %#v", captured)
+	}
+	captured["name"] = true
+	captured["extra"] = true
+
+	again := sp.CapturedVarsForFuncLit(funcLit)
+	if _, ok := again["prefix"]; !ok {
+		t.Fatalf("cached closure should still capture prefix, got %#v", again)
+	}
+	for _, name := range []string{"name", "extra"} {
+		if _, ok := again[name]; ok {
+			t.Fatalf("cached closure captures should not include caller mutation %q, got %#v", name, again)
+		}
+	}
+	if len(sp.funcLitCaptures) != 1 {
+		t.Fatalf("expected one cached closure capture entry, got %d", len(sp.funcLitCaptures))
+	}
+}
+
 func TestClosureStructLiteralFieldKeysAreNotCaptured(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
