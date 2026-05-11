@@ -269,6 +269,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Struct keys with named integer fields across split modules | ✅ |
 | └ Append results assigned into map slice values | ✅ |
 | └ Nested range over map slice values | ✅ |
+| └ Map range slice values assigned to local slices | ✅ |
 | └ Map iteration (for range) | ✅ |
 | └ Map printing (sorted keys, Go 1.12+) | ✅ |
 | **`package` - Packages** | |

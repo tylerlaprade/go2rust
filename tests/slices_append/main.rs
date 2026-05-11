@@ -46,8 +46,8 @@ where
 
 fn main() {
     let mut s: Rc<RefCell<Option<Vec<String>>>> = Rc::new(RefCell::new(None));
-    { let __append_target = s.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push("a".to_string()); __append_target.clone() };
-    { let __append_target = s.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).extend(vec!["b".to_string(), "c".to_string()]); __append_target.clone() };
+    { let new_val = { let __append_target = s.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push("a".to_string()); __append_target.clone() }; s = new_val; };
+    { let new_val = { let __append_target = s.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).extend(vec!["b".to_string(), "c".to_string()]); __append_target.clone() }; s = new_val; };
     println!("{} {}", "slice:".to_string(), format_slice(&s));
 
     let mut c = Rc::new(RefCell::new(Some(vec!["".to_string(); ((*s.borrow().as_ref().unwrap()).len()) as usize])));

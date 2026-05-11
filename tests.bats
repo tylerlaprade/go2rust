@@ -498,6 +498,10 @@ run_xfail_test() {
     run_test "tests/closure_receiver_func_param_fnmut"
 }
 
+@test "closure_slice_assignment_capture" {
+    run_test "tests/closure_slice_assignment_capture"
+}
+
 @test "closure_struct_literal_field_keys" {
     run_test "tests/closure_struct_literal_field_keys"
 }
@@ -1120,6 +1124,10 @@ run_xfail_test() {
 
 @test "map_slice_append_assignment" {
     run_test "tests/map_slice_append_assignment"
+}
+
+@test "map_slice_range_value_assignment" {
+    run_test "tests/map_slice_range_value_assignment"
 }
 
 @test "maps_basic" {

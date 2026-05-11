@@ -50,7 +50,7 @@ fn main() {
     println!("{} {}", "Original slice:".to_string(), format_slice(&slice));
 
         // Append to slice
-    { let __append_target = slice.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).extend(vec![6, 7]); __append_target.clone() };
+    { let new_val = { let __append_target = slice.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).extend(vec![6, 7]); __append_target.clone() }; slice = new_val; };
     println!("{} {}", "After append:".to_string(), format_slice(&slice));
 
         // Slice operations

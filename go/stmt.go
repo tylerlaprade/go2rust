@@ -1003,6 +1003,49 @@ func writeMapHandleAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) 
 	return true
 }
 
+func writeSliceHandleAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || !isPlainSliceExpression(lhs) || !isPlainSliceExpression(rhs) {
+		return false
+	}
+	if ident, ok := lhs.(*ast.Ident); ok && isPackageGlobalIdent(ident) {
+		return false
+	}
+	if ident, ok := lhs.(*ast.Ident); ok && currentCaptureRenames != nil {
+		if _, captured := currentCaptureRenames[ident.Name]; captured {
+			return false
+		}
+	}
+	out.WriteString("{ let new_val = ")
+	switch rhs.(type) {
+	case *ast.Ident, *ast.SelectorExpr:
+		TranspileExpressionContext(out, rhs, LValue)
+		out.WriteString(".clone()")
+	default:
+		TranspileExpression(out, rhs)
+	}
+	out.WriteString("; ")
+	writePointerHandleAssignmentTarget(out, lhs)
+	out.WriteString(" = new_val; }")
+	return true
+}
+
+func isPlainSliceExpression(expr ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	typ := typeInfo.GetType(expr)
+	if typ == nil {
+		return false
+	}
+	if _, isNamed := types.Unalias(typ).(*types.Named); isNamed {
+		return false
+	}
+	_, ok := types.Unalias(typ).Underlying().(*types.Slice)
+	return ok
+}
+
 func writeSliceSelectorHandleClone(out *strings.Builder, expr ast.Expr) bool {
 	if _, ok := expr.(*ast.SelectorExpr); !ok {
 		return false
@@ -3962,6 +4005,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									out.WriteString(" = None")
 								} else if writePointerHandleAssignment(out, s.Lhs[0], s.Rhs[0]) {
 									// Pointer assignment replaces the handle to preserve aliasing.
+								} else if writeSliceHandleAssignment(out, s.Lhs[0], s.Rhs[0]) {
+									// Slice assignment replaces the handle to preserve slice-header aliasing.
 								} else if writeBareRangeVarAssignment(out, s.Lhs[0], s.Rhs[0]) {
 									// Assigned range variables are local bare Rust bindings, not wrapper handles.
 								} else if writeStdlibInterfaceAssignment(out, s.Lhs[0], s.Rhs[0]) {

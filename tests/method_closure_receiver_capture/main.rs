@@ -89,7 +89,7 @@ impl pkgReader {
         { let new_val = Rc::new(RefCell::new(Some(BTreeMap::<GoLocalPtrKey<named>, Rc<RefCell<Option<i32>>>>::new()))); self.later_fors = new_val; };
     }
         { let __map_key = GoLocalPtrKey::new(t.clone()); let __map_value = Rc::new(RefCell::new(Some((*self.later_fns.borrow().as_ref().unwrap()).len() as i32))); (*self.later_fors.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
-        { let __append_target = self.later_fns.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push(r#fn.clone()); __append_target.clone() };
+        { let new_val = { let __append_target = self.later_fns.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push(r#fn.clone()); __append_target.clone() }; self.later_fns = new_val; };
     }
 }
 

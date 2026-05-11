@@ -75,7 +75,7 @@ impl encoder {
     }
         let (mut objs, mut ok) = { let __map = { let __map_holder = m.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = (*__map_guard.as_ref().unwrap()).clone(); drop(__map_guard); __cloned }; match __map.get(&GoLocalPtrKey::new(s.clone())) { /* MAP_COMMA_OK */ Some(v) => (v.clone(), Arc::new(Mutex::new(Some(true)))), None => (Arc::new(Mutex::new(Some(vec![]))), Arc::new(Mutex::new(Some(false)))) } };
         if !{ let __v = (*ok.lock().unwrap().as_ref().unwrap()).clone(); __v } {
-        { let new_val = Arc::new(Mutex::new(Some(vec![object { name: Arc::new(Mutex::new(Some("one".to_string()))), ..Default::default() }]))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *objs.lock().unwrap() = __moved_val; };
+        { let new_val = Arc::new(Mutex::new(Some(vec![object { name: Arc::new(Mutex::new(Some("one".to_string()))), ..Default::default() }]))); objs = new_val; };
         { let __map_key = GoLocalPtrKey::new(s.clone()); let __map_value = objs.clone(); (*m.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
     }
         return objs.clone();

@@ -13,7 +13,7 @@ fn main() {
         if file.clone() == "a.go" {
         { let new_val = (*qualify(Rc::new(RefCell::new(Some("src".to_string()))), Rc::new(RefCell::new(Some(file)))).borrow().as_ref().unwrap()).clone(); file = new_val; };
     }
-        { let __append_target = out.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push(file.clone()); __append_target.clone() };
+        { let new_val = { let __append_target = out.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push(file.clone()); __append_target.clone() }; out = new_val; };
     } }
     { let __range_holder = out.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for file in __range_values.iter() {
         println!("{}", file);

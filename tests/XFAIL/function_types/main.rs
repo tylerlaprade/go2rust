@@ -134,7 +134,7 @@ pub fn filter(numbers: Rc<RefCell<Option<Vec<i32>>>>, pred: Predicate) -> Rc<Ref
     let mut result: Rc<RefCell<Option<Vec<i32>>>> = Rc::new(RefCell::new(None));
     { let __range_holder = numbers.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for num in __range_values.iter().copied() {
         if (*{ let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<bool>>>> = { let mut __f_guard = pred.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<bool>>>> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some(num)))) }.borrow().as_ref().unwrap()) {
-        { let __append_target = result.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push(num); __append_target.clone() };
+        { let new_val = { let __append_target = result.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push(num); __append_target.clone() }; result = new_val; };
     }
     } }
     return result.clone();

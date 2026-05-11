@@ -9,8 +9,8 @@ fn main() {
     let mut compiledGoFiles: Rc<RefCell<Option<Vec<String>>>> = Rc::new(RefCell::new(None));
     for (path, _) in { let __range_holder = overlay.clone(); let __range_guard = __range_holder.borrow(); let __range_map = (*__range_guard.as_ref().unwrap()).clone(); drop(__range_guard); __range_map } {
         if path.clone() == (*filename.borrow().as_ref().unwrap()) {
-        { let new_val = Rc::new(RefCell::new(Some(vec![path.clone()]))); let __moved_val = { let mut __guard = new_val.borrow_mut(); __guard.take() }; *goFiles.borrow_mut() = __moved_val; };
-        { let new_val = Rc::new(RefCell::new(Some(vec![path.clone()]))); let __moved_val = { let mut __guard = new_val.borrow_mut(); __guard.take() }; *compiledGoFiles.borrow_mut() = __moved_val; };
+        { let new_val = Rc::new(RefCell::new(Some(vec![path.clone()]))); goFiles = new_val; };
+        { let new_val = Rc::new(RefCell::new(Some(vec![path.clone()]))); compiledGoFiles = new_val; };
     }
     }
     println!("{} {}", (*goFiles.borrow().as_ref().unwrap())[(0) as usize].clone(), (*compiledGoFiles.borrow().as_ref().unwrap())[(0) as usize].clone());
