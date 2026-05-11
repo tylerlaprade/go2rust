@@ -1026,6 +1026,30 @@ func writeSliceSelectorHandleClone(out *strings.Builder, expr ast.Expr) bool {
 	return true
 }
 
+func writeFunctionSelectorHandleAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
+	rhsSel, ok := rhs.(*ast.SelectorExpr)
+	if !ok {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || !isFunctionSignatureType(typeInfo.GetType(lhs)) || !isFunctionSignatureType(typeInfo.GetType(rhs)) {
+		return false
+	}
+	out.WriteString("{ let new_val = ")
+	if sig, ok := selectorFunctionValueSignature(rhsSel); ok {
+		WriteWrapperPrefix(out)
+		writeFunctionValueExpressionBox(out, rhsSel, sig)
+		WriteWrapperSuffix(out)
+	} else {
+		TranspileExpressionContext(out, rhs, LValue)
+		out.WriteString(".clone()")
+	}
+	out.WriteString("; ")
+	writePointerHandleAssignmentTarget(out, lhs)
+	out.WriteString(" = new_val; }")
+	return true
+}
+
 func writeCallExpressionForInitializer(out *strings.Builder, call *ast.CallExpr) {
 	typeInfo := GetTypeInfo()
 	if typeInfo != nil && typeInfo.IsTypeConversion(call) && !typeConversionEmitsWrappedValue(call) {
@@ -1782,6 +1806,15 @@ func writePointerHandleSelectorTarget(out *strings.Builder, sel *ast.SelectorExp
 			out.WriteString(".")
 			out.WriteString(fieldInfo.FieldName)
 		}
+		return true
+	}
+
+	if _, ok := sel.X.(*ast.SelectorExpr); ok && !fieldInfo.IsPromoted {
+		out.WriteString("(*")
+		TranspileExpressionContext(out, sel.X, LValue)
+		WriteBorrowMethod(out, true)
+		out.WriteString(".as_mut().unwrap()).")
+		out.WriteString(fieldInfo.FieldName)
 		return true
 	}
 
@@ -3934,6 +3967,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									}
 								} else if isErrorAssignment(s.Lhs[0], s.Rhs[0]) {
 									writeMoveErrorAssignment(out, s.Lhs[0], s.Rhs[0])
+								} else if writeFunctionSelectorHandleAssignment(out, s.Lhs[0], s.Rhs[0]) {
+									// Function selector values are represented by handles; copy the handle.
 								} else if rhsIdent, ok := s.Rhs[0].(*ast.Ident); ok {
 									if sig, isFuncValue := functionValueSignature(rhsIdent); isFuncValue {
 										out.WriteString("{ ")

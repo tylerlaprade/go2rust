@@ -2407,6 +2407,14 @@ func writeFunctionValueHandle(out *strings.Builder, expr ast.Expr) bool {
 		TranspileExpression(out, expr)
 		return true
 	}
+	if sel, ok := expr.(*ast.SelectorExpr); ok {
+		if sig, ok := selectorFunctionValueSignature(sel); ok {
+			WriteWrapperPrefix(out)
+			writeFunctionValueExpressionBox(out, sel, sig)
+			WriteWrapperSuffix(out)
+			return true
+		}
+	}
 	switch expr.(type) {
 	case *ast.SelectorExpr, *ast.IndexExpr:
 		TranspileExpressionContext(out, expr, LValue)
@@ -5606,6 +5614,23 @@ func functionValueSignature(ident *ast.Ident) (*types.Signature, bool) {
 	return nil, false
 }
 
+func selectorFunctionValueSignature(expr ast.Expr) (*types.Signature, bool) {
+	sel, ok := expr.(*ast.SelectorExpr)
+	if !ok {
+		return nil, false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || !typeInfo.IsFunction(sel.Sel) {
+		return nil, false
+	}
+	typ := typeInfo.GetType(sel)
+	if typ == nil {
+		return nil, false
+	}
+	sig, ok := typ.Underlying().(*types.Signature)
+	return sig, ok
+}
+
 func writeFunctionValueBox(out *strings.Builder, ident *ast.Ident, sig *types.Signature) {
 	boxType := signatureToBoxDynFn(sig)
 	out.WriteString("Box::new(move |")
@@ -5659,6 +5684,51 @@ func writeFunctionValueBox(out *strings.Builder, ident *ast.Ident, sig *types.Si
 		out.WriteString(" }")
 	}
 	out.WriteString(" }) as ")
+	out.WriteString(boxType)
+}
+
+func writeFunctionValueExpressionBox(out *strings.Builder, expr ast.Expr, sig *types.Signature) {
+	if ident, ok := expr.(*ast.Ident); ok {
+		writeFunctionValueBox(out, ident, sig)
+		return
+	}
+	boxType := signatureToBoxDynFn(sig)
+	out.WriteString("Box::new(move |")
+	params := sig.Params()
+	for i := 0; i < params.Len(); i++ {
+		if i > 0 {
+			out.WriteString(", ")
+		}
+		out.WriteString(fmt.Sprintf("__arg%d: %s", i, goTypesTypeToRustWrapped(params.At(i).Type())))
+	}
+	out.WriteString("|")
+
+	results := sig.Results()
+	if results.Len() > 0 {
+		out.WriteString(" -> ")
+		if results.Len() == 1 {
+			out.WriteString(goTypesReturnTypeToRust(results.At(0).Type()))
+		} else {
+			retTypes := make([]string, 0, results.Len())
+			for i := 0; i < results.Len(); i++ {
+				retTypes = append(retTypes, goTypesReturnTypeToRust(results.At(i).Type()))
+			}
+			out.WriteString("(")
+			out.WriteString(strings.Join(retTypes, ", "))
+			out.WriteString(")")
+		}
+	}
+
+	out.WriteString(" { ")
+	TranspileExpression(out, expr)
+	out.WriteString("(")
+	for i := 0; i < params.Len(); i++ {
+		if i > 0 {
+			out.WriteString(", ")
+		}
+		out.WriteString(fmt.Sprintf("__arg%d", i))
+	}
+	out.WriteString(") }) as ")
 	out.WriteString(boxType)
 }
 

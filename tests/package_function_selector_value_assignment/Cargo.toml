@@ -1,0 +1,8 @@
+[package]
+name = "package_function_selector_value_assignment"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "package_function_selector_value_assignment"
+path = "main.rs"
