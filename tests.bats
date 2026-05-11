@@ -740,6 +740,10 @@ run_xfail_test() {
     run_test "tests/error_handling"
 }
 
+@test "error_method_on_error_field" {
+    run_test "tests/error_method_on_error_field"
+}
+
 @test "error_method_on_error_interface" {
     run_test "tests/error_method_on_error_interface"
 }

@@ -1,0 +1,8 @@
+[package]
+name = "error_method_on_error_field"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "error_method_on_error_field"
+path = "main.rs"

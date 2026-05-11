@@ -7149,24 +7149,24 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 
 	if sel, ok := call.Fun.(*ast.SelectorExpr); ok && sel.Sel.Name == "Error" {
 		if typeInfo != nil && isGoErrorType(typeInfo.GetType(sel.X)) {
-			if ident, ok := sel.X.(*ast.Ident); ok && !isVarBare(ident.Name) {
-				receiverName := rustIdentForUseWithCapture(ident)
-				if isPackageGlobalObjectIdent(ident) {
-					receiverName = rustPackageGlobalName(ident.Name)
-				}
+			if ident, ok := sel.X.(*ast.Ident); ok && isVarBare(ident.Name) {
 				WriteWrapperPrefix(out)
 				out.WriteString("format!(\"{}\", ")
-				out.WriteString(receiverName)
-				WriteBorrowMethod(out, false)
-				out.WriteString(".as_ref().unwrap())")
+				out.WriteString(rustIdentForUseWithCapture(ident))
+				out.WriteString(")")
 				WriteWrapperSuffix(out)
 				return
 			}
 			WriteWrapperPrefix(out)
-			out.WriteString("format!(\"{}\", (*")
-			TranspileExpression(out, sel.X)
+			out.WriteString("format!(\"{}\", ")
+			receiverExpr := sel.X
+			if ident, ok := sel.X.(*ast.Ident); ok && isPackageGlobalObjectIdent(ident) {
+				out.WriteString(rustPackageGlobalName(ident.Name))
+			} else {
+				TranspileExpressionContext(out, receiverExpr, LValue)
+			}
 			WriteBorrowMethod(out, false)
-			out.WriteString(".as_ref().unwrap()))")
+			out.WriteString(".as_ref().unwrap())")
 			WriteWrapperSuffix(out)
 			return
 		}
