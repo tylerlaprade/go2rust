@@ -23,6 +23,38 @@ func sameExpressionSyntax(a ast.Expr, b ast.Expr) bool {
 	return left.String() == right.String()
 }
 
+func registerBareShortDecl(lhs ast.Expr) {
+	ident, ok := lhs.(*ast.Ident)
+	if !ok || ident.Name == "_" {
+		return
+	}
+	if vt := GetVarTable(); vt != nil {
+		vt.Register(ident.Name, &VarInfo{
+			WrapLevel: WrapNone,
+			Source:    SourceLocal,
+		})
+	}
+}
+
+func compositeLiteralEmitsBareStructValue(lit *ast.CompositeLit) bool {
+	if lit == nil {
+		return false
+	}
+	if _, ok := lit.Type.(*ast.SelectorExpr); !ok {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	typ := typeInfo.GetType(lit)
+	if typ == nil {
+		return false
+	}
+	_, ok := types.Unalias(typ).Underlying().(*types.Struct)
+	return ok
+}
+
 func writeArraySliceElementAssignmentValue(out *strings.Builder, rhs ast.Expr, expected types.Type) {
 	if isGoErrorType(expected) && writeGoErrorHandleValue(out, rhs) {
 		return
@@ -4149,6 +4181,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 												isStructLiteral = true
 											} else if _, ok := compositeLit.Type.(*ast.StructType); ok {
 												isStructLiteral = true
+											}
+											if compositeLiteralEmitsBareStructValue(compositeLit) {
+												registerBareShortDecl(s.Lhs[0])
 											}
 
 											if isStructLiteral {

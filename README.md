@@ -231,6 +231,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Boxed error values asserted back to `error` | ✅ |
 | └ Wrapped `error` arguments and sentinel comparisons | ✅ |
 | └ Concrete values implementing `error` passed to `error` parameters | ✅ |
+| └ Package-qualified stdlib concrete error variables passed to `error` parameters | ✅ |
 | └ `Error()` calls on wrapped `error` interface values and fields | ✅ |
 | └ Error values sent, received, and returned through channels | ✅ |
 | └ Error values stored, assigned, looked up, appended, and ranged through slices and maps | ✅ |

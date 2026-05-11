@@ -1,0 +1,8 @@
+[package]
+name = "stdlib_concrete_error_variable"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "stdlib_concrete_error_variable"
+path = "main.rs"

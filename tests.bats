@@ -1644,6 +1644,10 @@ run_xfail_test() {
     run_test "tests/sort_slice"
 }
 
+@test "stdlib_concrete_error_variable" {
+    run_test "tests/stdlib_concrete_error_variable"
+}
+
 @test "stdlib_function_field_stub" {
     run_test "tests/stdlib_function_field_stub"
 }
