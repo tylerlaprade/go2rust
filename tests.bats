@@ -516,6 +516,10 @@ run_xfail_test() {
     run_test "tests/compound_assignments"
 }
 
+@test "concrete_error_call_argument" {
+    run_test "tests/concrete_error_call_argument"
+}
+
 @test "concurrent_address_composite_method" {
     run_test "tests/concurrent_address_composite_method"
 }

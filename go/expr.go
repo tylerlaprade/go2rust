@@ -1481,6 +1481,12 @@ func writeGoErrorCallArgument(out *strings.Builder, arg ast.Expr, expected types
 		TranspileExpression(out, arg)
 		return true
 	}
+	if typeInfo != nil && isConcreteGoErrorValue(typeInfo.GetType(arg)) {
+		WriteWrapperPrefix(out)
+		writeConcreteErrorBox(out, arg)
+		WriteWrapperSuffix(out)
+		return true
+	}
 	return false
 }
 

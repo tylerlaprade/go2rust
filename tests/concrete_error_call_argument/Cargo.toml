@@ -1,0 +1,8 @@
+[package]
+name = "concrete_error_call_argument"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "concrete_error_call_argument"
+path = "main.rs"
