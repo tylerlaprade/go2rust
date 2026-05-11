@@ -7610,6 +7610,10 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 			if i > 0 {
 				out.WriteString(", ")
 			}
+			expectedArgType := callParamTypeFromTypeInfo(call, i)
+			if writeAddressOfSelectorCallArgument(out, call.Args[i], expectedArgType) {
+				continue
+			}
 			WriteWrapperPrefix(out)
 			TranspileExpression(out, call.Args[i])
 			WriteWrapperSuffix(out)

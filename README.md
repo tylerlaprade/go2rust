@@ -179,6 +179,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Variadic functions | ✅ |
 | └ Cross-file variadic function calls | ✅ |
 | └ Imported transpiled package variadic calls | ✅ |
+| └ Address-of selector fields passed as fixed variadic arguments | ✅ |
 | **`go` - Goroutines** | ✅ |
 | └ Worker pool pattern with channels | ✅ |
 | └ Method receiver captures with deferred receiver calls | ✅ |

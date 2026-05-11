@@ -2014,6 +2014,10 @@ run_xfail_test() {
     run_test "tests/variable_declarations"
 }
 
+@test "variadic_address_selector_argument" {
+    run_test "tests/variadic_address_selector_argument"
+}
+
 @test "variadic_any_arguments" {
     run_test "tests/variadic_any_arguments"
 }

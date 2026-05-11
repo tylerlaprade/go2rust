@@ -1,0 +1,47 @@
+use std::cell::{RefCell};
+use std::fmt::{Display, Formatter};
+use std::rc::{Rc};
+
+#[derive(Debug, Clone, Default)]
+pub struct Config {
+    pub name: Rc<RefCell<Option<String>>>,
+}
+
+impl std::fmt::Display for Config {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{}}}", (*self.name.borrow().as_ref().unwrap()))
+    }
+}
+
+
+#[derive(Debug, Clone)]
+pub struct loader {
+    pub config: Rc<RefCell<Option<Config>>>,
+}
+
+
+impl Default for loader {
+    fn default() -> Self {
+        Self { config: Rc::new(RefCell::new(Some(Config::default()))) }
+    }
+}
+
+impl std::fmt::Display for loader {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{}}}", (*self.config.borrow().as_ref().unwrap()))
+    }
+}
+
+
+impl loader {
+}
+
+pub fn r#use(cfg: Rc<RefCell<Option<Config>>>, patterns: Rc<RefCell<Option<Vec<String>>>>) -> Rc<RefCell<Option<String>>> {
+
+    return Rc::new(RefCell::new(Some(format!("{}{}", format!("{}{}", (*(*cfg.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()), ":".to_string()), (*patterns.borrow().as_ref().unwrap())[(0) as usize].clone()))));
+}
+
+fn main() {
+    let mut ld = Rc::new(RefCell::new(Some(loader { config: Rc::new(RefCell::new(Some(Config { name: Rc::new(RefCell::new(Some("cfg".to_string()))), ..Default::default() }))), ..Default::default() })));
+    println!("{}", (*r#use((*ld.borrow().as_ref().unwrap()).config.clone(), Rc::new(RefCell::new(Some(vec!["pat".to_string()])))).borrow().as_ref().unwrap()));
+}
