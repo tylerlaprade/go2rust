@@ -4,7 +4,7 @@ use std::rc::{Rc};
 
 #[derive(Clone, Default)]
 pub struct Runner {
-    pub callback: Rc<RefCell<Option<Box<dyn Fn(Rc<RefCell<Option<String>>>) -> ()>>>>,
+    pub callback: Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<String>>>) -> ()>>>>,
 }
 
 impl std::fmt::Display for Runner {
@@ -16,7 +16,7 @@ impl std::fmt::Display for Runner {
 
 impl Runner {
     pub fn run(&self) {
-        { let __f_holder = self.callback.clone(); let __f_guard = __f_holder.borrow(); let __f = __f_guard.as_ref().unwrap(); (*__f)(Rc::new(RefCell::new(Some("ok".to_string())))) };
+        { let __f_holder = self.callback.clone(); let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<String>>>) -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<String>>>) -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some("ok".to_string())))) };
     }
 }
 
@@ -25,6 +25,6 @@ pub fn print_value(value: Rc<RefCell<Option<String>>>) {
 }
 
 fn main() {
-    let mut r = Rc::new(RefCell::new(Some(Runner { callback: Rc::new(RefCell::new(Some(Box::new(move |__arg0: Rc<RefCell<Option<String>>>| { print_value(__arg0) }) as Box<dyn Fn(Rc<RefCell<Option<String>>>) -> ()>))), ..Default::default() })));
+    let mut r = Rc::new(RefCell::new(Some(Runner { callback: Rc::new(RefCell::new(Some(Box::new(move |__arg0: Rc<RefCell<Option<String>>>| { print_value(__arg0) }) as Box<dyn FnMut(Rc<RefCell<Option<String>>>) -> ()>))), ..Default::default() })));
     (*r.borrow_mut().as_mut().unwrap()).run();
 }

@@ -488,13 +488,13 @@ fn main() {
     }
     } }
         return Arc::new(Mutex::new(None));
-    }) as Box<dyn Fn(Arc<Mutex<Option<Vec<i32>>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> + Send + Sync>)));
+    }) as Box<dyn FnMut(Arc<Mutex<Option<Vec<i32>>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> + Send + Sync>)));
 
     let mut testData = Arc::new(Mutex::new(Some(vec![vec![1, 2, 3], vec![], vec![1, -2, 3], vec![1, 200, 3], vec![10, 20, 30]])));
 
     { let __range_holder = testData.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for (i, data) in __range_values.iter().enumerate() {
         print!("Testing dataset {}: {}\n", { let __tmp_x = i; let __tmp_y = 1; __tmp_x + __tmp_y }, format_slice_values(data));
-        let mut err = { let __f_guard = processData.lock().unwrap(); let __f = __f_guard.as_ref().unwrap(); (*__f)(Arc::new(Mutex::new(Some(data.clone())))) };
+        let mut err = { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<Vec<i32>>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> + Send + Sync> = { let mut __f_guard = processData.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<Vec<i32>>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(Mutex::new(Some(data.clone())))) };
     if (*err.lock().unwrap()).is_some() {
         print!("  Error: {}\n", format!("{}", (*err.lock().unwrap().as_ref().unwrap())));
         continue

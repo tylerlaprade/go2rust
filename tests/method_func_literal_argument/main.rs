@@ -14,8 +14,8 @@ impl std::fmt::Display for runner {
 
 
 impl runner {
-    pub fn run(&self, f: Arc<Mutex<Option<Box<dyn Fn() -> () + Send + Sync>>>>) {
-        { let __f_guard = f.lock().unwrap(); let __f = __f_guard.as_ref().unwrap(); (*__f)() };
+    pub fn run(&self, f: Arc<Mutex<Option<Box<dyn FnMut() -> () + Send + Sync>>>>) {
+        { let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = { let mut __f_guard = f.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
     }
 }
 
@@ -27,5 +27,5 @@ fn main() {
     let mut r = Arc::new(Mutex::new(Some(runner {  })));
     (*r.lock().unwrap().as_mut().unwrap()).run(Arc::new(Mutex::new(Some(Box::new(move || {
         println!("{}", "ran".to_string());
-    }) as Box<dyn Fn() -> () + Send + Sync>))));
+    }) as Box<dyn FnMut() -> () + Send + Sync>))));
 }

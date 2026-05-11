@@ -5,5 +5,5 @@ use std::rc::{Rc};
 
 pub fn apply(callback: Callback, x: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>> {
 
-    return { let __f_guard = callback.borrow(); let __f = __f_guard.as_ref().unwrap(); (*__f)(x.clone()) };
+    return { let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>> = { let mut __f_guard = callback.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(x.clone()) };
 }

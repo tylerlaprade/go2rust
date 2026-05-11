@@ -156,7 +156,7 @@ struct GoContext {
 }
 
 type GoCancelFunc = std::sync::Arc<dyn Fn() + Send + Sync>;
-type GoCancelCauseFunc = Box<dyn Fn(Arc<Mutex<Option<Box<dyn std::error::Error + Send + Sync>>>>) -> () + Send + Sync>;
+type GoCancelCauseFunc = Box<dyn FnMut(Arc<Mutex<Option<Box<dyn std::error::Error + Send + Sync>>>>) -> () + Send + Sync>;
 
 impl GoContext {
     fn background() -> GoContext {

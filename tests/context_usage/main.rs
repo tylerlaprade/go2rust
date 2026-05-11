@@ -266,7 +266,7 @@ struct GoContext {
 }
 
 type GoCancelFunc = std::sync::Arc<dyn Fn() + Send + Sync>;
-type GoCancelCauseFunc = Box<dyn Fn(Arc<Mutex<Option<Box<dyn std::error::Error + Send + Sync>>>>) -> () + Send + Sync>;
+type GoCancelCauseFunc = Box<dyn FnMut(Arc<Mutex<Option<Box<dyn std::error::Error + Send + Sync>>>>) -> () + Send + Sync>;
 
 impl GoContext {
     fn background() -> GoContext {
@@ -415,7 +415,7 @@ fn main() {
 
     let (mut ctx, mut cancel) = GoContext::with_timeout(Arc::new(Mutex::new(Some(GoContext::background()))).clone(), std::time::Duration::from_secs(1));
     let cancel_defer_captured = cancel.clone(); __defer_stack.push(Box::new(move || {
-        { let __f_guard = cancel_defer_captured.lock().unwrap(); let __f = __f_guard.as_ref().unwrap(); (*__f)() };
+        { let __f_ptr: *mut GoCancelFunc = { let mut __f_guard = cancel_defer_captured.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut GoCancelFunc }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
     }));
 
     let mut operationDone = go_channel_after(std::time::Duration::from_millis(500));
@@ -433,7 +433,7 @@ fn main() {
     }
 
     let (mut ctx2, mut cancel2) = GoContext::with_cancel_cause(Arc::new(Mutex::new(Some(GoContext::background()))).clone());
-    { let __f_guard = cancel2.lock().unwrap(); let __f = __f_guard.as_ref().unwrap(); (*__f)(Arc::new(Mutex::new(Some(Box::<dyn std::error::Error + Send + Sync>::from("boom".to_string()))))) };
+    { let __f_ptr: *mut GoCancelCauseFunc = { let mut __f_guard = cancel2.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut GoCancelCauseFunc }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(Mutex::new(Some(Box::<dyn std::error::Error + Send + Sync>::from("boom".to_string()))))) };
     (*ctx2.lock().unwrap().as_ref().unwrap()).done().recv().unwrap();
     println!("{} {}", "Cause cancel:".to_string(), format!("{}", (*((*ctx2.lock().unwrap().as_ref().unwrap()).err()).lock().unwrap().as_ref().unwrap())));
 

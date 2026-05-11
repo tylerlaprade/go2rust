@@ -1,0 +1,8 @@
+[package]
+name = "closure_receiver_func_param_fnmut"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "closure_receiver_func_param_fnmut"
+path = "main.rs"

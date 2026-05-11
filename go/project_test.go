@@ -577,7 +577,7 @@ func Deliver(exporter Exporter, ev Event) {
 	}
 
 	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
-	if !strings.Contains(mainRS, "Box<dyn Fn(Rc<RefCell<Option<Event>>>, &dyn example_com_dep::Mapper)") {
+	if !strings.Contains(mainRS, "Box<dyn FnMut(Rc<RefCell<Option<Event>>>, &dyn example_com_dep::Mapper)") {
 		t.Fatalf("function type alias should keep imported interface params as trait refs, got:\n%s", mainRS)
 	}
 	if !strings.Contains(mainRS, "(*__f)(ev.clone(), ev.borrow().as_ref().unwrap())") {

@@ -2,8 +2,8 @@ use std::any::Any;
 use std::cell::{RefCell};
 use std::rc::{Rc};
 
-pub fn run(r#fn: Rc<RefCell<Option<Box<dyn Fn() -> ()>>>>) {
-    { let __f_guard = r#fn.borrow(); let __f = __f_guard.as_ref().unwrap(); (*__f)() };
+pub fn run(r#fn: Rc<RefCell<Option<Box<dyn FnMut() -> ()>>>>) {
+    { let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = r#fn.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
 }
 
 fn main() {
@@ -25,7 +25,7 @@ fn main() {
         }
     });
         println!("{}", { let __v = (*ok.borrow().as_ref().unwrap()).clone(); __v });
-    }) as Box<dyn Fn() -> ()>))));
+    }) as Box<dyn FnMut() -> ()>))));
         let (_, mut ok) = ({
         let val = v_closure_clone.clone();
         let guard = val.borrow();
@@ -40,7 +40,7 @@ fn main() {
         }
     });
         println!("{}", { let __v = (*ok.borrow().as_ref().unwrap()).clone(); __v });
-    }) as Box<dyn Fn() -> ()>)));
+    }) as Box<dyn FnMut() -> ()>)));
 
-    { let __f_guard = f.borrow(); let __f = __f_guard.as_ref().unwrap(); (*__f)() };
+    { let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = f.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
 }

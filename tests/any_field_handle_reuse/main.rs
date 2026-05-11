@@ -40,8 +40,8 @@ pub fn assign(e: Arc<Mutex<Option<entry>>>, value: Arc<Mutex<Option<Box<dyn Any 
     { let new_val = value.clone(); (*e.lock().unwrap().as_mut().unwrap()).value = new_val; };
 }
 
-pub fn each(e: Arc<Mutex<Option<entry>>>, f: Arc<Mutex<Option<Box<dyn Fn(Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> () + Send + Sync>>>>) {
-    { let __f_guard = f.lock().unwrap(); let __f = __f_guard.as_ref().unwrap(); (*__f)((*e.lock().unwrap().as_ref().unwrap()).value.clone()) };
+pub fn each(e: Arc<Mutex<Option<entry>>>, f: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> () + Send + Sync>>>>) {
+    { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> () + Send + Sync> = { let mut __f_guard = f.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)((*e.lock().unwrap().as_ref().unwrap()).value.clone()) };
 }
 
 fn main() {
@@ -54,5 +54,5 @@ fn main() {
     assign(e.clone(), value.clone());
     each(e.clone(), Arc::new(Mutex::new(Some(Box::new(move |v: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>| {
         println!("{}", format_any(v.lock().unwrap().as_ref().unwrap().as_ref()));
-    }) as Box<dyn Fn(Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> () + Send + Sync>))));
+    }) as Box<dyn FnMut(Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> () + Send + Sync>))));
 }

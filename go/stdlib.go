@@ -1707,9 +1707,9 @@ func writeSortFuncComparatorCall(out *strings.Builder, cmp ast.Expr) {
 		return
 	}
 
-	out.WriteString("{ let __cmp_guard = __cmp_holder")
-	WriteBorrowMethod(out, false)
-	out.WriteString("; let __cmp_fn = __cmp_guard.as_ref().unwrap(); (*__cmp_fn)(")
+	out.WriteString("{ let mut __cmp_guard = __cmp_holder")
+	WriteBorrowMethod(out, true)
+	out.WriteString("; let __cmp_fn = __cmp_guard.as_mut().unwrap(); (*__cmp_fn)(")
 	writeSortFuncWrappedElement(out, "__a")
 	out.WriteString(", ")
 	writeSortFuncWrappedElement(out, "__b")

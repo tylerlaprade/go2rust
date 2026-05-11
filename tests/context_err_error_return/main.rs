@@ -156,7 +156,7 @@ struct GoContext {
 }
 
 type GoCancelFunc = std::sync::Arc<dyn Fn() + Send + Sync>;
-type GoCancelCauseFunc = Box<dyn Fn(Arc<Mutex<Option<Box<dyn std::error::Error + Send + Sync>>>>) -> () + Send + Sync>;
+type GoCancelCauseFunc = Box<dyn FnMut(Arc<Mutex<Option<Box<dyn std::error::Error + Send + Sync>>>>) -> () + Send + Sync>;
 
 impl GoContext {
     fn background() -> GoContext {
@@ -307,7 +307,7 @@ pub fn fail(ctx: Arc<Mutex<Option<GoContext>>>) -> Arc<Mutex<Option<Box<dyn StdE
 
 fn main() {
     let (mut ctx, mut cancel) = GoContext::with_cancel(Arc::new(Mutex::new(Some(GoContext::background()))).clone());
-    { let __f_guard = cancel.lock().unwrap(); let __f = __f_guard.as_ref().unwrap(); (*__f)() };
+    { let __f_ptr: *mut GoCancelFunc = { let mut __f_guard = cancel.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut GoCancelFunc }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
 
     let mut err = fail(Arc::new(Mutex::new(Some((*ctx.lock().unwrap().as_ref().unwrap()).clone()))));
     if (*err.lock().unwrap()).is_some() {

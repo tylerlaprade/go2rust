@@ -63,7 +63,7 @@ fn main() {
     let mut out = io::multi_writer((io::Discard().clone(),));
     let out_closure_clone = out.clone(); let mut write = Arc::new(Mutex::new(Some(Box::new(move |x: Arc<Mutex<Option<u32>>>| {
         let _ = binary::write(out_closure_clone.clone(), binary::LittleEndian().clone(), x.clone());
-    }) as Box<dyn Fn(Arc<Mutex<Option<u32>>>) -> () + Send + Sync>)));
-    { let __f_guard = write.lock().unwrap(); let __f = __f_guard.as_ref().unwrap(); (*__f)(Arc::new(Mutex::new(Some(7)))) };
+    }) as Box<dyn FnMut(Arc<Mutex<Option<u32>>>) -> () + Send + Sync>)));
+    { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<u32>>>) -> () + Send + Sync> = { let mut __f_guard = write.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<u32>>>) -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(Mutex::new(Some(7)))) };
     println!("{}", "ok".to_string());
 }

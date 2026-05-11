@@ -135,15 +135,15 @@ pub fn remember(m: Rc<RefCell<Option<BTreeMap<GoLocalPtrKey<types_Package>, Rc<R
         { let __append_target = pkgs.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push(p.clone()); __append_target.clone() };
         let objs_closure_clone = objs.clone(); sort::slice(objs_closure_clone.clone(), Rc::new(RefCell::new(Some(Box::new(move |i: Rc<RefCell<Option<i32>>>, j: Rc<RefCell<Option<i32>>>| -> Rc<RefCell<Option<bool>>> {
         return Rc::new(RefCell::new(Some((*(*objs_closure_clone.borrow().as_ref().unwrap())[((*i.borrow().as_ref().unwrap())) as usize].clone().name.borrow().as_ref().unwrap()) < (*(*objs_closure_clone.borrow().as_ref().unwrap())[((*j.borrow().as_ref().unwrap())) as usize].clone().name.borrow().as_ref().unwrap()))));
-    }) as Box<dyn Fn(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<bool>>>>))));
+    }) as Box<dyn FnMut(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<bool>>>>))));
         let _ = (*objs.borrow().as_ref().unwrap()).len();
     }
     let pkgs_closure_clone = pkgs.clone(); sort::slice(pkgs_closure_clone.clone(), Rc::new(RefCell::new(Some(Box::new(move |i: Rc<RefCell<Option<i32>>>, j: Rc<RefCell<Option<i32>>>| -> Rc<RefCell<Option<bool>>> {
         return Rc::new(RefCell::new(Some((*export_path((*pkgs_closure_clone.borrow().as_ref().unwrap())[((*i.borrow().as_ref().unwrap())) as usize].clone()).borrow().as_ref().unwrap()).clone() < (*export_path((*pkgs_closure_clone.borrow().as_ref().unwrap())[((*j.borrow().as_ref().unwrap())) as usize].clone()).borrow().as_ref().unwrap()).clone())));
-    }) as Box<dyn Fn(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<bool>>>>))));
+    }) as Box<dyn FnMut(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<bool>>>>))));
     let pkgs_closure_clone = pkgs.clone(); let w_closure_clone = w.clone(); sort::slice(pkgs_closure_clone.clone(), Rc::new(RefCell::new(Some(Box::new(move |i: Rc<RefCell<Option<i32>>>, j: Rc<RefCell<Option<i32>>>| -> Rc<RefCell<Option<bool>>> {
         return Rc::new(RefCell::new(Some((*(*w_closure_clone.borrow_mut().as_mut().unwrap()).export_path((*pkgs_closure_clone.borrow().as_ref().unwrap())[((*i.borrow().as_ref().unwrap())) as usize].clone()).borrow().as_ref().unwrap()).clone() < (*(*w_closure_clone.borrow_mut().as_mut().unwrap()).export_path((*pkgs_closure_clone.borrow().as_ref().unwrap())[((*j.borrow().as_ref().unwrap())) as usize].clone()).borrow().as_ref().unwrap()).clone())));
-    }) as Box<dyn Fn(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<bool>>>>))));
+    }) as Box<dyn FnMut(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<bool>>>>))));
     { let __range_holder = pkgs.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for p in __range_values.iter() {
         let _ = export_path((*p).clone());
         let _ = (*w.borrow_mut().as_mut().unwrap()).export_path(p.clone());

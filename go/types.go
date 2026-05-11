@@ -351,11 +351,11 @@ func generateClosureType(funcType *ast.FuncType) string {
 	// Build the closure type
 	paramsStr := strings.Join(paramTypes, ", ")
 	if NeedsConcurrentWrapper() {
-		// For concurrent code, closures need Send + Sync
-		return fmt.Sprintf("Box<dyn Fn(%s) -> %s + Send + Sync>", paramsStr, returnType)
+		// For concurrent code, closures need Send + Sync.
+		return fmt.Sprintf("Box<dyn FnMut(%s) -> %s + Send + Sync>", paramsStr, returnType)
 	} else {
-		// For single-threaded code, no Send + Sync requirement
-		return fmt.Sprintf("Box<dyn Fn(%s) -> %s>", paramsStr, returnType)
+		// For single-threaded code, no Send + Sync requirement.
+		return fmt.Sprintf("Box<dyn FnMut(%s) -> %s>", paramsStr, returnType)
 	}
 }
 
@@ -1162,7 +1162,7 @@ func signatureFromType(t types.Type) (*types.Signature, bool) {
 	return nil, false
 }
 
-// signatureToBoxDynFn converts a go/types Signature to a "Box<dyn Fn(...)>" string
+// signatureToBoxDynFn converts a go/types Signature to a boxed Go function string.
 func signatureToBoxDynFn(sig *types.Signature) string {
 	var paramTypes []string
 	params := sig.Params()
@@ -1186,7 +1186,7 @@ func signatureToBoxDynFn(sig *types.Signature) string {
 
 	paramsStr := strings.Join(paramTypes, ", ")
 	if NeedsConcurrentWrapper() {
-		return fmt.Sprintf("Box<dyn Fn(%s) -> %s + Send + Sync>", paramsStr, returnType)
+		return fmt.Sprintf("Box<dyn FnMut(%s) -> %s + Send + Sync>", paramsStr, returnType)
 	}
-	return fmt.Sprintf("Box<dyn Fn(%s) -> %s>", paramsStr, returnType)
+	return fmt.Sprintf("Box<dyn FnMut(%s) -> %s>", paramsStr, returnType)
 }

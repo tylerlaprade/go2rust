@@ -1270,7 +1270,7 @@ func writeExternalPackageStubFunction(out *strings.Builder, funcName string, fn 
 
 func externalStubFieldsCanDeriveDebug(fields map[string]string) bool {
 	for _, fieldType := range fields {
-		if strings.Contains(fieldType, "dyn Fn(") {
+		if strings.Contains(fieldType, "dyn Fn") {
 			return false
 		}
 	}

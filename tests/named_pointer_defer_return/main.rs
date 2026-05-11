@@ -29,7 +29,7 @@ pub fn import(path: Rc<RefCell<Option<String>>>) -> (Rc<RefCell<Option<Package>>
 
     __defer_stack.push(Box::new(move || {
         { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
-    }) as Box<dyn Fn() -> ()>))); let __f_guard = __f_holder.borrow(); let __f = __f_guard.as_ref().unwrap(); (*__f)() };
+    }) as Box<dyn FnMut() -> ()>))); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
     }));
     let mut unsafePkg = Rc::new(RefCell::new(Some(Package { complete: Rc::new(RefCell::new(Some(true))), ..Default::default() })));
     if (*path.borrow().as_ref().unwrap()).clone() == "unsafe" {

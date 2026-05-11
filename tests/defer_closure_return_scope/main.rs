@@ -10,7 +10,7 @@ pub fn run() -> Rc<RefCell<Option<i32>>> {
         { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
         { let new_val = 7; *result_defer_captured.borrow_mut() = Some(new_val); };
         return;
-    }) as Box<dyn Fn() -> ()>))); let __f_guard = __f_holder.borrow(); let __f = __f_guard.as_ref().unwrap(); (*__f)() };
+    }) as Box<dyn FnMut() -> ()>))); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
     }));
     {
         { let new_val = 3; *result.borrow_mut() = Some(new_val); };;

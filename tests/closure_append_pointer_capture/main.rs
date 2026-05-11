@@ -26,7 +26,7 @@ fn main() {
         { let __range_holder = xs.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for p in __range_values.iter() {
         { let __append_target = result_closure_clone.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(p.clone()); __append_target.clone() };
     } }
-    }) as Box<dyn Fn(Arc<Mutex<Option<Vec<Arc<Mutex<Option<node>>>>>>>) -> () + Send + Sync>)));
-    { let __f_guard = visit.lock().unwrap(); let __f = __f_guard.as_ref().unwrap(); (*__f)(items.clone()) };
+    }) as Box<dyn FnMut(Arc<Mutex<Option<Vec<Arc<Mutex<Option<node>>>>>>>) -> () + Send + Sync>)));
+    { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<Vec<Arc<Mutex<Option<node>>>>>>>) -> () + Send + Sync> = { let mut __f_guard = visit.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<Vec<Arc<Mutex<Option<node>>>>>>>) -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(items.clone()) };
     println!("{}", (*result.lock().unwrap().as_ref().unwrap()).len());
 }

@@ -59,7 +59,7 @@ impl std::fmt::Display for dict {
 #[derive(Clone, Default)]
 pub struct reader {
     pub dict: Rc<RefCell<Option<dict>>>,
-    pub later: Rc<RefCell<Option<Vec<Rc<RefCell<Option<Box<dyn Fn() -> ()>>>>>>>>,
+    pub later: Rc<RefCell<Option<Vec<Rc<RefCell<Option<Box<dyn FnMut() -> ()>>>>>>>>,
 }
 
 impl std::fmt::Display for reader {
@@ -76,14 +76,14 @@ impl reader {
         { let __range_holder = vals.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for (i, val) in __range_values.iter().copied().enumerate() {
         (*tparams_closure_clone.borrow_mut().as_mut().unwrap())[(i) as usize] = val;
     } }
-    }) as Box<dyn Fn() -> ()>)))); __append_target.clone() };
+    }) as Box<dyn FnMut() -> ()>)))); __append_target.clone() };
     }
 }
 
 fn main() {
-    let mut r = Rc::new(RefCell::new(Some(reader { dict: Rc::new(RefCell::new(Some(dict { tparams: Rc::new(RefCell::new(Some(vec![1, 2]))), ..Default::default() }))).clone(), later: Rc::new(RefCell::new(Some(Vec::<Rc<RefCell<Option<Box<dyn Fn() -> ()>>>>>::new()))), ..Default::default() })));
+    let mut r = Rc::new(RefCell::new(Some(reader { dict: Rc::new(RefCell::new(Some(dict { tparams: Rc::new(RefCell::new(Some(vec![1, 2]))), ..Default::default() }))).clone(), later: Rc::new(RefCell::new(Some(Vec::<Rc<RefCell<Option<Box<dyn FnMut() -> ()>>>>>::new()))), ..Default::default() })));
     let mut vals = Rc::new(RefCell::new(Some(vec![3, 4])));
     (*r.borrow_mut().as_mut().unwrap()).collect(vals.clone());
-    { let __f_holder = (*(*r.borrow().as_ref().unwrap()).later.borrow().as_ref().unwrap())[(0) as usize].clone(); let __f_guard = __f_holder.borrow(); let __f = __f_guard.as_ref().unwrap(); (*__f)() };
+    { let __f_holder = (*(*r.borrow().as_ref().unwrap()).later.borrow().as_ref().unwrap())[(0) as usize].clone(); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
     println!("{} {}", (*(*(*r.borrow().as_ref().unwrap()).dict.borrow().as_ref().unwrap()).tparams.borrow().as_ref().unwrap())[(0) as usize].clone(), (*(*(*r.borrow().as_ref().unwrap()).dict.borrow().as_ref().unwrap()).tparams.borrow().as_ref().unwrap())[(1) as usize].clone());
 }

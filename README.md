@@ -170,6 +170,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Function literals/closures with scoped nested captures | ✅ |
 | └ Function literal named result parameters | ✅ |
 | └ Function variables and higher-order function values | ✅ |
+| └ Function values lower as `FnMut` and support recursive calls | ✅ |
 | └ Function-typed named returns and deferred assignments | ✅ |
 | └ Instantiated generic function type aliases | ✅ |
 | └ Focused type-parameter constraints in concrete helper signatures such as `S ~[]T, T ~string` | ✅ |
@@ -392,6 +393,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Struct literal field keys are excluded from closure capture | ✅ |
 | └ Methods on named function types | ✅ |
 | └ Recursive closure assignment through function variables | ✅ |
+| └ Closures that call captured pointer receivers through `func` parameters | ✅ |
 | └ Anonymous function calls | ✅ |
 | └ Cross-file function variables | ✅ |
 | └ Capture analysis framework | ✅ |

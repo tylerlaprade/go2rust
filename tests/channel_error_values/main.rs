@@ -154,7 +154,7 @@ pub fn receive(ch: GoChannel<Option<Box<dyn StdError + Send + Sync>>>) -> Arc<Mu
 
     __defer_stack.push(Box::new(move || {
         { let __f_holder = Arc::new(Mutex::new(Some(Box::new(move || {
-    }) as Box<dyn Fn() -> () + Send + Sync>))); let __f_guard = __f_holder.lock().unwrap(); let __f = __f_guard.as_ref().unwrap(); (*__f)() };
+    }) as Box<dyn FnMut() -> () + Send + Sync>))); let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
     }));
     {
         { let new_val = ch.recv().unwrap(); *err.lock().unwrap() = new_val; };

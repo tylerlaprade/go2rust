@@ -77,7 +77,7 @@ pub fn make_type() -> Arc<Mutex<Option<types_Type>>> {
 
     __defer_stack.push(Box::new(move || {
         { let __f_holder = Arc::new(Mutex::new(Some(Box::new(move || {
-    }) as Box<dyn Fn() -> () + Send + Sync>))); let __f_guard = __f_holder.lock().unwrap(); let __f = __f_guard.as_ref().unwrap(); (*__f)() };
+    }) as Box<dyn FnMut() -> () + Send + Sync>))); let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
     }));
     {
         { let new_val = { let __arg = types::new_pointer({ let __seq = { let __seq_holder = types::Typ().clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[2usize].clone() }); let __converted = { let __arg_guard = __arg.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone().into() }; Arc::new(Mutex::new(Some(__converted))) }; let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *res.lock().unwrap() = __moved_val; };

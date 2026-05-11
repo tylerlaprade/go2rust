@@ -7,6 +7,6 @@ fn main() {
 
         { let new_val = "named result".to_string(); *value.borrow_mut() = Some(new_val); };
         return value.clone();
-    }) as Box<dyn Fn() -> (Rc<RefCell<Option<String>>>)>)));
-    println!("{}", (*{ let __f_guard = build.borrow(); let __f = __f_guard.as_ref().unwrap(); (*__f)() }.borrow().as_ref().unwrap()));
+    }) as Box<dyn FnMut() -> (Rc<RefCell<Option<String>>>)>)));
+    println!("{}", (*{ let __f_ptr: *mut Box<dyn FnMut() -> Rc<RefCell<Option<String>>>> = { let mut __f_guard = build.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> Rc<RefCell<Option<String>>>> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() }.borrow().as_ref().unwrap()));
 }

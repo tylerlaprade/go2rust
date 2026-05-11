@@ -5576,6 +5576,7 @@ func functionValueSignature(ident *ast.Ident) (*types.Signature, bool) {
 }
 
 func writeFunctionValueBox(out *strings.Builder, ident *ast.Ident, sig *types.Signature) {
+	boxType := signatureToBoxDynFn(sig)
 	out.WriteString("Box::new(move |")
 	params := sig.Params()
 	for i := 0; i < params.Len(); i++ {
@@ -5604,10 +5605,14 @@ func writeFunctionValueBox(out *strings.Builder, ident *ast.Ident, sig *types.Si
 
 	out.WriteString(" { ")
 	if isPackageGlobalIdent(ident) {
-		out.WriteString("{ let __f_guard = ")
+		out.WriteString("{ let __f_ptr: *mut ")
+		out.WriteString(boxType)
+		out.WriteString(" = { let mut __f_guard = ")
 		out.WriteString(rustPackageGlobalName(ident.Name))
-		WriteBorrowMethod(out, false)
-		out.WriteString("; let __f = __f_guard.as_ref().unwrap(); (*__f)(")
+		WriteBorrowMethod(out, true)
+		out.WriteString("; __f_guard.as_mut().unwrap() as *mut ")
+		out.WriteString(boxType)
+		out.WriteString(" }; let __f = unsafe { &mut *__f_ptr }; (*__f)(")
 	} else {
 		out.WriteString(ToSnakeCase(ident.Name))
 		out.WriteString("(")
@@ -5623,7 +5628,7 @@ func writeFunctionValueBox(out *strings.Builder, ident *ast.Ident, sig *types.Si
 		out.WriteString(" }")
 	}
 	out.WriteString(" }) as ")
-	out.WriteString(signatureToBoxDynFn(sig))
+	out.WriteString(boxType)
 }
 
 func writeWrappedFunctionValueBox(out *strings.Builder, ident *ast.Ident, sig *types.Signature) {
@@ -5790,6 +5795,21 @@ func TranspileFuncLitBox(out *strings.Builder, funcLit *ast.FuncLit) {
 	// Cast to the right type and close wrappers
 	out.WriteString(" as ")
 	out.WriteString(generateClosureType(funcLit.Type))
+}
+
+func functionBoxTypeForCallTarget(expr ast.Expr) string {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return "_"
+	}
+	typ := typeInfo.GetType(expr)
+	if rustType, ok := goTypesKnownStdlibNamedTypeToRust(typ); ok {
+		return rustType
+	}
+	if sig, ok := signatureFromType(typ); ok {
+		return signatureToBoxDynFn(sig)
+	}
+	return "_"
 }
 
 // TranspileTypeConversion handles type conversions like int(x), float64(y), etc.
@@ -7496,10 +7516,15 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 					varName = RustLocalIdent(renamed)
 				}
 			}
-			out.WriteString("{ let __f_guard = ")
+			boxType := functionBoxTypeForCallTarget(ident)
+			out.WriteString("{ let __f_ptr: *mut ")
+			out.WriteString(boxType)
+			out.WriteString(" = { let mut __f_guard = ")
 			out.WriteString(varName)
-			WriteBorrowMethod(out, false)
-			out.WriteString("; let __f = __f_guard.as_ref().unwrap(); (*__f)")
+			WriteBorrowMethod(out, true)
+			out.WriteString("; __f_guard.as_mut().unwrap() as *mut ")
+			out.WriteString(boxType)
+			out.WriteString(" }; let __f = unsafe { &mut *__f_ptr }; (*__f)")
 			closureCallSuffix = " }"
 		}
 	} else if typeAssert, ok := call.Fun.(*ast.TypeAssertExpr); ok && typeAssertionEmitsBareFunctionValue(typeAssert) {
@@ -7509,9 +7534,14 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 		// Complex expression for the function (e.g., function returning a function)
 		out.WriteString("{ let __f_holder = ")
 		TranspileExpression(out, call.Fun)
-		out.WriteString("; let __f_guard = __f_holder")
-		WriteBorrowMethod(out, false)
-		out.WriteString("; let __f = __f_guard.as_ref().unwrap(); (*__f)")
+		boxType := functionBoxTypeForCallTarget(call.Fun)
+		out.WriteString("; let __f_ptr: *mut ")
+		out.WriteString(boxType)
+		out.WriteString(" = { let mut __f_guard = __f_holder")
+		WriteBorrowMethod(out, true)
+		out.WriteString("; __f_guard.as_mut().unwrap() as *mut ")
+		out.WriteString(boxType)
+		out.WriteString(" }; let __f = unsafe { &mut *__f_ptr }; (*__f)")
 		closureCallSuffix = " }"
 	}
 
@@ -8079,11 +8109,11 @@ func writeFunctionTypeAssertionCallTarget(out *strings.Builder, e *ast.TypeAsser
 		TranspileExpressionContext(out, e.X, LValue)
 	}
 	out.WriteString(".clone();\n")
-	out.WriteString("        let guard = val")
-	WriteBorrowMethod(out, false)
+	out.WriteString("        let mut guard = val")
+	WriteBorrowMethod(out, true)
 	out.WriteString(";\n")
-	out.WriteString("        if let Some(ref any_val) = *guard {\n")
-	out.WriteString("            let __f = any_val.downcast_ref::<")
+	out.WriteString("        if let Some(ref mut any_val) = *guard {\n")
+	out.WriteString("            let __f = any_val.downcast_mut::<")
 	out.WriteString(goTypeToRustBase(e.Type))
 	out.WriteString(">().expect(\"type assertion failed\");\n")
 	out.WriteString("            (*__f)")
@@ -8115,9 +8145,14 @@ func writeFunctionValueSelectorCall(out *strings.Builder, sel *ast.SelectorExpr,
 	out.WriteString("{ let __f_holder = ")
 	TranspileExpressionContext(out, sel, LValue)
 	out.WriteString(".clone()")
-	out.WriteString("; let __f_guard = __f_holder")
-	WriteBorrowMethod(out, false)
-	out.WriteString("; let __f = __f_guard.as_ref().unwrap(); (*__f)(")
+	boxType := functionBoxTypeForCallTarget(sel)
+	out.WriteString("; let __f_ptr: *mut ")
+	out.WriteString(boxType)
+	out.WriteString(" = { let mut __f_guard = __f_holder")
+	WriteBorrowMethod(out, true)
+	out.WriteString("; __f_guard.as_mut().unwrap() as *mut ")
+	out.WriteString(boxType)
+	out.WriteString(" }; let __f = unsafe { &mut *__f_ptr }; (*__f)(")
 	if typeInfo := GetTypeInfo(); typeInfo != nil {
 		if sig, ok := signatureFromType(typeInfo.GetType(sel)); ok {
 			if sig.Variadic() {

@@ -4,7 +4,7 @@ use std::rc::{Rc};
 
 #[derive(Clone, Default)]
 pub struct types_Config {
-    pub error: Rc<RefCell<Option<Box<dyn Fn(Rc<RefCell<Option<Box<dyn StdError>>>>) -> ()>>>>,
+    pub error: Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<Box<dyn StdError>>>>) -> ()>>>>,
 }
 
 impl std::fmt::Display for types_Config {
@@ -23,6 +23,6 @@ impl types_Config {
 
 fn main() {
     let _ = types_Config { error: Rc::new(RefCell::new(Some(Box::new(move |err: Rc<RefCell<Option<Box<dyn StdError>>>>| {
-    }) as Box<dyn Fn(Rc<RefCell<Option<Box<dyn StdError>>>>) -> ()>))), ..Default::default() };
+    }) as Box<dyn FnMut(Rc<RefCell<Option<Box<dyn StdError>>>>) -> ()>))), ..Default::default() };
     println!("{}", "ok".to_string());
 }

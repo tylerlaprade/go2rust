@@ -21,7 +21,7 @@ pub fn defer_example() {
     __defer_stack.push(Box::new(move || {
         { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
         println!("{}", "Anonymous deferred function".to_string());
-    }) as Box<dyn Fn() -> ()>))); let __f_guard = __f_holder.borrow(); let __f = __f_guard.as_ref().unwrap(); (*__f)() };
+    }) as Box<dyn FnMut() -> ()>))); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
     }));
 
     println!("{}", "End of function".to_string());
@@ -39,7 +39,7 @@ pub fn defer_with_variables() {
     let x_defer_captured = x.clone(); __defer_stack.push(Box::new(move || {
         { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
         println!("{} {}", "Deferred x:".to_string(), { let __v = (*x_defer_captured.borrow().as_ref().unwrap()).clone(); __v });
-    }) as Box<dyn Fn() -> ()>))); let __f_guard = __f_holder.borrow(); let __f = __f_guard.as_ref().unwrap(); (*__f)() };
+    }) as Box<dyn FnMut() -> ()>))); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
     }));
 
     { let new_val = 20; *x.borrow_mut() = Some(new_val); };
