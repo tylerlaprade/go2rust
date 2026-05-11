@@ -3795,6 +3795,23 @@ func rustPackageSelectorName(sel *ast.SelectorExpr) string {
 	return ToSnakeCase(sel.Sel.Name)
 }
 
+func isPackageSelectorBaseIdent(ident *ast.Ident) bool {
+	if ident == nil {
+		return false
+	}
+	if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.info != nil {
+		if obj, ok := typeInfo.info.Uses[ident]; ok {
+			_, ok := obj.(*types.PkgName)
+			return ok
+		}
+		if obj, ok := typeInfo.info.Defs[ident]; ok && obj != nil {
+			return false
+		}
+	}
+	_, isImport := goPackageImports[ident.Name]
+	return isImport
+}
+
 func writePackageGlobalSelectorMethodReceiver(out *strings.Builder, receiver *ast.SelectorExpr, method *ast.SelectorExpr) (bool, bool) {
 	if !isPackageVarSelector(receiver) {
 		return false, false
@@ -3945,24 +3962,8 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		isPackageSelector := false
 		RegisterExternalSelectorField(e)
 
-		if typeInfo != nil && typeInfo.info != nil {
-			// Check if this is a package selector
-			if ident, ok := e.X.(*ast.Ident); ok {
-				if obj, ok := typeInfo.info.Uses[ident]; ok {
-					if _, ok := obj.(*types.PkgName); ok {
-						isPackageSelector = true
-					}
-				}
-			}
-		}
-
-		// Also check if it's a known package import (fallback)
-		if !isPackageSelector {
-			if ident, ok := e.X.(*ast.Ident); ok {
-				if _, isImport := goPackageImports[ident.Name]; isImport {
-					isPackageSelector = true
-				}
-			}
+		if ident, ok := e.X.(*ast.Ident); ok {
+			isPackageSelector = isPackageSelectorBaseIdent(ident)
 		}
 
 		if isPackageSelector {
@@ -7442,9 +7443,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 		// First check if this is a package function call
 		isPackageCall := false
 		if ident, ok := sel.X.(*ast.Ident); ok {
-			if _, isImport := goPackageImports[ident.Name]; isImport {
-				isPackageCall = true
-			}
+			isPackageCall = isPackageSelectorBaseIdent(ident)
 		}
 
 		if isPackageCall {

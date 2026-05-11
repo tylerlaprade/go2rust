@@ -122,3 +122,33 @@ func f(overlay map[string]string) {
 		t.Fatalf("external stub call moved map range key:\n%s", rust)
 	}
 }
+
+func TestLocalVariableShadowsImportedPackageSelector(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+import "go/ast"
+
+func packageName(file *ast.File) string {
+	ast := file
+	return ast.Name.Name
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(main.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+	SetTypeInfo(typeInfo)
+	defer SetTypeInfo(nil)
+
+	rust, _, _ := Transpile(file, fset, typeInfo)
+	if strings.Contains(rust, "ast::name") {
+		t.Fatalf("local variable named ast should not be emitted as package selector:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".name") {
+		t.Fatalf("selector chain should still access the Name fields:\n%s", rust)
+	}
+}
