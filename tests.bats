@@ -1210,6 +1210,10 @@ run_xfail_test() {
     run_test "tests/named_integer_const_array_literal"
 }
 
+@test "named_integer_const_compound_assign" {
+    run_test "tests/named_integer_const_compound_assign"
+}
+
 @test "named_integer_conversion" {
     run_test "tests/named_integer_conversion"
 }

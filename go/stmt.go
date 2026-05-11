@@ -2092,8 +2092,30 @@ func compoundAssignUsesOwnedNamedIntegerValue(lhs ast.Expr, rhs ast.Expr, op tok
 	if !ok || !isNamedIntegerType(lhsNamed) {
 		return false
 	}
+	if compoundAssignConstCanUseNamedInteger(rhs, lhsNamed) {
+		return true
+	}
 	rhsNamed, ok := types.Unalias(typeInfo.GetType(rhs)).(*types.Named)
 	return ok && sameNamedTypeDefinition(lhsNamed, rhsNamed)
+}
+
+func compoundAssignConstCanUseNamedInteger(expr ast.Expr, named *types.Named) bool {
+	if expr == nil || named == nil || !isConstantExpression(expr) {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	exprType := typeInfo.GetType(expr)
+	if exprType == nil {
+		return false
+	}
+	if exprNamed, ok := types.Unalias(exprType).(*types.Named); ok {
+		return sameNamedTypeDefinition(exprNamed, named)
+	}
+	basic, ok := types.Unalias(exprType).(*types.Basic)
+	return ok && basic.Info()&types.IsUntyped != 0 && isIntegerBasicKind(basic.Kind())
 }
 
 func writeWrappedMutationTargetClone(out *strings.Builder, expr ast.Expr) {
@@ -2120,6 +2142,13 @@ func writeWrappedMutationTargetRef(out *strings.Builder, expr ast.Expr, mutable 
 }
 
 func writeBareCompoundAssignValue(out *strings.Builder, expr ast.Expr, expected types.Type) {
+	writeBareCompoundAssignValueForOp(out, expr, expected, token.ILLEGAL)
+}
+
+func writeBareCompoundAssignValueForOp(out *strings.Builder, expr ast.Expr, expected types.Type, op token.Token) {
+	if writeNamedIntegerConstCompoundAssignValue(out, expr, expected, op) {
+		return
+	}
 	if ident, ok := expr.(*ast.Ident); ok {
 		_, isRangeVar := rangeLoopVars[ident.Name]
 		_, isLocalConst := localConstants[ident.Name]
@@ -2183,6 +2212,25 @@ func writeBareCompoundAssignValue(out *strings.Builder, expr ast.Expr, expected 
 	TranspileExpression(out, expr)
 }
 
+func writeNamedIntegerConstCompoundAssignValue(out *strings.Builder, expr ast.Expr, expected types.Type, op token.Token) bool {
+	switch op {
+	case token.AND_ASSIGN, token.OR_ASSIGN, token.XOR_ASSIGN:
+	default:
+		return false
+	}
+	if expected == nil {
+		return false
+	}
+	named, ok := types.Unalias(expected).(*types.Named)
+	if !ok || !compoundAssignConstCanUseNamedInteger(expr, named) {
+		return false
+	}
+	if _, ok := externalIntegerRustTypeForNamed(named); ok {
+		return writeExpressionForExpectedTypesType(out, expr, named)
+	}
+	return writeNamedIntegerConstForExpected(out, expr, named)
+}
+
 func writeConstIdentForCompoundExpected(out *strings.Builder, ident *ast.Ident, expected types.Type, rustName string) bool {
 	if ident == nil || expected == nil {
 		return false
@@ -2214,7 +2262,7 @@ func writeIndexedCompoundAssign(out *strings.Builder, indexExpr *ast.IndexExpr, 
 	out.WriteString("{ let __idx = ")
 	TranspileExpression(out, indexExpr.Index)
 	out.WriteString(" as usize; let __rhs = ")
-	writeBareCompoundAssignValue(out, rhs, typeInfo.GetArrayOrSliceElemType(indexExpr.X))
+	writeBareCompoundAssignValueForOp(out, rhs, typeInfo.GetArrayOrSliceElemType(indexExpr.X), op)
 	out.WriteString("; let mut __seq_guard = ")
 	TranspileExpressionContext(out, indexExpr.X, LValue)
 	WriteBorrowMethod(out, true)
@@ -3524,7 +3572,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					if typeInfo != nil {
 						expected = typeInfo.GetType(s.Lhs[0])
 					}
-					writeBareCompoundAssignValue(out, s.Rhs[0], expected)
+					writeBareCompoundAssignValueForOp(out, s.Rhs[0], expected, s.Tok)
 					out.WriteString("); }")
 				}
 			}
