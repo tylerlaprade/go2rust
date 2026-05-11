@@ -1291,6 +1291,10 @@ func writeExternalStubCallArgument(out *strings.Builder, arg ast.Expr) {
 		out.WriteString(".clone()")
 		return
 	}
+	if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.IsPointer(arg) {
+		writePointerHandleExpression(out, arg)
+		return
+	}
 	if !isCopyTypeExpression(arg) && writeOwnedExpressionValue(out, arg) {
 		return
 	}

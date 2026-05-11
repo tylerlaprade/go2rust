@@ -206,6 +206,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Stdlib package function/constant/variable stubs | ✅ |
 | └ Stdlib package variadic stub calls | ✅ |
 | └ Stdlib package stub calls from wrapped range variables | ✅ |
+| └ Stdlib package stub calls preserve pointer handle arguments | ✅ |
 | └ Stdlib typed constants as indexes | ✅ |
 | └ Shared stdlib stubs across transpiled dependency crates | ✅ |
 | └ Shared context/channel helpers across transpiled dependency crates | ✅ |

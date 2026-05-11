@@ -156,6 +156,23 @@ impl types_Basic {
 
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
+pub struct types_Checker;
+
+impl std::fmt::Display for types_Checker {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<types_Checker>")
+    }
+}
+
+
+impl types_Checker {
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        None
+    }
+}
+
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct types_Config;
 
 impl std::fmt::Display for types_Config {
@@ -263,6 +280,14 @@ pub mod types {
         Arc::new(Mutex::new(Some::<Vec<Arc<Mutex<Option<types_Basic>>>>>(Default::default())))
     }
 
+    pub fn new_checker<T0, T1, T2, T3>(_arg0: T0, _arg1: T1, _arg2: T2, _arg3: T3) -> Arc<Mutex<Option<types_Checker>>> {
+        Arc::new(Mutex::new(Some::<types_Checker>(Default::default())))
+    }
+
+    pub fn new_package<T0, T1>(_arg0: T0, _arg1: T1) -> Arc<Mutex<Option<types_Package>>> {
+        Arc::new(Mutex::new(Some::<types_Package>(Default::default())))
+    }
+
     pub fn unalias<T0>(_arg0: T0) -> Arc<Mutex<Option<types_Type>>> {
         Arc::new(Mutex::new(Some::<types_Type>(Default::default())))
     }
@@ -274,6 +299,7 @@ fn main() {
         let mut fset = token::new_file_set();
         let (mut f, _) = parser::parse_file(fset.clone(), "a.go".to_string(), "package p; type A = int".to_string(), parser::SKIP_OBJECT_RESOLUTION.clone());
         { let (__tmp_0, __tmp_1) = { let __recv = Arc::new(Mutex::new(Some(types_Config::default()))); let __result = (*__recv.lock().unwrap().as_mut().unwrap()).check("p".to_string(), fset.clone(), Arc::new(Mutex::new(Some(vec![f.clone()]))), Arc::new(Mutex::new(Some(types_Info::default())))); __result }; };
+        let _ = types::new_checker(Arc::new(Mutex::new(Some(types_Config::default()))), fset.clone(), types::new_package("p".to_string(), "p".to_string()), Arc::new(Mutex::new(Some(types_Info::default()))));
         let mut alias: Arc<Mutex<Option<types_Alias>>> = Arc::new(Mutex::new(None));
         let _ = types::unalias(alias.clone());
         let _ = binary::MAX_VARINT_LEN64;
