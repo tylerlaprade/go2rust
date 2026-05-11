@@ -1,0 +1,8 @@
+[package]
+name = "promoted_pointer_index_field_assign"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "promoted_pointer_index_field_assign"
+path = "main.rs"

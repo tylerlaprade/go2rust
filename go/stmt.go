@@ -1741,6 +1741,25 @@ func writePointerHandleSelectorTarget(out *strings.Builder, sel *ast.SelectorExp
 	}
 
 	if typeInfo != nil && typeInfo.IsPointer(sel.X) {
+		if fieldInfo.IsPromoted {
+			out.WriteString("(*")
+			out.WriteString("(*")
+			TranspileExpressionContext(out, sel.X, LValue)
+			WriteBorrowMethod(out, true)
+			out.WriteString(".as_mut().unwrap())")
+			for i, embedded := range fieldInfo.EmbeddedPath {
+				out.WriteString(".")
+				out.WriteString(ToSnakeCase(embedded))
+				WriteBorrowMethod(out, true)
+				if i < len(fieldInfo.EmbeddedPath)-1 {
+					out.WriteString(".as_mut().unwrap()")
+				} else {
+					out.WriteString(".as_mut().unwrap()).")
+				}
+			}
+			out.WriteString(fieldInfo.FieldName)
+			return true
+		}
 		out.WriteString("(*")
 		TranspileExpressionContext(out, sel.X, LValue)
 		WriteBorrowMethod(out, true)
@@ -4929,14 +4948,15 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				out.WriteString(").clone()")
 				return
 			}
-			out.WriteString("(*")
+			out.WriteString("{ let __range_holder = ")
 			if ident, ok := s.X.(*ast.Ident); ok {
 				out.WriteString(EscapeRustIdent(ident.Name))
 			} else {
 				TranspileExpressionContext(out, s.X, LValue)
 			}
+			out.WriteString(".clone(); let __range_guard = __range_holder")
 			WriteBorrowMethod(out, false)
-			out.WriteString(".as_ref().unwrap()).clone()")
+			out.WriteString("; let __range_map = (*__range_guard.as_ref().unwrap()).clone(); drop(__range_guard); __range_map }")
 		}
 
 		if isInteger {

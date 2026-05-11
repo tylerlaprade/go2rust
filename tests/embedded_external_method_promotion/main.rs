@@ -93,7 +93,7 @@ pub struct writer {
 
 impl std::fmt::Display for writer {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.buffer.borrow().as_ref().unwrap()))
+        write!(f, "{}", (*self.string().borrow().as_ref().unwrap()))
     }
 }
 

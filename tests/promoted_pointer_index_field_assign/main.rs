@@ -177,13 +177,13 @@ impl<T> Iterator for GoChannel<T> {
 
 #[derive(Debug, Clone, Default)]
 pub struct Package {
-    pub i_d: Arc<Mutex<Option<String>>>,
+    pub name: Arc<Mutex<Option<String>>>,
     pub imports: Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<Package>>>>>>>,
 }
 
 impl std::fmt::Display for Package {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.i_d.lock().unwrap().as_ref().unwrap()), format_map(&self.imports))
+        write!(f, "{{{} {}}}", (*self.name.lock().unwrap().as_ref().unwrap()), format_map(&self.imports))
     }
 }
 
@@ -201,19 +201,30 @@ impl std::fmt::Display for loaderPackage {
 }
 
 
+#[derive(Debug, Clone, Default)]
+pub struct loader {
+    pub pkgs: Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<loaderPackage>>>>>>>,
+}
+
+impl std::fmt::Display for loader {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{}}}", format_map(&self.pkgs))
+    }
+}
+
+
 impl loaderPackage {
 }
 
 fn main() {
     let mut done = GoChannel::<bool>::new_buffered(1 as usize);
-    let mut base = Arc::new(Mutex::new(Some(Package { i_d: Arc::new(Mutex::new(Some("root".to_string()))), imports: Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<Package>>>>::from([("dep".to_string(), Arc::new(Mutex::new(Some(Package { i_d: Arc::new(Mutex::new(Some("dep".to_string()))), ..Default::default() }))).clone())])))), ..Default::default() })));
-    let mut lpkg = Arc::new(Mutex::new(Some(loaderPackage { package: base.clone(), ..Default::default() })));
-    let mut stubs = (*(*lpkg.lock().unwrap().as_mut().unwrap()).package.lock().unwrap().as_mut().unwrap()).imports.clone();
-    { let new_val = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<Package>>>>::new()))); (*(*lpkg.lock().unwrap().as_mut().unwrap()).package.lock().unwrap().as_mut().unwrap()).imports = new_val; };
-    for (importPath, _) in { let __range_holder = stubs.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_map = (*__range_guard.as_ref().unwrap()).clone(); drop(__range_guard); __range_map } {
-        { let __map_key = importPath; let __map_value = Arc::new(Mutex::new(Some(Package { i_d: Arc::new(Mutex::new(Some("dep".to_string()))), ..Default::default() }))); (*(*(*lpkg.lock().unwrap().as_mut().unwrap()).package.lock().unwrap().as_mut().unwrap()).imports.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
+    let mut ld = Arc::new(Mutex::new(Some(loader { pkgs: Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<loaderPackage>>>>::from([("root".to_string(), Arc::new(Mutex::new(Some(loaderPackage { package: Arc::new(Mutex::new(Some(Package { name: Arc::new(Mutex::new(Some("root".to_string()))), imports: Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<Package>>>>::from([("dep".to_string(), Arc::new(Mutex::new(Some(Package { name: Arc::new(Mutex::new(Some("dep".to_string()))), ..Default::default() }))).clone())])))), ..Default::default() }))).clone(), ..Default::default() }))).clone())])))), ..Default::default() })));
+    for (id, _) in { let __range_holder = (*ld.lock().unwrap().as_ref().unwrap()).pkgs.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_map = (*__range_guard.as_ref().unwrap()).clone(); drop(__range_guard); __range_map } {
+        { let new_val = "cleared".to_string(); *(*{ let __map = { let __map_holder = (*ld.lock().unwrap().as_ref().unwrap()).pkgs.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = (*__map_guard.as_ref().unwrap()).clone(); drop(__map_guard); __cloned }; __map.get(&id).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.lock().unwrap().as_ref().unwrap()).package.lock().unwrap().as_ref().unwrap().name.lock().unwrap() = Some(new_val); };
+        { let new_val = Arc::new(Mutex::new(None)); (*(*{ let __map = { let __map_holder = (*ld.lock().unwrap().as_ref().unwrap()).pkgs.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = (*__map_guard.as_ref().unwrap()).clone(); drop(__map_guard); __cloned }; __map.get(&id).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.lock().unwrap().as_mut().unwrap()).package.lock().unwrap().as_mut().unwrap()).imports = new_val; };
+        println!("{}", (*(*(*{ let __map = { let __map_holder = (*ld.lock().unwrap().as_ref().unwrap()).pkgs.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = (*__map_guard.as_ref().unwrap()).clone(); drop(__map_guard); __cloned }; __map.get(&id).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.lock().unwrap().as_ref().unwrap()).package.lock().unwrap().as_ref().unwrap()).name.lock().unwrap().as_ref().unwrap()));
+        println!("{}", (*(*{ let __map = { let __map_holder = (*ld.lock().unwrap().as_ref().unwrap()).pkgs.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = (*__map_guard.as_ref().unwrap()).clone(); drop(__map_guard); __cloned }; __map.get(&id).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.lock().unwrap().as_ref().unwrap()).package.lock().unwrap().as_ref().unwrap().imports.lock().unwrap()).is_none());
     }
-    println!("{}", "assigned".to_string());
     done.send(true);
     println!("{}", done.recv().unwrap());
 }

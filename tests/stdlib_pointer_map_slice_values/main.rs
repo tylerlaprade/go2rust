@@ -130,7 +130,7 @@ pub fn remember(m: Rc<RefCell<Option<BTreeMap<GoLocalPtrKey<types_Package>, Rc<R
     { let __map_key = GoLocalPtrKey::new(pkg.clone()); let __map_value = { let __slice = { let __map_holder = m.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().unwrap().get(&GoLocalPtrKey::new(pkg.clone())).cloned().unwrap_or_else(|| Rc::new(RefCell::new(None))) }; (*__slice.borrow_mut()).get_or_insert_with(Vec::new).push(pkgObj { obj: obj.clone(), name: Rc::new(RefCell::new(Some("name".to_string()))), ..Default::default() }); __slice.clone() }; (*m.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
     let mut w = Rc::new(RefCell::new(Some(writer { p: Rc::new(RefCell::new(Some(bundle { localpkg: pkg.clone(), ..Default::default() }))).clone(), ..Default::default() })));
     let mut pkgs: Rc<RefCell<Option<Vec<Rc<RefCell<Option<types_Package>>>>>>> = Rc::new(RefCell::new(None));
-    for (__range_key, objs) in (*m.borrow().as_ref().unwrap()).clone() {
+    for (__range_key, objs) in { let __range_holder = m.clone(); let __range_guard = __range_holder.borrow(); let __range_map = (*__range_guard.as_ref().unwrap()).clone(); drop(__range_guard); __range_map } {
         let p = __range_key.value();
         { let __append_target = pkgs.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push(p.clone()); __append_target.clone() };
         let objs_closure_clone = objs.clone(); sort::slice(objs_closure_clone.clone(), Rc::new(RefCell::new(Some(Box::new(move |i: Rc<RefCell<Option<i32>>>, j: Rc<RefCell<Option<i32>>>| -> Rc<RefCell<Option<bool>>> {

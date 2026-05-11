@@ -240,7 +240,8 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Delete through selector map fields | ✅ |
 | └ Selector map fields in lookup, comma-ok, and range contexts | ✅ |
 | └ Selector map field short declarations preserve map-header copy semantics | ✅ |
-| └ Promoted embedded pointer map fields in replacement assignments | ✅ |
+| └ Promoted embedded pointer map fields in replacement assignments and indexed pointer expressions | ✅ |
+| └ Wrapped map ranges drop map borrows before loop bodies | ✅ |
 | └ Wrapped map range values used as lookup/delete keys | ✅ |
 | └ Owned map range keys used in comma-ok lookups | ✅ |
 | └ Map access with existence check | ✅ |

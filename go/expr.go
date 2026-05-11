@@ -4098,7 +4098,38 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			if fieldInfo.IsPromoted {
 				// Accessing promoted field through embedded struct(s)
 				// We need to unwrap each embedded struct in the path
-				if ctx == RValue {
+				if typeInfo != nil && typeInfo.IsPointer(e.X) {
+					if ctx == RValue {
+						out.WriteString("(*")
+						out.WriteString("(*")
+						TranspileExpressionContext(out, e.X, LValue)
+						WriteBorrowMethod(out, false)
+						out.WriteString(".as_ref().unwrap())")
+						for _, embedded := range fieldInfo.EmbeddedPath {
+							out.WriteString(".")
+							out.WriteString(ToSnakeCase(embedded))
+							WriteBorrowMethod(out, false)
+							out.WriteString(".as_ref().unwrap()")
+						}
+						out.WriteString(".")
+						out.WriteString(fieldInfo.FieldName)
+						WriteBorrowMethod(out, false)
+						out.WriteString(".as_ref().unwrap())")
+					} else {
+						out.WriteString("(*")
+						TranspileExpressionContext(out, e.X, LValue)
+						WriteBorrowMethod(out, false)
+						out.WriteString(".as_ref().unwrap())")
+						for _, embedded := range fieldInfo.EmbeddedPath {
+							out.WriteString(".")
+							out.WriteString(ToSnakeCase(embedded))
+							WriteBorrowMethod(out, false)
+							out.WriteString(".as_ref().unwrap()")
+						}
+						out.WriteString(".")
+						out.WriteString(fieldInfo.FieldName)
+					}
+				} else if ctx == RValue {
 					// In RValue context, unwrap the final field too
 					out.WriteString("(*")
 					TranspileExpressionContext(out, e.X, LValue)
