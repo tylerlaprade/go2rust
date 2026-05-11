@@ -157,8 +157,8 @@ impl Service {
     pub fn log(&self, msg: Rc<RefCell<Option<String>>>) {
         // Forward to embedded type's method
         let embedded = self.logger.clone();
-        let mut guard = embedded.borrow_mut();
-        let embedded_ref = guard.as_mut().unwrap();
+        let guard = embedded.borrow();
+        let embedded_ref = guard.as_ref().unwrap();
         embedded_ref.log(msg)
     }
 
@@ -189,8 +189,8 @@ impl Middle {
     pub fn get_i_d(&self) -> Rc<RefCell<Option<i32>>> {
         // Forward to embedded type's method
         let embedded = self.base.clone();
-        let mut guard = embedded.borrow_mut();
-        let embedded_ref = guard.as_mut().unwrap();
+        let guard = embedded.borrow();
+        let embedded_ref = guard.as_ref().unwrap();
         embedded_ref.get_i_d()
     }
 
@@ -211,16 +211,16 @@ impl Top {
     pub fn get_data(&self) -> Rc<RefCell<Option<String>>> {
         // Forward to embedded type's method
         let embedded = self.middle.clone();
-        let mut guard = embedded.borrow_mut();
-        let embedded_ref = guard.as_mut().unwrap();
+        let guard = embedded.borrow();
+        let embedded_ref = guard.as_ref().unwrap();
         embedded_ref.get_data()
     }
 
     pub fn get_i_d(&self) -> Rc<RefCell<Option<i32>>> {
         // Forward to embedded type's method
         let embedded = self.middle.clone();
-        let mut guard = embedded.borrow_mut();
-        let embedded_ref = guard.as_mut().unwrap();
+        let guard = embedded.borrow();
+        let embedded_ref = guard.as_ref().unwrap();
         embedded_ref.get_i_d()
     }
 

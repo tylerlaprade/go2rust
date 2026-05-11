@@ -171,24 +171,24 @@ impl Employee {
     pub fn full_address(&self) -> Rc<RefCell<Option<String>>> {
         // Forward to embedded type's method
         let embedded = self.address.clone();
-        let mut guard = embedded.borrow_mut();
-        let embedded_ref = guard.as_mut().unwrap();
+        let guard = embedded.borrow();
+        let embedded_ref = guard.as_ref().unwrap();
         embedded_ref.full_address()
     }
 
     pub fn get_info(&self) -> Rc<RefCell<Option<String>>> {
         // Forward to embedded type's method
         let embedded = self.person.clone();
-        let mut guard = embedded.borrow_mut();
-        let embedded_ref = guard.as_mut().unwrap();
+        let guard = embedded.borrow();
+        let embedded_ref = guard.as_ref().unwrap();
         embedded_ref.get_info()
     }
 
     pub fn greet(&self) {
         // Forward to embedded type's method
         let embedded = self.person.clone();
-        let mut guard = embedded.borrow_mut();
-        let embedded_ref = guard.as_mut().unwrap();
+        let guard = embedded.borrow();
+        let embedded_ref = guard.as_ref().unwrap();
         embedded_ref.greet()
     }
 }
@@ -201,32 +201,32 @@ impl Manager {
     pub fn full_address(&self) -> Rc<RefCell<Option<String>>> {
         // Forward to embedded type's method
         let embedded = self.employee.clone();
-        let mut guard = embedded.borrow_mut();
-        let embedded_ref = guard.as_mut().unwrap();
+        let guard = embedded.borrow();
+        let embedded_ref = guard.as_ref().unwrap();
         embedded_ref.full_address()
     }
 
     pub fn get_info(&self) -> Rc<RefCell<Option<String>>> {
         // Forward to embedded type's method
         let embedded = self.employee.clone();
-        let mut guard = embedded.borrow_mut();
-        let embedded_ref = guard.as_mut().unwrap();
+        let guard = embedded.borrow();
+        let embedded_ref = guard.as_ref().unwrap();
         embedded_ref.get_info()
     }
 
     pub fn greet(&self) {
         // Forward to embedded type's method
         let embedded = self.employee.clone();
-        let mut guard = embedded.borrow_mut();
-        let embedded_ref = guard.as_mut().unwrap();
+        let guard = embedded.borrow();
+        let embedded_ref = guard.as_ref().unwrap();
         embedded_ref.greet()
     }
 
     pub fn work(&self) {
         // Forward to embedded type's method
         let embedded = self.employee.clone();
-        let mut guard = embedded.borrow_mut();
-        let embedded_ref = guard.as_mut().unwrap();
+        let guard = embedded.borrow();
+        let embedded_ref = guard.as_ref().unwrap();
         embedded_ref.work()
     }
 }

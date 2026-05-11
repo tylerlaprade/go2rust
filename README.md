@@ -262,6 +262,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Wrapped call results as map lookup keys | ✅ |
 | └ Pointer keys in map literals and lookups | ✅ |
 | └ Pointer keys and values in `make(map)`, address-of literal map writes, and slice-range pointer key lookups | ✅ |
+| └ Pointer map values assigned from selector fields preserve handle aliasing | ✅ |
 | └ Named integer values in map literals, writes, lookups, and comma-ok zero values | ✅ |
 | └ Range indexes assigned into Go `int` map values | ✅ |
 | └ Struct keys with named integer fields across split modules | ✅ |

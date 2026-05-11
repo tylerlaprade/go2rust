@@ -1098,6 +1098,10 @@ run_xfail_test() {
     run_test "tests/map_pointer_key_comma_ok"
 }
 
+@test "map_pointer_selector_value_assignment" {
+    run_test "tests/map_pointer_selector_value_assignment"
+}
+
 @test "map_pointer_value_literal_assignment" {
     run_test "tests/map_pointer_value_literal_assignment"
 }

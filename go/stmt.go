@@ -1104,6 +1104,10 @@ func writeMapWrappedValue(out *strings.Builder, expr ast.Expr, valueType types.T
 		return
 	}
 	if isPointerMapValueType(valueType) {
+		if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.IsPointer(expr) {
+			writePointerHandleExpression(out, expr)
+			return
+		}
 		if unary, ok := expr.(*ast.UnaryExpr); ok && unary.Op == token.AND {
 			if _, isComposite := unary.X.(*ast.CompositeLit); isComposite {
 				TranspileExpression(out, expr)

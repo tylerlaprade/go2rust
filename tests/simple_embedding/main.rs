@@ -44,8 +44,8 @@ impl Outer {
     pub fn get_value(&self) -> Rc<RefCell<Option<i32>>> {
         // Forward to embedded type's method
         let embedded = self.inner.clone();
-        let mut guard = embedded.borrow_mut();
-        let embedded_ref = guard.as_mut().unwrap();
+        let guard = embedded.borrow();
+        let embedded_ref = guard.as_ref().unwrap();
         embedded_ref.get_value()
     }
 }

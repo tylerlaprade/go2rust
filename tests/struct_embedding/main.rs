@@ -77,8 +77,8 @@ impl container {
     pub fn describe(&self) -> Rc<RefCell<Option<String>>> {
         // Forward to embedded type's method
         let embedded = self.base.clone();
-        let mut guard = embedded.borrow_mut();
-        let embedded_ref = guard.as_mut().unwrap();
+        let guard = embedded.borrow();
+        let embedded_ref = guard.as_ref().unwrap();
         embedded_ref.describe()
     }
 }
