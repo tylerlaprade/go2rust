@@ -2287,6 +2287,61 @@ func mutexLockReceiver(expr ast.Expr) (ast.Expr, bool) {
 	return nil, false
 }
 
+func mutexUnlockReceiver(expr ast.Expr) (ast.Expr, bool) {
+	call, ok := expr.(*ast.CallExpr)
+	if !ok {
+		return nil, false
+	}
+	sel, ok := call.Fun.(*ast.SelectorExpr)
+	if !ok || sel.Sel.Name != "Unlock" {
+		return nil, false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return nil, false
+	}
+	fieldType := typeInfo.GetType(sel.X)
+	if fieldType == nil {
+		return nil, false
+	}
+	if named, ok := fieldType.(*types.Named); ok {
+		if named.Obj() != nil && named.Obj().Pkg() != nil && named.Obj().Pkg().Name() == "sync" && named.Obj().Name() == "Mutex" {
+			return sel.X, true
+		}
+	}
+	return nil, false
+}
+
+func mutexReceiverKey(expr ast.Expr) (string, bool) {
+	var buf bytes.Buffer
+	if format.Node(&buf, token.NewFileSet(), expr) != nil {
+		return "", false
+	}
+	return buf.String(), true
+}
+
+func cloneMutexGuards(guards map[string]string) map[string]string {
+	cloned := make(map[string]string, len(guards))
+	for key, guardName := range guards {
+		cloned[key] = guardName
+	}
+	return cloned
+}
+
+func mergeMutexGuardsAfterIf(before, thenGuards, elseGuards map[string]string) map[string]string {
+	merged := make(map[string]string)
+	for key, guardName := range before {
+		if thenGuard, ok := thenGuards[key]; !ok || thenGuard != guardName {
+			continue
+		}
+		if elseGuard, ok := elseGuards[key]; !ok || elseGuard != guardName {
+			continue
+		}
+		merged[key] = guardName
+	}
+	return merged
+}
+
 func writeMutexLockStatement(out *strings.Builder, expr ast.Expr) bool {
 	receiver, ok := mutexLockReceiver(expr)
 	if !ok {
@@ -2306,6 +2361,29 @@ func writeMutexLockStatement(out *strings.Builder, expr ast.Expr) bool {
 	out.WriteString(" = ")
 	out.WriteString(sourceName)
 	out.WriteString(".lock();")
+	if key, ok := mutexReceiverKey(receiver); ok {
+		activeMutexGuards[key] = guardName
+	}
+	return true
+}
+
+func writeMutexUnlockStatement(out *strings.Builder, expr ast.Expr) bool {
+	receiver, ok := mutexUnlockReceiver(expr)
+	if !ok {
+		return false
+	}
+	key, ok := mutexReceiverKey(receiver)
+	if !ok {
+		return false
+	}
+	guardName, ok := activeMutexGuards[key]
+	if !ok {
+		return false
+	}
+	out.WriteString("drop(")
+	out.WriteString(guardName)
+	out.WriteString(");")
+	delete(activeMutexGuards, key)
 	return true
 }
 
@@ -2678,16 +2756,23 @@ func transpileIfWithInitAsBlock(out *strings.Builder, stmt *ast.IfStmt, fnType *
 	out.WriteString(";\n        if ")
 	transpileCondition(out, stmt.Cond)
 	out.WriteString(" {\n")
+	beforeGuards := cloneMutexGuards(activeMutexGuards)
+	activeMutexGuards = cloneMutexGuards(beforeGuards)
 	for _, bodyStmt := range stmt.Body.List {
 		out.WriteString("            ")
 		TranspileStatementSimple(out, bodyStmt, fnType, fileSet)
 		out.WriteString(";\n")
 	}
+	thenGuards := cloneMutexGuards(activeMutexGuards)
 	out.WriteString("        }")
+	elseGuards := cloneMutexGuards(beforeGuards)
 	if stmt.Else != nil {
+		activeMutexGuards = cloneMutexGuards(beforeGuards)
 		out.WriteString(" else ")
 		transpileElseBranch(out, stmt.Else, fnType, fileSet)
+		elseGuards = cloneMutexGuards(activeMutexGuards)
 	}
+	activeMutexGuards = mergeMutexGuardsAfterIf(beforeGuards, thenGuards, elseGuards)
 	out.WriteString("\n    }")
 }
 
@@ -2788,6 +2873,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 	case *ast.ExprStmt:
 		// Check if this is a mutex Lock() call — needs guard binding
 		if writeMutexLockStatement(out, s.X) {
+			break
+		}
+		if writeMutexUnlockStatement(out, s.X) {
 			break
 		}
 		TranspileExpression(out, s.X)
@@ -5320,22 +5408,27 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			TranspileStatementSimple(out, s.Init, fnType, fileSet)
 			out.WriteString("\n    ")
 		}
+		beforeGuards := cloneMutexGuards(activeMutexGuards)
 
 		out.WriteString("if ")
 		transpileCondition(out, s.Cond)
 		out.WriteString(" {\n")
 
 		// Use comment-aware transpilation for the body
+		activeMutexGuards = cloneMutexGuards(beforeGuards)
 		var ifBodyLastPos token.Pos = s.Body.Lbrace
 		for _, stmt := range s.Body.List {
 			out.WriteString("        ")
 			TranspileStatement(out, stmt, fnType, fileSet, comments, &ifBodyLastPos, "        ")
 			out.WriteString("\n")
 		}
+		thenGuards := cloneMutexGuards(activeMutexGuards)
 
 		out.WriteString("    }")
 
+		elseGuards := cloneMutexGuards(beforeGuards)
 		if s.Else != nil {
+			activeMutexGuards = cloneMutexGuards(beforeGuards)
 			out.WriteString(" else ")
 			if elseIf, ok := s.Else.(*ast.IfStmt); ok {
 				// else if case
@@ -5356,7 +5449,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				}
 				out.WriteString("    }")
 			}
+			elseGuards = cloneMutexGuards(activeMutexGuards)
 		}
+		activeMutexGuards = mergeMutexGuardsAfterIf(beforeGuards, thenGuards, elseGuards)
 
 	case *ast.SwitchStmt:
 		// Handle init statement if present

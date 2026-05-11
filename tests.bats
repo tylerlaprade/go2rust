@@ -1168,6 +1168,10 @@ run_xfail_test() {
     run_test "tests/mutex_counter"
 }
 
+@test "mutex_direct_unlock" {
+    run_test "tests/mutex_direct_unlock"
+}
+
 @test "mutex_guard_method_call" {
     run_test "tests/mutex_guard_method_call"
 }

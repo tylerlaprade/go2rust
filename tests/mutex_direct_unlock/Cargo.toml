@@ -1,0 +1,8 @@
+[package]
+name = "mutex_direct_unlock"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "mutex_direct_unlock"
+path = "main.rs"

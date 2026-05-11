@@ -1019,6 +1019,9 @@ func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.Fi
 	// Check if this function uses defer statements
 	hasDefer := checkHasDefer(fn.Body.List)
 	currentFunctionHasDefer = hasDefer
+	oldActiveMutexGuards := activeMutexGuards
+	activeMutexGuards = make(map[string]string)
+	defer func() { activeMutexGuards = oldActiveMutexGuards }()
 
 	// Initialize defer stack if needed
 	if hasDefer {
@@ -2417,6 +2420,9 @@ func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, a
 		oldFunctionHasDefer := currentFunctionHasDefer
 		currentFunctionHasDefer = hasDefer
 		defer func() { currentFunctionHasDefer = oldFunctionHasDefer }()
+		oldActiveMutexGuards := activeMutexGuards
+		activeMutexGuards = make(map[string]string)
+		defer func() { activeMutexGuards = oldActiveMutexGuards }()
 		if hasDefer {
 			out.WriteString("        let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();\n\n")
 		}

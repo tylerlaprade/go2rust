@@ -516,6 +516,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ `sync.WaitGroup` | ✅ |
 | └ Zero-value `sync.WaitGroup` struct fields | ✅ |
 | └ `sync.Mutex` | ✅ |
+| └ Direct `sync.Mutex.Unlock` after `Lock` | ✅ |
 | └ `sync.Once` | ✅ |
 | └ `sync.Once.Do` callbacks that initialize receiver fields | ✅ |
 | **`sync/atomic` package** | |

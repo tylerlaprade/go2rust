@@ -30,6 +30,10 @@ var currentTypeMethods []*ast.FuncDecl
 // currentFunctionHasDefer tracks if the current function has defer statements
 var currentFunctionHasDefer bool
 
+// activeMutexGuards tracks sync.Mutex Lock statement guards by receiver syntax
+// so a direct Unlock statement can drop the matching Rust guard at that point.
+var activeMutexGuards = make(map[string]string)
+
 // currentCaptureRenames tracks variable renames for captured variables in closures
 var currentCaptureRenames map[string]string
 
