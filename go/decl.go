@@ -1800,13 +1800,19 @@ func transpileConstDeclWithCase(out *strings.Builder, genDecl *ast.GenDecl, toUp
 				// Handle value
 				if len(valueSpec.Values) > i && valueSpec.Values[i] != nil {
 					// Replace iota with actual value
-					TranspileConstExpr(out, valueSpec.Values[i], iotaValue)
+					if !writeExternalNamedIntegerConstValue(out, name) {
+						TranspileConstExpr(out, valueSpec.Values[i], iotaValue)
+					}
 				} else if len(lastExpressions) > i && lastExpressions[i] != nil {
 					// Use the corresponding expression from lastExpressions for this position
-					TranspileConstExpr(out, lastExpressions[i], iotaValue)
+					if !writeExternalNamedIntegerConstValue(out, name) {
+						TranspileConstExpr(out, lastExpressions[i], iotaValue)
+					}
 				} else if len(lastExpressions) > 0 && lastExpressions[0] != nil {
 					// If we don't have an expression for this position, use the first one
-					TranspileConstExpr(out, lastExpressions[0], iotaValue)
+					if !writeExternalNamedIntegerConstValue(out, name) {
+						TranspileConstExpr(out, lastExpressions[0], iotaValue)
+					}
 				} else {
 					// No previous expression pattern, just use iota value
 					out.WriteString(fmt.Sprintf("%d", iotaValue))
@@ -2001,6 +2007,48 @@ func TranspileConstExpr(out *strings.Builder, expr ast.Expr, iotaValue int) {
 		// Fallback to regular expression transpilation
 		TranspileExpression(out, expr)
 	}
+}
+
+func writeExternalNamedIntegerConstValue(out *strings.Builder, name *ast.Ident) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || name == nil {
+		return false
+	}
+	obj, ok := typeInfo.GetObject(name).(*types.Const)
+	if !ok || obj.Val() == nil {
+		return false
+	}
+	named, ok := types.Unalias(obj.Type()).(*types.Named)
+	if !ok || named.Obj() == nil || named.Obj().Pkg() == nil {
+		return false
+	}
+	rustType, ok := externalIntegerRustTypeForNamed(named)
+	if !ok || isKnownStdlibHelperType(named.Obj().Pkg().Path(), named.Obj().Name()) {
+		return false
+	}
+
+	var value string
+	if isUnsignedIntegerType(named) {
+		u, exact := constant.Uint64Val(obj.Val())
+		if !exact {
+			return false
+		}
+		value = strconv.FormatUint(u, 10)
+	} else {
+		i, exact := constant.Int64Val(obj.Val())
+		if !exact {
+			return false
+		}
+		value = strconv.FormatInt(i, 10)
+	}
+
+	out.WriteString(goTypesNamedTypeToRust(named))
+	out.WriteString("(")
+	out.WriteString(value)
+	out.WriteString(" as ")
+	out.WriteString(rustType)
+	out.WriteString(")")
+	return true
 }
 
 // TranspileMethodImpl transpiles a method inside an impl block

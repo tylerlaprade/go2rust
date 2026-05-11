@@ -317,6 +317,9 @@ func rustConstTypeForDefinedUnderlying(underlying string) (string, bool) {
 func rustConstTypeForGoTypesType(typ types.Type) (string, bool) {
 	switch t := typ.(type) {
 	case *types.Named:
+		if _, ok := externalIntegerRustTypeForNamed(t); ok && t.Obj() != nil && t.Obj().Pkg() != nil && !isKnownStdlibHelperType(t.Obj().Pkg().Path(), t.Obj().Name()) {
+			return goTypesNamedTypeToRust(t), true
+		}
 		return rustConstTypeForGoTypesType(t.Underlying())
 	case *types.Basic:
 		return rustConstTypeForDefinedUnderlying(t.Name())
