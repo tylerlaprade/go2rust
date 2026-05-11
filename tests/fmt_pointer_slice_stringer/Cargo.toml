@@ -1,0 +1,8 @@
+[package]
+name = "fmt_pointer_slice_stringer"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "fmt_pointer_slice_stringer"
+path = "main.rs"

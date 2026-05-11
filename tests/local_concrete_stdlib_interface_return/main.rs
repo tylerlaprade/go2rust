@@ -25,7 +25,7 @@ pub struct localType {
 
 impl std::fmt::Display for localType {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{}}")
+        write!(f, "{}", (*self.string().borrow().as_ref().unwrap()))
     }
 }
 

@@ -31,6 +31,19 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 		return
 	}
 
+	if namedTypeHasGoStringMethod(structName) {
+		out.WriteString("impl std::fmt::Display for ")
+		out.WriteString(rustStructName)
+		out.WriteString(" {\n")
+		out.WriteString("    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {\n")
+		out.WriteString("        write!(f, \"{}\", (*self.string()")
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap()))\n")
+		out.WriteString("    }\n")
+		out.WriteString("}\n")
+		return
+	}
+
 	out.WriteString("impl std::fmt::Display for ")
 	out.WriteString(rustStructName)
 	out.WriteString(" {\n")
@@ -243,6 +256,49 @@ func structFieldNeedsCustomDefault(expr ast.Expr) bool {
 	default:
 		return false
 	}
+}
+
+func namedTypeHasGoStringMethod(typeName string) bool {
+	if IsStringerImplType(typeName) {
+		return true
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.pkg == nil || typeInfo.pkg.Scope() == nil {
+		return false
+	}
+	obj, ok := typeInfo.pkg.Scope().Lookup(typeName).(*types.TypeName)
+	if !ok {
+		return false
+	}
+	return typeHasGoStringMethod(obj.Type()) || typeHasGoStringMethod(types.NewPointer(obj.Type()))
+}
+
+func typeHasGoStringMethod(typ types.Type) bool {
+	if typ == nil {
+		return false
+	}
+	methodSet := types.NewMethodSet(typ)
+	selection := methodSet.Lookup(nil, "String")
+	if selection == nil {
+		return false
+	}
+	sig, ok := selection.Obj().Type().(*types.Signature)
+	if !ok {
+		return false
+	}
+	if sig.Params().Len() != 0 || sig.Results().Len() != 1 {
+		return false
+	}
+	basic, ok := types.Unalias(sig.Results().At(0).Type()).Underlying().(*types.Basic)
+	return ok && basic.Kind() == types.String
+}
+
+func isPointerType(typ types.Type) bool {
+	if typ == nil {
+		return false
+	}
+	_, ok := types.Unalias(typ).(*types.Pointer)
+	return ok
 }
 
 func writeStructDerive(out *strings.Builder, structName string, structType *ast.StructType) {

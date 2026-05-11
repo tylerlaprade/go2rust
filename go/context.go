@@ -431,6 +431,20 @@ func NeedFormatSlice() {
 	}
 }
 
+func NeedFormatSliceWrappedValues() {
+	if helpers := activeHelperTracker(); helpers != nil {
+		helpers.needsFormatSlice = true
+		helpers.needsFormatSliceWrappedValues = true
+	}
+}
+
+func NeedFormatSliceWrappedStringer() {
+	if helpers := activeHelperTracker(); helpers != nil {
+		helpers.needsFormatSlice = true
+		helpers.needsFormatSliceWrappedStringer = true
+	}
+}
+
 // NeedFormatNestedSlice marks that we need the format_nested_slice helper
 func NeedFormatNestedSlice() {
 	if helpers := activeHelperTracker(); helpers != nil {

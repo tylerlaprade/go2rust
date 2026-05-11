@@ -9,7 +9,7 @@ pub struct holder {
 
 impl std::fmt::Display for holder {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.value.lock().unwrap().as_ref().unwrap()))
+        write!(f, "{}", (*self.string().lock().unwrap().as_ref().unwrap()))
     }
 }
 

@@ -422,6 +422,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ `fmt.Printf` | ✅ |
 | └ `fmt.Sprintf` | ✅ |
 | └ `fmt.Sprintf("%v", selectorSlice)` | ✅ |
+| └ `fmt.Sprintf("%s", []*T)` when `T` implements `String() string` | ✅ |
 | └ `fmt.Errorf` | ✅ |
 | └ `fmt.Fprintln` | ✅ |
 | └ `fmt.Fprintf` | ✅ |

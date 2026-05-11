@@ -341,6 +341,17 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 			// Regular slice - use format_slice
 			NeedFormatSlice()
 			TrackImport("Display")
+			elemType = typeInfo.GetArrayOrSliceElemType(arg)
+			if isPointerType(elemType) {
+				if typeHasGoStringMethod(elemType) {
+					NeedFormatSliceWrappedStringer()
+					writeFormatSliceCall(out, arg, "format_slice_wrapped_stringer", "format_slice_wrapped_stringer_values")
+				} else {
+					NeedFormatSliceWrappedValues()
+					writeFormatSliceCall(out, arg, "format_slice_wrapped", "format_slice_wrapped_values")
+				}
+				return
+			}
 			if ident, ok := arg.(*ast.Ident); ok {
 				if _, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar {
 					out.WriteString("format_slice_values(")
@@ -981,6 +992,34 @@ func formatSliceArgumentIsBareValue(arg ast.Expr) bool {
 		return !selectorRValueReturnsWrappedHandle(arg)
 	}
 	return false
+}
+
+func writeFormatSliceCall(out *strings.Builder, arg ast.Expr, wrappedHelper string, valuesHelper string) {
+	if ident, ok := arg.(*ast.Ident); ok {
+		if _, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar {
+			out.WriteString(valuesHelper)
+			out.WriteString("(")
+			out.WriteString(RustIdentForUse(ident))
+			out.WriteString(")")
+			return
+		}
+		out.WriteString(wrappedHelper)
+		out.WriteString("(&")
+		out.WriteString(RustIdentForUse(ident))
+		out.WriteString(")")
+		return
+	}
+	if formatSliceArgumentIsBareValue(arg) {
+		out.WriteString(valuesHelper)
+		out.WriteString("(&")
+		TranspileExpression(out, arg)
+		out.WriteString(")")
+		return
+	}
+	out.WriteString(wrappedHelper)
+	out.WriteString("(&")
+	TranspileExpression(out, arg)
+	out.WriteString(")")
 }
 
 func transpileFmtSprintf(out *strings.Builder, call *ast.CallExpr) {
@@ -3356,7 +3395,7 @@ where
 }
 
 // Helper function to format slices like Go does
-func generateSliceFormatter(out *strings.Builder) {
+func generateSliceFormatter(out *strings.Builder, includeWrappedValues bool, includeWrappedStringer bool) {
 	TrackImport("Display")
 	if NeedsConcurrentWrapper() {
 		TrackImport("Arc")
@@ -3403,6 +3442,55 @@ where
     }
 }
 `)
+		if includeWrappedValues {
+			out.WriteString(`
+
+fn format_slice_wrapped_values<T>(slice: &[Arc<Mutex<Option<T>>>]) -> String
+where
+    T: Display,
+{
+    let formatted: Vec<String> = slice.iter().map(|v| {
+        let inner = v.lock().unwrap();
+        match inner.as_ref() {
+            Some(value) => format!("&{}", value),
+            None => "<nil>".to_string(),
+        }
+    }).collect();
+    format!("[{}]", formatted.join(" "))
+}
+`)
+		}
+		if includeWrappedStringer {
+			out.WriteString(`
+
+fn format_slice_wrapped_stringer<T, C>(slice: &Arc<Mutex<Option<C>>>) -> String
+where
+    C: AsRef<[Arc<Mutex<Option<T>>>]>,
+    T: Display,
+{
+    let guard = slice.lock().unwrap();
+    if let Some(ref s) = *guard {
+        format_slice_wrapped_stringer_values(s.as_ref())
+    } else {
+        "[]".to_string()
+    }
+}
+
+fn format_slice_wrapped_stringer_values<T>(slice: &[Arc<Mutex<Option<T>>>]) -> String
+where
+    T: Display,
+{
+    let formatted: Vec<String> = slice.iter().map(|v| {
+        let inner = v.lock().unwrap();
+        match inner.as_ref() {
+            Some(value) => value.to_string(),
+            None => "<nil>".to_string(),
+        }
+    }).collect();
+    format!("[{}]", formatted.join(" "))
+}
+`)
+		}
 	} else {
 		TrackImport("Rc")
 		TrackImport("RefCell")
@@ -3448,6 +3536,55 @@ where
     }
 }
 `)
+		if includeWrappedValues {
+			out.WriteString(`
+
+fn format_slice_wrapped_values<T>(slice: &[Rc<RefCell<Option<T>>>]) -> String
+where
+    T: Display,
+{
+    let formatted: Vec<String> = slice.iter().map(|v| {
+        let inner = v.borrow();
+        match inner.as_ref() {
+            Some(value) => format!("&{}", value),
+            None => "<nil>".to_string(),
+        }
+    }).collect();
+    format!("[{}]", formatted.join(" "))
+}
+`)
+		}
+		if includeWrappedStringer {
+			out.WriteString(`
+
+fn format_slice_wrapped_stringer<T, C>(slice: &Rc<RefCell<Option<C>>>) -> String
+where
+    C: AsRef<[Rc<RefCell<Option<T>>>]>,
+    T: Display,
+{
+    let guard = slice.borrow();
+    if let Some(ref s) = *guard {
+        format_slice_wrapped_stringer_values(s.as_ref())
+    } else {
+        "[]".to_string()
+    }
+}
+
+fn format_slice_wrapped_stringer_values<T>(slice: &[Rc<RefCell<Option<T>>>]) -> String
+where
+    T: Display,
+{
+    let formatted: Vec<String> = slice.iter().map(|v| {
+        let inner = v.borrow();
+        match inner.as_ref() {
+            Some(value) => value.to_string(),
+            None => "<nil>".to_string(),
+        }
+    }).collect();
+    format!("[{}]", formatted.join(" "))
+}
+`)
+		}
 	}
 }
 
