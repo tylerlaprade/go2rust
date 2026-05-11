@@ -1472,6 +1472,10 @@ run_xfail_test() {
     run_test "tests/range_stdlib_interface_map_value"
 }
 
+@test "range_string_closure_capture" {
+    run_test "tests/range_string_closure_capture"
+}
+
 @test "range_string_method_argument" {
     run_test "tests/range_string_method_argument"
 }

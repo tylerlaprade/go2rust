@@ -1216,17 +1216,24 @@ func writeRangeStringValue(out *strings.Builder, arg ast.Expr) bool {
 		return false
 	}
 	argName := RustIdentForUse(ident)
+	capturedClone := false
 	if currentCaptureRenames != nil {
 		if renamed, exists := currentCaptureRenames[ident.Name]; exists {
 			argName = RustLocalIdent(renamed)
+			capturedClone = true
 		}
 	}
 	if isWrappedRangeVarType(varType) {
 		writeWrappedRangeValueClone(out, ident, varType)
 	} else if varType == "ref_value" || strings.HasPrefix(varType, "&") {
-		out.WriteString("(*")
-		out.WriteString(argName)
-		out.WriteString(").clone()")
+		if capturedClone {
+			out.WriteString(argName)
+			out.WriteString(".clone()")
+		} else {
+			out.WriteString("(*")
+			out.WriteString(argName)
+			out.WriteString(").clone()")
+		}
 	} else {
 		out.WriteString(argName)
 		out.WriteString(".clone()")
