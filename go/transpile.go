@@ -110,6 +110,250 @@ type StructDef struct {
 
 var structDefs = make(map[string]*StructDef)
 
+type transpileFileAnalysis struct {
+	comparableStructTypes       map[string]bool
+	mapKeyStructTypes           map[string]bool
+	localInterfaceEqualityTypes map[string]bool
+	functionLocalInterfaces     map[string]*ast.InterfaceType
+	importedInterfaceImpls      map[string]map[string]*types.Interface
+	typeAssertExprs             []*ast.TypeAssertExpr
+	typeSwitchStmts             []*ast.TypeSwitchStmt
+}
+
+func newTranspileFileAnalysis() *transpileFileAnalysis {
+	return &transpileFileAnalysis{
+		comparableStructTypes:       make(map[string]bool),
+		mapKeyStructTypes:           make(map[string]bool),
+		localInterfaceEqualityTypes: make(map[string]bool),
+		functionLocalInterfaces:     make(map[string]*ast.InterfaceType),
+		importedInterfaceImpls:      make(map[string]map[string]*types.Interface),
+	}
+}
+
+func analyzeTranspileFile(file *ast.File, mapKeyTypeInfo *TypeInfo) *transpileFileAnalysis {
+	return analyzeTranspileFiles([]*ast.File{file}, mapKeyTypeInfo)
+}
+
+func analyzeTranspileFiles(files []*ast.File, mapKeyTypeInfo *TypeInfo) *transpileFileAnalysis {
+	analysis := newTranspileFileAnalysis()
+	typeInfo := GetTypeInfo()
+	for _, file := range files {
+		analysis.inspect(file, typeInfo, mapKeyTypeInfo)
+	}
+	return analysis
+}
+
+func (analysis *transpileFileAnalysis) inspect(file *ast.File, typeInfo *TypeInfo, mapKeyTypeInfo *TypeInfo) {
+	if file == nil {
+		return
+	}
+	var stack []ast.Node
+	funcDeclDepth := 0
+	ast.Inspect(file, func(node ast.Node) bool {
+		if node == nil {
+			if len(stack) > 0 {
+				popped := stack[len(stack)-1]
+				stack = stack[:len(stack)-1]
+				if _, ok := popped.(*ast.FuncDecl); ok {
+					funcDeclDepth--
+				}
+			}
+			return true
+		}
+		stack = append(stack, node)
+		if _, ok := node.(*ast.FuncDecl); ok {
+			funcDeclDepth++
+		}
+
+		switch n := node.(type) {
+		case *ast.BinaryExpr:
+			analysis.inspectBinaryExpr(n, typeInfo)
+		case *ast.MapType:
+			analysis.inspectMapType(n, typeInfo, mapKeyTypeInfo)
+		case *ast.CallExpr:
+			analysis.inspectCallExpr(n, typeInfo)
+		case *ast.GenDecl:
+			if funcDeclDepth > 0 {
+				analysis.inspectFunctionGenDecl(n)
+			}
+		case *ast.TypeAssertExpr:
+			analysis.typeAssertExprs = append(analysis.typeAssertExprs, n)
+		case *ast.TypeSwitchStmt:
+			analysis.typeSwitchStmts = append(analysis.typeSwitchStmts, n)
+		}
+		return true
+	})
+}
+
+func (analysis *transpileFileAnalysis) inspectBinaryExpr(expr *ast.BinaryExpr, typeInfo *TypeInfo) {
+	if typeInfo == nil || expr.Op != token.EQL && expr.Op != token.NEQ {
+		return
+	}
+	markComparableStructType(analysis.comparableStructTypes, typeInfo.GetType(expr.X))
+	markComparableStructType(analysis.comparableStructTypes, typeInfo.GetType(expr.Y))
+	if name, ok := localNamedInterfaceTypeNameFromTypes(typeInfo.GetType(expr.X)); ok {
+		analysis.localInterfaceEqualityTypes[name] = true
+	}
+	if name, ok := localNamedInterfaceTypeNameFromTypes(typeInfo.GetType(expr.Y)); ok {
+		analysis.localInterfaceEqualityTypes[name] = true
+	}
+}
+
+func (analysis *transpileFileAnalysis) inspectMapType(mapType *ast.MapType, typeInfo *TypeInfo, mapKeyTypeInfo *TypeInfo) {
+	markMapKeyStructType(analysis.comparableStructTypes, mapKeyTypeFromMapType(typeInfo, mapType), typeInfo)
+	markMapKeyStructType(analysis.mapKeyStructTypes, mapKeyTypeFromMapType(mapKeyTypeInfo, mapType), mapKeyTypeInfo)
+}
+
+func (analysis *transpileFileAnalysis) inspectCallExpr(call *ast.CallExpr, typeInfo *TypeInfo) {
+	if typeInfo == nil || typeInfo.info == nil {
+		return
+	}
+	if isSlicesContainsCall(call) && len(call.Args) >= 2 {
+		if name, ok := localInterfaceSliceElemName(typeInfo.GetType(call.Args[0])); ok {
+			analysis.localInterfaceEqualityTypes[name] = true
+		}
+	}
+	for i, arg := range call.Args {
+		analysis.recordImportedInterfaceImpl(callParamTypeFromTypeInfo(call, i), arg, typeInfo)
+		if sel, ok := call.Fun.(*ast.SelectorExpr); ok {
+			analysis.recordImportedInterfaceImpl(selectedMethodParamType(sel, i), arg, typeInfo)
+		}
+	}
+}
+
+func (analysis *transpileFileAnalysis) inspectFunctionGenDecl(genDecl *ast.GenDecl) {
+	if genDecl.Tok != token.TYPE {
+		return
+	}
+	for _, spec := range genDecl.Specs {
+		typeSpec, ok := spec.(*ast.TypeSpec)
+		if !ok {
+			continue
+		}
+		if iface, ok := typeSpec.Type.(*ast.InterfaceType); ok {
+			analysis.functionLocalInterfaces[typeSpec.Name.Name] = iface
+		}
+	}
+}
+
+func (analysis *transpileFileAnalysis) recordImportedInterfaceImpl(expected types.Type, arg ast.Expr, typeInfo *TypeInfo) {
+	if expected == nil || arg == nil {
+		return
+	}
+	ifaceName, ifaceType, ok := importedTranspiledInterfaceFromType(expected)
+	if !ok {
+		return
+	}
+	argType := typeInfo.GetType(arg)
+	if argType == nil || !types.Implements(argType, ifaceType) {
+		return
+	}
+	typeName, ok := currentPackageConcreteTypeName(argType)
+	if !ok {
+		return
+	}
+	if analysis.importedInterfaceImpls[typeName] == nil {
+		analysis.importedInterfaceImpls[typeName] = make(map[string]*types.Interface)
+	}
+	analysis.importedInterfaceImpls[typeName][ifaceName] = ifaceType
+}
+
+func (analysis *transpileFileAnalysis) externalLocalInterfaceImpls(interfaces map[string]*ast.InterfaceType) map[string]map[string]externalLocalInterfaceImpl {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.pkg == nil {
+		return nil
+	}
+	impls := make(map[string]map[string]externalLocalInterfaceImpl)
+	record := func(ifaceName string, ifaceType *types.Interface, concrete types.Type) {
+		if ifaceName == "" || ifaceType == nil || concrete == nil {
+			return
+		}
+		if !types.Implements(concrete, ifaceType) {
+			return
+		}
+		concreteType := concrete
+		if ptr, ok := concreteType.(*types.Pointer); ok {
+			concreteType = ptr.Elem()
+		}
+		named, ok := types.Unalias(concreteType).(*types.Named)
+		if !ok || named.Obj() == nil || named.Obj().Pkg() == nil || named.Obj().Pkg() == typeInfo.pkg {
+			return
+		}
+		rustType := goTypesNamedTypeToRust(named)
+		if impls[ifaceName] == nil {
+			impls[ifaceName] = make(map[string]externalLocalInterfaceImpl)
+		}
+		impls[ifaceName][rustType] = externalLocalInterfaceImpl{
+			ifaceAST: interfaces[ifaceName],
+		}
+	}
+
+	for _, node := range analysis.typeAssertExprs {
+		ifaceName, ifaceType, _, candidates, ok := localInterfaceAssertionTarget(node)
+		if !ok {
+			continue
+		}
+		for _, candidate := range candidates {
+			if candidate.external {
+				record(ifaceName, ifaceType, candidate.typ)
+			}
+		}
+	}
+	for _, node := range analysis.typeSwitchStmts {
+		analysis.recordExternalLocalInterfaceTypeSwitchImpls(node, record)
+	}
+	return impls
+}
+
+func (analysis *transpileFileAnalysis) recordExternalLocalInterfaceTypeSwitchImpls(node *ast.TypeSwitchStmt, record func(string, *types.Interface, types.Type)) {
+	if node.Assign == nil {
+		return
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return
+	}
+	var expr ast.Expr
+	switch assign := node.Assign.(type) {
+	case *ast.ExprStmt:
+		if typeAssert, ok := assign.X.(*ast.TypeAssertExpr); ok {
+			expr = typeAssert.X
+		}
+	case *ast.AssignStmt:
+		if len(assign.Rhs) == 1 {
+			if typeAssert, ok := assign.Rhs[0].(*ast.TypeAssertExpr); ok {
+				expr = typeAssert.X
+			}
+		}
+	}
+	if expr == nil {
+		return
+	}
+	subjectType := typeInfo.GetType(expr)
+	ifaceName, ok := localNamedInterfaceTypeNameFromTypes(subjectType)
+	if !ok {
+		return
+	}
+	named, ok := types.Unalias(subjectType).(*types.Named)
+	if !ok {
+		return
+	}
+	ifaceType, ok := named.Underlying().(*types.Interface)
+	if !ok {
+		return
+	}
+	ifaceType.Complete()
+	for _, clauseNode := range node.Body.List {
+		clause := clauseNode.(*ast.CaseClause)
+		for _, caseExpr := range clause.List {
+			if ident, ok := caseExpr.(*ast.Ident); ok && ident.Name == "nil" {
+				continue
+			}
+			record(ifaceName, ifaceType, typeInfo.GetType(caseExpr))
+		}
+	}
+}
+
 // embeddedFields tracks which fields come from embedded structs
 // map[structType][fieldName] -> embeddedTypeName
 var embeddedFields = make(map[string]map[string]string)
@@ -123,42 +367,15 @@ type FieldAccessInfo struct {
 }
 
 func collectComparableStructTypes(file *ast.File) map[string]bool {
-	result := make(map[string]bool)
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil {
-		return result
+		return make(map[string]bool)
 	}
-
-	ast.Inspect(file, func(node ast.Node) bool {
-		switch n := node.(type) {
-		case *ast.BinaryExpr:
-			if n.Op != token.EQL && n.Op != token.NEQ {
-				return true
-			}
-			markComparableStructType(result, typeInfo.GetType(n.X))
-			markComparableStructType(result, typeInfo.GetType(n.Y))
-		case *ast.MapType:
-			markMapKeyStructType(result, mapKeyTypeFromMapType(typeInfo, n), typeInfo)
-		}
-		return true
-	})
-
-	return result
+	return analyzeTranspileFile(file, typeInfo).comparableStructTypes
 }
 
 func collectMapKeyStructTypesFromFiles(files []*ast.File, typeInfo *TypeInfo) map[string]bool {
-	result := make(map[string]bool)
-	for _, file := range files {
-		ast.Inspect(file, func(node ast.Node) bool {
-			mapType, ok := node.(*ast.MapType)
-			if !ok {
-				return true
-			}
-			markMapKeyStructType(result, mapKeyTypeFromMapType(typeInfo, mapType), typeInfo)
-			return true
-		})
-	}
-	return result
+	return analyzeTranspileFiles(files, typeInfo).mapKeyStructTypes
 }
 
 func mapKeyTypeFromMapType(typeInfo *TypeInfo, mapType *ast.MapType) types.Type {
@@ -174,36 +391,11 @@ func mapKeyTypeFromMapType(typeInfo *TypeInfo, mapType *ast.MapType) types.Type 
 }
 
 func collectLocalInterfaceEqualityTypes(file *ast.File) map[string]bool {
-	result := make(map[string]bool)
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil || typeInfo.info == nil {
-		return result
+		return make(map[string]bool)
 	}
-
-	ast.Inspect(file, func(node ast.Node) bool {
-		switch n := node.(type) {
-		case *ast.BinaryExpr:
-			if n.Op != token.EQL && n.Op != token.NEQ {
-				return true
-			}
-			if name, ok := localNamedInterfaceTypeNameFromTypes(typeInfo.GetType(n.X)); ok {
-				result[name] = true
-			}
-			if name, ok := localNamedInterfaceTypeNameFromTypes(typeInfo.GetType(n.Y)); ok {
-				result[name] = true
-			}
-		case *ast.CallExpr:
-			if !isSlicesContainsCall(n) || len(n.Args) < 2 {
-				return true
-			}
-			if name, ok := localInterfaceSliceElemName(typeInfo.GetType(n.Args[0])); ok {
-				result[name] = true
-			}
-		}
-		return true
-	})
-
-	return result
+	return analyzeTranspileFile(file, typeInfo).localInterfaceEqualityTypes
 }
 
 func isSlicesContainsCall(call *ast.CallExpr) bool {
@@ -345,44 +537,7 @@ func collectImportedInterfaceImplsFromFiles(files []*ast.File) map[string]map[st
 	if typeInfo == nil || typeInfo.info == nil {
 		return nil
 	}
-	impls := make(map[string]map[string]*types.Interface)
-	record := func(expected types.Type, arg ast.Expr) {
-		if expected == nil || arg == nil {
-			return
-		}
-		ifaceName, ifaceType, ok := importedTranspiledInterfaceFromType(expected)
-		if !ok {
-			return
-		}
-		argType := typeInfo.GetType(arg)
-		if argType == nil || !types.Implements(argType, ifaceType) {
-			return
-		}
-		typeName, ok := currentPackageConcreteTypeName(argType)
-		if !ok {
-			return
-		}
-		if impls[typeName] == nil {
-			impls[typeName] = make(map[string]*types.Interface)
-		}
-		impls[typeName][ifaceName] = ifaceType
-	}
-	for _, file := range files {
-		ast.Inspect(file, func(n ast.Node) bool {
-			call, ok := n.(*ast.CallExpr)
-			if !ok {
-				return true
-			}
-			for i, arg := range call.Args {
-				record(callParamTypeFromTypeInfo(call, i), arg)
-				if sel, ok := call.Fun.(*ast.SelectorExpr); ok {
-					record(selectedMethodParamType(sel, i), arg)
-				}
-			}
-			return true
-		})
-	}
-	return impls
+	return analyzeTranspileFiles(files, typeInfo).importedInterfaceImpls
 }
 
 func importedInterfaceImplsForFile(file *ast.File) map[string]map[string]*types.Interface {
@@ -403,33 +558,10 @@ type localInterfaceAssertionCandidate struct {
 }
 
 func collectFunctionLocalInterfaces(file *ast.File) map[string]*ast.InterfaceType {
-	result := make(map[string]*ast.InterfaceType)
 	if file == nil {
-		return result
+		return make(map[string]*ast.InterfaceType)
 	}
-	for _, decl := range file.Decls {
-		fn, ok := decl.(*ast.FuncDecl)
-		if !ok || fn.Body == nil {
-			continue
-		}
-		ast.Inspect(fn.Body, func(n ast.Node) bool {
-			genDecl, ok := n.(*ast.GenDecl)
-			if !ok || genDecl.Tok != token.TYPE {
-				return true
-			}
-			for _, spec := range genDecl.Specs {
-				typeSpec, ok := spec.(*ast.TypeSpec)
-				if !ok {
-					continue
-				}
-				if iface, ok := typeSpec.Type.(*ast.InterfaceType); ok {
-					result[typeSpec.Name.Name] = iface
-				}
-			}
-			return true
-		})
-	}
-	return result
+	return analyzeTranspileFile(file, GetTypeInfo()).functionLocalInterfaces
 }
 
 func sourceAllowsInterfaceAssertionCandidate(candidate types.Type, source types.Type) bool {
@@ -551,90 +683,7 @@ func collectExternalLocalInterfaceImpls(file *ast.File, interfaces map[string]*a
 	if file == nil || typeInfo == nil || typeInfo.pkg == nil {
 		return nil
 	}
-	impls := make(map[string]map[string]externalLocalInterfaceImpl)
-	record := func(ifaceName string, ifaceType *types.Interface, concrete types.Type) {
-		if ifaceName == "" || ifaceType == nil || concrete == nil {
-			return
-		}
-		if !types.Implements(concrete, ifaceType) {
-			return
-		}
-		concreteType := concrete
-		if ptr, ok := concreteType.(*types.Pointer); ok {
-			concreteType = ptr.Elem()
-		}
-		named, ok := types.Unalias(concreteType).(*types.Named)
-		if !ok || named.Obj() == nil || named.Obj().Pkg() == nil || named.Obj().Pkg() == typeInfo.pkg {
-			return
-		}
-		rustType := goTypesNamedTypeToRust(named)
-		if impls[ifaceName] == nil {
-			impls[ifaceName] = make(map[string]externalLocalInterfaceImpl)
-		}
-		impls[ifaceName][rustType] = externalLocalInterfaceImpl{
-			ifaceAST: interfaces[ifaceName],
-		}
-	}
-
-	ast.Inspect(file, func(n ast.Node) bool {
-		switch node := n.(type) {
-		case *ast.TypeAssertExpr:
-			ifaceName, ifaceType, _, candidates, ok := localInterfaceAssertionTarget(node)
-			if !ok {
-				return true
-			}
-			for _, candidate := range candidates {
-				if candidate.external {
-					record(ifaceName, ifaceType, candidate.typ)
-				}
-			}
-		case *ast.TypeSwitchStmt:
-			if node.Assign == nil {
-				return true
-			}
-			var expr ast.Expr
-			switch assign := node.Assign.(type) {
-			case *ast.ExprStmt:
-				if typeAssert, ok := assign.X.(*ast.TypeAssertExpr); ok {
-					expr = typeAssert.X
-				}
-			case *ast.AssignStmt:
-				if len(assign.Rhs) == 1 {
-					if typeAssert, ok := assign.Rhs[0].(*ast.TypeAssertExpr); ok {
-						expr = typeAssert.X
-					}
-				}
-			}
-			if expr == nil {
-				return true
-			}
-			subjectType := typeInfo.GetType(expr)
-			ifaceName, ok := localNamedInterfaceTypeNameFromTypes(subjectType)
-			if !ok {
-				return true
-			}
-			named, ok := types.Unalias(subjectType).(*types.Named)
-			if !ok {
-				return true
-			}
-			ifaceType, ok := named.Underlying().(*types.Interface)
-			if !ok {
-				return true
-			}
-			ifaceType.Complete()
-			for _, clauseNode := range node.Body.List {
-				clause := clauseNode.(*ast.CaseClause)
-				for _, caseExpr := range clause.List {
-					if ident, ok := caseExpr.(*ast.Ident); ok && ident.Name == "nil" {
-						continue
-					}
-					record(ifaceName, ifaceType, typeInfo.GetType(caseExpr))
-				}
-			}
-		}
-		return true
-	})
-	return impls
+	return analyzeTranspileFile(file, typeInfo).externalLocalInterfaceImpls(interfaces)
 }
 
 func typeMethodsImplementTypesInterface(typeMethods []*ast.FuncDecl, iface *types.Interface) bool {
@@ -1230,16 +1279,17 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 
 	// Transpile the body
 	var body strings.Builder
+	fileAnalysis := analyzeTranspileFile(file, typeInfo)
 	packageGlobalNames = make(map[string]bool)
 	prevComparableStructTypes := comparableStructTypes
 	prevLocalInterfaceEqualityTypes := localInterfaceEqualityTypes
-	comparableStructTypes = collectComparableStructTypes(file)
+	comparableStructTypes = fileAnalysis.comparableStructTypes
 	if currentContext != nil && currentContext.Package != nil {
 		for name := range currentContext.Package.MapKeyStructTypes {
 			comparableStructTypes[name] = true
 		}
 	}
-	localInterfaceEqualityTypes = collectLocalInterfaceEqualityTypes(file)
+	localInterfaceEqualityTypes = fileAnalysis.localInterfaceEqualityTypes
 	defer func() {
 		comparableStructTypes = prevComparableStructTypes
 		localInterfaceEqualityTypes = prevLocalInterfaceEqualityTypes
@@ -1336,7 +1386,7 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 	if len(globalVars) > 0 {
 		hasInitFunction = true
 	}
-	localFunctionInterfaces := collectFunctionLocalInterfaces(file)
+	localFunctionInterfaces := fileAnalysis.functionLocalInterfaces
 	for name, ifaceType := range localFunctionInterfaces {
 		interfaces[name] = ifaceType
 		localInterfaces[name] = true
@@ -1385,8 +1435,11 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 		}
 	}
 	markComparableInterfaceImplementorStructs(types, methods, interfaces)
-	importedInterfaceImpls := importedInterfaceImplsForFile(file)
-	externalLocalInterfaceImpls := collectExternalLocalInterfaceImpls(file, interfaces)
+	importedInterfaceImpls := fileAnalysis.importedInterfaceImpls
+	if ctx := GetTranspileContext(); ctx != nil && ctx.Package != nil && len(ctx.Package.ImportedInterfaceImpls) > 0 {
+		importedInterfaceImpls = ctx.Package.ImportedInterfaceImpls
+	}
+	externalLocalInterfaceImpls := fileAnalysis.externalLocalInterfaceImpls(interfaces)
 	for _, t := range types {
 		if !first {
 			body.WriteString("\n\n")

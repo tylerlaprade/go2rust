@@ -229,8 +229,9 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 	SetConcurrencyDetector(concurrencyDetector)
 	defer SetConcurrencyDetector(nil) // Clear when done
 
+	packageAnalysis := analyzeTranspileFiles(astFiles, pg.typeInfo)
 	packageState := NewPackageState()
-	packageState.MapKeyStructTypes = collectMapKeyStructTypesFromFiles(astFiles, pg.typeInfo)
+	packageState.MapKeyStructTypes = packageAnalysis.mapKeyStructTypes
 	pg.usePackageHelpers = len(astFiles) > 1
 	runCtx := &TranspileContext{
 		Session:                 NewTranspileSession(pg.typeInfo, pg.packageMapping),
@@ -246,7 +247,7 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 	if packageImports != nil {
 		SetPackageImports(packageImports)
 	}
-	packageState.ImportedInterfaceImpls = collectImportedInterfaceImplsFromFiles(astFiles)
+	packageState.ImportedInterfaceImpls = packageAnalysis.importedInterfaceImpls
 	registerPackageTypeFactsFromFiles(astFiles)
 	registerFunctionSignaturesFromFiles(astFiles)
 

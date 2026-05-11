@@ -240,7 +240,6 @@ func (pl *PackageLoader) transpilePackage(pkg *packages.Package) error {
 
 	parentCtx := GetTranspileContext()
 	pkgState := NewPackageState()
-	pkgState.MapKeyStructTypes = collectMapKeyStructTypesFromFiles(pkg.Syntax, pkgTypeInfo)
 	pkgState.FunctionNameOverrides = assignPackageFunctionNames(pkg.Syntax)
 	pkgState.MethodNameOverrides = assignPackageMethodNames(pkg.Syntax, pkgTypeInfo)
 	SetTranspileContext(&TranspileContext{
@@ -254,6 +253,8 @@ func (pl *PackageLoader) transpilePackage(pkg *packages.Package) error {
 	parentTypeInfo := GetTypeInfo()
 	SetTypeInfo(pkgTypeInfo)
 	defer SetTypeInfo(parentTypeInfo)
+	packageAnalysis := analyzeTranspileFiles(pkg.Syntax, pkgTypeInfo)
+	pkgState.MapKeyStructTypes = packageAnalysis.mapKeyStructTypes
 
 	// Generate lib.rs with all modules
 	var libRs strings.Builder
@@ -276,7 +277,7 @@ func (pl *PackageLoader) transpilePackage(pkg *packages.Package) error {
 	if pkgCtx != nil {
 		pkgCtx.UsePackageHelpers = usePackageHelpers
 	}
-	pkgState.ImportedInterfaceImpls = collectImportedInterfaceImplsFromFiles(pkg.Syntax)
+	pkgState.ImportedInterfaceImpls = packageAnalysis.importedInterfaceImpls
 	registerPackageTypeFactsFromFiles(pkg.Syntax)
 	registerFunctionSignaturesFromFiles(pkg.Syntax)
 
