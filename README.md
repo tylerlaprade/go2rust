@@ -206,6 +206,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ `context.Context` helpers implement formatting traits for generated structs and format calls | ✅ |
 | └ `context.Context.Err` returns boxed error handles | ✅ |
 | └ Stdlib concrete values passed to stdlib interface parameters | ✅ |
+| └ Stdlib concrete values passed to stdlib interface parameters across transpiled package calls | ✅ |
 | └ Stdlib interface map range keys passed to interface parameters | ✅ |
 | └ Stdlib interface field copies | ✅ |
 | └ Stdlib interface selector type assertions | ✅ |

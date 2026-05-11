@@ -7264,6 +7264,9 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				if writeEmptyInterfaceCallArgument(out, arg, expectedArgType) {
 					continue
 				}
+				if writeStdlibInterfaceCallArgumentConversion(out, arg, expectedArgType) {
+					continue
+				}
 				if writeIndexedPointerHandleCallArgument(out, arg, expectedArgType) {
 					continue
 				}

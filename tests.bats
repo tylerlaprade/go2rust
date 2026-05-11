@@ -1362,6 +1362,10 @@ run_xfail_test() {
     run_test "tests/package_selector_zero_values"
 }
 
+@test "package_stdlib_interface_argument" {
+    run_test "tests/package_stdlib_interface_argument"
+}
+
 @test "package_variadic_import" {
     run_test "tests/package_variadic_import"
 }
