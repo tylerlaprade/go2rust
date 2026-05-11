@@ -179,6 +179,67 @@ func use(T any) func(any) any {
 	}
 }
 
+func TestClosureTypeSwitchCaseVarIsLocal(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+func makeVisitor(prefix string) func(any) string {
+	return func(value any) string {
+		switch node := value.(type) {
+		case string:
+			return prefix + node
+		case int:
+			return prefix
+		}
+		return prefix
+	}
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(main.go) error = %v", err)
+	}
+
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+	SetTypeInfo(typeInfo)
+	defer SetTypeInfo(nil)
+
+	var returnStmt *ast.ReturnStmt
+	ast.Inspect(file, func(n ast.Node) bool {
+		if returnStmt != nil {
+			return false
+		}
+		node, ok := n.(*ast.ReturnStmt)
+		if !ok || len(node.Results) != 1 {
+			return true
+		}
+		if _, ok := node.Results[0].(*ast.FuncLit); ok {
+			returnStmt = node
+			return false
+		}
+		return true
+	})
+	if returnStmt == nil {
+		t.Fatal("did not find return statement with closure")
+	}
+
+	sp := NewStatementPreprocessor(fset)
+	info := sp.PreprocessStatement(returnStmt, nil)
+	if info == nil {
+		t.Fatal("closure should capture prefix")
+	}
+	if _, ok := info.CapturedVars["prefix"]; !ok {
+		t.Fatalf("closure should capture prefix, got %#v", info.CapturedVars)
+	}
+	for _, name := range []string{"node", "value", "string", "int"} {
+		if _, ok := info.CapturedVars[name]; ok {
+			t.Fatalf("closure should not capture %q, got %#v", name, info.CapturedVars)
+		}
+	}
+}
+
 func TestCachedFuncLitCapturesReturnCopy(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

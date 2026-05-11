@@ -152,6 +152,13 @@ func declaredVarObjectsInFuncLit(funcLit *ast.FuncLit, typeInfo *TypeInfo) map[t
 					}
 				}
 			}
+			for _, stmt := range node.Body.List {
+				if clause, ok := stmt.(*ast.CaseClause); ok {
+					if obj, ok := typeInfo.info.Implicits[clause].(*types.Var); ok {
+						localObjects[obj] = true
+					}
+				}
+			}
 		}
 		return true
 	})

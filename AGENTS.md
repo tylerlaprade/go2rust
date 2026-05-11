@@ -213,6 +213,7 @@ See `ROADMAP.md` for the detailed implementation phases and progress.
 - Closure capture decisions should be object-based through `go/types`, not name-based.
 - Package selectors, type names, fields, and locally declared variables inside the function literal must not be captured as outer locals.
 - In keyed composite literals inside closures, `go/types` represents struct field keys as `*types.Var`. Skip `KeyValueExpr.Key` only when `types.Var.IsField()` proves it is a struct field; still inspect map literal keys because they may be real captured variables.
+- Type switch case variables declared by `switch v := x.(type)` are recorded in `go/types.Info.Implicits` on each `*ast.CaseClause`. Closure capture analysis must treat those implicit vars as local to the function literal; otherwise it emits pre-clones like `v_closure_clone := v.clone()` before `v` is in scope.
 - Nested function literal bodies should not cause pre-clones in the outer statement. Capture each literal at its own scope.
 - Function literals own their defer state. Do not let nested or deferred function literals inherit outer `currentFunctionHasDefer`; a `return` inside `defer func(){...}` returns from that closure and must not drain the outer `__defer_stack`.
 - Function literals with named result parameters need local result slot declarations, just like named functions. Return lowering may know the `fnType`, but assignments to the named result still fail unless `TranspileFuncLitBox` emits the slot before the body.

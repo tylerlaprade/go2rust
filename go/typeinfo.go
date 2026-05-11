@@ -19,6 +19,7 @@ func NewTypeInfo(files []*ast.File, fset *token.FileSet) (*TypeInfo, error) {
 		Types:      make(map[ast.Expr]types.TypeAndValue),
 		Defs:       make(map[*ast.Ident]types.Object),
 		Uses:       make(map[*ast.Ident]types.Object),
+		Implicits:  make(map[ast.Node]types.Object),
 		Selections: make(map[*ast.SelectorExpr]*types.Selection),
 		InitOrder:  []*types.Initializer{},
 	}
