@@ -348,6 +348,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Array/slice/map literals passed to package functions | ✅ |
 | └ Slice operations | ✅ |
 | └ Append into indexed slice elements inside arrays/slices | ✅ |
+| └ Append slice values into nested slices | ✅ |
 | └ Assignment into nested indexed slice elements | ✅ |
 | └ `cap` on wrapped slice fields | ✅ |
 | └ Range over wrapped call results and pointer-to-array targets | ✅ |

@@ -386,6 +386,10 @@ run_xfail_test() {
     run_test "tests/append_selector_slice_expansion"
 }
 
+@test "append_slice_element" {
+    run_test "tests/append_slice_element"
+}
+
 @test "append_slice_expansion" {
     run_test "tests/append_slice_expansion"
 }

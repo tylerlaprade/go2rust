@@ -2724,6 +2724,12 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 					if basic, ok := types.Unalias(elemType).Underlying().(*types.Basic); ok && basic.Kind() == types.String && writeRangeStringValue(out, expr) {
 						return
 					}
+					if _, isNamed := types.Unalias(elemType).(*types.Named); !isNamed {
+						if _, ok := types.Unalias(elemType).Underlying().(*types.Slice); ok {
+							writeUnwrappedSliceClone(out, expr)
+							return
+						}
+					}
 					if _, ok := localNamedInterfaceTypeNameFromTypes(elemType); ok && isBareLocalInterfaceValue(expr) {
 						writeLocalInterfaceBareClone(out, expr)
 						return
