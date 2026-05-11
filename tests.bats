@@ -1886,6 +1886,10 @@ run_xfail_test() {
     run_test "tests/string_map_parameter_keys"
 }
 
+@test "strings_case_nested" {
+    run_test "tests/strings_case_nested"
+}
+
 @test "strings_has_prefix_const_arg" {
     run_test "tests/strings_has_prefix_const_arg"
 }

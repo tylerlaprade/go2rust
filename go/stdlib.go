@@ -74,6 +74,8 @@ func init() {
 		"strings.Cut":             transpileStringsCut,
 		"strings.HasSuffix":       transpileStringsHasSuffix,
 		"strings.HasPrefix":       transpileStringsHasPrefix,
+		"strings.TrimSuffix":      transpileStringsTrimSuffix,
+		"strings.TrimPrefix":      transpileStringsTrimPrefix,
 		"strings.IndexAny":        transpileStringsIndexAny,
 		"strings.Split":           transpileStringsSplit,
 		"strings.Join":            transpileStringsJoin,
@@ -1375,8 +1377,9 @@ func writeStringBinaryResult(out *strings.Builder, call *ast.CallExpr, method st
 func transpileStringsToUpper(out *strings.Builder, call *ast.CallExpr) {
 	if len(call.Args) > 0 {
 		WriteWrapperPrefix(out)
-		TranspileExpression(out, call.Args[0])
-		out.WriteString(".to_uppercase()")
+		out.WriteString("{ let __s = ")
+		writeOwnedStringStdlibArg(out, call.Args[0])
+		out.WriteString("; __s.to_uppercase() }")
 		WriteWrapperSuffix(out)
 	}
 }
@@ -1384,8 +1387,9 @@ func transpileStringsToUpper(out *strings.Builder, call *ast.CallExpr) {
 func transpileStringsToLower(out *strings.Builder, call *ast.CallExpr) {
 	if len(call.Args) > 0 {
 		WriteWrapperPrefix(out)
-		TranspileExpression(out, call.Args[0])
-		out.WriteString(".to_lowercase()")
+		out.WriteString("{ let __s = ")
+		writeOwnedStringStdlibArg(out, call.Args[0])
+		out.WriteString("; __s.to_lowercase() }")
 		WriteWrapperSuffix(out)
 	}
 }
@@ -1508,6 +1512,32 @@ func transpileStringsHasSuffix(out *strings.Builder, call *ast.CallExpr) {
 
 func transpileStringsHasPrefix(out *strings.Builder, call *ast.CallExpr) {
 	writeStringBinaryResult(out, call, "starts_with")
+}
+
+func transpileStringsTrimSuffix(out *strings.Builder, call *ast.CallExpr) {
+	if len(call.Args) < 2 {
+		return
+	}
+	WriteWrapperPrefix(out)
+	out.WriteString("{ let __s = ")
+	writeOwnedStringStdlibArg(out, call.Args[0])
+	out.WriteString("; let __suffix = ")
+	writeOwnedStringStdlibArg(out, call.Args[1])
+	out.WriteString("; __s.strip_suffix(&__suffix).unwrap_or(&__s).to_string() }")
+	WriteWrapperSuffix(out)
+}
+
+func transpileStringsTrimPrefix(out *strings.Builder, call *ast.CallExpr) {
+	if len(call.Args) < 2 {
+		return
+	}
+	WriteWrapperPrefix(out)
+	out.WriteString("{ let __s = ")
+	writeOwnedStringStdlibArg(out, call.Args[0])
+	out.WriteString("; let __prefix = ")
+	writeOwnedStringStdlibArg(out, call.Args[1])
+	out.WriteString("; __s.strip_prefix(&__prefix).unwrap_or(&__s).to_string() }")
+	WriteWrapperSuffix(out)
 }
 
 func transpileStringsIndexAny(out *strings.Builder, call *ast.CallExpr) {

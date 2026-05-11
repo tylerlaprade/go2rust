@@ -75,8 +75,8 @@ fn main() {
     print!("Trimmed: '{}'\n", { let __v = (*trimmed.lock().unwrap().as_ref().unwrap()).clone(); __v });
 
         // Case conversion
-    print!("Upper: {}\n", (*Arc::new(Mutex::new(Some({ let __v = (*trimmed.lock().unwrap().as_ref().unwrap()).clone(); __v }.to_uppercase()))).lock().unwrap().as_ref().unwrap()));
-    print!("Lower: {}\n", (*Arc::new(Mutex::new(Some({ let __v = (*trimmed.lock().unwrap().as_ref().unwrap()).clone(); __v }.to_lowercase()))).lock().unwrap().as_ref().unwrap()));
+    print!("Upper: {}\n", (*Arc::new(Mutex::new(Some({ let __s = (*trimmed.lock().unwrap().as_ref().unwrap()).clone(); __s.to_uppercase() }))).lock().unwrap().as_ref().unwrap()));
+    print!("Lower: {}\n", (*Arc::new(Mutex::new(Some({ let __s = (*trimmed.lock().unwrap().as_ref().unwrap()).clone(); __s.to_lowercase() }))).lock().unwrap().as_ref().unwrap()));
     print!("Title: {}\n", (*Arc::new(Mutex::new(Some({ let __s = (*trimmed.lock().unwrap().as_ref().unwrap()).clone(); let mut __out = String::new(); let mut __new_word = true; for __ch in __s.chars() { if __ch.is_alphanumeric() { if __new_word { for __upper in __ch.to_uppercase() { __out.push(__upper); } } else { __out.push(__ch); } __new_word = false; } else { __out.push(__ch); __new_word = true; } } __out }))).lock().unwrap().as_ref().unwrap()));
 
         // String searching

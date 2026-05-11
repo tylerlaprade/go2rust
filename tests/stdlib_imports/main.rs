@@ -200,10 +200,10 @@ fn main() {
 
         // strings package
     println!("{}", "\n--- strings package ---".to_string());
-    let mut upper = Rc::new(RefCell::new(Some("hello world".to_string().to_uppercase())));
+    let mut upper = Rc::new(RefCell::new(Some({ let __s = "hello world".to_string(); __s.to_uppercase() })));
     println!("{} {}", "Upper:".to_string(), { let __v = (*upper.borrow().as_ref().unwrap()).clone(); __v });
 
-    let mut lower = Rc::new(RefCell::new(Some("HELLO WORLD".to_string().to_lowercase())));
+    let mut lower = Rc::new(RefCell::new(Some({ let __s = "HELLO WORLD".to_string(); __s.to_lowercase() })));
     println!("{} {}", "Lower:".to_string(), { let __v = (*lower.borrow().as_ref().unwrap()).clone(); __v });
 
     let mut trimmed = Rc::new(RefCell::new(Some({ let __s = "  hello  ".to_string(); __s.trim().to_string() })));
