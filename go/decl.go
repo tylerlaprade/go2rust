@@ -2310,6 +2310,16 @@ func methodMutatesReceiver(fn *ast.FuncDecl, receiverName string) bool {
 	return methodMutatesReceiverWithSeen(fn, receiverName, getMethodReceiverType(fn), make(map[*ast.FuncDecl]bool))
 }
 
+func methodRequiresMutableReceiver(fn *ast.FuncDecl) bool {
+	if fn == nil || fn.Recv == nil || len(fn.Recv.List) == 0 {
+		return false
+	}
+	if _, isPointer := fn.Recv.List[0].Type.(*ast.StarExpr); !isPointer {
+		return false
+	}
+	return methodMutatesReceiver(fn, receiverNameForMethod(fn))
+}
+
 func getMethodReceiverType(fn *ast.FuncDecl) string {
 	if fn == nil || fn.Recv == nil || len(fn.Recv.List) == 0 {
 		return ""
@@ -2401,15 +2411,10 @@ func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, a
 			currentReceiver = recv.Names[0].Name
 		}
 
-		// Check if pointer receiver
 		if forceSharedReceiver {
 			out.WriteString("&self")
-		} else if _, isPointer := recv.Type.(*ast.StarExpr); isPointer {
-			if !methodMutatesReceiver(fn, currentReceiver) {
-				out.WriteString("&self")
-			} else {
-				out.WriteString("&mut self")
-			}
+		} else if methodRequiresMutableReceiver(fn) {
+			out.WriteString("&mut self")
 		} else {
 			out.WriteString("&self")
 		}

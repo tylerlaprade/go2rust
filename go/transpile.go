@@ -1026,15 +1026,15 @@ func writeEmbeddedGoErrorMethod(out *strings.Builder) {
 
 // generatePromotedMethod generates a forwarding method that delegates to an embedded type's method
 func generatePromotedMethod(out *strings.Builder, method *ast.FuncDecl, embeddedTypeName string) {
+	mutableReceiver := methodRequiresMutableReceiver(method)
+
 	out.WriteString("    pub fn ")
 	out.WriteString(rustMethodName(method))
 	out.WriteString("(")
 
 	// Receiver
 	if method.Recv != nil && len(method.Recv.List) > 0 {
-		recv := method.Recv.List[0]
-		// Check if pointer receiver
-		if _, isPointer := recv.Type.(*ast.StarExpr); isPointer {
+		if mutableReceiver {
 			out.WriteString("&mut self")
 		} else {
 			out.WriteString("&self")
@@ -1103,10 +1103,17 @@ func generatePromotedMethod(out *strings.Builder, method *ast.FuncDecl, embedded
 	out.WriteString("        let embedded = self.")
 	out.WriteString(ToSnakeCase(embeddedTypeName))
 	out.WriteString(".clone();\n")
-	out.WriteString("        let mut guard = embedded")
-	WriteBorrowMethod(out, true)
-	out.WriteString(";\n")
-	out.WriteString("        let embedded_ref = guard.as_mut().unwrap();\n")
+	if mutableReceiver {
+		out.WriteString("        let mut guard = embedded")
+		WriteBorrowMethod(out, true)
+		out.WriteString(";\n")
+		out.WriteString("        let embedded_ref = guard.as_mut().unwrap();\n")
+	} else {
+		out.WriteString("        let guard = embedded")
+		WriteBorrowMethod(out, false)
+		out.WriteString(";\n")
+		out.WriteString("        let embedded_ref = guard.as_ref().unwrap();\n")
+	}
 	out.WriteString("        embedded_ref.")
 	out.WriteString(rustMethodName(method))
 	out.WriteString("(")

@@ -146,3 +146,67 @@ func TestMethodMutatesReceiverUsesPackageMethods(t *testing.T) {
 		t.Fatalf("receiver calls to mutating methods from another file should require &mut self")
 	}
 }
+
+func TestGeneratePromotedMethodKeepsReadOnlyPointerReceiverShared(t *testing.T) {
+	method := &ast.FuncDecl{
+		Name: ast.NewIdent("String"),
+		Recv: &ast.FieldList{List: []*ast.Field{{
+			Names: []*ast.Ident{ast.NewIdent("p")},
+			Type:  &ast.StarExpr{X: ast.NewIdent("Package")},
+		}}},
+		Type: &ast.FuncType{
+			Results: &ast.FieldList{List: []*ast.Field{{Type: ast.NewIdent("string")}}},
+		},
+		Body: &ast.BlockStmt{List: []ast.Stmt{
+			&ast.ReturnStmt{Results: []ast.Expr{
+				&ast.SelectorExpr{X: ast.NewIdent("p"), Sel: ast.NewIdent("ID")},
+			}},
+		}},
+	}
+
+	var out strings.Builder
+	generatePromotedMethod(&out, method, "Package")
+
+	got := out.String()
+	if !strings.Contains(got, "pub fn string(&self)") {
+		t.Fatalf("read-only promoted pointer method should use &self, got:\n%s", got)
+	}
+	if strings.Contains(got, "&mut self") {
+		t.Fatalf("read-only promoted pointer method should not require &mut self, got:\n%s", got)
+	}
+	if !strings.Contains(got, "let guard = embedded") || !strings.Contains(got, "guard.as_ref().unwrap()") {
+		t.Fatalf("read-only promoted pointer method should borrow embedded value immutably, got:\n%s", got)
+	}
+	if strings.Contains(got, "as_mut().unwrap()") {
+		t.Fatalf("read-only promoted pointer method should not mutably borrow embedded value, got:\n%s", got)
+	}
+}
+
+func TestGeneratePromotedMethodKeepsMutatingPointerReceiverMutable(t *testing.T) {
+	method := &ast.FuncDecl{
+		Name: ast.NewIdent("Set"),
+		Recv: &ast.FieldList{List: []*ast.Field{{
+			Names: []*ast.Ident{ast.NewIdent("p")},
+			Type:  &ast.StarExpr{X: ast.NewIdent("Package")},
+		}}},
+		Type: &ast.FuncType{},
+		Body: &ast.BlockStmt{List: []ast.Stmt{
+			&ast.AssignStmt{
+				Lhs: []ast.Expr{&ast.SelectorExpr{X: ast.NewIdent("p"), Sel: ast.NewIdent("ID")}},
+				Tok: token.ASSIGN,
+				Rhs: []ast.Expr{&ast.BasicLit{Kind: token.STRING, Value: `"updated"`}},
+			},
+		}},
+	}
+
+	var out strings.Builder
+	generatePromotedMethod(&out, method, "Package")
+
+	got := out.String()
+	if !strings.Contains(got, "pub fn set(&mut self)") {
+		t.Fatalf("mutating promoted pointer method should use &mut self, got:\n%s", got)
+	}
+	if !strings.Contains(got, "let mut guard = embedded") || !strings.Contains(got, "guard.as_mut().unwrap()") {
+		t.Fatalf("mutating promoted pointer method should borrow embedded value mutably, got:\n%s", got)
+	}
+}
