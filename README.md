@@ -233,7 +233,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ `Error()` calls on wrapped `error` interface values and fields | ✅ |
 | └ Error values sent, received, and returned through channels | ✅ |
 | └ Structs embedding the predeclared `error` interface | ✅ |
-| └ Type switches, including nil and selector pointer cases | ✅ |
+| └ Type switches, including nil, selector pointer, and stdlib named-slice cases | ✅ |
 | **`map` - Map types** | |
 | └ Map types | ✅ |
 | └ Map literals | ✅ |

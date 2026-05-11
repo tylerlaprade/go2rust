@@ -13,6 +13,7 @@ import (
 
 var externalTypeStubs = make(map[string]bool)
 var externalTypeStubIntegerTypes = make(map[string]string)
+var externalTypeStubTupleTypes = make(map[string]string)
 var externalTypeStubFields = make(map[string]map[string]string)
 var externalTypeStubMethods = make(map[string]map[string]externalTypeStubMethod)
 var externalTypeStubConversions = make(map[string]map[string]bool)
@@ -55,6 +56,9 @@ func RegisterExternalTypeStubNamed(named *types.Named, rustName string) {
 	if rustType, ok := externalIntegerRustTypeForNamed(named); ok {
 		currentExternalTypeStubIntegerTypes()[rustName] = rustType
 	}
+	if rustType, ok := externalTupleRustTypeForNamed(named); ok {
+		currentExternalTypeStubTupleTypes()[rustName] = rustType
+	}
 	RegisterExternalErrorMethodForNamed(named, rustName)
 }
 
@@ -77,6 +81,9 @@ func RegisterExternalTypeStubForTypeExpr(expr ast.Expr, rustName string) {
 	}
 	if rustType, ok := externalIntegerRustTypeForNamed(named); ok {
 		currentExternalTypeStubIntegerTypes()[rustName] = rustType
+	}
+	if rustType, ok := externalTupleRustTypeForNamed(named); ok {
+		currentExternalTypeStubTupleTypes()[rustName] = rustType
 	}
 }
 
@@ -114,6 +121,21 @@ func externalIntegerRustTypeForNamed(named *types.Named) (string, bool) {
 		return "u64", true
 	case types.Uintptr:
 		return "usize", true
+	default:
+		return "", false
+	}
+}
+
+func externalTupleRustTypeForNamed(named *types.Named) (string, bool) {
+	if named == nil || named.Obj() == nil || named.Obj().Pkg() == nil {
+		return "", false
+	}
+	if !isStdlibPackage(named.Obj().Pkg().Path()) {
+		return "", false
+	}
+	switch underlying := types.Unalias(named.Underlying()).(type) {
+	case *types.Slice:
+		return goTypesTypeToRustWrapped(underlying), true
 	default:
 		return "", false
 	}
@@ -605,6 +627,22 @@ func currentExternalTypeStubIntegerTypes() map[string]string {
 	return externalTypeStubIntegerTypes
 }
 
+func currentExternalTypeStubTupleTypes() map[string]string {
+	if usePackageExternalStubs() {
+		if currentContext.Package.ExternalTypeStubTupleTypes == nil {
+			currentContext.Package.ExternalTypeStubTupleTypes = make(map[string]string)
+		}
+		return currentContext.Package.ExternalTypeStubTupleTypes
+	}
+	if currentContext != nil && currentContext.File != nil {
+		if currentContext.File.ExternalTypeStubTupleTypes == nil {
+			currentContext.File.ExternalTypeStubTupleTypes = make(map[string]string)
+		}
+		return currentContext.File.ExternalTypeStubTupleTypes
+	}
+	return externalTypeStubTupleTypes
+}
+
 func currentExternalTypeStubFields() map[string]map[string]string {
 	if usePackageExternalStubs() {
 		if currentContext.Package.ExternalTypeStubFields == nil {
@@ -677,14 +715,14 @@ func GenerateExternalTypeStubs() string {
 	if usePackageExternalStubs() {
 		return ""
 	}
-	return generateExternalStubs(currentExternalTypeStubs(), currentExternalTypeStubIntegerTypes(), currentExternalTypeStubFields(), currentExternalTypeStubMethods(), currentExternalTypeStubConversions(), currentExternalPackageStubs())
+	return generateExternalStubs(currentExternalTypeStubs(), currentExternalTypeStubIntegerTypes(), currentExternalTypeStubTupleTypes(), currentExternalTypeStubFields(), currentExternalTypeStubMethods(), currentExternalTypeStubConversions(), currentExternalPackageStubs())
 }
 
 func GeneratePackageExternalStubs(pkg *PackageState) string {
 	if pkg == nil {
 		return ""
 	}
-	return generateExternalStubs(pkg.ExternalTypeStubs, pkg.ExternalTypeStubIntegerTypes, pkg.ExternalTypeStubFields, pkg.ExternalTypeStubMethods, pkg.ExternalTypeStubConversions, pkg.ExternalPackageStubs)
+	return generateExternalStubs(pkg.ExternalTypeStubs, pkg.ExternalTypeStubIntegerTypes, pkg.ExternalTypeStubTupleTypes, pkg.ExternalTypeStubFields, pkg.ExternalTypeStubMethods, pkg.ExternalTypeStubConversions, pkg.ExternalPackageStubs)
 }
 
 func WriteSharedStdlibStubCrate(workDir string, states []*PackageState) error {
@@ -733,6 +771,7 @@ func MergeExternalStubPackageStates(states ...*PackageState) *PackageState {
 		}
 		mergeBoolMap(merged.ExternalTypeStubs, state.ExternalTypeStubs)
 		mergeStringMap(merged.ExternalTypeStubIntegerTypes, state.ExternalTypeStubIntegerTypes)
+		mergeStringMap(merged.ExternalTypeStubTupleTypes, state.ExternalTypeStubTupleTypes)
 		mergeNestedStringMap(merged.ExternalTypeStubFields, state.ExternalTypeStubFields)
 		mergeNestedMethodMap(merged.ExternalTypeStubMethods, state.ExternalTypeStubMethods)
 		mergeNestedBoolMap(merged.ExternalTypeStubConversions, state.ExternalTypeStubConversions)
@@ -903,7 +942,7 @@ func GenerateExternalStubModuleImports() string {
 	return out.String()
 }
 
-func generateExternalStubs(stubs map[string]bool, integerTypes map[string]string, fieldsByType map[string]map[string]string, methodsByType map[string]map[string]externalTypeStubMethod, conversions map[string]map[string]bool, packageStubs map[string]*externalPackageStub) string {
+func generateExternalStubs(stubs map[string]bool, integerTypes map[string]string, tupleTypes map[string]string, fieldsByType map[string]map[string]string, methodsByType map[string]map[string]externalTypeStubMethod, conversions map[string]map[string]bool, packageStubs map[string]*externalPackageStub) string {
 	if len(stubs) == 0 && len(conversions) == 0 && len(packageStubs) == 0 {
 		return ""
 	}
@@ -920,15 +959,25 @@ func generateExternalStubs(stubs map[string]bool, integerTypes map[string]string
 		}
 		fields := fieldsByType[name]
 		if len(fields) == 0 {
-			out.WriteString("#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]\n")
-			out.WriteString("pub struct ")
-			out.WriteString(name)
 			if integerType := integerTypes[name]; integerType != "" {
+				out.WriteString("#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]\n")
+				out.WriteString("pub struct ")
+				out.WriteString(name)
 				out.WriteString("(pub ")
 				out.WriteString(integerType)
 				out.WriteString(");\n\n")
 				writeExternalIntegerStubOps(&out, name, integerType)
+			} else if tupleType := tupleTypes[name]; tupleType != "" {
+				out.WriteString("#[derive(Debug, Clone, Default)]\n")
+				out.WriteString("pub struct ")
+				out.WriteString(name)
+				out.WriteString("(pub ")
+				out.WriteString(tupleType)
+				out.WriteString(");\n")
 			} else {
+				out.WriteString("#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]\n")
+				out.WriteString("pub struct ")
+				out.WriteString(name)
 				out.WriteString(";\n\n")
 			}
 		} else {

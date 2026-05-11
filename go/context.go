@@ -34,6 +34,7 @@ type PackageState struct {
 	ImportedInterfaceImpls       map[string]map[string]*types.Interface
 	ExternalTypeStubs            map[string]bool
 	ExternalTypeStubIntegerTypes map[string]string
+	ExternalTypeStubTupleTypes   map[string]string
 	ExternalTypeStubFields       map[string]map[string]string
 	ExternalTypeStubMethods      map[string]map[string]externalTypeStubMethod
 	ExternalTypeStubConversions  map[string]map[string]bool
@@ -56,6 +57,7 @@ type FileState struct {
 	CurrentCaptureRenames        map[string]string
 	ExternalTypeStubs            map[string]bool
 	ExternalTypeStubIntegerTypes map[string]string
+	ExternalTypeStubTupleTypes   map[string]string
 	ExternalTypeStubFields       map[string]map[string]string
 	ExternalTypeStubMethods      map[string]map[string]externalTypeStubMethod
 	ExternalTypeStubConversions  map[string]map[string]bool
@@ -108,6 +110,7 @@ func NewPackageState() *PackageState {
 		ImportedInterfaceImpls:       make(map[string]map[string]*types.Interface),
 		ExternalTypeStubs:            make(map[string]bool),
 		ExternalTypeStubIntegerTypes: make(map[string]string),
+		ExternalTypeStubTupleTypes:   make(map[string]string),
 		ExternalTypeStubFields:       make(map[string]map[string]string),
 		ExternalTypeStubMethods:      make(map[string]map[string]externalTypeStubMethod),
 		ExternalTypeStubConversions:  make(map[string]map[string]bool),
@@ -132,6 +135,7 @@ func NewFileState(imports *ImportTracker, helpers *HelperTracker, statementPrepr
 		LocalInterfaces:              make(map[string]bool),
 		ExternalTypeStubs:            make(map[string]bool),
 		ExternalTypeStubIntegerTypes: make(map[string]string),
+		ExternalTypeStubTupleTypes:   make(map[string]string),
 		ExternalTypeStubFields:       make(map[string]map[string]string),
 		ExternalTypeStubMethods:      make(map[string]map[string]externalTypeStubMethod),
 		ExternalTypeStubConversions:  make(map[string]map[string]bool),
@@ -222,6 +226,9 @@ func (ctx *TranspileContext) ensureDefaults() {
 		if ctx.Package.ExternalTypeStubIntegerTypes == nil {
 			ctx.Package.ExternalTypeStubIntegerTypes = make(map[string]string)
 		}
+		if ctx.Package.ExternalTypeStubTupleTypes == nil {
+			ctx.Package.ExternalTypeStubTupleTypes = make(map[string]string)
+		}
 		if ctx.Package.ExternalTypeStubFields == nil {
 			ctx.Package.ExternalTypeStubFields = make(map[string]map[string]string)
 		}
@@ -259,6 +266,9 @@ func (ctx *TranspileContext) ensureDefaults() {
 		}
 		if ctx.File.ExternalTypeStubIntegerTypes == nil {
 			ctx.File.ExternalTypeStubIntegerTypes = make(map[string]string)
+		}
+		if ctx.File.ExternalTypeStubTupleTypes == nil {
+			ctx.File.ExternalTypeStubTupleTypes = make(map[string]string)
 		}
 		if ctx.File.ExternalTypeStubFields == nil {
 			ctx.File.ExternalTypeStubFields = make(map[string]map[string]string)
@@ -323,6 +333,7 @@ func (ctx *TranspileContext) captureCompatibilityState() {
 		ctx.File.CurrentCaptureRenames = currentCaptureRenames
 		ctx.File.ExternalTypeStubs = externalTypeStubs
 		ctx.File.ExternalTypeStubIntegerTypes = externalTypeStubIntegerTypes
+		ctx.File.ExternalTypeStubTupleTypes = externalTypeStubTupleTypes
 		ctx.File.ExternalTypeStubFields = externalTypeStubFields
 		ctx.File.ExternalTypeStubMethods = externalTypeStubMethods
 		ctx.File.ExternalTypeStubConversions = externalTypeStubConversions
@@ -375,6 +386,7 @@ func (ctx *TranspileContext) applyCompatibilityState() {
 		currentCaptureRenames = ctx.File.CurrentCaptureRenames
 		externalTypeStubs = ctx.File.ExternalTypeStubs
 		externalTypeStubIntegerTypes = ctx.File.ExternalTypeStubIntegerTypes
+		externalTypeStubTupleTypes = ctx.File.ExternalTypeStubTupleTypes
 		externalTypeStubFields = ctx.File.ExternalTypeStubFields
 		externalTypeStubMethods = ctx.File.ExternalTypeStubMethods
 		externalTypeStubConversions = ctx.File.ExternalTypeStubConversions

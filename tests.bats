@@ -1700,6 +1700,10 @@ run_xfail_test() {
     run_test "tests/stdlib_method_stubs"
 }
 
+@test "stdlib_named_slice_type_switch" {
+    run_test "tests/stdlib_named_slice_type_switch"
+}
+
 @test "stdlib_package_func_stubs" {
     run_test "tests/stdlib_package_func_stubs"
 }
