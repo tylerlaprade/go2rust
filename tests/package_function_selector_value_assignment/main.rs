@@ -15,6 +15,12 @@ pub struct Config {
     pub logf: Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<String>>>, Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) -> ()>>>>,
 }
 
+impl Config {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { logf: self.logf.clone() }
+    }
+}
+
 impl std::fmt::Display for Config {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{}}}", "<func>")
@@ -25,6 +31,12 @@ impl std::fmt::Display for Config {
 #[derive(Clone)]
 pub struct loader {
     pub config: Rc<RefCell<Option<Config>>>,
+}
+
+impl loader {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { config: { let __guard = self.config.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
 }
 
 

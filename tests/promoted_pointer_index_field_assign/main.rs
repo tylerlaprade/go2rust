@@ -181,6 +181,12 @@ pub struct Package {
     pub imports: Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<Package>>>>>>>,
 }
 
+impl Package {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { name: { let __guard = self.name.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, imports: self.imports.clone() }
+    }
+}
+
 impl std::fmt::Display for Package {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{} {}}}", (*self.name.lock().unwrap().as_ref().unwrap()), format_map(&self.imports))
@@ -194,6 +200,12 @@ pub struct loaderPackage {
     pub color: Arc<Mutex<Option<i32>>>,
 }
 
+impl loaderPackage {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { package: self.package.clone(), color: { let __guard = self.color.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+    }
+}
+
 impl std::fmt::Display for loaderPackage {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{} {}}}", (*self.package.lock().unwrap().as_ref().unwrap()), (*self.color.lock().unwrap().as_ref().unwrap()))
@@ -204,6 +216,12 @@ impl std::fmt::Display for loaderPackage {
 #[derive(Debug, Clone, Default)]
 pub struct loader {
     pub pkgs: Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<loaderPackage>>>>>>>,
+}
+
+impl loader {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { pkgs: self.pkgs.clone() }
+    }
 }
 
 impl std::fmt::Display for loader {

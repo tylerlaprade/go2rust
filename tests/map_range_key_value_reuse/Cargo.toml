@@ -1,0 +1,8 @@
+[package]
+name = "map_range_key_value_reuse"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "map_range_key_value_reuse"
+path = "main.rs"

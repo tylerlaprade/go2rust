@@ -69,6 +69,12 @@ pub struct entry {
     pub obj: Rc<RefCell<Option<types_Object>>>,
 }
 
+impl entry {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { obj: self.obj.clone() }
+    }
+}
+
 impl std::fmt::Display for entry {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{}}}", (*self.obj.borrow().as_ref().unwrap()))

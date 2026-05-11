@@ -319,6 +319,12 @@ pub struct Symbol {
     pub kind: Arc<Mutex<Option<Kind>>>,
 }
 
+impl Symbol {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { kind: { let __guard = self.kind.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+    }
+}
+
 impl std::fmt::Display for Symbol {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{}}}", (*self.kind.lock().unwrap().as_ref().unwrap()))
@@ -348,7 +354,7 @@ impl Symbol {
     }
 
     pub fn kind_name(&self) -> Arc<Mutex<Option<String>>> {
-        { let _switch_val = (*self.kind.clone().lock().unwrap().as_ref().unwrap()).clone();
+        { let _switch_val = { let __selector_holder = self.kind.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
     if _switch_val == (Kind(Arc::new(Mutex::new(Some(FIELD as i8))))) {
             return Arc::new(Mutex::new(Some("field".to_string())));
         } else if _switch_val == (Kind(Arc::new(Mutex::new(Some(METHOD as i8))))) {

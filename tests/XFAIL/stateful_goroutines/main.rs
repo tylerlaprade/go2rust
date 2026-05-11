@@ -195,6 +195,12 @@ pub struct readOp {
     pub resp: GoChannel<i32>,
 }
 
+impl readOp {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { key: { let __guard = self.key.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, resp: self.resp.clone() }
+    }
+}
+
 impl std::fmt::Display for readOp {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{}}}", (*self.key.lock().unwrap().as_ref().unwrap()))
@@ -207,6 +213,12 @@ pub struct writeOp {
     pub key: Arc<Mutex<Option<i32>>>,
     pub val: Arc<Mutex<Option<i32>>>,
     pub resp: GoChannel<bool>,
+}
+
+impl writeOp {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { key: { let __guard = self.key.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, val: { let __guard = self.val.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, resp: self.resp.clone() }
+    }
 }
 
 impl std::fmt::Display for writeOp {

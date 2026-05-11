@@ -7,6 +7,12 @@ pub struct entry {
     pub deps: Rc<RefCell<Option<String>>>,
 }
 
+impl entry {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { deps: { let __guard = self.deps.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
 impl std::fmt::Display for entry {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{}}}", (*self.deps.borrow().as_ref().unwrap()))

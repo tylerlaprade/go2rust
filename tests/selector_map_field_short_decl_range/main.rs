@@ -181,6 +181,12 @@ pub struct Package {
     pub imports: Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<Package>>>>>>>,
 }
 
+impl Package {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { i_d: { let __guard = self.i_d.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, imports: self.imports.clone() }
+    }
+}
+
 impl std::fmt::Display for Package {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{} {}}}", (*self.i_d.lock().unwrap().as_ref().unwrap()), format_map(&self.imports))
@@ -194,7 +200,7 @@ fn main() {
     let mut stubs = (*root.lock().unwrap().as_ref().unwrap()).imports.clone();
     { let new_val = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<Package>>>>::from([])))); (*root.lock().unwrap().as_mut().unwrap()).imports = new_val; };
     for (path, pkg) in { let __range_holder = stubs.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_map = (*__range_guard.as_ref().unwrap()).clone(); drop(__range_guard); __range_map } {
-        println!("{} {}", path, (*{ let __field = (*pkg.lock().unwrap().as_ref().unwrap()).i_d.clone(); __field }.lock().unwrap().as_ref().unwrap()));
+        println!("{} {}", path, (*{ let __field = (*pkg.lock().unwrap().as_ref().unwrap()).i_d.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone());
     }
     done.send(true);
     println!("{}", done.recv().unwrap());

@@ -337,6 +337,12 @@ pub struct Symbol {
     pub version: Rc<RefCell<Option<Version>>>,
 }
 
+impl Symbol {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { name: { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, kind: { let __guard = self.kind.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, version: { let __guard = self.version.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
 impl std::fmt::Display for Symbol {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{} {} {}}}", (*self.name.borrow().as_ref().unwrap()), (*self.kind.borrow().as_ref().unwrap()), (*self.version.borrow().as_ref().unwrap()))
@@ -348,6 +354,6 @@ fn main() {
     let mut sym = Rc::new(RefCell::new(Some(Symbol { name: Rc::new(RefCell::new(Some("Println".to_string()))), kind: Rc::new(RefCell::new(Some(Kind(Rc::new(RefCell::new(Some(FUNC as i8))))))), version: Rc::new(RefCell::new(Some(Version(Rc::new(RefCell::new(Some(1 as i8))))))), ..Default::default() })));
     let mut field = Rc::new(RefCell::new(Some(Symbol { name: Rc::new(RefCell::new(Some("Point.X".to_string()))), kind: Rc::new(RefCell::new(Some(Kind(Rc::new(RefCell::new(Some(FIELD as i8))))))), version: Rc::new(RefCell::new(Some(Version(Rc::new(RefCell::new(Some(0 as i8))))))), ..Default::default() })));
 
-    println!("{} {} {}", (*(*sym.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()), (*(*sym.borrow().as_ref().unwrap()).kind.borrow().as_ref().unwrap()), (*(*sym.borrow().as_ref().unwrap()).version.borrow().as_ref().unwrap()));
-    println!("{} {} {}", (*(*field.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()), (*(*field.borrow().as_ref().unwrap()).kind.borrow().as_ref().unwrap()), (*(*field.borrow().as_ref().unwrap()).version.borrow().as_ref().unwrap()));
+    println!("{} {} {}", (*(*sym.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()).clone(), (*(*sym.borrow().as_ref().unwrap()).kind.borrow().as_ref().unwrap()).clone(), (*(*sym.borrow().as_ref().unwrap()).version.borrow().as_ref().unwrap()).clone());
+    println!("{} {} {}", (*(*field.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()).clone(), (*(*field.borrow().as_ref().unwrap()).kind.borrow().as_ref().unwrap()).clone(), (*(*field.borrow().as_ref().unwrap()).version.borrow().as_ref().unwrap()).clone());
 }

@@ -152,6 +152,12 @@ pub struct Holder {
     pub ch: GoChannel<i32>,
 }
 
+impl Holder {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { ch: self.ch.clone() }
+    }
+}
+
 impl std::fmt::Display for Holder {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{}}")

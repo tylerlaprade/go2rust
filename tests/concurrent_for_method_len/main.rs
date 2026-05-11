@@ -153,6 +153,12 @@ pub struct Params {
     pub n: Arc<Mutex<Option<i32>>>,
 }
 
+impl Params {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { n: { let __guard = self.n.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+    }
+}
+
 impl std::fmt::Display for Params {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{}}}", (*self.n.lock().unwrap().as_ref().unwrap()))

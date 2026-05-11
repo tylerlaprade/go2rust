@@ -29,6 +29,12 @@ pub struct sampleBox {
     pub value: Rc<RefCell<Option<Box<dyn Any>>>>,
 }
 
+impl sampleBox {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { value: self.value.clone() }
+    }
+}
+
 impl std::fmt::Display for sampleBox {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{}}}", format_any(self.value.borrow().as_ref().unwrap().as_ref()))

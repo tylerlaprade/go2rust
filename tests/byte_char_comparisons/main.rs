@@ -10,6 +10,12 @@ pub(crate) const OP_ELEM: i32 = ('E' as i32);
 pub struct opAppender {
 }
 
+impl opAppender {
+    pub fn __go_value_clone(&self) -> Self {
+        Self {  }
+    }
+}
+
 impl std::fmt::Display for opAppender {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{}}")

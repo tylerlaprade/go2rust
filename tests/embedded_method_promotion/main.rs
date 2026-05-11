@@ -8,6 +8,12 @@ pub struct Logger {
     pub prefix: Rc<RefCell<Option<String>>>,
 }
 
+impl Logger {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { prefix: { let __guard = self.prefix.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
 impl std::fmt::Display for Logger {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{}}}", (*self.prefix.borrow().as_ref().unwrap()))
@@ -18,6 +24,12 @@ impl std::fmt::Display for Logger {
 #[derive(Debug, Clone, Default)]
 pub struct Counter {
     pub count: Rc<RefCell<Option<i32>>>,
+}
+
+impl Counter {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { count: { let __guard = self.count.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
 }
 
 impl std::fmt::Display for Counter {
@@ -33,6 +45,12 @@ pub struct Service {
     pub logger: Rc<RefCell<Option<Logger>>>,
     pub counter: Rc<RefCell<Option<Counter>>>,
     pub name: Rc<RefCell<Option<String>>>,
+}
+
+impl Service {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { logger: { let __guard = self.logger.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, counter: { let __guard = self.counter.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, name: { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
 }
 
 
@@ -55,6 +73,12 @@ pub struct Base {
     pub id: Rc<RefCell<Option<i32>>>,
 }
 
+impl Base {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { id: { let __guard = self.id.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
 impl std::fmt::Display for Base {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{}}}", (*self.id.borrow().as_ref().unwrap()))
@@ -66,6 +90,12 @@ impl std::fmt::Display for Base {
 pub struct Middle {
     pub base: Rc<RefCell<Option<Base>>>,
     pub data: Rc<RefCell<Option<String>>>,
+}
+
+impl Middle {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { base: { let __guard = self.base.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, data: { let __guard = self.data.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
 }
 
 
@@ -86,6 +116,12 @@ impl std::fmt::Display for Middle {
 pub struct Top {
     pub middle: Rc<RefCell<Option<Middle>>>,
     pub extra: Rc<RefCell<Option<String>>>,
+}
+
+impl Top {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { middle: { let __guard = self.middle.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, extra: { let __guard = self.extra.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
 }
 
 

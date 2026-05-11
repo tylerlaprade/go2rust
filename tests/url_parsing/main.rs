@@ -31,8 +31,8 @@ fn main() {
         return;
     }
 
-    println!("{} {}", "Scheme:".to_string(), (*{ let __field = (*u.lock().unwrap().as_ref().unwrap()).scheme.clone(); __field }.lock().unwrap().as_ref().unwrap()));
-    println!("{} {}", "Host:".to_string(), (*{ let __field = (*u.lock().unwrap().as_ref().unwrap()).host.clone(); __field }.lock().unwrap().as_ref().unwrap()));
-    println!("{} {}", "Path:".to_string(), (*{ let __field = (*u.lock().unwrap().as_ref().unwrap()).path.clone(); __field }.lock().unwrap().as_ref().unwrap()));
-    println!("{} {}", "Query:".to_string(), (*{ let __field = (*u.lock().unwrap().as_ref().unwrap()).raw_query.clone(); __field }.lock().unwrap().as_ref().unwrap()));
+    println!("{} {}", "Scheme:".to_string(), (*{ let __field = (*u.lock().unwrap().as_ref().unwrap()).scheme.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone());
+    println!("{} {}", "Host:".to_string(), (*{ let __field = (*u.lock().unwrap().as_ref().unwrap()).host.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone());
+    println!("{} {}", "Path:".to_string(), (*{ let __field = (*u.lock().unwrap().as_ref().unwrap()).path.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone());
+    println!("{} {}", "Query:".to_string(), (*{ let __field = (*u.lock().unwrap().as_ref().unwrap()).raw_query.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone());
 }

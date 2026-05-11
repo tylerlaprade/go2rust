@@ -7,6 +7,12 @@ pub struct Runner {
     pub callback: Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<String>>>) -> ()>>>>,
 }
 
+impl Runner {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { callback: self.callback.clone() }
+    }
+}
+
 impl std::fmt::Display for Runner {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{}}}", "<func>")

@@ -11,6 +11,12 @@ pub struct Config {
     pub debug: Rc<RefCell<Option<bool>>>,
 }
 
+impl Config {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { name: { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, version: { let __guard = self.version.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, debug: { let __guard = self.debug.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
 impl std::fmt::Display for Config {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{} {} {}}}", (*self.name.borrow().as_ref().unwrap()), (*self.version.borrow().as_ref().unwrap()), (*self.debug.borrow().as_ref().unwrap()))
@@ -146,7 +152,7 @@ fn main() {
     print!("  build: {}\n", (*configData.borrow().as_ref().unwrap()).get(&"build".to_string()).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| String::new()));
     print!("  target: {}\n", (*configData.borrow().as_ref().unwrap()).get(&"target".to_string()).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| String::new()));
 
-    print!("\nApp config: {{Name:{} Version:{} Debug:{}}}\n", (*(*appConfig.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()), (*(*appConfig.borrow().as_ref().unwrap()).version.borrow().as_ref().unwrap()), (*(*appConfig.borrow().as_ref().unwrap()).debug.borrow().as_ref().unwrap()));
+    print!("\nApp config: {{Name:{} Version:{} Debug:{}}}\n", (*(*appConfig.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()).clone(), (*(*appConfig.borrow().as_ref().unwrap()).version.borrow().as_ref().unwrap()).clone(), (*(*appConfig.borrow().as_ref().unwrap()).debug.borrow().as_ref().unwrap()));
 
         // Demonstrate that init functions only run once
     println!("{}", "\n=== Calling functions that were used in init ===".to_string());

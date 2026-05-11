@@ -8,6 +8,12 @@ pub struct rect {
     pub height: Rc<RefCell<Option<i32>>>,
 }
 
+impl rect {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { width: { let __guard = self.width.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, height: { let __guard = self.height.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
 impl std::fmt::Display for rect {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{} {}}}", (*self.width.borrow().as_ref().unwrap()), (*self.height.borrow().as_ref().unwrap()))

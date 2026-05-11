@@ -49,6 +49,12 @@ pub struct item {
     pub n: Rc<RefCell<Option<i32>>>,
 }
 
+impl item {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { n: { let __guard = self.n.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
 impl std::fmt::Display for item {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{}}}", (*self.n.borrow().as_ref().unwrap()))
@@ -59,6 +65,12 @@ impl std::fmt::Display for item {
 #[derive(Debug, Clone, Default)]
 pub struct holder {
     pub items: Rc<RefCell<Option<Vec<Rc<RefCell<Option<item>>>>>>>,
+}
+
+impl holder {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { items: self.items.clone() }
+    }
 }
 
 impl std::fmt::Display for holder {

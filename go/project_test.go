@@ -1372,7 +1372,7 @@ func lang(v version) bool {
 	if strings.Contains(mainRS, "let __tmp_x = (*{ let __field = (*v.lock().unwrap().as_ref().unwrap()).minor.clone(); __field }.lock().unwrap().as_ref().unwrap());") {
 		t.Fatalf("string selector comparison should not move String out of a shared reference, got:\n%s", mainRS)
 	}
-	if !strings.Contains(mainRS, "let __tmp_x = (*{ let __field = (*v.lock().unwrap().as_ref().unwrap()).minor.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone();") {
+	if !strings.Contains(mainRS, "let __cloned = (*__selector_guard.as_ref().unwrap()).clone();") {
 		t.Fatalf("string selector comparison should clone the selected String value, got:\n%s", mainRS)
 	}
 }
@@ -1695,6 +1695,9 @@ func main() {
 	}
 	if !strings.Contains(eventRS, "#[derive(Clone, Default)]\npub struct Event") {
 		t.Fatalf("struct with imported field should still derive Clone and Default, got:\n%s", eventRS)
+	}
+	if !strings.Contains(eventRS, "pub fn __go_value_clone(&self) -> Self") {
+		t.Fatalf("struct with imported field should get a Go value-copy helper, got:\n%s", eventRS)
 	}
 }
 

@@ -29,6 +29,12 @@ pub struct entry {
     pub value: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>,
 }
 
+impl entry {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { value: self.value.clone() }
+    }
+}
+
 impl std::fmt::Display for entry {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{}}}", format_any(self.value.lock().unwrap().as_ref().unwrap().as_ref()))

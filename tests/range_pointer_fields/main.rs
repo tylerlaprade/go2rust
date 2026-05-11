@@ -7,6 +7,12 @@ pub struct node {
     pub value: Rc<RefCell<Option<i32>>>,
 }
 
+impl node {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { value: { let __guard = self.value.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
 impl std::fmt::Display for node {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{}}}", (*self.value.borrow().as_ref().unwrap()))
@@ -19,7 +25,7 @@ pub fn read(n: Rc<RefCell<Option<node>>>) -> Rc<RefCell<Option<i32>>> {
     if (*n.borrow()).is_none() {
         return Rc::new(RefCell::new(Some(-1)));
     }
-    return Rc::new(RefCell::new(Some((*(*n.borrow().as_ref().unwrap()).value.borrow().as_ref().unwrap()).clone())));
+    return Rc::new(RefCell::new(Some({ let __selector_holder = (*n.borrow().as_ref().unwrap()).value.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
 }
 
 fn main() {

@@ -43,6 +43,12 @@ pub struct holder {
     pub value: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>,
 }
 
+impl holder {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { reader: self.reader.clone(), value: self.value.clone() }
+    }
+}
+
 impl std::fmt::Display for holder {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{} {}}}", (*self.reader.lock().unwrap().as_ref().unwrap()), format_any(self.value.lock().unwrap().as_ref().unwrap().as_ref()))

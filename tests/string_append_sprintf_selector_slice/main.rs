@@ -49,6 +49,12 @@ pub struct loadError {
     pub import_stack: Rc<RefCell<Option<Vec<String>>>>,
 }
 
+impl loadError {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { import_stack: self.import_stack.clone() }
+    }
+}
+
 impl std::fmt::Display for loadError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{}}}", format_slice(&self.import_stack))
@@ -60,7 +66,7 @@ fn main() {
     let mut err = Rc::new(RefCell::new(Some(loadError { import_stack: Rc::new(RefCell::new(Some(vec!["root".to_string(), "dep".to_string()]))), ..Default::default() })));
     let mut msg = Rc::new(RefCell::new(Some("import cycle not allowed".to_string())));
     if ((*(*err.borrow().as_ref().unwrap()).import_stack.borrow().as_ref().unwrap()).len() as i32) != (0 as i32) {
-        { (*msg.borrow_mut().as_mut().unwrap()).push_str(&{ let __s = Rc::new(RefCell::new(Some(format!(": import stack: {}", format_slice_values(&(*(*err.borrow().as_ref().unwrap()).import_stack.borrow().as_ref().unwrap())))))); let __value = (*__s.borrow().as_ref().unwrap()).clone(); __value }); };
+        { (*msg.borrow_mut().as_mut().unwrap()).push_str(&{ let __s = Rc::new(RefCell::new(Some(format!(": import stack: {}", format_slice_values(&(*(*err.borrow().as_ref().unwrap()).import_stack.borrow().as_ref().unwrap()).clone()))))); let __value = (*__s.borrow().as_ref().unwrap()).clone(); __value }); };
     }
     println!("{}", { let __v = (*msg.borrow().as_ref().unwrap()).clone(); __v });
 }

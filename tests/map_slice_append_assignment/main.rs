@@ -8,6 +8,12 @@ pub struct entry {
     pub key: Arc<Mutex<Option<i32>>>,
 }
 
+impl entry {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { key: { let __guard = self.key.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+    }
+}
+
 impl std::fmt::Display for entry {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{}}}", (*self.key.lock().unwrap().as_ref().unwrap()))

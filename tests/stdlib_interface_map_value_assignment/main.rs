@@ -121,14 +121,14 @@ pub mod types {
 
 
 pub fn remember(values: Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<types_Type>>>>>>>) {
-    let mut tn = types::new_type_name(token::NO_POS.clone(), (), "T".to_string(), ());
+    let mut tn = types::new_type_name(token::NO_POS, (), "T".to_string(), ());
     let mut tp = types::new_type_param(tn.clone(), ());
     { let __map_key = "T".to_string(); let __map_value = { let __arg = tp.clone(); let __converted = { let __arg_guard = __arg.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone().into() }; Arc::new(Mutex::new(Some(__converted))) }; (*values.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
 }
 
 pub fn literal() -> Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<types_Type>>>>>>> {
 
-    let mut tn = types::new_type_name(token::NO_POS.clone(), (), "U".to_string(), ());
+    let mut tn = types::new_type_name(token::NO_POS, (), "U".to_string(), ());
     let mut tp = types::new_type_param(tn.clone(), ());
     return Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<types_Type>>>>::from([("U".to_string(), { let __arg = tp.clone(); let __converted = { let __arg_guard = __arg.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone().into() }; Arc::new(Mutex::new(Some(__converted))) })]))));
 }

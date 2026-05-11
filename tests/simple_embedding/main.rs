@@ -7,6 +7,12 @@ pub struct Inner {
     pub value: Rc<RefCell<Option<i32>>>,
 }
 
+impl Inner {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { value: { let __guard = self.value.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
 impl std::fmt::Display for Inner {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{}}}", (*self.value.borrow().as_ref().unwrap()))
@@ -18,6 +24,12 @@ impl std::fmt::Display for Inner {
 pub struct Outer {
     pub inner: Rc<RefCell<Option<Inner>>>,
     pub name: Rc<RefCell<Option<String>>>,
+}
+
+impl Outer {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { inner: { let __guard = self.inner.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, name: { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
 }
 
 
@@ -55,7 +67,7 @@ fn main() {
 
         // Direct field access
     println!("{} {}", "Value:".to_string(), (*(*(*o.borrow().as_ref().unwrap()).inner.borrow().as_ref().unwrap()).value.borrow().as_ref().unwrap()));
-    println!("{} {}", "Name:".to_string(), (*(*o.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()));
+    println!("{} {}", "Name:".to_string(), (*(*o.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()).clone());
 
         // Method call
     println!("{} {}", "GetValue:".to_string(), (*(*o.borrow().as_ref().unwrap()).get_value().borrow().as_ref().unwrap()));

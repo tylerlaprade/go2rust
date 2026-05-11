@@ -9,6 +9,12 @@ pub struct String_ {
     pub name: Arc<Mutex<Option<String>>>,
 }
 
+impl String_ {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { name: { let __guard = self.name.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+    }
+}
+
 impl std::fmt::Display for String_ {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{}}}", (*self.name.lock().unwrap().as_ref().unwrap()))

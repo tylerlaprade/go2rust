@@ -7,6 +7,12 @@ use std::rc::{Rc};
 pub struct logger {
 }
 
+impl logger {
+    pub fn __go_value_clone(&self) -> Self {
+        Self {  }
+    }
+}
+
 impl std::fmt::Display for logger {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{}}")

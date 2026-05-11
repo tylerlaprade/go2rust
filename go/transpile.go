@@ -1780,6 +1780,8 @@ func writeAnonymousStructDefinitions(body *strings.Builder, first *bool, emitted
 		}
 
 		body.WriteString("}\n")
+		generateStructValueClone(body, typeName, structType)
+		body.WriteString("\n")
 		generateStructDefault(body, typeName, structType)
 		body.WriteString("\n")
 		generateStructDisplay(body, typeName, structType)

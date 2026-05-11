@@ -305,6 +305,12 @@ pub struct holder {
     pub ctx: Arc<Mutex<Option<GoContext>>>,
 }
 
+impl holder {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { ctx: self.ctx.clone() }
+    }
+}
+
 impl std::fmt::Display for holder {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{}}}", (*self.ctx.lock().unwrap().as_ref().unwrap()))

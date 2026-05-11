@@ -36,6 +36,12 @@ pub struct cache {
     pub index: Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<u64>>>>>>>,
 }
 
+impl cache {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { index: self.index.clone() }
+    }
+}
+
 impl std::fmt::Display for cache {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{}}}", format_map(&self.index))
@@ -46,6 +52,12 @@ impl std::fmt::Display for cache {
 #[derive(Debug, Clone, Default)]
 pub struct position {
     pub filename: Rc<RefCell<Option<String>>>,
+}
+
+impl position {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { filename: { let __guard = self.filename.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
 }
 
 impl std::fmt::Display for position {
@@ -66,7 +78,7 @@ impl cache {
     }
 
     pub fn remember(&mut self, p: Rc<RefCell<Option<position>>>) -> Rc<RefCell<Option<u64>>> {
-        let mut file = Rc::new(RefCell::new(Some((*(*p.borrow().as_ref().unwrap()).filename.borrow().as_ref().unwrap()).clone())));
+        let mut file = Rc::new(RefCell::new(Some({ let __selector_holder = (*p.borrow().as_ref().unwrap()).filename.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
         return self.off(Rc::new(RefCell::new(Some((*file.borrow().as_ref().unwrap()).clone()))));
     }
 }

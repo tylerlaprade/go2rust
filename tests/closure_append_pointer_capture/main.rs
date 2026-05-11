@@ -7,6 +7,12 @@ pub struct node {
     pub value: Arc<Mutex<Option<i32>>>,
 }
 
+impl node {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { value: { let __guard = self.value.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+    }
+}
+
 impl std::fmt::Display for node {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{}}}", (*self.value.lock().unwrap().as_ref().unwrap()))

@@ -55,6 +55,6 @@ pub mod md5 {
 
 
 fn main() {
-    io::multi_writer((io::Discard().clone(), md5::new()));
+    io::multi_writer(({ let __selector_holder = io::Discard().clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }, md5::new()));
     println!("{}", "ok".to_string());
 }

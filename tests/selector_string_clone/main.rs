@@ -8,6 +8,12 @@ pub struct Parts {
     pub right: Rc<RefCell<Option<String>>>,
 }
 
+impl Parts {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { left: { let __guard = self.left.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, right: { let __guard = self.right.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
 impl std::fmt::Display for Parts {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{} {}}}", (*self.left.borrow().as_ref().unwrap()), (*self.right.borrow().as_ref().unwrap()))
@@ -17,7 +23,7 @@ impl std::fmt::Display for Parts {
 
 pub fn left_of(parts: Rc<RefCell<Option<Parts>>>) -> Rc<RefCell<Option<String>>> {
 
-    return Rc::new(RefCell::new(Some((*(*parts.borrow().as_ref().unwrap()).left.borrow().as_ref().unwrap()).clone())));
+    return Rc::new(RefCell::new(Some({ let __selector_holder = (*parts.borrow().as_ref().unwrap()).left.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
 }
 
 pub fn echo(value: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>> {

@@ -52,6 +52,12 @@ pub struct List {
     pub tail: Rc<RefCell<Option</* ERROR: Unsupported instantiated generic type */ Rc<RefCell<Option<()>>>>>>,
 }
 
+impl List {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { head: self.head.clone(), tail: self.tail.clone() }
+    }
+}
+
 impl std::fmt::Display for List {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{} {}}}", (*self.head.borrow().as_ref().unwrap()), (*self.tail.borrow().as_ref().unwrap()))
@@ -63,6 +69,12 @@ impl std::fmt::Display for List {
 pub struct element {
     pub next: Rc<RefCell<Option</* ERROR: Unsupported instantiated generic type */ Rc<RefCell<Option<()>>>>>>,
     pub val: Rc<RefCell<Option<T>>>,
+}
+
+impl element {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { next: self.next.clone(), val: self.val.clone() }
+    }
 }
 
 impl std::fmt::Display for element {

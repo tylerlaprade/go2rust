@@ -8,6 +8,12 @@ pub struct parsed {
     pub rest: Rc<RefCell<Option<String>>>,
 }
 
+impl parsed {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { kind: { let __guard = self.kind.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, rest: { let __guard = self.rest.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
 impl std::fmt::Display for parsed {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{} {}}}", (*self.kind.borrow().as_ref().unwrap()), (*self.rest.borrow().as_ref().unwrap()))
@@ -25,6 +31,6 @@ pub fn split(mut x: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<parsed>>> 
 
 fn main() {
     let mut p = split(Rc::new(RefCell::new(Some("abc".to_string()))));
-    println!("{}", (*(*p.borrow().as_ref().unwrap()).kind.borrow().as_ref().unwrap()));
-    println!("{}", (*(*p.borrow().as_ref().unwrap()).rest.borrow().as_ref().unwrap()));
+    println!("{}", (*(*p.borrow().as_ref().unwrap()).kind.borrow().as_ref().unwrap()).clone());
+    println!("{}", (*(*p.borrow().as_ref().unwrap()).rest.borrow().as_ref().unwrap()).clone());
 }

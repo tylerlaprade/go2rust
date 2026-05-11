@@ -7,6 +7,12 @@ pub struct Config {
     pub name: Rc<RefCell<Option<String>>>,
 }
 
+impl Config {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { name: { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
 impl std::fmt::Display for Config {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{}}}", (*self.name.borrow().as_ref().unwrap()))
@@ -17,6 +23,12 @@ impl std::fmt::Display for Config {
 #[derive(Debug, Clone)]
 pub struct loader {
     pub config: Rc<RefCell<Option<Config>>>,
+}
+
+impl loader {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { config: { let __guard = self.config.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
 }
 
 
@@ -38,7 +50,7 @@ impl loader {
 
 pub fn r#use(cfg: Rc<RefCell<Option<Config>>>, patterns: Rc<RefCell<Option<Vec<String>>>>) -> Rc<RefCell<Option<String>>> {
 
-    return Rc::new(RefCell::new(Some(format!("{}{}", format!("{}{}", (*(*cfg.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()), ":".to_string()), (*patterns.borrow().as_ref().unwrap())[(0) as usize].clone()))));
+    return Rc::new(RefCell::new(Some(format!("{}{}", format!("{}{}", (*(*cfg.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()).clone(), ":".to_string()), (*patterns.borrow().as_ref().unwrap())[(0) as usize].clone()))));
 }
 
 fn main() {

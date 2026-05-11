@@ -17,6 +17,12 @@ pub struct holder {
     pub terms: Rc<RefCell<Option<numbers>>>,
 }
 
+impl holder {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { terms: self.terms.clone() }
+    }
+}
+
 impl std::fmt::Display for holder {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{}}}", (*self.terms.borrow().as_ref().unwrap()))
@@ -49,7 +55,7 @@ pub fn combine(a: Rc<RefCell<Option<holder>>>, b: Rc<RefCell<Option<holder>>>) {
 pub fn copied_len(src: Rc<RefCell<Option<holder>>>) -> Rc<RefCell<Option<i32>>> {
 
     let mut terms: Rc<RefCell<Option<numbers>>> = Rc::new(RefCell::new(Some(Default::default())));
-    { let new_val = (*(*src.borrow().as_ref().unwrap()).terms.borrow().as_ref().unwrap()).clone(); *terms.borrow_mut() = Some(new_val); };
+    { let new_val = { let __selector_holder = (*src.borrow().as_ref().unwrap()).terms.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; *terms.borrow_mut() = Some(new_val); };
     return Rc::new(RefCell::new(Some({ let __slice_holder = { let __named_slice = (*terms.borrow().as_ref().unwrap()).0.clone(); __named_slice }; let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) } as i32)));
 }
 

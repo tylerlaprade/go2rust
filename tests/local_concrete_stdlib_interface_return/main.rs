@@ -23,6 +23,12 @@ impl types_Type {
 pub struct localType {
 }
 
+impl localType {
+    pub fn __go_value_clone(&self) -> Self {
+        Self {  }
+    }
+}
+
 impl std::fmt::Display for localType {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{}", (*self.string().borrow().as_ref().unwrap()))

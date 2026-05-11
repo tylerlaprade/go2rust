@@ -7,6 +7,12 @@ pub struct A {
     pub x: Rc<RefCell<Option<i32>>>,
 }
 
+impl A {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { x: { let __guard = self.x.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
 impl std::fmt::Display for A {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{}}}", (*self.x.borrow().as_ref().unwrap()))
@@ -18,6 +24,12 @@ impl std::fmt::Display for A {
 pub struct B {
     pub a: Rc<RefCell<Option<A>>>,
     pub y: Rc<RefCell<Option<i32>>>,
+}
+
+impl B {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { a: { let __guard = self.a.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, y: { let __guard = self.y.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
 }
 
 
@@ -38,6 +50,12 @@ impl std::fmt::Display for B {
 pub struct C {
     pub b: Rc<RefCell<Option<B>>>,
     pub z: Rc<RefCell<Option<i32>>>,
+}
+
+impl C {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { b: { let __guard = self.b.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, z: { let __guard = self.z.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
 }
 
 

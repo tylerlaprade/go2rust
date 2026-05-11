@@ -7,6 +7,12 @@ pub struct pkg {
     pub path: Rc<RefCell<Option<String>>>,
 }
 
+impl pkg {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { path: { let __guard = self.path.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
 impl std::fmt::Display for pkg {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{}}}", (*self.path.borrow().as_ref().unwrap()))

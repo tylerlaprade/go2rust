@@ -126,6 +126,12 @@ pub struct entry {
     pub name: Arc<Mutex<Option<String>>>,
 }
 
+impl entry {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { typ: self.typ.clone(), name: { let __guard = self.name.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+    }
+}
+
 impl std::fmt::Display for entry {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{} {}}}", (*self.typ.lock().unwrap().as_ref().unwrap()), (*self.name.lock().unwrap().as_ref().unwrap()))
@@ -135,7 +141,7 @@ impl std::fmt::Display for entry {
 
 pub fn make_entry() -> Arc<Mutex<Option<entry>>> {
 
-    let mut tn = types::new_type_name(token::NO_POS.clone(), (), "T".to_string(), ());
+    let mut tn = types::new_type_name(token::NO_POS, (), "T".to_string(), ());
     let mut tp = types::new_type_param(tn.clone(), ());
     return Arc::new(Mutex::new(Some(entry { typ: { let __arg = tp.clone(); let __converted = { let __arg_guard = __arg.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone().into() }; Arc::new(Mutex::new(Some(__converted))) }, name: Arc::new(Mutex::new(Some("ok".to_string()))), ..Default::default() })));
 }

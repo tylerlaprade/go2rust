@@ -153,6 +153,12 @@ pub struct Runner {
     pub name: Arc<Mutex<Option<String>>>,
 }
 
+impl Runner {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { name: { let __guard = self.name.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+    }
+}
+
 impl std::fmt::Display for Runner {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{}}}", (*self.name.lock().unwrap().as_ref().unwrap()))

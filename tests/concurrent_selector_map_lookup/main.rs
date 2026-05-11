@@ -36,6 +36,12 @@ pub struct holder {
     pub table: Arc<Mutex<Option<BTreeMap<i32, Arc<Mutex<Option<String>>>>>>>,
 }
 
+impl holder {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { table: self.table.clone() }
+    }
+}
+
 impl std::fmt::Display for holder {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{}}}", format_map(&self.table))

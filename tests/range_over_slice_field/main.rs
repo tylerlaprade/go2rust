@@ -49,6 +49,12 @@ pub struct bag {
     pub values: Rc<RefCell<Option<Vec<i32>>>>,
 }
 
+impl bag {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { values: self.values.clone() }
+    }
+}
+
 impl std::fmt::Display for bag {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{}}}", format_slice(&self.values))

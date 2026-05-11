@@ -1252,6 +1252,62 @@ func writeMapKeyExpressionWithType(out *strings.Builder, expr ast.Expr, keyType 
 	TranspileExpression(out, expr)
 }
 
+func writeMapAssignmentKeyExpression(out *strings.Builder, key ast.Expr, keyType types.Type, rhs ast.Expr) {
+	if ident, ok := key.(*ast.Ident); ok && mapAssignmentKeyNeedsClone(ident, keyType, rhs) {
+		out.WriteString(rustIdentForUseWithCapture(ident))
+		out.WriteString(".clone()")
+		return
+	}
+	writeMapKeyExpressionWithType(out, key, keyType)
+}
+
+func mapAssignmentKeyNeedsClone(ident *ast.Ident, keyType types.Type, rhs ast.Expr) bool {
+	if ident == nil || rhs == nil || ident.Name == "_" || ident.Name == "nil" {
+		return false
+	}
+	if isCopyTypeExpression(ident) || !isCloneableNonPointerExpr(ident) {
+		return false
+	}
+	if isWrappedValueIdent(ident) {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.IsPointer(ident) {
+		return false
+	}
+	if keyType != nil && stdlibInterfaceArgumentConversionExists(ident, keyType) {
+		return false
+	}
+	return expressionReferencesIdentObject(rhs, ident)
+}
+
+func expressionReferencesIdentObject(expr ast.Expr, ident *ast.Ident) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil || expr == nil || ident == nil {
+		return false
+	}
+	target := typeInfo.GetObject(ident)
+	if target == nil {
+		return false
+	}
+	found := false
+	ast.Inspect(expr, func(n ast.Node) bool {
+		if found {
+			return false
+		}
+		usedIdent, ok := n.(*ast.Ident)
+		if !ok {
+			return true
+		}
+		if typeInfo.GetObject(usedIdent) == target {
+			found = true
+			return false
+		}
+		return true
+	})
+	return found
+}
+
 func isMapIndexExpression(expr ast.Expr) (*ast.IndexExpr, bool) {
 	indexExpr, ok := expr.(*ast.IndexExpr)
 	if !ok {
@@ -2112,7 +2168,7 @@ func writeMapElementUpdate(out *strings.Builder, indexExpr *ast.IndexExpr, op to
 	}
 	WriteBorrowMethod(out, true)
 	out.WriteString("; let __map = __map_guard.as_mut().unwrap(); let __entry = __map.entry(")
-	writeMapKeyExpressionWithType(out, indexExpr.Index, keyType)
+	writeMapAssignmentKeyExpression(out, indexExpr.Index, keyType, rhs)
 	out.WriteString(").or_insert_with(|| ")
 	WriteWrapperPrefix(out)
 	out.WriteString(defaultValue)
@@ -3562,7 +3618,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					keyType, valueType = typeInfo.GetMapTypes(indexExpr.X)
 				}
 				out.WriteString("{ let __map_key = ")
-				writeMapKeyExpressionWithType(out, indexExpr.Index, keyType)
+				writeMapAssignmentKeyExpression(out, indexExpr.Index, keyType, s.Rhs[0])
 				out.WriteString("; let __map_value = ")
 				writeMapWrappedValue(out, s.Rhs[0], valueType)
 				out.WriteString("; (*")

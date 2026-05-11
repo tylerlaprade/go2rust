@@ -1,0 +1,8 @@
+[package]
+name = "map_wrapped_key_append_reuse"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "map_wrapped_key_append_reuse"
+path = "main.rs"

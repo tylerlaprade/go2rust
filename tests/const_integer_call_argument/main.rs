@@ -12,6 +12,12 @@ pub(crate) const BUNDLE_VERSION: i32 = 1;
 pub struct writer {
 }
 
+impl writer {
+    pub fn __go_value_clone(&self) -> Self {
+        Self {  }
+    }
+}
+
 impl std::fmt::Display for writer {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{}}")

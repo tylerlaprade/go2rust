@@ -7,6 +7,12 @@ pub struct item {
     pub name: Rc<RefCell<Option<String>>>,
 }
 
+impl item {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { name: { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
 impl std::fmt::Display for item {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{}}}", (*self.name.borrow().as_ref().unwrap()))
@@ -16,6 +22,12 @@ impl std::fmt::Display for item {
 
 #[derive(Debug, Clone, Default)]
 pub struct scorer {
+}
+
+impl scorer {
+    pub fn __go_value_clone(&self) -> Self {
+        Self {  }
+    }
 }
 
 impl std::fmt::Display for scorer {
@@ -28,6 +40,12 @@ impl std::fmt::Display for scorer {
 #[derive(Debug, Clone, Default)]
 pub struct holder {
     pub s: Rc<RefCell<Option<scorer>>>,
+}
+
+impl holder {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { s: self.s.clone() }
+    }
 }
 
 impl std::fmt::Display for holder {

@@ -32,6 +32,12 @@ pub struct term {
     pub typ: Arc<Mutex<Option<types_Type>>>,
 }
 
+impl term {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { tilde: { let __guard = self.tilde.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, typ: self.typ.clone() }
+    }
+}
+
 impl std::fmt::Display for term {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{} {}}}", (*self.tilde.lock().unwrap().as_ref().unwrap()), (*self.typ.lock().unwrap().as_ref().unwrap()))

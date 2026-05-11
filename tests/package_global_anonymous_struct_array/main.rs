@@ -7,6 +7,12 @@ struct AnonymousStruct1 {
     value: Rc<RefCell<Option<i32>>>,
     name: Rc<RefCell<Option<String>>>,
 }
+impl AnonymousStruct1 {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { value: { let __guard = self.value.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, name: { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
 
 impl std::fmt::Display for AnonymousStruct1 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -46,7 +52,7 @@ fn __go_init_globals() {
 fn main() {
     __go_init_all();
     { let __range_holder = modes.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for item in __range_values.iter() {
-        println!("{} {}", (*item.name.borrow().as_ref().unwrap()), (*item.value.borrow().as_ref().unwrap()));
+        println!("{} {}", (*item.name.borrow().as_ref().unwrap()).clone(), (*item.value.borrow().as_ref().unwrap()));
     } }
 }
 

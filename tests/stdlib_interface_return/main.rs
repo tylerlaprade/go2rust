@@ -187,7 +187,7 @@ pub fn make_expr_slice_len() -> Arc<Mutex<Option<i32>>> {
 pub fn asserted_field_element() -> Arc<Mutex<Option<ast_Expr>>> {
 
     let mut field = Arc::new(Mutex::new(Some(ast_Field { r#type: { let __arg = Arc::new(Mutex::new(Some(ast_ArrayType { elt: { let __arg = ast::new_ident("int".to_string()); let __converted = { let __arg_guard = __arg.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone().into() }; Arc::new(Mutex::new(Some(__converted))) }, ..Default::default() }))); let __converted = { let __arg_guard = __arg.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone().into() }; Arc::new(Mutex::new(Some(__converted))) }, ..Default::default() })));
-    return Arc::new(Mutex::new(Some((*(*({
+    return Arc::new(Mutex::new(Some({ let __selector_holder = (*({
         let val = (*field.lock().unwrap().as_ref().unwrap()).r#type.clone();
         let guard = val.lock().unwrap();
         if let Some(ref any_val) = *guard {
@@ -195,7 +195,7 @@ pub fn asserted_field_element() -> Arc<Mutex<Option<ast_Expr>>> {
         } else {
             panic!("type assertion on nil interface")
         }
-    }).lock().unwrap().as_ref().unwrap()).elt.lock().unwrap().as_ref().unwrap()).clone())));
+    }).lock().unwrap().as_ref().unwrap()).elt.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
 }
 
 fn main() {

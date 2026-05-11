@@ -9,6 +9,12 @@ pub struct Person {
     pub age: Rc<RefCell<Option<i32>>>,
 }
 
+impl Person {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { name: { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, age: { let __guard = self.age.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
 impl std::fmt::Display for Person {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{} {}}}", (*self.name.borrow().as_ref().unwrap()), (*self.age.borrow().as_ref().unwrap()))
@@ -24,6 +30,12 @@ pub struct Address {
     pub zip: Rc<RefCell<Option<String>>>,
 }
 
+impl Address {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { street: { let __guard = self.street.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, city: { let __guard = self.city.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, zip: { let __guard = self.zip.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
 impl std::fmt::Display for Address {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{} {} {}}}", (*self.street.borrow().as_ref().unwrap()), (*self.city.borrow().as_ref().unwrap()), (*self.zip.borrow().as_ref().unwrap()))
@@ -37,6 +49,12 @@ pub struct Employee {
     pub person: Rc<RefCell<Option<Person>>>,
     pub address: Rc<RefCell<Option<Address>>>,
     pub i_d: Rc<RefCell<Option<i32>>>,
+}
+
+impl Employee {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { person: { let __guard = self.person.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, address: { let __guard = self.address.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, i_d: { let __guard = self.i_d.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
 }
 
 

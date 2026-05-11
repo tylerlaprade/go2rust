@@ -64,6 +64,12 @@ pub struct list {
     pub labels: Rc<RefCell<Option<Vec<i32>>>>,
 }
 
+impl list {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { labels: self.labels.clone() }
+    }
+}
+
 impl std::fmt::Display for list {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{}}}", format_slice(&self.labels))

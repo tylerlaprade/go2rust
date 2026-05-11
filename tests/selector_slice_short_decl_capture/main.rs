@@ -49,6 +49,12 @@ pub struct dict {
     pub tparams: Rc<RefCell<Option<Vec<i32>>>>,
 }
 
+impl dict {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { tparams: self.tparams.clone() }
+    }
+}
+
 impl std::fmt::Display for dict {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{}}}", format_slice(&self.tparams))
@@ -60,6 +66,12 @@ impl std::fmt::Display for dict {
 pub struct reader {
     pub dict: Rc<RefCell<Option<dict>>>,
     pub later: Rc<RefCell<Option<Vec<Rc<RefCell<Option<Box<dyn FnMut() -> ()>>>>>>>>,
+}
+
+impl reader {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { dict: self.dict.clone(), later: self.later.clone() }
+    }
 }
 
 impl std::fmt::Display for reader {

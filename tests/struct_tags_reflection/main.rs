@@ -85,6 +85,12 @@ pub struct User {
     pub internal: Rc<RefCell<Option<String>>>,
 }
 
+impl User {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { i_d: { let __guard = self.i_d.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, name: { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, email: { let __guard = self.email.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, is_active: { let __guard = self.is_active.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, internal: { let __guard = self.internal.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
 impl std::fmt::Display for User {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{} {} {} {} {}}}", (*self.i_d.borrow().as_ref().unwrap()), (*self.name.borrow().as_ref().unwrap()), (*self.email.borrow().as_ref().unwrap()), (*self.is_active.borrow().as_ref().unwrap()), (*self.internal.borrow().as_ref().unwrap()))
@@ -99,7 +105,7 @@ fn main() {
     let mut i = Rc::new(RefCell::new(Some(0)));
     while (*i.borrow().as_ref().unwrap()) < (*(*t.borrow().as_ref().unwrap()).num_field().borrow().as_ref().unwrap()) {
         let mut field = (*t.borrow().as_ref().unwrap()).field(Rc::new(RefCell::new(Some((*i.borrow().as_ref().unwrap()).clone()))));
-        print!("{}: json={:?} db={:?}\n", (*(*field.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()), (*(*(*field.borrow().as_ref().unwrap()).tag.borrow().as_ref().unwrap()).get(Rc::new(RefCell::new(Some("json".to_string())))).borrow().as_ref().unwrap()), (*(*(*field.borrow().as_ref().unwrap()).tag.borrow().as_ref().unwrap()).get(Rc::new(RefCell::new(Some("db".to_string())))).borrow().as_ref().unwrap()));
+        print!("{}: json={:?} db={:?}\n", (*(*field.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()).clone(), (*(*(*field.borrow().as_ref().unwrap()).tag.borrow().as_ref().unwrap()).get(Rc::new(RefCell::new(Some("json".to_string())))).borrow().as_ref().unwrap()), (*(*(*field.borrow().as_ref().unwrap()).tag.borrow().as_ref().unwrap()).get(Rc::new(RefCell::new(Some("db".to_string())))).borrow().as_ref().unwrap()));
         { let mut guard = i.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
 }

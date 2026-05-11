@@ -50,6 +50,12 @@ pub struct Package {
     pub errors: Rc<RefCell<Option<Vec<String>>>>,
 }
 
+impl Package {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { errors: self.errors.clone() }
+    }
+}
+
 impl std::fmt::Display for Package {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{}}}", format_slice(&self.errors))

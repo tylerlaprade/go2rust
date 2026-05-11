@@ -49,6 +49,12 @@ pub struct Item {
     pub name: Rc<RefCell<Option<String>>>,
 }
 
+impl Item {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { name: { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
 impl std::fmt::Display for Item {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{}}}", (*self.name.borrow().as_ref().unwrap()))
@@ -60,6 +66,12 @@ impl std::fmt::Display for Item {
 pub struct Holder {
     pub item: Rc<RefCell<Option<Item>>>,
     pub values: Rc<RefCell<Option<Vec<i32>>>>,
+}
+
+impl Holder {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { item: { let __guard = self.item.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, values: self.values.clone() }
+    }
 }
 
 
@@ -78,12 +90,12 @@ impl std::fmt::Display for Holder {
 
 pub fn get_item(h: Rc<RefCell<Option<Holder>>>) -> Rc<RefCell<Option<Item>>> {
 
-    return Rc::new(RefCell::new(Some((*(*h.borrow().as_ref().unwrap()).item.borrow().as_ref().unwrap()).clone())));
+    return Rc::new(RefCell::new(Some({ let __selector_holder = (*h.borrow().as_ref().unwrap()).item.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = __selector_guard.as_ref().unwrap().__go_value_clone(); drop(__selector_guard); __cloned })));
 }
 
 pub fn get_values(h: Rc<RefCell<Option<Holder>>>) -> Rc<RefCell<Option<Vec<i32>>>> {
 
-    return Rc::new(RefCell::new(Some((*(*h.borrow().as_ref().unwrap()).values.borrow().as_ref().unwrap()).clone())));
+    return Rc::new(RefCell::new(Some({ let __selector_holder = (*h.borrow().as_ref().unwrap()).values.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
 }
 
 fn main() {
@@ -92,6 +104,6 @@ fn main() {
     let mut item = get_item(Rc::new(RefCell::new(Some((*h.borrow().as_ref().unwrap()).clone()))));
     let mut values = get_values(Rc::new(RefCell::new(Some((*h.borrow().as_ref().unwrap()).clone()))));
 
-    println!("{}", (*(*item.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()));
+    println!("{}", (*(*item.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()).clone());
     println!("{} {} {}", (*values.borrow().as_ref().unwrap()).len(), (*values.borrow().as_ref().unwrap())[(0) as usize].clone(), (*values.borrow().as_ref().unwrap())[(1) as usize].clone());
 }

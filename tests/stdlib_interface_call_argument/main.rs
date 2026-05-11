@@ -54,6 +54,12 @@ pub mod types {
 pub struct Walker {
 }
 
+impl Walker {
+    pub fn __go_value_clone(&self) -> Self {
+        Self {  }
+    }
+}
+
 impl std::fmt::Display for Walker {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{}}")

@@ -21,6 +21,12 @@ pub struct namedKey {
     pub name: Rc<RefCell<Option<String>>>,
 }
 
+impl namedKey {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { name: { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
 impl std::fmt::Display for namedKey {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{}}}", (*self.name.borrow().as_ref().unwrap()))
@@ -31,6 +37,12 @@ impl std::fmt::Display for namedKey {
 #[derive(Clone, Default)]
 pub struct Label {
     pub key: Rc<RefCell<Option<Box<dyn Key>>>>,
+}
+
+impl Label {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { key: self.key.clone() }
+    }
 }
 
 impl std::fmt::Display for Label {

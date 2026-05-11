@@ -9,6 +9,12 @@ pub struct argError {
     pub prob: Rc<RefCell<Option<String>>>,
 }
 
+impl argError {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { arg: { let __guard = self.arg.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, prob: { let __guard = self.prob.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
 impl std::fmt::Display for argError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{}", (*self.error().borrow().as_ref().unwrap()))
@@ -83,6 +89,6 @@ fn main() {
     });
     if (*ok.borrow().as_ref().unwrap()) {
         println!("{}", (*(*ae.borrow().as_ref().unwrap()).arg.borrow().as_ref().unwrap()));
-        println!("{}", (*(*ae.borrow().as_ref().unwrap()).prob.borrow().as_ref().unwrap()));
+        println!("{}", (*(*ae.borrow().as_ref().unwrap()).prob.borrow().as_ref().unwrap()).clone());
     }
 }

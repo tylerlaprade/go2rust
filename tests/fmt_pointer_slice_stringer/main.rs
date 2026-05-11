@@ -221,6 +221,12 @@ pub struct Package {
     pub i_d: Arc<Mutex<Option<String>>>,
 }
 
+impl Package {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { i_d: { let __guard = self.i_d.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+    }
+}
+
 impl std::fmt::Display for Package {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{}", (*self.string().lock().unwrap().as_ref().unwrap()))

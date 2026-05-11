@@ -8,6 +8,12 @@ struct AnonymousStruct1 {
     x: Rc<RefCell<Option<i32>>>,
     y: Rc<RefCell<Option<i32>>>,
 }
+impl AnonymousStruct1 {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { x: { let __guard = self.x.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, y: { let __guard = self.y.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
 
 impl std::fmt::Display for AnonymousStruct1 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -21,6 +27,12 @@ struct AnonymousStruct2 {
     name: Rc<RefCell<Option<String>>>,
     age: Rc<RefCell<Option<i32>>>,
 }
+impl AnonymousStruct2 {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { name: { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, age: { let __guard = self.age.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
 
 impl std::fmt::Display for AnonymousStruct2 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -35,6 +47,12 @@ struct AnonymousStruct3 {
     port: Rc<RefCell<Option<i32>>>,
     settings: Rc<RefCell<Option<AnonymousStruct4>>>,
 }
+impl AnonymousStruct3 {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { host: { let __guard = self.host.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, port: { let __guard = self.port.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, settings: { let __guard = self.settings.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
 
 impl Default for AnonymousStruct3 {
     fn default() -> Self {
@@ -54,6 +72,12 @@ struct AnonymousStruct4 {
     debug: Rc<RefCell<Option<bool>>>,
     verbose: Rc<RefCell<Option<bool>>>,
 }
+impl AnonymousStruct4 {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { debug: { let __guard = self.debug.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, verbose: { let __guard = self.verbose.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
 
 impl std::fmt::Display for AnonymousStruct4 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -67,6 +91,12 @@ struct AnonymousStruct5 {
     i_d: Rc<RefCell<Option<i32>>>,
     value: Rc<RefCell<Option<String>>>,
 }
+impl AnonymousStruct5 {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { i_d: { let __guard = self.i_d.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, value: { let __guard = self.value.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
 
 impl std::fmt::Display for AnonymousStruct5 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -80,6 +110,12 @@ struct AnonymousStruct6 {
     r#type: Rc<RefCell<Option<String>>>,
     message: Rc<RefCell<Option<String>>>,
 }
+impl AnonymousStruct6 {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { r#type: { let __guard = self.r#type.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, message: { let __guard = self.message.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
 
 impl std::fmt::Display for AnonymousStruct6 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -93,6 +129,12 @@ struct AnonymousStruct7 {
     email: Rc<RefCell<Option<String>>>,
     admin: Rc<RefCell<Option<bool>>>,
 }
+impl AnonymousStruct7 {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { email: { let __guard = self.email.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, admin: { let __guard = self.admin.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
 
 impl std::fmt::Display for AnonymousStruct7 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -110,13 +152,13 @@ fn main() {
 
         // Anonymous struct literal
     let mut person = Rc::new(RefCell::new(Some(AnonymousStruct2 { name: Rc::new(RefCell::new(Some("Alice".to_string()))), age: Rc::new(RefCell::new(Some(30))) })));
-    print!("Person: {}, {} years old\n", (*(*person.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()), (*(*person.borrow().as_ref().unwrap()).age.borrow().as_ref().unwrap()));
+    print!("Person: {}, {} years old\n", (*(*person.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()).clone(), (*(*person.borrow().as_ref().unwrap()).age.borrow().as_ref().unwrap()));
 
         // Anonymous struct with nested fields
     let mut config = Rc::new(RefCell::new(Some(AnonymousStruct3 { host: Rc::new(RefCell::new(Some("localhost".to_string()))), port: Rc::new(RefCell::new(Some(8080))), settings: Rc::new(RefCell::new(Some(AnonymousStruct4::default()))) })));
     { let new_val = true; *(*(*config.borrow().as_ref().unwrap()).settings.borrow().as_ref().unwrap()).debug.borrow_mut() = Some(new_val); };
     { let new_val = false; *(*(*config.borrow().as_ref().unwrap()).settings.borrow().as_ref().unwrap()).verbose.borrow_mut() = Some(new_val); };
-    print!("Config: {}:{} (Debug: {}, Verbose: {})\n", (*(*config.borrow().as_ref().unwrap()).host.borrow().as_ref().unwrap()), (*(*config.borrow().as_ref().unwrap()).port.borrow().as_ref().unwrap()), (*(*(*config.borrow().as_ref().unwrap()).settings.borrow().as_ref().unwrap()).debug.borrow().as_ref().unwrap()), (*(*(*config.borrow().as_ref().unwrap()).settings.borrow().as_ref().unwrap()).verbose.borrow().as_ref().unwrap()));
+    print!("Config: {}:{} (Debug: {}, Verbose: {})\n", (*(*config.borrow().as_ref().unwrap()).host.borrow().as_ref().unwrap()).clone(), (*(*config.borrow().as_ref().unwrap()).port.borrow().as_ref().unwrap()), (*(*(*config.borrow().as_ref().unwrap()).settings.borrow().as_ref().unwrap()).debug.borrow().as_ref().unwrap()), (*(*(*config.borrow().as_ref().unwrap()).settings.borrow().as_ref().unwrap()).verbose.borrow().as_ref().unwrap()));
 
         // Array of anonymous structs
     let mut items: Rc<RefCell<Option<[AnonymousStruct5; 2]>>> = Rc::new(RefCell::new(Some(std::array::from_fn(|_| Default::default()))));
@@ -125,13 +167,13 @@ fn main() {
     { let new_val = 2; *(*items.borrow().as_ref().unwrap())[(1) as usize].clone().i_d.borrow_mut() = Some(new_val); };
     { let new_val = "second".to_string(); *(*items.borrow().as_ref().unwrap())[(1) as usize].clone().value.borrow_mut() = Some(new_val); };
     { let __range_holder = items.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for (i, item) in __range_values.iter().enumerate() {
-        print!("Item {}: {{ID: {}, Value: {}}}\n", i, (*item.i_d.borrow().as_ref().unwrap()), (*item.value.borrow().as_ref().unwrap()));
+        print!("Item {}: {{ID: {}, Value: {}}}\n", i, (*item.i_d.borrow().as_ref().unwrap()), (*item.value.borrow().as_ref().unwrap()).clone());
     } }
 
         // Slice of anonymous structs
     let mut events = Rc::new(RefCell::new(Some(vec![AnonymousStruct6 { r#type: Rc::new(RefCell::new(Some("info".to_string()))), message: Rc::new(RefCell::new(Some("System started".to_string()))), ..Default::default() }, AnonymousStruct6 { r#type: Rc::new(RefCell::new(Some("warning".to_string()))), message: Rc::new(RefCell::new(Some("Low memory".to_string()))), ..Default::default() }, AnonymousStruct6 { r#type: Rc::new(RefCell::new(Some("error".to_string()))), message: Rc::new(RefCell::new(Some("Connection failed".to_string()))), ..Default::default() }])));
     { let __range_holder = events.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for event in __range_values.iter() {
-        print!("Event [{}]: {}\n", (*event.r#type.borrow().as_ref().unwrap()), (*event.message.borrow().as_ref().unwrap()));
+        print!("Event [{}]: {}\n", (*event.r#type.borrow().as_ref().unwrap()).clone(), (*event.message.borrow().as_ref().unwrap()).clone());
     } }
 
         // Map with anonymous struct values
@@ -143,6 +185,6 @@ fn main() {
     (*userNames.borrow_mut().as_mut().unwrap()).sort();
     { let __range_holder = userNames.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for name in __range_values.iter() {
         let mut user = Rc::new(RefCell::new(Some((*users.borrow().as_ref().unwrap()).get(name).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| Default::default()))));
-        print!("User {}: {} (admin: {})\n", name, (*(*user.borrow().as_ref().unwrap()).email.borrow().as_ref().unwrap()), (*(*user.borrow().as_ref().unwrap()).admin.borrow().as_ref().unwrap()));
+        print!("User {}: {} (admin: {})\n", name, (*(*user.borrow().as_ref().unwrap()).email.borrow().as_ref().unwrap()).clone(), (*(*user.borrow().as_ref().unwrap()).admin.borrow().as_ref().unwrap()));
     } }
 }

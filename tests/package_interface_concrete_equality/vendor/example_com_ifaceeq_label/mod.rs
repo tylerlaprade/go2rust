@@ -22,6 +22,12 @@ pub struct Label {
     pub key: Arc<Mutex<Option<Box<dyn Key + Send + Sync>>>>,
 }
 
+impl Label {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { key: self.key.clone() }
+    }
+}
+
 impl std::fmt::Display for Label {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{}}}", (*self.key.lock().unwrap().as_ref().unwrap()))

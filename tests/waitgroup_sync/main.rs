@@ -63,6 +63,12 @@ pub struct Group {
     pub wg: WaitGroup,
 }
 
+impl Group {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { wg: self.wg.clone() }
+    }
+}
+
 impl std::fmt::Display for Group {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{}}")

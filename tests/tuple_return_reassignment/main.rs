@@ -7,6 +7,12 @@ pub struct parsed {
     pub major: Rc<RefCell<Option<String>>>,
 }
 
+impl parsed {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { major: { let __guard = self.major.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
 impl std::fmt::Display for parsed {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{}}}", (*self.major.borrow().as_ref().unwrap()))
@@ -33,5 +39,5 @@ pub fn parse(mut v: Rc<RefCell<Option<String>>>) -> (Rc<RefCell<Option<parsed>>>
 
 fn main() {
     let (mut p, mut ok) = parse(Rc::new(RefCell::new(Some("v1".to_string()))));
-    println!("{} {}", (*(*p.borrow().as_ref().unwrap()).major.borrow().as_ref().unwrap()), { let __v = (*ok.borrow().as_ref().unwrap()).clone(); __v });
+    println!("{} {}", (*(*p.borrow().as_ref().unwrap()).major.borrow().as_ref().unwrap()).clone(), { let __v = (*ok.borrow().as_ref().unwrap()).clone(); __v });
 }

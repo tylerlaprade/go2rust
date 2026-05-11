@@ -308,55 +308,27 @@ func writeStructDerive(out *strings.Builder, structName string, structType *ast.
 	needsPartialEq := !hasTraitField && structName != "" && comparableStructTypes[structName]
 	derivePartialEq := needsPartialEq && !structNeedsCustomPartialEq(structName, structType)
 	deriveOrd := derivePartialEq && structNeedsOrd(structName)
-	if hasTraitField {
-		if needsCustomDefault {
-			out.WriteString("#[derive(Clone)]\n")
-		} else {
-			out.WriteString("#[derive(Clone, Default)]\n")
-		}
-	} else {
-		if needsCustomDefault {
-			if deriveOrd {
-				if canDeriveDebug {
-					out.WriteString("#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]\n")
-				} else {
-					out.WriteString("#[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]\n")
-				}
-			} else if derivePartialEq {
-				if canDeriveDebug {
-					out.WriteString("#[derive(Debug, Clone, PartialEq)]\n")
-				} else {
-					out.WriteString("#[derive(Clone, PartialEq)]\n")
-				}
-			} else {
-				if canDeriveDebug {
-					out.WriteString("#[derive(Debug, Clone)]\n")
-				} else {
-					out.WriteString("#[derive(Clone)]\n")
-				}
-			}
-		} else {
-			if deriveOrd {
-				if canDeriveDebug {
-					out.WriteString("#[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord)]\n")
-				} else {
-					out.WriteString("#[derive(Clone, Default, PartialEq, Eq, PartialOrd, Ord)]\n")
-				}
-			} else if derivePartialEq {
-				if canDeriveDebug {
-					out.WriteString("#[derive(Debug, Clone, Default, PartialEq)]\n")
-				} else {
-					out.WriteString("#[derive(Clone, Default, PartialEq)]\n")
-				}
-			} else {
-				if canDeriveDebug {
-					out.WriteString("#[derive(Debug, Clone, Default)]\n")
-				} else {
-					out.WriteString("#[derive(Clone, Default)]\n")
-				}
-			}
-		}
+
+	var traits []string
+	if canDeriveDebug {
+		traits = append(traits, "Debug")
 	}
+	traits = append(traits, "Clone")
+	if !needsCustomDefault {
+		traits = append(traits, "Default")
+	}
+	if derivePartialEq {
+		traits = append(traits, "PartialEq")
+	}
+	if deriveOrd {
+		traits = append(traits, "Eq", "PartialOrd", "Ord")
+	}
+	if len(traits) == 0 {
+		return
+	}
+	out.WriteString("#[derive(")
+	out.WriteString(strings.Join(traits, ", "))
+	out.WriteString(")]\n")
 }
 
 func structNeedsOrd(structName string) bool {
@@ -471,6 +443,76 @@ func generateStructOrd(out *strings.Builder, structName string, structType *ast.
 	out.WriteString("        std::cmp::Ordering::Equal\n")
 	out.WriteString("    }\n")
 	out.WriteString("}\n")
+}
+
+func generateStructValueClone(out *strings.Builder, structName string, structType *ast.StructType) {
+	if structType == nil {
+		return
+	}
+	rustStructName := RustTypeNameForUse(structName)
+	out.WriteString("impl ")
+	out.WriteString(rustStructName)
+	out.WriteString(" {\n")
+	out.WriteString("    pub fn __go_value_clone(&self) -> Self {\n")
+	out.WriteString("        Self { ")
+	needComma := false
+	for _, field := range structType.Fields.List {
+		fieldNames := field.Names
+		if len(fieldNames) == 0 {
+			fieldNames = []*ast.Ident{ast.NewIdent(getEmbeddedFieldName(field.Type))}
+		}
+		for _, name := range fieldNames {
+			if needComma {
+				out.WriteString(", ")
+			}
+			needComma = true
+			fieldName := ToSnakeCase(name.Name)
+			out.WriteString(fieldName)
+			out.WriteString(": ")
+			writeStructCloneField(out, fieldName, field.Type)
+		}
+	}
+	out.WriteString(" }\n")
+	out.WriteString("    }\n")
+	out.WriteString("}\n")
+}
+
+func writeStructCloneField(out *strings.Builder, fieldName string, fieldType ast.Expr) {
+	if structCloneFieldKeepsHandle(fieldType) {
+		out.WriteString("self.")
+		out.WriteString(fieldName)
+		out.WriteString(".clone()")
+		return
+	}
+	out.WriteString("{ let __guard = self.")
+	out.WriteString(fieldName)
+	WriteBorrowMethod(out, false)
+	out.WriteString("; ")
+	out.WriteString(GetOuterWrapperType())
+	out.WriteString("::new(")
+	out.WriteString(GetInnerWrapperType())
+	out.WriteString("::new((*__guard).clone())) }")
+}
+
+func structCloneFieldKeepsHandle(expr ast.Expr) bool {
+	if expr == nil || isSyncParam(expr) || isEmptyInterfaceExpr(expr) || isFunctionSignatureTypeExpr(expr) {
+		return true
+	}
+	switch t := expr.(type) {
+	case *ast.StarExpr, *ast.MapType, *ast.ChanType, *ast.FuncType, *ast.InterfaceType:
+		return true
+	case *ast.ArrayType:
+		return t.Len == nil
+	}
+	if typeInfo := GetTypeInfo(); typeInfo != nil {
+		if typ := typeInfo.GetType(expr); typ != nil {
+			switch types.Unalias(typ).Underlying().(type) {
+			case *types.Pointer, *types.Slice, *types.Map, *types.Chan, *types.Signature, *types.Interface:
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func writeStructDefaultValue(out *strings.Builder, fieldType ast.Expr) {
@@ -1238,6 +1280,9 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 		}
 
 		out.WriteString("}\n\n")
+
+		generateStructValueClone(out, typeSpec.Name.Name, t)
+		out.WriteString("\n")
 
 		generateStructDefault(out, typeSpec.Name.Name, t)
 		if structNeedsCustomDefault(t) {

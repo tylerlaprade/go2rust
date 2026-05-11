@@ -552,6 +552,13 @@ func isExpressionResultBare(expr ast.Expr) bool {
 			return true
 		}
 		return false
+	case *ast.SelectorExpr:
+		typeInfo := GetTypeInfo()
+		if typeInfo == nil || typeInfo.info == nil {
+			return false
+		}
+		_, ok := typeInfo.GetObject(e.Sel).(*types.Const)
+		return ok
 	default:
 		return false
 	}
@@ -1200,6 +1207,14 @@ func writeRangeStringCallArgumentValue(out *strings.Builder, arg ast.Expr, expec
 		return false
 	}
 	return writeRangeStringValue(out, arg)
+}
+
+func expectsGoString(fieldExpr ast.Expr, fieldType types.Type) bool {
+	if fieldType != nil {
+		basic, ok := types.Unalias(fieldType).Underlying().(*types.Basic)
+		return ok && basic.Kind() == types.String
+	}
+	return expectsStringType(fieldExpr)
 }
 
 func writeRangeStringValue(out *strings.Builder, arg ast.Expr) bool {
@@ -2287,6 +2302,33 @@ func isCloneableNonPointerExpr(expr ast.Expr) bool {
 	}
 }
 
+func selectorRValueNeedsClone(expr *ast.SelectorExpr) bool {
+	if expr == nil || isCopyTypeExpression(expr) {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	typ := typeInfo.GetType(expr)
+	if typ == nil {
+		return false
+	}
+	switch types.Unalias(typ).Underlying().(type) {
+	case *types.Pointer, *types.Signature, *types.Chan, *types.Interface:
+		return false
+	default:
+		return true
+	}
+}
+
+func writeSelectorRValueClose(out *strings.Builder, expr *ast.SelectorExpr) {
+	out.WriteString(")")
+	if selectorRValueNeedsClone(expr) {
+		out.WriteString(".clone()")
+	}
+}
+
 func isCopyTypeExpression(expr ast.Expr) bool {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil {
@@ -2334,16 +2376,11 @@ func writeOwnedExpressionValue(out *strings.Builder, expr ast.Expr) bool {
 		return true
 	}
 	if _, ok := expr.(*ast.SelectorExpr); ok {
+		if isExpressionResultBare(expr) {
+			return false
+		}
 		if isCloneableNonPointerExpr(expr) {
-			if selectorRValueReturnsWrappedHandle(expr) {
-				out.WriteString("(*")
-				TranspileExpression(out, expr)
-				WriteBorrowMethod(out, false)
-				out.WriteString(".as_ref().unwrap()).clone()")
-			} else {
-				TranspileExpression(out, expr)
-				out.WriteString(".clone()")
-			}
+			writeClonedWrappedExpression(out, expr, "__selector_holder", "__selector_guard")
 			return true
 		}
 	}
@@ -2784,6 +2821,10 @@ func writeWrappedStructFieldValue(out *strings.Builder, value ast.Expr, fieldExp
 		}
 	}
 
+	if writeOwnedSelectorFieldValueForExpected(out, value, fieldExpr, expectedFieldType) {
+		return
+	}
+
 	if writeAlreadyWrappedSelectorFieldValue(out, value, fieldExpr, expectedFieldType) {
 		return
 	}
@@ -2802,6 +2843,16 @@ func writeWrappedStructFieldValue(out *strings.Builder, value ast.Expr, fieldExp
 				TranspileExpression(out, value)
 			}
 			WriteWrapperSuffix(out)
+		} else if varType, isRangeVar := rangeLoopVars[valIdent.Name]; isRangeVar && (!isWrappedRangeVarType(varType) || expectsGoString(fieldExpr, expectedFieldType)) {
+			WriteWrapperPrefix(out)
+			if expectsGoString(fieldExpr, expectedFieldType) && writeRangeStringValue(out, value) {
+				// Range string values need owned strings inside struct field wrappers.
+			} else if writeRangeIndexForExpectedType(out, value, expectedFieldType) {
+				// Range indexes emit usize, but Go int fields use i32.
+			} else if !writeCallArgumentValue(out, value) {
+				TranspileExpression(out, value)
+			}
+			WriteWrapperSuffix(out)
 		} else {
 			// It's already wrapped, just clone it.
 			out.WriteString(RustIdentForUse(valIdent))
@@ -2816,7 +2867,11 @@ func writeWrappedStructFieldValue(out *strings.Builder, value ast.Expr, fieldExp
 			TranspileExpression(out, value)
 		} else {
 			WriteWrapperPrefix(out)
-			if !isConstantExpression(value) || (!writeExpressionForExpectedType(out, value, fieldExpr) && !writeExpressionForExpectedTypesType(out, value, fieldType)) {
+			if isConstantExpression(value) && (writeExpressionForExpectedType(out, value, fieldExpr) || writeExpressionForExpectedTypesType(out, value, fieldType)) {
+				// Constant emitted in the field's expected representation.
+			} else if !isCopyTypeExpression(value) && writeOwnedExpressionValue(out, value) {
+				// Owned non-copy value emitted above.
+			} else {
 				TranspileExpression(out, value)
 			}
 			WriteWrapperSuffix(out)
@@ -2824,10 +2879,39 @@ func writeWrappedStructFieldValue(out *strings.Builder, value ast.Expr, fieldExp
 	} else {
 		// Wrap field values.
 		WriteWrapperPrefix(out)
-		if !isConstantExpression(value) || (!writeExpressionForExpectedType(out, value, fieldExpr) && !writeExpressionForExpectedTypesType(out, value, fieldType)) {
+		if isConstantExpression(value) && (writeExpressionForExpectedType(out, value, fieldExpr) || writeExpressionForExpectedTypesType(out, value, fieldType)) {
+			// Constant emitted in the field's expected representation.
+		} else if !isCopyTypeExpression(value) && writeOwnedExpressionValue(out, value) {
+			// Owned non-copy value emitted above.
+		} else {
 			TranspileExpression(out, value)
 		}
 		WriteWrapperSuffix(out)
+	}
+}
+
+func writeOwnedSelectorFieldValueForExpected(out *strings.Builder, value ast.Expr, fieldExpr ast.Expr, expected types.Type) bool {
+	if selectorFieldValueKeepsHandle(expected) || fieldExprKeepsHandle(fieldExpr) {
+		return false
+	}
+	if _, ok := value.(*ast.SelectorExpr); !ok || isExpressionResultBare(value) {
+		return false
+	}
+	WriteWrapperPrefix(out)
+	writeClonedWrappedExpression(out, value, "__selector_holder", "__selector_guard")
+	WriteWrapperSuffix(out)
+	return true
+}
+
+func fieldExprKeepsHandle(expr ast.Expr) bool {
+	if expr == nil {
+		return false
+	}
+	switch expr.(type) {
+	case *ast.StarExpr, *ast.ArrayType, *ast.MapType, *ast.ChanType, *ast.FuncType, *ast.InterfaceType:
+		return true
+	default:
+		return false
 	}
 }
 
@@ -2852,9 +2936,24 @@ func writeAlreadyWrappedSelectorFieldValue(out *strings.Builder, value ast.Expr,
 	if expected == nil || actual == nil || !types.AssignableTo(actual, expected) {
 		return false
 	}
+	if !selectorFieldValueKeepsHandle(expected) {
+		return false
+	}
 	TranspileExpressionContext(out, sel, LValue)
 	out.WriteString(".clone()")
 	return true
+}
+
+func selectorFieldValueKeepsHandle(typ types.Type) bool {
+	if typ == nil {
+		return false
+	}
+	switch types.Unalias(typ).Underlying().(type) {
+	case *types.Pointer, *types.Slice, *types.Map, *types.Chan, *types.Signature, *types.Interface:
+		return true
+	default:
+		return false
+	}
 }
 
 func writeCurrentReceiverPointerFieldValue(out *strings.Builder, value ast.Expr, fieldExpr ast.Expr, fieldType types.Type) bool {
@@ -3560,11 +3659,38 @@ func writeClonedWrappedExpression(out *strings.Builder, expr ast.Expr, holderNam
 	out.WriteString(" = ")
 	out.WriteString(holderName)
 	WriteBorrowMethod(out, false)
-	out.WriteString("; let __cloned = (*")
-	out.WriteString(guardName)
-	out.WriteString(".as_ref().unwrap()).clone(); drop(")
+	out.WriteString("; let __cloned = ")
+	if expressionNeedsGoValueClone(expr) {
+		out.WriteString(guardName)
+		out.WriteString(".as_ref().unwrap().__go_value_clone()")
+	} else {
+		out.WriteString("(*")
+		out.WriteString(guardName)
+		out.WriteString(".as_ref().unwrap()).clone()")
+	}
+	out.WriteString("; drop(")
 	out.WriteString(guardName)
 	out.WriteString("); __cloned }")
+}
+
+func expressionNeedsGoValueClone(expr ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || expr == nil {
+		return false
+	}
+	typ := typeInfo.GetType(expr)
+	if typ == nil {
+		return false
+	}
+	if named, ok := types.Unalias(typ).(*types.Named); ok {
+		if obj := named.Obj(); obj != nil && obj.Pkg() != nil && isStdlibPackage(obj.Pkg().Path()) {
+			return false
+		}
+		_, ok := named.Underlying().(*types.Struct)
+		return ok
+	}
+	_, ok := types.Unalias(typ).Underlying().(*types.Struct)
+	return ok
 }
 
 func writeIdentExpression(out *strings.Builder, e *ast.Ident, ctx ExprContext, varName string) {
@@ -4042,7 +4168,8 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 							}
 							out.WriteString(fieldInfo.FieldName)
 							WriteBorrowMethod(out, false)
-							out.WriteString(".as_ref().unwrap())")
+							out.WriteString(".as_ref().unwrap()")
+							writeSelectorRValueClose(out, e)
 						}
 					} else {
 						// Unwrapped variable (e.g., range variable) with promoted field
@@ -4057,7 +4184,8 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 							out.WriteString(".")
 							out.WriteString(fieldInfo.FieldName)
 							WriteBorrowMethod(out, false)
-							out.WriteString(".as_ref().unwrap())")
+							out.WriteString(".as_ref().unwrap()")
+							writeSelectorRValueClose(out, e)
 						} else {
 							out.WriteString(baseName)
 							for _, embedded := range fieldInfo.EmbeddedPath {
@@ -4099,7 +4227,8 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 								out.WriteString(fieldInfo.FieldName)
 							}
 							WriteBorrowMethod(out, false)
-							out.WriteString(".as_ref().unwrap())")
+							out.WriteString(".as_ref().unwrap()")
+							writeSelectorRValueClose(out, e)
 						}
 					} else {
 						// Not wrapped (e.g., range variable) - but field itself is wrapped
@@ -4110,7 +4239,8 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 							out.WriteString(".")
 							out.WriteString(fieldInfo.FieldName)
 							WriteBorrowMethod(out, false)
-							out.WriteString(".as_ref().unwrap())")
+							out.WriteString(".as_ref().unwrap()")
+							writeSelectorRValueClose(out, e)
 						} else {
 							// Direct access in LValue context
 							out.WriteString(baseName)
@@ -4169,7 +4299,8 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 						out.WriteString(".")
 						out.WriteString(fieldInfo.FieldName)
 						WriteBorrowMethod(out, false)
-						out.WriteString(".as_ref().unwrap())")
+						out.WriteString(".as_ref().unwrap()")
+						writeSelectorRValueClose(out, e)
 					} else {
 						out.WriteString("(*")
 						TranspileExpressionContext(out, e.X, LValue)

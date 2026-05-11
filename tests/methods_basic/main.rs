@@ -7,6 +7,12 @@ pub struct Counter {
     pub value: Rc<RefCell<Option<i32>>>,
 }
 
+impl Counter {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { value: { let __guard = self.value.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
 impl std::fmt::Display for Counter {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{}}}", (*self.value.borrow().as_ref().unwrap()))
@@ -18,6 +24,12 @@ impl std::fmt::Display for Counter {
 pub struct Person {
     pub name: Rc<RefCell<Option<String>>>,
     pub age: Rc<RefCell<Option<i32>>>,
+}
+
+impl Person {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { name: { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, age: { let __guard = self.age.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
 }
 
 impl std::fmt::Display for Person {

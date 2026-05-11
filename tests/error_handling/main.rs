@@ -9,6 +9,12 @@ pub struct CustomError {
     pub message: Rc<RefCell<Option<String>>>,
 }
 
+impl CustomError {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { code: { let __guard = self.code.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, message: { let __guard = self.message.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
 impl std::fmt::Display for CustomError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{}", (*self.error().borrow().as_ref().unwrap()))

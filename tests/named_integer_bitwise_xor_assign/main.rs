@@ -173,6 +173,12 @@ struct AnonymousStruct1 {
     mode: Rc<RefCell<Option<LoadMode>>>,
     name: Rc<RefCell<Option<String>>>,
 }
+impl AnonymousStruct1 {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { mode: { let __guard = self.mode.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, name: { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
 
 impl std::fmt::Display for AnonymousStruct1 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -214,11 +220,11 @@ pub fn strip(mut mode: Rc<RefCell<Option<LoadMode>>>) -> Rc<RefCell<Option<Strin
     let mut out = Rc::new(RefCell::new(Some("".to_string())));
     { let __range_holder = modes.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for item in __range_values.iter() {
         if (LoadMode(Rc::new(RefCell::new(Some(((*(*mode.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) & (*(*item.mode.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()))))))) != LoadMode(Rc::new(RefCell::new(Some(0 as i32)))) {
-        { let mut guard = mode.borrow_mut(); *guard = Some(guard.as_ref().unwrap().clone() ^ (*item.mode.borrow().as_ref().unwrap()).clone()); };
+        { let mut guard = mode.borrow_mut(); *guard = Some(guard.as_ref().unwrap().clone() ^ { let __selector_holder = item.mode.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }); };
         if (*out.borrow().as_ref().unwrap()).clone() != "" {
         { (*out.borrow_mut().as_mut().unwrap()).push_str(&",".to_string()); };
     }
-        { (*out.borrow_mut().as_mut().unwrap()).push_str(&(*item.name.borrow().as_ref().unwrap())); };
+        { (*out.borrow_mut().as_mut().unwrap()).push_str(&(*item.name.borrow().as_ref().unwrap()).clone()); };
     }
     } }
     if (*mode.borrow().as_ref().unwrap()) != LoadMode(Rc::new(RefCell::new(Some(0 as i32)))) {

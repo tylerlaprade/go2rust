@@ -91,6 +91,12 @@ pub struct writer {
     pub buffer: Rc<RefCell<Option<bytes_Buffer>>>,
 }
 
+impl writer {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { buffer: { let __guard = self.buffer.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
 impl std::fmt::Display for writer {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{}", (*self.string().borrow().as_ref().unwrap()))

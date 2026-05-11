@@ -49,6 +49,12 @@ pub struct Holder {
     pub items: Rc<RefCell<Option<Vec<String>>>>,
 }
 
+impl Holder {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { items: self.items.clone() }
+    }
+}
+
 impl std::fmt::Display for Holder {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{}}}", format_slice(&self.items))

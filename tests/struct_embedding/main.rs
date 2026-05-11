@@ -21,6 +21,12 @@ pub struct base {
     pub num: Rc<RefCell<Option<i32>>>,
 }
 
+impl base {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { num: { let __guard = self.num.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
 impl std::fmt::Display for base {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{}}}", (*self.num.borrow().as_ref().unwrap()))
@@ -32,6 +38,12 @@ impl std::fmt::Display for base {
 pub struct container {
     pub base: Rc<RefCell<Option<base>>>,
     pub str: Rc<RefCell<Option<String>>>,
+}
+
+impl container {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { base: { let __guard = self.base.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, str: { let __guard = self.str.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
 }
 
 
@@ -86,7 +98,7 @@ impl container {
 fn main() {
     let mut co = Rc::new(RefCell::new(Some(container { base: Rc::new(RefCell::new(Some(base { num: Rc::new(RefCell::new(Some(1))), ..Default::default() }))), str: Rc::new(RefCell::new(Some("some name".to_string()))), ..Default::default() })));
 
-    print!("co={{num: {}, str: {}}}\n", (*(*(*co.borrow().as_ref().unwrap()).base.borrow().as_ref().unwrap()).num.borrow().as_ref().unwrap()), (*(*co.borrow().as_ref().unwrap()).str.borrow().as_ref().unwrap()));
+    print!("co={{num: {}, str: {}}}\n", (*(*(*co.borrow().as_ref().unwrap()).base.borrow().as_ref().unwrap()).num.borrow().as_ref().unwrap()), (*(*co.borrow().as_ref().unwrap()).str.borrow().as_ref().unwrap()).clone());
     println!("{} {}", "also num:".to_string(), (*(*(*co.borrow().as_ref().unwrap()).base.borrow().as_ref().unwrap()).num.borrow().as_ref().unwrap()));
     println!("{} {}", "describe:".to_string(), (*(*co.borrow().as_ref().unwrap()).describe().borrow().as_ref().unwrap()));
 

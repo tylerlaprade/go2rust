@@ -7,6 +7,12 @@ pub struct printer {
     pub indent: Rc<RefCell<Option<i32>>>,
 }
 
+impl printer {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { indent: { let __guard = self.indent.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
 impl std::fmt::Display for printer {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{}}}", (*self.indent.borrow().as_ref().unwrap()))

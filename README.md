@@ -257,6 +257,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Selector map field short declarations preserve map-header copy semantics | ✅ |
 | └ Promoted embedded pointer map fields in replacement assignments and indexed pointer expressions | ✅ |
 | └ Map assignments through captured closure variables | ✅ |
+| └ Map assignment keys reused by inserted values | ✅ |
 | └ Wrapped map ranges drop map borrows before loop bodies | ✅ |
 | └ Wrapped map range values used as lookup/delete keys | ✅ |
 | └ Owned map range keys used in comma-ok lookups | ✅ |
@@ -315,6 +316,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Field access | ✅ |
 | └ Owned selector field returns and arguments | ✅ |
 | └ Owned selector field short declarations | ✅ |
+| └ Selector scalar and struct fields copy with Go value semantics | ✅ |
 | └ Embedded fields | ✅ |
 | └ Embedded predeclared `error` promotion | ✅ |
 | └ Embedded method promotion from transpiled dependency packages | ✅ |

@@ -64,6 +64,12 @@ pub struct Rectangle {
     pub height: Rc<RefCell<Option<f64>>>,
 }
 
+impl Rectangle {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { width: { let __guard = self.width.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, height: { let __guard = self.height.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
 impl std::fmt::Display for Rectangle {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{} {}}}", (*self.width.borrow().as_ref().unwrap()), (*self.height.borrow().as_ref().unwrap()))
@@ -74,6 +80,12 @@ impl std::fmt::Display for Rectangle {
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct Circle {
     pub radius: Rc<RefCell<Option<f64>>>,
+}
+
+impl Circle {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { radius: { let __guard = self.radius.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
 }
 
 impl std::fmt::Display for Circle {

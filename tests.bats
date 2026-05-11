@@ -1126,6 +1126,10 @@ run_xfail_test() {
     run_test "tests/map_range_key_comma_ok"
 }
 
+@test "map_range_key_value_reuse" {
+    run_test "tests/map_range_key_value_reuse"
+}
+
 @test "map_range_string_value_compare" {
     run_test "tests/map_range_string_value_compare"
 }
@@ -1140,6 +1144,10 @@ run_xfail_test() {
 
 @test "map_slice_range_value_assignment" {
     run_test "tests/map_slice_range_value_assignment"
+}
+
+@test "map_wrapped_key_append_reuse" {
+    run_test "tests/map_wrapped_key_append_reuse"
 }
 
 @test "maps_basic" {
@@ -1634,12 +1642,24 @@ run_xfail_test() {
     run_test "tests/selector_map_field_short_decl_range"
 }
 
+@test "selector_slice_call_argument" {
+    run_test "tests/selector_slice_call_argument"
+}
+
 @test "selector_slice_short_decl_capture" {
     run_test "tests/selector_slice_short_decl_capture"
 }
 
 @test "selector_string_clone" {
     run_test "tests/selector_string_clone"
+}
+
+@test "selector_string_struct_literal_field" {
+    run_test "tests/selector_string_struct_literal_field"
+}
+
+@test "selector_struct_field_copy" {
+    run_test "tests/selector_struct_field_copy"
 }
 
 @test "shared_mutation" {

@@ -49,6 +49,12 @@ pub struct bucket {
     pub values: Rc<RefCell<Option<Vec<i32>>>>,
 }
 
+impl bucket {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { values: self.values.clone() }
+    }
+}
+
 impl std::fmt::Display for bucket {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{}}}", format_slice(&self.values))

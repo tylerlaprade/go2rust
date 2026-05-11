@@ -8,6 +8,12 @@ pub struct Package {
     pub complete: Rc<RefCell<Option<bool>>>,
 }
 
+impl Package {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { complete: { let __guard = self.complete.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
 impl std::fmt::Display for Package {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{}}}", (*self.complete.borrow().as_ref().unwrap()))

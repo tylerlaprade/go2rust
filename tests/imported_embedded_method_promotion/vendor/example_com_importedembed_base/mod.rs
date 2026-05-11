@@ -8,6 +8,12 @@ pub struct Decoder {
     pub value: Arc<Mutex<Option<i32>>>,
 }
 
+impl Decoder {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { value: { let __guard = self.value.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+    }
+}
+
 impl std::fmt::Display for Decoder {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{}}}", (*self.value.lock().unwrap().as_ref().unwrap()))
@@ -18,6 +24,12 @@ impl std::fmt::Display for Decoder {
 #[derive(Debug, Clone, Default)]
 pub struct PkgDecoder {
     pub base: Arc<Mutex<Option<i32>>>,
+}
+
+impl PkgDecoder {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { base: { let __guard = self.base.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+    }
 }
 
 impl std::fmt::Display for PkgDecoder {
@@ -202,7 +214,7 @@ impl Decoder {
     }
 
     pub fn clone(&self) -> Arc<Mutex<Option<Decoder>>> {
-        return Arc::new(Mutex::new(Some(Decoder { value: self.value.clone(), ..Default::default() })));
+        return Arc::new(Mutex::new(Some(Decoder { value: Arc::new(Mutex::new(Some({ let __selector_holder = self.value.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), ..Default::default() })));
     }
 }
 

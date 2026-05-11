@@ -80,6 +80,12 @@ pub struct Reader {
     pub name: Arc<Mutex<Option<String>>>,
 }
 
+impl Reader {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { decoder: { let __guard = self.decoder.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, name: { let __guard = self.name.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+    }
+}
+
 impl std::fmt::Display for Reader {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{} {}}}", (*self.decoder.lock().unwrap().as_ref().unwrap()), (*self.name.lock().unwrap().as_ref().unwrap()))
@@ -90,6 +96,12 @@ impl std::fmt::Display for Reader {
 #[derive(Clone, Default)]
 pub struct pkgReader {
     pub pkg_decoder: Arc<Mutex<Option<example_com_importedembed_base::PkgDecoder>>>,
+}
+
+impl pkgReader {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { pkg_decoder: { let __guard = self.pkg_decoder.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+    }
 }
 
 impl std::fmt::Display for pkgReader {

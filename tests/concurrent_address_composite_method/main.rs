@@ -7,6 +7,12 @@ pub struct finder {
     pub base: Arc<Mutex<Option<i32>>>,
 }
 
+impl finder {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { base: { let __guard = self.base.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+    }
+}
+
 impl std::fmt::Display for finder {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{}}}", (*self.base.lock().unwrap().as_ref().unwrap()))

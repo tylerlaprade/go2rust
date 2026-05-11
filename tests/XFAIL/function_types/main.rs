@@ -65,6 +65,12 @@ pub struct Calculator {
     pub multiply: BinaryOp,
 }
 
+impl Calculator {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { add: self.add.clone(), subtract: self.subtract.clone(), multiply: self.multiply.clone() }
+    }
+}
+
 impl std::fmt::Display for Calculator {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{} {} {}}}", "<func>", "<func>", "<func>")

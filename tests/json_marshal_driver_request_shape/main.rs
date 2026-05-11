@@ -316,6 +316,12 @@ pub struct Request {
     pub overlay: Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<Vec<u8>>>>>>>>,
 }
 
+impl Request {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { mode: { let __guard = self.mode.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, env: self.env.clone(), build_flags: self.build_flags.clone(), tests: { let __guard = self.tests.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, overlay: self.overlay.clone() }
+    }
+}
+
 impl std::fmt::Display for Request {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{} {} {} {} {}}}", (*self.mode.borrow().as_ref().unwrap()), format_slice(&self.env), format_slice(&self.build_flags), (*self.tests.borrow().as_ref().unwrap()), "<map>")

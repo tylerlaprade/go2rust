@@ -7,6 +7,12 @@ pub struct node {
     pub color: Rc<RefCell<Option<u8>>>,
 }
 
+impl node {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { color: { let __guard = self.color.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
 impl std::fmt::Display for node {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{}}}", (*self.color.borrow().as_ref().unwrap()))

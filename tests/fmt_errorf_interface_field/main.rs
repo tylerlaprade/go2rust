@@ -56,6 +56,12 @@ pub struct holder {
     pub w: Arc<Mutex<Option<io_Writer>>>,
 }
 
+impl holder {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { w: self.w.clone() }
+    }
+}
+
 impl std::fmt::Display for holder {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{}}}", (*self.w.lock().unwrap().as_ref().unwrap()))

@@ -49,6 +49,12 @@ pub struct node {
     pub name: Rc<RefCell<Option<String>>>,
 }
 
+impl node {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { name: { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
 impl std::fmt::Display for node {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{}}}", (*self.name.borrow().as_ref().unwrap()))
@@ -59,6 +65,12 @@ impl std::fmt::Display for node {
 #[derive(Debug, Clone, Default)]
 pub struct cache {
     pub items: Rc<RefCell<Option<Vec<Rc<RefCell<Option<node>>>>>>>,
+}
+
+impl cache {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { items: self.items.clone() }
+    }
 }
 
 impl std::fmt::Display for cache {

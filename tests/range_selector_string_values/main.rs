@@ -49,6 +49,12 @@ pub struct Command {
     pub args: Rc<RefCell<Option<Vec<String>>>>,
 }
 
+impl Command {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { args: self.args.clone() }
+    }
+}
+
 impl std::fmt::Display for Command {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{}}}", format_slice(&self.args))

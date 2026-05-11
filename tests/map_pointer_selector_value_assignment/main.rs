@@ -8,6 +8,12 @@ pub struct Package {
     pub i_d: Rc<RefCell<Option<String>>>,
 }
 
+impl Package {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { i_d: { let __guard = self.i_d.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
 impl std::fmt::Display for Package {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{}}}", (*self.i_d.borrow().as_ref().unwrap()))
@@ -18,6 +24,12 @@ impl std::fmt::Display for Package {
 #[derive(Debug, Clone, Default)]
 pub struct loaderPackage {
     pub package: Rc<RefCell<Option<Package>>>,
+}
+
+impl loaderPackage {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { package: self.package.clone() }
+    }
 }
 
 impl std::fmt::Display for loaderPackage {

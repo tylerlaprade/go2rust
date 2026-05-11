@@ -30,6 +30,12 @@ pub struct entry {
     pub value: Rc<RefCell<Option<Box<dyn Any>>>>,
 }
 
+impl entry {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { value: self.value.clone() }
+    }
+}
+
 impl std::fmt::Display for entry {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{}}}", format_any(self.value.borrow().as_ref().unwrap().as_ref()))
@@ -40,6 +46,12 @@ impl std::fmt::Display for entry {
 #[derive(Clone, Default)]
 pub struct holder {
     pub table: Rc<RefCell<Option<BTreeMap<i32, Rc<RefCell<Option<Vec<entry>>>>>>>>,
+}
+
+impl holder {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { table: self.table.clone() }
+    }
 }
 
 impl std::fmt::Display for holder {

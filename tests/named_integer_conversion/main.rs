@@ -168,6 +168,12 @@ pub struct Entry {
     pub kind: Rc<RefCell<Option<Kind>>>,
 }
 
+impl Entry {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { kind: { let __guard = self.kind.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
 impl std::fmt::Display for Entry {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{}}}", (*self.kind.borrow().as_ref().unwrap()))

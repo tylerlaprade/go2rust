@@ -7,6 +7,12 @@ pub struct pkg {
     pub name: Rc<RefCell<Option<String>>>,
 }
 
+impl pkg {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { name: { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
 impl std::fmt::Display for pkg {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{}}}", (*self.name.borrow().as_ref().unwrap()))
@@ -17,6 +23,12 @@ impl std::fmt::Display for pkg {
 #[derive(Debug, Clone, Default)]
 pub struct reader {
     pub current: Rc<RefCell<Option<pkg>>>,
+}
+
+impl reader {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { current: self.current.clone() }
+    }
 }
 
 impl std::fmt::Display for reader {
@@ -33,7 +45,7 @@ impl reader {
 }
 
 pub fn r#use(p: Rc<RefCell<Option<pkg>>>) {
-    println!("{}", (*(*p.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()));
+    println!("{}", (*(*p.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()).clone());
 }
 
 fn main() {

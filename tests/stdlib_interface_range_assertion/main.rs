@@ -41,6 +41,12 @@ impl types_TypeName {
 pub struct exporter {
 }
 
+impl exporter {
+    pub fn __go_value_clone(&self) -> Self {
+        Self {  }
+    }
+}
+
 impl std::fmt::Display for exporter {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{}}")

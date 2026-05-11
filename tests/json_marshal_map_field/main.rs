@@ -54,6 +54,12 @@ pub struct OverlayJSON {
     pub replace: Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<String>>>>>>>,
 }
 
+impl OverlayJSON {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { replace: self.replace.clone() }
+    }
+}
+
 impl std::fmt::Display for OverlayJSON {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{}}}", format_map(&self.replace))

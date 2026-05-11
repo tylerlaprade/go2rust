@@ -80,6 +80,12 @@ pub struct pkgObj {
     pub name: Rc<RefCell<Option<String>>>,
 }
 
+impl pkgObj {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { obj: self.obj.clone(), name: { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
 impl std::fmt::Display for pkgObj {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{} {}}}", (*self.obj.borrow().as_ref().unwrap()), (*self.name.borrow().as_ref().unwrap()))
@@ -92,6 +98,12 @@ pub struct bundle {
     pub localpkg: Rc<RefCell<Option<types_Package>>>,
 }
 
+impl bundle {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { localpkg: self.localpkg.clone() }
+    }
+}
+
 impl std::fmt::Display for bundle {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{}}}", (*self.localpkg.borrow().as_ref().unwrap()))
@@ -102,6 +114,12 @@ impl std::fmt::Display for bundle {
 #[derive(Debug, Clone, Default)]
 pub struct writer {
     pub p: Rc<RefCell<Option<bundle>>>,
+}
+
+impl writer {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { p: self.p.clone() }
+    }
 }
 
 impl std::fmt::Display for writer {

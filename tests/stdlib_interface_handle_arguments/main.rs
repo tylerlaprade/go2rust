@@ -24,6 +24,12 @@ impl types_Type {
 pub struct cache {
 }
 
+impl cache {
+    pub fn __go_value_clone(&self) -> Self {
+        Self {  }
+    }
+}
+
 impl std::fmt::Display for cache {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{}}")

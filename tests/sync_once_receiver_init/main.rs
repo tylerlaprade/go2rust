@@ -185,6 +185,12 @@ pub struct runner {
     pub serialized: GoChannel<AnonymousStruct1>,
 }
 
+impl runner {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { once: self.once.clone(), in_flight: self.in_flight.clone(), serialized: self.serialized.clone() }
+    }
+}
+
 impl std::fmt::Display for runner {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{}}")
@@ -195,6 +201,12 @@ impl std::fmt::Display for runner {
 #[derive(Debug, Clone, Default)]
 struct AnonymousStruct1 {
 }
+impl AnonymousStruct1 {
+    pub fn __go_value_clone(&self) -> Self {
+        Self {  }
+    }
+}
+
 
 impl std::fmt::Display for AnonymousStruct1 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {

@@ -8,6 +8,12 @@ pub struct parseValue {
     pub err: Rc<RefCell<Option<Box<dyn StdError>>>>,
 }
 
+impl parseValue {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { err: self.err.clone() }
+    }
+}
+
 impl std::fmt::Display for parseValue {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{}}}", (*self.err.borrow().as_ref().unwrap()))

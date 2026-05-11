@@ -8,6 +8,12 @@ pub struct reader {
     pub current: Rc<RefCell<Option<example_com_package_selector_pointer_argument_helper::Pkg>>>,
 }
 
+impl reader {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { current: self.current.clone() }
+    }
+}
+
 impl std::fmt::Display for reader {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{}}}", (*self.current.borrow().as_ref().unwrap()))

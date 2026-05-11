@@ -8,6 +8,12 @@ pub struct version {
     pub minor: Rc<RefCell<Option<String>>>,
 }
 
+impl version {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { major: { let __guard = self.major.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, minor: { let __guard = self.minor.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
 impl std::fmt::Display for version {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{} {}}}", (*self.major.borrow().as_ref().unwrap()), (*self.minor.borrow().as_ref().unwrap()))

@@ -7,6 +7,12 @@ pub struct exporter {
     pub indent: Rc<RefCell<Option<i32>>>,
 }
 
+impl exporter {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { indent: { let __guard = self.indent.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
 impl std::fmt::Display for exporter {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{}}}", (*self.indent.borrow().as_ref().unwrap()))
@@ -17,6 +23,12 @@ impl std::fmt::Display for exporter {
 #[derive(Debug, Clone, Default)]
 pub struct writer {
     pub p: Rc<RefCell<Option<exporter>>>,
+}
+
+impl writer {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { p: self.p.clone() }
+    }
 }
 
 impl std::fmt::Display for writer {

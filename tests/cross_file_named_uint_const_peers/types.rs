@@ -177,6 +177,12 @@ pub struct Header {
     pub version: Rc<RefCell<Option<Version>>>,
 }
 
+impl Header {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { version: { let __guard = self.version.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
 impl std::fmt::Display for Header {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{}}}", (*self.version.borrow().as_ref().unwrap()))

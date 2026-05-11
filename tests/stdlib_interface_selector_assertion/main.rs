@@ -59,6 +59,12 @@ pub struct holder {
     pub err: Rc<RefCell<Option<io_Writer>>>,
 }
 
+impl holder {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { out: self.out.clone(), err: self.err.clone() }
+    }
+}
+
 impl std::fmt::Display for holder {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{} {}}}", (*self.out.borrow().as_ref().unwrap()), (*self.err.borrow().as_ref().unwrap()))

@@ -66,6 +66,12 @@ pub struct Circle {
     pub radius: Rc<RefCell<Option<f64>>>,
 }
 
+impl Circle {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { radius: { let __guard = self.radius.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
 impl std::fmt::Display for Circle {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{}}}", (*self.radius.borrow().as_ref().unwrap()))
@@ -79,6 +85,12 @@ pub struct Rectangle {
     pub height: Rc<RefCell<Option<f64>>>,
 }
 
+impl Rectangle {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { width: { let __guard = self.width.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, height: { let __guard = self.height.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
 impl std::fmt::Display for Rectangle {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{} {}}}", (*self.width.borrow().as_ref().unwrap()), (*self.height.borrow().as_ref().unwrap()))
@@ -90,6 +102,12 @@ impl std::fmt::Display for Rectangle {
 pub struct Canvas {
     pub name: Rc<RefCell<Option<String>>>,
     pub shapes: Rc<RefCell<Option<Vec<Box<dyn Drawable>>>>>,
+}
+
+impl Canvas {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { name: { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, shapes: self.shapes.clone() }
+    }
 }
 
 impl std::fmt::Display for Canvas {
@@ -109,6 +127,12 @@ pub struct Address {
     pub country: Rc<RefCell<Option<String>>>,
 }
 
+impl Address {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { street: { let __guard = self.street.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, city: { let __guard = self.city.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, state: { let __guard = self.state.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, zip_code: { let __guard = self.zip_code.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, country: { let __guard = self.country.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
 impl std::fmt::Display for Address {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{} {} {} {} {}}}", (*self.street.borrow().as_ref().unwrap()), (*self.city.borrow().as_ref().unwrap()), (*self.state.borrow().as_ref().unwrap()), (*self.zip_code.borrow().as_ref().unwrap()), (*self.country.borrow().as_ref().unwrap()))
@@ -120,6 +144,12 @@ impl std::fmt::Display for Address {
 pub struct Contact {
     pub email: Rc<RefCell<Option<String>>>,
     pub phone: Rc<RefCell<Option<String>>>,
+}
+
+impl Contact {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { email: { let __guard = self.email.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, phone: { let __guard = self.phone.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
 }
 
 impl std::fmt::Display for Contact {
@@ -135,6 +165,12 @@ pub struct Person {
     pub age: Rc<RefCell<Option<i32>>>,
     pub address: Rc<RefCell<Option<Address>>>,
     pub contact: Rc<RefCell<Option<Contact>>>,
+}
+
+impl Person {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { name: { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, age: { let __guard = self.age.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, address: { let __guard = self.address.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, contact: { let __guard = self.contact.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
 }
 
 
@@ -159,6 +195,12 @@ pub struct Department {
     pub budget: Rc<RefCell<Option<f64>>>,
 }
 
+impl Department {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { name: { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, manager: { let __guard = self.manager.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, employees: self.employees.clone(), budget: { let __guard = self.budget.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
 
 impl Default for Department {
     fn default() -> Self {
@@ -178,6 +220,12 @@ pub struct Company {
     pub name: Rc<RefCell<Option<String>>>,
     pub departments: Rc<RefCell<Option<Vec<Department>>>>,
     pub headquarters: Rc<RefCell<Option<Address>>>,
+}
+
+impl Company {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { name: { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, departments: self.departments.clone(), headquarters: { let __guard = self.headquarters.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
 }
 
 
@@ -280,7 +328,7 @@ fn main() {
         // Access nested data
     println!("{}", "\n=== Accessing nested data ===".to_string());
 
-    print!("Company: {}\n", (*(*company.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()));
+    print!("Company: {}\n", (*(*company.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()).clone());
     print!("HQ Address: {}, {}, {} {}\n", (*(*(*company.borrow().as_ref().unwrap()).headquarters.borrow().as_ref().unwrap()).street.borrow().as_ref().unwrap()), (*(*(*company.borrow().as_ref().unwrap()).headquarters.borrow().as_ref().unwrap()).city.borrow().as_ref().unwrap()), (*(*(*company.borrow().as_ref().unwrap()).headquarters.borrow().as_ref().unwrap()).state.borrow().as_ref().unwrap()), (*(*(*company.borrow().as_ref().unwrap()).headquarters.borrow().as_ref().unwrap()).zip_code.borrow().as_ref().unwrap()));
 
     print!("Department: {}\n", (*(*(*company.borrow().as_ref().unwrap()).departments.borrow().as_ref().unwrap())[(0) as usize].clone().name.borrow().as_ref().unwrap()));
@@ -296,7 +344,7 @@ fn main() {
     println!("{}", "\n=== Department employees ===".to_string());
 
     { let __range_holder = (*(*company.borrow().as_ref().unwrap()).departments.borrow().as_ref().unwrap())[(0) as usize].clone().employees.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for (i, emp) in __range_values.iter().enumerate() {
-        print!("Employee {}: {}\n", i + 1, (*emp.name.borrow().as_ref().unwrap()));
+        print!("Employee {}: {}\n", i + 1, (*emp.name.borrow().as_ref().unwrap()).clone());
         print!("  Age: {}\n", (*emp.age.borrow().as_ref().unwrap()));
         print!("  Email: {}\n", (*(*emp.contact.borrow().as_ref().unwrap()).email.borrow().as_ref().unwrap()));
         print!("  Phone: {}\n", (*(*emp.contact.borrow().as_ref().unwrap()).phone.borrow().as_ref().unwrap()));
@@ -376,7 +424,7 @@ fn main() {
 
     let mut canvas = Rc::new(RefCell::new(Some(Canvas { name: Rc::new(RefCell::new(Some("My Drawing".to_string()))), shapes: Rc::new(RefCell::new(Some(vec![Box::new(Circle { radius: Rc::new(RefCell::new(Some(5.0))), ..Default::default() }) as Box<dyn Drawable>, Box::new(Rectangle { width: Rc::new(RefCell::new(Some(10.0))), height: Rc::new(RefCell::new(Some(8.0))), ..Default::default() }) as Box<dyn Drawable>, Box::new(Circle { radius: Rc::new(RefCell::new(Some(3.0))), ..Default::default() }) as Box<dyn Drawable>]))), ..Default::default() })));
 
-    print!("Canvas: {}\n", (*(*canvas.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()));
+    print!("Canvas: {}\n", (*(*canvas.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()).clone());
     { let __range_holder = (*canvas.borrow().as_ref().unwrap()).shapes.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for (i, shape) in __range_values.iter().enumerate() {
         print!("Shape {}: {}\n", i + 1, (*shape.draw().borrow().as_ref().unwrap()));
     } }
@@ -392,6 +440,6 @@ fn main() {
     let mut newEmployee = Rc::new(RefCell::new(Some(Person { name: Rc::new(RefCell::new(Some("Dave Newbie".to_string()))), age: Rc::new(RefCell::new(Some(25))), address: Rc::new(RefCell::new(Some(Address { street: Rc::new(RefCell::new(Some("999 New St".to_string()))), city: Rc::new(RefCell::new(Some("Newtown".to_string()))), state: Rc::new(RefCell::new(Some("CA".to_string()))), zip_code: Rc::new(RefCell::new(Some("90214".to_string()))), country: Rc::new(RefCell::new(Some("USA".to_string()))), ..Default::default() }))), contact: Rc::new(RefCell::new(Some(Contact { email: Rc::new(RefCell::new(Some("dave@company.com".to_string()))), phone: Rc::new(RefCell::new(Some("555-0004".to_string()))), ..Default::default() }))), ..Default::default() })));
 
     { let new_val = { let __append_target = (*(*company.borrow().as_ref().unwrap()).departments.borrow().as_ref().unwrap())[(0) as usize].clone().employees.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push((*newEmployee.borrow().as_ref().unwrap()).clone()); __append_target.clone() }; (*(*company.borrow().as_ref().unwrap()).departments.borrow().as_ref().unwrap())[(0) as usize].clone().employees = new_val; };
-    print!("Added new employee: {}\n", (*(*newEmployee.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()));
+    print!("Added new employee: {}\n", (*(*newEmployee.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()).clone());
     print!("Total employees now: {}\n", (*(*(*company.borrow().as_ref().unwrap()).departments.borrow().as_ref().unwrap())[(0) as usize].clone().employees.borrow().as_ref().unwrap()).len());
 }

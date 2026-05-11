@@ -8,6 +8,12 @@ pub struct wrappedError {
     pub error: Rc<RefCell<Option<Box<dyn StdError>>>>,
 }
 
+impl wrappedError {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { error: self.error.clone() }
+    }
+}
+
 impl std::fmt::Display for wrappedError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{}", (*self.error().borrow().as_ref().unwrap()))

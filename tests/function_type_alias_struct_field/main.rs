@@ -12,6 +12,12 @@ pub struct importer {
     pub name: Rc<RefCell<Option<String>>>,
 }
 
+impl importer {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { reportf: self.reportf.clone(), name: { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
 impl std::fmt::Display for importer {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{} {}}}", "<func>", (*self.name.borrow().as_ref().unwrap()))

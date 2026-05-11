@@ -35,6 +35,12 @@ pub struct scope {
     pub id: Arc<Mutex<Option<i32>>>,
 }
 
+impl scope {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { id: { let __guard = self.id.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+    }
+}
+
 impl std::fmt::Display for scope {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{}}}", (*self.id.lock().unwrap().as_ref().unwrap()))
@@ -47,6 +53,12 @@ pub struct object {
     pub name: Arc<Mutex<Option<String>>>,
 }
 
+impl object {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { name: { let __guard = self.name.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+    }
+}
+
 impl std::fmt::Display for object {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{}}}", (*self.name.lock().unwrap().as_ref().unwrap()))
@@ -57,6 +69,12 @@ impl std::fmt::Display for object {
 #[derive(Debug, Clone, Default)]
 pub struct encoder {
     pub memo: Arc<Mutex<Option<BTreeMap<GoLocalPtrKey<scope>, Arc<Mutex<Option<Vec<object>>>>>>>>,
+}
+
+impl encoder {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { memo: self.memo.clone() }
+    }
 }
 
 impl std::fmt::Display for encoder {
