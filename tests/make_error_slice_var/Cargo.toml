@@ -1,0 +1,8 @@
+[package]
+name = "make_error_slice_var"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "make_error_slice_var"
+path = "main.rs"

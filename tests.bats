@@ -1062,6 +1062,10 @@ run_xfail_test() {
     run_test "tests/make_default_slice_type_annotation"
 }
 
+@test "make_error_slice_var" {
+    run_test "tests/make_error_slice_var"
+}
+
 @test "make_map_with_capacity" {
     run_test "tests/make_map_with_capacity"
 }
