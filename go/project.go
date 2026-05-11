@@ -18,7 +18,7 @@ type ProjectGenerator struct {
 	isLibrary                bool
 	hasMain                  bool
 	moduleNames              []string
-	initModuleNames          []string
+	initModules              []generatedInitModule
 	typeInfo                 *TypeInfo
 	projectImports           *ImportTracker // Collect imports across all files
 	externalMode             ExternalPackageMode
@@ -35,6 +35,11 @@ type generatedRustModule struct {
 	name     string
 	path     string
 	rustCode string
+}
+
+type generatedInitModule struct {
+	moduleName       string
+	initFunctionName string
 }
 
 func NewProjectGenerator(goFiles []string) *ProjectGenerator {
@@ -316,8 +321,13 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 			rustFilename = strings.TrimSuffix(filename, ".go") + "_.rs"
 		}
 
-		if strings.Contains(rustCode, "__go_init_all") {
-			pg.initModuleNames = append(pg.initModuleNames, outputName)
+		if moduleHasPackageInitAll(rustCode) {
+			initFunctionName := moduleInitAllFunctionName(outputName)
+			rustCode = renamePackageInitAllFunction(rustCode, initFunctionName)
+			pg.initModules = append(pg.initModules, generatedInitModule{
+				moduleName:       outputName,
+				initFunctionName: initFunctionName,
+			})
 		}
 
 		generatedModules = append(generatedModules, generatedRustModule{
@@ -648,7 +658,7 @@ func (pg *ProjectGenerator) generateMainRs(fileSet *token.FileSet, astFilesByPat
 		}
 	}
 
-	mainContent = injectModuleInitCalls(mainContent, pg.initModuleNames)
+	mainContent = injectModuleInitCalls(mainContent, pg.initModules)
 
 	var mainRust strings.Builder
 	if pg.packageHelpersNeeded(packageState) {
@@ -674,8 +684,36 @@ func (pg *ProjectGenerator) generateMainRs(fileSet *token.FileSet, astFilesByPat
 	return os.WriteFile(mainRsPath, []byte(mainRust.String()), 0644)
 }
 
-func injectModuleInitCalls(rustCode string, moduleNames []string) string {
-	if len(moduleNames) == 0 {
+func moduleHasPackageInitAll(rustCode string) bool {
+	return packageInitAllFunctionLineIndex(rustCode) >= 0
+}
+
+func moduleInitAllFunctionName(moduleName string) string {
+	return "__go_init_all_" + strings.TrimPrefix(SanitizeRustModuleName(moduleName), "r#")
+}
+
+func renamePackageInitAllFunction(rustCode, initFunctionName string) string {
+	lines := strings.Split(rustCode, "\n")
+	for i, line := range lines {
+		if strings.TrimSpace(line) == "pub(crate) fn __go_init_all() {" {
+			lines[i] = leadingWhitespace(line) + "pub(crate) fn " + initFunctionName + "() {"
+			break
+		}
+	}
+	return strings.Join(lines, "\n")
+}
+
+func packageInitAllFunctionLineIndex(rustCode string) int {
+	for i, line := range strings.Split(rustCode, "\n") {
+		if strings.TrimSpace(line) == "pub(crate) fn __go_init_all() {" {
+			return i
+		}
+	}
+	return -1
+}
+
+func injectModuleInitCalls(rustCode string, initModules []generatedInitModule) string {
+	if len(initModules) == 0 {
 		return rustCode
 	}
 	const marker = "fn main() {"
@@ -687,10 +725,12 @@ func injectModuleInitCalls(rustCode string, moduleNames []string) string {
 
 	var initCalls strings.Builder
 	initCalls.WriteString("\n")
-	for _, modName := range moduleNames {
+	for _, initModule := range initModules {
 		initCalls.WriteString("    ")
-		initCalls.WriteString(modName)
-		initCalls.WriteString("::__go_init_all();\n")
+		initCalls.WriteString(initModule.moduleName)
+		initCalls.WriteString("::")
+		initCalls.WriteString(initModule.initFunctionName)
+		initCalls.WriteString("();\n")
 	}
 
 	return rustCode[:insertAt] + initCalls.String() + rustCode[insertAt:]

@@ -5,7 +5,7 @@ use std::cell::{RefCell};
 use std::rc::{Rc};
 
 fn main() {
-    funcs::__go_init_all();
+    funcs::__go_init_all_funcs();
 
         // Call function variable - transpiler needs to know ProcessData is a function
     let mut result = { let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>> = { let mut __f_guard = ProcessData.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some(5)))) };

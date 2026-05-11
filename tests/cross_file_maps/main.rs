@@ -5,7 +5,7 @@ use std::cell::{RefCell};
 use std::rc::{Rc};
 
 fn main() {
-    data::__go_init_all();
+    data::__go_init_all_data();
 
         // Access map - transpiler needs to know Users is a map, not a slice
     let mut aliceID = Rc::new(RefCell::new(Some((*Users.borrow().as_ref().unwrap()).get(&"alice".to_string()).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| 0))));

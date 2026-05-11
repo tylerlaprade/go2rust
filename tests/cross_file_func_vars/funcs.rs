@@ -93,7 +93,7 @@ fn __go_init_0() {
     }) as Box<dyn FnMut(Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>>>; *DynamicFunc.borrow_mut() = Some(new_val); };
 }
 
-pub(crate) fn __go_init_all() {
+pub(crate) fn __go_init_all_funcs() {
     self::__go_init_globals();
     self::__go_init_0();
 }

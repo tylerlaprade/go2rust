@@ -63,6 +63,6 @@ fn __go_init_globals() {
 }
 
 
-pub(crate) fn __go_init_all() {
+pub(crate) fn __go_init_all_data() {
     self::__go_init_globals();
 }

@@ -1623,6 +1623,69 @@ func init() {
 	}
 }
 
+func TestSiblingModuleInitAllNamesAreUnique(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+var rootValue = 1
+
+func main() {}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "alpha.go"), `package main
+
+const alphaMarker = "pub(crate) fn __go_init_all()"
+
+var alphaValue = 2
+`)
+	writeTestFile(t, filepath.Join(tempDir, "beta.go"), `package main
+
+var betaValue = 3
+`)
+	writeTestFile(t, filepath.Join(tempDir, "gamma.go"), `package main
+
+var gammaValue = 4
+`)
+
+	generator := NewProjectGenerator([]string{
+		filepath.Join(tempDir, "alpha.go"),
+		filepath.Join(tempDir, "beta.go"),
+		filepath.Join(tempDir, "gamma.go"),
+		filepath.Join(tempDir, "main.go"),
+	})
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
+	for _, want := range []string{
+		"alpha::__go_init_all_alpha();",
+		"beta::__go_init_all_beta();",
+		"gamma::__go_init_all_gamma();",
+	} {
+		if !strings.Contains(mainRS, want) {
+			t.Fatalf("main should call module-specific init helper %q, got:\n%s", want, mainRS)
+		}
+	}
+	if strings.Contains(mainRS, "alpha::__go_init_all();") || strings.Contains(mainRS, "beta::__go_init_all();") || strings.Contains(mainRS, "gamma::__go_init_all();") {
+		t.Fatalf("main should not call ambiguous module init helper names, got:\n%s", mainRS)
+	}
+
+	alphaRS := mustReadFile(t, filepath.Join(tempDir, "alpha.rs"))
+	if !strings.Contains(alphaRS, "pub(crate) fn __go_init_all_alpha()") {
+		t.Fatalf("alpha module should rename its init helper, got:\n%s", alphaRS)
+	}
+	if strings.Contains(alphaRS, "pub(crate) fn __go_init_all() {") {
+		t.Fatalf("alpha module should not keep the shared init helper name, got:\n%s", alphaRS)
+	}
+	if !strings.Contains(alphaRS, "pub(crate) fn __go_init_all()") {
+		t.Fatalf("alpha module should preserve string literals that mention init helper names, got:\n%s", alphaRS)
+	}
+}
+
 func TestBlankPackageVarDoesNotRequireGlobalInit(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
