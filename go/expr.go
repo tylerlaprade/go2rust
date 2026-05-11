@@ -65,6 +65,14 @@ func writeNamedIntegerPrimitiveExpression(out *strings.Builder, expr ast.Expr) b
 		out.WriteString(lit.Value)
 		return true
 	}
+	if call, ok := expr.(*ast.CallExpr); ok {
+		if _, rustType, ok := namedIntegerConversionTarget(call); ok && len(call.Args) == 1 {
+			writeNumericConversionValue(out, call.Args[0])
+			out.WriteString(" as ")
+			out.WriteString(rustType)
+			return true
+		}
+	}
 	if _, ok := externalIntegerRustTypeForNamed(named); ok {
 		var value strings.Builder
 		if isConstExpressionForUsize(expr) {
@@ -133,6 +141,32 @@ func writeNamedIntegerPrimitiveOperand(out *strings.Builder, expr ast.Expr) {
 		return
 	}
 	TranspileExpression(out, expr)
+}
+
+func writeNamedIntegerBitwiseExpression(out *strings.Builder, expr *ast.BinaryExpr) bool {
+	switch expr.Op {
+	case token.AND, token.OR, token.XOR:
+	default:
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	named, ok := types.Unalias(typeInfo.GetType(expr)).(*types.Named)
+	if !ok || named.Obj() == nil || !isNamedIntegerType(named) {
+		return false
+	}
+	if _, isTypeDef := LookupTypeDefinition(named.Obj().Name()); !isTypeDef {
+		return false
+	}
+	out.WriteString(goTypesNamedTypeToRust(named))
+	out.WriteString("(")
+	WriteWrapperPrefix(out)
+	writeNamedIntegerPrimitiveExpression(out, expr)
+	WriteWrapperSuffix(out)
+	out.WriteString(")")
+	return true
 }
 
 func writeUnaryIntegerLiteral(out *strings.Builder, expr ast.Expr) bool {
@@ -4325,6 +4359,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			return
 		}
 		if writeTimeDurationBinaryExpression(out, e) {
+			return
+		}
+		if writeNamedIntegerBitwiseExpression(out, e) {
 			return
 		}
 

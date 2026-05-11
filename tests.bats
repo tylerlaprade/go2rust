@@ -1148,6 +1148,10 @@ run_xfail_test() {
     run_test "tests/named_func_return_defer"
 }
 
+@test "named_integer_bitwise_xor_assign" {
+    run_test "tests/named_integer_bitwise_xor_assign"
+}
+
 @test "named_integer_const_arguments" {
     run_test "tests/named_integer_const_arguments"
 }

@@ -137,6 +137,27 @@ impl std::ops::BitOr<Kind> for i8 {
     }
 }
 
+impl std::ops::BitXor for Kind {
+    type Output = Kind;
+    fn bitxor(self, other: Self) -> Kind {
+        Kind(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() ^ *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::BitXor<i8> for Kind {
+    type Output = i8;
+    fn bitxor(self, other: i8) -> i8 {
+        *self.0.borrow().as_ref().unwrap() ^ other
+    }
+}
+
+impl std::ops::BitXor<Kind> for i8 {
+    type Output = i8;
+    fn bitxor(self, other: Kind) -> i8 {
+        self ^ *other.0.borrow().as_ref().unwrap()
+    }
+}
+
 impl Eq for Kind {}
 
 impl Ord for Kind {
@@ -274,6 +295,27 @@ impl std::ops::BitOr<Version> for i8 {
     type Output = i8;
     fn bitor(self, other: Version) -> i8 {
         self | *other.0.borrow().as_ref().unwrap()
+    }
+}
+
+impl std::ops::BitXor for Version {
+    type Output = Version;
+    fn bitxor(self, other: Self) -> Version {
+        Version(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() ^ *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::BitXor<i8> for Version {
+    type Output = i8;
+    fn bitxor(self, other: i8) -> i8 {
+        *self.0.borrow().as_ref().unwrap() ^ other
+    }
+}
+
+impl std::ops::BitXor<Version> for i8 {
+    type Output = i8;
+    fn bitxor(self, other: Version) -> i8 {
+        self ^ *other.0.borrow().as_ref().unwrap()
     }
 }
 

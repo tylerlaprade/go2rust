@@ -1436,6 +1436,7 @@ func writeScalarTypeDefinitionNumericOps(out *strings.Builder, typeName string, 
 	if isBitwiseDefinedUnderlying(underlying) {
 		writeScalarTypeDefinitionBinaryOp(out, rustTypeName, rustType, "BitAnd", "bitand", "&", true)
 		writeScalarTypeDefinitionBinaryOp(out, rustTypeName, rustType, "BitOr", "bitor", "|", true)
+		writeScalarTypeDefinitionBinaryOp(out, rustTypeName, rustType, "BitXor", "bitxor", "^", true)
 	}
 }
 

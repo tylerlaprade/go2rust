@@ -137,6 +137,27 @@ impl std::ops::BitOr<Color> for i32 {
     }
 }
 
+impl std::ops::BitXor for Color {
+    type Output = Color;
+    fn bitxor(self, other: Self) -> Color {
+        Color(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() ^ *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::BitXor<i32> for Color {
+    type Output = i32;
+    fn bitxor(self, other: i32) -> i32 {
+        *self.0.borrow().as_ref().unwrap() ^ other
+    }
+}
+
+impl std::ops::BitXor<Color> for i32 {
+    type Output = i32;
+    fn bitxor(self, other: Color) -> i32 {
+        self ^ *other.0.borrow().as_ref().unwrap()
+    }
+}
+
 impl Eq for Color {}
 
 impl Ord for Color {

@@ -156,6 +156,27 @@ impl std::ops::BitOr<Index> for i32 {
     }
 }
 
+impl std::ops::BitXor for Index {
+    type Output = Index;
+    fn bitxor(self, other: Self) -> Index {
+        Index(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() ^ *other.0.lock().unwrap().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::BitXor<i32> for Index {
+    type Output = i32;
+    fn bitxor(self, other: i32) -> i32 {
+        *self.0.lock().unwrap().as_ref().unwrap() ^ other
+    }
+}
+
+impl std::ops::BitXor<Index> for i32 {
+    type Output = i32;
+    fn bitxor(self, other: Index) -> i32 {
+        self ^ *other.0.lock().unwrap().as_ref().unwrap()
+    }
+}
+
 impl Eq for Index {}
 
 impl Ord for Index {

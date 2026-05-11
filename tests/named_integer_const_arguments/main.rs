@@ -143,6 +143,27 @@ impl std::ops::BitOr<RelocKind> for i32 {
     }
 }
 
+impl std::ops::BitXor for RelocKind {
+    type Output = RelocKind;
+    fn bitxor(self, other: Self) -> RelocKind {
+        RelocKind(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() ^ *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::BitXor<i32> for RelocKind {
+    type Output = i32;
+    fn bitxor(self, other: i32) -> i32 {
+        *self.0.borrow().as_ref().unwrap() ^ other
+    }
+}
+
+impl std::ops::BitXor<RelocKind> for i32 {
+    type Output = i32;
+    fn bitxor(self, other: RelocKind) -> i32 {
+        self ^ *other.0.borrow().as_ref().unwrap()
+    }
+}
+
 impl Eq for RelocKind {}
 
 impl Ord for RelocKind {
@@ -283,6 +304,27 @@ impl std::ops::BitOr<SyncMarker> for i32 {
     }
 }
 
+impl std::ops::BitXor for SyncMarker {
+    type Output = SyncMarker;
+    fn bitxor(self, other: Self) -> SyncMarker {
+        SyncMarker(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() ^ *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::BitXor<i32> for SyncMarker {
+    type Output = i32;
+    fn bitxor(self, other: i32) -> i32 {
+        *self.0.borrow().as_ref().unwrap() ^ other
+    }
+}
+
+impl std::ops::BitXor<SyncMarker> for i32 {
+    type Output = i32;
+    fn bitxor(self, other: SyncMarker) -> i32 {
+        self ^ *other.0.borrow().as_ref().unwrap()
+    }
+}
+
 impl Eq for SyncMarker {}
 
 impl Ord for SyncMarker {
@@ -420,6 +462,27 @@ impl std::ops::BitOr<Field> for i32 {
     type Output = i32;
     fn bitor(self, other: Field) -> i32 {
         self | *other.0.borrow().as_ref().unwrap()
+    }
+}
+
+impl std::ops::BitXor for Field {
+    type Output = Field;
+    fn bitxor(self, other: Self) -> Field {
+        Field(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() ^ *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::BitXor<i32> for Field {
+    type Output = i32;
+    fn bitxor(self, other: i32) -> i32 {
+        *self.0.borrow().as_ref().unwrap() ^ other
+    }
+}
+
+impl std::ops::BitXor<Field> for i32 {
+    type Output = i32;
+    fn bitxor(self, other: Field) -> i32 {
+        self ^ *other.0.borrow().as_ref().unwrap()
     }
 }
 

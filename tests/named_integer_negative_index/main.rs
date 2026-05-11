@@ -134,6 +134,27 @@ impl std::ops::BitOr<Code> for i32 {
     }
 }
 
+impl std::ops::BitXor for Code {
+    type Output = Code;
+    fn bitxor(self, other: Self) -> Code {
+        Code(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() ^ *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::BitXor<i32> for Code {
+    type Output = i32;
+    fn bitxor(self, other: i32) -> i32 {
+        *self.0.borrow().as_ref().unwrap() ^ other
+    }
+}
+
+impl std::ops::BitXor<Code> for i32 {
+    type Output = i32;
+    fn bitxor(self, other: Code) -> i32 {
+        self ^ *other.0.borrow().as_ref().unwrap()
+    }
+}
+
 impl Eq for Code {}
 
 impl Ord for Code {

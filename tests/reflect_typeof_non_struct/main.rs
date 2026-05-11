@@ -201,6 +201,27 @@ impl std::ops::BitOr<namedInt> for i64 {
     }
 }
 
+impl std::ops::BitXor for namedInt {
+    type Output = namedInt;
+    fn bitxor(self, other: Self) -> namedInt {
+        namedInt(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() ^ *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::BitXor<i64> for namedInt {
+    type Output = i64;
+    fn bitxor(self, other: i64) -> i64 {
+        *self.0.borrow().as_ref().unwrap() ^ other
+    }
+}
+
+impl std::ops::BitXor<namedInt> for i64 {
+    type Output = i64;
+    fn bitxor(self, other: namedInt) -> i64 {
+        self ^ *other.0.borrow().as_ref().unwrap()
+    }
+}
+
 impl Eq for namedInt {}
 
 impl Ord for namedInt {

@@ -270,6 +270,27 @@ impl std::ops::BitOr<Mode> for i32 {
     }
 }
 
+impl std::ops::BitXor for Mode {
+    type Output = Mode;
+    fn bitxor(self, other: Self) -> Mode {
+        Mode(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() ^ *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::BitXor<i32> for Mode {
+    type Output = i32;
+    fn bitxor(self, other: i32) -> i32 {
+        *self.0.borrow().as_ref().unwrap() ^ other
+    }
+}
+
+impl std::ops::BitXor<Mode> for i32 {
+    type Output = i32;
+    fn bitxor(self, other: Mode) -> i32 {
+        self ^ *other.0.borrow().as_ref().unwrap()
+    }
+}
+
 impl Eq for Mode {}
 
 impl Ord for Mode {

@@ -1,0 +1,8 @@
+[package]
+name = "named_integer_bitwise_xor_assign"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "named_integer_bitwise_xor_assign"
+path = "main.rs"

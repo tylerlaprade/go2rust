@@ -140,6 +140,27 @@ impl std::ops::BitOr<Version> for u32 {
     }
 }
 
+impl std::ops::BitXor for Version {
+    type Output = Version;
+    fn bitxor(self, other: Self) -> Version {
+        Version(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() ^ *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::BitXor<u32> for Version {
+    type Output = u32;
+    fn bitxor(self, other: u32) -> u32 {
+        *self.0.borrow().as_ref().unwrap() ^ other
+    }
+}
+
+impl std::ops::BitXor<Version> for u32 {
+    type Output = u32;
+    fn bitxor(self, other: Version) -> u32 {
+        self ^ *other.0.borrow().as_ref().unwrap()
+    }
+}
+
 impl Eq for Version {}
 
 impl Ord for Version {

@@ -349,6 +349,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Binary `len`/`cap` operands with typed `int` peers | ✅ |
 | └ Untyped constants compared with named and typed integer operands | ✅ |
 | └ Cross-file named integer conversions from wrapped calls | ✅ |
+| └ Named integer bitwise expressions and same-type `^=` assignment | ✅ |
 | └ Assignment operators (=, +=, etc.) | ✅ |
 | └ Increment/decrement (++, --) | ✅ |
 | └ Address-of (&) | ✅ |

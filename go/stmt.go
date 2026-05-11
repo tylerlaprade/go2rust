@@ -1847,6 +1847,24 @@ func writeCompoundAssignOperator(out *strings.Builder, op token.Token) {
 	}
 }
 
+func compoundAssignUsesOwnedNamedIntegerValue(lhs ast.Expr, rhs ast.Expr, op token.Token) bool {
+	switch op {
+	case token.AND_ASSIGN, token.OR_ASSIGN, token.XOR_ASSIGN:
+	default:
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	lhsNamed, ok := types.Unalias(typeInfo.GetType(lhs)).(*types.Named)
+	if !ok || !isNamedIntegerType(lhsNamed) {
+		return false
+	}
+	rhsNamed, ok := types.Unalias(typeInfo.GetType(rhs)).(*types.Named)
+	return ok && sameNamedTypeDefinition(lhsNamed, rhsNamed)
+}
+
 func writeWrappedMutationTargetClone(out *strings.Builder, expr ast.Expr) {
 	out.WriteString("let __target = ")
 	TranspileExpressionContext(out, expr, LValue)
@@ -3143,7 +3161,13 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					writeWrappedMutationTargetPrelude(out, s.Lhs[0])
 					out.WriteString("let mut guard = ")
 					writeWrappedMutationTargetRef(out, s.Lhs[0], true)
-					out.WriteString("; *guard = Some(guard.as_ref().unwrap() ")
+					out.WriteString("; *guard = Some(")
+					if compoundAssignUsesOwnedNamedIntegerValue(s.Lhs[0], s.Rhs[0], s.Tok) {
+						out.WriteString("guard.as_ref().unwrap().clone()")
+					} else {
+						out.WriteString("guard.as_ref().unwrap()")
+					}
+					out.WriteString(" ")
 
 					// Output the appropriate operator
 					switch s.Tok {
