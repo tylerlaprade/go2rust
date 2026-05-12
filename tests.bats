@@ -1814,6 +1814,10 @@ run_xfail_test() {
     run_test "tests/stdlib_interface_range_assertion"
 }
 
+@test "stdlib_interface_range_value_short_decl" {
+    run_test "tests/stdlib_interface_range_value_short_decl"
+}
+
 @test "stdlib_interface_return" {
     run_test "tests/stdlib_interface_return"
 }
