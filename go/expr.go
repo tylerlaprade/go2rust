@@ -4850,6 +4850,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			if writeIntPeerForLenCapBinaryOperand(out, expr, other, needsUnwrap) {
 				return
 			}
+			if typeInfo != nil && writeRangeIndexForExpectedType(out, expr, typeInfo.GetType(other)) {
+				return
+			}
 			if writeNamedConstForBinaryPeer(out, expr, other) {
 				return
 			}

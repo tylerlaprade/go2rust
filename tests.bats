@@ -1506,6 +1506,10 @@ run_xfail_test() {
     run_test "tests/range_index_conversion_map_key"
 }
 
+@test "range_index_int_comparison" {
+    run_test "tests/range_index_int_comparison"
+}
+
 @test "range_index_map_int_value" {
     run_test "tests/range_index_map_int_value"
 }

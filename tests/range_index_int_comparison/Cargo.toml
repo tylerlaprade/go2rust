@@ -1,0 +1,8 @@
+[package]
+name = "range_index_int_comparison"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "range_index_int_comparison"
+path = "main.rs"

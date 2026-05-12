@@ -334,7 +334,7 @@ fn main() {
     { let __range_holder = content.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for (i, line) in __range_values.iter().enumerate() {
         let (_, mut err) = (*file.lock().unwrap().as_mut().unwrap()).write_string(Arc::new(Mutex::new(Some(format!("{}{}", line, "\n".to_string())))));
         if (*err.lock().unwrap()).is_some() {
-        print!("Error writing line {}: {}\n", { let __tmp_x = i; let __tmp_y = 1; __tmp_x + __tmp_y }, format!("{}", (*err.lock().unwrap().as_ref().unwrap())));
+        print!("Error writing line {}: {}\n", { let __tmp_x = i as i32; let __tmp_y = 1; __tmp_x + __tmp_y }, format!("{}", (*err.lock().unwrap().as_ref().unwrap())));
         (*file.lock().unwrap().as_mut().unwrap()).close();
         {
         // Execute deferred functions

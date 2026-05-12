@@ -355,7 +355,7 @@ fn main() {
 
     let mut total = Arc::new(Mutex::new(Some(0)));
     for (i, val) in { let __seq = { let __seq_holder = numbers.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[..(5) as usize].to_vec() }.iter().copied().enumerate() {
-        { let mut guard = total.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + { let __tmp_x = { let __tmp_x = i; let __tmp_y = val; __tmp_x * __tmp_y }; let __tmp_y = ({ let __tmp_x = val; let __tmp_y = 3; __tmp_x % __tmp_y }); __tmp_x + __tmp_y }); };
+        { let mut guard = total.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + { let __tmp_x = { let __tmp_x = i as i32; let __tmp_y = val; __tmp_x * __tmp_y }; let __tmp_y = ({ let __tmp_x = val; let __tmp_y = 3; __tmp_x % __tmp_y }); __tmp_x + __tmp_y }); };
     }
     print!("Complex range calculation: {}\n", { let __v = (*total.lock().unwrap().as_ref().unwrap()).clone(); __v });
 }
