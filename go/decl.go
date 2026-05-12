@@ -1947,6 +1947,14 @@ func isStringConstExpr(expr ast.Expr) bool {
 			}
 		}
 		return false
+	case *ast.SelectorExpr:
+		typeInfo := GetTypeInfo()
+		if typeInfo != nil {
+			if obj, ok := typeInfo.GetObject(e.Sel).(*types.Const); ok {
+				return obj.Val() != nil && obj.Val().Kind() == constant.String
+			}
+		}
+		return false
 	case *ast.BinaryExpr:
 		// String concatenation
 		if e.Op == token.ADD {
@@ -1980,6 +1988,14 @@ func evaluateConstStringExpr(expr ast.Expr) string {
 			}
 		}
 		// Type info not available or not a constant
+		return ""
+	case *ast.SelectorExpr:
+		typeInfo := GetTypeInfo()
+		if typeInfo != nil {
+			if obj, ok := typeInfo.GetObject(e.Sel).(*types.Const); ok && obj.Val() != nil {
+				return constant.StringVal(obj.Val())
+			}
+		}
 		return ""
 	case *ast.BinaryExpr:
 		if e.Op == token.ADD {

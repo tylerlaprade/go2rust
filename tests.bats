@@ -1442,6 +1442,10 @@ run_xfail_test() {
     run_test "tests/package_string_const_concat_arg"
 }
 
+@test "package_string_const_map_key" {
+    run_test "tests/package_string_const_map_key"
+}
+
 @test "package_variadic_import" {
     run_test "tests/package_variadic_import"
 }

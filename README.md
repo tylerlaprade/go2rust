@@ -415,6 +415,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ String += operator | ✅ |
 | └ String += from wrapped formatted string calls | ✅ |
 | └ Returning string constants from string functions | ✅ |
+| └ Package string constants as map keys | ✅ |
 | └ String comparisons | ✅ |
 | └ Byte comparisons with character literals | ✅ |
 | └ Raw string literals | ✅ |

@@ -3621,6 +3621,9 @@ func findTypesStructFieldType(structType *types.Struct, fieldName string) types.
 }
 
 func writeMapKeyForExpectedType(out *strings.Builder, key ast.Expr, keyType types.Type) bool {
+	if writeStringConstForExpectedBasicType(out, key, keyType) {
+		return true
+	}
 	named, ok := types.Unalias(keyType).(*types.Named)
 	if !ok || named.Obj() == nil {
 		return false
