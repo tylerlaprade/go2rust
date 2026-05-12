@@ -30,7 +30,7 @@ impl item {
     }
 
     pub fn either(&self, y: Rc<RefCell<Option<item>>>) -> Rc<RefCell<Option<bool>>> {
-        return Rc::new(RefCell::new(Some((*self.flag.clone().borrow().as_ref().unwrap()) || !(*(*y.borrow().as_ref().unwrap()).flag.borrow().as_ref().unwrap()))));
+        return Rc::new(RefCell::new(Some((*self.flag.borrow().as_ref().unwrap()) || !(*(*y.borrow().as_ref().unwrap()).flag.borrow().as_ref().unwrap()))));
     }
 
     pub fn active(&self) -> Rc<RefCell<Option<bool>>> {

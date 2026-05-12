@@ -38,20 +38,20 @@ impl std::fmt::Display for rect {
 
 impl rect {
     pub fn area(&self) -> Rc<RefCell<Option<f64>>> {
-        return Rc::new(RefCell::new(Some((*self.width.clone().borrow().as_ref().unwrap()) * (*self.height.clone().borrow().as_ref().unwrap()))));
+        return Rc::new(RefCell::new(Some((*self.width.borrow().as_ref().unwrap()) * (*self.height.borrow().as_ref().unwrap()))));
     }
 
     pub fn perim(&self) -> Rc<RefCell<Option<f64>>> {
-        return Rc::new(RefCell::new(Some(2.0 * (*self.width.clone().borrow().as_ref().unwrap()) + 2.0 * (*self.height.clone().borrow().as_ref().unwrap()))));
+        return Rc::new(RefCell::new(Some(2.0 * (*self.width.borrow().as_ref().unwrap()) + 2.0 * (*self.height.borrow().as_ref().unwrap()))));
     }
 }
 
 impl geometry for rect {
     fn area(&self) -> Rc<RefCell<Option<f64>>> {
-        return Rc::new(RefCell::new(Some((*self.width.clone().borrow().as_ref().unwrap()) * (*self.height.clone().borrow().as_ref().unwrap()))));
+        return Rc::new(RefCell::new(Some((*self.width.borrow().as_ref().unwrap()) * (*self.height.borrow().as_ref().unwrap()))));
     }
     fn perim(&self) -> Rc<RefCell<Option<f64>>> {
-        return Rc::new(RefCell::new(Some(2.0 * (*self.width.clone().borrow().as_ref().unwrap()) + 2.0 * (*self.height.clone().borrow().as_ref().unwrap()))));
+        return Rc::new(RefCell::new(Some(2.0 * (*self.width.borrow().as_ref().unwrap()) + 2.0 * (*self.height.borrow().as_ref().unwrap()))));
     }
     fn __go_clone_box(&self) -> Box<dyn geometry> {
         Box::new(self.clone()) as Box<dyn geometry>

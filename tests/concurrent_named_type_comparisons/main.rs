@@ -335,7 +335,7 @@ impl std::fmt::Display for Symbol {
 impl Symbol {
     pub fn is_field(&self) -> Arc<Mutex<Option<bool>>> {
         return {
-            let __tmp_x = (*self.kind.clone().lock().unwrap().as_ref().unwrap()).clone();
+            let __tmp_x = (*self.kind.lock().unwrap().as_ref().unwrap()).clone();
             let __tmp_y = Kind(Arc::new(Mutex::new(Some(FIELD as i8))));
             Arc::new(Mutex::new(Some(__tmp_x == __tmp_y)))
         };
@@ -343,7 +343,7 @@ impl Symbol {
 
     pub fn is_not_method(&self) -> Arc<Mutex<Option<bool>>> {
         return {
-            let __tmp_x = (*self.kind.clone().lock().unwrap().as_ref().unwrap()).clone();
+            let __tmp_x = (*self.kind.lock().unwrap().as_ref().unwrap()).clone();
             let __tmp_y = Kind(Arc::new(Mutex::new(Some(METHOD as i8))));
             Arc::new(Mutex::new(Some(__tmp_x != __tmp_y)))
         };

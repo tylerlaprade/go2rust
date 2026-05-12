@@ -23,7 +23,7 @@ impl std::fmt::Display for finder {
 impl finder {
     pub fn find(&self, delta: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<i32>>> {
         return {
-            let __tmp_x = (*self.base.clone().lock().unwrap().as_ref().unwrap());
+            let __tmp_x = (*self.base.lock().unwrap().as_ref().unwrap());
             let __tmp_y = { let __v = (*delta.lock().unwrap().as_ref().unwrap()).clone(); __v };
             Arc::new(Mutex::new(Some(__tmp_x + __tmp_y)))
         };

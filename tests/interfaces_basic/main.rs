@@ -56,20 +56,20 @@ impl std::fmt::Display for Circle {
 
 impl Rectangle {
     pub fn area(&self) -> Rc<RefCell<Option<f64>>> {
-        return Rc::new(RefCell::new(Some((*self.width.clone().borrow().as_ref().unwrap()) * (*self.height.clone().borrow().as_ref().unwrap()))));
+        return Rc::new(RefCell::new(Some((*self.width.borrow().as_ref().unwrap()) * (*self.height.borrow().as_ref().unwrap()))));
     }
 
     pub fn perimeter(&self) -> Rc<RefCell<Option<f64>>> {
-        return Rc::new(RefCell::new(Some(2.0 * ((*self.width.clone().borrow().as_ref().unwrap()) + (*self.height.clone().borrow().as_ref().unwrap())))));
+        return Rc::new(RefCell::new(Some(2.0 * ((*self.width.borrow().as_ref().unwrap()) + (*self.height.borrow().as_ref().unwrap())))));
     }
 }
 
 impl Shape for Rectangle {
     fn area(&self) -> Rc<RefCell<Option<f64>>> {
-        return Rc::new(RefCell::new(Some((*self.width.clone().borrow().as_ref().unwrap()) * (*self.height.clone().borrow().as_ref().unwrap()))));
+        return Rc::new(RefCell::new(Some((*self.width.borrow().as_ref().unwrap()) * (*self.height.borrow().as_ref().unwrap()))));
     }
     fn perimeter(&self) -> Rc<RefCell<Option<f64>>> {
-        return Rc::new(RefCell::new(Some(2.0 * ((*self.width.clone().borrow().as_ref().unwrap()) + (*self.height.clone().borrow().as_ref().unwrap())))));
+        return Rc::new(RefCell::new(Some(2.0 * ((*self.width.borrow().as_ref().unwrap()) + (*self.height.borrow().as_ref().unwrap())))));
     }
     fn __go_clone_box(&self) -> Box<dyn Shape> {
         Box::new(self.clone()) as Box<dyn Shape>
@@ -88,20 +88,20 @@ impl Shape for Rectangle {
 
 impl Circle {
     pub fn area(&self) -> Rc<RefCell<Option<f64>>> {
-        return Rc::new(RefCell::new(Some(3.14159 * (*self.radius.clone().borrow().as_ref().unwrap()) * (*self.radius.clone().borrow().as_ref().unwrap()))));
+        return Rc::new(RefCell::new(Some(3.14159 * (*self.radius.borrow().as_ref().unwrap()) * (*self.radius.borrow().as_ref().unwrap()))));
     }
 
     pub fn perimeter(&self) -> Rc<RefCell<Option<f64>>> {
-        return Rc::new(RefCell::new(Some(2.0 * 3.14159 * (*self.radius.clone().borrow().as_ref().unwrap()))));
+        return Rc::new(RefCell::new(Some(2.0 * 3.14159 * (*self.radius.borrow().as_ref().unwrap()))));
     }
 }
 
 impl Shape for Circle {
     fn area(&self) -> Rc<RefCell<Option<f64>>> {
-        return Rc::new(RefCell::new(Some(3.14159 * (*self.radius.clone().borrow().as_ref().unwrap()) * (*self.radius.clone().borrow().as_ref().unwrap()))));
+        return Rc::new(RefCell::new(Some(3.14159 * (*self.radius.borrow().as_ref().unwrap()) * (*self.radius.borrow().as_ref().unwrap()))));
     }
     fn perimeter(&self) -> Rc<RefCell<Option<f64>>> {
-        return Rc::new(RefCell::new(Some(2.0 * 3.14159 * (*self.radius.clone().borrow().as_ref().unwrap()))));
+        return Rc::new(RefCell::new(Some(2.0 * 3.14159 * (*self.radius.borrow().as_ref().unwrap()))));
     }
     fn __go_clone_box(&self) -> Box<dyn Shape> {
         Box::new(self.clone()) as Box<dyn Shape>

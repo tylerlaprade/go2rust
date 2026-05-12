@@ -23,11 +23,11 @@ impl std::fmt::Display for rect {
 
 impl rect {
     pub fn area(&self) -> Rc<RefCell<Option<i32>>> {
-        return Rc::new(RefCell::new(Some((*self.width.clone().borrow().as_ref().unwrap()) * (*self.height.clone().borrow().as_ref().unwrap()))));
+        return Rc::new(RefCell::new(Some((*self.width.borrow().as_ref().unwrap()) * (*self.height.borrow().as_ref().unwrap()))));
     }
 
     pub fn perim(&self) -> Rc<RefCell<Option<i32>>> {
-        return Rc::new(RefCell::new(Some(2 * (*self.width.clone().borrow().as_ref().unwrap()) + 2 * (*self.height.clone().borrow().as_ref().unwrap()))));
+        return Rc::new(RefCell::new(Some(2 * (*self.width.borrow().as_ref().unwrap()) + 2 * (*self.height.borrow().as_ref().unwrap()))));
     }
 }
 
