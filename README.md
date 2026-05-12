@@ -395,6 +395,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Pointer receivers stored in pointer fields | ✅ |
 | └ Pointer receiver dereference assignment (`*p = T{...}`) | ✅ |
 | └ Address-of struct literals in multi-name short declarations | ✅ |
+| └ Address-of composite literals passed to pointer parameters | ✅ |
 | └ Address-of local values passed to pointer parameters | ✅ |
 | └ Address-of selector fields passed to pointer parameters | ✅ |
 | └ Address-of slice elements with named integer indexes | ✅ |

@@ -679,7 +679,7 @@ func writeRegularMethodCallArgument(out *strings.Builder, sel *ast.SelectorExpr,
 	if writeAlreadyWrappedStdlibInterfaceCallArgument(out, arg, expectedArgType) {
 		return
 	}
-	if writeAddressOfSelectorCallArgument(out, arg, expectedArgType) {
+	if writeAddressOfPointerCallArgument(out, arg, expectedArgType) {
 		return
 	}
 	if writeIndexedPointerHandleCallArgument(out, arg, expectedArgType) {
@@ -1476,7 +1476,7 @@ func writeIndexedPointerHandleCallArgument(out *strings.Builder, arg ast.Expr, e
 	return true
 }
 
-func writeAddressOfSelectorCallArgument(out *strings.Builder, arg ast.Expr, expected types.Type) bool {
+func writeAddressOfPointerCallArgument(out *strings.Builder, arg ast.Expr, expected types.Type) bool {
 	if expected == nil {
 		return false
 	}
@@ -1485,9 +1485,6 @@ func writeAddressOfSelectorCallArgument(out *strings.Builder, arg ast.Expr, expe
 	}
 	unary, ok := arg.(*ast.UnaryExpr)
 	if !ok || unary.Op != token.AND {
-		return false
-	}
-	if _, ok := unary.X.(*ast.SelectorExpr); !ok {
 		return false
 	}
 	typeInfo := GetTypeInfo()
@@ -7717,6 +7714,9 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				if writeStdlibInterfaceCallArgumentConversion(out, arg, expectedArgType) {
 					continue
 				}
+				if writeAddressOfPointerCallArgument(out, arg, expectedArgType) {
+					continue
+				}
 				if writeIndexedPointerHandleCallArgument(out, arg, expectedArgType) {
 					continue
 				}
@@ -8009,7 +8009,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				out.WriteString(", ")
 			}
 			expectedArgType := callParamTypeFromTypeInfo(call, i)
-			if writeAddressOfSelectorCallArgument(out, call.Args[i], expectedArgType) {
+			if writeAddressOfPointerCallArgument(out, call.Args[i], expectedArgType) {
 				continue
 			}
 			WriteWrapperPrefix(out)
@@ -8252,6 +8252,10 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 			}
 
 			if writeStdlibInterfaceCallArgumentConversion(out, arg, expectedArgType) {
+				continue
+			}
+
+			if writeAddressOfPointerCallArgument(out, arg, expectedArgType) {
 				continue
 			}
 
@@ -8642,7 +8646,7 @@ func writeFunctionSignatureCallArgument(out *strings.Builder, arg ast.Expr, expe
 	if writeAlreadyWrappedStdlibInterfaceCallArgument(out, arg, expected) {
 		return
 	}
-	if writeAddressOfSelectorCallArgument(out, arg, expected) {
+	if writeAddressOfPointerCallArgument(out, arg, expected) {
 		return
 	}
 	if writeIndexedPointerHandleCallArgument(out, arg, expected) {

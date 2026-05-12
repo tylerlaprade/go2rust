@@ -322,6 +322,10 @@ run_xfail_test() {
     run_test "tests/address_of_fields_and_elements"
 }
 
+@test "address_of_pointer_argument" {
+    run_test "tests/address_of_pointer_argument"
+}
+
 @test "address_of_stdlib_struct_literal" {
     run_test "tests/address_of_stdlib_struct_literal"
 }
