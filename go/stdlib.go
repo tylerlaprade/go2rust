@@ -2727,6 +2727,9 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 				if isGoErrorType(elemType) && writeGoErrorHandleValue(out, expr) {
 					return
 				}
+				if writeNilStdlibInterfaceBareValue(out, expr, elemType) {
+					return
+				}
 				if writeStdlibInterfaceBareConversion(out, expr, elemType) {
 					return
 				}
@@ -2976,6 +2979,9 @@ func transpileNamedSliceAppend(out *strings.Builder, call *ast.CallExpr) bool {
 				}
 			}
 			TranspileExpression(out, expr)
+			return
+		}
+		if writeNilStdlibInterfaceBareValue(out, expr, sliceType.Elem()) {
 			return
 		}
 		if !writeOwnedExpressionValue(out, expr) {

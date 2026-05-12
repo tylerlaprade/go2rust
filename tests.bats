@@ -1830,6 +1830,10 @@ run_xfail_test() {
     run_test "tests/stdlib_interface_selector_assertion"
 }
 
+@test "stdlib_interface_slice_append_nil" {
+    run_test "tests/stdlib_interface_slice_append_nil"
+}
+
 @test "stdlib_interface_slice_nil_compare" {
     run_test "tests/stdlib_interface_slice_nil_compare"
 }

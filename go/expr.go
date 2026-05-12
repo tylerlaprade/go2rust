@@ -1801,6 +1801,18 @@ func writeStdlibInterfaceBareConversion(out *strings.Builder, arg ast.Expr, expe
 	return true
 }
 
+func writeNilStdlibInterfaceBareValue(out *strings.Builder, arg ast.Expr, expectedType types.Type) bool {
+	ident, ok := arg.(*ast.Ident)
+	if !ok || ident.Name != "nil" || expectedType == nil {
+		return false
+	}
+	if !isStdlibNamedInterfaceValueType(types.Unalias(expectedType)) {
+		return false
+	}
+	out.WriteString(zeroValueForTypesType(expectedType))
+	return true
+}
+
 func writeStdlibInterfaceSourceHandle(out *strings.Builder, arg ast.Expr, expectedType types.Type) {
 	if sel, ok := arg.(*ast.SelectorExpr); ok && selectorFieldCanProvideStdlibInterfaceHandle(sel, expectedType) {
 		TranspileExpressionContext(out, sel, LValue)
@@ -2651,6 +2663,9 @@ func writeArraySliceLiteralElementValue(out *strings.Builder, expr ast.Expr, ele
 			return true
 		}
 		TranspileExpression(out, expr)
+		return true
+	}
+	if writeNilStdlibInterfaceBareValue(out, expr, elemType) {
 		return true
 	}
 	if writeStdlibInterfaceBareConversion(out, expr, elemType) {
