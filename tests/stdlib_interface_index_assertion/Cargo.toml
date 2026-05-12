@@ -1,0 +1,8 @@
+[package]
+name = "stdlib_interface_index_assertion"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "stdlib_interface_index_assertion"
+path = "main.rs"

@@ -5823,6 +5823,29 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				out.WriteString("    })")
 				return
 			}
+			if typeAssertionSourceIsBareStdlibInterfaceValue(e.X) {
+				out.WriteString("({\n")
+				out.WriteString("        let val = ")
+				if ident, ok := e.X.(*ast.Ident); ok && ident.Name != "nil" {
+					out.WriteString(rustIdentForUseWithCapture(ident))
+				} else {
+					TranspileExpression(out, e.X)
+				}
+				out.WriteString(".clone();\n")
+				out.WriteString("        ")
+				if assertionReturnsPointer {
+					WriteWrapperPrefix(out)
+				}
+				out.WriteString("val.downcast_ref::<")
+				out.WriteString(rustType)
+				out.WriteString(">().expect(\"type assertion failed\").clone()")
+				if assertionReturnsPointer {
+					WriteWrapperSuffix(out)
+				}
+				out.WriteString("\n")
+				out.WriteString("    })")
+				return
+			}
 			out.WriteString("({\n")
 			out.WriteString("        let val = ")
 			// Check if e.X is an identifier (simple variable)
