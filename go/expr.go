@@ -2492,6 +2492,14 @@ func writeOwnedExpressionValue(out *strings.Builder, expr ast.Expr) bool {
 	return false
 }
 
+func writeExpressionForBorrow(out *strings.Builder, expr ast.Expr) {
+	if _, ok := expr.(*ast.SelectorExpr); ok {
+		TranspileExpressionContext(out, expr, LValue)
+		return
+	}
+	TranspileExpression(out, expr)
+}
+
 func selectorRValueReturnsWrappedHandle(expr ast.Expr) bool {
 	sel, ok := expr.(*ast.SelectorExpr)
 	if !ok || currentReceiver == "" {
@@ -4838,7 +4846,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			}
 			if needsUnwrap {
 				out.WriteString("(*")
-				TranspileExpression(out, expr)
+				writeExpressionForBorrow(out, expr)
 				WriteBorrowMethod(out, false)
 				out.WriteString(".as_ref().unwrap())")
 				if isCloneableNonPointerExpr(expr) && !isCopyTypeExpression(expr) {

@@ -3585,7 +3585,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 								} else if typeInfo != nil && typeInfo.ReturnsWrappedValue(expr) {
 									// Expression returns wrapped value, unwrap it.
 									out.WriteString("(*")
-									TranspileExpression(out, expr)
+									writeExpressionForBorrow(out, expr)
 									WriteBorrowMethod(out, false)
 									out.WriteString(".as_ref().unwrap())")
 									if isCloneableNonPointerExpr(expr) && !isCopyTypeExpression(expr) {

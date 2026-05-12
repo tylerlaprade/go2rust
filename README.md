@@ -222,6 +222,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Stdlib interface field copies | ✅ |
 | └ Stdlib interface selector type assertions | ✅ |
 | └ Stdlib pointer field stubs without nested wrappers | ✅ |
+| └ Concurrent stdlib selector string comparisons | ✅ |
 | **`interface` - Interface types** | |
 | └ Interface definitions | ✅ |
 | └ Empty interface{} | ✅ |

@@ -602,6 +602,10 @@ run_xfail_test() {
     run_test "tests/concurrent_stdlib_map_slice_comma_ok"
 }
 
+@test "concurrent_stdlib_selector_string_compare" {
+    run_test "tests/concurrent_stdlib_selector_string_compare"
+}
+
 @test "const_basic" {
     run_test "tests/const_basic"
 }

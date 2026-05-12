@@ -1,0 +1,8 @@
+[package]
+name = "concurrent_stdlib_selector_string_compare"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "concurrent_stdlib_selector_string_compare"
+path = "main.rs"
