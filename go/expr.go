@@ -2343,6 +2343,19 @@ func writeCurrentReceiverValueClone(out *strings.Builder, ident *ast.Ident) bool
 	return true
 }
 
+func writeCurrentReceiverDerefRead(out *strings.Builder, expr ast.Expr, target ast.Expr) bool {
+	ident, ok := target.(*ast.Ident)
+	if !ok || currentReceiver == "" || ident.Name != currentReceiver {
+		return false
+	}
+	if expressionNeedsGoValueClone(expr) {
+		out.WriteString("(*self).__go_value_clone()")
+	} else {
+		out.WriteString("(*self).clone()")
+	}
+	return true
+}
+
 func currentReceiverScalarTypeDefinition() bool {
 	underlying, isTypeDef := LookupTypeDefinition(currentReceiverType)
 	if !isTypeDef {
@@ -4624,6 +4637,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				break
 			}
 			if ctx == RValue {
+				if writeCurrentReceiverDerefRead(out, e, e.X) {
+					break
+				}
 				out.WriteString("{ let __v = (*")
 				TranspileExpressionContext(out, e.X, LValue)
 				WriteBorrowMethod(out, false)
@@ -4676,6 +4692,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		}
 		// Dereference pointer - unwrap the wrapper to get T
 		if ctx == RValue {
+			if writeCurrentReceiverDerefRead(out, e, e.X) {
+				break
+			}
 			out.WriteString("{ let __v = (*")
 			TranspileExpressionContext(out, e.X, LValue)
 			WriteBorrowMethod(out, false)

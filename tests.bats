@@ -1470,6 +1470,10 @@ run_xfail_test() {
     run_test "tests/pointer_receiver_nil_compare"
 }
 
+@test "pointer_receiver_value_copy" {
+    run_test "tests/pointer_receiver_value_copy"
+}
+
 @test "pointer_slice_element_handle_assignment" {
     run_test "tests/pointer_slice_element_handle_assignment"
 }
