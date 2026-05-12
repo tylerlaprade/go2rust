@@ -569,6 +569,12 @@ func writeStringSequenceValue(out *strings.Builder, expr ast.Expr) {
 		TranspileExpression(out, expr)
 		return
 	}
+	if _, ok := expr.(*ast.BinaryExpr); ok {
+		if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.IsString(expr) {
+			TranspileExpression(out, expr)
+			return
+		}
+	}
 	out.WriteString("(*")
 	TranspileExpressionContext(out, expr, LValue)
 	WriteBorrowMethod(out, false)

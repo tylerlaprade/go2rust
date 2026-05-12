@@ -1950,7 +1950,7 @@ func isStringConstExpr(expr ast.Expr) bool {
 	case *ast.BinaryExpr:
 		// String concatenation
 		if e.Op == token.ADD {
-			return isStringConstExpr(e.X) || isStringConstExpr(e.Y)
+			return isStringConstExpr(e.X) && isStringConstExpr(e.Y)
 		}
 		return false
 	}
