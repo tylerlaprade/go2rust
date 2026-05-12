@@ -155,6 +155,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Range struct values passed to function and method parameters | ✅ |
 | └ Range stdlib-interface slice values used in calls, assignments, type switches, and assertions | ✅ |
 | └ Stdlib-interface slice values compared with nil | ✅ |
+| └ Range indexes passed to Go `int` parameters | ✅ |
 | └ Range over integers | ✅ |
 | **`func` - Functions** | |
 | └ Basic functions | ✅ |
@@ -301,6 +302,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Map range | ✅ |
 | └ String range | ✅ |
 | └ Range indexes assigned into Go `int` map values | ✅ |
+| └ Range indexes passed to Go `int` parameters | ✅ |
 | └ Range string values from slice fields in comparisons, string helpers, and append calls | ✅ |
 | └ Range stdlib-interface slice values used in calls, assignments, type switches, and assertions | ✅ |
 | └ Stdlib-interface slice values compared with nil | ✅ |

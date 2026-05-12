@@ -695,6 +695,8 @@ func writeRegularMethodCallArgument(out *strings.Builder, sel *ast.SelectorExpr,
 		// Range string reference cloned for an owned string parameter.
 	} else if writeLenCapCallArgumentForExpectedType(out, arg, expectedArgType) {
 		// len/cap emits usize, but Go int parameters use i32.
+	} else if writeRangeIndexForExpectedType(out, arg, expectedArgType) {
+		// Range indexes emit usize, but Go int parameters use i32.
 	} else if !writeCallArgumentValue(out, arg) {
 		TranspileExpression(out, arg)
 	}
@@ -1303,6 +1305,17 @@ func writeRangeIndexForExpectedType(out *strings.Builder, arg ast.Expr, expected
 	}
 	out.WriteString(RustIdentForUse(ident))
 	out.WriteString(" as i32")
+	return true
+}
+
+func writeWrappedRangeIndexForExpectedType(out *strings.Builder, arg ast.Expr, expected types.Type) bool {
+	var raw strings.Builder
+	if !writeRangeIndexForExpectedType(&raw, arg, expected) {
+		return false
+	}
+	WriteWrapperPrefix(out)
+	out.WriteString(raw.String())
+	WriteWrapperSuffix(out)
 	return true
 }
 
@@ -7751,6 +7764,8 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 					// Range string reference cloned for an owned string parameter.
 				} else if writeLenCapCallArgumentForExpectedType(out, arg, expectedArgType) {
 					// len/cap emits usize, but Go int parameters use i32.
+				} else if writeRangeIndexForExpectedType(out, arg, expectedArgType) {
+					// Range indexes emit usize, but Go int parameters use i32.
 				} else if !writeCallArgumentValue(out, arg) {
 					TranspileExpression(out, arg)
 				}
@@ -8273,6 +8288,10 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				continue
 			}
 
+			if writeWrappedRangeIndexForExpectedType(out, arg, expectedArgType) {
+				continue
+			}
+
 			// Check if the argument is already a wrapped variable
 			if ident, ok := arg.(*ast.Ident); ok && ident.Name != "nil" && ident.Name != "_" {
 				// Apply capture renames if applicable
@@ -8668,6 +8687,8 @@ func writeFunctionSignatureCallArgument(out *strings.Builder, arg ast.Expr, expe
 		// Range string reference cloned for an owned string parameter.
 	} else if writeLenCapCallArgumentForExpectedType(out, arg, expected) {
 		// len/cap emits usize, but Go int parameters use i32.
+	} else if writeRangeIndexForExpectedType(out, arg, expected) {
+		// Range indexes emit usize, but Go int parameters use i32.
 	} else if !writeCallArgumentValue(out, arg) {
 		TranspileExpression(out, arg)
 	}
