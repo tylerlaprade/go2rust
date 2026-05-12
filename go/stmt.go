@@ -111,6 +111,22 @@ func writeByteConstAssignmentValue(out *strings.Builder, lhs ast.Expr, rhs ast.E
 	return writeConstExpressionForExpectedGoType(out, rhs, expected)
 }
 
+func writeRangeIndexAssignmentValue(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	expected := typeInfo.GetType(lhs)
+	if expected == nil {
+		if ident, ok := lhs.(*ast.Ident); ok {
+			if obj := typeInfo.GetObject(ident); obj != nil {
+				expected = obj.Type()
+			}
+		}
+	}
+	return writeRangeIndexForExpectedType(out, rhs, expected)
+}
+
 func writePointerArraySliceElementAssignmentValue(out *strings.Builder, rhs ast.Expr, expected types.Type) bool {
 	if expected == nil {
 		return false
@@ -4309,6 +4325,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 												out.WriteString(".as_ref().unwrap().clone()")
 											} else if writeByteConstAssignmentValue(out, s.Lhs[0], s.Rhs[0]) {
 												// Byte constants assigned to byte slots need the same go/types context as call arguments.
+											} else if writeRangeIndexAssignmentValue(out, s.Lhs[0], s.Rhs[0]) {
+												// Range indexes emit usize, but Go int assignment targets use i32.
 											} else if writeOwnedRangeValue(out, rhsIdent) {
 												// Reference-style range values must be cloned into ordinary wrapped assignment targets.
 											} else {
@@ -4456,6 +4474,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 											out.WriteString(".as_ref().unwrap().clone()")
 										} else if writeByteConstAssignmentValue(out, s.Lhs[0], s.Rhs[0]) {
 											// Byte constants assigned to byte slots need the same go/types context as call arguments.
+										} else if writeRangeIndexAssignmentValue(out, s.Lhs[0], s.Rhs[0]) {
+											// Range indexes emit usize, but Go int assignment targets use i32.
 										} else if rhsIdent, ok := s.Rhs[0].(*ast.Ident); ok && writeOwnedRangeValue(out, rhsIdent) {
 											// Reference-style range values must be cloned into ordinary wrapped assignment targets.
 										} else if !isCopyTypeExpression(s.Rhs[0]) && writeOwnedExpressionValue(out, s.Rhs[0]) {

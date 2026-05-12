@@ -1490,6 +1490,10 @@ run_xfail_test() {
     run_test "tests/range_index_array_literal"
 }
 
+@test "range_index_assignment" {
+    run_test "tests/range_index_assignment"
+}
+
 @test "range_index_call_argument" {
     run_test "tests/range_index_call_argument"
 }
