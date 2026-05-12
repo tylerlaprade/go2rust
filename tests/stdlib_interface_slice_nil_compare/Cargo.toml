@@ -1,0 +1,8 @@
+[package]
+name = "stdlib_interface_slice_nil_compare"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "stdlib_interface_slice_nil_compare"
+path = "main.rs"

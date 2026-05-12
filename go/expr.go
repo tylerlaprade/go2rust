@@ -1981,6 +1981,25 @@ func writeLocalInterfaceNilComparison(out *strings.Builder, expr ast.Expr, op to
 	return true
 }
 
+func writeBareStdlibInterfaceNilComparison(out *strings.Builder, expr ast.Expr, op token.Token) bool {
+	if op != token.EQL && op != token.NEQ {
+		return false
+	}
+	if !isExpressionResultBare(expr) {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || !isStdlibNamedInterfaceValueType(types.Unalias(typeInfo.GetType(expr))) {
+		return false
+	}
+	if op == token.NEQ {
+		out.WriteString("true")
+	} else {
+		out.WriteString("false")
+	}
+	return true
+}
+
 func writeLocalInterfaceReferenceBinding(out *strings.Builder, name string, expr ast.Expr) (bare bool) {
 	if isBareLocalInterfaceValue(expr) {
 		out.WriteString("let ")
@@ -4636,6 +4655,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			}
 
 			if writeLocalInterfaceNilComparison(out, e.X, e.Op) {
+				return
+			}
+			if writeBareStdlibInterfaceNilComparison(out, e.X, e.Op) {
 				return
 			}
 
