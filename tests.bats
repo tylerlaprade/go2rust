@@ -1418,6 +1418,10 @@ run_xfail_test() {
     run_test "tests/package_named_const_argument"
 }
 
+@test "package_named_integer_field_literal" {
+    run_test "tests/package_named_integer_field_literal"
+}
+
 @test "package_named_string_conversion" {
     run_test "tests/package_named_string_conversion"
 }

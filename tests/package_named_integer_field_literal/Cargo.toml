@@ -1,0 +1,20 @@
+
+[workspace]
+members = [
+    ".",
+    "vendor/example_com_namedfield_dep",
+    "vendor/go2rust_stdlib_stubs",
+]
+
+[package]
+name = "package_named_integer_field_literal"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "package_named_integer_field_literal"
+path = "main.rs"
+
+[dependencies]
+example_com_namedfield_dep = { path = "vendor/example_com_namedfield_dep" }
+go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }

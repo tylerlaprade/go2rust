@@ -3344,6 +3344,9 @@ func writeExpressionForExpectedTypesType(out *strings.Builder, value ast.Expr, e
 		writeStringTypeDefinitionConstructor(out, goTypesNamedTypeToRust(named), value)
 		return true
 	}
+	if isConstantExpression(value) && isNamedIntegerType(named) {
+		return writeNamedIntegerConstForExpected(out, value, named)
+	}
 	out.WriteString(goTypesNamedTypeToRust(named))
 	out.WriteString("(")
 	WriteWrapperPrefix(out)
