@@ -1,3 +1,4 @@
+use std::any::Any;
 use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -149,45 +150,120 @@ impl<T> Iterator for GoChannel<T> {
 }
 
 #[derive(Debug, Clone, Default)]
-pub struct Runner {
-    pub name: Arc<Mutex<Option<String>>>,
+pub struct counter {
+    pub value: Arc<Mutex<Option<i32>>>,
 }
 
-impl Runner {
+impl counter {
     pub fn __go_value_clone(&self) -> Self {
-        Self { name: { let __guard = self.name.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        Self { value: { let __guard = self.value.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
     }
 }
 
-impl std::fmt::Display for Runner {
+impl std::fmt::Display for counter {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.name.lock().unwrap().as_ref().unwrap()))
+        write!(f, "{{{}}}", (*self.value.lock().unwrap().as_ref().unwrap()))
     }
 }
 
 
-impl Runner {
-    pub fn after(&self) {
-        let _ = self.name.clone();
-    }
+pub trait valueReader: std::fmt::Display + Any {
+    fn __go_clone_box(&self) -> Box<dyn valueReader + Send + Sync>;
+    fn __go_as_any(&self) -> &dyn Any;
+    fn __go_eq(&self, other: &(dyn valueReader + Send + Sync)) -> bool;
+    fn value(&self) -> Arc<Mutex<Option<i32>>>;
+}
 
-    pub fn run(&self, done: GoChannel<String>) {
-        let done_thread = done.clone(); let mut r_thread = self.clone(); std::thread::spawn(move || {
-        let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
-        let mut r_defer_captured = r_thread.clone(); __defer_stack.push(Box::new(move || {
-        r_defer_captured.after();
-    }));;
-        done_thread.send(r_thread.name.clone().lock().unwrap().as_ref().unwrap().clone());;
-        while let Some(f) = __defer_stack.pop() {
-            f();
-        };
-    });
+impl Clone for Box<dyn valueReader + Send + Sync> {
+    fn clone(&self) -> Self {
+        self.__go_clone_box()
     }
+}
+
+pub(crate) static current: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<Arc<Mutex<Option<counter>>>>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));
+
+pub(crate) static fallback: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<Arc<Mutex<Option<counter>>>>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));
+
+
+fn __go_init_globals() {
+    *current.lock().unwrap() = Some(Default::default());
+    *fallback.lock().unwrap() = Some(Default::default());
+    *fallback.lock().unwrap() = Some(Arc::new(Mutex::new(Some(counter { value: Arc::new(Mutex::new(Some(5))), ..Default::default() }))));
+}
+
+
+impl counter {
+    pub fn value(&self) -> Arc<Mutex<Option<i32>>> {
+        return self.value.clone();
+    }
+}
+
+impl valueReader for counter {
+    fn value(&self) -> Arc<Mutex<Option<i32>>> {
+        return self.value.clone();
+    }
+    fn __go_clone_box(&self) -> Box<dyn valueReader + Send + Sync> {
+        Box::new(self.clone()) as Box<dyn valueReader + Send + Sync>
+    }
+    fn __go_as_any(&self) -> &dyn Any {
+        self
+    }
+    fn __go_eq(&self, other: &(dyn valueReader + Send + Sync)) -> bool {
+        if let Some(__other) = other.__go_as_any().downcast_ref::<counter>() {
+            false
+        } else {
+            false
+        }
+    }
+}
+
+pub fn new_counter(value: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<counter>>> {
+
+    return Arc::new(Mutex::new(Some(counter { value: value.clone(), ..Default::default() })));
+}
+
+pub fn set_counter(c: Arc<Mutex<Option<counter>>>) {
+    { let new_val = c.clone(); *current.lock().unwrap() = Some(new_val); };
+}
+
+pub fn get_counter() -> Arc<Mutex<Option<counter>>> {
+
+    return (*current.lock().unwrap().as_ref().unwrap()).clone();
+}
+
+pub fn get_fallback() -> Arc<Mutex<Option<Box<dyn valueReader + Send + Sync>>>> {
+
+    return Arc::new(Mutex::new(Some(Box::new((*(*fallback.lock().unwrap().as_ref().unwrap()).clone().lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn valueReader + Send + Sync>)));
+}
+
+pub fn clear_counter() {
+    *current.lock().unwrap() = Some(Default::default());
+}
+
+pub fn mark_concurrent(done: GoChannel<bool>) {
+    let done_thread = done.clone(); std::thread::spawn(move || {
+        done_thread.send(true);;;
+    });
 }
 
 fn main() {
-    let mut done = GoChannel::<String>::new();
-    let mut r = Arc::new(Mutex::new(Some(Runner { name: Arc::new(Mutex::new(Some("ok".to_string()))), ..Default::default() })));
-    (*r.lock().unwrap().as_mut().unwrap()).run(done.clone());
-    println!("{}", done.recv().unwrap());
+    __go_init_all();
+    let mut done = GoChannel::<bool>::new_buffered(1 as usize);
+    mark_concurrent(done.clone());
+    done.recv().unwrap();
+
+    set_counter(new_counter(Arc::new(Mutex::new(Some(7)))));
+    println!("{}", (*(*get_counter().lock().unwrap().as_ref().unwrap()).value.lock().unwrap().as_ref().unwrap()));
+    set_counter(new_counter(Arc::new(Mutex::new(Some(11)))));
+    println!("{}", (*(*get_counter().lock().unwrap().as_ref().unwrap()).value.lock().unwrap().as_ref().unwrap()));
+    set_counter(Arc::new(Mutex::new(None)));
+    println!("{}", (*get_counter().lock().unwrap()).is_none());
+    set_counter(new_counter(Arc::new(Mutex::new(Some(13)))));
+    clear_counter();
+    println!("{}", (*get_counter().lock().unwrap()).is_none());
+    println!("{}", (*{ let __recv = get_fallback(); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).value(); __result }.lock().unwrap().as_ref().unwrap()));
+}
+
+pub(crate) fn __go_init_all() {
+    self::__go_init_globals();
 }

@@ -1,0 +1,8 @@
+[package]
+name = "concurrent_package_pointer_global"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "concurrent_package_pointer_global"
+path = "main.rs"

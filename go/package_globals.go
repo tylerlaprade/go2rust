@@ -310,6 +310,25 @@ func isPackageGlobalObjectIdent(ident *ast.Ident) bool {
 	return obj.Parent() == typeInfo.pkg.Scope()
 }
 
+func packageGlobalPointerIdent(expr ast.Expr) (*ast.Ident, bool) {
+	ident, ok := expr.(*ast.Ident)
+	if !ok || !isPackageGlobalIdent(ident) {
+		return nil, false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || !typeInfo.IsPointer(ident) {
+		return nil, false
+	}
+	return ident, true
+}
+
+func writePackageGlobalPointerHandleClone(out *strings.Builder, ident *ast.Ident) {
+	out.WriteString("(*")
+	out.WriteString(rustPackageGlobalName(ident.Name))
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap()).clone()")
+}
+
 func collectPackageGlobals(globalVars []*ast.GenDecl) []packageGlobal {
 	typeInfo := GetTypeInfo()
 	globals := make([]packageGlobal, 0)

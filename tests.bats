@@ -578,6 +578,10 @@ run_xfail_test() {
     run_test "tests/concurrent_named_type_comparisons"
 }
 
+@test "concurrent_package_pointer_global" {
+    run_test "tests/concurrent_package_pointer_global"
+}
+
 @test "concurrent_pointer_map_keys" {
     run_test "tests/concurrent_pointer_map_keys"
 }

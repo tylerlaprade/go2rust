@@ -3714,6 +3714,10 @@ func writeIdentExpression(out *strings.Builder, e *ast.Ident, ctx ExprContext, v
 	if isPackageGlobalIdent(e) {
 		switch ctx {
 		case RValue:
+			if globalIdent, ok := packageGlobalPointerIdent(e); ok {
+				writePackageGlobalPointerHandleClone(out, globalIdent)
+				return
+			}
 			out.WriteString("(*")
 			out.WriteString(rustPackageGlobalName(e.Name))
 			WriteBorrowMethod(out, false)

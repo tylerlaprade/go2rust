@@ -1875,11 +1875,51 @@ func writePointerHandleAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Ex
 	if typeInfo == nil || !typeInfo.IsPointer(lhs) || !typeInfo.IsPointer(rhs) {
 		return false
 	}
+	if ident, ok := packageGlobalPointerIdent(lhs); ok {
+		out.WriteString("{ let new_val = ")
+		writePointerHandleValueClone(out, rhs)
+		out.WriteString("; *")
+		out.WriteString(rustPackageGlobalName(ident.Name))
+		WriteBorrowMethod(out, true)
+		out.WriteString(" = Some(new_val); }")
+		return true
+	}
 	out.WriteString("{ let new_val = ")
-	TranspileExpressionContext(out, rhs, AddressOf)
-	out.WriteString(".clone(); ")
+	writePointerHandleValueClone(out, rhs)
+	out.WriteString("; ")
 	writePointerHandleAssignmentTarget(out, lhs)
 	out.WriteString(" = new_val; }")
+	return true
+}
+
+func writePointerHandleValueClone(out *strings.Builder, rhs ast.Expr) {
+	if ident, ok := packageGlobalPointerIdent(rhs); ok {
+		writePackageGlobalPointerHandleClone(out, ident)
+		return
+	}
+	TranspileExpressionContext(out, rhs, AddressOf)
+	out.WriteString(".clone()")
+}
+
+func writePackageGlobalPointerNilAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
+	rhsIdent, ok := rhs.(*ast.Ident)
+	if !ok || rhsIdent.Name != "nil" {
+		return false
+	}
+	lhsIdent, ok := packageGlobalPointerIdent(lhs)
+	if !ok {
+		return false
+	}
+	var lhsType types.Type
+	if typeInfo := GetTypeInfo(); typeInfo != nil {
+		lhsType = typeInfo.GetType(lhs)
+	}
+	out.WriteString("*")
+	out.WriteString(rustPackageGlobalName(lhsIdent.Name))
+	WriteBorrowMethod(out, true)
+	out.WriteString(" = Some(")
+	out.WriteString(zeroValueForTypesType(lhsType))
+	out.WriteString(")")
 	return true
 }
 
@@ -3358,6 +3398,10 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						if writeLocalInterfaceConcreteReturnConversion(out, result, returnResultTypeExpr(fnType, i)) {
 							continue
 						}
+						if globalIdent, ok := packageGlobalPointerIdent(ident); ok {
+							writePackageGlobalPointerHandleClone(out, globalIdent)
+							continue
+						}
 						// Check if this is a wrapped variable that needs cloning
 						// Use a combination of TypeInfo and heuristics
 						isWrappedVariable := false
@@ -4121,6 +4165,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 								// Check if RHS is nil
 								if writeMapHandleAssignment(out, s.Lhs[0], s.Rhs[0]) {
 									// Map assignment replaces the map handle, matching Go map-header semantics.
+								} else if writePackageGlobalPointerNilAssignment(out, s.Lhs[0], s.Rhs[0]) {
+									// Package-global pointer nil preserves the global slot and replaces the stored handle.
 								} else if ident, ok := s.Rhs[0].(*ast.Ident); ok && ident.Name == "nil" {
 									// Assigning nil to pointer
 									out.WriteString("*")

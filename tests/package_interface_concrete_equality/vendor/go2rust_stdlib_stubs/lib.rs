@@ -68,7 +68,7 @@ impl<T> GoChannel<T> {
             let _ = self.len.fetch_update(
                 std::sync::atomic::Ordering::SeqCst,
                 std::sync::atomic::Ordering::SeqCst,
-                |current| current.checked_sub(1),
+                |__go_current| __go_current.checked_sub(1),
             );
         }
         value
@@ -83,7 +83,7 @@ impl<T> GoChannel<T> {
             let _ = self.len.fetch_update(
                 std::sync::atomic::Ordering::SeqCst,
                 std::sync::atomic::Ordering::SeqCst,
-                |current| current.checked_sub(1),
+                |__go_current| __go_current.checked_sub(1),
             );
         }
         value
