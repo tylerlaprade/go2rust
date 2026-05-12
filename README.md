@@ -286,6 +286,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Package-level inferred arrays of anonymous structs | ✅ |
 | └ Package-level channel globals initialized with `make` | ✅ |
 | └ Package-level pointer globals initialized from constructor calls | ✅ |
+| └ Field access through package-level pointer globals | ✅ |
 | └ Exported package globals from transpiled dependency crates keep their Go names and public visibility | ✅ |
 | └ Method calls on exported pointer globals from transpiled dependency crates | ✅ |
 | └ Init functions | ✅ |
