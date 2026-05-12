@@ -6500,25 +6500,18 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 						}
 					}
 				} else if basic, ok := argType.Underlying().(*types.Basic); ok {
-					if basic.Kind() == types.Rune || basic.Kind() == types.Int32 {
+					if basic.Kind() == types.Rune || basic.Kind() == types.Int32 || basic.Kind() == types.UntypedRune {
 						// Single rune to string
 						WriteWrapperPrefix(out)
 						out.WriteString("char::from_u32((")
-						out.WriteString("*")
-						if ident, ok := arg.(*ast.Ident); ok && ident.Name != "nil" {
-							out.WriteString(ident.Name)
-						} else {
-							TranspileExpression(out, arg)
-						}
-						WriteBorrowMethod(out, false)
-						out.WriteString(".as_ref().unwrap()")
+						writeNumericConversionValue(out, arg)
 						out.WriteString(") as u32).unwrap().to_string())))")
 						return
 					} else if basic.Kind() == types.Byte || basic.Kind() == types.Uint8 {
 						// Single byte to string - e.g. string(s[0])
 						WriteWrapperPrefix(out)
 						out.WriteString("(")
-						TranspileExpression(out, arg)
+						writeNumericConversionValue(out, arg)
 						out.WriteString(" as char).to_string())))")
 						return
 					}

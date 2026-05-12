@@ -1438,6 +1438,10 @@ run_xfail_test() {
     run_test "tests/package_stdlib_interface_argument"
 }
 
+@test "package_string_const_concat_arg" {
+    run_test "tests/package_string_const_concat_arg"
+}
+
 @test "package_variadic_import" {
     run_test "tests/package_variadic_import"
 }

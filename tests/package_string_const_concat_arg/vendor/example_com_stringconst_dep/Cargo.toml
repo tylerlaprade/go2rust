@@ -1,0 +1,11 @@
+[package]
+name = "example_com_stringconst_dep"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "example_com_stringconst_dep"
+path = "lib.rs"
+
+[dependencies]
+go2rust_stdlib_stubs = { path = "../go2rust_stdlib_stubs" }

@@ -481,6 +481,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ `strings.Count` | ✅ |
 | └ `strings.Compare` / `strings.Cut` | ✅ |
 | └ `strings.HasPrefix` / `strings.HasSuffix` | ✅ |
+| └ Dynamic `strings` arguments with package const separators | ✅ |
 | └ `strings.Split` / `strings.Join` / `strings.Fields` | ✅ |
 | └ `strings.Replace` / `strings.ReplaceAll` | ✅ |
 | └ `strings.Repeat` | ✅ |

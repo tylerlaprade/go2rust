@@ -148,7 +148,7 @@ fn main() {
     print!("byte 65: {} ({})\n", ({ let __v = (*b.borrow().as_ref().unwrap()).clone(); __v }) as u8 as char, { let __v = (*b.borrow().as_ref().unwrap()).clone(); __v });
 
         // Rune to string
-    let mut str = Rc::new(RefCell::new(Some(char::from_u32((*r.borrow().as_ref().unwrap()) as u32).unwrap().to_string())));
+    let mut str = Rc::new(RefCell::new(Some(char::from_u32(((*r.borrow().as_ref().unwrap())) as u32).unwrap().to_string())));
     print!("rune to string: {}\n", { let __v = (*str.borrow().as_ref().unwrap()).clone(); __v });
 
         // Byte slice to string

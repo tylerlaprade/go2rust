@@ -1339,6 +1339,12 @@ func writeOwnedStringStdlibArg(out *strings.Builder, arg ast.Expr) {
 	if writeRangeStringValue(out, arg) {
 		return
 	}
+	if _, ok := arg.(*ast.BinaryExpr); ok {
+		if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.IsString(arg) {
+			TranspileExpression(out, arg)
+			return
+		}
+	}
 	if _, ok := arg.(*ast.IndexExpr); ok {
 		if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.IsString(arg) {
 			TranspileExpression(out, arg)
