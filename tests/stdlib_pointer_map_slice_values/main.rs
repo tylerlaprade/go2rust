@@ -166,7 +166,7 @@ pub fn remember(m: Rc<RefCell<Option<BTreeMap<GoLocalPtrKey<types_Package>, Rc<R
         let _ = export_path((*p).clone());
         let _ = (*w.borrow_mut().as_mut().unwrap()).export_path(p.clone());
         let _ = (*p.borrow_mut().as_mut().unwrap()).name();
-        let _ = (*m.borrow().as_ref().unwrap()).get(&GoLocalPtrKey::new(p.clone())).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| vec![]);
+        let _ = (*m.borrow().as_ref().unwrap()).get(&GoLocalPtrKey::new(p.clone())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default());
     } }
     let _ = (*pkgs.borrow().as_ref().unwrap());
 }

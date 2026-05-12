@@ -533,12 +533,15 @@ func writeIntPeerForLenCapBinaryOperand(out *strings.Builder, expr ast.Expr, oth
 func isExpressionResultBare(expr ast.Expr) bool {
 	switch e := expr.(type) {
 	case *ast.IndexExpr:
+		if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.IsMap(e.X) && mapValueTypeKeepsHandle(typeInfo.GetType(e)) {
+			return false
+		}
 		// Array/slice/map indexing results are bare values (already cloned out of the wrapper)
 		return true
 	case *ast.Ident:
 		// Range loop variables are bare
-		if _, isRangeVar := rangeLoopVars[e.Name]; isRangeVar {
-			if isWrappedSliceRangeVar(e.Name) {
+		if varType, isRangeVar := rangeLoopVars[e.Name]; isRangeVar {
+			if isWrappedRangeVarType(varType) {
 				return false
 			}
 			return true
@@ -3664,7 +3667,7 @@ func writeMapLookupKeyWithType(out *strings.Builder, index ast.Expr, keyType typ
 }
 
 func writeMapLookupValue(out *strings.Builder, valueType types.Type, defaultValue string) {
-	if isGoErrorType(valueType) || isPointerFieldType(valueType) || isEmptyInterfaceType(valueType) {
+	if mapValueTypeKeepsHandle(valueType) {
 		out.WriteString(".map(|__v| __v.clone()).unwrap_or_else(|| Default::default())")
 		return
 	}
@@ -3673,6 +3676,21 @@ func writeMapLookupValue(out *strings.Builder, valueType types.Type, defaultValu
 	out.WriteString(".as_ref().unwrap().clone()).unwrap_or_else(|| ")
 	out.WriteString(defaultValue)
 	out.WriteString(")")
+}
+
+func mapValueTypeKeepsHandle(valueType types.Type) bool {
+	if valueType == nil {
+		return false
+	}
+	if isGoErrorType(valueType) {
+		return true
+	}
+	switch types.Unalias(valueType).Underlying().(type) {
+	case *types.Pointer, *types.Slice, *types.Map, *types.Chan, *types.Signature, *types.Interface:
+		return true
+	default:
+		return false
+	}
 }
 
 func writeOwnedMapKeyExpression(out *strings.Builder, expr ast.Expr) bool {

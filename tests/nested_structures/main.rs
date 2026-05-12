@@ -365,7 +365,7 @@ fn main() {
     }
     (*categories.borrow_mut().as_mut().unwrap()).sort();
     { let __range_holder = categories.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for category in __range_values.iter() {
-        let mut items = Rc::new(RefCell::new(Some((*inventory.borrow().as_ref().unwrap()).get(category).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| BTreeMap::new()))));
+        let mut items = (*inventory.borrow().as_ref().unwrap()).get(category).map(|__v| __v.clone()).unwrap_or_else(|| Default::default());
         print!("  {}:\n", category);
         let mut itemNames: Rc<RefCell<Option<Vec<String>>>> = Rc::new(RefCell::new(None));
         for (item, _) in { let __range_holder = items.clone(); let __range_guard = __range_holder.borrow(); let __range_map = (*__range_guard.as_ref().unwrap()).clone(); drop(__range_guard); __range_map } {
@@ -379,7 +379,7 @@ fn main() {
     } }
 
         // Access nested map values
-    let mut laptopCount = Rc::new(RefCell::new(Some((*inventory.borrow().as_ref().unwrap()).get(&"electronics".to_string()).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| BTreeMap::new()).get(&"laptops".to_string()).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| 0))));
+    let mut laptopCount = Rc::new(RefCell::new(Some((*(*inventory.borrow().as_ref().unwrap()).get(&"electronics".to_string()).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()).borrow().as_ref().unwrap()).get(&"laptops".to_string()).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| 0))));
     print!("Laptop count: {}\n", { let __v = (*laptopCount.borrow().as_ref().unwrap()).clone(); __v });
 
         // Nested slices

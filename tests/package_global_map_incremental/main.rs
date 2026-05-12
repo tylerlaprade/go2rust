@@ -69,7 +69,7 @@ fn __go_init_globals() {
 
 fn main() {
     __go_init_all();
-    println!("{} {} {} {}", (*symbols.borrow().as_ref().unwrap()).len(), (*symbols.borrow().as_ref().unwrap()).get(&"fmt".to_string()).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| vec![]).len(), (*(*symbols.borrow().as_ref().unwrap()).get(&"strings".to_string()).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| vec![])[(0) as usize].clone().name.borrow().as_ref().unwrap()), (*(*symbols.borrow().as_ref().unwrap()).get(&"bytes".to_string()).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| vec![])[(0) as usize].clone().kind.borrow().as_ref().unwrap()));
+    println!("{} {} {} {}", (*symbols.borrow().as_ref().unwrap()).len(), (*(*symbols.borrow().as_ref().unwrap()).get(&"fmt".to_string()).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()).borrow().as_ref().unwrap()).len(), (*(*(*symbols.borrow().as_ref().unwrap()).get(&"strings".to_string()).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()).borrow().as_ref().unwrap())[(0) as usize].clone().name.borrow().as_ref().unwrap()), (*(*(*symbols.borrow().as_ref().unwrap()).get(&"bytes".to_string()).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()).borrow().as_ref().unwrap())[(0) as usize].clone().kind.borrow().as_ref().unwrap()));
 }
 
 pub(crate) fn __go_init_all() {

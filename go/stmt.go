@@ -487,6 +487,8 @@ func rangeTargetNeedsWrappedSliceGuard(expr ast.Expr) bool {
 	case *ast.CallExpr:
 		typeInfo := GetTypeInfo()
 		return typeInfo != nil && typeInfo.ReturnsWrappedValue(e)
+	case *ast.IndexExpr:
+		return mapIndexExpressionKeepsHandle(e)
 	case *ast.UnaryExpr:
 		typeInfo := GetTypeInfo()
 		return e.Op == token.AND && typeInfo != nil && typeInfo.IsPointerToArray(e)
@@ -1773,6 +1775,8 @@ func isAssignmentSelfWrappingExpression(expr ast.Expr) bool {
 		return true
 	case *ast.CallExpr:
 		return isBuiltinCallNamed(e, "make") && !isMakeChannelCall(e)
+	case *ast.IndexExpr:
+		return mapIndexExpressionKeepsHandle(e)
 	default:
 		return false
 	}
@@ -1783,6 +1787,15 @@ func isTypedAssignmentSelfWrappingExpression(expr ast.Expr) bool {
 		return false
 	}
 	return isAssignmentSelfWrappingExpression(expr)
+}
+
+func mapIndexExpressionKeepsHandle(expr ast.Expr) bool {
+	indexExpr, ok := expr.(*ast.IndexExpr)
+	if !ok {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	return typeInfo != nil && typeInfo.IsMap(indexExpr.X) && mapValueTypeKeepsHandle(typeInfo.GetType(indexExpr))
 }
 
 func expressionFunctionSignature(expr ast.Expr) (*types.Signature, bool) {
@@ -2545,8 +2558,8 @@ func writeMapCommaOkMissingValue(out *strings.Builder, indexExpr *ast.IndexExpr)
 		out.WriteString("/* ERROR: Map value type required for map comma-ok zero value */ unimplemented!(\"map value type required for map comma-ok zero value\")")
 		return
 	}
-	if _, ok := valueType.Underlying().(*types.Interface); ok {
-		WriteWrappedNone(out)
+	if mapValueTypeKeepsHandle(valueType) {
+		out.WriteString("Default::default()")
 		return
 	}
 
@@ -4637,6 +4650,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										} else if _, isSliceExpr := rhs.(*ast.SliceExpr); isSliceExpr {
 											// Slice expressions already return wrapped values
 											TranspileExpression(out, rhs)
+										} else if mapIndexExpressionKeepsHandle(rhs) {
+											// Map values that are maps/slices/pointers/etc. already return cloneable handles.
+											TranspileExpression(out, rhs)
 										} else if typeInfo := GetTypeInfo(); typeInfo != nil && isFunctionSignatureType(typeInfo.GetType(rhs)) && writeFunctionValueHandle(out, rhs) {
 											// Function values are already represented by cloneable handles.
 										} else if writeConcurrentMapSelectorHandleClone(out, rhs) {
@@ -4712,6 +4728,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 								writeCallExpressionForInitializer(out, call)
 							} else if _, isSlice := rhs.(*ast.SliceExpr); isSlice {
 								// Slice expressions already return wrapped values
+								TranspileExpression(out, rhs)
+							} else if mapIndexExpressionKeepsHandle(rhs) {
+								// Map values that are maps/slices/pointers/etc. already return cloneable handles.
 								TranspileExpression(out, rhs)
 							} else {
 								// Wrap new variables in Arc<Mutex<Option<>>>
@@ -4865,6 +4884,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									}
 								} else if unary, ok := valueSpec.Values[i].(*ast.UnaryExpr); ok && unary.Op == token.AND {
 									// Address-of operator already produces wrapped value
+									TranspileExpression(out, valueSpec.Values[i])
+								} else if mapIndexExpressionKeepsHandle(valueSpec.Values[i]) {
+									// Map values that are maps/slices/pointers/etc. already return cloneable handles.
 									TranspileExpression(out, valueSpec.Values[i])
 								} else if writeConcurrentMapSelectorHandleClone(out, valueSpec.Values[i]) {
 									// Concurrent map fields are map handles; clone the handle.

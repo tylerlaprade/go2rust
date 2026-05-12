@@ -43,7 +43,7 @@ fn main() {
     let mut pkgs = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<loaderPackage>>>>::from([("dep".to_string(), Rc::new(RefCell::new(Some(loaderPackage { package: Rc::new(RefCell::new(Some(Package { i_d: Rc::new(RefCell::new(Some("dep".to_string()))), ..Default::default() }))).clone(), ..Default::default() }))).clone())]))));
     let mut imports = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<Package>>>>::from([]))));
 
-    let mut imp = (*pkgs.borrow().as_ref().unwrap()).get(&"dep".to_string()).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()).clone();
+    let mut imp = (*pkgs.borrow().as_ref().unwrap()).get(&"dep".to_string()).map(|__v| __v.clone()).unwrap_or_else(|| Default::default());
     { let __map_key = "dep".to_string(); let __map_value = (*imp.borrow().as_ref().unwrap()).package.clone(); (*imports.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
     { let new_val = "updated".to_string(); *(*(*imp.borrow().as_ref().unwrap()).package.borrow().as_ref().unwrap()).i_d.borrow_mut() = Some(new_val); };
 

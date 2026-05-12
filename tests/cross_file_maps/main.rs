@@ -24,7 +24,7 @@ fn main() {
     print!("Last number: {}\n", (*Numbers.borrow().as_ref().unwrap())[(((*Numbers.borrow().as_ref().unwrap()).len() as i32) - (1 as i32)) as usize].clone());
 
         // Access map of slices - complex type resolution
-    let mut admins = Rc::new(RefCell::new(Some((*Groups.borrow().as_ref().unwrap()).get(&"admins".to_string()).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| vec![]))));
+    let mut admins = (*Groups.borrow().as_ref().unwrap()).get(&"admins".to_string()).map(|__v| __v.clone()).unwrap_or_else(|| Default::default());
     print!("Admin count: {}\n", (*admins.borrow().as_ref().unwrap()).len());
     print!("First admin: {}\n", (*admins.borrow().as_ref().unwrap())[(0) as usize].clone());
 
