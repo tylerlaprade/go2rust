@@ -52,6 +52,6 @@ pub fn make_type() -> Rc<RefCell<Option<types_Type>>> {
 }
 
 fn main() {
-    let mut typesList = Rc::new(RefCell::new(Some(vec![types_Type::default(), { let __v = make_type(); let __owned = (*__v.borrow().as_ref().unwrap()).clone(); __owned }])));
+    let mut typesList = Rc::new(RefCell::new(Some(Vec::<types_Type>::from([types_Type::default(), { let __v = make_type(); let __owned = (*__v.borrow().as_ref().unwrap()).clone(); __owned }]))));
     println!("{}", (*typesList.borrow().as_ref().unwrap()).len());
 }

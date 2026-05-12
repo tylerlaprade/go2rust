@@ -200,7 +200,7 @@ fn main() {
     if false {
         let mut done = GoChannel::<bool>::new_buffered(1 as usize);
         let done_thread = done.clone(); std::thread::spawn(move || {
-        done_thread.send((*first_func(Arc::new(Mutex::new(Some(vec![{ let __arg = Arc::new(Mutex::new(Some(ast_FuncLit { ..Default::default() }))); let __arg_guard = __arg.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone().into() }])))).lock().unwrap()).is_some());;;
+        done_thread.send((*first_func(Arc::new(Mutex::new(Some(Vec::<ast_Expr>::from([{ let __arg = Arc::new(Mutex::new(Some(ast_FuncLit { ..Default::default() }))); let __arg_guard = __arg.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone().into() }]))))).lock().unwrap()).is_some());;;
     });
         println!("{}", done.recv().unwrap());
     }

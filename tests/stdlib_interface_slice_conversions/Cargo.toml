@@ -1,0 +1,8 @@
+[package]
+name = "stdlib_interface_slice_conversions"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "stdlib_interface_slice_conversions"
+path = "main.rs"

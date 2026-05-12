@@ -2661,6 +2661,10 @@ func writeStringConstForExpectedBasicType(out *strings.Builder, expr ast.Expr, e
 	return true
 }
 
+func sliceLiteralNeedsExplicitElemType(elemType types.Type) bool {
+	return elemType != nil && isStdlibNamedInterfaceValueType(types.Unalias(elemType))
+}
+
 func writeArraySliceLiteralElementValue(out *strings.Builder, expr ast.Expr, elemType types.Type) bool {
 	typeInfo := GetTypeInfo()
 	if isGoErrorType(elemType) {
@@ -5327,6 +5331,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			// Wrap the entire array/slice in Arc<Mutex<Option<>>>
 			WriteWrapperPrefix(out)
 			elemType := compositeLiteralElementType(e)
+			explicitVecElemType := false
 			if arrayType.Len != nil {
 				// Fixed-size array
 				out.WriteString("[")
@@ -5341,6 +5346,11 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 						out.WriteString(goCollectionElemTypeToRust(arrayType.Elt))
 					}
 					out.WriteString(">::new(")
+				} else if sliceLiteralNeedsExplicitElemType(elemType) {
+					explicitVecElemType = true
+					out.WriteString("Vec::<")
+					out.WriteString(goTypesCollectionElemTypeToRust(elemType))
+					out.WriteString(">::from([")
 				} else {
 					out.WriteString("vec![")
 				}
@@ -5400,6 +5410,8 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				out.WriteString("]")
 			} else if len(e.Elts) == 0 {
 				out.WriteString(")")
+			} else if explicitVecElemType {
+				out.WriteString("])")
 			} else {
 				out.WriteString("]")
 			}

@@ -1854,6 +1854,10 @@ run_xfail_test() {
     run_test "tests/stdlib_interface_slice_append_nil"
 }
 
+@test "stdlib_interface_slice_conversions" {
+    run_test "tests/stdlib_interface_slice_conversions"
+}
+
 @test "stdlib_interface_slice_nil_compare" {
     run_test "tests/stdlib_interface_slice_nil_compare"
 }

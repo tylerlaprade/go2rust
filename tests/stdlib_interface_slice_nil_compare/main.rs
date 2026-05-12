@@ -68,6 +68,6 @@ pub fn count_non_nil(exprs: Arc<Mutex<Option<Vec<ast_Expr>>>>) -> Arc<Mutex<Opti
 }
 
 fn main() {
-    let mut exprs = Arc::new(Mutex::new(Some(vec![{ let __arg = ast::new_ident("x".to_string()); let __arg_guard = __arg.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone().into() }])));
+    let mut exprs = Arc::new(Mutex::new(Some(Vec::<ast_Expr>::from([{ let __arg = ast::new_ident("x".to_string()); let __arg_guard = __arg.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone().into() }]))));
     println!("{}", (*count_non_nil(exprs.clone()).lock().unwrap().as_ref().unwrap()));
 }

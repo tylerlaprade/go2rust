@@ -22,7 +22,7 @@ impl types_Type {
 pub fn values() -> Rc<RefCell<Option<Vec<types_Type>>>> {
 
     let mut typ: Rc<RefCell<Option<types_Type>>> = Rc::new(RefCell::new(None));
-    return Rc::new(RefCell::new(Some(vec![(*typ.borrow().as_ref().unwrap()).clone()])));
+    return Rc::new(RefCell::new(Some(Vec::<types_Type>::from([(*typ.borrow().as_ref().unwrap()).clone()]))));
 }
 
 fn main() {

@@ -184,7 +184,7 @@ pub fn pad_named_exprs(elts: Arc<Mutex<Option<ExprList>>>) -> Arc<Mutex<Option<E
 
 pub fn nil_literal() -> Arc<Mutex<Option<Vec<ast_Expr>>>> {
 
-    return Arc::new(Mutex::new(Some(vec![Default::default()])));
+    return Arc::new(Mutex::new(Some(Vec::<ast_Expr>::from([Default::default()]))));
 }
 
 fn main() {
