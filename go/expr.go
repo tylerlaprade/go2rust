@@ -697,6 +697,9 @@ func writeRegularMethodCallArgument(out *strings.Builder, sel *ast.SelectorExpr,
 	if writeAlreadyWrappedCallArgument(out, arg) {
 		return
 	}
+	if writeCompositeLiteralHandleCallArgument(out, arg) {
+		return
+	}
 	WriteWrapperPrefix(out)
 	if writeConstExpressionForExpectedGoType(out, arg, expectedArgType) {
 		// Constant emitted in the parameter's expected representation.

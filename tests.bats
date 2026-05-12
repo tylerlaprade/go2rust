@@ -1218,6 +1218,10 @@ run_xfail_test() {
     run_test "tests/method_receiver_goroutine_capture"
 }
 
+@test "method_slice_literal_argument" {
+    run_test "tests/method_slice_literal_argument"
+}
+
 @test "methods" {
     run_test "tests/methods"
 }
