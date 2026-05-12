@@ -231,6 +231,15 @@ pub fn get_counter() -> Arc<Mutex<Option<counter>>> {
     return (*current.lock().unwrap().as_ref().unwrap()).clone();
 }
 
+pub fn current_value() -> Arc<Mutex<Option<i32>>> {
+
+    return Arc::new(Mutex::new(Some({ let __selector_holder = (*(*current.lock().unwrap().as_ref().unwrap()).lock().unwrap().as_ref().unwrap()).value.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
+}
+
+pub fn set_current_value(value: Arc<Mutex<Option<i32>>>) {
+    { let new_val = value.lock().unwrap().as_ref().unwrap().clone(); *(*(*current.lock().unwrap().as_ref().unwrap()).lock().unwrap().as_ref().unwrap()).value.lock().unwrap() = Some(new_val); };
+}
+
 pub fn get_fallback() -> Arc<Mutex<Option<Box<dyn valueReader + Send + Sync>>>> {
 
     return Arc::new(Mutex::new(Some(Box::new((*(*fallback.lock().unwrap().as_ref().unwrap()).clone().lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn valueReader + Send + Sync>)));
@@ -253,6 +262,9 @@ fn main() {
     done.recv().unwrap();
 
     set_counter(new_counter(Arc::new(Mutex::new(Some(7)))));
+    println!("{}", (*(*get_counter().lock().unwrap().as_ref().unwrap()).value.lock().unwrap().as_ref().unwrap()));
+    println!("{}", (*current_value().lock().unwrap().as_ref().unwrap()));
+    set_current_value(Arc::new(Mutex::new(Some(9))));
     println!("{}", (*(*get_counter().lock().unwrap().as_ref().unwrap()).value.lock().unwrap().as_ref().unwrap()));
     set_counter(new_counter(Arc::new(Mutex::new(Some(11)))));
     println!("{}", (*(*get_counter().lock().unwrap().as_ref().unwrap()).value.lock().unwrap().as_ref().unwrap()));

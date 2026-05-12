@@ -2346,6 +2346,52 @@ func writeSelectorRValueClose(out *strings.Builder, expr *ast.SelectorExpr) {
 	}
 }
 
+func writePackageGlobalPointerPointee(out *strings.Builder, ident *ast.Ident) {
+	out.WriteString("(*(*")
+	out.WriteString(rustPackageGlobalName(ident.Name))
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap())")
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap())")
+}
+
+func writePackageGlobalPointerFieldHandle(out *strings.Builder, ident *ast.Ident, fieldInfo FieldAccessInfo) {
+	writePackageGlobalPointerPointee(out, ident)
+	if fieldInfo.IsPromoted {
+		for _, embedded := range fieldInfo.EmbeddedPath {
+			out.WriteString(".")
+			out.WriteString(ToSnakeCase(embedded))
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref().unwrap()")
+		}
+	}
+	out.WriteString(".")
+	out.WriteString(fieldInfo.FieldName)
+}
+
+func writePackageGlobalPointerFieldSelector(out *strings.Builder, ident *ast.Ident, fieldInfo FieldAccessInfo, sel *ast.SelectorExpr, ctx ExprContext) {
+	if ctx == LValue || ctx == AddressOf {
+		writePackageGlobalPointerFieldHandle(out, ident, fieldInfo)
+		return
+	}
+	if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.IsPointer(sel) {
+		writePackageGlobalPointerFieldHandle(out, ident, fieldInfo)
+		out.WriteString(".clone()")
+		return
+	}
+	out.WriteString("(*")
+	if NeedsConcurrentWrapper() {
+		out.WriteString("{ let __field = ")
+		writePackageGlobalPointerFieldHandle(out, ident, fieldInfo)
+		out.WriteString(".clone(); __field }")
+	} else {
+		writePackageGlobalPointerFieldHandle(out, ident, fieldInfo)
+	}
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap()")
+	writeSelectorRValueClose(out, sel)
+}
+
 func isCopyTypeExpression(expr ast.Expr) bool {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil {
@@ -4152,6 +4198,11 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					if renamed, exists := currentCaptureRenames[ident.Name]; exists {
 						baseName = RustLocalIdent(renamed)
 					}
+				}
+
+				if globalIdent, ok := packageGlobalPointerIdent(ident); ok {
+					writePackageGlobalPointerFieldSelector(out, globalIdent, fieldInfo, e, ctx)
+					break
 				}
 
 				if fieldInfo.IsPromoted {

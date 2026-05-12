@@ -29,6 +29,14 @@ func getCounter() *counter {
 	return current
 }
 
+func currentValue() int {
+	return current.value
+}
+
+func setCurrentValue(value int) {
+	current.value = value
+}
+
 func getFallback() valueReader {
 	return fallback
 }
@@ -49,6 +57,9 @@ func main() {
 	<-done
 
 	setCounter(newCounter(7))
+	fmt.Println(getCounter().value)
+	fmt.Println(currentValue())
+	setCurrentValue(9)
 	fmt.Println(getCounter().value)
 	setCounter(newCounter(11))
 	fmt.Println(getCounter().value)
