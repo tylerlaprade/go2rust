@@ -1,0 +1,8 @@
+[package]
+name = "type_assertion_pointer_argument"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "type_assertion_pointer_argument"
+path = "main.rs"

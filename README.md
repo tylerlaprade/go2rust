@@ -398,6 +398,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Address-of composite literals passed to pointer parameters | ✅ |
 | └ Address-of local values passed to pointer parameters | ✅ |
 | └ Address-of selector fields passed to pointer parameters | ✅ |
+| └ Pointer type assertions passed to pointer parameters | ✅ |
 | └ Address-of slice elements with named integer indexes | ✅ |
 | └ Address-of struct fields and slice elements | ✅ |
 | └ Declared pointers to slice elements | ✅ |

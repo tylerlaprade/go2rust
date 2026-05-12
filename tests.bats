@@ -2026,6 +2026,10 @@ run_xfail_test() {
     run_test "tests/type_assertion_method_receiver"
 }
 
+@test "type_assertion_pointer_argument" {
+    run_test "tests/type_assertion_pointer_argument"
+}
+
 @test "type_assertion_simple" {
     run_test "tests/type_assertion_simple"
 }

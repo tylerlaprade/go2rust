@@ -52,6 +52,7 @@ Method receivers (value and pointer), multiple returns (including named returns,
 - ✅ Wrapped call arguments - call expressions that already return wrappers pass through to method and package-function arguments without nesting wrappers again (wrapped_call_argument promoted, 2026-05-07)
 - ✅ Typed nil package arguments - `nil` passed to package functions keeps the expected nil handle shape instead of being nested inside another wrapper (package_function_nil_slice_argument added, 2026-05-10)
 - ✅ Indexed pointer call arguments - indexed values from `[]*T` passed to `*T` parameters preserve the existing pointer handle instead of nesting it in another wrapper (stdlib_pointer_map_slice_values expanded, 2026-05-09)
+- ✅ Pointer type-assertion call arguments - expressions such as `accept(v.(*T))` pass the asserted pointer handle directly instead of nesting it in another pointer wrapper (type_assertion_pointer_argument added, 2026-05-12)
 - ✅ Method nil pointer arguments - `nil` passed to `*T` method parameters lowers to a typed empty wrapper instead of nesting `None` inside `Some` (method_nil_pointer_argument added, 2026-05-09)
 - ✅ Tuple return reassignment - existing fields, locals, and parameters receive inner values from returned wrapped tuple elements (tuple_return_reassignment promoted, 2026-05-07)
 - ✅ Slice literal returns - return statements pass self-wrapping slice literals through without nesting wrappers (return_slice_literal promoted, 2026-05-07)
@@ -258,4 +259,4 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 
 go2rust transpiles itself!
 
-- 🚧 Broad self-transpile cargo check now reaches the root `go` crate after generated dependency crates, with package-global pointer field selectors, stdlib-interface slice range call/assignment/type-switch/assertion paths, and address-of composite literal pointer call arguments fixed, and the root error count at 286 under `CARGO_BUILD_JOBS=1 CARGO_INCREMENTAL=0 RUSTFLAGS=-Awarnings`. Package-targeted `gcexportdata` and `go_packages` pass with the same serial settings (updated 2026-05-12)
+- 🚧 Broad self-transpile cargo check now reaches the root `go` crate after generated dependency crates, with package-global pointer field selectors, stdlib-interface slice range call/assignment/type-switch/assertion paths, address-of composite literal pointer call arguments, and pointer type-assertion call arguments fixed, and the root error count at 285 under `CARGO_BUILD_JOBS=1 CARGO_INCREMENTAL=0 RUSTFLAGS=-Awarnings`. Package-targeted `gcexportdata` and `go_packages` pass with the same serial settings (updated 2026-05-12)
