@@ -8359,6 +8359,12 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 							out.WriteString(EscapeRustIdent(ident.Name))
 							out.WriteString(".clone()")
 						}
+					} else if strings.HasPrefix(varType, "&") {
+						WriteWrapperPrefix(out)
+						if !writeOwnedRangeValue(out, ident) {
+							TranspileExpression(out, arg)
+						}
+						WriteWrapperSuffix(out)
 					} else {
 						// Regular range variable, wrap it normally
 						WriteWrapperPrefix(out)

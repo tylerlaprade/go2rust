@@ -4302,6 +4302,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 												out.WriteString(".as_ref().unwrap().clone()")
 											} else if writeByteConstAssignmentValue(out, s.Lhs[0], s.Rhs[0]) {
 												// Byte constants assigned to byte slots need the same go/types context as call arguments.
+											} else if writeOwnedRangeValue(out, rhsIdent) {
+												// Reference-style range values must be cloned into ordinary wrapped assignment targets.
 											} else {
 												TranspileExpression(out, s.Rhs[0])
 											}
@@ -4447,6 +4449,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 											out.WriteString(".as_ref().unwrap().clone()")
 										} else if writeByteConstAssignmentValue(out, s.Lhs[0], s.Rhs[0]) {
 											// Byte constants assigned to byte slots need the same go/types context as call arguments.
+										} else if rhsIdent, ok := s.Rhs[0].(*ast.Ident); ok && writeOwnedRangeValue(out, rhsIdent) {
+											// Reference-style range values must be cloned into ordinary wrapped assignment targets.
 										} else if !isCopyTypeExpression(s.Rhs[0]) && writeOwnedExpressionValue(out, s.Rhs[0]) {
 											// Copied by value from an existing wrapped field or handle.
 										} else {
@@ -5350,6 +5354,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			if elemType != nil {
 				if isGoErrorType(elemType) {
 					valueType = goTypesTypeToRustWrapped(elemType)
+				} else if isStdlibNamedInterfaceValueType(elemType) {
+					valueType = "&" + goTypesTypeToRust(elemType)
 				} else if _, ok := elemType.Underlying().(*types.Pointer); ok {
 					valueType = "&" + goTypesTypeToRust(elemType)
 				} else if intf, ok := elemType.Underlying().(*types.Interface); ok {
