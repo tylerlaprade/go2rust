@@ -1158,6 +1158,10 @@ run_xfail_test() {
     run_test "tests/map_slice_range_value_assignment"
 }
 
+@test "map_value_handle_return" {
+    run_test "tests/map_value_handle_return"
+}
+
 @test "map_value_map_lookup_range" {
     run_test "tests/map_value_map_lookup_range"
 }

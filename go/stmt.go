@@ -3522,6 +3522,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					} else if _, ok := result.(*ast.SliceExpr); ok {
 						// Slice expressions already return wrapped values (Arc<Mutex<Option<Vec<T>>>>)
 						TranspileExpression(out, result)
+					} else if mapIndexExpressionKeepsHandle(result) {
+						// Map values that are maps/slices/pointers/etc. already return cloneable handles.
+						TranspileExpression(out, result)
 					} else if writeStdlibInterfaceReturnConversion(out, result, returnResultTypeExpr(fnType, i)) {
 					} else if unaryExpr, ok := result.(*ast.UnaryExpr); ok {
 						// Check if this is address-of a struct literal

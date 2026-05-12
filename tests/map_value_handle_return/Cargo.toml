@@ -1,0 +1,8 @@
+[package]
+name = "map_value_handle_return"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "map_value_handle_return"
+path = "main.rs"
