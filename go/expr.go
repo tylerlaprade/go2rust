@@ -866,6 +866,28 @@ func typeAssertionSourceIsBareStdlibInterfaceValue(expr ast.Expr) bool {
 	return ok && intf.NumMethods() > 0
 }
 
+func isStdlibInterfaceReferenceRangeValue(expr ast.Expr) bool {
+	ident, ok := expr.(*ast.Ident)
+	if !ok || ident.Name == "nil" || ident.Name == "_" {
+		return false
+	}
+	varType, ok := rangeLoopVars[ident.Name]
+	if !ok || !strings.HasPrefix(varType, "&") {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	return typeInfo != nil && isStdlibNamedInterfaceValueType(types.Unalias(typeInfo.GetType(ident)))
+}
+
+func writeStdlibInterfaceReferenceRangeValue(out *strings.Builder, expr ast.Expr) bool {
+	if !isStdlibInterfaceReferenceRangeValue(expr) {
+		return false
+	}
+	ident := expr.(*ast.Ident)
+	out.WriteString(rustIdentForUseWithCapture(ident))
+	return true
+}
+
 func typeAssertionSourceIsWrappedStdlibInterfaceValue(expr ast.Expr) bool {
 	if isExpressionResultBare(expr) {
 		return false
@@ -5751,6 +5773,25 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 
 			// Generate type assertion that panics on failure (for single-value context)
 			// The comma-ok form is handled specially in assignment statements
+			if isStdlibInterfaceReferenceRangeValue(e.X) {
+				out.WriteString("({\n")
+				out.WriteString("        let val = ")
+				writeStdlibInterfaceReferenceRangeValue(out, e.X)
+				out.WriteString(";\n")
+				out.WriteString("        ")
+				if assertionReturnsPointer {
+					WriteWrapperPrefix(out)
+				}
+				out.WriteString("val.downcast_ref::<")
+				out.WriteString(rustType)
+				out.WriteString(">().expect(\"type assertion failed\").clone()")
+				if assertionReturnsPointer {
+					WriteWrapperSuffix(out)
+				}
+				out.WriteString("\n")
+				out.WriteString("    })")
+				return
+			}
 			out.WriteString("({\n")
 			out.WriteString("        let val = ")
 			// Check if e.X is an identifier (simple variable)

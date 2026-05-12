@@ -633,7 +633,7 @@ func writeTypeSwitchCaseCondition(out *strings.Builder, typeInfo *TypeInfo, type
 	out.WriteString(">()).is_some()")
 }
 
-func writeTypeSwitchOriginalBinding(out *strings.Builder, varName string, expr ast.Expr, isRangeVar bool) {
+func writeTypeSwitchOriginalBinding(out *strings.Builder, varName string, expr ast.Expr, isRangeVar bool, isStdlibRangeRef bool) {
 	out.WriteString("        let ")
 	out.WriteString(varName)
 	out.WriteString(" = ")
@@ -645,6 +645,13 @@ func writeTypeSwitchOriginalBinding(out *strings.Builder, varName string, expr a
 				Source:    SourceLocal,
 			})
 		}
+		return
+	}
+	if isStdlibRangeRef {
+		WriteWrapperPrefix(out)
+		out.WriteString("(*_ts_val.unwrap()).clone()")
+		WriteWrapperSuffix(out)
+		out.WriteString(";\n")
 		return
 	}
 	TranspileExpressionContext(out, expr, LValue)
@@ -6627,6 +6634,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 		// Check if this is a range variable from an interface{} slice
 		isRangeVar := false
+		isStdlibRangeRef := isStdlibInterfaceReferenceRangeValue(expr)
 		if ident, ok := expr.(*ast.Ident); ok {
 			if varType, exists := rangeLoopVars[ident.Name]; exists && strings.Contains(varType, "dyn Any") {
 				isRangeVar = true
@@ -6643,6 +6651,17 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			out.WriteString(";\n")
 			out.WriteString("    let _ts_is_nil = false;\n")
 			out.WriteString("    let _ts_val: Option<&dyn Any> = Some(_ts_ref.as_ref() as &dyn Any);\n")
+		} else if isStdlibRangeRef {
+			out.WriteString("    let _ts_is_nil = false;\n")
+			out.WriteString("    let _ts_val: Option<&")
+			if typeInfo != nil {
+				out.WriteString(goTypesTypeToRust(typeInfo.GetType(expr)))
+			} else {
+				out.WriteString("/* ERROR: Type information required for type switch subject */")
+			}
+			out.WriteString("> = Some(")
+			writeStdlibInterfaceReferenceRangeValue(out, expr)
+			out.WriteString(");\n")
 		} else if subjectUsesAny {
 			out.WriteString("    let _ts_subject = ")
 			TranspileExpressionContext(out, expr, LValue)
@@ -6690,7 +6709,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				}
 				if varName != "" {
 					// In default case, v is the original interface{} value
-					writeTypeSwitchOriginalBinding(out, varName, expr, isRangeVar)
+					writeTypeSwitchOriginalBinding(out, varName, expr, isRangeVar, isStdlibRangeRef)
 				}
 			} else {
 				// Type case(s)
@@ -6709,7 +6728,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 					// Create typed variable if needed
 					if varName != "" && isNil {
-						writeTypeSwitchOriginalBinding(out, varName, expr, isRangeVar)
+						writeTypeSwitchOriginalBinding(out, varName, expr, isRangeVar, isStdlibRangeRef)
 					} else if varName != "" {
 						out.WriteString("        let ")
 						out.WriteString(varName)
@@ -6732,7 +6751,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					}
 					out.WriteString(" {\n")
 					if varName != "" {
-						writeTypeSwitchOriginalBinding(out, varName, expr, isRangeVar)
+						writeTypeSwitchOriginalBinding(out, varName, expr, isRangeVar, isStdlibRangeRef)
 					}
 				}
 			}
