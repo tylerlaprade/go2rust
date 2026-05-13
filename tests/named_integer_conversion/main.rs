@@ -215,7 +215,7 @@ impl Kind {
     }
 
     pub fn method_plus(&self) -> Rc<RefCell<Option<i32>>> {
-        return Rc::new(RefCell::new(Some(((*self.0.borrow().as_ref().unwrap()) + 1) as i32)));
+        return Rc::new(RefCell::new(Some((((*self.0.borrow().as_ref().unwrap()) + 1)) as i32)));
     }
 }
 
@@ -236,7 +236,7 @@ pub fn field_as_int(e: Rc<RefCell<Option<Entry>>>) -> Rc<RefCell<Option<i32>>> {
 
 pub fn plus_as_int(k: Rc<RefCell<Option<Kind>>>) -> Rc<RefCell<Option<i32>>> {
 
-    return Rc::new(RefCell::new(Some(((*(*k.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) + 1) as i32)));
+    return Rc::new(RefCell::new(Some((((*(*k.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) + 1)) as i32)));
 }
 
 pub fn limit_kind() -> Rc<RefCell<Option<Kind>>> {

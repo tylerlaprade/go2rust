@@ -312,6 +312,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Array/slice range, including nil slices | ✅ |
 | └ Map range | ✅ |
 | └ String range | ✅ |
+| └ String range runes in rune call arguments, switches, and integer comparisons | ✅ |
 | └ Range indexes assigned into Go `int` map values | ✅ |
 | └ Range indexes passed to Go `int` parameters | ✅ |
 | └ Range string values from slice fields in comparisons, string helpers, and append calls | ✅ |

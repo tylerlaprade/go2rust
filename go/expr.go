@@ -348,6 +348,46 @@ func writeCharLiteralForPeer(out *strings.Builder, lit *ast.BasicLit, peer ast.E
 	return true
 }
 
+func writeRangeCharForIntegerConstantPeer(out *strings.Builder, expr ast.Expr, peer ast.Expr) bool {
+	ident, ok := expr.(*ast.Ident)
+	if !ok || rangeLoopVars[ident.Name] != "char" || !isIntegerConstantForRangeCharPeer(peer) {
+		return false
+	}
+	out.WriteString("(")
+	out.WriteString(RustIdentForUse(ident))
+	out.WriteString(" as i32)")
+	return true
+}
+
+func writeIntegerConstantForRangeCharPeer(out *strings.Builder, expr ast.Expr, peer ast.Expr) bool {
+	if rangeVarRustType(peer) != "char" || !isIntegerConstantForRangeCharPeer(expr) {
+		return false
+	}
+	out.WriteString("(")
+	writeConstExpressionCastValue(out, expr)
+	out.WriteString(" as i32)")
+	return true
+}
+
+func isIntegerConstantForRangeCharPeer(expr ast.Expr) bool {
+	if lit, ok := expr.(*ast.BasicLit); ok && lit.Kind == token.CHAR {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return false
+	}
+	if tv, ok := typeInfo.info.Types[expr]; ok && tv.Value != nil {
+		return tv.Value.Kind() == constant.Int
+	}
+	if ident, ok := expr.(*ast.Ident); ok {
+		if obj, ok := typeInfo.GetObject(ident).(*types.Const); ok && obj.Val() != nil {
+			return obj.Val().Kind() == constant.Int
+		}
+	}
+	return false
+}
+
 func rangeVarRustType(expr ast.Expr) string {
 	ident, ok := expr.(*ast.Ident)
 	if !ok {
@@ -709,6 +749,8 @@ func writeRegularMethodCallArgument(out *strings.Builder, sel *ast.SelectorExpr,
 		// Constant emitted in the parameter's expected representation.
 	} else if writeRangeStringCallArgumentValue(out, arg, expectedArgType) {
 		// Range string reference cloned for an owned string parameter.
+	} else if writeRangeCharForExpectedType(out, arg, expectedArgType) {
+		// String range runes are represented as Rust char but Go rune parameters use i32.
 	} else if writeLenCapCallArgumentForExpectedType(out, arg, expectedArgType) {
 		// len/cap emits usize, but Go int parameters use i32.
 	} else if writeRangeIndexForExpectedType(out, arg, expectedArgType) {
@@ -1324,9 +1366,37 @@ func writeRangeIndexForExpectedType(out *strings.Builder, arg ast.Expr, expected
 	return true
 }
 
+func writeRangeCharForExpectedType(out *strings.Builder, arg ast.Expr, expected types.Type) bool {
+	ident, ok := arg.(*ast.Ident)
+	if !ok || expected == nil {
+		return false
+	}
+	if varType, isRangeVar := rangeLoopVars[ident.Name]; !isRangeVar || varType != "char" {
+		return false
+	}
+	basic, ok := types.Unalias(expected).Underlying().(*types.Basic)
+	if !ok || basic.Kind() != types.Int32 {
+		return false
+	}
+	out.WriteString(RustIdentForUse(ident))
+	out.WriteString(" as i32")
+	return true
+}
+
 func writeWrappedRangeIndexForExpectedType(out *strings.Builder, arg ast.Expr, expected types.Type) bool {
 	var raw strings.Builder
 	if !writeRangeIndexForExpectedType(&raw, arg, expected) {
+		return false
+	}
+	WriteWrapperPrefix(out)
+	out.WriteString(raw.String())
+	WriteWrapperSuffix(out)
+	return true
+}
+
+func writeWrappedRangeCharForExpectedType(out *strings.Builder, arg ast.Expr, expected types.Type) bool {
+	var raw strings.Builder
+	if !writeRangeCharForExpectedType(&raw, arg, expected) {
 		return false
 	}
 	WriteWrapperPrefix(out)
@@ -4987,6 +5057,12 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			if typeInfo != nil && writeStdlibInterfaceComparableConversion(out, expr, typeInfo.GetType(other)) {
 				return
 			}
+			if writeRangeCharForIntegerConstantPeer(out, expr, other) {
+				return
+			}
+			if writeIntegerConstantForRangeCharPeer(out, expr, other) {
+				return
+			}
 			if lit, ok := expr.(*ast.BasicLit); ok && writeCharLiteralForPeer(out, lit, other) {
 				return
 			}
@@ -5084,6 +5160,10 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				// len/cap expression emitted as Go int representation for this binary expression.
 			} else if writeIntPeerForLenCapBinaryOperand(out, e.X, e.Y, false) {
 				// typed int peer emitted as Go int representation for this binary expression.
+			} else if writeRangeCharForIntegerConstantPeer(out, e.X, e.Y) {
+				// String range rune cast for comparison with integer constants.
+			} else if writeIntegerConstantForRangeCharPeer(out, e.X, e.Y) {
+				// Integer constant cast for comparison with a string range rune.
 			} else if lit, ok := e.X.(*ast.BasicLit); ok && writeCharLiteralForPeer(out, lit, e.Y) {
 				// Character literal emitted as byte.
 			} else if writeConstExpressionForBinaryPeer(out, e.X, e.Y) {
@@ -5114,6 +5194,10 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				// len/cap expression emitted as Go int representation for this binary expression.
 			} else if writeIntPeerForLenCapBinaryOperand(out, e.Y, e.X, false) {
 				// typed int peer emitted as Go int representation for this binary expression.
+			} else if writeRangeCharForIntegerConstantPeer(out, e.Y, e.X) {
+				// String range rune cast for comparison with integer constants.
+			} else if writeIntegerConstantForRangeCharPeer(out, e.Y, e.X) {
+				// Integer constant cast for comparison with a string range rune.
 			} else if lit, ok := e.Y.(*ast.BasicLit); ok && writeCharLiteralForPeer(out, lit, e.X) {
 				// Character literal emitted as byte.
 			} else if writeConstExpressionForBinaryPeer(out, e.Y, e.X) {
@@ -6772,7 +6856,14 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 
 	if needsCast && rustType != "" {
 		WriteWrapperPrefix(out)
+		needsParens := numericConversionCastNeedsParens(call.Args[0])
+		if needsParens {
+			out.WriteString("(")
+		}
 		writeNumericConversionValue(out, call.Args[0])
+		if needsParens {
+			out.WriteString(")")
+		}
 		out.WriteString(" as ")
 		out.WriteString(rustType)
 		WriteWrapperSuffix(out)
@@ -6780,6 +6871,11 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 		// No cast needed or unknown type
 		TranspileExpression(out, call.Args[0])
 	}
+}
+
+func numericConversionCastNeedsParens(arg ast.Expr) bool {
+	_, ok := arg.(*ast.BinaryExpr)
+	return ok
 }
 
 func writeFunctionSignatureTypeConversion(out *strings.Builder, call *ast.CallExpr) bool {
@@ -8112,6 +8208,8 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 					// Constant emitted in the parameter's expected representation.
 				} else if writeRangeStringCallArgumentValue(out, arg, expectedArgType) {
 					// Range string reference cloned for an owned string parameter.
+				} else if writeRangeCharForExpectedType(out, arg, expectedArgType) {
+					// String range runes are represented as Rust char but Go rune parameters use i32.
 				} else if writeLenCapCallArgumentForExpectedType(out, arg, expectedArgType) {
 					// len/cap emits usize, but Go int parameters use i32.
 				} else if writeRangeIndexForExpectedType(out, arg, expectedArgType) {
@@ -8642,6 +8740,10 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				continue
 			}
 
+			if writeWrappedRangeCharForExpectedType(out, arg, expectedArgType) {
+				continue
+			}
+
 			if writeWrappedRangeIndexForExpectedType(out, arg, expectedArgType) {
 				continue
 			}
@@ -9039,6 +9141,8 @@ func writeFunctionSignatureCallArgument(out *strings.Builder, arg ast.Expr, expe
 		// Constant emitted in the parameter's expected representation.
 	} else if writeRangeStringCallArgumentValue(out, arg, expected) {
 		// Range string reference cloned for an owned string parameter.
+	} else if writeRangeCharForExpectedType(out, arg, expected) {
+		// String range runes are represented as Rust char but Go rune parameters use i32.
 	} else if writeLenCapCallArgumentForExpectedType(out, arg, expected) {
 		// len/cap emits usize, but Go int parameters use i32.
 	} else if writeRangeIndexForExpectedType(out, arg, expected) {

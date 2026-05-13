@@ -17,7 +17,7 @@ pub fn uint64_mask(i: Rc<RefCell<Option<u32>>>) -> Rc<RefCell<Option<u64>>> {
 
 pub fn byte_from_expr(v: Rc<RefCell<Option<u8>>>) -> Rc<RefCell<Option<u8>>> {
 
-    return Rc::new(RefCell::new(Some((*v.borrow().as_ref().unwrap()) + ('0' as u8) as u8)));
+    return Rc::new(RefCell::new(Some(((*v.borrow().as_ref().unwrap()) + ('0' as u8)) as u8)));
 }
 
 fn main() {

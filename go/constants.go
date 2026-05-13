@@ -270,6 +270,10 @@ func writeConstExpressionForBinaryPeer(out *strings.Builder, expr ast.Expr, othe
 }
 
 func writeSwitchCaseValueForTag(out *strings.Builder, expr ast.Expr, tag ast.Expr) {
+	if lit, ok := expr.(*ast.BasicLit); ok && lit.Kind == token.CHAR && rangeVarRustType(tag) == "char" {
+		out.WriteString(lit.Value)
+		return
+	}
 	typeInfo := GetTypeInfo()
 	if typeInfo != nil && writeConstExpressionForExpectedGoType(out, expr, typeInfo.GetType(tag)) {
 		return

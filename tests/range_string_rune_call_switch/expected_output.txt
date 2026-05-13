@@ -1,0 +1,3 @@
+true 97 upper-a range-upper-a false
+false 10 newline range-newline true
+false 122 other other false

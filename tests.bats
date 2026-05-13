@@ -922,6 +922,10 @@ run_xfail_test() {
     run_test "tests/function_type_pointer_return"
 }
 
+@test "function_types" {
+    run_test "tests/function_types"
+}
+
 @test "functions_multiple_return" {
     run_test "tests/functions_multiple_return"
 }
@@ -1626,6 +1630,10 @@ run_xfail_test() {
     run_test "tests/range_string_method_argument"
 }
 
+@test "range_string_rune_call_switch" {
+    run_test "tests/range_string_rune_call_switch"
+}
+
 @test "range_string_value_reassign" {
     run_test "tests/range_string_value_reassign"
 }
@@ -2264,10 +2272,6 @@ run_xfail_test() {
 
 @test "XFAIL: file_operations" {
     run_xfail_test "tests/XFAIL/file_operations"
-}
-
-@test "XFAIL: function_types" {
-    run_xfail_test "tests/XFAIL/function_types"
 }
 
 @test "XFAIL: generics_basic" {
