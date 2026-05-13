@@ -1,0 +1,8 @@
+[package]
+name = "reflect_structtag_conversion"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "reflect_structtag_conversion"
+path = "main.rs"

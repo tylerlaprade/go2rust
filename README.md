@@ -518,6 +518,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ `MatchString`, `FindStringSubmatch`, and `ReplaceAllString` for supported patterns | ✅ |
 | **`reflect` package** | |
 | └ `reflect.TypeOf` struct field metadata and `StructTag.Get` | ✅ |
+| └ `reflect.StructTag(string).Get` conversions | ✅ |
 | └ Pointer conversions to reflected struct header stand-ins | ✅ |
 | **`unsafe` package** | |
 | └ `unsafe.Sizeof` / `unsafe.Alignof` for Rust representation layout | ✅ |

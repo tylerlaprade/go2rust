@@ -587,6 +587,10 @@ func writeStringSequenceValue(out *strings.Builder, expr ast.Expr) {
 func methodReceiverExpressionNeedsUnwrap(expr ast.Expr) bool {
 	switch e := expr.(type) {
 	case *ast.CallExpr:
+		typeInfo := GetTypeInfo()
+		if typeInfo != nil && typeInfo.IsTypeConversion(e) && !typeConversionEmitsWrappedValue(e) {
+			return false
+		}
 		return true
 	case *ast.IndexExpr:
 		typeInfo := GetTypeInfo()
@@ -6371,6 +6375,10 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 	if writeFunctionSignatureTypeConversion(out, call) {
 		return
 	}
+	if reflectStructTagConversionTarget(call) {
+		writeReflectStructTagConversion(out, call.Args[0])
+		return
+	}
 
 	// Check for []byte(string) and []rune(string) conversions
 	if compLit, ok := call.Fun.(*ast.ArrayType); ok {
@@ -6866,6 +6874,18 @@ func externalStringConversionTarget(call *ast.CallExpr) (*types.Named, bool) {
 	return named, ok && basic.Kind() == types.String
 }
 
+func reflectStructTagConversionTarget(call *ast.CallExpr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || call == nil {
+		return false
+	}
+	named, ok := types.Unalias(typeInfo.GetType(call)).(*types.Named)
+	if !ok || named.Obj() == nil || named.Obj().Pkg() == nil {
+		return false
+	}
+	return named.Obj().Pkg().Path() == "reflect" && named.Obj().Name() == "StructTag"
+}
+
 func externalIntegerConversionTarget(call *ast.CallExpr) (*types.Named, string, bool) {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil || call == nil {
@@ -6985,6 +7005,17 @@ func writeStringTypeDefinitionConstructor(out *strings.Builder, rustTypeName str
 	}
 	WriteWrapperSuffix(out)
 	out.WriteString(")")
+}
+
+func writeReflectStructTagConversion(out *strings.Builder, arg ast.Expr) {
+	NeedReflect()
+	out.WriteString("GoReflectStructTag { raw: ")
+	WriteWrapperPrefix(out)
+	if !writeStringTypeDefinitionInnerValue(out, arg) {
+		writeStringSequenceValue(out, arg)
+	}
+	WriteWrapperSuffix(out)
+	out.WriteString(" }")
 }
 
 func writeStringConversionSource(out *strings.Builder, arg ast.Expr) {
