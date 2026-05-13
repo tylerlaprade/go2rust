@@ -1253,6 +1253,20 @@ func writeWrappedReferenceRangeValueCopy(out *strings.Builder, ident *ast.Ident)
 	return true
 }
 
+func writeRangeHandleReturnValue(out *strings.Builder, ident *ast.Ident) bool {
+	if ident == nil {
+		return false
+	}
+	if _, isRangeVar := rangeLoopVars[ident.Name]; !isRangeVar {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || !mapValueTypeKeepsHandle(typeInfo.GetType(ident)) {
+		return false
+	}
+	return writeOwnedRangeValue(out, ident)
+}
+
 func writeMapWrappedValue(out *strings.Builder, expr ast.Expr, valueType types.Type) {
 	if isGoErrorType(valueType) && writeGoErrorHandleValue(out, expr) {
 		return
@@ -3527,6 +3541,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						}
 						if globalIdent, ok := packageGlobalPointerIdent(ident); ok {
 							writePackageGlobalPointerHandleClone(out, globalIdent)
+							continue
+						}
+						if writeRangeHandleReturnValue(out, ident) {
 							continue
 						}
 						// Check if this is a wrapped variable that needs cloning
