@@ -278,6 +278,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Map access with existence check | ✅ |
 | └ Comma-ok map access with typed zero values | ✅ |
 | └ Wrapped call results as map lookup keys | ✅ |
+| └ Handle-shaped map lookup values passed as call arguments | ✅ |
 | └ Pointer keys in map literals and lookups | ✅ |
 | └ Pointer keys and values in `make(map)`, address-of literal map writes, and slice-range pointer key lookups | ✅ |
 | └ Pointer map values assigned from selector fields preserve handle aliasing | ✅ |

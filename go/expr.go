@@ -1472,6 +1472,9 @@ func writeAlreadyWrappedCallArgument(out *strings.Builder, arg ast.Expr) bool {
 		TranspileExpression(out, arg)
 		return true
 	}
+	if writeAlreadyWrappedMapIndexCallArgument(out, arg, nil) {
+		return true
+	}
 	callArg, ok := arg.(*ast.CallExpr)
 	if !ok {
 		return false
@@ -1482,6 +1485,26 @@ func writeAlreadyWrappedCallArgument(out *strings.Builder, arg ast.Expr) bool {
 		return true
 	}
 	return false
+}
+
+func writeAlreadyWrappedMapIndexCallArgument(out *strings.Builder, arg ast.Expr, expected types.Type) bool {
+	index, ok := arg.(*ast.IndexExpr)
+	if !ok {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || !typeInfo.IsMap(index.X) {
+		return false
+	}
+	actual := typeInfo.GetType(index)
+	if actual == nil || !mapValueTypeKeepsHandle(actual) {
+		return false
+	}
+	if expected != nil && !types.AssignableTo(actual, expected) {
+		return false
+	}
+	TranspileExpression(out, arg)
+	return true
 }
 
 func writePointerHandleCallArgument(out *strings.Builder, arg ast.Expr, expected types.Type) bool {
@@ -8612,6 +8635,10 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 			}
 
 			if writeAlreadyWrappedSelectorCallArgument(out, arg, expectedArgType) {
+				continue
+			}
+
+			if writeAlreadyWrappedMapIndexCallArgument(out, arg, expectedArgType) {
 				continue
 			}
 
