@@ -2695,6 +2695,9 @@ func writeArraySliceLiteralElementValue(out *strings.Builder, expr ast.Expr, ele
 				}
 			}
 		}
+		if elemType != nil && isStdlibNamedInterfaceValueType(types.Unalias(elemType)) && writeOwnedRangeValue(out, ident) {
+			return true
+		}
 	}
 	if writeBareFixedArrayCompositeLiteral(out, expr, elemType) {
 		return true

@@ -1,0 +1,8 @@
+[package]
+name = "stdlib_interface_slice_literal_range_value"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "stdlib_interface_slice_literal_range_value"
+path = "main.rs"
