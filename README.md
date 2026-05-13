@@ -371,6 +371,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Package-level declarations and initializer order | ✅ |
 | └ Package-level fixed and inferred array declarations | ✅ |
 | └ Package-level inferred anonymous struct array declarations | ✅ |
+| └ Package-level map snapshots assigned to locals | ✅ |
 | └ Short declarations (:=) | ✅ |
 | └ Selector slice field short declarations | ✅ |
 | └ Blank identifier (_) | ✅ |
