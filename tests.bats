@@ -1586,6 +1586,10 @@ run_xfail_test() {
     run_test "tests/range_pointer_value_reassign"
 }
 
+@test "range_reference_short_decl" {
+    run_test "tests/range_reference_short_decl"
+}
+
 @test "range_return_struct_value" {
     run_test "tests/range_return_struct_value"
 }

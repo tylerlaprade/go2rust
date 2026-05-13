@@ -1,0 +1,8 @@
+[package]
+name = "range_reference_short_decl"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "range_reference_short_decl"
+path = "main.rs"

@@ -150,6 +150,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Range value field access for pointer slices | ✅ |
 | └ Range string values passed to string parameters, compared, used in string helpers, and appended | ✅ |
 | └ Range string values reused in `[]string` literals | ✅ |
+| └ Reference-style range values copied by short declarations | ✅ |
 | └ Range string values captured by closures | ✅ |
 | └ Wrapped string values from map ranges compare as owned strings | ✅ |
 | └ Wrapped string values from map ranges copy into scalar map values | ✅ |
@@ -312,6 +313,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Range indexes assigned into Go `int` map values | ✅ |
 | └ Range indexes passed to Go `int` parameters | ✅ |
 | └ Range string values from slice fields in comparisons, string helpers, and append calls | ✅ |
+| └ Reference-style range values copied by short declarations | ✅ |
 | └ Range stdlib-interface slice values used in calls, assignments, type switches, and assertions | ✅ |
 | └ Stdlib-interface slice values compared with nil | ✅ |
 | └ Channel range | ✅ |

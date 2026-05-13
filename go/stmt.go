@@ -1207,6 +1207,35 @@ func writeWrappedStdlibInterfaceRangeValueCopy(out *strings.Builder, ident *ast.
 	return true
 }
 
+func writeWrappedReferenceRangeValueCopy(out *strings.Builder, ident *ast.Ident) bool {
+	varType, isRangeVar := rangeLoopVars[ident.Name]
+	if !isRangeVar {
+		return false
+	}
+	if varType != "ref_value" && (!strings.HasPrefix(varType, "&") || isWrappedRangeVarType(varType)) {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	typ := typeInfo.GetType(ident)
+	if typ == nil {
+		return false
+	}
+	if !isStdlibNamedInterfaceValueType(typ) {
+		switch types.Unalias(typ).Underlying().(type) {
+		case *types.Basic, *types.Struct, *types.Array:
+		default:
+			return false
+		}
+	}
+	WriteWrapperPrefix(out)
+	writeOwnedRangeValue(out, ident)
+	WriteWrapperSuffix(out)
+	return true
+}
+
 func writeMapWrappedValue(out *strings.Builder, expr ast.Expr, valueType types.Type) {
 	if isGoErrorType(valueType) && writeGoErrorHandleValue(out, expr) {
 		return
@@ -4691,6 +4720,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 												writeWrappedFunctionValueBox(out, ident, sig)
 											} else if writeWrappedStdlibInterfaceRangeValueCopy(out, ident) {
 												// Range values over stdlib-interface slices are references; clone into the new wrapper.
+											} else if writeWrappedReferenceRangeValueCopy(out, ident) {
+												// Reference-style range values need an owned clone for wrapped short declarations.
 											} else if writeWrappedValueCopyFromIdent(out, ident) {
 												// Copied by value from an existing wrapped value
 											} else if rhsIsPointerType(rhs) {
