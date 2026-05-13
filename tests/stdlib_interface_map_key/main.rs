@@ -92,6 +92,12 @@ pub fn remember(names: Rc<RefCell<Option<BTreeMap<types_Object, Rc<RefCell<Optio
         { let new_val = { let __append_target = entries.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push(entry { obj: key.clone(), ..Default::default() }); __append_target.clone() }; entries = new_val; };
     }
     let _ = (*entries.borrow().as_ref().unwrap());
+    let mut copied = Rc::new(RefCell::new(Some(BTreeMap::<types_Object, Rc<RefCell<Option<String>>>>::from([]))));
+    for (__range_key, name) in { let __range_holder = names.clone(); let __range_guard = __range_holder.borrow(); let __range_map = (*__range_guard.as_ref().unwrap()).clone(); drop(__range_guard); __range_map } {
+        let key = Rc::new(RefCell::new(Some(__range_key.clone())));
+        { let __map_key = (*key.borrow().as_ref().unwrap()).clone(); let __map_value = Rc::new(RefCell::new(Some((*name.borrow().as_ref().unwrap()).clone()))); (*copied.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
+        let _ = (*copied.borrow().as_ref().unwrap()).get(&(*key.borrow().as_ref().unwrap()).clone()).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| String::new());
+    }
 }
 
 fn main() {

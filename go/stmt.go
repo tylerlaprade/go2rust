@@ -1231,14 +1231,21 @@ func writeMapWrappedValue(out *strings.Builder, expr ast.Expr, valueType types.T
 		return
 	}
 	if ident, ok := expr.(*ast.Ident); ok && isCloneableNonPointerExpr(ident) {
-		if varType, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar &&
-			(varType == "ref_value" || strings.HasPrefix(varType, "&")) {
-			WriteWrapperPrefix(out)
-			out.WriteString("(*")
-			out.WriteString(RustIdentForUse(ident))
-			out.WriteString(").clone()")
-			WriteWrapperSuffix(out)
-			return
+		if varType, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar {
+			if isWrappedRangeVarType(varType) && !mapValueTypeKeepsHandle(valueType) {
+				WriteWrapperPrefix(out)
+				writeWrappedRangeValueClone(out, ident, varType)
+				WriteWrapperSuffix(out)
+				return
+			}
+			if varType == "ref_value" || strings.HasPrefix(varType, "&") {
+				WriteWrapperPrefix(out)
+				out.WriteString("(*")
+				out.WriteString(RustIdentForUse(ident))
+				out.WriteString(").clone()")
+				WriteWrapperSuffix(out)
+				return
+			}
 		}
 	}
 	if ident, ok := expr.(*ast.Ident); ok &&
@@ -1305,10 +1312,10 @@ func writeMapKeyExpressionWithType(out *strings.Builder, expr ast.Expr, keyType 
 		out.WriteString(".clone())")
 		return
 	}
-	if writeOwnedMapKeyExpression(out, expr) {
+	if keyType != nil && writeMapKeyForExpectedType(out, expr, keyType) {
 		return
 	}
-	if keyType != nil && writeMapKeyForExpectedType(out, expr, keyType) {
+	if writeOwnedMapKeyExpression(out, expr) {
 		return
 	}
 	if !isCopyTypeExpression(expr) && writeOwnedExpressionValue(out, expr) {

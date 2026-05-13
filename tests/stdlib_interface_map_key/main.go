@@ -18,6 +18,11 @@ func remember(names map[types.Object]string, obj *types.TypeName) {
 		entries = append(entries, entry{key})
 	}
 	_ = entries
+	copied := map[types.Object]string{}
+	for key, name := range names {
+		copied[key] = name
+		_ = copied[key]
+	}
 }
 
 func main() {

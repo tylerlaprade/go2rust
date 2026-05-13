@@ -152,6 +152,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Range string values reused in `[]string` literals | ✅ |
 | └ Range string values captured by closures | ✅ |
 | └ Wrapped string values from map ranges compare as owned strings | ✅ |
+| └ Wrapped string values from map ranges copy into scalar map values | ✅ |
 | └ Range struct values passed to function and method parameters | ✅ |
 | └ Range stdlib-interface slice values used in calls, assignments, type switches, and assertions | ✅ |
 | └ Stdlib-interface slice values compared with nil | ✅ |
@@ -219,6 +220,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Stdlib concrete values passed to stdlib interface parameters | ✅ |
 | └ Stdlib concrete values passed to stdlib interface parameters across transpiled package calls | ✅ |
 | └ Stdlib interface map range keys passed to interface parameters | ✅ |
+| └ Stdlib interface map range keys reused as map keys | ✅ |
 | └ Stdlib interface field copies | ✅ |
 | └ Stdlib interface selector type assertions | ✅ |
 | └ Stdlib interface indexed type assertions | ✅ |

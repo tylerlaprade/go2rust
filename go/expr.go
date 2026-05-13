@@ -3624,6 +3624,9 @@ func writeMapKeyForExpectedType(out *strings.Builder, key ast.Expr, keyType type
 	if writeStringConstForExpectedBasicType(out, key, keyType) {
 		return true
 	}
+	if writeStdlibInterfaceMapKeyValue(out, key, keyType) {
+		return true
+	}
 	named, ok := types.Unalias(keyType).(*types.Named)
 	if !ok || named.Obj() == nil {
 		return false
@@ -3639,6 +3642,40 @@ func writeMapKeyForExpectedType(out *strings.Builder, key ast.Expr, keyType type
 		return writeExpressionForExpectedTypesType(out, key, named)
 	}
 	return writeOwnedExpressionValue(out, key)
+}
+
+func writeStdlibInterfaceMapKeyValue(out *strings.Builder, key ast.Expr, keyType types.Type) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || keyType == nil || !isStdlibNamedInterfaceValueType(types.Unalias(keyType)) {
+		return false
+	}
+	keyValueType := typeInfo.GetType(key)
+	if keyValueType == nil || !isStdlibNamedInterfaceValueType(types.Unalias(keyValueType)) || !types.AssignableTo(keyValueType, keyType) {
+		return false
+	}
+	if ident, ok := key.(*ast.Ident); ok {
+		if varType, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar {
+			if isWrappedRangeVarType(varType) {
+				writeWrappedRangeValueClone(out, ident, varType)
+				return true
+			}
+			if strings.HasPrefix(varType, "&") {
+				out.WriteString("(*")
+				out.WriteString(rustIdentForUseWithCapture(ident))
+				out.WriteString(").clone()")
+				return true
+			}
+		}
+		if isWrappedValueIdent(ident) {
+			writeIdentValueClone(out, ident)
+			return true
+		}
+	}
+	if _, ok := key.(*ast.SelectorExpr); ok && isCloneableNonPointerExpr(key) && !isExpressionResultBare(key) {
+		writeClonedWrappedExpression(out, key, "__map_key_holder", "__map_key_guard")
+		return true
+	}
+	return false
 }
 
 func writeMapLookupKey(out *strings.Builder, index ast.Expr) {
