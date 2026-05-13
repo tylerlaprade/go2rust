@@ -902,6 +902,10 @@ run_xfail_test() {
     run_test "tests/function_literals_closures"
 }
 
+@test "function_map_literal" {
+    run_test "tests/function_map_literal"
+}
+
 @test "function_return_assignment" {
     run_test "tests/function_return_assignment"
 }

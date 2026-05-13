@@ -1230,6 +1230,9 @@ func writeMapWrappedValue(out *strings.Builder, expr ast.Expr, valueType types.T
 	if writeStdlibInterfaceCallArgumentConversion(out, expr, valueType) {
 		return
 	}
+	if writeFunctionMapValue(out, expr, valueType) {
+		return
+	}
 	if ident, ok := expr.(*ast.Ident); ok && isCloneableNonPointerExpr(ident) {
 		if varType, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar {
 			if isWrappedRangeVarType(varType) && !mapValueTypeKeepsHandle(valueType) {

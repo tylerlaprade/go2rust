@@ -3552,6 +3552,9 @@ func writeWrappedMapValue(out *strings.Builder, value ast.Expr, valueExpr ast.Ex
 	if writeStdlibInterfaceCallArgumentConversion(out, value, valueType) {
 		return
 	}
+	if writeFunctionMapValue(out, value, valueType) {
+		return
+	}
 	if (isEmptyInterfaceExpr(valueExpr) || isEmptyInterfaceType(valueType)) && writeEmptyInterfaceHandleClone(out, value) {
 		return
 	}
@@ -3571,6 +3574,13 @@ func writeWrappedMapValue(out *strings.Builder, value ast.Expr, valueExpr ast.Ex
 		TranspileExpression(out, value)
 	}
 	WriteWrapperSuffix(out)
+}
+
+func writeFunctionMapValue(out *strings.Builder, value ast.Expr, valueType types.Type) bool {
+	if !isFunctionSignatureType(valueType) {
+		return false
+	}
+	return writeFunctionValueHandle(out, value)
 }
 
 func isNilableWrappedMapValueType(valueType types.Type) bool {
@@ -6073,7 +6083,7 @@ func writeFunctionValueBox(out *strings.Builder, ident *ast.Ident, sig *types.Si
 		if i > 0 {
 			out.WriteString(", ")
 		}
-		out.WriteString(fmt.Sprintf("__arg%d: %s", i, goTypesTypeToRustWrapped(params.At(i).Type())))
+		out.WriteString(fmt.Sprintf("__arg%d: %s", i, goTypesParamTypeToRust(params.At(i).Type())))
 	}
 	out.WriteString("|")
 
@@ -6133,7 +6143,7 @@ func writeFunctionValueExpressionBox(out *strings.Builder, expr ast.Expr, sig *t
 		if i > 0 {
 			out.WriteString(", ")
 		}
-		out.WriteString(fmt.Sprintf("__arg%d: %s", i, goTypesTypeToRustWrapped(params.At(i).Type())))
+		out.WriteString(fmt.Sprintf("__arg%d: %s", i, goTypesParamTypeToRust(params.At(i).Type())))
 	}
 	out.WriteString("|")
 

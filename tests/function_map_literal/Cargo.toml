@@ -1,0 +1,8 @@
+[package]
+name = "function_map_literal"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "function_map_literal"
+path = "main.rs"

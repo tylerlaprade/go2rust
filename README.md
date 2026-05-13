@@ -181,6 +181,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Function literal named result parameters | ✅ |
 | └ Function variables and higher-order function values | ✅ |
 | └ Function values lower as `FnMut` and support recursive calls | ✅ |
+| └ Function values stored in map literals | ✅ |
 | └ Package function selectors assigned to function fields | ✅ |
 | └ Function-typed named returns and deferred assignments | ✅ |
 | └ Instantiated generic function type aliases | ✅ |
