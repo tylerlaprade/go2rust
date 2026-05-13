@@ -1146,6 +1146,10 @@ run_xfail_test() {
     run_test "tests/map_range_key_value_reuse"
 }
 
+@test "map_range_string_value_assignment_key" {
+    run_test "tests/map_range_string_value_assignment_key"
+}
+
 @test "map_range_string_value_compare" {
     run_test "tests/map_range_string_value_compare"
 }

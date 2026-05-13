@@ -3655,6 +3655,14 @@ func writeMapKeyForExpectedType(out *strings.Builder, key ast.Expr, keyType type
 	if writeStdlibInterfaceMapKeyValue(out, key, keyType) {
 		return true
 	}
+	if ident, ok := key.(*ast.Ident); ok {
+		if varType, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar && isWrappedRangeVarType(varType) {
+			if _, ok := types.Unalias(keyType).Underlying().(*types.Basic); ok {
+				writeWrappedRangeValueClone(out, ident, varType)
+				return true
+			}
+		}
+	}
 	named, ok := types.Unalias(keyType).(*types.Named)
 	if !ok || named.Obj() == nil {
 		return false
