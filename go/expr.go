@@ -2608,6 +2608,12 @@ func writeFunctionValueHandle(out *strings.Builder, expr ast.Expr) bool {
 		return true
 	}
 	if sel, ok := expr.(*ast.SelectorExpr); ok {
+		if sig, ok := pointerMethodValueSignature(sel); ok {
+			WriteWrapperPrefix(out)
+			writePointerMethodValueBox(out, sel, sig)
+			WriteWrapperSuffix(out)
+			return true
+		}
 		if sig, ok := selectorFunctionValueSignature(sel); ok {
 			WriteWrapperPrefix(out)
 			writeFunctionValueExpressionBox(out, sel, sig)
@@ -2622,6 +2628,11 @@ func writeFunctionValueHandle(out *strings.Builder, expr ast.Expr) bool {
 		return true
 	}
 	return false
+}
+
+func isFunctionSignatureExpression(expr ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	return typeInfo != nil && isFunctionSignatureType(typeInfo.GetType(expr))
 }
 
 func writeBareFixedArrayCompositeLiteral(out *strings.Builder, expr ast.Expr, expected types.Type) bool {
@@ -6077,6 +6088,69 @@ func selectorFunctionValueSignature(expr ast.Expr) (*types.Signature, bool) {
 	}
 	sig, ok := typ.Underlying().(*types.Signature)
 	return sig, ok
+}
+
+func pointerMethodValueSignature(expr ast.Expr) (*types.Signature, bool) {
+	sel, ok := expr.(*ast.SelectorExpr)
+	if !ok {
+		return nil, false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil || !typeInfo.HasPointerReceiver(sel) {
+		return nil, false
+	}
+	selection, ok := typeInfo.info.Selections[sel]
+	if !ok || selection.Kind() != types.MethodVal {
+		return nil, false
+	}
+	sig, ok := signatureFromType(typeInfo.GetType(sel))
+	return sig, ok
+}
+
+func writePointerMethodValueBox(out *strings.Builder, sel *ast.SelectorExpr, sig *types.Signature) {
+	boxType := signatureToBoxDynFn(sig)
+	out.WriteString("{ let __recv = ")
+	writePointerHandleExpression(out, sel.X)
+	out.WriteString("; Box::new(move |")
+	params := sig.Params()
+	for i := 0; i < params.Len(); i++ {
+		if i > 0 {
+			out.WriteString(", ")
+		}
+		out.WriteString(fmt.Sprintf("__arg%d: %s", i, goTypesParamTypeToRust(params.At(i).Type())))
+	}
+	out.WriteString("|")
+
+	results := sig.Results()
+	if results.Len() > 0 {
+		out.WriteString(" -> ")
+		if results.Len() == 1 {
+			out.WriteString(goTypesReturnTypeToRust(results.At(0).Type()))
+		} else {
+			retTypes := make([]string, 0, results.Len())
+			for i := 0; i < results.Len(); i++ {
+				retTypes = append(retTypes, goTypesReturnTypeToRust(results.At(i).Type()))
+			}
+			out.WriteString("(")
+			out.WriteString(strings.Join(retTypes, ", "))
+			out.WriteString(")")
+		}
+	}
+
+	out.WriteString(" { (*__recv")
+	WriteBorrowMethod(out, true)
+	out.WriteString(".as_mut().unwrap()).")
+	out.WriteString(rustMethodSelectorName(sel))
+	out.WriteString("(")
+	for i := 0; i < params.Len(); i++ {
+		if i > 0 {
+			out.WriteString(", ")
+		}
+		out.WriteString(fmt.Sprintf("__arg%d", i))
+	}
+	out.WriteString(") }) as ")
+	out.WriteString(boxType)
+	out.WriteString(" }")
 }
 
 func writeFunctionValueBox(out *strings.Builder, ident *ast.Ident, sig *types.Signature) {

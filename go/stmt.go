@@ -1129,7 +1129,11 @@ func writeFunctionSelectorHandleAssignment(out *strings.Builder, lhs ast.Expr, r
 		return false
 	}
 	out.WriteString("{ let new_val = ")
-	if sig, ok := selectorFunctionValueSignature(rhsSel); ok {
+	if sig, ok := pointerMethodValueSignature(rhsSel); ok {
+		WriteWrapperPrefix(out)
+		writePointerMethodValueBox(out, rhsSel, sig)
+		WriteWrapperSuffix(out)
+	} else if sig, ok := selectorFunctionValueSignature(rhsSel); ok {
 		WriteWrapperPrefix(out)
 		writeFunctionValueExpressionBox(out, rhsSel, sig)
 		WriteWrapperSuffix(out)
@@ -3360,7 +3364,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						writeConcreteErrorBox(out, result)
 						WriteWrapperSuffix(out)
 					} else if sel, ok := result.(*ast.SelectorExpr); ok {
-						if ident, ok := sel.X.(*ast.Ident); ok && currentReceiver != "" && ident.Name == currentReceiver {
+						if isFunctionSignatureExpression(result) && writeFunctionValueHandle(out, result) {
+							// Function selector values are represented by cloneable handles or boxed method values.
+						} else if ident, ok := sel.X.(*ast.Ident); ok && currentReceiver != "" && ident.Name == currentReceiver {
 							// Returning self.field - just clone it, don't double-wrap
 							out.WriteString("self.")
 							out.WriteString(ToSnakeCase(sel.Sel.Name))

@@ -1226,6 +1226,10 @@ run_xfail_test() {
     run_test "tests/method_slice_literal_argument"
 }
 
+@test "method_value_pointer_receiver" {
+    run_test "tests/method_value_pointer_receiver"
+}
+
 @test "methods" {
     run_test "tests/methods"
 }
