@@ -1426,6 +1426,10 @@ run_xfail_test() {
     run_test "tests/package_global_named_slice"
 }
 
+@test "package_global_pointer_deref" {
+    run_test "tests/package_global_pointer_deref"
+}
+
 @test "package_global_shadowing" {
     run_test "tests/package_global_shadowing"
 }

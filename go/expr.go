@@ -2531,6 +2531,16 @@ func writePackageGlobalPointerPointee(out *strings.Builder, ident *ast.Ident) {
 	out.WriteString(".as_ref().unwrap())")
 }
 
+func writePackageGlobalPointerDerefRead(out *strings.Builder, ident *ast.Ident, expr ast.Expr) {
+	if expressionNeedsGoValueClone(expr) {
+		writePackageGlobalPointerPointee(out, ident)
+		out.WriteString(".__go_value_clone()")
+		return
+	}
+	writePackageGlobalPointerPointee(out, ident)
+	out.WriteString(".clone()")
+}
+
 func writePackageGlobalPointerFieldHandle(out *strings.Builder, ident *ast.Ident, fieldInfo FieldAccessInfo) {
 	writePackageGlobalPointerPointee(out, ident)
 	if fieldInfo.IsPromoted {
@@ -4816,6 +4826,10 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				if writeCurrentReceiverDerefRead(out, e, e.X) {
 					break
 				}
+				if ident, ok := packageGlobalPointerIdent(e.X); ok {
+					writePackageGlobalPointerDerefRead(out, ident, e)
+					break
+				}
 				out.WriteString("{ let __v = (*")
 				TranspileExpressionContext(out, e.X, LValue)
 				WriteBorrowMethod(out, false)
@@ -4869,6 +4883,10 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		// Dereference pointer - unwrap the wrapper to get T
 		if ctx == RValue {
 			if writeCurrentReceiverDerefRead(out, e, e.X) {
+				break
+			}
+			if ident, ok := packageGlobalPointerIdent(e.X); ok {
+				writePackageGlobalPointerDerefRead(out, ident, e)
 				break
 			}
 			out.WriteString("{ let __v = (*")
