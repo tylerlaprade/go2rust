@@ -7665,8 +7665,18 @@ func writeStringsBuilderMethodCall(out *strings.Builder, sel *ast.SelectorExpr, 
 		return false
 	}
 
+	bareReceiver := isStringsBuilderReceiverBare(sel.X)
 	switch sel.Sel.Name {
 	case "WriteString":
+		if bareReceiver {
+			writeStringsBuilderRawReceiver(out, sel.X)
+			out.WriteString(".push_str(")
+			if len(call.Args) > 0 {
+				writeStringsBuilderStringArg(out, call.Args[0])
+			}
+			out.WriteString(")")
+			return true
+		}
 		out.WriteString("(*")
 		writeStringsBuilderReceiverHandle(out, sel.X)
 		WriteBorrowMethod(out, true)
@@ -7677,6 +7687,15 @@ func writeStringsBuilderMethodCall(out *strings.Builder, sel *ast.SelectorExpr, 
 		out.WriteString(")")
 		return true
 	case "WriteByte":
+		if bareReceiver {
+			writeStringsBuilderRawReceiver(out, sel.X)
+			out.WriteString(".push(")
+			if len(call.Args) > 0 {
+				writeStringsBuilderByteArg(out, call.Args[0])
+			}
+			out.WriteString(")")
+			return true
+		}
 		out.WriteString("(*")
 		writeStringsBuilderReceiverHandle(out, sel.X)
 		WriteBorrowMethod(out, true)
@@ -7687,6 +7706,15 @@ func writeStringsBuilderMethodCall(out *strings.Builder, sel *ast.SelectorExpr, 
 		out.WriteString(")")
 		return true
 	case "WriteRune":
+		if bareReceiver {
+			writeStringsBuilderRawReceiver(out, sel.X)
+			out.WriteString(".push(")
+			if len(call.Args) > 0 {
+				writeStringsBuilderRuneArg(out, call.Args[0])
+			}
+			out.WriteString(")")
+			return true
+		}
 		out.WriteString("(*")
 		writeStringsBuilderReceiverHandle(out, sel.X)
 		WriteBorrowMethod(out, true)
@@ -7698,6 +7726,12 @@ func writeStringsBuilderMethodCall(out *strings.Builder, sel *ast.SelectorExpr, 
 		return true
 	case "String":
 		WriteWrapperPrefix(out)
+		if bareReceiver {
+			writeStringsBuilderRawReceiver(out, sel.X)
+			out.WriteString(".clone()")
+			WriteWrapperSuffix(out)
+			return true
+		}
 		out.WriteString("(*")
 		writeStringsBuilderReceiverHandle(out, sel.X)
 		WriteBorrowMethod(out, false)
@@ -7706,6 +7740,12 @@ func writeStringsBuilderMethodCall(out *strings.Builder, sel *ast.SelectorExpr, 
 		return true
 	case "Len":
 		WriteWrapperPrefix(out)
+		if bareReceiver {
+			writeStringsBuilderRawReceiver(out, sel.X)
+			out.WriteString(".len() as i32")
+			WriteWrapperSuffix(out)
+			return true
+		}
 		out.WriteString("(*")
 		writeStringsBuilderReceiverHandle(out, sel.X)
 		WriteBorrowMethod(out, false)
@@ -7729,6 +7769,24 @@ func isStringsBuilderReceiverType(typ types.Type) bool {
 		return false
 	}
 	return named.Obj().Pkg().Path() == "strings" && named.Obj().Name() == "Builder"
+}
+
+func isStringsBuilderReceiverBare(recv ast.Expr) bool {
+	if isExpressionResultBare(recv) {
+		return true
+	}
+	if paren, ok := recv.(*ast.ParenExpr); ok {
+		return isStringsBuilderReceiverBare(paren.X)
+	}
+	if lit, ok := recv.(*ast.CompositeLit); ok {
+		typeInfo := GetTypeInfo()
+		return typeInfo != nil && isStringsBuilderReceiverType(typeInfo.GetType(lit))
+	}
+	return false
+}
+
+func writeStringsBuilderRawReceiver(out *strings.Builder, recv ast.Expr) {
+	TranspileExpressionContext(out, recv, LValue)
 }
 
 func writeStringsBuilderReceiverHandle(out *strings.Builder, recv ast.Expr) {

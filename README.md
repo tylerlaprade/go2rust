@@ -561,6 +561,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | **`strings` (Builder)** | |
 | └ `strings.Builder` | ✅ |
 | └ `Builder.WriteString` with string constants | ✅ |
+| └ `Builder` methods on short-declared `strings.Builder{}` values | ✅ |
 
 ### XFAIL Tests (Expected Failures)
 
