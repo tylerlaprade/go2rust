@@ -1,0 +1,8 @@
+[package]
+name = "map_range_nested_assignment_key"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "map_range_nested_assignment_key"
+path = "main.rs"

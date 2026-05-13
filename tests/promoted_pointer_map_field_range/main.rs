@@ -223,7 +223,7 @@ fn main() {
     let mut stubs = (*(*lpkg.lock().unwrap().as_mut().unwrap()).package.lock().unwrap().as_mut().unwrap()).imports.clone();
     { let new_val = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<Package>>>>::new()))); (*(*lpkg.lock().unwrap().as_mut().unwrap()).package.lock().unwrap().as_mut().unwrap()).imports = new_val; };
     for (importPath, _) in { let __range_holder = stubs.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_map = (*__range_guard.as_ref().unwrap()).clone(); drop(__range_guard); __range_map } {
-        { let __map_key = importPath; let __map_value = Arc::new(Mutex::new(Some(Package { i_d: Arc::new(Mutex::new(Some("dep".to_string()))), ..Default::default() }))); (*(*(*lpkg.lock().unwrap().as_mut().unwrap()).package.lock().unwrap().as_mut().unwrap()).imports.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
+        { let __map_key = importPath.clone(); let __map_value = Arc::new(Mutex::new(Some(Package { i_d: Arc::new(Mutex::new(Some("dep".to_string()))), ..Default::default() }))); (*(*(*lpkg.lock().unwrap().as_mut().unwrap()).package.lock().unwrap().as_mut().unwrap()).imports.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
     }
     println!("{}", "assigned".to_string());
     done.send(true);

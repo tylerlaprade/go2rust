@@ -288,6 +288,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Append results assigned into map slice values | ✅ |
 | └ Nested range over map slice values | ✅ |
 | └ Map range slice values assigned to local slices | ✅ |
+| └ Owned map-range keys reused after map assignments | ✅ |
 | └ Map iteration (for range) | ✅ |
 | └ Map printing (sorted keys, Go 1.12+) | ✅ |
 | **`package` - Packages** | |
@@ -319,6 +320,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Range string values from slice fields in comparisons, string helpers, and append calls | ✅ |
 | └ Reference-style range values copied by short declarations | ✅ |
 | └ Wrapped string values from map ranges insert as owned map keys | ✅ |
+| └ Owned map-range keys remain usable after map assignments | ✅ |
 | └ Range stdlib-interface slice values used in calls, assignments, type switches, and assertions | ✅ |
 | └ Stdlib-interface slice values compared with nil | ✅ |
 | └ Channel range | ✅ |

@@ -1403,7 +1403,21 @@ func mapAssignmentKeyNeedsClone(ident *ast.Ident, keyType types.Type, rhs ast.Ex
 	if keyType != nil && stdlibInterfaceArgumentConversionExists(ident, keyType) {
 		return false
 	}
+	if mapAssignmentRangeKeyNeedsClone(ident) {
+		return true
+	}
 	return expressionReferencesIdentObject(rhs, ident)
+}
+
+func mapAssignmentRangeKeyNeedsClone(ident *ast.Ident) bool {
+	varType, isRangeVar := rangeLoopVars[ident.Name]
+	if !isRangeVar {
+		return false
+	}
+	if varType == "ref_value" || strings.HasPrefix(varType, "&") || isWrappedRangeVarType(varType) {
+		return false
+	}
+	return true
 }
 
 func expressionReferencesIdentObject(expr ast.Expr, ident *ast.Ident) bool {
