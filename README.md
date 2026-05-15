@@ -275,6 +275,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Wrapped map ranges drop map borrows before loop bodies | ✅ |
 | └ Wrapped map range values used as lookup/delete keys | ✅ |
 | └ Owned map range keys used in comma-ok lookups | ✅ |
+| └ Owned map range keys passed to calls and stored as map values | ✅ |
 | └ Map access with existence check | ✅ |
 | └ Comma-ok map access with typed zero values | ✅ |
 | └ Wrapped call results as map lookup keys | ✅ |
@@ -322,6 +323,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Pointer range values returned as handles | ✅ |
 | └ Wrapped string values from map ranges insert as owned map keys | ✅ |
 | └ Owned map-range keys remain usable after map assignments | ✅ |
+| └ Owned map-range keys remain usable after calls and map value stores | ✅ |
 | └ Range stdlib-interface slice values used in calls, assignments, type switches, and assertions | ✅ |
 | └ Stdlib-interface slice values compared with nil | ✅ |
 | └ Channel range | ✅ |

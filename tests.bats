@@ -1162,6 +1162,10 @@ run_xfail_test() {
     run_test "tests/map_range_nested_assignment_key"
 }
 
+@test "map_range_string_key_call_reuse" {
+    run_test "tests/map_range_string_key_call_reuse"
+}
+
 @test "map_range_string_value_assignment_key" {
     run_test "tests/map_range_string_value_assignment_key"
 }

@@ -3691,6 +3691,8 @@ func writeWrappedMapValue(out *strings.Builder, value ast.Expr, valueExpr ast.Ex
 	WriteWrapperPrefix(out)
 	if isEmptyInterfaceExpr(valueExpr) || isEmptyInterfaceType(valueType) {
 		writeInterfaceBoxedValue(out, value)
+	} else if ident, ok := value.(*ast.Ident); ok && writeOwnedRangeValue(out, ident) {
+		// range value cloned above
 	} else {
 		TranspileExpression(out, value)
 	}
@@ -3949,6 +3951,11 @@ func writeOwnedRangeValue(out *strings.Builder, ident *ast.Ident) bool {
 			out.WriteString(name)
 			out.WriteString(".clone()")
 		}
+		return true
+	}
+	if !isCopyTypeExpression(ident) && isCloneableNonPointerExpr(ident) {
+		out.WriteString(name)
+		out.WriteString(".clone()")
 		return true
 	}
 	return false
@@ -8913,7 +8920,9 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 					} else {
 						// Regular range variable, wrap it normally
 						WriteWrapperPrefix(out)
-						TranspileExpression(out, arg)
+						if !writeOwnedRangeValue(out, ident) {
+							TranspileExpression(out, arg)
+						}
 						WriteWrapperSuffix(out)
 					}
 				}

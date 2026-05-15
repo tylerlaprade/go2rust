@@ -1348,6 +1348,8 @@ func writeMapWrappedValue(out *strings.Builder, expr ast.Expr, valueType types.T
 		// len/cap emits usize, but Go int map values use i32.
 	} else if writeRangeIndexForExpectedType(out, expr, valueType) {
 		// range indexes emit usize, but Go int map values use i32.
+	} else if ident, ok := expr.(*ast.Ident); ok && writeOwnedRangeValue(out, ident) {
+		// range value cloned above
 	} else if !isCopyTypeExpression(expr) && writeOwnedExpressionValue(out, expr) {
 		// owned expression written above
 	} else {
