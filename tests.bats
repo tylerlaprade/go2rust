@@ -606,6 +606,10 @@ run_xfail_test() {
     run_test "tests/concurrent_stdlib_selector_string_compare"
 }
 
+@test "concurrent_string_builder_return" {
+    run_test "tests/concurrent_string_builder_return"
+}
+
 @test "const_basic" {
     run_test "tests/const_basic"
 }

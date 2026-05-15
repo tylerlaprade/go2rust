@@ -576,6 +576,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ `strings.Builder` | ✅ |
 | └ `Builder.WriteString` with string constants | ✅ |
 | └ `Builder` methods on short-declared `strings.Builder{}` values | ✅ |
+| └ `Builder.String` returns in concurrent mode | ✅ |
 
 ### XFAIL Tests (Expected Failures)
 

@@ -7985,10 +7985,11 @@ func writeStringsBuilderMethodCall(out *strings.Builder, sel *ast.SelectorExpr, 
 			WriteWrapperSuffix(out)
 			return true
 		}
-		out.WriteString("(*")
+		out.WriteString("{ let __builder = ")
 		writeStringsBuilderReceiverHandle(out, sel.X)
+		out.WriteString(".clone(); let __guard = __builder")
 		WriteBorrowMethod(out, false)
-		out.WriteString(".as_ref().unwrap()).clone()")
+		out.WriteString("; let __value = (*__guard.as_ref().unwrap()).clone(); drop(__guard); __value }")
 		WriteWrapperSuffix(out)
 		return true
 	case "Len":

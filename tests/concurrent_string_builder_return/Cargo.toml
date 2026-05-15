@@ -1,0 +1,8 @@
+[package]
+name = "concurrent_string_builder_return"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "concurrent_string_builder_return"
+path = "main.rs"

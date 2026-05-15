@@ -6,6 +6,6 @@ fn main() {
     (*builder.borrow_mut().as_mut().unwrap()).push_str("Hello");
     (*builder.borrow_mut().as_mut().unwrap()).push_str(" ");
     (*builder.borrow_mut().as_mut().unwrap()).push_str("World");
-    let mut result = Rc::new(RefCell::new(Some((*builder.borrow().as_ref().unwrap()).clone())));
+    let mut result = Rc::new(RefCell::new(Some({ let __builder = builder.clone(); let __guard = __builder.borrow(); let __value = (*__guard.as_ref().unwrap()).clone(); drop(__guard); __value })));
     println!("{}", { let __v = (*result.borrow().as_ref().unwrap()).clone(); __v });
 }

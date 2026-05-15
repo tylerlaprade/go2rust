@@ -165,7 +165,7 @@ fn main() {
     (*builder.lock().unwrap().as_mut().unwrap()).push_str("string ");
     (*builder.lock().unwrap().as_mut().unwrap()).push_str("efficiently");
 
-    let mut built = Arc::new(Mutex::new(Some((*builder.lock().unwrap().as_ref().unwrap()).clone())));
+    let mut built = Arc::new(Mutex::new(Some({ let __builder = builder.clone(); let __guard = __builder.lock().unwrap(); let __value = (*__guard.as_ref().unwrap()).clone(); drop(__guard); __value })));
     print!("Built string: {}\n", { let __v = (*built.lock().unwrap().as_ref().unwrap()).clone(); __v });
     print!("Builder length: {}\n", (*Arc::new(Mutex::new(Some((*builder.lock().unwrap().as_ref().unwrap()).len() as i32))).lock().unwrap().as_ref().unwrap()));
 
