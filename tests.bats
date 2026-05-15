@@ -1454,6 +1454,10 @@ run_xfail_test() {
     run_test "tests/package_global_shadowing"
 }
 
+@test "package_global_slice_snapshot" {
+    run_test "tests/package_global_slice_snapshot"
+}
+
 @test "package_interface_concrete_equality" {
     run_test "tests/package_interface_concrete_equality"
 }

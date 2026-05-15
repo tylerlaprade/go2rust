@@ -303,6 +303,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Package-level inferred arrays of anonymous structs | ✅ |
 | └ Package-level channel globals initialized with `make` | ✅ |
 | └ Package-level pointer globals initialized from constructor calls | ✅ |
+| └ Package-level slice snapshots assigned to locals | ✅ |
 | └ Direct dereference of package-level pointer globals | ✅ |
 | └ Field access through package-level pointer globals | ✅ |
 | └ Exported package globals from transpiled dependency crates keep their Go names and public visibility | ✅ |
@@ -378,6 +379,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Package-level fixed and inferred array declarations | ✅ |
 | └ Package-level inferred anonymous struct array declarations | ✅ |
 | └ Package-level map snapshots assigned to locals | ✅ |
+| └ Package-level slice snapshots assigned to locals | ✅ |
 | └ Short declarations (:=) | ✅ |
 | └ Selector slice field short declarations | ✅ |
 | └ Blank identifier (_) | ✅ |

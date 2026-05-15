@@ -991,6 +991,23 @@ func writePackageGlobalMapWrappedValueCopy(out *strings.Builder, ident *ast.Iden
 	return true
 }
 
+func writePackageGlobalSliceWrappedValueCopy(out *strings.Builder, ident *ast.Ident) bool {
+	if ident == nil || !isPackageGlobalIdent(ident) {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || !typeInfo.IsSlice(ident) {
+		return false
+	}
+	WriteWrapperPrefix(out)
+	out.WriteString("(*")
+	out.WriteString(rustPackageGlobalName(ident.Name))
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap()).clone()")
+	WriteWrapperSuffix(out)
+	return true
+}
+
 func writeWrappedOwnedExpressionValue(out *strings.Builder, expr ast.Expr) bool {
 	if isCopyTypeExpression(expr) {
 		return false
@@ -4774,6 +4791,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 												// Reference-style range values need an owned clone for wrapped short declarations.
 											} else if writePackageGlobalMapWrappedValueCopy(out, ident) {
 												// Package-global maps are stored as global values; clone the current map into the local wrapper.
+											} else if writePackageGlobalSliceWrappedValueCopy(out, ident) {
+												// Package-global slices are stored as global values; clone the current slice into the local wrapper.
 											} else if writeWrappedValueCopyFromIdent(out, ident) {
 												// Copied by value from an existing wrapped value
 											} else if rhsIsPointerType(rhs) {
@@ -5010,6 +5029,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										// Range values over stdlib-interface slices are references; clone into the new wrapper.
 									} else if writePackageGlobalMapWrappedValueCopy(out, ident) {
 										// Package-global maps are stored as global values; clone the current map into the local wrapper.
+									} else if writePackageGlobalSliceWrappedValueCopy(out, ident) {
+										// Package-global slices are stored as global values; clone the current slice into the local wrapper.
 									} else if writeWrappedValueCopyFromIdent(out, ident) {
 										// Copied by value from an existing wrapped value
 									} else {
