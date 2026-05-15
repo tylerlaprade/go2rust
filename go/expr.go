@@ -735,6 +735,9 @@ func writeRegularMethodCallArgument(out *strings.Builder, sel *ast.SelectorExpr,
 	if writePointerHandleCallArgument(out, arg, expectedArgType) {
 		return
 	}
+	if writeFunctionHandleCallArgument(out, arg, expectedArgType) {
+		return
+	}
 	if writeAlreadyWrappedSelectorCallArgument(out, arg, expectedArgType) {
 		return
 	}
@@ -1575,6 +1578,13 @@ func writeAlreadyWrappedMapIndexCallArgument(out *strings.Builder, arg ast.Expr,
 	}
 	TranspileExpression(out, arg)
 	return true
+}
+
+func writeFunctionHandleCallArgument(out *strings.Builder, arg ast.Expr, expected types.Type) bool {
+	if expected == nil || !isFunctionSignatureType(expected) {
+		return false
+	}
+	return writeFunctionValueHandle(out, arg)
 }
 
 func writePointerHandleCallArgument(out *strings.Builder, arg ast.Expr, expected types.Type) bool {
@@ -8758,6 +8768,10 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				continue
 			}
 
+			if writeFunctionHandleCallArgument(out, arg, expectedArgType) {
+				continue
+			}
+
 			if writeAlreadyWrappedSelectorCallArgument(out, arg, expectedArgType) {
 				continue
 			}
@@ -9156,6 +9170,9 @@ func writeFunctionSignatureCallArgument(out *strings.Builder, arg ast.Expr, expe
 		return
 	}
 	if writePointerHandleCallArgument(out, arg, expected) {
+		return
+	}
+	if writeFunctionHandleCallArgument(out, arg, expected) {
 		return
 	}
 	if writeAlreadyWrappedSelectorCallArgument(out, arg, expected) {

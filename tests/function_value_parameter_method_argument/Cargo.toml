@@ -1,0 +1,8 @@
+[package]
+name = "function_value_parameter_method_argument"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "function_value_parameter_method_argument"
+path = "main.rs"

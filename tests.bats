@@ -930,6 +930,10 @@ run_xfail_test() {
     run_test "tests/function_types"
 }
 
+@test "function_value_parameter_method_argument" {
+    run_test "tests/function_value_parameter_method_argument"
+}
+
 @test "functions_multiple_return" {
     run_test "tests/functions_multiple_return"
 }
