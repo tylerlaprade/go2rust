@@ -3,12 +3,14 @@ set -euo pipefail
 
 usage() {
     cat <<'EOF'
-Usage: ./self_transpile_check.sh [--cargo-check] [--package <crate>]...
+Usage: ./self_transpile_check.sh [--cargo-check] [--behavior-suite] [--package <crate>]...
 
 Transpile go2rust's own Go package in a temporary workspace.
 
 Options:
   --cargo-check       Run cargo check after transpilation.
+  --behavior-suite    Build the generated Rust transpiler and run the fixture
+                      suite against that binary in a copied test workspace.
   --package <crate>   With --cargo-check, check one crate. May be repeated.
   -h, --help          Show this help.
 
@@ -20,12 +22,17 @@ EOF
 }
 
 cargo_check=false
+behavior_suite=false
 packages=()
 
 while [ "$#" -gt 0 ]; do
     case "$1" in
         --cargo-check)
             cargo_check=true
+            shift
+            ;;
+        --behavior-suite)
+            behavior_suite=true
             shift
             ;;
         --package|-p)
@@ -92,6 +99,29 @@ if [ "$cargo_check" = true ]; then
             )
         done
     fi
+fi
+
+if [ "$behavior_suite" = true ]; then
+    export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$work/cargo-target}"
+    (
+        cd "$work/go"
+        cargo build -p go --bin go
+    )
+
+    suite="$work/behavior-suite"
+    mkdir -p "$suite"
+    cp "$repo_root/test.sh" "$suite/test.sh"
+    cp "$repo_root/tests.bats" "$suite/tests.bats"
+    cp "$repo_root/go.mod" "$suite/go.mod"
+    cp "$repo_root/go.sum" "$suite/go.sum"
+    cp -R "$repo_root/tests" "$suite/tests"
+
+    (
+        cd "$suite"
+        GO2RUST_TEST_BINARY="$CARGO_TARGET_DIR/debug/go" \
+            GOCACHE="${GOCACHE:-$work/go-build-cache}" \
+            ./test.sh -n "${GO2RUST_BEHAVIOR_JOBS:-6}" -t "${GO2RUST_BEHAVIOR_TIMEOUT:-30s}"
+    )
 fi
 
 echo "Self-transpile check passed" >&2

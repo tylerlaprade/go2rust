@@ -20,7 +20,19 @@ go build -o go2rust ./go
 
 # Run tests
 ./test.sh
+
+# Check that the self-transpiled Rust builds
+CARGO_BUILD_JOBS=1 CARGO_INCREMENTAL=0 RUSTFLAGS=-Awarnings ./self_transpile_check.sh --cargo-check
+
+# Behavior gate: build the self-transpiled Rust transpiler and run the fixture
+# suite against that generated binary in a copied test workspace.
+CARGO_BUILD_JOBS=1 CARGO_INCREMENTAL=0 RUSTFLAGS=-Awarnings ./self_transpile_check.sh --behavior-suite
 ```
+
+The self-transpile `cargo check` gate only proves that generated Rust compiles.
+The behavior gate is the required self-hosting acceptance check: the generated
+Rust transpiler must run the fixture suite and produce the same outputs as the
+Go implementation.
 
 ### External Package Handling
 

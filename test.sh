@@ -168,8 +168,21 @@ export SHOW_XFAIL_ERRORS
 
 # Build the transpiler once before running the suite. Bats parallelism is
 # file-level, so sharded runs would otherwise race multiple setup_file builds
-# against the same ./go2rust output path.
-go build -o go2rust ./go
+# against the same ./go2rust output path. GO2RUST_TEST_BINARY lets the same
+# suite validate a self-transpiled Rust binary without changing test behavior.
+if [ -n "${GO2RUST_TEST_BINARY:-}" ]; then
+    case "$GO2RUST_TEST_BINARY" in
+        /*) ;;
+        *) GO2RUST_TEST_BINARY="$(pwd)/$GO2RUST_TEST_BINARY" ;;
+    esac
+    if [ ! -x "$GO2RUST_TEST_BINARY" ]; then
+        echo "Error: GO2RUST_TEST_BINARY is not executable: $GO2RUST_TEST_BINARY"
+        exit 1
+    fi
+    export GO2RUST_TEST_BINARY
+else
+    go build -o go2rust ./go
+fi
 export GO2RUST_TEST_BINARY_READY=1
 
 # Set default job count if not specified

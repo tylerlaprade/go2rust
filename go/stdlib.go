@@ -110,8 +110,6 @@ func init() {
 		"context.WithTimeout":     transpileContextWithTimeout,
 		"context.WithCancel":      transpileContextWithCancel,
 		"context.WithCancelCause": transpileContextWithCancelCause,
-		"flag.String":             transpileFlagString,
-		"flag.Parse":              transpileFlagParse,
 		"os.Create":               transpileOsCreate,
 		"os.Remove":               transpileOsRemove,
 		"reflect.TypeOf":          transpileReflectTypeOf,

@@ -5,7 +5,12 @@ setup_file() {
     # find tests -name "Cargo.toml" -type f -delete 2>/dev/null || true
     # find tests -name "Cargo.lock" -type f -delete 2>/dev/null || true
 
-    if [ "${GO2RUST_TEST_BINARY_READY:-}" != "1" ]; then
+    if [ -n "${GO2RUST_TEST_BINARY:-}" ]; then
+        if [ ! -x "$GO2RUST_TEST_BINARY" ]; then
+            echo "GO2RUST_TEST_BINARY is not executable: $GO2RUST_TEST_BINARY"
+            return 1
+        fi
+    elif [ "${GO2RUST_TEST_BINARY_READY:-}" != "1" ]; then
         go build -o go2rust ./go
     fi
 }
@@ -98,14 +103,13 @@ run_transpile_and_compare() {
     fi
     
     # Build transpile command with appropriate flags
-    local transpile_cmd="./go2rust"
+    local transpiler="${GO2RUST_TEST_BINARY:-./go2rust}"
+    local transpile_output
     if [ -n "$external_mode" ]; then
-        transpile_cmd="$transpile_cmd --external-packages=$external_mode"
+        transpile_output=$("$transpiler" "--external-packages=$external_mode" "$test_dir" 2>&1)
+    else
+        transpile_output=$("$transpiler" "$test_dir" 2>&1)
     fi
-    transpile_cmd="$transpile_cmd \"$test_dir\""
-    
-    # Transpile to Rust
-    transpile_output=$(eval $transpile_cmd 2>&1)
     if [ $? -ne 0 ]; then
         echo "Transpilation failed:"
         echo "$transpile_output" | sed "s/^/  /"

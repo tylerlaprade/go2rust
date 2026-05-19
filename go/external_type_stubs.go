@@ -1217,6 +1217,10 @@ func writeExternalPackageStubs(out *strings.Builder, packageStubs map[string]*ex
 			out.WriteString("\n\n")
 		}
 		needsSeparator = true
+		if pkgName == "flag" {
+			writeFlagPackageStub(out)
+			continue
+		}
 		out.WriteString("pub mod ")
 		out.WriteString(ToSnakeCase(pkgName))
 		out.WriteString(" {\n")
@@ -1265,6 +1269,136 @@ func writeExternalPackageStubs(out *strings.Builder, packageStubs map[string]*ex
 		}
 		out.WriteString("}\n")
 	}
+}
+
+func writeFlagPackageStub(out *strings.Builder) {
+	outerWrapper := GetOuterWrapperType()
+	innerWrapper := GetInnerWrapperType()
+	stringFlagType := fmt.Sprintf("%s<%s<Option<String>>>", outerWrapper, innerWrapper)
+	boolFlagType := fmt.Sprintf("%s<%s<Option<bool>>>", outerWrapper, innerWrapper)
+	argsType := fmt.Sprintf("%s<%s<Option<Vec<String>>>>", outerWrapper, innerWrapper)
+	borrowMut := ".borrow_mut()"
+	if NeedsConcurrentWrapper() {
+		borrowMut = ".lock().unwrap()"
+	}
+
+	fmt.Fprintf(out, `pub mod flag {
+    use super::*;
+
+    type StringFlag = %s;
+    type BoolFlag = %s;
+
+    thread_local! {
+        static STRING_FLAGS: std::cell::RefCell<Vec<(String, StringFlag)>> = std::cell::RefCell::new(Vec::new());
+        static BOOL_FLAGS: std::cell::RefCell<Vec<(String, BoolFlag)>> = std::cell::RefCell::new(Vec::new());
+        static REMAINING_ARGS: std::cell::RefCell<Option<Vec<String>>> = std::cell::RefCell::new(None);
+    }
+
+    pub fn string<T0: Into<String>, T1: Into<String>, T2>(_name: T0, value: T1, _usage: T2) -> StringFlag {
+        let name = _name.into();
+        let handle = %s::new(%s::new(Some(value.into())));
+        STRING_FLAGS.with(|flags| flags.borrow_mut().push((name, handle.clone())));
+        handle
+    }
+
+    pub fn bool<T0: Into<String>, T2>(_name: T0, value: bool, _usage: T2) -> BoolFlag {
+        let name = _name.into();
+        let handle = %s::new(%s::new(Some(value)));
+        BOOL_FLAGS.with(|flags| flags.borrow_mut().push((name, handle.clone())));
+        handle
+    }
+
+    pub fn parse() {
+        let argv: Vec<String> = std::env::args().skip(1).collect();
+        let mut remaining = Vec::new();
+        let mut index = 0usize;
+        while index < argv.len() {
+            let arg = argv[index].clone();
+            if arg == "--" {
+                remaining.extend(argv[index + 1..].iter().cloned());
+                break;
+            }
+            if !arg.starts_with('-') || arg == "-" {
+                remaining.push(arg);
+                index += 1;
+                continue;
+            }
+
+            let flag_text = arg.trim_start_matches('-');
+            let (name, inline_value) = match flag_text.split_once('=') {
+                Some((name, value)) => (name.to_string(), Some(value.to_string())),
+                None => (flag_text.to_string(), None),
+            };
+
+            if set_bool_flag(&name, inline_value.as_deref().map(parse_bool_value).unwrap_or(true)) {
+                index += 1;
+                continue;
+            }
+
+            if has_string_flag(&name) {
+                let value = if let Some(value) = inline_value {
+                    value
+                } else if index + 1 < argv.len() {
+                    index += 1;
+                    argv[index].clone()
+                } else {
+                    String::new()
+                };
+                set_string_flag(&name, value);
+                index += 1;
+                continue;
+            }
+
+            remaining.push(arg);
+            index += 1;
+        }
+
+        REMAINING_ARGS.with(|args| *args.borrow_mut() = Some(remaining));
+    }
+
+    pub fn args() -> %s {
+        let needs_parse = REMAINING_ARGS.with(|args| args.borrow().is_none());
+        if needs_parse {
+            parse();
+        }
+        %s::new(%s::new(Some(REMAINING_ARGS.with(|args| args.borrow().as_ref().cloned().unwrap_or_default()))))
+    }
+
+    fn has_string_flag(name: &str) -> bool {
+        STRING_FLAGS.with(|flags| flags.borrow().iter().any(|(flag_name, _)| flag_name == name))
+    }
+
+    fn set_string_flag(name: &str, value: String) -> bool {
+        let mut found = false;
+        STRING_FLAGS.with(|flags| {
+            for (flag_name, target) in flags.borrow().iter() {
+                if flag_name == name {
+                    *target%s = Some(value.clone());
+                    found = true;
+                }
+            }
+        });
+        found
+    }
+
+    fn set_bool_flag(name: &str, value: bool) -> bool {
+        let mut found = false;
+        BOOL_FLAGS.with(|flags| {
+            for (flag_name, target) in flags.borrow().iter() {
+                if flag_name == name {
+                    *target%s = Some(value);
+                    found = true;
+                }
+            }
+        });
+        found
+    }
+
+    fn parse_bool_value(value: &str) -> bool {
+        matches!(value, "1" | "t" | "T" | "true" | "TRUE" | "True" | "y" | "yes" | "on")
+    }
+}
+`, stringFlagType, boolFlagType, outerWrapper, innerWrapper, outerWrapper, innerWrapper, argsType, outerWrapper, innerWrapper, borrowMut, borrowMut)
 }
 
 func writeExternalPackageStubVariable(out *strings.Builder, varName string, rustType string) {
