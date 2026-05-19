@@ -3101,8 +3101,14 @@ func writeWrappedStructFieldValue(out *strings.Builder, value ast.Expr, fieldExp
 		if writeCurrentReceiverPointerFieldValue(out, value, fieldExpr, expectedFieldType) {
 			return
 		}
-		TranspileExpressionContext(out, value, LValue)
-		out.WriteString(".clone()")
+		if _, ok := value.(*ast.SelectorExpr); ok {
+			out.WriteString("{ let __field = ")
+			TranspileExpressionContext(out, value, LValue)
+			out.WriteString(".clone(); __field }")
+		} else {
+			TranspileExpressionContext(out, value, LValue)
+			out.WriteString(".clone()")
+		}
 		return
 	}
 
@@ -3240,8 +3246,9 @@ func writeAlreadyWrappedSelectorFieldValue(out *strings.Builder, value ast.Expr,
 	if !selectorFieldValueKeepsHandle(expected) {
 		return false
 	}
+	out.WriteString("{ let __field = ")
 	TranspileExpressionContext(out, sel, LValue)
-	out.WriteString(".clone()")
+	out.WriteString(".clone(); __field }")
 	return true
 }
 

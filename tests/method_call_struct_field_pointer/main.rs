@@ -65,7 +65,7 @@ impl std::fmt::Display for AnonymousStruct1 {
 
 impl cache {
     pub fn lookup(&self) -> Rc<RefCell<Option<AnonymousStruct1>>> {
-        return Rc::new(RefCell::new(Some(AnonymousStruct1 { child: self.child.clone() })));
+        return Rc::new(RefCell::new(Some(AnonymousStruct1 { child: { let __field = self.child.clone(); __field } })));
     }
 
     pub fn get(&self) -> Rc<RefCell<Option<node>>> {

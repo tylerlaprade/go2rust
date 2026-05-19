@@ -2134,6 +2134,10 @@ run_xfail_test() {
     run_test "tests/struct_function_slice_field"
 }
 
+@test "struct_literal_selector_handle_fields" {
+    run_test "tests/struct_literal_selector_handle_fields"
+}
+
 @test "struct_map_trait_value_display" {
     run_test "tests/struct_map_trait_value_display"
 }
