@@ -2,7 +2,7 @@ use std::cell::{RefCell};
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct pkg {
     pub name: Rc<RefCell<Option<String>>>,
 }
@@ -10,6 +10,13 @@ pub struct pkg {
 impl pkg {
     pub fn __go_value_clone(&self) -> Self {
         Self { name: { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for pkg {
+    fn default() -> Self {
+        Self { name: Rc::new(RefCell::new(Some(String::new()))) }
     }
 }
 

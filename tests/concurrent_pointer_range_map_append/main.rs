@@ -30,7 +30,7 @@ impl<T> std::fmt::Display for GoLocalPtrKey<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { write!(f, "0x{:x}", self.addr()) }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct node {
     pub value: Arc<Mutex<Option<i32>>>,
 }
@@ -38,6 +38,13 @@ pub struct node {
 impl node {
     pub fn __go_value_clone(&self) -> Self {
         Self { value: { let __guard = self.value.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for node {
+    fn default() -> Self {
+        Self { value: Arc::new(Mutex::new(Some(0))) }
     }
 }
 

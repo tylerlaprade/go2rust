@@ -16,7 +16,7 @@ impl Clone for Box<dyn namer> {
     }
 }
 
-#[derive(Debug, Clone, Default, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct alpha {
     pub name: Rc<RefCell<Option<String>>>,
 }
@@ -27,6 +27,13 @@ impl alpha {
     }
 }
 
+
+impl Default for alpha {
+    fn default() -> Self {
+        Self { name: Rc::new(RefCell::new(Some(String::new()))) }
+    }
+}
+
 impl std::fmt::Display for alpha {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{}}}", (*self.name.borrow().as_ref().unwrap()))
@@ -34,7 +41,7 @@ impl std::fmt::Display for alpha {
 }
 
 
-#[derive(Debug, Clone, Default, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct beta {
     pub name: Rc<RefCell<Option<String>>>,
 }
@@ -42,6 +49,13 @@ pub struct beta {
 impl beta {
     pub fn __go_value_clone(&self) -> Self {
         Self { name: { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for beta {
+    fn default() -> Self {
+        Self { name: Rc::new(RefCell::new(Some(String::new()))) }
     }
 }
 

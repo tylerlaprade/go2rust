@@ -170,7 +170,7 @@ impl Ord for LoadMode {
 }
 
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct Config {
     pub mode: Rc<RefCell<Option<LoadMode>>>,
 }
@@ -178,6 +178,13 @@ pub struct Config {
 impl Config {
     pub fn __go_value_clone(&self) -> Self {
         Self { mode: { let __guard = self.mode.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for Config {
+    fn default() -> Self {
+        Self { mode: Rc::new(RefCell::new(Some(LoadMode(Rc::new(RefCell::new(Some(0))))))) }
     }
 }
 

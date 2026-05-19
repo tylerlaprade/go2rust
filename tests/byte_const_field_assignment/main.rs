@@ -2,7 +2,7 @@ use std::cell::{RefCell};
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct node {
     pub color: Rc<RefCell<Option<u8>>>,
 }
@@ -10,6 +10,13 @@ pub struct node {
 impl node {
     pub fn __go_value_clone(&self) -> Self {
         Self { color: { let __guard = self.color.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for node {
+    fn default() -> Self {
+        Self { color: Rc::new(RefCell::new(Some(0))) }
     }
 }
 

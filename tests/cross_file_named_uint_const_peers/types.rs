@@ -172,7 +172,7 @@ impl Ord for Version {
 }
 
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct Header {
     pub version: Rc<RefCell<Option<Version>>>,
 }
@@ -180,6 +180,13 @@ pub struct Header {
 impl Header {
     pub fn __go_value_clone(&self) -> Self {
         Self { version: { let __guard = self.version.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for Header {
+    fn default() -> Self {
+        Self { version: Rc::new(RefCell::new(Some(Version(Rc::new(RefCell::new(Some(0))))))) }
     }
 }
 

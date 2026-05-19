@@ -6,7 +6,7 @@ use std::rc::{Rc};
 pub type handler = Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>>>>>;
 
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct item {
     pub value: Rc<RefCell<Option<i32>>>,
 }
@@ -14,6 +14,13 @@ pub struct item {
 impl item {
     pub fn __go_value_clone(&self) -> Self {
         Self { value: { let __guard = self.value.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for item {
+    fn default() -> Self {
+        Self { value: Rc::new(RefCell::new(Some(0))) }
     }
 }
 

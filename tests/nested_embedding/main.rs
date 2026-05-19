@@ -2,7 +2,7 @@ use std::cell::{RefCell};
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct A {
     pub x: Rc<RefCell<Option<i32>>>,
 }
@@ -10,6 +10,13 @@ pub struct A {
 impl A {
     pub fn __go_value_clone(&self) -> Self {
         Self { x: { let __guard = self.x.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for A {
+    fn default() -> Self {
+        Self { x: Rc::new(RefCell::new(Some(0))) }
     }
 }
 
@@ -35,7 +42,7 @@ impl B {
 
 impl Default for B {
     fn default() -> Self {
-        Self { a: Rc::new(RefCell::new(Some(A::default()))), y: Default::default() }
+        Self { a: Rc::new(RefCell::new(Some(A::default()))), y: Rc::new(RefCell::new(Some(0))) }
     }
 }
 
@@ -61,7 +68,7 @@ impl C {
 
 impl Default for C {
     fn default() -> Self {
-        Self { b: Rc::new(RefCell::new(Some(B::default()))), z: Default::default() }
+        Self { b: Rc::new(RefCell::new(Some(B::default()))), z: Rc::new(RefCell::new(Some(0))) }
     }
 }
 

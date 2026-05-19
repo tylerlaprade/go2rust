@@ -5,7 +5,7 @@ use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
 /// Counter holds a numeric value
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct Counter {
     pub value: Rc<RefCell<Option<i32>>>,
 }
@@ -13,6 +13,13 @@ pub struct Counter {
 impl Counter {
     pub fn __go_value_clone(&self) -> Self {
         Self { value: { let __guard = self.value.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for Counter {
+    fn default() -> Self {
+        Self { value: Rc::new(RefCell::new(Some(0))) }
     }
 }
 
@@ -24,7 +31,7 @@ impl std::fmt::Display for Counter {
 
 
 /// Point represents a 2D point
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct Point {
     pub x: Rc<RefCell<Option<f64>>>,
     pub y: Rc<RefCell<Option<f64>>>,
@@ -33,6 +40,13 @@ pub struct Point {
 impl Point {
     pub fn __go_value_clone(&self) -> Self {
         Self { x: { let __guard = self.x.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, y: { let __guard = self.y.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for Point {
+    fn default() -> Self {
+        Self { x: Rc::new(RefCell::new(Some(0.0))), y: Rc::new(RefCell::new(Some(0.0))) }
     }
 }
 

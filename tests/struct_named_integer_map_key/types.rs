@@ -325,7 +325,7 @@ impl Ord for Index {
 }
 
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct Entry {
     pub kind: Arc<Mutex<Option<Kind>>>,
     pub index: Arc<Mutex<Option<Index>>>,
@@ -334,6 +334,13 @@ pub struct Entry {
 impl Entry {
     pub fn __go_value_clone(&self) -> Self {
         Self { kind: { let __guard = self.kind.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, index: { let __guard = self.index.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for Entry {
+    fn default() -> Self {
+        Self { kind: Arc::new(Mutex::new(Some(Kind(Arc::new(Mutex::new(Some(0))))))), index: Arc::new(Mutex::new(Some(Index(Arc::new(Mutex::new(Some(0))))))) }
     }
 }
 

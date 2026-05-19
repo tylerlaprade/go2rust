@@ -189,7 +189,7 @@ pub mod atomic {
 }
 
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct readOp {
     pub key: Arc<Mutex<Option<i32>>>,
     pub resp: GoChannel<i32>,
@@ -201,6 +201,13 @@ impl readOp {
     }
 }
 
+
+impl Default for readOp {
+    fn default() -> Self {
+        Self { key: Arc::new(Mutex::new(Some(0))), resp: Default::default() }
+    }
+}
+
 impl std::fmt::Display for readOp {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{}}}", (*self.key.lock().unwrap().as_ref().unwrap()))
@@ -208,7 +215,7 @@ impl std::fmt::Display for readOp {
 }
 
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct writeOp {
     pub key: Arc<Mutex<Option<i32>>>,
     pub val: Arc<Mutex<Option<i32>>>,
@@ -218,6 +225,13 @@ pub struct writeOp {
 impl writeOp {
     pub fn __go_value_clone(&self) -> Self {
         Self { key: { let __guard = self.key.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, val: { let __guard = self.val.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, resp: self.resp.clone() }
+    }
+}
+
+
+impl Default for writeOp {
+    fn default() -> Self {
+        Self { key: Arc::new(Mutex::new(Some(0))), val: Arc::new(Mutex::new(Some(0))), resp: Default::default() }
     }
 }
 

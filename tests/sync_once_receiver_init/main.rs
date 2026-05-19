@@ -178,7 +178,7 @@ impl Default for GoOnce {
     }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct runner {
     pub once: GoOnce,
     pub in_flight: GoChannel<AnonymousStruct1>,
@@ -188,6 +188,13 @@ pub struct runner {
 impl runner {
     pub fn __go_value_clone(&self) -> Self {
         Self { once: self.once.clone(), in_flight: self.in_flight.clone(), serialized: self.serialized.clone() }
+    }
+}
+
+
+impl Default for runner {
+    fn default() -> Self {
+        Self { once: GoOnce::new(), in_flight: Default::default(), serialized: Default::default() }
     }
 }
 

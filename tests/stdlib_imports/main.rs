@@ -93,7 +93,7 @@ fn go_strconv_format_float(value: f64, fmt: char, precision: i32) -> String {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 struct GoTime {
     seconds: i64,
     nanos: i32,

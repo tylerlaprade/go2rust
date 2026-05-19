@@ -330,7 +330,7 @@ impl Ord for Version {
 }
 
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct Symbol {
     pub name: Rc<RefCell<Option<String>>>,
     pub kind: Rc<RefCell<Option<Kind>>>,
@@ -340,6 +340,13 @@ pub struct Symbol {
 impl Symbol {
     pub fn __go_value_clone(&self) -> Self {
         Self { name: { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, kind: { let __guard = self.kind.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, version: { let __guard = self.version.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for Symbol {
+    fn default() -> Self {
+        Self { name: Rc::new(RefCell::new(Some(String::new()))), kind: Rc::new(RefCell::new(Some(Kind(Rc::new(RefCell::new(Some(0))))))), version: Rc::new(RefCell::new(Some(Version(Rc::new(RefCell::new(Some(0))))))) }
     }
 }
 

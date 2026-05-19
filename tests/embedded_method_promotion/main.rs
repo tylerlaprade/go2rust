@@ -3,7 +3,7 @@ use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
 /// Base types with methods
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct Logger {
     pub prefix: Rc<RefCell<Option<String>>>,
 }
@@ -14,6 +14,13 @@ impl Logger {
     }
 }
 
+
+impl Default for Logger {
+    fn default() -> Self {
+        Self { prefix: Rc::new(RefCell::new(Some(String::new()))) }
+    }
+}
+
 impl std::fmt::Display for Logger {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{}}}", (*self.prefix.borrow().as_ref().unwrap()))
@@ -21,7 +28,7 @@ impl std::fmt::Display for Logger {
 }
 
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct Counter {
     pub count: Rc<RefCell<Option<i32>>>,
 }
@@ -29,6 +36,13 @@ pub struct Counter {
 impl Counter {
     pub fn __go_value_clone(&self) -> Self {
         Self { count: { let __guard = self.count.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for Counter {
+    fn default() -> Self {
+        Self { count: Rc::new(RefCell::new(Some(0))) }
     }
 }
 
@@ -56,7 +70,7 @@ impl Service {
 
 impl Default for Service {
     fn default() -> Self {
-        Self { logger: Rc::new(RefCell::new(Some(Logger::default()))), counter: Rc::new(RefCell::new(Some(Counter::default()))), name: Default::default() }
+        Self { logger: Rc::new(RefCell::new(Some(Logger::default()))), counter: Rc::new(RefCell::new(Some(Counter::default()))), name: Rc::new(RefCell::new(Some(String::new()))) }
     }
 }
 
@@ -68,7 +82,7 @@ impl std::fmt::Display for Service {
 
 
 /// Type with multiple levels of embedding
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct Base {
     pub id: Rc<RefCell<Option<i32>>>,
 }
@@ -76,6 +90,13 @@ pub struct Base {
 impl Base {
     pub fn __go_value_clone(&self) -> Self {
         Self { id: { let __guard = self.id.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for Base {
+    fn default() -> Self {
+        Self { id: Rc::new(RefCell::new(Some(0))) }
     }
 }
 
@@ -101,7 +122,7 @@ impl Middle {
 
 impl Default for Middle {
     fn default() -> Self {
-        Self { base: Rc::new(RefCell::new(Some(Base::default()))), data: Default::default() }
+        Self { base: Rc::new(RefCell::new(Some(Base::default()))), data: Rc::new(RefCell::new(Some(String::new()))) }
     }
 }
 
@@ -127,7 +148,7 @@ impl Top {
 
 impl Default for Top {
     fn default() -> Self {
-        Self { middle: Rc::new(RefCell::new(Some(Middle::default()))), extra: Default::default() }
+        Self { middle: Rc::new(RefCell::new(Some(Middle::default()))), extra: Rc::new(RefCell::new(Some(String::new()))) }
     }
 }
 

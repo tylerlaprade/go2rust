@@ -58,7 +58,7 @@ impl std::fmt::Debug for WaitGroup {
     }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct Group {
     pub wg: WaitGroup,
 }
@@ -66,6 +66,13 @@ pub struct Group {
 impl Group {
     pub fn __go_value_clone(&self) -> Self {
         Self { wg: self.wg.clone() }
+    }
+}
+
+
+impl Default for Group {
+    fn default() -> Self {
+        Self { wg: WaitGroup::new() }
     }
 }
 

@@ -1811,8 +1811,11 @@ func main() {
 	if strings.Contains(eventRS, "#[derive(Debug, Clone, Default)]\npub struct Event") {
 		t.Fatalf("struct with imported field should not derive Debug, got:\n%s", eventRS)
 	}
-	if !strings.Contains(eventRS, "#[derive(Clone, Default)]\npub struct Event") {
-		t.Fatalf("struct with imported field should still derive Clone and Default, got:\n%s", eventRS)
+	if !strings.Contains(eventRS, "#[derive(Clone)]\npub struct Event") {
+		t.Fatalf("struct with imported field should still derive Clone, got:\n%s", eventRS)
+	}
+	if !strings.Contains(eventRS, "impl Default for Event") {
+		t.Fatalf("struct with imported array field should get an explicit Go zero-value Default, got:\n%s", eventRS)
 	}
 	if !strings.Contains(eventRS, "pub fn __go_value_clone(&self) -> Self") {
 		t.Fatalf("struct with imported field should get a Go value-copy helper, got:\n%s", eventRS)

@@ -247,12 +247,60 @@ func structNeedsCustomDefault(structType *ast.StructType) bool {
 }
 
 func structFieldNeedsCustomDefault(expr ast.Expr) bool {
+	if expr == nil {
+		return false
+	}
+	if isSyncParam(expr) {
+		return true
+	}
+	if typeInfo := GetTypeInfo(); typeInfo != nil {
+		if typ := typeInfo.GetType(expr); typ != nil {
+			if _, isChan := types.Unalias(typ).Underlying().(*types.Chan); isChan {
+				return false
+			}
+			return !structFieldHasNilZero(typ)
+		}
+	}
 	switch t := expr.(type) {
 	case *ast.StructType:
 		return true
 	case *ast.Ident:
-		_, isStruct := structDefs[t.Name]
-		return isStruct
+		if _, isStruct := structDefs[t.Name]; isStruct {
+			return true
+		}
+		switch t.Name {
+		case "string", "bool", "int", "int8", "int16", "int32", "int64", "rune",
+			"uint", "uint8", "uint16", "uint32", "uint64", "uintptr", "byte",
+			"float32", "float64":
+			return true
+		default:
+			return false
+		}
+	case *ast.ArrayType:
+		return t.Len != nil
+	case *ast.SelectorExpr:
+		if ident, ok := t.X.(*ast.Ident); ok {
+			return (ident.Name == "strings" && t.Sel.Name == "Builder") ||
+				(ident.Name == "bytes" && t.Sel.Name == "Buffer")
+		}
+		return false
+	default:
+		return false
+	}
+}
+
+func structFieldHasNilZero(typ types.Type) bool {
+	if typ == nil {
+		return false
+	}
+	if named, ok := types.Unalias(typ).(*types.Named); ok {
+		if _, isSlice := types.Unalias(named.Underlying()).(*types.Slice); isSlice {
+			return false
+		}
+	}
+	switch types.Unalias(typ).Underlying().(type) {
+	case *types.Interface, *types.Pointer, *types.Signature, *types.Slice, *types.Map:
+		return true
 	default:
 		return false
 	}
@@ -537,6 +585,22 @@ func writeStructDefaultValue(out *strings.Builder, fieldType ast.Expr) {
 		out.WriteString(goTypeToRustBase(fieldType))
 		out.WriteString("::new()")
 		return
+	}
+	if typeInfo := GetTypeInfo(); typeInfo != nil {
+		if typ := typeInfo.GetType(fieldType); typ != nil {
+			if structFieldHasNilZero(typ) {
+				WriteWrappedNone(out)
+				return
+			}
+			if _, isChan := types.Unalias(typ).Underlying().(*types.Chan); isChan {
+				out.WriteString("Default::default()")
+				return
+			}
+			WriteWrapperPrefix(out)
+			out.WriteString(zeroValueForTypesType(typ))
+			WriteWrapperSuffix(out)
+			return
+		}
 	}
 	out.WriteString("Default::default()")
 }

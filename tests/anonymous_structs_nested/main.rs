@@ -110,7 +110,7 @@ impl Config {
 
 impl Default for Config {
     fn default() -> Self {
-        Self { name: Default::default(), database: Rc::new(RefCell::new(Some(AnonymousStruct1::default()))), cache: Rc::new(RefCell::new(Some(AnonymousStruct3::default()))) }
+        Self { name: Rc::new(RefCell::new(Some(String::new()))), database: Rc::new(RefCell::new(Some(AnonymousStruct1::default()))), cache: Rc::new(RefCell::new(Some(AnonymousStruct3::default()))) }
     }
 }
 
@@ -122,7 +122,7 @@ impl std::fmt::Display for Config {
 
 
 /// Named struct with slice of anonymous structs
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct Dashboard {
     pub title: Rc<RefCell<Option<String>>>,
     pub widgets: Rc<RefCell<Option<Vec<AnonymousStruct4>>>>,
@@ -131,6 +131,13 @@ pub struct Dashboard {
 impl Dashboard {
     pub fn __go_value_clone(&self) -> Self {
         Self { title: { let __guard = self.title.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, widgets: self.widgets.clone() }
+    }
+}
+
+
+impl Default for Dashboard {
+    fn default() -> Self {
+        Self { title: Rc::new(RefCell::new(Some(String::new()))), widgets: Rc::new(RefCell::new(None)) }
     }
 }
 
@@ -156,7 +163,7 @@ impl AnonymousStruct1 {
 
 impl Default for AnonymousStruct1 {
     fn default() -> Self {
-        Self { host: Default::default(), port: Default::default(), credentials: Rc::new(RefCell::new(Some(AnonymousStruct2::default()))) }
+        Self { host: Rc::new(RefCell::new(Some(String::new()))), port: Rc::new(RefCell::new(Some(0))), credentials: Rc::new(RefCell::new(Some(AnonymousStruct2::default()))) }
     }
 }
 
@@ -167,7 +174,7 @@ impl std::fmt::Display for AnonymousStruct1 {
 }
 
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 struct AnonymousStruct2 {
     user: Rc<RefCell<Option<String>>>,
     password: Rc<RefCell<Option<String>>>,
@@ -179,6 +186,12 @@ impl AnonymousStruct2 {
 }
 
 
+impl Default for AnonymousStruct2 {
+    fn default() -> Self {
+        Self { user: Rc::new(RefCell::new(Some(String::new()))), password: Rc::new(RefCell::new(Some(String::new()))) }
+    }
+}
+
 impl std::fmt::Display for AnonymousStruct2 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{} {}}}", (*self.user.borrow().as_ref().unwrap()), (*self.password.borrow().as_ref().unwrap()))
@@ -186,7 +199,7 @@ impl std::fmt::Display for AnonymousStruct2 {
 }
 
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 struct AnonymousStruct3 {
     enabled: Rc<RefCell<Option<bool>>>,
     t_t_l: Rc<RefCell<Option<i32>>>,
@@ -197,6 +210,12 @@ impl AnonymousStruct3 {
     }
 }
 
+
+impl Default for AnonymousStruct3 {
+    fn default() -> Self {
+        Self { enabled: Rc::new(RefCell::new(Some(false))), t_t_l: Rc::new(RefCell::new(Some(0))) }
+    }
+}
 
 impl std::fmt::Display for AnonymousStruct3 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -220,7 +239,7 @@ impl AnonymousStruct4 {
 
 impl Default for AnonymousStruct4 {
     fn default() -> Self {
-        Self { i_d: Default::default(), r#type: Default::default(), position: Rc::new(RefCell::new(Some(AnonymousStruct5::default()))) }
+        Self { i_d: Rc::new(RefCell::new(Some(0))), r#type: Rc::new(RefCell::new(Some(String::new()))), position: Rc::new(RefCell::new(Some(AnonymousStruct5::default()))) }
     }
 }
 
@@ -231,7 +250,7 @@ impl std::fmt::Display for AnonymousStruct4 {
 }
 
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 struct AnonymousStruct5 {
     x: Rc<RefCell<Option<i32>>>,
     y: Rc<RefCell<Option<i32>>>,
@@ -243,6 +262,12 @@ impl AnonymousStruct5 {
 }
 
 
+impl Default for AnonymousStruct5 {
+    fn default() -> Self {
+        Self { x: Rc::new(RefCell::new(Some(0))), y: Rc::new(RefCell::new(Some(0))) }
+    }
+}
+
 impl std::fmt::Display for AnonymousStruct5 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{} {}}}", (*self.x.borrow().as_ref().unwrap()), (*self.y.borrow().as_ref().unwrap()))
@@ -250,7 +275,7 @@ impl std::fmt::Display for AnonymousStruct5 {
 }
 
 
-#[derive(Clone, Default)]
+#[derive(Clone)]
 struct AnonymousStruct6 {
     version: Rc<RefCell<Option<String>>>,
     modules: Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<AnonymousStruct7>>>>>>>,
@@ -261,6 +286,12 @@ impl AnonymousStruct6 {
     }
 }
 
+
+impl Default for AnonymousStruct6 {
+    fn default() -> Self {
+        Self { version: Rc::new(RefCell::new(Some(String::new()))), modules: Rc::new(RefCell::new(None)) }
+    }
+}
 
 impl std::fmt::Display for AnonymousStruct6 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -283,7 +314,7 @@ impl AnonymousStruct7 {
 
 impl Default for AnonymousStruct7 {
     fn default() -> Self {
-        Self { enabled: Default::default(), settings: Rc::new(RefCell::new(Some(AnonymousStruct8::default()))) }
+        Self { enabled: Rc::new(RefCell::new(Some(false))), settings: Rc::new(RefCell::new(Some(AnonymousStruct8::default()))) }
     }
 }
 
@@ -312,7 +343,7 @@ impl std::fmt::Display for AnonymousStruct8 {
 }
 
 
-#[derive(Clone, Default)]
+#[derive(Clone)]
 struct AnonymousStruct9 {
     key: Rc<RefCell<Option<String>>>,
     value: Rc<RefCell<Option<Box<dyn Any>>>>,
@@ -323,6 +354,12 @@ impl AnonymousStruct9 {
     }
 }
 
+
+impl Default for AnonymousStruct9 {
+    fn default() -> Self {
+        Self { key: Rc::new(RefCell::new(Some(String::new()))), value: Rc::new(RefCell::new(None)) }
+    }
+}
 
 impl std::fmt::Display for AnonymousStruct9 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {

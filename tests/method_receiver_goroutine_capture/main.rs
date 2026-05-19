@@ -148,7 +148,7 @@ impl<T> Iterator for GoChannel<T> {
     }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct Runner {
     pub name: Arc<Mutex<Option<String>>>,
 }
@@ -156,6 +156,13 @@ pub struct Runner {
 impl Runner {
     pub fn __go_value_clone(&self) -> Self {
         Self { name: { let __guard = self.name.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for Runner {
+    fn default() -> Self {
+        Self { name: Arc::new(Mutex::new(Some(String::new()))) }
     }
 }
 

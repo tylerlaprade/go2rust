@@ -207,7 +207,7 @@ impl<T> Iterator for GoChannel<T> {
     }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct Holder {
     pub elems: Arc<Mutex<Option<[Vec<String>; 2]>>>,
 }
@@ -215,6 +215,13 @@ pub struct Holder {
 impl Holder {
     pub fn __go_value_clone(&self) -> Self {
         Self { elems: { let __guard = self.elems.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for Holder {
+    fn default() -> Self {
+        Self { elems: Arc::new(Mutex::new(Some(std::array::from_fn(|_| vec![])))) }
     }
 }
 

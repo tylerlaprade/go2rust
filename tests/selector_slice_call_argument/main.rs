@@ -44,7 +44,7 @@ where
     }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct Package {
     pub dir: Rc<RefCell<Option<String>>>,
     pub go_files: Rc<RefCell<Option<Vec<String>>>>,
@@ -54,6 +54,13 @@ pub struct Package {
 impl Package {
     pub fn __go_value_clone(&self) -> Self {
         Self { dir: { let __guard = self.dir.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, go_files: self.go_files.clone(), cgo_files: self.cgo_files.clone() }
+    }
+}
+
+
+impl Default for Package {
+    fn default() -> Self {
+        Self { dir: Rc::new(RefCell::new(Some(String::new()))), go_files: Rc::new(RefCell::new(None)), cgo_files: Rc::new(RefCell::new(None)) }
     }
 }
 

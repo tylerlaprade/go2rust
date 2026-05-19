@@ -1,8 +1,9 @@
 use std::cell::{RefCell};
+use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 struct GoTime {
     seconds: i64,
     nanos: i32,
@@ -101,6 +102,31 @@ impl std::fmt::Display for GoTime {
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct event {
+    pub when: Rc<RefCell<Option<GoTime>>>,
+}
+
+impl event {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { when: { let __guard = self.when.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for event {
+    fn default() -> Self {
+        Self { when: Rc::new(RefCell::new(Some(Default::default()))) }
+    }
+}
+
+impl std::fmt::Display for event {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{}}}", (*self.when.borrow().as_ref().unwrap()))
+    }
+}
+
+
 fn main() {
     let mut localBase = Rc::new(RefCell::new(Some(GoTime::from_unix(1700000000 as i64, 0 as i64))));
     let mut base = (*localBase.borrow().as_ref().unwrap()).u_t_c();
@@ -110,4 +136,7 @@ fn main() {
     println!("{} {}", "One hour later:".to_string(), (*future.borrow().as_ref().unwrap()));
 
     println!("{} {}", "Unix timestamp:".to_string(), (*(*base.borrow().as_ref().unwrap()).unix().borrow().as_ref().unwrap()));
+
+    let mut ev: Rc<RefCell<Option<event>>> = Rc::new(RefCell::new(Some(Default::default())));
+    println!("{} {}", "Zero field:".to_string(), (*(*(*ev.borrow().as_ref().unwrap()).when.borrow().as_ref().unwrap()).is_zero().borrow().as_ref().unwrap()));
 }

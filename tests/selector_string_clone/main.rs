@@ -2,7 +2,7 @@ use std::cell::{RefCell};
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct Parts {
     pub left: Rc<RefCell<Option<String>>>,
     pub right: Rc<RefCell<Option<String>>>,
@@ -11,6 +11,13 @@ pub struct Parts {
 impl Parts {
     pub fn __go_value_clone(&self) -> Self {
         Self { left: { let __guard = self.left.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, right: { let __guard = self.right.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for Parts {
+    fn default() -> Self {
+        Self { left: Rc::new(RefCell::new(Some(String::new()))), right: Rc::new(RefCell::new(Some(String::new()))) }
     }
 }
 

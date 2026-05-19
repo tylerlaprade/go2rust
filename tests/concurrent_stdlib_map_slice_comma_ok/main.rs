@@ -132,7 +132,7 @@ impl Ord for types_Object {
 }
 
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct scope {
     pub id: Arc<Mutex<Option<i32>>>,
 }
@@ -140,6 +140,13 @@ pub struct scope {
 impl scope {
     pub fn __go_value_clone(&self) -> Self {
         Self { id: { let __guard = self.id.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for scope {
+    fn default() -> Self {
+        Self { id: Arc::new(Mutex::new(Some(0))) }
     }
 }
 

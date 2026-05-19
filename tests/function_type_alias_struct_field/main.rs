@@ -6,7 +6,7 @@ use std::rc::{Rc};
 pub type ReportFunc = Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<String>>>, Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) -> ()>>>>;
 
 
-#[derive(Clone, Default)]
+#[derive(Clone)]
 pub struct importer {
     pub reportf: ReportFunc,
     pub name: Rc<RefCell<Option<String>>>,
@@ -15,6 +15,13 @@ pub struct importer {
 impl importer {
     pub fn __go_value_clone(&self) -> Self {
         Self { reportf: self.reportf.clone(), name: { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for importer {
+    fn default() -> Self {
+        Self { reportf: Rc::new(RefCell::new(None)), name: Rc::new(RefCell::new(Some(String::new()))) }
     }
 }
 

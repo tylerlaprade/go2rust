@@ -1,7 +1,7 @@
 use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct Point {
     pub x: Arc<Mutex<Option<i32>>>,
     pub y: Arc<Mutex<Option<i32>>>,
@@ -10,6 +10,13 @@ pub struct Point {
 impl Point {
     pub fn __go_value_clone(&self) -> Self {
         Self { x: { let __guard = self.x.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, y: { let __guard = self.y.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for Point {
+    fn default() -> Self {
+        Self { x: Arc::new(Mutex::new(Some(0))), y: Arc::new(Mutex::new(Some(0))) }
     }
 }
 

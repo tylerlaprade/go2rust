@@ -2,7 +2,7 @@ use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct holder {
     pub value: Arc<Mutex<Option<String>>>,
 }
@@ -10,6 +10,13 @@ pub struct holder {
 impl holder {
     pub fn __go_value_clone(&self) -> Self {
         Self { value: { let __guard = self.value.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for holder {
+    fn default() -> Self {
+        Self { value: Arc::new(Mutex::new(Some(String::new()))) }
     }
 }
 

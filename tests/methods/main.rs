@@ -2,7 +2,7 @@ use std::cell::{RefCell};
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct Counter {
     pub value: Rc<RefCell<Option<i32>>>,
 }
@@ -10,6 +10,13 @@ pub struct Counter {
 impl Counter {
     pub fn __go_value_clone(&self) -> Self {
         Self { value: { let __guard = self.value.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for Counter {
+    fn default() -> Self {
+        Self { value: Rc::new(RefCell::new(Some(0))) }
     }
 }
 

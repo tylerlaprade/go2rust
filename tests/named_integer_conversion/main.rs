@@ -163,7 +163,7 @@ impl Ord for Kind {
 }
 
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct Entry {
     pub kind: Rc<RefCell<Option<Kind>>>,
 }
@@ -171,6 +171,13 @@ pub struct Entry {
 impl Entry {
     pub fn __go_value_clone(&self) -> Self {
         Self { kind: { let __guard = self.kind.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for Entry {
+    fn default() -> Self {
+        Self { kind: Rc::new(RefCell::new(Some(Kind(Rc::new(RefCell::new(Some(0))))))) }
     }
 }
 

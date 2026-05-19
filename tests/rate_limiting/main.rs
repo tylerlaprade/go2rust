@@ -148,7 +148,7 @@ impl<T> Iterator for GoChannel<T> {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 struct GoTime {
     seconds: i64,
     nanos: i32,

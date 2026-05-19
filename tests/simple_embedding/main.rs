@@ -2,7 +2,7 @@ use std::cell::{RefCell};
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct Inner {
     pub value: Rc<RefCell<Option<i32>>>,
 }
@@ -10,6 +10,13 @@ pub struct Inner {
 impl Inner {
     pub fn __go_value_clone(&self) -> Self {
         Self { value: { let __guard = self.value.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for Inner {
+    fn default() -> Self {
+        Self { value: Rc::new(RefCell::new(Some(0))) }
     }
 }
 
@@ -35,7 +42,7 @@ impl Outer {
 
 impl Default for Outer {
     fn default() -> Self {
-        Self { inner: Rc::new(RefCell::new(Some(Inner::default()))), name: Default::default() }
+        Self { inner: Rc::new(RefCell::new(Some(Inner::default()))), name: Rc::new(RefCell::new(Some(String::new()))) }
     }
 }
 

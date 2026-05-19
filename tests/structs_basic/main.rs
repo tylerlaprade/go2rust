@@ -2,7 +2,7 @@ use std::cell::{RefCell};
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct Person {
     pub name: Rc<RefCell<Option<String>>>,
     pub age: Rc<RefCell<Option<i32>>>,
@@ -14,6 +14,13 @@ impl Person {
     }
 }
 
+
+impl Default for Person {
+    fn default() -> Self {
+        Self { name: Rc::new(RefCell::new(Some(String::new()))), age: Rc::new(RefCell::new(Some(0))) }
+    }
+}
+
 impl std::fmt::Display for Person {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{} {}}}", (*self.name.borrow().as_ref().unwrap()), (*self.age.borrow().as_ref().unwrap()))
@@ -21,7 +28,7 @@ impl std::fmt::Display for Person {
 }
 
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct Address {
     pub street: Rc<RefCell<Option<String>>>,
     pub city: Rc<RefCell<Option<String>>>,
@@ -31,6 +38,13 @@ pub struct Address {
 impl Address {
     pub fn __go_value_clone(&self) -> Self {
         Self { street: { let __guard = self.street.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, city: { let __guard = self.city.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, state: { let __guard = self.state.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for Address {
+    fn default() -> Self {
+        Self { street: Rc::new(RefCell::new(Some(String::new()))), city: Rc::new(RefCell::new(Some(String::new()))), state: Rc::new(RefCell::new(Some(String::new()))) }
     }
 }
 
@@ -58,7 +72,7 @@ impl Employee {
 
 impl Default for Employee {
     fn default() -> Self {
-        Self { person: Rc::new(RefCell::new(Some(Person::default()))), address: Rc::new(RefCell::new(Some(Address::default()))), i_d: Default::default(), salary: Default::default() }
+        Self { person: Rc::new(RefCell::new(Some(Person::default()))), address: Rc::new(RefCell::new(Some(Address::default()))), i_d: Rc::new(RefCell::new(Some(0))), salary: Rc::new(RefCell::new(Some(0.0))) }
     }
 }
 

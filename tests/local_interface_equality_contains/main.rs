@@ -16,7 +16,7 @@ impl Clone for Box<dyn Key> {
     }
 }
 
-#[derive(Debug, Clone, Default, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct namedKey {
     pub name: Rc<RefCell<Option<String>>>,
 }
@@ -24,6 +24,13 @@ pub struct namedKey {
 impl namedKey {
     pub fn __go_value_clone(&self) -> Self {
         Self { name: { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for namedKey {
+    fn default() -> Self {
+        Self { name: Rc::new(RefCell::new(Some(String::new()))) }
     }
 }
 

@@ -4,7 +4,7 @@ use std::any::Any;
 use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct String_ {
     pub name: Arc<Mutex<Option<String>>>,
 }
@@ -12,6 +12,13 @@ pub struct String_ {
 impl String_ {
     pub fn __go_value_clone(&self) -> Self {
         Self { name: { let __guard = self.name.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for String_ {
+    fn default() -> Self {
+        Self { name: Arc::new(Mutex::new(Some(String::new()))) }
     }
 }
 

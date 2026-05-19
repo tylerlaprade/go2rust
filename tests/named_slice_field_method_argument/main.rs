@@ -12,7 +12,7 @@ impl Display for numbers {
 }
 
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct holder {
     pub terms: Rc<RefCell<Option<numbers>>>,
 }
@@ -20,6 +20,13 @@ pub struct holder {
 impl holder {
     pub fn __go_value_clone(&self) -> Self {
         Self { terms: self.terms.clone() }
+    }
+}
+
+
+impl Default for holder {
+    fn default() -> Self {
+        Self { terms: Rc::new(RefCell::new(Some(Default::default()))) }
     }
 }
 

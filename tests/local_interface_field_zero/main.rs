@@ -16,7 +16,7 @@ impl Clone for Box<dyn Reader> {
     }
 }
 
-#[derive(Clone, Default)]
+#[derive(Clone)]
 pub struct holder {
     pub reader: Rc<RefCell<Option<Box<dyn Reader>>>>,
     pub count: Rc<RefCell<Option<i32>>>,
@@ -25,6 +25,13 @@ pub struct holder {
 impl holder {
     pub fn __go_value_clone(&self) -> Self {
         Self { reader: self.reader.clone(), count: { let __guard = self.count.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for holder {
+    fn default() -> Self {
+        Self { reader: Rc::new(RefCell::new(None)), count: Rc::new(RefCell::new(Some(0))) }
     }
 }
 

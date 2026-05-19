@@ -49,7 +49,7 @@ impl std::fmt::Display for cache {
 }
 
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct position {
     pub filename: Rc<RefCell<Option<String>>>,
 }
@@ -57,6 +57,13 @@ pub struct position {
 impl position {
     pub fn __go_value_clone(&self) -> Self {
         Self { filename: { let __guard = self.filename.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for position {
+    fn default() -> Self {
+        Self { filename: Rc::new(RefCell::new(Some(String::new()))) }
     }
 }
 

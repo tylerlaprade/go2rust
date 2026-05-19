@@ -314,7 +314,7 @@ impl Ord for Kind {
 }
 
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct Symbol {
     pub kind: Arc<Mutex<Option<Kind>>>,
 }
@@ -322,6 +322,13 @@ pub struct Symbol {
 impl Symbol {
     pub fn __go_value_clone(&self) -> Self {
         Self { kind: { let __guard = self.kind.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for Symbol {
+    fn default() -> Self {
+        Self { kind: Arc::new(Mutex::new(Some(Kind(Arc::new(Mutex::new(Some(0))))))) }
     }
 }
 

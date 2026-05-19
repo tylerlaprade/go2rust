@@ -302,7 +302,7 @@ impl Ord for Mode {
 }
 
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct Request {
     // tags: `json:"mode"`
     pub mode: Rc<RefCell<Option<Mode>>>,
@@ -319,6 +319,13 @@ pub struct Request {
 impl Request {
     pub fn __go_value_clone(&self) -> Self {
         Self { mode: { let __guard = self.mode.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, env: self.env.clone(), build_flags: self.build_flags.clone(), tests: { let __guard = self.tests.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, overlay: self.overlay.clone() }
+    }
+}
+
+
+impl Default for Request {
+    fn default() -> Self {
+        Self { mode: Rc::new(RefCell::new(Some(Mode(Rc::new(RefCell::new(Some(0))))))), env: Rc::new(RefCell::new(None)), build_flags: Rc::new(RefCell::new(None)), tests: Rc::new(RefCell::new(Some(false))), overlay: Rc::new(RefCell::new(None)) }
     }
 }
 

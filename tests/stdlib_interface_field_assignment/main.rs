@@ -70,7 +70,7 @@ pub mod types {
 }
 
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct term {
     pub tilde: Arc<Mutex<Option<bool>>>,
     pub typ: Arc<Mutex<Option<types_Type>>>,
@@ -79,6 +79,13 @@ pub struct term {
 impl term {
     pub fn __go_value_clone(&self) -> Self {
         Self { tilde: { let __guard = self.tilde.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, typ: self.typ.clone() }
+    }
+}
+
+
+impl Default for term {
+    fn default() -> Self {
+        Self { tilde: Arc::new(Mutex::new(Some(false))), typ: Arc::new(Mutex::new(None)) }
     }
 }
 

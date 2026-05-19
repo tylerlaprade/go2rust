@@ -20,7 +20,7 @@ fn go_json_escape(input: &str) -> String {
     escaped
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct User {
     // tags: `json:"name"`
     pub name: Rc<RefCell<Option<String>>>,
@@ -31,6 +31,13 @@ pub struct User {
 impl User {
     pub fn __go_value_clone(&self) -> Self {
         Self { name: { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, age: { let __guard = self.age.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for User {
+    fn default() -> Self {
+        Self { name: Rc::new(RefCell::new(Some(String::new()))), age: Rc::new(RefCell::new(Some(0))) }
     }
 }
 

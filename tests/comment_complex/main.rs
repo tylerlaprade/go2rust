@@ -3,7 +3,7 @@ use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
 /// Person represents a person with a name and age
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct Person {
     pub name: Rc<RefCell<Option<String>>>,
     pub age: Rc<RefCell<Option<i32>>>,
@@ -12,6 +12,13 @@ pub struct Person {
 impl Person {
     pub fn __go_value_clone(&self) -> Self {
         Self { name: { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, age: { let __guard = self.age.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for Person {
+    fn default() -> Self {
+        Self { name: Rc::new(RefCell::new(Some(String::new()))), age: Rc::new(RefCell::new(Some(0))) }
     }
 }
 

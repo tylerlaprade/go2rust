@@ -114,7 +114,7 @@ impl<T: Clone> Drop for GoSliceElemMutRef<T> {
     }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct Point {
     pub x: Rc<RefCell<Option<i32>>>,
 }
@@ -122,6 +122,13 @@ pub struct Point {
 impl Point {
     pub fn __go_value_clone(&self) -> Self {
         Self { x: { let __guard = self.x.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for Point {
+    fn default() -> Self {
+        Self { x: Rc::new(RefCell::new(Some(0))) }
     }
 }
 

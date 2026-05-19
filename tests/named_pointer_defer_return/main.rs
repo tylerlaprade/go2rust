@@ -3,7 +3,7 @@ use std::error::Error as StdError;
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct Package {
     pub complete: Rc<RefCell<Option<bool>>>,
 }
@@ -11,6 +11,13 @@ pub struct Package {
 impl Package {
     pub fn __go_value_clone(&self) -> Self {
         Self { complete: { let __guard = self.complete.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for Package {
+    fn default() -> Self {
+        Self { complete: Rc::new(RefCell::new(Some(false))) }
     }
 }
 

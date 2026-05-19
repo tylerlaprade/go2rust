@@ -2,7 +2,7 @@ use std::cell::{RefCell};
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct Module {
     pub path: Rc<RefCell<Option<String>>>,
 }
@@ -10,6 +10,13 @@ pub struct Module {
 impl Module {
     pub fn __go_value_clone(&self) -> Self {
         Self { path: { let __guard = self.path.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for Module {
+    fn default() -> Self {
+        Self { path: Rc::new(RefCell::new(Some(String::new()))) }
     }
 }
 

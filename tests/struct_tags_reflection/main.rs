@@ -72,7 +72,7 @@ fn go_reflect_tag_get(raw: &str, key: &str) -> String {
     value
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct User {
     // tags: `json:"id" db:"user_id"`
     pub i_d: Rc<RefCell<Option<i32>>>,
@@ -88,6 +88,13 @@ pub struct User {
 impl User {
     pub fn __go_value_clone(&self) -> Self {
         Self { i_d: { let __guard = self.i_d.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, name: { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, email: { let __guard = self.email.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, is_active: { let __guard = self.is_active.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, internal: { let __guard = self.internal.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for User {
+    fn default() -> Self {
+        Self { i_d: Rc::new(RefCell::new(Some(0))), name: Rc::new(RefCell::new(Some(String::new()))), email: Rc::new(RefCell::new(Some(String::new()))), is_active: Rc::new(RefCell::new(Some(false))), internal: Rc::new(RefCell::new(Some(String::new()))) }
     }
 }
 

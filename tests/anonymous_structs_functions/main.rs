@@ -147,7 +147,7 @@ impl<T> Iterator for GoChannel<T> {
     }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 struct AnonymousStruct1 {
     name: Arc<Mutex<Option<String>>>,
     age: Arc<Mutex<Option<i32>>>,
@@ -159,6 +159,12 @@ impl AnonymousStruct1 {
 }
 
 
+impl Default for AnonymousStruct1 {
+    fn default() -> Self {
+        Self { name: Arc::new(Mutex::new(Some(String::new()))), age: Arc::new(Mutex::new(Some(0))) }
+    }
+}
+
 impl std::fmt::Display for AnonymousStruct1 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{} {}}}", (*self.name.lock().unwrap().as_ref().unwrap()), (*self.age.lock().unwrap().as_ref().unwrap()))
@@ -166,7 +172,7 @@ impl std::fmt::Display for AnonymousStruct1 {
 }
 
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 struct AnonymousStruct2 {
     x: Arc<Mutex<Option<i32>>>,
     y: Arc<Mutex<Option<i32>>>,
@@ -178,6 +184,12 @@ impl AnonymousStruct2 {
 }
 
 
+impl Default for AnonymousStruct2 {
+    fn default() -> Self {
+        Self { x: Arc::new(Mutex::new(Some(0))), y: Arc::new(Mutex::new(Some(0))) }
+    }
+}
+
 impl std::fmt::Display for AnonymousStruct2 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{} {}}}", (*self.x.lock().unwrap().as_ref().unwrap()), (*self.y.lock().unwrap().as_ref().unwrap()))
@@ -185,7 +197,7 @@ impl std::fmt::Display for AnonymousStruct2 {
 }
 
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 struct AnonymousStruct3 {
     port: Arc<Mutex<Option<i32>>>,
     timeout: Arc<Mutex<Option<i32>>>,
@@ -197,6 +209,12 @@ impl AnonymousStruct3 {
 }
 
 
+impl Default for AnonymousStruct3 {
+    fn default() -> Self {
+        Self { port: Arc::new(Mutex::new(Some(0))), timeout: Arc::new(Mutex::new(Some(0))) }
+    }
+}
+
 impl std::fmt::Display for AnonymousStruct3 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{} {}}}", (*self.port.lock().unwrap().as_ref().unwrap()), (*self.timeout.lock().unwrap().as_ref().unwrap()))
@@ -204,7 +222,7 @@ impl std::fmt::Display for AnonymousStruct3 {
 }
 
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 struct AnonymousStruct4 {
     debug: Arc<Mutex<Option<bool>>>,
     verbose: Arc<Mutex<Option<bool>>>,
@@ -216,6 +234,12 @@ impl AnonymousStruct4 {
 }
 
 
+impl Default for AnonymousStruct4 {
+    fn default() -> Self {
+        Self { debug: Arc::new(Mutex::new(Some(false))), verbose: Arc::new(Mutex::new(Some(false))) }
+    }
+}
+
 impl std::fmt::Display for AnonymousStruct4 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{} {}}}", (*self.debug.lock().unwrap().as_ref().unwrap()), (*self.verbose.lock().unwrap().as_ref().unwrap()))
@@ -223,7 +247,7 @@ impl std::fmt::Display for AnonymousStruct4 {
 }
 
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 struct AnonymousStruct5 {
     r#type: Arc<Mutex<Option<String>>>,
     message: Arc<Mutex<Option<String>>>,
@@ -234,6 +258,12 @@ impl AnonymousStruct5 {
     }
 }
 
+
+impl Default for AnonymousStruct5 {
+    fn default() -> Self {
+        Self { r#type: Arc::new(Mutex::new(Some(String::new()))), message: Arc::new(Mutex::new(Some(String::new()))) }
+    }
+}
 
 impl std::fmt::Display for AnonymousStruct5 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {

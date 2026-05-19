@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct termSet {
     pub complete: Rc<RefCell<Option<bool>>>,
 }
@@ -11,6 +11,13 @@ pub struct termSet {
 impl termSet {
     pub fn __go_value_clone(&self) -> Self {
         Self { complete: { let __guard = self.complete.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for termSet {
+    fn default() -> Self {
+        Self { complete: Rc::new(RefCell::new(Some(false))) }
     }
 }
 

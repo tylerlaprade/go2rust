@@ -2,7 +2,7 @@ use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct finder {
     pub base: Arc<Mutex<Option<i32>>>,
 }
@@ -10,6 +10,13 @@ pub struct finder {
 impl finder {
     pub fn __go_value_clone(&self) -> Self {
         Self { base: { let __guard = self.base.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for finder {
+    fn default() -> Self {
+        Self { base: Arc::new(Mutex::new(Some(0))) }
     }
 }
 

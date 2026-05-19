@@ -24,7 +24,7 @@ fn format_any(value: &dyn Any) -> String {
     }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct node {
     pub value: Rc<RefCell<Option<i32>>>,
 }
@@ -32,6 +32,13 @@ pub struct node {
 impl node {
     pub fn __go_value_clone(&self) -> Self {
         Self { value: { let __guard = self.value.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for node {
+    fn default() -> Self {
+        Self { value: Rc::new(RefCell::new(Some(0))) }
     }
 }
 

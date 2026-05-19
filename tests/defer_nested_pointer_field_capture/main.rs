@@ -2,7 +2,7 @@ use std::cell::{RefCell};
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct exporter {
     pub indent: Rc<RefCell<Option<i32>>>,
 }
@@ -10,6 +10,13 @@ pub struct exporter {
 impl exporter {
     pub fn __go_value_clone(&self) -> Self {
         Self { indent: { let __guard = self.indent.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for exporter {
+    fn default() -> Self {
+        Self { indent: Rc::new(RefCell::new(Some(0))) }
     }
 }
 

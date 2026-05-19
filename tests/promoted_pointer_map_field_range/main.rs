@@ -175,7 +175,7 @@ impl<T> Iterator for GoChannel<T> {
     }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct Package {
     pub i_d: Arc<Mutex<Option<String>>>,
     pub imports: Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<Package>>>>>>>,
@@ -187,6 +187,13 @@ impl Package {
     }
 }
 
+
+impl Default for Package {
+    fn default() -> Self {
+        Self { i_d: Arc::new(Mutex::new(Some(String::new()))), imports: Arc::new(Mutex::new(None)) }
+    }
+}
+
 impl std::fmt::Display for Package {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{} {}}}", (*self.i_d.lock().unwrap().as_ref().unwrap()), format_map(&self.imports))
@@ -194,7 +201,7 @@ impl std::fmt::Display for Package {
 }
 
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct loaderPackage {
     pub package: Arc<Mutex<Option<Package>>>,
     pub color: Arc<Mutex<Option<i32>>>,
@@ -203,6 +210,13 @@ pub struct loaderPackage {
 impl loaderPackage {
     pub fn __go_value_clone(&self) -> Self {
         Self { package: self.package.clone(), color: { let __guard = self.color.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for loaderPackage {
+    fn default() -> Self {
+        Self { package: Arc::new(Mutex::new(None)), color: Arc::new(Mutex::new(Some(0))) }
     }
 }
 

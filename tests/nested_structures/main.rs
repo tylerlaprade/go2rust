@@ -61,7 +61,7 @@ impl Clone for Box<dyn Drawable> {
 }
 
 /// Shape types
-#[derive(Debug, Clone, Default, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Circle {
     pub radius: Rc<RefCell<Option<f64>>>,
 }
@@ -72,6 +72,13 @@ impl Circle {
     }
 }
 
+
+impl Default for Circle {
+    fn default() -> Self {
+        Self { radius: Rc::new(RefCell::new(Some(0.0))) }
+    }
+}
+
 impl std::fmt::Display for Circle {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{}}}", (*self.radius.borrow().as_ref().unwrap()))
@@ -79,7 +86,7 @@ impl std::fmt::Display for Circle {
 }
 
 
-#[derive(Debug, Clone, Default, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Rectangle {
     pub width: Rc<RefCell<Option<f64>>>,
     pub height: Rc<RefCell<Option<f64>>>,
@@ -91,6 +98,13 @@ impl Rectangle {
     }
 }
 
+
+impl Default for Rectangle {
+    fn default() -> Self {
+        Self { width: Rc::new(RefCell::new(Some(0.0))), height: Rc::new(RefCell::new(Some(0.0))) }
+    }
+}
+
 impl std::fmt::Display for Rectangle {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{} {}}}", (*self.width.borrow().as_ref().unwrap()), (*self.height.borrow().as_ref().unwrap()))
@@ -98,7 +112,7 @@ impl std::fmt::Display for Rectangle {
 }
 
 
-#[derive(Clone, Default)]
+#[derive(Clone)]
 pub struct Canvas {
     pub name: Rc<RefCell<Option<String>>>,
     pub shapes: Rc<RefCell<Option<Vec<Box<dyn Drawable>>>>>,
@@ -110,6 +124,13 @@ impl Canvas {
     }
 }
 
+
+impl Default for Canvas {
+    fn default() -> Self {
+        Self { name: Rc::new(RefCell::new(Some(String::new()))), shapes: Rc::new(RefCell::new(None)) }
+    }
+}
+
 impl std::fmt::Display for Canvas {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{} {}}}", (*self.name.borrow().as_ref().unwrap()), format_slice(&self.shapes))
@@ -118,7 +139,7 @@ impl std::fmt::Display for Canvas {
 
 
 /// Nested struct definitions
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct Address {
     pub street: Rc<RefCell<Option<String>>>,
     pub city: Rc<RefCell<Option<String>>>,
@@ -133,6 +154,13 @@ impl Address {
     }
 }
 
+
+impl Default for Address {
+    fn default() -> Self {
+        Self { street: Rc::new(RefCell::new(Some(String::new()))), city: Rc::new(RefCell::new(Some(String::new()))), state: Rc::new(RefCell::new(Some(String::new()))), zip_code: Rc::new(RefCell::new(Some(String::new()))), country: Rc::new(RefCell::new(Some(String::new()))) }
+    }
+}
+
 impl std::fmt::Display for Address {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{} {} {} {} {}}}", (*self.street.borrow().as_ref().unwrap()), (*self.city.borrow().as_ref().unwrap()), (*self.state.borrow().as_ref().unwrap()), (*self.zip_code.borrow().as_ref().unwrap()), (*self.country.borrow().as_ref().unwrap()))
@@ -140,7 +168,7 @@ impl std::fmt::Display for Address {
 }
 
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct Contact {
     pub email: Rc<RefCell<Option<String>>>,
     pub phone: Rc<RefCell<Option<String>>>,
@@ -149,6 +177,13 @@ pub struct Contact {
 impl Contact {
     pub fn __go_value_clone(&self) -> Self {
         Self { email: { let __guard = self.email.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, phone: { let __guard = self.phone.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for Contact {
+    fn default() -> Self {
+        Self { email: Rc::new(RefCell::new(Some(String::new()))), phone: Rc::new(RefCell::new(Some(String::new()))) }
     }
 }
 
@@ -176,7 +211,7 @@ impl Person {
 
 impl Default for Person {
     fn default() -> Self {
-        Self { name: Default::default(), age: Default::default(), address: Rc::new(RefCell::new(Some(Address::default()))), contact: Rc::new(RefCell::new(Some(Contact::default()))) }
+        Self { name: Rc::new(RefCell::new(Some(String::new()))), age: Rc::new(RefCell::new(Some(0))), address: Rc::new(RefCell::new(Some(Address::default()))), contact: Rc::new(RefCell::new(Some(Contact::default()))) }
     }
 }
 
@@ -204,7 +239,7 @@ impl Department {
 
 impl Default for Department {
     fn default() -> Self {
-        Self { name: Default::default(), manager: Rc::new(RefCell::new(Some(Person::default()))), employees: Default::default(), budget: Default::default() }
+        Self { name: Rc::new(RefCell::new(Some(String::new()))), manager: Rc::new(RefCell::new(Some(Person::default()))), employees: Rc::new(RefCell::new(None)), budget: Rc::new(RefCell::new(Some(0.0))) }
     }
 }
 
@@ -231,7 +266,7 @@ impl Company {
 
 impl Default for Company {
     fn default() -> Self {
-        Self { name: Default::default(), departments: Default::default(), headquarters: Rc::new(RefCell::new(Some(Address::default()))) }
+        Self { name: Rc::new(RefCell::new(Some(String::new()))), departments: Rc::new(RefCell::new(None)), headquarters: Rc::new(RefCell::new(Some(Address::default()))) }
     }
 }
 

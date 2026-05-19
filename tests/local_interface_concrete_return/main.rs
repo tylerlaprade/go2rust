@@ -16,7 +16,7 @@ impl Clone for Box<dyn Reader> {
     }
 }
 
-#[derive(Debug, Clone, Default, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct counter {
     pub n: Rc<RefCell<Option<i32>>>,
 }
@@ -24,6 +24,13 @@ pub struct counter {
 impl counter {
     pub fn __go_value_clone(&self) -> Self {
         Self { n: { let __guard = self.n.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for counter {
+    fn default() -> Self {
+        Self { n: Rc::new(RefCell::new(Some(0))) }
     }
 }
 
@@ -47,7 +54,7 @@ impl Clone for Box<dyn Valuer> {
     }
 }
 
-#[derive(Debug, Clone, Default, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct number {
     pub n: Rc<RefCell<Option<i32>>>,
 }
@@ -55,6 +62,13 @@ pub struct number {
 impl number {
     pub fn __go_value_clone(&self) -> Self {
         Self { n: { let __guard = self.n.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for number {
+    fn default() -> Self {
+        Self { n: Rc::new(RefCell::new(Some(0))) }
     }
 }
 

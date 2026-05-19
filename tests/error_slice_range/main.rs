@@ -3,7 +3,7 @@ use std::error::Error as StdError;
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct customError {
     pub msg: Rc<RefCell<Option<String>>>,
 }
@@ -11,6 +11,13 @@ pub struct customError {
 impl customError {
     pub fn __go_value_clone(&self) -> Self {
         Self { msg: { let __guard = self.msg.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for customError {
+    fn default() -> Self {
+        Self { msg: Rc::new(RefCell::new(Some(String::new()))) }
     }
 }
 

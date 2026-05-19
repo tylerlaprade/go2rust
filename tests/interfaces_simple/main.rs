@@ -17,7 +17,7 @@ impl Clone for Box<dyn geometry> {
     }
 }
 
-#[derive(Debug, Clone, Default, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct rect {
     pub width: Rc<RefCell<Option<f64>>>,
     pub height: Rc<RefCell<Option<f64>>>,
@@ -26,6 +26,13 @@ pub struct rect {
 impl rect {
     pub fn __go_value_clone(&self) -> Self {
         Self { width: { let __guard = self.width.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, height: { let __guard = self.height.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for rect {
+    fn default() -> Self {
+        Self { width: Rc::new(RefCell::new(Some(0.0))), height: Rc::new(RefCell::new(Some(0.0))) }
     }
 }
 

@@ -2,7 +2,7 @@ use std::cell::{RefCell};
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct Branch {
     pub r#else: Rc<RefCell<Option<i32>>>,
 }
@@ -10,6 +10,13 @@ pub struct Branch {
 impl Branch {
     pub fn __go_value_clone(&self) -> Self {
         Self { r#else: { let __guard = self.r#else.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for Branch {
+    fn default() -> Self {
+        Self { r#else: Rc::new(RefCell::new(Some(0))) }
     }
 }
 

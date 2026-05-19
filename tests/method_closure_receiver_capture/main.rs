@@ -57,7 +57,7 @@ impl<T> std::fmt::Display for GoLocalPtrKey<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { write!(f, "0x{:x}", self.addr()) }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct named {
     pub id: Rc<RefCell<Option<String>>>,
 }
@@ -68,6 +68,13 @@ impl named {
     }
 }
 
+
+impl Default for named {
+    fn default() -> Self {
+        Self { id: Rc::new(RefCell::new(Some(String::new()))) }
+    }
+}
+
 impl std::fmt::Display for named {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{}}}", (*self.id.borrow().as_ref().unwrap()))
@@ -75,7 +82,7 @@ impl std::fmt::Display for named {
 }
 
 
-#[derive(Clone, Default)]
+#[derive(Clone)]
 pub struct pkgReader {
     pub later_fns: Rc<RefCell<Option<Vec<Rc<RefCell<Option<Box<dyn FnMut() -> ()>>>>>>>>,
     pub later_fors: Rc<RefCell<Option<BTreeMap<GoLocalPtrKey<named>, Rc<RefCell<Option<i32>>>>>>>,
@@ -85,6 +92,13 @@ pub struct pkgReader {
 impl pkgReader {
     pub fn __go_value_clone(&self) -> Self {
         Self { later_fns: self.later_fns.clone(), later_fors: self.later_fors.clone(), hits: { let __guard = self.hits.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for pkgReader {
+    fn default() -> Self {
+        Self { later_fns: Rc::new(RefCell::new(None)), later_fors: Rc::new(RefCell::new(None)), hits: Rc::new(RefCell::new(Some(0))) }
     }
 }
 

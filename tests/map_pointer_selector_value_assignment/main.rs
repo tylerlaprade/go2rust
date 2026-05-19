@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct Package {
     pub i_d: Rc<RefCell<Option<String>>>,
 }
@@ -11,6 +11,13 @@ pub struct Package {
 impl Package {
     pub fn __go_value_clone(&self) -> Self {
         Self { i_d: { let __guard = self.i_d.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for Package {
+    fn default() -> Self {
+        Self { i_d: Rc::new(RefCell::new(Some(String::new()))) }
     }
 }
 

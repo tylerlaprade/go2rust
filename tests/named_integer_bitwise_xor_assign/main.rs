@@ -168,7 +168,7 @@ impl Ord for LoadMode {
 }
 
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 struct AnonymousStruct1 {
     mode: Rc<RefCell<Option<LoadMode>>>,
     name: Rc<RefCell<Option<String>>>,
@@ -179,6 +179,12 @@ impl AnonymousStruct1 {
     }
 }
 
+
+impl Default for AnonymousStruct1 {
+    fn default() -> Self {
+        Self { mode: Rc::new(RefCell::new(Some(LoadMode(Rc::new(RefCell::new(Some(0))))))), name: Rc::new(RefCell::new(Some(String::new()))) }
+    }
+}
 
 impl std::fmt::Display for AnonymousStruct1 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {

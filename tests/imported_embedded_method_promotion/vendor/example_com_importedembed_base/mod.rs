@@ -3,7 +3,7 @@ use go2rust_stdlib_stubs::*;
 use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct Decoder {
     pub value: Arc<Mutex<Option<i32>>>,
 }
@@ -14,6 +14,13 @@ impl Decoder {
     }
 }
 
+
+impl Default for Decoder {
+    fn default() -> Self {
+        Self { value: Arc::new(Mutex::new(Some(0))) }
+    }
+}
+
 impl std::fmt::Display for Decoder {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{}}}", (*self.value.lock().unwrap().as_ref().unwrap()))
@@ -21,7 +28,7 @@ impl std::fmt::Display for Decoder {
 }
 
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct PkgDecoder {
     pub base: Arc<Mutex<Option<i32>>>,
 }
@@ -29,6 +36,13 @@ pub struct PkgDecoder {
 impl PkgDecoder {
     pub fn __go_value_clone(&self) -> Self {
         Self { base: { let __guard = self.base.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for PkgDecoder {
+    fn default() -> Self {
+        Self { base: Arc::new(Mutex::new(Some(0))) }
     }
 }
 

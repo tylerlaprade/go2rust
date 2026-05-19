@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 struct AnonymousStruct1 {
     x: Rc<RefCell<Option<i32>>>,
     y: Rc<RefCell<Option<i32>>>,
@@ -15,6 +15,12 @@ impl AnonymousStruct1 {
 }
 
 
+impl Default for AnonymousStruct1 {
+    fn default() -> Self {
+        Self { x: Rc::new(RefCell::new(Some(0))), y: Rc::new(RefCell::new(Some(0))) }
+    }
+}
+
 impl std::fmt::Display for AnonymousStruct1 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{} {}}}", (*self.x.borrow().as_ref().unwrap()), (*self.y.borrow().as_ref().unwrap()))
@@ -22,7 +28,7 @@ impl std::fmt::Display for AnonymousStruct1 {
 }
 
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 struct AnonymousStruct2 {
     name: Rc<RefCell<Option<String>>>,
     age: Rc<RefCell<Option<i32>>>,
@@ -33,6 +39,12 @@ impl AnonymousStruct2 {
     }
 }
 
+
+impl Default for AnonymousStruct2 {
+    fn default() -> Self {
+        Self { name: Rc::new(RefCell::new(Some(String::new()))), age: Rc::new(RefCell::new(Some(0))) }
+    }
+}
 
 impl std::fmt::Display for AnonymousStruct2 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -56,7 +68,7 @@ impl AnonymousStruct3 {
 
 impl Default for AnonymousStruct3 {
     fn default() -> Self {
-        Self { host: Default::default(), port: Default::default(), settings: Rc::new(RefCell::new(Some(AnonymousStruct4::default()))) }
+        Self { host: Rc::new(RefCell::new(Some(String::new()))), port: Rc::new(RefCell::new(Some(0))), settings: Rc::new(RefCell::new(Some(AnonymousStruct4::default()))) }
     }
 }
 
@@ -67,7 +79,7 @@ impl std::fmt::Display for AnonymousStruct3 {
 }
 
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 struct AnonymousStruct4 {
     debug: Rc<RefCell<Option<bool>>>,
     verbose: Rc<RefCell<Option<bool>>>,
@@ -79,6 +91,12 @@ impl AnonymousStruct4 {
 }
 
 
+impl Default for AnonymousStruct4 {
+    fn default() -> Self {
+        Self { debug: Rc::new(RefCell::new(Some(false))), verbose: Rc::new(RefCell::new(Some(false))) }
+    }
+}
+
 impl std::fmt::Display for AnonymousStruct4 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{} {}}}", (*self.debug.borrow().as_ref().unwrap()), (*self.verbose.borrow().as_ref().unwrap()))
@@ -86,7 +104,7 @@ impl std::fmt::Display for AnonymousStruct4 {
 }
 
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 struct AnonymousStruct5 {
     i_d: Rc<RefCell<Option<i32>>>,
     value: Rc<RefCell<Option<String>>>,
@@ -98,6 +116,12 @@ impl AnonymousStruct5 {
 }
 
 
+impl Default for AnonymousStruct5 {
+    fn default() -> Self {
+        Self { i_d: Rc::new(RefCell::new(Some(0))), value: Rc::new(RefCell::new(Some(String::new()))) }
+    }
+}
+
 impl std::fmt::Display for AnonymousStruct5 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{} {}}}", (*self.i_d.borrow().as_ref().unwrap()), (*self.value.borrow().as_ref().unwrap()))
@@ -105,7 +129,7 @@ impl std::fmt::Display for AnonymousStruct5 {
 }
 
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 struct AnonymousStruct6 {
     r#type: Rc<RefCell<Option<String>>>,
     message: Rc<RefCell<Option<String>>>,
@@ -117,6 +141,12 @@ impl AnonymousStruct6 {
 }
 
 
+impl Default for AnonymousStruct6 {
+    fn default() -> Self {
+        Self { r#type: Rc::new(RefCell::new(Some(String::new()))), message: Rc::new(RefCell::new(Some(String::new()))) }
+    }
+}
+
 impl std::fmt::Display for AnonymousStruct6 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{} {}}}", (*self.r#type.borrow().as_ref().unwrap()), (*self.message.borrow().as_ref().unwrap()))
@@ -124,7 +154,7 @@ impl std::fmt::Display for AnonymousStruct6 {
 }
 
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 struct AnonymousStruct7 {
     email: Rc<RefCell<Option<String>>>,
     admin: Rc<RefCell<Option<bool>>>,
@@ -135,6 +165,12 @@ impl AnonymousStruct7 {
     }
 }
 
+
+impl Default for AnonymousStruct7 {
+    fn default() -> Self {
+        Self { email: Rc::new(RefCell::new(Some(String::new()))), admin: Rc::new(RefCell::new(Some(false))) }
+    }
+}
 
 impl std::fmt::Display for AnonymousStruct7 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {

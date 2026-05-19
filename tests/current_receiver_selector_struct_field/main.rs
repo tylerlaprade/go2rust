@@ -2,7 +2,7 @@ use std::cell::{RefCell};
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct reader {
     pub path: Rc<RefCell<Option<String>>>,
 }
@@ -13,6 +13,13 @@ impl reader {
     }
 }
 
+
+impl Default for reader {
+    fn default() -> Self {
+        Self { path: Rc::new(RefCell::new(Some(String::new()))) }
+    }
+}
+
 impl std::fmt::Display for reader {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{}}}", (*self.path.borrow().as_ref().unwrap()))
@@ -20,7 +27,7 @@ impl std::fmt::Display for reader {
 }
 
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct carrier {
     pub path: Rc<RefCell<Option<String>>>,
 }
@@ -28,6 +35,13 @@ pub struct carrier {
 impl carrier {
     pub fn __go_value_clone(&self) -> Self {
         Self { path: { let __guard = self.path.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for carrier {
+    fn default() -> Self {
+        Self { path: Rc::new(RefCell::new(Some(String::new()))) }
     }
 }
 

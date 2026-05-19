@@ -2,7 +2,7 @@ use std::cell::{RefCell};
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct parsed {
     pub kind: Rc<RefCell<Option<String>>>,
     pub rest: Rc<RefCell<Option<String>>>,
@@ -11,6 +11,13 @@ pub struct parsed {
 impl parsed {
     pub fn __go_value_clone(&self) -> Self {
         Self { kind: { let __guard = self.kind.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, rest: { let __guard = self.rest.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for parsed {
+    fn default() -> Self {
+        Self { kind: Rc::new(RefCell::new(Some(String::new()))), rest: Rc::new(RefCell::new(Some(String::new()))) }
     }
 }
 

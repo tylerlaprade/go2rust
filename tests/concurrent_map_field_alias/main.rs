@@ -30,7 +30,7 @@ impl<T> std::fmt::Display for GoLocalPtrKey<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { write!(f, "0x{:x}", self.addr()) }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct scope {
     pub id: Arc<Mutex<Option<i32>>>,
 }
@@ -41,6 +41,13 @@ impl scope {
     }
 }
 
+
+impl Default for scope {
+    fn default() -> Self {
+        Self { id: Arc::new(Mutex::new(Some(0))) }
+    }
+}
+
 impl std::fmt::Display for scope {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{}}}", (*self.id.lock().unwrap().as_ref().unwrap()))
@@ -48,7 +55,7 @@ impl std::fmt::Display for scope {
 }
 
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct object {
     pub name: Arc<Mutex<Option<String>>>,
 }
@@ -56,6 +63,13 @@ pub struct object {
 impl object {
     pub fn __go_value_clone(&self) -> Self {
         Self { name: { let __guard = self.name.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for object {
+    fn default() -> Self {
+        Self { name: Arc::new(Mutex::new(Some(String::new()))) }
     }
 }
 

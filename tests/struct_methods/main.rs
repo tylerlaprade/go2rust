@@ -2,7 +2,7 @@ use std::cell::{RefCell};
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct rect {
     pub width: Rc<RefCell<Option<i32>>>,
     pub height: Rc<RefCell<Option<i32>>>,
@@ -11,6 +11,13 @@ pub struct rect {
 impl rect {
     pub fn __go_value_clone(&self) -> Self {
         Self { width: { let __guard = self.width.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, height: { let __guard = self.height.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for rect {
+    fn default() -> Self {
+        Self { width: Rc::new(RefCell::new(Some(0))), height: Rc::new(RefCell::new(Some(0))) }
     }
 }
 

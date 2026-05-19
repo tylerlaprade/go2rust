@@ -2,7 +2,7 @@ use std::cell::{RefCell};
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct Counter {
     pub value: Rc<RefCell<Option<i32>>>,
 }
@@ -13,6 +13,13 @@ impl Counter {
     }
 }
 
+
+impl Default for Counter {
+    fn default() -> Self {
+        Self { value: Rc::new(RefCell::new(Some(0))) }
+    }
+}
+
 impl std::fmt::Display for Counter {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{}}}", (*self.value.borrow().as_ref().unwrap()))
@@ -20,7 +27,7 @@ impl std::fmt::Display for Counter {
 }
 
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct Person {
     pub name: Rc<RefCell<Option<String>>>,
     pub age: Rc<RefCell<Option<i32>>>,
@@ -29,6 +36,13 @@ pub struct Person {
 impl Person {
     pub fn __go_value_clone(&self) -> Self {
         Self { name: { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, age: { let __guard = self.age.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for Person {
+    fn default() -> Self {
+        Self { name: Rc::new(RefCell::new(Some(String::new()))), age: Rc::new(RefCell::new(Some(0))) }
     }
 }
 

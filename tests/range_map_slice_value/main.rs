@@ -3,7 +3,7 @@ use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct entry {
     pub key: Arc<Mutex<Option<i32>>>,
 }
@@ -11,6 +11,13 @@ pub struct entry {
 impl entry {
     pub fn __go_value_clone(&self) -> Self {
         Self { key: { let __guard = self.key.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for entry {
+    fn default() -> Self {
+        Self { key: Arc::new(Mutex::new(Some(0))) }
     }
 }
 

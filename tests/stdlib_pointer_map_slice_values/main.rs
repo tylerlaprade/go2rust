@@ -118,7 +118,7 @@ pub mod sort {
 }
 
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct pkgObj {
     pub obj: Rc<RefCell<Option<types_Object>>>,
     pub name: Rc<RefCell<Option<String>>>,
@@ -127,6 +127,13 @@ pub struct pkgObj {
 impl pkgObj {
     pub fn __go_value_clone(&self) -> Self {
         Self { obj: self.obj.clone(), name: { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for pkgObj {
+    fn default() -> Self {
+        Self { obj: Rc::new(RefCell::new(None)), name: Rc::new(RefCell::new(Some(String::new()))) }
     }
 }
 

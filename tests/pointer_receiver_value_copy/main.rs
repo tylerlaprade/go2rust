@@ -2,7 +2,7 @@ use std::cell::{RefCell};
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct Tracker {
     pub needs_channel: Rc<RefCell<Option<bool>>>,
     pub needs_context: Rc<RefCell<Option<bool>>>,
@@ -11,6 +11,13 @@ pub struct Tracker {
 impl Tracker {
     pub fn __go_value_clone(&self) -> Self {
         Self { needs_channel: { let __guard = self.needs_channel.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, needs_context: { let __guard = self.needs_context.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for Tracker {
+    fn default() -> Self {
+        Self { needs_channel: Rc::new(RefCell::new(Some(false))), needs_context: Rc::new(RefCell::new(Some(false))) }
     }
 }
 

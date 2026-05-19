@@ -216,7 +216,7 @@ impl<T> Iterator for GoChannel<T> {
     }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct Package {
     pub i_d: Arc<Mutex<Option<String>>>,
 }
@@ -224,6 +224,13 @@ pub struct Package {
 impl Package {
     pub fn __go_value_clone(&self) -> Self {
         Self { i_d: { let __guard = self.i_d.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for Package {
+    fn default() -> Self {
+        Self { i_d: Arc::new(Mutex::new(Some(String::new()))) }
     }
 }
 

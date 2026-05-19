@@ -44,7 +44,7 @@ where
     }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct Person {
     pub name: Rc<RefCell<Option<String>>>,
     pub age: Rc<RefCell<Option<i32>>>,
@@ -56,6 +56,13 @@ impl Person {
     }
 }
 
+
+impl Default for Person {
+    fn default() -> Self {
+        Self { name: Rc::new(RefCell::new(Some(String::new()))), age: Rc::new(RefCell::new(Some(0))) }
+    }
+}
+
 impl std::fmt::Display for Person {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{} {}}}", (*self.name.borrow().as_ref().unwrap()), (*self.age.borrow().as_ref().unwrap()))
@@ -63,7 +70,7 @@ impl std::fmt::Display for Person {
 }
 
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct Address {
     pub street: Rc<RefCell<Option<String>>>,
     pub city: Rc<RefCell<Option<String>>>,
@@ -73,6 +80,13 @@ pub struct Address {
 impl Address {
     pub fn __go_value_clone(&self) -> Self {
         Self { street: { let __guard = self.street.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, city: { let __guard = self.city.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, state: { let __guard = self.state.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for Address {
+    fn default() -> Self {
+        Self { street: Rc::new(RefCell::new(Some(String::new()))), city: Rc::new(RefCell::new(Some(String::new()))), state: Rc::new(RefCell::new(Some(String::new()))) }
     }
 }
 
@@ -100,7 +114,7 @@ impl Employee {
 
 impl Default for Employee {
     fn default() -> Self {
-        Self { person: Rc::new(RefCell::new(Some(Person::default()))), address: Rc::new(RefCell::new(Some(Address::default()))), i_d: Default::default(), salary: Default::default() }
+        Self { person: Rc::new(RefCell::new(Some(Person::default()))), address: Rc::new(RefCell::new(Some(Address::default()))), i_d: Rc::new(RefCell::new(Some(0))), salary: Rc::new(RefCell::new(Some(0.0))) }
     }
 }
 
@@ -126,7 +140,7 @@ impl Manager {
 
 impl Default for Manager {
     fn default() -> Self {
-        Self { employee: Rc::new(RefCell::new(Some(Employee::default()))), team: Default::default() }
+        Self { employee: Rc::new(RefCell::new(Some(Employee::default()))), team: Rc::new(RefCell::new(None)) }
     }
 }
 
@@ -138,7 +152,7 @@ impl std::fmt::Display for Manager {
 
 
 /// Anonymous struct embedding
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct CompanyInfo {
     pub founded: Rc<RefCell<Option<i32>>>,
     pub c_e_o: Rc<RefCell<Option<String>>>,
@@ -147,6 +161,13 @@ pub struct CompanyInfo {
 impl CompanyInfo {
     pub fn __go_value_clone(&self) -> Self {
         Self { founded: { let __guard = self.founded.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, c_e_o: { let __guard = self.c_e_o.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for CompanyInfo {
+    fn default() -> Self {
+        Self { founded: Rc::new(RefCell::new(Some(0))), c_e_o: Rc::new(RefCell::new(Some(String::new()))) }
     }
 }
 
@@ -172,7 +193,7 @@ impl Company {
 
 impl Default for Company {
     fn default() -> Self {
-        Self { name: Default::default(), company_info: Rc::new(RefCell::new(Some(CompanyInfo::default()))) }
+        Self { name: Rc::new(RefCell::new(Some(String::new()))), company_info: Rc::new(RefCell::new(Some(CompanyInfo::default()))) }
     }
 }
 

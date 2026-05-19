@@ -2,7 +2,7 @@ use std::cell::{RefCell};
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct Config {
     pub mode: Rc<RefCell<Option<String>>>,
     pub env: Rc<RefCell<Option<String>>>,
@@ -16,6 +16,13 @@ impl Config {
     }
 }
 
+
+impl Default for Config {
+    fn default() -> Self {
+        Self { mode: Rc::new(RefCell::new(Some(String::new()))), env: Rc::new(RefCell::new(Some(String::new()))), build_flags: Rc::new(RefCell::new(Some(String::new()))), tests: Rc::new(RefCell::new(Some(false))) }
+    }
+}
+
 impl std::fmt::Display for Config {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{} {} {} {}}}", (*self.mode.borrow().as_ref().unwrap()), (*self.env.borrow().as_ref().unwrap()), (*self.build_flags.borrow().as_ref().unwrap()), (*self.tests.borrow().as_ref().unwrap()))
@@ -23,7 +30,7 @@ impl std::fmt::Display for Config {
 }
 
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct Request {
     pub mode: Rc<RefCell<Option<String>>>,
     pub env: Rc<RefCell<Option<String>>>,
@@ -34,6 +41,13 @@ pub struct Request {
 impl Request {
     pub fn __go_value_clone(&self) -> Self {
         Self { mode: { let __guard = self.mode.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, env: { let __guard = self.env.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, build_flags: { let __guard = self.build_flags.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, tests: { let __guard = self.tests.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for Request {
+    fn default() -> Self {
+        Self { mode: Rc::new(RefCell::new(Some(String::new()))), env: Rc::new(RefCell::new(Some(String::new()))), build_flags: Rc::new(RefCell::new(Some(String::new()))), tests: Rc::new(RefCell::new(Some(false))) }
     }
 }
 

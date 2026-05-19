@@ -16,7 +16,7 @@ impl Clone for Box<dyn describer> {
     }
 }
 
-#[derive(Debug, Clone, Default, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct base {
     pub num: Rc<RefCell<Option<i32>>>,
 }
@@ -24,6 +24,13 @@ pub struct base {
 impl base {
     pub fn __go_value_clone(&self) -> Self {
         Self { num: { let __guard = self.num.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for base {
+    fn default() -> Self {
+        Self { num: Rc::new(RefCell::new(Some(0))) }
     }
 }
 
@@ -49,7 +56,7 @@ impl container {
 
 impl Default for container {
     fn default() -> Self {
-        Self { base: Rc::new(RefCell::new(Some(base::default()))), str: Default::default() }
+        Self { base: Rc::new(RefCell::new(Some(base::default()))), str: Rc::new(RefCell::new(Some(String::new()))) }
     }
 }
 

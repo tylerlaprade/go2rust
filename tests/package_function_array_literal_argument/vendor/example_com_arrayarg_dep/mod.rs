@@ -4,7 +4,7 @@ use std::cell::{RefCell};
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct Item {
     pub v: Rc<RefCell<Option<i32>>>,
 }
@@ -12,6 +12,13 @@ pub struct Item {
 impl Item {
     pub fn __go_value_clone(&self) -> Self {
         Self { v: { let __guard = self.v.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for Item {
+    fn default() -> Self {
+        Self { v: Rc::new(RefCell::new(Some(0))) }
     }
 }
 

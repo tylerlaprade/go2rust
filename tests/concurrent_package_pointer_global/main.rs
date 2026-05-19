@@ -149,7 +149,7 @@ impl<T> Iterator for GoChannel<T> {
     }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct counter {
     pub value: Arc<Mutex<Option<i32>>>,
 }
@@ -157,6 +157,13 @@ pub struct counter {
 impl counter {
     pub fn __go_value_clone(&self) -> Self {
         Self { value: { let __guard = self.value.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for counter {
+    fn default() -> Self {
+        Self { value: Arc::new(Mutex::new(Some(0))) }
     }
 }
 

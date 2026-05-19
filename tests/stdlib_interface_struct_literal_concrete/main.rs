@@ -164,7 +164,7 @@ pub mod types {
 }
 
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct entry {
     pub typ: Arc<Mutex<Option<types_Type>>>,
     pub name: Arc<Mutex<Option<String>>>,
@@ -173,6 +173,13 @@ pub struct entry {
 impl entry {
     pub fn __go_value_clone(&self) -> Self {
         Self { typ: self.typ.clone(), name: { let __guard = self.name.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for entry {
+    fn default() -> Self {
+        Self { typ: Arc::new(Mutex::new(None)), name: Arc::new(Mutex::new(Some(String::new()))) }
     }
 }
 

@@ -74,7 +74,7 @@ impl<T: Clone> Drop for GoSliceElemMutRef<T> {
     }
 }
 
-#[derive(Clone, Default)]
+#[derive(Clone)]
 pub struct Reader {
     pub decoder: Arc<Mutex<Option<example_com_importedembed_base::Decoder>>>,
     pub name: Arc<Mutex<Option<String>>>,
@@ -86,6 +86,13 @@ impl Reader {
     }
 }
 
+
+impl Default for Reader {
+    fn default() -> Self {
+        Self { decoder: Arc::new(Mutex::new(Some(Default::default()))), name: Arc::new(Mutex::new(Some(String::new()))) }
+    }
+}
+
 impl std::fmt::Display for Reader {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{} {}}}", (*self.decoder.lock().unwrap().as_ref().unwrap()), (*self.name.lock().unwrap().as_ref().unwrap()))
@@ -93,7 +100,7 @@ impl std::fmt::Display for Reader {
 }
 
 
-#[derive(Clone, Default)]
+#[derive(Clone)]
 pub struct pkgReader {
     pub pkg_decoder: Arc<Mutex<Option<example_com_importedembed_base::PkgDecoder>>>,
 }
@@ -101,6 +108,13 @@ pub struct pkgReader {
 impl pkgReader {
     pub fn __go_value_clone(&self) -> Self {
         Self { pkg_decoder: { let __guard = self.pkg_decoder.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for pkgReader {
+    fn default() -> Self {
+        Self { pkg_decoder: Arc::new(Mutex::new(Some(Default::default()))) }
     }
 }
 

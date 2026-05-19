@@ -3,7 +3,7 @@ use std::error::Error as StdError;
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct argError {
     pub arg: Rc<RefCell<Option<i32>>>,
     pub prob: Rc<RefCell<Option<String>>>,
@@ -12,6 +12,13 @@ pub struct argError {
 impl argError {
     pub fn __go_value_clone(&self) -> Self {
         Self { arg: { let __guard = self.arg.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, prob: { let __guard = self.prob.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for argError {
+    fn default() -> Self {
+        Self { arg: Rc::new(RefCell::new(Some(0))), prob: Rc::new(RefCell::new(Some(String::new()))) }
     }
 }
 

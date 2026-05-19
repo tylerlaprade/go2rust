@@ -2114,6 +2114,10 @@ run_xfail_test() {
     run_test "tests/struct_tags_reflection"
 }
 
+@test "struct_zero_value_fields" {
+    run_test "tests/struct_zero_value_fields"
+}
+
 @test "structs_basic" {
     run_test "tests/structs_basic"
 }

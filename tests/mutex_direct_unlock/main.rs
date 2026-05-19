@@ -39,7 +39,7 @@ impl std::fmt::Debug for GoMutex {
     }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct Counter {
     pub mu: GoMutex,
     pub n: Rc<RefCell<Option<i32>>>,
@@ -48,6 +48,13 @@ pub struct Counter {
 impl Counter {
     pub fn __go_value_clone(&self) -> Self {
         Self { mu: self.mu.clone(), n: { let __guard = self.n.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for Counter {
+    fn default() -> Self {
+        Self { mu: GoMutex::new(), n: Rc::new(RefCell::new(Some(0))) }
     }
 }
 

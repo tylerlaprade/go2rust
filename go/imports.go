@@ -1786,7 +1786,7 @@ impl<T: Clone> Drop for GoSliceElemMutRef<T> {
 
 func generateGoTimeHelper(out *strings.Builder) {
 	out.WriteString(`
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 struct GoTime {
     seconds: i64,
     nanos: i32,

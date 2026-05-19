@@ -2,7 +2,7 @@ use std::cell::{RefCell};
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 struct AnonymousStruct1 {
     value: Rc<RefCell<Option<i32>>>,
     name: Rc<RefCell<Option<String>>>,
@@ -13,6 +13,12 @@ impl AnonymousStruct1 {
     }
 }
 
+
+impl Default for AnonymousStruct1 {
+    fn default() -> Self {
+        Self { value: Rc::new(RefCell::new(Some(0))), name: Rc::new(RefCell::new(Some(String::new()))) }
+    }
+}
 
 impl std::fmt::Display for AnonymousStruct1 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {

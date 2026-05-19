@@ -44,7 +44,7 @@ where
     }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct node {
     pub name: Rc<RefCell<Option<String>>>,
 }
@@ -52,6 +52,13 @@ pub struct node {
 impl node {
     pub fn __go_value_clone(&self) -> Self {
         Self { name: { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for node {
+    fn default() -> Self {
+        Self { name: Rc::new(RefCell::new(Some(String::new()))) }
     }
 }
 

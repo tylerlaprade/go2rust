@@ -86,7 +86,7 @@ impl bytes_Buffer {
 }
 
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct writer {
     pub buffer: Rc<RefCell<Option<bytes_Buffer>>>,
 }
@@ -94,6 +94,13 @@ pub struct writer {
 impl writer {
     pub fn __go_value_clone(&self) -> Self {
         Self { buffer: { let __guard = self.buffer.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for writer {
+    fn default() -> Self {
+        Self { buffer: Rc::new(RefCell::new(Some(Default::default()))) }
     }
 }
 

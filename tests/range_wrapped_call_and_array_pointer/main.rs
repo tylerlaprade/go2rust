@@ -44,7 +44,7 @@ where
     }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct bucket {
     pub values: Rc<RefCell<Option<[i32; 3]>>>,
 }
@@ -52,6 +52,13 @@ pub struct bucket {
 impl bucket {
     pub fn __go_value_clone(&self) -> Self {
         Self { values: { let __guard = self.values.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for bucket {
+    fn default() -> Self {
+        Self { values: Rc::new(RefCell::new(Some(std::array::from_fn(|_| 0)))) }
     }
 }
 

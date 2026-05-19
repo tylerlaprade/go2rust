@@ -4,7 +4,7 @@ use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
 /// Struct with initialization
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct Config {
     pub name: Rc<RefCell<Option<String>>>,
     pub version: Rc<RefCell<Option<String>>>,
@@ -14,6 +14,13 @@ pub struct Config {
 impl Config {
     pub fn __go_value_clone(&self) -> Self {
         Self { name: { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, version: { let __guard = self.version.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, debug: { let __guard = self.debug.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for Config {
+    fn default() -> Self {
+        Self { name: Rc::new(RefCell::new(Some(String::new()))), version: Rc::new(RefCell::new(Some(String::new()))), debug: Rc::new(RefCell::new(Some(false))) }
     }
 }
 

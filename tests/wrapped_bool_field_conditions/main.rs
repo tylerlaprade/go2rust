@@ -2,7 +2,7 @@ use std::cell::{RefCell};
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct item {
     pub flag: Rc<RefCell<Option<bool>>>,
 }
@@ -10,6 +10,13 @@ pub struct item {
 impl item {
     pub fn __go_value_clone(&self) -> Self {
         Self { flag: { let __guard = self.flag.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for item {
+    fn default() -> Self {
+        Self { flag: Rc::new(RefCell::new(Some(false))) }
     }
 }
 

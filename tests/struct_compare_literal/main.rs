@@ -2,7 +2,7 @@ use std::cell::{RefCell};
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
-#[derive(Debug, Clone, Default, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct version {
     pub major: Rc<RefCell<Option<String>>>,
     pub minor: Rc<RefCell<Option<String>>>,
@@ -11,6 +11,13 @@ pub struct version {
 impl version {
     pub fn __go_value_clone(&self) -> Self {
         Self { major: { let __guard = self.major.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, minor: { let __guard = self.minor.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for version {
+    fn default() -> Self {
+        Self { major: Rc::new(RefCell::new(Some(String::new()))), minor: Rc::new(RefCell::new(Some(String::new()))) }
     }
 }
 
