@@ -1087,6 +1087,41 @@ func writeMapHandleAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) 
 	return true
 }
 
+func writePackageGlobalCollectionAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
+	lhsIdent, ok := lhs.(*ast.Ident)
+	if !ok || !isPackageGlobalIdent(lhsIdent) {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	lhsIsMap := typeInfo.IsMap(lhs)
+	lhsIsSlice := typeInfo.IsSlice(lhs)
+	if !lhsIsMap && !lhsIsSlice {
+		return false
+	}
+	if ident, ok := rhs.(*ast.Ident); ok && ident.Name == "nil" {
+		out.WriteString("{ let new_val = None; *")
+		out.WriteString(rustPackageGlobalName(lhsIdent.Name))
+		WriteBorrowMethod(out, true)
+		out.WriteString(" = new_val; }")
+		return true
+	}
+	if lhsIsMap && !typeInfo.IsMap(rhs) || lhsIsSlice && !typeInfo.IsSlice(rhs) {
+		return false
+	}
+	out.WriteString("{ let new_val = { let __collection_holder = ")
+	TranspileExpressionContext(out, rhs, LValue)
+	out.WriteString(".clone(); let __collection_guard = __collection_holder")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; (*__collection_guard).clone() }; *")
+	out.WriteString(rustPackageGlobalName(lhsIdent.Name))
+	WriteBorrowMethod(out, true)
+	out.WriteString(" = new_val; }")
+	return true
+}
+
 func writeSliceHandleAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil || !isPlainSliceExpression(lhs) || !isPlainSliceExpression(rhs) {
@@ -4329,7 +4364,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							} else {
 								// Direct assignment: x = value
 								// Check if RHS is nil
-								if writeMapHandleAssignment(out, s.Lhs[0], s.Rhs[0]) {
+								if writePackageGlobalCollectionAssignment(out, s.Lhs[0], s.Rhs[0]) {
+									// Package-global map/slice slots copy the current option value, preserving nil.
+								} else if writeMapHandleAssignment(out, s.Lhs[0], s.Rhs[0]) {
 									// Map assignment replaces the map handle, matching Go map-header semantics.
 								} else if writePackageGlobalPointerNilAssignment(out, s.Lhs[0], s.Rhs[0]) {
 									// Package-global pointer nil preserves the global slot and replaces the stored handle.

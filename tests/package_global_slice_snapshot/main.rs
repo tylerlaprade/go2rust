@@ -31,13 +31,13 @@ fn __go_init_globals() {
 pub fn swap(next: Rc<RefCell<Option<Vec<i32>>>>) -> Rc<RefCell<Option<i32>>> {
 
     let mut old = Rc::new(RefCell::new(Some((*active.borrow().as_ref().unwrap()).clone())));
-    { let new_val = next.borrow().as_ref().unwrap().clone(); *active.borrow_mut() = Some(new_val); };
+    { let new_val = { let __collection_holder = next.clone(); let __collection_guard = __collection_holder.borrow(); (*__collection_guard).clone() }; *active.borrow_mut() = new_val; };
     return Rc::new(RefCell::new(Some((((((*old.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32) * (10 as i32) as i32) + ((*active.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32) as i32) + ((*old.borrow().as_ref().unwrap())[(0) as usize].clone() as i32) as i32) + ((*active.borrow().as_ref().unwrap())[(0) as usize].clone() as i32))));
 }
 
 fn main() {
     __go_init_all();
-    { let new_val = Rc::new(RefCell::new(Some(vec![1, 2]))); let __moved_val = { let mut __guard = new_val.borrow_mut(); __guard.take() }; *active.borrow_mut() = __moved_val; };
+    { let new_val = { let __collection_holder = Rc::new(RefCell::new(Some(vec![1, 2]))).clone(); let __collection_guard = __collection_holder.borrow(); (*__collection_guard).clone() }; *active.borrow_mut() = new_val; };
     println!("{}", format!("{}", (*swap(Rc::new(RefCell::new(Some(vec![3, 4, 5])))).borrow().as_ref().unwrap())));
 }
 

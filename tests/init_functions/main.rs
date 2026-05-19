@@ -84,7 +84,7 @@ fn __go_init_1() {
     { let mut guard = globalCounter.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 5); };
 
         // Initialize map
-    { let new_val = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<String>>>>::new()))); let __moved_val = { let mut __guard = new_val.borrow_mut(); __guard.take() }; *configData.borrow_mut() = __moved_val; };
+    { let new_val = { let __collection_holder = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<String>>>>::new()))).clone(); let __collection_guard = __collection_holder.borrow(); (*__collection_guard).clone() }; *configData.borrow_mut() = new_val; };
     { let __map_key = "version".to_string(); let __map_value = Rc::new(RefCell::new(Some("1.0".to_string()))); (*configData.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
     { let __map_key = "author".to_string(); let __map_value = Rc::new(RefCell::new(Some("go2rust".to_string()))); (*configData.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
 }

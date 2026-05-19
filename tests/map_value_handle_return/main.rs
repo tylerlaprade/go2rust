@@ -68,7 +68,7 @@ fn main() {
     let mut first = Rc::new(RefCell::new(Some(Method { name: Rc::new(RefCell::new(Some("first".to_string()))), ..Default::default() })));
     let mut second = Rc::new(RefCell::new(Some(Method { name: Rc::new(RefCell::new(Some("second".to_string()))), ..Default::default() })));
     let mut methods = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<Vec<Rc<RefCell<Option<Method>>>>>>>>::from([("Thing".to_string(), Rc::new(RefCell::new(Some(vec![first.clone(), second.clone()]))))]))));
-    { let new_val = Rc::new(RefCell::new(Some(vec![Rc::new(RefCell::new(Some(Method { name: Rc::new(RefCell::new(Some("fallback".to_string()))), ..Default::default() })))]))); let __moved_val = { let mut __guard = new_val.borrow_mut(); __guard.take() }; *fallback.borrow_mut() = __moved_val; };
+    { let new_val = { let __collection_holder = Rc::new(RefCell::new(Some(vec![Rc::new(RefCell::new(Some(Method { name: Rc::new(RefCell::new(Some("fallback".to_string()))), ..Default::default() })))]))).clone(); let __collection_guard = __collection_holder.borrow(); (*__collection_guard).clone() }; *fallback.borrow_mut() = new_val; };
 
     let mut got = lookup(methods.clone(), Rc::new(RefCell::new(Some("Thing".to_string()))));
     let mut emptyReceiver = lookup(methods.clone(), Rc::new(RefCell::new(Some("".to_string()))));

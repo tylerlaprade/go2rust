@@ -1462,6 +1462,10 @@ run_xfail_test() {
     run_test "tests/package_global_named_slice"
 }
 
+@test "package_global_nil_collection_assignment" {
+    run_test "tests/package_global_nil_collection_assignment"
+}
+
 @test "package_global_pointer_deref" {
     run_test "tests/package_global_pointer_deref"
 }
