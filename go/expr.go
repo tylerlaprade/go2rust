@@ -7184,10 +7184,11 @@ func writeUnwrappedSliceClone(out *strings.Builder, arg ast.Expr) {
 		return
 	}
 	if _, ok := arg.(*ast.SelectorExpr); ok {
-		out.WriteString("(*")
+		out.WriteString("{ let __slice_holder = ")
 		TranspileExpressionContext(out, arg, LValue)
+		out.WriteString(".clone(); let __slice_guard = __slice_holder")
 		WriteBorrowMethod(out, false)
-		out.WriteString(".as_ref().unwrap()).clone()")
+		out.WriteString("; (*__slice_guard.as_ref().unwrap()).clone() }")
 		return
 	}
 	out.WriteString("(*")
