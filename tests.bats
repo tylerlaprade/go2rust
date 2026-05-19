@@ -1530,6 +1530,10 @@ run_xfail_test() {
     run_test "tests/parser_mode_const_expression"
 }
 
+@test "parser_parse_file_package_imports" {
+    run_test "tests/parser_parse_file_package_imports"
+}
+
 @test "pointer_composite_assignment" {
     run_test "tests/pointer_composite_assignment"
 }

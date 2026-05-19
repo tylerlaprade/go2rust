@@ -1,0 +1,4 @@
+true main 3
+"fmt"
+alias "strings"
+_ "os"

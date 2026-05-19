@@ -1,0 +1,8 @@
+[package]
+name = "parser_parse_file_package_imports"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "parser_parse_file_package_imports"
+path = "main.rs"

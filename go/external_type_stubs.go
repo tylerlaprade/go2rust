@@ -504,6 +504,14 @@ func RegisterExternalPackageStubFunction(pkgName string, funcName string, sig *t
 	if pkgName == "ast" && funcName == "new_ident" {
 		RegisterExternalTypeStubFieldByRustType("ast_Ident", "name", goTypesTypeToRustWrapped(types.Typ[types.String]))
 	}
+	if pkgName == "parser" && funcName == "parse_file" {
+		RegisterExternalTypeStubFieldByRustType("ast_File", "imports", wrappedExternalStubType("Vec<"+wrappedExternalStubType("ast_ImportSpec")+">"))
+		RegisterExternalTypeStubFieldByRustType("ast_File", "name", wrappedExternalStubType("ast_Ident"))
+		RegisterExternalTypeStubFieldByRustType("ast_Ident", "name", goTypesTypeToRustWrapped(types.Typ[types.String]))
+		RegisterExternalTypeStubFieldByRustType("ast_ImportSpec", "name", wrappedExternalStubType("ast_Ident"))
+		RegisterExternalTypeStubFieldByRustType("ast_ImportSpec", "path", wrappedExternalStubType("ast_BasicLit"))
+		RegisterExternalTypeStubFieldByRustType("ast_BasicLit", "value", goTypesTypeToRustWrapped(types.Typ[types.String]))
+	}
 	fn := externalPackageStubFunction{
 		ParamCount: sig.Params().Len(),
 	}
@@ -1418,6 +1426,10 @@ func writeExternalPackageStubs(out *strings.Builder, packageStubs map[string]*ex
 			writeOsPackageStub(out, pkg, integerTypes)
 			continue
 		}
+		if pkgName == "parser" {
+			writeParserPackageStub(out, pkg, integerTypes)
+			continue
+		}
 		if pkgName == "filepath" {
 			writeFilepathPackageStub(out, pkg, integerTypes)
 			continue
@@ -1478,6 +1490,14 @@ func wrappedExternalStubType(innerType string) string {
 
 func wrappedExternalStubExpr(innerType string, expr string) string {
 	return fmt.Sprintf("%s::new(%s::new(Some::<%s>(%s)))", GetOuterWrapperType(), GetInnerWrapperType(), innerType, expr)
+}
+
+func wrappedExternalStubSomeExpr(innerType string, expr string) string {
+	return wrappedExternalStubExpr(innerType, expr)
+}
+
+func wrappedExternalStubNoneExpr(innerType string) string {
+	return fmt.Sprintf("%s::new(%s::new(None::<%s>))", GetOuterWrapperType(), GetInnerWrapperType(), innerType)
 }
 
 func writeFsFileInfoStub(out *strings.Builder, name string, methods map[string]externalTypeStubMethod) {
@@ -1617,6 +1637,348 @@ func writeAstNewIdentFunction(out *strings.Builder, fn externalPackageStubFuncti
 	out.WriteString(wrappedExternalStubExpr("ast_Ident", "ast_Ident { name: "+wrappedExternalStubExpr("String", "_arg0.into_go_string()")+", ..Default::default() }"))
 	out.WriteString("\n")
 	out.WriteString("    }\n")
+}
+
+func writeParserPackageStub(out *strings.Builder, pkg *externalPackageStub, integerTypes map[string]string) {
+	out.WriteString("pub mod parser {\n")
+	out.WriteString("    use super::*;\n\n")
+	writeParserArgTraits(out)
+
+	constNames := make([]string, 0, len(pkg.Constants))
+	for constName := range pkg.Constants {
+		constNames = append(constNames, constName)
+	}
+	slices.Sort(constNames)
+	for _, constName := range constNames {
+		out.WriteString("    pub const ")
+		out.WriteString(constName)
+		out.WriteString(": ")
+		out.WriteString(pkg.Constants[constName])
+		out.WriteString(" = ")
+		writeExternalStubConstDefaultValue(out, pkg.Constants[constName], integerTypes)
+		out.WriteString(";\n")
+	}
+	if len(constNames) > 0 && (len(pkg.Variables) > 0 || len(pkg.Functions) > 0) {
+		out.WriteString("\n")
+	}
+
+	varNames := make([]string, 0, len(pkg.Variables))
+	for varName := range pkg.Variables {
+		varNames = append(varNames, varName)
+	}
+	slices.Sort(varNames)
+	for _, varName := range varNames {
+		writeExternalPackageStubVariable(out, varName, pkg.Variables[varName])
+		out.WriteString("\n")
+	}
+
+	funcNames := make([]string, 0, len(pkg.Functions))
+	for funcName := range pkg.Functions {
+		funcNames = append(funcNames, funcName)
+	}
+	slices.Sort(funcNames)
+	for i, funcName := range funcNames {
+		if i > 0 || len(varNames) > 0 {
+			out.WriteString("\n")
+		}
+		if funcName == "parse_file" {
+			writeParserParseFileFunction(out, pkg.Functions[funcName])
+		} else {
+			writeExternalPackageStubFunction(out, funcName, pkg.Functions[funcName])
+		}
+	}
+	out.WriteString("}\n")
+}
+
+func writeParserArgTraits(out *strings.Builder) {
+	outerWrapper := GetOuterWrapperType()
+	innerWrapper := GetInnerWrapperType()
+	borrow := "borrow()"
+	if NeedsConcurrentWrapper() {
+		borrow = "lock().unwrap()"
+	}
+	fmt.Fprintf(out, `    pub trait GoParserFilenameArg {
+        fn into_go_parser_filename(self) -> String;
+    }
+
+    impl GoParserFilenameArg for String {
+        fn into_go_parser_filename(self) -> String {
+            self
+        }
+    }
+
+    impl<'a> GoParserFilenameArg for &'a str {
+        fn into_go_parser_filename(self) -> String {
+            self.to_string()
+        }
+    }
+
+    impl<'a> GoParserFilenameArg for &'a String {
+        fn into_go_parser_filename(self) -> String {
+            self.clone()
+        }
+    }
+
+    impl GoParserFilenameArg for %s<%s<Option<String>>> {
+        fn into_go_parser_filename(self) -> String {
+            self.%s.as_ref().cloned().unwrap_or_default()
+        }
+    }
+
+    pub trait GoParserSourceArg {
+        fn into_go_parser_source(self, filename: &str) -> Result<String, Box<dyn StdError + Send + Sync>>;
+    }
+
+    impl GoParserSourceArg for () {
+        fn into_go_parser_source(self, filename: &str) -> Result<String, Box<dyn StdError + Send + Sync>> {
+            std::fs::read_to_string(filename).map_err(|err| Box::new(err) as Box<dyn StdError + Send + Sync>)
+        }
+    }
+
+    impl GoParserSourceArg for String {
+        fn into_go_parser_source(self, _filename: &str) -> Result<String, Box<dyn StdError + Send + Sync>> {
+            Ok(self)
+        }
+    }
+
+    impl<'a> GoParserSourceArg for &'a str {
+        fn into_go_parser_source(self, _filename: &str) -> Result<String, Box<dyn StdError + Send + Sync>> {
+            Ok(self.to_string())
+        }
+    }
+
+    impl<'a> GoParserSourceArg for &'a String {
+        fn into_go_parser_source(self, _filename: &str) -> Result<String, Box<dyn StdError + Send + Sync>> {
+            Ok(self.clone())
+        }
+    }
+
+    impl GoParserSourceArg for Vec<u8> {
+        fn into_go_parser_source(self, _filename: &str) -> Result<String, Box<dyn StdError + Send + Sync>> {
+            String::from_utf8(self).map_err(|err| Box::new(err) as Box<dyn StdError + Send + Sync>)
+        }
+    }
+
+    impl GoParserSourceArg for %s<%s<Option<String>>> {
+        fn into_go_parser_source(self, _filename: &str) -> Result<String, Box<dyn StdError + Send + Sync>> {
+            Ok(self.%s.as_ref().cloned().unwrap_or_default())
+        }
+    }
+
+    impl GoParserSourceArg for %s<%s<Option<Vec<u8>>>> {
+        fn into_go_parser_source(self, _filename: &str) -> Result<String, Box<dyn StdError + Send + Sync>> {
+            let bytes = self.%s.as_ref().cloned().unwrap_or_default();
+            String::from_utf8(bytes).map_err(|err| Box::new(err) as Box<dyn StdError + Send + Sync>)
+        }
+    }
+
+`, outerWrapper, innerWrapper, borrow, outerWrapper, innerWrapper, borrow, outerWrapper, innerWrapper, borrow)
+}
+
+func writeParserParseFileFunction(out *strings.Builder, fn externalPackageStubFunction) {
+	out.WriteString(`    fn go_parser_error(message: String) -> Box<dyn StdError + Send + Sync> {
+        Box::new(std::io::Error::new(std::io::ErrorKind::InvalidData, message))
+    }
+
+    fn go_parser_string(value: String) -> `)
+	out.WriteString(wrappedExternalStubType("String"))
+	out.WriteString(` {
+        `)
+	out.WriteString(wrappedExternalStubExpr("String", "value"))
+	out.WriteString(`
+    }
+
+    fn go_parser_ident(name: String) -> `)
+	out.WriteString(wrappedExternalStubType("ast_Ident"))
+	out.WriteString(` {
+        `)
+	out.WriteString(wrappedExternalStubExpr("ast_Ident", "ast_Ident { name: go_parser_string(name), ..Default::default() }"))
+	out.WriteString(`
+    }
+
+    fn go_parser_basic_lit(value: String) -> `)
+	out.WriteString(wrappedExternalStubType("ast_BasicLit"))
+	out.WriteString(` {
+        `)
+	out.WriteString(wrappedExternalStubExpr("ast_BasicLit", "ast_BasicLit { value: go_parser_string(value), ..Default::default() }"))
+	out.WriteString(`
+    }
+
+    fn go_parser_import_spec(name: Option<String>, path: String) -> `)
+	out.WriteString(wrappedExternalStubType("ast_ImportSpec"))
+	out.WriteString(` {
+        `)
+	out.WriteString(wrappedExternalStubExpr("ast_ImportSpec", "ast_ImportSpec { name: name.map(go_parser_ident).unwrap_or_else(|| "+wrappedExternalStubNoneExpr("ast_Ident")+"), path: go_parser_basic_lit(path), ..Default::default() }"))
+	out.WriteString(`
+    }
+
+    fn go_parser_is_ident_start(ch: char) -> bool {
+        ch == '_' || ch.is_alphabetic()
+    }
+
+    fn go_parser_is_ident_continue(ch: char) -> bool {
+        ch == '_' || ch.is_alphanumeric()
+    }
+
+    fn go_parser_tokens(source: &str) -> Vec<String> {
+        let chars: Vec<char> = source.chars().collect();
+        let mut tokens = Vec::new();
+        let mut i = 0usize;
+        while i < chars.len() {
+            let ch = chars[i];
+            if ch.is_whitespace() {
+                i += 1;
+                continue;
+            }
+            if ch == '/' && i + 1 < chars.len() && chars[i + 1] == '/' {
+                i += 2;
+                while i < chars.len() && chars[i] != '\n' {
+                    i += 1;
+                }
+                continue;
+            }
+            if ch == '/' && i + 1 < chars.len() && chars[i + 1] == '*' {
+                i += 2;
+                while i + 1 < chars.len() && !(chars[i] == '*' && chars[i + 1] == '/') {
+                    i += 1;
+                }
+                i = (i + 2).min(chars.len());
+                continue;
+            }
+            if ch == '"' {
+                let start = i;
+                i += 1;
+                while i < chars.len() {
+                    if chars[i] == '\\' {
+                        i = (i + 2).min(chars.len());
+                        continue;
+                    }
+                    if chars[i] == '"' {
+                        i += 1;
+                        break;
+                    }
+                    i += 1;
+                }
+                tokens.push(chars[start..i].iter().collect());
+                continue;
+            }
+            if ch == char::from(96) {
+                let start = i;
+                i += 1;
+                while i < chars.len() && chars[i] != char::from(96) {
+                    i += 1;
+                }
+                if i < chars.len() {
+                    i += 1;
+                }
+                tokens.push(chars[start..i].iter().collect());
+                continue;
+            }
+            if go_parser_is_ident_start(ch) {
+                let start = i;
+                i += 1;
+                while i < chars.len() && go_parser_is_ident_continue(chars[i]) {
+                    i += 1;
+                }
+                tokens.push(chars[start..i].iter().collect());
+                continue;
+            }
+            if ch == '(' || ch == ')' || ch == ';' || ch == '.' {
+                tokens.push(ch.to_string());
+            }
+            i += 1;
+        }
+        tokens
+    }
+
+    fn go_parser_is_string_lit(token: &str) -> bool {
+        token.starts_with('"') || token.starts_with(char::from(96))
+    }
+
+    fn go_parser_import_from_tokens(tokens: &[String], start: usize) -> Option<(`)
+	out.WriteString(wrappedExternalStubType("ast_ImportSpec"))
+	out.WriteString(`, usize)> {
+        if start >= tokens.len() {
+            return None;
+        }
+        if go_parser_is_string_lit(&tokens[start]) {
+            return Some((go_parser_import_spec(None, tokens[start].clone()), start + 1));
+        }
+        if start + 1 < tokens.len() && go_parser_is_string_lit(&tokens[start + 1]) {
+            return Some((go_parser_import_spec(Some(tokens[start].clone()), tokens[start + 1].clone()), start + 2));
+        }
+        None
+    }
+
+    fn go_parser_parse_file(source: &str) -> Result<ast_File, Box<dyn StdError + Send + Sync>> {
+        let tokens = go_parser_tokens(source);
+        let package_name = tokens
+            .windows(2)
+            .find_map(|pair| if pair[0] == "package" { Some(pair[1].clone()) } else { None })
+            .ok_or_else(|| go_parser_error("missing package clause".to_string()))?;
+        let mut imports = Vec::new();
+        let mut i = 0usize;
+        while i < tokens.len() {
+            if tokens[i] != "import" {
+                i += 1;
+                continue;
+            }
+            i += 1;
+            if i < tokens.len() && tokens[i] == "(" {
+                i += 1;
+                while i < tokens.len() && tokens[i] != ")" {
+                    if let Some((spec, next)) = go_parser_import_from_tokens(&tokens, i) {
+                        imports.push(spec);
+                        i = next;
+                    } else {
+                        i += 1;
+                    }
+                }
+                if i < tokens.len() && tokens[i] == ")" {
+                    i += 1;
+                }
+                continue;
+            }
+            if let Some((spec, next)) = go_parser_import_from_tokens(&tokens, i) {
+                imports.push(spec);
+                i = next;
+            }
+        }
+        Ok(ast_File {
+            imports: `)
+	out.WriteString(wrappedExternalStubExpr("Vec<"+wrappedExternalStubType("ast_ImportSpec")+">", "imports"))
+	out.WriteString(`,
+            name: go_parser_ident(package_name),
+            ..Default::default()
+        })
+    }
+
+    pub fn parse_file<T0, T1: GoParserFilenameArg, T2: GoParserSourceArg, T3>(_arg0: T0, _arg1: T1, _arg2: T2, _arg3: T3) -> `)
+	writeExternalStubReturnType(out, fn.ReturnTypes)
+	out.WriteString(` {
+        let filename = _arg1.into_go_parser_filename();
+        let source = match _arg2.into_go_parser_source(&filename) {
+            Ok(source) => source,
+            Err(err) => return (`)
+	out.WriteString(wrappedExternalStubNoneExpr("ast_File"))
+	out.WriteString(`, `)
+	out.WriteString(wrappedExternalStubSomeExpr("Box<dyn StdError + Send + Sync>", "err"))
+	out.WriteString(`),
+        };
+        match go_parser_parse_file(&source) {
+            Ok(file) => (`)
+	out.WriteString(wrappedExternalStubExpr("ast_File", "file"))
+	out.WriteString(`, `)
+	out.WriteString(wrappedExternalStubNoneExpr("Box<dyn StdError + Send + Sync>"))
+	out.WriteString(`),
+            Err(err) => (`)
+	out.WriteString(wrappedExternalStubNoneExpr("ast_File"))
+	out.WriteString(`, `)
+	out.WriteString(wrappedExternalStubSomeExpr("Box<dyn StdError + Send + Sync>", "err"))
+	out.WriteString(`),
+        }
+    }
+`)
 }
 
 func writeFlagPackageStub(out *strings.Builder) {
