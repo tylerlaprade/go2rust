@@ -1,0 +1,3 @@
+entry data/alpha.txt alpha.txt false
+entry data/nested nested true
+nested true

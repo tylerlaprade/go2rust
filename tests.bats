@@ -1398,6 +1398,10 @@ run_xfail_test() {
     run_test "tests/os_file_readcloser_assignment"
 }
 
+@test "os_readdir_filepath" {
+    run_test "tests/os_readdir_filepath"
+}
+
 @test "os_stat_fileinfo_isdir" {
     run_test "tests/os_stat_fileinfo_isdir"
 }
@@ -1452,6 +1456,10 @@ run_xfail_test() {
 
 @test "package_global_pointer_deref" {
     run_test "tests/package_global_pointer_deref"
+}
+
+@test "package_global_pointer_nil_compare" {
+    run_test "tests/package_global_pointer_nil_compare"
 }
 
 @test "package_global_shadowing" {

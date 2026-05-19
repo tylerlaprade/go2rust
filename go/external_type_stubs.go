@@ -957,6 +957,14 @@ func generateExternalStubs(stubs map[string]bool, integerTypes map[string]string
 		if i > 0 {
 			out.WriteString("\n\n")
 		}
+		if name == "fs_FileInfo" {
+			writeFsFileInfoStub(&out, name)
+			continue
+		}
+		if name == "fs_DirEntry" {
+			writeFsDirEntryStub(&out, name)
+			continue
+		}
 		fields := fieldsByType[name]
 		if len(fields) == 0 {
 			if integerType := integerTypes[name]; integerType != "" {
@@ -1221,6 +1229,14 @@ func writeExternalPackageStubs(out *strings.Builder, packageStubs map[string]*ex
 			writeFlagPackageStub(out)
 			continue
 		}
+		if pkgName == "os" {
+			writeOsPackageStub(out, pkg)
+			continue
+		}
+		if pkgName == "filepath" {
+			writeFilepathPackageStub(out, pkg, integerTypes)
+			continue
+		}
 		out.WriteString("pub mod ")
 		out.WriteString(ToSnakeCase(pkgName))
 		out.WriteString(" {\n")
@@ -1269,6 +1285,81 @@ func writeExternalPackageStubs(out *strings.Builder, packageStubs map[string]*ex
 		}
 		out.WriteString("}\n")
 	}
+}
+
+func wrappedExternalStubType(innerType string) string {
+	return fmt.Sprintf("%s<%s<Option<%s>>>", GetOuterWrapperType(), GetInnerWrapperType(), innerType)
+}
+
+func wrappedExternalStubExpr(innerType string, expr string) string {
+	return fmt.Sprintf("%s::new(%s::new(Some::<%s>(%s)))", GetOuterWrapperType(), GetInnerWrapperType(), innerType, expr)
+}
+
+func writeFsFileInfoStub(out *strings.Builder, name string) {
+	boolType := wrappedExternalStubType("bool")
+	stringType := wrappedExternalStubType("String")
+	int64Type := wrappedExternalStubType("i64")
+
+	fmt.Fprintf(out, `#[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord)]
+pub struct %s {
+    pub name: String,
+    pub is_dir: bool,
+    pub size: i64,
+}
+
+impl std::fmt::Display for %s {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<%s>")
+    }
+}
+
+
+impl %s {
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        None
+    }
+    pub fn name(&self) -> %s {
+        %s
+    }
+    pub fn size(&self) -> %s {
+        %s
+    }
+    pub fn is_dir(&self) -> %s {
+        %s
+    }
+}
+`, name, name, name, name, stringType, wrappedExternalStubExpr("String", "self.name.clone()"), int64Type, wrappedExternalStubExpr("i64", "self.size"), boolType, wrappedExternalStubExpr("bool", "self.is_dir"))
+}
+
+func writeFsDirEntryStub(out *strings.Builder, name string) {
+	boolType := wrappedExternalStubType("bool")
+	stringType := wrappedExternalStubType("String")
+
+	fmt.Fprintf(out, `#[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord)]
+pub struct %s {
+    pub name: String,
+    pub is_dir: bool,
+}
+
+impl std::fmt::Display for %s {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<%s>")
+    }
+}
+
+
+impl %s {
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        None
+    }
+    pub fn name(&self) -> %s {
+        %s
+    }
+    pub fn is_dir(&self) -> %s {
+        %s
+    }
+}
+`, name, name, name, name, stringType, wrappedExternalStubExpr("String", "self.name.clone()"), boolType, wrappedExternalStubExpr("bool", "self.is_dir"))
 }
 
 func writeFlagPackageStub(out *strings.Builder) {
@@ -1399,6 +1490,343 @@ func writeFlagPackageStub(out *strings.Builder) {
     }
 }
 `, stringFlagType, boolFlagType, outerWrapper, innerWrapper, outerWrapper, innerWrapper, argsType, outerWrapper, innerWrapper, borrowMut, borrowMut)
+}
+
+func writeOsPackageStub(out *strings.Builder, pkg *externalPackageStub) {
+	out.WriteString("pub mod os {\n")
+	out.WriteString("    use super::*;\n")
+	out.WriteString("    use std::path::Path;\n\n")
+	writeGoStringArgTrait(out)
+	writeOsErrorHelpers(out)
+
+	varNames := make([]string, 0, len(pkg.Variables))
+	for varName := range pkg.Variables {
+		varNames = append(varNames, varName)
+	}
+	slices.Sort(varNames)
+	for _, varName := range varNames {
+		writeExternalPackageStubVariable(out, varName, pkg.Variables[varName])
+		out.WriteString("\n")
+	}
+
+	funcNames := make([]string, 0, len(pkg.Functions))
+	for funcName := range pkg.Functions {
+		funcNames = append(funcNames, funcName)
+	}
+	slices.Sort(funcNames)
+	for i, funcName := range funcNames {
+		if i > 0 || len(varNames) > 0 {
+			out.WriteString("\n")
+		}
+		if funcName == "exit" {
+			writeOsExitFunction(out)
+		} else if funcName == "read_dir" {
+			writeOsReadDirFunction(out, pkg.Functions[funcName])
+		} else if funcName == "stat" {
+			writeOsStatFunction(out, pkg.Functions[funcName])
+		} else {
+			writeExternalPackageStubFunction(out, funcName, pkg.Functions[funcName])
+		}
+	}
+	out.WriteString("}\n")
+}
+
+func writeOsErrorHelpers(out *strings.Builder) {
+	errorType := wrappedExternalStubType("Box<dyn StdError>")
+	if NeedsConcurrentWrapper() {
+		errorType = wrappedExternalStubType("Box<dyn StdError + Send + Sync>")
+	}
+	fmt.Fprintf(out, `    type GoError = %s;
+
+    fn no_error() -> GoError {
+        %s::new(%s::new(None))
+    }
+
+    fn io_error(err: std::io::Error) -> GoError {
+        %s::new(%s::new(Some(Box::new(err))))
+    }
+
+`, errorType, GetOuterWrapperType(), GetInnerWrapperType(), GetOuterWrapperType(), GetInnerWrapperType())
+}
+
+func writeOsExitFunction(out *strings.Builder) {
+	out.WriteString("    pub fn exit<T0: Into<i32>>(_arg0: T0) {\n")
+	out.WriteString("        std::process::exit(_arg0.into());\n")
+	out.WriteString("    }\n")
+}
+
+func writeOsStatFunction(out *strings.Builder, fn externalPackageStubFunction) {
+	out.WriteString("    pub fn stat<T0: GoStringArg>(_arg0: T0) -> ")
+	writeExternalStubReturnType(out, fn.ReturnTypes)
+	out.WriteString(" {\n")
+	out.WriteString("        let path = _arg0.into_go_string();\n")
+	out.WriteString("        match std::fs::metadata(&path) {\n")
+	out.WriteString("            Ok(metadata) => {\n")
+	out.WriteString("                let name = Path::new(&path).file_name().map(|name| name.to_string_lossy().into_owned()).unwrap_or_else(|| path.clone());\n")
+	out.WriteString("                (")
+	out.WriteString(wrappedExternalStubExpr("fs_FileInfo", "fs_FileInfo { name, is_dir: metadata.is_dir(), size: metadata.len() as i64 }"))
+	out.WriteString(", no_error())\n")
+	out.WriteString("            }\n")
+	out.WriteString("            Err(err) => (")
+	out.WriteString(wrappedExternalStubExpr("fs_FileInfo", "fs_FileInfo::default()"))
+	out.WriteString(", io_error(err)),\n")
+	out.WriteString("        }\n")
+	out.WriteString("    }\n")
+}
+
+func writeOsReadDirFunction(out *strings.Builder, fn externalPackageStubFunction) {
+	out.WriteString("    pub fn read_dir<T0: GoStringArg>(_arg0: T0) -> ")
+	writeExternalStubReturnType(out, fn.ReturnTypes)
+	out.WriteString(" {\n")
+	out.WriteString("        let path = _arg0.into_go_string();\n")
+	out.WriteString("        let entries = match std::fs::read_dir(&path) {\n")
+	out.WriteString("            Ok(entries) => entries,\n")
+	out.WriteString("            Err(err) => return (")
+	out.WriteString(wrappedExternalStubExpr("Vec<fs_DirEntry>", "Vec::new()"))
+	out.WriteString(", io_error(err)),\n")
+	out.WriteString("        };\n")
+	out.WriteString("        let mut result = Vec::new();\n")
+	out.WriteString("        for entry in entries {\n")
+	out.WriteString("            match entry {\n")
+	out.WriteString("                Ok(entry) => {\n")
+	out.WriteString("                    let name = entry.file_name().to_string_lossy().into_owned();\n")
+	out.WriteString("                    let is_dir = entry.file_type().map(|file_type| file_type.is_dir()).unwrap_or(false);\n")
+	out.WriteString("                    result.push(fs_DirEntry { name, is_dir });\n")
+	out.WriteString("                }\n")
+	out.WriteString("                Err(err) => return (")
+	out.WriteString(wrappedExternalStubExpr("Vec<fs_DirEntry>", "Vec::new()"))
+	out.WriteString(", io_error(err)),\n")
+	out.WriteString("            }\n")
+	out.WriteString("        }\n")
+	out.WriteString("        result.sort_by(|left, right| left.name.cmp(&right.name));\n")
+	out.WriteString("        (")
+	out.WriteString(wrappedExternalStubExpr("Vec<fs_DirEntry>", "result"))
+	out.WriteString(", no_error())\n")
+	out.WriteString("    }\n")
+}
+
+func writeFilepathPackageStub(out *strings.Builder, pkg *externalPackageStub, integerTypes map[string]string) {
+	out.WriteString("pub mod filepath {\n")
+	out.WriteString("    use super::*;\n")
+	out.WriteString("    use std::path::{Path, PathBuf};\n\n")
+	writeGoStringArgTrait(out)
+	writeFilepathJoinTrait(out)
+	writeFilepathErrorHelpers(out)
+
+	constNames := make([]string, 0, len(pkg.Constants))
+	for constName := range pkg.Constants {
+		constNames = append(constNames, constName)
+	}
+	slices.Sort(constNames)
+	for _, constName := range constNames {
+		if constName == "SEPARATOR" {
+			out.WriteString("    pub const SEPARATOR: i32 = 47;\n")
+		} else if constName == "LIST_SEPARATOR" {
+			out.WriteString("    pub const LIST_SEPARATOR: i32 = 58;\n")
+		} else {
+			out.WriteString("    pub const ")
+			out.WriteString(constName)
+			out.WriteString(": ")
+			out.WriteString(pkg.Constants[constName])
+			out.WriteString(" = ")
+			writeExternalStubConstDefaultValue(out, pkg.Constants[constName], integerTypes)
+			out.WriteString(";\n")
+		}
+	}
+	if len(constNames) > 0 && len(pkg.Functions) > 0 {
+		out.WriteString("\n")
+	}
+
+	funcNames := make([]string, 0, len(pkg.Functions))
+	for funcName := range pkg.Functions {
+		funcNames = append(funcNames, funcName)
+	}
+	slices.Sort(funcNames)
+	for i, funcName := range funcNames {
+		if i > 0 {
+			out.WriteString("\n")
+		}
+		if funcName == "abs" {
+			writeFilepathAbsFunction(out, pkg.Functions[funcName])
+		} else if funcName == "base" {
+			writeFilepathSingleStringFunction(out, "base", "Path::new(&path).file_name().map(|name| name.to_string_lossy().into_owned()).unwrap_or(path)")
+		} else if funcName == "clean" {
+			writeFilepathSingleStringFunction(out, "clean", "normalize_path(PathBuf::from(path))")
+		} else if funcName == "dir" {
+			writeFilepathSingleStringFunction(out, "dir", "Path::new(&path).parent().map(|parent| parent.to_string_lossy().into_owned()).unwrap_or_else(|| \".\".to_string())")
+		} else if funcName == "eval_symlinks" {
+			writeFilepathEvalSymlinksFunction(out, pkg.Functions[funcName])
+		} else if funcName == "is_abs" {
+			writeFilepathIsAbsFunction(out)
+		} else if funcName == "join" {
+			writeFilepathJoinFunction(out)
+		} else {
+			writeExternalPackageStubFunction(out, funcName, pkg.Functions[funcName])
+		}
+	}
+	out.WriteString("}\n")
+}
+
+func writeGoStringArgTrait(out *strings.Builder) {
+	stringType := wrappedExternalStubType("String")
+	borrow := ".borrow()"
+	if NeedsConcurrentWrapper() {
+		borrow = ".lock().unwrap()"
+	}
+	fmt.Fprintf(out, `    pub trait GoStringArg {
+        fn into_go_string(self) -> String;
+    }
+
+    impl GoStringArg for String {
+        fn into_go_string(self) -> String {
+            self
+        }
+    }
+
+    impl<'a> GoStringArg for &'a str {
+        fn into_go_string(self) -> String {
+            self.to_string()
+        }
+    }
+
+    impl<'a> GoStringArg for &'a String {
+        fn into_go_string(self) -> String {
+            self.clone()
+        }
+    }
+
+    impl GoStringArg for %s {
+        fn into_go_string(self) -> String {
+            self%s.as_ref().cloned().unwrap_or_default()
+        }
+    }
+
+`, stringType, borrow)
+}
+
+func writeFilepathJoinTrait(out *strings.Builder) {
+	out.WriteString(`    pub trait GoPathJoinArgs {
+        fn into_path_parts(self) -> Vec<String>;
+    }
+
+    impl<T0: GoStringArg> GoPathJoinArgs for (T0,) {
+        fn into_path_parts(self) -> Vec<String> {
+            vec![self.0.into_go_string()]
+        }
+    }
+
+    impl<T0: GoStringArg, T1: GoStringArg> GoPathJoinArgs for (T0, T1) {
+        fn into_path_parts(self) -> Vec<String> {
+            vec![self.0.into_go_string(), self.1.into_go_string()]
+        }
+    }
+
+    impl<T0: GoStringArg, T1: GoStringArg, T2: GoStringArg> GoPathJoinArgs for (T0, T1, T2) {
+        fn into_path_parts(self) -> Vec<String> {
+            vec![self.0.into_go_string(), self.1.into_go_string(), self.2.into_go_string()]
+        }
+    }
+
+`)
+}
+
+func writeFilepathErrorHelpers(out *strings.Builder) {
+	errorType := wrappedExternalStubType("Box<dyn StdError>")
+	if NeedsConcurrentWrapper() {
+		errorType = wrappedExternalStubType("Box<dyn StdError + Send + Sync>")
+	}
+	fmt.Fprintf(out, `    type GoError = %s;
+
+    fn no_error() -> GoError {
+        %s::new(%s::new(None))
+    }
+
+    fn io_error(err: std::io::Error) -> GoError {
+        %s::new(%s::new(Some(Box::new(err))))
+    }
+
+    fn normalize_path(path: PathBuf) -> String {
+        path.components().collect::<PathBuf>().to_string_lossy().into_owned()
+    }
+
+`, errorType, GetOuterWrapperType(), GetInnerWrapperType(), GetOuterWrapperType(), GetInnerWrapperType())
+}
+
+func writeFilepathSingleStringFunction(out *strings.Builder, funcName string, expr string) {
+	out.WriteString("    pub fn ")
+	out.WriteString(funcName)
+	out.WriteString("<T0: GoStringArg>(_arg0: T0) -> ")
+	out.WriteString(wrappedExternalStubType("String"))
+	out.WriteString(" {\n")
+	out.WriteString("        let path = _arg0.into_go_string();\n")
+	out.WriteString("        ")
+	out.WriteString(wrappedExternalStubExpr("String", expr))
+	out.WriteString("\n")
+	out.WriteString("    }\n")
+}
+
+func writeFilepathJoinFunction(out *strings.Builder) {
+	out.WriteString("    pub fn join<T0: GoPathJoinArgs>(_arg0: T0) -> ")
+	out.WriteString(wrappedExternalStubType("String"))
+	out.WriteString(" {\n")
+	out.WriteString("        let mut path = PathBuf::new();\n")
+	out.WriteString("        for part in _arg0.into_path_parts() {\n")
+	out.WriteString("            if !part.is_empty() {\n")
+	out.WriteString("                path.push(part);\n")
+	out.WriteString("            }\n")
+	out.WriteString("        }\n")
+	out.WriteString("        ")
+	out.WriteString(wrappedExternalStubExpr("String", "path.to_string_lossy().into_owned()"))
+	out.WriteString("\n")
+	out.WriteString("    }\n")
+}
+
+func writeFilepathAbsFunction(out *strings.Builder, fn externalPackageStubFunction) {
+	out.WriteString("    pub fn abs<T0: GoStringArg>(_arg0: T0) -> ")
+	writeExternalStubReturnType(out, fn.ReturnTypes)
+	out.WriteString(" {\n")
+	out.WriteString("        let path = PathBuf::from(_arg0.into_go_string());\n")
+	out.WriteString("        let absolute = if path.is_absolute() {\n")
+	out.WriteString("            path\n")
+	out.WriteString("        } else {\n")
+	out.WriteString("            match std::env::current_dir() {\n")
+	out.WriteString("                Ok(current) => current.join(path),\n")
+	out.WriteString("                Err(err) => return (")
+	out.WriteString(wrappedExternalStubExpr("String", "String::new()"))
+	out.WriteString(", io_error(err)),\n")
+	out.WriteString("            }\n")
+	out.WriteString("        };\n")
+	out.WriteString("        (")
+	out.WriteString(wrappedExternalStubExpr("String", "normalize_path(absolute)"))
+	out.WriteString(", no_error())\n")
+	out.WriteString("    }\n")
+}
+
+func writeFilepathEvalSymlinksFunction(out *strings.Builder, fn externalPackageStubFunction) {
+	out.WriteString("    pub fn eval_symlinks<T0: GoStringArg>(_arg0: T0) -> ")
+	writeExternalStubReturnType(out, fn.ReturnTypes)
+	out.WriteString(" {\n")
+	out.WriteString("        let path = _arg0.into_go_string();\n")
+	out.WriteString("        match std::fs::canonicalize(&path) {\n")
+	out.WriteString("            Ok(path) => (")
+	out.WriteString(wrappedExternalStubExpr("String", "path.to_string_lossy().into_owned()"))
+	out.WriteString(", no_error()),\n")
+	out.WriteString("            Err(err) => (")
+	out.WriteString(wrappedExternalStubExpr("String", "String::new()"))
+	out.WriteString(", io_error(err)),\n")
+	out.WriteString("        }\n")
+	out.WriteString("    }\n")
+}
+
+func writeFilepathIsAbsFunction(out *strings.Builder) {
+	out.WriteString("    pub fn is_abs<T0: GoStringArg>(_arg0: T0) -> ")
+	out.WriteString(wrappedExternalStubType("bool"))
+	out.WriteString(" {\n")
+	out.WriteString("        let path = _arg0.into_go_string();\n")
+	out.WriteString("        ")
+	out.WriteString(wrappedExternalStubExpr("bool", "Path::new(&path).is_absolute()"))
+	out.WriteString("\n")
+	out.WriteString("    }\n")
 }
 
 func writeExternalPackageStubVariable(out *strings.Builder, varName string, rustType string) {

@@ -2391,6 +2391,19 @@ func isStringLiteralExpr(expr ast.Expr) bool {
 	return ok && lit.Kind == token.STRING
 }
 
+func writePackageGlobalPointerNilComparison(out *strings.Builder, ident *ast.Ident, op token.Token) {
+	out.WriteString("{ let __slot_guard = ")
+	out.WriteString(rustPackageGlobalName(ident.Name))
+	WriteBorrowMethod(out, false)
+	out.WriteString("; let __not_nil = __slot_guard.as_ref().map(|__ptr| (*__ptr")
+	WriteBorrowMethod(out, false)
+	out.WriteString(").is_some()).unwrap_or(false); ")
+	if op == token.EQL {
+		out.WriteString("!")
+	}
+	out.WriteString("__not_nil }")
+}
+
 func isNamedStringExpr(expr ast.Expr) bool {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil {
@@ -4951,6 +4964,10 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				return
 			}
 			if writeBareStdlibInterfaceNilComparison(out, e.X, e.Op) {
+				return
+			}
+			if leftIdent, ok := packageGlobalPointerIdent(e.X); ok {
+				writePackageGlobalPointerNilComparison(out, leftIdent, e.Op)
 				return
 			}
 
