@@ -165,8 +165,12 @@ impl bufio_Scanner {
 }
 
 
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
-pub struct fs_FileInfo;
+#[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord)]
+pub struct fs_FileInfo {
+    pub name: String,
+    pub is_dir: bool,
+    pub size: i64,
+}
 
 impl std::fmt::Display for fs_FileInfo {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -179,20 +183,20 @@ impl fs_FileInfo {
     pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
         None
     }
+    pub fn name(&self) -> Arc<Mutex<Option<String>>> {
+        Arc::new(Mutex::new(Some::<String>(self.name.clone())))
+    }
+    pub fn size(&self) -> Arc<Mutex<Option<i64>>> {
+        Arc::new(Mutex::new(Some::<i64>(self.size)))
+    }
     pub fn is_dir(&self) -> Arc<Mutex<Option<bool>>> {
-        Arc::new(Mutex::new(Some::<bool>(Default::default())))
+        Arc::new(Mutex::new(Some::<bool>(self.is_dir)))
     }
     pub fn mod_time(&self) -> Arc<Mutex<Option<GoTime>>> {
         Arc::new(Mutex::new(Some::<GoTime>(Default::default())))
     }
     pub fn mode(&self) -> Arc<Mutex<Option<fs_FileMode>>> {
         Arc::new(Mutex::new(Some::<fs_FileMode>(Default::default())))
-    }
-    pub fn name(&self) -> Arc<Mutex<Option<String>>> {
-        Arc::new(Mutex::new(Some::<String>(Default::default())))
-    }
-    pub fn size(&self) -> Arc<Mutex<Option<i64>>> {
-        Arc::new(Mutex::new(Some::<i64>(Default::default())))
     }
 }
 
@@ -281,6 +285,46 @@ pub mod io {
 
 pub mod os {
     use super::*;
+    use std::path::Path;
+
+    pub trait GoStringArg {
+        fn into_go_string(self) -> String;
+    }
+
+    impl GoStringArg for String {
+        fn into_go_string(self) -> String {
+            self
+        }
+    }
+
+    impl<'a> GoStringArg for &'a str {
+        fn into_go_string(self) -> String {
+            self.to_string()
+        }
+    }
+
+    impl<'a> GoStringArg for &'a String {
+        fn into_go_string(self) -> String {
+            self.clone()
+        }
+    }
+
+    impl GoStringArg for Arc<Mutex<Option<String>>> {
+        fn into_go_string(self) -> String {
+            self.lock().unwrap().as_ref().cloned().unwrap_or_default()
+        }
+    }
+
+    type GoError = Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>;
+
+    fn no_error() -> GoError {
+        Arc::new(Mutex::new(None))
+    }
+
+    fn io_error(err: std::io::Error) -> GoError {
+        Arc::new(Mutex::new(Some(Box::new(err))))
+    }
+
     pub const O__A_P_P_E_N_D: i32 = 0;
     pub const O__W_R_O_N_L_Y: i32 = 0;
 
@@ -300,8 +344,15 @@ pub mod os {
         (Arc::new(Mutex::new(Some::<Vec<u8>>(Default::default()))), Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>)))
     }
 
-    pub fn stat<T0>(_arg0: T0) -> (Arc<Mutex<Option<fs_FileInfo>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
-        (Arc::new(Mutex::new(Some::<fs_FileInfo>(Default::default()))), Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>)))
+    pub fn stat<T0: GoStringArg>(_arg0: T0) -> (Arc<Mutex<Option<fs_FileInfo>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+        let path = _arg0.into_go_string();
+        match std::fs::metadata(&path) {
+            Ok(metadata) => {
+                let name = Path::new(&path).file_name().map(|name| name.to_string_lossy().into_owned()).unwrap_or_else(|| path.clone());
+                (Arc::new(Mutex::new(Some::<fs_FileInfo>(fs_FileInfo { name, is_dir: metadata.is_dir(), size: metadata.len() as i64 }))), no_error())
+            }
+            Err(err) => (Arc::new(Mutex::new(Some::<fs_FileInfo>(fs_FileInfo::default()))), io_error(err)),
+        }
     }
 }
 

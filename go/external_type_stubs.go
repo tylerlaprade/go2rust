@@ -958,7 +958,7 @@ func generateExternalStubs(stubs map[string]bool, integerTypes map[string]string
 			out.WriteString("\n\n")
 		}
 		if name == "fs_FileInfo" {
-			writeFsFileInfoStub(&out, name)
+			writeFsFileInfoStub(&out, name, methodsByType[name])
 			continue
 		}
 		if name == "fs_DirEntry" {
@@ -1230,7 +1230,7 @@ func writeExternalPackageStubs(out *strings.Builder, packageStubs map[string]*ex
 			continue
 		}
 		if pkgName == "os" {
-			writeOsPackageStub(out, pkg)
+			writeOsPackageStub(out, pkg, integerTypes)
 			continue
 		}
 		if pkgName == "filepath" {
@@ -1295,7 +1295,7 @@ func wrappedExternalStubExpr(innerType string, expr string) string {
 	return fmt.Sprintf("%s::new(%s::new(Some::<%s>(%s)))", GetOuterWrapperType(), GetInnerWrapperType(), innerType, expr)
 }
 
-func writeFsFileInfoStub(out *strings.Builder, name string) {
+func writeFsFileInfoStub(out *strings.Builder, name string, methods map[string]externalTypeStubMethod) {
 	boolType := wrappedExternalStubType("bool")
 	stringType := wrappedExternalStubType("String")
 	int64Type := wrappedExternalStubType("i64")
@@ -1327,8 +1327,19 @@ impl %s {
     pub fn is_dir(&self) -> %s {
         %s
     }
-}
 `, name, name, name, name, stringType, wrappedExternalStubExpr("String", "self.name.clone()"), int64Type, wrappedExternalStubExpr("i64", "self.size"), boolType, wrappedExternalStubExpr("bool", "self.is_dir"))
+	methodNames := make([]string, 0, len(methods))
+	for methodName := range methods {
+		if methodName == "name" || methodName == "size" || methodName == "is_dir" {
+			continue
+		}
+		methodNames = append(methodNames, methodName)
+	}
+	slices.Sort(methodNames)
+	for _, methodName := range methodNames {
+		writeExternalTypeStubMethod(out, methodName, methods[methodName])
+	}
+	out.WriteString("}\n")
 }
 
 func writeFsDirEntryStub(out *strings.Builder, name string) {
@@ -1492,12 +1503,33 @@ func writeFlagPackageStub(out *strings.Builder) {
 `, stringFlagType, boolFlagType, outerWrapper, innerWrapper, outerWrapper, innerWrapper, argsType, outerWrapper, innerWrapper, borrowMut, borrowMut)
 }
 
-func writeOsPackageStub(out *strings.Builder, pkg *externalPackageStub) {
+func writeOsPackageStub(out *strings.Builder, pkg *externalPackageStub, integerTypes map[string]string) {
 	out.WriteString("pub mod os {\n")
 	out.WriteString("    use super::*;\n")
-	out.WriteString("    use std::path::Path;\n\n")
-	writeGoStringArgTrait(out)
-	writeOsErrorHelpers(out)
+	needsFilesystemHelpers := osPackageStubNeedsFilesystemHelpers(pkg)
+	if needsFilesystemHelpers {
+		out.WriteString("    use std::path::Path;\n\n")
+		writeGoStringArgTrait(out)
+		writeOsErrorHelpers(out)
+	}
+
+	constNames := make([]string, 0, len(pkg.Constants))
+	for constName := range pkg.Constants {
+		constNames = append(constNames, constName)
+	}
+	slices.Sort(constNames)
+	for _, constName := range constNames {
+		out.WriteString("    pub const ")
+		out.WriteString(constName)
+		out.WriteString(": ")
+		out.WriteString(pkg.Constants[constName])
+		out.WriteString(" = ")
+		writeExternalStubConstDefaultValue(out, pkg.Constants[constName], integerTypes)
+		out.WriteString(";\n")
+	}
+	if len(constNames) > 0 && (len(pkg.Variables) > 0 || len(pkg.Functions) > 0) {
+		out.WriteString("\n")
+	}
 
 	varNames := make([]string, 0, len(pkg.Variables))
 	for varName := range pkg.Variables {
@@ -1529,6 +1561,15 @@ func writeOsPackageStub(out *strings.Builder, pkg *externalPackageStub) {
 		}
 	}
 	out.WriteString("}\n")
+}
+
+func osPackageStubNeedsFilesystemHelpers(pkg *externalPackageStub) bool {
+	if pkg == nil {
+		return false
+	}
+	_, needsStat := pkg.Functions["stat"]
+	_, needsReadDir := pkg.Functions["read_dir"]
+	return needsStat || needsReadDir
 }
 
 func writeOsErrorHelpers(out *strings.Builder) {
