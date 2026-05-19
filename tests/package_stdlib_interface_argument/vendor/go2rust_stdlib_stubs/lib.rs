@@ -30,8 +30,39 @@ impl<T> std::fmt::Display for GoPtrKey<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { write!(f, "0x{:x}", self.addr()) }
 }
 
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
-pub struct io_Reader;
+fn __go_next_external_interface_id() -> usize {
+    static NEXT_ID: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(1);
+    NEXT_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
+}
+
+
+
+#[derive(Clone)]
+pub struct io_Reader {
+    pub __go_id: usize,
+    pub __go_value: Rc<dyn std::any::Any>,
+}
+
+impl io_Reader {
+    pub fn __go_from<T: 'static>(value: T) -> Self {
+        Self { __go_id: __go_next_external_interface_id(), __go_value: Rc::new(value) }
+    }
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        self.__go_value.as_ref().downcast_ref::<T>()
+    }
+}
+
+impl Default for io_Reader {
+    fn default() -> Self {
+        Self { __go_id: 0, __go_value: Rc::new(()) }
+    }
+}
+
+impl std::fmt::Debug for io_Reader {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<io_Reader>")
+    }
+}
 
 impl std::fmt::Display for io_Reader {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -39,10 +70,23 @@ impl std::fmt::Display for io_Reader {
     }
 }
 
+impl PartialEq for io_Reader {
+    fn eq(&self, other: &Self) -> bool {
+        self.__go_id == other.__go_id
+    }
+}
 
-impl io_Reader {
-    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
-        None
+impl Eq for io_Reader {}
+
+impl PartialOrd for io_Reader {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for io_Reader {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.__go_id.cmp(&other.__go_id)
     }
 }
 
@@ -69,7 +113,7 @@ impl os_File {
 
 impl From<os_File> for io_Reader {
     fn from(_value: os_File) -> Self {
-        Self::default()
+        Self::__go_from(_value)
     }
 }
 

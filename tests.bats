@@ -1890,6 +1890,10 @@ run_xfail_test() {
     run_test "tests/stdlib_interface_call_argument"
 }
 
+@test "stdlib_interface_downcast" {
+    run_test "tests/stdlib_interface_downcast"
+}
+
 @test "stdlib_interface_field_assignment" {
     run_test "tests/stdlib_interface_field_assignment"
 }

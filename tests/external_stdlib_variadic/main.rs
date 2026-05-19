@@ -1,7 +1,38 @@
 use std::sync::{Arc, Mutex};
 
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
-pub struct hash_Hash;
+fn __go_next_external_interface_id() -> usize {
+    static NEXT_ID: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(1);
+    NEXT_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
+}
+
+
+
+#[derive(Clone)]
+pub struct hash_Hash {
+    pub __go_id: usize,
+    pub __go_value: Arc<dyn std::any::Any + Send + Sync>,
+}
+
+impl hash_Hash {
+    pub fn __go_from<T: 'static + Send + Sync>(value: T) -> Self {
+        Self { __go_id: __go_next_external_interface_id(), __go_value: Arc::new(value) }
+    }
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        self.__go_value.as_ref().downcast_ref::<T>()
+    }
+}
+
+impl Default for hash_Hash {
+    fn default() -> Self {
+        Self { __go_id: 0, __go_value: Arc::new(()) }
+    }
+}
+
+impl std::fmt::Debug for hash_Hash {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<hash_Hash>")
+    }
+}
 
 impl std::fmt::Display for hash_Hash {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -9,16 +40,53 @@ impl std::fmt::Display for hash_Hash {
     }
 }
 
+impl PartialEq for hash_Hash {
+    fn eq(&self, other: &Self) -> bool {
+        self.__go_id == other.__go_id
+    }
+}
 
-impl hash_Hash {
-    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
-        None
+impl Eq for hash_Hash {}
+
+impl PartialOrd for hash_Hash {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for hash_Hash {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.__go_id.cmp(&other.__go_id)
     }
 }
 
 
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
-pub struct io_Writer;
+#[derive(Clone)]
+pub struct io_Writer {
+    pub __go_id: usize,
+    pub __go_value: Arc<dyn std::any::Any + Send + Sync>,
+}
+
+impl io_Writer {
+    pub fn __go_from<T: 'static + Send + Sync>(value: T) -> Self {
+        Self { __go_id: __go_next_external_interface_id(), __go_value: Arc::new(value) }
+    }
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        self.__go_value.as_ref().downcast_ref::<T>()
+    }
+}
+
+impl Default for io_Writer {
+    fn default() -> Self {
+        Self { __go_id: 0, __go_value: Arc::new(()) }
+    }
+}
+
+impl std::fmt::Debug for io_Writer {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<io_Writer>")
+    }
+}
 
 impl std::fmt::Display for io_Writer {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -26,10 +94,23 @@ impl std::fmt::Display for io_Writer {
     }
 }
 
+impl PartialEq for io_Writer {
+    fn eq(&self, other: &Self) -> bool {
+        self.__go_id == other.__go_id
+    }
+}
 
-impl io_Writer {
-    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
-        None
+impl Eq for io_Writer {}
+
+impl PartialOrd for io_Writer {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for io_Writer {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.__go_id.cmp(&other.__go_id)
     }
 }
 

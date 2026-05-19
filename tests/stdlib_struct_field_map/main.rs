@@ -29,6 +29,13 @@ impl<T> std::fmt::Display for GoLocalPtrKey<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { write!(f, "0x{:x}", self.addr()) }
 }
 
+fn __go_next_external_interface_id() -> usize {
+    static NEXT_ID: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(1);
+    NEXT_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
+}
+
+
+
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ast_ChanDir(pub i32);
 
@@ -125,8 +132,32 @@ impl ast_Ident {
 }
 
 
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
-pub struct ast_Node;
+#[derive(Clone)]
+pub struct ast_Node {
+    pub __go_id: usize,
+    pub __go_value: Rc<dyn std::any::Any>,
+}
+
+impl ast_Node {
+    pub fn __go_from<T: 'static>(value: T) -> Self {
+        Self { __go_id: __go_next_external_interface_id(), __go_value: Rc::new(value) }
+    }
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        self.__go_value.as_ref().downcast_ref::<T>()
+    }
+}
+
+impl Default for ast_Node {
+    fn default() -> Self {
+        Self { __go_id: 0, __go_value: Rc::new(()) }
+    }
+}
+
+impl std::fmt::Debug for ast_Node {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<ast_Node>")
+    }
+}
 
 impl std::fmt::Display for ast_Node {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -134,10 +165,23 @@ impl std::fmt::Display for ast_Node {
     }
 }
 
+impl PartialEq for ast_Node {
+    fn eq(&self, other: &Self) -> bool {
+        self.__go_id == other.__go_id
+    }
+}
 
-impl ast_Node {
-    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
-        None
+impl Eq for ast_Node {}
+
+impl PartialOrd for ast_Node {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for ast_Node {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.__go_id.cmp(&other.__go_id)
     }
 }
 
@@ -181,8 +225,32 @@ impl types_Instance {
 }
 
 
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
-pub struct types_Object;
+#[derive(Clone)]
+pub struct types_Object {
+    pub __go_id: usize,
+    pub __go_value: Rc<dyn std::any::Any>,
+}
+
+impl types_Object {
+    pub fn __go_from<T: 'static>(value: T) -> Self {
+        Self { __go_id: __go_next_external_interface_id(), __go_value: Rc::new(value) }
+    }
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        self.__go_value.as_ref().downcast_ref::<T>()
+    }
+}
+
+impl Default for types_Object {
+    fn default() -> Self {
+        Self { __go_id: 0, __go_value: Rc::new(()) }
+    }
+}
+
+impl std::fmt::Debug for types_Object {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<types_Object>")
+    }
+}
 
 impl std::fmt::Display for types_Object {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -190,10 +258,23 @@ impl std::fmt::Display for types_Object {
     }
 }
 
+impl PartialEq for types_Object {
+    fn eq(&self, other: &Self) -> bool {
+        self.__go_id == other.__go_id
+    }
+}
 
-impl types_Object {
-    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
-        None
+impl Eq for types_Object {}
+
+impl PartialOrd for types_Object {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for types_Object {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.__go_id.cmp(&other.__go_id)
     }
 }
 
@@ -217,6 +298,35 @@ impl types_Scope {
 
 pub mod ast {
     use super::*;
+
+    pub trait GoStringArg {
+        fn into_go_string(self) -> String;
+    }
+
+    impl GoStringArg for String {
+        fn into_go_string(self) -> String {
+            self
+        }
+    }
+
+    impl<'a> GoStringArg for &'a str {
+        fn into_go_string(self) -> String {
+            self.to_string()
+        }
+    }
+
+    impl<'a> GoStringArg for &'a String {
+        fn into_go_string(self) -> String {
+            self.clone()
+        }
+    }
+
+    impl GoStringArg for Rc<RefCell<Option<String>>> {
+        fn into_go_string(self) -> String {
+            self.borrow().as_ref().cloned().unwrap_or_default()
+        }
+    }
+
     pub const S_E_N_D: ast_ChanDir = ast_ChanDir(0);
 }
 

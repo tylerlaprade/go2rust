@@ -30,8 +30,39 @@ impl<T> std::fmt::Display for GoLocalPtrKey<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { write!(f, "0x{:x}", self.addr()) }
 }
 
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
-pub struct types_Object;
+fn __go_next_external_interface_id() -> usize {
+    static NEXT_ID: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(1);
+    NEXT_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
+}
+
+
+
+#[derive(Clone)]
+pub struct types_Object {
+    pub __go_id: usize,
+    pub __go_value: Rc<dyn std::any::Any>,
+}
+
+impl types_Object {
+    pub fn __go_from<T: 'static>(value: T) -> Self {
+        Self { __go_id: __go_next_external_interface_id(), __go_value: Rc::new(value) }
+    }
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        self.__go_value.as_ref().downcast_ref::<T>()
+    }
+}
+
+impl Default for types_Object {
+    fn default() -> Self {
+        Self { __go_id: 0, __go_value: Rc::new(()) }
+    }
+}
+
+impl std::fmt::Debug for types_Object {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<types_Object>")
+    }
+}
 
 impl std::fmt::Display for types_Object {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -39,10 +70,23 @@ impl std::fmt::Display for types_Object {
     }
 }
 
+impl PartialEq for types_Object {
+    fn eq(&self, other: &Self) -> bool {
+        self.__go_id == other.__go_id
+    }
+}
 
-impl types_Object {
-    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
-        None
+impl Eq for types_Object {}
+
+impl PartialOrd for types_Object {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for types_Object {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.__go_id.cmp(&other.__go_id)
     }
 }
 

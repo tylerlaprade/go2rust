@@ -147,8 +147,39 @@ impl<T> Iterator for GoChannel<T> {
     }
 }
 
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
-pub struct ast_Expr;
+fn __go_next_external_interface_id() -> usize {
+    static NEXT_ID: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(1);
+    NEXT_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
+}
+
+
+
+#[derive(Clone)]
+pub struct ast_Expr {
+    pub __go_id: usize,
+    pub __go_value: Arc<dyn std::any::Any + Send + Sync>,
+}
+
+impl ast_Expr {
+    pub fn __go_from<T: 'static + Send + Sync>(value: T) -> Self {
+        Self { __go_id: __go_next_external_interface_id(), __go_value: Arc::new(value) }
+    }
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        self.__go_value.as_ref().downcast_ref::<T>()
+    }
+}
+
+impl Default for ast_Expr {
+    fn default() -> Self {
+        Self { __go_id: 0, __go_value: Arc::new(()) }
+    }
+}
+
+impl std::fmt::Debug for ast_Expr {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<ast_Expr>")
+    }
+}
 
 impl std::fmt::Display for ast_Expr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -156,10 +187,23 @@ impl std::fmt::Display for ast_Expr {
     }
 }
 
+impl PartialEq for ast_Expr {
+    fn eq(&self, other: &Self) -> bool {
+        self.__go_id == other.__go_id
+    }
+}
 
-impl ast_Expr {
-    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
-        None
+impl Eq for ast_Expr {}
+
+impl PartialOrd for ast_Expr {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for ast_Expr {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.__go_id.cmp(&other.__go_id)
     }
 }
 

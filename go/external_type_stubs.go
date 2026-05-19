@@ -12,6 +12,7 @@ import (
 )
 
 var externalTypeStubs = make(map[string]bool)
+var externalTypeStubInterfaces = make(map[string]bool)
 var externalTypeStubIntegerTypes = make(map[string]string)
 var externalTypeStubTupleTypes = make(map[string]string)
 var externalTypeStubFields = make(map[string]map[string]string)
@@ -53,6 +54,9 @@ func RegisterExternalTypeStub(name string) {
 
 func RegisterExternalTypeStubNamed(named *types.Named, rustName string) {
 	RegisterExternalTypeStub(rustName)
+	if externalNamedIsInterface(named) {
+		currentExternalTypeStubInterfaces()[rustName] = true
+	}
 	if rustType, ok := externalIntegerRustTypeForNamed(named); ok {
 		currentExternalTypeStubIntegerTypes()[rustName] = rustType
 	}
@@ -79,12 +83,26 @@ func RegisterExternalTypeStubForTypeExpr(expr ast.Expr, rustName string) {
 			}
 		}
 	}
+	if externalNamedIsInterface(named) {
+		currentExternalTypeStubInterfaces()[rustName] = true
+	}
 	if rustType, ok := externalIntegerRustTypeForNamed(named); ok {
 		currentExternalTypeStubIntegerTypes()[rustName] = rustType
 	}
 	if rustType, ok := externalTupleRustTypeForNamed(named); ok {
 		currentExternalTypeStubTupleTypes()[rustName] = rustType
 	}
+}
+
+func externalNamedIsInterface(named *types.Named) bool {
+	if named == nil || named.Obj() == nil || named.Obj().Pkg() == nil {
+		return false
+	}
+	if !isStdlibPackage(named.Obj().Pkg().Path()) {
+		return false
+	}
+	_, ok := types.Unalias(named.Underlying()).(*types.Interface)
+	return ok
 }
 
 func externalIntegerRustTypeForNamed(named *types.Named) (string, bool) {
@@ -483,6 +501,9 @@ func RegisterExternalPackageStubFunction(pkgName string, funcName string, sig *t
 		return
 	}
 	trackWrapperImports()
+	if pkgName == "ast" && funcName == "new_ident" {
+		RegisterExternalTypeStubFieldByRustType("ast_Ident", "name", goTypesTypeToRustWrapped(types.Typ[types.String]))
+	}
 	fn := externalPackageStubFunction{
 		ParamCount: sig.Params().Len(),
 	}
@@ -492,6 +513,19 @@ func RegisterExternalPackageStubFunction(pkgName string, funcName string, sig *t
 	}
 	pkg := ensureExternalPackageStub(pkgName)
 	pkg.Functions[funcName] = fn
+}
+
+func RegisterExternalTypeStubFieldByRustType(typeName string, fieldName string, fieldTypeRust string) {
+	if typeName == "" || fieldName == "" || fieldTypeRust == "" {
+		return
+	}
+	RegisterExternalTypeStub(typeName)
+	trackWrapperImports()
+	fields := currentExternalTypeStubFields()
+	if fields[typeName] == nil {
+		fields[typeName] = make(map[string]string)
+	}
+	fields[typeName][fieldName] = fieldTypeRust
 }
 
 func RegisterExternalPackageStubConstant(pkgName string, constName string, constType types.Type) {
@@ -611,6 +645,22 @@ func currentExternalTypeStubs() map[string]bool {
 	return externalTypeStubs
 }
 
+func currentExternalTypeStubInterfaces() map[string]bool {
+	if usePackageExternalStubs() {
+		if currentContext.Package.ExternalTypeStubInterfaces == nil {
+			currentContext.Package.ExternalTypeStubInterfaces = make(map[string]bool)
+		}
+		return currentContext.Package.ExternalTypeStubInterfaces
+	}
+	if currentContext != nil && currentContext.File != nil {
+		if currentContext.File.ExternalTypeStubInterfaces == nil {
+			currentContext.File.ExternalTypeStubInterfaces = make(map[string]bool)
+		}
+		return currentContext.File.ExternalTypeStubInterfaces
+	}
+	return externalTypeStubInterfaces
+}
+
 func currentExternalTypeStubIntegerTypes() map[string]string {
 	if usePackageExternalStubs() {
 		if currentContext.Package.ExternalTypeStubIntegerTypes == nil {
@@ -715,14 +765,14 @@ func GenerateExternalTypeStubs() string {
 	if usePackageExternalStubs() {
 		return ""
 	}
-	return generateExternalStubs(currentExternalTypeStubs(), currentExternalTypeStubIntegerTypes(), currentExternalTypeStubTupleTypes(), currentExternalTypeStubFields(), currentExternalTypeStubMethods(), currentExternalTypeStubConversions(), currentExternalPackageStubs())
+	return generateExternalStubs(currentExternalTypeStubs(), currentExternalTypeStubInterfaces(), currentExternalTypeStubIntegerTypes(), currentExternalTypeStubTupleTypes(), currentExternalTypeStubFields(), currentExternalTypeStubMethods(), currentExternalTypeStubConversions(), currentExternalPackageStubs())
 }
 
 func GeneratePackageExternalStubs(pkg *PackageState) string {
 	if pkg == nil {
 		return ""
 	}
-	return generateExternalStubs(pkg.ExternalTypeStubs, pkg.ExternalTypeStubIntegerTypes, pkg.ExternalTypeStubTupleTypes, pkg.ExternalTypeStubFields, pkg.ExternalTypeStubMethods, pkg.ExternalTypeStubConversions, pkg.ExternalPackageStubs)
+	return generateExternalStubs(pkg.ExternalTypeStubs, pkg.ExternalTypeStubInterfaces, pkg.ExternalTypeStubIntegerTypes, pkg.ExternalTypeStubTupleTypes, pkg.ExternalTypeStubFields, pkg.ExternalTypeStubMethods, pkg.ExternalTypeStubConversions, pkg.ExternalPackageStubs)
 }
 
 func WriteSharedStdlibStubCrate(workDir string, states []*PackageState) error {
@@ -770,6 +820,7 @@ func MergeExternalStubPackageStates(states ...*PackageState) *PackageState {
 			continue
 		}
 		mergeBoolMap(merged.ExternalTypeStubs, state.ExternalTypeStubs)
+		mergeBoolMap(merged.ExternalTypeStubInterfaces, state.ExternalTypeStubInterfaces)
 		mergeStringMap(merged.ExternalTypeStubIntegerTypes, state.ExternalTypeStubIntegerTypes)
 		mergeStringMap(merged.ExternalTypeStubTupleTypes, state.ExternalTypeStubTupleTypes)
 		mergeNestedStringMap(merged.ExternalTypeStubFields, state.ExternalTypeStubFields)
@@ -942,7 +993,7 @@ func GenerateExternalStubModuleImports() string {
 	return out.String()
 }
 
-func generateExternalStubs(stubs map[string]bool, integerTypes map[string]string, tupleTypes map[string]string, fieldsByType map[string]map[string]string, methodsByType map[string]map[string]externalTypeStubMethod, conversions map[string]map[string]bool, packageStubs map[string]*externalPackageStub) string {
+func generateExternalStubs(stubs map[string]bool, interfaceTypes map[string]bool, integerTypes map[string]string, tupleTypes map[string]string, fieldsByType map[string]map[string]string, methodsByType map[string]map[string]externalTypeStubMethod, conversions map[string]map[string]bool, packageStubs map[string]*externalPackageStub) string {
 	if len(stubs) == 0 && len(conversions) == 0 && len(packageStubs) == 0 {
 		return ""
 	}
@@ -953,8 +1004,11 @@ func generateExternalStubs(stubs map[string]bool, integerTypes map[string]string
 	slices.Sort(names)
 
 	var out strings.Builder
+	if externalStubNeedsInterfaceHelper(names, interfaceTypes) {
+		writeExternalInterfaceIdHelper(&out)
+	}
 	for i, name := range names {
-		if i > 0 {
+		if i > 0 || out.Len() > 0 {
 			out.WriteString("\n\n")
 		}
 		if name == "fs_FileInfo" {
@@ -963,6 +1017,10 @@ func generateExternalStubs(stubs map[string]bool, integerTypes map[string]string
 		}
 		if name == "fs_DirEntry" {
 			writeFsDirEntryStub(&out, name)
+			continue
+		}
+		if interfaceTypes[name] {
+			writeExternalInterfaceStub(&out, name, methodsByType[name])
 			continue
 		}
 		fields := fieldsByType[name]
@@ -1041,9 +1099,18 @@ func generateExternalStubs(stubs map[string]bool, integerTypes map[string]string
 		}
 		out.WriteString("}\n")
 	}
-	writeExternalTypeStubConversions(&out, conversions)
+	writeExternalTypeStubConversions(&out, conversions, interfaceTypes)
 	writeExternalPackageStubs(&out, packageStubs, integerTypes, len(names) > 0)
 	return out.String()
+}
+
+func externalStubNeedsInterfaceHelper(names []string, interfaceTypes map[string]bool) bool {
+	for _, name := range names {
+		if interfaceTypes[name] {
+			return true
+		}
+	}
+	return false
 }
 
 func externalTypeStubHasErrorMethod(methods map[string]externalTypeStubMethod) bool {
@@ -1107,7 +1174,108 @@ func writeExternalIntegerStubOps(out *strings.Builder, name string, integerType 
 	out.WriteString("}\n\n")
 }
 
-func writeExternalTypeStubConversions(out *strings.Builder, conversions map[string]map[string]bool) {
+func writeExternalInterfaceStub(out *strings.Builder, name string, methods map[string]externalTypeStubMethod) {
+	holderType := "Rc<dyn std::any::Any>"
+	fromBound := "T: 'static"
+	newValue := "Rc::new(value)"
+	defaultValue := "Rc::new(())"
+	if NeedsConcurrentWrapper() {
+		holderType = "Arc<dyn std::any::Any + Send + Sync>"
+		fromBound = "T: 'static + Send + Sync"
+		newValue = "Arc::new(value)"
+		defaultValue = "Arc::new(())"
+	}
+
+	out.WriteString("#[derive(Clone)]\n")
+	out.WriteString("pub struct ")
+	out.WriteString(name)
+	out.WriteString(" {\n")
+	out.WriteString("    pub __go_id: usize,\n")
+	out.WriteString("    pub __go_value: ")
+	out.WriteString(holderType)
+	out.WriteString(",\n")
+	out.WriteString("}\n\n")
+
+	out.WriteString("impl ")
+	out.WriteString(name)
+	out.WriteString(" {\n")
+	out.WriteString("    pub fn __go_from<")
+	out.WriteString(fromBound)
+	out.WriteString(">(value: T) -> Self {\n")
+	out.WriteString("        Self { __go_id: __go_next_external_interface_id(), __go_value: ")
+	out.WriteString(newValue)
+	out.WriteString(" }\n")
+	out.WriteString("    }\n")
+	out.WriteString("    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {\n")
+	out.WriteString("        self.__go_value.as_ref().downcast_ref::<T>()\n")
+	out.WriteString("    }\n")
+	methodNames := make([]string, 0, len(methods))
+	for methodName := range methods {
+		methodNames = append(methodNames, methodName)
+	}
+	slices.Sort(methodNames)
+	for _, methodName := range methodNames {
+		writeExternalTypeStubMethod(out, methodName, methods[methodName])
+	}
+	out.WriteString("}\n\n")
+
+	out.WriteString("impl Default for ")
+	out.WriteString(name)
+	out.WriteString(" {\n")
+	out.WriteString("    fn default() -> Self {\n")
+	out.WriteString("        Self { __go_id: 0, __go_value: ")
+	out.WriteString(defaultValue)
+	out.WriteString(" }\n")
+	out.WriteString("    }\n")
+	out.WriteString("}\n\n")
+
+	out.WriteString("impl std::fmt::Debug for ")
+	out.WriteString(name)
+	out.WriteString(" {\n")
+	out.WriteString("    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {\n")
+	out.WriteString("        write!(f, \"<")
+	out.WriteString(name)
+	out.WriteString(">\")\n")
+	out.WriteString("    }\n")
+	out.WriteString("}\n\n")
+
+	out.WriteString("impl std::fmt::Display for ")
+	out.WriteString(name)
+	out.WriteString(" {\n")
+	out.WriteString("    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {\n")
+	out.WriteString("        write!(f, \"<")
+	out.WriteString(name)
+	out.WriteString(">\")\n")
+	out.WriteString("    }\n")
+	out.WriteString("}\n\n")
+
+	out.WriteString("impl PartialEq for ")
+	out.WriteString(name)
+	out.WriteString(" {\n")
+	out.WriteString("    fn eq(&self, other: &Self) -> bool {\n")
+	out.WriteString("        self.__go_id == other.__go_id\n")
+	out.WriteString("    }\n")
+	out.WriteString("}\n\n")
+	out.WriteString("impl Eq for ")
+	out.WriteString(name)
+	out.WriteString(" {}\n\n")
+	out.WriteString("impl PartialOrd for ")
+	out.WriteString(name)
+	out.WriteString(" {\n")
+	out.WriteString("    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {\n")
+	out.WriteString("        Some(self.cmp(other))\n")
+	out.WriteString("    }\n")
+	out.WriteString("}\n\n")
+	out.WriteString("impl Ord for ")
+	out.WriteString(name)
+	out.WriteString(" {\n")
+	out.WriteString("    fn cmp(&self, other: &Self) -> std::cmp::Ordering {\n")
+	out.WriteString("        self.__go_id.cmp(&other.__go_id)\n")
+	out.WriteString("    }\n")
+	out.WriteString("}\n")
+}
+
+func writeExternalTypeStubConversions(out *strings.Builder, conversions map[string]map[string]bool, interfaceTypes map[string]bool) {
 	if len(conversions) == 0 {
 		return
 	}
@@ -1137,11 +1305,24 @@ func writeExternalTypeStubConversions(out *strings.Builder, conversions map[stri
 			out.WriteString("    fn from(_value: ")
 			out.WriteString(sourceName)
 			out.WriteString(") -> Self {\n")
-			out.WriteString("        Self::default()\n")
+			if interfaceTypes[targetName] && interfaceTypes[sourceName] {
+				out.WriteString("        Self { __go_id: _value.__go_id, __go_value: _value.__go_value.clone() }\n")
+			} else if interfaceTypes[targetName] {
+				out.WriteString("        Self::__go_from(_value)\n")
+			} else {
+				out.WriteString("        Self::default()\n")
+			}
 			out.WriteString("    }\n")
 			out.WriteString("}\n")
 		}
 	}
+}
+
+func writeExternalInterfaceIdHelper(out *strings.Builder) {
+	out.WriteString("fn __go_next_external_interface_id() -> usize {\n")
+	out.WriteString("    static NEXT_ID: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(1);\n")
+	out.WriteString("    NEXT_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed)\n")
+	out.WriteString("}\n\n")
 }
 
 func writeExternalTypeStubDowncastMethod(out *strings.Builder) {
@@ -1225,6 +1406,10 @@ func writeExternalPackageStubs(out *strings.Builder, packageStubs map[string]*ex
 			out.WriteString("\n\n")
 		}
 		needsSeparator = true
+		if pkgName == "ast" {
+			writeAstPackageStub(out, pkg, integerTypes)
+			continue
+		}
 		if pkgName == "flag" {
 			writeFlagPackageStub(out)
 			continue
@@ -1371,6 +1556,67 @@ impl %s {
     }
 }
 `, name, name, name, name, stringType, wrappedExternalStubExpr("String", "self.name.clone()"), boolType, wrappedExternalStubExpr("bool", "self.is_dir"))
+}
+
+func writeAstPackageStub(out *strings.Builder, pkg *externalPackageStub, integerTypes map[string]string) {
+	out.WriteString("pub mod ast {\n")
+	out.WriteString("    use super::*;\n\n")
+	writeGoStringArgTrait(out)
+
+	constNames := make([]string, 0, len(pkg.Constants))
+	for constName := range pkg.Constants {
+		constNames = append(constNames, constName)
+	}
+	slices.Sort(constNames)
+	for _, constName := range constNames {
+		out.WriteString("    pub const ")
+		out.WriteString(constName)
+		out.WriteString(": ")
+		out.WriteString(pkg.Constants[constName])
+		out.WriteString(" = ")
+		writeExternalStubConstDefaultValue(out, pkg.Constants[constName], integerTypes)
+		out.WriteString(";\n")
+	}
+	if len(constNames) > 0 && (len(pkg.Variables) > 0 || len(pkg.Functions) > 0) {
+		out.WriteString("\n")
+	}
+
+	varNames := make([]string, 0, len(pkg.Variables))
+	for varName := range pkg.Variables {
+		varNames = append(varNames, varName)
+	}
+	slices.Sort(varNames)
+	for _, varName := range varNames {
+		writeExternalPackageStubVariable(out, varName, pkg.Variables[varName])
+		out.WriteString("\n")
+	}
+
+	funcNames := make([]string, 0, len(pkg.Functions))
+	for funcName := range pkg.Functions {
+		funcNames = append(funcNames, funcName)
+	}
+	slices.Sort(funcNames)
+	for i, funcName := range funcNames {
+		if i > 0 || len(varNames) > 0 {
+			out.WriteString("\n")
+		}
+		if funcName == "new_ident" {
+			writeAstNewIdentFunction(out, pkg.Functions[funcName])
+		} else {
+			writeExternalPackageStubFunction(out, funcName, pkg.Functions[funcName])
+		}
+	}
+	out.WriteString("}\n")
+}
+
+func writeAstNewIdentFunction(out *strings.Builder, fn externalPackageStubFunction) {
+	out.WriteString("    pub fn new_ident<T0: GoStringArg>(_arg0: T0) -> ")
+	writeExternalStubReturnType(out, fn.ReturnTypes)
+	out.WriteString(" {\n")
+	out.WriteString("        ")
+	out.WriteString(wrappedExternalStubExpr("ast_Ident", "ast_Ident { name: "+wrappedExternalStubExpr("String", "_arg0.into_go_string()")+", ..Default::default() }"))
+	out.WriteString("\n")
+	out.WriteString("    }\n")
 }
 
 func writeFlagPackageStub(out *strings.Builder) {
