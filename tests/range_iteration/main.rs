@@ -18,7 +18,7 @@ fn main() {
 
     let mut kvs = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<String>>>>::from([("a".to_string(), Rc::new(RefCell::new(Some("apple".to_string())))), ("b".to_string(), Rc::new(RefCell::new(Some("banana".to_string()))))]))));
     let mut keys: Rc<RefCell<Option<Vec<String>>>> = Rc::new(RefCell::new(None));
-    for (k, _) in { let __range_holder = kvs.clone(); let __range_guard = __range_holder.borrow(); let __range_map = (*__range_guard.as_ref().unwrap()).clone(); drop(__range_guard); __range_map } {
+    for (k, _) in { let __range_holder = kvs.clone(); let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
         { let new_val = { let __append_target = keys.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push(k.clone()); __append_target.clone() }; keys = new_val; };
     }
     { let mut __sort_guard = keys.borrow_mut(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.sort(); } };

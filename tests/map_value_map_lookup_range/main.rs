@@ -17,7 +17,7 @@ fn main() {
     { let __map_key = "Source".to_string(); let __map_value = Rc::new(RefCell::new(Some(true))); (*(*conversions.borrow().as_ref().unwrap()).get(&"Target".to_string()).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()).borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
 
     let mut count = Rc::new(RefCell::new(Some(0)));
-    for (targetName, sourceNames) in { let __range_holder = conversions.clone(); let __range_guard = __range_holder.borrow(); let __range_map = (*__range_guard.as_ref().unwrap()).clone(); drop(__range_guard); __range_map } {
+    for (targetName, sourceNames) in { let __range_holder = conversions.clone(); let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
         if ((*sourceNames.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32) == (0 as i32) {
         continue
     }

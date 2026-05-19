@@ -1638,6 +1638,10 @@ run_xfail_test() {
     run_test "tests/range_nested_map_lookup_keys"
 }
 
+@test "range_nil_map_parameter" {
+    run_test "tests/range_nil_map_parameter"
+}
+
 @test "range_over_integer" {
     run_test "tests/range_over_integer"
 }

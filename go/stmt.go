@@ -5689,7 +5689,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			}
 			out.WriteString(".clone(); let __range_guard = __range_holder")
 			WriteBorrowMethod(out, false)
-			out.WriteString("; let __range_map = (*__range_guard.as_ref().unwrap()).clone(); drop(__range_guard); __range_map }")
+			out.WriteString("; let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map }")
 		}
 
 		if isInteger {

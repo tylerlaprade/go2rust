@@ -78,7 +78,7 @@ fn main() {
     let mut ids = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<bool>>>>::from([("C".to_string(), Rc::new(RefCell::new(Some(true)))), ("pkg".to_string(), Rc::new(RefCell::new(Some(true))))]))));
     let mut pkg = Rc::new(RefCell::new(Some(LoaderPackage { imports: Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<Package>>>>::new()))), ..Default::default() })));
 
-    for (id, _) in { let __range_holder = ids.clone(); let __range_guard = __range_holder.borrow(); let __range_map = (*__range_guard.as_ref().unwrap()).clone(); drop(__range_guard); __range_map } {
+    for (id, _) in { let __range_holder = ids.clone(); let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
         if id.clone() == "C" {
         continue
     }

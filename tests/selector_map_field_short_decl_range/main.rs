@@ -206,7 +206,7 @@ fn main() {
     let mut root = Arc::new(Mutex::new(Some(Package { imports: Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<Package>>>>::from([("dep".to_string(), Arc::new(Mutex::new(Some(Package { i_d: Arc::new(Mutex::new(Some("dep".to_string()))), ..Default::default() }))).clone())])))), ..Default::default() })));
     let mut stubs = (*root.lock().unwrap().as_ref().unwrap()).imports.clone();
     { let new_val = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<Package>>>>::from([])))); (*root.lock().unwrap().as_mut().unwrap()).imports = new_val; };
-    for (path, pkg) in { let __range_holder = stubs.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_map = (*__range_guard.as_ref().unwrap()).clone(); drop(__range_guard); __range_map } {
+    for (path, pkg) in { let __range_holder = stubs.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
         println!("{} {}", format!("{}", path), format!("{}", (*{ let __field = (*pkg.lock().unwrap().as_ref().unwrap()).i_d.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone()));
     }
     done.send(true);

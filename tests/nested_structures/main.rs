@@ -395,7 +395,7 @@ fn main() {
 
     println!("{}", format!("{}", "Inventory:".to_string()));
     let mut categories: Rc<RefCell<Option<Vec<String>>>> = Rc::new(RefCell::new(None));
-    for (category, _) in { let __range_holder = inventory.clone(); let __range_guard = __range_holder.borrow(); let __range_map = (*__range_guard.as_ref().unwrap()).clone(); drop(__range_guard); __range_map } {
+    for (category, _) in { let __range_holder = inventory.clone(); let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
         { let new_val = { let __append_target = categories.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push(category.clone()); __append_target.clone() }; categories = new_val; };
     }
     { let mut __sort_guard = categories.borrow_mut(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.sort(); } };
@@ -403,7 +403,7 @@ fn main() {
         let mut items = (*inventory.borrow().as_ref().unwrap()).get(category).map(|__v| __v.clone()).unwrap_or_else(|| Default::default());
         print!("  {}:\n", category);
         let mut itemNames: Rc<RefCell<Option<Vec<String>>>> = Rc::new(RefCell::new(None));
-        for (item, _) in { let __range_holder = items.clone(); let __range_guard = __range_holder.borrow(); let __range_map = (*__range_guard.as_ref().unwrap()).clone(); drop(__range_guard); __range_map } {
+        for (item, _) in { let __range_holder = items.clone(); let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
         { let new_val = { let __append_target = itemNames.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push(item.clone()); __append_target.clone() }; itemNames = new_val; };
     }
         { let mut __sort_guard = itemNames.borrow_mut(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.sort(); } };

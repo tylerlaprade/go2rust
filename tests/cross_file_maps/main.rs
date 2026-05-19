@@ -31,7 +31,7 @@ fn main() {
         // Iterate over map - requires knowing the type
         // Note: map iteration order is non-deterministic, so we'll just count
     let mut count = Rc::new(RefCell::new(Some(0)));
-    for (_, _) in { let __range_holder = Users.clone(); let __range_guard = __range_holder.borrow(); let __range_map = (*__range_guard.as_ref().unwrap()).clone(); drop(__range_guard); __range_map } {
+    for (_, _) in { let __range_holder = Users.clone(); let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
         { let mut guard = count.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
     print!("User count: {}\n", { let __v = (*count.borrow().as_ref().unwrap()).clone(); __v });

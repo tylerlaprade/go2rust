@@ -190,7 +190,7 @@ fn main() {
     let mut ages = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i32>>>>::from([("Alice".to_string(), Arc::new(Mutex::new(Some(25)))), ("Bob".to_string(), Arc::new(Mutex::new(Some(30)))), ("Charlie".to_string(), Arc::new(Mutex::new(Some(35))))]))));
 
     let mut sortedNames: Arc<Mutex<Option<Vec<String>>>> = Arc::new(Mutex::new(None));
-    for (name, _) in { let __range_holder = ages.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_map = (*__range_guard.as_ref().unwrap()).clone(); drop(__range_guard); __range_map } {
+    for (name, _) in { let __range_holder = ages.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
         { let new_val = { let __append_target = sortedNames.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(name.clone()); __append_target.clone() }; sortedNames = new_val; };
     }
     { let mut __sort_guard = sortedNames.lock().unwrap(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.sort(); } };
@@ -266,7 +266,7 @@ fn main() {
     println!("{}", format!("{}", "Empty slice range completed".to_string()));
 
     println!("{}", format!("{}", "Empty map:".to_string()));
-    for (k, v) in { let __range_holder = emptyMap.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_map = (*__range_guard.as_ref().unwrap()).clone(); drop(__range_guard); __range_map } {
+    for (k, v) in { let __range_holder = emptyMap.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
         print!("This won't print: {}, {}\n", k, (*v.lock().unwrap().as_mut().unwrap()));
     }
     println!("{}", format!("{}", "Empty map range completed".to_string()));

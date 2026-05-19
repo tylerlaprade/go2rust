@@ -11,7 +11,7 @@ fn main() {
     let mut src = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<String>>>>::from([("pkg".to_string(), Rc::new(RefCell::new(Some("crate".to_string())))), ("imp".to_string(), Rc::new(RefCell::new(Some("dep".to_string()))))]))));
     let mut paths = Rc::new(RefCell::new(Some(Vec::<String>::new())));
     let mut seen = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<String>>>>::new())));
-    for (pkgPath, _) in { let __range_holder = src.clone(); let __range_guard = __range_holder.borrow(); let __range_map = (*__range_guard.as_ref().unwrap()).clone(); drop(__range_guard); __range_map } {
+    for (pkgPath, _) in { let __range_holder = src.clone(); let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
         if (*keep(Rc::new(RefCell::new(Some(pkgPath.clone())))).borrow().as_ref().unwrap()) {
         { let new_val = { let __append_target = paths.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push(pkgPath.clone()); __append_target.clone() }; paths = new_val; };
     }

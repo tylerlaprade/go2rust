@@ -5,7 +5,7 @@ use std::rc::{Rc};
 pub fn collect(imports: Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<String>>>>>>>) -> Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<bool>>>>>>> {
 
     let mut seen = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<bool>>>>::new())));
-    for (_, path) in { let __range_holder = imports.clone(); let __range_guard = __range_holder.borrow(); let __range_map = (*__range_guard.as_ref().unwrap()).clone(); drop(__range_guard); __range_map } {
+    for (_, path) in { let __range_holder = imports.clone(); let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
         { let __map_key = (*path.borrow().as_ref().unwrap()).clone(); let __map_value = Rc::new(RefCell::new(Some(true))); (*seen.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
     }
     return seen.clone();
