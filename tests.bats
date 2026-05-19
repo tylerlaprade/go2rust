@@ -446,6 +446,10 @@ run_xfail_test() {
     run_test "tests/blank_named_return"
 }
 
+@test "build_package_stub" {
+    run_test "tests/build_package_stub"
+}
+
 @test "builtin_functions" {
     run_test "tests/builtin_functions"
 }

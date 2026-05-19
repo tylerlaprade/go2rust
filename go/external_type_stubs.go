@@ -512,6 +512,13 @@ func RegisterExternalPackageStubFunction(pkgName string, funcName string, sig *t
 		RegisterExternalTypeStubFieldByRustType("ast_ImportSpec", "path", wrappedExternalStubType("ast_BasicLit"))
 		RegisterExternalTypeStubFieldByRustType("ast_BasicLit", "value", goTypesTypeToRustWrapped(types.Typ[types.String]))
 	}
+	if pkgName == "build" {
+		RegisterExternalTypeStubFieldByRustType("build_Context", "g_o_r_o_o_t", goTypesTypeToRustWrapped(types.Typ[types.String]))
+		RegisterExternalTypeStubFieldByRustType("build_Package", "dir", goTypesTypeToRustWrapped(types.Typ[types.String]))
+		RegisterExternalTypeStubFieldByRustType("build_Package", "goroot", goTypesTypeToRustWrapped(types.Typ[types.Bool]))
+		RegisterExternalTypeStubFieldByRustType("build_Package", "import_path", goTypesTypeToRustWrapped(types.Typ[types.String]))
+		RegisterExternalTypeStubFieldByRustType("build_Package", "pkg_obj", goTypesTypeToRustWrapped(types.Typ[types.String]))
+	}
 	fn := externalPackageStubFunction{
 		ParamCount: sig.Params().Len(),
 	}
@@ -1103,7 +1110,11 @@ func generateExternalStubs(stubs map[string]bool, interfaceTypes map[string]bool
 		slices.Sort(methodNames)
 		for _, methodName := range methodNames {
 			method := methods[methodName]
-			writeExternalTypeStubMethod(&out, methodName, method)
+			if name == "build_Context" && methodName == "import" {
+				writeBuildContextImportMethod(&out, methodName, method)
+			} else {
+				writeExternalTypeStubMethod(&out, methodName, method)
+			}
 		}
 		out.WriteString("}\n")
 	}
@@ -1396,6 +1407,30 @@ func writeExternalTypeStubMethod(out *strings.Builder, methodName string, method
 	out.WriteString("    }\n")
 }
 
+func writeBuildContextImportMethod(out *strings.Builder, methodName string, method externalTypeStubMethod) {
+	out.WriteString("    pub fn ")
+	out.WriteString(methodName)
+	out.WriteString("<T0: build::GoStringArg, T1, T2>(&self, _arg0: T0, _arg1: T1, _arg2: T2)")
+	if len(method.ReturnTypes) > 0 {
+		out.WriteString(" -> ")
+		if len(method.ReturnTypes) == 1 {
+			out.WriteString(method.ReturnTypes[0])
+		} else {
+			out.WriteString("(")
+			for i, returnType := range method.ReturnTypes {
+				if i > 0 {
+					out.WriteString(", ")
+				}
+				out.WriteString(returnType)
+			}
+			out.WriteString(")")
+		}
+	}
+	out.WriteString(" {\n")
+	out.WriteString("        build::go_build_import_path(_arg0.into_go_string())\n")
+	out.WriteString("    }\n")
+}
+
 func writeExternalPackageStubs(out *strings.Builder, packageStubs map[string]*externalPackageStub, integerTypes map[string]string, needsSeparator bool) {
 	if len(packageStubs) == 0 {
 		return
@@ -1416,6 +1451,10 @@ func writeExternalPackageStubs(out *strings.Builder, packageStubs map[string]*ex
 		needsSeparator = true
 		if pkgName == "ast" {
 			writeAstPackageStub(out, pkg, integerTypes)
+			continue
+		}
+		if pkgName == "build" {
+			writeBuildPackageStub(out, pkg, integerTypes)
 			continue
 		}
 		if pkgName == "flag" {
@@ -1979,6 +2018,187 @@ func writeParserParseFileFunction(out *strings.Builder, fn externalPackageStubFu
         }
     }
 `)
+}
+
+func writeBuildPackageStub(out *strings.Builder, pkg *externalPackageStub, integerTypes map[string]string) {
+	out.WriteString("pub mod build {\n")
+	out.WriteString("    use super::*;\n")
+	out.WriteString("    use std::path::PathBuf;\n\n")
+	writeGoStringArgTrait(out)
+	writeBuildHelpers(out)
+
+	constNames := make([]string, 0, len(pkg.Constants))
+	for constName := range pkg.Constants {
+		constNames = append(constNames, constName)
+	}
+	slices.Sort(constNames)
+	for _, constName := range constNames {
+		out.WriteString("    pub const ")
+		out.WriteString(constName)
+		out.WriteString(": ")
+		out.WriteString(pkg.Constants[constName])
+		out.WriteString(" = ")
+		writeExternalStubConstDefaultValue(out, pkg.Constants[constName], integerTypes)
+		out.WriteString(";\n")
+	}
+	if len(constNames) > 0 && (len(pkg.Variables) > 0 || len(pkg.Functions) > 0) {
+		out.WriteString("\n")
+	}
+
+	varNames := make([]string, 0, len(pkg.Variables))
+	for varName := range pkg.Variables {
+		varNames = append(varNames, varName)
+	}
+	slices.Sort(varNames)
+	for _, varName := range varNames {
+		if varName == "Default" {
+			writeBuildDefaultFunction(out)
+		} else {
+			writeExternalPackageStubVariable(out, varName, pkg.Variables[varName])
+		}
+		out.WriteString("\n")
+	}
+
+	funcNames := make([]string, 0, len(pkg.Functions))
+	for funcName := range pkg.Functions {
+		funcNames = append(funcNames, funcName)
+	}
+	slices.Sort(funcNames)
+	for i, funcName := range funcNames {
+		if i > 0 || len(varNames) > 0 {
+			out.WriteString("\n")
+		}
+		if funcName == "import" {
+			writeBuildImportFunction(out, pkg.Functions[funcName])
+		} else if funcName == "is_local_import" {
+			writeBuildIsLocalImportFunction(out)
+		} else {
+			writeExternalPackageStubFunction(out, funcName, pkg.Functions[funcName])
+		}
+	}
+	out.WriteString("}\n")
+}
+
+func writeBuildHelpers(out *strings.Builder) {
+	errorType := "Box<dyn StdError>"
+	if NeedsConcurrentWrapper() {
+		errorType = "Box<dyn StdError + Send + Sync>"
+	}
+	fmt.Fprintf(out, `    type GoError = %s;
+
+    fn go_build_no_error() -> GoError {
+        %s
+    }
+
+    fn go_build_error(message: String) -> GoError {
+        %s
+    }
+
+    fn go_build_string(value: String) -> %s {
+        %s
+    }
+
+    fn go_build_bool(value: bool) -> %s {
+        %s
+    }
+
+    fn go_build_goroot() -> String {
+        static GOROOT: std::sync::OnceLock<String> = std::sync::OnceLock::new();
+        GOROOT.get_or_init(|| {
+            if let Ok(value) = std::env::var("GOROOT") {
+                if !value.is_empty() {
+                    return value;
+                }
+            }
+            std::process::Command::new("go")
+                .args(["env", "GOROOT"])
+                .output()
+                .ok()
+                .and_then(|output| if output.status.success() { String::from_utf8(output.stdout).ok() } else { None })
+                .map(|value| value.trim().to_string())
+                .filter(|value| !value.is_empty())
+                .unwrap_or_default()
+        }).clone()
+    }
+
+    fn go_build_package(import_path: String, dir: String, goroot: bool) -> build_Package {
+        build_Package {
+            dir: go_build_string(dir),
+            goroot: go_build_bool(goroot),
+            import_path: go_build_string(import_path),
+            pkg_obj: go_build_string(String::new()),
+            ..Default::default()
+        }
+    }
+
+    fn go_build_dir_for_import(goroot: &str, import_path: &str) -> PathBuf {
+        let mut dir = PathBuf::from(goroot);
+        dir.push("src");
+        for part in import_path.split('/') {
+            if !part.is_empty() {
+                dir.push(part);
+            }
+        }
+        dir
+    }
+
+    pub(crate) fn go_build_import_path(import_path: String) -> (%s, GoError) {
+        if import_path.is_empty() || go_build_is_local_import_str(&import_path) {
+            return (
+                %s,
+                go_build_error(format!("cannot import {}", import_path)),
+            );
+        }
+        let goroot = go_build_goroot();
+        if !goroot.is_empty() {
+            let dir = go_build_dir_for_import(&goroot, &import_path);
+            if dir.is_dir() {
+                return (
+                    %s,
+                    go_build_no_error(),
+                );
+            }
+        }
+        (
+            %s,
+            go_build_error(format!("cannot find package {}", import_path)),
+        )
+    }
+
+    fn go_build_is_local_import_str(path: &str) -> bool {
+        path == "." || path == ".." || path.starts_with("./") || path.starts_with("../")
+    }
+
+`, wrappedExternalStubType(errorType), wrappedExternalStubNoneExpr(errorType), wrappedExternalStubExpr(errorType, "Box::new(std::io::Error::new(std::io::ErrorKind::NotFound, message))"), wrappedExternalStubType("String"), wrappedExternalStubExpr("String", "value"), wrappedExternalStubType("bool"), wrappedExternalStubExpr("bool", "value"), wrappedExternalStubType("build_Package"), wrappedExternalStubExpr("build_Package", "go_build_package(import_path.clone(), String::new(), false)"), wrappedExternalStubExpr("build_Package", "go_build_package(import_path.clone(), dir.to_string_lossy().into_owned(), true)"), wrappedExternalStubExpr("build_Package", "go_build_package(import_path.clone(), String::new(), false)"))
+}
+
+func writeBuildDefaultFunction(out *strings.Builder) {
+	out.WriteString("    pub fn Default() -> ")
+	out.WriteString(wrappedExternalStubType("build_Context"))
+	out.WriteString(" {\n")
+	out.WriteString("        ")
+	out.WriteString(wrappedExternalStubExpr("build_Context", "build_Context { g_o_r_o_o_t: go_build_string(go_build_goroot()), ..Default::default() }"))
+	out.WriteString("\n")
+	out.WriteString("    }\n")
+}
+
+func writeBuildImportFunction(out *strings.Builder, fn externalPackageStubFunction) {
+	out.WriteString("    pub fn import<T0: GoStringArg, T1: GoStringArg, T2>(_arg0: T0, _arg1: T1, _arg2: T2) -> ")
+	writeExternalStubReturnType(out, fn.ReturnTypes)
+	out.WriteString(" {\n")
+	out.WriteString("        let import_path = _arg0.into_go_string();\n")
+	out.WriteString("        go_build_import_path(import_path)\n")
+	out.WriteString("    }\n")
+}
+
+func writeBuildIsLocalImportFunction(out *strings.Builder) {
+	out.WriteString("    pub fn is_local_import<T0: GoStringArg>(_arg0: T0) -> ")
+	out.WriteString(wrappedExternalStubType("bool"))
+	out.WriteString(" {\n")
+	out.WriteString("        ")
+	out.WriteString(wrappedExternalStubExpr("bool", "go_build_is_local_import_str(&_arg0.into_go_string())"))
+	out.WriteString("\n")
+	out.WriteString("    }\n")
 }
 
 func writeFlagPackageStub(out *strings.Builder) {
