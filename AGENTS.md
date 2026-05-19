@@ -9,6 +9,7 @@
 - **Use Go's AST and go/types** - don't reinvent type analysis
 - **Test-driven development** - XFAIL tests auto-promote when passing
 - **Always run tests** before committing or moving to next task
+- **Self-hosting requires behavior equivalence** - generated Rust compiling is not enough; run the self-transpiled binary against the full fixture behavior suite with `./self_transpile_check.sh --behavior-suite`
 - **Update README** when adding support for new Go syntax features
 - **Update ROADMAP.md** after implementing features or making progress on phases
 - **Include transpiled Rust files in commits** when transpiler changes affect them (output of test cases)
