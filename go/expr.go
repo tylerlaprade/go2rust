@@ -6643,6 +6643,10 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 		return
 	}
 
+	if writeReflectStringHeaderPointerConversion(out, call) {
+		return
+	}
+
 	if target, ok := pointerTypeConversionTarget(call.Fun); ok {
 		writePointerTypeConversion(out, target)
 		return
@@ -7026,6 +7030,72 @@ func writePointerTypeConversion(out *strings.Builder, target ast.Expr) {
 	out.WriteString(goTypeToRustBase(target))
 	out.WriteString("::default()")
 	WriteWrapperSuffix(out)
+}
+
+func writeReflectStringHeaderPointerConversion(out *strings.Builder, call *ast.CallExpr) bool {
+	target, ok := pointerTypeConversionTarget(call.Fun)
+	if !ok || !isReflectStringHeaderTypeExpr(target) || len(call.Args) != 1 {
+		return false
+	}
+	source, ok := unsafePointerAddressSource(call.Args[0])
+	if !ok {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || !typeInfo.IsString(source) {
+		return false
+	}
+	targetType := goTypeToRustBase(target)
+	RegisterExternalTypeStubFieldByRustType(targetType, "data", goTypesTypeToRustWrapped(types.Typ[types.Uintptr]))
+	RegisterExternalTypeStubFieldByRustType(targetType, "len", goTypesTypeToRustWrapped(types.Typ[types.Int]))
+	WriteWrapperPrefix(out)
+	out.WriteString(targetType)
+	out.WriteString(" { data: ")
+	WriteWrapperPrefix(out)
+	out.WriteString("0 as usize")
+	WriteWrapperSuffix(out)
+	out.WriteString(", len: ")
+	WriteWrapperPrefix(out)
+	out.WriteString("{ let __s = ")
+	writeStringSequenceValue(out, source)
+	out.WriteString("; __s.len() as i32 }")
+	WriteWrapperSuffix(out)
+	out.WriteString(", ..Default::default() }")
+	WriteWrapperSuffix(out)
+	return true
+}
+
+func isReflectStringHeaderTypeExpr(expr ast.Expr) bool {
+	sel, ok := expr.(*ast.SelectorExpr)
+	if !ok || sel.Sel.Name != "StringHeader" {
+		return false
+	}
+	pkg, ok := sel.X.(*ast.Ident)
+	if !ok {
+		return false
+	}
+	pkgPath, ok := goPackageImports[pkg.Name]
+	return ok && pkgPath == "reflect"
+}
+
+func unsafePointerAddressSource(expr ast.Expr) (ast.Expr, bool) {
+	call, ok := expr.(*ast.CallExpr)
+	if !ok || len(call.Args) != 1 {
+		return nil, false
+	}
+	sel, ok := call.Fun.(*ast.SelectorExpr)
+	if !ok || sel.Sel.Name != "Pointer" {
+		return nil, false
+	}
+	pkg, ok := sel.X.(*ast.Ident)
+	if !ok || pkg.Name != "unsafe" {
+		return nil, false
+	}
+	unary, ok := call.Args[0].(*ast.UnaryExpr)
+	if !ok || unary.Op != token.AND {
+		return nil, false
+	}
+	return unary.X, true
 }
 
 func isUnsafePointerLikeType(typ types.Type) bool {

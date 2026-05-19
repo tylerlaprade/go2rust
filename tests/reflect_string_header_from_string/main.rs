@@ -1,5 +1,4 @@
 use std::sync::{Arc, Mutex};
-use std::thread;
 
 #[derive(Debug, Clone, Default)]
 pub struct reflect_StringHeader {
@@ -22,13 +21,7 @@ impl reflect_StringHeader {
 
 
 fn main() {
-    std::thread::spawn(move || {
-        ;
-    });
-
-    let mut value: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(Some(String::new())));
+    let mut value = Arc::new(Mutex::new(Some("abc".to_string())));
     let mut hdr = Arc::new(Mutex::new(Some(reflect_StringHeader { data: Arc::new(Mutex::new(Some(0 as usize))), len: Arc::new(Mutex::new(Some({ let __s = (*value.lock().unwrap().as_ref().unwrap()).clone(); __s.len() as i32 }))), ..Default::default() })));
-    { let new_val = Arc::new(Mutex::new(Some(0 as usize))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *(*hdr.lock().unwrap().as_ref().unwrap()).data.lock().unwrap() = __moved_val; };
-    { let new_val = 3; *(*hdr.lock().unwrap().as_ref().unwrap()).len.lock().unwrap() = Some(new_val); };
     println!("{}", format!("{}", (*{ let __field = (*hdr.lock().unwrap().as_ref().unwrap()).len.clone(); __field }.lock().unwrap().as_ref().unwrap())));
 }
