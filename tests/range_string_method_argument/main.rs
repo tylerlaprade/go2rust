@@ -180,7 +180,7 @@ fn main() {
 
     let mut values = Arc::new(Mutex::new(Some(vec!["alpha".to_string(), "beta".to_string()])));
     let mut e: Arc<Mutex<Option<Encoder>>> = Arc::new(Mutex::new(Some(Default::default())));
-    { let __range_holder = values.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for value in __range_values.iter() {
+    { let __range_holder = values.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for value in __range_values.iter() {
         (*e.lock().unwrap().as_mut().unwrap()).string(Arc::new(Mutex::new(Some((*value).clone()))));
     } }
 }

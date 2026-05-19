@@ -847,8 +847,8 @@ func main() {
 	}
 
 	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
-	if !strings.Contains(mainRS, "let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]);") {
-		t.Fatalf("range over wrapped array fields should borrow a slice view, got:\n%s", mainRS)
+	if !strings.Contains(mainRS, "let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard);") {
+		t.Fatalf("range over wrapped array fields should clone values before the loop and drop the guard, got:\n%s", mainRS)
 	}
 	if !strings.Contains(mainRS, "fn format_slice<T, C>") || !strings.Contains(mainRS, "C: AsRef<[T]>") {
 		t.Fatalf("format_slice should accept arrays and slices through AsRef, got:\n%s", mainRS)

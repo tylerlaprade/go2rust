@@ -1854,6 +1854,10 @@ run_xfail_test() {
     run_test "tests/slice_expr_method_argument"
 }
 
+@test "slice_field_range_reentrant_method" {
+    run_test "tests/slice_field_range_reentrant_method"
+}
+
 @test "slice_operations_advanced" {
     run_test "tests/slice_operations_advanced"
 }

@@ -5,12 +5,12 @@ use std::rc::{Rc};
 fn main() {
     let mut nums = Rc::new(RefCell::new(Some(vec![2, 3, 4])));
     let mut sum = Rc::new(RefCell::new(Some(0)));
-    { let __range_holder = nums.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for num in __range_values.iter().copied() {
+    { let __range_holder = nums.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for num in __range_values.iter().copied() {
         { let mut guard = sum.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + num); };
     } }
     println!("{} {}", format!("{}", "sum:".to_string()), format!("{}", { let __v = (*sum.borrow().as_ref().unwrap()).clone(); __v }));
 
-    { let __range_holder = nums.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for (i, num) in __range_values.iter().copied().enumerate() {
+    { let __range_holder = nums.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, num) in __range_values.iter().copied().enumerate() {
         if num == 3 {
         println!("{} {}", format!("{}", "index:".to_string()), format!("{}", i));
     }
@@ -22,7 +22,7 @@ fn main() {
         { let new_val = { let __append_target = keys.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push(k.clone()); __append_target.clone() }; keys = new_val; };
     }
     { let mut __sort_guard = keys.borrow_mut(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.sort(); } };
-    { let __range_holder = keys.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for k in __range_values.iter() {
+    { let __range_holder = keys.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for k in __range_values.iter() {
         print!("{} -> {}\n", k, (*kvs.borrow().as_ref().unwrap()).get(k).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| String::new()));
     } }
 }

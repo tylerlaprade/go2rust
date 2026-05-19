@@ -207,7 +207,7 @@ pub mod ast {
 pub fn has_stmt(stmts: Arc<Mutex<Option<Vec<ast_Stmt>>>>) -> Arc<Mutex<Option<bool>>> {
 
     let mut prev: Arc<Mutex<Option<ast_Stmt>>> = Arc::new(Mutex::new(None));
-    { let __range_holder = stmts.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for stmt in __range_values.iter() {
+    { let __range_holder = stmts.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for stmt in __range_values.iter() {
         { let new_val = (*stmt).clone(); *prev.lock().unwrap() = Some(new_val); };
         if (*accept_stmt(Arc::new(Mutex::new(Some((*stmt).clone())))).lock().unwrap().as_ref().unwrap()) {
         return accept_stmt(Arc::new(Mutex::new(Some((*prev.lock().unwrap().as_ref().unwrap()).clone()))));
@@ -223,7 +223,7 @@ pub fn accept_stmt(stmt: Arc<Mutex<Option<ast_Stmt>>>) -> Arc<Mutex<Option<bool>
 
 pub fn stmt_kind(stmts: Arc<Mutex<Option<Vec<ast_Stmt>>>>) -> Arc<Mutex<Option<String>>> {
 
-    { let __range_holder = stmts.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for stmt in __range_values.iter() {
+    { let __range_holder = stmts.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for stmt in __range_values.iter() {
         {
     let _ts_is_nil = false;
     let _ts_val: Option<&ast_Stmt> = Some(stmt);
@@ -243,7 +243,7 @@ pub fn stmt_kind(stmts: Arc<Mutex<Option<Vec<ast_Stmt>>>>) -> Arc<Mutex<Option<S
 
 pub fn assert_expr_stmt(stmts: Arc<Mutex<Option<Vec<ast_Stmt>>>>) -> Arc<Mutex<Option<bool>>> {
 
-    { let __range_holder = stmts.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for stmt in __range_values.iter() {
+    { let __range_holder = stmts.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for stmt in __range_values.iter() {
         let mut expr = ({
         let val = stmt;
         Arc::new(Mutex::new(Some(val.downcast_ref::<ast_ExprStmt>().expect("type assertion failed").clone())))

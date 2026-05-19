@@ -64,7 +64,7 @@ fn main() {
     let mut result: Arc<Mutex<Option<Vec<Arc<Mutex<Option<node>>>>>>> = Arc::new(Mutex::new(None));
     { let new_val = { let __append_target = items.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(n.clone()); __append_target.clone() }; items = new_val; };
     let mut seen = Arc::new(Mutex::new(Some(BTreeMap::<GoLocalPtrKey<node>, Arc<Mutex<Option<bool>>>>::new())));
-    { let __range_holder = items.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for p in __range_values.iter() {
+    { let __range_holder = items.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for p in __range_values.iter() {
         if !{ let __map = { let __map_holder = seen.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = (*__map_guard.as_ref().unwrap()).clone(); drop(__map_guard); __cloned }; __map.get(&GoLocalPtrKey::new(p.clone())).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| false) } {
         { let __map_key = GoLocalPtrKey::new(p.clone()); let __map_value = Arc::new(Mutex::new(Some(true))); (*seen.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
         { let new_val = { let __append_target = result.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(p.clone()); __append_target.clone() }; result = new_val; };

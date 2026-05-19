@@ -45,34 +45,43 @@ where
 }
 
 #[derive(Debug, Clone, Default)]
-pub struct bag {
-    pub values: Rc<RefCell<Option<Vec<i32>>>>,
+pub struct holder {
+    pub values: Rc<RefCell<Option<Vec<String>>>>,
 }
 
-impl bag {
+impl holder {
     pub fn __go_value_clone(&self) -> Self {
         Self { values: self.values.clone() }
     }
 }
 
-impl std::fmt::Display for bag {
+impl std::fmt::Display for holder {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{}}}", format_slice(&self.values))
     }
 }
 
 
-impl bag {
-    pub fn sum(&self) -> Rc<RefCell<Option<i32>>> {
-        let mut sum = Rc::new(RefCell::new(Some(0)));
-        { let __range_holder = self.values.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for value in __range_values.iter().copied() {
-        { let mut guard = sum.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + value); };
+impl holder {
+    pub fn has_values(&self) -> Rc<RefCell<Option<bool>>> {
+        { let __range_holder = self.values.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for _ in __range_values.iter() {
+        return Rc::new(RefCell::new(Some(true)));
     } }
-        return sum.clone();
+        return Rc::new(RefCell::new(Some(false)));
+    }
+
+    pub fn count_with_check(&self) -> Rc<RefCell<Option<i32>>> {
+        let mut count = Rc::new(RefCell::new(Some(0)));
+        { let __range_holder = self.values.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for _ in __range_values.iter() {
+        if (*self.has_values().borrow().as_ref().unwrap()) {
+        { let mut guard = count.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
+    }
+    } }
+        return count.clone();
     }
 }
 
 fn main() {
-    let mut bag = Rc::new(RefCell::new(Some(bag { values: Rc::new(RefCell::new(Some(vec![1, 2, 3]))), ..Default::default() })));
-    println!("{}", format!("{}", (*(*bag.borrow().as_ref().unwrap()).sum().borrow().as_ref().unwrap())));
+    let mut h = Rc::new(RefCell::new(Some(holder { values: Rc::new(RefCell::new(Some(vec!["a".to_string(), "b".to_string()]))), ..Default::default() })));
+    println!("{}", format!("{}", (*(*h.borrow_mut().as_mut().unwrap()).count_with_check().borrow().as_ref().unwrap())));
 }

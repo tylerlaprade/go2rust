@@ -232,7 +232,7 @@ fn main() {
         return;
     }
 
-    { let __range_holder = entries.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for entry in __range_values.iter() {
+    { let __range_holder = entries.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for entry in __range_values.iter() {
         let mut joined = filepath::join(("data".to_string(), entry.name()));
         println!("{} {} {} {}", format!("{}", "entry".to_string()), format!("{}", { let __v = (*joined.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", (*filepath::base(joined.clone()).lock().unwrap().as_ref().unwrap())), format!("{}", (*entry.is_dir().lock().unwrap().as_ref().unwrap())));
     } }

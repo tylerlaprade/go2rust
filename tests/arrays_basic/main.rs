@@ -17,7 +17,7 @@ fn main() {
         // Array initialization
     let mut nums = Rc::new(RefCell::new(Some([1, 2, 3, 4])));
     println!("{}", format!("{}", "Initialized array:".to_string()));
-    { let __range_holder = nums.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for num in __range_values.iter().copied() {
+    { let __range_holder = nums.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for num in __range_values.iter().copied() {
         println!("{}", format!("{}", num));
     } }
 }

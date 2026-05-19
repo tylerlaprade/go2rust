@@ -378,7 +378,7 @@ fn main() {
         // Iterate through employees
     println!("{}", format!("{}", "\n=== Department employees ===".to_string()));
 
-    { let __range_holder = (*(*company.borrow().as_ref().unwrap()).departments.borrow().as_ref().unwrap())[(0) as usize].clone().employees.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for (i, emp) in __range_values.iter().enumerate() {
+    { let __range_holder = (*(*company.borrow().as_ref().unwrap()).departments.borrow().as_ref().unwrap())[(0) as usize].clone().employees.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, emp) in __range_values.iter().enumerate() {
         print!("Employee {}: {}\n", i + 1, (*emp.name.borrow().as_ref().unwrap()).clone());
         print!("  Age: {}\n", (*emp.age.borrow().as_ref().unwrap()));
         print!("  Email: {}\n", (*(*emp.contact.borrow().as_ref().unwrap()).email.borrow().as_ref().unwrap()));
@@ -399,7 +399,7 @@ fn main() {
         { let new_val = { let __append_target = categories.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push(category.clone()); __append_target.clone() }; categories = new_val; };
     }
     { let mut __sort_guard = categories.borrow_mut(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.sort(); } };
-    { let __range_holder = categories.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for category in __range_values.iter() {
+    { let __range_holder = categories.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for category in __range_values.iter() {
         let mut items = (*inventory.borrow().as_ref().unwrap()).get(category).map(|__v| __v.clone()).unwrap_or_else(|| Default::default());
         print!("  {}:\n", category);
         let mut itemNames: Rc<RefCell<Option<Vec<String>>>> = Rc::new(RefCell::new(None));
@@ -407,7 +407,7 @@ fn main() {
         { let new_val = { let __append_target = itemNames.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push(item.clone()); __append_target.clone() }; itemNames = new_val; };
     }
         { let mut __sort_guard = itemNames.borrow_mut(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.sort(); } };
-        { let __range_holder = itemNames.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for item in __range_values.iter() {
+        { let __range_holder = itemNames.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for item in __range_values.iter() {
         let mut count = Rc::new(RefCell::new(Some((*items.borrow().as_ref().unwrap()).get(item).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| 0))));
         print!("    {}: {}\n", item, { let __v = (*count.borrow().as_ref().unwrap()).clone(); __v });
     } }
@@ -424,7 +424,7 @@ fn main() {
     let mut matrix = Rc::new(RefCell::new(Some(vec![vec![1, 2, 3], vec![4, 5, 6], vec![7, 8, 9]])));
 
     println!("{}", format!("{}", "Matrix:".to_string()));
-    { let __range_holder = matrix.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for (i, row) in __range_values.iter().enumerate() {
+    { let __range_holder = matrix.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, row) in __range_values.iter().enumerate() {
         print!("Row {}: ", i);
         for (j, val) in row.iter().copied().enumerate() {
         print!("{} ", val);
@@ -443,7 +443,7 @@ fn main() {
     let mut cube = Rc::new(RefCell::new(Some(vec![vec![vec![1, 2], vec![3, 4]], vec![vec![5, 6], vec![7, 8]]])));
 
     println!("{}", format!("{}", "\n3D Cube:".to_string()));
-    { let __range_holder = cube.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for (i, layer) in __range_values.iter().enumerate() {
+    { let __range_holder = cube.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, layer) in __range_values.iter().enumerate() {
         print!("Layer {}:\n", i);
         for (j, row) in layer.iter().enumerate() {
         print!("  Row {}: ", j);
@@ -460,7 +460,7 @@ fn main() {
     let mut canvas = Rc::new(RefCell::new(Some(Canvas { name: Rc::new(RefCell::new(Some("My Drawing".to_string()))), shapes: Rc::new(RefCell::new(Some(vec![Box::new(Circle { radius: Rc::new(RefCell::new(Some(5.0))), ..Default::default() }) as Box<dyn Drawable>, Box::new(Rectangle { width: Rc::new(RefCell::new(Some(10.0))), height: Rc::new(RefCell::new(Some(8.0))), ..Default::default() }) as Box<dyn Drawable>, Box::new(Circle { radius: Rc::new(RefCell::new(Some(3.0))), ..Default::default() }) as Box<dyn Drawable>]))), ..Default::default() })));
 
     print!("Canvas: {}\n", (*(*canvas.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()).clone());
-    { let __range_holder = (*canvas.borrow().as_ref().unwrap()).shapes.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for (i, shape) in __range_values.iter().enumerate() {
+    { let __range_holder = (*canvas.borrow().as_ref().unwrap()).shapes.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, shape) in __range_values.iter().enumerate() {
         print!("Shape {}: {}\n", i + 1, (*shape.draw().borrow().as_ref().unwrap()));
     } }
 

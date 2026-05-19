@@ -107,7 +107,7 @@ impl exporter {
 pub fn count_type_names(objs: Rc<RefCell<Option<Vec<types_Object>>>>) -> Rc<RefCell<Option<i32>>> {
 
     let mut count = Rc::new(RefCell::new(Some(0)));
-    { let __range_holder = objs.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for o in __range_values.iter() {
+    { let __range_holder = objs.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for o in __range_values.iter() {
         let (_, mut ok) = ({
         let val = o.clone();
         if let Some(typed_val) = val.downcast_ref::<types_TypeName>() {

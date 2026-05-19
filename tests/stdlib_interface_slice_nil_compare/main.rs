@@ -134,7 +134,7 @@ pub fn count_non_nil(exprs: Arc<Mutex<Option<Vec<ast_Expr>>>>) -> Arc<Mutex<Opti
     }
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
-    { let __range_holder = exprs.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for expr in __range_values.iter() {
+    { let __range_holder = exprs.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for expr in __range_values.iter() {
         if false {
         return Arc::new(Mutex::new(Some(-1)));
     }

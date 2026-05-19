@@ -149,7 +149,7 @@ fn main() {
         // Interface slice
     let mut shapes = Rc::new(RefCell::new(Some(vec![Box::new((*rect.borrow().as_ref().unwrap()).clone()) as Box<dyn Shape>, Box::new((*circle.borrow().as_ref().unwrap()).clone()) as Box<dyn Shape>])));
     println!("{}", format!("{}", "All shapes:".to_string()));
-    { let __range_holder = shapes.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for (i, shape) in __range_values.iter().enumerate() {
+    { let __range_holder = shapes.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, shape) in __range_values.iter().enumerate() {
         print!("Shape {}: ", i + 1);
         print_shape_info(shape.as_ref());
     } }

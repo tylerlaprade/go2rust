@@ -72,7 +72,7 @@ pub fn values() -> Rc<RefCell<Option<Vec<types_Type>>>> {
 fn main() {
     let mut seen = Rc::new(RefCell::new(Some(BTreeMap::<u64, Rc<RefCell<Option<types_Type>>>>::new())));
     if false {
-        { let __range_holder = values().clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for (i, typ) in __range_values.iter().enumerate() {
+        { let __range_holder = values().clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, typ) in __range_values.iter().enumerate() {
         { let __map_key = { let __v = Rc::new(RefCell::new(Some(i as u64))); let __guard = __v.borrow(); let __owned = (*__guard.as_ref().unwrap()).clone(); __owned }; let __map_value = Rc::new(RefCell::new(Some((*typ).clone()))); (*seen.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
     } }
     }

@@ -72,7 +72,7 @@ impl std::fmt::Display for bucket {
 impl bucket {
     pub fn sum(&self) -> Rc<RefCell<Option<i32>>> {
         let mut total = Rc::new(RefCell::new(Some(0)));
-        { let __range_holder = self.values.clone().clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for value in __range_values.iter().copied() {
+        { let __range_holder = self.values.clone().clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for value in __range_values.iter().copied() {
         { let mut guard = total.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + value); };
     } }
         return total.clone();
@@ -85,7 +85,7 @@ pub fn names() -> Rc<RefCell<Option<Vec<String>>>> {
 }
 
 fn main() {
-    { let __range_holder = names().clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for name in __range_values.iter() {
+    { let __range_holder = names().clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for name in __range_values.iter() {
         println!("{}", format!("{}", name));
     } }
     let mut b = Rc::new(RefCell::new(Some(bucket { values: Rc::new(RefCell::new(Some([2, 3, 5]))), ..Default::default() })));
@@ -93,7 +93,7 @@ fn main() {
 
     let mut groups = Rc::new(RefCell::new(Some([vec!["go".to_string()], vec!["rust".to_string(), "zig".to_string()]])));
     let mut total = Rc::new(RefCell::new(Some(0)));
-    { let __range_holder = groups.clone().clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for group in __range_values.iter() {
+    { let __range_holder = groups.clone().clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for group in __range_values.iter() {
         for name in group.iter() {
         if (*name).clone() != "" {
         { let mut guard = total.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }

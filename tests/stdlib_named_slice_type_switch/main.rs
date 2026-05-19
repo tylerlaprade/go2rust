@@ -55,7 +55,7 @@ pub fn describe(mut err: Rc<RefCell<Option<Box<dyn StdError>>>>) {
     let _ts_val = _ts_guard.as_ref();
     if _ts_val.and_then(|__v| __v.downcast_ref::<scanner_ErrorList>()).is_some() {
         let err = Rc::new(RefCell::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<scanner_ErrorList>()).unwrap().clone())));
-        { let __range_holder = { let __named_slice = (*err.borrow().as_ref().unwrap()).0.clone(); __named_slice }; let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for item in __range_values.iter() {
+        { let __range_holder = { let __named_slice = (*err.borrow().as_ref().unwrap()).0.clone(); __named_slice }; let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for item in __range_values.iter() {
         println!("{}", format!("{}", (*(*item.borrow().as_ref().unwrap()).msg.borrow().as_ref().unwrap()).clone()));
     } };
     } else {

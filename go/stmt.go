@@ -5483,7 +5483,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			writeNamedSliceInnerHandleClone(out, s.X)
 			out.WriteString("; let __range_guard = __range_holder")
 			WriteBorrowMethod(out, false)
-			out.WriteString("; let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); ")
+			out.WriteString("; let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); ")
 			rangeValuesVar = "__range_values"
 			closeRangeGuard = true
 		} else if needsSliceValues && !isMap && !isString && (isSlice || isArray) {
@@ -5492,7 +5492,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				writeWrappedHandleExpression(out, s.X)
 				out.WriteString(".clone(); let __range_guard = __range_holder")
 				WriteBorrowMethod(out, false)
-				out.WriteString("; let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); ")
+				out.WriteString("; let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); ")
 				rangeValuesVar = "__range_values"
 				closeRangeGuard = true
 			}
