@@ -1,0 +1,8 @@
+[package]
+name = "exec_look_path_not_found"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "exec_look_path_not_found"
+path = "main.rs"

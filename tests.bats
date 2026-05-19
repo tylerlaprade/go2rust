@@ -842,6 +842,10 @@ run_xfail_test() {
     run_test "tests/exec_exit_error_assertion"
 }
 
+@test "exec_look_path_not_found" {
+    run_test "tests/exec_look_path_not_found"
+}
+
 @test "external_named_integer_conversion" {
     run_test "tests/external_named_integer_conversion"
 }

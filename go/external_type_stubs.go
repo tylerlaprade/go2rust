@@ -2711,6 +2711,10 @@ func writeExternalPackageStubVariable(out *strings.Builder, varName string, rust
 }
 
 func writeExternalPackageStubFunction(out *strings.Builder, funcName string, fn externalPackageStubFunction) {
+	if funcName == "look_path" && len(fn.ReturnTypes) == 2 {
+		writeExecLookPathStub(out, fn)
+		return
+	}
 	out.WriteString("    pub fn ")
 	out.WriteString(funcName)
 	if fn.ParamCount > 0 {
@@ -2746,6 +2750,44 @@ func writeExternalPackageStubFunction(out *strings.Builder, funcName string, fn 
 		out.WriteString("\n")
 	}
 	out.WriteString("    }\n")
+}
+
+func writeExecLookPathStub(out *strings.Builder, fn externalPackageStubFunction) {
+	out.WriteString("    pub fn look_path")
+	if fn.ParamCount > 0 {
+		out.WriteString("<")
+		for i := 0; i < fn.ParamCount; i++ {
+			if i > 0 {
+				out.WriteString(", ")
+			}
+			out.WriteString("T")
+			out.WriteString(strconv.Itoa(i))
+		}
+		out.WriteString(">")
+	}
+	out.WriteString("(")
+	for i := 0; i < fn.ParamCount; i++ {
+		if i > 0 {
+			out.WriteString(", ")
+		}
+		out.WriteString("_arg")
+		out.WriteString(strconv.Itoa(i))
+		out.WriteString(": T")
+		out.WriteString(strconv.Itoa(i))
+	}
+	out.WriteString(") -> ")
+	writeExternalStubReturnType(out, fn.ReturnTypes)
+	out.WriteString(" {\n        (")
+	writeExternalStubDefaultValue(out, fn.ReturnTypes[0])
+	out.WriteString(", ")
+	errorTrait := "dyn StdError"
+	errorType := "Box<dyn StdError>"
+	if NeedsConcurrentWrapper() {
+		errorTrait = "dyn StdError + Send + Sync"
+		errorType = "Box<dyn StdError + Send + Sync>"
+	}
+	out.WriteString(wrappedExternalStubExpr(errorType, fmt.Sprintf("Box::<%s>::from(\"executable file not found\")", errorTrait)))
+	out.WriteString(")\n    }\n")
 }
 
 func externalStubFieldsCanDeriveDebug(fields map[string]string) bool {
