@@ -11,6 +11,8 @@ pub fn r#use(e: Exporter) -> Rc<RefCell<Option<i32>>> {
 }
 
 fn main() {
+    example_com_fnconvert_dep::__go_init_all();
+
     println!("{}", format!("{}", (*r#use(Rc::new(RefCell::new(Some(Box::new(move |v: Rc<RefCell<Option<i32>>>| -> Rc<RefCell<Option<i32>>> {
         return {
             let __tmp_x = (*v.borrow().as_ref().unwrap());

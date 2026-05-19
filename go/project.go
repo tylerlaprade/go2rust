@@ -659,6 +659,9 @@ func (pg *ProjectGenerator) generateMainRs(fileSet *token.FileSet, astFilesByPat
 	}
 
 	mainContent = injectModuleInitCalls(mainContent, pg.initModules)
+	if pg.externalMode == ModeTranspile && len(pg.packageMapping) > 0 {
+		mainContent = injectExternalPackageInitCalls(mainContent, pg.sortedCrateNames())
+	}
 
 	var mainRust strings.Builder
 	if pg.packageHelpersNeeded(packageState) {
@@ -731,6 +734,31 @@ func injectModuleInitCalls(rustCode string, initModules []generatedInitModule) s
 		initCalls.WriteString("::")
 		initCalls.WriteString(initModule.initFunctionName)
 		initCalls.WriteString("();\n")
+	}
+
+	return rustCode[:insertAt] + initCalls.String() + rustCode[insertAt:]
+}
+
+func injectExternalPackageInitCalls(rustCode string, crateNames []string) string {
+	if len(crateNames) == 0 {
+		return rustCode
+	}
+	const marker = "fn main() {"
+	insertAt := strings.Index(rustCode, marker)
+	if insertAt < 0 {
+		return rustCode
+	}
+	insertAt += len(marker)
+
+	var initCalls strings.Builder
+	initCalls.WriteString("\n")
+	for _, crateName := range crateNames {
+		if crateName == "" || crateName == sharedStdlibStubCrateName {
+			continue
+		}
+		initCalls.WriteString("    ")
+		initCalls.WriteString(crateName)
+		initCalls.WriteString("::__go_init_all();\n")
 	}
 
 	return rustCode[:insertAt] + initCalls.String() + rustCode[insertAt:]
@@ -857,9 +885,37 @@ func (pg *ProjectGenerator) generateLibRs(packageState *PackageState) error {
 			libRust.WriteString(fmt.Sprintf("pub use %s::*;\n", modName))
 		}
 	}
+	var initDependencyCrates []string
+	if pg.externalMode == ModeTranspile && len(pg.packageMapping) > 0 {
+		initDependencyCrates = pg.sortedCrateNames()
+	}
+	writeLibraryPackageInitAll(&libRust, initDependencyCrates, pg.initModules)
 
 	libRsPath := filepath.Join(pg.projectPath, "lib.rs")
 	return os.WriteFile(libRsPath, []byte(libRust.String()), 0644)
+}
+
+func writeLibraryPackageInitAll(out *strings.Builder, dependencyCrates []string, initModules []generatedInitModule) {
+	out.WriteString("\n\nstatic __GO_INIT_ONCE: std::sync::Once = std::sync::Once::new();\n\n")
+	out.WriteString("pub fn __go_init_all() {\n")
+	out.WriteString("    __GO_INIT_ONCE.call_once(|| {\n")
+	for _, crateName := range dependencyCrates {
+		if crateName == "" || crateName == sharedStdlibStubCrateName {
+			continue
+		}
+		out.WriteString("        ")
+		out.WriteString(crateName)
+		out.WriteString("::__go_init_all();\n")
+	}
+	for _, initModule := range initModules {
+		out.WriteString("        ")
+		out.WriteString(initModule.moduleName)
+		out.WriteString("::")
+		out.WriteString(initModule.initFunctionName)
+		out.WriteString("();\n")
+	}
+	out.WriteString("    });\n")
+	out.WriteString("}\n")
 }
 
 func (pg *ProjectGenerator) writePackageHelperFile(packageState *PackageState) error {

@@ -283,6 +283,7 @@ func (pl *PackageLoader) transpilePackage(pkg *packages.Package) error {
 	registerFunctionSignaturesFromFiles(pkg.Syntax)
 
 	var generatedModules []generatedRustModule
+	var initModules []generatedInitModule
 
 	// Process each file in the package
 	for i, astFile := range pkg.Syntax {
@@ -294,6 +295,12 @@ func (pl *PackageLoader) transpilePackage(pkg *packages.Package) error {
 
 		// Transpile with the package's type info and global package mapping
 		rustCode, _, _ := TranspileWithMapping(astFile, pkg.Fset, pkgTypeInfo, pl.packageMapping)
+		if moduleHasPackageInitAll(rustCode) {
+			initModules = append(initModules, generatedInitModule{
+				moduleName:       moduleName,
+				initFunctionName: "__go_init_all",
+			})
+		}
 
 		moduleFile := filepath.Join(outputDir, SanitizeRustModuleFileName(moduleName)+".rs")
 		generatedModules = append(generatedModules, generatedRustModule{
@@ -304,6 +311,7 @@ func (pl *PackageLoader) transpilePackage(pkg *packages.Package) error {
 	}
 
 	helpersNeeded := usePackageHelpers && pkgState.Helpers.HasAnyOmittingSharedStdlibHelpers()
+	dependencyCrates := packageDependencyCrates(pkg.Imports, crateName, pl.packageMapping)
 
 	// Generate lib.rs
 	if helpersNeeded {
@@ -319,6 +327,7 @@ func (pl *PackageLoader) transpilePackage(pkg *packages.Package) error {
 			libRs.WriteString(fmt.Sprintf("pub use %s::*;\n", mod))
 		}
 	}
+	writeLibraryPackageInitAll(&libRs, dependencyCrates, initModules)
 
 	// Write lib.rs
 	libRsPath := filepath.Join(outputDir, "lib.rs")
@@ -355,7 +364,6 @@ edition = "2021"
 name = "%s"
 path = "lib.rs"
 `, crateName, crateName)
-	dependencyCrates := packageDependencyCrates(pkg.Imports, crateName, pl.packageMapping)
 	dependencyCrates = addSharedStdlibStubCrateDependency(dependencyCrates)
 	if len(dependencyCrates) > 0 {
 		cargoToml += "\n[dependencies]\n"

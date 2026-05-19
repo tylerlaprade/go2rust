@@ -4,6 +4,8 @@ use std::error::Error as StdError;
 use std::rc::{Rc};
 
 fn main() {
+    example_com_package_stdlib_interface_argument_helper::__go_init_all();
+
     let __go_os_args = Rc::new(RefCell::new(Some(std::env::args().collect::<Vec<String>>())));
 
     let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();

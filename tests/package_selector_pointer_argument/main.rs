@@ -28,6 +28,8 @@ impl reader {
 }
 
 fn main() {
+    example_com_package_selector_pointer_argument_helper::__go_init_all();
+
     let mut p = Rc::new(RefCell::new(Some(example_com_package_selector_pointer_argument_helper::Pkg { name: Rc::new(RefCell::new(Some("alpha".to_string()))), ..Default::default() })));
     let mut r = Rc::new(RefCell::new(Some(reader { current: p.clone(), ..Default::default() })));
     (*r.borrow_mut().as_mut().unwrap()).run();

@@ -8,5 +8,7 @@ pub fn inside(path: Rc<RefCell<Option<String>>>, dir: Rc<RefCell<Option<String>>
 }
 
 fn main() {
+    example_com_stringconst_dep::__go_init_all();
+
     println!("{}", format!("{}", (*inside(Rc::new(RefCell::new(Some("root/file.go".to_string()))), Rc::new(RefCell::new(Some("root".to_string())))).borrow().as_ref().unwrap())));
 }

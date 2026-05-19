@@ -197,6 +197,8 @@ pub fn touch_name_ptr(names: Arc<Mutex<Option<Vec<String>>>>, idx: Arc<Mutex<Opt
 }
 
 fn main() {
+    example_com_importedembed_base::__go_init_all();
+
     force_concurrent_wrappers();
     let mut r = Arc::new(Mutex::new(Some(Reader { decoder: Arc::new(Mutex::new(Some(example_com_importedembed_base::Decoder { value: Arc::new(Mutex::new(Some(3))), ..Default::default() }))), name: Arc::new(Mutex::new(Some("reader".to_string()))), ..Default::default() })));
     (*r.lock().unwrap().as_mut().unwrap()).add(Arc::new(Mutex::new(Some(4))));

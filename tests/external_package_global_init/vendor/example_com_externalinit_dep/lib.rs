@@ -8,6 +8,6 @@ static __GO_INIT_ONCE: std::sync::Once = std::sync::Once::new();
 
 pub fn __go_init_all() {
     __GO_INIT_ONCE.call_once(|| {
-        example_com_contextshared_core::__go_init_all();
+        r#mod::__go_init_all();
     });
 }

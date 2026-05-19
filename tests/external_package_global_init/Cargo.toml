@@ -1,0 +1,20 @@
+
+[workspace]
+members = [
+    ".",
+    "vendor/example_com_externalinit_dep",
+    "vendor/go2rust_stdlib_stubs",
+]
+
+[package]
+name = "external_package_global_init"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "external_package_global_init"
+path = "main.rs"
+
+[dependencies]
+example_com_externalinit_dep = { path = "vendor/example_com_externalinit_dep" }
+go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }
