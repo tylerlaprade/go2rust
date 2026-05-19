@@ -50,7 +50,7 @@ fn main() {
     { let new_val = { let __append_target = s.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).extend(vec!["b".to_string(), "c".to_string()]); __append_target.clone() }; s = new_val; };
     println!("{} {}", format!("{}", "slice:".to_string()), format!("{}", format_slice(&s)));
 
-    let mut c = Rc::new(RefCell::new(Some(vec!["".to_string(); ((*s.borrow().as_ref().unwrap()).len()) as usize])));
+    let mut c = Rc::new(RefCell::new(Some(vec!["".to_string(); ((*s.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)) as usize])));
     { let _src = ((*s.borrow().as_ref().unwrap())).clone(); let _n = std::cmp::min(((*c.borrow().as_ref().unwrap())).len(), _src.len()); for _i in 0.._n { (*c.borrow_mut().as_mut().unwrap())[_i] = _src[_i].clone(); } Rc::new(RefCell::new(Some(_n as i32))) };
     println!("{} {}", format!("{}", "copy:".to_string()), format!("{}", format_slice(&c)));
 

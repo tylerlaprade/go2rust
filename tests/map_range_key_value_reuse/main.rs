@@ -85,6 +85,6 @@ fn main() {
         { let __map_key = id.clone(); let __map_value = Rc::new(RefCell::new(Some(Package { i_d: Rc::new(RefCell::new(Some(id.clone()))), ..Default::default() }))); (*(*pkg.borrow().as_ref().unwrap()).imports.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
     }
 
-    println!("{}", format!("{}", (*(*pkg.borrow().as_ref().unwrap()).imports.borrow().as_ref().unwrap()).len()));
+    println!("{}", format!("{}", (*(*pkg.borrow().as_ref().unwrap()).imports.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)));
     println!("{}", format!("{}", (*(*(*(*pkg.borrow().as_ref().unwrap()).imports.borrow().as_ref().unwrap()).clone().get(&"pkg".to_string()).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()).borrow().as_ref().unwrap()).i_d.borrow().as_ref().unwrap())));
 }

@@ -159,7 +159,7 @@ fn main() {
     done.recv().unwrap();
 
     let mut values = Arc::new(Mutex::new(Some(vec!["alpha".to_string(), "beta".to_string(), "gamma".to_string()])));
-    let mut i = Arc::new(Mutex::new(Some((*values.lock().unwrap().as_ref().unwrap()).len() as i32)));
+    let mut i = Arc::new(Mutex::new(Some((*values.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32)));
     take(Arc::new(Mutex::new(Some((*i.lock().unwrap().as_ref().unwrap()).clone()))));
     println!("{}", format!("{}", { let __seq = { let __seq_holder = values.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }));
 }

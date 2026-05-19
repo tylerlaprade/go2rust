@@ -223,5 +223,5 @@ fn main() {
     done.recv().unwrap();
 
     let mut value = Arc::new(Mutex::new(Some(r#box { name: Arc::new(Mutex::new(Some("alpha".to_string()))), items: Arc::new(Mutex::new(Some(vec![1, 2]))), ..Default::default() })));
-    println!("{} {} {}", format!("{}", (*{ let __field = (*value.lock().unwrap().as_ref().unwrap()).name.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone()), format!("{}", (*(*value.lock().unwrap().as_ref().unwrap()).items.lock().unwrap().as_ref().unwrap()).len()), format!("{}", (*{ let __field = (*value.lock().unwrap().as_ref().unwrap()).name.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone()));
+    println!("{} {} {}", format!("{}", (*{ let __field = (*value.lock().unwrap().as_ref().unwrap()).name.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone()), format!("{}", (*(*value.lock().unwrap().as_ref().unwrap()).items.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0)), format!("{}", (*{ let __field = (*value.lock().unwrap().as_ref().unwrap()).name.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone()));
 }

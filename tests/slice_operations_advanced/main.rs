@@ -47,15 +47,15 @@ where
 fn main() {
         // Slice with capacity
     let mut s = Rc::new(RefCell::new(Some({ let mut v = Vec::with_capacity((10) as usize); v.resize((3) as usize, 0); v })));
-    print!("len={} cap={} {}\n", (*s.borrow().as_ref().unwrap()).len(), (*s.borrow().as_ref().unwrap()).capacity(), format_slice(&s));
+    print!("len={} cap={} {}\n", (*s.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0), (*s.borrow()).as_ref().map(|__v| __v.capacity()).unwrap_or(0), format_slice(&s));
 
         // Append beyond capacity
     { let new_val = { let __append_target = s.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).extend(vec![1, 2, 3, 4, 5, 6, 7, 8]); __append_target.clone() }; s = new_val; };
-    print!("len={} cap={} {}\n", (*s.borrow().as_ref().unwrap()).len(), (*s.borrow().as_ref().unwrap()).capacity(), format_slice(&s));
+    print!("len={} cap={} {}\n", (*s.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0), (*s.borrow()).as_ref().map(|__v| __v.capacity()).unwrap_or(0), format_slice(&s));
 
         // Three-index slice
     let mut s2 = Rc::new(RefCell::new(Some({ let __seq = { let __seq_holder = s.clone(); let __seq_guard = __seq_holder.borrow(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; let _slice = &__seq[(2) as usize..(5) as usize]; let mut _v = Vec::with_capacity(((7) - (2)) as usize); _v.extend_from_slice(_slice); _v })));
-    print!("s2: len={} cap={} {}\n", (*s2.borrow().as_ref().unwrap()).len(), (*s2.borrow().as_ref().unwrap()).capacity(), format_slice(&s2));
+    print!("s2: len={} cap={} {}\n", (*s2.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0), (*s2.borrow()).as_ref().map(|__v| __v.capacity()).unwrap_or(0), format_slice(&s2));
 
         // Copy
     let mut s3 = Rc::new(RefCell::new(Some(vec![0; (3) as usize])));

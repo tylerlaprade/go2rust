@@ -1,0 +1,4 @@
+strings 0 0 true
+ints 0 0 true
+slices 0 0 true
+sortfunc 0 0 true

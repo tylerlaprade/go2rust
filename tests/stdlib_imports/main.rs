@@ -247,7 +247,7 @@ fn main() {
 
         // os package
     println!("{}", format!("{}", "\n--- os package ---".to_string()));
-    println!("{} {}", format!("{}", "Argument count:".to_string()), format!("{}", (*__go_os_args.clone().borrow().as_ref().unwrap()).len()));
+    println!("{} {}", format!("{}", "Argument count:".to_string()), format!("{}", (*__go_os_args.clone().borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)));
 
         // Combined usage
     println!("{}", format!("{}", "\n--- Combined usage ---".to_string()));

@@ -21,11 +21,11 @@ fn main() {
 
         // Access slice - transpiler needs to know Numbers is a slice
     print!("First number: {}\n", (*Numbers.borrow().as_ref().unwrap())[(0) as usize].clone());
-    print!("Last number: {}\n", (*Numbers.borrow().as_ref().unwrap())[(((*Numbers.borrow().as_ref().unwrap()).len() as i32) - (1 as i32)) as usize].clone());
+    print!("Last number: {}\n", (*Numbers.borrow().as_ref().unwrap())[(((*Numbers.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32) - (1 as i32)) as usize].clone());
 
         // Access map of slices - complex type resolution
     let mut admins = (*Groups.borrow().as_ref().unwrap()).get(&"admins".to_string()).map(|__v| __v.clone()).unwrap_or_else(|| Default::default());
-    print!("Admin count: {}\n", (*admins.borrow().as_ref().unwrap()).len());
+    print!("Admin count: {}\n", (*admins.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0));
     print!("First admin: {}\n", (*admins.borrow().as_ref().unwrap())[(0) as usize].clone());
 
         // Iterate over map - requires knowing the type

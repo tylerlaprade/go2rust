@@ -256,7 +256,7 @@ pub fn make_expr_slice_len() -> Arc<Mutex<Option<i32>>> {
     { let new_val = { let __append_target = exprs.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push({ let __arg = ast::new_ident("y".to_string()); let __arg_guard = __arg.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone().into() }); __append_target.clone() }; exprs = new_val; };
     { let new_val = { let __append_target = exprs.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push((*make_ident_expr().lock().unwrap().as_ref().unwrap()).clone()); __append_target.clone() }; exprs = new_val; };
     { let new_val = { let __append_target = exprs.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push({ let __arg = Arc::new(Mutex::new(Some(ast_SelectorExpr { x: { let __arg = ast::new_ident("pkg".to_string()); let __converted = { let __arg_guard = __arg.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone().into() }; Arc::new(Mutex::new(Some(__converted))) }, sel: ast::new_ident("Name".to_string()).clone(), ..Default::default() }))); let __arg_guard = __arg.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone().into() }); __append_target.clone() }; exprs = new_val; };
-    return Arc::new(Mutex::new(Some((*exprs.lock().unwrap().as_ref().unwrap()).len() as i32)));
+    return Arc::new(Mutex::new(Some((*exprs.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32)));
 }
 
 pub fn asserted_field_element() -> Arc<Mutex<Option<ast_Expr>>> {

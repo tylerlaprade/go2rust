@@ -12,7 +12,7 @@ pub fn sum(numbers: Rc<RefCell<Option<Vec<i32>>>>) -> Rc<RefCell<Option<i32>>> {
 
 pub fn average(numbers: Rc<RefCell<Option<Vec<f64>>>>) -> Rc<RefCell<Option<f64>>> {
 
-    if ((*numbers.borrow().as_ref().unwrap()).len() as i32) == (0 as i32) {
+    if ((*numbers.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32) == (0 as i32) {
         return Rc::new(RefCell::new(Some(0.0)));
     }
     let mut total = Rc::new(RefCell::new(Some(0.0)));
@@ -21,7 +21,7 @@ pub fn average(numbers: Rc<RefCell<Option<Vec<f64>>>>) -> Rc<RefCell<Option<f64>
     } }
     return {
             let __tmp_x = (*total.borrow().as_ref().unwrap());
-            let __tmp_y = (*Rc::new(RefCell::new(Some((*numbers.borrow().as_ref().unwrap()).len() as f64))).borrow().as_ref().unwrap());
+            let __tmp_y = (*Rc::new(RefCell::new(Some((*numbers.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as f64))).borrow().as_ref().unwrap());
             Rc::new(RefCell::new(Some(__tmp_x / __tmp_y)))
         };
 }
@@ -50,7 +50,7 @@ pub fn min(first: Rc<RefCell<Option<i32>>>, rest: Rc<RefCell<Option<Vec<i32>>>>)
 
 pub fn concat(separator: Rc<RefCell<Option<String>>>, strings: Rc<RefCell<Option<Vec<String>>>>) -> Rc<RefCell<Option<String>>> {
 
-    if ((*strings.borrow().as_ref().unwrap()).len() as i32) == (0 as i32) {
+    if ((*strings.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32) == (0 as i32) {
         return Rc::new(RefCell::new(Some("".to_string())));
     }
     let mut result = Rc::new(RefCell::new(Some((*strings.borrow().as_ref().unwrap())[(0) as usize].clone())));

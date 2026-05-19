@@ -112,5 +112,5 @@ fn main() {
     let mut values = get_values(Rc::new(RefCell::new(Some((*h.borrow().as_ref().unwrap()).clone()))));
 
     println!("{}", format!("{}", (*(*item.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()).clone()));
-    println!("{} {} {}", format!("{}", (*values.borrow().as_ref().unwrap()).len()), format!("{}", (*values.borrow().as_ref().unwrap())[(0) as usize].clone()), format!("{}", (*values.borrow().as_ref().unwrap())[(1) as usize].clone()));
+    println!("{} {} {}", format!("{}", (*values.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)), format!("{}", (*values.borrow().as_ref().unwrap())[(0) as usize].clone()), format!("{}", (*values.borrow().as_ref().unwrap())[(1) as usize].clone()));
 }

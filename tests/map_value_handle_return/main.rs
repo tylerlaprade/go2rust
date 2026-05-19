@@ -57,7 +57,7 @@ fn __go_init_globals() {
 
 pub fn lookup(methods: Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<Vec<Rc<RefCell<Option<Method>>>>>>>>>>>, receiver: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<Vec<Rc<RefCell<Option<Method>>>>>>> {
 
-    if (*receiver.borrow().as_ref().unwrap()).clone() != "" && ((*(*methods.borrow().as_ref().unwrap()).get(&(*receiver.borrow().as_ref().unwrap()).clone()).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()).borrow().as_ref().unwrap()).len() as i32) > (0 as i32) {
+    if (*receiver.borrow().as_ref().unwrap()).clone() != "" && ((*(*methods.borrow().as_ref().unwrap()).get(&(*receiver.borrow().as_ref().unwrap()).clone()).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()).borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32) > (0 as i32) {
         return (*methods.borrow().as_ref().unwrap()).get(&(*receiver.borrow().as_ref().unwrap()).clone()).map(|__v| __v.clone()).unwrap_or_else(|| Default::default());
     }
     return fallback.clone();
@@ -72,7 +72,7 @@ fn main() {
 
     let mut got = lookup(methods.clone(), Rc::new(RefCell::new(Some("Thing".to_string()))));
     let mut emptyReceiver = lookup(methods.clone(), Rc::new(RefCell::new(Some("".to_string()))));
-    println!("{} {}", format!("{}", (*got.borrow().as_ref().unwrap()).len()), format!("{}", (*emptyReceiver.borrow().as_ref().unwrap()).len()));
+    println!("{} {}", format!("{}", (*got.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)), format!("{}", (*emptyReceiver.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)));
 }
 
 pub(crate) fn __go_init_all() {

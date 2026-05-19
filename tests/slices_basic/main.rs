@@ -58,8 +58,8 @@ fn main() {
     println!("{} {}", format!("{}", "Sub-slice [1:4]:".to_string()), format!("{}", format_slice(&subSlice)));
 
         // Length and capacity
-    println!("{} {}", format!("{}", "Length:".to_string()), format!("{}", (*slice.borrow().as_ref().unwrap()).len()));
-    println!("{} {}", format!("{}", "Capacity:".to_string()), format!("{}", (*slice.borrow().as_ref().unwrap()).capacity()));
+    println!("{} {}", format!("{}", "Length:".to_string()), format!("{}", (*slice.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)));
+    println!("{} {}", format!("{}", "Capacity:".to_string()), format!("{}", (*slice.borrow()).as_ref().map(|__v| __v.capacity()).unwrap_or(0)));
 
         // Make slice
     let mut made = Rc::new(RefCell::new(Some({ let mut v = Vec::with_capacity((5) as usize); v.resize((3) as usize, 0); v })));

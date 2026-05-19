@@ -47,7 +47,7 @@ where
 fn main() {
     let mut nums = Rc::new(RefCell::new(Some(vec![1, 2, 3])));
     let mut all = Rc::new(RefCell::new(Some({ let __seq = { let __seq_holder = nums.clone(); let __seq_guard = __seq_holder.borrow(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[..].to_vec() })));
-    println!("{} {} {}", format!("{}", (*all.borrow().as_ref().unwrap()).len()), format!("{}", (*all.borrow().as_ref().unwrap()).capacity()), format!("{}", format_slice(&all)));
+    println!("{} {} {}", format!("{}", (*all.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)), format!("{}", (*all.borrow()).as_ref().map(|__v| __v.capacity()).unwrap_or(0)), format!("{}", format_slice(&all)));
 
     let mut s = Rc::new(RefCell::new(Some("hello".to_string())));
     println!("{}", format!("{}", (*Rc::new(RefCell::new(Some({ let __s = (*s.borrow().as_ref().unwrap()).clone(); __s[..].to_string() }))).borrow().as_ref().unwrap())));

@@ -42,7 +42,7 @@ fn main() {
             (Rc::new(RefCell::new(Some(Default::default()))), Rc::new(RefCell::new(Some(false))))
         }
     });
-    if (*ok.borrow().as_ref().unwrap()) && ((*(*ee.borrow().as_ref().unwrap()).stderr.borrow().as_ref().unwrap()).len() as i32) > (0 as i32) {
+    if (*ok.borrow().as_ref().unwrap()) && ((*(*ee.borrow().as_ref().unwrap()).stderr.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32) > (0 as i32) {
         { let __rhs_holder = Rc::new(RefCell::new(Some(Box::<dyn std::error::Error>::from((*Rc::new(RefCell::new(Some(String::from_utf8((*(*ee.borrow().as_ref().unwrap()).stderr.borrow().as_ref().unwrap()).clone()).unwrap()))).borrow().as_ref().unwrap()).clone())))).clone(); let new_val = { let mut guard = __rhs_holder.borrow_mut(); guard.take() }; *err.borrow_mut() = new_val; };
         println!("{}", format!("{}", format!("{}", (*err.borrow().as_ref().unwrap()))));
     }

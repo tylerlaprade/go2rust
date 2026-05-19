@@ -3,7 +3,7 @@ use std::rc::{Rc};
 
 pub fn limit(values: Rc<RefCell<Option<Vec<i32>>>>) -> Rc<RefCell<Option<i32>>> {
 
-    return Rc::new(RefCell::new(Some((*values.borrow().as_ref().unwrap()).len() as i32)));
+    return Rc::new(RefCell::new(Some((*values.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32)));
 }
 
 pub fn count_until_limit(values: Rc<RefCell<Option<Vec<i32>>>>) -> Rc<RefCell<Option<i32>>> {

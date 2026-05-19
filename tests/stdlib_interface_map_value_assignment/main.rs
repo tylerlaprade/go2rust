@@ -180,5 +180,5 @@ pub fn literal() -> Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<types_Typ
 fn main() {
     let mut values = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<types_Type>>>>::new())));
     remember(values.clone());
-    println!("{} {}", format!("{}", (*values.lock().unwrap().as_ref().unwrap()).len()), format!("{}", (*literal().lock().unwrap().as_ref().unwrap()).len()));
+    println!("{} {}", format!("{}", (*values.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0)), format!("{}", (*literal().lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0)));
 }

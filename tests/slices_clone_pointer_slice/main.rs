@@ -30,5 +30,5 @@ impl std::fmt::Display for pkg {
 fn main() {
     let mut pkgs = Rc::new(RefCell::new(Some(vec![Rc::new(RefCell::new(Some(pkg { path: Rc::new(RefCell::new(Some("root".to_string()))), ..Default::default() }))), Rc::new(RefCell::new(Some(pkg { path: Rc::new(RefCell::new(Some("dep".to_string()))), ..Default::default() })))])));
     let mut list = Rc::new(RefCell::new(Some((*Rc::new(RefCell::new(Some({ let __seq = { let __seq_holder = pkgs.clone(); let __seq_guard = __seq_holder.borrow(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(1) as usize..].to_vec() }))).borrow().as_ref().unwrap()).clone())));
-    println!("{}", format!("{}", (*list.borrow().as_ref().unwrap()).len()));
+    println!("{}", format!("{}", (*list.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)));
 }

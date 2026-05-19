@@ -1687,47 +1687,27 @@ func transpileStringsTrimCutset(out *strings.Builder, call *ast.CallExpr, method
 
 func transpileSortStrings(out *strings.Builder, call *ast.CallExpr) {
 	if len(call.Args) > 0 {
-		// sort.Strings sorts a slice of strings in-place
-		// We need to get mutable access to the vector inside the Arc<Mutex<Option<Vec<String>>>>
-		out.WriteString("(*")
-		if ident, ok := call.Args[0].(*ast.Ident); ok {
-			out.WriteString(ident.Name)
-		} else {
-			TranspileExpression(out, call.Args[0])
-		}
-		WriteBorrowMethod(out, true)
-		out.WriteString(".as_mut().unwrap()).sort()")
+		transpileNilSafeSort(out, call.Args[0])
 	}
 }
 
 func transpileSortInts(out *strings.Builder, call *ast.CallExpr) {
 	if len(call.Args) > 0 {
-		// sort.Ints sorts a slice of integers in-place
-		// We need to get mutable access to the vector inside the Arc<Mutex<Option<Vec<i32>>>>
-		out.WriteString("(*")
-		if ident, ok := call.Args[0].(*ast.Ident); ok {
-			out.WriteString(ident.Name)
-		} else {
-			TranspileExpression(out, call.Args[0])
-		}
-		WriteBorrowMethod(out, true)
-		out.WriteString(".as_mut().unwrap()).sort()")
+		transpileNilSafeSort(out, call.Args[0])
 	}
 }
 
 func transpileSlicesSort(out *strings.Builder, call *ast.CallExpr) {
 	if len(call.Args) > 0 {
-		// slices.Sort is a generic sort function that works with any ordered type
-		// We need to get mutable access to the vector inside the Arc<Mutex<Option<Vec<T>>>>
-		out.WriteString("(*")
-		if ident, ok := call.Args[0].(*ast.Ident); ok {
-			out.WriteString(ident.Name)
-		} else {
-			TranspileExpression(out, call.Args[0])
-		}
-		WriteBorrowMethod(out, true)
-		out.WriteString(".as_mut().unwrap()).sort()")
+		transpileNilSafeSort(out, call.Args[0])
 	}
+}
+
+func transpileNilSafeSort(out *strings.Builder, arg ast.Expr) {
+	out.WriteString("{ let mut __sort_guard = ")
+	TranspileExpressionContext(out, arg, LValue)
+	WriteBorrowMethod(out, true)
+	out.WriteString("; if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.sort(); } }")
 }
 
 func writeSortFuncWrappedElement(out *strings.Builder, name string) {
@@ -1791,15 +1771,16 @@ func transpileSlicesSortFunc(out *strings.Builder, call *ast.CallExpr) {
 		usesFunctionValue = true
 	}
 
+	out.WriteString("{ ")
 	if usesFunctionValue {
-		out.WriteString("{ let __cmp_holder = ")
+		out.WriteString("let __cmp_holder = ")
 		TranspileExpression(out, call.Args[1])
 		out.WriteString("; ")
 	}
-	out.WriteString("(*")
+	out.WriteString("let mut __sort_guard = ")
 	TranspileExpressionContext(out, call.Args[0], LValue)
 	WriteBorrowMethod(out, true)
-	out.WriteString(".as_mut().unwrap()).sort_by(|__a, __b| { let __cmp = ")
+	out.WriteString("; if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.sort_by(|__a, __b| { let __cmp = ")
 	if usesFunctionValue {
 		writeSortFuncComparatorCall(out, call.Args[1])
 	} else {
@@ -1812,10 +1793,7 @@ func transpileSlicesSortFunc(out *strings.Builder, call *ast.CallExpr) {
 	}
 	out.WriteString("; let __ord = (*__cmp")
 	WriteBorrowMethod(out, false)
-	out.WriteString(".as_ref().unwrap()).cmp(&0); __ord })")
-	if usesFunctionValue {
-		out.WriteString(" }")
-	}
+	out.WriteString(".as_ref().unwrap()).cmp(&0); __ord }); } }")
 }
 
 func transpileSlicesContains(out *strings.Builder, call *ast.CallExpr) {
@@ -3065,6 +3043,11 @@ func transpileLen(out *strings.Builder, call *ast.CallExpr) {
 			// Bare value (range var, index result, etc.) - access directly
 			TranspileExpressionContext(out, call.Args[0], LValue)
 			out.WriteString(".len()")
+		} else if typeInfo != nil && (typeInfo.IsSlice(call.Args[0]) || typeInfo.IsMap(call.Args[0])) {
+			out.WriteString("(*")
+			TranspileExpressionContext(out, call.Args[0], LValue)
+			WriteBorrowMethod(out, false)
+			out.WriteString(").as_ref().map(|__v| __v.len()).unwrap_or(0)")
 		} else {
 			// The argument is wrapped, so we need to unwrap it first
 			// Keep as usize - Rust's natural size type for collections
@@ -3209,6 +3192,11 @@ func transpileCap(out *strings.Builder, call *ast.CallExpr) {
 			TranspileExpressionContext(out, call.Args[0], LValue)
 			out.WriteString(".")
 			out.WriteString(member)
+		} else if typeInfo != nil && typeInfo.IsSlice(call.Args[0]) {
+			out.WriteString("(*")
+			TranspileExpressionContext(out, call.Args[0], LValue)
+			WriteBorrowMethod(out, false)
+			out.WriteString(").as_ref().map(|__v| __v.capacity()).unwrap_or(0)")
 		} else {
 			out.WriteString("(*")
 			TranspileExpressionContext(out, call.Args[0], LValue)

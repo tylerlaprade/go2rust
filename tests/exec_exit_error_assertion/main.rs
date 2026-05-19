@@ -43,7 +43,7 @@ fn main() {
         }
     });
     if (*ok.borrow().as_ref().unwrap()) {
-        println!("{}", format!("{}", (*(*ee.borrow().as_ref().unwrap()).stderr.borrow().as_ref().unwrap()).len()));
+        println!("{}", format!("{}", (*(*ee.borrow().as_ref().unwrap()).stderr.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)));
     }
     }
 }

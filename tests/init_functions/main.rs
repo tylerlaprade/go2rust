@@ -137,10 +137,10 @@ fn __go_init_6() {
     setup_logging();
 
         // Validate configuration
-    if ((*configData.borrow().as_ref().unwrap()).len() as i32) == (0 as i32) {
+    if ((*configData.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32) == (0 as i32) {
         println!("{}", format!("{}", "Warning: No configuration data found".to_string()));
     } else {
-        print!("Configuration loaded with {} entries\n", (*configData.borrow().as_ref().unwrap()).len());
+        print!("Configuration loaded with {} entries\n", (*configData.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0));
     }
 }
 

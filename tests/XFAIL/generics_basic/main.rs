@@ -98,7 +98,7 @@ impl Unknown {
 
 pub fn map_keys(m: Rc<RefCell<Option<BTreeMap<K, Rc<RefCell<Option<V>>>>>>>) -> Rc<RefCell<Option<Vec<K>>>> {
 
-    let mut r = Rc::new(RefCell::new(Some(Vec::with_capacity(((*m.borrow().as_ref().unwrap()).len()) as usize))));
+    let mut r = Rc::new(RefCell::new(Some(Vec::with_capacity(((*m.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)) as usize))));
     for (k, _) in { let __range_holder = m.clone(); let __range_guard = __range_holder.borrow(); let __range_map = (*__range_guard.as_ref().unwrap()).clone(); drop(__range_guard); __range_map } {
         { let new_val = { let __append_target = r.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push(k); __append_target.clone() }; r = new_val; };
     }
@@ -108,7 +108,7 @@ pub fn map_keys(m: Rc<RefCell<Option<BTreeMap<K, Rc<RefCell<Option<V>>>>>>>) -> 
 fn main() {
     let mut m = Rc::new(RefCell::new(Some(BTreeMap::<i32, Rc<RefCell<Option<String>>>>::from([(1, Rc::new(RefCell::new(Some("2".to_string())))), (2, Rc::new(RefCell::new(Some("4".to_string())))), (4, Rc::new(RefCell::new(Some("8".to_string()))))]))));
     let mut keys = map_keys(m.clone());
-    (*keys.borrow_mut().as_mut().unwrap()).sort();
+    { let mut __sort_guard = keys.borrow_mut(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.sort(); } };
     println!("{} {}", format!("{}", "keys:".to_string()), format!("{}", format_slice(&keys)));
 
     let mut lst = ;

@@ -41,5 +41,5 @@ fn main() {
     } }
     }) as Box<dyn FnMut(Arc<Mutex<Option<Vec<Arc<Mutex<Option<node>>>>>>>) -> () + Send + Sync>)));
     { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<Vec<Arc<Mutex<Option<node>>>>>>>) -> () + Send + Sync> = { let mut __f_guard = visit.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<Vec<Arc<Mutex<Option<node>>>>>>>) -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(items.clone()) };
-    println!("{}", format!("{}", (*result.lock().unwrap().as_ref().unwrap()).len()));
+    println!("{}", format!("{}", (*result.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0)));
 }

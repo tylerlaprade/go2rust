@@ -21,7 +21,7 @@ impl std::fmt::Display for sink {
 
 impl sink {
     pub fn count(&self, values: Rc<RefCell<Option<Vec<u8>>>>) -> Rc<RefCell<Option<i32>>> {
-        return Rc::new(RefCell::new(Some((*values.borrow().as_ref().unwrap()).len() as i32)));
+        return Rc::new(RefCell::new(Some((*values.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32)));
     }
 }
 

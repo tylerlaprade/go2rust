@@ -1874,6 +1874,10 @@ run_xfail_test() {
     run_test "tests/slices_sort_func"
 }
 
+@test "sort_nil_slice" {
+    run_test "tests/sort_nil_slice"
+}
+
 @test "sort_slice" {
     run_test "tests/sort_slice"
 }

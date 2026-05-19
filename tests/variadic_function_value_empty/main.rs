@@ -11,6 +11,6 @@ pub fn call(report: reporter) {
 
 fn main() {
     call(Rc::new(RefCell::new(Some(Box::new(move |format: Rc<RefCell<Option<String>>>, args: Rc<RefCell<Option<Vec<Box<dyn Any>>>>>| {
-        println!("{} {}", format!("{}", { let __v = (*format.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", (*args.borrow().as_ref().unwrap()).len()));
+        println!("{} {}", format!("{}", { let __v = (*format.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", (*args.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)));
     }) as Box<dyn FnMut(Rc<RefCell<Option<String>>>, Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) -> ()>))));
 }

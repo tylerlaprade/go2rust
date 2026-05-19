@@ -33,7 +33,7 @@ impl std::fmt::Display for importer {
 
 
 pub fn report(label: Rc<RefCell<Option<String>>>, values: Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) {
-    println!("{} {}", format!("{}", { let __v = (*label.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", (*values.borrow().as_ref().unwrap()).len()));
+    println!("{} {}", format!("{}", { let __v = (*label.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", (*values.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)));
 }
 
 fn main() {

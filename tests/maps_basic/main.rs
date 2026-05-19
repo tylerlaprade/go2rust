@@ -65,7 +65,7 @@ fn main() {
     }
 
         // Sort the keys
-    (*keys.borrow_mut().as_mut().unwrap()).sort();
+    { let mut __sort_guard = keys.borrow_mut(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.sort(); } };
 
         // Print in sorted order
     { let __range_holder = keys.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for k in __range_values.iter() {
