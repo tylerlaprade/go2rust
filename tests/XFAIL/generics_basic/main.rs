@@ -86,7 +86,7 @@ impl std::fmt::Display for element {
 
 impl Unknown {
     pub fn push(&mut self, v: Rc<RefCell<Option<T>>>) {
-        if (*self.tail.borrow()).is_none() {
+        if { let __nil_target = self.tail.clone(); let __nil_result = (*__nil_target.borrow()).is_none(); __nil_result } {
         { let new_val = Rc::new(RefCell::new(Some())).clone(); self.head = new_val; };
         { let new_val = self.head.clone(); self.tail = new_val; };
     } else {

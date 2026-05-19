@@ -1,0 +1,8 @@
+[package]
+name = "selector_nil_comparison_drops_owner_lock"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "selector_nil_comparison_drops_owner_lock"
+path = "main.rs"

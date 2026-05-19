@@ -55,7 +55,7 @@ impl Free {
 
     let mut res: Rc<RefCell<Option<bool>>> = Rc::new(RefCell::new(Some(false)));
 
-        if (*self.seen.borrow()).is_none() {
+        if { let __nil_target = self.seen.clone(); let __nil_result = (*__nil_target.borrow()).is_none(); __nil_result } {
         { let new_val = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<bool>>>>::new()))); self.seen = new_val; };
     }
         let mut f_defer_captured = self.clone(); let key_defer_captured = key.clone(); let res_defer_captured = res.clone(); __defer_stack.push(Box::new(move || {

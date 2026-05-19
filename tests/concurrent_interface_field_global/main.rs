@@ -69,7 +69,7 @@ fn main() {
     std::thread::spawn(move || {
         ;
     });
-    println!("{}", format!("{}", (*(*global.lock().unwrap().as_ref().unwrap()).value.lock().unwrap()).is_none()));
+    println!("{}", format!("{}", { let __nil_target = (*global.lock().unwrap().as_ref().unwrap()).value.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_none(); __nil_result }));
 }
 
 pub(crate) fn __go_init_all() {

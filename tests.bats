@@ -1810,6 +1810,10 @@ run_xfail_test() {
     run_test "tests/selector_map_field_short_decl_range"
 }
 
+@test "selector_nil_comparison_drops_owner_lock" {
+    run_test "tests/selector_nil_comparison_drops_owner_lock"
+}
+
 @test "selector_slice_call_argument" {
     run_test "tests/selector_slice_call_argument"
 }

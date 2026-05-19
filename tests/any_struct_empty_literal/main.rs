@@ -47,7 +47,7 @@ fn main() {
         ;
     });
     let mut e = Arc::new(Mutex::new(Some(entry { value: Arc::new(Mutex::new(None)) })));
-    if (*(*e.lock().unwrap().as_ref().unwrap()).value.lock().unwrap()).is_none() {
+    if { let __nil_target = (*e.lock().unwrap().as_ref().unwrap()).value.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_none(); __nil_result } {
         println!("{}", format!("{}", "nil".to_string()));
     }
 }

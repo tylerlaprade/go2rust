@@ -2144,6 +2144,27 @@ func writeBareStdlibInterfaceNilComparison(out *strings.Builder, expr ast.Expr, 
 	return true
 }
 
+func writeSelectorNilComparison(out *strings.Builder, expr ast.Expr, op token.Token) bool {
+	if _, ok := expr.(*ast.SelectorExpr); !ok {
+		return false
+	}
+	if op != token.EQL && op != token.NEQ {
+		return false
+	}
+	out.WriteString("{ let __nil_target = ")
+	TranspileExpressionContext(out, expr, LValue)
+	out.WriteString(".clone(); let __nil_result = (*__nil_target")
+	WriteBorrowMethod(out, false)
+	out.WriteString(").")
+	if op == token.EQL {
+		out.WriteString("is_none()")
+	} else {
+		out.WriteString("is_some()")
+	}
+	out.WriteString("; __nil_result }")
+	return true
+}
+
 func writeLocalInterfaceReferenceBinding(out *strings.Builder, name string, expr ast.Expr) (bare bool) {
 	if isBareLocalInterfaceValue(expr) {
 		out.WriteString("let ")
@@ -4975,6 +4996,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			}
 			if leftIdent, ok := packageGlobalPointerIdent(e.X); ok {
 				writePackageGlobalPointerNilComparison(out, leftIdent, e.Op)
+				return
+			}
+			if writeSelectorNilComparison(out, e.X, e.Op) {
 				return
 			}
 
