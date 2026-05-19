@@ -524,13 +524,14 @@ func transpilePackageGlobalInit(out *strings.Builder, globals []packageGlobal) {
 		if len(init.Lhs) == 0 {
 			continue
 		}
-		global, ok := globalByName[init.Lhs[0].Name()]
-		if !ok {
+		if len(init.Lhs) != 1 {
+			if packageGlobalMultiValueInitHasGlobal(init, globalByName) {
+				writePackageGlobalMultiValueInit(out, init, globalByName)
+			}
 			continue
 		}
-		if len(init.Lhs) != 1 {
-			out.WriteString("    /* ERROR: Type information required for multi-value package variable initialization */\n")
-			out.WriteString("    unimplemented!();\n")
+		global, ok := globalByName[init.Lhs[0].Name()]
+		if !ok {
 			continue
 		}
 		if writePackageGlobalErrorCallInit(out, global, init.Rhs) {
@@ -547,6 +548,70 @@ func transpilePackageGlobalInit(out *strings.Builder, globals []packageGlobal) {
 		out.WriteString(");\n")
 	}
 	out.WriteString("}\n")
+}
+
+func packageGlobalMultiValueInitHasGlobal(init *types.Initializer, globalByName map[string]packageGlobal) bool {
+	for _, lhs := range init.Lhs {
+		if _, ok := globalByName[lhs.Name()]; ok {
+			return true
+		}
+	}
+	return false
+}
+
+func writePackageGlobalMultiValueInit(out *strings.Builder, init *types.Initializer, globalByName map[string]packageGlobal) {
+	out.WriteString("    let (")
+	tempNames := make([]string, len(init.Lhs))
+	for i, lhs := range init.Lhs {
+		if i > 0 {
+			out.WriteString(", ")
+		}
+		if lhs.Name() == "_" {
+			out.WriteString("_")
+			continue
+		}
+		tempName := fmt.Sprintf("__go_pkg_init_%d", i)
+		tempNames[i] = tempName
+		out.WriteString(tempName)
+	}
+	out.WriteString(") = ")
+	TranspileExpression(out, init.Rhs)
+	out.WriteString(";\n")
+
+	for i, lhs := range init.Lhs {
+		if lhs.Name() == "_" || tempNames[i] == "" {
+			continue
+		}
+		global, ok := globalByName[lhs.Name()]
+		if !ok {
+			continue
+		}
+		writePackageGlobalInitTempAssignment(out, global, tempNames[i])
+	}
+}
+
+func writePackageGlobalInitTempAssignment(out *strings.Builder, global packageGlobal, tempName string) {
+	out.WriteString("    *")
+	out.WriteString(rustPackageGlobalName(global.name))
+	WriteBorrowMethod(out, true)
+	out.WriteString(" = ")
+	if isGoErrorType(global.typ) {
+		out.WriteString("{ let mut __guard = ")
+		out.WriteString(tempName)
+		WriteBorrowMethod(out, true)
+		out.WriteString("; __guard.take() };\n")
+		return
+	}
+	if mapValueTypeKeepsHandle(global.typ) {
+		out.WriteString("Some(")
+		out.WriteString(tempName)
+		out.WriteString(".clone());\n")
+		return
+	}
+	out.WriteString("Some((*")
+	out.WriteString(tempName)
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap()).clone());\n")
 }
 
 func writePackageGlobalCompositeInit(out *strings.Builder, global packageGlobal, expr ast.Expr) bool {

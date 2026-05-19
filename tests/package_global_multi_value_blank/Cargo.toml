@@ -1,0 +1,8 @@
+[package]
+name = "package_global_multi_value_blank"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "package_global_multi_value_blank"
+path = "main.rs"

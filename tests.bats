@@ -1462,6 +1462,10 @@ run_xfail_test() {
     run_test "tests/package_global_map_snapshot"
 }
 
+@test "package_global_multi_value_blank" {
+    run_test "tests/package_global_multi_value_blank"
+}
+
 @test "package_global_named_slice" {
     run_test "tests/package_global_named_slice"
 }
