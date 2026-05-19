@@ -7,5 +7,5 @@ pub fn trim_parens(s: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>
 }
 
 fn main() {
-    println!("{}", (*trim_parens(Rc::new(RefCell::new(Some("(go2rust)".to_string())))).borrow().as_ref().unwrap()));
+    println!("{}", format!("{}", (*trim_parens(Rc::new(RefCell::new(Some("(go2rust)".to_string())))).borrow().as_ref().unwrap())));
 }

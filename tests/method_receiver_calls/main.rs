@@ -49,6 +49,6 @@ impl Label {
 }
 
 fn main() {
-    println!("{}", (*Label { name: Rc::new(RefCell::new(Some("ready".to_string()))), ..Default::default() }.format().borrow().as_ref().unwrap()));
-    println!("{}", (*Label { name: Rc::new(RefCell::new(Some(String::new()))) }.format().borrow().as_ref().unwrap()));
+    println!("{}", format!("{}", (*Label { name: Rc::new(RefCell::new(Some("ready".to_string()))), ..Default::default() }.format().borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*Label { name: Rc::new(RefCell::new(Some(String::new()))) }.format().borrow().as_ref().unwrap())));
 }

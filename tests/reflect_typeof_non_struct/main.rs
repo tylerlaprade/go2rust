@@ -237,6 +237,6 @@ fn main() {
     let mut n: Rc<RefCell<Option<namedInt>>> = Rc::new(RefCell::new(Some(namedInt(Rc::new(RefCell::new(Some(7)))))));
     let mut s: Rc<RefCell<Option<String>>> = Rc::new(RefCell::new(Some("value".to_string())));
 
-    println!("{}", (*{ let __recv = Rc::new(RefCell::new(Some(GoReflectType { name: Rc::new(RefCell::new(Some("main.namedInt".to_string()))), fields: Rc::new(RefCell::new(Some(vec![]))) }))); let __result = (*__recv.borrow().as_ref().unwrap()).string(); __result }.borrow().as_ref().unwrap()));
-    println!("{}", (*{ let __recv = Rc::new(RefCell::new(Some(GoReflectType { name: Rc::new(RefCell::new(Some("string".to_string()))), fields: Rc::new(RefCell::new(Some(vec![]))) }))); let __result = (*__recv.borrow().as_ref().unwrap()).string(); __result }.borrow().as_ref().unwrap()));
+    println!("{}", format!("{}", (*{ let __recv = Rc::new(RefCell::new(Some(GoReflectType { name: Rc::new(RefCell::new(Some("main.namedInt".to_string()))), fields: Rc::new(RefCell::new(Some(vec![]))) }))); let __result = (*__recv.borrow().as_ref().unwrap()).string(); __result }.borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*{ let __recv = Rc::new(RefCell::new(Some(GoReflectType { name: Rc::new(RefCell::new(Some("string".to_string()))), fields: Rc::new(RefCell::new(Some(vec![]))) }))); let __result = (*__recv.borrow().as_ref().unwrap()).string(); __result }.borrow().as_ref().unwrap())));
 }

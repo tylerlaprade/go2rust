@@ -18,16 +18,16 @@ fn main() {
         // Success case
     let (mut result, mut err) = divide(Rc::new(RefCell::new(Some(10))), Rc::new(RefCell::new(Some(2))));
     if (*err.borrow()).is_some() {
-        println!("{} {}", "Error:".to_string(), format!("{}", (*err.borrow().as_ref().unwrap())));
+        println!("{} {}", format!("{}", "Error:".to_string()), format!("{}", format!("{}", (*err.borrow().as_ref().unwrap()))));
     } else {
-        println!("{} {}", "Result:".to_string(), { let __v = (*result.borrow().as_ref().unwrap()).clone(); __v });
+        println!("{} {}", format!("{}", "Result:".to_string()), format!("{}", { let __v = (*result.borrow().as_ref().unwrap()).clone(); __v }));
     }
 
         // Error case
     { let (__tmp_0, __tmp_1) = divide(Rc::new(RefCell::new(Some(10))), Rc::new(RefCell::new(Some(0)))); let __moved_tmp_0 = { let mut __guard = __tmp_0.borrow_mut(); __guard.take() }; *result.borrow_mut() = __moved_tmp_0; let __moved_tmp_1 = { let mut __guard = __tmp_1.borrow_mut(); __guard.take() }; *err.borrow_mut() = __moved_tmp_1; };
     if (*err.borrow()).is_some() {
-        println!("{} {}", "Error:".to_string(), format!("{}", (*err.borrow().as_ref().unwrap())));
+        println!("{} {}", format!("{}", "Error:".to_string()), format!("{}", format!("{}", (*err.borrow().as_ref().unwrap()))));
     } else {
-        println!("{} {}", "Result:".to_string(), { let __v = (*result.borrow().as_ref().unwrap()).clone(); __v });
+        println!("{} {}", format!("{}", "Result:".to_string()), format!("{}", { let __v = (*result.borrow().as_ref().unwrap()).clone(); __v }));
     }
 }

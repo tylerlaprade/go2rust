@@ -238,5 +238,5 @@ fn main() {
 
     let mut inFlightCap = Arc::new(Mutex::new(Some((*r.lock().unwrap().as_ref().unwrap()).in_flight.capacity() as i32)));
     let mut serializedCap = Arc::new(Mutex::new(Some((*r.lock().unwrap().as_ref().unwrap()).serialized.capacity() as i32)));
-    println!("{} {}", { let __v = (*inFlightCap.lock().unwrap().as_ref().unwrap()).clone(); __v }, { let __v = (*serializedCap.lock().unwrap().as_ref().unwrap()).clone(); __v });
+    println!("{} {}", format!("{}", { let __v = (*inFlightCap.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*serializedCap.lock().unwrap().as_ref().unwrap()).clone(); __v }));
 }

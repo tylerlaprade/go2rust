@@ -32,7 +32,7 @@ pub fn label() -> Rc<RefCell<Option<String>>> {
 
 fn main() {
     let mut err = Rc::new(RefCell::new(Some(Box::<dyn StdError>::from(format!("bad type {}", go_type_name(&(*label().borrow().as_ref().unwrap())))))));
-    println!("{}", format!("{}", (*err.borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", format!("{}", (*err.borrow().as_ref().unwrap()))));
     let mut value = label();
-    println!("{}", format!("{}", (*(Rc::new(RefCell::new(Some(Box::<dyn StdError>::from(format!("stored type {}", go_type_name(value.borrow().as_ref().unwrap()))))))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", format!("{}", (*(Rc::new(RefCell::new(Some(Box::<dyn StdError>::from(format!("stored type {}", go_type_name(value.borrow().as_ref().unwrap()))))))).borrow().as_ref().unwrap()))));
 }

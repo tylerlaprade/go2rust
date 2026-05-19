@@ -37,6 +37,6 @@ pub fn first(items: Rc<RefCell<Option<Vec<Rc<RefCell<Option<item>>>>>>>) -> Rc<R
 
 fn main() {
     let mut items = Rc::new(RefCell::new(Some(vec![Rc::new(RefCell::new(Some(item { name: Rc::new(RefCell::new(Some("alpha".to_string()))), ..Default::default() })))])));
-    println!("{}", (*(*first(items.clone()).borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()));
-    println!("{}", (*first(Rc::new(RefCell::new(None))).borrow()).is_none());
+    println!("{}", format!("{}", (*(*first(items.clone()).borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*first(Rc::new(RefCell::new(None))).borrow()).is_none()));
 }

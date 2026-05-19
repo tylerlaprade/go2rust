@@ -125,5 +125,5 @@ fn main() {
     let mut key = Rc::new(RefCell::new(Some(namedKey { name: Rc::new(RefCell::new(Some("alpha".to_string()))), ..Default::default() })));
     let mut finder = Rc::new(RefCell::new(Some(finder {  })));
     let mut found = (*finder.borrow().as_ref().unwrap()).find(key.borrow().as_ref().unwrap());
-    println!("{}", { let __v = (*found.borrow().as_ref().unwrap()).clone(); __v });
+    println!("{}", format!("{}", { let __v = (*found.borrow().as_ref().unwrap()).clone(); __v }));
 }

@@ -42,6 +42,6 @@ pub fn valid(x: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<bool>>> {
 }
 
 fn main() {
-    println!("{}", (*valid(Rc::new(RefCell::new(Some("1".to_string())))).borrow().as_ref().unwrap()));
-    println!("{}", (*valid(Rc::new(RefCell::new(Some("".to_string())))).borrow().as_ref().unwrap()));
+    println!("{}", format!("{}", (*valid(Rc::new(RefCell::new(Some("1".to_string())))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*valid(Rc::new(RefCell::new(Some("".to_string())))).borrow().as_ref().unwrap())));
 }

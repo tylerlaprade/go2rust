@@ -30,5 +30,5 @@ impl std::fmt::Display for item {
 fn main() {
     let mut items: Rc<RefCell<Option<Vec<item>>>> = Rc::new(RefCell::new(Some(vec![Default::default(); (2) as usize])));
     let mut ptrs: Rc<RefCell<Option<Vec<Rc<RefCell<Option<item>>>>>>> = Rc::new(RefCell::new(Some(vec![Default::default(); ((*items.borrow().as_ref().unwrap()).len()) as usize])));
-    println!("{} {}", (*items.borrow().as_ref().unwrap()).len(), (*ptrs.borrow().as_ref().unwrap()).len());
+    println!("{} {}", format!("{}", (*items.borrow().as_ref().unwrap()).len()), format!("{}", (*ptrs.borrow().as_ref().unwrap()).len()));
 }

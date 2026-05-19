@@ -185,7 +185,7 @@ pub fn int_name() -> Arc<Mutex<Option<String>>> {
 
 fn main() {
     if false {
-        println!("{} {} {} {} {} {}", (*Arc::new(Mutex::new(Some((*kind().lock().unwrap().as_ref().unwrap()).0 as u32))).lock().unwrap().as_ref().unwrap()), (*Arc::new(Mutex::new(Some((*dir().lock().unwrap().as_ref().unwrap()).0 as u32))).lock().unwrap().as_ref().unwrap()), (*Arc::new(Mutex::new(Some((*zero_kind().lock().unwrap().as_ref().unwrap()).0 as u32))).lock().unwrap().as_ref().unwrap()), (*pos_from_int(Arc::new(Mutex::new(Some(1)))).lock().unwrap().as_ref().unwrap()), (*kind_name().lock().unwrap().as_ref().unwrap()), (*int_name().lock().unwrap().as_ref().unwrap()));
+        println!("{} {} {} {} {} {}", format!("{}", (*Arc::new(Mutex::new(Some((*kind().lock().unwrap().as_ref().unwrap()).0 as u32))).lock().unwrap().as_ref().unwrap())), format!("{}", (*Arc::new(Mutex::new(Some((*dir().lock().unwrap().as_ref().unwrap()).0 as u32))).lock().unwrap().as_ref().unwrap())), format!("{}", (*Arc::new(Mutex::new(Some((*zero_kind().lock().unwrap().as_ref().unwrap()).0 as u32))).lock().unwrap().as_ref().unwrap())), format!("{}", (*pos_from_int(Arc::new(Mutex::new(Some(1)))).lock().unwrap().as_ref().unwrap())), format!("{}", (*kind_name().lock().unwrap().as_ref().unwrap())), format!("{}", (*int_name().lock().unwrap().as_ref().unwrap())));
     }
-    println!("{}", "ok".to_string());
+    println!("{}", format!("{}", "ok".to_string()));
 }

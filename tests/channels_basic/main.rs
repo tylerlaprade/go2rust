@@ -163,7 +163,7 @@ pub fn receiver(ch: GoChannel<i32>) {
     loop {
         let (mut value, mut ok) = match ch.recv() { Some(v) => (Arc::new(Mutex::new(Some(v))), Arc::new(Mutex::new(Some(true)))), None => (Arc::new(Mutex::new(Some(Default::default()))), Arc::new(Mutex::new(Some(false)))) };
         if !{ let __v = (*ok.lock().unwrap().as_ref().unwrap()).clone(); __v } {
-        println!("{}", "Channel closed".to_string());
+        println!("{}", format!("{}", "Channel closed".to_string()));
         break
     }
         print!("Received: {}\n", { let __v = (*value.lock().unwrap().as_ref().unwrap()).clone(); __v });
@@ -189,11 +189,11 @@ fn main() {
     buffered.send("second".to_string());
     buffered.send("third".to_string());
 
-    println!("{}", "Buffered channel contents:".to_string());
+    println!("{}", format!("{}", "Buffered channel contents:".to_string()));
     let mut i = Arc::new(Mutex::new(Some(0)));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3; __tmp_x < __tmp_y } {
         let mut msg = Arc::new(Mutex::new(Some(buffered.recv().unwrap())));
-        println!("{} {}", "Got:".to_string(), { let __v = (*msg.lock().unwrap().as_ref().unwrap()).clone(); __v });
+        println!("{} {}", format!("{}", "Got:".to_string()), format!("{}", { let __v = (*msg.lock().unwrap().as_ref().unwrap()).clone(); __v }));
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
 
@@ -208,8 +208,8 @@ fn main() {
         numbers_thread.close();;;
     });
 
-    println!("{}", "Range over channel:".to_string());
+    println!("{}", format!("{}", "Range over channel:".to_string()));
     for num in numbers.clone() {
-        println!("{} {}", "Number:".to_string(), num);
+        println!("{} {}", format!("{}", "Number:".to_string()), format!("{}", num));
     }
 }

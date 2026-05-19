@@ -67,5 +67,5 @@ pub fn classify(b: Rc<RefCell<Option<sampleBox>>>) -> Rc<RefCell<Option<String>>
 }
 
 fn main() {
-    println!("{}", (*classify(Rc::new(RefCell::new(Some(sampleBox { value: Rc::new(RefCell::new(Some(Box::new(7) as Box<dyn Any>))), ..Default::default() })))).borrow().as_ref().unwrap()));
+    println!("{}", format!("{}", (*classify(Rc::new(RefCell::new(Some(sampleBox { value: Rc::new(RefCell::new(Some(Box::new(7) as Box<dyn Any>))), ..Default::default() })))).borrow().as_ref().unwrap())));
 }

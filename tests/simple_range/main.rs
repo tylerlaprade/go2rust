@@ -7,16 +7,16 @@ fn main() {
 
         // Index and value
     { let __range_holder = numbers.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for (i, num) in __range_values.iter().copied().enumerate() {
-        println!("{} {} {} {}", "Index:".to_string(), i, "Value:".to_string(), num);
+        println!("{} {} {} {}", format!("{}", "Index:".to_string()), format!("{}", i), format!("{}", "Value:".to_string()), format!("{}", num));
     } }
 
         // Value only
     { let __range_holder = numbers.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for num in __range_values.iter().copied() {
-        println!("{} {}", "Value:".to_string(), num);
+        println!("{} {}", format!("{}", "Value:".to_string()), format!("{}", num));
     } }
 
         // Index only
     for i in 0..({ let __range_holder = numbers.clone(); let __range_guard = __range_holder.borrow(); __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) {
-        println!("{} {}", "Index:".to_string(), i);
+        println!("{} {}", format!("{}", "Index:".to_string()), format!("{}", i));
     }
 }

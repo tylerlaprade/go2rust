@@ -30,9 +30,9 @@ pub fn print_strings(prefix: Rc<RefCell<Option<String>>>, strings: Rc<RefCell<Op
     print!("{}: ", { let __v = (*prefix.borrow().as_ref().unwrap()).clone(); __v });
     { let __range_holder = strings.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for (i, str) in __range_values.iter().enumerate() {
         if i > 0 {
-        print!("{}", ", ".to_string());
+        print!("{}", format!("{}", ", ".to_string()));
     }
-        print!("{}", str);
+        print!("{}", format!("{}", str));
     } }
     println!();
 }
@@ -62,17 +62,17 @@ pub fn concat(separator: Rc<RefCell<Option<String>>>, strings: Rc<RefCell<Option
 
 fn main() {
         // Basic variadic function
-    println!("{} {}", "Sum of no numbers:".to_string(), (*sum(Rc::new(RefCell::new(Some(vec![])))).borrow().as_ref().unwrap()));
-    println!("{} {}", "Sum of 1, 2, 3:".to_string(), (*sum(Rc::new(RefCell::new(Some(vec![1, 2, 3])))).borrow().as_ref().unwrap()));
-    println!("{} {}", "Sum of 1, 2, 3, 4, 5:".to_string(), (*sum(Rc::new(RefCell::new(Some(vec![1, 2, 3, 4, 5])))).borrow().as_ref().unwrap()));
+    println!("{} {}", format!("{}", "Sum of no numbers:".to_string()), format!("{}", (*sum(Rc::new(RefCell::new(Some(vec![])))).borrow().as_ref().unwrap())));
+    println!("{} {}", format!("{}", "Sum of 1, 2, 3:".to_string()), format!("{}", (*sum(Rc::new(RefCell::new(Some(vec![1, 2, 3])))).borrow().as_ref().unwrap())));
+    println!("{} {}", format!("{}", "Sum of 1, 2, 3, 4, 5:".to_string()), format!("{}", (*sum(Rc::new(RefCell::new(Some(vec![1, 2, 3, 4, 5])))).borrow().as_ref().unwrap())));
 
         // Passing slice to variadic function
     let mut numbers = Rc::new(RefCell::new(Some(vec![10, 20, 30, 40])));
-    println!("{} {}", "Sum of slice:".to_string(), (*sum(numbers.clone()).borrow().as_ref().unwrap()));
+    println!("{} {}", format!("{}", "Sum of slice:".to_string()), format!("{}", (*sum(numbers.clone()).borrow().as_ref().unwrap())));
 
         // Variadic with different types
-    println!("{} {}", "Average of 1.5, 2.5, 3.5:".to_string(), (*average(Rc::new(RefCell::new(Some(vec![1.5, 2.5, 3.5])))).borrow().as_ref().unwrap()));
-    println!("{} {}", "Average of no numbers:".to_string(), (*average(Rc::new(RefCell::new(Some(vec![])))).borrow().as_ref().unwrap()));
+    println!("{} {}", format!("{}", "Average of 1.5, 2.5, 3.5:".to_string()), format!("{}", (*average(Rc::new(RefCell::new(Some(vec![1.5, 2.5, 3.5])))).borrow().as_ref().unwrap())));
+    println!("{} {}", format!("{}", "Average of no numbers:".to_string()), format!("{}", (*average(Rc::new(RefCell::new(Some(vec![])))).borrow().as_ref().unwrap())));
 
         // Mixed parameters
     print_strings(Rc::new(RefCell::new(Some("Colors".to_string()))), Rc::new(RefCell::new(Some(vec!["red".to_string(), "green".to_string(), "blue".to_string()]))));
@@ -80,15 +80,15 @@ fn main() {
     print_strings(Rc::new(RefCell::new(Some("Empty".to_string()))), Rc::new(RefCell::new(Some(vec![]))));
 
         // Variadic with required first parameter
-    println!("{} {}", "Min of 5, 2, 8, 1, 9:".to_string(), (*min(Rc::new(RefCell::new(Some(5))), Rc::new(RefCell::new(Some(vec![2, 8, 1, 9])))).borrow().as_ref().unwrap()));
-    println!("{} {}", "Min of just 42:".to_string(), (*min(Rc::new(RefCell::new(Some(42))), Rc::new(RefCell::new(Some(vec![])))).borrow().as_ref().unwrap()));
+    println!("{} {}", format!("{}", "Min of 5, 2, 8, 1, 9:".to_string()), format!("{}", (*min(Rc::new(RefCell::new(Some(5))), Rc::new(RefCell::new(Some(vec![2, 8, 1, 9])))).borrow().as_ref().unwrap())));
+    println!("{} {}", format!("{}", "Min of just 42:".to_string()), format!("{}", (*min(Rc::new(RefCell::new(Some(42))), Rc::new(RefCell::new(Some(vec![])))).borrow().as_ref().unwrap())));
 
         // String concatenation
-    println!("{} {}", "Concat with comma:".to_string(), (*concat(Rc::new(RefCell::new(Some(", ".to_string()))), Rc::new(RefCell::new(Some(vec!["apple".to_string(), "banana".to_string(), "cherry".to_string()])))).borrow().as_ref().unwrap()));
-    println!("{} {}", "Concat with dash:".to_string(), (*concat(Rc::new(RefCell::new(Some(" - ".to_string()))), Rc::new(RefCell::new(Some(vec!["one".to_string(), "two".to_string(), "three".to_string()])))).borrow().as_ref().unwrap()));
-    println!("{} {}", "Concat empty:".to_string(), (*concat(Rc::new(RefCell::new(Some(", ".to_string()))), Rc::new(RefCell::new(Some(vec![])))).borrow().as_ref().unwrap()));
+    println!("{} {}", format!("{}", "Concat with comma:".to_string()), format!("{}", (*concat(Rc::new(RefCell::new(Some(", ".to_string()))), Rc::new(RefCell::new(Some(vec!["apple".to_string(), "banana".to_string(), "cherry".to_string()])))).borrow().as_ref().unwrap())));
+    println!("{} {}", format!("{}", "Concat with dash:".to_string()), format!("{}", (*concat(Rc::new(RefCell::new(Some(" - ".to_string()))), Rc::new(RefCell::new(Some(vec!["one".to_string(), "two".to_string(), "three".to_string()])))).borrow().as_ref().unwrap())));
+    println!("{} {}", format!("{}", "Concat empty:".to_string()), format!("{}", (*concat(Rc::new(RefCell::new(Some(", ".to_string()))), Rc::new(RefCell::new(Some(vec![])))).borrow().as_ref().unwrap())));
 
         // Using slice with string variadic
     let mut words = Rc::new(RefCell::new(Some(vec!["hello".to_string(), "world".to_string(), "from".to_string(), "go".to_string()])));
-    println!("{} {}", "Concat from slice:".to_string(), (*concat(Rc::new(RefCell::new(Some(" ".to_string()))), words.clone()).borrow().as_ref().unwrap()));
+    println!("{} {}", format!("{}", "Concat from slice:".to_string()), format!("{}", (*concat(Rc::new(RefCell::new(Some(" ".to_string()))), words.clone()).borrow().as_ref().unwrap())));
 }

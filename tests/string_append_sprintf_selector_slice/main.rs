@@ -68,5 +68,5 @@ fn main() {
     if ((*(*err.borrow().as_ref().unwrap()).import_stack.borrow().as_ref().unwrap()).len() as i32) != (0 as i32) {
         { (*msg.borrow_mut().as_mut().unwrap()).push_str(&{ let __s = Rc::new(RefCell::new(Some(format!(": import stack: {}", format_slice_values(&(*(*err.borrow().as_ref().unwrap()).import_stack.borrow().as_ref().unwrap()).clone()))))); let __value = (*__s.borrow().as_ref().unwrap()).clone(); __value }); };
     }
-    println!("{}", { let __v = (*msg.borrow().as_ref().unwrap()).clone(); __v });
+    println!("{}", format!("{}", { let __v = (*msg.borrow().as_ref().unwrap()).clone(); __v }));
 }

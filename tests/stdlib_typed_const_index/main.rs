@@ -105,7 +105,7 @@ pub fn is_invalid(t: Rc<RefCell<Option<types_Type>>>) -> Rc<RefCell<Option<bool>
 
 fn main() {
     if false {
-        println!("{}", (*is_invalid({ let __arg = (*types::Typ().borrow().as_ref().unwrap())[0usize].clone(); let __converted = { let __arg_guard = __arg.borrow(); (*__arg_guard.as_ref().unwrap()).clone().into() }; Rc::new(RefCell::new(Some(__converted))) }).borrow().as_ref().unwrap()));
+        println!("{}", format!("{}", (*is_invalid({ let __arg = (*types::Typ().borrow().as_ref().unwrap())[0usize].clone(); let __converted = { let __arg_guard = __arg.borrow(); (*__arg_guard.as_ref().unwrap()).clone().into() }; Rc::new(RefCell::new(Some(__converted))) }).borrow().as_ref().unwrap())));
     }
-    println!("{}", "ok".to_string());
+    println!("{}", format!("{}", "ok".to_string()));
 }

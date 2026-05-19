@@ -78,5 +78,5 @@ fn main() {
     let mut f: Rc<RefCell<Option<Free>>> = Rc::new(RefCell::new(Some(Default::default())));
     let mut has = (*f.borrow_mut().as_mut().unwrap()).has(Rc::new(RefCell::new(Some("x".to_string()))));
     let mut seen = Rc::new(RefCell::new(Some((*(*f.borrow().as_ref().unwrap()).seen.borrow().as_ref().unwrap()).clone().get(&"x".to_string()).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| false))));
-    println!("{} {}", { let __v = (*has.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*seen.borrow().as_ref().unwrap()).clone(); __v });
+    println!("{} {}", format!("{}", { let __v = (*has.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*seen.borrow().as_ref().unwrap()).clone(); __v }));
 }

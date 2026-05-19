@@ -51,6 +51,6 @@ fn main() {
     let mut combined = { let __append_target = Rc::new(RefCell::new(Some((*env.borrow().as_ref().unwrap()).clone()))).clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push("PWD=/tmp".to_string()); __append_target.clone() };
     (*combined.borrow_mut().as_mut().unwrap())[(0) as usize] = "B=2".to_string();
 
-    println!("{}", format_slice(&env));
-    println!("{}", format_slice(&combined));
+    println!("{}", format!("{}", format_slice(&env)));
+    println!("{}", format!("{}", format_slice(&combined)));
 }

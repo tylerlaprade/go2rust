@@ -201,5 +201,5 @@ fn main() {
     print!("{}°F = {}°C\n", { let __v = (*f.borrow().as_ref().unwrap()).clone(); __v }, (*(*f.borrow().as_ref().unwrap()).to_celsius().borrow().as_ref().unwrap()));
 
     let mut s: StringAlias = Rc::new(RefCell::new(Some("hello".to_string())));
-    println!("{}", { let __v = (*s.borrow().as_ref().unwrap()).clone(); __v });
+    println!("{}", format!("{}", { let __v = (*s.borrow().as_ref().unwrap()).clone(); __v }));
 }

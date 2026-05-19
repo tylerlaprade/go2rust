@@ -37,7 +37,7 @@ pub fn next() -> Rc<RefCell<Option<i32>>> {
 fn main() {
     __go_init_all();
     { let __tmp_0 = next(); let __tmp_1 = next(); let __tmp_2 = next(); };
-    println!("{}", { let __v = (*n.borrow().as_ref().unwrap()).clone(); __v });
+    println!("{}", format!("{}", { let __v = (*n.borrow().as_ref().unwrap()).clone(); __v }));
 }
 
 pub(crate) fn __go_init_all() {

@@ -82,8 +82,8 @@ pub fn decorate() -> Rc<RefCell<Option<String>>> {
 }
 
 fn main() {
-    println!("{}", (*compute().borrow().as_ref().unwrap()));
-    println!("{}", (*decorate().borrow().as_ref().unwrap()));
+    println!("{}", format!("{}", (*compute().borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*decorate().borrow().as_ref().unwrap())));
     let mut c: Rc<RefCell<Option<counter>>> = Rc::new(RefCell::new(Some(Default::default())));
-    println!("{}", (*(*c.borrow().as_ref().unwrap()).method().borrow().as_ref().unwrap()));
+    println!("{}", format!("{}", (*(*c.borrow().as_ref().unwrap()).method().borrow().as_ref().unwrap())));
 }

@@ -10,5 +10,5 @@ pub fn build_args() -> Rc<RefCell<Option<Vec<String>>>> {
 
 fn main() {
     let mut args = build_args();
-    println!("{} {}", (*args.borrow().as_ref().unwrap()).len(), (*args.borrow().as_ref().unwrap())[(2) as usize].clone() == "{{.Path}}\n");
+    println!("{} {}", format!("{}", (*args.borrow().as_ref().unwrap()).len()), format!("{}", (*args.borrow().as_ref().unwrap())[(2) as usize].clone() == "{{.Path}}\n"));
 }

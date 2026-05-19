@@ -22,7 +22,7 @@ impl std::fmt::Display for logger {
 
 impl logger {
     pub fn trace(&self, format: Rc<RefCell<Option<String>>>, args: Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) {
-        println!("{} {}", { let __v = (*format.borrow().as_ref().unwrap()).clone(); __v }, (*args.borrow().as_ref().unwrap()).len());
+        println!("{} {}", format!("{}", { let __v = (*format.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", (*args.borrow().as_ref().unwrap()).len()));
     }
 }
 

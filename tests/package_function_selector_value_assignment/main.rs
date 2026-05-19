@@ -61,5 +61,5 @@ fn main() {
     let mut ld: Rc<RefCell<Option<loader>>> = Rc::new(RefCell::new(Some(Default::default())));
     { let new_val = (*cfg.borrow().as_ref().unwrap()).logf.clone(); (*(*ld.borrow().as_ref().unwrap()).config.borrow_mut().as_mut().unwrap()).logf = new_val; };
     { let new_val = Rc::new(RefCell::new(Some(Box::new(move |__arg0: Rc<RefCell<Option<String>>>, __arg1: Rc<RefCell<Option<Vec<Box<dyn Any>>>>>| { log::printf(__arg0, __arg1) }) as Box<dyn FnMut(Rc<RefCell<Option<String>>>, Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) -> ()>))); (*(*ld.borrow().as_ref().unwrap()).config.borrow_mut().as_mut().unwrap()).logf = new_val; };
-    println!("{}", "assigned".to_string());
+    println!("{}", format!("{}", "assigned".to_string()));
 }

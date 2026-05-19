@@ -95,5 +95,5 @@ fn main() {
     { let __range_holder = terms.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for term in __range_values.iter() {
         (*term.lock().unwrap().as_mut().unwrap()).r#type();
     } }
-    println!("{}", "ok".to_string());
+    println!("{}", format!("{}", "ok".to_string()));
 }

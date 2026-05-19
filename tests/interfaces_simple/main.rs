@@ -76,9 +76,9 @@ impl geometry for rect {
 }
 
 pub fn measure(g: &dyn geometry) {
-    println!("{}", g);
-    println!("{}", (*g.area().borrow().as_ref().unwrap()));
-    println!("{}", (*g.perim().borrow().as_ref().unwrap()));
+    println!("{}", format!("{}", g));
+    println!("{}", format!("{}", (*g.area().borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*g.perim().borrow().as_ref().unwrap())));
 }
 
 fn main() {

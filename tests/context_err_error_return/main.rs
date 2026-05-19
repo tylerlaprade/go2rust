@@ -311,8 +311,8 @@ fn main() {
 
     let mut err = fail(Arc::new(Mutex::new(Some((*ctx.lock().unwrap().as_ref().unwrap()).clone()))));
     if (*err.lock().unwrap()).is_some() {
-        println!("{}", format!("{}", (*err.lock().unwrap().as_ref().unwrap())));
+        println!("{}", format!("{}", format!("{}", (*err.lock().unwrap().as_ref().unwrap()))));
         return;
     }
-    println!("{}", "no error".to_string());
+    println!("{}", format!("{}", "no error".to_string()));
 }

@@ -29,5 +29,5 @@ impl std::fmt::Display for printer {
 
 fn main() {
     let mut p = Rc::new(RefCell::new(Some(printer { indent: Rc::new(RefCell::new(Some(3))), ..Default::default() })));
-    println!("{}", format!("{}{}", (*Rc::new(RefCell::new(Some({ let __s = "..".to_string(); let __count = (*(*p.borrow().as_ref().unwrap()).indent.borrow().as_ref().unwrap()); __s.repeat(__count as usize) }))).borrow().as_ref().unwrap()), "x".to_string()));
+    println!("{}", format!("{}", format!("{}{}", (*Rc::new(RefCell::new(Some({ let __s = "..".to_string(); let __count = (*(*p.borrow().as_ref().unwrap()).indent.borrow().as_ref().unwrap()); __s.repeat(__count as usize) }))).borrow().as_ref().unwrap()), "x".to_string())));
 }

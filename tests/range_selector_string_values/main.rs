@@ -82,5 +82,5 @@ pub fn debug(cmd: Rc<RefCell<Option<Command>>>) -> Rc<RefCell<Option<String>>> {
 }
 
 fn main() {
-    println!("{}", (*debug(Rc::new(RefCell::new(Some(Command { args: Rc::new(RefCell::new(Some(vec!["go".to_string(), "list ./...".to_string()]))), ..Default::default() })))).borrow().as_ref().unwrap()));
+    println!("{}", format!("{}", (*debug(Rc::new(RefCell::new(Some(Command { args: Rc::new(RefCell::new(Some(vec!["go".to_string(), "list ./...".to_string()]))), ..Default::default() })))).borrow().as_ref().unwrap())));
 }

@@ -117,7 +117,7 @@ pub fn disjoint(x: Arc<Mutex<Option<term>>>, y: Arc<Mutex<Option<term>>>) -> Arc
 fn main() {
     if false {
         let mut t = Arc::new(Mutex::new(Some(term { tilde: Arc::new(Mutex::new(Some(false))), typ: Arc::new(Mutex::new(Some(Default::default()))) })));
-        println!("{}", (*disjoint(t.clone(), t.clone()).lock().unwrap().as_ref().unwrap()));
+        println!("{}", format!("{}", (*disjoint(t.clone(), t.clone()).lock().unwrap().as_ref().unwrap())));
     }
-    println!("{}", "ok".to_string());
+    println!("{}", format!("{}", "ok".to_string()));
 }

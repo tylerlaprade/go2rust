@@ -167,7 +167,7 @@ impl std::fmt::Display for Encoder {
 
 impl Encoder {
     pub fn len(&self, x: Arc<Mutex<Option<i32>>>) {
-        println!("{}", { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v });
+        println!("{}", format!("{}", { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }));
     }
 }
 

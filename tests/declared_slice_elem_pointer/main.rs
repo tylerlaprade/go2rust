@@ -117,5 +117,5 @@ fn main() {
         { let new_val = entry { key: Arc::new(Mutex::new(Some(1))), value: Arc::new(Mutex::new(Some("new".to_string()))), ..Default::default() }; *hole.as_ref().unwrap().borrow_mut() = Some(new_val); };
     }
 
-    println!("{}", (*{ let __seq = { let __seq_holder = bucket.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.value.lock().unwrap().as_ref().unwrap()));
+    println!("{}", format!("{}", (*{ let __seq = { let __seq_holder = bucket.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.value.lock().unwrap().as_ref().unwrap())));
 }

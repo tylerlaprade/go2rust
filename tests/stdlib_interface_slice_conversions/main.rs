@@ -132,5 +132,5 @@ pub fn forms(named: Arc<Mutex<Option<types_Named>>>) -> Arc<Mutex<Option<i32>>> 
 }
 
 fn main() {
-    println!("{}", "ok".to_string());
+    println!("{}", format!("{}", "ok".to_string()));
 }

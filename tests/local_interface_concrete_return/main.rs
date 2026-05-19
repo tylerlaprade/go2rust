@@ -142,5 +142,5 @@ pub fn new_valuer() -> Rc<RefCell<Option<Box<dyn Valuer>>>> {
 fn main() {
     let mut reader = new_reader();
     let mut valuer = new_valuer();
-    println!("{} {}", (*(*reader.borrow().as_ref().unwrap()).read().borrow().as_ref().unwrap()), (*(*valuer.borrow().as_ref().unwrap()).value().borrow().as_ref().unwrap()));
+    println!("{} {}", format!("{}", (*(*reader.borrow().as_ref().unwrap()).read().borrow().as_ref().unwrap())), format!("{}", (*(*valuer.borrow().as_ref().unwrap()).value().borrow().as_ref().unwrap())));
 }

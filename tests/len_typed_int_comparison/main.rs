@@ -31,7 +31,7 @@ pub fn within_double(values: Rc<RefCell<Option<Vec<i32>>>>, i: Rc<RefCell<Option
 
 fn main() {
     let mut values = Rc::new(RefCell::new(Some(vec![1, 2, 3])));
-    println!("{}", (*consumed_all(values.clone()).borrow().as_ref().unwrap()));
-    println!("{}", (*last_index(values.clone()).borrow().as_ref().unwrap()));
-    println!("{}", (*within_double(values.clone(), Rc::new(RefCell::new(Some(4)))).borrow().as_ref().unwrap()));
+    println!("{}", format!("{}", (*consumed_all(values.clone()).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*last_index(values.clone()).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*within_double(values.clone(), Rc::new(RefCell::new(Some(4)))).borrow().as_ref().unwrap())));
 }

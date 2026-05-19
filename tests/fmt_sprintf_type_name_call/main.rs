@@ -34,5 +34,5 @@ fn main() {
         ;
     });
 
-    println!("{}", (*Arc::new(Mutex::new(Some(format!("type {}", go_type_name(&(*label().lock().unwrap().as_ref().unwrap())))))).lock().unwrap().as_ref().unwrap()));
+    println!("{}", format!("{}", (*Arc::new(Mutex::new(Some(format!("type {}", go_type_name(&(*label().lock().unwrap().as_ref().unwrap())))))).lock().unwrap().as_ref().unwrap())));
 }

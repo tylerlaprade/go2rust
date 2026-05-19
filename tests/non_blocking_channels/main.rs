@@ -153,35 +153,35 @@ fn main() {
     loop {
         if let Some(msg) = messages.try_recv() {
             let mut msg = Arc::new(Mutex::new(Some(msg)));
-            println!("{} {}", "received message".to_string(), { let __v = (*msg.lock().unwrap().as_ref().unwrap()).clone(); __v });
+            println!("{} {}", format!("{}", "received message".to_string()), format!("{}", { let __v = (*msg.lock().unwrap().as_ref().unwrap()).clone(); __v }));
             break;
         }
-        println!("{}", "no message received".to_string());
+        println!("{}", format!("{}", "no message received".to_string()));
         break;
     }
 
     let mut msg = Arc::new(Mutex::new(Some("hi".to_string())));
     loop {
         if messages.try_send(msg.lock().unwrap().as_ref().unwrap().clone()) {
-            println!("{} {}", "sent message".to_string(), { let __v = (*msg.lock().unwrap().as_ref().unwrap()).clone(); __v });
+            println!("{} {}", format!("{}", "sent message".to_string()), format!("{}", { let __v = (*msg.lock().unwrap().as_ref().unwrap()).clone(); __v }));
             break;
         }
-        println!("{}", "no message sent".to_string());
+        println!("{}", format!("{}", "no message sent".to_string()));
         break;
     }
 
     loop {
         if let Some(msg) = messages.try_recv() {
             let mut msg = Arc::new(Mutex::new(Some(msg)));
-            println!("{} {}", "received message".to_string(), { let __v = (*msg.lock().unwrap().as_ref().unwrap()).clone(); __v });
+            println!("{} {}", format!("{}", "received message".to_string()), format!("{}", { let __v = (*msg.lock().unwrap().as_ref().unwrap()).clone(); __v }));
             break;
         }
         if let Some(sig) = signals.try_recv() {
             let mut sig = Arc::new(Mutex::new(Some(sig)));
-            println!("{} {}", "received signal".to_string(), { let __v = (*sig.lock().unwrap().as_ref().unwrap()).clone(); __v });
+            println!("{} {}", format!("{}", "received signal".to_string()), format!("{}", { let __v = (*sig.lock().unwrap().as_ref().unwrap()).clone(); __v }));
             break;
         }
-        println!("{}", "no activity".to_string());
+        println!("{}", format!("{}", "no activity".to_string()));
         break;
     }
 }

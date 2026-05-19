@@ -77,13 +77,13 @@ pub fn nested_typed(v: Rc<RefCell<Option<Box<dyn Any>>>>) -> Rc<RefCell<Option<S
 }
 
 fn main() {
-    println!("{}", (*regular(Rc::new(RefCell::new(Some(1)))).borrow().as_ref().unwrap()));
-    println!("{}", (*regular(Rc::new(RefCell::new(Some(2)))).borrow().as_ref().unwrap()));
-    println!("{}", (*nested_regular(Rc::new(RefCell::new(Some(1)))).borrow().as_ref().unwrap()));
-    println!("{}", (*nested_regular(Rc::new(RefCell::new(Some(2)))).borrow().as_ref().unwrap()));
-    println!("{}", (*nested_typed(Rc::new(RefCell::new(Some(Box::new(1) as Box<dyn Any>)))).borrow().as_ref().unwrap()));
-    println!("{}", (*nested_typed(Rc::new(RefCell::new(Some(Box::new("x".to_string()) as Box<dyn Any>)))).borrow().as_ref().unwrap()));
+    println!("{}", format!("{}", (*regular(Rc::new(RefCell::new(Some(1)))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*regular(Rc::new(RefCell::new(Some(2)))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*nested_regular(Rc::new(RefCell::new(Some(1)))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*nested_regular(Rc::new(RefCell::new(Some(2)))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*nested_typed(Rc::new(RefCell::new(Some(Box::new(1) as Box<dyn Any>)))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*nested_typed(Rc::new(RefCell::new(Some(Box::new("x".to_string()) as Box<dyn Any>)))).borrow().as_ref().unwrap())));
     if false {
-        println!("{}", (*typed(Rc::new(RefCell::new(Some(Box::new(1) as Box<dyn Any>)))).borrow().as_ref().unwrap()));
+        println!("{}", format!("{}", (*typed(Rc::new(RefCell::new(Some(Box::new(1) as Box<dyn Any>)))).borrow().as_ref().unwrap())));
     }
 }

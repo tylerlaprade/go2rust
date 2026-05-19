@@ -21,7 +21,7 @@ pub fn byte_from_expr(v: Rc<RefCell<Option<u8>>>) -> Rc<RefCell<Option<u8>>> {
 }
 
 fn main() {
-    println!("{} {}", "byte literal bit:".to_string(), (*byte_bit(Rc::new(RefCell::new(Some(3)))).borrow().as_ref().unwrap()));
-    println!("{} {}", "uint64 literal mask:".to_string(), (*uint64_mask(Rc::new(RefCell::new(Some(5)))).borrow().as_ref().unwrap()));
-    println!("{} {}", "byte expression:".to_string(), (*byte_from_expr(Rc::new(RefCell::new(Some(4)))).borrow().as_ref().unwrap()));
+    println!("{} {}", format!("{}", "byte literal bit:".to_string()), format!("{}", (*byte_bit(Rc::new(RefCell::new(Some(3)))).borrow().as_ref().unwrap())));
+    println!("{} {}", format!("{}", "uint64 literal mask:".to_string()), format!("{}", (*uint64_mask(Rc::new(RefCell::new(Some(5)))).borrow().as_ref().unwrap())));
+    println!("{} {}", format!("{}", "byte expression:".to_string()), format!("{}", (*byte_from_expr(Rc::new(RefCell::new(Some(4)))).borrow().as_ref().unwrap())));
 }

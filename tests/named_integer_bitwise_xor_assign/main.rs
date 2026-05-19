@@ -247,8 +247,8 @@ pub fn strip(mut mode: Rc<RefCell<Option<LoadMode>>>) -> Rc<RefCell<Option<Strin
 
 fn main() {
     __go_init_all();
-    println!("{}", (*strip(Rc::new(RefCell::new(Some(LoadMode(Rc::new(RefCell::new(Some((NEED_NAME | NEED_IMPORTS))))))))).borrow().as_ref().unwrap()));
-    println!("{}", (*strip(Rc::new(RefCell::new(Some(LoadMode(Rc::new(RefCell::new(Some((NEED_FILES | 8 as i32))))))))).borrow().as_ref().unwrap()));
+    println!("{}", format!("{}", (*strip(Rc::new(RefCell::new(Some(LoadMode(Rc::new(RefCell::new(Some((NEED_NAME | NEED_IMPORTS))))))))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*strip(Rc::new(RefCell::new(Some(LoadMode(Rc::new(RefCell::new(Some((NEED_FILES | 8 as i32))))))))).borrow().as_ref().unwrap())));
 }
 
 pub(crate) fn __go_init_all() {

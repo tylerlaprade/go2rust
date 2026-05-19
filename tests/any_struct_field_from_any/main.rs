@@ -56,6 +56,6 @@ fn main() {
     let mut e = make_entry(value.clone());
     let mut prev = (*e.lock().unwrap().as_ref().unwrap()).value.clone();
 
-    println!("{}", format_any((*e.lock().unwrap().as_ref().unwrap()).value.lock().unwrap().as_ref().unwrap().as_ref()));
-    println!("{}", format_any(prev.lock().unwrap().as_ref().unwrap().as_ref()));
+    println!("{}", format!("{}", format_any((*e.lock().unwrap().as_ref().unwrap()).value.lock().unwrap().as_ref().unwrap().as_ref())));
+    println!("{}", format!("{}", format_any(prev.lock().unwrap().as_ref().unwrap().as_ref())));
 }

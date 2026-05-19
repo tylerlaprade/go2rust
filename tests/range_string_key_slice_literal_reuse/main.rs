@@ -13,5 +13,5 @@ fn main() {
         { let new_val = Rc::new(RefCell::new(Some(vec![path.clone()]))); compiledGoFiles = new_val; };
     }
     }
-    println!("{} {}", (*goFiles.borrow().as_ref().unwrap())[(0) as usize].clone(), (*compiledGoFiles.borrow().as_ref().unwrap())[(0) as usize].clone());
+    println!("{} {}", format!("{}", (*goFiles.borrow().as_ref().unwrap())[(0) as usize].clone()), format!("{}", (*compiledGoFiles.borrow().as_ref().unwrap())[(0) as usize].clone()));
 }

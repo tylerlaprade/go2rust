@@ -81,7 +81,7 @@ fn main() {
     let mut files = abs_join((*p.borrow().as_ref().unwrap()).dir.clone(), Rc::new(RefCell::new(Some(vec![{ let __selector_holder = (*p.borrow().as_ref().unwrap()).go_files.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }, { let __selector_holder = (*p.borrow().as_ref().unwrap()).cgo_files.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }]))));
     { let new_val = "changed".to_string(); *(*p.borrow().as_ref().unwrap()).dir.borrow_mut() = Some(new_val); };
     (*(*p.borrow().as_ref().unwrap()).go_files.borrow_mut().as_mut().unwrap())[(0) as usize] = "b.go".to_string();
-    println!("{}", (*files.borrow().as_ref().unwrap())[(0) as usize].clone());
-    println!("{}", (*files.borrow().as_ref().unwrap())[(1) as usize].clone());
-    println!("{}", (*files.borrow().as_ref().unwrap())[(2) as usize].clone());
+    println!("{}", format!("{}", (*files.borrow().as_ref().unwrap())[(0) as usize].clone()));
+    println!("{}", format!("{}", (*files.borrow().as_ref().unwrap())[(1) as usize].clone()));
+    println!("{}", format!("{}", (*files.borrow().as_ref().unwrap())[(2) as usize].clone()));
 }

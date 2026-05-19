@@ -36,7 +36,7 @@ fn __go_init_globals() {
 
 
 pub fn print_value(value_local: Rc<RefCell<Option<i32>>>) {
-    println!("{}", { let __v = (*value_local.borrow().as_ref().unwrap()).clone(); __v });
+    println!("{}", format!("{}", { let __v = (*value_local.borrow().as_ref().unwrap()).clone(); __v }));
 }
 
 fn main() {
@@ -44,8 +44,8 @@ fn main() {
     { let new_val = 3; *value.borrow_mut() = Some(new_val); };
     { let new_val = allValues.borrow().as_ref().unwrap().clone(); *copiedValue.borrow_mut() = Some(new_val); };
     print_value(Rc::new(RefCell::new(Some(7))));
-    println!("{}", { let __v = (*value.borrow().as_ref().unwrap()).clone(); __v });
-    println!("{}", { let __v = (*copiedValue.borrow().as_ref().unwrap()).clone(); __v });
+    println!("{}", format!("{}", { let __v = (*value.borrow().as_ref().unwrap()).clone(); __v }));
+    println!("{}", format!("{}", { let __v = (*copiedValue.borrow().as_ref().unwrap()).clone(); __v }));
 }
 
 pub(crate) fn __go_init_all() {

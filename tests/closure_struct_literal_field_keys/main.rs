@@ -68,8 +68,8 @@ pub fn make_request(prefix: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<Bo
 fn main() {
     let mut build = make_request(Rc::new(RefCell::new(Some("driver:".to_string()))));
     let mut req = { let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<Config>>>) -> Rc<RefCell<Option<Request>>>> = { let mut __f_guard = build.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<Config>>>) -> Rc<RefCell<Option<Request>>>> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some(Config { mode: Rc::new(RefCell::new(Some("load".to_string()))), env: Rc::new(RefCell::new(Some("GOOS=darwin".to_string()))), build_flags: Rc::new(RefCell::new(Some("-mod=vendor".to_string()))), tests: Rc::new(RefCell::new(Some(true))), ..Default::default() })))) };
-    println!("{}", (*(*req.borrow().as_ref().unwrap()).mode.borrow().as_ref().unwrap()).clone());
-    println!("{}", (*(*req.borrow().as_ref().unwrap()).env.borrow().as_ref().unwrap()).clone());
-    println!("{}", (*(*req.borrow().as_ref().unwrap()).build_flags.borrow().as_ref().unwrap()).clone());
-    println!("{}", (*(*req.borrow().as_ref().unwrap()).tests.borrow().as_ref().unwrap()));
+    println!("{}", format!("{}", (*(*req.borrow().as_ref().unwrap()).mode.borrow().as_ref().unwrap()).clone()));
+    println!("{}", format!("{}", (*(*req.borrow().as_ref().unwrap()).env.borrow().as_ref().unwrap()).clone()));
+    println!("{}", format!("{}", (*(*req.borrow().as_ref().unwrap()).build_flags.borrow().as_ref().unwrap()).clone()));
+    println!("{}", format!("{}", (*(*req.borrow().as_ref().unwrap()).tests.borrow().as_ref().unwrap())));
 }

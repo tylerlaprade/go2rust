@@ -100,6 +100,6 @@ pub fn make_buffer() -> Rc<RefCell<Option<bytes_Buffer>>> {
 
 fn main() {
     if (*make_buffer().borrow()).is_some() {
-        println!("{}", "buffer".to_string());
+        println!("{}", format!("{}", "buffer".to_string()));
     }
 }

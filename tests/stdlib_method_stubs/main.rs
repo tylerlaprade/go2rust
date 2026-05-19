@@ -85,7 +85,7 @@ impl Ord for types_Type {
 fn main() {
     let mut alias: Rc<RefCell<Option<types_Alias>>> = Rc::new(RefCell::new(None));
     if false {
-        println!("{}", format!("{}", (*((*alias.borrow_mut().as_mut().unwrap()).rhs()).borrow().as_ref().unwrap())));
+        println!("{}", format!("{}", format!("{}", (*((*alias.borrow_mut().as_mut().unwrap()).rhs()).borrow().as_ref().unwrap()))));
     }
     if false {
         let (mut withRhs, mut ok) = ({
@@ -93,8 +93,8 @@ fn main() {
         (__asserted.clone(), Rc::new(RefCell::new(Some(true))))
     });
         if (*ok.borrow().as_ref().unwrap()) {
-        println!("{}", format!("{}", (*((*withRhs.borrow().as_ref().unwrap()).rhs()).borrow().as_ref().unwrap())));
+        println!("{}", format!("{}", format!("{}", (*((*withRhs.borrow().as_ref().unwrap()).rhs()).borrow().as_ref().unwrap()))));
     }
     }
-    println!("{}", "ok".to_string());
+    println!("{}", format!("{}", "ok".to_string()));
 }

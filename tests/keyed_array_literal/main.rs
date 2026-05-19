@@ -8,5 +8,5 @@ pub const THIRD: i32 = 2;
 
 fn main() {
     let mut names = Rc::new(RefCell::new(Some(["one".to_string(), "two".to_string(), "three".to_string()])));
-    println!("{} {}", (*names.borrow().as_ref().unwrap())[(FIRST) as usize].clone(), (*names.borrow().as_ref().unwrap())[(THIRD) as usize].clone());
+    println!("{} {}", format!("{}", (*names.borrow().as_ref().unwrap())[(FIRST) as usize].clone()), format!("{}", (*names.borrow().as_ref().unwrap())[(THIRD) as usize].clone()));
 }

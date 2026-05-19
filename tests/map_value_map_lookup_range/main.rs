@@ -33,7 +33,7 @@ fn main() {
     } }
 
     let mut missing = (*fields.borrow().as_ref().unwrap()).get(&"Missing".to_string()).map(|__v| __v.clone()).unwrap_or_else(|| Default::default());
-    println!("{}", (*(*fields.borrow().as_ref().unwrap()).get(&"Thing".to_string()).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()).borrow().as_ref().unwrap()).get(&"Name".to_string()).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| String::new()));
-    println!("{}", (*missing.borrow()).is_none());
-    println!("{}", { let __v = (*count.borrow().as_ref().unwrap()).clone(); __v });
+    println!("{}", format!("{}", (*(*fields.borrow().as_ref().unwrap()).get(&"Thing".to_string()).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()).borrow().as_ref().unwrap()).get(&"Name".to_string()).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| String::new())));
+    println!("{}", format!("{}", (*missing.borrow()).is_none()));
+    println!("{}", format!("{}", { let __v = (*count.borrow().as_ref().unwrap()).clone(); __v }));
 }

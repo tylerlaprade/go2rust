@@ -35,7 +35,7 @@ impl Person {
                 // Check if person is valid
         if false {
                 // Handle nil receiver
-        println!("{}", "Invalid person".to_string());
+        println!("{}", format!("{}", "Invalid person".to_string()));
         return;
     }
                 // Handle nil receiver
@@ -69,6 +69,6 @@ fn main() {
     let mut invalid = new_person(Rc::new(RefCell::new(Some("Bob".to_string()))), Rc::new(RefCell::new(Some(-1))));
     if (*invalid.borrow()).is_none() {
                 // This should print
-        println!("{}", "Failed to create person with invalid age".to_string());
+        println!("{}", format!("{}", "Failed to create person with invalid age".to_string()));
     }
 }

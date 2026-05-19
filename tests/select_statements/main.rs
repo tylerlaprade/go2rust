@@ -275,12 +275,12 @@ pub fn basic_select() {
     loop {
         if let Some(msg1) = ch1.try_recv() {
             let mut msg1 = Arc::new(Mutex::new(Some(msg1)));
-            println!("{} {}", "Received:".to_string(), { let __v = (*msg1.lock().unwrap().as_ref().unwrap()).clone(); __v });
+            println!("{} {}", format!("{}", "Received:".to_string()), format!("{}", { let __v = (*msg1.lock().unwrap().as_ref().unwrap()).clone(); __v }));
             break;
         }
         if let Some(msg2) = ch2.try_recv() {
             let mut msg2 = Arc::new(Mutex::new(Some(msg2)));
-            println!("{} {}", "Received:".to_string(), { let __v = (*msg2.lock().unwrap().as_ref().unwrap()).clone(); __v });
+            println!("{} {}", format!("{}", "Received:".to_string()), format!("{}", { let __v = (*msg2.lock().unwrap().as_ref().unwrap()).clone(); __v }));
             break;
         }
         std::thread::sleep(std::time::Duration::from_millis(1));
@@ -299,11 +299,11 @@ pub fn select_with_timeout() {
     loop {
         if let Some(msg) = ch.try_recv() {
             let mut msg = Arc::new(Mutex::new(Some(msg)));
-            println!("{} {}", "Got message:".to_string(), { let __v = (*msg.lock().unwrap().as_ref().unwrap()).clone(); __v });
+            println!("{} {}", format!("{}", "Got message:".to_string()), format!("{}", { let __v = (*msg.lock().unwrap().as_ref().unwrap()).clone(); __v }));
             break;
         }
         if let Some(_) = timeout.try_recv() {
-            println!("{}", "Timeout occurred".to_string());
+            println!("{}", format!("{}", "Timeout occurred".to_string()));
             break;
         }
         std::thread::sleep(std::time::Duration::from_millis(1));
@@ -316,10 +316,10 @@ pub fn select_with_default() {
         // Non-blocking send
     loop {
         if ch.try_send("hello".to_string()) {
-            println!("{}", "Sent message".to_string());
+            println!("{}", format!("{}", "Sent message".to_string()));
             break;
         }
-        println!("{}", "Channel full, couldn't send".to_string());
+        println!("{}", format!("{}", "Channel full, couldn't send".to_string()));
         break;
     }
 
@@ -327,10 +327,10 @@ pub fn select_with_default() {
     loop {
         if let Some(msg) = ch.try_recv() {
             let mut msg = Arc::new(Mutex::new(Some(msg)));
-            println!("{} {}", "Received:".to_string(), { let __v = (*msg.lock().unwrap().as_ref().unwrap()).clone(); __v });
+            println!("{} {}", format!("{}", "Received:".to_string()), format!("{}", { let __v = (*msg.lock().unwrap().as_ref().unwrap()).clone(); __v }));
             break;
         }
-        println!("{}", "No message available".to_string());
+        println!("{}", format!("{}", "No message available".to_string()));
         break;
     }
 
@@ -338,10 +338,10 @@ pub fn select_with_default() {
     loop {
         if let Some(msg) = ch.try_recv() {
             let mut msg = Arc::new(Mutex::new(Some(msg)));
-            println!("{} {}", "Received:".to_string(), { let __v = (*msg.lock().unwrap().as_ref().unwrap()).clone(); __v });
+            println!("{} {}", format!("{}", "Received:".to_string()), format!("{}", { let __v = (*msg.lock().unwrap().as_ref().unwrap()).clone(); __v }));
             break;
         }
-        println!("{}", "No message available".to_string());
+        println!("{}", format!("{}", "No message available".to_string()));
         break;
     }
 }
@@ -368,7 +368,7 @@ pub fn select_loop() {
         quit_thread.send(true);;;
     });
 
-    println!("{}", "Starting select loop:".to_string());
+    println!("{}", format!("{}", "Starting select loop:".to_string()));
     loop {
         loop {
         if let Some(val1) = ch1.try_recv() {
@@ -382,7 +382,7 @@ pub fn select_loop() {
             break;
         }
         if let Some(_) = quit.try_recv() {
-            println!("{}", "Quit signal received".to_string());
+            println!("{}", format!("{}", "Quit signal received".to_string()));
             return;
         }
         std::thread::sleep(std::time::Duration::from_millis(1));
@@ -397,46 +397,46 @@ pub fn select_with_send() {
 
     loop {
         if ch1.try_send("message to ch1".to_string()) {
-            println!("{}", "Sent to ch1".to_string());
+            println!("{}", format!("{}", "Sent to ch1".to_string()));
             break;
         }
         if ch2.try_send("message to ch2".to_string()) {
-            println!("{}", "Sent to ch2".to_string());
+            println!("{}", format!("{}", "Sent to ch2".to_string()));
             break;
         }
-        println!("{}", "Both channels busy".to_string());
+        println!("{}", format!("{}", "Both channels busy".to_string()));
         break;
     }
 
         // Read from both channels
-    println!("{} {}", "Reading from ch1:".to_string(), ch1.recv().unwrap());
+    println!("{} {}", format!("{}", "Reading from ch1:".to_string()), format!("{}", ch1.recv().unwrap()));
 
     loop {
         if let Some(msg) = ch2.try_recv() {
             let mut msg = Arc::new(Mutex::new(Some(msg)));
-            println!("{} {}", "Reading from ch2:".to_string(), { let __v = (*msg.lock().unwrap().as_ref().unwrap()).clone(); __v });
+            println!("{} {}", format!("{}", "Reading from ch2:".to_string()), format!("{}", { let __v = (*msg.lock().unwrap().as_ref().unwrap()).clone(); __v }));
             break;
         }
-        println!("{}", "ch2 is empty".to_string());
+        println!("{}", format!("{}", "ch2 is empty".to_string()));
         break;
     }
 }
 
 fn main() {
-    println!("{}", "=== Basic select ===".to_string());
+    println!("{}", format!("{}", "=== Basic select ===".to_string()));
     basic_select();
 
-    println!("{}", "\n=== Select with timeout ===".to_string());
+    println!("{}", format!("{}", "\n=== Select with timeout ===".to_string()));
     select_with_timeout();
 
-    println!("{}", "\n=== Select with default ===".to_string());
+    println!("{}", format!("{}", "\n=== Select with default ===".to_string()));
     select_with_default();
 
-    println!("{}", "\n=== Select with send ===".to_string());
+    println!("{}", format!("{}", "\n=== Select with send ===".to_string()));
     select_with_send();
 
-    println!("{}", "\n=== Select loop ===".to_string());
+    println!("{}", format!("{}", "\n=== Select loop ===".to_string()));
     select_loop();
 
-    println!("{}", "\n=== All examples completed ===".to_string());
+    println!("{}", format!("{}", "\n=== All examples completed ===".to_string()));
 }

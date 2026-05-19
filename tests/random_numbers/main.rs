@@ -34,6 +34,6 @@ fn main() {
     go_rand_seed(1 as i64);
     let mut n = Rc::new(RefCell::new(Some(go_rand_intn(100 as i32))));
     let mut f = Rc::new(RefCell::new(Some(go_rand_float64())));
-    println!("{} {}", "Random int in range:".to_string(), (*n.borrow().as_ref().unwrap()) >= 0 && (*n.borrow().as_ref().unwrap()) < 100);
-    println!("{} {}", "Random float in range:".to_string(), (*f.borrow().as_ref().unwrap()) >= 0.0 && (*f.borrow().as_ref().unwrap()) < 1.0);
+    println!("{} {}", format!("{}", "Random int in range:".to_string()), format!("{}", (*n.borrow().as_ref().unwrap()) >= 0 && (*n.borrow().as_ref().unwrap()) < 100));
+    println!("{} {}", format!("{}", "Random float in range:".to_string()), format!("{}", (*f.borrow().as_ref().unwrap()) >= 0.0 && (*f.borrow().as_ref().unwrap()) < 1.0));
 }

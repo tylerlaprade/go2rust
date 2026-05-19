@@ -182,7 +182,7 @@ pub fn previous(values: Rc<RefCell<Option<Vec<i32>>>>, k: Rc<RefCell<Option<Kind
 fn main() {
     let mut values = Rc::new(RefCell::new(Some(vec![10, 20, 30])));
     let mut k: Rc<RefCell<Option<Kind>>> = Rc::new(RefCell::new(Some(Kind(Rc::new(RefCell::new(Some(1)))))));
-    println!("{}", (*pick(values.clone(), Rc::new(RefCell::new(Some((*k.borrow().as_ref().unwrap()).clone())))).borrow().as_ref().unwrap()));
-    println!("{}", (*previous(values.clone(), Rc::new(RefCell::new(Some((*k.borrow().as_ref().unwrap()).clone())))).borrow().as_ref().unwrap()));
-    println!("{}", (*(*k.borrow().as_ref().unwrap()).method_pick(values.clone()).borrow().as_ref().unwrap()));
+    println!("{}", format!("{}", (*pick(values.clone(), Rc::new(RefCell::new(Some((*k.borrow().as_ref().unwrap()).clone())))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*previous(values.clone(), Rc::new(RefCell::new(Some((*k.borrow().as_ref().unwrap()).clone())))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*(*k.borrow().as_ref().unwrap()).method_pick(values.clone()).borrow().as_ref().unwrap())));
 }

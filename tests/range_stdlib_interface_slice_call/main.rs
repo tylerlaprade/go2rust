@@ -256,8 +256,8 @@ pub fn assert_expr_stmt(stmts: Arc<Mutex<Option<Vec<ast_Stmt>>>>) -> Arc<Mutex<O
 fn main() {
     let mut stmts = Arc::new(Mutex::new(Some(Vec::<ast_Stmt>::from([{ let __arg = Arc::new(Mutex::new(Some(ast_ExprStmt { x: { let __arg = ast::new_ident("x".to_string()); let __converted = { let __arg_guard = __arg.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone().into() }; Arc::new(Mutex::new(Some(__converted))) }, ..Default::default() }))); let __arg_guard = __arg.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone().into() }]))));
     if false {
-        println!("{}", (*stmt_kind(stmts.clone()).lock().unwrap().as_ref().unwrap()));
-        println!("{}", (*assert_expr_stmt(stmts.clone()).lock().unwrap().as_ref().unwrap()));
+        println!("{}", format!("{}", (*stmt_kind(stmts.clone()).lock().unwrap().as_ref().unwrap())));
+        println!("{}", format!("{}", (*assert_expr_stmt(stmts.clone()).lock().unwrap().as_ref().unwrap())));
     }
-    println!("{}", (*has_stmt(stmts.clone()).lock().unwrap().as_ref().unwrap()));
+    println!("{}", format!("{}", (*has_stmt(stmts.clone()).lock().unwrap().as_ref().unwrap())));
 }

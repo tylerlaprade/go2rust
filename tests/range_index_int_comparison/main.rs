@@ -19,5 +19,5 @@ pub fn count_until_limit(values: Rc<RefCell<Option<Vec<i32>>>>) -> Rc<RefCell<Op
 }
 
 fn main() {
-    println!("{}", (*count_until_limit(Rc::new(RefCell::new(Some(vec![1, 2, 3])))).borrow().as_ref().unwrap()));
+    println!("{}", format!("{}", (*count_until_limit(Rc::new(RefCell::new(Some(vec![1, 2, 3])))).borrow().as_ref().unwrap())));
 }

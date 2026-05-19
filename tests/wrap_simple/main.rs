@@ -4,5 +4,5 @@ use std::rc::{Rc};
 fn main() {
         // Simplest possible test
     let mut x = Rc::new(RefCell::new(Some(42)));
-    println!("{}", { let __v = (*x.borrow().as_ref().unwrap()).clone(); __v });
+    println!("{}", format!("{}", { let __v = (*x.borrow().as_ref().unwrap()).clone(); __v }));
 }

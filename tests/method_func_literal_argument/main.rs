@@ -32,6 +32,6 @@ fn main() {
 
     let mut r = Arc::new(Mutex::new(Some(runner {  })));
     (*r.lock().unwrap().as_mut().unwrap()).run(Arc::new(Mutex::new(Some(Box::new(move || {
-        println!("{}", "ran".to_string());
+        println!("{}", format!("{}", "ran".to_string()));
     }) as Box<dyn FnMut() -> () + Send + Sync>))));
 }

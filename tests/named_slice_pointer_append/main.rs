@@ -50,6 +50,6 @@ fn main() {
     let mut xs: Rc<RefCell<Option<nodes>>> = Rc::new(RefCell::new(Some(Default::default())));
     let mut n = Rc::new(RefCell::new(Some(node { value: Rc::new(RefCell::new(Some(7))), ..Default::default() })));
     { let new_val = add(Rc::new(RefCell::new(Some((*xs.borrow().as_ref().unwrap()).clone()))), n.clone()); let __moved_val = { let mut __guard = new_val.borrow_mut(); __guard.take() }; *xs.borrow_mut() = __moved_val; };
-    println!("{}", { let __slice_holder = { let __named_slice = (*xs.borrow().as_ref().unwrap()).0.clone(); __named_slice }; let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) });
-    println!("{}", { let __slice_holder = { let __named_slice = (*keep(Rc::new(RefCell::new(Some((*xs.borrow().as_ref().unwrap()).clone())))).borrow().as_ref().unwrap()).0.clone(); __named_slice }; let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) });
+    println!("{}", format!("{}", { let __slice_holder = { let __named_slice = (*xs.borrow().as_ref().unwrap()).0.clone(); __named_slice }; let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }));
+    println!("{}", format!("{}", { let __slice_holder = { let __named_slice = (*keep(Rc::new(RefCell::new(Some((*xs.borrow().as_ref().unwrap()).clone())))).borrow().as_ref().unwrap()).0.clone(); __named_slice }; let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }));
 }

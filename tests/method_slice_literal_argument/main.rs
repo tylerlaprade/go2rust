@@ -27,5 +27,5 @@ impl Loader {
 
 fn main() {
     let mut loader = Rc::new(RefCell::new(Some(Loader {  })));
-    println!("{}", (*(*loader.borrow_mut().as_mut().unwrap()).load(Rc::new(RefCell::new(Some(vec![".".to_string()])))).borrow().as_ref().unwrap()));
+    println!("{}", format!("{}", (*(*loader.borrow_mut().as_mut().unwrap()).load(Rc::new(RefCell::new(Some(vec![".".to_string()])))).borrow().as_ref().unwrap())));
 }

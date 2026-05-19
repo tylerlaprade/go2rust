@@ -250,7 +250,7 @@ impl Package {
 fn main() {
     let mut done = GoChannel::<bool>::new_buffered(1 as usize);
     let mut stack = Arc::new(Mutex::new(Some(vec![Arc::new(Mutex::new(Some(Package { i_d: Arc::new(Mutex::new(Some("root".to_string()))), ..Default::default() }))), Arc::new(Mutex::new(Some(Package { i_d: Arc::new(Mutex::new(Some("dep".to_string()))), ..Default::default() })))])));
-    println!("{}", (*Arc::new(Mutex::new(Some(format!("cycle: {}", format_slice_wrapped_stringer(&stack))))).lock().unwrap().as_ref().unwrap()));
+    println!("{}", format!("{}", (*Arc::new(Mutex::new(Some(format!("cycle: {}", format_slice_wrapped_stringer(&stack))))).lock().unwrap().as_ref().unwrap())));
     done.send(true);
-    println!("{}", done.recv().unwrap());
+    println!("{}", format!("{}", done.recv().unwrap()));
 }

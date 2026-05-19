@@ -22,5 +22,5 @@ pub fn boxed_int_o_k(v: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<bool>>> {
 }
 
 fn main() {
-    println!("{}", (*boxed_int_o_k(Rc::new(RefCell::new(Some(42)))).borrow().as_ref().unwrap()));
+    println!("{}", format!("{}", (*boxed_int_o_k(Rc::new(RefCell::new(Some(42)))).borrow().as_ref().unwrap())));
 }

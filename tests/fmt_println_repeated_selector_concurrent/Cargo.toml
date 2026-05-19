@@ -1,0 +1,8 @@
+[package]
+name = "fmt_println_repeated_selector_concurrent"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "fmt_println_repeated_selector_concurrent"
+path = "main.rs"

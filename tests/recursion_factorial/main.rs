@@ -14,5 +14,5 @@ pub fn fact(n: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>> {
 }
 
 fn main() {
-    println!("{}", (*fact(Rc::new(RefCell::new(Some(7)))).borrow().as_ref().unwrap()));
+    println!("{}", format!("{}", (*fact(Rc::new(RefCell::new(Some(7)))).borrow().as_ref().unwrap())));
 }

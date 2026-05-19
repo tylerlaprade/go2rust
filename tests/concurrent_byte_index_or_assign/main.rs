@@ -157,5 +157,5 @@ fn main() {
         done_thread.send({ let __tmp_x = { let __seq = { let __seq_holder = seen_thread.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }; let __tmp_y = 8 as u8; __tmp_x == __tmp_y });;;
     });
 
-    println!("{}", done.recv().unwrap());
+    println!("{}", format!("{}", done.recv().unwrap()));
 }

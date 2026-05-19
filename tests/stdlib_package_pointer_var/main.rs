@@ -33,5 +33,5 @@ fn main() {
         let _ = (*pkg.borrow().as_ref().unwrap());
     }
 
-    println!("{}", "ok".to_string());
+    println!("{}", format!("{}", "ok".to_string()));
 }

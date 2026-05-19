@@ -127,5 +127,5 @@ fn main() {
     }
     }
 
-    println!("{}", "ok".to_string());
+    println!("{}", format!("{}", "ok".to_string()));
 }

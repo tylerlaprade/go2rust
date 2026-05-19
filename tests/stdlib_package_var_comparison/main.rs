@@ -179,5 +179,5 @@ fn main() {
     });
     done.recv().unwrap();
 
-    println!("{}", { let __tmp_x = (*types::Unsafe().lock().unwrap().as_ref().unwrap()); let __tmp_y = (*types::Unsafe().lock().unwrap().as_ref().unwrap()); __tmp_x == __tmp_y });
+    println!("{}", format!("{}", { let __tmp_x = (*types::Unsafe().lock().unwrap().as_ref().unwrap()); let __tmp_y = (*types::Unsafe().lock().unwrap().as_ref().unwrap()); __tmp_x == __tmp_y }));
 }

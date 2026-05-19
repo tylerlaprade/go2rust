@@ -74,5 +74,5 @@ impl bag {
 
 fn main() {
     let mut bag = Rc::new(RefCell::new(Some(bag { values: Rc::new(RefCell::new(Some(vec![1, 2, 3]))), ..Default::default() })));
-    println!("{}", (*(*bag.borrow().as_ref().unwrap()).sum().borrow().as_ref().unwrap()));
+    println!("{}", format!("{}", (*(*bag.borrow().as_ref().unwrap()).sum().borrow().as_ref().unwrap())));
 }

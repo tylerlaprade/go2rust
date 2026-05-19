@@ -156,5 +156,5 @@ pub fn replace(mut ch: GoChannel<i32>) -> GoChannel<i32> {
 fn main() {
     let mut ch = GoChannel::<i32>::new_buffered(1 as usize);
     let mut out = replace(ch.clone());
-    println!("{}", out.recv().unwrap());
+    println!("{}", format!("{}", out.recv().unwrap()));
 }

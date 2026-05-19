@@ -9,7 +9,7 @@ pub fn seed() {
 
 pub fn check(flag: Rc<RefCell<Option<bool>>>) {
     if !(*flag.borrow().as_ref().unwrap()) {
-        println!("{}", "off".to_string());
+        println!("{}", format!("{}", "off".to_string()));
     }
 }
 

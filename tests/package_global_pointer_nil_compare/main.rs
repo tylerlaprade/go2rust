@@ -56,9 +56,9 @@ fn __go_init_globals() {
 
 fn main() {
     __go_init_all();
-    println!("{}", { let __slot_guard = current.borrow(); let __not_nil = __slot_guard.as_ref().map(|__ptr| (*__ptr.borrow()).is_some()).unwrap_or(false); !__not_nil });
+    println!("{}", format!("{}", { let __slot_guard = current.borrow(); let __not_nil = __slot_guard.as_ref().map(|__ptr| (*__ptr.borrow()).is_some()).unwrap_or(false); !__not_nil }));
     { let new_val = Rc::new(RefCell::new(Some(state { value: Rc::new(RefCell::new(Some(7))), ..Default::default() }))).clone(); *current.borrow_mut() = Some(new_val); };
-    println!("{}", { let __slot_guard = current.borrow(); let __not_nil = __slot_guard.as_ref().map(|__ptr| (*__ptr.borrow()).is_some()).unwrap_or(false); __not_nil });
+    println!("{}", format!("{}", { let __slot_guard = current.borrow(); let __not_nil = __slot_guard.as_ref().map(|__ptr| (*__ptr.borrow()).is_some()).unwrap_or(false); __not_nil }));
 }
 
 pub(crate) fn __go_init_all() {

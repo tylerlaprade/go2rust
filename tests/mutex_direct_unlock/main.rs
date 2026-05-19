@@ -89,5 +89,5 @@ fn main() {
     (*c.borrow_mut().as_mut().unwrap()).inc();
     (*c.borrow_mut().as_mut().unwrap()).add_branch(Rc::new(RefCell::new(Some(true))));
     (*c.borrow_mut().as_mut().unwrap()).add_branch(Rc::new(RefCell::new(Some(false))));
-    println!("{}", (*(*c.borrow().as_ref().unwrap()).n.borrow().as_ref().unwrap()));
+    println!("{}", format!("{}", (*(*c.borrow().as_ref().unwrap()).n.borrow().as_ref().unwrap())));
 }

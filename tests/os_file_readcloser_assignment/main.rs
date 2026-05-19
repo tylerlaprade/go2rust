@@ -112,5 +112,5 @@ fn main() {
     if (*err.borrow()).is_some() {
         panic!("{:?}", (*err.borrow().as_ref().unwrap()));
     }
-    eprintln!("{}", "closed".to_string());
+    eprintln!("{}", format!("{}", "closed".to_string()));
 }

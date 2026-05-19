@@ -49,7 +49,7 @@ fn main() {
     let mut age = Rc::new(RefCell::new(Some(25)));
     print!("Hello {}! You are {} years old.\n", { let __v = (*name.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*age.borrow().as_ref().unwrap()).clone(); __v });
     let mut result = Rc::new(RefCell::new(Some(format!("Formatted: {}", format_slice(&Rc::new(RefCell::new(Some(vec![1, 2, 3]))))))));
-    println!("{}", { let __v = (*result.borrow().as_ref().unwrap()).clone(); __v });
+    println!("{}", format!("{}", { let __v = (*result.borrow().as_ref().unwrap()).clone(); __v }));
     let mut flags = Rc::new(RefCell::new(Some(format!("Flags: {:?} {}", { let __v = (*age.borrow().as_ref().unwrap()).clone(); __v }, format!("{:#x}", { let __v = (*age.borrow().as_ref().unwrap()).clone(); __v })))));
-    println!("{}", { let __v = (*flags.borrow().as_ref().unwrap()).clone(); __v });
+    println!("{}", format!("{}", { let __v = (*flags.borrow().as_ref().unwrap()).clone(); __v }));
 }

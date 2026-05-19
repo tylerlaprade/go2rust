@@ -18,5 +18,5 @@ fn main() {
     let mut f = Rc::new(RefCell::new(Some(Box::new(move |path: Rc<RefCell<Option<String>>>| -> Rc<RefCell<Option<String>>> {
         return Rc::new(RefCell::new(Some(format!("{}{}", "pkg:".to_string(), (*path.borrow().as_ref().unwrap())))));
     }) as Box<dyn FnMut(Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>>>)));
-    println!("{}", (*f.format(Rc::new(RefCell::new(Some("fmt".to_string())))).borrow().as_ref().unwrap()));
+    println!("{}", format!("{}", (*f.format(Rc::new(RefCell::new(Some("fmt".to_string())))).borrow().as_ref().unwrap())));
 }

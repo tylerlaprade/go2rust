@@ -161,5 +161,5 @@ fn main() {
     let done_thread = done.clone(); std::thread::spawn(move || {
         done_thread.send((*first_alias(Arc::new(Mutex::new(Some(vec!["alpha".to_string()])))).lock().unwrap().as_ref().unwrap()).clone());;;
     });
-    println!("{}", done.recv().unwrap());
+    println!("{}", format!("{}", done.recv().unwrap()));
 }

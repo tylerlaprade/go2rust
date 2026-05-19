@@ -36,10 +36,10 @@ fn __go_init_globals() {
 fn main() {
     __go_init_all();
     if (*ErrUnset.borrow()).is_none() {
-        println!("{}", "unset".to_string());
+        println!("{}", format!("{}", "unset".to_string()));
     }
     if (*ErrBoom.borrow()).is_some() {
-        println!("{}", format!("{}", (*ErrBoom.borrow().as_ref().unwrap())));
+        println!("{}", format!("{}", format!("{}", (*ErrBoom.borrow().as_ref().unwrap()))));
     }
 }
 

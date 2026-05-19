@@ -278,7 +278,7 @@ fn main() {
         let done_thread = done.clone(); std::thread::spawn(move || {
         done_thread.send((*normalize(Arc::new(Mutex::new(Some(Vec::<ast_Expr>::from([{ let __arg = Arc::new(Mutex::new(Some(ast_Ident { ..Default::default() }))); let __arg_guard = __arg.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone().into() }]))))).lock().unwrap()).is_some());;;
     });
-        println!("{}", done.recv().unwrap());
+        println!("{}", format!("{}", done.recv().unwrap()));
     }
-    println!("{}", "ok".to_string());
+    println!("{}", format!("{}", "ok".to_string()));
 }

@@ -293,7 +293,7 @@ impl Company {
 
 fn main() {
         // Basic embedded struct
-    println!("{}", "=== Basic embedded struct ===".to_string());
+    println!("{}", format!("{}", "=== Basic embedded struct ===".to_string()));
     let mut emp = Rc::new(RefCell::new(Some(Employee { person: Rc::new(RefCell::new(Some(Person { name: Rc::new(RefCell::new(Some("Alice".to_string()))), age: Rc::new(RefCell::new(Some(30))), ..Default::default() }))), address: Rc::new(RefCell::new(Some(Address { street: Rc::new(RefCell::new(Some("123 Main St".to_string()))), city: Rc::new(RefCell::new(Some("Anytown".to_string()))), state: Rc::new(RefCell::new(Some("CA".to_string()))), ..Default::default() }))), i_d: Rc::new(RefCell::new(Some(1001))), salary: Rc::new(RefCell::new(Some(75000.0))), ..Default::default() })));
 
         // Access embedded fields directly
@@ -304,12 +304,12 @@ fn main() {
 
         // Call embedded methods
     (*emp.borrow().as_ref().unwrap()).greet();
-    println!("{} {}", "Info:".to_string(), (*(*emp.borrow().as_ref().unwrap()).get_info().borrow().as_ref().unwrap()));
-    println!("{} {}", "Address:".to_string(), (*(*emp.borrow().as_ref().unwrap()).full_address().borrow().as_ref().unwrap()));
+    println!("{} {}", format!("{}", "Info:".to_string()), format!("{}", (*(*emp.borrow().as_ref().unwrap()).get_info().borrow().as_ref().unwrap())));
+    println!("{} {}", format!("{}", "Address:".to_string()), format!("{}", (*(*emp.borrow().as_ref().unwrap()).full_address().borrow().as_ref().unwrap())));
     (*emp.borrow().as_ref().unwrap()).work();
 
         // Nested embedding
-    println!("{}", "\n=== Nested embedding ===".to_string());
+    println!("{}", format!("{}", "\n=== Nested embedding ===".to_string()));
     let mut mgr = Rc::new(RefCell::new(Some(Manager { employee: Rc::new(RefCell::new(Some(Employee { person: Rc::new(RefCell::new(Some(Person { name: Rc::new(RefCell::new(Some("Bob".to_string()))), age: Rc::new(RefCell::new(Some(35))), ..Default::default() }))), address: Rc::new(RefCell::new(Some(Address { street: Rc::new(RefCell::new(Some("456 Oak Ave".to_string()))), city: Rc::new(RefCell::new(Some("Somewhere".to_string()))), state: Rc::new(RefCell::new(Some("NY".to_string()))), ..Default::default() }))), i_d: Rc::new(RefCell::new(Some(2001))), salary: Rc::new(RefCell::new(Some(95000.0))), ..Default::default() }))), team: Rc::new(RefCell::new(Some(vec!["Alice".to_string(), "Charlie".to_string(), "Diana".to_string()]))), ..Default::default() })));
 
         // Access deeply nested fields
@@ -323,7 +323,7 @@ fn main() {
     (*mgr.borrow().as_ref().unwrap()).manage();
 
         // Anonymous struct embedding
-    println!("{}", "\n=== Anonymous struct embedding ===".to_string());
+    println!("{}", format!("{}", "\n=== Anonymous struct embedding ===".to_string()));
     let mut company = Rc::new(RefCell::new(Some(Company { name: Rc::new(RefCell::new(Some("TechCorp".to_string()))), company_info: Rc::new(RefCell::new(Some(CompanyInfo::default()))) })));
     { let new_val = 2010; *(*(*company.borrow_mut().as_mut().unwrap()).company_info.borrow_mut().as_mut().unwrap()).founded.borrow_mut() = Some(new_val); };
     { let new_val = "John Doe".to_string(); *(*(*company.borrow_mut().as_mut().unwrap()).company_info.borrow_mut().as_mut().unwrap()).c_e_o.borrow_mut() = Some(new_val); };
@@ -333,8 +333,8 @@ fn main() {
     print!("CEO: {}\n", (*(*(*company.borrow().as_ref().unwrap()).company_info.borrow().as_ref().unwrap()).c_e_o.borrow().as_ref().unwrap()).clone());
 
         // Method promotion
-    println!("{}", "\n=== Method promotion ===".to_string());
-    println!("{}", "Employee methods are promoted from Person and Address".to_string());
+    println!("{}", format!("{}", "\n=== Method promotion ===".to_string()));
+    println!("{}", format!("{}", "Employee methods are promoted from Person and Address".to_string()));
     print!("Employee can call: {}\n", (*(*emp.borrow().as_ref().unwrap()).get_info().borrow().as_ref().unwrap()));
     print!("Employee address: {}\n", (*(*emp.borrow().as_ref().unwrap()).full_address().borrow().as_ref().unwrap()));
 }

@@ -38,7 +38,7 @@ impl StdError for customError {}
 
 
 pub fn accept(err: Rc<RefCell<Option<Box<dyn StdError>>>>) {
-    println!("{}", (*Rc::new(RefCell::new(Some(format!("{}", err.borrow().as_ref().unwrap())))).borrow().as_ref().unwrap()));
+    println!("{}", format!("{}", (*Rc::new(RefCell::new(Some(format!("{}", err.borrow().as_ref().unwrap())))).borrow().as_ref().unwrap())));
 }
 
 fn main() {

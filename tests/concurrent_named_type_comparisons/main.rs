@@ -379,8 +379,8 @@ fn main() {
     let done_thread = done.clone(); let sym_thread = Arc::new(Mutex::new(Some((*sym.lock().unwrap().as_ref().unwrap()).clone()))); std::thread::spawn(move || {
         done_thread.send((*(*sym_thread.lock().unwrap().as_ref().unwrap()).is_field().lock().unwrap().as_ref().unwrap()));;;
     });
-    println!("{}", done.recv().unwrap());
-    println!("{}", (*(*sym.lock().unwrap().as_mut().unwrap()).is_not_method().lock().unwrap().as_ref().unwrap()));
-    println!("{}", (*(*sym.lock().unwrap().as_ref().unwrap()).has_field_flag().lock().unwrap().as_ref().unwrap()));
-    println!("{}", (*(*sym.lock().unwrap().as_ref().unwrap()).kind_name().lock().unwrap().as_ref().unwrap()));
+    println!("{}", format!("{}", done.recv().unwrap()));
+    println!("{}", format!("{}", (*(*sym.lock().unwrap().as_mut().unwrap()).is_not_method().lock().unwrap().as_ref().unwrap())));
+    println!("{}", format!("{}", (*(*sym.lock().unwrap().as_ref().unwrap()).has_field_flag().lock().unwrap().as_ref().unwrap())));
+    println!("{}", format!("{}", (*(*sym.lock().unwrap().as_ref().unwrap()).kind_name().lock().unwrap().as_ref().unwrap())));
 }

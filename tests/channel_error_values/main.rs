@@ -201,15 +201,15 @@ fn main() {
     let mut ch = GoChannel::<Option<Box<dyn StdError + Send + Sync>>>::new_buffered(2 as usize);
     let mut err: Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> = Arc::new(Mutex::new(None));
     ch.send({ let __err_handle = err.clone(); let mut __err_guard = __err_handle.lock().unwrap(); __err_guard.take() });
-    println!("{}", (*receive(ch.clone()).lock().unwrap()).is_none());
+    println!("{}", format!("{}", (*receive(ch.clone()).lock().unwrap()).is_none()));
     ch.send({ let __err_handle = Arc::new(Mutex::new(Some(Box::<dyn std::error::Error + Send + Sync>::from("boom".to_string())))); let mut __err_guard = __err_handle.lock().unwrap(); __err_guard.take() });
-    println!("{}", (*select_receive(ch.clone()).lock().unwrap()).is_some());
+    println!("{}", format!("{}", (*select_receive(ch.clone()).lock().unwrap()).is_some()));
     ch.send({ let __err_handle = Arc::new(Mutex::new(Some(Box::<dyn std::error::Error + Send + Sync>::from("local".to_string())))); let mut __err_guard = __err_handle.lock().unwrap(); __err_guard.take() });
-    println!("{}", (*local_receive(ch.clone()).lock().unwrap()).is_some());
+    println!("{}", format!("{}", (*local_receive(ch.clone()).lock().unwrap()).is_some()));
     ch.send({ let __err_handle = Arc::new(Mutex::new(Some(Box::<dyn std::error::Error + Send + Sync>::from("comma".to_string())))); let mut __err_guard = __err_handle.lock().unwrap(); __err_guard.take() });
     let (mut hasErr, mut ok) = comma_receive(ch.clone());
-    println!("{} {}", { let __v = (*hasErr.lock().unwrap().as_ref().unwrap()).clone(); __v }, { let __v = (*ok.lock().unwrap().as_ref().unwrap()).clone(); __v });
+    println!("{} {}", format!("{}", { let __v = (*hasErr.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*ok.lock().unwrap().as_ref().unwrap()).clone(); __v }));
     ch.send({ let __err_handle = Arc::new(Mutex::new(Some(Box::<dyn std::error::Error + Send + Sync>::from("assign".to_string())))); let mut __err_guard = __err_handle.lock().unwrap(); __err_guard.take() });
     { let (__tmp_0, __tmp_1) = comma_assign(ch.clone()); let __moved_tmp_0 = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take() }; *hasErr.lock().unwrap() = __moved_tmp_0; let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *ok.lock().unwrap() = __moved_tmp_1; };
-    println!("{} {}", { let __v = (*hasErr.lock().unwrap().as_ref().unwrap()).clone(); __v }, { let __v = (*ok.lock().unwrap().as_ref().unwrap()).clone(); __v });
+    println!("{} {}", format!("{}", { let __v = (*hasErr.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*ok.lock().unwrap().as_ref().unwrap()).clone(); __v }));
 }

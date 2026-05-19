@@ -291,23 +291,23 @@ fn main() {
         // Test with different types
     let mut values = Rc::new(RefCell::new(Some(vec![Box::new("hello world".to_string()) as Box<dyn Any>, Box::new(42) as Box<dyn Any>, Box::new(3.14159) as Box<dyn Any>, Box::new(true) as Box<dyn Any>, Box::new(Rc::new(RefCell::new(Some(vec![1, 2, 3])))) as Box<dyn Any>])));
 
-    println!("{}", "=== Processing values ===".to_string());
+    println!("{}", format!("{}", "=== Processing values ===".to_string()));
     { let __range_holder = values.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for val in __range_values.iter() {
         process_value(val.clone());
     } }
 
-    println!("{}", "\n=== Assertion without check ===".to_string());
+    println!("{}", format!("{}", "\n=== Assertion without check ===".to_string()));
     assert_without_check(Rc::new(RefCell::new(Some(Box::new("valid string".to_string()) as Box<dyn Any>))));
     assert_without_check(Rc::new(RefCell::new(Some(Box::new(123) as Box<dyn Any>))));
 
-    println!("{}", "\n=== Interface type assertions ===".to_string());
+    println!("{}", format!("{}", "\n=== Interface type assertions ===".to_string()));
     let mut shapes = Rc::new(RefCell::new(Some(vec![Box::new(Rectangle { width: Rc::new(RefCell::new(Some(10.0))), height: Rc::new(RefCell::new(Some(5.0))), ..Default::default() }) as Box<dyn Shape>, Box::new(Circle { radius: Rc::new(RefCell::new(Some(3.0))), ..Default::default() }) as Box<dyn Shape>])));
 
     { let __range_holder = shapes.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for shape in __range_values.iter() {
         describe_shape(shape.as_ref());
     } }
 
-    println!("{}", "\n=== Type switch alternative ===".to_string());
+    println!("{}", format!("{}", "\n=== Type switch alternative ===".to_string()));
     { let __range_holder = values.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for val in __range_values.iter() {
         {
     let _ts_ref = val;

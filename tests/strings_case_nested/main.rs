@@ -11,6 +11,6 @@ pub fn clean_suffix(name: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<String
 }
 
 fn main() {
-    println!("{}", (*clean(Arc::new(Mutex::new(Some("R#Go2Rust".to_string())))).lock().unwrap().as_ref().unwrap()));
-    println!("{}", (*clean_suffix(Arc::new(Mutex::new(Some("Go2Rust.RS".to_string())))).lock().unwrap().as_ref().unwrap()));
+    println!("{}", format!("{}", (*clean(Arc::new(Mutex::new(Some("R#Go2Rust".to_string())))).lock().unwrap().as_ref().unwrap())));
+    println!("{}", format!("{}", (*clean_suffix(Arc::new(Mutex::new(Some("Go2Rust.RS".to_string())))).lock().unwrap().as_ref().unwrap())));
 }

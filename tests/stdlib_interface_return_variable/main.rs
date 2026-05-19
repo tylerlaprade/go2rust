@@ -172,8 +172,8 @@ pub fn zero_object() -> Rc<RefCell<Option<types_Object>>> {
 
 fn main() {
     if false {
-        println!("{}", format!("{}", (*(as_type(Rc::new(RefCell::new(None)))).borrow().as_ref().unwrap())));
-        println!("{}", (*zero_object().borrow()).is_none());
+        println!("{}", format!("{}", format!("{}", (*(as_type(Rc::new(RefCell::new(None)))).borrow().as_ref().unwrap()))));
+        println!("{}", format!("{}", (*zero_object().borrow()).is_none()));
     }
-    println!("{}", "ok".to_string());
+    println!("{}", format!("{}", "ok".to_string()));
 }

@@ -24,5 +24,5 @@ impl types_Config {
 fn main() {
     let _ = types_Config { error: Rc::new(RefCell::new(Some(Box::new(move |err: Rc<RefCell<Option<Box<dyn StdError>>>>| {
     }) as Box<dyn FnMut(Rc<RefCell<Option<Box<dyn StdError>>>>) -> ()>))), ..Default::default() };
-    println!("{}", "ok".to_string());
+    println!("{}", format!("{}", "ok".to_string()));
 }

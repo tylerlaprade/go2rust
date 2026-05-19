@@ -10,5 +10,5 @@ fn main() {
         { let __map_handle = ids.clone(); let mut __map_guard = __map_handle.borrow_mut(); __map_guard.as_mut().unwrap().remove(&(*id.borrow().as_ref().unwrap()).clone()); };
     }
 
-    println!("{} {}", (*ids.borrow().as_ref().unwrap()).get(&"real".to_string()).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| false), (*ids.borrow().as_ref().unwrap()).get(&"other".to_string()).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| false));
+    println!("{} {}", format!("{}", (*ids.borrow().as_ref().unwrap()).get(&"real".to_string()).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| false)), format!("{}", (*ids.borrow().as_ref().unwrap()).get(&"other".to_string()).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| false)));
 }

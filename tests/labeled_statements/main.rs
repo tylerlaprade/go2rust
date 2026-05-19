@@ -18,5 +18,5 @@ fn main() {
         println!();
         { let mut guard = i.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
-    println!("{}", "Done".to_string());
+    println!("{}", format!("{}", "Done".to_string()));
 }

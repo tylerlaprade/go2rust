@@ -368,12 +368,12 @@ fn main() {
     let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
         // Create a temporary file for testing
-    println!("{}", "=== File Operations Test ===".to_string());
+    println!("{}", format!("{}", "=== File Operations Test ===".to_string()));
 
     let mut filename = Arc::new(Mutex::new(Some("test_file.txt".to_string())));
 
         // Write to file
-    println!("{}", "\n--- Writing to file ---".to_string());
+    println!("{}", format!("{}", "\n--- Writing to file ---".to_string()));
 
     let (mut file, mut err) = { let __path = (*filename.lock().unwrap().as_ref().unwrap()).clone(); match GoFile::create(&__path) { Ok(file) => (Arc::new(Mutex::new(Some(file))), Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>))), Err(e) => (Arc::new(Mutex::new(Some(GoFile::empty()))), Arc::new(Mutex::new(Some(Box::<dyn StdError + Send + Sync>::from(e))))) } };
     if (*err.lock().unwrap()).is_some() {
@@ -409,7 +409,7 @@ fn main() {
     print!("File '{}' created successfully\n", { let __v = (*filename.lock().unwrap().as_ref().unwrap()).clone(); __v });
 
         // Read entire file
-    println!("{}", "\n--- Reading entire file ---".to_string());
+    println!("{}", format!("{}", "\n--- Reading entire file ---".to_string()));
 
     let (mut data, mut err) = os::read_file(filename.clone());
     if (*err.lock().unwrap()).is_some() {
@@ -426,7 +426,7 @@ fn main() {
     print!("File contents:\n{}", (*Arc::new(Mutex::new(Some(String::from_utf8((*data.lock().unwrap().as_ref().unwrap()).clone()).unwrap()))).lock().unwrap().as_ref().unwrap()));
 
         // Read file line by line
-    println!("{}", "\n--- Reading file line by line ---".to_string());
+    println!("{}", format!("{}", "\n--- Reading file line by line ---".to_string()));
 
     { let (__tmp_0, __tmp_1) = os::open(filename.clone()); let __moved_tmp_0 = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take() }; *file.lock().unwrap() = __moved_tmp_0; let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1; };
     if (*err.lock().unwrap()).is_some() {
@@ -465,7 +465,7 @@ fn main() {
     }
 
         // Append to file
-    println!("{}", "\n--- Appending to file ---".to_string());
+    println!("{}", format!("{}", "\n--- Appending to file ---".to_string()));
 
     { let (__tmp_0, __tmp_1) = os::open_file(filename.clone(), { let __tmp_x = os::O__A_P_P_E_N_D; let __tmp_y = os::O__W_R_O_N_L_Y; __tmp_x | __tmp_y }, 0644); let __moved_tmp_0 = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take() }; *file.lock().unwrap() = __moved_tmp_0; let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1; };
     if (*err.lock().unwrap()).is_some() {
@@ -500,7 +500,7 @@ fn main() {
     (*file.lock().unwrap().as_mut().unwrap()).close();
 
         // Read updated file
-    println!("{}", "\n--- Reading updated file ---".to_string());
+    println!("{}", format!("{}", "\n--- Reading updated file ---".to_string()));
 
     { let (__tmp_0, __tmp_1) = os::read_file(filename.clone()); let __moved_tmp_0 = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take() }; *data.lock().unwrap() = __moved_tmp_0; let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1; };
     if (*err.lock().unwrap()).is_some() {
@@ -517,7 +517,7 @@ fn main() {
     print!("Updated file contents:\n{}", (*Arc::new(Mutex::new(Some(String::from_utf8((*data.lock().unwrap().as_ref().unwrap()).clone()).unwrap()))).lock().unwrap().as_ref().unwrap()));
 
         // File information
-    println!("{}", "\n--- File information ---".to_string());
+    println!("{}", format!("{}", "\n--- File information ---".to_string()));
 
     let (mut fileInfo, mut err) = os::stat(filename.clone());
     if (*err.lock().unwrap()).is_some() {
@@ -537,11 +537,11 @@ fn main() {
 
         // Keep the fixture deterministic; actual modification times vary per run.
     let _ = (*fileInfo.lock().unwrap().as_ref().unwrap()).mod_time();
-    println!("{}", "Modified time: <deterministic>".to_string());
+    println!("{}", format!("{}", "Modified time: <deterministic>".to_string()));
     print!("Is directory: {}\n", (*(*fileInfo.lock().unwrap().as_ref().unwrap()).is_dir().lock().unwrap().as_ref().unwrap()));
 
         // Copy file
-    println!("{}", "\n--- Copying file ---".to_string());
+    println!("{}", format!("{}", "\n--- Copying file ---".to_string()));
 
     let mut copyFilename = Arc::new(Mutex::new(Some("test_file_copy.txt".to_string())));
 
@@ -590,7 +590,7 @@ fn main() {
     print!("Copied {} bytes to '{}'\n", { let __v = (*bytesWritten.lock().unwrap().as_ref().unwrap()).clone(); __v }, { let __v = (*copyFilename.lock().unwrap().as_ref().unwrap()).clone(); __v });
 
         // Read and process file content
-    println!("{}", "\n--- Processing file content ---".to_string());
+    println!("{}", format!("{}", "\n--- Processing file content ---".to_string()));
 
     { let (__tmp_0, __tmp_1) = os::open(filename.clone()); let __moved_tmp_0 = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take() }; *file.lock().unwrap() = __moved_tmp_0; let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1; };
     if (*err.lock().unwrap()).is_some() {
@@ -633,7 +633,7 @@ fn main() {
     print!("  Characters: {}\n", { let __v = (*charCount.lock().unwrap().as_ref().unwrap()).clone(); __v });
 
         // Write formatted data
-    println!("{}", "\n--- Writing formatted data ---".to_string());
+    println!("{}", format!("{}", "\n--- Writing formatted data ---".to_string()));
 
     let mut dataFile = Arc::new(Mutex::new(Some("data.txt".to_string())));
     { let (__tmp_0, __tmp_1) = { let __path = (*dataFile.lock().unwrap().as_ref().unwrap()).clone(); match GoFile::create(&__path) { Ok(file) => (Arc::new(Mutex::new(Some(file))), Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>))), Err(e) => (Arc::new(Mutex::new(Some(GoFile::empty()))), Arc::new(Mutex::new(Some(Box::<dyn StdError + Send + Sync>::from(e))))) } }; let __moved_tmp_0 = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take() }; *file.lock().unwrap() = __moved_tmp_0; let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1; };
@@ -660,7 +660,7 @@ fn main() {
     print!("Formatted data written to '{}'\n", { let __v = (*dataFile.lock().unwrap().as_ref().unwrap()).clone(); __v });
 
         // Read and parse formatted data
-    println!("{}", "\n--- Reading formatted data ---".to_string());
+    println!("{}", format!("{}", "\n--- Reading formatted data ---".to_string()));
 
     { let (__tmp_0, __tmp_1) = os::read_file(dataFile.clone()); let __moved_tmp_0 = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take() }; *data.lock().unwrap() = __moved_tmp_0; let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1; };
     if (*err.lock().unwrap()).is_some() {
@@ -677,7 +677,7 @@ fn main() {
     print!("Data file contents:\n{}", (*Arc::new(Mutex::new(Some(String::from_utf8((*data.lock().unwrap().as_ref().unwrap()).clone()).unwrap()))).lock().unwrap().as_ref().unwrap()));
 
         // Check if files exist
-    println!("{}", "\n--- Checking file existence ---".to_string());
+    println!("{}", format!("{}", "\n--- Checking file existence ---".to_string()));
 
     let mut files = Arc::new(Mutex::new(Some(vec![(*filename.lock().unwrap().as_ref().unwrap()).clone(), (*copyFilename.lock().unwrap().as_ref().unwrap()).clone(), (*dataFile.lock().unwrap().as_ref().unwrap()).clone(), "nonexistent.txt".to_string()])));
 
@@ -693,7 +693,7 @@ fn main() {
     } }
 
         // Clean up - remove test files
-    println!("{}", "\n--- Cleaning up ---".to_string());
+    println!("{}", format!("{}", "\n--- Cleaning up ---".to_string()));
 
     let mut filesToRemove = Arc::new(Mutex::new(Some(vec![(*filename.lock().unwrap().as_ref().unwrap()).clone(), (*copyFilename.lock().unwrap().as_ref().unwrap()).clone(), (*dataFile.lock().unwrap().as_ref().unwrap()).clone()])));
 
@@ -707,7 +707,7 @@ fn main() {
     } }
 
         // Verify cleanup
-    println!("{}", "\n--- Verifying cleanup ---".to_string());
+    println!("{}", format!("{}", "\n--- Verifying cleanup ---".to_string()));
 
     { let __range_holder = filesToRemove.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for f in __range_values.iter() {
         let (_, mut err) = os::stat(f.clone());
@@ -718,7 +718,7 @@ fn main() {
     }
     } }
 
-    println!("{}", "\nFile operations test completed!".to_string());
+    println!("{}", format!("{}", "\nFile operations test completed!".to_string()));
 
     // Execute deferred functions
     while let Some(f) = __defer_stack.pop() {

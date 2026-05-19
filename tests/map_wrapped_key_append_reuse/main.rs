@@ -35,6 +35,6 @@ fn main() {
 
     { let __map_key = (*importingPkg.borrow().as_ref().unwrap()).clone(); let __map_value = { let __slice = { let __map_holder = additionalErrors.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().unwrap().get(&(*importingPkg.borrow().as_ref().unwrap()).clone()).cloned().unwrap_or_else(|| Rc::new(RefCell::new(None))) }; (*__slice.borrow_mut()).get_or_insert_with(Vec::new).push(Error { msg: importingPkg.clone(), ..Default::default() }); __slice.clone() }; (*additionalErrors.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
 
-    println!("{}", (*additionalErrors.borrow().as_ref().unwrap()).len());
-    println!("{}", (*(*(*additionalErrors.borrow().as_ref().unwrap()).get(&"importer".to_string()).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()).borrow().as_ref().unwrap())[(0) as usize].clone().msg.borrow().as_ref().unwrap()));
+    println!("{}", format!("{}", (*additionalErrors.borrow().as_ref().unwrap()).len()));
+    println!("{}", format!("{}", (*(*(*additionalErrors.borrow().as_ref().unwrap()).get(&"importer".to_string()).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()).borrow().as_ref().unwrap())[(0) as usize].clone().msg.borrow().as_ref().unwrap())));
 }

@@ -80,5 +80,5 @@ impl Cache {
 fn main() {
     let mut c = Rc::new(RefCell::new(Some(Cache { mu: GoMutex::new(), n: Rc::new(RefCell::new(Some(0))) })));
     (*c.borrow_mut().as_mut().unwrap()).update();
-    println!("{}", (*(*c.borrow().as_ref().unwrap()).n.borrow().as_ref().unwrap()));
+    println!("{}", format!("{}", (*(*c.borrow().as_ref().unwrap()).n.borrow().as_ref().unwrap())));
 }

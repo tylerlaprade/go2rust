@@ -36,7 +36,7 @@ fn __go_init_0() {
 
 fn main() {
     __go_init_all();
-    println!("{} {} {}", (*labels.borrow().as_ref().unwrap())[(0) as usize].clone(), (*labels.borrow().as_ref().unwrap())[(1) as usize].clone(), (*labels.borrow().as_ref().unwrap())[(39) as usize].clone());
+    println!("{} {} {}", format!("{}", (*labels.borrow().as_ref().unwrap())[(0) as usize].clone()), format!("{}", (*labels.borrow().as_ref().unwrap())[(1) as usize].clone()), format!("{}", (*labels.borrow().as_ref().unwrap())[(39) as usize].clone()));
 }
 
 pub(crate) fn __go_init_all() {

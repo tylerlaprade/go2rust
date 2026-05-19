@@ -38,5 +38,5 @@ fn main() {
     let mut got = first(items.clone());
 
     { let new_val = 9; *(*ptr.borrow().as_ref().unwrap()).value.borrow_mut() = Some(new_val); };
-    println!("{}", (*(*got.borrow().as_ref().unwrap()).value.borrow().as_ref().unwrap()));
+    println!("{}", format!("{}", (*(*got.borrow().as_ref().unwrap()).value.borrow().as_ref().unwrap())));
 }

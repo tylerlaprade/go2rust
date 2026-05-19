@@ -269,18 +269,18 @@ fn main() {
     done.recv().unwrap();
 
     set_counter(new_counter(Arc::new(Mutex::new(Some(7)))));
-    println!("{}", (*(*get_counter().lock().unwrap().as_ref().unwrap()).value.lock().unwrap().as_ref().unwrap()));
-    println!("{}", (*current_value().lock().unwrap().as_ref().unwrap()));
+    println!("{}", format!("{}", (*(*get_counter().lock().unwrap().as_ref().unwrap()).value.lock().unwrap().as_ref().unwrap())));
+    println!("{}", format!("{}", (*current_value().lock().unwrap().as_ref().unwrap())));
     set_current_value(Arc::new(Mutex::new(Some(9))));
-    println!("{}", (*(*get_counter().lock().unwrap().as_ref().unwrap()).value.lock().unwrap().as_ref().unwrap()));
+    println!("{}", format!("{}", (*(*get_counter().lock().unwrap().as_ref().unwrap()).value.lock().unwrap().as_ref().unwrap())));
     set_counter(new_counter(Arc::new(Mutex::new(Some(11)))));
-    println!("{}", (*(*get_counter().lock().unwrap().as_ref().unwrap()).value.lock().unwrap().as_ref().unwrap()));
+    println!("{}", format!("{}", (*(*get_counter().lock().unwrap().as_ref().unwrap()).value.lock().unwrap().as_ref().unwrap())));
     set_counter(Arc::new(Mutex::new(None)));
-    println!("{}", (*get_counter().lock().unwrap()).is_none());
+    println!("{}", format!("{}", (*get_counter().lock().unwrap()).is_none()));
     set_counter(new_counter(Arc::new(Mutex::new(Some(13)))));
     clear_counter();
-    println!("{}", (*get_counter().lock().unwrap()).is_none());
-    println!("{}", (*{ let __recv = get_fallback(); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).value(); __result }.lock().unwrap().as_ref().unwrap()));
+    println!("{}", format!("{}", (*get_counter().lock().unwrap()).is_none()));
+    println!("{}", format!("{}", (*{ let __recv = get_fallback(); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).value(); __result }.lock().unwrap().as_ref().unwrap())));
 }
 
 pub(crate) fn __go_init_all() {

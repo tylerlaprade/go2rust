@@ -9,5 +9,5 @@ pub fn wrap(name: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>> {
 }
 
 fn main() {
-    println!("{}", (*wrap(Rc::new(RefCell::new(Some("gopher".to_string())))).borrow().as_ref().unwrap()));
+    println!("{}", format!("{}", (*wrap(Rc::new(RefCell::new(Some("gopher".to_string())))).borrow().as_ref().unwrap())));
 }

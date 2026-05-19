@@ -3,9 +3,9 @@ use std::rc::{Rc};
 
 pub fn describe(ptr: Rc<RefCell<Option<i32>>>) {
     if ptr.borrow().is_none() {
-            println!("{}", "nil pointer".to_string());
+            println!("{}", format!("{}", "nil pointer".to_string()));
         } else {
-            println!("{}", { let __v = (*ptr.borrow().as_ref().unwrap()).clone(); __v });
+            println!("{}", format!("{}", { let __v = (*ptr.borrow().as_ref().unwrap()).clone(); __v }));
         }
 }
 

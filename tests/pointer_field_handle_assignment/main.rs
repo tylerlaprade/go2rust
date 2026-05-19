@@ -53,5 +53,5 @@ fn main() {
     { let new_val = first.clone(); (*r#box.borrow_mut().as_mut().unwrap()).child = new_val; };
     { let new_val = second.clone(); (*r#box.borrow_mut().as_mut().unwrap()).child = new_val; };
 
-    println!("{}", (*(*(*r#box.borrow().as_ref().unwrap()).child.borrow().as_ref().unwrap()).value.borrow().as_ref().unwrap()));
+    println!("{}", format!("{}", (*(*(*r#box.borrow().as_ref().unwrap()).child.borrow().as_ref().unwrap()).value.borrow().as_ref().unwrap())));
 }

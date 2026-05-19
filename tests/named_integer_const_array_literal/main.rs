@@ -198,7 +198,7 @@ fn __go_init_globals() {
 
 fn main() {
     __go_init_all();
-    println!("{} {} {} {}", (*introduced.borrow().as_ref().unwrap())[(0) as usize].clone(), (*introduced.borrow().as_ref().unwrap())[(1) as usize].clone(), (*introduced.borrow().as_ref().unwrap())[(2) as usize].clone(), (*introduced.borrow().as_ref().unwrap())[(3) as usize].clone());
+    println!("{} {} {} {}", format!("{}", (*introduced.borrow().as_ref().unwrap())[(0) as usize].clone()), format!("{}", (*introduced.borrow().as_ref().unwrap())[(1) as usize].clone()), format!("{}", (*introduced.borrow().as_ref().unwrap())[(2) as usize].clone()), format!("{}", (*introduced.borrow().as_ref().unwrap())[(3) as usize].clone()));
 }
 
 pub(crate) fn __go_init_all() {

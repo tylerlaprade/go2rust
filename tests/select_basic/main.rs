@@ -166,12 +166,12 @@ fn main() {
         loop {
         if let Some(msg1) = c1.try_recv() {
             let mut msg1 = Arc::new(Mutex::new(Some(msg1)));
-            println!("{} {}", "received".to_string(), { let __v = (*msg1.lock().unwrap().as_ref().unwrap()).clone(); __v });
+            println!("{} {}", format!("{}", "received".to_string()), format!("{}", { let __v = (*msg1.lock().unwrap().as_ref().unwrap()).clone(); __v }));
             break;
         }
         if let Some(msg2) = c2.try_recv() {
             let mut msg2 = Arc::new(Mutex::new(Some(msg2)));
-            println!("{} {}", "received".to_string(), { let __v = (*msg2.lock().unwrap().as_ref().unwrap()).clone(); __v });
+            println!("{} {}", format!("{}", "received".to_string()), format!("{}", { let __v = (*msg2.lock().unwrap().as_ref().unwrap()).clone(); __v }));
             break;
         }
         std::thread::sleep(std::time::Duration::from_millis(1));

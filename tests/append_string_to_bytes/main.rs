@@ -44,6 +44,6 @@ pub fn append_method(dst: Rc<RefCell<Option<Vec<u8>>>>, l: Rc<RefCell<Option<lab
 }
 
 fn main() {
-    println!("{}", (*Rc::new(RefCell::new(Some(String::from_utf8((*append_string(Rc::new(RefCell::new(Some(Vec::<u8>::new()))), Rc::new(RefCell::new(Some("go".to_string())))).borrow().as_ref().unwrap()).clone()).unwrap()))).borrow().as_ref().unwrap()));
-    println!("{}", (*Rc::new(RefCell::new(Some(String::from_utf8((*append_method(Rc::new(RefCell::new(Some(Vec::<u8>::new()))), Rc::new(RefCell::new(Some(label { name: Rc::new(RefCell::new(Some("rust".to_string()))), ..Default::default() })))).borrow().as_ref().unwrap()).clone()).unwrap()))).borrow().as_ref().unwrap()));
+    println!("{}", format!("{}", (*Rc::new(RefCell::new(Some(String::from_utf8((*append_string(Rc::new(RefCell::new(Some(Vec::<u8>::new()))), Rc::new(RefCell::new(Some("go".to_string())))).borrow().as_ref().unwrap()).clone()).unwrap()))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*Rc::new(RefCell::new(Some(String::from_utf8((*append_method(Rc::new(RefCell::new(Some(Vec::<u8>::new()))), Rc::new(RefCell::new(Some(label { name: Rc::new(RefCell::new(Some("rust".to_string()))), ..Default::default() })))).borrow().as_ref().unwrap()).clone()).unwrap()))).borrow().as_ref().unwrap())));
 }

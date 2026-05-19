@@ -16,5 +16,5 @@ pub fn copy_nested(dst: Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<BTr
 fn main() {
     let mut dst = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<String>>>>>>>>::from([]))));
     copy_nested(dst.clone(), Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<String>>>>>>>>::from([("outer".to_string(), Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<String>>>>::from([("inner".to_string(), Rc::new(RefCell::new(Some("value".to_string()))))])))))])))));
-    println!("{}", (*(*dst.borrow().as_ref().unwrap()).get(&"outer".to_string()).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()).borrow().as_ref().unwrap()).get(&"inner".to_string()).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| String::new()));
+    println!("{}", format!("{}", (*(*dst.borrow().as_ref().unwrap()).get(&"outer".to_string()).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()).borrow().as_ref().unwrap()).get(&"inner".to_string()).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| String::new())));
 }

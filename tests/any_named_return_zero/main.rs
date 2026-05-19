@@ -13,6 +13,6 @@ fn main() {
         ;
     });
     if (*zero().lock().unwrap()).is_none() {
-        println!("{}", "nil".to_string());
+        println!("{}", format!("{}", "nil".to_string()));
     }
 }

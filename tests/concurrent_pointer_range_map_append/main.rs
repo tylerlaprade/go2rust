@@ -70,5 +70,5 @@ fn main() {
         { let new_val = { let __append_target = result.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(p.clone()); __append_target.clone() }; result = new_val; };
     }
     } }
-    println!("{} {}", (*result.lock().unwrap().as_ref().unwrap()).len(), { let __map = { let __map_holder = seen.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = (*__map_guard.as_ref().unwrap()).clone(); drop(__map_guard); __cloned }; __map.get(&GoLocalPtrKey::new(n.clone())).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| false) });
+    println!("{} {}", format!("{}", (*result.lock().unwrap().as_ref().unwrap()).len()), format!("{}", { let __map = { let __map_holder = seen.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = (*__map_guard.as_ref().unwrap()).clone(); drop(__map_guard); __cloned }; __map.get(&GoLocalPtrKey::new(n.clone())).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| false) }));
 }

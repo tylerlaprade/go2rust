@@ -154,7 +154,7 @@ pub fn safe_divide(a: Rc<RefCell<Option<f64>>>, b: Rc<RefCell<Option<f64>>>) -> 
 
 fn main() {
         // Basic multiple returns
-    println!("{}", "=== Basic multiple returns ===".to_string());
+    println!("{}", format!("{}", "=== Basic multiple returns ===".to_string()));
     let (mut quotient, mut remainder) = divmod(Rc::new(RefCell::new(Some(17))), Rc::new(RefCell::new(Some(5))));
     print!("17 / 5 = {} remainder {}\n", { let __v = (*quotient.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*remainder.borrow().as_ref().unwrap()).clone(); __v });
 
@@ -162,7 +162,7 @@ fn main() {
     print!("Name: {}, Age: {}\n", { let __v = (*name.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*age.borrow().as_ref().unwrap()).clone(); __v });
 
         // Multiple returns with error handling
-    println!("{}", "\n=== Multiple returns with errors ===".to_string());
+    println!("{}", format!("{}", "\n=== Multiple returns with errors ===".to_string()));
     let (mut num, mut err) = parse_number(Rc::new(RefCell::new(Some("123".to_string()))));
     if (*err.borrow()).is_some() {
         print!("Error: {}\n", format!("{}", (*err.borrow().as_ref().unwrap())));
@@ -178,7 +178,7 @@ fn main() {
     }
 
         // Named return values
-    println!("{}", "\n=== Named return values ===".to_string());
+    println!("{}", format!("{}", "\n=== Named return values ===".to_string()));
     let (mut s, mut p) = calculate(Rc::new(RefCell::new(Some(6))), Rc::new(RefCell::new(Some(7))));
     print!("Sum: {}, Product: {}\n", { let __v = (*s.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*p.borrow().as_ref().unwrap()).clone(); __v });
 
@@ -189,37 +189,37 @@ fn main() {
     print!("Min: {}, Max: {}, Sum: {}\n", { let __v = (*min.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*max.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*sum.borrow().as_ref().unwrap()).clone(); __v });
 
         // Swapping values
-    println!("{}", "\n=== Swapping values ===".to_string());
+    println!("{}", format!("{}", "\n=== Swapping values ===".to_string()));
     let (mut x, mut y) = (Rc::new(RefCell::new(Some("hello".to_string()))), Rc::new(RefCell::new(Some("world".to_string()))));
     print!("Before swap: x={}, y={}\n", { let __v = (*x.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*y.borrow().as_ref().unwrap()).clone(); __v });
     { let (__tmp_0, __tmp_1) = swap(Rc::new(RefCell::new(Some((*x.borrow().as_ref().unwrap()).clone()))), Rc::new(RefCell::new(Some((*y.borrow().as_ref().unwrap()).clone())))); let __moved_tmp_0 = { let mut __guard = __tmp_0.borrow_mut(); __guard.take() }; *x.borrow_mut() = __moved_tmp_0; let __moved_tmp_1 = { let mut __guard = __tmp_1.borrow_mut(); __guard.take() }; *y.borrow_mut() = __moved_tmp_1; };
     print!("After swap: x={}, y={}\n", { let __v = (*x.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*y.borrow().as_ref().unwrap()).clone(); __v });
 
         // Multiple returns of different types
-    println!("{}", "\n=== Different types ===".to_string());
+    println!("{}", format!("{}", "\n=== Different types ===".to_string()));
     let (mut pName, mut pAge, mut pHeight, mut pMarried) = get_person_info();
     print!("Person: {}, {} years old, {:.1} feet tall, married: {}\n", { let __v = (*pName.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*pAge.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*pHeight.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*pMarried.borrow().as_ref().unwrap()).clone(); __v });
 
         // Finding in slice
-    println!("{}", "\n=== Finding in slice ===".to_string());
+    println!("{}", format!("{}", "\n=== Finding in slice ===".to_string()));
     let mut numbers = Rc::new(RefCell::new(Some(vec![10, 20, 30, 40, 50])));
 
     let (mut index, mut found) = find_in_slice(numbers.clone(), Rc::new(RefCell::new(Some(30))));
     if (*found.borrow().as_ref().unwrap()) {
         print!("Found 30 at index {}\n", { let __v = (*index.borrow().as_ref().unwrap()).clone(); __v });
     } else {
-        println!("{}", "30 not found".to_string());
+        println!("{}", format!("{}", "30 not found".to_string()));
     }
 
     { let (__tmp_0, __tmp_1) = find_in_slice(numbers.clone(), Rc::new(RefCell::new(Some(99)))); let __moved_tmp_0 = { let mut __guard = __tmp_0.borrow_mut(); __guard.take() }; *index.borrow_mut() = __moved_tmp_0; let __moved_tmp_1 = { let mut __guard = __tmp_1.borrow_mut(); __guard.take() }; *found.borrow_mut() = __moved_tmp_1; };
     if (*found.borrow().as_ref().unwrap()) {
         print!("Found 99 at index {}\n", { let __v = (*index.borrow().as_ref().unwrap()).clone(); __v });
     } else {
-        println!("{}", "99 not found".to_string());
+        println!("{}", format!("{}", "99 not found".to_string()));
     }
 
         // Safe division
-    println!("{}", "\n=== Safe division ===".to_string());
+    println!("{}", format!("{}", "\n=== Safe division ===".to_string()));
     let (mut result, mut err) = safe_divide(Rc::new(RefCell::new(Some(10.0))), Rc::new(RefCell::new(Some(3.0))));
     if (*err.borrow()).is_some() {
         print!("Error: {}\n", format!("{}", (*err.borrow().as_ref().unwrap())));
@@ -235,7 +235,7 @@ fn main() {
     }
 
         // Ignoring return values with blank identifier
-    println!("{}", "\n=== Ignoring return values ===".to_string());
+    println!("{}", format!("{}", "\n=== Ignoring return values ===".to_string()));
     let (_, mut remainder2) = divmod(Rc::new(RefCell::new(Some(23))), Rc::new(RefCell::new(Some(7))));
     print!("23 mod 7 = {} (quotient ignored)\n", { let __v = (*remainder2.borrow().as_ref().unwrap()).clone(); __v });
 
@@ -243,7 +243,7 @@ fn main() {
     print!("Name only: {} (age ignored)\n", { let __v = (*name2.borrow().as_ref().unwrap()).clone(); __v });
 
         // Multiple assignment
-    println!("{}", "\n=== Multiple assignment ===".to_string());
+    println!("{}", format!("{}", "\n=== Multiple assignment ===".to_string()));
     let (mut a, mut b, mut c) = (Rc::new(RefCell::new(Some(1))), Rc::new(RefCell::new(Some(2))), Rc::new(RefCell::new(Some(3))));
     print!("a={}, b={}, c={}\n", { let __v = (*a.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*b.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*c.borrow().as_ref().unwrap()).clone(); __v });
 

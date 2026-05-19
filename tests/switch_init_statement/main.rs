@@ -7,18 +7,18 @@ fn main() {
     let mut n = Rc::new(RefCell::new(Some((*values.borrow().as_ref().unwrap()).len() as i32)));
     { let _switch_val = (*n.borrow().as_ref().unwrap());
     if _switch_val == (0) {
-            println!("{}", "empty".to_string());
+            println!("{}", format!("{}", "empty".to_string()));
         } else if _switch_val == (4) {
-            println!("{}", "len is four".to_string());
+            println!("{}", format!("{}", "len is four".to_string()));
         } else {
-            println!("{}", "other".to_string());
+            println!("{}", format!("{}", "other".to_string()));
         }
     }
 
     let mut x = Rc::new(RefCell::new(Some((*values.borrow().as_ref().unwrap())[(1) as usize].clone() * 10)));
     if (*x.borrow().as_ref().unwrap()) > 30 {
-            println!("{}", "large".to_string());
+            println!("{}", format!("{}", "large".to_string()));
         } else {
-            println!("{}", "small".to_string());
+            println!("{}", format!("{}", "small".to_string()));
         }
 }

@@ -4,5 +4,5 @@ use std::rc::{Rc};
 
 fn main() {
     let mut idx: Rc<RefCell<Option<example_com_selectorzero_model::Index>>> = Rc::new(RefCell::new(Some(example_com_selectorzero_model::Index(Rc::new(RefCell::new(Some(0)))))));
-    println!("{}", { let __v = (*idx.borrow().as_ref().unwrap()).clone(); __v });
+    println!("{}", format!("{}", { let __v = (*idx.borrow().as_ref().unwrap()).clone(); __v }));
 }

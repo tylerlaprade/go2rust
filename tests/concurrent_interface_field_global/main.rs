@@ -69,7 +69,7 @@ fn main() {
     std::thread::spawn(move || {
         ;
     });
-    println!("{}", (*(*global.lock().unwrap().as_ref().unwrap()).value.lock().unwrap()).is_none());
+    println!("{}", format!("{}", (*(*global.lock().unwrap().as_ref().unwrap()).value.lock().unwrap()).is_none()));
 }
 
 pub(crate) fn __go_init_all() {

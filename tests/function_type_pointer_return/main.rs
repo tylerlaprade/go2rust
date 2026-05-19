@@ -35,5 +35,5 @@ fn main() {
         return Rc::new(RefCell::new(Some(item { value: Rc::new(RefCell::new(Some(7))), ..Default::default() })));
     }) as Box<dyn FnMut() -> Rc<RefCell<Option<item>>>>)));
     let mut got = { let __f_ptr: *mut Box<dyn FnMut() -> Rc<RefCell<Option<item>>>> = { let mut __f_guard = makeItem.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> Rc<RefCell<Option<item>>>> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
-    println!("{}", (*(*got.borrow().as_ref().unwrap()).value.borrow().as_ref().unwrap()));
+    println!("{}", format!("{}", (*(*got.borrow().as_ref().unwrap()).value.borrow().as_ref().unwrap())));
 }

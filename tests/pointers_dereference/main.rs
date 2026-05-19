@@ -11,14 +11,14 @@ pub fn zeroptr(iptr: Rc<RefCell<Option<i32>>>) {
 
 fn main() {
     let mut i = Rc::new(RefCell::new(Some(1)));
-    println!("{} {}", "initial:".to_string(), { let __v = (*i.borrow().as_ref().unwrap()).clone(); __v });
+    println!("{} {}", format!("{}", "initial:".to_string()), format!("{}", { let __v = (*i.borrow().as_ref().unwrap()).clone(); __v }));
 
     zeroval(Rc::new(RefCell::new(Some((*i.borrow().as_ref().unwrap()).clone()))));
-    println!("{} {}", "zeroval:".to_string(), { let __v = (*i.borrow().as_ref().unwrap()).clone(); __v });
+    println!("{} {}", format!("{}", "zeroval:".to_string()), format!("{}", { let __v = (*i.borrow().as_ref().unwrap()).clone(); __v }));
 
     zeroptr(i.clone());
-    println!("{} {}", "zeroptr:".to_string(), { let __v = (*i.borrow().as_ref().unwrap()).clone(); __v });
+    println!("{} {}", format!("{}", "zeroptr:".to_string()), format!("{}", { let __v = (*i.borrow().as_ref().unwrap()).clone(); __v }));
 
     let mut p = i.clone();
-    println!("{} {}", "pointer is non-nil:".to_string(), (*p.borrow()).is_some());
+    println!("{} {}", format!("{}", "pointer is non-nil:".to_string()), format!("{}", (*p.borrow()).is_some()));
 }

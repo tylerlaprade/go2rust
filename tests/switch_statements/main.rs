@@ -27,19 +27,19 @@ fn go_type_name(val: &dyn Any) -> &'static str {
 pub fn basic_switch(day: Rc<RefCell<Option<i32>>>) {
     { let _switch_val = (*day.borrow().as_ref().unwrap());
     if _switch_val == (1) {
-            println!("{}", "Monday".to_string());
+            println!("{}", format!("{}", "Monday".to_string()));
         } else if _switch_val == (2) {
-            println!("{}", "Tuesday".to_string());
+            println!("{}", format!("{}", "Tuesday".to_string()));
         } else if _switch_val == (3) {
-            println!("{}", "Wednesday".to_string());
+            println!("{}", format!("{}", "Wednesday".to_string()));
         } else if _switch_val == (4) {
-            println!("{}", "Thursday".to_string());
+            println!("{}", format!("{}", "Thursday".to_string()));
         } else if _switch_val == (5) {
-            println!("{}", "Friday".to_string());
+            println!("{}", format!("{}", "Friday".to_string()));
         } else if _switch_val == (6) || _switch_val == (7) {
-            println!("{}", "Weekend".to_string());
+            println!("{}", format!("{}", "Weekend".to_string()));
         } else {
-            println!("{}", "Invalid day".to_string());
+            println!("{}", format!("{}", "Invalid day".to_string()));
         }
     }
 }
@@ -48,11 +48,11 @@ pub fn switch_with_expression() {
     let mut x = Rc::new(RefCell::new(Some(10)));
     { let _switch_val = (*x.borrow().as_ref().unwrap()) * 2;
     if _switch_val == (20) {
-            println!("{}", "x * 2 equals 20".to_string());
+            println!("{}", format!("{}", "x * 2 equals 20".to_string()));
         } else if _switch_val == (30) {
-            println!("{}", "x * 2 equals 30".to_string());
+            println!("{}", format!("{}", "x * 2 equals 30".to_string()));
         } else {
-            println!("{}", "x * 2 is something else".to_string());
+            println!("{}", format!("{}", "x * 2 is something else".to_string()));
         }
     }
 }
@@ -60,15 +60,15 @@ pub fn switch_with_expression() {
 pub fn switch_without_expression() {
     let mut score = Rc::new(RefCell::new(Some(85)));
     if (*score.borrow().as_ref().unwrap()) >= 90 {
-            println!("{}", "Grade: A".to_string());
+            println!("{}", format!("{}", "Grade: A".to_string()));
         } else if (*score.borrow().as_ref().unwrap()) >= 80 {
-            println!("{}", "Grade: B".to_string());
+            println!("{}", format!("{}", "Grade: B".to_string()));
         } else if (*score.borrow().as_ref().unwrap()) >= 70 {
-            println!("{}", "Grade: C".to_string());
+            println!("{}", format!("{}", "Grade: C".to_string()));
         } else if (*score.borrow().as_ref().unwrap()) >= 60 {
-            println!("{}", "Grade: D".to_string());
+            println!("{}", format!("{}", "Grade: D".to_string()));
         } else {
-            println!("{}", "Grade: F".to_string());
+            println!("{}", format!("{}", "Grade: F".to_string()));
         }
 }
 
@@ -80,24 +80,24 @@ pub fn switch_with_fallthrough(num: Rc<RefCell<Option<i32>>>) {
         if !_matched && (_switch_val == 1) || _fallthrough {
             _matched = true;
             _fallthrough = false;
-            println!("{}", "One".to_string());
+            println!("{}", format!("{}", "One".to_string()));
             _fallthrough = true;
         }
         if !_matched && (_switch_val == 2) || _fallthrough {
             _matched = true;
             _fallthrough = false;
-            println!("{}", "Two or after One".to_string());
+            println!("{}", format!("{}", "Two or after One".to_string()));
             _fallthrough = true;
         }
         if !_matched && (_switch_val == 3) || _fallthrough {
             _matched = true;
             _fallthrough = false;
-            println!("{}", "Three or after Two or after One".to_string());
+            println!("{}", format!("{}", "Three or after Two or after One".to_string()));
         }
         if !_matched || _fallthrough {
             _matched = true;
             _fallthrough = false;
-            println!("{}", "Other number".to_string());
+            println!("{}", format!("{}", "Other number".to_string()));
         }
     }
 }
@@ -128,23 +128,23 @@ pub fn type_switch(value: Rc<RefCell<Option<Box<dyn Any>>>>) {
 }
 
 fn main() {
-    println!("{}", "=== Basic switch ===".to_string());
+    println!("{}", format!("{}", "=== Basic switch ===".to_string()));
     basic_switch(Rc::new(RefCell::new(Some(1))));
     basic_switch(Rc::new(RefCell::new(Some(6))));
     basic_switch(Rc::new(RefCell::new(Some(10))));
 
-    println!("{}", "\n=== Switch with expression ===".to_string());
+    println!("{}", format!("{}", "\n=== Switch with expression ===".to_string()));
     switch_with_expression();
 
-    println!("{}", "\n=== Switch without expression ===".to_string());
+    println!("{}", format!("{}", "\n=== Switch without expression ===".to_string()));
     switch_without_expression();
 
-    println!("{}", "\n=== Switch with fallthrough ===".to_string());
+    println!("{}", format!("{}", "\n=== Switch with fallthrough ===".to_string()));
     switch_with_fallthrough(Rc::new(RefCell::new(Some(1))));
-    println!("{}", "---".to_string());
+    println!("{}", format!("{}", "---".to_string()));
     switch_with_fallthrough(Rc::new(RefCell::new(Some(4))));
 
-    println!("{}", "\n=== Type switch ===".to_string());
+    println!("{}", format!("{}", "\n=== Type switch ===".to_string()));
     type_switch(Rc::new(RefCell::new(Some(Box::new(42) as Box<dyn Any>))));
     type_switch(Rc::new(RefCell::new(Some(Box::new("hello".to_string()) as Box<dyn Any>))));
     type_switch(Rc::new(RefCell::new(Some(Box::new(true) as Box<dyn Any>))));

@@ -48,5 +48,5 @@ fn main() {
         ;
     });
     }
-    println!("{}", (*call_find().lock().unwrap().as_ref().unwrap()));
+    println!("{}", format!("{}", (*call_find().lock().unwrap().as_ref().unwrap())));
 }

@@ -264,14 +264,14 @@ fn main() {
     __go_init_all();
     let mut k: Rc<RefCell<Option<Kind>>> = Rc::new(RefCell::new(Some(Kind(Rc::new(RefCell::new(Some(3)))))));
     let mut entry = Rc::new(RefCell::new(Some(Entry { kind: k.clone(), ..Default::default() })));
-    println!("{}", (*as_int(Rc::new(RefCell::new(Some((*k.borrow().as_ref().unwrap()).clone())))).borrow().as_ref().unwrap()));
-    println!("{}", (*as_uint64(Rc::new(RefCell::new(Some((*k.borrow().as_ref().unwrap()).clone())))).borrow().as_ref().unwrap()));
-    println!("{}", (*field_as_int(Rc::new(RefCell::new(Some((*entry.borrow().as_ref().unwrap()).clone())))).borrow().as_ref().unwrap()));
-    println!("{}", (*plus_as_int(Rc::new(RefCell::new(Some((*k.borrow().as_ref().unwrap()).clone())))).borrow().as_ref().unwrap()));
-    println!("{}", (*(*k.borrow().as_ref().unwrap()).method_int().borrow().as_ref().unwrap()));
-    println!("{}", (*(*k.borrow().as_ref().unwrap()).method_plus().borrow().as_ref().unwrap()));
-    println!("{}", (*as_int(limit_kind()).borrow().as_ref().unwrap()));
-    println!("{}", (*over_limit(Rc::new(RefCell::new(Some((*k.borrow().as_ref().unwrap()).clone())))).borrow().as_ref().unwrap()));
+    println!("{}", format!("{}", (*as_int(Rc::new(RefCell::new(Some((*k.borrow().as_ref().unwrap()).clone())))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*as_uint64(Rc::new(RefCell::new(Some((*k.borrow().as_ref().unwrap()).clone())))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*field_as_int(Rc::new(RefCell::new(Some((*entry.borrow().as_ref().unwrap()).clone())))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*plus_as_int(Rc::new(RefCell::new(Some((*k.borrow().as_ref().unwrap()).clone())))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*(*k.borrow().as_ref().unwrap()).method_int().borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*(*k.borrow().as_ref().unwrap()).method_plus().borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*as_int(limit_kind()).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*over_limit(Rc::new(RefCell::new(Some((*k.borrow().as_ref().unwrap()).clone())))).borrow().as_ref().unwrap())));
 }
 
 pub(crate) fn __go_init_all() {

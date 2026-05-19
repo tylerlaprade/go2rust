@@ -149,7 +149,7 @@ impl<T> Iterator for GoChannel<T> {
 
 fn main() {
         // Range over slice
-    println!("{}", "=== Range over slice ===".to_string());
+    println!("{}", format!("{}", "=== Range over slice ===".to_string()));
     let mut numbers = Arc::new(Mutex::new(Some(vec![10, 20, 30, 40, 50])));
 
         // With index and value
@@ -158,35 +158,35 @@ fn main() {
     } }
 
         // Only value
-    println!("{}", "Values only:".to_string());
+    println!("{}", format!("{}", "Values only:".to_string()));
     { let __range_holder = numbers.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for num in __range_values.iter().copied() {
         print!("{} ", num);
     } }
     println!();
 
         // Only index
-    println!("{}", "Indices only:".to_string());
+    println!("{}", format!("{}", "Indices only:".to_string()));
     for i in 0..({ let __range_holder = numbers.clone(); let __range_guard = __range_holder.lock().unwrap(); __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) {
         print!("{} ", i);
     }
     println!();
 
         // Range over array
-    println!("{}", "\n=== Range over array ===".to_string());
+    println!("{}", format!("{}", "\n=== Range over array ===".to_string()));
     let mut arr = Arc::new(Mutex::new(Some(["apple".to_string(), "banana".to_string(), "cherry".to_string(), "date".to_string()])));
     { let __range_holder = arr.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for (i, fruit) in __range_values.iter().enumerate() {
         print!("{}: {}\n", i, fruit);
     } }
 
         // Range over string
-    println!("{}", "\n=== Range over string ===".to_string());
+    println!("{}", format!("{}", "\n=== Range over string ===".to_string()));
     let mut text = Arc::new(Mutex::new(Some("Hello, \u{4e16}\u{754c}".to_string())));
     for (i, char) in (*text.lock().unwrap().as_ref().unwrap()).char_indices() {
         print!("Byte {}: {} (Unicode: U+{:04X})\n", i, char, char as u32);
     }
 
         // Range over map
-    println!("{}", "\n=== Range over map ===".to_string());
+    println!("{}", format!("{}", "\n=== Range over map ===".to_string()));
     let mut ages = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i32>>>>::from([("Alice".to_string(), Arc::new(Mutex::new(Some(25)))), ("Bob".to_string(), Arc::new(Mutex::new(Some(30)))), ("Charlie".to_string(), Arc::new(Mutex::new(Some(35))))]))));
 
     let mut sortedNames: Arc<Mutex<Option<Vec<String>>>> = Arc::new(Mutex::new(None));
@@ -199,14 +199,14 @@ fn main() {
     } }
 
         // Only keys
-    println!("{}", "Keys only:".to_string());
+    println!("{}", format!("{}", "Keys only:".to_string()));
     { let __range_holder = sortedNames.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for name in __range_values.iter() {
         print!("{} ", name);
     } }
     println!();
 
         // Range over channel
-    println!("{}", "\n=== Range over channel ===".to_string());
+    println!("{}", format!("{}", "\n=== Range over channel ===".to_string()));
     let mut ch = GoChannel::<i32>::new_buffered(5 as usize);
 
         // Send some values
@@ -223,10 +223,10 @@ fn main() {
     }
 
         // Range with break and continue
-    println!("{}", "\n=== Range with break/continue ===".to_string());
+    println!("{}", format!("{}", "\n=== Range with break/continue ===".to_string()));
     let mut data = Arc::new(Mutex::new(Some(vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10])));
 
-    println!("{}", "Even numbers only (with continue):".to_string());
+    println!("{}", format!("{}", "Even numbers only (with continue):".to_string()));
     { let __range_holder = data.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for num in __range_values.iter().copied() {
         if { let __tmp_x = { let __tmp_x = num; let __tmp_y = 2; __tmp_x % __tmp_y }; let __tmp_y = 0; __tmp_x != __tmp_y } {
         continue
@@ -235,7 +235,7 @@ fn main() {
     } }
     println!();
 
-    println!("{}", "Numbers until 6 (with break):".to_string());
+    println!("{}", format!("{}", "Numbers until 6 (with break):".to_string()));
     { let __range_holder = data.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for num in __range_values.iter().copied() {
         if { let __tmp_x = num; let __tmp_y = 6; __tmp_x > __tmp_y } {
         break
@@ -245,7 +245,7 @@ fn main() {
     println!();
 
         // Nested range loops
-    println!("{}", "\n=== Nested range loops ===".to_string());
+    println!("{}", format!("{}", "\n=== Nested range loops ===".to_string()));
     let mut matrix = Arc::new(Mutex::new(Some(vec![vec![1, 2, 3], vec![4, 5, 6], vec![7, 8, 9]])));
 
     { let __range_holder = matrix.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for (i, row) in __range_values.iter().enumerate() {
@@ -255,19 +255,19 @@ fn main() {
     } }
 
         // Range over empty collections
-    println!("{}", "\n=== Range over empty collections ===".to_string());
+    println!("{}", format!("{}", "\n=== Range over empty collections ===".to_string()));
     let mut emptySlice: Arc<Mutex<Option<Vec<i32>>>> = Arc::new(Mutex::new(None));
     let mut emptyMap: Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i32>>>>>>> = Arc::new(Mutex::new(Some(BTreeMap::new())));
 
-    println!("{}", "Empty slice:".to_string());
+    println!("{}", format!("{}", "Empty slice:".to_string()));
     { let __range_holder = emptySlice.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for (i, v) in __range_values.iter().copied().enumerate() {
         print!("This won't print: {}, {}\n", i, v);
     } }
-    println!("{}", "Empty slice range completed".to_string());
+    println!("{}", format!("{}", "Empty slice range completed".to_string()));
 
-    println!("{}", "Empty map:".to_string());
+    println!("{}", format!("{}", "Empty map:".to_string()));
     for (k, v) in { let __range_holder = emptyMap.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_map = (*__range_guard.as_ref().unwrap()).clone(); drop(__range_guard); __range_map } {
         print!("This won't print: {}, {}\n", k, (*v.lock().unwrap().as_mut().unwrap()));
     }
-    println!("{}", "Empty map range completed".to_string());
+    println!("{}", format!("{}", "Empty map range completed".to_string()));
 }

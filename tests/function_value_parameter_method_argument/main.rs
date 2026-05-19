@@ -35,5 +35,5 @@ fn main() {
     let out_closure_clone = out.clone(); relay(Rc::new(RefCell::new(Some(Box::new(move |s: Rc<RefCell<Option<String>>>| {
         { let new_val = s.borrow().as_ref().unwrap().clone(); *out_closure_clone.borrow_mut() = Some(new_val); };
     }) as Box<dyn FnMut(Rc<RefCell<Option<String>>>) -> ()>))));
-    println!("{}", { let __v = (*out.borrow().as_ref().unwrap()).clone(); __v });
+    println!("{}", format!("{}", { let __v = (*out.borrow().as_ref().unwrap()).clone(); __v }));
 }

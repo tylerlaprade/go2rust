@@ -16,7 +16,7 @@ pub fn named_blank_result() -> (Rc<RefCell<Option<String>>>, Rc<RefCell<Option<b
 
 fn main() {
         // Ignoring return values
-    println!("{}", "=== Ignoring return values ===".to_string());
+    println!("{}", format!("{}", "=== Ignoring return values ===".to_string()));
 
         // Ignore all but first return value
     let (mut num, _, _) = multiple_returns();
@@ -31,38 +31,38 @@ fn main() {
     print!("Only using last return: {}\n", { let __v = (*flag.borrow().as_ref().unwrap()).clone(); __v });
 
         // Ignoring in range loops
-    println!("{}", "\n=== Ignoring in range loops ===".to_string());
+    println!("{}", format!("{}", "\n=== Ignoring in range loops ===".to_string()));
 
     let mut slice = Rc::new(RefCell::new(Some(vec![10, 20, 30, 40, 50])));
 
         // Ignore index, use only value
-    println!("{}", "Values only:".to_string());
+    println!("{}", format!("{}", "Values only:".to_string()));
     { let __range_holder = slice.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for val in __range_values.iter().copied() {
         print!("{} ", val);
     } }
     println!();
 
         // Ignore value, use only index
-    println!("{}", "Indices only:".to_string());
+    println!("{}", format!("{}", "Indices only:".to_string()));
     for i in 0..({ let __range_holder = slice.clone(); let __range_guard = __range_holder.borrow(); __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) {
         print!("{} ", i);
     }
     println!();
 
         // Alternative: just use index (more idiomatic)
-    println!("{}", "Indices (idiomatic):".to_string());
+    println!("{}", format!("{}", "Indices (idiomatic):".to_string()));
     for i in 0..({ let __range_holder = slice.clone(); let __range_guard = __range_holder.borrow(); __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) {
         print!("{} ", i);
     }
     println!();
 
         // Ignoring in map iteration
-    println!("{}", "\n=== Ignoring in map iteration ===".to_string());
+    println!("{}", format!("{}", "\n=== Ignoring in map iteration ===".to_string()));
 
     let mut ages = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i32>>>>::from([("Alice".to_string(), Rc::new(RefCell::new(Some(25)))), ("Bob".to_string(), Rc::new(RefCell::new(Some(30)))), ("Carol".to_string(), Rc::new(RefCell::new(Some(35))))]))));
 
         // Ignore values, use only keys
-    println!("{}", "Keys only:".to_string());
+    println!("{}", format!("{}", "Keys only:".to_string()));
     let mut keys = Rc::new(RefCell::new(Some(Vec::with_capacity(((*ages.borrow().as_ref().unwrap()).len()) as usize))));
     for (name, _) in { let __range_holder = ages.clone(); let __range_guard = __range_holder.borrow(); let __range_map = (*__range_guard.as_ref().unwrap()).clone(); drop(__range_guard); __range_map } {
         { let new_val = { let __append_target = keys.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push(name.clone()); __append_target.clone() }; keys = new_val; };
@@ -74,7 +74,7 @@ fn main() {
     println!();
 
         // Ignore keys, use only values
-    println!("{}", "Values only:".to_string());
+    println!("{}", format!("{}", "Values only:".to_string()));
     let mut values = Rc::new(RefCell::new(Some(Vec::with_capacity(((*ages.borrow().as_ref().unwrap()).len()) as usize))));
     for (_, age) in { let __range_holder = ages.clone(); let __range_guard = __range_holder.borrow(); let __range_map = (*__range_guard.as_ref().unwrap()).clone(); drop(__range_guard); __range_map } {
         { let new_val = { let __append_target = values.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push((*age.borrow_mut().as_mut().unwrap())); __append_target.clone() }; values = new_val; };
@@ -86,7 +86,7 @@ fn main() {
     println!();
 
         // Using blank identifier in variable declarations
-    println!("{}", "\n=== Blank identifier in declarations ===".to_string());
+    println!("{}", format!("{}", "\n=== Blank identifier in declarations ===".to_string()));
 
         // This would be useful for side effects only
     let _ = "This string is assigned but not used".to_string();

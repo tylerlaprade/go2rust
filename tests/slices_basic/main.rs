@@ -47,19 +47,19 @@ where
 fn main() {
         // Create a slice
     let mut slice = Rc::new(RefCell::new(Some(vec![1, 2, 3, 4, 5])));
-    println!("{} {}", "Original slice:".to_string(), format_slice(&slice));
+    println!("{} {}", format!("{}", "Original slice:".to_string()), format!("{}", format_slice(&slice)));
 
         // Append to slice
     { let new_val = { let __append_target = slice.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).extend(vec![6, 7]); __append_target.clone() }; slice = new_val; };
-    println!("{} {}", "After append:".to_string(), format_slice(&slice));
+    println!("{} {}", format!("{}", "After append:".to_string()), format!("{}", format_slice(&slice)));
 
         // Slice operations
     let mut subSlice = Rc::new(RefCell::new(Some({ let __seq = { let __seq_holder = slice.clone(); let __seq_guard = __seq_holder.borrow(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(1) as usize..(4) as usize].to_vec() })));
-    println!("{} {}", "Sub-slice [1:4]:".to_string(), format_slice(&subSlice));
+    println!("{} {}", format!("{}", "Sub-slice [1:4]:".to_string()), format!("{}", format_slice(&subSlice)));
 
         // Length and capacity
-    println!("{} {}", "Length:".to_string(), (*slice.borrow().as_ref().unwrap()).len());
-    println!("{} {}", "Capacity:".to_string(), (*slice.borrow().as_ref().unwrap()).capacity());
+    println!("{} {}", format!("{}", "Length:".to_string()), format!("{}", (*slice.borrow().as_ref().unwrap()).len()));
+    println!("{} {}", format!("{}", "Capacity:".to_string()), format!("{}", (*slice.borrow().as_ref().unwrap()).capacity()));
 
         // Make slice
     let mut made = Rc::new(RefCell::new(Some({ let mut v = Vec::with_capacity((5) as usize); v.resize((3) as usize, 0); v })));
@@ -68,5 +68,5 @@ fn main() {
     (*made.borrow_mut().as_mut().unwrap())[(2) as usize] = 30;
     let mut idx = Rc::new(RefCell::new(Some(1)));
     (*made.borrow_mut().as_mut().unwrap())[((*idx.borrow().as_ref().unwrap())) as usize] = 25;
-    println!("{} {}", "Made slice:".to_string(), format_slice(&made));
+    println!("{} {}", format!("{}", "Made slice:".to_string()), format!("{}", format_slice(&made)));
 }

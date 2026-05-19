@@ -83,5 +83,5 @@ fn main() {
     let mut counter = Rc::new(RefCell::new(Some(Counter { mu: GoMutex::new(), value: Rc::new(RefCell::new(Some(0))) })));
     (*counter.borrow_mut().as_mut().unwrap()).increment();
     (*counter.borrow_mut().as_mut().unwrap()).increment();
-    println!("{} {}", "Counter value:".to_string(), (*(*counter.borrow_mut().as_mut().unwrap()).value().borrow().as_ref().unwrap()));
+    println!("{} {}", format!("{}", "Counter value:".to_string()), format!("{}", (*(*counter.borrow_mut().as_mut().unwrap()).value().borrow().as_ref().unwrap())));
 }

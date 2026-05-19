@@ -181,9 +181,9 @@ pub fn size() -> Arc<Mutex<Option<i32>>> {
 fn main() {
     __go_init_all();
     { let __channel = sem.lock().unwrap().as_ref().unwrap().clone(); __channel }.send(token {  });
-    println!("{}", { let __channel = sem.lock().unwrap().as_ref().unwrap().clone(); __channel }.len());
+    println!("{}", format!("{}", { let __channel = sem.lock().unwrap().as_ref().unwrap().clone(); __channel }.len()));
     { let __channel = sem.lock().unwrap().as_ref().unwrap().clone(); __channel }.recv().unwrap();
-    println!("{}", { let __channel = sem.lock().unwrap().as_ref().unwrap().clone(); __channel }.len());
+    println!("{}", format!("{}", { let __channel = sem.lock().unwrap().as_ref().unwrap().clone(); __channel }.len()));
 }
 
 pub(crate) fn __go_init_all() {

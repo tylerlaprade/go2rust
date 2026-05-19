@@ -55,7 +55,7 @@ impl std::fmt::Display for carrier {
 impl carrier {
     pub fn print_reader(&self) {
         let mut r = Rc::new(RefCell::new(Some(reader { path: Rc::new(RefCell::new(Some({ let __selector_holder = self.path.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), ..Default::default() })));
-        println!("{}", (*(*r.borrow().as_ref().unwrap()).path.borrow().as_ref().unwrap()).clone());
+        println!("{}", format!("{}", (*(*r.borrow().as_ref().unwrap()).path.borrow().as_ref().unwrap()).clone()));
     }
 }
 

@@ -15,7 +15,7 @@ pub fn classify(value: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>
 }
 
 fn main() {
-    println!("{}", (*classify(Rc::new(RefCell::new(Some("Go".to_string())))).borrow().as_ref().unwrap()));
-    println!("{}", (*classify(Rc::new(RefCell::new(Some("python".to_string())))).borrow().as_ref().unwrap()));
-    println!("{}", (*classify(Rc::new(RefCell::new(Some("zig".to_string())))).borrow().as_ref().unwrap()));
+    println!("{}", format!("{}", (*classify(Rc::new(RefCell::new(Some("Go".to_string())))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*classify(Rc::new(RefCell::new(Some("python".to_string())))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*classify(Rc::new(RefCell::new(Some("zig".to_string())))).borrow().as_ref().unwrap())));
 }

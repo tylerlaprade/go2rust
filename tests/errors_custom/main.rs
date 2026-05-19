@@ -66,17 +66,17 @@ fn main() {
     for i in vec![7, 42].iter().copied() {
         let (mut r, mut e) = f1(Rc::new(RefCell::new(Some(i))));
     if (*e.borrow()).is_some() {
-        println!("{} {}", "f1 failed:".to_string(), format!("{}", (*e.borrow().as_ref().unwrap())));
+        println!("{} {}", format!("{}", "f1 failed:".to_string()), format!("{}", format!("{}", (*e.borrow().as_ref().unwrap()))));
     } else {
-        println!("{} {}", "f1 worked:".to_string(), { let __v = (*r.borrow().as_ref().unwrap()).clone(); __v });
+        println!("{} {}", format!("{}", "f1 worked:".to_string()), format!("{}", { let __v = (*r.borrow().as_ref().unwrap()).clone(); __v }));
     }
     }
     for i in vec![7, 42].iter().copied() {
         let (mut r, mut e) = f2(Rc::new(RefCell::new(Some(i))));
     if (*e.borrow()).is_some() {
-        println!("{} {}", "f2 failed:".to_string(), format!("{}", (*e.borrow().as_ref().unwrap())));
+        println!("{} {}", format!("{}", "f2 failed:".to_string()), format!("{}", format!("{}", (*e.borrow().as_ref().unwrap()))));
     } else {
-        println!("{} {}", "f2 worked:".to_string(), { let __v = (*r.borrow().as_ref().unwrap()).clone(); __v });
+        println!("{} {}", format!("{}", "f2 worked:".to_string()), format!("{}", { let __v = (*r.borrow().as_ref().unwrap()).clone(); __v }));
     }
     }
 
@@ -95,7 +95,7 @@ fn main() {
         }
     });
     if (*ok.borrow().as_ref().unwrap()) {
-        println!("{}", (*(*ae.borrow().as_ref().unwrap()).arg.borrow().as_ref().unwrap()));
-        println!("{}", (*(*ae.borrow().as_ref().unwrap()).prob.borrow().as_ref().unwrap()).clone());
+        println!("{}", format!("{}", (*(*ae.borrow().as_ref().unwrap()).arg.borrow().as_ref().unwrap())));
+        println!("{}", format!("{}", (*(*ae.borrow().as_ref().unwrap()).prob.borrow().as_ref().unwrap()).clone()));
     }
 }

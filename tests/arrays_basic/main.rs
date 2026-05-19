@@ -7,17 +7,17 @@ fn main() {
     (*arr.borrow_mut().as_mut().unwrap())[(1) as usize] = 20;
     (*arr.borrow_mut().as_mut().unwrap())[(2) as usize] = 30;
 
-    println!("{}", "Array elements:".to_string());
+    println!("{}", format!("{}", "Array elements:".to_string()));
     let mut i = Rc::new(RefCell::new(Some(0)));
     while ((*i.borrow().as_ref().unwrap()) as i32) < ((*arr.borrow().as_ref().unwrap()).len() as i32) {
-        println!("{}", (*arr.borrow().as_ref().unwrap())[((*i.borrow().as_ref().unwrap())) as usize].clone());
+        println!("{}", format!("{}", (*arr.borrow().as_ref().unwrap())[((*i.borrow().as_ref().unwrap())) as usize].clone()));
         { let mut guard = i.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
 
         // Array initialization
     let mut nums = Rc::new(RefCell::new(Some([1, 2, 3, 4])));
-    println!("{}", "Initialized array:".to_string());
+    println!("{}", format!("{}", "Initialized array:".to_string()));
     { let __range_holder = nums.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for num in __range_values.iter().copied() {
-        println!("{}", num);
+        println!("{}", format!("{}", num));
     } }
 }

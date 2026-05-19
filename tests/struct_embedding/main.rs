@@ -106,11 +106,11 @@ fn main() {
     let mut co = Rc::new(RefCell::new(Some(container { base: Rc::new(RefCell::new(Some(base { num: Rc::new(RefCell::new(Some(1))), ..Default::default() }))), str: Rc::new(RefCell::new(Some("some name".to_string()))), ..Default::default() })));
 
     print!("co={{num: {}, str: {}}}\n", (*(*(*co.borrow().as_ref().unwrap()).base.borrow().as_ref().unwrap()).num.borrow().as_ref().unwrap()), (*(*co.borrow().as_ref().unwrap()).str.borrow().as_ref().unwrap()).clone());
-    println!("{} {}", "also num:".to_string(), (*(*(*co.borrow().as_ref().unwrap()).base.borrow().as_ref().unwrap()).num.borrow().as_ref().unwrap()));
-    println!("{} {}", "describe:".to_string(), (*(*co.borrow().as_ref().unwrap()).describe().borrow().as_ref().unwrap()));
+    println!("{} {}", format!("{}", "also num:".to_string()), format!("{}", (*(*(*co.borrow().as_ref().unwrap()).base.borrow().as_ref().unwrap()).num.borrow().as_ref().unwrap())));
+    println!("{} {}", format!("{}", "describe:".to_string()), format!("{}", (*(*co.borrow().as_ref().unwrap()).describe().borrow().as_ref().unwrap())));
 
     
 
     let mut d = co.clone();
-    println!("{} {}", "describer:".to_string(), (*(*d.borrow().as_ref().unwrap()).describe().borrow().as_ref().unwrap()));
+    println!("{} {}", format!("{}", "describer:".to_string()), format!("{}", (*(*d.borrow().as_ref().unwrap()).describe().borrow().as_ref().unwrap())));
 }

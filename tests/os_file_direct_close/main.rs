@@ -32,18 +32,18 @@ pub mod os {
 fn main() {
     let (mut read, mut write, mut err) = os::pipe();
     if (*err.lock().unwrap()).is_some() {
-        println!("{}", "pipe error".to_string());
+        println!("{}", format!("{}", "pipe error".to_string()));
         return;
     }
     let mut err = (*read.lock().unwrap().as_mut().unwrap()).close();
     if (*err.lock().unwrap()).is_some() {
-        println!("{}", "read close error".to_string());
+        println!("{}", format!("{}", "read close error".to_string()));
         return;
     }
     let mut err = (*write.lock().unwrap().as_mut().unwrap()).close();
     if (*err.lock().unwrap()).is_some() {
-        println!("{}", "write close error".to_string());
+        println!("{}", format!("{}", "write close error".to_string()));
         return;
     }
-    println!("{}", "closed".to_string());
+    println!("{}", format!("{}", "closed".to_string()));
 }

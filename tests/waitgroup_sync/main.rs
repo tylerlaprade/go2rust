@@ -88,7 +88,7 @@ impl Group {
         self.wg.add(1);
         self.wg.done();
         self.wg.wait();
-        println!("{}", "Struct WaitGroup done".to_string());
+        println!("{}", format!("{}", "Struct WaitGroup done".to_string()));
     }
 }
 
@@ -116,7 +116,7 @@ fn main() {
         { let mut guard = i.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
     wg.wait();
-    println!("{}", "All workers done".to_string());
+    println!("{}", format!("{}", "All workers done".to_string()));
 
     let mut group = Rc::new(RefCell::new(Some(Group { wg: WaitGroup::new() })));
     (*group.borrow_mut().as_mut().unwrap()).run();

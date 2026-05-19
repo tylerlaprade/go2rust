@@ -19,14 +19,14 @@ pub fn counter(start: Arc<Mutex<Option<i32>>>) {
 }
 
 fn main() {
-    println!("{}", "Starting goroutines...".to_string());
+    println!("{}", format!("{}", "Starting goroutines...".to_string()));
 
         // Launch goroutines with sleep delays inside to ensure deterministic output
         // The goroutines still run in parallel but print in a predictable order
         // Anonymous goroutine - prints immediately
     std::thread::spawn(move || {
-        println!("{}", "Anonymous goroutine running".to_string());;
-        println!("{}", "Anonymous goroutine done".to_string());;;
+        println!("{}", format!("{}", "Anonymous goroutine running".to_string()));;
+        println!("{}", format!("{}", "Anonymous goroutine done".to_string()));;;
     });
 
         // Alice - waits 50ms before printing
@@ -49,5 +49,5 @@ fn main() {
 
         // Wait for all goroutines to complete
     std::thread::sleep(std::time::Duration::from_millis(200));
-    println!("{}", "Main function ending".to_string());
+    println!("{}", format!("{}", "Main function ending".to_string()));
 }

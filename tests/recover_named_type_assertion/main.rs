@@ -40,13 +40,13 @@ fn main() {
         }
     });
     if (*ok.borrow().as_ref().unwrap()) {
-        println!("{}", { let __v = (*ierr.borrow().as_ref().unwrap()).clone(); __v });
+        println!("{}", format!("{}", { let __v = (*ierr.borrow().as_ref().unwrap()).clone(); __v }));
     }
     }
     }) as Box<dyn FnMut() -> ()>))); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
     }));
 
-    println!("{}", "done".to_string());
+    println!("{}", format!("{}", "done".to_string()));
 
     // Execute deferred functions
     while let Some(f) = __defer_stack.pop() {

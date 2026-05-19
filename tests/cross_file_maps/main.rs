@@ -16,7 +16,7 @@ fn main() {
     if (*ok.borrow().as_ref().unwrap()) {
         print!("Dave's ID: {}\n", { let __v = (*id.borrow().as_ref().unwrap()).clone(); __v });
     } else {
-        println!("{}", "Dave not found".to_string());
+        println!("{}", format!("{}", "Dave not found".to_string()));
     }
 
         // Access slice - transpiler needs to know Numbers is a slice

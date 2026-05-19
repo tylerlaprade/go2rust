@@ -34,9 +34,9 @@ pub fn parse_pair(v: Rc<RefCell<Option<parseValue>>>) -> (Rc<RefCell<Option<i32>
 fn main() {
     let mut v = Rc::new(RefCell::new(Some(parseValue { err: Rc::new(RefCell::new(Some(Box::<dyn std::error::Error>::from("bad".to_string())))), ..Default::default() })));
     let mut err = parse(v.clone());
-    println!("{}", (*Rc::new(RefCell::new(Some(format!("{}", err.borrow().as_ref().unwrap())))).borrow().as_ref().unwrap()));
+    println!("{}", format!("{}", (*Rc::new(RefCell::new(Some(format!("{}", err.borrow().as_ref().unwrap())))).borrow().as_ref().unwrap())));
 
     let (mut n, mut err) = parse_pair(v.clone());
-    println!("{}", { let __v = (*n.borrow().as_ref().unwrap()).clone(); __v });
-    println!("{}", (*Rc::new(RefCell::new(Some(format!("{}", err.borrow().as_ref().unwrap())))).borrow().as_ref().unwrap()));
+    println!("{}", format!("{}", { let __v = (*n.borrow().as_ref().unwrap()).clone(); __v }));
+    println!("{}", format!("{}", (*Rc::new(RefCell::new(Some(format!("{}", err.borrow().as_ref().unwrap())))).borrow().as_ref().unwrap())));
 }

@@ -36,6 +36,6 @@ pub fn pick(v: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>> {
 }
 
 fn main() {
-    println!("{}", (*pick(Rc::new(RefCell::new(Some(0)))).borrow().as_ref().unwrap()));
-    println!("{}", (*pick(Rc::new(RefCell::new(Some(2)))).borrow().as_ref().unwrap()));
+    println!("{}", format!("{}", (*pick(Rc::new(RefCell::new(Some(0)))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*pick(Rc::new(RefCell::new(Some(2)))).borrow().as_ref().unwrap())));
 }

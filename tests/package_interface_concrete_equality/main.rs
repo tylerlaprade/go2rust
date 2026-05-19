@@ -12,7 +12,7 @@ pub fn init_concurrency() {
 fn main() {
     __go_init_all();
     init_concurrency();
-    println!("{}", "compiled".to_string());
+    println!("{}", format!("{}", "compiled".to_string()));
 }
 
 pub(crate) fn __go_init_all() {

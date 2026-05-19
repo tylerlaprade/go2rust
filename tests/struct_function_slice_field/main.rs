@@ -22,5 +22,5 @@ impl std::fmt::Display for queue {
 
 fn main() {
     let mut q = Rc::new(RefCell::new(Some(queue { later: Rc::new(RefCell::new(Some(Vec::<Rc<RefCell<Option<Box<dyn FnMut() -> ()>>>>>::new()))), ..Default::default() })));
-    println!("{}", (*q.borrow().as_ref().unwrap()));
+    println!("{}", format!("{}", (*q.borrow().as_ref().unwrap())));
 }

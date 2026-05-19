@@ -24,5 +24,5 @@ pub fn label(file: Rc<RefCell<Option<ast_File>>>) -> Rc<RefCell<Option<String>>>
 }
 
 fn main() {
-    println!("{}", (*label(Rc::new(RefCell::new(None))).borrow().as_ref().unwrap()));
+    println!("{}", format!("{}", (*label(Rc::new(RefCell::new(None))).borrow().as_ref().unwrap())));
 }

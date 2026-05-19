@@ -52,5 +52,5 @@ impl receiver {
 
 fn main() {
     let mut r: Rc<RefCell<Option<receiver>>> = Rc::new(RefCell::new(Some(Default::default())));
-    println!("{}", (*(*r.borrow().as_ref().unwrap()).is_nil(Rc::new(RefCell::new(None))).borrow().as_ref().unwrap()));
+    println!("{}", format!("{}", (*(*r.borrow().as_ref().unwrap()).is_nil(Rc::new(RefCell::new(None))).borrow().as_ref().unwrap())));
 }

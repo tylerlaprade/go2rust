@@ -43,5 +43,5 @@ fn main() {
     });
 
     let mut h = Arc::new(Mutex::new(Some(holder { value: Arc::new(Mutex::new(Some("ok".to_string()))), ..Default::default() })));
-    println!("{}", (*(*h.lock().unwrap().as_mut().unwrap()).string().lock().unwrap().as_ref().unwrap()));
+    println!("{}", format!("{}", (*(*h.lock().unwrap().as_mut().unwrap()).string().lock().unwrap().as_ref().unwrap())));
 }

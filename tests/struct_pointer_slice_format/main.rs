@@ -90,5 +90,5 @@ impl std::fmt::Display for holder {
 fn main() {
     let mut h = Rc::new(RefCell::new(Some(holder { items: Rc::new(RefCell::new(Some(vec![Rc::new(RefCell::new(Some(item { n: Rc::new(RefCell::new(Some(1))), ..Default::default() }))), Rc::new(RefCell::new(Some(item { n: Rc::new(RefCell::new(Some(2))), ..Default::default() })))]))), ..Default::default() })));
     let _ = Rc::new(RefCell::new(Some(format!("{}", (*h.borrow().as_ref().unwrap())))));
-    println!("{}", "ok".to_string());
+    println!("{}", format!("{}", "ok".to_string()));
 }

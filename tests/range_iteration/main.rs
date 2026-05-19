@@ -8,11 +8,11 @@ fn main() {
     { let __range_holder = nums.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for num in __range_values.iter().copied() {
         { let mut guard = sum.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + num); };
     } }
-    println!("{} {}", "sum:".to_string(), { let __v = (*sum.borrow().as_ref().unwrap()).clone(); __v });
+    println!("{} {}", format!("{}", "sum:".to_string()), format!("{}", { let __v = (*sum.borrow().as_ref().unwrap()).clone(); __v }));
 
     { let __range_holder = nums.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for (i, num) in __range_values.iter().copied().enumerate() {
         if num == 3 {
-        println!("{} {}", "index:".to_string(), i);
+        println!("{} {}", format!("{}", "index:".to_string()), format!("{}", i));
     }
     } }
 

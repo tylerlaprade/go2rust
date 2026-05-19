@@ -152,12 +152,12 @@ pub fn run(ch: GoChannel<i32>) {
     loop {
         if let Some(_) = ch.try_recv() {
             __defer_stack.push(Box::new(move || {
-        println!("{}", "deferred".to_string());
+        println!("{}", format!("{}", "deferred".to_string()));
     }));
-            println!("{}", "case".to_string());
+            println!("{}", format!("{}", "case".to_string()));
             break;
         }
-        println!("{}", "default".to_string());
+        println!("{}", format!("{}", "default".to_string()));
         break;
     }
 

@@ -15,7 +15,7 @@ pub fn decode(ver: Rc<RefCell<Option<u32>>>, flags: Rc<RefCell<Option<u32>>>) ->
 }
 
 fn main() {
-    println!("{}", (*decode(Rc::new(RefCell::new(Some(1))), Rc::new(RefCell::new(Some(1)))).borrow().as_ref().unwrap()));
-    println!("{}", (*decode(Rc::new(RefCell::new(Some(3))), Rc::new(RefCell::new(Some(1)))).borrow().as_ref().unwrap()));
-    println!("{}", (*decode(Rc::new(RefCell::new(Some(1))), Rc::new(RefCell::new(Some(0)))).borrow().as_ref().unwrap()));
+    println!("{}", format!("{}", (*decode(Rc::new(RefCell::new(Some(1))), Rc::new(RefCell::new(Some(1)))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*decode(Rc::new(RefCell::new(Some(3))), Rc::new(RefCell::new(Some(1)))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*decode(Rc::new(RefCell::new(Some(1))), Rc::new(RefCell::new(Some(0)))).borrow().as_ref().unwrap())));
 }

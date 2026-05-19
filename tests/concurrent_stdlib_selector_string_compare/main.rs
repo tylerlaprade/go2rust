@@ -181,7 +181,7 @@ fn main() {
         let ch_thread = ch.clone(); std::thread::spawn(move || {
         ch_thread.send((*has_name(Arc::new(Mutex::new(Some(ast_Ident { ..Default::default() }))), Arc::new(Mutex::new(Some("x".to_string())))).lock().unwrap().as_ref().unwrap()));;;
     });
-        println!("{}", ch.recv().unwrap());
+        println!("{}", format!("{}", ch.recv().unwrap()));
     }
-    println!("{}", "ok".to_string());
+    println!("{}", format!("{}", "ok".to_string()));
 }

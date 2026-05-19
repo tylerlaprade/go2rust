@@ -148,5 +148,5 @@ fn main() {
     if false {
         remember(Rc::new(RefCell::new(None)), Rc::new(RefCell::new(None)));
     }
-    println!("{}", "ok".to_string());
+    println!("{}", format!("{}", "ok".to_string()));
 }

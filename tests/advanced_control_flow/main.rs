@@ -191,7 +191,7 @@ impl<T> Iterator for GoChannel<T> {
 
 fn main() {
         // Nested loops with labels
-    println!("{}", "=== Nested loops with labels ===".to_string());
+    println!("{}", format!("{}", "=== Nested loops with labels ===".to_string()));
 
     let mut i = Arc::new(Mutex::new(Some(1)));
     'outer: while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3; __tmp_x <= __tmp_y } {
@@ -208,7 +208,7 @@ fn main() {
     }
 
         // Continue with labels
-    println!("{}", "\n=== Continue with labels ===".to_string());
+    println!("{}", format!("{}", "\n=== Continue with labels ===".to_string()));
 
     let mut i = Arc::new(Mutex::new(Some(1)));
     'outer_continue: while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3; __tmp_x <= __tmp_y } {
@@ -225,7 +225,7 @@ fn main() {
     }
 
         // Complex switch with fallthrough
-    println!("{}", "\n=== Complex switch with fallthrough ===".to_string());
+    println!("{}", format!("{}", "\n=== Complex switch with fallthrough ===".to_string()));
 
     let mut num = Arc::new(Mutex::new(Some(1)));
     while { let __tmp_x = { let __v = (*num.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 5; __tmp_x <= __tmp_y } {
@@ -237,28 +237,28 @@ fn main() {
         if !_matched && (_switch_val == 1) || _fallthrough {
             _matched = true;
             _fallthrough = false;
-            print!("{}", "One".to_string());
+            print!("{}", format!("{}", "One".to_string()));
             _fallthrough = true;
         }
         if !_matched && (_switch_val == 2) || _fallthrough {
             _matched = true;
             _fallthrough = false;
-            print!("{}", " Two-ish".to_string());
+            print!("{}", format!("{}", " Two-ish".to_string()));
         }
         if !_matched && (_switch_val == 3) || _fallthrough {
             _matched = true;
             _fallthrough = false;
-            print!("{}", "Three".to_string());
+            print!("{}", format!("{}", "Three".to_string()));
         }
         if !_matched && (_switch_val == 4 || _switch_val == 5) || _fallthrough {
             _matched = true;
             _fallthrough = false;
-            print!("{}", " Four-or-Five".to_string());
+            print!("{}", format!("{}", " Four-or-Five".to_string()));
         }
         if !_matched || _fallthrough {
             _matched = true;
             _fallthrough = false;
-            print!("{}", " Other".to_string());
+            print!("{}", format!("{}", " Other".to_string()));
         }
     }
         println!();
@@ -266,7 +266,7 @@ fn main() {
     }
 
         // Nested switch statements
-    println!("{}", "\n=== Nested switch statements ===".to_string());
+    println!("{}", format!("{}", "\n=== Nested switch statements ===".to_string()));
 
     let mut category = Arc::new(Mutex::new(Some(1)));
     while { let __tmp_x = { let __v = (*category.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2; __tmp_x <= __tmp_y } {
@@ -278,17 +278,17 @@ fn main() {
     if _switch_val == (1) {
             { let _switch_val = { let __v = (*item.lock().unwrap().as_ref().unwrap()).clone(); __v };
     if _switch_val == (1) {
-            println!("{}", "Electronics - Phone".to_string());
+            println!("{}", format!("{}", "Electronics - Phone".to_string()));
         } else if _switch_val == (2) {
-            println!("{}", "Electronics - Laptop".to_string());
+            println!("{}", format!("{}", "Electronics - Laptop".to_string()));
         }
     }
         } else if _switch_val == (2) {
             { let _switch_val = { let __v = (*item.lock().unwrap().as_ref().unwrap()).clone(); __v };
     if _switch_val == (1) {
-            println!("{}", "Books - Fiction".to_string());
+            println!("{}", format!("{}", "Books - Fiction".to_string()));
         } else if _switch_val == (2) {
-            println!("{}", "Books - Non-fiction".to_string());
+            println!("{}", format!("{}", "Books - Non-fiction".to_string()));
         }
     }
         }
@@ -299,7 +299,7 @@ fn main() {
     }
 
         // Complex for loop conditions
-    println!("{}", "\n=== Complex for loop conditions ===".to_string());
+    println!("{}", format!("{}", "\n=== Complex for loop conditions ===".to_string()));
 
         // Multiple variables in for loop
     let (mut i, mut j) = (Arc::new(Mutex::new(Some(0))), Arc::new(Mutex::new(Some(10))));
@@ -312,7 +312,7 @@ fn main() {
     }
 
         // For loop with complex condition
-    println!("{}", "\n=== For loop with complex condition ===".to_string());
+    println!("{}", format!("{}", "\n=== For loop with complex condition ===".to_string()));
 
     let (mut x, mut y) = (Arc::new(Mutex::new(Some(1))), Arc::new(Mutex::new(Some(1))));
     while { let __tmp_x = { let __tmp_x = { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*y.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x * __tmp_y }; let __tmp_y = 100; __tmp_x < __tmp_y } && { let __tmp_x = { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 10; __tmp_x < __tmp_y } {
@@ -326,7 +326,7 @@ fn main() {
     }
 
         // Complex if-else chains
-    println!("{}", "\n=== Complex if-else chains ===".to_string());
+    println!("{}", format!("{}", "\n=== Complex if-else chains ===".to_string()));
 
     let mut score = Arc::new(Mutex::new(Some(0)));
     while { let __tmp_x = { let __v = (*score.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 100; __tmp_x <= __tmp_y } {
@@ -363,11 +363,11 @@ fn main() {
     }
 
         // Range with complex break/continue logic
-    println!("{}", "\n=== Range with complex break/continue ===".to_string());
+    println!("{}", format!("{}", "\n=== Range with complex break/continue ===".to_string()));
 
     let mut numbers = Arc::new(Mutex::new(Some(vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10])));
 
-    println!("{}", "Processing numbers:".to_string());
+    println!("{}", format!("{}", "Processing numbers:".to_string()));
     { let __range_holder = numbers.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for (i, num) in __range_values.iter().copied().enumerate() {
         if { let __tmp_x = { let __tmp_x = num; let __tmp_y = 2; __tmp_x % __tmp_y }; let __tmp_y = 0; __tmp_x == __tmp_y } {
         if { let __tmp_x = num; let __tmp_y = 6; __tmp_x > __tmp_y } {
@@ -385,7 +385,7 @@ fn main() {
     } }
 
         // Nested range loops
-    println!("{}", "\n=== Nested range loops ===".to_string());
+    println!("{}", format!("{}", "\n=== Nested range loops ===".to_string()));
 
     let mut matrix = Arc::new(Mutex::new(Some(vec![vec!["a".to_string(), "b".to_string(), "c".to_string()], vec!["d".to_string(), "e".to_string(), "f".to_string()], vec!["g".to_string(), "h".to_string(), "i".to_string()]])));
 
@@ -405,7 +405,7 @@ fn main() {
     } }
 
         // Select with complex channel operations
-    println!("{}", "\n=== Select with complex channel operations ===".to_string());
+    println!("{}", format!("{}", "\n=== Select with complex channel operations ===".to_string()));
 
     let mut ch1 = GoChannel::<i32>::new_buffered(2 as usize);
     let mut ch2 = GoChannel::<String>::new_buffered(2 as usize);
@@ -470,10 +470,10 @@ fn main() {
         std::thread::sleep(std::time::Duration::from_millis(1));
     }
 
-    println!("{}", "Channel processing complete".to_string());
+    println!("{}", format!("{}", "Channel processing complete".to_string()));
 
         // Complex error handling flow
-    println!("{}", "\n=== Complex error handling flow ===".to_string());
+    println!("{}", format!("{}", "\n=== Complex error handling flow ===".to_string()));
 
     let mut processData = Arc::new(Mutex::new(Some(Box::new(move |data: Arc<Mutex<Option<Vec<i32>>>>| -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
         if { let __tmp_x = ((*data.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = (0 as i32); __tmp_x == __tmp_y } {

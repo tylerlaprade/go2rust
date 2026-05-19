@@ -237,7 +237,7 @@ fn main() {
         let done_thread = done.clone(); std::thread::spawn(move || {
         done_thread.send((*pad_exprs(nil_literal(), Arc::new(Mutex::new(Some(2)))).lock().unwrap()).is_some() && (*pad_named_exprs(Arc::new(Mutex::new(None))).lock().unwrap()).is_some());;;
     });
-        println!("{}", done.recv().unwrap());
+        println!("{}", format!("{}", done.recv().unwrap()));
     }
-    println!("{}", "ok".to_string());
+    println!("{}", format!("{}", "ok".to_string()));
 }

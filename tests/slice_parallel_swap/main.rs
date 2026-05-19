@@ -18,5 +18,5 @@ impl Names {
 fn main() {
     let mut names = Rc::new(RefCell::new(Some(Names(Rc::new(RefCell::new(Some(vec!["ada".to_string(), "grace".to_string(), "lin".to_string()])))))));
     (*names.borrow().as_ref().unwrap()).swap(Rc::new(RefCell::new(Some(0))), Rc::new(RefCell::new(Some(2))));
-    println!("{} {}", (*(*names.borrow().as_ref().unwrap()).at(Rc::new(RefCell::new(Some(0)))).borrow().as_ref().unwrap()), (*(*names.borrow().as_ref().unwrap()).at(Rc::new(RefCell::new(Some(2)))).borrow().as_ref().unwrap()));
+    println!("{} {}", format!("{}", (*(*names.borrow().as_ref().unwrap()).at(Rc::new(RefCell::new(Some(0)))).borrow().as_ref().unwrap())), format!("{}", (*(*names.borrow().as_ref().unwrap()).at(Rc::new(RefCell::new(Some(2)))).borrow().as_ref().unwrap())));
 }

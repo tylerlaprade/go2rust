@@ -72,6 +72,6 @@ fn go_reflect_tag_get(raw: &str, key: &str) -> String {
 
 fn main() {
     let mut tag = Arc::new(Mutex::new(Some("json:\"name,omitempty\" db:\"full_name\"".to_string())));
-    println!("{}", (*GoReflectStructTag { raw: Arc::new(Mutex::new(Some((*tag.lock().unwrap().as_ref().unwrap()).clone()))) }.get(Arc::new(Mutex::new(Some("json".to_string())))).lock().unwrap().as_ref().unwrap()));
-    println!("{}", (*GoReflectStructTag { raw: Arc::new(Mutex::new(Some((*tag.lock().unwrap().as_ref().unwrap()).clone()))) }.get(Arc::new(Mutex::new(Some("db".to_string())))).lock().unwrap().as_ref().unwrap()));
+    println!("{}", format!("{}", (*GoReflectStructTag { raw: Arc::new(Mutex::new(Some((*tag.lock().unwrap().as_ref().unwrap()).clone()))) }.get(Arc::new(Mutex::new(Some("json".to_string())))).lock().unwrap().as_ref().unwrap())));
+    println!("{}", format!("{}", (*GoReflectStructTag { raw: Arc::new(Mutex::new(Some((*tag.lock().unwrap().as_ref().unwrap()).clone()))) }.get(Arc::new(Mutex::new(Some("db".to_string())))).lock().unwrap().as_ref().unwrap())));
 }

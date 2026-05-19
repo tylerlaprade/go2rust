@@ -6,5 +6,5 @@ pub fn mark_through_unsafe_pointer(addr: Rc<RefCell<Option<usize>>>) {
 }
 
 fn main() {
-    println!("{}", "ok".to_string());
+    println!("{}", format!("{}", "ok".to_string()));
 }

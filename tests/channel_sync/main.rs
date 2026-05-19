@@ -149,9 +149,9 @@ impl<T> Iterator for GoChannel<T> {
 }
 
 pub fn worker(done: GoChannel<bool>) {
-    print!("{}", "working...".to_string());
+    print!("{}", format!("{}", "working...".to_string()));
     std::thread::sleep(std::time::Duration::from_millis(500));
-    println!("{}", "done".to_string());
+    println!("{}", format!("{}", "done".to_string()));
 
     done.send(true);
 }

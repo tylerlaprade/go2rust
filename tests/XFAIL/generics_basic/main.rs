@@ -109,7 +109,7 @@ fn main() {
     let mut m = Rc::new(RefCell::new(Some(BTreeMap::<i32, Rc<RefCell<Option<String>>>>::from([(1, Rc::new(RefCell::new(Some("2".to_string())))), (2, Rc::new(RefCell::new(Some("4".to_string())))), (4, Rc::new(RefCell::new(Some("8".to_string()))))]))));
     let mut keys = map_keys(m.clone());
     (*keys.borrow_mut().as_mut().unwrap()).sort();
-    println!("{} {}", "keys:".to_string(), format_slice(&keys));
+    println!("{} {}", format!("{}", "keys:".to_string()), format!("{}", format_slice(&keys)));
 
     let mut lst = ;
     (*lst.borrow_mut().as_mut().unwrap()).push(Rc::new(RefCell::new(Some(10))));

@@ -13,5 +13,5 @@ pub fn choose(ok: Rc<RefCell<Option<bool>>>) -> (Rc<RefCell<Option<i32>>>, Rc<Re
 
 fn main() {
     let (mut n, mut label) = choose(Rc::new(RefCell::new(Some(true))));
-    println!("{} {}", { let __v = (*n.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*label.borrow().as_ref().unwrap()).clone(); __v });
+    println!("{} {}", format!("{}", { let __v = (*n.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*label.borrow().as_ref().unwrap()).clone(); __v }));
 }

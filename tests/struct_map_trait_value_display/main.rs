@@ -63,7 +63,7 @@ impl std::fmt::Display for holder {
 
 fn main() {
     if false {
-        println!("{}", holder { table: Rc::new(RefCell::new(Some(BTreeMap::new()))) });
+        println!("{}", format!("{}", holder { table: Rc::new(RefCell::new(Some(BTreeMap::new()))) }));
     }
-    println!("{}", "ok".to_string());
+    println!("{}", format!("{}", "ok".to_string()));
 }

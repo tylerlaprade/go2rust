@@ -45,7 +45,7 @@ where
 
 fn main() {
         // Basic string operations
-    println!("{}", "=== Basic string operations ===".to_string());
+    println!("{}", format!("{}", "=== Basic string operations ===".to_string()));
 
     let mut str = Arc::new(Mutex::new(Some("Hello, World!".to_string())));
     print!("Original string: {}\n", { let __v = (*str.lock().unwrap().as_ref().unwrap()).clone(); __v });
@@ -58,14 +58,14 @@ fn main() {
     print!("Substring [7:]: {}\n", (*Arc::new(Mutex::new(Some({ let __s = (*str.lock().unwrap().as_ref().unwrap()).clone(); __s[(7) as usize..].to_string() }))).lock().unwrap().as_ref().unwrap()));
 
         // String concatenation
-    println!("{}", "\n=== String concatenation ===".to_string());
+    println!("{}", format!("{}", "\n=== String concatenation ===".to_string()));
     let mut first = Arc::new(Mutex::new(Some("Hello".to_string())));
     let mut second = Arc::new(Mutex::new(Some("World".to_string())));
     let mut combined = Arc::new(Mutex::new(Some(format!("{}{}", format!("{}{}", format!("{}{}", { let __v = (*first.lock().unwrap().as_ref().unwrap()).clone(); __v }, ", ".to_string()), { let __v = (*second.lock().unwrap().as_ref().unwrap()).clone(); __v }), "!".to_string()))));
     print!("Concatenated: {}\n", { let __v = (*combined.lock().unwrap().as_ref().unwrap()).clone(); __v });
 
         // Using strings package
-    println!("{}", "\n=== strings package functions ===".to_string());
+    println!("{}", format!("{}", "\n=== strings package functions ===".to_string()));
 
     let mut text = Arc::new(Mutex::new(Some("  Go is awesome for systems programming  ".to_string())));
     print!("Original: '{}'\n", { let __v = (*text.lock().unwrap().as_ref().unwrap()).clone(); __v });
@@ -80,7 +80,7 @@ fn main() {
     print!("Title: {}\n", (*Arc::new(Mutex::new(Some({ let __s = (*trimmed.lock().unwrap().as_ref().unwrap()).clone(); let mut __out = String::new(); let mut __new_word = true; for __ch in __s.chars() { if __ch.is_alphanumeric() { if __new_word { for __upper in __ch.to_uppercase() { __out.push(__upper); } } else { __out.push(__ch); } __new_word = false; } else { __out.push(__ch); __new_word = true; } } __out }))).lock().unwrap().as_ref().unwrap()));
 
         // String searching
-    println!("{}", "\n=== String searching ===".to_string());
+    println!("{}", format!("{}", "\n=== String searching ===".to_string()));
     let mut searchText = Arc::new(Mutex::new(Some("The quick brown fox jumps over the lazy dog".to_string())));
     print!("Text: {}\n", { let __v = (*searchText.lock().unwrap().as_ref().unwrap()).clone(); __v });
 
@@ -96,7 +96,7 @@ fn main() {
     print!("Count of 'the': {}\n", (*Arc::new(Mutex::new(Some({ let __s = (*searchText.lock().unwrap().as_ref().unwrap()).clone(); let __substr = "the".to_string(); if __substr.is_empty() { __s.chars().count() as i32 + 1 } else { __s.matches(&__substr).count() as i32 } }))).lock().unwrap().as_ref().unwrap()));
 
         // String prefixes and suffixes
-    println!("{}", "\n=== Prefixes and suffixes ===".to_string());
+    println!("{}", format!("{}", "\n=== Prefixes and suffixes ===".to_string()));
     let mut filename = Arc::new(Mutex::new(Some("document.txt".to_string())));
     print!("Filename: {}\n", { let __v = (*filename.lock().unwrap().as_ref().unwrap()).clone(); __v });
     print!("Has .txt suffix: {}\n", (*Arc::new(Mutex::new(Some({ let __s = (*filename.lock().unwrap().as_ref().unwrap()).clone(); let __arg = ".txt".to_string(); __s.ends_with(&__arg) }))).lock().unwrap().as_ref().unwrap()));
@@ -104,7 +104,7 @@ fn main() {
     print!("Has 'doc' prefix: {}\n", (*Arc::new(Mutex::new(Some({ let __s = (*filename.lock().unwrap().as_ref().unwrap()).clone(); let __arg = "doc".to_string(); __s.starts_with(&__arg) }))).lock().unwrap().as_ref().unwrap()));
 
         // String splitting and joining
-    println!("{}", "\n=== Splitting and joining ===".to_string());
+    println!("{}", format!("{}", "\n=== Splitting and joining ===".to_string()));
     let mut csv = Arc::new(Mutex::new(Some("apple,banana,cherry,date".to_string())));
     print!("CSV: {}\n", { let __v = (*csv.lock().unwrap().as_ref().unwrap()).clone(); __v });
 
@@ -124,7 +124,7 @@ fn main() {
     print!("Words: {}\n", format_slice(&words));
 
         // String replacement
-    println!("{}", "\n=== String replacement ===".to_string());
+    println!("{}", format!("{}", "\n=== String replacement ===".to_string()));
     let mut original = Arc::new(Mutex::new(Some("I like cats and cats like me".to_string())));
     print!("Original: {}\n", { let __v = (*original.lock().unwrap().as_ref().unwrap()).clone(); __v });
 
@@ -135,13 +135,13 @@ fn main() {
     print!("Replace all 'cats': {}\n", { let __v = (*replacedAll.lock().unwrap().as_ref().unwrap()).clone(); __v });
 
         // String repetition
-    println!("{}", "\n=== String repetition ===".to_string());
+    println!("{}", format!("{}", "\n=== String repetition ===".to_string()));
     let mut pattern = Arc::new(Mutex::new(Some("Go! ".to_string())));
     let mut repeated = Arc::new(Mutex::new(Some({ let __s = (*pattern.lock().unwrap().as_ref().unwrap()).clone(); let __count = 3; __s.repeat(__count as usize) })));
     print!("Repeated: {}\n", { let __v = (*repeated.lock().unwrap().as_ref().unwrap()).clone(); __v });
 
         // String comparison
-    println!("{}", "\n=== String comparison ===".to_string());
+    println!("{}", format!("{}", "\n=== String comparison ===".to_string()));
     let mut str1 = Arc::new(Mutex::new(Some("apple".to_string())));
     let mut str2 = Arc::new(Mutex::new(Some("banana".to_string())));
     let mut str3 = Arc::new(Mutex::new(Some("apple".to_string())));
@@ -157,7 +157,7 @@ fn main() {
     print!("EqualFold('Apple', 'APPLE'): {}\n", (*Arc::new(Mutex::new(Some({ let __a = "Apple".to_string(); let __b = "APPLE".to_string(); __a.to_lowercase() == __b.to_lowercase() }))).lock().unwrap().as_ref().unwrap()));
 
         // String building with strings.Builder
-    println!("{}", "\n=== String building ===".to_string());
+    println!("{}", format!("{}", "\n=== String building ===".to_string()));
     let mut builder: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(Some(Default::default())));
 
     (*builder.lock().unwrap().as_mut().unwrap()).push_str("Building ");
@@ -170,7 +170,7 @@ fn main() {
     print!("Builder length: {}\n", (*Arc::new(Mutex::new(Some((*builder.lock().unwrap().as_ref().unwrap()).len() as i32))).lock().unwrap().as_ref().unwrap()));
 
         // Rune iteration (Unicode support)
-    println!("{}", "\n=== Unicode and runes ===".to_string());
+    println!("{}", format!("{}", "\n=== Unicode and runes ===".to_string()));
     let mut unicode = Arc::new(Mutex::new(Some("Hello, \u{4e16}\u{754c}! \u{1f30d}".to_string())));
     print!("Unicode string: {}\n", { let __v = (*unicode.lock().unwrap().as_ref().unwrap()).clone(); __v });
     print!("Byte length: {}\n", (*unicode.lock().unwrap().as_ref().unwrap()).len());
@@ -183,7 +183,7 @@ fn main() {
     print!("Rune count: {}\n", { let __v = (*runeCount.lock().unwrap().as_ref().unwrap()).clone(); __v });
 
         // String trimming variations
-    println!("{}", "\n=== String trimming variations ===".to_string());
+    println!("{}", format!("{}", "\n=== String trimming variations ===".to_string()));
     let mut messy = Arc::new(Mutex::new(Some("!!!Hello World!!!".to_string())));
     print!("Original: {}\n", { let __v = (*messy.lock().unwrap().as_ref().unwrap()).clone(); __v });
     print!("TrimLeft '!': {}\n", (*Arc::new(Mutex::new(Some({ let __s = (*messy.lock().unwrap().as_ref().unwrap()).clone(); let __cutset = "!".to_string(); __s.trim_start_matches(|__ch| __cutset.contains(__ch)).to_string() }))).lock().unwrap().as_ref().unwrap()));
@@ -191,7 +191,7 @@ fn main() {
     print!("Trim '!': {}\n", (*Arc::new(Mutex::new(Some({ let __s = (*messy.lock().unwrap().as_ref().unwrap()).clone(); let __cutset = "!".to_string(); __s.trim_matches(|__ch| __cutset.contains(__ch)).to_string() }))).lock().unwrap().as_ref().unwrap()));
 
         // String formatting with different verbs
-    println!("{}", "\n=== String formatting ===".to_string());
+    println!("{}", format!("{}", "\n=== String formatting ===".to_string()));
     let mut name = Arc::new(Mutex::new(Some("Alice".to_string())));
     let mut age = Arc::new(Mutex::new(Some(30)));
     let mut height = Arc::new(Mutex::new(Some(5.6)));

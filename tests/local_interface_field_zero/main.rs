@@ -49,5 +49,5 @@ pub fn zero_holder() -> Rc<RefCell<Option<holder>>> {
 
 fn main() {
     let mut holder = zero_holder();
-    println!("{}", (*(*holder.borrow().as_ref().unwrap()).count.borrow().as_ref().unwrap()));
+    println!("{}", format!("{}", (*(*holder.borrow().as_ref().unwrap()).count.borrow().as_ref().unwrap())));
 }

@@ -173,25 +173,25 @@ impl Holder {
     pub fn fill(&mut self) {
         self.ch = GoChannel::<i32>::new_buffered(2 as usize);
         self.ch.send(1);
-        println!("{} {} {}", !self.ch.is_nil(), self.ch.len(), self.ch.capacity());
-        println!("{}", self.ch.recv().unwrap());
+        println!("{} {} {}", format!("{}", !self.ch.is_nil()), format!("{}", self.ch.len()), format!("{}", self.ch.capacity()));
+        println!("{}", format!("{}", self.ch.recv().unwrap()));
         self.ch = Default::default();
-        println!("{}", self.ch.is_nil());
+        println!("{}", format!("{}", self.ch.is_nil()));
     }
 }
 
 fn main() {
     let mut h = Arc::new(Mutex::new(Some(Holder { ch: Default::default() })));
-    println!("{}", (*(*h.lock().unwrap().as_mut().unwrap()).ready().lock().unwrap().as_ref().unwrap()));
+    println!("{}", format!("{}", (*(*h.lock().unwrap().as_mut().unwrap()).ready().lock().unwrap().as_ref().unwrap())));
     (*h.lock().unwrap().as_mut().unwrap()).fill();
 
     let mut h2 = Arc::new(Mutex::new(Some(Holder { ch: GoChannel::<i32>::new_buffered(1 as usize), ..Default::default() })));
-    println!("{}", (*(*h2.lock().unwrap().as_mut().unwrap()).ready().lock().unwrap().as_ref().unwrap()));
-    println!("{}", (*h2.lock().unwrap().as_ref().unwrap()).ch.len());
-    println!("{}", (*h2.lock().unwrap().as_ref().unwrap()).ch.capacity());
+    println!("{}", format!("{}", (*(*h2.lock().unwrap().as_mut().unwrap()).ready().lock().unwrap().as_ref().unwrap())));
+    println!("{}", format!("{}", (*h2.lock().unwrap().as_ref().unwrap()).ch.len()));
+    println!("{}", format!("{}", (*h2.lock().unwrap().as_ref().unwrap()).ch.capacity()));
     (*h2.lock().unwrap().as_ref().unwrap()).ch.send(7);
-    println!("{}", (*h2.lock().unwrap().as_ref().unwrap()).ch.recv().unwrap());
+    println!("{}", format!("{}", (*h2.lock().unwrap().as_ref().unwrap()).ch.recv().unwrap()));
 
     let mut h3 = Arc::new(Mutex::new(Some(Holder { ch: Default::default(), ..Default::default() })));
-    println!("{}", (*(*h3.lock().unwrap().as_mut().unwrap()).ready().lock().unwrap().as_ref().unwrap()));
+    println!("{}", format!("{}", (*(*h3.lock().unwrap().as_mut().unwrap()).ready().lock().unwrap().as_ref().unwrap())));
 }

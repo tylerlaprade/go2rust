@@ -50,5 +50,5 @@ pub fn compute() -> Rc<RefCell<Option<bool>>> {
 }
 
 fn main() {
-    println!("{}", (*compute().borrow().as_ref().unwrap()));
+    println!("{}", format!("{}", (*compute().borrow().as_ref().unwrap())));
 }

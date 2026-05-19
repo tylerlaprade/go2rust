@@ -320,5 +320,5 @@ impl std::fmt::Display for holder {
 
 fn main() {
     let _ = Arc::new(Mutex::new(Some(format!("{}", holder { ctx: Arc::new(Mutex::new(Some(GoContext::background()))), ..Default::default() }))));
-    println!("{}", format!("{}", (*(Arc::new(Mutex::new(Some(GoContext::background())))).lock().unwrap().as_ref().unwrap())));
+    println!("{}", format!("{}", format!("{}", (*(Arc::new(Mutex::new(Some(GoContext::background())))).lock().unwrap().as_ref().unwrap()))));
 }

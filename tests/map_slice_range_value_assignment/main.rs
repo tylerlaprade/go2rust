@@ -14,6 +14,6 @@ fn main() {
     }
     }
 
-    println!("{}", (*src.borrow().as_ref().unwrap()).len());
-    println!("{}", (*src.borrow().as_ref().unwrap())[(0) as usize].clone());
+    println!("{}", format!("{}", (*src.borrow().as_ref().unwrap()).len()));
+    println!("{}", format!("{}", (*src.borrow().as_ref().unwrap())[(0) as usize].clone()));
 }

@@ -72,5 +72,5 @@ fn main() {
     if (*err.borrow()).is_some() {
         panic!("{:?}", (*err.borrow().as_ref().unwrap()));
     }
-    eprintln!("{}", (*(*pkg.borrow_mut().as_mut().unwrap()).complete().borrow().as_ref().unwrap()));
+    eprintln!("{}", format!("{}", (*(*pkg.borrow_mut().as_mut().unwrap()).complete().borrow().as_ref().unwrap())));
 }

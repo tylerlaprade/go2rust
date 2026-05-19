@@ -33,6 +33,6 @@ fn main() {
         if (*(*n.borrow().as_ref().unwrap()).value.borrow().as_ref().unwrap()) == 1 {
         { let new_val = (*nodes.borrow().as_ref().unwrap())[(1) as usize].clone().clone(); n = new_val; };
     }
-        println!("{}", (*(*n.borrow().as_ref().unwrap()).value.borrow().as_ref().unwrap()));
+        println!("{}", format!("{}", (*(*n.borrow().as_ref().unwrap()).value.borrow().as_ref().unwrap())));
     } }
 }

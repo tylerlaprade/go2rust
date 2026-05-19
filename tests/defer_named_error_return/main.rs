@@ -26,6 +26,6 @@ pub fn compute() -> (Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<Box<dyn StdErro
 
 fn main() {
     let (mut result, mut err) = compute();
-    println!("{}", { let __v = (*result.borrow().as_ref().unwrap()).clone(); __v });
-    println!("{}", format!("{}", (*err.borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", { let __v = (*result.borrow().as_ref().unwrap()).clone(); __v }));
+    println!("{}", format!("{}", format!("{}", (*err.borrow().as_ref().unwrap()))));
 }

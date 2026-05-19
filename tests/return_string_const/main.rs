@@ -21,7 +21,7 @@ pub fn middle() -> Rc<RefCell<Option<String>>> {
 }
 
 fn main() {
-    println!("{}", (*fallback(Rc::new(RefCell::new(Some(true)))).borrow().as_ref().unwrap()));
-    println!("{}", (*fallback(Rc::new(RefCell::new(Some(false)))).borrow().as_ref().unwrap()));
-    println!("{}", (*middle().borrow().as_ref().unwrap()));
+    println!("{}", format!("{}", (*fallback(Rc::new(RefCell::new(Some(true)))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*fallback(Rc::new(RefCell::new(Some(false)))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*middle().borrow().as_ref().unwrap())));
 }

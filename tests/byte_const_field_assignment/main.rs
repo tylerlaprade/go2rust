@@ -36,7 +36,7 @@ const black: i32 = 2;
     if (*(*n.borrow().as_ref().unwrap()).color.borrow().as_ref().unwrap()) == white as u8 {
         { let new_val = grey as u8; *(*n.borrow().as_ref().unwrap()).color.borrow_mut() = Some(new_val); };
     }
-    println!("{}", (*(*n.borrow().as_ref().unwrap()).color.borrow().as_ref().unwrap()) == grey as u8);
+    println!("{}", format!("{}", (*(*n.borrow().as_ref().unwrap()).color.borrow().as_ref().unwrap()) == grey as u8));
     { let new_val = black as u8; *(*n.borrow().as_ref().unwrap()).color.borrow_mut() = Some(new_val); };
-    println!("{}", (*(*n.borrow().as_ref().unwrap()).color.borrow().as_ref().unwrap()));
+    println!("{}", format!("{}", (*(*n.borrow().as_ref().unwrap()).color.borrow().as_ref().unwrap())));
 }

@@ -116,11 +116,11 @@ pub fn reverse_string(s: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<Strin
 
 fn main() {
         // Factorial
-    println!("{} {}", "Factorial of 5:".to_string(), (*factorial(Rc::new(RefCell::new(Some(5)))).borrow().as_ref().unwrap()));
-    println!("{} {}", "Factorial of 0:".to_string(), (*factorial(Rc::new(RefCell::new(Some(0)))).borrow().as_ref().unwrap()));
+    println!("{} {}", format!("{}", "Factorial of 5:".to_string()), format!("{}", (*factorial(Rc::new(RefCell::new(Some(5)))).borrow().as_ref().unwrap())));
+    println!("{} {}", format!("{}", "Factorial of 0:".to_string()), format!("{}", (*factorial(Rc::new(RefCell::new(Some(0)))).borrow().as_ref().unwrap())));
 
         // Fibonacci
-    println!("{}", "Fibonacci sequence:".to_string());
+    println!("{}", format!("{}", "Fibonacci sequence:".to_string()));
     let mut i = Rc::new(RefCell::new(Some(0)));
     while (*i.borrow().as_ref().unwrap()) < 10 {
         print!("fib({}) = {}\n", { let __v = (*i.borrow().as_ref().unwrap()).clone(); __v }, (*fibonacci(Rc::new(RefCell::new(Some((*i.borrow().as_ref().unwrap()).clone())))).borrow().as_ref().unwrap()));
@@ -128,17 +128,17 @@ fn main() {
     }
 
         // GCD
-    println!("{} {}", "GCD of 48 and 18:".to_string(), (*gcd(Rc::new(RefCell::new(Some(48))), Rc::new(RefCell::new(Some(18)))).borrow().as_ref().unwrap()));
-    println!("{} {}", "GCD of 17 and 13:".to_string(), (*gcd(Rc::new(RefCell::new(Some(17))), Rc::new(RefCell::new(Some(13)))).borrow().as_ref().unwrap()));
+    println!("{} {}", format!("{}", "GCD of 48 and 18:".to_string()), format!("{}", (*gcd(Rc::new(RefCell::new(Some(48))), Rc::new(RefCell::new(Some(18)))).borrow().as_ref().unwrap())));
+    println!("{} {}", format!("{}", "GCD of 17 and 13:".to_string()), format!("{}", (*gcd(Rc::new(RefCell::new(Some(17))), Rc::new(RefCell::new(Some(13)))).borrow().as_ref().unwrap())));
 
         // Power
-    println!("{} {}", "2^8 =".to_string(), (*power(Rc::new(RefCell::new(Some(2))), Rc::new(RefCell::new(Some(8)))).borrow().as_ref().unwrap()));
-    println!("{} {}", "3^4 =".to_string(), (*power(Rc::new(RefCell::new(Some(3))), Rc::new(RefCell::new(Some(4)))).borrow().as_ref().unwrap()));
-    println!("{} {}", "5^0 =".to_string(), (*power(Rc::new(RefCell::new(Some(5))), Rc::new(RefCell::new(Some(0)))).borrow().as_ref().unwrap()));
+    println!("{} {}", format!("{}", "2^8 =".to_string()), format!("{}", (*power(Rc::new(RefCell::new(Some(2))), Rc::new(RefCell::new(Some(8)))).borrow().as_ref().unwrap())));
+    println!("{} {}", format!("{}", "3^4 =".to_string()), format!("{}", (*power(Rc::new(RefCell::new(Some(3))), Rc::new(RefCell::new(Some(4)))).borrow().as_ref().unwrap())));
+    println!("{} {}", format!("{}", "5^0 =".to_string()), format!("{}", (*power(Rc::new(RefCell::new(Some(5))), Rc::new(RefCell::new(Some(0)))).borrow().as_ref().unwrap())));
 
         // Sum array
     let mut numbers = Rc::new(RefCell::new(Some(vec![1, 2, 3, 4, 5])));
-    println!("{} {} {} {}", "Sum of".to_string(), format_slice(&numbers), "=".to_string(), (*sum_array(numbers.clone()).borrow().as_ref().unwrap()));
+    println!("{} {} {} {}", format!("{}", "Sum of".to_string()), format!("{}", format_slice(&numbers)), format!("{}", "=".to_string()), format!("{}", (*sum_array(numbers.clone()).borrow().as_ref().unwrap())));
 
         // Reverse string
     let mut original = Rc::new(RefCell::new(Some("hello".to_string())));

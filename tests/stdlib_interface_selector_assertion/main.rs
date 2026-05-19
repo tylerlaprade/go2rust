@@ -132,9 +132,9 @@ fn main() {
         }
     });
     if (*ok.borrow().as_ref().unwrap()) {
-        println!("{}", "file".to_string());
+        println!("{}", format!("{}", "file".to_string()));
     } else {
-        println!("{}", "not file".to_string());
+        println!("{}", format!("{}", "not file".to_string()));
     }
     let (mut buf, _) = ({
         let val = (*h.borrow().as_ref().unwrap()).err.clone();
@@ -150,8 +150,8 @@ fn main() {
         }
     });
     if (*buf.borrow()).is_some() {
-        println!("{}", "buffer".to_string());
+        println!("{}", format!("{}", "buffer".to_string()));
     } else {
-        println!("{}", "not buffer".to_string());
+        println!("{}", format!("{}", "not buffer".to_string()));
     }
 }

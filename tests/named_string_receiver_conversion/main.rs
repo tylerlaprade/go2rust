@@ -30,5 +30,5 @@ impl StdError for internalError {}
 
 fn main() {
     let mut err = Rc::new(RefCell::new(Some(internalError(Rc::new(RefCell::new(Some("bad import data".to_string())))))));
-    println!("{}", (*(*err.borrow().as_ref().unwrap()).error().borrow().as_ref().unwrap()));
+    println!("{}", format!("{}", (*(*err.borrow().as_ref().unwrap()).error().borrow().as_ref().unwrap())));
 }

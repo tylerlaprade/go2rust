@@ -288,6 +288,6 @@ fn main() {
         { let mut guard = count.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
     (*ticker.lock().unwrap().as_mut().unwrap()).stop();
-    println!("{} {}", "Ticks:".to_string(), { let __v = (*count.lock().unwrap().as_ref().unwrap()).clone(); __v });
-    println!("{}", "Ticker stopped".to_string());
+    println!("{} {}", format!("{}", "Ticks:".to_string()), format!("{}", { let __v = (*count.lock().unwrap().as_ref().unwrap()).clone(); __v }));
+    println!("{}", format!("{}", "Ticker stopped".to_string()));
 }

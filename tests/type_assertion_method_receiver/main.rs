@@ -48,5 +48,5 @@ pub fn recv_name(v: Rc<RefCell<Option<Box<dyn Any>>>>) -> Rc<RefCell<Option<Stri
 }
 
 fn main() {
-    println!("{}", (*recv_name(Rc::new(RefCell::new(Some(Box::new(Signature { name: Rc::new(RefCell::new(Some("receiver".to_string()))), ..Default::default() }) as Box<dyn Any>)))).borrow().as_ref().unwrap()));
+    println!("{}", format!("{}", (*recv_name(Rc::new(RefCell::new(Some(Box::new(Signature { name: Rc::new(RefCell::new(Some("receiver".to_string()))), ..Default::default() }) as Box<dyn Any>)))).borrow().as_ref().unwrap())));
 }

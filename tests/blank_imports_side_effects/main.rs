@@ -1,10 +1,10 @@
 fn __go_init_0() {
-    println!("{}", "main package init".to_string());
+    println!("{}", format!("{}", "main package init".to_string()));
 }
 
 fn main() {
     __go_init_all();
-    println!("{}", "main function".to_string());
+    println!("{}", format!("{}", "main function".to_string()));
 }
 
 pub(crate) fn __go_init_all() {

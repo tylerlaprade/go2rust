@@ -29,6 +29,6 @@ impl Writer {
 }
 
 fn main() {
-    println!("{}", (*(Writer {  }).code(&CodeVal(Rc::new(RefCell::new(Some(VAL_BOOL as i32))))).borrow().as_ref().unwrap()));
-    println!("{}", (*(Writer {  }).code(&CodeVal(Rc::new(RefCell::new(Some(VAL_STRING as i32))))).borrow().as_ref().unwrap()));
+    println!("{}", format!("{}", (*(Writer {  }).code(&CodeVal(Rc::new(RefCell::new(Some(VAL_BOOL as i32))))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*(Writer {  }).code(&CodeVal(Rc::new(RefCell::new(Some(VAL_STRING as i32))))).borrow().as_ref().unwrap())));
 }

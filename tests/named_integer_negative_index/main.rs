@@ -186,5 +186,5 @@ impl std::fmt::Display for AnonymousStruct1 {
 fn main() {
     let mut x: Rc<RefCell<Option<[AnonymousStruct1; 1]>>> = Rc::new(RefCell::new(Some(std::array::from_fn(|_| Default::default()))));
     let _ = (*x.borrow().as_ref().unwrap())[(INVALID - -1) as usize].clone();
-    println!("{}", "ok".to_string());
+    println!("{}", format!("{}", "ok".to_string()));
 }

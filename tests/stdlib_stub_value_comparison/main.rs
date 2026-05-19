@@ -82,8 +82,8 @@ pub fn has_direction(ch: Rc<RefCell<Option<types_Chan>>>) -> Rc<RefCell<Option<b
 
 fn main() {
     if false {
-        println!("{}", (*is_bidirectional(Rc::new(RefCell::new(None))).borrow().as_ref().unwrap()));
-        println!("{}", (*has_direction(Rc::new(RefCell::new(None))).borrow().as_ref().unwrap()));
+        println!("{}", format!("{}", (*is_bidirectional(Rc::new(RefCell::new(None))).borrow().as_ref().unwrap())));
+        println!("{}", format!("{}", (*has_direction(Rc::new(RefCell::new(None))).borrow().as_ref().unwrap())));
     }
-    println!("{}", "ok".to_string());
+    println!("{}", format!("{}", "ok".to_string()));
 }

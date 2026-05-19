@@ -35,5 +35,5 @@ impl item {
 
 fn main() {
     let mut v = Rc::new(RefCell::new(Some(item { index: Rc::new(RefCell::new(Some(3))), ..Default::default() })));
-    println!("{}", (*Rc::new(RefCell::new(Some((*(*v.borrow().as_ref().unwrap()).index().borrow().as_ref().unwrap()).to_string()))).borrow().as_ref().unwrap()));
+    println!("{}", format!("{}", (*Rc::new(RefCell::new(Some((*(*v.borrow().as_ref().unwrap()).index().borrow().as_ref().unwrap()).to_string()))).borrow().as_ref().unwrap())));
 }

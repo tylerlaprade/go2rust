@@ -172,7 +172,7 @@ fn main() {
         std::thread::spawn(move || {
         ;
     });
-        println!("{}", format_slice(&lookup(Arc::new(Mutex::new(None)), Arc::new(Mutex::new(None)))));
+        println!("{}", format!("{}", format_slice(&lookup(Arc::new(Mutex::new(None)), Arc::new(Mutex::new(None))))));
     }
-    println!("{}", "ok".to_string());
+    println!("{}", format!("{}", "ok".to_string()));
 }

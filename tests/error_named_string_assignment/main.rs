@@ -42,6 +42,6 @@ pub fn direct() -> Rc<RefCell<Option<Box<dyn StdError>>>> {
 }
 
 fn main() {
-    println!("{}", format!("{}", (*(assigned()).borrow().as_ref().unwrap())));
-    println!("{}", format!("{}", (*(direct()).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", format!("{}", (*(assigned()).borrow().as_ref().unwrap()))));
+    println!("{}", format!("{}", format!("{}", (*(direct()).borrow().as_ref().unwrap()))));
 }

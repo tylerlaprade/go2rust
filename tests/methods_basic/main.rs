@@ -89,16 +89,16 @@ impl Person {
 fn main() {
         // Counter methods
     let mut counter = Rc::new(RefCell::new(Some(Counter { value: Rc::new(RefCell::new(Some(0))), ..Default::default() })));
-    println!("{} {}", "Initial value:".to_string(), (*(*counter.borrow().as_ref().unwrap()).get_value().borrow().as_ref().unwrap()));
+    println!("{} {}", format!("{}", "Initial value:".to_string()), format!("{}", (*(*counter.borrow().as_ref().unwrap()).get_value().borrow().as_ref().unwrap())));
 
     (*counter.borrow_mut().as_mut().unwrap()).increment();
-    println!("{} {}", "After increment:".to_string(), (*(*counter.borrow().as_ref().unwrap()).get_value().borrow().as_ref().unwrap()));
+    println!("{} {}", format!("{}", "After increment:".to_string()), format!("{}", (*(*counter.borrow().as_ref().unwrap()).get_value().borrow().as_ref().unwrap())));
 
     (*counter.borrow_mut().as_mut().unwrap()).add(Rc::new(RefCell::new(Some(5))));
-    println!("{} {}", "After adding 5:".to_string(), (*(*counter.borrow().as_ref().unwrap()).get_value().borrow().as_ref().unwrap()));
+    println!("{} {}", format!("{}", "After adding 5:".to_string()), format!("{}", (*(*counter.borrow().as_ref().unwrap()).get_value().borrow().as_ref().unwrap())));
 
     let mut doubled = (*counter.borrow_mut().as_mut().unwrap()).double();
-    println!("{} {}", "After doubling:".to_string(), { let __v = (*doubled.borrow().as_ref().unwrap()).clone(); __v });
+    println!("{} {}", format!("{}", "After doubling:".to_string()), format!("{}", { let __v = (*doubled.borrow().as_ref().unwrap()).clone(); __v }));
 
         // Person methods
     let mut person = Rc::new(RefCell::new(Some(Person { name: Rc::new(RefCell::new(Some("Alice".to_string()))), age: Rc::new(RefCell::new(Some(25))), ..Default::default() })));

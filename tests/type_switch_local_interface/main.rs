@@ -150,7 +150,7 @@ pub fn new_namer() -> Rc<RefCell<Option<Box<dyn namer>>>> {
 fn main() {
     let mut a = Rc::new(RefCell::new(Some(alpha { name: Rc::new(RefCell::new(Some("one".to_string()))), ..Default::default() })));
     let mut b = Rc::new(RefCell::new(Some(beta { name: Rc::new(RefCell::new(Some("two".to_string()))), ..Default::default() })));
-    println!("{}", (*describe(a.borrow().as_ref().unwrap()).borrow().as_ref().unwrap()));
-    println!("{}", (*describe(b.borrow().as_ref().unwrap()).borrow().as_ref().unwrap()));
-    println!("{}", (*{ let __recv = new_namer(); let __result = (*__recv.borrow().as_ref().unwrap()).name(); __result }.borrow().as_ref().unwrap()));
+    println!("{}", format!("{}", (*describe(a.borrow().as_ref().unwrap()).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*describe(b.borrow().as_ref().unwrap()).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*{ let __recv = new_namer(); let __result = (*__recv.borrow().as_ref().unwrap()).name(); __result }.borrow().as_ref().unwrap())));
 }

@@ -38,6 +38,6 @@ pub fn split(mut x: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<parsed>>> 
 
 fn main() {
     let mut p = split(Rc::new(RefCell::new(Some("abc".to_string()))));
-    println!("{}", (*(*p.borrow().as_ref().unwrap()).kind.borrow().as_ref().unwrap()).clone());
-    println!("{}", (*(*p.borrow().as_ref().unwrap()).rest.borrow().as_ref().unwrap()).clone());
+    println!("{}", format!("{}", (*(*p.borrow().as_ref().unwrap()).kind.borrow().as_ref().unwrap()).clone()));
+    println!("{}", format!("{}", (*(*p.borrow().as_ref().unwrap()).rest.borrow().as_ref().unwrap()).clone()));
 }

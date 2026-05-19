@@ -54,6 +54,6 @@ fn main() {
     { let __map_key = "dep".to_string(); let __map_value = (*imp.borrow().as_ref().unwrap()).package.clone(); (*imports.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
     { let new_val = "updated".to_string(); *(*(*imp.borrow().as_ref().unwrap()).package.borrow().as_ref().unwrap()).i_d.borrow_mut() = Some(new_val); };
 
-    println!("{}", (*(*(*imports.borrow().as_ref().unwrap()).get(&"dep".to_string()).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()).borrow().as_ref().unwrap()).i_d.borrow().as_ref().unwrap()));
-    println!("{}", { let __left = (*imports.borrow().as_ref().unwrap()).get(&"dep".to_string()).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()); let __right = (*imp.borrow().as_ref().unwrap()).package.clone(); let __both_nil = (*__left.borrow()).is_none() && (*__right.borrow()).is_none(); let __eq = __both_nil || Rc::ptr_eq(&__left, &__right); __eq });
+    println!("{}", format!("{}", (*(*(*imports.borrow().as_ref().unwrap()).get(&"dep".to_string()).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()).borrow().as_ref().unwrap()).i_d.borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", { let __left = (*imports.borrow().as_ref().unwrap()).get(&"dep".to_string()).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()); let __right = (*imp.borrow().as_ref().unwrap()).package.clone(); let __both_nil = (*__left.borrow()).is_none() && (*__right.borrow()).is_none(); let __eq = __both_nil || Rc::ptr_eq(&__left, &__right); __eq }));
 }

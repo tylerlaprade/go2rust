@@ -27,7 +27,7 @@ impl Runner {
 }
 
 pub fn print_value(value: Rc<RefCell<Option<String>>>) {
-    println!("{}", { let __v = (*value.borrow().as_ref().unwrap()).clone(); __v });
+    println!("{}", format!("{}", { let __v = (*value.borrow().as_ref().unwrap()).clone(); __v }));
 }
 
 fn main() {

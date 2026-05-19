@@ -196,40 +196,40 @@ fn main() {
     let __go_os_args = Rc::new(RefCell::new(Some(std::env::args().collect::<Vec<String>>())));
 
         // Testing multiple standard library imports
-    println!("{}", "=== Testing multiple stdlib imports ===".to_string());
+    println!("{}", format!("{}", "=== Testing multiple stdlib imports ===".to_string()));
 
         // strings package
-    println!("{}", "\n--- strings package ---".to_string());
+    println!("{}", format!("{}", "\n--- strings package ---".to_string()));
     let mut upper = Rc::new(RefCell::new(Some({ let __s = "hello world".to_string(); __s.to_uppercase() })));
-    println!("{} {}", "Upper:".to_string(), { let __v = (*upper.borrow().as_ref().unwrap()).clone(); __v });
+    println!("{} {}", format!("{}", "Upper:".to_string()), format!("{}", { let __v = (*upper.borrow().as_ref().unwrap()).clone(); __v }));
 
     let mut lower = Rc::new(RefCell::new(Some({ let __s = "HELLO WORLD".to_string(); __s.to_lowercase() })));
-    println!("{} {}", "Lower:".to_string(), { let __v = (*lower.borrow().as_ref().unwrap()).clone(); __v });
+    println!("{} {}", format!("{}", "Lower:".to_string()), format!("{}", { let __v = (*lower.borrow().as_ref().unwrap()).clone(); __v }));
 
     let mut trimmed = Rc::new(RefCell::new(Some({ let __s = "  hello  ".to_string(); __s.trim().to_string() })));
-    println!("{} {}", "Trimmed:".to_string(), { let __v = (*trimmed.borrow().as_ref().unwrap()).clone(); __v });
+    println!("{} {}", format!("{}", "Trimmed:".to_string()), format!("{}", { let __v = (*trimmed.borrow().as_ref().unwrap()).clone(); __v }));
 
     let mut split = Rc::new(RefCell::new(Some({ let __s = "a,b,c".to_string(); let __sep = ",".to_string(); __s.split(&__sep).map(|__part| __part.to_string()).collect::<Vec<String>>() })));
     print!("Split: {}\n", format_slice(&split));
 
         // strconv package
-    println!("{}", "\n--- strconv package ---".to_string());
+    println!("{}", format!("{}", "\n--- strconv package ---".to_string()));
     let mut num = Rc::new(RefCell::new(Some(42)));
     let mut str = Rc::new(RefCell::new(Some((*num.borrow().as_ref().unwrap()).to_string())));
-    println!("{} {}", "Number as string:".to_string(), { let __v = (*str.borrow().as_ref().unwrap()).clone(); __v });
+    println!("{} {}", format!("{}", "Number as string:".to_string()), format!("{}", { let __v = (*str.borrow().as_ref().unwrap()).clone(); __v }));
 
     let (mut parsed, mut err) = { let __atoi_input = "123".to_string().clone(); match __atoi_input.parse::<i32>() { Ok(n) => (Rc::new(RefCell::new(Some(n))), Rc::new(RefCell::new(None))), Err(e) => (Rc::new(RefCell::new(Some(0))), Rc::new(RefCell::new(Some(Box::<dyn StdError>::from(format!("strconv.Atoi: parsing \"{}\": invalid syntax", __atoi_input)))))) } };
     if (*err.borrow()).is_some() {
-        println!("{} {}", "Parse error:".to_string(), format!("{}", (*err.borrow().as_ref().unwrap())));
+        println!("{} {}", format!("{}", "Parse error:".to_string()), format!("{}", format!("{}", (*err.borrow().as_ref().unwrap()))));
     } else {
-        println!("{} {}", "Parsed number:".to_string(), { let __v = (*parsed.borrow().as_ref().unwrap()).clone(); __v });
+        println!("{} {}", format!("{}", "Parsed number:".to_string()), format!("{}", { let __v = (*parsed.borrow().as_ref().unwrap()).clone(); __v }));
     }
 
     let mut floatStr = Rc::new(RefCell::new(Some(go_strconv_format_float(3.14159 as f64, char::from_u32((('f' as i32)) as u32).unwrap_or('f'), 2 as i32))));
-    println!("{} {}", "Float as string:".to_string(), { let __v = (*floatStr.borrow().as_ref().unwrap()).clone(); __v });
+    println!("{} {}", format!("{}", "Float as string:".to_string()), format!("{}", { let __v = (*floatStr.borrow().as_ref().unwrap()).clone(); __v }));
 
         // math package
-    println!("{}", "\n--- math package ---".to_string());
+    println!("{}", format!("{}", "\n--- math package ---".to_string()));
     print!("Pi: {:.6}\n", std::f64::consts::PI);
     print!("E: {:.6}\n", std::f64::consts::E);
     print!("Sqrt(16): {:.2}\n", (*Rc::new(RefCell::new(Some((16.0 as f64).sqrt()))).borrow().as_ref().unwrap()));
@@ -238,23 +238,23 @@ fn main() {
     print!("Min(10, 20): {:.0}\n", (*Rc::new(RefCell::new(Some((10.0 as f64).min(20.0 as f64)))).borrow().as_ref().unwrap()));
 
         // time package
-    println!("{}", "\n--- time package ---".to_string());
+    println!("{}", format!("{}", "\n--- time package ---".to_string()));
     let mut localFixed = Rc::new(RefCell::new(Some(GoTime::from_unix(1700000000 as i64, 0 as i64))));
     let mut fixed = (*localFixed.borrow().as_ref().unwrap()).u_t_c();
-    println!("{} {}", "Fixed timestamp:".to_string(), (*(*fixed.borrow().as_ref().unwrap()).unix().borrow().as_ref().unwrap()));
+    println!("{} {}", format!("{}", "Fixed timestamp:".to_string()), format!("{}", (*(*fixed.borrow().as_ref().unwrap()).unix().borrow().as_ref().unwrap())));
     let mut later = (*fixed.borrow().as_ref().unwrap()).add(Rc::new(RefCell::new(Some(std::time::Duration::from_secs(3600)))));
-    println!("{} {}", "One hour later:".to_string(), (*(*later.borrow().as_ref().unwrap()).unix().borrow().as_ref().unwrap()));
+    println!("{} {}", format!("{}", "One hour later:".to_string()), format!("{}", (*(*later.borrow().as_ref().unwrap()).unix().borrow().as_ref().unwrap())));
 
         // os package
-    println!("{}", "\n--- os package ---".to_string());
-    println!("{} {}", "Argument count:".to_string(), (*__go_os_args.clone().borrow().as_ref().unwrap()).len());
+    println!("{}", format!("{}", "\n--- os package ---".to_string()));
+    println!("{} {}", format!("{}", "Argument count:".to_string()), format!("{}", (*__go_os_args.clone().borrow().as_ref().unwrap()).len()));
 
         // Combined usage
-    println!("{}", "\n--- Combined usage ---".to_string());
+    println!("{}", format!("{}", "\n--- Combined usage ---".to_string()));
     let mut timestamp = (*fixed.borrow().as_ref().unwrap()).unix();
     let mut timestampStr = Rc::new(RefCell::new(Some(go_strconv_format_int((*timestamp.borrow().as_ref().unwrap()) as i64, 10 as i32))));
     let mut message = Rc::new(RefCell::new(Some(format!("{}{}", "Timestamp: ".to_string(), (*timestampStr.borrow().as_ref().unwrap())))));
-    println!("{}", { let __v = (*message.borrow().as_ref().unwrap()).clone(); __v });
+    println!("{}", format!("{}", { let __v = (*message.borrow().as_ref().unwrap()).clone(); __v }));
 
         // Mathematical calculation with string formatting
     let mut result = Rc::new(RefCell::new(Some(((*Rc::new(RefCell::new(Some((3.0 as f64).powf(2.0 as f64)))).borrow().as_ref().unwrap()) + (*Rc::new(RefCell::new(Some((4.0 as f64).powf(2.0 as f64)))).borrow().as_ref().unwrap()) as f64).sqrt())));

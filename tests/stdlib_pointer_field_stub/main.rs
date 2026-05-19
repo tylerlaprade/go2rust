@@ -93,10 +93,10 @@ pub fn selector_name_map(sel: Rc<RefCell<Option<ast_SelectorExpr>>>) -> Rc<RefCe
 
 fn main() {
     if false {
-        println!("{}", format!("&{}", (*pick(Rc::new(RefCell::new(Some(ast_SelectorExpr { ..Default::default() })))).borrow().as_ref().unwrap())));
-        println!("{}", (*selector_name(Rc::new(RefCell::new(Some(ast_SelectorExpr { ..Default::default() })))).borrow().as_ref().unwrap()));
-        println!("{}", (*has_selector_name(Rc::new(RefCell::new(Some(ast_SelectorExpr { ..Default::default() })))).borrow().as_ref().unwrap()));
-        println!("{}", format_map(&selector_name_map(Rc::new(RefCell::new(Some(ast_SelectorExpr { ..Default::default() }))))));
+        println!("{}", format!("{}", format!("&{}", (*pick(Rc::new(RefCell::new(Some(ast_SelectorExpr { ..Default::default() })))).borrow().as_ref().unwrap()))));
+        println!("{}", format!("{}", (*selector_name(Rc::new(RefCell::new(Some(ast_SelectorExpr { ..Default::default() })))).borrow().as_ref().unwrap())));
+        println!("{}", format!("{}", (*has_selector_name(Rc::new(RefCell::new(Some(ast_SelectorExpr { ..Default::default() })))).borrow().as_ref().unwrap())));
+        println!("{}", format!("{}", format_map(&selector_name_map(Rc::new(RefCell::new(Some(ast_SelectorExpr { ..Default::default() })))))));
     }
-    println!("{}", "ok".to_string());
+    println!("{}", format!("{}", "ok".to_string()));
 }

@@ -135,7 +135,7 @@ pub fn make_type() -> Arc<Mutex<Option<types_Type>>> {
 
 fn main() {
     if false {
-        println!("{}", (*make_type().lock().unwrap()).is_some());
+        println!("{}", format!("{}", (*make_type().lock().unwrap()).is_some()));
     }
-    println!("{}", "ok".to_string());
+    println!("{}", format!("{}", "ok".to_string()));
 }

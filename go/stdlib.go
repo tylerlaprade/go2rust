@@ -169,7 +169,7 @@ func transpileFmtPrint(out *strings.Builder, call *ast.CallExpr) {
 
 		for _, arg := range call.Args {
 			out.WriteString(", ")
-			transpilePrintArg(out, arg)
+			transpilePrintArgString(out, arg)
 		}
 	}
 
@@ -192,7 +192,7 @@ func transpileFmtPrintln(out *strings.Builder, call *ast.CallExpr) {
 
 		for _, arg := range call.Args {
 			out.WriteString(", ")
-			transpilePrintArg(out, arg)
+			transpilePrintArgString(out, arg)
 		}
 	}
 
@@ -216,10 +216,16 @@ func transpileBuiltinPrintln(out *strings.Builder, call *ast.CallExpr) {
 
 		for _, arg := range call.Args {
 			out.WriteString(", ")
-			transpilePrintArg(out, arg)
+			transpilePrintArgString(out, arg)
 		}
 	}
 
+	out.WriteString(")")
+}
+
+func transpilePrintArgString(out *strings.Builder, arg ast.Expr) {
+	out.WriteString("format!(\"{}\", ")
+	transpilePrintArg(out, arg)
 	out.WriteString(")")
 }
 
@@ -905,7 +911,7 @@ func transpileFmtFprintln(out *strings.Builder, call *ast.CallExpr) {
 			out.WriteString("\"")
 			for _, arg := range remaining {
 				out.WriteString(", ")
-				transpilePrintArg(out, arg)
+				transpilePrintArgString(out, arg)
 			}
 		}
 		out.WriteString(")")
@@ -925,7 +931,7 @@ func transpileFmtFprintln(out *strings.Builder, call *ast.CallExpr) {
 			out.WriteString("\"")
 			for _, arg := range remaining {
 				out.WriteString(", ")
-				transpilePrintArg(out, arg)
+				transpilePrintArgString(out, arg)
 			}
 		}
 		out.WriteString(")")

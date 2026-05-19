@@ -228,19 +228,19 @@ pub mod os {
 fn main() {
     let (mut entries, mut err) = os::read_dir("data".to_string());
     if (*err.lock().unwrap()).is_some() {
-        println!("{}", "read error".to_string());
+        println!("{}", format!("{}", "read error".to_string()));
         return;
     }
 
     { let __range_holder = entries.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for entry in __range_values.iter() {
         let mut joined = filepath::join(("data".to_string(), entry.name()));
-        println!("{} {} {} {}", "entry".to_string(), { let __v = (*joined.lock().unwrap().as_ref().unwrap()).clone(); __v }, (*filepath::base(joined.clone()).lock().unwrap().as_ref().unwrap()), (*entry.is_dir().lock().unwrap().as_ref().unwrap()));
+        println!("{} {} {} {}", format!("{}", "entry".to_string()), format!("{}", { let __v = (*joined.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", (*filepath::base(joined.clone()).lock().unwrap().as_ref().unwrap())), format!("{}", (*entry.is_dir().lock().unwrap().as_ref().unwrap())));
     } }
 
     let (mut info, mut err) = os::stat("data/nested".to_string());
     if (*err.lock().unwrap()).is_some() {
-        println!("{}", "stat error".to_string());
+        println!("{}", format!("{}", "stat error".to_string()));
         return;
     }
-    println!("{} {}", "nested".to_string(), (*(*info.lock().unwrap().as_ref().unwrap()).is_dir().lock().unwrap().as_ref().unwrap()));
+    println!("{} {}", format!("{}", "nested".to_string()), format!("{}", (*(*info.lock().unwrap().as_ref().unwrap()).is_dir().lock().unwrap().as_ref().unwrap())));
 }

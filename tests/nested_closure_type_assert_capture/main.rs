@@ -24,7 +24,7 @@ fn main() {
             (Rc::new(RefCell::new(Some(0))), Rc::new(RefCell::new(Some(false))))
         }
     });
-        println!("{}", { let __v = (*ok.borrow().as_ref().unwrap()).clone(); __v });
+        println!("{}", format!("{}", { let __v = (*ok.borrow().as_ref().unwrap()).clone(); __v }));
     }) as Box<dyn FnMut() -> ()>))));
         let (_, mut ok) = ({
         let val = v_closure_clone.clone();
@@ -39,7 +39,7 @@ fn main() {
             (Rc::new(RefCell::new(Some(0))), Rc::new(RefCell::new(Some(false))))
         }
     });
-        println!("{}", { let __v = (*ok.borrow().as_ref().unwrap()).clone(); __v });
+        println!("{}", format!("{}", { let __v = (*ok.borrow().as_ref().unwrap()).clone(); __v }));
     }) as Box<dyn FnMut() -> ()>)));
 
     { let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = f.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };

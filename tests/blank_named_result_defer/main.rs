@@ -24,5 +24,5 @@ pub fn load() -> (Rc<RefCell<Option<Vec<i32>>>>, Rc<RefCell<Option<Box<dyn StdEr
 
 fn main() {
     let (_, mut err) = load();
-    println!("{}", (*err.borrow()).is_some());
+    println!("{}", format!("{}", (*err.borrow()).is_some()));
 }

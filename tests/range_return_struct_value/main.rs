@@ -102,7 +102,7 @@ pub fn total_method_score(h: Rc<RefCell<Option<holder>>>, items: Rc<RefCell<Opti
 fn main() {
     let mut items = Rc::new(RefCell::new(Some(vec![item { name: Rc::new(RefCell::new(Some("alpha".to_string()))), ..Default::default() }, item { name: Rc::new(RefCell::new(Some("beta".to_string()))), ..Default::default() }])));
     let mut h = Rc::new(RefCell::new(Some(holder { s: Rc::new(RefCell::new(Some(scorer {  }))).clone(), ..Default::default() })));
-    println!("{}", (*(*first(items.clone()).borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()));
-    println!("{}", (*total_score(items.clone()).borrow().as_ref().unwrap()));
-    println!("{}", (*total_method_score(h.clone(), items.clone()).borrow().as_ref().unwrap()));
+    println!("{}", format!("{}", (*(*first(items.clone()).borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*total_score(items.clone()).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*total_method_score(h.clone(), items.clone()).borrow().as_ref().unwrap())));
 }

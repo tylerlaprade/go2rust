@@ -1,4 +1,4 @@
 fn main() {
-    println!("{}", "Hello from fmt.Println".to_string());
-    println!("{} {}", "This call ".to_string(), "has two inputs".to_string());
+    println!("{}", format!("{}", "Hello from fmt.Println".to_string()));
+    println!("{} {}", format!("{}", "This call ".to_string()), format!("{}", "has two inputs".to_string()));
 }

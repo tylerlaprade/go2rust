@@ -13,5 +13,5 @@ pub fn collect(imports: Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<Str
 
 fn main() {
     let mut seen = collect(Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<String>>>>::from([("fmt".to_string(), Rc::new(RefCell::new(Some("example.com/pkg".to_string()))))])))));
-    println!("{}", (*seen.borrow().as_ref().unwrap()).get(&"example.com/pkg".to_string()).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| false));
+    println!("{}", format!("{}", (*seen.borrow().as_ref().unwrap()).get(&"example.com/pkg".to_string()).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| false)));
 }

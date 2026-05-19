@@ -48,5 +48,5 @@ fn main() {
     std::thread::spawn(move || {
         ;
     });
-    println!("{}", (*{ let __field = (*t.lock().unwrap().as_ref().unwrap()).value.clone(); __field }.lock().unwrap().as_ref().unwrap()));
+    println!("{}", format!("{}", (*{ let __field = (*t.lock().unwrap().as_ref().unwrap()).value.clone(); __field }.lock().unwrap().as_ref().unwrap())));
 }

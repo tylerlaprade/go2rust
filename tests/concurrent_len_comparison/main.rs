@@ -162,6 +162,6 @@ pub fn consumed_all(v: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<bool>>> {
 fn main() {
     let mut ch = GoChannel::<i32>::new_buffered(1 as usize);
     ch.send(1);
-    println!("{}", ch.recv().unwrap());
-    println!("{}", (*consumed_all(Arc::new(Mutex::new(Some("abc".to_string())))).lock().unwrap().as_ref().unwrap()));
+    println!("{}", format!("{}", ch.recv().unwrap()));
+    println!("{}", format!("{}", (*consumed_all(Arc::new(Mutex::new(Some("abc".to_string())))).lock().unwrap().as_ref().unwrap())));
 }

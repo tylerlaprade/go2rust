@@ -64,7 +64,7 @@ pub fn compare_length(a: Rc<RefCell<Option<String>>>, b: Rc<RefCell<Option<Strin
 fn main() {
     let mut words = Rc::new(RefCell::new(Some(vec!["pear".to_string(), "fig".to_string(), "apple".to_string(), "plum".to_string(), "date".to_string()])));
     (*words.borrow_mut().as_mut().unwrap()).sort_by(|__a, __b| { let __cmp = compare_length(Rc::new(RefCell::new(Some(__a.clone()))), Rc::new(RefCell::new(Some(__b.clone())))); let __ord = (*__cmp.borrow().as_ref().unwrap()).cmp(&0); __ord });
-    println!("{}", format_slice(&words));
+    println!("{}", format!("{}", format_slice(&words)));
 
     let mut numbers = Rc::new(RefCell::new(Some(vec![3, 1, 4, 2])));
     { let __cmp_holder = Rc::new(RefCell::new(Some(Box::new(move |a: Rc<RefCell<Option<i32>>>, b: Rc<RefCell<Option<i32>>>| -> Rc<RefCell<Option<i32>>> {
@@ -74,5 +74,5 @@ fn main() {
             Rc::new(RefCell::new(Some(__tmp_x - __tmp_y)))
         };
     }) as Box<dyn FnMut(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>>))); (*numbers.borrow_mut().as_mut().unwrap()).sort_by(|__a, __b| { let __cmp = { let mut __cmp_guard = __cmp_holder.borrow_mut(); let __cmp_fn = __cmp_guard.as_mut().unwrap(); (*__cmp_fn)(Rc::new(RefCell::new(Some(__a.clone()))), Rc::new(RefCell::new(Some(__b.clone())))) }; let __ord = (*__cmp.borrow().as_ref().unwrap()).cmp(&0); __ord }) };
-    println!("{}", format_slice(&numbers));
+    println!("{}", format!("{}", format_slice(&numbers)));
 }

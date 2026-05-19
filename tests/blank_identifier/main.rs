@@ -167,7 +167,7 @@ pub fn process_slice(slice: Arc<Mutex<Option<Vec<i32>>>>) -> (Arc<Mutex<Option<i
 
 fn main() {
         // Ignoring return values
-    println!("{}", "=== Ignoring return values ===".to_string());
+    println!("{}", format!("{}", "=== Ignoring return values ===".to_string()));
 
         // Ignore all but first return value
     let (mut num, _, _) = multiple_returns();
@@ -182,38 +182,38 @@ fn main() {
     print!("Only using last return: {}\n", { let __v = (*flag.lock().unwrap().as_ref().unwrap()).clone(); __v });
 
         // Ignoring in range loops
-    println!("{}", "\n=== Ignoring in range loops ===".to_string());
+    println!("{}", format!("{}", "\n=== Ignoring in range loops ===".to_string()));
 
     let mut slice = Arc::new(Mutex::new(Some(vec![10, 20, 30, 40, 50])));
 
         // Ignore index, use only value
-    println!("{}", "Values only:".to_string());
+    println!("{}", format!("{}", "Values only:".to_string()));
     { let __range_holder = slice.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for val in __range_values.iter().copied() {
         print!("{} ", val);
     } }
     println!();
 
         // Ignore value, use only index
-    println!("{}", "Indices only:".to_string());
+    println!("{}", format!("{}", "Indices only:".to_string()));
     { let __range_holder = slice.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice()).unwrap_or(&[]); for (i, _) in __range_values.iter().copied().enumerate() {
         print!("{} ", i);
     } }
     println!();
 
         // Alternative: just use index (more idiomatic)
-    println!("{}", "Indices (idiomatic):".to_string());
+    println!("{}", format!("{}", "Indices (idiomatic):".to_string()));
     for i in 0..({ let __range_holder = slice.clone(); let __range_guard = __range_holder.lock().unwrap(); __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) {
         print!("{} ", i);
     }
     println!();
 
         // Ignoring in map iteration
-    println!("{}", "\n=== Ignoring in map iteration ===".to_string());
+    println!("{}", format!("{}", "\n=== Ignoring in map iteration ===".to_string()));
 
     let mut ages = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i32>>>>::from([("Alice".to_string(), Arc::new(Mutex::new(Some(25)))), ("Bob".to_string(), Arc::new(Mutex::new(Some(30)))), ("Carol".to_string(), Arc::new(Mutex::new(Some(35))))]))));
 
         // Ignore values, use only keys (sorted for deterministic output)
-    println!("{}", "Keys only:".to_string());
+    println!("{}", format!("{}", "Keys only:".to_string()));
     let mut names: Arc<Mutex<Option<Vec<String>>>> = Arc::new(Mutex::new(None));
     for (name, _) in { let __range_holder = ages.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_map = (*__range_guard.as_ref().unwrap()).clone(); drop(__range_guard); __range_map } {
         { let new_val = { let __append_target = names.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(name.clone()); __append_target.clone() }; names = new_val; };
@@ -225,7 +225,7 @@ fn main() {
     println!();
 
         // Ignore keys, use only values (sorted for deterministic output)
-    println!("{}", "Values only:".to_string());
+    println!("{}", format!("{}", "Values only:".to_string()));
     let mut sortedAges: Arc<Mutex<Option<Vec<i32>>>> = Arc::new(Mutex::new(None));
     for (_, age) in { let __range_holder = ages.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_map = (*__range_guard.as_ref().unwrap()).clone(); drop(__range_guard); __range_map } {
         { let new_val = { let __append_target = sortedAges.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push((*age.lock().unwrap().as_mut().unwrap())); __append_target.clone() }; sortedAges = new_val; };
@@ -237,7 +237,7 @@ fn main() {
     println!();
 
         // Ignoring function parameters (not applicable in Go, but showing concept)
-    println!("{}", "\n=== Ignoring some return values in assignment ===".to_string());
+    println!("{}", format!("{}", "\n=== Ignoring some return values in assignment ===".to_string()));
 
     let (mut sum, _) = process_slice(slice.clone());
     print!("Sum (ignoring count): {}\n", { let __v = (*sum.lock().unwrap().as_ref().unwrap()).clone(); __v });
@@ -246,7 +246,7 @@ fn main() {
     print!("Count (ignoring sum): {}\n", { let __v = (*count.lock().unwrap().as_ref().unwrap()).clone(); __v });
 
         // Using blank identifier in variable declarations
-    println!("{}", "\n=== Blank identifier in declarations ===".to_string());
+    println!("{}", format!("{}", "\n=== Blank identifier in declarations ===".to_string()));
 
         // This would be useful for side effects only
     let _ = "This string is assigned but not used".to_string();
@@ -256,7 +256,7 @@ fn main() {
     print!("a={}, c={} (middle value ignored)\n", { let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }, { let __v = (*c.lock().unwrap().as_ref().unwrap()).clone(); __v });
 
         // Blank identifier with type assertion
-    println!("{}", "\n=== Blank identifier with type assertion ===".to_string());
+    println!("{}", format!("{}", "\n=== Blank identifier with type assertion ===".to_string()));
 
     let mut value: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new("hello world".to_string()) as Box<dyn Any + Send + Sync>)));
 
@@ -275,7 +275,7 @@ fn main() {
         }
     });
     if { let __v = (*ok.lock().unwrap().as_ref().unwrap()).clone(); __v } {
-        println!("{}", "Value is a string (but we ignored the actual value)".to_string());
+        println!("{}", format!("{}", "Value is a string (but we ignored the actual value)".to_string()));
     }
 
         // Check if it's an int, but don't use the value
@@ -293,13 +293,13 @@ fn main() {
         }
     });
     if { let __v = (*ok.lock().unwrap().as_ref().unwrap()).clone(); __v } {
-        println!("{}", "Value is an int".to_string());
+        println!("{}", format!("{}", "Value is an int".to_string()));
     } else {
-        println!("{}", "Value is not an int".to_string());
+        println!("{}", format!("{}", "Value is not an int".to_string()));
     }
 
         // Blank identifier in channel operations
-    println!("{}", "\n=== Blank identifier with channels ===".to_string());
+    println!("{}", format!("{}", "\n=== Blank identifier with channels ===".to_string()));
 
     let mut ch = GoChannel::<i32>::new_buffered(3 as usize);
     ch.send(1);
@@ -309,17 +309,17 @@ fn main() {
 
         // Read from channel but ignore the value
     for _ in ch.clone() {
-        println!("{}", "Received a value (but ignored it)".to_string());
+        println!("{}", format!("{}", "Received a value (but ignored it)".to_string()));
     }
 
         // Blank identifier in error handling
-    println!("{}", "\n=== Blank identifier in error handling ===".to_string());
+    println!("{}", format!("{}", "\n=== Blank identifier in error handling ===".to_string()));
 
         // Sometimes you might want to ignore errors (not recommended in real code)
     let (mut result, _) = process_slice(Arc::new(Mutex::new(Some(vec![1, 2, 3, 4, 5]))));
     print!("Result (ignoring potential error): {}\n", { let __v = (*result.lock().unwrap().as_ref().unwrap()).clone(); __v });
 
-    println!("{}", "\n=== Complex example ===".to_string());
+    println!("{}", format!("{}", "\n=== Complex example ===".to_string()));
 
         // Complex example with multiple blank identifiers
     let mut data = Arc::new(Mutex::new(Some(vec![vec![1, 2, 3], vec![4, 5, 6], vec![7, 8, 9]])));

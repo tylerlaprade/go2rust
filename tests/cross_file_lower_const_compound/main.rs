@@ -12,5 +12,5 @@ pub fn set_flag() -> Rc<RefCell<Option<u32>>> {
 }
 
 fn main() {
-    println!("{}", (*set_flag().borrow().as_ref().unwrap()));
+    println!("{}", format!("{}", (*set_flag().borrow().as_ref().unwrap())));
 }

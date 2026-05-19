@@ -47,7 +47,7 @@ where
 fn main() {
     let __go_os_args = Rc::new(RefCell::new(Some(std::env::args().collect::<Vec<String>>())));
 
-    println!("{} {}", "Program name present:".to_string(), (*__go_os_args.clone().borrow().as_ref().unwrap())[(0) as usize].clone() != "");
-    println!("{} {}", "Arguments:".to_string(), format_slice(&Rc::new(RefCell::new(Some({ let __seq = { let __seq_holder = __go_os_args.clone().clone(); let __seq_guard = __seq_holder.borrow(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(1) as usize..].to_vec() })))));
-    println!("{} {}", "Total args:".to_string(), (*__go_os_args.clone().borrow().as_ref().unwrap()).len());
+    println!("{} {}", format!("{}", "Program name present:".to_string()), format!("{}", (*__go_os_args.clone().borrow().as_ref().unwrap())[(0) as usize].clone() != ""));
+    println!("{} {}", format!("{}", "Arguments:".to_string()), format!("{}", format_slice(&Rc::new(RefCell::new(Some({ let __seq = { let __seq_holder = __go_os_args.clone().clone(); let __seq_guard = __seq_holder.borrow(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(1) as usize..].to_vec() }))))));
+    println!("{} {}", format!("{}", "Total args:".to_string()), format!("{}", (*__go_os_args.clone().borrow().as_ref().unwrap()).len()));
 }

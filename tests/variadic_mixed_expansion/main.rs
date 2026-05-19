@@ -12,5 +12,5 @@ pub fn join(prefix: Rc<RefCell<Option<String>>>, sep: Rc<RefCell<Option<String>>
 
 fn main() {
     let mut rest = Rc::new(RefCell::new(Some(vec!["b".to_string(), "c".to_string()])));
-    println!("{}", (*join(Rc::new(RefCell::new(Some("a".to_string()))), Rc::new(RefCell::new(Some(":".to_string()))), rest.clone()).borrow().as_ref().unwrap()));
+    println!("{}", format!("{}", (*join(Rc::new(RefCell::new(Some("a".to_string()))), Rc::new(RefCell::new(Some(":".to_string()))), rest.clone()).borrow().as_ref().unwrap())));
 }

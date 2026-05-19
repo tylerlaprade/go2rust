@@ -40,7 +40,7 @@ pub fn r#box(value: Rc<RefCell<Option<Box<dyn Any>>>>) -> Rc<RefCell<Option<Box<
 
 fn main() {
     let mut value = r#box(Rc::new(RefCell::new(Some(Box::new(info { name: Rc::new(RefCell::new(Some("alpha".to_string()))), ..Default::default() }) as Box<dyn Any>))));
-    println!("{}", (*accept(({
+    println!("{}", format!("{}", (*accept(({
         let val = value.clone();
         let guard = val.borrow();
         if let Some(ref any_val) = *guard {
@@ -48,5 +48,5 @@ fn main() {
         } else {
             panic!("type assertion on nil interface")
         }
-    })).borrow().as_ref().unwrap()));
+    })).borrow().as_ref().unwrap())));
 }

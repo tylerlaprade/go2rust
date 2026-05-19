@@ -92,7 +92,7 @@ impl cache {
 
 fn main() {
     let mut c = Rc::new(RefCell::new(Some(cache { index: Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<u64>>>>::from([])))), ..Default::default() })));
-    println!("{}", (*(*c.borrow_mut().as_mut().unwrap()).off(Rc::new(RefCell::new(Some("abc".to_string())))).borrow().as_ref().unwrap()));
-    println!("{}", (*(*c.borrow_mut().as_mut().unwrap()).off(Rc::new(RefCell::new(Some("abc".to_string())))).borrow().as_ref().unwrap()));
-    println!("{}", (*(*c.borrow_mut().as_mut().unwrap()).remember(Rc::new(RefCell::new(Some(position { filename: Rc::new(RefCell::new(Some("xyz".to_string()))), ..Default::default() })))).borrow().as_ref().unwrap()));
+    println!("{}", format!("{}", (*(*c.borrow_mut().as_mut().unwrap()).off(Rc::new(RefCell::new(Some("abc".to_string())))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*(*c.borrow_mut().as_mut().unwrap()).off(Rc::new(RefCell::new(Some("abc".to_string())))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*(*c.borrow_mut().as_mut().unwrap()).remember(Rc::new(RefCell::new(Some(position { filename: Rc::new(RefCell::new(Some("xyz".to_string()))), ..Default::default() })))).borrow().as_ref().unwrap())));
 }

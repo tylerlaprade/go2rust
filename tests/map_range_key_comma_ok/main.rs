@@ -74,5 +74,5 @@ fn main() {
     }
     }
 
-    println!("{}", (*(*(*pkgs.borrow().as_ref().unwrap()).get(&"pkg".to_string()).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()).borrow().as_ref().unwrap()).errors.borrow().as_ref().unwrap())[(0) as usize].clone());
+    println!("{}", format!("{}", (*(*(*pkgs.borrow().as_ref().unwrap()).get(&"pkg".to_string()).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()).borrow().as_ref().unwrap()).errors.borrow().as_ref().unwrap())[(0) as usize].clone()));
 }

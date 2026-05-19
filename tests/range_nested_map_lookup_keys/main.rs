@@ -10,5 +10,5 @@ fn main() {
         { let new_val = { let __append_target = names.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push(name.clone()); __append_target.clone() }; names = new_val; };
     }
     (*names.borrow_mut().as_mut().unwrap()).sort();
-    println!("{} {}", (*names.borrow().as_ref().unwrap())[(0) as usize].clone(), (*names.borrow().as_ref().unwrap())[(1) as usize].clone());
+    println!("{} {}", format!("{}", (*names.borrow().as_ref().unwrap())[(0) as usize].clone()), format!("{}", (*names.borrow().as_ref().unwrap())[(1) as usize].clone()));
 }

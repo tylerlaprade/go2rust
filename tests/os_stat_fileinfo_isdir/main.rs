@@ -98,7 +98,7 @@ fn main() {
     if false {
         let (mut info, mut err) = os::stat(".".to_string());
         if (*err.borrow()).is_none() {
-        println!("{}", (*(*info.borrow().as_ref().unwrap()).is_dir().borrow().as_ref().unwrap()));
+        println!("{}", format!("{}", (*(*info.borrow().as_ref().unwrap()).is_dir().borrow().as_ref().unwrap())));
     }
     }
 }

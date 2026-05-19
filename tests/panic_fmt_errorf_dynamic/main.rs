@@ -7,5 +7,5 @@ pub fn panicf(format: Rc<RefCell<Option<String>>>, args: Rc<RefCell<Option<Vec<B
 }
 
 fn main() {
-    println!("{}", "ok".to_string());
+    println!("{}", format!("{}", "ok".to_string()));
 }

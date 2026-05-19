@@ -41,5 +41,5 @@ fn main() {
             (Rc::new(RefCell::new(Some(false))), Rc::new(RefCell::new(Some(false))))
         }
     });
-    println!("{}", { let __v = (*seen.borrow().as_ref().unwrap()).clone(); __v });
+    println!("{}", format!("{}", { let __v = (*seen.borrow().as_ref().unwrap()).clone(); __v }));
 }

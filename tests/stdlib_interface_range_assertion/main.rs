@@ -132,8 +132,8 @@ pub fn accept_object_keys(index: Rc<RefCell<Option<BTreeMap<types_Object, Rc<Ref
 
 fn main() {
     if false {
-        println!("{}", (*count_type_names(Rc::new(RefCell::new(None))).borrow().as_ref().unwrap()));
+        println!("{}", format!("{}", (*count_type_names(Rc::new(RefCell::new(None))).borrow().as_ref().unwrap())));
         accept_object_keys(Rc::new(RefCell::new(None)), Rc::new(RefCell::new(None)));
     }
-    println!("{}", "ok".to_string());
+    println!("{}", format!("{}", "ok".to_string()));
 }

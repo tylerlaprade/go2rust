@@ -21,5 +21,5 @@ pub fn size(out: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<i32>>> {
 fn main() {
     let mut builder: Rc<RefCell<Option<String>>> = Rc::new(RefCell::new(Some(Default::default())));
     append_parts(builder.clone(), Rc::new(RefCell::new(Some("ust".to_string()))));
-    println!("{} {}", (*read(builder.clone()).borrow().as_ref().unwrap()), (*size(builder.clone()).borrow().as_ref().unwrap()));
+    println!("{} {}", format!("{}", (*read(builder.clone()).borrow().as_ref().unwrap())), format!("{}", (*size(builder.clone()).borrow().as_ref().unwrap())));
 }

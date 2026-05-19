@@ -882,6 +882,10 @@ run_xfail_test() {
     run_test "tests/fmt_println"
 }
 
+@test "fmt_println_repeated_selector_concurrent" {
+    run_test "tests/fmt_println_repeated_selector_concurrent"
+}
+
 @test "fmt_sprintf_type_name_call" {
     run_test "tests/fmt_sprintf_type_name_call"
 }

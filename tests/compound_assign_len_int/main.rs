@@ -7,5 +7,5 @@ fn main() {
     let mut n = Rc::new(RefCell::new(Some(10)));
     { let mut guard = n.borrow_mut(); *guard = Some(guard.as_ref().unwrap() - (*items.borrow().as_ref().unwrap()).len() as i32); };
     { let mut guard = n.borrow_mut(); *guard = Some(guard.as_ref().unwrap() - (*marker.borrow().as_ref().unwrap()).len() as i32); };
-    println!("{}", { let __v = (*n.borrow().as_ref().unwrap()).clone(); __v });
+    println!("{}", format!("{}", { let __v = (*n.borrow().as_ref().unwrap()).clone(); __v }));
 }

@@ -38,5 +38,5 @@ pub fn use_keyword_names(r#fn: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i3
 }
 
 fn main() {
-    println!("{}", (*use_keyword_names(Rc::new(RefCell::new(Some(3)))).borrow().as_ref().unwrap()));
+    println!("{}", format!("{}", (*use_keyword_names(Rc::new(RefCell::new(Some(3)))).borrow().as_ref().unwrap())));
 }

@@ -422,11 +422,11 @@ fn main() {
 
     loop {
         if let Some(_) = operationDone.try_recv() {
-            println!("{}", "Operation completed".to_string());
+            println!("{}", format!("{}", "Operation completed".to_string()));
             break;
         }
         if let Some(_) = (*ctx.lock().unwrap().as_ref().unwrap()).done().try_recv() {
-            println!("{} {}", "Context cancelled:".to_string(), format!("{}", (*((*ctx.lock().unwrap().as_ref().unwrap()).err()).lock().unwrap().as_ref().unwrap())));
+            println!("{} {}", format!("{}", "Context cancelled:".to_string()), format!("{}", format!("{}", (*((*ctx.lock().unwrap().as_ref().unwrap()).err()).lock().unwrap().as_ref().unwrap()))));
             break;
         }
         std::thread::sleep(std::time::Duration::from_millis(1));
@@ -435,7 +435,7 @@ fn main() {
     let (mut ctx2, mut cancel2) = GoContext::with_cancel_cause(Arc::new(Mutex::new(Some(GoContext::background()))).clone());
     { let __f_ptr: *mut GoCancelCauseFunc = { let mut __f_guard = cancel2.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut GoCancelCauseFunc }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(Mutex::new(Some(Box::<dyn std::error::Error + Send + Sync>::from("boom".to_string()))))) };
     (*ctx2.lock().unwrap().as_ref().unwrap()).done().recv().unwrap();
-    println!("{} {}", "Cause cancel:".to_string(), format!("{}", (*((*ctx2.lock().unwrap().as_ref().unwrap()).err()).lock().unwrap().as_ref().unwrap())));
+    println!("{} {}", format!("{}", "Cause cancel:".to_string()), format!("{}", format!("{}", (*((*ctx2.lock().unwrap().as_ref().unwrap()).err()).lock().unwrap().as_ref().unwrap()))));
 
     // Execute deferred functions
     while let Some(f) = __defer_stack.pop() {

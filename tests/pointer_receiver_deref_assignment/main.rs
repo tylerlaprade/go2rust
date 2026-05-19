@@ -69,7 +69,7 @@ impl Package {
 fn main() {
     let mut pkg = Rc::new(RefCell::new(Some(Package { i_d: Rc::new(RefCell::new(Some("old".to_string()))), name: Rc::new(RefCell::new(Some("Old".to_string()))), imports: Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<Package>>>>::from([("dep".to_string(), Rc::new(RefCell::new(Some(Package { i_d: Rc::new(RefCell::new(Some("dep".to_string()))), ..Default::default() }))).clone())])))), ..Default::default() })));
     (*pkg.borrow_mut().as_mut().unwrap()).reset(Rc::new(RefCell::new(Some("new".to_string()))), Rc::new(RefCell::new(Some("New".to_string()))));
-    println!("{}", (*(*pkg.borrow().as_ref().unwrap()).i_d.borrow().as_ref().unwrap()).clone());
-    println!("{}", (*(*pkg.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()).clone());
-    println!("{}", (*(*(*(*pkg.borrow().as_ref().unwrap()).imports.borrow().as_ref().unwrap()).clone().get(&"self".to_string()).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()).borrow().as_ref().unwrap()).i_d.borrow().as_ref().unwrap()));
+    println!("{}", format!("{}", (*(*pkg.borrow().as_ref().unwrap()).i_d.borrow().as_ref().unwrap()).clone()));
+    println!("{}", format!("{}", (*(*pkg.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()).clone()));
+    println!("{}", format!("{}", (*(*(*(*pkg.borrow().as_ref().unwrap()).imports.borrow().as_ref().unwrap()).clone().get(&"self".to_string()).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()).borrow().as_ref().unwrap()).i_d.borrow().as_ref().unwrap())));
 }

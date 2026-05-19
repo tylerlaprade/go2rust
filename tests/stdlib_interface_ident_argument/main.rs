@@ -105,5 +105,5 @@ pub fn has(t: Arc<Mutex<Option<types_Type>>>) -> Arc<Mutex<Option<bool>>> {
 
 fn main() {
     let mut tuple = types::new_tuple(((),));
-    println!("{}", (*pass_tuple(tuple.clone()).lock().unwrap().as_ref().unwrap()));
+    println!("{}", format!("{}", (*pass_tuple(tuple.clone()).lock().unwrap().as_ref().unwrap())));
 }

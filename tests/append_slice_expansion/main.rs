@@ -48,10 +48,10 @@ fn main() {
     let mut dst = Rc::new(RefCell::new(Some(vec![1, 2])));
     let mut src = Rc::new(RefCell::new(Some(vec![3, 4, 5])));
     { let new_val = { let __append_target = dst.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).extend((*src.borrow().as_ref().unwrap()).clone().iter().cloned()); __append_target.clone() }; dst = new_val; };
-    println!("{}", format_slice(&dst));
+    println!("{}", format!("{}", format_slice(&dst)));
 
     let mut words = Rc::new(RefCell::new(Some(vec!["go".to_string(), "to".to_string(), "rust".to_string()])));
     let mut prefix = Rc::new(RefCell::new(Some(vec!["transpile".to_string()])));
     { let new_val = { let __append_target = prefix.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).extend((*words.borrow().as_ref().unwrap()).clone().iter().cloned()); __append_target.clone() }; prefix = new_val; };
-    println!("{}", format_slice(&prefix));
+    println!("{}", format!("{}", format_slice(&prefix)));
 }

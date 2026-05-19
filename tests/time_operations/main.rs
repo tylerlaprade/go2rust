@@ -130,13 +130,13 @@ impl std::fmt::Display for event {
 fn main() {
     let mut localBase = Rc::new(RefCell::new(Some(GoTime::from_unix(1700000000 as i64, 0 as i64))));
     let mut base = (*localBase.borrow().as_ref().unwrap()).u_t_c();
-    println!("{} {}", "Base time:".to_string(), (*base.borrow().as_ref().unwrap()));
+    println!("{} {}", format!("{}", "Base time:".to_string()), format!("{}", (*base.borrow().as_ref().unwrap())));
 
     let mut future = (*base.borrow().as_ref().unwrap()).add(Rc::new(RefCell::new(Some(std::time::Duration::from_secs(3600)))));
-    println!("{} {}", "One hour later:".to_string(), (*future.borrow().as_ref().unwrap()));
+    println!("{} {}", format!("{}", "One hour later:".to_string()), format!("{}", (*future.borrow().as_ref().unwrap())));
 
-    println!("{} {}", "Unix timestamp:".to_string(), (*(*base.borrow().as_ref().unwrap()).unix().borrow().as_ref().unwrap()));
+    println!("{} {}", format!("{}", "Unix timestamp:".to_string()), format!("{}", (*(*base.borrow().as_ref().unwrap()).unix().borrow().as_ref().unwrap())));
 
     let mut ev: Rc<RefCell<Option<event>>> = Rc::new(RefCell::new(Some(Default::default())));
-    println!("{} {}", "Zero field:".to_string(), (*(*(*ev.borrow().as_ref().unwrap()).when.borrow().as_ref().unwrap()).is_zero().borrow().as_ref().unwrap()));
+    println!("{} {}", format!("{}", "Zero field:".to_string()), format!("{}", (*(*(*ev.borrow().as_ref().unwrap()).when.borrow().as_ref().unwrap()).is_zero().borrow().as_ref().unwrap())));
 }

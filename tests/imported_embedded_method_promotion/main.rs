@@ -200,16 +200,16 @@ fn main() {
     force_concurrent_wrappers();
     let mut r = Arc::new(Mutex::new(Some(Reader { decoder: Arc::new(Mutex::new(Some(example_com_importedembed_base::Decoder { value: Arc::new(Mutex::new(Some(3))), ..Default::default() }))), name: Arc::new(Mutex::new(Some("reader".to_string()))), ..Default::default() })));
     (*r.lock().unwrap().as_mut().unwrap()).add(Arc::new(Mutex::new(Some(4))));
-    println!("{}", (*(*r.lock().unwrap().as_mut().unwrap()).label(Arc::new(Mutex::new(Some("reader".to_string())))).lock().unwrap().as_ref().unwrap()));
-    println!("{}", (*(*r.lock().unwrap().as_ref().unwrap()).snapshot().lock().unwrap().as_ref().unwrap()));
+    println!("{}", format!("{}", (*(*r.lock().unwrap().as_mut().unwrap()).label(Arc::new(Mutex::new(Some("reader".to_string())))).lock().unwrap().as_ref().unwrap())));
+    println!("{}", format!("{}", (*(*r.lock().unwrap().as_ref().unwrap()).snapshot().lock().unwrap().as_ref().unwrap())));
     let mut copied = Arc::new(Mutex::new(Some(Reader { decoder: (*r.lock().unwrap().as_mut().unwrap()).clone(), name: Arc::new(Mutex::new(Some("copy".to_string()))), ..Default::default() })));
-    println!("{}", (*(*copied.lock().unwrap().as_mut().unwrap()).label(Arc::new(Mutex::new(Some("copy".to_string())))).lock().unwrap().as_ref().unwrap()));
+    println!("{}", format!("{}", (*(*copied.lock().unwrap().as_mut().unwrap()).label(Arc::new(Mutex::new(Some("copy".to_string())))).lock().unwrap().as_ref().unwrap())));
     let mut pr = Arc::new(Mutex::new(Some(pkgReader { pkg_decoder: Arc::new(Mutex::new(Some(example_com_importedembed_base::PkgDecoder { base: Arc::new(Mutex::new(Some(10))), ..Default::default() }))), ..Default::default() })));
     let mut fromPkg = (*pr.lock().unwrap().as_mut().unwrap()).new_reader(Arc::new(Mutex::new(Some(5))));
-    println!("{}", (*(*fromPkg.lock().unwrap().as_mut().unwrap()).label(Arc::new(Mutex::new(Some("frompkg".to_string())))).lock().unwrap().as_ref().unwrap()));
+    println!("{}", format!("{}", (*(*fromPkg.lock().unwrap().as_mut().unwrap()).label(Arc::new(Mutex::new(Some("frompkg".to_string())))).lock().unwrap().as_ref().unwrap())));
     (*pr.lock().unwrap().as_mut().unwrap()).retire_reader(fromPkg.clone());
-    println!("{}", (*(*fromPkg.lock().unwrap().as_mut().unwrap()).label(Arc::new(Mutex::new(Some("retired".to_string())))).lock().unwrap().as_ref().unwrap()));
+    println!("{}", format!("{}", (*(*fromPkg.lock().unwrap().as_mut().unwrap()).label(Arc::new(Mutex::new(Some("retired".to_string())))).lock().unwrap().as_ref().unwrap())));
     let mut idx = Arc::new(Mutex::new(Some(example_com_importedembed_base::Index(Arc::new(Mutex::new(Some(1 as i32)))))));
-    println!("{}", (*pick_name(Arc::new(Mutex::new(Some(vec!["zero".to_string(), "one".to_string(), "two".to_string()]))), Arc::new(Mutex::new(Some((*idx.lock().unwrap().as_ref().unwrap()).clone())))).lock().unwrap().as_ref().unwrap()));
+    println!("{}", format!("{}", (*pick_name(Arc::new(Mutex::new(Some(vec!["zero".to_string(), "one".to_string(), "two".to_string()]))), Arc::new(Mutex::new(Some((*idx.lock().unwrap().as_ref().unwrap()).clone())))).lock().unwrap().as_ref().unwrap())));
     touch_name_ptr(Arc::new(Mutex::new(Some(vec!["zero".to_string(), "one".to_string(), "two".to_string()]))), Arc::new(Mutex::new(Some((*idx.lock().unwrap().as_ref().unwrap()).clone()))));
 }

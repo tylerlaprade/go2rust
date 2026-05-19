@@ -48,6 +48,6 @@ fn main() {
     });
     let mut e = Arc::new(Mutex::new(Some(entry { value: Arc::new(Mutex::new(None)) })));
     if (*(*e.lock().unwrap().as_ref().unwrap()).value.lock().unwrap()).is_none() {
-        println!("{}", "nil".to_string());
+        println!("{}", format!("{}", "nil".to_string()));
     }
 }

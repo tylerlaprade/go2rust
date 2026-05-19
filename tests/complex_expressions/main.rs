@@ -176,7 +176,7 @@ impl std::fmt::Display for AnonymousStruct1 {
 
 fn main() {
         // Complex arithmetic expressions
-    println!("{}", "=== Complex arithmetic expressions ===".to_string());
+    println!("{}", format!("{}", "=== Complex arithmetic expressions ===".to_string()));
 
     let (mut a, mut b, mut c) = (Arc::new(Mutex::new(Some(10))), Arc::new(Mutex::new(Some(20))), Arc::new(Mutex::new(Some(30))));
 
@@ -189,7 +189,7 @@ fn main() {
     print!("a + b * c / (a - 5) + c % b = {}\n", { let __v = (*result2.lock().unwrap().as_ref().unwrap()).clone(); __v });
 
         // Boolean expressions
-    println!("{}", "\n=== Complex boolean expressions ===".to_string());
+    println!("{}", format!("{}", "\n=== Complex boolean expressions ===".to_string()));
 
     let (mut x, mut y, mut z) = (Arc::new(Mutex::new(Some(5))), Arc::new(Mutex::new(Some(10))), Arc::new(Mutex::new(Some(15))));
 
@@ -201,7 +201,7 @@ fn main() {
     print!("!(x > y) && (z-y == x) || (x*2 == y) = {}\n", { let __v = (*bool2.lock().unwrap().as_ref().unwrap()).clone(); __v });
 
         // Bitwise operations
-    println!("{}", "\n=== Complex bitwise expressions ===".to_string());
+    println!("{}", format!("{}", "\n=== Complex bitwise expressions ===".to_string()));
 
     let (mut bits1, mut bits2) = (Arc::new(Mutex::new(Some(0b1010))), Arc::new(Mutex::new(Some(0b1100))));
 
@@ -209,7 +209,7 @@ fn main() {
     print!("(bits1 & bits2) | (bits1 ^ bits2) << 1 = {:b} ({})\n", { let __v = (*bitwiseResult.lock().unwrap().as_ref().unwrap()).clone(); __v }, { let __v = (*bitwiseResult.lock().unwrap().as_ref().unwrap()).clone(); __v });
 
         // Function calls in expressions
-    println!("{}", "\n=== Function calls in expressions ===".to_string());
+    println!("{}", format!("{}", "\n=== Function calls in expressions ===".to_string()));
 
     let mut getValue = Arc::new(Mutex::new(Some(Box::new(move |n: Arc<Mutex<Option<i32>>>| -> Arc<Mutex<Option<i32>>> {
         return {
@@ -226,7 +226,7 @@ fn main() {
     print!("getValue(a) + getValue(b) * getMultiplier() - getValue(c)/2 = {}\n", { let __v = (*complexResult.lock().unwrap().as_ref().unwrap()).clone(); __v });
 
         // Array/slice expressions
-    println!("{}", "\n=== Array/slice expressions ===".to_string());
+    println!("{}", format!("{}", "\n=== Array/slice expressions ===".to_string()));
 
     let mut numbers = Arc::new(Mutex::new(Some(vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10])));
 
@@ -236,7 +236,7 @@ fn main() {
     print!("numbers[idx1:idx2][1] + numbers[len(numbers)-1] - numbers[0] = {}\n", { let __v = (*sliceResult.lock().unwrap().as_ref().unwrap()).clone(); __v });
 
         // Map expressions
-    println!("{}", "\n=== Map expressions ===".to_string());
+    println!("{}", format!("{}", "\n=== Map expressions ===".to_string()));
 
     let mut data = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i32>>>>::from([("alpha".to_string(), Arc::new(Mutex::new(Some(10)))), ("beta".to_string(), Arc::new(Mutex::new(Some(20)))), ("gamma".to_string(), Arc::new(Mutex::new(Some(30))))]))));
 
@@ -244,7 +244,7 @@ fn main() {
     print!("data[\"alpha\"] + data[\"beta\"]*2 - data[\"gamma\"]/3 = {}\n", { let __v = (*mapResult.lock().unwrap().as_ref().unwrap()).clone(); __v });
 
         // Struct field expressions
-    println!("{}", "\n=== Struct field expressions ===".to_string());
+    println!("{}", format!("{}", "\n=== Struct field expressions ===".to_string()));
 
     type Point = AnonymousStruct1;
 
@@ -256,7 +256,7 @@ fn main() {
     print!("Distance squared between points: {}\n", { let __v = (*distanceSquared.lock().unwrap().as_ref().unwrap()).clone(); __v });
 
         // Pointer expressions
-    println!("{}", "\n=== Pointer expressions ===".to_string());
+    println!("{}", format!("{}", "\n=== Pointer expressions ===".to_string()));
 
     let mut val = Arc::new(Mutex::new(Some(42)));
     let mut ptr = val.clone();
@@ -265,7 +265,7 @@ fn main() {
     print!("*ptr + (*ptr * 2) - (*ptr / 2) = {}\n", { let __v = (*ptrResult.lock().unwrap().as_ref().unwrap()).clone(); __v });
 
         // Type assertion expressions
-    println!("{}", "\n=== Type assertion expressions ===".to_string());
+    println!("{}", format!("{}", "\n=== Type assertion expressions ===".to_string()));
 
     let mut iface: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new(100) as Box<dyn Any + Send + Sync>)));
 
@@ -288,7 +288,7 @@ fn main() {
     }
 
         // Channel expressions (non-blocking)
-    println!("{}", "\n=== Channel expressions ===".to_string());
+    println!("{}", format!("{}", "\n=== Channel expressions ===".to_string()));
 
     let mut ch = GoChannel::<i32>::new_buffered(3 as usize);
     ch.send(10);
@@ -299,7 +299,7 @@ fn main() {
     print!("Channel expression result: {}\n", { let __v = (*chanResult.lock().unwrap().as_ref().unwrap()).clone(); __v });
 
         // Nested function calls
-    println!("{}", "\n=== Nested function calls ===".to_string());
+    println!("{}", format!("{}", "\n=== Nested function calls ===".to_string()));
 
     let mut add = Arc::new(Mutex::new(Some(Box::new(move |a: Arc<Mutex<Option<i32>>>, b: Arc<Mutex<Option<i32>>>| -> Arc<Mutex<Option<i32>>> {
         return {
@@ -327,7 +327,7 @@ fn main() {
     print!("add(multiply(3, 4), subtract(20, multiply(2, 5))) = {}\n", { let __v = (*nestedResult.lock().unwrap().as_ref().unwrap()).clone(); __v });
 
         // Complex conditional expressions
-    println!("{}", "\n=== Complex conditional expressions ===".to_string());
+    println!("{}", format!("{}", "\n=== Complex conditional expressions ===".to_string()));
 
     let mut score = Arc::new(Mutex::new(Some(85)));
     let mut grade: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(Some(String::new())));
@@ -346,7 +346,7 @@ fn main() {
     print!("Grade for score {}: {}\n", { let __v = (*score.lock().unwrap().as_ref().unwrap()).clone(); __v }, { let __v = (*grade.lock().unwrap().as_ref().unwrap()).clone(); __v });
 
         // Complex assignment expressions
-    println!("{}", "\n=== Complex assignment expressions ===".to_string());
+    println!("{}", format!("{}", "\n=== Complex assignment expressions ===".to_string()));
 
     let mut counter = Arc::new(Mutex::new(Some(0)));
     { let mut guard = counter.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + { let __tmp_x = { let __tmp_x = ({ let __tmp_x = 5; let __tmp_y = 3; __tmp_x * __tmp_y }); let __tmp_y = ({ let __tmp_x = 10; let __tmp_y = 2; __tmp_x / __tmp_y }); __tmp_x - __tmp_y }; let __tmp_y = ({ let __tmp_x = 8; let __tmp_y = 3; __tmp_x % __tmp_y }); __tmp_x + __tmp_y }); };
@@ -357,7 +357,7 @@ fn main() {
     print!("Sum: {}, Product: {}\n", { let __v = (*sum.lock().unwrap().as_ref().unwrap()).clone(); __v }, { let __v = (*product.lock().unwrap().as_ref().unwrap()).clone(); __v });
 
         // Range expressions
-    println!("{}", "\n=== Range expressions ===".to_string());
+    println!("{}", format!("{}", "\n=== Range expressions ===".to_string()));
 
     let mut total = Arc::new(Mutex::new(Some(0)));
     for (i, val) in { let __seq = { let __seq_holder = numbers.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[..(5) as usize].to_vec() }.iter().copied().enumerate() {

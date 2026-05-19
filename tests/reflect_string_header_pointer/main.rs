@@ -30,5 +30,5 @@ fn main() {
     let mut hdr = Arc::new(Mutex::new(Some(reflect_StringHeader::default())));
     { let new_val = Arc::new(Mutex::new(Some(0 as usize))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *(*hdr.lock().unwrap().as_ref().unwrap()).data.lock().unwrap() = __moved_val; };
     { let new_val = 3; *(*hdr.lock().unwrap().as_ref().unwrap()).len.lock().unwrap() = Some(new_val); };
-    println!("{}", (*{ let __field = (*hdr.lock().unwrap().as_ref().unwrap()).len.clone(); __field }.lock().unwrap().as_ref().unwrap()));
+    println!("{}", format!("{}", (*{ let __field = (*hdr.lock().unwrap().as_ref().unwrap()).len.clone(); __field }.lock().unwrap().as_ref().unwrap())));
 }

@@ -83,9 +83,9 @@ pub fn probe(v: Rc<RefCell<Option<Box<dyn Any>>>>) {
         }
     });
     if (*ok.borrow().as_ref().unwrap()) {
-        println!("{}", (*(*h.borrow().as_ref().unwrap()).value().borrow().as_ref().unwrap()));
+        println!("{}", format!("{}", (*(*h.borrow().as_ref().unwrap()).value().borrow().as_ref().unwrap())));
     } else {
-        println!("{}", "no".to_string());
+        println!("{}", format!("{}", "no".to_string()));
     }
 }
 

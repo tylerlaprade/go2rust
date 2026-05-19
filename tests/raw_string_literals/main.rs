@@ -2,7 +2,7 @@ fn main() {
     const manifest: &'static str = "[package]\nname = \"demo\"\n";
 
 
-    println!("{}", "raw\\ntext".to_string());
+    println!("{}", format!("{}", "raw\\ntext".to_string()));
     print!("[package]\nname = \"{}\"\n", "demo".to_string());
-    print!("{}", manifest);
+    print!("{}", format!("{}", manifest));
 }

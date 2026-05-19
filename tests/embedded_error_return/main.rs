@@ -42,5 +42,5 @@ pub fn build() -> Rc<RefCell<Option<Box<dyn StdError>>>> {
 
 fn main() {
     let mut err = build();
-    println!("{}", format!("{}", (*err.borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", format!("{}", (*err.borrow().as_ref().unwrap()))));
 }

@@ -56,5 +56,5 @@ fn main() {
         { let mut guard = methodSum.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + i); };
     }
 
-    println!("{} {} {} {}", { let __v = (*literalSum.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*count.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*variableSum.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*methodSum.borrow().as_ref().unwrap()).clone(); __v });
+    println!("{} {} {} {}", format!("{}", { let __v = (*literalSum.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*count.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*variableSum.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*methodSum.borrow().as_ref().unwrap()).clone(); __v }));
 }

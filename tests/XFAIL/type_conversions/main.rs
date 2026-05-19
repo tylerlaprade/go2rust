@@ -89,7 +89,7 @@ fn go_type_name(val: &dyn Any) -> &'static str {
 
 fn main() {
         // Basic numeric type conversions
-    println!("{}", "=== Basic numeric conversions ===".to_string());
+    println!("{}", format!("{}", "=== Basic numeric conversions ===".to_string()));
 
     let mut i: Rc<RefCell<Option<i32>>> = Rc::new(RefCell::new(Some(42)));
     let mut f: Rc<RefCell<Option<f64>>> = Rc::new(RefCell::new(Some((*i.borrow().as_ref().unwrap()) as f64)));
@@ -100,7 +100,7 @@ fn main() {
     print!("back to int: {}\n", { let __v = (*i2.borrow().as_ref().unwrap()).clone(); __v });
 
         // Different integer sizes
-    println!("{}", "\n=== Integer size conversions ===".to_string());
+    println!("{}", format!("{}", "\n=== Integer size conversions ===".to_string()));
 
     let mut i8: Rc<RefCell<Option<i8>>> = Rc::new(RefCell::new(Some(127)));
     let mut i16: Rc<RefCell<Option<i16>>> = Rc::new(RefCell::new(Some((*i8.borrow().as_ref().unwrap()) as i16)));
@@ -113,7 +113,7 @@ fn main() {
     print!("int64: {}\n", { let __v = (*i64.borrow().as_ref().unwrap()).clone(); __v });
 
         // Unsigned integers
-    println!("{}", "\n=== Unsigned integer conversions ===".to_string());
+    println!("{}", format!("{}", "\n=== Unsigned integer conversions ===".to_string()));
 
     let mut ui: Rc<RefCell<Option<u32>>> = Rc::new(RefCell::new(Some(42)));
     let mut ui8: Rc<RefCell<Option<u8>>> = Rc::new(RefCell::new(Some((*ui.borrow().as_ref().unwrap()) as u8)));
@@ -128,7 +128,7 @@ fn main() {
     print!("uint64: {}\n", { let __v = (*ui64.borrow().as_ref().unwrap()).clone(); __v });
 
         // Float conversions
-    println!("{}", "\n=== Float conversions ===".to_string());
+    println!("{}", format!("{}", "\n=== Float conversions ===".to_string()));
 
     let mut f64: Rc<RefCell<Option<f64>>> = Rc::new(RefCell::new(Some(3.14159265359)));
     let mut f32: Rc<RefCell<Option<f32>>> = Rc::new(RefCell::new(Some((*f64.borrow().as_ref().unwrap()) as f32)));
@@ -139,7 +139,7 @@ fn main() {
     print!("back to float64: {:.10}\n", { let __v = (*backToF64.borrow().as_ref().unwrap()).clone(); __v });
 
         // String conversions
-    println!("{}", "\n=== String conversions ===".to_string());
+    println!("{}", format!("{}", "\n=== String conversions ===".to_string()));
 
     let mut r: Rc<RefCell<Option<i32>>> = Rc::new(RefCell::new(Some(('A' as i32))));
     let mut b: Rc<RefCell<Option<u8>>> = Rc::new(RefCell::new(Some(65)));
@@ -170,7 +170,7 @@ fn main() {
     print!("runes to string: {}\n", { let __v = (*backToString.borrow().as_ref().unwrap()).clone(); __v });
 
         // Boolean conversions (not direct, but showing concept)
-    println!("{}", "\n=== Boolean-like conversions ===".to_string());
+    println!("{}", format!("{}", "\n=== Boolean-like conversions ===".to_string()));
 
     let mut zero: Rc<RefCell<Option<i32>>> = Rc::new(RefCell::new(Some(0)));
     let mut nonZero: Rc<RefCell<Option<i32>>> = Rc::new(RefCell::new(Some(42)));
@@ -180,7 +180,7 @@ fn main() {
     print!("nonZero != 0: {}\n", (*nonZero.borrow().as_ref().unwrap()) != 0);
 
         // Pointer conversions
-    println!("{}", "\n=== Pointer conversions ===".to_string());
+    println!("{}", format!("{}", "\n=== Pointer conversions ===".to_string()));
 
     let mut num: Rc<RefCell<Option<i32>>> = Rc::new(RefCell::new(Some(100)));
     let mut ptr: Rc<RefCell<Option<i32>>> = num.clone();
@@ -190,7 +190,7 @@ fn main() {
     print!("dereferenced: {}\n", { let __v = (*ptr.borrow().as_ref().unwrap()).clone(); __v });
 
         // Interface conversions (basic)
-    println!("{}", "\n=== Interface conversions ===".to_string());
+    println!("{}", format!("{}", "\n=== Interface conversions ===".to_string()));
 
     let mut any: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new(42) as Box<dyn Any>)));
     print!("interface{{}} value: {}\n", format_any(any.borrow().as_ref().unwrap().as_ref()));
@@ -237,7 +237,7 @@ fn main() {
     }
 
         // Complex number conversions
-    println!("{}", "\n=== Complex number conversions ===".to_string());
+    println!("{}", format!("{}", "\n=== Complex number conversions ===".to_string()));
 
     let mut c64: Rc<RefCell<Option<num::Complex<f32>>>> = Rc::new(RefCell::new(Some(3 + 4i)));
     let mut c128: Rc<RefCell<Option<num::Complex<f64>>>> = Rc::new(RefCell::new(Some(num::Complex::<f64>::new((*c64.borrow().as_ref().unwrap()) as f64, 0.0))));
@@ -256,7 +256,7 @@ fn main() {
     print!("reconstructed: {}\n", { let __v = (*newComplex.borrow().as_ref().unwrap()).clone(); __v });
 
         // Overflow demonstration (be careful!)
-    println!("{}", "\n=== Overflow examples ===".to_string());
+    println!("{}", format!("{}", "\n=== Overflow examples ===".to_string()));
 
     let mut bigInt: Rc<RefCell<Option<i64>>> = Rc::new(RefCell::new(Some(1000000)));
     let mut smallInt: Rc<RefCell<Option<i8>>> = Rc::new(RefCell::new(Some((*bigInt.borrow().as_ref().unwrap()) as i8)));
@@ -270,7 +270,7 @@ fn main() {
     print!("float32: {:.15}\n", { let __v = (*lessPrec.borrow().as_ref().unwrap()).clone(); __v });
 
         // Custom type conversions
-    println!("{}", "\n=== Custom type conversions ===".to_string());
+    println!("{}", format!("{}", "\n=== Custom type conversions ===".to_string()));
 
     type MyInt = Rc<RefCell<Option<i32>>>;
     type MyString = Rc<RefCell<Option<String>>>;

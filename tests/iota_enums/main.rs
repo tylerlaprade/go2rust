@@ -170,8 +170,8 @@ impl Ord for Color {
 
 
 fn main() {
-    println!("{} {}", "Red:".to_string(), RED);
-    println!("{} {}", "Green:".to_string(), GREEN);
-    println!("{} {}", "Blue:".to_string(), BLUE);
-    println!("{} {}", "Yellow:".to_string(), YELLOW);
+    println!("{} {}", format!("{}", "Red:".to_string()), format!("{}", RED));
+    println!("{} {}", format!("{}", "Green:".to_string()), format!("{}", GREEN));
+    println!("{} {}", format!("{}", "Blue:".to_string()), format!("{}", BLUE));
+    println!("{} {}", format!("{}", "Yellow:".to_string()), format!("{}", YELLOW));
 }

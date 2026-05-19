@@ -81,6 +81,6 @@ fn main() {
     let mut src = Rc::new(RefCell::new(Some(Source { module: Rc::new(RefCell::new(Some(Module { path: Rc::new(RefCell::new(Some("old".to_string()))), ..Default::default() }))), ..Default::default() })));
     let mut dst = Rc::new(RefCell::new(Some(Dest { module: Rc::new(RefCell::new(Some({ let __selector_holder = (*src.borrow().as_ref().unwrap()).module.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = __selector_guard.as_ref().unwrap().__go_value_clone(); drop(__selector_guard); __cloned }))), ..Default::default() })));
     { let new_val = "new".to_string(); *(*(*src.borrow().as_ref().unwrap()).module.borrow().as_ref().unwrap()).path.borrow_mut() = Some(new_val); };
-    println!("{}", (*(*(*dst.borrow().as_ref().unwrap()).module.borrow().as_ref().unwrap()).path.borrow().as_ref().unwrap()));
-    println!("{}", (*(*(*src.borrow().as_ref().unwrap()).module.borrow().as_ref().unwrap()).path.borrow().as_ref().unwrap()));
+    println!("{}", format!("{}", (*(*(*dst.borrow().as_ref().unwrap()).module.borrow().as_ref().unwrap()).path.borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*(*(*src.borrow().as_ref().unwrap()).module.borrow().as_ref().unwrap()).path.borrow().as_ref().unwrap())));
 }

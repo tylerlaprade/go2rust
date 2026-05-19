@@ -122,5 +122,5 @@ fn main() {
     if false {
         let _ = classify(Rc::new(RefCell::new(None)));
     }
-    println!("{}", "ok".to_string());
+    println!("{}", format!("{}", "ok".to_string()));
 }

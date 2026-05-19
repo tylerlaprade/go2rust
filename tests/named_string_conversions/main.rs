@@ -34,7 +34,7 @@ pub fn from_bytes(b: Rc<RefCell<Option<Vec<u8>>>>) -> Rc<RefCell<Option<Path>>> 
 }
 
 fn main() {
-    println!("{}", (*empty_path().borrow().as_ref().unwrap()));
-    println!("{}", (*from_string(Rc::new(RefCell::new(Some("abc".to_string())))).borrow().as_ref().unwrap()));
-    println!("{}", (*from_bytes(Rc::new(RefCell::new(Some(("xy".to_string()).as_bytes().to_vec())))).borrow().as_ref().unwrap()));
+    println!("{}", format!("{}", (*empty_path().borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*from_string(Rc::new(RefCell::new(Some("abc".to_string())))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*from_bytes(Rc::new(RefCell::new(Some(("xy".to_string()).as_bytes().to_vec())))).borrow().as_ref().unwrap())));
 }

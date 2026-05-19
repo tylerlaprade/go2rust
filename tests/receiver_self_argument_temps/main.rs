@@ -64,7 +64,7 @@ impl std::fmt::Display for r#box {
 
 impl r#box {
     pub fn print(&self, n: Rc<RefCell<Option<i32>>>) {
-        println!("{}", { let __v = (*n.borrow().as_ref().unwrap()).clone(); __v });
+        println!("{}", format!("{}", { let __v = (*n.borrow().as_ref().unwrap()).clone(); __v }));
     }
 
     pub fn add(&mut self, x: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>> {
@@ -81,5 +81,5 @@ impl r#box {
 fn main() {
     let mut b = Rc::new(RefCell::new(Some(r#box { items: Rc::new(RefCell::new(Some(vec![1, 2, 3]))), ..Default::default() })));
     (*b.borrow_mut().as_mut().unwrap()).flush();
-    println!("{}", (*(*b.borrow().as_ref().unwrap()).items.borrow().as_ref().unwrap()).len());
+    println!("{}", format!("{}", (*(*b.borrow().as_ref().unwrap()).items.borrow().as_ref().unwrap()).len()));
 }

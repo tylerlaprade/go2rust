@@ -143,5 +143,5 @@ fn main() {
     }) as Box<dyn FnMut() -> ()>)))); __result };
     schedule(pr.clone(), a.clone(), b.clone());
     { let __f_holder = (*(*pr.borrow().as_ref().unwrap()).later_fns.borrow().as_ref().unwrap())[(1) as usize].clone(); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
-    println!("{}", (*(*pr.borrow().as_ref().unwrap()).hits.borrow().as_ref().unwrap()));
+    println!("{}", format!("{}", (*(*pr.borrow().as_ref().unwrap()).hits.borrow().as_ref().unwrap())));
 }

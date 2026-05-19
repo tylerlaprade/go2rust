@@ -29,5 +29,5 @@ pub fn classify(value: Rc<RefCell<Option<Box<dyn Any>>>>) -> Rc<RefCell<Option<S
 }
 
 fn main() {
-    println!("{}", (*classify(Rc::new(RefCell::new(Some(Box::new(3) as Box<dyn Any>)))).borrow().as_ref().unwrap()));
+    println!("{}", format!("{}", (*classify(Rc::new(RefCell::new(Some(Box::new(3) as Box<dyn Any>)))).borrow().as_ref().unwrap())));
 }

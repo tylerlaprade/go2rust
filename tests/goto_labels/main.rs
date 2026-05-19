@@ -14,15 +14,15 @@ fn main() {
     }
 
     'skip: {
-        println!("{}", "First loop done".to_string());
+        println!("{}", format!("{}", "First loop done".to_string()));
                 // Goto to skip code
         let mut x = Rc::new(RefCell::new(Some(1)));
         if (*x.borrow().as_ref().unwrap()) > 0 {
         break 'skip
     }
-        println!("{}", "This won't print".to_string());
+        println!("{}", format!("{}", "This won't print".to_string()));
     }
-    println!("{}", "Skipped to here".to_string());
+    println!("{}", format!("{}", "Skipped to here".to_string()));
 
     'done: {
                 // More complex goto pattern
@@ -39,5 +39,5 @@ fn main() {
         { let mut guard = j.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
     }
-    println!("{}", "All done".to_string());
+    println!("{}", format!("{}", "All done".to_string()));
 }

@@ -66,5 +66,5 @@ impl writer {
 fn main() {
     let mut w = Rc::new(RefCell::new(Some(writer { p: Rc::new(RefCell::new(Some(exporter { indent: Rc::new(RefCell::new(Some(0))) }))).clone(), ..Default::default() })));
     (*w.borrow_mut().as_mut().unwrap()).do_trace();
-    println!("{}", (*(*(*w.borrow().as_ref().unwrap()).p.borrow().as_ref().unwrap()).indent.borrow().as_ref().unwrap()));
+    println!("{}", format!("{}", (*(*(*w.borrow().as_ref().unwrap()).p.borrow().as_ref().unwrap()).indent.borrow().as_ref().unwrap())));
 }

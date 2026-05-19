@@ -272,7 +272,7 @@ fn main() {
 
     for req in requests.clone() {
         limiter.recv().unwrap();
-        println!("{} {}", "regular request".to_string(), req);
+        println!("{} {}", format!("{}", "regular request".to_string()), format!("{}", req));
     }
 
     let mut burstyLimiter = GoChannel::<GoTime>::new_buffered(3 as usize);
@@ -298,6 +298,6 @@ fn main() {
     burstyRequests.close();
     for req in burstyRequests.clone() {
         burstyLimiter.recv().unwrap();
-        println!("{} {}", "bursty request".to_string(), req);
+        println!("{} {}", format!("{}", "bursty request".to_string()), format!("{}", req));
     }
 }

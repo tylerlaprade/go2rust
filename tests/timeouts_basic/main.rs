@@ -269,11 +269,11 @@ fn main() {
     loop {
         if let Some(res) = c1.try_recv() {
             let mut res = Arc::new(Mutex::new(Some(res)));
-            println!("{}", { let __v = (*res.lock().unwrap().as_ref().unwrap()).clone(); __v });
+            println!("{}", format!("{}", { let __v = (*res.lock().unwrap().as_ref().unwrap()).clone(); __v }));
             break;
         }
         if let Some(_) = timeout1.try_recv() {
-            println!("{}", "timeout 1".to_string());
+            println!("{}", format!("{}", "timeout 1".to_string()));
             break;
         }
         std::thread::sleep(std::time::Duration::from_millis(1));
@@ -288,11 +288,11 @@ fn main() {
     loop {
         if let Some(res) = c2.try_recv() {
             let mut res = Arc::new(Mutex::new(Some(res)));
-            println!("{}", { let __v = (*res.lock().unwrap().as_ref().unwrap()).clone(); __v });
+            println!("{}", format!("{}", { let __v = (*res.lock().unwrap().as_ref().unwrap()).clone(); __v }));
             break;
         }
         if let Some(_) = timeout2.try_recv() {
-            println!("{}", "timeout 2".to_string());
+            println!("{}", format!("{}", "timeout 2".to_string()));
             break;
         }
         std::thread::sleep(std::time::Duration::from_millis(1));

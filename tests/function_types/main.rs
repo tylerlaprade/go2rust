@@ -185,7 +185,7 @@ pub fn make_adder(addend: Rc<RefCell<Option<i32>>>) -> BinaryOp {
 
 fn main() {
         // Basic function type usage
-    println!("{}", "=== Basic function types ===".to_string());
+    println!("{}", format!("{}", "=== Basic function types ===".to_string()));
 
     let mut op: BinaryOp = Rc::new(RefCell::new(None));
     { let new_val = Box::new(move |__arg0: Rc<RefCell<Option<i32>>>, __arg1: Rc<RefCell<Option<i32>>>| -> Rc<RefCell<Option<i32>>> { add(__arg0, __arg1) }) as Box<dyn FnMut(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>>; *op.borrow_mut() = Some(new_val); };
@@ -195,7 +195,7 @@ fn main() {
     print!("5 * 3 = {}\n", (*{ let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>> = { let mut __f_guard = op.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some(5))), Rc::new(RefCell::new(Some(3)))) }.borrow().as_ref().unwrap()));
 
         // Higher-order functions
-    println!("{}", "\n=== Higher-order functions ===".to_string());
+    println!("{}", format!("{}", "\n=== Higher-order functions ===".to_string()));
     let mut result = apply_binary(Rc::new(RefCell::new(Some(Box::new(move |__arg0: Rc<RefCell<Option<i32>>>, __arg1: Rc<RefCell<Option<i32>>>| -> Rc<RefCell<Option<i32>>> { add(__arg0, __arg1) }) as Box<dyn FnMut(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>>))), Rc::new(RefCell::new(Some(10))), Rc::new(RefCell::new(Some(20))));
     print!("applyBinary(add, 10, 20) = {}\n", { let __v = (*result.borrow().as_ref().unwrap()).clone(); __v });
 
@@ -206,7 +206,7 @@ fn main() {
     print!("applyUnary(square, 6) = {}\n", { let __v = (*unaryResult.borrow().as_ref().unwrap()).clone(); __v });
 
         // Function slices and filtering
-    println!("{}", "\n=== Function slices and filtering ===".to_string());
+    println!("{}", format!("{}", "\n=== Function slices and filtering ===".to_string()));
     let mut numbers = Rc::new(RefCell::new(Some(vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10])));
 
     let mut evens = filter(numbers.clone(), Rc::new(RefCell::new(Some(Box::new(move |__arg0: Rc<RefCell<Option<i32>>>| -> Rc<RefCell<Option<bool>>> { is_even(__arg0) }) as Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<bool>>>>))));
@@ -218,7 +218,7 @@ fn main() {
     print!("Odd numbers: {}\n", format_slice(&odds));
 
         // Transform with function types
-    println!("{}", "\n=== Transform operations ===".to_string());
+    println!("{}", format!("{}", "\n=== Transform operations ===".to_string()));
     let mut squared = transform(Rc::new(RefCell::new(Some(vec![1, 2, 3, 4, 5]))), Rc::new(RefCell::new(Some(Box::new(move |__arg0: Rc<RefCell<Option<i32>>>| -> Rc<RefCell<Option<i32>>> { square(__arg0) }) as Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>>))));
     print!("Squared: {}\n", format_slice(&squared));
 
@@ -232,7 +232,7 @@ fn main() {
     print!("Doubled: {}\n", format_slice(&doubled));
 
         // String processing
-    println!("{}", "\n=== String processing ===".to_string());
+    println!("{}", format!("{}", "\n=== String processing ===".to_string()));
     let mut text = Rc::new(RefCell::new(Some("hello world".to_string())));
     let mut upper = process_string(Rc::new(RefCell::new(Some((*text.borrow().as_ref().unwrap()).clone()))), Rc::new(RefCell::new(Some(Box::new(move |__arg0: Rc<RefCell<Option<String>>>| -> Rc<RefCell<Option<String>>> { to_upper(__arg0) }) as Box<dyn FnMut(Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>>>))));
     print!("'{}' -> '{}'\n", { let __v = (*text.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*upper.borrow().as_ref().unwrap()).clone(); __v });
@@ -249,7 +249,7 @@ fn main() {
     print!("Reversed: {}\n", { let __v = (*reversed.borrow().as_ref().unwrap()).clone(); __v });
 
         // Functions that return functions
-    println!("{}", "\n=== Functions returning functions ===".to_string());
+    println!("{}", format!("{}", "\n=== Functions returning functions ===".to_string()));
     let mut triple = make_multiplier(Rc::new(RefCell::new(Some(3))));
     print!("triple(4) = {}\n", (*{ let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>> = { let mut __f_guard = triple.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some(4)))) }.borrow().as_ref().unwrap()));
 
@@ -257,7 +257,7 @@ fn main() {
     print!("addTen(5, 3) = {}\n", (*{ let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>> = { let mut __f_guard = addTen.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some(5))), Rc::new(RefCell::new(Some(3)))) }.borrow().as_ref().unwrap()));
 
         // Struct with function fields
-    println!("{}", "\n=== Struct with function fields ===".to_string());
+    println!("{}", format!("{}", "\n=== Struct with function fields ===".to_string()));
     let mut calc = Rc::new(RefCell::new(Some(Calculator { add: Rc::new(RefCell::new(Some(Box::new(move |a: Rc<RefCell<Option<i32>>>, b: Rc<RefCell<Option<i32>>>| -> Rc<RefCell<Option<i32>>> {
         return {
             let __tmp_x = (*a.borrow().as_ref().unwrap());
@@ -278,7 +278,7 @@ fn main() {
     print!("calc.Multiply(10, 5) = {}\n", (*{ let __f_holder = (*calc.borrow().as_ref().unwrap()).multiply.clone(); let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some(10))), Rc::new(RefCell::new(Some(5)))) }.borrow().as_ref().unwrap()));
 
         // Function variables
-    println!("{}", "\n=== Function variables ===".to_string());
+    println!("{}", format!("{}", "\n=== Function variables ===".to_string()));
     let mut processor: StringProcessor = Rc::new(RefCell::new(None));
     { let new_val = Box::new(move |__arg0: Rc<RefCell<Option<String>>>| -> Rc<RefCell<Option<String>>> { to_upper(__arg0) }) as Box<dyn FnMut(Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>>>; *processor.borrow_mut() = Some(new_val); };
     print!("Using toUpper: {}\n", (*{ let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>>> = { let mut __f_guard = processor.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>>> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some("test".to_string())))) }.borrow().as_ref().unwrap()));

@@ -275,12 +275,12 @@ pub fn asserted_field_element() -> Arc<Mutex<Option<ast_Expr>>> {
 
 fn main() {
     if false {
-        println!("{}", (*asserted_field_element().lock().unwrap()).is_some());
+        println!("{}", format!("{}", (*asserted_field_element().lock().unwrap()).is_some()));
     }
-    println!("{}", (*make_expr().lock().unwrap()).is_some());
-    println!("{}", (*make_ident_expr().lock().unwrap()).is_some());
-    println!("{}", (*make_unary_expr().lock().unwrap()).is_some());
-    println!("{}", (*make_var_expr().lock().unwrap()).is_some());
-    println!("{}", (*make_assigned_selector_expr().lock().unwrap()).is_some());
-    println!("{}", (*make_expr_slice_len().lock().unwrap().as_ref().unwrap()));
+    println!("{}", format!("{}", (*make_expr().lock().unwrap()).is_some()));
+    println!("{}", format!("{}", (*make_ident_expr().lock().unwrap()).is_some()));
+    println!("{}", format!("{}", (*make_unary_expr().lock().unwrap()).is_some()));
+    println!("{}", format!("{}", (*make_var_expr().lock().unwrap()).is_some()));
+    println!("{}", format!("{}", (*make_assigned_selector_expr().lock().unwrap()).is_some()));
+    println!("{}", format!("{}", (*make_expr_slice_len().lock().unwrap().as_ref().unwrap())));
 }

@@ -32,5 +32,5 @@ fn main() {
     let mut items = Rc::new(RefCell::new(Some(vec![ptr.clone()])));
 
     { let new_val = 9; *(*ptr.borrow().as_ref().unwrap()).value.borrow_mut() = Some(new_val); };
-    println!("{}", (*(*(*items.borrow().as_ref().unwrap())[(0) as usize].clone().borrow().as_ref().unwrap()).value.borrow().as_ref().unwrap()));
+    println!("{}", format!("{}", (*(*(*items.borrow().as_ref().unwrap())[(0) as usize].clone().borrow().as_ref().unwrap()).value.borrow().as_ref().unwrap())));
 }

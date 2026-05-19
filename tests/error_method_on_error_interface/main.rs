@@ -11,5 +11,5 @@ pub fn describe(err: Rc<RefCell<Option<Box<dyn StdError>>>>) -> Rc<RefCell<Optio
 }
 
 fn main() {
-    println!("{}", (*describe(Rc::new(RefCell::new(Some(Box::<dyn std::error::Error>::from("boom".to_string()))))).borrow().as_ref().unwrap()));
+    println!("{}", format!("{}", (*describe(Rc::new(RefCell::new(Some(Box::<dyn std::error::Error>::from("boom".to_string()))))).borrow().as_ref().unwrap())));
 }

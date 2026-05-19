@@ -35,5 +35,5 @@ pub fn forward_qualifier(qualifier: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Opt
 }
 
 fn main() {
-    println!("{}", format!("{}{}", "qualifier:".to_string(), (*forward_qualifier(make_qualifier()).lock().unwrap().as_ref().unwrap())));
+    println!("{}", format!("{}", format!("{}{}", "qualifier:".to_string(), (*forward_qualifier(make_qualifier()).lock().unwrap().as_ref().unwrap()))));
 }

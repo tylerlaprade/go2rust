@@ -11,7 +11,7 @@ pub fn build_cleanup(empty: Rc<RefCell<Option<bool>>>) -> (Rc<RefCell<Option<Box
     if (*empty.borrow().as_ref().unwrap()) {
         {
         { let new_val = Box::new(move || {
-        println!("{}", "empty".to_string());
+        println!("{}", format!("{}", "empty".to_string()));
     }) as Box<dyn FnMut() -> ()>; *cleanup.borrow_mut() = Some(new_val); };
         *err.borrow_mut() = None;;
         // Execute deferred functions
@@ -24,7 +24,7 @@ pub fn build_cleanup(empty: Rc<RefCell<Option<bool>>>) -> (Rc<RefCell<Option<Box
     let cleanup_defer_captured = cleanup.clone(); let err_defer_captured = err.clone(); __defer_stack.push(Box::new(move || {
         { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
         { let new_val = Box::new(move || {
-        println!("{}", "cleanup".to_string());
+        println!("{}", format!("{}", "cleanup".to_string()));
     }) as Box<dyn FnMut() -> ()>; *cleanup_defer_captured.borrow_mut() = Some(new_val); };
         if (*err_defer_captured.borrow()).is_some() {
         { let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = cleanup_defer_captured.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
@@ -45,10 +45,10 @@ pub fn build_cleanup(empty: Rc<RefCell<Option<bool>>>) -> (Rc<RefCell<Option<Box
 
 fn main() {
     let (mut emptyCleanup, mut emptyErr) = build_cleanup(Rc::new(RefCell::new(Some(true))));
-    println!("{}", (*emptyErr.borrow()).is_none());
+    println!("{}", format!("{}", (*emptyErr.borrow()).is_none()));
     { let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = emptyCleanup.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
 
     let (mut cleanup, mut err) = build_cleanup(Rc::new(RefCell::new(Some(false))));
-    println!("{}", (*err.borrow()).is_none());
+    println!("{}", format!("{}", (*err.borrow()).is_none()));
     { let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = cleanup.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
 }

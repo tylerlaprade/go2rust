@@ -28,7 +28,7 @@ impl types_Error {
 
 pub fn accept(err: Rc<RefCell<Option<Box<dyn StdError>>>>) {
     if (*err.borrow()).is_some() {
-        println!("{}", "ok".to_string());
+        println!("{}", format!("{}", "ok".to_string()));
     }
 }
 

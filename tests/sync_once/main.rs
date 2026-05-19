@@ -44,5 +44,5 @@ fn main() {
         { let mut guard = count.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 10); };
     }); };
 
-    println!("{} {}", "count:".to_string(), { let __v = (*count.borrow().as_ref().unwrap()).clone(); __v });
+    println!("{} {}", format!("{}", "count:".to_string()), format!("{}", { let __v = (*count.borrow().as_ref().unwrap()).clone(); __v }));
 }

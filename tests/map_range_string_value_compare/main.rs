@@ -7,7 +7,7 @@ fn main() {
 
     for (_, rpath) in { let __range_holder = roots.clone(); let __range_guard = __range_holder.borrow(); let __range_map = (*__range_guard.as_ref().unwrap()).clone(); drop(__range_guard); __range_map } {
         if (*rpath.borrow().as_ref().unwrap()).clone() != "" {
-        println!("{}", (*rpath.borrow_mut().as_mut().unwrap()));
+        println!("{}", format!("{}", (*rpath.borrow_mut().as_mut().unwrap())));
     }
     }
 }

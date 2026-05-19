@@ -48,8 +48,8 @@ pub fn nested(v: Rc<RefCell<Option<Box<dyn Any>>>>) -> Rc<RefCell<Option<String>
 }
 
 fn main() {
-    println!("{}", (*classify(Rc::new(RefCell::new(Some(Box::new(1) as Box<dyn Any>)))).borrow().as_ref().unwrap()));
-    println!("{}", (*classify(Rc::new(RefCell::new(Some(Box::new("x".to_string()) as Box<dyn Any>)))).borrow().as_ref().unwrap()));
-    println!("{}", (*classify(Rc::new(RefCell::new(Some(Box::new(false) as Box<dyn Any>)))).borrow().as_ref().unwrap()));
-    println!("{}", (*nested(Rc::new(RefCell::new(Some(Box::new(1) as Box<dyn Any>)))).borrow().as_ref().unwrap()));
+    println!("{}", format!("{}", (*classify(Rc::new(RefCell::new(Some(Box::new(1) as Box<dyn Any>)))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*classify(Rc::new(RefCell::new(Some(Box::new("x".to_string()) as Box<dyn Any>)))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*classify(Rc::new(RefCell::new(Some(Box::new(false) as Box<dyn Any>)))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*nested(Rc::new(RefCell::new(Some(Box::new(1) as Box<dyn Any>)))).borrow().as_ref().unwrap())));
 }

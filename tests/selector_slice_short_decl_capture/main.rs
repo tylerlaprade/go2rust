@@ -97,5 +97,5 @@ fn main() {
     let mut vals = Rc::new(RefCell::new(Some(vec![3, 4])));
     (*r.borrow_mut().as_mut().unwrap()).collect(vals.clone());
     { let __f_holder = (*(*r.borrow().as_ref().unwrap()).later.borrow().as_ref().unwrap())[(0) as usize].clone(); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
-    println!("{} {}", (*(*(*r.borrow().as_ref().unwrap()).dict.borrow().as_ref().unwrap()).tparams.borrow().as_ref().unwrap())[(0) as usize].clone(), (*(*(*r.borrow().as_ref().unwrap()).dict.borrow().as_ref().unwrap()).tparams.borrow().as_ref().unwrap())[(1) as usize].clone());
+    println!("{} {}", format!("{}", (*(*(*r.borrow().as_ref().unwrap()).dict.borrow().as_ref().unwrap()).tparams.borrow().as_ref().unwrap())[(0) as usize].clone()), format!("{}", (*(*(*r.borrow().as_ref().unwrap()).dict.borrow().as_ref().unwrap()).tparams.borrow().as_ref().unwrap())[(1) as usize].clone()));
 }

@@ -29,5 +29,5 @@ impl std::fmt::Display for AnonymousStruct1 {
 
 fn main() {
     let mut item = Rc::new(RefCell::new(Some(AnonymousStruct1 { name: Rc::new(RefCell::new(Some("go".to_string()))), count: Rc::new(RefCell::new(Some(2))) })));
-    println!("{} {}", (*(*item.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()).clone(), (*(*item.borrow().as_ref().unwrap()).count.borrow().as_ref().unwrap()));
+    println!("{} {}", format!("{}", (*(*item.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()).clone()), format!("{}", (*(*item.borrow().as_ref().unwrap()).count.borrow().as_ref().unwrap())));
 }

@@ -46,5 +46,5 @@ pub fn asserted_name(p: Rc<RefCell<Option<person>>>) -> Rc<RefCell<Option<String
 }
 
 fn main() {
-    println!("{}", (*asserted_name(Rc::new(RefCell::new(Some(person { name: Rc::new(RefCell::new(Some("Ada".to_string()))), ..Default::default() })))).borrow().as_ref().unwrap()));
+    println!("{}", format!("{}", (*asserted_name(Rc::new(RefCell::new(Some(person { name: Rc::new(RefCell::new(Some("Ada".to_string()))), ..Default::default() })))).borrow().as_ref().unwrap())));
 }

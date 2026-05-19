@@ -6,5 +6,5 @@ fn main() {
         return ctx.clone();
     }) as Box<dyn FnMut(Arc<Mutex<Option<GoContext>>>) -> Arc<Mutex<Option<GoContext>>> + Send + Sync>))));
     let _ = { let __v = (*ctx.lock().unwrap().as_ref().unwrap()).clone(); __v };
-    println!("{}", "compiled".to_string());
+    println!("{}", format!("{}", "compiled".to_string()));
 }

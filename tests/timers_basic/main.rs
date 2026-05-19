@@ -283,12 +283,12 @@ fn main() {
     let mut timer1 = Arc::new(Mutex::new(Some(go_new_timer(std::time::Duration::from_secs(1)))));
 
     (*timer1.lock().unwrap().as_ref().unwrap()).c.recv().unwrap();
-    println!("{}", "Timer 1 fired".to_string());
+    println!("{}", format!("{}", "Timer 1 fired".to_string()));
 
     let mut timer2 = Arc::new(Mutex::new(Some(go_new_timer(std::time::Duration::from_millis(500)))));
     let mut stop2 = (*timer2.lock().unwrap().as_mut().unwrap()).stop();
     if { let __v = (*stop2.lock().unwrap().as_ref().unwrap()).clone(); __v } {
-        println!("{}", "Timer 2 stopped".to_string());
+        println!("{}", format!("{}", "Timer 2 stopped".to_string()));
     }
 
     std::thread::sleep(std::time::Duration::from_secs(1));

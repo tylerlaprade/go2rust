@@ -150,6 +150,6 @@ fn main() {
     messages.send("buffered".to_string());
     messages.send("channel".to_string());
 
-    println!("{}", messages.recv().unwrap());
-    println!("{}", messages.recv().unwrap());
+    println!("{}", format!("{}", messages.recv().unwrap()));
+    println!("{}", format!("{}", messages.recv().unwrap()));
 }

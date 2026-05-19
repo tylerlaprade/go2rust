@@ -23,5 +23,5 @@ pub fn run() -> Rc<RefCell<Option<i32>>> {
 }
 
 fn main() {
-    println!("{}", (*run().borrow().as_ref().unwrap()));
+    println!("{}", format!("{}", (*run().borrow().as_ref().unwrap())));
 }

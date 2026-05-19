@@ -11,5 +11,5 @@ pub fn f() -> (Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<String>>>) {
 
 fn main() {
     let (_, mut s) = f();
-    println!("{}", { let __v = (*s.borrow().as_ref().unwrap()).clone(); __v });
+    println!("{}", format!("{}", { let __v = (*s.borrow().as_ref().unwrap()).clone(); __v }));
 }

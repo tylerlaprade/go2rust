@@ -15,5 +15,5 @@ pub fn collect(names: Rc<RefCell<Option<Vec<String>>>>) -> Rc<RefCell<Option<Vec
 
 fn main() {
     let mut errs = collect(Rc::new(RefCell::new(Some(vec!["alpha".to_string(), "beta".to_string()]))));
-    println!("{} {}", (*errs.borrow().as_ref().unwrap()).len(), (*Rc::new(RefCell::new(Some(format!("{}", (*errs.borrow().as_ref().unwrap())[(1) as usize].clone().borrow().as_ref().unwrap())))).borrow().as_ref().unwrap()));
+    println!("{} {}", format!("{}", (*errs.borrow().as_ref().unwrap()).len()), format!("{}", (*Rc::new(RefCell::new(Some(format!("{}", (*errs.borrow().as_ref().unwrap())[(1) as usize].clone().borrow().as_ref().unwrap())))).borrow().as_ref().unwrap())));
 }

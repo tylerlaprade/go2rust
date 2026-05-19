@@ -8,5 +8,5 @@ fn main() {
     let mut p = x.clone();
     { let new_val = 10; *p.borrow_mut() = Some(new_val); };
 
-    println!("{} {}", "x =".to_string(), { let __v = (*x.borrow().as_ref().unwrap()).clone(); __v });
+    println!("{} {}", format!("{}", "x =".to_string()), format!("{}", { let __v = (*x.borrow().as_ref().unwrap()).clone(); __v }));
 }

@@ -52,7 +52,7 @@ impl reader {
 }
 
 pub fn r#use(p: Rc<RefCell<Option<pkg>>>) {
-    println!("{}", (*(*p.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()).clone());
+    println!("{}", format!("{}", (*(*p.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()).clone()));
 }
 
 fn main() {

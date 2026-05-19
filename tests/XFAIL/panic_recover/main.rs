@@ -169,24 +169,24 @@ pub fn chained_defers() {
 
     __defer_stack.push(Box::new(move || {
         { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
-        println!("{}", "Defer 1: This runs".to_string());
+        println!("{}", format!("{}", "Defer 1: This runs".to_string()));
     }) as Box<dyn FnMut() -> ()>))); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
     }));
 
     __defer_stack.push(Box::new(move || {
         { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
-        println!("{}", "Defer 2: This also runs".to_string());
+        println!("{}", format!("{}", "Defer 2: This also runs".to_string()));
         panic!("panic from defer");
     }) as Box<dyn FnMut() -> ()>))); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
     }));
 
     __defer_stack.push(Box::new(move || {
         { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
-        println!("{}", "Defer 3: This runs first".to_string());
+        println!("{}", format!("{}", "Defer 3: This runs first".to_string()));
     }) as Box<dyn FnMut() -> ()>))); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
     }));
 
-    println!("{}", "About to return normally".to_string());
+    println!("{}", format!("{}", "About to return normally".to_string()));
 
     // Execute deferred functions
     while let Some(f) = __defer_stack.pop() {
@@ -195,7 +195,7 @@ pub fn chained_defers() {
 }
 
 fn main() {
-    println!("{}", "=== Safe divide examples ===".to_string());
+    println!("{}", format!("{}", "=== Safe divide examples ===".to_string()));
 
     let (mut result, mut err) = safe_divide(Rc::new(RefCell::new(Some(10.0))), Rc::new(RefCell::new(Some(2.0))));
     if (*err.borrow()).is_some() {
@@ -211,7 +211,7 @@ fn main() {
         print!("Result: {:.2}\n", { let __v = (*result.borrow().as_ref().unwrap()).clone(); __v });
     }
 
-    println!("{}", "\n=== Slice access examples ===".to_string());
+    println!("{}", format!("{}", "\n=== Slice access examples ===".to_string()));
 
     let mut numbers = Rc::new(RefCell::new(Some(vec![1, 2, 3, 4, 5])));
 
@@ -229,14 +229,14 @@ fn main() {
         print!("Value: {}\n", { let __v = (*value.borrow().as_ref().unwrap()).clone(); __v });
     }
 
-    println!("{}", "\n=== Nested panic example ===".to_string());
+    println!("{}", format!("{}", "\n=== Nested panic example ===".to_string()));
     nested_panic();
 
-    println!("{}", "\n=== Different panic types ===".to_string());
+    println!("{}", format!("{}", "\n=== Different panic types ===".to_string()));
     demonstrate_panic_types();
 
-    println!("{}", "\n=== Chained defers with panic ===".to_string());
+    println!("{}", format!("{}", "\n=== Chained defers with panic ===".to_string()));
     chained_defers();
 
-    println!("{}", "\n=== Program completed successfully ===".to_string());
+    println!("{}", format!("{}", "\n=== Program completed successfully ===".to_string()));
 }

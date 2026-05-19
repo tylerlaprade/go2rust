@@ -48,12 +48,12 @@ pub fn f() -> Rc<RefCell<Option<i32>>> {
 }
 
 fn __go_init_0() {
-    println!("{}", "First init".to_string());
+    println!("{}", format!("{}", "First init".to_string()));
     { let mut guard = d.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
 }
 
 fn __go_init_1() {
-    println!("{}", "Second init".to_string());
+    println!("{}", format!("{}", "Second init".to_string()));
     print!("a={}, b={}, c={}, d={}\n", { let __v = (*a.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*b.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*c.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*d.borrow().as_ref().unwrap()).clone(); __v });
 }
 

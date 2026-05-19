@@ -67,6 +67,6 @@ fn main() {
         }
     });
     if { let __v = (*ok.lock().unwrap().as_ref().unwrap()).clone(); __v } {
-        println!("{}", "ok".to_string());
+        println!("{}", format!("{}", "ok".to_string()));
     }
 }

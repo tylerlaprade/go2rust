@@ -38,7 +38,7 @@ pub fn swap(next: Rc<RefCell<Option<Vec<i32>>>>) -> Rc<RefCell<Option<i32>>> {
 fn main() {
     __go_init_all();
     { let new_val = Rc::new(RefCell::new(Some(vec![1, 2]))); let __moved_val = { let mut __guard = new_val.borrow_mut(); __guard.take() }; *active.borrow_mut() = __moved_val; };
-    println!("{}", (*swap(Rc::new(RefCell::new(Some(vec![3, 4, 5])))).borrow().as_ref().unwrap()));
+    println!("{}", format!("{}", (*swap(Rc::new(RefCell::new(Some(vec![3, 4, 5])))).borrow().as_ref().unwrap())));
 }
 
 pub(crate) fn __go_init_all() {

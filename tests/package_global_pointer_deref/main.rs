@@ -55,10 +55,10 @@ pub fn suffix(s: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>> {
 
 fn main() {
     __go_init_all();
-    println!("{}", (*(*enabled.borrow().as_ref().unwrap()).borrow().as_ref().unwrap()).clone());
-    println!("{}", (*(*label.borrow().as_ref().unwrap()).borrow().as_ref().unwrap()).clone());
-    println!("{}", (*invert(Rc::new(RefCell::new(Some((*(*enabled.borrow().as_ref().unwrap()).borrow().as_ref().unwrap()).clone())))).borrow().as_ref().unwrap()));
-    println!("{}", (*suffix(Rc::new(RefCell::new(Some((*(*label.borrow().as_ref().unwrap()).borrow().as_ref().unwrap()).clone())))).borrow().as_ref().unwrap()));
+    println!("{}", format!("{}", (*(*enabled.borrow().as_ref().unwrap()).borrow().as_ref().unwrap()).clone()));
+    println!("{}", format!("{}", (*(*label.borrow().as_ref().unwrap()).borrow().as_ref().unwrap()).clone()));
+    println!("{}", format!("{}", (*invert(Rc::new(RefCell::new(Some((*(*enabled.borrow().as_ref().unwrap()).borrow().as_ref().unwrap()).clone())))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*suffix(Rc::new(RefCell::new(Some((*(*label.borrow().as_ref().unwrap()).borrow().as_ref().unwrap()).clone())))).borrow().as_ref().unwrap())));
 }
 
 pub(crate) fn __go_init_all() {

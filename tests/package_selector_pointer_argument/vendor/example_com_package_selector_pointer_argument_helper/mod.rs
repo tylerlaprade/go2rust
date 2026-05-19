@@ -30,5 +30,5 @@ impl std::fmt::Display for Pkg {
 
 
 pub fn r#use(p: Rc<RefCell<Option<Pkg>>>) {
-    println!("{}", (*(*p.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()).clone());
+    println!("{}", format!("{}", (*(*p.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()).clone()));
 }

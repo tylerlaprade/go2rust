@@ -73,7 +73,7 @@ fn main() {
 
     let (mut file, mut err) = { let __path = "test.txt".to_string(); match GoFile::create(&__path) { Ok(file) => (Rc::new(RefCell::new(Some(file))), Rc::new(RefCell::new(None::<Box<dyn StdError>>))), Err(e) => (Rc::new(RefCell::new(Some(GoFile::empty()))), Rc::new(RefCell::new(Some(Box::<dyn StdError>::from(e))))) } };
     if (*err.borrow()).is_some() {
-        println!("{} {}", "Error:".to_string(), format!("{}", (*err.borrow().as_ref().unwrap())));
+        println!("{} {}", format!("{}", "Error:".to_string()), format!("{}", format!("{}", (*err.borrow().as_ref().unwrap()))));
         {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
@@ -87,7 +87,7 @@ fn main() {
     }));
 
     (*file.borrow_mut().as_mut().unwrap()).write_string(Rc::new(RefCell::new(Some("Hello, World!".to_string()))));
-    println!("{}", "File written successfully".to_string());
+    println!("{}", format!("{}", "File written successfully".to_string()));
 
     // Execute deferred functions
     while let Some(f) = __defer_stack.pop() {

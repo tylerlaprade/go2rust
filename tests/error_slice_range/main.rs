@@ -39,10 +39,10 @@ impl StdError for customError {}
 
 pub fn accept(err: Rc<RefCell<Option<Box<dyn StdError>>>>) {
     if (*err.borrow()).is_none() {
-        println!("{}", "nil".to_string());
+        println!("{}", format!("{}", "nil".to_string()));
         return;
     }
-    println!("{}", (*Rc::new(RefCell::new(Some(format!("{}", err.borrow().as_ref().unwrap())))).borrow().as_ref().unwrap()));
+    println!("{}", format!("{}", (*Rc::new(RefCell::new(Some(format!("{}", err.borrow().as_ref().unwrap())))).borrow().as_ref().unwrap())));
 }
 
 pub fn collect() -> Rc<RefCell<Option<Vec<Rc<RefCell<Option<Box<dyn StdError>>>>>>>> {

@@ -173,5 +173,5 @@ fn main() {
     { let mut guard = mode.borrow_mut(); *guard = Some(guard.as_ref().unwrap().clone() | LoadMode(Rc::new(RefCell::new(Some(NEED_IMPORTS as i32))))); };
     { let mut guard = mode.borrow_mut(); *guard = Some(guard.as_ref().unwrap().clone() | LoadMode(Rc::new(RefCell::new(Some(8 as i32))))); };
     { let mut guard = mode.borrow_mut(); *guard = Some(guard.as_ref().unwrap().clone() | LoadMode(Rc::new(RefCell::new(Some(NEED_FILES | NEED_NAME as i32))))); };
-    println!("{}", (*Rc::new(RefCell::new(Some((*(*mode.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) as i32))).borrow().as_ref().unwrap()));
+    println!("{}", format!("{}", (*Rc::new(RefCell::new(Some((*(*mode.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) as i32))).borrow().as_ref().unwrap())));
 }

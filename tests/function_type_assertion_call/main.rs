@@ -18,5 +18,5 @@ fn main() {
             panic!("type assertion on nil interface")
         }
     });
-    println!("{} {}", { let __v = (*s.borrow().as_ref().unwrap()).clone(); __v }, (*err.borrow()).is_none());
+    println!("{} {}", format!("{}", { let __v = (*s.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", (*err.borrow()).is_none()));
 }

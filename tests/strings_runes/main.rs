@@ -3,7 +3,7 @@ use std::rc::{Rc};
 
 fn main() {
     let mut s = Rc::new(RefCell::new(Some("hello".to_string())));
-    println!("{}", (*s.borrow().as_ref().unwrap()).len());
+    println!("{}", format!("{}", (*s.borrow().as_ref().unwrap()).len()));
 
     let mut i = Rc::new(RefCell::new(Some(0)));
     while ((*i.borrow().as_ref().unwrap()) as i32) < ((*s.borrow().as_ref().unwrap()).len() as i32) {
@@ -18,6 +18,6 @@ fn main() {
     println!();
 
     for (_, r) in "go".to_string().char_indices() {
-        println!("{}", r < 'n');
+        println!("{}", format!("{}", r < 'n'));
     }
 }

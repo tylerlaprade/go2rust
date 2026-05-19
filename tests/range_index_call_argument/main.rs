@@ -16,5 +16,5 @@ fn main() {
     for i in 0..({ let __range_holder = values.clone(); let __range_guard = __range_holder.borrow(); __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) {
         { let mut guard = total.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + (*take_index(Rc::new(RefCell::new(Some(i as i32)))).borrow().as_ref().unwrap())); };
     }
-    println!("{}", { let __v = (*total.borrow().as_ref().unwrap()).clone(); __v });
+    println!("{}", format!("{}", { let __v = (*total.borrow().as_ref().unwrap()).clone(); __v }));
 }

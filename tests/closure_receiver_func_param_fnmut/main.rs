@@ -46,5 +46,5 @@ pub fn run(f: Rc<RefCell<Option<Box<dyn FnMut() -> ()>>>>) {
 fn main() {
     let mut c = Rc::new(RefCell::new(Some(counter { n: Rc::new(RefCell::new(Some(0))) })));
     (*c.borrow_mut().as_mut().unwrap()).start();
-    println!("{}", (*(*c.borrow().as_ref().unwrap()).n.borrow().as_ref().unwrap()));
+    println!("{}", format!("{}", (*(*c.borrow().as_ref().unwrap()).n.borrow().as_ref().unwrap())));
 }

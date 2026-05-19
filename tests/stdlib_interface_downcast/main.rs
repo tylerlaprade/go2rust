@@ -139,5 +139,5 @@ fn main() {
             (Arc::new(Mutex::new(None::<ast_Ident>)), Arc::new(Mutex::new(Some(false))))
         }
     });
-    println!("{} {}", { let __v = (*ok.lock().unwrap().as_ref().unwrap()).clone(); __v }, (*{ let __field = (*ident.lock().unwrap().as_ref().unwrap()).name.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone());
+    println!("{} {}", format!("{}", { let __v = (*ok.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", (*{ let __field = (*ident.lock().unwrap().as_ref().unwrap()).name.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone()));
 }

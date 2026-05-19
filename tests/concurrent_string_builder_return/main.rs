@@ -156,6 +156,6 @@ pub fn build(done: GoChannel<bool>) -> Arc<Mutex<Option<String>>> {
 
 fn main() {
     let mut done = GoChannel::<bool>::new_buffered(1 as usize);
-    println!("{}", (*build(done.clone()).lock().unwrap().as_ref().unwrap()));
-    println!("{}", done.recv().unwrap());
+    println!("{}", format!("{}", (*build(done.clone()).lock().unwrap().as_ref().unwrap())));
+    println!("{}", format!("{}", done.recv().unwrap()));
 }

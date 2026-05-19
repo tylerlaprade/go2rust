@@ -20,7 +20,7 @@ pub fn classify(n: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<String>>> {
 }
 
 fn main() {
-    println!("{}", (*classify(Rc::new(RefCell::new(Some(4)))).borrow().as_ref().unwrap()));
-    println!("{}", (*classify(Rc::new(RefCell::new(Some(9)))).borrow().as_ref().unwrap()));
-    println!("{}", (*classify(Rc::new(RefCell::new(Some(5)))).borrow().as_ref().unwrap()));
+    println!("{}", format!("{}", (*classify(Rc::new(RefCell::new(Some(4)))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*classify(Rc::new(RefCell::new(Some(9)))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*classify(Rc::new(RefCell::new(Some(5)))).borrow().as_ref().unwrap())));
 }

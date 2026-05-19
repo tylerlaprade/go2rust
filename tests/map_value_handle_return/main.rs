@@ -72,7 +72,7 @@ fn main() {
 
     let mut got = lookup(methods.clone(), Rc::new(RefCell::new(Some("Thing".to_string()))));
     let mut emptyReceiver = lookup(methods.clone(), Rc::new(RefCell::new(Some("".to_string()))));
-    println!("{} {}", (*got.borrow().as_ref().unwrap()).len(), (*emptyReceiver.borrow().as_ref().unwrap()).len());
+    println!("{} {}", format!("{}", (*got.borrow().as_ref().unwrap()).len()), format!("{}", (*emptyReceiver.borrow().as_ref().unwrap()).len()));
 }
 
 pub(crate) fn __go_init_all() {

@@ -30,5 +30,5 @@ impl std::fmt::Display for Pair {
 
 fn main() {
     let mut p = Rc::new(RefCell::new(Some(Pair { left: Rc::new(RefCell::new(Some("go".to_string()))), right: Rc::new(RefCell::new(Some(2))), ..Default::default() })));
-    println!("{} {}", (*(*p.borrow().as_ref().unwrap()).left.borrow().as_ref().unwrap()).clone(), (*(*p.borrow().as_ref().unwrap()).right.borrow().as_ref().unwrap()));
+    println!("{} {}", format!("{}", (*(*p.borrow().as_ref().unwrap()).left.borrow().as_ref().unwrap()).clone()), format!("{}", (*(*p.borrow().as_ref().unwrap()).right.borrow().as_ref().unwrap())));
 }

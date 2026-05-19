@@ -192,7 +192,7 @@ pub fn zero_kind() -> Rc<RefCell<Option<Kind>>> {
 }
 
 fn main() {
-    println!("{}", (*different(Rc::new(RefCell::new(Some(Kind(Rc::new(RefCell::new(Some(INVALID as i8))))))), Rc::new(RefCell::new(Some(Kind(Rc::new(RefCell::new(Some(STRING as i8)))))))).borrow().as_ref().unwrap()));
-    println!("{}", (*same(Rc::new(RefCell::new(Some(Kind(Rc::new(RefCell::new(Some(BOOL as i8))))))), Rc::new(RefCell::new(Some(Kind(Rc::new(RefCell::new(Some(BOOL as i8)))))))).borrow().as_ref().unwrap()));
-    println!("{}", (*zero_kind().borrow().as_ref().unwrap()).clone() == Kind(Rc::new(RefCell::new(Some(INVALID as i8)))));
+    println!("{}", format!("{}", (*different(Rc::new(RefCell::new(Some(Kind(Rc::new(RefCell::new(Some(INVALID as i8))))))), Rc::new(RefCell::new(Some(Kind(Rc::new(RefCell::new(Some(STRING as i8)))))))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*same(Rc::new(RefCell::new(Some(Kind(Rc::new(RefCell::new(Some(BOOL as i8))))))), Rc::new(RefCell::new(Some(Kind(Rc::new(RefCell::new(Some(BOOL as i8)))))))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*zero_kind().borrow().as_ref().unwrap()).clone() == Kind(Rc::new(RefCell::new(Some(INVALID as i8))))));
 }

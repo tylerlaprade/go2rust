@@ -214,10 +214,10 @@ impl ServerState {
 fn main() {
     __go_init_all();
     let mut ns = transition(Rc::new(RefCell::new(Some(ServerState(Rc::new(RefCell::new(Some(STATE_IDLE as i32))))))));
-    println!("{}", { let __v = (*ns.borrow().as_ref().unwrap()).clone(); __v });
+    println!("{}", format!("{}", { let __v = (*ns.borrow().as_ref().unwrap()).clone(); __v }));
 
     let mut ns2 = transition(Rc::new(RefCell::new(Some((*ns.borrow().as_ref().unwrap()).clone()))));
-    println!("{}", { let __v = (*ns2.borrow().as_ref().unwrap()).clone(); __v });
+    println!("{}", format!("{}", { let __v = (*ns2.borrow().as_ref().unwrap()).clone(); __v }));
 }
 
 pub fn transition(s: Rc<RefCell<Option<ServerState>>>) -> Rc<RefCell<Option<ServerState>>> {

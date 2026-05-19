@@ -11,6 +11,6 @@ fn main() {
     { let new_val = 100; *p.borrow_mut() = Some(new_val); };
 
         // x should reflect the change
-    println!("{} {}", "x =".to_string(), { let __v = (*x.borrow().as_ref().unwrap()).clone(); __v });
-    println!("{} {}", "y =".to_string(), { let __v = (*y.borrow().as_ref().unwrap()).clone(); __v });
+    println!("{} {}", format!("{}", "x =".to_string()), format!("{}", { let __v = (*x.borrow().as_ref().unwrap()).clone(); __v }));
+    println!("{} {}", format!("{}", "y =".to_string()), format!("{}", { let __v = (*y.borrow().as_ref().unwrap()).clone(); __v }));
 }

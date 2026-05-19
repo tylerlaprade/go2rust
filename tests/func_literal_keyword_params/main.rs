@@ -7,11 +7,11 @@ pub fn apply(r#fn: Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> 
 }
 
 fn main() {
-    println!("{}", (*apply(Rc::new(RefCell::new(Some(Box::new(move |r#yield: Rc<RefCell<Option<i32>>>| -> Rc<RefCell<Option<i32>>> {
+    println!("{}", format!("{}", (*apply(Rc::new(RefCell::new(Some(Box::new(move |r#yield: Rc<RefCell<Option<i32>>>| -> Rc<RefCell<Option<i32>>> {
         return {
             let __tmp_x = (*r#yield.borrow().as_ref().unwrap());
             let __tmp_y = 1;
             Rc::new(RefCell::new(Some(__tmp_x + __tmp_y)))
         };
-    }) as Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>>)))).borrow().as_ref().unwrap()));
+    }) as Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>>)))).borrow().as_ref().unwrap())));
 }

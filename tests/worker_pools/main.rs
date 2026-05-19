@@ -182,6 +182,6 @@ fn main() {
         { let mut guard = a.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
 
-    println!("{} {}", "Processed jobs:".to_string(), numJobs);
-    println!("{} {}", "Result total:".to_string(), { let __v = (*total.lock().unwrap().as_ref().unwrap()).clone(); __v });
+    println!("{} {}", format!("{}", "Processed jobs:".to_string()), format!("{}", numJobs));
+    println!("{} {}", format!("{}", "Result total:".to_string()), format!("{}", { let __v = (*total.lock().unwrap().as_ref().unwrap()).clone(); __v }));
 }

@@ -157,7 +157,7 @@ fn main() {
     let mut raw = Arc::new(Mutex::new(Some(format!("{}{}", "HTTP/1.1 200 OK\r\nContent-Length: 57\r\n\r\n".to_string(), { let __v = (*payload.lock().unwrap().as_ref().unwrap()).clone(); __v }))));
     let (mut resp, mut err) = http::read_response(bufio::new_reader(strings::new_reader(raw.clone())), ());
     if (*err.lock().unwrap()).is_some() {
-        println!("{} {}", "Error:".to_string(), format!("{}", (*err.lock().unwrap().as_ref().unwrap())));
+        println!("{} {}", format!("{}", "Error:".to_string()), format!("{}", format!("{}", (*err.lock().unwrap().as_ref().unwrap()))));
         {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
@@ -175,7 +175,7 @@ fn main() {
     if { let __tmp_x = ((*text.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = (100 as i32); __tmp_x > __tmp_y } {
         { let new_val = Arc::new(Mutex::new(Some({ let __s = (*text.lock().unwrap().as_ref().unwrap()).clone(); __s[..(100) as usize].to_string() }))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *text.lock().unwrap() = __moved_val; };
     }
-    println!("{} {}", "Response:".to_string(), { let __v = (*text.lock().unwrap().as_ref().unwrap()).clone(); __v });
+    println!("{} {}", format!("{}", "Response:".to_string()), format!("{}", { let __v = (*text.lock().unwrap().as_ref().unwrap()).clone(); __v }));
 
     // Execute deferred functions
     while let Some(f) = __defer_stack.pop() {
