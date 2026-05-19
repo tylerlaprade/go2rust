@@ -262,7 +262,18 @@ func RustStringLiteral(goLiteral string) string {
 		return goLiteral
 	}
 	if !utf8.ValidString(unquoted) {
-		return "/* ERROR: Go string literal contains invalid UTF-8 bytes */ unimplemented!()"
+		var bytes strings.Builder
+		bytes.WriteByte('[')
+		for i, b := range []byte(unquoted) {
+			if i > 0 {
+				bytes.WriteString(", ")
+			}
+			bytes.WriteString("0x")
+			bytes.WriteString(strconv.FormatInt(int64(b), 16))
+			bytes.WriteString("u8")
+		}
+		bytes.WriteByte(']')
+		return "String::from_utf8_lossy(&" + bytes.String() + ").into_owned()"
 	}
 
 	var out strings.Builder

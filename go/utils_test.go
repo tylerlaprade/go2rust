@@ -22,9 +22,9 @@ func TestRustStringLiteralUsesRustEscapes(t *testing.T) {
 	}
 }
 
-func TestRustStringLiteralRejectsInvalidUTF8(t *testing.T) {
+func TestRustStringLiteralUsesLossyBytesForInvalidUTF8(t *testing.T) {
 	got := RustStringLiteral("\"\\x80\"")
-	want := "/* ERROR: Go string literal contains invalid UTF-8 bytes */ unimplemented!()"
+	want := "String::from_utf8_lossy(&[0x80u8]).into_owned()"
 	if got != want {
 		t.Fatalf("RustStringLiteral() = %q, want %q", got, want)
 	}
