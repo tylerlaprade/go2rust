@@ -7344,6 +7344,18 @@ func writeUnwrappedSliceClone(out *strings.Builder, arg ast.Expr) {
 	out.WriteString(".as_ref().unwrap()).clone()")
 }
 
+func writeSliceCloneOrEmpty(out *strings.Builder, arg ast.Expr) {
+	if ident, ok := arg.(*ast.Ident); ok && ident.Name == "nil" {
+		out.WriteString("Vec::new()")
+		return
+	}
+	out.WriteString("{ let __slice_holder = ")
+	TranspileExpressionContext(out, arg, LValue)
+	out.WriteString(".clone(); let __slice_guard = __slice_holder")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; __slice_guard.as_ref().map(|__v| __v.clone()).unwrap_or_default() }")
+}
+
 func writeStringTypeDefinitionInnerValue(out *strings.Builder, arg ast.Expr) bool {
 	typeInfo := GetTypeInfo()
 	var argType types.Type

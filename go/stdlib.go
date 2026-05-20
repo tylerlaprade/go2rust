@@ -2842,7 +2842,7 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 				writeOwnedStringStdlibArg(out, expr)
 				out.WriteString(".as_bytes().iter().cloned()")
 			} else {
-				writeUnwrappedSliceClone(out, expr)
+				writeSliceCloneOrEmpty(out, expr)
 				out.WriteString(".iter().cloned()")
 			}
 		}
