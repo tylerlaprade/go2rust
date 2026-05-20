@@ -4193,6 +4193,18 @@ func writeOwnedRangeValue(out *strings.Builder, ident *ast.Ident) bool {
 	return false
 }
 
+func writeReferenceRangeValue(out *strings.Builder, expr ast.Expr) bool {
+	ident, ok := expr.(*ast.Ident)
+	if !ok {
+		return false
+	}
+	varType, isRangeVar := rangeLoopVars[ident.Name]
+	if !isRangeVar || (varType != "ref_value" && !strings.HasPrefix(varType, "&")) {
+		return false
+	}
+	return writeOwnedRangeValue(out, ident)
+}
+
 func writeWrappedRangeValueClone(out *strings.Builder, ident *ast.Ident, varType string) {
 	name := RustIdentForUse(ident)
 	if currentCaptureRenames != nil {
@@ -5384,6 +5396,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			if writeNamedConstForBinaryPeer(out, expr, other) {
 				return
 			}
+			if isComparison && writeReferenceRangeValue(out, expr) {
+				return
+			}
 			if isComparison && writeRangeStringValue(out, expr) {
 				return
 			}
@@ -5468,6 +5483,8 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				// Character literal emitted as byte.
 			} else if writeConstExpressionForBinaryPeer(out, e.X, e.Y) {
 				// Constant emitted in the peer's expected representation.
+			} else if isComparison && writeReferenceRangeValue(out, e.X) {
+				// Reference-style range value cloned or copied for comparison.
 			} else if isComparison && writeRangeStringValue(out, e.X) {
 				// Range string reference cloned for comparison.
 			} else if lit, ok := e.X.(*ast.BasicLit); ok && lit.Kind == token.INT {
@@ -5502,6 +5519,8 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				// Character literal emitted as byte.
 			} else if writeConstExpressionForBinaryPeer(out, e.Y, e.X) {
 				// Constant emitted in the peer's expected representation.
+			} else if isComparison && writeReferenceRangeValue(out, e.Y) {
+				// Reference-style range value cloned or copied for comparison.
 			} else if isComparison && writeRangeStringValue(out, e.Y) {
 				// Range string reference cloned for comparison.
 			} else if lit, ok := e.Y.(*ast.BasicLit); ok && lit.Kind == token.INT {

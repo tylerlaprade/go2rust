@@ -120,6 +120,33 @@ func TestIsFunctionNameUsesRegisteredSignatureWithoutTypeInfo(t *testing.T) {
 	}
 }
 
+func TestReferenceRangeComparisonDereferencesWithoutTypeInfo(t *testing.T) {
+	expr, err := parser.ParseExpr("num > 6")
+	if err != nil {
+		t.Fatalf("ParseExpr() error = %v", err)
+	}
+
+	prevTypeInfo := currentTypeInfo
+	prevRangeLoopVars := rangeLoopVars
+	defer func() {
+		currentTypeInfo = prevTypeInfo
+		rangeLoopVars = prevRangeLoopVars
+	}()
+	SetTypeInfo(nil)
+	rangeLoopVars = map[string]string{"num": "ref_value"}
+
+	var out strings.Builder
+	TranspileExpression(&out, expr)
+
+	got := out.String()
+	if !strings.Contains(got, "(*num).clone() > 6") {
+		t.Fatalf("reference range comparison should own the range value, got:\n%s", got)
+	}
+	if strings.Contains(got, "num > 6") {
+		t.Fatalf("reference range comparison used borrowed range value:\n%s", got)
+	}
+}
+
 func TestExternalStubCallClonesMapRangeStringKey(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
