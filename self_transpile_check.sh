@@ -18,6 +18,8 @@ Environment:
   KEEP_SELF_TRANSPILE=1   Preserve the temporary workspace for inspection.
   GOCACHE=<path>          Override the temporary Go build cache.
   CARGO_TARGET_DIR=<path> Override the temporary Cargo target directory.
+  GO2RUST_BEHAVIOR_JOBS=N Number of behavior-suite shards (default: 3).
+  GO2RUST_BEHAVIOR_TIMEOUT=TIME Per-test behavior timeout (default: 30s).
 EOF
 }
 
@@ -77,6 +79,11 @@ cp "$repo_root/go.mod" "$work/go.mod"
 cp "$repo_root/go.sum" "$work/go.sum"
 
 export GOCACHE="${GOCACHE:-$work/go-build-cache}"
+export CARGO_BUILD_JOBS="${CARGO_BUILD_JOBS:-1}"
+export CARGO_INCREMENTAL="${CARGO_INCREMENTAL:-0}"
+export CARGO_PROFILE_DEV_DEBUG="${CARGO_PROFILE_DEV_DEBUG:-0}"
+export CARGO_PROFILE_DEV_INCREMENTAL="${CARGO_PROFILE_DEV_INCREMENTAL:-false}"
+export RUSTFLAGS="${RUSTFLAGS:--Awarnings -C debuginfo=0}"
 go build -o "$work/go2rust" "$repo_root/go"
 
 (
@@ -115,12 +122,15 @@ if [ "$behavior_suite" = true ]; then
     cp "$repo_root/go.mod" "$suite/go.mod"
     cp "$repo_root/go.sum" "$suite/go.sum"
     cp -R "$repo_root/tests" "$suite/tests"
+    find "$suite/tests" -name "*.rs" -type f -delete
+    find "$suite/tests" -name "Cargo.toml" -type f -delete
+    find "$suite/tests" -name "Cargo.lock" -type f -delete
 
     (
         cd "$suite"
         GO2RUST_TEST_BINARY="$CARGO_TARGET_DIR/debug/go" \
             GOCACHE="${GOCACHE:-$work/go-build-cache}" \
-            ./test.sh -n "${GO2RUST_BEHAVIOR_JOBS:-6}" -t "${GO2RUST_BEHAVIOR_TIMEOUT:-30s}"
+            ./test.sh -n "${GO2RUST_BEHAVIOR_JOBS:-3}" -t "${GO2RUST_BEHAVIOR_TIMEOUT:-30s}"
     )
 fi
 
