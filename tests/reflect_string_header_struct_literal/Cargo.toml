@@ -1,0 +1,8 @@
+[package]
+name = "reflect_string_header_struct_literal"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "reflect_string_header_struct_literal"
+path = "main.rs"

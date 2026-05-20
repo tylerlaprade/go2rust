@@ -1770,6 +1770,10 @@ run_xfail_test() {
     run_test "tests/reflect_string_header_pointer"
 }
 
+@test "reflect_string_header_struct_literal" {
+    run_test "tests/reflect_string_header_struct_literal"
+}
+
 @test "reflect_structtag_conversion" {
     run_test "tests/reflect_structtag_conversion"
 }

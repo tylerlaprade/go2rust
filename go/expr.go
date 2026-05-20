@@ -7447,6 +7447,15 @@ func writeNumericConversionValue(out *strings.Builder, arg ast.Expr) {
 		writeExternalIntegerTupleField(out, argType)
 		return
 	}
+	if _, ok := arg.(*ast.SelectorExpr); ok {
+		if !isExpressionResultBare(arg) && isCloneableNonPointerExpr(arg) {
+			writeClonedWrappedExpression(out, arg, "__selector_holder", "__selector_guard")
+		} else {
+			TranspileExpression(out, arg)
+		}
+		writeExternalIntegerTupleField(out, argType)
+		return
+	}
 
 	if typeInfo == nil || typeInfo.ReturnsWrappedValue(arg) {
 		out.WriteString("(*")
