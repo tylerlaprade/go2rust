@@ -842,6 +842,10 @@ run_xfail_test() {
     run_test "tests/errors_new_string_from_byte_field"
 }
 
+@test "exec_command_args_stub" {
+    run_test "tests/exec_command_args_stub"
+}
+
 @test "exec_exit_error_assertion" {
     run_test "tests/exec_exit_error_assertion"
 }

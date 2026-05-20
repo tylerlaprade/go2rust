@@ -1,0 +1,1 @@
+go list -export -f {{.Export}} pkg

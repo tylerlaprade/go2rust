@@ -1457,6 +1457,10 @@ func writeExternalPackageStubs(out *strings.Builder, packageStubs map[string]*ex
 			writeBuildPackageStub(out, pkg, integerTypes)
 			continue
 		}
+		if pkgName == "exec" {
+			writeExecPackageStub(out, pkg, integerTypes)
+			continue
+		}
 		if pkgName == "flag" {
 			writeFlagPackageStub(out)
 			continue
@@ -2710,7 +2714,68 @@ func writeExternalPackageStubVariable(out *strings.Builder, varName string, rust
 	out.WriteString("    }\n")
 }
 
+func writeExecPackageStub(out *strings.Builder, pkg *externalPackageStub, integerTypes map[string]string) {
+	out.WriteString("pub mod exec {\n")
+	out.WriteString("    use super::*;\n\n")
+	writeGoStringArgTrait(out)
+	writeExecCommandArgsTrait(out)
+
+	constNames := make([]string, 0, len(pkg.Constants))
+	for constName := range pkg.Constants {
+		constNames = append(constNames, constName)
+	}
+	slices.Sort(constNames)
+	for _, constName := range constNames {
+		out.WriteString("    pub const ")
+		out.WriteString(constName)
+		out.WriteString(": ")
+		out.WriteString(pkg.Constants[constName])
+		out.WriteString(" = ")
+		writeExternalStubConstDefaultValue(out, pkg.Constants[constName], integerTypes)
+		out.WriteString(";\n")
+	}
+	if len(constNames) > 0 && (len(pkg.Functions) > 0 || len(pkg.Variables) > 0) {
+		out.WriteString("\n")
+	}
+
+	varNames := make([]string, 0, len(pkg.Variables))
+	for varName := range pkg.Variables {
+		varNames = append(varNames, varName)
+	}
+	slices.Sort(varNames)
+	for i, varName := range varNames {
+		if i > 0 {
+			out.WriteString("\n")
+		}
+		writeExternalPackageStubVariable(out, varName, pkg.Variables[varName])
+	}
+	if len(varNames) > 0 && len(pkg.Functions) > 0 {
+		out.WriteString("\n")
+	}
+
+	funcNames := make([]string, 0, len(pkg.Functions))
+	for funcName := range pkg.Functions {
+		funcNames = append(funcNames, funcName)
+	}
+	slices.Sort(funcNames)
+	for i, funcName := range funcNames {
+		if i > 0 {
+			out.WriteString("\n")
+		}
+		writeExternalPackageStubFunction(out, funcName, pkg.Functions[funcName])
+	}
+	out.WriteString("}\n")
+}
+
 func writeExternalPackageStubFunction(out *strings.Builder, funcName string, fn externalPackageStubFunction) {
+	if funcName == "command" && len(fn.ReturnTypes) == 1 {
+		writeExecCommandStub(out, fn, false)
+		return
+	}
+	if funcName == "command_context" && len(fn.ReturnTypes) == 1 {
+		writeExecCommandStub(out, fn, true)
+		return
+	}
 	if funcName == "look_path" && len(fn.ReturnTypes) == 2 {
 		writeExecLookPathStub(out, fn)
 		return
@@ -2750,6 +2815,93 @@ func writeExternalPackageStubFunction(out *strings.Builder, funcName string, fn 
 		out.WriteString("\n")
 	}
 	out.WriteString("    }\n")
+}
+
+func writeExecCommandStub(out *strings.Builder, fn externalPackageStubFunction, hasContext bool) {
+	if hasContext {
+		out.WriteString("    pub fn command_context<T0, T1: GoStringArg, T2: GoExecCommandArgs>(_arg0: T0, _arg1: T1, _arg2: T2) -> ")
+		writeExternalStubReturnType(out, fn.ReturnTypes)
+		out.WriteString(" {\n")
+		writeExecCommandStubBody(out, "_arg1", "_arg2")
+		return
+	}
+	out.WriteString("    pub fn command<T0: GoStringArg, T1: GoExecCommandArgs>(_arg0: T0, _arg1: T1) -> ")
+	writeExternalStubReturnType(out, fn.ReturnTypes)
+	out.WriteString(" {\n")
+	writeExecCommandStubBody(out, "_arg0", "_arg1")
+}
+
+func writeExecCommandStubBody(out *strings.Builder, nameArg string, argsArg string) {
+	out.WriteString("        let mut args = vec![")
+	out.WriteString(nameArg)
+	out.WriteString(".into_go_string()];\n")
+	out.WriteString("        args.extend(")
+	out.WriteString(argsArg)
+	out.WriteString(".into_exec_args());\n")
+	out.WriteString("        ")
+	out.WriteString(wrappedExternalStubExpr("exec_Cmd", "exec_Cmd { args: "+wrappedExternalStubExpr("Vec<String>", "args")+", ..Default::default() }"))
+	out.WriteString("\n    }\n")
+}
+
+func writeExecCommandArgsTrait(out *strings.Builder) {
+	sliceType := wrappedExternalStubType("Vec<String>")
+	borrow := ".borrow()"
+	if NeedsConcurrentWrapper() {
+		borrow = ".lock().unwrap()"
+	}
+	fmt.Fprintf(out, `    pub trait GoExecCommandArgs {
+        fn into_exec_args(self) -> Vec<String>;
+    }
+
+    impl GoExecCommandArgs for () {
+        fn into_exec_args(self) -> Vec<String> {
+            Vec::new()
+        }
+    }
+
+    impl GoExecCommandArgs for %s {
+        fn into_exec_args(self) -> Vec<String> {
+            self%s.as_ref().cloned().unwrap_or_default()
+        }
+    }
+
+    impl<T0: GoStringArg> GoExecCommandArgs for (T0,) {
+        fn into_exec_args(self) -> Vec<String> {
+            vec![self.0.into_go_string()]
+        }
+    }
+
+    impl<T0: GoStringArg, T1: GoStringArg> GoExecCommandArgs for (T0, T1) {
+        fn into_exec_args(self) -> Vec<String> {
+            vec![self.0.into_go_string(), self.1.into_go_string()]
+        }
+    }
+
+    impl<T0: GoStringArg, T1: GoStringArg, T2: GoStringArg> GoExecCommandArgs for (T0, T1, T2) {
+        fn into_exec_args(self) -> Vec<String> {
+            vec![self.0.into_go_string(), self.1.into_go_string(), self.2.into_go_string()]
+        }
+    }
+
+    impl<T0: GoStringArg, T1: GoStringArg, T2: GoStringArg, T3: GoStringArg> GoExecCommandArgs for (T0, T1, T2, T3) {
+        fn into_exec_args(self) -> Vec<String> {
+            vec![self.0.into_go_string(), self.1.into_go_string(), self.2.into_go_string(), self.3.into_go_string()]
+        }
+    }
+
+    impl<T0: GoStringArg, T1: GoStringArg, T2: GoStringArg, T3: GoStringArg, T4: GoStringArg> GoExecCommandArgs for (T0, T1, T2, T3, T4) {
+        fn into_exec_args(self) -> Vec<String> {
+            vec![self.0.into_go_string(), self.1.into_go_string(), self.2.into_go_string(), self.3.into_go_string(), self.4.into_go_string()]
+        }
+    }
+
+    impl<T0: GoStringArg, T1: GoStringArg, T2: GoStringArg, T3: GoStringArg, T4: GoStringArg, T5: GoStringArg> GoExecCommandArgs for (T0, T1, T2, T3, T4, T5) {
+        fn into_exec_args(self) -> Vec<String> {
+            vec![self.0.into_go_string(), self.1.into_go_string(), self.2.into_go_string(), self.3.into_go_string(), self.4.into_go_string(), self.5.into_go_string()]
+        }
+    }
+
+`, sliceType, borrow)
 }
 
 func writeExecLookPathStub(out *strings.Builder, fn externalPackageStubFunction) {
