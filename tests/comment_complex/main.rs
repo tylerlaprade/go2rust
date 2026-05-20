@@ -63,7 +63,7 @@ fn main() {
     let mut person = new_person(Rc::new(RefCell::new(Some("Alice".to_string()))), Rc::new(RefCell::new(Some(30))));
 
         // Call the greeting method
-    (*person.borrow_mut().as_mut().unwrap()).greet();
+    (*person.borrow().as_ref().unwrap()).greet();
 
         // Try with invalid age
     let mut invalid = new_person(Rc::new(RefCell::new(Some("Bob".to_string()))), Rc::new(RefCell::new(Some(-1))));

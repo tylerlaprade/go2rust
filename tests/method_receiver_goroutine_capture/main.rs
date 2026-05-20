@@ -195,6 +195,6 @@ impl Runner {
 fn main() {
     let mut done = GoChannel::<String>::new();
     let mut r = Arc::new(Mutex::new(Some(Runner { name: Arc::new(Mutex::new(Some("ok".to_string()))), ..Default::default() })));
-    (*r.lock().unwrap().as_mut().unwrap()).run(done.clone());
+    (*r.lock().unwrap().as_ref().unwrap()).run(done.clone());
     println!("{}", format!("{}", done.recv().unwrap()));
 }

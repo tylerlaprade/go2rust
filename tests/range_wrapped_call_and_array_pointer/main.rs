@@ -89,7 +89,7 @@ fn main() {
         println!("{}", format!("{}", name));
     } }
     let mut b = Rc::new(RefCell::new(Some(bucket { values: Rc::new(RefCell::new(Some([2, 3, 5]))), ..Default::default() })));
-    println!("{}", format!("{}", (*(*b.borrow_mut().as_mut().unwrap()).sum().borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*(*b.borrow().as_ref().unwrap()).sum().borrow().as_ref().unwrap())));
 
     let mut groups = Rc::new(RefCell::new(Some([vec!["go".to_string()], vec!["rust".to_string(), "zig".to_string()]])));
     let mut total = Rc::new(RefCell::new(Some(0)));

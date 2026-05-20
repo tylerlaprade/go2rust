@@ -58,5 +58,5 @@ pub fn r#use(p: Rc<RefCell<Option<pkg>>>) {
 fn main() {
     let mut p = Rc::new(RefCell::new(Some(pkg { name: Rc::new(RefCell::new(Some("alpha".to_string()))), ..Default::default() })));
     let mut r = Rc::new(RefCell::new(Some(reader { current: p.clone(), ..Default::default() })));
-    (*r.borrow_mut().as_mut().unwrap()).run();
+    (*r.borrow().as_ref().unwrap()).run();
 }

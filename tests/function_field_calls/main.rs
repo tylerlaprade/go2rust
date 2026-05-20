@@ -32,5 +32,5 @@ pub fn print_value(value: Rc<RefCell<Option<String>>>) {
 
 fn main() {
     let mut r = Rc::new(RefCell::new(Some(Runner { callback: Rc::new(RefCell::new(Some(Box::new(move |__arg0: Rc<RefCell<Option<String>>>| { print_value(__arg0) }) as Box<dyn FnMut(Rc<RefCell<Option<String>>>) -> ()>))), ..Default::default() })));
-    (*r.borrow_mut().as_mut().unwrap()).run();
+    (*r.borrow().as_ref().unwrap()).run();
 }

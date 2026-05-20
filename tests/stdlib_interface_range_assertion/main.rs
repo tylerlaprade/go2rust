@@ -126,7 +126,7 @@ pub fn count_type_names(objs: Rc<RefCell<Option<Vec<types_Object>>>>) -> Rc<RefC
 pub fn accept_object_keys(index: Rc<RefCell<Option<BTreeMap<types_Object, Rc<RefCell<Option<u64>>>>>>>, e: Rc<RefCell<Option<exporter>>>) {
     for (__range_key, _) in { let __range_holder = index.clone(); let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
         let obj = Rc::new(RefCell::new(Some(__range_key.clone())));
-        (*e.borrow_mut().as_mut().unwrap()).accept(obj.clone());
+        (*e.borrow().as_ref().unwrap()).accept(obj.clone());
     }
 }
 

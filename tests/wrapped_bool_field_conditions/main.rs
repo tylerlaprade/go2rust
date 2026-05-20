@@ -51,8 +51,8 @@ impl item {
 fn main() {
     let mut on = Rc::new(RefCell::new(Some(item { flag: Rc::new(RefCell::new(Some(true))), ..Default::default() })));
     let mut off = Rc::new(RefCell::new(Some(item { flag: Rc::new(RefCell::new(Some(false))) })));
-    println!("{}", format!("{}", (*(*on.borrow_mut().as_mut().unwrap()).label().borrow().as_ref().unwrap())));
-    println!("{}", format!("{}", (*(*off.borrow_mut().as_mut().unwrap()).label().borrow().as_ref().unwrap())));
-    println!("{}", format!("{}", (*(*on.borrow_mut().as_mut().unwrap()).either(off.clone()).borrow().as_ref().unwrap())));
-    println!("{}", format!("{}", (*(*off.borrow_mut().as_mut().unwrap()).active().borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*(*on.borrow().as_ref().unwrap()).label().borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*(*off.borrow().as_ref().unwrap()).label().borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*(*on.borrow().as_ref().unwrap()).either(off.clone()).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*(*off.borrow().as_ref().unwrap()).active().borrow().as_ref().unwrap())));
 }

@@ -29,7 +29,7 @@ impl store {
 fn main() {
     let mut s: Rc<RefCell<Option<store>>> = Rc::new(RefCell::new(Some(Default::default())));
     let (mut seen, _) = ({
-        let val = (*s.borrow_mut().as_mut().unwrap()).set(Rc::new(RefCell::new(Some(Box::new(true) as Box<dyn Any>)))).clone();
+        let val = (*s.borrow().as_ref().unwrap()).set(Rc::new(RefCell::new(Some(Box::new(true) as Box<dyn Any>)))).clone();
         let guard = val.borrow();
         if let Some(ref any_val) = *guard {
             if let Some(typed_val) = any_val.downcast_ref::<bool>() {

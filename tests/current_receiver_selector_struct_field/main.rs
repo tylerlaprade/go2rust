@@ -61,5 +61,5 @@ impl carrier {
 
 fn main() {
     let mut c = Rc::new(RefCell::new(Some(carrier { path: Rc::new(RefCell::new(Some("alpha".to_string()))), ..Default::default() })));
-    (*c.borrow_mut().as_mut().unwrap()).print_reader();
+    (*c.borrow().as_ref().unwrap()).print_reader();
 }

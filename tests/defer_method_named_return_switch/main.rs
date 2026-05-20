@@ -57,6 +57,6 @@ impl reader {
 
 fn main() {
     let mut r = Rc::new(RefCell::new(Some(reader {  })));
-    println!("{}", format!("{}", (*(*r.borrow_mut().as_mut().unwrap()).pick(Rc::new(RefCell::new(Some(0)))).borrow().as_ref().unwrap())));
-    println!("{}", format!("{}", (*(*r.borrow_mut().as_mut().unwrap()).pick(Rc::new(RefCell::new(Some(2)))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*(*r.borrow().as_ref().unwrap()).pick(Rc::new(RefCell::new(Some(0)))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*(*r.borrow().as_ref().unwrap()).pick(Rc::new(RefCell::new(Some(2)))).borrow().as_ref().unwrap())));
 }

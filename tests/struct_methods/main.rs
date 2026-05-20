@@ -40,10 +40,10 @@ impl rect {
 
 fn main() {
     let mut r = Rc::new(RefCell::new(Some(rect { width: Rc::new(RefCell::new(Some(10))), height: Rc::new(RefCell::new(Some(5))), ..Default::default() })));
-    println!("{} {}", format!("{}", "area: ".to_string()), format!("{}", (*(*r.borrow_mut().as_mut().unwrap()).area().borrow().as_ref().unwrap())));
+    println!("{} {}", format!("{}", "area: ".to_string()), format!("{}", (*(*r.borrow().as_ref().unwrap()).area().borrow().as_ref().unwrap())));
     println!("{} {}", format!("{}", "perim:".to_string()), format!("{}", (*(*r.borrow().as_ref().unwrap()).perim().borrow().as_ref().unwrap())));
 
     let mut rp = r.clone();
-    println!("{} {}", format!("{}", "area: ".to_string()), format!("{}", (*(*rp.borrow_mut().as_mut().unwrap()).area().borrow().as_ref().unwrap())));
+    println!("{} {}", format!("{}", "area: ".to_string()), format!("{}", (*(*rp.borrow().as_ref().unwrap()).area().borrow().as_ref().unwrap())));
     println!("{} {}", format!("{}", "perim:".to_string()), format!("{}", (*(*rp.borrow().as_ref().unwrap()).perim().borrow().as_ref().unwrap())));
 }

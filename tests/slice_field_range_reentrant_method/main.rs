@@ -83,5 +83,5 @@ impl holder {
 
 fn main() {
     let mut h = Rc::new(RefCell::new(Some(holder { values: Rc::new(RefCell::new(Some(vec!["a".to_string(), "b".to_string()]))), ..Default::default() })));
-    println!("{}", format!("{}", (*(*h.borrow_mut().as_mut().unwrap()).count_with_check().borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*(*h.borrow().as_ref().unwrap()).count_with_check().borrow().as_ref().unwrap())));
 }

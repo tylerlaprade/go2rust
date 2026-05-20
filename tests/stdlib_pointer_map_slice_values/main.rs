@@ -211,11 +211,11 @@ pub fn remember(m: Rc<RefCell<Option<BTreeMap<GoLocalPtrKey<types_Package>, Rc<R
         return Rc::new(RefCell::new(Some((*export_path((*pkgs_closure_clone.borrow().as_ref().unwrap())[((*i.borrow().as_ref().unwrap())) as usize].clone()).borrow().as_ref().unwrap()).clone() < (*export_path((*pkgs_closure_clone.borrow().as_ref().unwrap())[((*j.borrow().as_ref().unwrap())) as usize].clone()).borrow().as_ref().unwrap()).clone())));
     }) as Box<dyn FnMut(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<bool>>>>))));
     let pkgs_closure_clone = pkgs.clone(); let w_closure_clone = w.clone(); sort::slice(pkgs_closure_clone.clone(), Rc::new(RefCell::new(Some(Box::new(move |i: Rc<RefCell<Option<i32>>>, j: Rc<RefCell<Option<i32>>>| -> Rc<RefCell<Option<bool>>> {
-        return Rc::new(RefCell::new(Some((*(*w_closure_clone.borrow_mut().as_mut().unwrap()).export_path((*pkgs_closure_clone.borrow().as_ref().unwrap())[((*i.borrow().as_ref().unwrap())) as usize].clone()).borrow().as_ref().unwrap()).clone() < (*(*w_closure_clone.borrow_mut().as_mut().unwrap()).export_path((*pkgs_closure_clone.borrow().as_ref().unwrap())[((*j.borrow().as_ref().unwrap())) as usize].clone()).borrow().as_ref().unwrap()).clone())));
+        return Rc::new(RefCell::new(Some((*(*w_closure_clone.borrow().as_ref().unwrap()).export_path((*pkgs_closure_clone.borrow().as_ref().unwrap())[((*i.borrow().as_ref().unwrap())) as usize].clone()).borrow().as_ref().unwrap()).clone() < (*(*w_closure_clone.borrow().as_ref().unwrap()).export_path((*pkgs_closure_clone.borrow().as_ref().unwrap())[((*j.borrow().as_ref().unwrap())) as usize].clone()).borrow().as_ref().unwrap()).clone())));
     }) as Box<dyn FnMut(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<bool>>>>))));
     { let __range_holder = pkgs.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for p in __range_values.iter() {
         let _ = export_path((*p).clone());
-        let _ = (*w.borrow_mut().as_mut().unwrap()).export_path(p.clone());
+        let _ = (*w.borrow().as_ref().unwrap()).export_path(p.clone());
         let _ = (*p.borrow_mut().as_mut().unwrap()).name();
         let _ = (*m.borrow().as_ref().unwrap()).get(&GoLocalPtrKey::new(p.clone())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default());
     } }

@@ -4228,12 +4228,23 @@ func isPackageSelectorBaseIdent(ident *ast.Ident) bool {
 	return isImport
 }
 
+func methodCallNeedsMutableReceiver(sel *ast.SelectorExpr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	if mutable, ok := typeInfo.SelectorRequiresMutableReceiver(sel); ok {
+		return mutable
+	}
+	return typeInfo.HasPointerReceiver(sel)
+}
+
 func writePackageGlobalSelectorMethodReceiver(out *strings.Builder, receiver *ast.SelectorExpr, method *ast.SelectorExpr) (bool, bool) {
 	if !isPackageVarSelector(receiver) {
 		return false, false
 	}
 	typeInfo := GetTypeInfo()
-	needsMut := typeInfo != nil && typeInfo.HasPointerReceiver(method)
+	needsMut := methodCallNeedsMutableReceiver(method)
 	isStdlibReceiver := false
 	if ident, ok := receiver.X.(*ast.Ident); ok {
 		if pkgPath, ok := goPackageImports[ident.Name]; ok {
@@ -4243,13 +4254,16 @@ func writePackageGlobalSelectorMethodReceiver(out *strings.Builder, receiver *as
 	if typeInfo != nil && typeInfo.IsPointer(receiver) && !isStdlibReceiver {
 		out.WriteString("{ let __recv_holder = ")
 		TranspileExpressionContext(out, receiver, LValue)
-		WriteBorrowMethod(out, false)
-		out.WriteString(".as_ref().unwrap().clone(); let __result = (*__recv_holder")
-		WriteBorrowMethod(out, needsMut)
 		if needsMut {
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref().unwrap().clone(); let __result = (*__recv_holder")
+			WriteBorrowMethod(out, true)
 			out.WriteString(".as_mut().unwrap()).")
 		} else {
-			out.WriteString(".as_ref().unwrap()).")
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref().unwrap().clone(); let __recv_value = (*__recv_holder")
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref().unwrap()).clone(); let __result = __recv_value.")
 		}
 		return true, true
 	}
@@ -4264,33 +4278,36 @@ func writePackageGlobalSelectorMethodReceiver(out *strings.Builder, receiver *as
 	return true, false
 }
 
-func writePackageGlobalIdentMethodReceiver(out *strings.Builder, receiver *ast.Ident, method *ast.SelectorExpr) bool {
+func writePackageGlobalIdentMethodReceiver(out *strings.Builder, receiver *ast.Ident, method *ast.SelectorExpr) (bool, bool) {
 	if !isPackageGlobalObjectIdent(receiver) {
-		return false
+		return false, false
 	}
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil {
-		return false
+		return false, false
 	}
 	typ := typeInfo.GetType(receiver)
 	if typ == nil {
-		return false
+		return false, false
 	}
 	if _, ok := types.Unalias(typ).Underlying().(*types.Pointer); !ok {
-		return false
+		return false, false
 	}
-	needsMut := typeInfo.HasPointerReceiver(method)
-	out.WriteString("(*(*")
+	needsMut := methodCallNeedsMutableReceiver(method)
+	out.WriteString("{ let __recv_holder = (*")
 	out.WriteString(rustPackageGlobalName(receiver.Name))
 	WriteBorrowMethod(out, false)
-	out.WriteString(".as_ref().unwrap())")
-	WriteBorrowMethod(out, needsMut)
+	out.WriteString(".as_ref().unwrap()).clone(); ")
 	if needsMut {
+		out.WriteString("let __result = (*__recv_holder")
+		WriteBorrowMethod(out, true)
 		out.WriteString(".as_mut().unwrap()).")
 	} else {
-		out.WriteString(".as_ref().unwrap()).")
+		out.WriteString("let __recv_value = (*__recv_holder")
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap()).clone(); let __result = __recv_value.")
 	}
-	return true
+	return true, true
 }
 
 // TranspileExpressionContext transpiles an expression with context about how it's used
@@ -8401,8 +8418,9 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 
 		// Check if the receiver is a simple identifier (local variable)
 		if ident, ok := sel.X.(*ast.Ident); ok {
-			if writePackageGlobalIdentMethodReceiver(out, ident, sel) {
+			if wrote, shouldClose := writePackageGlobalIdentMethodReceiver(out, ident, sel); wrote {
 				// Package-global pointer receiver handled above.
+				closeReceiverBlock = shouldClose
 			} else if currentReceiver != "" && ident.Name == currentReceiver {
 				if currentCaptureRenames != nil {
 					if renamed, exists := currentCaptureRenames[ident.Name]; exists {
@@ -8441,7 +8459,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				if needsUnwrap {
 					// Wrapped type - need to unwrap
 					// Use mutable borrow only for pointer receiver methods
-					needsMut := typeInfo != nil && typeInfo.HasPointerReceiver(sel)
+					needsMut := methodCallNeedsMutableReceiver(sel)
 					if methodCallFuncLitArgCapturesReceiver(call, ident.Name) {
 						out.WriteString("{ let __recv = ")
 						out.WriteString(receiverName)
@@ -8489,7 +8507,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				fieldNeedsMut := false
 				typeInfo2 := GetTypeInfo()
 				if typeInfo2 != nil {
-					fieldNeedsMut = typeInfo2.HasPointerReceiver(sel)
+					fieldNeedsMut = methodCallNeedsMutableReceiver(sel)
 				}
 				out.WriteString("(*")
 				TranspileExpressionContext(out, fieldSel, LValue)
@@ -8501,8 +8519,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				}
 			}
 		} else if methodReceiverExpressionNeedsUnwrap(sel.X) {
-			typeInfo := GetTypeInfo()
-			needsMut := typeInfo != nil && typeInfo.HasPointerReceiver(sel)
+			needsMut := methodCallNeedsMutableReceiver(sel)
 			out.WriteString("{ let __recv = ")
 			TranspileExpression(out, sel.X)
 			out.WriteString("; let __result = (*__recv")

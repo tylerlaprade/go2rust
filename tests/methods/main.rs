@@ -46,5 +46,5 @@ fn main() {
     let mut counter = new_counter();
     (*counter.borrow_mut().as_mut().unwrap()).increment();
     (*counter.borrow_mut().as_mut().unwrap()).increment();
-    println!("{} {}", format!("{}", "Counter value:".to_string()), format!("{}", (*(*counter.borrow_mut().as_mut().unwrap()).value().borrow().as_ref().unwrap())));
+    println!("{} {}", format!("{}", "Counter value:".to_string()), format!("{}", (*(*counter.borrow().as_ref().unwrap()).value().borrow().as_ref().unwrap())));
 }

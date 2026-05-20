@@ -76,7 +76,7 @@ impl cache {
 fn main() {
     if false {
         let mut c = Rc::new(RefCell::new(Some(cache { child: Rc::new(RefCell::new(Some(Default::default()))) })));
-        println!("{}", format!("{}", format!("&{}", (*(*c.borrow_mut().as_mut().unwrap()).get().borrow().as_ref().unwrap()))));
+        println!("{}", format!("{}", format!("&{}", (*(*c.borrow().as_ref().unwrap()).get().borrow().as_ref().unwrap()))));
     }
     println!("{}", format!("{}", "ok".to_string()));
 }

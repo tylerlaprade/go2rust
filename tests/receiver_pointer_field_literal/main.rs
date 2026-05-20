@@ -59,5 +59,5 @@ impl Link {
 
 fn main() {
     let mut node = Rc::new(RefCell::new(Some(Node { name: Rc::new(RefCell::new(Some("root".to_string()))), ..Default::default() })));
-    println!("{}", format!("{}", (*{ let __recv = (*node.borrow_mut().as_mut().unwrap()).link(); let __result = (*__recv.borrow().as_ref().unwrap()).owner_name(); __result }.borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*{ let __recv = (*node.borrow().as_ref().unwrap()).link(); let __result = (*__recv.borrow().as_ref().unwrap()).owner_name(); __result }.borrow().as_ref().unwrap())));
 }

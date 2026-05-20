@@ -537,7 +537,7 @@ pub fn field_enabled(f: Rc<RefCell<Option<Field>>>) -> Rc<RefCell<Option<i32>>> 
 fn main() {
     let mut e: Rc<RefCell<Option<Encoder>>> = Rc::new(RefCell::new(Some(Default::default())));
     println!("{}", format!("{}", (*take_reloc(Rc::new(RefCell::new(Some(RelocKind(Rc::new(RefCell::new(Some(RELOC_META as i32)))))))).borrow().as_ref().unwrap())));
-    println!("{}", format!("{}", (*(*e.borrow_mut().as_mut().unwrap()).sync(Rc::new(RefCell::new(Some(SyncMarker(Rc::new(RefCell::new(Some(SYNC_BOOL as i32)))))))).borrow().as_ref().unwrap())));
-    println!("{}", format!("{}", (*(*e.borrow_mut().as_mut().unwrap()).call_sync().borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*(*e.borrow().as_ref().unwrap()).sync(Rc::new(RefCell::new(Some(SyncMarker(Rc::new(RefCell::new(Some(SYNC_BOOL as i32)))))))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*(*e.borrow().as_ref().unwrap()).call_sync().borrow().as_ref().unwrap())));
     println!("{}", format!("{}", (*field_enabled(Rc::new(RefCell::new(Some(Field(Rc::new(RefCell::new(Some(HAS_INIT as i32)))))))).borrow().as_ref().unwrap())));
 }

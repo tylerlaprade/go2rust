@@ -9,8 +9,9 @@ import (
 
 // TypeInfo holds type checking results
 type TypeInfo struct {
-	info *types.Info
-	pkg  *types.Package
+	info                     *types.Info
+	pkg                      *types.Package
+	methodMutableReceiverMap map[string]bool
 }
 
 // NewTypeInfo creates type information for the given files
@@ -34,10 +35,12 @@ func NewTypeInfo(files []*ast.File, fset *token.FileSet) (*TypeInfo, error) {
 
 	pkg, _ := config.Check("", fset, files, info)
 
-	return &TypeInfo{
+	typeInfo := &TypeInfo{
 		info: info,
 		pkg:  pkg,
-	}, nil
+	}
+	typeInfo.methodMutableReceiverMap = collectMethodReceiverMutability(files, typeInfo)
+	return typeInfo, nil
 }
 
 // GetType returns the type of an expression, or nil if unknown
@@ -101,6 +104,28 @@ func (ti *TypeInfo) HasPointerReceiver(sel *ast.SelectorExpr) bool {
 	}
 	_, isPtr := recv.Type().(*types.Pointer)
 	return isPtr
+}
+
+// SelectorRequiresMutableReceiver reports whether the selected method was
+// generated with a mutable Rust receiver.
+func (ti *TypeInfo) SelectorRequiresMutableReceiver(sel *ast.SelectorExpr) (bool, bool) {
+	if ti == nil || ti.info == nil || sel == nil {
+		return false, false
+	}
+	selection, ok := ti.info.Selections[sel]
+	if !ok {
+		return false, false
+	}
+	fn, ok := selection.Obj().(*types.Func)
+	if !ok {
+		return false, false
+	}
+	key := methodOverrideKey(fn)
+	if key == "" {
+		return false, false
+	}
+	mutable, ok := ti.methodMutableReceiverMap[key]
+	return mutable, ok
 }
 
 // IsMap returns true if the expression is a map type

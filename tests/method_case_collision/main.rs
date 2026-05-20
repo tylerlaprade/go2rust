@@ -31,5 +31,5 @@ impl Runner {
 
 fn main() {
     let mut r: Rc<RefCell<Option<Runner>>> = Rc::new(RefCell::new(Some(Default::default())));
-    println!("{}", format!("{}", (*(*r.borrow_mut().as_mut().unwrap()).run_piped().borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*(*r.borrow().as_ref().unwrap()).run_piped().borrow().as_ref().unwrap())));
 }

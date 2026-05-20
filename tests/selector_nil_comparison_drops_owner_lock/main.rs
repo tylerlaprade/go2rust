@@ -268,7 +268,7 @@ impl State {
 }
 
 pub fn worker(state: Arc<Mutex<Option<State>>>, done: GoChannel<bool>) {
-    let mut inv = (*state.lock().unwrap().as_mut().unwrap()).invocation();
+    let mut inv = (*state.lock().unwrap().as_ref().unwrap()).invocation();
     done.send((*{ let __field = (*inv.lock().unwrap().as_ref().unwrap()).clean_env.clone(); __field }.lock().unwrap().as_ref().unwrap()) && { let __tmp_x = ((*(*inv.lock().unwrap().as_ref().unwrap()).env.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = (1 as i32); __tmp_x == __tmp_y } && { let __tmp_x = { let __selector_holder = (*inv.lock().unwrap().as_ref().unwrap()).working_dir.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = "work"; __tmp_x == __tmp_y });
 }
 

@@ -52,7 +52,7 @@ fn main() {
 
     let mut methodSum = Rc::new(RefCell::new(Some(0)));
     let mut c = Rc::new(RefCell::new(Some(counter { n: Rc::new(RefCell::new(Some(4))), ..Default::default() })));
-    for i in 0..({ let __v = (*c.borrow_mut().as_mut().unwrap()).len(); let __owned = (*__v.borrow().as_ref().unwrap()).clone(); __owned }) {
+    for i in 0..({ let __v = (*c.borrow().as_ref().unwrap()).len(); let __owned = (*__v.borrow().as_ref().unwrap()).clone(); __owned }) {
         { let mut guard = methodSum.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + i); };
     }
 

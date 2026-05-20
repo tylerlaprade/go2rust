@@ -111,7 +111,7 @@ impl List for list {
 
 fn main() {
     let mut l = Rc::new(RefCell::new(Some(list { labels: Rc::new(RefCell::new(Some(vec![3]))), ..Default::default() })));
-    let mut valid = (*l.borrow_mut().as_mut().unwrap()).valid(Rc::new(RefCell::new(Some(0))));
-    let mut label = (*l.borrow_mut().as_mut().unwrap()).label(Rc::new(RefCell::new(Some(0))));
+    let mut valid = (*l.borrow().as_ref().unwrap()).valid(Rc::new(RefCell::new(Some(0))));
+    let mut label = (*l.borrow().as_ref().unwrap()).label(Rc::new(RefCell::new(Some(0))));
     println!("{} {}", format!("{}", { let __v = (*valid.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*label.borrow().as_ref().unwrap()).clone(); __v }));
 }

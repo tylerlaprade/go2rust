@@ -190,12 +190,12 @@ impl Params {
 pub fn total(p: Arc<Mutex<Option<Params>>>) -> Arc<Mutex<Option<i32>>> {
 
     let mut sum = Arc::new(Mutex::new(Some(0)));
-    for mut i in 0..({ let __v = (*p.lock().unwrap().as_mut().unwrap()).len(); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) {
+    for mut i in 0..({ let __v = (*p.lock().unwrap().as_ref().unwrap()).len(); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) {
         if { let __tmp_x = i; let __tmp_y = 0; __tmp_x == __tmp_y } {
         {
     let mut i = Arc::new(Mutex::new(Some(0)));
-    while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*(*p.lock().unwrap().as_mut().unwrap()).len().lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y } {
-        { let mut guard = sum.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + (*(*p.lock().unwrap().as_mut().unwrap()).at(Arc::new(Mutex::new(Some((*i.lock().unwrap().as_ref().unwrap()).clone())))).lock().unwrap().as_ref().unwrap())); };
+    while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*(*p.lock().unwrap().as_ref().unwrap()).len().lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y } {
+        { let mut guard = sum.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + (*(*p.lock().unwrap().as_ref().unwrap()).at(Arc::new(Mutex::new(Some((*i.lock().unwrap().as_ref().unwrap()).clone())))).lock().unwrap().as_ref().unwrap())); };
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
     }

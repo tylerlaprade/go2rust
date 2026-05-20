@@ -44,7 +44,7 @@ pub fn recv_name(v: Rc<RefCell<Option<Box<dyn Any>>>>) -> Rc<RefCell<Option<Stri
         } else {
             panic!("type assertion on nil interface")
         }
-    }); let __result = (*__recv.borrow_mut().as_mut().unwrap()).recv(); __result };
+    }); let __result = (*__recv.borrow().as_ref().unwrap()).recv(); __result };
 }
 
 fn main() {

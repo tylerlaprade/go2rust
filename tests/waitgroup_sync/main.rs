@@ -119,5 +119,5 @@ fn main() {
     println!("{}", format!("{}", "All workers done".to_string()));
 
     let mut group = Rc::new(RefCell::new(Some(Group { wg: WaitGroup::new() })));
-    (*group.borrow_mut().as_mut().unwrap()).run();
+    (*group.borrow().as_ref().unwrap()).run();
 }

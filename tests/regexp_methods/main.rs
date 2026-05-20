@@ -200,7 +200,7 @@ fn main() {
     __go_init_all();
     let mut modMatches = capture((*modFlagRegexp.borrow().as_ref().unwrap()).clone(), Rc::new(RefCell::new(Some("-mod=vendor".to_string()))));
     println!("{}", format!("{}", (*modMatches.borrow().as_ref().unwrap())[(1) as usize].clone()));
-    println!("{}", format!("{}", (*(*(*modFlagRegexp.borrow().as_ref().unwrap()).borrow_mut().as_mut().unwrap()).find_string_submatch(Rc::new(RefCell::new(Some("-mod vendor".to_string())))).borrow().as_ref().unwrap())[(1) as usize].clone()));
+    println!("{}", format!("{}", (*{ let __recv_holder = (*modFlagRegexp.borrow().as_ref().unwrap()).clone(); let __result = (*__recv_holder.borrow_mut().as_mut().unwrap()).find_string_submatch(Rc::new(RefCell::new(Some("-mod vendor".to_string())))); __result }.borrow().as_ref().unwrap())[(1) as usize].clone()));
 
     let mut changed = Rc::new(RefCell::new(Some(GoRegexp { pattern: Rc::new(RefCell::new(Some("go:.*go.mod.*contents have changed".to_string()))) })));
     println!("{}", format!("{}", (*(*changed.borrow_mut().as_mut().unwrap()).match_string(Rc::new(RefCell::new(Some("go: updates to go.mod needed, but contents have changed".to_string())))).borrow().as_ref().unwrap())));
