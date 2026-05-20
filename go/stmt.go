@@ -433,6 +433,70 @@ func rangeElementUsesCloned(typ types.Type) bool {
 	return isGoErrorType(typ) || isFunctionSignatureType(typ)
 }
 
+func compositeLiteralRangeElemRustType(lit *ast.CompositeLit) (string, bool) {
+	if lit == nil {
+		return "", false
+	}
+	arrayType, ok := lit.Type.(*ast.ArrayType)
+	if !ok {
+		return "", false
+	}
+	return goCollectionElemTypeToRust(arrayType.Elt), true
+}
+
+func registerCompositeLiteralRangeElemType(lhs ast.Expr, lit *ast.CompositeLit) {
+	ident, ok := lhs.(*ast.Ident)
+	if !ok || ident.Name == "_" {
+		return
+	}
+	elemRustType, ok := compositeLiteralRangeElemRustType(lit)
+	if !ok {
+		return
+	}
+	localRangeElemRustTypes[ident.Name] = elemRustType
+}
+
+func trackedRangeElemRustType(expr ast.Expr) (string, bool) {
+	ident, ok := expr.(*ast.Ident)
+	if !ok {
+		return "", false
+	}
+	elemRustType, ok := localRangeElemRustTypes[ident.Name]
+	if !ok {
+		return "", false
+	}
+	return elemRustType, true
+}
+
+func rustRangeElemUsesCopied(rustType string) bool {
+	switch rustType {
+	case "bool", "char",
+		"i8", "i16", "i32", "i64", "isize",
+		"u8", "u16", "u32", "u64", "usize",
+		"f32", "f64":
+		return true
+	default:
+		return false
+	}
+}
+
+func rangeValueTypeFromTrackedRustElem(rustType string) string {
+	if rustRangeElemUsesCopied(rustType) {
+		return rustType
+	}
+	return "&" + rustType
+}
+
+func trackedRangeElemValueType(expr ast.Expr) (string, bool, bool) {
+	elemRustType, ok := trackedRangeElemRustType(expr)
+	if !ok {
+		return "", false, false
+	}
+	valueType := rangeValueTypeFromTrackedRustElem(elemRustType)
+	needsCopied := rustRangeElemUsesCopied(elemRustType)
+	return valueType, needsCopied, true
+}
+
 func blockIdentAssigned(body *ast.BlockStmt, name string) bool {
 	if body == nil || name == "" || name == "_" {
 		return false
@@ -5040,10 +5104,24 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 											}
 											// Function calls already return wrapped values, don't wrap again
 											writeCallExpressionForInitializer(out, callExpr)
-										} else if _, isFuncLit := rhs.(*ast.FuncLit); isFuncLit {
+										} else if funcLit, isFuncLit := rhs.(*ast.FuncLit); isFuncLit {
+											if i < len(s.Lhs) {
+												if lhsIdent, ok := s.Lhs[i].(*ast.Ident); ok {
+													if vt := GetVarTable(); vt != nil {
+														vt.Register(lhsIdent.Name, &VarInfo{
+															WrapLevel: WrapFull,
+															RustType:  generateClosureType(funcLit.Type),
+															Source:    SourceLocal,
+														})
+													}
+												}
+											}
 											// Function literals are already wrapped by TranspileFuncLit
 											TranspileExpression(out, rhs)
 										} else if compositeLit, isCompositeLit := rhs.(*ast.CompositeLit); isCompositeLit {
+											if i < len(s.Lhs) {
+												registerCompositeLiteralRangeElemType(s.Lhs[i], compositeLit)
+											}
 											// Check if it's a struct literal vs array/slice/map literal
 											isStructLiteral := false
 											if _, ok := compositeLit.Type.(*ast.Ident); ok {
@@ -5857,6 +5935,16 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					valueType = "&" + goTypesTypeToRust(elemType)
 				} else if _, ok := elemType.Underlying().(*types.Pointer); ok {
 					valueType = "&" + goTypesTypeToRust(elemType)
+				} else if _, ok := elemType.Underlying().(*types.Slice); ok {
+					valueType = "&" + goTypesTypeToRust(elemType)
+				} else if _, ok := elemType.Underlying().(*types.Array); ok {
+					if rangeElementUsesCopied(elemType) {
+						valueType = goTypesTypeToRust(elemType)
+					} else {
+						valueType = "&" + goTypesTypeToRust(elemType)
+					}
+				} else if _, ok := elemType.Underlying().(*types.Map); ok {
+					valueType = "&" + goTypesTypeToRust(elemType)
 				} else if intf, ok := elemType.Underlying().(*types.Interface); ok {
 					if intf.NumMethods() == 0 {
 						// It's []interface{} - elements are Box<dyn Any>
@@ -5872,6 +5960,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							valueType = "&Box<dyn Trait>"
 						}
 					}
+				} else if elemRustType, ok := trackedRangeElemRustType(s.X); ok {
+					valueType = rangeValueTypeFromTrackedRustElem(elemRustType)
 				}
 			}
 		}
@@ -5901,8 +5991,21 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					if rangeElementUsesCopiedForExpr(s.X, elemType) {
 						needsCopied = true
 					}
+					if elemType == nil {
+						if elemRustType, ok := trackedRangeElemRustType(s.X); ok && rustRangeElemUsesCopied(elemRustType) {
+							needsCopied = true
+						}
+					}
 					if rangeElementUsesCloned(elemType) {
 						needsCloned = true
+					}
+					if valueType == "T" {
+						if trackedValueType, trackedNeedsCopied, ok := trackedRangeElemValueType(s.X); ok {
+							valueType = trackedValueType
+							if trackedNeedsCopied {
+								needsCopied = true
+							}
+						}
 					}
 					if valueType == "T" && (needsCopied || valueAssigned) {
 						rangeLoopVars[valueName] = valueType

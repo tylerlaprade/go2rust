@@ -50,6 +50,7 @@ type FileState struct {
 	Helpers                      *HelperTracker
 	StatementPreprocessor        *StatementPreprocessor
 	RangeLoopVars                map[string]string
+	LocalRangeElemRustTypes      map[string]string
 	LocalConstants               map[string]string
 	LocalInterfaces              map[string]bool
 	CurrentReceiver              string
@@ -137,6 +138,7 @@ func NewFileState(imports *ImportTracker, helpers *HelperTracker, statementPrepr
 		Helpers:                      helpers,
 		StatementPreprocessor:        statementPreprocessor,
 		RangeLoopVars:                make(map[string]string),
+		LocalRangeElemRustTypes:      make(map[string]string),
 		LocalConstants:               make(map[string]string),
 		LocalInterfaces:              make(map[string]bool),
 		ExternalTypeStubs:            make(map[string]bool),
@@ -269,6 +271,9 @@ func (ctx *TranspileContext) ensureDefaults() {
 		if ctx.File.RangeLoopVars == nil {
 			ctx.File.RangeLoopVars = make(map[string]string)
 		}
+		if ctx.File.LocalRangeElemRustTypes == nil {
+			ctx.File.LocalRangeElemRustTypes = make(map[string]string)
+		}
 		if ctx.File.LocalConstants == nil {
 			ctx.File.LocalConstants = make(map[string]string)
 		}
@@ -341,6 +346,7 @@ func (ctx *TranspileContext) captureCompatibilityState() {
 		ctx.File.Helpers = ctx.Helpers
 		ctx.File.StatementPreprocessor = statementPreprocessor
 		ctx.File.RangeLoopVars = rangeLoopVars
+		ctx.File.LocalRangeElemRustTypes = localRangeElemRustTypes
 		ctx.File.LocalConstants = localConstants
 		ctx.File.LocalInterfaces = localInterfaces
 		ctx.File.CurrentReceiver = currentReceiver
@@ -396,6 +402,7 @@ func (ctx *TranspileContext) applyCompatibilityState() {
 		ctx.Helpers = ctx.File.Helpers
 		statementPreprocessor = ctx.File.StatementPreprocessor
 		rangeLoopVars = ctx.File.RangeLoopVars
+		localRangeElemRustTypes = ctx.File.LocalRangeElemRustTypes
 		localConstants = ctx.File.LocalConstants
 		localInterfaces = ctx.File.LocalInterfaces
 		currentReceiver = ctx.File.CurrentReceiver

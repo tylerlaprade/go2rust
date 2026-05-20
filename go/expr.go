@@ -4209,15 +4209,22 @@ func writeOwnedRangeValue(out *strings.Builder, ident *ast.Ident) bool {
 		return false
 	}
 	name := RustIdentForUse(ident)
+	capturedClone := false
 	if currentCaptureRenames != nil {
 		if renamed, exists := currentCaptureRenames[ident.Name]; exists {
 			name = RustLocalIdent(renamed)
+			capturedClone = true
 		}
 	}
 	if varType == "ref_value" || strings.HasPrefix(varType, "&") {
 		if isCopyTypeForRangeRef(ident) {
 			out.WriteString("*")
 			out.WriteString(name)
+			return true
+		}
+		if capturedClone {
+			out.WriteString(name)
+			out.WriteString(".clone()")
 			return true
 		}
 		out.WriteString("(*")
@@ -6923,6 +6930,13 @@ func TranspileFuncLitBox(out *strings.Builder, funcLit *ast.FuncLit) {
 }
 
 func functionBoxTypeForCallTarget(expr ast.Expr) string {
+	if ident, ok := expr.(*ast.Ident); ok {
+		if vt := GetVarTable(); vt != nil {
+			if info := vt.Lookup(ident.Name); info != nil && strings.HasPrefix(info.RustType, "Box<dyn Fn") {
+				return info.RustType
+			}
+		}
+	}
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil {
 		return "_"

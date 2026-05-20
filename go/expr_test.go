@@ -120,6 +120,29 @@ func TestIsFunctionNameUsesRegisteredSignatureWithoutTypeInfo(t *testing.T) {
 	}
 }
 
+func TestFunctionBoxTypeUsesVarTableWithoutTypeInfo(t *testing.T) {
+	prevTypeInfo := currentTypeInfo
+	prevVarTable := currentVarTable
+	defer func() {
+		currentTypeInfo = prevTypeInfo
+		SetVarTable(prevVarTable)
+	}()
+
+	SetTypeInfo(nil)
+	vt := NewVarTable()
+	vt.Register("processData", &VarInfo{
+		WrapLevel: WrapFull,
+		RustType:  "Box<dyn FnMut(Rc<RefCell<Option<Vec<i32>>>>) -> Rc<RefCell<Option<Box<dyn StdError>>>>>",
+		Source:    SourceLocal,
+	})
+	SetVarTable(vt)
+
+	got := functionBoxTypeForCallTarget(ast.NewIdent("processData"))
+	if !strings.HasPrefix(got, "Box<dyn FnMut(") {
+		t.Fatalf("function box type = %q", got)
+	}
+}
+
 func TestReferenceRangeComparisonDereferencesWithoutTypeInfo(t *testing.T) {
 	expr, err := parser.ParseExpr("num > 6")
 	if err != nil {
@@ -169,6 +192,77 @@ func TestElidedNestedSliceLiteralUsesOuterSyntaxWithoutTypeInfo(t *testing.T) {
 	}
 	if !strings.Contains(got, "Vec::<String>::new()") {
 		t.Fatalf("empty elided nested string slice literal needs explicit Vec type:\n%s", got)
+	}
+}
+
+func TestTrackedRangeSlicePrintArgWithoutTypeInfo(t *testing.T) {
+	prevTypeInfo := currentTypeInfo
+	prevRangeLoopVars := rangeLoopVars
+	prevRangeElemTypes := localRangeElemRustTypes
+	defer func() {
+		currentTypeInfo = prevTypeInfo
+		rangeLoopVars = prevRangeLoopVars
+		localRangeElemRustTypes = prevRangeElemTypes
+	}()
+	SetTypeInfo(nil)
+	localRangeElemRustTypes = make(map[string]string)
+
+	expr, err := parser.ParseExpr(`[][]int{{1, 2}}`)
+	if err != nil {
+		t.Fatalf("ParseExpr() error = %v", err)
+	}
+	registerCompositeLiteralRangeElemType(ast.NewIdent("testData"), expr.(*ast.CompositeLit))
+	elemRustType, ok := trackedRangeElemRustType(ast.NewIdent("testData"))
+	if !ok || elemRustType != "Vec<i32>" {
+		t.Fatalf("tracked range elem type = %q, %v; want Vec<i32>, true", elemRustType, ok)
+	}
+
+	rangeLoopVars = map[string]string{"data": rangeValueTypeFromTrackedRustElem(elemRustType)}
+	var out strings.Builder
+	transpilePrintArg(&out, ast.NewIdent("data"))
+
+	got := out.String()
+	if got != "format_slice_values(data)" {
+		t.Fatalf("tracked range slice print arg = %q", got)
+	}
+}
+
+func TestCapturedReferenceRangeValueUsesCapturedClone(t *testing.T) {
+	prevRangeLoopVars := rangeLoopVars
+	prevCaptureRenames := currentCaptureRenames
+	defer func() {
+		rangeLoopVars = prevRangeLoopVars
+		currentCaptureRenames = prevCaptureRenames
+	}()
+
+	rangeLoopVars = map[string]string{"chunk": "&Vec<String>"}
+	currentCaptureRenames = map[string]string{"chunk": "chunk_closure_clone"}
+
+	var out strings.Builder
+	if !writeOwnedRangeValue(&out, ast.NewIdent("chunk")) {
+		t.Fatalf("writeOwnedRangeValue returned false")
+	}
+	if got := out.String(); got != "chunk_closure_clone.clone()" {
+		t.Fatalf("captured range clone = %q", got)
+	}
+}
+
+func TestTrackedRangeElemFallbackFillsGenericValueType(t *testing.T) {
+	prevRangeElemTypes := localRangeElemRustTypes
+	defer func() {
+		localRangeElemRustTypes = prevRangeElemTypes
+	}()
+	localRangeElemRustTypes = map[string]string{"testData": "Vec<i32>"}
+
+	valueType, needsCopied, ok := trackedRangeElemValueType(ast.NewIdent("testData"))
+	if !ok {
+		t.Fatalf("trackedRangeElemValueType ok = false")
+	}
+	if valueType != "&Vec<i32>" {
+		t.Fatalf("valueType = %q, want &Vec<i32>", valueType)
+	}
+	if needsCopied {
+		t.Fatalf("needsCopied = true, want false for Vec element")
 	}
 }
 

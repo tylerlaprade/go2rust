@@ -430,6 +430,9 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 			TranspileExpression(out, arg)
 			return
 		}
+		if writeTrackedRangeSlicePrintArg(out, arg) {
+			return
+		}
 		// Type info not available - add error comment
 		out.WriteString("/* ERROR: Type information not available for print argument */ ")
 	}
@@ -988,6 +991,23 @@ func formatSliceArgumentIsBareValue(arg ast.Expr) bool {
 		return !selectorRValueReturnsWrappedHandle(arg)
 	}
 	return false
+}
+
+func writeTrackedRangeSlicePrintArg(out *strings.Builder, arg ast.Expr) bool {
+	ident, ok := arg.(*ast.Ident)
+	if !ok {
+		return false
+	}
+	varType, isRangeVar := rangeLoopVars[ident.Name]
+	if !isRangeVar || !strings.HasPrefix(varType, "&Vec<") {
+		return false
+	}
+	NeedFormatSlice()
+	TrackImport("Display")
+	out.WriteString("format_slice_values(")
+	out.WriteString(RustIdentForUse(ident))
+	out.WriteString(")")
+	return true
 }
 
 func writeFormatSliceCall(out *strings.Builder, arg ast.Expr, wrappedHelper string, valuesHelper string) {
