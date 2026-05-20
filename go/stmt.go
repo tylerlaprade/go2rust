@@ -3949,6 +3949,12 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							WriteWrapperSuffix(out)
 						}
 					} else if binExpr, ok := result.(*ast.BinaryExpr); ok {
+						if binExpr.Op == token.LAND || binExpr.Op == token.LOR {
+							WriteWrapperPrefix(out)
+							TranspileExpression(out, result)
+							WriteWrapperSuffix(out)
+							continue
+						}
 						if binExpr.Op == token.ADD {
 							if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.IsString(binExpr) {
 								WriteWrapperPrefix(out)

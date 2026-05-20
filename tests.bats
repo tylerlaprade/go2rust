@@ -1170,6 +1170,10 @@ run_xfail_test() {
     run_test "tests/local_var_multi_names"
 }
 
+@test "logical_short_circuit_return" {
+    run_test "tests/logical_short_circuit_return"
+}
+
 @test "make_capacity_wrapped_call" {
     run_test "tests/make_capacity_wrapped_call"
 }

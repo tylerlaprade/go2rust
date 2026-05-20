@@ -6464,15 +6464,20 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 
 // Helper to check if an identifier is a function (not a closure variable)
 func isFunctionName(ident *ast.Ident) bool {
-	// Use go/types to properly determine if this is a function
-	typeInfo := GetTypeInfo()
-	if typeInfo != nil {
-		return typeInfo.IsFunction(ident)
+	if ident == nil {
+		return false
+	}
+	if vt := GetVarTable(); vt != nil && vt.Lookup(ident.Name) != nil {
+		return false
 	}
 
-	// Fallback: if no type info, assume it's not a function
-	// This ensures we don't make incorrect assumptions
-	return false
+	// Use go/types to properly determine if this is a function
+	typeInfo := GetTypeInfo()
+	if typeInfo != nil && typeInfo.IsFunction(ident) {
+		return true
+	}
+
+	return GetFunctionSignature(ident.Name) != nil
 }
 
 func functionValueSignature(ident *ast.Ident) (*types.Signature, bool) {

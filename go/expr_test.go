@@ -90,6 +90,36 @@ func TestLocalInterfaceReferenceCallArgumentUsesCurrentReceiver(t *testing.T) {
 	}
 }
 
+func TestIsFunctionNameUsesRegisteredSignatureWithoutTypeInfo(t *testing.T) {
+	prevTypeInfo := currentTypeInfo
+	prevContext := currentContext
+	prevVarTable := currentVarTable
+	defer func() {
+		currentTypeInfo = prevTypeInfo
+		SetTranspileContext(prevContext)
+		SetVarTable(prevVarTable)
+	}()
+
+	SetTranspileContext(&TranspileContext{
+		Session: NewTranspileSession(nil, nil),
+		Package: NewPackageState(),
+		File:    NewFileState(NewImportTracker(), &HelperTracker{}, nil),
+	})
+	SetTypeInfo(nil)
+	RegisterFunctionSignature("hasName", &FunctionSignature{})
+
+	if !isFunctionName(ast.NewIdent("hasName")) {
+		t.Fatal("registered package function should be recognized without go/types")
+	}
+
+	vt := NewVarTable()
+	vt.Register("hasName", &VarInfo{WrapLevel: WrapFull, Source: SourceLocal})
+	SetVarTable(vt)
+	if isFunctionName(ast.NewIdent("hasName")) {
+		t.Fatal("local variable should shadow registered package function")
+	}
+}
+
 func TestExternalStubCallClonesMapRangeStringKey(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
