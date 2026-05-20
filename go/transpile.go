@@ -1157,7 +1157,7 @@ func generateExternalPromotedMethod(out *strings.Builder, method externalPromote
 			if i > 0 {
 				out.WriteString(", ")
 			}
-			fmt.Fprintf(out, "T%d", i)
+			fmt.Fprintf(out, "T%d: 'static", i)
 		}
 		out.WriteString(">")
 	}
@@ -1728,6 +1728,10 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 		helpersForFile = helpers.withoutSharedStdlibHelpers()
 	}
 	helpersStr := helpersForFile.GenerateHelpers()
+	stubsStr := GenerateExternalTypeStubs()
+	if strings.Contains(stubsStr, "StdError") {
+		imports.Add("Error")
+	}
 	importsStr := imports.GenerateImports()
 	output.WriteString(importsStr)
 	if importsStr != "" {
@@ -1737,7 +1741,6 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 	if helpersStr != "" {
 		output.WriteString("\n")
 	}
-	stubsStr := GenerateExternalTypeStubs()
 	output.WriteString(stubsStr)
 	if stubsStr != "" {
 		output.WriteString("\n\n")

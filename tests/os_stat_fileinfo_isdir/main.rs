@@ -71,7 +71,7 @@ pub mod os {
         }
     }
 
-    type GoError = Rc<RefCell<Option<Box<dyn StdError>>>>;
+    type GoError = Rc<RefCell<Option<Box<dyn std::error::Error>>>>;
 
     fn no_error() -> GoError {
         Rc::new(RefCell::new(None))

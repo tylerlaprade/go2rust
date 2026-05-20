@@ -164,6 +164,10 @@ pub mod exec {
 
 
 fn main() {
-    let mut cmd = exec::command("go".to_string(), ("list".to_string(), "-export".to_string(), "-f".to_string(), "{{.Export}}".to_string(), "pkg".to_string()));
-    println!("{}", format!("{}", (*Arc::new(Mutex::new(Some({ let __parts = (*(*cmd.lock().unwrap().as_ref().unwrap()).args.lock().unwrap().as_ref().unwrap()).clone(); let __sep = " ".to_string(); __parts.join(&__sep) }))).lock().unwrap().as_ref().unwrap())));
+    let (mut out, mut err) = { let __recv = exec::command("go".to_string(), ("list".to_string(), "-e".to_string(), "-f".to_string(), "{{context.ReleaseTags}}".to_string(), "--".to_string(), "unsafe".to_string())); let __result = (*__recv.lock().unwrap().as_mut().unwrap()).output(); __result };
+    if (*err.lock().unwrap()).is_some() {
+        println!("{}", format!("{}", "error".to_string()));
+        return;
+    }
+    println!("{}", format!("{}", (*Arc::new(Mutex::new(Some({ let __s = (*Arc::new(Mutex::new(Some(String::from_utf8((*out.lock().unwrap().as_ref().unwrap()).clone()).unwrap()))).lock().unwrap().as_ref().unwrap()).clone(); let __arg = "[go1.".to_string(); __s.starts_with(&__arg) }))).lock().unwrap().as_ref().unwrap())));
 }

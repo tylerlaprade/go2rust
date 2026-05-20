@@ -118,7 +118,7 @@ pub mod filepath {
         }
     }
 
-    type GoError = Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>;
+    type GoError = Arc<Mutex<Option<Box<dyn std::error::Error + Send + Sync>>>>;
 
     fn no_error() -> GoError {
         Arc::new(Mutex::new(None))
@@ -181,7 +181,7 @@ pub mod os {
         }
     }
 
-    type GoError = Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>;
+    type GoError = Arc<Mutex<Option<Box<dyn std::error::Error + Send + Sync>>>>;
 
     fn no_error() -> GoError {
         Arc::new(Mutex::new(None))

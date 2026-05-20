@@ -1,0 +1,8 @@
+[package]
+name = "exec_command_output_stub"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "exec_command_output_stub"
+path = "main.rs"

@@ -120,14 +120,14 @@ pub mod build {
         }
     }
 
-    type GoError = Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>;
+    type GoError = Arc<Mutex<Option<Box<dyn std::error::Error + Send + Sync>>>>;
 
     fn go_build_no_error() -> GoError {
-        Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>))
+        Arc::new(Mutex::new(None::<Box<dyn std::error::Error + Send + Sync>>))
     }
 
     fn go_build_error(message: String) -> GoError {
-        Arc::new(Mutex::new(Some::<Box<dyn StdError + Send + Sync>>(Box::new(std::io::Error::new(std::io::ErrorKind::NotFound, message)))))
+        Arc::new(Mutex::new(Some::<Box<dyn std::error::Error + Send + Sync>>(Box::new(std::io::Error::new(std::io::ErrorKind::NotFound, message)))))
     }
 
     fn go_build_string(value: String) -> Arc<Mutex<Option<String>>> {

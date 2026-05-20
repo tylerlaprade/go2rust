@@ -251,8 +251,20 @@ impl fs_FileMode {
 }
 
 
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
-pub struct os_File;
+#[derive(Debug, Clone)]
+pub struct os_File {
+    pub __go_data: std::sync::Arc<std::sync::Mutex<Vec<u8>>>,
+    pub __go_closed: std::sync::Arc<std::sync::atomic::AtomicBool>,
+}
+
+impl Default for os_File {
+    fn default() -> Self {
+        Self {
+            __go_data: std::sync::Arc::new(std::sync::Mutex::new(Vec::new())),
+            __go_closed: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
+        }
+    }
+}
 
 impl std::fmt::Display for os_File {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -260,16 +272,63 @@ impl std::fmt::Display for os_File {
     }
 }
 
+impl PartialEq for os_File {
+    fn eq(&self, other: &Self) -> bool {
+        std::sync::Arc::ptr_eq(&self.__go_data, &other.__go_data)
+    }
+}
+
+impl Eq for os_File {}
 
 impl os_File {
     pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
         None
     }
+
+    pub fn __go_write_bytes(&self, data: &[u8]) {
+        self.__go_data.lock().unwrap().extend_from_slice(data);
+    }
+
+    pub fn __go_read_all(&self) -> Vec<u8> {
+        self.__go_data.lock().unwrap().clone()
+    }
+
     pub fn close(&self) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
+        self.__go_closed.store(true, std::sync::atomic::Ordering::SeqCst);
         Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>))
     }
-    pub fn write_string<T0>(&self, _arg0: T0) -> (Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
-        (Arc::new(Mutex::new(Some::<i32>(Default::default()))), Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>)))
+
+    pub fn write<T0: 'static>(&self, arg0: T0) -> (Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+        let bytes = if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<Vec<u8>>() {
+            v.clone()
+        } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<Arc<Mutex<Option<Vec<u8>>>>>() {
+            v.lock().unwrap().as_ref().cloned().unwrap_or_default()
+        } else {
+            Vec::new()
+        };
+        let n = bytes.len() as i32;
+        self.__go_write_bytes(&bytes);
+        (Arc::new(Mutex::new(Some::<i32>(n))), Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>)))
+    }
+
+    pub fn write_string<T0: 'static>(&self, arg0: T0) -> (Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+        let value = if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<String>() {
+            v.clone()
+        } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<&str>() {
+            (*v).to_string()
+        } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<Arc<Mutex<Option<String>>>>() {
+            v.lock().unwrap().as_ref().cloned().unwrap_or_default()
+        } else {
+            String::new()
+        };
+        let bytes = value.into_bytes();
+        let n = bytes.len() as i32;
+        self.__go_write_bytes(&bytes);
+        (Arc::new(Mutex::new(Some::<i32>(n))), Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>)))
+    }
+
+    pub fn read<T0>(&self, _arg0: T0) -> (Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+        (Arc::new(Mutex::new(Some::<i32>(0))), Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>)))
     }
 }
 
@@ -284,8 +343,23 @@ pub mod bufio {
 
 pub mod io {
     use super::*;
-    pub fn copy<T0, T1>(_arg0: T0, _arg1: T1) -> (Arc<Mutex<Option<i64>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
-        (Arc::new(Mutex::new(Some::<i64>(Default::default()))), Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>)))
+    pub fn copy<T0: 'static, T1: 'static>(_arg0: T0, _arg1: T1) -> (Arc<Mutex<Option<i64>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+        let mut data = Vec::new();
+        if let Some(src) = (&_arg1 as &dyn std::any::Any).downcast_ref::<Arc<Mutex<Option<os_File>>>>() {
+            data = src.lock().unwrap().as_ref().map(|file| file.__go_read_all()).unwrap_or_default();
+        }
+        if let Some(src) = (&_arg1 as &dyn std::any::Any).downcast_ref::<os_File>() {
+            data = src.__go_read_all();
+        };
+        if let Some(dst) = (&_arg0 as &dyn std::any::Any).downcast_ref::<Arc<Mutex<Option<os_File>>>>() {
+            if let Some(file) = dst.lock().unwrap().as_ref() {
+                file.__go_write_bytes(&data);
+            }
+        }
+        if let Some(dst) = (&_arg0 as &dyn std::any::Any).downcast_ref::<os_File>() {
+            dst.__go_write_bytes(&data);
+        }
+        (Arc::new(Mutex::new(Some::<i64>(data.len() as i64))), Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>)))
     }
 }
 
@@ -322,7 +396,7 @@ pub mod os {
         }
     }
 
-    type GoError = Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>;
+    type GoError = Arc<Mutex<Option<Box<dyn std::error::Error + Send + Sync>>>>;
 
     fn no_error() -> GoError {
         Arc::new(Mutex::new(None))

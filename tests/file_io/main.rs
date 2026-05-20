@@ -41,8 +41,20 @@ impl GoFile {
     }
 }
 
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
-pub struct os_File;
+#[derive(Debug, Clone)]
+pub struct os_File {
+    pub __go_data: std::sync::Arc<std::sync::Mutex<Vec<u8>>>,
+    pub __go_closed: std::sync::Arc<std::sync::atomic::AtomicBool>,
+}
+
+impl Default for os_File {
+    fn default() -> Self {
+        Self {
+            __go_data: std::sync::Arc::new(std::sync::Mutex::new(Vec::new())),
+            __go_closed: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
+        }
+    }
+}
 
 impl std::fmt::Display for os_File {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -50,16 +62,63 @@ impl std::fmt::Display for os_File {
     }
 }
 
+impl PartialEq for os_File {
+    fn eq(&self, other: &Self) -> bool {
+        std::sync::Arc::ptr_eq(&self.__go_data, &other.__go_data)
+    }
+}
+
+impl Eq for os_File {}
 
 impl os_File {
     pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
         None
     }
+
+    pub fn __go_write_bytes(&self, data: &[u8]) {
+        self.__go_data.lock().unwrap().extend_from_slice(data);
+    }
+
+    pub fn __go_read_all(&self) -> Vec<u8> {
+        self.__go_data.lock().unwrap().clone()
+    }
+
     pub fn close(&self) -> Rc<RefCell<Option<Box<dyn StdError>>>> {
+        self.__go_closed.store(true, std::sync::atomic::Ordering::SeqCst);
         Rc::new(RefCell::new(None::<Box<dyn StdError>>))
     }
-    pub fn write_string<T0>(&self, _arg0: T0) -> (Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<Box<dyn StdError>>>>) {
-        (Rc::new(RefCell::new(Some::<i32>(Default::default()))), Rc::new(RefCell::new(None::<Box<dyn StdError>>)))
+
+    pub fn write<T0: 'static>(&self, arg0: T0) -> (Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<Box<dyn StdError>>>>) {
+        let bytes = if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<Vec<u8>>() {
+            v.clone()
+        } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<Rc<RefCell<Option<Vec<u8>>>>>() {
+            v.borrow().as_ref().cloned().unwrap_or_default()
+        } else {
+            Vec::new()
+        };
+        let n = bytes.len() as i32;
+        self.__go_write_bytes(&bytes);
+        (Rc::new(RefCell::new(Some::<i32>(n))), Rc::new(RefCell::new(None::<Box<dyn StdError>>)))
+    }
+
+    pub fn write_string<T0: 'static>(&self, arg0: T0) -> (Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<Box<dyn StdError>>>>) {
+        let value = if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<String>() {
+            v.clone()
+        } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<&str>() {
+            (*v).to_string()
+        } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<Rc<RefCell<Option<String>>>>() {
+            v.borrow().as_ref().cloned().unwrap_or_default()
+        } else {
+            String::new()
+        };
+        let bytes = value.into_bytes();
+        let n = bytes.len() as i32;
+        self.__go_write_bytes(&bytes);
+        (Rc::new(RefCell::new(Some::<i32>(n))), Rc::new(RefCell::new(None::<Box<dyn StdError>>)))
+    }
+
+    pub fn read<T0>(&self, _arg0: T0) -> (Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<Box<dyn StdError>>>>) {
+        (Rc::new(RefCell::new(Some::<i32>(0))), Rc::new(RefCell::new(None::<Box<dyn StdError>>)))
     }
 }
 

@@ -85,7 +85,7 @@ pub mod exec {
     }
 
     pub fn look_path<T0>(_arg0: T0) -> (Arc<Mutex<Option<String>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
-        (Arc::new(Mutex::new(Some::<String>(Default::default()))), Arc::new(Mutex::new(Some::<Box<dyn StdError + Send + Sync>>(Box::<dyn StdError + Send + Sync>::from("executable file not found")))))
+        (Arc::new(Mutex::new(Some::<String>(Default::default()))), Arc::new(Mutex::new(Some::<Box<dyn std::error::Error + Send + Sync>>(Box::<dyn std::error::Error + Send + Sync>::from("executable file not found")))))
     }
 }
 

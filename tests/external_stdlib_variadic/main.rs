@@ -1,3 +1,4 @@
+use std::error::Error as StdError;
 use std::sync::{Arc, Mutex};
 
 fn __go_next_external_interface_id() -> usize {
@@ -71,8 +72,25 @@ impl io_Writer {
     pub fn __go_from<T: 'static + Send + Sync>(value: T) -> Self {
         Self { __go_id: __go_next_external_interface_id(), __go_value: Arc::new(value) }
     }
+
     pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
         self.__go_value.as_ref().downcast_ref::<T>()
+    }
+
+    pub fn __go_write_bytes(&self, data: &[u8]) {
+    }
+
+    pub fn write<T0: 'static>(&self, arg0: T0) -> (Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+        let bytes = if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<Vec<u8>>() {
+            v.clone()
+        } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<Arc<Mutex<Option<Vec<u8>>>>>() {
+            v.lock().unwrap().as_ref().cloned().unwrap_or_default()
+        } else {
+            Vec::new()
+        };
+        let n = bytes.len() as i32;
+        self.__go_write_bytes(&bytes);
+        (Arc::new(Mutex::new(Some::<i32>(n))), Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>)))
     }
 }
 
@@ -83,7 +101,7 @@ impl Default for io_Writer {
 }
 
 impl std::fmt::Debug for io_Writer {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "<io_Writer>")
     }
 }

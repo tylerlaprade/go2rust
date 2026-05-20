@@ -1026,6 +1026,22 @@ func generateExternalStubs(stubs map[string]bool, interfaceTypes map[string]bool
 		if i > 0 || out.Len() > 0 {
 			out.WriteString("\n\n")
 		}
+		if name == "bytes_Buffer" {
+			writeBytesBufferStub(&out)
+			continue
+		}
+		if name == "io_Writer" {
+			writeIoWriterStub(&out, stubs["bytes_Buffer"], stubs["os_File"])
+			continue
+		}
+		if name == "os_File" {
+			writeOsFileStub(&out)
+			continue
+		}
+		if name == "exec_Cmd" {
+			writeExecCmdTypeStub(&out, fieldsByType[name])
+			continue
+		}
 		if name == "fs_FileInfo" {
 			writeFsFileInfoStub(&out, name, methodsByType[name])
 			continue
@@ -1119,7 +1135,7 @@ func generateExternalStubs(stubs map[string]bool, interfaceTypes map[string]bool
 		out.WriteString("}\n")
 	}
 	writeExternalTypeStubConversions(&out, conversions, interfaceTypes)
-	writeExternalPackageStubs(&out, packageStubs, integerTypes, len(names) > 0)
+	writeExternalPackageStubs(&out, packageStubs, integerTypes, stubs, len(names) > 0)
 	return out.String()
 }
 
@@ -1130,6 +1146,578 @@ func externalStubNeedsInterfaceHelper(names []string, interfaceTypes map[string]
 		}
 	}
 	return false
+}
+
+func externalStubBorrowExpr(expr string) string {
+	if NeedsConcurrentWrapper() {
+		return expr + ".lock().unwrap()"
+	}
+	return expr + ".borrow()"
+}
+
+func externalStubErrorInnerType() string {
+	if NeedsConcurrentWrapper() {
+		return "Box<dyn StdError + Send + Sync>"
+	}
+	return "Box<dyn StdError>"
+}
+
+func writeBytesBufferStub(out *strings.Builder) {
+	vecType := wrappedExternalStubType("Vec<u8>")
+	stringType := wrappedExternalStubType("String")
+	intType := wrappedExternalStubType("i32")
+	byteType := wrappedExternalStubType("u8")
+	errorInnerType := externalStubErrorInnerType()
+	errorType := wrappedExternalStubType(errorInnerType)
+	noneError := wrappedExternalStubNoneExpr(errorInnerType)
+	zeroInt := wrappedExternalStubExpr("i32", "0")
+	zeroInt64 := wrappedExternalStubExpr("i64", "0")
+	zeroByte := wrappedExternalStubExpr("u8", "0")
+	emptyBytes := wrappedExternalStubExpr("Vec<u8>", "Vec::new()")
+	emptyString := wrappedExternalStubExpr("String", "String::new()")
+	vecBorrow := externalStubBorrowExpr("v")
+	stringBorrow := externalStubBorrowExpr("v")
+	byteBorrow := externalStubBorrowExpr("v")
+	intBorrow := externalStubBorrowExpr("v")
+	fmt.Fprintf(out, `#[derive(Debug, Clone)]
+pub struct bytes_Buffer {
+    pub __go_data: std::sync::Arc<std::sync::Mutex<Vec<u8>>>,
+}
+
+impl Default for bytes_Buffer {
+    fn default() -> Self {
+        Self { __go_data: std::sync::Arc::new(std::sync::Mutex::new(Vec::new())) }
+    }
+}
+
+impl std::fmt::Display for bytes_Buffer {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{}", self.__go_string())
+    }
+}
+
+impl bytes_Buffer {
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        None
+    }
+
+    pub fn __go_from_string(value: String) -> Self {
+        Self { __go_data: std::sync::Arc::new(std::sync::Mutex::new(value.into_bytes())) }
+    }
+
+    pub fn __go_write_bytes(&self, data: &[u8]) {
+        self.__go_data.lock().unwrap().extend_from_slice(data);
+    }
+
+    pub fn __go_bytes(&self) -> Vec<u8> {
+        self.__go_data.lock().unwrap().clone()
+    }
+
+    pub fn __go_string(&self) -> String {
+        String::from_utf8_lossy(&self.__go_data.lock().unwrap()).into_owned()
+    }
+
+    pub fn string(&self) -> %s {
+        %s
+    }
+
+    pub fn bytes(&self) -> %s {
+        %s
+    }
+
+    pub fn len(&self) -> %s {
+        %s
+    }
+
+    pub fn reset(&self) {
+        self.__go_data.lock().unwrap().clear();
+    }
+
+    pub fn available(&self) -> %s {
+        self.len()
+    }
+
+    pub fn available_buffer(&self) -> %s {
+        %s
+    }
+
+    pub fn cap(&self) -> %s {
+        self.len()
+    }
+
+    pub fn grow<T0>(&self, _arg0: T0) {
+    }
+
+    pub fn next<T0>(&self, _arg0: T0) -> %s {
+        %s
+    }
+
+    pub fn read<T0>(&self, _arg0: T0) -> (%s, %s) {
+        (%s, %s)
+    }
+
+    pub fn read_byte(&self) -> (%s, %s) {
+        (%s, %s)
+    }
+
+    pub fn read_bytes<T0>(&self, _arg0: T0) -> (%s, %s) {
+        (%s, %s)
+    }
+
+    pub fn read_from<T0>(&self, _arg0: T0) -> (%s, %s) {
+        (%s, %s)
+    }
+
+    pub fn read_rune(&self) -> (%s, %s, %s) {
+        (%s, %s, %s)
+    }
+
+    pub fn read_string<T0>(&self, _arg0: T0) -> (%s, %s) {
+        (%s, %s)
+    }
+
+    pub fn truncate<T0>(&self, _arg0: T0) {
+        self.reset();
+    }
+
+    pub fn unread_byte(&self) -> %s {
+        %s
+    }
+
+    pub fn unread_rune(&self) -> %s {
+        %s
+    }
+
+    pub fn write<T0: 'static>(&self, arg0: T0) -> (%s, %s) {
+        let bytes = if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<Vec<u8>>() {
+            v.clone()
+        } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<%s>() {
+            %s.as_ref().cloned().unwrap_or_default()
+        } else {
+            Vec::new()
+        };
+        let n = bytes.len() as i32;
+        self.__go_write_bytes(&bytes);
+        (%s, %s)
+    }
+
+    pub fn write_string<T0: 'static>(&self, arg0: T0) -> (%s, %s) {
+        let value = if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<String>() {
+            v.clone()
+        } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<&str>() {
+            (*v).to_string()
+        } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<%s>() {
+            %s.as_ref().cloned().unwrap_or_default()
+        } else {
+            String::new()
+        };
+        let bytes = value.into_bytes();
+        let n = bytes.len() as i32;
+        self.__go_write_bytes(&bytes);
+        (%s, %s)
+    }
+
+    pub fn write_byte<T0: 'static>(&self, arg0: T0) -> %s {
+        let value = if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<u8>() {
+            *v
+        } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<i32>() {
+            *v as u8
+        } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<%s>() {
+            %s.as_ref().copied().unwrap_or_default()
+        } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<%s>() {
+            %s.as_ref().copied().unwrap_or_default() as u8
+        } else {
+            0
+        };
+        self.__go_write_bytes(&[value]);
+        %s
+    }
+
+    pub fn write_rune<T0: 'static>(&self, arg0: T0) -> (%s, %s) {
+        let value = if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<char>() {
+            *v
+        } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<i32>() {
+            char::from_u32(*v as u32).unwrap_or('\0')
+        } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<%s>() {
+            char::from_u32(%s.as_ref().copied().unwrap_or_default() as u32).unwrap_or('\0')
+        } else {
+            '\0'
+        };
+        let mut encoded = [0u8; 4];
+        let bytes = value.encode_utf8(&mut encoded).as_bytes().to_vec();
+        let n = bytes.len() as i32;
+        self.__go_write_bytes(&bytes);
+        (%s, %s)
+    }
+
+    pub fn write_to<T0>(&self, _arg0: T0) -> (%s, %s) {
+        (%s, %s)
+    }
+}
+`,
+		stringType, wrappedExternalStubExpr("String", "self.__go_string()"),
+		vecType, wrappedExternalStubExpr("Vec<u8>", "self.__go_bytes()"),
+		intType, wrappedExternalStubExpr("i32", "self.__go_data.lock().unwrap().len() as i32"),
+		intType,
+		vecType, emptyBytes,
+		intType,
+		vecType, emptyBytes,
+		intType, errorType, zeroInt, noneError,
+		byteType, errorType, zeroByte, noneError,
+		vecType, errorType, emptyBytes, noneError,
+		wrappedExternalStubType("i64"), errorType, zeroInt64, noneError,
+		intType, intType, errorType, zeroInt, zeroInt, noneError,
+		stringType, errorType, emptyString, noneError,
+		errorType, noneError,
+		errorType, noneError,
+		intType, errorType,
+		vecType, vecBorrow,
+		wrappedExternalStubExpr("i32", "n"), noneError,
+		intType, errorType,
+		stringType, stringBorrow,
+		wrappedExternalStubExpr("i32", "n"), noneError,
+		errorType,
+		byteType, byteBorrow,
+		intType, intBorrow,
+		noneError,
+		intType, errorType,
+		intType, intBorrow,
+		wrappedExternalStubExpr("i32", "n"), noneError,
+		wrappedExternalStubType("i64"), errorType,
+		wrappedExternalStubExpr("i64", "self.__go_data.lock().unwrap().len() as i64"), noneError)
+}
+
+func writeIoWriterStub(out *strings.Builder, hasBytesBuffer bool, hasOsFile bool) {
+	holderType := "Rc<dyn std::any::Any>"
+	fromBound := "T: 'static"
+	newValue := "Rc::new(value)"
+	defaultValue := "Rc::new(())"
+	if NeedsConcurrentWrapper() {
+		holderType = "Arc<dyn std::any::Any + Send + Sync>"
+		fromBound = "T: 'static + Send + Sync"
+		newValue = "Arc::new(value)"
+		defaultValue = "Arc::new(())"
+	}
+	vecType := wrappedExternalStubType("Vec<u8>")
+	intType := wrappedExternalStubType("i32")
+	errorInnerType := externalStubErrorInnerType()
+	errorType := wrappedExternalStubType(errorInnerType)
+	noneError := wrappedExternalStubNoneExpr(errorInnerType)
+	vecBorrow := externalStubBorrowExpr("v")
+	out.WriteString(`#[derive(Clone)]
+pub struct io_Writer {
+    pub __go_id: usize,
+    pub __go_value: `)
+	out.WriteString(holderType)
+	out.WriteString(`,
+}
+
+impl io_Writer {
+    pub fn __go_from<`)
+	out.WriteString(fromBound)
+	out.WriteString(`>(value: T) -> Self {
+        Self { __go_id: __go_next_external_interface_id(), __go_value: `)
+	out.WriteString(newValue)
+	out.WriteString(` }
+    }
+
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        self.__go_value.as_ref().downcast_ref::<T>()
+    }
+
+    pub fn __go_write_bytes(&self, data: &[u8]) {
+`)
+	if hasBytesBuffer {
+		out.WriteString(`        if let Some(buffer) = self.downcast_ref::<bytes_Buffer>() {
+            buffer.__go_write_bytes(data);
+        }
+`)
+	}
+	if hasOsFile {
+		out.WriteString(`        if let Some(file) = self.downcast_ref::<os_File>() {
+            file.__go_write_bytes(data);
+        }
+`)
+	}
+	fmt.Fprintf(out, `    }
+
+    pub fn write<T0: 'static>(&self, arg0: T0) -> (%s, %s) {
+        let bytes = if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<Vec<u8>>() {
+            v.clone()
+        } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<%s>() {
+            %s.as_ref().cloned().unwrap_or_default()
+        } else {
+            Vec::new()
+        };
+        let n = bytes.len() as i32;
+        self.__go_write_bytes(&bytes);
+        (%s, %s)
+    }
+}
+
+impl Default for io_Writer {
+    fn default() -> Self {
+        Self { __go_id: 0, __go_value: `, intType, errorType, vecType, vecBorrow, wrappedExternalStubExpr("i32", "n"), noneError)
+	out.WriteString(defaultValue)
+	out.WriteString(` }
+    }
+}
+
+impl std::fmt::Debug for io_Writer {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "<io_Writer>")
+    }
+}
+
+impl std::fmt::Display for io_Writer {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<io_Writer>")
+    }
+}
+
+impl PartialEq for io_Writer {
+    fn eq(&self, other: &Self) -> bool {
+        self.__go_id == other.__go_id
+    }
+}
+
+impl Eq for io_Writer {}
+
+impl PartialOrd for io_Writer {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for io_Writer {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.__go_id.cmp(&other.__go_id)
+    }
+}
+`)
+}
+
+func writeOsFileStub(out *strings.Builder) {
+	vecType := wrappedExternalStubType("Vec<u8>")
+	stringType := wrappedExternalStubType("String")
+	intType := wrappedExternalStubType("i32")
+	errorInnerType := externalStubErrorInnerType()
+	errorType := wrappedExternalStubType(errorInnerType)
+	noneError := wrappedExternalStubNoneExpr(errorInnerType)
+	vecBorrow := externalStubBorrowExpr("v")
+	stringBorrow := externalStubBorrowExpr("v")
+	fmt.Fprintf(out, `#[derive(Debug, Clone)]
+pub struct os_File {
+    pub __go_data: std::sync::Arc<std::sync::Mutex<Vec<u8>>>,
+    pub __go_closed: std::sync::Arc<std::sync::atomic::AtomicBool>,
+}
+
+impl Default for os_File {
+    fn default() -> Self {
+        Self {
+            __go_data: std::sync::Arc::new(std::sync::Mutex::new(Vec::new())),
+            __go_closed: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
+        }
+    }
+}
+
+impl std::fmt::Display for os_File {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<os_File>")
+    }
+}
+
+impl PartialEq for os_File {
+    fn eq(&self, other: &Self) -> bool {
+        std::sync::Arc::ptr_eq(&self.__go_data, &other.__go_data)
+    }
+}
+
+impl Eq for os_File {}
+
+impl os_File {
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        None
+    }
+
+    pub fn __go_write_bytes(&self, data: &[u8]) {
+        self.__go_data.lock().unwrap().extend_from_slice(data);
+    }
+
+    pub fn __go_read_all(&self) -> Vec<u8> {
+        self.__go_data.lock().unwrap().clone()
+    }
+
+    pub fn close(&self) -> %s {
+        self.__go_closed.store(true, std::sync::atomic::Ordering::SeqCst);
+        %s
+    }
+
+    pub fn write<T0: 'static>(&self, arg0: T0) -> (%s, %s) {
+        let bytes = if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<Vec<u8>>() {
+            v.clone()
+        } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<%s>() {
+            %s.as_ref().cloned().unwrap_or_default()
+        } else {
+            Vec::new()
+        };
+        let n = bytes.len() as i32;
+        self.__go_write_bytes(&bytes);
+        (%s, %s)
+    }
+
+    pub fn write_string<T0: 'static>(&self, arg0: T0) -> (%s, %s) {
+        let value = if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<String>() {
+            v.clone()
+        } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<&str>() {
+            (*v).to_string()
+        } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<%s>() {
+            %s.as_ref().cloned().unwrap_or_default()
+        } else {
+            String::new()
+        };
+        let bytes = value.into_bytes();
+        let n = bytes.len() as i32;
+        self.__go_write_bytes(&bytes);
+        (%s, %s)
+    }
+
+    pub fn read<T0>(&self, _arg0: T0) -> (%s, %s) {
+        (%s, %s)
+    }
+}
+`,
+		errorType, noneError,
+		intType, errorType, vecType, vecBorrow, wrappedExternalStubExpr("i32", "n"), noneError,
+		intType, errorType, stringType, stringBorrow, wrappedExternalStubExpr("i32", "n"), noneError,
+		intType, errorType, wrappedExternalStubExpr("i32", "0"), noneError)
+}
+
+func writeExecCmdTypeStub(out *strings.Builder, fields map[string]string) {
+	if fields == nil {
+		fields = make(map[string]string)
+	}
+	if _, ok := fields["args"]; !ok {
+		fields["args"] = wrappedExternalStubType("Vec<String>")
+	}
+	out.WriteString("#[derive(Debug, Clone, Default)]\n")
+	out.WriteString("pub struct exec_Cmd {\n")
+	fieldNames := make([]string, 0, len(fields))
+	for fieldName := range fields {
+		fieldNames = append(fieldNames, fieldName)
+	}
+	slices.Sort(fieldNames)
+	for _, fieldName := range fieldNames {
+		out.WriteString("    pub ")
+		out.WriteString(fieldName)
+		out.WriteString(": ")
+		out.WriteString(fields[fieldName])
+		out.WriteString(",\n")
+	}
+	errorInnerType := externalStubErrorInnerType()
+	errorType := wrappedExternalStubType(errorInnerType)
+	noneError := wrappedExternalStubNoneExpr(errorInnerType)
+	errorTrait := strings.TrimSuffix(strings.TrimPrefix(errorInnerType, "Box<"), ">")
+	out.WriteString(`}
+
+impl std::fmt::Display for exec_Cmd {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<exec_Cmd>")
+    }
+}
+
+impl exec_Cmd {
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        None
+    }
+
+`)
+	fmt.Fprintf(out, `    fn __go_error(message: String) -> %s {
+        %s
+    }
+
+    fn __go_run_output(&self) -> Result<std::process::Output, std::io::Error> {
+        let args = %s.as_ref().cloned().unwrap_or_default();
+        if args.is_empty() {
+            return Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "empty command"));
+        }
+        let mut command = std::process::Command::new(&args[0]);
+        command.args(&args[1..]);
+`, errorType, wrappedExternalStubExpr(errorInnerType, fmt.Sprintf("Box::<%s>::from(message)", errorTrait)), externalStubBorrowExpr("self.args"))
+	if _, ok := fields["dir"]; ok {
+		fmt.Fprintf(out, `        if let Some(dir) = %s.as_ref() {
+            if !dir.is_empty() {
+                command.current_dir(dir);
+            }
+        }
+`, externalStubBorrowExpr("self.dir"))
+	}
+	if _, ok := fields["env"]; ok {
+		fmt.Fprintf(out, `        if let Some(env) = %s.as_ref() {
+            for item in env {
+                if let Some((key, value)) = item.split_once('=') {
+                    command.env(key, value);
+                }
+            }
+        }
+`, externalStubBorrowExpr("self.env"))
+	}
+	out.WriteString(`        command.output()
+    }
+
+    fn __go_write_output(&self, output: &std::process::Output) {
+`)
+	if _, ok := fields["stdout"]; ok {
+		fmt.Fprintf(out, `        if let Some(stdout) = %s.as_ref() {
+            stdout.__go_write_bytes(&output.stdout);
+        }
+`, externalStubBorrowExpr("self.stdout"))
+	}
+	if _, ok := fields["stderr"]; ok {
+		fmt.Fprintf(out, `        if let Some(stderr) = %s.as_ref() {
+            stderr.__go_write_bytes(&output.stderr);
+        }
+`, externalStubBorrowExpr("self.stderr"))
+	}
+	fmt.Fprintf(out, `    }
+
+    pub fn output(&self) -> (%s, %s) {
+        match self.__go_run_output() {
+            Ok(output) => {
+                let err = if output.status.success() {
+                    %s
+                } else {
+                    Self::__go_error(format!("exit status {}", output.status))
+                };
+                (%s, err)
+            }
+            Err(err) => (%s, Self::__go_error(err.to_string())),
+        }
+    }
+
+    pub fn run(&self) -> %s {
+        self.start()
+    }
+
+    pub fn start(&self) -> %s {
+        match self.__go_run_output() {
+            Ok(output) => {
+                self.__go_write_output(&output);
+                if output.status.success() {
+                    %s
+                } else {
+                    Self::__go_error(format!("exit status {}", output.status))
+                }
+            }
+            Err(err) => Self::__go_error(err.to_string()),
+        }
+    }
+
+    pub fn wait(&self) -> %s {
+        %s
+    }
+}
+`, wrappedExternalStubType("Vec<u8>"), errorType, noneError, wrappedExternalStubExpr("Vec<u8>", "output.stdout"), wrappedExternalStubExpr("Vec<u8>", "Vec::new()"), errorType, errorType, noneError, errorType, noneError)
 }
 
 func externalTypeStubHasErrorMethod(methods map[string]externalTypeStubMethod) bool {
@@ -1431,7 +2019,7 @@ func writeBuildContextImportMethod(out *strings.Builder, methodName string, meth
 	out.WriteString("    }\n")
 }
 
-func writeExternalPackageStubs(out *strings.Builder, packageStubs map[string]*externalPackageStub, integerTypes map[string]string, needsSeparator bool) {
+func writeExternalPackageStubs(out *strings.Builder, packageStubs map[string]*externalPackageStub, integerTypes map[string]string, stubs map[string]bool, needsSeparator bool) {
 	if len(packageStubs) == 0 {
 		return
 	}
@@ -1521,7 +2109,7 @@ func writeExternalPackageStubs(out *strings.Builder, packageStubs map[string]*ex
 			if i > 0 {
 				out.WriteString("\n")
 			}
-			writeExternalPackageStubFunction(out, funcName, pkg.Functions[funcName])
+			writeExternalPackageStubFunction(out, funcName, pkg.Functions[funcName], stubs)
 		}
 		out.WriteString("}\n")
 	}
@@ -1666,7 +2254,7 @@ func writeAstPackageStub(out *strings.Builder, pkg *externalPackageStub, integer
 		if funcName == "new_ident" {
 			writeAstNewIdentFunction(out, pkg.Functions[funcName])
 		} else {
-			writeExternalPackageStubFunction(out, funcName, pkg.Functions[funcName])
+			writeExternalPackageStubFunction(out, funcName, pkg.Functions[funcName], nil)
 		}
 	}
 	out.WriteString("}\n")
@@ -1727,7 +2315,7 @@ func writeParserPackageStub(out *strings.Builder, pkg *externalPackageStub, inte
 		if funcName == "parse_file" {
 			writeParserParseFileFunction(out, pkg.Functions[funcName])
 		} else {
-			writeExternalPackageStubFunction(out, funcName, pkg.Functions[funcName])
+			writeExternalPackageStubFunction(out, funcName, pkg.Functions[funcName], nil)
 		}
 	}
 	out.WriteString("}\n")
@@ -1769,49 +2357,49 @@ func writeParserArgTraits(out *strings.Builder) {
     }
 
     pub trait GoParserSourceArg {
-        fn into_go_parser_source(self, filename: &str) -> Result<String, Box<dyn StdError + Send + Sync>>;
+        fn into_go_parser_source(self, filename: &str) -> Result<String, Box<dyn std::error::Error + Send + Sync>>;
     }
 
     impl GoParserSourceArg for () {
-        fn into_go_parser_source(self, filename: &str) -> Result<String, Box<dyn StdError + Send + Sync>> {
-            std::fs::read_to_string(filename).map_err(|err| Box::new(err) as Box<dyn StdError + Send + Sync>)
+        fn into_go_parser_source(self, filename: &str) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+            std::fs::read_to_string(filename).map_err(|err| Box::new(err) as Box<dyn std::error::Error + Send + Sync>)
         }
     }
 
     impl GoParserSourceArg for String {
-        fn into_go_parser_source(self, _filename: &str) -> Result<String, Box<dyn StdError + Send + Sync>> {
+        fn into_go_parser_source(self, _filename: &str) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
             Ok(self)
         }
     }
 
     impl<'a> GoParserSourceArg for &'a str {
-        fn into_go_parser_source(self, _filename: &str) -> Result<String, Box<dyn StdError + Send + Sync>> {
+        fn into_go_parser_source(self, _filename: &str) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
             Ok(self.to_string())
         }
     }
 
     impl<'a> GoParserSourceArg for &'a String {
-        fn into_go_parser_source(self, _filename: &str) -> Result<String, Box<dyn StdError + Send + Sync>> {
+        fn into_go_parser_source(self, _filename: &str) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
             Ok(self.clone())
         }
     }
 
     impl GoParserSourceArg for Vec<u8> {
-        fn into_go_parser_source(self, _filename: &str) -> Result<String, Box<dyn StdError + Send + Sync>> {
-            String::from_utf8(self).map_err(|err| Box::new(err) as Box<dyn StdError + Send + Sync>)
+        fn into_go_parser_source(self, _filename: &str) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+            String::from_utf8(self).map_err(|err| Box::new(err) as Box<dyn std::error::Error + Send + Sync>)
         }
     }
 
     impl GoParserSourceArg for %s<%s<Option<String>>> {
-        fn into_go_parser_source(self, _filename: &str) -> Result<String, Box<dyn StdError + Send + Sync>> {
+        fn into_go_parser_source(self, _filename: &str) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
             Ok(self.%s.as_ref().cloned().unwrap_or_default())
         }
     }
 
     impl GoParserSourceArg for %s<%s<Option<Vec<u8>>>> {
-        fn into_go_parser_source(self, _filename: &str) -> Result<String, Box<dyn StdError + Send + Sync>> {
+        fn into_go_parser_source(self, _filename: &str) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
             let bytes = self.%s.as_ref().cloned().unwrap_or_default();
-            String::from_utf8(bytes).map_err(|err| Box::new(err) as Box<dyn StdError + Send + Sync>)
+            String::from_utf8(bytes).map_err(|err| Box::new(err) as Box<dyn std::error::Error + Send + Sync>)
         }
     }
 
@@ -1819,7 +2407,7 @@ func writeParserArgTraits(out *strings.Builder) {
 }
 
 func writeParserParseFileFunction(out *strings.Builder, fn externalPackageStubFunction) {
-	out.WriteString(`    fn go_parser_error(message: String) -> Box<dyn StdError + Send + Sync> {
+	out.WriteString(`    fn go_parser_error(message: String) -> Box<dyn std::error::Error + Send + Sync> {
         Box::new(std::io::Error::new(std::io::ErrorKind::InvalidData, message))
     }
 
@@ -1953,7 +2541,7 @@ func writeParserParseFileFunction(out *strings.Builder, fn externalPackageStubFu
         None
     }
 
-    fn go_parser_parse_file(source: &str) -> Result<ast_File, Box<dyn StdError + Send + Sync>> {
+    fn go_parser_parse_file(source: &str) -> Result<ast_File, Box<dyn std::error::Error + Send + Sync>> {
         let tokens = go_parser_tokens(source);
         let package_name = tokens
             .windows(2)
@@ -2005,19 +2593,19 @@ func writeParserParseFileFunction(out *strings.Builder, fn externalPackageStubFu
             Err(err) => return (`)
 	out.WriteString(wrappedExternalStubNoneExpr("ast_File"))
 	out.WriteString(`, `)
-	out.WriteString(wrappedExternalStubSomeExpr("Box<dyn StdError + Send + Sync>", "err"))
+	out.WriteString(wrappedExternalStubSomeExpr("Box<dyn std::error::Error + Send + Sync>", "err"))
 	out.WriteString(`),
         };
         match go_parser_parse_file(&source) {
             Ok(file) => (`)
 	out.WriteString(wrappedExternalStubExpr("ast_File", "file"))
 	out.WriteString(`, `)
-	out.WriteString(wrappedExternalStubNoneExpr("Box<dyn StdError + Send + Sync>"))
+	out.WriteString(wrappedExternalStubNoneExpr("Box<dyn std::error::Error + Send + Sync>"))
 	out.WriteString(`),
             Err(err) => (`)
 	out.WriteString(wrappedExternalStubNoneExpr("ast_File"))
 	out.WriteString(`, `)
-	out.WriteString(wrappedExternalStubSomeExpr("Box<dyn StdError + Send + Sync>", "err"))
+	out.WriteString(wrappedExternalStubSomeExpr("Box<dyn std::error::Error + Send + Sync>", "err"))
 	out.WriteString(`),
         }
     }
@@ -2077,16 +2665,16 @@ func writeBuildPackageStub(out *strings.Builder, pkg *externalPackageStub, integ
 		} else if funcName == "is_local_import" {
 			writeBuildIsLocalImportFunction(out)
 		} else {
-			writeExternalPackageStubFunction(out, funcName, pkg.Functions[funcName])
+			writeExternalPackageStubFunction(out, funcName, pkg.Functions[funcName], nil)
 		}
 	}
 	out.WriteString("}\n")
 }
 
 func writeBuildHelpers(out *strings.Builder) {
-	errorType := "Box<dyn StdError>"
+	errorType := "Box<dyn std::error::Error>"
 	if NeedsConcurrentWrapper() {
-		errorType = "Box<dyn StdError + Send + Sync>"
+		errorType = "Box<dyn std::error::Error + Send + Sync>"
 	}
 	fmt.Fprintf(out, `    type GoError = %s;
 
@@ -2389,7 +2977,7 @@ func writeOsPackageStub(out *strings.Builder, pkg *externalPackageStub, integerT
 		} else if funcName == "stat" {
 			writeOsStatFunction(out, pkg.Functions[funcName])
 		} else {
-			writeExternalPackageStubFunction(out, funcName, pkg.Functions[funcName])
+			writeExternalPackageStubFunction(out, funcName, pkg.Functions[funcName], nil)
 		}
 	}
 	out.WriteString("}\n")
@@ -2405,9 +2993,9 @@ func osPackageStubNeedsFilesystemHelpers(pkg *externalPackageStub) bool {
 }
 
 func writeOsErrorHelpers(out *strings.Builder) {
-	errorType := wrappedExternalStubType("Box<dyn StdError>")
+	errorType := wrappedExternalStubType("Box<dyn std::error::Error>")
 	if NeedsConcurrentWrapper() {
-		errorType = wrappedExternalStubType("Box<dyn StdError + Send + Sync>")
+		errorType = wrappedExternalStubType("Box<dyn std::error::Error + Send + Sync>")
 	}
 	fmt.Fprintf(out, `    type GoError = %s;
 
@@ -2534,7 +3122,7 @@ func writeFilepathPackageStub(out *strings.Builder, pkg *externalPackageStub, in
 		} else if funcName == "join" {
 			writeFilepathJoinFunction(out)
 		} else {
-			writeExternalPackageStubFunction(out, funcName, pkg.Functions[funcName])
+			writeExternalPackageStubFunction(out, funcName, pkg.Functions[funcName], nil)
 		}
 	}
 	out.WriteString("}\n")
@@ -2604,9 +3192,9 @@ func writeFilepathJoinTrait(out *strings.Builder) {
 }
 
 func writeFilepathErrorHelpers(out *strings.Builder) {
-	errorType := wrappedExternalStubType("Box<dyn StdError>")
+	errorType := wrappedExternalStubType("Box<dyn std::error::Error>")
 	if NeedsConcurrentWrapper() {
-		errorType = wrappedExternalStubType("Box<dyn StdError + Send + Sync>")
+		errorType = wrappedExternalStubType("Box<dyn std::error::Error + Send + Sync>")
 	}
 	fmt.Fprintf(out, `    type GoError = %s;
 
@@ -2762,12 +3350,12 @@ func writeExecPackageStub(out *strings.Builder, pkg *externalPackageStub, intege
 		if i > 0 {
 			out.WriteString("\n")
 		}
-		writeExternalPackageStubFunction(out, funcName, pkg.Functions[funcName])
+		writeExternalPackageStubFunction(out, funcName, pkg.Functions[funcName], nil)
 	}
 	out.WriteString("}\n")
 }
 
-func writeExternalPackageStubFunction(out *strings.Builder, funcName string, fn externalPackageStubFunction) {
+func writeExternalPackageStubFunction(out *strings.Builder, funcName string, fn externalPackageStubFunction, stubs map[string]bool) {
 	if funcName == "command" && len(fn.ReturnTypes) == 1 {
 		writeExecCommandStub(out, fn, false)
 		return
@@ -2778,6 +3366,14 @@ func writeExternalPackageStubFunction(out *strings.Builder, funcName string, fn 
 	}
 	if funcName == "look_path" && len(fn.ReturnTypes) == 2 {
 		writeExecLookPathStub(out, fn)
+		return
+	}
+	if funcName == "copy" && len(fn.ReturnTypes) == 2 {
+		writeIoCopyStub(out, fn, stubs)
+		return
+	}
+	if funcName == "pipe" && len(fn.ReturnTypes) == 3 {
+		writeOsPipeStub(out, fn)
 		return
 	}
 	out.WriteString("    pub fn ")
@@ -2815,6 +3411,86 @@ func writeExternalPackageStubFunction(out *strings.Builder, funcName string, fn 
 		out.WriteString("\n")
 	}
 	out.WriteString("    }\n")
+}
+
+func writeIoCopyStub(out *strings.Builder, fn externalPackageStubFunction, stubs map[string]bool) {
+	out.WriteString("    pub fn copy<T0: 'static, T1: 'static>(_arg0: T0, _arg1: T1) -> ")
+	writeExternalStubReturnType(out, fn.ReturnTypes)
+	out.WriteString(" {\n")
+	out.WriteString("        let mut data = Vec::new();\n")
+	if stubs["os_File"] {
+		fmt.Fprintf(out, `        if let Some(src) = (&_arg1 as &dyn std::any::Any).downcast_ref::<%s>() {
+            data = %s.as_ref().map(|file| file.__go_read_all()).unwrap_or_default();
+        }
+        if let Some(src) = (&_arg1 as &dyn std::any::Any).downcast_ref::<os_File>() {
+            data = src.__go_read_all();
+        };
+`, wrappedExternalStubType("os_File"), externalStubBorrowExpr("src"))
+	}
+	if stubs["bytes_Buffer"] {
+		fmt.Fprintf(out, `        if let Some(src) = (&_arg1 as &dyn std::any::Any).downcast_ref::<%s>() {
+            data = %s.as_ref().map(|buffer| buffer.__go_bytes()).unwrap_or_default();
+        }
+        if let Some(src) = (&_arg1 as &dyn std::any::Any).downcast_ref::<bytes_Buffer>() {
+            data = src.__go_bytes();
+        }
+`, wrappedExternalStubType("bytes_Buffer"), externalStubBorrowExpr("src"))
+	}
+	if stubs["io_Writer"] {
+		fmt.Fprintf(out, `        if let Some(dst) = (&_arg0 as &dyn std::any::Any).downcast_ref::<%s>() {
+            if let Some(writer) = %s.as_ref() {
+                writer.__go_write_bytes(&data);
+            }
+        }
+        if let Some(dst) = (&_arg0 as &dyn std::any::Any).downcast_ref::<io_Writer>() {
+            dst.__go_write_bytes(&data);
+        }
+`, wrappedExternalStubType("io_Writer"), externalStubBorrowExpr("dst"))
+	}
+	if stubs["bytes_Buffer"] {
+		fmt.Fprintf(out, `        if let Some(dst) = (&_arg0 as &dyn std::any::Any).downcast_ref::<%s>() {
+            if let Some(buffer) = %s.as_ref() {
+                buffer.__go_write_bytes(&data);
+            }
+        }
+        if let Some(dst) = (&_arg0 as &dyn std::any::Any).downcast_ref::<bytes_Buffer>() {
+            dst.__go_write_bytes(&data);
+        }
+`, wrappedExternalStubType("bytes_Buffer"), externalStubBorrowExpr("dst"))
+	}
+	if stubs["os_File"] {
+		fmt.Fprintf(out, `        if let Some(dst) = (&_arg0 as &dyn std::any::Any).downcast_ref::<%s>() {
+            if let Some(file) = %s.as_ref() {
+                file.__go_write_bytes(&data);
+            }
+        }
+        if let Some(dst) = (&_arg0 as &dyn std::any::Any).downcast_ref::<os_File>() {
+            dst.__go_write_bytes(&data);
+        }
+`, wrappedExternalStubType("os_File"), externalStubBorrowExpr("dst"))
+	}
+	out.WriteString("        (")
+	out.WriteString(wrappedExternalStubExpr("i64", "data.len() as i64"))
+	out.WriteString(", ")
+	writeExternalStubDefaultValue(out, fn.ReturnTypes[1])
+	out.WriteString(")\n    }\n")
+}
+
+func writeOsPipeStub(out *strings.Builder, fn externalPackageStubFunction) {
+	out.WriteString("    pub fn pipe() -> ")
+	writeExternalStubReturnType(out, fn.ReturnTypes)
+	out.WriteString(" {\n")
+	out.WriteString(`        let data = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+        let closed = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+        let read = os_File { __go_data: data.clone(), __go_closed: closed.clone() };
+        let write = os_File { __go_data: data, __go_closed: closed };
+        (`)
+	out.WriteString(wrappedExternalStubExpr("os_File", "read"))
+	out.WriteString(", ")
+	out.WriteString(wrappedExternalStubExpr("os_File", "write"))
+	out.WriteString(", ")
+	writeExternalStubDefaultValue(out, fn.ReturnTypes[2])
+	out.WriteString(")\n    }\n")
 }
 
 func writeExecCommandStub(out *strings.Builder, fn externalPackageStubFunction, hasContext bool) {
@@ -2932,11 +3608,11 @@ func writeExecLookPathStub(out *strings.Builder, fn externalPackageStubFunction)
 	out.WriteString(" {\n        (")
 	writeExternalStubDefaultValue(out, fn.ReturnTypes[0])
 	out.WriteString(", ")
-	errorTrait := "dyn StdError"
-	errorType := "Box<dyn StdError>"
+	errorTrait := "dyn std::error::Error"
+	errorType := "Box<dyn std::error::Error>"
 	if NeedsConcurrentWrapper() {
-		errorTrait = "dyn StdError + Send + Sync"
-		errorType = "Box<dyn StdError + Send + Sync>"
+		errorTrait = "dyn std::error::Error + Send + Sync"
+		errorType = "Box<dyn std::error::Error + Send + Sync>"
 	}
 	out.WriteString(wrappedExternalStubExpr(errorType, fmt.Sprintf("Box::<%s>::from(\"executable file not found\")", errorTrait)))
 	out.WriteString(")\n    }\n")
@@ -2987,7 +3663,7 @@ func writeExternalStubDefaultValue(out *strings.Builder, rustType string) {
 	wrappedPrefix := outerWrapper + "<" + innerWrapper + "<Option<"
 	if strings.HasPrefix(rustType, wrappedPrefix) && strings.HasSuffix(rustType, ">>>") {
 		innerType := strings.TrimSuffix(strings.TrimPrefix(rustType, wrappedPrefix), ">>>")
-		if strings.HasPrefix(innerType, "Box<dyn StdError") || strings.HasPrefix(innerType, "Box<dyn Any") {
+		if strings.HasPrefix(innerType, "Box<dyn StdError") || strings.HasPrefix(innerType, "Box<dyn std::error::Error") || strings.HasPrefix(innerType, "Box<dyn Any") || strings.HasPrefix(innerType, "Box<dyn std::any::Any") {
 			out.WriteString(outerWrapper)
 			out.WriteString("::new(")
 			out.WriteString(innerWrapper)

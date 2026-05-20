@@ -422,55 +422,55 @@ pub mod parser {
     }
 
     pub trait GoParserSourceArg {
-        fn into_go_parser_source(self, filename: &str) -> Result<String, Box<dyn StdError + Send + Sync>>;
+        fn into_go_parser_source(self, filename: &str) -> Result<String, Box<dyn std::error::Error + Send + Sync>>;
     }
 
     impl GoParserSourceArg for () {
-        fn into_go_parser_source(self, filename: &str) -> Result<String, Box<dyn StdError + Send + Sync>> {
-            std::fs::read_to_string(filename).map_err(|err| Box::new(err) as Box<dyn StdError + Send + Sync>)
+        fn into_go_parser_source(self, filename: &str) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+            std::fs::read_to_string(filename).map_err(|err| Box::new(err) as Box<dyn std::error::Error + Send + Sync>)
         }
     }
 
     impl GoParserSourceArg for String {
-        fn into_go_parser_source(self, _filename: &str) -> Result<String, Box<dyn StdError + Send + Sync>> {
+        fn into_go_parser_source(self, _filename: &str) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
             Ok(self)
         }
     }
 
     impl<'a> GoParserSourceArg for &'a str {
-        fn into_go_parser_source(self, _filename: &str) -> Result<String, Box<dyn StdError + Send + Sync>> {
+        fn into_go_parser_source(self, _filename: &str) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
             Ok(self.to_string())
         }
     }
 
     impl<'a> GoParserSourceArg for &'a String {
-        fn into_go_parser_source(self, _filename: &str) -> Result<String, Box<dyn StdError + Send + Sync>> {
+        fn into_go_parser_source(self, _filename: &str) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
             Ok(self.clone())
         }
     }
 
     impl GoParserSourceArg for Vec<u8> {
-        fn into_go_parser_source(self, _filename: &str) -> Result<String, Box<dyn StdError + Send + Sync>> {
-            String::from_utf8(self).map_err(|err| Box::new(err) as Box<dyn StdError + Send + Sync>)
+        fn into_go_parser_source(self, _filename: &str) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+            String::from_utf8(self).map_err(|err| Box::new(err) as Box<dyn std::error::Error + Send + Sync>)
         }
     }
 
     impl GoParserSourceArg for Arc<Mutex<Option<String>>> {
-        fn into_go_parser_source(self, _filename: &str) -> Result<String, Box<dyn StdError + Send + Sync>> {
+        fn into_go_parser_source(self, _filename: &str) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
             Ok(self.lock().unwrap().as_ref().cloned().unwrap_or_default())
         }
     }
 
     impl GoParserSourceArg for Arc<Mutex<Option<Vec<u8>>>> {
-        fn into_go_parser_source(self, _filename: &str) -> Result<String, Box<dyn StdError + Send + Sync>> {
+        fn into_go_parser_source(self, _filename: &str) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
             let bytes = self.lock().unwrap().as_ref().cloned().unwrap_or_default();
-            String::from_utf8(bytes).map_err(|err| Box::new(err) as Box<dyn StdError + Send + Sync>)
+            String::from_utf8(bytes).map_err(|err| Box::new(err) as Box<dyn std::error::Error + Send + Sync>)
         }
     }
 
     pub const SKIP_OBJECT_RESOLUTION: parser_Mode = parser_Mode(0);
 
-    fn go_parser_error(message: String) -> Box<dyn StdError + Send + Sync> {
+    fn go_parser_error(message: String) -> Box<dyn std::error::Error + Send + Sync> {
         Box::new(std::io::Error::new(std::io::ErrorKind::InvalidData, message))
     }
 
@@ -586,7 +586,7 @@ pub mod parser {
         None
     }
 
-    fn go_parser_parse_file(source: &str) -> Result<ast_File, Box<dyn StdError + Send + Sync>> {
+    fn go_parser_parse_file(source: &str) -> Result<ast_File, Box<dyn std::error::Error + Send + Sync>> {
         let tokens = go_parser_tokens(source);
         let package_name = tokens
             .windows(2)
@@ -631,11 +631,11 @@ pub mod parser {
         let filename = _arg1.into_go_parser_filename();
         let source = match _arg2.into_go_parser_source(&filename) {
             Ok(source) => source,
-            Err(err) => return (Arc::new(Mutex::new(None::<ast_File>)), Arc::new(Mutex::new(Some::<Box<dyn StdError + Send + Sync>>(err)))),
+            Err(err) => return (Arc::new(Mutex::new(None::<ast_File>)), Arc::new(Mutex::new(Some::<Box<dyn std::error::Error + Send + Sync>>(err)))),
         };
         match go_parser_parse_file(&source) {
-            Ok(file) => (Arc::new(Mutex::new(Some::<ast_File>(file))), Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>))),
-            Err(err) => (Arc::new(Mutex::new(None::<ast_File>)), Arc::new(Mutex::new(Some::<Box<dyn StdError + Send + Sync>>(err)))),
+            Ok(file) => (Arc::new(Mutex::new(Some::<ast_File>(file))), Arc::new(Mutex::new(None::<Box<dyn std::error::Error + Send + Sync>>))),
+            Err(err) => (Arc::new(Mutex::new(None::<ast_File>)), Arc::new(Mutex::new(Some::<Box<dyn std::error::Error + Send + Sync>>(err)))),
         }
     }
 }

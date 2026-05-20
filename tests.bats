@@ -846,6 +846,10 @@ run_xfail_test() {
     run_test "tests/exec_command_args_stub"
 }
 
+@test "exec_command_output_stub" {
+    run_test "tests/exec_command_output_stub"
+}
+
 @test "exec_exit_error_assertion" {
     run_test "tests/exec_exit_error_assertion"
 }
