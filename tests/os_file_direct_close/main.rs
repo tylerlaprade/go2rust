@@ -5,6 +5,7 @@ use std::sync::{Arc, Mutex};
 pub struct os_File {
     pub __go_data: std::sync::Arc<std::sync::Mutex<Vec<u8>>>,
     pub __go_closed: std::sync::Arc<std::sync::atomic::AtomicBool>,
+    pub __go_wait_for_close: bool,
 }
 
 impl Default for os_File {
@@ -12,6 +13,7 @@ impl Default for os_File {
         Self {
             __go_data: std::sync::Arc::new(std::sync::Mutex::new(Vec::new())),
             __go_closed: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
+            __go_wait_for_close: false,
         }
     }
 }
@@ -41,6 +43,13 @@ impl os_File {
 
     pub fn __go_read_all(&self) -> Vec<u8> {
         self.__go_data.lock().unwrap().clone()
+    }
+
+    pub fn __go_read_all_for_copy(&self) -> Vec<u8> {
+        while self.__go_wait_for_close && !self.__go_closed.load(std::sync::atomic::Ordering::SeqCst) {
+            std::thread::sleep(std::time::Duration::from_millis(1));
+        }
+        self.__go_read_all()
     }
 
     pub fn close(&self) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
@@ -88,8 +97,8 @@ pub mod os {
     pub fn pipe() -> (Arc<Mutex<Option<os_File>>>, Arc<Mutex<Option<os_File>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
         let data = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
         let closed = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
-        let read = os_File { __go_data: data.clone(), __go_closed: closed.clone() };
-        let write = os_File { __go_data: data, __go_closed: closed };
+        let read = os_File { __go_data: data.clone(), __go_closed: closed.clone(), __go_wait_for_close: true };
+        let write = os_File { __go_data: data, __go_closed: closed, __go_wait_for_close: true };
         (Arc::new(Mutex::new(Some::<os_File>(read))), Arc::new(Mutex::new(Some::<os_File>(write))), Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>)))
     }
 }

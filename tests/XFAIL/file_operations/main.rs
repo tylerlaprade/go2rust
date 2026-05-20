@@ -255,6 +255,7 @@ impl fs_FileMode {
 pub struct os_File {
     pub __go_data: std::sync::Arc<std::sync::Mutex<Vec<u8>>>,
     pub __go_closed: std::sync::Arc<std::sync::atomic::AtomicBool>,
+    pub __go_wait_for_close: bool,
 }
 
 impl Default for os_File {
@@ -262,6 +263,7 @@ impl Default for os_File {
         Self {
             __go_data: std::sync::Arc::new(std::sync::Mutex::new(Vec::new())),
             __go_closed: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
+            __go_wait_for_close: false,
         }
     }
 }
@@ -291,6 +293,13 @@ impl os_File {
 
     pub fn __go_read_all(&self) -> Vec<u8> {
         self.__go_data.lock().unwrap().clone()
+    }
+
+    pub fn __go_read_all_for_copy(&self) -> Vec<u8> {
+        while self.__go_wait_for_close && !self.__go_closed.load(std::sync::atomic::Ordering::SeqCst) {
+            std::thread::sleep(std::time::Duration::from_millis(1));
+        }
+        self.__go_read_all()
     }
 
     pub fn close(&self) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
@@ -346,10 +355,10 @@ pub mod io {
     pub fn copy<T0: 'static, T1: 'static>(_arg0: T0, _arg1: T1) -> (Arc<Mutex<Option<i64>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
         let mut data = Vec::new();
         if let Some(src) = (&_arg1 as &dyn std::any::Any).downcast_ref::<Arc<Mutex<Option<os_File>>>>() {
-            data = src.lock().unwrap().as_ref().map(|file| file.__go_read_all()).unwrap_or_default();
+            data = src.lock().unwrap().as_ref().map(|file| file.__go_read_all_for_copy()).unwrap_or_default();
         }
         if let Some(src) = (&_arg1 as &dyn std::any::Any).downcast_ref::<os_File>() {
-            data = src.__go_read_all();
+            data = src.__go_read_all_for_copy();
         };
         if let Some(dst) = (&_arg0 as &dyn std::any::Any).downcast_ref::<Arc<Mutex<Option<os_File>>>>() {
             if let Some(file) = dst.lock().unwrap().as_ref() {

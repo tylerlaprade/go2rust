@@ -1510,6 +1510,7 @@ func writeOsFileStub(out *strings.Builder) {
 pub struct os_File {
     pub __go_data: std::sync::Arc<std::sync::Mutex<Vec<u8>>>,
     pub __go_closed: std::sync::Arc<std::sync::atomic::AtomicBool>,
+    pub __go_wait_for_close: bool,
 }
 
 impl Default for os_File {
@@ -1517,6 +1518,7 @@ impl Default for os_File {
         Self {
             __go_data: std::sync::Arc::new(std::sync::Mutex::new(Vec::new())),
             __go_closed: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
+            __go_wait_for_close: false,
         }
     }
 }
@@ -1546,6 +1548,13 @@ impl os_File {
 
     pub fn __go_read_all(&self) -> Vec<u8> {
         self.__go_data.lock().unwrap().clone()
+    }
+
+    pub fn __go_read_all_for_copy(&self) -> Vec<u8> {
+        while self.__go_wait_for_close && !self.__go_closed.load(std::sync::atomic::Ordering::SeqCst) {
+            std::thread::sleep(std::time::Duration::from_millis(1));
+        }
+        self.__go_read_all()
     }
 
     pub fn close(&self) -> %s {
@@ -3420,10 +3429,10 @@ func writeIoCopyStub(out *strings.Builder, fn externalPackageStubFunction, stubs
 	out.WriteString("        let mut data = Vec::new();\n")
 	if stubs["os_File"] {
 		fmt.Fprintf(out, `        if let Some(src) = (&_arg1 as &dyn std::any::Any).downcast_ref::<%s>() {
-            data = %s.as_ref().map(|file| file.__go_read_all()).unwrap_or_default();
+            data = %s.as_ref().map(|file| file.__go_read_all_for_copy()).unwrap_or_default();
         }
         if let Some(src) = (&_arg1 as &dyn std::any::Any).downcast_ref::<os_File>() {
-            data = src.__go_read_all();
+            data = src.__go_read_all_for_copy();
         };
 `, wrappedExternalStubType("os_File"), externalStubBorrowExpr("src"))
 	}
@@ -3482,8 +3491,8 @@ func writeOsPipeStub(out *strings.Builder, fn externalPackageStubFunction) {
 	out.WriteString(" {\n")
 	out.WriteString(`        let data = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
         let closed = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
-        let read = os_File { __go_data: data.clone(), __go_closed: closed.clone() };
-        let write = os_File { __go_data: data, __go_closed: closed };
+        let read = os_File { __go_data: data.clone(), __go_closed: closed.clone(), __go_wait_for_close: true };
+        let write = os_File { __go_data: data, __go_closed: closed, __go_wait_for_close: true };
         (`)
 	out.WriteString(wrappedExternalStubExpr("os_File", "read"))
 	out.WriteString(", ")
