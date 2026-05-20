@@ -986,6 +986,10 @@ run_xfail_test() {
     run_test "tests/goroutine_function_param_capture"
 }
 
+@test "goroutine_pointer_capture_alias" {
+    run_test "tests/goroutine_pointer_capture_alias"
+}
+
 @test "goroutines_basic" {
     run_test "tests/goroutines_basic"
 }

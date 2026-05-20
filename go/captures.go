@@ -229,3 +229,73 @@ func findCapturedInCall(call *ast.CallExpr) map[string]bool {
 
 	return captured
 }
+
+func pointerCapturedVarsInCall(call *ast.CallExpr) map[string]bool {
+	if call == nil {
+		return map[string]bool{}
+	}
+	if funcLit, ok := call.Fun.(*ast.FuncLit); ok {
+		return pointerCapturedVarsForFuncLit(funcLit)
+	}
+	for _, arg := range call.Args {
+		if funcLit, ok := arg.(*ast.FuncLit); ok {
+			return pointerCapturedVarsForFuncLit(funcLit)
+		}
+	}
+
+	pointers := make(map[string]bool)
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return pointers
+	}
+	ast.Inspect(call, func(n ast.Node) bool {
+		ident, ok := n.(*ast.Ident)
+		if !ok {
+			return true
+		}
+		obj, ok := typeInfo.info.Uses[ident].(*types.Var)
+		if !ok || isPackageScopeObject(obj) || !typeInfo.IsPointer(ident) {
+			return true
+		}
+		pointers[ident.Name] = true
+		return true
+	})
+	return pointers
+}
+
+func pointerCapturedVarsForFuncLit(funcLit *ast.FuncLit) map[string]bool {
+	pointers := make(map[string]bool)
+	typeInfo := GetTypeInfo()
+	if funcLit == nil || typeInfo == nil || typeInfo.info == nil {
+		return pointers
+	}
+
+	localObjects := declaredVarObjectsInFuncLit(funcLit, typeInfo)
+	paramNames := parameterNamesInFuncLit(funcLit)
+
+	var inspectRefs func(ast.Node)
+	inspectRefs = func(node ast.Node) {
+		ast.Inspect(node, func(n ast.Node) bool {
+			switch node := n.(type) {
+			case *ast.KeyValueExpr:
+				if ident, ok := node.Key.(*ast.Ident); ok && isStructFieldKeyIdent(typeInfo, ident) {
+					inspectRefs(node.Value)
+					return false
+				}
+			case *ast.SelectorExpr:
+				inspectRefs(node.X)
+				return false
+			case *ast.Ident:
+				obj, ok := typeInfo.info.Uses[node].(*types.Var)
+				if !ok || localObjects[obj] || paramNames[node.Name] || isPackageScopeObject(obj) || !typeInfo.IsPointer(node) {
+					return true
+				}
+				pointers[node.Name] = true
+			}
+			return true
+		})
+	}
+	inspectRefs(funcLit.Body)
+
+	return pointers
+}

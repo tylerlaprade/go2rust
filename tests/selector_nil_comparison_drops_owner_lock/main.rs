@@ -275,10 +275,10 @@ pub fn worker(state: Arc<Mutex<Option<State>>>, done: GoChannel<bool>) {
 fn main() {
     let mut state = Arc::new(Mutex::new(Some(State { cfg: Arc::new(Mutex::new(Some(Config { env: Arc::new(Mutex::new(Some(vec!["A=B".to_string()]))), dir: Arc::new(Mutex::new(Some("work".to_string()))), ..Default::default() }))).clone(), ..Default::default() })));
     let mut done = GoChannel::<bool>::new();
-    let done_thread = done.clone(); let state_thread = Arc::new(Mutex::new(Some((*state.lock().unwrap().as_ref().unwrap()).clone()))); std::thread::spawn(move || {
+    let done_thread = done.clone(); let state_thread = state.clone(); std::thread::spawn(move || {
         worker(state_thread.clone(), done_thread.clone());
     });
-    let done_thread = done.clone(); let state_thread = Arc::new(Mutex::new(Some((*state.lock().unwrap().as_ref().unwrap()).clone()))); std::thread::spawn(move || {
+    let done_thread = done.clone(); let state_thread = state.clone(); std::thread::spawn(move || {
         worker(state_thread.clone(), done_thread.clone());
     });
     println!("{}", format!("{}", done.recv().unwrap() && done.recv().unwrap()));

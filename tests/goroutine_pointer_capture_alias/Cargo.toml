@@ -1,0 +1,8 @@
+[package]
+name = "goroutine_pointer_capture_alias"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "goroutine_pointer_capture_alias"
+path = "main.rs"

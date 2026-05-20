@@ -6619,6 +6619,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 		// Check if the go statement contains a closure that captures variables
 		captured := findCapturedInCall(s.Call)
+		pointerCaptured := pointerCapturedVarsInCall(s.Call)
 
 		// Also find any channel-typed arguments in the function call
 		// These need to be cloned before the move closure
@@ -6665,8 +6666,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			out.WriteString("_thread = ")
 			if currentReceiver != "" && varName == currentReceiver {
 				out.WriteString("self.clone(); ")
-			} else if isVarBare(varName) || isFunctionTypedNameInFunc(varName, fnType) {
-				// Bare variables (channels, sync types) — clone the handle
+			} else if pointerCaptured[varName] || isVarBare(varName) || isFunctionTypedNameInFunc(varName, fnType) {
+				// Pointer, bare, and function-typed variables already have handle semantics.
 				out.WriteString(varName)
 				out.WriteString(".clone(); ")
 			} else {
