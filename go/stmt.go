@@ -6332,7 +6332,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			for _, stmt := range s.Body.List {
 				if caseClause, ok := stmt.(*ast.CaseClause); ok {
 					out.WriteString("        ")
-					if caseClause.List == nil {
+					if len(caseClause.List) == 0 {
 						// default case
 						out.WriteString("if !_matched || _fallthrough {\n")
 					} else {
@@ -6405,7 +6405,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				var defaultClause *ast.CaseClause
 				for _, stmt := range s.Body.List {
 					if caseClause, ok := stmt.(*ast.CaseClause); ok {
-						if caseClause.List == nil {
+						if len(caseClause.List) == 0 {
 							defaultClause = caseClause
 						} else {
 							nonDefaultClauses = append(nonDefaultClauses, caseClause)
@@ -6477,7 +6477,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				var defaultClause *ast.CaseClause
 				for _, stmt := range s.Body.List {
 					if caseClause, ok := stmt.(*ast.CaseClause); ok {
-						if caseClause.List == nil {
+						if len(caseClause.List) == 0 {
 							defaultClause = caseClause
 							continue
 						}
