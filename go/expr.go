@@ -2950,6 +2950,57 @@ func writeBareSliceCompositeLiteral(out *strings.Builder, expr ast.Expr, expecte
 	return true
 }
 
+func writeBareArraySliceCompositeLiteralWithSyntaxType(out *strings.Builder, expr ast.Expr, expected ast.Expr) bool {
+	lit, ok := expr.(*ast.CompositeLit)
+	if !ok || lit.Type != nil {
+		return false
+	}
+	arrayType, ok := expected.(*ast.ArrayType)
+	if !ok {
+		return false
+	}
+	values := orderedArrayLiteralValues(lit.Elts)
+	if arrayType.Len != nil {
+		out.WriteString("[")
+		if length, ok := fixedArrayLiteralLength(lit, arrayType); ok {
+			values = orderedArrayLiteralValuesForLength(lit.Elts, length)
+		}
+	} else if len(values) == 0 {
+		out.WriteString("Vec::<")
+		out.WriteString(goCollectionElemTypeToRust(arrayType.Elt))
+		out.WriteString(">::new()")
+		return true
+	} else {
+		out.WriteString("vec![")
+	}
+	for i, elt := range values {
+		if i > 0 {
+			out.WriteString(", ")
+		}
+		if elt == nil {
+			out.WriteString(zeroValueForGoType(arrayType.Elt))
+			continue
+		}
+		if !writeArraySliceLiteralElementValueWithSyntaxType(out, elt, arrayType.Elt) {
+			TranspileExpression(out, elt)
+		}
+	}
+	out.WriteString("]")
+	return true
+}
+
+func writeArraySliceLiteralElementValueWithSyntaxType(out *strings.Builder, expr ast.Expr, elemType ast.Expr) bool {
+	if writeBareArraySliceCompositeLiteralWithSyntaxType(out, expr, elemType) {
+		return true
+	}
+	if ident, ok := elemType.(*ast.Ident); ok && ident.Name == "string" && isStringConstExpr(expr) {
+		TranspileConstExpr(out, expr, 0)
+		out.WriteString(".to_string()")
+		return true
+	}
+	return false
+}
+
 func writeStringConstForExpectedBasicType(out *strings.Builder, expr ast.Expr, expected types.Type) bool {
 	if !isStringConstExpr(expr) || expected == nil {
 		return false
@@ -5912,6 +5963,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					out.WriteString(interfaceName)
 					out.WriteString(">")
 				} else {
+					if elemType == nil && writeArraySliceLiteralElementValueWithSyntaxType(out, elt, arrayType.Elt) {
+						continue
+					}
 					if !writeArraySliceLiteralElementValue(out, elt, elemType) {
 						TranspileExpression(out, elt)
 					}

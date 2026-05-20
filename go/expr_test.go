@@ -147,6 +147,31 @@ func TestReferenceRangeComparisonDereferencesWithoutTypeInfo(t *testing.T) {
 	}
 }
 
+func TestElidedNestedSliceLiteralUsesOuterSyntaxWithoutTypeInfo(t *testing.T) {
+	expr, err := parser.ParseExpr(`[][]string{{"a", "b"}, {}}`)
+	if err != nil {
+		t.Fatalf("ParseExpr() error = %v", err)
+	}
+
+	prevTypeInfo := currentTypeInfo
+	defer func() { currentTypeInfo = prevTypeInfo }()
+	SetTypeInfo(nil)
+
+	var out strings.Builder
+	TranspileExpression(&out, expr)
+
+	got := out.String()
+	if strings.Contains(got, "CompositeLit with nil Type") || strings.Contains(got, "unimplemented!()") {
+		t.Fatalf("elided nested slice literal should use outer syntax type, got:\n%s", got)
+	}
+	if !strings.Contains(got, `vec!["a".to_string(), "b".to_string()]`) {
+		t.Fatalf("elided nested string slice literal did not emit owned strings:\n%s", got)
+	}
+	if !strings.Contains(got, "Vec::<String>::new()") {
+		t.Fatalf("empty elided nested string slice literal needs explicit Vec type:\n%s", got)
+	}
+}
+
 func TestExternalStubCallClonesMapRangeStringKey(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
