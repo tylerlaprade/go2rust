@@ -1,0 +1,8 @@
+[package]
+name = "strconv_quote_empty"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "strconv_quote_empty"
+path = "main.rs"

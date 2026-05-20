@@ -91,6 +91,7 @@ func init() {
 		"strconv.Atoi":             transpileStrconvAtoi,
 		"strconv.FormatFloat":      transpileStrconvFormatFloat,
 		"strconv.FormatInt":        transpileStrconvFormatInt,
+		"strconv.Quote":            transpileStrconvQuote,
 		"errors.New":               transpileErrorsNew,
 		"sort.Strings":             transpileSortStrings,
 		"sort.Ints":                transpileSortInts,
@@ -1980,6 +1981,19 @@ func transpileStrconvFormatInt(out *strings.Builder, call *ast.CallExpr) {
 		out.WriteString("10")
 	}
 	out.WriteString(" as i32)")
+	WriteWrapperSuffix(out)
+}
+
+func transpileStrconvQuote(out *strings.Builder, call *ast.CallExpr) {
+	if len(call.Args) < 1 {
+		out.WriteString("/* ERROR: strconv.Quote requires string */ unimplemented!()")
+		return
+	}
+
+	WriteWrapperPrefix(out)
+	out.WriteString("format!(\"{:?}\", ")
+	writeOwnedStringStdlibArg(out, call.Args[0])
+	out.WriteString(")")
 	WriteWrapperSuffix(out)
 }
 

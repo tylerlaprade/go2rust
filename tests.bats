@@ -2094,6 +2094,10 @@ run_xfail_test() {
     run_test "tests/strconv_parse"
 }
 
+@test "strconv_quote_empty" {
+    run_test "tests/strconv_quote_empty"
+}
+
 @test "string_append_sprintf_selector_slice" {
     run_test "tests/string_append_sprintf_selector_slice"
 }
