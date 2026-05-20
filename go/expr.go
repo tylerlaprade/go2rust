@@ -4236,6 +4236,9 @@ func methodCallNeedsMutableReceiver(sel *ast.SelectorExpr) bool {
 	if mutable, ok := typeInfo.SelectorRequiresMutableReceiver(sel); ok {
 		return mutable
 	}
+	if mutable, ok := packageMethodReceiverMutabilityForSelector(sel); ok {
+		return mutable
+	}
 	return typeInfo.HasPointerReceiver(sel)
 }
 

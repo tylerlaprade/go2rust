@@ -147,6 +147,14 @@ func (pl *PackageLoader) TranspileAll() error {
 	SetTypeInfo(globalTypeInfo)
 	pl.concurrencyDetector = pl.buildWorkspaceConcurrencyDetector()
 
+	resetPackageMethodReceiverMutability()
+	for _, pkgPath := range pl.orderedAllPackagePaths() {
+		pkg := pl.allPackages[pkgPath]
+		if pkg != nil {
+			registerPackageMethodReceiverMutability(pkg.PkgPath, pkg.Syntax)
+		}
+	}
+
 	// Transpile external packages first
 	for _, pkgPath := range pl.orderedPackagePaths() {
 		pkg := pl.allPackages[pkgPath]

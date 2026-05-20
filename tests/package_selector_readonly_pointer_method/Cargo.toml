@@ -1,0 +1,20 @@
+
+[workspace]
+members = [
+    ".",
+    "vendor/example_com_package_selector_readonly_pointer_method_helper",
+    "vendor/go2rust_stdlib_stubs",
+]
+
+[package]
+name = "package_selector_readonly_pointer_method"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "package_selector_readonly_pointer_method"
+path = "main.rs"
+
+[dependencies]
+example_com_package_selector_readonly_pointer_method_helper = { path = "vendor/example_com_package_selector_readonly_pointer_method_helper" }
+go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }

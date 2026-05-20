@@ -296,6 +296,18 @@ func (ut *UnifiedTranspiler) transpileAll() error {
 		}
 	}
 
+	resetPackageMethodReceiverMutability()
+	registerPackageMethodReceiverMutability(ut.mainPackage.ImportPath, ut.mainPackage.ASTFiles)
+	pkgPaths := make([]string, 0, len(ut.vendorPackages))
+	for pkgPath := range ut.vendorPackages {
+		pkgPaths = append(pkgPaths, pkgPath)
+	}
+	sort.Strings(pkgPaths)
+	for _, pkgPath := range pkgPaths {
+		pkg := ut.vendorPackages[pkgPath]
+		registerPackageMethodReceiverMutability(pkg.ImportPath, pkg.ASTFiles)
+	}
+
 	// Transpile vendor packages first (dependencies before dependents)
 	for pkgPath, pkg := range ut.vendorPackages {
 		fmt.Fprintf(os.Stderr, "Transpiling package %s...\n", pkgPath)

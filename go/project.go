@@ -235,6 +235,10 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 	defer SetConcurrencyDetector(nil) // Clear when done
 
 	packageAnalysis := analyzeTranspileFiles(astFiles, pg.typeInfo)
+	if len(pg.packageMapping) == 0 {
+		resetPackageMethodReceiverMutability()
+	}
+	registerPackageMethodReceiverMutability("main", astFiles)
 	packageState := NewPackageState()
 	packageState.MapKeyStructTypes = packageAnalysis.mapKeyStructTypes
 	pg.usePackageHelpers = len(astFiles) > 1

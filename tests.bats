@@ -1522,6 +1522,10 @@ run_xfail_test() {
     run_test "tests/package_selector_pointer_argument"
 }
 
+@test "package_selector_readonly_pointer_method" {
+    run_test "tests/package_selector_readonly_pointer_method"
+}
+
 @test "package_selector_zero_values" {
     run_test "tests/package_selector_zero_values"
 }

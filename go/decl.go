@@ -2483,6 +2483,68 @@ func collectMethodReceiverMutability(files []*ast.File, typeInfo *TypeInfo) map[
 	return mutableByMethod
 }
 
+var packageMethodReceiverMutability = make(map[string]bool)
+
+func resetPackageMethodReceiverMutability() {
+	packageMethodReceiverMutability = make(map[string]bool)
+}
+
+func registerPackageMethodReceiverMutability(pkgPath string, files []*ast.File) {
+	if pkgPath == "" {
+		pkgPath = "main"
+	}
+	methodsByReceiver := collectPackageMethods(files)
+	for receiverType, methods := range methodsByReceiver {
+		for _, fn := range methods {
+			if fn == nil || fn.Name == nil {
+				continue
+			}
+			key := packageMethodReceiverMutabilityKey(pkgPath, receiverType, fn.Name.Name)
+			packageMethodReceiverMutability[key] = methodRequiresMutableReceiverFromMap(fn, methodsByReceiver, nil)
+		}
+	}
+}
+
+func packageMethodReceiverMutabilityKey(pkgPath string, receiverType string, methodName string) string {
+	if pkgPath == "" || receiverType == "" || methodName == "" {
+		return ""
+	}
+	return pkgPath + "\x00" + receiverType + "\x00" + methodName
+}
+
+func packageMethodReceiverMutabilityForSelector(sel *ast.SelectorExpr) (bool, bool) {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil || sel == nil {
+		return false, false
+	}
+	selection, ok := typeInfo.info.Selections[sel]
+	if !ok {
+		return false, false
+	}
+	fn, ok := selection.Obj().(*types.Func)
+	if !ok || fn == nil {
+		return false, false
+	}
+	sig, ok := fn.Type().(*types.Signature)
+	if !ok || sig.Recv() == nil {
+		return false, false
+	}
+	recv := types.Unalias(sig.Recv().Type())
+	if ptr, ok := recv.(*types.Pointer); ok {
+		recv = types.Unalias(ptr.Elem())
+	}
+	named, ok := recv.(*types.Named)
+	if !ok || named.Obj() == nil || named.Obj().Pkg() == nil {
+		return false, false
+	}
+	key := packageMethodReceiverMutabilityKey(named.Obj().Pkg().Path(), named.Obj().Name(), fn.Name())
+	if key == "" {
+		return false, false
+	}
+	mutable, ok := packageMethodReceiverMutability[key]
+	return mutable, ok
+}
+
 func methodReceiverGroupKey(fn *ast.FuncDecl, typeInfo *TypeInfo) string {
 	if obj := methodFuncForDecl(fn, typeInfo); obj != nil {
 		if sig, ok := obj.Type().(*types.Signature); ok && sig.Recv() != nil {
