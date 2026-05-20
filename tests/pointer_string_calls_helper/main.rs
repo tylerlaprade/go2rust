@@ -43,5 +43,5 @@ fn main() {
     });
 
     let mut h = Arc::new(Mutex::new(Some(holder { value: Arc::new(Mutex::new(Some("ok".to_string()))), ..Default::default() })));
-    println!("{}", format!("{}", (*(*h.lock().unwrap().as_ref().unwrap()).string().lock().unwrap().as_ref().unwrap())));
+    println!("{}", format!("{}", (*{ let __recv = h.clone(); let __recv_ptr: *const holder = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const holder }; let __result = unsafe { &*__recv_ptr }.string(); __result }.lock().unwrap().as_ref().unwrap())));
 }

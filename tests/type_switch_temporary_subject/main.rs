@@ -60,6 +60,7 @@ pub fn classify(b: Rc<RefCell<Option<sampleBox>>>) -> Rc<RefCell<Option<String>>
         return Rc::new(RefCell::new(Some(format!("int:{}", { let __v = (*v.borrow().as_ref().unwrap()).clone(); __v }))));;
     } else {
         let v = (*b.borrow().as_ref().unwrap()).current().clone();
+        drop(_ts_guard);
         return Rc::new(RefCell::new(Some("other".to_string())));;
     }
     }

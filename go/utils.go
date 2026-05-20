@@ -111,6 +111,20 @@ func WriteWrapperSuffix(out *strings.Builder) {
 	out.WriteString(")))")
 }
 
+// WriteWrapperOptionPrefix writes a wrapper around an existing Option<T>.
+func WriteWrapperOptionPrefix(out *strings.Builder) {
+	trackWrapperImports()
+	if NeedsConcurrentWrapper() {
+		out.WriteString("Arc::new(Mutex::new(")
+	} else {
+		out.WriteString("Rc::new(RefCell::new(")
+	}
+}
+
+func WriteWrapperOptionSuffix(out *strings.Builder) {
+	out.WriteString("))")
+}
+
 // WriteWrappedNone writes None with the appropriate wrapper (no Option, so we can't use the Prefix/Suffix functions)
 func WriteWrappedNone(out *strings.Builder) {
 	if NeedsConcurrentWrapper() {

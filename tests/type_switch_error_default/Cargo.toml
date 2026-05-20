@@ -1,0 +1,8 @@
+[package]
+name = "type_switch_error_default"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "type_switch_error_default"
+path = "main.rs"

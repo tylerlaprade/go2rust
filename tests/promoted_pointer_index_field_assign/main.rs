@@ -65,7 +65,8 @@ impl<T> GoChannel<T> {
         if self.is_nil() {
             return;
         }
-        if let Some(ref tx) = *self.tx.lock().unwrap() {
+        let tx = self.tx.lock().unwrap().clone();
+        if let Some(tx) = tx {
             if tx.send(val).is_ok() && self.capacity > 0 {
                 self.len.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
             }
@@ -76,7 +77,8 @@ impl<T> GoChannel<T> {
         if self.is_nil() {
             return false;
         }
-        if let Some(ref tx) = *self.tx.lock().unwrap() {
+        let tx = self.tx.lock().unwrap().clone();
+        if let Some(tx) = tx {
             if tx.try_send(val).is_ok() {
                 if self.capacity > 0 {
                     self.len.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
@@ -90,11 +92,17 @@ impl<T> GoChannel<T> {
         }
     }
 
-    fn recv(&self) -> Option<T> {
+    fn recv(&self) -> Option<T>
+    where
+        T: Default,
+    {
         if self.is_nil() {
             return None;
         }
-        let value = self.rx.lock().unwrap().recv().ok();
+        let value = match self.rx.lock().unwrap().recv() {
+            Ok(value) => Some(value),
+            Err(_) => Some(T::default()),
+        };
         if value.is_some() && self.capacity > 0 {
             let _ = self.len.fetch_update(
                 std::sync::atomic::Ordering::SeqCst,
@@ -171,7 +179,18 @@ impl<T> std::fmt::Debug for GoChannel<T> {
 impl<T> Iterator for GoChannel<T> {
     type Item = T;
     fn next(&mut self) -> Option<T> {
-        self.recv()
+        if self.is_nil() {
+            return None;
+        }
+        let value = self.rx.lock().unwrap().recv().ok();
+        if value.is_some() && self.capacity > 0 {
+            let _ = self.len.fetch_update(
+                std::sync::atomic::Ordering::SeqCst,
+                std::sync::atomic::Ordering::SeqCst,
+                |__go_current| __go_current.checked_sub(1),
+            );
+        }
+        value
     }
 }
 

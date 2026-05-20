@@ -99,6 +99,14 @@ impl std::fmt::Display for Reader {
     }
 }
 
+impl GoJsonDecode for Reader {
+    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
+        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
+        let mut out = Self::default();
+        Ok(out)
+    }
+}
+
 
 #[derive(Clone)]
 pub struct pkgReader {
@@ -121,6 +129,14 @@ impl Default for pkgReader {
 impl std::fmt::Display for pkgReader {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{}}}", (*self.pkg_decoder.lock().unwrap().as_ref().unwrap()))
+    }
+}
+
+impl GoJsonDecode for pkgReader {
+    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
+        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
+        let mut out = Self::default();
+        Ok(out)
     }
 }
 
@@ -208,9 +224,9 @@ fn main() {
     println!("{}", format!("{}", (*(*copied.lock().unwrap().as_ref().unwrap()).label(Arc::new(Mutex::new(Some("copy".to_string())))).lock().unwrap().as_ref().unwrap())));
     let mut pr = Arc::new(Mutex::new(Some(pkgReader { pkg_decoder: Arc::new(Mutex::new(Some(example_com_importedembed_base::PkgDecoder { base: Arc::new(Mutex::new(Some(10))), ..Default::default() }))), ..Default::default() })));
     let mut fromPkg = (*pr.lock().unwrap().as_ref().unwrap()).new_reader(Arc::new(Mutex::new(Some(5))));
-    println!("{}", format!("{}", (*(*fromPkg.lock().unwrap().as_ref().unwrap()).label(Arc::new(Mutex::new(Some("frompkg".to_string())))).lock().unwrap().as_ref().unwrap())));
+    println!("{}", format!("{}", (*{ let __recv = fromPkg.clone(); let __recv_ptr: *const Reader = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Reader }; let __result = unsafe { &*__recv_ptr }.label(Arc::new(Mutex::new(Some("frompkg".to_string())))); __result }.lock().unwrap().as_ref().unwrap())));
     (*pr.lock().unwrap().as_ref().unwrap()).retire_reader(fromPkg.clone());
-    println!("{}", format!("{}", (*(*fromPkg.lock().unwrap().as_ref().unwrap()).label(Arc::new(Mutex::new(Some("retired".to_string())))).lock().unwrap().as_ref().unwrap())));
+    println!("{}", format!("{}", (*{ let __recv = fromPkg.clone(); let __recv_ptr: *const Reader = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Reader }; let __result = unsafe { &*__recv_ptr }.label(Arc::new(Mutex::new(Some("retired".to_string())))); __result }.lock().unwrap().as_ref().unwrap())));
     let mut idx = Arc::new(Mutex::new(Some(example_com_importedembed_base::Index(Arc::new(Mutex::new(Some(1 as i32)))))));
     println!("{}", format!("{}", (*pick_name(Arc::new(Mutex::new(Some(vec!["zero".to_string(), "one".to_string(), "two".to_string()]))), Arc::new(Mutex::new(Some((*idx.lock().unwrap().as_ref().unwrap()).clone())))).lock().unwrap().as_ref().unwrap())));
     touch_name_ptr(Arc::new(Mutex::new(Some(vec!["zero".to_string(), "one".to_string(), "two".to_string()]))), Arc::new(Mutex::new(Some((*idx.lock().unwrap().as_ref().unwrap()).clone()))));

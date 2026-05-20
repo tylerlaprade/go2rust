@@ -294,7 +294,7 @@ impl std::fmt::Display for holder {
 
 
 fn main() {
-    let mut h = Arc::new(Mutex::new(Some(holder { w: { let __arg = bytes::new_buffer(()); let __converted = { let __arg_guard = __arg.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone().into() }; Arc::new(Mutex::new(Some(__converted))) }, ..Default::default() })));
+    let mut h = Arc::new(Mutex::new(Some(holder { w: { let __arg = bytes::new_buffer(()); let __converted = { let __arg_guard = __arg.lock().unwrap(); let __converted: Option<io_Writer> = __arg_guard.as_ref().map(|__v| (*__v).clone().into()); __converted }; Arc::new(Mutex::new(__converted)) }, ..Default::default() })));
     let mut err = Arc::new(Mutex::new(Some(Box::<dyn StdError + Send + Sync>::from(format!("{}", format!("{}", (*(*h.lock().unwrap().as_ref().unwrap()).w.lock().unwrap().as_ref().unwrap())))))));
     println!("{}", format!("{}", (*err.lock().unwrap()).is_some()));
 }

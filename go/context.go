@@ -147,6 +147,7 @@ func NewFileState(imports *ImportTracker, helpers *HelperTracker, statementPrepr
 		ExternalTypeStubMethods:      make(map[string]map[string]externalTypeStubMethod),
 		ExternalTypeStubConversions:  make(map[string]map[string]bool),
 		ExternalPackageStubs:         make(map[string]*externalPackageStub),
+		CurrentTypeMethods:           []*ast.FuncDecl{},
 		LabeledLoopPost:              make(map[string]ast.Stmt),
 	}
 }
@@ -400,6 +401,9 @@ func (ctx *TranspileContext) applyCompatibilityState() {
 		currentReceiver = ctx.File.CurrentReceiver
 		currentReceiverType = ctx.File.CurrentReceiverType
 		currentTypeMethods = ctx.File.CurrentTypeMethods
+		if currentTypeMethods == nil {
+			currentTypeMethods = []*ast.FuncDecl{}
+		}
 		currentFunctionHasDefer = ctx.File.CurrentFunctionHasDefer
 		currentCaptureRenames = ctx.File.CurrentCaptureRenames
 		externalTypeStubs = ctx.File.ExternalTypeStubs

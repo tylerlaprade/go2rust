@@ -79,7 +79,8 @@ impl<T> GoChannel<T> {
         if self.is_nil() {
             return;
         }
-        if let Some(ref tx) = *self.tx.lock().unwrap() {
+        let tx = self.tx.lock().unwrap().clone();
+        if let Some(tx) = tx {
             if tx.send(val).is_ok() && self.capacity > 0 {
                 self.len.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
             }
@@ -90,7 +91,8 @@ impl<T> GoChannel<T> {
         if self.is_nil() {
             return false;
         }
-        if let Some(ref tx) = *self.tx.lock().unwrap() {
+        let tx = self.tx.lock().unwrap().clone();
+        if let Some(tx) = tx {
             if tx.try_send(val).is_ok() {
                 if self.capacity > 0 {
                     self.len.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
@@ -104,11 +106,17 @@ impl<T> GoChannel<T> {
         }
     }
 
-    fn recv(&self) -> Option<T> {
+    fn recv(&self) -> Option<T>
+    where
+        T: Default,
+    {
         if self.is_nil() {
             return None;
         }
-        let value = self.rx.lock().unwrap().recv().ok();
+        let value = match self.rx.lock().unwrap().recv() {
+            Ok(value) => Some(value),
+            Err(_) => Some(T::default()),
+        };
         if value.is_some() && self.capacity > 0 {
             let _ = self.len.fetch_update(
                 std::sync::atomic::Ordering::SeqCst,
@@ -185,7 +193,18 @@ impl<T> std::fmt::Debug for GoChannel<T> {
 impl<T> Iterator for GoChannel<T> {
     type Item = T;
     fn next(&mut self) -> Option<T> {
-        self.recv()
+        if self.is_nil() {
+            return None;
+        }
+        let value = self.rx.lock().unwrap().recv().ok();
+        if value.is_some() && self.capacity > 0 {
+            let _ = self.len.fetch_update(
+                std::sync::atomic::Ordering::SeqCst,
+                std::sync::atomic::Ordering::SeqCst,
+                |__go_current| __go_current.checked_sub(1),
+            );
+        }
+        value
     }
 }
 
@@ -490,7 +509,7 @@ fn main() {
         return Arc::new(Mutex::new(None));
     }) as Box<dyn FnMut(Arc<Mutex<Option<Vec<i32>>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> + Send + Sync>)));
 
-    let mut testData = Arc::new(Mutex::new(Some(vec![vec![1, 2, 3], vec![], vec![1, -2, 3], vec![1, 200, 3], vec![10, 20, 30]])));
+    let mut testData = Arc::new(Mutex::new(Some(vec![vec![1, 2, 3], Vec::<i32>::new(), vec![1, -2, 3], vec![1, 200, 3], vec![10, 20, 30]])));
 
     { let __range_holder = testData.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, data) in __range_values.iter().enumerate() {
         print!("Testing dataset {}: {}\n", { let __tmp_x = i as i32; let __tmp_y = 1; __tmp_x + __tmp_y }, format_slice_values(data));

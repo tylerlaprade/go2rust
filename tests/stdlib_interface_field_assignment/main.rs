@@ -105,11 +105,11 @@ pub fn disjoint(x: Arc<Mutex<Option<term>>>, y: Arc<Mutex<Option<term>>>) -> Arc
 
     let mut ux = { let __src = (*x.lock().unwrap().as_ref().unwrap()).typ.clone(); let __copied = (*__src.lock().unwrap().as_ref().unwrap()).clone(); Arc::new(Mutex::new(Some(__copied))) };
     if (*{ let __field = (*y.lock().unwrap().as_ref().unwrap()).tilde.clone(); __field }.lock().unwrap().as_ref().unwrap()) {
-        { let new_val = under(Arc::new(Mutex::new(Some((*ux.lock().unwrap().as_ref().unwrap()).clone())))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *ux.lock().unwrap() = __moved_val; };
+        { let new_val = under(ux.clone()); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *ux.lock().unwrap() = __moved_val; };
     }
     let mut uy = { let __src = (*y.lock().unwrap().as_ref().unwrap()).typ.clone(); let __copied = (*__src.lock().unwrap().as_ref().unwrap()).clone(); Arc::new(Mutex::new(Some(__copied))) };
     if (*{ let __field = (*x.lock().unwrap().as_ref().unwrap()).tilde.clone(); __field }.lock().unwrap().as_ref().unwrap()) {
-        { let new_val = under(Arc::new(Mutex::new(Some((*uy.lock().unwrap().as_ref().unwrap()).clone())))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *uy.lock().unwrap() = __moved_val; };
+        { let new_val = under(uy.clone()); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *uy.lock().unwrap() = __moved_val; };
     }
     return Arc::new(Mutex::new(Some(!((*types::identical(ux.clone(), uy.clone()).lock().unwrap().as_ref().unwrap())))));
 }

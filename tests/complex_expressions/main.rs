@@ -39,7 +39,8 @@ impl<T> GoChannel<T> {
         if self.is_nil() {
             return;
         }
-        if let Some(ref tx) = *self.tx.lock().unwrap() {
+        let tx = self.tx.lock().unwrap().clone();
+        if let Some(tx) = tx {
             if tx.send(val).is_ok() && self.capacity > 0 {
                 self.len.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
             }
@@ -50,7 +51,8 @@ impl<T> GoChannel<T> {
         if self.is_nil() {
             return false;
         }
-        if let Some(ref tx) = *self.tx.lock().unwrap() {
+        let tx = self.tx.lock().unwrap().clone();
+        if let Some(tx) = tx {
             if tx.try_send(val).is_ok() {
                 if self.capacity > 0 {
                     self.len.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
@@ -64,11 +66,17 @@ impl<T> GoChannel<T> {
         }
     }
 
-    fn recv(&self) -> Option<T> {
+    fn recv(&self) -> Option<T>
+    where
+        T: Default,
+    {
         if self.is_nil() {
             return None;
         }
-        let value = self.rx.lock().unwrap().recv().ok();
+        let value = match self.rx.lock().unwrap().recv() {
+            Ok(value) => Some(value),
+            Err(_) => Some(T::default()),
+        };
         if value.is_some() && self.capacity > 0 {
             let _ = self.len.fetch_update(
                 std::sync::atomic::Ordering::SeqCst,
@@ -145,34 +153,20 @@ impl<T> std::fmt::Debug for GoChannel<T> {
 impl<T> Iterator for GoChannel<T> {
     type Item = T;
     fn next(&mut self) -> Option<T> {
-        self.recv()
+        if self.is_nil() {
+            return None;
+        }
+        let value = self.rx.lock().unwrap().recv().ok();
+        if value.is_some() && self.capacity > 0 {
+            let _ = self.len.fetch_update(
+                std::sync::atomic::Ordering::SeqCst,
+                std::sync::atomic::Ordering::SeqCst,
+                |__go_current| __go_current.checked_sub(1),
+            );
+        }
+        value
     }
 }
-
-#[derive(Debug, Clone)]
-struct AnonymousStruct1 {
-    x: Arc<Mutex<Option<i32>>>,
-    y: Arc<Mutex<Option<i32>>>,
-}
-impl AnonymousStruct1 {
-    pub fn __go_value_clone(&self) -> Self {
-        Self { x: { let __guard = self.x.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, y: { let __guard = self.y.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
-    }
-}
-
-
-impl Default for AnonymousStruct1 {
-    fn default() -> Self {
-        Self { x: Arc::new(Mutex::new(Some(0))), y: Arc::new(Mutex::new(Some(0))) }
-    }
-}
-
-impl std::fmt::Display for AnonymousStruct1 {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.x.lock().unwrap().as_ref().unwrap()), (*self.y.lock().unwrap().as_ref().unwrap()))
-    }
-}
-
 
 fn main() {
         // Complex arithmetic expressions
@@ -364,4 +358,28 @@ fn main() {
         { let mut guard = total.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + { let __tmp_x = { let __tmp_x = i as i32; let __tmp_y = val; __tmp_x * __tmp_y }; let __tmp_y = ({ let __tmp_x = val; let __tmp_y = 3; __tmp_x % __tmp_y }); __tmp_x + __tmp_y }); };
     }
     print!("Complex range calculation: {}\n", { let __v = (*total.lock().unwrap().as_ref().unwrap()).clone(); __v });
+}
+
+#[derive(Debug, Clone)]
+struct AnonymousStruct1 {
+    x: Arc<Mutex<Option<i32>>>,
+    y: Arc<Mutex<Option<i32>>>,
+}
+impl AnonymousStruct1 {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { x: { let __guard = self.x.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, y: { let __guard = self.y.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for AnonymousStruct1 {
+    fn default() -> Self {
+        Self { x: Arc::new(Mutex::new(Some(0))), y: Arc::new(Mutex::new(Some(0))) }
+    }
+}
+
+impl std::fmt::Display for AnonymousStruct1 {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{} {}}}", (*self.x.lock().unwrap().as_ref().unwrap()), (*self.y.lock().unwrap().as_ref().unwrap()))
+    }
 }

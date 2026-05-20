@@ -6,6 +6,7 @@ import (
 	"go/constant"
 	"go/token"
 	"go/types"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -708,7 +709,8 @@ func writeCurrentReceiverPointerMethodCallWithArgTemps(out *strings.Builder, sel
 func writeRegularMethodCallArgument(out *strings.Builder, sel *ast.SelectorExpr, arg ast.Expr, index int) {
 	typeInfo := GetTypeInfo()
 	expectedArgType := selectedMethodParamType(sel, index)
-	if writeGoErrorCallArgument(out, arg, expectedArgType) {
+	expectedArgExpr := selectedMethodParamExpr(sel, index)
+	if expectedArgType != nil && writeGoErrorCallArgument(out, arg, expectedArgType) {
 		return
 	}
 	if typeInfo != nil && typeInfo.IsChannel(arg) {
@@ -716,30 +718,34 @@ func writeRegularMethodCallArgument(out *strings.Builder, sel *ast.SelectorExpr,
 		out.WriteString(".clone()")
 		return
 	}
-	if _, ok := transpiledNamedInterfaceTypeNameFromTypes(expectedArgType); ok && writeLocalInterfaceReferenceCallArgument(out, arg, expectedArgType) {
-		return
-	}
-	if writeEmptyInterfaceCallArgument(out, arg, expectedArgType) {
-		return
+	if expectedArgType != nil {
+		if _, ok := transpiledNamedInterfaceTypeNameFromTypes(expectedArgType); ok && writeLocalInterfaceReferenceCallArgument(out, arg, expectedArgType) {
+			return
+		}
 	}
 	if ident, ok := arg.(*ast.Ident); ok && ident.Name == "nil" {
 		WriteWrappedNone(out)
 		return
 	}
-	if writeStdlibInterfaceCallArgumentConversion(out, arg, expectedArgType) {
-		return
-	}
-	if writeAlreadyWrappedStdlibInterfaceCallArgument(out, arg, expectedArgType) {
-		return
-	}
-	if writePointerHandleCallArgument(out, arg, expectedArgType) {
-		return
-	}
-	if writeFunctionHandleCallArgument(out, arg, expectedArgType) {
-		return
-	}
-	if writeAlreadyWrappedSelectorCallArgument(out, arg, expectedArgType) {
-		return
+	if expectedArgType != nil {
+		if writeEmptyInterfaceCallArgument(out, arg, expectedArgType) {
+			return
+		}
+		if writeAlreadyWrappedStdlibInterfaceCallArgument(out, arg, expectedArgType) {
+			return
+		}
+		if writeStdlibInterfaceCallArgumentConversion(out, arg, expectedArgType) {
+			return
+		}
+		if writePointerHandleCallArgument(out, arg, expectedArgType) {
+			return
+		}
+		if writeFunctionHandleCallArgument(out, arg, expectedArgType) {
+			return
+		}
+		if writeAlreadyWrappedSelectorCallArgument(out, arg, expectedArgType) {
+			return
+		}
 	}
 	if writeAlreadyWrappedCallArgument(out, arg) {
 		return
@@ -748,20 +754,36 @@ func writeRegularMethodCallArgument(out *strings.Builder, sel *ast.SelectorExpr,
 		return
 	}
 	WriteWrapperPrefix(out)
-	if writeConstExpressionForExpectedGoType(out, arg, expectedArgType) {
+	if expectedArgType != nil && writeConstExpressionForExpectedGoType(out, arg, expectedArgType) {
 		// Constant emitted in the parameter's expected representation.
-	} else if writeRangeStringCallArgumentValue(out, arg, expectedArgType) {
+	} else if expectedArgType != nil && writeRangeStringCallArgumentValue(out, arg, expectedArgType) {
 		// Range string reference cloned for an owned string parameter.
-	} else if writeRangeCharForExpectedType(out, arg, expectedArgType) {
+	} else if expectedArgType != nil && writeRangeCharForExpectedType(out, arg, expectedArgType) {
 		// String range runes are represented as Rust char but Go rune parameters use i32.
-	} else if writeLenCapCallArgumentForExpectedType(out, arg, expectedArgType) {
+	} else if expectedArgType != nil && writeLenCapCallArgumentForExpectedType(out, arg, expectedArgType) {
 		// len/cap emits usize, but Go int parameters use i32.
-	} else if writeRangeIndexForExpectedType(out, arg, expectedArgType) {
+	} else if expectedArgType == nil && writeLenCapCallArgumentForExpectedParamExpr(out, arg, expectedArgExpr) {
+		// len/cap emits usize, but Go int parameters use i32.
+	} else if expectedArgType != nil && writeRangeIndexForExpectedType(out, arg, expectedArgType) {
 		// Range indexes emit usize, but Go int parameters use i32.
 	} else if !writeCallArgumentValue(out, arg) {
 		TranspileExpression(out, arg)
 	}
 	WriteWrapperSuffix(out)
+}
+
+func writeVariadicPackedElementValue(out *strings.Builder, arg ast.Expr, elemType types.Type, elemIsAny bool) {
+	if elemIsAny {
+		writeInterfaceBoxedValue(out, arg)
+		return
+	}
+	if elemType != nil {
+		if _, ok := types.Unalias(elemType).Underlying().(*types.Slice); ok {
+			writeSliceCloneOrEmpty(out, arg)
+			return
+		}
+	}
+	TranspileExpression(out, arg)
 }
 
 func writeMethodCallArguments(out *strings.Builder, sel *ast.SelectorExpr, call *ast.CallExpr, externalStdlibStubMethodCall bool, bareMethodCall bool) bool {
@@ -807,11 +829,7 @@ func writeMethodCallArguments(out *strings.Builder, sel *ast.SelectorExpr, call 
 		if i > variadicStart {
 			out.WriteString(", ")
 		}
-		if variadicElemIsAny {
-			writeInterfaceBoxedValue(out, call.Args[i])
-		} else {
-			TranspileExpression(out, call.Args[i])
-		}
+		writeVariadicPackedElementValue(out, call.Args[i], variadicElemType, variadicElemIsAny)
 	}
 	out.WriteString("]")
 	WriteWrapperSuffix(out)
@@ -1339,17 +1357,36 @@ func writeRangeStringValue(out *strings.Builder, arg ast.Expr) bool {
 }
 
 func writeLenCapCallArgumentForExpectedType(out *strings.Builder, arg ast.Expr, expected types.Type) bool {
-	call, ok := arg.(*ast.CallExpr)
-	if !ok || expected == nil || !isBareBuiltinCallName(call, "len") && !isBareBuiltinCallName(call, "cap") {
-		return false
-	}
-	basic, ok := types.Unalias(expected).Underlying().(*types.Basic)
-	if !ok || basic.Kind() != types.Int {
+	if !lenCapCallNeedsExpectedIntCast(arg, expected) {
 		return false
 	}
 	TranspileExpression(out, arg)
 	out.WriteString(" as i32")
 	return true
+}
+
+func writeLenCapCallArgumentForExpectedParamExpr(out *strings.Builder, arg ast.Expr, expected ast.Expr) bool {
+	call, ok := arg.(*ast.CallExpr)
+	if !ok || !isBareBuiltinCallName(call, "len") && !isBareBuiltinCallName(call, "cap") || !paramExprIsGoInt(expected) {
+		return false
+	}
+	TranspileExpression(out, arg)
+	out.WriteString(" as i32")
+	return true
+}
+
+func lenCapCallNeedsExpectedIntCast(arg ast.Expr, expected types.Type) bool {
+	call, ok := arg.(*ast.CallExpr)
+	if !ok || expected == nil || !isBareBuiltinCallName(call, "len") && !isBareBuiltinCallName(call, "cap") {
+		return false
+	}
+	basic, ok := types.Unalias(expected).Underlying().(*types.Basic)
+	return ok && basic.Kind() == types.Int
+}
+
+func paramExprIsGoInt(expr ast.Expr) bool {
+	ident, ok := expr.(*ast.Ident)
+	return ok && ident.Name == "int"
 }
 
 func writeRangeIndexForExpectedType(out *strings.Builder, arg ast.Expr, expected types.Type) bool {
@@ -1409,6 +1446,23 @@ func writeWrappedRangeCharForExpectedType(out *strings.Builder, arg ast.Expr, ex
 }
 
 func writeExternalStubCallArgument(out *strings.Builder, arg ast.Expr) {
+	if externalStubCallArgumentNeedsTemp(arg) {
+		var inner strings.Builder
+		writeExternalStubCallArgumentDirect(&inner, arg)
+		out.WriteString("{ let __go_arg = ")
+		out.WriteString(inner.String())
+		out.WriteString("; __go_arg }")
+		return
+	}
+	writeExternalStubCallArgumentDirect(out, arg)
+}
+
+func externalStubCallArgumentNeedsTemp(arg ast.Expr) bool {
+	_, ok := arg.(*ast.SelectorExpr)
+	return ok
+}
+
+func writeExternalStubCallArgumentDirect(out *strings.Builder, arg ast.Expr) {
 	if ident, ok := arg.(*ast.Ident); ok && ident.Name == "nil" {
 		out.WriteString("()")
 		return
@@ -1639,8 +1693,7 @@ func writeGoErrorCallArgument(out *strings.Builder, arg ast.Expr, expected types
 		}
 	}
 	if sel, ok := arg.(*ast.SelectorExpr); ok && typeInfo != nil && isGoErrorType(typeInfo.GetType(sel)) {
-		TranspileExpressionContext(out, sel, LValue)
-		out.WriteString(".clone()")
+		writeSelectorHandleClone(out, sel)
 		return true
 	}
 	if call, ok := arg.(*ast.CallExpr); ok {
@@ -1684,6 +1737,39 @@ func selectedMethodParamType(sel *ast.SelectorExpr, index int) types.Type {
 		return nil
 	}
 	return sig.Params().At(index).Type()
+}
+
+func selectedMethodParamExpr(sel *ast.SelectorExpr, index int) ast.Expr {
+	if sel == nil || sel.Sel == nil {
+		return nil
+	}
+	methodName := sel.Sel.Name
+	if currentContext != nil && currentContext.Package != nil {
+		typeNames := make([]string, 0, len(currentContext.Package.MethodsByType))
+		for typeName := range currentContext.Package.MethodsByType {
+			typeNames = append(typeNames, typeName)
+		}
+		sort.Strings(typeNames)
+		for _, typeName := range typeNames {
+			if expr := methodParamExprFromDecls(currentContext.Package.MethodsByType[typeName], methodName, index); expr != nil {
+				return expr
+			}
+		}
+	}
+	return methodParamExprFromDecls(currentTypeMethods, methodName, index)
+}
+
+func methodParamExprFromDecls(methods []*ast.FuncDecl, methodName string, index int) ast.Expr {
+	for _, method := range methods {
+		if method == nil || method.Name == nil || method.Name.Name != methodName || method.Type == nil {
+			continue
+		}
+		field := ParamFieldForArg(&FunctionSignature{Params: method.Type.Params.List}, index)
+		if field != nil {
+			return field.Type
+		}
+	}
+	return nil
 }
 
 func writeLocalInterfaceReferenceCallArgument(out *strings.Builder, arg ast.Expr, expected types.Type) bool {
@@ -1881,7 +1967,8 @@ func stdlibInterfaceArgumentConversionExists(arg ast.Expr, expectedType types.Ty
 }
 
 func writeStdlibInterfaceCallArgumentConversion(out *strings.Builder, arg ast.Expr, expectedType types.Type) bool {
-	if _, _, ok := stdlibInterfaceArgumentConversion(arg, expectedType); !ok {
+	targetRust, _, ok := stdlibInterfaceArgumentConversion(arg, expectedType)
+	if !ok {
 		if targetRust, ok := localConcreteToStdlibInterfaceConversion(arg, expectedType); ok {
 			WriteWrapperPrefix(out)
 			out.WriteString(targetRust)
@@ -1895,10 +1982,12 @@ func writeStdlibInterfaceCallArgumentConversion(out *strings.Builder, arg ast.Ex
 	writeStdlibInterfaceSourceHandle(out, arg, expectedType)
 	out.WriteString("; let __converted = { let __arg_guard = __arg")
 	WriteBorrowMethod(out, false)
-	out.WriteString("; (*__arg_guard.as_ref().unwrap()).clone().into() }; ")
-	WriteWrapperPrefix(out)
+	out.WriteString("; let __converted: Option<")
+	out.WriteString(targetRust)
+	out.WriteString("> = __arg_guard.as_ref().map(|__v| (*__v).clone().into()); __converted }; ")
+	WriteWrapperOptionPrefix(out)
 	out.WriteString("__converted")
-	WriteWrapperSuffix(out)
+	WriteWrapperOptionSuffix(out)
 	out.WriteString(" }")
 	return true
 }
@@ -1914,9 +2003,12 @@ func writeStdlibInterfaceBareConversion(out *strings.Builder, arg ast.Expr, expe
 	}
 	out.WriteString("{ let __arg = ")
 	writeStdlibInterfaceSourceHandle(out, arg, expectedType)
+	targetRust, _, _ := stdlibInterfaceArgumentConversion(arg, expectedType)
 	out.WriteString("; let __arg_guard = __arg")
 	WriteBorrowMethod(out, false)
-	out.WriteString("; (*__arg_guard.as_ref().unwrap()).clone().into() }")
+	out.WriteString("; __arg_guard.as_ref().map(|__v| (*__v).clone().into()).unwrap_or_else(")
+	out.WriteString(targetRust)
+	out.WriteString("::default) }")
 	return true
 }
 
@@ -1934,8 +2026,7 @@ func writeNilStdlibInterfaceBareValue(out *strings.Builder, arg ast.Expr, expect
 
 func writeStdlibInterfaceSourceHandle(out *strings.Builder, arg ast.Expr, expectedType types.Type) {
 	if sel, ok := arg.(*ast.SelectorExpr); ok && selectorFieldCanProvideStdlibInterfaceHandle(sel, expectedType) {
-		TranspileExpressionContext(out, sel, LValue)
-		out.WriteString(".clone()")
+		writeSelectorHandleClone(out, sel)
 		return
 	}
 	if ident, ok := arg.(*ast.Ident); ok {
@@ -1980,7 +2071,9 @@ func writeStdlibInterfaceComparableConversion(out *strings.Builder, arg ast.Expr
 	WriteBorrowMethod(out, false)
 	out.WriteString("; let __converted: ")
 	out.WriteString(targetRust)
-	out.WriteString(" = (*__arg_guard.as_ref().unwrap()).clone().into(); __converted }; ")
+	out.WriteString(" = __arg_guard.as_ref().map(|__v| (*__v).clone().into()).unwrap_or_else(")
+	out.WriteString(targetRust)
+	out.WriteString("::default); __converted }; ")
 	out.WriteString("__converted")
 	out.WriteString(" }")
 	return true
@@ -2810,6 +2903,53 @@ func writeBareFixedArrayCompositeLiteral(out *strings.Builder, expr ast.Expr, ex
 	return true
 }
 
+func writeBareSliceCompositeLiteral(out *strings.Builder, expr ast.Expr, expected types.Type) bool {
+	lit, ok := expr.(*ast.CompositeLit)
+	if !ok || expected == nil {
+		return false
+	}
+	if _, isNamed := types.Unalias(expected).(*types.Named); isNamed {
+		return false
+	}
+	sliceType, ok := types.Unalias(expected).Underlying().(*types.Slice)
+	if !ok {
+		return false
+	}
+	elemType := sliceType.Elem()
+	values := orderedArrayLiteralValues(lit.Elts)
+	if len(values) == 0 {
+		out.WriteString("Vec::<")
+		out.WriteString(goTypesCollectionElemTypeToRust(elemType))
+		out.WriteString(">::new()")
+		return true
+	}
+	if sliceLiteralNeedsExplicitElemType(elemType) {
+		out.WriteString("Vec::<")
+		out.WriteString(goTypesCollectionElemTypeToRust(elemType))
+		out.WriteString(">::from([")
+	} else {
+		out.WriteString("vec![")
+	}
+	for i, elt := range values {
+		if i > 0 {
+			out.WriteString(", ")
+		}
+		if elt == nil {
+			out.WriteString(zeroValueForTypesType(elemType))
+			continue
+		}
+		if !writeArraySliceLiteralElementValue(out, elt, elemType) {
+			TranspileExpression(out, elt)
+		}
+	}
+	if sliceLiteralNeedsExplicitElemType(elemType) {
+		out.WriteString("])")
+	} else {
+		out.WriteString("]")
+	}
+	return true
+}
+
 func writeStringConstForExpectedBasicType(out *strings.Builder, expr ast.Expr, expected types.Type) bool {
 	if !isStringConstExpr(expr) || expected == nil {
 		return false
@@ -2848,6 +2988,15 @@ func writeArraySliceLiteralElementValue(out *strings.Builder, expr ast.Expr, ele
 	}
 	if writeBareFixedArrayCompositeLiteral(out, expr, elemType) {
 		return true
+	}
+	if writeBareSliceCompositeLiteral(out, expr, elemType) {
+		return true
+	}
+	if elemType != nil {
+		if _, ok := types.Unalias(elemType).Underlying().(*types.Slice); ok {
+			writeSliceCloneOrEmpty(out, expr)
+			return true
+		}
 	}
 	if compositeLiteralElementKeepsHandle(elemType) {
 		if isFunctionSignatureType(elemType) && writeFunctionValueHandle(out, expr) {
@@ -2915,6 +3064,9 @@ func writeSwitchTagValue(out *strings.Builder, expr ast.Expr) {
 	if writeSwitchWrappedCallValue(out, expr) {
 		return
 	}
+	if writeRangeStringValue(out, expr) {
+		return
+	}
 	if !isCopyTypeExpression(expr) && writeOwnedExpressionValue(out, expr) {
 		return
 	}
@@ -2925,6 +3077,9 @@ func writeSwitchTagValue(out *strings.Builder, expr ast.Expr) {
 
 func writeSwitchCaseValue(out *strings.Builder, expr ast.Expr) {
 	if writeSwitchWrappedCallValue(out, expr) {
+		return
+	}
+	if writeRangeStringValue(out, expr) {
 		return
 	}
 	if !isCopyTypeExpression(expr) && writeOwnedExpressionValue(out, expr) {
@@ -3091,12 +3246,15 @@ func writeEmptyInterfaceIdentAssignment(out *strings.Builder, lhs ast.Expr, rhs 
 }
 
 func writeWrappedStructFieldValue(out *strings.Builder, value ast.Expr, fieldExpr ast.Expr, fieldType types.Type) {
-	expectedFieldType := fieldType
+	var expectedFieldType types.Type
+	if fieldType != nil {
+		expectedFieldType = fieldType
+	}
 	if expectedFieldType == nil && fieldExpr != nil {
 		expectedFieldType = expectedTypeFromParamExpr(fieldExpr)
 	}
 
-	if writeLocalInterfaceFieldValue(out, value, fieldExpr, fieldType) {
+	if (fieldExpr != nil || fieldType != nil) && writeLocalInterfaceFieldValue(out, value, fieldExpr, fieldType) {
 		return
 	}
 
@@ -3104,7 +3262,7 @@ func writeWrappedStructFieldValue(out *strings.Builder, value ast.Expr, fieldExp
 		return
 	}
 
-	if isEmptyInterfaceExpr(fieldExpr) || isEmptyInterfaceType(expectedFieldType) {
+	if (fieldExpr != nil && isEmptyInterfaceExpr(fieldExpr)) || isEmptyInterfaceType(expectedFieldType) {
 		if writeEmptyInterfaceHandleClone(out, value) {
 			return
 		}
@@ -3114,7 +3272,7 @@ func writeWrappedStructFieldValue(out *strings.Builder, value ast.Expr, fieldExp
 		return
 	}
 
-	if isPointerFieldExpr(fieldExpr) || isPointerFieldType(expectedFieldType) {
+	if (fieldExpr != nil && isPointerFieldExpr(fieldExpr)) || isPointerFieldType(expectedFieldType) {
 		if ident, ok := value.(*ast.Ident); ok && ident.Name == "nil" {
 			out.WriteString("Default::default()")
 			return
@@ -3133,7 +3291,7 @@ func writeWrappedStructFieldValue(out *strings.Builder, value ast.Expr, fieldExp
 		return
 	}
 
-	if isChannelFieldExpr(fieldExpr) || isChannelFieldType(expectedFieldType) {
+	if (fieldExpr != nil && isChannelFieldExpr(fieldExpr)) || isChannelFieldType(expectedFieldType) {
 		if ident, ok := value.(*ast.Ident); ok && ident.Name == "nil" {
 			out.WriteString("Default::default()")
 			return
@@ -3142,11 +3300,15 @@ func writeWrappedStructFieldValue(out *strings.Builder, value ast.Expr, fieldExp
 		return
 	}
 
-	if isFunctionSignatureTypeExpr(fieldExpr) || isFunctionSignatureType(expectedFieldType) {
+	if (fieldExpr != nil && isFunctionSignatureTypeExpr(fieldExpr)) || isFunctionSignatureType(expectedFieldType) {
 		if _, ok := value.(*ast.FuncLit); ok {
 			TranspileExpression(out, value)
 			return
 		}
+	}
+
+	if writeUnknownExpectedSelectorHandleFieldValue(out, value, fieldExpr, expectedFieldType) {
+		return
 	}
 
 	if writeOwnedSelectorFieldValueForExpected(out, value, fieldExpr, expectedFieldType) {
@@ -3216,6 +3378,25 @@ func writeWrappedStructFieldValue(out *strings.Builder, value ast.Expr, fieldExp
 		}
 		WriteWrapperSuffix(out)
 	}
+}
+
+func writeUnknownExpectedSelectorHandleFieldValue(out *strings.Builder, value ast.Expr, fieldExpr ast.Expr, expected types.Type) bool {
+	if fieldExpr != nil || expected != nil {
+		return false
+	}
+	sel, ok := value.(*ast.SelectorExpr)
+	if !ok || isExpressionResultBare(value) {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	if selectorFieldValueKeepsHandle(typeInfo.GetType(sel)) {
+		writeSelectorHandleClone(out, sel)
+		return true
+	}
+	return false
 }
 
 func writeOwnedSelectorFieldValueForExpected(out *strings.Builder, value ast.Expr, fieldExpr ast.Expr, expected types.Type) bool {
@@ -4225,7 +4406,11 @@ func isPackageSelectorBaseIdent(ident *ast.Ident) bool {
 		}
 	}
 	_, isImport := goPackageImports[ident.Name]
-	return isImport
+	if isImport {
+		return true
+	}
+	_, isFallbackStdlib := fallbackStdlibPackagePathForImportName(ident.Name)
+	return isFallbackStdlib
 }
 
 func methodCallNeedsMutableReceiver(sel *ast.SelectorExpr) bool {
@@ -4240,6 +4425,18 @@ func methodCallNeedsMutableReceiver(sel *ast.SelectorExpr) bool {
 		return mutable
 	}
 	return typeInfo.HasPointerReceiver(sel)
+}
+
+func methodReceiverPointeeRustType(expr ast.Expr) string {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return "/* ERROR: receiver type unknown */"
+	}
+	typ := typeInfo.GetType(expr)
+	if ptr, ok := types.Unalias(typ).Underlying().(*types.Pointer); ok {
+		return goTypesTypeToRust(ptr.Elem())
+	}
+	return goTypesTypeToRust(typ)
 }
 
 func writePackageGlobalSelectorMethodReceiver(out *strings.Builder, receiver *ast.SelectorExpr, method *ast.SelectorExpr) (bool, bool) {
@@ -4331,7 +4528,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			// Check if this integer is used in a float context
 			typeInfo := GetTypeInfo()
 			if typeInfo != nil {
-				exprType := typeInfo.GetType(expr)
+				exprType := typeInfo.GetType(e)
 				if exprType != nil {
 					if basic, ok := exprType.(*types.Basic); ok && (basic.Kind() == types.Float32 || basic.Kind() == types.Float64 || basic.Kind() == types.UntypedFloat) {
 						// Integer literal used as float - add .0
@@ -5582,6 +5779,12 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				out.WriteString("String::new()")
 				return
 			}
+			if ident, ok := sel.X.(*ast.Ident); ok && isStdlibPackage(goPackageImports[ident.Name]) && len(e.Elts) == 0 {
+				rustName := goTypeToRustBase(sel)
+				out.WriteString(rustName)
+				out.WriteString(" { ..Default::default() }")
+				return
+			}
 			if typeInfo := GetTypeInfo(); typeInfo != nil {
 				if typ := typeInfo.GetType(e); typ != nil {
 					if structUnder, ok := typ.Underlying().(*types.Struct); ok {
@@ -6562,7 +6765,7 @@ func TranspileFuncLitBox(out *strings.Builder, funcLit *ast.FuncLit) {
 	}
 
 	// Store current capture renames for nested transpilation
-	oldCaptureRenames := currentCaptureRenames
+	oldCaptureRenames := snapshotCaptureRenames()
 	currentCaptureRenames = captureRenames
 	defer func() { currentCaptureRenames = oldCaptureRenames }()
 
@@ -7349,6 +7552,11 @@ func writeSliceCloneOrEmpty(out *strings.Builder, arg ast.Expr) {
 		out.WriteString("Vec::new()")
 		return
 	}
+	if ident, ok := arg.(*ast.Ident); ok {
+		if varType, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar && !isWrappedRangeVarType(varType) && writeOwnedRangeValue(out, ident) {
+			return
+		}
+	}
 	out.WriteString("{ let __slice_holder = ")
 	TranspileExpressionContext(out, arg, LValue)
 	out.WriteString(".clone(); let __slice_guard = __slice_holder")
@@ -8111,7 +8319,11 @@ func isFunctionTypeAliasValue(expr ast.Expr) bool {
 	if typeInfo == nil {
 		return false
 	}
-	named, ok := typeInfo.GetType(expr).(*types.Named)
+	typ := typeInfo.GetType(expr)
+	if typ == nil {
+		return false
+	}
+	named, ok := typ.(*types.Named)
 	return ok && IsFunctionTypeAlias(named.Obj().Name())
 }
 
@@ -8375,6 +8587,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 			// This is a package function call, not a method call
 			// Just transpile the selector expression and add the arguments
 			_, _, isExternalStdlibStubCall := externalStdlibPackageSelector(sel)
+			RegisterExternalPackageFunctionFallback(sel, len(call.Args))
 			TranspileExpression(out, sel)
 			out.WriteString("(")
 			if isExternalStdlibStubCall && writeExternalStubCallArguments(out, call) {
@@ -8397,22 +8610,29 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 					continue
 				}
 				expectedArgType := callParamTypeFromTypeInfo(call, i)
-				if _, ok := transpiledNamedInterfaceTypeNameFromTypes(expectedArgType); ok {
-					if writeLocalInterfaceReferenceCallArgument(out, arg, expectedArgType) {
-						continue
+				if expectedArgType != nil {
+					if _, ok := transpiledNamedInterfaceTypeNameFromTypes(expectedArgType); ok {
+						if writeLocalInterfaceReferenceCallArgument(out, arg, expectedArgType) {
+							continue
+						}
 					}
 				}
-				if writeEmptyInterfaceCallArgument(out, arg, expectedArgType) {
-					continue
-				}
-				if writeStdlibInterfaceCallArgumentConversion(out, arg, expectedArgType) {
-					continue
-				}
-				if writePointerHandleCallArgument(out, arg, expectedArgType) {
-					continue
-				}
-				if writeAlreadyWrappedSelectorCallArgument(out, arg, expectedArgType) {
-					continue
+				if expectedArgType != nil {
+					if writeEmptyInterfaceCallArgument(out, arg, expectedArgType) {
+						continue
+					}
+					if writeAlreadyWrappedStdlibInterfaceCallArgument(out, arg, expectedArgType) {
+						continue
+					}
+					if writeStdlibInterfaceCallArgumentConversion(out, arg, expectedArgType) {
+						continue
+					}
+					if writePointerHandleCallArgument(out, arg, expectedArgType) {
+						continue
+					}
+					if writeAlreadyWrappedSelectorCallArgument(out, arg, expectedArgType) {
+						continue
+					}
 				}
 				if writeAlreadyWrappedCallArgument(out, arg) {
 					continue
@@ -8426,15 +8646,15 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				}
 				// Wrap arguments in Rc<RefCell<Option<>>>
 				WriteWrapperPrefix(out)
-				if writeConstExpressionForExpectedGoType(out, arg, expectedArgType) {
+				if expectedArgType != nil && writeConstExpressionForExpectedGoType(out, arg, expectedArgType) {
 					// Constant emitted in the parameter's expected representation.
-				} else if writeRangeStringCallArgumentValue(out, arg, expectedArgType) {
+				} else if expectedArgType != nil && writeRangeStringCallArgumentValue(out, arg, expectedArgType) {
 					// Range string reference cloned for an owned string parameter.
-				} else if writeRangeCharForExpectedType(out, arg, expectedArgType) {
+				} else if expectedArgType != nil && writeRangeCharForExpectedType(out, arg, expectedArgType) {
 					// String range runes are represented as Rust char but Go rune parameters use i32.
-				} else if writeLenCapCallArgumentForExpectedType(out, arg, expectedArgType) {
+				} else if expectedArgType != nil && writeLenCapCallArgumentForExpectedType(out, arg, expectedArgType) {
 					// len/cap emits usize, but Go int parameters use i32.
-				} else if writeRangeIndexForExpectedType(out, arg, expectedArgType) {
+				} else if expectedArgType != nil && writeRangeIndexForExpectedType(out, arg, expectedArgType) {
 					// Range indexes emit usize, but Go int parameters use i32.
 				} else if !writeCallArgumentValue(out, arg) {
 					TranspileExpression(out, arg)
@@ -8510,20 +8730,52 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 					// Wrapped type - need to unwrap
 					// Use mutable borrow only for pointer receiver methods
 					needsMut := methodCallNeedsMutableReceiver(sel)
-					if methodCallFuncLitArgCapturesReceiver(call, ident.Name) {
+					if NeedsConcurrentWrapper() && typeInfo != nil && typeInfo.IsPointer(ident) {
+						recvType := methodReceiverPointeeRustType(ident)
 						out.WriteString("{ let __recv = ")
 						out.WriteString(receiverName)
-						out.WriteString(".clone(); let __result = (*__recv")
+						out.WriteString(".clone(); let __recv_ptr: ")
+						if needsMut {
+							out.WriteString("*mut ")
+						} else {
+							out.WriteString("*const ")
+						}
+						out.WriteString(recvType)
+						out.WriteString(" = { ")
+						if needsMut {
+							out.WriteString("let mut __recv_guard = __recv")
+							WriteBorrowMethod(out, true)
+							out.WriteString("; __recv_guard.as_mut().unwrap() as *mut ")
+						} else {
+							out.WriteString("let __recv_guard = __recv")
+							WriteBorrowMethod(out, false)
+							out.WriteString("; __recv_guard.as_ref().unwrap() as *const ")
+						}
+						out.WriteString(recvType)
+						out.WriteString(" }; let __result = unsafe { ")
+						if needsMut {
+							out.WriteString("&mut *__recv_ptr")
+						} else {
+							out.WriteString("&*__recv_ptr")
+						}
+						out.WriteString(" }.")
 						closeReceiverBlock = true
 					} else {
-						out.WriteString("(*")
-						out.WriteString(receiverName)
-					}
-					WriteBorrowMethod(out, needsMut)
-					if needsMut {
-						out.WriteString(".as_mut().unwrap()).")
-					} else {
-						out.WriteString(".as_ref().unwrap()).")
+						if methodCallFuncLitArgCapturesReceiver(call, ident.Name) {
+							out.WriteString("{ let __recv = ")
+							out.WriteString(receiverName)
+							out.WriteString(".clone(); let __result = (*__recv")
+							closeReceiverBlock = true
+						} else {
+							out.WriteString("(*")
+							out.WriteString(receiverName)
+						}
+						WriteBorrowMethod(out, needsMut)
+						if needsMut {
+							out.WriteString(".as_mut().unwrap()).")
+						} else {
+							out.WriteString(".as_ref().unwrap()).")
+						}
 					}
 				} else {
 					// Direct struct variable (range var or constant) - call method directly
@@ -8704,12 +8956,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				out.WriteString(", ")
 			}
 			expectedArgType := callParamTypeFromTypeInfo(call, i)
-			if writePointerHandleCallArgument(out, call.Args[i], expectedArgType) {
-				continue
-			}
-			WriteWrapperPrefix(out)
-			TranspileExpression(out, call.Args[i])
-			WriteWrapperSuffix(out)
+			writeFunctionSignatureCallArgument(out, call.Args[i], expectedArgType)
 		}
 
 		// Now handle variadic args
@@ -8742,11 +8989,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				if i > variadicStart {
 					out.WriteString(", ")
 				}
-				if variadicElemIsAny {
-					writeInterfaceBoxedValue(out, call.Args[i])
-				} else {
-					TranspileExpression(out, call.Args[i])
-				}
+				writeVariadicPackedElementValue(out, call.Args[i], variadicElemType, variadicElemIsAny)
 			}
 			out.WriteString("]")
 			WriteWrapperSuffix(out)
@@ -8807,13 +9050,15 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 		if expectedArgType == nil {
 			expectedArgType = callParamTypeFromTypeInfo(call, i)
 		}
-		if interfaceNameFromTypes, ok := transpiledNamedInterfaceTypeNameFromTypes(expectedArgType); ok {
-			expectsInterfaceParam = true
-			interfaceName = interfaceNameFromTypes
-			needsInterfaceBoxing = false
-		}
-		if isEmptyInterfaceType(expectedArgType) {
-			expectsEmptyInterface = true
+		if expectedArgType != nil {
+			if interfaceNameFromTypes, ok := transpiledNamedInterfaceTypeNameFromTypes(expectedArgType); ok {
+				expectsInterfaceParam = true
+				interfaceName = interfaceNameFromTypes
+				needsInterfaceBoxing = false
+			}
+			if isEmptyInterfaceType(expectedArgType) {
+				expectsEmptyInterface = true
+			}
 		}
 
 		// Check if we're calling a closure - closures take wrapped arguments
@@ -8828,14 +9073,14 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 		// Wrap arguments appropriately
 		handler := GetStdlibHandler(call)
 		if isClosureCall || handler == nil {
-			if writeGoErrorCallArgument(out, arg, expectedArgType) {
+			if expectedArgType != nil && writeGoErrorCallArgument(out, arg, expectedArgType) {
 				continue
 			}
 
 			// Special handling for interface parameters that now use &dyn Trait
 			if expectsInterfaceParam {
 				// Interface parameter - pass as reference without wrapper
-				if !writeLocalInterfaceReferenceCallArgument(out, arg, expectedArgType) {
+				if expectedArgType == nil || !writeLocalInterfaceReferenceCallArgument(out, arg, expectedArgType) {
 					// Complex expression - need to evaluate and reference
 					out.WriteString("&*")
 					TranspileExpression(out, arg)
@@ -8946,31 +9191,36 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				}
 			}
 
-			if writeStdlibInterfaceCallArgumentConversion(out, arg, expectedArgType) {
-				continue
+			if expectedArgType != nil {
+				if writeAlreadyWrappedStdlibInterfaceCallArgument(out, arg, expectedArgType) {
+					continue
+				}
+				if writeStdlibInterfaceCallArgumentConversion(out, arg, expectedArgType) {
+					continue
+				}
+
+				if writePointerHandleCallArgument(out, arg, expectedArgType) {
+					continue
+				}
+
+				if writeFunctionHandleCallArgument(out, arg, expectedArgType) {
+					continue
+				}
+
+				if writeAlreadyWrappedSelectorCallArgument(out, arg, expectedArgType) {
+					continue
+				}
+
+				if writeAlreadyWrappedMapIndexCallArgument(out, arg, expectedArgType) {
+					continue
+				}
+
+				if writeWrappedRangeCharForExpectedType(out, arg, expectedArgType) {
+					continue
+				}
 			}
 
-			if writePointerHandleCallArgument(out, arg, expectedArgType) {
-				continue
-			}
-
-			if writeFunctionHandleCallArgument(out, arg, expectedArgType) {
-				continue
-			}
-
-			if writeAlreadyWrappedSelectorCallArgument(out, arg, expectedArgType) {
-				continue
-			}
-
-			if writeAlreadyWrappedMapIndexCallArgument(out, arg, expectedArgType) {
-				continue
-			}
-
-			if writeWrappedRangeCharForExpectedType(out, arg, expectedArgType) {
-				continue
-			}
-
-			if writeWrappedRangeIndexForExpectedType(out, arg, expectedArgType) {
+			if expectedArgType != nil && writeWrappedRangeIndexForExpectedType(out, arg, expectedArgType) {
 				continue
 			}
 
@@ -9134,8 +9384,12 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				TranspileExpression(out, arg)
 			} else if callArg, isCallArg := arg.(*ast.CallExpr); isCallArg {
 				typeInfo := GetTypeInfo()
-				if writeStdlibInterfaceCallArgumentConversion(out, arg, expectedArgType) {
+				if expectedArgType != nil && writeStdlibInterfaceCallArgumentConversion(out, arg, expectedArgType) {
 					continue
+				} else if lenCapCallNeedsExpectedIntCast(arg, expectedArgType) {
+					WriteWrapperPrefix(out)
+					writeLenCapCallArgumentForExpectedType(out, arg, expectedArgType)
+					WriteWrapperSuffix(out)
 				} else if typeInfo != nil && typeInfo.ReturnsWrappedValue(callArg) && !callReturnsBareChannelValue(callArg) {
 					TranspileExpression(out, arg)
 				} else {
@@ -9162,7 +9416,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				// Address-of (&var) — produces a clone of the Rc, already wrapped
 				TranspileExpression(out, arg)
 			} else if isFunctionSignatureDerefExpression(arg) ||
-				(isPointerDerefExpression(arg) && (isFunctionSignatureTypeExpr(paramTypeForArg) || isFunctionSignatureType(expectedArgType))) {
+				(isPointerDerefExpression(arg) && (isFunctionSignatureTypeExpr(paramTypeForArg) || (expectedArgType != nil && isFunctionSignatureType(expectedArgType)))) {
 				// Dereferencing *FuncAlias yields the alias value, which is already
 				// represented by the generated wrapped closure handle.
 				TranspileExpression(out, arg)
@@ -9240,11 +9494,7 @@ func writeVariadicCallArgumentsFromTypes(out *strings.Builder, call *ast.CallExp
 		if i > variadicStart {
 			out.WriteString(", ")
 		}
-		if variadicElemIsAny {
-			writeInterfaceBoxedValue(out, call.Args[i])
-		} else {
-			TranspileExpression(out, call.Args[i])
-		}
+		writeVariadicPackedElementValue(out, call.Args[i], variadicElemType, variadicElemIsAny)
 	}
 	out.WriteString("]")
 	WriteWrapperSuffix(out)
@@ -9404,9 +9654,14 @@ func writeAlreadyWrappedSelectorCallArgument(out *strings.Builder, arg ast.Expr,
 	if actual == nil || !types.AssignableTo(actual, expected) {
 		return false
 	}
-	TranspileExpressionContext(out, sel, LValue)
-	out.WriteString(".clone()")
+	writeSelectorHandleClone(out, sel)
 	return true
+}
+
+func writeSelectorHandleClone(out *strings.Builder, sel *ast.SelectorExpr) {
+	out.WriteString("{ let __field = ")
+	TranspileExpressionContext(out, sel, LValue)
+	out.WriteString(".clone(); __field }")
 }
 
 func writeAlreadyWrappedStdlibInterfaceCallArgument(out *strings.Builder, arg ast.Expr, expected types.Type) bool {
@@ -9425,7 +9680,12 @@ func writeAlreadyWrappedStdlibInterfaceCallArgument(out *strings.Builder, arg as
 		return false
 	}
 	actual := typeInfo.GetType(ident)
-	if actual == nil || !isStdlibNamedInterfaceValueType(types.Unalias(actual)) || !types.AssignableTo(actual, expected) {
+	actualNamed, ok := types.Unalias(actual).(*types.Named)
+	if actual == nil || !ok || !isStdlibNamedInterfaceValueType(actualNamed) {
+		return false
+	}
+	expectedNamed, ok := types.Unalias(expected).(*types.Named)
+	if !ok || actualNamed.Obj() != expectedNamed.Obj() {
 		return false
 	}
 	if varType, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar && !isWrappedRangeVarType(varType) {

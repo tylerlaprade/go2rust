@@ -283,6 +283,16 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 			pg.isLibrary = pg.packageName != "main"
 		}
 
+		baseName := strings.TrimSuffix(filepath.Base(filename), ".go")
+		rustFilename := strings.TrimSuffix(filename, ".go") + ".rs"
+
+		// Check if this is main.go
+		if baseName == "main" && file.Name.Name == "main" {
+			pg.hasMain = true
+			// We'll handle main.go specially later
+			continue
+		}
+
 		var rustCode string
 		var fileImports *ImportTracker
 		var fileExternalPkgs map[string]bool
@@ -306,16 +316,6 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 			for imp := range fileImports.needs {
 				pg.projectImports.Add(imp)
 			}
-		}
-
-		baseName := strings.TrimSuffix(filepath.Base(filename), ".go")
-		rustFilename := strings.TrimSuffix(filename, ".go") + ".rs"
-
-		// Check if this is main.go
-		if baseName == "main" && file.Name.Name == "main" {
-			pg.hasMain = true
-			// We'll handle main.go specially later
-			continue
 		}
 
 		// For lib.go in a binary crate, rename to avoid Rust warnings
@@ -781,6 +781,8 @@ func (pg *ProjectGenerator) generateCargoToml() error {
 	if pg.projectImports != nil && pg.projectImports.needs["num::Complex"] {
 		needsNum = true
 	}
+	needsSerdeJSON := pg.generatedRustContains("serde_json::") || pg.generatedRustContains("pub use serde_json")
+	needsGosyn := pg.generatedRustContains("gosyn::")
 
 	var cargoContent string
 	if pg.isLibrary {
@@ -830,10 +832,16 @@ path = "main.rs"
 	}
 
 	// Add dependencies section
-	if needsNum || len(dependencyCrateNames) > 0 {
+	if needsNum || needsSerdeJSON || needsGosyn || len(dependencyCrateNames) > 0 {
 		cargoContent += "\n[dependencies]\n"
 		if needsNum {
 			cargoContent += "num = \"0.4\"\n"
+		}
+		if needsSerdeJSON {
+			cargoContent += "serde_json = \"1\"\n"
+		}
+		if needsGosyn {
+			cargoContent += "gosyn = \"0.2.9\"\n"
 		}
 		// Add external package dependencies
 		for _, crateName := range dependencyCrateNames {
@@ -846,6 +854,26 @@ path = "main.rs"
 	}
 
 	return os.WriteFile(cargoPath, []byte(cargoContent), 0644)
+}
+
+func (pg *ProjectGenerator) generatedRustContains(needle string) bool {
+	entries, err := os.ReadDir(pg.projectPath)
+	if err != nil {
+		return false
+	}
+	for _, entry := range entries {
+		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".rs") {
+			continue
+		}
+		content, err := os.ReadFile(filepath.Join(pg.projectPath, entry.Name()))
+		if err != nil {
+			continue
+		}
+		if strings.Contains(string(content), needle) {
+			return true
+		}
+	}
+	return false
 }
 
 func (pg *ProjectGenerator) sortedCrateNames() []string {

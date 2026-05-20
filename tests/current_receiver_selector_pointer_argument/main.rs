@@ -47,7 +47,7 @@ impl std::fmt::Display for reader {
 
 impl reader {
     pub fn run(&self) {
-        r#use(self.current.clone());
+        r#use({ let __field = self.current.clone(); __field });
     }
 }
 

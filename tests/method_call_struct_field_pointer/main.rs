@@ -45,24 +45,6 @@ impl std::fmt::Display for cache {
 }
 
 
-#[derive(Debug, Clone, Default)]
-struct AnonymousStruct1 {
-    child: Rc<RefCell<Option<node>>>,
-}
-impl AnonymousStruct1 {
-    pub fn __go_value_clone(&self) -> Self {
-        Self { child: self.child.clone() }
-    }
-}
-
-
-impl std::fmt::Display for AnonymousStruct1 {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.child.borrow().as_ref().unwrap()))
-    }
-}
-
-
 impl cache {
     pub fn lookup(&self) -> Rc<RefCell<Option<AnonymousStruct1>>> {
         return Rc::new(RefCell::new(Some(AnonymousStruct1 { child: { let __field = self.child.clone(); __field } })));
@@ -79,4 +61,21 @@ fn main() {
         println!("{}", format!("{}", format!("&{}", (*(*c.borrow().as_ref().unwrap()).get().borrow().as_ref().unwrap()))));
     }
     println!("{}", format!("{}", "ok".to_string()));
+}
+
+#[derive(Debug, Clone, Default)]
+struct AnonymousStruct1 {
+    child: Rc<RefCell<Option<node>>>,
+}
+impl AnonymousStruct1 {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { child: self.child.clone() }
+    }
+}
+
+
+impl std::fmt::Display for AnonymousStruct1 {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{}}}", (*self.child.borrow().as_ref().unwrap()))
+    }
 }

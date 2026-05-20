@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "parser_mode_const_expression"
 path = "main.rs"
+
+[dependencies]
+gosyn = "0.2.9"

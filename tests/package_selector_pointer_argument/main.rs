@@ -20,10 +20,18 @@ impl std::fmt::Display for reader {
     }
 }
 
+impl GoJsonDecode for reader {
+    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
+        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
+        let mut out = Self::default();
+        Ok(out)
+    }
+}
+
 
 impl reader {
     pub fn run(&self) {
-        example_com_package_selector_pointer_argument_helper::r#use(self.current.clone());
+        example_com_package_selector_pointer_argument_helper::r#use({ let __field = self.current.clone(); __field });
     }
 }
 

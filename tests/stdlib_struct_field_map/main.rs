@@ -327,7 +327,7 @@ pub mod ast {
         }
     }
 
-    pub const S_E_N_D: ast_ChanDir = ast_ChanDir(0);
+    pub const S_E_N_D: ast_ChanDir = ast_ChanDir(1);
 }
 
 

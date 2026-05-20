@@ -38,7 +38,8 @@ impl<T> GoChannel<T> {
         if self.is_nil() {
             return;
         }
-        if let Some(ref tx) = *self.tx.lock().unwrap() {
+        let tx = self.tx.lock().unwrap().clone();
+        if let Some(tx) = tx {
             if tx.send(val).is_ok() && self.capacity > 0 {
                 self.len.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
             }
@@ -49,7 +50,8 @@ impl<T> GoChannel<T> {
         if self.is_nil() {
             return false;
         }
-        if let Some(ref tx) = *self.tx.lock().unwrap() {
+        let tx = self.tx.lock().unwrap().clone();
+        if let Some(tx) = tx {
             if tx.try_send(val).is_ok() {
                 if self.capacity > 0 {
                     self.len.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
@@ -63,11 +65,17 @@ impl<T> GoChannel<T> {
         }
     }
 
-    fn recv(&self) -> Option<T> {
+    fn recv(&self) -> Option<T>
+    where
+        T: Default,
+    {
         if self.is_nil() {
             return None;
         }
-        let value = self.rx.lock().unwrap().recv().ok();
+        let value = match self.rx.lock().unwrap().recv() {
+            Ok(value) => Some(value),
+            Err(_) => Some(T::default()),
+        };
         if value.is_some() && self.capacity > 0 {
             let _ = self.len.fetch_update(
                 std::sync::atomic::Ordering::SeqCst,
@@ -144,7 +152,18 @@ impl<T> std::fmt::Debug for GoChannel<T> {
 impl<T> Iterator for GoChannel<T> {
     type Item = T;
     fn next(&mut self) -> Option<T> {
-        self.recv()
+        if self.is_nil() {
+            return None;
+        }
+        let value = self.rx.lock().unwrap().recv().ok();
+        if value.is_some() && self.capacity > 0 {
+            let _ = self.len.fetch_update(
+                std::sync::atomic::Ordering::SeqCst,
+                std::sync::atomic::Ordering::SeqCst,
+                |__go_current| __go_current.checked_sub(1),
+            );
+        }
+        value
     }
 }
 
@@ -286,7 +305,7 @@ fn main() {
     println!("{}", format!("{}", "Timer 1 fired".to_string()));
 
     let mut timer2 = Arc::new(Mutex::new(Some(go_new_timer(std::time::Duration::from_millis(500)))));
-    let mut stop2 = (*timer2.lock().unwrap().as_mut().unwrap()).stop();
+    let mut stop2 = { let __recv = timer2.clone(); let __recv_ptr: *mut GoTimer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut GoTimer }; let __result = unsafe { &mut *__recv_ptr }.stop(); __result };
     if { let __v = (*stop2.lock().unwrap().as_ref().unwrap()).clone(); __v } {
         println!("{}", format!("{}", "Timer 2 stopped".to_string()));
     }

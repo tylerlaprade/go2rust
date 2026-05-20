@@ -9,9 +9,12 @@ import (
 // findCapturedVars analyzes a function literal to find variables it captures from outer scope
 func findCapturedVars(funcLit *ast.FuncLit) map[string]bool {
 	captured := make(map[string]bool)
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || typeInfo.info == nil {
+	if funcLit == nil {
 		return captured
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil || len(typeInfo.info.Uses) == 0 {
+		return findCapturedVarsSyntaxFallback(funcLit)
 	}
 
 	localObjects := declaredVarObjectsInFuncLit(funcLit, typeInfo)
@@ -61,6 +64,212 @@ func cloneCapturedVars(captured map[string]bool) map[string]bool {
 		clone[name] = isCaptured
 	}
 	return clone
+}
+
+func findCapturedVarsSyntaxFallback(funcLit *ast.FuncLit) map[string]bool {
+	captured := make(map[string]bool)
+	if funcLit == nil || funcLit.Body == nil {
+		return captured
+	}
+
+	localNames := localNamesInFuncLitSyntax(funcLit)
+	var inspectRefs func(ast.Node)
+	inspectRefs = func(node ast.Node) {
+		ast.Inspect(node, func(n ast.Node) bool {
+			switch node := n.(type) {
+			case *ast.KeyValueExpr:
+				if _, ok := node.Key.(*ast.Ident); ok {
+					inspectRefs(node.Value)
+					return false
+				}
+			case *ast.SelectorExpr:
+				inspectRefs(node.X)
+				return false
+			case *ast.BranchStmt:
+				return false
+			case *ast.LabeledStmt:
+				inspectRefs(node.Stmt)
+				return false
+			case *ast.Ident:
+				if shouldSkipSyntaxCapture(node.Name, localNames) {
+					return true
+				}
+				captured[node.Name] = true
+			}
+			return true
+		})
+	}
+	inspectRefs(funcLit.Body)
+	return captured
+}
+
+func localNamesInFuncLitSyntax(funcLit *ast.FuncLit) map[string]bool {
+	localNames := make(map[string]bool)
+	addIdent := func(ident *ast.Ident) {
+		if ident != nil && ident.Name != "_" {
+			localNames[ident.Name] = true
+		}
+	}
+	addFieldNames := func(fields *ast.FieldList) {
+		if fields == nil {
+			return
+		}
+		for _, field := range fields.List {
+			for _, name := range field.Names {
+				addIdent(name)
+			}
+		}
+	}
+
+	ast.Inspect(funcLit, func(n ast.Node) bool {
+		switch node := n.(type) {
+		case *ast.FuncLit:
+			addFieldNames(node.Type.Params)
+			addFieldNames(node.Type.Results)
+		case *ast.AssignStmt:
+			if node.Tok == token.DEFINE {
+				for _, lhs := range node.Lhs {
+					if ident, ok := lhs.(*ast.Ident); ok {
+						addIdent(ident)
+					}
+				}
+			}
+		case *ast.DeclStmt:
+			if genDecl, ok := node.Decl.(*ast.GenDecl); ok && genDecl.Tok == token.VAR {
+				for _, spec := range genDecl.Specs {
+					if valueSpec, ok := spec.(*ast.ValueSpec); ok {
+						for _, name := range valueSpec.Names {
+							addIdent(name)
+						}
+					}
+				}
+			}
+		case *ast.RangeStmt:
+			if node.Tok == token.DEFINE {
+				if ident, ok := node.Key.(*ast.Ident); ok {
+					addIdent(ident)
+				}
+				if ident, ok := node.Value.(*ast.Ident); ok {
+					addIdent(ident)
+				}
+			}
+		case *ast.TypeSwitchStmt:
+			if assign, ok := node.Assign.(*ast.AssignStmt); ok && assign.Tok == token.DEFINE {
+				for _, lhs := range assign.Lhs {
+					if ident, ok := lhs.(*ast.Ident); ok {
+						addIdent(ident)
+					}
+				}
+			}
+		}
+		return true
+	})
+	return localNames
+}
+
+func shouldSkipSyntaxCapture(name string, localNames map[string]bool) bool {
+	if name == "" || name == "_" || name == "nil" || name == "true" || name == "false" {
+		return true
+	}
+	if localNames[name] || isBuiltinIdentifier(name) {
+		return true
+	}
+	if _, ok := localConstants[name]; ok {
+		return true
+	}
+	if _, ok := packageConstants[name]; ok {
+		return true
+	}
+	if _, ok := goPackageImports[name]; ok {
+		return true
+	}
+	if _, ok := fallbackStdlibPackagePathForImportName(name); ok {
+		return true
+	}
+	if _, ok := LookupTypeDefinition(name); ok {
+		return true
+	}
+	if IsTypeAlias(name) || IsFunctionTypeAlias(name) || IsInterfaceType(name) {
+		return true
+	}
+	if GetFunctionSignature(name) != nil {
+		return true
+	}
+	return false
+}
+
+func channelCapturesInFuncLitSyntax(funcLit *ast.FuncLit) map[string]bool {
+	captured := make(map[string]bool)
+	if funcLit == nil || funcLit.Body == nil {
+		return captured
+	}
+	localNames := localNamesInFuncLitSyntax(funcLit)
+	for _, stmt := range funcLit.Body.List {
+		addChannelCapturesFromStmtSyntax(stmt, localNames, captured)
+	}
+	return captured
+}
+
+func addChannelCaptureExprSyntax(expr ast.Expr, localNames map[string]bool, captured map[string]bool) {
+	switch e := expr.(type) {
+	case *ast.Ident:
+		if !shouldSkipSyntaxCapture(e.Name, localNames) {
+			captured[e.Name] = true
+		}
+	case *ast.SelectorExpr:
+		addChannelCaptureExprSyntax(e.X, localNames, captured)
+	case *ast.IndexExpr:
+		addChannelCaptureExprSyntax(e.X, localNames, captured)
+	case *ast.ParenExpr:
+		addChannelCaptureExprSyntax(e.X, localNames, captured)
+	}
+}
+
+func addChannelCapturesFromStmtSyntax(stmt ast.Stmt, localNames map[string]bool, captured map[string]bool) {
+	switch s := stmt.(type) {
+	case *ast.SendStmt:
+		addChannelCaptureExprSyntax(s.Chan, localNames, captured)
+	case *ast.ExprStmt:
+		if unary, ok := s.X.(*ast.UnaryExpr); ok && unary.Op == token.ARROW {
+			addChannelCaptureExprSyntax(unary.X, localNames, captured)
+		}
+	case *ast.AssignStmt:
+		for _, rhs := range s.Rhs {
+			if unary, ok := rhs.(*ast.UnaryExpr); ok && unary.Op == token.ARROW {
+				addChannelCaptureExprSyntax(unary.X, localNames, captured)
+			}
+		}
+	case *ast.BlockStmt:
+		for _, child := range s.List {
+			addChannelCapturesFromStmtSyntax(child, localNames, captured)
+		}
+	case *ast.IfStmt:
+		addChannelCapturesFromStmtSyntax(s.Init, localNames, captured)
+		addChannelCapturesFromStmtSyntax(s.Body, localNames, captured)
+		if elseStmt, ok := s.Else.(ast.Stmt); ok {
+			addChannelCapturesFromStmtSyntax(elseStmt, localNames, captured)
+		}
+	case *ast.ForStmt:
+		addChannelCapturesFromStmtSyntax(s.Init, localNames, captured)
+		addChannelCapturesFromStmtSyntax(s.Post, localNames, captured)
+		addChannelCapturesFromStmtSyntax(s.Body, localNames, captured)
+	case *ast.RangeStmt:
+		addChannelCapturesFromStmtSyntax(s.Body, localNames, captured)
+	case *ast.SelectStmt:
+		if s.Body == nil {
+			return
+		}
+		for _, stmt := range s.Body.List {
+			clause, ok := stmt.(*ast.CommClause)
+			if !ok {
+				continue
+			}
+			addChannelCapturesFromStmtSyntax(clause.Comm, localNames, captured)
+			for _, child := range clause.Body {
+				addChannelCapturesFromStmtSyntax(child, localNames, captured)
+			}
+		}
+	}
 }
 
 func isStructFieldKeyIdent(typeInfo *TypeInfo, ident *ast.Ident) bool {

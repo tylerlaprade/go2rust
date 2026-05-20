@@ -45,7 +45,7 @@ func NewTypeInfo(files []*ast.File, fset *token.FileSet) (*TypeInfo, error) {
 
 // GetType returns the type of an expression, or nil if unknown
 func (ti *TypeInfo) GetType(expr ast.Expr) types.Type {
-	if ti == nil || ti.info == nil {
+	if ti == nil || ti.info == nil || expr == nil {
 		return nil
 	}
 	if tv, ok := ti.info.Types[expr]; ok {

@@ -210,7 +210,7 @@ pub fn has_stmt(stmts: Arc<Mutex<Option<Vec<ast_Stmt>>>>) -> Arc<Mutex<Option<bo
     { let __range_holder = stmts.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for stmt in __range_values.iter() {
         { let new_val = (*stmt).clone(); *prev.lock().unwrap() = Some(new_val); };
         if (*accept_stmt(Arc::new(Mutex::new(Some((*stmt).clone())))).lock().unwrap().as_ref().unwrap()) {
-        return accept_stmt(Arc::new(Mutex::new(Some((*prev.lock().unwrap().as_ref().unwrap()).clone()))));
+        return accept_stmt(prev.clone());
     }
     } }
     return Arc::new(Mutex::new(Some(false)));
@@ -254,7 +254,7 @@ pub fn assert_expr_stmt(stmts: Arc<Mutex<Option<Vec<ast_Stmt>>>>) -> Arc<Mutex<O
 }
 
 fn main() {
-    let mut stmts = Arc::new(Mutex::new(Some(Vec::<ast_Stmt>::from([{ let __arg = Arc::new(Mutex::new(Some(ast_ExprStmt { x: { let __arg = ast::new_ident("x".to_string()); let __converted = { let __arg_guard = __arg.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone().into() }; Arc::new(Mutex::new(Some(__converted))) }, ..Default::default() }))); let __arg_guard = __arg.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone().into() }]))));
+    let mut stmts = Arc::new(Mutex::new(Some(Vec::<ast_Stmt>::from([{ let __arg = Arc::new(Mutex::new(Some(ast_ExprStmt { x: { let __arg = ast::new_ident("x".to_string()); let __converted = { let __arg_guard = __arg.lock().unwrap(); let __converted: Option<ast_Expr> = __arg_guard.as_ref().map(|__v| (*__v).clone().into()); __converted }; Arc::new(Mutex::new(__converted)) }, ..Default::default() }))); let __arg_guard = __arg.lock().unwrap(); __arg_guard.as_ref().map(|__v| (*__v).clone().into()).unwrap_or_else(ast_Stmt::default) }]))));
     if false {
         println!("{}", format!("{}", (*stmt_kind(stmts.clone()).lock().unwrap().as_ref().unwrap())));
         println!("{}", format!("{}", (*assert_expr_stmt(stmts.clone()).lock().unwrap().as_ref().unwrap())));

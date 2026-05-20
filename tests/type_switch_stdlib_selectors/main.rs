@@ -112,6 +112,7 @@ pub fn classify(t: Rc<RefCell<Option<types_Type>>>) -> Rc<RefCell<Option<String>
         return Rc::new(RefCell::new(Some("named".to_string())));;
     } else {
         let x = t.clone();
+        drop(_ts_guard);
         return Rc::new(RefCell::new(Some("other".to_string())));;
     }
     }

@@ -156,7 +156,7 @@ pub fn as_type(t: Rc<RefCell<Option<types_Type>>>) -> Rc<RefCell<Option<types_Ty
         }
     });
     if (*ok.borrow().as_ref().unwrap()) {
-        return { let __arg = ch.clone(); let __converted = { let __arg_guard = __arg.borrow(); (*__arg_guard.as_ref().unwrap()).clone().into() }; Rc::new(RefCell::new(Some(__converted))) };
+        return { let __arg = ch.clone(); let __converted = { let __arg_guard = __arg.borrow(); let __converted: Option<types_Type> = __arg_guard.as_ref().map(|__v| (*__v).clone().into()); __converted }; Rc::new(RefCell::new(__converted)) };
     }
     return t.clone();
 }

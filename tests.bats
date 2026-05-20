@@ -450,8 +450,16 @@ run_xfail_test() {
     run_test "tests/blank_named_result_defer"
 }
 
+@test "blank_named_result_explicit_defer" {
+    run_test "tests/blank_named_result_explicit_defer"
+}
+
 @test "blank_named_return" {
     run_test "tests/blank_named_return"
+}
+
+@test "break_loop_inside_switch" {
+    run_test "tests/break_loop_inside_switch"
 }
 
 @test "build_package_stub" {
@@ -492,6 +500,10 @@ run_xfail_test() {
 
 @test "channel_error_values" {
     run_test "tests/channel_error_values"
+}
+
+@test "channel_receive_closed" {
+    run_test "tests/channel_receive_closed"
 }
 
 @test "channel_struct_fields" {
@@ -594,6 +606,10 @@ run_xfail_test() {
     run_test "tests/concurrent_map_field_alias"
 }
 
+@test "concurrent_multi_return_selector_fields" {
+    run_test "tests/concurrent_multi_return_selector_fields"
+}
+
 @test "concurrent_named_type_comparisons" {
     run_test "tests/concurrent_named_type_comparisons"
 }
@@ -608,6 +624,10 @@ run_xfail_test() {
 
 @test "concurrent_pointer_range_map_append" {
     run_test "tests/concurrent_pointer_range_map_append"
+}
+
+@test "concurrent_pointer_receiver_reentrant_method" {
+    run_test "tests/concurrent_pointer_receiver_reentrant_method"
 }
 
 @test "concurrent_selector_map_lookup" {
@@ -858,6 +878,10 @@ run_xfail_test() {
     run_test "tests/exec_look_path_not_found"
 }
 
+@test "external_atomic_int32_add" {
+    run_test "tests/external_atomic_int32_add"
+}
+
 @test "external_named_integer_conversion" {
     run_test "tests/external_named_integer_conversion"
 }
@@ -880,6 +904,10 @@ run_xfail_test() {
 
 @test "external_stub_closure_capture" {
     run_test "tests/external_stub_closure_capture"
+}
+
+@test "external_stub_selector_args" {
+    run_test "tests/external_stub_selector_args"
 }
 
 @test "fallthrough_switch" {
@@ -1738,6 +1766,10 @@ run_xfail_test() {
     run_test "tests/range_string_rune_call_switch"
 }
 
+@test "range_string_switch" {
+    run_test "tests/range_string_switch"
+}
+
 @test "range_string_value_reassign" {
     run_test "tests/range_string_value_reassign"
 }
@@ -1826,6 +1858,10 @@ run_xfail_test() {
     run_test "tests/return_string_const"
 }
 
+@test "runtime_gomaxprocs" {
+    run_test "tests/runtime_gomaxprocs"
+}
+
 @test "rust_keyword_identifiers" {
     run_test "tests/rust_keyword_identifiers"
 }
@@ -1900,6 +1936,10 @@ run_xfail_test() {
 
 @test "slice_field_range_reentrant_method" {
     run_test "tests/slice_field_range_reentrant_method"
+}
+
+@test "slice_literal_nil_slice_element" {
+    run_test "tests/slice_literal_nil_slice_element"
 }
 
 @test "slice_operations_advanced" {
@@ -2286,6 +2326,10 @@ run_xfail_test() {
     run_test "tests/type_embedding"
 }
 
+@test "type_switch_error_default" {
+    run_test "tests/type_switch_error_default"
+}
+
 @test "type_switch_for_post" {
     run_test "tests/type_switch_for_post"
 }
@@ -2380,6 +2424,14 @@ run_xfail_test() {
 
 @test "variadic_mixed_expansion" {
     run_test "tests/variadic_mixed_expansion"
+}
+
+@test "variadic_nil_slice_element" {
+    run_test "tests/variadic_nil_slice_element"
+}
+
+@test "variadic_selector_repeated_field" {
+    run_test "tests/variadic_selector_repeated_field"
 }
 
 @test "waitgroup_sync" {

@@ -95,7 +95,7 @@ pub mod types {
 
 pub fn pass_tuple(t: Arc<Mutex<Option<types_Tuple>>>) -> Arc<Mutex<Option<bool>>> {
 
-    return has({ let __arg = t.clone(); let __converted = { let __arg_guard = __arg.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone().into() }; Arc::new(Mutex::new(Some(__converted))) });
+    return has({ let __arg = t.clone(); let __converted = { let __arg_guard = __arg.lock().unwrap(); let __converted: Option<types_Type> = __arg_guard.as_ref().map(|__v| (*__v).clone().into()); __converted }; Arc::new(Mutex::new(__converted)) });
 }
 
 pub fn has(t: Arc<Mutex<Option<types_Type>>>) -> Arc<Mutex<Option<bool>>> {

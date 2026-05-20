@@ -642,6 +642,110 @@ func generateStructDefault(out *strings.Builder, structName string, structType *
 	out.WriteString("}\n")
 }
 
+func shouldGenerateJsonDecodeImpl() bool {
+	return currentContext != nil && currentContext.UsePackageExternalStubs
+}
+
+func jsonDecodeFieldName(fieldName string, tag *ast.BasicLit) (string, bool) {
+	tagValue := ""
+	if tag != nil && tag.Value != "" {
+		if unquoted, err := strconv.Unquote(tag.Value); err == nil {
+			tagValue = unquoted
+		}
+	}
+	jsonName, include, _ := jsonFieldName(fieldName, tagValue)
+	return jsonName, include
+}
+
+func jsonDecodeTypeSupported(typ types.Type) bool {
+	if typ == nil {
+		return false
+	}
+	typ = types.Unalias(typ)
+	switch t := typ.(type) {
+	case *types.Named:
+		if t.Obj() != nil && t.Obj().Pkg() != nil && isStdlibPackage(t.Obj().Pkg().Path()) {
+			return false
+		}
+		_, ok := types.Unalias(t.Underlying()).(*types.Struct)
+		return ok
+	case *types.Pointer:
+		return jsonDecodeTypeSupported(t.Elem())
+	case *types.Slice:
+		return jsonDecodeTypeSupported(t.Elem())
+	case *types.Array:
+		return jsonDecodeTypeSupported(t.Elem())
+	case *types.Map:
+		key, ok := types.Unalias(t.Key()).Underlying().(*types.Basic)
+		return ok && key.Kind() == types.String && jsonDecodeTypeSupported(t.Elem())
+	case *types.Struct:
+		return true
+	case *types.Basic:
+		switch t.Kind() {
+		case types.Bool,
+			types.Int, types.Int8, types.Int16, types.Int32, types.Int64,
+			types.Uint, types.Uint8, types.Uint16, types.Uint32, types.Uint64, types.Uintptr,
+			types.Float32, types.Float64,
+			types.String:
+			return true
+		default:
+			return false
+		}
+	default:
+		underlying := typ.Underlying()
+		if underlying == typ {
+			return false
+		}
+		return jsonDecodeTypeSupported(underlying)
+	}
+}
+
+func jsonDecodeFieldSupported(fieldType ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	return jsonDecodeTypeSupported(typeInfo.GetType(fieldType))
+}
+
+func generateStructJsonDecode(out *strings.Builder, structName string, structType *ast.StructType) {
+	if !shouldGenerateJsonDecodeImpl() || structType == nil {
+		return
+	}
+	out.WriteString("\nimpl GoJsonDecode for ")
+	out.WriteString(RustTypeNameForUse(structName))
+	out.WriteString(" {\n")
+	out.WriteString("    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {\n")
+	out.WriteString("        let object = value.as_object().ok_or_else(|| go_json_expected(value, \"object\"))?;\n")
+	out.WriteString("        let mut out = Self::default();\n")
+	for _, field := range structType.Fields.List {
+		if !jsonDecodeFieldSupported(field.Type) {
+			continue
+		}
+		for _, name := range field.Names {
+			if name == nil || !name.IsExported() {
+				continue
+			}
+			jsonName, include := jsonDecodeFieldName(name.Name, field.Tag)
+			if !include {
+				continue
+			}
+			out.WriteString("        if let Some(field_value) = object.get(")
+			out.WriteString(strconv.Quote(jsonName))
+			out.WriteString(") {\n")
+			out.WriteString("            out.")
+			out.WriteString(ToSnakeCase(name.Name))
+			out.WriteString(" = <")
+			out.WriteString(GoTypeToRust(field.Type))
+			out.WriteString(" as GoJsonDecode>::go_json_decode(field_value)?;\n")
+			out.WriteString("        }\n")
+		}
+	}
+	out.WriteString("        Ok(out)\n")
+	out.WriteString("    }\n")
+	out.WriteString("}\n")
+}
+
 func typeHasTraitField(expr ast.Expr) bool {
 	return typeHasTraitFieldSeen(expr, make(map[string]bool))
 }
@@ -1360,6 +1464,7 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 		}
 		generateStructPartialEq(out, typeSpec.Name.Name, t)
 		generateStructOrd(out, typeSpec.Name.Name, t)
+		generateStructJsonDecode(out, typeSpec.Name.Name, t)
 
 	case *ast.InterfaceType:
 		// Generate a trait for the interface

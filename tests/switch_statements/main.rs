@@ -122,6 +122,7 @@ pub fn type_switch(value: Rc<RefCell<Option<Box<dyn Any>>>>) {
         print!("Float: {:.2}\n", { let __v = (*v.borrow().as_ref().unwrap()).clone(); __v });;
     } else {
         let v = value.clone();
+        drop(_ts_guard);
         print!("Unknown type: {}\n", go_type_name(&**v.borrow().as_ref().unwrap()));;
     }
     }

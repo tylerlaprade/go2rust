@@ -146,10 +146,7 @@ func visit(kv *ast.KeyValueExpr) {
 	defer SetTypeInfo(nil)
 
 	rust, _, _ := Transpile(file, fset, typeInfo)
-	if strings.Contains(rust, "let __arg = { let __field") {
-		t.Fatalf("stdlib interface selector field argument should use the field handle:\n%s", rust)
-	}
-	if !strings.Contains(rust, ".value.clone(); let __converted") {
+	if !strings.Contains(rust, "let __arg = { let __field = (*kv.borrow().as_ref().unwrap()).value.clone(); __field }; let __converted") {
 		t.Fatalf("stdlib interface selector field argument did not clone the field handle:\n%s", rust)
 	}
 }

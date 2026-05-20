@@ -1,0 +1,8 @@
+[package]
+name = "external_stub_selector_args"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "external_stub_selector_args"
+path = "main.rs"

@@ -127,8 +127,8 @@ impl std::fmt::Display for entry {
 
 
 pub fn remember(names: Rc<RefCell<Option<BTreeMap<types_Object, Rc<RefCell<Option<String>>>>>>>, obj: Rc<RefCell<Option<types_TypeName>>>) {
-    { let __map_key = { let __arg = obj.clone(); let __converted = { let __arg_guard = __arg.borrow(); let __converted: types_Object = (*__arg_guard.as_ref().unwrap()).clone().into(); __converted }; __converted }; let __map_value = Rc::new(RefCell::new(Some("name".to_string()))); (*names.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
-    let _ = (*names.borrow().as_ref().unwrap()).get(&{ let __arg = obj.clone(); let __converted = { let __arg_guard = __arg.borrow(); let __converted: types_Object = (*__arg_guard.as_ref().unwrap()).clone().into(); __converted }; __converted }).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| String::new());
+    { let __map_key = { let __arg = obj.clone(); let __converted = { let __arg_guard = __arg.borrow(); let __converted: types_Object = __arg_guard.as_ref().map(|__v| (*__v).clone().into()).unwrap_or_else(types_Object::default); __converted }; __converted }; let __map_value = Rc::new(RefCell::new(Some("name".to_string()))); (*names.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
+    let _ = (*names.borrow().as_ref().unwrap()).get(&{ let __arg = obj.clone(); let __converted = { let __arg_guard = __arg.borrow(); let __converted: types_Object = __arg_guard.as_ref().map(|__v| (*__v).clone().into()).unwrap_or_else(types_Object::default); __converted }; __converted }).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| String::new());
     let mut entries: Rc<RefCell<Option<Vec<entry>>>> = Rc::new(RefCell::new(None));
     for (__range_key, _) in { let __range_holder = names.clone(); let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
         let key = Rc::new(RefCell::new(Some(__range_key.clone())));

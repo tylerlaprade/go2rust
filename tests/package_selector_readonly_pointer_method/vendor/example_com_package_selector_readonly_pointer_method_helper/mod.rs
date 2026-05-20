@@ -28,6 +28,17 @@ impl std::fmt::Display for Counter {
     }
 }
 
+impl GoJsonDecode for Counter {
+    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
+        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
+        let mut out = Self::default();
+        if let Some(field_value) = object.get("Value") {
+            out.value = <Rc<RefCell<Option<i32>>> as GoJsonDecode>::go_json_decode(field_value)?;
+        }
+        Ok(out)
+    }
+}
+
 
 impl Counter {
     pub fn total(&self) -> Rc<RefCell<Option<i32>>> {

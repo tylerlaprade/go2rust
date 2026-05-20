@@ -16,5 +16,6 @@ name = "package_selector_pointer_argument"
 path = "main.rs"
 
 [dependencies]
+serde_json = "1"
 example_com_package_selector_pointer_argument_helper = { path = "vendor/example_com_package_selector_pointer_argument_helper" }
 go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }

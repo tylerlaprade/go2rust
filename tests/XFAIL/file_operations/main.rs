@@ -430,8 +430,12 @@ pub mod os {
         (Arc::new(Mutex::new(Some::<os_File>(Default::default()))), Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>)))
     }
 
-    pub fn read_file<T0>(_arg0: T0) -> (Arc<Mutex<Option<Vec<u8>>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
-        (Arc::new(Mutex::new(Some::<Vec<u8>>(Default::default()))), Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>)))
+    pub fn read_file<T0: GoStringArg>(_arg0: T0) -> (Arc<Mutex<Option<Vec<u8>>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+        let path = _arg0.into_go_string();
+        match std::fs::read(&path) {
+            Ok(data) => (Arc::new(Mutex::new(Some::<Vec<u8>>(data))), no_error()),
+            Err(err) => (Arc::new(Mutex::new(Some::<Vec<u8>>(Vec::new()))), io_error(err)),
+        }
     }
 
     pub fn stat<T0: GoStringArg>(_arg0: T0) -> (Arc<Mutex<Option<fs_FileInfo>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
@@ -473,10 +477,10 @@ fn main() {
     let mut content = Arc::new(Mutex::new(Some(vec!["Hello, World!".to_string(), "This is line 2".to_string(), "Go file operations".to_string(), "Line 4 with numbers: 123".to_string(), "Final line".to_string()])));
 
     { let __range_holder = content.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, line) in __range_values.iter().enumerate() {
-        let (_, mut err) = (*file.lock().unwrap().as_mut().unwrap()).write_string(Arc::new(Mutex::new(Some(format!("{}{}", line, "\n".to_string())))));
+        let (_, mut err) = { let __recv = file.clone(); let __recv_ptr: *mut os_File = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut os_File }; let __result = unsafe { &mut *__recv_ptr }.write_string(Arc::new(Mutex::new(Some(format!("{}{}", line, "\n".to_string()))))); __result };
         if (*err.lock().unwrap()).is_some() {
         print!("Error writing line {}: {}\n", { let __tmp_x = i as i32; let __tmp_y = 1; __tmp_x + __tmp_y }, format!("{}", (*err.lock().unwrap().as_ref().unwrap())));
-        (*file.lock().unwrap().as_mut().unwrap()).close();
+        { let __recv = file.clone(); let __recv_ptr: *mut os_File = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut os_File }; let __result = unsafe { &mut *__recv_ptr }.close(); __result };
         {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
@@ -488,7 +492,7 @@ fn main() {
         print!("Wrote: {}\n", line);
     } }
 
-    (*file.lock().unwrap().as_mut().unwrap()).close();
+    { let __recv = file.clone(); let __recv_ptr: *mut os_File = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut os_File }; let __result = unsafe { &mut *__recv_ptr }.close(); __result };
     print!("File '{}' created successfully\n", { let __v = (*filename.lock().unwrap().as_ref().unwrap()).clone(); __v });
 
         // Read entire file
@@ -523,19 +527,19 @@ fn main() {
     }
     }
     let file_defer_captured = file.clone(); __defer_stack.push(Box::new(move || {
-        (*file_defer_captured.lock().unwrap().as_mut().unwrap()).close();
+        { let __recv = file_defer_captured.clone(); let __recv_ptr: *mut os_File = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut os_File }; let __result = unsafe { &mut *__recv_ptr }.close(); __result };
     }));
 
     let mut scanner = bufio::new_scanner(file.clone());
     let mut lineNum = Arc::new(Mutex::new(Some(1)));
 
-    while (*(*scanner.lock().unwrap().as_mut().unwrap()).scan().lock().unwrap().as_ref().unwrap()) {
-        let mut line = (*scanner.lock().unwrap().as_mut().unwrap()).text();
+    while (*{ let __recv = scanner.clone(); let __recv_ptr: *mut bufio_Scanner = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bufio_Scanner }; let __result = unsafe { &mut *__recv_ptr }.scan(); __result }.lock().unwrap().as_ref().unwrap()) {
+        let mut line = { let __recv = scanner.clone(); let __recv_ptr: *mut bufio_Scanner = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bufio_Scanner }; let __result = unsafe { &mut *__recv_ptr }.text(); __result };
         print!("Line {}: {}\n", { let __v = (*lineNum.lock().unwrap().as_ref().unwrap()).clone(); __v }, { let __v = (*line.lock().unwrap().as_ref().unwrap()).clone(); __v });
         { let mut guard = lineNum.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
 
-    let mut err = (*scanner.lock().unwrap().as_mut().unwrap()).err();
+    let mut err = { let __recv = scanner.clone(); let __recv_ptr: *mut bufio_Scanner = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bufio_Scanner }; let __result = unsafe { &mut *__recv_ptr }.err(); __result };
     if (*err.lock().unwrap()).is_some() {
         print!("Error reading file: {}\n", format!("{}", (*err.lock().unwrap().as_ref().unwrap())));
         {
@@ -565,10 +569,10 @@ fn main() {
     let mut appendContent = Arc::new(Mutex::new(Some(vec!["Appended line 1".to_string(), "Appended line 2".to_string()])));
 
     { let __range_holder = appendContent.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for line in __range_values.iter() {
-        let (_, mut err) = (*file.lock().unwrap().as_mut().unwrap()).write_string(Arc::new(Mutex::new(Some(format!("{}{}", line, "\n".to_string())))));
+        let (_, mut err) = { let __recv = file.clone(); let __recv_ptr: *mut os_File = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut os_File }; let __result = unsafe { &mut *__recv_ptr }.write_string(Arc::new(Mutex::new(Some(format!("{}{}", line, "\n".to_string()))))); __result };
         if (*err.lock().unwrap()).is_some() {
         print!("Error appending: {}\n", format!("{}", (*err.lock().unwrap().as_ref().unwrap())));
-        (*file.lock().unwrap().as_mut().unwrap()).close();
+        { let __recv = file.clone(); let __recv_ptr: *mut os_File = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut os_File }; let __result = unsafe { &mut *__recv_ptr }.close(); __result };
         {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
@@ -580,7 +584,7 @@ fn main() {
         print!("Appended: {}\n", line);
     } }
 
-    (*file.lock().unwrap().as_mut().unwrap()).close();
+    { let __recv = file.clone(); let __recv_ptr: *mut os_File = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut os_File }; let __result = unsafe { &mut *__recv_ptr }.close(); __result };
 
         // Read updated file
     println!("{}", format!("{}", "\n--- Reading updated file ---".to_string()));
@@ -640,7 +644,7 @@ fn main() {
     }
     }
     let sourceFile_defer_captured = sourceFile.clone(); __defer_stack.push(Box::new(move || {
-        (*sourceFile_defer_captured.lock().unwrap().as_mut().unwrap()).close();
+        { let __recv = sourceFile_defer_captured.clone(); let __recv_ptr: *mut os_File = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut os_File }; let __result = unsafe { &mut *__recv_ptr }.close(); __result };
     }));
 
     let (mut destFile, mut err) = { let __path = (*copyFilename.lock().unwrap().as_ref().unwrap()).clone(); match GoFile::create(&__path) { Ok(file) => (Arc::new(Mutex::new(Some(file))), Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>))), Err(e) => (Arc::new(Mutex::new(Some(GoFile::empty()))), Arc::new(Mutex::new(Some(Box::<dyn StdError + Send + Sync>::from(e))))) } };
@@ -655,7 +659,7 @@ fn main() {
     }
     }
     let destFile_defer_captured = destFile.clone(); __defer_stack.push(Box::new(move || {
-        (*destFile_defer_captured.lock().unwrap().as_mut().unwrap()).close();
+        { let __recv = destFile_defer_captured.clone(); let __recv_ptr: *mut os_File = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut os_File }; let __result = unsafe { &mut *__recv_ptr }.close(); __result };
     }));
 
     let (mut bytesWritten, mut err) = io::copy(destFile.clone(), sourceFile.clone());
@@ -687,7 +691,7 @@ fn main() {
     }
     }
     let file_defer_captured = file.clone(); __defer_stack.push(Box::new(move || {
-        (*file_defer_captured.lock().unwrap().as_mut().unwrap()).close();
+        { let __recv = file_defer_captured.clone(); let __recv_ptr: *mut os_File = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut os_File }; let __result = unsafe { &mut *__recv_ptr }.close(); __result };
     }));
 
     { let new_val = bufio::new_scanner(file.clone()).clone(); scanner = new_val; };
@@ -695,8 +699,8 @@ fn main() {
     let mut lineCount = Arc::new(Mutex::new(Some(0)));
     let mut charCount = Arc::new(Mutex::new(Some(0)));
 
-    while (*(*scanner.lock().unwrap().as_mut().unwrap()).scan().lock().unwrap().as_ref().unwrap()) {
-        let mut line = (*scanner.lock().unwrap().as_mut().unwrap()).text();
+    while (*{ let __recv = scanner.clone(); let __recv_ptr: *mut bufio_Scanner = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bufio_Scanner }; let __result = unsafe { &mut *__recv_ptr }.scan(); __result }.lock().unwrap().as_ref().unwrap()) {
+        let mut line = { let __recv = scanner.clone(); let __recv_ptr: *mut bufio_Scanner = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bufio_Scanner }; let __result = unsafe { &mut *__recv_ptr }.text(); __result };
         { let mut guard = lineCount.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
         { let mut guard = charCount.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + (*line.lock().unwrap().as_ref().unwrap()).len() as i32); };
 
@@ -731,7 +735,7 @@ fn main() {
     }
     }
     let file_defer_captured = file.clone(); __defer_stack.push(Box::new(move || {
-        (*file_defer_captured.lock().unwrap().as_mut().unwrap()).close();
+        { let __recv = file_defer_captured.clone(); let __recv_ptr: *mut os_File = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut os_File }; let __result = unsafe { &mut *__recv_ptr }.close(); __result };
     }));
 
         // Write structured data

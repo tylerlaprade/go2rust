@@ -6,3 +6,7 @@ edition = "2021"
 [lib]
 name = "go2rust_stdlib_stubs"
 path = "lib.rs"
+
+[dependencies]
+serde_json = "1"
+gosyn = "0.2.9"

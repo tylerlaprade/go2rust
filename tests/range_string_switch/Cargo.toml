@@ -1,0 +1,8 @@
+[package]
+name = "range_string_switch"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "range_string_switch"
+path = "main.rs"

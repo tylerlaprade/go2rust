@@ -93,7 +93,7 @@ fn main() {
     let mut terms = Arc::new(Mutex::new(Some(vec![types::new_term(false, ())])));
     { let __recv = { let __seq = { let __seq_holder = terms.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }; let __result = (*__recv.lock().unwrap().as_mut().unwrap()).r#type(); __result };
     { let __range_holder = terms.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for term in __range_values.iter() {
-        (*term.lock().unwrap().as_mut().unwrap()).r#type();
+        { let __recv = term.clone(); let __recv_ptr: *mut types_Term = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut types_Term }; let __result = unsafe { &mut *__recv_ptr }.r#type(); __result };
     } }
     println!("{}", format!("{}", "ok".to_string()));
 }

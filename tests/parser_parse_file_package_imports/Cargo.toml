@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "parser_parse_file_package_imports"
 path = "main.rs"
+
+[dependencies]
+gosyn = "0.2.9"

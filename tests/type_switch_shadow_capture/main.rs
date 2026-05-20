@@ -92,6 +92,7 @@ fn main() {
         return (*T.borrow().as_ref().unwrap()).value();;
     } else {
         let T = T.clone();
+        drop(_ts_guard);
         return Rc::new(RefCell::new(Some(0)));;
     }
     }

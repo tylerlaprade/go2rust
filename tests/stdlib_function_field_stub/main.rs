@@ -2,9 +2,17 @@ use std::cell::{RefCell};
 use std::error::Error as StdError;
 use std::rc::{Rc};
 
-#[derive(Clone, Default)]
+#[derive(Clone)]
 pub struct types_Config {
     pub error: Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<Box<dyn StdError>>>>) -> ()>>>>,
+}
+
+impl Default for types_Config {
+    fn default() -> Self {
+        Self {
+            error: Default::default(),
+        }
+    }
 }
 
 impl std::fmt::Display for types_Config {

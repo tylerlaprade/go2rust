@@ -19,6 +19,7 @@ pub fn classify(value: Rc<RefCell<Option<Box<dyn Any>>>>) -> Rc<RefCell<Option<S
         return Rc::new(RefCell::new(Some(format!("int:{}", { let __v = (*v.borrow().as_ref().unwrap()).clone(); __v }))));;
     } else {
         let v = value.clone();
+        drop(_ts_guard);
         return Rc::new(RefCell::new(Some("other".to_string())));;
     }
     }

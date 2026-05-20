@@ -1,0 +1,8 @@
+[package]
+name = "break_loop_inside_switch"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "break_loop_inside_switch"
+path = "main.rs"

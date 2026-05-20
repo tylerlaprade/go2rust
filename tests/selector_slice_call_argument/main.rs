@@ -78,7 +78,7 @@ pub fn abs_join(dir: Rc<RefCell<Option<String>>>, fileses: Rc<RefCell<Option<Vec
 
 fn main() {
     let mut p = Rc::new(RefCell::new(Some(Package { dir: Rc::new(RefCell::new(Some("root".to_string()))), go_files: Rc::new(RefCell::new(Some(vec!["a.go".to_string()]))), cgo_files: Rc::new(RefCell::new(Some(vec!["c.go".to_string()]))), ..Default::default() })));
-    let mut files = abs_join((*p.borrow().as_ref().unwrap()).dir.clone(), Rc::new(RefCell::new(Some(vec![{ let __selector_holder = (*p.borrow().as_ref().unwrap()).go_files.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }, { let __selector_holder = (*p.borrow().as_ref().unwrap()).cgo_files.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }]))));
+    let mut files = abs_join({ let __field = (*p.borrow().as_ref().unwrap()).dir.clone(); __field }, Rc::new(RefCell::new(Some(vec![{ let __slice_holder = (*p.borrow().as_ref().unwrap()).go_files.clone(); let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().map(|__v| __v.clone()).unwrap_or_default() }, { let __slice_holder = (*p.borrow().as_ref().unwrap()).cgo_files.clone(); let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().map(|__v| __v.clone()).unwrap_or_default() }]))));
     { let new_val = "changed".to_string(); *(*p.borrow().as_ref().unwrap()).dir.borrow_mut() = Some(new_val); };
     (*(*p.borrow().as_ref().unwrap()).go_files.borrow_mut().as_mut().unwrap())[(0) as usize] = "b.go".to_string();
     println!("{}", format!("{}", (*files.borrow().as_ref().unwrap())[(0) as usize].clone()));

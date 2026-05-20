@@ -52,6 +52,22 @@ func RegisterExternalTypeStub(name string) {
 	currentExternalTypeStubs()[name] = true
 }
 
+func RegisterExternalTypeStubInterface(name string) {
+	if name == "" {
+		return
+	}
+	RegisterExternalTypeStub(name)
+	currentExternalTypeStubInterfaces()[name] = true
+}
+
+func RegisterExternalIntegerTypeStub(name string, rustType string) {
+	if name == "" || rustType == "" {
+		return
+	}
+	RegisterExternalTypeStub(name)
+	currentExternalTypeStubIntegerTypes()[name] = rustType
+}
+
 func RegisterExternalTypeStubNamed(named *types.Named, rustName string) {
 	RegisterExternalTypeStub(rustName)
 	if externalNamedIsInterface(named) {
@@ -496,6 +512,59 @@ func RegisterExternalPackageSelector(sel *ast.SelectorExpr) {
 	}
 }
 
+func RegisterExternalPackageFunctionFallback(sel *ast.SelectorExpr, argCount int) {
+	if sel == nil {
+		return
+	}
+	pkgName, pkgPath, ok := externalStdlibPackageSelector(sel)
+	if !ok {
+		ident, identOK := sel.X.(*ast.Ident)
+		if !identOK {
+			return
+		}
+		pkgPath, ok = goPackageImports[ident.Name]
+		if !ok {
+			pkgPath, ok = fallbackStdlibPackagePathForImportName(ident.Name)
+		}
+		if !ok || !isStdlibPackage(pkgPath) {
+			return
+		}
+		pkgName = ident.Name
+	}
+	funcName := ToSnakeCase(sel.Sel.Name)
+	pkg := ensureExternalPackageStub(pkgName)
+	if _, exists := pkg.Functions[funcName]; exists {
+		return
+	}
+	trackWrapperImports()
+	fn := externalPackageStubFunction{ParamCount: argCount}
+	switch pkgPath {
+	case "go/token":
+		if sel.Sel.Name != "NewFileSet" {
+			return
+		}
+		RegisterExternalTypeStub("token_FileSet")
+		fn.ReturnTypes = []string{wrappedExternalStubType("token_FileSet")}
+	case "go/types":
+		switch sel.Sel.Name {
+		case "NewPackage":
+			RegisterExternalTypeStub("types_Package")
+			fn.ReturnTypes = []string{wrappedExternalStubType("types_Package")}
+		case "NewChecker":
+			RegisterExternalTypeStub("token_FileSet")
+			RegisterExternalTypeStub("types_Info")
+			RegisterExternalTypeStub("types_Package")
+			RegisterExternalTypeStub("types_Checker")
+			fn.ReturnTypes = []string{wrappedExternalStubType("types_Checker")}
+		default:
+			return
+		}
+	default:
+		return
+	}
+	pkg.Functions[funcName] = fn
+}
+
 func RegisterExternalPackageStubFunction(pkgName string, funcName string, sig *types.Signature) {
 	if pkgName == "" || funcName == "" || sig == nil {
 		return
@@ -505,12 +574,7 @@ func RegisterExternalPackageStubFunction(pkgName string, funcName string, sig *t
 		RegisterExternalTypeStubFieldByRustType("ast_Ident", "name", goTypesTypeToRustWrapped(types.Typ[types.String]))
 	}
 	if pkgName == "parser" && funcName == "parse_file" {
-		RegisterExternalTypeStubFieldByRustType("ast_File", "imports", wrappedExternalStubType("Vec<"+wrappedExternalStubType("ast_ImportSpec")+">"))
-		RegisterExternalTypeStubFieldByRustType("ast_File", "name", wrappedExternalStubType("ast_Ident"))
-		RegisterExternalTypeStubFieldByRustType("ast_Ident", "name", goTypesTypeToRustWrapped(types.Typ[types.String]))
-		RegisterExternalTypeStubFieldByRustType("ast_ImportSpec", "name", wrappedExternalStubType("ast_Ident"))
-		RegisterExternalTypeStubFieldByRustType("ast_ImportSpec", "path", wrappedExternalStubType("ast_BasicLit"))
-		RegisterExternalTypeStubFieldByRustType("ast_BasicLit", "value", goTypesTypeToRustWrapped(types.Typ[types.String]))
+		registerParserParseFileStubSurface()
 	}
 	if pkgName == "build" {
 		RegisterExternalTypeStubFieldByRustType("build_Context", "g_o_r_o_o_t", goTypesTypeToRustWrapped(types.Typ[types.String]))
@@ -530,6 +594,145 @@ func RegisterExternalPackageStubFunction(pkgName string, funcName string, sig *t
 	pkg.Functions[funcName] = fn
 }
 
+func registerParserParseFileStubSurface() {
+	stringType := goTypesTypeToRustWrapped(types.Typ[types.String])
+	boolType := goTypesTypeToRustWrapped(types.Typ[types.Bool])
+	tokenType := wrappedExternalStubType("token_Token")
+	posType := wrappedExternalStubType("token_Pos")
+	exprType := wrappedExternalStubType("ast_Expr")
+	stmtType := wrappedExternalStubType("ast_Stmt")
+	declType := wrappedExternalStubType("ast_Decl")
+	identType := wrappedExternalStubType("ast_Ident")
+	fieldListType := wrappedExternalStubType("ast_FieldList")
+	blockType := wrappedExternalStubType("ast_BlockStmt")
+	callType := wrappedExternalStubType("ast_CallExpr")
+	funcType := wrappedExternalStubType("ast_FuncType")
+	basicLitType := wrappedExternalStubType("ast_BasicLit")
+	chanDirType := wrappedExternalStubType("ast_ChanDir")
+	vec := func(elem string) string {
+		return wrappedExternalStubType("Vec<" + elem + ">")
+	}
+	vecWrapped := func(elem string) string {
+		return vec(wrappedExternalStubType(elem))
+	}
+
+	RegisterExternalIntegerTypeStub("token_Pos", "i32")
+	RegisterExternalIntegerTypeStub("token_Token", "i32")
+	RegisterExternalIntegerTypeStub("ast_ChanDir", "i32")
+	RegisterExternalTypeStubInterface("ast_Expr")
+	RegisterExternalTypeStubInterface("ast_Stmt")
+	RegisterExternalTypeStubInterface("ast_Decl")
+	RegisterExternalTypeStubInterface("ast_Spec")
+
+	RegisterExternalTypeStubFieldByRustType("ast_ArrayType", "elt", exprType)
+	RegisterExternalTypeStubFieldByRustType("ast_ArrayType", "len", exprType)
+	RegisterExternalTypeStubFieldByRustType("ast_AssignStmt", "lhs", vec("ast_Expr"))
+	RegisterExternalTypeStubFieldByRustType("ast_AssignStmt", "rhs", vec("ast_Expr"))
+	RegisterExternalTypeStubFieldByRustType("ast_AssignStmt", "tok", tokenType)
+	RegisterExternalTypeStubFieldByRustType("ast_BasicLit", "kind", tokenType)
+	RegisterExternalTypeStubFieldByRustType("ast_BasicLit", "value", stringType)
+	RegisterExternalTypeStubFieldByRustType("ast_BinaryExpr", "op", tokenType)
+	RegisterExternalTypeStubFieldByRustType("ast_BinaryExpr", "x", exprType)
+	RegisterExternalTypeStubFieldByRustType("ast_BinaryExpr", "y", exprType)
+	RegisterExternalTypeStubFieldByRustType("ast_BlockStmt", "lbrace", posType)
+	RegisterExternalTypeStubFieldByRustType("ast_BlockStmt", "list", vec("ast_Stmt"))
+	RegisterExternalTypeStubFieldByRustType("ast_BranchStmt", "label", identType)
+	RegisterExternalTypeStubFieldByRustType("ast_BranchStmt", "tok", tokenType)
+	RegisterExternalTypeStubFieldByRustType("ast_CallExpr", "args", vec("ast_Expr"))
+	RegisterExternalTypeStubFieldByRustType("ast_CallExpr", "ellipsis", posType)
+	RegisterExternalTypeStubFieldByRustType("ast_CallExpr", "fun", exprType)
+	RegisterExternalTypeStubFieldByRustType("ast_CaseClause", "body", vec("ast_Stmt"))
+	RegisterExternalTypeStubFieldByRustType("ast_CaseClause", "colon", posType)
+	RegisterExternalTypeStubFieldByRustType("ast_CaseClause", "list", vec("ast_Expr"))
+	RegisterExternalTypeStubFieldByRustType("ast_ChanType", "dir", chanDirType)
+	RegisterExternalTypeStubFieldByRustType("ast_ChanType", "value", exprType)
+	RegisterExternalTypeStubFieldByRustType("ast_CommClause", "body", vec("ast_Stmt"))
+	RegisterExternalTypeStubFieldByRustType("ast_CommClause", "comm", stmtType)
+	RegisterExternalTypeStubFieldByRustType("ast_CompositeLit", "elts", vec("ast_Expr"))
+	RegisterExternalTypeStubFieldByRustType("ast_CompositeLit", "r#type", exprType)
+	RegisterExternalTypeStubFieldByRustType("ast_DeclStmt", "decl", declType)
+	RegisterExternalTypeStubFieldByRustType("ast_DeferStmt", "call", callType)
+	RegisterExternalTypeStubFieldByRustType("ast_Ellipsis", "elt", exprType)
+	RegisterExternalTypeStubFieldByRustType("ast_ExprStmt", "x", exprType)
+	RegisterExternalTypeStubFieldByRustType("ast_Field", "names", vecWrapped("ast_Ident"))
+	RegisterExternalTypeStubFieldByRustType("ast_Field", "r#type", exprType)
+	RegisterExternalTypeStubFieldByRustType("ast_Field", "tag", basicLitType)
+	RegisterExternalTypeStubFieldByRustType("ast_FieldList", "list", vecWrapped("ast_Field"))
+	RegisterExternalTypeStubFieldByRustType("ast_File", "decls", vec("ast_Decl"))
+	RegisterExternalTypeStubFieldByRustType("ast_File", "imports", vecWrapped("ast_ImportSpec"))
+	RegisterExternalTypeStubFieldByRustType("ast_File", "name", identType)
+	RegisterExternalTypeStubFieldByRustType("ast_ForStmt", "body", blockType)
+	RegisterExternalTypeStubFieldByRustType("ast_ForStmt", "cond", exprType)
+	RegisterExternalTypeStubFieldByRustType("ast_ForStmt", "init", stmtType)
+	RegisterExternalTypeStubFieldByRustType("ast_ForStmt", "post", stmtType)
+	RegisterExternalTypeStubFieldByRustType("ast_FuncDecl", "body", blockType)
+	RegisterExternalTypeStubFieldByRustType("ast_FuncDecl", "name", identType)
+	RegisterExternalTypeStubFieldByRustType("ast_FuncDecl", "recv", fieldListType)
+	RegisterExternalTypeStubFieldByRustType("ast_FuncDecl", "r#type", funcType)
+	RegisterExternalTypeStubFieldByRustType("ast_FuncLit", "body", blockType)
+	RegisterExternalTypeStubFieldByRustType("ast_FuncLit", "r#type", funcType)
+	RegisterExternalTypeStubFieldByRustType("ast_FuncType", "params", fieldListType)
+	RegisterExternalTypeStubFieldByRustType("ast_FuncType", "results", fieldListType)
+	RegisterExternalTypeStubFieldByRustType("ast_GenDecl", "specs", vec("ast_Spec"))
+	RegisterExternalTypeStubFieldByRustType("ast_GenDecl", "tok", tokenType)
+	RegisterExternalTypeStubFieldByRustType("ast_GoStmt", "call", callType)
+	RegisterExternalTypeStubFieldByRustType("ast_Ident", "name", stringType)
+	RegisterExternalTypeStubFieldByRustType("ast_IfStmt", "body", blockType)
+	RegisterExternalTypeStubFieldByRustType("ast_IfStmt", "cond", exprType)
+	RegisterExternalTypeStubFieldByRustType("ast_IfStmt", "init", stmtType)
+	RegisterExternalTypeStubFieldByRustType("ast_IfStmt", "r#else", stmtType)
+	RegisterExternalTypeStubFieldByRustType("ast_ImportSpec", "name", identType)
+	RegisterExternalTypeStubFieldByRustType("ast_ImportSpec", "path", basicLitType)
+	RegisterExternalTypeStubFieldByRustType("ast_IncDecStmt", "tok", tokenType)
+	RegisterExternalTypeStubFieldByRustType("ast_IncDecStmt", "x", exprType)
+	RegisterExternalTypeStubFieldByRustType("ast_IndexExpr", "index", exprType)
+	RegisterExternalTypeStubFieldByRustType("ast_IndexExpr", "x", exprType)
+	RegisterExternalTypeStubFieldByRustType("ast_IndexListExpr", "indices", vec("ast_Expr"))
+	RegisterExternalTypeStubFieldByRustType("ast_IndexListExpr", "x", exprType)
+	RegisterExternalTypeStubFieldByRustType("ast_InterfaceType", "methods", fieldListType)
+	RegisterExternalTypeStubFieldByRustType("ast_KeyValueExpr", "key", exprType)
+	RegisterExternalTypeStubFieldByRustType("ast_KeyValueExpr", "value", exprType)
+	RegisterExternalTypeStubFieldByRustType("ast_LabeledStmt", "label", identType)
+	RegisterExternalTypeStubFieldByRustType("ast_LabeledStmt", "stmt", stmtType)
+	RegisterExternalTypeStubFieldByRustType("ast_MapType", "key", exprType)
+	RegisterExternalTypeStubFieldByRustType("ast_MapType", "value", exprType)
+	RegisterExternalTypeStubFieldByRustType("ast_ParenExpr", "x", exprType)
+	RegisterExternalTypeStubFieldByRustType("ast_RangeStmt", "body", blockType)
+	RegisterExternalTypeStubFieldByRustType("ast_RangeStmt", "key", exprType)
+	RegisterExternalTypeStubFieldByRustType("ast_RangeStmt", "tok", tokenType)
+	RegisterExternalTypeStubFieldByRustType("ast_RangeStmt", "value", exprType)
+	RegisterExternalTypeStubFieldByRustType("ast_RangeStmt", "x", exprType)
+	RegisterExternalTypeStubFieldByRustType("ast_ReturnStmt", "results", vec("ast_Expr"))
+	RegisterExternalTypeStubFieldByRustType("ast_SelectStmt", "body", blockType)
+	RegisterExternalTypeStubFieldByRustType("ast_SelectorExpr", "sel", identType)
+	RegisterExternalTypeStubFieldByRustType("ast_SelectorExpr", "x", exprType)
+	RegisterExternalTypeStubFieldByRustType("ast_SendStmt", "chan", exprType)
+	RegisterExternalTypeStubFieldByRustType("ast_SendStmt", "value", exprType)
+	RegisterExternalTypeStubFieldByRustType("ast_SliceExpr", "high", exprType)
+	RegisterExternalTypeStubFieldByRustType("ast_SliceExpr", "low", exprType)
+	RegisterExternalTypeStubFieldByRustType("ast_SliceExpr", "max", exprType)
+	RegisterExternalTypeStubFieldByRustType("ast_SliceExpr", "slice3", boolType)
+	RegisterExternalTypeStubFieldByRustType("ast_SliceExpr", "x", exprType)
+	RegisterExternalTypeStubFieldByRustType("ast_StarExpr", "x", exprType)
+	RegisterExternalTypeStubFieldByRustType("ast_StructType", "fields", fieldListType)
+	RegisterExternalTypeStubFieldByRustType("ast_SwitchStmt", "body", blockType)
+	RegisterExternalTypeStubFieldByRustType("ast_SwitchStmt", "init", stmtType)
+	RegisterExternalTypeStubFieldByRustType("ast_SwitchStmt", "tag", exprType)
+	RegisterExternalTypeStubFieldByRustType("ast_TypeAssertExpr", "r#type", exprType)
+	RegisterExternalTypeStubFieldByRustType("ast_TypeAssertExpr", "x", exprType)
+	RegisterExternalTypeStubFieldByRustType("ast_TypeSpec", "assign", posType)
+	RegisterExternalTypeStubFieldByRustType("ast_TypeSpec", "name", identType)
+	RegisterExternalTypeStubFieldByRustType("ast_TypeSpec", "r#type", exprType)
+	RegisterExternalTypeStubFieldByRustType("ast_TypeSwitchStmt", "assign", stmtType)
+	RegisterExternalTypeStubFieldByRustType("ast_TypeSwitchStmt", "body", blockType)
+	RegisterExternalTypeStubFieldByRustType("ast_TypeSwitchStmt", "init", stmtType)
+	RegisterExternalTypeStubFieldByRustType("ast_UnaryExpr", "op", tokenType)
+	RegisterExternalTypeStubFieldByRustType("ast_UnaryExpr", "x", exprType)
+	RegisterExternalTypeStubFieldByRustType("ast_ValueSpec", "names", vecWrapped("ast_Ident"))
+	RegisterExternalTypeStubFieldByRustType("ast_ValueSpec", "r#type", exprType)
+	RegisterExternalTypeStubFieldByRustType("ast_ValueSpec", "values", vec("ast_Expr"))
+}
+
 func RegisterExternalTypeStubFieldByRustType(typeName string, fieldName string, fieldTypeRust string) {
 	if typeName == "" || fieldName == "" || fieldTypeRust == "" {
 		return
@@ -546,6 +749,12 @@ func RegisterExternalTypeStubFieldByRustType(typeName string, fieldName string, 
 func RegisterExternalPackageStubConstant(pkgName string, constName string, constType types.Type) {
 	if pkgName == "" || constName == "" || constType == nil {
 		return
+	}
+	if pkgName == "token" {
+		RegisterExternalTypeStub("token_Token")
+	}
+	if pkgName == "ast" && goTypesConstTypeToRust(constType) == "ast_ChanDir" {
+		RegisterExternalTypeStub("ast_ChanDir")
 	}
 	pkg := ensureExternalPackageStub(pkgName)
 	pkg.Constants[constName] = goTypesConstTypeToRust(constType)
@@ -603,6 +812,9 @@ func externalStdlibPackageSelector(sel *ast.SelectorExpr) (string, string, bool)
 		return "", "", false
 	}
 	pkgPath, ok := goPackageImports[ident.Name]
+	if !ok {
+		pkgPath, ok = fallbackStdlibPackagePathForImportName(ident.Name)
+	}
 	if !ok || !isStdlibPackage(pkgPath) {
 		return "", "", false
 	}
@@ -613,6 +825,31 @@ func externalStdlibPackageSelector(sel *ast.SelectorExpr) (string, string, bool)
 		}
 	}
 	return ident.Name, pkgPath, true
+}
+
+func isStdlibPackageSelectorImport(sel *ast.SelectorExpr) bool {
+	if sel == nil {
+		return false
+	}
+	ident, ok := sel.X.(*ast.Ident)
+	if !ok {
+		return false
+	}
+	pkgPath, ok := goPackageImports[ident.Name]
+	if !ok {
+		pkgPath, ok = fallbackStdlibPackagePathForImportName(ident.Name)
+	}
+	return ok && isStdlibPackage(pkgPath)
+}
+
+func fallbackStdlibPackagePathForImportName(name string) (string, bool) {
+	switch name {
+	case "token":
+		return "go/token", true
+	case "types":
+		return "go/types", true
+	}
+	return "", false
 }
 
 func isKnownStdlibHelperType(pkgPath string, name string) bool {
@@ -797,7 +1034,7 @@ func WriteSharedStdlibStubCrate(workDir string, states []*PackageState) error {
 	}
 
 	mergedState := MergeExternalStubPackageStates(states...)
-	var parts []string
+	parts := []string{}
 	if helperCode := mergedState.Helpers.GenerateSharedStdlibHelperModule(); helperCode != "" {
 		parts = append(parts, helperCode)
 	}
@@ -819,6 +1056,10 @@ edition = "2021"
 [lib]
 name = "%s"
 path = "lib.rs"
+
+[dependencies]
+serde_json = "1"
+gosyn = "0.2.9"
 `, sharedStdlibStubCrateName, sharedStdlibStubCrateName)
 	cargoPath := filepath.Join(outputDir, "Cargo.toml")
 	if err := os.WriteFile(cargoPath, []byte(cargoToml), 0644); err != nil {
@@ -866,10 +1107,17 @@ func hoistAndDedupeUseLines(code string) string {
 		body = append(body, line)
 	}
 	slices.Sort(uses)
+	bodyText := strings.Trim(strings.Join(body, "\n"), "\n")
 	if len(uses) == 0 {
-		return strings.Join(body, "\n")
+		if bodyText == "" {
+			return ""
+		}
+		return bodyText + "\n"
 	}
-	return strings.Join(uses, "\n") + "\n\n" + strings.TrimLeft(strings.Join(body, "\n"), "\n")
+	if bodyText == "" {
+		return strings.Join(uses, "\n") + "\n"
+	}
+	return strings.Join(uses, "\n") + "\n\n" + bodyText + "\n"
 }
 
 func mergeHelperTracker(dst *HelperTracker, src *HelperTracker) {
@@ -1008,8 +1256,295 @@ func GenerateExternalStubModuleImports() string {
 	return out.String()
 }
 
+func externalStubsNeedJsonSupport(stubs map[string]bool, packageStubs map[string]*externalPackageStub) bool {
+	if stubs["json_Decoder"] {
+		return true
+	}
+	if pkg := packageStubs["json"]; pkg != nil {
+		if _, ok := pkg.Functions["new_decoder"]; ok {
+			return true
+		}
+		if _, ok := pkg.Functions["unmarshal"]; ok {
+			return true
+		}
+	}
+	return false
+}
+
+func writeJsonSupportHelpers(out *strings.Builder, hasBytesBuffer bool) {
+	outerWrapper := GetOuterWrapperType()
+	innerWrapper := GetInnerWrapperType()
+	borrow := ".borrow()"
+	borrowMut := ".borrow_mut()"
+	errorInnerType := "Box<dyn StdError>"
+	errorDynSuffix := ""
+	if NeedsConcurrentWrapper() {
+		borrow = ".lock().unwrap()"
+		borrowMut = ".lock().unwrap()"
+		errorInnerType = "Box<dyn StdError + Send + Sync>"
+		errorDynSuffix = " + Send + Sync"
+	}
+	errorType := wrappedExternalStubType(errorInnerType)
+	fmt.Fprintf(out, `pub use serde_json;
+
+pub trait GoJsonInputArg {
+    fn into_go_json_bytes(self) -> Vec<u8>;
+}
+
+pub trait GoJsonDecode: Sized {
+    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String>;
+}
+
+pub trait GoJsonDecodeTarget {
+    fn assign_go_json(self, value: &serde_json::Value) -> Result<(), String>;
+}
+
+fn go_json_no_error() -> %s {
+    %s::new(%s::new(None))
+}
+
+fn go_json_error(message: String) -> %s {
+    %s::new(%s::new(Some(Box::<dyn StdError%s>::from(message))))
+}
+
+pub fn go_json_expected(value: &serde_json::Value, want: &str) -> String {
+    format!("expected {}, got {}", want, value)
+}
+
+impl GoJsonInputArg for Vec<u8> {
+    fn into_go_json_bytes(self) -> Vec<u8> {
+        self
+    }
+}
+
+impl GoJsonInputArg for String {
+    fn into_go_json_bytes(self) -> Vec<u8> {
+        self.into_bytes()
+    }
+}
+
+impl<'a> GoJsonInputArg for &'a str {
+    fn into_go_json_bytes(self) -> Vec<u8> {
+        self.as_bytes().to_vec()
+    }
+}
+
+impl<T> GoJsonInputArg for %s<%s<Option<T>>>
+where
+    T: GoJsonInputArg + Clone,
+{
+    fn into_go_json_bytes(self) -> Vec<u8> {
+        self%s.as_ref().cloned().map(|value| value.into_go_json_bytes()).unwrap_or_default()
+    }
+}
+
+impl GoJsonDecode for String {
+    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
+        value.as_str().map(|value| value.to_string()).ok_or_else(|| go_json_expected(value, "string"))
+    }
+}
+
+impl GoJsonDecode for bool {
+    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
+        value.as_bool().ok_or_else(|| go_json_expected(value, "bool"))
+    }
+}
+
+impl GoJsonDecode for i32 {
+    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
+        value.as_i64().map(|value| value as i32).ok_or_else(|| go_json_expected(value, "integer"))
+    }
+}
+
+impl GoJsonDecode for i64 {
+    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
+        value.as_i64().ok_or_else(|| go_json_expected(value, "integer"))
+    }
+}
+
+impl GoJsonDecode for u8 {
+    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
+        value.as_u64().map(|value| value as u8).ok_or_else(|| go_json_expected(value, "integer"))
+    }
+}
+
+impl GoJsonDecode for u32 {
+    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
+        value.as_u64().map(|value| value as u32).ok_or_else(|| go_json_expected(value, "integer"))
+    }
+}
+
+impl GoJsonDecode for u64 {
+    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
+        value.as_u64().ok_or_else(|| go_json_expected(value, "integer"))
+    }
+}
+
+impl GoJsonDecode for f64 {
+    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
+        value.as_f64().ok_or_else(|| go_json_expected(value, "number"))
+    }
+}
+
+impl<T> GoJsonDecode for Vec<T>
+where
+    T: GoJsonDecode,
+{
+    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
+        let array = value.as_array().ok_or_else(|| go_json_expected(value, "array"))?;
+        array.iter().map(T::go_json_decode).collect()
+    }
+}
+
+impl<V> GoJsonDecode for BTreeMap<String, V>
+where
+    V: GoJsonDecode,
+{
+    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
+        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
+        let mut out = BTreeMap::new();
+        for (key, value) in object {
+            out.insert(key.clone(), V::go_json_decode(value)?);
+        }
+        Ok(out)
+    }
+}
+
+impl<T> GoJsonDecode for %s<%s<Option<T>>>
+where
+    T: GoJsonDecode,
+{
+    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
+        if value.is_null() {
+            Ok(%s::new(%s::new(None)))
+        } else {
+            Ok(%s::new(%s::new(Some(T::go_json_decode(value)?))))
+        }
+    }
+}
+
+impl<T> GoJsonDecodeTarget for %s<%s<Option<T>>>
+where
+    T: GoJsonDecode,
+{
+    fn assign_go_json(self, value: &serde_json::Value) -> Result<(), String> {
+        if value.is_null() {
+            *self%s = None;
+        } else {
+            *self%s = Some(T::go_json_decode(value)?);
+        }
+        Ok(())
+    }
+}
+
+`, errorType, outerWrapper, innerWrapper, errorType, outerWrapper, innerWrapper, errorDynSuffix, outerWrapper, innerWrapper, borrow, outerWrapper, innerWrapper, outerWrapper, innerWrapper, outerWrapper, innerWrapper, outerWrapper, innerWrapper, borrowMut, borrowMut)
+	if hasBytesBuffer {
+		fmt.Fprintf(out, `impl GoJsonInputArg for bytes_Buffer {
+    fn into_go_json_bytes(self) -> Vec<u8> {
+        self.__go_bytes()
+    }
+}
+
+`)
+	}
+}
+
+func writeJsonDecoderStub(out *strings.Builder) {
+	errorInnerType := externalStubErrorInnerType()
+	fmt.Fprintf(out, `#[derive(Debug, Clone)]
+pub struct json_Decoder {
+    values: std::sync::Arc<std::sync::Mutex<Vec<serde_json::Value>>>,
+    index: std::sync::Arc<std::sync::Mutex<usize>>,
+    error: std::sync::Arc<std::sync::Mutex<Option<String>>>,
+}
+
+impl Default for json_Decoder {
+    fn default() -> Self {
+        Self {
+            values: std::sync::Arc::new(std::sync::Mutex::new(Vec::new())),
+            index: std::sync::Arc::new(std::sync::Mutex::new(0)),
+            error: std::sync::Arc::new(std::sync::Mutex::new(None)),
+        }
+    }
+}
+
+impl std::fmt::Display for json_Decoder {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<json_Decoder>")
+    }
+}
+
+impl json_Decoder {
+    pub fn __go_from_input<T: GoJsonInputArg>(input: T) -> Self {
+        let bytes = input.into_go_json_bytes();
+        let text = String::from_utf8_lossy(&bytes);
+        let mut values = Vec::new();
+        let mut error = None;
+        for item in serde_json::Deserializer::from_str(&text).into_iter::<serde_json::Value>() {
+            match item {
+                Ok(value) => values.push(value),
+                Err(err) => {
+                    error = Some(err.to_string());
+                    break;
+                }
+            }
+        }
+        Self {
+            values: std::sync::Arc::new(std::sync::Mutex::new(values)),
+            index: std::sync::Arc::new(std::sync::Mutex::new(0)),
+            error: std::sync::Arc::new(std::sync::Mutex::new(error)),
+        }
+    }
+
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        None
+    }
+
+    pub fn decode<T0: GoJsonDecodeTarget>(&mut self, target: T0) -> %s {
+        if let Some(err) = self.error.lock().unwrap().clone() {
+            return go_json_error(err);
+        }
+        let value = {
+            let mut index = self.index.lock().unwrap();
+            let values = self.values.lock().unwrap();
+            if *index >= values.len() {
+                return go_json_error("EOF".to_string());
+            }
+            let value = values[*index].clone();
+            *index += 1;
+            value
+        };
+        match target.assign_go_json(&value) {
+            Ok(()) => go_json_no_error(),
+            Err(err) => go_json_error(err),
+        }
+    }
+
+    pub fn more(&self) -> %s {
+        let has_more = *self.index.lock().unwrap() < self.values.lock().unwrap().len();
+        %s
+    }
+}
+`, wrappedExternalStubType(errorInnerType), wrappedExternalStubType("bool"), wrappedExternalStubExpr("bool", "has_more"))
+}
+
 func generateExternalStubs(stubs map[string]bool, interfaceTypes map[string]bool, integerTypes map[string]string, tupleTypes map[string]string, fieldsByType map[string]map[string]string, methodsByType map[string]map[string]externalTypeStubMethod, conversions map[string]map[string]bool, packageStubs map[string]*externalPackageStub) string {
-	if len(stubs) == 0 && len(conversions) == 0 && len(packageStubs) == 0 {
+	if packageStubs["token"] != nil {
+		stubs["token_Token"] = true
+	}
+	if packageStubs["parser"] != nil {
+		stubs["token_Token"] = true
+	}
+	if packageStubs["ast"] != nil {
+		for _, typ := range packageStubs["ast"].Constants {
+			if typ == "ast_ChanDir" {
+				stubs["ast_ChanDir"] = true
+				break
+			}
+		}
+	}
+	needsJsonSupport := usePackageExternalStubs() || externalStubsNeedJsonSupport(stubs, packageStubs)
+	if len(stubs) == 0 && len(conversions) == 0 && len(packageStubs) == 0 && !needsJsonSupport {
 		return ""
 	}
 	names := make([]string, 0, len(stubs))
@@ -1022,9 +1557,16 @@ func generateExternalStubs(stubs map[string]bool, interfaceTypes map[string]bool
 	if externalStubNeedsInterfaceHelper(names, interfaceTypes) {
 		writeExternalInterfaceIdHelper(&out)
 	}
+	if needsJsonSupport {
+		writeJsonSupportHelpers(&out, stubs["bytes_Buffer"])
+	}
 	for i, name := range names {
 		if i > 0 || out.Len() > 0 {
 			out.WriteString("\n\n")
+		}
+		if name == "json_Decoder" {
+			writeJsonDecoderStub(&out)
+			continue
 		}
 		if name == "bytes_Buffer" {
 			writeBytesBufferStub(&out)
@@ -1040,6 +1582,14 @@ func generateExternalStubs(stubs map[string]bool, interfaceTypes map[string]bool
 		}
 		if name == "exec_Cmd" {
 			writeExecCmdTypeStub(&out, fieldsByType[name])
+			continue
+		}
+		if name == "atomic_Int32" {
+			writeAtomicInt32Stub(&out)
+			continue
+		}
+		if name == "token_Token" {
+			writeTokenTokenStub(&out)
 			continue
 		}
 		if name == "fs_FileInfo" {
@@ -1078,10 +1628,19 @@ func generateExternalStubs(stubs map[string]bool, interfaceTypes map[string]bool
 				out.WriteString(";\n\n")
 			}
 		} else {
+			customDefault := externalStubStructNeedsCustomDefault(name)
 			if externalStubFieldsCanDeriveDebug(fields) {
-				out.WriteString("#[derive(Debug, Clone, Default)]\n")
+				if customDefault {
+					out.WriteString("#[derive(Debug, Clone)]\n")
+				} else {
+					out.WriteString("#[derive(Debug, Clone, Default)]\n")
+				}
 			} else {
-				out.WriteString("#[derive(Clone, Default)]\n")
+				if customDefault {
+					out.WriteString("#[derive(Clone)]\n")
+				} else {
+					out.WriteString("#[derive(Clone, Default)]\n")
+				}
 			}
 			out.WriteString("pub struct ")
 			out.WriteString(name)
@@ -1099,6 +1658,9 @@ func generateExternalStubs(stubs map[string]bool, interfaceTypes map[string]bool
 				out.WriteString(",\n")
 			}
 			out.WriteString("}\n\n")
+			if customDefault {
+				writeExternalStubStructDefault(&out, name, fields)
+			}
 		}
 		out.WriteString("impl std::fmt::Display for ")
 		out.WriteString(name)
@@ -1497,6 +2059,209 @@ impl Ord for io_Writer {
 `)
 }
 
+func writeAtomicInt32Stub(out *strings.Builder) {
+	intType := wrappedExternalStubType("i32")
+	boolType := wrappedExternalStubType("bool")
+	fmt.Fprintf(out, `#[derive(Debug, Clone)]
+pub struct atomic_Int32 {
+    __go_value: std::sync::Arc<std::sync::atomic::AtomicI32>,
+}
+
+impl Default for atomic_Int32 {
+    fn default() -> Self {
+        Self { __go_value: std::sync::Arc::new(std::sync::atomic::AtomicI32::new(0)) }
+    }
+}
+
+impl std::fmt::Display for atomic_Int32 {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<atomic_Int32>")
+    }
+}
+
+fn __go_atomic_i32_arg<T: 'static>(arg: &T) -> i32 {
+    let any = arg as &dyn std::any::Any;
+    if let Some(v) = any.downcast_ref::<i32>() {
+        *v
+    } else if let Some(v) = any.downcast_ref::<i64>() {
+        *v as i32
+    } else if let Some(v) = any.downcast_ref::<u32>() {
+        *v as i32
+    } else if let Some(v) = any.downcast_ref::<u64>() {
+        *v as i32
+    } else if let Some(v) = any.downcast_ref::<usize>() {
+        *v as i32
+    } else if let Some(v) = any.downcast_ref::<isize>() {
+        *v as i32
+    } else if let Some(v) = any.downcast_ref::<std::sync::Arc<std::sync::Mutex<Option<i32>>>>() {
+        v.lock().unwrap().as_ref().copied().unwrap_or_default()
+    } else if let Some(v) = any.downcast_ref::<std::rc::Rc<std::cell::RefCell<Option<i32>>>>() {
+        v.borrow().as_ref().copied().unwrap_or_default()
+    } else {
+        0
+    }
+}
+
+impl atomic_Int32 {
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        None
+    }
+
+    pub fn add<T0: 'static>(&self, arg0: T0) -> %s {
+        let delta = __go_atomic_i32_arg(&arg0);
+        let previous = self.__go_value.fetch_add(delta, std::sync::atomic::Ordering::SeqCst);
+        %s
+    }
+
+    pub fn load(&self) -> %s {
+        %s
+    }
+
+    pub fn store<T0: 'static>(&self, arg0: T0) {
+        self.__go_value.store(__go_atomic_i32_arg(&arg0), std::sync::atomic::Ordering::SeqCst);
+    }
+
+    pub fn swap<T0: 'static>(&self, arg0: T0) -> %s {
+        %s
+    }
+
+    pub fn compare_and_swap<T0: 'static, T1: 'static>(&self, old: T0, new: T1) -> %s {
+        let old = __go_atomic_i32_arg(&old);
+        let new = __go_atomic_i32_arg(&new);
+        %s
+    }
+}
+`,
+		intType, wrappedExternalStubExpr("i32", "previous.wrapping_add(delta)"),
+		intType, wrappedExternalStubExpr("i32", "self.__go_value.load(std::sync::atomic::Ordering::SeqCst)"),
+		intType, wrappedExternalStubExpr("i32", "self.__go_value.swap(__go_atomic_i32_arg(&arg0), std::sync::atomic::Ordering::SeqCst)"),
+		boolType, wrappedExternalStubExpr("bool", "self.__go_value.compare_exchange(old, new, std::sync::atomic::Ordering::SeqCst, std::sync::atomic::Ordering::SeqCst).is_ok()"))
+}
+
+func writeTokenTokenStub(out *strings.Builder) {
+	stringType := wrappedExternalStubType("String")
+	fmt.Fprintf(out, `#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
+pub struct token_Token(pub i32);
+
+impl PartialEq<i32> for token_Token {
+    fn eq(&self, other: &i32) -> bool {
+        self.0 == *other
+    }
+}
+
+impl PartialEq<token_Token> for i32 {
+    fn eq(&self, other: &token_Token) -> bool {
+        *self == other.0
+    }
+}
+
+impl std::ops::BitAnd for token_Token {
+    type Output = token_Token;
+    fn bitand(self, other: Self) -> token_Token {
+        token_Token(self.0 & other.0)
+    }
+}
+
+impl std::ops::BitOr for token_Token {
+    type Output = token_Token;
+    fn bitor(self, other: Self) -> token_Token {
+        token_Token(self.0 | other.0)
+    }
+}
+
+impl std::fmt::Display for token_Token {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{}", token_string_value(*self))
+    }
+}
+
+fn token_string_value(tok: token_Token) -> &'static str {
+    match tok.0 {
+        4 => "IDENT",
+        5 => "INT",
+        6 => "FLOAT",
+        7 => "IMAG",
+        8 => "CHAR",
+        9 => "STRING",
+        12 => "+",
+        13 => "-",
+        14 => "*",
+        15 => "/",
+        16 => "%%",
+        17 => "&",
+        18 => "|",
+        19 => "^",
+        20 => "<<",
+        21 => ">>",
+        22 => "&^",
+        23 => "+=",
+        24 => "-=",
+        25 => "*=",
+        26 => "/=",
+        27 => "%%=",
+        28 => "&=",
+        29 => "|=",
+        30 => "^=",
+        31 => "<<=",
+        32 => ">>=",
+        33 => "&^=",
+        34 => "&&",
+        35 => "||",
+        36 => "<-",
+        37 => "++",
+        38 => "--",
+        39 => "==",
+        40 => "<",
+        41 => ">",
+        42 => "=",
+        43 => "!",
+        44 => "!=",
+        45 => "<=",
+        46 => ">=",
+        47 => ":=",
+        48 => "...",
+        61 => "break",
+        62 => "case",
+        63 => "chan",
+        64 => "const",
+        65 => "continue",
+        66 => "default",
+        67 => "defer",
+        68 => "else",
+        69 => "fallthrough",
+        70 => "for",
+        71 => "func",
+        72 => "go",
+        73 => "goto",
+        74 => "if",
+        75 => "import",
+        76 => "interface",
+        77 => "map",
+        78 => "package",
+        79 => "range",
+        80 => "return",
+        81 => "select",
+        82 => "struct",
+        83 => "switch",
+        84 => "type",
+        85 => "var",
+        88 => "~",
+        _ => "ILLEGAL",
+    }
+}
+
+impl token_Token {
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        None
+    }
+
+    pub fn string(&self) -> %s {
+        %s
+    }
+}
+`, stringType, wrappedExternalStubExpr("String", "token_string_value(*self).to_string()"))
+}
+
 func writeOsFileStub(out *strings.Builder) {
 	vecType := wrappedExternalStubType("Vec<u8>")
 	stringType := wrappedExternalStubType("String")
@@ -1730,6 +2495,9 @@ impl exec_Cmd {
 }
 
 func externalTypeStubHasErrorMethod(methods map[string]externalTypeStubMethod) bool {
+	if methods == nil {
+		return false
+	}
 	method, ok := methods["error"]
 	return ok && len(method.ReturnTypes) == 1 && strings.Contains(method.ReturnTypes[0], "String")
 }
@@ -2062,12 +2830,24 @@ func writeExternalPackageStubs(out *strings.Builder, packageStubs map[string]*ex
 			writeFlagPackageStub(out)
 			continue
 		}
+		if pkgName == "json" {
+			writeJsonPackageStub(out, pkg)
+			continue
+		}
 		if pkgName == "os" {
 			writeOsPackageStub(out, pkg, integerTypes)
 			continue
 		}
 		if pkgName == "parser" {
 			writeParserPackageStub(out, pkg, integerTypes)
+			continue
+		}
+		if pkgName == "strconv" {
+			writeStrconvPackageStub(out, pkg, integerTypes, stubs)
+			continue
+		}
+		if pkgName == "token" {
+			writeTokenPackageStub(out, pkg, integerTypes)
 			continue
 		}
 		if pkgName == "filepath" {
@@ -2234,7 +3014,13 @@ func writeAstPackageStub(out *strings.Builder, pkg *externalPackageStub, integer
 		out.WriteString(": ")
 		out.WriteString(pkg.Constants[constName])
 		out.WriteString(" = ")
-		writeExternalStubConstDefaultValue(out, pkg.Constants[constName], integerTypes)
+		if pkg.Constants[constName] == "ast_ChanDir" && constName == "S_E_N_D" {
+			out.WriteString("ast_ChanDir(1)")
+		} else if pkg.Constants[constName] == "ast_ChanDir" && constName == "R_E_C_V" {
+			out.WriteString("ast_ChanDir(2)")
+		} else {
+			writeExternalStubConstDefaultValue(out, pkg.Constants[constName], integerTypes)
+		}
 		out.WriteString(";\n")
 	}
 	if len(constNames) > 0 && (len(pkg.Variables) > 0 || len(pkg.Functions) > 0) {
@@ -2328,6 +3114,157 @@ func writeParserPackageStub(out *strings.Builder, pkg *externalPackageStub, inte
 		}
 	}
 	out.WriteString("}\n")
+}
+
+func writeTokenPackageStub(out *strings.Builder, pkg *externalPackageStub, integerTypes map[string]string) {
+	out.WriteString("pub mod token {\n")
+	out.WriteString("    use super::*;\n\n")
+	constTypes := make(map[string]string, len(pkg.Constants)+len(tokenConstValues()))
+	for constName, constType := range pkg.Constants {
+		constTypes[constName] = constType
+	}
+	for constName := range tokenConstValues() {
+		if constTypes[constName] == "" {
+			constTypes[constName] = "token_Token"
+		}
+	}
+	constNames := make([]string, 0, len(pkg.Constants))
+	for constName := range constTypes {
+		constNames = append(constNames, constName)
+	}
+	slices.Sort(constNames)
+	for _, constName := range constNames {
+		out.WriteString("    pub const ")
+		out.WriteString(constName)
+		out.WriteString(": ")
+		out.WriteString(constTypes[constName])
+		out.WriteString(" = ")
+		if value, ok := tokenConstValue(constName); ok {
+			out.WriteString("token_Token(")
+			out.WriteString(strconv.Itoa(value))
+			out.WriteString(")")
+		} else {
+			writeExternalStubConstDefaultValue(out, constTypes[constName], integerTypes)
+		}
+		out.WriteString(";\n")
+	}
+	if len(constNames) > 0 && (len(pkg.Variables) > 0 || len(pkg.Functions) > 0) {
+		out.WriteString("\n")
+	}
+	varNames := make([]string, 0, len(pkg.Variables))
+	for varName := range pkg.Variables {
+		varNames = append(varNames, varName)
+	}
+	slices.Sort(varNames)
+	for _, varName := range varNames {
+		writeExternalPackageStubVariable(out, varName, pkg.Variables[varName])
+		out.WriteString("\n")
+	}
+	funcNames := make([]string, 0, len(pkg.Functions))
+	for funcName := range pkg.Functions {
+		funcNames = append(funcNames, funcName)
+	}
+	slices.Sort(funcNames)
+	for i, funcName := range funcNames {
+		if i > 0 || len(varNames) > 0 {
+			out.WriteString("\n")
+		}
+		writeExternalPackageStubFunction(out, funcName, pkg.Functions[funcName], nil)
+	}
+	out.WriteString("}\n")
+}
+
+func tokenConstValue(name string) (int, bool) {
+	values := tokenConstValues()
+	value, ok := values[name]
+	return value, ok
+}
+
+func tokenConstValues() map[string]int {
+	return map[string]int{
+		"I_L_L_E_G_A_L":             0,
+		"E_O_F":                     1,
+		"C_O_M_M_E_N_T":             2,
+		"I_D_E_N_T":                 4,
+		"I_N_T":                     5,
+		"F_L_O_A_T":                 6,
+		"I_M_A_G":                   7,
+		"C_H_A_R":                   8,
+		"S_T_R_I_N_G":               9,
+		"A_D_D":                     12,
+		"S_U_B":                     13,
+		"M_U_L":                     14,
+		"Q_U_O":                     15,
+		"R_E_M":                     16,
+		"A_N_D":                     17,
+		"O_R":                       18,
+		"X_O_R":                     19,
+		"S_H_L":                     20,
+		"S_H_R":                     21,
+		"A_N_D__N_O_T":              22,
+		"A_D_D__A_S_S_I_G_N":        23,
+		"S_U_B__A_S_S_I_G_N":        24,
+		"M_U_L__A_S_S_I_G_N":        25,
+		"Q_U_O__A_S_S_I_G_N":        26,
+		"R_E_M__A_S_S_I_G_N":        27,
+		"A_N_D__A_S_S_I_G_N":        28,
+		"O_R__A_S_S_I_G_N":          29,
+		"X_O_R__A_S_S_I_G_N":        30,
+		"S_H_L__A_S_S_I_G_N":        31,
+		"S_H_R__A_S_S_I_G_N":        32,
+		"A_N_D__N_O_T__A_S_S_I_G_N": 33,
+		"L_A_N_D":                   34,
+		"L_O_R":                     35,
+		"A_R_R_O_W":                 36,
+		"I_N_C":                     37,
+		"D_E_C":                     38,
+		"E_Q_L":                     39,
+		"L_S_S":                     40,
+		"G_T_R":                     41,
+		"A_S_S_I_G_N":               42,
+		"N_O_T":                     43,
+		"N_E_Q":                     44,
+		"L_E_Q":                     45,
+		"G_E_Q":                     46,
+		"D_E_F_I_N_E":               47,
+		"E_L_L_I_P_S_I_S":           48,
+		"L_P_A_R_E_N":               49,
+		"L_B_R_A_C_K":               50,
+		"L_B_R_A_C_E":               51,
+		"C_O_M_M_A":                 52,
+		"P_E_R_I_O_D":               53,
+		"R_P_A_R_E_N":               54,
+		"R_B_R_A_C_K":               55,
+		"R_B_R_A_C_E":               56,
+		"S_E_M_I_C_O_L_O_N":         57,
+		"C_O_L_O_N":                 58,
+		"B_R_E_A_K":                 61,
+		"C_A_S_E":                   62,
+		"C_H_A_N":                   63,
+		"C_O_N_S_T":                 64,
+		"C_O_N_T_I_N_U_E":           65,
+		"D_E_F_A_U_L_T":             66,
+		"D_E_F_E_R":                 67,
+		"E_L_S_E":                   68,
+		"F_A_L_L_T_H_R_O_U_G_H":     69,
+		"F_O_R":                     70,
+		"F_U_N_C":                   71,
+		"G_O":                       72,
+		"G_O_T_O":                   73,
+		"I_F":                       74,
+		"I_M_P_O_R_T":               75,
+		"I_N_T_E_R_F_A_C_E":         76,
+		"M_A_P":                     77,
+		"P_A_C_K_A_G_E":             78,
+		"R_A_N_G_E":                 79,
+		"R_E_T_U_R_N":               80,
+		"S_E_L_E_C_T":               81,
+		"S_T_R_U_C_T":               82,
+		"S_W_I_T_C_H":               83,
+		"T_Y_P_E":                   84,
+		"V_A_R":                     85,
+		"T_I_L_D_E":                 88,
+	}
 }
 
 func writeParserArgTraits(out *strings.Builder) {
@@ -2444,7 +3381,7 @@ func writeParserParseFileFunction(out *strings.Builder, fn externalPackageStubFu
 	out.WriteString(`
     }
 
-    fn go_parser_import_spec(name: Option<String>, path: String) -> `)
+    fn go_parser_import_spec_from_parts(name: Option<String>, path: String) -> `)
 	out.WriteString(wrappedExternalStubType("ast_ImportSpec"))
 	out.WriteString(` {
         `)
@@ -2542,53 +3479,528 @@ func writeParserParseFileFunction(out *strings.Builder, fn externalPackageStubFu
             return None;
         }
         if go_parser_is_string_lit(&tokens[start]) {
-            return Some((go_parser_import_spec(None, tokens[start].clone()), start + 1));
+            return Some((go_parser_import_spec_from_parts(None, tokens[start].clone()), start + 1));
         }
         if start + 1 < tokens.len() && go_parser_is_string_lit(&tokens[start + 1]) {
-            return Some((go_parser_import_spec(Some(tokens[start].clone()), tokens[start + 1].clone()), start + 2));
+            return Some((go_parser_import_spec_from_parts(Some(tokens[start].clone()), tokens[start + 1].clone()), start + 2));
         }
         None
     }
 
-    fn go_parser_parse_file(source: &str) -> Result<ast_File, Box<dyn std::error::Error + Send + Sync>> {
-        let tokens = go_parser_tokens(source);
-        let package_name = tokens
-            .windows(2)
-            .find_map(|pair| if pair[0] == "package" { Some(pair[1].clone()) } else { None })
-            .ok_or_else(|| go_parser_error("missing package clause".to_string()))?;
-        let mut imports = Vec::new();
-        let mut i = 0usize;
-        while i < tokens.len() {
-            if tokens[i] != "import" {
-                i += 1;
-                continue;
-            }
-            i += 1;
-            if i < tokens.len() && tokens[i] == "(" {
-                i += 1;
-                while i < tokens.len() && tokens[i] != ")" {
-                    if let Some((spec, next)) = go_parser_import_from_tokens(&tokens, i) {
-                        imports.push(spec);
-                        i = next;
-                    } else {
-                        i += 1;
-                    }
-                }
-                if i < tokens.len() && tokens[i] == ")" {
-                    i += 1;
-                }
-                continue;
-            }
-            if let Some((spec, next)) = go_parser_import_from_tokens(&tokens, i) {
-                imports.push(spec);
-                i = next;
-            }
+    fn go_parser_some<T>(value: T) -> Arc<Mutex<Option<T>>> {
+        Arc::new(Mutex::new(Some(value)))
+    }
+
+    fn go_parser_none<T>() -> Arc<Mutex<Option<T>>> {
+        Arc::new(Mutex::new(None::<T>))
+    }
+
+    fn go_parser_pos(pos: usize) -> Arc<Mutex<Option<token_Pos>>> {
+        go_parser_some(token_Pos(pos as i32))
+    }
+
+    fn go_parser_token(tok: token_Token) -> Arc<Mutex<Option<token_Token>>> {
+        go_parser_some(tok)
+    }
+
+    fn go_parser_lit_kind(kind: gosyn::token::LitKind) -> token_Token {
+        match kind {
+            gosyn::token::LitKind::Ident => token::I_D_E_N_T,
+            gosyn::token::LitKind::String => token::S_T_R_I_N_G,
+            gosyn::token::LitKind::Integer => token::I_N_T,
+            gosyn::token::LitKind::Float => token::F_L_O_A_T,
+            gosyn::token::LitKind::Imag => token::I_M_A_G,
+            gosyn::token::LitKind::Char => token::C_H_A_R,
         }
+    }
+
+    fn go_parser_operator(op: gosyn::token::Operator) -> token_Token {
+        match op {
+            gosyn::token::Operator::Add => token::A_D_D,
+            gosyn::token::Operator::Sub => token::S_U_B,
+            gosyn::token::Operator::Star => token::M_U_L,
+            gosyn::token::Operator::Quo => token::Q_U_O,
+            gosyn::token::Operator::Rem => token::R_E_M,
+            gosyn::token::Operator::And => token::A_N_D,
+            gosyn::token::Operator::Or => token::O_R,
+            gosyn::token::Operator::Xor => token::X_O_R,
+            gosyn::token::Operator::Shl => token::S_H_L,
+            gosyn::token::Operator::Shr => token::S_H_R,
+            gosyn::token::Operator::AndNot => token::A_N_D__N_O_T,
+            gosyn::token::Operator::AddAssign => token::A_D_D__A_S_S_I_G_N,
+            gosyn::token::Operator::SubAssign => token::S_U_B__A_S_S_I_G_N,
+            gosyn::token::Operator::MulAssign => token::M_U_L__A_S_S_I_G_N,
+            gosyn::token::Operator::QuoAssign => token::Q_U_O__A_S_S_I_G_N,
+            gosyn::token::Operator::RemAssign => token::R_E_M__A_S_S_I_G_N,
+            gosyn::token::Operator::AndAssign => token::A_N_D__A_S_S_I_G_N,
+            gosyn::token::Operator::OrAssign => token::O_R__A_S_S_I_G_N,
+            gosyn::token::Operator::XorAssign => token::X_O_R__A_S_S_I_G_N,
+            gosyn::token::Operator::ShlAssign => token::S_H_L__A_S_S_I_G_N,
+            gosyn::token::Operator::ShrAssign => token::S_H_R__A_S_S_I_G_N,
+            gosyn::token::Operator::AndAnd => token::L_A_N_D,
+            gosyn::token::Operator::OrOr => token::L_O_R,
+            gosyn::token::Operator::Arrow => token::A_R_R_O_W,
+            gosyn::token::Operator::Inc => token::I_N_C,
+            gosyn::token::Operator::Dec => token::D_E_C,
+            gosyn::token::Operator::Equal => token::E_Q_L,
+            gosyn::token::Operator::Less => token::L_S_S,
+            gosyn::token::Operator::Greater => token::G_T_R,
+            gosyn::token::Operator::Assign => token::A_S_S_I_G_N,
+            gosyn::token::Operator::Not => token::N_O_T,
+            gosyn::token::Operator::Tiled => token::T_I_L_D_E,
+            gosyn::token::Operator::NotEqual => token::N_E_Q,
+            gosyn::token::Operator::LessEqual => token::L_E_Q,
+            gosyn::token::Operator::GreaterEqual => token::G_E_Q,
+            gosyn::token::Operator::Define => token::D_E_F_I_N_E,
+            gosyn::token::Operator::DotDotDot => token::E_L_L_I_P_S_I_S,
+            _ => token_Token(0),
+        }
+    }
+
+    fn go_parser_keyword(tok: gosyn::token::Keyword) -> token_Token {
+        match tok {
+            gosyn::token::Keyword::Break => token::B_R_E_A_K,
+            gosyn::token::Keyword::Case => token::C_A_S_E,
+            gosyn::token::Keyword::Chan => token::C_H_A_N,
+            gosyn::token::Keyword::Const => token::C_O_N_S_T,
+            gosyn::token::Keyword::Continue => token::C_O_N_T_I_N_U_E,
+            gosyn::token::Keyword::Default => token::D_E_F_A_U_L_T,
+            gosyn::token::Keyword::Defer => token::D_E_F_E_R,
+            gosyn::token::Keyword::Else => token::E_L_S_E,
+            gosyn::token::Keyword::FallThrough => token::F_A_L_L_T_H_R_O_U_G_H,
+            gosyn::token::Keyword::For => token::F_O_R,
+            gosyn::token::Keyword::Func => token::F_U_N_C,
+            gosyn::token::Keyword::Go => token::G_O,
+            gosyn::token::Keyword::Goto => token::G_O_T_O,
+            gosyn::token::Keyword::If => token::I_F,
+            gosyn::token::Keyword::Import => token::I_M_P_O_R_T,
+            gosyn::token::Keyword::Interface => token::I_N_T_E_R_F_A_C_E,
+            gosyn::token::Keyword::Map => token::M_A_P,
+            gosyn::token::Keyword::Package => token::P_A_C_K_A_G_E,
+            gosyn::token::Keyword::Range => token::R_A_N_G_E,
+            gosyn::token::Keyword::Return => token::R_E_T_U_R_N,
+            gosyn::token::Keyword::Select => token::S_E_L_E_C_T,
+            gosyn::token::Keyword::Struct => token::S_T_R_U_C_T,
+            gosyn::token::Keyword::Switch => token::S_W_I_T_C_H,
+            gosyn::token::Keyword::Type => token::T_Y_P_E,
+            gosyn::token::Keyword::Var => token::V_A_R,
+        }
+    }
+
+    fn go_parser_ident_struct(id: gosyn::ast::Ident) -> ast_Ident {
+        ast_Ident { name: go_parser_some(id.name), ..Default::default() }
+    }
+
+    fn go_parser_ident_expr(id: gosyn::ast::Ident) -> ast_Expr {
+        ast_Expr::__go_from(go_parser_ident_struct(id))
+    }
+
+    fn go_parser_basic_lit_expr(lit: gosyn::ast::BasicLit) -> ast_Expr {
+        ast_Expr::__go_from(ast_BasicLit {
+            kind: go_parser_token(go_parser_lit_kind(lit.kind)),
+            value: go_parser_some(lit.value),
+            ..Default::default()
+        })
+    }
+
+    fn go_parser_field_list(list: gosyn::ast::FieldList) -> Arc<Mutex<Option<ast_FieldList>>> {
+        let fields = list.list.into_iter().map(go_parser_field).map(|field| go_parser_some(field)).collect::<Vec<_>>();
+        go_parser_some(ast_FieldList { list: go_parser_some(fields), ..Default::default() })
+    }
+
+    fn go_parser_field(field: gosyn::ast::Field) -> ast_Field {
+        let names = field.name.into_iter().map(go_parser_ident_struct).map(go_parser_some).collect::<Vec<_>>();
+        ast_Field {
+            names: go_parser_some(names),
+            r#type: go_parser_some(go_parser_expr(field.typ)),
+            tag: field.tag.map(|tag| ast_BasicLit {
+                kind: go_parser_token(token::S_T_R_I_N_G),
+                value: go_parser_some(tag.value),
+                ..Default::default()
+            }).map(go_parser_some).unwrap_or_else(go_parser_none),
+            ..Default::default()
+        }
+    }
+
+    fn go_parser_func_type(typ: gosyn::ast::FuncType) -> ast_FuncType {
+        ast_FuncType {
+            params: go_parser_field_list(typ.params),
+            results: go_parser_field_list(typ.result),
+            ..Default::default()
+        }
+    }
+
+    fn go_parser_call_expr(call: gosyn::ast::Call) -> ast_CallExpr {
+        ast_CallExpr {
+            fun: go_parser_some(go_parser_expr(*call.func)),
+            args: go_parser_some(call.args.into_iter().map(go_parser_expr).collect()),
+            ellipsis: call.dots.map(go_parser_pos).unwrap_or_else(go_parser_none),
+            ..Default::default()
+        }
+    }
+
+    fn go_parser_lit_element(element: gosyn::ast::Element) -> ast_Expr {
+        match element {
+            gosyn::ast::Element::Expr(expr) => go_parser_expr(expr),
+            gosyn::ast::Element::LitValue(value) => ast_Expr::__go_from(ast_CompositeLit {
+                elts: go_parser_some(go_parser_lit_values(value)),
+                ..Default::default()
+            }),
+        }
+    }
+
+    fn go_parser_lit_values(value: gosyn::ast::LiteralValue) -> Vec<ast_Expr> {
+        value.values.into_iter().map(|element| {
+            let val = go_parser_lit_element(element.val);
+            match element.key {
+                Some(key) => ast_Expr::__go_from(ast_KeyValueExpr {
+                    key: go_parser_some(go_parser_lit_element(key)),
+                    value: go_parser_some(val),
+                    ..Default::default()
+                }),
+                None => val,
+            }
+        }).collect()
+    }
+
+    fn go_parser_expr(expr: gosyn::ast::Expression) -> ast_Expr {
+        match expr {
+            gosyn::ast::Expression::Ident(id) => go_parser_ident_expr(id),
+            gosyn::ast::Expression::BasicLit(lit) => go_parser_basic_lit_expr(lit),
+            gosyn::ast::Expression::Call(call) => ast_Expr::__go_from(go_parser_call_expr(call)),
+            gosyn::ast::Expression::Selector(sel) => ast_Expr::__go_from(ast_SelectorExpr {
+                x: go_parser_some(go_parser_expr(*sel.x)),
+                sel: go_parser_some(go_parser_ident_struct(sel.sel)),
+                ..Default::default()
+            }),
+            gosyn::ast::Expression::Index(index) => ast_Expr::__go_from(ast_IndexExpr {
+                x: go_parser_some(go_parser_expr(*index.left)),
+                index: go_parser_some(go_parser_expr(*index.index)),
+                ..Default::default()
+            }),
+            gosyn::ast::Expression::IndexList(index) => ast_Expr::__go_from(ast_IndexListExpr {
+                x: go_parser_some(go_parser_expr(*index.left)),
+                indices: go_parser_some(index.indices.into_iter().map(go_parser_expr).collect()),
+                ..Default::default()
+            }),
+            gosyn::ast::Expression::Slice(slice) => ast_Expr::__go_from(ast_SliceExpr {
+                x: go_parser_some(go_parser_expr(*slice.left)),
+                low: slice.index[0].as_ref().map(|expr| go_parser_expr((**expr).clone())).map(go_parser_some).unwrap_or_else(go_parser_none),
+                high: slice.index[1].as_ref().map(|expr| go_parser_expr((**expr).clone())).map(go_parser_some).unwrap_or_else(go_parser_none),
+                max: slice.index[2].as_ref().map(|expr| go_parser_expr((**expr).clone())).map(go_parser_some).unwrap_or_else(go_parser_none),
+                slice3: go_parser_some(slice.index[2].is_some()),
+                ..Default::default()
+            }),
+            gosyn::ast::Expression::FuncLit(lit) => ast_Expr::__go_from(ast_FuncLit {
+                r#type: go_parser_some(go_parser_func_type(lit.typ)),
+                body: go_parser_some(go_parser_block(lit.body)),
+                ..Default::default()
+            }),
+            gosyn::ast::Expression::Ellipsis(ellipsis) => ast_Expr::__go_from(ast_Ellipsis {
+                elt: ellipsis.elt.map(|expr| go_parser_expr(*expr)).map(go_parser_some).unwrap_or_else(go_parser_none),
+                ..Default::default()
+            }),
+            gosyn::ast::Expression::Star(star) => ast_Expr::__go_from(ast_StarExpr {
+                x: go_parser_some(go_parser_expr(*star.right)),
+                ..Default::default()
+            }),
+            gosyn::ast::Expression::Paren(paren) => ast_Expr::__go_from(ast_ParenExpr {
+                x: go_parser_some(go_parser_expr(*paren.expr)),
+                ..Default::default()
+            }),
+            gosyn::ast::Expression::TypeAssert(assertion) => ast_Expr::__go_from(ast_TypeAssertExpr {
+                x: go_parser_some(go_parser_expr(*assertion.left)),
+                r#type: assertion.right.map(|expr| go_parser_expr(*expr)).map(go_parser_some).unwrap_or_else(go_parser_none),
+                ..Default::default()
+            }),
+            gosyn::ast::Expression::CompositeLit(lit) => ast_Expr::__go_from(ast_CompositeLit {
+                r#type: go_parser_some(go_parser_expr(*lit.typ)),
+                elts: go_parser_some(go_parser_lit_values(lit.val)),
+                ..Default::default()
+            }),
+            gosyn::ast::Expression::Operation(op) => {
+                let token = go_parser_operator(op.op);
+                match op.y {
+                    Some(y) => ast_Expr::__go_from(ast_BinaryExpr {
+                        x: go_parser_some(go_parser_expr(*op.x)),
+                        y: go_parser_some(go_parser_expr(*y)),
+                        op: go_parser_token(token),
+                        ..Default::default()
+                    }),
+                    None => ast_Expr::__go_from(ast_UnaryExpr {
+                        x: go_parser_some(go_parser_expr(*op.x)),
+                        op: go_parser_token(token),
+                        ..Default::default()
+                    }),
+                }
+            }
+            gosyn::ast::Expression::TypeMap(map) => ast_Expr::__go_from(ast_MapType {
+                key: go_parser_some(go_parser_expr(*map.key)),
+                value: go_parser_some(go_parser_expr(*map.val)),
+                ..Default::default()
+            }),
+            gosyn::ast::Expression::TypeArray(array) => ast_Expr::__go_from(ast_ArrayType {
+                len: go_parser_some(go_parser_expr(*array.len)),
+                elt: go_parser_some(go_parser_expr(*array.typ)),
+                ..Default::default()
+            }),
+            gosyn::ast::Expression::TypeSlice(slice) => ast_Expr::__go_from(ast_ArrayType {
+                len: go_parser_none(),
+                elt: go_parser_some(go_parser_expr(*slice.typ)),
+                ..Default::default()
+            }),
+            gosyn::ast::Expression::TypeFunction(typ) => ast_Expr::__go_from(go_parser_func_type(typ)),
+            gosyn::ast::Expression::TypeStruct(typ) => ast_Expr::__go_from(ast_StructType {
+                fields: go_parser_some(ast_FieldList {
+                    list: go_parser_some(typ.fields.into_iter().map(go_parser_field).map(go_parser_some).collect()),
+                    ..Default::default()
+                }),
+                ..Default::default()
+            }),
+            gosyn::ast::Expression::TypeInterface(typ) => ast_Expr::__go_from(ast_InterfaceType {
+                methods: go_parser_field_list(typ.methods),
+                ..Default::default()
+            }),
+            gosyn::ast::Expression::TypePointer(ptr) => ast_Expr::__go_from(ast_StarExpr {
+                x: go_parser_some(go_parser_expr(*ptr.typ)),
+                ..Default::default()
+            }),
+            gosyn::ast::Expression::TypeChannel(chan) => {
+                let dir = match chan.dir {
+                    Some(gosyn::ast::ChanMode::Send) => ast_ChanDir(1),
+                    Some(gosyn::ast::ChanMode::Recv) => ast_ChanDir(2),
+                    None => ast_ChanDir(3),
+                };
+                ast_Expr::__go_from(ast_ChanType {
+                    dir: go_parser_some(dir),
+                    value: go_parser_some(go_parser_expr(*chan.typ)),
+                    ..Default::default()
+                })
+            }
+            gosyn::ast::Expression::List(list) => list.into_iter().next().map(go_parser_expr).unwrap_or_default(),
+            gosyn::ast::Expression::Range(range) => ast_Expr::__go_from(ast_UnaryExpr {
+                op: go_parser_token(token::R_A_N_G_E),
+                x: go_parser_some(go_parser_expr(*range.right)),
+                ..Default::default()
+            }),
+        }
+    }
+
+    fn go_parser_block(block: gosyn::ast::BlockStmt) -> ast_BlockStmt {
+        ast_BlockStmt {
+            lbrace: go_parser_pos(block.pos.0),
+            list: go_parser_some(block.list.into_iter().map(go_parser_stmt).collect()),
+            ..Default::default()
+        }
+    }
+
+    fn go_parser_expr_from_stmt(stmt: gosyn::ast::Statement) -> Arc<Mutex<Option<ast_Expr>>> {
+        match stmt {
+            gosyn::ast::Statement::Expr(expr) => go_parser_some(go_parser_expr(expr.expr)),
+            _ => go_parser_none(),
+        }
+    }
+
+    fn go_parser_decl_stmt(decl: gosyn::ast::DeclStmt) -> ast_Decl {
+        match decl {
+            gosyn::ast::DeclStmt::Type(decl) => go_parser_gen_decl(token::T_Y_P_E, decl.specs.into_iter().map(go_parser_type_spec).collect()),
+            gosyn::ast::DeclStmt::Const(decl) => go_parser_gen_decl(token::C_O_N_S_T, decl.specs.into_iter().map(go_parser_const_spec).collect()),
+            gosyn::ast::DeclStmt::Variable(decl) => go_parser_gen_decl(token::V_A_R, decl.specs.into_iter().map(go_parser_var_spec).collect()),
+        }
+    }
+
+    fn go_parser_stmt(stmt: gosyn::ast::Statement) -> ast_Stmt {
+        match stmt {
+            gosyn::ast::Statement::Expr(stmt) => ast_Stmt::__go_from(ast_ExprStmt {
+                x: go_parser_some(go_parser_expr(stmt.expr)),
+                ..Default::default()
+            }),
+            gosyn::ast::Statement::Assign(stmt) => ast_Stmt::__go_from(ast_AssignStmt {
+                lhs: go_parser_some(stmt.left.into_iter().map(go_parser_expr).collect()),
+                rhs: go_parser_some(stmt.right.into_iter().map(go_parser_expr).collect()),
+                tok: go_parser_token(go_parser_operator(stmt.op)),
+                ..Default::default()
+            }),
+            gosyn::ast::Statement::Return(stmt) => ast_Stmt::__go_from(ast_ReturnStmt {
+                results: go_parser_some(stmt.ret.into_iter().map(go_parser_expr).collect()),
+                ..Default::default()
+            }),
+            gosyn::ast::Statement::Block(block) => ast_Stmt::__go_from(go_parser_block(block)),
+            gosyn::ast::Statement::If(stmt) => ast_Stmt::__go_from(ast_IfStmt {
+                init: stmt.init.map(|stmt| go_parser_stmt(*stmt)).map(go_parser_some).unwrap_or_else(go_parser_none),
+                cond: go_parser_some(go_parser_expr(stmt.cond)),
+                body: go_parser_some(go_parser_block(stmt.body)),
+                r#else: stmt.else_.map(|stmt| go_parser_stmt(*stmt)).map(go_parser_some).unwrap_or_else(go_parser_none),
+                ..Default::default()
+            }),
+            gosyn::ast::Statement::For(stmt) => ast_Stmt::__go_from(ast_ForStmt {
+                init: stmt.init.map(|stmt| go_parser_stmt(*stmt)).map(go_parser_some).unwrap_or_else(go_parser_none),
+                cond: stmt.cond.map(|stmt| go_parser_expr_from_stmt(*stmt)).unwrap_or_else(go_parser_none),
+                post: stmt.post.map(|stmt| go_parser_stmt(*stmt)).map(go_parser_some).unwrap_or_else(go_parser_none),
+                body: go_parser_some(go_parser_block(stmt.body)),
+                ..Default::default()
+            }),
+            gosyn::ast::Statement::Range(stmt) => ast_Stmt::__go_from(ast_RangeStmt {
+                key: stmt.key.map(go_parser_expr).map(go_parser_some).unwrap_or_else(go_parser_none),
+                value: stmt.value.map(go_parser_expr).map(go_parser_some).unwrap_or_else(go_parser_none),
+                tok: go_parser_token(stmt.op.map(|op| go_parser_operator(op.1)).unwrap_or(token::A_S_S_I_G_N)),
+                x: go_parser_some(go_parser_expr(stmt.expr)),
+                body: go_parser_some(go_parser_block(stmt.body)),
+                ..Default::default()
+            }),
+            gosyn::ast::Statement::Go(stmt) => ast_Stmt::__go_from(ast_GoStmt {
+                call: go_parser_some(go_parser_call_expr(stmt.call)),
+                ..Default::default()
+            }),
+            gosyn::ast::Statement::Defer(stmt) => ast_Stmt::__go_from(ast_DeferStmt {
+                call: go_parser_some(go_parser_call_expr(stmt.call)),
+                ..Default::default()
+            }),
+            gosyn::ast::Statement::Send(stmt) => ast_Stmt::__go_from(ast_SendStmt {
+                chan: go_parser_some(go_parser_expr(stmt.chan)),
+                value: go_parser_some(go_parser_expr(stmt.value)),
+                ..Default::default()
+            }),
+            gosyn::ast::Statement::IncDec(stmt) => ast_Stmt::__go_from(ast_IncDecStmt {
+                x: go_parser_some(go_parser_expr(stmt.expr)),
+                tok: go_parser_token(go_parser_operator(stmt.op)),
+                ..Default::default()
+            }),
+            gosyn::ast::Statement::Branch(stmt) => ast_Stmt::__go_from(ast_BranchStmt {
+                tok: go_parser_token(go_parser_keyword(stmt.key)),
+                label: stmt.ident.map(go_parser_ident_struct).map(go_parser_some).unwrap_or_else(go_parser_none),
+                ..Default::default()
+            }),
+            gosyn::ast::Statement::Label(stmt) => ast_Stmt::__go_from(ast_LabeledStmt {
+                label: go_parser_some(go_parser_ident_struct(stmt.name)),
+                stmt: go_parser_some(go_parser_stmt(*stmt.stmt)),
+                ..Default::default()
+            }),
+            gosyn::ast::Statement::Declaration(decl) => ast_Stmt::__go_from(ast_DeclStmt {
+                decl: go_parser_some(go_parser_decl_stmt(decl)),
+                ..Default::default()
+            }),
+            gosyn::ast::Statement::Switch(stmt) => ast_Stmt::__go_from(ast_SwitchStmt {
+                init: stmt.init.map(|stmt| go_parser_stmt(*stmt)).map(go_parser_some).unwrap_or_else(go_parser_none),
+                tag: stmt.tag.map(go_parser_expr).map(go_parser_some).unwrap_or_else(go_parser_none),
+                body: go_parser_some(ast_BlockStmt {
+                    lbrace: go_parser_pos(stmt.block.pos.0),
+                    list: go_parser_some(stmt.block.body.into_iter().map(go_parser_case_clause).collect()),
+                    ..Default::default()
+                }),
+                ..Default::default()
+            }),
+            gosyn::ast::Statement::TypeSwitch(stmt) => ast_Stmt::__go_from(ast_TypeSwitchStmt {
+                init: stmt.init.map(|stmt| go_parser_stmt(*stmt)).map(go_parser_some).unwrap_or_else(go_parser_none),
+                assign: stmt.tag.map(|stmt| go_parser_stmt(*stmt)).map(go_parser_some).unwrap_or_else(go_parser_none),
+                body: go_parser_some(ast_BlockStmt {
+                    lbrace: go_parser_pos(stmt.block.pos.0),
+                    list: go_parser_some(stmt.block.body.into_iter().map(go_parser_case_clause).collect()),
+                    ..Default::default()
+                }),
+                ..Default::default()
+            }),
+            gosyn::ast::Statement::Select(stmt) => ast_Stmt::__go_from(ast_SelectStmt {
+                body: go_parser_some(ast_BlockStmt {
+                    lbrace: go_parser_pos(stmt.body.pos.0),
+                    list: go_parser_some(stmt.body.body.into_iter().map(go_parser_comm_clause).collect()),
+                    ..Default::default()
+                }),
+                ..Default::default()
+            }),
+            gosyn::ast::Statement::Empty(_) => ast_Stmt::default(),
+        }
+    }
+
+    fn go_parser_case_clause(clause: gosyn::ast::CaseClause) -> ast_Stmt {
+        ast_Stmt::__go_from(ast_CaseClause {
+            list: go_parser_some(clause.list.into_iter().map(go_parser_expr).collect()),
+            body: go_parser_some((*clause.body).into_iter().map(go_parser_stmt).collect()),
+            colon: go_parser_pos(clause.pos.1),
+            ..Default::default()
+        })
+    }
+
+    fn go_parser_comm_clause(clause: gosyn::ast::CommClause) -> ast_Stmt {
+        ast_Stmt::__go_from(ast_CommClause {
+            comm: clause.comm.map(|stmt| go_parser_stmt(*stmt)).map(go_parser_some).unwrap_or_else(go_parser_none),
+            body: go_parser_some((*clause.body).into_iter().map(go_parser_stmt).collect()),
+            ..Default::default()
+        })
+    }
+
+    fn go_parser_import_spec(import: gosyn::ast::Import) -> Arc<Mutex<Option<ast_ImportSpec>>> {
+        go_parser_some(ast_ImportSpec {
+            name: import.name.map(go_parser_ident_struct).map(go_parser_some).unwrap_or_else(go_parser_none),
+            path: go_parser_some(ast_BasicLit {
+                kind: go_parser_token(token::S_T_R_I_N_G),
+                value: go_parser_some(import.path.value),
+                ..Default::default()
+            }),
+            ..Default::default()
+        })
+    }
+
+    fn go_parser_gen_decl(tok: token_Token, specs: Vec<ast_Spec>) -> ast_Decl {
+        ast_Decl::__go_from(ast_GenDecl {
+            tok: go_parser_token(tok),
+            specs: go_parser_some(specs),
+            ..Default::default()
+        })
+    }
+
+    fn go_parser_var_spec(spec: gosyn::ast::VarSpec) -> ast_Spec {
+        ast_Spec::__go_from(ast_ValueSpec {
+            names: go_parser_some(spec.name.into_iter().map(go_parser_ident_struct).map(go_parser_some).collect()),
+            r#type: spec.typ.map(go_parser_expr).map(go_parser_some).unwrap_or_else(go_parser_none),
+            values: go_parser_some(spec.values.into_iter().map(go_parser_expr).collect()),
+            ..Default::default()
+        })
+    }
+
+    fn go_parser_const_spec(spec: gosyn::ast::ConstSpec) -> ast_Spec {
+        ast_Spec::__go_from(ast_ValueSpec {
+            names: go_parser_some(spec.name.into_iter().map(go_parser_ident_struct).map(go_parser_some).collect()),
+            r#type: spec.typ.map(go_parser_expr).map(go_parser_some).unwrap_or_else(go_parser_none),
+            values: go_parser_some(spec.values.into_iter().map(go_parser_expr).collect()),
+            ..Default::default()
+        })
+    }
+
+    fn go_parser_type_spec(spec: gosyn::ast::TypeSpec) -> ast_Spec {
+        ast_Spec::__go_from(ast_TypeSpec {
+            name: go_parser_some(go_parser_ident_struct(spec.name)),
+            r#type: go_parser_some(go_parser_expr(spec.typ)),
+            assign: if spec.alias { go_parser_pos(1) } else { go_parser_pos(0) },
+            ..Default::default()
+        })
+    }
+
+    fn go_parser_func_decl(decl: gosyn::ast::FuncDecl) -> ast_Decl {
+        ast_Decl::__go_from(ast_FuncDecl {
+            recv: decl.recv.map(go_parser_field_list).unwrap_or_else(go_parser_none),
+            name: go_parser_some(go_parser_ident_struct(decl.name)),
+            r#type: go_parser_some(go_parser_func_type(decl.typ)),
+            body: decl.body.map(go_parser_block).map(go_parser_some).unwrap_or_else(go_parser_none),
+            ..Default::default()
+        })
+    }
+
+    fn go_parser_decl(decl: gosyn::ast::Declaration) -> ast_Decl {
+        match decl {
+            gosyn::ast::Declaration::Function(decl) => go_parser_func_decl(decl),
+            gosyn::ast::Declaration::Type(decl) => go_parser_gen_decl(token::T_Y_P_E, decl.specs.into_iter().map(go_parser_type_spec).collect()),
+            gosyn::ast::Declaration::Const(decl) => go_parser_gen_decl(token::C_O_N_S_T, decl.specs.into_iter().map(go_parser_const_spec).collect()),
+            gosyn::ast::Declaration::Variable(decl) => go_parser_gen_decl(token::V_A_R, decl.specs.into_iter().map(go_parser_var_spec).collect()),
+        }
+    }
+
+    fn go_parser_parse_file(source: &str) -> Result<ast_File, Box<dyn std::error::Error + Send + Sync>> {
+        let parsed = gosyn::parse_source(source).map_err(|err| go_parser_error(err.to_string()))?;
         Ok(ast_File {
-            imports: `)
-	out.WriteString(wrappedExternalStubExpr("Vec<"+wrappedExternalStubType("ast_ImportSpec")+">", "imports"))
-	out.WriteString(`,
-            name: go_parser_ident(package_name),
+            imports: go_parser_some(parsed.imports.into_iter().map(go_parser_import_spec).collect()),
+            decls: go_parser_some(parsed.decl.into_iter().map(go_parser_decl).collect()),
+            name: go_parser_some(go_parser_ident_struct(parsed.pkg_name)),
             ..Default::default()
         })
     }
@@ -2619,6 +4031,172 @@ func writeParserParseFileFunction(out *strings.Builder, fn externalPackageStubFu
         }
     }
 `)
+}
+
+func writeStrconvPackageStub(out *strings.Builder, pkg *externalPackageStub, integerTypes map[string]string, stubs map[string]bool) {
+	out.WriteString("pub mod strconv {\n")
+	out.WriteString("    use super::*;\n\n")
+	writeStrconvHelpers(out)
+
+	constNames := make([]string, 0, len(pkg.Constants))
+	for constName := range pkg.Constants {
+		constNames = append(constNames, constName)
+	}
+	slices.Sort(constNames)
+	for _, constName := range constNames {
+		out.WriteString("    pub const ")
+		out.WriteString(constName)
+		out.WriteString(": ")
+		out.WriteString(pkg.Constants[constName])
+		out.WriteString(" = ")
+		writeExternalStubConstDefaultValue(out, pkg.Constants[constName], integerTypes)
+		out.WriteString(";\n")
+	}
+	if len(constNames) > 0 && len(pkg.Functions) > 0 {
+		out.WriteString("\n")
+	}
+
+	funcNames := make([]string, 0, len(pkg.Functions))
+	for funcName := range pkg.Functions {
+		funcNames = append(funcNames, funcName)
+	}
+	slices.Sort(funcNames)
+	for i, funcName := range funcNames {
+		if i > 0 {
+			out.WriteString("\n")
+		}
+		if funcName == "unquote" {
+			writeStrconvUnquoteFunction(out, pkg.Functions[funcName])
+		} else {
+			writeExternalPackageStubFunction(out, funcName, pkg.Functions[funcName], stubs)
+		}
+	}
+	out.WriteString("}\n")
+}
+
+func writeStrconvHelpers(out *strings.Builder) {
+	borrow := ".borrow()"
+	if NeedsConcurrentWrapper() {
+		borrow = ".lock().unwrap()"
+	}
+	stringType := wrappedExternalStubType("String")
+	errorType := "Box<dyn std::error::Error>"
+	if NeedsConcurrentWrapper() {
+		errorType = "Box<dyn std::error::Error + Send + Sync>"
+	}
+	fmt.Fprintf(out, `    pub trait GoStrconvStringArg {
+        fn into_go_strconv_string(self) -> String;
+    }
+
+    impl GoStrconvStringArg for String {
+        fn into_go_strconv_string(self) -> String {
+            self
+        }
+    }
+
+    impl<'a> GoStrconvStringArg for &'a str {
+        fn into_go_strconv_string(self) -> String {
+            self.to_string()
+        }
+    }
+
+    impl<'a> GoStrconvStringArg for &'a String {
+        fn into_go_strconv_string(self) -> String {
+            self.clone()
+        }
+    }
+
+    impl GoStrconvStringArg for %s {
+        fn into_go_strconv_string(self) -> String {
+            self%s.as_ref().cloned().unwrap_or_default()
+        }
+    }
+
+    fn strconv_error(message: String) -> %s {
+        Box::new(std::io::Error::new(std::io::ErrorKind::InvalidData, message))
+    }
+
+    fn strconv_hex_digit(ch: char) -> Option<u32> {
+        ch.to_digit(16)
+    }
+
+    fn strconv_read_hex<I: Iterator<Item = char>>(chars: &mut I, count: usize) -> Result<char, %s> {
+        let mut value = 0u32;
+        for _ in 0..count {
+            let ch = chars.next().ok_or_else(|| strconv_error("invalid quoted string".to_string()))?;
+            let digit = strconv_hex_digit(ch).ok_or_else(|| strconv_error("invalid quoted string".to_string()))?;
+            value = (value << 4) | digit;
+        }
+        char::from_u32(value).ok_or_else(|| strconv_error("invalid quoted string".to_string()))
+    }
+
+    fn strconv_unquote_text(input: &str) -> Result<String, %s> {
+        let mut chars = input.chars();
+        let quote = chars.next().ok_or_else(|| strconv_error("invalid quoted string".to_string()))?;
+        if quote != '"' && quote != '\'' && quote != char::from(96) {
+            return Err(strconv_error("invalid quoted string".to_string()));
+        }
+        let inner = input.strip_prefix(quote).and_then(|s| s.strip_suffix(quote)).ok_or_else(|| strconv_error("invalid quoted string".to_string()))?;
+        if quote == char::from(96) {
+            return Ok(inner.to_string());
+        }
+        let mut out = String::new();
+        let mut chars = inner.chars();
+        while let Some(ch) = chars.next() {
+            if ch != '\\' {
+                out.push(ch);
+                continue;
+            }
+            let esc = chars.next().ok_or_else(|| strconv_error("invalid quoted string".to_string()))?;
+            match esc {
+                'a' => out.push('\x07'),
+                'b' => out.push('\x08'),
+                'f' => out.push('\x0c'),
+                'n' => out.push('\n'),
+                'r' => out.push('\r'),
+                't' => out.push('\t'),
+                'v' => out.push('\x0b'),
+                '\\' => out.push('\\'),
+                '"' => out.push('"'),
+                '\'' => out.push('\''),
+                'x' => out.push(strconv_read_hex(&mut chars, 2)?),
+                'u' => out.push(strconv_read_hex(&mut chars, 4)?),
+                'U' => out.push(strconv_read_hex(&mut chars, 8)?),
+                '0'..='7' => {
+                    let mut value = esc.to_digit(8).unwrap();
+                    for _ in 0..2 {
+                        let Some(next) = chars.clone().next() else { break };
+                        let Some(digit) = next.to_digit(8) else { break };
+                        chars.next();
+                        value = (value << 3) | digit;
+                    }
+                    out.push(char::from_u32(value).ok_or_else(|| strconv_error("invalid quoted string".to_string()))?);
+                }
+                _ => return Err(strconv_error("invalid quoted string".to_string())),
+            }
+        }
+        Ok(out)
+    }
+
+`, stringType, borrow, errorType, errorType, errorType)
+}
+
+func writeStrconvUnquoteFunction(out *strings.Builder, fn externalPackageStubFunction) {
+	errorType := "Box<dyn std::error::Error>"
+	if NeedsConcurrentWrapper() {
+		errorType = "Box<dyn std::error::Error + Send + Sync>"
+	}
+	out.WriteString("    pub fn unquote<T0: GoStrconvStringArg>(_arg0: T0) -> ")
+	writeExternalStubReturnType(out, fn.ReturnTypes)
+	out.WriteString(" {\n        match strconv_unquote_text(&_arg0.into_go_strconv_string()) {\n            Ok(value) => (")
+	out.WriteString(wrappedExternalStubExpr("String", "value"))
+	out.WriteString(", ")
+	out.WriteString(wrappedExternalStubNoneExpr(errorType))
+	out.WriteString("),\n            Err(err) => (")
+	out.WriteString(wrappedExternalStubNoneExpr("String"))
+	out.WriteString(", ")
+	out.WriteString(wrappedExternalStubSomeExpr(errorType, "err"))
+	out.WriteString("),\n        }\n    }\n")
 }
 
 func writeBuildPackageStub(out *strings.Builder, pkg *externalPackageStub, integerTypes map[string]string) {
@@ -2932,6 +4510,48 @@ func writeFlagPackageStub(out *strings.Builder) {
 `, stringFlagType, boolFlagType, outerWrapper, innerWrapper, outerWrapper, innerWrapper, argsType, outerWrapper, innerWrapper, borrowMut, borrowMut)
 }
 
+func writeJsonPackageStub(out *strings.Builder, pkg *externalPackageStub) {
+	out.WriteString("pub mod json {\n")
+	out.WriteString("    use super::*;\n")
+	funcNames := make([]string, 0, len(pkg.Functions))
+	for funcName := range pkg.Functions {
+		funcNames = append(funcNames, funcName)
+	}
+	slices.Sort(funcNames)
+	for i, funcName := range funcNames {
+		if i > 0 {
+			out.WriteString("\n")
+		}
+		switch funcName {
+		case "new_decoder":
+			out.WriteString("    pub fn new_decoder<T0: GoJsonInputArg>(_arg0: T0) -> ")
+			writeExternalStubReturnType(out, pkg.Functions[funcName].ReturnTypes)
+			out.WriteString(" {\n")
+			out.WriteString("        ")
+			out.WriteString(wrappedExternalStubExpr("json_Decoder", "json_Decoder::__go_from_input(_arg0)"))
+			out.WriteString("\n")
+			out.WriteString("    }\n")
+		case "unmarshal":
+			errorInnerType := externalStubErrorInnerType()
+			out.WriteString("    pub fn unmarshal<T0: GoJsonInputArg, T1: GoJsonDecodeTarget>(_arg0: T0, _arg1: T1) -> ")
+			out.WriteString(wrappedExternalStubType(errorInnerType))
+			out.WriteString(" {\n")
+			out.WriteString("        let bytes = _arg0.into_go_json_bytes();\n")
+			out.WriteString("        match serde_json::from_slice::<serde_json::Value>(&bytes) {\n")
+			out.WriteString("            Ok(value) => match _arg1.assign_go_json(&value) {\n")
+			out.WriteString("                Ok(()) => go_json_no_error(),\n")
+			out.WriteString("                Err(err) => go_json_error(err),\n")
+			out.WriteString("            },\n")
+			out.WriteString("            Err(err) => go_json_error(err.to_string()),\n")
+			out.WriteString("        }\n")
+			out.WriteString("    }\n")
+		default:
+			writeExternalPackageStubFunction(out, funcName, pkg.Functions[funcName], nil)
+		}
+	}
+	out.WriteString("}\n")
+}
+
 func writeOsPackageStub(out *strings.Builder, pkg *externalPackageStub, integerTypes map[string]string) {
 	out.WriteString("pub mod os {\n")
 	out.WriteString("    use super::*;\n")
@@ -2939,6 +4559,9 @@ func writeOsPackageStub(out *strings.Builder, pkg *externalPackageStub, integerT
 	if needsFilesystemHelpers {
 		out.WriteString("    use std::path::Path;\n\n")
 		writeGoStringArgTrait(out)
+		if _, ok := pkg.Functions["write_file"]; ok {
+			writeGoBytesArgTrait(out)
+		}
 		writeOsErrorHelpers(out)
 	}
 
@@ -2981,10 +4604,16 @@ func writeOsPackageStub(out *strings.Builder, pkg *externalPackageStub, integerT
 		}
 		if funcName == "exit" {
 			writeOsExitFunction(out)
+		} else if funcName == "mkdir_all" {
+			writeOsMkdirAllFunction(out, pkg.Functions[funcName])
+		} else if funcName == "read_file" {
+			writeOsReadFileFunction(out, pkg.Functions[funcName])
 		} else if funcName == "read_dir" {
 			writeOsReadDirFunction(out, pkg.Functions[funcName])
 		} else if funcName == "stat" {
 			writeOsStatFunction(out, pkg.Functions[funcName])
+		} else if funcName == "write_file" {
+			writeOsWriteFileFunction(out, pkg.Functions[funcName])
 		} else {
 			writeExternalPackageStubFunction(out, funcName, pkg.Functions[funcName], nil)
 		}
@@ -2997,8 +4626,11 @@ func osPackageStubNeedsFilesystemHelpers(pkg *externalPackageStub) bool {
 		return false
 	}
 	_, needsStat := pkg.Functions["stat"]
+	_, needsMkdirAll := pkg.Functions["mkdir_all"]
 	_, needsReadDir := pkg.Functions["read_dir"]
-	return needsStat || needsReadDir
+	_, needsReadFile := pkg.Functions["read_file"]
+	_, needsWriteFile := pkg.Functions["write_file"]
+	return needsStat || needsMkdirAll || needsReadDir || needsReadFile || needsWriteFile
 }
 
 func writeOsErrorHelpers(out *strings.Builder) {
@@ -3025,6 +4657,18 @@ func writeOsExitFunction(out *strings.Builder) {
 	out.WriteString("    }\n")
 }
 
+func writeOsMkdirAllFunction(out *strings.Builder, fn externalPackageStubFunction) {
+	out.WriteString("    pub fn mkdir_all<T0: GoStringArg, T1>(_arg0: T0, _arg1: T1) -> ")
+	writeExternalStubReturnType(out, fn.ReturnTypes)
+	out.WriteString(" {\n")
+	out.WriteString("        let path = _arg0.into_go_string();\n")
+	out.WriteString("        match std::fs::create_dir_all(&path) {\n")
+	out.WriteString("            Ok(()) => no_error(),\n")
+	out.WriteString("            Err(err) => io_error(err),\n")
+	out.WriteString("        }\n")
+	out.WriteString("    }\n")
+}
+
 func writeOsStatFunction(out *strings.Builder, fn externalPackageStubFunction) {
 	out.WriteString("    pub fn stat<T0: GoStringArg>(_arg0: T0) -> ")
 	writeExternalStubReturnType(out, fn.ReturnTypes)
@@ -3040,6 +4684,35 @@ func writeOsStatFunction(out *strings.Builder, fn externalPackageStubFunction) {
 	out.WriteString("            Err(err) => (")
 	out.WriteString(wrappedExternalStubExpr("fs_FileInfo", "fs_FileInfo::default()"))
 	out.WriteString(", io_error(err)),\n")
+	out.WriteString("        }\n")
+	out.WriteString("    }\n")
+}
+
+func writeOsReadFileFunction(out *strings.Builder, fn externalPackageStubFunction) {
+	out.WriteString("    pub fn read_file<T0: GoStringArg>(_arg0: T0) -> ")
+	writeExternalStubReturnType(out, fn.ReturnTypes)
+	out.WriteString(" {\n")
+	out.WriteString("        let path = _arg0.into_go_string();\n")
+	out.WriteString("        match std::fs::read(&path) {\n")
+	out.WriteString("            Ok(data) => (")
+	out.WriteString(wrappedExternalStubExpr("Vec<u8>", "data"))
+	out.WriteString(", no_error()),\n")
+	out.WriteString("            Err(err) => (")
+	out.WriteString(wrappedExternalStubExpr("Vec<u8>", "Vec::new()"))
+	out.WriteString(", io_error(err)),\n")
+	out.WriteString("        }\n")
+	out.WriteString("    }\n")
+}
+
+func writeOsWriteFileFunction(out *strings.Builder, fn externalPackageStubFunction) {
+	out.WriteString("    pub fn write_file<T0: GoStringArg, T1: GoBytesArg, T2>(_arg0: T0, _arg1: T1, _arg2: T2) -> ")
+	writeExternalStubReturnType(out, fn.ReturnTypes)
+	out.WriteString(" {\n")
+	out.WriteString("        let path = _arg0.into_go_string();\n")
+	out.WriteString("        let data = _arg1.into_go_bytes();\n")
+	out.WriteString("        match std::fs::write(&path, data) {\n")
+	out.WriteString("            Ok(()) => no_error(),\n")
+	out.WriteString("            Err(err) => io_error(err),\n")
 	out.WriteString("        }\n")
 	out.WriteString("    }\n")
 }
@@ -3172,6 +4845,56 @@ func writeGoStringArgTrait(out *strings.Builder) {
     }
 
 `, stringType, borrow)
+}
+
+func writeGoBytesArgTrait(out *strings.Builder) {
+	vecType := wrappedExternalStubType("Vec<u8>")
+	stringType := wrappedExternalStubType("String")
+	borrow := ".borrow()"
+	if NeedsConcurrentWrapper() {
+		borrow = ".lock().unwrap()"
+	}
+	fmt.Fprintf(out, `    pub trait GoBytesArg {
+        fn into_go_bytes(self) -> Vec<u8>;
+    }
+
+    impl GoBytesArg for Vec<u8> {
+        fn into_go_bytes(self) -> Vec<u8> {
+            self
+        }
+    }
+
+    impl<'a> GoBytesArg for &'a [u8] {
+        fn into_go_bytes(self) -> Vec<u8> {
+            self.to_vec()
+        }
+    }
+
+    impl GoBytesArg for String {
+        fn into_go_bytes(self) -> Vec<u8> {
+            self.into_bytes()
+        }
+    }
+
+    impl<'a> GoBytesArg for &'a str {
+        fn into_go_bytes(self) -> Vec<u8> {
+            self.as_bytes().to_vec()
+        }
+    }
+
+    impl GoBytesArg for %s {
+        fn into_go_bytes(self) -> Vec<u8> {
+            self%s.as_ref().cloned().unwrap_or_default()
+        }
+    }
+
+    impl GoBytesArg for %s {
+        fn into_go_bytes(self) -> Vec<u8> {
+            self%s.as_ref().map(|value| value.as_bytes().to_vec()).unwrap_or_default()
+        }
+    }
+
+`, vecType, borrow, stringType, borrow)
 }
 
 func writeFilepathJoinTrait(out *strings.Builder) {
@@ -3385,6 +5108,10 @@ func writeExternalPackageStubFunction(out *strings.Builder, funcName string, fn 
 		writeOsPipeStub(out, fn)
 		return
 	}
+	if funcName == "g_o_m_a_x_p_r_o_c_s" && len(fn.ReturnTypes) == 1 {
+		writeRuntimeGOMAXPROCSStub(out, fn)
+		return
+	}
 	out.WriteString("    pub fn ")
 	out.WriteString(funcName)
 	if fn.ParamCount > 0 {
@@ -3420,6 +5147,36 @@ func writeExternalPackageStubFunction(out *strings.Builder, funcName string, fn 
 		out.WriteString("\n")
 	}
 	out.WriteString("    }\n")
+}
+
+func writeRuntimeGOMAXPROCSStub(out *strings.Builder, fn externalPackageStubFunction) {
+	out.WriteString("    pub fn g_o_m_a_x_p_r_o_c_s")
+	if fn.ParamCount > 0 {
+		out.WriteString("<")
+		for i := 0; i < fn.ParamCount; i++ {
+			if i > 0 {
+				out.WriteString(", ")
+			}
+			out.WriteString("T")
+			out.WriteString(strconv.Itoa(i))
+		}
+		out.WriteString(">")
+	}
+	out.WriteString("(")
+	for i := 0; i < fn.ParamCount; i++ {
+		if i > 0 {
+			out.WriteString(", ")
+		}
+		out.WriteString("_arg")
+		out.WriteString(strconv.Itoa(i))
+		out.WriteString(": T")
+		out.WriteString(strconv.Itoa(i))
+	}
+	out.WriteString(") -> ")
+	writeExternalStubReturnType(out, fn.ReturnTypes)
+	out.WriteString(" {\n        ")
+	out.WriteString(wrappedExternalStubExpr("i32", "std::thread::available_parallelism().map(|n| n.get() as i32).unwrap_or(1).max(1)"))
+	out.WriteString("\n    }\n")
 }
 
 func writeIoCopyStub(out *strings.Builder, fn externalPackageStubFunction, stubs map[string]bool) {
@@ -3634,6 +5391,45 @@ func externalStubFieldsCanDeriveDebug(fields map[string]string) bool {
 		}
 	}
 	return true
+}
+
+func externalStubStructNeedsCustomDefault(name string) bool {
+	return name == "types_Config"
+}
+
+func writeExternalStubStructDefault(out *strings.Builder, name string, fields map[string]string) {
+	out.WriteString("impl Default for ")
+	out.WriteString(name)
+	out.WriteString(" {\n")
+	out.WriteString("    fn default() -> Self {\n")
+	out.WriteString("        Self {\n")
+	fieldNames := make([]string, 0, len(fields))
+	for fieldName := range fields {
+		fieldNames = append(fieldNames, fieldName)
+	}
+	slices.Sort(fieldNames)
+	for _, fieldName := range fieldNames {
+		out.WriteString("            ")
+		out.WriteString(fieldName)
+		out.WriteString(": ")
+		out.WriteString(externalStubStructFieldDefault(name, fieldName))
+		out.WriteString(",\n")
+	}
+	out.WriteString("        }\n")
+	out.WriteString("    }\n")
+	out.WriteString("}\n\n")
+}
+
+func externalStubStructFieldDefault(typeName, fieldName string) string {
+	if typeName == "types_Config" {
+		switch fieldName {
+		case "fake_import_c", "ignore_func_bodies":
+			return "Arc::new(Mutex::new(Some(false)))"
+		case "go_version":
+			return "Arc::new(Mutex::new(Some(String::new())))"
+		}
+	}
+	return "Default::default()"
 }
 
 func writeExternalStubReturnType(out *strings.Builder, returnTypes []string) {

@@ -20,7 +20,13 @@ func isEmptyInterfaceExpr(expr ast.Expr) bool {
 		return true
 	}
 	intf, ok := expr.(*ast.InterfaceType)
-	return ok && (intf.Methods == nil || len(intf.Methods.List) == 0)
+	if !ok {
+		return false
+	}
+	if intf.Methods == nil {
+		return true
+	}
+	return len(intf.Methods.List) == 0
 }
 
 func isEmptyInterfaceTypeExpr(expr ast.Expr) bool {
@@ -557,11 +563,21 @@ func goTypeToRustBase(expr ast.Expr) string {
 				return rustName
 			}
 		}
-		rustName := fmt.Sprintf("%s_%s", t.X, t.Sel.Name)
-		if ident, ok := t.X.(*ast.Ident); ok && isStdlibPackage(goPackageImports[ident.Name]) {
-			RegisterExternalTypeStubForTypeExpr(t, rustName)
+		if ident, ok := t.X.(*ast.Ident); ok {
+			rustName := fmt.Sprintf("%s_%s", ident.Name, t.Sel.Name)
+			pkgPath := goPackageImports[ident.Name]
+			if pkgPath == "" {
+				if fallback, ok := fallbackStdlibPackagePathForImportName(ident.Name); ok {
+					pkgPath = fallback
+				}
+			}
+			if isStdlibPackage(pkgPath) {
+				RegisterExternalTypeStubForTypeExpr(t, rustName)
+				RegisterExternalTypeStub(rustName)
+			}
+			return rustName
 		}
-		return rustName
+		return fmt.Sprintf("%T_%s", t.X, t.Sel.Name)
 	case *ast.Ellipsis:
 		// Variadic parameter ...T is treated as []T (slice) in Go
 		elemType := goCollectionElemTypeToRust(t.Elt)
@@ -573,7 +589,7 @@ func goTypeToRustBase(expr ast.Expr) string {
 		// Unhandled type
 		outerWrapper := GetOuterWrapperType()
 		innerWrapper := GetInnerWrapperType()
-		return fmt.Sprintf("/* TODO: Unhandled type %T */ %s<%s<Option<()>>>", t, outerWrapper, innerWrapper)
+		return fmt.Sprintf("/* TODO: Unhandled type */ %s<%s<Option<()>>>", outerWrapper, innerWrapper)
 	}
 }
 

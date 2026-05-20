@@ -27,6 +27,17 @@ impl std::fmt::Display for Decoder {
     }
 }
 
+impl GoJsonDecode for Decoder {
+    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
+        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
+        let mut out = Self::default();
+        if let Some(field_value) = object.get("Value") {
+            out.value = <Arc<Mutex<Option<i32>>> as GoJsonDecode>::go_json_decode(field_value)?;
+        }
+        Ok(out)
+    }
+}
+
 
 #[derive(Debug, Clone)]
 pub struct PkgDecoder {
@@ -49,6 +60,17 @@ impl Default for PkgDecoder {
 impl std::fmt::Display for PkgDecoder {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{}}}", (*self.base.lock().unwrap().as_ref().unwrap()))
+    }
+}
+
+impl GoJsonDecode for PkgDecoder {
+    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
+        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
+        let mut out = Self::default();
+        if let Some(field_value) = object.get("Base") {
+            out.base = <Arc<Mutex<Option<i32>>> as GoJsonDecode>::go_json_decode(field_value)?;
+        }
+        Ok(out)
     }
 }
 

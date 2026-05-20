@@ -125,6 +125,6 @@ pub fn has(t: Arc<Mutex<Option<types_Type>>>) -> Arc<Mutex<Option<bool>>> {
 fn main() {
     let mut w: Arc<Mutex<Option<Walker>>> = Arc::new(Mutex::new(Some(Default::default())));
 
-    println!("{}", format!("{}", (*has({ let __arg = types::new_tuple(((),)); let __converted = { let __arg_guard = __arg.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone().into() }; Arc::new(Mutex::new(Some(__converted))) }).lock().unwrap().as_ref().unwrap())));
-    println!("{}", format!("{}", (*(*w.lock().unwrap().as_ref().unwrap()).has({ let __arg = types::new_tuple(((),)); let __converted = { let __arg_guard = __arg.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone().into() }; Arc::new(Mutex::new(Some(__converted))) }).lock().unwrap().as_ref().unwrap())));
+    println!("{}", format!("{}", (*has({ let __arg = types::new_tuple(((),)); let __converted = { let __arg_guard = __arg.lock().unwrap(); let __converted: Option<types_Type> = __arg_guard.as_ref().map(|__v| (*__v).clone().into()); __converted }; Arc::new(Mutex::new(__converted)) }).lock().unwrap().as_ref().unwrap())));
+    println!("{}", format!("{}", (*(*w.lock().unwrap().as_ref().unwrap()).has({ let __arg = types::new_tuple(((),)); let __converted = { let __arg_guard = __arg.lock().unwrap(); let __converted: Option<types_Type> = __arg_guard.as_ref().map(|__v| (*__v).clone().into()); __converted }; Arc::new(Mutex::new(__converted)) }).lock().unwrap().as_ref().unwrap())));
 }

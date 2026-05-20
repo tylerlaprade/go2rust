@@ -1,0 +1,8 @@
+[package]
+name = "concurrent_pointer_receiver_reentrant_method"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "concurrent_pointer_receiver_reentrant_method"
+path = "main.rs"

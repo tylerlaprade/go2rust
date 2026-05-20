@@ -2,31 +2,6 @@ use std::cell::{RefCell};
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
-#[derive(Debug, Clone)]
-struct AnonymousStruct1 {
-    value: Rc<RefCell<Option<i32>>>,
-    name: Rc<RefCell<Option<String>>>,
-}
-impl AnonymousStruct1 {
-    pub fn __go_value_clone(&self) -> Self {
-        Self { value: { let __guard = self.value.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, name: { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
-    }
-}
-
-
-impl Default for AnonymousStruct1 {
-    fn default() -> Self {
-        Self { value: Rc::new(RefCell::new(Some(0))), name: Rc::new(RefCell::new(Some(String::new()))) }
-    }
-}
-
-impl std::fmt::Display for AnonymousStruct1 {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.value.borrow().as_ref().unwrap()), (*self.name.borrow().as_ref().unwrap()))
-    }
-}
-
-
 pub(crate) struct GoGlobal<T> {
     value: std::cell::UnsafeCell<Option<T>>,
 }
@@ -61,6 +36,31 @@ fn main() {
         println!("{} {}", format!("{}", (*item.name.borrow().as_ref().unwrap()).clone()), format!("{}", (*item.value.borrow().as_ref().unwrap())));
     } }
 }
+
+#[derive(Debug, Clone)]
+struct AnonymousStruct1 {
+    value: Rc<RefCell<Option<i32>>>,
+    name: Rc<RefCell<Option<String>>>,
+}
+impl AnonymousStruct1 {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { value: { let __guard = self.value.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, name: { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for AnonymousStruct1 {
+    fn default() -> Self {
+        Self { value: Rc::new(RefCell::new(Some(0))), name: Rc::new(RefCell::new(Some(String::new()))) }
+    }
+}
+
+impl std::fmt::Display for AnonymousStruct1 {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{} {}}}", (*self.value.borrow().as_ref().unwrap()), (*self.name.borrow().as_ref().unwrap()))
+    }
+}
+
 
 pub(crate) fn __go_init_all() {
     self::__go_init_globals();

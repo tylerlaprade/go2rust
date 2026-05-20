@@ -26,6 +26,7 @@ pub fn typed(v: Rc<RefCell<Option<Box<dyn Any>>>>) -> Rc<RefCell<Option<String>>
     if _ts_is_nil || _ts_val.and_then(|__v| __v.downcast_ref::<i32>()).is_some() {
         { let new_val = "simple".to_string(); *result.borrow_mut() = Some(new_val); };;
     } else {
+        drop(_ts_guard);
         { let new_val = "other".to_string(); *result.borrow_mut() = Some(new_val); };;
     }
     }
@@ -68,6 +69,7 @@ pub fn nested_typed(v: Rc<RefCell<Option<Box<dyn Any>>>>) -> Rc<RefCell<Option<S
     };
         { let new_val = "bad".to_string(); *result.borrow_mut() = Some(new_val); };;
     } else {
+        drop(_ts_guard);
         { let new_val = "other".to_string(); *result.borrow_mut() = Some(new_val); };;
     }
     };

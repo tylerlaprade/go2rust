@@ -1,0 +1,8 @@
+[package]
+name = "variadic_nil_slice_element"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "variadic_nil_slice_element"
+path = "main.rs"

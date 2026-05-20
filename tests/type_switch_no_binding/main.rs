@@ -14,6 +14,7 @@ pub fn classify(v: Rc<RefCell<Option<Box<dyn Any>>>>) -> Rc<RefCell<Option<Strin
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<String>()).is_some() {
         return Rc::new(RefCell::new(Some("string".to_string())));;
     } else {
+        drop(_ts_guard);
         return Rc::new(RefCell::new(Some("other".to_string())));;
     }
     }
@@ -36,11 +37,13 @@ pub fn nested(v: Rc<RefCell<Option<Box<dyn Any>>>>) -> Rc<RefCell<Option<String>
     if _ts_val.and_then(|__v| __v.downcast_ref::<i32>()).is_some() {
         return Rc::new(RefCell::new(Some("nested-int".to_string())));;
     } else {
+        drop(_ts_guard);
         return Rc::new(RefCell::new(Some("nested-other".to_string())));;
     }
     }
     unreachable!();
     } else {
+        drop(_ts_guard);
         return Rc::new(RefCell::new(Some("other".to_string())));;
     }
     }

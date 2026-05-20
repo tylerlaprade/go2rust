@@ -38,15 +38,15 @@ func stdlibCallKey(expr ast.Expr) (string, bool) {
 	parts := []string{sel.Sel.Name}
 	current := sel.X
 	for {
-		switch x := current.(type) {
-		case *ast.SelectorExpr:
+		if x, ok := current.(*ast.SelectorExpr); ok {
 			parts = append([]string{x.Sel.Name}, parts...)
 			current = x.X
-		case *ast.Ident:
-			return resolveStdlibPackageName(x.Name) + "." + strings.Join(parts, "."), true
-		default:
-			return "", false
+			continue
 		}
+		if x, ok := current.(*ast.Ident); ok {
+			return resolveStdlibPackageName(x.Name) + "." + strings.Join(parts, "."), true
+		}
+		return "", false
 	}
 }
 
@@ -426,6 +426,10 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 		}
 		// Type is known but not a map, slice, or pointer-to-struct - fall through
 	} else {
+		if _, ok := arg.(*ast.BasicLit); ok {
+			TranspileExpression(out, arg)
+			return
+		}
 		// Type info not available - add error comment
 		out.WriteString("/* ERROR: Type information not available for print argument */ ")
 	}
@@ -835,7 +839,11 @@ func transpileFormatArg(out *strings.Builder, arg ast.Expr, argIndex int, charIn
 }
 
 func transpileFmtPrintf(out *strings.Builder, call *ast.CallExpr) {
-	out.WriteString("print!")
+	writeFmtMacroCall(out, "print!", call, 0, TranspileExpression)
+}
+
+func writeFmtMacroCall(out *strings.Builder, macro string, call *ast.CallExpr, formatArgIndex int, dynamicFormatArg func(*strings.Builder, ast.Expr)) {
+	out.WriteString(macro)
 	out.WriteString("(")
 
 	var skipIndices []int
@@ -843,9 +851,8 @@ func transpileFmtPrintf(out *strings.Builder, call *ast.CallExpr) {
 	var typeNameIndices []int
 	var unicodeIndices []int
 	hexFormats := make(map[int]string)
-	if len(call.Args) > 0 {
-		// First arg is the format string
-		if lit, ok := call.Args[0].(*ast.BasicLit); ok && lit.Kind == token.STRING {
+	if len(call.Args) > formatArgIndex {
+		if lit, ok := call.Args[formatArgIndex].(*ast.BasicLit); ok && lit.Kind == token.STRING {
 			// Convert Go format verbs to Rust and get skip/char/typeName indices
 			format, skips, chars, typeNames, unicodes, hexes := convertFormatStringWithSkips(lit.Value)
 			skipIndices = skips
@@ -857,24 +864,24 @@ func transpileFmtPrintf(out *strings.Builder, call *ast.CallExpr) {
 		} else {
 			out.WriteString("\"{}\"")
 			out.WriteString(", ")
-			TranspileExpression(out, call.Args[0])
+			dynamicFormatArg(out, call.Args[formatArgIndex])
 			out.WriteString(")")
 			return
 		}
 
 		// Rest of the arguments, skipping those no longer needed
-		for i := 1; i < len(call.Args); i++ {
+		for i := formatArgIndex + 1; i < len(call.Args); i++ {
 			// Check if this argument index should be skipped (0-based in skipIndices)
 			shouldSkip := false
 			for _, skipIdx := range skipIndices {
-				if skipIdx == i-1 {
+				if skipIdx == i-formatArgIndex-1 {
 					shouldSkip = true
 					break
 				}
 			}
 			if !shouldSkip {
 				out.WriteString(", ")
-				transpileFormatArg(out, call.Args[i], i-1, charIndices, typeNameIndices, unicodeIndices, hexFormats)
+				transpileFormatArg(out, call.Args[i], i-formatArgIndex-1, charIndices, typeNameIndices, unicodeIndices, hexFormats)
 			}
 		}
 	}
@@ -946,51 +953,31 @@ func transpileFmtFprintf(out *strings.Builder, call *ast.CallExpr) {
 		out.WriteString("/* ERROR: fmt.Fprintf requires at least 2 arguments */")
 		return
 	}
+	if fmtFprintfTargetIsStringsBuilder(call.Args[0]) {
+		if isStringsBuilderReceiverBare(call.Args[0]) {
+			writeStringsBuilderRawReceiver(out, call.Args[0])
+		} else {
+			out.WriteString("(*")
+			writeStringsBuilderReceiverHandle(out, call.Args[0])
+			WriteBorrowMethod(out, true)
+			out.WriteString(".as_mut().unwrap())")
+		}
+		out.WriteString(".push_str(&")
+		writeFmtMacroCall(out, "format!", call, 1, writeOwnedStringStdlibArg)
+		out.WriteString(")")
+		return
+	}
 	// Check if writing to stderr
 	macro := "print!"
 	if isOsStderr(call.Args[0]) {
 		macro = "eprint!"
 	}
-	out.WriteString(macro)
-	out.WriteString("(")
+	writeFmtMacroCall(out, macro, call, 1, TranspileExpression)
+}
 
-	// Second arg is the format string, remaining are values
-	var skipIndices []int
-	var charIndices []int
-	var typeNameIndices []int
-	var unicodeIndices []int
-	hexFormats := make(map[int]string)
-	if lit, ok := call.Args[1].(*ast.BasicLit); ok && lit.Kind == token.STRING {
-		format, skips, chars, typeNames, unicodes, hexes := convertFormatStringWithSkips(lit.Value)
-		skipIndices = skips
-		charIndices = chars
-		typeNameIndices = typeNames
-		unicodeIndices = unicodes
-		hexFormats = hexes
-		out.WriteString(format)
-	} else {
-		out.WriteString("\"{}\"")
-		out.WriteString(", ")
-		TranspileExpression(out, call.Args[1])
-		out.WriteString(")")
-		return
-	}
-
-	for i := 2; i < len(call.Args); i++ {
-		shouldSkip := false
-		for _, skipIdx := range skipIndices {
-			if skipIdx == i-2 {
-				shouldSkip = true
-				break
-			}
-		}
-		if !shouldSkip {
-			out.WriteString(", ")
-			transpileFormatArg(out, call.Args[i], i-2, charIndices, typeNameIndices, unicodeIndices, hexFormats)
-		}
-	}
-
-	out.WriteString(")")
+func fmtFprintfTargetIsStringsBuilder(expr ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	return typeInfo != nil && isStringsBuilderReceiverType(typeInfo.GetType(expr))
 }
 
 func formatSliceArgumentIsBareValue(arg ast.Expr) bool {

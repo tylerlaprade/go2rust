@@ -1,0 +1,8 @@
+[package]
+name = "concurrent_multi_return_selector_fields"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "concurrent_multi_return_selector_fields"
+path = "main.rs"

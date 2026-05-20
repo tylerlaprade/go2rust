@@ -25,7 +25,7 @@ var currentReceiver string
 var currentReceiverType string
 
 // currentTypeMethods tracks the current impl block's method set for receiver self-call analysis
-var currentTypeMethods []*ast.FuncDecl
+var currentTypeMethods = []*ast.FuncDecl{}
 
 // currentFunctionHasDefer tracks if the current function has defer statements
 var currentFunctionHasDefer bool
@@ -36,6 +36,17 @@ var activeMutexGuards = make(map[string]string)
 
 // currentCaptureRenames tracks variable renames for captured variables in closures
 var currentCaptureRenames map[string]string
+
+func snapshotCaptureRenames() map[string]string {
+	if currentCaptureRenames == nil {
+		return nil
+	}
+	snapshot := make(map[string]string, len(currentCaptureRenames))
+	for name, renamed := range currentCaptureRenames {
+		snapshot[name] = renamed
+	}
+	return snapshot
+}
 
 // statementPreprocessor analyzes statements for closure captures
 var statementPreprocessor *StatementPreprocessor
@@ -59,8 +70,10 @@ var hasInitFunction bool
 var labeledLoopPost = make(map[string]ast.Stmt)
 
 // forPostStack tracks the nearest loop's post statement for unlabeled
-// continues. Nil entries represent loops without a post statement.
+// continues. forPostHasPostStack mirrors loop nesting so nil post statements
+// do not need an interface-valued sentinel.
 var forPostStack []ast.Stmt
+var forPostHasPostStack []bool
 
 // interfaceTypes tracks which type names are interfaces
 var interfaceTypes = make(map[string]bool)
@@ -486,6 +499,26 @@ func markComparableInterfaceImplementorStructs(typeDecls []struct {
 			}
 		}
 	}
+}
+
+func typeSpecCompletenessScore(spec *ast.TypeSpec) int {
+	if spec == nil {
+		return 0
+	}
+	structType, ok := spec.Type.(*ast.StructType)
+	if !ok || structType.Fields == nil {
+		return 1
+	}
+	score := 1
+	for _, field := range structType.Fields.List {
+		if field == nil {
+			continue
+		}
+		if field.Type != nil {
+			score++
+		}
+	}
+	return score
 }
 
 func importedTranspiledInterfaceFromType(typ types.Type) (string, *types.Interface, bool) {
@@ -1336,8 +1369,17 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 		spec *ast.TypeSpec
 		decl *ast.GenDecl
 	}
+	typeIndexByName := make(map[string]int)
 	var consts []*ast.GenDecl
 	var globalVars []*ast.GenDecl
+
+	for _, importSpec := range file.Imports {
+		if importSpec == nil || importSpec.Path == nil {
+			continue
+		}
+		path := strings.Trim(importSpec.Path.Value, `"`)
+		trackGoImport(path, importSpec.Name)
+	}
 
 	// First pass: categorize declarations
 	for _, decl := range file.Decls {
@@ -1345,20 +1387,25 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 		case *ast.FuncDecl:
 			if d.Recv != nil && len(d.Recv.List) > 0 {
 				// This is a method
+				methodName := d.Name.Name
 				recvType := getReceiverType(d.Recv.List[0].Type)
 				if _, exists := typePositions[recvType]; !exists {
 					typePositions[recvType] = d.Pos()
 				}
 				methods[recvType] = append(methods[recvType], d)
 				// Track types with Error() string method (error interface)
-				if d.Name.Name == "Error" && d.Type.Results != nil && len(d.Type.Results.List) == 1 {
-					if resultType, ok := d.Type.Results.List[0].Type.(*ast.Ident); ok && resultType.Name == "string" {
-						RegisterErrorImplType(recvType)
+				if methodName == "Error" {
+					if d.Type.Results != nil && len(d.Type.Results.List) == 1 {
+						if resultType, ok := d.Type.Results.List[0].Type.(*ast.Ident); ok && resultType.Name == "string" {
+							RegisterErrorImplType(recvType)
+						}
 					}
 				}
-				if d.Name.Name == "String" && (d.Type.Params == nil || len(d.Type.Params.List) == 0) && d.Type.Results != nil && len(d.Type.Results.List) == 1 {
-					if resultType, ok := d.Type.Results.List[0].Type.(*ast.Ident); ok && resultType.Name == "string" {
-						RegisterStringerImplType(recvType)
+				if methodName == "String" {
+					if (d.Type.Params == nil || len(d.Type.Params.List) == 0) && d.Type.Results != nil && len(d.Type.Results.List) == 1 {
+						if resultType, ok := d.Type.Results.List[0].Type.(*ast.Ident); ok && resultType.Name == "string" {
+							RegisterStringerImplType(recvType)
+						}
 					}
 				}
 			} else {
@@ -1382,10 +1429,18 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 			case token.TYPE:
 				for _, spec := range d.Specs {
 					if typeSpec, ok := spec.(*ast.TypeSpec); ok {
-						types = append(types, struct {
+						typeEntry := struct {
 							spec *ast.TypeSpec
 							decl *ast.GenDecl
-						}{typeSpec, d})
+						}{typeSpec, d}
+						if existingIndex, exists := typeIndexByName[typeSpec.Name.Name]; exists {
+							if typeSpecCompletenessScore(typeSpec) > typeSpecCompletenessScore(types[existingIndex].spec) {
+								types[existingIndex] = typeEntry
+							}
+							continue
+						}
+						typeIndexByName[typeSpec.Name.Name] = len(types)
+						types = append(types, typeEntry)
 						if typeSpec.Assign != 0 {
 							RegisterTypeAlias(typeSpec.Name.Name)
 							if _, isFuncType := typeSpec.Type.(*ast.FuncType); isFuncType {
@@ -1534,6 +1589,9 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 
 	for _, typeName := range typeNames {
 		typeMethods := methods[typeName] // May be nil if type has no methods
+		if typeMethods == nil {
+			typeMethods = []*ast.FuncDecl{}
+		}
 		previousTypeMethods := currentTypeMethods
 		currentTypeMethods = typeMethods
 		rustTypeName := RustTypeNameForUse(typeName)
@@ -1792,6 +1850,7 @@ func writeAnonymousStructDefinitions(body *strings.Builder, first *bool, emitted
 		generateStructDefault(body, typeName, structType)
 		body.WriteString("\n")
 		generateStructDisplay(body, typeName, structType)
+		generateStructJsonDecode(body, typeName, structType)
 		emitted[typeName] = true
 	}
 }

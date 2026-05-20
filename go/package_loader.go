@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"go/ast"
+	"go/parser"
 	"go/token"
 	"golang.org/x/tools/go/packages"
 	"os"
@@ -85,6 +86,9 @@ func (pl *PackageLoader) LoadWithDependencies(patterns []string) error {
 
 	// Collect all packages (including transitive dependencies)
 	pl.collectAllPackages(pl.mainPkg)
+	if err := pl.loadLocalModuleFallbacks(); err != nil {
+		fmt.Fprintf(os.Stderr, "Package loading warning: %v\n", err)
+	}
 
 	fmt.Fprintf(os.Stderr, "Loaded %d packages with full type information\n", len(pl.allPackages))
 	return nil
@@ -123,9 +127,209 @@ func (pl *PackageLoader) collectAllPackages(pkg *packages.Package) {
 	}
 
 	// Recursively process imports
-	for _, imp := range pkg.Imports {
+	for importPath, imp := range pkg.Imports {
+		if imp != nil && imp.PkgPath == "" && importPath != "" {
+			imp.PkgPath = importPath
+		}
 		pl.collectAllPackages(imp)
 	}
+}
+
+func (pl *PackageLoader) loadLocalModuleFallbacks() error {
+	if pl.mainPkg == nil {
+		return nil
+	}
+	modulePath, err := pl.readModulePath()
+	if err == nil && modulePath != "" {
+		if err := pl.loadLocalImportsForPackage(pl.mainPkg, modulePath, make(map[string]bool)); err != nil {
+			return err
+		}
+	}
+	inferredModulePath := pl.inferModulePathFromLocalImports()
+	if inferredModulePath != "" && inferredModulePath != modulePath {
+		return pl.loadLocalImportsForPackage(pl.mainPkg, inferredModulePath, make(map[string]bool))
+	}
+	if err != nil || modulePath == "" {
+		return nil
+	}
+	return nil
+}
+
+func (pl *PackageLoader) readModulePath() (string, error) {
+	data, err := os.ReadFile(filepath.Join(pl.workDir, "go.mod"))
+	if err != nil {
+		return "", err
+	}
+	for _, line := range strings.Split(string(data), "\n") {
+		fields := strings.Fields(line)
+		if len(fields) >= 2 && fields[0] == "module" {
+			return fields[1], nil
+		}
+	}
+	return "", nil
+}
+
+func (pl *PackageLoader) loadLocalImportsForPackage(pkg *packages.Package, modulePath string, visited map[string]bool) error {
+	if pkg == nil {
+		return nil
+	}
+	importPaths := make(map[string]bool)
+	for _, file := range pkg.Syntax {
+		for _, imp := range file.Imports {
+			if imp == nil || imp.Path == nil {
+				continue
+			}
+			importPath := strings.Trim(imp.Path.Value, `"`)
+			importPaths[importPath] = true
+		}
+	}
+	for importPath := range pkg.Imports {
+		importPaths[importPath] = true
+	}
+	paths := make([]string, 0, len(importPaths))
+	for importPath := range importPaths {
+		paths = append(paths, importPath)
+	}
+	sort.Strings(paths)
+	for _, importPath := range paths {
+		if !localModuleImportPath(importPath, modulePath) {
+			continue
+		}
+		if pkg.Imports == nil {
+			pkg.Imports = make(map[string]*packages.Package)
+		}
+		if existing := pkg.Imports[importPath]; existing != nil && existing.PkgPath != "" && len(existing.Syntax) > 0 {
+			continue
+		}
+		localPkg, err := pl.loadLocalModulePackage(importPath, modulePath)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Package loading warning: local fallback for %s failed: %v\n", importPath, err)
+			continue
+		}
+		pkg.Imports[importPath] = localPkg
+		pl.allPackages[importPath] = localPkg
+		if _, exists := pl.packageMapping[importPath]; !exists {
+			crateName := pl.goPathToRustCrate(importPath)
+			pl.packageMapping[importPath] = crateName
+			fmt.Fprintf(os.Stderr, "Found package: %s -> %s\n", importPath, crateName)
+		}
+		if !visited[importPath] {
+			visited[importPath] = true
+			if err := pl.loadLocalImportsForPackage(localPkg, modulePath, visited); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func localModuleImportPath(importPath, modulePath string) bool {
+	return importPath == modulePath || strings.HasPrefix(importPath, modulePath+"/")
+}
+
+func (pl *PackageLoader) inferModulePathFromLocalImports() string {
+	if pl.mainPkg == nil {
+		return ""
+	}
+	importPaths := make(map[string]bool)
+	for _, file := range pl.mainPkg.Syntax {
+		for _, imp := range file.Imports {
+			if imp == nil || imp.Path == nil {
+				continue
+			}
+			importPath := strings.Trim(imp.Path.Value, `"`)
+			importPaths[importPath] = true
+		}
+	}
+	for importPath := range pl.mainPkg.Imports {
+		importPaths[importPath] = true
+	}
+	paths := make([]string, 0, len(importPaths))
+	for importPath := range importPaths {
+		paths = append(paths, importPath)
+	}
+	sort.Strings(paths)
+	for _, importPath := range paths {
+		if isStdlibPackage(importPath) {
+			continue
+		}
+		parts := strings.Split(importPath, "/")
+		for i := 1; i < len(parts); i++ {
+			rel := strings.Join(parts[i:], "/")
+			if directoryHasGoFiles(filepath.Join(pl.workDir, rel)) {
+				return strings.Join(parts[:i], "/")
+			}
+		}
+	}
+	return ""
+}
+
+func directoryHasGoFiles(dir string) bool {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return false
+	}
+	for _, entry := range entries {
+		if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".go") {
+			return true
+		}
+	}
+	return false
+}
+
+func (pl *PackageLoader) loadLocalModulePackage(importPath, modulePath string) (*packages.Package, error) {
+	rel := strings.TrimPrefix(importPath, modulePath)
+	rel = strings.TrimPrefix(rel, "/")
+	dir := pl.workDir
+	if rel != "" {
+		dir = filepath.Join(pl.workDir, rel)
+	}
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return nil, err
+	}
+	fileSet := pl.fileSet
+	if fileSet == nil {
+		fileSet = token.NewFileSet()
+		pl.fileSet = fileSet
+	}
+	var files []*ast.File
+	var filenames []string
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		name := entry.Name()
+		if !strings.HasSuffix(name, ".go") || strings.HasSuffix(name, "_test.go") {
+			continue
+		}
+		filename := filepath.Join(dir, name)
+		file, err := parser.ParseFile(fileSet, filename, nil, parser.ParseComments)
+		if err != nil {
+			return nil, err
+		}
+		files = append(files, file)
+		filenames = append(filenames, filename)
+	}
+	if len(files) == 0 {
+		return nil, fmt.Errorf("no Go files found in %s", dir)
+	}
+	typeInfo, _ := NewTypeInfo(files, fileSet)
+	pkgName := files[0].Name.Name
+	result := &packages.Package{
+		Name:            pkgName,
+		PkgPath:         importPath,
+		Fset:            fileSet,
+		GoFiles:         filenames,
+		CompiledGoFiles: filenames,
+		Syntax:          files,
+		Imports:         make(map[string]*packages.Package),
+	}
+	if typeInfo != nil {
+		result.Types = typeInfo.pkg
+		result.TypesInfo = typeInfo.info
+	}
+	return result, nil
 }
 
 // TranspileAll transpiles all loaded packages

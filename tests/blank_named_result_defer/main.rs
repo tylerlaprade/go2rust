@@ -13,12 +13,13 @@ pub fn load() -> (Rc<RefCell<Option<Vec<i32>>>>, Rc<RefCell<Option<Box<dyn StdEr
     }) as Box<dyn FnMut() -> ()>))); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
     }));
     {
+        let __return_0 = Rc::new(RefCell::new(None));
         err = Rc::new(RefCell::new(Some(Box::<dyn std::error::Error>::from("missing".to_string()))));;
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return (Rc::new(RefCell::new(Some(Default::default()))), err)
+        return (__return_0, err)
     }
 }
 

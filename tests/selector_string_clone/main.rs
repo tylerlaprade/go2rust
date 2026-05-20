@@ -41,5 +41,5 @@ pub fn echo(value: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>> {
 fn main() {
     let mut parts = Rc::new(RefCell::new(Some(Parts { left: Rc::new(RefCell::new(Some("go".to_string()))), right: Rc::new(RefCell::new(Some("rust".to_string()))), ..Default::default() })));
     println!("{}", format!("{}", (*left_of(Rc::new(RefCell::new(Some((*parts.borrow().as_ref().unwrap()).clone())))).borrow().as_ref().unwrap())));
-    println!("{}", format!("{}", (*echo((*parts.borrow().as_ref().unwrap()).right.clone()).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*echo({ let __field = (*parts.borrow().as_ref().unwrap()).right.clone(); __field }).borrow().as_ref().unwrap())));
 }
