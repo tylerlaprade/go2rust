@@ -2302,6 +2302,10 @@ run_xfail_test() {
     run_test "tests/unsafe_pointer_deref_assignment"
 }
 
+@test "unsafe_pointer_function_alias_nil" {
+    run_test "tests/unsafe_pointer_function_alias_nil"
+}
+
 @test "unsafe_pointer_named_uintptr" {
     run_test "tests/unsafe_pointer_named_uintptr"
 }

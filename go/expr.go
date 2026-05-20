@@ -6668,7 +6668,7 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 	}
 
 	if target, ok := pointerTypeConversionTarget(call.Fun); ok {
-		writePointerTypeConversion(out, target)
+		writePointerTypeConversion(out, target, call.Args[0])
 		return
 	}
 	if writeFunctionSignatureTypeConversion(out, call) {
@@ -7045,11 +7045,37 @@ func pointerTypeConversionTargetFromCall(call *ast.CallExpr) (ast.Expr, bool) {
 	return nil, false
 }
 
-func writePointerTypeConversion(out *strings.Builder, target ast.Expr) {
+func writePointerTypeConversion(out *strings.Builder, target ast.Expr, source ast.Expr) {
+	if ident, ok := source.(*ast.Ident); ok && ident.Name == "nil" {
+		WriteWrappedNone(out)
+		return
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo != nil && source != nil && isUnsafePointerLikeType(typeInfo.GetType(source)) {
+		writePointerTypeConversionFromUnsafePointer(out, target, source)
+		return
+	}
 	WriteWrapperPrefix(out)
 	out.WriteString(goTypeToRustBase(target))
 	out.WriteString("::default()")
 	WriteWrapperSuffix(out)
+}
+
+func writePointerTypeConversionFromUnsafePointer(out *strings.Builder, target ast.Expr, source ast.Expr) {
+	trackWrapperImports()
+	if NeedsConcurrentWrapper() {
+		out.WriteString("Arc::new(Mutex::new({ let __ptr = ")
+		TranspileExpression(out, source)
+		out.WriteString("; let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some(")
+		out.WriteString(goTypeToRustBase(target))
+		out.WriteString("::default()) } }))")
+		return
+	}
+	out.WriteString("Rc::new(RefCell::new({ let __ptr = ")
+	TranspileExpression(out, source)
+	out.WriteString("; let __ptr_guard = __ptr.borrow(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some(")
+	out.WriteString(goTypeToRustBase(target))
+	out.WriteString("::default()) } }))")
 }
 
 func writeReflectStringHeaderPointerConversion(out *strings.Builder, call *ast.CallExpr) bool {
@@ -8278,7 +8304,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 
 	if len(call.Args) == 1 {
 		if target, ok := pointerTypeConversionTargetFromCall(call); ok {
-			writePointerTypeConversion(out, target)
+			writePointerTypeConversion(out, target, call.Args[0])
 			return
 		}
 	}

@@ -55,66 +55,68 @@ var builtinMappings map[string]StdlibHandler
 
 func init() {
 	stdlibMappings = map[string]StdlibHandler{
-		"fmt.Println":             transpileFmtPrintln,
-		"fmt.Printf":              transpileFmtPrintf,
-		"fmt.Print":               transpileFmtPrint,
-		"fmt.Sprintf":             transpileFmtSprintf,
-		"fmt.Fprintln":            transpileFmtFprintln,
-		"fmt.Fprintf":             transpileFmtFprintf,
-		"fmt.Errorf":              transpileFmtErrorf,
-		"strings.ToLower":         transpileStringsToLower,
-		"strings.ToUpper":         transpileStringsToUpper,
-		"strings.TrimSpace":       transpileStringsTrimSpace,
-		"strings.Title":           transpileStringsTitle,
-		"strings.Contains":        transpileStringsContains,
-		"strings.Index":           transpileStringsIndex,
-		"strings.LastIndex":       transpileStringsLastIndex,
-		"strings.Count":           transpileStringsCount,
-		"strings.Compare":         transpileStringsCompare,
-		"strings.Cut":             transpileStringsCut,
-		"strings.HasSuffix":       transpileStringsHasSuffix,
-		"strings.HasPrefix":       transpileStringsHasPrefix,
-		"strings.TrimSuffix":      transpileStringsTrimSuffix,
-		"strings.TrimPrefix":      transpileStringsTrimPrefix,
-		"strings.IndexAny":        transpileStringsIndexAny,
-		"strings.Split":           transpileStringsSplit,
-		"strings.Join":            transpileStringsJoin,
-		"strings.Fields":          transpileStringsFields,
-		"strings.Replace":         transpileStringsReplace,
-		"strings.ReplaceAll":      transpileStringsReplaceAll,
-		"strings.Repeat":          transpileStringsRepeat,
-		"strings.EqualFold":       transpileStringsEqualFold,
-		"strings.TrimLeft":        transpileStringsTrimLeft,
-		"strings.TrimRight":       transpileStringsTrimRight,
-		"strings.Trim":            transpileStringsTrim,
-		"strconv.Itoa":            transpileStrconvItoa,
-		"strconv.Atoi":            transpileStrconvAtoi,
-		"strconv.FormatFloat":     transpileStrconvFormatFloat,
-		"strconv.FormatInt":       transpileStrconvFormatInt,
-		"errors.New":              transpileErrorsNew,
-		"sort.Strings":            transpileSortStrings,
-		"sort.Ints":               transpileSortInts,
-		"slices.Sort":             transpileSlicesSort,
-		"slices.SortFunc":         transpileSlicesSortFunc,
-		"slices.Contains":         transpileSlicesContains,
-		"slices.Clone":            transpileSlicesClone,
-		"slices.Clip":             transpileSlicesClip,
-		"time.Sleep":              transpileTimeSleep,
-		"time.Now":                transpileTimeNow,
-		"time.Unix":               transpileTimeUnix,
-		"time.After":              transpileTimeAfter,
-		"time.NewTicker":          transpileTimeNewTicker,
-		"time.NewTimer":           transpileTimeNewTimer,
-		"time.Tick":               transpileTimeTick,
-		"context.Background":      transpileContextBackground,
-		"context.WithTimeout":     transpileContextWithTimeout,
-		"context.WithCancel":      transpileContextWithCancel,
-		"context.WithCancelCause": transpileContextWithCancelCause,
-		"os.Create":               transpileOsCreate,
-		"os.Remove":               transpileOsRemove,
-		"reflect.TypeOf":          transpileReflectTypeOf,
-		"sync/atomic.AddInt64":    transpileAtomicAddInt64,
-		"sync/atomic.LoadInt64":   transpileAtomicLoadInt64,
+		"fmt.Println":              transpileFmtPrintln,
+		"fmt.Printf":               transpileFmtPrintf,
+		"fmt.Print":                transpileFmtPrint,
+		"fmt.Sprintf":              transpileFmtSprintf,
+		"fmt.Fprintln":             transpileFmtFprintln,
+		"fmt.Fprintf":              transpileFmtFprintf,
+		"fmt.Errorf":               transpileFmtErrorf,
+		"strings.ToLower":          transpileStringsToLower,
+		"strings.ToUpper":          transpileStringsToUpper,
+		"strings.TrimSpace":        transpileStringsTrimSpace,
+		"strings.Title":            transpileStringsTitle,
+		"strings.Contains":         transpileStringsContains,
+		"strings.Index":            transpileStringsIndex,
+		"strings.LastIndex":        transpileStringsLastIndex,
+		"strings.Count":            transpileStringsCount,
+		"strings.Compare":          transpileStringsCompare,
+		"strings.Cut":              transpileStringsCut,
+		"strings.HasSuffix":        transpileStringsHasSuffix,
+		"strings.HasPrefix":        transpileStringsHasPrefix,
+		"strings.TrimSuffix":       transpileStringsTrimSuffix,
+		"strings.TrimPrefix":       transpileStringsTrimPrefix,
+		"strings.IndexAny":         transpileStringsIndexAny,
+		"strings.Split":            transpileStringsSplit,
+		"strings.Join":             transpileStringsJoin,
+		"strings.Fields":           transpileStringsFields,
+		"strings.Replace":          transpileStringsReplace,
+		"strings.ReplaceAll":       transpileStringsReplaceAll,
+		"strings.Repeat":           transpileStringsRepeat,
+		"strings.EqualFold":        transpileStringsEqualFold,
+		"strings.TrimLeft":         transpileStringsTrimLeft,
+		"strings.TrimRight":        transpileStringsTrimRight,
+		"strings.Trim":             transpileStringsTrim,
+		"strconv.Itoa":             transpileStrconvItoa,
+		"strconv.Atoi":             transpileStrconvAtoi,
+		"strconv.FormatFloat":      transpileStrconvFormatFloat,
+		"strconv.FormatInt":        transpileStrconvFormatInt,
+		"errors.New":               transpileErrorsNew,
+		"sort.Strings":             transpileSortStrings,
+		"sort.Ints":                transpileSortInts,
+		"slices.Sort":              transpileSlicesSort,
+		"slices.SortFunc":          transpileSlicesSortFunc,
+		"slices.Contains":          transpileSlicesContains,
+		"slices.Clone":             transpileSlicesClone,
+		"slices.Clip":              transpileSlicesClip,
+		"time.Sleep":               transpileTimeSleep,
+		"time.Now":                 transpileTimeNow,
+		"time.Unix":                transpileTimeUnix,
+		"time.After":               transpileTimeAfter,
+		"time.NewTicker":           transpileTimeNewTicker,
+		"time.NewTimer":            transpileTimeNewTimer,
+		"time.Tick":                transpileTimeTick,
+		"context.Background":       transpileContextBackground,
+		"context.WithTimeout":      transpileContextWithTimeout,
+		"context.WithCancel":       transpileContextWithCancel,
+		"context.WithCancelCause":  transpileContextWithCancelCause,
+		"os.Create":                transpileOsCreate,
+		"os.Remove":                transpileOsRemove,
+		"reflect.TypeOf":           transpileReflectTypeOf,
+		"sync/atomic.AddInt64":     transpileAtomicAddInt64,
+		"sync/atomic.LoadInt64":    transpileAtomicLoadInt64,
+		"sync/atomic.LoadPointer":  transpileAtomicLoadPointer,
+		"sync/atomic.StorePointer": transpileAtomicStorePointer,
 		"encoding/base64.StdEncoding.EncodeToString": transpileBase64EncodeToString,
 		"encoding/base64.StdEncoding.DecodeString":   transpileBase64DecodeString,
 		"crypto/sha256.Sum256":                       transpileSha256Sum256,
@@ -1262,6 +1264,54 @@ func transpileAtomicLoadInt64(out *strings.Builder, call *ast.CallExpr) {
 	}
 	out.WriteString(" *__guard.as_ref().unwrap() }")
 	WriteWrapperSuffix(out)
+}
+
+func transpileAtomicLoadPointer(out *strings.Builder, call *ast.CallExpr) {
+	if len(call.Args) < 1 {
+		out.WriteString("/* ERROR: atomic.LoadPointer requires pointer */ unimplemented!()")
+		return
+	}
+
+	trackWrapperImports()
+	out.WriteString("{ let __target = ")
+	writeAtomicTarget(out, call.Args[0])
+	if NeedsConcurrentWrapper() {
+		out.WriteString("; let __guard = __target.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }")
+	} else {
+		out.WriteString("; let __guard = __target.borrow(); Rc::new(RefCell::new((*__guard).clone())) }")
+	}
+}
+
+func transpileAtomicStorePointer(out *strings.Builder, call *ast.CallExpr) {
+	if len(call.Args) < 2 {
+		out.WriteString("/* ERROR: atomic.StorePointer requires pointer and value */ unimplemented!()")
+		return
+	}
+
+	out.WriteString("{ let __target = ")
+	writeAtomicTarget(out, call.Args[0])
+	out.WriteString("; let __stored = ")
+	writeAtomicStorePointerValue(out, call.Args[1])
+	if NeedsConcurrentWrapper() {
+		out.WriteString("; *__target.lock().unwrap() = __stored; }")
+	} else {
+		out.WriteString("; *__target.borrow_mut() = __stored; }")
+	}
+}
+
+func writeAtomicStorePointerValue(out *strings.Builder, value ast.Expr) {
+	if ident, ok := value.(*ast.Ident); ok && ident.Name == "nil" {
+		out.WriteString("None")
+		return
+	}
+
+	out.WriteString("{ let __value = ")
+	TranspileExpressionContext(out, value, LValue)
+	if NeedsConcurrentWrapper() {
+		out.WriteString("; let __guard = __value.lock().unwrap(); (*__guard).clone() }")
+	} else {
+		out.WriteString("; let __guard = __value.borrow(); (*__guard).clone() }")
+	}
 }
 
 func writeReflectString(out *strings.Builder, value string) {

@@ -682,8 +682,8 @@ func Use() {
 	}
 
 	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
-	if !strings.Contains(mainRS, "Exporter::default()") {
-		t.Fatalf("pointer conversion to named function type should emit a typed pointer default, got:\n%s", mainRS)
+	if !strings.Contains(mainRS, "if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some(Exporter::default()) }") {
+		t.Fatalf("pointer conversion from unsafe pointer should preserve nil before falling back to a typed pointer default, got:\n%s", mainRS)
 	}
 	if strings.Contains(mainRS, "atomic::load_pointer") && strings.Contains(mainRS, "as Box<dyn Fn") {
 		t.Fatalf("pointer conversion should not cast a raw unsafe pointer to a function box, got:\n%s", mainRS)
