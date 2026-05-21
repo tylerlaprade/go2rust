@@ -16,7 +16,7 @@ pub fn divmod(a: Rc<RefCell<Option<i32>>>, b: Rc<RefCell<Option<i32>>>) -> (Rc<R
 
 pub fn swap(a: Rc<RefCell<Option<String>>>, b: Rc<RefCell<Option<String>>>) -> (Rc<RefCell<Option<String>>>, Rc<RefCell<Option<String>>>) {
 
-    return (b.clone(), a.clone());
+    return (Rc::new(RefCell::new(Some(b.borrow().as_ref().unwrap().clone()))), Rc::new(RefCell::new(Some(a.borrow().as_ref().unwrap().clone()))));
 }
 
 fn main() {

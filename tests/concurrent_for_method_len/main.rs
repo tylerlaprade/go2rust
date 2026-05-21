@@ -221,7 +221,7 @@ pub fn total(p: Arc<Mutex<Option<Params>>>) -> Arc<Mutex<Option<i32>>> {
         { let mut guard = sum.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + i); };
     }
     }
-    return sum.clone();
+    return Arc::new(Mutex::new(Some(sum.lock().unwrap().as_ref().unwrap().clone())));
 }
 
 fn main() {

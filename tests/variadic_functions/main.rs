@@ -7,7 +7,7 @@ pub fn sum(numbers: Rc<RefCell<Option<Vec<i32>>>>) -> Rc<RefCell<Option<i32>>> {
     { let __range_holder = numbers.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for num in __range_values.iter().copied() {
         { let mut guard = total.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + num); };
     } }
-    return total.clone();
+    return Rc::new(RefCell::new(Some(total.borrow().as_ref().unwrap().clone())));
 }
 
 pub fn average(numbers: Rc<RefCell<Option<Vec<f64>>>>) -> Rc<RefCell<Option<f64>>> {
@@ -42,10 +42,10 @@ pub fn min(first: Rc<RefCell<Option<i32>>>, rest: Rc<RefCell<Option<Vec<i32>>>>)
     let mut minimum = Rc::new(RefCell::new(Some(first.borrow().as_ref().unwrap().clone())));
     { let __range_holder = rest.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for num in __range_values.iter().copied() {
         if num < (*minimum.borrow().as_ref().unwrap()) {
-        { let new_val = num; *minimum.borrow_mut() = Some(new_val); };
+        { let new_val = num.clone(); *minimum.borrow_mut() = Some(new_val); };
     }
     } }
-    return minimum.clone();
+    return Rc::new(RefCell::new(Some(minimum.borrow().as_ref().unwrap().clone())));
 }
 
 pub fn concat(separator: Rc<RefCell<Option<String>>>, strings: Rc<RefCell<Option<Vec<String>>>>) -> Rc<RefCell<Option<String>>> {
@@ -57,7 +57,7 @@ pub fn concat(separator: Rc<RefCell<Option<String>>>, strings: Rc<RefCell<Option
     for str in &{ let __seq = { let __seq_holder = strings.clone(); let __seq_guard = __seq_holder.borrow(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(1) as usize..].to_vec() } {
         { (*result.borrow_mut().as_mut().unwrap()).push_str(&format!("{}{}", (*separator.borrow().as_ref().unwrap()), str)); };
     }
-    return result.clone();
+    return Rc::new(RefCell::new(Some(result.borrow().as_ref().unwrap().clone())));
 }
 
 fn main() {

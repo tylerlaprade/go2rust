@@ -14,7 +14,7 @@ pub fn count_entries(values: Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Optio
         println!("{} {} {}", format!("{}", "unexpected".to_string()), format!("{}", key), format!("{}", (*value.borrow_mut().as_mut().unwrap())));
         { let mut guard = count.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
-    return count.clone();
+    return Rc::new(RefCell::new(Some(count.borrow().as_ref().unwrap().clone())));
 }
 
 fn main() {

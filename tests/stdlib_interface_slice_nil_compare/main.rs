@@ -139,7 +139,7 @@ pub fn count_non_nil(exprs: Arc<Mutex<Option<Vec<ast_Expr>>>>) -> Arc<Mutex<Opti
         return Arc::new(Mutex::new(Some(-1)));
     }
     } }
-    return count.clone();
+    return Arc::new(Mutex::new(Some(count.lock().unwrap().as_ref().unwrap().clone())));
 }
 
 fn main() {

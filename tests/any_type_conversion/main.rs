@@ -18,7 +18,7 @@ pub fn boxed_int_o_k(v: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<bool>>> {
             (Rc::new(RefCell::new(Some(0))), Rc::new(RefCell::new(Some(false))))
         }
     });
-    return ok.clone();
+    return Rc::new(RefCell::new(Some(ok.borrow().as_ref().unwrap().clone())));
 }
 
 fn main() {

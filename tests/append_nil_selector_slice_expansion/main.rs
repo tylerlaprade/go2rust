@@ -80,5 +80,5 @@ impl invocation {
 
 fn main() {
     let mut inv = Rc::new(RefCell::new(Some(invocation { verb: Rc::new(RefCell::new(Some("list".to_string()))), ..Default::default() })));
-    println!("{}", format!("{}", (*Rc::new(RefCell::new(Some({ let __parts = (*(*inv.borrow().as_ref().unwrap()).run().borrow().as_ref().unwrap()).clone(); let __sep = ",".to_string(); __parts.join(&__sep) }))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*Rc::new(RefCell::new(Some({ let __parts = (*(*inv.borrow().as_ref().unwrap()).run().borrow()).as_ref().cloned().unwrap_or_default(); let __sep = ",".to_string(); __parts.join(&__sep) }))).borrow().as_ref().unwrap())));
 }

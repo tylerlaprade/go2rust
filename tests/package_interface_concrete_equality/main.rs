@@ -1,4 +1,5 @@
 use go2rust_stdlib_stubs::*;
+use std::sync::{Arc, Mutex};
 use std::thread;
 
 pub fn init_concurrency() {

@@ -3,7 +3,7 @@ use std::rc::{Rc};
 
 pub fn accept(n: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>> {
 
-    return n.clone();
+    return Rc::new(RefCell::new(Some(n.borrow().as_ref().unwrap().clone())));
 }
 
 fn main() {

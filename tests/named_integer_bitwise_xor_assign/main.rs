@@ -217,7 +217,7 @@ pub fn strip(mut mode: Rc<RefCell<Option<LoadMode>>>) -> Rc<RefCell<Option<Strin
     if (*out.borrow().as_ref().unwrap()).clone() == "" {
         return Rc::new(RefCell::new(Some("none".to_string())));
     }
-    return out.clone();
+    return Rc::new(RefCell::new(Some(out.borrow().as_ref().unwrap().clone())));
 }
 
 fn main() {

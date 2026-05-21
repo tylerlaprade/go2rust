@@ -1,3 +1,5 @@
+use std::sync::{Arc, Mutex};
+
 
 struct GoChannel<T> {
     tx: std::sync::Arc<std::sync::Mutex<Option<std::sync::mpsc::SyncSender<T>>>>,

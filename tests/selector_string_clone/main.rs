@@ -35,7 +35,7 @@ pub fn left_of(parts: Rc<RefCell<Option<Parts>>>) -> Rc<RefCell<Option<String>>>
 
 pub fn echo(value: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>> {
 
-    return value.clone();
+    return Rc::new(RefCell::new(Some(value.borrow().as_ref().unwrap().clone())));
 }
 
 fn main() {

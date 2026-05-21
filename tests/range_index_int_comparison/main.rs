@@ -15,7 +15,7 @@ pub fn count_until_limit(values: Rc<RefCell<Option<Vec<i32>>>>) -> Rc<RefCell<Op
     }
         { let mut guard = count.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
-    return count.clone();
+    return Rc::new(RefCell::new(Some(count.borrow().as_ref().unwrap().clone())));
 }
 
 fn main() {

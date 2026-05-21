@@ -33,7 +33,7 @@ fn __go_init_globals() {
 
 pub fn is_enabled() -> Rc<RefCell<Option<bool>>> {
 
-    return enabled.clone();
+    return Rc::new(RefCell::new(Some(enabled.borrow().as_ref().unwrap().clone())));
 }
 
 pub(crate) fn __go_init_all() {

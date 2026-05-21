@@ -205,7 +205,7 @@ pub fn local_receive(ch: GoChannel<Option<Box<dyn StdError + Send + Sync>>>) -> 
 pub fn comma_receive(ch: GoChannel<Option<Box<dyn StdError + Send + Sync>>>) -> (Arc<Mutex<Option<bool>>>, Arc<Mutex<Option<bool>>>) {
 
     let (mut err, mut ok) = match ch.recv() { Some(v) => (Arc::new(Mutex::new(v)), Arc::new(Mutex::new(Some(true)))), None => (Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>)), Arc::new(Mutex::new(Some(false)))) };
-    return (Arc::new(Mutex::new(Some((*err.lock().unwrap()).is_some()))), ok.clone());
+    return (Arc::new(Mutex::new(Some((*err.lock().unwrap()).is_some()))), Arc::new(Mutex::new(Some(ok.lock().unwrap().as_ref().unwrap().clone()))));
 }
 
 pub fn comma_assign(ch: GoChannel<Option<Box<dyn StdError + Send + Sync>>>) -> (Arc<Mutex<Option<bool>>>, Arc<Mutex<Option<bool>>>) {
@@ -213,7 +213,7 @@ pub fn comma_assign(ch: GoChannel<Option<Box<dyn StdError + Send + Sync>>>) -> (
     let mut err: Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> = Arc::new(Mutex::new(None));
     let mut ok: Arc<Mutex<Option<bool>>> = Arc::new(Mutex::new(Some(false)));
     match ch.recv() { Some(v) => { *err.lock().unwrap() = v; *ok.lock().unwrap() = Some(true); }, None => { *err.lock().unwrap() = None::<Box<dyn StdError + Send + Sync>>; *ok.lock().unwrap() = Some(false); } };
-    return (Arc::new(Mutex::new(Some((*err.lock().unwrap()).is_some()))), ok.clone());
+    return (Arc::new(Mutex::new(Some((*err.lock().unwrap()).is_some()))), Arc::new(Mutex::new(Some(ok.lock().unwrap().as_ref().unwrap().clone()))));
 }
 
 fn main() {

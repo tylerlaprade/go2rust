@@ -128,7 +128,7 @@ pub fn forms(named: Arc<Mutex<Option<types_Named>>>) -> Arc<Mutex<Option<i32>>> 
         { let mut guard = count.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
     }
-    return count.clone();
+    return Arc::new(Mutex::new(Some(count.lock().unwrap().as_ref().unwrap().clone())));
 }
 
 fn main() {

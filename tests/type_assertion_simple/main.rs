@@ -35,7 +35,7 @@ pub fn asserted_anonymous_interface(v: &dyn hasNameAndString) -> Rc<RefCell<Opti
         let __asserted = v.clone();
         (__asserted.clone(), Rc::new(RefCell::new(Some(true))))
     });
-    return ok.clone();
+    return Rc::new(RefCell::new(Some(ok.borrow().as_ref().unwrap().clone())));
 }
 
 fn main() {

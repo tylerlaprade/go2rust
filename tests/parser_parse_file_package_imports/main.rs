@@ -1823,7 +1823,7 @@ pub mod parser {
         ast_CallExpr {
             fun: go_parser_some(go_parser_expr(*call.func)),
             args: go_parser_some(call.args.into_iter().map(go_parser_expr).collect()),
-            ellipsis: call.dots.map(go_parser_pos).unwrap_or_else(go_parser_none),
+            ellipsis: call.dots.map(go_parser_pos).unwrap_or_else(|| go_parser_pos(0)),
             ..Default::default()
         }
     }
@@ -1914,6 +1914,10 @@ pub mod parser {
                         x: go_parser_some(go_parser_expr(*op.x)),
                         y: go_parser_some(go_parser_expr(*y)),
                         op: go_parser_token(token),
+                        ..Default::default()
+                    }),
+                    None if token == token::M_U_L => ast_Expr::__go_from(ast_StarExpr {
+                        x: go_parser_some(go_parser_expr(*op.x)),
                         ..Default::default()
                     }),
                     None => ast_Expr::__go_from(ast_UnaryExpr {

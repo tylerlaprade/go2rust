@@ -64,7 +64,7 @@ pub fn f2(arg: Rc<RefCell<Option<i32>>>) -> (Rc<RefCell<Option<i32>>>, Rc<RefCel
 
 fn main() {
     for i in vec![7, 42].iter().copied() {
-        let (mut r, mut e) = f1(Rc::new(RefCell::new(Some(i))));
+        let (mut r, mut e) = f1(Rc::new(RefCell::new(Some(i.clone()))));
     if (*e.borrow()).is_some() {
         println!("{} {}", format!("{}", "f1 failed:".to_string()), format!("{}", format!("{}", (*e.borrow().as_ref().unwrap()))));
     } else {
@@ -72,7 +72,7 @@ fn main() {
     }
     }
     for i in vec![7, 42].iter().copied() {
-        let (mut r, mut e) = f2(Rc::new(RefCell::new(Some(i))));
+        let (mut r, mut e) = f2(Rc::new(RefCell::new(Some(i.clone()))));
     if (*e.borrow()).is_some() {
         println!("{} {}", format!("{}", "f2 failed:".to_string()), format!("{}", format!("{}", (*e.borrow().as_ref().unwrap()))));
     } else {

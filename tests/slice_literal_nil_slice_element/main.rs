@@ -75,5 +75,5 @@ fn main() {
     let mut src: Rc<RefCell<Option<source>>> = Rc::new(RefCell::new(Some(Default::default())));
     let mut groups = Rc::new(RefCell::new(Some(vec![{ let __slice_holder = (*src.borrow().as_ref().unwrap()).files.clone(); let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().map(|__v| __v.clone()).unwrap_or_default() }, vec!["go".to_string()]])));
     println!("{}", format!("{}", (*groups.borrow().as_ref().unwrap())[(0) as usize].clone().len()));
-    println!("{}", format!("{}", (*Rc::new(RefCell::new(Some({ let __parts = (*flatten(groups.clone()).borrow().as_ref().unwrap()).clone(); let __sep = ",".to_string(); __parts.join(&__sep) }))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*Rc::new(RefCell::new(Some({ let __parts = (*flatten(groups.clone()).borrow()).as_ref().cloned().unwrap_or_default(); let __sep = ",".to_string(); __parts.join(&__sep) }))).borrow().as_ref().unwrap())));
 }

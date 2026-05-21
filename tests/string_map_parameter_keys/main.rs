@@ -81,7 +81,7 @@ impl cache {
         { let new_val = Rc::new(RefCell::new(Some((*s.borrow().as_ref().unwrap()).len() as u64))); let __moved_val = { let mut __guard = new_val.borrow_mut(); __guard.take() }; *off.borrow_mut() = __moved_val; };
         { let __map_key = (*s.borrow().as_ref().unwrap()).clone(); let __map_value = off.clone(); (*self.index.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
     }
-        return off.clone();
+        return Rc::new(RefCell::new(Some(off.borrow().as_ref().unwrap().clone())));
     }
 
     pub fn remember(&mut self, p: Rc<RefCell<Option<position>>>) -> Rc<RefCell<Option<u64>>> {

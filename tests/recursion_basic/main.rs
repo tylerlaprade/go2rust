@@ -59,7 +59,7 @@ pub fn factorial(n: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>> {
 pub fn fibonacci(n: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>> {
 
     if (*n.borrow().as_ref().unwrap()) <= 1 {
-        return n.clone();
+        return Rc::new(RefCell::new(Some(n.borrow().as_ref().unwrap().clone())));
     }
     return Rc::new(RefCell::new(Some((*fibonacci(Rc::new(RefCell::new(Some((*n.borrow().as_ref().unwrap()) - 1)))).borrow().as_ref().unwrap()) + (*fibonacci(Rc::new(RefCell::new(Some((*n.borrow().as_ref().unwrap()) - 2)))).borrow().as_ref().unwrap()))));
 }
@@ -67,7 +67,7 @@ pub fn fibonacci(n: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>> {
 pub fn gcd(a: Rc<RefCell<Option<i32>>>, b: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>> {
 
     if (*b.borrow().as_ref().unwrap()) == 0 {
-        return a.clone();
+        return Rc::new(RefCell::new(Some(a.borrow().as_ref().unwrap().clone())));
     }
     return gcd(Rc::new(RefCell::new(Some((*b.borrow().as_ref().unwrap()).clone()))), Rc::new(RefCell::new(Some((*a.borrow().as_ref().unwrap()) % (*b.borrow().as_ref().unwrap())))));
 }
@@ -78,7 +78,7 @@ pub fn power(base: Rc<RefCell<Option<i32>>>, exp: Rc<RefCell<Option<i32>>>) -> R
         return Rc::new(RefCell::new(Some(1)));
     }
     if (*exp.borrow().as_ref().unwrap()) == 1 {
-        return base.clone();
+        return Rc::new(RefCell::new(Some(base.borrow().as_ref().unwrap().clone())));
     }
     if (*exp.borrow().as_ref().unwrap()) % 2 == 0 {
         let mut half = power(Rc::new(RefCell::new(Some((*base.borrow().as_ref().unwrap()).clone()))), Rc::new(RefCell::new(Some((*exp.borrow().as_ref().unwrap()) / 2))));
@@ -109,7 +109,7 @@ pub fn sum_array(arr: Rc<RefCell<Option<Vec<i32>>>>) -> Rc<RefCell<Option<i32>>>
 pub fn reverse_string(s: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>> {
 
     if ((*s.borrow().as_ref().unwrap()).len() as i32) <= (1 as i32) {
-        return s.clone();
+        return Rc::new(RefCell::new(Some(s.borrow().as_ref().unwrap().clone())));
     }
     return Rc::new(RefCell::new(Some(format!("{}{}", (*reverse_string(Rc::new(RefCell::new(Some({ let __s = (*s.borrow().as_ref().unwrap()).clone(); __s[(1) as usize..].to_string() })))).borrow().as_ref().unwrap()), (*Rc::new(RefCell::new(Some(({ let __s = (*s.borrow().as_ref().unwrap()).clone(); __s.as_bytes()[(0) as usize] } as char).to_string()))).borrow().as_ref().unwrap())))));
 }

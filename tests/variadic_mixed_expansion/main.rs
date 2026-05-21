@@ -7,7 +7,7 @@ pub fn join(prefix: Rc<RefCell<Option<String>>>, sep: Rc<RefCell<Option<String>>
     { let __range_holder = parts.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for p in __range_values.iter() {
         { (*out.borrow_mut().as_mut().unwrap()).push_str(&format!("{}{}", (*sep.borrow().as_ref().unwrap()), p)); };
     } }
-    return out.clone();
+    return Rc::new(RefCell::new(Some(out.borrow().as_ref().unwrap().clone())));
 }
 
 fn main() {

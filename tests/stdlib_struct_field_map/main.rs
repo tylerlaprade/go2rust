@@ -335,7 +335,7 @@ pub fn version(info: Rc<RefCell<Option<types_Info>>>, file: Rc<RefCell<Option<as
 
     let mut v = Rc::new(RefCell::new(Some((*(*info.borrow().as_ref().unwrap()).file_versions.borrow().as_ref().unwrap()).clone().get(&GoLocalPtrKey::new(file.clone())).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| String::new()))));
     if (*v.borrow().as_ref().unwrap()).clone() != "" {
-        return v.clone();
+        return Rc::new(RefCell::new(Some(v.borrow().as_ref().unwrap().clone())));
     }
     return Rc::new(RefCell::new(Some("".to_string())));
 }

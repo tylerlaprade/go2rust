@@ -165,5 +165,5 @@ pub mod exec {
 
 fn main() {
     let mut cmd = exec::command("go".to_string(), ("list".to_string(), "-export".to_string(), "-f".to_string(), "{{.Export}}".to_string(), "pkg".to_string()));
-    println!("{}", format!("{}", (*Arc::new(Mutex::new(Some({ let __parts = (*(*cmd.lock().unwrap().as_ref().unwrap()).args.lock().unwrap().as_ref().unwrap()).clone(); let __sep = " ".to_string(); __parts.join(&__sep) }))).lock().unwrap().as_ref().unwrap())));
+    println!("{}", format!("{}", (*Arc::new(Mutex::new(Some({ let __parts = (*(*cmd.lock().unwrap().as_ref().unwrap()).args.lock().unwrap()).as_ref().cloned().unwrap_or_default(); let __sep = " ".to_string(); __parts.join(&__sep) }))).lock().unwrap().as_ref().unwrap())));
 }

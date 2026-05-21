@@ -33,7 +33,7 @@ impl counter {
     }
 
     pub fn start(&mut self) {
-        let mut c_closure_clone = self.clone(); run(Rc::new(RefCell::new(Some(Box::new(move || {
+        let mut c_closure_clone = (*self).clone(); run(Rc::new(RefCell::new(Some(Box::new(move || {
         c_closure_clone.inc();
     }) as Box<dyn FnMut() -> ()>))));
     }

@@ -65,7 +65,7 @@ pub fn parse_number(s: Rc<RefCell<Option<String>>>) -> (Rc<RefCell<Option<i32>>>
     if (*err.borrow()).is_some() {
         return (Rc::new(RefCell::new(Some(0))), Rc::new(RefCell::new(Some(Box::<dyn StdError>::from(format!("failed to parse '{}': {}", { let __v = (*s.borrow().as_ref().unwrap()).clone(); __v }, format!("{}", (*err.borrow().as_ref().unwrap()))))))));
     }
-    return (num.clone(), Rc::new(RefCell::new(None)));
+    return (Rc::new(RefCell::new(Some(num.borrow().as_ref().unwrap().clone()))), Rc::new(RefCell::new(None)));
 }
 
 pub fn get_name_age() -> (Rc<RefCell<Option<String>>>, Rc<RefCell<Option<i32>>>) {
@@ -111,7 +111,7 @@ pub fn process_data(data: Rc<RefCell<Option<Vec<i32>>>>) -> (Rc<RefCell<Option<i
 
 pub fn swap(a: Rc<RefCell<Option<String>>>, b: Rc<RefCell<Option<String>>>) -> (Rc<RefCell<Option<String>>>, Rc<RefCell<Option<String>>>) {
 
-    return (b.clone(), a.clone());
+    return (Rc::new(RefCell::new(Some(b.borrow().as_ref().unwrap().clone()))), Rc::new(RefCell::new(Some(a.borrow().as_ref().unwrap().clone()))));
 }
 
 /// Function returning multiple values of different types

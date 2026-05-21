@@ -12,7 +12,7 @@ pub fn regular(v: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<String>>> {
             { let new_val = "other".to_string(); *result.borrow_mut() = Some(new_val); };
         }
     }
-    return result.clone();
+    return Rc::new(RefCell::new(Some(result.borrow().as_ref().unwrap().clone())));
 }
 
 pub fn typed(v: Rc<RefCell<Option<Box<dyn Any>>>>) -> Rc<RefCell<Option<String>>> {
@@ -30,7 +30,7 @@ pub fn typed(v: Rc<RefCell<Option<Box<dyn Any>>>>) -> Rc<RefCell<Option<String>>
         { let new_val = "other".to_string(); *result.borrow_mut() = Some(new_val); };;
     }
     }
-    return result.clone();
+    return Rc::new(RefCell::new(Some(result.borrow().as_ref().unwrap().clone())));
 }
 
 pub fn nested_regular(v: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<String>>> {

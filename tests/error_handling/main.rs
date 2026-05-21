@@ -63,7 +63,7 @@ pub fn sqrt(x: Rc<RefCell<Option<f64>>>) -> (Rc<RefCell<Option<f64>>>, Rc<RefCel
         { let new_val = ((*result.borrow().as_ref().unwrap()) + (*x.borrow().as_ref().unwrap()) / (*result.borrow().as_ref().unwrap())) / 2.0; *result.borrow_mut() = Some(new_val); };
         { let mut guard = i.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
-    return (result.clone(), Rc::new(RefCell::new(None)));
+    return (Rc::new(RefCell::new(Some(result.borrow().as_ref().unwrap().clone()))), Rc::new(RefCell::new(None)));
 }
 
 pub fn process_value(val: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<Box<dyn StdError>>>> {

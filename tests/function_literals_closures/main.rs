@@ -16,7 +16,7 @@ fn main() {
     let mut x = Rc::new(RefCell::new(Some(10)));
     let x_closure_clone = x.clone(); let mut increment = Rc::new(RefCell::new(Some(Box::new(move || -> Rc<RefCell<Option<i32>>> {
         { let mut guard = x_closure_clone.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
-        return x_closure_clone.clone();
+        return Rc::new(RefCell::new(Some(x_closure_clone.borrow().as_ref().unwrap().clone())));
     }) as Box<dyn FnMut() -> Rc<RefCell<Option<i32>>>>)));
     println!("{} {}", format!("{}", "increment() =".to_string()), format!("{}", (*{ let __f_ptr: *mut Box<dyn FnMut() -> Rc<RefCell<Option<i32>>>> = { let mut __f_guard = increment.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> Rc<RefCell<Option<i32>>>> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() }.borrow().as_ref().unwrap())));
     println!("{} {}", format!("{}", "increment() =".to_string()), format!("{}", (*{ let __f_ptr: *mut Box<dyn FnMut() -> Rc<RefCell<Option<i32>>>> = { let mut __f_guard = increment.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> Rc<RefCell<Option<i32>>>> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() }.borrow().as_ref().unwrap())));

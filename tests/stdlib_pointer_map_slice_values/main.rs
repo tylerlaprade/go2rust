@@ -215,7 +215,7 @@ pub fn remember(m: Rc<RefCell<Option<BTreeMap<GoLocalPtrKey<types_Package>, Rc<R
     }) as Box<dyn FnMut(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<bool>>>>))));
     { let __range_holder = pkgs.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for p in __range_values.iter() {
         let _ = export_path((*p).clone());
-        let _ = (*w.borrow().as_ref().unwrap()).export_path(p.clone());
+        let _ = (*w.borrow().as_ref().unwrap()).export_path((*p).clone());
         let _ = (*p.borrow_mut().as_mut().unwrap()).name();
         let _ = (*m.borrow().as_ref().unwrap()).get(&GoLocalPtrKey::new(p.clone())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default());
     } }

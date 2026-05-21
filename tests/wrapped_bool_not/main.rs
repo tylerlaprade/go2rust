@@ -3,7 +3,7 @@ use std::rc::{Rc};
 
 pub fn is_ready(flag: Rc<RefCell<Option<bool>>>) -> Rc<RefCell<Option<bool>>> {
 
-    return flag.clone();
+    return Rc::new(RefCell::new(Some(flag.borrow().as_ref().unwrap().clone())));
 }
 
 fn main() {
