@@ -42,7 +42,7 @@ pub fn min(first: Rc<RefCell<Option<i32>>>, rest: Rc<RefCell<Option<Vec<i32>>>>)
     let mut minimum = Rc::new(RefCell::new(Some(first.borrow().as_ref().unwrap().clone())));
     { let __range_holder = rest.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for num in __range_values.iter().copied() {
         if num < (*minimum.borrow().as_ref().unwrap()) {
-        { let new_val = num.clone(); *minimum.borrow_mut() = Some(new_val); };
+        { let new_val = num; *minimum.borrow_mut() = Some(new_val); };
     }
     } }
     return Rc::new(RefCell::new(Some(minimum.borrow().as_ref().unwrap().clone())));
