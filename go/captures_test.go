@@ -129,6 +129,74 @@ func makeSeq(pkgs []string) func(func(string) bool) {
 	}
 }
 
+func TestReceiverClosureCloneClonesReceiverValue(t *testing.T) {
+	prevReceiver := currentReceiver
+	prevRenames := currentCaptureRenames
+	currentReceiver = "analysis"
+	currentCaptureRenames = nil
+	defer func() {
+		currentReceiver = prevReceiver
+		currentCaptureRenames = prevRenames
+	}()
+
+	info := &CaptureInfo{
+		CapturedVars: map[string]string{
+			"analysis": "analysis_closure_clone",
+		},
+	}
+	var clones strings.Builder
+	NewStatementPreprocessor(nil).GenerateCloneStatements(&clones, info)
+
+	if got, want := clones.String(), "let mut analysis_closure_clone = (*self).clone(); "; got != want {
+		t.Fatalf("receiver closure clone = %q, want %q", got, want)
+	}
+}
+
+func TestSyntaxClosurePredeclaredConversionsAreNotCaptured(t *testing.T) {
+	prevTypeInfo := currentTypeInfo
+	defer func() { currentTypeInfo = prevTypeInfo }()
+	SetTypeInfo(nil)
+
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+func process(fn func(string) string) {}
+
+func main() {
+	process(func(s string) string {
+		runes := []rune(s)
+		return string(runes)
+	})
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(main.go) error = %v", err)
+	}
+
+	var funcLit *ast.FuncLit
+	ast.Inspect(file, func(n ast.Node) bool {
+		if funcLit != nil {
+			return false
+		}
+		lit, ok := n.(*ast.FuncLit)
+		if ok {
+			funcLit = lit
+			return false
+		}
+		return true
+	})
+	if funcLit == nil {
+		t.Fatal("did not find function literal")
+	}
+
+	captured := NewStatementPreprocessor(fset).CapturedVarsForFuncLit(funcLit)
+	for _, name := range []string{"rune", "string"} {
+		if captured[name] {
+			t.Fatalf("predeclared conversion %q should not be captured, got %#v", name, captured)
+		}
+	}
+}
+
 func TestClosureParameterDoesNotCaptureOuterName(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

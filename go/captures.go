@@ -389,7 +389,7 @@ func isBuiltinIdentifier(name string) bool {
 		"new": true, "panic": true, "print": true,
 		"println": true, "real": true, "recover": true,
 	}
-	return builtins[name]
+	return builtins[name] || isPredeclaredTypeName(name)
 }
 
 // findCapturedInCall finds captured variables in a call expression (for defer)

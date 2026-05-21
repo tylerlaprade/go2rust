@@ -339,7 +339,7 @@ func (sp *StatementPreprocessor) GenerateCloneStatements(out *strings.Builder, i
 		out.WriteString(RustLocalIdent(cloneName))
 		out.WriteString(" = ")
 		if currentReceiver != "" && varName == currentReceiver && sourceName == varName {
-			out.WriteString("self")
+			out.WriteString("(*self)")
 		} else {
 			out.WriteString(RustLocalIdent(sourceName))
 		}

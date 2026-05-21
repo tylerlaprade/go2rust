@@ -8,6 +8,18 @@ import (
 	"unicode/utf8"
 )
 
+func isPredeclaredTypeName(name string) bool {
+	switch name {
+	case "any", "bool", "byte", "complex64", "complex128", "float32", "float64",
+		"int", "int8", "int16", "int32", "int64",
+		"rune", "string",
+		"uint", "uint8", "uint16", "uint32", "uint64", "uintptr":
+		return true
+	default:
+		return false
+	}
+}
+
 // WrapInArcMutex wraps an expression in Arc<Mutex<Option<...>>>
 func WrapInArcMutex(out *strings.Builder, expr ast.Expr) {
 	TrackImport("Arc")
