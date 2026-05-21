@@ -272,6 +272,25 @@ type packageGlobal struct {
 	typ      types.Type
 }
 
+func registerPackageGlobalNames(globalVars []*ast.GenDecl) {
+	for _, genDecl := range globalVars {
+		if genDecl == nil || genDecl.Tok != token.VAR {
+			continue
+		}
+		for _, spec := range genDecl.Specs {
+			valueSpec, ok := spec.(*ast.ValueSpec)
+			if !ok {
+				continue
+			}
+			for _, name := range valueSpec.Names {
+				if name.Name != "_" {
+					packageGlobalNames[name.Name] = true
+				}
+			}
+		}
+	}
+}
+
 func rustPackageGlobalName(name string) string {
 	return EscapeRustIdent(name)
 }
@@ -301,6 +320,12 @@ func isPackageGlobalIdent(ident *ast.Ident) bool {
 		return false
 	}
 	if lookupVarInfo(name) != nil {
+		return false
+	}
+	if isConstIdent(ident) {
+		return false
+	}
+	if _, ok := packageConstants[name]; ok {
 		return false
 	}
 	if packageGlobalNames[name] {
@@ -366,6 +391,9 @@ func collectPackageGlobals(globalVars []*ast.GenDecl) []packageGlobal {
 	typeInfo := GetTypeInfo()
 	globals := make([]packageGlobal, 0)
 	for _, genDecl := range globalVars {
+		if genDecl == nil || genDecl.Tok != token.VAR {
+			continue
+		}
 		for _, spec := range genDecl.Specs {
 			valueSpec, ok := spec.(*ast.ValueSpec)
 			if !ok {

@@ -13,11 +13,14 @@ func isConstIdent(ident *ast.Ident) bool {
 		return false
 	}
 	typeInfo := GetTypeInfo()
-	if typeInfo == nil || typeInfo.info == nil {
-		return false
-	}
-	if _, ok := typeInfo.GetObject(ident).(*types.Const); ok {
-		return true
+	if typeInfo != nil && typeInfo.info != nil {
+		obj := typeInfo.GetObject(ident)
+		if _, ok := obj.(*types.Const); ok {
+			return true
+		}
+		if obj != nil {
+			return false
+		}
 	}
 	if vt := GetVarTable(); vt != nil {
 		if vt.Lookup(ident.Name) != nil {
@@ -26,6 +29,9 @@ func isConstIdent(ident *ast.Ident) bool {
 	}
 	if _, ok := packageConstants[ident.Name]; ok {
 		return true
+	}
+	if typeInfo == nil || typeInfo.info == nil {
+		return false
 	}
 	if typeInfo.pkg != nil && typeInfo.pkg.Scope() != nil {
 		_, ok := typeInfo.pkg.Scope().Lookup(ident.Name).(*types.Const)
@@ -36,6 +42,19 @@ func isConstIdent(ident *ast.Ident) bool {
 
 func rustConstName(name string) string {
 	return strings.ToUpper(strings.TrimPrefix(ToSnakeCase(name), "r#"))
+}
+
+func registerPackageConstant(name string, constType string) {
+	if packageConstants == nil {
+		packageConstants = make(map[string]string)
+	}
+	packageConstants[name] = constType
+	if currentContext != nil && currentContext.Package != nil {
+		if currentContext.Package.PackageConstants == nil {
+			currentContext.Package.PackageConstants = make(map[string]string)
+		}
+		currentContext.Package.PackageConstants[name] = constType
+	}
 }
 
 func writeExpressionForExpectedType(out *strings.Builder, value ast.Expr, expected ast.Expr) bool {

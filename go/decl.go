@@ -2024,10 +2024,7 @@ func transpileConstDeclWithCase(out *strings.Builder, genDecl *ast.GenDecl, toUp
 				}
 				if toUpper {
 					constName = rustConstName(name.Name)
-					if packageConstants == nil {
-						packageConstants = make(map[string]string)
-					}
-					packageConstants[name.Name] = constType
+					registerPackageConstant(name.Name, constType)
 				} else {
 					// Keep original name for local constants
 					constName = name.Name

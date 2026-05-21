@@ -3684,7 +3684,7 @@ func transpileChannelValue(out *strings.Builder, expr ast.Expr) {
 	}
 
 	if call, ok := expr.(*ast.CallExpr); ok {
-		if typeInfo != nil && typeInfo.ReturnsWrappedValue(call) && !callReturnsBareChannelValue(call) {
+		if callReturnsWrappedBoolBySyntax(call) || (typeInfo != nil && typeInfo.ReturnsWrappedValue(call) && !callReturnsBareChannelValue(call)) {
 			out.WriteString("(*")
 			TranspileExpression(out, call)
 			WriteBorrowMethod(out, false)
@@ -3971,6 +3971,9 @@ func callReturnsWrappedBoolBySyntax(call *ast.CallExpr) bool {
 		}
 	}
 	if sel, ok := call.Fun.(*ast.SelectorExpr); ok {
+		if selectorMethodReturnsBoolBySyntax(sel) {
+			return true
+		}
 		if fieldExpr, ok := selectorFieldTypeExpr(sel); ok {
 			if ident, ok := fieldExpr.(*ast.Ident); ok {
 				if rustType, ok := FunctionTypeAliasBox(ident.Name); ok && functionBoxTypeReturnsWrappedBool(rustType) {
@@ -3985,6 +3988,100 @@ func callReturnsWrappedBoolBySyntax(call *ast.CallExpr) bool {
 		}
 	}
 	return false
+}
+
+func selectorMethodReturnsBoolBySyntax(sel *ast.SelectorExpr) bool {
+	sig := selectorMethodSignatureBySyntax(sel)
+	if sig == nil || len(sig.Results) != 1 {
+		return false
+	}
+	resultIdent, ok := sig.Results[0].Type.(*ast.Ident)
+	return ok && resultIdent.Name == "bool"
+}
+
+func selectorMethodSignatureBySyntax(sel *ast.SelectorExpr) *FunctionSignature {
+	if sel == nil {
+		return nil
+	}
+	typeName, ok := selectorBaseSyntaxTypeName(sel.X)
+	if !ok {
+		return uniqueMethodSignatureByName(sel.Sel.Name)
+	}
+
+	candidates := []string{typeName}
+	if strings.HasPrefix(typeName, "*") {
+		candidates = append(candidates, strings.TrimPrefix(typeName, "*"))
+	} else {
+		candidates = append(candidates, "*"+typeName)
+	}
+
+	for _, candidate := range candidates {
+		if sig := methodSignatureFromDecls(methodsForReceiverType(candidate), sel.Sel.Name); sig != nil {
+			return sig
+		}
+	}
+	return uniqueMethodSignatureByName(sel.Sel.Name)
+}
+
+func methodSignatureFromDecls(methods []*ast.FuncDecl, name string) *FunctionSignature {
+	for _, method := range methods {
+		if method == nil || method.Name == nil || method.Name.Name != name {
+			continue
+		}
+		return methodSignatureFromDecl(method)
+	}
+	return nil
+}
+
+func uniqueMethodSignatureByName(name string) *FunctionSignature {
+	var found *FunctionSignature
+	seen := make(map[*ast.FuncDecl]bool)
+	if ctx := GetTranspileContext(); ctx != nil && ctx.Package != nil {
+		for _, methods := range ctx.Package.MethodsByType {
+			for _, method := range methods {
+				if seen[method] {
+					continue
+				}
+				seen[method] = true
+				if method == nil || method.Name == nil || method.Name.Name != name {
+					continue
+				}
+				if found != nil {
+					return nil
+				}
+				found = methodSignatureFromDecl(method)
+			}
+		}
+	}
+	for _, method := range currentTypeMethods {
+		if seen[method] {
+			continue
+		}
+		seen[method] = true
+		if method == nil || method.Name == nil || method.Name.Name != name {
+			continue
+		}
+		if found != nil {
+			return nil
+		}
+		found = methodSignatureFromDecl(method)
+	}
+	return found
+}
+
+func methodSignatureFromDecl(method *ast.FuncDecl) *FunctionSignature {
+	if method == nil || method.Type == nil {
+		return nil
+	}
+	var params []*ast.Field
+	if method.Type.Params != nil {
+		params = method.Type.Params.List
+	}
+	var results []*ast.Field
+	if method.Type.Results != nil {
+		results = method.Type.Results.List
+	}
+	return &FunctionSignature{Params: params, Results: results}
 }
 
 func functionBoxTypeReturnsWrappedBool(rustType string) bool {
@@ -4087,6 +4184,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		typeInfo := GetTypeInfo()
 		if typeInfo != nil && typeInfo.IsChannel(s.Chan) {
 			// The value being sent needs to be unwrapped from its wrapper
+			transpileChannelValue(out, s.Value)
+		} else if call, ok := s.Value.(*ast.CallExpr); ok && callReturnsWrappedBoolBySyntax(call) {
 			transpileChannelValue(out, s.Value)
 		} else {
 			TranspileExpression(out, s.Value)
@@ -4567,6 +4666,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									// typed int peer emitted as Go int representation for this return expression.
 								} else if writeNamedConstForBinaryPeer(out, expr, other) {
 									// typed named constants are constructed as their named newtype when compared with named values.
+								} else if sel, ok := expr.(*ast.SelectorExpr); ok && writeSyntaxNamedSelectorValue(out, sel) {
+									// Named selector fields need a syntax fallback when type info only proves the field is wrapped.
 								} else if typeInfo != nil && typeInfo.ReturnsWrappedValue(expr) {
 									// Expression returns wrapped value, unwrap it.
 									out.WriteString("(*")

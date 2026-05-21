@@ -1478,6 +1478,7 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 	if len(globalVars) > 0 {
 		hasInitFunction = true
 	}
+	registerPackageGlobalNames(globalVars)
 	localFunctionInterfaces := fileAnalysis.functionLocalInterfaces
 	for name, ifaceType := range localFunctionInterfaces {
 		interfaces[name] = ifaceType

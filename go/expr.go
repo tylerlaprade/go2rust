@@ -2162,6 +2162,9 @@ func isWrappedValueIdent(ident *ast.Ident) bool {
 	if _, isLocalConst := localConstants[ident.Name]; isLocalConst {
 		return false
 	}
+	if isConstIdent(ident) {
+		return false
+	}
 	if isVarBare(ident.Name) {
 		return false
 	}
@@ -2812,7 +2815,10 @@ func writeOwnedExpressionValue(out *strings.Builder, expr ast.Expr) bool {
 		writeIdentValueClone(out, ident)
 		return true
 	}
-	if _, ok := expr.(*ast.SelectorExpr); ok {
+	if sel, ok := expr.(*ast.SelectorExpr); ok {
+		if writeSyntaxNamedSelectorValue(out, sel) {
+			return true
+		}
 		if isExpressionResultBare(expr) {
 			return false
 		}
@@ -2822,6 +2828,27 @@ func writeOwnedExpressionValue(out *strings.Builder, expr ast.Expr) bool {
 		}
 	}
 	return false
+}
+
+func selectorSyntaxValueNeedsClone(sel *ast.SelectorExpr) bool {
+	fieldExpr, ok := selectorFieldTypeExpr(sel)
+	if !ok {
+		return false
+	}
+	ident, ok := fieldExpr.(*ast.Ident)
+	if !ok {
+		return false
+	}
+	underlying, isTypeDef := LookupTypeDefinition(ident.Name)
+	return isTypeDef && isDisplayableDefinedUnderlying(underlying)
+}
+
+func writeSyntaxNamedSelectorValue(out *strings.Builder, sel *ast.SelectorExpr) bool {
+	if !selectorSyntaxValueNeedsClone(sel) {
+		return false
+	}
+	writeClonedWrappedExpression(out, sel, "__selector_holder", "__selector_guard")
+	return true
 }
 
 func writeExpressionForBorrow(out *strings.Builder, expr ast.Expr) {
@@ -5550,6 +5577,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		// Helper to write an operand, using bare &str for string literals in comparisons
 		writeOperand := func(expr ast.Expr, other ast.Expr, isStringLit bool, needsUnwrap bool) {
 			if isComparison && isStringLiteralExpr(other) && writeNamedStringComparisonValue(out, expr) {
+				return
+			}
+			if sel, ok := expr.(*ast.SelectorExpr); ok && writeSyntaxNamedSelectorValue(out, sel) {
 				return
 			}
 			if isComparison && isStringLit && isNamedStringExpr(other) {
