@@ -60,6 +60,36 @@ func (ti *TypeInfo) GetType(expr ast.Expr) types.Type {
 	return nil
 }
 
+func coreType(typ types.Type) types.Type {
+	if typ == nil {
+		return nil
+	}
+	typ = types.Unalias(typ)
+	if typeParam, ok := typ.(*types.TypeParam); ok {
+		return coreType(typeParam.Constraint())
+	}
+	if iface, ok := types.Unalias(typ).Underlying().(*types.Interface); ok {
+		if iface.NumEmbeddeds() == 1 && iface.NumExplicitMethods() == 0 {
+			embedded := types.Unalias(iface.EmbeddedType(0))
+			if union, ok := embedded.(*types.Union); ok {
+				if union.Len() == 1 {
+					return coreType(union.Term(0).Type())
+				}
+			}
+			return coreType(embedded)
+		}
+	}
+	return typ
+}
+
+func coreUnderlyingType(typ types.Type) types.Type {
+	core := coreType(typ)
+	if core == nil {
+		return nil
+	}
+	return core.Underlying()
+}
+
 // IsPointer returns true if the expression has a pointer type
 func (ti *TypeInfo) IsPointer(expr ast.Expr) bool {
 	typ := ti.GetType(expr)
@@ -134,7 +164,7 @@ func (ti *TypeInfo) IsMap(expr ast.Expr) bool {
 	if typ == nil {
 		return false
 	}
-	_, ok := typ.Underlying().(*types.Map)
+	_, ok := coreUnderlyingType(typ).(*types.Map)
 	return ok
 }
 
@@ -144,7 +174,7 @@ func (ti *TypeInfo) IsSlice(expr ast.Expr) bool {
 	if typ == nil {
 		return false
 	}
-	_, ok := typ.Underlying().(*types.Slice)
+	_, ok := coreUnderlyingType(typ).(*types.Slice)
 	return ok
 }
 
@@ -154,7 +184,7 @@ func (ti *TypeInfo) IsString(expr ast.Expr) bool {
 	if typ == nil {
 		return false
 	}
-	basic, ok := typ.Underlying().(*types.Basic)
+	basic, ok := coreUnderlyingType(typ).(*types.Basic)
 	return ok && (basic.Kind() == types.String || basic.Kind() == types.UntypedString)
 }
 
@@ -186,7 +216,7 @@ func (ti *TypeInfo) IsArray(expr ast.Expr) bool {
 	if typ == nil {
 		return false
 	}
-	_, ok := typ.Underlying().(*types.Array)
+	_, ok := coreUnderlyingType(typ).(*types.Array)
 	return ok
 }
 
@@ -294,8 +324,8 @@ func (ti *TypeInfo) GetMapTypes(expr ast.Expr) (key, value types.Type) {
 	if typ == nil {
 		return nil, nil
 	}
-	if mapType, ok := typ.Underlying().(*types.Map); ok {
-		return mapType.Key(), mapType.Elem()
+	if mapType, ok := coreUnderlyingType(typ).(*types.Map); ok {
+		return coreType(mapType.Key()), coreType(mapType.Elem())
 	}
 	return nil, nil
 }
@@ -306,8 +336,8 @@ func (ti *TypeInfo) GetSliceElemType(expr ast.Expr) types.Type {
 	if typ == nil {
 		return nil
 	}
-	if sliceType, ok := typ.Underlying().(*types.Slice); ok {
-		return sliceType.Elem()
+	if sliceType, ok := coreUnderlyingType(typ).(*types.Slice); ok {
+		return coreType(sliceType.Elem())
 	}
 	return nil
 }
@@ -318,14 +348,14 @@ func (ti *TypeInfo) GetArrayOrSliceElemType(expr ast.Expr) types.Type {
 	if typ == nil {
 		return nil
 	}
-	switch t := typ.Underlying().(type) {
+	switch t := coreUnderlyingType(typ).(type) {
 	case *types.Slice:
-		return t.Elem()
+		return coreType(t.Elem())
 	case *types.Array:
-		return t.Elem()
+		return coreType(t.Elem())
 	case *types.Pointer:
 		if array, ok := t.Elem().Underlying().(*types.Array); ok {
-			return array.Elem()
+			return coreType(array.Elem())
 		}
 		return nil
 	default:
@@ -339,8 +369,8 @@ func (ti *TypeInfo) GetMapValueType(expr ast.Expr) types.Type {
 	if typ == nil {
 		return nil
 	}
-	if mapType, ok := typ.Underlying().(*types.Map); ok {
-		return mapType.Elem()
+	if mapType, ok := coreUnderlyingType(typ).(*types.Map); ok {
+		return coreType(mapType.Elem())
 	}
 	return nil
 }

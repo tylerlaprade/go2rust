@@ -2,6 +2,7 @@ package main
 
 import (
 	"go/ast"
+	"go/parser"
 	"go/token"
 	"go/types"
 	"strings"
@@ -34,6 +35,31 @@ func TestGoTypesTypeToRustUsesAnyForUnnamedInterfaces(t *testing.T) {
 	want := "Rc<RefCell<Option<Box<dyn Any>>>>"
 	if got != want {
 		t.Fatalf("goTypesTypeToRustWrapped(non-empty interface) = %q, want %q", got, want)
+	}
+}
+
+func TestTypeInfoUsesCoreTypeForTypeParameterRanges(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+func Join[S ~[]T, T ~string](s S) {
+	for _, v := range s { _ = string(v) }
+}`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile() error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+	fn := file.Decls[0].(*ast.FuncDecl)
+	rangeStmt := fn.Body.List[0].(*ast.RangeStmt)
+
+	if !typeInfo.IsSlice(rangeStmt.X) {
+		t.Fatalf("type parameter S ~[]T should be treated as a slice")
+	}
+	elem := typeInfo.GetArrayOrSliceElemType(rangeStmt.X)
+	if elem != types.Typ[types.String] {
+		t.Fatalf("range elem type = %v, want string", elem)
 	}
 }
 
