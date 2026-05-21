@@ -457,7 +457,9 @@ func registerCompositeLiteralRangeElemType(lhs ast.Expr, lit *ast.CompositeLit) 
 	case *ast.MapType:
 		localCollectionKinds[ident.Name] = "map"
 		localMapKeyRustTypes[ident.Name] = goMapKeyTypeToRustBase(typ.Key)
-		localMapValueRustTypes[ident.Name] = GoTypeToRust(typ.Value)
+		valueRustType := GoTypeToRust(typ.Value)
+		localMapValueRustTypes[ident.Name] = valueRustType
+		localMapValueKeepHandle[ident.Name] = mapValueTypeExprKeepsHandle(typ.Value) || rustMapValueTypeKeepsHandle(valueRustType)
 	}
 }
 
@@ -613,7 +615,9 @@ func registerTypeExprCollectionInfo(name string, typeExpr ast.Expr) {
 	case *ast.MapType:
 		localCollectionKinds[name] = "map"
 		localMapKeyRustTypes[name] = goMapKeyTypeToRustBase(typ.Key)
-		localMapValueRustTypes[name] = GoTypeToRust(typ.Value)
+		valueRustType := GoTypeToRust(typ.Value)
+		localMapValueRustTypes[name] = valueRustType
+		localMapValueKeepHandle[name] = mapValueTypeExprKeepsHandle(typ.Value) || rustMapValueTypeKeepsHandle(valueRustType)
 	case *ast.ChanType:
 		localCollectionKinds[name] = "channel"
 		localRangeElemRustTypes[name] = goCollectionElemTypeToRust(typ.Value)
@@ -628,10 +632,12 @@ func pushFunctionLocalSyntaxInfo() func() {
 	prevCollectionKinds := localCollectionKinds
 	prevMapKeyRustTypes := localMapKeyRustTypes
 	prevMapValueRustTypes := localMapValueRustTypes
+	prevMapValueKeepHandle := localMapValueKeepHandle
 	localRangeElemRustTypes = make(map[string]string)
 	localCollectionKinds = make(map[string]string)
 	localMapKeyRustTypes = make(map[string]string)
 	localMapValueRustTypes = make(map[string]string)
+	localMapValueKeepHandle = make(map[string]bool)
 	for name := range packageGlobalNames {
 		if rustType, ok := prevRangeElemRustTypes[name]; ok {
 			localRangeElemRustTypes[name] = rustType
@@ -645,12 +651,62 @@ func pushFunctionLocalSyntaxInfo() func() {
 		if rustType, ok := prevMapValueRustTypes[name]; ok {
 			localMapValueRustTypes[name] = rustType
 		}
+		if keepHandle, ok := prevMapValueKeepHandle[name]; ok {
+			localMapValueKeepHandle[name] = keepHandle
+		}
 	}
 	return func() {
 		localRangeElemRustTypes = prevRangeElemRustTypes
 		localCollectionKinds = prevCollectionKinds
 		localMapKeyRustTypes = prevMapKeyRustTypes
 		localMapValueRustTypes = prevMapValueRustTypes
+		localMapValueKeepHandle = prevMapValueKeepHandle
+	}
+}
+
+func localMapKeyRustType(expr ast.Expr) (string, bool) {
+	ident, ok := expr.(*ast.Ident)
+	if !ok || localCollectionKinds[ident.Name] != "map" {
+		return "", false
+	}
+	keyType := localMapKeyRustTypes[ident.Name]
+	hasKeyType := keyType != ""
+	return keyType, hasKeyType
+}
+
+func localMapValueSyntaxKeepsHandle(expr ast.Expr) bool {
+	ident, ok := expr.(*ast.Ident)
+	if !ok || localCollectionKinds[ident.Name] != "map" {
+		return false
+	}
+	return localMapValueKeepHandle[ident.Name]
+}
+
+func mapValueTypeExprKeepsHandle(expr ast.Expr) bool {
+	switch typ := expr.(type) {
+	case *ast.StarExpr, *ast.MapType, *ast.ChanType, *ast.FuncType, *ast.InterfaceType:
+		return true
+	case *ast.ArrayType:
+		return typ.Len == nil
+	case *ast.Ellipsis:
+		return true
+	case *ast.SelectorExpr:
+		return true
+	case *ast.Ident:
+		if typ.Name == "error" || typ.Name == "any" {
+			return true
+		}
+		if IsInterfaceType(typ.Name) || IsFunctionTypeAlias(typ.Name) {
+			return true
+		}
+		underlying := typeDefinitions[typ.Name]
+		return strings.HasPrefix(underlying, "[]") ||
+			strings.HasPrefix(underlying, "map[") ||
+			strings.HasPrefix(underlying, "*") ||
+			strings.HasPrefix(underlying, "chan ") ||
+			underlying == "func"
+	default:
+		return false
 	}
 }
 
@@ -1810,6 +1866,18 @@ func writeMapAssignmentKeyExpression(out *strings.Builder, key ast.Expr, keyType
 		return
 	}
 	writeMapKeyExpressionWithType(out, key, keyType)
+}
+
+func writeMapAssignmentKeyExpressionWithRustType(out *strings.Builder, key ast.Expr, keyRustType string) bool {
+	keyHelper, ok := mapPointerKeyHelperFromRustType(keyRustType)
+	if !ok {
+		return false
+	}
+	out.WriteString(keyHelper)
+	out.WriteString("::new(")
+	TranspileExpressionContext(out, key, LValue)
+	out.WriteString(".clone())")
+	return true
 }
 
 func mapAssignmentKeyNeedsClone(ident *ast.Ident, keyType types.Type, rhs ast.Expr) bool {
@@ -3372,7 +3440,11 @@ func writeIndexedCompoundAssign(out *strings.Builder, indexExpr *ast.IndexExpr, 
 	return true
 }
 
-func writeMapCommaOkMissingValue(out *strings.Builder, indexExpr *ast.IndexExpr) {
+func writeMapCommaOkMissingValue(out *strings.Builder, indexExpr *ast.IndexExpr, syntaxKeepsHandle bool) {
+	if syntaxKeepsHandle {
+		out.WriteString("Default::default()")
+		return
+	}
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil {
 		out.WriteString("/* ERROR: Type information required for map comma-ok zero value */ unimplemented!(\"type info required for map comma-ok zero value\")")
@@ -4832,7 +4904,13 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				typeInfo := GetTypeInfo()
 				if typeInfo != nil {
 					isMapIndexAssign = typeInfo.IsMap(indexExpr.X)
-				} else {
+				}
+				if !isMapIndexAssign {
+					if kind, ok := localCollectionKind(indexExpr.X); ok {
+						isMapIndexAssign = kind == "map"
+					}
+				}
+				if !isMapIndexAssign && typeInfo == nil {
 					// Type info not available - can't determine if it's a map
 					// Generate an error comment to make this obvious
 					out.WriteString("/* ERROR: Cannot determine if map assignment - type information required */ ")
@@ -4845,11 +4923,17 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			if indexExpr, ok := s.Lhs[0].(*ast.IndexExpr); ok {
 				var keyType types.Type
 				var valueType types.Type
+				var keyRustType string
+				if syntaxKeyType, ok := localMapKeyRustType(indexExpr.X); ok {
+					keyRustType = syntaxKeyType
+				}
 				if typeInfo := GetTypeInfo(); typeInfo != nil {
 					keyType, valueType = typeInfo.GetMapTypes(indexExpr.X)
 				}
 				out.WriteString("{ let __map_key = ")
-				writeMapAssignmentKeyExpression(out, indexExpr.Index, keyType, s.Rhs[0])
+				if !writeMapAssignmentKeyExpressionWithRustType(out, indexExpr.Index, keyRustType) {
+					writeMapAssignmentKeyExpression(out, indexExpr.Index, keyType, s.Rhs[0])
+				}
 				out.WriteString("; let __map_value = ")
 				writeMapWrappedValue(out, s.Rhs[0], valueType)
 				out.WriteString("; (*")
@@ -4970,7 +5054,13 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					typeInfo := GetTypeInfo()
 					if typeInfo != nil {
 						isMapAccess = typeInfo.IsMap(indexExpr.X)
-					} else {
+					}
+					if !isMapAccess {
+						if kind, ok := localCollectionKind(indexExpr.X); ok {
+							isMapAccess = kind == "map"
+						}
+					}
+					if !isMapAccess && typeInfo == nil {
 						// Type info not available - cannot determine
 						out.WriteString("/* ERROR: Cannot determine if map access - type information required */ ")
 						isMapAccess = false
@@ -5089,6 +5179,11 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				// Handle map access with existence check
 				indexExpr := s.Rhs[0].(*ast.IndexExpr)
 				var keyType types.Type
+				var keyRustType string
+				valueKeepsHandle := mapValueSyntaxKeepsHandle(indexExpr.X)
+				if syntaxKeyType, ok := localMapKeyRustType(indexExpr.X); ok {
+					keyRustType = syntaxKeyType
+				}
 				if typeInfo := GetTypeInfo(); typeInfo != nil {
 					keyType, _ = typeInfo.GetMapTypes(indexExpr.X)
 				}
@@ -5138,13 +5233,15 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					WriteBorrowMethod(out, false)
 					out.WriteString(".as_ref().unwrap()).get(")
 				}
-				writeMapLookupKeyWithType(out, indexExpr.Index, keyType)
+				if !writeMapLookupKeyWithRustType(out, indexExpr.Index, keyRustType) {
+					writeMapLookupKeyWithType(out, indexExpr.Index, keyType)
+				}
 				out.WriteString(") { /* MAP_COMMA_OK */ Some(v) => (v.clone(), ")
 				WriteWrapperPrefix(out)
 				out.WriteString("true")
 				WriteWrapperSuffix(out)
 				out.WriteString("), None => (")
-				writeMapCommaOkMissingValue(out, indexExpr)
+				writeMapCommaOkMissingValue(out, indexExpr, valueKeepsHandle)
 				out.WriteString(", ")
 				WriteWrapperPrefix(out)
 				out.WriteString("false")

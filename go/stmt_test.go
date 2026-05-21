@@ -96,3 +96,84 @@ func size() uintptr {
 		t.Fatalf("unsafe.Sizeof did not lower uintptr var syntax:\n%s", rust)
 	}
 }
+
+func TestNoTypeInfoConcurrentPointerMapCommaOkKeepsSliceHandle(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+import (
+	"fmt"
+	"go/types"
+)
+
+type scope struct {
+	id int
+}
+
+func lookup(m map[*scope][]types.Object, s *scope) []types.Object {
+	objs, ok := m[s]
+	if !ok {
+		objs = make([]types.Object, 1)
+		m[s] = objs
+	}
+	return objs
+}
+
+func forceConcurrent() {
+	go func() {}()
+	if false {
+		fmt.Println(lookup(nil, nil))
+	}
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile() error = %v", err)
+	}
+
+	prevDetector := GetConcurrencyDetector()
+	detector := NewConcurrencyDetector()
+	detector.AnalyzeFile(file)
+	SetConcurrencyDetector(detector)
+	defer SetConcurrencyDetector(prevDetector)
+
+	rust, _, _ := Transpile(file, fset, nil)
+
+	if strings.Contains(rust, "type information required") || strings.Contains(rust, "Cannot determine if map") {
+		t.Fatalf("map comma-ok should use syntax fallback without type info:\n%s", rust)
+	}
+	if !strings.Contains(rust, "match __map.get(&GoLocalPtrKey::new(s.clone()))") {
+		t.Fatalf("map comma-ok should use pointer-key syntax fallback:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Some(v) => (v.clone(),") || !strings.Contains(rust, "None => (Default::default(),") {
+		t.Fatalf("map comma-ok should keep the stored slice handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "vec![Default::default(); (1) as usize]") {
+		t.Fatalf("make([]types.Object, n) should use selector element zero value without type info:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __map_key = GoLocalPtrKey::new(s.clone()); let __map_value = objs.clone();") {
+		t.Fatalf("map assignment should use pointer-key syntax fallback and store the slice handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "format_slice(&lookup(") {
+		t.Fatalf("fmt.Println should use syntax-known slice return without type info:\n%s", rust)
+	}
+	if strings.Contains(rust, "s as usize") || strings.Contains(rust, "s) as usize") {
+		t.Fatalf("map assignment fell through to slice indexing:\n%s", rust)
+	}
+}
+
+func TestLocalMapKeyRustTypeReportsTrackedPointerKey(t *testing.T) {
+	prevCollections := localCollectionKinds
+	prevMapKeys := localMapKeyRustTypes
+	defer func() {
+		localCollectionKinds = prevCollections
+		localMapKeyRustTypes = prevMapKeys
+	}()
+
+	localCollectionKinds = map[string]string{"m": "map"}
+	localMapKeyRustTypes = map[string]string{"m": "GoLocalPtrKey<scope>"}
+
+	keyType, ok := localMapKeyRustType(ast.NewIdent("m"))
+	if !ok || keyType != "GoLocalPtrKey<scope>" {
+		t.Fatalf("localMapKeyRustType() = (%q, %v), want tracked pointer key", keyType, ok)
+	}
+}

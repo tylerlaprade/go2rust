@@ -16,6 +16,7 @@ var localRangeElemRustTypes = make(map[string]string)
 var localCollectionKinds = make(map[string]string)
 var localMapKeyRustTypes = make(map[string]string)
 var localMapValueRustTypes = make(map[string]string)
+var localMapValueKeepHandle = make(map[string]bool)
 var localConstants = make(map[string]string)
 var packageConstants = make(map[string]string)
 

@@ -1014,6 +1014,14 @@ func writeTrackedRangeSlicePrintArg(out *strings.Builder, arg ast.Expr) bool {
 }
 
 func writeNoTypeInfoPrintArg(out *strings.Builder, arg ast.Expr) bool {
+	if call, ok := arg.(*ast.CallExpr); ok && callReturnsSliceBySyntax(call) {
+		NeedFormatSlice()
+		TrackImport("Display")
+		out.WriteString("format_slice(&")
+		TranspileExpression(out, call)
+		out.WriteString(")")
+		return true
+	}
 	ident, ok := arg.(*ast.Ident)
 	if !ok {
 		return false
@@ -1060,6 +1068,12 @@ func writeNoTypeInfoPrintArg(out *strings.Builder, arg ast.Expr) bool {
 	WriteBorrowMethod(out, false)
 	out.WriteString(".as_ref().unwrap())")
 	return true
+}
+
+func callReturnsSliceBySyntax(call *ast.CallExpr) bool {
+	resultType := callSingleReturnTypeExpr(call)
+	arrayType, ok := resultType.(*ast.ArrayType)
+	return ok && arrayType.Len == nil
 }
 
 func writeFormatSliceCall(out *strings.Builder, arg ast.Expr, wrappedHelper string, valuesHelper string) {
@@ -3294,7 +3308,7 @@ func transpileMake(out *strings.Builder, call *ast.CallExpr) {
 			out.WriteString(")))")
 		} else if arrayType, ok := call.Args[0].(*ast.ArrayType); ok && arrayType.Len == nil {
 			// Slice type - check element type
-			elementType := "0" // default
+			elementType := zeroValueForGoType(arrayType.Elt)
 			if typeInfo := GetTypeInfo(); typeInfo != nil {
 				if typ := typeInfo.GetType(call.Args[0]); typ != nil {
 					if sliceType, ok := types.Unalias(typ).Underlying().(*types.Slice); ok {

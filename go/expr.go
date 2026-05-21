@@ -4223,6 +4223,30 @@ func writeMapLookupKey(out *strings.Builder, index ast.Expr) {
 	writeMapLookupKeyWithType(out, index, nil)
 }
 
+func mapPointerKeyHelperFromRustType(rustType string) (string, bool) {
+	switch {
+	case strings.HasPrefix(rustType, "GoLocalPtrKey<"):
+		return "GoLocalPtrKey", true
+	case strings.HasPrefix(rustType, "GoPtrKey<"):
+		return "GoPtrKey", true
+	default:
+		return "", false
+	}
+}
+
+func writeMapLookupKeyWithRustType(out *strings.Builder, index ast.Expr, keyRustType string) bool {
+	keyHelper, ok := mapPointerKeyHelperFromRustType(keyRustType)
+	if !ok {
+		return false
+	}
+	out.WriteString("&")
+	out.WriteString(keyHelper)
+	out.WriteString("::new(")
+	TranspileExpressionContext(out, index, LValue)
+	out.WriteString(".clone())")
+	return true
+}
+
 func writeMapLookupKeyWithType(out *strings.Builder, index ast.Expr, keyType types.Type) {
 	if keyType != nil && stdlibInterfaceArgumentConversionExists(index, keyType) {
 		out.WriteString("&")
@@ -4289,6 +4313,9 @@ func writeMapLookupValueWithHandle(out *strings.Builder, valueType types.Type, d
 }
 
 func mapValueSyntaxKeepsHandle(expr ast.Expr) bool {
+	if localMapValueSyntaxKeepsHandle(expr) {
+		return true
+	}
 	_, valueType, ok := localMapRangeTypes(expr)
 	return ok && rustMapValueTypeKeepsHandle(valueType)
 }
@@ -4303,7 +4330,14 @@ func rustMapValueTypeKeepsHandle(rustType string) bool {
 		}
 	}
 	return strings.HasPrefix(rustType, "Rc<RefCell<Option<Box<dyn Fn") ||
-		strings.HasPrefix(rustType, "Arc<Mutex<Option<Box<dyn Fn")
+		strings.HasPrefix(rustType, "Arc<Mutex<Option<Box<dyn Fn") ||
+		strings.HasPrefix(rustType, "Rc<RefCell<Option<Vec<") ||
+		strings.HasPrefix(rustType, "Arc<Mutex<Option<Vec<") ||
+		strings.HasPrefix(rustType, "Rc<RefCell<Option<BTreeMap<") ||
+		strings.HasPrefix(rustType, "Arc<Mutex<Option<BTreeMap<") ||
+		strings.HasPrefix(rustType, "GoChannel<") ||
+		strings.Contains(rustType, "Box<dyn StdError") ||
+		strings.Contains(rustType, "Box<dyn Any")
 }
 
 func mapValueTypeKeepsHandle(valueType types.Type) bool {
@@ -5812,8 +5846,12 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			// Map read access - need to clone the value
 			defaultValue := "Default::default()"
 			var keyType types.Type
+			var keyRustType string
 			var valueType types.Type
 			valueKeepsHandle := mapValueSyntaxKeepsHandle(e.X)
+			if syntaxKeyType, ok := localMapKeyRustType(e.X); ok {
+				keyRustType = syntaxKeyType
+			}
 			if typeInfo != nil {
 				keyType, valueType = typeInfo.GetMapTypes(e.X)
 				defaultValue = zeroValueForTypesType(valueType)
@@ -5823,14 +5861,18 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				// Use RValue context to get the bare map value, then .get() directly
 				TranspileExpression(out, e.X)
 				out.WriteString(".get(")
-				writeMapLookupKeyWithType(out, e.Index, keyType)
+				if !writeMapLookupKeyWithRustType(out, e.Index, keyRustType) {
+					writeMapLookupKeyWithType(out, e.Index, keyType)
+				}
 				out.WriteString(")")
 				writeMapLookupValueWithHandle(out, valueType, defaultValue, valueKeepsHandle)
 			} else if NeedsConcurrentWrapper() {
 				out.WriteString("{ let __map = ")
 				writeClonedWrappedExpression(out, e.X, "__map_holder", "__map_guard")
 				out.WriteString("; __map.get(")
-				writeMapLookupKeyWithType(out, e.Index, keyType)
+				if !writeMapLookupKeyWithRustType(out, e.Index, keyRustType) {
+					writeMapLookupKeyWithType(out, e.Index, keyType)
+				}
 				out.WriteString(")")
 				writeMapLookupValueWithHandle(out, valueType, defaultValue, valueKeepsHandle)
 				out.WriteString(" }")
@@ -5843,7 +5885,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				}
 				WriteBorrowMethod(out, false)
 				out.WriteString(".as_ref().unwrap()).get(")
-				writeMapLookupKeyWithType(out, e.Index, keyType)
+				if !writeMapLookupKeyWithRustType(out, e.Index, keyRustType) {
+					writeMapLookupKeyWithType(out, e.Index, keyType)
+				}
 				out.WriteString(")")
 				writeMapLookupValueWithHandle(out, valueType, defaultValue, valueKeepsHandle)
 			}
