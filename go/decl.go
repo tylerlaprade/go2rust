@@ -1355,7 +1355,8 @@ func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.Fi
 	// Skip if the last statement already terminates; those paths emitted their own
 	// cleanup and return, so a trailing defer block would become the function's
 	// final Rust expression.
-	lastTerminates := prevStmt != nil && stmtTerminates(prevStmt)
+	lastStmt := lastNonEmptyStmt(fn.Body.List)
+	lastTerminates := lastStmt != nil && stmtTerminates(lastStmt)
 	if hasDefer && !lastTerminates {
 		out.WriteString("\n    // Execute deferred functions\n")
 		out.WriteString("    while let Some(f) = __defer_stack.pop() {\n")

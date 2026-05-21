@@ -1288,8 +1288,21 @@ func stmtListTerminates(stmts []ast.Stmt) bool {
 	return false
 }
 
+func lastNonEmptyStmt(stmts []ast.Stmt) ast.Stmt {
+	for i := len(stmts) - 1; i >= 0; i-- {
+		if _, ok := stmts[i].(*ast.EmptyStmt); ok {
+			continue
+		}
+		return stmts[i]
+	}
+	return nil
+}
+
 func stmtListFallsThrough(stmts []ast.Stmt) bool {
 	for i := len(stmts) - 1; i >= 0; i-- {
+		if _, ok := stmts[i].(*ast.EmptyStmt); ok {
+			continue
+		}
 		if branch, ok := stmts[i].(*ast.BranchStmt); ok {
 			return branch.Tok == token.FALLTHROUGH
 		}
@@ -6555,6 +6568,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		}
 		out.WriteString(indent)
 		out.WriteString("}")
+
+	case *ast.EmptyStmt:
+		return
 
 	case *ast.IncDecStmt:
 		if indexExpr, isMapIndex := isMapIndexExpression(s.X); isMapIndex {

@@ -97,6 +97,38 @@ func size() uintptr {
 	}
 }
 
+func TestTrailingEmptyStmtAfterTerminatingSwitchSkipsFinalDefer(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+func pick(v int) (res int) {
+	if v < 0 {
+		defer func() {}()
+	}
+	switch v {
+	default:
+		return 1
+	case 0:
+		return 0
+	}
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile() error = %v", err)
+	}
+	fn := file.Decls[0].(*ast.FuncDecl)
+	fn.Body.List = append(fn.Body.List, &ast.EmptyStmt{})
+
+	rust, _, _ := Transpile(file, fset, nil)
+
+	if strings.Contains(rust, "Unhandled statement type") {
+		t.Fatalf("empty statement should not emit a TODO:\n%s", rust)
+	}
+	if got := strings.Count(rust, "while let Some(f) = __defer_stack.pop()"); got != 2 {
+		t.Fatalf("terminating switch with trailing empty statement should not emit final defer drain, got %d drains:\n%s", got, rust)
+	}
+}
+
 func TestNoTypeInfoConcurrentPointerMapCommaOkKeepsSliceHandle(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

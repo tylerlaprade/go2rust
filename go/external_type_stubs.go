@@ -4284,7 +4284,7 @@ func writeParserParseFileFunction(out *strings.Builder, fn externalPackageStubFu
                 }),
                 ..Default::default()
             }),
-            gosyn::ast::Statement::Empty(_) => ast_Stmt::default(),
+            gosyn::ast::Statement::Empty(_) => ast_Stmt::__go_from(ast_EmptyStmt),
         }
     }
 

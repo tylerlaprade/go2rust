@@ -17,6 +17,9 @@ func TestParserStubUsesGoAstShapesForCalls(t *testing.T) {
 	if !strings.Contains(got, "None if token == token::M_U_L => ast_Expr::__go_from(ast_StarExpr") {
 		t.Fatalf("parser stub should lower unary star to ast_StarExpr:\n%s", got)
 	}
+	if !strings.Contains(got, "gosyn::ast::Statement::Empty(_) => ast_Stmt::__go_from(ast_EmptyStmt)") {
+		t.Fatalf("parser stub should preserve empty statements as ast.EmptyStmt:\n%s", got)
+	}
 }
 
 func TestAstInspectStubTraversesSyntaxTree(t *testing.T) {
