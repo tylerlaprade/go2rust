@@ -6,7 +6,7 @@ use std::rc::{Rc};
 
 fn main() {
         // Create a Person - transpiler needs to know Person struct fields
-    let mut p = Rc::new(RefCell::new(Some(Person { name: Rc::new(RefCell::new(Some("Alice".to_string()))), age: Rc::new(RefCell::new(Some(30))), ..Default::default() })));
+    let mut p = Rc::new(RefCell::new(Some(Person { name: Rc::new(RefCell::new(Some("Alice".to_string()))), age: Rc::new(RefCell::new(Some(30 as i32))), ..Default::default() })));
     print!("Person: {} is {} years old\n", (*(*p.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()).clone(), (*(*p.borrow().as_ref().unwrap()).age.borrow().as_ref().unwrap()));
 
         // Create an Address - transpiler needs to know Address struct fields
@@ -14,7 +14,7 @@ fn main() {
     print!("Address: {}, {} {}\n", (*(*addr.borrow().as_ref().unwrap()).street.borrow().as_ref().unwrap()).clone(), (*(*addr.borrow().as_ref().unwrap()).city.borrow().as_ref().unwrap()).clone(), (*(*addr.borrow().as_ref().unwrap()).zip.borrow().as_ref().unwrap()).clone());
 
         // Create an Employee - transpiler needs to know nested struct types
-    let mut emp = Rc::new(RefCell::new(Some(Employee { person: Rc::new(RefCell::new(Some(Person { name: Rc::new(RefCell::new(Some("Bob".to_string()))), age: Rc::new(RefCell::new(Some(25))), ..Default::default() }))), address: addr.clone(), i_d: Rc::new(RefCell::new(Some(42))), ..Default::default() })));
+    let mut emp = Rc::new(RefCell::new(Some(Employee { person: Rc::new(RefCell::new(Some(Person { name: Rc::new(RefCell::new(Some("Bob".to_string()))), age: Rc::new(RefCell::new(Some(25 as i32))), ..Default::default() }))), address: addr.clone(), i_d: Rc::new(RefCell::new(Some(42 as i32))), ..Default::default() })));
     print!("Employee {}: {} lives at {}\n", (*(*emp.borrow().as_ref().unwrap()).i_d.borrow().as_ref().unwrap()), (*(*(*emp.borrow().as_ref().unwrap()).person.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()), (*(*(*emp.borrow().as_ref().unwrap()).address.borrow().as_ref().unwrap()).street.borrow().as_ref().unwrap()));
 
         // Access nested fields - requires knowing the full type hierarchy

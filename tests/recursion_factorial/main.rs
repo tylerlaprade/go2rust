@@ -4,7 +4,7 @@ use std::rc::{Rc};
 pub fn fact(n: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>> {
 
     if (*n.borrow().as_ref().unwrap()) == 0 {
-        return Rc::new(RefCell::new(Some(1)));
+        return Rc::new(RefCell::new(Some(1 as i32)));
     }
     return {
             let __tmp_x = (*n.borrow().as_ref().unwrap());

@@ -8,7 +8,7 @@ use std::rc::{Rc};
 
 fn main() {
         // Test Counter methods - transpiler needs to know Counter has these methods
-    let mut c = Rc::new(RefCell::new(Some(Counter { value: Rc::new(RefCell::new(Some(10))), ..Default::default() })));
+    let mut c = Rc::new(RefCell::new(Some(Counter { value: Rc::new(RefCell::new(Some(10 as i32))), ..Default::default() })));
     print!("Initial value: {}\n", (*(*c.borrow().as_ref().unwrap()).value().borrow().as_ref().unwrap()));
 
     (*c.borrow_mut().as_mut().unwrap()).increment();
@@ -18,8 +18,8 @@ fn main() {
     print!("After adding 5: {}\n", (*(*c.borrow().as_ref().unwrap()).value().borrow().as_ref().unwrap()));
 
         // Test Point methods - transpiler needs to resolve method receivers
-    let mut p1 = Rc::new(RefCell::new(Some(Point { x: Rc::new(RefCell::new(Some(0.0))), y: Rc::new(RefCell::new(Some(0.0))), ..Default::default() })));
-    let mut p2 = Rc::new(RefCell::new(Some(Point { x: Rc::new(RefCell::new(Some(3.0))), y: Rc::new(RefCell::new(Some(4.0))), ..Default::default() })));
+    let mut p1 = Rc::new(RefCell::new(Some(Point { x: Rc::new(RefCell::new(Some(0.0 as f64))), y: Rc::new(RefCell::new(Some(0.0 as f64))), ..Default::default() })));
+    let mut p2 = Rc::new(RefCell::new(Some(Point { x: Rc::new(RefCell::new(Some(3.0 as f64))), y: Rc::new(RefCell::new(Some(4.0 as f64))), ..Default::default() })));
 
     let mut dist = (*p1.borrow().as_ref().unwrap()).distance(Rc::new(RefCell::new(Some((*p2.borrow().as_ref().unwrap()).clone()))));
     print!("Distance between points: {:.1}\n", { let __v = (*dist.borrow().as_ref().unwrap()).clone(); __v });

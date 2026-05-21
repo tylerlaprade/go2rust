@@ -3,7 +3,7 @@ use std::rc::{Rc};
 
 pub fn vals() -> (Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) {
 
-    return (Rc::new(RefCell::new(Some(3))), Rc::new(RefCell::new(Some(7))));
+    return (Rc::new(RefCell::new(Some(3 as i32))), Rc::new(RefCell::new(Some(7 as i32))));
 }
 
 fn main() {

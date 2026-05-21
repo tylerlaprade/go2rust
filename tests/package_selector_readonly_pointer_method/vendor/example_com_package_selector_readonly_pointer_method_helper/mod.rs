@@ -48,5 +48,5 @@ impl Counter {
 
 pub fn new_counter() -> Rc<RefCell<Option<Counter>>> {
 
-    return Rc::new(RefCell::new(Some(Counter { value: Rc::new(RefCell::new(Some(7))), ..Default::default() })));
+    return Rc::new(RefCell::new(Some(Counter { value: Rc::new(RefCell::new(Some(7 as i32))), ..Default::default() })));
 }

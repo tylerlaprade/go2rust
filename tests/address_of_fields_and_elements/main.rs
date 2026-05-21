@@ -140,7 +140,7 @@ impl std::fmt::Display for Point {
 
 
 fn main() {
-    let mut p = Rc::new(RefCell::new(Some(Point { x: Rc::new(RefCell::new(Some(10))), ..Default::default() })));
+    let mut p = Rc::new(RefCell::new(Some(Point { x: Rc::new(RefCell::new(Some(10 as i32))), ..Default::default() })));
     let mut px = (*p.borrow().as_ref().unwrap()).x.clone();
     { let new_val = 20; *px.borrow_mut() = Some(new_val); };
 

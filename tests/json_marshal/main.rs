@@ -49,7 +49,7 @@ impl std::fmt::Display for User {
 
 
 fn main() {
-    let mut u = Rc::new(RefCell::new(Some(User { name: Rc::new(RefCell::new(Some("Alice".to_string()))), age: Rc::new(RefCell::new(Some(30))), ..Default::default() })));
+    let mut u = Rc::new(RefCell::new(Some(User { name: Rc::new(RefCell::new(Some("Alice".to_string()))), age: Rc::new(RefCell::new(Some(30 as i32))), ..Default::default() })));
     let (mut data, _) = { let __json_value = (*u.borrow().as_ref().unwrap()).clone(); let mut __json_fields: Vec<String> = Vec::new(); __json_fields.push(format!("\"name\":\"{}\"", go_json_escape(__json_value.name.borrow().as_ref().unwrap()))); __json_fields.push(format!("\"age\":{}", *__json_value.age.borrow().as_ref().unwrap())); let __json = format!("{{{}}}", __json_fields.join(",")); (Rc::new(RefCell::new(Some(__json.into_bytes()))), Rc::new(RefCell::new(None::<Box<dyn StdError>>))) };
     println!("{}", format!("{}", (*Rc::new(RefCell::new(Some(String::from_utf8((*data.borrow().as_ref().unwrap()).clone()).unwrap()))).borrow().as_ref().unwrap())));
 }

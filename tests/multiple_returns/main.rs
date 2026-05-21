@@ -63,14 +63,14 @@ pub fn parse_number(s: Rc<RefCell<Option<String>>>) -> (Rc<RefCell<Option<i32>>>
 
     let (mut num, mut err) = { let __atoi_input = (*s.borrow().as_ref().unwrap()).clone(); match __atoi_input.parse::<i32>() { Ok(n) => (Rc::new(RefCell::new(Some(n))), Rc::new(RefCell::new(None))), Err(e) => (Rc::new(RefCell::new(Some(0))), Rc::new(RefCell::new(Some(Box::<dyn StdError>::from(format!("strconv.Atoi: parsing \"{}\": invalid syntax", __atoi_input)))))) } };
     if (*err.borrow()).is_some() {
-        return (Rc::new(RefCell::new(Some(0))), Rc::new(RefCell::new(Some(Box::<dyn StdError>::from(format!("failed to parse '{}': {}", { let __v = (*s.borrow().as_ref().unwrap()).clone(); __v }, format!("{}", (*err.borrow().as_ref().unwrap()))))))));
+        return (Rc::new(RefCell::new(Some(0 as i32))), Rc::new(RefCell::new(Some(Box::<dyn StdError>::from(format!("failed to parse '{}': {}", { let __v = (*s.borrow().as_ref().unwrap()).clone(); __v }, format!("{}", (*err.borrow().as_ref().unwrap()))))))));
     }
     return (Rc::new(RefCell::new(Some(num.borrow().as_ref().unwrap().clone()))), Rc::new(RefCell::new(None)));
 }
 
 pub fn get_name_age() -> (Rc<RefCell<Option<String>>>, Rc<RefCell<Option<i32>>>) {
 
-    return (Rc::new(RefCell::new(Some("Alice".to_string()))), Rc::new(RefCell::new(Some(30))));
+    return (Rc::new(RefCell::new(Some("Alice".to_string()))), Rc::new(RefCell::new(Some(30 as i32))));
 }
 
 /// Named return values
@@ -89,7 +89,7 @@ pub fn process_data(data: Rc<RefCell<Option<Vec<i32>>>>) -> (Rc<RefCell<Option<i
     let mut sum: Rc<RefCell<Option<i32>>> = Rc::new(RefCell::new(Some(0)));
 
     if ((*data.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32) == (0 as i32) {
-        return (Rc::new(RefCell::new(Some(0))), Rc::new(RefCell::new(Some(0))), Rc::new(RefCell::new(Some(0))));
+        return (Rc::new(RefCell::new(Some(0 as i32))), Rc::new(RefCell::new(Some(0 as i32))), Rc::new(RefCell::new(Some(0 as i32))));
     }
 
     { let new_val = (*data.borrow().as_ref().unwrap())[(0) as usize].clone(); *min.borrow_mut() = Some(new_val); };
@@ -121,7 +121,7 @@ pub fn get_person_info() -> (Rc<RefCell<Option<String>>>, Rc<RefCell<Option<i32>
     let mut height: Rc<RefCell<Option<f64>>> = Rc::new(RefCell::new(Some(0.0)));
     let mut married: Rc<RefCell<Option<bool>>> = Rc::new(RefCell::new(Some(false)));
 
-    return (Rc::new(RefCell::new(Some("Bob".to_string()))), Rc::new(RefCell::new(Some(25))), Rc::new(RefCell::new(Some(5.9))), Rc::new(RefCell::new(Some(false))));
+    return (Rc::new(RefCell::new(Some("Bob".to_string()))), Rc::new(RefCell::new(Some(25 as i32))), Rc::new(RefCell::new(Some(5.9 as f64))), Rc::new(RefCell::new(Some(false))));
 }
 
 /// Function that can return early with different values
@@ -143,7 +143,7 @@ pub fn safe_divide(a: Rc<RefCell<Option<f64>>>, b: Rc<RefCell<Option<f64>>>) -> 
     let mut err: Rc<RefCell<Option<Box<dyn StdError>>>> = Rc::new(RefCell::new(None));
 
     if (*b.borrow().as_ref().unwrap()) == 0.0 {
-        return (Rc::new(RefCell::new(Some(0.0))), Rc::new(RefCell::new(Some(Box::<dyn StdError>::from(format!("division by zero"))))));
+        return (Rc::new(RefCell::new(Some(0.0 as f64))), Rc::new(RefCell::new(Some(Box::<dyn StdError>::from(format!("division by zero"))))));
     }
     return ({
             let __tmp_x = (*a.borrow().as_ref().unwrap());

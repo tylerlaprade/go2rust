@@ -30,7 +30,7 @@ impl std::fmt::Display for node {
 fn main() {
     let mut nodes = Rc::new(RefCell::new(Some(vec![Rc::new(RefCell::new(Some(node { value: Rc::new(RefCell::new(Some(1))), ..Default::default() }))), Rc::new(RefCell::new(Some(node { value: Rc::new(RefCell::new(Some(2))), ..Default::default() })))])));
     { let __range_holder = nodes.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for mut n in __range_values.iter().cloned() {
-        if (*(*n.borrow().as_ref().unwrap()).value.borrow().as_ref().unwrap()) == 1 {
+        if (*(*n.borrow().as_ref().unwrap()).value.borrow().as_ref().unwrap()) == 1 as i32 {
         { let new_val = (*nodes.borrow().as_ref().unwrap())[(1) as usize].clone().clone(); n = new_val; };
     }
         println!("{}", format!("{}", (*(*n.borrow().as_ref().unwrap()).value.borrow().as_ref().unwrap())));

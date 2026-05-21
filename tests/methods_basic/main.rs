@@ -88,7 +88,7 @@ impl Person {
 
 fn main() {
         // Counter methods
-    let mut counter = Rc::new(RefCell::new(Some(Counter { value: Rc::new(RefCell::new(Some(0))), ..Default::default() })));
+    let mut counter = Rc::new(RefCell::new(Some(Counter { value: Rc::new(RefCell::new(Some(0 as i32))), ..Default::default() })));
     println!("{} {}", format!("{}", "Initial value:".to_string()), format!("{}", (*(*counter.borrow().as_ref().unwrap()).get_value().borrow().as_ref().unwrap())));
 
     (*counter.borrow_mut().as_mut().unwrap()).increment();
@@ -101,7 +101,7 @@ fn main() {
     println!("{} {}", format!("{}", "After doubling:".to_string()), format!("{}", { let __v = (*doubled.borrow().as_ref().unwrap()).clone(); __v }));
 
         // Person methods
-    let mut person = Rc::new(RefCell::new(Some(Person { name: Rc::new(RefCell::new(Some("Alice".to_string()))), age: Rc::new(RefCell::new(Some(25))), ..Default::default() })));
+    let mut person = Rc::new(RefCell::new(Some(Person { name: Rc::new(RefCell::new(Some("Alice".to_string()))), age: Rc::new(RefCell::new(Some(25 as i32))), ..Default::default() })));
     (*person.borrow().as_ref().unwrap()).greet();
     (*person.borrow_mut().as_mut().unwrap()).have_birthday();
     (*person.borrow().as_ref().unwrap()).greet();

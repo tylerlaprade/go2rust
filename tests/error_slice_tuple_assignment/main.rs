@@ -4,7 +4,7 @@ use std::rc::{Rc};
 
 pub fn parse() -> (Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<Box<dyn StdError>>>>) {
 
-    return (Rc::new(RefCell::new(Some(7))), Rc::new(RefCell::new(Some(Box::<dyn std::error::Error>::from("bad".to_string())))));
+    return (Rc::new(RefCell::new(Some(7 as i32))), Rc::new(RefCell::new(Some(Box::<dyn std::error::Error>::from("bad".to_string())))));
 }
 
 fn main() {

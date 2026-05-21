@@ -59,7 +59,7 @@ fn main() {
     std::thread::spawn(move || {
         ;
     });
-    let mut n = Arc::new(Mutex::new(Some(node { value: Arc::new(Mutex::new(Some(6))), ..Default::default() })));
+    let mut n = Arc::new(Mutex::new(Some(node { value: Arc::new(Mutex::new(Some(6 as i32))), ..Default::default() })));
     let mut items: Arc<Mutex<Option<Vec<Arc<Mutex<Option<node>>>>>>> = Arc::new(Mutex::new(None));
     let mut result: Arc<Mutex<Option<Vec<Arc<Mutex<Option<node>>>>>>> = Arc::new(Mutex::new(None));
     { let new_val = { let __append_target = items.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(n.clone()); __append_target.clone() }; items = new_val; };

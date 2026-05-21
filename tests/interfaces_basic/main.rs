@@ -102,20 +102,20 @@ impl Shape for Rectangle {
 
 impl Circle {
     pub fn area(&self) -> Rc<RefCell<Option<f64>>> {
-        return Rc::new(RefCell::new(Some(3.14159 * (*self.radius.borrow().as_ref().unwrap()) * (*self.radius.borrow().as_ref().unwrap()))));
+        return Rc::new(RefCell::new(Some(3.14159 as f64 * (*self.radius.borrow().as_ref().unwrap()) * (*self.radius.borrow().as_ref().unwrap()))));
     }
 
     pub fn perimeter(&self) -> Rc<RefCell<Option<f64>>> {
-        return Rc::new(RefCell::new(Some(2.0 * 3.14159 * (*self.radius.borrow().as_ref().unwrap()))));
+        return Rc::new(RefCell::new(Some(2.0 * 3.14159 as f64 * (*self.radius.borrow().as_ref().unwrap()))));
     }
 }
 
 impl Shape for Circle {
     fn area(&self) -> Rc<RefCell<Option<f64>>> {
-        return Rc::new(RefCell::new(Some(3.14159 * (*self.radius.borrow().as_ref().unwrap()) * (*self.radius.borrow().as_ref().unwrap()))));
+        return Rc::new(RefCell::new(Some(3.14159 as f64 * (*self.radius.borrow().as_ref().unwrap()) * (*self.radius.borrow().as_ref().unwrap()))));
     }
     fn perimeter(&self) -> Rc<RefCell<Option<f64>>> {
-        return Rc::new(RefCell::new(Some(2.0 * 3.14159 * (*self.radius.borrow().as_ref().unwrap()))));
+        return Rc::new(RefCell::new(Some(2.0 * 3.14159 as f64 * (*self.radius.borrow().as_ref().unwrap()))));
     }
     fn __go_clone_box(&self) -> Box<dyn Shape> {
         Box::new(self.clone()) as Box<dyn Shape>
@@ -137,8 +137,8 @@ pub fn print_shape_info(s: &dyn Shape) {
 }
 
 fn main() {
-    let mut rect = Rc::new(RefCell::new(Some(Rectangle { width: Rc::new(RefCell::new(Some(10.0))), height: Rc::new(RefCell::new(Some(5.0))), ..Default::default() })));
-    let mut circle = Rc::new(RefCell::new(Some(Circle { radius: Rc::new(RefCell::new(Some(3.0))), ..Default::default() })));
+    let mut rect = Rc::new(RefCell::new(Some(Rectangle { width: Rc::new(RefCell::new(Some(10.0 as f64))), height: Rc::new(RefCell::new(Some(5.0 as f64))), ..Default::default() })));
+    let mut circle = Rc::new(RefCell::new(Some(Circle { radius: Rc::new(RefCell::new(Some(3.0 as f64))), ..Default::default() })));
 
     println!("{}", format!("{}", "Rectangle:".to_string()));
     print_shape_info(rect.borrow().as_ref().unwrap());

@@ -2531,6 +2531,16 @@ func selectorExpressionKeepsHandle(expr ast.Expr) bool {
 	return ok && fieldExprKeepsHandle(fieldExpr)
 }
 
+func assignmentTargetIsEmptyInterface(expr ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo != nil {
+		if typ := typeInfo.GetType(expr); typ != nil {
+			return isEmptyInterfaceType(typ)
+		}
+	}
+	return isEmptyInterfaceValueExpr(expr)
+}
+
 func selectorFieldTypeExpr(sel *ast.SelectorExpr) (ast.Expr, bool) {
 	typeName, ok := selectorBaseSyntaxTypeName(sel.X)
 	if !ok {
@@ -2574,7 +2584,7 @@ func selectorBaseSyntaxTypeName(expr ast.Expr) (string, bool) {
 	}
 	if vt := GetVarTable(); vt != nil {
 		if info := vt.Lookup(ident.Name); info != nil && info.RustType != "" {
-			return strings.TrimPrefix(info.RustType, "&"), true
+			return unwrapStoredRustType(info.RustType), true
 		}
 	}
 	if typeInfo := GetTypeInfo(); typeInfo != nil {
@@ -5537,19 +5547,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									} else if isAssignmentSelfWrappingExpression(s.Rhs[0]) {
 										writeMoveWrappedInnerAssignment(out, s.Lhs[0], s.Rhs[0])
 									} else {
-										// Check if LHS is interface{} type
-										isInterface := false
-										typeInfo := GetTypeInfo()
-										if typeInfo != nil {
-											if lhsType := typeInfo.GetType(s.Lhs[0]); lhsType != nil {
-												// Check if it's the empty interface
-												if intf, ok := lhsType.Underlying().(*types.Interface); ok && intf.NumMethods() == 0 {
-													isInterface = true
-												}
-											}
-										}
-
-										if isInterface {
+										if assignmentTargetIsEmptyInterface(s.Lhs[0]) {
 											// Assignment to interface{} - need to box the value
 											if !writeEmptyInterfaceIdentAssignment(out, s.Lhs[0], s.Rhs[0]) {
 												out.WriteString("{ ")
@@ -5673,19 +5671,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										out.WriteString(" = Some(new_val); }")
 									}
 								} else {
-									// Check if LHS is interface{} type
-									isInterface := false
-									typeInfo := GetTypeInfo()
-									if typeInfo != nil {
-										if lhsType := typeInfo.GetType(s.Lhs[0]); lhsType != nil {
-											// Check if it's the empty interface
-											if intf, ok := lhsType.Underlying().(*types.Interface); ok && intf.NumMethods() == 0 {
-												isInterface = true
-											}
-										}
-									}
-
-									if isInterface {
+									if assignmentTargetIsEmptyInterface(s.Lhs[0]) {
 										// Assignment to interface{} - need to box the value
 										if !writeEmptyInterfaceIdentAssignment(out, s.Lhs[0], s.Rhs[0]) {
 											out.WriteString("{ ")

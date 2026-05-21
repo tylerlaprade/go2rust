@@ -194,7 +194,7 @@ fn __go_init_globals() {
 
 pub fn size() -> Arc<Mutex<Option<i32>>> {
 
-    return Arc::new(Mutex::new(Some(2)));
+    return Arc::new(Mutex::new(Some(2 as i32)));
 }
 
 fn main() {

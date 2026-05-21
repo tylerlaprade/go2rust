@@ -13,7 +13,7 @@ pub fn sum(numbers: Rc<RefCell<Option<Vec<i32>>>>) -> Rc<RefCell<Option<i32>>> {
 pub fn average(numbers: Rc<RefCell<Option<Vec<f64>>>>) -> Rc<RefCell<Option<f64>>> {
 
     if ((*numbers.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32) == (0 as i32) {
-        return Rc::new(RefCell::new(Some(0.0)));
+        return Rc::new(RefCell::new(Some(0.0 as f64)));
     }
     let mut total = Rc::new(RefCell::new(Some(0.0)));
     { let __range_holder = numbers.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for num in __range_values.iter().copied() {

@@ -33,7 +33,7 @@ pub fn first(items: Rc<RefCell<Option<Vec<Rc<RefCell<Option<item>>>>>>>) -> Rc<R
 }
 
 fn main() {
-    let mut ptr = Rc::new(RefCell::new(Some(item { value: Rc::new(RefCell::new(Some(4))), ..Default::default() })));
+    let mut ptr = Rc::new(RefCell::new(Some(item { value: Rc::new(RefCell::new(Some(4 as i32))), ..Default::default() })));
     let mut items = Rc::new(RefCell::new(Some(vec![ptr.clone()])));
     let mut got = first(items.clone());
 

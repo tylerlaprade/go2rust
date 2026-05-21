@@ -1368,6 +1368,51 @@ func get(e entry) any { return e.value }`, 0)
 	}
 }
 
+func TestNoTypeInfoAnyHandleReuseUsesSyntax(t *testing.T) {
+	src := `package main
+import "fmt"
+type entry struct { value any }
+func assign(e *entry, value any) { e.value = value }
+func callAssign(e *entry, value any) { assign(e, value) }
+func each(e *entry, f func(any)) { f(e.value) }
+func printAny(value any) { fmt.Println(value) }
+func callEach(e *entry) { each(e, func(v any) { fmt.Println(v) }) }`
+
+	assertAnyHandleReuseUsesSyntax(t, transpileNoTypeInfoRegression(t, src))
+	assertAnyHandleReuseUsesSyntax(t, transpileRegression(t, src, &TypeInfo{}))
+}
+
+func assertAnyHandleReuseUsesSyntax(t *testing.T, rust string) {
+	t.Helper()
+
+	if !strings.Contains(rust, "let new_val = value.clone();") {
+		t.Fatalf("any field assignment should clone the existing interface handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".as_mut().unwrap()).value = new_val") ||
+		strings.Contains(rust, ".as_ref().unwrap()).value = new_val") {
+		t.Fatalf("any field assignment should mutate the owning struct slot:\n%s", rust)
+	}
+	if !strings.Contains(rust, "assign(e.clone(), value.clone())") {
+		t.Fatalf("any function argument should pass the existing interface handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".value.clone())") {
+		t.Fatalf("any selector closure argument should pass the field handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "format_any(value") {
+		t.Fatalf("fmt.Println(any) should use format_any under syntax fallback:\n%s", rust)
+	}
+	if !strings.Contains(rust, "format_any(v") {
+		t.Fatalf("fmt.Println on function-literal any parameter should use format_any:\n%s", rust)
+	}
+	if strings.Contains(rust, "value.borrow().as_ref().unwrap().clone()") ||
+		strings.Contains(rust, "value.lock().unwrap().as_ref().unwrap().clone()") ||
+		strings.Contains(rust, "Some((*value") ||
+		strings.Contains(rust, "format!(\"{}\", (*value") ||
+		strings.Contains(rust, "format!(\"{}\", (*v") {
+		t.Fatalf("any handle reuse should not clone or rewrap the Box payload:\n%s", rust)
+	}
+}
+
 func TestNoTypeInfoPackageGlobalIdentUsesGlobalName(t *testing.T) {
 	prevTypeInfo := currentTypeInfo
 	prevGlobals := packageGlobalNames

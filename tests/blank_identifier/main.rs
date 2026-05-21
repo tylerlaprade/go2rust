@@ -169,7 +169,7 @@ impl<T> Iterator for GoChannel<T> {
 
 pub fn multiple_returns() -> (Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<String>>>, Arc<Mutex<Option<bool>>>) {
 
-    return (Arc::new(Mutex::new(Some(42))), Arc::new(Mutex::new(Some("hello".to_string()))), Arc::new(Mutex::new(Some(true))));
+    return (Arc::new(Mutex::new(Some(42 as i32))), Arc::new(Mutex::new(Some("hello".to_string()))), Arc::new(Mutex::new(Some(true))));
 }
 
 pub fn process_slice(slice: Arc<Mutex<Option<Vec<i32>>>>) -> (Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>) {

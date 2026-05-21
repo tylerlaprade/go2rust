@@ -38,7 +38,7 @@ fn main() {
         ;
     });
 
-    let mut c = Arc::new(Mutex::new(Some(counter { n: Arc::new(Mutex::new(Some(3))), ..Default::default() })));
+    let mut c = Arc::new(Mutex::new(Some(counter { n: Arc::new(Mutex::new(Some(3 as i32))), ..Default::default() })));
     let mut xs = Arc::new(Mutex::new(Some(Vec::with_capacity((*{ let __recv = c.clone(); let __recv_ptr: *const counter = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const counter }; let __result = unsafe { &*__recv_ptr }.len(); __result }.lock().unwrap().as_ref().unwrap()) as usize))));
     { let new_val = { let __append_target = xs.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).extend(vec![1, 2, 3]); __append_target.clone() }; xs = new_val; };
 

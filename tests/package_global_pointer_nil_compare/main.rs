@@ -57,7 +57,7 @@ fn __go_init_globals() {
 fn main() {
     __go_init_all();
     println!("{}", format!("{}", { let __slot_guard = current.borrow(); let __not_nil = __slot_guard.as_ref().map(|__ptr| (*__ptr.borrow()).is_some()).unwrap_or(false); !__not_nil }));
-    { let new_val = Rc::new(RefCell::new(Some(state { value: Rc::new(RefCell::new(Some(7))), ..Default::default() }))).clone(); *current.borrow_mut() = Some(new_val); };
+    { let new_val = Rc::new(RefCell::new(Some(state { value: Rc::new(RefCell::new(Some(7 as i32))), ..Default::default() }))).clone(); *current.borrow_mut() = Some(new_val); };
     println!("{}", format!("{}", { let __slot_guard = current.borrow(); let __not_nil = __slot_guard.as_ref().map(|__ptr| (*__ptr.borrow()).is_some()).unwrap_or(false); __not_nil }));
 }
 

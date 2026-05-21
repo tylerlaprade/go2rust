@@ -28,6 +28,6 @@ impl std::fmt::Display for printer {
 
 
 fn main() {
-    let mut p = Rc::new(RefCell::new(Some(printer { indent: Rc::new(RefCell::new(Some(3))), ..Default::default() })));
+    let mut p = Rc::new(RefCell::new(Some(printer { indent: Rc::new(RefCell::new(Some(3 as i32))), ..Default::default() })));
     println!("{}", format!("{}", format!("{}{}", (*Rc::new(RefCell::new(Some({ let __s = "..".to_string(); let __count = { let __selector_holder = (*p.borrow().as_ref().unwrap()).indent.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; __s.repeat(__count as usize) }))).borrow().as_ref().unwrap()), "x".to_string())));
 }

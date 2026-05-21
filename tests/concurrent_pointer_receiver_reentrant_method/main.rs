@@ -209,6 +209,6 @@ impl state {
 }
 
 fn main() {
-    let mut s = Arc::new(Mutex::new(Some(state { value: Arc::new(Mutex::new(Some(7))), ..Default::default() })));
+    let mut s = Arc::new(Mutex::new(Some(state { value: Arc::new(Mutex::new(Some(7 as i32))), ..Default::default() })));
     { let __recv = s.clone(); let __recv_ptr: *const state = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const state }; let __result = unsafe { &*__recv_ptr }.run(); __result };
 }

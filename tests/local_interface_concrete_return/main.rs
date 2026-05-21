@@ -131,12 +131,12 @@ impl Valuer for number {
 
 pub fn new_reader() -> Rc<RefCell<Option<Box<dyn Reader>>>> {
 
-    return Rc::new(RefCell::new(Some(Box::new(counter { n: Rc::new(RefCell::new(Some(7))), ..Default::default() }) as Box<dyn Reader>)));
+    return Rc::new(RefCell::new(Some(Box::new(counter { n: Rc::new(RefCell::new(Some(7 as i32))), ..Default::default() }) as Box<dyn Reader>)));
 }
 
 pub fn new_valuer() -> Rc<RefCell<Option<Box<dyn Valuer>>>> {
 
-    return Rc::new(RefCell::new(Some(Box::new(number { n: Rc::new(RefCell::new(Some(11))), ..Default::default() }) as Box<dyn Valuer>)));
+    return Rc::new(RefCell::new(Some(Box::new(number { n: Rc::new(RefCell::new(Some(11 as i32))), ..Default::default() }) as Box<dyn Valuer>)));
 }
 
 fn main() {

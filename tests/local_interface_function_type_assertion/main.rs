@@ -90,6 +90,6 @@ pub fn probe(v: Rc<RefCell<Option<Box<dyn Any>>>>) {
 }
 
 fn main() {
-    probe(Rc::new(RefCell::new(Some(Box::new(r#box { n: Rc::new(RefCell::new(Some(7))), ..Default::default() }) as Box<dyn Any>))));
+    probe(Rc::new(RefCell::new(Some(Box::new(r#box { n: Rc::new(RefCell::new(Some(7 as i32))), ..Default::default() }) as Box<dyn Any>))));
     probe(Rc::new(RefCell::new(Some(Box::new("x".to_string()) as Box<dyn Any>))));
 }

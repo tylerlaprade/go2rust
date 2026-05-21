@@ -120,7 +120,7 @@ pub mod types {
 pub fn forms(named: Arc<Mutex<Option<types_Named>>>) -> Arc<Mutex<Option<i32>>> {
 
     if (*named.lock().unwrap()).is_none() {
-        return Arc::new(Mutex::new(Some(0)));
+        return Arc::new(Mutex::new(Some(0 as i32)));
     }
     let mut count = Arc::new(Mutex::new(Some(0)));
     for recv in &Vec::<types_Type>::from([{ let __arg = named.clone(); let __arg_guard = __arg.lock().unwrap(); __arg_guard.as_ref().map(|__v| (*__v).clone().into()).unwrap_or_else(types_Type::default) }, { let __arg = types::new_pointer(named.clone()); let __arg_guard = __arg.lock().unwrap(); __arg_guard.as_ref().map(|__v| (*__v).clone().into()).unwrap_or_else(types_Type::default) }]) {

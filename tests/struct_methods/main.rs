@@ -34,12 +34,12 @@ impl rect {
     }
 
     pub fn perim(&self) -> Rc<RefCell<Option<i32>>> {
-        return Rc::new(RefCell::new(Some(2 * (*self.width.borrow().as_ref().unwrap()) + 2 * (*self.height.borrow().as_ref().unwrap()))));
+        return Rc::new(RefCell::new(Some(2 as i32 * (*self.width.borrow().as_ref().unwrap()) + 2 as i32 * (*self.height.borrow().as_ref().unwrap()))));
     }
 }
 
 fn main() {
-    let mut r = Rc::new(RefCell::new(Some(rect { width: Rc::new(RefCell::new(Some(10))), height: Rc::new(RefCell::new(Some(5))), ..Default::default() })));
+    let mut r = Rc::new(RefCell::new(Some(rect { width: Rc::new(RefCell::new(Some(10 as i32))), height: Rc::new(RefCell::new(Some(5 as i32))), ..Default::default() })));
     println!("{} {}", format!("{}", "area: ".to_string()), format!("{}", (*(*r.borrow().as_ref().unwrap()).area().borrow().as_ref().unwrap())));
     println!("{} {}", format!("{}", "perim:".to_string()), format!("{}", (*(*r.borrow().as_ref().unwrap()).perim().borrow().as_ref().unwrap())));
 

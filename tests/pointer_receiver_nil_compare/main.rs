@@ -37,7 +37,7 @@ impl node {
 }
 
 fn main() {
-    let mut left = Rc::new(RefCell::new(Some(node { value: Rc::new(RefCell::new(Some(7))), ..Default::default() })));
+    let mut left = Rc::new(RefCell::new(Some(node { value: Rc::new(RefCell::new(Some(7 as i32))), ..Default::default() })));
     let mut missing: Rc<RefCell<Option<node>>> = Rc::new(RefCell::new(None));
     println!("{}", format!("{}", (*(*left.borrow().as_ref().unwrap()).same(missing.clone()).borrow().as_ref().unwrap())));
 }

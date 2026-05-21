@@ -739,6 +739,10 @@ func writeRegularMethodCallArgument(out *strings.Builder, sel *ast.SelectorExpr,
 		if writeEmptyInterfaceCallArgument(out, arg, expectedArgType) {
 			return
 		}
+	} else if writeEmptyInterfaceCallArgumentForTypeExpr(out, arg, expectedArgExpr) {
+		return
+	}
+	if expectedArgType != nil {
 		if writeAlreadyWrappedStdlibInterfaceCallArgument(out, arg, expectedArgType) {
 			return
 		}
@@ -3357,11 +3361,18 @@ func writeInterfaceBoxedValue(out *strings.Builder, expr ast.Expr) {
 
 func isEmptyInterfaceValueExpr(expr ast.Expr) bool {
 	typeInfo := GetTypeInfo()
-	if typeInfo != nil && isEmptyInterfaceType(typeInfo.GetType(expr)) {
-		return true
+	if typeInfo != nil {
+		if typ := typeInfo.GetType(expr); typ != nil {
+			return isEmptyInterfaceType(typ)
+		}
 	}
 	if ident, ok := expr.(*ast.Ident); ok {
 		if info := lookupVarInfo(ident.Name); info != nil && strings.Contains(info.RustType, "Box<dyn Any") {
+			return true
+		}
+	}
+	if sel, ok := expr.(*ast.SelectorExpr); ok {
+		if fieldExpr, ok := selectorFieldTypeExpr(sel); ok && isEmptyInterfaceExpr(fieldExpr) {
 			return true
 		}
 	}
@@ -3381,6 +3392,19 @@ func writeEmptyInterfaceCallArgument(out *strings.Builder, arg ast.Expr, expecte
 	if !isEmptyInterfaceType(expectedType) {
 		return false
 	}
+	writeEmptyInterfaceCallArgumentValue(out, arg)
+	return true
+}
+
+func writeEmptyInterfaceCallArgumentForTypeExpr(out *strings.Builder, arg ast.Expr, expectedExpr ast.Expr) bool {
+	if !isEmptyInterfaceExpr(expectedExpr) {
+		return false
+	}
+	writeEmptyInterfaceCallArgumentValue(out, arg)
+	return true
+}
+
+func writeEmptyInterfaceCallArgumentValue(out *strings.Builder, arg ast.Expr) {
 	if ident, ok := arg.(*ast.Ident); ok && ident.Name == "nil" {
 		if NeedsConcurrentWrapper() {
 			TrackImport("Arc")
@@ -3393,15 +3417,14 @@ func writeEmptyInterfaceCallArgument(out *strings.Builder, arg ast.Expr, expecte
 		}
 		out.WriteString(rustAnyTraitObject())
 		out.WriteString(">))")
-		return true
+		return
 	}
 	if writeEmptyInterfaceHandleClone(out, arg) {
-		return true
+		return
 	}
 	WriteWrapperPrefix(out)
 	writeInterfaceBoxedValue(out, arg)
 	WriteWrapperSuffix(out)
-	return true
 }
 
 func writeEmptyInterfaceIdentAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
@@ -3430,6 +3453,10 @@ func writeEmptyInterfaceIdentAssignment(out *strings.Builder, lhs ast.Expr, rhs 
 				out.WriteString(" = new_val; }")
 				return true
 			}
+		}
+		if writePointerHandleSelectorTarget(out, sel) {
+			out.WriteString(" = new_val; }")
+			return true
 		}
 		if typeInfoIsPointerExpr(sel.X) {
 			out.WriteString("(*")
@@ -7272,6 +7299,44 @@ func TranspileFuncLitBox(out *strings.Builder, funcLit *ast.FuncLit) {
 		out.WriteString(" ")
 	}
 
+	if vt := GetVarTable(); vt != nil {
+		vt.PushScope()
+		defer vt.PopScope()
+		if funcLit.Type.Params != nil {
+			for _, field := range funcLit.Type.Params.List {
+				for _, name := range field.Names {
+					rustType := goTypeToRustBase(field.Type)
+					if functionRustType, ok := functionTypeRustNameFromTypeExpr(field.Type); ok {
+						rustType = functionRustType
+					}
+					registerTypeExprCollectionInfo(name.Name, field.Type)
+					if varInfo, ok := interfaceParamVarInfo(field.Type); ok {
+						varInfo.RustType = rustType
+						vt.Register(name.Name, varInfo)
+					} else if _, ok := field.Type.(*ast.ChanType); ok {
+						vt.Register(name.Name, &VarInfo{
+							WrapLevel: WrapNone,
+							RustType:  rustType,
+							Source:    SourceParam,
+						})
+					} else if isSyncParam(field.Type) {
+						vt.Register(name.Name, &VarInfo{
+							WrapLevel: WrapNone,
+							RustType:  rustType,
+							Source:    SourceParam,
+						})
+					} else {
+						vt.Register(name.Name, &VarInfo{
+							WrapLevel: WrapFull,
+							RustType:  rustType,
+							Source:    SourceParam,
+						})
+					}
+				}
+			}
+		}
+	}
+
 	// Body
 	out.WriteString("{\n")
 	if hasClosureDefer {
@@ -9649,10 +9714,8 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				}
 			}
 			// Check for anonymous empty interface{} parameter → Box<dyn Any>
-			if ifaceType, ok := paramType.(*ast.InterfaceType); ok {
-				if ifaceType.Methods == nil || len(ifaceType.Methods.List) == 0 {
-					expectsEmptyInterface = true
-				}
+			if isEmptyInterfaceExpr(paramType) {
+				expectsEmptyInterface = true
 			}
 		}
 		if expectedArgType == nil {
@@ -9766,6 +9829,10 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 					out.WriteString(rustAnyTraitObject())
 					out.WriteString(")))")
 				}
+				continue
+			}
+
+			if isClosureCall && expectedArgType == nil && writeEmptyInterfaceHandleClone(out, arg) {
 				continue
 			}
 

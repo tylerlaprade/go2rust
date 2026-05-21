@@ -11,11 +11,11 @@ fn main() {
     print!("Point: ({}, {})\n", (*(*point.borrow().as_ref().unwrap()).x.borrow().as_ref().unwrap()), (*(*point.borrow().as_ref().unwrap()).y.borrow().as_ref().unwrap()));
 
         // Anonymous struct literal
-    let mut person = Rc::new(RefCell::new(Some(AnonymousStruct2 { name: Rc::new(RefCell::new(Some("Alice".to_string()))), age: Rc::new(RefCell::new(Some(30))) })));
+    let mut person = Rc::new(RefCell::new(Some(AnonymousStruct2 { name: Rc::new(RefCell::new(Some("Alice".to_string()))), age: Rc::new(RefCell::new(Some(30 as i32))) })));
     print!("Person: {}, {} years old\n", (*(*person.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()).clone(), (*(*person.borrow().as_ref().unwrap()).age.borrow().as_ref().unwrap()));
 
         // Anonymous struct with nested fields
-    let mut config = Rc::new(RefCell::new(Some(AnonymousStruct3 { host: Rc::new(RefCell::new(Some("localhost".to_string()))), port: Rc::new(RefCell::new(Some(8080))), settings: Rc::new(RefCell::new(Some(AnonymousStruct4::default()))) })));
+    let mut config = Rc::new(RefCell::new(Some(AnonymousStruct3 { host: Rc::new(RefCell::new(Some("localhost".to_string()))), port: Rc::new(RefCell::new(Some(8080 as i32))), settings: Rc::new(RefCell::new(Some(AnonymousStruct4::default()))) })));
     { let new_val = true; *(*(*config.borrow().as_ref().unwrap()).settings.borrow().as_ref().unwrap()).debug.borrow_mut() = Some(new_val); };
     { let new_val = false; *(*(*config.borrow().as_ref().unwrap()).settings.borrow().as_ref().unwrap()).verbose.borrow_mut() = Some(new_val); };
     print!("Config: {}:{} (Debug: {}, Verbose: {})\n", (*(*config.borrow().as_ref().unwrap()).host.borrow().as_ref().unwrap()).clone(), (*(*config.borrow().as_ref().unwrap()).port.borrow().as_ref().unwrap()), (*(*(*config.borrow().as_ref().unwrap()).settings.borrow().as_ref().unwrap()).debug.borrow().as_ref().unwrap()), (*(*(*config.borrow().as_ref().unwrap()).settings.borrow().as_ref().unwrap()).verbose.borrow().as_ref().unwrap()));

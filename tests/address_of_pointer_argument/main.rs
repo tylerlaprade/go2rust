@@ -59,9 +59,9 @@ pub fn accept(ptr: Rc<RefCell<Option<info>>>) -> Rc<RefCell<Option<String>>> {
 }
 
 fn main() {
-    println!("{}", format!("{}", (*accept(Rc::new(RefCell::new(Some(info { name: Rc::new(RefCell::new(Some("alpha".to_string()))), value: Rc::new(RefCell::new(Some(7))), ..Default::default() })))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*accept(Rc::new(RefCell::new(Some(info { name: Rc::new(RefCell::new(Some("alpha".to_string()))), value: Rc::new(RefCell::new(Some(7 as i32))), ..Default::default() })))).borrow().as_ref().unwrap())));
 
     let mut t = Rc::new(RefCell::new(Some(table { last: Rc::new(RefCell::new(Some(Default::default()))) })));
-    (*t.borrow_mut().as_mut().unwrap()).register(Rc::new(RefCell::new(Some("beta".to_string()))), Rc::new(RefCell::new(Some(info { name: Rc::new(RefCell::new(Some("beta".to_string()))), value: Rc::new(RefCell::new(Some(9))), ..Default::default() }))));
+    (*t.borrow_mut().as_mut().unwrap()).register(Rc::new(RefCell::new(Some("beta".to_string()))), Rc::new(RefCell::new(Some(info { name: Rc::new(RefCell::new(Some("beta".to_string()))), value: Rc::new(RefCell::new(Some(9 as i32))), ..Default::default() }))));
     println!("{}", format!("{}", (*(*(*t.borrow().as_ref().unwrap()).last.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap())));
 }

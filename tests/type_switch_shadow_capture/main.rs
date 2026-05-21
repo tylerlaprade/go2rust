@@ -80,7 +80,7 @@ impl holder {
 }
 
 fn main() {
-    let mut T = holder { value: Rc::new(RefCell::new(Some(Box::new(node { value: Rc::new(RefCell::new(Some(7))), ..Default::default() }) as Box<dyn Any>))), ..Default::default() }.current();
+    let mut T = holder { value: Rc::new(RefCell::new(Some(Box::new(node { value: Rc::new(RefCell::new(Some(7 as i32))), ..Default::default() }) as Box<dyn Any>))), ..Default::default() }.current();
     let T_closure_clone = T.clone(); let mut visit = Rc::new(RefCell::new(Some(Box::new(move || -> Rc<RefCell<Option<i32>>> {
         {
     let _ts_subject = T.clone();
@@ -94,7 +94,7 @@ fn main() {
     } else {
         let T = T.clone();
         drop(_ts_guard);
-        return Rc::new(RefCell::new(Some(0)));;
+        return Rc::new(RefCell::new(Some(0 as i32)));;
     }
     }
     unreachable!()

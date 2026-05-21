@@ -51,7 +51,7 @@ pub(crate) static shared: GoGlobal<Rc<RefCell<Option<Counter>>>> = GoGlobal::new
 
 fn __go_init_globals() {
     *shared.borrow_mut() = Some(Default::default());
-    *shared.borrow_mut() = Some(Rc::new(RefCell::new(Some(Counter { value: Rc::new(RefCell::new(Some(7))), ..Default::default() }))));
+    *shared.borrow_mut() = Some(Rc::new(RefCell::new(Some(Counter { value: Rc::new(RefCell::new(Some(7 as i32))), ..Default::default() }))));
 }
 
 

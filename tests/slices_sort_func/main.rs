@@ -50,15 +50,15 @@ pub fn compare_length(a: Rc<RefCell<Option<String>>>, b: Rc<RefCell<Option<Strin
         return Rc::new(RefCell::new(Some(-1)));
     }
     if ((*a.borrow().as_ref().unwrap()).len() as i32) > ((*b.borrow().as_ref().unwrap()).len() as i32) {
-        return Rc::new(RefCell::new(Some(1)));
+        return Rc::new(RefCell::new(Some(1 as i32)));
     }
     if (*a.borrow().as_ref().unwrap()) < (*b.borrow().as_ref().unwrap()) {
         return Rc::new(RefCell::new(Some(-1)));
     }
     if (*a.borrow().as_ref().unwrap()) > (*b.borrow().as_ref().unwrap()) {
-        return Rc::new(RefCell::new(Some(1)));
+        return Rc::new(RefCell::new(Some(1 as i32)));
     }
-    return Rc::new(RefCell::new(Some(0)));
+    return Rc::new(RefCell::new(Some(0 as i32)));
 }
 
 fn main() {

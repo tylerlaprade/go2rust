@@ -158,7 +158,7 @@ pub fn pos_from_int(n: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<token_Pos>>>
 
 pub fn int_value() -> Arc<Mutex<Option<i32>>> {
 
-    return Arc::new(Mutex::new(Some(1)));
+    return Arc::new(Mutex::new(Some(1 as i32)));
 }
 
 pub fn kind_name() -> Arc<Mutex<Option<String>>> {

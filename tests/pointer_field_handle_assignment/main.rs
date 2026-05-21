@@ -29,8 +29,8 @@ impl std::fmt::Display for node {
 
 fn main() {
     let mut r#box: Rc<RefCell<Option<AnonymousStruct1>>> = Rc::new(RefCell::new(Some(Default::default())));
-    let mut first = Rc::new(RefCell::new(Some(node { value: Rc::new(RefCell::new(Some(1))), ..Default::default() })));
-    let mut second = Rc::new(RefCell::new(Some(node { value: Rc::new(RefCell::new(Some(2))), ..Default::default() })));
+    let mut first = Rc::new(RefCell::new(Some(node { value: Rc::new(RefCell::new(Some(1 as i32))), ..Default::default() })));
+    let mut second = Rc::new(RefCell::new(Some(node { value: Rc::new(RefCell::new(Some(2 as i32))), ..Default::default() })));
 
     { let new_val = first.clone(); (*r#box.borrow_mut().as_mut().unwrap()).child = new_val; };
     { let new_val = second.clone(); (*r#box.borrow_mut().as_mut().unwrap()).child = new_val; };

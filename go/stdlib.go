@@ -232,8 +232,34 @@ func transpilePrintArgString(out *strings.Builder, arg ast.Expr) {
 	out.WriteString(")")
 }
 
+func writeFormatAnyPrintArg(out *strings.Builder, arg ast.Expr) {
+	NeedFormatAny()
+	out.WriteString("format_any(")
+	if ident, ok := arg.(*ast.Ident); ok {
+		out.WriteString(RustIdentForUse(ident))
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap().as_ref()")
+	} else if _, ok := arg.(*ast.SelectorExpr); ok {
+		TranspileExpressionContext(out, arg, LValue)
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap().as_ref()")
+	} else {
+		out.WriteString("(")
+		TranspileExpression(out, arg)
+		out.WriteString(")")
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap().as_ref()")
+	}
+	out.WriteString(")")
+}
+
 // Helper function to unwrap arguments for print statements
 func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
+	if isEmptyInterfaceValueExpr(arg) {
+		writeFormatAnyPrintArg(out, arg)
+		return
+	}
+
 	// Type-based printing using TypeInfo
 	typeInfo := GetTypeInfo()
 	if typeInfo != nil && typeInfo.GetType(arg) != nil {
@@ -264,25 +290,7 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 
 			if intf.NumMethods() == 0 {
 				// It's interface{} - use format_any helper
-				NeedFormatAny()
-				out.WriteString("format_any(")
-				if ident, ok := arg.(*ast.Ident); ok {
-					out.WriteString(RustIdentForUse(ident))
-					WriteBorrowMethod(out, false)
-					out.WriteString(".as_ref().unwrap().as_ref()")
-				} else if _, ok := arg.(*ast.SelectorExpr); ok {
-					TranspileExpressionContext(out, arg, LValue)
-					WriteBorrowMethod(out, false)
-					out.WriteString(".as_ref().unwrap().as_ref()")
-				} else {
-					// Complex expression
-					out.WriteString("(")
-					TranspileExpression(out, arg)
-					out.WriteString(")")
-					WriteBorrowMethod(out, false)
-					out.WriteString(".as_ref().unwrap().as_ref()")
-				}
-				out.WriteString(")")
+				writeFormatAnyPrintArg(out, arg)
 			} else {
 				// It's a named interface - use Display formatting
 				// Check if it's a bare interface param (&dyn Trait) - use directly

@@ -174,7 +174,7 @@ pub fn print_person(p: Arc<Mutex<Option<AnonymousStruct1>>>) {
 /// Function returning anonymous struct
 pub fn get_point() -> Arc<Mutex<Option<AnonymousStruct2>>> {
 
-    return Arc::new(Mutex::new(Some(AnonymousStruct2 { x: Arc::new(Mutex::new(Some(10))), y: Arc::new(Mutex::new(Some(20))) })));
+    return Arc::new(Mutex::new(Some(AnonymousStruct2 { x: Arc::new(Mutex::new(Some(10 as i32))), y: Arc::new(Mutex::new(Some(20 as i32))) })));
 }
 
 /// Function with multiple anonymous struct parameters
@@ -186,7 +186,7 @@ pub fn compare_points(p1: Arc<Mutex<Option<AnonymousStruct2>>>, p2: Arc<Mutex<Op
 /// Function returning multiple values including anonymous struct
 pub fn get_config() -> (Arc<Mutex<Option<String>>>, Arc<Mutex<Option<AnonymousStruct3>>>) {
 
-    return (Arc::new(Mutex::new(Some("server".to_string()))), Arc::new(Mutex::new(Some(AnonymousStruct3 { port: Arc::new(Mutex::new(Some(8080))), timeout: Arc::new(Mutex::new(Some(30))) }))));
+    return (Arc::new(Mutex::new(Some("server".to_string()))), Arc::new(Mutex::new(Some(AnonymousStruct3 { port: Arc::new(Mutex::new(Some(8080 as i32))), timeout: Arc::new(Mutex::new(Some(30 as i32))) }))));
 }
 
 /// Function with anonymous struct pointer parameter
@@ -204,16 +204,16 @@ pub fn process_events(ch: GoChannel<AnonymousStruct5>) {
 
 fn main() {
         // Test function with anonymous struct parameter
-    print_person(Arc::new(Mutex::new(Some(AnonymousStruct1 { name: Arc::new(Mutex::new(Some("Alice".to_string()))), age: Arc::new(Mutex::new(Some(30))) }))));
+    print_person(Arc::new(Mutex::new(Some(AnonymousStruct1 { name: Arc::new(Mutex::new(Some("Alice".to_string()))), age: Arc::new(Mutex::new(Some(30 as i32))) }))));
 
         // Test function returning anonymous struct
     let mut point = get_point();
     print!("Point: ({}, {})\n", (*{ let __field = (*point.lock().unwrap().as_ref().unwrap()).x.clone(); __field }.lock().unwrap().as_ref().unwrap()), (*{ let __field = (*point.lock().unwrap().as_ref().unwrap()).y.clone(); __field }.lock().unwrap().as_ref().unwrap()));
 
         // Test function with multiple anonymous struct parameters
-    let mut p1 = Arc::new(Mutex::new(Some(AnonymousStruct2 { x: Arc::new(Mutex::new(Some(5))), y: Arc::new(Mutex::new(Some(10))) })));
-    let mut p2 = Arc::new(Mutex::new(Some(AnonymousStruct2 { x: Arc::new(Mutex::new(Some(5))), y: Arc::new(Mutex::new(Some(10))) })));
-    let mut p3 = Arc::new(Mutex::new(Some(AnonymousStruct2 { x: Arc::new(Mutex::new(Some(10))), y: Arc::new(Mutex::new(Some(20))) })));
+    let mut p1 = Arc::new(Mutex::new(Some(AnonymousStruct2 { x: Arc::new(Mutex::new(Some(5 as i32))), y: Arc::new(Mutex::new(Some(10 as i32))) })));
+    let mut p2 = Arc::new(Mutex::new(Some(AnonymousStruct2 { x: Arc::new(Mutex::new(Some(5 as i32))), y: Arc::new(Mutex::new(Some(10 as i32))) })));
+    let mut p3 = Arc::new(Mutex::new(Some(AnonymousStruct2 { x: Arc::new(Mutex::new(Some(10 as i32))), y: Arc::new(Mutex::new(Some(20 as i32))) })));
     print!("p1 == p2: {}\n", (*compare_points(p1.clone(), p2.clone()).lock().unwrap().as_ref().unwrap()));
     print!("p1 == p3: {}\n", (*compare_points(p1.clone(), p3.clone()).lock().unwrap().as_ref().unwrap()));
 

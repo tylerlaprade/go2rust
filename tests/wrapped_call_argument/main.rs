@@ -38,7 +38,7 @@ impl Box_ {
 }
 
 fn main() {
-    let mut r#box = Rc::new(RefCell::new(Some(Box_ { value: Rc::new(RefCell::new(Some(7))), ..Default::default() })));
+    let mut r#box = Rc::new(RefCell::new(Some(Box_ { value: Rc::new(RefCell::new(Some(7 as i32))), ..Default::default() })));
     let mut holder = Rc::new(RefCell::new(Some(Box_ { value: Rc::new(RefCell::new(Some(0))) })));
     println!("{}", format!("{}", (*(*holder.borrow().as_ref().unwrap()).r#use((*r#box.borrow().as_ref().unwrap()).inner()).borrow().as_ref().unwrap())));
 }

@@ -5,9 +5,9 @@ pub fn choose(ok: Rc<RefCell<Option<bool>>>) -> (Rc<RefCell<Option<i32>>>, Rc<Re
 
     loop {
         if (*ok.borrow().as_ref().unwrap()) {
-        return (Rc::new(RefCell::new(Some(1))), Rc::new(RefCell::new(Some("ok".to_string()))));
+        return (Rc::new(RefCell::new(Some(1 as i32))), Rc::new(RefCell::new(Some("ok".to_string()))));
     }
-        return (Rc::new(RefCell::new(Some(0))), Rc::new(RefCell::new(Some("no".to_string()))));
+        return (Rc::new(RefCell::new(Some(0 as i32))), Rc::new(RefCell::new(Some("no".to_string()))));
     }
 }
 

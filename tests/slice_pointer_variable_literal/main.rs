@@ -28,7 +28,7 @@ impl std::fmt::Display for item {
 
 
 fn main() {
-    let mut ptr = Rc::new(RefCell::new(Some(item { value: Rc::new(RefCell::new(Some(4))), ..Default::default() })));
+    let mut ptr = Rc::new(RefCell::new(Some(item { value: Rc::new(RefCell::new(Some(4 as i32))), ..Default::default() })));
     let mut items = Rc::new(RefCell::new(Some(vec![ptr.clone()])));
 
     { let new_val = 9; *(*ptr.borrow().as_ref().unwrap()).value.borrow_mut() = Some(new_val); };

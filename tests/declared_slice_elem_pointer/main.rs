@@ -108,13 +108,13 @@ fn main() {
     let mut hole: Option<GoSliceElemPtr<entry>> = None;
 
     { let __range_holder = bucket.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, e) in __range_values.iter().enumerate() {
-        if { let __tmp_x = (*e.key.lock().unwrap().as_ref().unwrap()); let __tmp_y = 1; __tmp_x == __tmp_y } {
+        if { let __tmp_x = (*e.key.lock().unwrap().as_ref().unwrap()); let __tmp_y = 1 as i32; __tmp_x == __tmp_y } {
         hole = Some(GoSliceElemPtr::new(bucket.clone(), (i) as usize));
     }
     } }
 
     if hole.is_some() {
-        { let new_val = entry { key: Arc::new(Mutex::new(Some(1))), value: Arc::new(Mutex::new(Some("new".to_string()))), ..Default::default() }; *hole.as_ref().unwrap().borrow_mut() = Some(new_val); };
+        { let new_val = entry { key: Arc::new(Mutex::new(Some(1 as i32))), value: Arc::new(Mutex::new(Some("new".to_string()))), ..Default::default() }; *hole.as_ref().unwrap().borrow_mut() = Some(new_val); };
     }
 
     println!("{}", format!("{}", (*{ let __seq = { let __seq_holder = bucket.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.value.lock().unwrap().as_ref().unwrap())));

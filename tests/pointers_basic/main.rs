@@ -41,7 +41,7 @@ fn main() {
     println!("{} {}", format!("{}", "Modified x:".to_string()), format!("{}", { let __v = (*x.borrow().as_ref().unwrap()).clone(); __v }));
 
         // Pointer to struct
-    let mut point = Rc::new(RefCell::new(Some(Point { x: Rc::new(RefCell::new(Some(10))), y: Rc::new(RefCell::new(Some(20))), ..Default::default() })));
+    let mut point = Rc::new(RefCell::new(Some(Point { x: Rc::new(RefCell::new(Some(10 as i32))), y: Rc::new(RefCell::new(Some(20 as i32))), ..Default::default() })));
     println!("{} {}", format!("{}", "Point:".to_string()), format!("{}", format!("&{}", (*point.borrow().as_ref().unwrap()))));
     println!("{} {}", format!("{}", "Point X:".to_string()), format!("{}", (*(*point.borrow().as_ref().unwrap()).x.borrow().as_ref().unwrap())));
     println!("{} {}", format!("{}", "Point Y:".to_string()), format!("{}", (*(*point.borrow().as_ref().unwrap()).y.borrow().as_ref().unwrap())));

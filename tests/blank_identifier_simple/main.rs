@@ -4,7 +4,7 @@ use std::rc::{Rc};
 
 pub fn multiple_returns() -> (Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<String>>>, Rc<RefCell<Option<bool>>>) {
 
-    return (Rc::new(RefCell::new(Some(42))), Rc::new(RefCell::new(Some("hello".to_string()))), Rc::new(RefCell::new(Some(true))));
+    return (Rc::new(RefCell::new(Some(42 as i32))), Rc::new(RefCell::new(Some("hello".to_string()))), Rc::new(RefCell::new(Some(true))));
 }
 
 pub fn named_blank_result() -> (Rc<RefCell<Option<String>>>, Rc<RefCell<Option<bool>>>) {

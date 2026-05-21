@@ -231,6 +231,6 @@ fn main() {
     });
     done.recv().unwrap();
 
-    let mut p = Arc::new(Mutex::new(Some(Params { n: Arc::new(Mutex::new(Some(3))), ..Default::default() })));
+    let mut p = Arc::new(Mutex::new(Some(Params { n: Arc::new(Mutex::new(Some(3 as i32))), ..Default::default() })));
     println!("{}", format!("{}", (*total(p.clone()).lock().unwrap().as_ref().unwrap())));
 }
