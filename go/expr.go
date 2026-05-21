@@ -725,6 +725,8 @@ func writeRegularMethodCallArgument(out *strings.Builder, sel *ast.SelectorExpr,
 		if _, ok := transpiledNamedInterfaceTypeNameFromTypes(expectedArgType); ok && writeLocalInterfaceReferenceCallArgument(out, arg, expectedArgType) {
 			return
 		}
+	} else if writeLocalInterfaceReferenceCallArgumentForTypeExpr(out, arg, expectedArgExpr) {
+		return
 	}
 	if ident, ok := arg.(*ast.Ident); ok && ident.Name == "nil" {
 		WriteWrappedNone(out)
@@ -1851,6 +1853,21 @@ func writeLocalInterfaceReferenceCallArgument(out *strings.Builder, arg ast.Expr
 	return false
 }
 
+func writeLocalInterfaceReferenceCallArgumentForTypeExpr(out *strings.Builder, arg ast.Expr, expectedExpr ast.Expr) bool {
+	if _, ok := transpiledNamedInterfaceTypeNameFromExpr(expectedExpr); !ok {
+		return false
+	}
+	if ident, ok := arg.(*ast.Ident); ok {
+		if writeLocalInterfaceConstReferenceCallArgumentFromTypeExpr(out, ident, expectedExpr) {
+			return true
+		}
+		if isConstIdent(ident) {
+			return false
+		}
+	}
+	return writeLocalInterfaceReferenceCallArgument(out, arg, nil)
+}
+
 func writeLocalInterfaceConstReferenceCallArgument(out *strings.Builder, ident *ast.Ident, expected types.Type) bool {
 	if ident == nil || expected == nil {
 		return false
@@ -1872,6 +1889,32 @@ func writeLocalInterfaceConstReferenceCallArgument(out *strings.Builder, ident *
 	}
 	var value strings.Builder
 	if !writeExpressionForExpectedTypesType(&value, ident, named) {
+		return false
+	}
+	out.WriteString("&")
+	out.WriteString(value.String())
+	return true
+}
+
+func writeLocalInterfaceConstReferenceCallArgumentFromTypeExpr(out *strings.Builder, ident *ast.Ident, expectedExpr ast.Expr) bool {
+	if ident == nil {
+		return false
+	}
+	if _, ok := transpiledNamedInterfaceTypeNameFromExpr(expectedExpr); !ok {
+		return false
+	}
+	if !isConstIdent(ident) {
+		return false
+	}
+	typeName := packageConstantTypeNames[ident.Name]
+	if typeName == "" {
+		return false
+	}
+	if _, ok := LookupTypeDefinition(typeName); !ok {
+		return false
+	}
+	var value strings.Builder
+	if !writeExpressionForExpectedType(&value, ident, ast.NewIdent(typeName)) {
 		return false
 	}
 	out.WriteString("&")
@@ -9590,6 +9633,12 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 						// We no longer need interface boxing since params changed
 						needsInterfaceBoxing = false
 					}
+				} else if typeInfo == nil {
+					if interfaceNameFromSyntax, ok := transpiledNamedInterfaceTypeNameFromExpr(ident); ok {
+						expectsInterfaceParam = true
+						interfaceName = interfaceNameFromSyntax
+						needsInterfaceBoxing = false
+					}
 				}
 			}
 			// Check for anonymous empty interface{} parameter → Box<dyn Any>
@@ -9632,11 +9681,16 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 			// Special handling for interface parameters that now use &dyn Trait
 			if expectsInterfaceParam {
 				// Interface parameter - pass as reference without wrapper
-				if expectedArgType == nil || !writeLocalInterfaceReferenceCallArgument(out, arg, expectedArgType) {
-					// Complex expression - need to evaluate and reference
-					out.WriteString("&*")
-					TranspileExpression(out, arg)
+				if expectedArgType != nil {
+					if writeLocalInterfaceReferenceCallArgument(out, arg, expectedArgType) {
+						continue
+					}
+				} else if writeLocalInterfaceReferenceCallArgumentForTypeExpr(out, arg, paramTypeForArg) {
+					continue
 				}
+				// Complex expression - need to evaluate and reference
+				out.WriteString("&*")
+				TranspileExpression(out, arg)
 				continue // Skip the regular handling
 			}
 

@@ -26,6 +26,7 @@ type PackageState struct {
 	FunctionTypeAliasBoxTypes    map[string]string
 	MapKeyStructTypes            map[string]bool
 	PackageConstants             map[string]string
+	PackageConstantTypeNames     map[string]string
 	GoPackageImports             map[string]string
 	ExternalPackages             map[string]bool
 	StructDefs                   map[string]*StructDef
@@ -113,6 +114,7 @@ func NewPackageState() *PackageState {
 		FunctionTypeAliasBoxTypes:    make(map[string]string),
 		MapKeyStructTypes:            make(map[string]bool),
 		PackageConstants:             make(map[string]string),
+		PackageConstantTypeNames:     make(map[string]string),
 		GoPackageImports:             make(map[string]string),
 		ExternalPackages:             make(map[string]bool),
 		StructDefs:                   make(map[string]*StructDef),
@@ -224,6 +226,12 @@ func (ctx *TranspileContext) ensureDefaults() {
 		}
 		if ctx.Package.MapKeyStructTypes == nil {
 			ctx.Package.MapKeyStructTypes = make(map[string]bool)
+		}
+		if ctx.Package.PackageConstants == nil {
+			ctx.Package.PackageConstants = make(map[string]string)
+		}
+		if ctx.Package.PackageConstantTypeNames == nil {
+			ctx.Package.PackageConstantTypeNames = make(map[string]string)
 		}
 		if ctx.Package.GoPackageImports == nil {
 			ctx.Package.GoPackageImports = make(map[string]string)
@@ -359,6 +367,7 @@ func (ctx *TranspileContext) captureCompatibilityState() {
 			ctx.Package.MapKeyStructTypes = make(map[string]bool)
 		}
 		ctx.Package.PackageConstants = packageConstants
+		ctx.Package.PackageConstantTypeNames = packageConstantTypeNames
 		ctx.Package.GoPackageImports = goPackageImports
 		ctx.Package.ExternalPackages = externalPackages
 		ctx.Package.StructDefs = structDefs
@@ -420,6 +429,7 @@ func (ctx *TranspileContext) applyCompatibilityState() {
 		functionTypeAliases = ctx.Package.FunctionTypeAliases
 		functionTypeAliasBoxTypes = ctx.Package.FunctionTypeAliasBoxTypes
 		packageConstants = ctx.Package.PackageConstants
+		packageConstantTypeNames = ctx.Package.PackageConstantTypeNames
 		goPackageImports = ctx.Package.GoPackageImports
 		externalPackages = ctx.Package.ExternalPackages
 		structDefs = ctx.Package.StructDefs

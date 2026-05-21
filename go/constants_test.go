@@ -410,6 +410,7 @@ func transpileRegression(t *testing.T, src string, typeInfo *TypeInfo) string {
 	prevContext := currentContext
 	prevVarTable := currentVarTable
 	prevPackageConstants := packageConstants
+	prevPackageConstantTypeNames := packageConstantTypeNames
 	prevPackageGlobals := packageGlobalNames
 	prevTypeDefinitions := typeDefinitions
 	prevStructDefs := structDefs
@@ -429,6 +430,7 @@ func transpileRegression(t *testing.T, src string, typeInfo *TypeInfo) string {
 		currentContext = prevContext
 		SetVarTable(prevVarTable)
 		packageConstants = prevPackageConstants
+		packageConstantTypeNames = prevPackageConstantTypeNames
 		packageGlobalNames = prevPackageGlobals
 		typeDefinitions = prevTypeDefinitions
 		structDefs = prevStructDefs

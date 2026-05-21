@@ -57,6 +57,22 @@ func registerPackageConstant(name string, constType string) {
 	}
 }
 
+func registerPackageConstantTypeName(name string, typeName string) {
+	if typeName == "" {
+		return
+	}
+	if packageConstantTypeNames == nil {
+		packageConstantTypeNames = make(map[string]string)
+	}
+	packageConstantTypeNames[name] = typeName
+	if currentContext != nil && currentContext.Package != nil {
+		if currentContext.Package.PackageConstantTypeNames == nil {
+			currentContext.Package.PackageConstantTypeNames = make(map[string]string)
+		}
+		currentContext.Package.PackageConstantTypeNames[name] = typeName
+	}
+}
+
 func writeExpressionForExpectedType(out *strings.Builder, value ast.Expr, expected ast.Expr) bool {
 	if typeInfo := GetTypeInfo(); typeInfo != nil {
 		if writeConstExpressionForExpectedGoType(out, value, typeInfo.GetType(expected)) {

@@ -1083,6 +1083,49 @@ func relay(record func(string)) {
 	}
 }
 
+func TestNoTypeInfoTypedConstMethodInterfaceArgumentUsesNamedValue(t *testing.T) {
+	rust := transpileNoTypeInfoRegression(t, `package main
+
+type Code interface {
+	Value() int
+}
+
+type CodeVal int
+
+func (c CodeVal) Value() int {
+	return int(c)
+}
+
+const (
+	ValBool CodeVal = iota
+	ValString
+)
+
+type Writer struct{}
+
+func (Writer) Code(c Code) int {
+	return c.Value()
+}
+
+func main() {
+	var w Writer
+	w.Code(ValBool)
+	w.Code(ValString)
+}
+`)
+
+	if strings.Contains(rust, ".code(Rc::new(RefCell::new(Some(VAL_BOOL))))") ||
+		strings.Contains(rust, ".code(Rc::new(RefCell::new(Some(VAL_STRING))))") {
+		t.Fatalf("typed constants should not be passed as wrapped raw ints to interface params:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".code(&CodeVal(Rc::new(RefCell::new(Some(VAL_BOOL as i32)))))") {
+		t.Fatalf("typed constant should be constructed as its named value for interface params:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".code(&CodeVal(Rc::new(RefCell::new(Some(VAL_STRING as i32)))))") {
+		t.Fatalf("implicit typed constant should reuse the previous named type for interface params:\n%s", rust)
+	}
+}
+
 func TestNoTypeInfoTrackedSliceIndexDoesNotUseStringPath(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

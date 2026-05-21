@@ -19,6 +19,7 @@ var localMapValueRustTypes = make(map[string]string)
 var localMapValueKeepHandle = make(map[string]bool)
 var localConstants = make(map[string]string)
 var packageConstants = make(map[string]string)
+var packageConstantTypeNames = make(map[string]string)
 
 // localInterfaces tracks locally-defined interface type names (inside functions)
 var localInterfaces = make(map[string]bool)

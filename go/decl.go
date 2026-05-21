@@ -2009,10 +2009,13 @@ func transpileConstDeclWithCase(out *strings.Builder, genDecl *ast.GenDecl, toUp
 				out.WriteString("const ")
 				var constName string
 				var constType string
+				var constTypeName string
 				if valueSpec.Type != nil {
 					constType = rustConstTypeForTypeExpr(valueSpec.Type)
+					constTypeName, _ = constDeclaredNamedType(valueSpec.Type)
 				} else if len(valueSpec.Values) == 0 && lastType != nil {
 					constType = rustConstTypeForTypeExpr(lastType)
+					constTypeName, _ = constDeclaredNamedType(lastType)
 				} else if inferredType, ok := rustConstTypeForConstObject(name); ok {
 					constType = inferredType
 				} else if len(valueSpec.Values) > i && valueSpec.Values[i] != nil {
@@ -2025,6 +2028,7 @@ func transpileConstDeclWithCase(out *strings.Builder, genDecl *ast.GenDecl, toUp
 				if toUpper {
 					constName = rustConstName(name.Name)
 					registerPackageConstant(name.Name, constType)
+					registerPackageConstantTypeName(name.Name, constTypeName)
 				} else {
 					// Keep original name for local constants
 					constName = name.Name
@@ -2064,6 +2068,17 @@ func transpileConstDeclWithCase(out *strings.Builder, genDecl *ast.GenDecl, toUp
 			}
 		}
 	}
+}
+
+func constDeclaredNamedType(expr ast.Expr) (string, bool) {
+	ident, ok := expr.(*ast.Ident)
+	if !ok {
+		return "", false
+	}
+	if _, isTypeDef := LookupTypeDefinition(ident.Name); !isTypeDef {
+		return "", false
+	}
+	return ident.Name, true
 }
 
 func rustConstTypeForConstObject(name *ast.Ident) (string, bool) {
