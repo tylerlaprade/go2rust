@@ -111,7 +111,7 @@ fn main() {
     let mut fruits = Arc::new(Mutex::new(Some({ let __s = (*csv.lock().unwrap().as_ref().unwrap()).clone(); let __sep = ",".to_string(); __s.split(&__sep).map(|__part| __part.to_string()).collect::<Vec<String>>() })));
     print!("Split result: {}\n", format_slice(&fruits));
 
-    let mut rejoined = Arc::new(Mutex::new(Some({ let __parts = (*fruits.lock().unwrap().as_ref().unwrap()).clone(); let __sep = " | ".to_string(); __parts.join(&__sep) })));
+    let mut rejoined = Arc::new(Mutex::new(Some({ let __parts = (*fruits.lock().unwrap()).as_ref().cloned().unwrap_or_default(); let __sep = " | ".to_string(); __parts.join(&__sep) })));
     print!("Rejoined: {}\n", { let __v = (*rejoined.lock().unwrap().as_ref().unwrap()).clone(); __v });
     let (mut before, mut after, mut found) = { let __s = (*csv.lock().unwrap().as_ref().unwrap()).clone(); let __sep = ",".to_string(); if let Some(__idx) = __s.find(&__sep) { let __before = __s[..__idx].to_string(); let __after = __s[__idx + __sep.len()..].to_string(); (Arc::new(Mutex::new(Some(__before))), Arc::new(Mutex::new(Some(__after))), Arc::new(Mutex::new(Some(true)))) } else { (Arc::new(Mutex::new(Some(__s))), Arc::new(Mutex::new(Some(String::new()))), Arc::new(Mutex::new(Some(false)))) } };
     print!("Cut first comma: {} | {} | {}\n", { let __v = (*before.lock().unwrap().as_ref().unwrap()).clone(); __v }, { let __v = (*after.lock().unwrap().as_ref().unwrap()).clone(); __v }, { let __v = (*found.lock().unwrap().as_ref().unwrap()).clone(); __v });

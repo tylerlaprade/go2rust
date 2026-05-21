@@ -15,5 +15,5 @@ pub fn collect(groups: Rc<RefCell<Option<Vec<Vec<String>>>>>) -> Rc<RefCell<Opti
 fn main() {
     let mut missing: Rc<RefCell<Option<Vec<String>>>> = Rc::new(RefCell::new(None));
     let mut values = collect(Rc::new(RefCell::new(Some(vec![{ let __slice_holder = Rc::new(RefCell::new(Some(vec!["go".to_string()]))).clone(); let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().map(|__v| __v.clone()).unwrap_or_default() }, { let __slice_holder = missing.clone(); let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().map(|__v| __v.clone()).unwrap_or_default() }, { let __slice_holder = Rc::new(RefCell::new(Some(vec!["rust".to_string()]))).clone(); let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().map(|__v| __v.clone()).unwrap_or_default() }]))));
-    println!("{}", format!("{}", (*Rc::new(RefCell::new(Some({ let __parts = (*values.borrow().as_ref().unwrap()).clone(); let __sep = ",".to_string(); __parts.join(&__sep) }))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*Rc::new(RefCell::new(Some({ let __parts = (*values.borrow()).as_ref().cloned().unwrap_or_default(); let __sep = ",".to_string(); __parts.join(&__sep) }))).borrow().as_ref().unwrap())));
 }
