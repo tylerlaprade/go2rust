@@ -73,6 +73,7 @@ func findCapturedVarsSyntaxFallback(funcLit *ast.FuncLit) map[string]bool {
 	}
 
 	localNames := localNamesInFuncLitSyntax(funcLit)
+	compositeTypePositions := compositeLiteralTypeIdentPositions(funcLit.Body)
 	var inspectRefs func(ast.Node)
 	inspectRefs = func(node ast.Node) {
 		ast.Inspect(node, func(n ast.Node) bool {
@@ -91,7 +92,7 @@ func findCapturedVarsSyntaxFallback(funcLit *ast.FuncLit) map[string]bool {
 				inspectRefs(node.Stmt)
 				return false
 			case *ast.Ident:
-				if shouldSkipSyntaxCapture(node.Name, localNames) {
+				if compositeTypePositions[int(node.Pos())] || shouldSkipSyntaxCapture(node.Name, localNames) {
 					return true
 				}
 				captured[node.Name] = true
@@ -165,6 +166,24 @@ func localNamesInFuncLitSyntax(funcLit *ast.FuncLit) map[string]bool {
 		return true
 	})
 	return localNames
+}
+
+func compositeLiteralTypeIdentPositions(root ast.Node) map[int]bool {
+	positions := make(map[int]bool)
+	ast.Inspect(root, func(n ast.Node) bool {
+		lit, ok := n.(*ast.CompositeLit)
+		if !ok || lit.Type == nil {
+			return true
+		}
+		ast.Inspect(lit.Type, func(typeNode ast.Node) bool {
+			if ident, ok := typeNode.(*ast.Ident); ok {
+				positions[int(ident.Pos())] = true
+			}
+			return true
+		})
+		return true
+	})
+	return positions
 }
 
 func shouldSkipSyntaxCapture(name string, localNames map[string]bool) bool {

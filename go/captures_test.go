@@ -433,3 +433,61 @@ func makeRequest(prefix string) func(Config) Request {
 		}
 	}
 }
+
+func TestSyntaxClosureCompositeLiteralTypeIsNotCaptured(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+type Config struct {
+	Mode string
+}
+
+type Request struct {
+	Mode string
+}
+
+func makeRequest(prefix string) func(Config) Request {
+	return func(cfg Config) Request {
+		return Request{
+			Mode: prefix + cfg.Mode,
+		}
+	}
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(main.go) error = %v", err)
+	}
+
+	var funcLit *ast.FuncLit
+	ast.Inspect(file, func(n ast.Node) bool {
+		if funcLit != nil {
+			return false
+		}
+		returnStmt, ok := n.(*ast.ReturnStmt)
+		if !ok || len(returnStmt.Results) != 1 {
+			return true
+		}
+		if lit, ok := returnStmt.Results[0].(*ast.FuncLit); ok {
+			funcLit = lit
+			return false
+		}
+		return true
+	})
+	if funcLit == nil {
+		t.Fatal("did not find returned closure")
+	}
+
+	prevTypeInfo := GetTypeInfo()
+	SetTypeInfo(nil)
+	defer SetTypeInfo(prevTypeInfo)
+
+	captured := findCapturedVarsSyntaxFallback(funcLit)
+	if _, ok := captured["prefix"]; !ok {
+		t.Fatalf("closure should capture prefix, got %#v", captured)
+	}
+	for _, name := range []string{"Request", "Mode", "cfg"} {
+		if _, ok := captured[name]; ok {
+			t.Fatalf("syntax capture should not capture %q, got %#v", name, captured)
+		}
+	}
+}
