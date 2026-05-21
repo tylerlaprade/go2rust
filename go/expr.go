@@ -778,8 +778,8 @@ func writeRegularMethodCallArgument(out *strings.Builder, sel *ast.SelectorExpr,
 	WriteWrapperSuffix(out)
 }
 
-func writeVariadicPackedElementValue(out *strings.Builder, arg ast.Expr, elemType types.Type, elemIsAny bool) {
-	if elemIsAny {
+func writeVariadicPackedElementValue(out *strings.Builder, arg ast.Expr, elemType types.Type, elemTypeExpr ast.Expr, elemIsAny bool) {
+	if elemIsAny || isEmptyInterfaceTypeExpr(elemTypeExpr) {
 		writeInterfaceBoxedValue(out, arg)
 		return
 	}
@@ -789,7 +789,25 @@ func writeVariadicPackedElementValue(out *strings.Builder, arg ast.Expr, elemTyp
 			return
 		}
 	}
+	if arrayType, ok := elemTypeExpr.(*ast.ArrayType); ok && arrayType.Len == nil {
+		writeSliceCloneOrEmpty(out, arg)
+		return
+	}
+	if isFunctionSignatureTypeExpr(elemTypeExpr) && writeFunctionValueHandle(out, arg) {
+		return
+	}
 	TranspileExpression(out, arg)
+}
+
+func variadicElementTypeExpr(funcSig *FunctionSignature, variadicStart int) ast.Expr {
+	field := ParamFieldForArg(funcSig, variadicStart)
+	if field == nil {
+		return nil
+	}
+	if ellipsis, ok := field.Type.(*ast.Ellipsis); ok {
+		return ellipsis.Elt
+	}
+	return nil
 }
 
 func writeMethodCallArguments(out *strings.Builder, sel *ast.SelectorExpr, call *ast.CallExpr, externalStdlibStubMethodCall bool, bareMethodCall bool) bool {
@@ -835,7 +853,7 @@ func writeMethodCallArguments(out *strings.Builder, sel *ast.SelectorExpr, call 
 		if i > variadicStart {
 			out.WriteString(", ")
 		}
-		writeVariadicPackedElementValue(out, call.Args[i], variadicElemType, variadicElemIsAny)
+		writeVariadicPackedElementValue(out, call.Args[i], variadicElemType, nil, variadicElemIsAny)
 	}
 	out.WriteString("]")
 	WriteWrapperSuffix(out)
@@ -9463,6 +9481,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 		} else if variadicStart < len(call.Args) {
 			// Individual variadic args: sum(1, 2, 3) → sum(vec![1, 2, 3])
 			variadicElemType := callParamTypeFromTypeInfo(call, variadicStart)
+			variadicElemTypeExpr := variadicElementTypeExpr(funcSig, variadicStart)
 			variadicElemIsAny := isEmptyInterfaceType(variadicElemType)
 			WriteWrapperPrefix(out)
 			out.WriteString("vec![")
@@ -9470,7 +9489,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				if i > variadicStart {
 					out.WriteString(", ")
 				}
-				writeVariadicPackedElementValue(out, call.Args[i], variadicElemType, variadicElemIsAny)
+				writeVariadicPackedElementValue(out, call.Args[i], variadicElemType, variadicElemTypeExpr, variadicElemIsAny)
 			}
 			out.WriteString("]")
 			WriteWrapperSuffix(out)
@@ -9980,7 +9999,7 @@ func writeVariadicCallArgumentsFromTypes(out *strings.Builder, call *ast.CallExp
 		if i > variadicStart {
 			out.WriteString(", ")
 		}
-		writeVariadicPackedElementValue(out, call.Args[i], variadicElemType, variadicElemIsAny)
+		writeVariadicPackedElementValue(out, call.Args[i], variadicElemType, nil, variadicElemIsAny)
 	}
 	out.WriteString("]")
 	WriteWrapperSuffix(out)

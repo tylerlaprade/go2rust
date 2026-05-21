@@ -617,6 +617,9 @@ func registerTypeExprCollectionInfo(name string, typeExpr ast.Expr) {
 	case *ast.ChanType:
 		localCollectionKinds[name] = "channel"
 		localRangeElemRustTypes[name] = goCollectionElemTypeToRust(typ.Value)
+	case *ast.Ellipsis:
+		localCollectionKinds[name] = "slice"
+		localRangeElemRustTypes[name] = goCollectionElemTypeToRust(typ.Elt)
 	}
 }
 

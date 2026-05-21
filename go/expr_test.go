@@ -220,6 +220,39 @@ func main() {
 	}
 }
 
+func TestNoTypeInfoVariadicSliceArgsUseElementValue(t *testing.T) {
+	rust := transpileNoTypeInfoRegression(t, `package main
+
+func collect(groups ...[]string) []string {
+	var out []string
+	for _, group := range groups {
+		for _, value := range group {
+			out = append(out, value)
+		}
+	}
+	return out
+}
+
+func main() {
+	var missing []string
+	_ = collect([]string{"go"}, missing, []string{"rust"})
+}
+`)
+
+	if strings.Contains(rust, "vec![Rc::new(RefCell::new(Some(vec!") {
+		t.Fatalf("variadic []string elements should be packed as raw Vec values:\n%s", rust)
+	}
+	if strings.Contains(rust, "(*missing.borrow().as_ref().unwrap())") {
+		t.Fatalf("nil slice variadic argument should use clone-or-empty path:\n%s", rust)
+	}
+	if strings.Contains(rust, "type info required for range statement") {
+		t.Fatalf("range over variadic parameter should use syntax-derived slice type:\n%s", rust)
+	}
+	if !strings.Contains(rust, "__slice_holder = missing.clone()") || !strings.Contains(rust, "unwrap_or_default()") {
+		t.Fatalf("slice variadic argument should clone the inner slice or use empty default:\n%s", rust)
+	}
+}
+
 func TestReferenceRangeComparisonDereferencesWithoutTypeInfo(t *testing.T) {
 	expr, err := parser.ParseExpr("num > 6")
 	if err != nil {
