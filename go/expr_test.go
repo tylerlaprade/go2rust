@@ -4,6 +4,7 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"go/types"
 	"os"
 	"strings"
 	"testing"
@@ -587,7 +588,9 @@ func TestFunctionValueSelectorSyntaxUsesUniqueStructFieldFallback(t *testing.T) 
 	SetVarTable(NewVarTable())
 	currentCaptureRenames = nil
 	functionTypeAliases = make(map[string]bool)
-	functionTypeAliasBoxTypes = make(map[string]string)
+	functionTypeAliasBoxTypes = map[string]string{
+		"BinaryOp": "Box<dyn FnMut(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>>",
+	}
 	structDefs = map[string]*StructDef{
 		"Calculator": {
 			ASTType: &ast.StructType{Fields: &ast.FieldList{List: []*ast.Field{
@@ -719,6 +722,246 @@ func use(t Label) {
 	rust, _, _ := Transpile(file, fset, typeInfo)
 	if strings.Contains(rust, "let __f_holder = t.key.clone()") || strings.Contains(rust, "*mut Key") {
 		t.Fatalf("typed method call should not use function-field syntax fallback:\n%s", rust)
+	}
+}
+
+func TestFunctionValueSelectorSyntaxDoesNotUseUnrelatedFieldForKnownReceiver(t *testing.T) {
+	prevTypeInfo := currentTypeInfo
+	prevStructDefs := structDefs
+	prevAliases := functionTypeAliases
+	prevAliasBoxes := functionTypeAliasBoxTypes
+	prevVarTable := currentVarTable
+	defer func() {
+		currentTypeInfo = prevTypeInfo
+		structDefs = prevStructDefs
+		functionTypeAliases = prevAliases
+		functionTypeAliasBoxTypes = prevAliasBoxes
+		SetVarTable(prevVarTable)
+	}()
+
+	SetTypeInfo(nil)
+	SetVarTable(NewVarTable())
+	GetVarTable().Register("r", &VarInfo{
+		WrapLevel: WrapFull,
+		RustType:  "Decoder",
+		Source:    SourceLocal,
+	})
+	functionTypeAliases = map[string]bool{"Hook": true}
+	functionTypeAliasBoxTypes = map[string]string{
+		"Hook": "Box<dyn FnMut(Rc<RefCell<Option<i32>>>)>",
+	}
+	structDefs = map[string]*StructDef{
+		"PkgDecoder": {
+			ASTType: &ast.StructType{Fields: &ast.FieldList{List: []*ast.Field{
+				{
+					Names: []*ast.Ident{ast.NewIdent("sync")},
+					Type:  ast.NewIdent("Hook"),
+				},
+			}}},
+		},
+		"Decoder": {
+			ASTType: &ast.StructType{Fields: &ast.FieldList{}},
+		},
+	}
+
+	sel := &ast.SelectorExpr{
+		X:   ast.NewIdent("r"),
+		Sel: ast.NewIdent("Sync"),
+	}
+	if isFunctionValueSelectorSyntax(sel) {
+		t.Fatal("known Decoder receiver must not use an unrelated PkgDecoder.sync function field")
+	}
+}
+
+func TestSelectorFieldTypeExprUsesRegisteredFieldTypeMap(t *testing.T) {
+	prevTypeInfo := currentTypeInfo
+	prevStructDefs := structDefs
+	prevVarTable := currentVarTable
+	defer func() {
+		currentTypeInfo = prevTypeInfo
+		structDefs = prevStructDefs
+		SetVarTable(prevVarTable)
+	}()
+
+	SetTypeInfo(nil)
+	SetVarTable(NewVarTable())
+	GetVarTable().Register("calc", &VarInfo{
+		WrapLevel: WrapFull,
+		RustType:  "Calculator",
+		Source:    SourceLocal,
+	})
+	structDefs = map[string]*StructDef{
+		"Calculator": {
+			Fields: map[string]string{"Add": "regular"},
+			FieldTypes: map[string]ast.Expr{
+				"Add": ast.NewIdent("BinaryOp"),
+			},
+			ASTType: &ast.StructType{Fields: &ast.FieldList{}},
+		},
+	}
+
+	fieldExpr, ok := selectorFieldTypeExpr(&ast.SelectorExpr{
+		X:   ast.NewIdent("calc"),
+		Sel: ast.NewIdent("add"),
+	})
+	if !ok {
+		t.Fatal("selector field type should use registered FieldTypes when AST lookup has no names")
+	}
+	ident, ok := fieldExpr.(*ast.Ident)
+	if !ok || ident.Name != "BinaryOp" {
+		t.Fatalf("field type = %#v, want BinaryOp ident", fieldExpr)
+	}
+}
+
+func TestFunctionValueSelectorSyntaxAllowsPartialTypeInfoFallback(t *testing.T) {
+	prevTypeInfo := currentTypeInfo
+	prevStructDefs := structDefs
+	prevAliases := functionTypeAliases
+	prevAliasBoxes := functionTypeAliasBoxTypes
+	defer func() {
+		currentTypeInfo = prevTypeInfo
+		structDefs = prevStructDefs
+		functionTypeAliases = prevAliases
+		functionTypeAliasBoxTypes = prevAliasBoxes
+	}()
+
+	sel := &ast.SelectorExpr{
+		X:   ast.NewIdent("calc"),
+		Sel: ast.NewIdent("add"),
+	}
+	SetTypeInfo(&TypeInfo{info: &types.Info{
+		Uses: map[*ast.Ident]types.Object{
+			sel.Sel: types.NewFunc(token.NoPos, nil, "Add", nil),
+		},
+	}})
+	functionTypeAliases = make(map[string]bool)
+	functionTypeAliasBoxTypes = map[string]string{
+		"BinaryOp": "Box<dyn FnMut(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>>",
+	}
+	structDefs = map[string]*StructDef{
+		"Calculator": {
+			ASTType: &ast.StructType{Fields: &ast.FieldList{List: []*ast.Field{
+				{
+					Names: []*ast.Ident{ast.NewIdent("Add")},
+					Type:  ast.NewIdent("BinaryOp"),
+				},
+			}}},
+		},
+	}
+
+	if !isFunctionValueSelectorSyntax(sel) {
+		t.Fatal("partial selector object info without selector type should not block syntax fallback")
+	}
+}
+
+func TestFunctionValueSelectorSyntaxUsesUniqueFieldWhenTypedObjectIsMisclassified(t *testing.T) {
+	prevTypeInfo := currentTypeInfo
+	prevStructDefs := structDefs
+	prevAliases := functionTypeAliases
+	prevAliasBoxes := functionTypeAliasBoxTypes
+	prevVarTable := currentVarTable
+	defer func() {
+		currentTypeInfo = prevTypeInfo
+		structDefs = prevStructDefs
+		functionTypeAliases = prevAliases
+		functionTypeAliasBoxTypes = prevAliasBoxes
+		SetVarTable(prevVarTable)
+	}()
+
+	sel := &ast.SelectorExpr{
+		X:   ast.NewIdent("calc"),
+		Sel: ast.NewIdent("add"),
+	}
+	SetTypeInfo(&TypeInfo{info: &types.Info{
+		Types: map[ast.Expr]types.TypeAndValue{
+			sel: {Type: types.Typ[types.Int]},
+		},
+		Uses: map[*ast.Ident]types.Object{
+			sel.Sel: types.NewFunc(token.NoPos, nil, "Add", nil),
+		},
+	}})
+	SetVarTable(NewVarTable())
+	functionTypeAliases = map[string]bool{"BinaryOp": true}
+	functionTypeAliasBoxTypes = map[string]string{
+		"BinaryOp": "Box<dyn FnMut(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>>",
+	}
+	structDefs = map[string]*StructDef{
+		"Calculator": {
+			ASTType: &ast.StructType{Fields: &ast.FieldList{List: []*ast.Field{
+				{
+					Names: []*ast.Ident{ast.NewIdent("Add")},
+					Type:  ast.NewIdent("BinaryOp"),
+				},
+			}}},
+		},
+	}
+
+	if !isFunctionValueSelectorSyntax(sel) {
+		t.Fatal("syntax-proven function field should survive a misclassified selector object")
+	}
+}
+
+func TestFunctionFieldCallUsesBoxWhenFuncAliasIsAlsoTypeDefinition(t *testing.T) {
+	prevTypeInfo := currentTypeInfo
+	prevStructDefs := structDefs
+	prevTypeDefs := typeDefinitions
+	prevAliases := functionTypeAliases
+	prevAliasBoxes := functionTypeAliasBoxTypes
+	prevVarTable := currentVarTable
+	defer func() {
+		currentTypeInfo = prevTypeInfo
+		structDefs = prevStructDefs
+		typeDefinitions = prevTypeDefs
+		functionTypeAliases = prevAliases
+		functionTypeAliasBoxTypes = prevAliasBoxes
+		SetVarTable(prevVarTable)
+	}()
+
+	SetTypeInfo(nil)
+	SetVarTable(NewVarTable())
+	typeDefinitions = map[string]string{"BinaryOp": "func"}
+	functionTypeAliases = make(map[string]bool)
+	functionTypeAliasBoxTypes = map[string]string{
+		"BinaryOp": "Box<dyn FnMut(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>>",
+	}
+	structDefs = map[string]*StructDef{
+		"Calculator": {
+			ASTType: &ast.StructType{Fields: &ast.FieldList{List: []*ast.Field{
+				{
+					Names: []*ast.Ident{ast.NewIdent("Add")},
+					Type:  ast.NewIdent("BinaryOp"),
+				},
+			}}},
+		},
+	}
+	GetVarTable().Register("calc", &VarInfo{
+		WrapLevel: WrapFull,
+		RustType:  "Calculator",
+		Source:    SourceLocal,
+	})
+
+	call := &ast.CallExpr{
+		Fun: &ast.SelectorExpr{
+			X:   ast.NewIdent("calc"),
+			Sel: ast.NewIdent("add"),
+		},
+		Args: []ast.Expr{
+			&ast.BasicLit{Kind: token.INT, Value: "1"},
+			&ast.BasicLit{Kind: token.INT, Value: "2"},
+		},
+	}
+
+	var out strings.Builder
+	TranspileExpression(&out, call)
+	got := out.String()
+	if strings.Contains(got, ".add(Rc::new") {
+		t.Fatalf("function field call should not be lowered as a method call:\n%s", got)
+	}
+	if !strings.Contains(got, "let __f_holder = (*calc.borrow().as_ref().unwrap()).add.clone()") {
+		t.Fatalf("function field call should invoke the field handle:\n%s", got)
+	}
+	if !strings.Contains(got, "*mut Box<dyn FnMut(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>>") {
+		t.Fatalf("function field call should use the stored function box type:\n%s", got)
 	}
 }
 

@@ -9958,16 +9958,22 @@ func isFunctionValueSelectorSyntax(sel *ast.SelectorExpr) bool {
 	if sel == nil {
 		return false
 	}
-	if typeInfo := GetTypeInfo(); typeInfo != nil {
+	fieldExpr, fieldOK := selectorFieldTypeExpr(sel)
+	if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.GetType(sel) != nil {
 		if obj := typeInfo.GetObject(sel.Sel); obj != nil {
 			if _, ok := obj.(*types.Var); !ok {
-				return false
+				if !fieldOK && selectorAllowsUniqueStructFieldFallback(sel) {
+					fieldExpr, fieldOK = uniqueFunctionStructFieldTypeExpr(sel.Sel.Name)
+				}
+				if !fieldOK || !fieldTypeExprCanBeFunctionValue(fieldExpr) {
+					return false
+				}
 			}
 		}
 	}
-	fieldExpr, ok := selectorFieldTypeExpr(sel)
-	if !ok {
+	if !fieldOK {
 		if selectorAllowsUniqueStructFieldFallback(sel) {
+			var ok bool
 			fieldExpr, ok = uniqueFunctionStructFieldTypeExpr(sel.Sel.Name)
 			if !ok {
 				return false
@@ -9976,11 +9982,7 @@ func isFunctionValueSelectorSyntax(sel *ast.SelectorExpr) bool {
 			return false
 		}
 	}
-	if isFunctionSignatureTypeExpr(fieldExpr) {
-		return true
-	}
-	_, ok = namedFieldTypeFallbackFunctionRustName(fieldExpr)
-	return ok
+	return fieldTypeExprCanBeFunctionValue(fieldExpr)
 }
 
 func namedFieldTypeFallbackFunctionRustName(expr ast.Expr) (string, bool) {
@@ -9988,13 +9990,22 @@ func namedFieldTypeFallbackFunctionRustName(expr ast.Expr) (string, bool) {
 	if !ok || IsInterfaceType(ident.Name) {
 		return "", false
 	}
-	if _, isTypeDef := LookupTypeDefinition(ident.Name); isTypeDef {
-		return "", false
+	if rustType, ok := FunctionTypeAliasBox(ident.Name); ok {
+		return rustType, true
 	}
-	return RustTypeNameForUse(ident.Name), true
+	if IsFunctionTypeAlias(ident.Name) {
+		return RustTypeNameForUse(ident.Name), true
+	}
+	if underlying, isTypeDef := LookupTypeDefinition(ident.Name); isTypeDef && underlying == "func" {
+		return RustTypeNameForUse(ident.Name), true
+	}
+	return "", false
 }
 
 func selectorAllowsUniqueStructFieldFallback(sel *ast.SelectorExpr) bool {
+	if selectorReceiverTypeKnown(sel) {
+		return false
+	}
 	ident, ok := sel.X.(*ast.Ident)
 	if !ok || strings.HasSuffix(ident.Name, "_closure_clone") {
 		return false

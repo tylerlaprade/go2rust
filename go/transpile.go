@@ -124,9 +124,10 @@ func SetPackageImports(imports map[string]string) {
 // structDefs tracks struct definitions and their fields
 type StructDef struct {
 	Fields        map[string]string // field name -> field type
-	EmbeddedTypes []string          // list of embedded type names
-	ASTType       *ast.StructType   // original AST type for zero-value generation
-	EmbedsError   bool              // true when the struct embeds the predeclared error interface
+	FieldTypes    map[string]ast.Expr
+	EmbeddedTypes []string        // list of embedded type names
+	ASTType       *ast.StructType // original AST type for zero-value generation
+	EmbedsError   bool            // true when the struct embeds the predeclared error interface
 }
 
 var structDefs = make(map[string]*StructDef)

@@ -1685,6 +1685,7 @@ func registerStructDef(name string, structType *ast.StructType) {
 	}
 	structDef := &StructDef{
 		Fields:        make(map[string]string),
+		FieldTypes:    make(map[string]ast.Expr),
 		EmbeddedTypes: []string{},
 		ASTType:       structType,
 	}
@@ -1692,6 +1693,7 @@ func registerStructDef(name string, structType *ast.StructType) {
 		if len(field.Names) > 0 {
 			for _, name := range field.Names {
 				structDef.Fields[name.Name] = "regular"
+				structDef.FieldTypes[name.Name] = field.Type
 			}
 		} else {
 			typeName := getEmbeddedFieldName(field.Type)

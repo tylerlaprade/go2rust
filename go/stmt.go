@@ -2404,11 +2404,28 @@ func selectorFieldTypeExpr(sel *ast.SelectorExpr) (ast.Expr, bool) {
 	if structDef == nil {
 		structDef = structDefs[strings.TrimPrefix(typeName, "*")]
 	}
-	if structDef == nil || structDef.ASTType == nil {
+	if structDef == nil {
 		return nil, false
 	}
-	fieldExpr := findStructFieldExpr(structDef.ASTType, sel.Sel.Name)
+	fieldExpr := structDefFieldTypeExpr(structDef, sel.Sel.Name)
 	return fieldExpr, fieldExpr != nil
+}
+
+func structDefFieldTypeExpr(structDef *StructDef, fieldName string) ast.Expr {
+	if structDef == nil {
+		return nil
+	}
+	if len(structDef.FieldTypes) > 0 {
+		if fieldExpr := structDef.FieldTypes[fieldName]; fieldExpr != nil {
+			return fieldExpr
+		}
+		for name, fieldExpr := range structDef.FieldTypes {
+			if fieldExpr != nil && ToSnakeCase(name) == ToSnakeCase(fieldName) {
+				return fieldExpr
+			}
+		}
+	}
+	return findStructFieldExpr(structDef.ASTType, fieldName)
 }
 
 func selectorBaseSyntaxTypeName(expr ast.Expr) (string, bool) {
@@ -2424,7 +2441,35 @@ func selectorBaseSyntaxTypeName(expr ast.Expr) (string, bool) {
 			return strings.TrimPrefix(info.RustType, "&"), true
 		}
 	}
+	if typeInfo := GetTypeInfo(); typeInfo != nil {
+		if typeName, ok := localNamedTypeNameFromGoType(typeInfo.GetType(expr)); ok {
+			return typeName, true
+		}
+	}
 	return "", false
+}
+
+func selectorReceiverTypeKnown(sel *ast.SelectorExpr) bool {
+	if sel == nil {
+		return false
+	}
+	_, ok := selectorBaseSyntaxTypeName(sel.X)
+	return ok
+}
+
+func localNamedTypeNameFromGoType(typ types.Type) (string, bool) {
+	if typ == nil {
+		return "", false
+	}
+	typ = types.Unalias(typ)
+	if ptr, ok := typ.(*types.Pointer); ok {
+		return localNamedTypeNameFromGoType(ptr.Elem())
+	}
+	named, ok := typ.(*types.Named)
+	if !ok || named.Obj() == nil {
+		return "", false
+	}
+	return named.Obj().Name(), true
 }
 
 func expressionFunctionSignature(expr ast.Expr) (*types.Signature, bool) {
@@ -2445,10 +2490,13 @@ func functionTypeRustNameFromTypeExpr(expr ast.Expr) (string, bool) {
 	case *ast.FuncType:
 		return generateClosureType(t), true
 	case *ast.Ident:
+		if rustType, ok := FunctionTypeAliasBox(t.Name); ok {
+			return rustType, true
+		}
 		if IsFunctionTypeAlias(t.Name) {
-			if rustType, ok := FunctionTypeAliasBox(t.Name); ok {
-				return rustType, true
-			}
+			return RustTypeNameForUse(t.Name), true
+		}
+		if underlying, isTypeDef := LookupTypeDefinition(t.Name); isTypeDef && underlying == "func" {
 			return RustTypeNameForUse(t.Name), true
 		}
 	}
@@ -2468,22 +2516,29 @@ func expressionHasFunctionSignatureSyntax(expr ast.Expr) bool {
 	return strings.HasPrefix(rustType, "Box<dyn Fn") || IsFunctionTypeAlias(rustType)
 }
 
+func fieldTypeExprCanBeFunctionValue(fieldExpr ast.Expr) bool {
+	if isFunctionSignatureTypeExpr(fieldExpr) {
+		return true
+	}
+	if _, ok := functionTypeRustNameFromTypeExpr(fieldExpr); ok {
+		return true
+	}
+	_, ok := namedFieldTypeFallbackFunctionRustName(fieldExpr)
+	return ok
+}
+
 func uniqueFunctionStructFieldTypeExpr(fieldName string) (ast.Expr, bool) {
 	var found ast.Expr
 	for _, def := range structDefs {
 		if def == nil || def.ASTType == nil {
 			continue
 		}
-		fieldExpr := findStructFieldExpr(def.ASTType, fieldName)
+		fieldExpr := structDefFieldTypeExpr(def, fieldName)
 		if fieldExpr == nil {
 			continue
 		}
-		if !isFunctionSignatureTypeExpr(fieldExpr) {
-			if _, ok := functionTypeRustNameFromTypeExpr(fieldExpr); !ok {
-				if _, ok := namedFieldTypeFallbackFunctionRustName(fieldExpr); !ok {
-					continue
-				}
-			}
+		if !fieldTypeExprCanBeFunctionValue(fieldExpr) {
+			continue
 		}
 		if found != nil {
 			return nil, false
@@ -6083,6 +6138,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						if structType, isStruct := typeSpec.Type.(*ast.StructType); isStruct {
 							structDef := &StructDef{
 								Fields:        make(map[string]string),
+								FieldTypes:    make(map[string]ast.Expr),
 								EmbeddedTypes: []string{},
 								ASTType:       structType,
 							}
@@ -6090,6 +6146,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 								if len(field.Names) > 0 {
 									for _, name := range field.Names {
 										structDef.Fields[name.Name] = "regular"
+										structDef.FieldTypes[name.Name] = field.Type
 									}
 								} else {
 									typeName := getEmbeddedFieldName(field.Type)
