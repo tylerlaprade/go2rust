@@ -121,7 +121,7 @@ pub fn to_upper(s: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>> {
         { (*result.borrow_mut().as_mut().unwrap()).push_str(&{ let __s = Rc::new(RefCell::new(Some(char::from_u32(((char as i32)) as u32).unwrap().to_string()))); let __value = (*__s.borrow().as_ref().unwrap()).clone(); __value }); };
     }
     }
-    return result.clone();
+    return Rc::new(RefCell::new(Some(result.borrow().as_ref().unwrap().clone())));
 }
 
 /// Higher-order functions

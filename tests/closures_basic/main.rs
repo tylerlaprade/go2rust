@@ -49,7 +49,7 @@ pub fn make_counter() -> Rc<RefCell<Option<Box<dyn FnMut() -> Rc<RefCell<Option<
     let mut count = Rc::new(RefCell::new(Some(0)));
     let count_closure_clone = count.clone(); return Rc::new(RefCell::new(Some(Box::new(move || -> Rc<RefCell<Option<i32>>> {
         { let mut guard = count_closure_clone.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
-        return count_closure_clone.clone();
+        return Rc::new(RefCell::new(Some(count_closure_clone.borrow().as_ref().unwrap().clone())));
     }) as Box<dyn FnMut() -> Rc<RefCell<Option<i32>>>>)));
 }
 

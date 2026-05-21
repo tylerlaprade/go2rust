@@ -31,7 +31,7 @@ fn __go_init_globals() {
 pub fn next() -> Rc<RefCell<Option<i32>>> {
 
     { let mut guard = n.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
-    return n.clone();
+    return Rc::new(RefCell::new(Some(n.borrow().as_ref().unwrap().clone())));
 }
 
 fn main() {
