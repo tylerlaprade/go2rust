@@ -965,6 +965,42 @@ func TestFunctionFieldCallUsesBoxWhenFuncAliasIsAlsoTypeDefinition(t *testing.T)
 	}
 }
 
+func TestFunctionMapValueUsesSyntaxAliasWithoutTypeInfo(t *testing.T) {
+	prevTypeInfo := currentTypeInfo
+	prevAliases := functionTypeAliases
+	prevSignatures := functionSignatures
+	defer func() {
+		currentTypeInfo = prevTypeInfo
+		functionTypeAliases = prevAliases
+		functionSignatures = prevSignatures
+	}()
+
+	SetTypeInfo(nil)
+	functionTypeAliases = map[string]bool{"handler": true}
+	functionSignatures = map[string]*FunctionSignature{
+		"inc": {
+			Params: []*ast.Field{
+				{Type: ast.NewIdent("int")},
+			},
+			Results: []*ast.Field{
+				{Type: ast.NewIdent("int")},
+			},
+		},
+	}
+
+	var out strings.Builder
+	writeWrappedMapValue(&out, ast.NewIdent("inc"), ast.NewIdent("handler"), nil)
+
+	got := out.String()
+	if !strings.Contains(got, "Box::new(move |__arg0: Rc<RefCell<Option<i32>>>| { inc(__arg0) })") ||
+		!strings.Contains(got, "as Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>>") {
+		t.Fatalf("function map value should box named function from syntax alias:\n%s", got)
+	}
+	if strings.Contains(got, "inc.borrow") || strings.Contains(got, "Some(inc)") {
+		t.Fatalf("function map value used generic wrapped expression path:\n%s", got)
+	}
+}
+
 func TestNoTypeInfoTrackedSliceIndexDoesNotUseStringPath(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
@@ -1236,6 +1272,124 @@ func f() { n++ }`, 0)
 	TranspileStatementSimple(&stmtOut, fn.Body.List[0], nil, token.NewFileSet())
 	if got := stmtOut.String(); strings.Contains(got, "n_local") || !strings.Contains(got, "n.borrow_mut()") {
 		t.Fatalf("package global increment = %q, want global n mutation", got)
+	}
+}
+
+func TestNoTypeInfoPackageGlobalMapIndexUsesSyntaxKind(t *testing.T) {
+	prevTypeInfo := currentTypeInfo
+	prevGlobals := packageGlobalNames
+	prevCollections := localCollectionKinds
+	prevMapKeys := localMapKeyRustTypes
+	prevMapValues := localMapValueRustTypes
+	defer func() {
+		currentTypeInfo = prevTypeInfo
+		packageGlobalNames = prevGlobals
+		localCollectionKinds = prevCollections
+		localMapKeyRustTypes = prevMapKeys
+		localMapValueRustTypes = prevMapValues
+	}()
+	SetTypeInfo(nil)
+	packageGlobalNames = make(map[string]bool)
+	localCollectionKinds = make(map[string]string)
+	localMapKeyRustTypes = make(map[string]string)
+	localMapValueRustTypes = make(map[string]string)
+
+	file, err := parser.ParseFile(token.NewFileSet(), "main.go", `package main
+var counts map[string]int
+func f() { _ = counts["x"] }`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile() error = %v", err)
+	}
+	globalDecl := file.Decls[0].(*ast.GenDecl)
+	collectPackageGlobals([]*ast.GenDecl{globalDecl})
+	if got := localCollectionKinds["counts"]; got != "map" {
+		t.Fatalf("package global map kind = %q, want map", got)
+	}
+
+	restore := pushFunctionLocalSyntaxInfo()
+	defer restore()
+	if got := localCollectionKinds["counts"]; got != "map" {
+		t.Fatalf("function-local syntax scope dropped package global map kind = %q, want map", got)
+	}
+
+	fn := file.Decls[1].(*ast.FuncDecl)
+	assign := fn.Body.List[0].(*ast.AssignStmt)
+	index := assign.Rhs[0]
+	var out strings.Builder
+	TranspileExpression(&out, index)
+
+	got := out.String()
+	if strings.Contains(got, "type info required") {
+		t.Fatalf("package global map index should use syntax collection kind:\n%s", got)
+	}
+	if !strings.Contains(got, "(*counts.borrow().as_ref().unwrap()).get(&\"x\".to_string())") {
+		t.Fatalf("package global map index should read from global map:\n%s", got)
+	}
+}
+
+func TestNoTypeInfoPackageGlobalFunctionMapIndexKeepsHandle(t *testing.T) {
+	prevTypeInfo := currentTypeInfo
+	prevGlobals := packageGlobalNames
+	prevCollections := localCollectionKinds
+	prevMapKeys := localMapKeyRustTypes
+	prevMapValues := localMapValueRustTypes
+	prevAliases := functionTypeAliases
+	prevAliasBoxes := functionTypeAliasBoxTypes
+	prevContext := currentContext
+	defer func() {
+		currentTypeInfo = prevTypeInfo
+		packageGlobalNames = prevGlobals
+		localCollectionKinds = prevCollections
+		localMapKeyRustTypes = prevMapKeys
+		localMapValueRustTypes = prevMapValues
+		functionTypeAliases = prevAliases
+		functionTypeAliasBoxTypes = prevAliasBoxes
+		SetTranspileContext(prevContext)
+	}()
+	SetTranspileContext(nil)
+	SetTypeInfo(nil)
+	packageGlobalNames = make(map[string]bool)
+	localCollectionKinds = make(map[string]string)
+	localMapKeyRustTypes = make(map[string]string)
+	localMapValueRustTypes = make(map[string]string)
+	functionTypeAliases = map[string]bool{"handler": true}
+	functionTypeAliasBoxTypes = map[string]string{
+		"handler": "Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>>",
+	}
+
+	file, err := parser.ParseFile(token.NewFileSet(), "main.go", `package main
+type handler func(int) int
+var handlers map[string]handler
+func f() { _ = handlers["inc"] }`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile() error = %v", err)
+	}
+	globalDecl := file.Decls[1].(*ast.GenDecl)
+	collectPackageGlobals([]*ast.GenDecl{globalDecl})
+	restore := pushFunctionLocalSyntaxInfo()
+	defer restore()
+	if got := localMapValueRustTypes["handlers"]; got == "" {
+		t.Fatal("package global function map value type was not tracked")
+	} else if !rustMapValueTypeKeepsHandle(got) {
+		t.Fatalf("tracked function map value type %q should keep handle", got)
+	}
+
+	fn := file.Decls[2].(*ast.FuncDecl)
+	assign := fn.Body.List[0].(*ast.AssignStmt)
+	index := assign.Rhs[0]
+	var out strings.Builder
+	TranspileExpression(&out, index)
+
+	if got, want := functionBoxTypeForCallTarget(index), "Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>>"; got != want {
+		t.Fatalf("function map index box type = %q, want %q", got, want)
+	}
+
+	got := out.String()
+	if !strings.Contains(got, ".map(|__v| __v.clone()).unwrap_or_else(|| Default::default())") {
+		t.Fatalf("function map index should clone the stored handle:\n%s", got)
+	}
+	if strings.Contains(got, ".borrow().as_ref().unwrap().clone()") {
+		t.Fatalf("function map index should not unwrap the stored function handle:\n%s", got)
 	}
 }
 

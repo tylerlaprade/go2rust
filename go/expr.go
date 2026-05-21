@@ -4013,7 +4013,7 @@ func writeWrappedMapValue(out *strings.Builder, value ast.Expr, valueExpr ast.Ex
 	if writeStdlibInterfaceCallArgumentConversion(out, value, valueType) {
 		return
 	}
-	if writeFunctionMapValue(out, value, valueType) {
+	if writeFunctionMapValue(out, value, valueExpr, valueType) {
 		return
 	}
 	if (isEmptyInterfaceExpr(valueExpr) || isEmptyInterfaceType(valueType)) && writeEmptyInterfaceHandleClone(out, value) {
@@ -4039,8 +4039,8 @@ func writeWrappedMapValue(out *strings.Builder, value ast.Expr, valueExpr ast.Ex
 	WriteWrapperSuffix(out)
 }
 
-func writeFunctionMapValue(out *strings.Builder, value ast.Expr, valueType types.Type) bool {
-	if !isFunctionSignatureType(valueType) {
+func writeFunctionMapValue(out *strings.Builder, value ast.Expr, valueExpr ast.Expr, valueType types.Type) bool {
+	if !isFunctionSignatureType(valueType) && !isFunctionSignatureTypeExpr(valueExpr) {
 		return false
 	}
 	return writeFunctionValueHandle(out, value)
@@ -4217,7 +4217,11 @@ func writeMapLookupKeyWithType(out *strings.Builder, index ast.Expr, keyType typ
 }
 
 func writeMapLookupValue(out *strings.Builder, valueType types.Type, defaultValue string) {
-	if mapValueTypeKeepsHandle(valueType) {
+	writeMapLookupValueWithHandle(out, valueType, defaultValue, false)
+}
+
+func writeMapLookupValueWithHandle(out *strings.Builder, valueType types.Type, defaultValue string, syntaxKeepsHandle bool) {
+	if syntaxKeepsHandle || mapValueTypeKeepsHandle(valueType) {
 		out.WriteString(".map(|__v| __v.clone()).unwrap_or_else(|| Default::default())")
 		return
 	}
@@ -4226,6 +4230,24 @@ func writeMapLookupValue(out *strings.Builder, valueType types.Type, defaultValu
 	out.WriteString(".as_ref().unwrap().clone()).unwrap_or_else(|| ")
 	out.WriteString(defaultValue)
 	out.WriteString(")")
+}
+
+func mapValueSyntaxKeepsHandle(expr ast.Expr) bool {
+	_, valueType, ok := localMapRangeTypes(expr)
+	return ok && rustMapValueTypeKeepsHandle(valueType)
+}
+
+func rustMapValueTypeKeepsHandle(rustType string) bool {
+	if IsFunctionTypeAlias(rustType) {
+		return true
+	}
+	for name := range currentFunctionTypeAliases() {
+		if rustType == name || strings.Contains(rustType, "Option<"+name+">") {
+			return true
+		}
+	}
+	return strings.HasPrefix(rustType, "Rc<RefCell<Option<Box<dyn Fn") ||
+		strings.HasPrefix(rustType, "Arc<Mutex<Option<Box<dyn Fn")
 }
 
 func mapValueTypeKeepsHandle(valueType types.Type) bool {
@@ -5732,6 +5754,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			defaultValue := "Default::default()"
 			var keyType types.Type
 			var valueType types.Type
+			valueKeepsHandle := mapValueSyntaxKeepsHandle(e.X)
 			if typeInfo != nil {
 				keyType, valueType = typeInfo.GetMapTypes(e.X)
 				defaultValue = zeroValueForTypesType(valueType)
@@ -5743,14 +5766,14 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				out.WriteString(".get(")
 				writeMapLookupKeyWithType(out, e.Index, keyType)
 				out.WriteString(")")
-				writeMapLookupValue(out, valueType, defaultValue)
+				writeMapLookupValueWithHandle(out, valueType, defaultValue, valueKeepsHandle)
 			} else if NeedsConcurrentWrapper() {
 				out.WriteString("{ let __map = ")
 				writeClonedWrappedExpression(out, e.X, "__map_holder", "__map_guard")
 				out.WriteString("; __map.get(")
 				writeMapLookupKeyWithType(out, e.Index, keyType)
 				out.WriteString(")")
-				writeMapLookupValue(out, valueType, defaultValue)
+				writeMapLookupValueWithHandle(out, valueType, defaultValue, valueKeepsHandle)
 				out.WriteString(" }")
 			} else {
 				out.WriteString("(*")
@@ -5763,7 +5786,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				out.WriteString(".as_ref().unwrap()).get(")
 				writeMapLookupKeyWithType(out, e.Index, keyType)
 				out.WriteString(")")
-				writeMapLookupValue(out, valueType, defaultValue)
+				writeMapLookupValueWithHandle(out, valueType, defaultValue, valueKeepsHandle)
 			}
 		} else {
 			// Regular array/slice/string indexing
@@ -7161,6 +7184,13 @@ func functionBoxTypeForCallTarget(expr ast.Expr) string {
 			}
 		}
 	}
+	if index, ok := expr.(*ast.IndexExpr); ok {
+		if _, valueRustType, ok := localMapRangeTypes(index.X); ok {
+			if rustType, ok := functionBoxTypeFromTrackedMapValueRustType(valueRustType); ok {
+				return rustType
+			}
+		}
+	}
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil {
 		return "_"
@@ -7173,6 +7203,21 @@ func functionBoxTypeForCallTarget(expr ast.Expr) string {
 		return signatureToBoxDynFn(sig)
 	}
 	return "_"
+}
+
+func functionBoxTypeFromTrackedMapValueRustType(rustType string) (string, bool) {
+	for name := range currentFunctionTypeAliases() {
+		if rustType == name || strings.Contains(rustType, "Option<"+name+">") {
+			if boxType, ok := FunctionTypeAliasBox(name); ok {
+				return boxType, true
+			}
+			return name, true
+		}
+	}
+	if start := strings.Index(rustType, "Box<dyn Fn"); start >= 0 {
+		return rustType[start:], true
+	}
+	return "", false
 }
 
 // TranspileTypeConversion handles type conversions like int(x), float64(y), etc.

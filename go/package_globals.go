@@ -394,6 +394,7 @@ func collectPackageGlobals(globalVars []*ast.GenDecl) []packageGlobal {
 					typ:      typ,
 				})
 				packageGlobalNames[name.Name] = true
+				registerTypeExprCollectionInfo(name.Name, valueSpec.Type)
 			}
 		}
 	}

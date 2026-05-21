@@ -589,6 +589,20 @@ func pushFunctionLocalSyntaxInfo() func() {
 	localCollectionKinds = make(map[string]string)
 	localMapKeyRustTypes = make(map[string]string)
 	localMapValueRustTypes = make(map[string]string)
+	for name := range packageGlobalNames {
+		if rustType, ok := prevRangeElemRustTypes[name]; ok {
+			localRangeElemRustTypes[name] = rustType
+		}
+		if kind, ok := prevCollectionKinds[name]; ok {
+			localCollectionKinds[name] = kind
+		}
+		if rustType, ok := prevMapKeyRustTypes[name]; ok {
+			localMapKeyRustTypes[name] = rustType
+		}
+		if rustType, ok := prevMapValueRustTypes[name]; ok {
+			localMapValueRustTypes[name] = rustType
+		}
+	}
 	return func() {
 		localRangeElemRustTypes = prevRangeElemRustTypes
 		localCollectionKinds = prevCollectionKinds
@@ -1646,7 +1660,7 @@ func writeMapWrappedValue(out *strings.Builder, expr ast.Expr, valueType types.T
 	if writeStdlibInterfaceCallArgumentConversion(out, expr, valueType) {
 		return
 	}
-	if writeFunctionMapValue(out, expr, valueType) {
+	if writeFunctionMapValue(out, expr, nil, valueType) {
 		return
 	}
 	if ident, ok := expr.(*ast.Ident); ok && isCloneableNonPointerExpr(ident) {
