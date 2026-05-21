@@ -5703,6 +5703,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			if lit, ok := expr.(*ast.BasicLit); ok && writeCharLiteralForPeer(out, lit, other) {
 				return
 			}
+			if writeConstExpressionForSyntaxPeer(out, expr, other) {
+				return
+			}
 			if writeConstExpressionForBinaryPeer(out, expr, other) {
 				return
 			}
@@ -5806,6 +5809,8 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				// Integer constant cast for comparison with a string range rune.
 			} else if lit, ok := e.X.(*ast.BasicLit); ok && writeCharLiteralForPeer(out, lit, e.Y) {
 				// Character literal emitted as byte.
+			} else if writeConstExpressionForSyntaxPeer(out, e.X, e.Y) {
+				// Constant emitted in the peer's syntax-proven representation.
 			} else if writeConstExpressionForBinaryPeer(out, e.X, e.Y) {
 				// Constant emitted in the peer's expected representation.
 			} else if isComparison && writeReferenceRangeValue(out, e.X) {
@@ -5842,6 +5847,8 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				// Integer constant cast for comparison with a string range rune.
 			} else if lit, ok := e.Y.(*ast.BasicLit); ok && writeCharLiteralForPeer(out, lit, e.X) {
 				// Character literal emitted as byte.
+			} else if writeConstExpressionForSyntaxPeer(out, e.Y, e.X) {
+				// Constant emitted in the peer's syntax-proven representation.
 			} else if writeConstExpressionForBinaryPeer(out, e.Y, e.X) {
 				// Constant emitted in the peer's expected representation.
 			} else if isComparison && writeReferenceRangeValue(out, e.Y) {

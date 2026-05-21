@@ -547,6 +547,46 @@ func (s Symbol) kindName() string {
 	}
 }
 
+func TestNoTypeInfoLocalConstUsesSyntaxByteFieldContext(t *testing.T) {
+	src := `package main
+
+type node struct {
+	color uint8
+}
+
+func main() {
+	const (
+		white = 0
+		grey = 1
+		black = 2
+	)
+	n := node{color: white}
+	if n.color == white {
+		n.color = grey
+	}
+	n.color = black
+}
+`
+	assertLocalConstUsesSyntaxByteFieldContext(t, transpileNoTypeInfoRegression(t, src))
+	assertLocalConstUsesSyntaxByteFieldContext(t, transpileRegression(t, src, &TypeInfo{}))
+}
+
+func assertLocalConstUsesSyntaxByteFieldContext(t *testing.T, rust string) {
+	t.Helper()
+	if !strings.Contains(rust, "color: Rc::new(RefCell::new(Some(white as u8)))") {
+		t.Fatalf("struct field literal should cast local const to byte field type:\n%s", rust)
+	}
+	if !strings.Contains(rust, "== white as u8") {
+		t.Fatalf("selector comparison should cast local const to byte field type:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let new_val = grey as u8") {
+		t.Fatalf("selector assignment should cast local const to byte field type:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let new_val = black as u8") {
+		t.Fatalf("selector assignment should cast later local const to byte field type:\n%s", rust)
+	}
+}
+
 func TestNoTypeInfoNamedIntegerBitwiseClonesSelectorField(t *testing.T) {
 	rust := transpileNoTypeInfoRegression(t, `package main
 

@@ -86,6 +86,9 @@ func writeExpressionForExpectedType(out *strings.Builder, value ast.Expr, expect
 		}
 		return false
 	}
+	if writeConstExpressionForExpectedTypeExpr(out, value, expectedIdent) {
+		return true
+	}
 	underlying, isTypeDef := LookupTypeDefinition(expectedIdent.Name)
 	if !isTypeDef {
 		if typeInfo := GetTypeInfo(); typeInfo != nil {
@@ -108,6 +111,59 @@ func writeExpressionForExpectedType(out *strings.Builder, value ast.Expr, expect
 	WriteWrapperSuffix(out)
 	out.WriteString(")")
 	return true
+}
+
+func writeConstExpressionForExpectedTypeExpr(out *strings.Builder, value ast.Expr, expected ast.Expr) bool {
+	ident, ok := expected.(*ast.Ident)
+	if !ok || !isSyntaxConstantExpression(value) {
+		return false
+	}
+	rustType, ok := rustCastTypeForDefinedUnderlying(ident.Name)
+	if !ok {
+		return false
+	}
+	TranspileExpression(out, value)
+	out.WriteString(" as ")
+	out.WriteString(rustType)
+	return true
+}
+
+func isSyntaxConstantExpression(expr ast.Expr) bool {
+	switch e := expr.(type) {
+	case *ast.BasicLit:
+		return true
+	case *ast.Ident:
+		if e.Name == "true" || e.Name == "false" {
+			return true
+		}
+		if _, ok := localConstants[e.Name]; ok {
+			return true
+		}
+		if _, ok := packageConstants[e.Name]; ok {
+			return true
+		}
+		return isConstIdent(e)
+	case *ast.BinaryExpr:
+		return isSyntaxConstantExpression(e.X) && isSyntaxConstantExpression(e.Y)
+	case *ast.UnaryExpr:
+		return isSyntaxConstantExpression(e.X)
+	case *ast.ParenExpr:
+		return isSyntaxConstantExpression(e.X)
+	default:
+		return false
+	}
+}
+
+func writeConstExpressionForSyntaxPeer(out *strings.Builder, expr ast.Expr, other ast.Expr) bool {
+	sel, ok := other.(*ast.SelectorExpr)
+	if !ok {
+		return false
+	}
+	fieldExpr, ok := selectorFieldTypeExpr(sel)
+	if !ok {
+		return false
+	}
+	return writeConstExpressionForExpectedTypeExpr(out, expr, fieldExpr)
 }
 
 func isByteLikeGoType(typ types.Type) bool {
