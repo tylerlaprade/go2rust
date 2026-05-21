@@ -730,6 +730,9 @@ func writeRegularMethodCallArgument(out *strings.Builder, sel *ast.SelectorExpr,
 		WriteWrappedNone(out)
 		return
 	}
+	if isFunctionSignatureTypeExpr(expectedArgExpr) && writeFunctionValueHandle(out, arg) {
+		return
+	}
 	if expectedArgType != nil {
 		if writeEmptyInterfaceCallArgument(out, arg, expectedArgType) {
 			return

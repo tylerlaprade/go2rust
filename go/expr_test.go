@@ -1001,6 +1001,36 @@ func TestFunctionMapValueUsesSyntaxAliasWithoutTypeInfo(t *testing.T) {
 	}
 }
 
+func TestNoTypeInfoMethodFunctionParameterPassesHandle(t *testing.T) {
+	prevTypeInfo := currentTypeInfo
+	defer func() { currentTypeInfo = prevTypeInfo }()
+	SetTypeInfo(nil)
+
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+type recorder struct{}
+
+func (recorder) Use(record func(string)) {}
+
+func relay(record func(string)) {
+	var r recorder
+	r.Use(record)
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(main.go) error = %v", err)
+	}
+
+	rust, _, _ := Transpile(file, fset, nil)
+	if !strings.Contains(rust, ".r#use(record.clone())") {
+		t.Fatalf("method function parameter should pass the existing handle:\n%s", rust)
+	}
+	if strings.Contains(rust, "record.borrow().as_ref().unwrap()") || strings.Contains(rust, "Rc::new(RefCell::new(Some((*record") {
+		t.Fatalf("method function parameter used generic wrapping path:\n%s", rust)
+	}
+}
+
 func TestNoTypeInfoTrackedSliceIndexDoesNotUseStringPath(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
