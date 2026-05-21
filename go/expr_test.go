@@ -585,11 +585,9 @@ func TestFunctionValueSelectorSyntaxUsesUniqueStructFieldFallback(t *testing.T) 
 
 	SetTypeInfo(nil)
 	SetVarTable(NewVarTable())
-	currentCaptureRenames = map[string]string{"ld": "ld_closure_clone"}
+	currentCaptureRenames = nil
 	functionTypeAliases = make(map[string]bool)
 	functionTypeAliasBoxTypes = make(map[string]string)
-	RegisterFunctionTypeAlias("BinaryOp")
-	RegisterFunctionTypeAliasBox("BinaryOp", "Box<dyn FnMut(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>>")
 	structDefs = map[string]*StructDef{
 		"Calculator": {
 			ASTType: &ast.StructType{Fields: &ast.FieldList{List: []*ast.Field{
@@ -673,6 +671,54 @@ func TestFunctionValueSelectorSyntaxDoesNotFallbackForClosureCloneMethod(t *test
 	}
 	if strings.Contains(got, "let __f_holder =") {
 		t.Fatalf("captured receiver method call should not use function-field fallback:\n%s", got)
+	}
+}
+
+func TestFunctionValueSelectorSyntaxDoesNotOverrideTypedMethod(t *testing.T) {
+	prevTypeInfo := currentTypeInfo
+	prevStructDefs := structDefs
+	prevInterfaces := interfaceTypes
+	prevAliases := functionTypeAliases
+	prevAliasBoxes := functionTypeAliasBoxTypes
+	prevVarTable := currentVarTable
+	defer func() {
+		currentTypeInfo = prevTypeInfo
+		structDefs = prevStructDefs
+		interfaceTypes = prevInterfaces
+		functionTypeAliases = prevAliases
+		functionTypeAliasBoxTypes = prevAliasBoxes
+		SetVarTable(prevVarTable)
+	}()
+
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+type Key interface {
+	Name() string
+}
+
+type Label struct {
+	key Key
+}
+
+func (t Label) Key() Key { return t.key }
+
+func use(t Label) {
+	_ = t.Key()
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(main.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+	SetTypeInfo(typeInfo)
+
+	rust, _, _ := Transpile(file, fset, typeInfo)
+	if strings.Contains(rust, "let __f_holder = t.key.clone()") || strings.Contains(rust, "*mut Key") {
+		t.Fatalf("typed method call should not use function-field syntax fallback:\n%s", rust)
 	}
 }
 

@@ -7146,10 +7146,16 @@ func functionBoxTypeForCallTarget(expr ast.Expr) string {
 			if rustType, ok := functionTypeRustNameFromTypeExpr(fieldExpr); ok {
 				return rustType
 			}
+			if rustType, ok := namedFieldTypeFallbackFunctionRustName(fieldExpr); ok {
+				return rustType
+			}
 		}
 		if selectorAllowsUniqueStructFieldFallback(sel) {
 			if fieldExpr, ok := uniqueFunctionStructFieldTypeExpr(sel.Sel.Name); ok {
 				if rustType, ok := functionTypeRustNameFromTypeExpr(fieldExpr); ok {
+					return rustType
+				}
+				if rustType, ok := namedFieldTypeFallbackFunctionRustName(fieldExpr); ok {
 					return rustType
 				}
 			}
@@ -9952,6 +9958,13 @@ func isFunctionValueSelectorSyntax(sel *ast.SelectorExpr) bool {
 	if sel == nil {
 		return false
 	}
+	if typeInfo := GetTypeInfo(); typeInfo != nil {
+		if obj := typeInfo.GetObject(sel.Sel); obj != nil {
+			if _, ok := obj.(*types.Var); !ok {
+				return false
+			}
+		}
+	}
 	fieldExpr, ok := selectorFieldTypeExpr(sel)
 	if !ok {
 		if selectorAllowsUniqueStructFieldFallback(sel) {
@@ -9963,7 +9976,22 @@ func isFunctionValueSelectorSyntax(sel *ast.SelectorExpr) bool {
 			return false
 		}
 	}
-	return isFunctionSignatureTypeExpr(fieldExpr)
+	if isFunctionSignatureTypeExpr(fieldExpr) {
+		return true
+	}
+	_, ok = namedFieldTypeFallbackFunctionRustName(fieldExpr)
+	return ok
+}
+
+func namedFieldTypeFallbackFunctionRustName(expr ast.Expr) (string, bool) {
+	ident, ok := expr.(*ast.Ident)
+	if !ok || IsInterfaceType(ident.Name) {
+		return "", false
+	}
+	if _, isTypeDef := LookupTypeDefinition(ident.Name); isTypeDef {
+		return "", false
+	}
+	return RustTypeNameForUse(ident.Name), true
 }
 
 func selectorAllowsUniqueStructFieldFallback(sel *ast.SelectorExpr) bool {

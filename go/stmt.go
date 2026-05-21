@@ -2480,7 +2480,9 @@ func uniqueFunctionStructFieldTypeExpr(fieldName string) (ast.Expr, bool) {
 		}
 		if !isFunctionSignatureTypeExpr(fieldExpr) {
 			if _, ok := functionTypeRustNameFromTypeExpr(fieldExpr); !ok {
-				continue
+				if _, ok := namedFieldTypeFallbackFunctionRustName(fieldExpr); !ok {
+					continue
+				}
 			}
 		}
 		if found != nil {
