@@ -1885,6 +1885,29 @@ func f(xs []int) int {
 	}
 }
 
+func TestIncompleteTypeInfoPromotedEmbeddedFieldUsesSyntax(t *testing.T) {
+	rust := transpileRegression(t, `package main
+
+type Person struct {
+	Name string
+}
+
+type Employee struct {
+	Person
+	ID int
+}
+
+func f() string {
+	emp := Employee{Person: Person{Name: "Alice"}, ID: 1}
+	return emp.Name
+}`, &TypeInfo{})
+
+	if !strings.Contains(rust, ".person.borrow().as_ref().unwrap()).name") &&
+		!strings.Contains(rust, ".person.lock().unwrap().as_ref().unwrap()).name") {
+		t.Fatalf("promoted embedded field should traverse the embedded Person field:\n%s", rust)
+	}
+}
+
 func TestReturnStructSliceRangeValueClonesReference(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

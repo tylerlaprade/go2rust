@@ -2869,6 +2869,22 @@ func writePackageGlobalPointerFieldSelector(out *strings.Builder, ident *ast.Ide
 	writeSelectorRValueClose(out, sel)
 }
 
+func syntaxStructTypeNameForSelectorBase(expr ast.Expr) (string, bool) {
+	ident, ok := expr.(*ast.Ident)
+	if !ok {
+		return "", false
+	}
+	info := lookupVarInfo(ident.Name)
+	if info == nil || info.RustType == "" {
+		return "", false
+	}
+	typeName := unwrapStoredRustType(info.RustType)
+	if _, exists := structDefs[typeName]; !exists {
+		return "", false
+	}
+	return typeName, true
+}
+
 func typeInfoIsPointerExpr(expr ast.Expr) bool {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil {
@@ -5169,6 +5185,11 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					fieldInfo = FieldAccessInfo{
 						IsPromoted: false,
 						FieldName:  ToSnakeCase(e.Sel.Name),
+					}
+				}
+				if !fieldInfo.Found {
+					if typeName, ok := syntaxStructTypeNameForSelectorBase(e.X); ok {
+						fieldInfo = resolveFieldAccess(typeName, e.Sel.Name)
 					}
 				}
 
