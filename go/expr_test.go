@@ -1854,6 +1854,37 @@ func f(lists []*List) {
 	}
 }
 
+func TestRangeIndexUntypedConstPeersUseGoInt(t *testing.T) {
+	rust := transpileRegression(t, `package main
+
+func f(xs []int) int {
+	go func() {}()
+	total := 0
+	for i := range xs {
+		if i > 0 {
+			total += i
+		}
+		j := i + 1
+		total += j
+	}
+	return total
+}`, &TypeInfo{})
+
+	if strings.Contains(rust, "0 as usize") || strings.Contains(rust, "1 as usize") {
+		t.Fatalf("range index untyped integer peers should use Go int, not usize:\n%s", rust)
+	}
+	hasComparison := strings.Contains(rust, "i as i32 > 0 as i32") ||
+		strings.Contains(rust, "let __tmp_x = i as i32; let __tmp_y = 0 as i32")
+	if !hasComparison {
+		t.Fatalf("range index comparison should cast the range index and constant to Go int:\n%s", rust)
+	}
+	hasArithmetic := strings.Contains(rust, "i as i32 + 1 as i32") ||
+		strings.Contains(rust, "let __tmp_x = i as i32; let __tmp_y = 1 as i32")
+	if !hasArithmetic {
+		t.Fatalf("range index arithmetic should cast the range index and constant to Go int:\n%s", rust)
+	}
+}
+
 func TestReturnStructSliceRangeValueClonesReference(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

@@ -14,35 +14,43 @@ type sliceElemPtrCandidate struct {
 }
 
 var currentSliceElemPtrCandidates map[types.Object]string
+var currentSliceElemPtrSyntaxCandidates map[*ast.Ident]string
 
 func setSliceElemPtrCandidates(body *ast.BlockStmt) func() {
 	old := currentSliceElemPtrCandidates
-	currentSliceElemPtrCandidates = collectSliceElemPtrCandidates(body)
+	oldSyntax := currentSliceElemPtrSyntaxCandidates
+	currentSliceElemPtrCandidates, currentSliceElemPtrSyntaxCandidates = collectSliceElemPtrCandidates(body)
 	return func() {
 		currentSliceElemPtrCandidates = old
+		currentSliceElemPtrSyntaxCandidates = oldSyntax
 	}
 }
 
 func sliceElemPtrCandidateForDecl(name *ast.Ident) (string, bool) {
 	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return "", false
+	if typeInfo != nil && currentSliceElemPtrCandidates != nil {
+		if obj := typeInfo.GetObject(name); obj != nil {
+			if elemRustType, ok := currentSliceElemPtrCandidates[obj]; ok {
+				return elemRustType, true
+			}
+		}
 	}
-	obj := typeInfo.GetObject(name)
-	if obj == nil || currentSliceElemPtrCandidates == nil {
-		return "", false
+	if currentSliceElemPtrSyntaxCandidates != nil {
+		elemRustType, ok := currentSliceElemPtrSyntaxCandidates[name]
+		return elemRustType, ok
 	}
-	elemRustType, ok := currentSliceElemPtrCandidates[obj]
-	return elemRustType, ok
+	return "", false
 }
 
-func collectSliceElemPtrCandidates(body *ast.BlockStmt) map[types.Object]string {
+func collectSliceElemPtrCandidates(body *ast.BlockStmt) (map[types.Object]string, map[*ast.Ident]string) {
 	typeInfo := GetTypeInfo()
-	if body == nil || typeInfo == nil || typeInfo.info == nil {
-		return nil
+	if body == nil {
+		return nil, nil
 	}
 
 	candidates := map[types.Object]*sliceElemPtrCandidate{}
+	syntaxCandidates := map[*ast.Ident]*sliceElemPtrCandidate{}
+	syntaxCandidatesByName := map[string]*sliceElemPtrCandidate{}
 
 	ast.Inspect(body, func(node ast.Node) bool {
 		switch n := node.(type) {
@@ -55,8 +63,7 @@ func collectSliceElemPtrCandidates(body *ast.BlockStmt) map[types.Object]string 
 			}
 			elemRustType := goTypeToRustBase(star.X)
 			for i, name := range n.Names {
-				obj := typeInfo.GetObject(name)
-				if obj == nil || name.Name == "_" {
+				if name.Name == "_" {
 					continue
 				}
 				state := &sliceElemPtrCandidate{
@@ -68,14 +75,21 @@ func collectSliceElemPtrCandidates(body *ast.BlockStmt) map[types.Object]string 
 					state.valid = ok
 					state.sawSliceAddr = sawSliceAddr
 				}
-				candidates[obj] = state
+				if typeInfo != nil {
+					if obj := typeInfo.GetObject(name); obj != nil {
+						candidates[obj] = state
+						continue
+					}
+				}
+				syntaxCandidates[name] = state
+				syntaxCandidatesByName[name.Name] = state
 			}
 		}
 		return true
 	})
 
-	if len(candidates) == 0 {
-		return nil
+	if len(candidates) == 0 && len(syntaxCandidates) == 0 {
+		return nil, nil
 	}
 
 	ast.Inspect(body, func(node ast.Node) bool {
@@ -88,8 +102,15 @@ func collectSliceElemPtrCandidates(body *ast.BlockStmt) map[types.Object]string 
 				if !ok {
 					continue
 				}
-				obj := typeInfo.GetObject(ident)
-				state := candidates[obj]
+				var state *sliceElemPtrCandidate
+				if typeInfo != nil {
+					if obj := typeInfo.GetObject(ident); obj != nil {
+						state = candidates[obj]
+					}
+				}
+				if state == nil {
+					state = syntaxCandidatesByName[ident.Name]
+				}
 				if state == nil {
 					continue
 				}
@@ -112,15 +133,24 @@ func collectSliceElemPtrCandidates(body *ast.BlockStmt) map[types.Object]string 
 	})
 
 	result := map[types.Object]string{}
+	syntaxResult := map[*ast.Ident]string{}
 	for obj, state := range candidates {
 		if state.valid && state.sawSliceAddr {
 			result[obj] = state.elemRustType
 		}
 	}
-	if len(result) == 0 {
-		return nil
+	for ident, state := range syntaxCandidates {
+		if state.valid && state.sawSliceAddr {
+			syntaxResult[ident] = state.elemRustType
+		}
 	}
-	return result
+	if len(result) == 0 {
+		result = nil
+	}
+	if len(syntaxResult) == 0 {
+		syntaxResult = nil
+	}
+	return result, syntaxResult
 }
 
 func assignmentRHSForLHS(stmt *ast.AssignStmt, lhsIndex int) ast.Expr {
@@ -148,7 +178,7 @@ func isSliceElemPtrAssignmentValue(expr ast.Expr) (bool, bool) {
 	}
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil {
-		return false, false
+		return true, true
 	}
 	return !typeInfo.IsMap(indexExpr.X), !typeInfo.IsMap(indexExpr.X)
 }

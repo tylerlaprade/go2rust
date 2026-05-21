@@ -155,7 +155,27 @@ func isSyntaxConstantExpression(expr ast.Expr) bool {
 }
 
 func writeConstExpressionForSyntaxPeer(out *strings.Builder, expr ast.Expr, other ast.Expr) bool {
-	sel, ok := other.(*ast.SelectorExpr)
+	if !isSyntaxConstantExpression(expr) {
+		return false
+	}
+	if lit, ok := expr.(*ast.BasicLit); ok && lit.Kind == token.CHAR {
+		return false
+	}
+	if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.GetType(other) != nil && !syntaxPeerCanUseCompleteTypeInfo(other) {
+		return false
+	}
+	rustType, ok := syntaxIntegerRustType(other)
+	if !ok {
+		return false
+	}
+	TranspileExpression(out, expr)
+	out.WriteString(" as ")
+	out.WriteString(rustType)
+	return true
+}
+
+func syntaxPeerCanUseCompleteTypeInfo(expr ast.Expr) bool {
+	sel, ok := expr.(*ast.SelectorExpr)
 	if !ok {
 		return false
 	}
@@ -163,7 +183,77 @@ func writeConstExpressionForSyntaxPeer(out *strings.Builder, expr ast.Expr, othe
 	if !ok {
 		return false
 	}
-	return writeConstExpressionForExpectedTypeExpr(out, expr, fieldExpr)
+	ident, ok := fieldExpr.(*ast.Ident)
+	if !ok {
+		return false
+	}
+	if _, isTypeDef := LookupTypeDefinition(ident.Name); isTypeDef {
+		return false
+	}
+	_, ok = rustCastTypeForDefinedUnderlying(ident.Name)
+	return ok
+}
+
+func syntaxIntegerRustType(expr ast.Expr) (string, bool) {
+	switch e := expr.(type) {
+	case *ast.Ident:
+		if rangeLoopVars[e.Name] == "usize" {
+			return "i32", true
+		}
+		if info := lookupVarInfo(e.Name); info != nil && info.RustType != "" {
+			return rustIntegerCastTypeFromRustType(info.RustType)
+		}
+		if typeName := packageConstantTypeNames[e.Name]; typeName != "" {
+			return rustIntegerCastTypeFromRustType(typeName)
+		}
+		if constType := packageConstants[e.Name]; constType != "" {
+			return rustIntegerCastTypeFromRustType(constType)
+		}
+		if localType := localConstants[e.Name]; localType != "" {
+			return rustIntegerCastTypeFromRustType(localType)
+		}
+	case *ast.SelectorExpr:
+		if fieldExpr, ok := selectorFieldTypeExpr(e); ok {
+			return syntaxIntegerRustTypeFromTypeExpr(fieldExpr)
+		}
+	case *ast.BinaryExpr:
+		switch e.Op {
+		case token.AND, token.OR, token.XOR, token.SHL, token.SHR:
+			if rustType, ok := syntaxIntegerRustType(e.X); ok {
+				return rustType, true
+			}
+			return syntaxIntegerRustType(e.Y)
+		}
+	case *ast.CallExpr:
+		if ident, ok := e.Fun.(*ast.Ident); ok {
+			return rustIntegerCastTypeFromRustType(ident.Name)
+		}
+	}
+	return "", false
+}
+
+func syntaxIntegerRustTypeFromTypeExpr(expr ast.Expr) (string, bool) {
+	ident, ok := expr.(*ast.Ident)
+	if !ok {
+		return "", false
+	}
+	return rustIntegerCastTypeFromRustType(ident.Name)
+}
+
+func rustIntegerCastTypeFromRustType(rustType string) (string, bool) {
+	rustType = unwrapStoredRustType(rustType)
+	if underlying, isTypeDef := LookupTypeDefinition(rustType); isTypeDef {
+		return rustCastTypeForDefinedUnderlying(underlying)
+	}
+	if rustType == "usize" {
+		return rustType, true
+	}
+	switch rustType {
+	case "i8", "i16", "i32", "i64", "u8", "u16", "u32", "u64":
+		return rustType, true
+	default:
+		return rustCastTypeForDefinedUnderlying(rustType)
+	}
 }
 
 func isByteLikeGoType(typ types.Type) bool {

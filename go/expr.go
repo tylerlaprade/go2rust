@@ -370,6 +370,55 @@ func writeIntegerConstantForRangeCharPeer(out *strings.Builder, expr ast.Expr, p
 	return true
 }
 
+func writeRangeIndexForIntegerConstantPeer(out *strings.Builder, expr ast.Expr, peer ast.Expr) bool {
+	ident, ok := expr.(*ast.Ident)
+	if !ok || rangeLoopVars[ident.Name] != "usize" || !isIntegerConstantForRangeIndexPeer(peer) {
+		return false
+	}
+	if expressionsHaveTypeInfo(expr, peer) {
+		return false
+	}
+	out.WriteString(RustIdentForUse(ident))
+	out.WriteString(" as i32")
+	return true
+}
+
+func writeIntegerConstantForRangeIndexPeer(out *strings.Builder, expr ast.Expr, peer ast.Expr) bool {
+	if rangeVarRustType(peer) != "usize" || !isIntegerConstantForRangeIndexPeer(expr) {
+		return false
+	}
+	if expressionsHaveTypeInfo(expr, peer) {
+		return false
+	}
+	writeConstExpressionCastValue(out, expr)
+	out.WriteString(" as i32")
+	return true
+}
+
+func expressionsHaveTypeInfo(left ast.Expr, right ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	return typeInfo != nil && typeInfo.GetType(left) != nil && typeInfo.GetType(right) != nil
+}
+
+func isIntegerConstantForRangeIndexPeer(expr ast.Expr) bool {
+	if lit, ok := expr.(*ast.BasicLit); ok {
+		return lit.Kind == token.INT
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return false
+	}
+	if tv, ok := typeInfo.info.Types[expr]; ok && tv.Value != nil {
+		return tv.Value.Kind() == constant.Int
+	}
+	if ident, ok := expr.(*ast.Ident); ok {
+		if obj, ok := typeInfo.GetObject(ident).(*types.Const); ok && obj.Val() != nil {
+			return obj.Val().Kind() == constant.Int
+		}
+	}
+	return false
+}
+
 func isIntegerConstantForRangeCharPeer(expr ast.Expr) bool {
 	if lit, ok := expr.(*ast.BasicLit); ok && lit.Kind == token.CHAR {
 		return false
@@ -778,6 +827,8 @@ func writeRegularMethodCallArgument(out *strings.Builder, sel *ast.SelectorExpr,
 		// len/cap emits usize, but Go int parameters use i32.
 	} else if expectedArgType != nil && writeRangeIndexForExpectedType(out, arg, expectedArgType) {
 		// Range indexes emit usize, but Go int parameters use i32.
+	} else if expectedArgType == nil && isSyntaxConstantExpression(arg) && writeExpressionForExpectedType(out, arg, expectedArgExpr) {
+		// Constant emitted in the parameter's syntax-proven representation.
 	} else if !writeCallArgumentValue(out, arg) {
 		TranspileExpression(out, arg)
 	}
@@ -3140,6 +3191,17 @@ func writeArraySliceLiteralElementValueWithSyntaxType(out *strings.Builder, expr
 	if writeBareArraySliceCompositeLiteralWithSyntaxType(out, expr, elemType) {
 		return true
 	}
+	if lit, ok := expr.(*ast.CompositeLit); ok && lit.Type == nil {
+		if ident, ok := elemType.(*ast.Ident); ok {
+			if _, exists := structDefs[ident.Name]; exists {
+				TranspileExpression(out, &ast.CompositeLit{
+					Type: elemType,
+					Elts: lit.Elts,
+				})
+				return true
+			}
+		}
+	}
 	if ident, ok := elemType.(*ast.Ident); ok && ident.Name == "string" && isStringConstExpr(expr) {
 		TranspileConstExpr(out, expr, 0)
 		out.WriteString(".to_string()")
@@ -5429,7 +5491,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		case token.AND: // & - address-of
 			if indexExpr, ok := e.X.(*ast.IndexExpr); ok {
 				typeInfo := GetTypeInfo()
-				if typeInfo != nil && !typeInfo.IsMap(indexExpr.X) {
+				if typeInfo == nil || !typeInfo.IsMap(indexExpr.X) {
 					NeedSliceElemPtr()
 					out.WriteString("GoSliceElemPtr::new(")
 					TranspileExpressionContext(out, indexExpr.X, LValue)
@@ -5727,6 +5789,12 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			if writeIntegerConstantForRangeCharPeer(out, expr, other) {
 				return
 			}
+			if writeRangeIndexForIntegerConstantPeer(out, expr, other) {
+				return
+			}
+			if writeIntegerConstantForRangeIndexPeer(out, expr, other) {
+				return
+			}
 			if lit, ok := expr.(*ast.BasicLit); ok && writeCharLiteralForPeer(out, lit, other) {
 				return
 			}
@@ -5834,6 +5902,10 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				// String range rune cast for comparison with integer constants.
 			} else if writeIntegerConstantForRangeCharPeer(out, e.X, e.Y) {
 				// Integer constant cast for comparison with a string range rune.
+			} else if writeRangeIndexForIntegerConstantPeer(out, e.X, e.Y) {
+				// Range indexes are represented as usize but Go binary expressions use int.
+			} else if writeIntegerConstantForRangeIndexPeer(out, e.X, e.Y) {
+				// Integer constant cast for comparison with a range index.
 			} else if lit, ok := e.X.(*ast.BasicLit); ok && writeCharLiteralForPeer(out, lit, e.Y) {
 				// Character literal emitted as byte.
 			} else if writeConstExpressionForSyntaxPeer(out, e.X, e.Y) {
@@ -5872,6 +5944,10 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				// String range rune cast for comparison with integer constants.
 			} else if writeIntegerConstantForRangeCharPeer(out, e.Y, e.X) {
 				// Integer constant cast for comparison with a string range rune.
+			} else if writeRangeIndexForIntegerConstantPeer(out, e.Y, e.X) {
+				// Range indexes are represented as usize but Go binary expressions use int.
+			} else if writeIntegerConstantForRangeIndexPeer(out, e.Y, e.X) {
+				// Integer constant cast for comparison with a range index.
 			} else if lit, ok := e.Y.(*ast.BasicLit); ok && writeCharLiteralForPeer(out, lit, e.X) {
 				// Character literal emitted as byte.
 			} else if writeConstExpressionForSyntaxPeer(out, e.Y, e.X) {
@@ -10211,7 +10287,7 @@ func writeFunctionTypeAssertionCallTarget(out *strings.Builder, e *ast.TypeAsser
 
 func isFunctionValueSelector(sel *ast.SelectorExpr) bool {
 	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
+	if typeInfo == nil || typeInfo.info == nil {
 		return false
 	}
 	if selection, ok := typeInfo.info.Selections[sel]; ok && selection.Kind() != types.FieldVal {

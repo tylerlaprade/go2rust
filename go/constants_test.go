@@ -4,6 +4,7 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"go/types"
 	"strings"
 	"testing"
 )
@@ -584,6 +585,68 @@ func assertLocalConstUsesSyntaxByteFieldContext(t *testing.T, rust string) {
 	}
 	if !strings.Contains(rust, "let new_val = black as u8") {
 		t.Fatalf("selector assignment should cast later local const to byte field type:\n%s", rust)
+	}
+}
+
+func TestNoTypeInfoNamedUintConstPeersUseSyntax(t *testing.T) {
+	src := `package main
+
+type Version uint32
+
+const (
+	V0 Version = iota
+	V1
+	V2
+	numVersions = iota
+)
+
+const (
+	flagSyncMarkers = 1 << iota
+)
+
+type Header struct {
+	version Version
+}
+
+func (v Version) Has(f Version) bool {
+	return V0 <= v && (v < V2 || f == V0)
+}
+
+func decode(ver uint32, flags uint32) bool {
+	var h Header
+	h.version = Version(ver)
+	if h.version >= numVersions {
+		return false
+	}
+	return h.version.Has(V1) && flags&flagSyncMarkers != 0
+}
+`
+	assertNamedUintConstPeersUseSyntax(t, transpileNoTypeInfoRegression(t, src))
+	assertNamedUintConstPeersUseSyntax(t, transpileRegression(t, src, &TypeInfo{}))
+	assertNamedUintConstPeersUseSyntax(t, transpileRegression(t, src, &TypeInfo{info: &types.Info{
+		Types:      map[ast.Expr]types.TypeAndValue{},
+		Defs:       map[*ast.Ident]types.Object{},
+		Uses:       map[*ast.Ident]types.Object{},
+		Selections: map[*ast.SelectorExpr]*types.Selection{},
+	}}))
+}
+
+func assertNamedUintConstPeersUseSyntax(t *testing.T, rust string) {
+	t.Helper()
+	if strings.Contains(rust, "new_val.borrow_mut()") || strings.Contains(rust, "new_val.lock().unwrap()") {
+		t.Fatalf("named integer conversion assignment should store the converted value, not move an inner wrapper:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let new_val = Version(") || !strings.Contains(rust, ".version.borrow_mut() = Some(new_val)") {
+		t.Fatalf("named integer conversion assignment should assign the named value into the field wrapper:\n%s", rust)
+	}
+	if !strings.Contains(rust, "NUM_VERSIONS as u32") {
+		t.Fatalf("comparison with named uint field should cast untyped peer constant to u32:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Some(Version(") || !strings.Contains(rust, "V1 as u32") {
+		t.Fatalf("method argument should wrap typed named const V1 as Version:\n%s", rust)
+	}
+	if !strings.Contains(rust, "FLAG_SYNC_MARKERS as u32") || !strings.Contains(rust, "0 as u32") {
+		t.Fatalf("bitwise uint32 expression should cast untyped constants to u32:\n%s", rust)
 	}
 }
 

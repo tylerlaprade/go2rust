@@ -571,6 +571,9 @@ func (ti *TypeInfo) IsTypeConversion(call *ast.CallExpr) bool {
 				"uintptr", "complex64", "complex128":
 				return true
 			}
+			if _, isTypeDef := LookupTypeDefinition(ident.Name); isTypeDef {
+				return true
+			}
 		}
 		return false
 	}
@@ -584,6 +587,16 @@ func (ti *TypeInfo) IsTypeConversion(call *ast.CallExpr) bool {
 		if obj := ti.GetObject(ident); obj != nil {
 			_, isType := obj.(*types.TypeName)
 			return isType
+		}
+		switch ident.Name {
+		case "int", "int8", "int16", "int32", "int64",
+			"uint", "uint8", "uint16", "uint32", "uint64",
+			"float32", "float64", "string", "byte", "rune",
+			"uintptr", "complex64", "complex128":
+			return true
+		}
+		if _, isTypeDef := LookupTypeDefinition(ident.Name); isTypeDef {
+			return true
 		}
 	}
 
