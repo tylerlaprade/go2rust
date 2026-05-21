@@ -585,9 +585,11 @@ func TestFunctionValueSelectorSyntaxUsesUniqueStructFieldFallback(t *testing.T) 
 
 	SetTypeInfo(nil)
 	SetVarTable(NewVarTable())
-	currentCaptureRenames = nil
+	currentCaptureRenames = map[string]string{"ld": "ld_closure_clone"}
 	functionTypeAliases = make(map[string]bool)
 	functionTypeAliasBoxTypes = make(map[string]string)
+	RegisterFunctionTypeAlias("BinaryOp")
+	RegisterFunctionTypeAliasBox("BinaryOp", "Box<dyn FnMut(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>>")
 	structDefs = map[string]*StructDef{
 		"Calculator": {
 			ASTType: &ast.StructType{Fields: &ast.FieldList{List: []*ast.Field{
