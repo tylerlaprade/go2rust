@@ -29,6 +29,7 @@ type FunctionSignature struct {
 
 // Global map to track function signatures (function name -> signature)
 var functionSignatures = make(map[string]*FunctionSignature)
+var functionTypeAliasBoxTypes = make(map[string]string)
 
 // Global set of types that implement the error interface (have Error() string method)
 var errorImplTypes = make(map[string]bool)
@@ -144,6 +145,22 @@ func RegisterFunctionTypeAlias(name string) {
 
 func IsFunctionTypeAlias(name string) bool {
 	return currentFunctionTypeAliases()[name]
+}
+
+func RegisterFunctionTypeAliasBox(name, rustType string) {
+	currentFunctionTypeAliasBoxTypes()[name] = rustType
+}
+
+func FunctionTypeAliasBox(name string) (string, bool) {
+	rustType, ok := currentFunctionTypeAliasBoxTypes()[name]
+	return rustType, ok
+}
+
+func currentFunctionTypeAliasBoxTypes() map[string]string {
+	if currentContext != nil && currentContext.Package != nil {
+		return currentContext.Package.FunctionTypeAliasBoxTypes
+	}
+	return functionTypeAliasBoxTypes
 }
 
 // IsParamValueType checks if the parameter at the given argument index is a plain value type

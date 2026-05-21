@@ -4,6 +4,7 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"os"
 	"strings"
 	"testing"
 )
@@ -90,6 +91,30 @@ func TestLocalInterfaceReferenceCallArgumentUsesCurrentReceiver(t *testing.T) {
 	}
 }
 
+func TestCapturedReceiverSelectorAssignmentUsesCloneName(t *testing.T) {
+	prevReceiver := currentReceiver
+	prevReceiverType := currentReceiverType
+	prevRenames := currentCaptureRenames
+	currentReceiver = "analysis"
+	currentReceiverType = "transpileFileAnalysis"
+	currentCaptureRenames = map[string]string{"analysis": "analysis_closure_clone"}
+	defer func() {
+		currentReceiver = prevReceiver
+		currentReceiverType = prevReceiverType
+		currentCaptureRenames = prevRenames
+	}()
+
+	var out strings.Builder
+	writePointerHandleAssignmentTarget(&out, &ast.SelectorExpr{
+		X:   ast.NewIdent("analysis"),
+		Sel: ast.NewIdent("typeAssertExprs"),
+	})
+
+	if got, want := out.String(), "analysis_closure_clone.type_assert_exprs"; got != want {
+		t.Fatalf("captured receiver selector target = %q, want %q", got, want)
+	}
+}
+
 func TestIsFunctionNameUsesRegisteredSignatureWithoutTypeInfo(t *testing.T) {
 	prevTypeInfo := currentTypeInfo
 	prevContext := currentContext
@@ -117,6 +142,38 @@ func TestIsFunctionNameUsesRegisteredSignatureWithoutTypeInfo(t *testing.T) {
 	SetVarTable(vt)
 	if isFunctionName(ast.NewIdent("hasName")) {
 		t.Fatal("local variable should shadow registered package function")
+	}
+}
+
+func TestShortDeclSelfShadowingFunctionCallUsesTypeInfo(t *testing.T) {
+	prevTypeInfo := currentTypeInfo
+	defer func() { currentTypeInfo = prevTypeInfo }()
+
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+func hash(key int) uint32 { return uint32(key) }
+
+func lookup(key int, table map[uint32]int) int {
+	hash := hash(key)
+	return table[hash]
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(main.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+	SetTypeInfo(typeInfo)
+
+	rust, _, _ := Transpile(file, fset, typeInfo)
+	if strings.Contains(rust, "let __f_guard = hash.") {
+		t.Fatalf("short declaration RHS should call the function, not the new local:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let mut hash = hash(") {
+		t.Fatalf("short declaration RHS should emit a direct function call:\n%s", rust)
 	}
 }
 
@@ -224,6 +281,949 @@ func TestTrackedRangeSlicePrintArgWithoutTypeInfo(t *testing.T) {
 	got := out.String()
 	if got != "format_slice_values(data)" {
 		t.Fatalf("tracked range slice print arg = %q", got)
+	}
+}
+
+func TestNoTypeInfoPrintTrackedLocalSlice(t *testing.T) {
+	prevTypeInfo := currentTypeInfo
+	prevCollections := localCollectionKinds
+	defer func() {
+		currentTypeInfo = prevTypeInfo
+		localCollectionKinds = prevCollections
+	}()
+	SetTypeInfo(nil)
+	localCollectionKinds = map[string]string{"nums": "slice"}
+
+	var out strings.Builder
+	transpilePrintArg(&out, ast.NewIdent("nums"))
+
+	if got := out.String(); got != "format_slice(&nums)" {
+		t.Fatalf("tracked local slice print arg = %q", got)
+	}
+}
+
+func TestNoTypeInfoLocalCollectionTrackingIsFunctionScoped(t *testing.T) {
+	prevTypeInfo := currentTypeInfo
+	defer func() { currentTypeInfo = prevTypeInfo }()
+	SetTypeInfo(nil)
+
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+import "fmt"
+
+func makeNums() []int {
+	result := make([]int, 0)
+	return result
+}
+
+func main() {
+	result := func() int { return 1 }()
+	fmt.Println(result)
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(main.go) error = %v", err)
+	}
+
+	rust, _, _ := Transpile(file, fset, nil)
+	if strings.Contains(rust, "format_slice(&result)") {
+		t.Fatalf("slice tracking for makeNums.result leaked into main.result:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Immediate") && !strings.Contains(rust, "(*result.borrow().as_ref().unwrap())") {
+		t.Fatalf("main.result should print as a scalar wrapped value:\n%s", rust)
+	}
+}
+
+func TestNoTypeInfoStringParamRangeUsesSyntaxType(t *testing.T) {
+	prevTypeInfo := currentTypeInfo
+	defer func() { currentTypeInfo = prevTypeInfo }()
+	SetTypeInfo(nil)
+
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+func upper(s string) string {
+	result := ""
+	for _, char := range s {
+		result += string(char)
+	}
+	return result
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(main.go) error = %v", err)
+	}
+
+	rust, _, _ := Transpile(file, fset, nil)
+	if strings.Contains(rust, "type info required for range statement") {
+		t.Fatalf("string parameter range should use syntax-derived parameter type:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".char_indices()") {
+		t.Fatalf("string parameter range should iterate chars:\n%s", rust)
+	}
+	if !strings.Contains(rust, "to_string()") {
+		t.Fatalf("string(char) over a range rune should use the bare char value:\n%s", rust)
+	}
+	if strings.Contains(rust, "guard.as_ref().unwrap() +") {
+		t.Fatalf("string += should not use numeric compound assignment:\n%s", rust)
+	}
+}
+
+func TestPartialTypeInfoStringConversionCompoundAssignUsesSyntax(t *testing.T) {
+	prevTypeInfo := currentTypeInfo
+	defer func() { currentTypeInfo = prevTypeInfo }()
+
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+func upper(s string) string {
+	result := ""
+	for _, char := range s {
+		result += string(char - 32)
+	}
+	return result
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(main.go) error = %v", err)
+	}
+
+	rust, _, _ := Transpile(file, fset, &TypeInfo{})
+	if !strings.Contains(rust, "push_str") {
+		t.Fatalf("partial type info should still use string append syntax fallback:\n%s", rust)
+	}
+	if strings.Contains(rust, "guard.as_ref().unwrap() +") {
+		t.Fatalf("partial type info should not force numeric compound assignment:\n%s", rust)
+	}
+	if !strings.Contains(rust, "char as i32") {
+		t.Fatalf("string(char - n) should cast the range char before arithmetic:\n%s", rust)
+	}
+}
+
+func TestNoTypeInfoStringConcatUsesSyntaxStringOperand(t *testing.T) {
+	prevTypeInfo := currentTypeInfo
+	defer func() { currentTypeInfo = prevTypeInfo }()
+	SetTypeInfo(nil)
+
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+func join(prefix string, s string) string {
+	return prefix + s
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(main.go) error = %v", err)
+	}
+
+	rust, _, _ := Transpile(file, fset, nil)
+	if !strings.Contains(rust, "format!(\"{}{}\"") {
+		t.Fatalf("string parameter concatenation should use syntax-derived string types:\n%s", rust)
+	}
+	if strings.Contains(rust, "__tmp_x + __tmp_y") {
+		t.Fatalf("string parameter concatenation should not lower as numeric addition:\n%s", rust)
+	}
+}
+
+func TestNoTypeInfoRuneSliceConversionTracksResult(t *testing.T) {
+	prevTypeInfo := currentTypeInfo
+	defer func() { currentTypeInfo = prevTypeInfo }()
+	SetTypeInfo(nil)
+
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+func reverse(s string) string {
+	runes := []rune(s)
+	return string(runes)
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(main.go) error = %v", err)
+	}
+
+	rust, _, _ := Transpile(file, fset, nil)
+	if strings.Contains(rust, "type info required") {
+		t.Fatalf("[]rune/string conversion should not require go/types:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".chars().map(|c| c as i32).collect::<Vec<_>>()") {
+		t.Fatalf("[]rune(s) should lower through chars:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".iter().map(|&c| char::from_u32(c as u32).unwrap()).collect::<String>()") {
+		t.Fatalf("string(runes) should use the tracked rune slice element type:\n%s", rust)
+	}
+}
+
+func TestNoTypeInfoFunctionFieldSyntaxValueAndCall(t *testing.T) {
+	prevTypeInfo := currentTypeInfo
+	defer func() { currentTypeInfo = prevTypeInfo }()
+	SetTypeInfo(nil)
+
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+import "fmt"
+
+type BinaryOp func(int, int) int
+
+type Calculator struct {
+	Multiply BinaryOp
+}
+
+func multiply(a, b int) int { return a * b }
+
+func main() {
+	calc := Calculator{Multiply: multiply}
+	fmt.Println(calc.Multiply(3, 4))
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(main.go) error = %v", err)
+	}
+
+	rust, _, _ := Transpile(file, fset, nil)
+	if strings.Contains(rust, "multiply: multiply.clone()") {
+		t.Fatalf("function field value should be boxed from the registered function signature:\n%s", rust)
+	}
+	if strings.Contains(rust, ".multiply(Rc::new") {
+		t.Fatalf("function field call should not be lowered as a method call:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __f_holder = (*calc.borrow().as_ref().unwrap()).multiply.clone()") {
+		t.Fatalf("function field call should invoke the field handle:\n%s", rust)
+	}
+}
+
+func TestNoTypeInfoFunctionFieldCallInPrintfUsesSyntax(t *testing.T) {
+	prevTypeInfo := currentTypeInfo
+	defer func() { currentTypeInfo = prevTypeInfo }()
+	SetTypeInfo(nil)
+
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+import "fmt"
+
+type BinaryOp func(int, int) int
+
+type Calculator struct {
+	Add BinaryOp
+}
+
+func main() {
+	calc := Calculator{Add: func(a, b int) int { return a + b }}
+	fmt.Printf("%d\n", calc.Add(1, 2))
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(main.go) error = %v", err)
+	}
+
+	rust, _, _ := Transpile(file, fset, nil)
+	if strings.Contains(rust, ".add(Rc::new") {
+		t.Fatalf("Printf function field call should not be lowered as a method call:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __f_holder = (*calc.borrow().as_ref().unwrap()).add.clone()") {
+		t.Fatalf("Printf function field call should invoke the field handle:\n%s", rust)
+	}
+}
+
+func TestNoTypeInfoImmediateFuncLitCallUsesClosureType(t *testing.T) {
+	prevTypeInfo := currentTypeInfo
+	defer func() { currentTypeInfo = prevTypeInfo }()
+	SetTypeInfo(nil)
+
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+func main() {
+	result := func(a, b int) int { return a + b }(10, 20)
+	_ = result
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(main.go) error = %v", err)
+	}
+
+	rust, _, _ := Transpile(file, fset, nil)
+	if strings.Contains(rust, "*mut _") {
+		t.Fatalf("immediate function literal call should use a concrete closure type:\n%s", rust)
+	}
+	if !strings.Contains(rust, "*mut Box<dyn FnMut") {
+		t.Fatalf("immediate function literal call should emit a concrete function box type:\n%s", rust)
+	}
+}
+
+func TestFindStructFieldExprUsesRustCasedFallback(t *testing.T) {
+	structType := &ast.StructType{Fields: &ast.FieldList{List: []*ast.Field{
+		{
+			Names: []*ast.Ident{ast.NewIdent("Add")},
+			Type:  ast.NewIdent("BinaryOp"),
+		},
+	}}}
+
+	if got := findStructFieldExpr(structType, "add"); got == nil {
+		t.Fatal("expected Rust-cased selector name to resolve to Add field")
+	}
+}
+
+func TestFunctionValueSelectorSyntaxUsesUniqueStructFieldFallback(t *testing.T) {
+	prevTypeInfo := currentTypeInfo
+	prevStructDefs := structDefs
+	prevAliases := functionTypeAliases
+	prevAliasBoxes := functionTypeAliasBoxTypes
+	prevVarTable := currentVarTable
+	defer func() {
+		currentTypeInfo = prevTypeInfo
+		structDefs = prevStructDefs
+		functionTypeAliases = prevAliases
+		functionTypeAliasBoxTypes = prevAliasBoxes
+		SetVarTable(prevVarTable)
+	}()
+
+	SetTypeInfo(nil)
+	SetVarTable(NewVarTable())
+	functionTypeAliases = make(map[string]bool)
+	functionTypeAliasBoxTypes = make(map[string]string)
+	RegisterFunctionTypeAlias("BinaryOp")
+	RegisterFunctionTypeAliasBox("BinaryOp", "Box<dyn FnMut(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>>")
+	structDefs = map[string]*StructDef{
+		"Calculator": {
+			ASTType: &ast.StructType{Fields: &ast.FieldList{List: []*ast.Field{
+				{
+					Names: []*ast.Ident{ast.NewIdent("Add")},
+					Type:  ast.NewIdent("BinaryOp"),
+				},
+			}}},
+		},
+	}
+
+	call := &ast.CallExpr{
+		Fun: &ast.SelectorExpr{
+			X:   ast.NewIdent("calc"),
+			Sel: ast.NewIdent("add"),
+		},
+		Args: []ast.Expr{
+			&ast.BasicLit{Kind: token.INT, Value: "1"},
+			&ast.BasicLit{Kind: token.INT, Value: "2"},
+		},
+	}
+
+	var out strings.Builder
+	TranspileExpression(&out, call)
+	got := out.String()
+	if strings.Contains(got, ".add(Rc::new") {
+		t.Fatalf("function field selector fallback should not emit a method call:\n%s", got)
+	}
+	if !strings.Contains(got, "let __f_holder = (*calc.borrow().as_ref().unwrap()).add.clone()") {
+		t.Fatalf("function field selector fallback should invoke the field handle:\n%s", got)
+	}
+}
+
+func TestNoTypeInfoTrackedSliceIndexDoesNotUseStringPath(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+import "fmt"
+
+func main() {
+	values := []string{"alpha"}
+	fmt.Println(values[0])
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(main.go) error = %v", err)
+	}
+
+	rust, _, _ := Transpile(file, fset, nil)
+	if strings.Contains(rust, ".as_bytes()[") {
+		t.Fatalf("tracked slice index should not use string indexing path:\n%s", rust)
+	}
+	if !strings.Contains(rust, "values.borrow().as_ref().unwrap())[") {
+		t.Fatalf("tracked slice index should use slice indexing path:\n%s", rust)
+	}
+}
+
+func TestNoTypeInfoRangeUsesTrackedMap(t *testing.T) {
+	prevTypeInfo := currentTypeInfo
+	prevCollections := localCollectionKinds
+	prevMapKeys := localMapKeyRustTypes
+	prevMapValues := localMapValueRustTypes
+	prevRangeVars := rangeLoopVars
+	defer func() {
+		currentTypeInfo = prevTypeInfo
+		localCollectionKinds = prevCollections
+		localMapKeyRustTypes = prevMapKeys
+		localMapValueRustTypes = prevMapValues
+		rangeLoopVars = prevRangeVars
+	}()
+	SetTypeInfo(nil)
+	localCollectionKinds = map[string]string{"ages": "map"}
+	localMapKeyRustTypes = map[string]string{"ages": "String"}
+	localMapValueRustTypes = map[string]string{"ages": "Rc<RefCell<Option<i32>>>"}
+	rangeLoopVars = make(map[string]string)
+
+	file, err := parser.ParseFile(token.NewFileSet(), "main.go", `package main
+func f() {
+	for _, age := range ages { fmt.Println(age) }
+}`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile() error = %v", err)
+	}
+	fn := file.Decls[0].(*ast.FuncDecl)
+	stmt := fn.Body.List[0]
+	var out strings.Builder
+	TranspileStatementSimple(&out, stmt, nil, token.NewFileSet())
+
+	got := out.String()
+	if !strings.Contains(got, "for (_, age) in { let __range_holder = ages.clone();") {
+		t.Fatalf("tracked map range did not use map iteration:\n%s", got)
+	}
+	if strings.Contains(got, "type info required") || strings.Contains(got, "0..") {
+		t.Fatalf("tracked map range fell back to non-map lowering:\n%s", got)
+	}
+}
+
+func TestNoTypeInfoSliceParamRangeUsesCopiedElement(t *testing.T) {
+	prevTypeInfo := currentTypeInfo
+	defer func() { currentTypeInfo = prevTypeInfo }()
+	SetTypeInfo(nil)
+
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+func keep(numbers []int, pred func(int) bool) []int {
+	var result []int
+	for _, num := range numbers {
+		if pred(num) {
+			result = append(result, num)
+		}
+	}
+	return result
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(main.go) error = %v", err)
+	}
+
+	rust, _, _ := Transpile(file, fset, nil)
+	if !strings.Contains(rust, "for num in __range_values.iter().copied()") {
+		t.Fatalf("[]int parameter range should copy scalar elements:\n%s", rust)
+	}
+	if !strings.Contains(rust, "push(num)") {
+		t.Fatalf("append should store the copied scalar range element:\n%s", rust)
+	}
+}
+
+func TestNoTypeInfoRangeUsesTrackedChannelParam(t *testing.T) {
+	prevTypeInfo := currentTypeInfo
+	prevCollections := localCollectionKinds
+	prevRangeElemTypes := localRangeElemRustTypes
+	prevRangeVars := rangeLoopVars
+	prevVarTable := currentVarTable
+	defer func() {
+		currentTypeInfo = prevTypeInfo
+		localCollectionKinds = prevCollections
+		localRangeElemRustTypes = prevRangeElemTypes
+		rangeLoopVars = prevRangeVars
+		SetVarTable(prevVarTable)
+	}()
+	SetTypeInfo(nil)
+	localCollectionKinds = make(map[string]string)
+	localRangeElemRustTypes = make(map[string]string)
+	rangeLoopVars = make(map[string]string)
+
+	file, err := parser.ParseFile(token.NewFileSet(), "main.go", `package main
+func f(ch chan struct{ name string }) {
+	for event := range ch { println(event.name) }
+}`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile() error = %v", err)
+	}
+	fn := file.Decls[0].(*ast.FuncDecl)
+	registerTypeExprCollectionInfo("ch", fn.Type.Params.List[0].Type)
+	vt := NewVarTable()
+	vt.Register("ch", &VarInfo{
+		WrapLevel: WrapNone,
+		Source:    SourceParam,
+	})
+	SetVarTable(vt)
+
+	var out strings.Builder
+	TranspileStatementSimple(&out, fn.Body.List[0], nil, token.NewFileSet())
+
+	got := out.String()
+	if !strings.Contains(got, "for event in ch.clone()") {
+		t.Fatalf("tracked channel range did not use channel iteration:\n%s", got)
+	}
+	if strings.Contains(got, "type info required") || strings.Contains(got, "0..") {
+		t.Fatalf("tracked channel range fell back to non-channel lowering:\n%s", got)
+	}
+}
+
+func TestNoTypeInfoMakeChannelShortDeclIsBare(t *testing.T) {
+	prevTypeInfo := currentTypeInfo
+	prevCollections := localCollectionKinds
+	prevRangeElemTypes := localRangeElemRustTypes
+	prevRangeVars := rangeLoopVars
+	prevVarTable := currentVarTable
+	defer func() {
+		currentTypeInfo = prevTypeInfo
+		localCollectionKinds = prevCollections
+		localRangeElemRustTypes = prevRangeElemTypes
+		rangeLoopVars = prevRangeVars
+		SetVarTable(prevVarTable)
+	}()
+	SetTypeInfo(nil)
+	localCollectionKinds = make(map[string]string)
+	localRangeElemRustTypes = make(map[string]string)
+	rangeLoopVars = make(map[string]string)
+	vt := NewVarTable()
+	SetVarTable(vt)
+
+	file, err := parser.ParseFile(token.NewFileSet(), "main.go", `package main
+func f() {
+	ch := make(chan int)
+	for n := range ch { println(n) }
+}`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile() error = %v", err)
+	}
+	fn := file.Decls[0].(*ast.FuncDecl)
+
+	var assignOut strings.Builder
+	TranspileStatementSimple(&assignOut, fn.Body.List[0], nil, token.NewFileSet())
+	assignRust := assignOut.String()
+	if !strings.Contains(assignRust, "let mut ch = GoChannel::<i32>::new()") {
+		t.Fatalf("make channel short decl should emit a bare GoChannel local:\n%s", assignRust)
+	}
+	if !isVarBare("ch") {
+		t.Fatalf("make channel short decl did not register ch as bare; info=%#v\n%s", vt.Lookup("ch"), assignRust)
+	}
+	if localCollectionKinds["ch"] != "channel" {
+		t.Fatalf("local collection kind for ch = %q, want channel", localCollectionKinds["ch"])
+	}
+
+	var rangeOut strings.Builder
+	TranspileStatementSimple(&rangeOut, fn.Body.List[1], nil, token.NewFileSet())
+	rangeRust := rangeOut.String()
+	if !strings.Contains(rangeRust, "for n in ch.clone()") {
+		t.Fatalf("tracked make channel range did not use channel iteration:\n%s", rangeRust)
+	}
+	if strings.Contains(rangeRust, ".lock()") || strings.Contains(rangeRust, "type info required") {
+		t.Fatalf("tracked make channel range treated channel as wrapped:\n%s", rangeRust)
+	}
+}
+
+func TestNoTypeInfoAnySelectorReturnKeepsFieldHandle(t *testing.T) {
+	prevTypeInfo := currentTypeInfo
+	prevStructDefs := structDefs
+	prevVarTable := currentVarTable
+	defer func() {
+		currentTypeInfo = prevTypeInfo
+		structDefs = prevStructDefs
+		SetVarTable(prevVarTable)
+	}()
+	SetTypeInfo(nil)
+
+	file, err := parser.ParseFile(token.NewFileSet(), "main.go", `package main
+type entry struct { value any }
+func get(e entry) any { return e.value }`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile() error = %v", err)
+	}
+	typeSpec := file.Decls[0].(*ast.GenDecl).Specs[0].(*ast.TypeSpec)
+	structType := typeSpec.Type.(*ast.StructType)
+	structDefs = map[string]*StructDef{
+		"entry": {
+			Fields:  map[string]string{"value": "regular"},
+			ASTType: structType,
+		},
+	}
+
+	fn := file.Decls[1].(*ast.FuncDecl)
+	vt := NewVarTable()
+	vt.Register("e", &VarInfo{
+		WrapLevel: WrapFull,
+		RustType:  "entry",
+		Source:    SourceParam,
+	})
+	SetVarTable(vt)
+
+	var out strings.Builder
+	TranspileStatementSimple(&out, fn.Body.List[0], fn.Type, token.NewFileSet())
+
+	got := out.String()
+	if !strings.Contains(got, ".value.clone()") {
+		t.Fatalf("any selector return should clone the field handle:\n%s", got)
+	}
+	if strings.Contains(got, "Box<dyn Any") || strings.Contains(got, ".as_ref().unwrap()))") {
+		t.Fatalf("any selector return should not unwrap and rewrap the Box payload:\n%s", got)
+	}
+}
+
+func TestNoTypeInfoPackageGlobalIdentUsesGlobalName(t *testing.T) {
+	prevTypeInfo := currentTypeInfo
+	prevGlobals := packageGlobalNames
+	prevVarTable := currentVarTable
+	defer func() {
+		currentTypeInfo = prevTypeInfo
+		packageGlobalNames = prevGlobals
+		SetVarTable(prevVarTable)
+	}()
+	SetTypeInfo(nil)
+	packageGlobalNames = map[string]bool{"n": true}
+	SetVarTable(NewVarTable())
+
+	var exprOut strings.Builder
+	TranspileExpression(&exprOut, ast.NewIdent("n"))
+	if got := exprOut.String(); strings.Contains(got, "n_local") || !strings.Contains(got, "(*n") {
+		t.Fatalf("package global expression = %q, want global n access", got)
+	}
+
+	stmt, err := parser.ParseFile(token.NewFileSet(), "main.go", `package main
+func f() { n++ }`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile() error = %v", err)
+	}
+	fn := stmt.Decls[0].(*ast.FuncDecl)
+	var stmtOut strings.Builder
+	TranspileStatementSimple(&stmtOut, fn.Body.List[0], nil, token.NewFileSet())
+	if got := stmtOut.String(); strings.Contains(got, "n_local") || !strings.Contains(got, "n.borrow_mut()") {
+		t.Fatalf("package global increment = %q, want global n mutation", got)
+	}
+}
+
+func TestNoTypeInfoAssignedNestedStringRangeUsesBareValue(t *testing.T) {
+	prevTypeInfo := currentTypeInfo
+	prevRangeVars := rangeLoopVars
+	defer func() {
+		currentTypeInfo = prevTypeInfo
+		rangeLoopVars = prevRangeVars
+	}()
+	SetTypeInfo(nil)
+	rangeLoopVars = map[string]string{"files": "&Vec<String>"}
+
+	file, err := parser.ParseFile(token.NewFileSet(), "main.go", `package main
+func f() {
+	for _, file := range files {
+		if file == "a.go" {
+			file = "src/" + file
+		}
+		res = append(res, file)
+	}
+}`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile() error = %v", err)
+	}
+	fn := file.Decls[0].(*ast.FuncDecl)
+	stmt := fn.Body.List[0]
+	var out strings.Builder
+	TranspileStatementSimple(&out, stmt, nil, token.NewFileSet())
+
+	got := out.String()
+	if !strings.Contains(got, "for mut file in files.iter().cloned()") {
+		t.Fatalf("assigned nested string range should iterate owned values:\n%s", got)
+	}
+	if strings.Contains(got, "file.lock()") || strings.Contains(got, "(*file).clone()") {
+		t.Fatalf("assigned nested string range should treat file as bare String:\n%s", got)
+	}
+	if !strings.Contains(got, "file = new_val") {
+		t.Fatalf("assigned nested string range should assign the bare binding:\n%s", got)
+	}
+	if !strings.Contains(got, ".push(file.clone())") {
+		t.Fatalf("assigned nested string range append should clone the bare binding:\n%s", got)
+	}
+}
+
+func TestStructRangeSelectorUsesRangeBinding(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+import (
+	"fmt"
+	"sort"
+)
+
+type packageFunctionName struct {
+	goName string
+	pos int
+	exported bool
+}
+
+func f() map[string]string {
+	byRustName := make(map[string][]packageFunctionName)
+	overrides := make(map[string]string)
+	for rustName, functions := range byRustName {
+		sort.Slice(functions, func(i, j int) bool {
+			if functions[i].exported != functions[j].exported {
+				return functions[i].exported
+			}
+			if functions[i].pos != functions[j].pos {
+				return functions[i].pos < functions[j].pos
+			}
+			return functions[i].goName < functions[j].goName
+		})
+		for i, fn := range functions {
+			if i == 0 {
+				continue
+			}
+			overrides[fn.goName] = fmt.Sprintf("%s_%d", rustName, i)
+		}
+	}
+	return overrides
+}`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile() error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+	SetTypeInfo(typeInfo)
+	defer SetTypeInfo(nil)
+
+	rust, _, _ := Transpile(file, fset, typeInfo)
+	if strings.Contains(rust, "fn.borrow()") || strings.Contains(rust, "fn.lock()") || strings.Contains(rust, "r#fn.borrow()") || strings.Contains(rust, "r#fn.lock()") {
+		t.Fatalf("struct range selector should use the range binding directly:\n%s", rust)
+	}
+	if !strings.Contains(rust, "r#fn.go_name") {
+		t.Fatalf("struct range selector should access the field on the range binding:\n%s", rust)
+	}
+}
+
+func TestPackageGlobalsRangeSelectorUsesRangeBinding(t *testing.T) {
+	fset := token.NewFileSet()
+	entries, err := os.ReadDir(".")
+	if err != nil {
+		t.Fatalf("ReadDir(.) error = %v", err)
+	}
+	var files []*ast.File
+	var target *ast.File
+	for _, entry := range entries {
+		name := entry.Name()
+		if entry.IsDir() || !strings.HasSuffix(name, ".go") || strings.HasSuffix(name, "_test.go") {
+			continue
+		}
+		file, err := parser.ParseFile(fset, name, nil, 0)
+		if err != nil {
+			t.Fatalf("ParseFile(%s) error = %v", name, err)
+		}
+		files = append(files, file)
+		if name == "package_globals.go" {
+			target = file
+		}
+	}
+	if target == nil {
+		t.Fatal("package_globals.go was not parsed")
+	}
+	typeInfo, err := NewTypeInfo(files, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+	SetTypeInfo(typeInfo)
+	defer SetTypeInfo(nil)
+
+	rust, _, _ := Transpile(target, fset, typeInfo)
+	for _, bad := range []string{
+		"r#fn.lock().unwrap().as_ref().unwrap()).go_name",
+		"r#fn.borrow().as_ref().unwrap()).go_name",
+	} {
+		idx := strings.Index(rust, bad)
+		if idx < 0 {
+			continue
+		}
+		start := max(0, idx-200)
+		end := min(len(rust), idx+300)
+		t.Fatalf("package_globals range selector should use the range binding directly:\n%s", rust[start:end])
+	}
+}
+
+func TestMethodPointerArgsPreserveHandles(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+import "go/types"
+
+type term struct{}
+type termlist []*term
+
+func (x *term) union(y *term) (*term, *term) { return x, y }
+func (x *term) includes(t types.Type) bool { return false }
+
+func (xl termlist) norm(t types.Type) {
+	for i, xi := range xl {
+		xj := xl[i]
+		xi.union(xj)
+	}
+	for _, x := range xl {
+		x.includes(t)
+	}
+}`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile() error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+	SetTypeInfo(typeInfo)
+	defer SetTypeInfo(nil)
+
+	rust, _, _ := Transpile(file, fset, typeInfo)
+	if strings.Contains(rust, "union((*xj") || strings.Contains(rust, "intersect((*y") {
+		t.Fatalf("pointer method argument should preserve the pointer handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".union(xj.clone())") {
+		t.Fatalf("pointer method argument should clone the pointer handle:\n%s", rust)
+	}
+	if strings.Contains(rust, "includes({ let __v = (*t") {
+		t.Fatalf("stdlib interface method argument should preserve the interface handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".includes(t.clone())") {
+		t.Fatalf("stdlib interface method argument should clone the interface handle:\n%s", rust)
+	}
+}
+
+func TestNilPointerFunctionArgumentUsesNilHandle(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+type Context struct{}
+
+func read(ctxt *Context) {}
+
+func f() {
+	read(nil)
+}`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile() error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+	SetTypeInfo(typeInfo)
+	defer SetTypeInfo(nil)
+
+	rust, _, _ := Transpile(file, fset, typeInfo)
+	if strings.Contains(rust, "nil.clone()") {
+		t.Fatalf("nil pointer argument should emit a nil handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "read(Rc::new(RefCell::new(None)))") {
+		t.Fatalf("nil pointer argument should pass a wrapped nil handle:\n%s", rust)
+	}
+}
+
+func TestForInitShortDeclShadowsOuterRangeIndex(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+type List struct{}
+
+func (l *List) Len() int { return 0 }
+func (l *List) At(i int) int { return i }
+
+func f(lists []*List) {
+	go func() {}()
+	for i, list := range lists {
+		_ = i
+		for i := 0; i < list.Len(); i++ {
+			_ = list.At(i)
+		}
+	}
+}`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile() error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+	SetTypeInfo(typeInfo)
+	defer SetTypeInfo(nil)
+
+	rust, _, _ := Transpile(file, fset, typeInfo)
+	if strings.Contains(rust, "let __tmp_x = i;") {
+		t.Fatalf("inner for index should shadow outer bare range index in comparisons:\n%s", rust)
+	}
+	if strings.Contains(rust, ".at(i);") {
+		t.Fatalf("inner for index should be passed as a wrapped handle, not the outer bare range index:\n%s", rust)
+	}
+	if strings.Contains(rust, ".at(i.clone())") {
+		t.Fatalf("inner for index should not inherit bare range-index call argument handling:\n%s", rust)
+	}
+	if !strings.Contains(rust, "while (*i.borrow().as_ref().unwrap()) <") {
+		t.Fatalf("inner for index should be unwrapped from its own local wrapper:\n%s", rust)
+	}
+}
+
+func TestReturnStructSliceRangeValueClonesReference(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+type Label struct {
+	name string
+}
+
+type listMap struct {
+	labels []Label
+}
+
+func (lm listMap) Find(name string) Label {
+	for _, l := range lm.labels {
+		if l.name == name {
+			return l
+		}
+	}
+	return Label{}
+}`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile() error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+	SetTypeInfo(typeInfo)
+	defer SetTypeInfo(nil)
+
+	rust, _, _ := Transpile(file, fset, typeInfo)
+	if strings.Contains(rust, "Some(l)") {
+		t.Fatalf("returning a struct range value should not wrap the reference directly:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Some((*l).clone())") {
+		t.Fatalf("returning a struct range value should clone the referenced value:\n%s", rust)
+	}
+}
+
+func TestRangeStringFunctionArgumentWrapsOwnedClone(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+func find(pkg string) (int, bool) { return 0, true }
+
+func imports(pkgs []string) {
+	for _, pkg := range pkgs {
+		find(pkg)
+	}
+}`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile() error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+	SetTypeInfo(typeInfo)
+	defer SetTypeInfo(nil)
+
+	rust, _, _ := Transpile(file, fset, typeInfo)
+	if strings.Contains(rust, "find(pkg.clone())") {
+		t.Fatalf("range string argument should not be passed as a bare clone:\n%s", rust)
+	}
+	if !strings.Contains(rust, "find(Rc::new(RefCell::new(Some((*pkg).clone()))))") {
+		t.Fatalf("range string argument should be cloned into a wrapped Go string:\n%s", rust)
 	}
 }
 

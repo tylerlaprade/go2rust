@@ -433,6 +433,9 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 		if writeTrackedRangeSlicePrintArg(out, arg) {
 			return
 		}
+		if writeNoTypeInfoPrintArg(out, arg) {
+			return
+		}
 		// Type info not available - add error comment
 		out.WriteString("/* ERROR: Type information not available for print argument */ ")
 	}
@@ -1010,6 +1013,55 @@ func writeTrackedRangeSlicePrintArg(out *strings.Builder, arg ast.Expr) bool {
 	return true
 }
 
+func writeNoTypeInfoPrintArg(out *strings.Builder, arg ast.Expr) bool {
+	ident, ok := arg.(*ast.Ident)
+	if !ok {
+		return false
+	}
+	name := RustIdentForUse(ident)
+	if kind, ok := localCollectionKind(ident); ok {
+		switch kind {
+		case "slice":
+			NeedFormatSlice()
+			TrackImport("Display")
+			out.WriteString("format_slice(&")
+			out.WriteString(name)
+			out.WriteString(")")
+			return true
+		case "map":
+			NeedFormatMap()
+			TrackImport("Display")
+			TrackImport("Ord")
+			out.WriteString("format_map(&")
+			out.WriteString(name)
+			out.WriteString(")")
+			return true
+		}
+	}
+	if varType, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar {
+		if varType == "ref_value" || strings.HasPrefix(varType, "&") {
+			return writeOwnedRangeValue(out, ident)
+		}
+		if isWrappedRangeVarType(varType) {
+			out.WriteString("(*")
+			out.WriteString(name)
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref().unwrap())")
+			return true
+		}
+		out.WriteString(name)
+		return true
+	}
+	if ident.Name == "_" || ident.Name == "nil" || ident.Name == "true" || ident.Name == "false" || isConstIdent(ident) || isLocalConstantIdent(ident) || isVarBare(ident.Name) {
+		return false
+	}
+	out.WriteString("(*")
+	out.WriteString(name)
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap())")
+	return true
+}
+
 func writeFormatSliceCall(out *strings.Builder, arg ast.Expr, wrappedHelper string, valuesHelper string) {
 	if ident, ok := arg.(*ast.Ident); ok {
 		if _, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar {
@@ -1424,7 +1476,7 @@ func writeOwnedStringSliceStdlibArg(out *strings.Builder, arg ast.Expr) {
 	out.WriteString("(*")
 	TranspileExpressionContext(out, arg, LValue)
 	WriteBorrowMethod(out, false)
-	out.WriteString(".as_ref().unwrap()).clone()")
+	out.WriteString(").as_ref().cloned().unwrap_or_default()")
 }
 
 func writeStringBinaryResult(out *strings.Builder, call *ast.CallExpr, method string) {
@@ -2816,6 +2868,9 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 					if basic, ok := types.Unalias(elemType).Underlying().(*types.Basic); ok && basic.Kind() == types.String && writeRangeStringValue(out, expr) {
 						return
 					}
+					if writeWrappedRangeValueForExpectedType(out, expr, elemType) {
+						return
+					}
 					if _, isNamed := types.Unalias(elemType).(*types.Named); !isNamed {
 						if _, ok := types.Unalias(elemType).Underlying().(*types.Slice); ok {
 							writeUnwrappedSliceClone(out, expr)
@@ -2831,6 +2886,14 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 						out.WriteString(".clone()")
 						return
 					}
+				}
+			}
+			if elemRustType, ok := trackedRangeElemRustType(call.Args[0]); ok && writeWrappedRangeValueForRustElemType(out, expr, elemRustType) {
+				return
+			}
+			if ident, ok := expr.(*ast.Ident); ok {
+				if writeOwnedRangeValue(out, ident) {
+					return
 				}
 			}
 			if !writeOwnedExpressionValue(out, expr) {

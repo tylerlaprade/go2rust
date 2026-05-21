@@ -710,6 +710,9 @@ func writeRegularMethodCallArgument(out *strings.Builder, sel *ast.SelectorExpr,
 	typeInfo := GetTypeInfo()
 	expectedArgType := selectedMethodParamType(sel, index)
 	expectedArgExpr := selectedMethodParamExpr(sel, index)
+	if expectedArgType == nil {
+		expectedArgType = expectedTypeFromParamExpr(expectedArgExpr)
+	}
 	if expectedArgType != nil && writeGoErrorCallArgument(out, arg, expectedArgType) {
 		return
 	}
@@ -1172,6 +1175,13 @@ func writeUnwrappedForFormat(out *strings.Builder, expr ast.Expr) {
 			}
 		}
 	}
+	if !needsUnwrap {
+		if call, ok := expr.(*ast.CallExpr); ok {
+			if isPredeclaredTypeConversionTarget(call.Fun) {
+				needsUnwrap = true
+			}
+		}
+	}
 	if needsUnwrap {
 		out.WriteString("(*")
 		TranspileExpression(out, expr)
@@ -1481,7 +1491,7 @@ func writeExternalStubCallArgumentDirect(out *strings.Builder, arg ast.Expr) {
 		out.WriteString(".clone()")
 		return
 	}
-	if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.IsPointer(arg) {
+	if typeInfoIsPointerExpr(arg) {
 		writePointerHandleExpression(out, arg)
 		return
 	}
@@ -1653,11 +1663,33 @@ func writePointerHandleCallArgument(out *strings.Builder, arg ast.Expr, expected
 		return false
 	}
 	actual := typeInfo.GetType(arg)
-	if actual == nil || !types.AssignableTo(actual, expected) {
+	if actual == nil {
+		if _, ok := arg.(*ast.Ident); !ok {
+			return false
+		}
+	} else if !types.AssignableTo(actual, expected) {
 		return false
 	}
 
 	switch e := arg.(type) {
+	case *ast.Ident:
+		if e.Name == "nil" {
+			WriteWrappedNone(out)
+			return true
+		}
+		if writeOwnedRangeValue(out, e) {
+			return true
+		}
+		if globalIdent, ok := packageGlobalPointerIdent(e); ok {
+			writePackageGlobalPointerHandleClone(out, globalIdent)
+			return true
+		}
+		out.WriteString(rustIdentForUseWithCapture(e))
+		out.WriteString(".clone()")
+		return true
+	case *ast.SelectorExpr:
+		writeSelectorHandleClone(out, e)
+		return true
 	case *ast.UnaryExpr:
 		if e.Op != token.AND {
 			return false
@@ -2697,7 +2729,7 @@ func writePackageGlobalPointerFieldSelector(out *strings.Builder, ident *ast.Ide
 		writePackageGlobalPointerFieldHandle(out, ident, fieldInfo)
 		return
 	}
-	if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.IsPointer(sel) {
+	if typeInfoIsPointerExpr(sel) {
 		writePackageGlobalPointerFieldHandle(out, ident, fieldInfo)
 		out.WriteString(".clone()")
 		return
@@ -2713,6 +2745,22 @@ func writePackageGlobalPointerFieldSelector(out *strings.Builder, ident *ast.Ide
 	WriteBorrowMethod(out, false)
 	out.WriteString(".as_ref().unwrap()")
 	writeSelectorRValueClose(out, sel)
+}
+
+func typeInfoIsPointerExpr(expr ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	return typeInfo.IsPointer(expr)
+}
+
+func typeInfoProvesNotMapExpr(expr ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	return !typeInfo.IsMap(expr)
 }
 
 func isCopyTypeExpression(expr ast.Expr) bool {
@@ -2833,6 +2881,10 @@ func writeFunctionValueHandle(out *strings.Builder, expr ast.Expr) bool {
 		}
 		if sig, ok := functionValueSignature(ident); ok {
 			writeWrappedFunctionValueBox(out, ident, sig)
+			return true
+		}
+		if sig, ok := functionValueSyntaxSignature(ident); ok {
+			writeWrappedFunctionValueBoxFromSyntax(out, ident, sig)
 			return true
 		}
 		TranspileExpressionContext(out, ident, LValue)
@@ -3268,7 +3320,7 @@ func writeEmptyInterfaceIdentAssignment(out *strings.Builder, lhs ast.Expr, rhs 
 		writeEmptyInterfaceHandleClone(out, rhs)
 		out.WriteString("; ")
 		if index, ok := sel.X.(*ast.IndexExpr); ok {
-			if typeInfo := GetTypeInfo(); typeInfo != nil && !typeInfo.IsMap(index.X) {
+			if typeInfoProvesNotMapExpr(index.X) {
 				out.WriteString("(*")
 				TranspileExpressionContext(out, index.X, LValue)
 				WriteBorrowMethod(out, true)
@@ -3280,7 +3332,7 @@ func writeEmptyInterfaceIdentAssignment(out *strings.Builder, lhs ast.Expr, rhs 
 				return true
 			}
 		}
-		if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.IsPointer(sel.X) {
+		if typeInfoIsPointerExpr(sel.X) {
 			out.WriteString("(*")
 			TranspileExpressionContext(out, sel.X, LValue)
 			WriteBorrowMethod(out, true)
@@ -3378,6 +3430,8 @@ func writeWrappedStructFieldValue(out *strings.Builder, value ast.Expr, fieldExp
 			WriteWrapperSuffix(out)
 		} else if sig, ok := functionValueSignature(valIdent); ok {
 			writeWrappedFunctionValueBox(out, valIdent, sig)
+		} else if sig, ok := functionValueSyntaxSignature(valIdent); ok {
+			writeWrappedFunctionValueBoxFromSyntax(out, valIdent, sig)
 		} else if _, isLocalConst := localConstants[valIdent.Name]; isLocalConst || isConstIdent(valIdent) || isConstantExpression(value) {
 			WriteWrapperPrefix(out)
 			if !writeExpressionForExpectedType(out, value, fieldExpr) && !writeExpressionForExpectedTypesType(out, value, fieldType) {
@@ -3466,6 +3520,9 @@ func writeOwnedSelectorFieldValueForExpected(out *strings.Builder, value ast.Exp
 func fieldExprKeepsHandle(expr ast.Expr) bool {
 	if expr == nil {
 		return false
+	}
+	if isEmptyInterfaceExpr(expr) {
+		return true
 	}
 	switch expr.(type) {
 	case *ast.StarExpr, *ast.ArrayType, *ast.MapType, *ast.ChanType, *ast.FuncType, *ast.InterfaceType:
@@ -4014,14 +4071,18 @@ func findStructFieldExpr(structType *ast.StructType, fieldName string) ast.Expr 
 	if structType == nil {
 		return nil
 	}
+	var fallback ast.Expr
 	for _, field := range structType.Fields.List {
 		for _, name := range field.Names {
 			if name.Name == fieldName {
 				return field.Type
 			}
+			if fallback == nil && ToSnakeCase(name.Name) == ToSnakeCase(fieldName) {
+				fallback = field.Type
+			}
 		}
 	}
-	return nil
+	return fallback
 }
 
 func findTypesStructFieldType(structType *types.Struct, fieldName string) types.Type {
@@ -4114,8 +4175,9 @@ func writeMapLookupKeyWithType(out *strings.Builder, index ast.Expr, keyType typ
 	}
 	if ident, ok := index.(*ast.Ident); ok {
 		if varType, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar {
-			if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.IsPointer(index) && !isPointerKeyRangeVarType(varType) {
+			if typeInfoIsPointerExpr(index) && !isPointerKeyRangeVarType(varType) {
 				out.WriteString("&")
+				typeInfo := GetTypeInfo()
 				out.WriteString(goPtrKeyHelperNameForType(typeInfo.GetType(index)))
 				out.WriteString("::new(")
 				TranspileExpressionContext(out, index, LValue)
@@ -4136,8 +4198,9 @@ func writeMapLookupKeyWithType(out *strings.Builder, index ast.Expr, keyType typ
 			return
 		}
 	}
-	if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.IsPointer(index) {
+	if typeInfoIsPointerExpr(index) {
 		out.WriteString("&")
+		typeInfo := GetTypeInfo()
 		out.WriteString(goPtrKeyHelperNameForType(typeInfo.GetType(index)))
 		out.WriteString("::new(")
 		TranspileExpressionContext(out, index, LValue)
@@ -4243,12 +4306,24 @@ func writeOwnedRangeValue(out *strings.Builder, ident *ast.Ident) bool {
 		}
 		return true
 	}
+	if bareRangeVarNeedsClone(varType) {
+		out.WriteString(name)
+		out.WriteString(".clone()")
+		return true
+	}
 	if !isCopyTypeExpression(ident) && isCloneableNonPointerExpr(ident) {
 		out.WriteString(name)
 		out.WriteString(".clone()")
 		return true
 	}
 	return false
+}
+
+func bareRangeVarNeedsClone(varType string) bool {
+	if varType == "" || varType == "channel_val" || varType == "select_val" {
+		return false
+	}
+	return !rustRangeElemUsesCopied(varType)
 }
 
 func writeReferenceRangeValue(out *strings.Builder, expr ast.Expr) bool {
@@ -4282,6 +4357,38 @@ func writeWrappedRangeValueClone(out *strings.Builder, ident *ast.Ident, varType
 	out.WriteString(".as_ref().unwrap()).clone()")
 }
 
+func writeWrappedRangeValueForExpectedType(out *strings.Builder, arg ast.Expr, expected types.Type) bool {
+	if expected == nil || mapValueTypeKeepsHandle(expected) {
+		return false
+	}
+	ident, ok := arg.(*ast.Ident)
+	if !ok {
+		return false
+	}
+	varType, isRangeVar := rangeLoopVars[ident.Name]
+	if !isRangeVar || !isWrappedRangeVarType(varType) {
+		return false
+	}
+	writeWrappedRangeValueClone(out, ident, varType)
+	return true
+}
+
+func writeWrappedRangeValueForRustElemType(out *strings.Builder, arg ast.Expr, elemRustType string) bool {
+	if elemRustType == "" || isWrappedRangeVarType(elemRustType) {
+		return false
+	}
+	ident, ok := arg.(*ast.Ident)
+	if !ok {
+		return false
+	}
+	varType, isRangeVar := rangeLoopVars[ident.Name]
+	if !isRangeVar || !isWrappedRangeVarType(varType) {
+		return false
+	}
+	writeWrappedRangeValueClone(out, ident, varType)
+	return true
+}
+
 func isPointerKeyRangeVarType(varType string) bool {
 	return strings.HasPrefix(varType, "GoPtrKey<") ||
 		strings.HasPrefix(varType, "GoLocalPtrKey<") ||
@@ -4297,7 +4404,8 @@ func writeMapLiteralKeyWithType(out *strings.Builder, key ast.Expr, keyType type
 	if keyType != nil && writeStdlibInterfaceComparableConversion(out, key, keyType) {
 		return
 	}
-	if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.IsPointer(key) {
+	if typeInfoIsPointerExpr(key) {
+		typeInfo := GetTypeInfo()
 		out.WriteString(goPtrKeyHelperNameForType(typeInfo.GetType(key)))
 		out.WriteString("::new(")
 		TranspileExpressionContext(out, key, LValue)
@@ -4360,8 +4468,8 @@ func writeIdentExpression(out *strings.Builder, e *ast.Ident, ctx ExprContext, v
 	if isPackageGlobalIdent(e) {
 		switch ctx {
 		case RValue:
-			if globalIdent, ok := packageGlobalPointerIdent(e); ok {
-				writePackageGlobalPointerHandleClone(out, globalIdent)
+			if typeInfoIsPointerExpr(e) {
+				writePackageGlobalPointerHandleClone(out, e)
 				return
 			}
 			out.WriteString("(*")
@@ -4614,21 +4722,24 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		}
 
 	case *ast.Ident:
+		identName := e.Name
 		// Check if this variable has been renamed (captured in closure)
 		varName := RustIdentForUse(e)
 		renamedReceiver := ""
 		if currentCaptureRenames != nil {
-			if renamed, exists := currentCaptureRenames[e.Name]; exists {
+			if renamed, exists := currentCaptureRenames[identName]; exists {
 				varName = RustLocalIdent(renamed)
-				if currentReceiver != "" && e.Name == currentReceiver {
+				if currentReceiver != "" && identName == currentReceiver {
 					renamedReceiver = varName
 				}
 			}
 		}
 
-		if e.Name == "nil" {
+		if identName == "nil" {
 			out.WriteString("None")
-		} else if currentReceiver != "" && e.Name == currentReceiver {
+			return
+		}
+		if currentReceiver != "" && identName == currentReceiver {
 			if renamedReceiver != "" {
 				out.WriteString(renamedReceiver)
 				return
@@ -4647,15 +4758,15 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			} else {
 				out.WriteString("self")
 			}
-		} else if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.info != nil {
-			if _, ok := typeInfo.info.Uses[e].(*types.Func); ok {
-				out.WriteString(rustFunctionNameForUse(e.Name))
-			} else {
-				writeIdentExpression(out, e, ctx, varName)
-			}
-		} else {
-			writeIdentExpression(out, e, ctx, varName)
+			return
 		}
+		if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.info != nil {
+			if _, ok := typeInfo.info.Uses[e].(*types.Func); ok {
+				out.WriteString(rustFunctionNameForUse(identName))
+				return
+			}
+		}
+		writeIdentExpression(out, e, ctx, varName)
 	case *ast.CallExpr:
 		TranspileCall(out, e)
 
@@ -5335,13 +5446,11 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		// Special handling for string concatenation
 		if e.Op == token.ADD {
 			// Check if this might be string concatenation
-			isStringConcat := false
-			if lit, ok := e.X.(*ast.BasicLit); ok && lit.Kind == token.STRING {
-				isStringConcat = true
-			} else if lit, ok := e.Y.(*ast.BasicLit); ok && lit.Kind == token.STRING {
-				isStringConcat = true
-			} else if ti := GetTypeInfo(); ti != nil && ti.IsString(e) {
-				isStringConcat = true
+			isStringConcat := isSyntaxStringConcatExpr(e)
+			if !isStringConcat {
+				if ti := GetTypeInfo(); ti != nil && ti.IsString(e) {
+					isStringConcat = true
+				}
 			}
 
 			if isStringConcat {
@@ -5598,15 +5707,24 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		// Use type information to determine if this is a map access
 		typeInfo := GetTypeInfo()
 		isMap := false
+		hasIndexType := false
 
 		if typeInfo != nil {
-			isMap = typeInfo.IsMap(e.X)
-		} else {
-			// Type info not available - add error comment
-			out.WriteString("/* ERROR: Cannot determine if map or slice access - type information required */ ")
-			// Generate unimplemented to make the error obvious
-			out.WriteString("unimplemented!(\"type info required for index expression\")")
-			return
+			if typ := typeInfo.GetType(e.X); typ != nil {
+				hasIndexType = true
+				isMap = typeInfo.IsMap(e.X)
+			}
+		}
+		if !hasIndexType {
+			if kind, ok := localCollectionKind(e.X); ok {
+				isMap = kind == "map"
+			} else {
+				// Type info not available - add error comment
+				out.WriteString("/* ERROR: Cannot determine if map or slice access - type information required */ ")
+				// Generate unimplemented to make the error obvious
+				out.WriteString("unimplemented!(\"type info required for index expression\")")
+				return
+			}
 		}
 
 		if isMap {
@@ -5653,8 +5771,11 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			typeInfo := GetTypeInfo()
 			isString := false
 			if typeInfo != nil {
-				basicKind := typeInfo.GetBasicKind(e.X)
-				isString = (basicKind == types.String)
+				if typ := typeInfo.GetType(e.X); typ != nil {
+					if basic, ok := typ.Underlying().(*types.Basic); ok {
+						isString = basic.Kind() == types.String
+					}
+				}
 			}
 
 			if isString {
@@ -6547,14 +6668,15 @@ func isFunctionName(ident *ast.Ident) bool {
 	if ident == nil {
 		return false
 	}
-	if vt := GetVarTable(); vt != nil && vt.Lookup(ident.Name) != nil {
-		return false
-	}
 
 	// Use go/types to properly determine if this is a function
 	typeInfo := GetTypeInfo()
 	if typeInfo != nil && typeInfo.IsFunction(ident) {
 		return true
+	}
+
+	if vt := GetVarTable(); vt != nil && vt.Lookup(ident.Name) != nil {
+		return false
 	}
 
 	return GetFunctionSignature(ident.Name) != nil
@@ -6580,6 +6702,28 @@ func functionValueSignature(ident *ast.Ident) (*types.Signature, bool) {
 		return sig, true
 	}
 	return nil, false
+}
+
+func functionValueSyntaxSignature(ident *ast.Ident) (*FunctionSignature, bool) {
+	if ident == nil || lookupVarInfo(ident.Name) != nil {
+		return nil, false
+	}
+	sig := GetFunctionSignature(ident.Name)
+	return sig, sig != nil
+}
+
+func functionSignatureBoxTypeFromAST(sig *FunctionSignature) string {
+	if sig == nil {
+		return "_"
+	}
+	funcType := &ast.FuncType{}
+	if sig.Params != nil {
+		funcType.Params = &ast.FieldList{List: sig.Params}
+	}
+	if sig.Results != nil {
+		funcType.Results = &ast.FieldList{List: sig.Results}
+	}
+	return generateClosureType(funcType)
 }
 
 func selectorFunctionValueSignature(expr ast.Expr) (*types.Signature, bool) {
@@ -6718,6 +6862,37 @@ func writeFunctionValueBox(out *strings.Builder, ident *ast.Ident, sig *types.Si
 	out.WriteString(boxType)
 }
 
+func writeFunctionValueBoxFromSyntax(out *strings.Builder, ident *ast.Ident, sig *FunctionSignature) {
+	boxType := functionSignatureBoxTypeFromAST(sig)
+	out.WriteString("Box::new(move |")
+	argIndex := 0
+	for _, field := range sig.Params {
+		paramType := GoTypeToRust(field.Type)
+		count := len(field.Names)
+		if count == 0 {
+			count = 1
+		}
+		for i := 0; i < count; i++ {
+			if argIndex > 0 {
+				out.WriteString(", ")
+			}
+			out.WriteString(fmt.Sprintf("__arg%d: %s", argIndex, paramType))
+			argIndex++
+		}
+	}
+	out.WriteString("| { ")
+	out.WriteString(ToSnakeCase(ident.Name))
+	out.WriteString("(")
+	for i := 0; i < argIndex; i++ {
+		if i > 0 {
+			out.WriteString(", ")
+		}
+		out.WriteString(fmt.Sprintf("__arg%d", i))
+	}
+	out.WriteString(") }) as ")
+	out.WriteString(boxType)
+}
+
 func writeFunctionValueExpressionBox(out *strings.Builder, expr ast.Expr, sig *types.Signature) {
 	if ident, ok := expr.(*ast.Ident); ok {
 		writeFunctionValueBox(out, ident, sig)
@@ -6769,6 +6944,12 @@ func writeWrappedFunctionValueBox(out *strings.Builder, ident *ast.Ident, sig *t
 	WriteWrapperSuffix(out)
 }
 
+func writeWrappedFunctionValueBoxFromSyntax(out *strings.Builder, ident *ast.Ident, sig *FunctionSignature) {
+	WriteWrapperPrefix(out)
+	writeFunctionValueBoxFromSyntax(out, ident, sig)
+	WriteWrapperSuffix(out)
+}
+
 // Helper to check if a name is a builtin function
 func isBuiltinFunction(name string) bool {
 	builtins := map[string]bool{
@@ -6807,6 +6988,23 @@ func isBuiltinCallTarget(ident *ast.Ident) bool {
 	default:
 		return true
 	}
+}
+
+func isPredeclaredTypeConversionTarget(fun ast.Expr) bool {
+	ident, ok := fun.(*ast.Ident)
+	if !ok || !isPredeclaredTypeName(ident.Name) {
+		return false
+	}
+	if lookupVarInfo(ident.Name) != nil || GetFunctionSignature(ident.Name) != nil {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return true
+	}
+	obj := typeInfo.GetObject(ident)
+	_, isTypeName := obj.(*types.TypeName)
+	return obj == nil || isTypeName
 }
 
 // TranspileFuncLit transpiles a function literal (closure)
@@ -6930,10 +7128,30 @@ func TranspileFuncLitBox(out *strings.Builder, funcLit *ast.FuncLit) {
 }
 
 func functionBoxTypeForCallTarget(expr ast.Expr) string {
+	if lit, ok := expr.(*ast.FuncLit); ok {
+		return generateClosureType(lit.Type)
+	}
 	if ident, ok := expr.(*ast.Ident); ok {
 		if vt := GetVarTable(); vt != nil {
-			if info := vt.Lookup(ident.Name); info != nil && strings.HasPrefix(info.RustType, "Box<dyn Fn") {
-				return info.RustType
+			if info := vt.Lookup(ident.Name); info != nil {
+				rustType := strings.TrimPrefix(info.RustType, "&")
+				if strings.HasPrefix(rustType, "Box<dyn Fn") || IsFunctionTypeAlias(rustType) {
+					return rustType
+				}
+			}
+		}
+	}
+	if sel, ok := expr.(*ast.SelectorExpr); ok {
+		if fieldExpr, ok := selectorFieldTypeExpr(sel); ok {
+			if rustType, ok := functionTypeRustNameFromTypeExpr(fieldExpr); ok {
+				return rustType
+			}
+		}
+		if selectorAllowsUniqueStructFieldFallback(sel) {
+			if fieldExpr, ok := uniqueFunctionStructFieldTypeExpr(sel.Sel.Name); ok {
+				if rustType, ok := functionTypeRustNameFromTypeExpr(fieldExpr); ok {
+					return rustType
+				}
 			}
 		}
 	}
@@ -7113,7 +7331,7 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 		rustType = "f32"
 	case "float64":
 		rustType = "f64"
-	// String conversions
+		// String conversions
 	case "string":
 		// Special handling for string conversions
 		arg := call.Args[0]
@@ -7169,6 +7387,34 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 					}
 				}
 			}
+		}
+		if ident, ok := arg.(*ast.Ident); ok && localCollectionKinds[ident.Name] == "slice" {
+			switch localRangeElemRustTypes[ident.Name] {
+			case "i32":
+				WriteWrapperPrefix(out)
+				out.WriteString("(*")
+				out.WriteString(RustIdentForUse(ident))
+				WriteBorrowMethod(out, false)
+				out.WriteString(".as_ref().unwrap()).iter().map(|&c| char::from_u32(c as u32).unwrap()).collect::<String>()")
+				WriteWrapperSuffix(out)
+				return
+			case "u8":
+				WriteWrapperPrefix(out)
+				out.WriteString("String::from_utf8((*")
+				out.WriteString(RustIdentForUse(ident))
+				WriteBorrowMethod(out, false)
+				out.WriteString(".as_ref().unwrap()).clone()).unwrap()")
+				WriteWrapperSuffix(out)
+				return
+			}
+		}
+		if expressionContainsRangeChar(arg) {
+			WriteWrapperPrefix(out)
+			out.WriteString("char::from_u32((")
+			writeNumericConversionValue(out, arg)
+			out.WriteString(") as u32).unwrap().to_string()")
+			WriteWrapperSuffix(out)
+			return
 		}
 		// Default string conversion
 		WriteWrapperPrefix(out)
@@ -7763,7 +8009,14 @@ func writeNumericConversionValue(out *strings.Builder, arg ast.Expr) {
 	}
 
 	if ident, ok := arg.(*ast.Ident); ok && ident.Name != "nil" {
-		if _, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar {
+		if varType, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar {
+			if varType == "char" {
+				out.WriteString("(")
+				TranspileExpression(out, ident)
+				out.WriteString(" as i32)")
+				writeExternalIntegerTupleField(out, argType)
+				return
+			}
 			TranspileExpression(out, ident)
 			writeExternalIntegerTupleField(out, argType)
 			return
@@ -7794,6 +8047,17 @@ func writeNumericConversionValue(out *strings.Builder, arg ast.Expr) {
 		writeExternalIntegerTupleField(out, argType)
 		return
 	}
+	if bin, ok := arg.(*ast.BinaryExpr); ok && expressionContainsRangeChar(bin) {
+		out.WriteString("(")
+		writeNumericConversionValue(out, bin.X)
+		out.WriteString(" ")
+		out.WriteString(bin.Op.String())
+		out.WriteString(" ")
+		writeNumericConversionValue(out, bin.Y)
+		out.WriteString(")")
+		writeExternalIntegerTupleField(out, argType)
+		return
+	}
 
 	if typeInfo == nil || typeInfo.ReturnsWrappedValue(arg) {
 		out.WriteString("(*")
@@ -7806,6 +8070,36 @@ func writeNumericConversionValue(out *strings.Builder, arg ast.Expr) {
 
 	TranspileExpression(out, arg)
 	writeExternalIntegerTupleField(out, argType)
+}
+
+func expressionContainsRangeChar(expr ast.Expr) bool {
+	found := false
+	ast.Inspect(expr, func(n ast.Node) bool {
+		if found {
+			return false
+		}
+		ident, ok := n.(*ast.Ident)
+		if ok && rangeLoopVars[ident.Name] == "char" {
+			found = true
+			return false
+		}
+		return true
+	})
+	return found
+}
+
+func isSyntaxStringConcatExpr(expr *ast.BinaryExpr) bool {
+	if expr == nil || expr.Op != token.ADD {
+		return false
+	}
+	if lit, ok := expr.X.(*ast.BasicLit); ok && lit.Kind == token.STRING {
+		return true
+	}
+	if lit, ok := expr.Y.(*ast.BasicLit); ok && lit.Kind == token.STRING {
+		return true
+	}
+	return isSyntaxStringValue(expr.X) || isSyntaxStringValue(expr.Y) ||
+		isSyntaxStringConversion(expr.X) || isSyntaxStringConversion(expr.Y)
 }
 
 func writeUnsafePointerConversion(out *strings.Builder, arg ast.Expr) {
@@ -8613,6 +8907,16 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 		TranspileTypeConversion(out, call)
 		return
 	}
+	if len(call.Args) == 1 && isPredeclaredTypeConversionTarget(call.Fun) {
+		TranspileTypeConversion(out, call)
+		return
+	}
+	if len(call.Args) == 1 {
+		if _, ok := call.Fun.(*ast.ArrayType); ok {
+			TranspileTypeConversion(out, call)
+			return
+		}
+	}
 
 	if writeSyncOnceDoFuncLitCall(out, call) {
 		return
@@ -8757,7 +9061,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 			return
 		}
 
-		if isFunctionValueSelector(sel) {
+		if isFunctionValueSelector(sel) || isFunctionValueSelectorSyntax(sel) {
 			writeFunctionValueSelectorCall(out, sel, call)
 			return
 		}
@@ -8934,7 +9238,8 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 		bareMethodCall := false
 		externalStdlibStubMethodCall := IsExternalStdlibSelectorMethod(sel)
 		if ident, ok := sel.X.(*ast.Ident); ok {
-			if isVarBare(ident.Name) {
+			_, isRangeVar := rangeLoopVars[ident.Name]
+			if !isRangeVar && isVarBare(ident.Name) {
 				bareMethodCall = true
 			}
 		} else if fieldSel, ok := sel.X.(*ast.SelectorExpr); ok {
@@ -9330,6 +9635,11 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 					writeWrappedFunctionValueBox(out, ident, sig)
 					continue
 				}
+				if isFunctionSignatureTypeExpr(paramTypeForArg) {
+					if writeFunctionValueHandle(out, arg) {
+						continue
+					}
+				}
 
 				if isConstIdent(ident) {
 					writeWrappedExpressionForExpectedType(out, arg, paramTypeForArg)
@@ -9352,7 +9662,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				}
 
 				// Check if this is a channel parameter - pass with clone, no wrapping
-				if isVarBare(ident.Name) {
+				if _, isRangeVar := rangeLoopVars[ident.Name]; !isRangeVar && isVarBare(ident.Name) {
 					out.WriteString(argVarName)
 					out.WriteString(".clone()")
 					continue
@@ -9636,6 +9946,29 @@ func isFunctionValueSelector(sel *ast.SelectorExpr) bool {
 		return false
 	}
 	return typeInfo.IsFunctionType(sel)
+}
+
+func isFunctionValueSelectorSyntax(sel *ast.SelectorExpr) bool {
+	if sel == nil {
+		return false
+	}
+	fieldExpr, ok := selectorFieldTypeExpr(sel)
+	if !ok {
+		if selectorAllowsUniqueStructFieldFallback(sel) {
+			fieldExpr, ok = uniqueFunctionStructFieldTypeExpr(sel.Sel.Name)
+			if !ok {
+				return false
+			}
+		} else {
+			return false
+		}
+	}
+	return isFunctionSignatureTypeExpr(fieldExpr)
+}
+
+func selectorAllowsUniqueStructFieldFallback(sel *ast.SelectorExpr) bool {
+	ident, ok := sel.X.(*ast.Ident)
+	return ok && !strings.HasSuffix(ident.Name, "_closure_clone")
 }
 
 func writeFunctionValueSelectorCall(out *strings.Builder, sel *ast.SelectorExpr, call *ast.CallExpr) {

@@ -284,23 +284,56 @@ func packageGlobalVisibility(name string) string {
 }
 
 func isPackageGlobalIdent(ident *ast.Ident) bool {
-	if ident == nil || ident.Name == "_" || ident.Name == "nil" || ident.Name == "true" || ident.Name == "false" {
+	if ident == nil {
 		return false
 	}
-	if vt := GetVarTable(); vt != nil {
-		if vt.Lookup(ident.Name) != nil {
-			return false
-		}
+	name := ident.Name
+	if name == "_" {
+		return false
+	}
+	if name == "nil" {
+		return false
+	}
+	if name == "true" {
+		return false
+	}
+	if name == "false" {
+		return false
+	}
+	if lookupVarInfo(name) != nil {
+		return false
+	}
+	if packageGlobalNames[name] {
+		return true
 	}
 	return isPackageGlobalObjectIdent(ident)
 }
 
 func isPackageGlobalObjectIdent(ident *ast.Ident) bool {
-	if ident == nil || ident.Name == "_" || ident.Name == "nil" || ident.Name == "true" || ident.Name == "false" {
+	if ident == nil {
+		return false
+	}
+	name := ident.Name
+	if name == "_" {
+		return false
+	}
+	if name == "nil" {
+		return false
+	}
+	if name == "true" {
+		return false
+	}
+	if name == "false" {
 		return false
 	}
 	typeInfo := GetTypeInfo()
-	if typeInfo == nil || typeInfo.info == nil || typeInfo.pkg == nil {
+	if typeInfo == nil {
+		return false
+	}
+	if typeInfo.info == nil {
+		return false
+	}
+	if typeInfo.pkg == nil {
 		return false
 	}
 	obj := typeInfo.GetObject(ident)

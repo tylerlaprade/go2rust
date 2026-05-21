@@ -1058,6 +1058,9 @@ func registerPackageTypeFact(typeSpec *ast.TypeSpec) {
 		RegisterTypeAlias(typeSpec.Name.Name)
 		if isFunctionType {
 			RegisterFunctionTypeAlias(typeSpec.Name.Name)
+			if funcType, ok := typeSpec.Type.(*ast.FuncType); ok {
+				RegisterFunctionTypeAliasBox(typeSpec.Name.Name, functionTypeSpecRustBoxType(typeSpec, funcType))
+			}
 		}
 		return
 	}
@@ -1172,6 +1175,9 @@ func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.Fi
 
 	out.WriteString(" {\n")
 
+	restoreLocalSyntaxInfo := pushFunctionLocalSyntaxInfo()
+	defer restoreLocalSyntaxInfo()
+
 	// Register function parameters in VarTable
 	if vt := GetVarTable(); vt != nil {
 		vt.PushScope()
@@ -1179,23 +1185,32 @@ func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.Fi
 		if fn.Type.Params != nil {
 			for _, field := range fn.Type.Params.List {
 				for _, name := range field.Names {
+					rustType := goTypeToRustBase(field.Type)
+					if functionRustType, ok := functionTypeRustNameFromTypeExpr(field.Type); ok {
+						rustType = functionRustType
+					}
+					registerTypeExprCollectionInfo(name.Name, field.Type)
 					if varInfo, ok := interfaceParamVarInfo(field.Type); ok {
+						varInfo.RustType = rustType
 						vt.Register(name.Name, varInfo)
 					} else if _, ok := field.Type.(*ast.ChanType); ok {
 						// Channel parameters are bare (GoChannel<T>)
 						vt.Register(name.Name, &VarInfo{
 							WrapLevel: WrapNone,
+							RustType:  rustType,
 							Source:    SourceParam,
 						})
 					} else if isSyncParam(field.Type) {
 						// sync.WaitGroup / sync.Mutex parameters are bare
 						vt.Register(name.Name, &VarInfo{
 							WrapLevel: WrapNone,
+							RustType:  rustType,
 							Source:    SourceParam,
 						})
 					} else {
 						vt.Register(name.Name, &VarInfo{
 							WrapLevel: WrapFull,
+							RustType:  rustType,
 							Source:    SourceParam,
 						})
 					}
@@ -1408,6 +1423,18 @@ func functionTypeSpecRustType(typeSpec *ast.TypeSpec, fallback *ast.FuncType) st
 	return GoTypeToRust(fallback)
 }
 
+func functionTypeSpecRustBoxType(typeSpec *ast.TypeSpec, fallback *ast.FuncType) string {
+	typeInfo := GetTypeInfo()
+	if typeInfo != nil && typeInfo.info != nil {
+		if obj, ok := typeInfo.info.Defs[typeSpec.Name].(*types.TypeName); ok {
+			if sig, ok := signatureFromType(obj.Type()); ok {
+				return signatureToBoxDynFn(sig)
+			}
+		}
+	}
+	return generateClosureType(fallback)
+}
+
 func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *ast.GenDecl) {
 	rustTypeName := RustTypeNameForUse(typeSpec.Name.Name)
 	switch t := typeSpec.Type.(type) {
@@ -1574,6 +1601,7 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 			RegisterTypeAlias(typeSpec.Name.Name)
 			if _, isFuncType := t.(*ast.FuncType); isFuncType {
 				RegisterFunctionTypeAlias(typeSpec.Name.Name)
+				RegisterFunctionTypeAliasBox(typeSpec.Name.Name, functionTypeSpecRustBoxType(typeSpec, t.(*ast.FuncType)))
 			}
 		} else if _, isFuncType := t.(*ast.FuncType); isFuncType {
 			// Named function type: type BinaryOp func(int, int) int
@@ -1587,6 +1615,7 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 			// Track as a type alias so GoTypeToRust won't double-wrap
 			RegisterTypeAlias(typeSpec.Name.Name)
 			RegisterFunctionTypeAlias(typeSpec.Name.Name)
+			RegisterFunctionTypeAliasBox(typeSpec.Name.Name, functionTypeSpecRustBoxType(typeSpec, t.(*ast.FuncType)))
 		} else {
 			// Type definition: type A B
 			// Create a newtype wrapper in Rust
@@ -2892,6 +2921,9 @@ func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, a
 		writeNamedReturnDeclarations(out, fn.Type)
 	}
 
+	restoreLocalSyntaxInfo := pushFunctionLocalSyntaxInfo()
+	defer restoreLocalSyntaxInfo()
+
 	// Register method parameters in VarTable
 	if vt := GetVarTable(); vt != nil {
 		vt.PushScope()
@@ -2899,23 +2931,32 @@ func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, a
 		if fn.Type.Params != nil {
 			for _, field := range fn.Type.Params.List {
 				for _, name := range field.Names {
+					rustType := goTypeToRustBase(field.Type)
+					if functionRustType, ok := functionTypeRustNameFromTypeExpr(field.Type); ok {
+						rustType = functionRustType
+					}
+					registerTypeExprCollectionInfo(name.Name, field.Type)
 					if varInfo, ok := interfaceParamVarInfo(field.Type); ok {
+						varInfo.RustType = rustType
 						vt.Register(name.Name, varInfo)
 					} else if _, ok := field.Type.(*ast.ChanType); ok {
 						// Channel parameters are bare (GoChannel<T>)
 						vt.Register(name.Name, &VarInfo{
 							WrapLevel: WrapNone,
+							RustType:  rustType,
 							Source:    SourceParam,
 						})
 					} else if isSyncParam(field.Type) {
 						// sync.WaitGroup / sync.Mutex parameters are bare
 						vt.Register(name.Name, &VarInfo{
 							WrapLevel: WrapNone,
+							RustType:  rustType,
 							Source:    SourceParam,
 						})
 					} else {
 						vt.Register(name.Name, &VarInfo{
 							WrapLevel: WrapFull,
+							RustType:  rustType,
 							Source:    SourceParam,
 						})
 					}

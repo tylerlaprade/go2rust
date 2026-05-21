@@ -499,6 +499,7 @@ func goTypeToRustBase(expr ast.Expr) string {
 		innerWrapper := GetInnerWrapperType()
 		return fmt.Sprintf("/* ERROR: Unsupported instantiated generic type */ %s<%s<Option<()>>>", outerWrapper, innerWrapper)
 	case *ast.ChanType:
+		NeedGoChannel()
 		elemType := goTypeToRustBase(t.Value)
 		return "GoChannel<" + elemType + ">"
 	case *ast.SelectorExpr:

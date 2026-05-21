@@ -23,6 +23,7 @@ type PackageState struct {
 	TypeDefinitions              map[string]string
 	TypeAliases                  map[string]bool
 	FunctionTypeAliases          map[string]bool
+	FunctionTypeAliasBoxTypes    map[string]string
 	MapKeyStructTypes            map[string]bool
 	PackageConstants             map[string]string
 	GoPackageImports             map[string]string
@@ -51,6 +52,9 @@ type FileState struct {
 	StatementPreprocessor        *StatementPreprocessor
 	RangeLoopVars                map[string]string
 	LocalRangeElemRustTypes      map[string]string
+	LocalCollectionKinds         map[string]string
+	LocalMapKeyRustTypes         map[string]string
+	LocalMapValueRustTypes       map[string]string
 	LocalConstants               map[string]string
 	LocalInterfaces              map[string]bool
 	CurrentReceiver              string
@@ -105,6 +109,7 @@ func NewPackageState() *PackageState {
 		TypeDefinitions:              make(map[string]string),
 		TypeAliases:                  make(map[string]bool),
 		FunctionTypeAliases:          make(map[string]bool),
+		FunctionTypeAliasBoxTypes:    make(map[string]string),
 		MapKeyStructTypes:            make(map[string]bool),
 		PackageConstants:             make(map[string]string),
 		GoPackageImports:             make(map[string]string),
@@ -139,6 +144,9 @@ func NewFileState(imports *ImportTracker, helpers *HelperTracker, statementPrepr
 		StatementPreprocessor:        statementPreprocessor,
 		RangeLoopVars:                make(map[string]string),
 		LocalRangeElemRustTypes:      make(map[string]string),
+		LocalCollectionKinds:         make(map[string]string),
+		LocalMapKeyRustTypes:         make(map[string]string),
+		LocalMapValueRustTypes:       make(map[string]string),
 		LocalConstants:               make(map[string]string),
 		LocalInterfaces:              make(map[string]bool),
 		ExternalTypeStubs:            make(map[string]bool),
@@ -209,6 +217,9 @@ func (ctx *TranspileContext) ensureDefaults() {
 		if ctx.Package.FunctionTypeAliases == nil {
 			ctx.Package.FunctionTypeAliases = make(map[string]bool)
 		}
+		if ctx.Package.FunctionTypeAliasBoxTypes == nil {
+			ctx.Package.FunctionTypeAliasBoxTypes = make(map[string]string)
+		}
 		if ctx.Package.MapKeyStructTypes == nil {
 			ctx.Package.MapKeyStructTypes = make(map[string]bool)
 		}
@@ -274,6 +285,15 @@ func (ctx *TranspileContext) ensureDefaults() {
 		if ctx.File.LocalRangeElemRustTypes == nil {
 			ctx.File.LocalRangeElemRustTypes = make(map[string]string)
 		}
+		if ctx.File.LocalCollectionKinds == nil {
+			ctx.File.LocalCollectionKinds = make(map[string]string)
+		}
+		if ctx.File.LocalMapKeyRustTypes == nil {
+			ctx.File.LocalMapKeyRustTypes = make(map[string]string)
+		}
+		if ctx.File.LocalMapValueRustTypes == nil {
+			ctx.File.LocalMapValueRustTypes = make(map[string]string)
+		}
 		if ctx.File.LocalConstants == nil {
 			ctx.File.LocalConstants = make(map[string]string)
 		}
@@ -329,6 +349,7 @@ func (ctx *TranspileContext) captureCompatibilityState() {
 		ctx.Package.TypeDefinitions = typeDefinitions
 		ctx.Package.TypeAliases = typeAliases
 		ctx.Package.FunctionTypeAliases = functionTypeAliases
+		ctx.Package.FunctionTypeAliasBoxTypes = functionTypeAliasBoxTypes
 		if ctx.Package.MapKeyStructTypes == nil {
 			ctx.Package.MapKeyStructTypes = make(map[string]bool)
 		}
@@ -347,6 +368,9 @@ func (ctx *TranspileContext) captureCompatibilityState() {
 		ctx.File.StatementPreprocessor = statementPreprocessor
 		ctx.File.RangeLoopVars = rangeLoopVars
 		ctx.File.LocalRangeElemRustTypes = localRangeElemRustTypes
+		ctx.File.LocalCollectionKinds = localCollectionKinds
+		ctx.File.LocalMapKeyRustTypes = localMapKeyRustTypes
+		ctx.File.LocalMapValueRustTypes = localMapValueRustTypes
 		ctx.File.LocalConstants = localConstants
 		ctx.File.LocalInterfaces = localInterfaces
 		ctx.File.CurrentReceiver = currentReceiver
@@ -388,6 +412,7 @@ func (ctx *TranspileContext) applyCompatibilityState() {
 		typeDefinitions = ctx.Package.TypeDefinitions
 		typeAliases = ctx.Package.TypeAliases
 		functionTypeAliases = ctx.Package.FunctionTypeAliases
+		functionTypeAliasBoxTypes = ctx.Package.FunctionTypeAliasBoxTypes
 		packageConstants = ctx.Package.PackageConstants
 		goPackageImports = ctx.Package.GoPackageImports
 		externalPackages = ctx.Package.ExternalPackages
@@ -403,6 +428,9 @@ func (ctx *TranspileContext) applyCompatibilityState() {
 		statementPreprocessor = ctx.File.StatementPreprocessor
 		rangeLoopVars = ctx.File.RangeLoopVars
 		localRangeElemRustTypes = ctx.File.LocalRangeElemRustTypes
+		localCollectionKinds = ctx.File.LocalCollectionKinds
+		localMapKeyRustTypes = ctx.File.LocalMapKeyRustTypes
+		localMapValueRustTypes = ctx.File.LocalMapValueRustTypes
 		localConstants = ctx.File.LocalConstants
 		localInterfaces = ctx.File.LocalInterfaces
 		currentReceiver = ctx.File.CurrentReceiver

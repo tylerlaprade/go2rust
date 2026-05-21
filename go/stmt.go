@@ -449,11 +449,152 @@ func registerCompositeLiteralRangeElemType(lhs ast.Expr, lit *ast.CompositeLit) 
 	if !ok || ident.Name == "_" {
 		return
 	}
-	elemRustType, ok := compositeLiteralRangeElemRustType(lit)
-	if !ok {
+	switch typ := lit.Type.(type) {
+	case *ast.ArrayType:
+		elemRustType := goCollectionElemTypeToRust(typ.Elt)
+		localCollectionKinds[ident.Name] = "slice"
+		localRangeElemRustTypes[ident.Name] = elemRustType
+	case *ast.MapType:
+		localCollectionKinds[ident.Name] = "map"
+		localMapKeyRustTypes[ident.Name] = goMapKeyTypeToRustBase(typ.Key)
+		localMapValueRustTypes[ident.Name] = GoTypeToRust(typ.Value)
+	}
+}
+
+func registerCompositeLiteralSyntaxVarInfo(lhs ast.Expr, lit *ast.CompositeLit) {
+	ident, ok := lhs.(*ast.Ident)
+	if !ok || ident.Name == "_" || lit == nil {
 		return
 	}
-	localRangeElemRustTypes[ident.Name] = elemRustType
+	var rustType string
+	switch typ := lit.Type.(type) {
+	case *ast.Ident:
+		rustType = RustTypeNameForUse(typ.Name)
+	case *ast.SelectorExpr:
+		rustType = goTypeToRustBase(typ)
+	default:
+		return
+	}
+	if vt := GetVarTable(); vt != nil {
+		vt.Register(ident.Name, &VarInfo{
+			WrapLevel: WrapFull,
+			RustType:  rustType,
+			Source:    SourceLocal,
+		})
+	}
+}
+
+func localCollectionKind(expr ast.Expr) (string, bool) {
+	ident, ok := expr.(*ast.Ident)
+	if !ok {
+		return "", false
+	}
+	kind, ok := localCollectionKinds[ident.Name]
+	return kind, ok
+}
+
+func localMapRangeTypes(expr ast.Expr) (string, string, bool) {
+	ident, ok := expr.(*ast.Ident)
+	if !ok || localCollectionKinds[ident.Name] != "map" {
+		return "", "", false
+	}
+	keyType := localMapKeyRustTypes[ident.Name]
+	valueType := localMapValueRustTypes[ident.Name]
+	if keyType == "" || valueType == "" {
+		return "", "", false
+	}
+	return keyType, valueType, true
+}
+
+func registerStdlibCallCollectionInfo(lhs ast.Expr, call *ast.CallExpr) {
+	ident, ok := lhs.(*ast.Ident)
+	if !ok || ident.Name == "_" || call == nil {
+		return
+	}
+	if sel, ok := call.Fun.(*ast.SelectorExpr); ok {
+		if pkg, ok := sel.X.(*ast.Ident); ok && pkg.Name == "strings" {
+			switch sel.Sel.Name {
+			case "Split", "Fields":
+				localCollectionKinds[ident.Name] = "slice"
+				localRangeElemRustTypes[ident.Name] = "String"
+			}
+		}
+	}
+	if fun, ok := call.Fun.(*ast.Ident); ok && fun.Name == "make" && len(call.Args) > 0 {
+		if arrayType, ok := call.Args[0].(*ast.ArrayType); ok && arrayType.Len == nil {
+			localCollectionKinds[ident.Name] = "slice"
+			localRangeElemRustTypes[ident.Name] = goCollectionElemTypeToRust(arrayType.Elt)
+		} else if chanType, ok := call.Args[0].(*ast.ChanType); ok {
+			localCollectionKinds[ident.Name] = "channel"
+			localRangeElemRustTypes[ident.Name] = goCollectionElemTypeToRust(chanType.Value)
+		}
+	}
+}
+
+func registerCallResultSyntaxInfo(lhs ast.Expr, call *ast.CallExpr) {
+	ident, ok := lhs.(*ast.Ident)
+	if !ok || ident.Name == "_" || call == nil {
+		return
+	}
+	registerStdlibCallCollectionInfo(lhs, call)
+	if arrayType, ok := call.Fun.(*ast.ArrayType); ok && arrayType.Len == nil {
+		localCollectionKinds[ident.Name] = "slice"
+		localRangeElemRustTypes[ident.Name] = goCollectionElemTypeToRust(arrayType.Elt)
+		return
+	}
+	resultType := callSingleReturnTypeExpr(call)
+	if resultType == nil {
+		return
+	}
+	registerTypeExprCollectionInfo(ident.Name, resultType)
+	if vt := GetVarTable(); vt != nil {
+		rustType := goTypeToRustBase(resultType)
+		if functionRustType, ok := functionTypeRustNameFromTypeExpr(resultType); ok {
+			rustType = functionRustType
+		}
+		vt.Register(ident.Name, &VarInfo{
+			WrapLevel: WrapFull,
+			RustType:  rustType,
+			Source:    SourceLocal,
+		})
+	}
+}
+
+func registerTypeExprCollectionInfo(name string, typeExpr ast.Expr) {
+	if name == "_" || typeExpr == nil {
+		return
+	}
+	switch typ := typeExpr.(type) {
+	case *ast.ArrayType:
+		if typ.Len == nil {
+			localCollectionKinds[name] = "slice"
+			localRangeElemRustTypes[name] = goCollectionElemTypeToRust(typ.Elt)
+		}
+	case *ast.MapType:
+		localCollectionKinds[name] = "map"
+		localMapKeyRustTypes[name] = goMapKeyTypeToRustBase(typ.Key)
+		localMapValueRustTypes[name] = GoTypeToRust(typ.Value)
+	case *ast.ChanType:
+		localCollectionKinds[name] = "channel"
+		localRangeElemRustTypes[name] = goCollectionElemTypeToRust(typ.Value)
+	}
+}
+
+func pushFunctionLocalSyntaxInfo() func() {
+	prevRangeElemRustTypes := localRangeElemRustTypes
+	prevCollectionKinds := localCollectionKinds
+	prevMapKeyRustTypes := localMapKeyRustTypes
+	prevMapValueRustTypes := localMapValueRustTypes
+	localRangeElemRustTypes = make(map[string]string)
+	localCollectionKinds = make(map[string]string)
+	localMapKeyRustTypes = make(map[string]string)
+	localMapValueRustTypes = make(map[string]string)
+	return func() {
+		localRangeElemRustTypes = prevRangeElemRustTypes
+		localCollectionKinds = prevCollectionKinds
+		localMapKeyRustTypes = prevMapKeyRustTypes
+		localMapValueRustTypes = prevMapValueRustTypes
+	}
 }
 
 func trackedRangeElemRustType(expr ast.Expr) (string, bool) {
@@ -485,6 +626,26 @@ func rangeValueTypeFromTrackedRustElem(rustType string) string {
 		return rustType
 	}
 	return "&" + rustType
+}
+
+func rustVecElemType(rustType string) (string, bool) {
+	rustType = strings.TrimPrefix(rustType, "&")
+	if strings.HasPrefix(rustType, "Vec<") && strings.HasSuffix(rustType, ">") {
+		return strings.TrimSuffix(strings.TrimPrefix(rustType, "Vec<"), ">"), true
+	}
+	return "", false
+}
+
+func rangeVarSliceElemRustType(expr ast.Expr) (string, bool) {
+	ident, ok := expr.(*ast.Ident)
+	if !ok {
+		return "", false
+	}
+	varType, ok := rangeLoopVars[ident.Name]
+	if !ok {
+		return "", false
+	}
+	return rustVecElemType(varType)
 }
 
 func trackedRangeElemValueType(expr ast.Expr) (string, bool, bool) {
@@ -558,6 +719,22 @@ func shortDeclNames(stmt ast.Stmt) []string {
 		names = append(names, ident.Name)
 	}
 	return names
+}
+
+func registerFullShortDecls(names []string) {
+	if len(names) == 0 {
+		return
+	}
+	vt := GetVarTable()
+	if vt == nil {
+		return
+	}
+	for _, name := range names {
+		vt.Register(name, &VarInfo{
+			WrapLevel: WrapFull,
+			Source:    SourceLocal,
+		})
+	}
 }
 
 func shadowRangeLoopVars(names []string) func() {
@@ -2201,14 +2378,50 @@ func mapIndexExpressionKeepsHandle(expr ast.Expr) bool {
 }
 
 func selectorExpressionKeepsHandle(expr ast.Expr) bool {
-	if _, ok := expr.(*ast.SelectorExpr); !ok {
+	sel, ok := expr.(*ast.SelectorExpr)
+	if !ok {
 		return false
 	}
 	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return false
+	if typeInfo != nil {
+		if typ := typeInfo.GetType(expr); typ != nil {
+			return mapValueTypeKeepsHandle(typ)
+		}
 	}
-	return mapValueTypeKeepsHandle(typeInfo.GetType(expr))
+	fieldExpr, ok := selectorFieldTypeExpr(sel)
+	return ok && fieldExprKeepsHandle(fieldExpr)
+}
+
+func selectorFieldTypeExpr(sel *ast.SelectorExpr) (ast.Expr, bool) {
+	typeName, ok := selectorBaseSyntaxTypeName(sel.X)
+	if !ok {
+		return nil, false
+	}
+	structDef := structDefs[typeName]
+	if structDef == nil {
+		structDef = structDefs[strings.TrimPrefix(typeName, "*")]
+	}
+	if structDef == nil || structDef.ASTType == nil {
+		return nil, false
+	}
+	fieldExpr := findStructFieldExpr(structDef.ASTType, sel.Sel.Name)
+	return fieldExpr, fieldExpr != nil
+}
+
+func selectorBaseSyntaxTypeName(expr ast.Expr) (string, bool) {
+	ident, ok := expr.(*ast.Ident)
+	if !ok {
+		return "", false
+	}
+	if currentReceiver != "" && ident.Name == currentReceiver && currentReceiverType != "" {
+		return currentReceiverType, true
+	}
+	if vt := GetVarTable(); vt != nil {
+		if info := vt.Lookup(ident.Name); info != nil && info.RustType != "" {
+			return strings.TrimPrefix(info.RustType, "&"), true
+		}
+	}
+	return "", false
 }
 
 func expressionFunctionSignature(expr ast.Expr) (*types.Signature, bool) {
@@ -2222,6 +2435,72 @@ func expressionFunctionSignature(expr ast.Expr) (*types.Signature, bool) {
 	}
 	sig, ok := typ.Underlying().(*types.Signature)
 	return sig, ok
+}
+
+func functionTypeRustNameFromTypeExpr(expr ast.Expr) (string, bool) {
+	switch t := expr.(type) {
+	case *ast.FuncType:
+		return generateClosureType(t), true
+	case *ast.Ident:
+		if IsFunctionTypeAlias(t.Name) {
+			if rustType, ok := FunctionTypeAliasBox(t.Name); ok {
+				return rustType, true
+			}
+			return RustTypeNameForUse(t.Name), true
+		}
+	}
+	return "", false
+}
+
+func expressionHasFunctionSignatureSyntax(expr ast.Expr) bool {
+	ident, ok := expr.(*ast.Ident)
+	if !ok {
+		return false
+	}
+	info := lookupVarInfo(ident.Name)
+	if info == nil {
+		return false
+	}
+	rustType := strings.TrimPrefix(info.RustType, "&")
+	return strings.HasPrefix(rustType, "Box<dyn Fn") || IsFunctionTypeAlias(rustType)
+}
+
+func uniqueFunctionStructFieldTypeExpr(fieldName string) (ast.Expr, bool) {
+	var found ast.Expr
+	for _, def := range structDefs {
+		if def == nil || def.ASTType == nil {
+			continue
+		}
+		fieldExpr := findStructFieldExpr(def.ASTType, fieldName)
+		if fieldExpr == nil {
+			continue
+		}
+		if !isFunctionSignatureTypeExpr(fieldExpr) {
+			if _, ok := functionTypeRustNameFromTypeExpr(fieldExpr); !ok {
+				continue
+			}
+		}
+		if found != nil {
+			return nil, false
+		}
+		found = fieldExpr
+	}
+	return found, found != nil
+}
+
+func callSingleReturnTypeExpr(call *ast.CallExpr) ast.Expr {
+	if call == nil {
+		return nil
+	}
+	ident, ok := call.Fun.(*ast.Ident)
+	if !ok {
+		return nil
+	}
+	sig := GetFunctionSignature(ident.Name)
+	if sig == nil || len(sig.Results) != 1 {
+		return nil
+	}
+	return sig.Results[0].Type
 }
 
 func functionSignatureFromTypeExpr(expr ast.Expr) (*types.Signature, bool) {
@@ -2442,12 +2721,19 @@ func writePointerHandleSelectorTarget(out *strings.Builder, sel *ast.SelectorExp
 
 	if ident, ok := sel.X.(*ast.Ident); ok {
 		if currentReceiver != "" && ident.Name == currentReceiver {
+			baseName := "self"
+			if currentCaptureRenames != nil {
+				if renamed, exists := currentCaptureRenames[ident.Name]; exists {
+					baseName = RustLocalIdent(renamed)
+				}
+			}
 			fieldInfo := resolveFieldAccess(currentReceiverType, sel.Sel.Name)
 			if fieldInfo.IsPromoted {
-				writePromotedHandleAssignmentTarget(out, "self", fieldInfo, false)
+				writePromotedHandleAssignmentTarget(out, baseName, fieldInfo, false)
 				return true
 			}
-			out.WriteString("self.")
+			out.WriteString(baseName)
+			out.WriteString(".")
 			out.WriteString(fieldInfo.FieldName)
 			return true
 		}
@@ -3404,8 +3690,20 @@ func callReturnsBareChannelValue(call *ast.CallExpr) bool {
 }
 
 func isMakeChannelCall(call *ast.CallExpr) bool {
-	if call == nil || !isBuiltinCallNamed(call, "make") || len(call.Args) == 0 {
+	if call == nil || len(call.Args) == 0 {
 		return false
+	}
+	ident, ok := call.Fun.(*ast.Ident)
+	if !ok || ident.Name != "make" {
+		return false
+	}
+	if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.info != nil {
+		if obj, ok := typeInfo.info.Uses[ident]; ok {
+			builtin, ok := obj.(*types.Builtin)
+			if !ok || builtin.Name() != "make" {
+				return false
+			}
+		}
 	}
 	if _, ok := call.Args[0].(*ast.ChanType); ok {
 		return true
@@ -3569,6 +3867,9 @@ func transpileCondition(out *strings.Builder, expr ast.Expr) {
 }
 
 func callReturnsWrappedBool(call *ast.CallExpr) bool {
+	if callReturnsWrappedBoolBySyntax(call) {
+		return true
+	}
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil || callReturnsBareChannelValue(call) || !typeInfo.ReturnsWrappedValue(call) {
 		return false
@@ -3579,6 +3880,97 @@ func callReturnsWrappedBool(call *ast.CallExpr) bool {
 	}
 	basic, ok := callType.Underlying().(*types.Basic)
 	return ok && basic.Kind() == types.Bool
+}
+
+func callReturnsWrappedBoolBySyntax(call *ast.CallExpr) bool {
+	if call == nil {
+		return false
+	}
+	if ident, ok := call.Fun.(*ast.Ident); ok {
+		if sig := GetFunctionSignature(ident.Name); sig != nil && len(sig.Results) == 1 {
+			if resultIdent, ok := sig.Results[0].Type.(*ast.Ident); ok && resultIdent.Name == "bool" {
+				return true
+			}
+		}
+		if info := lookupVarInfo(ident.Name); info != nil && functionBoxTypeReturnsWrappedBool(info.RustType) {
+			return true
+		}
+	}
+	if sel, ok := call.Fun.(*ast.SelectorExpr); ok {
+		if fieldExpr, ok := selectorFieldTypeExpr(sel); ok {
+			if ident, ok := fieldExpr.(*ast.Ident); ok {
+				if rustType, ok := FunctionTypeAliasBox(ident.Name); ok && functionBoxTypeReturnsWrappedBool(rustType) {
+					return true
+				}
+			}
+			if fnType, ok := fieldExpr.(*ast.FuncType); ok && fnType.Results != nil && len(fnType.Results.List) == 1 {
+				if resultIdent, ok := fnType.Results.List[0].Type.(*ast.Ident); ok && resultIdent.Name == "bool" {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
+func functionBoxTypeReturnsWrappedBool(rustType string) bool {
+	rustType = strings.TrimPrefix(rustType, "&")
+	return strings.Contains(rustType, "-> "+GetOuterWrapperType()+"<"+GetInnerWrapperType()+"<Option<bool>>>")
+}
+
+func hasStatementPreprocessor() bool {
+	return statementPreprocessor != nil
+}
+
+func rangeTypeFacts(expr ast.Expr) (bool, bool, bool, bool, bool, bool) {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false, false, false, false, false, false
+	}
+	isMap := typeInfo.IsMap(expr)
+	isString := typeInfo.IsString(expr)
+	isInteger := isIntegerRangeExpr(typeInfo, expr)
+	isSlice := typeInfo.IsSlice(expr)
+	isArray := typeInfo.IsArray(expr)
+	if !isArray {
+		isArray = typeInfo.IsPointerToArray(expr)
+	}
+	isChannel := typeInfo.IsChannel(expr)
+	if !isString {
+		if lit, ok := expr.(*ast.BasicLit); ok && lit.Kind == token.STRING {
+			isString = true
+		}
+	}
+	return isMap, isString, isInteger, isSlice, isArray, isChannel
+}
+
+func rangeMapKeyValueTypes(expr ast.Expr) (types.Type, types.Type) {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return nil, nil
+	}
+	valueType := typeInfo.GetMapValueType(expr)
+	if valueType == nil {
+		return nil, nil
+	}
+	keyType, _ := typeInfo.GetMapTypes(expr)
+	return keyType, valueType
+}
+
+func rangeExprGoType(expr ast.Expr) types.Type {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return nil
+	}
+	return typeInfo.GetType(expr)
+}
+
+func rangeArrayOrSliceElemType(expr ast.Expr) types.Type {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return nil
+	}
+	return typeInfo.GetArrayOrSliceElemType(expr)
 }
 
 func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncType, fileSet *token.FileSet, comments []*ast.CommentGroup, lastPos *token.Pos, indent string) {
@@ -3599,7 +3991,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			isSyncOnceDo = isSyncOnceDoFuncLitCall(call)
 		}
 	}
-	if !isDefer && !isGo && !isIf && !isSyncOnceDo && statementPreprocessor != nil {
+	if !isDefer && !isGo && !isIf && !isSyncOnceDo && hasStatementPreprocessor() {
 		captureInfo = statementPreprocessor.PreprocessStatement(stmt, fnType)
 		if captureInfo != nil && len(captureInfo.CapturedVars) > 0 {
 			// Generate clone statements before the actual statement
@@ -3923,6 +4315,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						if writeRangeHandleReturnValue(out, ident) {
 							continue
 						}
+						if writeWrappedReferenceRangeValueCopy(out, ident) {
+							continue
+						}
 						// Check if this is a wrapped variable that needs cloning
 						// Use a combination of TypeInfo and heuristics
 						isWrappedVariable := false
@@ -4020,6 +4415,12 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							continue
 						}
 						if binExpr.Op == token.ADD {
+							if isSyntaxStringConcatExpr(binExpr) {
+								WriteWrapperPrefix(out)
+								TranspileExpression(out, result)
+								WriteWrapperSuffix(out)
+								continue
+							}
 							if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.IsString(binExpr) {
 								WriteWrapperPrefix(out)
 								TranspileExpression(out, result)
@@ -4254,7 +4655,11 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					typeInfo := GetTypeInfo()
 					if typeInfo != nil {
 						isString = typeInfo.IsString(s.Lhs[0])
-					} else {
+					}
+					if !isString && (isSyntaxStringValue(s.Lhs[0]) || isSyntaxStringConversion(s.Rhs[0])) {
+						isString = true
+					}
+					if !isString {
 						// Type info not available - check if RHS is a string literal at least
 						if lit, ok := s.Rhs[0].(*ast.BasicLit); ok && lit.Kind == token.STRING {
 							isString = true
@@ -4732,7 +5137,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										out.WriteString(" = new_val; }")
 									}
 								} else if funcLit, ok := s.Rhs[0].(*ast.FuncLit); ok {
-									if _, isFuncLHS := expressionFunctionSignature(s.Lhs[0]); isFuncLHS {
+									_, isFuncLHS := expressionFunctionSignature(s.Lhs[0])
+									if isFuncLHS || expressionHasFunctionSignatureSyntax(s.Lhs[0]) {
 										out.WriteString("{ ")
 										cloneFuncLitTarget := false
 										if ident, ok := s.Lhs[0].(*ast.Ident); ok {
@@ -4773,6 +5179,15 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										out.WriteString("{ ")
 										out.WriteString("let new_val = ")
 										writeFunctionValueBox(out, rhsIdent, sig)
+										out.WriteString("; ")
+										out.WriteString("*")
+										TranspileExpressionContext(out, s.Lhs[0], LValue)
+										WriteBorrowMethod(out, true)
+										out.WriteString(" = Some(new_val); }")
+									} else if sig, isFuncValue := functionValueSyntaxSignature(rhsIdent); isFuncValue {
+										out.WriteString("{ ")
+										out.WriteString("let new_val = ")
+										writeFunctionValueBoxFromSyntax(out, rhsIdent, sig)
 										out.WriteString("; ")
 										out.WriteString("*")
 										TranspileExpressionContext(out, s.Lhs[0], LValue)
@@ -4903,21 +5318,11 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									} else if typeInfo != nil && typeInfo.ReturnsWrappedValue(call) && !isBareBuiltinReturn(call) && (!typeInfo.IsTypeConversion(call) || typeConversionEmitsWrappedValue(call)) {
 										writeMoveWrappedInnerAssignment(out, s.Lhs[0], s.Rhs[0])
 									} else { // Regular function call
-										// Check if RHS is len() which returns usize but LHS expects i32
-										isLenCall := false
-										if lenIdent, ok := call.Fun.(*ast.Ident); ok && lenIdent.Name == "len" {
-											if typeInfo != nil && typeInfo.info != nil {
-												if obj, ok := typeInfo.info.Uses[lenIdent]; ok {
-													if builtin, ok := obj.(*types.Builtin); ok && builtin.Name() == "len" {
-														isLenCall = true
-													}
-												}
-											}
-										}
+										isLenCapCall := isBareLenCapCall(s.Rhs[0])
 										out.WriteString("{ ")
 										out.WriteString("let new_val = ")
 										TranspileExpression(out, s.Rhs[0])
-										if isLenCall {
+										if isLenCapCall {
 											out.WriteString(" as i32")
 										}
 										out.WriteString("; ")
@@ -5004,16 +5409,36 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							// Check if this is a channel variable definition
 							isChannelVar := false
 							if s.Tok == token.DEFINE && len(s.Lhs) == 1 && len(s.Rhs) == 1 {
-								typeInfo := GetTypeInfo()
-								if typeInfo != nil {
-									if lhsIdent, ok := s.Lhs[0].(*ast.Ident); ok {
+								if lhsIdent, ok := s.Lhs[0].(*ast.Ident); ok {
+									typeInfo := GetTypeInfo()
+									if typeInfo != nil {
 										// Check if LHS has channel type
 										if typeInfo.IsChannel(s.Rhs[0]) {
 											isChannelVar = true
+											rustType := ""
+											if callExpr, ok := s.Rhs[0].(*ast.CallExpr); ok && len(callExpr.Args) > 0 {
+												rustType = GoTypeToRust(callExpr.Args[0])
+											} else if typ := typeInfo.GetType(s.Rhs[0]); typ != nil {
+												rustType = goTypesTypeToRust(typ)
+											}
 											// Register as bare variable
 											if vt := GetVarTable(); vt != nil {
 												vt.Register(lhsIdent.Name, &VarInfo{
 													WrapLevel: WrapNone,
+													RustType:  rustType,
+													Source:    SourceLocal,
+												})
+											}
+										}
+									}
+									if !isChannelVar {
+										if callExpr, ok := s.Rhs[0].(*ast.CallExpr); ok && isMakeChannelCall(callExpr) {
+											isChannelVar = true
+											registerStdlibCallCollectionInfo(lhsIdent, callExpr)
+											if vt := GetVarTable(); vt != nil {
+												vt.Register(lhsIdent.Name, &VarInfo{
+													WrapLevel: WrapNone,
+													RustType:  GoTypeToRust(callExpr.Args[0]),
 													Source:    SourceLocal,
 												})
 											}
@@ -5064,6 +5489,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										} else if unary, ok := rhs.(*ast.UnaryExpr); ok && unary.Op == token.ARROW && channelElementIsGoError(unary.X) {
 											writeErrorHandleFromChannelReceive(out, unary.X)
 										} else if callExpr, isCall := rhs.(*ast.CallExpr); isCall {
+											if i < len(s.Lhs) {
+												registerCallResultSyntaxInfo(s.Lhs[i], callExpr)
+											}
 											if len(s.Lhs) == 1 && writeBareBuiltinShortDeclInitializer(out, callExpr, s.Lhs[0]) {
 												continue
 											}
@@ -5099,6 +5527,14 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 																Source:    SourceLocal,
 															})
 														}
+													} else if rustType, ok := functionTypeRustNameFromTypeExpr(callSingleReturnTypeExpr(callExpr)); ok {
+														if vt := GetVarTable(); vt != nil {
+															vt.Register(lhsIdent.Name, &VarInfo{
+																WrapLevel: WrapFull,
+																RustType:  rustType,
+																Source:    SourceLocal,
+															})
+														}
 													}
 												}
 											}
@@ -5121,6 +5557,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										} else if compositeLit, isCompositeLit := rhs.(*ast.CompositeLit); isCompositeLit {
 											if i < len(s.Lhs) {
 												registerCompositeLiteralRangeElemType(s.Lhs[i], compositeLit)
+												registerCompositeLiteralSyntaxVarInfo(s.Lhs[i], compositeLit)
 											}
 											// Check if it's a struct literal vs array/slice/map literal
 											isStructLiteral := false
@@ -5275,6 +5712,16 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							}
 						}
 						for i, name := range valueSpec.Names {
+							registerTypeExprCollectionInfo(name.Name, valueSpec.Type)
+							if rustType, ok := functionTypeRustNameFromTypeExpr(valueSpec.Type); ok {
+								if vt := GetVarTable(); vt != nil {
+									vt.Register(name.Name, &VarInfo{
+										WrapLevel: WrapFull,
+										RustType:  rustType,
+										Source:    SourceLocal,
+									})
+								}
+							}
 							// Check if this is a sync type - bare, not wrapped
 							isSyncType := false
 							if sel, ok := valueSpec.Type.(*ast.SelectorExpr); ok {
@@ -5359,6 +5806,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										TranspileExpression(out, valueSpec.Values[i])
 									}
 								} else if call, isCall := valueSpec.Values[i].(*ast.CallExpr); isCall {
+									registerCallResultSyntaxInfo(name, call)
 									if writeBareBuiltinShortDeclInitializer(out, call, name) {
 										// len/cap/min/max var initializers use normal Go value wrappers.
 									} else {
@@ -5366,6 +5814,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										writeCallExpressionForInitializer(out, call)
 									}
 								} else if compositeLit, isCompositeLit := valueSpec.Values[i].(*ast.CompositeLit); isCompositeLit {
+									registerCompositeLiteralSyntaxVarInfo(name, compositeLit)
 									// Check if it's a struct literal vs array/slice/map literal
 									isStructLiteral := false
 									if _, ok := compositeLit.Type.(*ast.Ident); ok {
@@ -5525,7 +5974,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 											// Named function types have nil zero value in Go
 											if IsTypeAlias(t.Name) {
 												typeInfo := GetTypeInfo()
-												if typeInfo != nil && typeInfo.IsFunctionType(t) {
+												if IsFunctionTypeAlias(t.Name) || (typeInfo != nil && typeInfo.IsFunctionType(t)) {
 													out.WriteString(" = ")
 													WriteWrappedNone(out)
 												} else {
@@ -5672,6 +6121,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			if vt := GetVarTable(); vt != nil {
 				vt.PushScope()
 				popForInitScope = vt.PopScope
+				registerFullShortDecls(shortNames)
 			}
 		}
 		restoreRangeLoopVars := func() {}
@@ -5792,29 +6242,37 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		valueAssigned := false
 
 		// Use type information to determine what we're iterating over
-		typeInfo := GetTypeInfo()
 		isMap := false
 		isString := false
 		isInteger := false
 		isSlice := false
 		isArray := false
+		isChannel := false
 
-		if typeInfo != nil {
-			isMap = typeInfo.IsMap(s.X)
-			isString = typeInfo.IsString(s.X)
-			isInteger = isIntegerRangeExpr(typeInfo, s.X)
-			isSlice = typeInfo.IsSlice(s.X)
-			isArray = typeInfo.IsArray(s.X) || typeInfo.IsPointerToArray(s.X)
-			// Also check for string literals directly
-			if !isString {
-				if lit, ok := s.X.(*ast.BasicLit); ok && lit.Kind == token.STRING {
-					isString = true
+		isMap, isString, isInteger, isSlice, isArray, isChannel = rangeTypeFacts(s.X)
+		if !isMap && !isString && !isInteger && !isSlice && !isArray && !isChannel {
+			if lit, ok := s.X.(*ast.BasicLit); ok && lit.Kind == token.STRING {
+				isString = true
+			} else if kind, ok := localCollectionKind(s.X); ok {
+				switch kind {
+				case "map":
+					isMap = true
+				case "slice":
+					isSlice = true
+				case "channel":
+					isChannel = true
 				}
+			} else if ident, ok := s.X.(*ast.Ident); ok && lookupVarInfo(ident.Name) != nil && strings.TrimPrefix(lookupVarInfo(ident.Name).RustType, "&") == "String" {
+				isString = true
+			} else if _, ok := rangeVarSliceElemRustType(s.X); ok {
+				isSlice = true
+			} else if _, ok := trackedRangeElemRustType(s.X); ok {
+				isSlice = true
 			}
-		} else {
-			// Type info not available - generate error
+		}
+		if !isMap && !isString && !isInteger && !isSlice && !isArray && !isChannel {
 			out.WriteString("/* ERROR: Cannot determine range type - type information required */\n")
-			out.WriteString("unimplemented!(\"type info required for range statement\")")
+			out.WriteString("unimplemented!(\"type info required for range statement\");")
 			return
 		}
 		popForPost := pushForPost(nil)
@@ -5852,7 +6310,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		out.WriteString("for ")
 
 		// Channel range: for val := range ch
-		if typeInfo != nil && typeInfo.IsChannel(s.X) {
+		if isChannel {
 			// Register value variable as range loop var
 			if s.Key != nil {
 				if ident, ok := s.Key.(*ast.Ident); ok && ident.Name != "_" {
@@ -5900,8 +6358,14 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			keyType = "String"
 			valueType = GetOuterWrapperType() + "<" + GetInnerWrapperType() + "<Option<T>>>"
 			keyRangeVarType = keyType
-			if mapValueType := typeInfo.GetMapValueType(s.X); mapValueType != nil {
-				if mapKeyType, _ = typeInfo.GetMapTypes(s.X); mapKeyType != nil {
+			if localKeyType, localValueType, ok := localMapRangeTypes(s.X); ok {
+				keyType = localKeyType
+				keyRangeVarType = localKeyType
+				valueType = localValueType
+			}
+			if key, mapValueType := rangeMapKeyValueTypes(s.X); mapValueType != nil {
+				mapKeyType = key
+				if mapKeyType != nil {
 					keyType = goTypesMapKeyToRust(mapKeyType)
 					keyRangeVarType = keyType
 					if _, ok := types.Unalias(mapKeyType).Underlying().(*types.Pointer); ok {
@@ -5918,7 +6382,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				keyType = goTypesMapKeyToRust(mapKeyType)
 			}
 		} else if isInteger {
-			if rangeType := typeInfo.GetType(s.X); rangeType != nil {
+			if rangeType := rangeExprGoType(s.X); rangeType != nil {
 				keyType = goTypesTypeToRust(rangeType)
 			} else {
 				keyType = "i32"
@@ -5927,7 +6391,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			valueType = "char"
 		} else if isSlice || isArray {
 			// Check if it's a slice of interface{} or named interface
-			elemType := typeInfo.GetArrayOrSliceElemType(s.X)
+			elemType := rangeArrayOrSliceElemType(s.X)
 			if elemType != nil {
 				if isGoErrorType(elemType) {
 					valueType = goTypesTypeToRustWrapped(elemType)
@@ -5944,6 +6408,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						valueType = "&" + goTypesTypeToRust(elemType)
 					}
 				} else if _, ok := elemType.Underlying().(*types.Map); ok {
+					valueType = "&" + goTypesTypeToRust(elemType)
+				} else if _, ok := elemType.Underlying().(*types.Struct); ok {
 					valueType = "&" + goTypesTypeToRust(elemType)
 				} else if intf, ok := elemType.Underlying().(*types.Interface); ok {
 					if intf.NumMethods() == 0 {
@@ -5964,9 +6430,22 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					valueType = rangeValueTypeFromTrackedRustElem(elemRustType)
 				}
 			}
+			if elemType == nil {
+				if elemRustType, ok := trackedRangeElemRustType(s.X); ok {
+					valueType = rangeValueTypeFromTrackedRustElem(elemRustType)
+				} else if elemRustType, ok := rangeVarSliceElemRustType(s.X); ok {
+					valueType = rangeValueTypeFromTrackedRustElem(elemRustType)
+				}
+			}
 		}
 		if !isMap {
 			keyRangeVarType = keyType
+		}
+
+		var popRangeVarScope func()
+		if vt := GetVarTable(); vt != nil {
+			vt.PushScope()
+			popRangeVarScope = vt.PopScope
 		}
 
 		if s.Key != nil {
@@ -5974,6 +6453,15 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				keyName = ident.Name
 				rangeLoopVars[keyName] = keyRangeVarType
 				keyAssigned = rangeLoopIdentAssigned(s.Body, keyName)
+				if keyName != "_" {
+					if vt := GetVarTable(); vt != nil {
+						vt.Register(keyName, &VarInfo{
+							WrapLevel: WrapNone,
+							RustType:  keyRangeVarType,
+							Source:    SourceRangeKey,
+						})
+					}
+				}
 			}
 		}
 		// Track whether we need .copied() on the iterator to get owned values
@@ -5983,16 +6471,19 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			if ident, ok := s.Value.(*ast.Ident); ok {
 				valueName = ident.Name
 				valueAssigned = rangeLoopIdentAssigned(s.Body, valueName)
+				registeredValueType := valueType
 				// When using iter().enumerate(), the value is a reference
 				// For basic/Copy types, use .copied() to get owned values
 				if s.Key != nil && !isMap && !isString {
 					// Check if element type is a numeric/bool (Rust Copy) type
-					elemType := typeInfo.GetArrayOrSliceElemType(s.X)
+					elemType := rangeArrayOrSliceElemType(s.X)
 					if rangeElementUsesCopiedForExpr(s.X, elemType) {
 						needsCopied = true
 					}
 					if elemType == nil {
 						if elemRustType, ok := trackedRangeElemRustType(s.X); ok && rustRangeElemUsesCopied(elemRustType) {
+							needsCopied = true
+						} else if elemRustType, ok := rangeVarSliceElemRustType(s.X); ok && rustRangeElemUsesCopied(elemRustType) {
 							needsCopied = true
 						}
 					}
@@ -6005,19 +6496,36 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							if trackedNeedsCopied {
 								needsCopied = true
 							}
+						} else if elemRustType, ok := rangeVarSliceElemRustType(s.X); ok {
+							valueType = rangeValueTypeFromTrackedRustElem(elemRustType)
+							if rustRangeElemUsesCopied(elemRustType) {
+								needsCopied = true
+							}
 						}
 					}
-					if valueType == "T" && (needsCopied || valueAssigned) {
-						rangeLoopVars[valueName] = valueType
+					if valueAssigned && strings.HasPrefix(valueType, "&") && !isWrappedRangeVarType(valueType) {
+						registeredValueType = strings.TrimPrefix(valueType, "&")
+					} else if valueType == "T" && (needsCopied || valueAssigned) {
+						registeredValueType = valueType
 					} else if valueType == "T" {
-						rangeLoopVars[valueName] = "ref_value"
+						registeredValueType = "ref_value"
 					} else {
-						rangeLoopVars[valueName] = valueType
+						registeredValueType = valueType
 					}
 				} else if valueAssigned && strings.HasPrefix(valueType, "&") {
-					rangeLoopVars[valueName] = strings.TrimPrefix(valueType, "&")
+					registeredValueType = strings.TrimPrefix(valueType, "&")
 				} else {
-					rangeLoopVars[valueName] = valueType
+					registeredValueType = valueType
+				}
+				rangeLoopVars[valueName] = registeredValueType
+				if valueName != "_" {
+					if vt := GetVarTable(); vt != nil {
+						vt.Register(valueName, &VarInfo{
+							WrapLevel: WrapNone,
+							RustType:  registeredValueType,
+							Source:    SourceRangeVal,
+						})
+					}
 				}
 			}
 		}
@@ -6178,9 +6686,16 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					writeRangeBinding(out, s.Value, valueAssigned)
 					// For numeric/bool (Rust Copy) types, use .iter().copied()
 					// to get owned values instead of &(...) which gives references
-					elemTypeV := typeInfo.GetArrayOrSliceElemType(s.X)
+					elemTypeV := rangeArrayOrSliceElemType(s.X)
 					valCopied := rangeElementUsesCopiedForExpr(s.X, elemTypeV)
 					valCloned := rangeElementUsesCloned(elemTypeV)
+					if elemTypeV == nil {
+						if elemRustType, ok := trackedRangeElemRustType(s.X); ok && rustRangeElemUsesCopied(elemRustType) {
+							valCopied = true
+						} else if elemRustType, ok := rangeVarSliceElemRustType(s.X); ok && rustRangeElemUsesCopied(elemRustType) {
+							valCopied = true
+						}
+					}
 					if valCloned {
 						out.WriteString(" in ")
 						if rangeValuesVar != "" {
@@ -6246,9 +6761,16 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				// for _, v := range arr
 				writeRangeBinding(out, s.Value, valueAssigned)
 				// For numeric/bool (Rust Copy) types, use .iter().copied()
-				elemTypeV2 := typeInfo.GetArrayOrSliceElemType(s.X)
+				elemTypeV2 := rangeArrayOrSliceElemType(s.X)
 				valCopied2 := rangeElementUsesCopiedForExpr(s.X, elemTypeV2)
 				valCloned2 := rangeElementUsesCloned(elemTypeV2)
+				if elemTypeV2 == nil {
+					if elemRustType, ok := trackedRangeElemRustType(s.X); ok && rustRangeElemUsesCopied(elemRustType) {
+						valCopied2 = true
+					} else if elemRustType, ok := rangeVarSliceElemRustType(s.X); ok && rustRangeElemUsesCopied(elemRustType) {
+						valCopied2 = true
+					}
+				}
 				if valCloned2 {
 					out.WriteString(" in ")
 					if rangeValuesVar != "" {
@@ -6331,6 +6853,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		}
 		if valueName != "" {
 			delete(rangeLoopVars, valueName)
+		}
+		if popRangeVarScope != nil {
+			popRangeVarScope()
 		}
 		popForPost()
 
@@ -7424,8 +7949,50 @@ func writeStringAppendExpression(out *strings.Builder, rhs ast.Expr) {
 			out.WriteString(".as_ref().unwrap()).clone(); __value }")
 			return
 		}
+		if isPredeclaredTypeConversionTarget(call.Fun) {
+			out.WriteString("{ let __s = ")
+			TranspileExpression(out, rhs)
+			out.WriteString("; let __value = (*__s")
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref().unwrap()).clone(); __value }")
+			return
+		}
 	}
 	TranspileExpression(out, rhs)
+}
+
+func isSyntaxStringValue(expr ast.Expr) bool {
+	switch e := expr.(type) {
+	case *ast.Ident:
+		if info := lookupVarInfo(e.Name); info != nil {
+			return syntaxRustTypeIsString(info.RustType)
+		}
+	case *ast.SelectorExpr:
+		if fieldExpr, ok := selectorFieldTypeExpr(e); ok {
+			if ident, ok := fieldExpr.(*ast.Ident); ok {
+				return ident.Name == "string"
+			}
+		}
+	}
+	return false
+}
+
+func syntaxRustTypeIsString(rustType string) bool {
+	rustType = strings.TrimPrefix(rustType, "&")
+	return rustType == "String" ||
+		(strings.Contains(rustType, "Option<String>") &&
+			!strings.Contains(rustType, "Vec<") &&
+			!strings.Contains(rustType, "BTreeMap<") &&
+			!strings.Contains(rustType, "HashMap<"))
+}
+
+func isSyntaxStringConversion(expr ast.Expr) bool {
+	call, ok := expr.(*ast.CallExpr)
+	if !ok {
+		return false
+	}
+	ident, ok := call.Fun.(*ast.Ident)
+	return ok && ident.Name == "string" && isPredeclaredTypeConversionTarget(call.Fun)
 }
 
 func isChannelAssignment(s *ast.AssignStmt) bool {
