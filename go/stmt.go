@@ -560,6 +560,46 @@ func registerCallResultSyntaxInfo(lhs ast.Expr, call *ast.CallExpr) {
 	}
 }
 
+func registerCallTupleResultSyntaxInfo(lhs []ast.Expr, call *ast.CallExpr) {
+	if call == nil {
+		return
+	}
+
+	var resultTypes []string
+	if key, ok := stdlibCallKey(call.Fun); ok {
+		switch key {
+		case "context.WithCancel", "context.WithTimeout":
+			NeedGoContext()
+			resultTypes = []string{"GoContext", "GoCancelFunc"}
+		case "context.WithCancelCause":
+			NeedGoContext()
+			resultTypes = []string{"GoContext", "GoCancelCauseFunc"}
+		}
+	}
+	if len(resultTypes) == 0 {
+		return
+	}
+
+	vt := GetVarTable()
+	if vt == nil {
+		return
+	}
+	for i, rustType := range resultTypes {
+		if i >= len(lhs) {
+			return
+		}
+		ident, ok := lhs[i].(*ast.Ident)
+		if !ok || ident.Name == "_" {
+			continue
+		}
+		vt.Register(ident.Name, &VarInfo{
+			WrapLevel: WrapFull,
+			RustType:  rustType,
+			Source:    SourceLocal,
+		})
+	}
+}
+
 func registerTypeExprCollectionInfo(name string, typeExpr ast.Expr) {
 	if name == "_" || typeExpr == nil {
 		return
@@ -2527,6 +2567,15 @@ func expressionHasFunctionSignatureSyntax(expr ast.Expr) bool {
 		return false
 	}
 	rustType := strings.TrimPrefix(info.RustType, "&")
+	return isFunctionValueRustType(rustType)
+}
+
+func isFunctionValueRustType(rustType string) bool {
+	rustType = strings.TrimPrefix(rustType, "&")
+	switch rustType {
+	case "GoCancelFunc", "GoCancelCauseFunc":
+		return true
+	}
 	return strings.HasPrefix(rustType, "Box<dyn Fn") || IsFunctionTypeAlias(rustType)
 }
 
@@ -5102,6 +5151,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				}
 			} else if needsTupleUnpack {
 				if s.Tok == token.DEFINE {
+					if call, ok := s.Rhs[0].(*ast.CallExpr); ok {
+						registerCallTupleResultSyntaxInfo(s.Lhs, call)
+					}
 					out.WriteString("let ")
 					out.WriteString("(")
 					for i, lhs := range s.Lhs {

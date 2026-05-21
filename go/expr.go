@@ -7191,7 +7191,7 @@ func functionBoxTypeForCallTarget(expr ast.Expr) string {
 		if vt := GetVarTable(); vt != nil {
 			if info := vt.Lookup(ident.Name); info != nil {
 				rustType := strings.TrimPrefix(info.RustType, "&")
-				if strings.HasPrefix(rustType, "Box<dyn Fn") || IsFunctionTypeAlias(rustType) {
+				if isFunctionValueRustType(rustType) {
 					return rustType
 				}
 			}

@@ -201,6 +201,25 @@ func TestFunctionBoxTypeUsesVarTableWithoutTypeInfo(t *testing.T) {
 	}
 }
 
+func TestNoTypeInfoContextCancelFuncCallUsesTupleResultType(t *testing.T) {
+	rust := transpileNoTypeInfoRegression(t, `package main
+
+import "context"
+
+func main() {
+	_, cancel := context.WithCancel(context.Background())
+	cancel()
+}
+`)
+
+	if strings.Contains(rust, "*mut _") {
+		t.Fatalf("context cancel call should use concrete tuple result function type:\n%s", rust)
+	}
+	if !strings.Contains(rust, "*mut GoCancelFunc") {
+		t.Fatalf("context cancel call should use GoCancelFunc:\n%s", rust)
+	}
+}
+
 func TestReferenceRangeComparisonDereferencesWithoutTypeInfo(t *testing.T) {
 	expr, err := parser.ParseExpr("num > 6")
 	if err != nil {
