@@ -2477,7 +2477,9 @@ func uniqueFunctionStructFieldTypeExpr(fieldName string) (ast.Expr, bool) {
 		}
 		if !isFunctionSignatureTypeExpr(fieldExpr) {
 			if _, ok := functionTypeRustNameFromTypeExpr(fieldExpr); !ok {
-				continue
+				if _, named := fieldExpr.(*ast.Ident); !named {
+					continue
+				}
 			}
 		}
 		if found != nil {

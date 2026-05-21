@@ -7146,11 +7146,17 @@ func functionBoxTypeForCallTarget(expr ast.Expr) string {
 			if rustType, ok := functionTypeRustNameFromTypeExpr(fieldExpr); ok {
 				return rustType
 			}
+			if ident, ok := fieldExpr.(*ast.Ident); ok {
+				return RustTypeNameForUse(ident.Name)
+			}
 		}
 		if selectorAllowsUniqueStructFieldFallback(sel) {
 			if fieldExpr, ok := uniqueFunctionStructFieldTypeExpr(sel.Sel.Name); ok {
 				if rustType, ok := functionTypeRustNameFromTypeExpr(fieldExpr); ok {
 					return rustType
+				}
+				if ident, ok := fieldExpr.(*ast.Ident); ok {
+					return RustTypeNameForUse(ident.Name)
 				}
 			}
 		}
@@ -9963,7 +9969,11 @@ func isFunctionValueSelectorSyntax(sel *ast.SelectorExpr) bool {
 			return false
 		}
 	}
-	return isFunctionSignatureTypeExpr(fieldExpr)
+	if isFunctionSignatureTypeExpr(fieldExpr) {
+		return true
+	}
+	_, ok = fieldExpr.(*ast.Ident)
+	return ok
 }
 
 func selectorAllowsUniqueStructFieldFallback(sel *ast.SelectorExpr) bool {
