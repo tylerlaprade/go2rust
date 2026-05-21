@@ -17,6 +17,7 @@ Options:
 Environment:
   KEEP_SELF_TRANSPILE=1   Preserve the temporary workspace for inspection.
   GOCACHE=<path>          Override the temporary Go build cache.
+  CARGO_HOME=<path>       Override the temporary Cargo registry/cache home.
   CARGO_TARGET_DIR=<path> Override the temporary Cargo target directory.
   GO2RUST_BEHAVIOR_JOBS=N Number of behavior-suite shards (default: 3).
   GO2RUST_BEHAVIOR_TIMEOUT=TIME Per-test behavior timeout (default: 30s).
@@ -79,6 +80,7 @@ cp "$repo_root/go.mod" "$work/go.mod"
 cp "$repo_root/go.sum" "$work/go.sum"
 
 export GOCACHE="${GOCACHE:-$work/go-build-cache}"
+export CARGO_HOME="${CARGO_HOME:-$work/cargo-home}"
 export CARGO_BUILD_JOBS="${CARGO_BUILD_JOBS:-1}"
 export CARGO_INCREMENTAL="${CARGO_INCREMENTAL:-0}"
 export CARGO_PROFILE_DEV_DEBUG="${CARGO_PROFILE_DEV_DEBUG:-0}"
