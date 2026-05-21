@@ -1239,6 +1239,9 @@ func writeWrappedValueCopyFromIdent(out *strings.Builder, ident *ast.Ident) bool
 	if _, isLocalConst := localConstants[ident.Name]; isLocalConst {
 		return false
 	}
+	if isConstIdent(ident) {
+		return false
+	}
 	if isVarBare(ident.Name) || rhsIsPointerType(ident) {
 		return false
 	}
