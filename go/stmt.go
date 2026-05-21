@@ -4318,6 +4318,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						if writeWrappedReferenceRangeValueCopy(out, ident) {
 							continue
 						}
+						if writeWrappedValueCopyFromIdent(out, ident) {
+							continue
+						}
 						// Check if this is a wrapped variable that needs cloning
 						// Use a combination of TypeInfo and heuristics
 						isWrappedVariable := false

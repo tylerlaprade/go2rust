@@ -1171,6 +1171,33 @@ func f() {
 	}
 }
 
+func TestReturnStringParameterCopiesWrappedValue(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+func echo(value string) string {
+	return value
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile() error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+	SetTypeInfo(typeInfo)
+	defer SetTypeInfo(nil)
+
+	rust, _, _ := Transpile(file, fset, typeInfo)
+	if strings.Contains(rust, "return value.clone();") {
+		t.Fatalf("returning a string parameter should not alias the wrapper handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "return Rc::new(RefCell::new(Some(value.borrow().as_ref().unwrap().clone())));") {
+		t.Fatalf("returning a string parameter should clone the wrapped value into a new handle:\n%s", rust)
+	}
+}
+
 func TestForInitShortDeclShadowsOuterRangeIndex(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
