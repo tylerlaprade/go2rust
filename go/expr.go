@@ -9968,7 +9968,15 @@ func isFunctionValueSelectorSyntax(sel *ast.SelectorExpr) bool {
 
 func selectorAllowsUniqueStructFieldFallback(sel *ast.SelectorExpr) bool {
 	ident, ok := sel.X.(*ast.Ident)
-	return ok && !strings.HasSuffix(ident.Name, "_closure_clone")
+	if !ok || strings.HasSuffix(ident.Name, "_closure_clone") {
+		return false
+	}
+	if currentCaptureRenames != nil {
+		if renamed, ok := currentCaptureRenames[ident.Name]; ok && strings.HasSuffix(renamed, "_closure_clone") {
+			return false
+		}
+	}
+	return true
 }
 
 func writeFunctionValueSelectorCall(out *strings.Builder, sel *ast.SelectorExpr, call *ast.CallExpr) {

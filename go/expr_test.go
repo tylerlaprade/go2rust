@@ -573,16 +573,19 @@ func TestFunctionValueSelectorSyntaxUsesUniqueStructFieldFallback(t *testing.T) 
 	prevAliases := functionTypeAliases
 	prevAliasBoxes := functionTypeAliasBoxTypes
 	prevVarTable := currentVarTable
+	prevRenames := currentCaptureRenames
 	defer func() {
 		currentTypeInfo = prevTypeInfo
 		structDefs = prevStructDefs
 		functionTypeAliases = prevAliases
 		functionTypeAliasBoxTypes = prevAliasBoxes
 		SetVarTable(prevVarTable)
+		currentCaptureRenames = prevRenames
 	}()
 
 	SetTypeInfo(nil)
 	SetVarTable(NewVarTable())
+	currentCaptureRenames = map[string]string{"ld": "ld_closure_clone"}
 	functionTypeAliases = make(map[string]bool)
 	functionTypeAliasBoxTypes = make(map[string]string)
 	RegisterFunctionTypeAlias("BinaryOp")
@@ -626,16 +629,19 @@ func TestFunctionValueSelectorSyntaxDoesNotFallbackForClosureCloneMethod(t *test
 	prevAliases := functionTypeAliases
 	prevAliasBoxes := functionTypeAliasBoxTypes
 	prevVarTable := currentVarTable
+	prevRenames := currentCaptureRenames
 	defer func() {
 		currentTypeInfo = prevTypeInfo
 		structDefs = prevStructDefs
 		functionTypeAliases = prevAliases
 		functionTypeAliasBoxTypes = prevAliasBoxes
 		SetVarTable(prevVarTable)
+		currentCaptureRenames = prevRenames
 	}()
 
 	SetTypeInfo(nil)
 	SetVarTable(NewVarTable())
+	currentCaptureRenames = map[string]string{"ld": "ld_closure_clone"}
 	functionTypeAliases = make(map[string]bool)
 	functionTypeAliasBoxTypes = make(map[string]string)
 	RegisterFunctionTypeAlias("ParseFunc")
@@ -653,7 +659,7 @@ func TestFunctionValueSelectorSyntaxDoesNotFallbackForClosureCloneMethod(t *test
 
 	call := &ast.CallExpr{
 		Fun: &ast.SelectorExpr{
-			X:   ast.NewIdent("ld_closure_clone"),
+			X:   ast.NewIdent("ld"),
 			Sel: ast.NewIdent("parse_file"),
 		},
 		Args: []ast.Expr{&ast.BasicLit{Kind: token.STRING, Value: `"x.go"`}},
@@ -664,6 +670,9 @@ func TestFunctionValueSelectorSyntaxDoesNotFallbackForClosureCloneMethod(t *test
 	got := out.String()
 	if strings.Contains(got, "let __f_holder = ld_closure_clone.parse_file.clone()") {
 		t.Fatalf("closure clone method call should not use unrelated function-field fallback:\n%s", got)
+	}
+	if strings.Contains(got, "let __f_holder =") {
+		t.Fatalf("captured receiver method call should not use function-field fallback:\n%s", got)
 	}
 }
 
