@@ -620,6 +620,53 @@ func TestFunctionValueSelectorSyntaxUsesUniqueStructFieldFallback(t *testing.T) 
 	}
 }
 
+func TestFunctionValueSelectorSyntaxDoesNotFallbackForClosureCloneMethod(t *testing.T) {
+	prevTypeInfo := currentTypeInfo
+	prevStructDefs := structDefs
+	prevAliases := functionTypeAliases
+	prevAliasBoxes := functionTypeAliasBoxTypes
+	prevVarTable := currentVarTable
+	defer func() {
+		currentTypeInfo = prevTypeInfo
+		structDefs = prevStructDefs
+		functionTypeAliases = prevAliases
+		functionTypeAliasBoxTypes = prevAliasBoxes
+		SetVarTable(prevVarTable)
+	}()
+
+	SetTypeInfo(nil)
+	SetVarTable(NewVarTable())
+	functionTypeAliases = make(map[string]bool)
+	functionTypeAliasBoxTypes = make(map[string]string)
+	RegisterFunctionTypeAlias("ParseFunc")
+	RegisterFunctionTypeAliasBox("ParseFunc", "Box<dyn FnMut(Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<i32>>>>")
+	structDefs = map[string]*StructDef{
+		"Config": {
+			ASTType: &ast.StructType{Fields: &ast.FieldList{List: []*ast.Field{
+				{
+					Names: []*ast.Ident{ast.NewIdent("ParseFile")},
+					Type:  ast.NewIdent("ParseFunc"),
+				},
+			}}},
+		},
+	}
+
+	call := &ast.CallExpr{
+		Fun: &ast.SelectorExpr{
+			X:   ast.NewIdent("ld_closure_clone"),
+			Sel: ast.NewIdent("parse_file"),
+		},
+		Args: []ast.Expr{&ast.BasicLit{Kind: token.STRING, Value: `"x.go"`}},
+	}
+
+	var out strings.Builder
+	TranspileExpression(&out, call)
+	got := out.String()
+	if strings.Contains(got, "let __f_holder = ld_closure_clone.parse_file.clone()") {
+		t.Fatalf("closure clone method call should not use unrelated function-field fallback:\n%s", got)
+	}
+}
+
 func TestNoTypeInfoTrackedSliceIndexDoesNotUseStringPath(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
