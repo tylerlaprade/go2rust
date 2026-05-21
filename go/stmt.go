@@ -971,17 +971,18 @@ func typeSwitchCaseRustType(typeInfo *TypeInfo, typeExpr ast.Expr) (rustType str
 	if ident, ok := typeExpr.(*ast.Ident); ok && ident.Name == "nil" {
 		return "", true
 	}
-	if typeInfo == nil {
-		return "/* ERROR: Type information required for type switch case */", false
+	if typeInfo != nil {
+		if typ := typeInfo.GetType(typeExpr); typ != nil {
+			if ptr, ok := typ.(*types.Pointer); ok {
+				return goTypesTypeToRust(ptr.Elem()), false
+			}
+			return goTypesTypeToRust(typ), false
+		}
 	}
-	typ := typeInfo.GetType(typeExpr)
-	if typ == nil {
-		return "/* ERROR: Type information required for type switch case */", false
+	if star, ok := typeExpr.(*ast.StarExpr); ok {
+		return goTypeToRustBase(star.X), false
 	}
-	if ptr, ok := typ.(*types.Pointer); ok {
-		return goTypesTypeToRust(ptr.Elem()), false
-	}
-	return goTypesTypeToRust(typ), false
+	return goTypeToRustBase(typeExpr), false
 }
 
 func writeTypeSwitchCaseCondition(out *strings.Builder, typeInfo *TypeInfo, typeExpr ast.Expr) {
@@ -6003,6 +6004,17 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							if typeIdent, ok := valueSpec.Type.(*ast.Ident); ok && localInterfaces[typeIdent.Name] {
 								isLocalInterface = true
 							}
+							if valueSpec.Type != nil && name.Name != "_" && !isSyncType && !isSliceElemPtr && !isLocalInterface {
+								if _, isFunctionType := functionTypeRustNameFromTypeExpr(valueSpec.Type); !isFunctionType {
+									if vt := GetVarTable(); vt != nil {
+										vt.Register(name.Name, &VarInfo{
+											WrapLevel: WrapFull,
+											RustType:  GoTypeToRust(valueSpec.Type),
+											Source:    SourceLocal,
+										})
+									}
+								}
+							}
 							if valueSpec.Type != nil && !isSyncType && !isLocalInterface {
 								out.WriteString(": ")
 								if isSliceElemPtr {
@@ -7993,7 +8005,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		}
 
 		typeInfo := GetTypeInfo()
-		subjectUsesAny := typeInfo != nil && isEmptyInterfaceType(typeInfo.GetType(expr))
+		subjectUsesAny := isEmptyInterfaceValueExpr(expr)
 		subjectIsLocalInterfaceRef := isLocalInterfaceRefIdent(expr)
 		typeSwitchSubjectHasGuard := false
 		if subjectUsesAny {
@@ -8063,9 +8075,20 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 		// Generate if-else chain for type cases
 		firstCase := true
-		for clauseIndex, clause := range s.Body.List {
+		typeSwitchClauses := make([]*ast.CaseClause, 0, len(s.Body.List))
+		var defaultClause *ast.CaseClause
+		for _, clause := range s.Body.List {
 			caseClause := clause.(*ast.CaseClause)
-			isLastCase := clauseIndex == len(s.Body.List)-1
+			if len(caseClause.List) == 0 {
+				defaultClause = caseClause
+				continue
+			}
+			typeSwitchClauses = append(typeSwitchClauses, caseClause)
+		}
+		if defaultClause != nil {
+			typeSwitchClauses = append(typeSwitchClauses, defaultClause)
+		}
+		for _, caseClause := range typeSwitchClauses {
 			isTypedSingleCase := varName != "" && len(caseClause.List) == 1
 			if isTypedSingleCase {
 				if _, isNil := typeSwitchCaseRustType(typeInfo, caseClause.List[0]); isNil {
@@ -8085,9 +8108,6 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					// In default case, v is the original interface{} value
 					writeTypeSwitchOriginalBinding(out, varName, expr, isRangeVar, isStdlibRangeRef)
 				}
-				if typeSwitchSubjectHasGuard && isLastCase {
-					out.WriteString("        drop(_ts_guard);\n")
-				}
 			} else {
 				// Type case(s)
 				if !firstCase {
@@ -8106,9 +8126,6 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					// Create typed variable if needed
 					if varName != "" && isNil {
 						writeTypeSwitchOriginalBinding(out, varName, expr, isRangeVar, isStdlibRangeRef)
-						if typeSwitchSubjectHasGuard && isLastCase {
-							out.WriteString("        drop(_ts_guard);\n")
-						}
 					} else if varName != "" {
 						out.WriteString("        let ")
 						out.WriteString(varName)
@@ -8137,6 +8154,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			}
 
 			// Case body
+			if typeSwitchSubjectHasGuard {
+				out.WriteString("        drop(_ts_guard);\n")
+			}
 			restoreCaptureRename := suppressCaptureRename(varName)
 			for _, stmt := range caseClause.Body {
 				if isUnlabeledBreakStmt(stmt) {

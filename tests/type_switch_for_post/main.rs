@@ -13,6 +13,7 @@ pub fn classify(value: Rc<RefCell<Option<Box<dyn Any>>>>) -> Rc<RefCell<Option<S
     let _ts_val: Option<&dyn Any> = _ts_guard.as_ref().map(|__v| __v.as_ref() as &dyn Any);
     if _ts_val.and_then(|__v| __v.downcast_ref::<i32>()).is_some() {
         let v = Rc::new(RefCell::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<i32>()).unwrap().clone())));
+        drop(_ts_guard);
         if (*i.borrow().as_ref().unwrap()) == 0 {
         { let mut guard = i.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }; continue
     };

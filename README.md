@@ -34,10 +34,10 @@ The behavior gate is the required self-hosting acceptance check: the generated
 Rust transpiler must run the fixture suite and produce the same outputs as the
 Go implementation.
 
-Current status: the generated Rust transpiler builds and starts the behavior
-suite, but self-hosting is not complete. It now gets through CLI parsing and
-fixture directory discovery; the next blocker is replacing the dummy
-`go/parser`/AST stdlib stubs with behavior capable of parsing fixture files.
+Current status: the generated Rust transpiler builds and runs the copied
+behavior suite, but self-hosting is not complete. As of 2026-05-21, a full
+generated-binary fixture run reports 162 passing fixtures, 376 failing
+fixtures, and 9 XFAIL.
 
 ### External Package Handling
 

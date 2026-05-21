@@ -24,6 +24,7 @@ pub fn typed(v: Rc<RefCell<Option<Box<dyn Any>>>>) -> Rc<RefCell<Option<String>>
     let _ts_is_nil = _ts_guard.as_ref().is_none();
     let _ts_val: Option<&dyn Any> = _ts_guard.as_ref().map(|__v| __v.as_ref() as &dyn Any);
     if _ts_is_nil || _ts_val.and_then(|__v| __v.downcast_ref::<i32>()).is_some() {
+        drop(_ts_guard);
         { let new_val = "simple".to_string(); *result.borrow_mut() = Some(new_val); };;
     } else {
         drop(_ts_guard);
@@ -63,6 +64,7 @@ pub fn nested_typed(v: Rc<RefCell<Option<Box<dyn Any>>>>) -> Rc<RefCell<Option<S
     let _ts_is_nil = _ts_guard.as_ref().is_none();
     let _ts_val: Option<&dyn Any> = _ts_guard.as_ref().map(|__v| __v.as_ref() as &dyn Any);
     if _ts_val.and_then(|__v| __v.downcast_ref::<i32>()).is_some() {
+        drop(_ts_guard);
         if true {
         { let new_val = "int".to_string(); *result.borrow_mut() = Some(new_val); };
         break '__go_switch_2

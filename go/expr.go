@@ -3314,7 +3314,15 @@ func writeInterfaceBoxedValue(out *strings.Builder, expr ast.Expr) {
 
 func isEmptyInterfaceValueExpr(expr ast.Expr) bool {
 	typeInfo := GetTypeInfo()
-	return typeInfo != nil && isEmptyInterfaceType(typeInfo.GetType(expr))
+	if typeInfo != nil && isEmptyInterfaceType(typeInfo.GetType(expr)) {
+		return true
+	}
+	if ident, ok := expr.(*ast.Ident); ok {
+		if info := lookupVarInfo(ident.Name); info != nil && strings.Contains(info.RustType, "Box<dyn Any") {
+			return true
+		}
+	}
+	return false
 }
 
 func writeEmptyInterfaceHandleClone(out *strings.Builder, expr ast.Expr) bool {
@@ -9591,9 +9599,9 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 			// Check if this parameter expects interface{} (Box<dyn Any>)
 			if expectsEmptyInterface {
 				// Check if the argument already has type interface{} (Box<dyn Any>)
-				argIsInterface := false
+				argIsInterface := isEmptyInterfaceValueExpr(arg)
 				typeInfo := GetTypeInfo()
-				if typeInfo != nil {
+				if !argIsInterface && typeInfo != nil {
 					argType := typeInfo.GetType(arg)
 					if argType != nil {
 						if iface, ok := argType.Underlying().(*types.Interface); ok && iface.NumMethods() == 0 {

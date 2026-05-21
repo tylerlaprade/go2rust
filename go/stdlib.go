@@ -2652,6 +2652,15 @@ func transpileUnsafeTypeSizeCall(out *strings.Builder, call *ast.CallExpr, goFun
 
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil {
+		if rustType, ok := unsafeTypeSizeRustTypeFromSyntax(call.Args[0]); ok {
+			out.WriteString("std::mem::")
+			out.WriteString(rustFunc)
+			out.WriteString("::<")
+			out.WriteString(rustType)
+			out.WriteString(">()")
+			WriteWrapperSuffix(out)
+			return
+		}
 		out.WriteString("/* ERROR: Type information required for unsafe.")
 		out.WriteString(goFunc)
 		out.WriteString(" */ unimplemented!()")
@@ -2661,6 +2670,15 @@ func transpileUnsafeTypeSizeCall(out *strings.Builder, call *ast.CallExpr, goFun
 
 	argType := typeInfo.GetType(call.Args[0])
 	if argType == nil {
+		if rustType, ok := unsafeTypeSizeRustTypeFromSyntax(call.Args[0]); ok {
+			out.WriteString("std::mem::")
+			out.WriteString(rustFunc)
+			out.WriteString("::<")
+			out.WriteString(rustType)
+			out.WriteString(">()")
+			WriteWrapperSuffix(out)
+			return
+		}
 		out.WriteString("/* ERROR: Type information unavailable for unsafe.")
 		out.WriteString(goFunc)
 		out.WriteString(" */ unimplemented!()")
@@ -2674,6 +2692,45 @@ func transpileUnsafeTypeSizeCall(out *strings.Builder, call *ast.CallExpr, goFun
 	out.WriteString(goTypesTypeToRust(argType))
 	out.WriteString(">()")
 	WriteWrapperSuffix(out)
+}
+
+func unsafeTypeSizeRustTypeFromSyntax(expr ast.Expr) (string, bool) {
+	switch e := expr.(type) {
+	case *ast.Ident:
+		if info := lookupVarInfo(e.Name); info != nil && info.RustType != "" {
+			return unwrapStoredRustType(info.RustType), true
+		}
+	case *ast.BasicLit:
+		switch e.Kind {
+		case token.INT:
+			return "i32", true
+		case token.FLOAT:
+			return "f64", true
+		case token.CHAR:
+			return "i32", true
+		case token.STRING:
+			return "String", true
+		}
+	case *ast.UnaryExpr:
+		if e.Op == token.AND {
+			return "usize", true
+		}
+	}
+	return "", false
+}
+
+func unwrapStoredRustType(rustType string) string {
+	rustType = strings.TrimPrefix(rustType, "&")
+	for {
+		switch {
+		case strings.HasPrefix(rustType, "Rc<RefCell<Option<") && strings.HasSuffix(rustType, ">>>"):
+			rustType = strings.TrimSuffix(strings.TrimPrefix(rustType, "Rc<RefCell<Option<"), ">>>")
+		case strings.HasPrefix(rustType, "Arc<Mutex<Option<") && strings.HasSuffix(rustType, ">>>"):
+			rustType = strings.TrimSuffix(strings.TrimPrefix(rustType, "Arc<Mutex<Option<"), ">>>")
+		default:
+			return rustType
+		}
+	}
 }
 
 func transpileUnsafeOffsetof(out *strings.Builder, call *ast.CallExpr) {

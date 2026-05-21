@@ -2330,6 +2330,10 @@ run_xfail_test() {
     run_test "tests/type_embedding"
 }
 
+@test "type_switch_default_first" {
+    run_test "tests/type_switch_default_first"
+}
+
 @test "type_switch_error_default" {
     run_test "tests/type_switch_error_default"
 }
@@ -2344,6 +2348,10 @@ run_xfail_test() {
 
 @test "type_switch_no_binding" {
     run_test "tests/type_switch_no_binding"
+}
+
+@test "type_switch_reentrant_subject" {
+    run_test "tests/type_switch_reentrant_subject"
 }
 
 @test "type_switch_shadow_capture" {

@@ -1,0 +1,8 @@
+[package]
+name = "type_switch_default_first"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "type_switch_default_first"
+path = "main.rs"

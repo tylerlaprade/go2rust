@@ -105,9 +105,11 @@ pub fn classify(t: Rc<RefCell<Option<types_Type>>>) -> Rc<RefCell<Option<String>
     let _ts_val = _ts_guard.as_ref();
     if _ts_is_nil || _ts_val.and_then(|__v| __v.downcast_ref::<types_Basic>()).is_some() {
         let x = t.clone();
+        drop(_ts_guard);
         return Rc::new(RefCell::new(Some("nil-or-basic".to_string())));;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<types_Named>()).is_some() {
         let x = Rc::new(RefCell::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<types_Named>()).unwrap().clone())));
+        drop(_ts_guard);
         let _ = (*x.borrow().as_ref().unwrap());;
         return Rc::new(RefCell::new(Some("named".to_string())));;
     } else {
