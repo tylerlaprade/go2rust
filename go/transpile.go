@@ -127,6 +127,8 @@ func SetPackageImports(imports map[string]string) {
 type StructDef struct {
 	Fields        map[string]string // field name -> field type
 	FieldTypes    map[string]ast.Expr
+	FieldTags     map[string]string
+	FieldOrder    []string
 	EmbeddedTypes []string        // list of embedded type names
 	ASTType       *ast.StructType // original AST type for zero-value generation
 	EmbedsError   bool            // true when the struct embeds the predeclared error interface

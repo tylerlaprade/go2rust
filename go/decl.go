@@ -1687,14 +1687,19 @@ func registerStructDef(name string, structType *ast.StructType) {
 	structDef := &StructDef{
 		Fields:        make(map[string]string),
 		FieldTypes:    make(map[string]ast.Expr),
+		FieldTags:     make(map[string]string),
+		FieldOrder:    []string{},
 		EmbeddedTypes: []string{},
 		ASTType:       structType,
 	}
 	for _, field := range structType.Fields.List {
 		if len(field.Names) > 0 {
+			tag := jsonStructTagFromSyntax(field)
 			for _, name := range field.Names {
 				structDef.Fields[name.Name] = "regular"
 				structDef.FieldTypes[name.Name] = field.Type
+				structDef.FieldTags[name.Name] = tag
+				structDef.FieldOrder = append(structDef.FieldOrder, name.Name)
 			}
 		} else {
 			typeName := getEmbeddedFieldName(field.Type)

@@ -669,6 +669,34 @@ func main() {
 	}
 }
 
+func TestJsonMarshalStructDefFallbackUsesStoredSyntaxFields(t *testing.T) {
+	def := &StructDef{
+		FieldTypes: map[string]ast.Expr{
+			"Name":    ast.NewIdent("string"),
+			"Replace": &ast.MapType{Key: ast.NewIdent("string"), Value: ast.NewIdent("string")},
+		},
+		FieldTags: map[string]string{
+			"Name":    `json:"name"`,
+			"Replace": `json:"replace,omitempty"`,
+		},
+		FieldOrder: []string{"Name", "Replace"},
+	}
+
+	fields, ok := jsonMarshalStructFieldsFromStructDef(def)
+	if !ok {
+		t.Fatal("jsonMarshalStructFieldsFromStructDef returned false")
+	}
+	if len(fields) != 2 {
+		t.Fatalf("field count = %d, want 2: %#v", len(fields), fields)
+	}
+	if fields[0].jsonName != "name" || fields[0].kind != jsonMarshalBasicField || fields[0].basicKind != types.String {
+		t.Fatalf("first field = %#v, want string name field", fields[0])
+	}
+	if fields[1].jsonName != "replace" || fields[1].kind != jsonMarshalStringMapField || !fields[1].omitEmpty {
+		t.Fatalf("second field = %#v, want omitempty string map field", fields[1])
+	}
+}
+
 func TestNoTypeInfoStringSliceBoundsUseStringOutput(t *testing.T) {
 	rust := transpileNoTypeInfoRegression(t, `package main
 
