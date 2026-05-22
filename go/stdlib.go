@@ -1030,6 +1030,11 @@ func writeNoTypeInfoPrintArg(out *strings.Builder, arg ast.Expr) bool {
 		out.WriteString(")")
 		return true
 	}
+	if sel, ok := arg.(*ast.SelectorExpr); ok {
+		if writeNoTypeInfoSelectorCollectionPrintArg(out, sel) {
+			return true
+		}
+	}
 	ident, ok := arg.(*ast.Ident)
 	if !ok {
 		return false
@@ -1076,6 +1081,56 @@ func writeNoTypeInfoPrintArg(out *strings.Builder, arg ast.Expr) bool {
 	WriteBorrowMethod(out, false)
 	out.WriteString(".as_ref().unwrap())")
 	return true
+}
+
+func writeNoTypeInfoSelectorCollectionPrintArg(out *strings.Builder, sel *ast.SelectorExpr) bool {
+	fieldType, ok := syntaxSelectorFieldType(sel)
+	if !ok {
+		return false
+	}
+	arrayType, ok := fieldType.(*ast.ArrayType)
+	if !ok {
+		return false
+	}
+	NeedFormatSlice()
+	TrackImport("Display")
+	helper := "format_slice"
+	if _, ok := arrayType.Elt.(*ast.StarExpr); ok {
+		NeedFormatSliceWrappedValues()
+		helper = "format_slice_wrapped"
+	}
+	out.WriteString(helper)
+	out.WriteString("(&")
+	TranspileExpressionContext(out, sel, LValue)
+	out.WriteString(")")
+	return true
+}
+
+func syntaxSelectorFieldType(sel *ast.SelectorExpr) (ast.Expr, bool) {
+	structType, ok := syntaxStructTypeNameForSelectorBase(sel.X)
+	if !ok {
+		if ident, identOK := sel.X.(*ast.Ident); identOK && currentReceiver != "" && ident.Name == currentReceiver {
+			structType = currentReceiverType
+			ok = true
+		}
+	}
+	if !ok {
+		return nil, false
+	}
+	fieldInfo := resolveFieldAccess(structType, sel.Sel.Name)
+	if !fieldInfo.Found {
+		return nil, false
+	}
+	fieldOwner := structType
+	if fieldInfo.IsPromoted && len(fieldInfo.EmbeddedPath) > 0 {
+		fieldOwner = fieldInfo.EmbeddedPath[len(fieldInfo.EmbeddedPath)-1]
+	}
+	structDef := structDefs[fieldOwner]
+	if structDef == nil {
+		return nil, false
+	}
+	fieldType, ok := structDef.FieldTypes[sel.Sel.Name]
+	return fieldType, ok
 }
 
 func callReturnsSliceBySyntax(call *ast.CallExpr) bool {

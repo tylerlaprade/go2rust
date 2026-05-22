@@ -355,6 +355,27 @@ func TestNoTypeInfoPrintTrackedLocalSlice(t *testing.T) {
 	}
 }
 
+func TestNoTypeInfoPrintfSelectorSliceFieldUsesSyntax(t *testing.T) {
+	rust := transpileNoTypeInfoRegression(t, `package main
+
+import "fmt"
+
+type Manager struct {
+	Team []string
+}
+
+func (m Manager) Manage() {
+	fmt.Printf("team: %v\n", m.Team)
+}`)
+
+	if strings.Contains(rust, "Type information not available for print argument") {
+		t.Fatalf("selector slice print arg should use syntax fallback:\n%s", rust)
+	}
+	if !strings.Contains(rust, "format_slice(&self.team)") {
+		t.Fatalf("selector slice print arg should format the field handle:\n%s", rust)
+	}
+}
+
 func TestNoTypeInfoLocalCollectionTrackingIsFunctionScoped(t *testing.T) {
 	prevTypeInfo := currentTypeInfo
 	defer func() { currentTypeInfo = prevTypeInfo }()
