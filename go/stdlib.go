@@ -2468,6 +2468,13 @@ func jsonStructTagFromSyntax(field *ast.Field) string {
 	return tag
 }
 
+func isExportedGoName(name string) bool {
+	for _, r := range name {
+		return isUpper(r)
+	}
+	return false
+}
+
 func jsonMarshalStructFieldsFromSyntax(st *ast.StructType) ([]jsonMarshalField, bool) {
 	if st == nil || st.Fields == nil {
 		return nil, false
@@ -2478,7 +2485,7 @@ func jsonMarshalStructFieldsFromSyntax(st *ast.StructType) ([]jsonMarshalField, 
 			return nil, false
 		}
 		for _, name := range field.Names {
-			if name == nil || !ast.IsExported(name.Name) {
+			if name == nil || !isExportedGoName(name.Name) {
 				continue
 			}
 			jsonName, include, omitEmpty := jsonFieldName(name.Name, jsonStructTagFromSyntax(field))

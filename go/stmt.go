@@ -604,6 +604,8 @@ func registerCallTupleResultSyntaxInfo(lhs []ast.Expr, call *ast.CallExpr) {
 		case "context.WithCancelCause":
 			NeedGoContext()
 			resultTypes = []string{"GoContext", "GoCancelCauseFunc"}
+		case "encoding/json.Marshal", "json.Marshal", "encoding/json.MarshalIndent", "json.MarshalIndent":
+			resultTypes = []string{"Vec<u8>", goTypeToRustBase(ast.NewIdent("error"))}
 		}
 	}
 	if len(resultTypes) == 0 {
@@ -621,6 +623,10 @@ func registerCallTupleResultSyntaxInfo(lhs []ast.Expr, call *ast.CallExpr) {
 		ident, ok := lhs[i].(*ast.Ident)
 		if !ok || ident.Name == "_" {
 			continue
+		}
+		if rustType == "Vec<u8>" {
+			localCollectionKinds[ident.Name] = "slice"
+			localRangeElemRustTypes[ident.Name] = "u8"
 		}
 		vt.Register(ident.Name, &VarInfo{
 			WrapLevel: WrapFull,

@@ -642,6 +642,31 @@ func main() {
 	}
 }
 
+func TestNoTypeInfoJsonMarshalTupleResultStringConversionUsesByteSlice(t *testing.T) {
+	rust := transpileNoTypeInfoRegression(t, `package main
+
+import (
+	"encoding/json"
+	"fmt"
+)
+
+type User struct {
+	Name string `+"`json:\"name\"`"+`
+}
+
+func main() {
+	data, _ := json.Marshal(User{Name: "Alice"})
+	fmt.Println(string(data))
+}`)
+
+	if strings.Contains(rust, "(*data.borrow().as_ref().unwrap()).to_string()") {
+		t.Fatalf("string(data) from json.Marshal should not call ToString on Vec<u8>:\n%s", rust)
+	}
+	if !strings.Contains(rust, "String::from_utf8((*data.borrow().as_ref().unwrap()).clone()).unwrap()") {
+		t.Fatalf("string(data) from json.Marshal should use byte-slice string conversion:\n%s", rust)
+	}
+}
+
 func TestNoTypeInfoStringSliceBoundsUseStringOutput(t *testing.T) {
 	rust := transpileNoTypeInfoRegression(t, `package main
 
