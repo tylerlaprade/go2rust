@@ -587,6 +587,46 @@ func trimParens(s string) string {
 	}
 }
 
+func TestNoTypeInfoMakeMapWithCapacityTracksMapSyntax(t *testing.T) {
+	rust := transpileNoTypeInfoRegression(t, `package main
+
+import "fmt"
+
+func main() {
+	counts := make(map[string]int, 4)
+	counts["go"]++
+	counts["rust"] += 2
+	fmt.Println(counts["go"], counts["rust"], len(counts))
+
+	seen := make(map[int]bool, 3)
+	seen[10] = true
+	fmt.Println(seen[10], len(seen))
+}`)
+
+	for _, bad := range []string{
+		"Cannot determine if map",
+		"type info required for index expression",
+		`as usize`,
+	} {
+		if strings.Contains(rust, bad) {
+			t.Fatalf("make(map..., cap) should track map syntax without %q:\n%s", bad, rust)
+		}
+	}
+	for _, want := range []string{
+		`BTreeMap::<String, Rc<RefCell<Option<i32>>>>::new()`,
+		`.entry("go".to_string())`,
+		`.entry("rust".to_string())`,
+		`.get(&"go".to_string())`,
+		`BTreeMap::<i32, Rc<RefCell<Option<bool>>>>::new()`,
+		`.insert(__map_key, __map_value)`,
+		`.get(&10)`,
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("missing %q in make-map syntax fallback output:\n%s", want, rust)
+		}
+	}
+}
+
 func TestNoTypeInfoLocalCollectionTrackingIsFunctionScoped(t *testing.T) {
 	prevTypeInfo := currentTypeInfo
 	defer func() { currentTypeInfo = prevTypeInfo }()

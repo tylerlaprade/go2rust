@@ -548,6 +548,12 @@ func registerStdlibCallCollectionInfo(lhs ast.Expr, call *ast.CallExpr) {
 		if arrayType, ok := call.Args[0].(*ast.ArrayType); ok && arrayType.Len == nil {
 			localCollectionKinds[ident.Name] = "slice"
 			localRangeElemRustTypes[ident.Name] = goCollectionElemTypeToRust(arrayType.Elt)
+		} else if mapType, ok := call.Args[0].(*ast.MapType); ok {
+			localCollectionKinds[ident.Name] = "map"
+			localMapKeyRustTypes[ident.Name] = goMapKeyTypeToRustBase(mapType.Key)
+			valueRustType := GoTypeToRust(mapType.Value)
+			localMapValueRustTypes[ident.Name] = valueRustType
+			localMapValueKeepHandle[ident.Name] = mapValueTypeExprKeepsHandle(mapType.Value) || rustMapValueTypeKeepsHandle(valueRustType)
 		} else if chanType, ok := call.Args[0].(*ast.ChanType); ok {
 			localCollectionKinds[ident.Name] = "channel"
 			localRangeElemRustTypes[ident.Name] = goCollectionElemTypeToRust(chanType.Value)
@@ -1982,10 +1988,13 @@ func isMapIndexExpression(expr ast.Expr) (*ast.IndexExpr, bool) {
 		return nil, false
 	}
 	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return indexExpr, false
+	if typeInfo != nil && typeInfo.IsMap(indexExpr.X) {
+		return indexExpr, true
 	}
-	return indexExpr, typeInfo.IsMap(indexExpr.X)
+	if kind, ok := localCollectionKind(indexExpr.X); ok {
+		return indexExpr, kind == "map"
+	}
+	return indexExpr, false
 }
 
 func isBareBuiltinReturn(call *ast.CallExpr) bool {
