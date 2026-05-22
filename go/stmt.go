@@ -3137,12 +3137,35 @@ func tempHoldsWrappedValue(rhs ast.Expr) bool {
 	if isAssignmentSelfWrappingExpression(rhs) {
 		return true
 	}
-	call, ok := rhs.(*ast.CallExpr)
-	if !ok {
-		return false
+	if call, ok := rhs.(*ast.CallExpr); ok {
+		typeInfo := GetTypeInfo()
+		return typeInfo != nil && typeInfo.ReturnsWrappedValue(call) && !isBareBuiltinReturn(call) && (!typeInfo.IsTypeConversion(call) || typeConversionEmitsWrappedValue(call))
 	}
-	typeInfo := GetTypeInfo()
-	return typeInfo != nil && typeInfo.ReturnsWrappedValue(call) && !isBareBuiltinReturn(call) && (!typeInfo.IsTypeConversion(call) || typeConversionEmitsWrappedValue(call))
+	if sel, ok := rhs.(*ast.SelectorExpr); ok {
+		typeInfo := GetTypeInfo()
+		if typeInfo == nil || typeInfo.info == nil {
+			return false
+		}
+		// Package-qualified consts/vars don't emit wrapped values.
+		if ident, ok := sel.X.(*ast.Ident); ok {
+			if obj, ok := typeInfo.info.Uses[ident]; ok {
+				if _, isPkg := obj.(*types.PkgName); isPkg {
+					return false
+				}
+			}
+		}
+		obj, ok := typeInfo.info.Uses[sel.Sel]
+		if !ok {
+			return false
+		}
+		if _, isVar := obj.(*types.Var); !isVar {
+			return false
+		}
+		// Struct field reads emit Arc<Mutex<Option<T>>>.clone(). Anything
+		// rooted in a wrapped receiver (so not a package var) is wrapped.
+		return true
+	}
+	return false
 }
 
 func isErrorAssignment(lhs ast.Expr, rhs ast.Expr) bool {
