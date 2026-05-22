@@ -10254,6 +10254,9 @@ func syntaxExprIsGoError(expr ast.Expr) bool {
 	case *ast.SelectorExpr:
 		fieldType, ok := syntaxSelectorFieldType(e)
 		return ok && isGoErrorTypeExpr(fieldType)
+	case *ast.IndexExpr:
+		elemType, ok := localCollectionElemRustType(e.X)
+		return ok && rustTypeIsGoErrorHandle(elemType)
 	default:
 		return false
 	}

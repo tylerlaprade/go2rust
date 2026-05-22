@@ -505,6 +505,15 @@ func localCollectionKind(expr ast.Expr) (string, bool) {
 	return kind, ok
 }
 
+func localCollectionElemRustType(expr ast.Expr) (string, bool) {
+	ident, ok := expr.(*ast.Ident)
+	if !ok || localCollectionKinds[ident.Name] != "slice" {
+		return "", false
+	}
+	elemType := localRangeElemRustTypes[ident.Name]
+	return elemType, elemType != ""
+}
+
 func localMapRangeTypes(expr ast.Expr) (string, string, bool) {
 	ident, ok := expr.(*ast.Ident)
 	if !ok || localCollectionKinds[ident.Name] != "map" {
@@ -2780,17 +2789,29 @@ func writeMoveWrappedInnerAssignmentFromTemp(out *strings.Builder, lhs ast.Expr,
 
 func writeIndexedSequenceAssignmentFromTemp(out *strings.Builder, indexExpr *ast.IndexExpr, tmpName string, tmpWrapped bool) bool {
 	typeInfo := GetTypeInfo()
-	if typeInfo == nil || typeInfo.IsMap(indexExpr.X) {
-		return false
+	var elemType types.Type
+	if typeInfo != nil {
+		if typeInfo.IsMap(indexExpr.X) {
+			return false
+		}
+		elemType = typeInfo.GetArrayOrSliceElemType(indexExpr.X)
+	} else {
+		kind, ok := localCollectionKind(indexExpr.X)
+		if !ok || kind != "slice" {
+			return false
+		}
 	}
-	elemType := typeInfo.GetArrayOrSliceElemType(indexExpr.X)
+	elemKeepsHandle := tupleTempAssignsHandleToElement(elemType)
+	if !elemKeepsHandle {
+		elemKeepsHandle = tupleTempAssignsHandleToElementBySyntax(indexExpr.X)
+	}
 	out.WriteString(" (*")
 	TranspileExpressionContext(out, indexExpr.X, LValue)
 	WriteBorrowMethod(out, true)
 	out.WriteString(".as_mut().unwrap())[")
 	writeExpressionAsUsize(out, indexExpr.Index)
 	out.WriteString("] = ")
-	if tupleTempAssignsHandleToElement(elemType) {
+	if elemKeepsHandle {
 		out.WriteString(tmpName)
 	} else if tmpWrapped {
 		out.WriteString(tmpName)
@@ -2801,6 +2822,11 @@ func writeIndexedSequenceAssignmentFromTemp(out *strings.Builder, indexExpr *ast
 	}
 	out.WriteString(";")
 	return true
+}
+
+func tupleTempAssignsHandleToElementBySyntax(expr ast.Expr) bool {
+	elemType, ok := localCollectionElemRustType(expr)
+	return ok && rustMapValueTypeKeepsHandle(elemType)
 }
 
 func tupleTempAssignsHandleToElement(elemType types.Type) bool {

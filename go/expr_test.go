@@ -404,6 +404,42 @@ func main() {
 	}
 }
 
+func TestNoTypeInfoTupleAssignToErrorSliceKeepsHandle(t *testing.T) {
+	rust := transpileNoTypeInfoRegression(t, `package main
+
+import (
+	"errors"
+	"fmt"
+)
+
+func parse() (int, error) {
+	return 7, errors.New("bad")
+}
+
+func main() {
+	values := make([]int, 1)
+	errs := make([]error, 1)
+	values[0], errs[0] = parse()
+	fmt.Println(values[0])
+	if errs[0] != nil {
+		fmt.Println(errs[0].Error())
+	}
+}`)
+
+	if strings.Contains(rust, "__tmp_1.borrow_mut().take().unwrap_or_default()") {
+		t.Fatalf("tuple assignment into []error should not move the boxed payload out of the error handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "(*errs.borrow_mut().as_mut().unwrap())[(0) as usize] = __tmp_1;") {
+		t.Fatalf("tuple assignment into []error should store the returned error handle:\n%s", rust)
+	}
+	if strings.Contains(rust, ".error().borrow()") {
+		t.Fatalf("error slice element Error method should not call a nonexistent boxed-error method:\n%s", rust)
+	}
+	if !strings.Contains(rust, "format!(\"{}\", (*errs.borrow().as_ref().unwrap())[(0) as usize].clone().borrow().as_ref().unwrap())") {
+		t.Fatalf("error slice element Error method should format the element handle:\n%s", rust)
+	}
+}
+
 func TestNoTypeInfoLocalCollectionTrackingIsFunctionScoped(t *testing.T) {
 	prevTypeInfo := currentTypeInfo
 	defer func() { currentTypeInfo = prevTypeInfo }()
