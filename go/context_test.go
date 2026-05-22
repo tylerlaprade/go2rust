@@ -273,8 +273,30 @@ func TestPackageTypeMetadataPrefersContextState(t *testing.T) {
 	typeAliases = map[string]bool{}
 	typeDefinitions = map[string]string{}
 
-	if got := GoTypeToRustParam(ast.NewIdent("LocalIface")); got != "&dyn LocalIface" {
-		t.Fatalf("GoTypeToRustParam() = %q, want interface package state to win", got)
+	localIfaceIdent := ast.NewIdent("LocalIface")
+	currentPkg := gotypes.NewPackage("example.com/current", "current")
+	readMethod := gotypes.NewFunc(
+		token.NoPos,
+		currentPkg,
+		"Read",
+		gotypes.NewSignatureType(nil, nil, nil, gotypes.NewTuple(), gotypes.NewTuple(), false),
+	)
+	localIfaceType := gotypes.NewNamed(
+		gotypes.NewTypeName(token.NoPos, currentPkg, "LocalIface", nil),
+		gotypes.NewInterfaceType([]*gotypes.Func{readMethod}, nil).Complete(),
+		nil,
+	)
+	SetTypeInfo(&TypeInfo{
+		info: &gotypes.Info{
+			Types: map[ast.Expr]gotypes.TypeAndValue{
+				localIfaceIdent: {Type: localIfaceType},
+			},
+		},
+		pkg: currentPkg,
+	})
+
+	if got := GoTypeToRustParam(localIfaceIdent); got != "&dyn LocalIface" {
+		t.Fatalf("GoTypeToRustParam() = %q, want type info to prove context-owned interface", got)
 	}
 	if got := GoTypeToRust(ast.NewIdent("LocalAlias")); got != "LocalAlias" {
 		t.Fatalf("GoTypeToRust() = %q, want type alias package state to win", got)

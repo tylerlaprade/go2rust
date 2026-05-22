@@ -1508,8 +1508,9 @@ func relay(record func(string)) {
 	}
 }
 
-func TestNoTypeInfoTypedConstMethodInterfaceArgumentUsesNamedValue(t *testing.T) {
-	rust := transpileNoTypeInfoRegression(t, `package main
+func TestTypedConstMethodInterfaceArgumentUsesNamedValueFromTypeInfo(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
 
 type Code interface {
 	Value() int
@@ -1537,7 +1538,18 @@ func main() {
 	w.Code(ValBool)
 	w.Code(ValString)
 }
-`)
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(main.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+	SetTypeInfo(typeInfo)
+	defer SetTypeInfo(nil)
+
+	rust, _, _ := Transpile(file, fset, typeInfo)
 
 	if strings.Contains(rust, ".code(Rc::new(RefCell::new(Some(VAL_BOOL))))") ||
 		strings.Contains(rust, ".code(Rc::new(RefCell::new(Some(VAL_STRING))))") {

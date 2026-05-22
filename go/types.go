@@ -104,9 +104,6 @@ func transpiledNamedInterfaceTypeNameFromTypes(typ types.Type) (string, bool) {
 }
 
 func transpiledNamedInterfaceTypeNameFromExpr(expr ast.Expr) (string, bool) {
-	if ident, ok := expr.(*ast.Ident); ok && IsInterfaceType(ident.Name) {
-		return ident.Name, true
-	}
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil {
 		return "", false
@@ -441,9 +438,10 @@ func goTypeToRustBase(expr ast.Expr) string {
 					return rustType
 				}
 			}
-			// Check if this is an interface type
-			if IsInterfaceType(t.Name) {
-				return rustLocalInterfaceTraitObject(RustTypeNameForUse(t.Name))
+			if typeInfo != nil {
+				if interfaceName, ok := localNamedInterfaceTypeNameFromTypes(typeInfo.GetType(t)); ok {
+					return rustLocalInterfaceTraitObject(RustTypeNameForUse(interfaceName))
+				}
 			}
 			return RustTypeNameForUse(t.Name)
 		}

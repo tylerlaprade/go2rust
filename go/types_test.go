@@ -179,6 +179,30 @@ func TestGoTypeToRustParamUsesTypeInfoForImportedInterfaces(t *testing.T) {
 	}
 }
 
+func TestGoTypeToRustParamDoesNotTrustInterfaceRegistryWithoutTypeInfo(t *testing.T) {
+	prevTypeInfo := currentTypeInfo
+	prevContext := currentContext
+	prevInterfaces := interfaceTypes
+	prevDetector := globalConcurrencyDetector
+	defer func() {
+		currentTypeInfo = prevTypeInfo
+		SetTranspileContext(prevContext)
+		interfaceTypes = prevInterfaces
+		globalConcurrencyDetector = prevDetector
+	}()
+
+	SetTranspileContext(nil)
+	SetTypeInfo(nil)
+	interfaceTypes = map[string]bool{"entry": true}
+	globalConcurrencyDetector = nil
+
+	got := GoTypeToRustParam(ast.NewIdent("entry"))
+	want := "Rc<RefCell<Option<entry>>>"
+	if got != want {
+		t.Fatalf("GoTypeToRustParam without type info = %q, want %q", got, want)
+	}
+}
+
 func TestCallParamTypeFromTypeInfoUsesPackageSelectorObject(t *testing.T) {
 	pkg := types.NewPackage("example.com/label", "label")
 	paramType := types.Typ[types.Int]
