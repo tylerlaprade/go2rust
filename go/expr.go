@@ -5081,10 +5081,15 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				} else {
 					// Unknown stdlib selector - emit as package::selector
 					RegisterExternalPackageSelector(e)
+					isExternalVariable := IsExternalStdlibPackageVariableSelector(e)
 					out.WriteString(ident.Name)
 					out.WriteString("::")
-					out.WriteString(rustPackageSelectorName(e))
-					if IsExternalStdlibPackageVariableSelector(e) {
+					if isExternalVariable {
+						out.WriteString(rustPackageGlobalName(e.Sel.Name))
+					} else {
+						out.WriteString(rustPackageSelectorName(e))
+					}
+					if isExternalVariable {
 						out.WriteString("()")
 					}
 				}

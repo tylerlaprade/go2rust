@@ -490,6 +490,9 @@ func RegisterExternalPackageSelector(sel *ast.SelectorExpr) {
 	if rustExpr := GetStdlibSelectorMapping(pkgPath, sel.Sel.Name); rustExpr != "" {
 		return
 	}
+	if registerExternalPackageSelectorFallback(pkgName, pkgPath, sel.Sel.Name) {
+		return
+	}
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil || typeInfo.info == nil {
 		return
@@ -539,6 +542,24 @@ func RegisterExternalPackageFunctionFallback(sel *ast.SelectorExpr, argCount int
 	trackWrapperImports()
 	fn := externalPackageStubFunction{ParamCount: argCount}
 	switch pkgPath {
+	case "os/exec":
+		if sel.Sel.Name != "LookPath" {
+			return
+		}
+		TrackImport("Error")
+		fn.ReturnTypes = []string{wrappedExternalStubType("String"), wrappedExternalStubType(rustStdErrorBoxType())}
+	case "io":
+		if sel.Sel.Name != "MultiWriter" {
+			return
+		}
+		RegisterExternalTypeStub("io_Writer")
+		fn.ReturnTypes = []string{wrappedExternalStubType("io_Writer")}
+	case "crypto/md5":
+		if sel.Sel.Name != "New" {
+			return
+		}
+		RegisterExternalTypeStub("hash_Hash")
+		fn.ReturnTypes = []string{wrappedExternalStubType("hash_Hash")}
 	case "go/token":
 		if sel.Sel.Name != "NewFileSet" {
 			return
@@ -791,9 +812,12 @@ func ensureExternalPackageStub(pkgName string) *externalPackageStub {
 }
 
 func IsExternalStdlibPackageVariableSelector(sel *ast.SelectorExpr) bool {
-	_, _, ok := externalStdlibPackageSelector(sel)
+	_, pkgPath, ok := externalStdlibPackageSelector(sel)
 	if !ok {
 		return false
+	}
+	if externalPackageSelectorFallbackVariableType(pkgPath, sel.Sel.Name) != "" {
+		return true
 	}
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil || typeInfo.info == nil {
@@ -801,6 +825,27 @@ func IsExternalStdlibPackageVariableSelector(sel *ast.SelectorExpr) bool {
 	}
 	_, ok = typeInfo.info.Uses[sel.Sel].(*types.Var)
 	return ok
+}
+
+func registerExternalPackageSelectorFallback(pkgName string, pkgPath string, selName string) bool {
+	rustType := externalPackageSelectorFallbackVariableType(pkgPath, selName)
+	if rustType == "" {
+		return false
+	}
+	pkg := ensureExternalPackageStub(pkgName)
+	pkg.Variables[rustPackageGlobalName(selName)] = rustType
+	return true
+}
+
+func externalPackageSelectorFallbackVariableType(pkgPath string, selName string) string {
+	switch pkgPath {
+	case "io":
+		if selName == "Discard" {
+			RegisterExternalTypeStub("io_Writer")
+			return wrappedExternalStubType("io_Writer")
+		}
+	}
+	return ""
 }
 
 func externalStdlibPackageSelector(sel *ast.SelectorExpr) (string, string, bool) {
@@ -844,6 +889,12 @@ func isStdlibPackageSelectorImport(sel *ast.SelectorExpr) bool {
 
 func fallbackStdlibPackagePathForImportName(name string) (string, bool) {
 	switch name {
+	case "exec":
+		return "os/exec", true
+	case "io":
+		return "io", true
+	case "md5":
+		return "crypto/md5", true
 	case "token":
 		return "go/token", true
 	case "types":

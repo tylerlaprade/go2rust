@@ -480,6 +480,54 @@ func forceConcurrent() {
 	}
 }
 
+func TestNoTypeInfoExternalExecLookPathRegistersStub(t *testing.T) {
+	rust := transpileNoTypeInfoRegression(t, `package main
+
+import (
+	"fmt"
+	"os/exec"
+)
+
+func main() {
+	_, err := exec.LookPath("__go2rust_missing_executable__")
+	fmt.Println(err != nil)
+}`)
+
+	if !strings.Contains(rust, "pub mod exec") || !strings.Contains(rust, "pub fn look_path") {
+		t.Fatalf("exec.LookPath should register an inline external stdlib stub without type info:\n%s", rust)
+	}
+	if !strings.Contains(rust, "exec::look_path") {
+		t.Fatalf("exec.LookPath call should target the generated exec stub:\n%s", rust)
+	}
+}
+
+func TestNoTypeInfoExternalStdlibVariadicRegistersStubs(t *testing.T) {
+	rust := transpileNoTypeInfoRegression(t, `package main
+
+import (
+	"crypto/md5"
+	"fmt"
+	"io"
+)
+
+func main() {
+	io.MultiWriter(io.Discard, md5.New())
+	fmt.Println("ok")
+}`)
+
+	for _, want := range []string{"pub mod io", "pub fn Discard()", "pub fn multi_writer", "pub mod md5", "pub fn new()"} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("missing %q in external stdlib fallback output:\n%s", want, rust)
+		}
+	}
+	if strings.Contains(rust, "io::discard") {
+		t.Fatalf("io.Discard should call the generated package variable accessor:\n%s", rust)
+	}
+	if !strings.Contains(rust, "io::Discard()") {
+		t.Fatalf("io.Discard should use the generated package variable accessor:\n%s", rust)
+	}
+}
+
 func TestNoTypeInfoLocalCollectionTrackingIsFunctionScoped(t *testing.T) {
 	prevTypeInfo := currentTypeInfo
 	defer func() { currentTypeInfo = prevTypeInfo }()
