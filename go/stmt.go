@@ -3801,13 +3801,92 @@ func writeParallelAssignmentTarget(out *strings.Builder, lhs ast.Expr, tmpName s
 		out.WriteString(".take();")
 	} else {
 		out.WriteString("Some(")
-		out.WriteString(tmpName)
-		if cast := parallelTempBareCast(lhs, rhs); cast != "" {
-			out.WriteString(" as ")
-			out.WriteString(cast)
+		if wrapper := parallelTempNamedIntegerWrap(lhs, rhs); wrapper != "" {
+			out.WriteString(wrapper)
+			out.WriteString("(")
+			WriteWrapperPrefix(out)
+			out.WriteString(tmpName)
+			if cast := parallelTempNamedIntegerCast(lhs); cast != "" {
+				out.WriteString(" as ")
+				out.WriteString(cast)
+			}
+			WriteWrapperSuffix(out)
+			out.WriteString(")")
+		} else {
+			out.WriteString(tmpName)
+			if cast := parallelTempBareCast(lhs, rhs); cast != "" {
+				out.WriteString(" as ")
+				out.WriteString(cast)
+			}
 		}
 		out.WriteString(");")
 	}
+}
+
+func parallelTempNamedIntegerWrap(lhs ast.Expr, rhs ast.Expr) string {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return ""
+	}
+	lhsType := typeInfo.GetType(lhs)
+	if lhsType == nil {
+		return ""
+	}
+	named, ok := types.Unalias(lhsType).(*types.Named)
+	if !ok || !isNamedIntegerType(named) {
+		return ""
+	}
+	// RHS already a named-typed expression of the same type? Then no wrap.
+	if rhsType := typeInfo.GetType(rhs); rhsType != nil {
+		if rhsNamed, ok := types.Unalias(rhsType).(*types.Named); ok && rhsNamed.Obj() == named.Obj() {
+			// Still need to check that the RHS emission produced a typed value;
+			// untyped constants emit as primitive literals.
+			if _, isLit := rhs.(*ast.BasicLit); !isLit {
+				if !isUntypedConstSelector(rhs) {
+					return ""
+				}
+			}
+		}
+	}
+	return goTypesNamedTypeToRust(named)
+}
+
+func parallelTempNamedIntegerCast(lhs ast.Expr) string {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return ""
+	}
+	lhsType := typeInfo.GetType(lhs)
+	if lhsType == nil {
+		return ""
+	}
+	named, ok := types.Unalias(lhsType).(*types.Named)
+	if !ok {
+		return ""
+	}
+	basic, ok := types.Unalias(named.Underlying()).(*types.Basic)
+	if !ok {
+		return ""
+	}
+	cast, _ := rustCastTypeForDefinedUnderlying(basic.Name())
+	return cast
+}
+
+func isUntypedConstSelector(expr ast.Expr) bool {
+	sel, ok := expr.(*ast.SelectorExpr)
+	if !ok {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return false
+	}
+	obj, ok := typeInfo.info.Uses[sel.Sel]
+	if !ok {
+		return false
+	}
+	_, ok = obj.(*types.Const)
+	return ok
 }
 
 func parallelTempBareCast(lhs ast.Expr, rhs ast.Expr) string {
