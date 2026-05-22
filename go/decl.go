@@ -1703,6 +1703,19 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 				out.WriteString(".as_ref().unwrap()))\n")
 				out.WriteString("    }\n")
 				out.WriteString("}\n")
+			} else if IsErrorImplType(typeSpec.Name.Name) {
+				TrackImport("Display")
+				TrackImport("Formatter")
+
+				out.WriteString("\nimpl Display for ")
+				out.WriteString(rustTypeName)
+				out.WriteString(" {\n")
+				out.WriteString("    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {\n")
+				out.WriteString("        write!(f, \"{}\", (*self.error()")
+				WriteBorrowMethod(out, false)
+				out.WriteString(".as_ref().unwrap()))\n")
+				out.WriteString("    }\n")
+				out.WriteString("}\n")
 			} else if ident, ok := t.(*ast.Ident); ok {
 				// Add Display impl when the underlying Rust type is displayable.
 				if isDisplayableDefinedUnderlying(ident.Name) {

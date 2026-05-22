@@ -8,7 +8,7 @@ pub struct internalError(pub Rc<RefCell<Option<String>>>);
 
 impl Display for internalError {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
-        write!(f, "{}", self.0.borrow().as_ref().unwrap())
+        write!(f, "{}", (*self.error().borrow().as_ref().unwrap()))
     }
 }
 
