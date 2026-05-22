@@ -386,6 +386,23 @@ impl ast_Ellipsis {
 }
 
 
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
+pub struct ast_EmptyStmt;
+
+impl std::fmt::Display for ast_EmptyStmt {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<ast_EmptyStmt>")
+    }
+}
+
+
+impl ast_EmptyStmt {
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        None
+    }
+}
+
+
 #[derive(Clone)]
 pub struct ast_Expr {
     pub __go_id: usize,
@@ -1546,7 +1563,7 @@ impl types_Config {
         None
     }
     pub fn check<T0, T1, T2, T3>(&self, _arg0: T0, _arg1: T1, _arg2: T2, _arg3: T3) -> (Arc<Mutex<Option<types_Package>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
-        (Arc::new(Mutex::new(Some::<types_Package>(Default::default()))), Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>)))
+        panic!("go/types Config.Check is required for TypeInfo; generated stdlib stubs must not synthesize type information")
     }
 }
 
@@ -2302,7 +2319,7 @@ pub mod parser {
                 }),
                 ..Default::default()
             }),
-            gosyn::ast::Statement::Empty(_) => ast_Stmt::default(),
+            gosyn::ast::Statement::Empty(_) => ast_Stmt::__go_from(ast_EmptyStmt),
         }
     }
 

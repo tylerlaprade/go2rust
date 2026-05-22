@@ -386,6 +386,23 @@ impl ast_Ellipsis {
 }
 
 
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
+pub struct ast_EmptyStmt;
+
+impl std::fmt::Display for ast_EmptyStmt {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<ast_EmptyStmt>")
+    }
+}
+
+
+impl ast_EmptyStmt {
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        None
+    }
+}
+
+
 #[derive(Clone)]
 pub struct ast_Expr {
     pub __go_id: usize,
@@ -2099,7 +2116,7 @@ pub mod parser {
                 }),
                 ..Default::default()
             }),
-            gosyn::ast::Statement::Empty(_) => ast_Stmt::default(),
+            gosyn::ast::Statement::Empty(_) => ast_Stmt::__go_from(ast_EmptyStmt),
         }
     }
 
