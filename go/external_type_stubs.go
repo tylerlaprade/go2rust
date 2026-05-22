@@ -542,6 +542,12 @@ func RegisterExternalPackageFunctionFallback(sel *ast.SelectorExpr, argCount int
 	trackWrapperImports()
 	fn := externalPackageStubFunction{ParamCount: argCount}
 	switch pkgPath {
+	case "bytes":
+		if sel.Sel.Name != "NewBuffer" {
+			return
+		}
+		RegisterExternalTypeStub("bytes_Buffer")
+		fn.ReturnTypes = []string{wrappedExternalStubType("bytes_Buffer")}
 	case "os/exec":
 		if sel.Sel.Name != "LookPath" {
 			return
@@ -848,6 +854,62 @@ func externalPackageSelectorFallbackVariableType(pkgPath string, selName string)
 	return ""
 }
 
+func externalStdlibInterfaceTypeExpr(expr ast.Expr) (string, bool) {
+	sel, ok := expr.(*ast.SelectorExpr)
+	if !ok {
+		return "", false
+	}
+	ident, ok := sel.X.(*ast.Ident)
+	if !ok {
+		return "", false
+	}
+	pkgPath := goPackageImports[ident.Name]
+	if pkgPath == "" {
+		var fallbackOK bool
+		pkgPath, fallbackOK = fallbackStdlibPackagePathForImportName(ident.Name)
+		if !fallbackOK {
+			return "", false
+		}
+	}
+	if !externalTypeExprFallbackIsInterface(pkgPath, sel.Sel.Name) {
+		return "", false
+	}
+	return fmt.Sprintf("%s_%s", ident.Name, sel.Sel.Name), true
+}
+
+func externalStdlibCallReturnRustType(call *ast.CallExpr) (string, bool) {
+	if call == nil {
+		return "", false
+	}
+	sel, ok := call.Fun.(*ast.SelectorExpr)
+	if !ok {
+		return "", false
+	}
+	_, pkgPath, ok := externalStdlibPackageSelector(sel)
+	if !ok {
+		return "", false
+	}
+	switch pkgPath {
+	case "bytes":
+		if sel.Sel.Name == "NewBuffer" {
+			RegisterExternalTypeStub("bytes_Buffer")
+			RegisterExternalPackageFunctionFallback(sel, len(call.Args))
+			return "bytes_Buffer", true
+		}
+	}
+	return "", false
+}
+
+func externalTypeExprFallbackIsInterface(pkgPath string, name string) bool {
+	switch pkgPath {
+	case "hash":
+		return name == "Hash"
+	case "io":
+		return name == "Writer"
+	}
+	return false
+}
+
 func externalStdlibPackageSelector(sel *ast.SelectorExpr) (string, string, bool) {
 	if sel == nil {
 		return "", "", false
@@ -889,8 +951,12 @@ func isStdlibPackageSelectorImport(sel *ast.SelectorExpr) bool {
 
 func fallbackStdlibPackagePathForImportName(name string) (string, bool) {
 	switch name {
+	case "bytes":
+		return "bytes", true
 	case "exec":
 		return "os/exec", true
+	case "hash":
+		return "hash", true
 	case "io":
 		return "io", true
 	case "md5":

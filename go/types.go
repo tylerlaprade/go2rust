@@ -574,7 +574,11 @@ func goTypeToRustBase(expr ast.Expr) string {
 			}
 			if isStdlibPackage(pkgPath) {
 				RegisterExternalTypeStubForTypeExpr(t, rustName)
-				RegisterExternalTypeStub(rustName)
+				if externalTypeExprFallbackIsInterface(pkgPath, t.Sel.Name) {
+					RegisterExternalTypeStubInterface(rustName)
+				} else {
+					RegisterExternalTypeStub(rustName)
+				}
 			}
 			return rustName
 		}

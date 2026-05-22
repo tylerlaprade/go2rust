@@ -1031,6 +1031,9 @@ func writeNoTypeInfoPrintArg(out *strings.Builder, arg ast.Expr) bool {
 		return true
 	}
 	if sel, ok := arg.(*ast.SelectorExpr); ok {
+		if writeNoTypeInfoSelectorStdlibInterfacePrintArg(out, sel) {
+			return true
+		}
 		if writeNoTypeInfoSelectorCollectionPrintArg(out, sel) {
 			return true
 		}
@@ -1080,6 +1083,21 @@ func writeNoTypeInfoPrintArg(out *strings.Builder, arg ast.Expr) bool {
 	out.WriteString(name)
 	WriteBorrowMethod(out, false)
 	out.WriteString(".as_ref().unwrap())")
+	return true
+}
+
+func writeNoTypeInfoSelectorStdlibInterfacePrintArg(out *strings.Builder, sel *ast.SelectorExpr) bool {
+	fieldType, ok := syntaxSelectorFieldType(sel)
+	if !ok {
+		return false
+	}
+	if _, ok := externalStdlibInterfaceTypeExpr(fieldType); !ok {
+		return false
+	}
+	out.WriteString("format!(\"{}\", (*")
+	TranspileExpressionContext(out, sel, LValue)
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap()))")
 	return true
 }
 

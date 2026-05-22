@@ -534,6 +534,44 @@ func main() {
 	}
 }
 
+func TestNoTypeInfoBytesNewBufferStdlibInterfaceField(t *testing.T) {
+	rust := transpileNoTypeInfoRegression(t, `package main
+
+import (
+	"bytes"
+	"fmt"
+	"io"
+)
+
+type holder struct {
+	w io.Writer
+}
+
+func main() {
+	h := holder{w: bytes.NewBuffer(nil)}
+	_ = fmt.Errorf("%v", h.w)
+}`)
+
+	for _, want := range []string{
+		"fn __go_next_external_interface_id()",
+		"pub struct bytes_Buffer",
+		"pub mod bytes",
+		"pub fn new_buffer",
+		"impl From<bytes_Buffer> for io_Writer",
+		"let __arg = bytes::new_buffer(",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("missing %q in bytes.NewBuffer interface-field fallback output:\n%s", want, rust)
+		}
+	}
+	if strings.Contains(rust, "w: bytes::new_buffer(") {
+		t.Fatalf("bytes.NewBuffer assigned to io.Writer field should be converted, not assigned directly:\n%s", rust)
+	}
+	if strings.Contains(rust, "Type information not available for print argument") {
+		t.Fatalf("fmt.Errorf should format the syntax-known io.Writer field:\n%s", rust)
+	}
+}
+
 func TestNoTypeInfoLocalCollectionTrackingIsFunctionScoped(t *testing.T) {
 	prevTypeInfo := currentTypeInfo
 	defer func() { currentTypeInfo = prevTypeInfo }()
