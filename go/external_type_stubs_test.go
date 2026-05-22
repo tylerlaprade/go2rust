@@ -29,11 +29,48 @@ func TestParserStubUsesGoAstShapesForCalls(t *testing.T) {
 	if !strings.Contains(got, "ellipsis: call.dots.map(go_parser_pos).unwrap_or_else(|| go_parser_pos(0))") {
 		t.Fatalf("parser stub should store absent call ellipsis as token.Pos zero:\n%s", got)
 	}
-	if !strings.Contains(got, "None if token == token::M_U_L => ast_Expr::__go_from(ast_StarExpr") {
+	if !strings.Contains(got, "None if token == token::M_U_L => ast_Expr::__go_from_with_pos(ast_StarExpr") {
 		t.Fatalf("parser stub should lower unary star to ast_StarExpr:\n%s", got)
 	}
 	if !strings.Contains(got, "gosyn::ast::Statement::Empty(_) => ast_Stmt::__go_from(ast_EmptyStmt)") {
 		t.Fatalf("parser stub should preserve empty statements as ast.EmptyStmt:\n%s", got)
+	}
+}
+
+func TestParserStubPreservesFileAndNodeMetadataForTypeInfoBridge(t *testing.T) {
+	var out strings.Builder
+	writeParserParseFileFunction(&out, externalPackageStubFunction{
+		ReturnTypes: []string{"Arc<Mutex<Option<ast_File>>>", "Arc<Mutex<Option<Box<dyn std::error::Error + Send + Sync>>>>"},
+	})
+	got := out.String()
+	for _, want := range []string{
+		"__go_filename: go_parser_some(filename.to_string())",
+		"__go_source: go_parser_some(source.to_string())",
+		"ast_Ident { __go_pos: go_parser_pos_value(id.pos)",
+		"ast_Expr::__go_from_with_pos(go_parser_ident_struct(id), go_parser_pos_value(pos))",
+		"ast_Expr::__go_from_with_pos(ast_BasicLit",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("parser stub should preserve metadata %q for the type-info bridge:\n%s", want, got)
+		}
+	}
+}
+
+func TestAstInterfacesCarrySourcePositions(t *testing.T) {
+	var out strings.Builder
+	writeExternalInterfaceStub(&out, "ast_Expr", map[string]externalTypeStubMethod{
+		"pos": {ReturnTypes: []string{"Arc<Mutex<Option<token_Pos>>>"}},
+	})
+	got := out.String()
+	for _, want := range []string{
+		"pub __go_pos: i32",
+		"pub fn __go_from_with_pos",
+		"__go_pos: pos",
+		"Arc::new(Mutex::new(Some(token_Pos(self.__go_pos))))",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("ast interface stub should carry source position %q:\n%s", want, got)
+		}
 	}
 }
 

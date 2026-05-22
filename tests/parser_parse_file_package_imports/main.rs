@@ -278,12 +278,16 @@ impl ast_CompositeLit {
 #[derive(Clone)]
 pub struct ast_Decl {
     pub __go_id: usize,
+    pub __go_pos: i32,
     pub __go_value: Arc<dyn std::any::Any + Send + Sync>,
 }
 
 impl ast_Decl {
     pub fn __go_from<T: 'static + Send + Sync>(value: T) -> Self {
-        Self { __go_id: __go_next_external_interface_id(), __go_value: Arc::new(value) }
+        Self { __go_id: __go_next_external_interface_id(), __go_pos: 0, __go_value: Arc::new(value) }
+    }
+    pub fn __go_from_with_pos<T: 'static + Send + Sync>(value: T, pos: i32) -> Self {
+        Self { __go_id: __go_next_external_interface_id(), __go_pos: pos, __go_value: Arc::new(value) }
     }
     pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
         self.__go_value.as_ref().downcast_ref::<T>()
@@ -292,7 +296,7 @@ impl ast_Decl {
 
 impl Default for ast_Decl {
     fn default() -> Self {
-        Self { __go_id: 0, __go_value: Arc::new(()) }
+        Self { __go_id: 0, __go_pos: 0, __go_value: Arc::new(()) }
     }
 }
 
@@ -406,12 +410,16 @@ impl ast_EmptyStmt {
 #[derive(Clone)]
 pub struct ast_Expr {
     pub __go_id: usize,
+    pub __go_pos: i32,
     pub __go_value: Arc<dyn std::any::Any + Send + Sync>,
 }
 
 impl ast_Expr {
     pub fn __go_from<T: 'static + Send + Sync>(value: T) -> Self {
-        Self { __go_id: __go_next_external_interface_id(), __go_value: Arc::new(value) }
+        Self { __go_id: __go_next_external_interface_id(), __go_pos: 0, __go_value: Arc::new(value) }
+    }
+    pub fn __go_from_with_pos<T: 'static + Send + Sync>(value: T, pos: i32) -> Self {
+        Self { __go_id: __go_next_external_interface_id(), __go_pos: pos, __go_value: Arc::new(value) }
     }
     pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
         self.__go_value.as_ref().downcast_ref::<T>()
@@ -420,7 +428,7 @@ impl ast_Expr {
 
 impl Default for ast_Expr {
     fn default() -> Self {
-        Self { __go_id: 0, __go_value: Arc::new(()) }
+        Self { __go_id: 0, __go_pos: 0, __go_value: Arc::new(()) }
     }
 }
 
@@ -518,6 +526,8 @@ impl ast_FieldList {
 
 #[derive(Debug, Clone, Default)]
 pub struct ast_File {
+    pub __go_filename: Arc<Mutex<Option<String>>>,
+    pub __go_source: Arc<Mutex<Option<String>>>,
     pub decls: Arc<Mutex<Option<Vec<ast_Decl>>>>,
     pub imports: Arc<Mutex<Option<Vec<Arc<Mutex<Option<ast_ImportSpec>>>>>>>,
     pub name: Arc<Mutex<Option<ast_Ident>>>,
@@ -662,6 +672,7 @@ impl ast_GoStmt {
 
 #[derive(Debug, Clone, Default)]
 pub struct ast_Ident {
+    pub __go_pos: i32,
     pub name: Arc<Mutex<Option<String>>>,
 }
 
@@ -1006,12 +1017,16 @@ impl ast_SliceExpr {
 #[derive(Clone)]
 pub struct ast_Spec {
     pub __go_id: usize,
+    pub __go_pos: i32,
     pub __go_value: Arc<dyn std::any::Any + Send + Sync>,
 }
 
 impl ast_Spec {
     pub fn __go_from<T: 'static + Send + Sync>(value: T) -> Self {
-        Self { __go_id: __go_next_external_interface_id(), __go_value: Arc::new(value) }
+        Self { __go_id: __go_next_external_interface_id(), __go_pos: 0, __go_value: Arc::new(value) }
+    }
+    pub fn __go_from_with_pos<T: 'static + Send + Sync>(value: T, pos: i32) -> Self {
+        Self { __go_id: __go_next_external_interface_id(), __go_pos: pos, __go_value: Arc::new(value) }
     }
     pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
         self.__go_value.as_ref().downcast_ref::<T>()
@@ -1020,7 +1035,7 @@ impl ast_Spec {
 
 impl Default for ast_Spec {
     fn default() -> Self {
-        Self { __go_id: 0, __go_value: Arc::new(()) }
+        Self { __go_id: 0, __go_pos: 0, __go_value: Arc::new(()) }
     }
 }
 
@@ -1079,12 +1094,16 @@ impl ast_StarExpr {
 #[derive(Clone)]
 pub struct ast_Stmt {
     pub __go_id: usize,
+    pub __go_pos: i32,
     pub __go_value: Arc<dyn std::any::Any + Send + Sync>,
 }
 
 impl ast_Stmt {
     pub fn __go_from<T: 'static + Send + Sync>(value: T) -> Self {
-        Self { __go_id: __go_next_external_interface_id(), __go_value: Arc::new(value) }
+        Self { __go_id: __go_next_external_interface_id(), __go_pos: 0, __go_value: Arc::new(value) }
+    }
+    pub fn __go_from_with_pos<T: 'static + Send + Sync>(value: T, pos: i32) -> Self {
+        Self { __go_id: __go_next_external_interface_id(), __go_pos: pos, __go_value: Arc::new(value) }
     }
     pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
         self.__go_value.as_ref().downcast_ref::<T>()
@@ -1093,7 +1112,7 @@ impl ast_Stmt {
 
 impl Default for ast_Stmt {
     fn default() -> Self {
-        Self { __go_id: 0, __go_value: Arc::new(()) }
+        Self { __go_id: 0, __go_pos: 0, __go_value: Arc::new(()) }
     }
 }
 
@@ -1705,6 +1724,10 @@ pub mod parser {
         go_parser_some(token_Pos(pos as i32))
     }
 
+    fn go_parser_pos_value(pos: usize) -> i32 {
+        pos as i32
+    }
+
     fn go_parser_token(tok: token_Token) -> Arc<Mutex<Option<token_Token>>> {
         go_parser_some(tok)
     }
@@ -1794,19 +1817,20 @@ pub mod parser {
     }
 
     fn go_parser_ident_struct(id: gosyn::ast::Ident) -> ast_Ident {
-        ast_Ident { name: go_parser_some(id.name), ..Default::default() }
+        ast_Ident { __go_pos: go_parser_pos_value(id.pos), name: go_parser_some(id.name), ..Default::default() }
     }
 
     fn go_parser_ident_expr(id: gosyn::ast::Ident) -> ast_Expr {
-        ast_Expr::__go_from(go_parser_ident_struct(id))
+        let pos = id.pos;
+        ast_Expr::__go_from_with_pos(go_parser_ident_struct(id), go_parser_pos_value(pos))
     }
 
     fn go_parser_basic_lit_expr(lit: gosyn::ast::BasicLit) -> ast_Expr {
-        ast_Expr::__go_from(ast_BasicLit {
+        ast_Expr::__go_from_with_pos(ast_BasicLit {
             kind: go_parser_token(go_parser_lit_kind(lit.kind)),
             value: go_parser_some(lit.value),
             ..Default::default()
-        })
+        }, go_parser_pos_value(lit.pos))
     }
 
     fn go_parser_field_list(list: gosyn::ast::FieldList) -> Arc<Mutex<Option<ast_FieldList>>> {
@@ -1848,10 +1872,10 @@ pub mod parser {
     fn go_parser_lit_element(element: gosyn::ast::Element) -> ast_Expr {
         match element {
             gosyn::ast::Element::Expr(expr) => go_parser_expr(expr),
-            gosyn::ast::Element::LitValue(value) => ast_Expr::__go_from(ast_CompositeLit {
+            gosyn::ast::Element::LitValue(value) => ast_Expr::__go_from_with_pos(ast_CompositeLit {
                 elts: go_parser_some(go_parser_lit_values(value)),
                 ..Default::default()
-            }),
+            }, 0),
         }
     }
 
@@ -1859,11 +1883,11 @@ pub mod parser {
         value.values.into_iter().map(|element| {
             let val = go_parser_lit_element(element.val);
             match element.key {
-                Some(key) => ast_Expr::__go_from(ast_KeyValueExpr {
+                Some(key) => ast_Expr::__go_from_with_pos(ast_KeyValueExpr {
                     key: go_parser_some(go_parser_lit_element(key)),
                     value: go_parser_some(val),
                     ..Default::default()
-                }),
+                }, 0),
                 None => val,
             }
         }).collect()
@@ -1873,126 +1897,135 @@ pub mod parser {
         match expr {
             gosyn::ast::Expression::Ident(id) => go_parser_ident_expr(id),
             gosyn::ast::Expression::BasicLit(lit) => go_parser_basic_lit_expr(lit),
-            gosyn::ast::Expression::Call(call) => ast_Expr::__go_from(go_parser_call_expr(call)),
-            gosyn::ast::Expression::Selector(sel) => ast_Expr::__go_from(ast_SelectorExpr {
+            gosyn::ast::Expression::Call(call) => {
+                let pos = call.pos.0;
+                ast_Expr::__go_from_with_pos(go_parser_call_expr(call), go_parser_pos_value(pos))
+            }
+            gosyn::ast::Expression::Selector(sel) => ast_Expr::__go_from_with_pos(ast_SelectorExpr {
                 x: go_parser_some(go_parser_expr(*sel.x)),
                 sel: go_parser_some(go_parser_ident_struct(sel.sel)),
                 ..Default::default()
-            }),
-            gosyn::ast::Expression::Index(index) => ast_Expr::__go_from(ast_IndexExpr {
+            }, go_parser_pos_value(sel.pos)),
+            gosyn::ast::Expression::Index(index) => ast_Expr::__go_from_with_pos(ast_IndexExpr {
                 x: go_parser_some(go_parser_expr(*index.left)),
                 index: go_parser_some(go_parser_expr(*index.index)),
                 ..Default::default()
-            }),
-            gosyn::ast::Expression::IndexList(index) => ast_Expr::__go_from(ast_IndexListExpr {
+            }, go_parser_pos_value(index.pos.0)),
+            gosyn::ast::Expression::IndexList(index) => ast_Expr::__go_from_with_pos(ast_IndexListExpr {
                 x: go_parser_some(go_parser_expr(*index.left)),
                 indices: go_parser_some(index.indices.into_iter().map(go_parser_expr).collect()),
                 ..Default::default()
-            }),
-            gosyn::ast::Expression::Slice(slice) => ast_Expr::__go_from(ast_SliceExpr {
+            }, go_parser_pos_value(index.pos.0)),
+            gosyn::ast::Expression::Slice(slice) => ast_Expr::__go_from_with_pos(ast_SliceExpr {
                 x: go_parser_some(go_parser_expr(*slice.left)),
                 low: slice.index[0].as_ref().map(|expr| go_parser_expr((**expr).clone())).map(go_parser_some).unwrap_or_else(go_parser_none),
                 high: slice.index[1].as_ref().map(|expr| go_parser_expr((**expr).clone())).map(go_parser_some).unwrap_or_else(go_parser_none),
                 max: slice.index[2].as_ref().map(|expr| go_parser_expr((**expr).clone())).map(go_parser_some).unwrap_or_else(go_parser_none),
                 slice3: go_parser_some(slice.index[2].is_some()),
                 ..Default::default()
-            }),
-            gosyn::ast::Expression::FuncLit(lit) => ast_Expr::__go_from(ast_FuncLit {
+            }, go_parser_pos_value(slice.pos.0)),
+            gosyn::ast::Expression::FuncLit(lit) => ast_Expr::__go_from_with_pos(ast_FuncLit {
                 r#type: go_parser_some(go_parser_func_type(lit.typ)),
                 body: go_parser_some(go_parser_block(lit.body)),
                 ..Default::default()
-            }),
-            gosyn::ast::Expression::Ellipsis(ellipsis) => ast_Expr::__go_from(ast_Ellipsis {
+            }, 0),
+            gosyn::ast::Expression::Ellipsis(ellipsis) => ast_Expr::__go_from_with_pos(ast_Ellipsis {
                 elt: ellipsis.elt.map(|expr| go_parser_expr(*expr)).map(go_parser_some).unwrap_or_else(go_parser_none),
                 ..Default::default()
-            }),
-            gosyn::ast::Expression::Star(star) => ast_Expr::__go_from(ast_StarExpr {
+            }, go_parser_pos_value(ellipsis.pos)),
+            gosyn::ast::Expression::Star(star) => ast_Expr::__go_from_with_pos(ast_StarExpr {
                 x: go_parser_some(go_parser_expr(*star.right)),
                 ..Default::default()
-            }),
-            gosyn::ast::Expression::Paren(paren) => ast_Expr::__go_from(ast_ParenExpr {
+            }, go_parser_pos_value(star.pos)),
+            gosyn::ast::Expression::Paren(paren) => ast_Expr::__go_from_with_pos(ast_ParenExpr {
                 x: go_parser_some(go_parser_expr(*paren.expr)),
                 ..Default::default()
-            }),
-            gosyn::ast::Expression::TypeAssert(assertion) => ast_Expr::__go_from(ast_TypeAssertExpr {
+            }, go_parser_pos_value(paren.pos.0)),
+            gosyn::ast::Expression::TypeAssert(assertion) => ast_Expr::__go_from_with_pos(ast_TypeAssertExpr {
                 x: go_parser_some(go_parser_expr(*assertion.left)),
                 r#type: assertion.right.map(|expr| go_parser_expr(*expr)).map(go_parser_some).unwrap_or_else(go_parser_none),
                 ..Default::default()
-            }),
-            gosyn::ast::Expression::CompositeLit(lit) => ast_Expr::__go_from(ast_CompositeLit {
-                r#type: go_parser_some(go_parser_expr(*lit.typ)),
-                elts: go_parser_some(go_parser_lit_values(lit.val)),
-                ..Default::default()
-            }),
+            }, go_parser_pos_value(assertion.pos.0)),
+            gosyn::ast::Expression::CompositeLit(lit) => {
+                let pos = lit.val.pos.0;
+                ast_Expr::__go_from_with_pos(ast_CompositeLit {
+                    r#type: go_parser_some(go_parser_expr(*lit.typ)),
+                    elts: go_parser_some(go_parser_lit_values(lit.val)),
+                    ..Default::default()
+                }, go_parser_pos_value(pos))
+            }
             gosyn::ast::Expression::Operation(op) => {
                 let token = go_parser_operator(op.op);
                 match op.y {
-                    Some(y) => ast_Expr::__go_from(ast_BinaryExpr {
+                    Some(y) => ast_Expr::__go_from_with_pos(ast_BinaryExpr {
                         x: go_parser_some(go_parser_expr(*op.x)),
                         y: go_parser_some(go_parser_expr(*y)),
                         op: go_parser_token(token),
                         ..Default::default()
-                    }),
-                    None if token == token::M_U_L => ast_Expr::__go_from(ast_StarExpr {
+                    }, go_parser_pos_value(op.pos)),
+                    None if token == token::M_U_L => ast_Expr::__go_from_with_pos(ast_StarExpr {
                         x: go_parser_some(go_parser_expr(*op.x)),
                         ..Default::default()
-                    }),
-                    None => ast_Expr::__go_from(ast_UnaryExpr {
+                    }, go_parser_pos_value(op.pos)),
+                    None => ast_Expr::__go_from_with_pos(ast_UnaryExpr {
                         x: go_parser_some(go_parser_expr(*op.x)),
                         op: go_parser_token(token),
                         ..Default::default()
-                    }),
+                    }, go_parser_pos_value(op.pos)),
                 }
             }
-            gosyn::ast::Expression::TypeMap(map) => ast_Expr::__go_from(ast_MapType {
+            gosyn::ast::Expression::TypeMap(map) => ast_Expr::__go_from_with_pos(ast_MapType {
                 key: go_parser_some(go_parser_expr(*map.key)),
                 value: go_parser_some(go_parser_expr(*map.val)),
                 ..Default::default()
-            }),
-            gosyn::ast::Expression::TypeArray(array) => ast_Expr::__go_from(ast_ArrayType {
+            }, go_parser_pos_value(map.pos.0)),
+            gosyn::ast::Expression::TypeArray(array) => ast_Expr::__go_from_with_pos(ast_ArrayType {
                 len: go_parser_some(go_parser_expr(*array.len)),
                 elt: go_parser_some(go_parser_expr(*array.typ)),
                 ..Default::default()
-            }),
-            gosyn::ast::Expression::TypeSlice(slice) => ast_Expr::__go_from(ast_ArrayType {
+            }, go_parser_pos_value(array.pos.0)),
+            gosyn::ast::Expression::TypeSlice(slice) => ast_Expr::__go_from_with_pos(ast_ArrayType {
                 len: go_parser_none(),
                 elt: go_parser_some(go_parser_expr(*slice.typ)),
                 ..Default::default()
-            }),
-            gosyn::ast::Expression::TypeFunction(typ) => ast_Expr::__go_from(go_parser_func_type(typ)),
-            gosyn::ast::Expression::TypeStruct(typ) => ast_Expr::__go_from(ast_StructType {
+            }, go_parser_pos_value(slice.pos.0)),
+            gosyn::ast::Expression::TypeFunction(typ) => {
+                let pos = typ.pos;
+                ast_Expr::__go_from_with_pos(go_parser_func_type(typ), go_parser_pos_value(pos))
+            }
+            gosyn::ast::Expression::TypeStruct(typ) => ast_Expr::__go_from_with_pos(ast_StructType {
                 fields: go_parser_some(ast_FieldList {
                     list: go_parser_some(typ.fields.into_iter().map(go_parser_field).map(go_parser_some).collect()),
                     ..Default::default()
                 }),
                 ..Default::default()
-            }),
-            gosyn::ast::Expression::TypeInterface(typ) => ast_Expr::__go_from(ast_InterfaceType {
+            }, go_parser_pos_value(typ.pos.0)),
+            gosyn::ast::Expression::TypeInterface(typ) => ast_Expr::__go_from_with_pos(ast_InterfaceType {
                 methods: go_parser_field_list(typ.methods),
                 ..Default::default()
-            }),
-            gosyn::ast::Expression::TypePointer(ptr) => ast_Expr::__go_from(ast_StarExpr {
+            }, go_parser_pos_value(typ.pos)),
+            gosyn::ast::Expression::TypePointer(ptr) => ast_Expr::__go_from_with_pos(ast_StarExpr {
                 x: go_parser_some(go_parser_expr(*ptr.typ)),
                 ..Default::default()
-            }),
+            }, go_parser_pos_value(ptr.pos)),
             gosyn::ast::Expression::TypeChannel(chan) => {
                 let dir = match chan.dir {
                     Some(gosyn::ast::ChanMode::Send) => ast_ChanDir(1),
                     Some(gosyn::ast::ChanMode::Recv) => ast_ChanDir(2),
                     None => ast_ChanDir(3),
                 };
-                ast_Expr::__go_from(ast_ChanType {
+                ast_Expr::__go_from_with_pos(ast_ChanType {
                     dir: go_parser_some(dir),
                     value: go_parser_some(go_parser_expr(*chan.typ)),
                     ..Default::default()
-                })
+                }, go_parser_pos_value(chan.pos.0))
             }
             gosyn::ast::Expression::List(list) => list.into_iter().next().map(go_parser_expr).unwrap_or_default(),
-            gosyn::ast::Expression::Range(range) => ast_Expr::__go_from(ast_UnaryExpr {
+            gosyn::ast::Expression::Range(range) => ast_Expr::__go_from_with_pos(ast_UnaryExpr {
                 op: go_parser_token(token::R_A_N_G_E),
                 x: go_parser_some(go_parser_expr(*range.right)),
                 ..Default::default()
-            }),
+            }, go_parser_pos_value(range.pos)),
         }
     }
 
@@ -2205,9 +2238,11 @@ pub mod parser {
         }
     }
 
-    fn go_parser_parse_file(source: &str) -> Result<ast_File, Box<dyn std::error::Error + Send + Sync>> {
+    fn go_parser_parse_file(filename: &str, source: &str) -> Result<ast_File, Box<dyn std::error::Error + Send + Sync>> {
         let parsed = gosyn::parse_source(source).map_err(|err| go_parser_error(err.to_string()))?;
         Ok(ast_File {
+            __go_filename: go_parser_some(filename.to_string()),
+            __go_source: go_parser_some(source.to_string()),
             imports: go_parser_some(parsed.imports.into_iter().map(go_parser_import_spec).collect()),
             decls: go_parser_some(parsed.decl.into_iter().map(go_parser_decl).collect()),
             name: go_parser_some(go_parser_ident_struct(parsed.pkg_name)),
@@ -2221,7 +2256,7 @@ pub mod parser {
             Ok(source) => source,
             Err(err) => return (Arc::new(Mutex::new(None::<ast_File>)), Arc::new(Mutex::new(Some::<Box<dyn std::error::Error + Send + Sync>>(err)))),
         };
-        match go_parser_parse_file(&source) {
+        match go_parser_parse_file(&filename, &source) {
             Ok(file) => (Arc::new(Mutex::new(Some::<ast_File>(file))), Arc::new(Mutex::new(None::<Box<dyn std::error::Error + Send + Sync>>))),
             Err(err) => (Arc::new(Mutex::new(None::<ast_File>)), Arc::new(Mutex::new(Some::<Box<dyn std::error::Error + Send + Sync>>(err)))),
         }
