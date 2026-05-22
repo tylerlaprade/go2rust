@@ -3779,8 +3779,65 @@ func writeParallelAssignmentTarget(out *strings.Builder, lhs ast.Expr, tmpName s
 	} else {
 		out.WriteString("Some(")
 		out.WriteString(tmpName)
+		if cast := parallelTempBareCast(lhs, rhs); cast != "" {
+			out.WriteString(" as ")
+			out.WriteString(cast)
+		}
 		out.WriteString(");")
 	}
+}
+
+func parallelTempBareCast(lhs ast.Expr, rhs ast.Expr) string {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return ""
+	}
+	lhsType := typeInfo.GetType(lhs)
+	if lhsType == nil {
+		return ""
+	}
+	lhsCast := rustCastForExpectedBasic(lhsType)
+	if lhsCast == "" {
+		return ""
+	}
+	rhsCast := rhsEmittedRustCast(rhs)
+	if rhsCast != "" && rhsCast == lhsCast {
+		return ""
+	}
+	if rhsCast == "" && lhsCast == "i32" {
+		// Untyped expression emits as i32 by default; matches LHS.
+		return ""
+	}
+	return lhsCast
+}
+
+// rhsEmittedRustCast returns the Rust basic type the RHS expression actually
+// emits, or "" if it's an untyped literal that defaults to i32. Unlike
+// rustCastForExpectedBasic(typeInfo.GetType(rhs)), this avoids Go's contextual
+// type adjustment (e.g. an untyped const taking the LHS type in a
+// multi-assignment) so we can decide whether an explicit cast is needed.
+func rhsEmittedRustCast(rhs ast.Expr) string {
+	if _, ok := rhs.(*ast.BasicLit); ok {
+		return "" // untyped literal
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return ""
+	}
+	switch e := rhs.(type) {
+	case *ast.SelectorExpr:
+		if obj, ok := typeInfo.info.Uses[e.Sel]; ok {
+			return rustCastForExpectedBasic(obj.Type())
+		}
+	case *ast.Ident:
+		if obj, ok := typeInfo.info.Uses[e]; ok {
+			return rustCastForExpectedBasic(obj.Type())
+		}
+	}
+	if typ := typeInfo.GetType(rhs); typ != nil {
+		return rustCastForExpectedBasic(typ)
+	}
+	return ""
 }
 
 // mutexLockReceiver returns the receiver for a Lock() call on a sync.Mutex field.
