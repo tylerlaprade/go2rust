@@ -1982,6 +1982,10 @@ run_xfail_test() {
     run_test "tests/slices_contains"
 }
 
+@test "slices_delete" {
+    run_test "tests/slices_delete"
+}
+
 @test "slices_sort_func" {
     run_test "tests/slices_sort_func"
 }

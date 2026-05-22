@@ -1,0 +1,8 @@
+[package]
+name = "slices_delete"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "slices_delete"
+path = "main.rs"

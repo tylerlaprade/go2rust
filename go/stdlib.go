@@ -3365,6 +3365,30 @@ func appendCallReturnsBareIndexedSlice(call *ast.CallExpr) bool {
 	}
 }
 
+func writeNilSliceAppendTarget(out *strings.Builder, expr ast.Expr) bool {
+	call, ok := expr.(*ast.CallExpr)
+	if !ok || len(call.Args) != 1 {
+		return false
+	}
+	ident, ok := call.Args[0].(*ast.Ident)
+	if !ok || ident.Name != "nil" {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || !typeInfo.IsTypeConversion(call) {
+		return false
+	}
+	typ := typeInfo.GetType(call)
+	if typ == nil {
+		return false
+	}
+	if _, ok := types.Unalias(typ).Underlying().(*types.Slice); !ok {
+		return false
+	}
+	WriteWrappedNone(out)
+	return true
+}
+
 func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 	if len(call.Args) >= 2 {
 		if transpileNamedSliceAppend(out, call) {
@@ -3440,6 +3464,9 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 			}
 		}
 		writeAppendTarget := func(expr ast.Expr) {
+			if writeNilSliceAppendTarget(out, expr) {
+				return
+			}
 			if ident, ok := expr.(*ast.Ident); ok {
 				if writeCurrentReceiverStorage(out, ident) {
 					return
