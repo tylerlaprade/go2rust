@@ -24,8 +24,10 @@ fn main() {
 
     __defer_stack.push(Box::new(move || {
         { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
-        let mut e = Rc::new(RefCell::new(None::<Box<dyn Any>>));
-    if (*e.borrow()).is_some() {
+        {
+        let mut e = Rc::new(RefCell::new(None::<Box<dyn Any>>));;
+        if (*e.borrow()).is_some() {
+            {
         let (mut ierr, mut ok) = ({
         let val = e.clone();
         let guard = val.borrow();
@@ -38,10 +40,12 @@ fn main() {
         } else {
             (Rc::new(RefCell::new(Some(Default::default()))), Rc::new(RefCell::new(Some(false))))
         }
-    });
-    if (*ok.borrow().as_ref().unwrap()) {
-        println!("{}", format!("{}", { let __v = (*ierr.borrow().as_ref().unwrap()).clone(); __v }));
-    }
+    });;
+        if (*ok.borrow().as_ref().unwrap()) {
+            println!("{}", format!("{}", { let __v = (*ierr.borrow().as_ref().unwrap()).clone(); __v }));;
+        }
+    };
+        }
     }
     }) as Box<dyn FnMut() -> ()>))); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
     }));

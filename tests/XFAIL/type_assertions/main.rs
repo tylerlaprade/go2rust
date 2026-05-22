@@ -161,7 +161,8 @@ impl Shape for Circle {
 
 pub fn process_value(value: Rc<RefCell<Option<Box<dyn Any>>>>) {
         // Basic type assertion
-    let (mut str, mut ok) = ({
+    {
+        let (mut str, mut ok) = ({
         let val = value.clone();
         let guard = val.borrow();
         if let Some(ref any_val) = *guard {
@@ -173,13 +174,15 @@ pub fn process_value(value: Rc<RefCell<Option<Box<dyn Any>>>>) {
         } else {
             (Rc::new(RefCell::new(Some(std::string::String::new()))), Rc::new(RefCell::new(Some(false))))
         }
-    });
-    if (*ok.borrow().as_ref().unwrap()) {
-        print!("String value: {} (length: {})\n", { let __v = (*str.borrow().as_ref().unwrap()).clone(); __v }, (*str.borrow().as_ref().unwrap()).len());
-        return;
+    });;
+        if (*ok.borrow().as_ref().unwrap()) {
+            print!("String value: {} (length: {})\n", { let __v = (*str.borrow().as_ref().unwrap()).clone(); __v }, (*str.borrow().as_ref().unwrap()).len());;
+            return;;
+        }
     }
 
-    let (mut num, mut ok) = ({
+    {
+        let (mut num, mut ok) = ({
         let val = value.clone();
         let guard = val.borrow();
         if let Some(ref any_val) = *guard {
@@ -191,13 +194,15 @@ pub fn process_value(value: Rc<RefCell<Option<Box<dyn Any>>>>) {
         } else {
             (Rc::new(RefCell::new(Some(0))), Rc::new(RefCell::new(Some(false))))
         }
-    });
-    if (*ok.borrow().as_ref().unwrap()) {
-        print!("Integer value: {} (doubled: {})\n", { let __v = (*num.borrow().as_ref().unwrap()).clone(); __v }, (*num.borrow().as_ref().unwrap()) * 2);
-        return;
+    });;
+        if (*ok.borrow().as_ref().unwrap()) {
+            print!("Integer value: {} (doubled: {})\n", { let __v = (*num.borrow().as_ref().unwrap()).clone(); __v }, (*num.borrow().as_ref().unwrap()) * 2);;
+            return;;
+        }
     }
 
-    let (mut f, mut ok) = ({
+    {
+        let (mut f, mut ok) = ({
         let val = value.clone();
         let guard = val.borrow();
         if let Some(ref any_val) = *guard {
@@ -209,10 +214,11 @@ pub fn process_value(value: Rc<RefCell<Option<Box<dyn Any>>>>) {
         } else {
             (Rc::new(RefCell::new(Some(0.0))), Rc::new(RefCell::new(Some(false))))
         }
-    });
-    if (*ok.borrow().as_ref().unwrap()) {
-        print!("Float value: {:.2} (squared: {:.2})\n", { let __v = (*f.borrow().as_ref().unwrap()).clone(); __v }, { let __bin_f = (*f.borrow().as_ref().unwrap()).clone(); __bin_f * __bin_f });
-        return;
+    });;
+        if (*ok.borrow().as_ref().unwrap()) {
+            print!("Float value: {:.2} (squared: {:.2})\n", { let __v = (*f.borrow().as_ref().unwrap()).clone(); __v }, { let __bin_f = (*f.borrow().as_ref().unwrap()).clone(); __bin_f * __bin_f });;
+            return;;
+        }
     }
 
     print!("Unknown type: {} with value: {}\n", go_type_name(&**value.borrow().as_ref().unwrap()), format_any(value.borrow().as_ref().unwrap().as_ref()));
@@ -224,9 +230,11 @@ pub fn assert_without_check(value: Rc<RefCell<Option<Box<dyn Any>>>>) {
         // This will panic if assertion fails
     __defer_stack.push(Box::new(move || {
         { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
-        let mut r = Rc::new(RefCell::new(None::<Box<dyn Any>>));
-    if (*r.borrow()).is_some() {
-        print!("Panic recovered: {}\n", format_any(r.borrow().as_ref().unwrap().as_ref()));
+        {
+        let mut r = Rc::new(RefCell::new(None::<Box<dyn Any>>));;
+        if (*r.borrow()).is_some() {
+            print!("Panic recovered: {}\n", format_any(r.borrow().as_ref().unwrap().as_ref()));;
+        }
     }
     }) as Box<dyn FnMut() -> ()>))); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
     }));
@@ -252,17 +260,18 @@ pub fn describe_shape(s: &dyn Shape) {
     print!("Shape area: {:.2}\n", (*s.area().borrow().as_ref().unwrap()));
 
         // Type assertion on interface
-    let (mut rect, mut ok) = ({
+    {
+        let (mut rect, mut ok) = ({
         let any_val = s.__go_as_any();
         if let Some(typed_val) = any_val.downcast_ref::<Rectangle>() {
             (Rc::new(RefCell::new(Some(typed_val.clone()))), Rc::new(RefCell::new(Some(true))))
         } else {
             (Rc::new(RefCell::new(Some(Default::default()))), Rc::new(RefCell::new(Some(false))))
         }
-    });
-    if (*ok.borrow().as_ref().unwrap()) {
-        print!("  Rectangle: {:.1} x {:.1}\n", (*(*rect.borrow().as_ref().unwrap()).width.borrow().as_ref().unwrap()), (*(*rect.borrow().as_ref().unwrap()).height.borrow().as_ref().unwrap()));
-    } else {
+    });;
+        if (*ok.borrow().as_ref().unwrap()) {
+            print!("  Rectangle: {:.1} x {:.1}\n", (*(*rect.borrow().as_ref().unwrap()).width.borrow().as_ref().unwrap()), (*(*rect.borrow().as_ref().unwrap()).height.borrow().as_ref().unwrap()));;
+        } else {
         let (mut circle, mut ok) = ({
         let any_val = s.__go_as_any();
         if let Some(typed_val) = any_val.downcast_ref::<Circle>() {
@@ -274,6 +283,7 @@ pub fn describe_shape(s: &dyn Shape) {
         if (*ok.borrow().as_ref().unwrap()) {
             print!("  Circle: radius {:.1}\n", (*(*circle.borrow().as_ref().unwrap()).radius.borrow().as_ref().unwrap()));;
         }
+    }
     }
 }
 

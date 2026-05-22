@@ -53,7 +53,8 @@ fn main() {
     });
     let mut e = Arc::new(Mutex::new(Some(entry { value: Arc::new(Mutex::new(Some(Box::new("ok".to_string()) as Box<dyn Any + Send + Sync>))), ..Default::default() })));
     let mut v = get(Arc::new(Mutex::new(Some((*e.lock().unwrap().as_ref().unwrap()).clone()))));
-    let (_, mut ok) = ({
+    {
+        let (_, mut ok) = ({
         let val = v.clone();
         let guard = val.lock().unwrap();
         if let Some(ref any_val) = *guard {
@@ -65,8 +66,9 @@ fn main() {
         } else {
             (Arc::new(Mutex::new(Some(std::string::String::new()))), Arc::new(Mutex::new(Some(false))))
         }
-    });
-    if { let __v = (*ok.lock().unwrap().as_ref().unwrap()).clone(); __v } {
-        println!("{}", format!("{}", "ok".to_string()));
+    });;
+        if { let __v = (*ok.lock().unwrap().as_ref().unwrap()).clone(); __v } {
+            println!("{}", format!("{}", "ok".to_string()));;
+        }
     }
 }

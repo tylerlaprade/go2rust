@@ -109,6 +109,7 @@ pub mod types {
 
 fn main() {
     if false {
+        {
         let (mut name, mut ok) = ({
         let val = (*types::Universe().borrow_mut().as_mut().unwrap()).lookup("int".to_string()).clone();
         let guard = val.borrow();
@@ -121,9 +122,10 @@ fn main() {
         } else {
             (Rc::new(RefCell::new(None::<types_TypeName>)), Rc::new(RefCell::new(Some(false))))
         }
-    });
-    if (*ok.borrow().as_ref().unwrap()) {
-        let _ = (*name.borrow().as_ref().unwrap());
+    });;
+        if (*ok.borrow().as_ref().unwrap()) {
+            let _ = (*name.borrow().as_ref().unwrap());;
+        }
     }
     }
 

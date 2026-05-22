@@ -996,6 +996,51 @@ func interfaceParamVarInfo(typeExpr ast.Expr) (*VarInfo, bool) {
 	}, true
 }
 
+func assignedInterfaceParamNames(fn *ast.FuncDecl) map[string]bool {
+	assigned := make(map[string]bool)
+	if fn == nil || fn.Body == nil || fn.Type.Params == nil {
+		return assigned
+	}
+	for _, field := range fn.Type.Params.List {
+		if _, ok := transpiledNamedInterfaceTypeNameFromExpr(field.Type); !ok {
+			continue
+		}
+		for _, name := range field.Names {
+			if blockIdentAssigned(fn.Body, name.Name) {
+				assigned[name.Name] = true
+			}
+		}
+	}
+	return assigned
+}
+
+func writeAssignedInterfaceParamShadows(out *strings.Builder, fn *ast.FuncDecl, indent string) {
+	if fn == nil || fn.Body == nil || fn.Type.Params == nil {
+		return
+	}
+	for _, field := range fn.Type.Params.List {
+		if _, ok := transpiledNamedInterfaceTypeNameFromExpr(field.Type); !ok {
+			continue
+		}
+		for _, name := range field.Names {
+			if name.Name == "_" || !blockIdentAssigned(fn.Body, name.Name) {
+				continue
+			}
+			out.WriteString(indent)
+			out.WriteString("let mut ")
+			out.WriteString(RustLocalIdent(name.Name))
+			out.WriteString(": ")
+			out.WriteString(GoTypeToRust(field.Type))
+			out.WriteString(" = ")
+			WriteWrapperPrefix(out)
+			out.WriteString(RustLocalIdent(name.Name))
+			out.WriteString(".__go_clone_box()")
+			WriteWrapperSuffix(out)
+			out.WriteString(";\n")
+		}
+	}
+}
+
 func registerFunctionSignatureDecl(fn *ast.FuncDecl) {
 	var params []*ast.Field
 	if fn.Type.Params != nil {
@@ -1177,6 +1222,7 @@ func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.Fi
 
 	restoreLocalSyntaxInfo := pushFunctionLocalSyntaxInfo()
 	defer restoreLocalSyntaxInfo()
+	assignedInterfaceParams := assignedInterfaceParamNames(fn)
 
 	// Register function parameters in VarTable
 	if vt := GetVarTable(); vt != nil {
@@ -1191,8 +1237,16 @@ func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.Fi
 					}
 					registerTypeExprCollectionInfo(name.Name, field.Type)
 					if varInfo, ok := interfaceParamVarInfo(field.Type); ok {
-						varInfo.RustType = rustType
-						vt.Register(name.Name, varInfo)
+						if assignedInterfaceParams[name.Name] {
+							vt.Register(name.Name, &VarInfo{
+								WrapLevel: WrapFull,
+								RustType:  rustType,
+								Source:    SourceLocal,
+							})
+						} else {
+							varInfo.RustType = rustType
+							vt.Register(name.Name, varInfo)
+						}
 					} else if _, ok := field.Type.(*ast.ChanType); ok {
 						// Channel parameters are bare (GoChannel<T>)
 						vt.Register(name.Name, &VarInfo{
@@ -1231,6 +1285,7 @@ func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.Fi
 		WriteWrapperSuffix(out)
 		out.WriteString(";\n\n")
 	}
+	writeAssignedInterfaceParamShadows(out, fn, "    ")
 
 	if fn.Body == nil {
 		out.WriteString("    unimplemented!(\"Go function declaration has no body\");\n")
@@ -2960,6 +3015,7 @@ func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, a
 
 	restoreLocalSyntaxInfo := pushFunctionLocalSyntaxInfo()
 	defer restoreLocalSyntaxInfo()
+	assignedInterfaceParams := assignedInterfaceParamNames(fn)
 
 	// Register method parameters in VarTable
 	if vt := GetVarTable(); vt != nil {
@@ -2974,8 +3030,16 @@ func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, a
 					}
 					registerTypeExprCollectionInfo(name.Name, field.Type)
 					if varInfo, ok := interfaceParamVarInfo(field.Type); ok {
-						varInfo.RustType = rustType
-						vt.Register(name.Name, varInfo)
+						if assignedInterfaceParams[name.Name] {
+							vt.Register(name.Name, &VarInfo{
+								WrapLevel: WrapFull,
+								RustType:  rustType,
+								Source:    SourceLocal,
+							})
+						} else {
+							varInfo.RustType = rustType
+							vt.Register(name.Name, varInfo)
+						}
 					} else if _, ok := field.Type.(*ast.ChanType); ok {
 						// Channel parameters are bare (GoChannel<T>)
 						vt.Register(name.Name, &VarInfo{
@@ -3009,6 +3073,7 @@ func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, a
 		currentReceiver = ""
 		return
 	}
+	writeAssignedInterfaceParamShadows(out, fn, "        ")
 
 	var prevStmt ast.Stmt
 	var lastPos token.Pos = fn.Body.Lbrace

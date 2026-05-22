@@ -246,7 +246,8 @@ fn main() {
 
     let mut iface: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new(100) as Box<dyn Any + Send + Sync>)));
 
-    let (mut intVal, mut ok) = ({
+    {
+        let (mut intVal, mut ok) = ({
         let val = iface.clone();
         let guard = val.lock().unwrap();
         if let Some(ref any_val) = *guard {
@@ -258,10 +259,11 @@ fn main() {
         } else {
             (Arc::new(Mutex::new(Some(0))), Arc::new(Mutex::new(Some(false))))
         }
-    });
-    if { let __v = (*ok.lock().unwrap().as_ref().unwrap()).clone(); __v } {
-        let mut assertResult = Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = { let __v = (*intVal.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2; __tmp_x * __tmp_y }; let __tmp_y = { let __tmp_x = ({ let __tmp_x = { let __v = (*intVal.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 5; __tmp_x / __tmp_y }); let __tmp_y = 3; __tmp_x * __tmp_y }; __tmp_x + __tmp_y })));
-        print!("Type assertion result: {}\n", { let __v = (*assertResult.lock().unwrap().as_ref().unwrap()).clone(); __v });
+    });;
+        if { let __v = (*ok.lock().unwrap().as_ref().unwrap()).clone(); __v } {
+            let mut assertResult = Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = { let __v = (*intVal.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2; __tmp_x * __tmp_y }; let __tmp_y = { let __tmp_x = ({ let __tmp_x = { let __v = (*intVal.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 5; __tmp_x / __tmp_y }); let __tmp_y = 3; __tmp_x * __tmp_y }; __tmp_x + __tmp_y })));;
+            print!("Type assertion result: {}\n", { let __v = (*assertResult.lock().unwrap().as_ref().unwrap()).clone(); __v });;
+        }
     }
 
         // Channel expressions (non-blocking)

@@ -678,6 +678,79 @@ func (s Symbol) hasFieldFlag() bool {
 	}
 }
 
+func TestNamedIntegerShortDeclAndIncDecPreserveNamedValue(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+type Token int
+
+const (
+	keywordBeg Token = 1
+	keywordEnd Token = 3
+)
+
+func fill(tokens []string, keywords map[string]Token) {
+	for i := keywordBeg + 1; i < keywordEnd; i++ {
+		keywords[tokens[i]] = i
+	}
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(main.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := Transpile(file, fset, typeInfo)
+	if strings.Contains(rust, "let mut i = Rc::new(RefCell::new(Some({") ||
+		strings.Contains(rust, "let mut i = Arc::new(Mutex::new(Some({") {
+		t.Fatalf("short declaration from named integer arithmetic must store the named value, not the raw scalar:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let mut i = Rc::new(RefCell::new(Some(Token(") &&
+		!strings.Contains(rust, "let mut i = Arc::new(Mutex::new(Some(Token(") {
+		t.Fatalf("short declaration from named integer arithmetic did not wrap Token:\n%s", rust)
+	}
+	if strings.Contains(rust, "*guard = Some(guard.as_ref().unwrap() + 1)") ||
+		strings.Contains(rust, "*guard = Some(guard.as_ref().unwrap() - 1)") {
+		t.Fatalf("inc/dec on named integers must preserve the named value:\n%s", rust)
+	}
+	if !strings.Contains(rust, "*guard = Some(Token(") {
+		t.Fatalf("inc/dec on named integers did not write back Token:\n%s", rust)
+	}
+}
+
+func TestNamedIntegerAssignmentUsesRawNamedValue(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+import "time"
+
+func main() {
+	delay := 0 * time.Nanosecond
+	delay = 30 * time.Second
+	_ = delay
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(main.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := Transpile(file, fset, typeInfo)
+	if strings.Contains(rust, "let new_val = Rc::new(RefCell::new(Some(std::time::Duration::from_secs(30))))") ||
+		strings.Contains(rust, "let new_val = Arc::new(Mutex::new(Some(std::time::Duration::from_secs(30))))") {
+		t.Fatalf("assignment to named integer must write the raw named value, not a nested wrapper:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let new_val = std::time::Duration::from_secs(30)") {
+		t.Fatalf("assignment to time.Duration did not emit a raw duration value:\n%s", rust)
+	}
+}
+
 func TestNoTypeInfoChannelSendUnwrapsMethodBoolResult(t *testing.T) {
 	rust := transpileNoTypeInfoRegression(t, `package main
 

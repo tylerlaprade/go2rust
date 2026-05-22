@@ -2136,7 +2136,7 @@ func main() {
 	if !strings.Contains(exprRS, "let any_val = x.__go_as_any();") {
 		t.Fatalf("source stdlib interface assertion should use the generated local trait object, got:\n%s", exprRS)
 	}
-	if strings.Contains(exprRS, "let val = x.clone();") {
+	if strings.Contains(exprRS, "typed_val) = val.downcast_ref::<") {
 		t.Fatalf("source stdlib interface assertion should not use stub-style bare downcast handling, got:\n%s", exprRS)
 	}
 }

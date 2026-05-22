@@ -263,7 +263,8 @@ fn main() {
     let mut value: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new("hello world".to_string()) as Box<dyn Any + Send + Sync>)));
 
         // Check if it's a string, but don't use the value
-    let (_, mut ok) = ({
+    {
+        let (_, mut ok) = ({
         let val = value.clone();
         let guard = val.lock().unwrap();
         if let Some(ref any_val) = *guard {
@@ -275,13 +276,15 @@ fn main() {
         } else {
             (Arc::new(Mutex::new(Some(std::string::String::new()))), Arc::new(Mutex::new(Some(false))))
         }
-    });
-    if { let __v = (*ok.lock().unwrap().as_ref().unwrap()).clone(); __v } {
-        println!("{}", format!("{}", "Value is a string (but we ignored the actual value)".to_string()));
+    });;
+        if { let __v = (*ok.lock().unwrap().as_ref().unwrap()).clone(); __v } {
+            println!("{}", format!("{}", "Value is a string (but we ignored the actual value)".to_string()));;
+        }
     }
 
         // Check if it's an int, but don't use the value
-    let (_, mut ok) = ({
+    {
+        let (_, mut ok) = ({
         let val = value.clone();
         let guard = val.lock().unwrap();
         if let Some(ref any_val) = *guard {
@@ -293,11 +296,12 @@ fn main() {
         } else {
             (Arc::new(Mutex::new(Some(0))), Arc::new(Mutex::new(Some(false))))
         }
-    });
-    if { let __v = (*ok.lock().unwrap().as_ref().unwrap()).clone(); __v } {
-        println!("{}", format!("{}", "Value is an int".to_string()));
-    } else {
-        println!("{}", format!("{}", "Value is not an int".to_string()));
+    });;
+        if { let __v = (*ok.lock().unwrap().as_ref().unwrap()).clone(); __v } {
+            println!("{}", format!("{}", "Value is an int".to_string()));;
+        } else {
+            println!("{}", format!("{}", "Value is not an int".to_string()));;
+        }
     }
 
         // Blank identifier in channel operations

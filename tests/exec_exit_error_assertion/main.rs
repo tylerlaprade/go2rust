@@ -29,6 +29,7 @@ impl exec_ExitError {
 fn main() {
     if false {
         let mut err: Rc<RefCell<Option<Box<dyn StdError>>>> = Rc::new(RefCell::new(None));
+        {
         let (mut ee, mut ok) = ({
         let val = err.clone();
         let guard = val.borrow();
@@ -41,9 +42,10 @@ fn main() {
         } else {
             (Rc::new(RefCell::new(Some(Default::default()))), Rc::new(RefCell::new(Some(false))))
         }
-    });
-    if (*ok.borrow().as_ref().unwrap()) {
-        println!("{}", format!("{}", (*(*ee.borrow().as_ref().unwrap()).stderr.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)));
+    });;
+        if (*ok.borrow().as_ref().unwrap()) {
+            println!("{}", format!("{}", (*(*ee.borrow().as_ref().unwrap()).stderr.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)));;
+        }
     }
     }
 }

@@ -182,9 +182,11 @@ fn main() {
 
     let mut rc: Rc<RefCell<Option<io_ReadCloser>>> = Rc::new(RefCell::new(None));
     { let new_val = { let __arg = file.clone(); let __arg_guard = __arg.borrow(); __arg_guard.as_ref().map(|__v| (*__v).clone().into()).unwrap_or_else(io_ReadCloser::default) }; *rc.borrow_mut() = Some(new_val); };
-    let mut err = (*rc.borrow().as_ref().unwrap()).close();
-    if (*err.borrow()).is_some() {
-        panic!("{:?}", (*err.borrow().as_ref().unwrap()));
+    {
+        let mut err = (*rc.borrow().as_ref().unwrap()).close();;
+        if (*err.borrow()).is_some() {
+            panic!("{:?}", (*err.borrow().as_ref().unwrap()));;
+        }
     }
     eprintln!("{}", format!("{}", "closed".to_string()));
 }

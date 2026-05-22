@@ -539,16 +539,18 @@ fn main() {
         { let mut guard = lineNum.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
 
-    let mut err = { let __recv = scanner.clone(); let __recv_ptr: *mut bufio_Scanner = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bufio_Scanner }; let __result = unsafe { &mut *__recv_ptr }.err(); __result };
-    if (*err.lock().unwrap()).is_some() {
-        print!("Error reading file: {}\n", format!("{}", (*err.lock().unwrap().as_ref().unwrap())));
-        {
+    {
+        let mut err = { let __recv = scanner.clone(); let __recv_ptr: *mut bufio_Scanner = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bufio_Scanner }; let __result = unsafe { &mut *__recv_ptr }.err(); __result };;
+        if (*err.lock().unwrap()).is_some() {
+            print!("Error reading file: {}\n", format!("{}", (*err.lock().unwrap().as_ref().unwrap())));;
+            {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
         return
-    }
+    };
+        }
     }
 
         // Append to file
@@ -769,13 +771,15 @@ fn main() {
     let mut files = Arc::new(Mutex::new(Some(vec![(*filename.lock().unwrap().as_ref().unwrap()).clone(), (*copyFilename.lock().unwrap().as_ref().unwrap()).clone(), (*dataFile.lock().unwrap().as_ref().unwrap()).clone(), "nonexistent.txt".to_string()])));
 
     { let __range_holder = files.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for f in __range_values.iter() {
-        let (_, mut err) = os::stat(f.clone());
-    if (*err.lock().unwrap()).is_none() {
-        print!("File '{}' exists\n", f);
-    } else if (*os::is_not_exist(err.clone()).lock().unwrap().as_ref().unwrap()) {
+        {
+        let (_, mut err) = os::stat(f.clone());;
+        if (*err.lock().unwrap()).is_none() {
+            print!("File '{}' exists\n", f);;
+        } else if (*os::is_not_exist(err.clone()).lock().unwrap().as_ref().unwrap()) {
         print!("File '{}' does not exist\n", f);
     } else {
         print!("Error checking file '{}': {}\n", f, format!("{}", (*err.lock().unwrap().as_ref().unwrap())));
+    }
     }
     } }
 
@@ -797,11 +801,13 @@ fn main() {
     println!("{}", format!("{}", "\n--- Verifying cleanup ---".to_string()));
 
     { let __range_holder = filesToRemove.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for f in __range_values.iter() {
-        let (_, mut err) = os::stat(f.clone());
-    if (*os::is_not_exist(err.clone()).lock().unwrap().as_ref().unwrap()) {
-        print!("File '{}' successfully removed\n", f);
-    } else {
-        print!("File '{}' still exists\n", f);
+        {
+        let (_, mut err) = os::stat(f.clone());;
+        if (*os::is_not_exist(err.clone()).lock().unwrap().as_ref().unwrap()) {
+            print!("File '{}' successfully removed\n", f);;
+        } else {
+            print!("File '{}' still exists\n", f);;
+        }
     }
     } }
 

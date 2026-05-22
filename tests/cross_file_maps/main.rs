@@ -12,11 +12,13 @@ fn main() {
     print!("Alice's ID: {}\n", { let __v = (*aliceID.borrow().as_ref().unwrap()).clone(); __v });
 
         // Check map key existence - requires knowing it's a map
-    let (mut id, mut ok) = match (*Users.borrow().as_ref().unwrap()).get(&"dave".to_string()) { /* MAP_COMMA_OK */ Some(v) => (v.clone(), Rc::new(RefCell::new(Some(true)))), None => (Rc::new(RefCell::new(Some(0))), Rc::new(RefCell::new(Some(false)))) };
-    if (*ok.borrow().as_ref().unwrap()) {
-        print!("Dave's ID: {}\n", { let __v = (*id.borrow().as_ref().unwrap()).clone(); __v });
-    } else {
-        println!("{}", format!("{}", "Dave not found".to_string()));
+    {
+        let (mut id, mut ok) = match (*Users.borrow().as_ref().unwrap()).get(&"dave".to_string()) { /* MAP_COMMA_OK */ Some(v) => (v.clone(), Rc::new(RefCell::new(Some(true)))), None => (Rc::new(RefCell::new(Some(0))), Rc::new(RefCell::new(Some(false)))) };;
+        if (*ok.borrow().as_ref().unwrap()) {
+            print!("Dave's ID: {}\n", { let __v = (*id.borrow().as_ref().unwrap()).clone(); __v });;
+        } else {
+            println!("{}", format!("{}", "Dave not found".to_string()));;
+        }
     }
 
         // Access slice - transpiler needs to know Numbers is a slice
@@ -38,7 +40,8 @@ fn main() {
 
         // Access slice of maps - another complex case
     let mut firstRecord = Rc::new(RefCell::new(Some((*Records.borrow().as_ref().unwrap())[(0) as usize].clone())));
-    let (mut name, mut ok) = ({
+    {
+        let (mut name, mut ok) = ({
         if let Some(__v) = (*firstRecord.borrow().as_ref().unwrap()).get(&"name".to_string()) {
             let guard = __v.borrow();
             if let Some(ref any_val) = *guard {
@@ -53,9 +56,10 @@ fn main() {
         } else {
             (Rc::new(RefCell::new(Some(std::string::String::new()))), Rc::new(RefCell::new(Some(false))))
         }
-    });
-    if (*ok.borrow().as_ref().unwrap()) {
-        print!("First record name: {}\n", { let __v = (*name.borrow().as_ref().unwrap()).clone(); __v });
+    });;
+        if (*ok.borrow().as_ref().unwrap()) {
+            print!("First record name: {}\n", { let __v = (*name.borrow().as_ref().unwrap()).clone(); __v });;
+        }
     }
 
         // Modify map - requires proper type handling

@@ -110,15 +110,19 @@ fn main() {
         println!("{}", format!("{}", "pipe error".to_string()));
         return;
     }
-    let mut err = { let __recv = read.clone(); let __recv_ptr: *mut os_File = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut os_File }; let __result = unsafe { &mut *__recv_ptr }.close(); __result };
-    if (*err.lock().unwrap()).is_some() {
-        println!("{}", format!("{}", "read close error".to_string()));
-        return;
+    {
+        let mut err = { let __recv = read.clone(); let __recv_ptr: *mut os_File = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut os_File }; let __result = unsafe { &mut *__recv_ptr }.close(); __result };;
+        if (*err.lock().unwrap()).is_some() {
+            println!("{}", format!("{}", "read close error".to_string()));;
+            return;;
+        }
     }
-    let mut err = { let __recv = write.clone(); let __recv_ptr: *mut os_File = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut os_File }; let __result = unsafe { &mut *__recv_ptr }.close(); __result };
-    if (*err.lock().unwrap()).is_some() {
-        println!("{}", format!("{}", "write close error".to_string()));
-        return;
+    {
+        let mut err = { let __recv = write.clone(); let __recv_ptr: *mut os_File = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut os_File }; let __result = unsafe { &mut *__recv_ptr }.close(); __result };;
+        if (*err.lock().unwrap()).is_some() {
+            println!("{}", format!("{}", "write close error".to_string()));;
+            return;;
+        }
     }
     println!("{}", format!("{}", "closed".to_string()));
 }

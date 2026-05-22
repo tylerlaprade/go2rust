@@ -99,6 +99,7 @@ func init() {
 		"slices.Sort":              transpileSlicesSort,
 		"slices.SortFunc":          transpileSlicesSortFunc,
 		"slices.Contains":          transpileSlicesContains,
+		"slices.Delete":            transpileSlicesDelete,
 		"slices.Clone":             transpileSlicesClone,
 		"slices.Clip":              transpileSlicesClip,
 		"time.Sleep":               transpileTimeSleep,
@@ -2060,6 +2061,22 @@ func transpileSlicesClip(out *strings.Builder, call *ast.CallExpr) {
 	WriteWrapperSuffix(out)
 }
 
+func transpileSlicesDelete(out *strings.Builder, call *ast.CallExpr) {
+	if len(call.Args) != 3 {
+		out.WriteString("/* ERROR: slices.Delete expects 3 arguments */")
+		return
+	}
+	out.WriteString("{ let __slice_holder = ")
+	TranspileExpressionContext(out, call.Args[0], LValue)
+	out.WriteString(".clone(); let mut __slice_guard = __slice_holder")
+	WriteBorrowMethod(out, true)
+	out.WriteString("; let __slice = __slice_guard.get_or_insert_with(Vec::new); let __i = ")
+	writeExpressionAsUsize(out, call.Args[1])
+	out.WriteString("; let __j = ")
+	writeExpressionAsUsize(out, call.Args[2])
+	out.WriteString("; if __i <= __j && __j <= __slice.len() { __slice.drain(__i..__j); } __slice_holder.clone() }")
+}
+
 func transpileStrconvItoa(out *strings.Builder, call *ast.CallExpr) {
 	if len(call.Args) > 0 {
 		WriteWrapperPrefix(out)
@@ -3389,6 +3406,49 @@ func writeNilSliceAppendTarget(out *strings.Builder, expr ast.Expr) bool {
 	return true
 }
 
+func writeConcreteLocalInterfaceValue(out *strings.Builder, expr ast.Expr, expected types.Type, ifaceName string) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || expected == nil || expr == nil {
+		return false
+	}
+	sourceType := typeInfo.GetType(expr)
+	if sourceType == nil {
+		return false
+	}
+	if _, ok := localNamedInterfaceTypeNameFromTypes(sourceType); ok {
+		return false
+	}
+	targetNamed, ok := types.Unalias(expected).(*types.Named)
+	if !ok {
+		return false
+	}
+	targetInterface, ok := targetNamed.Underlying().(*types.Interface)
+	if !ok {
+		return false
+	}
+	targetInterface.Complete()
+	if !types.Implements(sourceType, targetInterface) {
+		return false
+	}
+	out.WriteString("Box::new(")
+	if ident, ok := expr.(*ast.Ident); ok && ident.Name != "_" && ident.Name != "nil" && !isVarBare(ident.Name) {
+		out.WriteString("(*")
+		TranspileExpressionContext(out, expr, LValue)
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap()).clone()")
+	} else if typeInfo.ReturnsWrappedValue(expr) {
+		out.WriteString("(*")
+		TranspileExpressionContext(out, expr, LValue)
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap()).clone()")
+	} else {
+		TranspileExpression(out, expr)
+	}
+	out.WriteString(") as ")
+	out.WriteString(rustLocalInterfaceTraitObject(ifaceName))
+	return true
+}
+
 func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 	if len(call.Args) >= 2 {
 		if transpileNamedSliceAppend(out, call) {
@@ -3444,6 +3504,9 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 						writeLocalInterfaceBareClone(out, expr)
 						return
 					}
+					if ifaceName, ok := localNamedInterfaceTypeNameFromTypes(elemType); ok && writeConcreteLocalInterfaceValue(out, expr, elemType, ifaceName) {
+						return
+					}
 					if _, ok := types.Unalias(elemType).Underlying().(*types.Pointer); ok && typeInfo.IsPointer(expr) {
 						TranspileExpressionContext(out, expr, LValue)
 						out.WriteString(".clone()")
@@ -3491,6 +3554,14 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 			if appendExpandsStringIntoByteSlice(call) {
 				writeOwnedStringStdlibArg(out, expr)
 				out.WriteString(".as_bytes().iter().cloned()")
+			} else if typeInfo := GetTypeInfo(); typeInfo != nil && isExpressionResultBare(expr) {
+				if typ := typeInfo.GetType(expr); typ != nil {
+					if _, ok := types.Unalias(typ).Underlying().(*types.Slice); ok {
+						TranspileExpression(out, expr)
+						out.WriteString(".iter().cloned()")
+						return
+					}
+				}
 			} else {
 				writeSliceCloneOrEmpty(out, expr)
 				out.WriteString(".iter().cloned()")

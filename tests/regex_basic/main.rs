@@ -209,6 +209,6 @@ fn main() {
     let mut pattern = Rc::new(RefCell::new(Some("\\d+".to_string())));
     let mut re = Rc::new(RefCell::new(Some(GoRegexp { pattern: Rc::new(RefCell::new(Some((*pattern.borrow().as_ref().unwrap()).clone()))) })));
     let mut text = Rc::new(RefCell::new(Some("I have 42 apples and 7 oranges".to_string())));
-    let mut matches = (*re.borrow_mut().as_mut().unwrap()).find_all_string(Rc::new(RefCell::new(Some((*text.borrow().as_ref().unwrap()).clone()))), Rc::new(RefCell::new(Some(-1))));
+    let mut matches = (*re.borrow_mut().as_mut().unwrap()).find_all_string(Rc::new(RefCell::new(Some({ let __arg_holder = text.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some(-1))));
     println!("{} {}", format!("{}", "Numbers found:".to_string()), format!("{}", format_slice(&matches)));
 }

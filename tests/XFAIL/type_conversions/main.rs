@@ -197,7 +197,8 @@ fn main() {
     print!("interface{{}} type: {}\n", go_type_name(&**any.borrow().as_ref().unwrap()));
 
         // Type assertion
-    let (mut intVal, mut ok) = ({
+    {
+        let (mut intVal, mut ok) = ({
         let val = any.clone();
         let guard = val.borrow();
         if let Some(ref any_val) = *guard {
@@ -209,9 +210,10 @@ fn main() {
         } else {
             (Rc::new(RefCell::new(Some(0))), Rc::new(RefCell::new(Some(false))))
         }
-    });
-    if (*ok.borrow().as_ref().unwrap()) {
-        print!("asserted as int: {}\n", { let __v = (*intVal.borrow().as_ref().unwrap()).clone(); __v });
+    });;
+        if (*ok.borrow().as_ref().unwrap()) {
+            print!("asserted as int: {}\n", { let __v = (*intVal.borrow().as_ref().unwrap()).clone(); __v });;
+        }
     }
 
         // Change interface value
@@ -219,7 +221,8 @@ fn main() {
     print!("new interface{{}} value: {}\n", format_any(any.borrow().as_ref().unwrap().as_ref()));
     print!("new interface{{}} type: {}\n", go_type_name(&**any.borrow().as_ref().unwrap()));
 
-    let (mut strVal, mut ok) = ({
+    {
+        let (mut strVal, mut ok) = ({
         let val = any.clone();
         let guard = val.borrow();
         if let Some(ref any_val) = *guard {
@@ -231,9 +234,10 @@ fn main() {
         } else {
             (Rc::new(RefCell::new(Some(std::string::String::new()))), Rc::new(RefCell::new(Some(false))))
         }
-    });
-    if (*ok.borrow().as_ref().unwrap()) {
-        print!("asserted as string: {}\n", { let __v = (*strVal.borrow().as_ref().unwrap()).clone(); __v });
+    });;
+        if (*ok.borrow().as_ref().unwrap()) {
+            print!("asserted as string: {}\n", { let __v = (*strVal.borrow().as_ref().unwrap()).clone(); __v });;
+        }
     }
 
         // Complex number conversions

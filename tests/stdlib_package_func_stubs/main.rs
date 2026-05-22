@@ -3180,7 +3180,7 @@ fn main() {
         let _ = binary::MAX_VARINT_LEN64;
         let _ = types::Typ();
         let mut dir = Arc::new(Mutex::new(Some(ast_ChanDir(ast::S_E_N_D.0 as i32))));
-        { let new_val = Arc::new(Mutex::new(Some(ast_ChanDir((ast::S_E_N_D.0 | ast::R_E_C_V.0) as i32)))); *dir.lock().unwrap() = Some(new_val); };
+        { let new_val = ast_ChanDir((ast::S_E_N_D.0 | ast::R_E_C_V.0) as i32); *dir.lock().unwrap() = Some(new_val); };
         let _ = { let __v = (*dir.lock().unwrap().as_ref().unwrap()).clone(); __v };
     }
     println!("{}", format!("{}", "ok".to_string()));

@@ -51,9 +51,11 @@ fn main() {
     { let __map_key = "two".to_string(); let __map_value = Rc::new(RefCell::new(Some(Box::new(customError { msg: Rc::new(RefCell::new(Some("two".to_string()))), ..Default::default() }) as Box<dyn StdError>))); (*errs.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
     { let __map_key = "nil".to_string(); let __map_value = Rc::new(RefCell::new(Some(Box::<dyn std::error::Error>::from("three".to_string())))); (*errs.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
 
-    let mut err = (*errs.borrow().as_ref().unwrap()).get(&"one".to_string()).map(|__v| __v.clone()).unwrap_or_else(|| Default::default());
-    if (*err.borrow()).is_some() {
-        accept(err.clone());
+    {
+        let mut err = (*errs.borrow().as_ref().unwrap()).get(&"one".to_string()).map(|__v| __v.clone()).unwrap_or_else(|| Default::default());;
+        if (*err.borrow()).is_some() {
+            accept(err.clone());;
+        }
     }
     accept((*errs.borrow().as_ref().unwrap()).get(&"two".to_string()).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()));
     accept((*errs.borrow().as_ref().unwrap()).get(&"nil".to_string()).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()));

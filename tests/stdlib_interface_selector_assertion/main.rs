@@ -376,7 +376,8 @@ impl std::fmt::Display for holder {
 
 fn main() {
     let mut h: Rc<RefCell<Option<holder>>> = Rc::new(RefCell::new(Some(Default::default())));
-    let (_, mut ok) = ({
+    {
+        let (_, mut ok) = ({
         let val = (*h.borrow().as_ref().unwrap()).out.clone();
         let guard = val.borrow();
         if let Some(ref any_val) = *guard {
@@ -388,13 +389,15 @@ fn main() {
         } else {
             (Rc::new(RefCell::new(None::<os_File>)), Rc::new(RefCell::new(Some(false))))
         }
-    });
-    if (*ok.borrow().as_ref().unwrap()) {
-        println!("{}", format!("{}", "file".to_string()));
-    } else {
-        println!("{}", format!("{}", "not file".to_string()));
+    });;
+        if (*ok.borrow().as_ref().unwrap()) {
+            println!("{}", format!("{}", "file".to_string()));;
+        } else {
+            println!("{}", format!("{}", "not file".to_string()));;
+        }
     }
-    let (mut buf, _) = ({
+    {
+        let (mut buf, _) = ({
         let val = (*h.borrow().as_ref().unwrap()).err.clone();
         let guard = val.borrow();
         if let Some(ref any_val) = *guard {
@@ -406,10 +409,11 @@ fn main() {
         } else {
             (Rc::new(RefCell::new(None::<bytes_Buffer>)), Rc::new(RefCell::new(Some(false))))
         }
-    });
-    if (*buf.borrow()).is_some() {
-        println!("{}", format!("{}", "buffer".to_string()));
-    } else {
-        println!("{}", format!("{}", "not buffer".to_string()));
+    });;
+        if (*buf.borrow()).is_some() {
+            println!("{}", format!("{}", "buffer".to_string()));;
+        } else {
+            println!("{}", format!("{}", "not buffer".to_string()));;
+        }
     }
 }

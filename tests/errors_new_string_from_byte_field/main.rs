@@ -29,6 +29,7 @@ impl exec_ExitError {
 fn main() {
     if false {
         let mut err: Rc<RefCell<Option<Box<dyn StdError>>>> = Rc::new(RefCell::new(None));
+        {
         let (mut ee, mut ok) = ({
         let val = err.clone();
         let guard = val.borrow();
@@ -41,10 +42,11 @@ fn main() {
         } else {
             (Rc::new(RefCell::new(Some(Default::default()))), Rc::new(RefCell::new(Some(false))))
         }
-    });
-    if (*ok.borrow().as_ref().unwrap()) && ((*(*ee.borrow().as_ref().unwrap()).stderr.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32) > (0 as i32) {
-        { let __rhs_holder = Rc::new(RefCell::new(Some(Box::<dyn std::error::Error>::from((*Rc::new(RefCell::new(Some(String::from_utf8({ let __slice_holder = (*ee.borrow().as_ref().unwrap()).stderr.clone(); let __slice_guard = __slice_holder.borrow(); (*__slice_guard.as_ref().unwrap()).clone() }).unwrap()))).borrow().as_ref().unwrap()).clone())))).clone(); let new_val = { let mut guard = __rhs_holder.borrow_mut(); guard.take() }; *err.borrow_mut() = new_val; };
-        println!("{}", format!("{}", format!("{}", (*err.borrow().as_ref().unwrap()))));
+    });;
+        if (*ok.borrow().as_ref().unwrap()) && ((*(*ee.borrow().as_ref().unwrap()).stderr.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32) > (0 as i32) {
+            { let __rhs_holder = Rc::new(RefCell::new(Some(Box::<dyn std::error::Error>::from((*Rc::new(RefCell::new(Some(String::from_utf8({ let __slice_holder = (*ee.borrow().as_ref().unwrap()).stderr.clone(); let __slice_guard = __slice_holder.borrow(); (*__slice_guard.as_ref().unwrap()).clone() }).unwrap()))).borrow().as_ref().unwrap()).clone())))).clone(); let new_val = { let mut guard = __rhs_holder.borrow_mut(); guard.take() }; *err.borrow_mut() = new_val; };;
+            println!("{}", format!("{}", format!("{}", (*err.borrow().as_ref().unwrap()))));;
+        }
     }
     }
 }

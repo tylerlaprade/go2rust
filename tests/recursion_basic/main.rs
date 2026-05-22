@@ -142,6 +142,6 @@ fn main() {
 
         // Reverse string
     let mut original = Rc::new(RefCell::new(Some("hello".to_string())));
-    let mut reversed = reverse_string(Rc::new(RefCell::new(Some((*original.borrow().as_ref().unwrap()).clone()))));
+    let mut reversed = reverse_string(Rc::new(RefCell::new(Some({ let __arg_holder = original.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))));
     print!("'{}' reversed is '{}'\n", { let __v = (*original.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*reversed.borrow().as_ref().unwrap()).clone(); __v });
 }

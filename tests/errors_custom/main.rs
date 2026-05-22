@@ -64,24 +64,29 @@ pub fn f2(arg: Rc<RefCell<Option<i32>>>) -> (Rc<RefCell<Option<i32>>>, Rc<RefCel
 
 fn main() {
     for i in vec![7, 42].iter().copied() {
-        let (mut r, mut e) = f1(Rc::new(RefCell::new(Some(i.clone()))));
-    if (*e.borrow()).is_some() {
-        println!("{} {}", format!("{}", "f1 failed:".to_string()), format!("{}", format!("{}", (*e.borrow().as_ref().unwrap()))));
-    } else {
-        println!("{} {}", format!("{}", "f1 worked:".to_string()), format!("{}", { let __v = (*r.borrow().as_ref().unwrap()).clone(); __v }));
+        {
+        let (mut r, mut e) = f1(Rc::new(RefCell::new(Some(i.clone()))));;
+        if (*e.borrow()).is_some() {
+            println!("{} {}", format!("{}", "f1 failed:".to_string()), format!("{}", format!("{}", (*e.borrow().as_ref().unwrap()))));;
+        } else {
+            println!("{} {}", format!("{}", "f1 worked:".to_string()), format!("{}", { let __v = (*r.borrow().as_ref().unwrap()).clone(); __v }));;
+        }
     }
     }
     for i in vec![7, 42].iter().copied() {
-        let (mut r, mut e) = f2(Rc::new(RefCell::new(Some(i.clone()))));
-    if (*e.borrow()).is_some() {
-        println!("{} {}", format!("{}", "f2 failed:".to_string()), format!("{}", format!("{}", (*e.borrow().as_ref().unwrap()))));
-    } else {
-        println!("{} {}", format!("{}", "f2 worked:".to_string()), format!("{}", { let __v = (*r.borrow().as_ref().unwrap()).clone(); __v }));
+        {
+        let (mut r, mut e) = f2(Rc::new(RefCell::new(Some(i.clone()))));;
+        if (*e.borrow()).is_some() {
+            println!("{} {}", format!("{}", "f2 failed:".to_string()), format!("{}", format!("{}", (*e.borrow().as_ref().unwrap()))));;
+        } else {
+            println!("{} {}", format!("{}", "f2 worked:".to_string()), format!("{}", { let __v = (*r.borrow().as_ref().unwrap()).clone(); __v }));;
+        }
     }
     }
 
     let (_, mut e) = f2(Rc::new(RefCell::new(Some(42))));
-    let (mut ae, mut ok) = ({
+    {
+        let (mut ae, mut ok) = ({
         let val = e.clone();
         let guard = val.borrow();
         if let Some(ref any_val) = *guard {
@@ -93,9 +98,10 @@ fn main() {
         } else {
             (Rc::new(RefCell::new(Some(Default::default()))), Rc::new(RefCell::new(Some(false))))
         }
-    });
-    if (*ok.borrow().as_ref().unwrap()) {
-        println!("{}", format!("{}", (*(*ae.borrow().as_ref().unwrap()).arg.borrow().as_ref().unwrap())));
-        println!("{}", format!("{}", (*(*ae.borrow().as_ref().unwrap()).prob.borrow().as_ref().unwrap()).clone()));
+    });;
+        if (*ok.borrow().as_ref().unwrap()) {
+            println!("{}", format!("{}", (*(*ae.borrow().as_ref().unwrap()).arg.borrow().as_ref().unwrap())));;
+            println!("{}", format!("{}", (*(*ae.borrow().as_ref().unwrap()).prob.borrow().as_ref().unwrap()).clone()));;
+        }
     }
 }

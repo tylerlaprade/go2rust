@@ -90,6 +90,105 @@ func (x *NotExpr) wrap() string {
 	}
 }
 
+func TestMultiShortDeclLenCapWrapsGoInt(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+func search(a []int) int {
+	i, j := 0, len(a)
+	for i < j {
+		i++
+	}
+	return j
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile() error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := Transpile(file, fset, typeInfo)
+	if strings.Contains(rust, "let (mut i, mut j) = (Rc::new(RefCell::new(Some(0))), (*a.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0));") ||
+		strings.Contains(rust, "let (mut i, mut j) = (Arc::new(Mutex::new(Some(0))), (*a.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0));") {
+		t.Fatalf("multi-name short declaration should not leave len as bare usize:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Rc::new(RefCell::new(Some((*a.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32)))") &&
+		!strings.Contains(rust, "Arc::new(Mutex::new(Some((*a.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32)))") {
+		t.Fatalf("multi-name short declaration should wrap len as Go int:\n%s", rust)
+	}
+}
+
+func TestAssignedStringRangeVarSliceStaysBare(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+func trim(words []string) {
+	for _, lit := range words {
+		lit = lit[1:]
+		println(lit)
+	}
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile() error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := Transpile(file, fset, typeInfo)
+	if strings.Contains(rust, "let new_val = Rc::new(RefCell::new(Some({ let __s = lit") ||
+		strings.Contains(rust, "let new_val = Arc::new(Mutex::new(Some({ let __s = lit") {
+		t.Fatalf("assigned string range variable should not receive a wrapped string slice:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let new_val = { let __s = lit") {
+		t.Fatalf("assigned string range variable should receive a bare string slice:\n%s", rust)
+	}
+}
+
+func TestIfInitShortDeclDoesNotLeakPastIf(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+type Expr interface {
+	isExpr()
+}
+
+type AndExpr struct {
+	X Expr
+}
+
+func (*AndExpr) isExpr() {}
+
+func collect(list []Expr, x Expr) []Expr {
+	if x, ok := x.(*AndExpr); ok {
+		list = append(list, x)
+	}
+	return append(list, x)
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile() error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := Transpile(file, fset, typeInfo)
+	if !strings.Contains(rust, "{\n        let (mut x, mut ok) =") {
+		t.Fatalf("if init short declaration should be wrapped in its own Rust block:\n%s", rust)
+	}
+	if strings.Contains(rust, "return { let __append_target = list.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push(Box::new((*x.borrow().as_ref().unwrap()).clone()) as Box<dyn Expr>)") ||
+		strings.Contains(rust, "return { let __append_target = list.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(Box::new((*x.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn Expr + Send + Sync>)") {
+		t.Fatalf("if init short declaration should not leak the concrete x past the if block:\n%s", rust)
+	}
+}
+
 func TestTypeSwitchUsesSyntaxCaseTypeWithoutTypeInfo(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

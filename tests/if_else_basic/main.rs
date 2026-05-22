@@ -12,12 +12,14 @@ fn main() {
         println!("{}", format!("{}", "8 is divisible by 4".to_string()));
     }
 
-    let mut num = Rc::new(RefCell::new(Some(9)));
-    if (*num.borrow().as_ref().unwrap()) < 0 {
-        println!("{} {}", format!("{}", { let __v = (*num.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", "is negative".to_string()));
-    } else if (*num.borrow().as_ref().unwrap()) < 10 {
+    {
+        let mut num = Rc::new(RefCell::new(Some(9)));;
+        if (*num.borrow().as_ref().unwrap()) < 0 {
+            println!("{} {}", format!("{}", { let __v = (*num.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", "is negative".to_string()));;
+        } else if (*num.borrow().as_ref().unwrap()) < 10 {
         println!("{} {}", format!("{}", { let __v = (*num.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", "has 1 digit".to_string()));
     } else {
         println!("{} {}", format!("{}", { let __v = (*num.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", "has multiple digits".to_string()));
+    }
     }
 }

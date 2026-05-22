@@ -130,6 +130,197 @@ func tagName(x Expr) string {
 	}
 }
 
+func TestAssignedLocalInterfaceParamUsesWrappedShadow(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+type Expr interface {
+	isExpr()
+}
+
+type TagExpr struct{}
+
+func (*TagExpr) isExpr() {}
+
+func rewrite(x Expr) Expr {
+	x = &TagExpr{}
+	return x
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(main.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := Transpile(file, fset, typeInfo)
+	if !strings.Contains(rust, "x: &dyn Expr") && !strings.Contains(rust, "x: &(dyn Expr + Send + Sync)") {
+		t.Fatalf("local interface parameter should stay a trait reference in the signature:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let mut x: Rc<RefCell<Option<Box<dyn Expr>>>> = Rc::new(RefCell::new(Some(x.__go_clone_box())))") &&
+		!strings.Contains(rust, "let mut x: Arc<Mutex<Option<Box<dyn Expr + Send + Sync>>>> = Arc::new(Mutex::new(Some(x.__go_clone_box())))") {
+		t.Fatalf("assigned local interface parameter should be shadowed with a wrapped value:\n%s", rust)
+	}
+}
+
+func TestLocalInterfaceFieldConcreteAssertionUsesFieldHandle(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+type Expr interface {
+	isExpr()
+}
+
+type TagExpr struct{}
+
+func (*TagExpr) isExpr() {}
+
+type NotExpr struct {
+	X Expr
+}
+
+func isTag(n *NotExpr) bool {
+	_, ok := n.X.(*TagExpr)
+	return ok
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(main.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := Transpile(file, fset, typeInfo)
+	if strings.Contains(rust, "let val = (*{ let __field =") {
+		t.Fatalf("type assertion on local interface field should not unwrap the field handle before assertion:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".x.clone()") {
+		t.Fatalf("type assertion on local interface field should clone the field handle:\n%s", rust)
+	}
+}
+
+func TestAppendExpansionFromBareNestedSliceIndex(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+type Expr interface {
+	isExpr()
+}
+
+type TagExpr struct{}
+
+func (*TagExpr) isExpr() {}
+
+func flatten(split [][][]Expr) []Expr {
+	var lits []Expr
+	for _, or := range split {
+		lits = append(lits, or[0]...)
+	}
+	return lits
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(main.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := Transpile(file, fset, typeInfo)
+	if strings.Contains(rust, "let __slice_holder = or[(0) as usize].clone().clone()") {
+		t.Fatalf("append expansion from a bare nested slice index should not treat the source as wrapped:\n%s", rust)
+	}
+	if !strings.Contains(rust, "or[(0) as usize].clone().iter().cloned()") {
+		t.Fatalf("append expansion from a bare nested slice index should extend from the bare Vec:\n%s", rust)
+	}
+}
+
+func TestAppendConcreteLocalInterfaceAssertionBoxesValue(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+type Expr interface {
+	isExpr()
+}
+
+type AndExpr struct {
+	X Expr
+}
+
+func (*AndExpr) isExpr() {}
+
+func collect(list []Expr, x Expr) []Expr {
+	if x, ok := x.(*AndExpr); ok {
+		return append(list, x)
+	}
+	return list
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(main.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := Transpile(file, fset, typeInfo)
+	if strings.Contains(rust, ".push((*x.borrow().as_ref().unwrap()).clone())") ||
+		strings.Contains(rust, ".push((*x.lock().unwrap().as_ref().unwrap()).clone())") {
+		t.Fatalf("append of concrete value to local interface slice should box the concrete value:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Box::new((*x.borrow().as_ref().unwrap()).clone()) as Box<dyn Expr>") &&
+		!strings.Contains(rust, "Box::new((*x.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn Expr + Send + Sync>") {
+		t.Fatalf("append of concrete value to local interface slice did not box the concrete value:\n%s", rust)
+	}
+}
+
+func TestWrappedStringCallArgumentUsesShortGuardBlock(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+type Expr interface {
+	isExpr()
+}
+
+type TagExpr struct {
+	Tag string
+}
+
+func (*TagExpr) isExpr() {}
+
+func tag(tok string) Expr {
+	return &TagExpr{tok}
+}
+
+func atom(tok string) Expr {
+	defer func() {}()
+	return tag(tok)
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(main.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := Transpile(file, fset, typeInfo)
+	if strings.Contains(rust, "Some((*tok.borrow().as_ref().unwrap()).clone())") ||
+		strings.Contains(rust, "Some((*tok.lock().unwrap().as_ref().unwrap()).clone())") {
+		t.Fatalf("wrapped string call argument should not borrow inline in return expression:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __arg_holder = tok.clone()") {
+		t.Fatalf("wrapped string call argument should clone through a short guard block:\n%s", rust)
+	}
+}
+
 func TestLocalInterfaceSelectorArgumentUnwrapsTraitObject(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

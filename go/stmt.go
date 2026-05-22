@@ -3544,6 +3544,21 @@ func writeNamedIntegerWrappedInitializer(out *strings.Builder, expr ast.Expr) bo
 	return true
 }
 
+func writeNamedIntegerAssignmentValue(out *strings.Builder, expr ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	named, ok := types.Unalias(typeInfo.GetType(expr)).(*types.Named)
+	if !ok || !isNamedIntegerType(named) {
+		return false
+	}
+	if !writeExpressionForExpectedTypesType(out, expr, named) {
+		TranspileExpression(out, expr)
+	}
+	return true
+}
+
 func writeNamedIntegerIncDec(out *strings.Builder, expr ast.Expr, op token.Token) bool {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil {
@@ -4189,6 +4204,10 @@ func transpileElseBranch(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTy
 }
 
 func transpileIfWithInitAsBlock(out *strings.Builder, stmt *ast.IfStmt, fnType *ast.FuncType, fileSet *token.FileSet) {
+	if vt := GetVarTable(); vt != nil {
+		vt.PushScope()
+		defer vt.PopScope()
+	}
 	out.WriteString("{\n        ")
 	TranspileStatementSimple(out, stmt.Init, fnType, fileSet)
 	out.WriteString(";\n        if ")
@@ -5890,8 +5909,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 											// Reference-style range values must be cloned into ordinary wrapped assignment targets.
 										} else if writeOwnedExpressionValue(out, s.Rhs[0]) {
 											// Copied by value from an existing wrapped field or handle.
-										} else if writeNamedIntegerWrappedInitializer(out, s.Rhs[0]) {
-											// Named integer arithmetic returns the underlying scalar; short declarations store the named value.
+										} else if writeNamedIntegerAssignmentValue(out, s.Rhs[0]) {
+											// Named integer arithmetic returns the underlying scalar; assignments store the named value in the existing wrapper.
 										} else {
 											TranspileExpression(out, s.Rhs[0])
 										}
@@ -7418,8 +7437,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 	case *ast.IfStmt:
 		// Handle init statement if present
 		if s.Init != nil {
-			TranspileStatementSimple(out, s.Init, fnType, fileSet)
-			out.WriteString("\n    ")
+			transpileIfWithInitAsBlock(out, s, fnType, fileSet)
+			return
 		}
 		beforeGuards := cloneMutexGuards(activeMutexGuards)
 

@@ -108,6 +108,7 @@ pub fn count_type_names(objs: Rc<RefCell<Option<Vec<types_Object>>>>) -> Rc<RefC
 
     let mut count = Rc::new(RefCell::new(Some(0)));
     { let __range_holder = objs.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for o in __range_values.iter() {
+        {
         let (_, mut ok) = ({
         let val = o.clone();
         if let Some(typed_val) = val.downcast_ref::<types_TypeName>() {
@@ -115,9 +116,10 @@ pub fn count_type_names(objs: Rc<RefCell<Option<Vec<types_Object>>>>) -> Rc<RefC
         } else {
             (Rc::new(RefCell::new(Some(Default::default()))), Rc::new(RefCell::new(Some(false))))
         }
-    });
-    if (*ok.borrow().as_ref().unwrap()) {
-        { let mut guard = count.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
+    });;
+        if (*ok.borrow().as_ref().unwrap()) {
+            { let mut guard = count.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); };
+        }
     }
     } }
     return Rc::new(RefCell::new(Some(count.borrow().as_ref().unwrap().clone())));

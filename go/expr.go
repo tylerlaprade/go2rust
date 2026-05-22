@@ -1342,8 +1342,28 @@ func writeCallArgumentValue(out *strings.Builder, arg ast.Expr) bool {
 	if typ == nil {
 		return false
 	}
-	switch typ.Underlying().(type) {
-	case *types.Basic, *types.Struct, *types.Array:
+	switch underlying := typ.Underlying().(type) {
+	case *types.Basic:
+		varName := RustIdentForUse(ident)
+		if currentCaptureRenames != nil {
+			if renamed, exists := currentCaptureRenames[ident.Name]; exists {
+				varName = RustLocalIdent(renamed)
+			}
+		}
+		if underlying.Kind() == types.String {
+			out.WriteString("{ let __arg_holder = ")
+			out.WriteString(varName)
+			out.WriteString(".clone(); let __arg_guard = __arg_holder")
+			WriteBorrowMethod(out, false)
+			out.WriteString("; (*__arg_guard.as_ref().unwrap()).clone() }")
+			return true
+		}
+		out.WriteString("(*")
+		out.WriteString(varName)
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap()).clone()")
+		return true
+	case *types.Struct, *types.Array:
 		varName := RustIdentForUse(ident)
 		if currentCaptureRenames != nil {
 			if renamed, exists := currentCaptureRenames[ident.Name]; exists {
@@ -8648,6 +8668,15 @@ func writeInterfaceAssertionSourceClone(out *strings.Builder, expr ast.Expr) {
 }
 
 func writeTypeAssertionInputClone(out *strings.Builder, expr ast.Expr) {
+	if _, isIdent := expr.(*ast.Ident); !isIdent {
+		if typeInfo := GetTypeInfo(); typeInfo != nil {
+			if _, ok := localNamedInterfaceTypeNameFromTypes(typeInfo.GetType(expr)); ok {
+				TranspileExpressionContext(out, expr, LValue)
+				out.WriteString(".clone()")
+				return
+			}
+		}
+	}
 	if ident, ok := expr.(*ast.Ident); ok && ident.Name != "nil" {
 		out.WriteString(rustIdentForUseWithCapture(ident))
 		out.WriteString(".clone()")
@@ -10314,6 +10343,14 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 								out.WriteString(interfaceName)
 								out.WriteString(">)))")
 							}
+						} else if expectedArgType != nil && expectsGoString(paramTypeForArg, expectedArgType) {
+							WriteWrapperPrefix(out)
+							out.WriteString("{ let __arg_holder = ")
+							out.WriteString(argVarName)
+							out.WriteString(".clone(); let __arg_guard = __arg_holder")
+							WriteBorrowMethod(out, false)
+							out.WriteString("; (*__arg_guard.as_ref().unwrap()).clone() }")
+							WriteWrapperSuffix(out)
 						} else if IsParamValueType(funcSig, i) {
 							// Value-type parameter — deep copy to preserve Go's pass-by-value semantics
 							WriteWrapperPrefix(out)

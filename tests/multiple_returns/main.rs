@@ -192,7 +192,7 @@ fn main() {
     println!("{}", format!("{}", "\n=== Swapping values ===".to_string()));
     let (mut x, mut y) = (Rc::new(RefCell::new(Some("hello".to_string()))), Rc::new(RefCell::new(Some("world".to_string()))));
     print!("Before swap: x={}, y={}\n", { let __v = (*x.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*y.borrow().as_ref().unwrap()).clone(); __v });
-    { let (__tmp_0, __tmp_1) = swap(Rc::new(RefCell::new(Some((*x.borrow().as_ref().unwrap()).clone()))), Rc::new(RefCell::new(Some((*y.borrow().as_ref().unwrap()).clone())))); let __moved_tmp_0 = { let mut __guard = __tmp_0.borrow_mut(); __guard.take() }; *x.borrow_mut() = __moved_tmp_0; let __moved_tmp_1 = { let mut __guard = __tmp_1.borrow_mut(); __guard.take() }; *y.borrow_mut() = __moved_tmp_1; };
+    { let (__tmp_0, __tmp_1) = swap(Rc::new(RefCell::new(Some({ let __arg_holder = x.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = y.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() })))); let __moved_tmp_0 = { let mut __guard = __tmp_0.borrow_mut(); __guard.take() }; *x.borrow_mut() = __moved_tmp_0; let __moved_tmp_1 = { let mut __guard = __tmp_1.borrow_mut(); __guard.take() }; *y.borrow_mut() = __moved_tmp_1; };
     print!("After swap: x={}, y={}\n", { let __v = (*x.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*y.borrow().as_ref().unwrap()).clone(); __v });
 
         // Multiple returns of different types

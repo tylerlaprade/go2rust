@@ -42,7 +42,8 @@ fn main() {
     let mut x: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new("hello".to_string()) as Box<dyn Any>)));
 
         // Type assertion with comma-ok
-    let (mut s, mut ok) = ({
+    {
+        let (mut s, mut ok) = ({
         let val = x.clone();
         let guard = val.borrow();
         if let Some(ref any_val) = *guard {
@@ -54,9 +55,10 @@ fn main() {
         } else {
             (Rc::new(RefCell::new(Some(std::string::String::new()))), Rc::new(RefCell::new(Some(false))))
         }
-    });
-    if (*ok.borrow().as_ref().unwrap()) {
-        println!("{} {}", format!("{}", "x is string:".to_string()), format!("{}", { let __v = (*s.borrow().as_ref().unwrap()).clone(); __v }));
+    });;
+        if (*ok.borrow().as_ref().unwrap()) {
+            println!("{} {}", format!("{}", "x is string:".to_string()), format!("{}", { let __v = (*s.borrow().as_ref().unwrap()).clone(); __v }));;
+        }
     }
 
         // Type assertion without comma-ok (would panic if wrong)
@@ -72,7 +74,8 @@ fn main() {
     println!("{} {}", format!("{}", "Asserted string:".to_string()), format!("{}", { let __v = (*str.borrow().as_ref().unwrap()).clone(); __v }));
 
         // Failed assertion with comma-ok
-    let (mut n, mut ok) = ({
+    {
+        let (mut n, mut ok) = ({
         let val = x.clone();
         let guard = val.borrow();
         if let Some(ref any_val) = *guard {
@@ -84,10 +87,11 @@ fn main() {
         } else {
             (Rc::new(RefCell::new(Some(0))), Rc::new(RefCell::new(Some(false))))
         }
-    });
-    if (*ok.borrow().as_ref().unwrap()) {
-        println!("{} {}", format!("{}", "x is int:".to_string()), format!("{}", { let __v = (*n.borrow().as_ref().unwrap()).clone(); __v }));
-    } else {
-        println!("{}", format!("{}", "x is not an int".to_string()));
+    });;
+        if (*ok.borrow().as_ref().unwrap()) {
+            println!("{} {}", format!("{}", "x is int:".to_string()), format!("{}", { let __v = (*n.borrow().as_ref().unwrap()).clone(); __v }));;
+        } else {
+            println!("{}", format!("{}", "x is not an int".to_string()));;
+        }
     }
 }
