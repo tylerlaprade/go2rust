@@ -3007,7 +3007,7 @@ pub mod parser {
         ast_Spec::__go_from(ast_TypeSpec {
             name: go_parser_some(go_parser_ident_struct(spec.name)),
             r#type: go_parser_some(go_parser_expr(spec.typ)),
-            assign: if spec.alias { go_parser_pos(1) } else { go_parser_pos(0) },
+            assign: if spec.alias { go_parser_pos(1) } else { go_parser_no_pos() },
             ..Default::default()
         })
     }

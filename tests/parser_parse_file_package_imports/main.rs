@@ -52,6 +52,7 @@ impl ast_AssignStmt {
 #[derive(Debug, Clone, Default)]
 pub struct ast_BasicLit {
     pub kind: Arc<Mutex<Option<token_Token>>>,
+    pub pos: Arc<Mutex<Option<token_Pos>>>,
     pub value: Arc<Mutex<Option<String>>>,
 }
 
@@ -1721,11 +1722,15 @@ pub mod parser {
     }
 
     fn go_parser_pos(pos: usize) -> Arc<Mutex<Option<token_Pos>>> {
-        go_parser_some(token_Pos(pos as i32))
+        go_parser_some(token_Pos(go_parser_pos_value(pos)))
+    }
+
+    fn go_parser_no_pos() -> Arc<Mutex<Option<token_Pos>>> {
+        go_parser_some(token_Pos(0))
     }
 
     fn go_parser_pos_value(pos: usize) -> i32 {
-        pos as i32
+        pos as i32 + 1
     }
 
     fn go_parser_token(tok: token_Token) -> Arc<Mutex<Option<token_Token>>> {
@@ -1828,6 +1833,7 @@ pub mod parser {
     fn go_parser_basic_lit_expr(lit: gosyn::ast::BasicLit) -> ast_Expr {
         ast_Expr::__go_from_with_pos(ast_BasicLit {
             kind: go_parser_token(go_parser_lit_kind(lit.kind)),
+            pos: go_parser_pos(lit.pos),
             value: go_parser_some(lit.value),
             ..Default::default()
         }, go_parser_pos_value(lit.pos))
@@ -1864,7 +1870,7 @@ pub mod parser {
         ast_CallExpr {
             fun: go_parser_some(go_parser_expr(*call.func)),
             args: go_parser_some(call.args.into_iter().map(go_parser_expr).collect()),
-            ellipsis: call.dots.map(go_parser_pos).unwrap_or_else(|| go_parser_pos(0)),
+            ellipsis: call.dots.map(go_parser_pos).unwrap_or_else(go_parser_no_pos),
             ..Default::default()
         }
     }
@@ -2214,7 +2220,7 @@ pub mod parser {
         ast_Spec::__go_from(ast_TypeSpec {
             name: go_parser_some(go_parser_ident_struct(spec.name)),
             r#type: go_parser_some(go_parser_expr(spec.typ)),
-            assign: if spec.alias { go_parser_pos(1) } else { go_parser_pos(0) },
+            assign: if spec.alias { go_parser_pos(1) } else { go_parser_no_pos() },
             ..Default::default()
         })
     }

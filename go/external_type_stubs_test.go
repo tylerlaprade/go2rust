@@ -47,6 +47,7 @@ func TestParserStubPreservesFileAndNodeMetadataForTypeInfoBridge(t *testing.T) {
 		"__go_filename: go_parser_some(filename.to_string())",
 		"__go_source: go_parser_some(source.to_string())",
 		"pos as i32 + 1",
+		"assign: if spec.alias { go_parser_pos(1) } else { go_parser_no_pos() }",
 		"ast_Ident { __go_pos: go_parser_pos_value(id.pos)",
 		"ast_Expr::__go_from_with_pos(go_parser_ident_struct(id), go_parser_pos_value(pos))",
 		"ast_Expr::__go_from_with_pos(ast_BasicLit",
