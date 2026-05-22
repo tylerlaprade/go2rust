@@ -376,6 +376,34 @@ func (m Manager) Manage() {
 	}
 }
 
+func TestNoTypeInfoErrorFieldKeepsHandleAndErrorMethodUsesSyntax(t *testing.T) {
+	rust := transpileNoTypeInfoRegression(t, `package main
+
+import (
+	"errors"
+	"fmt"
+)
+
+type holder struct {
+	err error
+}
+
+func main() {
+	h := holder{err: errors.New("boom")}
+	fmt.Println(h.err.Error())
+}`)
+
+	if !strings.Contains(rust, "Self { err: self.err.clone() }") {
+		t.Fatalf("error field value clone should preserve the error handle:\n%s", rust)
+	}
+	if strings.Contains(rust, ".error().borrow()") {
+		t.Fatalf("error field Error method should not call a nonexistent boxed-error method:\n%s", rust)
+	}
+	if !strings.Contains(rust, "format!(\"{}\", (*h.borrow().as_ref().unwrap()).err.borrow().as_ref().unwrap())") {
+		t.Fatalf("error field Error method should format the error handle:\n%s", rust)
+	}
+}
+
 func TestNoTypeInfoLocalCollectionTrackingIsFunctionScoped(t *testing.T) {
 	prevTypeInfo := currentTypeInfo
 	defer func() { currentTypeInfo = prevTypeInfo }()

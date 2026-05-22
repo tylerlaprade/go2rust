@@ -9296,7 +9296,13 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 	}
 
 	if sel, ok := call.Fun.(*ast.SelectorExpr); ok && sel.Sel.Name == "Error" {
+		isErrorReceiver := false
 		if typeInfo != nil && isGoErrorType(typeInfo.GetType(sel.X)) {
+			isErrorReceiver = true
+		} else if syntaxExprIsGoError(sel.X) {
+			isErrorReceiver = true
+		}
+		if isErrorReceiver {
 			if ident, ok := sel.X.(*ast.Ident); ok && isVarBare(ident.Name) {
 				WriteWrapperPrefix(out)
 				out.WriteString("format!(\"{}\", ")
@@ -10238,6 +10244,24 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 		}
 	}
 	closeFunctionCall()
+}
+
+func syntaxExprIsGoError(expr ast.Expr) bool {
+	switch e := expr.(type) {
+	case *ast.Ident:
+		info := lookupVarInfo(e.Name)
+		return info != nil && rustTypeIsGoErrorHandle(info.RustType)
+	case *ast.SelectorExpr:
+		fieldType, ok := syntaxSelectorFieldType(e)
+		return ok && isGoErrorTypeExpr(fieldType)
+	default:
+		return false
+	}
+}
+
+func rustTypeIsGoErrorHandle(rustType string) bool {
+	return strings.Contains(rustType, "Box<dyn StdError") ||
+		strings.Contains(rustType, "Box<dyn std::error::Error")
 }
 
 func writeVariadicCallArgumentsFromTypes(out *strings.Builder, call *ast.CallExpr, sig *types.Signature) {

@@ -543,7 +543,7 @@ func writeStructCloneField(out *strings.Builder, fieldName string, fieldType ast
 }
 
 func structCloneFieldKeepsHandle(expr ast.Expr) bool {
-	if expr == nil || isSyncParam(expr) || isEmptyInterfaceExpr(expr) || isFunctionSignatureTypeExpr(expr) {
+	if expr == nil || isSyncParam(expr) || isEmptyInterfaceExpr(expr) || isFunctionSignatureTypeExpr(expr) || isGoErrorTypeExpr(expr) {
 		return true
 	}
 	switch t := expr.(type) {
