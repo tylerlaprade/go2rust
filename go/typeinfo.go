@@ -1,6 +1,8 @@
 package main
 
 import (
+	"errors"
+	"fmt"
 	"go/ast"
 	"go/importer"
 	"go/token"
@@ -14,8 +16,30 @@ type TypeInfo struct {
 	methodMutableReceiverMap map[string]bool
 }
 
-// NewTypeInfo creates type information for the given files
+// NewTypeInfo creates type information for the given files using the default
+// (stdlib-only) importer. Prefer NewTypeInfoWithImporter for any package whose
+// files may import non-stdlib packages; the default importer cannot resolve
+// local modules and would silently leave the resulting types.Info with holes.
 func NewTypeInfo(files []*ast.File, fset *token.FileSet) (*TypeInfo, error) {
+	return NewTypeInfoWithImporter("", files, fset, importer.Default())
+}
+
+// NewTypeInfoWithImporter type-checks files using the supplied importer and
+// returns the resulting TypeInfo together with any type-check errors. When
+// types.Config.Check produces errors the returned error is always non-nil and
+// joins every reported error so callers MUST decide explicitly whether to
+// continue with partial info or fail. The function never silently drops a
+// check error onto stderr — see AGENTS.md "Type Info Is Authoritative".
+//
+// Result shape:
+//   - (typeInfo, nil)       : full type information, no errors.
+//   - (typeInfo, err != nil): partial type information; *types.Package is
+//     populated but at least one type-check error was reported. Caller chooses.
+//   - (nil,      err != nil): type checking produced no *types.Package at all.
+func NewTypeInfoWithImporter(path string, files []*ast.File, fset *token.FileSet, imp types.Importer) (*TypeInfo, error) {
+	if imp == nil {
+		imp = importer.Default()
+	}
 	info := &types.Info{
 		Types:      make(map[ast.Expr]types.TypeAndValue),
 		Defs:       make(map[*ast.Ident]types.Object),
@@ -25,21 +49,43 @@ func NewTypeInfo(files []*ast.File, fset *token.FileSet) (*TypeInfo, error) {
 		InitOrder:  []*types.Initializer{},
 	}
 
+	label := path
+	if label == "" {
+		label = "<unknown>"
+	}
+
+	var checkErrors []error
 	config := &types.Config{
-		Importer: importer.Default(),
+		Importer: imp,
 		Error: func(err error) {
-			// Log but don't fail on import errors
-			// This allows partial type checking even with missing imports
+			checkErrors = append(checkErrors, err)
 		},
 	}
 
-	pkg, _ := config.Check("", fset, files, info)
+	pkg, checkErr := config.Check(path, fset, files, info)
+	// config.Check's return value usually duplicates the last reported error.
+	// Append only when it carries new information so errors.Join stays clean.
+	if checkErr != nil && (len(checkErrors) == 0 || checkErrors[len(checkErrors)-1].Error() != checkErr.Error()) {
+		checkErrors = append(checkErrors, checkErr)
+	}
+
+	if pkg == nil {
+		if len(checkErrors) == 0 {
+			return nil, fmt.Errorf("type check produced no package for %s", label)
+		}
+		return nil, fmt.Errorf("type check produced no package for %s: %w", label, errors.Join(checkErrors...))
+	}
 
 	typeInfo := &TypeInfo{
 		info: info,
 		pkg:  pkg,
 	}
 	typeInfo.methodMutableReceiverMap = collectMethodReceiverMutability(files, typeInfo)
+
+	if len(checkErrors) > 0 {
+		return typeInfo, fmt.Errorf("type check for %s produced %d error(s): %w", label, len(checkErrors), errors.Join(checkErrors...))
+	}
+
 	return typeInfo, nil
 }
 

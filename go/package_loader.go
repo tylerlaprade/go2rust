@@ -3,8 +3,10 @@ package main
 import (
 	"fmt"
 	"go/ast"
+	"go/importer"
 	"go/parser"
 	"go/token"
+	"go/types"
 	"golang.org/x/tools/go/packages"
 	"os"
 	"path/filepath"
@@ -147,10 +149,29 @@ func (pl *PackageLoader) loadLocalModuleFallbacks() error {
 	}
 	inferredModulePath := pl.inferModulePathFromLocalImports()
 	if inferredModulePath != "" && inferredModulePath != modulePath {
-		return pl.loadLocalImportsForPackage(pl.mainPkg, inferredModulePath, make(map[string]bool))
+		if err := pl.loadLocalImportsForPackage(pl.mainPkg, inferredModulePath, make(map[string]bool)); err != nil {
+			return err
+		}
 	}
-	if err != nil || modulePath == "" {
-		return nil
+	// Type-check every parsed-but-not-yet-checked local-module fallback using
+	// the project importer so siblings can resolve each other. Without this
+	// pass, any local module that no other local module imports would keep
+	// pkg.TypesInfo == nil, and the transpiler would later hit nil-typeInfo
+	// branches — which AGENTS.md classifies as a loader bug.
+	imp := pl.projectImporter()
+	keys := make([]string, 0, len(pl.allPackages))
+	for path := range pl.allPackages {
+		keys = append(keys, path)
+	}
+	sort.Strings(keys)
+	for _, path := range keys {
+		pkg := pl.allPackages[path]
+		if pkg == nil || pkg.Types != nil || len(pkg.Syntax) == 0 {
+			continue
+		}
+		if err := pl.typeCheckLocalPackage(pkg, imp); err != nil {
+			fmt.Fprintf(os.Stderr, "Package loading warning: type-check for %s failed: %v\n", path, err)
+		}
 	}
 	return nil
 }
@@ -277,6 +298,51 @@ func directoryHasGoFiles(dir string) bool {
 	return false
 }
 
+// projectImporter resolves Go import paths first against the packages already
+// loaded into pl.allPackages (including transpiler-managed local module
+// fallbacks) and falls back to importer.Default() for stdlib paths. This is
+// what makes local modules type-check fully: without it, types.Config.Check
+// silently leaves info.Types / info.Uses with holes for every cross-package
+// reference, and the transpiler then visits AST nodes whose go/types data is
+// nil — which is the bug class AGENTS.md explicitly forbids working around
+// with syntax heuristics.
+type projectImporter struct {
+	pl       *PackageLoader
+	fallback types.Importer
+}
+
+func (pi *projectImporter) Import(path string) (*types.Package, error) {
+	if pi.pl != nil {
+		if pkg, ok := pi.pl.allPackages[path]; ok && pkg != nil && pkg.Types != nil {
+			return pkg.Types, nil
+		}
+		// Trigger lazy type-checking of pending local modules. Parse-only
+		// fallback packages have Syntax populated but Types nil; resolve them
+		// on demand so siblings can see each other.
+		if pkg, ok := pi.pl.allPackages[path]; ok && pkg != nil && pkg.Types == nil && len(pkg.Syntax) > 0 {
+			if err := pi.pl.typeCheckLocalPackage(pkg, pi); err != nil {
+				return nil, err
+			}
+			if pkg.Types != nil {
+				return pkg.Types, nil
+			}
+		}
+	}
+	if pi.fallback == nil {
+		return nil, fmt.Errorf("package %q not found", path)
+	}
+	return pi.fallback.Import(path)
+}
+
+func (pl *PackageLoader) projectImporter() *projectImporter {
+	return &projectImporter{pl: pl, fallback: importer.Default()}
+}
+
+// loadLocalModulePackage parses the Go files of a local module without
+// type-checking. Type-checking is deferred to typeCheckLocalPackage so the
+// shared projectImporter can resolve sibling local modules. Caller must call
+// typeCheckLocalPackage (directly or via lazy projectImporter.Import) before
+// the resulting *packages.Package is used for transpilation.
 func (pl *PackageLoader) loadLocalModulePackage(importPath, modulePath string) (*packages.Package, error) {
 	rel := strings.TrimPrefix(importPath, modulePath)
 	rel = strings.TrimPrefix(rel, "/")
@@ -314,9 +380,8 @@ func (pl *PackageLoader) loadLocalModulePackage(importPath, modulePath string) (
 	if len(files) == 0 {
 		return nil, fmt.Errorf("no Go files found in %s", dir)
 	}
-	typeInfo, _ := NewTypeInfo(files, fileSet)
 	pkgName := files[0].Name.Name
-	result := &packages.Package{
+	return &packages.Package{
 		Name:            pkgName,
 		PkgPath:         importPath,
 		Fset:            fileSet,
@@ -324,12 +389,40 @@ func (pl *PackageLoader) loadLocalModulePackage(importPath, modulePath string) (
 		CompiledGoFiles: filenames,
 		Syntax:          files,
 		Imports:         make(map[string]*packages.Package),
+	}, nil
+}
+
+// typeCheckLocalPackage runs go/types over a previously parsed local-module
+// package. The supplied importer must resolve any sibling local modules
+// (typically the shared projectImporter). On success the package's Types and
+// TypesInfo fields are populated and the result is registered as a TypeInfo
+// for downstream lookups; on failure the caller will see incomplete type info
+// and the transpiler will hit nil-typeInfo branches — which AGENTS.md says
+// must be treated as a loader bug, not patched over.
+func (pl *PackageLoader) typeCheckLocalPackage(pkg *packages.Package, imp types.Importer) error {
+	if pkg == nil {
+		return fmt.Errorf("typeCheckLocalPackage: nil package")
 	}
-	if typeInfo != nil {
-		result.Types = typeInfo.pkg
-		result.TypesInfo = typeInfo.info
+	if pkg.Types != nil {
+		return nil // already type-checked
 	}
-	return result, nil
+	if len(pkg.Syntax) == 0 {
+		return fmt.Errorf("typeCheckLocalPackage: no syntax for %s", pkg.PkgPath)
+	}
+	fileSet := pkg.Fset
+	if fileSet == nil {
+		fileSet = pl.fileSet
+	}
+	if imp == nil {
+		imp = pl.projectImporter()
+	}
+	ti, err := NewTypeInfoWithImporter(pkg.PkgPath, pkg.Syntax, fileSet, imp)
+	if err != nil {
+		return fmt.Errorf("type-check %s: %w", pkg.PkgPath, err)
+	}
+	pkg.Types = ti.pkg
+	pkg.TypesInfo = ti.info
+	return nil
 }
 
 // TranspileAll transpiles all loaded packages

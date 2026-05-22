@@ -9,6 +9,7 @@
 - **Use Go's AST and go/types** - don't reinvent type analysis
 - **Test-driven development** - XFAIL tests auto-promote when passing
 - **Always run tests** before committing or moving to next task
+- **Every bug gets a test, no exceptions** - whether you found it in a fixture, a Go unit test, a self-host `cargo check`, the behavior suite, or a manual repro, write a minimal failing test FIRST, then fix it. Self-host bugs are not "infrastructure" — they are translator bugs and a fixture (under `tests/XFAIL/<name>/`) or `go/*_test.go` must accompany the fix. A fix without a test will silently regress on the next round of changes.
 - **Self-hosting requires behavior equivalence** - generated Rust compiling is not enough; run the self-transpiled binary against the full fixture behavior suite with `./self_transpile_check.sh --behavior-suite`
 - **Update README** when adding support for new Go syntax features
 - **Update ROADMAP.md** after implementing features or making progress on phases
@@ -179,6 +180,7 @@ See `ROADMAP.md` for the detailed implementation phases and progress.
 - Selector fields used where an owned scalar or struct value is expected must clone the inner value before wrapping it. Preserve selector field handles only for handle-shaped expected types such as pointers, slices, maps, channels, functions, and interfaces.
 - Selector RValue lowering for scalar fields already clones the inner value. If a caller is about to add its own borrow, such as concurrent binary operand extraction, use the selector in LValue context to get the field handle first; otherwise generated Rust tries to call `.lock()` on the cloned `String`.
 - When type information only proves that a selector field is wrapped but cannot prove the field is cloneable, fall back to syntax facts from `structDefs` and `LookupTypeDefinition` for named scalar fields. Return-statement binary extraction must clone through the selector field handle before opening the generic wrapped-value path; otherwise self-generated Rust moves named scalar fields such as `Kind` out of a shared borrow.
+- Syntax registries such as `structDefs` may only refine codegen details after `go/types` has already identified the operation and type boundary. Do not use them when `TypeInfo` is missing or incomplete; fix the type-info source instead.
 - Rust `Clone` on generated structs stays shallow so handles preserve aliasing for receivers, closures, slices, maps, channels, functions, and pointers. At explicit Go value-copy boundaries, use the generated `__go_value_clone` helper so scalar, array, and nested struct fields get fresh wrappers while handle-shaped fields copy their handles.
 - Plain slice assignment between local slice handles should replace the destination handle, not move the inner `Vec`. For `src = contents` where `contents` is a `map[string][]byte` range value, assign `src = contents.clone()` so Go slice-header aliasing is preserved. Do not use that path for captured LHS variables renamed into closures; those closure clones may be immutable bindings, so keep the existing inner-slot assignment path for `result = values` inside a function literal.
 - Tuple-return assignment into indexed slice or array targets must assign through the sequence element, not through the wrapped-variable path. For scalar elements, take the inner value from the temporary handle; for handle-shaped elements such as `error`, pointers, slices, maps, channels, functions, and interfaces, store the returned handle itself.
@@ -224,7 +226,7 @@ See `ROADMAP.md` for the detailed implementation phases and progress.
 - Package init aggregators must call only real Go `init` functions. Do not derive `__go_init_N` calls from the count of all function-name overrides; duplicate Rust names such as `UsedIdent`/`usedIdent` also create overrides.
 - Method Rust-name disambiguation must be receiver-scoped and selector-driven by `go/types` method identity. Case-distinct methods on one receiver can collapse to the same Rust `snake_case` name, but methods on other receivers must not inherit that suffix.
 - For pointer-receiver method calls on the current receiver, if any argument reads or calls through that same receiver, evaluate the arguments into locals before emitting `self.method(...)`. Rust starts the mutable receiver borrow before argument evaluation, so direct lowering rejects Go patterns such as `w.Len(len(w.Relocs))`, `w.Len(w.rawReloc(...))`, and `w.StringRef(w.p.StringIdx(s))`.
-- When go/types is unavailable, channel sends still need syntax-aware unwrapping for method calls known to return wrapped `bool`. Resolve selector method signatures by receiver type when possible, fall back only to a unique package method name, and unwrap the returned bool before calling `GoChannel.send`.
+- Channel sends that depend on method result types need `go/types` method signatures. If those facts are unavailable, emit the normal type-information-required error; do not infer return wrapping from method names or AST shape.
 - If a method-call argument is a function literal that captures the receiver variable, clone the receiver handle into a local before borrowing it for the call. The statement-level capture rename moves a handle clone into the closure; borrowing the original receiver directly for the method call can still make Rust report "move out because it is borrowed" on patterns like `pk.laterFor(named, func(){ ... pk ... })`.
 - Receiver mutability analysis must use the package-wide method set, not only methods declared in the current file. Cross-file self calls such as `state.getPkgPath` calling `state.determineRootDirs` need the caller emitted as `&mut self` when the callee mutates receiver fields.
 - Promoted method forwarders must preserve the embedded method's emitted receiver mutability. A promoted pointer method that is read-only, such as `loaderPackage.String` forwarding to `Package.String`, should use `&self` and `as_ref`; only mutating embedded pointer methods should use `&mut self` and `as_mut`.
@@ -308,6 +310,7 @@ The test script handles:
   - Broad: `GOCACHE=/private/tmp/go2rust-go-cache ./self_transpile_check.sh --cargo-check`
 - The compile-only self-transpile gate is not enough for self-hosting. The behavioral gate is `GOCACHE=/private/tmp/go2rust-go-cache GO2RUST_BEHAVIOR_JOBS=3 GO2RUST_BEHAVIOR_TIMEOUT=60s ./self_transpile_check.sh --behavior-suite`; it builds the generated Rust transpiler and runs `./test.sh` against that generated binary inside a copied test workspace. The copied suite strips `.rs`, `Cargo.toml`, and `Cargo.lock` snapshots before running so the generated binary must recreate them and prove behavior, not just reuse committed snapshots.
 - Current behavioral self-host checkpoint as of 2026-05-21: `go test ./go`, native `./test.sh -n 6 -t 30s`, package-targeted self-transpile `cargo check -p go`, and generated-binary focused fixtures `unsafe_sizeof_comparison`, `type_switch_default_first`, and `type_switch_reentrant_subject` all pass. A full copied-suite run through the self-transpiled binary reports 162/547 passing, 376/547 failing, and 9 XFAIL. This is behavior progress over the earlier 145/545 checkpoint, but self-hosting is not complete; keep running the generated binary against the behavior suite after each self-host fix.
+- Generated stdlib stubs must not silently synthesize `go/types` facts. If self-hosting reaches `types.Config.Check` or `types.NewChecker(...).Files` without a real implementation, fail at that boundary and build a real bridge/native implementation; do not patch callers with AST-shape type guesses.
 - If a self-transpile check gets past the previous Rust errors and exposes later errors, that is progress. Record the old and new error sets before patching the next boundary.
 - Use self-hosting errors as real feedback. A generated Rust compile error usually points to a translator boundary issue; reduce it to a focused fixture before patching broadly.
 - Type-switch lowering must not keep the subject borrow guard alive while executing case bodies. Clone/bind the case value first, then drop the guard before body statements so a helper can safely inspect the same interface value. Emit non-default type-switch cases before the default fallback; a source-order default before later cases can otherwise move `_ts_guard` and still leave later case conditions using it.
@@ -406,46 +409,59 @@ The test script handles:
 4. **Introduce lifetimes** - replace Arc with references
 5. **Function parameters** - use `&T`/`&mut T` when address not taken
 
-## ⚠️ CRITICAL: Always Use TypeInfo for Type Decisions
+## ⚠️ CRITICAL: Type Info Is Authoritative — No Syntax-Fallback Shortcuts
 
-**The transpiler has complete type information via `go/types` - USE IT!**
-See `go/typeinfo.go` for implementation details.
+**The transpiler has complete type information via `go/types` — USE IT.** See `go/typeinfo.go`.
 
-### How to Make Type-Based Decisions
+### The rule
 
-1. **First, get the TypeInfo**: `typeInfo := GetTypeInfo()`
-2. **Use TypeInfo methods** to query types
-3. **Add new TypeInfo methods** when you need new type queries - don't guess!
+Every code-generation decision MUST come from `go/types`. If `GetTypeInfo()` returns nil, or `typeInfo.GetType(node)` returns nil for a node you are about to emit, that is a **loader bug**, not a hint to guess. The correct response is:
+
+1. **Stop and find why type info is missing.** It is almost always a loader problem (missing Importer, swallowed `types.Config.Check` error, package parsed but not type-checked, etc.). Fix it at the source.
+2. If the gap genuinely cannot be closed from the loader, emit `unimplemented!("type info required for <operation>")` and a `/* ERROR: ... */` comment so the failure is loud at runtime.
+3. **Never** add a `syntaxFallback`, `if typeInfo == nil`, name-pattern heuristic, or "infer from AST shape" branch. Doing so creates a shadow type system that is almost-but-not-quite correct — the worst kind of bug, because tests under full type info keep passing while self-host and partial-info paths silently emit wrong code.
+
+A real incident: between commits 470fcb0b..3e3d9fc3 (May 2026) 15 distinct syntax-fallback branches were added across `captures.go`, `expr.go`, `stmt.go`, `slice_elem_ptr.go`, `typeinfo.go`, etc. The root causes were upstream type-info gaps: local fallback packages lacked a project-aware `types.Importer`, type-check errors were easy to miss, and self-generated `go/types` stdlib stubs returned default success instead of doing real type checking. The fallbacks then produced many wrong code paths instead of forcing those boundaries to be fixed. The lesson: **one type-info source fix beats N heuristic patches every time.**
 
 ### Examples
 
 ```go
-// ✅ CORRECT: Use TypeInfo to determine if it's a map
+// ✅ CORRECT: route every decision through go/types
 typeInfo := GetTypeInfo()
-if typeInfo != nil && typeInfo.IsMap(expr) {
-    // Handle map-specific logic
+if typeInfo == nil {
+    out.WriteString("unimplemented!(\"type info required to lower X\")")
+    return
+}
+if typeInfo.IsMap(expr) {
+    // map-specific logic
 }
 
-// ❌ WRONG: Guessing based on variable names
-if strings.Contains(varName, "map") {
-    // This will fail for variables like "bitmap" or "mapping"
+// ❌ WRONG: name-pattern guessing
+if strings.Contains(varName, "map") { ... }
+
+// ❌ WRONG: AST-shape syntax fallback
+if typeInfo == nil {
+    if _, ok := someAST.Type.(*ast.MapType); ok {
+        // pretend we know it's a map
+    }
 }
+
+// ❌ WRONG: swallowing types.Config.Check errors
+pkg, _ := config.Check("", fset, files, info)  // never do this
 ```
 
-### Why TypeInfo is Essential
+### When you find a nil TypeInfo
 
-1. **100% Accurate**: go/types has already analyzed the entire program
-2. **Handles Complex Cases**: Type aliases, embedded types, interfaces - all resolved
-3. **Cross-file Awareness**: Knows types from imported packages
-4. **Future-proof**: New Go features automatically supported
+1. **Trace where the package was loaded.** Was it `packages.Load` (full `NeedTypesInfo`) or a hand-rolled `NewTypeInfo`? Hand-rolled paths must call `NewTypeInfoWithImporter` with a project-aware `types.Importer` that resolves siblings — see `projectImporter` in `package_loader.go`.
+2. **Check whether errors were swallowed.** `NewTypeInfoWithImporter` accumulates every `types.Error` callback plus the `types.Config.Check` return value and returns them as one joined error. Its result shape is `(typeInfo, nil)` for clean input, `(typeInfo, err)` for partial info, `(nil, err)` when no `*types.Package` was produced. Every caller MUST inspect both — never write `pkg, _ := config.Check(...)`, never discard the returned error from `NewTypeInfo*`, and never assume `err == nil` implies complete information. Strict pipelines (`PackageLoader.typeCheckLocalPackage`, `UnifiedTranspiler.typeCheckAll`) must propagate the error fatally; only opt-in lenient call sites (`project.go`'s stub-tolerant branches) may continue with partial info, and they MUST log the joined error so it lands in CI output.
+3. **Check for synthesized AST nodes.** Any `&ast.Ident{...}` or other node literal constructed inside the transpiler is invisible to `info.Types`. If you need to emit one, either record the type in a side-channel before construction or — preferably — don't construct AST nodes at all; emit Rust directly.
 
-### When TypeInfo Isn't Available
+### Why TypeInfo is essential
 
-If `GetTypeInfo()` returns nil (shouldn't happen in normal operation):
-
-- Generate an error comment: `/* ERROR: Type information required for <operation> */`
-- Use `unimplemented!()` to make the issue obvious
-- Never fall back to heuristics
+1. **100% accurate** — go/types has already analyzed the whole program.
+2. **Handles complex cases** — type aliases, embedded types, interfaces, generics: all resolved.
+3. **Cross-file / cross-package awareness** — knows imported package types provided the Importer is wired up.
+4. **Forward-compatible** — new Go features come along for free.
 
 ## Known Limitations
 

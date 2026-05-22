@@ -63,6 +63,74 @@ func Join[S ~[]T, T ~string](s S) {
 	}
 }
 
+// Bug: types.Config.Check used to be invoked as `pkg, _ := config.Check(...)`,
+// and a later refactor swallowed partial errors onto stderr without ever
+// returning them. Downstream code-gen then ran on partial type info as if it
+// were complete, which is the original source of the "syntax fallback"
+// incident documented in AGENTS.md. These tests pin the contract: every
+// type-check error must reach the caller via the returned error.
+func TestNewTypeInfoWithImporterPropagatesPartialErrors(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+func F() { _ = doesNotExist + 1 }`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile() error = %v", err)
+	}
+	typeInfo, err := NewTypeInfoWithImporter("main", []*ast.File{file}, fset, nil)
+	if err == nil {
+		t.Fatalf("NewTypeInfoWithImporter: expected error for undefined identifier, got nil")
+	}
+	if typeInfo == nil {
+		t.Fatalf("NewTypeInfoWithImporter: expected partial TypeInfo to be returned alongside error, got nil")
+	}
+	if !strings.Contains(err.Error(), "doesNotExist") {
+		t.Fatalf("NewTypeInfoWithImporter: error should mention the failing identifier; got %v", err)
+	}
+	if !strings.Contains(err.Error(), "main") {
+		t.Fatalf("NewTypeInfoWithImporter: error should mention the package label; got %v", err)
+	}
+}
+
+func TestNewTypeInfoWithImporterJoinsAllCheckErrors(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+func F() {
+	_ = missingA
+	_ = missingB
+}`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile() error = %v", err)
+	}
+	typeInfo, err := NewTypeInfoWithImporter("main", []*ast.File{file}, fset, nil)
+	if err == nil {
+		t.Fatalf("expected joined error, got nil")
+	}
+	if typeInfo == nil {
+		t.Fatalf("expected partial TypeInfo alongside joined error, got nil")
+	}
+	for _, want := range []string{"missingA", "missingB"} {
+		if !strings.Contains(err.Error(), want) {
+			t.Fatalf("joined error should mention %q; got %v", want, err)
+		}
+	}
+}
+
+func TestNewTypeInfoWithImporterCleanInputHasNoError(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+func F() int { return 1 + 2 }`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile() error = %v", err)
+	}
+	typeInfo, err := NewTypeInfoWithImporter("main", []*ast.File{file}, fset, nil)
+	if err != nil {
+		t.Fatalf("clean input should not produce a type-check error, got %v", err)
+	}
+	if typeInfo == nil {
+		t.Fatalf("clean input should produce TypeInfo")
+	}
+}
+
 func TestExternalStubDefaultValueUsesNoneForAnyTraitObjects(t *testing.T) {
 	var out strings.Builder
 	writeExternalStubDefaultValue(&out, "Rc<RefCell<Option<Box<dyn Any>>>>")

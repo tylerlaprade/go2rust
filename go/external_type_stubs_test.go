@@ -5,6 +5,21 @@ import (
 	"testing"
 )
 
+func TestParserStubSurfaceRegistersEmptyStmt(t *testing.T) {
+	prevContext := currentContext
+	ctx := &TranspileContext{
+		Package: NewPackageState(),
+		File:    NewFileState(NewImportTracker(), &HelperTracker{}, nil),
+	}
+	SetTranspileContext(ctx)
+	defer SetTranspileContext(prevContext)
+
+	registerParserParseFileStubSurface()
+	if !ctx.File.ExternalTypeStubs["ast_EmptyStmt"] {
+		t.Fatalf("parser.ParseFile stub surface should register ast_EmptyStmt")
+	}
+}
+
 func TestParserStubUsesGoAstShapesForCalls(t *testing.T) {
 	var out strings.Builder
 	writeParserParseFileFunction(&out, externalPackageStubFunction{
@@ -49,5 +64,39 @@ func TestTokenPosIsValidStubUsesPositionValue(t *testing.T) {
 	got := out.String()
 	if !strings.Contains(got, "Some(self.0 != 0)") {
 		t.Fatalf("token.Pos IsValid stub should reflect the stored position:\n%s", got)
+	}
+}
+
+func TestTypesStubsDoNotSilentlySynthesizeTypeInfo(t *testing.T) {
+	var out strings.Builder
+	writeTypesConfigCheckMethod(&out, externalTypeStubMethod{
+		ParamCount: 4,
+		ReturnTypes: []string{
+			"Arc<Mutex<Option<types_Package>>>",
+			"Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>",
+		},
+	})
+	got := out.String()
+	if !strings.Contains(got, "pub fn check<T0, T1, T2, T3>") {
+		t.Fatalf("types.Config Check stub should keep the generated method signature:\n%s", got)
+	}
+	if !strings.Contains(got, "go/types Config.Check is required for TypeInfo") {
+		t.Fatalf("types.Config Check stub should fail at the missing type checker boundary:\n%s", got)
+	}
+	if strings.Contains(got, "Default::default()") {
+		t.Fatalf("types.Config Check stub must not return default type info:\n%s", got)
+	}
+
+	out.Reset()
+	writeTypesCheckerFilesMethod(&out, externalTypeStubMethod{
+		ParamCount:  1,
+		ReturnTypes: []string{"Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>"},
+	})
+	got = out.String()
+	if !strings.Contains(got, "go/types Checker.Files is required for TypeInfo") {
+		t.Fatalf("types.Checker Files stub should fail at the missing type checker boundary:\n%s", got)
+	}
+	if strings.Contains(got, "Default::default()") {
+		t.Fatalf("types.Checker Files stub must not return default type info:\n%s", got)
 	}
 }

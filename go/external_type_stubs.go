@@ -650,6 +650,7 @@ func registerParserParseFileStubSurface() {
 	RegisterExternalTypeStubInterface("ast_Stmt")
 	RegisterExternalTypeStubInterface("ast_Decl")
 	RegisterExternalTypeStubInterface("ast_Spec")
+	RegisterExternalTypeStub("ast_EmptyStmt")
 
 	RegisterExternalTypeStubFieldByRustType("ast_ArrayType", "elt", exprType)
 	RegisterExternalTypeStubFieldByRustType("ast_ArrayType", "len", exprType)
@@ -1807,6 +1808,10 @@ func generateExternalStubs(stubs map[string]bool, interfaceTypes map[string]bool
 			method := methods[methodName]
 			if name == "build_Context" && methodName == "import" {
 				writeBuildContextImportMethod(&out, methodName, method)
+			} else if name == "types_Config" && methodName == "check" {
+				writeTypesConfigCheckMethod(&out, method)
+			} else if name == "types_Checker" && methodName == "files" {
+				writeTypesCheckerFilesMethod(&out, method)
 			} else if name == "token_Pos" && methodName == "is_valid" {
 				writeTokenPosIsValidMethod(&out)
 			} else {
@@ -2889,6 +2894,60 @@ func writeExternalTypeStubMethod(out *strings.Builder, methodName string, method
 		out.WriteString("\n")
 	}
 	out.WriteString("    }\n")
+}
+
+func writeTypesConfigCheckMethod(out *strings.Builder, method externalTypeStubMethod) {
+	out.WriteString("    pub fn check")
+	writeExternalStubGenericParams(out, method.ParamCount)
+	out.WriteString("(&self")
+	writeExternalStubArgs(out, method.ParamCount)
+	out.WriteString(")")
+	if len(method.ReturnTypes) > 0 {
+		out.WriteString(" -> ")
+		writeExternalStubReturnType(out, method.ReturnTypes)
+	}
+	out.WriteString(" {\n")
+	out.WriteString("        panic!(\"go/types Config.Check is required for TypeInfo; generated stdlib stubs must not synthesize type information\")\n")
+	out.WriteString("    }\n")
+}
+
+func writeTypesCheckerFilesMethod(out *strings.Builder, method externalTypeStubMethod) {
+	out.WriteString("    pub fn files")
+	writeExternalStubGenericParams(out, method.ParamCount)
+	out.WriteString("(&self")
+	writeExternalStubArgs(out, method.ParamCount)
+	out.WriteString(")")
+	if len(method.ReturnTypes) > 0 {
+		out.WriteString(" -> ")
+		writeExternalStubReturnType(out, method.ReturnTypes)
+	}
+	out.WriteString(" {\n")
+	out.WriteString("        panic!(\"go/types Checker.Files is required for TypeInfo; generated stdlib stubs must not synthesize type information\")\n")
+	out.WriteString("    }\n")
+}
+
+func writeExternalStubGenericParams(out *strings.Builder, count int) {
+	if count <= 0 {
+		return
+	}
+	out.WriteString("<")
+	for i := 0; i < count; i++ {
+		if i > 0 {
+			out.WriteString(", ")
+		}
+		out.WriteString("T")
+		out.WriteString(strconv.Itoa(i))
+	}
+	out.WriteString(">")
+}
+
+func writeExternalStubArgs(out *strings.Builder, count int) {
+	for i := 0; i < count; i++ {
+		out.WriteString(", _arg")
+		out.WriteString(strconv.Itoa(i))
+		out.WriteString(": T")
+		out.WriteString(strconv.Itoa(i))
+	}
 }
 
 func writeTokenPosIsValidMethod(out *strings.Builder) {

@@ -2111,9 +2111,14 @@ func TestPackageGlobalsRangeSelectorUsesRangeBinding(t *testing.T) {
 	if target == nil {
 		t.Fatal("package_globals.go was not parsed")
 	}
+	// The transpiler's own files import non-stdlib packages such as
+	// golang.org/x/tools/go/packages that the default importer cannot resolve.
+	// NewTypeInfoWithImporter now returns those partial-info errors instead of
+	// silently dropping them, but the regression being pinned here only needs
+	// the in-package type information.
 	typeInfo, err := NewTypeInfo(files, fset)
-	if err != nil {
-		t.Fatalf("NewTypeInfo() error = %v", err)
+	if typeInfo == nil {
+		t.Fatalf("NewTypeInfo() returned no TypeInfo: %v", err)
 	}
 	SetTypeInfo(typeInfo)
 	defer SetTypeInfo(nil)
