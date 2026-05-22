@@ -3471,6 +3471,45 @@ func writeBareStringSliceValue(out *strings.Builder, expr ast.Expr, expected typ
 	return true
 }
 
+func rangeLoopVarIsUsize(name string) bool {
+	return rangeLoopVars[name] == "usize"
+}
+
+func rustCastForExpectedBasic(expected types.Type) string {
+	if expected == nil {
+		return ""
+	}
+	basic, ok := types.Unalias(expected).Underlying().(*types.Basic)
+	if !ok {
+		return ""
+	}
+	switch basic.Kind() {
+	case types.Int, types.Int32:
+		return "i32"
+	case types.Int8:
+		return "i8"
+	case types.Int16:
+		return "i16"
+	case types.Int64:
+		return "i64"
+	case types.Uint, types.Uint32:
+		return "u32"
+	case types.Uint8:
+		return "u8"
+	case types.Uint16:
+		return "u16"
+	case types.Uint64:
+		return "u64"
+	case types.Uintptr:
+		return "usize"
+	case types.Float32:
+		return "f32"
+	case types.Float64:
+		return "f64"
+	}
+	return ""
+}
+
 func writeBareCompoundAssignValueForOp(out *strings.Builder, expr ast.Expr, expected types.Type, op token.Token) {
 	if writeNamedIntegerConstCompoundAssignValue(out, expr, expected, op) {
 		return
@@ -3505,6 +3544,16 @@ func writeBareCompoundAssignValueForOp(out *strings.Builder, expr ast.Expr, expe
 				out.WriteString(".clone()")
 			}
 			return
+		}
+		if isRangeVar && rangeLoopVarIsUsize(ident.Name) && expected != nil {
+			if rustCast := rustCastForExpectedBasic(expected); rustCast != "" {
+				out.WriteString("(")
+				out.WriteString(EscapeRustIdent(ident.Name))
+				out.WriteString(" as ")
+				out.WriteString(rustCast)
+				out.WriteString(")")
+				return
+			}
 		}
 		out.WriteString(EscapeRustIdent(ident.Name))
 		return
