@@ -627,6 +627,29 @@ func main() {
 	}
 }
 
+func TestNoTypeInfoFixedArrayLocalIndexUsesSyntaxTracking(t *testing.T) {
+	rust := transpileNoTypeInfoRegression(t, `package main
+
+import "fmt"
+
+func main() {
+	var buf [128]byte
+	fmt.Println(len(buf), buf[0])
+}`)
+
+	for _, bad := range []string{
+		"Cannot determine if map or slice access",
+		"type info required for index expression",
+	} {
+		if strings.Contains(rust, bad) {
+			t.Fatalf("fixed array local should track indexability without %q:\n%s", bad, rust)
+		}
+	}
+	if !strings.Contains(rust, "[(0) as usize].clone()") {
+		t.Fatalf("fixed array local index should use direct sequence indexing:\n%s", rust)
+	}
+}
+
 func TestNoTypeInfoLocalCollectionTrackingIsFunctionScoped(t *testing.T) {
 	prevTypeInfo := currentTypeInfo
 	defer func() { currentTypeInfo = prevTypeInfo }()

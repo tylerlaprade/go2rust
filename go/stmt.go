@@ -639,6 +639,9 @@ func registerTypeExprCollectionInfo(name string, typeExpr ast.Expr) {
 		if typ.Len == nil {
 			localCollectionKinds[name] = "slice"
 			localRangeElemRustTypes[name] = goCollectionElemTypeToRust(typ.Elt)
+		} else {
+			localCollectionKinds[name] = "array"
+			localRangeElemRustTypes[name] = goCollectionElemTypeToRust(typ.Elt)
 		}
 	case *ast.MapType:
 		localCollectionKinds[name] = "map"
