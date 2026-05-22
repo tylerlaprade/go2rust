@@ -219,6 +219,13 @@ func RegisterExternalTypeStubMethod(typeName string, methodName string, sig *typ
 	methods[typeName][methodName] = method
 }
 
+// TEMPORARY: this registers a hand-written Rust shim for go/types.Config.Check.
+// The long-term fix is to transpile go/types itself. Do not grow this surface
+// to cover *types.Named, *types.Pointer, *types.Map, etc. — each new bridge
+// entry is a step toward writing a Rust port of the Go stdlib, which is what
+// the transpiler exists to avoid. See docs/rules/self-host-rules.md "Strategy:
+// Transpile stdlib, don't bridge it". Any addition here MUST panic loudly on
+// unsupported paths and carry its own TEMPORARY comment with a removal plan.
 func registerTypesCheckBridgeSurface() {
 	TrackImport("BTreeMap")
 	RegisterExternalTypeStub("types_Info")
@@ -2856,6 +2863,12 @@ func writeExternalInterfacePosMethod(out *strings.Builder) {
 	out.WriteString("    }\n")
 }
 
+// TEMPORARY: hand-written Rust bridge for go/types.Type. The long-term fix is
+// to transpile the relevant `go/types` source rather than maintain a Rust
+// shim — see docs/rules/self-host-rules.md "Strategy: Transpile stdlib, don't
+// bridge it". Until then, every unsupported kind MUST panic so gaps are
+// visible in CI. Returning `String::new()` or `types_Type::default()` here
+// would silently synthesize type facts and re-enact the 2026 fallback incident.
 func writeTypesTypeStringMethod(out *strings.Builder) {
 	out.WriteString("    pub fn string(&self) -> ")
 	out.WriteString(wrappedExternalStubType("String"))
@@ -2865,12 +2878,11 @@ func writeTypesTypeStringMethod(out *strings.Builder) {
 	out.WriteString(wrappedExternalStubExpr("String", "value.__go_name.clone()"))
 	out.WriteString(";\n")
 	out.WriteString("        }\n")
-	out.WriteString("        ")
-	out.WriteString(wrappedExternalStubExpr("String", "String::new()"))
-	out.WriteString("\n")
+	out.WriteString("        panic!(\"types.Type.String() bridge: unsupported types.Type kind; transpile go/types instead of extending the bridge — see docs/rules/self-host-rules.md\")\n")
 	out.WriteString("    }\n")
 }
 
+// TEMPORARY: see writeTypesTypeStringMethod. Same rule applies.
 func writeTypesTypeUnderlyingMethod(out *strings.Builder) {
 	out.WriteString("    pub fn underlying(&self) -> ")
 	out.WriteString(wrappedExternalStubType("types_Type"))
@@ -2880,9 +2892,7 @@ func writeTypesTypeUnderlyingMethod(out *strings.Builder) {
 	out.WriteString(wrappedExternalStubExpr("types_Type", "self.clone()"))
 	out.WriteString(";\n")
 	out.WriteString("        }\n")
-	out.WriteString("        ")
-	out.WriteString(wrappedExternalStubExpr("types_Type", "types_Type::default()"))
-	out.WriteString("\n")
+	out.WriteString("        panic!(\"types.Type.Underlying() bridge: unsupported types.Type kind; transpile go/types instead of extending the bridge — see docs/rules/self-host-rules.md\")\n")
 	out.WriteString("    }\n")
 }
 

@@ -140,6 +140,37 @@ func TestTypesStubsDoNotSilentlySynthesizeTypeInfo(t *testing.T) {
 	}
 }
 
+// Bridge methods for go/types must panic loudly on unsupported kinds rather
+// than returning Default/empty values. Returning soft defaults here is
+// structurally the same bug as the 2026 syntax-fallback incident: callers
+// receive plausible-but-wrong type information and the failure shows up as a
+// downstream code-gen mystery instead of an obvious crash at the boundary.
+// See docs/rules/self-host-rules.md "Strategy: Transpile stdlib, don't bridge it".
+func TestTypesTypeBridgeMethodsPanicOnUnsupportedKinds(t *testing.T) {
+	var out strings.Builder
+	writeTypesTypeStringMethod(&out)
+	got := out.String()
+	if strings.Contains(got, "String::new()") {
+		t.Fatalf("types.Type.String() bridge must not return an empty String for unsupported kinds:\n%s", got)
+	}
+	if !strings.Contains(got, "panic!(") {
+		t.Fatalf("types.Type.String() bridge must panic on unsupported kinds:\n%s", got)
+	}
+	if !strings.Contains(got, "transpile go/types") {
+		t.Fatalf("types.Type.String() panic should point at the transpile-not-bridge strategy:\n%s", got)
+	}
+
+	out.Reset()
+	writeTypesTypeUnderlyingMethod(&out)
+	got = out.String()
+	if strings.Contains(got, "types_Type::default()") {
+		t.Fatalf("types.Type.Underlying() bridge must not return a default Type for unsupported kinds:\n%s", got)
+	}
+	if !strings.Contains(got, "panic!(") {
+		t.Fatalf("types.Type.Underlying() bridge must panic on unsupported kinds:\n%s", got)
+	}
+}
+
 func TestTypesConfigCheckBridgeRunsGoTypes(t *testing.T) {
 	var out strings.Builder
 	writeTypesBridgeSupport(&out)
