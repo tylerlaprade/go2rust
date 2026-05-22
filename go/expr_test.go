@@ -572,6 +572,76 @@ func main() {
 	}
 }
 
+func TestNoTypeInfoJsonMarshalCompositeMapFieldUsesStructSyntax(t *testing.T) {
+	rust := transpileNoTypeInfoRegression(t, `package main
+
+import "encoding/json"
+
+type OverlayJSON struct {
+	Replace map[string]string `+"`json:\"replace,omitempty\"`"+`
+}
+
+func main() {
+	overlays := map[string]string{"b.go": "tmp-b", "a.go": "tmp-a"}
+	_, _ = json.Marshal(OverlayJSON{Replace: overlays})
+}`)
+
+	for _, bad := range []string{
+		"Type information required for json.Marshal",
+		"json.Marshal currently supports struct values",
+		"unimplemented!()",
+	} {
+		if strings.Contains(rust, bad) {
+			t.Fatalf("json.Marshal should use struct syntax fallback without %q:\n%s", bad, rust)
+		}
+	}
+	for _, want := range []string{
+		"let __json_value = OverlayJSON { replace: overlays.clone(), ..Default::default() }",
+		"let __map_guard = __json_value.replace.borrow()",
+		"go_json_escape(__k)",
+		`format!("\"replace\":{{{}}}", __map_entries)`,
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("missing %q in json.Marshal syntax fallback output:\n%s", want, rust)
+		}
+	}
+}
+
+func TestNoTypeInfoJsonMarshalTrackedStructLocalUsesStructSyntax(t *testing.T) {
+	rust := transpileNoTypeInfoRegression(t, `package main
+
+import "encoding/json"
+
+type User struct {
+	Name string `+"`json:\"name\"`"+`
+	Age  int    `+"`json:\"age\"`"+`
+}
+
+func main() {
+	u := User{Name: "Alice", Age: 30}
+	_, _ = json.Marshal(u)
+}`)
+
+	for _, bad := range []string{
+		"Type information required for json.Marshal",
+		"json.Marshal currently supports struct values",
+		"unimplemented!()",
+	} {
+		if strings.Contains(rust, bad) {
+			t.Fatalf("json.Marshal tracked struct local should use syntax fallback without %q:\n%s", bad, rust)
+		}
+	}
+	for _, want := range []string{
+		"let __json_value = (*u.borrow().as_ref().unwrap()).clone()",
+		`format!("\"name\":\"{}\"", go_json_escape(`,
+		`format!("\"age\":{}", *`,
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("missing %q in json.Marshal tracked local output:\n%s", want, rust)
+		}
+	}
+}
+
 func TestNoTypeInfoStringSliceBoundsUseStringOutput(t *testing.T) {
 	rust := transpileNoTypeInfoRegression(t, `package main
 
