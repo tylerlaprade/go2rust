@@ -200,7 +200,7 @@ pub fn force_concurrent_wrappers() {
     let done_thread = done.clone(); std::thread::spawn(move || {
         done_thread.send(true);;;
     });
-    done.recv().unwrap();
+    done.recv().unwrap_or_default();
 }
 
 pub fn pick_name(names: Arc<Mutex<Option<Vec<String>>>>, idx: Arc<Mutex<Option<example_com_importedembed_base::Index>>>) -> Arc<Mutex<Option<String>>> {

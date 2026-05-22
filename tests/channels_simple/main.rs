@@ -64,17 +64,11 @@ impl<T> GoChannel<T> {
         }
     }
 
-    fn recv(&self) -> Option<T>
-    where
-        T: Default,
-    {
+    fn recv(&self) -> Option<T> {
         if self.is_nil() {
             return None;
         }
-        let value = match self.rx.lock().unwrap().recv() {
-            Ok(value) => Some(value),
-            Err(_) => Some(T::default()),
-        };
+        let value = self.rx.lock().unwrap().recv().ok();
         if value.is_some() && self.capacity > 0 {
             let _ = self.len.fetch_update(
                 std::sync::atomic::Ordering::SeqCst,
@@ -151,18 +145,7 @@ impl<T> std::fmt::Debug for GoChannel<T> {
 impl<T> Iterator for GoChannel<T> {
     type Item = T;
     fn next(&mut self) -> Option<T> {
-        if self.is_nil() {
-            return None;
-        }
-        let value = self.rx.lock().unwrap().recv().ok();
-        if value.is_some() && self.capacity > 0 {
-            let _ = self.len.fetch_update(
-                std::sync::atomic::Ordering::SeqCst,
-                std::sync::atomic::Ordering::SeqCst,
-                |__go_current| __go_current.checked_sub(1),
-            );
-        }
-        value
+        self.recv()
     }
 }
 
@@ -173,6 +156,6 @@ fn main() {
         messages_thread.send("ping".to_string());;;
     });
 
-    let mut msg = Arc::new(Mutex::new(Some(messages.recv().unwrap())));
+    let mut msg = Arc::new(Mutex::new(Some(messages.recv().unwrap_or_default())));
     println!("{}", format!("{}", { let __v = (*msg.lock().unwrap().as_ref().unwrap()).clone(); __v }));
 }

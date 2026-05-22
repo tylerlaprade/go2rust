@@ -2108,7 +2108,7 @@ func writeErrorChannelNamedReturnAssignment(out *strings.Builder, name *ast.Iden
 	}
 	out.WriteString("{ let new_val = ")
 	writeChannelExpression(out, unary.X)
-	out.WriteString(".recv().unwrap(); *")
+	out.WriteString(".recv().unwrap_or_default(); *")
 	out.WriteString(RustLocalIdent(name.Name))
 	WriteBorrowMethod(out, true)
 	out.WriteString(" = new_val; }")
@@ -3796,7 +3796,7 @@ func writeErrorHandleFromChannelReceive(out *strings.Builder, channel ast.Expr) 
 		out.WriteString("Rc::new(RefCell::new(")
 	}
 	writeChannelExpression(out, channel)
-	out.WriteString(".recv().unwrap()))")
+	out.WriteString(".recv().unwrap_or_default()))")
 }
 
 func writeEmptyErrorHandle(out *strings.Builder) {
@@ -3837,7 +3837,7 @@ func writeErrorChannelReceiveAssignment(out *strings.Builder, lhs ast.Expr, rhs 
 	}
 	out.WriteString("{ let new_val = ")
 	writeChannelExpression(out, unary.X)
-	out.WriteString(".recv().unwrap(); *")
+	out.WriteString(".recv().unwrap_or_default(); *")
 	TranspileExpressionContext(out, lhs, LValue)
 	WriteBorrowMethod(out, true)
 	out.WriteString(" = new_val; }")

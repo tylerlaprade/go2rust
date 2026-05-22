@@ -5601,8 +5601,10 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			out.WriteString(".as_mut().unwrap())")
 		case token.ARROW:
 			// Channel receive: <-ch
+			// unwrap_or_default mirrors Go: a receive from a closed channel
+			// yields the element type's zero value, not a panic.
 			writeChannelExpression(out, e.X)
-			out.WriteString(".recv().unwrap()")
+			out.WriteString(".recv().unwrap_or_default()")
 		case token.ADD:
 			// Unary plus is a no-op in Rust.
 			TranspileExpression(out, e.X)

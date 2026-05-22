@@ -64,17 +64,11 @@ impl<T> GoChannel<T> {
         }
     }
 
-    fn recv(&self) -> Option<T>
-    where
-        T: Default,
-    {
+    fn recv(&self) -> Option<T> {
         if self.is_nil() {
             return None;
         }
-        let value = match self.rx.lock().unwrap().recv() {
-            Ok(value) => Some(value),
-            Err(_) => Some(T::default()),
-        };
+        let value = self.rx.lock().unwrap().recv().ok();
         if value.is_some() && self.capacity > 0 {
             let _ = self.len.fetch_update(
                 std::sync::atomic::Ordering::SeqCst,
@@ -151,18 +145,7 @@ impl<T> std::fmt::Debug for GoChannel<T> {
 impl<T> Iterator for GoChannel<T> {
     type Item = T;
     fn next(&mut self) -> Option<T> {
-        if self.is_nil() {
-            return None;
-        }
-        let value = self.rx.lock().unwrap().recv().ok();
-        if value.is_some() && self.capacity > 0 {
-            let _ = self.len.fetch_update(
-                std::sync::atomic::Ordering::SeqCst,
-                std::sync::atomic::Ordering::SeqCst,
-                |__go_current| __go_current.checked_sub(1),
-            );
-        }
-        value
+        self.recv()
     }
 }
 
@@ -176,7 +159,7 @@ pub fn receive(ch: GoChannel<Option<Box<dyn StdError + Send + Sync>>>) -> Arc<Mu
     }) as Box<dyn FnMut() -> () + Send + Sync>))); let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
     }));
     {
-        { let new_val = ch.recv().unwrap(); *err.lock().unwrap() = new_val; };
+        { let new_val = ch.recv().unwrap_or_default(); *err.lock().unwrap() = new_val; };
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
@@ -198,7 +181,7 @@ pub fn select_receive(ch: GoChannel<Option<Box<dyn StdError + Send + Sync>>>) ->
 
 pub fn local_receive(ch: GoChannel<Option<Box<dyn StdError + Send + Sync>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
 
-    let mut err = Arc::new(Mutex::new(ch.recv().unwrap()));
+    let mut err = Arc::new(Mutex::new(ch.recv().unwrap_or_default()));
     return err.clone();
 }
 

@@ -64,17 +64,11 @@ impl<T> GoChannel<T> {
         }
     }
 
-    fn recv(&self) -> Option<T>
-    where
-        T: Default,
-    {
+    fn recv(&self) -> Option<T> {
         if self.is_nil() {
             return None;
         }
-        let value = match self.rx.lock().unwrap().recv() {
-            Ok(value) => Some(value),
-            Err(_) => Some(T::default()),
-        };
+        let value = self.rx.lock().unwrap().recv().ok();
         if value.is_some() && self.capacity > 0 {
             let _ = self.len.fetch_update(
                 std::sync::atomic::Ordering::SeqCst,
@@ -151,18 +145,7 @@ impl<T> std::fmt::Debug for GoChannel<T> {
 impl<T> Iterator for GoChannel<T> {
     type Item = T;
     fn next(&mut self) -> Option<T> {
-        if self.is_nil() {
-            return None;
-        }
-        let value = self.rx.lock().unwrap().recv().ok();
-        if value.is_some() && self.capacity > 0 {
-            let _ = self.len.fetch_update(
-                std::sync::atomic::Ordering::SeqCst,
-                std::sync::atomic::Ordering::SeqCst,
-                |__go_current| __go_current.checked_sub(1),
-            );
-        }
-        value
+        self.recv()
     }
 }
 
@@ -193,7 +176,7 @@ impl Holder {
         self.ch = GoChannel::<i32>::new_buffered(2 as usize);
         self.ch.send(1);
         println!("{} {} {}", format!("{}", !self.ch.is_nil()), format!("{}", self.ch.len()), format!("{}", self.ch.capacity()));
-        println!("{}", format!("{}", self.ch.recv().unwrap()));
+        println!("{}", format!("{}", self.ch.recv().unwrap_or_default()));
         self.ch = Default::default();
         println!("{}", format!("{}", self.ch.is_nil()));
     }
@@ -209,7 +192,7 @@ fn main() {
     println!("{}", format!("{}", (*h2.lock().unwrap().as_ref().unwrap()).ch.len()));
     println!("{}", format!("{}", (*h2.lock().unwrap().as_ref().unwrap()).ch.capacity()));
     (*h2.lock().unwrap().as_ref().unwrap()).ch.send(7);
-    println!("{}", format!("{}", (*h2.lock().unwrap().as_ref().unwrap()).ch.recv().unwrap()));
+    println!("{}", format!("{}", (*h2.lock().unwrap().as_ref().unwrap()).ch.recv().unwrap_or_default()));
 
     let mut h3 = Arc::new(Mutex::new(Some(Holder { ch: Default::default(), ..Default::default() })));
     println!("{}", format!("{}", (*(*h3.lock().unwrap().as_ref().unwrap()).ready().lock().unwrap().as_ref().unwrap())));

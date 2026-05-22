@@ -64,17 +64,11 @@ impl<T> GoChannel<T> {
         }
     }
 
-    fn recv(&self) -> Option<T>
-    where
-        T: Default,
-    {
+    fn recv(&self) -> Option<T> {
         if self.is_nil() {
             return None;
         }
-        let value = match self.rx.lock().unwrap().recv() {
-            Ok(value) => Some(value),
-            Err(_) => Some(T::default()),
-        };
+        let value = self.rx.lock().unwrap().recv().ok();
         if value.is_some() && self.capacity > 0 {
             let _ = self.len.fetch_update(
                 std::sync::atomic::Ordering::SeqCst,
@@ -151,18 +145,7 @@ impl<T> std::fmt::Debug for GoChannel<T> {
 impl<T> Iterator for GoChannel<T> {
     type Item = T;
     fn next(&mut self) -> Option<T> {
-        if self.is_nil() {
-            return None;
-        }
-        let value = self.rx.lock().unwrap().recv().ok();
-        if value.is_some() && self.capacity > 0 {
-            let _ = self.len.fetch_update(
-                std::sync::atomic::Ordering::SeqCst,
-                std::sync::atomic::Ordering::SeqCst,
-                |__go_current| __go_current.checked_sub(1),
-            );
-        }
-        value
+        self.recv()
     }
 }
 
@@ -453,7 +436,7 @@ fn main() {
 
     let (mut ctx2, mut cancel2) = GoContext::with_cancel_cause(Arc::new(Mutex::new(Some(GoContext::background()))).clone());
     { let __f_ptr: *mut GoCancelCauseFunc = { let mut __f_guard = cancel2.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut GoCancelCauseFunc }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(Mutex::new(Some(Box::<dyn std::error::Error + Send + Sync>::from("boom".to_string()))))) };
-    (*ctx2.lock().unwrap().as_ref().unwrap()).done().recv().unwrap();
+    (*ctx2.lock().unwrap().as_ref().unwrap()).done().recv().unwrap_or_default();
     println!("{} {}", format!("{}", "Cause cancel:".to_string()), format!("{}", format!("{}", (*((*ctx2.lock().unwrap().as_ref().unwrap()).err()).lock().unwrap().as_ref().unwrap()))));
 
     // Execute deferred functions

@@ -65,17 +65,11 @@ impl<T> GoChannel<T> {
         }
     }
 
-    fn recv(&self) -> Option<T>
-    where
-        T: Default,
-    {
+    fn recv(&self) -> Option<T> {
         if self.is_nil() {
             return None;
         }
-        let value = match self.rx.lock().unwrap().recv() {
-            Ok(value) => Some(value),
-            Err(_) => Some(T::default()),
-        };
+        let value = self.rx.lock().unwrap().recv().ok();
         if value.is_some() && self.capacity > 0 {
             let _ = self.len.fetch_update(
                 std::sync::atomic::Ordering::SeqCst,
@@ -152,18 +146,7 @@ impl<T> std::fmt::Debug for GoChannel<T> {
 impl<T> Iterator for GoChannel<T> {
     type Item = T;
     fn next(&mut self) -> Option<T> {
-        if self.is_nil() {
-            return None;
-        }
-        let value = self.rx.lock().unwrap().recv().ok();
-        if value.is_some() && self.capacity > 0 {
-            let _ = self.len.fetch_update(
-                std::sync::atomic::Ordering::SeqCst,
-                std::sync::atomic::Ordering::SeqCst,
-                |__go_current| __go_current.checked_sub(1),
-            );
-        }
-        value
+        self.recv()
     }
 }
 
@@ -290,7 +273,7 @@ fn main() {
     let mut limiter = go_tick(std::time::Duration::from_millis(100));
 
     for req in requests.clone() {
-        limiter.recv().unwrap();
+        limiter.recv().unwrap_or_default();
         println!("{} {}", format!("{}", "regular request".to_string()), format!("{}", req));
     }
 
@@ -316,7 +299,7 @@ fn main() {
     }
     burstyRequests.close();
     for req in burstyRequests.clone() {
-        burstyLimiter.recv().unwrap();
+        burstyLimiter.recv().unwrap_or_default();
         println!("{} {}", format!("{}", "bursty request".to_string()), format!("{}", req));
     }
 }

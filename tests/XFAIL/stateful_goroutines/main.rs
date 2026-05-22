@@ -66,17 +66,11 @@ impl<T> GoChannel<T> {
         }
     }
 
-    fn recv(&self) -> Option<T>
-    where
-        T: Default,
-    {
+    fn recv(&self) -> Option<T> {
         if self.is_nil() {
             return None;
         }
-        let value = match self.rx.lock().unwrap().recv() {
-            Ok(value) => Some(value),
-            Err(_) => Some(T::default()),
-        };
+        let value = self.rx.lock().unwrap().recv().ok();
         if value.is_some() && self.capacity > 0 {
             let _ = self.len.fetch_update(
                 std::sync::atomic::Ordering::SeqCst,
@@ -153,18 +147,7 @@ impl<T> std::fmt::Debug for GoChannel<T> {
 impl<T> Iterator for GoChannel<T> {
     type Item = T;
     fn next(&mut self) -> Option<T> {
-        if self.is_nil() {
-            return None;
-        }
-        let value = self.rx.lock().unwrap().recv().ok();
-        if value.is_some() && self.capacity > 0 {
-            let _ = self.len.fetch_update(
-                std::sync::atomic::Ordering::SeqCst,
-                std::sync::atomic::Ordering::SeqCst,
-                |__go_current| __go_current.checked_sub(1),
-            );
-        }
-        value
+        self.recv()
     }
 }
 
@@ -294,7 +277,7 @@ fn main() {
         let done_thread = done.clone(); let readOps_thread = Arc::new(Mutex::new(Some((*readOps.lock().unwrap().as_ref().unwrap()).clone()))); let reads_thread = reads.clone(); std::thread::spawn(move || {
         let mut read = Arc::new(Mutex::new(Some(readOp { key: Arc::new(Mutex::new(Some(go_rand_intn(5 as i32)))), resp: GoChannel::<i32>::new(), ..Default::default() })));;
         reads_thread.send(read.lock().unwrap().as_ref().unwrap().clone());;
-        (*read.lock().unwrap().as_ref().unwrap()).resp.recv().unwrap();;
+        (*read.lock().unwrap().as_ref().unwrap()).resp.recv().unwrap_or_default();;
         atomic::add_uint64(readOps_thread.clone(), 1);;
         done_thread.send(true);;;
     });
@@ -306,7 +289,7 @@ fn main() {
         let done_thread = done.clone(); let writeOps_thread = Arc::new(Mutex::new(Some((*writeOps.lock().unwrap().as_ref().unwrap()).clone()))); let writes_thread = writes.clone(); std::thread::spawn(move || {
         let mut write = Arc::new(Mutex::new(Some(writeOp { key: Arc::new(Mutex::new(Some(go_rand_intn(5 as i32)))), val: Arc::new(Mutex::new(Some(go_rand_intn(100 as i32)))), resp: GoChannel::<bool>::new(), ..Default::default() })));;
         writes_thread.send(write.lock().unwrap().as_ref().unwrap().clone());;
-        (*write.lock().unwrap().as_ref().unwrap()).resp.recv().unwrap();;
+        (*write.lock().unwrap().as_ref().unwrap()).resp.recv().unwrap_or_default();;
         atomic::add_uint64(writeOps_thread.clone(), 1);;
         done_thread.send(true);;;
     });
@@ -315,7 +298,7 @@ fn main() {
 
     let mut i = Arc::new(Mutex::new(Some(0)));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 110; __tmp_x < __tmp_y } {
-        done.recv().unwrap();
+        done.recv().unwrap_or_default();
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
 

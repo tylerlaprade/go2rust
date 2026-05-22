@@ -11,7 +11,7 @@ fn main() {
     let done_thread = done.clone(); std::thread::spawn(move || {
         done_thread.send(true);;;
     });
-    done.recv().unwrap();
+    done.recv().unwrap_or_default();
 
     let mut seen = Arc::new(Mutex::new(Some(BTreeMap::<Entry, Arc<Mutex<Option<u32>>>>::from([]))));
     let mut k = Arc::new(Mutex::new(Some(Kind(Arc::new(Mutex::new(Some(2 as i32)))))));

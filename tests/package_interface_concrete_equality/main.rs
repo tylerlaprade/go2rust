@@ -7,7 +7,7 @@ pub fn init_concurrency() {
     let done_thread = done.clone(); std::thread::spawn(move || {
         done_thread.send(true);;;
     });
-    done.recv().unwrap();
+    done.recv().unwrap_or_default();
 }
 
 fn main() {
