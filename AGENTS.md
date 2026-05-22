@@ -1,473 +1,112 @@
 # Go2Rust Transpiler Project
 
-## Development Guidelines
+## Operating Rules
 
-- **No time constraints** - You have an unlimited amount of time to work, so be methodical and thorough. Don't take shortcuts or give up, even if the work seems tedious.
-- **Understand before changing** - if something seems wrong, investigate deeper
-- **Never add generated files to .gitignore** - fix the root cause instead
-- **We're a syntax translator, not a compiler** - no optimization, just translation
-- **Use Go's AST and go/types** - don't reinvent type analysis
-- **Test-driven development** - XFAIL tests auto-promote when passing
-- **Always run tests** before committing or moving to next task
-- **Every bug gets a test, no exceptions** - whether you found it in a fixture, a Go unit test, a self-host `cargo check`, the behavior suite, or a manual repro, write a minimal failing test FIRST, then fix it. Self-host bugs are not "infrastructure" — they are translator bugs and a fixture (under `tests/XFAIL/<name>/`) or `go/*_test.go` must accompany the fix. A fix without a test will silently regress on the next round of changes.
-- **Self-hosting requires behavior equivalence** - generated Rust compiling is not enough; run the self-transpiled binary against the full fixture behavior suite with `./self_transpile_check.sh --behavior-suite`
-- **Update README** when adding support for new Go syntax features
-- **Update ROADMAP.md** after implementing features or making progress on phases
-- **Include transpiled Rust files in commits** when transpiler changes affect them (output of test cases)
-- **Preserve test output files** (.rs, Cargo.toml) - they're debugging snapshots. Test `Cargo.lock` files are gitignored: tests have no dependencies, so Cargo regenerates them deterministically and they record nothing useful
-- **ENSURE DETERMINISTIC OUTPUT** - Always sort map keys before iterating when generating output. The transpiler MUST produce identical output for identical input
-- **Keep generated work temporary unless it is a test snapshot** - self-transpile workspaces, Go build caches, and Cargo target dirs should live under temp dirs and be removed after validation
-- **Commit granularly** - keep code, generated test snapshots, README/ROADMAP updates, and auto-promotions together when they belong to the same passing feature
+- Take the time needed to understand the code before changing it.
+- This project is a syntax translator, not a compiler. Preserve source behavior; do not optimize unless the current code already has a specific local rule for it.
+- Use Go's AST and `go/types` for analysis. Do not build parallel type inference from names, syntax shape, or generated Rust symptoms.
+- Every bug gets a minimal failing test first: a fixture under `tests/XFAIL/<name>/` or a focused `go/*_test.go` case. Self-host failures are translator bugs, not infrastructure exceptions.
+- Run tests before moving on. Use `./test.sh <fixture>` for focused fixtures and `./test.sh` or the relevant self-host gate for broader validation.
+- Never add generated files to `.gitignore`; fix the generator or output location.
+- Preserve generated test snapshots (`.rs`, `Cargo.toml`) when a translator change affects them. Test `Cargo.lock` files stay ignored.
+- Keep generated work temporary unless it is a test snapshot. Put self-transpile workspaces, Go build caches, and Cargo targets under temp directories and remove them after validation.
+- Keep output deterministic. Sort map keys before generating output.
+- Update `README.md` when adding support for new Go syntax features.
+- Update `ROADMAP.md` after implementing features or making phase progress.
+- Commit granularly. Code, generated snapshots, README/ROADMAP updates, and XFAIL auto-promotions belong together only when they describe the same passing feature.
 
-## Core Philosophy: Conservative Translation with Smart Optimization
+## Core Model
 
-**Smart wrapper selection based on concurrency detection:**
+Go2Rust translates Go into conservative Rust using wrapper handles for Go value semantics:
 
-- Single-threaded code uses `Rc<RefCell<Option<T>>>` for better performance
-- Concurrent code uses `Arc<Mutex<Option<T>>>` for thread safety
-- Automatic detection of goroutines, channels, and async operations
+- Single-threaded code uses `Rc<RefCell<Option<T>>>`.
+- Concurrent code uses `Arc<Mutex<Option<T>>>`.
+- Concurrency detection is driven by goroutines, channels, and async stdlib operations.
 
-This wraps all variables, parameters, returns, and fields because:
+Variables, parameters, returns, and fields are wrapped because Go allows taking the address of any variable, including parameters. Correctness and a uniform model matter more than early specialization.
 
-- Go allows taking the address of ANY variable (even parameters)
-- Correctness over performance
-- Simplicity over cleverness
-- Uniform mental model
+| Go Type | Current Rust Shape | Future Direction |
+| --- | --- | --- |
+| `*T` | `Arc<Mutex<Option<T>>>` / `Rc<RefCell<Option<T>>>` | `&T`, `&mut T`, `Box<T>` |
+| `[]T` | `Arc<Mutex<Vec<T>>>` / `Rc<RefCell<Vec<T>>>` | `Vec<T>`, `&[T]` |
+| `map[K]V` | wrapped `BTreeMap<K, V>` | direct map where provably safe |
+| `interface{}` / `any` | wrapped `Box<dyn Any>` | specific interface shapes |
+| `chan T` | `GoChannel<T>` / sender-receiver helper | same semantics |
 
-```go
-// Go (no concurrency)
-func add(a, b int) int {
-    return a + b
-}
-```
-
-```rust
-// Rust translation (single-threaded)
-fn add(a: Rc<RefCell<Option<i32>>>, b: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>> {
-    Rc::new(RefCell::new(Some(
-        (*a.borrow().as_ref().unwrap()) + (*b.borrow().as_ref().unwrap())
-    )))
-}
-```
-
-When concurrency is detected (goroutines, channels, async stdlib calls), the transpiler automatically uses `Arc<Mutex<>>` instead.
+See [docs/rules/wrappers.md](docs/rules/wrappers.md) for wrapper/raw boundary rules.
 
 ## Codebase Map
 
-- `go/` contains the transpiler implementation; expression generation is mostly in `expr.go`, statement generation in `stmt.go`, type analysis in `typeinfo.go`, package/module state in `context.go` and related files, and stdlib shims in `stdlib.go`/`imports.go`.
-- `tests/<name>/main.go` fixtures are executable behavior specs. The corresponding `.rs` and `Cargo.toml` files are generated snapshots and should be committed when changed by a real translator improvement. `Cargo.lock` is gitignored.
-- `tests/XFAIL/<name>` contains planned features. Do not manually promote XFAIL tests; `./test.sh` moves them when they actually pass.
-- `tests.bats` is generated by `./test.sh`. If adding or removing fixtures, let the script update it.
+- `go/` contains the transpiler implementation.
+- `go/expr.go` handles expression generation; `go/stmt.go` handles statement generation.
+- `go/typeinfo.go` owns type analysis helpers.
+- `go/context.go` and related files manage package/module state.
+- `go/stdlib.go` and `go/imports.go` own stdlib and import lowering.
+- `tests/<name>/main.go` fixtures are executable behavior specs.
+- `tests/<name>/main.rs` and `tests/<name>/Cargo.toml` are generated snapshots and should be committed when the translator intentionally changes them.
+- `tests/XFAIL/<name>` contains planned features. Do not manually promote XFAIL tests; `./test.sh` moves them when they pass.
+- `tests.bats` is generated by `./test.sh`.
 
-## Implementation Status
+## Type Info Is Authoritative
 
-See `ROADMAP.md` for the detailed implementation phases and progress.
+Every code-generation decision must come from `go/types`. If `GetTypeInfo()` returns nil, or `typeInfo.GetType(node)` returns nil for a node you are about to emit, treat that as a loader/type-checking bug.
 
-## Technical Decisions
+When type information is missing:
 
-### Type Mapping
+1. Trace the package-loading path and fix the source of missing type data.
+2. Propagate or report `types.Config.Check` and `NewTypeInfo*` errors; do not discard them.
+3. If the gap cannot be closed, emit a loud `unimplemented!("type info required for <operation>")` path.
+4. Do not add `syntaxFallback`, name-pattern heuristics, or AST-shape inference.
 
-| Go Type | Transpiled Type | Future Optimization |
-|---------|----------------|-------------------|
-| `*T` | `Arc<Mutex<Option<T>>>` | `&T`, `&mut T`, `Box<T>` |
-| `[]T` | `Arc<Mutex<Vec<T>>>` | `Vec<T>`, `&[T]` |
-| `map[K]V` | `Arc<Mutex<HashMap<K,V>>>` | `HashMap<K,V>` |
-| `interface{}` | `Arc<Mutex<Option<Box<dyn Any>>>>` | Specific types |
-| `chan T` | `(Sender<T>, Receiver<T>)` | Same |
-
-### String Handling
-
-- Use `as_mut()` for mutations (left side of assignment)
-- Use `as_ref()` + `.clone()` for owned values (returns, assignments)
-- Future: Track address-taken parameters for `&T` optimization
-- `strings.Builder` lowers to the Rust `String` helper shape. Method lowering must recognize both `strings.Builder` and `*strings.Builder` receivers before generic method lowering; otherwise self-hosted code emits nonexistent `String.write_string`/`write_byte`/`write_rune` calls. `WriteString` should call `push_str` with a borrowed string slice; dynamic concatenation such as `"(" + name + ")"` emits a raw Rust `String` and must be passed as `&format!(...)`, not treated as a compile-time string constant. `WriteByte` and `WriteRune` should call `push` with a Rust `char`. Short-declared `strings.Builder{}` values are bare Rust `String`s, so their methods must emit direct `push_str`/`push`/`clone`/`len` calls instead of wrapper borrows. For wrapped builders, `String()` should clone through a local guard block and drop the guard before returning the wrapped string; otherwise concurrent-mode return expressions can keep the `MutexGuard` alive too long.
-- `strings` helpers that return strings can appear nested inside other `strings` helpers. Case conversion and trim-prefix/suffix handlers must use the owned-string stdlib argument path before calling Rust `String`/`str` methods; otherwise nested calls such as `strings.ToUpper(strings.TrimPrefix(...))` either call methods on wrapped handles or fall back to dummy generated stubs.
-- `strings` helpers can receive dynamic string concatenations such as `dir + string(filepath.Separator)`. String binary expressions emit raw Rust `String` values, and `string(x)` over typed or untyped rune constants must use the numeric conversion value path; otherwise generated self-hosting code calls `.lock()`/`.borrow()` on raw `String` or `i32` values.
-- Stdlib call detection probes arbitrary selector chains before deciding whether a call is really a stdlib helper. That includes local method calls such as `c.n.Add(delta)`, not only package selectors. Do not implement selector-chain walking with a type switch that assigns back to the switched variable; the generated Rust can hold the switch guard and deadlock when it re-locks the same `current` slot. Use sequential type assertions or a helper that returns the next expression, then assign after the assertion/switch guard is gone.
-
-### Wrapped vs Raw Values
-
-- The most common generator bugs come from confusing wrapped values (`Rc<RefCell<Option<T>>>` / `Arc<Mutex<Option<T>>>`) with raw Rust values.
-- Type conversions already emit wrapped results. Callers such as returns and assignments must not wrap them again.
-- Raw expression conversions like `byte(1)`, `uint64(1) << n`, `len(x)`, indexing, binary expressions, and literals should cast the raw expression, not borrow from it as if it were wrapped.
-- Use `TypeInfo.ReturnsWrappedValue` and `TypeInfo.NeedsUnwrapping`, but verify the exact caller context. Some AST nodes return raw values in binary operands but wrapped values as standalone expressions.
-- When a missing method such as `.borrow()` or `.lock()` appears on a literal, integer, string, or other primitive in generated Rust, suspect a wrapped/raw boundary bug first.
-- Map-valued selector fields are wrapped handles in the current wrapper model. Ordinary reads, comma-ok reads, range, and `delete` on selector map fields must borrow the selector field handle before touching the inner `BTreeMap`; do not call `.get()` or `.clone()` directly on the field handle.
-- Short declarations from map-valued selector fields need Go map-header copy semantics. Clone the map handle, and make map assignment replace the handle; otherwise `stubs := lpkg.Imports; lpkg.Imports = make(...)` either follows the replacement field handle or tries to store a handle inside `Option<BTreeMap>`. Do not send package-global map assignments through this local/field handle path; package globals use `GoGlobal<T>`.
-- Short declarations and inferred local vars from package-global maps follow the current package-global representation: clone the inner `BTreeMap` into the new local wrapper after borrowing the global slot. This preserves replacement isolation for patterns such as `old := globalMap; globalMap = make(map[...])` and avoids moving the map out of the shared global reference. A future package-global map-handle representation would need a different aliasing path.
-- Short declarations and inferred local vars from package-global slices follow the same package-global snapshot rule as maps: clone the current inner `Vec` into the local wrapper after borrowing the global slot. This avoids moving the slice out of the shared global reference for patterns such as `previous := current; current = next`.
-- Handle-replacement assignments through promoted embedded fields must preserve the promoted field path. `lpkg.Imports = make(...)` where `loaderPackage` embeds `*Package` should write through `lpkg.package.imports`, not `lpkg.imports`; the same target helper is shared by pointer-handle and map-handle assignment.
-- Promoted embedded pointer fields need the same path preservation through indexed pointer expressions as through named pointer variables. For `ld.pkgs[id].Name` where `ld.pkgs[id]` is `*loaderPackage` embedding `*Package`, unwrap the pointer base before traversing `.package`, then access or replace the promoted field handle.
-- Wrapped map range sources must clone the inner map inside a block and drop the borrow guard before the loop body. Rust `for` temporaries live through the loop, so holding the guard while the body looks up, deletes, or replaces the same map can deadlock in concurrent mode.
-- Owned non-copy map-range keys used as map assignment keys must clone before `insert`. Go map assignment copies the key and leaves the range variable usable for later lookups such as `dst[outerKey][innerKey] = value`; moving the Rust `String` key into the first insert breaks that later borrow.
-- Owned non-copy map-range keys passed to wrapped parameters or stored as scalar map values must clone before wrapping. Go copies string keys when passing them to `func(string)` or assigning `map[K]string`; emitting `Some(pkgPath)` moves the Rust `String` and breaks later uses such as append, lookup, or formatting.
-- Pointer/slice/map/function/error range values returned from functions are already handles. Clone the handle from the range reference, for example `(*field).clone()` for `for _, field := range []*ast.Field { return field }`; do not unwrap the pointee and wrap it again.
-- `usize` contexts such as slice indexes, bounds, and `make([]T, len, cap)` capacities need raw integers. If the expression is a method/function call returning a wrapped Go integer, unwrap the returned handle before emitting `as usize`.
-- `len`/`cap` themselves emit Rust `usize`. When go/types says a call parameter expects Go `int`, cast the bare builtin result to `i32` inside the normal argument wrapper; otherwise generated Rust passes `Option<usize>` to `Option<i32>`.
-- Short declarations from `len`/`cap`, such as `i := len(slice)`, should initialize the normal wrapped Go `int` (`i32`) handle. Do not register the variable as a bare `usize`; index lowering can unwrap the Go int back to `usize` when needed.
-- Var declarations from `len`/`cap`, such as `var i = len(slice)`, need the same wrapped Go `int` initializer as short declarations. A later `make([]T, i)` expects to unwrap the handle back to `usize`; leaving `i` bare produces `.lock()` on `usize`.
-- Go 1.21 `min`/`max` are predeclared builtins, not ordinary function variables. Lower them from go/types result types, keep string operands on the string path, and wrap short-declaration results as normal Go values instead of registering bare Rust scalars. Because predeclared identifiers can be shadowed, route `min`/`max` through the builtin handler only when go/types resolves the call target to `types.Builtin`; otherwise preserve the user-defined function path.
-- Map assignments need the same expected-type treatment for raw `usize` producers as call arguments and short declarations. For `map[K]int`, store `len(x) as i32` or range index `i as i32` inside the map value wrapper, not a wrapped `usize`.
-- Map keys must be the raw key type, not the wrapper handle, except for pointer-key helper wrappers. For `map[types.Type]...`, unwrap the `types.Type` handle to the comparable stub key before lookup/insert; for `map[*T]...`, preserve pointer identity through the existing pointer-key helper.
-- Map keys whose expected key type is a stdlib interface must run the go/types-proven concrete-to-interface conversion before pointer-key lowering. For example, assigning `*types.TypeName` into `map[types.Object]...` should produce a comparable `types_Object` key, not a `GoPtrKey<types_TypeName>`.
-- Stdlib-interface map range keys are exposed to Go code as wrapped interface handles, but map insertion and lookup still need the raw comparable stub key. For `for obj := range map[types.Object]string { other[obj] = value }`, unwrap and clone `obj` to `types_Object` for the key; only same-interface call arguments should receive the existing wrapped handle.
-- If a non-copy bare map key variable is also used by the assignment RHS, clone the key for insertion before evaluating the value path. Do not apply that shortcut to wrapped locals; those still need the normal map-key unwrapping path.
-- Map values whose expected value type is `*T` already store the pointer handle. For `m[k] = &T{...}`, insert the handle emitted by the address-of expression directly; adding a second wrapper creates `Option<Arc<Mutex<Option<T>>>>`.
-- Wrapped range values from maps are not raw keys. If `id` comes from ranging over `map[string]string`, then `delete(other, id)` must unwrap and clone the inner string before borrowing it as the lookup key; `other[id] = true` must unwrap and clone the inner string before inserting it as the owned key.
-- Wrapped scalar range values from maps need the inner value cloned when assigned into another map value. For `for key, name := range map[types.Object]string { copied[key] = name }`, store a new wrapped `String`; do not move from the ranged wrapper and do not preserve the handle unless the map value type itself is handle-shaped.
-- Owned range keys from maps are not references. If `id` comes from `for id := range map[string]...`, then `other[id]` comma-ok/read lookups should call `.get(&id)`, while slice reference range values still pass the existing reference.
-- Assigned range variables over slices or strings are bare mutable Rust locals. For `for _, file := range []string{...}` followed by `file = f(file)`, assign to `file` directly; do not borrow it like an `Arc`/`Rc` wrapper.
-- Captured range variables over `[]string` are owned closure clones. After `filename_closure_clone := filename.clone()`, string argument lowering should use `filename_closure_clone.clone()`, not `(*filename_closure_clone).clone()`, because the clone is no longer the iterator reference.
-- Range indexes emit Rust `usize`, but Go index variables have type `int`. When a range index is assigned into a Go `int` target, stored into a Go `int` map value, or passed where go/types expects Go `int`, cast inside the target wrapper (`i as i32`) instead of wrapping the raw `usize`.
-- Nil map values for slice/map/channel element types are wrapped nil handles, not `Some(None)`. For `map[K][]T`, `m[k] = nil` should insert `Rc/Arc(...None)`, and `m[k] = append(m[k], x)` should return the stored slice handle after mutating it.
-- Map values whose Go type is itself handle-shaped (`*T`, `[]T`, `map[K]V`, `chan T`, `func`, or interface) must keep the stored handle across ordinary lookups, comma-ok missing values, short declarations, var declarations, assignment into another map, call arguments, and explicit returns. For `fields[typeName] == nil`, `fields[typeName][fieldName] = v`, `bucket := table[hash]`, `count(groups["letters"])`, and `return methods[receiver]`, clone or default the map value handle; do not unwrap to a bare `BTreeMap`/`Vec`, do not wrap the handle again for calls, and do not call `.borrow()`/`.lock()` on the bare value.
-- Range over pointer-keyed maps exposes the Go key variable as the original pointer handle, even though the Rust map stores `GoPtrKey`/`GoLocalPtrKey`. Range over stdlib-interface-keyed maps exposes a wrapped interface handle even though the comparable map key is a bare stub value.
-- When a stdlib-interface map range key is passed to a parameter of the same stdlib interface type, pass the existing wrapped handle. Do not wrap the handle again as `Some(obj.clone())`; `map[types.Object]...` range keys already lower to `Rc/Arc<...Option<types_Object>>`.
-- Bare stdlib-interface values from slice range/index paths are raw stub values, not wrapper handles. Nil comparisons and single-value type assertions on those values should use the representation fact directly; short declarations from range references should clone `(*elt).clone()` into the new wrapper. When the same range reference is used as an element of `[]ast.Expr{elt}` or another stdlib-interface slice literal, clone `(*elt).clone()` into the `Vec`; emitting the reference itself produces `Vec<ast_Expr>: From<[&ast_Expr; 1]>`. When `nil` is stored into a bare stdlib-interface slice element through an array/slice literal or `append`, emit the element type's zero value such as `ast_Expr::default()`/`Default::default()`, not Rust `None`. Do not emit `.borrow()` or `.lock()` on `ast_Expr`, `ast_Stmt`, or similar stub values.
-- Non-empty slice literals whose go/types element type is a stdlib named interface need an explicit Rust element type, such as `Vec::<types_Type>::from([...])`, before wrapping the slice. Concrete-to-interface elements lower through `.into()`, and contexts like `for _, recv := range []types.Type{named, types.NewPointer(named)}` do not otherwise give Rust enough target type information. Keep this rule scoped to stdlib named-interface elements; pointer, map, slice, channel, and function elements have separate handle-preservation rules.
-- Map range values of string type are wrapped handles, unlike `[]string` range references. For `for _, rpath := range map[string]string`, comparisons such as `rpath != ""` and key insertions such as `seen[rpath] = true` must unwrap and clone the inner string, not clone the handle.
-- Type assertions from wrapped stdlib interface fields must assert against the interface field handle, not the raw stub value. For `cmd.Stdout.(*os.File)` where `Stdout` has type `io.Writer`, clone and borrow the field handle, then call the stub value's `downcast_ref`; do not unwrap to `io_Writer` and then call `.lock()` on it.
-- Selector fields passed to a parameter expecting a different stdlib named interface must use the field handle in LValue context before conversion. For example, `accept(kv.Value)` where `kv.Value` is `ast.Expr` and the parameter is `ast.Node` should clone `kv.value`, then convert the inner stub value; ordinary selector RValue lowering unwraps to raw `ast_Expr` and leads to `.borrow()`/`.lock()` on the raw stub.
-- `chan error` carries the nullable error payload (`Option<Box<dyn StdError...>>`), not a cloneable boxed error. Sending an error handle must move the payload with `take()`, receiving into an `error` variable must assign that payload directly, and select receives must wrap the payload back into an error handle for the case body.
-- `[]error` and `map[K]error` store normal wrapped error handles, not channel-style payload options. Slice ranges should clone the handle with `.iter().cloned()`, and map literals, assignments, lookups, and short declarations should pass through the existing handle instead of wrapping it again.
-- Struct map keys need package-wide discovery, not just same-file equality scanning. When Go uses `map[Struct]...`, emit `Eq`/`Ord` support next to the struct declaration even if the map use is in another generated Rust module; concurrent ordering must clone field values out before comparing so shared `Arc<Mutex<_>>` keys do not deadlock.
-- Pointer and interface map values are handles. Do not unwrap and deep-copy them during map lookup, literal generation, or assignment unless Go value semantics require a real copy and the inner type is cloneable.
-- Assignments into pointer-valued maps must preserve the RHS handle even when the RHS is a selector field. For `lpkg.Imports[path] = imp.Package`, clone the `imp.Package` handle; do not unwrap the handle and insert a copied `Package` value.
-- Pointer assignment is handle assignment, not pointee assignment. For `p = q`, `field = q`, package pointer vars, and pointer composite literals, preserve aliasing by replacing the `Rc/Arc<...Option<T>>` handle. Copying `*q` into `*p` breaks Go pointer identity.
-- Package-level pointer globals have two layers: the package-global slot (`LazyLock<Wrapper<Option<Handle<T>>>>` or `GoGlobal<Handle<T>>`) and the Go pointer handle stored inside it. Assigning `global = ptr` should write `Some(ptr_handle)` into the slot; assigning `global = nil` should write `Some(nil_handle)`, not clear the outer slot. Returning or reading the global as `*T` should clone the stored handle, while returning it as an interface must run the concrete-to-interface conversion before the pointer-handle shortcut.
-- Nil comparisons against package-level pointer globals must check the stored Go pointer handle, not just the outer package-global slot. The slot can be initialized while the inner pointer remains nil; `currentContext != nil` should be false in that state.
-- Field selectors through package-level pointer globals need both layers unwrapped before field access. For `currentContext.Imports` or `current.value`, unwrap the global slot to the stored pointer handle, unwrap that pointer handle to the pointee, then clone or borrow the field handle. Do not access fields on the stored pointer handle itself.
-- Inside pointer-receiver methods, the Rust receiver is already `&mut T` or `&T`. A Go assignment like `*p = T{...}` should emit `*self = new_val`, not `*self.borrow_mut() = Some(new_val)` or `*self.lock() = Some(new_val)`. A read copy like `copy := *p` should copy directly from `self`, using `__go_value_clone()` for struct values so scalar fields get fresh wrappers.
-- Pointer equality is handle identity, not pointee equality. For `a == b` where both operands are `*T`, compare the `Rc`/`Arc` handles with `ptr_eq` and include a both-nil check; do not unwrap both operands to `T` and compare values.
-- Pointer fields inside wrapped structs need a mutable borrow of the outer struct when replacing the field handle, for example `(*box.borrow_mut().as_mut().unwrap()).child = new_val`. Scalar field assignment is different: it can borrow the outer struct immutably and mutate the field's own wrapper.
-- Increment, decrement, and compound assignment through nested field handles must clone the target wrapper handle before opening the mutable borrow. For `w.p.indent--`, emit a local target handle first; borrowing `(*w.p.borrow().as_ref().unwrap()).indent` directly leaves the field borrow tied to a dropped owner temporary.
-- Address-of expressions already return pointer handles. In multi-name short declarations like `stdout, stderr := &bytes.Buffer{}, &bytes.Buffer{}`, do not apply the generic "wrap new variable" path again or the local becomes `Wrapper<Wrapper<T>>`. In call-argument paths such as `register(&VarInfo{...})`, pass the address expression directly when go/types proves it is assignable to the pointer parameter; the generic wrapper path creates `Wrapper<Wrapper<T>>`.
-- Named scalar map values must preserve the named type in `go/types`-driven type strings. If `map[string]Index{}` lowers to `BTreeMap<String, Arc<Mutex<Option<i32>>>>`, the named value was erased too early.
-- Comma-ok map reads should follow the same selector-map boundary as ordinary map reads. In concurrent mode, clone the map field handle, borrow the inner `BTreeMap`, then call `.get()` on that bare value; do not call `.lock()` on the cloned `BTreeMap`.
-- `interface{}`/`any` values are represented by handles to `Box<dyn Any>`. When assigning or passing an existing `any`, clone the handle; do not re-box `*value.as_ref().unwrap()`, because `Box<dyn Any>` is not cloneable and moving from a shared reference fails.
-- The predeclared `any` alias must follow the same paths as an explicit `interface{}`. If generated Rust calls `.borrow()` in concurrent mode for an `any` argument, the alias probably escaped the empty-interface path.
-- Go type names can collide with Rust prelude names. Escaped Rust names such as `String_` must be used consistently in type declarations, constructors, impl blocks, composite literals, local aliases, and imported package paths.
-- Package-level pointer globals initialized from constructor calls should keep the returned pointer handle. Unwrapping the initializer to the pointee usually creates an `Option<T>` vs `Option<Arc<Mutex<Option<T>>>>` mismatch.
-- Direct dereference of a package-level pointer global, such as `*helpFlag` or `*externalPackagesFlag`, must unwrap both layers: first the package-global slot to the stored pointer handle, then the pointer handle to the pointee value. Clone the pointee for RValue reads; do not clone the stored pointer handle unless the Go expression itself is the pointer value.
-- Stdlib package pointer variables in generated stubs are accessor functions returning the pointer handle, such as `types::Universe()`. Method calls through them should borrow that returned handle directly. Transpiled external package pointer globals are different: clone the stored package global handle before calling through it so the method is invoked on the pointed-to value, not the outer global slot.
-- Generated helper types with Rust identity, such as `GoTime`, `GoContext`, and `GoChannel`, must be package-scoped for multi-file crates. File-local helper structs make sibling module signatures incompatible even when the Go type is the same.
-- Package-scoped helper includes are inserted into the crate root, so their `use` items share the same Rust namespace as `main.rs`. When `main.rs` also needs `Display`, `Arc`, `Mutex`, or similar helper imports, de-duplicate the root imports rather than moving helpers into a submodule.
-- Non-main module init aggregators need module-specific Rust names, such as `__go_init_all_data`, because sibling glob imports can bring several `__go_init_all` functions into one module namespace. Rename only the actual function-definition line; string literals that mention `pub(crate) fn __go_init_all()` must remain unchanged.
-- In shared external workspaces, stdlib helper types that cross dependency crate boundaries must live in `vendor/go2rust_stdlib_stubs` with public definitions and methods. `context.Context` and its `Done` channel map to `GoContext`/`GoChannel`; emitting those helpers locally creates structurally identical but incompatible Rust types.
-- String constants are bare Rust values (`&'static str`), not wrappers. String indexing and slicing must use them directly, for example `let __s = NAME`, instead of emitting `.borrow()` or `.lock()`. When the expected value is an owned `string`, such as a `[]string` literal element, append `.to_string()` in the expected-type path.
-- Package string constants used as `map[string]...` keys need the same owned-string treatment on insertion and lookup. A selector constant such as `dep.Name` is a bare `&'static str`; inserting it into a `BTreeMap<String, ...>` must use `.to_string()`, and lookup must avoid producing `&&str`.
-- Package constants and package globals must be tracked separately before emission. A package constant should never take the package-global `GoGlobal`/wrapper path, even when type info is missing or a stale `VarTable` entry exists; type-info object identity wins when available, then the package-constant registry. Exported package globals still need early registration from `var` declarations so names such as `PackageSymbols` do not fall through to uppercase constant fallback.
-- Local constants must be resolved by go/types object identity, not by identifier text. A local `const bundle` in one function must not make a parameter named `bundle` in another function look bare; package-scope lowercase constants still emit and resolve through generated Rust const names.
-- Package selector and package-call detection must be resolved from the selector base object's `*types.PkgName`, with import-name fallback only when type info has no object for that identifier. A local variable named `ast` can shadow `go/ast`; `ast.Name` must stay field access, not become `ast::name`.
-- Stdlib string helpers should treat go/types-proven string constants as bare arguments. For example, `strings.HasPrefix(name, blankMarker)` should pass the generated const directly, not call `.borrow()` or `.lock()` on it.
-- Byte-like constants are raw scalar values. Use `go/constant` plus the expected `go/types` context for byte/rune constants passed to calls, appended into `[]byte`, used in byte comparisons, or matched in switches; do not infer from names or rewrap them as variables.
-- Local untyped constants assigned into byte-sized fields or variables also need the expected `go/types` context. For `const grey = 1; lpkg.color = grey` where `color` is `uint8`, emit `grey as u8`, not the default `i32` constant.
-- Range over a Go `string` yields byte index plus rune value. The Rust string-range path emits `char` values, so char literal comparisons and direct switch cases against that range value should stay Rust char literals such as `'n'`; do not force them through the byte-like `u8` path. When go/types expects a Go `rune`/`int32` parameter, cast the range char to `i32` inside the normal wrapper. When comparing the range char to integer constants such as `0x20`, parenthesize both `as i32` casts so Rust does not parse the comparison as generic arguments.
-- Range string variables used as elements in `[]string` literals must be cloned into the literal. Map range keys and slice range values can be reused after the literal in Go, but `vec![path]` moves an owned Rust `String`; emit `vec![path.clone()]` or the existing range-string clone helper. Short declarations from reference-style range values, such as `alias := value` inside `for _, value := range []string`, also need an owned clone inside the new wrapper; otherwise the local becomes `Wrapper<&String>` and later assignment of an owned `String` fails.
-- Stdlib package variables that return wrapped handles, such as `types.Unsafe`, must be unwrapped before raw equality comparisons. A comparison like `types.Unsafe == types.Unsafe` should compare the underlying stub value, not the `Rc`/`Arc` handle slot.
-- Unary bitwise complement over a typed numeric conversion should unwrap the conversion result before emitting Rust `!`. Go `^uint64(0)` must lower to `!(*...as u64...)`, not `!Rc<RefCell<Option<u64>>>` or `!Arc<Mutex<Option<u64>>>`.
-- Named scalar type methods must translate receiver references through `self.0`; named slice methods should pass the named slice handle with `self.clone()`, not the inner `Vec`.
-- External stdlib named slices need the same tuple-newtype shape as local named slices. For `scanner.ErrorList`, emit `scanner_ErrorList(pub Wrapper<Vec<...>>)` so type-switch bindings and range helpers can use `.0`; a unit stub makes generated range code fail before the real error-handling issue.
-- Named numeric type definitions need Rust operator/comparison impls for Go-style mixed operations such as `1 <= code`, `code + 1`, and `code - otherCode`. Keep those impls tied to the actual numeric underlying type from type information.
-- Constant expressions assigned into current-package or transpiled-dependency named integer targets should use the folded constant expression inside the named-type constructor. For `dep.Config{Mode: dep.NeedName | dep.NeedFiles}`, emit one `dep_LoadMode(Wrapper(Some(NEED_NAME | NEED_FILES as i32)))`; do not recursively lower part of the bitmask to `dep_LoadMode(...)` and then cast that named value with `as i32`.
-- Bitwise compound assignment on named integers must preserve the named value when the RHS is a constant. For `mode |= NeedImports` or `mode |= 8`, clone the named LHS and construct the RHS as the same named integer; casting the RHS to raw `i32` selects `BitOr<i32>` and stores the wrong type.
-- External stdlib named integers such as `go/token.Pos` and `go/types.BasicKind` are bare tuple structs in the stub crate, not local wrapper newtypes. Expected-type literal returns and explicit conversions should construct the tuple struct directly from the raw numeric value.
-- Const declarations whose `go/types` type is an external stdlib named integer should keep that tuple-struct type and emit the folded `go/constant` value, for example `const mode = parser.AllErrors | parser.ParseComments` becomes `const mode: parser_Mode = parser_Mode(36 as u32)`. Do not emit custom `BitOr`/`BitAnd` expressions inside Rust `const` initializers; those trait calls are not const.
-- `time.Duration` is a known stdlib helper type backed by `std::time::Duration`, not a tuple newtype. Unit expressions such as `30*time.Second` should lower through `Duration::from_secs`/`from_millis` constructors in ordinary expressions, assignments, and comparisons.
-- External named string types such as `objectpath.Path` are dependency newtypes, not plain `String` handles. Explicit conversions must construct the dependency newtype and then let short declarations wrap that value normally; comparisons with string literals should compare the named value's inner string, not the wrapper struct.
-- Short declarations from cloneable selector fields need an owned value inside the new wrapper. For `file := p.Filename`, clone the inner `String`; do not wrap a borrowed reference from `p.Filename` as `Option<&String>`.
-- Short declarations from plain selector slice fields should clone the slice handle, not clone the inner `Vec` and not wrap a borrowed `Vec`. For `tparams := r.dict.tparams`, the local slice must still share element writes with the original backing storage.
-- Selector fields used where an owned scalar or struct value is expected must clone the inner value before wrapping it. Preserve selector field handles only for handle-shaped expected types such as pointers, slices, maps, channels, functions, and interfaces.
-- Selector RValue lowering for scalar fields already clones the inner value. If a caller is about to add its own borrow, such as concurrent binary operand extraction, use the selector in LValue context to get the field handle first; otherwise generated Rust tries to call `.lock()` on the cloned `String`.
-- When type information only proves that a selector field is wrapped but cannot prove the field is cloneable, fall back to syntax facts from `structDefs` and `LookupTypeDefinition` for named scalar fields. Return-statement binary extraction must clone through the selector field handle before opening the generic wrapped-value path; otherwise self-generated Rust moves named scalar fields such as `Kind` out of a shared borrow.
-- Syntax registries such as `structDefs` may only refine codegen details after `go/types` has already identified the operation and type boundary. Do not use them when `TypeInfo` is missing or incomplete; fix the type-info source instead.
-- Rust `Clone` on generated structs stays shallow so handles preserve aliasing for receivers, closures, slices, maps, channels, functions, and pointers. At explicit Go value-copy boundaries, use the generated `__go_value_clone` helper so scalar, array, and nested struct fields get fresh wrappers while handle-shaped fields copy their handles.
-- Plain slice assignment between local slice handles should replace the destination handle, not move the inner `Vec`. For `src = contents` where `contents` is a `map[string][]byte` range value, assign `src = contents.clone()` so Go slice-header aliasing is preserved. Do not use that path for captured LHS variables renamed into closures; those closure clones may be immutable bindings, so keep the existing inner-slot assignment path for `result = values` inside a function literal.
-- Tuple-return assignment into indexed slice or array targets must assign through the sequence element, not through the wrapped-variable path. For scalar elements, take the inner value from the temporary handle; for handle-shaped elements such as `error`, pointers, slices, maps, channels, functions, and interfaces, store the returned handle itself.
-- Map assignment/update/lookup paths that special-case identifier map targets must still honor `currentCaptureRenames`. In closures such as `visit = func(...) { view[id] = ... }`, use the cloned `view_closure_clone` map handle, not the outer `view` binding that the `move` closure would otherwise consume.
-- Returning a selector field whose type is the predeclared `error` should clone and return the error handle. Do not wrap the borrowed boxed payload again; `Box<dyn Error>` is not cloneable and moving it out of a shared borrow fails.
-- Typed nil local declarations for interfaces, pointers, signatures, and slices need explicit `None` initialization when `go/types` says the zero value is nil. Keep named slice definitions on their existing default-wrapper path unless type information proves a nil handle is required.
-- Non-nil local declarations with package-qualified or named types need explicit go/types zero initialization inside the wrapper. Do not emit `let mut x: Wrapper<T>;` for `var x pkg.T`; use `zeroValueForTypesType` so named scalar newtypes such as `pkgbits.CodeObj` get a real zero value.
-
-### Call Argument Wrapping
-
-- Most function and method parameters expect a wrapped handle. The caller often opens that wrapper before delegating to helpers.
-- Go parameters can be rebound. If a parameter appears on the left side of an assignment or inc/dec in its function body, emit `mut` on the Rust parameter binding; do this from an AST assignment scan, not by marking every parameter mutable.
-- If an argument helper is called from inside an already-open wrapper, emit the raw inner value for that context. For function literals, that means `TranspileFuncLitBox`, not `TranspileExpression`, because `TranspileExpression` wraps the closure itself.
-- If generated Rust contains `Some(Arc<Mutex<Option<Box<dyn FnMut...>>>>)` where the parameter expected `Some(Box<dyn FnMut...>)`, suspect nested function-literal wrapping before changing method signature generation.
-- Do not route immediate `sync.Once.Do(func(){...})` callbacks through the ordinary statement-level function-literal pre-clone path. They are called synchronously by the helper; pre-cloning a method receiver changes Go semantics for receiver-field initialization.
-- Slice/map/array composite literals passed to methods should use the same already-wrapped argument path as package-function calls. For `loader.Load([]string{"."})`, pass the slice literal handle directly; wrapping it again creates `Option<Handle<Vec<T>>>` where the parameter wrapper expects `Option<Vec<T>>`.
-- External stdlib stubs consume generic arguments by value. If a non-copy range variable such as a `map[string]...` key is passed to one and then reused later in the loop body, clone it at the call site.
-- External stdlib stubs are generic at the Rust boundary, but Go pointer arguments still need handle semantics. If `types.NewChecker(..., lpkg.TypesInfo)` or similar moves a non-copy pointee out of a shared reference, pass the pointer expression as an LValue handle clone.
-- Named stdlib interfaces such as `go/types.Type` are still wrapped at function boundaries, but calls that pass one wrapped interface into another wrapped interface need to unwrap/clone the raw stub value before the caller's wrapper is applied.
-- Explicit returns from named-result functions with defers use a synthetic assignment before draining the defer stack. That synthetic result identifier may not have a `go/types` entry, so use the declared result type from the function signature for conversions such as concrete `*types.Pointer` to `types.Type` or `<-chan error` into an `error` result.
-- Imported transpiled interfaces are Rust traits in dependency crates. When a current-package concrete value is passed to an imported interface parameter, prove the relationship with `go/types.Implements` and generate the dependency trait impl; do not infer this from names.
-- Imported interface impls can be required by a call in one file for a concrete type declared in another file. Collect these relationships at package scope before emitting per-file modules, then emit the impl beside the concrete type.
-- Local concrete values can implement stdlib named interfaces such as `go/types.Type`. When returning or storing them as stdlib interface placeholders, construct the target stub value directly; do not register a source conversion in the shared stdlib stub crate for a local source type.
-- Named Go function types are Rust aliases to wrapped closure handles. Track function-type aliases separately from general aliases, and when `*FuncAlias` is dereferenced for a function parameter or call, pass the alias handle directly rather than wrapping it again.
-- Type conversions between named function types, including package-qualified targets such as `core.Exporter(e)`, should preserve the wrapped function handle. Do not unwrap the source to the inner `Box<dyn FnMut...>` unless the callee explicitly expects the bare closure box.
-- Methods on named function types cannot be emitted as inherent impls on the Rust alias. Emit an extension trait plus trait impl for the alias, call the receiver through `self` inside the method body, and call methods on the alias handle rather than unwrapping to the inner closure box.
-- Function type signatures must use return-type lowering for results. Pointer returns such as `func() *T` should be the pointer handle itself, not `Wrapper<Wrapper<T>>`; otherwise named function aliases disagree with function literal bodies.
-- Function-typed named results are nil handles by default. For `return func(){...}, nil` in a function with defers, use the declared result type to assign `Some(Box<dyn FnMut...>)` into the named result slot instead of wrapping the whole function handle again.
-- Go function values should lower to `Box<dyn FnMut...>`, not `Box<dyn Fn...>`. A Go closure can call pointer-receiver methods on captured values or otherwise mutate captured state while still satisfying a `func` parameter.
-- Function-typed parameters and locals are already wrapper handles. Passing one to another function or method expecting a `func` type should clone the handle, not unwrap `as_ref().unwrap()` into the inner `Box<dyn FnMut...>`, because boxed function values are not cloneable and moving from a shared reference fails.
-- Pointer-receiver method values such as `return vt.PopScope` or `f = t.bump` must evaluate the receiver once, clone the pointer handle into the boxed closure, and call the method inside the closure. Do not lower them as selector fields, and do not move the original receiver handle into the closure when later code can still use it.
-- Named function declarations stored in function-typed map values must be boxed through the normal function-value handle path. For `map[string]Handler{"x": handlerFn}`, do not store the raw Rust fn item in the wrapper; different fn items have distinct Rust types. The boxing closure's parameter types must come from `goTypesParamTypeToRust`, not the generic wrapped type path, so pointer parameters stay pointer handles instead of wrapper-of-pointer-handle.
-- Function-value calls must open the wrapped function slot mutably, derive a typed raw pointer from go/types, drop the wrapper guard, and then invoke the `FnMut`. Holding the `RefCell`/`Mutex` guard across the call breaks recursive closure assignments such as `visit = func(...) { visit(...) }`.
-- When deriving the raw call pointer type for a function value, check known stdlib named helper types before falling back to the signature. `context.CancelFunc` is `GoCancelFunc`, not `Box<dyn FnMut()>`.
-- Package function selectors assigned into function-typed fields need a boxed closure handle, not the raw function item. Function-typed selector values copied from another field should clone the function handle, and nested selector targets such as `ld.Config.Logf` need the mutable owner path before replacing the handle.
-- Function type assertions that immediately call the asserted function need a mutable interface borrow and `downcast_mut`, not an immutable `downcast_ref`.
-- Blank named result slots (`_`) in explicit-return functions with defers have no assignable result variable. Skip the synthetic result assignment for that slot; the existing named-return value writer should emit the zero value for it.
-- Package-wide type facts must be registered before per-file emission in every package path (`ProjectGenerator`, `UnifiedTranspiler`, and `PackageLoader`). Cross-file function aliases, interfaces, and named non-struct definitions cannot depend on the file that declares the type being emitted first.
-- Function-field selector fallback must be receiver-scoped and type-proven. For `calc.Add(...)`, use the receiver's `StructDef.FieldTypes`/AST field type to prove `Add` is a function value before emitting a `__f_holder` call. Do not treat arbitrary named fields such as `sync bool` as callable just because the field name is unique elsewhere, and do not use the global unique-field fallback when the receiver type is already known.
-- Indexed `[]*T` values passed to `*T` parameters are already pointer handles. If generated Rust contains `Some(pkgs[i].clone())` where the parameter expects `Arc/Rc<...Option<T>>`, the call-argument path nested the handle and should pass the indexed expression directly.
-- Pointer-producing expressions passed to `*T` parameters are already pointer handles. This includes address-of selectors, locals, and composite literals, indexed `[]*T` values, and pointer type assertions such as `t.(*ast.FuncType)`. If generated Rust contains `Some((*r...).field.clone())` for `&r.field`, wraps `&VarInfo{...}` inside another `Some(...)`, or wraps `t.(*T)` inside another pointer wrapper, the call-argument path nested the handle; pass the expression directly after go/types proves the pointer type is assignable to the parameter.
-- Address-of slice elements (`&slice[idx]`) must use the same index lowering as ordinary slice access. If `GoSliceElemPtr::new(..., idx as usize)` reports a non-primitive cast for a named integer such as `pkgbits.Index`, route the index through `writeExpressionAsUsize` instead of raw `TranspileExpression`.
-- Package init aggregators must call only real Go `init` functions. Do not derive `__go_init_N` calls from the count of all function-name overrides; duplicate Rust names such as `UsedIdent`/`usedIdent` also create overrides.
-- Method Rust-name disambiguation must be receiver-scoped and selector-driven by `go/types` method identity. Case-distinct methods on one receiver can collapse to the same Rust `snake_case` name, but methods on other receivers must not inherit that suffix.
-- For pointer-receiver method calls on the current receiver, if any argument reads or calls through that same receiver, evaluate the arguments into locals before emitting `self.method(...)`. Rust starts the mutable receiver borrow before argument evaluation, so direct lowering rejects Go patterns such as `w.Len(len(w.Relocs))`, `w.Len(w.rawReloc(...))`, and `w.StringRef(w.p.StringIdx(s))`.
-- Channel sends that depend on method result types need `go/types` method signatures. If those facts are unavailable, emit the normal type-information-required error; do not infer return wrapping from method names or AST shape.
-- If a method-call argument is a function literal that captures the receiver variable, clone the receiver handle into a local before borrowing it for the call. The statement-level capture rename moves a handle clone into the closure; borrowing the original receiver directly for the method call can still make Rust report "move out because it is borrowed" on patterns like `pk.laterFor(named, func(){ ... pk ... })`.
-- Receiver mutability analysis must use the package-wide method set, not only methods declared in the current file. Cross-file self calls such as `state.getPkgPath` calling `state.determineRootDirs` need the caller emitted as `&mut self` when the callee mutates receiver fields.
-- Promoted method forwarders must preserve the embedded method's emitted receiver mutability. A promoted pointer method that is read-only, such as `loaderPackage.String` forwarding to `Package.String`, should use `&self` and `as_ref`; only mutating embedded pointer methods should use `&mut self` and `as_mut`.
-
-### Sync Helpers
-
-- `sync.Mutex` fields are bare helper values, but the helper must clone to the same underlying lock. A `Clone` implementation that creates a fresh mutex breaks Go semantics.
-- For `mu.Lock(); defer mu.Unlock()`, emit a local cloned mutex handle and lock that local. Locking `self.mu` directly can hold an immutable borrow of `self` for the guard lifetime and block later `&mut self` calls in the same method.
-- Suppressing `defer mu.Unlock()` is correct only when the generated RAII guard stays alive for the intended Go scope.
-- Direct `sync.Mutex.Unlock()` after a tracked `Lock()` should drop the generated guard for that receiver. `if`/`else` branches need independent guard snapshots so a drop in one branch does not hide the matching unlock in its sibling; after the branch, keep only guards that remain active on every path.
-- `sync.Once.Do(func(){...})` should inline the callback into the method call and clone only the `GoOnce` handle before invoking it. Routing it through an ordinary boxed callback path breaks receiver-field initialization callbacks because mutating the captured receiver requires `FnMut`, and cloning the whole receiver mutates the clone instead of the real Go receiver.
-
-### Assignment Evaluation Order
-
-- When assigning into a wrapped target, evaluate the right-hand side before opening the mutable borrow for the left-hand side. Patterns like `x = f(x)` can otherwise panic at runtime from nested `RefCell`/`Mutex` borrows even though the Go evaluation order is valid.
-- The same rule applies to temporary wrapped moves in multi-assignment lowering: compute and store the moved value in its own block, then borrow the destination and assign.
-
-### Closure Capture Rules
-
-- Closure capture decisions should be object-based through `go/types`, not name-based.
-- Package selectors, type names, fields, and locally declared variables inside the function literal must not be captured as outer locals.
-- In keyed composite literals inside closures, `go/types` represents struct field keys as `*types.Var`. Skip `KeyValueExpr.Key` only when `types.Var.IsField()` proves it is a struct field; still inspect map literal keys because they may be real captured variables.
-- Type switch case variables declared by `switch v := x.(type)` are recorded in `go/types.Info.Implicits` on each `*ast.CaseClause`. Closure capture analysis must treat those implicit vars as local to the function literal; otherwise it emits pre-clones like `v_closure_clone := v.clone()` before `v` is in scope.
-- Nested function literal bodies should not cause pre-clones in the outer statement. Capture each literal at its own scope.
-- Function literals own their defer state. Do not let nested or deferred function literals inherit outer `currentFunctionHasDefer`; a `return` inside `defer func(){...}` returns from that closure and must not drain the outer `__defer_stack`.
-- Function literals with named result parameters need local result slot declarations, just like named functions. Return lowering may know the `fnType`, but assignments to the named result still fail unless `TranspileFuncLitBox` emits the slot before the body.
-- Function and method emitters both need the same final-defer logic. A trailing defer-drain block is needed only when the final statement can fall through; if the final statement terminates via a `return`, terminating `switch`, terminating type switch, or panic, emitting an extra trailing block makes Rust type-check that block as the function's final expression.
-- Function defer detection must scan select, switch, type-switch, and labeled statement bodies without entering nested function literals. A `defer` inside a select communication case still needs the enclosing function's `__defer_stack`.
-- Select communication cases add a synthetic Rust `break` only when the case body can fall through. If the body returns or panics, a trailing `break;` can force the surrounding `loop` expression toward `()` and break functions whose final select returns a value.
-- Always escape captured Rust identifiers with the existing Rust identifier helpers, especially for Go names that are Rust keywords.
-- Struct Display for `[]func` fields must use an opaque function placeholder per element. Do not route these through generic slice formatting; `Box<dyn FnMut>` does not implement `Display`.
-- Struct Display should delegate to a go/types-proven `String() string` method before falling back to field formatting. Check both the named type and its pointer method set so pointer receivers and promoted String methods drive `fmt.Stringer` behavior.
-- Typed `[]func` elements should be function handles (`Rc/Arc<...Option<Box<dyn FnMut...>>>`), not raw `Box<dyn FnMut>`. Function values are Go reference values: appending, indexing, assigning to locals, and later calling them should clone/pass the handle.
+Syntax registries such as `structDefs` may refine emission only after `go/types` has already identified the operation and type boundary.
 
 ## Test Workflow
 
-### IMPORTANT: Testing Individual Tests
+Never run fixture files directly. Always use `./test.sh`:
 
-**NEVER run test files directly!** Always use `./test.sh`:
+- Wrong: `go run ./go tests/foo/main.go`
+- Wrong: `cd tests/foo && cargo build && cargo run`
+- Right: `./test.sh foo`
 
-- ❌ WRONG: `go run ./go tests/foo/main.go`
-- ❌ WRONG: `cd tests/foo && cargo build && cargo run`
-- ✅ CORRECT: `./test.sh foo`
+The test script transpiles Go, generates `Cargo.toml`, builds and runs the Rust output, compares expected behavior, and updates `tests.bats`.
 
-The test script handles:
+For a feature or bug fix:
 
-- Transpiling the Go code
-- Generating proper Cargo.toml
-- Building and running the Rust code
-- Comparing output with expected results
-- Proper error reporting
+1. Add the focused failing fixture or Go unit test.
+2. Implement the translator change.
+3. Run `./test.sh <fixture>` or the focused Go unit test.
+4. Let passing XFAIL fixtures auto-promote through `./test.sh`.
+5. Run the broader suite appropriate to the blast radius before finishing.
 
-### Test Development Workflow
+Runtime guidance:
 
-1. **Add new feature test**: Create `tests/XFAIL/feature_name/main.go`
-2. **Implement transpiler support**: Modify `go/*.go` files
-3. **Test changes**: Use `./test.sh feature_name` to test specific features
-4. **Test auto-promotion**: XFAIL tests automatically move to main suite when passing (Never do this manually!)
-5. **Verify with full suite**: Run `./test.sh` before committing
+- Run only one `./test.sh` process at a time; it rewrites generated Bats files.
+- Prefer the default parallel fixture mode when the machine has memory headroom.
+- Use `./test.sh -n 1 ...` only for memory pressure, hard-to-read interleaving, or self-transpile follow-up checks.
+- Treat `Passing: 0/0` as an invalid run, not success.
+- For repeated local validation, prefer temp caches such as `GOCACHE=/private/tmp/go2rust-go-cache` and remove them afterward.
+- For expensive Rust validation, set `CARGO_TARGET_DIR` to a temp directory.
 
-### Test Runtime Guidance
+## Self-Hosting Overview
 
-- Use `./test.sh <name>` for focused fixtures and `./test.sh` before committing.
-- Run only one `./test.sh` process at a time. The script already parallelizes internally and rewrites `tests.bats`; separate concurrent invocations can race on `tests.bats.new`.
-- Bats `-j` parallelizes test files, not individual `@test` blocks. `test.sh -n N` must run generated shard files; if process inspection shows only one `bats-exec-file`, the suite is effectively sequential even when GNU parallel is installed.
-- Run the default parallel test mode when the machine has memory headroom. Use `./test.sh -n 1 ...` only for memory pressure, hard-to-read interleaving, or self-transpile follow-up checks.
-- Prefer `./test.sh -n 6 -t 30s` for full-suite validation when the machine has memory headroom; on 2026-05-13 it completed 488 passing fixtures plus 9 XFAIL in 184s after the package-global pointer dereference fix. Drop to `-n 4` if timer fixtures starve or the machine is under visible pressure.
-- If fixture tests feel slow, verify the startup line or live process state before changing the command. Fixture runs should say `Running tests in parallel with N jobs`; self-transpile `cargo check` should stay single-job under `CARGO_BUILD_JOBS=1` on this machine.
-- Before starting a self-transpile check or full suite, check whether another `./test.sh`, Bats, cargo, rustc, or Codex-owned validation run is already active. Do not stack single-job self-transpile on top of a parallel fixture run unless the user explicitly asks for maximum throughput.
-- If `./test.sh` reports `Passing: 0/0`, treat that as an invalid run, not success. Inspect the filter, dependencies such as GNU parallel, and the raw script output.
-- For Go unit tests and fixture runs in this repo, prefer `GOCACHE=/private/tmp/go2rust-go-cache` or another temp cache outside the repo when doing repeated local validation, and delete it afterward.
-- For expensive Rust validation, set `CARGO_TARGET_DIR` to a temp directory. Do not leave permanent target trees in the repo or home directory.
-- When the machine feels slow or disk usage looks wrong, measure before guessing: `du -sh /Users/tyler/.codex/log /Users/tyler/.codex/sessions /private/tmp/go2rust-go-cache /private/tmp/go2rust-*`. In the long self-hosting run on 2026-05-08, `codex-tui.log` and the shared Go build cache were the large items; stale self-transpile workspaces were much smaller.
+Self-transpiling this repo is a high-memory integration check, not the first validation step. Prove behavior with focused fixtures and `go test ./go` first.
 
-## Self-Hosting Workflow
+Use temp workspaces and low-memory Rust settings:
 
-- Self-transpiling this repo is a high-memory integration check, not the first validation step. Prove the behavior with focused fixtures and `go test ./go` first.
-- When self-transpiling, copy the repo to a temp workspace, run the generated package checks there, and remove the workspace afterward unless the user explicitly asks to inspect it. `KEEP_SELF_TRANSPILE=1` is for short-lived inspection only.
-- Use package-targeted checks to burn down errors incrementally, then run the broader workspace check. `self_transpile_check.sh` defaults Cargo to a low-memory profile (`CARGO_BUILD_JOBS=1`, no incremental, no debug info) unless explicitly overridden:
-  - Focused: `GOCACHE=/private/tmp/go2rust-go-cache ./self_transpile_check.sh --cargo-check --package <crate>`
-  - Broad: `GOCACHE=/private/tmp/go2rust-go-cache ./self_transpile_check.sh --cargo-check`
-- The compile-only self-transpile gate is not enough for self-hosting. The behavioral gate is `GOCACHE=/private/tmp/go2rust-go-cache GO2RUST_BEHAVIOR_JOBS=3 GO2RUST_BEHAVIOR_TIMEOUT=60s ./self_transpile_check.sh --behavior-suite`; it builds the generated Rust transpiler and runs `./test.sh` against that generated binary inside a copied test workspace. The copied suite strips `.rs`, `Cargo.toml`, and `Cargo.lock` snapshots before running so the generated binary must recreate them and prove behavior, not just reuse committed snapshots.
-- Current behavioral self-host checkpoint as of 2026-05-21: `go test ./go`, native `./test.sh -n 6 -t 30s`, package-targeted self-transpile `cargo check -p go`, and generated-binary focused fixtures `unsafe_sizeof_comparison`, `type_switch_default_first`, and `type_switch_reentrant_subject` all pass. A full copied-suite run through the self-transpiled binary reports 162/547 passing, 376/547 failing, and 9 XFAIL. This is behavior progress over the earlier 145/545 checkpoint, but self-hosting is not complete; keep running the generated binary against the behavior suite after each self-host fix.
-- Generated stdlib stubs must not silently synthesize `go/types` facts. If self-hosting reaches `types.Config.Check` or `types.NewChecker(...).Files` without a real implementation, fail at that boundary and build a real bridge/native implementation; do not patch callers with AST-shape type guesses.
-- If a self-transpile check gets past the previous Rust errors and exposes later errors, that is progress. Record the old and new error sets before patching the next boundary.
-- Use self-hosting errors as real feedback. A generated Rust compile error usually points to a translator boundary issue; reduce it to a focused fixture before patching broadly.
-- Type-switch lowering must not keep the subject borrow guard alive while executing case bodies. Clone/bind the case value first, then drop the guard before body statements so a helper can safely inspect the same interface value. Emit non-default type-switch cases before the default fallback; a source-order default before later cases can otherwise move `_ts_guard` and still leave later case conditions using it.
-- If `rustc` is killed on a generated dependency crate, inspect the generated Rust shape before assuming a semantic type error. Multi-megabyte single expressions can kill the compiler even when the code is otherwise valid.
-- For large package-level composite literals, prefer statement lowering: build local maps/slices in source order, then assign to the package global once. Do not mutate the target global while evaluating its initializer.
-- Anonymous struct types can be discovered while transpiling function bodies, after the early type-definition pass. Emit anonymous struct definitions a second time after functions for any names not already emitted.
-- Package global static type generation happens before initializer emission. Register anonymous struct types from the package-global type or matching composite literal before calling `goTypesTypeToRust`, or inferred `[N]struct{...}` globals emit `[/* unknown struct */; N]`.
-- Package-level channel globals need the go/types `*types.Chan` path, not only the AST `*ast.ChanType` path. `make(chan T, n)` is a bare `GoChannel<T>` initializer, capacity expressions may be wrapped `int` calls, and uses of the global should clone the stored channel before send/receive/len.
-- Current self-hosting checkpoint: package-targeted self-transpile cargo checks pass for `golang_org_x_tools_internal_versions`, `golang_org_x_tools_internal_stdlib`, `golang_org_x_tools_internal_typeparams`, `golang_org_x_tools_go_types_objectpath`, `golang_org_x_tools_go_types_typeutil`, `golang_org_x_tools_internal_typesinternal`, `golang_org_x_tools_internal_pkgbits`, `golang_org_x_tools_internal_gcimporter`, `golang_org_x_tools_internal_event`, `golang_org_x_tools_internal_gocommand`, `golang_org_x_tools_go_gcexportdata`, and `golang_org_x_tools_go_packages`.
-- Current broad self-transpile checkpoint: serial `TMPDIR=/private/tmp CARGO_BUILD_JOBS=1 CARGO_INCREMENTAL=0 RUSTFLAGS=-Awarnings cargo check -p go` in a generated self workspace passes for all generated dependency crates and the root `go` crate. Recent fixed blockers include plain local slice assignments from map range values, tuple-return assignments into indexed slice elements, error selector field returns, captured map targets in function literals, map assignment keys reused by inserted values, selector scalar field copies in struct literals and call arguments, nested selector slice values passed to local calls, generated `__go_value_clone` helpers, type-switch closure locals, package-name shadowing in selectors, sibling module init helper collisions, stdlib-interface selector field argument conversion, `strings.Builder` method lowering for pointer receivers plus byte/rune writes, dynamic concatenation arguments, short-declared `strings.Builder{}` raw receivers, wrapped `strings.Builder.String()` returns in concurrent mode, owned map-range string keys passed to calls or stored as map values before later reuse, function-typed parameters forwarded to function/method parameters, package-global slice snapshots such as `previousTypeMethods := currentTypeMethods`, reflect.StructTag(string).Get conversions, pointer-receiver method values such as `VarTable.PopScope`, stdlib-interface slice literal elements cloned from range references such as `[]ast.Expr{elt}`, reference-style range values copied by short declarations such as `sourceName := varName`, pointer range values returned as handles such as `for _, field := range []*ast.Field { return field }`, nested `strings.ToUpper`/`ToLower` over `TrimPrefix`/`TrimSuffix` results, package-global pointer handle assignment/return including `emptyList`-style concrete pointer globals returned as interfaces, package-global pointer field selectors such as `currentContext.Imports`, direct package-global pointer dereferences such as `*helpFlag`, package-global map snapshots such as `oldActiveMutexGuards := activeMutexGuards`, owned map-range keys reused after assignment such as `dst[outerKey][innerKey] = value`, stdlib-interface slice range values passed to calls, assigned into interface variables, copied into short declarations, used as type-switch subjects, used in single-value type assertions, indexed for single-value type assertions, compared with nil, populated with nil through bare slice literals/append, or constructed from concrete elements without surrounding type context, concurrent binary comparisons over stdlib selector string fields, range indexes passed to Go `int` call parameters, assigned into Go `int` locals, or compared with Go `int` peers, address-of composite literal call arguments such as `&VarInfo{...}` passed to `*T` parameters, pointer type assertions such as `t.(*ast.FuncType)` passed to `*T` parameters, map values whose element type is another handle-shaped value such as `map[string]map[string]string`, `map[uint32][]entry`, returned `map[string][]*ast.FuncDecl` lookups, or call arguments like `count(groups["letters"])`, method calls that take slice/map/array composite literals such as `LoadWithDependencies([]string{"."})`, pointer-receiver value copies such as `helperCopy := *ht`, imported named-integer constant bitmasks assigned into struct fields such as `packages.Config{Mode: packages.NeedName | ...}`, stdlib string helper arguments built from dynamic concatenation plus `string(filepath.Separator)`-style untyped rune constants, package string constants used as `map[string]...` assignment/lookup keys, ranged stdlib-interface map keys reinserted into `map[types.Object]...`, scalar wrapped map-range values copied into another map, wrapped string map-range values inserted as owned map keys, function-typed map literal/assignment values boxed from named function declarations with pointer parameters preserved as pointer handles, and string-range runes passed to `rune` parameters, matched in switches, or compared with integer constants.
-- Current `objectpath` checkpoint: it passes after fixing package constants, byte contexts, function-local interface assertions, named string conversions, pointer type-assertion method receivers, bare ranged stdlib-interface assertions, string-to-byte variadic append, wrapped map-field aliasing, stdlib-interface slice make, and address-of composite method receiver lowering.
-- Current `pkgbits` checkpoint: package-targeted self-transpile cargo check passes for `golang_org_x_tools_internal_pkgbits` after named integer constants passed to function and method parameters construct current-package newtypes across split modules, same-type constant conversions such as `SyncMarker(len(index)-1)` avoid double-wrapping in comparisons, named integer conversions from wrapped calls such as `SyncMarker(r.rawUvarint())` construct current-package newtypes across split modules, named integer constants in binary expressions such as `version >= numVersions` construct the peer newtype while `uint32` flag expressions cast raw constants, range over wrapped slice-returning calls and pointer-to-array targets borrows slice views, `copy(dst[:], src)` handles wrapped string/slice sources while mutating the backing destination, cross-file variadic function calls pack arguments from package-wide signatures, pointer receiver values stored into pointer struct fields are rewrapped, `cap` on wrapped slice fields unwraps before reading capacity, address-of local pointer arguments pass the existing handle instead of wrapping it again, struct map keys such as `RelocEnt` get package-wide ordering support, named scalar map values preserve their newtypes, named scalar array literal elements/fillers construct typed zero values, indexed slice elements inside arrays/slices append and assign by mutating the inner bare Vec while nested slice fields use a nested formatter, range string values clone out of iterator references for owned string parameters, len/cap call arguments cast to Go `int`, len/cap short declarations initialize wrapped Go ints, external stdlib variadic stub calls pack variadic operands into one generated-stub argument, external stub arguments inside closures honor capture renames, wrapped `error` arguments pass the error handle instead of an inner trait reference, error equality avoids comparing `Box<dyn Error>` directly, dynamic-format `panic(fmt.Errorf(...))` avoids formatting the wrapped error object, and current-receiver pointer method calls stage receiver-referencing arguments before starting the mutable receiver call.
-- Function-local interface declarations used in type assertions or type switches should be hoisted into emitted Rust traits. Preserve the Go interface identity from `go/types`, emit concrete assertion arms from actual `types.Implements` relationships, and avoid direct `downcast_ref::<Trait>()` because Rust can downcast to concrete types, not unsized traits.
-- Typed constants passed to local interface parameters should construct the go/types-proven named concrete type and pass a trait-object reference, for example `&CodeVal(...)`, instead of treating the constant identifier as a wrapped variable.
-- Named integer values used as array/slice/string indexes should unwrap their inner scalar before `usize` casts. Binary index expressions such as `k-1` should lower named operands to primitives first; scalar type-definition receivers already emit primitive `self.0` values and must not be unwrapped a second time.
-- Numeric conversions from named integer values should lower the named wrapper to its primitive scalar first. Local named scalar types store the primitive inside `.0` wrappers, while external stdlib integer stubs such as `types.BasicKind` store a direct primitive tuple field.
-- Same-type named integer constant conversions in comparisons should pass through the explicit conversion once. Do not wrap `Kind(len(array)-1)` as `Kind(Some(Kind(...) as i32))`; lower the numeric binary expression to primitives before constructing the named type.
-- Named integer constants passed to function or method parameters should use the expected parameter type from go/types and construct that named newtype. Do not depend on `LookupTypeDefinition` file order for current-package types; dependency crates are emitted one file/module at a time, and call sites can be generated before the file that declares `RelocKind`, `SyncMarker`, `Field`, or similar named integer types.
-- Untyped integer constants passed to typed integer parameters should cast to the go/types-proven parameter width inside the normal argument wrapper. For example, `w.int64(deltaNewFile)` should emit `deltaNewFile as i64`, even if the package const declaration itself defaults to `i32`.
-- Named integer constants in binary expressions need the same go/types treatment, but only for actual constants. Construct current-package newtypes from the raw const token for same-named peers such as `version >= numVersions`; cast raw untyped constants to the typed integer peer for expressions such as `flags & flagSyncMarkers`; keep external stdlib named integers on their tuple-struct path.
-- Named integer type conversions should also use go/types instead of `LookupTypeDefinition`. Cross-file conversions from wrapped calls, such as `SyncMarker(r.rawUvarint())`, emit the named newtype value and must be treated as not already wrapped so short declarations add the local variable handle.
-- Local named integer bitwise expressions should lower operands to primitive scalars, apply `&`, `|`, or `^`, then construct the named newtype result. Same-type `^=`/`&=`/`|=` on wrapped named integers needs an owned clone of the current named value before applying the Rust operator, and local bitwise scalar definitions need `BitXor` in addition to `BitAnd` and `BitOr`.
-- Constant expressions can still route through wrapped call handlers. When a constant-producing call such as `unsafe.Sizeof(ptr)` is cast to a concrete integer type for a peer expression, unwrap the generated call result before appending the Rust cast.
-- `reflect.TypeOf` should use go/types for the emitted static type name and include struct field metadata when the operand's underlying type is a struct. Non-struct operands still need a typed `GoReflectType` value with an empty field list so method calls like `TypeOf(x).String()` and interface boxing compile.
-- `reflect.StructTag(s)` should construct the local `GoReflectStructTag { raw: ... }` helper, not the external stub `reflect_StructTag(...)`. Because that conversion emits a bare helper value, chained method calls such as `reflect.StructTag(tag).Get("json")` must call `.get(...)` directly instead of unwrapping it as a wrapped call result.
-- Nil method-call arguments need the same typed `None` handling as ordinary function-call arguments. Do this before the generic wrapper path, or `m(nil)` for a `*T` parameter becomes `Some(None)`.
-- Array/slice literals whose element type is a pointer or channel must preserve existing handles. In particular `[]*T{ptr}` should store `ptr.clone()`, not a cloned pointee, so later mutations through either alias see the same Go object.
-- Package function arguments need the same composite-literal handle treatment as ordinary calls. A fixed-array literal such as `core.MakeEvent([3]label.Label{...}, labels)` already emits the wrapped array handle; do not wrap it again before passing it to the package function.
-- `nil` passed to a package function should be emitted as the typed nil handle directly. Do not enter the generic wrapper path, or `core.MakeEvent(..., nil)` becomes `Some(None)` where the callee expects a nil `[]Label` handle.
-- Interface equality with a concrete pointer operand should still dispatch through the interface trait helper. For `l.Key() == keys.Msg`, bind `keys.Msg` to the underlying pointer handle and pass a trait reference to `__go_eq`; never emit raw `==` on `Box<dyn Key + Send + Sync>`.
-- Return expressions that already produce pointer handles should pass through only when the declared return position is itself pointer-typed. Do not apply this broadly to interface returns such as `ast.Expr`, where the concrete expression still needs the normal interface conversion.
-- Unary integer literals inside named-integer binary operands should remain raw literals. For stringer guards such as `x[InvalidSyntaxTree - -1]`, lower the right operand as `-1`, not as a wrapped named scalar access.
-- Range over wrapped slice-returning calls and pointer-to-array expressions should use a borrowed slice view. Nested range over a range variable that is already a reference should iterate that reference directly instead of adding another `&`.
-- If a Go range value variable is reassigned inside the loop body, the Rust binding must be mutable and owned. Use `.iter().cloned()` or `.iter().copied()` as appropriate; `for (_, v) in slice.iter().enumerate()` makes `v` a borrowed reference and rejects `v = next`.
-- Range values from `[]string` are `&String` references in iterator lowering. When go/types says a call parameter expects `string`, or the value is used in a string comparison, stdlib string helper, or `append` into `[]string`, clone `(*value).clone()` into the owned value path; passing the range variable directly produces `Option<&String>`, compares `String` to `&String`, or pushes `&String` where `String` is expected.
-- Non-copy range values passed to ordinary function or selector-method parameters need the same owned-value treatment. In the normal wrapper path, clone `(*value).clone()` before `Some(...)`; otherwise `for _, info := range infos { r.p.typIdx(info, dict) }` produces `Option<&Info>` where the callee expects `Option<Info>`.
-- Stdlib named-interface slice elements, such as `[]ast.Stmt`, are shared stub values in Rust, not local `Box<dyn Trait>` objects. Range variables over those slices are `&ast_Stmt`/`&ast_Expr`; when passed to same-interface parameters or assigned into interface variables, clone `(*value).clone()` before wrapping. For type switches and single-value type assertions, borrow the reference directly and call `downcast_ref` on the stub value; do not clone into an owned stub and then try to `.lock()` it. Leaving the reference in `Some(value)` produces `Option<&ast_Stmt>` where the callee or slot expects `Option<ast_Stmt>`.
-- For method calls through selector fields, keep the field borrow kind aligned with the receiver unwrap. If `go/types` reports a pointer receiver and the generated call uses `.as_mut().unwrap()`, use `borrow_mut`/`lock`, not an immutable borrow followed by `as_mut`.
-- Range index variables from `.enumerate()` are bare `usize`. Numeric conversions such as `uint64(i)` should cast `i as u64`, not unwrap `i` as a normal Go variable handle.
-- Bare range indexes assigned into a Go `int` local, stored in a `map[K]int` value slot, or compared with a Go `int` peer need expected-type casting at the use boundary. Do not change the range variable itself into a wrapped Go `int`; index and numeric-conversion paths still need the bare `usize`.
-- Range values used as map insertion keys must become owned keys. For `for i, v := range values() { m[v] = uint64(i) }`, clone `(*v).clone()` for the key and cast the bare index separately.
-- Range values used as map insertion values must become owned wrapped values. For `for i, v := range values() { m[uint64(i)] = v }` where `v` is a borrowed iterator element, clone `(*v).clone()` before wrapping; otherwise generated Rust produces `Option<&T>` where the map expects `Option<T>`.
-- Range over a map lookup depends on the map value type. If `p.pkgIndex[pkg]` has value type `map[...]...` or `[]T`, the lookup returns a cloned/defaulted handle and range must borrow that handle with a guard before iterating. Only map lookups whose value type is a scalar/struct represented as a bare value should iterate a bare cloned value.
-- A `for` init short declaration can shadow an active range variable from an outer loop, such as `for i := range n { for i := 0; ... }`. Emit the initializer while the outer range binding is still visible to the RHS, hide the outer `rangeLoopVars` entry for the inner loop condition/body/post, wrap the shadowing loop in a Rust block, and restore the outer range entry afterward.
-- Array/slice elements that are themselves slices are bare `Vec<T>` values inside the outer wrapped array/slice. For `arr[i] = append(arr[i], x)`, lower append as an inner `Vec` mutation and skip the outer assignment when the append target is the same indexed expression; for `arr[i][j] = value`, mutate through the outer collection and inner Vec in one LValue path. Otherwise the generated code either calls `.lock()` on `Vec<T>` or deadlocks by holding the outer collection lock while re-locking it. Struct Display for arrays/slices of slices needs `format_nested_slice`, not the ordinary `format_slice` bound that requires `Vec<T>: Display`.
-- Appending a slice value into a nested slice, such as `chunks = append(chunks, patterns[start:i])` where `chunks` is `[][]string`, must push the raw inner `Vec<T>`. Do not push the wrapped `Arc/Rc<...Option<Vec<T>>>` handle into the outer `Vec<Vec<T>>`.
-- Variadic `append(dst, src...)` must extend from the unwrapped source slice values. If `src` is a selector field such as `holder.Items`, unwrap the selector handle first; extending from `holder.Items.iter()` tries to iterate the wrapper instead of the slice.
-- Short declarations and inferred `var` declarations from `make([]T, n)` need an explicit Rust type when the element zero value is `Default::default()` or a predeclared `error` handle. Without `let xs: Rc/Arc<...Vec<T>...> = ...`, later `len(xs)`, range-only use, or closure clones may leave the `vec![...]` element/container type ambiguous.
-- `slices.Clone` must preserve the go/types-proven input slice element type. Do not route it through the generic generated stdlib stub, because that fallback returns `[]any` and breaks typed slices such as `[]*types.Package`.
-- `slices.Clip` should also stay on the typed slice path. Because the translator does not model slice capacity, lower it as a typed clone for now so `append(slices.Clip(s), x)` mutates the returned slice handle instead of the original backing storage.
-- Generic `append` lowering must evaluate its target once, bind that handle, mutate it, and return the same handle. Re-emitting the target expression is wrong for `append(slices.Clip(s), x)` and any other append target with allocation or cloning side effects.
-- The builtin `copy` must treat a slice-expression destination as a mutable view into its backing array or slice. Do not call `.len()`, `.as_bytes()`, or index operations on the Arc/Rc wrapper returned by a source slice expression; unwrap the source value first, then copy into the original destination with the computed start offset.
-- Register function signatures for every file in a package before emitting any module. Cross-file helpers such as `panicf(format string, args ...any)` can be called before their declaring file is generated; without the package-wide signature, the call bypasses variadic packing and emits too many Rust arguments.
-- Package selector calls into transpiled dependency crates still need the go/types signature path. If a dependency function is variadic, emit the fixed arguments plus the wrapped variadic vector, including `vec![]` when the call provides no trailing variadic operands. They also need the normal stdlib-interface argument conversion path; `gcexportdata.NewReader(f)` where the parameter is `io.Reader` and `f` is `*os.File` should convert through the generated `From<os_File> for io_Reader` stub instead of passing the `os_File` handle directly.
-- External stdlib variadic package stubs have one generated generic parameter for the variadic bundle. Lower calls such as `io.MultiWriter(a, b)` as one tuple-shaped variadic argument, not as multiple Rust function parameters; this preserves heterogeneous interface implementors that share the Go variadic interface type.
-- Embedded external stdlib and imported transpiled types need promoted forwarding methods generated from the `go/types` method set, and those forwarding impls belong only in the file module that declares the embedding type. Stdlib placeholder forwards keep generic arguments for generated stubs; imported transpiled forwards must use the concrete dependency crate parameter and return types. The forwarding method itself can take `&self` because the embedded field handle provides interior mutability when the promoted method has a pointer receiver. If package-wide `structDefs` drive promotion in every split module, Rust reports duplicate method definitions.
-- `os.File` has two generated representations: local `os.Create` lowering uses the `GoFile` helper, while external stdlib stubs such as `os.Pipe` return `os_File`. Keep `os.File` out of external-stub call-argument mode so `GoFile.write_string` still receives wrapped strings, but still register direct external `os_File` method stubs such as `close`.
-- External stdlib stub call arguments bypass much of the normal local call-argument path. When the argument is a captured wrapped identifier inside a closure, apply `currentCaptureRenames` before cloning, or the `move` closure consumes the original handle and later uses in the outer function fail borrow checking.
-- External stdlib stub call arguments that are wrapped range variables should pass the range handle clone before falling back to owned-expression lowering. For `sort.Slice(objs, func(...) { ... objs ... })` where `objs` comes from ranging over a map slice value, moving the inner `Vec` into the stub call conflicts with the closure capture and later uses.
-- The predeclared `error` type is special even though go/types models it as an interface. Function and method parameters expecting `error` should receive the wrapped error handle; do not route them through the generic named-interface `&dyn Trait` argument path.
-- Concrete values that implement `error` need the same boxing treatment in call arguments as they do in assignments and returns. For `appendError(types.Error{...})` or `accept(customError{...})`, wrap `Box<dyn StdError...>` inside the normal error handle instead of passing the concrete struct.
-- Package-qualified stdlib struct literals such as `types.Error{...}` emit bare Rust structs on short declaration. Register that local as bare so a later `accept(err error)` boxes `err.clone()` directly instead of borrowing `err` like a wrapper.
-- `context.Context.Err` is an `error`, not a string. The `GoContext` helper must store and return wrapped boxed error handles so `ctx.Err()` composes with error returns, assignments, and comparisons.
-- `GoContext` appears inside generated structs and format calls during self-hosting, so the shared helper needs stable `Display` and `Debug` implementations. Deriving `Debug` is not enough because `GoContext` owns `GoChannel`; format from an explicit context label instead.
-- A call to `err.Error()` where `err` has the predeclared `error` type should format the boxed error inside the existing error handle. Selector receivers such as `err.Err.Error()` must be emitted in handle/LValue context; do not unwrap the field to `Box<dyn StdError>` and then emit another `.lock()` on that box.
-- Concrete named values that implement `error`, such as a named string with an `Error() string` method, must be boxed when assigned or returned as `error`; prove this with `types.Implements`.
-- A struct that embeds the predeclared `error` interface implements `error` through promoted `Error() string`. Register that from go/types, generate the promoted Rust `error()` method, and provide manual `Debug` when a trait field prevents `#[derive(Debug)]`, because Rust `StdError` requires both `Debug` and `Display`.
-- Receiving from `chan error` yields the channel element `Option<Box<dyn StdError...>>`. Short declarations and comma-ok receive forms must wrap that option directly in the error handle, not emit `Some(option)`. Reassignment to an existing error handle should store the received option directly.
-- Variadic method calls need the same packing as variadic function calls. For `method(format string, args ...any)`, emit one wrapped `Vec<Box<dyn Any...>>` variadic argument; do not pass each operand as a separate Rust method argument.
-- Variadic function-value calls need go/types signature packing too. A call through a function alias such as `report("ready")` must supply the omitted variadic operand as the wrapped empty `vec![]`, and `...any` elements still need interface boxing.
-- Fixed arguments in the older local variadic function path still need pointer-special handling before wrapping. For `defaultDriver(&ld.Config, patterns...)`, use go/types to prove `&ld.Config` is assignable to `*Config` and pass the field handle clone directly; wrapping the address expression nests `Arc/Rc<...Option<Config>>` inside another wrapper.
-- Do not compare `Box<dyn StdError>` values directly. Lower `error == error` and `error != error` through the wrapper state unless and until the runtime has a real comparable error identity model.
-- For `panic(fmt.Errorf(format, args...))` with a dynamic format, emit a panic over the unwrapped format string rather than constructing and formatting the wrapped `Box<dyn StdError>` value.
-- Format arguments that are selector expressions with named interface type, such as `cmd.Stderr`, should be formatted from the selector handle in LValue context. RValue selector lowering may already unwrap the field, and adding the formatter's interface unwrap on top of that produces `.lock()`/`.borrow()` calls on the raw stub value.
-- Format arguments that are selector expressions with slice type, such as `p.Error.ImportStack`, may already lower to a bare `Vec<T>` in RValue context. Route them through `format_slice_values(&...)`, not `format_slice(&...)`, and unwrap wrapped string results before using them as the RHS of string `+=`.
-- Formatting `[]*T` needs pointer-element-specific helpers. If go/types proves the element type has `String() string`, format each pointee with `value.to_string()` and do not print the synthetic `&`; ordinary pointer slices still format non-nil elements as `&{...}`. Keep these helpers demand-tracked so unrelated `fmt` snapshots do not churn.
-- Stdlib string helpers that return wrapped strings should first materialize an owned string argument. For `strings.TrimSpace(s[i:])`, emit a local owned `String` and call `.trim()` on it, not on the wrapped slice-expression handle.
-- `[]string` index expressions already produce a bare owned `String` in RValue context. Passing `split[0]` to string helpers such as `strings.TrimSpace` should use that value directly, not add another wrapper borrow.
-- `json.Marshal` struct support should stay go/types-driven. Named scalar fields encode their underlying bool/numeric/string value, `[]string` fields encode JSON arrays, and `map[string][]byte` fields encode byte slices as base64 strings with deterministic map-key order from `BTreeMap`.
-- When a pointer receiver initializes a struct pointer field with itself, use go/types assignability and rewrap `self.clone()` for the field. Bare `self.clone()` is the struct value, not the `Arc/Rc<...Option<T>>` handle used for Go pointer fields.
-- The builtin `cap` on ordinary wrapped slices should use the same LValue unwrap shape as `len`, then call `.capacity()` on the inner Vec. Named slice expressions need the named-slice cap helper, not the len helper; arrays lower to `.len()` because Rust arrays have no capacity.
-- Address-of a local or composite value passed to a pointer parameter, such as `method(&local)` or `register(&Info{...})`, should pass the existing pointer handle when go/types proves the argument type is a pointer. Do not emit `Arc/Rc::new(...Some(handle.clone()))`, which nests the handle instead of passing `*T`.
-- An unlabeled `break` nested inside `if`/block statements within a switch or type switch breaks the switch, not an outer Rust loop. Emit a one-shot labeled loop only for switches that need this synthetic target; direct top-level case breaks can still be handled by stopping case-body emission.
-- In `for init; cond; post` loops, Go runs the post statement before any unlabeled `continue`, even when the `continue` is nested inside a switch or type switch. Track the nearest loop post separately from labeled loop posts, and hide outer posts inside nested loops without post statements.
+- Focused package check: `GOCACHE=/private/tmp/go2rust-go-cache ./self_transpile_check.sh --cargo-check --package <crate>`
+- Broad compile check: `GOCACHE=/private/tmp/go2rust-go-cache ./self_transpile_check.sh --cargo-check`
+- Behavior gate: `GOCACHE=/private/tmp/go2rust-go-cache GO2RUST_BEHAVIOR_JOBS=3 GO2RUST_BEHAVIOR_TIMEOUT=60s ./self_transpile_check.sh --behavior-suite`
 
-## Source-Preserving Fixes
+Generated Rust compiling is not enough for self-hosting. The generated transpiler must also run the fixture behavior suite from fresh generated outputs.
 
-- Do not fix a self-hosting blocker by broadly folding source constructs into constants. For example, array indexes should preserve user constants and expressions such as `First` or `"(".len()`; only special-case stdlib selector constants when the generated Rust has no usable selector value.
-- When a code generator helper changes many unrelated `tests/*/main.rs` snapshots, stop and narrow the helper before committing. Broad snapshot churn is usually a sign the translator started optimizing instead of translating.
+See [docs/rules/self-host-rules.md](docs/rules/self-host-rules.md) for self-host triage rules.
 
-## Future Optimizations (Post-MVP)
+## Detailed Rules
 
-1. **Remove unnecessary Arc** - escape analysis
-2. **Remove unnecessary Mutex** - read-only data
-3. **Remove unnecessary Option** - non-nil pointers
-4. **Introduce lifetimes** - replace Arc with references
-5. **Function parameters** - use `&T`/`&mut T` when address not taken
+- [docs/rules/wrappers.md](docs/rules/wrappers.md): wrapped vs raw values, maps, slices, pointers, constants, ranges, interfaces, errors, and package globals.
+- [docs/rules/call-arguments.md](docs/rules/call-arguments.md): function/method argument wrapping, function values, variadics, external stubs, receivers, and nil.
+- [docs/rules/closure-capture.md](docs/rules/closure-capture.md): capture analysis, defer state, function literals, range captures, and closure-specific map access.
+- [docs/rules/sync.md](docs/rules/sync.md): `sync.Mutex`, `sync.Once`, assignment evaluation order, switch/loop control flow, and lock lifetime rules.
+- [docs/rules/self-host-rules.md](docs/rules/self-host-rules.md): self-host commands, checkpoint hygiene, generated Rust triage, and source-preserving fixes.
 
-## ⚠️ CRITICAL: Type Info Is Authoritative — No Syntax-Fallback Shortcuts
-
-**The transpiler has complete type information via `go/types` — USE IT.** See `go/typeinfo.go`.
-
-### The rule
-
-Every code-generation decision MUST come from `go/types`. If `GetTypeInfo()` returns nil, or `typeInfo.GetType(node)` returns nil for a node you are about to emit, that is a **loader bug**, not a hint to guess. The correct response is:
-
-1. **Stop and find why type info is missing.** It is almost always a loader problem (missing Importer, swallowed `types.Config.Check` error, package parsed but not type-checked, etc.). Fix it at the source.
-2. If the gap genuinely cannot be closed from the loader, emit `unimplemented!("type info required for <operation>")` and a `/* ERROR: ... */` comment so the failure is loud at runtime.
-3. **Never** add a `syntaxFallback`, `if typeInfo == nil`, name-pattern heuristic, or "infer from AST shape" branch. Doing so creates a shadow type system that is almost-but-not-quite correct — the worst kind of bug, because tests under full type info keep passing while self-host and partial-info paths silently emit wrong code.
-
-A real incident: between commits 470fcb0b..3e3d9fc3 (May 2026) 15 distinct syntax-fallback branches were added across `captures.go`, `expr.go`, `stmt.go`, `slice_elem_ptr.go`, `typeinfo.go`, etc. The root causes were upstream type-info gaps: local fallback packages lacked a project-aware `types.Importer`, type-check errors were easy to miss, and self-generated `go/types` stdlib stubs returned default success instead of doing real type checking. The fallbacks then produced many wrong code paths instead of forcing those boundaries to be fixed. The lesson: **one type-info source fix beats N heuristic patches every time.**
-
-### Examples
-
-```go
-// ✅ CORRECT: route every decision through go/types
-typeInfo := GetTypeInfo()
-if typeInfo == nil {
-    out.WriteString("unimplemented!(\"type info required to lower X\")")
-    return
-}
-if typeInfo.IsMap(expr) {
-    // map-specific logic
-}
-
-// ❌ WRONG: name-pattern guessing
-if strings.Contains(varName, "map") { ... }
-
-// ❌ WRONG: AST-shape syntax fallback
-if typeInfo == nil {
-    if _, ok := someAST.Type.(*ast.MapType); ok {
-        // pretend we know it's a map
-    }
-}
-
-// ❌ WRONG: swallowing types.Config.Check errors
-pkg, _ := config.Check("", fset, files, info)  // never do this
-```
-
-### When you find a nil TypeInfo
-
-1. **Trace where the package was loaded.** Was it `packages.Load` (full `NeedTypesInfo`) or a hand-rolled `NewTypeInfo`? Hand-rolled paths must call `NewTypeInfoWithImporter` with a project-aware `types.Importer` that resolves siblings — see `projectImporter` in `package_loader.go`.
-2. **Check whether errors were swallowed.** `NewTypeInfoWithImporter` accumulates every `types.Error` callback plus the `types.Config.Check` return value and returns them as one joined error. Its result shape is `(typeInfo, nil)` for clean input, `(typeInfo, err)` for partial info, `(nil, err)` when no `*types.Package` was produced. Every caller MUST inspect both — never write `pkg, _ := config.Check(...)`, never discard the returned error from `NewTypeInfo*`, and never assume `err == nil` implies complete information. Strict pipelines (`PackageLoader.typeCheckLocalPackage`, `UnifiedTranspiler.typeCheckAll`) must propagate the error fatally; only opt-in lenient call sites (`project.go`'s stub-tolerant branches) may continue with partial info, and they MUST log the joined error so it lands in CI output.
-3. **Check for synthesized AST nodes.** Any `&ast.Ident{...}` or other node literal constructed inside the transpiler is invisible to `info.Types`. If you need to emit one, either record the type in a side-channel before construction or — preferably — don't construct AST nodes at all; emit Rust directly.
-
-### Why TypeInfo is essential
-
-1. **100% accurate** — go/types has already analyzed the whole program.
-2. **Handles complex cases** — type aliases, embedded types, interfaces, generics: all resolved.
-3. **Cross-file / cross-package awareness** — knows imported package types provided the Importer is wired up.
-4. **Forward-compatible** — new Go features come along for free.
-
-## Known Limitations
-
-- No unsafe, reflection, cgo
-- No general generics yet; only focused instantiated generic function type aliases such as `iter.Seq[string]`
-- Limited stdlib support (see README.md for what's mapped)
-- Multi-file package support is substantial but incomplete; see Phase 8 in `ROADMAP.md` before assuming a cross-file pattern is supported.
-- No goto statements
-- Closure capture: some edge cases with cross-file function variables and anonymous struct methods
+See `README.md` and `ROADMAP.md` for current feature support, limitations, and planned optimizations.
