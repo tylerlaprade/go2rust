@@ -572,6 +572,21 @@ func main() {
 	}
 }
 
+func TestNoTypeInfoStringSliceBoundsUseStringOutput(t *testing.T) {
+	rust := transpileNoTypeInfoRegression(t, `package main
+
+func trimParens(s string) string {
+	return s[len("(") : len(s)-len(")")]
+}`)
+
+	if !strings.Contains(rust, "].to_string()") {
+		t.Fatalf("string slice should produce a String under syntax fallback:\n%s", rust)
+	}
+	if strings.Contains(rust, "].to_vec()") {
+		t.Fatalf("string slice should not use Vec output under syntax fallback:\n%s", rust)
+	}
+}
+
 func TestNoTypeInfoLocalCollectionTrackingIsFunctionScoped(t *testing.T) {
 	prevTypeInfo := currentTypeInfo
 	defer func() { currentTypeInfo = prevTypeInfo }()

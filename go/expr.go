@@ -6163,6 +6163,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		if typeInfo := GetTypeInfo(); typeInfo != nil {
 			isStringSlice = typeInfo.IsString(e.X)
 		}
+		if !isStringSlice && (isSyntaxStringValue(e.X) || isStringConstExpr(e.X)) {
+			isStringSlice = true
+		}
 
 		if e.Slice3 && e.Max != nil && !isStringSlice {
 			// Three-index slice: s[low:high:max] → cap = max - low
