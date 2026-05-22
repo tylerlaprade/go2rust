@@ -511,7 +511,10 @@ func localCollectionElemRustType(expr ast.Expr) (string, bool) {
 		return "", false
 	}
 	elemType := localRangeElemRustTypes[ident.Name]
-	return elemType, elemType != ""
+	if elemType == "" {
+		return "", false
+	}
+	return elemType, true
 }
 
 func localMapRangeTypes(expr ast.Expr) (string, string, bool) {

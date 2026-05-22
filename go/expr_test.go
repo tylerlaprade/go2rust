@@ -440,6 +440,46 @@ func main() {
 	}
 }
 
+func TestConcurrentTupleReturnAvoidsRelockingLocalResult(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+import "fmt"
+
+var elems map[string]string
+
+func elem(name string) (string, bool) {
+	elemType := elems[name]
+	if elemType == "" {
+		return "", false
+	}
+	return elemType, true
+}
+
+func forceConcurrent() {
+	go func() {}()
+	fmt.Println(elem("x"))
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(main.go) error = %v", err)
+	}
+
+	prevDetector := GetConcurrencyDetector()
+	detector := NewConcurrencyDetector()
+	detector.AnalyzeFile(file)
+	SetConcurrencyDetector(detector)
+	defer SetConcurrencyDetector(prevDetector)
+
+	rust, _, _ := Transpile(file, fset, nil)
+	if strings.Contains(rust, "let __tmp_x = (*elemType.lock().unwrap().as_ref().unwrap()).clone()") {
+		t.Fatalf("tuple return should not relock elemType in a later tuple element:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Arc::new(Mutex::new(Some(true)))") {
+		t.Fatalf("tuple return should use a literal true result after the empty check:\n%s", rust)
+	}
+}
+
 func TestNoTypeInfoLocalCollectionTrackingIsFunctionScoped(t *testing.T) {
 	prevTypeInfo := currentTypeInfo
 	defer func() { currentTypeInfo = prevTypeInfo }()
