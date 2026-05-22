@@ -1,6 +1,9 @@
 package main
 
 import (
+	goast "go/ast"
+	gotoken "go/token"
+	gotypes "go/types"
 	"strings"
 	"testing"
 )
@@ -18,6 +21,109 @@ func TestParserStubSurfaceRegistersEmptyStmt(t *testing.T) {
 	if !ctx.File.ExternalTypeStubs["ast_EmptyStmt"] {
 		t.Fatalf("parser.ParseFile stub surface should register ast_EmptyStmt")
 	}
+}
+
+func TestSourcePackageTypesDoNotRegisterExternalStubs(t *testing.T) {
+	prevContext := currentContext
+	ctx := &TranspileContext{
+		Package: NewPackageState(),
+		File:    NewFileState(NewImportTracker(), &HelperTracker{}, nil),
+	}
+	SetTranspileContext(ctx)
+	defer SetTranspileContext(prevContext)
+
+	RegisterExternalTypeStub("go_ast::ArrayType")
+	RegisterExternalTypeStubInterface("go_ast::Expr")
+	RegisterExternalIntegerTypeStub("go_token::Token", "i32")
+	RegisterExternalTypeStubFieldByRustType("go_ast::ArrayType", "elt", "go_ast::Expr")
+
+	if len(ctx.File.ExternalTypeStubs) != 0 {
+		t.Fatalf("source-package Rust paths must not be emitted as external stubs: %#v", ctx.File.ExternalTypeStubs)
+	}
+	if len(ctx.File.ExternalTypeStubInterfaces) != 0 {
+		t.Fatalf("source-package Rust paths must not be emitted as external interfaces: %#v", ctx.File.ExternalTypeStubInterfaces)
+	}
+	if len(ctx.File.ExternalTypeStubIntegerTypes) != 0 {
+		t.Fatalf("source-package Rust paths must not be emitted as external integer types: %#v", ctx.File.ExternalTypeStubIntegerTypes)
+	}
+	if len(ctx.File.ExternalTypeStubFields) != 0 {
+		t.Fatalf("source-package Rust paths must not get stub fields: %#v", ctx.File.ExternalTypeStubFields)
+	}
+}
+
+func TestSourceMappedStdlibPackageIsNotStubBacked(t *testing.T) {
+	prevContext := currentContext
+	ctx := &TranspileContext{
+		Package:        NewPackageState(),
+		File:           NewFileState(NewImportTracker(), &HelperTracker{}, nil),
+		PackageMapping: map[string]string{"go/types": "go_types"},
+	}
+	SetTranspileContext(ctx)
+	defer SetTranspileContext(prevContext)
+
+	if !isSourceMappedPackagePath("go/types") {
+		t.Fatalf("go/types should be source-mapped")
+	}
+	if isStubBackedStdlibPackagePath("go/types") {
+		t.Fatalf("source-mapped go/types must not be stub-backed")
+	}
+	if !isStubBackedStdlibPackagePath("go/ast") {
+		t.Fatalf("unmapped go/ast should still be stub-backed")
+	}
+}
+
+func TestSourceMappedStdlibCompositeLiteralDoesNotRegisterStubFields(t *testing.T) {
+	prevContext := currentContext
+	ctx := &TranspileContext{
+		Package:        NewPackageState(),
+		File:           NewFileState(NewImportTracker(), &HelperTracker{}, nil),
+		PackageMapping: map[string]string{"go/types": "go_types"},
+	}
+	SetTranspileContext(ctx)
+	defer SetTranspileContext(prevContext)
+
+	named, structType := testExternalTypesBasicStruct()
+	registerExternalStructCompositeLiteralFields(named, structType, []goast.Expr{
+		&goast.KeyValueExpr{Key: goast.NewIdent("name"), Value: &goast.BasicLit{Kind: gotoken.STRING, Value: `"x"`}},
+	})
+
+	if len(ctx.File.ExternalTypeStubs) != 0 {
+		t.Fatalf("source-mapped stdlib type should not register a stub: %#v", ctx.File.ExternalTypeStubs)
+	}
+	if len(ctx.File.ExternalTypeStubFields) != 0 {
+		t.Fatalf("source-mapped stdlib type should not register stub fields: %#v", ctx.File.ExternalTypeStubFields)
+	}
+}
+
+func TestUnmappedStdlibCompositeLiteralStillRegistersStubFields(t *testing.T) {
+	prevContext := currentContext
+	ctx := &TranspileContext{
+		Package: NewPackageState(),
+		File:    NewFileState(NewImportTracker(), &HelperTracker{}, nil),
+	}
+	SetTranspileContext(ctx)
+	defer SetTranspileContext(prevContext)
+
+	named, structType := testExternalTypesBasicStruct()
+	registerExternalStructCompositeLiteralFields(named, structType, []goast.Expr{
+		&goast.KeyValueExpr{Key: goast.NewIdent("name"), Value: &goast.BasicLit{Kind: gotoken.STRING, Value: `"x"`}},
+	})
+
+	if !ctx.File.ExternalTypeStubs["types_Basic"] {
+		t.Fatalf("unmapped stdlib type should still register a stub: %#v", ctx.File.ExternalTypeStubs)
+	}
+	fields := ctx.File.ExternalTypeStubFields["types_Basic"]
+	if fields == nil || fields["name"] == "" {
+		t.Fatalf("unmapped stdlib type should register requested field: %#v", ctx.File.ExternalTypeStubFields)
+	}
+}
+
+func testExternalTypesBasicStruct() (*gotypes.Named, *gotypes.Struct) {
+	pkg := gotypes.NewPackage("go/types", "types")
+	field := gotypes.NewField(gotoken.NoPos, pkg, "name", gotypes.Typ[gotypes.String], false)
+	structType := gotypes.NewStruct([]*gotypes.Var{field}, nil)
+	named := gotypes.NewNamed(gotypes.NewTypeName(gotoken.NoPos, pkg, "Basic", nil), structType, nil)
+	return named, structType
 }
 
 func TestParserStubUsesGoAstShapesForCalls(t *testing.T) {
@@ -145,7 +251,7 @@ func TestTypesStubsDoNotSilentlySynthesizeTypeInfo(t *testing.T) {
 // structurally the same bug as the 2026 syntax-fallback incident: callers
 // receive plausible-but-wrong type information and the failure shows up as a
 // downstream code-gen mystery instead of an obvious crash at the boundary.
-// See docs/rules/self-host-rules.md "Strategy: Transpile stdlib, don't bridge it".
+// See AGENTS.md "Strategy: Transpile stdlib, don't bridge it".
 func TestTypesTypeBridgeMethodsPanicOnUnsupportedKinds(t *testing.T) {
 	var out strings.Builder
 	writeTypesTypeStringMethod(&out)

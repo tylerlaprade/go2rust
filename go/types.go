@@ -97,7 +97,7 @@ func transpiledNamedInterfaceTypeNameFromTypes(typ types.Type) (string, bool) {
 	if typeInfo != nil && typeInfo.pkg != nil && obj.Pkg() == typeInfo.pkg {
 		return obj.Name(), true
 	}
-	if isStdlibPackage(obj.Pkg().Path()) {
+	if isStubBackedStdlibPackagePath(obj.Pkg().Path()) {
 		return "", false
 	}
 	return goTypesNamedTypeToRust(named), true
@@ -483,6 +483,12 @@ func goTypeToRustBase(expr ast.Expr) string {
 		// Function type - generate a closure type
 		return generateClosureType(t)
 	case *ast.IndexExpr:
+		typeInfo := GetTypeInfo()
+		if typeInfo != nil {
+			if typ := typeInfo.GetType(t); typ != nil {
+				return goTypesTypeToRust(typ)
+			}
+		}
 		if rustType, ok := goCallableTypeFromTypeInfo(t); ok {
 			return rustType
 		}
@@ -490,6 +496,12 @@ func goTypeToRustBase(expr ast.Expr) string {
 		innerWrapper := GetInnerWrapperType()
 		return fmt.Sprintf("/* ERROR: Unsupported instantiated generic type */ %s<%s<Option<()>>>", outerWrapper, innerWrapper)
 	case *ast.IndexListExpr:
+		typeInfo := GetTypeInfo()
+		if typeInfo != nil {
+			if typ := typeInfo.GetType(t); typ != nil {
+				return goTypesTypeToRust(typ)
+			}
+		}
 		if rustType, ok := goCallableTypeFromTypeInfo(t); ok {
 			return rustType
 		}
@@ -511,6 +523,9 @@ func goTypeToRustBase(expr ast.Expr) string {
 				case "Mutex":
 					NeedGoMutex()
 					return "GoMutex"
+				case "RWMutex":
+					NeedGoRWMutex()
+					return "GoRWMutex"
 				case "Once":
 					NeedGoOnce()
 					return "GoOnce"
@@ -570,7 +585,7 @@ func goTypeToRustBase(expr ast.Expr) string {
 					pkgPath = fallback
 				}
 			}
-			if isStdlibPackage(pkgPath) {
+			if isStubBackedStdlibPackagePath(pkgPath) {
 				RegisterExternalTypeStubForTypeExpr(t, rustName)
 				if externalTypeExprFallbackIsInterface(pkgPath, t.Sel.Name) {
 					RegisterExternalTypeStubInterface(rustName)
@@ -617,7 +632,7 @@ func isStdlibStubBackedType(t types.Type) bool {
 	t = types.Unalias(t)
 	switch typ := t.(type) {
 	case *types.Named:
-		return typ.Obj() != nil && typ.Obj().Pkg() != nil && isStdlibPackage(typ.Obj().Pkg().Path())
+		return typ.Obj() != nil && typ.Obj().Pkg() != nil && isStubBackedStdlibPackagePath(typ.Obj().Pkg().Path())
 	case *types.Pointer:
 		return isStdlibStubBackedType(typ.Elem())
 	default:
@@ -782,7 +797,7 @@ func goCollectionElemTypeToRust(expr ast.Expr) string {
 }
 
 func isBareSyncTypeName(name string) bool {
-	return name == "WaitGroup" || name == "Mutex" || name == "Once"
+	return name == "WaitGroup" || name == "Mutex" || name == "RWMutex" || name == "Once"
 }
 
 func isGoSyncNamedType(typ types.Type) bool {
@@ -1007,7 +1022,7 @@ func goTypesNamedTypeToRust(named *types.Named) string {
 		return rustName
 	}
 	rustName := obj.Pkg().Name() + "_" + RustTypeNameForUse(obj.Name())
-	if isStdlibPackage(obj.Pkg().Path()) {
+	if isStubBackedStdlibPackagePath(obj.Pkg().Path()) {
 		RegisterExternalTypeStubNamed(named, rustName)
 	}
 	return rustName
@@ -1028,9 +1043,21 @@ func goTypesKnownStdlibNamedTypeToRust(t types.Type) (string, bool) {
 		case "Mutex":
 			NeedGoMutex()
 			return "GoMutex", true
+		case "RWMutex":
+			NeedGoRWMutex()
+			return "GoRWMutex", true
 		case "Once":
 			NeedGoOnce()
 			return "GoOnce", true
+		}
+	case "sync/atomic":
+		if obj.Name() == "Pointer" {
+			NeedGoAtomicPointer()
+			elemType := "()"
+			if typeArgs := named.TypeArgs(); typeArgs != nil && typeArgs.Len() > 0 {
+				elemType = goTypesTypeToRust(typeArgs.At(0))
+			}
+			return "GoAtomicPointer<" + elemType + ">", true
 		}
 	case "strings":
 		if obj.Name() == "Builder" {
@@ -1072,7 +1099,7 @@ func goTypesKnownStdlibNamedTypeToRust(t types.Type) (string, bool) {
 }
 
 func rustTypeNameForImportedPackagePath(pkgPath, name string) (string, bool) {
-	if pkgPath == "" || isStdlibPackage(pkgPath) {
+	if pkgPath == "" {
 		return "", false
 	}
 	ctx := GetTranspileContext()
@@ -1080,6 +1107,9 @@ func rustTypeNameForImportedPackagePath(pkgPath, name string) (string, bool) {
 		if crateName, ok := ctx.PackageMapping[pkgPath]; ok {
 			return crateName + "::" + RustTypeNameForUse(name), true
 		}
+	}
+	if isStdlibPackage(pkgPath) {
+		return "", false
 	}
 	return RustCrateNameForGoImportPath(pkgPath) + "::" + RustTypeNameForUse(name), true
 }

@@ -125,7 +125,9 @@ type HelperTracker struct {
 	needsGoChannel                  bool
 	needsWaitGroup                  bool
 	needsGoMutex                    bool
+	needsGoRWMutex                  bool
 	needsGoOnce                     bool
+	needsGoAtomicPointer            bool
 	needsGoTypeName                 bool
 	needsBase64                     bool
 	needsSha256                     bool
@@ -210,8 +212,16 @@ func (ht *HelperTracker) GenerateHelpers() string {
 		generateGoMutexHelper(&result)
 	}
 
+	if ht.needsGoRWMutex {
+		generateGoRWMutexHelper(&result)
+	}
+
 	if ht.needsGoOnce {
 		generateGoOnceHelper(&result)
+	}
+
+	if ht.needsGoAtomicPointer {
+		generateGoAtomicPointerHelper(&result)
 	}
 
 	if ht.needsGoTypeName {
@@ -306,7 +316,9 @@ func (ht *HelperTracker) HasAny() bool {
 		ht.needsGoChannel ||
 		ht.needsWaitGroup ||
 		ht.needsGoMutex ||
+		ht.needsGoRWMutex ||
 		ht.needsGoOnce ||
+		ht.needsGoAtomicPointer ||
 		ht.needsGoTypeName ||
 		ht.needsBase64 ||
 		ht.needsSha256 ||
@@ -423,8 +435,14 @@ func (ht *HelperTracker) ImportNames() []string {
 	if ht.needsGoMutex {
 		add("GoMutex")
 	}
+	if ht.needsGoRWMutex {
+		add("GoRWMutex")
+	}
 	if ht.needsGoOnce {
 		add("GoOnce")
+	}
+	if ht.needsGoAtomicPointer {
+		add("GoAtomicPointer")
 	}
 	if ht.needsGoTypeName {
 		add("go_type_name")
@@ -870,6 +888,30 @@ impl std::fmt::Debug for GoMutex {
         write!(f, "Mutex")
     }
 }
+	`)
+}
+
+func generateGoRWMutexHelper(out *strings.Builder) {
+	out.WriteString(`
+#[derive(Clone, Debug, Default)]
+struct GoRWMutex;
+
+impl GoRWMutex {
+    fn new() -> Self {
+        Self
+    }
+
+    fn lock(&self) {}
+    fn unlock(&self) {}
+    fn r_lock(&self) {}
+    fn r_unlock(&self) {}
+}
+
+impl std::fmt::Display for GoRWMutex {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "RWMutex")
+    }
+}
 `)
 }
 
@@ -938,6 +980,129 @@ impl GoOnce {
 impl Default for GoOnce {
     fn default() -> Self {
         Self::new()
+    }
+}
+	`)
+}
+
+func generateGoAtomicPointerHelper(out *strings.Builder) {
+	if NeedsConcurrentWrapper() {
+		TrackImport("Arc")
+		TrackImport("Mutex")
+		out.WriteString(`
+struct GoAtomicPointer<T> {
+    value: Arc<Mutex<Option<Arc<Mutex<Option<T>>>>>>,
+}
+
+impl<T> GoAtomicPointer<T> {
+    fn load(&self) -> Arc<Mutex<Option<T>>> {
+        self.value.lock().unwrap().as_ref().cloned().unwrap_or_else(|| Arc::new(Mutex::new(None)))
+    }
+
+    fn store(&self, value: Arc<Mutex<Option<T>>>) {
+        *self.value.lock().unwrap() = Some(value);
+    }
+
+    fn swap(&self, value: Arc<Mutex<Option<T>>>) -> Arc<Mutex<Option<T>>> {
+        self.value.lock().unwrap().replace(value).unwrap_or_else(|| Arc::new(Mutex::new(None)))
+    }
+
+    fn compare_and_swap(&self, old: Arc<Mutex<Option<T>>>, new: Arc<Mutex<Option<T>>>) -> Arc<Mutex<Option<bool>>> {
+        let mut current = self.value.lock().unwrap();
+        let matched = match current.as_ref() {
+            Some(value) if Arc::ptr_eq(value, &old) => true,
+            Some(value) => value.lock().unwrap().is_none() && old.lock().unwrap().is_none(),
+            None => old.lock().unwrap().is_none(),
+        };
+        if matched {
+            *current = Some(new);
+        }
+        Arc::new(Mutex::new(Some(matched)))
+    }
+}
+
+impl<T> Clone for GoAtomicPointer<T> {
+    fn clone(&self) -> Self {
+        Self { value: self.value.clone() }
+    }
+}
+
+impl<T> Default for GoAtomicPointer<T> {
+    fn default() -> Self {
+        Self { value: Arc::new(Mutex::new(None)) }
+    }
+}
+
+impl<T> std::fmt::Debug for GoAtomicPointer<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "GoAtomicPointer")
+    }
+}
+
+impl<T> std::fmt::Display for GoAtomicPointer<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "GoAtomicPointer")
+    }
+}
+`)
+		return
+	}
+
+	TrackImport("Rc")
+	TrackImport("RefCell")
+	out.WriteString(`
+struct GoAtomicPointer<T> {
+    value: Rc<RefCell<Option<Rc<RefCell<Option<T>>>>>>,
+}
+
+impl<T> GoAtomicPointer<T> {
+    fn load(&self) -> Rc<RefCell<Option<T>>> {
+        self.value.borrow().as_ref().cloned().unwrap_or_else(|| Rc::new(RefCell::new(None)))
+    }
+
+    fn store(&self, value: Rc<RefCell<Option<T>>>) {
+        *self.value.borrow_mut() = Some(value);
+    }
+
+    fn swap(&self, value: Rc<RefCell<Option<T>>>) -> Rc<RefCell<Option<T>>> {
+        self.value.borrow_mut().replace(value).unwrap_or_else(|| Rc::new(RefCell::new(None)))
+    }
+
+    fn compare_and_swap(&self, old: Rc<RefCell<Option<T>>>, new: Rc<RefCell<Option<T>>>) -> Rc<RefCell<Option<bool>>> {
+        let mut current = self.value.borrow_mut();
+        let matched = match current.as_ref() {
+            Some(value) if Rc::ptr_eq(value, &old) => true,
+            Some(value) => value.borrow().is_none() && old.borrow().is_none(),
+            None => old.borrow().is_none(),
+        };
+        if matched {
+            *current = Some(new);
+        }
+        Rc::new(RefCell::new(Some(matched)))
+    }
+}
+
+impl<T> Clone for GoAtomicPointer<T> {
+    fn clone(&self) -> Self {
+        Self { value: self.value.clone() }
+    }
+}
+
+impl<T> Default for GoAtomicPointer<T> {
+    fn default() -> Self {
+        Self { value: Rc::new(RefCell::new(None)) }
+    }
+}
+
+impl<T> std::fmt::Debug for GoAtomicPointer<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "GoAtomicPointer")
+    }
+}
+
+impl<T> std::fmt::Display for GoAtomicPointer<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "GoAtomicPointer")
     }
 }
 `)

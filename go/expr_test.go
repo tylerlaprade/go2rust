@@ -92,6 +92,216 @@ func TestLocalInterfaceReferenceCallArgumentUsesCurrentReceiver(t *testing.T) {
 	}
 }
 
+func TestLocalInterfaceConcreteAssertionUsesTraitAny(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+type Expr interface {
+	isExpr()
+}
+
+type TagExpr struct {
+	Tag string
+}
+
+func (*TagExpr) isExpr() {}
+
+func tagName(x Expr) string {
+	if tag, ok := x.(*TagExpr); ok {
+		return tag.Tag
+	}
+	return ""
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(main.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := Transpile(file, fset, typeInfo)
+	if !strings.Contains(rust, "let any_val = x.__go_as_any();") || !strings.Contains(rust, "any_val.downcast_ref::<TagExpr>()") {
+		t.Fatalf("local interface concrete assertion should downcast through __go_as_any:\n%s", rust)
+	}
+	if strings.Contains(rust, "let val = x.clone();") || strings.Contains(rust, "typed_val) = val.downcast_ref::<TagExpr>()") {
+		t.Fatalf("local interface concrete assertion should not treat the trait object as bare Any:\n%s", rust)
+	}
+}
+
+func TestLocalInterfaceSelectorArgumentUnwrapsTraitObject(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+type Expr interface {
+	isExpr()
+}
+
+type TagExpr struct{}
+
+func (*TagExpr) isExpr() {}
+
+type NotExpr struct {
+	X Expr
+}
+
+func label(x Expr) string {
+	return "x"
+}
+
+func (n *NotExpr) String() string {
+	return label(n.X)
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(main.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := Transpile(file, fset, typeInfo)
+	if !strings.Contains(rust, "label(self.x.borrow().as_ref().unwrap().as_ref())") {
+		t.Fatalf("local interface selector argument should unwrap to the trait object:\n%s", rust)
+	}
+	if strings.Contains(rust, "label(&*self.x.clone())") {
+		t.Fatalf("local interface selector argument should not pass the wrapper handle:\n%s", rust)
+	}
+}
+
+func TestLocalInterfaceWrappedIdentArgumentUnwrapsTraitObject(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+type Expr interface {
+	isExpr()
+}
+
+type TagExpr struct{}
+
+func (*TagExpr) isExpr() {}
+
+func label(x Expr) string {
+	return "x"
+}
+
+func use(x Expr) string {
+	y := x
+	return label(y)
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(main.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := Transpile(file, fset, typeInfo)
+	if !strings.Contains(rust, "label(y.borrow().as_ref().unwrap().as_ref())") {
+		t.Fatalf("wrapped local interface argument should unwrap to the trait object:\n%s", rust)
+	}
+	if strings.Contains(rust, "label(y.borrow().as_ref().unwrap())") {
+		t.Fatalf("wrapped local interface argument should not pass Box<dyn Trait> as the trait object:\n%s", rust)
+	}
+}
+
+func TestLocalInterfaceNamedReturnInitializesNil(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+type Expr interface {
+	isExpr()
+}
+
+type TagExpr struct{}
+
+func (*TagExpr) isExpr() {}
+
+func parse() (x Expr) {
+	return
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(main.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := Transpile(file, fset, typeInfo)
+	if !strings.Contains(rust, "let mut x: Rc<RefCell<Option<Box<dyn Expr>>>> = Rc::new(RefCell::new(None));") {
+		t.Fatalf("local interface named return should initialize to nil:\n%s", rust)
+	}
+	if strings.Contains(rust, "Option<Box<dyn Expr>>>> = Rc::new(RefCell::new(Some(Default::default())))") {
+		t.Fatalf("local interface named return should not require a default concrete value:\n%s", rust)
+	}
+}
+
+func TestScalarSelectorShortDeclCopiesInnerValue(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+type File struct {
+	size int
+}
+
+func (f *File) valid(offset int) bool {
+	size := f.size
+	return size <= offset
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(main.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := Transpile(file, fset, typeInfo)
+	if !strings.Contains(rust, "let __selector_holder = self.size.clone()") {
+		t.Fatalf("scalar selector short declaration should copy the inner field value:\n%s", rust)
+	}
+	if strings.Contains(rust, "Some(self.size.clone())") {
+		t.Fatalf("scalar selector short declaration should not store the field handle inside the new wrapper:\n%s", rust)
+	}
+}
+
+func TestScalarSelectorAssignmentCopiesInnerValue(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+type Parser struct {
+	i   int
+	pos int
+}
+
+func (p *Parser) mark() {
+	p.pos = p.i
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(main.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := Transpile(file, fset, typeInfo)
+	if !strings.Contains(rust, "let __selector_holder = self.i.clone()") {
+		t.Fatalf("scalar selector assignment should copy the inner field value:\n%s", rust)
+	}
+	if strings.Contains(rust, "let new_val = self.i.clone();") {
+		t.Fatalf("scalar selector assignment should not store the field handle:\n%s", rust)
+	}
+}
+
 func TestCapturedReceiverSelectorAssignmentUsesCloneName(t *testing.T) {
 	prevReceiver := currentReceiver
 	prevReceiverType := currentReceiverType

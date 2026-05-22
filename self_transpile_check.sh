@@ -21,6 +21,10 @@ Environment:
   CARGO_TARGET_DIR=<path> Override the temporary Cargo target directory.
   GO2RUST_BEHAVIOR_JOBS=N Number of behavior-suite shards (default: 3).
   GO2RUST_BEHAVIOR_TIMEOUT=TIME Per-test behavior timeout (default: 30s).
+  GO2RUST_SOURCE_STDLIB_PACKAGES=PATTERNS
+                      Stdlib packages to transpile from GOROOT source
+                      instead of semantic stubs (default: go/... plus
+                      internal/... for self-hosting).
 EOF
 }
 
@@ -86,6 +90,7 @@ export CARGO_INCREMENTAL="${CARGO_INCREMENTAL:-0}"
 export CARGO_PROFILE_DEV_DEBUG="${CARGO_PROFILE_DEV_DEBUG:-0}"
 export CARGO_PROFILE_DEV_INCREMENTAL="${CARGO_PROFILE_DEV_INCREMENTAL:-false}"
 export RUSTFLAGS="${RUSTFLAGS:--Awarnings -C debuginfo=0}"
+export GO2RUST_SOURCE_STDLIB_PACKAGES="${GO2RUST_SOURCE_STDLIB_PACKAGES:-go/...,internal/...}"
 go build -o "$work/go2rust" "$repo_root/go"
 
 (

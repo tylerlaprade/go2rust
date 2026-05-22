@@ -1127,6 +1127,15 @@ func isLocalInterfaceRefIdent(expr ast.Expr) bool {
 	return info != nil && info.IsRef
 }
 
+func isTranspiledInterfaceExpr(expr ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	_, ok := transpiledNamedInterfaceTypeNameFromTypes(typeInfo.GetType(expr))
+	return ok
+}
+
 func pushTypeSwitchCaseVarScope(varName string, isTypedSingleCase bool) func() {
 	if varName == "" {
 		return func() {}
@@ -1473,9 +1482,6 @@ func writePackageGlobalSliceWrappedValueCopy(out *strings.Builder, ident *ast.Id
 }
 
 func writeWrappedOwnedExpressionValue(out *strings.Builder, expr ast.Expr) bool {
-	if isCopyTypeExpression(expr) {
-		return false
-	}
 	if _, ok := expr.(*ast.SelectorExpr); !ok {
 		return false
 	}
@@ -1696,7 +1702,7 @@ func isStdlibNamedInterfaceValueType(typ types.Type) bool {
 	if !ok || named.Obj() == nil || named.Obj().Pkg() == nil {
 		return false
 	}
-	if !isStdlibPackage(named.Obj().Pkg().Path()) {
+	if !isStubBackedStdlibPackagePath(named.Obj().Pkg().Path()) {
 		return false
 	}
 	_, ok = named.Underlying().(*types.Interface)
@@ -2321,7 +2327,7 @@ func stdlibInterfaceReturnConversion(result ast.Expr, expected ast.Expr) bool {
 	if !ok || targetNamed.Obj() == nil || targetNamed.Obj().Pkg() == nil {
 		return false
 	}
-	if !isStdlibPackage(targetNamed.Obj().Pkg().Path()) {
+	if !isStubBackedStdlibPackagePath(targetNamed.Obj().Pkg().Path()) {
 		return false
 	}
 	targetInterface, ok := targetNamed.Underlying().(*types.Interface)
@@ -2343,7 +2349,7 @@ func stdlibInterfaceReturnConversion(result ast.Expr, expected ast.Expr) bool {
 	if sourceNamed.Obj() == targetNamed.Obj() {
 		return false
 	}
-	if !isStdlibPackage(sourceNamed.Obj().Pkg().Path()) {
+	if !isStubBackedStdlibPackagePath(sourceNamed.Obj().Pkg().Path()) {
 		return false
 	}
 	if isKnownStdlibHelperType(sourceNamed.Obj().Pkg().Path(), sourceNamed.Obj().Name()) &&
@@ -5779,7 +5785,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 											// Range indexes emit usize, but Go int assignment targets use i32.
 										} else if rhsIdent, ok := s.Rhs[0].(*ast.Ident); ok && writeOwnedRangeValue(out, rhsIdent) {
 											// Reference-style range values must be cloned into ordinary wrapped assignment targets.
-										} else if !isCopyTypeExpression(s.Rhs[0]) && writeOwnedExpressionValue(out, s.Rhs[0]) {
+										} else if writeOwnedExpressionValue(out, s.Rhs[0]) {
 											// Copied by value from an existing wrapped field or handle.
 										} else {
 											TranspileExpression(out, s.Rhs[0])
@@ -8162,12 +8168,13 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 		typeInfo := GetTypeInfo()
 		subjectUsesAny := isEmptyInterfaceValueExpr(expr)
-		subjectIsLocalInterfaceRef := isLocalInterfaceRefIdent(expr)
+		subjectIsLocalInterfaceRef := isLocalInterfaceRefIdent(expr) || isBareLocalInterfaceValue(expr)
+		subjectIsTranspiledInterface := !subjectIsLocalInterfaceRef && isTranspiledInterfaceExpr(expr)
 		typeSwitchSubjectHasGuard := false
 		if subjectUsesAny {
 			TrackImport("Any")
 		}
-		if subjectIsLocalInterfaceRef {
+		if subjectIsLocalInterfaceRef || subjectIsTranspiledInterface {
 			TrackImport("Any")
 		}
 
@@ -8217,6 +8224,16 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			out.WriteString(";\n")
 			out.WriteString("    let _ts_is_nil = false;\n")
 			out.WriteString("    let _ts_val: Option<&dyn Any> = Some(_ts_subject.__go_as_any());\n")
+		} else if subjectIsTranspiledInterface {
+			typeSwitchSubjectHasGuard = true
+			out.WriteString("    let _ts_subject = ")
+			TranspileExpressionContext(out, expr, LValue)
+			out.WriteString(".clone();\n")
+			out.WriteString("    let _ts_guard = _ts_subject")
+			WriteBorrowMethod(out, false)
+			out.WriteString(";\n")
+			out.WriteString("    let _ts_is_nil = _ts_guard.as_ref().is_none();\n")
+			out.WriteString("    let _ts_val: Option<&dyn Any> = _ts_guard.as_ref().map(|__v| __v.__go_as_any());\n")
 		} else {
 			typeSwitchSubjectHasGuard = true
 			out.WriteString("    let _ts_subject = ")

@@ -220,11 +220,31 @@ func SanitizeRustModuleFileName(moduleName string) string {
 }
 
 func RustCrateNameForGoImportPath(goPath string) string {
-	crate := strings.ReplaceAll(goPath, "/", "_")
-	crate = strings.ReplaceAll(crate, ".", "_")
-	crate = strings.ReplaceAll(crate, "-", "_")
+	return SanitizeRustCrateName(goPath)
+}
+
+func SanitizeRustCrateName(name string) string {
+	var result []rune
+	for _, r := range name {
+		switch {
+		case r >= 'a' && r <= 'z':
+			result = append(result, r)
+		case r >= 'A' && r <= 'Z':
+			result = append(result, rune(toLower(r)))
+		case r >= '0' && r <= '9':
+			result = append(result, r)
+		case r == '_':
+			result = append(result, r)
+		default:
+			result = append(result, '_')
+		}
+	}
+	crate := string(result)
 	if len(crate) > 0 && crate[0] >= '0' && crate[0] <= '9' {
 		crate = "pkg_" + crate
+	}
+	if isRustPathKeyword(crate) || isRustKeyword(crate) {
+		crate += "_"
 	}
 	return crate
 }

@@ -26,6 +26,7 @@ type PackageLoader struct {
 }
 
 const sharedStdlibStubCrateName = "go2rust_stdlib_stubs"
+const sourceStdlibPackagesEnv = "GO2RUST_SOURCE_STDLIB_PACKAGES"
 
 // NewPackageLoader creates a new package loader
 func NewPackageLoader(workDir string) *PackageLoader {
@@ -114,7 +115,7 @@ func (pl *PackageLoader) collectAllPackages(pkg *packages.Package) {
 
 	isMain := pkg == pl.mainPkg || pkg.PkgPath == "main"
 
-	if !isMain && isStdlibPackage(pkg.PkgPath) {
+	if !isMain && isStdlibPackage(pkg.PkgPath) && !shouldTranspileStdlibPackage(pkg.PkgPath) {
 		return
 	}
 
@@ -292,6 +293,38 @@ func directoryHasGoFiles(dir string) bool {
 	}
 	for _, entry := range entries {
 		if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".go") {
+			return true
+		}
+	}
+	return false
+}
+
+func shouldTranspileStdlibPackage(importPath string) bool {
+	if !isStdlibPackage(importPath) {
+		return false
+	}
+	return sourceStdlibPackagePatternMatches(importPath, os.Getenv(sourceStdlibPackagesEnv))
+}
+
+func sourceStdlibPackagePatternMatches(importPath, patterns string) bool {
+	for _, pattern := range strings.FieldsFunc(patterns, func(r rune) bool {
+		return r == ',' || r == ';' || r == ':' || r == ' ' || r == '\t' || r == '\n'
+	}) {
+		pattern = strings.TrimSpace(pattern)
+		if pattern == "" {
+			continue
+		}
+		if pattern == "all" || pattern == "std" {
+			return true
+		}
+		if strings.HasSuffix(pattern, "/...") {
+			prefix := strings.TrimSuffix(pattern, "/...")
+			if importPath == prefix || strings.HasPrefix(importPath, prefix+"/") {
+				return true
+			}
+			continue
+		}
+		if importPath == pattern {
 			return true
 		}
 	}
@@ -484,7 +517,7 @@ func (pl *PackageLoader) buildWorkspaceConcurrencyDetector() *ConcurrencyDetecto
 func (pl *PackageLoader) orderedAllPackagePaths() []string {
 	var paths []string
 	for pkgPath := range pl.allPackages {
-		if isStdlibPackage(pkgPath) {
+		if isStdlibPackage(pkgPath) && pl.packageMapping[pkgPath] == "" {
 			continue
 		}
 		paths = append(paths, pkgPath)
@@ -503,7 +536,7 @@ func (pl *PackageLoader) orderedPackagePaths() []string {
 		if pkgPath == "main" || pkgPath == mainPkgPath {
 			continue
 		}
-		if isStdlibPackage(pkgPath) {
+		if isStdlibPackage(pkgPath) && pl.packageMapping[pkgPath] == "" {
 			continue
 		}
 		paths = append(paths, pkgPath)
@@ -725,9 +758,6 @@ func packageFileName(pkg *packages.Package, index int) string {
 func packageDependencyCrates(imports map[string]*packages.Package, currentCrate string, packageMapping map[string]string) []string {
 	seen := make(map[string]bool)
 	for importPath := range imports {
-		if isStdlibPackage(importPath) {
-			continue
-		}
 		crateName, ok := packageMapping[importPath]
 		if !ok || crateName == "" || crateName == currentCrate {
 			continue

@@ -186,6 +186,18 @@ func GetTranspileContext() *TranspileContext {
 	return currentContext
 }
 
+func isSourceMappedPackagePath(pkgPath string) bool {
+	ctx := GetTranspileContext()
+	if ctx == nil || ctx.PackageMapping == nil {
+		return false
+	}
+	return ctx.PackageMapping[pkgPath] != ""
+}
+
+func isStubBackedStdlibPackagePath(pkgPath string) bool {
+	return isStdlibPackage(pkgPath) && !isSourceMappedPackagePath(pkgPath)
+}
+
 func (ctx *TranspileContext) ensureDefaults() {
 	if ctx.Session != nil && ctx.PackageMapping == nil {
 		ctx.PackageMapping = ctx.Session.PackageMapping
@@ -591,10 +603,22 @@ func NeedGoMutex() {
 	}
 }
 
+func NeedGoRWMutex() {
+	if helpers := activeHelperTracker(); helpers != nil {
+		helpers.needsGoRWMutex = true
+	}
+}
+
 // NeedGoOnce marks that we need the GoOnce helper struct
 func NeedGoOnce() {
 	if helpers := activeHelperTracker(); helpers != nil {
 		helpers.needsGoOnce = true
+	}
+}
+
+func NeedGoAtomicPointer() {
+	if helpers := activeHelperTracker(); helpers != nil {
+		helpers.needsGoAtomicPointer = true
 	}
 }
 

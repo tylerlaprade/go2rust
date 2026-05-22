@@ -46,14 +46,14 @@ type externalPackageStubFunction struct {
 }
 
 func RegisterExternalTypeStub(name string) {
-	if name == "" {
+	if !canDefineExternalTypeStub(name) {
 		return
 	}
 	currentExternalTypeStubs()[name] = true
 }
 
 func RegisterExternalTypeStubInterface(name string) {
-	if name == "" {
+	if !canDefineExternalTypeStub(name) {
 		return
 	}
 	RegisterExternalTypeStub(name)
@@ -61,7 +61,7 @@ func RegisterExternalTypeStubInterface(name string) {
 }
 
 func RegisterExternalIntegerTypeStub(name string, rustType string) {
-	if name == "" || rustType == "" {
+	if !canDefineExternalTypeStub(name) || rustType == "" {
 		return
 	}
 	RegisterExternalTypeStub(name)
@@ -69,6 +69,9 @@ func RegisterExternalIntegerTypeStub(name string, rustType string) {
 }
 
 func RegisterExternalTypeStubNamed(named *types.Named, rustName string) {
+	if !canDefineExternalTypeStub(rustName) {
+		return
+	}
 	RegisterExternalTypeStub(rustName)
 	if externalNamedIsInterface(named) {
 		currentExternalTypeStubInterfaces()[rustName] = true
@@ -83,6 +86,9 @@ func RegisterExternalTypeStubNamed(named *types.Named, rustName string) {
 }
 
 func RegisterExternalTypeStubForTypeExpr(expr ast.Expr, rustName string) {
+	if !canDefineExternalTypeStub(rustName) {
+		return
+	}
 	RegisterExternalTypeStub(rustName)
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil || typeInfo.info == nil {
@@ -110,11 +116,15 @@ func RegisterExternalTypeStubForTypeExpr(expr ast.Expr, rustName string) {
 	}
 }
 
+func canDefineExternalTypeStub(name string) bool {
+	return name != "" && !strings.Contains(name, "::")
+}
+
 func externalNamedIsInterface(named *types.Named) bool {
 	if named == nil || named.Obj() == nil || named.Obj().Pkg() == nil {
 		return false
 	}
-	if !isStdlibPackage(named.Obj().Pkg().Path()) {
+	if !isStubBackedStdlibPackagePath(named.Obj().Pkg().Path()) {
 		return false
 	}
 	_, ok := types.Unalias(named.Underlying()).(*types.Interface)
@@ -125,7 +135,7 @@ func externalIntegerRustTypeForNamed(named *types.Named) (string, bool) {
 	if named == nil || named.Obj() == nil || named.Obj().Pkg() == nil {
 		return "", false
 	}
-	if !isStdlibPackage(named.Obj().Pkg().Path()) {
+	if !isStubBackedStdlibPackagePath(named.Obj().Pkg().Path()) {
 		return "", false
 	}
 	basic, ok := types.Unalias(named.Underlying()).(*types.Basic)
@@ -164,7 +174,7 @@ func externalTupleRustTypeForNamed(named *types.Named) (string, bool) {
 	if named == nil || named.Obj() == nil || named.Obj().Pkg() == nil {
 		return "", false
 	}
-	if !isStdlibPackage(named.Obj().Pkg().Path()) {
+	if !isStubBackedStdlibPackagePath(named.Obj().Pkg().Path()) {
 		return "", false
 	}
 	switch underlying := types.Unalias(named.Underlying()).(type) {
@@ -176,7 +186,7 @@ func externalTupleRustTypeForNamed(named *types.Named) (string, bool) {
 }
 
 func RegisterExternalTypeStubField(typeName string, fieldName string, fieldType types.Type) {
-	if typeName == "" || fieldName == "" || fieldType == nil {
+	if !canDefineExternalTypeStub(typeName) || fieldName == "" || fieldType == nil {
 		return
 	}
 	RegisterExternalTypeStub(typeName)
@@ -197,7 +207,7 @@ func goTypesFieldTypeToRust(t types.Type) string {
 }
 
 func RegisterExternalTypeStubMethod(typeName string, methodName string, sig *types.Signature) {
-	if typeName == "" || methodName == "" || sig == nil {
+	if !canDefineExternalTypeStub(typeName) || methodName == "" || sig == nil {
 		return
 	}
 	RegisterExternalTypeStub(typeName)
@@ -223,7 +233,7 @@ func RegisterExternalTypeStubMethod(typeName string, methodName string, sig *typ
 // The long-term fix is to transpile go/types itself. Do not grow this surface
 // to cover *types.Named, *types.Pointer, *types.Map, etc. — each new bridge
 // entry is a step toward writing a Rust port of the Go stdlib, which is what
-// the transpiler exists to avoid. See docs/rules/self-host-rules.md "Strategy:
+// the transpiler exists to avoid. See AGENTS.md "Strategy:
 // Transpile stdlib, don't bridge it". Any addition here MUST panic loudly on
 // unsupported paths and carry its own TEMPORARY comment with a removal plan.
 func registerTypesCheckBridgeSurface() {
@@ -272,7 +282,7 @@ func externalErrorMethodSignature(named *types.Named) (*types.Signature, bool) {
 }
 
 func RegisterExternalTypeStubConversion(targetType string, sourceType string) {
-	if targetType == "" || sourceType == "" || targetType == sourceType {
+	if !canDefineExternalTypeStub(targetType) || !canDefineExternalTypeStub(sourceType) || targetType == sourceType {
 		return
 	}
 	RegisterExternalTypeStub(targetType)
@@ -297,7 +307,7 @@ func RegisterExternalSelectorField(sel *ast.SelectorExpr) {
 	if !ok || named.Obj() == nil || named.Obj().Pkg() == nil {
 		return
 	}
-	if !isStdlibPackage(named.Obj().Pkg().Path()) {
+	if !isStubBackedStdlibPackagePath(named.Obj().Pkg().Path()) {
 		return
 	}
 	if isKnownStdlibHelperType(named.Obj().Pkg().Path(), named.Obj().Name()) {
@@ -323,7 +333,7 @@ func RegisterExternalSelectorMethod(sel *ast.SelectorExpr) {
 	if !ok || named.Obj() == nil || named.Obj().Pkg() == nil {
 		return
 	}
-	if !isStdlibPackage(named.Obj().Pkg().Path()) {
+	if !isStubBackedStdlibPackagePath(named.Obj().Pkg().Path()) {
 		return
 	}
 	if isKnownStdlibHelperType(named.Obj().Pkg().Path(), named.Obj().Name()) && !knownStdlibHelperNeedsExternalMethodStub(named.Obj().Pkg().Path(), named.Obj().Name()) {
@@ -353,7 +363,7 @@ func IsExternalStdlibSelectorMethod(sel *ast.SelectorExpr) bool {
 	if !ok || named.Obj() == nil || named.Obj().Pkg() == nil {
 		return false
 	}
-	if !isStdlibPackage(named.Obj().Pkg().Path()) {
+	if !isStubBackedStdlibPackagePath(named.Obj().Pkg().Path()) {
 		return false
 	}
 	return !isKnownStdlibHelperType(named.Obj().Pkg().Path(), named.Obj().Name())
@@ -371,7 +381,7 @@ func RegisterExternalInterfaceMethodsForSource(source types.Type, iface *types.I
 	if !ok || named.Obj() == nil || named.Obj().Pkg() == nil {
 		return
 	}
-	if !isStdlibPackage(named.Obj().Pkg().Path()) {
+	if !isStubBackedStdlibPackagePath(named.Obj().Pkg().Path()) {
 		return
 	}
 	if isKnownStdlibHelperType(named.Obj().Pkg().Path(), named.Obj().Name()) {
@@ -423,7 +433,7 @@ func collectExternalPromotedMethods(structDef *StructDef, existing map[string]bo
 			}
 
 			rustMethodName := ToSnakeCase(methodName)
-			stubBacked := isStdlibPackage(named.Obj().Pkg().Path())
+			stubBacked := isStubBackedStdlibPackagePath(named.Obj().Pkg().Path())
 			if stubBacked {
 				RegisterExternalTypeStubMethod(rustTypeName, rustMethodName, sig)
 			}
@@ -479,7 +489,7 @@ func externalEmbeddedNamed(expr ast.Expr) (*types.Named, bool) {
 		return nil, false
 	}
 	pkgPath := named.Obj().Pkg().Path()
-	if isStdlibPackage(pkgPath) {
+	if isStubBackedStdlibPackagePath(pkgPath) {
 		if isKnownStdlibHelperType(pkgPath, named.Obj().Name()) {
 			return nil, false
 		}
@@ -555,7 +565,7 @@ func RegisterExternalPackageFunctionFallback(sel *ast.SelectorExpr, argCount int
 		if !ok {
 			pkgPath, ok = fallbackStdlibPackagePathForImportName(ident.Name)
 		}
-		if !ok || !isStdlibPackage(pkgPath) {
+		if !ok || !isStubBackedStdlibPackagePath(pkgPath) {
 			return
 		}
 		pkgName = ident.Name
@@ -792,7 +802,7 @@ func registerParserParseFileStubSurface() {
 }
 
 func RegisterExternalTypeStubFieldByRustType(typeName string, fieldName string, fieldTypeRust string) {
-	if typeName == "" || fieldName == "" || fieldTypeRust == "" {
+	if !canDefineExternalTypeStub(typeName) || fieldName == "" || fieldTypeRust == "" {
 		return
 	}
 	RegisterExternalTypeStub(typeName)
@@ -902,7 +912,7 @@ func externalStdlibInterfaceTypeExpr(expr ast.Expr) (string, bool) {
 			return "", false
 		}
 	}
-	if !externalTypeExprFallbackIsInterface(pkgPath, sel.Sel.Name) {
+	if !isStubBackedStdlibPackagePath(pkgPath) || !externalTypeExprFallbackIsInterface(pkgPath, sel.Sel.Name) {
 		return "", false
 	}
 	return fmt.Sprintf("%s_%s", ident.Name, sel.Sel.Name), true
@@ -953,14 +963,8 @@ func externalStdlibPackageSelector(sel *ast.SelectorExpr) (string, string, bool)
 	if !ok {
 		pkgPath, ok = fallbackStdlibPackagePathForImportName(ident.Name)
 	}
-	if !ok || !isStdlibPackage(pkgPath) {
+	if !ok || !isStubBackedStdlibPackagePath(pkgPath) {
 		return "", "", false
-	}
-	ctx := GetTranspileContext()
-	if ctx != nil && ctx.PackageMapping != nil {
-		if _, hasCrate := ctx.PackageMapping[pkgPath]; hasCrate {
-			return "", "", false
-		}
 	}
 	return ident.Name, pkgPath, true
 }
@@ -1015,7 +1019,9 @@ func isKnownStdlibHelperType(pkgPath string, name string) bool {
 	case "strings":
 		return name == "Builder"
 	case "sync":
-		return name == "WaitGroup" || name == "Mutex" || name == "Once"
+		return name == "WaitGroup" || name == "Mutex" || name == "RWMutex" || name == "Once"
+	case "sync/atomic":
+		return name == "Pointer"
 	case "time":
 		return name == "Time" || name == "Duration" || name == "Timer" || name == "Ticker"
 	case "unsafe":
@@ -1280,7 +1286,9 @@ func mergeHelperTracker(dst *HelperTracker, src *HelperTracker) {
 	dst.needsGoChannel = dst.needsGoChannel || src.needsGoChannel
 	dst.needsWaitGroup = dst.needsWaitGroup || src.needsWaitGroup
 	dst.needsGoMutex = dst.needsGoMutex || src.needsGoMutex
+	dst.needsGoRWMutex = dst.needsGoRWMutex || src.needsGoRWMutex
 	dst.needsGoOnce = dst.needsGoOnce || src.needsGoOnce
+	dst.needsGoAtomicPointer = dst.needsGoAtomicPointer || src.needsGoAtomicPointer
 	dst.needsGoTypeName = dst.needsGoTypeName || src.needsGoTypeName
 	dst.needsBase64 = dst.needsBase64 || src.needsBase64
 	dst.needsSha256 = dst.needsSha256 || src.needsSha256
@@ -2865,7 +2873,7 @@ func writeExternalInterfacePosMethod(out *strings.Builder) {
 
 // TEMPORARY: hand-written Rust bridge for go/types.Type. The long-term fix is
 // to transpile the relevant `go/types` source rather than maintain a Rust
-// shim — see docs/rules/self-host-rules.md "Strategy: Transpile stdlib, don't
+// shim — see AGENTS.md "Strategy: Transpile stdlib, don't
 // bridge it". Until then, every unsupported kind MUST panic so gaps are
 // visible in CI. Returning `String::new()` or `types_Type::default()` here
 // would silently synthesize type facts and re-enact the 2026 fallback incident.
@@ -2878,7 +2886,7 @@ func writeTypesTypeStringMethod(out *strings.Builder) {
 	out.WriteString(wrappedExternalStubExpr("String", "value.__go_name.clone()"))
 	out.WriteString(";\n")
 	out.WriteString("        }\n")
-	out.WriteString("        panic!(\"types.Type.String() bridge: unsupported types.Type kind; transpile go/types instead of extending the bridge — see docs/rules/self-host-rules.md\")\n")
+	out.WriteString("        panic!(\"types.Type.String() bridge: unsupported types.Type kind; transpile go/types instead of extending the bridge — see AGENTS.md\")\n")
 	out.WriteString("    }\n")
 }
 
@@ -2892,7 +2900,7 @@ func writeTypesTypeUnderlyingMethod(out *strings.Builder) {
 	out.WriteString(wrappedExternalStubExpr("types_Type", "self.clone()"))
 	out.WriteString(";\n")
 	out.WriteString("        }\n")
-	out.WriteString("        panic!(\"types.Type.Underlying() bridge: unsupported types.Type kind; transpile go/types instead of extending the bridge — see docs/rules/self-host-rules.md\")\n")
+	out.WriteString("        panic!(\"types.Type.Underlying() bridge: unsupported types.Type kind; transpile go/types instead of extending the bridge — see AGENTS.md\")\n")
 	out.WriteString("    }\n")
 }
 
@@ -6746,8 +6754,10 @@ func writeExternalStubConstDefaultValue(out *strings.Builder, rustType string, i
 		out.WriteString("String::new()")
 	case "bool":
 		out.WriteString("false")
-	case "i8", "i16", "i32", "i64", "u8", "u16", "u32", "u64", "usize", "f32", "f64":
+	case "i8", "i16", "i32", "i64", "u8", "u16", "u32", "u64", "usize":
 		out.WriteString("0")
+	case "f32", "f64":
+		out.WriteString("0.0")
 	default:
 		out.WriteString(rustType)
 	}

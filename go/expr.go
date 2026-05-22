@@ -1018,7 +1018,7 @@ func typeAssertionSourceIsBareStdlibInterfaceValue(expr ast.Expr) bool {
 	if !ok || named.Obj() == nil || named.Obj().Pkg() == nil {
 		return false
 	}
-	if !isStdlibPackage(named.Obj().Pkg().Path()) {
+	if !isStubBackedStdlibPackagePath(named.Obj().Pkg().Path()) {
 		return false
 	}
 	intf, ok := named.Underlying().(*types.Interface)
@@ -1900,12 +1900,42 @@ func writeLocalInterfaceReferenceCallArgument(out *strings.Builder, arg ast.Expr
 			out.WriteString(RustIdentForUse(ident))
 			return true
 		}
+		if localInterfaceArgumentIsWrappedInterfaceValue(arg, expected) {
+			out.WriteString(RustIdentForUse(ident))
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref().unwrap().as_ref()")
+			return true
+		}
 		out.WriteString(RustIdentForUse(ident))
 		WriteBorrowMethod(out, false)
 		out.WriteString(".as_ref().unwrap()")
 		return true
 	}
+	if localInterfaceArgumentIsWrappedInterfaceValue(arg, expected) {
+		TranspileExpressionContext(out, arg, LValue)
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap().as_ref()")
+		return true
+	}
 	return false
+}
+
+func localInterfaceArgumentIsWrappedInterfaceValue(arg ast.Expr, expected types.Type) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	argType := typeInfo.GetType(arg)
+	if argType == nil {
+		return false
+	}
+	if _, ok := transpiledNamedInterfaceTypeNameFromTypes(argType); !ok {
+		return false
+	}
+	if expected == nil {
+		return true
+	}
+	return types.AssignableTo(argType, expected)
 }
 
 func writeLocalInterfaceReferenceCallArgumentForTypeExpr(out *strings.Builder, arg ast.Expr, expectedExpr ast.Expr) bool {
@@ -2067,7 +2097,7 @@ func stdlibInterfaceArgumentConversion(arg ast.Expr, expectedType types.Type) (t
 	if !ok || targetNamed.Obj() == nil || targetNamed.Obj().Pkg() == nil {
 		return "", "", false
 	}
-	if !isStdlibPackage(targetNamed.Obj().Pkg().Path()) {
+	if !isStubBackedStdlibPackagePath(targetNamed.Obj().Pkg().Path()) {
 		return "", "", false
 	}
 	targetInterface, ok := targetNamed.Underlying().(*types.Interface)
@@ -2090,7 +2120,7 @@ func stdlibInterfaceArgumentConversion(arg ast.Expr, expectedType types.Type) (t
 	if sourceNamed.Obj() == targetNamed.Obj() {
 		return "", "", false
 	}
-	if !isStdlibPackage(sourceNamed.Obj().Pkg().Path()) {
+	if !isStubBackedStdlibPackagePath(sourceNamed.Obj().Pkg().Path()) {
 		return "", "", false
 	}
 	if isKnownStdlibHelperType(sourceNamed.Obj().Pkg().Path(), sourceNamed.Obj().Name()) &&
@@ -2268,7 +2298,7 @@ func localConcreteToStdlibInterfaceConversion(arg ast.Expr, expectedType types.T
 	if !ok || targetNamed.Obj() == nil || targetNamed.Obj().Pkg() == nil {
 		return "", false
 	}
-	if !isStdlibPackage(targetNamed.Obj().Pkg().Path()) {
+	if !isStubBackedStdlibPackagePath(targetNamed.Obj().Pkg().Path()) {
 		return "", false
 	}
 	targetInterface, ok := targetNamed.Underlying().(*types.Interface)
@@ -2287,7 +2317,7 @@ func localConcreteToStdlibInterfaceConversion(arg ast.Expr, expectedType types.T
 	if !ok || sourceNamed.Obj() == nil || sourceNamed.Obj().Pkg() == nil {
 		return "", false
 	}
-	if sourceNamed.Obj() == targetNamed.Obj() || isStdlibPackage(sourceNamed.Obj().Pkg().Path()) {
+	if sourceNamed.Obj() == targetNamed.Obj() || isStubBackedStdlibPackagePath(sourceNamed.Obj().Pkg().Path()) {
 		return "", false
 	}
 	targetInterface.Complete()
@@ -4191,7 +4221,7 @@ func registerExternalStructCompositeLiteralFields(structType types.Type, structU
 	if !ok || named.Obj() == nil || named.Obj().Pkg() == nil {
 		return
 	}
-	if !isStdlibPackage(named.Obj().Pkg().Path()) {
+	if !isStubBackedStdlibPackagePath(named.Obj().Pkg().Path()) {
 		return
 	}
 	if isKnownStdlibHelperType(named.Obj().Pkg().Path(), named.Obj().Name()) {
@@ -5082,14 +5112,10 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					ctx := GetTranspileContext()
 					if ctx != nil && ctx.PackageMapping != nil {
 						if crateName, hasCrate := ctx.PackageMapping[pkgPath]; hasCrate {
-							// Use the mapped crate name with proper formatting
-							if !isStdlibPackage(pkgPath) {
-								// External package - use crate name directly
-								out.WriteString(crateName)
-							} else {
-								// Stdlib package - use normal transpilation
-								out.WriteString(ident.Name)
-							}
+							// Use the mapped crate name directly. Some stdlib packages
+							// are source-transpiled for self-hosting, and those must not
+							// fall back to generated semantic stubs.
+							out.WriteString(crateName)
 							out.WriteString("::")
 							out.WriteString(rustPackageSelectorName(e))
 							break
@@ -6958,6 +6984,10 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				out.WriteString("    })")
 				return
 			}
+			if typeAssertionSourceUsesTraitObject(e.X) {
+				writeTraitObjectConcreteAssertionValue(out, e, rustType, assertionReturnsPointer)
+				return
+			}
 			out.WriteString("({\n")
 			out.WriteString("        let val = ")
 			// Check if e.X is an identifier (simple variable)
@@ -8638,6 +8668,27 @@ func localInterfaceAssertionUsesTraitSource(sourceType types.Type) bool {
 	return ok
 }
 
+func typeAssertionSourceUsesTraitObject(expr ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	_, ok := transpiledNamedInterfaceTypeNameFromTypes(typeInfo.GetType(expr))
+	return ok
+}
+
+func typeAssertionSourceIsTraitObjectRef(expr ast.Expr) bool {
+	return isLocalInterfaceRefIdent(expr) || isBareLocalInterfaceValue(expr)
+}
+
+func writeTraitObjectAssertionSourceRef(out *strings.Builder, expr ast.Expr) {
+	if ident, ok := expr.(*ast.Ident); ok && ident.Name != "nil" {
+		out.WriteString(rustIdentForUseWithCapture(ident))
+		return
+	}
+	TranspileExpression(out, expr)
+}
+
 func writeLocalInterfaceAssertionDowncast(out *strings.Builder, usesTraitSource bool, rustType string) {
 	if usesTraitSource {
 		out.WriteString("any_val.__go_as_any().downcast_ref::<")
@@ -8646,6 +8697,137 @@ func writeLocalInterfaceAssertionDowncast(out *strings.Builder, usesTraitSource 
 	}
 	out.WriteString(rustType)
 	out.WriteString(">()")
+}
+
+func writeTypeAssertionSuccessWrappedValue(out *strings.Builder, rustType string, targetIsError bool) {
+	WriteWrapperPrefix(out)
+	if targetIsError {
+		if NeedsConcurrentWrapper() {
+			out.WriteString("Box::<dyn StdError + Send + Sync>::from(typed_val.clone())")
+		} else {
+			out.WriteString("Box::<dyn StdError>::from(typed_val.clone())")
+		}
+	} else {
+		out.WriteString("typed_val.clone()")
+	}
+	_ = rustType
+	WriteWrapperSuffix(out)
+}
+
+func writeTypeAssertionFailureWrappedValue(out *strings.Builder, rustType string, defaultValue string, targetIsPointer bool) {
+	if targetIsPointer {
+		writeTypedWrappedNone(out, rustType)
+		return
+	}
+	WriteWrapperPrefix(out)
+	out.WriteString(defaultValue)
+	WriteWrapperSuffix(out)
+}
+
+func writeTraitObjectConcreteAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr, rustType string, defaultValue string, targetIsPointer bool, targetIsError bool) {
+	out.WriteString("({\n")
+	if typeAssertionSourceIsTraitObjectRef(e.X) {
+		out.WriteString("        let any_val = ")
+		writeTraitObjectAssertionSourceRef(out, e.X)
+		out.WriteString(".__go_as_any();\n")
+		out.WriteString("        if let Some(typed_val) = any_val.downcast_ref::<")
+		out.WriteString(rustType)
+		out.WriteString(">() {\n")
+	} else {
+		out.WriteString("        let val = ")
+		writeTypeAssertionInputClone(out, e.X)
+		out.WriteString(";\n")
+		out.WriteString("        let guard = val")
+		WriteBorrowMethod(out, false)
+		out.WriteString(";\n")
+		out.WriteString("        if let Some(ref any_val) = *guard {\n")
+		out.WriteString("            if let Some(typed_val) = any_val.__go_as_any().downcast_ref::<")
+		out.WriteString(rustType)
+		out.WriteString(">() {\n")
+	}
+	out.WriteString("            (")
+	writeTypeAssertionSuccessWrappedValue(out, rustType, targetIsError)
+	out.WriteString(", ")
+	WriteWrapperPrefix(out)
+	out.WriteString("true")
+	WriteWrapperSuffix(out)
+	out.WriteString(")\n")
+	if typeAssertionSourceIsTraitObjectRef(e.X) {
+		out.WriteString("        } else {\n")
+		out.WriteString("            (")
+		writeTypeAssertionFailureWrappedValue(out, rustType, defaultValue, targetIsPointer)
+		out.WriteString(", ")
+		WriteWrapperPrefix(out)
+		out.WriteString("false")
+		WriteWrapperSuffix(out)
+		out.WriteString(")\n")
+		out.WriteString("        }\n")
+	} else {
+		out.WriteString("            } else {\n")
+		out.WriteString("                (")
+		writeTypeAssertionFailureWrappedValue(out, rustType, defaultValue, targetIsPointer)
+		out.WriteString(", ")
+		WriteWrapperPrefix(out)
+		out.WriteString("false")
+		WriteWrapperSuffix(out)
+		out.WriteString(")\n")
+		out.WriteString("            }\n")
+		out.WriteString("        } else {\n")
+		out.WriteString("            (")
+		writeTypeAssertionFailureWrappedValue(out, rustType, defaultValue, targetIsPointer)
+		out.WriteString(", ")
+		WriteWrapperPrefix(out)
+		out.WriteString("false")
+		WriteWrapperSuffix(out)
+		out.WriteString(")\n")
+		out.WriteString("        }\n")
+	}
+	out.WriteString("    })")
+}
+
+func writeTraitObjectConcreteAssertionValue(out *strings.Builder, e *ast.TypeAssertExpr, rustType string, assertionReturnsPointer bool) {
+	out.WriteString("({\n")
+	if typeAssertionSourceIsTraitObjectRef(e.X) {
+		out.WriteString("        let any_val = ")
+		writeTraitObjectAssertionSourceRef(out, e.X)
+		out.WriteString(".__go_as_any();\n")
+		out.WriteString("        if let Some(typed_val) = any_val.downcast_ref::<")
+		out.WriteString(rustType)
+		out.WriteString(">() {\n")
+	} else {
+		out.WriteString("        let val = ")
+		writeTypeAssertionInputClone(out, e.X)
+		out.WriteString(";\n")
+		out.WriteString("        let guard = val")
+		WriteBorrowMethod(out, false)
+		out.WriteString(";\n")
+		out.WriteString("        if let Some(ref any_val) = *guard {\n")
+		out.WriteString("            if let Some(typed_val) = any_val.__go_as_any().downcast_ref::<")
+		out.WriteString(rustType)
+		out.WriteString(">() {\n")
+	}
+	out.WriteString("            ")
+	if assertionReturnsPointer {
+		WriteWrapperPrefix(out)
+	}
+	out.WriteString("typed_val.clone()")
+	if assertionReturnsPointer {
+		WriteWrapperSuffix(out)
+	}
+	out.WriteString("\n")
+	if typeAssertionSourceIsTraitObjectRef(e.X) {
+		out.WriteString("        } else {\n")
+		out.WriteString("            panic!(\"type assertion failed\")\n")
+		out.WriteString("        }\n")
+	} else {
+		out.WriteString("            } else {\n")
+		out.WriteString("                panic!(\"type assertion failed\")\n")
+		out.WriteString("            }\n")
+		out.WriteString("        } else {\n")
+		out.WriteString("            panic!(\"type assertion on nil interface\")\n")
+		out.WriteString("        }\n")
+	}
+	out.WriteString("    })")
 }
 
 func writeLocalInterfaceAssertionWrappedSuccess(out *strings.Builder, ifaceName string) {
@@ -9056,6 +9238,11 @@ func TranspileTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr) 
 		out.WriteString(")\n")
 		out.WriteString("        }\n")
 		out.WriteString("    })")
+		return
+	}
+
+	if typeAssertionSourceUsesTraitObject(e.X) {
+		writeTraitObjectConcreteAssertionCommaOk(out, e, rustType, defaultValue, targetIsPointer, targetIsError)
 		return
 	}
 

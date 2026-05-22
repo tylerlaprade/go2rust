@@ -14,6 +14,23 @@ func TestSanitizeRustModuleFileName(t *testing.T) {
 	}
 }
 
+func TestSanitizeRustCrateName(t *testing.T) {
+	for _, tt := range []struct {
+		in   string
+		want string
+	}{
+		{in: "go2rust-source-types.S8JrZY", want: "go2rust_source_types_s8jrzy"},
+		{in: "example.com/dep", want: "example_com_dep"},
+		{in: "123/pkg", want: "pkg_123_pkg"},
+		{in: "mod", want: "mod_"},
+	} {
+		got := SanitizeRustCrateName(tt.in)
+		if got != tt.want {
+			t.Fatalf("SanitizeRustCrateName(%q) = %q, want %q", tt.in, got, tt.want)
+		}
+	}
+}
+
 func TestRustStringLiteralUsesRustEscapes(t *testing.T) {
 	got := RustStringLiteral("\"\\v\\a\\x7f\\u2028\"")
 	want := "\"\\u{b}\\u{7}\\u{7f}\\u{2028}\""

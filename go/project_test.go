@@ -462,6 +462,104 @@ func Use() int {
 	}
 }
 
+func TestAtomicPointerExternalPackageHelperKeepsLocalElementTypeOutOfSharedStubs(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+
+require example.com/dep v0.0.0
+
+replace example.com/dep => ./dep
+`)
+	writeTestFile(t, filepath.Join(tempDir, "dep", "go.mod"), `module example.com/dep
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "dep", "dep.go"), `package dep
+
+import "sync/atomic"
+
+type File struct {
+	Base int
+}
+
+type Set struct {
+	last atomic.Pointer[File]
+}
+
+func (s *Set) Last() *File {
+	return s.last.Load()
+}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+import "example.com/dep"
+
+func main() {
+	var s dep.Set
+	_ = s.Last()
+}
+`)
+
+	generator := NewProjectGenerator([]string{filepath.Join(tempDir, "main.go")})
+	generator.SetExternalPackageMode(ModeTranspile)
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	depDir := filepath.Join(tempDir, "vendor", "example_com_dep")
+	depRS := mustReadFile(t, filepath.Join(depDir, "mod.rs"))
+	stubsRS := mustReadFile(t, filepath.Join(tempDir, "vendor", sharedStdlibStubCrateName, "lib.rs"))
+
+	if !strings.Contains(depRS, "GoAtomicPointer<File>") {
+		t.Fatalf("atomic.Pointer[File] should use the package-local generic helper, got:\n%s", depRS)
+	}
+	if !strings.Contains(depRS, "struct GoAtomicPointer<T>") {
+		t.Fatalf("external package should emit GoAtomicPointer helper, got:\n%s", depRS)
+	}
+	if strings.Contains(stubsRS, "Option<File>") || strings.Contains(stubsRS, "atomic_Pointer") {
+		t.Fatalf("shared stdlib stubs must not capture package-local atomic.Pointer element types, got:\n%s", stubsRS)
+	}
+}
+
+func TestSyncRWMutexFieldUsesBareHelper(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+import "sync"
+
+type Set struct {
+	mu sync.RWMutex
+}
+
+func (s *Set) Use() {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+}
+`)
+
+	generator := NewProjectGenerator([]string{filepath.Join(tempDir, "main.go")})
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
+	if !strings.Contains(mainRS, "struct GoRWMutex") {
+		t.Fatalf("sync.RWMutex should emit the bare helper, got:\n%s", mainRS)
+	}
+	if !strings.Contains(mainRS, "pub mu: GoRWMutex") {
+		t.Fatalf("sync.RWMutex struct field should be bare, got:\n%s", mainRS)
+	}
+	if strings.Contains(mainRS, "mu: Arc<Mutex<Option<GoRWMutex>>>") || strings.Contains(mainRS, "mu.lock().unwrap()") {
+		t.Fatalf("sync.RWMutex field should not be treated as a wrapped field, got:\n%s", mainRS)
+	}
+}
+
 func TestNamedFunctionTypeConversionDoesNotCallConstant(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
@@ -1915,6 +2013,131 @@ func TestPackageLoaderOrderedPackagePaths(t *testing.T) {
 	want := []string{"github.com/alpha/lib", "github.com/zeta/lib"}
 	if strings.Join(got, ",") != strings.Join(want, ",") {
 		t.Fatalf("orderedPackagePaths() = %v, want %v", got, want)
+	}
+}
+
+func TestSourceStdlibPackagePatterns(t *testing.T) {
+	for _, tt := range []struct {
+		patterns string
+		path     string
+		want     bool
+	}{
+		{patterns: "go/token", path: "go/token", want: true},
+		{patterns: "go/...", path: "go/types", want: true},
+		{patterns: "go/...", path: "go", want: true},
+		{patterns: "internal/types/...", path: "internal/types/errors", want: true},
+		{patterns: "go/token", path: "go/types", want: false},
+	} {
+		got := sourceStdlibPackagePatternMatches(tt.path, tt.patterns)
+		if got != tt.want {
+			t.Fatalf("sourceStdlibPackagePatternMatches(%q, %q) = %v, want %v", tt.path, tt.patterns, got, tt.want)
+		}
+	}
+}
+
+func TestPackageLoaderIncludesMappedStdlibSourcePackage(t *testing.T) {
+	t.Setenv(sourceStdlibPackagesEnv, "go/token")
+	loader := &PackageLoader{
+		mainPkg: &packages.Package{PkgPath: "main"},
+		allPackages: map[string]*packages.Package{
+			"main":     {PkgPath: "main"},
+			"go/token": {PkgPath: "go/token"},
+			"fmt":      {PkgPath: "fmt"},
+		},
+		packageMapping: map[string]string{
+			"go/token": "go_token",
+		},
+	}
+
+	got := loader.orderedPackagePaths()
+	want := []string{"go/token"}
+	if strings.Join(got, ",") != strings.Join(want, ",") {
+		t.Fatalf("orderedPackagePaths() = %v, want %v", got, want)
+	}
+
+	deps := packageDependencyCrates(map[string]*packages.Package{
+		"go/token": {PkgPath: "go/token"},
+		"fmt":      {PkgPath: "fmt"},
+	}, "go_types", loader.packageMapping)
+	if strings.Join(deps, ",") != "go_token" {
+		t.Fatalf("packageDependencyCrates() = %v, want [go_token]", deps)
+	}
+}
+
+func TestSourceStdlibPackageUsesMappedCrate(t *testing.T) {
+	t.Setenv(sourceStdlibPackagesEnv, "go/token")
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/source-stdlib
+
+go 1.24
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+import "go/token"
+
+func main() {
+	var pos token.Pos = token.NoPos
+	println(int(pos))
+}
+`)
+
+	generator := NewProjectGenerator([]string{filepath.Join(tempDir, "main.go")})
+	generator.SetExternalPackageMode(ModeTranspile)
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
+	if !strings.Contains(mainRS, "go_token::") {
+		t.Fatalf("source stdlib package selectors should use the mapped crate, got:\n%s", mainRS)
+	}
+	if strings.Contains(mainRS, " token::") || strings.Contains(mainRS, "\ntoken::") || strings.Contains(mainRS, "(token::") {
+		t.Fatalf("source stdlib package should not use the stub-style package module, got:\n%s", mainRS)
+	}
+	if _, err := os.Stat(filepath.Join(tempDir, "vendor", "go_token", "lib.rs")); err != nil {
+		t.Fatalf("source stdlib package should generate vendor/go_token/lib.rs: %v", err)
+	}
+}
+
+func TestSourceStdlibPackageLocalInterfacesDoNotRegisterExternalStubs(t *testing.T) {
+	t.Setenv(sourceStdlibPackagesEnv, "go/build/constraint")
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/source-constraint
+
+go 1.24
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+import "go/build/constraint"
+
+func main() {
+	x, err := constraint.Parse("+build linux")
+	if err != nil {
+		println(err.Error())
+	}
+	_ = x
+}
+`)
+
+	generator := NewProjectGenerator([]string{filepath.Join(tempDir, "main.go")})
+	generator.SetExternalPackageMode(ModeTranspile)
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	stubsRS := mustReadFile(t, filepath.Join(tempDir, "vendor", sharedStdlibStubCrateName, "lib.rs"))
+	exprRS := mustReadFile(t, filepath.Join(tempDir, "vendor", "go_build_constraint", "expr.rs"))
+	if strings.Contains(stubsRS, "pub struct Expr;") {
+		t.Fatalf("source stdlib local interface Expr should not be emitted in shared stubs:\n%s", stubsRS)
+	}
+	if !strings.Contains(exprRS, "pub trait Expr") {
+		t.Fatalf("source stdlib Expr should be emitted as a local trait, got:\n%s", exprRS)
+	}
+	if !strings.Contains(exprRS, "let any_val = x.__go_as_any();") {
+		t.Fatalf("source stdlib interface assertion should use the generated local trait object, got:\n%s", exprRS)
+	}
+	if strings.Contains(exprRS, "let val = x.clone();") {
+		t.Fatalf("source stdlib interface assertion should not use stub-style bare downcast handling, got:\n%s", exprRS)
 	}
 }
 

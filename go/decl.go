@@ -1300,6 +1300,12 @@ func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.Fi
 						continue
 					}
 
+					if _, ok := transpiledNamedInterfaceTypeNameFromExpr(result.Type); ok {
+						WriteWrappedNone(out)
+						out.WriteString(";\n")
+						continue
+					}
+
 					// For all other types
 					WriteWrapperPrefix(out)
 					switch t := result.Type.(type) {
@@ -2467,6 +2473,13 @@ func writeNamedReturnDeclarations(out *strings.Builder, fnType *ast.FuncType) {
 				continue
 			}
 
+			if _, ok := transpiledNamedInterfaceTypeNameFromExpr(result.Type); ok {
+				WriteWrappedNone(out)
+				out.WriteString(";\n")
+				wrote = true
+				continue
+			}
+
 			WriteWrapperPrefix(out)
 			switch t := result.Type.(type) {
 			case *ast.Ident:
@@ -2534,6 +2547,10 @@ func writeNamedReturnZeroValue(out *strings.Builder, typeExpr ast.Expr) {
 		return
 	}
 	if isEmptyInterfaceExpr(typeExpr) {
+		WriteWrappedNone(out)
+		return
+	}
+	if _, ok := transpiledNamedInterfaceTypeNameFromExpr(typeExpr); ok {
 		WriteWrappedNone(out)
 		return
 	}

@@ -47,6 +47,49 @@ func classify(v interface{}) bool {
 	}
 }
 
+func TestTypeSwitchOnLocalInterfaceFieldUsesTraitAny(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+type Expr interface {
+	isExpr()
+}
+
+type TagExpr struct {
+	Tag string
+}
+
+func (*TagExpr) isExpr() {}
+
+type NotExpr struct {
+	X Expr
+}
+
+func (x *NotExpr) wrap() string {
+	switch x.X.(type) {
+	case *TagExpr:
+		return "tag"
+	}
+	return ""
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile() error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := Transpile(file, fset, typeInfo)
+	if !strings.Contains(rust, "_ts_guard.as_ref().map(|__v| __v.__go_as_any())") {
+		t.Fatalf("type switch on local interface field should downcast through __go_as_any:\n%s", rust)
+	}
+	if strings.Contains(rust, "let _ts_val = _ts_guard.as_ref();") {
+		t.Fatalf("type switch on local interface field should not treat trait objects as bare Any:\n%s", rust)
+	}
+}
+
 func TestTypeSwitchUsesSyntaxCaseTypeWithoutTypeInfo(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

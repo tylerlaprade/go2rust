@@ -115,23 +115,26 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 		astFilesByPath[normalizeFilePath(filename)] = file
 	}
 
-	// Check if we have external packages
-	hasExternal := false
+	// Check if dependency loading is needed. Non-stdlib imports always need the
+	// package loader; explicitly source-transpiled stdlib packages use the same
+	// path so compiler packages such as go/types are real crates, not semantic
+	// stubs.
+	needsPackageLoader := false
 	for _, file := range astFiles {
 		for _, imp := range file.Imports {
 			path := strings.Trim(imp.Path.Value, `"`)
-			if !isStdlibPackage(path) {
-				hasExternal = true
+			if !isStdlibPackage(path) || shouldTranspileStdlibPackage(path) {
+				needsPackageLoader = true
 				break
 			}
 		}
-		if hasExternal {
+		if needsPackageLoader {
 			break
 		}
 	}
 
 	// Use PackageLoader for projects with external dependencies
-	if hasExternal && pg.externalMode == ModeTranspile && !skipExternalHandling {
+	if needsPackageLoader && pg.externalMode == ModeTranspile && !skipExternalHandling {
 		fmt.Fprintf(os.Stderr, "Loading packages with dependencies...\n")
 
 		// Use PackageLoader to get full type information
@@ -170,7 +173,7 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 
 		// Skip duplicate handling
 		skipExternalHandling = true
-	} else if hasExternal && pg.externalMode == ModeStub && !skipExternalHandling {
+	} else if needsPackageLoader && pg.externalMode == ModeStub && !skipExternalHandling {
 		fmt.Fprintf(os.Stderr, "Generating stubs for external packages...\n")
 
 		// Generate stub implementations
@@ -802,9 +805,8 @@ path = "lib.rs"
 			// If running in current directory, use "transpiled" as default name
 			packageName = "transpiled"
 		}
-		// Sanitize package name to ensure it's valid for Cargo
-		packageName = strings.ReplaceAll(packageName, "-", "_")
-		packageName = strings.ReplaceAll(packageName, " ", "_")
+		// Sanitize package name to ensure it's valid for Cargo.
+		packageName = SanitizeRustCrateName(packageName)
 
 		cargoContent = fmt.Sprintf(`[package]
 name = "%s"
