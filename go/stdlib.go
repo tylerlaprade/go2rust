@@ -2767,14 +2767,15 @@ func transpileJsonMarshal(out *strings.Builder, call *ast.CallExpr) {
 	}
 
 	var fields []jsonMarshalField
+	typeInfoStructUnsupported := false
 	typeInfo := GetTypeInfo()
 	if typeInfo != nil {
 		if st := typeInfo.GetStructType(call.Args[0]); st != nil {
 			var ok bool
 			fields, ok = jsonMarshalStructFields(st)
 			if !ok {
-				out.WriteString("/* ERROR: json.Marshal currently supports exported basic, []string, map[string]string, and map[string][]byte struct fields */ unimplemented!()")
-				return
+				fields = nil
+				typeInfoStructUnsupported = true
 			}
 		}
 	}
@@ -2789,6 +2790,10 @@ func transpileJsonMarshal(out *strings.Builder, call *ast.CallExpr) {
 		}
 	}
 	if fields == nil {
+		if typeInfoStructUnsupported {
+			out.WriteString("/* ERROR: json.Marshal currently supports exported basic, []string, map[string]string, and map[string][]byte struct fields */ unimplemented!()")
+			return
+		}
 		out.WriteString("/* ERROR: json.Marshal currently supports struct values with exported basic fields */ unimplemented!()")
 		return
 	}

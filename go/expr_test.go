@@ -584,6 +584,7 @@ type OverlayJSON struct {
 func main() {
 	overlays := map[string]string{"b.go": "tmp-b", "a.go": "tmp-a"}
 	_, _ = json.Marshal(OverlayJSON{Replace: overlays})
+	_, _ = json.Marshal(OverlayJSON{})
 }`)
 
 	for _, bad := range []string{
@@ -597,6 +598,7 @@ func main() {
 	}
 	for _, want := range []string{
 		"let __json_value = OverlayJSON { replace: overlays.clone(), ..Default::default() }",
+		"let __json_value = OverlayJSON { replace: Rc::new(RefCell::new(Some(BTreeMap::new()))) }",
 		"let __map_guard = __json_value.replace.borrow()",
 		"go_json_escape(__k)",
 		`format!("\"replace\":{{{}}}", __map_entries)`,
