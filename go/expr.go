@@ -733,8 +733,19 @@ func writeCurrentReceiverPointerMethodCallWithArgTemps(out *strings.Builder, sel
 	if typeInfo == nil || !typeInfo.HasPointerReceiver(sel) || !argsReferenceCurrentReceiver(call.Args) {
 		return false
 	}
+	variadicStart := -1
+	variadicElemType := types.Type(nil)
+	variadicElemIsAny := false
+	if sig, ok := callSignatureFromTypeInfo(call); ok && sig.Variadic() && sig.Params() != nil && sig.Params().Len() > 0 && !call.Ellipsis.IsValid() {
+		variadicStart = sig.Params().Len() - 1
+		variadicElemType = callParamTypeFromTypeInfo(call, variadicStart)
+		variadicElemIsAny = isEmptyInterfaceType(variadicElemType)
+	}
 	out.WriteString("{ ")
 	for i, arg := range call.Args {
+		if variadicStart >= 0 && i >= variadicStart {
+			break
+		}
 		out.WriteString("let __method_arg")
 		out.WriteString(strconv.Itoa(i))
 		out.WriteString(" = ")
@@ -744,12 +755,31 @@ func writeCurrentReceiverPointerMethodCallWithArgTemps(out *strings.Builder, sel
 	out.WriteString("self.")
 	out.WriteString(rustMethodSelectorName(sel))
 	out.WriteString("(")
-	for i := range call.Args {
+	positionalEnd := len(call.Args)
+	if variadicStart >= 0 {
+		positionalEnd = variadicStart
+	}
+	for i := 0; i < positionalEnd; i++ {
 		if i > 0 {
 			out.WriteString(", ")
 		}
 		out.WriteString("__method_arg")
 		out.WriteString(strconv.Itoa(i))
+	}
+	if variadicStart >= 0 {
+		if positionalEnd > 0 {
+			out.WriteString(", ")
+		}
+		WriteWrapperPrefix(out)
+		out.WriteString("vec![")
+		for i := variadicStart; i < len(call.Args); i++ {
+			if i > variadicStart {
+				out.WriteString(", ")
+			}
+			writeVariadicPackedElementValue(out, call.Args[i], variadicElemType, nil, variadicElemIsAny)
+		}
+		out.WriteString("]")
+		WriteWrapperSuffix(out)
 	}
 	out.WriteString(") }")
 	return true
