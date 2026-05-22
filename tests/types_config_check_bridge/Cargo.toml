@@ -1,10 +1,10 @@
 [package]
-name = "stdlib_package_func_stubs"
+name = "types_config_check_bridge"
 version = "0.1.0"
 edition = "2021"
 
 [[bin]]
-name = "stdlib_package_func_stubs"
+name = "types_config_check_bridge"
 path = "main.rs"
 
 [dependencies]

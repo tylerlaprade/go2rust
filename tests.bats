@@ -2366,6 +2366,10 @@ run_xfail_test() {
     run_test "tests/type_switch_temporary_subject"
 }
 
+@test "types_config_check_bridge" {
+    run_test "tests/types_config_check_bridge"
+}
+
 @test "unary_minus_unsigned" {
     run_test "tests/unary_minus_unsigned"
 }

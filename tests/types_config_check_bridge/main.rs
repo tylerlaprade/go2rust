@@ -1988,23 +1988,6 @@ impl token_Token {
 }
 
 
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
-pub struct types_Alias;
-
-impl std::fmt::Display for types_Alias {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "<types_Alias>")
-    }
-}
-
-
-impl types_Alias {
-    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
-        None
-    }
-}
-
-
 #[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct types_Basic {
     pub __go_kind: types_BasicKind,
@@ -2106,23 +2089,6 @@ impl std::fmt::Display for types_BasicKind {
 
 
 impl types_BasicKind {
-    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
-        None
-    }
-}
-
-
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
-pub struct types_Checker;
-
-impl std::fmt::Display for types_Checker {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "<types_Checker>")
-    }
-}
-
-
-impl types_Checker {
     pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
         None
     }
@@ -2262,48 +2228,6 @@ impl types_TypeAndValue {
 }
 
 
-pub mod ast {
-    use super::*;
-
-    pub trait GoStringArg {
-        fn into_go_string(self) -> String;
-    }
-
-    impl GoStringArg for String {
-        fn into_go_string(self) -> String {
-            self
-        }
-    }
-
-    impl<'a> GoStringArg for &'a str {
-        fn into_go_string(self) -> String {
-            self.to_string()
-        }
-    }
-
-    impl<'a> GoStringArg for &'a String {
-        fn into_go_string(self) -> String {
-            self.clone()
-        }
-    }
-
-    impl GoStringArg for Arc<Mutex<Option<String>>> {
-        fn into_go_string(self) -> String {
-            self.lock().unwrap().as_ref().cloned().unwrap_or_default()
-        }
-    }
-
-    pub const R_E_C_V: ast_ChanDir = ast_ChanDir(2);
-    pub const S_E_N_D: ast_ChanDir = ast_ChanDir(1);
-}
-
-
-pub mod binary {
-    use super::*;
-    pub const MAX_VARINT_LEN64: i32 = 0;
-}
-
-
 pub mod parser {
     use super::*;
 
@@ -2382,7 +2306,7 @@ pub mod parser {
         }
     }
 
-    pub const SKIP_OBJECT_RESOLUTION: parser_Mode = parser_Mode(0);
+    pub const PARSE_COMMENTS: parser_Mode = parser_Mode(0);
 
     fn go_parser_error(message: String) -> Box<dyn std::error::Error + Send + Sync> {
         Box::new(std::io::Error::new(std::io::ErrorKind::InvalidData, message))
@@ -3149,39 +3073,18 @@ pub mod token {
 }
 
 
-pub mod types {
-    use super::*;
-    pub fn Typ() -> Arc<Mutex<Option<Vec<Arc<Mutex<Option<types_Basic>>>>>>> {
-        Arc::new(Mutex::new(Some::<Vec<Arc<Mutex<Option<types_Basic>>>>>(Default::default())))
-    }
-
-    pub fn new_checker<T0, T1, T2, T3>(_arg0: T0, _arg1: T1, _arg2: T2, _arg3: T3) -> Arc<Mutex<Option<types_Checker>>> {
-        Arc::new(Mutex::new(Some::<types_Checker>(Default::default())))
-    }
-
-    pub fn new_package<T0, T1>(_arg0: T0, _arg1: T1) -> Arc<Mutex<Option<types_Package>>> {
-        Arc::new(Mutex::new(Some::<types_Package>(Default::default())))
-    }
-
-    pub fn unalias<T0>(_arg0: T0) -> Arc<Mutex<Option<types_Type>>> {
-        Arc::new(Mutex::new(Some::<types_Type>(Default::default())))
-    }
-}
-
-
 fn main() {
-    if false {
-        let mut fset = token::new_file_set();
-        let (mut f, _) = parser::parse_file(fset.clone(), "a.go".to_string(), "package p; type A = int".to_string(), { let __go_arg = parser::SKIP_OBJECT_RESOLUTION; __go_arg });
-        { let (__tmp_0, __tmp_1) = { let __recv = Arc::new(Mutex::new(Some(types_Config::default()))); let __result = (*__recv.lock().unwrap().as_mut().unwrap()).check("p".to_string(), fset.clone(), Arc::new(Mutex::new(Some(vec![f.clone()]))), Arc::new(Mutex::new(Some(types_Info::default())))); __result }; };
-        let _ = types::new_checker(Arc::new(Mutex::new(Some(types_Config::default()))), fset.clone(), types::new_package("p".to_string(), "p".to_string()), Arc::new(Mutex::new(Some(types_Info::default()))));
-        let mut alias: Arc<Mutex<Option<types_Alias>>> = Arc::new(Mutex::new(None));
-        let _ = types::unalias(alias.clone());
-        let _ = binary::MAX_VARINT_LEN64;
-        let _ = types::Typ();
-        let mut dir = Arc::new(Mutex::new(Some(ast::S_E_N_D)));
-        { let new_val = { let __tmp_x = ast_ChanDir(ast::S_E_N_D.0 as i32); let __tmp_y = ast_ChanDir(ast::R_E_C_V.0 as i32); __tmp_x | __tmp_y }; *dir.lock().unwrap() = Some(new_val); };
-        let _ = { let __v = (*dir.lock().unwrap().as_ref().unwrap()).clone(); __v };
+    let mut fset = token::new_file_set();
+    let (mut file, mut err) = parser::parse_file(fset.clone(), "p.go".to_string(), "package p\nvar x int\nvar y = x\n".to_string(), { let __go_arg = parser::PARSE_COMMENTS; __go_arg });
+    if (*err.lock().unwrap()).is_some() {
+        println!("{} {}", format!("{}", "parse".to_string()), format!("{}", format!("{}", (*err.lock().unwrap().as_ref().unwrap()))));
+        return;
     }
-    println!("{}", format!("{}", "ok".to_string()));
+
+    let mut info = Arc::new(Mutex::new(Some(types_Info { types: Arc::new(Mutex::new(Some(BTreeMap::<ast_Expr, Arc<Mutex<Option<types_TypeAndValue>>>>::from([])))), ..Default::default() })));
+    let (mut pkg, mut err) = { let __recv = Arc::new(Mutex::new(Some(types_Config::default()))); let __result = (*__recv.lock().unwrap().as_mut().unwrap()).check("p".to_string(), fset.clone(), Arc::new(Mutex::new(Some(vec![file.clone()]))), info.clone()); __result };
+    println!("{} {} {}", format!("{}", (*pkg.lock().unwrap()).is_some()), format!("{}", (*err.lock().unwrap()).is_none()), format!("{}", { let __tmp_x = ((*(*info.lock().unwrap().as_ref().unwrap()).types.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = (0 as i32); __tmp_x > __tmp_y }));
+
+    let (mut nilInfoPkg, mut nilInfoErr) = { let __recv = Arc::new(Mutex::new(Some(types_Config::default()))); let __result = (*__recv.lock().unwrap().as_mut().unwrap()).check("p".to_string(), fset.clone(), Arc::new(Mutex::new(Some(vec![file.clone()]))), ()); __result };
+    println!("{} {}", format!("{}", (*nilInfoPkg.lock().unwrap()).is_some()), format!("{}", (*nilInfoErr.lock().unwrap()).is_none()));
 }

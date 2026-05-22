@@ -202,6 +202,9 @@ func RegisterExternalTypeStubMethod(typeName string, methodName string, sig *typ
 	}
 	RegisterExternalTypeStub(typeName)
 	trackWrapperImports()
+	if typeName == "types_Config" && methodName == "check" {
+		registerTypesCheckBridgeSurface()
+	}
 	method := externalTypeStubMethod{
 		ParamCount: sig.Params().Len(),
 	}
@@ -214,6 +217,22 @@ func RegisterExternalTypeStubMethod(typeName string, methodName string, sig *typ
 		methods[typeName] = make(map[string]externalTypeStubMethod)
 	}
 	methods[typeName][methodName] = method
+}
+
+func registerTypesCheckBridgeSurface() {
+	TrackImport("BTreeMap")
+	RegisterExternalTypeStub("types_Info")
+	RegisterExternalTypeStub("types_TypeAndValue")
+	RegisterExternalTypeStubInterface("types_Type")
+	RegisterExternalTypeStub("types_Basic")
+	RegisterExternalIntegerTypeStub("types_BasicKind", "i32")
+	RegisterExternalIntegerTypeStub("types_BasicInfo", "i32")
+	RegisterExternalTypeStub("types_Package")
+	RegisterExternalTypeStub("constant_Value")
+
+	RegisterExternalTypeStubFieldByRustType("types_Info", "types", wrappedExternalStubType("BTreeMap<ast_Expr, "+wrappedExternalStubType("types_TypeAndValue")+">"))
+	RegisterExternalTypeStubFieldByRustType("types_TypeAndValue", "r#type", wrappedExternalStubType("types_Type"))
+	RegisterExternalTypeStubFieldByRustType("types_TypeAndValue", "value", wrappedExternalStubType("constant_Value"))
 }
 
 func RegisterExternalErrorMethodForNamed(named *types.Named, rustName string) {
@@ -658,6 +677,7 @@ func registerParserParseFileStubSurface() {
 	RegisterExternalTypeStubFieldByRustType("ast_AssignStmt", "rhs", vec("ast_Expr"))
 	RegisterExternalTypeStubFieldByRustType("ast_AssignStmt", "tok", tokenType)
 	RegisterExternalTypeStubFieldByRustType("ast_BasicLit", "kind", tokenType)
+	RegisterExternalTypeStubFieldByRustType("ast_BasicLit", "pos", posType)
 	RegisterExternalTypeStubFieldByRustType("ast_BasicLit", "value", stringType)
 	RegisterExternalTypeStubFieldByRustType("ast_BinaryExpr", "op", tokenType)
 	RegisterExternalTypeStubFieldByRustType("ast_BinaryExpr", "x", exprType)
@@ -1681,6 +1701,9 @@ func generateExternalStubs(stubs map[string]bool, interfaceTypes map[string]bool
 	if needsJsonSupport {
 		writeJsonSupportHelpers(&out, stubs["bytes_Buffer"])
 	}
+	if stubs["types_Config"] {
+		writeTypesBridgeSupport(&out)
+	}
 	for i, name := range names {
 		if i > 0 || out.Len() > 0 {
 			out.WriteString("\n\n")
@@ -1719,6 +1742,10 @@ func generateExternalStubs(stubs map[string]bool, interfaceTypes map[string]bool
 		}
 		if name == "fs_DirEntry" {
 			writeFsDirEntryStub(&out, name)
+			continue
+		}
+		if name == "types_Basic" {
+			writeTypesBasicStub(&out, methodsByType[name])
 			continue
 		}
 		if interfaceTypes[name] {
@@ -2742,7 +2769,11 @@ func writeExternalInterfaceStub(out *strings.Builder, name string, methods map[s
 	}
 	slices.Sort(methodNames)
 	for _, methodName := range methodNames {
-		if externalInterfaceCarriesSourcePos(name) && methodName == "pos" {
+		if name == "types_Type" && methodName == "string" {
+			writeTypesTypeStringMethod(out)
+		} else if name == "types_Type" && methodName == "underlying" {
+			writeTypesTypeUnderlyingMethod(out)
+		} else if externalInterfaceCarriesSourcePos(name) && methodName == "pos" {
 			writeExternalInterfacePosMethod(out)
 		} else {
 			writeExternalTypeStubMethod(out, methodName, methods[methodName])
@@ -2822,6 +2853,36 @@ func externalInterfaceCarriesSourcePos(name string) bool {
 func writeExternalInterfacePosMethod(out *strings.Builder) {
 	out.WriteString("    pub fn pos(&self) -> Arc<Mutex<Option<token_Pos>>> {\n")
 	out.WriteString("        Arc::new(Mutex::new(Some(token_Pos(self.__go_pos))))\n")
+	out.WriteString("    }\n")
+}
+
+func writeTypesTypeStringMethod(out *strings.Builder) {
+	out.WriteString("    pub fn string(&self) -> ")
+	out.WriteString(wrappedExternalStubType("String"))
+	out.WriteString(" {\n")
+	out.WriteString("        if let Some(value) = self.downcast_ref::<types_Basic>() {\n")
+	out.WriteString("            return ")
+	out.WriteString(wrappedExternalStubExpr("String", "value.__go_name.clone()"))
+	out.WriteString(";\n")
+	out.WriteString("        }\n")
+	out.WriteString("        ")
+	out.WriteString(wrappedExternalStubExpr("String", "String::new()"))
+	out.WriteString("\n")
+	out.WriteString("    }\n")
+}
+
+func writeTypesTypeUnderlyingMethod(out *strings.Builder) {
+	out.WriteString("    pub fn underlying(&self) -> ")
+	out.WriteString(wrappedExternalStubType("types_Type"))
+	out.WriteString(" {\n")
+	out.WriteString("        if self.downcast_ref::<types_Basic>().is_some() {\n")
+	out.WriteString("            return ")
+	out.WriteString(wrappedExternalStubExpr("types_Type", "self.clone()"))
+	out.WriteString(";\n")
+	out.WriteString("        }\n")
+	out.WriteString("        ")
+	out.WriteString(wrappedExternalStubExpr("types_Type", "types_Type::default()"))
+	out.WriteString("\n")
 	out.WriteString("    }\n")
 }
 
@@ -2946,18 +3007,571 @@ func writeExternalTypeStubMethod(out *strings.Builder, methodName string, method
 	out.WriteString("    }\n")
 }
 
+func writeTypesBasicStub(out *strings.Builder, methods map[string]externalTypeStubMethod) {
+	out.WriteString(`#[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord)]
+pub struct types_Basic {
+    pub __go_kind: types_BasicKind,
+    pub __go_info: types_BasicInfo,
+    pub __go_name: String,
+}
+
+impl std::fmt::Display for types_Basic {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{}", self.__go_name)
+    }
+}
+
+
+impl types_Basic {
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        None
+    }
+`)
+	methodNames := make([]string, 0, len(methods))
+	for methodName := range methods {
+		methodNames = append(methodNames, methodName)
+	}
+	slices.Sort(methodNames)
+	for _, methodName := range methodNames {
+		switch methodName {
+		case "info":
+			out.WriteString("    pub fn info(&self) -> ")
+			out.WriteString(wrappedExternalStubType("types_BasicInfo"))
+			out.WriteString(" {\n        ")
+			out.WriteString(wrappedExternalStubExpr("types_BasicInfo", "self.__go_info"))
+			out.WriteString("\n    }\n")
+		case "kind":
+			out.WriteString("    pub fn kind(&self) -> ")
+			out.WriteString(wrappedExternalStubType("types_BasicKind"))
+			out.WriteString(" {\n        ")
+			out.WriteString(wrappedExternalStubExpr("types_BasicKind", "self.__go_kind"))
+			out.WriteString("\n    }\n")
+		case "name":
+			out.WriteString("    pub fn name(&self) -> ")
+			out.WriteString(wrappedExternalStubType("String"))
+			out.WriteString(" {\n        ")
+			out.WriteString(wrappedExternalStubExpr("String", "self.__go_name.clone()"))
+			out.WriteString("\n    }\n")
+		default:
+			writeExternalTypeStubMethod(out, methodName, methods[methodName])
+		}
+	}
+	out.WriteString("}\n")
+}
+
+func writeTypesBridgeSupport(out *strings.Builder) {
+	TrackImport("BTreeMap")
+	stringType := wrappedExternalStubType("String")
+	fileType := wrappedExternalStubType("ast_File")
+	filesType := wrappedExternalStubType("Vec<" + fileType + ">")
+	infoType := wrappedExternalStubType("types_Info")
+	exprType := wrappedExternalStubType("ast_Expr")
+	stmtType := wrappedExternalStubType("ast_Stmt")
+	declType := wrappedExternalStubType("ast_Decl")
+	specType := wrappedExternalStubType("ast_Spec")
+	identType := wrappedExternalStubType("ast_Ident")
+	fieldListType := wrappedExternalStubType("ast_FieldList")
+	blockType := wrappedExternalStubType("ast_BlockStmt")
+	callType := wrappedExternalStubType("ast_CallExpr")
+	basicLitType := wrappedExternalStubType("ast_BasicLit")
+	errorType := rustStdErrorBoxType()
+	borrow := ".borrow()"
+	borrowMut := ".borrow_mut()"
+	if NeedsConcurrentWrapper() {
+		borrow = ".lock().unwrap()"
+		borrowMut = ".lock().unwrap()"
+	}
+	wrapExpr := func(innerType, expr string) string {
+		return wrappedExternalStubExpr(innerType, expr)
+	}
+	errExpr := func(message string) string {
+		return fmt.Sprintf("Box::new(std::io::Error::new(std::io::ErrorKind::Other, %s)) as %s", message, errorType)
+	}
+
+	fmt.Fprintf(out, `pub trait GoTypesBridgeStringArg {
+    fn into_go_types_bridge_string(self) -> String;
+}
+
+impl GoTypesBridgeStringArg for String {
+    fn into_go_types_bridge_string(self) -> String { self }
+}
+
+impl<'a> GoTypesBridgeStringArg for &'a str {
+    fn into_go_types_bridge_string(self) -> String { self.to_string() }
+}
+
+impl<'a> GoTypesBridgeStringArg for &'a String {
+    fn into_go_types_bridge_string(self) -> String { self.clone() }
+}
+
+impl GoTypesBridgeStringArg for %[1]s {
+    fn into_go_types_bridge_string(self) -> String {
+        self%[2]s.as_ref().cloned().unwrap_or_default()
+    }
+}
+
+pub trait GoTypesBridgeInfoArg {
+    fn apply_go_types_bridge_facts(self, type_facts: &[serde_json::Value], exprs_by_pos: &BTreeMap<i32, Vec<ast_Expr>>);
+}
+
+impl GoTypesBridgeInfoArg for () {
+    fn apply_go_types_bridge_facts(self, _type_facts: &[serde_json::Value], _exprs_by_pos: &BTreeMap<i32, Vec<ast_Expr>>) {}
+}
+
+impl GoTypesBridgeInfoArg for %[6]s {
+    fn apply_go_types_bridge_facts(self, type_facts: &[serde_json::Value], exprs_by_pos: &BTreeMap<i32, Vec<ast_Expr>>) {
+        let mut info_guard = self%[7]s;
+        if let Some(info_value) = info_guard.as_mut() {
+            let mut types_guard = info_value.types%[7]s;
+            if let Some(types_map) = types_guard.as_mut() {
+                for fact in type_facts {
+                    if fact.get("kind").and_then(|v| v.as_str()) != Some("basic") {
+                        continue;
+                    }
+                    let pos = fact.get("pos").and_then(|v| v.as_i64()).unwrap_or_default() as i32;
+                    let Some(exprs) = exprs_by_pos.get(&pos) else { continue; };
+                    let name = fact.get("name").and_then(|v| v.as_str()).unwrap_or_default().to_string();
+                    let kind = fact.get("basicKind").and_then(|v| v.as_i64()).unwrap_or_default() as i32;
+                    let info_bits = fact.get("basicInfo").and_then(|v| v.as_i64()).unwrap_or_default() as i32;
+                    for expr in exprs {
+                        types_map.insert(expr.clone(), %[8]s);
+                    }
+                }
+            }
+        }
+    }
+}
+
+const __GO_TYPES_BRIDGE_HELPER: &str = r#"
+package main
+
+import (
+	"encoding/json"
+	"fmt"
+	"go/ast"
+	"go/importer"
+	"go/parser"
+	"go/token"
+	"go/types"
+	"os"
+	"sort"
+)
+
+type request struct {
+	Path  string `+"`json:\"path\"`"+`
+	Files []file `+"`json:\"files\"`"+`
+}
+
+type file struct {
+	Filename string `+"`json:\"filename\"`"+`
+	Source   string `+"`json:\"source\"`"+`
+}
+
+type response struct {
+	Package packageFact `+"`json:\"package\"`"+`
+	Errors  []string    `+"`json:\"errors\"`"+`
+	Types   []typeFact  `+"`json:\"types\"`"+`
+}
+
+type packageFact struct {
+	Path string `+"`json:\"path\"`"+`
+	Name string `+"`json:\"name\"`"+`
+}
+
+type typeFact struct {
+	Pos       int    `+"`json:\"pos\"`"+`
+	Kind      string `+"`json:\"kind\"`"+`
+	Name      string `+"`json:\"name\"`"+`
+	BasicKind int    `+"`json:\"basicKind\"`"+`
+	BasicInfo int    `+"`json:\"basicInfo\"`"+`
+}
+
+func main() {
+	var req request
+	if err := json.NewDecoder(os.Stdin).Decode(&req); err != nil {
+		_ = json.NewEncoder(os.Stdout).Encode(response{Errors: []string{err.Error()}})
+		return
+	}
+
+	fset := token.NewFileSet()
+	files := make([]*ast.File, 0, len(req.Files))
+	for _, input := range req.Files {
+		file, err := parser.ParseFile(fset, input.Filename, input.Source, parser.ParseComments|parser.SkipObjectResolution)
+		if err != nil {
+			_ = json.NewEncoder(os.Stdout).Encode(response{Errors: []string{err.Error()}})
+			return
+		}
+		files = append(files, file)
+	}
+
+	info := &types.Info{
+		Types: make(map[ast.Expr]types.TypeAndValue),
+		Defs:  make(map[*ast.Ident]types.Object),
+		Uses:  make(map[*ast.Ident]types.Object),
+	}
+	var errs []string
+	config := &types.Config{
+		Importer: importer.Default(),
+		Error: func(err error) {
+			errs = append(errs, err.Error())
+		},
+	}
+	pkg, err := config.Check(req.Path, fset, files, info)
+	if err != nil {
+		msg := err.Error()
+		if len(errs) == 0 || errs[len(errs)-1] != msg {
+			errs = append(errs, msg)
+		}
+	}
+
+	resp := response{Errors: errs}
+	if pkg != nil {
+		resp.Package = packageFact{Path: pkg.Path(), Name: pkg.Name()}
+	}
+	for expr, tv := range info.Types {
+		if tv.Type == nil || expr == nil {
+			continue
+		}
+		if basic, ok := types.Unalias(tv.Type).Underlying().(*types.Basic); ok {
+			resp.Types = append(resp.Types, typeFact{
+				Pos:       int(expr.Pos()),
+				Kind:      "basic",
+				Name:      basic.Name(),
+				BasicKind: int(basic.Kind()),
+				BasicInfo: int(basic.Info()),
+			})
+		}
+	}
+	sort.Slice(resp.Types, func(i, j int) bool {
+		if resp.Types[i].Pos != resp.Types[j].Pos {
+			return resp.Types[i].Pos < resp.Types[j].Pos
+		}
+		return resp.Types[i].Name < resp.Types[j].Name
+	})
+	if err := json.NewEncoder(os.Stdout).Encode(resp); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+}
+"#;
+
+fn __go_types_bridge_error(message: String) -> %[3]s {
+    %[4]s
+}
+
+fn __go_types_basic_type(name: String, kind: i32, info: i32) -> types_Type {
+    types_Type::__go_from(types_Basic {
+        __go_kind: types_BasicKind(kind),
+        __go_info: types_BasicInfo(info),
+        __go_name: name,
+    })
+}
+
+fn __go_types_config_check<T0: GoTypesBridgeStringArg, T3: GoTypesBridgeInfoArg>(
+    path_arg: T0,
+    files: %[5]s,
+    info: T3,
+) -> Result<types_Package, %[3]s> {
+    let path = path_arg.into_go_types_bridge_string();
+    let file_values = files%[2]s.as_ref().cloned().unwrap_or_default();
+    let mut request_files = Vec::<serde_json::Value>::new();
+    let mut exprs_by_pos = BTreeMap::<i32, Vec<ast_Expr>>::new();
+    for file_handle in file_values {
+        let file_guard = file_handle%[2]s;
+        let Some(file) = file_guard.as_ref() else { continue; };
+        let filename = file.__go_filename%[2]s.as_ref().cloned().unwrap_or_default();
+        let source = file.__go_source%[2]s.as_ref().cloned().unwrap_or_default();
+        if source.is_empty() {
+            continue;
+        }
+        __go_types_collect_file_exprs(file, &mut exprs_by_pos);
+        request_files.push(serde_json::json!({
+            "filename": filename,
+            "source": source,
+        }));
+    }
+    if request_files.is_empty() {
+        return Err(__go_types_bridge_error("go/types bridge requires parser.ParseFile source metadata".to_string()));
+    }
+
+    let request = serde_json::json!({
+        "path": path,
+        "files": request_files,
+    });
+    let output = __go_types_run_bridge_helper(&request.to_string())?;
+    let response: serde_json::Value = serde_json::from_slice(&output)
+        .map_err(|err| __go_types_bridge_error(format!("failed to decode go/types bridge response: {}", err)))?;
+    if let Some(errors) = response.get("errors").and_then(|v| v.as_array()) {
+        if !errors.is_empty() {
+            let message = errors.iter().filter_map(|v| v.as_str()).collect::<Vec<_>>().join("; ");
+            return Err(__go_types_bridge_error(message));
+        }
+    }
+
+    if let Some(type_facts) = response.get("types").and_then(|v| v.as_array()) {
+        info.apply_go_types_bridge_facts(type_facts, &exprs_by_pos);
+    }
+
+    Ok(types_Package::default())
+}
+
+fn __go_types_run_bridge_helper(request_json: &str) -> Result<Vec<u8>, %[3]s> {
+    use std::io::Write;
+    use std::process::{Command, Stdio};
+    let unique = format!(
+        "go2rust-types-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|duration| duration.as_nanos())
+            .unwrap_or_default()
+    );
+    let dir = std::env::temp_dir().join(unique);
+    std::fs::create_dir_all(&dir)
+        .map_err(|err| __go_types_bridge_error(format!("failed to create go/types bridge dir: {}", err)))?;
+    let helper_path = dir.join("main.go");
+    std::fs::write(&helper_path, __GO_TYPES_BRIDGE_HELPER)
+        .map_err(|err| __go_types_bridge_error(format!("failed to write go/types bridge helper: {}", err)))?;
+    let mut child = Command::new("go")
+        .arg("run")
+        .arg(&helper_path)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .map_err(|err| __go_types_bridge_error(format!("failed to launch go/types bridge helper: {}", err)))?;
+    {
+        let stdin = child.stdin.as_mut().ok_or_else(|| __go_types_bridge_error("failed to open go/types bridge stdin".to_string()))?;
+        stdin.write_all(request_json.as_bytes())
+            .map_err(|err| __go_types_bridge_error(format!("failed to write go/types bridge request: {}", err)))?;
+    }
+    let output = child.wait_with_output()
+        .map_err(|err| __go_types_bridge_error(format!("failed to wait for go/types bridge helper: {}", err)))?;
+    let _ = std::fs::remove_dir_all(&dir);
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+        return Err(__go_types_bridge_error(format!("go/types bridge helper failed: {}", stderr)));
+    }
+    Ok(output.stdout)
+}
+
+fn __go_types_record_expr(exprs_by_pos: &mut BTreeMap<i32, Vec<ast_Expr>>, expr: &ast_Expr) {
+    if expr.__go_pos != 0 {
+        exprs_by_pos.entry(expr.__go_pos).or_default().push(expr.clone());
+    }
+}
+
+fn __go_types_collect_file_exprs(file: &ast_File, exprs_by_pos: &mut BTreeMap<i32, Vec<ast_Expr>>) {
+    let decls = file.decls%[2]s.as_ref().cloned().unwrap_or_default();
+    for decl in decls {
+        __go_types_collect_decl_exprs(&decl, exprs_by_pos);
+    }
+}
+
+fn __go_types_collect_decl_exprs(decl: &ast_Decl, exprs_by_pos: &mut BTreeMap<i32, Vec<ast_Expr>>) {
+    if let Some(value) = decl.downcast_ref::<ast_GenDecl>() {
+        let specs = value.specs%[2]s.as_ref().cloned().unwrap_or_default();
+        for spec in specs {
+            __go_types_collect_spec_exprs(&spec, exprs_by_pos);
+        }
+    } else if let Some(value) = decl.downcast_ref::<ast_FuncDecl>() {
+        __go_types_collect_opt_field_list(&value.recv, exprs_by_pos);
+        __go_types_collect_func_type(&value.r#type, exprs_by_pos);
+        __go_types_collect_opt_block(&value.body, exprs_by_pos);
+    }
+}
+
+fn __go_types_collect_spec_exprs(spec: &ast_Spec, exprs_by_pos: &mut BTreeMap<i32, Vec<ast_Expr>>) {
+    if let Some(value) = spec.downcast_ref::<ast_ValueSpec>() {
+        __go_types_collect_opt_expr(&value.r#type, exprs_by_pos);
+        let values = value.values%[2]s.as_ref().cloned().unwrap_or_default();
+        for expr in values {
+            __go_types_collect_expr(&expr, exprs_by_pos);
+        }
+    } else if let Some(value) = spec.downcast_ref::<ast_TypeSpec>() {
+        __go_types_collect_opt_expr(&value.r#type, exprs_by_pos);
+    }
+}
+
+fn __go_types_collect_opt_expr(value: &%[9]s, exprs_by_pos: &mut BTreeMap<i32, Vec<ast_Expr>>) {
+    if let Some(expr) = value%[2]s.as_ref().cloned() {
+        __go_types_collect_expr(&expr, exprs_by_pos);
+    }
+}
+
+fn __go_types_collect_expr(expr: &ast_Expr, exprs_by_pos: &mut BTreeMap<i32, Vec<ast_Expr>>) {
+    __go_types_record_expr(exprs_by_pos, expr);
+    if let Some(value) = expr.downcast_ref::<ast_ArrayType>() {
+        __go_types_collect_opt_expr(&value.len, exprs_by_pos);
+        __go_types_collect_opt_expr(&value.elt, exprs_by_pos);
+    } else if let Some(value) = expr.downcast_ref::<ast_BinaryExpr>() {
+        __go_types_collect_opt_expr(&value.x, exprs_by_pos);
+        __go_types_collect_opt_expr(&value.y, exprs_by_pos);
+    } else if let Some(value) = expr.downcast_ref::<ast_CallExpr>() {
+        __go_types_collect_call_expr(value, exprs_by_pos);
+    } else if let Some(value) = expr.downcast_ref::<ast_CompositeLit>() {
+        __go_types_collect_opt_expr(&value.r#type, exprs_by_pos);
+        let elts = value.elts%[2]s.as_ref().cloned().unwrap_or_default();
+        for elt in elts {
+            __go_types_collect_expr(&elt, exprs_by_pos);
+        }
+    } else if let Some(value) = expr.downcast_ref::<ast_IndexExpr>() {
+        __go_types_collect_opt_expr(&value.x, exprs_by_pos);
+        __go_types_collect_opt_expr(&value.index, exprs_by_pos);
+    } else if let Some(value) = expr.downcast_ref::<ast_IndexListExpr>() {
+        __go_types_collect_opt_expr(&value.x, exprs_by_pos);
+        let indices = value.indices%[2]s.as_ref().cloned().unwrap_or_default();
+        for index in indices {
+            __go_types_collect_expr(&index, exprs_by_pos);
+        }
+    } else if let Some(value) = expr.downcast_ref::<ast_KeyValueExpr>() {
+        __go_types_collect_opt_expr(&value.key, exprs_by_pos);
+        __go_types_collect_opt_expr(&value.value, exprs_by_pos);
+    } else if let Some(value) = expr.downcast_ref::<ast_MapType>() {
+        __go_types_collect_opt_expr(&value.key, exprs_by_pos);
+        __go_types_collect_opt_expr(&value.value, exprs_by_pos);
+    } else if let Some(value) = expr.downcast_ref::<ast_ParenExpr>() {
+        __go_types_collect_opt_expr(&value.x, exprs_by_pos);
+    } else if let Some(value) = expr.downcast_ref::<ast_SelectorExpr>() {
+        __go_types_collect_opt_expr(&value.x, exprs_by_pos);
+    } else if let Some(value) = expr.downcast_ref::<ast_SliceExpr>() {
+        __go_types_collect_opt_expr(&value.x, exprs_by_pos);
+        __go_types_collect_opt_expr(&value.low, exprs_by_pos);
+        __go_types_collect_opt_expr(&value.high, exprs_by_pos);
+        __go_types_collect_opt_expr(&value.max, exprs_by_pos);
+    } else if let Some(value) = expr.downcast_ref::<ast_StarExpr>() {
+        __go_types_collect_opt_expr(&value.x, exprs_by_pos);
+    } else if let Some(value) = expr.downcast_ref::<ast_TypeAssertExpr>() {
+        __go_types_collect_opt_expr(&value.x, exprs_by_pos);
+        __go_types_collect_opt_expr(&value.r#type, exprs_by_pos);
+    } else if let Some(value) = expr.downcast_ref::<ast_UnaryExpr>() {
+        __go_types_collect_opt_expr(&value.x, exprs_by_pos);
+    }
+}
+
+fn __go_types_collect_call_expr(value: &ast_CallExpr, exprs_by_pos: &mut BTreeMap<i32, Vec<ast_Expr>>) {
+    __go_types_collect_opt_expr(&value.fun, exprs_by_pos);
+    let args = value.args%[2]s.as_ref().cloned().unwrap_or_default();
+    for arg in args {
+        __go_types_collect_expr(&arg, exprs_by_pos);
+    }
+}
+
+fn __go_types_collect_opt_stmt(value: &%[10]s, exprs_by_pos: &mut BTreeMap<i32, Vec<ast_Expr>>) {
+    if let Some(stmt) = value%[2]s.as_ref().cloned() {
+        __go_types_collect_stmt_exprs(&stmt, exprs_by_pos);
+    }
+}
+
+fn __go_types_collect_stmt_exprs(stmt: &ast_Stmt, exprs_by_pos: &mut BTreeMap<i32, Vec<ast_Expr>>) {
+    if let Some(value) = stmt.downcast_ref::<ast_AssignStmt>() {
+        let lhs = value.lhs%[2]s.as_ref().cloned().unwrap_or_default();
+        let rhs = value.rhs%[2]s.as_ref().cloned().unwrap_or_default();
+        for expr in lhs.into_iter().chain(rhs.into_iter()) {
+            __go_types_collect_expr(&expr, exprs_by_pos);
+        }
+    } else if let Some(value) = stmt.downcast_ref::<ast_DeclStmt>() {
+        __go_types_collect_opt_decl(&value.decl, exprs_by_pos);
+    } else if let Some(value) = stmt.downcast_ref::<ast_ExprStmt>() {
+        __go_types_collect_opt_expr(&value.x, exprs_by_pos);
+    } else if let Some(value) = stmt.downcast_ref::<ast_ReturnStmt>() {
+        let results = value.results%[2]s.as_ref().cloned().unwrap_or_default();
+        for expr in results {
+            __go_types_collect_expr(&expr, exprs_by_pos);
+        }
+    } else if let Some(value) = stmt.downcast_ref::<ast_IfStmt>() {
+        __go_types_collect_opt_stmt(&value.init, exprs_by_pos);
+        __go_types_collect_opt_expr(&value.cond, exprs_by_pos);
+        __go_types_collect_opt_block(&value.body, exprs_by_pos);
+        __go_types_collect_opt_stmt(&value.r#else, exprs_by_pos);
+    } else if let Some(value) = stmt.downcast_ref::<ast_ForStmt>() {
+        __go_types_collect_opt_stmt(&value.init, exprs_by_pos);
+        __go_types_collect_opt_expr(&value.cond, exprs_by_pos);
+        __go_types_collect_opt_stmt(&value.post, exprs_by_pos);
+        __go_types_collect_opt_block(&value.body, exprs_by_pos);
+    } else if let Some(value) = stmt.downcast_ref::<ast_RangeStmt>() {
+        __go_types_collect_opt_expr(&value.key, exprs_by_pos);
+        __go_types_collect_opt_expr(&value.value, exprs_by_pos);
+        __go_types_collect_opt_expr(&value.x, exprs_by_pos);
+        __go_types_collect_opt_block(&value.body, exprs_by_pos);
+    }
+}
+
+fn __go_types_collect_opt_decl(value: &%[11]s, exprs_by_pos: &mut BTreeMap<i32, Vec<ast_Expr>>) {
+    if let Some(decl) = value%[2]s.as_ref().cloned() {
+        __go_types_collect_decl_exprs(&decl, exprs_by_pos);
+    }
+}
+
+fn __go_types_collect_opt_block(value: &%[12]s, exprs_by_pos: &mut BTreeMap<i32, Vec<ast_Expr>>) {
+    if let Some(block) = value%[2]s.as_ref() {
+        let list = block.list%[2]s.as_ref().cloned().unwrap_or_default();
+        for stmt in list {
+            __go_types_collect_stmt_exprs(&stmt, exprs_by_pos);
+        }
+    }
+}
+
+fn __go_types_collect_func_type(value: &%[13]s, exprs_by_pos: &mut BTreeMap<i32, Vec<ast_Expr>>) {
+    if let Some(func_type) = value%[2]s.as_ref() {
+        __go_types_collect_opt_field_list(&func_type.params, exprs_by_pos);
+        __go_types_collect_opt_field_list(&func_type.results, exprs_by_pos);
+    }
+}
+
+fn __go_types_collect_opt_field_list(value: &%[14]s, exprs_by_pos: &mut BTreeMap<i32, Vec<ast_Expr>>) {
+    if let Some(field_list) = value%[2]s.as_ref() {
+        let fields = field_list.list%[2]s.as_ref().cloned().unwrap_or_default();
+        for field in fields {
+            let field_guard = field%[2]s;
+            if let Some(field_value) = field_guard.as_ref() {
+                __go_types_collect_opt_expr(&field_value.r#type, exprs_by_pos);
+                __go_types_collect_opt_basic_lit(&field_value.tag, exprs_by_pos);
+            }
+        }
+    }
+}
+
+fn __go_types_collect_opt_basic_lit(value: &%[15]s, exprs_by_pos: &mut BTreeMap<i32, Vec<ast_Expr>>) {
+    if let Some(lit) = value%[2]s.as_ref() {
+        let lit_pos = lit.pos%[2]s.as_ref().map(|pos| pos.0).unwrap_or_default();
+        if lit_pos != 0 {
+            exprs_by_pos.entry(lit_pos).or_default().push(ast_Expr::__go_from_with_pos(lit.clone(), lit_pos));
+        }
+    }
+}
+
+`, stringType, borrow, errorType, errExpr("message"), filesType, infoType, borrowMut, wrapExpr("types_TypeAndValue", "types_TypeAndValue { r#type: "+wrapExpr("types_Type", "__go_types_basic_type(name.clone(), kind, info_bits)")+", value: Default::default() }"), exprType, stmtType, declType, blockType, wrappedExternalStubType("ast_FuncType"), fieldListType, basicLitType)
+	_ = identType
+	_ = callType
+	_ = specType
+}
+
 func writeTypesConfigCheckMethod(out *strings.Builder, method externalTypeStubMethod) {
 	out.WriteString("    pub fn check")
-	writeExternalStubGenericParams(out, method.ParamCount)
+	out.WriteString("<T0: GoTypesBridgeStringArg, T1, T3: GoTypesBridgeInfoArg>")
 	out.WriteString("(&self")
-	writeExternalStubArgs(out, method.ParamCount)
+	out.WriteString(", _arg0: T0, _arg1: T1, _arg2: ")
+	out.WriteString(wrappedExternalStubType("Vec<" + wrappedExternalStubType("ast_File") + ">"))
+	out.WriteString(", _arg3: T3")
 	out.WriteString(")")
 	if len(method.ReturnTypes) > 0 {
 		out.WriteString(" -> ")
 		writeExternalStubReturnType(out, method.ReturnTypes)
 	}
 	out.WriteString(" {\n")
-	out.WriteString("        panic!(\"go/types Config.Check is required for TypeInfo; generated stdlib stubs must not synthesize type information\")\n")
+	out.WriteString("        match __go_types_config_check(_arg0, _arg2, _arg3) {\n")
+	out.WriteString("            Ok(pkg) => (")
+	out.WriteString(wrappedExternalStubExpr("types_Package", "pkg"))
+	out.WriteString(", ")
+	out.WriteString(wrappedExternalStubNoneExpr(rustStdErrorBoxType()))
+	out.WriteString("),\n")
+	out.WriteString("            Err(err) => (")
+	out.WriteString(wrappedExternalStubNoneExpr("types_Package"))
+	out.WriteString(", ")
+	out.WriteString(wrappedExternalStubSomeExpr(rustStdErrorBoxType(), "err"))
+	out.WriteString("),\n")
+	out.WriteString("        }\n")
 	out.WriteString("    }\n")
 }
 
@@ -4094,11 +4708,15 @@ func writeParserParseFileFunction(out *strings.Builder, fn externalPackageStubFu
     }
 
     fn go_parser_pos(pos: usize) -> Arc<Mutex<Option<token_Pos>>> {
-        go_parser_some(token_Pos(pos as i32))
+        go_parser_some(token_Pos(go_parser_pos_value(pos)))
+    }
+
+    fn go_parser_no_pos() -> Arc<Mutex<Option<token_Pos>>> {
+        go_parser_some(token_Pos(0))
     }
 
     fn go_parser_pos_value(pos: usize) -> i32 {
-        pos as i32
+        pos as i32 + 1
     }
 
     fn go_parser_token(tok: token_Token) -> Arc<Mutex<Option<token_Token>>> {
@@ -4201,6 +4819,7 @@ func writeParserParseFileFunction(out *strings.Builder, fn externalPackageStubFu
     fn go_parser_basic_lit_expr(lit: gosyn::ast::BasicLit) -> ast_Expr {
         ast_Expr::__go_from_with_pos(ast_BasicLit {
             kind: go_parser_token(go_parser_lit_kind(lit.kind)),
+            pos: go_parser_pos(lit.pos),
             value: go_parser_some(lit.value),
             ..Default::default()
         }, go_parser_pos_value(lit.pos))
@@ -4237,7 +4856,7 @@ func writeParserParseFileFunction(out *strings.Builder, fn externalPackageStubFu
         ast_CallExpr {
             fun: go_parser_some(go_parser_expr(*call.func)),
             args: go_parser_some(call.args.into_iter().map(go_parser_expr).collect()),
-            ellipsis: call.dots.map(go_parser_pos).unwrap_or_else(|| go_parser_pos(0)),
+            ellipsis: call.dots.map(go_parser_pos).unwrap_or_else(go_parser_no_pos),
             ..Default::default()
         }
     }

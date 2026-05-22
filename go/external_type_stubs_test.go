@@ -26,7 +26,7 @@ func TestParserStubUsesGoAstShapesForCalls(t *testing.T) {
 		ReturnTypes: []string{"Arc<Mutex<Option<ast_File>>>", "Arc<Mutex<Option<Box<dyn std::error::Error + Send + Sync>>>>"},
 	})
 	got := out.String()
-	if !strings.Contains(got, "ellipsis: call.dots.map(go_parser_pos).unwrap_or_else(|| go_parser_pos(0))") {
+	if !strings.Contains(got, "ellipsis: call.dots.map(go_parser_pos).unwrap_or_else(go_parser_no_pos)") {
 		t.Fatalf("parser stub should store absent call ellipsis as token.Pos zero:\n%s", got)
 	}
 	if !strings.Contains(got, "None if token == token::M_U_L => ast_Expr::__go_from_with_pos(ast_StarExpr") {
@@ -46,6 +46,7 @@ func TestParserStubPreservesFileAndNodeMetadataForTypeInfoBridge(t *testing.T) {
 	for _, want := range []string{
 		"__go_filename: go_parser_some(filename.to_string())",
 		"__go_source: go_parser_some(source.to_string())",
+		"pos as i32 + 1",
 		"ast_Ident { __go_pos: go_parser_pos_value(id.pos)",
 		"ast_Expr::__go_from_with_pos(go_parser_ident_struct(id), go_parser_pos_value(pos))",
 		"ast_Expr::__go_from_with_pos(ast_BasicLit",
@@ -114,14 +115,14 @@ func TestTypesStubsDoNotSilentlySynthesizeTypeInfo(t *testing.T) {
 		},
 	})
 	got := out.String()
-	if !strings.Contains(got, "pub fn check<T0, T1, T2, T3>") {
-		t.Fatalf("types.Config Check stub should keep the generated method signature:\n%s", got)
+	if !strings.Contains(got, "pub fn check<T0: GoTypesBridgeStringArg, T1, T3: GoTypesBridgeInfoArg>") {
+		t.Fatalf("types.Config Check stub should use the generated type bridge signature:\n%s", got)
 	}
-	if !strings.Contains(got, "go/types Config.Check is required for TypeInfo") {
-		t.Fatalf("types.Config Check stub should fail at the missing type checker boundary:\n%s", got)
+	if !strings.Contains(got, "__go_types_config_check(_arg0, _arg2, _arg3)") {
+		t.Fatalf("types.Config Check stub should call the go/types bridge:\n%s", got)
 	}
-	if strings.Contains(got, "Default::default()") {
-		t.Fatalf("types.Config Check stub must not return default type info:\n%s", got)
+	if strings.Contains(got, "go/types Config.Check is required for TypeInfo") {
+		t.Fatalf("types.Config Check stub should no longer panic at the bridge boundary:\n%s", got)
 	}
 
 	out.Reset()
@@ -135,5 +136,22 @@ func TestTypesStubsDoNotSilentlySynthesizeTypeInfo(t *testing.T) {
 	}
 	if strings.Contains(got, "Default::default()") {
 		t.Fatalf("types.Checker Files stub must not return default type info:\n%s", got)
+	}
+}
+
+func TestTypesConfigCheckBridgeRunsGoTypes(t *testing.T) {
+	var out strings.Builder
+	writeTypesBridgeSupport(&out)
+	got := out.String()
+	for _, want := range []string{
+		"go/types",
+		"impl GoTypesBridgeInfoArg for ()",
+		"config.Check(req.Path, fset, files, info)",
+		"types.Unalias(tv.Type).Underlying().(*types.Basic)",
+		"types_map.insert(expr.clone()",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("types.Config Check bridge should contain %q:\n%s", want, got)
+		}
 	}
 }
