@@ -2236,6 +2236,7 @@ type jsonMarshalField struct {
 	typ       types.Type
 	kind      jsonMarshalFieldKind
 	basicKind types.BasicKind
+	basicName string
 	omitEmpty bool
 	named     bool
 }
@@ -2268,6 +2269,43 @@ func jsonFieldName(goName, tag string) (string, bool, bool) {
 		return goName, true, omitEmpty
 	}
 	return jsonTag, true, omitEmpty
+}
+
+func jsonMarshalBasicKindName(kind types.BasicKind) string {
+	switch kind {
+	case types.Bool:
+		return "bool"
+	case types.Int:
+		return "int"
+	case types.Int8:
+		return "int8"
+	case types.Int16:
+		return "int16"
+	case types.Int32:
+		return "int32"
+	case types.Int64:
+		return "int64"
+	case types.Uint:
+		return "uint"
+	case types.Uint8:
+		return "uint8"
+	case types.Uint16:
+		return "uint16"
+	case types.Uint32:
+		return "uint32"
+	case types.Uint64:
+		return "uint64"
+	case types.Uintptr:
+		return "uintptr"
+	case types.Float32:
+		return "float32"
+	case types.Float64:
+		return "float64"
+	case types.String:
+		return "string"
+	default:
+		return ""
+	}
 }
 
 func isJsonStringMapType(typ types.Type) bool {
@@ -2336,6 +2374,7 @@ func jsonMarshalStructFields(st *types.Struct) ([]jsonMarshalField, bool) {
 					typ:       field.Type(),
 					kind:      jsonMarshalBasicField,
 					basicKind: basic.Kind(),
+					basicName: jsonMarshalBasicKindName(basic.Kind()),
 					omitEmpty: omitEmpty,
 					named:     named,
 				})
@@ -2380,43 +2419,48 @@ func jsonMarshalStructFields(st *types.Struct) ([]jsonMarshalField, bool) {
 }
 
 func jsonMarshalBasicKindFromSyntax(expr ast.Expr) (types.BasicKind, bool) {
+	basicKind, _, ok := jsonMarshalBasicFromSyntax(expr)
+	return basicKind, ok
+}
+
+func jsonMarshalBasicFromSyntax(expr ast.Expr) (types.BasicKind, string, bool) {
 	ident, ok := expr.(*ast.Ident)
 	if !ok {
-		return types.Invalid, false
+		return types.Invalid, "", false
 	}
 	switch ident.Name {
 	case "bool":
-		return types.Bool, true
+		return types.Bool, "bool", true
 	case "int":
-		return types.Int, true
+		return types.Int, "int", true
 	case "int8":
-		return types.Int8, true
+		return types.Int8, "int8", true
 	case "int16":
-		return types.Int16, true
+		return types.Int16, "int16", true
 	case "int32", "rune":
-		return types.Int32, true
+		return types.Int32, "int32", true
 	case "int64":
-		return types.Int64, true
+		return types.Int64, "int64", true
 	case "uint":
-		return types.Uint, true
+		return types.Uint, "uint", true
 	case "uint8", "byte":
-		return types.Uint8, true
+		return types.Uint8, "uint8", true
 	case "uint16":
-		return types.Uint16, true
+		return types.Uint16, "uint16", true
 	case "uint32":
-		return types.Uint32, true
+		return types.Uint32, "uint32", true
 	case "uint64":
-		return types.Uint64, true
+		return types.Uint64, "uint64", true
 	case "uintptr":
-		return types.Uintptr, true
+		return types.Uintptr, "uintptr", true
 	case "float32":
-		return types.Float32, true
+		return types.Float32, "float32", true
 	case "float64":
-		return types.Float64, true
+		return types.Float64, "float64", true
 	case "string":
-		return types.String, true
+		return types.String, "string", true
 	default:
-		return types.Invalid, false
+		return types.Invalid, "", false
 	}
 }
 
@@ -2492,12 +2536,13 @@ func jsonMarshalStructFieldsFromSyntax(st *ast.StructType) ([]jsonMarshalField, 
 			if !include {
 				continue
 			}
-			if basicKind, ok := jsonMarshalBasicKindFromSyntax(field.Type); ok {
+			if basicKind, basicName, ok := jsonMarshalBasicFromSyntax(field.Type); ok {
 				fields = append(fields, jsonMarshalField{
 					jsonName:  jsonName,
 					rustName:  ToSnakeCase(name.Name),
 					kind:      jsonMarshalBasicField,
 					basicKind: basicKind,
+					basicName: basicName,
 					omitEmpty: omitEmpty,
 				})
 				continue
@@ -2540,12 +2585,13 @@ func jsonMarshalFieldFromSyntaxExpr(name string, fieldType ast.Expr, tag string)
 	if !include {
 		return jsonMarshalField{}, true
 	}
-	if basicKind, ok := jsonMarshalBasicKindFromSyntax(fieldType); ok {
+	if basicKind, basicName, ok := jsonMarshalBasicFromSyntax(fieldType); ok {
 		return jsonMarshalField{
 			jsonName:  jsonName,
 			rustName:  ToSnakeCase(name),
 			kind:      jsonMarshalBasicField,
 			basicKind: basicKind,
+			basicName: basicName,
 			omitEmpty: omitEmpty,
 		}, true
 	}
@@ -2743,22 +2789,22 @@ func writeJsonBasicEmptyCondition(out *strings.Builder, field jsonMarshalField) 
 	out.WriteString("!(")
 	writeJsonFieldBorrow(out, field)
 	out.WriteString(".map(|__v| ")
-	switch field.basicKind {
-	case types.String:
+	switch field.basicName {
+	case "string":
 		if field.named {
 			writeJsonNamedClosureValueRef(out)
 			out.WriteString(".is_empty()")
 		} else {
 			out.WriteString("__v.is_empty()")
 		}
-	case types.Bool:
+	case "bool":
 		out.WriteString("!*")
 		if field.named {
 			writeJsonNamedClosureValueRef(out)
 		} else {
 			out.WriteString("__v")
 		}
-	case types.Float32, types.Float64:
+	case "float32", "float64":
 		out.WriteString("*")
 		if field.named {
 			writeJsonNamedClosureValueRef(out)
@@ -2785,7 +2831,7 @@ func writeJsonBasicFieldPush(out *strings.Builder, field jsonMarshalField) {
 		out.WriteString(" { ")
 	}
 	out.WriteString("__json_fields.push(format!(")
-	if field.basicKind == types.String {
+	if field.basicName == "string" {
 		out.WriteString(strconv.Quote(strconv.Quote(field.jsonName) + ":\"{}\""))
 		out.WriteString(", go_json_escape(")
 		writeJsonFieldValueRef(out, field)
@@ -2925,7 +2971,7 @@ func transpileJsonMarshal(out *strings.Builder, call *ast.CallExpr) {
 	}
 
 	for _, field := range fields {
-		if field.kind == jsonMarshalStringMapField || field.kind == jsonMarshalStringSliceField || field.kind == jsonMarshalByteSliceMapField || field.basicKind == types.String {
+		if field.kind == jsonMarshalStringMapField || field.kind == jsonMarshalStringSliceField || field.kind == jsonMarshalByteSliceMapField || field.basicName == "string" {
 			NeedJsonEscape()
 		}
 		if field.kind == jsonMarshalByteSliceMapField {

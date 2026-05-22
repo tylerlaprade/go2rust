@@ -673,27 +673,32 @@ func TestJsonMarshalStructDefFallbackUsesStoredSyntaxFields(t *testing.T) {
 	def := &StructDef{
 		FieldTypes: map[string]ast.Expr{
 			"Name":    ast.NewIdent("string"),
+			"Age":     ast.NewIdent("int"),
 			"Replace": &ast.MapType{Key: ast.NewIdent("string"), Value: ast.NewIdent("string")},
 		},
 		FieldTags: map[string]string{
 			"Name":    `json:"name"`,
+			"Age":     `json:"age"`,
 			"Replace": `json:"replace,omitempty"`,
 		},
-		FieldOrder: []string{"Name", "Replace"},
+		FieldOrder: []string{"Name", "Age", "Replace"},
 	}
 
 	fields, ok := jsonMarshalStructFieldsFromStructDef(def)
 	if !ok {
 		t.Fatal("jsonMarshalStructFieldsFromStructDef returned false")
 	}
-	if len(fields) != 2 {
-		t.Fatalf("field count = %d, want 2: %#v", len(fields), fields)
+	if len(fields) != 3 {
+		t.Fatalf("field count = %d, want 3: %#v", len(fields), fields)
 	}
-	if fields[0].jsonName != "name" || fields[0].kind != jsonMarshalBasicField || fields[0].basicKind != types.String {
+	if fields[0].jsonName != "name" || fields[0].kind != jsonMarshalBasicField || fields[0].basicKind != types.String || fields[0].basicName != "string" {
 		t.Fatalf("first field = %#v, want string name field", fields[0])
 	}
-	if fields[1].jsonName != "replace" || fields[1].kind != jsonMarshalStringMapField || !fields[1].omitEmpty {
-		t.Fatalf("second field = %#v, want omitempty string map field", fields[1])
+	if fields[1].jsonName != "age" || fields[1].kind != jsonMarshalBasicField || fields[1].basicName != "int" {
+		t.Fatalf("second field = %#v, want int age field", fields[1])
+	}
+	if fields[2].jsonName != "replace" || fields[2].kind != jsonMarshalStringMapField || !fields[2].omitEmpty {
+		t.Fatalf("third field = %#v, want omitempty string map field", fields[2])
 	}
 }
 
