@@ -3425,9 +3425,45 @@ func writeSwitchTagValue(out *strings.Builder, expr ast.Expr) {
 	if !isCopyTypeExpression(expr) && writeOwnedExpressionValue(out, expr) {
 		return
 	}
+	if writeSwitchWrappedFieldValue(out, expr) {
+		return
+	}
 	if !writeNamedTypeInnerExpression(out, expr) {
 		writeMaybeUnwrappedExpression(out, expr)
 	}
+}
+
+func writeSwitchWrappedFieldValue(out *strings.Builder, expr ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	if _, ok := expr.(*ast.SelectorExpr); !ok {
+		return false
+	}
+	typ := typeInfo.GetType(expr)
+	if typ == nil {
+		return false
+	}
+	basic, ok := types.Unalias(typ).Underlying().(*types.Basic)
+	if !ok {
+		return false
+	}
+	switch basic.Kind() {
+	case types.Bool, types.String,
+		types.Int, types.Int8, types.Int16, types.Int32, types.Int64,
+		types.Uint, types.Uint8, types.Uint16, types.Uint32, types.Uint64,
+		types.Uintptr, types.Float32, types.Float64,
+		types.UntypedString, types.UntypedBool,
+		types.UntypedInt, types.UntypedRune, types.UntypedFloat:
+		out.WriteString("{ let __v = ")
+		TranspileExpression(out, expr)
+		out.WriteString("; let __owned = (*__v")
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap()).clone(); __owned }")
+		return true
+	}
+	return false
 }
 
 func writeSwitchCaseValue(out *strings.Builder, expr ast.Expr) {
