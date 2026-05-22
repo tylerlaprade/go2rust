@@ -5755,7 +5755,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 											if rhsIdent.Name != "true" && rhsIdent.Name != "false" && rhsIdent.Name != "nil" {
 												if _, isRange := rangeLoopVars[rhsIdent.Name]; !isRange {
 													if _, isConst := localConstants[rhsIdent.Name]; !isConst {
-														if !isVarBare(rhsIdent.Name) {
+														if !isConstIdent(rhsIdent) && !isVarBare(rhsIdent.Name) {
 															rhsIsWrappedVar = true
 														}
 													}
@@ -5880,7 +5880,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 											if rhsIdent.Name != "true" && rhsIdent.Name != "false" && rhsIdent.Name != "nil" {
 												if _, isRange := rangeLoopVars[rhsIdent.Name]; !isRange {
 													if _, isConst := localConstants[rhsIdent.Name]; !isConst {
-														if !isVarBare(rhsIdent.Name) {
+														if !isConstIdent(rhsIdent) && !isVarBare(rhsIdent.Name) {
 															rhsIsWrappedVar = true
 														}
 													}
