@@ -2580,7 +2580,10 @@ func jsonMarshalStructFieldsFromStructDef(def *StructDef) ([]jsonMarshalField, b
 	if def == nil || len(def.EmbeddedTypes) > 0 {
 		return nil, false
 	}
-	names := append([]string(nil), def.FieldOrder...)
+	names := []string{}
+	for _, name := range def.FieldOrder {
+		names = append(names, name)
+	}
 	if len(names) == 0 && len(def.FieldTypes) > 0 {
 		for name := range def.FieldTypes {
 			names = append(names, name)
