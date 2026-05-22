@@ -1402,6 +1402,39 @@ func writeStatementSeparatorBeforeFollowingStatement(out *strings.Builder, stmt 
 	}
 }
 
+func writeBareValueForWrappedSlot(out *strings.Builder, expr ast.Expr) bool {
+	sel, ok := expr.(*ast.SelectorExpr)
+	if !ok {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	typ := typeInfo.GetType(sel)
+	if typ == nil {
+		return false
+	}
+	basic, ok := types.Unalias(typ).Underlying().(*types.Basic)
+	if !ok {
+		return false
+	}
+	switch basic.Kind() {
+	case types.Bool, types.String,
+		types.Int, types.Int8, types.Int16, types.Int32, types.Int64,
+		types.Uint, types.Uint8, types.Uint16, types.Uint32, types.Uint64,
+		types.Uintptr, types.Float32, types.Float64:
+	default:
+		return false
+	}
+	out.WriteString("{ let __v = ")
+	TranspileExpression(out, sel)
+	out.WriteString("; let __owned = (*__v")
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap()).clone(); __owned }")
+	return true
+}
+
 func writeWrappedValueCopyFromIdent(out *strings.Builder, ident *ast.Ident) bool {
 	if ident.Name == "_" || ident.Name == "nil" || ident.Name == "true" || ident.Name == "false" {
 		return false
@@ -5597,7 +5630,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 								} else {
 									out.WriteString("{ ")
 									out.WriteString("let new_val = ")
-									TranspileExpression(out, s.Rhs[0])
+									if !writeBareValueForWrappedSlot(out, s.Rhs[0]) {
+										TranspileExpression(out, s.Rhs[0])
+									}
 									out.WriteString("; ")
 									out.WriteString("*")
 									TranspileExpressionContext(out, star.X, LValue)
