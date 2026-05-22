@@ -2160,6 +2160,74 @@ func rustConstTypeForConstObject(name *ast.Ident) (string, bool) {
 	return rustConstTypeForGoTypesType(obj.Type())
 }
 
+func evalIntConstExpr(expr ast.Expr) (int64, bool) {
+	switch e := expr.(type) {
+	case *ast.BasicLit:
+		if e.Kind != token.INT {
+			return 0, false
+		}
+		v, err := strconv.ParseInt(e.Value, 0, 64)
+		if err != nil {
+			return 0, false
+		}
+		return v, true
+	case *ast.BinaryExpr:
+		l, lok := evalIntConstExpr(e.X)
+		r, rok := evalIntConstExpr(e.Y)
+		if !lok || !rok {
+			return 0, false
+		}
+		switch e.Op {
+		case token.ADD:
+			return l + r, true
+		case token.SUB:
+			return l - r, true
+		case token.MUL:
+			return l * r, true
+		case token.QUO:
+			if r == 0 {
+				return 0, false
+			}
+			return l / r, true
+		case token.REM:
+			if r == 0 {
+				return 0, false
+			}
+			return l % r, true
+		case token.SHL:
+			if r < 0 || r >= 63 {
+				return 0, false
+			}
+			return l << uint(r), true
+		case token.SHR:
+			if r < 0 || r >= 63 {
+				return 0, false
+			}
+			return l >> uint(r), true
+		case token.AND:
+			return l & r, true
+		case token.OR:
+			return l | r, true
+		case token.XOR:
+			return l ^ r, true
+		}
+	case *ast.UnaryExpr:
+		v, ok := evalIntConstExpr(e.X)
+		if !ok {
+			return 0, false
+		}
+		switch e.Op {
+		case token.SUB:
+			return -v, true
+		case token.XOR:
+			return ^v, true
+		}
+	case *ast.ParenExpr:
+		return evalIntConstExpr(e.X)
+	}
+	return 0, false
+}
+
 func inferConstType(expr ast.Expr) string {
 	switch e := expr.(type) {
 	case *ast.BasicLit:
@@ -2197,7 +2265,12 @@ func inferConstType(expr ast.Expr) string {
 		}
 		// For bit shift operations that might overflow, use i64
 		if e.Op == token.SHL {
-			// Try to evaluate if this might overflow
+			// If we can constant-fold and the result fits in i32, prefer i32.
+			if v, ok := evalIntConstExpr(e); ok {
+				if v >= int64(math.MinInt32) && v <= int64(math.MaxInt32) {
+					return "i32"
+				}
+			}
 			return "i64"
 		}
 		// If either operand is i64, result is i64
