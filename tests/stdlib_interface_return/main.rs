@@ -29,12 +29,16 @@ impl ast_ArrayType {
 #[derive(Clone)]
 pub struct ast_Expr {
     pub __go_id: usize,
+    pub __go_pos: i32,
     pub __go_value: Arc<dyn std::any::Any + Send + Sync>,
 }
 
 impl ast_Expr {
     pub fn __go_from<T: 'static + Send + Sync>(value: T) -> Self {
-        Self { __go_id: __go_next_external_interface_id(), __go_value: Arc::new(value) }
+        Self { __go_id: __go_next_external_interface_id(), __go_pos: 0, __go_value: Arc::new(value) }
+    }
+    pub fn __go_from_with_pos<T: 'static + Send + Sync>(value: T, pos: i32) -> Self {
+        Self { __go_id: __go_next_external_interface_id(), __go_pos: pos, __go_value: Arc::new(value) }
     }
     pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
         self.__go_value.as_ref().downcast_ref::<T>()
@@ -43,7 +47,7 @@ impl ast_Expr {
 
 impl Default for ast_Expr {
     fn default() -> Self {
-        Self { __go_id: 0, __go_value: Arc::new(()) }
+        Self { __go_id: 0, __go_pos: 0, __go_value: Arc::new(()) }
     }
 }
 

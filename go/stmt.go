@@ -2498,10 +2498,19 @@ func localMakeSliceTypeAnnotation(rhs ast.Expr) (string, bool) {
 	if !ok {
 		return "", false
 	}
-	if zeroValueForTypesType(sliceType.Elem()) != "Default::default()" && !isGoErrorType(sliceType.Elem()) {
+	elem := sliceType.Elem()
+	if zeroValueForTypesType(elem) != "Default::default()" && !isGoErrorType(elem) && !isPointerTypeOrUnderlying(elem) {
 		return "", false
 	}
 	return goTypesTypeToRustWrapped(typ), true
+}
+
+func isPointerTypeOrUnderlying(typ types.Type) bool {
+	if typ == nil {
+		return false
+	}
+	_, ok := types.Unalias(typ).Underlying().(*types.Pointer)
+	return ok
 }
 
 func typeContainsTypeParam(typ types.Type) bool {
@@ -3399,8 +3408,41 @@ func writeBareCompoundAssignValue(out *strings.Builder, expr ast.Expr, expected 
 	writeBareCompoundAssignValueForOp(out, expr, expected, token.ILLEGAL)
 }
 
+func writeBareStringSliceValue(out *strings.Builder, expr ast.Expr, expected types.Type) bool {
+	if expected == nil {
+		return false
+	}
+	basic, ok := types.Unalias(expected).Underlying().(*types.Basic)
+	if !ok || basic.Kind() != types.String {
+		return false
+	}
+	slice, ok := expr.(*ast.SliceExpr)
+	if !ok {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || !typeInfo.IsString(slice.X) {
+		return false
+	}
+	out.WriteString("{ let __s = ")
+	writeStringSequenceValue(out, slice.X)
+	out.WriteString("; __s[")
+	if slice.Low != nil {
+		writeExpressionAsUsize(out, slice.Low)
+	}
+	out.WriteString("..")
+	if slice.High != nil {
+		writeExpressionAsUsize(out, slice.High)
+	}
+	out.WriteString("].to_string() }")
+	return true
+}
+
 func writeBareCompoundAssignValueForOp(out *strings.Builder, expr ast.Expr, expected types.Type, op token.Token) {
 	if writeNamedIntegerConstCompoundAssignValue(out, expr, expected, op) {
+		return
+	}
+	if writeBareStringSliceValue(out, expr, expected) {
 		return
 	}
 	if ident, ok := expr.(*ast.Ident); ok {
@@ -3483,6 +3525,62 @@ func writeNamedIntegerConstCompoundAssignValue(out *strings.Builder, expr ast.Ex
 		return writeExpressionForExpectedTypesType(out, expr, named)
 	}
 	return writeNamedIntegerConstForExpected(out, expr, named)
+}
+
+func writeNamedIntegerWrappedInitializer(out *strings.Builder, expr ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	named, ok := types.Unalias(typeInfo.GetType(expr)).(*types.Named)
+	if !ok || !isNamedIntegerType(named) {
+		return false
+	}
+	WriteWrapperPrefix(out)
+	if !writeExpressionForExpectedTypesType(out, expr, named) {
+		TranspileExpression(out, expr)
+	}
+	WriteWrapperSuffix(out)
+	return true
+}
+
+func writeNamedIntegerIncDec(out *strings.Builder, expr ast.Expr, op token.Token) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	named, ok := types.Unalias(typeInfo.GetType(expr)).(*types.Named)
+	if !ok || !isNamedIntegerType(named) {
+		return false
+	}
+	basic, ok := types.Unalias(named.Underlying()).(*types.Basic)
+	if !ok {
+		return false
+	}
+	rustType, ok := rustCastTypeForDefinedUnderlying(basic.Name())
+	if !ok {
+		return false
+	}
+
+	out.WriteString("{ ")
+	writeWrappedMutationTargetPrelude(out, expr)
+	out.WriteString("let mut guard = ")
+	writeWrappedMutationTargetRef(out, expr, true)
+	out.WriteString("; *guard = Some(")
+	out.WriteString(goTypesNamedTypeToRust(named))
+	out.WriteString("(")
+	WriteWrapperPrefix(out)
+	out.WriteString("guard.as_ref().unwrap().clone() ")
+	if op == token.INC {
+		out.WriteString("+")
+	} else {
+		out.WriteString("-")
+	}
+	out.WriteString(" 1 as ")
+	out.WriteString(rustType)
+	WriteWrapperSuffix(out)
+	out.WriteString(")); }")
+	return true
 }
 
 func writeConstIdentForCompoundExpected(out *strings.Builder, ident *ast.Ident, expected types.Type, rustName string) bool {
@@ -5396,6 +5494,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						}
 						// Check if RHS already returns wrapped values
 						if call, isCall := rhs.(*ast.CallExpr); isCall {
+							if writeBareBuiltinShortDeclInitializer(out, call, s.Lhs[i]) {
+								continue
+							}
 							// Function calls already return wrapped values
 							writeCallExpressionForInitializer(out, call)
 						} else if _, isSlice := rhs.(*ast.SliceExpr); isSlice {
@@ -5789,6 +5890,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 											// Reference-style range values must be cloned into ordinary wrapped assignment targets.
 										} else if writeOwnedExpressionValue(out, s.Rhs[0]) {
 											// Copied by value from an existing wrapped field or handle.
+										} else if writeNamedIntegerWrappedInitializer(out, s.Rhs[0]) {
+											// Named integer arithmetic returns the underlying scalar; short declarations store the named value.
 										} else {
 											TranspileExpression(out, s.Rhs[0])
 										}
@@ -6056,6 +6159,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 											// Clone the Rc to preserve aliasing instead of copying the inner value
 											TranspileExpressionContext(out, rhs, AddressOf)
 											out.WriteString(".clone()")
+										} else if writeNamedIntegerWrappedInitializer(out, rhs) {
+											// Named integer arithmetic returns the underlying scalar; short declarations store the named value.
 										} else {
 											// Wrap new variables
 											WriteWrapperPrefix(out)
@@ -6090,6 +6195,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						if s.Tok == token.DEFINE {
 							// Check if RHS is an expression that already returns wrapped values
 							if call, isCall := rhs.(*ast.CallExpr); isCall {
+								if i < len(s.Lhs) && writeBareBuiltinShortDeclInitializer(out, call, s.Lhs[i]) {
+									continue
+								}
 								// Function calls already return wrapped values, don't wrap again
 								writeCallExpressionForInitializer(out, call)
 							} else if _, isSlice := rhs.(*ast.SliceExpr); isSlice {
@@ -6098,6 +6206,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							} else if mapIndexExpressionKeepsHandle(rhs) {
 								// Map values that are maps/slices/pointers/etc. already return cloneable handles.
 								TranspileExpression(out, rhs)
+							} else if writeNamedIntegerWrappedInitializer(out, rhs) {
+								// Named integer arithmetic returns the underlying scalar; short declarations store the named value.
 							} else {
 								// Wrap new variables in Arc<Mutex<Option<>>>
 								WriteWrapperPrefix(out)
@@ -6663,6 +6773,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 	case *ast.IncDecStmt:
 		if indexExpr, isMapIndex := isMapIndexExpression(s.X); isMapIndex {
 			writeMapElementUpdate(out, indexExpr, s.Tok, nil)
+		} else if writeNamedIntegerIncDec(out, s.X, s.Tok) {
+			// Named integer arithmetic returns the underlying scalar; preserve the named wrapper on mutation.
 		} else {
 			// For wrapped variables, we need to update the value inside
 			out.WriteString("{ ")

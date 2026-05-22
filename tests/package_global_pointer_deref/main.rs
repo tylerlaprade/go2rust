@@ -26,8 +26,8 @@ pub(crate) static label: GoGlobal<Rc<RefCell<Option<String>>>> = GoGlobal::new()
 
 
 fn __go_init_globals() {
-    *enabled.borrow_mut() = Some(Default::default());
-    *label.borrow_mut() = Some(Default::default());
+    *enabled.borrow_mut() = Some(Rc::new(RefCell::new(None)));
+    *label.borrow_mut() = Some(Rc::new(RefCell::new(None)));
     *enabled.borrow_mut() = Some(bool_ptr(Rc::new(RefCell::new(Some(true)))));
     *label.borrow_mut() = Some(string_ptr(Rc::new(RefCell::new(Some("ready".to_string())))));
 }

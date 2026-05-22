@@ -195,8 +195,8 @@ pub(crate) static fallback: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<
 
 
 fn __go_init_globals() {
-    *current.lock().unwrap() = Some(Default::default());
-    *fallback.lock().unwrap() = Some(Default::default());
+    *current.lock().unwrap() = Some(Arc::new(Mutex::new(None)));
+    *fallback.lock().unwrap() = Some(Arc::new(Mutex::new(None)));
     *fallback.lock().unwrap() = Some(Arc::new(Mutex::new(Some(counter { value: Arc::new(Mutex::new(Some(5 as i32))), ..Default::default() }))));
 }
 
@@ -255,7 +255,7 @@ pub fn get_fallback() -> Arc<Mutex<Option<Box<dyn valueReader + Send + Sync>>>> 
 }
 
 pub fn clear_counter() {
-    *current.lock().unwrap() = Some(Default::default());
+    *current.lock().unwrap() = Some(Arc::new(Mutex::new(None)));
 }
 
 pub fn mark_concurrent(done: GoChannel<bool>) {

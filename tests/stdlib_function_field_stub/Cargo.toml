@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "stdlib_function_field_stub"
 path = "main.rs"
+
+[dependencies]
+serde_json = "1"

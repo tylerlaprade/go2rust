@@ -135,12 +135,16 @@ impl ast_Ident {
 #[derive(Clone)]
 pub struct ast_Node {
     pub __go_id: usize,
+    pub __go_pos: i32,
     pub __go_value: Rc<dyn std::any::Any>,
 }
 
 impl ast_Node {
     pub fn __go_from<T: 'static>(value: T) -> Self {
-        Self { __go_id: __go_next_external_interface_id(), __go_value: Rc::new(value) }
+        Self { __go_id: __go_next_external_interface_id(), __go_pos: 0, __go_value: Rc::new(value) }
+    }
+    pub fn __go_from_with_pos<T: 'static>(value: T, pos: i32) -> Self {
+        Self { __go_id: __go_next_external_interface_id(), __go_pos: pos, __go_value: Rc::new(value) }
     }
     pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
         self.__go_value.as_ref().downcast_ref::<T>()
@@ -149,7 +153,7 @@ impl ast_Node {
 
 impl Default for ast_Node {
     fn default() -> Self {
-        Self { __go_id: 0, __go_value: Rc::new(()) }
+        Self { __go_id: 0, __go_pos: 0, __go_value: Rc::new(()) }
     }
 }
 

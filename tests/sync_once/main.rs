@@ -32,7 +32,7 @@ impl Default for GoOnce {
         Self::new()
     }
 }
-
+	
 fn main() {
     let mut once = GoOnce::new();
     let mut count = Rc::new(RefCell::new(Some(0)));

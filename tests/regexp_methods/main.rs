@@ -186,7 +186,7 @@ pub(crate) static modFlagRegexp: GoGlobal<Rc<RefCell<Option<GoRegexp>>>> = GoGlo
 
 
 fn __go_init_globals() {
-    *modFlagRegexp.borrow_mut() = Some(Default::default());
+    *modFlagRegexp.borrow_mut() = Some(Rc::new(RefCell::new(None)));
     *modFlagRegexp.borrow_mut() = Some(Rc::new(RefCell::new(Some(GoRegexp { pattern: Rc::new(RefCell::new(Some("-mod[ =](\\w+)".to_string()))) }))));
 }
 

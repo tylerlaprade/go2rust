@@ -24,6 +24,23 @@ fn go_url_parse(input: &str) -> GoUrl {
     }
 }
 
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
+pub struct url_URL;
+
+impl std::fmt::Display for url_URL {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<url_URL>")
+    }
+}
+
+
+impl url_URL {
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        None
+    }
+}
+
+
 fn main() {
     let (mut u, mut err) = { let __url_input = "https://example.com/path?key=value".to_string(); (Arc::new(Mutex::new(Some(go_url_parse(&__url_input)))), Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>))) };
     if (*err.lock().unwrap()).is_some() {

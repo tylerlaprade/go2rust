@@ -7,12 +7,16 @@ fn __go_next_external_interface_id() -> usize {
 
 
 
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
-pub struct types_Basic;
+#[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord)]
+pub struct types_Basic {
+    pub __go_kind: types_BasicKind,
+    pub __go_info: types_BasicInfo,
+    pub __go_name: String,
+}
 
 impl std::fmt::Display for types_Basic {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "<types_Basic>")
+        write!(f, "{}", self.__go_name)
     }
 }
 

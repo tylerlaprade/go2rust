@@ -43,8 +43,8 @@ pub static Other: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<Arc
 
 
 fn __go_init_globals() {
-    *Msg.lock().unwrap() = Some(Default::default());
-    *Other.lock().unwrap() = Some(Default::default());
+    *Msg.lock().unwrap() = Some(Arc::new(Mutex::new(None)));
+    *Other.lock().unwrap() = Some(Arc::new(Mutex::new(None)));
     *Msg.lock().unwrap() = Some(new_string(Arc::new(Mutex::new(Some("message".to_string())))));
     *Other.lock().unwrap() = Some(new_string(Arc::new(Mutex::new(Some("other".to_string())))));
 }

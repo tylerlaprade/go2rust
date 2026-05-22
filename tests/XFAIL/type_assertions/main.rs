@@ -253,14 +253,9 @@ pub fn describe_shape(s: &dyn Shape) {
 
         // Type assertion on interface
     let (mut rect, mut ok) = ({
-        let val = s.clone();
-        let guard = val.borrow();
-        if let Some(ref any_val) = *guard {
-            if let Some(typed_val) = any_val.downcast_ref::<Rectangle>() {
-                (Rc::new(RefCell::new(Some(typed_val.clone()))), Rc::new(RefCell::new(Some(true))))
-            } else {
-                (Rc::new(RefCell::new(Some(Default::default()))), Rc::new(RefCell::new(Some(false))))
-            }
+        let any_val = s.__go_as_any();
+        if let Some(typed_val) = any_val.downcast_ref::<Rectangle>() {
+            (Rc::new(RefCell::new(Some(typed_val.clone()))), Rc::new(RefCell::new(Some(true))))
         } else {
             (Rc::new(RefCell::new(Some(Default::default()))), Rc::new(RefCell::new(Some(false))))
         }
@@ -269,14 +264,9 @@ pub fn describe_shape(s: &dyn Shape) {
         print!("  Rectangle: {:.1} x {:.1}\n", (*(*rect.borrow().as_ref().unwrap()).width.borrow().as_ref().unwrap()), (*(*rect.borrow().as_ref().unwrap()).height.borrow().as_ref().unwrap()));
     } else {
         let (mut circle, mut ok) = ({
-        let val = s.clone();
-        let guard = val.borrow();
-        if let Some(ref any_val) = *guard {
-            if let Some(typed_val) = any_val.downcast_ref::<Circle>() {
-                (Rc::new(RefCell::new(Some(typed_val.clone()))), Rc::new(RefCell::new(Some(true))))
-            } else {
-                (Rc::new(RefCell::new(Some(Default::default()))), Rc::new(RefCell::new(Some(false))))
-            }
+        let any_val = s.__go_as_any();
+        if let Some(typed_val) = any_val.downcast_ref::<Circle>() {
+            (Rc::new(RefCell::new(Some(typed_val.clone()))), Rc::new(RefCell::new(Some(true))))
         } else {
             (Rc::new(RefCell::new(Some(Default::default()))), Rc::new(RefCell::new(Some(false))))
         }

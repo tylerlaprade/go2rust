@@ -25,7 +25,7 @@ pub(crate) static local: GoGlobal<Rc<RefCell<Option<example_com_package_selector
 
 
 fn __go_init_globals() {
-    *local.borrow_mut() = Some(Default::default());
+    *local.borrow_mut() = Some(Rc::new(RefCell::new(None)));
     *local.borrow_mut() = Some(example_com_package_selector_readonly_pointer_method_helper::new_counter());
 }
 

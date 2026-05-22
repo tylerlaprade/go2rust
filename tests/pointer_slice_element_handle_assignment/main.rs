@@ -95,7 +95,7 @@ impl cache {
 }
 
 fn main() {
-    let mut c = Rc::new(RefCell::new(Some(cache { items: Rc::new(RefCell::new(Some(vec![Default::default(); (1) as usize]))), ..Default::default() })));
+    let mut c = Rc::new(RefCell::new(Some(cache { items: Rc::new(RefCell::new(Some(vec![Rc::new(RefCell::new(None)); (1) as usize]))), ..Default::default() })));
     let mut n = Rc::new(RefCell::new(Some(node { name: Rc::new(RefCell::new(Some("alpha".to_string()))), ..Default::default() })));
     (*c.borrow_mut().as_mut().unwrap()).store(n.clone());
 }

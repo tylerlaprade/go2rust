@@ -50,7 +50,7 @@ pub(crate) static current: GoGlobal<Rc<RefCell<Option<state>>>> = GoGlobal::new(
 
 
 fn __go_init_globals() {
-    *current.borrow_mut() = Some(Default::default());
+    *current.borrow_mut() = Some(Rc::new(RefCell::new(None)));
 }
 
 
