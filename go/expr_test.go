@@ -1551,58 +1551,6 @@ func main() {
 	}
 }
 
-func TestNoTypeInfoLocalInterfaceArgumentsUseSyntax(t *testing.T) {
-	src := `package main
-
-type Shape interface {
-	Area() float64
-}
-
-type Rect struct {
-	Width float64
-}
-
-func (r Rect) Area() float64 {
-	return r.Width
-}
-
-func accept(s Shape) {
-	_ = s.Area()
-}
-
-func main() {
-	rect := Rect{Width: 2}
-	accept(rect)
-	shapes := []Shape{rect}
-	for _, shape := range shapes {
-		accept(shape)
-	}
-}
-`
-
-	assertNoTypeInfoLocalInterfaceArgumentsUseSyntax(t, transpileNoTypeInfoRegression(t, src))
-	assertNoTypeInfoLocalInterfaceArgumentsUseSyntax(t, transpileRegression(t, src, &TypeInfo{}))
-}
-
-func assertNoTypeInfoLocalInterfaceArgumentsUseSyntax(t *testing.T, rust string) {
-	t.Helper()
-	if !strings.Contains(rust, "pub fn accept(s: &dyn Shape)") {
-		t.Fatalf("local interface parameter should use a trait reference:\n%s", rust)
-	}
-	if !strings.Contains(rust, "accept(rect.borrow().as_ref().unwrap())") {
-		t.Fatalf("concrete local variable should be passed as a local interface reference:\n%s", rust)
-	}
-	if strings.Contains(rust, "accept(rect.clone())") {
-		t.Fatalf("concrete local variable should not be passed as its wrapper handle:\n%s", rust)
-	}
-	if !strings.Contains(rust, "Box::new((*rect.borrow().as_ref().unwrap()).clone()) as Box<dyn Shape>") {
-		t.Fatalf("local interface slice literal should box concrete elements:\n%s", rust)
-	}
-	if !strings.Contains(rust, "accept(shape.as_ref())") {
-		t.Fatalf("local interface range value should be passed as a trait reference:\n%s", rust)
-	}
-}
-
 func TestNoTypeInfoTrackedSliceIndexDoesNotUseStringPath(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

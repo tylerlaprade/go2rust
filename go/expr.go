@@ -1197,23 +1197,8 @@ func isFloatExpression(expr ast.Expr) bool {
 		return isFloatExpression(e.X) || isFloatExpression(e.Y)
 	case *ast.ParenExpr:
 		return isFloatExpression(e.X)
-	case *ast.SelectorExpr:
-		if fieldExpr, ok := selectorFieldTypeExpr(e); ok {
-			return isFloatTypeExpr(fieldExpr)
-		}
 	}
 	return false
-}
-
-func isFloatTypeExpr(expr ast.Expr) bool {
-	ident, ok := expr.(*ast.Ident)
-	if !ok {
-		return false
-	}
-	if underlying, isTypeDef := LookupTypeDefinition(ident.Name); isTypeDef {
-		return underlying == "float32" || underlying == "float64"
-	}
-	return ident.Name == "float32" || ident.Name == "float64"
 }
 
 func isCopyTypeForRangeRef(expr ast.Expr) bool {
@@ -6368,7 +6353,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			} else if ident, ok := arrayType.Elt.(*ast.Ident); ok && ident.Name != "error" {
 				// Check if it's a named interface using TypeInfo
 				typeInfo := GetTypeInfo()
-				if IsInterfaceType(ident.Name) || (typeInfo != nil && typeInfo.IsInterface(ident)) {
+				if typeInfo != nil && typeInfo.IsInterface(ident) {
 					isInterfaceSlice = true
 					interfaceName = ident.Name
 				}
@@ -9854,7 +9839,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 			if ident, ok := paramType.(*ast.Ident); ok {
 				// Check if this is an interface type using TypeInfo
 				typeInfo := GetTypeInfo()
-				if IsInterfaceType(ident.Name) || (typeInfo != nil && typeInfo.IsInterface(ident)) {
+				if typeInfo != nil && typeInfo.IsInterface(ident) {
 					if isEmptyInterfaceTypeExpr(ident) {
 						expectsEmptyInterface = true
 					} else {
