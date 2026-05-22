@@ -520,6 +520,12 @@ func main() {
 			t.Fatalf("missing %q in external stdlib fallback output:\n%s", want, rust)
 		}
 	}
+	if !strings.Contains(rust, "fn __go_next_external_interface_id()") {
+		t.Fatalf("external stdlib interface fallback should emit the interface id helper:\n%s", rust)
+	}
+	if !strings.Contains(rust, "pub struct hash_Hash {\n    pub __go_id: usize,") {
+		t.Fatalf("md5.New fallback should register hash.Hash as an interface stub:\n%s", rust)
+	}
 	if strings.Contains(rust, "io::discard") {
 		t.Fatalf("io.Discard should call the generated package variable accessor:\n%s", rust)
 	}

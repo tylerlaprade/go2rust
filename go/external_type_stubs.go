@@ -552,13 +552,13 @@ func RegisterExternalPackageFunctionFallback(sel *ast.SelectorExpr, argCount int
 		if sel.Sel.Name != "MultiWriter" {
 			return
 		}
-		RegisterExternalTypeStub("io_Writer")
+		RegisterExternalTypeStubInterface("io_Writer")
 		fn.ReturnTypes = []string{wrappedExternalStubType("io_Writer")}
 	case "crypto/md5":
 		if sel.Sel.Name != "New" {
 			return
 		}
-		RegisterExternalTypeStub("hash_Hash")
+		RegisterExternalTypeStubInterface("hash_Hash")
 		fn.ReturnTypes = []string{wrappedExternalStubType("hash_Hash")}
 	case "go/token":
 		if sel.Sel.Name != "NewFileSet" {
@@ -841,7 +841,7 @@ func externalPackageSelectorFallbackVariableType(pkgPath string, selName string)
 	switch pkgPath {
 	case "io":
 		if selName == "Discard" {
-			RegisterExternalTypeStub("io_Writer")
+			RegisterExternalTypeStubInterface("io_Writer")
 			return wrappedExternalStubType("io_Writer")
 		}
 	}
