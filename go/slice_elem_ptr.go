@@ -14,15 +14,12 @@ type sliceElemPtrCandidate struct {
 }
 
 var currentSliceElemPtrCandidates map[types.Object]string
-var currentSliceElemPtrSyntaxCandidates map[*ast.Ident]string
 
 func setSliceElemPtrCandidates(body *ast.BlockStmt) func() {
 	old := currentSliceElemPtrCandidates
-	oldSyntax := currentSliceElemPtrSyntaxCandidates
-	currentSliceElemPtrCandidates, currentSliceElemPtrSyntaxCandidates = collectSliceElemPtrCandidates(body)
+	currentSliceElemPtrCandidates = collectSliceElemPtrCandidates(body)
 	return func() {
 		currentSliceElemPtrCandidates = old
-		currentSliceElemPtrSyntaxCandidates = oldSyntax
 	}
 }
 
@@ -35,35 +32,35 @@ func sliceElemPtrCandidateForDecl(name *ast.Ident) (string, bool) {
 			}
 		}
 	}
-	if currentSliceElemPtrSyntaxCandidates != nil {
-		elemRustType, ok := currentSliceElemPtrSyntaxCandidates[name]
-		return elemRustType, ok
-	}
 	return "", false
 }
 
-func collectSliceElemPtrCandidates(body *ast.BlockStmt) (map[types.Object]string, map[*ast.Ident]string) {
+func collectSliceElemPtrCandidates(body *ast.BlockStmt) map[types.Object]string {
 	typeInfo := GetTypeInfo()
-	if body == nil {
-		return nil, nil
+	if body == nil || typeInfo == nil || typeInfo.info == nil {
+		return nil
 	}
 
 	candidates := map[types.Object]*sliceElemPtrCandidate{}
-	syntaxCandidates := map[*ast.Ident]*sliceElemPtrCandidate{}
-	syntaxCandidatesByName := map[string]*sliceElemPtrCandidate{}
 
 	ast.Inspect(body, func(node ast.Node) bool {
 		switch n := node.(type) {
 		case *ast.FuncLit:
 			return false
 		case *ast.ValueSpec:
-			star, ok := n.Type.(*ast.StarExpr)
-			if !ok {
+			if _, ok := n.Type.(*ast.StarExpr); !ok {
 				return true
 			}
-			elemRustType := goTypeToRustBase(star.X)
 			for i, name := range n.Names {
 				if name.Name == "_" {
+					continue
+				}
+				obj := typeInfo.GetObject(name)
+				if obj == nil {
+					continue
+				}
+				elemRustType, ok := sliceElemPtrRustTypeForPointerType(obj.Type())
+				if !ok {
 					continue
 				}
 				state := &sliceElemPtrCandidate{
@@ -75,21 +72,51 @@ func collectSliceElemPtrCandidates(body *ast.BlockStmt) (map[types.Object]string
 					state.valid = ok
 					state.sawSliceAddr = sawSliceAddr
 				}
-				if typeInfo != nil {
-					if obj := typeInfo.GetObject(name); obj != nil {
-						candidates[obj] = state
-						continue
-					}
+				candidates[obj] = state
+			}
+		case *ast.AssignStmt:
+			if n.Tok != token.DEFINE {
+				return true
+			}
+			for i, lhs := range n.Lhs {
+				ident, ok := lhs.(*ast.Ident)
+				if !ok || ident.Name == "_" {
+					continue
 				}
-				syntaxCandidates[name] = state
-				syntaxCandidatesByName[name.Name] = state
+				if typeInfo == nil {
+					continue
+				}
+				obj := typeInfo.GetObject(ident)
+				if obj == nil {
+					continue
+				}
+				if _, exists := candidates[obj]; exists {
+					continue
+				}
+				elemRustType, ok := sliceElemPtrRustTypeForPointerType(obj.Type())
+				if !ok {
+					continue
+				}
+				rhs := assignmentRHSForLHS(n, i)
+				if rhs == nil {
+					continue
+				}
+				rhsOk, sawSliceAddr := isSliceElemPtrAssignmentValue(rhs)
+				if !rhsOk || !sawSliceAddr {
+					continue
+				}
+				candidates[obj] = &sliceElemPtrCandidate{
+					elemRustType: elemRustType,
+					valid:        true,
+					sawSliceAddr: true,
+				}
 			}
 		}
 		return true
 	})
 
-	if len(candidates) == 0 && len(syntaxCandidates) == 0 {
-		return nil, nil
+	if len(candidates) == 0 {
+		return nil
 	}
 
 	ast.Inspect(body, func(node ast.Node) bool {
@@ -103,13 +130,8 @@ func collectSliceElemPtrCandidates(body *ast.BlockStmt) (map[types.Object]string
 					continue
 				}
 				var state *sliceElemPtrCandidate
-				if typeInfo != nil {
-					if obj := typeInfo.GetObject(ident); obj != nil {
-						state = candidates[obj]
-					}
-				}
-				if state == nil {
-					state = syntaxCandidatesByName[ident.Name]
+				if obj := typeInfo.GetObject(ident); obj != nil {
+					state = candidates[obj]
 				}
 				if state == nil {
 					continue
@@ -133,24 +155,26 @@ func collectSliceElemPtrCandidates(body *ast.BlockStmt) (map[types.Object]string
 	})
 
 	result := map[types.Object]string{}
-	syntaxResult := map[*ast.Ident]string{}
 	for obj, state := range candidates {
 		if state.valid && state.sawSliceAddr {
 			result[obj] = state.elemRustType
 		}
 	}
-	for ident, state := range syntaxCandidates {
-		if state.valid && state.sawSliceAddr {
-			syntaxResult[ident] = state.elemRustType
-		}
-	}
 	if len(result) == 0 {
 		result = nil
 	}
-	if len(syntaxResult) == 0 {
-		syntaxResult = nil
+	return result
+}
+
+func sliceElemPtrRustTypeForPointerType(t types.Type) (string, bool) {
+	if t == nil {
+		return "", false
 	}
-	return result, syntaxResult
+	ptr, ok := types.Unalias(t).Underlying().(*types.Pointer)
+	if !ok {
+		return "", false
+	}
+	return goTypesTypeToRust(coreType(ptr.Elem())), true
 }
 
 func assignmentRHSForLHS(stmt *ast.AssignStmt, lhsIndex int) ast.Expr {
@@ -168,19 +192,28 @@ func isSliceElemPtrAssignmentValue(expr ast.Expr) (bool, bool) {
 	if ident, ok := expr.(*ast.Ident); ok && ident.Name == "nil" {
 		return true, false
 	}
-	unary, ok := expr.(*ast.UnaryExpr)
+	_, ok := sliceElemPtrAddressElemRustType(expr)
+	return ok, ok
+}
+
+func sliceElemPtrAddressElemRustType(expr ast.Expr) (string, bool) {
+	unary, ok := unwrapParens(expr).(*ast.UnaryExpr)
 	if !ok || unary.Op != token.AND {
-		return false, false
+		return "", false
 	}
 	indexExpr, ok := unwrapParens(unary.X).(*ast.IndexExpr)
 	if !ok {
-		return false, false
+		return "", false
 	}
 	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return true, true
+	if typeInfo == nil || typeInfo.GetType(indexExpr.X) == nil || typeInfo.IsMap(indexExpr.X) {
+		return "", false
 	}
-	return !typeInfo.IsMap(indexExpr.X), !typeInfo.IsMap(indexExpr.X)
+	elemType := typeInfo.GetArrayOrSliceElemType(indexExpr.X)
+	if elemType == nil {
+		return "", false
+	}
+	return goTypesTypeToRust(elemType), true
 }
 
 func unwrapParens(expr ast.Expr) ast.Expr {
@@ -208,14 +241,89 @@ func writeSliceElemPtrOptionValue(out *strings.Builder, rhs ast.Expr) bool {
 	return true
 }
 
+func writeSliceElemPtrDerefAssignmentValue(out *strings.Builder, target *ast.StarExpr, rhs ast.Expr) bool {
+	ident, ok := rhs.(*ast.Ident)
+	if !ok || ident.Name != "nil" {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	targetType := typeInfo.GetType(target)
+	if targetType == nil {
+		return false
+	}
+	if _, ok := types.Unalias(targetType).Underlying().(*types.Pointer); !ok {
+		return false
+	}
+	out.WriteString(zeroValueForTypesType(targetType))
+	return true
+}
+
 func writeSliceElemPtrDerefRead(out *strings.Builder, ident *ast.Ident) {
 	out.WriteString("{ let __v = (*")
-	out.WriteString(RustIdentForUse(ident))
-	out.WriteString(".as_ref().unwrap().borrow().as_ref().unwrap()).clone(); __v }")
+	writeSliceElemPtrBorrow(out, ident, false)
+	out.WriteString(".as_ref().unwrap()).clone(); __v }")
 }
 
 func writeSliceElemPtrDerefLValue(out *strings.Builder, ident *ast.Ident) {
 	out.WriteString("(*")
+	writeSliceElemPtrBorrow(out, ident, true)
+	out.WriteString(".as_mut().unwrap())")
+}
+
+func writeSliceElemPtrBorrow(out *strings.Builder, ident *ast.Ident, mutable bool) {
 	out.WriteString(RustIdentForUse(ident))
-	out.WriteString(".as_ref().unwrap().borrow_mut().as_mut().unwrap())")
+	if info, ok := sliceElemPtrVarInfo(ident.Name); ok && info.WrapLevel == WrapOption {
+		out.WriteString(".as_ref().unwrap()")
+	}
+	if mutable {
+		out.WriteString(".borrow_mut()")
+	} else {
+		out.WriteString(".borrow()")
+	}
+}
+
+func writeSliceElemPtrFieldHandle(out *strings.Builder, ident *ast.Ident, fieldInfo FieldAccessInfo) {
+	out.WriteString("(*")
+	writeSliceElemPtrBorrow(out, ident, false)
+	out.WriteString(".as_ref().unwrap())")
+	if fieldInfo.IsPromoted {
+		for _, embedded := range fieldInfo.EmbeddedPath {
+			out.WriteString(".")
+			out.WriteString(ToSnakeCase(embedded))
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref().unwrap()")
+		}
+	}
+	out.WriteString(".")
+	out.WriteString(fieldInfo.FieldName)
+}
+
+func writeSliceElemPtrFieldSelector(out *strings.Builder, ident *ast.Ident, fieldInfo FieldAccessInfo, sel *ast.SelectorExpr, ctx ExprContext) bool {
+	if !isSliceElemPtrVar(ident.Name) {
+		return false
+	}
+	if ctx == LValue || ctx == AddressOf {
+		writeSliceElemPtrFieldHandle(out, ident, fieldInfo)
+		return true
+	}
+	if typeInfoIsPointerExpr(sel) || selectorExpressionKeepsHandle(sel) {
+		writeSliceElemPtrFieldHandle(out, ident, fieldInfo)
+		out.WriteString(".clone()")
+		return true
+	}
+	out.WriteString("(*")
+	if NeedsConcurrentWrapper() {
+		out.WriteString("{ let __field = ")
+		writeSliceElemPtrFieldHandle(out, ident, fieldInfo)
+		out.WriteString(".clone(); __field }")
+	} else {
+		writeSliceElemPtrFieldHandle(out, ident, fieldInfo)
+	}
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap()")
+	writeSelectorRValueClose(out, sel)
+	return true
 }

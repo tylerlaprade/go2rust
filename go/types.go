@@ -748,6 +748,9 @@ func zeroValueForTypesType(typ types.Type) string {
 		return "std::array::from_fn(|_| " + zeroValueForTypesType(t.Elem()) + ")"
 	case *types.Map:
 		return "BTreeMap::new()"
+	case *types.Pointer:
+		trackWrapperImports()
+		return GetOuterWrapperType() + "::new(" + GetInnerWrapperType() + "::new(None))"
 	default:
 		return "Default::default()"
 	}

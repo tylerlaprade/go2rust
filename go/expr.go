@@ -5280,6 +5280,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					writePackageGlobalPointerFieldSelector(out, globalIdent, fieldInfo, e, ctx)
 					break
 				}
+				if writeSliceElemPtrFieldSelector(out, ident, fieldInfo, e, ctx) {
+					break
+				}
 
 				if fieldInfo.IsPromoted {
 					// Accessing promoted field through embedded struct(s)
@@ -5576,7 +5579,11 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		case token.AND: // & - address-of
 			if indexExpr, ok := e.X.(*ast.IndexExpr); ok {
 				typeInfo := GetTypeInfo()
-				if typeInfo == nil || !typeInfo.IsMap(indexExpr.X) {
+				if typeInfo == nil || typeInfo.GetType(indexExpr.X) == nil {
+					out.WriteString("/* ERROR: Type information required for slice element address */ unimplemented!(\"type information required for slice element address\")")
+					return
+				}
+				if !typeInfo.IsMap(indexExpr.X) {
 					NeedSliceElemPtr()
 					out.WriteString("GoSliceElemPtr::new(")
 					TranspileExpressionContext(out, indexExpr.X, LValue)

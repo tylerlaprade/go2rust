@@ -5464,7 +5464,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 								} else if ident, ok := star.X.(*ast.Ident); ok && isSliceElemPtrVar(ident.Name) {
 									out.WriteString("{ ")
 									out.WriteString("let new_val = ")
-									TranspileExpression(out, s.Rhs[0])
+									if !writeSliceElemPtrDerefAssignmentValue(out, star, s.Rhs[0]) {
+										TranspileExpression(out, s.Rhs[0])
+									}
 									out.WriteString("; *")
 									out.WriteString(RustIdentForUse(ident))
 									out.WriteString(".as_ref().unwrap().borrow_mut() = Some(new_val); }")
@@ -5847,6 +5849,29 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 								out.WriteString(" = ")
 								TranspileExpression(out, s.Rhs[0])
 							} else {
+								// Check for slice element pointer short declaration
+								// e.g. `alt := &slice[i]` -> Option<GoSliceElemPtr<T>>
+								isSliceElemPtrShortDecl := false
+								var sliceElemPtrRustType string
+								if s.Tok == token.DEFINE && len(s.Lhs) == 1 && len(s.Rhs) == 1 {
+									if lhsIdent, ok := s.Lhs[0].(*ast.Ident); ok && lhsIdent.Name != "_" {
+										if elemType, ok := sliceElemPtrCandidateForDecl(lhsIdent); ok {
+											if rhsOk, sawSliceAddr := isSliceElemPtrAssignmentValue(s.Rhs[0]); rhsOk && sawSliceAddr {
+												isSliceElemPtrShortDecl = true
+												sliceElemPtrRustType = elemType
+												NeedSliceElemPtr()
+												if vt := GetVarTable(); vt != nil {
+													vt.Register(lhsIdent.Name, &VarInfo{
+														WrapLevel:   WrapOption,
+														RustType:    "Option<GoSliceElemPtr<" + sliceElemPtrRustType + ">>",
+														Source:      SourceLocal,
+														PointerKind: PointerSliceElem,
+													})
+												}
+											}
+										}
+									}
+								}
 								// Regular assignment or definition
 								for i, lhs := range s.Lhs {
 									if i > 0 {
@@ -5856,7 +5881,11 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										out.WriteString("let mut ")
 									}
 									TranspileExpressionContext(out, lhs, LValue)
-									if s.Tok == token.DEFINE && len(s.Lhs) == 1 && len(s.Rhs) == 1 {
+									if isSliceElemPtrShortDecl && i == 0 {
+										out.WriteString(": Option<GoSliceElemPtr<")
+										out.WriteString(sliceElemPtrRustType)
+										out.WriteString(">>")
+									} else if s.Tok == token.DEFINE && len(s.Lhs) == 1 && len(s.Rhs) == 1 {
 										if ident, ok := lhs.(*ast.Ident); ok && ident.Name != "_" {
 											if rustType, ok := localMakeSliceTypeAnnotation(s.Rhs[0]); ok {
 												out.WriteString(": ")
@@ -5877,8 +5906,14 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										if ident, ok := rhs.(*ast.Ident); ok && ident.Name == "nil" {
 											WriteWrappedNone(out)
 										} else if unary, ok := rhs.(*ast.UnaryExpr); ok && unary.Op == token.AND {
-											// Taking address - don't wrap, the & operator will handle it
-											TranspileExpression(out, rhs)
+											if isSliceElemPtrShortDecl && i == 0 {
+												out.WriteString("Some(")
+												TranspileExpression(out, rhs)
+												out.WriteString(")")
+											} else {
+												// Taking address - don't wrap, the & operator will handle it
+												TranspileExpression(out, rhs)
+											}
 										} else if unary, ok := rhs.(*ast.UnaryExpr); ok && unary.Op == token.ARROW && channelElementIsGoError(unary.X) {
 											writeErrorHandleFromChannelReceive(out, unary.X)
 										} else if callExpr, isCall := rhs.(*ast.CallExpr); isCall {
