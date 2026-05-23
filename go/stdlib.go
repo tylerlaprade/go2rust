@@ -584,6 +584,13 @@ func convertFormatStringWithSkips(goFormat string) (string, []int, []int, []int,
 					result.WriteString("{:?}")
 					argIndex++
 					i += 3
+				case 'U':
+					// %#U adds the character literal in single quotes after the
+					// code point; approximate with the same U+XXXX form for now.
+					result.WriteString("U+{:04X}")
+					unicodeIndices = append(unicodeIndices, argIndex)
+					argIndex++
+					i += 3
 				default:
 					// Unknown flagged format, keep as-is
 					result.WriteByte(format[i])
