@@ -1460,6 +1460,35 @@ func writeBareValueForWrappedSlot(out *strings.Builder, expr ast.Expr) bool {
 	return true
 }
 
+func writeFunctionTypedIdentFieldAssignment(out *strings.Builder, lhs ast.Expr, rhsIdent *ast.Ident) bool {
+	if rhsIdent.Name == "_" || rhsIdent.Name == "nil" || rhsIdent.Name == "true" || rhsIdent.Name == "false" {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	rhsType := typeInfo.GetType(rhsIdent)
+	if rhsType == nil {
+		return false
+	}
+	if _, ok := rhsType.Underlying().(*types.Signature); !ok {
+		return false
+	}
+	rhsName := RustIdentForUse(rhsIdent)
+	if currentCaptureRenames != nil {
+		if renamed, exists := currentCaptureRenames[rhsIdent.Name]; exists {
+			rhsName = RustLocalIdent(renamed)
+		}
+	}
+	out.WriteString("{ let new_val = ")
+	out.WriteString(rhsName)
+	out.WriteString(".clone(); ")
+	TranspileExpressionContext(out, lhs, LValue)
+	out.WriteString(" = new_val; }")
+	return true
+}
+
 func writeWrappedValueCopyFromIdent(out *strings.Builder, ident *ast.Ident) bool {
 	if ident.Name == "_" || ident.Name == "nil" || ident.Name == "true" || ident.Name == "false" {
 		return false
@@ -6025,6 +6054,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 												WriteBorrowMethod(out, true)
 												out.WriteString(" = Some(new_val); }")
 											}
+										} else if writeFunctionTypedIdentFieldAssignment(out, s.Lhs[0], rhsIdent) {
+											// Function-typed values aren't Clone via .as_ref().clone(); share
+											// the outer Arc handle instead.
 										} else {
 											// Check if RHS is a wrapped variable - use clone for non-Copy types
 											rhsIsWrappedVar := false
