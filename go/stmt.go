@@ -3843,7 +3843,7 @@ func writeParallelAssignmentTarget(out *strings.Builder, lhs ast.Expr, tmpName s
 
 	out.WriteString(" *")
 	if ident, ok := lhs.(*ast.Ident); ok {
-		out.WriteString(EscapeRustIdent(ident.Name))
+		out.WriteString(RustIdentForUse(ident))
 	} else {
 		TranspileExpressionContext(out, lhs, LValue)
 	}
@@ -6296,6 +6296,23 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 														RustType:    "Option<GoSliceElemPtr<" + sliceElemPtrRustType + ">>",
 														Source:      SourceLocal,
 														PointerKind: PointerSliceElem,
+													})
+												}
+											}
+										}
+									}
+								}
+								// Pre-register short-decl LHS idents so writeIdentExpression
+								// emits the local name (with _local suffix if it shadows a
+								// package global) instead of the package-global path.
+								if s.Tok == token.DEFINE {
+									for _, lhs := range s.Lhs {
+										if ident, ok := lhs.(*ast.Ident); ok && ident.Name != "_" {
+											if isPackageGlobalName(ident.Name) {
+												if vt := GetVarTable(); vt != nil && vt.Lookup(ident.Name) == nil {
+													vt.Register(ident.Name, &VarInfo{
+														WrapLevel: WrapFull,
+														Source:    SourceLocal,
 													})
 												}
 											}
