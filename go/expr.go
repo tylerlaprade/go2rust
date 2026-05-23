@@ -4880,6 +4880,29 @@ func expressionNeedsGoValueClone(expr ast.Expr) bool {
 }
 
 func writeIdentExpression(out *strings.Builder, e *ast.Ident, ctx ExprContext, varName string) {
+	if currentReceiver != "" && e.Name == currentReceiver {
+		// Named type receivers (e.g. `(cmap CommentMap)` where CommentMap is
+		// `map[Node][]*CommentGroup` or a named slice) need access to the
+		// inner Arc handle, not a bare ident lookup. For non-named-type
+		// receivers, the rest of the code paths handle field/method
+		// dereferencing; bare receiver references fall through here.
+		if _, _, ok := namedSliceTypeForExpr(e); ok {
+			out.WriteString("self.0")
+			return
+		}
+		if typeInfo := GetTypeInfo(); typeInfo != nil {
+			if typ := typeInfo.GetType(e); typ != nil {
+				if named, ok := types.Unalias(typ).(*types.Named); ok {
+					if _, ok := named.Underlying().(*types.Map); ok {
+						out.WriteString("self.0")
+						return
+					}
+				}
+			}
+		}
+		out.WriteString("self")
+		return
+	}
 	if isPackageGlobalIdent(e) {
 		switch ctx {
 		case RValue:

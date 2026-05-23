@@ -3992,11 +3992,7 @@ func transpileDelete(out *strings.Builder, call *ast.CallExpr) {
 			keyType, _ = typeInfo.GetMapTypes(call.Args[0])
 		}
 		out.WriteString("{ let __map_handle = ")
-		if ident, ok := call.Args[0].(*ast.Ident); ok {
-			out.WriteString(ident.Name)
-		} else {
-			TranspileExpressionContext(out, call.Args[0], LValue)
-		}
+		TranspileExpressionContext(out, call.Args[0], LValue)
 		out.WriteString(".clone(); let mut __map_guard = __map_handle")
 		WriteBorrowMethod(out, true)
 		out.WriteString("; __map_guard.as_mut().unwrap().remove(")
