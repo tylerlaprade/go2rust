@@ -21,6 +21,7 @@ pub trait hasNameAndString: std::fmt::Display + Any {
     fn __go_as_any(&self) -> &dyn Any;
     fn __go_eq(&self, other: &dyn hasNameAndString) -> bool;
     fn string(&self) -> Rc<RefCell<Option<String>>>;
+    fn name(&self) -> Rc<RefCell<Option<String>>>;
 }
 
 impl Clone for Box<dyn hasNameAndString> {

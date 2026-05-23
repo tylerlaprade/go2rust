@@ -1722,6 +1722,7 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 				body.WriteString(" {\n")
 
 				// Generate trait method implementations
+				emittedImpl := make(map[string]bool)
 				for _, method := range ifaceType.Methods.List {
 					if len(method.Names) > 0 {
 						methodName := method.Names[0].Name
@@ -1729,6 +1730,24 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 						for _, impl := range methods[typeName] {
 							if impl.Name.Name == methodName {
 								TranspileTraitMethodImpl(&body, impl, fileSet, file.Comments)
+								emittedImpl[methodName] = true
+								break
+							}
+						}
+					}
+				}
+
+				// Emit methods inherited from embedded interfaces.
+				if typesIface := localInterfaceTypesByName(ifaceName); typesIface != nil {
+					for i := 0; i < typesIface.NumMethods(); i++ {
+						methodName := typesIface.Method(i).Name()
+						if emittedImpl[methodName] {
+							continue
+						}
+						for _, impl := range methods[typeName] {
+							if impl.Name.Name == methodName {
+								TranspileTraitMethodImpl(&body, impl, fileSet, file.Comments)
+								emittedImpl[methodName] = true
 								break
 							}
 						}

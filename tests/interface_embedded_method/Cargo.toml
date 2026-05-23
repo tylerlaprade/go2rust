@@ -1,0 +1,8 @@
+[package]
+name = "interface_embedded_method"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "interface_embedded_method"
+path = "main.rs"

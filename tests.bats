@@ -1066,6 +1066,10 @@ run_xfail_test() {
     run_test "tests/interface_basic"
 }
 
+@test "interface_embedded_method" {
+    run_test "tests/interface_embedded_method"
+}
+
 @test "interfaces_basic" {
     run_test "tests/interfaces_basic"
 }

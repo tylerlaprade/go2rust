@@ -983,6 +983,93 @@ func functionUsesOsArgs(fn *ast.FuncDecl) bool {
 	return usesOsArgs
 }
 
+// localInterfaceTypesFromTypeSpec returns the go/types representation of the
+// interface declared by typeSpec, or nil if type information is unavailable or
+// the type is not an interface.
+func localInterfaceTypesFromTypeSpec(typeSpec *ast.TypeSpec) *types.Interface {
+	if typeSpec == nil {
+		return nil
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return nil
+	}
+	obj := typeInfo.info.Defs[typeSpec.Name]
+	if obj == nil {
+		return nil
+	}
+	named, ok := obj.Type().(*types.Named)
+	if !ok {
+		return nil
+	}
+	iface, ok := named.Underlying().(*types.Interface)
+	if !ok {
+		return nil
+	}
+	return iface
+}
+
+// localInterfaceTypesByName looks up the go/types interface for a top-level
+// type name in the current package.
+func localInterfaceTypesByName(name string) *types.Interface {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.pkg == nil {
+		return nil
+	}
+	obj := typeInfo.pkg.Scope().Lookup(name)
+	if obj == nil {
+		return nil
+	}
+	named, ok := obj.Type().(*types.Named)
+	if !ok {
+		return nil
+	}
+	iface, ok := named.Underlying().(*types.Interface)
+	if !ok {
+		return nil
+	}
+	return iface
+}
+
+// writeTraitMethodSigFromTypes writes a Rust trait method signature derived
+// from a go/types signature. Used to emit methods inherited from embedded
+// interfaces whose declarations aren't directly walked by the AST loop.
+func writeTraitMethodSigFromTypes(out *strings.Builder, name string, sig *types.Signature) {
+	out.WriteString("    fn ")
+	out.WriteString(ToSnakeCase(name))
+	out.WriteString("(&self")
+	params := sig.Params()
+	for j := 0; j < params.Len(); j++ {
+		p := params.At(j)
+		pName := p.Name()
+		if pName == "" {
+			pName = fmt.Sprintf("_arg%d", j)
+		}
+		out.WriteString(", ")
+		out.WriteString(RustLocalIdent(pName))
+		out.WriteString(": ")
+		out.WriteString(goTypesParamTypeToRust(p.Type()))
+	}
+	out.WriteString(")")
+	res := sig.Results()
+	switch res.Len() {
+	case 0:
+	case 1:
+		out.WriteString(" -> ")
+		out.WriteString(goTypesReturnTypeToRust(res.At(0).Type()))
+	default:
+		out.WriteString(" -> (")
+		for j := 0; j < res.Len(); j++ {
+			if j > 0 {
+				out.WriteString(", ")
+			}
+			out.WriteString(goTypesReturnTypeToRust(res.At(j).Type()))
+		}
+		out.WriteString(")")
+	}
+	out.WriteString(";\n")
+}
+
 func interfaceParamVarInfo(typeExpr ast.Expr) (*VarInfo, bool) {
 	interfaceName, ok := transpiledNamedInterfaceTypeNameFromExpr(typeExpr)
 	if !ok {
@@ -1572,6 +1659,7 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 		out.WriteString(") -> bool;\n")
 
 		// Generate method signatures
+		emittedTraitMethods := make(map[string]bool)
 		for _, method := range t.Methods.List {
 			if len(method.Names) > 0 {
 				// Named method
@@ -1579,6 +1667,7 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 				if !ok {
 					continue
 				}
+				emittedTraitMethods[method.Names[0].Name] = true
 
 				out.WriteString("    fn ")
 				out.WriteString(ToSnakeCase(method.Names[0].Name))
@@ -1633,6 +1722,24 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 				}
 
 				out.WriteString(";\n")
+			}
+		}
+
+		// Add methods inherited from embedded interfaces. go/types flattens
+		// embedded methods into NumMethods(), so iterating it gives both direct
+		// and embedded methods; dedup against the AST-emitted set.
+		if iface := localInterfaceTypesFromTypeSpec(typeSpec); iface != nil {
+			for i := 0; i < iface.NumMethods(); i++ {
+				method := iface.Method(i)
+				if emittedTraitMethods[method.Name()] {
+					continue
+				}
+				sig, ok := method.Type().(*types.Signature)
+				if !ok {
+					continue
+				}
+				writeTraitMethodSigFromTypes(out, method.Name(), sig)
+				emittedTraitMethods[method.Name()] = true
 			}
 		}
 
