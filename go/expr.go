@@ -6337,6 +6337,10 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			out.WriteString("].to_string() }")
 			WriteWrapperSuffix(out)
 		} else if sliceSubject := unwrapParens(e.X); isNamedSliceExpression(sliceSubject) {
+			named, _, _ := namedSliceTypeForExpr(sliceSubject)
+			rustNamedType := goTypesNamedTypeToRust(named)
+			out.WriteString(rustNamedType)
+			out.WriteString("(")
 			WriteWrapperPrefix(out)
 			out.WriteString("{ let __slice_holder = ")
 			writeNamedSliceInnerHandleClone(out, sliceSubject)
@@ -6352,6 +6356,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			}
 			out.WriteString("].to_vec() }")
 			WriteWrapperSuffix(out)
+			out.WriteString(")")
 		} else {
 			WriteWrapperPrefix(out)
 			out.WriteString("{ let __seq = ")
