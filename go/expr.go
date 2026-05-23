@@ -1133,6 +1133,12 @@ func writeNamedSliceInnerHandleClone(out *strings.Builder, expr ast.Expr) bool {
 		out.WriteString("self.0.clone()")
 		return true
 	}
+	if star, ok := expr.(*ast.StarExpr); ok {
+		if ident, ok := star.X.(*ast.Ident); ok && currentReceiver != "" && ident.Name == currentReceiver {
+			out.WriteString("self.0.clone()")
+			return true
+		}
+	}
 	out.WriteString("{ let __named_slice = (*")
 	TranspileExpressionContext(out, expr, LValue)
 	WriteBorrowMethod(out, false)
@@ -6329,6 +6335,22 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				writeExpressionAsUsize(out, e.High)
 			}
 			out.WriteString("].to_string() }")
+			WriteWrapperSuffix(out)
+		} else if sliceSubject := unwrapParens(e.X); isNamedSliceExpression(sliceSubject) {
+			WriteWrapperPrefix(out)
+			out.WriteString("{ let __slice_holder = ")
+			writeNamedSliceInnerHandleClone(out, sliceSubject)
+			out.WriteString("; let __slice_guard = __slice_holder")
+			WriteBorrowMethod(out, false)
+			out.WriteString("; let __seq = __slice_guard.as_ref().cloned().unwrap_or_default(); __seq[")
+			if e.Low != nil {
+				writeExpressionAsUsize(out, e.Low)
+			}
+			out.WriteString("..")
+			if e.High != nil {
+				writeExpressionAsUsize(out, e.High)
+			}
+			out.WriteString("].to_vec() }")
 			WriteWrapperSuffix(out)
 		} else {
 			WriteWrapperPrefix(out)
