@@ -1194,14 +1194,28 @@ func writeCurrentReceiverDerefAssignment(out *strings.Builder, star *ast.StarExp
 		}
 	}
 	// For named-slice receivers (e.g. type ErrorList []*Error), the RHS
-	// (append/slice on the named type) emits a wrapped Arc<Mutex<Option<ErrorList>>>
-	// while *self has the bare ErrorList type. Unwrap before assigning.
-	if isNamedSliceExpression(star) || isNamedSliceExpression(rhs) {
+	// may emit either a wrapped Arc<Mutex<Option<ErrorList>>> (when going
+	// through the generic wrap path) or a bare ErrorList constructor. *self
+	// expects the bare ErrorList, so unwrap only when the RHS produces a
+	// wrapped value.
+	if isNamedSliceExpression(star) {
+		rhsWrapped := false
+		if call, isCall := rhs.(*ast.CallExpr); isCall {
+			if isBuiltinCallNamed(call, "append") {
+				rhsWrapped = true
+			}
+		}
+		if rhsWrapped {
+			out.WriteString("{ let new_val = ")
+			TranspileExpression(out, rhs)
+			out.WriteString("; *self = new_val")
+			WriteBorrowMethod(out, true)
+			out.WriteString(".take().unwrap_or_default(); }")
+			return true
+		}
 		out.WriteString("{ let new_val = ")
 		TranspileExpression(out, rhs)
-		out.WriteString("; *self = new_val")
-		WriteBorrowMethod(out, true)
-		out.WriteString(".take().unwrap_or_default(); }")
+		out.WriteString("; *self = new_val; }")
 		return true
 	}
 	out.WriteString("{ let new_val = ")
