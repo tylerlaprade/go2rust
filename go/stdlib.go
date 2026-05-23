@@ -3633,7 +3633,7 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 			}
 			writeMapHandle := func() {
 				if ident, ok := indexExpr.X.(*ast.Ident); ok {
-					out.WriteString(ident.Name)
+					out.WriteString(rustIdentForUseWithCapture(ident))
 				} else {
 					TranspileExpressionContext(out, indexExpr.X, LValue)
 				}

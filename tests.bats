@@ -2506,6 +2506,10 @@ run_xfail_test() {
     run_xfail_test "tests/XFAIL/http_client"
 }
 
+@test "XFAIL: named_map_receiver_assign" {
+    run_xfail_test "tests/XFAIL/named_map_receiver_assign"
+}
+
 @test "XFAIL: panic_recover" {
     run_xfail_test "tests/XFAIL/panic_recover"
 }

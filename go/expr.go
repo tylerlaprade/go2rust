@@ -1645,6 +1645,18 @@ func rustIdentForUseWithCapture(ident *ast.Ident) string {
 		}
 	}
 	if currentReceiver != "" && ident.Name == currentReceiver {
+		if _, _, ok := namedSliceTypeForExpr(ident); ok {
+			return "self.0"
+		}
+		if typeInfo := GetTypeInfo(); typeInfo != nil {
+			if typ := typeInfo.GetType(ident); typ != nil {
+				if named, ok := types.Unalias(typ).(*types.Named); ok {
+					if _, ok := named.Underlying().(*types.Map); ok {
+						return "self.0"
+					}
+				}
+			}
+		}
 		return "self"
 	}
 	return RustIdentForUse(ident)
@@ -6241,7 +6253,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			} else {
 				out.WriteString("(*")
 				if ident, ok := e.X.(*ast.Ident); ok {
-					out.WriteString(ident.Name)
+					out.WriteString(rustIdentForUseWithCapture(ident))
 				} else {
 					TranspileExpression(out, e.X)
 				}
