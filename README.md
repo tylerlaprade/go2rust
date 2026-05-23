@@ -252,6 +252,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Concurrent stdlib selector string comparisons | ✅ |
 | **`interface` - Interface types** | |
 | └ Interface definitions | ✅ |
+| └ Interface embedding (methods inherited from embedded interfaces are callable on the outer trait object) | ✅ |
 | └ Empty interface{} | ✅ |
 | └ Named `any` returns default to nil | ✅ |
 | └ Selector fields returned as `any` preserve the interface handle | ✅ |
