@@ -138,12 +138,12 @@ pub mod types {
 
 pub fn kind() -> Arc<Mutex<Option<types_BasicKind>>> {
 
-    return Arc::new(Mutex::new(Some(types::INT)));
+    return Arc::new(Mutex::new(Some(types_BasicKind(types::INT.0 as i32))));
 }
 
 pub fn dir() -> Arc<Mutex<Option<types_ChanDir>>> {
 
-    return Arc::new(Mutex::new(Some(types::SEND_RECV)));
+    return Arc::new(Mutex::new(Some(types_ChanDir(types::SEND_RECV.0 as i32))));
 }
 
 pub fn zero_kind() -> Arc<Mutex<Option<types_BasicKind>>> {
