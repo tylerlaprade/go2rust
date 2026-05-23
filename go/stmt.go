@@ -5893,8 +5893,13 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									}
 								} else {
 									out.WriteString("(*")
-									TranspileExpressionContext(out, indexExpr.X, LValue)
-									WriteBorrowMethod(out, true)
+									if subj := unwrapParens(indexExpr.X); isNamedSliceExpression(subj) {
+										writeNamedSliceInnerHandleClone(out, subj)
+										WriteBorrowMethod(out, true)
+									} else {
+										TranspileExpressionContext(out, indexExpr.X, LValue)
+										WriteBorrowMethod(out, true)
+									}
 									out.WriteString(".as_mut().unwrap())[")
 									writeExpressionAsUsize(out, indexExpr.Index)
 									out.WriteString("] = ")
