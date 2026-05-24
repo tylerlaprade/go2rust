@@ -12,7 +12,7 @@ fn main() {
 
     let (mut f, mut err) = os::open((*__go_os_args.clone().borrow().as_ref().unwrap())[(0) as usize].clone());
     if (*err.borrow()).is_some() {
-        panic!("{:?}", (*err.borrow().as_ref().unwrap()));
+        panic!("{}", (*err.borrow().as_ref().unwrap()));
     }
     let f_defer_captured = f.clone(); __defer_stack.push(Box::new(move || {
         (*f_defer_captured.borrow_mut().as_mut().unwrap()).close();

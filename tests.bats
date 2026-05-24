@@ -1642,6 +1642,10 @@ run_xfail_test() {
     run_test "tests/panic_fmt_errorf_dynamic"
 }
 
+@test "panic_struct_literal_value" {
+    run_test "tests/panic_struct_literal_value"
+}
+
 @test "parallel_slice_field_assign" {
     run_test "tests/parallel_slice_field_assign"
 }

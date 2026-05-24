@@ -1,0 +1,8 @@
+[package]
+name = "panic_struct_literal_value"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "panic_struct_literal_value"
+path = "main.rs"

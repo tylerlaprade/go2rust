@@ -177,7 +177,7 @@ fn main() {
 
     let (mut file, mut err) = os::open((*__go_os_args.clone().borrow().as_ref().unwrap())[(0) as usize].clone());
     if (*err.borrow()).is_some() {
-        panic!("{:?}", (*err.borrow().as_ref().unwrap()));
+        panic!("{}", (*err.borrow().as_ref().unwrap()));
     }
 
     let mut rc: Rc<RefCell<Option<io_ReadCloser>>> = Rc::new(RefCell::new(None));
@@ -185,7 +185,7 @@ fn main() {
     {
         let mut err = (*rc.borrow().as_ref().unwrap()).close();;
         if (*err.borrow()).is_some() {
-            panic!("{:?}", (*err.borrow().as_ref().unwrap()));;
+            panic!("{}", (*err.borrow().as_ref().unwrap()));;
         }
     }
     eprintln!("{}", format!("{}", "closed".to_string()));

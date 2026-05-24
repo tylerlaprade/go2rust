@@ -70,7 +70,7 @@ pub fn import(path: Rc<RefCell<Option<String>>>) -> (Rc<RefCell<Option<Package>>
 fn main() {
     let (mut pkg, mut err) = import(Rc::new(RefCell::new(Some("unsafe".to_string()))));
     if (*err.borrow()).is_some() {
-        panic!("{:?}", (*err.borrow().as_ref().unwrap()));
+        panic!("{}", (*err.borrow().as_ref().unwrap()));
     }
     eprintln!("{}", format!("{}", (*(*pkg.borrow().as_ref().unwrap()).complete().borrow().as_ref().unwrap())));
 }

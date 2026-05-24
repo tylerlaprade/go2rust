@@ -4661,18 +4661,18 @@ func transpilePanic(out *strings.Builder, call *ast.CallExpr) {
 						}
 					}
 				} else {
-					// Other function call - format it
-					out.WriteString("\"{:?}\", ")
+					// Other function call - format it via Display
+					out.WriteString("\"{}\", ")
 					TranspileExpression(out, call.Args[0])
 				}
 			} else {
-				// Other call expression - format it
-				out.WriteString("\"{:?}\", ")
+				// Other call expression - format it via Display
+				out.WriteString("\"{}\", ")
 				TranspileExpression(out, call.Args[0])
 			}
 		} else {
-			// Other expression - format it
-			out.WriteString("\"{:?}\", ")
+			// Other expression - format it via Display
+			out.WriteString("\"{}\", ")
 			TranspileExpression(out, call.Args[0])
 		}
 	} else {
