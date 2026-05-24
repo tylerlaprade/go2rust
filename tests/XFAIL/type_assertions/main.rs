@@ -301,10 +301,10 @@ fn main() {
     assert_without_check(Rc::new(RefCell::new(Some(Box::new(123) as Box<dyn Any>))));
 
     println!("{}", format!("{}", "\n=== Interface type assertions ===".to_string()));
-    let mut shapes = Rc::new(RefCell::new(Some(vec![Box::new(Rectangle { width: Rc::new(RefCell::new(Some(10.0 as f64))), height: Rc::new(RefCell::new(Some(5.0 as f64))), ..Default::default() }) as Box<dyn Shape>, Box::new(Circle { radius: Rc::new(RefCell::new(Some(3.0 as f64))), ..Default::default() }) as Box<dyn Shape>])));
+    let mut shapes = Rc::new(RefCell::new(Some(vec![Rc::new(RefCell::new(Some(Box::new(Rectangle { width: Rc::new(RefCell::new(Some(10.0 as f64))), height: Rc::new(RefCell::new(Some(5.0 as f64))), ..Default::default() }) as Box<dyn Shape>))), Rc::new(RefCell::new(Some(Box::new(Circle { radius: Rc::new(RefCell::new(Some(3.0 as f64))), ..Default::default() }) as Box<dyn Shape>)))])));
 
     { let __range_holder = shapes.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for shape in __range_values.iter() {
-        describe_shape(shape.as_ref());
+        describe_shape(shape.borrow().as_ref().unwrap().as_ref());
     } }
 
     println!("{}", format!("{}", "\n=== Type switch alternative ===".to_string()));

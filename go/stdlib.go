@@ -361,6 +361,15 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 			NeedFormatSlice()
 			TrackImport("Display")
 			elemType = typeInfo.GetArrayOrSliceElemType(arg)
+			if _, isLocalNamedInterface := transpiledNamedInterfaceTypeNameFromTypes(elemType); isLocalNamedInterface {
+				// Local named interface slice elements are wrapped as
+				// Rc<RefCell<Option<Box<dyn Trait>>>>; use the wrapped stringer
+				// helper since named interfaces always carry Display via their
+				// trait bound.
+				NeedFormatSliceWrappedStringer()
+				writeFormatSliceCall(out, arg, "format_slice_wrapped_stringer", "format_slice_wrapped_stringer_values")
+				return
+			}
 			if isPointerType(elemType) {
 				if typeHasGoStringMethod(elemType) {
 					NeedFormatSliceWrappedStringer()
@@ -1948,6 +1957,15 @@ func transpileNilSafeSort(out *strings.Builder, arg ast.Expr) {
 
 func writeSortFuncWrappedElement(out *strings.Builder, name string, elemIsInterface, elemHasInherentWrapper bool) {
 	if elemIsInterface {
+		if elemHasInherentWrapper {
+			// Local named interface slices wrap each element as
+			// Rc<RefCell<Option<Box<dyn Trait>>>>; deref through the wrapper
+			// and the Box to recover &dyn Trait.
+			out.WriteString(name)
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref().unwrap().as_ref()")
+			return
+		}
 		out.WriteString(name)
 		out.WriteString(".as_ref()")
 		return

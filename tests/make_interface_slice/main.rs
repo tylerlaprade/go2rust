@@ -117,10 +117,10 @@ impl Animal for Dog {
 }
 
 fn main() {
-    let mut pets: Rc<RefCell<Option<Vec<Box<dyn Animal>>>>> = Rc::new(RefCell::new(Some(vec![Default::default(); (2) as usize])));
-    (*pets.borrow_mut().as_mut().unwrap())[(0) as usize] = Cat { name: Rc::new(RefCell::new(Some("whiskers".to_string()))), ..Default::default() };
-    (*pets.borrow_mut().as_mut().unwrap())[(1) as usize] = Dog { name: Rc::new(RefCell::new(Some("rex".to_string()))), ..Default::default() };
+    let mut pets: Rc<RefCell<Option<Vec<Rc<RefCell<Option<Box<dyn Animal>>>>>>>> = Rc::new(RefCell::new(Some(vec![Default::default(); (2) as usize])));
+    (*pets.borrow_mut().as_mut().unwrap())[(0) as usize] = Rc::new(RefCell::new(Some(Box::new(Cat { name: Rc::new(RefCell::new(Some("whiskers".to_string()))), ..Default::default() }) as Box<dyn Animal>)));
+    (*pets.borrow_mut().as_mut().unwrap())[(1) as usize] = Rc::new(RefCell::new(Some(Box::new(Dog { name: Rc::new(RefCell::new(Some("rex".to_string()))), ..Default::default() }) as Box<dyn Animal>)));
     { let __range_holder = pets.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for p in __range_values.iter() {
-        println!("{}", format!("{}", (*p.sound().borrow().as_ref().unwrap())));
+        println!("{}", format!("{}", (*(*p.borrow().as_ref().unwrap()).sound().borrow().as_ref().unwrap())));
     } }
 }

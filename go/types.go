@@ -833,6 +833,13 @@ func goCollectionElemTypeToRust(expr ast.Expr) string {
 	if ident, ok := expr.(*ast.Ident); ok && ident.Name == "error" {
 		return GoTypeToRust(expr)
 	}
+	// Local named interfaces need wrapped slice elements: Box<dyn Trait> has no
+	// Default (so make([]Trait, n) breaks) and can't be nil (so
+	// interface-typed slice elements can't represent Go's nil interface value).
+	// Wrapping mirrors the [`error` -> Box<dyn StdError>] handling above.
+	if _, ok := transpiledNamedInterfaceTypeNameFromExpr(expr); ok {
+		return GoTypeToRust(expr)
+	}
 	return goTypeToRustBase(expr)
 }
 
@@ -984,6 +991,12 @@ func goTypesCollectionElemTypeToRust(t types.Type) string {
 		return goTypesTypeToRustWrapped(t)
 	}
 	if isGoErrorType(t) {
+		return goTypesTypeToRustWrapped(t)
+	}
+	// Mirror the syntax-side rule in goCollectionElemTypeToRust: local named
+	// interfaces lower to Box<dyn Trait>, which has no Default and can't be
+	// nil. Wrapping the element preserves Go's nullable interface semantics.
+	if _, ok := transpiledNamedInterfaceTypeNameFromTypes(t); ok {
 		return goTypesTypeToRustWrapped(t)
 	}
 	return goTypesTypeToRust(t)

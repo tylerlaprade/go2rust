@@ -72,11 +72,11 @@ pub fn pair_o_k(prev: &dyn Spec, next: &dyn Spec) -> Rc<RefCell<Option<bool>>> {
 }
 
 fn main() {
-    let mut specs = Rc::new(RefCell::new(Some(vec![Box::new(ImportSpec { name: Rc::new(RefCell::new(Some("a".to_string()))), ..Default::default() }) as Box<dyn Spec>, Box::new(ImportSpec { name: Rc::new(RefCell::new(Some("b".to_string()))), ..Default::default() }) as Box<dyn Spec>, Box::new(ImportSpec { name: Rc::new(RefCell::new(Some("b".to_string()))), ..Default::default() }) as Box<dyn Spec>])));
+    let mut specs = Rc::new(RefCell::new(Some(vec![Rc::new(RefCell::new(Some(Box::new(ImportSpec { name: Rc::new(RefCell::new(Some("a".to_string()))), ..Default::default() }) as Box<dyn Spec>))), Rc::new(RefCell::new(Some(Box::new(ImportSpec { name: Rc::new(RefCell::new(Some("b".to_string()))), ..Default::default() }) as Box<dyn Spec>))), Rc::new(RefCell::new(Some(Box::new(ImportSpec { name: Rc::new(RefCell::new(Some("b".to_string()))), ..Default::default() }) as Box<dyn Spec>)))])));
     { let __range_holder = specs.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, s) in __range_values.iter().enumerate() {
         if (i as i32) == (((*specs.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32) - (1 as i32) as i32) {
         continue
     }
-        println!("{}", format!("{}", (*pair_o_k(s.as_ref(), (*specs.borrow().as_ref().unwrap())[(i + 1) as usize].clone().as_ref()).borrow().as_ref().unwrap())));
+        println!("{}", format!("{}", (*pair_o_k(s.borrow().as_ref().unwrap().as_ref(), (*specs.borrow().as_ref().unwrap())[(i + 1) as usize].clone().borrow().as_ref().unwrap().as_ref()).borrow().as_ref().unwrap())));
     } }
 }

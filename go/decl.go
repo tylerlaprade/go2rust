@@ -52,17 +52,18 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 
 	// Collect all fields (including embedded)
 	type fieldEntry struct {
-		name        string
-		isEmbedded  bool
-		isSlice     bool
-		isMap       bool
-		isInterface bool
-		isFunction  bool
-		funcSlice   bool
-		hasTrait    bool
-		mapOpaque   bool
-		nestedSlice bool
-		ptrSlice    bool
+		name           string
+		isEmbedded     bool
+		isSlice        bool
+		isMap          bool
+		isInterface    bool
+		isFunction     bool
+		funcSlice      bool
+		hasTrait       bool
+		mapOpaque      bool
+		nestedSlice    bool
+		ptrSlice       bool
+		interfaceSlice bool
 	}
 	var fields []fieldEntry
 	for _, field := range structType.Fields.List {
@@ -80,40 +81,43 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 		mapOpaque := mapFieldNeedsOpaqueDisplay(field.Type)
 		nestedSlice := arrayFieldContainsSlice(field.Type)
 		ptrSlice := arrayFieldContainsPointer(field.Type)
+		interfaceSlice := arrayFieldContainsLocalInterface(field.Type)
 		if isChannel {
 			continue
 		}
 		if len(field.Names) > 0 {
 			for _, name := range field.Names {
 				fields = append(fields, fieldEntry{
-					name:        name.Name,
-					isEmbedded:  false,
-					isSlice:     isSlice,
-					isMap:       isMap,
-					isInterface: isInterface,
-					isFunction:  isFunction,
-					funcSlice:   funcSlice,
-					hasTrait:    hasTrait,
-					mapOpaque:   mapOpaque,
-					nestedSlice: nestedSlice,
-					ptrSlice:    ptrSlice,
+					name:           name.Name,
+					isEmbedded:     false,
+					isSlice:        isSlice,
+					isMap:          isMap,
+					isInterface:    isInterface,
+					isFunction:     isFunction,
+					funcSlice:      funcSlice,
+					hasTrait:       hasTrait,
+					mapOpaque:      mapOpaque,
+					nestedSlice:    nestedSlice,
+					ptrSlice:       ptrSlice,
+					interfaceSlice: interfaceSlice,
 				})
 			}
 		} else {
 			// Embedded field
 			typeName := getEmbeddedFieldName(field.Type)
 			fields = append(fields, fieldEntry{
-				name:        typeName,
-				isEmbedded:  true,
-				isSlice:     isSlice,
-				isMap:       isMap,
-				isInterface: isInterface,
-				isFunction:  isFunction,
-				funcSlice:   funcSlice,
-				hasTrait:    hasTrait,
-				mapOpaque:   mapOpaque,
-				nestedSlice: nestedSlice,
-				ptrSlice:    ptrSlice,
+				name:           typeName,
+				isEmbedded:     true,
+				isSlice:        isSlice,
+				isMap:          isMap,
+				isInterface:    isInterface,
+				isFunction:     isFunction,
+				funcSlice:      funcSlice,
+				hasTrait:       hasTrait,
+				mapOpaque:      mapOpaque,
+				nestedSlice:    nestedSlice,
+				ptrSlice:       ptrSlice,
+				interfaceSlice: interfaceSlice,
 			})
 		}
 	}
@@ -158,6 +162,11 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 		} else if f.ptrSlice {
 			NeedFormatSlice()
 			out.WriteString("format_slice_wrapped(&self.")
+			out.WriteString(ToSnakeCase(f.name))
+			out.WriteString(")")
+		} else if f.interfaceSlice {
+			NeedFormatSliceWrappedStringer()
+			out.WriteString("format_slice_wrapped_stringer(&self.")
 			out.WriteString(ToSnakeCase(f.name))
 			out.WriteString(")")
 		} else if f.isSlice {
@@ -213,6 +222,15 @@ func arrayFieldContainsFunction(expr ast.Expr) bool {
 		return false
 	}
 	return isFunctionSignatureTypeExpr(arrayType.Elt)
+}
+
+func arrayFieldContainsLocalInterface(expr ast.Expr) bool {
+	arrayType, ok := expr.(*ast.ArrayType)
+	if !ok {
+		return false
+	}
+	_, ok = transpiledNamedInterfaceTypeNameFromExpr(arrayType.Elt)
+	return ok
 }
 
 func structHasTraitField(structType *ast.StructType) bool {

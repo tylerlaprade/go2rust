@@ -62,6 +62,9 @@ func writeArraySliceElementAssignmentValue(out *strings.Builder, rhs ast.Expr, e
 	if writePointerArraySliceElementAssignmentValue(out, rhs, expected) {
 		return
 	}
+	if expected != nil && writeLocalInterfaceFieldValue(out, rhs, nil, expected) {
+		return
+	}
 
 	if ident, ok := rhs.(*ast.Ident); ok {
 		if varType, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar && varType == "usize" {
@@ -7341,6 +7344,11 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						// It's []interface{} - elements are Box<dyn Any>
 						// When iterating with &, we get &Box<dyn Any>
 						valueType = "&" + rustAnyTraitObject()
+					} else if _, ok := transpiledNamedInterfaceTypeNameFromTypes(elemType); ok {
+						// Local named interface slice elements are wrapped to
+						// preserve Go's nullable interface semantics, so the
+						// range value is &Rc<RefCell<Option<Box<dyn Trait>>>>.
+						valueType = "&" + goTypesTypeToRustWrapped(elemType)
 					} else {
 						// It's a slice of named interface - elements are Box<dyn InterfaceName>
 						// We need to get the interface name

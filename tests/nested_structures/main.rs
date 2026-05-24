@@ -46,6 +46,34 @@ where
     }
 }
 
+
+fn format_slice_wrapped_stringer<T, C>(slice: &Rc<RefCell<Option<C>>>) -> String
+where
+    C: AsRef<[Rc<RefCell<Option<T>>>]>,
+    T: Display,
+{
+    let guard = slice.borrow();
+    if let Some(ref s) = *guard {
+        format_slice_wrapped_stringer_values(s.as_ref())
+    } else {
+        "[]".to_string()
+    }
+}
+
+fn format_slice_wrapped_stringer_values<T>(slice: &[Rc<RefCell<Option<T>>>]) -> String
+where
+    T: Display,
+{
+    let formatted: Vec<String> = slice.iter().map(|v| {
+        let inner = v.borrow();
+        match inner.as_ref() {
+            Some(value) => value.to_string(),
+            None => "<nil>".to_string(),
+        }
+    }).collect();
+    format!("[{}]", formatted.join(" "))
+}
+
 /// Interface for drawing
 pub trait Drawable: std::fmt::Display + Any {
     fn __go_clone_box_drawable(&self) -> Box<dyn Drawable>;
@@ -115,7 +143,7 @@ impl std::fmt::Display for Rectangle {
 #[derive(Clone)]
 pub struct Canvas {
     pub name: Rc<RefCell<Option<String>>>,
-    pub shapes: Rc<RefCell<Option<Vec<Box<dyn Drawable>>>>>,
+    pub shapes: Rc<RefCell<Option<Vec<Rc<RefCell<Option<Box<dyn Drawable>>>>>>>>,
 }
 
 impl Canvas {
@@ -133,7 +161,7 @@ impl Default for Canvas {
 
 impl std::fmt::Display for Canvas {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.name.borrow().as_ref().unwrap()), format_slice(&self.shapes))
+        write!(f, "{{{} {}}}", (*self.name.borrow().as_ref().unwrap()), format_slice_wrapped_stringer(&self.shapes))
     }
 }
 
@@ -457,11 +485,11 @@ fn main() {
         // Complex nested structure with interfaces
     println!("{}", format!("{}", "\n=== Complex nested with interfaces ===".to_string()));
 
-    let mut canvas = Rc::new(RefCell::new(Some(Canvas { name: Rc::new(RefCell::new(Some("My Drawing".to_string()))), shapes: Rc::new(RefCell::new(Some(vec![Box::new(Circle { radius: Rc::new(RefCell::new(Some(5.0 as f64))), ..Default::default() }) as Box<dyn Drawable>, Box::new(Rectangle { width: Rc::new(RefCell::new(Some(10.0 as f64))), height: Rc::new(RefCell::new(Some(8.0 as f64))), ..Default::default() }) as Box<dyn Drawable>, Box::new(Circle { radius: Rc::new(RefCell::new(Some(3.0 as f64))), ..Default::default() }) as Box<dyn Drawable>]))), ..Default::default() })));
+    let mut canvas = Rc::new(RefCell::new(Some(Canvas { name: Rc::new(RefCell::new(Some("My Drawing".to_string()))), shapes: Rc::new(RefCell::new(Some(vec![Rc::new(RefCell::new(Some(Box::new(Circle { radius: Rc::new(RefCell::new(Some(5.0 as f64))), ..Default::default() }) as Box<dyn Drawable>))), Rc::new(RefCell::new(Some(Box::new(Rectangle { width: Rc::new(RefCell::new(Some(10.0 as f64))), height: Rc::new(RefCell::new(Some(8.0 as f64))), ..Default::default() }) as Box<dyn Drawable>))), Rc::new(RefCell::new(Some(Box::new(Circle { radius: Rc::new(RefCell::new(Some(3.0 as f64))), ..Default::default() }) as Box<dyn Drawable>)))]))), ..Default::default() })));
 
     print!("Canvas: {}\n", (*(*canvas.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()).clone());
     { let __range_holder = (*canvas.borrow().as_ref().unwrap()).shapes.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, shape) in __range_values.iter().enumerate() {
-        print!("Shape {}: {}\n", i + 1, (*shape.draw().borrow().as_ref().unwrap()));
+        print!("Shape {}: {}\n", i + 1, (*(*shape.borrow().as_ref().unwrap()).draw().borrow().as_ref().unwrap()));
     } }
 
         // Modify nested structures

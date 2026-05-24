@@ -2051,6 +2051,15 @@ func writeLocalInterfaceReferenceCallArgument(out *strings.Builder, arg ast.Expr
 			out.WriteString(".as_ref()")
 			return true
 		}
+		if varType, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar && (strings.HasPrefix(varType, "&Rc<") || strings.HasPrefix(varType, "&Arc<")) {
+			// Range over a wrapped local-interface slice element:
+			// shape: &Rc<RefCell<Option<Box<dyn Trait>>>>. Deref through the
+			// wrappers and the Box to get &dyn Trait.
+			out.WriteString(RustIdentForUse(ident))
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref().unwrap().as_ref()")
+			return true
+		}
 		if isVarBare(ident.Name) {
 			out.WriteString(RustIdentForUse(ident))
 			return true
@@ -2085,10 +2094,11 @@ func writeLocalInterfaceReferenceCallArgument(out *strings.Builder, arg ast.Expr
 }
 
 // writeBoxedInterfaceIndexCallArgument handles passing an indexed slice/array
-// element of interface type (e.g. specs[i+1] where specs is []Spec). The
-// element is a raw Box<dyn Trait>, not a wrapper handle, so the usual
-// .borrow().as_ref().unwrap().as_ref() chain doesn't apply: just borrow
-// the Box via .as_ref() to get &dyn Trait.
+// element of interface type (e.g. specs[i+1] where specs is []Spec). For
+// empty-interface slices the element is a raw Box<dyn Any>, so .as_ref()
+// suffices. For local named interface slices the element is wrapped as
+// Rc<RefCell<Option<Box<dyn Trait>>>>, so we must deref through the wrappers
+// and the Box to recover &dyn Trait.
 func writeBoxedInterfaceIndexCallArgument(out *strings.Builder, arg ast.Expr, expected types.Type) bool {
 	indexExpr, ok := arg.(*ast.IndexExpr)
 	if !ok {
@@ -2116,6 +2126,12 @@ func writeBoxedInterfaceIndexCallArgument(out *strings.Builder, arg ast.Expr, ex
 	}
 	if expected != nil && !types.AssignableTo(elem, expected) {
 		return false
+	}
+	if _, isLocalNamed := transpiledNamedInterfaceTypeNameFromTypes(elem); isLocalNamed {
+		TranspileExpressionContext(out, arg, LValue)
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap().as_ref()")
+		return true
 	}
 	TranspileExpressionContext(out, arg, LValue)
 	out.WriteString(".as_ref()")
@@ -4182,11 +4198,23 @@ func isBareLocalInterfaceValue(expr ast.Expr) bool {
 	if !ok {
 		return false
 	}
-	if isVarBare(ident.Name) {
+	if info := lookupVarInfo(ident.Name); info != nil && info.WrapLevel == WrapNone {
+		// A reference to a wrapped value (&Rc<...> / &Arc<...>) is not a bare
+		// interface value — the wrapped form must be dereferenced through its
+		// wrappers to compare against nil.
+		if strings.HasPrefix(info.RustType, "&Rc<") || strings.HasPrefix(info.RustType, "&Arc<") {
+			return false
+		}
 		return true
 	}
 	varType, isRangeVar := rangeLoopVars[ident.Name]
-	return isRangeVar && strings.HasPrefix(varType, "&Box<dyn ")
+	if !isRangeVar {
+		return false
+	}
+	if strings.HasPrefix(varType, "&Rc<") || strings.HasPrefix(varType, "&Arc<") {
+		return false
+	}
+	return strings.HasPrefix(varType, "&Box<dyn ")
 }
 
 func writeLocalInterfaceBareClone(out *strings.Builder, expr ast.Expr) bool {
@@ -6746,6 +6774,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			// Check if element type is an interface
 			isInterfaceSlice := false
 			var interfaceName string
+			// Local named interface elements are wrapped so the slice can
+			// represent Go's nullable interface value semantics.
+			wrapInterfaceElements := false
 
 			// Check for interface{} (empty interface)
 			if intf, ok := arrayType.Elt.(*ast.InterfaceType); ok && len(intf.Methods.List) == 0 {
@@ -6758,6 +6789,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				if typeInfo != nil && typeInfo.IsInterface(ident) {
 					isInterfaceSlice = true
 					interfaceName = ident.Name
+					if _, ok := transpiledNamedInterfaceTypeNameFromExpr(ident); ok {
+						wrapInterfaceElements = true
+					}
 				}
 			}
 
@@ -6807,6 +6841,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					continue
 				}
 				if isInterfaceSlice {
+					if wrapInterfaceElements {
+						WriteWrapperPrefix(out)
+					}
 					// Box each element for interface slices
 					out.WriteString("Box::new(")
 					// If the element is already a wrapped variable, unwrap it first
@@ -6833,6 +6870,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					out.WriteString(") as Box<dyn ")
 					out.WriteString(interfaceName)
 					out.WriteString(">")
+					if wrapInterfaceElements {
+						WriteWrapperSuffix(out)
+					}
 				} else {
 					if elemType == nil && writeArraySliceLiteralElementValueWithSyntaxType(out, elt, arrayType.Elt) {
 						continue
@@ -10090,6 +10130,11 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				typeInfo := GetTypeInfo()
 				if varType, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar {
 					needsUnwrap = typeInfo != nil && (typeInfo.IsPointer(ident) || isWrappedRangeVarType(varType) && isStdlibNamedInterfaceValueType(typeInfo.GetType(ident)))
+					if !needsUnwrap && typeInfo != nil && isWrappedRangeVarType(varType) {
+						if _, ok := transpiledNamedInterfaceTypeNameFromTypes(typeInfo.GetType(ident)); ok {
+							needsUnwrap = true
+						}
+					}
 				} else {
 					if _, isLocalConst := localConstants[ident.Name]; !isLocalConst {
 						if isFunctionTypeAliasValue(ident) {

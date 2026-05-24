@@ -83,11 +83,11 @@ pub fn cmp_strings(a: Rc<RefCell<Option<String>>>, b: Rc<RefCell<Option<String>>
 }
 
 fn main() {
-    let mut specs = Rc::new(RefCell::new(Some(vec![Box::new(Impl { name: Rc::new(RefCell::new(Some("banana".to_string()))), ..Default::default() }) as Box<dyn Spec>, Box::new(Impl { name: Rc::new(RefCell::new(Some("apple".to_string()))), ..Default::default() }) as Box<dyn Spec>, Box::new(Impl { name: Rc::new(RefCell::new(Some("cherry".to_string()))), ..Default::default() }) as Box<dyn Spec>])));
+    let mut specs = Rc::new(RefCell::new(Some(vec![Rc::new(RefCell::new(Some(Box::new(Impl { name: Rc::new(RefCell::new(Some("banana".to_string()))), ..Default::default() }) as Box<dyn Spec>))), Rc::new(RefCell::new(Some(Box::new(Impl { name: Rc::new(RefCell::new(Some("apple".to_string()))), ..Default::default() }) as Box<dyn Spec>))), Rc::new(RefCell::new(Some(Box::new(Impl { name: Rc::new(RefCell::new(Some("cherry".to_string()))), ..Default::default() }) as Box<dyn Spec>)))])));
     { let __cmp_holder = Rc::new(RefCell::new(Some(Box::new(move |a: &dyn Spec, b: &dyn Spec| -> Rc<RefCell<Option<i32>>> {
         return cmp_strings(get_name(a), get_name(b));
-    }) as Box<dyn FnMut(&dyn Spec, &dyn Spec) -> Rc<RefCell<Option<i32>>>>))); let mut __sort_guard = specs.borrow_mut(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.sort_by(|__a, __b| { let __cmp = { let mut __cmp_guard = __cmp_holder.borrow_mut(); let __cmp_fn = __cmp_guard.as_mut().unwrap(); (*__cmp_fn)(__a.as_ref(), __b.as_ref()) }; let __ord = (*__cmp.borrow().as_ref().unwrap()).cmp(&0); __ord }); } };
+    }) as Box<dyn FnMut(&dyn Spec, &dyn Spec) -> Rc<RefCell<Option<i32>>>>))); let mut __sort_guard = specs.borrow_mut(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.sort_by(|__a, __b| { let __cmp = { let mut __cmp_guard = __cmp_holder.borrow_mut(); let __cmp_fn = __cmp_guard.as_mut().unwrap(); (*__cmp_fn)(__a.borrow().as_ref().unwrap().as_ref(), __b.borrow().as_ref().unwrap().as_ref()) }; let __ord = (*__cmp.borrow().as_ref().unwrap()).cmp(&0); __ord }); } };
     { let __range_holder = specs.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for s in __range_values.iter() {
-        println!("{}", format!("{}", (*s.name().borrow().as_ref().unwrap())));
+        println!("{}", format!("{}", (*(*s.borrow().as_ref().unwrap()).name().borrow().as_ref().unwrap())));
     } }
 }

@@ -1,0 +1,8 @@
+[package]
+name = "interface_slice_nil_element"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "interface_slice_nil_element"
+path = "main.rs"

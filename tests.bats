@@ -1098,6 +1098,10 @@ run_xfail_test() {
     run_test "tests/interface_slice_index_arg"
 }
 
+@test "interface_slice_nil_element" {
+    run_test "tests/interface_slice_nil_element"
+}
+
 @test "interfaces_basic" {
     run_test "tests/interfaces_basic"
 }
@@ -1216,6 +1220,10 @@ run_xfail_test() {
 
 @test "make_error_slice_var" {
     run_test "tests/make_error_slice_var"
+}
+
+@test "make_interface_slice" {
+    run_test "tests/make_interface_slice"
 }
 
 @test "make_map_with_capacity" {
@@ -2608,10 +2616,6 @@ run_xfail_test() {
 
 @test "XFAIL: interface_method_nil_argument" {
     run_xfail_test "tests/XFAIL/interface_method_nil_argument"
-}
-
-@test "XFAIL: make_interface_slice" {
-    run_xfail_test "tests/XFAIL/make_interface_slice"
 }
 
 @test "XFAIL: panic_recover" {
