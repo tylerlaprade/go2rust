@@ -482,6 +482,10 @@ run_xfail_test() {
     run_test "tests/byte_const_field_assignment"
 }
 
+@test "byte_slice_char_assign" {
+    run_test "tests/byte_slice_char_assign"
+}
+
 @test "byte_slice_from_global_array_field" {
     run_test "tests/byte_slice_from_global_array_field"
 }

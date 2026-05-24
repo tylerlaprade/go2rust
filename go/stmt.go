@@ -99,6 +99,8 @@ func writeArraySliceElementAssignmentValue(out *strings.Builder, rhs ast.Expr, e
 		TranspileExpression(out, rhs)
 		WriteBorrowMethod(out, false)
 		out.WriteString(".as_ref().unwrap()).clone()")
+	} else if expected != nil && writeConstExpressionForExpectedGoType(out, rhs, expected) {
+		// Char/int constant cast to the slice element's type (e.g., u8 for []byte).
 	} else {
 		TranspileExpression(out, rhs)
 	}
