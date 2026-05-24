@@ -4005,6 +4005,18 @@ func writeWrappedStructFieldValue(out *strings.Builder, value ast.Expr, fieldExp
 		}
 	}
 
+	if ident, ok := value.(*ast.Ident); ok && ident.Name == "nil" && expectedFieldType != nil {
+		switch types.Unalias(expectedFieldType).Underlying().(type) {
+		case *types.Slice, *types.Map:
+			out.WriteString(GetOuterWrapperType())
+			out.WriteString("::new(")
+			out.WriteString(GetInnerWrapperType())
+			out.WriteString("::new(None))")
+			trackWrapperImports()
+			return
+		}
+	}
+
 	if writeUnknownExpectedSelectorHandleFieldValue(out, value, fieldExpr, expectedFieldType) {
 		return
 	}
