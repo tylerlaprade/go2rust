@@ -2598,6 +2598,10 @@ run_xfail_test() {
     run_xfail_test "tests/XFAIL/interface_method_nil_argument"
 }
 
+@test "XFAIL: make_interface_slice" {
+    run_xfail_test "tests/XFAIL/make_interface_slice"
+}
+
 @test "XFAIL: panic_recover" {
     run_xfail_test "tests/XFAIL/panic_recover"
 }
