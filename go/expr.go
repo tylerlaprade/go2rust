@@ -1146,6 +1146,79 @@ func writeNamedSliceInnerHandleClone(out *strings.Builder, expr ast.Expr) bool {
 	return true
 }
 
+func namedMapTypeFromType(typ types.Type) (*types.Named, *types.Map, bool) {
+	if typ == nil {
+		return nil, nil, false
+	}
+	typ = types.Unalias(typ)
+	named, ok := typ.(*types.Named)
+	if !ok || named.Obj() == nil {
+		return nil, nil, false
+	}
+	mapType, ok := named.Underlying().(*types.Map)
+	if !ok {
+		return nil, nil, false
+	}
+	return named, mapType, true
+}
+
+func namedMapTypeForExpr(expr ast.Expr) (*types.Named, *types.Map, bool) {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return nil, nil, false
+	}
+	return namedMapTypeFromType(typeInfo.GetType(expr))
+}
+
+func isNamedMapExpression(expr ast.Expr) bool {
+	_, _, ok := namedMapTypeForExpr(expr)
+	return ok
+}
+
+// writeNamedMapInnerHandleClone emits an expression yielding the inner wrapped
+// BTreeMap handle from a named-map variable. The result is the same shape as
+// would be produced by an unwrapped map variable (Arc<Mutex<Option<BTreeMap>>>
+// or Rc<RefCell<Option<BTreeMap>>>). Returns false if expr is not a named map.
+func writeNamedMapInnerHandleClone(out *strings.Builder, expr ast.Expr) bool {
+	if _, _, ok := namedMapTypeForExpr(expr); !ok {
+		return false
+	}
+	if ident, ok := expr.(*ast.Ident); ok && currentReceiver != "" && ident.Name == currentReceiver {
+		out.WriteString("self.0.clone()")
+		return true
+	}
+	if star, ok := expr.(*ast.StarExpr); ok {
+		if ident, ok := star.X.(*ast.Ident); ok && currentReceiver != "" && ident.Name == currentReceiver {
+			out.WriteString("self.0.clone()")
+			return true
+		}
+	}
+	out.WriteString("{ let __named_map = (*")
+	TranspileExpressionContext(out, expr, LValue)
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap()).0.clone(); __named_map }")
+	return true
+}
+
+// writeMapHandleForOp writes a wrapped-map handle suitable for further
+// .borrow()/.borrow_mut() operations. For named-map expressions it unwraps
+// the .0 inner field so the result has the same shape as a plain map
+// variable; otherwise it writes the identifier (with capture rules) or the
+// LValue transpilation. Use this at map operation sites (insert, get,
+// delete, range, len) where downstream code expects a handle to the
+// underlying BTreeMap.
+func writeMapHandleForOp(out *strings.Builder, expr ast.Expr) {
+	if isNamedMapExpression(expr) {
+		writeNamedMapInnerHandleClone(out, expr)
+		return
+	}
+	if ident, ok := expr.(*ast.Ident); ok {
+		out.WriteString(rustIdentForUseWithCapture(ident))
+		return
+	}
+	TranspileExpressionContext(out, expr, LValue)
+}
+
 func writeNamedSliceLen(out *strings.Builder, expr ast.Expr) bool {
 	if !isNamedSliceExpression(expr) {
 		return false
@@ -1155,6 +1228,18 @@ func writeNamedSliceLen(out *strings.Builder, expr ast.Expr) bool {
 	out.WriteString("; let __slice_guard = __slice_holder")
 	WriteBorrowMethod(out, false)
 	out.WriteString("; __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }")
+	return true
+}
+
+func writeNamedMapLen(out *strings.Builder, expr ast.Expr) bool {
+	if !isNamedMapExpression(expr) {
+		return false
+	}
+	out.WriteString("{ let __map_holder = ")
+	writeNamedMapInnerHandleClone(out, expr)
+	out.WriteString("; let __map_guard = __map_holder")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; __map_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }")
 	return true
 }
 
@@ -6286,7 +6371,15 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				writeMapLookupValueWithHandle(out, valueType, defaultValue, valueKeepsHandle)
 			} else if NeedsConcurrentWrapper() {
 				out.WriteString("{ let __map = ")
-				writeClonedWrappedExpression(out, e.X, "__map_holder", "__map_guard")
+				if isNamedMapExpression(e.X) {
+					out.WriteString("{ let __map_holder = ")
+					writeNamedMapInnerHandleClone(out, e.X)
+					out.WriteString("; let __map_guard = __map_holder")
+					WriteBorrowMethod(out, false)
+					out.WriteString("; let __cloned = (*__map_guard.as_ref().unwrap()).clone(); drop(__map_guard); __cloned }")
+				} else {
+					writeClonedWrappedExpression(out, e.X, "__map_holder", "__map_guard")
+				}
 				out.WriteString("; __map.get(")
 				if !writeMapLookupKeyWithRustType(out, e.Index, keyRustType) {
 					writeMapLookupKeyWithType(out, e.Index, keyType)
@@ -6296,11 +6389,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				out.WriteString(" }")
 			} else {
 				out.WriteString("(*")
-				if ident, ok := e.X.(*ast.Ident); ok {
-					out.WriteString(rustIdentForUseWithCapture(ident))
-				} else {
-					TranspileExpression(out, e.X)
-				}
+				writeMapHandleForOp(out, e.X)
 				WriteBorrowMethod(out, false)
 				out.WriteString(".as_ref().unwrap()).get(")
 				if !writeMapLookupKeyWithRustType(out, e.Index, keyRustType) {

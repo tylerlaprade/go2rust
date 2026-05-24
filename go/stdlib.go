@@ -3833,6 +3833,10 @@ func transpileLen(out *strings.Builder, call *ast.CallExpr) {
 			return
 		}
 
+		if writeNamedMapLen(out, call.Args[0]) {
+			return
+		}
+
 		// len() returns the length of arrays, slices, maps, strings, or channels
 		if isExpressionResultBare(call.Args[0]) {
 			// Bare value (range var, index result, etc.) - access directly
@@ -3969,7 +3973,11 @@ func transpileMake(out *strings.Builder, call *ast.CallExpr) {
 }
 
 // writeMakeNamedType handles make(T) where T is a named type whose underlying
-// type is map/slice/chan. Returns true if it emitted output.
+// type is map/slice/chan. Returns true if it emitted output. When the type is
+// a *types.Named (defined type with potential methods, not an alias), the
+// inner collection constructor is wrapped in the named tuple struct so the
+// resulting value carries the named type identity. Aliases collapse via
+// types.Unalias and emit the underlying form only.
 func writeMakeNamedType(out *strings.Builder, call *ast.CallExpr) bool {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil {
@@ -3979,21 +3987,44 @@ func writeMakeNamedType(out *strings.Builder, call *ast.CallExpr) bool {
 	if typ == nil {
 		return false
 	}
-	switch ut := types.Unalias(typ).Underlying().(type) {
+	unaliased := types.Unalias(typ)
+	var namedName string
+	if named, ok := unaliased.(*types.Named); ok && named.Obj() != nil {
+		namedName = goTypesNamedTypeToRust(named)
+	}
+	switch ut := unaliased.Underlying().(type) {
 	case *types.Map:
 		WriteWrapperPrefix(out)
+		if namedName != "" {
+			out.WriteString(namedName)
+			out.WriteString("(")
+			WriteWrapperPrefix(out)
+		}
 		TrackImport("BTreeMap")
 		out.WriteString("BTreeMap::<")
 		out.WriteString(goTypesMapKeyToRust(ut.Key()))
 		out.WriteString(", ")
 		out.WriteString(goTypesMapValueToRust(ut.Elem()))
 		out.WriteString(">::new()")
+		if namedName != "" {
+			WriteWrapperSuffix(out)
+			out.WriteString(")")
+		}
 		WriteWrapperSuffix(out)
 		return true
 	case *types.Slice:
 		elementType := zeroValueForTypesType(ut.Elem())
 		WriteWrapperPrefix(out)
+		if namedName != "" {
+			out.WriteString(namedName)
+			out.WriteString("(")
+			WriteWrapperPrefix(out)
+		}
 		writeSliceMakeBody(out, call.Args, elementType)
+		if namedName != "" {
+			WriteWrapperSuffix(out)
+			out.WriteString(")")
+		}
 		WriteWrapperSuffix(out)
 		return true
 	case *types.Chan:
@@ -4100,8 +4131,13 @@ func transpileDelete(out *strings.Builder, call *ast.CallExpr) {
 			keyType, _ = typeInfo.GetMapTypes(call.Args[0])
 		}
 		out.WriteString("{ let __map_handle = ")
-		TranspileExpressionContext(out, call.Args[0], LValue)
-		out.WriteString(".clone(); let mut __map_guard = __map_handle")
+		if isNamedMapExpression(call.Args[0]) {
+			writeNamedMapInnerHandleClone(out, call.Args[0])
+		} else {
+			TranspileExpressionContext(out, call.Args[0], LValue)
+			out.WriteString(".clone()")
+		}
+		out.WriteString("; let mut __map_guard = __map_handle")
 		WriteBorrowMethod(out, true)
 		out.WriteString("; __map_guard.as_mut().unwrap().remove(")
 		writeMapLookupKeyWithType(out, call.Args[1], keyType)

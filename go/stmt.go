@@ -5439,11 +5439,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				writeMapWrappedValue(out, s.Rhs[0], valueType)
 				out.WriteString("; (*")
 				// For map access, we need the raw identifier, not the unwrapped value
-				if ident, ok := indexExpr.X.(*ast.Ident); ok {
-					out.WriteString(rustIdentForUseWithCapture(ident))
-				} else {
-					TranspileExpressionContext(out, indexExpr.X, LValue)
-				}
+				writeMapHandleForOp(out, indexExpr.X)
 				WriteBorrowMethod(out, true)
 				out.WriteString(".as_mut().unwrap()).insert(__map_key, __map_value); }")
 			}
@@ -5722,15 +5718,19 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					out.WriteString(".get(")
 				} else if NeedsConcurrentWrapper() {
 					out.WriteString("{ let __map = ")
-					writeClonedWrappedExpression(out, indexExpr.X, "__map_holder", "__map_guard")
+					if isNamedMapExpression(indexExpr.X) {
+						out.WriteString("{ let __map_holder = ")
+						writeNamedMapInnerHandleClone(out, indexExpr.X)
+						out.WriteString("; let __map_guard = __map_holder")
+						WriteBorrowMethod(out, false)
+						out.WriteString("; let __cloned = (*__map_guard.as_ref().unwrap()).clone(); drop(__map_guard); __cloned }")
+					} else {
+						writeClonedWrappedExpression(out, indexExpr.X, "__map_holder", "__map_guard")
+					}
 					out.WriteString("; match __map.get(")
 				} else {
 					out.WriteString("match (*")
-					if ident, ok := indexExpr.X.(*ast.Ident); ok {
-						out.WriteString(rustIdentForUseWithCapture(ident))
-					} else {
-						TranspileExpression(out, indexExpr.X)
-					}
+					writeMapHandleForOp(out, indexExpr.X)
 					WriteBorrowMethod(out, false)
 					out.WriteString(".as_ref().unwrap()).get(")
 				}
@@ -7462,12 +7462,16 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				return
 			}
 			out.WriteString("{ let __range_holder = ")
-			if ident, ok := s.X.(*ast.Ident); ok {
+			if isNamedMapExpression(s.X) {
+				writeNamedMapInnerHandleClone(out, s.X)
+			} else if ident, ok := s.X.(*ast.Ident); ok {
 				out.WriteString(EscapeRustIdent(ident.Name))
+				out.WriteString(".clone()")
 			} else {
 				TranspileExpressionContext(out, s.X, LValue)
+				out.WriteString(".clone()")
 			}
-			out.WriteString(".clone(); let __range_guard = __range_holder")
+			out.WriteString("; let __range_guard = __range_holder")
 			WriteBorrowMethod(out, false)
 			out.WriteString("; let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map }")
 		}

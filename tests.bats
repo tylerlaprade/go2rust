@@ -1410,6 +1410,10 @@ run_xfail_test() {
     run_test "tests/named_integer_negative_index"
 }
 
+@test "named_map_receiver_assign" {
+    run_test "tests/named_map_receiver_assign"
+}
+
 @test "named_pointer_defer_return" {
     run_test "tests/named_pointer_defer_return"
 }
@@ -2528,10 +2532,6 @@ run_xfail_test() {
 
 @test "XFAIL: http_client" {
     run_xfail_test "tests/XFAIL/http_client"
-}
-
-@test "XFAIL: named_map_receiver_assign" {
-    run_xfail_test "tests/XFAIL/named_map_receiver_assign"
 }
 
 @test "XFAIL: panic_recover" {
