@@ -286,7 +286,7 @@ fn main() {
     { let new_val = 300; *(*(*config.borrow().as_ref().unwrap()).cache.borrow().as_ref().unwrap()).t_t_l.borrow_mut() = Some(new_val); };
 
     print!("Config: {}\n", (*(*config.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()).clone());
-    print!("Database: {}:{} (user: {})\n", (*(*(*config.borrow().as_ref().unwrap()).database.borrow().as_ref().unwrap()).host.borrow().as_ref().unwrap()), (*(*(*config.borrow().as_ref().unwrap()).database.borrow().as_ref().unwrap()).port.borrow().as_ref().unwrap()), (*(*(*(*config.borrow().as_ref().unwrap()).database.borrow().as_ref().unwrap()).credentials.borrow().as_ref().unwrap()).user.borrow().as_ref().unwrap()));
+    print!("Database: {}:{} (user: {})\n", (*(*(*config.borrow().as_ref().unwrap()).database.borrow().as_ref().unwrap()).host.borrow().as_ref().unwrap()).clone(), (*(*(*config.borrow().as_ref().unwrap()).database.borrow().as_ref().unwrap()).port.borrow().as_ref().unwrap()), (*(*(*(*config.borrow().as_ref().unwrap()).database.borrow().as_ref().unwrap()).credentials.borrow().as_ref().unwrap()).user.borrow().as_ref().unwrap()).clone());
     print!("Cache: enabled={}, TTL={}\n", (*(*(*config.borrow().as_ref().unwrap()).cache.borrow().as_ref().unwrap()).enabled.borrow().as_ref().unwrap()), (*(*(*config.borrow().as_ref().unwrap()).cache.borrow().as_ref().unwrap()).t_t_l.borrow().as_ref().unwrap()));
 
         // Test named struct with slice of anonymous structs

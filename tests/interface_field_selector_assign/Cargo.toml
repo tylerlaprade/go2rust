@@ -1,0 +1,8 @@
+[package]
+name = "interface_field_selector_assign"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "interface_field_selector_assign"
+path = "main.rs"

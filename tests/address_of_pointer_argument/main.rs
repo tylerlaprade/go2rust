@@ -63,5 +63,5 @@ fn main() {
 
     let mut t = Rc::new(RefCell::new(Some(table { last: Rc::new(RefCell::new(Some(Default::default()))) })));
     (*t.borrow_mut().as_mut().unwrap()).register(Rc::new(RefCell::new(Some("beta".to_string()))), Rc::new(RefCell::new(Some(info { name: Rc::new(RefCell::new(Some("beta".to_string()))), value: Rc::new(RefCell::new(Some(9 as i32))), ..Default::default() }))));
-    println!("{}", format!("{}", (*(*(*t.borrow().as_ref().unwrap()).last.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*(*(*t.borrow().as_ref().unwrap()).last.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()).clone()));
 }

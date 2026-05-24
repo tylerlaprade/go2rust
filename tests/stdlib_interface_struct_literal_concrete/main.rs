@@ -405,5 +405,5 @@ fn main() {
     if false {
         let _ = make_entry();
     }
-    println!("{}", format!("{}", (*(*make_entry().lock().unwrap().as_ref().unwrap()).name.lock().unwrap().as_ref().unwrap())));
+    println!("{}", format!("{}", (*(*make_entry().lock().unwrap().as_ref().unwrap()).name.lock().unwrap().as_ref().unwrap()).clone()));
 }

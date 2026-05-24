@@ -15,9 +15,9 @@ fn main() {
 
         // Create an Employee - transpiler needs to know nested struct types
     let mut emp = Rc::new(RefCell::new(Some(Employee { person: Rc::new(RefCell::new(Some(Person { name: Rc::new(RefCell::new(Some("Bob".to_string()))), age: Rc::new(RefCell::new(Some(25 as i32))), ..Default::default() }))), address: addr.clone(), i_d: Rc::new(RefCell::new(Some(42 as i32))), ..Default::default() })));
-    print!("Employee {}: {} lives at {}\n", (*(*emp.borrow().as_ref().unwrap()).i_d.borrow().as_ref().unwrap()), (*(*(*emp.borrow().as_ref().unwrap()).person.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()), (*(*(*emp.borrow().as_ref().unwrap()).address.borrow().as_ref().unwrap()).street.borrow().as_ref().unwrap()));
+    print!("Employee {}: {} lives at {}\n", (*(*emp.borrow().as_ref().unwrap()).i_d.borrow().as_ref().unwrap()), (*(*(*emp.borrow().as_ref().unwrap()).person.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()).clone(), (*(*(*emp.borrow().as_ref().unwrap()).address.borrow().as_ref().unwrap()).street.borrow().as_ref().unwrap()).clone());
 
         // Access nested fields - requires knowing the full type hierarchy
     { let new_val = 26; *(*(*emp.borrow().as_ref().unwrap()).person.borrow().as_ref().unwrap()).age.borrow_mut() = Some(new_val); };
-    print!("After birthday: {} is now {}\n", (*(*(*emp.borrow().as_ref().unwrap()).person.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()), (*(*(*emp.borrow().as_ref().unwrap()).person.borrow().as_ref().unwrap()).age.borrow().as_ref().unwrap()));
+    print!("After birthday: {} is now {}\n", (*(*(*emp.borrow().as_ref().unwrap()).person.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()).clone(), (*(*(*emp.borrow().as_ref().unwrap()).person.borrow().as_ref().unwrap()).age.borrow().as_ref().unwrap()));
 }

@@ -36,5 +36,5 @@ fn main() {
     let mut name = Rc::new(RefCell::new(Some("second".to_string())));
     { let __map_key = (*key.borrow().as_ref().unwrap()).clone(); let __map_value = Rc::new(RefCell::new(Some(item { name: name.clone(), ..Default::default() }))); (*items.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
 
-    println!("{} {}", format!("{}", (*(*(*items.borrow().as_ref().unwrap()).get(&"alpha".to_string()).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()).borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap())), format!("{}", (*(*(*items.borrow().as_ref().unwrap()).get(&"beta".to_string()).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()).borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap())));
+    println!("{} {}", format!("{}", (*(*(*items.borrow().as_ref().unwrap()).get(&"alpha".to_string()).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()).borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()).clone()), format!("{}", (*(*(*items.borrow().as_ref().unwrap()).get(&"beta".to_string()).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()).borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()).clone()));
 }

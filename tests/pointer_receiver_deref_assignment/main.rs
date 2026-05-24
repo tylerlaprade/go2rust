@@ -71,5 +71,5 @@ fn main() {
     (*pkg.borrow_mut().as_mut().unwrap()).reset(Rc::new(RefCell::new(Some("new".to_string()))), Rc::new(RefCell::new(Some("New".to_string()))));
     println!("{}", format!("{}", (*(*pkg.borrow().as_ref().unwrap()).i_d.borrow().as_ref().unwrap()).clone()));
     println!("{}", format!("{}", (*(*pkg.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()).clone()));
-    println!("{}", format!("{}", (*(*(*(*pkg.borrow().as_ref().unwrap()).imports.borrow().as_ref().unwrap()).clone().get(&"self".to_string()).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()).borrow().as_ref().unwrap()).i_d.borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*(*(*(*pkg.borrow().as_ref().unwrap()).imports.borrow().as_ref().unwrap()).clone().get(&"self".to_string()).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()).borrow().as_ref().unwrap()).i_d.borrow().as_ref().unwrap()).clone()));
 }

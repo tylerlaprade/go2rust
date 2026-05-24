@@ -1090,6 +1090,10 @@ run_xfail_test() {
     run_test "tests/interface_embedded_method"
 }
 
+@test "interface_field_selector_assign" {
+    run_test "tests/interface_field_selector_assign"
+}
+
 @test "interface_slice_index_arg" {
     run_test "tests/interface_slice_index_arg"
 }

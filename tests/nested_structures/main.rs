@@ -364,16 +364,16 @@ fn main() {
     println!("{}", format!("{}", "\n=== Accessing nested data ===".to_string()));
 
     print!("Company: {}\n", (*(*company.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()).clone());
-    print!("HQ Address: {}, {}, {} {}\n", (*(*(*company.borrow().as_ref().unwrap()).headquarters.borrow().as_ref().unwrap()).street.borrow().as_ref().unwrap()), (*(*(*company.borrow().as_ref().unwrap()).headquarters.borrow().as_ref().unwrap()).city.borrow().as_ref().unwrap()), (*(*(*company.borrow().as_ref().unwrap()).headquarters.borrow().as_ref().unwrap()).state.borrow().as_ref().unwrap()), (*(*(*company.borrow().as_ref().unwrap()).headquarters.borrow().as_ref().unwrap()).zip_code.borrow().as_ref().unwrap()));
+    print!("HQ Address: {}, {}, {} {}\n", (*(*(*company.borrow().as_ref().unwrap()).headquarters.borrow().as_ref().unwrap()).street.borrow().as_ref().unwrap()).clone(), (*(*(*company.borrow().as_ref().unwrap()).headquarters.borrow().as_ref().unwrap()).city.borrow().as_ref().unwrap()).clone(), (*(*(*company.borrow().as_ref().unwrap()).headquarters.borrow().as_ref().unwrap()).state.borrow().as_ref().unwrap()).clone(), (*(*(*company.borrow().as_ref().unwrap()).headquarters.borrow().as_ref().unwrap()).zip_code.borrow().as_ref().unwrap()).clone());
 
     print!("Department: {}\n", (*(*(*company.borrow().as_ref().unwrap()).departments.borrow().as_ref().unwrap())[(0) as usize].clone().name.borrow().as_ref().unwrap()).clone());
     print!("Department Budget: ${:.2}\n", (*(*(*company.borrow().as_ref().unwrap()).departments.borrow().as_ref().unwrap())[(0) as usize].clone().budget.borrow().as_ref().unwrap()));
 
-    print!("Manager: {} (Age: {})\n", (*(*(*(*company.borrow().as_ref().unwrap()).departments.borrow().as_ref().unwrap())[(0) as usize].clone().manager.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()), (*(*(*(*company.borrow().as_ref().unwrap()).departments.borrow().as_ref().unwrap())[(0) as usize].clone().manager.borrow().as_ref().unwrap()).age.borrow().as_ref().unwrap()));
+    print!("Manager: {} (Age: {})\n", (*(*(*(*company.borrow().as_ref().unwrap()).departments.borrow().as_ref().unwrap())[(0) as usize].clone().manager.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()).clone(), (*(*(*(*company.borrow().as_ref().unwrap()).departments.borrow().as_ref().unwrap())[(0) as usize].clone().manager.borrow().as_ref().unwrap()).age.borrow().as_ref().unwrap()));
 
-    print!("Manager Email: {}\n", (*(*(*(*(*company.borrow().as_ref().unwrap()).departments.borrow().as_ref().unwrap())[(0) as usize].clone().manager.borrow().as_ref().unwrap()).contact.borrow().as_ref().unwrap()).email.borrow().as_ref().unwrap()));
+    print!("Manager Email: {}\n", (*(*(*(*(*company.borrow().as_ref().unwrap()).departments.borrow().as_ref().unwrap())[(0) as usize].clone().manager.borrow().as_ref().unwrap()).contact.borrow().as_ref().unwrap()).email.borrow().as_ref().unwrap()).clone());
 
-    print!("Manager Address: {}, {}\n", (*(*(*(*(*company.borrow().as_ref().unwrap()).departments.borrow().as_ref().unwrap())[(0) as usize].clone().manager.borrow().as_ref().unwrap()).address.borrow().as_ref().unwrap()).city.borrow().as_ref().unwrap()), (*(*(*(*(*company.borrow().as_ref().unwrap()).departments.borrow().as_ref().unwrap())[(0) as usize].clone().manager.borrow().as_ref().unwrap()).address.borrow().as_ref().unwrap()).state.borrow().as_ref().unwrap()));
+    print!("Manager Address: {}, {}\n", (*(*(*(*(*company.borrow().as_ref().unwrap()).departments.borrow().as_ref().unwrap())[(0) as usize].clone().manager.borrow().as_ref().unwrap()).address.borrow().as_ref().unwrap()).city.borrow().as_ref().unwrap()).clone(), (*(*(*(*(*company.borrow().as_ref().unwrap()).departments.borrow().as_ref().unwrap())[(0) as usize].clone().manager.borrow().as_ref().unwrap()).address.borrow().as_ref().unwrap()).state.borrow().as_ref().unwrap()).clone());
 
         // Iterate through employees
     println!("{}", format!("{}", "\n=== Department employees ===".to_string()));
@@ -381,9 +381,9 @@ fn main() {
     { let __range_holder = (*(*company.borrow().as_ref().unwrap()).departments.borrow().as_ref().unwrap())[(0) as usize].clone().employees.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, emp) in __range_values.iter().enumerate() {
         print!("Employee {}: {}\n", i + 1, (*emp.name.borrow().as_ref().unwrap()).clone());
         print!("  Age: {}\n", (*emp.age.borrow().as_ref().unwrap()));
-        print!("  Email: {}\n", (*(*emp.contact.borrow().as_ref().unwrap()).email.borrow().as_ref().unwrap()));
-        print!("  Phone: {}\n", (*(*emp.contact.borrow().as_ref().unwrap()).phone.borrow().as_ref().unwrap()));
-        print!("  Address: {}, {}, {}\n", (*(*emp.address.borrow().as_ref().unwrap()).street.borrow().as_ref().unwrap()), (*(*emp.address.borrow().as_ref().unwrap()).city.borrow().as_ref().unwrap()), (*(*emp.address.borrow().as_ref().unwrap()).state.borrow().as_ref().unwrap()));
+        print!("  Email: {}\n", (*(*emp.contact.borrow().as_ref().unwrap()).email.borrow().as_ref().unwrap()).clone());
+        print!("  Phone: {}\n", (*(*emp.contact.borrow().as_ref().unwrap()).phone.borrow().as_ref().unwrap()).clone());
+        print!("  Address: {}, {}, {}\n", (*(*emp.address.borrow().as_ref().unwrap()).street.borrow().as_ref().unwrap()).clone(), (*(*emp.address.borrow().as_ref().unwrap()).city.borrow().as_ref().unwrap()).clone(), (*(*emp.address.borrow().as_ref().unwrap()).state.borrow().as_ref().unwrap()).clone());
         println!();
     } }
 
@@ -469,7 +469,7 @@ fn main() {
 
         // Update employee contact
     { let new_val = "bob.new@company.com".to_string(); *(*(*(*(*company.borrow().as_ref().unwrap()).departments.borrow().as_ref().unwrap())[(0) as usize].clone().employees.borrow().as_ref().unwrap())[(0) as usize].clone().contact.borrow().as_ref().unwrap()).email.borrow_mut() = Some(new_val); };
-    print!("Updated employee email: {}\n", (*(*(*(*(*company.borrow().as_ref().unwrap()).departments.borrow().as_ref().unwrap())[(0) as usize].clone().employees.borrow().as_ref().unwrap())[(0) as usize].clone().contact.borrow().as_ref().unwrap()).email.borrow().as_ref().unwrap()));
+    print!("Updated employee email: {}\n", (*(*(*(*(*company.borrow().as_ref().unwrap()).departments.borrow().as_ref().unwrap())[(0) as usize].clone().employees.borrow().as_ref().unwrap())[(0) as usize].clone().contact.borrow().as_ref().unwrap()).email.borrow().as_ref().unwrap()).clone());
 
         // Add new employee
     let mut newEmployee = Rc::new(RefCell::new(Some(Person { name: Rc::new(RefCell::new(Some("Dave Newbie".to_string()))), age: Rc::new(RefCell::new(Some(25 as i32))), address: Rc::new(RefCell::new(Some(Address { street: Rc::new(RefCell::new(Some("999 New St".to_string()))), city: Rc::new(RefCell::new(Some("Newtown".to_string()))), state: Rc::new(RefCell::new(Some("CA".to_string()))), zip_code: Rc::new(RefCell::new(Some("90214".to_string()))), country: Rc::new(RefCell::new(Some("USA".to_string()))), ..Default::default() }))), contact: Rc::new(RefCell::new(Some(Contact { email: Rc::new(RefCell::new(Some("dave@company.com".to_string()))), phone: Rc::new(RefCell::new(Some("555-0004".to_string()))), ..Default::default() }))), ..Default::default() })));

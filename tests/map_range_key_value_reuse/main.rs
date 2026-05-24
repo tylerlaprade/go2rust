@@ -86,5 +86,5 @@ fn main() {
     }
 
     println!("{}", format!("{}", (*(*pkg.borrow().as_ref().unwrap()).imports.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)));
-    println!("{}", format!("{}", (*(*(*(*pkg.borrow().as_ref().unwrap()).imports.borrow().as_ref().unwrap()).clone().get(&"pkg".to_string()).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()).borrow().as_ref().unwrap()).i_d.borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*(*(*(*pkg.borrow().as_ref().unwrap()).imports.borrow().as_ref().unwrap()).clone().get(&"pkg".to_string()).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()).borrow().as_ref().unwrap()).i_d.borrow().as_ref().unwrap()).clone()));
 }

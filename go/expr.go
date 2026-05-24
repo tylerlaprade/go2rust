@@ -3111,8 +3111,15 @@ func selectorRValueNeedsClone(expr *ast.SelectorExpr) bool {
 		return false
 	}
 	switch types.Unalias(typ).Underlying().(type) {
-	case *types.Pointer, *types.Signature, *types.Chan, *types.Interface:
+	case *types.Pointer, *types.Signature, *types.Chan:
 		return false
+	case *types.Interface:
+		// Named interfaces lower to Box<dyn Trait>. Box<dyn Trait> implements
+		// Clone via __go_clone_box_<suffix>, so we must clone after unwrapping
+		// the wrapped field — derefing &Box<dyn Trait> would otherwise move out
+		// of a shared reference.
+		_, ok := transpiledNamedInterfaceTypeNameFromTypes(typ)
+		return ok
 	default:
 		return true
 	}
@@ -5833,7 +5840,8 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 						out.WriteString(".as_ref().unwrap()).")
 						out.WriteString(fieldInfo.FieldName)
 						WriteBorrowMethod(out, false)
-						out.WriteString(".as_ref().unwrap())")
+						out.WriteString(".as_ref().unwrap()")
+						writeSelectorRValueClose(out, e)
 					} else {
 						out.WriteString("(*")
 						TranspileExpressionContext(out, e.X, LValue)
@@ -5851,7 +5859,8 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 						out.WriteString(".as_ref().unwrap()).")
 						out.WriteString(fieldInfo.FieldName)
 						WriteBorrowMethod(out, false)
-						out.WriteString(".as_ref().unwrap())")
+						out.WriteString(".as_ref().unwrap()")
+						writeSelectorRValueClose(out, e)
 					} else {
 						out.WriteString("(*")
 						TranspileExpression(out, e.X)
@@ -5875,7 +5884,8 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 						out.WriteString(".as_ref().unwrap()).")
 						out.WriteString(fieldInfo.FieldName)
 						WriteBorrowMethod(out, false)
-						out.WriteString(".as_ref().unwrap())")
+						out.WriteString(".as_ref().unwrap()")
+						writeSelectorRValueClose(out, e)
 					} else {
 						// In LValue context, just unwrap the struct to access the field
 						out.WriteString("(*")
