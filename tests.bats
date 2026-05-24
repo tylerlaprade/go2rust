@@ -1738,6 +1738,10 @@ run_xfail_test() {
     run_test "tests/range_iteration"
 }
 
+@test "range_loop_assign_to_slice" {
+    run_test "tests/range_loop_assign_to_slice"
+}
+
 @test "range_loops" {
     run_test "tests/range_loops"
 }

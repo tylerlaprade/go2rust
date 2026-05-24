@@ -73,6 +73,11 @@ func writeArraySliceElementAssignmentValue(out *strings.Builder, rhs ast.Expr, e
 				}
 			}
 		}
+		if varType, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar && strings.HasPrefix(varType, "&") {
+			out.WriteString(RustLocalIdent(ident.Name))
+			out.WriteString(".clone()")
+			return
+		}
 	}
 
 	needsUnwrap := false
