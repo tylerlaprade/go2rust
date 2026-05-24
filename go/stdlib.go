@@ -658,6 +658,22 @@ func convertFormatStringWithSkips(goFormat string) (string, []int, []int, []int,
 						argIndex++
 						i = j + 1
 						continue
+					case 'd', 'f':
+						result.WriteString("{:")
+						if leftAlign {
+							result.WriteString("<")
+						}
+						if zeroPad {
+							result.WriteString("0")
+						}
+						result.WriteString(width)
+						if format[j] == 'f' {
+							result.WriteString(".6")
+						}
+						result.WriteString("}")
+						argIndex++
+						i = j + 1
+						continue
 					}
 				}
 

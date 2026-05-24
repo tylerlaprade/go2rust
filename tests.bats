@@ -1690,6 +1690,10 @@ run_xfail_test() {
     run_test "tests/pointers_simple"
 }
 
+@test "printf_width_decimal" {
+    run_test "tests/printf_width_decimal"
+}
+
 @test "promoted_pointer_index_field_assign" {
     run_test "tests/promoted_pointer_index_field_assign"
 }

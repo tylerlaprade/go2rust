@@ -1,0 +1,8 @@
+[package]
+name = "printf_width_decimal"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "printf_width_decimal"
+path = "main.rs"
