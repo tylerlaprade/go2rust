@@ -9871,6 +9871,32 @@ func isStringsBuilderReceiverType(typ types.Type) bool {
 	return named.Obj().Pkg().Path() == "strings" && named.Obj().Name() == "Builder"
 }
 
+// isByteWriterReceiverType reports whether typ is a stdlib type that we know
+// emits a __go_write_bytes method (currently bytes.Buffer and io.Writer).
+// Used by fmt.Fprintf lowering to choose a tuple-returning emission path so
+// `n, err := fmt.Fprintf(writer, ...)` destructures correctly.
+func isByteWriterReceiverType(typ types.Type) bool {
+	if typ == nil {
+		return false
+	}
+	if ptr, ok := types.Unalias(typ).(*types.Pointer); ok {
+		return isByteWriterReceiverType(ptr.Elem())
+	}
+	named, ok := types.Unalias(typ).(*types.Named)
+	if !ok || named.Obj() == nil || named.Obj().Pkg() == nil {
+		return false
+	}
+	pkg := named.Obj().Pkg().Path()
+	name := named.Obj().Name()
+	switch {
+	case pkg == "bytes" && name == "Buffer":
+		return true
+	case pkg == "io" && name == "Writer":
+		return true
+	}
+	return false
+}
+
 func isStringsBuilderReceiverBare(recv ast.Expr) bool {
 	if isExpressionResultBare(recv) {
 		return true

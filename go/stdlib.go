@@ -1021,6 +1021,10 @@ func transpileFmtFprintf(out *strings.Builder, call *ast.CallExpr) {
 		out.WriteString(")")
 		return
 	}
+	if fmtFprintfTargetIsByteWriter(call.Args[0]) {
+		writeFprintfByteWriterTuple(out, call)
+		return
+	}
 	// Check if writing to stderr
 	macro := "print!"
 	if isOsStderr(call.Args[0]) {
@@ -1032,6 +1036,29 @@ func transpileFmtFprintf(out *strings.Builder, call *ast.CallExpr) {
 func fmtFprintfTargetIsStringsBuilder(expr ast.Expr) bool {
 	typeInfo := GetTypeInfo()
 	return typeInfo != nil && isStringsBuilderReceiverType(typeInfo.GetType(expr))
+}
+
+func fmtFprintfTargetIsByteWriter(expr ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	return typeInfo != nil && isByteWriterReceiverType(typeInfo.GetType(expr))
+}
+
+// writeFprintfByteWriterTuple emits a block expression that formats the args,
+// writes them to the target's __go_write_bytes, and returns the Go
+// (int, error) shape so `n, err := fmt.Fprintf(...)` destructures correctly.
+func writeFprintfByteWriterTuple(out *strings.Builder, call *ast.CallExpr) {
+	TrackImport("Error")
+	errorInner := externalStubErrorInnerType()
+	out.WriteString("{ let __s = ")
+	writeFmtMacroCall(out, "format!", call, 1, writeOwnedStringStdlibArg)
+	out.WriteString("; let __n = __s.len() as i32; (*")
+	TranspileExpressionContext(out, call.Args[0], LValue)
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap()).__go_write_bytes(__s.as_bytes()); (")
+	out.WriteString(wrappedExternalStubExpr("i32", "__n"))
+	out.WriteString(", ")
+	out.WriteString(wrappedExternalStubNoneExpr(errorInner))
+	out.WriteString(") }")
 }
 
 func formatSliceArgumentIsBareValue(arg ast.Expr) bool {
