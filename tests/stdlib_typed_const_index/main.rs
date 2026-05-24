@@ -29,6 +29,92 @@ impl types_Basic {
 }
 
 
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
+pub struct types_BasicInfo(pub i32);
+
+impl PartialEq<i32> for types_BasicInfo {
+    fn eq(&self, other: &i32) -> bool {
+        self.0 == *other
+    }
+}
+
+impl PartialEq<types_BasicInfo> for i32 {
+    fn eq(&self, other: &types_BasicInfo) -> bool {
+        *self == other.0
+    }
+}
+
+impl std::ops::BitAnd for types_BasicInfo {
+    type Output = types_BasicInfo;
+    fn bitand(self, other: Self) -> types_BasicInfo {
+        types_BasicInfo(self.0 & other.0)
+    }
+}
+
+impl std::ops::BitOr for types_BasicInfo {
+    type Output = types_BasicInfo;
+    fn bitor(self, other: Self) -> types_BasicInfo {
+        types_BasicInfo(self.0 | other.0)
+    }
+}
+
+impl std::fmt::Display for types_BasicInfo {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<types_BasicInfo>")
+    }
+}
+
+
+impl types_BasicInfo {
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        None
+    }
+}
+
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
+pub struct types_BasicKind(pub i32);
+
+impl PartialEq<i32> for types_BasicKind {
+    fn eq(&self, other: &i32) -> bool {
+        self.0 == *other
+    }
+}
+
+impl PartialEq<types_BasicKind> for i32 {
+    fn eq(&self, other: &types_BasicKind) -> bool {
+        *self == other.0
+    }
+}
+
+impl std::ops::BitAnd for types_BasicKind {
+    type Output = types_BasicKind;
+    fn bitand(self, other: Self) -> types_BasicKind {
+        types_BasicKind(self.0 & other.0)
+    }
+}
+
+impl std::ops::BitOr for types_BasicKind {
+    type Output = types_BasicKind;
+    fn bitor(self, other: Self) -> types_BasicKind {
+        types_BasicKind(self.0 | other.0)
+    }
+}
+
+impl std::fmt::Display for types_BasicKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<types_BasicKind>")
+    }
+}
+
+
+impl types_BasicKind {
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        None
+    }
+}
+
+
 #[derive(Clone)]
 pub struct types_Type {
     pub __go_id: usize,

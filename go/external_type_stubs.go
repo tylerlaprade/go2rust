@@ -49,7 +49,18 @@ func RegisterExternalTypeStub(name string) {
 	if !canDefineExternalTypeStub(name) {
 		return
 	}
+	if currentExternalTypeStubs()[name] {
+		return
+	}
 	currentExternalTypeStubs()[name] = true
+	// The types_Basic stub written by writeTypesBasicStub references the
+	// types_BasicKind and types_BasicInfo integer stubs by name. Keep the
+	// bridge internally consistent: any path that registers types_Basic
+	// must also register the integer types its fields refer to.
+	if name == "types_Basic" {
+		RegisterExternalIntegerTypeStub("types_BasicKind", "i32")
+		RegisterExternalIntegerTypeStub("types_BasicInfo", "i32")
+	}
 }
 
 func RegisterExternalTypeStubInterface(name string) {
@@ -1716,8 +1727,14 @@ func generateExternalStubs(stubs map[string]bool, interfaceTypes map[string]bool
 	if needsJsonSupport {
 		writeJsonSupportHelpers(&out, stubs["bytes_Buffer"])
 	}
-	if stubs["types_Config"] {
-		writeTypesBridgeSupport(&out)
+	// writeTypesBridgeSupport emits helper traits and __go_types_check that
+	// only callers of types.Config.Check use. Don't emit them just because
+	// types.Config was named — the helpers reference ast_Expr/ast_File/etc.
+	// which are only registered along the Check path.
+	if methodsByType["types_Config"] != nil {
+		if _, hasCheck := methodsByType["types_Config"]["check"]; hasCheck {
+			writeTypesBridgeSupport(&out)
+		}
 	}
 	for i, name := range names {
 		if i > 0 || out.Len() > 0 {

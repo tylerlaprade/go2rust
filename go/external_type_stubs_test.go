@@ -126,6 +126,60 @@ func testExternalTypesBasicStruct() (*gotypes.Named, *gotypes.Struct) {
 	return named, structType
 }
 
+// writeTypesBasicStub emits a struct whose field types are types_BasicKind and
+// types_BasicInfo. Registering types_Basic without also registering those
+// integer stubs leaves the generated Rust referring to undefined types.
+func TestRegisterTypesBasicAlsoRegistersFieldTypes(t *testing.T) {
+	prevContext := currentContext
+	ctx := &TranspileContext{
+		Package: NewPackageState(),
+		File:    NewFileState(NewImportTracker(), &HelperTracker{}, nil),
+	}
+	SetTranspileContext(ctx)
+	defer SetTranspileContext(prevContext)
+
+	RegisterExternalTypeStub("types_Basic")
+	if !ctx.File.ExternalTypeStubs["types_BasicKind"] {
+		t.Fatalf("registering types_Basic must also register types_BasicKind: %#v", ctx.File.ExternalTypeStubs)
+	}
+	if !ctx.File.ExternalTypeStubs["types_BasicInfo"] {
+		t.Fatalf("registering types_Basic must also register types_BasicInfo: %#v", ctx.File.ExternalTypeStubs)
+	}
+	if ctx.File.ExternalTypeStubIntegerTypes["types_BasicKind"] != "i32" {
+		t.Fatalf("types_BasicKind must register as i32 integer stub: %#v", ctx.File.ExternalTypeStubIntegerTypes)
+	}
+	if ctx.File.ExternalTypeStubIntegerTypes["types_BasicInfo"] != "i32" {
+		t.Fatalf("types_BasicInfo must register as i32 integer stub: %#v", ctx.File.ExternalTypeStubIntegerTypes)
+	}
+}
+
+// Registering types_Config alone (e.g. for a struct literal) must not pull in
+// writeTypesBridgeSupport, which references ast_Expr, ast_File, types_Info,
+// and other types that are only wired through the Check() method path.
+func TestTypesBridgeSupportGatedOnConfigCheck(t *testing.T) {
+	noCheck := generateExternalStubs(
+		map[string]bool{"types_Config": true},
+		nil, nil, nil, nil,
+		map[string]map[string]externalTypeStubMethod{},
+		nil, nil,
+	)
+	if strings.Contains(noCheck, "GoTypesBridgeStringArg") {
+		t.Fatalf("bridge support must not appear without types.Config.Check usage:\n%s", noCheck)
+	}
+
+	withCheck := generateExternalStubs(
+		map[string]bool{"types_Config": true},
+		nil, nil, nil, nil,
+		map[string]map[string]externalTypeStubMethod{
+			"types_Config": {"check": externalTypeStubMethod{}},
+		},
+		nil, nil,
+	)
+	if !strings.Contains(withCheck, "GoTypesBridgeStringArg") {
+		t.Fatalf("bridge support should appear when types.Config.Check is registered:\n%s", withCheck)
+	}
+}
+
 func TestParserStubUsesGoAstShapesForCalls(t *testing.T) {
 	var out strings.Builder
 	writeParserParseFileFunction(&out, externalPackageStubFunction{
