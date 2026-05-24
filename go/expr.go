@@ -2559,6 +2559,25 @@ func isWrappedRangeVarType(varType string) bool {
 	return strings.Contains(varType, "Arc<") || strings.Contains(varType, "Rc<")
 }
 
+// identTypeIsWrappedPointer reports whether go/types says the ident's
+// resolved object has *Pointer type (e.g. *ImportSpec). In the transpiler
+// these become wrapped handles (Arc<Mutex<Option<T>>> or Rc<RefCell<Option<T>>>),
+// so the field-access path needs to unwrap before reaching named fields.
+// This catches short-decl shadows of range loop variables that
+// rangeLoopVars hasn't been updated to reflect.
+func identTypeIsWrappedPointer(ident *ast.Ident) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return false
+	}
+	obj := typeInfo.info.Uses[ident]
+	if obj == nil {
+		return false
+	}
+	_, ok := obj.Type().(*types.Pointer)
+	return ok
+}
+
 func sameWrappedIdentBinary(expr *ast.BinaryExpr) (*ast.Ident, bool) {
 	if expr.Op == token.LAND || expr.Op == token.LOR {
 		return nil, false
@@ -5517,6 +5536,14 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				needsUnwrap := false
 				if varType, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar {
 					needsUnwrap = isWrappedRangeVarType(varType)
+					// rangeLoopVars is keyed by name and doesn't track shadowing.
+					// If this ident actually resolves through go/types to a
+					// different object than the range var (e.g. via
+					//   for _, s := range specs { s := s.(*Foo); ... }
+					// where the inner s shadows the outer), use the real type.
+					if !needsUnwrap && identTypeIsWrappedPointer(ident) {
+						needsUnwrap = true
+					}
 				} else {
 					if _, isLocalConst := localConstants[ident.Name]; !isLocalConst {
 						if !isVarBare(ident.Name) {

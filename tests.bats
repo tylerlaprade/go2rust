@@ -2354,6 +2354,10 @@ run_xfail_test() {
     run_test "tests/tuple_return_reassignment"
 }
 
+@test "type_assert_shadow_range" {
+    run_test "tests/type_assert_shadow_range"
+}
+
 @test "type_assertion_method_receiver" {
     run_test "tests/type_assertion_method_receiver"
 }

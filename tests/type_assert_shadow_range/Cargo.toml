@@ -1,0 +1,8 @@
+[package]
+name = "type_assert_shadow_range"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "type_assert_shadow_range"
+path = "main.rs"

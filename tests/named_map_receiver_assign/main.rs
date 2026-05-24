@@ -56,7 +56,7 @@ impl Tally {
 
     pub fn replace(&self, old: Rc<RefCell<Option<String>>>, new: Rc<RefCell<Option<String>>>) {
         {
-        let (mut list, mut ok) = match (*self.0.borrow().as_ref().unwrap()).get(&(*old.borrow().as_ref().unwrap()).clone()) { /* MAP_COMMA_OK */ Some(v) => (v.clone(), Rc::new(RefCell::new(Some(true)))), None => (Default::default(), Rc::new(RefCell::new(Some(false)))) };;
+        let (mut list, mut ok) = match (*self.0.clone().borrow().as_ref().unwrap()).get(&(*old.borrow().as_ref().unwrap()).clone()) { /* MAP_COMMA_OK */ Some(v) => (v.clone(), Rc::new(RefCell::new(Some(true)))), None => (Default::default(), Rc::new(RefCell::new(Some(false)))) };;
         if (*ok.borrow().as_ref().unwrap()) {
             { let __map_handle = self.0.clone(); let mut __map_guard = __map_handle.borrow_mut(); __map_guard.as_mut().unwrap().remove(&(*old.borrow().as_ref().unwrap()).clone()); };;
             { let __map_key = (*new.borrow().as_ref().unwrap()).clone(); let __map_value = { let __slice = { let __map_holder = self.0.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().unwrap().get(&(*new.borrow().as_ref().unwrap()).clone()).cloned().unwrap_or_else(|| Rc::new(RefCell::new(None))) }; (*__slice.borrow_mut()).get_or_insert_with(Vec::new).extend({ let __slice_holder = list.clone(); let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().map(|__v| __v.clone()).unwrap_or_default() }.iter().cloned()); __slice.clone() }; (*self.0.clone().borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };;

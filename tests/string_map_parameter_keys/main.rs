@@ -76,7 +76,7 @@ impl std::fmt::Display for position {
 
 impl cache {
     pub fn off(&mut self, s: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<u64>>> {
-        let (mut off, mut ok) = match (*self.index.clone().borrow().as_ref().unwrap()).get(&(*s.borrow().as_ref().unwrap()).clone()) { /* MAP_COMMA_OK */ Some(v) => (v.clone(), Rc::new(RefCell::new(Some(true)))), None => (Rc::new(RefCell::new(Some(0))), Rc::new(RefCell::new(Some(false)))) };
+        let (mut off, mut ok) = match (*self.index.borrow().as_ref().unwrap()).get(&(*s.borrow().as_ref().unwrap()).clone()) { /* MAP_COMMA_OK */ Some(v) => (v.clone(), Rc::new(RefCell::new(Some(true)))), None => (Rc::new(RefCell::new(Some(0))), Rc::new(RefCell::new(Some(false)))) };
         if !(*ok.borrow().as_ref().unwrap()) {
         { let new_val = Rc::new(RefCell::new(Some((*s.borrow().as_ref().unwrap()).len() as u64))); let __moved_val = { let mut __guard = new_val.borrow_mut(); __guard.take() }; *off.borrow_mut() = __moved_val; };
         { let __map_key = (*s.borrow().as_ref().unwrap()).clone(); let __map_value = off.clone(); (*self.index.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
