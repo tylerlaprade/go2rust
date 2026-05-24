@@ -1,0 +1,3 @@
+wrote 7 bytes: ab
+     1  c#d
+

@@ -2634,6 +2634,10 @@ run_xfail_test() {
     run_xfail_test "tests/XFAIL/file_operations"
 }
 
+@test "XFAIL: fprintf_printer_writer_pattern" {
+    run_xfail_test "tests/XFAIL/fprintf_printer_writer_pattern"
+}
+
 @test "XFAIL: func_type_alias_implements_interface" {
     run_xfail_test "tests/XFAIL/func_type_alias_implements_interface"
 }
