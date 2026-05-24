@@ -1,0 +1,8 @@
+[package]
+name = "package_global_pointer_slice_assign"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "package_global_pointer_slice_assign"
+path = "main.rs"

@@ -174,8 +174,12 @@ func writePointerArraySliceElementAssignmentValue(out *strings.Builder, rhs ast.
 	}
 	switch rhs.(type) {
 	case *ast.Ident, *ast.SelectorExpr:
-		TranspileExpressionContext(out, rhs, LValue)
-		out.WriteString(".clone()")
+		if ident, ok := packageGlobalPointerIdent(rhs); ok {
+			writePackageGlobalPointerHandleClone(out, ident)
+		} else {
+			TranspileExpressionContext(out, rhs, LValue)
+			out.WriteString(".clone()")
+		}
 	case *ast.IndexExpr:
 		TranspileExpression(out, rhs)
 	default:

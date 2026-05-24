@@ -1606,6 +1606,10 @@ run_xfail_test() {
     run_test "tests/package_global_pointer_nil_compare"
 }
 
+@test "package_global_pointer_slice_assign" {
+    run_test "tests/package_global_pointer_slice_assign"
+}
+
 @test "package_global_readonly_pointer_method" {
     run_test "tests/package_global_readonly_pointer_method"
 }
