@@ -49,9 +49,9 @@ impl PartialOrd<Kind> for i32 {
 }
 
 impl std::ops::Add for Kind {
-    type Output = i32;
-    fn add(self, other: Self) -> i32 {
-        *self.0.lock().unwrap().as_ref().unwrap() + *other.0.lock().unwrap().as_ref().unwrap()
+    type Output = Kind;
+    fn add(self, other: Self) -> Kind {
+        Kind(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() + *other.0.lock().unwrap().as_ref().unwrap()))))
     }
 }
 
@@ -70,9 +70,9 @@ impl std::ops::Add<Kind> for i32 {
 }
 
 impl std::ops::Sub for Kind {
-    type Output = i32;
-    fn sub(self, other: Self) -> i32 {
-        *self.0.lock().unwrap().as_ref().unwrap() - *other.0.lock().unwrap().as_ref().unwrap()
+    type Output = Kind;
+    fn sub(self, other: Self) -> Kind {
+        Kind(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() - *other.0.lock().unwrap().as_ref().unwrap()))))
     }
 }
 
@@ -210,9 +210,9 @@ impl PartialOrd<Index> for i32 {
 }
 
 impl std::ops::Add for Index {
-    type Output = i32;
-    fn add(self, other: Self) -> i32 {
-        *self.0.lock().unwrap().as_ref().unwrap() + *other.0.lock().unwrap().as_ref().unwrap()
+    type Output = Index;
+    fn add(self, other: Self) -> Index {
+        Index(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() + *other.0.lock().unwrap().as_ref().unwrap()))))
     }
 }
 
@@ -231,9 +231,9 @@ impl std::ops::Add<Index> for i32 {
 }
 
 impl std::ops::Sub for Index {
-    type Output = i32;
-    fn sub(self, other: Self) -> i32 {
-        *self.0.lock().unwrap().as_ref().unwrap() - *other.0.lock().unwrap().as_ref().unwrap()
+    type Output = Index;
+    fn sub(self, other: Self) -> Index {
+        Index(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() - *other.0.lock().unwrap().as_ref().unwrap()))))
     }
 }
 

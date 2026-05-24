@@ -1366,6 +1366,10 @@ run_xfail_test() {
     run_test "tests/named_func_return_defer"
 }
 
+@test "named_integer_arithmetic_returns_named" {
+    run_test "tests/named_integer_arithmetic_returns_named"
+}
+
 @test "named_integer_bitwise_xor_assign" {
     run_test "tests/named_integer_bitwise_xor_assign"
 }

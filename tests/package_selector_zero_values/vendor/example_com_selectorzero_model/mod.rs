@@ -50,9 +50,9 @@ impl PartialOrd<Index> for i32 {
 }
 
 impl std::ops::Add for Index {
-    type Output = i32;
-    fn add(self, other: Self) -> i32 {
-        *self.0.borrow().as_ref().unwrap() + *other.0.borrow().as_ref().unwrap()
+    type Output = Index;
+    fn add(self, other: Self) -> Index {
+        Index(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() + *other.0.borrow().as_ref().unwrap()))))
     }
 }
 
@@ -71,9 +71,9 @@ impl std::ops::Add<Index> for i32 {
 }
 
 impl std::ops::Sub for Index {
-    type Output = i32;
-    fn sub(self, other: Self) -> i32 {
-        *self.0.borrow().as_ref().unwrap() - *other.0.borrow().as_ref().unwrap()
+    type Output = Index;
+    fn sub(self, other: Self) -> Index {
+        Index(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() - *other.0.borrow().as_ref().unwrap()))))
     }
 }
 

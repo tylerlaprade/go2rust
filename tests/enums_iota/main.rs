@@ -55,9 +55,9 @@ impl PartialOrd<ServerState> for i32 {
 }
 
 impl std::ops::Add for ServerState {
-    type Output = i32;
-    fn add(self, other: Self) -> i32 {
-        *self.0.borrow().as_ref().unwrap() + *other.0.borrow().as_ref().unwrap()
+    type Output = ServerState;
+    fn add(self, other: Self) -> ServerState {
+        ServerState(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() + *other.0.borrow().as_ref().unwrap()))))
     }
 }
 
@@ -76,9 +76,9 @@ impl std::ops::Add<ServerState> for i32 {
 }
 
 impl std::ops::Sub for ServerState {
-    type Output = i32;
-    fn sub(self, other: Self) -> i32 {
-        *self.0.borrow().as_ref().unwrap() - *other.0.borrow().as_ref().unwrap()
+    type Output = ServerState;
+    fn sub(self, other: Self) -> ServerState {
+        ServerState(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() - *other.0.borrow().as_ref().unwrap()))))
     }
 }
 

@@ -54,9 +54,9 @@ impl PartialOrd<Color> for i32 {
 }
 
 impl std::ops::Add for Color {
-    type Output = i32;
-    fn add(self, other: Self) -> i32 {
-        *self.0.borrow().as_ref().unwrap() + *other.0.borrow().as_ref().unwrap()
+    type Output = Color;
+    fn add(self, other: Self) -> Color {
+        Color(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() + *other.0.borrow().as_ref().unwrap()))))
     }
 }
 
@@ -75,9 +75,9 @@ impl std::ops::Add<Color> for i32 {
 }
 
 impl std::ops::Sub for Color {
-    type Output = i32;
-    fn sub(self, other: Self) -> i32 {
-        *self.0.borrow().as_ref().unwrap() - *other.0.borrow().as_ref().unwrap()
+    type Output = Color;
+    fn sub(self, other: Self) -> Color {
+        Color(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() - *other.0.borrow().as_ref().unwrap()))))
     }
 }
 

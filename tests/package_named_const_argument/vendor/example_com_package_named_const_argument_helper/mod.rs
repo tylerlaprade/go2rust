@@ -53,9 +53,9 @@ impl PartialOrd<Kind> for u8 {
 }
 
 impl std::ops::Add for Kind {
-    type Output = u8;
-    fn add(self, other: Self) -> u8 {
-        *self.0.borrow().as_ref().unwrap() + *other.0.borrow().as_ref().unwrap()
+    type Output = Kind;
+    fn add(self, other: Self) -> Kind {
+        Kind(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() + *other.0.borrow().as_ref().unwrap()))))
     }
 }
 
@@ -74,9 +74,9 @@ impl std::ops::Add<Kind> for u8 {
 }
 
 impl std::ops::Sub for Kind {
-    type Output = u8;
-    fn sub(self, other: Self) -> u8 {
-        *self.0.borrow().as_ref().unwrap() - *other.0.borrow().as_ref().unwrap()
+    type Output = Kind;
+    fn sub(self, other: Self) -> Kind {
+        Kind(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() - *other.0.borrow().as_ref().unwrap()))))
     }
 }
 

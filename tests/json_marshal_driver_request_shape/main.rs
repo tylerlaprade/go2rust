@@ -187,9 +187,9 @@ impl PartialOrd<Mode> for i32 {
 }
 
 impl std::ops::Add for Mode {
-    type Output = i32;
-    fn add(self, other: Self) -> i32 {
-        *self.0.borrow().as_ref().unwrap() + *other.0.borrow().as_ref().unwrap()
+    type Output = Mode;
+    fn add(self, other: Self) -> Mode {
+        Mode(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() + *other.0.borrow().as_ref().unwrap()))))
     }
 }
 
@@ -208,9 +208,9 @@ impl std::ops::Add<Mode> for i32 {
 }
 
 impl std::ops::Sub for Mode {
-    type Output = i32;
-    fn sub(self, other: Self) -> i32 {
-        *self.0.borrow().as_ref().unwrap() - *other.0.borrow().as_ref().unwrap()
+    type Output = Mode;
+    fn sub(self, other: Self) -> Mode {
+        Mode(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() - *other.0.borrow().as_ref().unwrap()))))
     }
 }
 

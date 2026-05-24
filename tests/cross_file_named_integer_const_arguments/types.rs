@@ -56,9 +56,9 @@ impl PartialOrd<RelocKind> for i32 {
 }
 
 impl std::ops::Add for RelocKind {
-    type Output = i32;
-    fn add(self, other: Self) -> i32 {
-        *self.0.borrow().as_ref().unwrap() + *other.0.borrow().as_ref().unwrap()
+    type Output = RelocKind;
+    fn add(self, other: Self) -> RelocKind {
+        RelocKind(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() + *other.0.borrow().as_ref().unwrap()))))
     }
 }
 
@@ -77,9 +77,9 @@ impl std::ops::Add<RelocKind> for i32 {
 }
 
 impl std::ops::Sub for RelocKind {
-    type Output = i32;
-    fn sub(self, other: Self) -> i32 {
-        *self.0.borrow().as_ref().unwrap() - *other.0.borrow().as_ref().unwrap()
+    type Output = RelocKind;
+    fn sub(self, other: Self) -> RelocKind {
+        RelocKind(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() - *other.0.borrow().as_ref().unwrap()))))
     }
 }
 
@@ -217,9 +217,9 @@ impl PartialOrd<SyncMarker> for i32 {
 }
 
 impl std::ops::Add for SyncMarker {
-    type Output = i32;
-    fn add(self, other: Self) -> i32 {
-        *self.0.borrow().as_ref().unwrap() + *other.0.borrow().as_ref().unwrap()
+    type Output = SyncMarker;
+    fn add(self, other: Self) -> SyncMarker {
+        SyncMarker(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() + *other.0.borrow().as_ref().unwrap()))))
     }
 }
 
@@ -238,9 +238,9 @@ impl std::ops::Add<SyncMarker> for i32 {
 }
 
 impl std::ops::Sub for SyncMarker {
-    type Output = i32;
-    fn sub(self, other: Self) -> i32 {
-        *self.0.borrow().as_ref().unwrap() - *other.0.borrow().as_ref().unwrap()
+    type Output = SyncMarker;
+    fn sub(self, other: Self) -> SyncMarker {
+        SyncMarker(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() - *other.0.borrow().as_ref().unwrap()))))
     }
 }
 

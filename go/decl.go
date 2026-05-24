@@ -1922,8 +1922,8 @@ func writeScalarTypeDefinitionPartialEq(out *strings.Builder, typeName string) {
 func writeScalarTypeDefinitionNumericOps(out *strings.Builder, typeName string, rustType string, underlying string) {
 	rustTypeName := RustTypeNameForUse(typeName)
 	writeScalarTypeDefinitionPartialOrd(out, rustTypeName, rustType)
-	writeScalarTypeDefinitionBinaryOp(out, rustTypeName, rustType, "Add", "add", "+", false)
-	writeScalarTypeDefinitionBinaryOp(out, rustTypeName, rustType, "Sub", "sub", "-", false)
+	writeScalarTypeDefinitionBinaryOp(out, rustTypeName, rustType, "Add", "add", "+", true)
+	writeScalarTypeDefinitionBinaryOp(out, rustTypeName, rustType, "Sub", "sub", "-", true)
 	if isBitwiseDefinedUnderlying(underlying) {
 		writeScalarTypeDefinitionBinaryOp(out, rustTypeName, rustType, "BitAnd", "bitand", "&", true)
 		writeScalarTypeDefinitionBinaryOp(out, rustTypeName, rustType, "BitOr", "bitor", "|", true)

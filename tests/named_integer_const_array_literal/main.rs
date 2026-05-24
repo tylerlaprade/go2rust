@@ -53,9 +53,9 @@ impl PartialOrd<Version> for u32 {
 }
 
 impl std::ops::Add for Version {
-    type Output = u32;
-    fn add(self, other: Self) -> u32 {
-        *self.0.borrow().as_ref().unwrap() + *other.0.borrow().as_ref().unwrap()
+    type Output = Version;
+    fn add(self, other: Self) -> Version {
+        Version(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() + *other.0.borrow().as_ref().unwrap()))))
     }
 }
 
@@ -74,9 +74,9 @@ impl std::ops::Add<Version> for u32 {
 }
 
 impl std::ops::Sub for Version {
-    type Output = u32;
-    fn sub(self, other: Self) -> u32 {
-        *self.0.borrow().as_ref().unwrap() - *other.0.borrow().as_ref().unwrap()
+    type Output = Version;
+    fn sub(self, other: Self) -> Version {
+        Version(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() - *other.0.borrow().as_ref().unwrap()))))
     }
 }
 

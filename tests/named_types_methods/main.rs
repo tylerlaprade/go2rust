@@ -48,9 +48,9 @@ impl PartialOrd<Celsius> for f64 {
 }
 
 impl std::ops::Add for Celsius {
-    type Output = f64;
-    fn add(self, other: Self) -> f64 {
-        *self.0.borrow().as_ref().unwrap() + *other.0.borrow().as_ref().unwrap()
+    type Output = Celsius;
+    fn add(self, other: Self) -> Celsius {
+        Celsius(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() + *other.0.borrow().as_ref().unwrap()))))
     }
 }
 
@@ -69,9 +69,9 @@ impl std::ops::Add<Celsius> for f64 {
 }
 
 impl std::ops::Sub for Celsius {
-    type Output = f64;
-    fn sub(self, other: Self) -> f64 {
-        *self.0.borrow().as_ref().unwrap() - *other.0.borrow().as_ref().unwrap()
+    type Output = Celsius;
+    fn sub(self, other: Self) -> Celsius {
+        Celsius(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() - *other.0.borrow().as_ref().unwrap()))))
     }
 }
 
@@ -136,9 +136,9 @@ impl PartialOrd<Fahrenheit> for f64 {
 }
 
 impl std::ops::Add for Fahrenheit {
-    type Output = f64;
-    fn add(self, other: Self) -> f64 {
-        *self.0.borrow().as_ref().unwrap() + *other.0.borrow().as_ref().unwrap()
+    type Output = Fahrenheit;
+    fn add(self, other: Self) -> Fahrenheit {
+        Fahrenheit(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() + *other.0.borrow().as_ref().unwrap()))))
     }
 }
 
@@ -157,9 +157,9 @@ impl std::ops::Add<Fahrenheit> for f64 {
 }
 
 impl std::ops::Sub for Fahrenheit {
-    type Output = f64;
-    fn sub(self, other: Self) -> f64 {
-        *self.0.borrow().as_ref().unwrap() - *other.0.borrow().as_ref().unwrap()
+    type Output = Fahrenheit;
+    fn sub(self, other: Self) -> Fahrenheit {
+        Fahrenheit(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() - *other.0.borrow().as_ref().unwrap()))))
     }
 }
 

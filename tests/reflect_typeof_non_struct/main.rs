@@ -118,9 +118,9 @@ impl PartialOrd<namedInt> for i64 {
 }
 
 impl std::ops::Add for namedInt {
-    type Output = i64;
-    fn add(self, other: Self) -> i64 {
-        *self.0.borrow().as_ref().unwrap() + *other.0.borrow().as_ref().unwrap()
+    type Output = namedInt;
+    fn add(self, other: Self) -> namedInt {
+        namedInt(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() + *other.0.borrow().as_ref().unwrap()))))
     }
 }
 
@@ -139,9 +139,9 @@ impl std::ops::Add<namedInt> for i64 {
 }
 
 impl std::ops::Sub for namedInt {
-    type Output = i64;
-    fn sub(self, other: Self) -> i64 {
-        *self.0.borrow().as_ref().unwrap() - *other.0.borrow().as_ref().unwrap()
+    type Output = namedInt;
+    fn sub(self, other: Self) -> namedInt {
+        namedInt(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() - *other.0.borrow().as_ref().unwrap()))))
     }
 }
 

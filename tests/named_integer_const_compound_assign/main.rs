@@ -53,9 +53,9 @@ impl PartialOrd<LoadMode> for i32 {
 }
 
 impl std::ops::Add for LoadMode {
-    type Output = i32;
-    fn add(self, other: Self) -> i32 {
-        *self.0.borrow().as_ref().unwrap() + *other.0.borrow().as_ref().unwrap()
+    type Output = LoadMode;
+    fn add(self, other: Self) -> LoadMode {
+        LoadMode(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() + *other.0.borrow().as_ref().unwrap()))))
     }
 }
 
@@ -74,9 +74,9 @@ impl std::ops::Add<LoadMode> for i32 {
 }
 
 impl std::ops::Sub for LoadMode {
-    type Output = i32;
-    fn sub(self, other: Self) -> i32 {
-        *self.0.borrow().as_ref().unwrap() - *other.0.borrow().as_ref().unwrap()
+    type Output = LoadMode;
+    fn sub(self, other: Self) -> LoadMode {
+        LoadMode(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() - *other.0.borrow().as_ref().unwrap()))))
     }
 }
 

@@ -66,9 +66,9 @@ impl PartialOrd<CodeVal> for i32 {
 }
 
 impl std::ops::Add for CodeVal {
-    type Output = i32;
-    fn add(self, other: Self) -> i32 {
-        *self.0.borrow().as_ref().unwrap() + *other.0.borrow().as_ref().unwrap()
+    type Output = CodeVal;
+    fn add(self, other: Self) -> CodeVal {
+        CodeVal(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() + *other.0.borrow().as_ref().unwrap()))))
     }
 }
 
@@ -87,9 +87,9 @@ impl std::ops::Add<CodeVal> for i32 {
 }
 
 impl std::ops::Sub for CodeVal {
-    type Output = i32;
-    fn sub(self, other: Self) -> i32 {
-        *self.0.borrow().as_ref().unwrap() - *other.0.borrow().as_ref().unwrap()
+    type Output = CodeVal;
+    fn sub(self, other: Self) -> CodeVal {
+        CodeVal(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() - *other.0.borrow().as_ref().unwrap()))))
     }
 }
 

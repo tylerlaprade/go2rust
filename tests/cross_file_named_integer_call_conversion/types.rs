@@ -48,9 +48,9 @@ impl PartialOrd<Marker> for i32 {
 }
 
 impl std::ops::Add for Marker {
-    type Output = i32;
-    fn add(self, other: Self) -> i32 {
-        *self.0.borrow().as_ref().unwrap() + *other.0.borrow().as_ref().unwrap()
+    type Output = Marker;
+    fn add(self, other: Self) -> Marker {
+        Marker(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() + *other.0.borrow().as_ref().unwrap()))))
     }
 }
 
@@ -69,9 +69,9 @@ impl std::ops::Add<Marker> for i32 {
 }
 
 impl std::ops::Sub for Marker {
-    type Output = i32;
-    fn sub(self, other: Self) -> i32 {
-        *self.0.borrow().as_ref().unwrap() - *other.0.borrow().as_ref().unwrap()
+    type Output = Marker;
+    fn sub(self, other: Self) -> Marker {
+        Marker(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() - *other.0.borrow().as_ref().unwrap()))))
     }
 }
 

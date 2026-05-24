@@ -54,9 +54,9 @@ impl PartialOrd<Kind> for i8 {
 }
 
 impl std::ops::Add for Kind {
-    type Output = i8;
-    fn add(self, other: Self) -> i8 {
-        *self.0.borrow().as_ref().unwrap() + *other.0.borrow().as_ref().unwrap()
+    type Output = Kind;
+    fn add(self, other: Self) -> Kind {
+        Kind(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() + *other.0.borrow().as_ref().unwrap()))))
     }
 }
 
@@ -75,9 +75,9 @@ impl std::ops::Add<Kind> for i8 {
 }
 
 impl std::ops::Sub for Kind {
-    type Output = i8;
-    fn sub(self, other: Self) -> i8 {
-        *self.0.borrow().as_ref().unwrap() - *other.0.borrow().as_ref().unwrap()
+    type Output = Kind;
+    fn sub(self, other: Self) -> Kind {
+        Kind(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() - *other.0.borrow().as_ref().unwrap()))))
     }
 }
 
@@ -215,9 +215,9 @@ impl PartialOrd<Version> for i8 {
 }
 
 impl std::ops::Add for Version {
-    type Output = i8;
-    fn add(self, other: Self) -> i8 {
-        *self.0.borrow().as_ref().unwrap() + *other.0.borrow().as_ref().unwrap()
+    type Output = Version;
+    fn add(self, other: Self) -> Version {
+        Version(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() + *other.0.borrow().as_ref().unwrap()))))
     }
 }
 
@@ -236,9 +236,9 @@ impl std::ops::Add<Version> for i8 {
 }
 
 impl std::ops::Sub for Version {
-    type Output = i8;
-    fn sub(self, other: Self) -> i8 {
-        *self.0.borrow().as_ref().unwrap() - *other.0.borrow().as_ref().unwrap()
+    type Output = Version;
+    fn sub(self, other: Self) -> Version {
+        Version(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() - *other.0.borrow().as_ref().unwrap()))))
     }
 }
 

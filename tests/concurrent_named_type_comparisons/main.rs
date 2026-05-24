@@ -201,9 +201,9 @@ impl PartialOrd<Kind> for i8 {
 }
 
 impl std::ops::Add for Kind {
-    type Output = i8;
-    fn add(self, other: Self) -> i8 {
-        *self.0.lock().unwrap().as_ref().unwrap() + *other.0.lock().unwrap().as_ref().unwrap()
+    type Output = Kind;
+    fn add(self, other: Self) -> Kind {
+        Kind(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() + *other.0.lock().unwrap().as_ref().unwrap()))))
     }
 }
 
@@ -222,9 +222,9 @@ impl std::ops::Add<Kind> for i8 {
 }
 
 impl std::ops::Sub for Kind {
-    type Output = i8;
-    fn sub(self, other: Self) -> i8 {
-        *self.0.lock().unwrap().as_ref().unwrap() - *other.0.lock().unwrap().as_ref().unwrap()
+    type Output = Kind;
+    fn sub(self, other: Self) -> Kind {
+        Kind(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() - *other.0.lock().unwrap().as_ref().unwrap()))))
     }
 }
 
