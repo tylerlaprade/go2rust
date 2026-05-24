@@ -1,0 +1,8 @@
+[package]
+name = "printf_p_verb_receiver"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "printf_p_verb_receiver"
+path = "main.rs"

@@ -1690,6 +1690,10 @@ run_xfail_test() {
     run_test "tests/pointers_simple"
 }
 
+@test "printf_p_verb_receiver" {
+    run_test "tests/printf_p_verb_receiver"
+}
+
 @test "printf_width_decimal" {
     run_test "tests/printf_width_decimal"
 }

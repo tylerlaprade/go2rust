@@ -395,6 +395,12 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 		// Check if it's a pointer to a struct - Go prints "&{...}" for these
 		if ptr, ok := argType.(*types.Pointer); ok {
 			if _, ok := ptr.Elem().Underlying().(*types.Struct); ok {
+				if ident, ok := arg.(*ast.Ident); ok && currentReceiver != "" && ident.Name == currentReceiver {
+					// Avoid recursing into our own Display impl by formatting
+					// the receiver as a pointer address.
+					out.WriteString("format!(\"{:p}\", self)")
+					return
+				}
 				out.WriteString("format!(\"&{}\", (*")
 				if ident, ok := arg.(*ast.Ident); ok {
 					out.WriteString(RustIdentForUse(ident))
@@ -679,7 +685,7 @@ func convertFormatStringWithSkips(goFormat string) (string, []int, []int, []int,
 
 				// Handle single-char format verbs
 				switch format[i+1] {
-				case 'd', 's', 'v', 't', 'w':
+				case 'd', 's', 'v', 't', 'w', 'p':
 					result.WriteString("{}")
 					argIndex++
 				case 'q':
