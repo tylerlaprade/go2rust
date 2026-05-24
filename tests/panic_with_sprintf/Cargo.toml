@@ -1,0 +1,8 @@
+[package]
+name = "panic_with_sprintf"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "panic_with_sprintf"
+path = "main.rs"

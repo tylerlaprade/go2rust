@@ -4640,45 +4640,54 @@ func transpilePanic(out *strings.Builder, call *ast.CallExpr) {
 			// String literal - use it directly
 			out.WriteString(RustStringLiteral(lit.Value))
 		} else if callExpr, ok := call.Args[0].(*ast.CallExpr); ok {
-			// Check if it's fmt.Errorf - handle specially
+			// fmt.Errorf / fmt.Sprintf - extract the format string directly
+			// so the panic message is a bare string rather than the wrapped
+			// Arc<Mutex<Option<String>>> that fmt.Sprintf would normally emit.
 			if sel, ok := callExpr.Fun.(*ast.SelectorExpr); ok {
-				if pkg, ok := sel.X.(*ast.Ident); ok && pkg.Name == "fmt" && sel.Sel.Name == "Errorf" {
-					// panic(fmt.Errorf(...)) - extract the format string directly
+				if pkg, ok := sel.X.(*ast.Ident); ok && pkg.Name == "fmt" && (sel.Sel.Name == "Errorf" || sel.Sel.Name == "Sprintf") {
 					if len(callExpr.Args) > 0 {
 						if lit, ok := callExpr.Args[0].(*ast.BasicLit); ok && lit.Kind == token.STRING {
-							// Convert format string
 							format := convertFormatString(lit.Value)
 							out.WriteString(format)
-							// Add the rest of the arguments
 							for i := 1; i < len(callExpr.Args); i++ {
 								out.WriteString(", ")
 								transpilePrintArg(out, callExpr.Args[i])
 							}
 						} else {
-							// Non-literal format string
 							out.WriteString("\"{}\", ")
 							writeOwnedStringStdlibArg(out, callExpr.Args[0])
 						}
 					}
 				} else {
-					// Other function call - format it via Display
-					out.WriteString("\"{}\", ")
-					TranspileExpression(out, call.Args[0])
+					writePanicDisplayArg(out, call.Args[0])
 				}
 			} else {
-				// Other call expression - format it via Display
-				out.WriteString("\"{}\", ")
-				TranspileExpression(out, call.Args[0])
+				writePanicDisplayArg(out, call.Args[0])
 			}
 		} else {
-			// Other expression - format it via Display
-			out.WriteString("\"{}\", ")
-			TranspileExpression(out, call.Args[0])
+			writePanicDisplayArg(out, call.Args[0])
 		}
 	} else {
 		out.WriteString("\"explicit panic\"")
 	}
 	out.WriteString(")")
+}
+
+// writePanicDisplayArg emits `"{}", <unwrapped arg>` so panic! can format
+// any Go value via its Display impl. Wrapped values (variables, calls,
+// field accesses) get .borrow().as_ref().unwrap() to reach the inner T;
+// bare values (struct/composite literals) are passed through directly.
+func writePanicDisplayArg(out *strings.Builder, arg ast.Expr) {
+	out.WriteString("\"{}\", ")
+	typeInfo := GetTypeInfo()
+	if typeInfo != nil && typeInfo.ReturnsWrappedValue(arg) {
+		out.WriteString("(*")
+		TranspileExpressionContext(out, arg, LValue)
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap())")
+		return
+	}
+	TranspileExpression(out, arg)
 }
 
 // transpileRecover handles the recover() builtin function

@@ -1650,6 +1650,10 @@ run_xfail_test() {
     run_test "tests/panic_struct_literal_value"
 }
 
+@test "panic_with_sprintf" {
+    run_test "tests/panic_with_sprintf"
+}
+
 @test "parallel_slice_field_assign" {
     run_test "tests/parallel_slice_field_assign"
 }
