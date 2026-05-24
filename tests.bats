@@ -678,6 +678,10 @@ run_xfail_test() {
     run_test "tests/copy_from_string"
 }
 
+@test "cross_file_debug_derive_inner_any" {
+    run_test "tests/cross_file_debug_derive_inner_any"
+}
+
 @test "cross_file_func_vars" {
     run_test "tests/cross_file_func_vars"
 }
@@ -2454,6 +2458,10 @@ run_xfail_test() {
     run_test "tests/type_switch_temporary_subject"
 }
 
+@test "typeblock_ptr_to_any_struct" {
+    run_test "tests/typeblock_ptr_to_any_struct"
+}
+
 @test "types_config_check_bridge" {
     run_test "tests/types_config_check_bridge"
 }
@@ -2580,6 +2588,10 @@ run_xfail_test() {
 
 @test "XFAIL: http_client" {
     run_xfail_test "tests/XFAIL/http_client"
+}
+
+@test "XFAIL: interface_method_nil_argument" {
+    run_xfail_test "tests/XFAIL/interface_method_nil_argument"
 }
 
 @test "XFAIL: panic_recover" {

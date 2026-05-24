@@ -1,0 +1,8 @@
+[package]
+name = "interface_method_nil_argument"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "interface_method_nil_argument"
+path = "main.rs"

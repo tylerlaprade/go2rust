@@ -1,0 +1,8 @@
+[package]
+name = "cross_file_debug_derive_inner_any"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "cross_file_debug_derive_inner_any"
+path = "main.rs"

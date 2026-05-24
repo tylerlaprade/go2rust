@@ -1,0 +1,8 @@
+[package]
+name = "typeblock_ptr_to_any_struct"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "typeblock_ptr_to_any_struct"
+path = "main.rs"

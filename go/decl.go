@@ -1222,6 +1222,33 @@ func registerPackageTypeFactsFromFiles(files []*ast.File) {
 	for _, file := range files {
 		registerPackageTypeFactsFromFile(file)
 	}
+	registerPackageStructDefsFromFiles(files)
+}
+
+// registerPackageStructDefsFromFiles populates structDefs for every struct type
+// declared across the package's files before any file is emitted. Per-file
+// registration (in TranspileWithMapping) only sees types from the current file,
+// so cross-file references like a *T field where T lives in another file would
+// otherwise miss structDefs and bypass field-driven decisions such as Debug
+// derivation.
+func registerPackageStructDefsFromFiles(files []*ast.File) {
+	for _, file := range files {
+		for _, decl := range file.Decls {
+			genDecl, ok := decl.(*ast.GenDecl)
+			if !ok || genDecl.Tok != token.TYPE {
+				continue
+			}
+			for _, spec := range genDecl.Specs {
+				typeSpec, ok := spec.(*ast.TypeSpec)
+				if !ok {
+					continue
+				}
+				if structType, ok := typeSpec.Type.(*ast.StructType); ok {
+					registerStructDef(typeSpec.Name.Name, structType)
+				}
+			}
+		}
+	}
 }
 
 func registerPackageTypeFactsFromFile(file *ast.File) {
