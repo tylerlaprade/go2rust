@@ -1,0 +1,8 @@
+[package]
+name = "interface_embed_upcast"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "interface_embed_upcast"
+path = "main.rs"

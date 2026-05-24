@@ -1062,6 +1062,10 @@ run_xfail_test() {
     run_test "tests/init_order_complex"
 }
 
+@test "interface_arg_wrapped_struct_field" {
+    run_test "tests/interface_arg_wrapped_struct_field"
+}
+
 @test "interface_basic" {
     run_test "tests/interface_basic"
 }
@@ -2508,6 +2512,10 @@ run_xfail_test() {
 
 @test "XFAIL: http_client" {
     run_xfail_test "tests/XFAIL/http_client"
+}
+
+@test "XFAIL: interface_embed_upcast" {
+    run_xfail_test "tests/XFAIL/interface_embed_upcast"
 }
 
 @test "XFAIL: named_map_receiver_assign" {

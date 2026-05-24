@@ -1985,7 +1985,43 @@ func writeLocalInterfaceReferenceCallArgument(out *strings.Builder, arg ast.Expr
 		out.WriteString(".as_ref().unwrap().as_ref()")
 		return true
 	}
+	if localInterfaceArgumentIsWrappedConcreteValue(arg, expected) {
+		TranspileExpressionContext(out, arg, LValue)
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap()")
+		return true
+	}
 	return false
+}
+
+func localInterfaceArgumentIsWrappedConcreteValue(arg ast.Expr, expected types.Type) bool {
+	if expected == nil {
+		return false
+	}
+	if _, ok := transpiledNamedInterfaceTypeNameFromTypes(expected); !ok {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	argType := typeInfo.GetType(arg)
+	if argType == nil {
+		return false
+	}
+	if _, isInterface := argType.Underlying().(*types.Interface); isInterface {
+		return false
+	}
+	if !types.AssignableTo(argType, expected) {
+		return false
+	}
+	if isExpressionResultBare(arg) {
+		return false
+	}
+	if _, ok := arg.(*ast.SelectorExpr); !ok {
+		return false
+	}
+	return true
 }
 
 func localInterfaceArgumentIsWrappedInterfaceValue(arg ast.Expr, expected types.Type) bool {

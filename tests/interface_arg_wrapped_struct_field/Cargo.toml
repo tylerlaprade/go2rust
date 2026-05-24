@@ -1,0 +1,8 @@
+[package]
+name = "interface_arg_wrapped_struct_field"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "interface_arg_wrapped_struct_field"
+path = "main.rs"
