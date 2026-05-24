@@ -366,7 +366,7 @@ fn main() {
     print!("Company: {}\n", (*(*company.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()).clone());
     print!("HQ Address: {}, {}, {} {}\n", (*(*(*company.borrow().as_ref().unwrap()).headquarters.borrow().as_ref().unwrap()).street.borrow().as_ref().unwrap()), (*(*(*company.borrow().as_ref().unwrap()).headquarters.borrow().as_ref().unwrap()).city.borrow().as_ref().unwrap()), (*(*(*company.borrow().as_ref().unwrap()).headquarters.borrow().as_ref().unwrap()).state.borrow().as_ref().unwrap()), (*(*(*company.borrow().as_ref().unwrap()).headquarters.borrow().as_ref().unwrap()).zip_code.borrow().as_ref().unwrap()));
 
-    print!("Department: {}\n", (*(*(*company.borrow().as_ref().unwrap()).departments.borrow().as_ref().unwrap())[(0) as usize].clone().name.borrow().as_ref().unwrap()));
+    print!("Department: {}\n", (*(*(*company.borrow().as_ref().unwrap()).departments.borrow().as_ref().unwrap())[(0) as usize].clone().name.borrow().as_ref().unwrap()).clone());
     print!("Department Budget: ${:.2}\n", (*(*(*company.borrow().as_ref().unwrap()).departments.borrow().as_ref().unwrap())[(0) as usize].clone().budget.borrow().as_ref().unwrap()));
 
     print!("Manager: {} (Age: {})\n", (*(*(*(*company.borrow().as_ref().unwrap()).departments.borrow().as_ref().unwrap())[(0) as usize].clone().manager.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()), (*(*(*(*company.borrow().as_ref().unwrap()).departments.borrow().as_ref().unwrap())[(0) as usize].clone().manager.borrow().as_ref().unwrap()).age.borrow().as_ref().unwrap()));

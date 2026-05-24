@@ -1,0 +1,8 @@
+[package]
+name = "named_int_sub_assign"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "named_int_sub_assign"
+path = "main.rs"

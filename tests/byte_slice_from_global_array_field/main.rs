@@ -57,7 +57,7 @@ fn __go_init_globals() {
 
 fn main() {
     __go_init_all();
-    let mut data = Rc::new(RefCell::new(Some(((*(*entries.borrow().as_ref().unwrap())[(0) as usize].clone().deps.borrow().as_ref().unwrap())).as_bytes().to_vec())));
+    let mut data = Rc::new(RefCell::new(Some(((*(*entries.borrow().as_ref().unwrap())[(0) as usize].clone().deps.borrow().as_ref().unwrap()).clone()).as_bytes().to_vec())));
     println!("{} {}", format!("{}", (*data.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)), format!("{}", (*data.borrow().as_ref().unwrap())[(1) as usize].clone()));
 }
 

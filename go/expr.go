@@ -5887,7 +5887,8 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 						out.WriteString(".")
 						out.WriteString(fieldInfo.FieldName)
 						WriteBorrowMethod(out, false)
-						out.WriteString(".as_ref().unwrap())")
+						out.WriteString(".as_ref().unwrap()")
+						writeSelectorRValueClose(out, e)
 					} else {
 						// In LValue context, just access the field
 						TranspileExpressionContext(out, e.X, LValue)

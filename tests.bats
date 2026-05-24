@@ -1382,6 +1382,10 @@ run_xfail_test() {
     run_test "tests/named_func_return_defer"
 }
 
+@test "named_int_sub_assign" {
+    run_test "tests/named_int_sub_assign"
+}
+
 @test "named_integer_arithmetic_returns_named" {
     run_test "tests/named_integer_arithmetic_returns_named"
 }

@@ -3696,7 +3696,15 @@ func writeNamedIntegerWrappedInitializer(out *strings.Builder, expr ast.Expr) bo
 		return false
 	}
 	WriteWrapperPrefix(out)
-	if !writeExpressionForExpectedTypesType(out, expr, named) {
+	// Constants need the newtype wrap (raw integer -> Named).
+	// Non-constants already evaluate to the named type (arithmetic,
+	// field access, etc., return Pos via Add/Sub/etc. impls), so a
+	// double wrap with `as <underlying>` fails to cast Named -> int.
+	if isConstantExpression(expr) {
+		if !writeExpressionForExpectedTypesType(out, expr, named) {
+			TranspileExpression(out, expr)
+		}
+	} else {
 		TranspileExpression(out, expr)
 	}
 	WriteWrapperSuffix(out)
@@ -3712,7 +3720,13 @@ func writeNamedIntegerAssignmentValue(out *strings.Builder, expr ast.Expr) bool 
 	if !ok || !isNamedIntegerType(named) {
 		return false
 	}
-	if !writeExpressionForExpectedTypesType(out, expr, named) {
+	// See writeNamedIntegerWrappedInitializer for why non-constants
+	// must not go through writeExpressionForExpectedTypesType.
+	if isConstantExpression(expr) {
+		if !writeExpressionForExpectedTypesType(out, expr, named) {
+			TranspileExpression(out, expr)
+		}
+	} else {
 		TranspileExpression(out, expr)
 	}
 	return true
