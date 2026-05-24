@@ -966,12 +966,20 @@ run_xfail_test() {
     run_test "tests/for_loops"
 }
 
+@test "fprintf_printer_writer_pattern" {
+    run_test "tests/fprintf_printer_writer_pattern"
+}
+
 @test "fprintf_to_buffer" {
     run_test "tests/fprintf_to_buffer"
 }
 
 @test "fprintf_to_io_writer" {
     run_test "tests/fprintf_to_io_writer"
+}
+
+@test "fprintf_user_defined_writer" {
+    run_test "tests/fprintf_user_defined_writer"
 }
 
 @test "full_slice_expressions" {
@@ -2632,10 +2640,6 @@ run_xfail_test() {
 
 @test "XFAIL: file_operations" {
     run_xfail_test "tests/XFAIL/file_operations"
-}
-
-@test "XFAIL: fprintf_printer_writer_pattern" {
-    run_xfail_test "tests/XFAIL/fprintf_printer_writer_pattern"
 }
 
 @test "XFAIL: func_type_alias_implements_interface" {

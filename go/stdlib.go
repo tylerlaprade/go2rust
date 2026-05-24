@@ -1025,6 +1025,10 @@ func transpileFmtFprintf(out *strings.Builder, call *ast.CallExpr) {
 		writeFprintfByteWriterTuple(out, call)
 		return
 	}
+	if fmtFprintfTargetHasUserWriteMethod(call.Args[0]) {
+		writeFprintfUserWriteTuple(out, call)
+		return
+	}
 	// Check if writing to stderr
 	macro := "print!"
 	if isOsStderr(call.Args[0]) {
@@ -1043,6 +1047,49 @@ func fmtFprintfTargetIsByteWriter(expr ast.Expr) bool {
 	return typeInfo != nil && isByteWriterReceiverType(typeInfo.GetType(expr))
 }
 
+// fmtFprintfTargetHasUserWriteMethod reports whether the Fprintf target is a
+// non-stdlib type that satisfies io.Writer via its own Write([]byte) (int,
+// error) method. The stdlib path (bytes.Buffer, io.Writer) is handled by
+// fmtFprintfTargetIsByteWriter and takes priority; types defined in stdlib
+// packages (e.g., os.File, bufio.Writer) are excluded so existing emission
+// paths still apply for os.Stdout/os.Stderr.
+func fmtFprintfTargetHasUserWriteMethod(expr ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	typ := typeInfo.GetType(expr)
+	if typ == nil || isByteWriterReceiverType(typ) || isStdlibPackageNamedType(typ) {
+		return false
+	}
+	return hasByteSliceWriteMethod(typ)
+}
+
+// isStdlibPackageNamedType reports whether typ resolves to a named type defined
+// in a Go stdlib package (one whose import path matches Go's stdlib convention:
+// no domain in the first path component).
+func isStdlibPackageNamedType(typ types.Type) bool {
+	if typ == nil {
+		return false
+	}
+	if ptr, ok := types.Unalias(typ).(*types.Pointer); ok {
+		return isStdlibPackageNamedType(ptr.Elem())
+	}
+	named, ok := types.Unalias(typ).(*types.Named)
+	if !ok || named.Obj() == nil || named.Obj().Pkg() == nil {
+		return false
+	}
+	path := named.Obj().Pkg().Path()
+	if path == "" || path == "main" {
+		return false
+	}
+	firstComponent := path
+	if idx := strings.Index(path, "/"); idx >= 0 {
+		firstComponent = path[:idx]
+	}
+	return !strings.Contains(firstComponent, ".")
+}
+
 // writeFprintfByteWriterTuple emits a block expression that formats the args,
 // writes them to the target's __go_write_bytes, and returns the Go
 // (int, error) shape so `n, err := fmt.Fprintf(...)` destructures correctly.
@@ -1059,6 +1106,42 @@ func writeFprintfByteWriterTuple(out *strings.Builder, call *ast.CallExpr) {
 	out.WriteString(", ")
 	out.WriteString(wrappedExternalStubNoneExpr(errorInner))
 	out.WriteString(") }")
+}
+
+// writeFprintfUserWriteTuple emits a block expression that formats the args
+// and calls the target's user-defined `write` method with the formatted bytes.
+// The user's write returns the Go (int, error) shape directly, so the block
+// evaluates to a value that destructures as `n, err := fmt.Fprintf(...)`.
+func writeFprintfUserWriteTuple(out *strings.Builder, call *ast.CallExpr) {
+	TrackImport("Error")
+	out.WriteString("{ let __s = ")
+	writeFmtMacroCall(out, "format!", call, 1, writeOwnedStringStdlibArg)
+	out.WriteString("; ")
+	if fmtFprintfTargetIsBareReceiver(call.Args[0]) || isExpressionResultBare(call.Args[0]) {
+		out.WriteString("(*")
+		TranspileExpressionContext(out, call.Args[0], LValue)
+		out.WriteString(")")
+	} else {
+		out.WriteString("(*")
+		TranspileExpressionContext(out, call.Args[0], LValue)
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap())")
+	}
+	out.WriteString(".write(")
+	out.WriteString(wrappedExternalStubExpr("Vec<u8>", "__s.into_bytes()"))
+	out.WriteString(") }")
+}
+
+// fmtFprintfTargetIsBareReceiver reports whether expr is the current method's
+// receiver identifier. The Rust receiver renames to `self` which is a bare
+// reference, not a wrapped handle, so `.borrow().as_ref().unwrap()` must be
+// skipped.
+func fmtFprintfTargetIsBareReceiver(expr ast.Expr) bool {
+	ident, ok := expr.(*ast.Ident)
+	if !ok {
+		return false
+	}
+	return currentReceiver != "" && ident.Name == currentReceiver
 }
 
 func formatSliceArgumentIsBareValue(arg ast.Expr) bool {

@@ -9903,6 +9903,62 @@ func isByteWriterReceiverType(typ types.Type) bool {
 	return false
 }
 
+// hasByteSliceWriteMethod reports whether typ's method set contains a method
+// with the signature `Write([]byte) (int, error)` — i.e., typ satisfies
+// io.Writer structurally. Used by fmt.Fprintf lowering to recognize
+// user-defined writer types whose Write method must be called directly.
+func hasByteSliceWriteMethod(typ types.Type) bool {
+	if typ == nil {
+		return false
+	}
+	if methodSetHasByteSliceWrite(typ) {
+		return true
+	}
+	if _, isPtr := types.Unalias(typ).(*types.Pointer); !isPtr {
+		return methodSetHasByteSliceWrite(types.NewPointer(typ))
+	}
+	return false
+}
+
+func methodSetHasByteSliceWrite(typ types.Type) bool {
+	ms := types.NewMethodSet(typ)
+	for i := 0; i < ms.Len(); i++ {
+		sel := ms.At(i)
+		fn, ok := sel.Obj().(*types.Func)
+		if !ok || fn.Name() != "Write" {
+			continue
+		}
+		sig, ok := fn.Type().(*types.Signature)
+		if !ok {
+			continue
+		}
+		if sig.Params().Len() != 1 || sig.Results().Len() != 2 {
+			continue
+		}
+		slice, ok := sig.Params().At(0).Type().(*types.Slice)
+		if !ok {
+			continue
+		}
+		elemBasic, ok := slice.Elem().(*types.Basic)
+		if !ok || elemBasic.Kind() != types.Uint8 {
+			continue
+		}
+		resBasic, ok := sig.Results().At(0).Type().(*types.Basic)
+		if !ok || resBasic.Kind() != types.Int {
+			continue
+		}
+		errObj := types.Universe.Lookup("error")
+		if errObj == nil {
+			continue
+		}
+		if !types.Identical(sig.Results().At(1).Type(), errObj.Type()) {
+			continue
+		}
+		return true
+	}
+	return false
+}
+
 func isStringsBuilderReceiverBare(recv ast.Expr) bool {
 	if isExpressionResultBare(recv) {
 		return true

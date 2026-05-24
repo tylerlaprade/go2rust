@@ -1,0 +1,8 @@
+[package]
+name = "fprintf_user_defined_writer"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "fprintf_user_defined_writer"
+path = "main.rs"
