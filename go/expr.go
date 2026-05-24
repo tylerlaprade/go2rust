@@ -2627,7 +2627,13 @@ func isWrappedValueIdent(ident *ast.Ident) bool {
 }
 
 func isWrappedRangeVarType(varType string) bool {
-	return strings.Contains(varType, "Arc<") || strings.Contains(varType, "Rc<")
+	// The variable itself is wrapped only when the OUTERMOST type is
+	// Rc<...> or Arc<...> (with optional leading `&`). A substring match
+	// would mistake `&Vec<Vec<Rc<...>>>` (bare range var over a nested
+	// slice of wrapped elements) for a wrapped handle and emit
+	// .borrow().as_ref().unwrap() on a plain reference.
+	stripped := strings.TrimPrefix(varType, "&")
+	return strings.HasPrefix(stripped, "Arc<") || strings.HasPrefix(stripped, "Rc<")
 }
 
 // identTypeIsWrappedPointer reports whether go/types says the ident's
