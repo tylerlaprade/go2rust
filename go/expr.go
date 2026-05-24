@@ -684,7 +684,19 @@ func methodReceiverExpressionNeedsUnwrap(expr ast.Expr) bool {
 		return true
 	case *ast.IndexExpr:
 		typeInfo := GetTypeInfo()
-		return typeInfo != nil && typeInfo.IsPointer(e)
+		if typeInfo == nil {
+			return false
+		}
+		if typeInfo.IsPointer(e) {
+			return true
+		}
+		// Indexing into a slice of wrapped local-interface elements yields
+		// Arc<Mutex<Option<Box<dyn Trait>>>>; the trait method has to be
+		// dispatched through the wrapper, not on the wrapper itself.
+		if _, ok := transpiledNamedInterfaceTypeNameFromTypes(typeInfo.GetType(e)); ok {
+			return true
+		}
+		return false
 	case *ast.TypeAssertExpr:
 		typeInfo := GetTypeInfo()
 		return typeInfo != nil && typeInfo.IsPointer(e)

@@ -2671,6 +2671,22 @@ func mapIndexExpressionKeepsHandle(expr ast.Expr) bool {
 	return typeInfo != nil && typeInfo.IsMap(indexExpr.X) && mapValueTypeKeepsHandle(typeInfo.GetType(indexExpr))
 }
 
+func isWrappedInterfaceSliceIndex(expr ast.Expr) bool {
+	indexExpr, ok := expr.(*ast.IndexExpr)
+	if !ok {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	if typeInfo.IsMap(indexExpr.X) {
+		return false
+	}
+	_, ok = transpiledNamedInterfaceTypeNameFromTypes(typeInfo.GetType(indexExpr))
+	return ok
+}
+
 func selectorExpressionKeepsHandle(expr ast.Expr) bool {
 	sel, ok := expr.(*ast.SelectorExpr)
 	if !ok {
@@ -6484,6 +6500,11 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 											}
 										} else if _, isSliceExpr := rhs.(*ast.SliceExpr); isSliceExpr {
 											// Slice expressions already return wrapped values
+											TranspileExpression(out, rhs)
+										} else if isWrappedInterfaceSliceIndex(rhs) {
+											// IndexExpr on a slice of wrapped local-interface
+											// elements returns the same wrapped handle the
+											// variable should hold; re-wrapping double-wraps.
 											TranspileExpression(out, rhs)
 										} else if mapIndexExpressionKeepsHandle(rhs) {
 											// Map values that are maps/slices/pointers/etc. already return cloneable handles.

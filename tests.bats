@@ -1098,6 +1098,14 @@ run_xfail_test() {
     run_test "tests/interface_slice_index_arg"
 }
 
+@test "interface_slice_index_var_decl" {
+    run_test "tests/interface_slice_index_var_decl"
+}
+
+@test "interface_slice_method_call" {
+    run_test "tests/interface_slice_method_call"
+}
+
 @test "interface_slice_nil_element" {
     run_test "tests/interface_slice_nil_element"
 }

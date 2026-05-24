@@ -1,0 +1,8 @@
+[package]
+name = "interface_slice_method_call"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "interface_slice_method_call"
+path = "main.rs"
