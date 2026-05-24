@@ -280,6 +280,21 @@ func (ti *TypeInfo) IsPointerToArray(expr ast.Expr) bool {
 	return ok
 }
 
+// TypeHasInherentWrapper reports whether a Go type is stored as a Rust wrapper
+// handle (Rc<RefCell<Option<T>>>/Arc<Mutex<Option<T>>> or equivalent) by its
+// nature, independent of variable/parameter wrapping. Pointers, slices, maps,
+// channels, function values, and interfaces all carry their own wrapper.
+func TypeHasInherentWrapper(typ types.Type) bool {
+	if typ == nil {
+		return false
+	}
+	switch types.Unalias(typ).Underlying().(type) {
+	case *types.Pointer, *types.Slice, *types.Map, *types.Chan, *types.Signature, *types.Interface:
+		return true
+	}
+	return false
+}
+
 // GetStructType returns the underlying struct type for an expression, or nil.
 func (ti *TypeInfo) GetStructType(expr ast.Expr) *types.Struct {
 	typ := ti.GetType(expr)

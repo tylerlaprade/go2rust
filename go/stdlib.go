@@ -1946,10 +1946,17 @@ func transpileNilSafeSort(out *strings.Builder, arg ast.Expr) {
 	out.WriteString("; if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.sort(); } }")
 }
 
-func writeSortFuncWrappedElement(out *strings.Builder, name string, elemIsInterface bool) {
+func writeSortFuncWrappedElement(out *strings.Builder, name string, elemIsInterface, elemHasInherentWrapper bool) {
 	if elemIsInterface {
 		out.WriteString(name)
 		out.WriteString(".as_ref()")
+		return
+	}
+	if elemHasInherentWrapper {
+		// Element is already in wrapper shape (pointer/slice/map/chan/fn);
+		// cloning the iter ref yields the closure's parameter type directly.
+		out.WriteString(name)
+		out.WriteString(".clone()")
 		return
 	}
 	WriteWrapperPrefix(out)
@@ -1958,12 +1965,12 @@ func writeSortFuncWrappedElement(out *strings.Builder, name string, elemIsInterf
 	WriteWrapperSuffix(out)
 }
 
-func writeSortFuncComparatorCall(out *strings.Builder, cmp ast.Expr, elemIsInterface bool) {
+func writeSortFuncComparatorCall(out *strings.Builder, cmp ast.Expr, elemIsInterface, elemHasInherentWrapper bool) {
 	if writeDirectFunctionReference(out, cmp) {
 		out.WriteString("(")
-		writeSortFuncWrappedElement(out, "__a", elemIsInterface)
+		writeSortFuncWrappedElement(out, "__a", elemIsInterface, elemHasInherentWrapper)
 		out.WriteString(", ")
-		writeSortFuncWrappedElement(out, "__b", elemIsInterface)
+		writeSortFuncWrappedElement(out, "__b", elemIsInterface, elemHasInherentWrapper)
 		out.WriteString(")")
 		return
 	}
@@ -1971,9 +1978,9 @@ func writeSortFuncComparatorCall(out *strings.Builder, cmp ast.Expr, elemIsInter
 	out.WriteString("{ let mut __cmp_guard = __cmp_holder")
 	WriteBorrowMethod(out, true)
 	out.WriteString("; let __cmp_fn = __cmp_guard.as_mut().unwrap(); (*__cmp_fn)(")
-	writeSortFuncWrappedElement(out, "__a", elemIsInterface)
+	writeSortFuncWrappedElement(out, "__a", elemIsInterface, elemHasInherentWrapper)
 	out.WriteString(", ")
-	writeSortFuncWrappedElement(out, "__b", elemIsInterface)
+	writeSortFuncWrappedElement(out, "__b", elemIsInterface, elemHasInherentWrapper)
 	out.WriteString(") }")
 }
 
@@ -2007,9 +2014,13 @@ func transpileSlicesSortFunc(out *strings.Builder, call *ast.CallExpr) {
 	}
 
 	elemIsInterface := false
+	elemHasInherentWrapper := false
 	if typeInfo := GetTypeInfo(); typeInfo != nil {
 		if _, ok := localInterfaceSliceElemName(typeInfo.GetType(call.Args[0])); ok {
 			elemIsInterface = true
+		}
+		if elemType := typeInfo.GetSliceElemType(call.Args[0]); elemType != nil {
+			elemHasInherentWrapper = TypeHasInherentWrapper(elemType)
 		}
 	}
 
@@ -2030,13 +2041,13 @@ func transpileSlicesSortFunc(out *strings.Builder, call *ast.CallExpr) {
 	WriteBorrowMethod(out, true)
 	out.WriteString("; if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.sort_by(|__a, __b| { let __cmp = ")
 	if usesFunctionValue {
-		writeSortFuncComparatorCall(out, call.Args[1], elemIsInterface)
+		writeSortFuncComparatorCall(out, call.Args[1], elemIsInterface, elemHasInherentWrapper)
 	} else {
 		out.WriteString(direct.String())
 		out.WriteString("(")
-		writeSortFuncWrappedElement(out, "__a", elemIsInterface)
+		writeSortFuncWrappedElement(out, "__a", elemIsInterface, elemHasInherentWrapper)
 		out.WriteString(", ")
-		writeSortFuncWrappedElement(out, "__b", elemIsInterface)
+		writeSortFuncWrappedElement(out, "__b", elemIsInterface, elemHasInherentWrapper)
 		out.WriteString(")")
 	}
 	out.WriteString("; let __ord = (*__cmp")

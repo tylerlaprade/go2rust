@@ -2050,6 +2050,10 @@ run_xfail_test() {
     run_test "tests/sort_func_interface_slice"
 }
 
+@test "sort_func_pointer_slice" {
+    run_test "tests/sort_func_pointer_slice"
+}
+
 @test "sort_nil_slice" {
     run_test "tests/sort_nil_slice"
 }
