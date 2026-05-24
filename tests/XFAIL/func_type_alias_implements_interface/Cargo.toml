@@ -1,0 +1,8 @@
+[package]
+name = "func_type_alias_implements_interface"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "func_type_alias_implements_interface"
+path = "main.rs"
