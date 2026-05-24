@@ -1129,12 +1129,13 @@ func writeNamedSliceInnerHandleClone(out *strings.Builder, expr ast.Expr) bool {
 	if _, _, ok := namedSliceTypeForExpr(expr); !ok {
 		return false
 	}
-	if ident, ok := expr.(*ast.Ident); ok && currentReceiver != "" && ident.Name == currentReceiver {
+	inner := unwrapParens(expr)
+	if ident, ok := inner.(*ast.Ident); ok && currentReceiver != "" && ident.Name == currentReceiver {
 		out.WriteString("self.0.clone()")
 		return true
 	}
-	if star, ok := expr.(*ast.StarExpr); ok {
-		if ident, ok := star.X.(*ast.Ident); ok && currentReceiver != "" && ident.Name == currentReceiver {
+	if star, ok := inner.(*ast.StarExpr); ok {
+		if ident, ok := unwrapParens(star.X).(*ast.Ident); ok && currentReceiver != "" && ident.Name == currentReceiver {
 			out.WriteString("self.0.clone()")
 			return true
 		}
@@ -1183,12 +1184,13 @@ func writeNamedMapInnerHandleClone(out *strings.Builder, expr ast.Expr) bool {
 	if _, _, ok := namedMapTypeForExpr(expr); !ok {
 		return false
 	}
-	if ident, ok := expr.(*ast.Ident); ok && currentReceiver != "" && ident.Name == currentReceiver {
+	inner := unwrapParens(expr)
+	if ident, ok := inner.(*ast.Ident); ok && currentReceiver != "" && ident.Name == currentReceiver {
 		out.WriteString("self.0.clone()")
 		return true
 	}
-	if star, ok := expr.(*ast.StarExpr); ok {
-		if ident, ok := star.X.(*ast.Ident); ok && currentReceiver != "" && ident.Name == currentReceiver {
+	if star, ok := inner.(*ast.StarExpr); ok {
+		if ident, ok := unwrapParens(star.X).(*ast.Ident); ok && currentReceiver != "" && ident.Name == currentReceiver {
 			out.WriteString("self.0.clone()")
 			return true
 		}

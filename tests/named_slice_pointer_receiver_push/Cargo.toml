@@ -1,0 +1,8 @@
+[package]
+name = "named_slice_pointer_receiver_push"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "named_slice_pointer_receiver_push"
+path = "main.rs"
