@@ -4,29 +4,27 @@ use std::fmt::{Display};
 use std::rc::{Rc};
 
 pub trait hasName: std::fmt::Display + Any {
-    fn __go_clone_box(&self) -> Box<dyn hasName>;
+    fn __go_clone_box_has_name(&self) -> Box<dyn hasName>;
     fn __go_as_any(&self) -> &dyn Any;
-    fn __go_eq(&self, other: &dyn hasName) -> bool;
+    fn __go_eq_has_name(&self, other: &dyn hasName) -> bool;
     fn name(&self) -> Rc<RefCell<Option<String>>>;
 }
 
 impl Clone for Box<dyn hasName> {
     fn clone(&self) -> Self {
-        self.__go_clone_box()
+        self.__go_clone_box_has_name()
     }
 }
 
-pub trait hasNameAndString: std::fmt::Display + Any {
-    fn __go_clone_box(&self) -> Box<dyn hasNameAndString>;
-    fn __go_as_any(&self) -> &dyn Any;
-    fn __go_eq(&self, other: &dyn hasNameAndString) -> bool;
+pub trait hasNameAndString: hasName + std::fmt::Display + Any {
+    fn __go_clone_box_has_name_and_string(&self) -> Box<dyn hasNameAndString>;
+    fn __go_eq_has_name_and_string(&self, other: &dyn hasNameAndString) -> bool;
     fn string(&self) -> Rc<RefCell<Option<String>>>;
-    fn name(&self) -> Rc<RefCell<Option<String>>>;
 }
 
 impl Clone for Box<dyn hasNameAndString> {
     fn clone(&self) -> Self {
-        self.__go_clone_box()
+        self.__go_clone_box_has_name_and_string()
     }
 }
 

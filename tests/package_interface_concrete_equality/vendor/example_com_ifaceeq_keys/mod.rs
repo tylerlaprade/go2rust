@@ -64,13 +64,13 @@ impl example_com_ifaceeq_label::Key for String_ {
     fn name(&self) -> Arc<Mutex<Option<String>>> {
         return self.name.clone();
     }
-    fn __go_clone_box(&self) -> Box<dyn example_com_ifaceeq_label::Key + Send + Sync> {
+    fn __go_clone_box_key(&self) -> Box<dyn example_com_ifaceeq_label::Key + Send + Sync> {
         Box::new(self.clone()) as Box<dyn example_com_ifaceeq_label::Key + Send + Sync>
     }
     fn __go_as_any(&self) -> &dyn Any {
         self
     }
-    fn __go_eq(&self, other: &(dyn example_com_ifaceeq_label::Key + Send + Sync)) -> bool {
+    fn __go_eq_key(&self, other: &(dyn example_com_ifaceeq_label::Key + Send + Sync)) -> bool {
         if let Some(__other) = other.__go_as_any().downcast_ref::<String_>() {
             false
         } else {

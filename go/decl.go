@@ -1031,6 +1031,61 @@ func localInterfaceTypesByName(name string) *types.Interface {
 	return iface
 }
 
+// embeddedLocalInterfaceNames returns the Rust trait names of named local
+// interfaces directly embedded in the given InterfaceType AST. The result is
+// in source order.
+func embeddedLocalInterfaceNames(t *ast.InterfaceType) []string {
+	if t == nil || t.Methods == nil {
+		return nil
+	}
+	var names []string
+	for _, method := range t.Methods.List {
+		if len(method.Names) > 0 {
+			continue
+		}
+		if name, ok := transpiledNamedInterfaceTypeNameFromExpr(method.Type); ok {
+			names = append(names, name)
+		}
+	}
+	return names
+}
+
+// localInterfaceHasEmbeddedInterfaces reports whether the named local
+// interface embeds any other named local interface (i.e., whether its Rust
+// trait has Rust supertraits beyond Display/Any).
+func localInterfaceHasEmbeddedInterfaces(ifaceName string) bool {
+	return interfaceTypeHasNamedEmbedded(localInterfaceTypesByName(ifaceName))
+}
+
+// methodFromEmbeddedInterface reports whether the given method on the named
+// local interface is inherited from an embedded named local interface (rather
+// than declared directly in the interface body).
+func methodFromEmbeddedInterface(ifaceName, methodName string) bool {
+	iface := localInterfaceTypesByName(ifaceName)
+	if iface == nil {
+		return false
+	}
+	for i := 0; i < iface.NumEmbeddeds(); i++ {
+		named, ok := types.Unalias(iface.EmbeddedType(i)).(*types.Named)
+		if !ok {
+			continue
+		}
+		embedded, ok := named.Underlying().(*types.Interface)
+		if !ok {
+			continue
+		}
+		if _, ok := transpiledNamedInterfaceTypeNameFromTypes(named); !ok {
+			continue
+		}
+		for j := 0; j < embedded.NumMethods(); j++ {
+			if embedded.Method(j).Name() == methodName {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // writeTraitMethodSigFromTypes writes a Rust trait method signature derived
 // from a go/types signature. Used to emit methods inherited from embedded
 // interfaces whose declarations aren't directly walked by the AST loop.
@@ -1106,9 +1161,11 @@ func writeAssignedInterfaceParamShadows(out *strings.Builder, fn *ast.FuncDecl, 
 		return
 	}
 	for _, field := range fn.Type.Params.List {
-		if _, ok := transpiledNamedInterfaceTypeNameFromExpr(field.Type); !ok {
+		traitName, ok := transpiledNamedInterfaceTypeNameFromExpr(field.Type)
+		if !ok {
 			continue
 		}
+		traitSnake := traitMethodSuffix(traitName)
 		for _, name := range field.Names {
 			if name.Name == "_" || !blockIdentAssigned(fn.Body, name.Name) {
 				continue
@@ -1121,7 +1178,9 @@ func writeAssignedInterfaceParamShadows(out *strings.Builder, fn *ast.FuncDecl, 
 			out.WriteString(" = ")
 			WriteWrapperPrefix(out)
 			out.WriteString(RustLocalIdent(name.Name))
-			out.WriteString(".__go_clone_box()")
+			out.WriteString(".__go_clone_box_")
+			out.WriteString(traitSnake)
+			out.WriteString("()")
 			WriteWrapperSuffix(out)
 			out.WriteString(";\n")
 		}
@@ -1645,21 +1704,38 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 	case *ast.InterfaceType:
 		// Generate a trait for the interface
 		// Add Display plus Any so trait object equality can downcast.
+		// Embedded named local interfaces become Rust supertraits so that
+		// `&dyn SubTrait` upcasts to `&dyn SuperTrait` automatically.
 		TrackImport("Any")
+		embeddedTraits := embeddedLocalInterfaceNames(t)
 		out.WriteString("pub trait ")
 		out.WriteString(rustTypeName)
-		out.WriteString(": std::fmt::Display + Any {\n")
+		out.WriteString(":")
+		for _, st := range embeddedTraits {
+			out.WriteString(" ")
+			out.WriteString(st)
+			out.WriteString(" +")
+		}
+		out.WriteString(" std::fmt::Display + Any {\n")
 		TrackImport("Display")
-		out.WriteString("    fn __go_clone_box(&self) -> ")
+		traitSnake := ToSnakeCase(rustTypeName)
+		out.WriteString("    fn __go_clone_box_")
+		out.WriteString(traitSnake)
+		out.WriteString("(&self) -> ")
 		out.WriteString(rustLocalInterfaceTraitObject(rustTypeName))
 		out.WriteString(";\n")
-		out.WriteString("    fn __go_as_any(&self) -> &dyn Any;\n")
-		out.WriteString("    fn __go_eq(&self, other: ")
+		if len(embeddedTraits) == 0 {
+			out.WriteString("    fn __go_as_any(&self) -> &dyn Any;\n")
+		}
+		out.WriteString("    fn __go_eq_")
+		out.WriteString(traitSnake)
+		out.WriteString("(&self, other: ")
 		out.WriteString(rustLocalInterfaceParam(rustTypeName))
 		out.WriteString(") -> bool;\n")
 
-		// Generate method signatures
-		emittedTraitMethods := make(map[string]bool)
+		// Generate method signatures for directly-declared methods only.
+		// Inherited methods come through supertraits — redeclaring them
+		// here would cause method-resolution ambiguity (E0034).
 		for _, method := range t.Methods.List {
 			if len(method.Names) > 0 {
 				// Named method
@@ -1667,7 +1743,6 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 				if !ok {
 					continue
 				}
-				emittedTraitMethods[method.Names[0].Name] = true
 
 				out.WriteString("    fn ")
 				out.WriteString(ToSnakeCase(method.Names[0].Name))
@@ -1725,30 +1800,14 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 			}
 		}
 
-		// Add methods inherited from embedded interfaces. go/types flattens
-		// embedded methods into NumMethods(), so iterating it gives both direct
-		// and embedded methods; dedup against the AST-emitted set.
-		if iface := localInterfaceTypesFromTypeSpec(typeSpec); iface != nil {
-			for i := 0; i < iface.NumMethods(); i++ {
-				method := iface.Method(i)
-				if emittedTraitMethods[method.Name()] {
-					continue
-				}
-				sig, ok := method.Type().(*types.Signature)
-				if !ok {
-					continue
-				}
-				writeTraitMethodSigFromTypes(out, method.Name(), sig)
-				emittedTraitMethods[method.Name()] = true
-			}
-		}
-
 		out.WriteString("}")
 		out.WriteString("\n\nimpl Clone for ")
 		out.WriteString(rustLocalInterfaceTraitObject(rustTypeName))
 		out.WriteString(" {\n")
 		out.WriteString("    fn clone(&self) -> Self {\n")
-		out.WriteString("        self.__go_clone_box()\n")
+		out.WriteString("        self.__go_clone_box_")
+		out.WriteString(traitSnake)
+		out.WriteString("()\n")
 		out.WriteString("    }\n")
 		out.WriteString("}")
 
@@ -2127,19 +2186,37 @@ func localConcreteTypeCanUsePartialEq(typeName string) bool {
 	return false
 }
 
-func writeLocalInterfaceSupportImpl(out *strings.Builder, ifaceName, typeName string) {
+// writeLocalInterfaceSupportImpl emits the auxiliary trait-method bodies
+// (`__go_clone_box_<suffix>`, optional `__go_as_any`, `__go_eq_<suffix>`)
+// inside an `impl <Trait> for <Concrete>` block. `ifaceName` is the Rust
+// trait name as it appears in the impl signature (simple for the current
+// package, qualified for cross-package interfaces); `ifaceType` is the
+// go/types Interface used to decide whether `__go_as_any` must be redeclared
+// here or is already inherited from a supertrait.
+func writeLocalInterfaceSupportImpl(out *strings.Builder, ifaceName, typeName string, ifaceType *types.Interface) {
 	TrackImport("Any")
-	out.WriteString("    fn __go_clone_box(&self) -> ")
+	traitSnake := traitMethodSuffix(ifaceName)
+	hasEmbedded := ifaceType != nil && interfaceTypeHasNamedEmbedded(ifaceType)
+	if ifaceType == nil {
+		hasEmbedded = localInterfaceHasEmbeddedInterfaces(ifaceName)
+	}
+	out.WriteString("    fn __go_clone_box_")
+	out.WriteString(traitSnake)
+	out.WriteString("(&self) -> ")
 	out.WriteString(rustLocalInterfaceTraitObject(ifaceName))
 	out.WriteString(" {\n")
 	out.WriteString("        Box::new(self.clone()) as ")
 	out.WriteString(rustLocalInterfaceTraitObject(ifaceName))
 	out.WriteString("\n")
 	out.WriteString("    }\n")
-	out.WriteString("    fn __go_as_any(&self) -> &dyn Any {\n")
-	out.WriteString("        self\n")
-	out.WriteString("    }\n")
-	out.WriteString("    fn __go_eq(&self, other: ")
+	if !hasEmbedded {
+		out.WriteString("    fn __go_as_any(&self) -> &dyn Any {\n")
+		out.WriteString("        self\n")
+		out.WriteString("    }\n")
+	}
+	out.WriteString("    fn __go_eq_")
+	out.WriteString(traitSnake)
+	out.WriteString("(&self, other: ")
 	out.WriteString(rustLocalInterfaceParam(ifaceName))
 	out.WriteString(") -> bool {\n")
 	out.WriteString("        if let Some(__other) = other.__go_as_any().downcast_ref::<")

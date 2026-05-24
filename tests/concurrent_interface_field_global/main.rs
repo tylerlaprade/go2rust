@@ -25,15 +25,15 @@ fn format_any(value: &dyn Any) -> String {
 }
 
 pub trait Reader: std::fmt::Display + Any {
-    fn __go_clone_box(&self) -> Box<dyn Reader + Send + Sync>;
+    fn __go_clone_box_reader(&self) -> Box<dyn Reader + Send + Sync>;
     fn __go_as_any(&self) -> &dyn Any;
-    fn __go_eq(&self, other: &(dyn Reader + Send + Sync)) -> bool;
+    fn __go_eq_reader(&self, other: &(dyn Reader + Send + Sync)) -> bool;
     fn read(&self) -> Arc<Mutex<Option<i32>>>;
 }
 
 impl Clone for Box<dyn Reader + Send + Sync> {
     fn clone(&self) -> Self {
-        self.__go_clone_box()
+        self.__go_clone_box_reader()
     }
 }
 

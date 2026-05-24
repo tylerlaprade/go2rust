@@ -141,6 +141,43 @@ func rustLocalInterfaceParam(name string) string {
 	return "&dyn " + name
 }
 
+// traitMethodSuffix returns the snake_case suffix used on per-trait auxiliary
+// methods such as `__go_clone_box_<suffix>` and `__go_eq_<suffix>`. The
+// supplied trait name may be a simple identifier (current-package interface
+// like `Key`) or a qualified Rust path (cross-package interface like
+// `example_com_ifaceeq_label::Key`); the suffix is always derived from the
+// final segment so it matches the suffix used in the trait declaration.
+func traitMethodSuffix(ifaceName string) string {
+	name := ifaceName
+	if idx := strings.LastIndex(name, "::"); idx != -1 {
+		name = name[idx+2:]
+	}
+	return ToSnakeCase(name)
+}
+
+// interfaceTypeHasNamedEmbedded reports whether the given go/types interface
+// embeds any other named interface that the transpiler emits as a Rust trait.
+// Used to decide whether the implementation block must redeclare
+// `__go_as_any` or inherit it from a supertrait.
+func interfaceTypeHasNamedEmbedded(iface *types.Interface) bool {
+	if iface == nil {
+		return false
+	}
+	for i := 0; i < iface.NumEmbeddeds(); i++ {
+		named, ok := types.Unalias(iface.EmbeddedType(i)).(*types.Named)
+		if !ok {
+			continue
+		}
+		if _, ok := named.Underlying().(*types.Interface); !ok {
+			continue
+		}
+		if _, ok := transpiledNamedInterfaceTypeNameFromTypes(named); ok {
+			return true
+		}
+	}
+	return false
+}
+
 func goTypeParamConstraintToRust(t types.Type) (string, bool) {
 	tp, ok := types.Unalias(t).(*types.TypeParam)
 	if !ok || tp.Constraint() == nil {

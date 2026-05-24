@@ -177,15 +177,15 @@ impl std::fmt::Display for counter {
 
 
 pub trait valueReader: std::fmt::Display + Any {
-    fn __go_clone_box(&self) -> Box<dyn valueReader + Send + Sync>;
+    fn __go_clone_box_value_reader(&self) -> Box<dyn valueReader + Send + Sync>;
     fn __go_as_any(&self) -> &dyn Any;
-    fn __go_eq(&self, other: &(dyn valueReader + Send + Sync)) -> bool;
+    fn __go_eq_value_reader(&self, other: &(dyn valueReader + Send + Sync)) -> bool;
     fn value(&self) -> Arc<Mutex<Option<i32>>>;
 }
 
 impl Clone for Box<dyn valueReader + Send + Sync> {
     fn clone(&self) -> Self {
-        self.__go_clone_box()
+        self.__go_clone_box_value_reader()
     }
 }
 
@@ -211,13 +211,13 @@ impl valueReader for counter {
     fn value(&self) -> Arc<Mutex<Option<i32>>> {
         return self.value.clone();
     }
-    fn __go_clone_box(&self) -> Box<dyn valueReader + Send + Sync> {
+    fn __go_clone_box_value_reader(&self) -> Box<dyn valueReader + Send + Sync> {
         Box::new(self.clone()) as Box<dyn valueReader + Send + Sync>
     }
     fn __go_as_any(&self) -> &dyn Any {
         self
     }
-    fn __go_eq(&self, other: &(dyn valueReader + Send + Sync)) -> bool {
+    fn __go_eq_value_reader(&self, other: &(dyn valueReader + Send + Sync)) -> bool {
         if let Some(__other) = other.__go_as_any().downcast_ref::<counter>() {
             false
         } else {

@@ -2613,7 +2613,9 @@ func writeLocalInterfaceEquality(out *strings.Builder, left ast.Expr, right ast.
 	out.WriteString("{ ")
 	writeInterfaceEqualityReferenceBinding(out, "__left", left, ifaceName, leftKind)
 	writeInterfaceEqualityReferenceBinding(out, "__right", right, ifaceName, rightKind)
-	out.WriteString("let __eq = __left.__go_eq(__right); ")
+	out.WriteString("let __eq = __left.__go_eq_")
+	out.WriteString(traitMethodSuffix(ifaceName))
+	out.WriteString("(__right); ")
 	if op == token.NEQ {
 		out.WriteString("!")
 	}
@@ -4041,8 +4043,14 @@ func writeLocalInterfaceBareClone(out *strings.Builder, expr ast.Expr) bool {
 		}
 	}
 	if isVarBare(ident.Name) {
+		traitName, ok := transpiledNamedInterfaceTypeNameFromExpr(ident)
+		if !ok {
+			return false
+		}
 		out.WriteString(name)
-		out.WriteString(".__go_clone_box()")
+		out.WriteString(".__go_clone_box_")
+		out.WriteString(traitMethodSuffix(traitName))
+		out.WriteString("()")
 		return true
 	}
 	if varType, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar && strings.HasPrefix(varType, "&Box<dyn ") {

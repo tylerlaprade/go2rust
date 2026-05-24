@@ -8,15 +8,15 @@ pub const VAL_STRING: i32 = 1;
 
 
 pub trait Code: std::fmt::Display + Any {
-    fn __go_clone_box(&self) -> Box<dyn Code>;
+    fn __go_clone_box_code(&self) -> Box<dyn Code>;
     fn __go_as_any(&self) -> &dyn Any;
-    fn __go_eq(&self, other: &dyn Code) -> bool;
+    fn __go_eq_code(&self, other: &dyn Code) -> bool;
     fn value(&self) -> Rc<RefCell<Option<i32>>>;
 }
 
 impl Clone for Box<dyn Code> {
     fn clone(&self) -> Self {
-        self.__go_clone_box()
+        self.__go_clone_box_code()
     }
 }
 
@@ -191,13 +191,13 @@ impl Code for CodeVal {
     fn value(&self) -> Rc<RefCell<Option<i32>>> {
         return Rc::new(RefCell::new(Some((*self.0.borrow().as_ref().unwrap()) as i32)));
     }
-    fn __go_clone_box(&self) -> Box<dyn Code> {
+    fn __go_clone_box_code(&self) -> Box<dyn Code> {
         Box::new(self.clone()) as Box<dyn Code>
     }
     fn __go_as_any(&self) -> &dyn Any {
         self
     }
-    fn __go_eq(&self, other: &dyn Code) -> bool {
+    fn __go_eq_code(&self, other: &dyn Code) -> bool {
         if let Some(__other) = other.__go_as_any().downcast_ref::<CodeVal>() {
             self == __other
         } else {

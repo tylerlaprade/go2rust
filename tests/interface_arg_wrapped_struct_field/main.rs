@@ -4,15 +4,15 @@ use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
 pub trait Node: std::fmt::Display + Any {
-    fn __go_clone_box(&self) -> Box<dyn Node>;
+    fn __go_clone_box_node(&self) -> Box<dyn Node>;
     fn __go_as_any(&self) -> &dyn Any;
-    fn __go_eq(&self, other: &dyn Node) -> bool;
+    fn __go_eq_node(&self, other: &dyn Node) -> bool;
     fn pos(&self) -> Rc<RefCell<Option<i32>>>;
 }
 
 impl Clone for Box<dyn Node> {
     fn clone(&self) -> Self {
-        self.__go_clone_box()
+        self.__go_clone_box_node()
     }
 }
 
@@ -69,13 +69,13 @@ impl Node for Lit {
     fn pos(&self) -> Rc<RefCell<Option<i32>>> {
         return self.value.clone();
     }
-    fn __go_clone_box(&self) -> Box<dyn Node> {
+    fn __go_clone_box_node(&self) -> Box<dyn Node> {
         Box::new(self.clone()) as Box<dyn Node>
     }
     fn __go_as_any(&self) -> &dyn Any {
         self
     }
-    fn __go_eq(&self, other: &dyn Node) -> bool {
+    fn __go_eq_node(&self, other: &dyn Node) -> bool {
         if let Some(__other) = other.__go_as_any().downcast_ref::<Lit>() {
             self == __other
         } else {

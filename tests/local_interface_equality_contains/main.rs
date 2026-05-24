@@ -4,15 +4,15 @@ use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
 pub trait Key: std::fmt::Display + Any {
-    fn __go_clone_box(&self) -> Box<dyn Key>;
+    fn __go_clone_box_key(&self) -> Box<dyn Key>;
     fn __go_as_any(&self) -> &dyn Any;
-    fn __go_eq(&self, other: &dyn Key) -> bool;
+    fn __go_eq_key(&self, other: &dyn Key) -> bool;
     fn name(&self) -> Rc<RefCell<Option<String>>>;
 }
 
 impl Clone for Box<dyn Key> {
     fn clone(&self) -> Self {
-        self.__go_clone_box()
+        self.__go_clone_box_key()
     }
 }
 
@@ -69,13 +69,13 @@ impl Key for namedKey {
     fn name(&self) -> Rc<RefCell<Option<String>>> {
         return self.name.clone();
     }
-    fn __go_clone_box(&self) -> Box<dyn Key> {
+    fn __go_clone_box_key(&self) -> Box<dyn Key> {
         Box::new(self.clone()) as Box<dyn Key>
     }
     fn __go_as_any(&self) -> &dyn Any {
         self
     }
-    fn __go_eq(&self, other: &dyn Key) -> bool {
+    fn __go_eq_key(&self, other: &dyn Key) -> bool {
         if let Some(__other) = other.__go_as_any().downcast_ref::<namedKey>() {
             self == __other
         } else {
@@ -96,6 +96,6 @@ fn main() {
     let mut labelA = Rc::new(RefCell::new(Some(Label { key: Rc::new(RefCell::new(Some(Box::new((*a.borrow().as_ref().unwrap()).clone()) as Box<dyn Key>))), ..Default::default() })));
     let mut labelB = Rc::new(RefCell::new(Some(Label { key: Rc::new(RefCell::new(Some(Box::new((*b.borrow().as_ref().unwrap()).clone()) as Box<dyn Key>))), ..Default::default() })));
 
-    println!("{}", format!("{}", { let __left_holder = (*labelA.borrow().as_ref().unwrap()).key().clone(); let __left_guard = __left_holder.borrow(); let __left = __left_guard.as_ref().unwrap().as_ref(); let __right_holder = (*labelA.borrow().as_ref().unwrap()).key().clone(); let __right_guard = __right_holder.borrow(); let __right = __right_guard.as_ref().unwrap().as_ref(); let __eq = __left.__go_eq(__right); __eq }));
-    println!("{}", format!("{}", { let __left_holder = (*labelA.borrow().as_ref().unwrap()).key().clone(); let __left_guard = __left_holder.borrow(); let __left = __left_guard.as_ref().unwrap().as_ref(); let __right_holder = (*labelB.borrow().as_ref().unwrap()).key().clone(); let __right_guard = __right_holder.borrow(); let __right = __right_guard.as_ref().unwrap().as_ref(); let __eq = __left.__go_eq(__right); __eq }));
+    println!("{}", format!("{}", { let __left_holder = (*labelA.borrow().as_ref().unwrap()).key().clone(); let __left_guard = __left_holder.borrow(); let __left = __left_guard.as_ref().unwrap().as_ref(); let __right_holder = (*labelA.borrow().as_ref().unwrap()).key().clone(); let __right_guard = __right_holder.borrow(); let __right = __right_guard.as_ref().unwrap().as_ref(); let __eq = __left.__go_eq_key(__right); __eq }));
+    println!("{}", format!("{}", { let __left_holder = (*labelA.borrow().as_ref().unwrap()).key().clone(); let __left_guard = __left_holder.borrow(); let __left = __left_guard.as_ref().unwrap().as_ref(); let __right_holder = (*labelB.borrow().as_ref().unwrap()).key().clone(); let __right_guard = __right_holder.borrow(); let __right = __right_guard.as_ref().unwrap().as_ref(); let __eq = __left.__go_eq_key(__right); __eq }));
 }

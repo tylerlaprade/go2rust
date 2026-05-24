@@ -46,15 +46,15 @@ fn go_type_name(val: &dyn Any) -> &'static str {
 }
 
 pub trait Shape: std::fmt::Display + Any {
-    fn __go_clone_box(&self) -> Box<dyn Shape>;
+    fn __go_clone_box_shape(&self) -> Box<dyn Shape>;
     fn __go_as_any(&self) -> &dyn Any;
-    fn __go_eq(&self, other: &dyn Shape) -> bool;
+    fn __go_eq_shape(&self, other: &dyn Shape) -> bool;
     fn area(&self) -> Rc<RefCell<Option<f64>>>;
 }
 
 impl Clone for Box<dyn Shape> {
     fn clone(&self) -> Self {
-        self.__go_clone_box()
+        self.__go_clone_box_shape()
     }
 }
 
@@ -119,13 +119,13 @@ impl Shape for Rectangle {
     fn area(&self) -> Rc<RefCell<Option<f64>>> {
         return Rc::new(RefCell::new(Some((*self.width.borrow().as_ref().unwrap()) * (*self.height.borrow().as_ref().unwrap()))));
     }
-    fn __go_clone_box(&self) -> Box<dyn Shape> {
+    fn __go_clone_box_shape(&self) -> Box<dyn Shape> {
         Box::new(self.clone()) as Box<dyn Shape>
     }
     fn __go_as_any(&self) -> &dyn Any {
         self
     }
-    fn __go_eq(&self, other: &dyn Shape) -> bool {
+    fn __go_eq_shape(&self, other: &dyn Shape) -> bool {
         if let Some(__other) = other.__go_as_any().downcast_ref::<Rectangle>() {
             self == __other
         } else {
@@ -144,13 +144,13 @@ impl Shape for Circle {
     fn area(&self) -> Rc<RefCell<Option<f64>>> {
         return Rc::new(RefCell::new(Some(3.14159 as f64 * (*self.radius.borrow().as_ref().unwrap()) * (*self.radius.borrow().as_ref().unwrap()))));
     }
-    fn __go_clone_box(&self) -> Box<dyn Shape> {
+    fn __go_clone_box_shape(&self) -> Box<dyn Shape> {
         Box::new(self.clone()) as Box<dyn Shape>
     }
     fn __go_as_any(&self) -> &dyn Any {
         self
     }
-    fn __go_eq(&self, other: &dyn Shape) -> bool {
+    fn __go_eq_shape(&self, other: &dyn Shape) -> bool {
         if let Some(__other) = other.__go_as_any().downcast_ref::<Circle>() {
             self == __other
         } else {

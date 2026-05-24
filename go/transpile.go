@@ -310,7 +310,8 @@ func (analysis *transpileFileAnalysis) externalLocalInterfaceImpls(interfaces ma
 			impls[ifaceName] = make(map[string]externalLocalInterfaceImpl)
 		}
 		impls[ifaceName][rustType] = externalLocalInterfaceImpl{
-			ifaceAST: interfaces[ifaceName],
+			ifaceAST:  interfaces[ifaceName],
+			ifaceType: ifaceType,
 		}
 	}
 
@@ -594,7 +595,8 @@ func importedInterfaceImplsForFile(file *ast.File) map[string]map[string]*types.
 }
 
 type externalLocalInterfaceImpl struct {
-	ifaceAST *ast.InterfaceType
+	ifaceAST  *ast.InterfaceType
+	ifaceType *types.Interface
 }
 
 type localInterfaceAssertionCandidate struct {
@@ -839,19 +841,26 @@ func writeExternalLocalInterfaceMethod(out *strings.Builder, methodName string, 
 	out.WriteString("    }\n")
 }
 
-func writeExternalLocalInterfaceSupportImpl(out *strings.Builder, ifaceName, concreteType string) {
+func writeExternalLocalInterfaceSupportImpl(out *strings.Builder, ifaceName, concreteType string, ifaceType *types.Interface) {
 	TrackImport("Any")
-	out.WriteString("    fn __go_clone_box(&self) -> ")
+	traitSnake := traitMethodSuffix(ifaceName)
+	out.WriteString("    fn __go_clone_box_")
+	out.WriteString(traitSnake)
+	out.WriteString("(&self) -> ")
 	out.WriteString(rustLocalInterfaceTraitObject(ifaceName))
 	out.WriteString(" {\n")
 	out.WriteString("        Box::new(self.clone()) as ")
 	out.WriteString(rustLocalInterfaceTraitObject(ifaceName))
 	out.WriteString("\n")
 	out.WriteString("    }\n")
-	out.WriteString("    fn __go_as_any(&self) -> &dyn Any {\n")
-	out.WriteString("        self\n")
-	out.WriteString("    }\n")
-	out.WriteString("    fn __go_eq(&self, other: ")
+	if !interfaceTypeHasNamedEmbedded(ifaceType) {
+		out.WriteString("    fn __go_as_any(&self) -> &dyn Any {\n")
+		out.WriteString("        self\n")
+		out.WriteString("    }\n")
+	}
+	out.WriteString("    fn __go_eq_")
+	out.WriteString(traitSnake)
+	out.WriteString("(&self, other: ")
 	out.WriteString(rustLocalInterfaceParam(ifaceName))
 	out.WriteString(") -> bool {\n")
 	out.WriteString("        if let Some(_other) = other.__go_as_any().downcast_ref::<")
@@ -902,7 +911,7 @@ func writeExternalLocalInterfaceImpls(out *strings.Builder, first *bool, impls m
 					writeExternalLocalInterfaceMethod(out, method.Names[0].Name, funcType)
 				}
 			}
-			writeExternalLocalInterfaceSupportImpl(out, ifaceName, concreteType)
+			writeExternalLocalInterfaceSupportImpl(out, ifaceName, concreteType, impl.ifaceType)
 			out.WriteString("}")
 		}
 	}
@@ -1721,40 +1730,24 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 				body.WriteString(rustTypeName)
 				body.WriteString(" {\n")
 
-				// Generate trait method implementations
-				emittedImpl := make(map[string]bool)
+				// Generate trait method implementations for directly-declared
+				// methods only. Methods inherited from embedded named local
+				// interfaces are provided by the supertrait's impl block —
+				// duplicating them here would create method-resolution
+				// ambiguity.
 				for _, method := range ifaceType.Methods.List {
 					if len(method.Names) > 0 {
 						methodName := method.Names[0].Name
-						// Find the corresponding method implementation
 						for _, impl := range methods[typeName] {
 							if impl.Name.Name == methodName {
 								TranspileTraitMethodImpl(&body, impl, fileSet, file.Comments)
-								emittedImpl[methodName] = true
 								break
 							}
 						}
 					}
 				}
 
-				// Emit methods inherited from embedded interfaces.
-				if typesIface := localInterfaceTypesByName(ifaceName); typesIface != nil {
-					for i := 0; i < typesIface.NumMethods(); i++ {
-						methodName := typesIface.Method(i).Name()
-						if emittedImpl[methodName] {
-							continue
-						}
-						for _, impl := range methods[typeName] {
-							if impl.Name.Name == methodName {
-								TranspileTraitMethodImpl(&body, impl, fileSet, file.Comments)
-								emittedImpl[methodName] = true
-								break
-							}
-						}
-					}
-				}
-
-				writeLocalInterfaceSupportImpl(&body, ifaceName, typeName)
+				writeLocalInterfaceSupportImpl(&body, ifaceName, typeName, localInterfaceTypesByName(ifaceName))
 				body.WriteString("}")
 			}
 		}
@@ -1780,7 +1773,7 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 					TranspileTraitMethodImpl(&body, method, fileSet, file.Comments)
 				}
 			}
-			writeLocalInterfaceSupportImpl(&body, ifaceName, typeName)
+			writeLocalInterfaceSupportImpl(&body, ifaceName, typeName, ifaceType)
 			body.WriteString("}")
 		}
 		currentTypeMethods = previousTypeMethods

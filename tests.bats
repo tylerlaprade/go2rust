@@ -1070,6 +1070,10 @@ run_xfail_test() {
     run_test "tests/interface_basic"
 }
 
+@test "interface_embed_upcast" {
+    run_test "tests/interface_embed_upcast"
+}
+
 @test "interface_embedded_method" {
     run_test "tests/interface_embedded_method"
 }
@@ -2512,10 +2516,6 @@ run_xfail_test() {
 
 @test "XFAIL: http_client" {
     run_xfail_test "tests/XFAIL/http_client"
-}
-
-@test "XFAIL: interface_embed_upcast" {
-    run_xfail_test "tests/XFAIL/interface_embed_upcast"
 }
 
 @test "XFAIL: named_map_receiver_assign" {

@@ -4,15 +4,15 @@ use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
 pub trait Reader: std::fmt::Display + Any {
-    fn __go_clone_box(&self) -> Box<dyn Reader>;
+    fn __go_clone_box_reader(&self) -> Box<dyn Reader>;
     fn __go_as_any(&self) -> &dyn Any;
-    fn __go_eq(&self, other: &dyn Reader) -> bool;
+    fn __go_eq_reader(&self, other: &dyn Reader) -> bool;
     fn read(&self) -> Rc<RefCell<Option<i32>>>;
 }
 
 impl Clone for Box<dyn Reader> {
     fn clone(&self) -> Self {
-        self.__go_clone_box()
+        self.__go_clone_box_reader()
     }
 }
 
@@ -42,15 +42,15 @@ impl std::fmt::Display for counter {
 
 
 pub trait Valuer: std::fmt::Display + Any {
-    fn __go_clone_box(&self) -> Box<dyn Valuer>;
+    fn __go_clone_box_valuer(&self) -> Box<dyn Valuer>;
     fn __go_as_any(&self) -> &dyn Any;
-    fn __go_eq(&self, other: &dyn Valuer) -> bool;
+    fn __go_eq_valuer(&self, other: &dyn Valuer) -> bool;
     fn value(&self) -> Rc<RefCell<Option<i32>>>;
 }
 
 impl Clone for Box<dyn Valuer> {
     fn clone(&self) -> Self {
-        self.__go_clone_box()
+        self.__go_clone_box_valuer()
     }
 }
 
@@ -89,13 +89,13 @@ impl Reader for counter {
     fn read(&self) -> Rc<RefCell<Option<i32>>> {
         return self.n.clone();
     }
-    fn __go_clone_box(&self) -> Box<dyn Reader> {
+    fn __go_clone_box_reader(&self) -> Box<dyn Reader> {
         Box::new(self.clone()) as Box<dyn Reader>
     }
     fn __go_as_any(&self) -> &dyn Any {
         self
     }
-    fn __go_eq(&self, other: &dyn Reader) -> bool {
+    fn __go_eq_reader(&self, other: &dyn Reader) -> bool {
         if let Some(__other) = other.__go_as_any().downcast_ref::<counter>() {
             self == __other
         } else {
@@ -114,13 +114,13 @@ impl Valuer for number {
     fn value(&self) -> Rc<RefCell<Option<i32>>> {
         return self.n.clone();
     }
-    fn __go_clone_box(&self) -> Box<dyn Valuer> {
+    fn __go_clone_box_valuer(&self) -> Box<dyn Valuer> {
         Box::new(self.clone()) as Box<dyn Valuer>
     }
     fn __go_as_any(&self) -> &dyn Any {
         self
     }
-    fn __go_eq(&self, other: &dyn Valuer) -> bool {
+    fn __go_eq_valuer(&self, other: &dyn Valuer) -> bool {
         if let Some(__other) = other.__go_as_any().downcast_ref::<number>() {
             self == __other
         } else {

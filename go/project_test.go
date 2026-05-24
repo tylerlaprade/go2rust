@@ -836,7 +836,7 @@ func Same(l label.Label, key label.Key) bool {
 	}
 
 	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
-	if !strings.Contains(mainRS, "__left.__go_eq(__right)") {
+	if !strings.Contains(mainRS, "__left.__go_eq_key(__right)") {
 		t.Fatalf("imported interface equality should dispatch through trait equality, got:\n%s", mainRS)
 	}
 	if strings.Contains(mainRS, " == key") {

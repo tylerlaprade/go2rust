@@ -4,15 +4,15 @@ use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
 pub trait Key: std::fmt::Display + Any {
-    fn __go_clone_box(&self) -> Box<dyn Key>;
+    fn __go_clone_box_key(&self) -> Box<dyn Key>;
     fn __go_as_any(&self) -> &dyn Any;
-    fn __go_eq(&self, other: &dyn Key) -> bool;
+    fn __go_eq_key(&self, other: &dyn Key) -> bool;
     fn name(&self) -> Rc<RefCell<Option<String>>>;
 }
 
 impl Clone for Box<dyn Key> {
     fn clone(&self) -> Self {
-        self.__go_clone_box()
+        self.__go_clone_box_key()
     }
 }
 
@@ -42,15 +42,15 @@ impl std::fmt::Display for namedKey {
 
 
 pub trait Finder: std::fmt::Display + Any {
-    fn __go_clone_box(&self) -> Box<dyn Finder>;
+    fn __go_clone_box_finder(&self) -> Box<dyn Finder>;
     fn __go_as_any(&self) -> &dyn Any;
-    fn __go_eq(&self, other: &dyn Finder) -> bool;
+    fn __go_eq_finder(&self, other: &dyn Finder) -> bool;
     fn find(&self, key: &dyn Key) -> Rc<RefCell<Option<String>>>;
 }
 
 impl Clone for Box<dyn Finder> {
     fn clone(&self) -> Self {
-        self.__go_clone_box()
+        self.__go_clone_box_finder()
     }
 }
 
@@ -81,13 +81,13 @@ impl Key for namedKey {
     fn name(&self) -> Rc<RefCell<Option<String>>> {
         return self.name.clone();
     }
-    fn __go_clone_box(&self) -> Box<dyn Key> {
+    fn __go_clone_box_key(&self) -> Box<dyn Key> {
         Box::new(self.clone()) as Box<dyn Key>
     }
     fn __go_as_any(&self) -> &dyn Any {
         self
     }
-    fn __go_eq(&self, other: &dyn Key) -> bool {
+    fn __go_eq_key(&self, other: &dyn Key) -> bool {
         if let Some(__other) = other.__go_as_any().downcast_ref::<namedKey>() {
             self == __other
         } else {
@@ -106,13 +106,13 @@ impl Finder for finder {
     fn find(&self, key: &dyn Key) -> Rc<RefCell<Option<String>>> {
         return key.name();
     }
-    fn __go_clone_box(&self) -> Box<dyn Finder> {
+    fn __go_clone_box_finder(&self) -> Box<dyn Finder> {
         Box::new(self.clone()) as Box<dyn Finder>
     }
     fn __go_as_any(&self) -> &dyn Any {
         self
     }
-    fn __go_eq(&self, other: &dyn Finder) -> bool {
+    fn __go_eq_finder(&self, other: &dyn Finder) -> bool {
         if let Some(__other) = other.__go_as_any().downcast_ref::<finder>() {
             self == __other
         } else {

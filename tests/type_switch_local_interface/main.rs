@@ -4,15 +4,15 @@ use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
 pub trait namer: std::fmt::Display + Any {
-    fn __go_clone_box(&self) -> Box<dyn namer>;
+    fn __go_clone_box_namer(&self) -> Box<dyn namer>;
     fn __go_as_any(&self) -> &dyn Any;
-    fn __go_eq(&self, other: &dyn namer) -> bool;
+    fn __go_eq_namer(&self, other: &dyn namer) -> bool;
     fn name(&self) -> Rc<RefCell<Option<String>>>;
 }
 
 impl Clone for Box<dyn namer> {
     fn clone(&self) -> Self {
-        self.__go_clone_box()
+        self.__go_clone_box_namer()
     }
 }
 
@@ -80,13 +80,13 @@ impl namer for alpha {
     fn name(&self) -> Rc<RefCell<Option<String>>> {
         return self.name.clone();
     }
-    fn __go_clone_box(&self) -> Box<dyn namer> {
+    fn __go_clone_box_namer(&self) -> Box<dyn namer> {
         Box::new(self.clone()) as Box<dyn namer>
     }
     fn __go_as_any(&self) -> &dyn Any {
         self
     }
-    fn __go_eq(&self, other: &dyn namer) -> bool {
+    fn __go_eq_namer(&self, other: &dyn namer) -> bool {
         if let Some(__other) = other.__go_as_any().downcast_ref::<alpha>() {
             self == __other
         } else {
@@ -105,13 +105,13 @@ impl namer for beta {
     fn name(&self) -> Rc<RefCell<Option<String>>> {
         return self.name.clone();
     }
-    fn __go_clone_box(&self) -> Box<dyn namer> {
+    fn __go_clone_box_namer(&self) -> Box<dyn namer> {
         Box::new(self.clone()) as Box<dyn namer>
     }
     fn __go_as_any(&self) -> &dyn Any {
         self
     }
-    fn __go_eq(&self, other: &dyn namer) -> bool {
+    fn __go_eq_namer(&self, other: &dyn namer) -> bool {
         if let Some(__other) = other.__go_as_any().downcast_ref::<beta>() {
             self == __other
         } else {

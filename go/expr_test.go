@@ -159,8 +159,8 @@ func rewrite(x Expr) Expr {
 	if !strings.Contains(rust, "x: &dyn Expr") && !strings.Contains(rust, "x: &(dyn Expr + Send + Sync)") {
 		t.Fatalf("local interface parameter should stay a trait reference in the signature:\n%s", rust)
 	}
-	if !strings.Contains(rust, "let mut x: Rc<RefCell<Option<Box<dyn Expr>>>> = Rc::new(RefCell::new(Some(x.__go_clone_box())))") &&
-		!strings.Contains(rust, "let mut x: Arc<Mutex<Option<Box<dyn Expr + Send + Sync>>>> = Arc::new(Mutex::new(Some(x.__go_clone_box())))") {
+	if !strings.Contains(rust, "let mut x: Rc<RefCell<Option<Box<dyn Expr>>>> = Rc::new(RefCell::new(Some(x.__go_clone_box_expr())))") &&
+		!strings.Contains(rust, "let mut x: Arc<Mutex<Option<Box<dyn Expr + Send + Sync>>>> = Arc::new(Mutex::new(Some(x.__go_clone_box_expr())))") {
 		t.Fatalf("assigned local interface parameter should be shadowed with a wrapped value:\n%s", rust)
 	}
 }

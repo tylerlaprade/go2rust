@@ -4,16 +4,16 @@ use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
 pub trait geometry: std::fmt::Display + Any {
-    fn __go_clone_box(&self) -> Box<dyn geometry>;
+    fn __go_clone_box_geometry(&self) -> Box<dyn geometry>;
     fn __go_as_any(&self) -> &dyn Any;
-    fn __go_eq(&self, other: &dyn geometry) -> bool;
+    fn __go_eq_geometry(&self, other: &dyn geometry) -> bool;
     fn area(&self) -> Rc<RefCell<Option<f64>>>;
     fn perim(&self) -> Rc<RefCell<Option<f64>>>;
 }
 
 impl Clone for Box<dyn geometry> {
     fn clone(&self) -> Self {
-        self.__go_clone_box()
+        self.__go_clone_box_geometry()
     }
 }
 
@@ -60,13 +60,13 @@ impl geometry for rect {
     fn perim(&self) -> Rc<RefCell<Option<f64>>> {
         return Rc::new(RefCell::new(Some(2.0 * (*self.width.borrow().as_ref().unwrap()) + 2.0 * (*self.height.borrow().as_ref().unwrap()))));
     }
-    fn __go_clone_box(&self) -> Box<dyn geometry> {
+    fn __go_clone_box_geometry(&self) -> Box<dyn geometry> {
         Box::new(self.clone()) as Box<dyn geometry>
     }
     fn __go_as_any(&self) -> &dyn Any {
         self
     }
-    fn __go_eq(&self, other: &dyn geometry) -> bool {
+    fn __go_eq_geometry(&self, other: &dyn geometry) -> bool {
         if let Some(__other) = other.__go_as_any().downcast_ref::<rect>() {
             self == __other
         } else {

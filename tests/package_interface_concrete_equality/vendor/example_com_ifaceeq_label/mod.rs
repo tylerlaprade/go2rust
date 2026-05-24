@@ -5,15 +5,15 @@ use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
 
 pub trait Key: std::fmt::Display + Any {
-    fn __go_clone_box(&self) -> Box<dyn Key + Send + Sync>;
+    fn __go_clone_box_key(&self) -> Box<dyn Key + Send + Sync>;
     fn __go_as_any(&self) -> &dyn Any;
-    fn __go_eq(&self, other: &(dyn Key + Send + Sync)) -> bool;
+    fn __go_eq_key(&self, other: &(dyn Key + Send + Sync)) -> bool;
     fn name(&self) -> Arc<Mutex<Option<String>>>;
 }
 
 impl Clone for Box<dyn Key + Send + Sync> {
     fn clone(&self) -> Self {
-        self.__go_clone_box()
+        self.__go_clone_box_key()
     }
 }
 
@@ -51,5 +51,5 @@ impl Label {
 
 pub fn new(key: &(dyn Key + Send + Sync)) -> Arc<Mutex<Option<Label>>> {
 
-    return Arc::new(Mutex::new(Some(Label { key: Arc::new(Mutex::new(Some(key.__go_clone_box()))), ..Default::default() })));
+    return Arc::new(Mutex::new(Some(Label { key: Arc::new(Mutex::new(Some(key.__go_clone_box_key()))), ..Default::default() })));
 }

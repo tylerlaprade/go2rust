@@ -4,15 +4,15 @@ use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
 pub trait hasValue: std::fmt::Display + Any {
-    fn __go_clone_box(&self) -> Box<dyn hasValue>;
+    fn __go_clone_box_has_value(&self) -> Box<dyn hasValue>;
     fn __go_as_any(&self) -> &dyn Any;
-    fn __go_eq(&self, other: &dyn hasValue) -> bool;
+    fn __go_eq_has_value(&self, other: &dyn hasValue) -> bool;
     fn value(&self) -> Rc<RefCell<Option<i32>>>;
 }
 
 impl Clone for Box<dyn hasValue> {
     fn clone(&self) -> Self {
-        self.__go_clone_box()
+        self.__go_clone_box_has_value()
     }
 }
 
@@ -51,13 +51,13 @@ impl hasValue for r#box {
     fn value(&self) -> Rc<RefCell<Option<i32>>> {
         return self.n.clone();
     }
-    fn __go_clone_box(&self) -> Box<dyn hasValue> {
+    fn __go_clone_box_has_value(&self) -> Box<dyn hasValue> {
         Box::new(self.clone()) as Box<dyn hasValue>
     }
     fn __go_as_any(&self) -> &dyn Any {
         self
     }
-    fn __go_eq(&self, other: &dyn hasValue) -> bool {
+    fn __go_eq_has_value(&self, other: &dyn hasValue) -> bool {
         if let Some(__other) = other.__go_as_any().downcast_ref::<r#box>() {
             self == __other
         } else {
