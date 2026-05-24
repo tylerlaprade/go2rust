@@ -6071,10 +6071,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 											// Assignment to interface{} - need to box the value
 											if !writeEmptyInterfaceIdentAssignment(out, s.Lhs[0], s.Rhs[0]) {
 												out.WriteString("{ ")
-												out.WriteString("let new_val = Box::new(")
-												TranspileExpression(out, s.Rhs[0])
-												out.WriteString(") as ")
-												out.WriteString(rustAnyTraitObject())
+												out.WriteString("let new_val = ")
+												writeInterfaceBoxedValue(out, s.Rhs[0])
 												out.WriteString("; ")
 												out.WriteString("*")
 												TranspileExpressionContext(out, s.Lhs[0], LValue)
@@ -6198,10 +6196,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										// Assignment to interface{} - need to box the value
 										if !writeEmptyInterfaceIdentAssignment(out, s.Lhs[0], s.Rhs[0]) {
 											out.WriteString("{ ")
-											out.WriteString("let new_val = Box::new(")
-											TranspileExpression(out, s.Rhs[0])
-											out.WriteString(") as ")
-											out.WriteString(rustAnyTraitObject())
+											out.WriteString("let new_val = ")
+											writeInterfaceBoxedValue(out, s.Rhs[0])
 											out.WriteString("; ")
 											out.WriteString("*")
 											TranspileExpressionContext(out, s.Lhs[0], LValue)

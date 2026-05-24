@@ -3254,6 +3254,10 @@ func writeIdentValueCloneBlock(out *strings.Builder, ident *ast.Ident) {
 func writeOwnedExpressionValue(out *strings.Builder, expr ast.Expr) bool {
 	if ident, ok := expr.(*ast.Ident); ok {
 		if !isWrappedValueIdent(ident) {
+			if varType, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar && isWrappedRangeVarType(varType) {
+				writeIdentValueClone(out, ident)
+				return true
+			}
 			return false
 		}
 		writeIdentValueClone(out, ident)
@@ -9015,6 +9019,13 @@ func writeTypeAssertionInputClone(out *strings.Builder, expr ast.Expr) {
 		out.WriteString(".clone()")
 		return
 	}
+	if _, isSel := expr.(*ast.SelectorExpr); isSel {
+		if typeInfo := GetTypeInfo(); typeInfo != nil && isEmptyInterfaceType(typeInfo.GetType(expr)) {
+			TranspileExpressionContext(out, expr, LValue)
+			out.WriteString(".clone()")
+			return
+		}
+	}
 	TranspileExpression(out, expr)
 	out.WriteString(".clone()")
 }
@@ -9618,13 +9629,8 @@ func TranspileTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr) 
 	// Generate the type assertion code that returns (value, ok)
 	out.WriteString("({\n")
 	out.WriteString("        let val = ")
-	// Check if e.X is an identifier (simple variable)
-	if ident, ok := e.X.(*ast.Ident); ok && ident.Name != "nil" {
-		out.WriteString(rustIdentForUseWithCapture(ident))
-	} else {
-		TranspileExpression(out, e.X)
-	}
-	out.WriteString(".clone();\n")
+	writeTypeAssertionInputClone(out, e.X)
+	out.WriteString(";\n")
 	out.WriteString("        let guard = val")
 	WriteBorrowMethod(out, false)
 	out.WriteString(";\n")

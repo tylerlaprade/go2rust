@@ -1834,6 +1834,10 @@ run_xfail_test() {
     run_test "tests/range_wrapped_call_and_array_pointer"
 }
 
+@test "range_wrapped_ptr_to_any_field" {
+    run_test "tests/range_wrapped_ptr_to_any_field"
+}
+
 @test "rate_limiting" {
     run_test "tests/rate_limiting"
 }

@@ -141,11 +141,12 @@ func trim(words []string) {
 	}
 
 	rust, _, _ := Transpile(file, fset, typeInfo)
-	if strings.Contains(rust, "let new_val = Rc::new(RefCell::new(Some({ let __s = lit") ||
-		strings.Contains(rust, "let new_val = Arc::new(Mutex::new(Some({ let __s = lit") {
+	if strings.Contains(rust, "let new_val = Rc::new(RefCell::new(Some({ let __s =") ||
+		strings.Contains(rust, "let new_val = Arc::new(Mutex::new(Some({ let __s =") {
 		t.Fatalf("assigned string range variable should not receive a wrapped string slice:\n%s", rust)
 	}
-	if !strings.Contains(rust, "let new_val = { let __s = lit") {
+	if !strings.Contains(rust, "let new_val = { let __s = lit") &&
+		!strings.Contains(rust, "let new_val = { let __s = &(lit)") {
 		t.Fatalf("assigned string range variable should receive a bare string slice:\n%s", rust)
 	}
 }
