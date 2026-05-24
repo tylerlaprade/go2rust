@@ -1,1 +1,2 @@
-buf: hello=42 world=x
+count: 2
+buf: a=1 b=2 c=3

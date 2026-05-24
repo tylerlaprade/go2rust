@@ -3149,7 +3149,21 @@ func methodMutatesReceiverWithMethodMap(fn *ast.FuncDecl, receiverName string, r
 			}
 		case *ast.CallExpr:
 			sel, ok := stmt.Fun.(*ast.SelectorExpr)
-			if !ok || !exprReferencesReceiver(sel.X, receiverName) {
+			if !ok {
+				return true
+			}
+			if !exprReferencesReceiver(sel.X, receiverName) {
+				// fmt.Fprintf(receiver, ...) transitively invokes receiver.Write(...)
+				// when receiver implements io.Writer. Treat that as a method call
+				// on the receiver so its mutation propagates here.
+				if callIsFprintfWritingToReceiver(stmt, sel, receiverName) {
+					if called := methodDeclByName(methodsByReceiver[receiverKey], "Write"); called != nil {
+						if methodMutatesReceiverWithMethodMap(called, receiverNameForMethod(called), methodReceiverGroupKey(called, typeInfo), methodsByReceiver, typeInfo, seen) {
+							mutates = true
+							return false
+						}
+					}
+				}
 				return true
 			}
 			called := methodDeclByName(methodsByReceiver[receiverKey], sel.Sel.Name)
@@ -3164,6 +3178,27 @@ func methodMutatesReceiverWithMethodMap(fn *ast.FuncDecl, receiverName string, r
 		return true
 	})
 	return mutates
+}
+
+// callIsFprintfWritingToReceiver reports whether call is `fmt.Fprintf(<recv>,
+// ...)` (or Fprint/Fprintln) where the first argument references the named
+// receiver. The transpiler lowers such calls to <recv>.write(...), so the
+// receiver participates as the write target and inherits its Write method's
+// mutation behavior.
+func callIsFprintfWritingToReceiver(call *ast.CallExpr, sel *ast.SelectorExpr, receiverName string) bool {
+	if len(call.Args) == 0 {
+		return false
+	}
+	pkgIdent, ok := sel.X.(*ast.Ident)
+	if !ok || pkgIdent.Name != "fmt" {
+		return false
+	}
+	switch sel.Sel.Name {
+	case "Fprintf", "Fprint", "Fprintln":
+	default:
+		return false
+	}
+	return exprReferencesReceiver(call.Args[0], receiverName)
 }
 
 func methodMutatesReceiverWithSeen(fn *ast.FuncDecl, receiverName string, receiverType string, seen map[*ast.FuncDecl]bool) bool {
@@ -3194,7 +3229,20 @@ func methodMutatesReceiverWithSeen(fn *ast.FuncDecl, receiverName string, receiv
 			}
 		case *ast.CallExpr:
 			sel, ok := stmt.Fun.(*ast.SelectorExpr)
-			if !ok || !exprReferencesReceiver(sel.X, receiverName) {
+			if !ok {
+				return true
+			}
+			if !exprReferencesReceiver(sel.X, receiverName) {
+				// fmt.Fprintf(receiver, ...) lowers to receiver.write(...);
+				// propagate the Write method's mutation through this indirect call.
+				if callIsFprintfWritingToReceiver(stmt, sel, receiverName) {
+					if called := methodDeclByName(methodsForReceiverType(receiverType), "Write"); called != nil {
+						if methodMutatesReceiverWithSeen(called, receiverNameForMethod(called), getMethodReceiverType(called), seen) {
+							mutates = true
+							return false
+						}
+					}
+				}
 				return true
 			}
 			called := methodDeclByName(methodsForReceiverType(receiverType), sel.Sel.Name)

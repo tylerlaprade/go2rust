@@ -182,43 +182,53 @@ impl bytes_Buffer {
 
 #[derive(Debug, Clone)]
 pub struct userWriter {
+    pub count: Rc<RefCell<Option<i32>>>,
     pub buf: Rc<RefCell<Option<bytes_Buffer>>>,
 }
 
 impl userWriter {
     pub fn __go_value_clone(&self) -> Self {
-        Self { buf: { let __guard = self.buf.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        Self { count: { let __guard = self.count.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, buf: { let __guard = self.buf.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
     }
 }
 
 
 impl Default for userWriter {
     fn default() -> Self {
-        Self { buf: Rc::new(RefCell::new(Some(Default::default()))) }
+        Self { count: Rc::new(RefCell::new(Some(0))), buf: Rc::new(RefCell::new(Some(Default::default()))) }
     }
 }
 
 impl std::fmt::Display for userWriter {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.buf.borrow().as_ref().unwrap()))
+        write!(f, "{{{} {}}}", (*self.count.borrow().as_ref().unwrap()), (*self.buf.borrow().as_ref().unwrap()))
     }
 }
 
 
 impl userWriter {
-    pub fn write(&self, data: Rc<RefCell<Option<Vec<u8>>>>) -> (Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<Box<dyn StdError>>>>) {
+    pub fn write(&mut self, data: Rc<RefCell<Option<Vec<u8>>>>) -> (Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<Box<dyn StdError>>>>) {
+        { let __target = self.count.clone(); let mut guard = __target.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
         return (*self.buf.borrow_mut().as_mut().unwrap()).write(data.clone());
     }
 }
 
 fn main() {
-    let mut u = Rc::new(RefCell::new(Some(userWriter { buf: Rc::new(RefCell::new(Some(Default::default()))) })));
+    let mut u = Rc::new(RefCell::new(Some(userWriter { count: Rc::new(RefCell::new(Some(0))), buf: Rc::new(RefCell::new(Some(Default::default()))) })));
     {
-        let (_, mut err) = { let __s = format!("hello={} world={}", 42, "x".to_string()); (*u.borrow().as_ref().unwrap()).write(Rc::new(RefCell::new(Some::<Vec<u8>>(__s.into_bytes())))) };;
+        let (_, mut err) = { let __s = format!("a={} b={}", 1, 2); (*u.borrow_mut().as_mut().unwrap()).write(Rc::new(RefCell::new(Some::<Vec<u8>>(__s.into_bytes())))) };;
         if (*err.borrow()).is_some() {
             println!("{} {}", format!("{}", "err:".to_string()), format!("{}", format!("{}", (*err.borrow().as_ref().unwrap()))));;
             return;;
         }
     }
+    {
+        let (_, mut err) = { let __s = format!(" c={}", 3); (*u.borrow_mut().as_mut().unwrap()).write(Rc::new(RefCell::new(Some::<Vec<u8>>(__s.into_bytes())))) };;
+        if (*err.borrow()).is_some() {
+            println!("{} {}", format!("{}", "err:".to_string()), format!("{}", format!("{}", (*err.borrow().as_ref().unwrap()))));;
+            return;;
+        }
+    }
+    println!("{} {}", format!("{}", "count:".to_string()), format!("{}", (*(*u.borrow().as_ref().unwrap()).count.borrow().as_ref().unwrap())));
     println!("{} {}", format!("{}", "buf:".to_string()), format!("{}", (*(*(*u.borrow().as_ref().unwrap()).buf.borrow_mut().as_mut().unwrap()).string().borrow().as_ref().unwrap())));
 }

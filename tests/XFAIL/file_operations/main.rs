@@ -741,10 +741,10 @@ fn main() {
     }));
 
         // Write structured data
-    print!("Name: {}\n", "John Doe".to_string());
-    print!("Age: {}\n", 30);
-    print!("Score: {:.2}\n", 95.5);
-    print!("Active: {}\n", true);
+    { let __s = format!("Name: {}\n", "John Doe".to_string()); (*file.lock().unwrap().as_mut().unwrap()).write(Arc::new(Mutex::new(Some::<Vec<u8>>(__s.into_bytes())))) };
+    { let __s = format!("Age: {}\n", 30); (*file.lock().unwrap().as_mut().unwrap()).write(Arc::new(Mutex::new(Some::<Vec<u8>>(__s.into_bytes())))) };
+    { let __s = format!("Score: {:.2}\n", 95.5); (*file.lock().unwrap().as_mut().unwrap()).write(Arc::new(Mutex::new(Some::<Vec<u8>>(__s.into_bytes())))) };
+    { let __s = format!("Active: {}\n", true); (*file.lock().unwrap().as_mut().unwrap()).write(Arc::new(Mutex::new(Some::<Vec<u8>>(__s.into_bytes())))) };
 
     print!("Formatted data written to '{}'\n", { let __v = (*dataFile.lock().unwrap().as_ref().unwrap()).clone(); __v });
 

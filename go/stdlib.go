@@ -1048,46 +1048,38 @@ func fmtFprintfTargetIsByteWriter(expr ast.Expr) bool {
 }
 
 // fmtFprintfTargetHasUserWriteMethod reports whether the Fprintf target is a
-// non-stdlib type that satisfies io.Writer via its own Write([]byte) (int,
-// error) method. The stdlib path (bytes.Buffer, io.Writer) is handled by
-// fmtFprintfTargetIsByteWriter and takes priority; types defined in stdlib
-// packages (e.g., os.File, bufio.Writer) are excluded so existing emission
-// paths still apply for os.Stdout/os.Stderr.
+// type that satisfies io.Writer via its own Write([]byte) (int, error) method.
+// The stdlib path (bytes.Buffer, io.Writer) is handled by
+// fmtFprintfTargetIsByteWriter and takes priority. os.Stdout/os.Stderr are
+// excluded so they continue to route through print!/eprint! at the call site.
 func fmtFprintfTargetHasUserWriteMethod(expr ast.Expr) bool {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil {
 		return false
 	}
 	typ := typeInfo.GetType(expr)
-	if typ == nil || isByteWriterReceiverType(typ) || isStdlibPackageNamedType(typ) {
+	if typ == nil || isByteWriterReceiverType(typ) {
+		return false
+	}
+	if isOsStdoutOrStderr(expr) {
 		return false
 	}
 	return hasByteSliceWriteMethod(typ)
 }
 
-// isStdlibPackageNamedType reports whether typ resolves to a named type defined
-// in a Go stdlib package (one whose import path matches Go's stdlib convention:
-// no domain in the first path component).
-func isStdlibPackageNamedType(typ types.Type) bool {
-	if typ == nil {
+// isOsStdoutOrStderr reports whether expr is the selector `os.Stdout` or
+// `os.Stderr`. Both are *os.File and would otherwise match the user-defined
+// writer path; the existing print!/eprint! lowering must take priority.
+func isOsStdoutOrStderr(expr ast.Expr) bool {
+	sel, ok := expr.(*ast.SelectorExpr)
+	if !ok {
 		return false
 	}
-	if ptr, ok := types.Unalias(typ).(*types.Pointer); ok {
-		return isStdlibPackageNamedType(ptr.Elem())
-	}
-	named, ok := types.Unalias(typ).(*types.Named)
-	if !ok || named.Obj() == nil || named.Obj().Pkg() == nil {
+	ident, ok := sel.X.(*ast.Ident)
+	if !ok || ident.Name != "os" {
 		return false
 	}
-	path := named.Obj().Pkg().Path()
-	if path == "" || path == "main" {
-		return false
-	}
-	firstComponent := path
-	if idx := strings.Index(path, "/"); idx >= 0 {
-		firstComponent = path[:idx]
-	}
-	return !strings.Contains(firstComponent, ".")
+	return sel.Sel.Name == "Stdout" || sel.Sel.Name == "Stderr"
 }
 
 // writeFprintfByteWriterTuple emits a block expression that formats the args,
@@ -1112,6 +1104,8 @@ func writeFprintfByteWriterTuple(out *strings.Builder, call *ast.CallExpr) {
 // and calls the target's user-defined `write` method with the formatted bytes.
 // The user's write returns the Go (int, error) shape directly, so the block
 // evaluates to a value that destructures as `n, err := fmt.Fprintf(...)`.
+// The user's Write has a pointer receiver and mutates state, so it is emitted
+// in Rust with &mut self — the wrapped path must use borrow_mut/as_mut.
 func writeFprintfUserWriteTuple(out *strings.Builder, call *ast.CallExpr) {
 	TrackImport("Error")
 	out.WriteString("{ let __s = ")
@@ -1124,8 +1118,8 @@ func writeFprintfUserWriteTuple(out *strings.Builder, call *ast.CallExpr) {
 	} else {
 		out.WriteString("(*")
 		TranspileExpressionContext(out, call.Args[0], LValue)
-		WriteBorrowMethod(out, false)
-		out.WriteString(".as_ref().unwrap())")
+		WriteBorrowMethod(out, true)
+		out.WriteString(".as_mut().unwrap())")
 	}
 	out.WriteString(".write(")
 	out.WriteString(wrappedExternalStubExpr("Vec<u8>", "__s.into_bytes()"))
