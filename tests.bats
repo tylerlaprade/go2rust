@@ -1078,6 +1078,10 @@ run_xfail_test() {
     run_test "tests/interface_embedded_method"
 }
 
+@test "interface_slice_index_arg" {
+    run_test "tests/interface_slice_index_arg"
+}
+
 @test "interfaces_basic" {
     run_test "tests/interfaces_basic"
 }

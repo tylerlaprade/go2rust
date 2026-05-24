@@ -2064,6 +2064,9 @@ func writeLocalInterfaceReferenceCallArgument(out *strings.Builder, arg ast.Expr
 		out.WriteString(".as_ref().unwrap()")
 		return true
 	}
+	if writeBoxedInterfaceIndexCallArgument(out, arg, expected) {
+		return true
+	}
 	if localInterfaceArgumentIsWrappedInterfaceValue(arg, expected) {
 		TranspileExpressionContext(out, arg, LValue)
 		WriteBorrowMethod(out, false)
@@ -2077,6 +2080,44 @@ func writeLocalInterfaceReferenceCallArgument(out *strings.Builder, arg ast.Expr
 		return true
 	}
 	return false
+}
+
+// writeBoxedInterfaceIndexCallArgument handles passing an indexed slice/array
+// element of interface type (e.g. specs[i+1] where specs is []Spec). The
+// element is a raw Box<dyn Trait>, not a wrapper handle, so the usual
+// .borrow().as_ref().unwrap().as_ref() chain doesn't apply: just borrow
+// the Box via .as_ref() to get &dyn Trait.
+func writeBoxedInterfaceIndexCallArgument(out *strings.Builder, arg ast.Expr, expected types.Type) bool {
+	indexExpr, ok := arg.(*ast.IndexExpr)
+	if !ok {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	collType := typeInfo.GetType(indexExpr.X)
+	if collType == nil {
+		return false
+	}
+	var elem types.Type
+	switch t := types.Unalias(collType).Underlying().(type) {
+	case *types.Slice:
+		elem = t.Elem()
+	case *types.Array:
+		elem = t.Elem()
+	default:
+		return false
+	}
+	if _, ok := types.Unalias(elem).Underlying().(*types.Interface); !ok {
+		return false
+	}
+	if expected != nil && !types.AssignableTo(elem, expected) {
+		return false
+	}
+	TranspileExpressionContext(out, arg, LValue)
+	out.WriteString(".as_ref()")
+	return true
 }
 
 func localInterfaceArgumentIsWrappedConcreteValue(arg ast.Expr, expected types.Type) bool {
