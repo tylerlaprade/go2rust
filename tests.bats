@@ -682,6 +682,10 @@ run_xfail_test() {
     run_test "tests/copy_from_string"
 }
 
+@test "copy_from_struct_field_slice" {
+    run_test "tests/copy_from_struct_field_slice"
+}
+
 @test "cross_file_debug_derive_inner_any" {
     run_test "tests/cross_file_debug_derive_inner_any"
 }

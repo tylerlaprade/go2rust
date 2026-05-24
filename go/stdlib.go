@@ -4252,7 +4252,7 @@ func writeCopySourceValue(out *strings.Builder, expr ast.Expr, isString bool) {
 	}
 	if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.ReturnsWrappedValue(expr) && !isExpressionResultBare(expr) {
 		out.WriteString("(*")
-		TranspileExpression(out, expr)
+		TranspileExpressionContext(out, expr, LValue)
 		WriteBorrowMethod(out, false)
 		out.WriteString(".as_ref().unwrap()).clone()")
 		return
