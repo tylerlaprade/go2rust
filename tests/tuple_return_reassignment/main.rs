@@ -32,7 +32,7 @@ pub fn split_version(v: Rc<RefCell<Option<String>>>) -> (Rc<RefCell<Option<Strin
     if ((*v.borrow().as_ref().unwrap()).len() as i32) == (0 as i32) {
         return (Rc::new(RefCell::new(Some("".to_string()))), Rc::new(RefCell::new(Some("".to_string()))), Rc::new(RefCell::new(Some(false))));
     }
-    return (Rc::new(RefCell::new(Some({ let __s = (*v.borrow().as_ref().unwrap()).clone(); __s[..(1) as usize].to_string() }))), Rc::new(RefCell::new(Some({ let __s = (*v.borrow().as_ref().unwrap()).clone(); __s[(1) as usize..].to_string() }))), Rc::new(RefCell::new(Some(true))));
+    return (Rc::new(RefCell::new(Some({ let __s = &((*v.borrow().as_ref().unwrap()).clone()); __s[..(1) as usize].to_string() }))), Rc::new(RefCell::new(Some({ let __s = &((*v.borrow().as_ref().unwrap()).clone()); __s[(1) as usize..].to_string() }))), Rc::new(RefCell::new(Some(true))));
 }
 
 pub fn parse(mut v: Rc<RefCell<Option<String>>>) -> (Rc<RefCell<Option<parsed>>>, Rc<RefCell<Option<bool>>>) {

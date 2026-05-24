@@ -111,7 +111,7 @@ pub fn reverse_string(s: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<Strin
     if ((*s.borrow().as_ref().unwrap()).len() as i32) <= (1 as i32) {
         return Rc::new(RefCell::new(Some(s.borrow().as_ref().unwrap().clone())));
     }
-    return Rc::new(RefCell::new(Some(format!("{}{}", (*reverse_string(Rc::new(RefCell::new(Some({ let __s = (*s.borrow().as_ref().unwrap()).clone(); __s[(1) as usize..].to_string() })))).borrow().as_ref().unwrap()), (*Rc::new(RefCell::new(Some(({ let __s = (*s.borrow().as_ref().unwrap()).clone(); __s.as_bytes()[(0) as usize] } as char).to_string()))).borrow().as_ref().unwrap())))));
+    return Rc::new(RefCell::new(Some(format!("{}{}", (*reverse_string(Rc::new(RefCell::new(Some({ let __s = &((*s.borrow().as_ref().unwrap()).clone()); __s[(1) as usize..].to_string() })))).borrow().as_ref().unwrap()), (*Rc::new(RefCell::new(Some(({ let __s = &((*s.borrow().as_ref().unwrap()).clone()); __s.as_bytes()[(0) as usize] } as char).to_string()))).borrow().as_ref().unwrap())))));
 }
 
 fn main() {

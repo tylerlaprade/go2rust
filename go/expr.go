@@ -6483,10 +6483,11 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			}
 
 			if isString {
-				// String indexing returns a byte (u8)
-				out.WriteString("{ let __s = ")
+				// String indexing returns a byte (u8). Bind by reference so
+				// repeated reads of a range loop string don't move the value.
+				out.WriteString("{ let __s = &(")
 				writeStringSequenceValue(out, e.X)
-				out.WriteString("; __s.as_bytes()[")
+				out.WriteString("); __s.as_bytes()[")
 				writeExpressionAsUsize(out, e.Index)
 				out.WriteString("] }")
 			} else if writeNamedSliceIndexValue(out, e.X, e.Index) {
@@ -6563,9 +6564,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			WriteWrapperSuffix(out)
 		} else if isStringSlice {
 			WriteWrapperPrefix(out)
-			out.WriteString("{ let __s = ")
+			out.WriteString("{ let __s = &(")
 			writeStringSequenceValue(out, e.X)
-			out.WriteString("; __s[")
+			out.WriteString("); __s[")
 			if e.Low != nil {
 				writeExpressionAsUsize(out, e.Low)
 			}

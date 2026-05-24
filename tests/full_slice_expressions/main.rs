@@ -50,5 +50,5 @@ fn main() {
     println!("{} {} {}", format!("{}", (*all.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)), format!("{}", (*all.borrow()).as_ref().map(|__v| __v.capacity()).unwrap_or(0)), format!("{}", format_slice(&all)));
 
     let mut s = Rc::new(RefCell::new(Some("hello".to_string())));
-    println!("{}", format!("{}", (*Rc::new(RefCell::new(Some({ let __s = (*s.borrow().as_ref().unwrap()).clone(); __s[..].to_string() }))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*Rc::new(RefCell::new(Some({ let __s = &((*s.borrow().as_ref().unwrap()).clone()); __s[..].to_string() }))).borrow().as_ref().unwrap())));
 }

@@ -17,7 +17,7 @@ pub fn fallback(ok: Rc<RefCell<Option<bool>>>) -> Rc<RefCell<Option<String>>> {
 
 pub fn middle() -> Rc<RefCell<Option<String>>> {
 
-    return Rc::new(RefCell::new(Some({ let __s = GREETING; __s[(1) as usize..(4) as usize].to_string() })));
+    return Rc::new(RefCell::new(Some({ let __s = &(GREETING); __s[(1) as usize..(4) as usize].to_string() })));
 }
 
 fn main() {

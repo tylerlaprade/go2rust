@@ -1,0 +1,8 @@
+[package]
+name = "string_range_var_repeated_index"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "string_range_var_repeated_index"
+path = "main.rs"
