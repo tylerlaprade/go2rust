@@ -353,7 +353,7 @@ func generateClosureType(funcType *ast.FuncType) string {
 	var paramTypes []string
 	if funcType.Params != nil {
 		for _, field := range funcType.Params.List {
-			paramType := GoTypeToRust(field.Type)
+			paramType := GoTypeToRustParam(field.Type)
 			// Add one param type for each name (or one if no names)
 			count := len(field.Names)
 			if count == 0 {

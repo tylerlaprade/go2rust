@@ -1,0 +1,8 @@
+[package]
+name = "sort_func_interface_slice"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "sort_func_interface_slice"
+path = "main.rs"

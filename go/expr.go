@@ -7631,7 +7631,7 @@ func TranspileFuncLitBox(out *strings.Builder, funcLit *ast.FuncLit) {
 	if funcLit.Type.Params != nil {
 		var params []string
 		for _, field := range funcLit.Type.Params.List {
-			paramType := GoTypeToRust(field.Type)
+			paramType := GoTypeToRustParam(field.Type)
 			for _, name := range field.Names {
 				params = append(params, RustLocalIdent(name.Name)+": "+paramType)
 			}

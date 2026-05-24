@@ -1924,19 +1924,24 @@ func transpileNilSafeSort(out *strings.Builder, arg ast.Expr) {
 	out.WriteString("; if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.sort(); } }")
 }
 
-func writeSortFuncWrappedElement(out *strings.Builder, name string) {
+func writeSortFuncWrappedElement(out *strings.Builder, name string, elemIsInterface bool) {
+	if elemIsInterface {
+		out.WriteString(name)
+		out.WriteString(".as_ref()")
+		return
+	}
 	WriteWrapperPrefix(out)
 	out.WriteString(name)
 	out.WriteString(".clone()")
 	WriteWrapperSuffix(out)
 }
 
-func writeSortFuncComparatorCall(out *strings.Builder, cmp ast.Expr) {
+func writeSortFuncComparatorCall(out *strings.Builder, cmp ast.Expr, elemIsInterface bool) {
 	if writeDirectFunctionReference(out, cmp) {
 		out.WriteString("(")
-		writeSortFuncWrappedElement(out, "__a")
+		writeSortFuncWrappedElement(out, "__a", elemIsInterface)
 		out.WriteString(", ")
-		writeSortFuncWrappedElement(out, "__b")
+		writeSortFuncWrappedElement(out, "__b", elemIsInterface)
 		out.WriteString(")")
 		return
 	}
@@ -1944,9 +1949,9 @@ func writeSortFuncComparatorCall(out *strings.Builder, cmp ast.Expr) {
 	out.WriteString("{ let mut __cmp_guard = __cmp_holder")
 	WriteBorrowMethod(out, true)
 	out.WriteString("; let __cmp_fn = __cmp_guard.as_mut().unwrap(); (*__cmp_fn)(")
-	writeSortFuncWrappedElement(out, "__a")
+	writeSortFuncWrappedElement(out, "__a", elemIsInterface)
 	out.WriteString(", ")
-	writeSortFuncWrappedElement(out, "__b")
+	writeSortFuncWrappedElement(out, "__b", elemIsInterface)
 	out.WriteString(") }")
 }
 
@@ -1979,6 +1984,13 @@ func transpileSlicesSortFunc(out *strings.Builder, call *ast.CallExpr) {
 		return
 	}
 
+	elemIsInterface := false
+	if typeInfo := GetTypeInfo(); typeInfo != nil {
+		if _, ok := localInterfaceSliceElemName(typeInfo.GetType(call.Args[0])); ok {
+			elemIsInterface = true
+		}
+	}
+
 	usesFunctionValue := false
 	var direct strings.Builder
 	if !writeDirectFunctionReference(&direct, call.Args[1]) {
@@ -1996,13 +2008,13 @@ func transpileSlicesSortFunc(out *strings.Builder, call *ast.CallExpr) {
 	WriteBorrowMethod(out, true)
 	out.WriteString("; if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.sort_by(|__a, __b| { let __cmp = ")
 	if usesFunctionValue {
-		writeSortFuncComparatorCall(out, call.Args[1])
+		writeSortFuncComparatorCall(out, call.Args[1], elemIsInterface)
 	} else {
 		out.WriteString(direct.String())
 		out.WriteString("(")
-		writeSortFuncWrappedElement(out, "__a")
+		writeSortFuncWrappedElement(out, "__a", elemIsInterface)
 		out.WriteString(", ")
-		writeSortFuncWrappedElement(out, "__b")
+		writeSortFuncWrappedElement(out, "__b", elemIsInterface)
 		out.WriteString(")")
 	}
 	out.WriteString("; let __ord = (*__cmp")

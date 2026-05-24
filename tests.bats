@@ -2006,6 +2006,14 @@ run_xfail_test() {
     run_test "tests/slices_sort_func"
 }
 
+@test "sort_func_interface_param_call" {
+    run_test "tests/sort_func_interface_param_call"
+}
+
+@test "sort_func_interface_slice" {
+    run_test "tests/sort_func_interface_slice"
+}
+
 @test "sort_nil_slice" {
     run_test "tests/sort_nil_slice"
 }
