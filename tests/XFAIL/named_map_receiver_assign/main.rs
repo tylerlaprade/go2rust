@@ -66,7 +66,7 @@ impl Tally {
 }
 
 fn main() {
-    let mut t = ;
+    let mut t = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<Vec<i32>>>>>::new())));
     (*t.borrow().as_ref().unwrap()).add(Rc::new(RefCell::new(Some("a".to_string()))), Rc::new(RefCell::new(Some(1))));
     (*t.borrow().as_ref().unwrap()).add(Rc::new(RefCell::new(Some("a".to_string()))), Rc::new(RefCell::new(Some(2))));
     (*t.borrow().as_ref().unwrap()).add(Rc::new(RefCell::new(Some("b".to_string()))), Rc::new(RefCell::new(Some(3))));

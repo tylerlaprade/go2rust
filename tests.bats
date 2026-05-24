@@ -1202,6 +1202,10 @@ run_xfail_test() {
     run_test "tests/make_map_with_capacity"
 }
 
+@test "make_named_map" {
+    run_test "tests/make_named_map"
+}
+
 @test "make_slice_zero_len_capacity" {
     run_test "tests/make_slice_zero_len_capacity"
 }

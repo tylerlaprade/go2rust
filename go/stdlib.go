@@ -3857,6 +3857,18 @@ func transpileLen(out *strings.Builder, call *ast.CallExpr) {
 
 func transpileMake(out *strings.Builder, call *ast.CallExpr) {
 	if len(call.Args) >= 1 {
+		// For named types (type Foo map[K]V), the arg is not a literal type
+		// expression. Use go/types to find the underlying type and emit the
+		// matching make() shape.
+		if _, isChan := call.Args[0].(*ast.ChanType); !isChan {
+			if _, isMap := call.Args[0].(*ast.MapType); !isMap {
+				if arrayType, isArray := call.Args[0].(*ast.ArrayType); !isArray || arrayType.Len != nil {
+					if writeMakeNamedType(out, call) {
+						return
+					}
+				}
+			}
+		}
 		// Check if it's a channel type
 		if chanType, ok := call.Args[0].(*ast.ChanType); ok {
 			NeedGoChannel()
@@ -3954,6 +3966,85 @@ func transpileMake(out *strings.Builder, call *ast.CallExpr) {
 			out.WriteString(")))")
 		}
 	}
+}
+
+// writeMakeNamedType handles make(T) where T is a named type whose underlying
+// type is map/slice/chan. Returns true if it emitted output.
+func writeMakeNamedType(out *strings.Builder, call *ast.CallExpr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	typ := typeInfo.GetType(call.Args[0])
+	if typ == nil {
+		return false
+	}
+	switch ut := types.Unalias(typ).Underlying().(type) {
+	case *types.Map:
+		WriteWrapperPrefix(out)
+		TrackImport("BTreeMap")
+		out.WriteString("BTreeMap::<")
+		out.WriteString(goTypesMapKeyToRust(ut.Key()))
+		out.WriteString(", ")
+		out.WriteString(goTypesMapValueToRust(ut.Elem()))
+		out.WriteString(">::new()")
+		WriteWrapperSuffix(out)
+		return true
+	case *types.Slice:
+		elementType := zeroValueForTypesType(ut.Elem())
+		WriteWrapperPrefix(out)
+		writeSliceMakeBody(out, call.Args, elementType)
+		WriteWrapperSuffix(out)
+		return true
+	case *types.Chan:
+		NeedGoChannel()
+		elemType := goTypesTypeToRust(ut.Elem())
+		out.WriteString("GoChannel::<")
+		out.WriteString(elemType)
+		if len(call.Args) > 1 {
+			out.WriteString(">::new_buffered(")
+			writeChannelCapacityAsUsize(out, call.Args[1])
+			out.WriteString(")")
+		} else {
+			out.WriteString(">::new()")
+		}
+		return true
+	}
+	return false
+}
+
+// writeSliceMakeBody emits the inner Vec expression for make([]T, ...) variants.
+// Caller wraps with WriteWrapperPrefix/Suffix.
+func writeSliceMakeBody(out *strings.Builder, args []ast.Expr, elementType string) {
+	if len(args) < 2 {
+		out.WriteString("Vec::new()")
+		return
+	}
+	if lit, ok := args[1].(*ast.BasicLit); ok && lit.Value == "0" {
+		out.WriteString("Vec::with_capacity(")
+		if len(args) >= 3 {
+			writeExpressionAsUsize(out, args[2])
+		} else {
+			out.WriteString("0")
+		}
+		out.WriteString(")")
+		return
+	}
+	if len(args) >= 3 {
+		out.WriteString("{ let mut v = Vec::with_capacity(")
+		writeExpressionAsUsize(out, args[2])
+		out.WriteString("); v.resize(")
+		writeExpressionAsUsize(out, args[1])
+		out.WriteString(", ")
+		out.WriteString(elementType)
+		out.WriteString("); v }")
+		return
+	}
+	out.WriteString("vec![")
+	out.WriteString(elementType)
+	out.WriteString("; ")
+	writeExpressionAsUsize(out, args[1])
+	out.WriteString("]")
 }
 
 func writeChannelCapacityAsUsize(out *strings.Builder, expr ast.Expr) {
