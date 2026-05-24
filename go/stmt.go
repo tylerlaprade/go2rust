@@ -3125,6 +3125,12 @@ func writePointerHandleSelectorTarget(out *strings.Builder, sel *ast.SelectorExp
 		needsUnwrap := false
 		if varType, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar {
 			needsUnwrap = isWrappedRangeVarType(varType)
+			// rangeLoopVars is keyed by name and doesn't track shadowing.
+			// A short-decl like `d, ok := d.(*Foo)` shadows the outer range
+			// var with a wrapped-pointer Decl; trust go/types for that case.
+			if !needsUnwrap && identTypeIsWrappedPointer(ident) {
+				needsUnwrap = true
+			}
 		} else if _, isLocalConst := localConstants[ident.Name]; !isLocalConst && !isVarBare(ident.Name) {
 			needsUnwrap = true
 		}

@@ -1958,6 +1958,10 @@ run_xfail_test() {
     run_test "tests/selector_struct_field_copy"
 }
 
+@test "shadowed_range_var_field_assign" {
+    run_test "tests/shadowed_range_var_field_assign"
+}
+
 @test "shared_mutation" {
     run_test "tests/shared_mutation"
 }

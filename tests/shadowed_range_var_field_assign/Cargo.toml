@@ -1,0 +1,8 @@
+[package]
+name = "shadowed_range_var_field_assign"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "shadowed_range_var_field_assign"
+path = "main.rs"
