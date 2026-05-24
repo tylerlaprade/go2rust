@@ -81,7 +81,7 @@ fn __go_init_0() {
 /// Second init function (they run in order)
 fn __go_init_1() {
     println!("{}", format!("{}", "Second init function called".to_string()));
-    { let mut guard = globalCounter.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 5); };
+    { let __rhs = 5; let mut guard = globalCounter.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
 
         // Initialize map
     { let new_val = { let __collection_holder = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<String>>>>::new()))).clone(); let __collection_guard = __collection_holder.borrow(); (*__collection_guard).clone() }; *configData.borrow_mut() = new_val; };
@@ -113,7 +113,7 @@ fn __go_init_3() {
     print!("Computed value is: {}\n", { let __v = (*computedValue.borrow().as_ref().unwrap()).clone(); __v });
 
         // Modify the computed value
-    { let mut guard = computedValue.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 10); };
+    { let __rhs = 10; let mut guard = computedValue.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
 }
 
 fn __go_init_4() {

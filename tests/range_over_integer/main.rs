@@ -36,7 +36,7 @@ impl counter {
 fn main() {
     let mut literalSum = Rc::new(RefCell::new(Some(0)));
     for i in 0..(5) {
-        { let mut guard = literalSum.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + i); };
+        { let __rhs = i; let mut guard = literalSum.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     }
 
     let mut count = Rc::new(RefCell::new(Some(0)));
@@ -47,13 +47,13 @@ fn main() {
     let mut n = Rc::new(RefCell::new(Some(4)));
     let mut variableSum = Rc::new(RefCell::new(Some(0)));
     for i in 0..((*n.borrow().as_ref().unwrap())) {
-        { let mut guard = variableSum.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + i); };
+        { let __rhs = i; let mut guard = variableSum.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     }
 
     let mut methodSum = Rc::new(RefCell::new(Some(0)));
     let mut c = Rc::new(RefCell::new(Some(counter { n: Rc::new(RefCell::new(Some(4 as i32))), ..Default::default() })));
     for i in 0..({ let __v = (*c.borrow().as_ref().unwrap()).len(); let __owned = (*__v.borrow().as_ref().unwrap()).clone(); __owned }) {
-        { let mut guard = methodSum.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + i); };
+        { let __rhs = i; let mut guard = methodSum.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     }
 
     println!("{} {} {} {}", format!("{}", { let __v = (*literalSum.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*count.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*variableSum.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*methodSum.borrow().as_ref().unwrap()).clone(); __v }));

@@ -103,7 +103,7 @@ pub fn process_data(data: Rc<RefCell<Option<Vec<i32>>>>) -> (Rc<RefCell<Option<i
         if val > (*max.borrow().as_ref().unwrap()) {
         { let new_val = val; *max.borrow_mut() = Some(new_val); };
     }
-        { let mut guard = sum.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + val); };
+        { let __rhs = val; let mut guard = sum.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     } }
 
     return (min, max, sum);

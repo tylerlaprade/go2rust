@@ -704,10 +704,10 @@ fn main() {
     while (*{ let __recv = scanner.clone(); let __recv_ptr: *mut bufio_Scanner = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bufio_Scanner }; let __result = unsafe { &mut *__recv_ptr }.scan(); __result }.lock().unwrap().as_ref().unwrap()) {
         let mut line = { let __recv = scanner.clone(); let __recv_ptr: *mut bufio_Scanner = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bufio_Scanner }; let __result = unsafe { &mut *__recv_ptr }.text(); __result };
         { let mut guard = lineCount.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
-        { let mut guard = charCount.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + (*line.lock().unwrap().as_ref().unwrap()).len() as i32); };
+        { let __rhs = (*line.lock().unwrap().as_ref().unwrap()).len() as i32; let mut guard = charCount.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
 
         let mut words = Arc::new(Mutex::new(Some({ let __s = (*line.lock().unwrap().as_ref().unwrap()).clone(); __s.split_whitespace().map(|__part| __part.to_string()).collect::<Vec<String>>() })));
-        { let mut guard = wordCount.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + (*words.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); };
+        { let __rhs = (*words.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32; let mut guard = wordCount.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
 
                 // Process lines containing numbers
         if (*Arc::new(Mutex::new(Some({ let __s = (*line.lock().unwrap().as_ref().unwrap()).clone(); let __arg = "123".to_string(); __s.contains(&__arg) }))).lock().unwrap().as_ref().unwrap()) {

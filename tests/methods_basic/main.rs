@@ -65,12 +65,12 @@ impl Counter {
     }
 
     pub fn add(&mut self, n: Rc<RefCell<Option<i32>>>) {
-        { let __target = self.value.clone(); let mut guard = __target.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + (*n.borrow().as_ref().unwrap())); };
+        { let __target = self.value.clone(); let __rhs = (*n.borrow().as_ref().unwrap()); let mut guard = __target.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     }
 
     /// Method with return value
     pub fn double(&mut self) -> Rc<RefCell<Option<i32>>> {
-        { let __target = self.value.clone(); let mut guard = __target.borrow_mut(); *guard = Some(guard.as_ref().unwrap() * 2); };
+        { let __target = self.value.clone(); let __rhs = 2; let mut guard = __target.borrow_mut(); *guard = Some(guard.as_ref().unwrap() * __rhs); };
         return self.value.clone();
     }
 }

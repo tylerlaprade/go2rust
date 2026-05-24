@@ -27,7 +27,7 @@ impl counter {
 
         let result_defer_captured = result.clone(); __defer_stack.push(Box::new(move || {
         { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
-        { let mut guard = result_defer_captured.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 3); };
+        { let __rhs = 3; let mut guard = result_defer_captured.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     }) as Box<dyn FnMut() -> ()>))); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
     }));
         {
@@ -48,7 +48,7 @@ pub fn compute() -> Rc<RefCell<Option<i32>>> {
 
     let result_defer_captured = result.clone(); __defer_stack.push(Box::new(move || {
         { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
-        { let mut guard = result_defer_captured.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 10); };
+        { let __rhs = 10; let mut guard = result_defer_captured.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     }) as Box<dyn FnMut() -> ()>))); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
     }));
     { let new_val = 5; *result.borrow_mut() = Some(new_val); };

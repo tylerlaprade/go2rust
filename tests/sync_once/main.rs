@@ -41,7 +41,7 @@ fn main() {
         { let mut guard = count.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }); };
     { let __once = once.clone(); __once.r#do(|| {
-        { let mut guard = count.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 10); };
+        { let __rhs = 10; let mut guard = count.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     }); };
 
     println!("{} {}", format!("{}", "count:".to_string()), format!("{}", { let __v = (*count.borrow().as_ref().unwrap()).clone(); __v }));

@@ -5,7 +5,7 @@ pub fn sum(numbers: Rc<RefCell<Option<Vec<i32>>>>) -> Rc<RefCell<Option<i32>>> {
 
     let mut total = Rc::new(RefCell::new(Some(0)));
     { let __range_holder = numbers.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for num in __range_values.iter().copied() {
-        { let mut guard = total.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + num); };
+        { let __rhs = num; let mut guard = total.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     } }
     return Rc::new(RefCell::new(Some(total.borrow().as_ref().unwrap().clone())));
 }
@@ -17,7 +17,7 @@ pub fn average(numbers: Rc<RefCell<Option<Vec<f64>>>>) -> Rc<RefCell<Option<f64>
     }
     let mut total = Rc::new(RefCell::new(Some(0.0)));
     { let __range_holder = numbers.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for num in __range_values.iter().copied() {
-        { let mut guard = total.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + num); };
+        { let __rhs = num; let mut guard = total.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     } }
     return {
             let __tmp_x = (*total.borrow().as_ref().unwrap());

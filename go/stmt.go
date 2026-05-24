@@ -4392,7 +4392,7 @@ func transpileChannelValue(out *strings.Builder, expr ast.Expr) {
 func callReturnsBareChannelValue(call *ast.CallExpr) bool {
 	if ident, ok := call.Fun.(*ast.Ident); ok {
 		switch ident.Name {
-		case "len", "cap", "copy":
+		case "len", "cap":
 			return true
 		case "make":
 			return isMakeChannelCall(call)
@@ -5517,11 +5517,20 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					writeStringAppendExpression(out, s.Rhs[0])
 					out.WriteString("); }")
 				} else {
-					// Numeric compound assignment for wrapped values
-					// Generate: { let mut guard = lhs.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() OP rhs); }
+					// Numeric compound assignment for wrapped values.
+					// Evaluate RHS before taking the LHS borrow so RHS expressions
+					// that read LHS (e.g. `i += copy(dst[i:], src)`) don't deadlock
+					// on RefCell.
 					out.WriteString("{ ")
 					writeWrappedMutationTargetPrelude(out, s.Lhs[0])
-					out.WriteString("let mut guard = ")
+					out.WriteString("let __rhs = ")
+					typeInfo := GetTypeInfo()
+					var expected types.Type
+					if typeInfo != nil {
+						expected = typeInfo.GetType(s.Lhs[0])
+					}
+					writeBareCompoundAssignValueForOp(out, s.Rhs[0], expected, s.Tok)
+					out.WriteString("; let mut guard = ")
 					writeWrappedMutationTargetRef(out, s.Lhs[0], true)
 					out.WriteString("; *guard = Some(")
 					if compoundAssignUsesOwnedNamedIntegerValue(s.Lhs[0], s.Rhs[0], s.Tok) {
@@ -5555,14 +5564,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						out.WriteString(">>")
 					}
 
-					out.WriteString(" ")
-					typeInfo := GetTypeInfo()
-					var expected types.Type
-					if typeInfo != nil {
-						expected = typeInfo.GetType(s.Lhs[0])
-					}
-					writeBareCompoundAssignValueForOp(out, s.Rhs[0], expected, s.Tok)
-					out.WriteString("); }")
+					out.WriteString(" __rhs); }")
 				}
 			}
 		} else { // Check if we have multiple LHS with single RHS (tuple unpacking)

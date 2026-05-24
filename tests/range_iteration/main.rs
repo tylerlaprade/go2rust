@@ -6,7 +6,7 @@ fn main() {
     let mut nums = Rc::new(RefCell::new(Some(vec![2, 3, 4])));
     let mut sum = Rc::new(RefCell::new(Some(0)));
     { let __range_holder = nums.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for num in __range_values.iter().copied() {
-        { let mut guard = sum.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + num); };
+        { let __rhs = num; let mut guard = sum.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     } }
     println!("{} {}", format!("{}", "sum:".to_string()), format!("{}", { let __v = (*sum.borrow().as_ref().unwrap()).clone(); __v }));
 

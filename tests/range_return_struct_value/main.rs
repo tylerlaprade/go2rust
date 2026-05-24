@@ -85,7 +85,7 @@ pub fn total_score(items: Rc<RefCell<Option<Vec<item>>>>) -> Rc<RefCell<Option<i
 
     let mut total = Rc::new(RefCell::new(Some(0)));
     { let __range_holder = items.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for item in __range_values.iter() {
-        { let mut guard = total.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + (*score(Rc::new(RefCell::new(Some((*item).clone())))).borrow().as_ref().unwrap())); };
+        { let __rhs = (*score(Rc::new(RefCell::new(Some((*item).clone())))).borrow().as_ref().unwrap()); let mut guard = total.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     } }
     return Rc::new(RefCell::new(Some(total.borrow().as_ref().unwrap().clone())));
 }
@@ -94,7 +94,7 @@ pub fn total_method_score(h: Rc<RefCell<Option<holder>>>, items: Rc<RefCell<Opti
 
     let mut total = Rc::new(RefCell::new(Some(0)));
     { let __range_holder = items.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for item in __range_values.iter() {
-        { let mut guard = total.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + (*(*(*h.borrow().as_ref().unwrap()).s.borrow().as_ref().unwrap()).score(Rc::new(RefCell::new(Some((*item).clone())))).borrow().as_ref().unwrap())); };
+        { let __rhs = (*(*(*h.borrow().as_ref().unwrap()).s.borrow().as_ref().unwrap()).score(Rc::new(RefCell::new(Some((*item).clone())))).borrow().as_ref().unwrap()); let mut guard = total.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     } }
     return Rc::new(RefCell::new(Some(total.borrow().as_ref().unwrap().clone())));
 }

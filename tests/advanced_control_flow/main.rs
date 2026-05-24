@@ -320,9 +320,9 @@ fn main() {
     while { let __tmp_x = { let __tmp_x = { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*y.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x * __tmp_y }; let __tmp_y = 100; __tmp_x < __tmp_y } && { let __tmp_x = { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 10; __tmp_x < __tmp_y } {
         print!("x={}, y={}, product={}\n", { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }, { let __v = (*y.lock().unwrap().as_ref().unwrap()).clone(); __v }, { let __tmp_x = { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*y.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x * __tmp_y });
         if { let __tmp_x = { let __tmp_x = { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2; __tmp_x % __tmp_y }; let __tmp_y = 0; __tmp_x == __tmp_y } {
-        { let mut guard = y.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 2); };
+        { let __rhs = 2; let mut guard = y.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     } else {
-        { let mut guard = y.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); };
+        { let __rhs = 1; let mut guard = y.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     }
         { let mut guard = x.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
@@ -361,7 +361,7 @@ fn main() {
     }
 
         print!("Score {}: Grade {} - {}\n", { let __v = (*score.lock().unwrap().as_ref().unwrap()).clone(); __v }, { let __v = (*grade.lock().unwrap().as_ref().unwrap()).clone(); __v }, { let __v = (*message.lock().unwrap().as_ref().unwrap()).clone(); __v });
-        { let mut guard = score.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 25); };
+        { let __rhs = 25; let mut guard = score.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     }
 
         // Range with complex break/continue logic

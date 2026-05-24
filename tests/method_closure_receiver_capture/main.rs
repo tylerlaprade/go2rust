@@ -141,7 +141,7 @@ fn main() {
     let mut a = Rc::new(RefCell::new(Some(named { id: Rc::new(RefCell::new(Some("a".to_string()))), ..Default::default() })));
     let mut b = Rc::new(RefCell::new(Some(named { id: Rc::new(RefCell::new(Some("b".to_string()))), ..Default::default() })));
     let pr_closure_clone = pr.clone(); { let __recv = pr_closure_clone.clone(); let __result = (*__recv.borrow_mut().as_mut().unwrap()).later_for(b.clone(), Rc::new(RefCell::new(Some(Box::new(move || {
-        { let __target = (*pr_closure_clone.borrow().as_ref().unwrap()).hits.clone(); let mut guard = __target.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 10); };
+        { let __target = (*pr_closure_clone.borrow().as_ref().unwrap()).hits.clone(); let __rhs = 10; let mut guard = __target.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     }) as Box<dyn FnMut() -> ()>)))); __result };
     schedule(pr.clone(), a.clone(), b.clone());
     { let __f_holder = (*(*pr.borrow().as_ref().unwrap()).later_fns.borrow().as_ref().unwrap())[(1) as usize].clone(); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };

@@ -75,10 +75,10 @@ impl Counter {
     pub fn add_branch(&mut self, hit: Rc<RefCell<Option<bool>>>) {
         let __mutex_guard_source_195 = self.mu.clone(); let __mutex_guard_195 = __mutex_guard_source_195.lock();
         if (*hit.borrow().as_ref().unwrap()) {
-        { let __target = self.n.clone(); let mut guard = __target.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 10); };
+        { let __target = self.n.clone(); let __rhs = 10; let mut guard = __target.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
         drop(__mutex_guard_195);
     } else {
-        { let __target = self.n.clone(); let mut guard = __target.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 20); };
+        { let __target = self.n.clone(); let __rhs = 20; let mut guard = __target.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
         drop(__mutex_guard_195);
     }
     }

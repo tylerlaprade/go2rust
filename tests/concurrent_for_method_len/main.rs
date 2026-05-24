@@ -197,11 +197,11 @@ pub fn total(p: Arc<Mutex<Option<Params>>>) -> Arc<Mutex<Option<i32>>> {
         {
     let mut i = Arc::new(Mutex::new(Some(0)));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*{ let __recv = p.clone(); let __recv_ptr: *const Params = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Params }; let __result = unsafe { &*__recv_ptr }.len(); __result }.lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y } {
-        { let mut guard = sum.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + (*{ let __recv = p.clone(); let __recv_ptr: *const Params = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Params }; let __result = unsafe { &*__recv_ptr }.at(Arc::new(Mutex::new(Some((*i.lock().unwrap().as_ref().unwrap()).clone())))); __result }.lock().unwrap().as_ref().unwrap())); };
+        { let __rhs = (*{ let __recv = p.clone(); let __recv_ptr: *const Params = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Params }; let __result = unsafe { &*__recv_ptr }.at(Arc::new(Mutex::new(Some((*i.lock().unwrap().as_ref().unwrap()).clone())))); __result }.lock().unwrap().as_ref().unwrap()); let mut guard = sum.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
     }
-        { let mut guard = sum.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + i); };
+        { let __rhs = i; let mut guard = sum.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     }
     }
     return Arc::new(Mutex::new(Some(sum.lock().unwrap().as_ref().unwrap().clone())));

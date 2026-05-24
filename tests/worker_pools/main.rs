@@ -180,7 +180,7 @@ fn main() {
     let mut total = Arc::new(Mutex::new(Some(0)));
     let mut a = Arc::new(Mutex::new(Some(1)));
     while { let __tmp_x = { let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = numJobs; __tmp_x <= __tmp_y } {
-        { let mut guard = total.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + results.recv().unwrap_or_default()); };
+        { let __rhs = results.recv().unwrap_or_default(); let mut guard = total.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
         { let mut guard = a.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
 

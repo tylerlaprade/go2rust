@@ -22,14 +22,14 @@ fn main() {
         continue
     }
         if (*sourceNames.borrow().as_ref().unwrap()).get(&"Source".to_string()).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| false) {
-        { let mut guard = count.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + targetName.len() as i32); };
+        { let __rhs = targetName.len() as i32; let mut guard = count.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     }
     }
 
     let mut buckets = Rc::new(RefCell::new(Some(BTreeMap::<i32, Rc<RefCell<Option<Vec<String>>>>>::new())));
     { let __map_key = 1; let __map_value = Rc::new(RefCell::new(Some(vec!["alpha".to_string(), "beta".to_string()]))); (*buckets.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
     { let __range_holder = (*buckets.borrow().as_ref().unwrap()).get(&1).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()).clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for name in __range_values.iter() {
-        { let mut guard = count.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + name.len() as i32); };
+        { let __rhs = name.len() as i32; let mut guard = count.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     } }
 
     let mut missing = (*fields.borrow().as_ref().unwrap()).get(&"Missing".to_string()).map(|__v| __v.clone()).unwrap_or_else(|| Default::default());

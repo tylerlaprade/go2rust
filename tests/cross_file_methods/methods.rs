@@ -10,7 +10,7 @@ impl Counter {
     }
 
     pub fn add(&mut self, n: Rc<RefCell<Option<i32>>>) {
-        { let __target = self.value.clone(); let mut guard = __target.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + (*n.borrow().as_ref().unwrap())); };
+        { let __target = self.value.clone(); let __rhs = (*n.borrow().as_ref().unwrap()); let mut guard = __target.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     }
 
     pub fn value(&self) -> Rc<RefCell<Option<i32>>> {
@@ -27,7 +27,7 @@ impl Point {
     }
 
     pub fn r#move(&mut self, dx: Rc<RefCell<Option<f64>>>, dy: Rc<RefCell<Option<f64>>>) {
-        { let __target = self.x.clone(); let mut guard = __target.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + (*dx.borrow().as_ref().unwrap())); };
-        { let __target = self.y.clone(); let mut guard = __target.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + (*dy.borrow().as_ref().unwrap())); };
+        { let __target = self.x.clone(); let __rhs = (*dx.borrow().as_ref().unwrap()); let mut guard = __target.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
+        { let __target = self.y.clone(); let __rhs = (*dy.borrow().as_ref().unwrap()); let mut guard = __target.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     }
 }

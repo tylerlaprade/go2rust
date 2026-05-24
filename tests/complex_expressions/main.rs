@@ -328,7 +328,7 @@ fn main() {
     println!("{}", format!("{}", "\n=== Complex assignment expressions ===".to_string()));
 
     let mut counter = Arc::new(Mutex::new(Some(0)));
-    { let mut guard = counter.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + { let __tmp_x = { let __tmp_x = ({ let __tmp_x = 5; let __tmp_y = 3; __tmp_x * __tmp_y }); let __tmp_y = ({ let __tmp_x = 10; let __tmp_y = 2; __tmp_x / __tmp_y }); __tmp_x - __tmp_y }; let __tmp_y = ({ let __tmp_x = 8; let __tmp_y = 3; __tmp_x % __tmp_y }); __tmp_x + __tmp_y }); };
+    { let __rhs = { let __tmp_x = { let __tmp_x = ({ let __tmp_x = 5; let __tmp_y = 3; __tmp_x * __tmp_y }); let __tmp_y = ({ let __tmp_x = 10; let __tmp_y = 2; __tmp_x / __tmp_y }); __tmp_x - __tmp_y }; let __tmp_y = ({ let __tmp_x = 8; let __tmp_y = 3; __tmp_x % __tmp_y }); __tmp_x + __tmp_y }; let mut guard = counter.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     print!("Complex assignment result: {}\n", { let __v = (*counter.lock().unwrap().as_ref().unwrap()).clone(); __v });
 
         // Multiple assignment with expressions
@@ -340,7 +340,7 @@ fn main() {
 
     let mut total = Arc::new(Mutex::new(Some(0)));
     for (i, val) in { let __seq = { let __seq_holder = numbers.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[..(5) as usize].to_vec() }.iter().copied().enumerate() {
-        { let mut guard = total.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + { let __tmp_x = { let __tmp_x = i as i32; let __tmp_y = val; __tmp_x * __tmp_y }; let __tmp_y = ({ let __tmp_x = val; let __tmp_y = 3; __tmp_x % __tmp_y }); __tmp_x + __tmp_y }); };
+        { let __rhs = { let __tmp_x = { let __tmp_x = i as i32; let __tmp_y = val; __tmp_x * __tmp_y }; let __tmp_y = ({ let __tmp_x = val; let __tmp_y = 3; __tmp_x % __tmp_y }); __tmp_x + __tmp_y }; let mut guard = total.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     }
     print!("Complex range calculation: {}\n", { let __v = (*total.lock().unwrap().as_ref().unwrap()).clone(); __v });
 }

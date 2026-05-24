@@ -31,7 +31,7 @@ pub fn use_keyword_names(r#fn: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i3
 
     let mut total = Rc::new(RefCell::new(Some(0)));
     for r#mod in vec![(*r#fn.borrow().as_ref().unwrap()).clone(), 2].iter().copied() {
-        { let mut guard = total.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + r#mod); };
+        { let __rhs = r#mod; let mut guard = total.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     }
     let mut branch = Rc::new(RefCell::new(Some(Branch { r#else: total.clone(), ..Default::default() })));
     return Rc::new(RefCell::new(Some({ let __selector_holder = (*branch.borrow().as_ref().unwrap()).r#else.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));

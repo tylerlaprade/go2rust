@@ -49,10 +49,10 @@ pub fn make(r#static: Rc<RefCell<Option<[Item; 3]>>>, labels: Rc<RefCell<Option<
 
     let mut total = Rc::new(RefCell::new(Some(0)));
     { let __range_holder = r#static.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for item in __range_values.iter() {
-        { let mut guard = total.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + (*item.v.borrow().as_ref().unwrap())); };
+        { let __rhs = (*item.v.borrow().as_ref().unwrap()); let mut guard = total.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     } }
     { let __range_holder = labels.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for item in __range_values.iter() {
-        { let mut guard = total.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + (*item.v.borrow().as_ref().unwrap())); };
+        { let __rhs = (*item.v.borrow().as_ref().unwrap()); let mut guard = total.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     } }
     return Rc::new(RefCell::new(Some(total.borrow().as_ref().unwrap().clone())));
 }
