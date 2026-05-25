@@ -216,7 +216,7 @@ func classify(v interface{}) string {
 	}
 }
 
-func TestUnsafeSizeofUsesSyntaxVarTypeWithoutTypeInfo(t *testing.T) {
+func TestUnsafeSizeofWithoutTypeInfoEmitsUnimplemented(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
 
@@ -232,11 +232,9 @@ func size() uintptr {
 	}
 	rust, _, _ := Transpile(file, fset, nil)
 
-	if strings.Contains(rust, "Type information unavailable for unsafe.Sizeof") {
-		t.Fatalf("unsafe.Sizeof should use syntax var type fallback without type info:\n%s", rust)
-	}
-	if !strings.Contains(rust, "std::mem::size_of::<usize>()") {
-		t.Fatalf("unsafe.Sizeof did not lower uintptr var syntax:\n%s", rust)
+	want := `unimplemented!("type info required for unsafe.Sizeof")`
+	if !strings.Contains(rust, want) {
+		t.Fatalf("unsafe.Sizeof without type info must emit %q per AGENTS.md \"Type Info Is Authoritative\":\n%s", want, rust)
 	}
 }
 
