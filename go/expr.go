@@ -2185,6 +2185,29 @@ func writeLocalInterfaceWrappedConstructionInnerValue(out *strings.Builder, arg 
 			out.WriteString("(*self).clone()")
 			return
 		}
+		// Range loop vars over wrapped collections need explicit unwrap
+		// before they can be boxed as the interface trait object —
+		// isVarBare would otherwise short-circuit to a bare identifier.
+		if varType, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar {
+			stripped := strings.TrimPrefix(varType, "&")
+			if strings.HasPrefix(stripped, "Rc<") || strings.HasPrefix(stripped, "Arc<") {
+				out.WriteString("(*")
+				out.WriteString(RustIdentForUse(ident))
+				WriteBorrowMethod(out, false)
+				out.WriteString(".as_ref().unwrap()).clone()")
+				return
+			}
+			if strings.HasPrefix(stripped, "Box<dyn ") {
+				out.WriteString("(*")
+				out.WriteString(RustIdentForUse(ident))
+				out.WriteString(").clone()")
+				return
+			}
+			out.WriteString("(*")
+			out.WriteString(RustIdentForUse(ident))
+			out.WriteString(").clone()")
+			return
+		}
 		if isVarBare(ident.Name) {
 			out.WriteString(RustIdentForUse(ident))
 			return
@@ -2207,25 +2230,6 @@ func writeLocalInterfaceWrappedConstructionInnerValue(out *strings.Builder, arg 
 				}
 			}
 			TranspileExpression(out, ident)
-			return
-		}
-		if varType, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar {
-			if strings.HasPrefix(varType, "&Rc<") || strings.HasPrefix(varType, "&Arc<") {
-				out.WriteString("(*")
-				out.WriteString(RustIdentForUse(ident))
-				WriteBorrowMethod(out, false)
-				out.WriteString(".as_ref().unwrap()).clone()")
-				return
-			}
-			if strings.HasPrefix(varType, "&Box<dyn ") {
-				out.WriteString("(*")
-				out.WriteString(RustIdentForUse(ident))
-				out.WriteString(").clone()")
-				return
-			}
-			out.WriteString("(*")
-			out.WriteString(RustIdentForUse(ident))
-			out.WriteString(").clone()")
 			return
 		}
 		out.WriteString("(*")
