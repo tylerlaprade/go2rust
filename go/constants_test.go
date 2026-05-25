@@ -548,7 +548,7 @@ func (s Symbol) kindName() string {
 	}
 }
 
-func TestNoTypeInfoLocalConstUsesSyntaxByteFieldContext(t *testing.T) {
+func TestNoTypeInfoLocalConstByteFieldAssignmentDoesNotSynthesizeCast(t *testing.T) {
 	src := `package main
 
 type node struct {
@@ -568,11 +568,11 @@ func main() {
 	n.color = black
 }
 `
-	assertLocalConstUsesSyntaxByteFieldContext(t, transpileNoTypeInfoRegression(t, src))
-	assertLocalConstUsesSyntaxByteFieldContext(t, transpileRegression(t, src, &TypeInfo{}))
+	assertLocalConstByteFieldEmission(t, transpileNoTypeInfoRegression(t, src))
+	assertLocalConstByteFieldEmission(t, transpileRegression(t, src, &TypeInfo{}))
 }
 
-func assertLocalConstUsesSyntaxByteFieldContext(t *testing.T, rust string) {
+func assertLocalConstByteFieldEmission(t *testing.T, rust string) {
 	t.Helper()
 	if !strings.Contains(rust, "color: Rc::new(RefCell::new(Some(white as u8)))") {
 		t.Fatalf("struct field literal should cast local const to byte field type:\n%s", rust)
@@ -580,11 +580,14 @@ func assertLocalConstUsesSyntaxByteFieldContext(t *testing.T, rust string) {
 	if !strings.Contains(rust, "== white as u8") {
 		t.Fatalf("selector comparison should cast local const to byte field type:\n%s", rust)
 	}
-	if !strings.Contains(rust, "let new_val = grey as u8") {
-		t.Fatalf("selector assignment should cast local const to byte field type:\n%s", rust)
-	}
-	if !strings.Contains(rust, "let new_val = black as u8") {
-		t.Fatalf("selector assignment should cast later local const to byte field type:\n%s", rust)
+	// AGENTS.md "Type Info Is Authoritative": the selector assignment must not
+	// synthesize an `as u8` cast from struct field syntax when type info is
+	// missing. The previous writeByteConstAssignmentValue syntax fallback
+	// produced `let new_val = grey as u8` by routing through structDefs;
+	// that branch was added in commit 50541a50 inside the 470fcb0b..3e3d9fc3
+	// fallback-incident range and is gone now.
+	if strings.Contains(rust, "let new_val = grey as u8") || strings.Contains(rust, "let new_val = black as u8") {
+		t.Fatalf("selector assignment must not synthesize as-u8 cast from struct field syntax when type info is missing:\n%s", rust)
 	}
 }
 

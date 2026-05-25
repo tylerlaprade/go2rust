@@ -111,24 +111,17 @@ func writeArraySliceElementAssignmentValue(out *strings.Builder, rhs ast.Expr, e
 
 func writeByteConstAssignmentValue(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
 	typeInfo := GetTypeInfo()
-	if typeInfo != nil {
-		expected := typeInfo.GetType(lhs)
-		if isByteLikeGoType(expected) {
-			return writeConstExpressionForExpectedGoType(out, rhs, expected)
-		}
-		if expected != nil {
-			return false
-		}
-	}
-	sel, ok := lhs.(*ast.SelectorExpr)
-	if !ok {
+	if typeInfo == nil {
 		return false
 	}
-	fieldExpr, ok := selectorFieldTypeExpr(sel)
-	if !ok {
+	expected := typeInfo.GetType(lhs)
+	if expected == nil {
 		return false
 	}
-	return writeConstExpressionForExpectedTypeExpr(out, rhs, fieldExpr)
+	if !isByteLikeGoType(expected) {
+		return false
+	}
+	return writeConstExpressionForExpectedGoType(out, rhs, expected)
 }
 
 func writeRangeIndexAssignmentValue(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
