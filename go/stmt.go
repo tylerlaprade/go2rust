@@ -1991,6 +1991,14 @@ func writeMapWrappedValue(out *strings.Builder, expr ast.Expr, valueType types.T
 		TranspileExpression(out, expr)
 		return
 	}
+	if sel, ok := expr.(*ast.SelectorExpr); ok {
+		typeInfo := GetTypeInfo()
+		if typeInfo != nil && typeInfo.ReturnsWrappedValue(sel) {
+			TranspileExpressionContext(out, expr, LValue)
+			out.WriteString(".clone()")
+			return
+		}
+	}
 
 	WriteWrapperPrefix(out)
 	if writeLenCapCallArgumentForExpectedType(out, expr, valueType) {
