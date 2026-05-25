@@ -990,6 +990,10 @@ run_xfail_test() {
     run_test "tests/func_literal_keyword_params"
 }
 
+@test "func_type_alias_implements_interface" {
+    run_test "tests/func_type_alias_implements_interface"
+}
+
 @test "function_field_calls" {
     run_test "tests/function_field_calls"
 }
@@ -2644,10 +2648,6 @@ run_xfail_test() {
 
 @test "XFAIL: file_operations" {
     run_xfail_test "tests/XFAIL/file_operations"
-}
-
-@test "XFAIL: func_type_alias_implements_interface" {
-    run_xfail_test "tests/XFAIL/func_type_alias_implements_interface"
 }
 
 @test "XFAIL: generics_basic" {

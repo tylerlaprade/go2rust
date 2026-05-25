@@ -18,6 +18,30 @@ impl Clone for Box<dyn Speaker> {
 
 pub type counter = Rc<RefCell<Option<Box<dyn FnMut() -> Rc<RefCell<Option<i32>>>>>>>;
 
+#[derive(Clone)]
+pub struct counterAsSpeaker(pub counter);
+
+impl std::fmt::Display for counterAsSpeaker {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<counterAsSpeaker>")
+    }
+}
+
+impl Speaker for counterAsSpeaker {
+    fn speak(&self) -> Rc<RefCell<Option<i32>>> {
+        self.0.speak()
+    }
+    fn __go_clone_box_speaker(&self) -> Box<dyn Speaker> {
+        Box::new(self.clone())
+    }
+    fn __go_as_any(&self) -> &dyn std::any::Any {
+        self
+    }
+    fn __go_eq_speaker(&self, _other: &dyn Speaker) -> bool {
+        false
+    }
+}
+
 
 pub trait counterMethods {
     fn speak(&self) -> Rc<RefCell<Option<i32>>>;
@@ -45,5 +69,5 @@ pub fn make_counter() -> counter {
 
 fn main() {
     let mut c = make_counter();
-    println!("{}", format!("{}", (*run_speaker(Rc::new(RefCell::new(Some(Box::new((*c.borrow().as_ref().unwrap()).clone()) as Box<dyn Speaker>)))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*run_speaker(Rc::new(RefCell::new(Some(Box::new(counterAsSpeaker(c.clone())) as Box<dyn Speaker>)))).borrow().as_ref().unwrap())));
 }

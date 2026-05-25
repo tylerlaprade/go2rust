@@ -1155,6 +1155,148 @@ func interfaceParamVarInfo(typeExpr ast.Expr) (*VarInfo, bool) {
 	}, true
 }
 
+// writeFunctionTypeInterfaceImpls emits per-interface wrapper structs for a
+// named function-type alias. For every locally-declared interface that the
+// function-type implements (via go/types' method set check), it emits a
+// `<FuncType>As<Iface>` struct holding the function value and an `impl Iface`
+// block whose methods forward to the function-type's inherent methods. This
+// works around Rust's orphan rule, which would block `impl Iface for FuncType`
+// directly because `FuncType` is a type alias to entirely foreign types.
+func writeFunctionTypeInterfaceImpls(out *strings.Builder, goName, rustTypeName string) {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.pkg == nil || typeInfo.pkg.Scope() == nil {
+		return
+	}
+	scope := typeInfo.pkg.Scope()
+	funcObj, ok := scope.Lookup(goName).(*types.TypeName)
+	if !ok {
+		return
+	}
+	funcNamed, ok := funcObj.Type().(*types.Named)
+	if !ok {
+		return
+	}
+	for _, ifaceName := range scope.Names() {
+		ifaceObj, ok := scope.Lookup(ifaceName).(*types.TypeName)
+		if !ok {
+			continue
+		}
+		ifaceNamed, ok := ifaceObj.Type().(*types.Named)
+		if !ok {
+			continue
+		}
+		iface, ok := ifaceNamed.Underlying().(*types.Interface)
+		if !ok {
+			continue
+		}
+		iface.Complete()
+		if iface.NumMethods() == 0 {
+			continue
+		}
+		if !types.Implements(funcNamed, iface) {
+			continue
+		}
+		writeFunctionTypeInterfaceImpl(out, rustTypeName, ifaceName, iface)
+	}
+}
+
+func writeFunctionTypeInterfaceImpl(out *strings.Builder, funcTypeName, ifaceName string, iface *types.Interface) {
+	wrapperName := funcTypeName + "As" + ifaceName
+	traitSnake := traitMethodSuffix(ifaceName)
+	out.WriteString("\n#[derive(Clone)]\n")
+	out.WriteString("pub struct ")
+	out.WriteString(wrapperName)
+	out.WriteString("(pub ")
+	out.WriteString(funcTypeName)
+	out.WriteString(");\n\n")
+	out.WriteString("impl std::fmt::Display for ")
+	out.WriteString(wrapperName)
+	out.WriteString(" {\n")
+	out.WriteString("    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {\n")
+	out.WriteString("        write!(f, \"<")
+	out.WriteString(wrapperName)
+	out.WriteString(">\")\n")
+	out.WriteString("    }\n")
+	out.WriteString("}\n\n")
+	out.WriteString("impl ")
+	out.WriteString(ifaceName)
+	out.WriteString(" for ")
+	out.WriteString(wrapperName)
+	out.WriteString(" {\n")
+	for i := 0; i < iface.NumMethods(); i++ {
+		method := iface.Method(i)
+		sig, ok := method.Type().(*types.Signature)
+		if !ok {
+			continue
+		}
+		out.WriteString("    fn ")
+		out.WriteString(ToSnakeCase(method.Name()))
+		out.WriteString("(&self")
+		for j := 0; j < sig.Params().Len(); j++ {
+			param := sig.Params().At(j)
+			out.WriteString(", ")
+			paramName := param.Name()
+			if paramName == "" {
+				paramName = fmt.Sprintf("__arg%d", j)
+			}
+			out.WriteString(EscapeRustIdent(paramName))
+			out.WriteString(": ")
+			out.WriteString(goTypesParamTypeToRust(param.Type()))
+		}
+		out.WriteString(")")
+		if sig.Results().Len() > 0 {
+			out.WriteString(" -> ")
+			if sig.Results().Len() == 1 {
+				out.WriteString(goTypesTypeToRustWrapped(sig.Results().At(0).Type()))
+			} else {
+				out.WriteString("(")
+				for j := 0; j < sig.Results().Len(); j++ {
+					if j > 0 {
+						out.WriteString(", ")
+					}
+					out.WriteString(goTypesTypeToRustWrapped(sig.Results().At(j).Type()))
+				}
+				out.WriteString(")")
+			}
+		}
+		out.WriteString(" {\n")
+		out.WriteString("        self.0.")
+		out.WriteString(ToSnakeCase(method.Name()))
+		out.WriteString("(")
+		for j := 0; j < sig.Params().Len(); j++ {
+			if j > 0 {
+				out.WriteString(", ")
+			}
+			paramName := sig.Params().At(j).Name()
+			if paramName == "" {
+				paramName = fmt.Sprintf("__arg%d", j)
+			}
+			out.WriteString(EscapeRustIdent(paramName))
+			out.WriteString(".clone()")
+		}
+		out.WriteString(")\n")
+		out.WriteString("    }\n")
+	}
+	out.WriteString("    fn __go_clone_box_")
+	out.WriteString(traitSnake)
+	out.WriteString("(&self) -> ")
+	out.WriteString(rustLocalInterfaceTraitObject(ifaceName))
+	out.WriteString(" {\n")
+	out.WriteString("        Box::new(self.clone())\n")
+	out.WriteString("    }\n")
+	out.WriteString("    fn __go_as_any(&self) -> &dyn std::any::Any {\n")
+	out.WriteString("        self\n")
+	out.WriteString("    }\n")
+	out.WriteString("    fn __go_eq_")
+	out.WriteString(traitSnake)
+	out.WriteString("(&self, _other: ")
+	out.WriteString(rustLocalInterfaceParamBare(ifaceName))
+	out.WriteString(") -> bool {\n")
+	out.WriteString("        false\n")
+	out.WriteString("    }\n")
+	out.WriteString("}\n")
+}
+
 func assignedInterfaceParamNames(fn *ast.FuncDecl) map[string]bool {
 	assigned := make(map[string]bool)
 	if fn == nil || fn.Body == nil || fn.Type.Params == nil {
@@ -1888,6 +2030,14 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 			RegisterTypeAlias(typeSpec.Name.Name)
 			RegisterFunctionTypeAlias(typeSpec.Name.Name)
 			RegisterFunctionTypeAliasBox(typeSpec.Name.Name, functionTypeSpecRustBoxType(typeSpec, t.(*ast.FuncType)))
+
+			// Function types satisfying local interfaces need per-interface
+			// wrapper structs: emitting `impl LocalIface for funcAlias` directly
+			// violates Rust's orphan rule because the alias resolves to entirely
+			// foreign types. The wrapper holds the alias value and forwards
+			// trait methods to the function-type's inherent methods so call
+			// sites can convert via Box::new(<FuncType>As<Iface>(value)).
+			writeFunctionTypeInterfaceImpls(out, typeSpec.Name.Name, rustTypeName)
 		} else {
 			// Type definition: type A B
 			// Create a newtype wrapper in Rust

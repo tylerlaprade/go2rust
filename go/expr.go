@@ -2086,6 +2086,42 @@ func writeLocalInterfaceReferenceCallArgument(out *strings.Builder, arg ast.Expr
 	return true
 }
 
+// functionTypeAliasNameFromTypes returns the Go-side name of typ when it
+// resolves to a named type whose underlying is a function signature AND that
+// name is registered as a function-type alias. Used by interface call-arg
+// lowering to detect "function type satisfying interface" sites that need
+// the per-interface wrapper struct instead of a plain box+cast.
+func functionTypeAliasNameFromTypes(typ types.Type) (string, bool) {
+	if typ == nil {
+		return "", false
+	}
+	named, ok := types.Unalias(typ).(*types.Named)
+	if !ok || named.Obj() == nil {
+		return "", false
+	}
+	if _, isSig := named.Underlying().(*types.Signature); !isSig {
+		return "", false
+	}
+	name := named.Obj().Name()
+	if !IsFunctionTypeAlias(name) {
+		return "", false
+	}
+	return name, true
+}
+
+// writeFunctionTypeAliasInnerValue emits the inner expression for the
+// per-interface wrapper construction. For an ident, the wrapped function
+// handle is cloned; for other expressions the value is computed and cloned
+// out of its wrapper.
+func writeFunctionTypeAliasInnerValue(out *strings.Builder, arg ast.Expr) {
+	if ident, ok := arg.(*ast.Ident); ok {
+		out.WriteString(RustIdentForUse(ident))
+		out.WriteString(".clone()")
+		return
+	}
+	TranspileExpressionContext(out, arg, LValue)
+}
+
 // writeLocalInterfaceSubtraitUpcast emits a block expression that unwraps the
 // supplied wrapped subtrait value and re-wraps it as the supertrait. Rust's
 // trait-upcasting coercion handles the Box<dyn Sub> → Box<dyn Super> step.
@@ -2128,6 +2164,22 @@ func writeLocalInterfaceWrappedConstruction(out *strings.Builder, arg ast.Expr, 
 }
 
 func writeLocalInterfaceWrappedConstructionInnerValue(out *strings.Builder, arg ast.Expr, expectedIface types.Type) {
+	if typeInfo := GetTypeInfo(); typeInfo != nil {
+		argType := typeInfo.GetType(arg)
+		if argType != nil {
+			if funcTypeName, ok := functionTypeAliasNameFromTypes(argType); ok && expectedIface != nil {
+				if ifaceName, ok := transpiledNamedInterfaceTypeNameFromTypes(expectedIface); ok {
+					out.WriteString(funcTypeName)
+					out.WriteString("As")
+					out.WriteString(ifaceName)
+					out.WriteString("(")
+					writeFunctionTypeAliasInnerValue(out, arg)
+					out.WriteString(")")
+					return
+				}
+			}
+		}
+	}
 	if ident, ok := arg.(*ast.Ident); ok {
 		if currentReceiver != "" && ident.Name == currentReceiver {
 			out.WriteString("(*self).clone()")
