@@ -1155,6 +1155,35 @@ func interfaceParamVarInfo(typeExpr ast.Expr) (*VarInfo, bool) {
 	}, true
 }
 
+// typeContainsTraitObjectInUnderlying reports whether the given type
+// expression's underlying lowering would contain a `Box<dyn Trait>` trait
+// object — which Rust cannot derive Debug for. Used to decide whether a
+// newtype struct can `#[derive(Debug)]` or must opt out.
+func typeContainsTraitObjectInUnderlying(expr ast.Expr) bool {
+	switch t := expr.(type) {
+	case *ast.ArrayType:
+		return typeContainsTraitObjectInUnderlying(t.Elt)
+	case *ast.MapType:
+		return typeContainsTraitObjectInUnderlying(t.Key) || typeContainsTraitObjectInUnderlying(t.Value)
+	case *ast.StarExpr:
+		return typeContainsTraitObjectInUnderlying(t.X)
+	case *ast.Ident:
+		if _, ok := transpiledNamedInterfaceTypeNameFromExpr(t); ok {
+			return true
+		}
+		if t.Name == "any" {
+			return true
+		}
+		return false
+	case *ast.InterfaceType:
+		return true
+	case *ast.FuncType:
+		return true
+	default:
+		return false
+	}
+}
+
 // writeFunctionTypeInterfaceImpls emits per-interface wrapper structs for a
 // named function-type alias. For every locally-declared interface that the
 // function-type implements (via go/types' method set check), it emits a
@@ -2050,7 +2079,11 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 			// Type definition: type A B
 			// Create a newtype wrapper in Rust
 			RegisterTypeDefinition(typeSpec.Name.Name, typeDefinitionUnderlyingName(t))
-			out.WriteString("#[derive(Debug, Clone, Default)]\n")
+			if typeContainsTraitObjectInUnderlying(t) {
+				out.WriteString("#[derive(Clone, Default)]\n")
+			} else {
+				out.WriteString("#[derive(Debug, Clone, Default)]\n")
+			}
 			out.WriteString("pub struct ")
 			out.WriteString(rustTypeName)
 			out.WriteString("(pub ")
