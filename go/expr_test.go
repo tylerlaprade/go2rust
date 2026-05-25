@@ -935,7 +935,7 @@ func main() {
 	}
 }
 
-func TestNoTypeInfoBytesNewBufferStdlibInterfaceField(t *testing.T) {
+func TestNoTypeInfoBytesNewBufferStdlibInterfaceFieldDoesNotSynthesizeConversion(t *testing.T) {
 	rust := transpileNoTypeInfoRegression(t, `package main
 
 import (
@@ -953,23 +953,20 @@ func main() {
 	_ = fmt.Errorf("%v", h.w)
 }`)
 
-	for _, want := range []string{
-		"fn __go_next_external_interface_id()",
-		"pub struct bytes_Buffer",
-		"pub mod bytes",
-		"pub fn new_buffer",
-		"impl From<bytes_Buffer> for io_Writer",
-		"let __arg = bytes::new_buffer(",
-	} {
-		if !strings.Contains(rust, want) {
-			t.Fatalf("missing %q in bytes.NewBuffer interface-field fallback output:\n%s", want, rust)
-		}
+	// AGENTS.md "Type Info Is Authoritative": with typeInfo=nil, the
+	// transpiler must not synthesize an io.Writer ← bytes.Buffer conversion
+	// from the struct field syntax. The previous
+	// writeStdlibInterfaceFieldValueFromSyntax peer path registered the
+	// conversion stubs and emitted the impl-From lowering by reading the
+	// field type expression — that branch was added in commit 50ecb15d
+	// inside the 470fcb0b..3e3d9fc3 fallback-incident range and is gone.
+	// The real fixture tests/fmt_errorf_interface_field still covers this
+	// case via the typeInfo path (writeStdlibInterfaceCallArgumentConversion).
+	if strings.Contains(rust, "impl From<bytes_Buffer> for io_Writer") {
+		t.Fatalf("Mode 1 must not synthesize impl From<bytes_Buffer> for io_Writer from field syntax:\n%s", rust)
 	}
-	if strings.Contains(rust, "w: bytes::new_buffer(") {
-		t.Fatalf("bytes.NewBuffer assigned to io.Writer field should be converted, not assigned directly:\n%s", rust)
-	}
-	if strings.Contains(rust, "Type information not available for print argument") {
-		t.Fatalf("fmt.Errorf should format the syntax-known io.Writer field:\n%s", rust)
+	if strings.Contains(rust, "let __arg = bytes::new_buffer(") {
+		t.Fatalf("Mode 1 must not emit the stdlib interface conversion __arg lowering without type info:\n%s", rust)
 	}
 }
 

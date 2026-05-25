@@ -2578,35 +2578,6 @@ func writeStdlibInterfaceCallArgumentConversion(out *strings.Builder, arg ast.Ex
 	return true
 }
 
-func writeStdlibInterfaceFieldValueFromSyntax(out *strings.Builder, arg ast.Expr, expectedExpr ast.Expr) bool {
-	targetRust, ok := externalStdlibInterfaceTypeExpr(expectedExpr)
-	if !ok {
-		return false
-	}
-	call, ok := arg.(*ast.CallExpr)
-	if !ok {
-		return false
-	}
-	sourceRust, ok := externalStdlibCallReturnRustType(call)
-	if !ok {
-		return false
-	}
-	RegisterExternalTypeStubInterface(targetRust)
-	RegisterExternalTypeStubConversion(targetRust, sourceRust)
-	out.WriteString("{ let __arg = ")
-	TranspileExpression(out, arg)
-	out.WriteString("; let __converted = { let __arg_guard = __arg")
-	WriteBorrowMethod(out, false)
-	out.WriteString("; let __converted: Option<")
-	out.WriteString(targetRust)
-	out.WriteString("> = __arg_guard.as_ref().map(|__v| (*__v).clone().into()); __converted }; ")
-	WriteWrapperOptionPrefix(out)
-	out.WriteString("__converted")
-	WriteWrapperOptionSuffix(out)
-	out.WriteString(" }")
-	return true
-}
-
 func writeStdlibInterfaceBareConversion(out *strings.Builder, arg ast.Expr, expectedType types.Type) bool {
 	if _, _, ok := stdlibInterfaceArgumentConversion(arg, expectedType); !ok {
 		if targetRust, ok := localConcreteToStdlibInterfaceConversion(arg, expectedType); ok {
@@ -4100,10 +4071,6 @@ func writeWrappedStructFieldValue(out *strings.Builder, value ast.Expr, fieldExp
 	}
 
 	if (fieldExpr != nil || fieldType != nil) && writeLocalInterfaceFieldValue(out, value, fieldExpr, fieldType) {
-		return
-	}
-
-	if fieldExpr != nil && writeStdlibInterfaceFieldValueFromSyntax(out, value, fieldExpr) {
 		return
 	}
 

@@ -932,29 +932,6 @@ func externalStdlibInterfaceTypeExpr(expr ast.Expr) (string, bool) {
 	return fmt.Sprintf("%s_%s", ident.Name, sel.Sel.Name), true
 }
 
-func externalStdlibCallReturnRustType(call *ast.CallExpr) (string, bool) {
-	if call == nil {
-		return "", false
-	}
-	sel, ok := call.Fun.(*ast.SelectorExpr)
-	if !ok {
-		return "", false
-	}
-	_, pkgPath, ok := externalStdlibPackageSelector(sel)
-	if !ok {
-		return "", false
-	}
-	switch pkgPath {
-	case "bytes":
-		if sel.Sel.Name == "NewBuffer" {
-			RegisterExternalTypeStub("bytes_Buffer")
-			RegisterExternalPackageFunctionFallback(sel, len(call.Args))
-			return "bytes_Buffer", true
-		}
-	}
-	return "", false
-}
-
 func externalTypeExprFallbackIsInterface(pkgPath string, name string) bool {
 	switch pkgPath {
 	case "hash":
