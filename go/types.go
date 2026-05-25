@@ -687,6 +687,10 @@ func goMapKeyTypeToRustBase(expr ast.Expr) string {
 			return "GoLocalPtrKey<" + rustLocalInterfaceTraitObject(ifaceName) + ">"
 		}
 	}
+	if isEmptyInterfaceExpr(expr) {
+		NeedGoPtrKey()
+		return "GoLocalPtrKey<" + rustAnyTraitObject() + ">"
+	}
 	return goTypeToRustBase(expr)
 }
 

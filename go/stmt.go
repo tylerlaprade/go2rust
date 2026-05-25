@@ -2046,6 +2046,13 @@ func writeMapKeyExpressionWithType(out *strings.Builder, expr ast.Expr, keyType 
 			out.WriteString(".clone())")
 			return
 		}
+		if isEmptyInterfaceType(keyType) {
+			NeedGoPtrKey()
+			out.WriteString("GoLocalPtrKey::new(")
+			TranspileExpressionContext(out, expr, LValue)
+			out.WriteString(".clone())")
+			return
+		}
 	}
 	if keyType != nil && writeMapKeyForExpectedType(out, expr, keyType) {
 		return

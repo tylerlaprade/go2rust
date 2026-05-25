@@ -5013,6 +5013,13 @@ func writeMapLookupKeyWithType(out *strings.Builder, index ast.Expr, keyType typ
 			out.WriteString(".clone())")
 			return
 		}
+		if isEmptyInterfaceType(keyType) {
+			NeedGoPtrKey()
+			out.WriteString("&GoLocalPtrKey::new(")
+			TranspileExpressionContext(out, index, LValue)
+			out.WriteString(".clone())")
+			return
+		}
 		out.WriteString("&")
 		if writeMapKeyForExpectedType(out, index, keyType) {
 			return
