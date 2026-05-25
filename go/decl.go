@@ -1200,6 +1200,18 @@ func writeFunctionTypeInterfaceImpls(out *strings.Builder, goName, rustTypeName 
 	}
 }
 
+// functionTypeInterfaceImplResultRust returns the Rust type for a function-
+// type-interface-impl method result. Named local interface results need the
+// trait-object wrapped shape (Arc<...<Box<dyn T + Send + Sync>>...>) which
+// goTypesTypeToRustWrapped does not produce (it returns the bare trait name
+// for named interface types).
+func functionTypeInterfaceImplResultRust(typ types.Type) string {
+	if ifaceName, ok := transpiledNamedInterfaceTypeNameFromTypes(typ); ok {
+		return rustLocalInterfaceParam(ifaceName)
+	}
+	return goTypesTypeToRustWrapped(typ)
+}
+
 func writeFunctionTypeInterfaceImpl(out *strings.Builder, funcTypeName, ifaceName string, iface *types.Interface) {
 	wrapperName := funcTypeName + "As" + ifaceName
 	traitSnake := traitMethodSuffix(ifaceName)
@@ -1247,14 +1259,14 @@ func writeFunctionTypeInterfaceImpl(out *strings.Builder, funcTypeName, ifaceNam
 		if sig.Results().Len() > 0 {
 			out.WriteString(" -> ")
 			if sig.Results().Len() == 1 {
-				out.WriteString(goTypesTypeToRustWrapped(sig.Results().At(0).Type()))
+				out.WriteString(functionTypeInterfaceImplResultRust(sig.Results().At(0).Type()))
 			} else {
 				out.WriteString("(")
 				for j := 0; j < sig.Results().Len(); j++ {
 					if j > 0 {
 						out.WriteString(", ")
 					}
-					out.WriteString(goTypesTypeToRustWrapped(sig.Results().At(j).Type()))
+					out.WriteString(functionTypeInterfaceImplResultRust(sig.Results().At(j).Type()))
 				}
 				out.WriteString(")")
 			}
@@ -1320,28 +1332,24 @@ func writeAssignedInterfaceParamShadows(out *strings.Builder, fn *ast.FuncDecl, 
 		return
 	}
 	for _, field := range fn.Type.Params.List {
-		traitName, ok := transpiledNamedInterfaceTypeNameFromExpr(field.Type)
-		if !ok {
+		if _, ok := transpiledNamedInterfaceTypeNameFromExpr(field.Type); !ok {
 			continue
 		}
-		traitSnake := traitMethodSuffix(traitName)
 		for _, name := range field.Names {
 			if name.Name == "_" || !blockIdentAssigned(fn.Body, name.Name) {
 				continue
 			}
+			// The param now arrives as a wrapped Arc/Rc handle, so the shadow
+			// rebind just clones the handle — interior mutability through
+			// assignment is preserved without re-boxing the trait object.
 			out.WriteString(indent)
 			out.WriteString("let mut ")
 			out.WriteString(RustLocalIdent(name.Name))
 			out.WriteString(": ")
 			out.WriteString(GoTypeToRust(field.Type))
 			out.WriteString(" = ")
-			WriteWrapperPrefix(out)
 			out.WriteString(RustLocalIdent(name.Name))
-			out.WriteString(".__go_clone_box_")
-			out.WriteString(traitSnake)
-			out.WriteString("()")
-			WriteWrapperSuffix(out)
-			out.WriteString(";\n")
+			out.WriteString(".clone();\n")
 		}
 	}
 }

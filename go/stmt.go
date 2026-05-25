@@ -948,6 +948,32 @@ func rangeTargetNeedsWrappedSliceGuard(expr ast.Expr) bool {
 	}
 }
 
+// writeFunctionTypeAliasWrappedReturn emits the wrapped interface form for a
+// function-type-alias value being returned where a local interface is
+// expected. Uses the per-interface wrapper struct (FuncType+"As"+Iface) so
+// the return value satisfies Box<dyn Iface + Send + Sync>.
+func writeFunctionTypeAliasWrappedReturn(out *strings.Builder, result ast.Expr, funcTypeName, ifaceName string) {
+	WriteWrapperPrefix(out)
+	out.WriteString("Box::new(")
+	out.WriteString(funcTypeName)
+	out.WriteString("As")
+	out.WriteString(ifaceName)
+	out.WriteString("(")
+	if ident, ok := result.(*ast.Ident); ok {
+		if currentReceiver != "" && ident.Name == currentReceiver {
+			out.WriteString("self.clone()")
+		} else {
+			out.WriteString(RustIdentForUse(ident))
+			out.WriteString(".clone()")
+		}
+	} else {
+		TranspileExpressionContext(out, result, LValue)
+	}
+	out.WriteString(")) as ")
+	out.WriteString(rustLocalInterfaceTraitObject(ifaceName))
+	WriteWrapperSuffix(out)
+}
+
 func writeLocalInterfaceConcreteReturnConversion(out *strings.Builder, result ast.Expr, expected ast.Expr) bool {
 	interfaceName, ok := localInterfaceNameFromTypeExpr(expected)
 	if !ok {
@@ -973,6 +999,10 @@ func writeLocalInterfaceConcreteReturnConversion(out *strings.Builder, result as
 				TranspileExpression(out, result)
 				WriteWrapperSuffix(out)
 			}
+			return true
+		}
+		if funcTypeName, ok := functionTypeAliasNameFromTypes(typeInfo.GetType(result)); ok {
+			writeFunctionTypeAliasWrappedReturn(out, result, funcTypeName, interfaceName)
 			return true
 		}
 		targetType := expectedTypeFromParamExpr(expected)
@@ -5144,6 +5174,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					} else if ident, ok := result.(*ast.Ident); ok {
 						if currentReceiver != "" && ident.Name == currentReceiver {
 							if writeStdlibInterfaceCallArgumentConversion(out, ident, expectedTypeFromParamExpr(returnResultTypeExpr(fnType, i))) {
+								continue
+							}
+							if writeLocalInterfaceConcreteReturnConversion(out, ident, returnResultTypeExpr(fnType, i)) {
 								continue
 							}
 							WriteWrapperPrefix(out)
