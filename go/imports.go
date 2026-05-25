@@ -513,8 +513,11 @@ func (ht *HelperTracker) ImportNames() []string {
 func generateGoPtrKeyHelper(out *strings.Builder, name string) {
 	if NeedsConcurrentWrapper() {
 		out.WriteString(`
-#[derive(Clone)]
 pub struct ` + name + `<T>(pub Arc<Mutex<Option<T>>>);
+
+impl<T> Clone for ` + name + `<T> {
+    fn clone(&self) -> Self { ` + name + `(self.0.clone()) }
+}
 
 impl<T> ` + name + `<T> {
     pub fn new(value: Arc<Mutex<Option<T>>>) -> Self { ` + name + `(value) }
@@ -541,8 +544,11 @@ impl<T> std::fmt::Display for ` + name + `<T> {
 `)
 	} else {
 		out.WriteString(`
-#[derive(Clone)]
 pub struct ` + name + `<T>(pub Rc<RefCell<Option<T>>>);
+
+impl<T> Clone for ` + name + `<T> {
+    fn clone(&self) -> Self { ` + name + `(self.0.clone()) }
+}
 
 impl<T> ` + name + `<T> {
     pub fn new(value: Rc<RefCell<Option<T>>>) -> Self { ` + name + `(value) }

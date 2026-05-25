@@ -1049,6 +1049,17 @@ func goTypesMapKeyToRust(t types.Type) string {
 	if ptr, ok := types.Unalias(t).Underlying().(*types.Pointer); ok {
 		return goPtrKeyHelperNameForType(t) + "<" + goTypesTypeToRust(ptr.Elem()) + ">"
 	}
+	// Interface-typed keys: wrap in GoLocalPtrKey so the map satisfies Ord
+	// via Arc/Rc pointer identity (matches Go's interface equality for
+	// pointer-backed dynamic values).
+	if ifaceName, ok := transpiledNamedInterfaceTypeNameFromTypes(t); ok {
+		NeedGoPtrKey()
+		return "GoLocalPtrKey<" + rustLocalInterfaceTraitObject(ifaceName) + ">"
+	}
+	if isEmptyInterfaceType(t) {
+		NeedGoPtrKey()
+		return "GoLocalPtrKey<" + rustAnyTraitObject() + ">"
+	}
 	return goTypesTypeToRust(t)
 }
 
