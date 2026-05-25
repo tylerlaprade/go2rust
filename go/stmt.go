@@ -6129,15 +6129,6 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										TranspileExpressionContext(out, s.Lhs[0], LValue)
 										WriteBorrowMethod(out, true)
 										out.WriteString(" = Some(new_val); }")
-									} else if sig, isFuncValue := functionValueSyntaxSignature(rhsIdent); isFuncValue {
-										out.WriteString("{ ")
-										out.WriteString("let new_val = ")
-										writeFunctionValueBoxFromSyntax(out, rhsIdent, sig)
-										out.WriteString("; ")
-										out.WriteString("*")
-										TranspileExpressionContext(out, s.Lhs[0], LValue)
-										WriteBorrowMethod(out, true)
-										out.WriteString(" = Some(new_val); }")
 									} else if isAssignmentSelfWrappingExpression(s.Rhs[0]) {
 										writeMoveWrappedInnerAssignment(out, s.Lhs[0], s.Rhs[0])
 									} else {

@@ -3518,10 +3518,6 @@ func writeFunctionValueHandle(out *strings.Builder, expr ast.Expr) bool {
 			writeWrappedFunctionValueBox(out, ident, sig)
 			return true
 		}
-		if sig, ok := functionValueSyntaxSignature(ident); ok {
-			writeWrappedFunctionValueBoxFromSyntax(out, ident, sig)
-			return true
-		}
 		TranspileExpressionContext(out, ident, LValue)
 		out.WriteString(".clone()")
 		return true
@@ -4155,8 +4151,6 @@ func writeWrappedStructFieldValue(out *strings.Builder, value ast.Expr, fieldExp
 			WriteWrapperSuffix(out)
 		} else if sig, ok := functionValueSignature(valIdent); ok {
 			writeWrappedFunctionValueBox(out, valIdent, sig)
-		} else if sig, ok := functionValueSyntaxSignature(valIdent); ok {
-			writeWrappedFunctionValueBoxFromSyntax(out, valIdent, sig)
 		} else if _, isLocalConst := localConstants[valIdent.Name]; isLocalConst || isConstIdent(valIdent) || isConstantExpression(value) {
 			WriteWrapperPrefix(out)
 			if !writeExpressionForExpectedType(out, value, fieldExpr) && !writeExpressionForExpectedTypesType(out, value, fieldType) {
@@ -7652,28 +7646,6 @@ func functionValueSignature(ident *ast.Ident) (*types.Signature, bool) {
 	return nil, false
 }
 
-func functionValueSyntaxSignature(ident *ast.Ident) (*FunctionSignature, bool) {
-	if ident == nil || lookupVarInfo(ident.Name) != nil {
-		return nil, false
-	}
-	sig := GetFunctionSignature(ident.Name)
-	return sig, sig != nil
-}
-
-func functionSignatureBoxTypeFromAST(sig *FunctionSignature) string {
-	if sig == nil {
-		return "_"
-	}
-	funcType := &ast.FuncType{}
-	if sig.Params != nil {
-		funcType.Params = &ast.FieldList{List: sig.Params}
-	}
-	if sig.Results != nil {
-		funcType.Results = &ast.FieldList{List: sig.Results}
-	}
-	return generateClosureType(funcType)
-}
-
 func selectorFunctionValueSignature(expr ast.Expr) (*types.Signature, bool) {
 	sel, ok := expr.(*ast.SelectorExpr)
 	if !ok {
@@ -7810,37 +7782,6 @@ func writeFunctionValueBox(out *strings.Builder, ident *ast.Ident, sig *types.Si
 	out.WriteString(boxType)
 }
 
-func writeFunctionValueBoxFromSyntax(out *strings.Builder, ident *ast.Ident, sig *FunctionSignature) {
-	boxType := functionSignatureBoxTypeFromAST(sig)
-	out.WriteString("Box::new(move |")
-	argIndex := 0
-	for _, field := range sig.Params {
-		paramType := GoTypeToRust(field.Type)
-		count := len(field.Names)
-		if count == 0 {
-			count = 1
-		}
-		for i := 0; i < count; i++ {
-			if argIndex > 0 {
-				out.WriteString(", ")
-			}
-			out.WriteString(fmt.Sprintf("__arg%d: %s", argIndex, paramType))
-			argIndex++
-		}
-	}
-	out.WriteString("| { ")
-	out.WriteString(ToSnakeCase(ident.Name))
-	out.WriteString("(")
-	for i := 0; i < argIndex; i++ {
-		if i > 0 {
-			out.WriteString(", ")
-		}
-		out.WriteString(fmt.Sprintf("__arg%d", i))
-	}
-	out.WriteString(") }) as ")
-	out.WriteString(boxType)
-}
-
 func writeFunctionValueExpressionBox(out *strings.Builder, expr ast.Expr, sig *types.Signature) {
 	if ident, ok := expr.(*ast.Ident); ok {
 		writeFunctionValueBox(out, ident, sig)
@@ -7889,12 +7830,6 @@ func writeFunctionValueExpressionBox(out *strings.Builder, expr ast.Expr, sig *t
 func writeWrappedFunctionValueBox(out *strings.Builder, ident *ast.Ident, sig *types.Signature) {
 	WriteWrapperPrefix(out)
 	writeFunctionValueBox(out, ident, sig)
-	WriteWrapperSuffix(out)
-}
-
-func writeWrappedFunctionValueBoxFromSyntax(out *strings.Builder, ident *ast.Ident, sig *FunctionSignature) {
-	WriteWrapperPrefix(out)
-	writeFunctionValueBoxFromSyntax(out, ident, sig)
 	WriteWrapperSuffix(out)
 }
 

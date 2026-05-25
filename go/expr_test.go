@@ -1222,7 +1222,7 @@ func reverse(s string) string {
 	}
 }
 
-func TestNoTypeInfoFunctionFieldSyntaxValueAndCall(t *testing.T) {
+func TestNoTypeInfoFunctionFieldDoesNotSynthesizeBoxFromRegistry(t *testing.T) {
 	prevTypeInfo := currentTypeInfo
 	defer func() { currentTypeInfo = prevTypeInfo }()
 	SetTypeInfo(nil)
@@ -1250,14 +1250,15 @@ func main() {
 	}
 
 	rust, _, _ := Transpile(file, fset, nil)
-	if strings.Contains(rust, "multiply: multiply.clone()") {
-		t.Fatalf("function field value should be boxed from the registered function signature:\n%s", rust)
-	}
-	if strings.Contains(rust, ".multiply(Rc::new") {
-		t.Fatalf("function field call should not be lowered as a method call:\n%s", rust)
-	}
-	if !strings.Contains(rust, "let __f_holder = (*calc.borrow().as_ref().unwrap()).multiply.clone()") {
-		t.Fatalf("function field call should invoke the field handle:\n%s", rust)
+	// AGENTS.md "Type Info Is Authoritative": with typeInfo=nil, the
+	// transpiler must not synthesize a Box::new(move |...|) closure for
+	// `multiply` from the FunctionSignature registry. The previous
+	// writeFunctionValueBoxFromSyntax helper was added in commit 50ecb15d
+	// (May 2026) inside the 470fcb0b..3e3d9fc3 fallback-incident range
+	// and is gone. The function-call lowering of calc.Multiply(...) is
+	// unrelated to this bucket and may still go through its own paths.
+	if strings.Contains(rust, "Box::new(move |__arg0: ") {
+		t.Fatalf("Mode 1 must not synthesize Box::new closure for function value from FunctionSignature registry:\n%s", rust)
 	}
 }
 
@@ -1731,7 +1732,7 @@ func TestFunctionFieldCallUsesBoxWhenFuncAliasIsAlsoTypeDefinition(t *testing.T)
 	}
 }
 
-func TestFunctionMapValueUsesSyntaxAliasWithoutTypeInfo(t *testing.T) {
+func TestFunctionMapValueWithoutTypeInfoDoesNotSynthesizeBoxFromRegistry(t *testing.T) {
 	prevTypeInfo := currentTypeInfo
 	prevAliases := functionTypeAliases
 	prevSignatures := functionSignatures
@@ -1758,12 +1759,19 @@ func TestFunctionMapValueUsesSyntaxAliasWithoutTypeInfo(t *testing.T) {
 	writeWrappedMapValue(&out, ast.NewIdent("inc"), ast.NewIdent("handler"), nil)
 
 	got := out.String()
-	if !strings.Contains(got, "Box::new(move |__arg0: Rc<RefCell<Option<i32>>>| { inc(__arg0) })") ||
-		!strings.Contains(got, "as Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>>") {
-		t.Fatalf("function map value should box named function from syntax alias:\n%s", got)
+	// AGENTS.md "Type Info Is Authoritative": with typeInfo=nil and only an
+	// AST-derived FunctionSignature in the registry, the transpiler must
+	// not synthesize a Box::new closure for the map value. The previous
+	// writeFunctionValueBoxFromSyntax helper routed through GetFunctionSignature
+	// to produce `Box::new(move |__arg0: ...| { inc(__arg0) })` and the
+	// matching `as Box<dyn FnMut(...) -> ...>` cast; that branch was added
+	// in commit 50ecb15d inside the 470fcb0b..3e3d9fc3 fallback-incident
+	// range and is gone.
+	if strings.Contains(got, "Box::new(move |__arg0:") {
+		t.Fatalf("Mode 1 map value must not synthesize Box::new closure from FunctionSignature registry:\n%s", got)
 	}
-	if strings.Contains(got, "inc.borrow") || strings.Contains(got, "Some(inc)") {
-		t.Fatalf("function map value used generic wrapped expression path:\n%s", got)
+	if strings.Contains(got, "as Box<dyn FnMut(") {
+		t.Fatalf("Mode 1 map value must not synthesize FnMut box-type cast from AST alias:\n%s", got)
 	}
 }
 
