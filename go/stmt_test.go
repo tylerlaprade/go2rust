@@ -190,7 +190,7 @@ func collect(list []Expr, x Expr) []Expr {
 	}
 }
 
-func TestTypeSwitchUsesSyntaxCaseTypeWithoutTypeInfo(t *testing.T) {
+func TestTypeSwitchWithoutTypeInfoEmitsUnimplemented(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
 
@@ -208,11 +208,12 @@ func classify(v interface{}) string {
 	}
 	rust, _, _ := Transpile(file, fset, nil)
 
-	if strings.Contains(rust, "Type information required for type switch case") {
-		t.Fatalf("type switch case should use syntax fallback without type info:\n%s", rust)
+	want := `unimplemented!("type info required for type switch case")`
+	if !strings.Contains(rust, want) {
+		t.Fatalf("type switch case without type info must emit %q per AGENTS.md \"Type Info Is Authoritative\":\n%s", want, rust)
 	}
-	if !strings.Contains(rust, "downcast_ref::<i32>()") {
-		t.Fatalf("type switch case did not lower builtin int syntax:\n%s", rust)
+	if strings.Contains(rust, "downcast_ref::<i32>()") {
+		t.Fatalf("type switch case must not synthesize an i32 downcast from syntax when type info is missing:\n%s", rust)
 	}
 }
 

@@ -1108,24 +1108,27 @@ func typeSwitchCaseRustType(typeInfo *TypeInfo, typeExpr ast.Expr) (rustType str
 	if ident, ok := typeExpr.(*ast.Ident); ok && ident.Name == "nil" {
 		return "", true
 	}
-	if typeInfo != nil {
-		if typ := typeInfo.GetType(typeExpr); typ != nil {
-			if ptr, ok := typ.(*types.Pointer); ok {
-				return goTypesTypeToRust(ptr.Elem()), false
-			}
-			return goTypesTypeToRust(typ), false
-		}
+	if typeInfo == nil {
+		return "", false
 	}
-	if star, ok := typeExpr.(*ast.StarExpr); ok {
-		return goTypeToRustBase(star.X), false
+	typ := typeInfo.GetType(typeExpr)
+	if typ == nil {
+		return "", false
 	}
-	return goTypeToRustBase(typeExpr), false
+	if ptr, ok := typ.(*types.Pointer); ok {
+		return goTypesTypeToRust(ptr.Elem()), false
+	}
+	return goTypesTypeToRust(typ), false
 }
 
 func writeTypeSwitchCaseCondition(out *strings.Builder, typeInfo *TypeInfo, typeExpr ast.Expr) {
 	rustType, isNil := typeSwitchCaseRustType(typeInfo, typeExpr)
 	if isNil {
 		out.WriteString("_ts_is_nil")
+		return
+	}
+	if rustType == "" {
+		out.WriteString("unimplemented!(\"type info required for type switch case\")")
 		return
 	}
 	out.WriteString("_ts_val.and_then(|__v| __v.downcast_ref::<")
@@ -8905,6 +8908,10 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					// Create typed variable if needed
 					if varName != "" && isNil {
 						writeTypeSwitchOriginalBinding(out, varName, expr, isRangeVar, isStdlibRangeRef)
+					} else if varName != "" && rustType == "" {
+						out.WriteString("        let ")
+						out.WriteString(varName)
+						out.WriteString(" = unimplemented!(\"type info required for type switch case\");\n")
 					} else if varName != "" {
 						out.WriteString("        let ")
 						out.WriteString(varName)
