@@ -5,7 +5,6 @@ import (
 	"go/token"
 	"go/types"
 	"reflect"
-	"slices"
 	"strconv"
 	"strings"
 )
@@ -2613,90 +2612,7 @@ func jsonMarshalStructFields(st *types.Struct) ([]jsonMarshalField, bool) {
 	return fields, true
 }
 
-func jsonMarshalBasicKindFromSyntax(expr ast.Expr) (types.BasicKind, bool) {
-	basicKind, _, ok := jsonMarshalBasicFromSyntax(expr)
-	return basicKind, ok
-}
-
-func jsonMarshalBasicFromSyntax(expr ast.Expr) (types.BasicKind, string, bool) {
-	ident, ok := expr.(*ast.Ident)
-	if !ok {
-		return types.Invalid, "", false
-	}
-	switch ident.Name {
-	case "bool":
-		return types.Bool, "bool", true
-	case "int":
-		return types.Int, "int", true
-	case "int8":
-		return types.Int8, "int8", true
-	case "int16":
-		return types.Int16, "int16", true
-	case "int32", "rune":
-		return types.Int32, "int32", true
-	case "int64":
-		return types.Int64, "int64", true
-	case "uint":
-		return types.Uint, "uint", true
-	case "uint8", "byte":
-		return types.Uint8, "uint8", true
-	case "uint16":
-		return types.Uint16, "uint16", true
-	case "uint32":
-		return types.Uint32, "uint32", true
-	case "uint64":
-		return types.Uint64, "uint64", true
-	case "uintptr":
-		return types.Uintptr, "uintptr", true
-	case "float32":
-		return types.Float32, "float32", true
-	case "float64":
-		return types.Float64, "float64", true
-	case "string":
-		return types.String, "string", true
-	default:
-		return types.Invalid, "", false
-	}
-}
-
-func isJsonStringMapTypeExpr(expr ast.Expr) bool {
-	mapType, ok := expr.(*ast.MapType)
-	if !ok {
-		return false
-	}
-	key, keyOK := mapType.Key.(*ast.Ident)
-	value, valueOK := mapType.Value.(*ast.Ident)
-	return keyOK && valueOK && key.Name == "string" && value.Name == "string"
-}
-
-func isJsonStringSliceTypeExpr(expr ast.Expr) bool {
-	sliceType, ok := expr.(*ast.ArrayType)
-	if !ok || sliceType.Len != nil {
-		return false
-	}
-	elem, ok := sliceType.Elt.(*ast.Ident)
-	return ok && elem.Name == "string"
-}
-
-func isJsonByteSliceTypeExpr(expr ast.Expr) bool {
-	sliceType, ok := expr.(*ast.ArrayType)
-	if !ok || sliceType.Len != nil {
-		return false
-	}
-	elem, ok := sliceType.Elt.(*ast.Ident)
-	return ok && (elem.Name == "byte" || elem.Name == "uint8")
-}
-
-func isJsonStringByteSliceMapTypeExpr(expr ast.Expr) bool {
-	mapType, ok := expr.(*ast.MapType)
-	if !ok {
-		return false
-	}
-	key, ok := mapType.Key.(*ast.Ident)
-	return ok && key.Name == "string" && isJsonByteSliceTypeExpr(mapType.Value)
-}
-
-func jsonStructTagFromSyntax(field *ast.Field) string {
+func jsonStructTagFromField(field *ast.Field) string {
 	if field == nil || field.Tag == nil {
 		return ""
 	}
@@ -2705,236 +2621,6 @@ func jsonStructTagFromSyntax(field *ast.Field) string {
 		return ""
 	}
 	return tag
-}
-
-func isExportedGoName(name string) bool {
-	for _, r := range name {
-		return isUpper(r)
-	}
-	return false
-}
-
-func jsonMarshalStructFieldsFromSyntax(st *ast.StructType) ([]jsonMarshalField, bool) {
-	if st == nil || st.Fields == nil {
-		return nil, false
-	}
-	fields := []jsonMarshalField{}
-	for _, field := range st.Fields.List {
-		if len(field.Names) == 0 {
-			return nil, false
-		}
-		for _, name := range field.Names {
-			if name == nil || !isExportedGoName(name.Name) {
-				continue
-			}
-			jsonName, include, omitEmpty := jsonFieldName(name.Name, jsonStructTagFromSyntax(field))
-			if !include {
-				continue
-			}
-			if basicKind, basicName, ok := jsonMarshalBasicFromSyntax(field.Type); ok {
-				fields = append(fields, jsonMarshalField{
-					jsonName:  jsonName,
-					rustName:  ToSnakeCase(name.Name),
-					kind:      jsonMarshalBasicField,
-					basicKind: basicKind,
-					basicName: basicName,
-					omitEmpty: omitEmpty,
-				})
-				continue
-			}
-			if isJsonStringMapTypeExpr(field.Type) {
-				fields = append(fields, jsonMarshalField{
-					jsonName:  jsonName,
-					rustName:  ToSnakeCase(name.Name),
-					kind:      jsonMarshalStringMapField,
-					omitEmpty: omitEmpty,
-				})
-				continue
-			}
-			if isJsonStringSliceTypeExpr(field.Type) {
-				fields = append(fields, jsonMarshalField{
-					jsonName:  jsonName,
-					rustName:  ToSnakeCase(name.Name),
-					kind:      jsonMarshalStringSliceField,
-					omitEmpty: omitEmpty,
-				})
-				continue
-			}
-			if isJsonStringByteSliceMapTypeExpr(field.Type) {
-				fields = append(fields, jsonMarshalField{
-					jsonName:  jsonName,
-					rustName:  ToSnakeCase(name.Name),
-					kind:      jsonMarshalByteSliceMapField,
-					omitEmpty: omitEmpty,
-				})
-				continue
-			}
-			return nil, false
-		}
-	}
-	return fields, true
-}
-
-func jsonMarshalFieldFromSyntaxExpr(name string, fieldType ast.Expr, tag string) (jsonMarshalField, bool) {
-	jsonName, include, omitEmpty := jsonFieldName(name, tag)
-	if !include {
-		return jsonMarshalField{}, true
-	}
-	if basicKind, basicName, ok := jsonMarshalBasicFromSyntax(fieldType); ok {
-		return jsonMarshalField{
-			jsonName:  jsonName,
-			rustName:  ToSnakeCase(name),
-			kind:      jsonMarshalBasicField,
-			basicKind: basicKind,
-			basicName: basicName,
-			omitEmpty: omitEmpty,
-		}, true
-	}
-	if isJsonStringMapTypeExpr(fieldType) {
-		return jsonMarshalField{
-			jsonName:  jsonName,
-			rustName:  ToSnakeCase(name),
-			kind:      jsonMarshalStringMapField,
-			omitEmpty: omitEmpty,
-		}, true
-	}
-	if isJsonStringSliceTypeExpr(fieldType) {
-		return jsonMarshalField{
-			jsonName:  jsonName,
-			rustName:  ToSnakeCase(name),
-			kind:      jsonMarshalStringSliceField,
-			omitEmpty: omitEmpty,
-		}, true
-	}
-	if isJsonStringByteSliceMapTypeExpr(fieldType) {
-		return jsonMarshalField{
-			jsonName:  jsonName,
-			rustName:  ToSnakeCase(name),
-			kind:      jsonMarshalByteSliceMapField,
-			omitEmpty: omitEmpty,
-		}, true
-	}
-	return jsonMarshalField{}, false
-}
-
-func jsonMarshalStructFieldsFromStructDef(def *StructDef) ([]jsonMarshalField, bool) {
-	if def == nil || len(def.EmbeddedTypes) > 0 {
-		return nil, false
-	}
-	names := []string{}
-	for _, name := range def.FieldOrder {
-		names = append(names, name)
-	}
-	if len(names) == 0 && len(def.FieldTypes) > 0 {
-		for name := range def.FieldTypes {
-			names = append(names, name)
-		}
-		slices.Sort(names)
-	}
-	fields := []jsonMarshalField{}
-	for _, name := range names {
-		if !isExportedGoName(name) {
-			continue
-		}
-		fieldType := def.FieldTypes[name]
-		if fieldType == nil {
-			return nil, false
-		}
-		field, ok := jsonMarshalFieldFromSyntaxExpr(name, fieldType, def.FieldTags[name])
-		if !ok {
-			return nil, false
-		}
-		if field.jsonName == "" {
-			continue
-		}
-		fields = append(fields, field)
-	}
-	return fields, true
-}
-
-func jsonMarshalStructTypeFromSyntaxType(expr ast.Expr) (*ast.StructType, bool) {
-	switch t := expr.(type) {
-	case *ast.Ident:
-		if def, ok := structDefs[t.Name]; ok && def != nil && def.ASTType != nil {
-			return def.ASTType, true
-		}
-	case *ast.StructType:
-		return t, true
-	}
-	return nil, false
-}
-
-func jsonMarshalStructDefFromSyntaxType(expr ast.Expr) (*StructDef, bool) {
-	ident, ok := expr.(*ast.Ident)
-	if !ok {
-		return nil, false
-	}
-	def, ok := structDefs[ident.Name]
-	return def, ok && def != nil
-}
-
-func jsonMarshalStructTypeFromSyntaxArg(arg ast.Expr) (*ast.StructType, bool) {
-	switch expr := arg.(type) {
-	case *ast.CompositeLit:
-		return jsonMarshalStructTypeFromSyntaxType(expr.Type)
-	case *ast.UnaryExpr:
-		if expr.Op == token.AND {
-			if lit, ok := expr.X.(*ast.CompositeLit); ok {
-				return jsonMarshalStructTypeFromSyntaxType(lit.Type)
-			}
-		}
-	case *ast.Ident:
-		info := lookupVarInfo(expr.Name)
-		if info == nil || info.RustType == "" {
-			return nil, false
-		}
-		rustType := strings.TrimPrefix(info.RustType, "&")
-		names := make([]string, 0, len(structDefs))
-		for name := range structDefs {
-			names = append(names, name)
-		}
-		slices.Sort(names)
-		for _, name := range names {
-			if rustType == RustTypeNameForUse(name) {
-				if def := structDefs[name]; def != nil && def.ASTType != nil {
-					return def.ASTType, true
-				}
-			}
-		}
-	}
-	return nil, false
-}
-
-func jsonMarshalStructDefFromSyntaxArg(arg ast.Expr) (*StructDef, bool) {
-	switch expr := arg.(type) {
-	case *ast.CompositeLit:
-		return jsonMarshalStructDefFromSyntaxType(expr.Type)
-	case *ast.UnaryExpr:
-		if expr.Op == token.AND {
-			if lit, ok := expr.X.(*ast.CompositeLit); ok {
-				return jsonMarshalStructDefFromSyntaxType(lit.Type)
-			}
-		}
-	case *ast.Ident:
-		info := lookupVarInfo(expr.Name)
-		if info == nil || info.RustType == "" {
-			return nil, false
-		}
-		rustType := strings.TrimPrefix(info.RustType, "&")
-		names := make([]string, 0, len(structDefs))
-		for name := range structDefs {
-			names = append(names, name)
-		}
-		slices.Sort(names)
-		for _, name := range names {
-			if rustType == RustTypeNameForUse(name) {
-				if def := structDefs[name]; def != nil {
-					return def, true
-				}
-			}
-		}
-	}
-	return nil, false
 }
 
 func escapeRustFormatLiteral(s string) string {
@@ -3124,44 +2810,19 @@ func transpileJsonMarshal(out *strings.Builder, call *ast.CallExpr) {
 		return
 	}
 
-	var fields []jsonMarshalField
-	typeInfoStructUnsupported := false
 	typeInfo := GetTypeInfo()
-	if typeInfo != nil {
-		if st := typeInfo.GetStructType(call.Args[0]); st != nil {
-			var ok bool
-			fields, ok = jsonMarshalStructFields(st)
-			if !ok {
-				fields = nil
-				typeInfoStructUnsupported = true
-			}
-		}
+	if typeInfo == nil {
+		out.WriteString("unimplemented!(\"type info required for json.Marshal\")")
+		return
 	}
-	if fields == nil {
-		if st, ok := jsonMarshalStructTypeFromSyntaxArg(call.Args[0]); ok {
-			var fieldsOK bool
-			fields, fieldsOK = jsonMarshalStructFieldsFromSyntax(st)
-			if !fieldsOK {
-				fields = nil
-			}
-		}
+	st := typeInfo.GetStructType(call.Args[0])
+	if st == nil {
+		out.WriteString("unimplemented!(\"type info required for json.Marshal\")")
+		return
 	}
-	if fields == nil {
-		if def, ok := jsonMarshalStructDefFromSyntaxArg(call.Args[0]); ok {
-			var fieldsOK bool
-			fields, fieldsOK = jsonMarshalStructFieldsFromStructDef(def)
-			if !fieldsOK {
-				out.WriteString("/* ERROR: json.Marshal currently supports exported basic, []string, map[string]string, and map[string][]byte struct fields */ unimplemented!()")
-				return
-			}
-		}
-	}
-	if fields == nil {
-		if typeInfoStructUnsupported {
-			out.WriteString("/* ERROR: json.Marshal currently supports exported basic, []string, map[string]string, and map[string][]byte struct fields */ unimplemented!()")
-			return
-		}
-		out.WriteString("/* ERROR: json.Marshal currently supports struct values with exported basic fields */ unimplemented!()")
+	fields, ok := jsonMarshalStructFields(st)
+	if !ok {
+		out.WriteString("/* ERROR: json.Marshal currently supports exported basic, []string, map[string]string, and map[string][]byte struct fields */ unimplemented!()")
 		return
 	}
 

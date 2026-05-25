@@ -2136,7 +2136,7 @@ func registerStructDef(name string, structType *ast.StructType) {
 	}
 	for _, field := range structType.Fields.List {
 		if len(field.Names) > 0 {
-			tag := jsonStructTagFromSyntax(field)
+			tag := jsonStructTagFromField(field)
 			for _, name := range field.Names {
 				structDef.Fields[name.Name] = "regular"
 				structDef.FieldTypes[name.Name] = field.Type

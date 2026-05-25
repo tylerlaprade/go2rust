@@ -973,44 +973,7 @@ func main() {
 	}
 }
 
-func TestNoTypeInfoJsonMarshalCompositeMapFieldUsesStructSyntax(t *testing.T) {
-	rust := transpileNoTypeInfoRegression(t, `package main
-
-import "encoding/json"
-
-type OverlayJSON struct {
-	Replace map[string]string `+"`json:\"replace,omitempty\"`"+`
-}
-
-func main() {
-	overlays := map[string]string{"b.go": "tmp-b", "a.go": "tmp-a"}
-	_, _ = json.Marshal(OverlayJSON{Replace: overlays})
-	_, _ = json.Marshal(OverlayJSON{})
-}`)
-
-	for _, bad := range []string{
-		"Type information required for json.Marshal",
-		"json.Marshal currently supports struct values",
-		"unimplemented!()",
-	} {
-		if strings.Contains(rust, bad) {
-			t.Fatalf("json.Marshal should use struct syntax fallback without %q:\n%s", bad, rust)
-		}
-	}
-	for _, want := range []string{
-		"let __json_value = OverlayJSON { replace: overlays.clone(), ..Default::default() }",
-		"let __json_value = OverlayJSON { replace: Rc::new(RefCell::new(Some(BTreeMap::new()))) }",
-		"let __map_guard = __json_value.replace.borrow()",
-		"go_json_escape(__k)",
-		`format!("\"replace\":{{{}}}", __map_entries)`,
-	} {
-		if !strings.Contains(rust, want) {
-			t.Fatalf("missing %q in json.Marshal syntax fallback output:\n%s", want, rust)
-		}
-	}
-}
-
-func TestNoTypeInfoJsonMarshalTrackedStructLocalUsesStructSyntax(t *testing.T) {
+func TestNoTypeInfoJsonMarshalEmitsUnimplemented(t *testing.T) {
 	rust := transpileNoTypeInfoRegression(t, `package main
 
 import "encoding/json"
@@ -1025,81 +988,9 @@ func main() {
 	_, _ = json.Marshal(u)
 }`)
 
-	for _, bad := range []string{
-		"Type information required for json.Marshal",
-		"json.Marshal currently supports struct values",
-		"unimplemented!()",
-	} {
-		if strings.Contains(rust, bad) {
-			t.Fatalf("json.Marshal tracked struct local should use syntax fallback without %q:\n%s", bad, rust)
-		}
-	}
-	for _, want := range []string{
-		"let __json_value = (*u.borrow().as_ref().unwrap()).clone()",
-		`format!("\"name\":\"{}\"", go_json_escape(`,
-		`format!("\"age\":{}", *`,
-	} {
-		if !strings.Contains(rust, want) {
-			t.Fatalf("missing %q in json.Marshal tracked local output:\n%s", want, rust)
-		}
-	}
-}
-
-func TestNoTypeInfoJsonMarshalTupleResultStringConversionUsesByteSlice(t *testing.T) {
-	rust := transpileNoTypeInfoRegression(t, `package main
-
-import (
-	"encoding/json"
-	"fmt"
-)
-
-type User struct {
-	Name string `+"`json:\"name\"`"+`
-}
-
-func main() {
-	data, _ := json.Marshal(User{Name: "Alice"})
-	fmt.Println(string(data))
-}`)
-
-	if strings.Contains(rust, "(*data.borrow().as_ref().unwrap()).to_string()") {
-		t.Fatalf("string(data) from json.Marshal should not call ToString on Vec<u8>:\n%s", rust)
-	}
-	if !strings.Contains(rust, "String::from_utf8((*data.borrow().as_ref().unwrap()).clone()).unwrap()") {
-		t.Fatalf("string(data) from json.Marshal should use byte-slice string conversion:\n%s", rust)
-	}
-}
-
-func TestJsonMarshalStructDefFallbackUsesStoredSyntaxFields(t *testing.T) {
-	def := &StructDef{
-		FieldTypes: map[string]ast.Expr{
-			"Name":    ast.NewIdent("string"),
-			"Age":     ast.NewIdent("int"),
-			"Replace": &ast.MapType{Key: ast.NewIdent("string"), Value: ast.NewIdent("string")},
-		},
-		FieldTags: map[string]string{
-			"Name":    `json:"name"`,
-			"Age":     `json:"age"`,
-			"Replace": `json:"replace,omitempty"`,
-		},
-		FieldOrder: []string{"Name", "Age", "Replace"},
-	}
-
-	fields, ok := jsonMarshalStructFieldsFromStructDef(def)
-	if !ok {
-		t.Fatal("jsonMarshalStructFieldsFromStructDef returned false")
-	}
-	if len(fields) != 3 {
-		t.Fatalf("field count = %d, want 3: %#v", len(fields), fields)
-	}
-	if fields[0].jsonName != "name" || fields[0].kind != jsonMarshalBasicField || fields[0].basicKind != types.String || fields[0].basicName != "string" {
-		t.Fatalf("first field = %#v, want string name field", fields[0])
-	}
-	if fields[1].jsonName != "age" || fields[1].kind != jsonMarshalBasicField || fields[1].basicName != "int" {
-		t.Fatalf("second field = %#v, want int age field", fields[1])
-	}
-	if fields[2].jsonName != "replace" || fields[2].kind != jsonMarshalStringMapField || !fields[2].omitEmpty {
-		t.Fatalf("third field = %#v, want omitempty string map field", fields[2])
+	want := `unimplemented!("type info required for json.Marshal")`
+	if !strings.Contains(rust, want) {
+		t.Fatalf("json.Marshal without type info must emit %q per AGENTS.md \"Type Info Is Authoritative\":\n%s", want, rust)
 	}
 }
 
