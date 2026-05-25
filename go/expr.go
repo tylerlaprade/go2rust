@@ -5005,11 +5005,23 @@ func writeMapLookupKeyWithType(out *strings.Builder, index ast.Expr, keyType typ
 		out.WriteString("::new(")
 		TranspileExpressionContext(out, index, LValue)
 		out.WriteString(".clone())")
-	} else {
-		out.WriteString("&")
-		if keyType != nil && writeMapKeyForExpectedType(out, index, keyType) {
+	} else if keyType != nil {
+		if _, ok := transpiledNamedInterfaceTypeNameFromTypes(keyType); ok {
+			NeedGoPtrKey()
+			out.WriteString("&GoLocalPtrKey::new(")
+			TranspileExpressionContext(out, index, LValue)
+			out.WriteString(".clone())")
 			return
 		}
+		out.WriteString("&")
+		if writeMapKeyForExpectedType(out, index, keyType) {
+			return
+		}
+		if !writeOwnedMapKeyExpression(out, index) {
+			TranspileExpression(out, index)
+		}
+	} else {
+		out.WriteString("&")
 		if !writeOwnedMapKeyExpression(out, index) {
 			TranspileExpression(out, index)
 		}

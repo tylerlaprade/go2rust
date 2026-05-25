@@ -2034,6 +2034,19 @@ func writeMapKeyExpressionWithType(out *strings.Builder, expr ast.Expr, keyType 
 		out.WriteString(".clone())")
 		return
 	}
+	// Interface-typed map keys: wrap with GoLocalPtrKey to match the map's
+	// key type. The wrapped interface handle's identity is the Arc/Rc
+	// pointer, which matches Go's interface identity for pointer-backed
+	// dynamic values.
+	if keyType != nil {
+		if _, ok := transpiledNamedInterfaceTypeNameFromTypes(keyType); ok {
+			NeedGoPtrKey()
+			out.WriteString("GoLocalPtrKey::new(")
+			TranspileExpressionContext(out, expr, LValue)
+			out.WriteString(".clone())")
+			return
+		}
+	}
 	if keyType != nil && writeMapKeyForExpectedType(out, expr, keyType) {
 		return
 	}

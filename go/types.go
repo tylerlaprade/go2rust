@@ -678,6 +678,15 @@ func goMapKeyTypeToRustBase(expr ast.Expr) string {
 		}
 		return keyHelper + "<" + goTypeToRustBase(star.X) + ">"
 	}
+	// Interface-typed map keys: trait objects don't impl Ord/Borrow, so wrap
+	// them in GoLocalPtrKey for identity-based comparison (matches Go's
+	// interface equality semantics for pointer-backed interface keys).
+	if typeInfo := GetTypeInfo(); typeInfo != nil {
+		if ifaceName, ok := transpiledNamedInterfaceTypeNameFromExpr(expr); ok {
+			NeedGoPtrKey()
+			return "GoLocalPtrKey<" + rustLocalInterfaceTraitObject(ifaceName) + ">"
+		}
+	}
 	return goTypeToRustBase(expr)
 }
 
