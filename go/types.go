@@ -134,7 +134,23 @@ func rustLocalInterfaceTraitObject(name string) string {
 	return "Box<dyn " + name + ">"
 }
 
+// rustLocalInterfaceParam returns the Rust type used at a function parameter
+// boundary for a named Go interface. Named interface params are wrapped in the
+// same Arc<Mutex<Option<Box<dyn T>>>> / Rc<RefCell<Option<Box<dyn T>>>> shape
+// used elsewhere in the wrapper-handle model, so a Go nil interface lowers to
+// a None slot and `x == nil` lowers to an is_none() check.
 func rustLocalInterfaceParam(name string) string {
+	outerWrapper := GetOuterWrapperType()
+	innerWrapper := GetInnerWrapperType()
+	trackWrapperImports()
+	return outerWrapper + "<" + innerWrapper + "<Option<" + rustLocalInterfaceTraitObject(name) + ">>>"
+}
+
+// rustLocalInterfaceParamBare returns the bare `&dyn T` reference form for
+// trait-internal helpers (such as `__go_eq_*`) where the value never crosses
+// a Go-level parameter boundary and ownership/nilability are not part of the
+// contract.
+func rustLocalInterfaceParamBare(name string) string {
 	if NeedsConcurrentWrapper() {
 		return "&(dyn " + name + " + Send + Sync)"
 	}

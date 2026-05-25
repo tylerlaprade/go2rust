@@ -49,7 +49,7 @@ impl Label {
     }
 }
 
-pub fn new(key: &(dyn Key + Send + Sync)) -> Arc<Mutex<Option<Label>>> {
+pub fn new(key: Arc<Mutex<Option<Box<dyn Key + Send + Sync>>>>) -> Arc<Mutex<Option<Label>>> {
 
-    return Arc::new(Mutex::new(Some(Label { key: Arc::new(Mutex::new(Some(key.__go_clone_box_key()))), ..Default::default() })));
+    return Arc::new(Mutex::new(Some(Label { key: key.clone(), ..Default::default() })));
 }

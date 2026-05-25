@@ -169,22 +169,22 @@ impl Stmt for ExprStmt {
     }
 }
 
-pub fn dump_node(n: &dyn Node) {
-    println!("{} {}", format!("{}", "node pos:".to_string()), format!("{}", (*n.pos().borrow().as_ref().unwrap())));
+pub fn dump_node(n: Rc<RefCell<Option<Box<dyn Node>>>>) {
+    println!("{} {}", format!("{}", "node pos:".to_string()), format!("{}", (*(*n.borrow().as_ref().unwrap()).pos().borrow().as_ref().unwrap())));
 }
 
-pub fn walk_expr(e: &dyn Expr) {
-    dump_node(e);
+pub fn walk_expr(e: Rc<RefCell<Option<Box<dyn Expr>>>>) {
+    dump_node({ let __inner: Box<dyn Node> = (*e.borrow().as_ref().unwrap()).clone(); Rc::new(RefCell::new(Some(__inner))) });
 }
 
-pub fn walk_stmt(s: &dyn Stmt) {
-    dump_node(s);
+pub fn walk_stmt(s: Rc<RefCell<Option<Box<dyn Stmt>>>>) {
+    dump_node({ let __inner: Box<dyn Node> = (*s.borrow().as_ref().unwrap()).clone(); Rc::new(RefCell::new(Some(__inner))) });
 }
 
 fn main() {
     let mut id = Rc::new(RefCell::new(Some(Ident { pos: Rc::new(RefCell::new(Some(42 as i32))), ..Default::default() })));
-    walk_expr(id.borrow().as_ref().unwrap());
+    walk_expr(Rc::new(RefCell::new(Some(Box::new((*id.borrow().as_ref().unwrap()).clone()) as Box<dyn Expr>))));
 
     let mut st = Rc::new(RefCell::new(Some(ExprStmt { x: Rc::new(RefCell::new(Some(Box::new((*id.borrow().as_ref().unwrap()).clone()) as Box<dyn Expr>))), ..Default::default() })));
-    walk_stmt(st.borrow().as_ref().unwrap());
+    walk_stmt(Rc::new(RefCell::new(Some(Box::new((*st.borrow().as_ref().unwrap()).clone()) as Box<dyn Stmt>))));
 }

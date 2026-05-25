@@ -16,14 +16,14 @@ impl Clone for Box<dyn Node> {
     }
 }
 
-pub fn describe(node: &dyn Node) {
-    if false {
+pub fn describe(node: Rc<RefCell<Option<Box<dyn Node>>>>) {
+    if (*node.borrow()).is_none() {
         println!("{}", format!("{}", "nil node".to_string()));
         return;
     }
-    println!("{}", format!("{}", (*node.node_name().borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*(*node.borrow().as_ref().unwrap()).node_name().borrow().as_ref().unwrap())));
 }
 
 fn main() {
-    describe(nil.borrow().as_ref().unwrap());
+    describe(Rc::new(RefCell::new(None)));
 }

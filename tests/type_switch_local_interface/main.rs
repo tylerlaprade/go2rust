@@ -120,21 +120,24 @@ impl namer for beta {
     }
 }
 
-pub fn describe(n: &dyn namer) -> Rc<RefCell<Option<String>>> {
+pub fn describe(n: Rc<RefCell<Option<Box<dyn namer>>>>) -> Rc<RefCell<Option<String>>> {
 
     {
-    let _ts_subject = n;
-    let _ts_is_nil = false;
-    let _ts_val: Option<&dyn Any> = Some(_ts_subject.__go_as_any());
+    let _ts_subject = n.clone();
+    let _ts_guard = _ts_subject.borrow();
+    let _ts_is_nil = _ts_guard.as_ref().is_none();
+    let _ts_val: Option<&dyn Any> = _ts_guard.as_ref().map(|__v| __v.__go_as_any());
     if _ts_val.and_then(|__v| __v.downcast_ref::<alpha>()).is_some() {
         let v = Rc::new(RefCell::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<alpha>()).unwrap().clone())));
+        drop(_ts_guard);
         return (*v.borrow().as_ref().unwrap()).extra();;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<beta>()).is_some() {
         let v = Rc::new(RefCell::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<beta>()).unwrap().clone())));
+        drop(_ts_guard);
         return (*v.borrow().as_ref().unwrap()).name();;
     }
     }
-    return n.name();
+    return (*n.borrow().as_ref().unwrap()).name();
 }
 
 pub fn pick_alpha() -> Rc<RefCell<Option<alpha>>> {
@@ -150,7 +153,7 @@ pub fn new_namer() -> Rc<RefCell<Option<Box<dyn namer>>>> {
 fn main() {
     let mut a = Rc::new(RefCell::new(Some(alpha { name: Rc::new(RefCell::new(Some("one".to_string()))), ..Default::default() })));
     let mut b = Rc::new(RefCell::new(Some(beta { name: Rc::new(RefCell::new(Some("two".to_string()))), ..Default::default() })));
-    println!("{}", format!("{}", (*describe(a.borrow().as_ref().unwrap()).borrow().as_ref().unwrap())));
-    println!("{}", format!("{}", (*describe(b.borrow().as_ref().unwrap()).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*describe(Rc::new(RefCell::new(Some(Box::new((*a.borrow().as_ref().unwrap()).clone()) as Box<dyn namer>)))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*describe(Rc::new(RefCell::new(Some(Box::new((*b.borrow().as_ref().unwrap()).clone()) as Box<dyn namer>)))).borrow().as_ref().unwrap())));
     println!("{}", format!("{}", (*{ let __recv = new_namer(); let __result = (*__recv.borrow().as_ref().unwrap()).name(); __result }.borrow().as_ref().unwrap())));
 }

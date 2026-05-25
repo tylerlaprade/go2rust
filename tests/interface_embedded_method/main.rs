@@ -104,13 +104,13 @@ impl Node for Lit {
     }
 }
 
-pub fn describe(e: &dyn Expr) -> (Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) {
+pub fn describe(e: Rc<RefCell<Option<Box<dyn Expr>>>>) -> (Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) {
 
-    return (e.pos(), e.end());
+    return ((*e.borrow().as_ref().unwrap()).pos(), (*e.borrow().as_ref().unwrap()).end());
 }
 
 fn main() {
     let mut lit = Rc::new(RefCell::new(Some(Lit { value: Rc::new(RefCell::new(Some(7 as i32))), ..Default::default() })));
-    let (mut p, mut q) = describe(lit.borrow().as_ref().unwrap());
+    let (mut p, mut q) = describe(Rc::new(RefCell::new(Some(Box::new((*lit.borrow().as_ref().unwrap()).clone()) as Box<dyn Expr>))));
     println!("{} {}", format!("{}", { let __v = (*p.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*q.borrow().as_ref().unwrap()).clone(); __v }));
 }

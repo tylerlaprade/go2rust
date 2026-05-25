@@ -861,7 +861,7 @@ func writeExternalLocalInterfaceSupportImpl(out *strings.Builder, ifaceName, con
 	out.WriteString("    fn __go_eq_")
 	out.WriteString(traitSnake)
 	out.WriteString("(&self, other: ")
-	out.WriteString(rustLocalInterfaceParam(ifaceName))
+	out.WriteString(rustLocalInterfaceParamBare(ifaceName))
 	out.WriteString(") -> bool {\n")
 	out.WriteString("        if let Some(_other) = other.__go_as_any().downcast_ref::<")
 	out.WriteString(concreteType)

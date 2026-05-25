@@ -45,7 +45,7 @@ pub trait Finder: std::fmt::Display + Any {
     fn __go_clone_box_finder(&self) -> Box<dyn Finder>;
     fn __go_as_any(&self) -> &dyn Any;
     fn __go_eq_finder(&self, other: &dyn Finder) -> bool;
-    fn find(&self, key: &dyn Key) -> Rc<RefCell<Option<String>>>;
+    fn find(&self, key: Rc<RefCell<Option<Box<dyn Key>>>>) -> Rc<RefCell<Option<String>>>;
 }
 
 impl Clone for Box<dyn Finder> {
@@ -97,14 +97,14 @@ impl Key for namedKey {
 }
 
 impl finder {
-    pub fn find(&self, key: &dyn Key) -> Rc<RefCell<Option<String>>> {
-        return key.name();
+    pub fn find(&self, key: Rc<RefCell<Option<Box<dyn Key>>>>) -> Rc<RefCell<Option<String>>> {
+        return (*key.borrow().as_ref().unwrap()).name();
     }
 }
 
 impl Finder for finder {
-    fn find(&self, key: &dyn Key) -> Rc<RefCell<Option<String>>> {
-        return key.name();
+    fn find(&self, key: Rc<RefCell<Option<Box<dyn Key>>>>) -> Rc<RefCell<Option<String>>> {
+        return (*key.borrow().as_ref().unwrap()).name();
     }
     fn __go_clone_box_finder(&self) -> Box<dyn Finder> {
         Box::new(self.clone()) as Box<dyn Finder>
@@ -124,6 +124,6 @@ impl Finder for finder {
 fn main() {
     let mut key = Rc::new(RefCell::new(Some(namedKey { name: Rc::new(RefCell::new(Some("alpha".to_string()))), ..Default::default() })));
     let mut finder = Rc::new(RefCell::new(Some(finder {  })));
-    let mut found = (*finder.borrow().as_ref().unwrap()).find(key.borrow().as_ref().unwrap());
+    let mut found = (*finder.borrow().as_ref().unwrap()).find(Rc::new(RefCell::new(Some(Box::new((*key.borrow().as_ref().unwrap()).clone()) as Box<dyn Key>))));
     println!("{}", format!("{}", { let __v = (*found.borrow().as_ref().unwrap()).clone(); __v }));
 }

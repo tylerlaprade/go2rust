@@ -28,7 +28,7 @@ impl Clone for Box<dyn hasNameAndString> {
     }
 }
 
-pub fn asserted_anonymous_interface(v: &dyn hasNameAndString) -> Rc<RefCell<Option<bool>>> {
+pub fn asserted_anonymous_interface(v: Rc<RefCell<Option<Box<dyn hasNameAndString>>>>) -> Rc<RefCell<Option<bool>>> {
 
     let (_, mut ok) = ({
         let __asserted = v.clone();

@@ -56,7 +56,7 @@ impl String_ {
     }
 
     pub fn label(&self) -> Arc<Mutex<Option<example_com_ifaceeq_label::Label>>> {
-        return example_com_ifaceeq_label::new(self);
+        return example_com_ifaceeq_label::new(Arc::new(Mutex::new(Some(Box::new((*self).clone()) as Box<dyn example_com_ifaceeq_label::Key + Send + Sync>))));
     }
 }
 

@@ -84,12 +84,12 @@ impl Node for Lit {
     }
 }
 
-pub fn dump(n: &dyn Node) {
-    println!("{}", format!("{}", (*n.pos().borrow().as_ref().unwrap())));
+pub fn dump(n: Rc<RefCell<Option<Box<dyn Node>>>>) {
+    println!("{}", format!("{}", (*(*n.borrow().as_ref().unwrap()).pos().borrow().as_ref().unwrap())));
 }
 
 pub fn r#use(w: Rc<RefCell<Option<Wrap>>>) {
-    dump((*w.borrow().as_ref().unwrap()).inner.borrow().as_ref().unwrap());
+    dump(Rc::new(RefCell::new(Some(Box::new((*(*w.borrow().as_ref().unwrap()).inner.borrow().as_ref().unwrap()).clone()) as Box<dyn Node>))));
 }
 
 fn main() {

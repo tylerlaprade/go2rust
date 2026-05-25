@@ -1114,6 +1114,10 @@ run_xfail_test() {
     run_test "tests/interface_field_selector_assign"
 }
 
+@test "interface_method_nil_argument" {
+    run_test "tests/interface_method_nil_argument"
+}
+
 @test "interface_slice_index_arg" {
     run_test "tests/interface_slice_index_arg"
 }
@@ -2652,10 +2656,6 @@ run_xfail_test() {
 
 @test "XFAIL: http_client" {
     run_xfail_test "tests/XFAIL/http_client"
-}
-
-@test "XFAIL: interface_method_nil_argument" {
-    run_xfail_test "tests/XFAIL/interface_method_nil_argument"
 }
 
 @test "XFAIL: panic_recover" {

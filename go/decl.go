@@ -1149,10 +1149,9 @@ func interfaceParamVarInfo(typeExpr ast.Expr) (*VarInfo, bool) {
 		return nil, false
 	}
 	return &VarInfo{
-		WrapLevel: WrapNone,
+		WrapLevel: WrapFull,
 		RustType:  rustLocalInterfaceParam(interfaceName),
 		Source:    SourceParam,
-		IsRef:     true,
 	}, true
 }
 
@@ -1775,7 +1774,7 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 		out.WriteString("    fn __go_eq_")
 		out.WriteString(traitSnake)
 		out.WriteString("(&self, other: ")
-		out.WriteString(rustLocalInterfaceParam(rustTypeName))
+		out.WriteString(rustLocalInterfaceParamBare(rustTypeName))
 		out.WriteString(") -> bool;\n")
 
 		// Generate method signatures for directly-declared methods only.
@@ -2262,7 +2261,7 @@ func writeLocalInterfaceSupportImpl(out *strings.Builder, ifaceName, typeName st
 	out.WriteString("    fn __go_eq_")
 	out.WriteString(traitSnake)
 	out.WriteString("(&self, other: ")
-	out.WriteString(rustLocalInterfaceParam(ifaceName))
+	out.WriteString(rustLocalInterfaceParamBare(ifaceName))
 	out.WriteString(") -> bool {\n")
 	out.WriteString("        if let Some(__other) = other.__go_as_any().downcast_ref::<")
 	out.WriteString(RustTypeNameForUse(typeName))

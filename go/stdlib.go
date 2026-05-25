@@ -2063,11 +2063,10 @@ func writeSortFuncWrappedElement(out *strings.Builder, name string, elemIsInterf
 	if elemIsInterface {
 		if elemHasInherentWrapper {
 			// Local named interface slices wrap each element as
-			// Rc<RefCell<Option<Box<dyn Trait>>>>; deref through the wrapper
-			// and the Box to recover &dyn Trait.
+			// Rc<RefCell<Option<Box<dyn Trait>>>>; the closure now takes the
+			// wrapped handle directly, so clone it through the iter ref.
 			out.WriteString(name)
-			WriteBorrowMethod(out, false)
-			out.WriteString(".as_ref().unwrap().as_ref()")
+			out.WriteString(".clone()")
 			return
 		}
 		out.WriteString(name)

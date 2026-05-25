@@ -109,11 +109,16 @@ impl Node for Decl {
     }
 }
 
-pub fn process(n: &dyn Node) {
+pub fn process(n: Rc<RefCell<Option<Box<dyn Node>>>>) {
     let (mut d, mut ok) = ({
-        let any_val = n.__go_as_any();
-        if let Some(typed_val) = any_val.downcast_ref::<Decl>() {
+        let val = n.clone();
+        let guard = val.borrow();
+        if let Some(ref any_val) = *guard {
+            if let Some(typed_val) = any_val.__go_as_any().downcast_ref::<Decl>() {
             (Rc::new(RefCell::new(Some(typed_val.clone()))), Rc::new(RefCell::new(Some(true))))
+            } else {
+                (Rc::new(RefCell::new(None::<Decl>)), Rc::new(RefCell::new(Some(false))))
+            }
         } else {
             (Rc::new(RefCell::new(None::<Decl>)), Rc::new(RefCell::new(Some(false))))
         }
@@ -127,8 +132,8 @@ pub fn process(n: &dyn Node) {
 fn main() {
     let mut a = Rc::new(RefCell::new(Some(Decl { tag: Rc::new(RefCell::new(Some("a".to_string()))), items: Rc::new(RefCell::new(Some(vec![1, 2]))), ..Default::default() })));
     let mut b = Rc::new(RefCell::new(Some(Decl { tag: Rc::new(RefCell::new(Some("b".to_string()))), items: Rc::new(RefCell::new(Some(vec![3]))), ..Default::default() })));
-    process(a.borrow().as_ref().unwrap());
-    process(b.borrow().as_ref().unwrap());
+    process(Rc::new(RefCell::new(Some(Box::new((*a.borrow().as_ref().unwrap()).clone()) as Box<dyn Node>))));
+    process(Rc::new(RefCell::new(Some(Box::new((*b.borrow().as_ref().unwrap()).clone()) as Box<dyn Node>))));
     println!("{} {}", format!("{}", (*(*a.borrow().as_ref().unwrap()).tag.borrow().as_ref().unwrap()).clone()), format!("{}", format_slice_values(&(*(*a.borrow().as_ref().unwrap()).items.borrow().as_ref().unwrap()).clone())));
     println!("{} {}", format!("{}", (*(*b.borrow().as_ref().unwrap()).tag.borrow().as_ref().unwrap()).clone()), format!("{}", format_slice_values(&(*(*b.borrow().as_ref().unwrap()).items.borrow().as_ref().unwrap()).clone())));
 }

@@ -66,21 +66,21 @@ impl Spec for Impl {
     }
 }
 
-pub fn get_name(s: &dyn Spec) -> Rc<RefCell<Option<String>>> {
+pub fn get_name(s: Rc<RefCell<Option<Box<dyn Spec>>>>) -> Rc<RefCell<Option<String>>> {
 
-    return s.name();
+    return (*s.borrow().as_ref().unwrap()).name();
 }
 
-pub fn call_via_closure(a: &dyn Spec, b: &dyn Spec) -> Rc<RefCell<Option<String>>> {
+pub fn call_via_closure(a: Rc<RefCell<Option<Box<dyn Spec>>>>, b: Rc<RefCell<Option<Box<dyn Spec>>>>) -> Rc<RefCell<Option<String>>> {
 
-    let mut f = Rc::new(RefCell::new(Some(Box::new(move |x: &dyn Spec, y: &dyn Spec| -> Rc<RefCell<Option<String>>> {
-        return Rc::new(RefCell::new(Some(format!("{}{}", format!("{}{}", (*get_name(x).borrow().as_ref().unwrap()), ",".to_string()), (*get_name(y).borrow().as_ref().unwrap())))));
-    }) as Box<dyn FnMut(&dyn Spec, &dyn Spec) -> Rc<RefCell<Option<String>>>>)));
-    return { let __f_ptr: *mut Box<dyn FnMut(&dyn Spec, &dyn Spec) -> Rc<RefCell<Option<String>>>> = { let mut __f_guard = f.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(&dyn Spec, &dyn Spec) -> Rc<RefCell<Option<String>>>> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(a, b) };
+    let mut f = Rc::new(RefCell::new(Some(Box::new(move |x: Rc<RefCell<Option<Box<dyn Spec>>>>, y: Rc<RefCell<Option<Box<dyn Spec>>>>| -> Rc<RefCell<Option<String>>> {
+        return Rc::new(RefCell::new(Some(format!("{}{}", format!("{}{}", (*get_name(x.clone()).borrow().as_ref().unwrap()), ",".to_string()), (*get_name(y.clone()).borrow().as_ref().unwrap())))));
+    }) as Box<dyn FnMut(Rc<RefCell<Option<Box<dyn Spec>>>>, Rc<RefCell<Option<Box<dyn Spec>>>>) -> Rc<RefCell<Option<String>>>>)));
+    return { let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<Box<dyn Spec>>>>, Rc<RefCell<Option<Box<dyn Spec>>>>) -> Rc<RefCell<Option<String>>>> = { let mut __f_guard = f.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<Box<dyn Spec>>>>, Rc<RefCell<Option<Box<dyn Spec>>>>) -> Rc<RefCell<Option<String>>>> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(a.clone(), b.clone()) };
 }
 
 fn main() {
     let mut a = Rc::new(RefCell::new(Some(Impl { name: Rc::new(RefCell::new(Some("alpha".to_string()))), ..Default::default() })));
     let mut b = Rc::new(RefCell::new(Some(Impl { name: Rc::new(RefCell::new(Some("beta".to_string()))), ..Default::default() })));
-    println!("{}", format!("{}", (*call_via_closure(a.borrow().as_ref().unwrap(), b.borrow().as_ref().unwrap()).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*call_via_closure(Rc::new(RefCell::new(Some(Box::new((*a.borrow().as_ref().unwrap()).clone()) as Box<dyn Spec>))), Rc::new(RefCell::new(Some(Box::new((*b.borrow().as_ref().unwrap()).clone()) as Box<dyn Spec>)))).borrow().as_ref().unwrap())));
 }

@@ -2050,59 +2050,152 @@ func methodParamExprFromDecls(methods []*ast.FuncDecl, methodName string, index 
 }
 
 func writeLocalInterfaceReferenceCallArgument(out *strings.Builder, arg ast.Expr, expected types.Type) bool {
+	ifaceName, ifaceNameOK := transpiledNamedInterfaceTypeNameFromTypes(expected)
+	if !ifaceNameOK {
+		return false
+	}
+	if ident, ok := arg.(*ast.Ident); ok && ident.Name == "nil" {
+		WriteWrappedNone(out)
+		return true
+	}
+	// If the argument is already a wrapped value of the SAME interface, clone
+	// the handle. The wrapped shape carries identity; cloning is the natural
+	// "pass by value" semantics matching Go's interface assignment.
+	// When the source is a subtrait of the target (Go interface embedding),
+	// the Rust wrapper types are different generic instantiations — we must
+	// unwrap and re-wrap with a trait upcast rather than cloning the handle.
+	if localInterfaceArgumentIsWrappedInterfaceValue(arg, expected) {
+		typeInfo := GetTypeInfo()
+		if typeInfo != nil {
+			if argIface, argOK := transpiledNamedInterfaceTypeNameFromTypes(typeInfo.GetType(arg)); argOK && argIface != ifaceName {
+				writeLocalInterfaceSubtraitUpcast(out, arg, ifaceName)
+				return true
+			}
+		}
+		if ident, ok := arg.(*ast.Ident); ok {
+			out.WriteString(RustIdentForUse(ident))
+			out.WriteString(".clone()")
+			return true
+		}
+		TranspileExpressionContext(out, arg, LValue)
+		out.WriteString(".clone()")
+		return true
+	}
+	// Everything else needs to be boxed into the wrapped form.
+	writeLocalInterfaceWrappedConstruction(out, arg, ifaceName, expected)
+	return true
+}
+
+// writeLocalInterfaceSubtraitUpcast emits a block expression that unwraps the
+// supplied wrapped subtrait value and re-wraps it as the supertrait. Rust's
+// trait-upcasting coercion handles the Box<dyn Sub> → Box<dyn Super> step.
+func writeLocalInterfaceSubtraitUpcast(out *strings.Builder, arg ast.Expr, supertraitName string) {
+	outer := GetOuterWrapperType()
+	inner := GetInnerWrapperType()
+	trackWrapperImports()
+	out.WriteString("{ let __inner: ")
+	out.WriteString(rustLocalInterfaceTraitObject(supertraitName))
+	out.WriteString(" = (*")
+	TranspileExpressionContext(out, arg, LValue)
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap()).clone(); ")
+	out.WriteString(outer)
+	out.WriteString("::new(")
+	out.WriteString(inner)
+	out.WriteString("::new(Some(__inner))) }")
+}
+
+// writeLocalInterfaceWrappedConstruction emits
+// Arc::new(Mutex::new(Some(Box::new(<value>) as Box<dyn T + Send + Sync>)))
+// (or the single-threaded variant) for the supplied argument when it lowers to
+// a concrete value that needs to be packaged as a wrapped interface handle.
+// expectedIface is the Go interface type the argument must satisfy; it is
+// used only to resolve constant-to-named-type conversions (e.g., a typed
+// constant whose underlying integer must be wrapped in its named-type ctor
+// before it can satisfy the interface).
+func writeLocalInterfaceWrappedConstruction(out *strings.Builder, arg ast.Expr, ifaceName string, expectedIface types.Type) {
+	outer := GetOuterWrapperType()
+	inner := GetInnerWrapperType()
+	trackWrapperImports()
+	out.WriteString(outer)
+	out.WriteString("::new(")
+	out.WriteString(inner)
+	out.WriteString("::new(Some(Box::new(")
+	writeLocalInterfaceWrappedConstructionInnerValue(out, arg, expectedIface)
+	out.WriteString(") as ")
+	out.WriteString(rustLocalInterfaceTraitObject(ifaceName))
+	out.WriteString(")))")
+}
+
+func writeLocalInterfaceWrappedConstructionInnerValue(out *strings.Builder, arg ast.Expr, expectedIface types.Type) {
 	if ident, ok := arg.(*ast.Ident); ok {
-		if writeLocalInterfaceConstReferenceCallArgument(out, ident, expected) {
-			return true
-		}
 		if currentReceiver != "" && ident.Name == currentReceiver {
-			out.WriteString("self")
-			return true
-		}
-		if varType, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar && strings.HasPrefix(varType, "&Box<dyn ") {
-			out.WriteString(RustIdentForUse(ident))
-			out.WriteString(".as_ref()")
-			return true
-		}
-		if varType, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar && (strings.HasPrefix(varType, "&Rc<") || strings.HasPrefix(varType, "&Arc<")) {
-			// Range over a wrapped local-interface slice element:
-			// shape: &Rc<RefCell<Option<Box<dyn Trait>>>>. Deref through the
-			// wrappers and the Box to get &dyn Trait.
-			out.WriteString(RustIdentForUse(ident))
-			WriteBorrowMethod(out, false)
-			out.WriteString(".as_ref().unwrap().as_ref()")
-			return true
+			out.WriteString("(*self).clone()")
+			return
 		}
 		if isVarBare(ident.Name) {
 			out.WriteString(RustIdentForUse(ident))
-			return true
+			return
 		}
-		if localInterfaceArgumentIsWrappedInterfaceValue(arg, expected) {
+		_, isLocalConst := localConstants[ident.Name]
+		if isLocalConst || isConstIdent(ident) {
+			// Typed constants of a named type that satisfies the interface
+			// must be lowered through the named-type constructor (e.g.,
+			// VAL_BOOL i32 → CodeVal(VAL_BOOL)) before they can be boxed as
+			// dyn Trait.
+			if typeInfo := GetTypeInfo(); typeInfo != nil {
+				if named, ok := types.Unalias(typeInfo.GetType(ident)).(*types.Named); ok {
+					if expectedIface != nil {
+						if iface, ok := types.Unalias(expectedIface).Underlying().(*types.Interface); ok && types.Implements(named, iface) {
+							if writeExpressionForExpectedTypesType(out, ident, named) {
+								return
+							}
+						}
+					}
+				}
+			}
+			TranspileExpression(out, ident)
+			return
+		}
+		if varType, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar {
+			if strings.HasPrefix(varType, "&Rc<") || strings.HasPrefix(varType, "&Arc<") {
+				out.WriteString("(*")
+				out.WriteString(RustIdentForUse(ident))
+				WriteBorrowMethod(out, false)
+				out.WriteString(".as_ref().unwrap()).clone()")
+				return
+			}
+			if strings.HasPrefix(varType, "&Box<dyn ") {
+				out.WriteString("(*")
+				out.WriteString(RustIdentForUse(ident))
+				out.WriteString(").clone()")
+				return
+			}
+			out.WriteString("(*")
 			out.WriteString(RustIdentForUse(ident))
-			WriteBorrowMethod(out, false)
-			out.WriteString(".as_ref().unwrap().as_ref()")
-			return true
+			out.WriteString(").clone()")
+			return
 		}
+		out.WriteString("(*")
 		out.WriteString(RustIdentForUse(ident))
 		WriteBorrowMethod(out, false)
-		out.WriteString(".as_ref().unwrap()")
-		return true
+		out.WriteString(".as_ref().unwrap()).clone()")
+		return
 	}
-	if writeBoxedInterfaceIndexCallArgument(out, arg, expected) {
-		return true
+	if unary, ok := arg.(*ast.UnaryExpr); ok && unary.Op == token.AND {
+		if comp, ok := unary.X.(*ast.CompositeLit); ok {
+			TranspileExpression(out, comp)
+			return
+		}
 	}
-	if localInterfaceArgumentIsWrappedInterfaceValue(arg, expected) {
-		TranspileExpressionContext(out, arg, LValue)
-		WriteBorrowMethod(out, false)
-		out.WriteString(".as_ref().unwrap().as_ref()")
-		return true
+	if isExpressionResultBare(arg) {
+		TranspileExpression(out, arg)
+		return
 	}
-	if localInterfaceArgumentIsWrappedConcreteValue(arg, expected) {
-		TranspileExpressionContext(out, arg, LValue)
-		WriteBorrowMethod(out, false)
-		out.WriteString(".as_ref().unwrap()")
-		return true
-	}
-	return false
+	out.WriteString("(*")
+	TranspileExpressionContext(out, arg, LValue)
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap()).clone()")
 }
 
 // writeBoxedInterfaceIndexCallArgument handles passing an indexed slice/array
@@ -2833,7 +2926,7 @@ func writeInterfaceEqualityReferenceBinding(out *strings.Builder, name string, e
 	out.WriteString("_guard.as_ref().unwrap(); let ")
 	out.WriteString(name)
 	out.WriteString(": ")
-	out.WriteString(rustLocalInterfaceParam(ifaceName))
+	out.WriteString(rustLocalInterfaceParamBare(ifaceName))
 	out.WriteString(" = ")
 	out.WriteString(name)
 	out.WriteString("_value; ")

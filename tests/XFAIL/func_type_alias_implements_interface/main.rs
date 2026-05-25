@@ -29,9 +29,9 @@ impl counterMethods for counter {
     }
 }
 
-pub fn run_speaker(s: &dyn Speaker) -> Rc<RefCell<Option<i32>>> {
+pub fn run_speaker(s: Rc<RefCell<Option<Box<dyn Speaker>>>>) -> Rc<RefCell<Option<i32>>> {
 
-    return s.speak();
+    return (*s.borrow().as_ref().unwrap()).speak();
 }
 
 pub fn make_counter() -> counter {
@@ -45,5 +45,5 @@ pub fn make_counter() -> counter {
 
 fn main() {
     let mut c = make_counter();
-    println!("{}", format!("{}", (*run_speaker(c.borrow().as_ref().unwrap()).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*run_speaker(Rc::new(RefCell::new(Some(Box::new((*c.borrow().as_ref().unwrap()).clone()) as Box<dyn Speaker>)))).borrow().as_ref().unwrap())));
 }

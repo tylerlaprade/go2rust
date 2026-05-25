@@ -75,13 +75,13 @@ impl geometry for rect {
     }
 }
 
-pub fn measure(g: &dyn geometry) {
-    println!("{}", format!("{}", g));
-    println!("{}", format!("{}", (*g.area().borrow().as_ref().unwrap())));
-    println!("{}", format!("{}", (*g.perim().borrow().as_ref().unwrap())));
+pub fn measure(g: Rc<RefCell<Option<Box<dyn geometry>>>>) {
+    println!("{}", format!("{}", format!("{}", (*g.borrow().as_ref().unwrap()))));
+    println!("{}", format!("{}", (*(*g.borrow().as_ref().unwrap()).area().borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*(*g.borrow().as_ref().unwrap()).perim().borrow().as_ref().unwrap())));
 }
 
 fn main() {
     let mut r = Rc::new(RefCell::new(Some(rect { width: Rc::new(RefCell::new(Some(3.0 as f64))), height: Rc::new(RefCell::new(Some(4.0 as f64))), ..Default::default() })));
-    measure(r.borrow().as_ref().unwrap());
+    measure(Rc::new(RefCell::new(Some(Box::new((*r.borrow().as_ref().unwrap()).clone()) as Box<dyn geometry>))));
 }
