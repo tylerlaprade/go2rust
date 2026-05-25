@@ -668,6 +668,8 @@ func RegisterExternalPackageStubFunction(pkgName string, funcName string, sig *t
 	pkg.Functions[funcName] = fn
 }
 
+// TEMPORARY: hand-written Rust shim surface for go/parser.ParseFile.
+// Long-term fix: transpile go/parser source.
 func registerParserParseFileStubSurface() {
 	stringType := goTypesTypeToRustWrapped(types.Typ[types.String])
 	boolType := goTypesTypeToRustWrapped(types.Typ[types.Bool])
@@ -885,6 +887,7 @@ func IsExternalStdlibPackageVariableSelector(sel *ast.SelectorExpr) bool {
 	return ok
 }
 
+// MACHINERY: emission-framework helper for selector fallback registration, not a stdlib shim.
 func registerExternalPackageSelectorFallback(pkgName string, pkgPath string, selName string) bool {
 	rustType := externalPackageSelectorFallbackVariableType(pkgPath, selName)
 	if rustType == "" {
@@ -1438,6 +1441,8 @@ func externalStubsNeedJsonSupport(stubs map[string]bool, packageStubs map[string
 	return false
 }
 
+// TEMPORARY: hand-written Rust shim for encoding/json marshal helpers.
+// Long-term fix: transpile encoding/json source (mostly pure Go reflection-driven code).
 func writeJsonSupportHelpers(out *strings.Builder, hasBytesBuffer bool) {
 	outerWrapper := GetOuterWrapperType()
 	innerWrapper := GetInnerWrapperType()
@@ -1616,6 +1621,8 @@ where
 	}
 }
 
+// TEMPORARY: hand-written Rust shim for encoding/json.Decoder.
+// Long-term fix: transpile encoding/json source.
 func writeJsonDecoderStub(out *strings.Builder) {
 	errorInnerType := externalStubErrorInnerType()
 	fmt.Fprintf(out, `#[derive(Debug, Clone)]
@@ -1910,6 +1917,8 @@ func externalStubErrorInnerType() string {
 	return "Box<dyn StdError>"
 }
 
+// TEMPORARY: hand-written Rust shim for bytes.Buffer.
+// Long-term fix: transpile bytes package source (pure Go, no runtime ties).
 func writeBytesBufferStub(out *strings.Builder) {
 	vecType := wrappedExternalStubType("Vec<u8>")
 	stringType := wrappedExternalStubType("String")
@@ -2135,6 +2144,8 @@ impl bytes_Buffer {
 		wrappedExternalStubExpr("i64", "self.__go_data.lock().unwrap().len() as i64"), noneError)
 }
 
+// TEMPORARY: hand-written Rust shim for io.Writer trait bridging.
+// Long-term fix: transpile io package interfaces (pure Go).
 func writeIoWriterStub(out *strings.Builder, hasBytesBuffer bool, hasOsFile bool) {
 	holderType := "Rc<dyn std::any::Any>"
 	fromBound := "T: 'static"
@@ -2245,6 +2256,8 @@ impl Ord for io_Writer {
 `)
 }
 
+// PERMANENT: not scaffold — Rust std::sync::atomic is the long-term implementation;
+// Go's sync/atomic semantics cannot be transpiled from Go source (runtime-tied).
 func writeAtomicInt32Stub(out *strings.Builder) {
 	intType := wrappedExternalStubType("i32")
 	boolType := wrappedExternalStubType("bool")
@@ -2324,6 +2337,8 @@ impl atomic_Int32 {
 		boolType, wrappedExternalStubExpr("bool", "self.__go_value.compare_exchange(old, new, std::sync::atomic::Ordering::SeqCst, std::sync::atomic::Ordering::SeqCst).is_ok()"))
 }
 
+// TEMPORARY: hand-written Rust shim for go/token.Token enum.
+// Long-term fix: transpile go/token source (pure Go).
 func writeTokenTokenStub(out *strings.Builder) {
 	stringType := wrappedExternalStubType("String")
 	fmt.Fprintf(out, `#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
@@ -2448,6 +2463,8 @@ impl token_Token {
 `, stringType, wrappedExternalStubExpr("String", "token_string_value(*self).to_string()"))
 }
 
+// PERMANENT: not scaffold — Rust std::fs::File is the long-term implementation;
+// os.File wraps OS file handles, no transpilable Go source equivalent.
 func writeOsFileStub(out *strings.Builder) {
 	vecType := wrappedExternalStubType("Vec<u8>")
 	stringType := wrappedExternalStubType("String")
@@ -2553,6 +2570,8 @@ impl os_File {
 		intType, errorType, wrappedExternalStubExpr("i32", "0"), noneError)
 }
 
+// PERMANENT: not scaffold — Rust std::process::Command is the long-term implementation;
+// exec.Cmd is OS process layer, no transpilable Go source equivalent.
 func writeExecCmdTypeStub(out *strings.Builder, fields map[string]string) {
 	if fields == nil {
 		fields = make(map[string]string)
@@ -2688,6 +2707,7 @@ func externalTypeStubHasErrorMethod(methods map[string]externalTypeStubMethod) b
 	return ok && len(method.ReturnTypes) == 1 && strings.Contains(method.ReturnTypes[0], "String")
 }
 
+// MACHINERY: emission framework for integer-stub operations, not a stdlib shim.
 func writeExternalIntegerStubOps(out *strings.Builder, name string, integerType string) {
 	out.WriteString("impl PartialEq<")
 	out.WriteString(integerType)
@@ -2744,6 +2764,7 @@ func writeExternalIntegerStubOps(out *strings.Builder, name string, integerType 
 	out.WriteString("}\n\n")
 }
 
+// MACHINERY: generic interface-stub emitter framework, not a stdlib shim.
 func writeExternalInterfaceStub(out *strings.Builder, name string, methods map[string]externalTypeStubMethod) {
 	holderType := "Rc<dyn std::any::Any>"
 	fromBound := "T: 'static"
@@ -2882,6 +2903,7 @@ func externalInterfaceCarriesSourcePos(name string) bool {
 	}
 }
 
+// MACHINERY: shared Pos() method emitter used by interface-stub framework.
 func writeExternalInterfacePosMethod(out *strings.Builder) {
 	out.WriteString("    pub fn pos(&self) -> Arc<Mutex<Option<token_Pos>>> {\n")
 	out.WriteString("        Arc::new(Mutex::new(Some(token_Pos(self.__go_pos))))\n")
@@ -2921,6 +2943,7 @@ func writeTypesTypeUnderlyingMethod(out *strings.Builder) {
 	out.WriteString("    }\n")
 }
 
+// MACHINERY: framework for emitting From/Into impls between external stub types.
 func writeExternalTypeStubConversions(out *strings.Builder, conversions map[string]map[string]bool, interfaceTypes map[string]bool) {
 	if len(conversions) == 0 {
 		return
@@ -2972,6 +2995,7 @@ func writeExternalTypeStubConversions(out *strings.Builder, conversions map[stri
 	}
 }
 
+// MACHINERY: interface identity helper for the emission framework.
 func writeExternalInterfaceIdHelper(out *strings.Builder) {
 	out.WriteString("fn __go_next_external_interface_id() -> usize {\n")
 	out.WriteString("    static NEXT_ID: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(1);\n")
@@ -2979,12 +3003,14 @@ func writeExternalInterfaceIdHelper(out *strings.Builder) {
 	out.WriteString("}\n\n")
 }
 
+// MACHINERY: downcast helper for the external-stub interface framework.
 func writeExternalTypeStubDowncastMethod(out *strings.Builder) {
 	out.WriteString("    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {\n")
 	out.WriteString("        None\n")
 	out.WriteString("    }\n")
 }
 
+// MACHINERY: generic method emitter for external-stub framework.
 func writeExternalTypeStubMethod(out *strings.Builder, methodName string, method externalTypeStubMethod) {
 	out.WriteString("    pub fn ")
 	out.WriteString(methodName)
@@ -3042,6 +3068,9 @@ func writeExternalTypeStubMethod(out *strings.Builder, methodName string, method
 	out.WriteString("    }\n")
 }
 
+// TEMPORARY: hand-written Rust shim for go/types.Basic.
+// Long-term fix: transpile go/types source. Do not grow surface for *types.Named,
+// *types.Pointer, *types.Map, etc. — see AGENTS.md "Strategy: Transpile stdlib, don't bridge it".
 func writeTypesBasicStub(out *strings.Builder, methods map[string]externalTypeStubMethod) {
 	out.WriteString(`#[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct types_Basic {
@@ -3094,6 +3123,8 @@ impl types_Basic {
 	out.WriteString("}\n")
 }
 
+// TEMPORARY: hand-written Rust bridge support for go/types (Info traits, helpers).
+// Long-term fix: transpile go/types source.
 func writeTypesBridgeSupport(out *strings.Builder) {
 	TrackImport("BTreeMap")
 	stringType := wrappedExternalStubType("String")
@@ -3582,6 +3613,8 @@ fn __go_types_collect_opt_basic_lit(value: &%[15]s, exprs_by_pos: &mut BTreeMap<
 	_ = specType
 }
 
+// TEMPORARY: hand-written Rust shim for go/types.Config.Check.
+// Long-term fix: transpile go/types source.
 func writeTypesConfigCheckMethod(out *strings.Builder, method externalTypeStubMethod) {
 	out.WriteString("    pub fn check")
 	out.WriteString("<T0: GoTypesBridgeStringArg, T1, T3: GoTypesBridgeInfoArg>")
@@ -3610,6 +3643,8 @@ func writeTypesConfigCheckMethod(out *strings.Builder, method externalTypeStubMe
 	out.WriteString("    }\n")
 }
 
+// TEMPORARY: hand-written Rust shim for go/types.Checker.Files.
+// Long-term fix: transpile go/types source.
 func writeTypesCheckerFilesMethod(out *strings.Builder, method externalTypeStubMethod) {
 	out.WriteString("    pub fn files")
 	writeExternalStubGenericParams(out, method.ParamCount)
@@ -3625,6 +3660,7 @@ func writeTypesCheckerFilesMethod(out *strings.Builder, method externalTypeStubM
 	out.WriteString("    }\n")
 }
 
+// MACHINERY: generic-parameter emitter for stub function signatures.
 func writeExternalStubGenericParams(out *strings.Builder, count int) {
 	if count <= 0 {
 		return
@@ -3640,6 +3676,7 @@ func writeExternalStubGenericParams(out *strings.Builder, count int) {
 	out.WriteString(">")
 }
 
+// MACHINERY: argument-list emitter for stub function signatures.
 func writeExternalStubArgs(out *strings.Builder, count int) {
 	for i := 0; i < count; i++ {
 		out.WriteString(", _arg")
@@ -3649,12 +3686,16 @@ func writeExternalStubArgs(out *strings.Builder, count int) {
 	}
 }
 
+// TEMPORARY: hand-written Rust shim for go/token.Pos.IsValid.
+// Long-term fix: transpile go/token source.
 func writeTokenPosIsValidMethod(out *strings.Builder) {
 	out.WriteString("    pub fn is_valid(&self) -> Arc<Mutex<Option<bool>>> {\n")
 	out.WriteString("        Arc::new(Mutex::new(Some(self.0 != 0)))\n")
 	out.WriteString("    }\n")
 }
 
+// TEMPORARY: hand-written Rust shim for go/build.Context import methods.
+// Long-term fix: transpile go/build source.
 func writeBuildContextImportMethod(out *strings.Builder, methodName string, method externalTypeStubMethod) {
 	out.WriteString("    pub fn ")
 	out.WriteString(methodName)
@@ -3679,6 +3720,7 @@ func writeBuildContextImportMethod(out *strings.Builder, methodName string, meth
 	out.WriteString("    }\n")
 }
 
+// MACHINERY: top-level dispatcher that emits all package stub blocks.
 func writeExternalPackageStubs(out *strings.Builder, packageStubs map[string]*externalPackageStub, integerTypes map[string]string, stubs map[string]bool, needsSeparator bool) {
 	if len(packageStubs) == 0 {
 		return
@@ -3803,6 +3845,7 @@ func wrappedExternalStubNoneExpr(innerType string) string {
 	return fmt.Sprintf("%s::new(%s::new(None::<%s>))", GetOuterWrapperType(), GetInnerWrapperType(), innerType)
 }
 
+// PERMANENT: not scaffold — io/fs.FileInfo is OS-tied; Rust std::fs::Metadata is the long-term implementation.
 func writeFsFileInfoStub(out *strings.Builder, name string, methods map[string]externalTypeStubMethod) {
 	boolType := wrappedExternalStubType("bool")
 	stringType := wrappedExternalStubType("String")
@@ -3850,6 +3893,7 @@ impl %s {
 	out.WriteString("}\n")
 }
 
+// PERMANENT: not scaffold — io/fs.DirEntry is OS-tied; Rust std::fs::DirEntry is the long-term implementation.
 func writeFsDirEntryStub(out *strings.Builder, name string) {
 	boolType := wrappedExternalStubType("bool")
 	stringType := wrappedExternalStubType("String")
@@ -3881,6 +3925,8 @@ impl %s {
 `, name, name, name, name, stringType, wrappedExternalStubExpr("String", "self.name.clone()"), boolType, wrappedExternalStubExpr("bool", "self.is_dir"))
 }
 
+// TEMPORARY: hand-written Rust shim for go/ast package.
+// Long-term fix: transpile go/ast source (pure Go).
 func writeAstPackageStub(out *strings.Builder, pkg *externalPackageStub, integerTypes map[string]string) {
 	out.WriteString("pub mod ast {\n")
 	out.WriteString("    use super::*;\n\n")
@@ -3940,6 +3986,8 @@ func writeAstPackageStub(out *strings.Builder, pkg *externalPackageStub, integer
 	out.WriteString("}\n")
 }
 
+// TEMPORARY: hand-written Rust shim for ast.Inspect / Walk.
+// Long-term fix: transpile go/ast source.
 func writeAstInspectFunction(out *strings.Builder) {
 	out.WriteString(`    type InspectCallback = Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<ast_Node>>>) -> Arc<Mutex<Option<bool>>> + Send + Sync>>>>;
 
@@ -4302,6 +4350,8 @@ func writeAstInspectFunction(out *strings.Builder) {
 `)
 }
 
+// TEMPORARY: hand-written Rust shim for ast.NewIdent.
+// Long-term fix: transpile go/ast source.
 func writeAstNewIdentFunction(out *strings.Builder, fn externalPackageStubFunction) {
 	out.WriteString("    pub fn new_ident<T0: GoStringArg>(_arg0: T0) -> ")
 	writeExternalStubReturnType(out, fn.ReturnTypes)
@@ -4312,6 +4362,8 @@ func writeAstNewIdentFunction(out *strings.Builder, fn externalPackageStubFuncti
 	out.WriteString("    }\n")
 }
 
+// TEMPORARY: hand-written Rust shim for go/parser package.
+// Long-term fix: transpile go/parser source.
 func writeParserPackageStub(out *strings.Builder, pkg *externalPackageStub, integerTypes map[string]string) {
 	out.WriteString("pub mod parser {\n")
 	out.WriteString("    use super::*;\n\n")
@@ -4363,6 +4415,8 @@ func writeParserPackageStub(out *strings.Builder, pkg *externalPackageStub, inte
 	out.WriteString("}\n")
 }
 
+// TEMPORARY: hand-written Rust shim for go/token package.
+// Long-term fix: transpile go/token source.
 func writeTokenPackageStub(out *strings.Builder, pkg *externalPackageStub, integerTypes map[string]string) {
 	out.WriteString("pub mod token {\n")
 	out.WriteString("    use super::*;\n\n")
@@ -4514,6 +4568,8 @@ func tokenConstValues() map[string]int {
 	}
 }
 
+// TEMPORARY: hand-written Rust shim for go/parser argument traits.
+// Long-term fix: transpile go/parser source.
 func writeParserArgTraits(out *strings.Builder) {
 	outerWrapper := GetOuterWrapperType()
 	innerWrapper := GetInnerWrapperType()
@@ -4599,6 +4655,8 @@ func writeParserArgTraits(out *strings.Builder) {
 `, outerWrapper, innerWrapper, borrow, outerWrapper, innerWrapper, borrow, outerWrapper, innerWrapper, borrow)
 }
 
+// TEMPORARY: hand-written Rust shim for parser.ParseFile.
+// Long-term fix: transpile go/parser source.
 func writeParserParseFileFunction(out *strings.Builder, fn externalPackageStubFunction) {
 	out.WriteString(`    fn go_parser_error(message: String) -> Box<dyn std::error::Error + Send + Sync> {
         Box::new(std::io::Error::new(std::io::ErrorKind::InvalidData, message))
@@ -5305,6 +5363,8 @@ func writeParserParseFileFunction(out *strings.Builder, fn externalPackageStubFu
 `)
 }
 
+// TEMPORARY: hand-written Rust shim for strconv package.
+// Long-term fix: transpile strconv source (pure Go, no runtime ties).
 func writeStrconvPackageStub(out *strings.Builder, pkg *externalPackageStub, integerTypes map[string]string, stubs map[string]bool) {
 	out.WriteString("pub mod strconv {\n")
 	out.WriteString("    use super::*;\n\n")
@@ -5346,6 +5406,8 @@ func writeStrconvPackageStub(out *strings.Builder, pkg *externalPackageStub, int
 	out.WriteString("}\n")
 }
 
+// TEMPORARY: hand-written Rust shim for strconv helpers.
+// Long-term fix: transpile strconv source.
 func writeStrconvHelpers(out *strings.Builder) {
 	borrow := ".borrow()"
 	if NeedsConcurrentWrapper() {
@@ -5453,6 +5515,8 @@ func writeStrconvHelpers(out *strings.Builder) {
 `, stringType, borrow, errorType, errorType, errorType)
 }
 
+// TEMPORARY: hand-written Rust shim for strconv.Unquote.
+// Long-term fix: transpile strconv source.
 func writeStrconvUnquoteFunction(out *strings.Builder, fn externalPackageStubFunction) {
 	errorType := "Box<dyn std::error::Error>"
 	if NeedsConcurrentWrapper() {
@@ -5471,6 +5535,8 @@ func writeStrconvUnquoteFunction(out *strings.Builder, fn externalPackageStubFun
 	out.WriteString("),\n        }\n    }\n")
 }
 
+// TEMPORARY: hand-written Rust shim for go/build package.
+// Long-term fix: transpile go/build source.
 func writeBuildPackageStub(out *strings.Builder, pkg *externalPackageStub, integerTypes map[string]string) {
 	out.WriteString("pub mod build {\n")
 	out.WriteString("    use super::*;\n")
@@ -5530,6 +5596,8 @@ func writeBuildPackageStub(out *strings.Builder, pkg *externalPackageStub, integ
 	out.WriteString("}\n")
 }
 
+// TEMPORARY: hand-written Rust shim for go/build helpers.
+// Long-term fix: transpile go/build source.
 func writeBuildHelpers(out *strings.Builder) {
 	errorType := "Box<dyn std::error::Error>"
 	if NeedsConcurrentWrapper() {
@@ -5623,6 +5691,8 @@ func writeBuildHelpers(out *strings.Builder) {
 `, wrappedExternalStubType(errorType), wrappedExternalStubNoneExpr(errorType), wrappedExternalStubExpr(errorType, "Box::new(std::io::Error::new(std::io::ErrorKind::NotFound, message))"), wrappedExternalStubType("String"), wrappedExternalStubExpr("String", "value"), wrappedExternalStubType("bool"), wrappedExternalStubExpr("bool", "value"), wrappedExternalStubType("build_Package"), wrappedExternalStubExpr("build_Package", "go_build_package(import_path.clone(), String::new(), false)"), wrappedExternalStubExpr("build_Package", "go_build_package(import_path.clone(), dir.to_string_lossy().into_owned(), true)"), wrappedExternalStubExpr("build_Package", "go_build_package(import_path.clone(), String::new(), false)"))
 }
 
+// TEMPORARY: hand-written Rust shim for build.Default.
+// Long-term fix: transpile go/build source.
 func writeBuildDefaultFunction(out *strings.Builder) {
 	out.WriteString("    pub fn Default() -> ")
 	out.WriteString(wrappedExternalStubType("build_Context"))
@@ -5633,6 +5703,8 @@ func writeBuildDefaultFunction(out *strings.Builder) {
 	out.WriteString("    }\n")
 }
 
+// TEMPORARY: hand-written Rust shim for build.Import.
+// Long-term fix: transpile go/build source.
 func writeBuildImportFunction(out *strings.Builder, fn externalPackageStubFunction) {
 	out.WriteString("    pub fn import<T0: GoStringArg, T1: GoStringArg, T2>(_arg0: T0, _arg1: T1, _arg2: T2) -> ")
 	writeExternalStubReturnType(out, fn.ReturnTypes)
@@ -5642,6 +5714,8 @@ func writeBuildImportFunction(out *strings.Builder, fn externalPackageStubFuncti
 	out.WriteString("    }\n")
 }
 
+// TEMPORARY: hand-written Rust shim for build.IsLocalImport.
+// Long-term fix: transpile go/build source.
 func writeBuildIsLocalImportFunction(out *strings.Builder) {
 	out.WriteString("    pub fn is_local_import<T0: GoStringArg>(_arg0: T0) -> ")
 	out.WriteString(wrappedExternalStubType("bool"))
@@ -5652,6 +5726,8 @@ func writeBuildIsLocalImportFunction(out *strings.Builder) {
 	out.WriteString("    }\n")
 }
 
+// TEMPORARY: hand-written Rust shim for flag package.
+// Long-term fix: transpile flag source (mostly pure Go).
 func writeFlagPackageStub(out *strings.Builder) {
 	outerWrapper := GetOuterWrapperType()
 	innerWrapper := GetInnerWrapperType()
@@ -5782,6 +5858,8 @@ func writeFlagPackageStub(out *strings.Builder) {
 `, stringFlagType, boolFlagType, outerWrapper, innerWrapper, outerWrapper, innerWrapper, argsType, outerWrapper, innerWrapper, borrowMut, borrowMut)
 }
 
+// TEMPORARY: hand-written Rust shim for encoding/json package.
+// Long-term fix: transpile encoding/json source.
 func writeJsonPackageStub(out *strings.Builder, pkg *externalPackageStub) {
 	out.WriteString("pub mod json {\n")
 	out.WriteString("    use super::*;\n")
@@ -5824,6 +5902,7 @@ func writeJsonPackageStub(out *strings.Builder, pkg *externalPackageStub) {
 	out.WriteString("}\n")
 }
 
+// PERMANENT: not scaffold — os.* is the syscall/OS layer; Rust std::env / std::process are the long-term implementation.
 func writeOsPackageStub(out *strings.Builder, pkg *externalPackageStub, integerTypes map[string]string) {
 	out.WriteString("pub mod os {\n")
 	out.WriteString("    use super::*;\n")
@@ -5905,6 +5984,7 @@ func osPackageStubNeedsFilesystemHelpers(pkg *externalPackageStub) bool {
 	return needsStat || needsMkdirAll || needsReadDir || needsReadFile || needsWriteFile
 }
 
+// PERMANENT: not scaffold — OS error types map to Rust std::io::Error, no transpilable Go source.
 func writeOsErrorHelpers(out *strings.Builder) {
 	errorType := wrappedExternalStubType("Box<dyn std::error::Error>")
 	if NeedsConcurrentWrapper() {
@@ -5923,12 +6003,14 @@ func writeOsErrorHelpers(out *strings.Builder) {
 `, errorType, GetOuterWrapperType(), GetInnerWrapperType(), GetOuterWrapperType(), GetInnerWrapperType())
 }
 
+// PERMANENT: not scaffold — os.Exit maps to std::process::exit, runtime-tied.
 func writeOsExitFunction(out *strings.Builder) {
 	out.WriteString("    pub fn exit<T0: Into<i32>>(_arg0: T0) {\n")
 	out.WriteString("        std::process::exit(_arg0.into());\n")
 	out.WriteString("    }\n")
 }
 
+// PERMANENT: not scaffold — os.MkdirAll maps to std::fs::create_dir_all, syscall-tied.
 func writeOsMkdirAllFunction(out *strings.Builder, fn externalPackageStubFunction) {
 	out.WriteString("    pub fn mkdir_all<T0: GoStringArg, T1>(_arg0: T0, _arg1: T1) -> ")
 	writeExternalStubReturnType(out, fn.ReturnTypes)
@@ -5941,6 +6023,7 @@ func writeOsMkdirAllFunction(out *strings.Builder, fn externalPackageStubFunctio
 	out.WriteString("    }\n")
 }
 
+// PERMANENT: not scaffold — os.Stat maps to std::fs::metadata, syscall-tied.
 func writeOsStatFunction(out *strings.Builder, fn externalPackageStubFunction) {
 	out.WriteString("    pub fn stat<T0: GoStringArg>(_arg0: T0) -> ")
 	writeExternalStubReturnType(out, fn.ReturnTypes)
@@ -5960,6 +6043,7 @@ func writeOsStatFunction(out *strings.Builder, fn externalPackageStubFunction) {
 	out.WriteString("    }\n")
 }
 
+// PERMANENT: not scaffold — os.ReadFile maps to std::fs::read, syscall-tied.
 func writeOsReadFileFunction(out *strings.Builder, fn externalPackageStubFunction) {
 	out.WriteString("    pub fn read_file<T0: GoStringArg>(_arg0: T0) -> ")
 	writeExternalStubReturnType(out, fn.ReturnTypes)
@@ -5976,6 +6060,7 @@ func writeOsReadFileFunction(out *strings.Builder, fn externalPackageStubFunctio
 	out.WriteString("    }\n")
 }
 
+// PERMANENT: not scaffold — os.WriteFile maps to std::fs::write, syscall-tied.
 func writeOsWriteFileFunction(out *strings.Builder, fn externalPackageStubFunction) {
 	out.WriteString("    pub fn write_file<T0: GoStringArg, T1: GoBytesArg, T2>(_arg0: T0, _arg1: T1, _arg2: T2) -> ")
 	writeExternalStubReturnType(out, fn.ReturnTypes)
@@ -5989,6 +6074,7 @@ func writeOsWriteFileFunction(out *strings.Builder, fn externalPackageStubFuncti
 	out.WriteString("    }\n")
 }
 
+// PERMANENT: not scaffold — os.ReadDir maps to std::fs::read_dir, syscall-tied.
 func writeOsReadDirFunction(out *strings.Builder, fn externalPackageStubFunction) {
 	out.WriteString("    pub fn read_dir<T0: GoStringArg>(_arg0: T0) -> ")
 	writeExternalStubReturnType(out, fn.ReturnTypes)
@@ -6020,6 +6106,8 @@ func writeOsReadDirFunction(out *strings.Builder, fn externalPackageStubFunction
 	out.WriteString("    }\n")
 }
 
+// MIXED: top-level path/filepath emitter. Pure path-manipulation funcs (Join, IsAbs) are
+// TEMPORARY (transpile path/filepath source); Abs/EvalSymlinks are PERMANENT (OS-tied).
 func writeFilepathPackageStub(out *strings.Builder, pkg *externalPackageStub, integerTypes map[string]string) {
 	out.WriteString("pub mod filepath {\n")
 	out.WriteString("    use super::*;\n")
@@ -6082,6 +6170,7 @@ func writeFilepathPackageStub(out *strings.Builder, pkg *externalPackageStub, in
 	out.WriteString("}\n")
 }
 
+// MACHINERY: cross-package helper trait for string-argument coercion.
 func writeGoStringArgTrait(out *strings.Builder) {
 	stringType := wrappedExternalStubType("String")
 	borrow := ".borrow()"
@@ -6119,6 +6208,7 @@ func writeGoStringArgTrait(out *strings.Builder) {
 `, stringType, borrow)
 }
 
+// MACHINERY: cross-package helper trait for byte-argument coercion.
 func writeGoBytesArgTrait(out *strings.Builder) {
 	vecType := wrappedExternalStubType("Vec<u8>")
 	stringType := wrappedExternalStubType("String")
@@ -6169,6 +6259,7 @@ func writeGoBytesArgTrait(out *strings.Builder) {
 `, vecType, borrow, stringType, borrow)
 }
 
+// MACHINERY: helper trait for filepath.Join variadic-argument coercion.
 func writeFilepathJoinTrait(out *strings.Builder) {
 	out.WriteString(`    pub trait GoPathJoinArgs {
         fn into_path_parts(self) -> Vec<String>;
@@ -6195,6 +6286,7 @@ func writeFilepathJoinTrait(out *strings.Builder) {
 `)
 }
 
+// PERMANENT: not scaffold — filepath error helpers map to std::io::Error, OS-tied.
 func writeFilepathErrorHelpers(out *strings.Builder) {
 	errorType := wrappedExternalStubType("Box<dyn std::error::Error>")
 	if NeedsConcurrentWrapper() {
@@ -6217,6 +6309,8 @@ func writeFilepathErrorHelpers(out *strings.Builder) {
 `, errorType, GetOuterWrapperType(), GetInnerWrapperType(), GetOuterWrapperType(), GetInnerWrapperType())
 }
 
+// TEMPORARY: hand-written Rust shim for filepath single-string functions (Base, Dir, Ext, Clean).
+// Long-term fix: transpile path/filepath source (pure string manipulation).
 func writeFilepathSingleStringFunction(out *strings.Builder, funcName string, expr string) {
 	out.WriteString("    pub fn ")
 	out.WriteString(funcName)
@@ -6230,6 +6324,8 @@ func writeFilepathSingleStringFunction(out *strings.Builder, funcName string, ex
 	out.WriteString("    }\n")
 }
 
+// TEMPORARY: hand-written Rust shim for filepath.Join.
+// Long-term fix: transpile path/filepath source.
 func writeFilepathJoinFunction(out *strings.Builder) {
 	out.WriteString("    pub fn join<T0: GoPathJoinArgs>(_arg0: T0) -> ")
 	out.WriteString(wrappedExternalStubType("String"))
@@ -6246,6 +6342,7 @@ func writeFilepathJoinFunction(out *strings.Builder) {
 	out.WriteString("    }\n")
 }
 
+// PERMANENT: not scaffold — filepath.Abs requires CWD resolution, OS-tied.
 func writeFilepathAbsFunction(out *strings.Builder, fn externalPackageStubFunction) {
 	out.WriteString("    pub fn abs<T0: GoStringArg>(_arg0: T0) -> ")
 	writeExternalStubReturnType(out, fn.ReturnTypes)
@@ -6267,6 +6364,7 @@ func writeFilepathAbsFunction(out *strings.Builder, fn externalPackageStubFuncti
 	out.WriteString("    }\n")
 }
 
+// PERMANENT: not scaffold — filepath.EvalSymlinks requires syscall, OS-tied.
 func writeFilepathEvalSymlinksFunction(out *strings.Builder, fn externalPackageStubFunction) {
 	out.WriteString("    pub fn eval_symlinks<T0: GoStringArg>(_arg0: T0) -> ")
 	writeExternalStubReturnType(out, fn.ReturnTypes)
@@ -6283,6 +6381,8 @@ func writeFilepathEvalSymlinksFunction(out *strings.Builder, fn externalPackageS
 	out.WriteString("    }\n")
 }
 
+// TEMPORARY: hand-written Rust shim for filepath.IsAbs.
+// Long-term fix: transpile path/filepath source (pure string check).
 func writeFilepathIsAbsFunction(out *strings.Builder) {
 	out.WriteString("    pub fn is_abs<T0: GoStringArg>(_arg0: T0) -> ")
 	out.WriteString(wrappedExternalStubType("bool"))
@@ -6294,6 +6394,7 @@ func writeFilepathIsAbsFunction(out *strings.Builder) {
 	out.WriteString("    }\n")
 }
 
+// MACHINERY: variable-declaration emitter for stub packages.
 func writeExternalPackageStubVariable(out *strings.Builder, varName string, rustType string) {
 	out.WriteString("    pub fn ")
 	out.WriteString(varName)
@@ -6306,6 +6407,7 @@ func writeExternalPackageStubVariable(out *strings.Builder, varName string, rust
 	out.WriteString("    }\n")
 }
 
+// PERMANENT: not scaffold — os/exec.* is the process layer; Rust std::process is the long-term implementation.
 func writeExecPackageStub(out *strings.Builder, pkg *externalPackageStub, integerTypes map[string]string) {
 	out.WriteString("pub mod exec {\n")
 	out.WriteString("    use super::*;\n\n")
@@ -6359,6 +6461,7 @@ func writeExecPackageStub(out *strings.Builder, pkg *externalPackageStub, intege
 	out.WriteString("}\n")
 }
 
+// MACHINERY: generic stub function emitter dispatch.
 func writeExternalPackageStubFunction(out *strings.Builder, funcName string, fn externalPackageStubFunction, stubs map[string]bool) {
 	if funcName == "command" && len(fn.ReturnTypes) == 1 {
 		writeExecCommandStub(out, fn, false)
@@ -6421,6 +6524,7 @@ func writeExternalPackageStubFunction(out *strings.Builder, funcName string, fn 
 	out.WriteString("    }\n")
 }
 
+// PERMANENT: not scaffold — runtime.GOMAXPROCS is runtime-tied; Rust has no direct equivalent.
 func writeRuntimeGOMAXPROCSStub(out *strings.Builder, fn externalPackageStubFunction) {
 	out.WriteString("    pub fn g_o_m_a_x_p_r_o_c_s")
 	if fn.ParamCount > 0 {
@@ -6451,6 +6555,8 @@ func writeRuntimeGOMAXPROCSStub(out *strings.Builder, fn externalPackageStubFunc
 	out.WriteString("\n    }\n")
 }
 
+// TEMPORARY: hand-written Rust shim for io.Copy.
+// Long-term fix: transpile io source (pure-Go algorithm over Reader/Writer interfaces).
 func writeIoCopyStub(out *strings.Builder, fn externalPackageStubFunction, stubs map[string]bool) {
 	out.WriteString("    pub fn copy<T0: 'static, T1: 'static>(_arg0: T0, _arg1: T1) -> ")
 	writeExternalStubReturnType(out, fn.ReturnTypes)
@@ -6514,6 +6620,7 @@ func writeIoCopyStub(out *strings.Builder, fn externalPackageStubFunction, stubs
 	out.WriteString(")\n    }\n")
 }
 
+// PERMANENT: not scaffold — os.Pipe maps to OS pipe syscalls, runtime-tied.
 func writeOsPipeStub(out *strings.Builder, fn externalPackageStubFunction) {
 	out.WriteString("    pub fn pipe() -> ")
 	writeExternalStubReturnType(out, fn.ReturnTypes)
@@ -6531,6 +6638,7 @@ func writeOsPipeStub(out *strings.Builder, fn externalPackageStubFunction) {
 	out.WriteString(")\n    }\n")
 }
 
+// PERMANENT: not scaffold — exec.Command spawns OS processes, runtime-tied.
 func writeExecCommandStub(out *strings.Builder, fn externalPackageStubFunction, hasContext bool) {
 	if hasContext {
 		out.WriteString("    pub fn command_context<T0, T1: GoStringArg, T2: GoExecCommandArgs>(_arg0: T0, _arg1: T1, _arg2: T2) -> ")
@@ -6545,6 +6653,7 @@ func writeExecCommandStub(out *strings.Builder, fn externalPackageStubFunction, 
 	writeExecCommandStubBody(out, "_arg0", "_arg1")
 }
 
+// PERMANENT: not scaffold — exec.Command body construction, runtime-tied.
 func writeExecCommandStubBody(out *strings.Builder, nameArg string, argsArg string) {
 	out.WriteString("        let mut args = vec![")
 	out.WriteString(nameArg)
@@ -6557,6 +6666,7 @@ func writeExecCommandStubBody(out *strings.Builder, nameArg string, argsArg stri
 	out.WriteString("\n    }\n")
 }
 
+// PERMANENT: not scaffold — exec.Command variadic-args coercion trait, paired with PERMANENT exec stubs.
 func writeExecCommandArgsTrait(out *strings.Builder) {
 	sliceType := wrappedExternalStubType("Vec<String>")
 	borrow := ".borrow()"
@@ -6618,6 +6728,7 @@ func writeExecCommandArgsTrait(out *strings.Builder) {
 `, sliceType, borrow)
 }
 
+// PERMANENT: not scaffold — exec.LookPath walks $PATH, syscall/env-tied.
 func writeExecLookPathStub(out *strings.Builder, fn externalPackageStubFunction) {
 	out.WriteString("    pub fn look_path")
 	if fn.ParamCount > 0 {
@@ -6669,6 +6780,7 @@ func externalStubStructNeedsCustomDefault(name string) bool {
 	return name == "types_Config"
 }
 
+// MACHINERY: Default impl emitter for stub structs.
 func writeExternalStubStructDefault(out *strings.Builder, name string, fields map[string]string) {
 	out.WriteString("impl Default for ")
 	out.WriteString(name)
@@ -6704,6 +6816,7 @@ func externalStubStructFieldDefault(typeName, fieldName string) string {
 	return "Default::default()"
 }
 
+// MACHINERY: return-type signature emitter.
 func writeExternalStubReturnType(out *strings.Builder, returnTypes []string) {
 	if len(returnTypes) == 1 {
 		out.WriteString(returnTypes[0])
@@ -6719,6 +6832,7 @@ func writeExternalStubReturnType(out *strings.Builder, returnTypes []string) {
 	out.WriteString(")")
 }
 
+// MACHINERY: return-value tuple emitter for stub bodies.
 func writeExternalStubReturnValues(out *strings.Builder, returnTypes []string) {
 	if len(returnTypes) > 1 {
 		out.WriteString("(")
@@ -6734,6 +6848,7 @@ func writeExternalStubReturnValues(out *strings.Builder, returnTypes []string) {
 	}
 }
 
+// MACHINERY: default-value emitter for stub return types.
 func writeExternalStubDefaultValue(out *strings.Builder, rustType string) {
 	outerWrapper := GetOuterWrapperType()
 	innerWrapper := GetInnerWrapperType()
@@ -6760,6 +6875,7 @@ func writeExternalStubDefaultValue(out *strings.Builder, rustType string) {
 	out.WriteString("Default::default()")
 }
 
+// MACHINERY: const default-value emitter for stub variable declarations.
 func writeExternalStubConstDefaultValue(out *strings.Builder, rustType string, integerTypes map[string]string) {
 	if integerTypes[rustType] != "" {
 		out.WriteString(rustType)
