@@ -151,8 +151,11 @@ impl<T> Iterator for GoChannel<T> {
 }
 
 
-#[derive(Clone)]
 pub struct GoPtrKey<T>(pub Arc<Mutex<Option<T>>>);
+
+impl<T> Clone for GoPtrKey<T> {
+    fn clone(&self) -> Self { GoPtrKey(self.0.clone()) }
+}
 
 impl<T> GoPtrKey<T> {
     pub fn new(value: Arc<Mutex<Option<T>>>) -> Self { GoPtrKey(value) }

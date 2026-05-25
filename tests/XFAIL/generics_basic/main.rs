@@ -46,6 +46,35 @@ where
     }
 }
 
+pub struct GoLocalPtrKey<T>(pub Rc<RefCell<Option<T>>>);
+
+impl<T> Clone for GoLocalPtrKey<T> {
+    fn clone(&self) -> Self { GoLocalPtrKey(self.0.clone()) }
+}
+
+impl<T> GoLocalPtrKey<T> {
+    pub fn new(value: Rc<RefCell<Option<T>>>) -> Self { GoLocalPtrKey(value) }
+    pub fn value(&self) -> Rc<RefCell<Option<T>>> { self.0.clone() }
+    fn addr(&self) -> usize { Rc::as_ptr(&self.0) as usize }
+}
+
+impl<T> PartialEq for GoLocalPtrKey<T> {
+    fn eq(&self, other: &Self) -> bool { self.addr() == other.addr() }
+}
+impl<T> Eq for GoLocalPtrKey<T> {}
+impl<T> PartialOrd for GoLocalPtrKey<T> {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> { Some(self.cmp(other)) }
+}
+impl<T> Ord for GoLocalPtrKey<T> {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering { self.addr().cmp(&other.addr()) }
+}
+impl<T> std::fmt::Debug for GoLocalPtrKey<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { write!(f, "0x{:x}", self.addr()) }
+}
+impl<T> std::fmt::Display for GoLocalPtrKey<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { write!(f, "0x{:x}", self.addr()) }
+}
+
 #[derive(Debug, Clone, Default)]
 pub struct List {
     pub head: Rc<RefCell<Option<element>>>,

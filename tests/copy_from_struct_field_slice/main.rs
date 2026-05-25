@@ -88,7 +88,9 @@ impl std::fmt::Display for Item {
 
 
 /// Mirrors go/ast/filter.go:489's pattern:
-///   i += copy(dst[i:], f.Field)
+///
+///	i += copy(dst[i:], f.Field)
+///
 /// where the field is a slice of pointers on a wrapped struct value.
 fn main() {
     let mut g = Rc::new(RefCell::new(Some(Group { items: Rc::new(RefCell::new(Some(vec![Rc::new(RefCell::new(Some(Item { n: Rc::new(RefCell::new(Some(1))), ..Default::default() }))), Rc::new(RefCell::new(Some(Item { n: Rc::new(RefCell::new(Some(2))), ..Default::default() }))), Rc::new(RefCell::new(Some(Item { n: Rc::new(RefCell::new(Some(3))), ..Default::default() })))]))), ..Default::default() })));

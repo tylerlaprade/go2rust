@@ -263,7 +263,7 @@ fn main() {
         }
         if let Some(write) = writes_thread.try_recv() {
             let mut write = Arc::new(Mutex::new(Some(write)));
-            { let __map_key = (*{ let __field = (*write.lock().unwrap().as_ref().unwrap()).key.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __map_value = Arc::new(Mutex::new(Some((*{ let __field = (*write.lock().unwrap().as_ref().unwrap()).val.clone(); __field }.lock().unwrap().as_ref().unwrap())))); (*state.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
+            { let __map_key = (*{ let __field = (*write.lock().unwrap().as_ref().unwrap()).key.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __map_value = (*write.lock().unwrap().as_ref().unwrap()).val.clone(); (*state.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
             (*write.lock().unwrap().as_ref().unwrap()).resp.send(true);
             break;
         }

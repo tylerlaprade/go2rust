@@ -45,8 +45,11 @@ where
     }
 }
 
-#[derive(Clone)]
 pub struct GoLocalPtrKey<T>(pub Arc<Mutex<Option<T>>>);
+
+impl<T> Clone for GoLocalPtrKey<T> {
+    fn clone(&self) -> Self { GoLocalPtrKey(self.0.clone()) }
+}
 
 impl<T> GoLocalPtrKey<T> {
     pub fn new(value: Arc<Mutex<Option<T>>>) -> Self { GoLocalPtrKey(value) }

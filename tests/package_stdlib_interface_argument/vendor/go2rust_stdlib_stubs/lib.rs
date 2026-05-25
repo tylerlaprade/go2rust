@@ -4,8 +4,11 @@ use std::collections::BTreeMap;
 use std::error::Error as StdError;
 use std::rc::{Rc};
 
-#[derive(Clone)]
 pub struct GoPtrKey<T>(pub Rc<RefCell<Option<T>>>);
+
+impl<T> Clone for GoPtrKey<T> {
+    fn clone(&self) -> Self { GoPtrKey(self.0.clone()) }
+}
 
 impl<T> GoPtrKey<T> {
     pub fn new(value: Rc<RefCell<Option<T>>>) -> Self { GoPtrKey(value) }

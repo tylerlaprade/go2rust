@@ -31,8 +31,11 @@ where
     }
 }
 
-#[derive(Clone)]
 pub struct GoLocalPtrKey<T>(pub Rc<RefCell<Option<T>>>);
+
+impl<T> Clone for GoLocalPtrKey<T> {
+    fn clone(&self) -> Self { GoLocalPtrKey(self.0.clone()) }
+}
 
 impl<T> GoLocalPtrKey<T> {
     pub fn new(value: Rc<RefCell<Option<T>>>) -> Self { GoLocalPtrKey(value) }
