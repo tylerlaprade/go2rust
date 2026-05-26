@@ -1,5 +1,37 @@
 #!/bin/bash
 
+# Centralized cleanup so the lock and the shard dir share one EXIT trap.
+LOCK_DIR=""
+SHARD_DIR=""
+_test_sh_cleanup() {
+    [ -n "$LOCK_DIR" ] && rm -rf "$LOCK_DIR"
+    [ -n "$SHARD_DIR" ] && rm -rf "$SHARD_DIR"
+}
+trap _test_sh_cleanup EXIT
+
+# Single-instance lock. Concurrent ./test.sh runs would corrupt the in-place
+# tests.bats rewrite below and the startup sweep would clobber active per-test
+# workspaces. mkdir is atomic. The lock dir name avoids the 'go2rust-test.*'
+# prefix so the sweep glob below can't match it.
+LOCK_DIR="${TMPDIR:-/tmp}/go2rust-test-sh.lock"
+if ! mkdir "$LOCK_DIR" 2>/dev/null; then
+    holder=""
+    [ -r "$LOCK_DIR/pid" ] && holder=$(cat "$LOCK_DIR/pid" 2>/dev/null)
+    if [ -n "$holder" ] && kill -0 "$holder" 2>/dev/null; then
+        echo "Error: another ./test.sh is running (pid $holder). Wait for it to finish or kill it." >&2
+        LOCK_DIR=""
+        exit 1
+    fi
+    # Stale lock from a prior run that didn't release (SIGKILL/OOM).
+    rm -rf "$LOCK_DIR"
+    if ! mkdir "$LOCK_DIR" 2>/dev/null; then
+        echo "Error: failed to acquire $LOCK_DIR" >&2
+        LOCK_DIR=""
+        exit 1
+    fi
+fi
+echo $$ > "$LOCK_DIR/pid"
+
 # Generate test cases and update the GENERATED TESTS section in tests.bats
 
 # Create temporary file for new test cases
@@ -185,6 +217,11 @@ else
 fi
 export GO2RUST_TEST_BINARY_READY=1
 
+# Sweep stale per-test workspaces left over from prior runs killed via SIGKILL
+# (OOM, kill -9, etc.) — SIGKILL bypasses the run_test EXIT trap. Project rule:
+# only one ./test.sh runs at a time, so anything matching is guaranteed stale.
+find "${TMPDIR:-/tmp}" -maxdepth 1 \( -name 'go2rust-test.*' -o -name 'go2rust-bats-shards.*' \) -type d -prune -exec rm -rf {} + 2>/dev/null
+
 # Set default job count if not specified
 if [ -z "$JOBS" ]; then
     # Detect CPU cores but leave some headroom for Rust's memory usage
@@ -357,7 +394,6 @@ if [ "$JOBS" -eq 1 ]; then
 else
     echo "Running tests in parallel with $JOBS jobs (timeout: $TIMEOUT per test)..."
     SHARD_DIR=$(mktemp -d "${TMPDIR:-/tmp}/go2rust-bats-shards.XXXXXX")
-    trap 'if [ -n "$SHARD_DIR" ]; then rm -rf "$SHARD_DIR"; fi' EXIT
     create_bats_shards "$SHARD_DIR" "$JOBS"
     BATS_ARGS+=(-j "$JOBS")
     BATS_TARGETS=("$SHARD_DIR"/tests-shard-*.bats)
