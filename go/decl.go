@@ -1817,6 +1817,14 @@ func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.Fi
 	activeMutexGuards = make(map[string]string)
 	defer func() { activeMutexGuards = oldActiveMutexGuards }()
 
+	oldFunctionBodyLbrace := currentFunctionBodyLbrace
+	if fn.Body != nil {
+		currentFunctionBodyLbrace = fn.Body.Lbrace
+	} else {
+		currentFunctionBodyLbrace = token.NoPos
+	}
+	defer func() { currentFunctionBodyLbrace = oldFunctionBodyLbrace }()
+
 	// Initialize defer stack if needed
 	if hasDefer {
 		out.WriteString("    let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();\n")
@@ -3734,6 +3742,9 @@ func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, a
 		oldFunctionHasDefer := currentFunctionHasDefer
 		currentFunctionHasDefer = hasDefer
 		defer func() { currentFunctionHasDefer = oldFunctionHasDefer }()
+		oldFunctionBodyLbrace := currentFunctionBodyLbrace
+		currentFunctionBodyLbrace = fn.Body.Lbrace
+		defer func() { currentFunctionBodyLbrace = oldFunctionBodyLbrace }()
 		oldActiveMutexGuards := activeMutexGuards
 		activeMutexGuards = make(map[string]string)
 		defer func() { activeMutexGuards = oldActiveMutexGuards }()

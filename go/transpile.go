@@ -37,6 +37,13 @@ var currentTypeMethods = []*ast.FuncDecl{}
 // currentFunctionHasDefer tracks if the current function has defer statements
 var currentFunctionHasDefer bool
 
+// currentFunctionBodyLbrace records the position of the current function body's
+// opening brace. Names declared at positions greater than this are body locals;
+// names declared earlier (params, receivers, outer scopes) are not. We need
+// this distinction because tail-expression temporaries outlive `let`-declared
+// locals but drop before parameters.
+var currentFunctionBodyLbrace token.Pos
+
 // activeMutexGuards tracks sync.Mutex Lock statement guards by receiver syntax
 // so a direct Unlock statement can drop the matching Rust guard at that point.
 var activeMutexGuards = make(map[string]string)

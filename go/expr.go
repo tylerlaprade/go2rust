@@ -652,6 +652,11 @@ func isExpressionResultBare(expr ast.Expr) bool {
 		}
 		_, ok := typeInfo.GetObject(e.Sel).(*types.Const)
 		return ok
+	case *ast.CallExpr:
+		// Calls whose signature has a single bare-scalar result lower to a
+		// bare Rust value at the call site; their consumers must not wrap
+		// the result through .borrow().as_ref().unwrap().
+		return callReturnsBareScalar(e)
 	default:
 		return false
 	}

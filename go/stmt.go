@@ -45,17 +45,56 @@ func expressionReadsWrappedLocal(expr ast.Expr) bool {
 		if !ok {
 			return true
 		}
-		info := lookupVarInfo(ident.Name)
-		if info == nil || info.Source != SourceLocal {
-			return true
+		if identIsWrappedFunctionLocal(ident) {
+			found = true
+			return false
 		}
-		if info.WrapLevel == WrapNone {
-			return true
-		}
-		found = true
-		return false
+		return true
 	})
 	return found
+}
+
+// identIsWrappedFunctionLocal reports whether `ident` resolves to a variable
+// declared inside the current function body whose generated Rust value uses
+// the wrapper shape (Rc/Arc<RefCell/Mutex<Option<T>>>). Such reads in tail
+// position produce Ref temporaries that outlive the local under Rust's
+// tail-expression scoping rules, so the caller can fall back to an explicit
+// `return X;` to keep the temporary scoped to the statement.
+func identIsWrappedFunctionLocal(ident *ast.Ident) bool {
+	if ident == nil || ident.Name == "_" {
+		return false
+	}
+	if info := lookupVarInfo(ident.Name); info != nil {
+		return info.Source == SourceLocal && info.WrapLevel != WrapNone
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return false
+	}
+	obj := typeInfo.info.Uses[ident]
+	if obj == nil {
+		obj = typeInfo.info.Defs[ident]
+	}
+	v, ok := obj.(*types.Var)
+	if !ok || v == nil || v.IsField() {
+		return false
+	}
+	// Package globals are not function locals.
+	if v.Pkg() != nil && v.Parent() == v.Pkg().Scope() {
+		return false
+	}
+	// Names declared at or before the function body's opening brace are
+	// parameters, receivers, or enclosing-scope variables — they drop after
+	// the tail expression's temporaries, so they are safe.
+	if !currentFunctionBodyLbrace.IsValid() || v.Pos() <= currentFunctionBodyLbrace {
+		return false
+	}
+	// A local with a predeclared Copy scalar type lowers to a bare Rust
+	// value, so no Ref temporary is created when reading it.
+	if typeIsPredeclaredCopyScalar(v.Type()) {
+		return false
+	}
+	return true
 }
 
 // namedReturnsUnwrapBareScalar reports whether the function has at least one
@@ -106,6 +145,23 @@ func registerBareShortDecl(lhs ast.Expr) {
 			Source:    SourceLocal,
 		})
 	}
+}
+
+func writeBareScalarCallAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
+	ident, ok := lhs.(*ast.Ident)
+	if !ok || !isVarBare(ident.Name) {
+		return false
+	}
+	call, ok := rhs.(*ast.CallExpr)
+	if !ok || !callReturnsBareScalar(call) {
+		return false
+	}
+	out.WriteString("{ let new_val = ")
+	TranspileExpression(out, rhs)
+	out.WriteString("; ")
+	TranspileExpressionContext(out, lhs, LValue)
+	out.WriteString(" = new_val; }")
+	return true
 }
 
 func compositeLiteralEmitsBareStructValue(lit *ast.CompositeLit) bool {
@@ -159,6 +215,10 @@ func writeArraySliceElementAssignmentValue(out *strings.Builder, rhs ast.Expr, e
 	if call, ok := rhs.(*ast.CallExpr); ok {
 		typeInfo := GetTypeInfo()
 		if appendCallReturnsBareIndexedSlice(call) {
+			needsUnwrap = false
+		} else if callReturnsBareScalar(call) {
+			// Calls whose generated signature already returns a bare scalar
+			// don't need .borrow().as_ref().unwrap() at the assignment site.
 			needsUnwrap = false
 		} else if typeInfo != nil && typeInfo.ReturnsWrappedValue(call) && (!typeInfo.IsTypeConversion(call) || typeConversionEmitsWrappedValue(call)) {
 			needsUnwrap = true
@@ -5237,7 +5297,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				out.WriteString("        }\n")
 				out.WriteString("        return ")
 				writeNamedReturnValuesWithBlankTemps(out, fnType, blankTemps)
-				out.WriteString("\n    }")
+				out.WriteString(";\n    }")
 				break
 			}
 			for i, result := range s.Results {
@@ -5277,7 +5337,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			out.WriteString("        }\n")
 			out.WriteString("        return ")
 			writeNamedReturnValuesWithBlankTemps(out, fnType, blankTemps)
-			out.WriteString("\n    }")
+			out.WriteString(";\n    }")
 			break
 		}
 
@@ -5768,7 +5828,11 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 		// Close the defer execution block if needed
 		if currentFunctionHasDefer {
-			out.WriteString("\n    }")
+			// The `;` after `return X` keeps the return value's temporaries
+			// scoped to the statement so the surrounding wrapped locals can
+			// drop afterward. Without it the block's tail expression rules
+			// extend Refs past the locals they borrow from.
+			out.WriteString(";\n    }")
 		} else if !tailReturn {
 			out.WriteString(";")
 		}
@@ -6197,6 +6261,11 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							if writeBareBuiltinShortDeclInitializer(out, call, s.Lhs[i]) {
 								continue
 							}
+							if callReturnsBareScalar(call) {
+								registerBareShortDecl(s.Lhs[i])
+								TranspileExpression(out, call)
+								continue
+							}
 							// Function calls already return wrapped values
 							writeCallExpressionForInitializer(out, call)
 						} else if _, isSlice := rhs.(*ast.SliceExpr); isSlice {
@@ -6343,6 +6412,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									// Slice assignment replaces the handle to preserve slice-header aliasing.
 								} else if writeBareRangeVarAssignment(out, s.Lhs[0], s.Rhs[0]) {
 									// Assigned range variables are local bare Rust bindings, not wrapper handles.
+								} else if writeBareScalarCallAssignment(out, s.Lhs[0], s.Rhs[0]) {
+									// Bare scalar locals stay bare when reassigned from bare scalar calls.
 								} else if writeLocalInterfaceHandleAssignment(out, s.Lhs[0], s.Rhs[0]) {
 									// Local interface assignment copies the existing interface handle.
 								} else if writeStdlibInterfaceAssignment(out, s.Lhs[0], s.Rhs[0]) {
@@ -6740,6 +6811,11 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 												registerCallResultSyntaxInfo(s.Lhs[i], callExpr)
 											}
 											if len(s.Lhs) == 1 && writeBareBuiltinShortDeclInitializer(out, callExpr, s.Lhs[0]) {
+												continue
+											}
+											if len(s.Lhs) == 1 && callReturnsBareScalar(callExpr) {
+												registerBareShortDecl(s.Lhs[0])
+												TranspileExpression(out, callExpr)
 												continue
 											}
 											// len()/cap() return bare primitives — register LHS as bare

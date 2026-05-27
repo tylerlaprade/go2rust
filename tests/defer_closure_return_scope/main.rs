@@ -18,7 +18,7 @@ pub fn run() -> i32 {
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return (*result.borrow().as_ref().unwrap())
+        return (*result.borrow().as_ref().unwrap());
     }
 }
 

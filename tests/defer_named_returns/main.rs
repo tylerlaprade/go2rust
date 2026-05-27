@@ -36,7 +36,7 @@ impl counter {
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return (*result.borrow().as_ref().unwrap())
+        return (*result.borrow().as_ref().unwrap());
     }
     }
 }
@@ -57,7 +57,7 @@ pub fn compute() -> i32 {
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return (*result.borrow().as_ref().unwrap())
+        return (*result.borrow().as_ref().unwrap());
     }
 }
 
@@ -77,7 +77,7 @@ pub fn decorate() -> Rc<RefCell<Option<String>>> {
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return msg
+        return msg;
     }
 }
 

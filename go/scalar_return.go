@@ -226,8 +226,9 @@ func callReturnsBareScalar(call *ast.CallExpr) bool {
 
 // callUsesGeneratedReturnSignature returns true for calls whose callee
 // signature is mirrored directly in generated Rust: user/source-mapped
-// functions and external package stubs. It excludes predeclared builtins and
-// stdlib calls that go through custom handlers.
+// functions, external package stubs, and calls through function-typed
+// values (closures, function parameters, function fields). It excludes
+// predeclared builtins and stdlib calls that go through custom handlers.
 func callUsesGeneratedReturnSignature(call *ast.CallExpr) bool {
 	if call == nil {
 		return false
@@ -239,21 +240,35 @@ func callUsesGeneratedReturnSignature(call *ast.CallExpr) bool {
 	if typeInfo == nil || typeInfo.info == nil {
 		return false
 	}
-	fn, ok := callFunctionObjectFromTypeInfo(typeInfo, call)
-	if !ok || fn == nil {
+	if fn, ok := callFunctionObjectFromTypeInfo(typeInfo, call); ok && fn != nil {
+		if fn.Pkg() == nil {
+			return false
+		}
+		if fn.Pkg() == typeInfo.pkg {
+			return true
+		}
+		pkgPath := fn.Pkg().Path()
+		if !isStdlibPackage(pkgPath) || isSourceMappedPackagePath(pkgPath) {
+			return true
+		}
+		return isStubBackedStdlibPackagePath(pkgPath)
+	}
+	// Calls through function-typed values (closures, params, function-type
+	// fields) lower to `(*__f)(args)` against a generated `Box<dyn Fn...>`
+	// whose return slot follows the same bare-scalar rule as direct calls.
+	return callIsThroughFunctionValue(typeInfo, call)
+}
+
+func callIsThroughFunctionValue(typeInfo *TypeInfo, call *ast.CallExpr) bool {
+	if typeInfo == nil || typeInfo.info == nil || call == nil {
 		return false
 	}
-	if fn.Pkg() == nil {
+	t := typeInfo.GetType(call.Fun)
+	if t == nil {
 		return false
 	}
-	if fn.Pkg() == typeInfo.pkg {
-		return true
-	}
-	pkgPath := fn.Pkg().Path()
-	if !isStdlibPackage(pkgPath) || isSourceMappedPackagePath(pkgPath) {
-		return true
-	}
-	return isStubBackedStdlibPackagePath(pkgPath)
+	_, ok := types.Unalias(t).Underlying().(*types.Signature)
+	return ok
 }
 
 func callFunctionObjectFromTypeInfo(typeInfo *TypeInfo, call *ast.CallExpr) (*types.Func, bool) {

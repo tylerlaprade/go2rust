@@ -725,6 +725,54 @@ func paramsOnly(a, b int) (int, int) {
 	}
 }
 
+func TestDeferReturnEmitsTrailingSemicolonForBareScalarReturn(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+func run() (result int) {
+	defer func() {
+		result = 7
+		return
+	}()
+	return 3
+}
+
+func main() {
+	fmt.Println(run())
+}
+`)
+
+	if !strings.Contains(rust, "return (*result.borrow().as_ref().unwrap());") {
+		t.Fatalf("defer-block return reading a wrapped bare-scalar local must end with `;` so its temporaries drop before the local:\n%s", rust)
+	}
+}
+
+func TestShortDeclFromBareScalarCallRegistersBareLocal(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func indexByte(s string, c byte) int {
+	return 0
+}
+
+func parse(env string) {
+	i := indexByte(env, ',')
+	if i < 0 {
+		return
+	}
+	i = indexByte(env, '=')
+	_ = env[:i]
+}
+`)
+
+	if strings.Contains(rust, "i.borrow()") || strings.Contains(rust, "i.lock()") {
+		t.Fatalf("short-declared bare scalar call result should stay bare on later uses:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let mut i = index_byte") {
+		t.Fatalf("short declaration from bare scalar call should initialize a bare local:\n%s", rust)
+	}
+}
+
 func TestRangeIndexReturnedFromBareScalarTupleSlotCastsToI32(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

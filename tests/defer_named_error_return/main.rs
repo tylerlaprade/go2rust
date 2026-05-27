@@ -20,7 +20,7 @@ pub fn compute() -> (i32, Rc<RefCell<Option<Box<dyn StdError>>>>) {
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return ((*result.borrow().as_ref().unwrap()), err)
+        return ((*result.borrow().as_ref().unwrap()), err);
     }
 }
 
