@@ -8615,7 +8615,7 @@ func pointerTypeExprTarget(expr ast.Expr) (ast.Expr, bool) {
 		return nil, false
 	}
 	switch star.X.(type) {
-	case *ast.Ident, *ast.SelectorExpr, *ast.StructType, *ast.IndexExpr, *ast.IndexListExpr:
+	case *ast.Ident, *ast.SelectorExpr, *ast.StructType, *ast.ArrayType, *ast.IndexExpr, *ast.IndexListExpr:
 		return star.X, true
 	}
 	return nil, false

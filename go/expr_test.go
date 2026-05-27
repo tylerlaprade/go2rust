@@ -1425,6 +1425,26 @@ func elem(t *Type) *int {
 	}
 }
 
+func TestUnsafePointerToArrayConversionForSliceDoesNotIndexRawPointer(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "unsafe"
+
+type Method struct{}
+
+func methods(p unsafe.Pointer, n int) []Method {
+	return (*[1 << 4]Method)(p)[:n:n]
+}
+`)
+
+	if strings.Contains(rust, "let __seq_holder = p.clone()") {
+		t.Fatalf("unsafe.Pointer to array conversion should not expose the raw pointer handle to slicing:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Some::<[Method; 16]>(unimplemented!(\"unsafe.Pointer conversion to [Method; 16]\"))") {
+		t.Fatalf("unsafe.Pointer to array conversion should emit a typed unsupported array pointee:\n%s", rust)
+	}
+}
+
 func TestUintptrConversionFromUnsafePointerIdentifierUsesHandle(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
