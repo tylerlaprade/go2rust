@@ -1,8 +1,8 @@
 [package]
-name = "fprintf_user_defined_writer"
+name = "transpiled"
 version = "0.1.0"
 edition = "2021"
 
 [[bin]]
-name = "fprintf_user_defined_writer"
+name = "transpiled"
 path = "main.rs"

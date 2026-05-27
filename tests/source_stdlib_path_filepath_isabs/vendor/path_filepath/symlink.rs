@@ -101,7 +101,7 @@ pub fn walk_symlinks(mut path: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<
         return (Arc::new(Mutex::new(Some("".to_string()))), err.clone());
     }
 
-        if { let __v = (*isWindowsDot.lock().unwrap().as_ref().unwrap()).clone(); __v } && !(*is_abs(Arc::new(Mutex::new(Some({ let __arg_holder = link.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))).lock().unwrap().as_ref().unwrap()) {
+        if { let __v = (*isWindowsDot.lock().unwrap().as_ref().unwrap()).clone(); __v } && !is_abs(Arc::new(Mutex::new(Some({ let __arg_holder = link.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))) {
                 // On Windows, if "." is a relative symlink,
                 // just return ".".
         break

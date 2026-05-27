@@ -104,6 +104,35 @@ func identIsWrappedFunctionLocal(ident *ast.Ident) bool {
 	return true
 }
 
+func fnHasMultipleResultSlots(fnType *ast.FuncType) bool {
+	if fnType == nil || fnType.Results == nil {
+		return false
+	}
+	total := 0
+	for _, result := range fnType.Results.List {
+		count := len(result.Names)
+		if count == 0 {
+			count = 1
+		}
+		total += count
+		if total > 1 {
+			return true
+		}
+	}
+	return false
+}
+
+func callReturnsMultipleResults(call *ast.CallExpr) bool {
+	if call == nil {
+		return false
+	}
+	sig, ok := callSignatureFromTypeInfo(call)
+	if !ok || sig.Results() == nil {
+		return false
+	}
+	return sig.Results().Len() > 1
+}
+
 // returnExpressionEmissionStartsWithBlock reports whether the given return
 // value would emit Rust source that starts with `{`. Such expressions are
 // ambiguous when used as a tail expression: Rust parses the leading `{` as a
@@ -5439,6 +5468,22 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			needsTuple := len(s.Results) > 1
 			if needsTuple {
 				out.WriteString("(")
+			}
+
+			// `return multiResultCall(...)` keeps a single Result expression
+			// whose tuple already matches the function's multi-slot signature.
+			// Emit the call directly so its tuple becomes the return value;
+			// the per-slot wrap/unwrap helpers below assume one value per slot.
+			if len(s.Results) == 1 && fnHasMultipleResultSlots(fnType) {
+				if call, ok := s.Results[0].(*ast.CallExpr); ok && callReturnsMultipleResults(call) {
+					TranspileExpression(out, call)
+					if currentFunctionHasDefer {
+						out.WriteString(";\n    }")
+					} else if !tailReturn {
+						out.WriteString(";")
+					}
+					break
+				}
 			}
 
 			for i, result := range s.Results {

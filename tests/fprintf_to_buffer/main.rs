@@ -184,7 +184,7 @@ impl bytes_Buffer {
 /// to `print!(...)` which returns () and the destructure fails.
 fn main() {
     let mut buf: Rc<RefCell<Option<bytes_Buffer>>> = Rc::new(RefCell::new(Some(Default::default())));
-    let (mut n, mut err) = { let __s = format!("answer={}", 42); let __n = __s.len() as i32; (*buf.clone().borrow().as_ref().unwrap()).__go_write_bytes(__s.as_bytes()); (Rc::new(RefCell::new(Some::<i32>(__n))), Rc::new(RefCell::new(None::<Box<dyn StdError>>))) };
+    let (mut n, mut err) = { let __s = format!("answer={}", 42); let __n = __s.len() as i32; (*buf.clone().borrow().as_ref().unwrap()).__go_write_bytes(__s.as_bytes()); (__n, Rc::new(RefCell::new(None::<Box<dyn StdError>>))) };
     if (*err.borrow()).is_some() {
         println!("{} {}", format!("{}", "err:".to_string()), format!("{}", format!("{}", (*err.borrow().as_ref().unwrap()))));
         return;

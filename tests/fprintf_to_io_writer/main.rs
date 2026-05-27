@@ -288,7 +288,7 @@ impl std::fmt::Display for printer {
 
 impl printer {
     pub fn write(&self, s: Rc<RefCell<Option<String>>>) -> (i32, Rc<RefCell<Option<Box<dyn StdError>>>>) {
-        let (mut n, mut err) = { let __s = format!("{}", { let __v = (*s.borrow().as_ref().unwrap()).clone(); __v }); let __n = __s.len() as i32; (*self.output.borrow().as_ref().unwrap()).__go_write_bytes(__s.as_bytes()); (Rc::new(RefCell::new(Some::<i32>(__n))), Rc::new(RefCell::new(None::<Box<dyn StdError>>))) };
+        let (mut n, mut err) = { let __s = format!("{}", { let __v = (*s.borrow().as_ref().unwrap()).clone(); __v }); let __n = __s.len() as i32; (*self.output.borrow().as_ref().unwrap()).__go_write_bytes(__s.as_bytes()); (__n, Rc::new(RefCell::new(None::<Box<dyn StdError>>))) };
         return (n, err.clone());
     }
 }

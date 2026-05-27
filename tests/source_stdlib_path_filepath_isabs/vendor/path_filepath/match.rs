@@ -320,7 +320,7 @@ pub fn glob_with_limit(pattern: Arc<Mutex<Option<String>>>, depth: Arc<Mutex<Opt
             return (Arc::new(Mutex::new(None)), err.clone());;
         }
     }
-    if !(*has_meta(Arc::new(Mutex::new(Some({ let __arg_holder = pattern.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))).lock().unwrap().as_ref().unwrap()) {
+    if !has_meta(Arc::new(Mutex::new(Some({ let __arg_holder = pattern.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))) {
         {
         { let (__tmp_0, __tmp_1) = os::lstat(pattern.clone()); let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1; };;
         if (*err.lock().unwrap()).is_some() {
@@ -338,7 +338,7 @@ pub fn glob_with_limit(pattern: Arc<Mutex<Option<String>>>, depth: Arc<Mutex<Opt
         { let new_val = clean_glob_path(Arc::new(Mutex::new(Some({ let __arg_holder = dir.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *dir.lock().unwrap() = __moved_val; };
     }
 
-    if !(*has_meta(Arc::new(Mutex::new(Some({ let __s = &((*dir.lock().unwrap().as_ref().unwrap()).clone()); __s[({ let __v = (*volumeLen.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize..].to_string() })))).lock().unwrap().as_ref().unwrap()) {
+    if !has_meta(Arc::new(Mutex::new(Some({ let __s = &((*dir.lock().unwrap().as_ref().unwrap()).clone()); __s[({ let __v = (*volumeLen.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize..].to_string() })))) {
         return glob_1(Arc::new(Mutex::new(Some({ let __arg_holder = dir.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = file.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(None)));
     }
 

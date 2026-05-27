@@ -41,7 +41,7 @@ impl Label {
     }
 
     pub fn format(&self) -> Rc<RefCell<Option<String>>> {
-        if !(*self.valid().borrow().as_ref().unwrap()) {
+        if !self.valid() {
         return Rc::new(RefCell::new(Some("nil".to_string())));
     }
         self.echo(Rc::new(RefCell::new(Some(self.clone()))))

@@ -646,6 +646,58 @@ func choose(v int) int {
 	}
 }
 
+func TestTailReturnStartingWithConcurrentBlockStaysExplicit(t *testing.T) {
+	src := `package main
+
+func both(a, b, c, d int) bool {
+	go func() {}()
+	return a == b && c == d
+}
+`
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", src, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(main.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+	prevDetector := GetConcurrencyDetector()
+	detector := NewConcurrencyDetector()
+	detector.AnalyzeFile(file)
+	SetConcurrencyDetector(detector)
+	defer SetConcurrencyDetector(prevDetector)
+
+	rust := transpileParsedRegression(t, file, fset, typeInfo)
+
+	if !strings.Contains(rust, "return { let __tmp_x =") || !strings.Contains(rust, "} && { let __tmp_x =") {
+		t.Fatalf("tail return whose expression starts with a Rust block should stay explicit:\n%s", rust)
+	}
+}
+
+func TestBareBoolCallConditionStaysBare(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func ok() bool {
+	return true
+}
+
+func run() {
+	if ok() {
+		return
+	}
+}
+`)
+
+	if !strings.Contains(rust, "if ok() {") {
+		t.Fatalf("bare bool-returning call should be used directly in conditions:\n%s", rust)
+	}
+	if strings.Contains(rust, "ok().borrow()") || strings.Contains(rust, "ok().lock()") {
+		t.Fatalf("bare bool-returning call should not be unwrapped as a wrapped handle:\n%s", rust)
+	}
+}
+
 func TestTupleAssignmentFromBareScalarReturnSlots(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

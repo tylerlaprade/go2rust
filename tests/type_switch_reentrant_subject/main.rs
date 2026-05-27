@@ -27,7 +27,7 @@ pub fn classify(v: Rc<RefCell<Option<Box<dyn Any>>>>) -> Rc<RefCell<Option<Strin
     let _ts_val: Option<&dyn Any> = _ts_guard.as_ref().map(|__v| __v.as_ref() as &dyn Any);
     if _ts_val.and_then(|__v| __v.downcast_ref::<String>()).is_some() {
         drop(_ts_guard);
-        if (*is_string(v.clone()).borrow().as_ref().unwrap()) {
+        if is_string(v.clone()) {
         return Rc::new(RefCell::new(Some("string".to_string())));
     };
     } else {

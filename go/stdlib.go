@@ -1179,9 +1179,7 @@ func writeFprintfByteWriterTuple(out *strings.Builder, call *ast.CallExpr) {
 	out.WriteString("; let __n = __s.len() as i32; (*")
 	TranspileExpressionContext(out, call.Args[0], LValue)
 	WriteBorrowMethod(out, false)
-	out.WriteString(".as_ref().unwrap()).__go_write_bytes(__s.as_bytes()); (")
-	out.WriteString(wrappedExternalStubExpr("i32", "__n"))
-	out.WriteString(", ")
+	out.WriteString(".as_ref().unwrap()).__go_write_bytes(__s.as_bytes()); (__n, ")
 	out.WriteString(wrappedExternalStubNoneExpr(errorInner))
 	out.WriteString(") }")
 }

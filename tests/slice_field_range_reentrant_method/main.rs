@@ -73,7 +73,7 @@ impl holder {
     pub fn count_with_check(&self) -> i32 {
         let mut count = Rc::new(RefCell::new(Some(0)));
         { let __range_holder = self.values.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for _ in __range_values.iter() {
-        if (*self.has_values().borrow().as_ref().unwrap()) {
+        if self.has_values() {
         { let mut guard = count.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
     } }

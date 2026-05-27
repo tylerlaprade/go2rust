@@ -210,7 +210,7 @@ pub fn abs(path: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<String>>>, Arc
 }
 
 pub fn unix_abs(path: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<String>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
-    if (*is_abs(Arc::new(Mutex::new(Some({ let __arg_holder = path.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))).lock().unwrap().as_ref().unwrap()) {
+    if is_abs(Arc::new(Mutex::new(Some({ let __arg_holder = path.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))) {
         return (clean(Arc::new(Mutex::new(Some({ let __arg_holder = path.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))), Arc::new(Mutex::new(None)));
     }
     let (mut wd, mut err) = os::getwd();
@@ -233,7 +233,7 @@ pub fn rel(basepath: Arc<Mutex<Option<String>>>, targpath: Arc<Mutex<Option<Stri
     let mut targVol = volume_name(Arc::new(Mutex::new(Some({ let __arg_holder = targpath.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
     let mut base = clean(Arc::new(Mutex::new(Some({ let __arg_holder = basepath.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
     let mut targ = clean(Arc::new(Mutex::new(Some({ let __arg_holder = targpath.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
-    if (*same_word(Arc::new(Mutex::new(Some({ let __arg_holder = targ.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = base.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))).lock().unwrap().as_ref().unwrap()) {
+    if same_word(Arc::new(Mutex::new(Some({ let __arg_holder = targ.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = base.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))) {
         return (Arc::new(Mutex::new(Some(".".to_string()))), Arc::new(Mutex::new(None)));
     }
     { let new_val = Arc::new(Mutex::new(Some({ let __s = &((*base.lock().unwrap().as_ref().unwrap()).clone()); __s[((*baseVol.lock().unwrap().as_ref().unwrap()).len()) as usize..].to_string() }))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *base.lock().unwrap() = __moved_val; };
@@ -249,7 +249,7 @@ pub fn rel(basepath: Arc<Mutex<Option<String>>>, targpath: Arc<Mutex<Option<Stri
         // Can't use IsAbs - `\a` and `a` are both relative in Windows.
     let mut baseSlashed = Arc::new(Mutex::new(Some({ let __tmp_x = ((*base.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = (0 as i32); __tmp_x > __tmp_y } && { let __tmp_x = { let __s = &((*base.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(0) as usize] }; let __tmp_y = SEPARATOR as u8; __tmp_x == __tmp_y })));
     let mut targSlashed = Arc::new(Mutex::new(Some({ let __tmp_x = ((*targ.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = (0 as i32); __tmp_x > __tmp_y } && { let __tmp_x = { let __s = &((*targ.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(0) as usize] }; let __tmp_y = SEPARATOR as u8; __tmp_x == __tmp_y })));
-    if { let __tmp_x = { let __v = (*baseSlashed.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*targSlashed.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x != __tmp_y } || !(*same_word(Arc::new(Mutex::new(Some({ let __arg_holder = baseVol.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = targVol.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))).lock().unwrap().as_ref().unwrap()) {
+    if { let __tmp_x = { let __v = (*baseSlashed.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*targSlashed.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x != __tmp_y } || !same_word(Arc::new(Mutex::new(Some({ let __arg_holder = baseVol.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = targVol.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))) {
         return (Arc::new(Mutex::new(Some("".to_string()))), Arc::new(Mutex::new(Some(Box::<dyn std::error::Error + Send + Sync>::from(format!("{}{}", format!("{}{}", format!("{}{}", "Rel: can't make ".to_string(), { let __v = (*targpath.lock().unwrap().as_ref().unwrap()).clone(); __v }), " relative to ".to_string()), { let __v = (*basepath.lock().unwrap().as_ref().unwrap()).clone(); __v }))))));
     }
 
@@ -264,7 +264,7 @@ pub fn rel(basepath: Arc<Mutex<Option<String>>>, targpath: Arc<Mutex<Option<Stri
         while { let __tmp_x = { let __v = (*ti.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*tl.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x < __tmp_y } && { let __tmp_x = { let __s = &((*targ.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[({ let __v = (*ti.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] }; let __tmp_y = SEPARATOR as u8; __tmp_x != __tmp_y } {
         { let mut guard = ti.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
-        if !(*same_word(Arc::new(Mutex::new(Some({ let __s = &((*targ.lock().unwrap().as_ref().unwrap()).clone()); __s[({ let __v = (*t0.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize..({ let __v = (*ti.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].to_string() }))), Arc::new(Mutex::new(Some({ let __s = &((*base.lock().unwrap().as_ref().unwrap()).clone()); __s[({ let __v = (*b0.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize..({ let __v = (*bi.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].to_string() })))).lock().unwrap().as_ref().unwrap()) {
+        if !same_word(Arc::new(Mutex::new(Some({ let __s = &((*targ.lock().unwrap().as_ref().unwrap()).clone()); __s[({ let __v = (*t0.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize..({ let __v = (*ti.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].to_string() }))), Arc::new(Mutex::new(Some({ let __s = &((*base.lock().unwrap().as_ref().unwrap()).clone()); __s[({ let __v = (*b0.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize..({ let __v = (*bi.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].to_string() })))) {
         break
     }
         if { let __tmp_x = { let __v = (*bi.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*bl.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x < __tmp_y } {
