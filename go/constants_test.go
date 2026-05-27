@@ -114,6 +114,25 @@ const Int64Align = PtrSize
 	}
 }
 
+func TestConstDeclUnsafeSizeofEmitsBareSizeof(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "unsafe"
+
+type ctrlGroup uint64
+
+const ctrlGroupsSize = unsafe.Sizeof(ctrlGroup(0))
+`)
+
+	if !strings.Contains(rust, "pub(crate) const CTRL_GROUPS_SIZE: usize = std::mem::size_of::<ctrlGroup>();") {
+		t.Fatalf("unsafe.Sizeof const initializer should emit a bare Rust const expression:\n%s", rust)
+	}
+	if strings.Contains(rust, "CTRL_GROUPS_SIZE: usize = Arc::new") ||
+		strings.Contains(rust, "CTRL_GROUPS_SIZE: usize = Rc::new") {
+		t.Fatalf("unsafe.Sizeof const initializer must not emit runtime wrappers:\n%s", rust)
+	}
+}
+
 func TestConstDeclUsesUntypedBoolTypeInfo(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

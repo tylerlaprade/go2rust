@@ -3033,6 +3033,9 @@ func TranspileConstExpr(out *strings.Builder, expr ast.Expr, iotaValue int) {
 	case *ast.UnaryExpr:
 		writeConstUnaryExpr(out, e, iotaValue)
 	case *ast.CallExpr:
+		if writeConstUnsafeTypeSizeCall(out, e) {
+			return
+		}
 		if !writeConstTypeConversion(out, e, iotaValue) {
 			TranspileExpression(out, expr)
 		}
@@ -3055,6 +3058,56 @@ func writeConstUnaryExpr(out *strings.Builder, expr *ast.UnaryExpr, iotaValue in
 	default:
 		TranspileExpression(out, expr)
 	}
+}
+
+func writeConstUnsafeTypeSizeCall(out *strings.Builder, call *ast.CallExpr) bool {
+	key, ok := stdlibCallKey(call.Fun)
+	if !ok {
+		return false
+	}
+
+	var goFunc string
+	var rustFunc string
+	switch key {
+	case "unsafe.Sizeof":
+		goFunc = "Sizeof"
+		rustFunc = "size_of"
+	case "unsafe.Alignof":
+		goFunc = "Alignof"
+		rustFunc = "align_of"
+	default:
+		return false
+	}
+
+	if len(call.Args) == 0 {
+		out.WriteString("/* ERROR: unsafe.")
+		out.WriteString(goFunc)
+		out.WriteString(" requires an argument */ unimplemented!()")
+		return true
+	}
+
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		out.WriteString("unimplemented!(\"type info required for unsafe.")
+		out.WriteString(goFunc)
+		out.WriteString("\")")
+		return true
+	}
+
+	argType := typeInfo.GetType(call.Args[0])
+	if argType == nil {
+		out.WriteString("unimplemented!(\"type info required for unsafe.")
+		out.WriteString(goFunc)
+		out.WriteString("\")")
+		return true
+	}
+
+	out.WriteString("std::mem::")
+	out.WriteString(rustFunc)
+	out.WriteString("::<")
+	out.WriteString(goTypesTypeToRust(argType))
+	out.WriteString(">()")
+	return true
 }
 
 func writeConstTypeConversion(out *strings.Builder, call *ast.CallExpr, iotaValue int) bool {
