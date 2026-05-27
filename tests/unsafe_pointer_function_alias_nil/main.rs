@@ -16,7 +16,7 @@ pub fn r#use() -> Arc<Mutex<Option<String>>> {
     if (*exporterPtr.lock().unwrap()).is_none() {
         return Arc::new(Mutex::new(Some("nil".to_string())));
     }
-    { let __f_holder = ({ let __v = (*exporterPtr.lock().unwrap().as_ref().unwrap()).clone(); __v }); let __f_ptr: *mut Box<dyn FnMut() -> Arc<Mutex<Option<String>>> + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> Arc<Mutex<Option<String>>> + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() }
+    return { let __f_holder = ({ let __v = (*exporterPtr.lock().unwrap().as_ref().unwrap()).clone(); __v }); let __f_ptr: *mut Box<dyn FnMut() -> Arc<Mutex<Option<String>>> + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> Arc<Mutex<Option<String>>> + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
 }
 
 fn main() {

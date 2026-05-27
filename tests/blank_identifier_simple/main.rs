@@ -3,15 +3,14 @@ use std::collections::BTreeMap;
 use std::rc::{Rc};
 
 pub fn multiple_returns() -> (i32, Rc<RefCell<Option<String>>>, bool) {
-
-    return (42, Rc::new(RefCell::new(Some("hello".to_string()))), true);
+    (42, Rc::new(RefCell::new(Some("hello".to_string()))), true)
 }
 
 pub fn named_blank_result() -> (Rc<RefCell<Option<String>>>, bool) {
     let _: Rc<RefCell<Option<String>>> = Rc::new(RefCell::new(Some(String::new())));
     let mut ok: Rc<RefCell<Option<bool>>> = Rc::new(RefCell::new(Some(false)));
 
-    return (Rc::new(RefCell::new(Some("ignored".to_string()))), true);
+    (Rc::new(RefCell::new(Some("ignored".to_string()))), true)
 }
 
 fn main() {

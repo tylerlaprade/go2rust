@@ -211,10 +211,10 @@ pub fn remember(m: Rc<RefCell<Option<BTreeMap<GoLocalPtrKey<types_Package>, Rc<R
         let _ = (*objs.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0);
     }
     let pkgs_closure_clone = pkgs.clone(); sort::slice(pkgs_closure_clone.clone(), Rc::new(RefCell::new(Some(Box::new(move |i: Rc<RefCell<Option<i32>>>, j: Rc<RefCell<Option<i32>>>| -> bool {
-        (*export_path((*pkgs_closure_clone.borrow().as_ref().unwrap())[((*i.borrow().as_ref().unwrap())) as usize].clone()).borrow().as_ref().unwrap()).clone() < (*export_path((*pkgs_closure_clone.borrow().as_ref().unwrap())[((*j.borrow().as_ref().unwrap())) as usize].clone()).borrow().as_ref().unwrap()).clone()
+        return (*export_path((*pkgs_closure_clone.borrow().as_ref().unwrap())[((*i.borrow().as_ref().unwrap())) as usize].clone()).borrow().as_ref().unwrap()).clone() < (*export_path((*pkgs_closure_clone.borrow().as_ref().unwrap())[((*j.borrow().as_ref().unwrap())) as usize].clone()).borrow().as_ref().unwrap()).clone();
     }) as Box<dyn FnMut(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> bool>))));
     let pkgs_closure_clone = pkgs.clone(); let w_closure_clone = w.clone(); sort::slice(pkgs_closure_clone.clone(), Rc::new(RefCell::new(Some(Box::new(move |i: Rc<RefCell<Option<i32>>>, j: Rc<RefCell<Option<i32>>>| -> bool {
-        (*(*w_closure_clone.borrow().as_ref().unwrap()).export_path((*pkgs_closure_clone.borrow().as_ref().unwrap())[((*i.borrow().as_ref().unwrap())) as usize].clone()).borrow().as_ref().unwrap()).clone() < (*(*w_closure_clone.borrow().as_ref().unwrap()).export_path((*pkgs_closure_clone.borrow().as_ref().unwrap())[((*j.borrow().as_ref().unwrap())) as usize].clone()).borrow().as_ref().unwrap()).clone()
+        return (*(*w_closure_clone.borrow().as_ref().unwrap()).export_path((*pkgs_closure_clone.borrow().as_ref().unwrap())[((*i.borrow().as_ref().unwrap())) as usize].clone()).borrow().as_ref().unwrap()).clone() < (*(*w_closure_clone.borrow().as_ref().unwrap()).export_path((*pkgs_closure_clone.borrow().as_ref().unwrap())[((*j.borrow().as_ref().unwrap())) as usize].clone()).borrow().as_ref().unwrap()).clone();
     }) as Box<dyn FnMut(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> bool>))));
     { let __range_holder = pkgs.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for p in __range_values.iter() {
         let _ = export_path((*p).clone());

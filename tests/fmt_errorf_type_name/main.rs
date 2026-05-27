@@ -26,8 +26,7 @@ fn go_type_name(val: &dyn Any) -> &'static str {
 }
 
 pub fn label() -> Rc<RefCell<Option<String>>> {
-
-    return Rc::new(RefCell::new(Some("x".to_string())));
+    Rc::new(RefCell::new(Some("x".to_string())))
 }
 
 fn main() {

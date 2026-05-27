@@ -46,7 +46,7 @@ impl std::fmt::Display for receiver {
 
 impl receiver {
     pub fn is_nil(&self, ptr: Rc<RefCell<Option<item>>>) -> bool {
-        return true;
+        true
     }
 }
 

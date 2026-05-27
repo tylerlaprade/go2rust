@@ -43,8 +43,7 @@ impl std::fmt::Display for entry {
 
 
 pub fn get(e: Arc<Mutex<Option<entry>>>) -> Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> {
-
-    return (*e.lock().unwrap().as_ref().unwrap()).value.clone();
+    (*e.lock().unwrap().as_ref().unwrap()).value.clone()
 }
 
 fn main() {

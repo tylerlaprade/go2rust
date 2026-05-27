@@ -137,48 +137,41 @@ pub mod types {
 
 
 pub fn kind() -> Arc<Mutex<Option<types_BasicKind>>> {
-
-    return Arc::new(Mutex::new(Some(types_BasicKind(types::INT.0 as i32))));
+    Arc::new(Mutex::new(Some(types_BasicKind(types::INT.0 as i32))))
 }
 
 pub fn dir() -> Arc<Mutex<Option<types_ChanDir>>> {
-
-    return Arc::new(Mutex::new(Some(types_ChanDir(types::SEND_RECV.0 as i32))));
+    Arc::new(Mutex::new(Some(types_ChanDir(types::SEND_RECV.0 as i32))))
 }
 
 pub fn zero_kind() -> Arc<Mutex<Option<types_BasicKind>>> {
-
-    return Arc::new(Mutex::new(Some(types_BasicKind(0 as i32))));
+    Arc::new(Mutex::new(Some(types_BasicKind(0 as i32))))
 }
 
 pub fn pos_from_int(n: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<token_Pos>>> {
-
-    return Arc::new(Mutex::new(Some(token_Pos((*n.lock().unwrap().as_ref().unwrap()) as i32))));
+    Arc::new(Mutex::new(Some(token_Pos((*n.lock().unwrap().as_ref().unwrap()) as i32))))
 }
 
 pub fn int_value() -> i32 {
-
-    return 1;
+    1
 }
 
 pub fn kind_name() -> Arc<Mutex<Option<String>>> {
-
     { let _switch_val = { let __v = kind(); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned };
     if _switch_val == (types_BasicKind(types::INT.0 as i32)) {
-            return Arc::new(Mutex::new(Some("int".to_string())));
+            Arc::new(Mutex::new(Some("int".to_string())))
         } else {
-            return Arc::new(Mutex::new(Some("other".to_string())));
+            Arc::new(Mutex::new(Some("other".to_string())))
         }
     }
 }
 
 pub fn int_name() -> Arc<Mutex<Option<String>>> {
-
     { let _switch_val = int_value();
     if _switch_val == (1) {
-            return Arc::new(Mutex::new(Some("one".to_string())));
+            Arc::new(Mutex::new(Some("one".to_string())))
         } else {
-            return Arc::new(Mutex::new(Some("other".to_string())));
+            Arc::new(Mutex::new(Some("other".to_string())))
         }
     }
 }

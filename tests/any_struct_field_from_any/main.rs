@@ -43,8 +43,7 @@ impl std::fmt::Display for entry {
 
 
 pub fn make_entry(value: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> Arc<Mutex<Option<entry>>> {
-
-    return Arc::new(Mutex::new(Some(entry { value: value.clone(), ..Default::default() })));
+    Arc::new(Mutex::new(Some(entry { value: value.clone(), ..Default::default() })))
 }
 
 fn main() {

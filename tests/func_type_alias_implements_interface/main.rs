@@ -49,22 +49,20 @@ pub trait counterMethods {
 
 impl counterMethods for counter {
     fn speak(&self) -> i32 {
-        return (*{ let __f_ptr: *mut Box<dyn FnMut() -> i32> = { let mut __f_guard = self.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> i32> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() }.borrow().as_ref().unwrap());
+        (*{ let __f_ptr: *mut Box<dyn FnMut() -> i32> = { let mut __f_guard = self.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> i32> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() }.borrow().as_ref().unwrap())
     }
 }
 
 pub fn run_speaker(s: Rc<RefCell<Option<Box<dyn Speaker>>>>) -> i32 {
-
-    return (*s.borrow().as_ref().unwrap()).speak();
+    (*s.borrow().as_ref().unwrap()).speak()
 }
 
 pub fn make_counter() -> Rc<RefCell<Option<Box<dyn FnMut() -> i32>>>> {
-
     let mut x = Rc::new(RefCell::new(Some(41)));
-    let x_closure_clone = x.clone(); return Rc::new(RefCell::new(Some(Box::new(move || -> i32 {
+    let x_closure_clone = x.clone(); Rc::new(RefCell::new(Some(Box::new(move || -> i32 {
         { let mut guard = x_closure_clone.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
-        return (*x_closure_clone.borrow().as_ref().unwrap());
-    }) as Box<dyn FnMut() -> i32>)));
+        (*x_closure_clone.borrow().as_ref().unwrap())
+    }) as Box<dyn FnMut() -> i32>)))
 }
 
 fn main() {

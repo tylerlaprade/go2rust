@@ -29,8 +29,7 @@ fn __go_init_globals() {
 
 
 pub fn is_enabled() -> bool {
-
-    return (*enabled.borrow().as_ref().unwrap());
+    (*enabled.borrow().as_ref().unwrap())
 }
 
 pub(crate) fn __go_init_all() {

@@ -43,13 +43,13 @@ impl std::fmt::Display for Concrete {
 
 impl Concrete {
     pub fn name(&self) -> Rc<RefCell<Option<String>>> {
-        return self.n.clone();
+        self.n.clone()
     }
 }
 
 impl Spec for Concrete {
     fn name(&self) -> Rc<RefCell<Option<String>>> {
-        return self.n.clone();
+        self.n.clone()
     }
     fn __go_clone_box_spec(&self) -> Box<dyn Spec> {
         Box::new(self.clone()) as Box<dyn Spec>

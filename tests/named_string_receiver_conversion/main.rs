@@ -21,7 +21,7 @@ impl PartialEq for internalError {
 
 impl internalError {
     pub fn error(&self) -> Rc<RefCell<Option<String>>> {
-        return Rc::new(RefCell::new(Some(format!("{}{}", "gcimporter: ".to_string(), (*Rc::new(RefCell::new(Some((*self.0.borrow().as_ref().unwrap()).to_string()))).borrow().as_ref().unwrap())))));
+        Rc::new(RefCell::new(Some(format!("{}{}", "gcimporter: ".to_string(), (*Rc::new(RefCell::new(Some((*self.0.borrow().as_ref().unwrap()).to_string()))).borrow().as_ref().unwrap())))))
     }
 }
 

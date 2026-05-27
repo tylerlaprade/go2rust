@@ -28,13 +28,11 @@ impl std::fmt::Display for item {
 
 
 pub fn has_name(it: Rc<RefCell<Option<item>>>) -> bool {
-
-    return (*it.borrow()).is_some() && { let __selector_holder = (*it.borrow().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } == "ready";
+    (*it.borrow()).is_some() && { let __selector_holder = (*it.borrow().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } == "ready"
 }
 
 pub fn missing_or_ready(it: Rc<RefCell<Option<item>>>) -> bool {
-
-    return (*it.borrow()).is_none() || { let __selector_holder = (*it.borrow().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } == "ready";
+    (*it.borrow()).is_none() || { let __selector_holder = (*it.borrow().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } == "ready"
 }
 
 fn main() {

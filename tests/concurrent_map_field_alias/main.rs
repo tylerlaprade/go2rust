@@ -113,7 +113,7 @@ impl encoder {
         { let new_val = Arc::new(Mutex::new(Some(vec![object { name: Arc::new(Mutex::new(Some("one".to_string()))), ..Default::default() }]))); objs = new_val; };
         { let __map_key = GoLocalPtrKey::new(s.clone()); let __map_value = objs.clone(); (*m.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
     }
-        return objs.clone();
+        objs.clone()
     }
 }
 

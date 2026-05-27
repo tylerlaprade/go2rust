@@ -102,9 +102,8 @@ fn __go_init_2() {
 }
 
 pub fn compute_initial_value() -> i32 {
-
     println!("{}", format!("{}", "Computing initial value during package initialization".to_string()));
-    return 42 * 2;
+    42 * 2
 }
 
 /// Another init function that runs after variable initialization

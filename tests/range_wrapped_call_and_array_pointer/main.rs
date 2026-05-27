@@ -75,13 +75,12 @@ impl bucket {
         { let __range_holder = self.values.clone().clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for value in __range_values.iter().copied() {
         { let __rhs = value; let mut guard = total.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     } }
-        return (*total.borrow().as_ref().unwrap());
+        (*total.borrow().as_ref().unwrap())
     }
 }
 
 pub fn names() -> Rc<RefCell<Option<Vec<String>>>> {
-
-    return Rc::new(RefCell::new(Some(vec!["alpha".to_string(), "beta".to_string()])));
+    Rc::new(RefCell::new(Some(vec!["alpha".to_string(), "beta".to_string()])))
 }
 
 fn main() {

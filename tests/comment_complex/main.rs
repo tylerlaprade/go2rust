@@ -46,7 +46,6 @@ impl Person {
 
 /// NewPerson creates a new Person instance
 pub fn new_person(name: Rc<RefCell<Option<String>>>, age: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<Person>>> {
-
         // Validate inputs
     if (*age.borrow().as_ref().unwrap()) < 0 {
                 // Return nil for invalid age
@@ -55,7 +54,7 @@ pub fn new_person(name: Rc<RefCell<Option<String>>>, age: Rc<RefCell<Option<i32>
 
         // Return nil for invalid age
         // Create and return the person
-    return Rc::new(RefCell::new(Some(Person { name: name.clone(), age: age.clone(), ..Default::default() })));
+    Rc::new(RefCell::new(Some(Person { name: name.clone(), age: age.clone(), ..Default::default() })))
 }
 
 fn main() {

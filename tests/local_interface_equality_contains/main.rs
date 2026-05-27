@@ -61,13 +61,13 @@ impl std::fmt::Display for Label {
 
 impl namedKey {
     pub fn name(&self) -> Rc<RefCell<Option<String>>> {
-        return self.name.clone();
+        self.name.clone()
     }
 }
 
 impl Key for namedKey {
     fn name(&self) -> Rc<RefCell<Option<String>>> {
-        return self.name.clone();
+        self.name.clone()
     }
     fn __go_clone_box_key(&self) -> Box<dyn Key> {
         Box::new(self.clone()) as Box<dyn Key>
@@ -86,7 +86,7 @@ impl Key for namedKey {
 
 impl Label {
     pub fn key(&self) -> Rc<RefCell<Option<Box<dyn Key>>>> {
-        return self.key.clone();
+        self.key.clone()
     }
 }
 

@@ -25,34 +25,30 @@ impl std::fmt::Display for opAppender {
 
 impl opAppender {
     pub fn append_op(&self, path: Rc<RefCell<Option<Vec<u8>>>>, op: Rc<RefCell<Option<u8>>>) -> Rc<RefCell<Option<Vec<u8>>>> {
-        return { let __append_target = path.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push((*op.borrow().as_ref().unwrap()).clone()); __append_target.clone() };
+        { let __append_target = path.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push((*op.borrow().as_ref().unwrap()).clone()); __append_target.clone() }
     }
 }
 
 pub fn is_digit(c: Rc<RefCell<Option<u8>>>) -> bool {
-
-    return ('0' as u8) <= (*c.borrow().as_ref().unwrap()) && (*c.borrow().as_ref().unwrap()) <= ('9' as u8);
+    ('0' as u8) <= (*c.borrow().as_ref().unwrap()) && (*c.borrow().as_ref().unwrap()) <= ('9' as u8)
 }
 
 pub fn starts_with_v(s: Rc<RefCell<Option<String>>>) -> bool {
-
-    return ((*s.borrow().as_ref().unwrap()).len() as i32) > (0 as i32) && { let __s = &((*s.borrow().as_ref().unwrap()).clone()); __s.as_bytes()[(0) as usize] } == ('v' as u8);
+    ((*s.borrow().as_ref().unwrap()).len() as i32) > (0 as i32) && { let __s = &((*s.borrow().as_ref().unwrap()).clone()); __s.as_bytes()[(0) as usize] } == ('v' as u8)
 }
 
 pub fn append_op(path: Rc<RefCell<Option<Vec<u8>>>>, op: Rc<RefCell<Option<u8>>>) -> Rc<RefCell<Option<Vec<u8>>>> {
-
-    return { let __append_target = path.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push((*op.borrow().as_ref().unwrap()).clone()); __append_target.clone() };
+    { let __append_target = path.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push((*op.borrow().as_ref().unwrap()).clone()); __append_target.clone() }
 }
 
 pub fn classify_op(op: Rc<RefCell<Option<u8>>>) -> Rc<RefCell<Option<String>>> {
-
     { let _switch_val = (*op.borrow().as_ref().unwrap());
     if _switch_val == (OP_TYPE as u8) {
-            return Rc::new(RefCell::new(Some("type".to_string())));
+            Rc::new(RefCell::new(Some("type".to_string())))
         } else if _switch_val == (OP_ELEM as u8) {
-            return Rc::new(RefCell::new(Some("elem".to_string())));
+            Rc::new(RefCell::new(Some("elem".to_string())))
         } else {
-            return Rc::new(RefCell::new(Some("unknown".to_string())));
+            Rc::new(RefCell::new(Some("unknown".to_string())))
         }
     }
 }

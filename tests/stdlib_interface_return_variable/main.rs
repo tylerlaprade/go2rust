@@ -165,7 +165,7 @@ pub fn zero_object() -> Rc<RefCell<Option<types_Object>>> {
     if (*obj.borrow()).is_none() {
         return Rc::new(RefCell::new(None));
     }
-    obj.clone()
+    return obj.clone();
 }
 
 fn main() {

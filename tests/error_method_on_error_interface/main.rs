@@ -3,11 +3,10 @@ use std::error::Error as StdError;
 use std::rc::{Rc};
 
 pub fn describe(err: Rc<RefCell<Option<Box<dyn StdError>>>>) -> Rc<RefCell<Option<String>>> {
-
     if (*err.borrow()).is_none() {
         return Rc::new(RefCell::new(Some("nil".to_string())));
     }
-    return Rc::new(RefCell::new(Some(format!("{}", err.borrow().as_ref().unwrap()))));
+    Rc::new(RefCell::new(Some(format!("{}", err.borrow().as_ref().unwrap()))))
 }
 
 fn main() {

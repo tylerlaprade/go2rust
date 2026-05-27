@@ -46,8 +46,7 @@ impl std::fmt::Display for holder {
 
 
 pub fn get_child(h: Rc<RefCell<Option<holder>>>) -> Rc<RefCell<Option<node>>> {
-
-    return (*h.borrow().as_ref().unwrap()).child.clone();
+    (*h.borrow().as_ref().unwrap()).child.clone()
 }
 
 fn main() {

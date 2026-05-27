@@ -34,23 +34,19 @@ fn __go_init_globals() {
 
 
 pub fn bool_ptr(v: Rc<RefCell<Option<bool>>>) -> Rc<RefCell<Option<bool>>> {
-
-    return v.clone();
+    v.clone()
 }
 
 pub fn string_ptr(v: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>> {
-
-    return v.clone();
+    v.clone()
 }
 
 pub fn invert(v: Rc<RefCell<Option<bool>>>) -> bool {
-
-    return !(*v.borrow().as_ref().unwrap());
+    !(*v.borrow().as_ref().unwrap())
 }
 
 pub fn suffix(s: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>> {
-
-    return Rc::new(RefCell::new(Some(format!("{}{}", (*s.borrow().as_ref().unwrap()), "!".to_string()))));
+    Rc::new(RefCell::new(Some(format!("{}{}", (*s.borrow().as_ref().unwrap()), "!".to_string()))))
 }
 
 fn main() {

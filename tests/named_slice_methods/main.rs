@@ -56,11 +56,11 @@ impl Display for Names {
 
 impl Names {
     pub fn len(&self) -> i32 {
-        return { let __slice_holder = self.0.clone(); let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) } as i32;
+        { let __slice_holder = self.0.clone(); let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) } as i32
     }
 
     pub fn first(&self) -> Rc<RefCell<Option<String>>> {
-        return Rc::new(RefCell::new(Some({ let __seq_holder = self.0.clone(); let __seq_guard = __seq_holder.borrow(); let __seq = __seq_guard.as_ref().unwrap(); __seq[(0) as usize].clone() })));
+        Rc::new(RefCell::new(Some({ let __seq_holder = self.0.clone(); let __seq_guard = __seq_holder.borrow(); let __seq = __seq_guard.as_ref().unwrap(); __seq[(0) as usize].clone() })))
     }
 
     pub fn join(&self) -> Rc<RefCell<Option<String>>> {
@@ -71,7 +71,7 @@ impl Names {
     }
         { (*out.borrow_mut().as_mut().unwrap()).push_str(&name); };
     } }
-        return Rc::new(RefCell::new(Some(out.borrow().as_ref().unwrap().clone())));
+        Rc::new(RefCell::new(Some(out.borrow().as_ref().unwrap().clone())))
     }
 }
 

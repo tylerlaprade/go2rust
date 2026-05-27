@@ -21,11 +21,11 @@ impl std::fmt::Display for Runner {
 
 impl Runner {
     pub fn run_piped(&self) -> Rc<RefCell<Option<String>>> {
-        return self.run_piped_1();
+        self.run_piped_1()
     }
 
     pub fn run_piped_1(&self) -> Rc<RefCell<Option<String>>> {
-        return Rc::new(RefCell::new(Some("private method".to_string())));
+        Rc::new(RefCell::new(Some("private method".to_string())))
     }
 }
 

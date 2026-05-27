@@ -171,7 +171,7 @@ impl Logger {
 
 impl Counter {
     pub fn value(&self) -> i32 {
-        return (*self.count.borrow().as_ref().unwrap());
+        (*self.count.borrow().as_ref().unwrap())
     }
 
     pub fn increment(&mut self) {
@@ -186,13 +186,13 @@ impl Counter {
 impl Service {
     /// Service's own method
     pub fn name(&self) -> Rc<RefCell<Option<String>>> {
-        return self.name.clone();
+        self.name.clone()
     }
 
     /// Method that shadows embedded method
     pub fn value(&self) -> i32 {
                 // This should shadow Counter.Value()
-        return (*self.counter.borrow().as_ref().unwrap()).value() * 10;
+        (*self.counter.borrow().as_ref().unwrap()).value() * 10
     }
 
     pub fn add(&mut self, n: Rc<RefCell<Option<i32>>>) {
@@ -230,7 +230,7 @@ impl Service {
 
 impl Base {
     pub fn get_i_d(&self) -> i32 {
-        return (*self.id.borrow().as_ref().unwrap());
+        (*self.id.borrow().as_ref().unwrap())
     }
 
     pub fn set_i_d(&mut self, id: Rc<RefCell<Option<i32>>>) {
@@ -240,7 +240,7 @@ impl Base {
 
 impl Middle {
     pub fn get_data(&self) -> Rc<RefCell<Option<String>>> {
-        return self.data.clone();
+        self.data.clone()
     }
 
     pub fn get_i_d(&self) -> i32 {
@@ -262,7 +262,7 @@ impl Middle {
 
 impl Top {
     pub fn get_extra(&self) -> Rc<RefCell<Option<String>>> {
-        return self.extra.clone();
+        self.extra.clone()
     }
 
     pub fn get_data(&self) -> Rc<RefCell<Option<String>>> {

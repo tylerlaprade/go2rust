@@ -25,8 +25,7 @@ fn go_type_name(val: &dyn Any) -> &'static str {
 }
 
 pub fn label() -> Arc<Mutex<Option<String>>> {
-
-    return Arc::new(Mutex::new(Some("x".to_string())));
+    Arc::new(Mutex::new(Some("x".to_string())))
 }
 
 fn main() {

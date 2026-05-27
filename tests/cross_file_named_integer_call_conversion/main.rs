@@ -5,8 +5,7 @@ use std::cell::{RefCell};
 use std::rc::{Rc};
 
 pub fn raw_marker() -> u64 {
-
-    return 5;
+    5
 }
 
 fn main() {

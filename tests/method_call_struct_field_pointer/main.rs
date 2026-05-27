@@ -47,11 +47,11 @@ impl std::fmt::Display for cache {
 
 impl cache {
     pub fn lookup(&self) -> Rc<RefCell<Option</* unknown struct */>>> {
-        return Rc::new(RefCell::new(Some(AnonymousStruct1 { child: { let __field = self.child.clone(); __field } })));
+        Rc::new(RefCell::new(Some(AnonymousStruct1 { child: { let __field = self.child.clone(); __field } })))
     }
 
     pub fn get(&self) -> Rc<RefCell<Option<node>>> {
-        return (*self.lookup().borrow().as_ref().unwrap()).child.clone();
+        (*self.lookup().borrow().as_ref().unwrap()).child.clone()
     }
 }
 

@@ -75,7 +75,7 @@ impl Counter {
     pub fn value(&self) -> i32 {
         let __mutex_guard_source_209 = self.mu.clone(); let __mutex_guard_209 = __mutex_guard_source_209.lock();
         // mu.Unlock() handled by RAII guard
-        return (*self.value.borrow().as_ref().unwrap());
+        (*self.value.borrow().as_ref().unwrap())
     }
 }
 

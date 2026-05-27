@@ -56,11 +56,10 @@ fn __go_init_globals() {
 
 
 pub fn lookup(methods: Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<Vec<Rc<RefCell<Option<Method>>>>>>>>>>>, receiver: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<Vec<Rc<RefCell<Option<Method>>>>>>> {
-
     if (*receiver.borrow().as_ref().unwrap()).clone() != "" && ((*(*methods.borrow().as_ref().unwrap()).get(&(*receiver.borrow().as_ref().unwrap()).clone()).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()).borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32) > (0 as i32) {
         return (*methods.borrow().as_ref().unwrap()).get(&(*receiver.borrow().as_ref().unwrap()).clone()).map(|__v| __v.clone()).unwrap_or_else(|| Default::default());
     }
-    return fallback.clone();
+    fallback.clone()
 }
 
 fn main() {

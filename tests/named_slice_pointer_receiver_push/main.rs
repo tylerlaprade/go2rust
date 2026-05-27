@@ -66,7 +66,7 @@ impl Stack {
     }
         let mut top = Rc::new(RefCell::new(Some({ let __seq_holder = self.0.clone(); let __seq_guard = __seq_holder.borrow(); let __seq = __seq_guard.as_ref().unwrap(); __seq[((*i.borrow().as_ref().unwrap()) - 1) as usize].clone() })));
         { let new_val = Stack(Rc::new(RefCell::new(Some({ let __slice_holder = self.0.clone(); let __slice_guard = __slice_holder.borrow(); let __seq = __slice_guard.as_ref().cloned().unwrap_or_default(); __seq[(0) as usize..((*i.borrow().as_ref().unwrap()) - 1) as usize].to_vec() })))); *self = new_val; };
-        return (*top.borrow().as_ref().unwrap());
+        (*top.borrow().as_ref().unwrap())
     }
 }
 

@@ -76,7 +76,7 @@ pub fn debug(cmd: Rc<RefCell<Option<Command>>>) -> Rc<RefCell<Option<String>>> {
         { let new_val = { let __append_target = args.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push((*arg).clone()); __append_target.clone() }; args = new_val; };
     }
     } }
-    Rc::new(RefCell::new(Some({ let __parts = (*args.borrow()).as_ref().cloned().unwrap_or_default(); let __sep = " ".to_string(); __parts.join(&__sep) })))
+    return Rc::new(RefCell::new(Some({ let __parts = (*args.borrow()).as_ref().cloned().unwrap_or_default(); let __sep = " ".to_string(); __parts.join(&__sep) })));
 }
 
 fn main() {

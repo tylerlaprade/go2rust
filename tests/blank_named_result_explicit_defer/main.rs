@@ -28,8 +28,7 @@ pub fn load() -> (Rc<RefCell<Option<Vec<i32>>>>, Rc<RefCell<Option<Box<dyn StdEr
 }
 
 pub fn pair() -> (Rc<RefCell<Option<Vec<i32>>>>, Rc<RefCell<Option<Box<dyn StdError>>>>) {
-
-    return (Rc::new(RefCell::new(Some(vec![3, 4, 5]))), Rc::new(RefCell::new(None)));
+    (Rc::new(RefCell::new(Some(vec![3, 4, 5]))), Rc::new(RefCell::new(None)))
 }
 
 pub fn load_tuple() -> (Rc<RefCell<Option<Vec<i32>>>>, Rc<RefCell<Option<Box<dyn StdError>>>>) {

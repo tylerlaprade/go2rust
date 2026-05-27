@@ -39,7 +39,7 @@ impl std::fmt::Display for holder {
 
 impl numbers {
     pub fn string(&self) -> Rc<RefCell<Option<String>>> {
-        return Rc::new(RefCell::new(Some(format!("numbers({})", { let __slice_holder = self.0.clone(); let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }))));
+        Rc::new(RefCell::new(Some(format!("numbers({})", { let __slice_holder = self.0.clone(); let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }))))
     }
 
     pub fn intersect(&self, other: Rc<RefCell<Option<numbers>>>) -> Rc<RefCell<Option<numbers>>> {
@@ -60,7 +60,6 @@ pub fn combine(a: Rc<RefCell<Option<holder>>>, b: Rc<RefCell<Option<holder>>>) {
 }
 
 pub fn copied_len(src: Rc<RefCell<Option<holder>>>) -> i32 {
-
     let mut terms: Rc<RefCell<Option<numbers>>> = Rc::new(RefCell::new(Some(Default::default())));
     { let new_val = { let __selector_holder = (*src.borrow().as_ref().unwrap()).terms.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; *terms.borrow_mut() = Some(new_val); };
     return { let __slice_holder = { let __named_slice = (*terms.borrow().as_ref().unwrap()).0.clone(); __named_slice }; let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) } as i32;

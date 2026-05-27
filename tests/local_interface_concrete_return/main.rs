@@ -81,13 +81,13 @@ impl std::fmt::Display for number {
 
 impl counter {
     pub fn read(&self) -> i32 {
-        return (*self.n.borrow().as_ref().unwrap());
+        (*self.n.borrow().as_ref().unwrap())
     }
 }
 
 impl Reader for counter {
     fn read(&self) -> i32 {
-        return (*self.n.borrow().as_ref().unwrap());
+        (*self.n.borrow().as_ref().unwrap())
     }
     fn __go_clone_box_reader(&self) -> Box<dyn Reader> {
         Box::new(self.clone()) as Box<dyn Reader>
@@ -106,13 +106,13 @@ impl Reader for counter {
 
 impl number {
     pub fn value(&self) -> i32 {
-        return (*self.n.borrow().as_ref().unwrap());
+        (*self.n.borrow().as_ref().unwrap())
     }
 }
 
 impl Valuer for number {
     fn value(&self) -> i32 {
-        return (*self.n.borrow().as_ref().unwrap());
+        (*self.n.borrow().as_ref().unwrap())
     }
     fn __go_clone_box_valuer(&self) -> Box<dyn Valuer> {
         Box::new(self.clone()) as Box<dyn Valuer>
@@ -130,13 +130,11 @@ impl Valuer for number {
 }
 
 pub fn new_reader() -> Rc<RefCell<Option<Box<dyn Reader>>>> {
-
-    return Rc::new(RefCell::new(Some(Box::new(counter { n: Rc::new(RefCell::new(Some(7 as i32))), ..Default::default() }) as Box<dyn Reader>)));
+    Rc::new(RefCell::new(Some(Box::new(counter { n: Rc::new(RefCell::new(Some(7 as i32))), ..Default::default() }) as Box<dyn Reader>)))
 }
 
 pub fn new_valuer() -> Rc<RefCell<Option<Box<dyn Valuer>>>> {
-
-    return Rc::new(RefCell::new(Some(Box::new(number { n: Rc::new(RefCell::new(Some(11 as i32))), ..Default::default() }) as Box<dyn Valuer>)));
+    Rc::new(RefCell::new(Some(Box::new(number { n: Rc::new(RefCell::new(Some(11 as i32))), ..Default::default() }) as Box<dyn Valuer>)))
 }
 
 fn main() {

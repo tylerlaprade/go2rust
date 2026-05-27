@@ -175,8 +175,7 @@ fn __go_init_globals() {
 
 
 pub fn size() -> i32 {
-
-    return 2;
+    2
 }
 
 fn main() {

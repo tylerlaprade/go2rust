@@ -5,8 +5,7 @@ use std::cell::{RefCell};
 use std::rc::{Rc};
 
 pub fn take_reloc(k: Rc<RefCell<Option<RelocKind>>>) -> i32 {
-
-    return (*Rc::new(RefCell::new(Some((*(*k.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) as i32))).borrow().as_ref().unwrap());
+    (*Rc::new(RefCell::new(Some((*(*k.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) as i32))).borrow().as_ref().unwrap())
 }
 
 fn main() {

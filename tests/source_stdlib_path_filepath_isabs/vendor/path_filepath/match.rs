@@ -141,7 +141,7 @@ pub fn scan_chunk(mut pattern: Arc<Mutex<Option<String>>>) -> (bool, Arc<Mutex<O
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
         // error check handled in matchChunk: bad pattern.
-    ({ let __v = (*star.lock().unwrap().as_ref().unwrap()).clone(); __v }, Arc::new(Mutex::new(Some({ let __s = &((*pattern.lock().unwrap().as_ref().unwrap()).clone()); __s[(0) as usize..({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].to_string() }))), Arc::new(Mutex::new(Some({ let __s = &((*pattern.lock().unwrap().as_ref().unwrap()).clone()); __s[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize..].to_string() }))))
+    return ({ let __v = (*star.lock().unwrap().as_ref().unwrap()).clone(); __v }, Arc::new(Mutex::new(Some({ let __s = &((*pattern.lock().unwrap().as_ref().unwrap()).clone()); __s[(0) as usize..({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].to_string() }))), Arc::new(Mutex::new(Some({ let __s = &((*pattern.lock().unwrap().as_ref().unwrap()).clone()); __s[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize..].to_string() }))));
 }
 
 /// matchChunk checks whether chunk matches the beginning of s.
@@ -284,7 +284,7 @@ pub fn get_esc(mut chunk: Arc<Mutex<Option<String>>>) -> (i32, Arc<Mutex<Option<
     if { let __tmp_x = ((*nchunk.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = (0 as i32); __tmp_x == __tmp_y } {
         { let __rhs_holder = ErrBadPattern.clone(); let new_val = { let mut guard = __rhs_holder.lock().unwrap(); guard.take() }; *err.lock().unwrap() = new_val; };
     }
-    ((*r.lock().unwrap().as_ref().unwrap()), nchunk, err)
+    return ((*r.lock().unwrap().as_ref().unwrap()), nchunk, err);
 }
 
 /// Glob returns the names of all files matching pattern or nil

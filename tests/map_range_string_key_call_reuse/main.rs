@@ -3,8 +3,7 @@ use std::collections::BTreeMap;
 use std::rc::{Rc};
 
 pub fn keep(s: Rc<RefCell<Option<String>>>) -> bool {
-
-    return ((*s.borrow().as_ref().unwrap()).len() as i32) > (0 as i32);
+    ((*s.borrow().as_ref().unwrap()).len() as i32) > (0 as i32)
 }
 
 fn main() {

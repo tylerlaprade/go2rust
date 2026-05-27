@@ -52,17 +52,17 @@ fn __go_init_globals() {
 
 impl String_ {
     pub fn name(&self) -> Arc<Mutex<Option<String>>> {
-        return self.name.clone();
+        self.name.clone()
     }
 
     pub fn label(&self) -> Arc<Mutex<Option<example_com_ifaceeq_label::Label>>> {
-        return example_com_ifaceeq_label::new(Arc::new(Mutex::new(Some(Box::new((*self).clone()) as Box<dyn example_com_ifaceeq_label::Key + Send + Sync>))));
+        example_com_ifaceeq_label::new(Arc::new(Mutex::new(Some(Box::new((*self).clone()) as Box<dyn example_com_ifaceeq_label::Key + Send + Sync>))))
     }
 }
 
 impl example_com_ifaceeq_label::Key for String_ {
     fn name(&self) -> Arc<Mutex<Option<String>>> {
-        return self.name.clone();
+        self.name.clone()
     }
     fn __go_clone_box_key(&self) -> Box<dyn example_com_ifaceeq_label::Key + Send + Sync> {
         Box::new(self.clone()) as Box<dyn example_com_ifaceeq_label::Key + Send + Sync>
@@ -80,8 +80,7 @@ impl example_com_ifaceeq_label::Key for String_ {
 }
 
 pub fn new_string(name: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<String_>>> {
-
-    return Arc::new(Mutex::new(Some(String_ { name: name.clone(), ..Default::default() })));
+    Arc::new(Mutex::new(Some(String_ { name: name.clone(), ..Default::default() })))
 }
 
 pub(crate) fn __go_init_all() {

@@ -3,8 +3,7 @@ use std::collections::BTreeMap;
 use std::rc::{Rc};
 
 pub fn count(names: Rc<RefCell<Option<Vec<String>>>>) -> i32 {
-
-    return (*names.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32;
+    (*names.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32
 }
 
 fn main() {

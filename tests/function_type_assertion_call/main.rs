@@ -5,7 +5,7 @@ use std::rc::{Rc};
 
 fn main() {
     let mut f: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new(Box::new(move || -> (Rc<RefCell<Option<String>>>, Rc<RefCell<Option<Box<dyn StdError>>>>) {
-        return (Rc::new(RefCell::new(Some("ok".to_string()))), Rc::new(RefCell::new(None)));
+        (Rc::new(RefCell::new(Some("ok".to_string()))), Rc::new(RefCell::new(None)))
     }) as Box<dyn FnMut() -> (Rc<RefCell<Option<String>>>, Rc<RefCell<Option<Box<dyn StdError>>>>)>) as Box<dyn Any>)));
 
     let (mut s, mut err) = ({

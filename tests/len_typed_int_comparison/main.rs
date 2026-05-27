@@ -2,7 +2,6 @@ use std::cell::{RefCell};
 use std::rc::{Rc};
 
 pub fn consumed_all(values: Rc<RefCell<Option<Vec<i32>>>>) -> bool {
-
     let mut i: Rc<RefCell<Option<i32>>> = Rc::new(RefCell::new(Some(0)));
     { let new_val = 0; *i.borrow_mut() = Some(new_val); };
     while ((*i.borrow().as_ref().unwrap()) as i32) < ((*values.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32) {
@@ -12,13 +11,11 @@ pub fn consumed_all(values: Rc<RefCell<Option<Vec<i32>>>>) -> bool {
 }
 
 pub fn last_index(values: Rc<RefCell<Option<Vec<i32>>>>) -> i32 {
-
-    return ((*values.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32) - (1 as i32);
+    ((*values.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32) - (1 as i32)
 }
 
 pub fn within_double(values: Rc<RefCell<Option<Vec<i32>>>>, i: Rc<RefCell<Option<i32>>>) -> bool {
-
-    return ((*i.borrow().as_ref().unwrap()) as i32) < (((*values.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32) + ((*values.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32) as i32);
+    ((*i.borrow().as_ref().unwrap()) as i32) < (((*values.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32) + ((*values.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32) as i32)
 }
 
 fn main() {

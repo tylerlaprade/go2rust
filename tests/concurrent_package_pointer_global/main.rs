@@ -203,13 +203,13 @@ fn __go_init_globals() {
 
 impl counter {
     pub fn value(&self) -> i32 {
-        return (*self.value.lock().unwrap().as_ref().unwrap());
+        (*self.value.lock().unwrap().as_ref().unwrap())
     }
 }
 
 impl valueReader for counter {
     fn value(&self) -> i32 {
-        return (*self.value.lock().unwrap().as_ref().unwrap());
+        (*self.value.lock().unwrap().as_ref().unwrap())
     }
     fn __go_clone_box_value_reader(&self) -> Box<dyn valueReader + Send + Sync> {
         Box::new(self.clone()) as Box<dyn valueReader + Send + Sync>
@@ -227,8 +227,7 @@ impl valueReader for counter {
 }
 
 pub fn new_counter(value: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<counter>>> {
-
-    return Arc::new(Mutex::new(Some(counter { value: value.clone(), ..Default::default() })));
+    Arc::new(Mutex::new(Some(counter { value: value.clone(), ..Default::default() })))
 }
 
 pub fn set_counter(c: Arc<Mutex<Option<counter>>>) {
@@ -236,13 +235,11 @@ pub fn set_counter(c: Arc<Mutex<Option<counter>>>) {
 }
 
 pub fn get_counter() -> Arc<Mutex<Option<counter>>> {
-
-    return (*current.lock().unwrap().as_ref().unwrap()).clone();
+    (*current.lock().unwrap().as_ref().unwrap()).clone()
 }
 
 pub fn current_value() -> i32 {
-
-    return (*(*(*current.lock().unwrap().as_ref().unwrap()).lock().unwrap().as_ref().unwrap()).value.lock().unwrap().as_ref().unwrap());
+    (*(*(*current.lock().unwrap().as_ref().unwrap()).lock().unwrap().as_ref().unwrap()).value.lock().unwrap().as_ref().unwrap())
 }
 
 pub fn set_current_value(value: Arc<Mutex<Option<i32>>>) {
@@ -250,8 +247,7 @@ pub fn set_current_value(value: Arc<Mutex<Option<i32>>>) {
 }
 
 pub fn get_fallback() -> Arc<Mutex<Option<Box<dyn valueReader + Send + Sync>>>> {
-
-    return Arc::new(Mutex::new(Some(Box::new((*(*fallback.lock().unwrap().as_ref().unwrap()).clone().lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn valueReader + Send + Sync>)));
+    Arc::new(Mutex::new(Some(Box::new((*(*fallback.lock().unwrap().as_ref().unwrap()).clone().lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn valueReader + Send + Sync>)))
 }
 
 pub fn clear_counter() {

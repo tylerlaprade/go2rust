@@ -45,11 +45,10 @@ impl GoJsonDecode for Label {
 
 impl Label {
     pub fn key(&self) -> Arc<Mutex<Option<Box<dyn Key + Send + Sync>>>> {
-        return self.key.clone();
+        self.key.clone()
     }
 }
 
 pub fn new(key: Arc<Mutex<Option<Box<dyn Key + Send + Sync>>>>) -> Arc<Mutex<Option<Label>>> {
-
-    return Arc::new(Mutex::new(Some(Label { key: key.clone(), ..Default::default() })));
+    Arc::new(Mutex::new(Some(Label { key: key.clone(), ..Default::default() })))
 }

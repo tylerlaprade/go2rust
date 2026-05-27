@@ -218,8 +218,7 @@ impl std::fmt::Display for Config {
 
 
 pub fn build_env(cfg: Arc<Mutex<Option<Config>>>) -> Arc<Mutex<Option<Vec<String>>>> {
-
-    return { let __append_target = Arc::new(Mutex::new(Some({ let __slice_holder = (*cfg.lock().unwrap().as_ref().unwrap()).env.clone(); let __slice_guard = __slice_holder.lock().unwrap(); (*__slice_guard.as_ref().unwrap()).clone() }))).clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(format!("{}{}", "PWD=".to_string(), (*{ let __field = (*cfg.lock().unwrap().as_ref().unwrap()).dir.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone())); __append_target.clone() };
+    { let __append_target = Arc::new(Mutex::new(Some({ let __slice_holder = (*cfg.lock().unwrap().as_ref().unwrap()).env.clone(); let __slice_guard = __slice_holder.lock().unwrap(); (*__slice_guard.as_ref().unwrap()).clone() }))).clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(format!("{}{}", "PWD=".to_string(), (*{ let __field = (*cfg.lock().unwrap().as_ref().unwrap()).dir.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone())); __append_target.clone() }
 }
 
 fn main() {

@@ -64,7 +64,7 @@ impl std::fmt::Display for bucket {
 
 impl bucket {
     pub fn has_room(&self) -> bool {
-        return ((*self.values.borrow()).as_ref().map(|__v| __v.capacity()).unwrap_or(0) as i32) >= (3 as i32);
+        ((*self.values.borrow()).as_ref().map(|__v| __v.capacity()).unwrap_or(0) as i32) >= (3 as i32)
     }
 }
 

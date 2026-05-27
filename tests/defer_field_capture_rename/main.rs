@@ -31,7 +31,6 @@ impl std::fmt::Display for termSet {
 pub fn compute() -> bool {
     let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-
     let mut seen = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<termSet>>>>::new())));
     let mut tset = Rc::new(RefCell::new(Some(termSet { complete: Rc::new(RefCell::new(Some(false))) })));
     let tset_defer_captured = tset.clone(); __defer_stack.push(Box::new(move || {

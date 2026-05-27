@@ -39,11 +39,10 @@ impl GoJsonDecode for Counter {
 
 impl Counter {
     pub fn add(&self, delta: Rc<RefCell<Option<i32>>>) -> i32 {
-        return (*(*self.n.borrow_mut().as_mut().unwrap()).add(delta.clone()).borrow().as_ref().unwrap());
+        (*(*self.n.borrow_mut().as_mut().unwrap()).add(delta.clone()).borrow().as_ref().unwrap())
     }
 }
 
 pub fn new_counter() -> Rc<RefCell<Option<Counter>>> {
-
-    return Rc::new(RefCell::new(Some(Counter { n: Rc::new(RefCell::new(Some(Default::default()))) })));
+    Rc::new(RefCell::new(Some(Counter { n: Rc::new(RefCell::new(Some(Default::default()))) })))
 }

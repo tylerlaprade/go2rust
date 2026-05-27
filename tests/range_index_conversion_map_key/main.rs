@@ -3,8 +3,7 @@ use std::collections::BTreeMap;
 use std::rc::{Rc};
 
 pub fn values() -> Rc<RefCell<Option<Vec<String>>>> {
-
-    return Rc::new(RefCell::new(Some(vec!["a".to_string(), "b".to_string()])));
+    Rc::new(RefCell::new(Some(vec!["a".to_string(), "b".to_string()])))
 }
 
 fn main() {

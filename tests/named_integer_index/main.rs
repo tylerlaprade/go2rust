@@ -165,18 +165,16 @@ impl Ord for Kind {
 
 impl Kind {
     pub fn method_pick(&self, values: Rc<RefCell<Option<Vec<i32>>>>) -> i32 {
-        return (*values.borrow().as_ref().unwrap())[(*self.0.borrow().as_ref().unwrap()) as usize].clone();
+        (*values.borrow().as_ref().unwrap())[(*self.0.borrow().as_ref().unwrap()) as usize].clone()
     }
 }
 
 pub fn pick(values: Rc<RefCell<Option<Vec<i32>>>>, k: Rc<RefCell<Option<Kind>>>) -> i32 {
-
-    return (*values.borrow().as_ref().unwrap())[(*(*k.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) as usize].clone();
+    (*values.borrow().as_ref().unwrap())[(*(*k.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) as usize].clone()
 }
 
 pub fn previous(values: Rc<RefCell<Option<Vec<i32>>>>, k: Rc<RefCell<Option<Kind>>>) -> i32 {
-
-    return (*values.borrow().as_ref().unwrap())[((*(*k.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) - 1) as usize].clone();
+    (*values.borrow().as_ref().unwrap())[((*(*k.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) - 1) as usize].clone()
 }
 
 fn main() {

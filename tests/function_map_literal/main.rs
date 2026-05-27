@@ -65,18 +65,15 @@ fn __go_init_globals() {
 
 
 pub fn inc(x: Rc<RefCell<Option<i32>>>) -> i32 {
-
-    return (*x.borrow().as_ref().unwrap()) + 1;
+    (*x.borrow().as_ref().unwrap()) + 1
 }
 
 pub fn twice(x: Rc<RefCell<Option<i32>>>) -> i32 {
-
-    return (*x.borrow().as_ref().unwrap()) * 2;
+    (*x.borrow().as_ref().unwrap()) * 2
 }
 
 pub fn read(p: Rc<RefCell<Option<item>>>) -> i32 {
-
-    return (*(*p.borrow().as_ref().unwrap()).value.borrow().as_ref().unwrap());
+    (*(*p.borrow().as_ref().unwrap()).value.borrow().as_ref().unwrap())
 }
 
 fn __go_init_0() {

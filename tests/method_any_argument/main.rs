@@ -22,7 +22,7 @@ impl std::fmt::Display for store {
 
 impl store {
     pub fn set(&self, value: Rc<RefCell<Option<Box<dyn Any>>>>) -> Rc<RefCell<Option<Box<dyn Any>>>> {
-        return value.clone();
+        value.clone()
     }
 }
 

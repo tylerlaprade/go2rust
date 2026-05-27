@@ -143,7 +143,7 @@ impl GoJsonDecode for pkgReader {
 
 impl pkgReader {
     pub fn new_reader(&self, delta: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<Reader>>> {
-        return Arc::new(Mutex::new(Some(Reader { decoder: self.new_decoder(Arc::new(Mutex::new(Some((*delta.lock().unwrap().as_ref().unwrap()).clone())))), name: Arc::new(Mutex::new(Some("frompkg".to_string()))), ..Default::default() })));
+        Arc::new(Mutex::new(Some(Reader { decoder: self.new_decoder(Arc::new(Mutex::new(Some((*delta.lock().unwrap().as_ref().unwrap()).clone())))), name: Arc::new(Mutex::new(Some("frompkg".to_string()))), ..Default::default() })))
     }
 
     pub fn retire_reader(&self, r: Arc<Mutex<Option<Reader>>>) {
@@ -204,8 +204,7 @@ pub fn force_concurrent_wrappers() {
 }
 
 pub fn pick_name(names: Arc<Mutex<Option<Vec<String>>>>, idx: Arc<Mutex<Option<example_com_importedembed_base::Index>>>) -> Arc<Mutex<Option<String>>> {
-
-    return Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = names.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(*{ let __v = (*idx.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as usize].clone() })));
+    Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = names.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(*{ let __v = (*idx.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as usize].clone() })))
 }
 
 pub fn touch_name_ptr(names: Arc<Mutex<Option<Vec<String>>>>, idx: Arc<Mutex<Option<example_com_importedembed_base::Index>>>) {

@@ -67,7 +67,7 @@ pub fn flatten(groups: Rc<RefCell<Option<Vec<Vec<String>>>>>) -> Rc<RefCell<Opti
     { let __range_holder = groups.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for group in __range_values.iter() {
         { let new_val = { let __append_target = out.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).extend(group.iter().cloned()); __append_target.clone() }; out = new_val; };
     } }
-    out.clone()
+    return out.clone();
 }
 
 fn main() {

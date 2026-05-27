@@ -79,13 +79,13 @@ impl std::fmt::Display for Field {
 
 impl Ident {
     pub fn pos(&self) -> i32 {
-        return 1;
+        1
     }
 }
 
 impl Expr for Ident {
     fn pos(&self) -> i32 {
-        return 1;
+        1
     }
     fn __go_clone_box_expr(&self) -> Box<dyn Expr> {
         Box::new(self.clone()) as Box<dyn Expr>
@@ -104,13 +104,13 @@ impl Expr for Ident {
 
 impl StarExpr {
     pub fn pos(&self) -> i32 {
-        return 2;
+        2
     }
 }
 
 impl Expr for StarExpr {
     fn pos(&self) -> i32 {
-        return 2;
+        2
     }
     fn __go_clone_box_expr(&self) -> Box<dyn Expr> {
         Box::new(self.clone()) as Box<dyn Expr>
@@ -128,7 +128,6 @@ impl Expr for StarExpr {
 }
 
 pub fn unwrap(fields: Rc<RefCell<Option<Vec<Rc<RefCell<Option<Field>>>>>>>) -> Rc<RefCell<Option<String>>> {
-
     let mut t = Rc::new(RefCell::new(Some((*(*(*fields.borrow().as_ref().unwrap())[(0) as usize].clone().borrow().as_ref().unwrap()).r#type.borrow().as_ref().unwrap()).clone())));
     {
         let (mut p, _) = ({
@@ -166,7 +165,7 @@ pub fn unwrap(fields: Rc<RefCell<Option<Vec<Rc<RefCell<Option<Field>>>>>>>) -> R
             return Rc::new(RefCell::new(Some({ let __selector_holder = (*id.borrow().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));;
         }
     }
-    return Rc::new(RefCell::new(Some("?".to_string())));
+    Rc::new(RefCell::new(Some("?".to_string())))
 }
 
 fn main() {

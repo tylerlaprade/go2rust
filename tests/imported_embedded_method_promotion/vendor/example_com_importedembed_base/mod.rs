@@ -242,21 +242,21 @@ impl Decoder {
     }
 
     pub fn label(&self, prefix: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<String>>> {
-        return Arc::new(Mutex::new(Some(format!("{}:{}", { let __v = (*prefix.lock().unwrap().as_ref().unwrap()).clone(); __v }, (*self.value.lock().unwrap().as_ref().unwrap())))));
+        Arc::new(Mutex::new(Some(format!("{}:{}", { let __v = (*prefix.lock().unwrap().as_ref().unwrap()).clone(); __v }, (*self.value.lock().unwrap().as_ref().unwrap())))))
     }
 
     pub fn snapshot(&self) -> i32 {
-        return (*self.value.lock().unwrap().as_ref().unwrap());
+        (*self.value.lock().unwrap().as_ref().unwrap())
     }
 
     pub fn clone(&self) -> Arc<Mutex<Option<Decoder>>> {
-        return Arc::new(Mutex::new(Some(Decoder { value: Arc::new(Mutex::new(Some({ let __selector_holder = self.value.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), ..Default::default() })));
+        Arc::new(Mutex::new(Some(Decoder { value: Arc::new(Mutex::new(Some({ let __selector_holder = self.value.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), ..Default::default() })))
     }
 }
 
 impl PkgDecoder {
     pub fn new_decoder(&self, delta: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<Decoder>>> {
-        return Arc::new(Mutex::new(Some(Decoder { value: Arc::new(Mutex::new(Some({ let __tmp_x = (*self.base.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*delta.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }))), ..Default::default() })));
+        Arc::new(Mutex::new(Some(Decoder { value: Arc::new(Mutex::new(Some({ let __tmp_x = (*self.base.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*delta.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }))), ..Default::default() })))
     }
 
     pub fn retire_decoder(&self, d: Arc<Mutex<Option<Decoder>>>) {

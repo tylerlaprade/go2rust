@@ -29,13 +29,12 @@ impl std::fmt::Display for finder {
 
 impl finder {
     pub fn find(&self, delta: Arc<Mutex<Option<i32>>>) -> i32 {
-        return { let __tmp_x = (*self.base.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*delta.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y };
+        { let __tmp_x = (*self.base.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*delta.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }
     }
 }
 
 pub fn call_find() -> i32 {
-
-    return { let __recv = (Arc::new(Mutex::new(Some(finder { base: Arc::new(Mutex::new(Some(2 as i32))), ..Default::default() })))); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).find(Arc::new(Mutex::new(Some(3)))); __result };
+    { let __recv = (Arc::new(Mutex::new(Some(finder { base: Arc::new(Mutex::new(Some(2 as i32))), ..Default::default() })))); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).find(Arc::new(Mutex::new(Some(3)))); __result }
 }
 
 fn main() {

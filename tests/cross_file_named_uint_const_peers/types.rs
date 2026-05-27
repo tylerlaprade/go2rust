@@ -199,6 +199,6 @@ impl std::fmt::Display for Header {
 
 impl Version {
     pub fn has(&self, f: Rc<RefCell<Option<Version>>>) -> bool {
-        return Version(Rc::new(RefCell::new(Some(V0 as u32)))) <= (*self.0.borrow().as_ref().unwrap()) && ((*self.0.borrow().as_ref().unwrap()) < Version(Rc::new(RefCell::new(Some(V2 as u32)))) || (*f.borrow().as_ref().unwrap()) == Version(Rc::new(RefCell::new(Some(V0 as u32)))));
+        Version(Rc::new(RefCell::new(Some(V0 as u32)))) <= (*self.0.borrow().as_ref().unwrap()) && ((*self.0.borrow().as_ref().unwrap()) < Version(Rc::new(RefCell::new(Some(V2 as u32)))) || (*f.borrow().as_ref().unwrap()) == Version(Rc::new(RefCell::new(Some(V0 as u32)))))
     }
 }

@@ -43,13 +43,13 @@ impl std::fmt::Display for FuncDecl {
 
 impl FuncDecl {
     pub fn decl_name(&self) -> Rc<RefCell<Option<String>>> {
-        return self.name.clone();
+        self.name.clone()
     }
 }
 
 impl Decl for FuncDecl {
     fn decl_name(&self) -> Rc<RefCell<Option<String>>> {
-        return self.name.clone();
+        self.name.clone()
     }
     fn __go_clone_box_decl(&self) -> Box<dyn Decl> {
         Box::new(self.clone()) as Box<dyn Decl>

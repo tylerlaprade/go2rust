@@ -183,13 +183,13 @@ impl Ord for CodeVal {
 
 impl CodeVal {
     pub fn value(&self) -> i32 {
-        return (*Rc::new(RefCell::new(Some((*self.0.borrow().as_ref().unwrap()) as i32))).borrow().as_ref().unwrap());
+        (*Rc::new(RefCell::new(Some((*self.0.borrow().as_ref().unwrap()) as i32))).borrow().as_ref().unwrap())
     }
 }
 
 impl Code for CodeVal {
     fn value(&self) -> i32 {
-        return (*Rc::new(RefCell::new(Some((*self.0.borrow().as_ref().unwrap()) as i32))).borrow().as_ref().unwrap());
+        (*Rc::new(RefCell::new(Some((*self.0.borrow().as_ref().unwrap()) as i32))).borrow().as_ref().unwrap())
     }
     fn __go_clone_box_code(&self) -> Box<dyn Code> {
         Box::new(self.clone()) as Box<dyn Code>

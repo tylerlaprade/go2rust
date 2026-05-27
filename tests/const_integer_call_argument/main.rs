@@ -27,18 +27,16 @@ impl std::fmt::Display for writer {
 
 impl writer {
     pub fn int64(&self, x: Rc<RefCell<Option<i64>>>) -> i64 {
-        return (*x.borrow().as_ref().unwrap());
+        (*x.borrow().as_ref().unwrap())
     }
 }
 
 pub fn take_int64(x: Rc<RefCell<Option<i64>>>) -> i64 {
-
-    return (*x.borrow().as_ref().unwrap());
+    (*x.borrow().as_ref().unwrap())
 }
 
 pub fn take_uint64(x: Rc<RefCell<Option<u64>>>) -> u64 {
-
-    return (*x.borrow().as_ref().unwrap());
+    (*x.borrow().as_ref().unwrap())
 }
 
 fn main() {

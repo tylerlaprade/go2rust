@@ -82,17 +82,16 @@ impl std::fmt::Display for localType {
 
 impl localType {
     pub fn underlying(&self) -> Rc<RefCell<Option<types_Type>>> {
-        return Rc::new(RefCell::new(Some(types_Type::default())));
+        Rc::new(RefCell::new(Some(types_Type::default())))
     }
 
     pub fn string(&self) -> Rc<RefCell<Option<String>>> {
-        return Rc::new(RefCell::new(Some("local".to_string())));
+        Rc::new(RefCell::new(Some("local".to_string())))
     }
 }
 
 pub fn make_type() -> Rc<RefCell<Option<types_Type>>> {
-
-    return Rc::new(RefCell::new(Some(types_Type::default())));
+    Rc::new(RefCell::new(Some(types_Type::default())))
 }
 
 fn main() {

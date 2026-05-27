@@ -24,7 +24,7 @@ impl std::fmt::Display for Writer {
 
 impl Writer {
     pub fn code(&self, c: Rc<RefCell<Option<Box<dyn Code>>>>) -> i32 {
-        return (*c.borrow().as_ref().unwrap()).value();
+        (*c.borrow().as_ref().unwrap()).value()
     }
 }
 

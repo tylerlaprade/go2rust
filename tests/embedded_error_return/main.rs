@@ -36,8 +36,7 @@ impl StdError for wrappedError {}
 
 
 pub fn build() -> Rc<RefCell<Option<Box<dyn StdError>>>> {
-
-    return Rc::new(RefCell::new(Some(Box::new(wrappedError { error: Rc::new(RefCell::new(Some(Box::<dyn StdError>::from(format!("wrapped {}", "boom".to_string()))))), ..Default::default() }) as Box<dyn StdError>)));
+    Rc::new(RefCell::new(Some(Box::new(wrappedError { error: Rc::new(RefCell::new(Some(Box::<dyn StdError>::from(format!("wrapped {}", "boom".to_string()))))), ..Default::default() }) as Box<dyn StdError>)))
 }
 
 fn main() {

@@ -43,13 +43,13 @@ impl std::fmt::Display for ImportSpec {
 
 impl ImportSpec {
     pub fn label(&self) -> Rc<RefCell<Option<String>>> {
-        return self.name.clone();
+        self.name.clone()
     }
 }
 
 impl Spec for ImportSpec {
     fn label(&self) -> Rc<RefCell<Option<String>>> {
-        return self.name.clone();
+        self.name.clone()
     }
     fn __go_clone_box_spec(&self) -> Box<dyn Spec> {
         Box::new(self.clone()) as Box<dyn Spec>
@@ -67,8 +67,7 @@ impl Spec for ImportSpec {
 }
 
 pub fn pair_o_k(prev: Rc<RefCell<Option<Box<dyn Spec>>>>, next: Rc<RefCell<Option<Box<dyn Spec>>>>) -> bool {
-
-    return (*(*prev.borrow().as_ref().unwrap()).label().borrow().as_ref().unwrap()).clone() != (*(*next.borrow().as_ref().unwrap()).label().borrow().as_ref().unwrap()).clone();
+    (*(*prev.borrow().as_ref().unwrap()).label().borrow().as_ref().unwrap()).clone() != (*(*next.borrow().as_ref().unwrap()).label().borrow().as_ref().unwrap()).clone()
 }
 
 fn main() {

@@ -73,13 +73,13 @@ impl std::fmt::Display for finder {
 
 impl namedKey {
     pub fn name(&self) -> Rc<RefCell<Option<String>>> {
-        return self.name.clone();
+        self.name.clone()
     }
 }
 
 impl Key for namedKey {
     fn name(&self) -> Rc<RefCell<Option<String>>> {
-        return self.name.clone();
+        self.name.clone()
     }
     fn __go_clone_box_key(&self) -> Box<dyn Key> {
         Box::new(self.clone()) as Box<dyn Key>
@@ -98,13 +98,13 @@ impl Key for namedKey {
 
 impl finder {
     pub fn find(&self, key: Rc<RefCell<Option<Box<dyn Key>>>>) -> Rc<RefCell<Option<String>>> {
-        return (*key.borrow().as_ref().unwrap()).name();
+        (*key.borrow().as_ref().unwrap()).name()
     }
 }
 
 impl Finder for finder {
     fn find(&self, key: Rc<RefCell<Option<Box<dyn Key>>>>) -> Rc<RefCell<Option<String>>> {
-        return (*key.borrow().as_ref().unwrap()).name();
+        (*key.borrow().as_ref().unwrap()).name()
     }
     fn __go_clone_box_finder(&self) -> Box<dyn Finder> {
         Box::new(self.clone()) as Box<dyn Finder>

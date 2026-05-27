@@ -33,13 +33,12 @@ impl Counter {
     }
 
     pub fn value(&self) -> i32 {
-        return (*self.value.borrow().as_ref().unwrap());
+        (*self.value.borrow().as_ref().unwrap())
     }
 }
 
 pub fn new_counter() -> Rc<RefCell<Option<Counter>>> {
-
-    return Rc::new(RefCell::new(Some(Counter { value: Rc::new(RefCell::new(Some(0 as i32))), ..Default::default() })));
+    Rc::new(RefCell::new(Some(Counter { value: Rc::new(RefCell::new(Some(0 as i32))), ..Default::default() })))
 }
 
 fn main() {

@@ -45,20 +45,20 @@ impl std::fmt::Display for rect {
 
 impl rect {
     pub fn area(&self) -> f64 {
-        return (*self.width.borrow().as_ref().unwrap()) * (*self.height.borrow().as_ref().unwrap());
+        (*self.width.borrow().as_ref().unwrap()) * (*self.height.borrow().as_ref().unwrap())
     }
 
     pub fn perim(&self) -> f64 {
-        return 2.0 * (*self.width.borrow().as_ref().unwrap()) + 2.0 * (*self.height.borrow().as_ref().unwrap());
+        2.0 * (*self.width.borrow().as_ref().unwrap()) + 2.0 * (*self.height.borrow().as_ref().unwrap())
     }
 }
 
 impl geometry for rect {
     fn area(&self) -> f64 {
-        return (*self.width.borrow().as_ref().unwrap()) * (*self.height.borrow().as_ref().unwrap());
+        (*self.width.borrow().as_ref().unwrap()) * (*self.height.borrow().as_ref().unwrap())
     }
     fn perim(&self) -> f64 {
-        return 2.0 * (*self.width.borrow().as_ref().unwrap()) + 2.0 * (*self.height.borrow().as_ref().unwrap());
+        2.0 * (*self.width.borrow().as_ref().unwrap()) + 2.0 * (*self.height.borrow().as_ref().unwrap())
     }
     fn __go_clone_box_geometry(&self) -> Box<dyn geometry> {
         Box::new(self.clone()) as Box<dyn geometry>

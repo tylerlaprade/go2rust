@@ -3,11 +3,10 @@ use std::error::Error as StdError;
 use std::rc::{Rc};
 
 pub fn divide(a: Rc<RefCell<Option<i32>>>, b: Rc<RefCell<Option<i32>>>) -> (i32, Rc<RefCell<Option<Box<dyn StdError>>>>) {
-
     if (*b.borrow().as_ref().unwrap()) == 0 {
         return (0, Rc::new(RefCell::new(Some(Box::<dyn std::error::Error>::from("division by zero".to_string())))));
     }
-    return ((*a.borrow().as_ref().unwrap()) / (*b.borrow().as_ref().unwrap()), Rc::new(RefCell::new(None)));
+    ((*a.borrow().as_ref().unwrap()) / (*b.borrow().as_ref().unwrap()), Rc::new(RefCell::new(None)))
 }
 
 fn main() {

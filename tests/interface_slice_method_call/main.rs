@@ -131,13 +131,13 @@ impl std::fmt::Display for Assign {
 
 impl Lit {
     pub fn pos(&self) -> i32 {
-        return (*self.p.borrow().as_ref().unwrap());
+        (*self.p.borrow().as_ref().unwrap())
     }
 }
 
 impl Expr for Lit {
     fn pos(&self) -> i32 {
-        return (*self.p.borrow().as_ref().unwrap());
+        (*self.p.borrow().as_ref().unwrap())
     }
     fn __go_clone_box_expr(&self) -> Box<dyn Expr> {
         Box::new(self.clone()) as Box<dyn Expr>
@@ -158,7 +158,7 @@ impl Assign {
     /// Mirrors ast.AssignStmt.Pos(): method body indexes the wrapped
     /// interface slice field and calls a trait method on the result.
     pub fn first_pos(&self) -> i32 {
-        return { let __recv = (*self.lhs.borrow().as_ref().unwrap())[(0) as usize].clone(); let __result = (*__recv.borrow().as_ref().unwrap()).pos(); __result };
+        { let __recv = (*self.lhs.borrow().as_ref().unwrap())[(0) as usize].clone(); let __result = (*__recv.borrow().as_ref().unwrap()).pos(); __result }
     }
 }
 

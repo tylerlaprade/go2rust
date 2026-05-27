@@ -3,8 +3,7 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 
 pub fn key() -> u32 {
-
-    return 1;
+    1
 }
 
 fn main() {

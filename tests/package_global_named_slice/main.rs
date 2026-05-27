@@ -83,13 +83,11 @@ fn __go_init_globals() {
 
 
 pub fn first(xs: Rc<RefCell<Option<Items>>>) -> Rc<RefCell<Option<String>>> {
-
-    return Rc::new(RefCell::new(Some({ let __seq_holder = { let __named_slice = (*xs.borrow().as_ref().unwrap()).0.clone(); __named_slice }; let __seq_guard = __seq_holder.borrow(); let __seq = __seq_guard.as_ref().unwrap(); __seq[(0) as usize].clone() })));
+    Rc::new(RefCell::new(Some({ let __seq_holder = { let __named_slice = (*xs.borrow().as_ref().unwrap()).0.clone(); __named_slice }; let __seq_guard = __seq_holder.borrow(); let __seq = __seq_guard.as_ref().unwrap(); __seq[(0) as usize].clone() })))
 }
 
 pub fn grow(xs: Rc<RefCell<Option<Items>>>) -> Rc<RefCell<Option<Items>>> {
-
-    return { let __base = { let __named_slice = (*xs.borrow().as_ref().unwrap()).0.clone(); __named_slice }; let __base_guard = __base.borrow(); let mut __values = __base_guard.as_ref().cloned().unwrap_or_else(Vec::new); drop(__base_guard); __values.push("gamma".to_string()); Rc::new(RefCell::new(Some(Items(Rc::new(RefCell::new(Some(__values))))))) };
+    { let __base = { let __named_slice = (*xs.borrow().as_ref().unwrap()).0.clone(); __named_slice }; let __base_guard = __base.borrow(); let mut __values = __base_guard.as_ref().cloned().unwrap_or_else(Vec::new); drop(__base_guard); __values.push("gamma".to_string()); Rc::new(RefCell::new(Some(Items(Rc::new(RefCell::new(Some(__values))))))) }
 }
 
 fn main() {

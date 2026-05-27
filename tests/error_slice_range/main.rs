@@ -30,7 +30,7 @@ impl std::fmt::Display for customError {
 
 impl customError {
     pub fn error(&self) -> Rc<RefCell<Option<String>>> {
-        return self.msg.clone();
+        self.msg.clone()
     }
 }
 
@@ -46,11 +46,10 @@ pub fn accept(err: Rc<RefCell<Option<Box<dyn StdError>>>>) {
 }
 
 pub fn collect() -> Rc<RefCell<Option<Vec<Rc<RefCell<Option<Box<dyn StdError>>>>>>>> {
-
     let mut errs = Rc::new(RefCell::new(Some(vec![Rc::new(RefCell::new(Some(Box::<dyn std::error::Error>::from("boom".to_string())))), Rc::new(RefCell::new(None::<Box<dyn StdError>>))])));
     (*errs.borrow_mut().as_mut().unwrap())[(1) as usize] = Rc::new(RefCell::new(Some(Box::<dyn std::error::Error>::from("two".to_string()))));
     { let new_val = { let __append_target = errs.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push(Rc::new(RefCell::new(Some(Box::new(customError { msg: Rc::new(RefCell::new(Some("custom".to_string()))), ..Default::default() }) as Box<dyn StdError>)))); __append_target.clone() }; errs = new_val; };
-    return errs.clone();
+    errs.clone()
 }
 
 fn main() {

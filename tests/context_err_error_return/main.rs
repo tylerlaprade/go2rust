@@ -303,8 +303,7 @@ impl std::fmt::Debug for GoContext {
 }
 
 pub fn fail(ctx: Arc<Mutex<Option<GoContext>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
-
-    return (*ctx.lock().unwrap().as_ref().unwrap()).err();
+    (*ctx.lock().unwrap().as_ref().unwrap()).err()
 }
 
 fn main() {

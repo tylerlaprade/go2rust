@@ -28,11 +28,10 @@ impl std::fmt::Display for node {
 
 
 pub fn read(n: Rc<RefCell<Option<node>>>) -> i32 {
-
     if (*n.borrow()).is_none() {
         return -1;
     }
-    return (*(*n.borrow().as_ref().unwrap()).value.borrow().as_ref().unwrap());
+    (*(*n.borrow().as_ref().unwrap()).value.borrow().as_ref().unwrap())
 }
 
 fn main() {

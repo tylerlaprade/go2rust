@@ -194,8 +194,7 @@ impl GoJsonDecode for Var {
 
 
 pub fn new_var() -> Rc<RefCell<Option<Var>>> {
-
-    return Rc::new(RefCell::new(Some(Var {  })));
+    Rc::new(RefCell::new(Some(Var {  })))
 }
 
 pub fn set_kind(v: Rc<RefCell<Option<Var>>>, kind: Rc<RefCell<Option<Kind>>>) {

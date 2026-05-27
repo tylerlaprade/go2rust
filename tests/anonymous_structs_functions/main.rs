@@ -156,20 +156,17 @@ pub fn print_person(p: Arc<Mutex<Option<AnonymousStruct1>>>) {
 
 /// Function returning anonymous struct
 pub fn get_point() -> Arc<Mutex<Option</* unknown struct */>>> {
-
-    return Arc::new(Mutex::new(Some(AnonymousStruct2 { x: Arc::new(Mutex::new(Some(10 as i32))), y: Arc::new(Mutex::new(Some(20 as i32))) })));
+    Arc::new(Mutex::new(Some(AnonymousStruct2 { x: Arc::new(Mutex::new(Some(10 as i32))), y: Arc::new(Mutex::new(Some(20 as i32))) })))
 }
 
 /// Function with multiple anonymous struct parameters
 pub fn compare_points(p1: Arc<Mutex<Option<AnonymousStruct2>>>, p2: Arc<Mutex<Option<AnonymousStruct2>>>) -> bool {
-
-    return { let __tmp_x = (*{ let __field = (*p1.lock().unwrap().as_ref().unwrap()).x.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __field = (*p2.lock().unwrap().as_ref().unwrap()).x.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x == __tmp_y } && { let __tmp_x = (*{ let __field = (*p1.lock().unwrap().as_ref().unwrap()).y.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __field = (*p2.lock().unwrap().as_ref().unwrap()).y.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x == __tmp_y };
+    { let __tmp_x = (*{ let __field = (*p1.lock().unwrap().as_ref().unwrap()).x.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __field = (*p2.lock().unwrap().as_ref().unwrap()).x.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x == __tmp_y } && { let __tmp_x = (*{ let __field = (*p1.lock().unwrap().as_ref().unwrap()).y.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __field = (*p2.lock().unwrap().as_ref().unwrap()).y.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x == __tmp_y }
 }
 
 /// Function returning multiple values including anonymous struct
 pub fn get_config() -> (Arc<Mutex<Option<String>>>, Arc<Mutex<Option</* unknown struct */>>>) {
-
-    return (Arc::new(Mutex::new(Some("server".to_string()))), Arc::new(Mutex::new(Some(AnonymousStruct3 { port: Arc::new(Mutex::new(Some(8080 as i32))), timeout: Arc::new(Mutex::new(Some(30 as i32))) }))));
+    (Arc::new(Mutex::new(Some("server".to_string()))), Arc::new(Mutex::new(Some(AnonymousStruct3 { port: Arc::new(Mutex::new(Some(8080 as i32))), timeout: Arc::new(Mutex::new(Some(30 as i32))) }))))
 }
 
 /// Function with anonymous struct pointer parameter

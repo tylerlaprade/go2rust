@@ -177,7 +177,7 @@ impl std::fmt::Display for state {
 
 impl state {
     pub fn read(&self) -> i32 {
-        return (*self.value.lock().unwrap().as_ref().unwrap());
+        (*self.value.lock().unwrap().as_ref().unwrap())
     }
 
     pub fn run(&self) {

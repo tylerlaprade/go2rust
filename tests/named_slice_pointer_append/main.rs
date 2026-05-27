@@ -32,13 +32,11 @@ pub struct nodes(pub Rc<RefCell<Option<Vec<Rc<RefCell<Option<node>>>>>>>);
 
 
 pub fn add(mut xs: Rc<RefCell<Option<nodes>>>, n: Rc<RefCell<Option<node>>>) -> Rc<RefCell<Option<nodes>>> {
-
     { let new_val = { let __base = { let __named_slice = (*xs.borrow().as_ref().unwrap()).0.clone(); __named_slice }; let __base_guard = __base.borrow(); let mut __values = __base_guard.as_ref().cloned().unwrap_or_else(Vec::new); drop(__base_guard); __values.push(n.clone()); Rc::new(RefCell::new(Some(nodes(Rc::new(RefCell::new(Some(__values))))))) }; let __moved_val = { let mut __guard = new_val.borrow_mut(); __guard.take() }; *xs.borrow_mut() = __moved_val; };
-    return xs.clone();
+    xs.clone()
 }
 
 pub fn keep(xs: Rc<RefCell<Option<nodes>>>) -> Rc<RefCell<Option<nodes>>> {
-
     let mut kept: Rc<RefCell<Option<nodes>>> = Rc::new(RefCell::new(Some(Default::default())));
     { let __range_holder = { let __named_slice = (*xs.borrow().as_ref().unwrap()).0.clone(); __named_slice }; let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for n in __range_values.iter() {
         { let new_val = { let __base = { let __named_slice = (*kept.borrow().as_ref().unwrap()).0.clone(); __named_slice }; let __base_guard = __base.borrow(); let mut __values = __base_guard.as_ref().cloned().unwrap_or_else(Vec::new); drop(__base_guard); __values.push(n.clone()); Rc::new(RefCell::new(Some(nodes(Rc::new(RefCell::new(Some(__values))))))) }; let __moved_val = { let mut __guard = new_val.borrow_mut(); __guard.take() }; *kept.borrow_mut() = __moved_val; };

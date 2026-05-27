@@ -2,8 +2,7 @@ use std::cell::{RefCell};
 use std::rc::{Rc};
 
 pub fn count(values: Rc<RefCell<Option<Vec<u8>>>>) -> i32 {
-
-    return (*values.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32;
+    (*values.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32
 }
 
 fn main() {

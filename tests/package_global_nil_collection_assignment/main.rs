@@ -33,13 +33,11 @@ fn __go_init_globals() {
 
 
 pub fn nil_values() -> Rc<RefCell<Option<Vec<i32>>>> {
-
-    return Rc::new(RefCell::new(None));
+    Rc::new(RefCell::new(None))
 }
 
 pub fn nil_seen() -> Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i32>>>>>>> {
-
-    return Rc::new(RefCell::new(None));
+    Rc::new(RefCell::new(None))
 }
 
 pub fn restore(values: Rc<RefCell<Option<Vec<i32>>>>, seen: Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i32>>>>>>>) {

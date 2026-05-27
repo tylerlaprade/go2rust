@@ -2,8 +2,7 @@ use std::cell::{RefCell};
 use std::rc::{Rc};
 
 pub fn echo(s: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>> {
-
-    return Rc::new(RefCell::new(Some(s.borrow().as_ref().unwrap().clone())));
+    Rc::new(RefCell::new(Some(s.borrow().as_ref().unwrap().clone())))
 }
 
 fn main() {

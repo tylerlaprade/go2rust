@@ -1,6 +1,5 @@
 pub fn vals() -> (i32, i32) {
-
-    return (3, 7);
+    (3, 7)
 }
 
 fn main() {

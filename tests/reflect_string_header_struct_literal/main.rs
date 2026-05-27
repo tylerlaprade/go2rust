@@ -48,9 +48,8 @@ impl std::fmt::Display for Label {
 
 
 pub fn make_label(v: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<Label>>> {
-
     let mut hdr = Arc::new(Mutex::new(Some(reflect_StringHeader { data: Arc::new(Mutex::new(Some(0 as usize))), len: Arc::new(Mutex::new(Some({ let __s = (*v.lock().unwrap().as_ref().unwrap()).clone(); __s.len() as i32 }))), ..Default::default() })));
-    return Arc::new(Mutex::new(Some(Label { packed: Arc::new(Mutex::new(Some({ let __selector_holder = (*hdr.lock().unwrap().as_ref().unwrap()).len.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64))), again: Arc::new(Mutex::new(Some({ let __selector_holder = (*hdr.lock().unwrap().as_ref().unwrap()).len.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64))), ..Default::default() })));
+    Arc::new(Mutex::new(Some(Label { packed: Arc::new(Mutex::new(Some({ let __selector_holder = (*hdr.lock().unwrap().as_ref().unwrap()).len.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64))), again: Arc::new(Mutex::new(Some({ let __selector_holder = (*hdr.lock().unwrap().as_ref().unwrap()).len.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64))), ..Default::default() })))
 }
 
 fn main() {

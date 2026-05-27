@@ -34,8 +34,7 @@ impl tracker {
 }
 
 pub fn make_bump(t: Arc<Mutex<Option<tracker>>>) -> Arc<Mutex<Option<Box<dyn FnMut() -> () + Send + Sync>>>> {
-
-    return Arc::new(Mutex::new(Some({ let __recv = t.clone(); Box::new(move || { (*__recv.lock().unwrap().as_mut().unwrap()).bump() }) as Box<dyn FnMut() -> () + Send + Sync> })));
+    Arc::new(Mutex::new(Some({ let __recv = t.clone(); Box::new(move || { (*__recv.lock().unwrap().as_mut().unwrap()).bump() }) as Box<dyn FnMut() -> () + Send + Sync> })))
 }
 
 fn main() {

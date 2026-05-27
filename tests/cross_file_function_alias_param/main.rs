@@ -11,6 +11,5 @@ fn main() {
 }
 
 pub fn double(x: Rc<RefCell<Option<i32>>>) -> i32 {
-
-    return (*x.borrow().as_ref().unwrap()) * 2;
+    (*x.borrow().as_ref().unwrap()) * 2
 }

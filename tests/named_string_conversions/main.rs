@@ -19,18 +19,15 @@ impl PartialEq for Path {
 
 
 pub fn empty_path() -> Rc<RefCell<Option<Path>>> {
-
-    return Rc::new(RefCell::new(Some(Path(Rc::new(RefCell::new(Some("".to_string())))))));
+    Rc::new(RefCell::new(Some(Path(Rc::new(RefCell::new(Some("".to_string())))))))
 }
 
 pub fn from_string(s: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<Path>>> {
-
-    return Rc::new(RefCell::new(Some(Path(Rc::new(RefCell::new(Some((*s.borrow().as_ref().unwrap()).clone())))))));
+    Rc::new(RefCell::new(Some(Path(Rc::new(RefCell::new(Some((*s.borrow().as_ref().unwrap()).clone())))))))
 }
 
 pub fn from_bytes(b: Rc<RefCell<Option<Vec<u8>>>>) -> Rc<RefCell<Option<Path>>> {
-
-    return Rc::new(RefCell::new(Some(Path(Rc::new(RefCell::new(Some(String::from_utf8((*b.borrow().as_ref().unwrap()).clone()).unwrap())))))));
+    Rc::new(RefCell::new(Some(Path(Rc::new(RefCell::new(Some(String::from_utf8((*b.borrow().as_ref().unwrap()).clone()).unwrap())))))))
 }
 
 fn main() {

@@ -32,8 +32,7 @@ fn __go_init_globals() {
 
 
 pub fn parse_enabled() -> (bool, Rc<RefCell<Option<Box<dyn StdError>>>>) {
-
-    return (true, Rc::new(RefCell::new(None)));
+    (true, Rc::new(RefCell::new(None)))
 }
 
 fn main() {

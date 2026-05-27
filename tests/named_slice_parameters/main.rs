@@ -14,28 +14,25 @@ impl Display for Numbers {
 
 impl Numbers {
     pub fn string(&self) -> Rc<RefCell<Option<String>>> {
-        return Rc::new(RefCell::new(Some(format!("Numbers({})", { let __slice_holder = self.0.clone(); let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }))));
+        Rc::new(RefCell::new(Some(format!("Numbers({})", { let __slice_holder = self.0.clone(); let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }))))
     }
 }
 
 pub fn total(ns: Rc<RefCell<Option<Numbers>>>) -> i32 {
-
     let mut sum = Rc::new(RefCell::new(Some(0)));
     { let __range_holder = { let __named_slice = (*ns.borrow().as_ref().unwrap()).0.clone(); __named_slice }; let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for n in __range_values.iter().copied() {
         { let __rhs = n; let mut guard = sum.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     } }
-    return (*sum.borrow().as_ref().unwrap());
+    (*sum.borrow().as_ref().unwrap())
 }
 
 pub fn grow(mut ns: Rc<RefCell<Option<Numbers>>>) -> Rc<RefCell<Option<Numbers>>> {
-
     { let new_val = { let __base = { let __named_slice = (*ns.borrow().as_ref().unwrap()).0.clone(); __named_slice }; let __base_guard = __base.borrow(); let mut __values = __base_guard.as_ref().cloned().unwrap_or_else(Vec::new); drop(__base_guard); __values.push(4); Rc::new(RefCell::new(Some(Numbers(Rc::new(RefCell::new(Some(__values))))))) }; let __moved_val = { let mut __guard = new_val.borrow_mut(); __guard.take() }; *ns.borrow_mut() = __moved_val; };
-    return ns.clone();
+    ns.clone()
 }
 
 pub fn merge(a: Rc<RefCell<Option<Numbers>>>, b: Rc<RefCell<Option<Numbers>>>) -> Rc<RefCell<Option<Numbers>>> {
-
-    return { let __base = { let __named_slice = (*a.borrow().as_ref().unwrap()).0.clone(); __named_slice }; let __base_guard = __base.borrow(); let mut __values = __base_guard.as_ref().cloned().unwrap_or_else(Vec::new); drop(__base_guard); let __src = { let __named_slice = (*b.borrow().as_ref().unwrap()).0.clone(); __named_slice }; let __src_guard = __src.borrow(); if let Some(__src_values) = __src_guard.as_ref() { __values.extend(__src_values.iter().cloned()); }; Rc::new(RefCell::new(Some(Numbers(Rc::new(RefCell::new(Some(__values))))))) };
+    { let __base = { let __named_slice = (*a.borrow().as_ref().unwrap()).0.clone(); __named_slice }; let __base_guard = __base.borrow(); let mut __values = __base_guard.as_ref().cloned().unwrap_or_else(Vec::new); drop(__base_guard); let __src = { let __named_slice = (*b.borrow().as_ref().unwrap()).0.clone(); __named_slice }; let __src_guard = __src.borrow(); if let Some(__src_values) = __src_guard.as_ref() { __values.extend(__src_values.iter().cloned()); }; Rc::new(RefCell::new(Some(Numbers(Rc::new(RefCell::new(Some(__values))))))) }
 }
 
 fn main() {

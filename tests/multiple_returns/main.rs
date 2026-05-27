@@ -69,7 +69,7 @@ pub fn calculate(a: Rc<RefCell<Option<i32>>>, b: Rc<RefCell<Option<i32>>>) -> (i
 
     { let new_val = (*a.borrow().as_ref().unwrap()) + (*b.borrow().as_ref().unwrap()); *sum.borrow_mut() = Some(new_val); };
     { let new_val = (*a.borrow().as_ref().unwrap()) * (*b.borrow().as_ref().unwrap()); *product.borrow_mut() = Some(new_val); };
-    ((*sum.borrow().as_ref().unwrap()), (*product.borrow().as_ref().unwrap()))
+    return ((*sum.borrow().as_ref().unwrap()), (*product.borrow().as_ref().unwrap()));
 }
 
 pub fn process_data(data: Rc<RefCell<Option<Vec<i32>>>>) -> (i32, i32, i32) {
@@ -95,7 +95,7 @@ pub fn process_data(data: Rc<RefCell<Option<Vec<i32>>>>) -> (i32, i32, i32) {
         { let __rhs = val; let mut guard = sum.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     } }
 
-    ((*min.borrow().as_ref().unwrap()), (*max.borrow().as_ref().unwrap()), (*sum.borrow().as_ref().unwrap()))
+    return ((*min.borrow().as_ref().unwrap()), (*max.borrow().as_ref().unwrap()), (*sum.borrow().as_ref().unwrap()));
 }
 
 pub fn swap(a: Rc<RefCell<Option<String>>>, b: Rc<RefCell<Option<String>>>) -> (Rc<RefCell<Option<String>>>, Rc<RefCell<Option<String>>>) {

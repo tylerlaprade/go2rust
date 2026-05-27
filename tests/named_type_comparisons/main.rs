@@ -169,18 +169,15 @@ impl Ord for Kind {
 
 
 pub fn different(a: Rc<RefCell<Option<Kind>>>, b: Rc<RefCell<Option<Kind>>>) -> bool {
-
-    return (*a.borrow().as_ref().unwrap()) != (*b.borrow().as_ref().unwrap());
+    (*a.borrow().as_ref().unwrap()) != (*b.borrow().as_ref().unwrap())
 }
 
 pub fn same(a: Rc<RefCell<Option<Kind>>>, b: Rc<RefCell<Option<Kind>>>) -> bool {
-
-    return (*a.borrow().as_ref().unwrap()) == (*b.borrow().as_ref().unwrap());
+    (*a.borrow().as_ref().unwrap()) == (*b.borrow().as_ref().unwrap())
 }
 
 pub fn zero_kind() -> Rc<RefCell<Option<Kind>>> {
-
-    return Rc::new(RefCell::new(Some(Kind(Rc::new(RefCell::new(Some(0 as i8)))))));
+    Rc::new(RefCell::new(Some(Kind(Rc::new(RefCell::new(Some(0 as i8)))))))
 }
 
 fn main() {

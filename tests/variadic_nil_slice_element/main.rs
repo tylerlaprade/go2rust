@@ -8,7 +8,7 @@ pub fn collect(groups: Rc<RefCell<Option<Vec<Vec<String>>>>>) -> Rc<RefCell<Opti
         { let new_val = { let __append_target = out.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push((*value).clone()); __append_target.clone() }; out = new_val; };
     }
     } }
-    out.clone()
+    return out.clone();
 }
 
 fn main() {

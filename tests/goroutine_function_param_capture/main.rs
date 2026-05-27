@@ -158,7 +158,7 @@ pub fn run(f: Arc<Mutex<Option<Box<dyn FnMut() -> Arc<Mutex<Option<String>>> + S
 fn main() {
     let mut done = GoChannel::<String>::new();
     run(Arc::new(Mutex::new(Some(Box::new(move || -> Arc<Mutex<Option<String>>> {
-        return Arc::new(Mutex::new(Some("ok".to_string())));
+        Arc::new(Mutex::new(Some("ok".to_string())))
     }) as Box<dyn FnMut() -> Arc<Mutex<Option<String>>> + Send + Sync>))), done.clone());
     println!("{}", format!("{}", done.recv().unwrap_or_default()));
 }

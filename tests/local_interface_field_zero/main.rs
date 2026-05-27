@@ -43,8 +43,7 @@ impl std::fmt::Display for holder {
 
 
 pub fn zero_holder() -> Rc<RefCell<Option<holder>>> {
-
-    return Rc::new(RefCell::new(Some(holder { reader: Rc::new(RefCell::new(None)), count: Rc::new(RefCell::new(Some(0))) })));
+    Rc::new(RefCell::new(Some(holder { reader: Rc::new(RefCell::new(None)), count: Rc::new(RefCell::new(Some(0))) })))
 }
 
 fn main() {

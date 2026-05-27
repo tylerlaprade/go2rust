@@ -29,11 +29,11 @@ impl std::fmt::Display for holder {
 
 impl holder {
     pub fn to_string(&self) -> Arc<Mutex<Option<String>>> {
-        return self.value.clone();
+        self.value.clone()
     }
 
     pub fn string(&self) -> Arc<Mutex<Option<String>>> {
-        return self.to_string();
+        self.to_string()
     }
 }
 

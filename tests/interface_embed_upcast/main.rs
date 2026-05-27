@@ -115,7 +115,7 @@ impl std::fmt::Display for ExprStmt {
 
 impl Ident {
     pub fn pos(&self) -> i32 {
-        return (*self.pos.borrow().as_ref().unwrap());
+        (*self.pos.borrow().as_ref().unwrap())
     }
 
     pub fn expr_node(&self) {
@@ -139,7 +139,7 @@ impl Expr for Ident {
 
 impl Node for Ident {
     fn pos(&self) -> i32 {
-        return (*self.pos.borrow().as_ref().unwrap());
+        (*self.pos.borrow().as_ref().unwrap())
     }
     fn __go_clone_box_node(&self) -> Box<dyn Node> {
         Box::new(self.clone()) as Box<dyn Node>
@@ -158,7 +158,7 @@ impl Node for Ident {
 
 impl ExprStmt {
     pub fn pos(&self) -> i32 {
-        return (*self.x.borrow().as_ref().unwrap()).pos();
+        (*self.x.borrow().as_ref().unwrap()).pos()
     }
 
     pub fn stmt_node(&self) {
@@ -167,7 +167,7 @@ impl ExprStmt {
 
 impl Node for ExprStmt {
     fn pos(&self) -> i32 {
-        return (*self.x.borrow().as_ref().unwrap()).pos();
+        (*self.x.borrow().as_ref().unwrap()).pos()
     }
     fn __go_clone_box_node(&self) -> Box<dyn Node> {
         Box::new(self.clone()) as Box<dyn Node>

@@ -302,7 +302,7 @@ pub fn rel(basepath: Arc<Mutex<Option<String>>>, targpath: Arc<Mutex<Option<Stri
         return (Arc::new(Mutex::new(Some(String::from_utf8((*buf.lock().unwrap().as_ref().unwrap()).clone()).unwrap()))), Arc::new(Mutex::new(None)));
     }
         // Base elements left. Must go up before going down.
-    (Arc::new(Mutex::new(Some({ let __s = &((*targ.lock().unwrap().as_ref().unwrap()).clone()); __s[({ let __v = (*t0.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize..].to_string() }))), Arc::new(Mutex::new(None)))
+    return (Arc::new(Mutex::new(Some({ let __s = &((*targ.lock().unwrap().as_ref().unwrap()).clone()); __s[({ let __v = (*t0.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize..].to_string() }))), Arc::new(Mutex::new(None)));
 }
 
 /// walkDir recursively descends path, calling walkDirFn.

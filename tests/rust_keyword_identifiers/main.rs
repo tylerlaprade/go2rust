@@ -33,7 +33,7 @@ pub fn use_keyword_names(r#fn: Rc<RefCell<Option<i32>>>) -> i32 {
         { let __rhs = r#mod; let mut guard = total.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     }
     let mut branch = Rc::new(RefCell::new(Some(Branch { r#else: total.clone(), ..Default::default() })));
-    (*(*branch.borrow().as_ref().unwrap()).r#else.borrow().as_ref().unwrap())
+    return (*(*branch.borrow().as_ref().unwrap()).r#else.borrow().as_ref().unwrap());
 }
 
 fn main() {

@@ -164,30 +164,27 @@ impl Ord for Pos {
 
 
 pub fn next_pos(p: Rc<RefCell<Option<Pos>>>) -> Rc<RefCell<Option<Pos>>> {
-
-    return {
+    {
             let __tmp_x = (*p.borrow().as_ref().unwrap()).clone();
             let __tmp_y = Pos(Rc::new(RefCell::new(Some(1 as i32))));
             Rc::new(RefCell::new(Some(__tmp_x + __tmp_y)))
-        };
+        }
 }
 
 pub fn sum_pos(a: Rc<RefCell<Option<Pos>>>, b: Rc<RefCell<Option<Pos>>>) -> Rc<RefCell<Option<Pos>>> {
-
-    return {
+    {
             let __tmp_x = (*a.borrow().as_ref().unwrap()).clone();
             let __tmp_y = (*b.borrow().as_ref().unwrap()).clone();
             Rc::new(RefCell::new(Some(__tmp_x + __tmp_y)))
-        };
+        }
 }
 
 pub fn diff_pos(a: Rc<RefCell<Option<Pos>>>, b: Rc<RefCell<Option<Pos>>>) -> Rc<RefCell<Option<Pos>>> {
-
-    return {
+    {
             let __tmp_x = (*a.borrow().as_ref().unwrap()).clone();
             let __tmp_y = (*b.borrow().as_ref().unwrap()).clone();
             Rc::new(RefCell::new(Some(__tmp_x - __tmp_y)))
-        };
+        }
 }
 
 fn main() {

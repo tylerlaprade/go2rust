@@ -57,7 +57,7 @@ pub fn classify(b: Rc<RefCell<Option<sampleBox>>>) -> Rc<RefCell<Option<String>>
     if _ts_val.and_then(|__v| __v.downcast_ref::<i32>()).is_some() {
         let v = Rc::new(RefCell::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<i32>()).unwrap().clone())));
         drop(_ts_guard);
-        Rc::new(RefCell::new(Some(format!("int:{}", { let __v = (*v.borrow().as_ref().unwrap()).clone(); __v }))));
+        return Rc::new(RefCell::new(Some(format!("int:{}", { let __v = (*v.borrow().as_ref().unwrap()).clone(); __v }))));;
     } else {
         let v = (*b.borrow().as_ref().unwrap()).current().clone();
         drop(_ts_guard);

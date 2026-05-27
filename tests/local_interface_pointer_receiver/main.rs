@@ -79,20 +79,20 @@ impl std::fmt::Display for list {
 
 impl list {
     pub fn valid(&self, index: Rc<RefCell<Option<i32>>>) -> bool {
-        return (*index.borrow().as_ref().unwrap()) >= 0 && ((*index.borrow().as_ref().unwrap()) as i32) < ((*self.labels.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32);
+        (*index.borrow().as_ref().unwrap()) >= 0 && ((*index.borrow().as_ref().unwrap()) as i32) < ((*self.labels.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32)
     }
 
     pub fn label(&self, index: Rc<RefCell<Option<i32>>>) -> i32 {
-        return (*self.labels.borrow().as_ref().unwrap())[((*index.borrow().as_ref().unwrap())) as usize].clone();
+        (*self.labels.borrow().as_ref().unwrap())[((*index.borrow().as_ref().unwrap())) as usize].clone()
     }
 }
 
 impl List for list {
     fn valid(&self, index: Rc<RefCell<Option<i32>>>) -> bool {
-        return (*index.borrow().as_ref().unwrap()) >= 0 && ((*index.borrow().as_ref().unwrap()) as i32) < ((*self.labels.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32);
+        (*index.borrow().as_ref().unwrap()) >= 0 && ((*index.borrow().as_ref().unwrap()) as i32) < ((*self.labels.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32)
     }
     fn label(&self, index: Rc<RefCell<Option<i32>>>) -> i32 {
-        return (*self.labels.borrow().as_ref().unwrap())[((*index.borrow().as_ref().unwrap())) as usize].clone();
+        (*self.labels.borrow().as_ref().unwrap())[((*index.borrow().as_ref().unwrap())) as usize].clone()
     }
     fn __go_clone_box_list(&self) -> Box<dyn List> {
         Box::new(self.clone()) as Box<dyn List>

@@ -43,13 +43,13 @@ impl std::fmt::Display for r#box {
 
 impl r#box {
     pub fn value(&self) -> i32 {
-        return (*self.n.borrow().as_ref().unwrap());
+        (*self.n.borrow().as_ref().unwrap())
     }
 }
 
 impl hasValue for r#box {
     fn value(&self) -> i32 {
-        return (*self.n.borrow().as_ref().unwrap());
+        (*self.n.borrow().as_ref().unwrap())
     }
     fn __go_clone_box_has_value(&self) -> Box<dyn hasValue> {
         Box::new(self.clone()) as Box<dyn hasValue>

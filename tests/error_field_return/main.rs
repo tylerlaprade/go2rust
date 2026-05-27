@@ -22,13 +22,11 @@ impl std::fmt::Display for parseValue {
 
 
 pub fn parse(v: Rc<RefCell<Option<parseValue>>>) -> Rc<RefCell<Option<Box<dyn StdError>>>> {
-
-    return (*v.borrow().as_ref().unwrap()).err.clone();
+    (*v.borrow().as_ref().unwrap()).err.clone()
 }
 
 pub fn parse_pair(v: Rc<RefCell<Option<parseValue>>>) -> (i32, Rc<RefCell<Option<Box<dyn StdError>>>>) {
-
-    return (7, { let __return_value_1 = (*v.borrow().as_ref().unwrap()).err.clone(); __return_value_1 });
+    (7, { let __return_value_1 = (*v.borrow().as_ref().unwrap()).err.clone(); __return_value_1 })
 }
 
 fn main() {

@@ -5,7 +5,7 @@ use std::thread;
 pub fn zero() -> Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> {
     let mut v: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(None));
 
-    return v;
+    v
 }
 
 fn main() {

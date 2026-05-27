@@ -209,7 +209,7 @@ impl std::fmt::Display for userWriter {
 impl userWriter {
     pub fn write(&mut self, data: Rc<RefCell<Option<Vec<u8>>>>) -> (i32, Rc<RefCell<Option<Box<dyn StdError>>>>) {
         { let __target = self.count.clone(); let mut guard = __target.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
-        return (*(*self.buf.borrow_mut().as_mut().unwrap()).write(data.clone()).borrow().as_ref().unwrap());
+        (*(*self.buf.borrow_mut().as_mut().unwrap()).write(data.clone()).borrow().as_ref().unwrap())
     }
 }
 

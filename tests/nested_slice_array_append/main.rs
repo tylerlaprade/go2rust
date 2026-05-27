@@ -235,8 +235,7 @@ impl std::fmt::Display for Holder {
 
 
 pub fn replacement() -> Arc<Mutex<Option<String>>> {
-
-    return Arc::new(Mutex::new(Some("delta".to_string())));
+    Arc::new(Mutex::new(Some("delta".to_string())))
 }
 
 fn main() {

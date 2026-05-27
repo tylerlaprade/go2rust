@@ -177,16 +177,15 @@ impl std::fmt::Display for Params {
 
 impl Params {
     pub fn len(&self) -> i32 {
-        return (*self.n.lock().unwrap().as_ref().unwrap());
+        (*self.n.lock().unwrap().as_ref().unwrap())
     }
 
     pub fn at(&self, i: Arc<Mutex<Option<i32>>>) -> i32 {
-        return { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y };
+        { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }
     }
 }
 
 pub fn total(p: Arc<Mutex<Option<Params>>>) -> i32 {
-
     let mut sum = Arc::new(Mutex::new(Some(0)));
     for mut i in 0..({ let __recv = p.clone(); let __recv_ptr: *const Params = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Params }; let __result = unsafe { &*__recv_ptr }.len(); __result }) {
         if { let __tmp_x = i; let __tmp_y = 0; __tmp_x == __tmp_y } {
@@ -200,7 +199,7 @@ pub fn total(p: Arc<Mutex<Option<Params>>>) -> i32 {
         { let __rhs = i; let mut guard = sum.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     }
     }
-    return { let __v = (*sum.lock().unwrap().as_ref().unwrap()).clone(); __v };
+    { let __v = (*sum.lock().unwrap().as_ref().unwrap()).clone(); __v }
 }
 
 fn main() {

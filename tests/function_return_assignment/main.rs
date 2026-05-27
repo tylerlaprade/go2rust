@@ -2,8 +2,7 @@ use std::cell::{RefCell};
 use std::rc::{Rc};
 
 pub fn add_suffix(s: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>> {
-
-    return Rc::new(RefCell::new(Some(format!("{}{}", (*s.borrow().as_ref().unwrap()), "!".to_string()))));
+    Rc::new(RefCell::new(Some(format!("{}{}", (*s.borrow().as_ref().unwrap()), "!".to_string()))))
 }
 
 fn main() {

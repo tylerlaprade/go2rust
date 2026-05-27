@@ -6,6 +6,5 @@ pub type Exporter = Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<GoContext>>>
 
 
 pub fn set_exporter(exporter: Exporter) -> Arc<Mutex<Option<GoContext>>> {
-
-    return example_com_contextshared_core::r#use(Arc::new(Mutex::new(Some(GoContext::background()))), exporter.clone());
+    example_com_contextshared_core::r#use(Arc::new(Mutex::new(Some(GoContext::background()))), exporter.clone())
 }

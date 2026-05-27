@@ -29,22 +29,22 @@ impl std::fmt::Display for Label {
 
 impl Label {
     pub fn valid(&self) -> bool {
-        return (*self.name.borrow().as_ref().unwrap()).clone() != "";
+        (*self.name.borrow().as_ref().unwrap()).clone() != ""
     }
 
     pub fn name(&self) -> Rc<RefCell<Option<String>>> {
-        return self.name.clone();
+        self.name.clone()
     }
 
     pub fn echo(&self, other: Rc<RefCell<Option<Label>>>) -> Rc<RefCell<Option<String>>> {
-        return (*other.borrow().as_ref().unwrap()).name();
+        (*other.borrow().as_ref().unwrap()).name()
     }
 
     pub fn format(&self) -> Rc<RefCell<Option<String>>> {
         if !(*self.valid().borrow().as_ref().unwrap()) {
         return Rc::new(RefCell::new(Some("nil".to_string())));
     }
-        return self.echo(Rc::new(RefCell::new(Some(self.clone()))));
+        self.echo(Rc::new(RefCell::new(Some(self.clone()))))
     }
 }
 

@@ -149,7 +149,6 @@ impl<T> Iterator for GoChannel<T> {
 }
 
 pub fn build(done: GoChannel<bool>) -> Arc<Mutex<Option<String>>> {
-
     let mut output: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(Some(Default::default())));
     (*output.lock().unwrap().as_mut().unwrap()).push_str("ready");
     done.send(true);

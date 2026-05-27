@@ -343,25 +343,25 @@ impl std::fmt::Display for Symbol {
 
 impl Symbol {
     pub fn is_field(&self) -> bool {
-        return { let __tmp_x = { let __selector_holder = self.kind.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = Kind(Arc::new(Mutex::new(Some(FIELD as i8)))); __tmp_x == __tmp_y };
+        { let __tmp_x = { let __selector_holder = self.kind.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = Kind(Arc::new(Mutex::new(Some(FIELD as i8)))); __tmp_x == __tmp_y }
     }
 
     pub fn is_not_method(&self) -> bool {
-        return { let __tmp_x = { let __selector_holder = self.kind.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = Kind(Arc::new(Mutex::new(Some(METHOD as i8)))); __tmp_x != __tmp_y };
+        { let __tmp_x = { let __selector_holder = self.kind.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = Kind(Arc::new(Mutex::new(Some(METHOD as i8)))); __tmp_x != __tmp_y }
     }
 
     pub fn has_field_flag(&self) -> bool {
-        return { let __tmp_x = Kind(Arc::new(Mutex::new(Some(((*(*self.kind.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) & FIELD))))); let __tmp_y = Kind(Arc::new(Mutex::new(Some(0 as i8)))); __tmp_x != __tmp_y } && { let __tmp_x = Kind(Arc::new(Mutex::new(Some(((*(*self.kind.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) | METHOD))))); let __tmp_y = Kind(Arc::new(Mutex::new(Some(INVALID as i8)))); __tmp_x != __tmp_y };
+        { let __tmp_x = Kind(Arc::new(Mutex::new(Some(((*(*self.kind.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) & FIELD))))); let __tmp_y = Kind(Arc::new(Mutex::new(Some(0 as i8)))); __tmp_x != __tmp_y } && { let __tmp_x = Kind(Arc::new(Mutex::new(Some(((*(*self.kind.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) | METHOD))))); let __tmp_y = Kind(Arc::new(Mutex::new(Some(INVALID as i8)))); __tmp_x != __tmp_y }
     }
 
     pub fn kind_name(&self) -> Arc<Mutex<Option<String>>> {
         { let _switch_val = { let __selector_holder = self.kind.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
     if _switch_val == (Kind(Arc::new(Mutex::new(Some(FIELD as i8))))) {
-            return Arc::new(Mutex::new(Some("field".to_string())));
+            Arc::new(Mutex::new(Some("field".to_string())))
         } else if _switch_val == (Kind(Arc::new(Mutex::new(Some(METHOD as i8))))) {
-            return Arc::new(Mutex::new(Some("method".to_string())));
+            Arc::new(Mutex::new(Some("method".to_string())))
         } else {
-            return Arc::new(Mutex::new(Some("invalid".to_string())));
+            Arc::new(Mutex::new(Some("invalid".to_string())))
         }
     }
     }

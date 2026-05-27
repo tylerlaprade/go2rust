@@ -11,8 +11,7 @@ pub mod io {
 
 
 pub fn same(err: Rc<RefCell<Option<Box<dyn StdError>>>>) -> bool {
-
-    return (*err.borrow()).is_none() == (*io::EOF().borrow()).is_none();
+    (*err.borrow()).is_none() == (*io::EOF().borrow()).is_none()
 }
 
 fn main() {

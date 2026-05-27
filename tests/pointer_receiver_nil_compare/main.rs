@@ -32,7 +32,7 @@ impl node {
         if false || (*other.borrow()).is_none() {
         return false;
     }
-        return (*self.value.borrow().as_ref().unwrap()) == (*(*other.borrow().as_ref().unwrap()).value.borrow().as_ref().unwrap());
+        (*self.value.borrow().as_ref().unwrap()) == (*(*other.borrow().as_ref().unwrap()).value.borrow().as_ref().unwrap())
     }
 }
 

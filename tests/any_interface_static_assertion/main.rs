@@ -29,12 +29,11 @@ impl std::fmt::Display for person {
 
 impl person {
     pub fn name(&self) -> Rc<RefCell<Option<String>>> {
-        return self.name.clone();
+        self.name.clone()
     }
 }
 
 pub fn asserted_name(p: Rc<RefCell<Option<person>>>) -> Rc<RefCell<Option<String>>> {
-
     let (mut named, mut ok) = ({
         let __asserted = p.clone();
         (__asserted.clone(), Rc::new(RefCell::new(Some(true))))
@@ -42,7 +41,7 @@ pub fn asserted_name(p: Rc<RefCell<Option<person>>>) -> Rc<RefCell<Option<String
     if (*ok.borrow().as_ref().unwrap()) {
         return (*named.borrow().as_ref().unwrap()).name();
     }
-    return Rc::new(RefCell::new(Some("missing".to_string())));
+    Rc::new(RefCell::new(Some("missing".to_string())))
 }
 
 fn main() {

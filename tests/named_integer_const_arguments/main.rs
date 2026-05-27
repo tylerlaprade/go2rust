@@ -516,22 +516,20 @@ impl std::fmt::Display for Encoder {
 
 impl Encoder {
     pub fn sync(&self, m: Rc<RefCell<Option<SyncMarker>>>) -> i32 {
-        return (*Rc::new(RefCell::new(Some((*(*m.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) as i32))).borrow().as_ref().unwrap());
+        (*Rc::new(RefCell::new(Some((*(*m.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) as i32))).borrow().as_ref().unwrap())
     }
 
     pub fn call_sync(&self) -> i32 {
-        return self.sync(Rc::new(RefCell::new(Some(SyncMarker(Rc::new(RefCell::new(Some(SYNC_BOOL as i32))))))));
+        self.sync(Rc::new(RefCell::new(Some(SyncMarker(Rc::new(RefCell::new(Some(SYNC_BOOL as i32))))))))
     }
 }
 
 pub fn take_reloc(k: Rc<RefCell<Option<RelocKind>>>) -> i32 {
-
-    return (*Rc::new(RefCell::new(Some((*(*k.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) as i32))).borrow().as_ref().unwrap());
+    (*Rc::new(RefCell::new(Some((*(*k.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) as i32))).borrow().as_ref().unwrap())
 }
 
 pub fn field_enabled(f: Rc<RefCell<Option<Field>>>) -> i32 {
-
-    return (*Rc::new(RefCell::new(Some((*(*f.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) as i32))).borrow().as_ref().unwrap()) + 10;
+    (*Rc::new(RefCell::new(Some((*(*f.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) as i32))).borrow().as_ref().unwrap()) + 10
 }
 
 fn main() {

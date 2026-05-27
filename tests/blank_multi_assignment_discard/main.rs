@@ -26,9 +26,8 @@ fn __go_init_globals() {
 
 
 pub fn next() -> i32 {
-
     { let mut guard = n.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
-    return (*n.borrow().as_ref().unwrap());
+    (*n.borrow().as_ref().unwrap())
 }
 
 fn main() {

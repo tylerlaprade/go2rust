@@ -29,18 +29,16 @@ impl std::fmt::Display for label {
 
 impl label {
     pub fn name(&self) -> Rc<RefCell<Option<String>>> {
-        return self.name.clone();
+        self.name.clone()
     }
 }
 
 pub fn append_string(dst: Rc<RefCell<Option<Vec<u8>>>>, s: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<Vec<u8>>>> {
-
-    return { let __append_target = dst.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).extend((*s.borrow().as_ref().unwrap()).clone().as_bytes().iter().cloned()); __append_target.clone() };
+    { let __append_target = dst.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).extend((*s.borrow().as_ref().unwrap()).clone().as_bytes().iter().cloned()); __append_target.clone() }
 }
 
 pub fn append_method(dst: Rc<RefCell<Option<Vec<u8>>>>, l: Rc<RefCell<Option<label>>>) -> Rc<RefCell<Option<Vec<u8>>>> {
-
-    return { let __append_target = dst.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).extend((*(*l.borrow().as_ref().unwrap()).name().borrow().as_ref().unwrap()).clone().as_bytes().iter().cloned()); __append_target.clone() };
+    { let __append_target = dst.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).extend((*(*l.borrow().as_ref().unwrap()).name().borrow().as_ref().unwrap()).clone().as_bytes().iter().cloned()); __append_target.clone() }
 }
 
 fn main() {

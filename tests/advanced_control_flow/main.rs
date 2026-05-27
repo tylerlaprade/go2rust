@@ -489,7 +489,7 @@ fn main() {
         return Arc::new(Mutex::new(Some(Box::<dyn StdError + Send + Sync>::from(format!("value too large at index {}: {}", i, val)))));
     }
     } }
-        return Arc::new(Mutex::new(None));
+        Arc::new(Mutex::new(None))
     }) as Box<dyn FnMut(Arc<Mutex<Option<Vec<i32>>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> + Send + Sync>)));
 
     let mut testData = Arc::new(Mutex::new(Some(vec![vec![1, 2, 3], Vec::<i32>::new(), vec![1, -2, 3], vec![1, 200, 3], vec![10, 20, 30]])));

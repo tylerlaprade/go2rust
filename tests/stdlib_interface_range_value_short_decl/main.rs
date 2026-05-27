@@ -276,7 +276,7 @@ pub fn normalize(elts: Arc<Mutex<Option<Vec<ast_Expr>>>>) -> Arc<Mutex<Option<Ve
     }
         { let new_val = { let __append_target = values.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push((*value.lock().unwrap().as_ref().unwrap()).clone()); __append_target.clone() }; values = new_val; };
     } }
-    values.clone()
+    return values.clone();
 }
 
 fn main() {

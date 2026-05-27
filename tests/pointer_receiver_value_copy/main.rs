@@ -36,7 +36,7 @@ impl Tracker {
         let mut copy = Rc::new(RefCell::new(Some((*self).__go_value_clone())));
         { let new_val = false; *(*copy.borrow().as_ref().unwrap()).needs_channel.borrow_mut() = Some(new_val); };
         { let new_val = false; *(*copy.borrow().as_ref().unwrap()).needs_context.borrow_mut() = Some(new_val); };
-        return copy.clone();
+        copy.clone()
     }
 }
 

@@ -21,14 +21,12 @@ impl PartialEq for Path {
 
 
 pub fn text() -> Rc<RefCell<Option<String>>> {
-
-    return Rc::new(RefCell::new(Some("".to_string())));
+    Rc::new(RefCell::new(Some("".to_string())))
 }
 
 pub fn object(p: Rc<RefCell<Option<Path>>>) -> Rc<RefCell<Option<String>>> {
-
     if (*p.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap().clone() == "".to_string() {
         return Rc::new(RefCell::new(Some("empty".to_string())));
     }
-    return Rc::new(RefCell::new(Some((*p.borrow().as_ref().unwrap()).to_string())));
+    Rc::new(RefCell::new(Some((*p.borrow().as_ref().unwrap()).to_string())))
 }

@@ -74,11 +74,11 @@ impl std::fmt::Display for Lit {
 
 impl Lit {
     pub fn pos(&self) -> i32 {
-        return (*self.value.borrow().as_ref().unwrap());
+        (*self.value.borrow().as_ref().unwrap())
     }
 
     pub fn end(&self) -> i32 {
-        return (*self.value.borrow().as_ref().unwrap()) + 1 as i32;
+        (*self.value.borrow().as_ref().unwrap()) + 1 as i32
     }
 
     pub fn expr_node(&self) {
@@ -102,10 +102,10 @@ impl Expr for Lit {
 
 impl Node for Lit {
     fn pos(&self) -> i32 {
-        return (*self.value.borrow().as_ref().unwrap());
+        (*self.value.borrow().as_ref().unwrap())
     }
     fn end(&self) -> i32 {
-        return (*self.value.borrow().as_ref().unwrap()) + 1 as i32;
+        (*self.value.borrow().as_ref().unwrap()) + 1 as i32
     }
     fn __go_clone_box_node(&self) -> Box<dyn Node> {
         Box::new(self.clone()) as Box<dyn Node>
@@ -123,8 +123,7 @@ impl Node for Lit {
 }
 
 pub fn describe(e: Rc<RefCell<Option<Box<dyn Expr>>>>) -> (i32, i32) {
-
-    return ((*e.borrow().as_ref().unwrap()).pos(), (*e.borrow().as_ref().unwrap()).end());
+    ((*e.borrow().as_ref().unwrap()).pos(), (*e.borrow().as_ref().unwrap()).end())
 }
 
 fn main() {

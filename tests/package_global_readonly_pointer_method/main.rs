@@ -57,7 +57,7 @@ fn __go_init_globals() {
 
 impl Counter {
     pub fn value(&self) -> i32 {
-        return (*(*(*shared.borrow().as_ref().unwrap()).borrow().as_ref().unwrap()).value.borrow().as_ref().unwrap()) + (*self.value.borrow().as_ref().unwrap());
+        (*(*(*shared.borrow().as_ref().unwrap()).borrow().as_ref().unwrap()).value.borrow().as_ref().unwrap()) + (*self.value.borrow().as_ref().unwrap())
     }
 }
 
