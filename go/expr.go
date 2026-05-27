@@ -1198,11 +1198,25 @@ func writeNamedMapInnerHandleClone(out *strings.Builder, expr ast.Expr) bool {
 	}
 	inner := unwrapParens(expr)
 	if ident, ok := inner.(*ast.Ident); ok && currentReceiver != "" && ident.Name == currentReceiver {
+		if currentCaptureRenames != nil {
+			if renamed, exists := currentCaptureRenames[ident.Name]; exists {
+				out.WriteString(RustLocalIdent(renamed))
+				out.WriteString(".0.clone()")
+				return true
+			}
+		}
 		out.WriteString("self.0.clone()")
 		return true
 	}
 	if star, ok := inner.(*ast.StarExpr); ok {
 		if ident, ok := unwrapParens(star.X).(*ast.Ident); ok && currentReceiver != "" && ident.Name == currentReceiver {
+			if currentCaptureRenames != nil {
+				if renamed, exists := currentCaptureRenames[ident.Name]; exists {
+					out.WriteString(RustLocalIdent(renamed))
+					out.WriteString(".0.clone()")
+					return true
+				}
+			}
 			out.WriteString("self.0.clone()")
 			return true
 		}

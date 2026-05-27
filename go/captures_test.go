@@ -152,6 +152,51 @@ func TestReceiverClosureCloneClonesReceiverValue(t *testing.T) {
 	}
 }
 
+func TestClosureCapturesNamedMapReceiverClone(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+type Node interface {
+	Pos() int
+}
+
+type CommentMap map[Node][]int
+
+func Inspect(node Node, f func(Node) bool) {}
+
+func (cmap CommentMap) Filter(node Node) CommentMap {
+	umap := make(CommentMap)
+	Inspect(node, func(n Node) bool {
+		if g := cmap[n]; len(g) > 0 {
+			umap[n] = g
+		}
+		return true
+	})
+	return umap
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile() error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := Transpile(file, fset, typeInfo)
+	fnIndex := strings.Index(rust, "pub fn filter")
+	if fnIndex < 0 {
+		t.Fatalf("generated Rust did not contain filter method:\n%s", rust)
+	}
+	fnRust := rust[fnIndex:]
+	if !strings.Contains(fnRust, "cmap_closure_clone") {
+		t.Fatalf("closure should capture the named map receiver clone:\n%s", rust)
+	}
+	if strings.Contains(fnRust, "self.0.clone()") {
+		t.Fatalf("closure body should not capture self by reference after cloning the receiver:\n%s", rust)
+	}
+}
+
 func TestSyntaxClosurePredeclaredConversionsAreNotCaptured(t *testing.T) {
 	prevTypeInfo := currentTypeInfo
 	defer func() { currentTypeInfo = prevTypeInfo }()
