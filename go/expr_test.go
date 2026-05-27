@@ -280,6 +280,49 @@ func collect(list []Expr, x Expr) []Expr {
 	}
 }
 
+func TestAppendLocalInterfaceHandleKeepsWrappedValue(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+type Node interface {
+	Pos() int
+}
+
+type nodeStack []Node
+
+func push(s *nodeStack, n Node) {
+	*s = append(*s, n)
+}
+
+func withNil(nodes []Node) []Node {
+	return append(nodes, nil)
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(main.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := Transpile(file, fset, typeInfo)
+	if strings.Contains(rust, ".push((*n.borrow().as_ref().unwrap()).clone())") ||
+		strings.Contains(rust, ".push((*n.lock().unwrap().as_ref().unwrap()).clone())") {
+		t.Fatalf("append of local interface handle should not clone the boxed trait object out of the handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "__values.push(n.clone())") {
+		t.Fatalf("named slice append should keep the existing local interface handle:\n%s", rust)
+	}
+	if strings.Contains(rust, ".push(None)") {
+		t.Fatalf("append nil to local interface slice should push a wrapped None handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".push(Rc::new(RefCell::new(None)))") &&
+		!strings.Contains(rust, ".push(Arc::new(Mutex::new(None)))") {
+		t.Fatalf("append nil to local interface slice should emit a wrapped None handle:\n%s", rust)
+	}
+}
+
 func TestWrappedStringCallArgumentUsesShortGuardBlock(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

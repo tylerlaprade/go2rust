@@ -3309,6 +3309,67 @@ func writeConcreteLocalInterfaceValue(out *strings.Builder, expr ast.Expr, expec
 	return true
 }
 
+func writeLocalInterfaceHandleClone(out *strings.Builder, expr ast.Expr) {
+	if ident, ok := expr.(*ast.Ident); ok {
+		name := RustIdentForUse(ident)
+		if currentCaptureRenames != nil {
+			if renamed, exists := currentCaptureRenames[ident.Name]; exists {
+				name = RustLocalIdent(renamed)
+			}
+		}
+		if varType, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar &&
+			(strings.HasPrefix(varType, "&Rc<") || strings.HasPrefix(varType, "&Arc<")) {
+			out.WriteString("(*")
+			out.WriteString(name)
+			out.WriteString(").clone()")
+			return
+		}
+	}
+	TranspileExpressionContext(out, expr, LValue)
+	out.WriteString(".clone()")
+}
+
+func writeLocalInterfaceSliceElementValue(out *strings.Builder, expr ast.Expr, elemType types.Type) bool {
+	if elemType == nil {
+		return false
+	}
+	ifaceName, ok := localNamedInterfaceTypeNameFromTypes(elemType)
+	if !ok {
+		return false
+	}
+	if ident, ok := expr.(*ast.Ident); ok && ident.Name == "nil" {
+		WriteWrappedNone(out)
+		return true
+	}
+	if isBareLocalInterfaceValue(expr) {
+		WriteWrapperPrefix(out)
+		writeLocalInterfaceBareClone(out, expr)
+		WriteWrapperSuffix(out)
+		return true
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	exprType := typeInfo.GetType(expr)
+	if exprType == nil {
+		return false
+	}
+	if _, ok := localNamedInterfaceTypeNameFromTypes(exprType); ok {
+		writeLocalInterfaceHandleClone(out, expr)
+		return true
+	}
+	if types.AssignableTo(exprType, elemType) {
+		WriteWrapperPrefix(out)
+		if !writeConcreteLocalInterfaceValue(out, expr, elemType, ifaceName) {
+			return false
+		}
+		WriteWrapperSuffix(out)
+		return true
+	}
+	return false
+}
+
 func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 	if len(call.Args) >= 2 {
 		if transpileNamedSliceAppend(out, call) {
@@ -3339,6 +3400,9 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 					return
 				}
 				if elemType != nil {
+					if writeLocalInterfaceSliceElementValue(out, expr, elemType) {
+						return
+					}
 					if isFunctionSignatureType(elemType) && writeFunctionValueHandle(out, expr) {
 						return
 					}
@@ -3601,6 +3665,9 @@ func transpileNamedSliceAppend(out *strings.Builder, call *ast.CallExpr) bool {
 			return
 		}
 		if writeNilStdlibInterfaceBareValue(out, expr, sliceType.Elem()) {
+			return
+		}
+		if writeLocalInterfaceSliceElementValue(out, expr, sliceType.Elem()) {
 			return
 		}
 		if !writeOwnedExpressionValue(out, expr) {
