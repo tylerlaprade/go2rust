@@ -72,6 +72,22 @@ func TestSourceMappedStdlibPackageIsNotStubBacked(t *testing.T) {
 	}
 }
 
+func TestJsonSupportHelpersDecodeUnsignedAndFixedArrays(t *testing.T) {
+	var out strings.Builder
+	writeJsonSupportHelpers(&out, false)
+	got := out.String()
+
+	for _, want := range []string{
+		"impl GoJsonDecode for u16",
+		"impl GoJsonDecode for usize",
+		"impl<T, const N: usize> GoJsonDecode for [T; N]",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("JSON support helpers should include %q:\n%s", want, got)
+		}
+	}
+}
+
 func TestSourceMappedStdlibCompositeLiteralDoesNotRegisterStubFields(t *testing.T) {
 	prevContext := currentContext
 	ctx := &TranspileContext{
