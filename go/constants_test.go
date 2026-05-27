@@ -866,6 +866,30 @@ func fill(tokens []string, keywords map[string]Token) {
 	}
 }
 
+func TestNamedIntegerMixedPrimitiveOpsReturnNamedType(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type bitset uint64
+
+func (b bitset) removeFirst() bitset {
+	return b & (b - 1)
+}
+`)
+
+	if strings.Contains(rust, "impl std::ops::Sub<u64> for bitset {\n    type Output = u64") {
+		t.Fatalf("named integer minus primitive should preserve the named type:\n%s", rust)
+	}
+	if !strings.Contains(rust, "impl std::ops::Sub<u64> for bitset {\n    type Output = bitset") {
+		t.Fatalf("named integer minus primitive should output bitset:\n%s", rust)
+	}
+	if strings.Contains(rust, "impl std::ops::BitAnd<u64> for bitset {\n    type Output = u64") {
+		t.Fatalf("named integer bitwise primitive op should preserve the named type:\n%s", rust)
+	}
+	if !strings.Contains(rust, "impl std::ops::BitAnd<u64> for bitset {\n    type Output = bitset") {
+		t.Fatalf("named integer bitwise primitive op should output bitset:\n%s", rust)
+	}
+}
+
 func TestNamedIntegerAssignmentUsesRawNamedValue(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

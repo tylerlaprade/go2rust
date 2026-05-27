@@ -2522,20 +2522,39 @@ func writeScalarTypeDefinitionBinaryOp(out *strings.Builder, rustTypeName string
 	out.WriteString(rustTypeName)
 	out.WriteString(" {\n")
 	out.WriteString("    type Output = ")
-	out.WriteString(rustType)
+	if sameTypeOutput {
+		out.WriteString(rustTypeName)
+	} else {
+		out.WriteString(rustType)
+	}
 	out.WriteString(";\n")
 	out.WriteString("    fn ")
 	out.WriteString(methodName)
 	out.WriteString("(self, other: ")
 	out.WriteString(rustType)
 	out.WriteString(") -> ")
-	out.WriteString(rustType)
+	if sameTypeOutput {
+		out.WriteString(rustTypeName)
+	} else {
+		out.WriteString(rustType)
+	}
 	out.WriteString(" {\n")
-	out.WriteString("        *self.0")
+	out.WriteString("        ")
+	if sameTypeOutput {
+		out.WriteString(rustTypeName)
+		out.WriteString("(")
+		WriteWrapperPrefix(out)
+	}
+	out.WriteString("*self.0")
 	WriteBorrowMethod(out, false)
 	out.WriteString(".as_ref().unwrap() ")
 	out.WriteString(op)
-	out.WriteString(" other\n")
+	out.WriteString(" other")
+	if sameTypeOutput {
+		WriteWrapperSuffix(out)
+		out.WriteString(")")
+	}
+	out.WriteString("\n")
 	out.WriteString("    }\n")
 	out.WriteString("}\n")
 
@@ -2547,20 +2566,39 @@ func writeScalarTypeDefinitionBinaryOp(out *strings.Builder, rustTypeName string
 	out.WriteString(rustType)
 	out.WriteString(" {\n")
 	out.WriteString("    type Output = ")
-	out.WriteString(rustType)
+	if sameTypeOutput {
+		out.WriteString(rustTypeName)
+	} else {
+		out.WriteString(rustType)
+	}
 	out.WriteString(";\n")
 	out.WriteString("    fn ")
 	out.WriteString(methodName)
 	out.WriteString("(self, other: ")
 	out.WriteString(rustTypeName)
 	out.WriteString(") -> ")
-	out.WriteString(rustType)
+	if sameTypeOutput {
+		out.WriteString(rustTypeName)
+	} else {
+		out.WriteString(rustType)
+	}
 	out.WriteString(" {\n")
-	out.WriteString("        self ")
+	out.WriteString("        ")
+	if sameTypeOutput {
+		out.WriteString(rustTypeName)
+		out.WriteString("(")
+		WriteWrapperPrefix(out)
+	}
+	out.WriteString("self ")
 	out.WriteString(op)
 	out.WriteString(" *other.0")
 	WriteBorrowMethod(out, false)
-	out.WriteString(".as_ref().unwrap()\n")
+	out.WriteString(".as_ref().unwrap()")
+	if sameTypeOutput {
+		WriteWrapperSuffix(out)
+		out.WriteString(")")
+	}
+	out.WriteString("\n")
 	out.WriteString("    }\n")
 	out.WriteString("}\n")
 }
