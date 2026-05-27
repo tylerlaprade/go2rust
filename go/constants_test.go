@@ -736,6 +736,26 @@ const (
 	}
 }
 
+func TestConstBinaryPeerKeepsNamedIntegerConstsPrimitive(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type ChanDir int
+
+const (
+	RecvDir ChanDir = 1 << iota
+	SendDir
+	BothDir = RecvDir | SendDir
+)
+`)
+
+	if strings.Contains(rust, "BOTH_DIR: i32 = ChanDir(") {
+		t.Fatalf("const binary expression should not construct named integer wrappers:\n%s", rust)
+	}
+	if !strings.Contains(rust, "BOTH_DIR: i32 = RECV_DIR as i32 | SEND_DIR as i32") {
+		t.Fatalf("named integer const operands should be emitted as primitive const values:\n%s", rust)
+	}
+}
+
 func TestNoTypeInfoNamedIntegerBitwiseClonesSelectorField(t *testing.T) {
 	rust := transpileNoTypeInfoRegression(t, `package main
 

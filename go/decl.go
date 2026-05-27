@@ -3054,13 +3054,13 @@ func TranspileConstExpr(out *strings.Builder, expr ast.Expr, iotaValue int) {
 				out.WriteString(" ")
 				TranspileConstExpr(out, e.Y, iotaValue)
 			} else {
-				if _, isCall := e.X.(*ast.CallExpr); isCall || !writeConstExpressionForBinaryPeer(out, e.X, e.Y) {
+				if _, isCall := e.X.(*ast.CallExpr); isCall || !writePrimitiveConstExpressionForBinaryPeer(out, e.X, e.Y) {
 					TranspileConstExpr(out, e.X, iotaValue)
 				}
 				out.WriteString(" ")
 				out.WriteString(e.Op.String())
 				out.WriteString(" ")
-				if _, isCall := e.Y.(*ast.CallExpr); isCall || !writeConstExpressionForBinaryPeer(out, e.Y, e.X) {
+				if _, isCall := e.Y.(*ast.CallExpr); isCall || !writePrimitiveConstExpressionForBinaryPeer(out, e.Y, e.X) {
 					TranspileConstExpr(out, e.Y, iotaValue)
 				}
 			}
