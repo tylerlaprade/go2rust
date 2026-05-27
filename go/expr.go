@@ -9139,6 +9139,11 @@ func writeNumericConversionValue(out *strings.Builder, arg ast.Expr) {
 			writeExternalIntegerTupleField(out, argType)
 			return
 		}
+		if isConstIdent(ident) {
+			TranspileExpression(out, ident)
+			writeExternalIntegerTupleField(out, argType)
+			return
+		}
 		if currentReceiver != "" && ident.Name == currentReceiver && currentReceiverScalarTypeDefinition() {
 			TranspileExpression(out, ident)
 			writeExternalIntegerTupleField(out, argType)

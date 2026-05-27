@@ -330,6 +330,26 @@ func f() {
 	}
 }
 
+func TestPackageConstNamedIntegerConversionUsesConstName(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type ctrlGroup uint64
+
+const bitsetEmpty = 7
+
+func (g *ctrlGroup) setEmpty() {
+	*g = ctrlGroup(bitsetEmpty)
+}
+`)
+
+	if !strings.Contains(rust, "BITSET_EMPTY") {
+		t.Fatalf("package const conversion should use generated Rust const name:\n%s", rust)
+	}
+	if strings.Contains(rust, "bitsetEmpty.lock") {
+		t.Fatalf("package const conversion should not treat the const as a wrapped variable:\n%s", rust)
+	}
+}
+
 func TestRegisteredExportedPackageGlobalKeepsGlobalPath(t *testing.T) {
 	prevTypeInfo := currentTypeInfo
 	prevGlobals := packageGlobalNames
