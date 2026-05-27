@@ -1265,6 +1265,42 @@ func reverse(s string) string {
 	}
 }
 
+func TestParenthesizedNumericConversionTargetWrapsBinaryOperand(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+var done chan int
+
+func extractBits(data uint64, start, end uint) uint {
+	return (uint)(data>>start) & ((1 << (end - start + 1)) - 1)
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(main.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+	prevDetector := GetConcurrencyDetector()
+	detector := NewConcurrencyDetector()
+	detector.AnalyzeFile(file)
+	SetConcurrencyDetector(detector)
+	defer SetConcurrencyDetector(prevDetector)
+
+	rust, _, _ := Transpile(file, fset, typeInfo)
+
+	if strings.Contains(rust, "}.borrow().as_ref().unwrap()") ||
+		strings.Contains(rust, "}.lock().unwrap().as_ref().unwrap()") ||
+		strings.Contains(rust, ").borrow().as_ref().unwrap().borrow().as_ref().unwrap()") ||
+		strings.Contains(rust, ").lock().unwrap().as_ref().unwrap().lock().unwrap().as_ref().unwrap()") {
+		t.Fatalf("parenthesized numeric conversion target should not leave a bare block for binary unwrapping:\n%s", rust)
+	}
+	if !strings.Contains(rust, " as u32") {
+		t.Fatalf("parenthesized uint conversion target should still cast to the Rust uint representation:\n%s", rust)
+	}
+}
+
 func TestNoTypeInfoFunctionFieldDoesNotSynthesizeBoxFromRegistry(t *testing.T) {
 	prevTypeInfo := currentTypeInfo
 	defer func() { currentTypeInfo = prevTypeInfo }()

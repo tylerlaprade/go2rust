@@ -8210,9 +8210,10 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 	}
 
 	targetType := ""
-	if ident, ok := call.Fun.(*ast.Ident); ok {
+	targetExpr := unwrapParens(call.Fun)
+	if ident, ok := targetExpr.(*ast.Ident); ok {
 		targetType = ident.Name
-	} else if sel, ok := call.Fun.(*ast.SelectorExpr); ok {
+	} else if sel, ok := targetExpr.(*ast.SelectorExpr); ok {
 		// Handle package.Type conversions
 		if pkg, ok := sel.X.(*ast.Ident); ok && pkg.Name == "unsafe" && sel.Sel.Name == "Pointer" {
 			writeUnsafePointerConversion(out, call.Args[0])
@@ -8780,9 +8781,10 @@ func typeConversionEmitsWrappedValue(call *ast.CallExpr) bool {
 		return false
 	}
 	targetType := ""
-	if ident, ok := call.Fun.(*ast.Ident); ok {
+	targetExpr := unwrapParens(call.Fun)
+	if ident, ok := targetExpr.(*ast.Ident); ok {
 		targetType = ident.Name
-	} else if sel, ok := call.Fun.(*ast.SelectorExpr); ok {
+	} else if sel, ok := targetExpr.(*ast.SelectorExpr); ok {
 		targetType = sel.Sel.Name
 	}
 	if targetType == "" {
