@@ -2253,6 +2253,24 @@ func main() {
 	}
 }
 
+func TestStringConstIndexUsesBareStringBytes(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+const table = "" + "\x00\x01\x02"
+
+func lookup(i uint8) int {
+	return int(table[i])
+}
+`)
+
+	if strings.Contains(rust, "TABLE.borrow()") || strings.Contains(rust, "TABLE.lock()") {
+		t.Fatalf("string constant index should not borrow or lock the constant as a wrapper:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".as_bytes()[") {
+		t.Fatalf("string constant index should read from bare string bytes:\n%s", rust)
+	}
+}
+
 func TestNoTypeInfoRangeUsesTrackedMap(t *testing.T) {
 	prevTypeInfo := currentTypeInfo
 	prevCollections := localCollectionKinds

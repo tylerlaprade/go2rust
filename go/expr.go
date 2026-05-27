@@ -6755,11 +6755,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			typeInfo := GetTypeInfo()
 			isString := false
 			if typeInfo != nil {
-				if typ := typeInfo.GetType(e.X); typ != nil {
-					if basic, ok := typ.Underlying().(*types.Basic); ok {
-						isString = basic.Kind() == types.String
-					}
-				}
+				isString = typeInfo.IsString(e.X)
 			}
 
 			if isString {
