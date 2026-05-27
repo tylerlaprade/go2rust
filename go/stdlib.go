@@ -130,6 +130,9 @@ func init() {
 		"unsafe.Sizeof":                              transpileUnsafeSizeof,
 		"unsafe.Alignof":                             transpileUnsafeAlignof,
 		"unsafe.Offsetof":                            transpileUnsafeOffsetof,
+		"unsafe.Add":                                 transpileUnsafeAdd,
+		"unsafe.Slice":                               transpileUnsafeSlice,
+		"unsafe.String":                              transpileUnsafeString,
 		"math/rand.Seed":                             transpileRandSeed,
 		"math/rand.Intn":                             transpileRandIntn,
 		"math/rand.Float64":                          transpileRandFloat64,
@@ -3122,6 +3125,44 @@ func transpileUnsafeOffsetof(out *strings.Builder, call *ast.CallExpr) {
 	TrackImport("Rc")
 	TrackImport("RefCell")
 	out.WriteString("Rc::new(RefCell::new(Some::<usize>(unimplemented!(\"unsafe.Offsetof requires struct layout support\"))))")
+}
+
+func transpileUnsafeAdd(out *strings.Builder, call *ast.CallExpr) {
+	transpileUnsupportedUnsafeIntrinsic(out, call, "Add")
+}
+
+func transpileUnsafeSlice(out *strings.Builder, call *ast.CallExpr) {
+	transpileUnsupportedUnsafeIntrinsic(out, call, "Slice")
+}
+
+func transpileUnsafeString(out *strings.Builder, call *ast.CallExpr) {
+	transpileUnsupportedUnsafeIntrinsic(out, call, "String")
+}
+
+func transpileUnsupportedUnsafeIntrinsic(out *strings.Builder, call *ast.CallExpr, goFunc string) {
+	WriteWrapperPrefix(out)
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		out.WriteString("unimplemented!(\"type info required for unsafe.")
+		out.WriteString(goFunc)
+		out.WriteString("\")")
+		WriteWrapperSuffix(out)
+		return
+	}
+	resultType := typeInfo.GetType(call)
+	if resultType == nil {
+		out.WriteString("unimplemented!(\"type info required for unsafe.")
+		out.WriteString(goFunc)
+		out.WriteString("\")")
+		WriteWrapperSuffix(out)
+		return
+	}
+	out.WriteString("{ let __go_unsafe_result: ")
+	out.WriteString(goTypesTypeToRust(resultType))
+	out.WriteString(" = unimplemented!(\"unsafe.")
+	out.WriteString(goFunc)
+	out.WriteString(" requires unsafe intrinsic support\"); __go_unsafe_result }")
+	WriteWrapperSuffix(out)
 }
 
 func transpileRandSeed(out *strings.Builder, call *ast.CallExpr) {

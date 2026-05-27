@@ -1331,6 +1331,36 @@ func (t *Type) addr() uintptr {
 	}
 }
 
+func TestUnsafeRuntimeIntrinsicsEmitTypedUnimplemented(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+import "unsafe"
+
+func unsafeValues(p *byte, n int) (string, []byte, unsafe.Pointer) {
+	return unsafe.String(p, n), unsafe.Slice(p, n), unsafe.Add(unsafe.Pointer(p), n)
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(main.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := Transpile(file, fset, typeInfo)
+
+	if strings.Contains(rust, "unsafe::") {
+		t.Fatalf("unsafe compiler intrinsics should not be emitted as Rust module calls:\n%s", rust)
+	}
+	for _, name := range []string{"unsafe.String", "unsafe.Slice", "unsafe.Add"} {
+		if !strings.Contains(rust, `unimplemented!("`+name+` requires unsafe intrinsic support")`) {
+			t.Fatalf("%s should emit a loud unsupported intrinsic marker:\n%s", name, rust)
+		}
+	}
+}
+
 func TestNoTypeInfoFunctionFieldDoesNotSynthesizeBoxFromRegistry(t *testing.T) {
 	prevTypeInfo := currentTypeInfo
 	defer func() { currentTypeInfo = prevTypeInfo }()
