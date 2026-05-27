@@ -70,6 +70,23 @@ func VisitAll[N Node](list []N) {
 	}
 }
 
+func TestGenericAnyTypeParamReturnUsesTypeParam(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func Identity[T any](x T) T {
+	return x
+}
+`)
+
+	want := "pub fn identity<T: Any + Clone + 'static>(x: Rc<RefCell<Option<T>>>) -> Rc<RefCell<Option<T>>>"
+	if !strings.Contains(rust, want) {
+		t.Fatalf("generic any return should preserve the type parameter in the result signature, want %q:\n%s", want, rust)
+	}
+	if strings.Contains(rust, "Box<dyn Any") {
+		t.Fatalf("generic any value/result slots should not lower to the any constraint object:\n%s", rust)
+	}
+}
+
 func TestStructDefaultWrapsNamedArrayFieldZeroValue(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

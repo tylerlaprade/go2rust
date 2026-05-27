@@ -253,6 +253,14 @@ func goTypeParamConstraintToRust(t types.Type) (string, bool) {
 	return "", false
 }
 
+func goTypeParamNameToRust(t types.Type) (string, bool) {
+	tp, ok := types.Unalias(t).(*types.TypeParam)
+	if !ok || tp.Obj() == nil {
+		return "", false
+	}
+	return RustTypeNameForUse(tp.Obj().Name()), true
+}
+
 func goTypeParamTraitConstraintName(t types.Type) (string, bool) {
 	tp, ok := types.Unalias(t).(*types.TypeParam)
 	if !ok || tp.Constraint() == nil {
@@ -1004,6 +1012,9 @@ func isGoSyncOnceNamedType(typ types.Type) bool {
 
 // goTypesTypeToRust converts a go/types.Type to the base Rust type string (unwrapped)
 func goTypesTypeToRust(t types.Type) string {
+	if rustType, ok := goTypeParamNameToRust(t); ok {
+		return rustType
+	}
 	if rustType, ok := goTypeParamConstraintToRust(t); ok {
 		return rustType
 	}
