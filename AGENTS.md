@@ -140,14 +140,25 @@ Self-transpiling is not the first validation step. Start with a focused fixture 
 
 `go/types`, `go/ast`, `go/parser`, and any other Go stdlib package the self-transpiled binary depends on are *Go source*. Go2Rust's job is to translate Go to Rust. Hand-writing a Rust shim of stdlib behavior is an anti-pattern: it commits the project to maintaining a Rust port of Go stdlib in parallel with the transpiler that exists to produce exactly that.
 
-When the self-transpiled binary needs a stdlib package:
+#### Hard rules
 
-1. **Transpile the package itself.** Vendor the Go source (or the relevant subset) and run it through `go2rust` like any other Go package. Transpilation gaps are transpiler bugs to fix — generics, internal package paths, unsafe usage. Each gap gets a focused fixture (see Operating Rules: "Every bug gets a minimal failing test first").
-2. **A hand-written Rust bridge is allowed only as a temporary scaffold.** It MUST:
-   - Panic loudly on every unsupported code path. No `Default::default()`, no `types_Type::default()`, no `String::new()` returns to fill in for missing behavior. A bridge that returns plausible-but-wrong values is structurally the same bug as the 2026 fallback incident, one layer deeper.
-   - Carry a `// TEMPORARY:` comment naming the transpiler gap that blocks the real fix.
-   - Be removable in one commit once the transpiler can produce the same output.
-3. **Bridge surface never grows past the minimum that unblocks the next self-host milestone.** Adding `types_Named`, `types_Pointer`, `types_Map`, etc. one by one is a sign the project is drifting into "write a Rust port of Go stdlib" mode. Stop and transpile instead.
+1. **Default action when self-host hits a stdlib gap: transpile, not bridge.** Vendor the Go source (or the relevant subset) and run it through `go2rust` like any other Go package. The gap that prevents transpilation is the bug to fix — it gets a focused fixture under `tests/XFAIL/<name>/` per Operating Rules.
+2. **Bridge growth is a regression.** Each session's expectation is that `go/external_type_stubs.go` either shrinks or holds steady. Adding lines, adding new `// TEMPORARY:` shims, or extending an existing one without retiring another is a regression that must be justified in the commit message — naming the milestone it unblocks and the planned removal trigger.
+3. **Every `// TEMPORARY:` shim MUST have a registry row in [`docs/bridge_debt.md`](docs/bridge_debt.md).** The row names the Go stdlib symbol, the transpiler gap that blocks the real fix, and a fixture path under `tests/XFAIL/` that demonstrates the gap. The Go test `TestBridgeDebtRegistryCoversAllShims` (in `go/external_type_stubs_test.go`) enforces this and will fail CI if a `// TEMPORARY:` is added without a matching row.
+4. **Shims MUST panic loudly on every unsupported code path.** No `Default::default()`, no `types_Type::default()`, no `String::new()` returns to fill in for missing behavior, no MACHINERY helper that synthesizes an empty value for a method whose Go counterpart has real semantics. A bridge that returns plausible-but-wrong values is structurally the same bug as the 2026 fallback incident, one layer deeper.
+5. **A shim is removable in one commit once the transpiler can produce the same output.** If a shim can't be deleted without a multi-commit refactor, it has grown past scaffold and the next session must shrink it.
+
+#### Checklist before editing `go/external_type_stubs.go`
+
+Before adding or extending a shim, walk this checklist in order. If any step would take less than the bridge edit, do that step instead.
+
+1. **Can I delete dead surface instead?** Survey existing shims for ones no callers actually emit. Deletion is the cheapest progress.
+2. **Can I transpile the Go source the shim is faking?** Vendor it under `tests/XFAIL/<name>/` and run `go2rust` on it. The compile errors are the punch list.
+3. **Is there an existing shim doing this job?** If so, extend its registry row, not the surface.
+4. **Am I about to silently default a value?** If yes, stop. The shim must `panic!("<shim> bridge: unsupported <case>; transpile <go pkg> instead — see AGENTS.md")` with a message that points at the registry row.
+5. **Did I add a registry row for any new `// TEMPORARY:` comment?** If not, `go test ./go -run TestBridgeDebtRegistryCoversAllShims` will fail and so will CI.
+
+The first three steps must be tried genuinely. "I considered transpiling but it's hard" without a concrete blocker (file path, error message, fixture name) is not a justification — it's the same energy that produced the bridge in the first place.
 
 #### Why not bridge?
 
@@ -155,6 +166,21 @@ When the self-transpiled binary needs a stdlib package:
 - Bridges that return soft defaults silently synthesize type facts — exactly what "Type Info Is Authoritative" forbids.
 - The bridge approach scales linearly with stdlib surface area; the transpile approach scales with transpiler completeness, which the project needs anyway to claim self-hosting for non-trivial Go.
 - Every hour spent on the bridge is an hour not spent making the transpiler complete enough to handle real Go.
+- The bridge has grown ~860 lines and 8 `// TEMPORARY:` scaffolds in the two weeks ending 2026-05-27 with zero removals. That trajectory is the canonical "drifting into Rust port of Go stdlib" pattern this rule exists to stop.
+
+#### Infrastructure prerequisite for transpile-instead
+
+The transpile-instead path requires a piece of infrastructure the project doesn't fully have yet: a mechanism to (1) vendor a subset of Go stdlib source into the project, (2) run it through `go2rust` like any other package, and (3) route stdlib selector calls in user code to the transpiled vendored module instead of to a hand-written shim.
+
+Today the project has `vendor/go2rust_stdlib_stubs` — but it carries hand-written *stand-ins*, not transpiled Go source. Until the routing piece exists, every "transpile this stdlib package instead of growing the shim" instruction in this doc is blocked.
+
+This makes building the vendored-stdlib pipeline the highest-leverage architectural work item, ahead of any further translator micro-fix. Concretely, the missing pieces are:
+
+1. A way to declare in a fixture (or in `go.mod` analogue) "use this transpiled copy of `path/filepath` instead of the bridge."
+2. A loader path in `go/project.go` / `go/imports.go` that resolves stdlib import paths to the vendored module when one exists.
+3. A test harness that vendors a small stdlib function (e.g., `filepath.IsAbs` — three lines on Unix) and asserts the transpiler can produce a working Rust module from it.
+
+A session that ships any of those three pieces is doing the real paring work. A session that adds more `// TEMPORARY:` shims is not.
 
 ### Triage Principles
 

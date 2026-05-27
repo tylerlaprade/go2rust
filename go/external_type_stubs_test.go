@@ -4,6 +4,8 @@ import (
 	goast "go/ast"
 	gotoken "go/token"
 	gotypes "go/types"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -361,5 +363,67 @@ func TestTypesConfigCheckBridgeRunsGoTypes(t *testing.T) {
 		if !strings.Contains(got, want) {
 			t.Fatalf("types.Config Check bridge should contain %q:\n%s", want, got)
 		}
+	}
+}
+
+// TestBridgeDebtRegistryCoversAllShims is the tripwire that enforces
+// AGENTS.md → "Strategy: Transpile stdlib, don't bridge it". Every
+// `// TEMPORARY:` comment in external_type_stubs.go must have a matching
+// row in docs/bridge_debt.md. Adding a shim without a row, or removing a
+// row without removing the shim, fails this test.
+//
+// To make this test pass when you legitimately need to add a shim, edit
+// docs/bridge_debt.md *first* and add a row that names the Go symbol, the
+// transpiler gap, and a fixture. The shim code goes in after. See AGENTS.md
+// for the full checklist.
+func TestBridgeDebtRegistryCoversAllShims(t *testing.T) {
+	stubsPath := "external_type_stubs.go"
+	registryPath := filepath.Join("..", "docs", "bridge_debt.md")
+
+	stubsBytes, err := os.ReadFile(stubsPath)
+	if err != nil {
+		t.Fatalf("read %s: %v", stubsPath, err)
+	}
+	registryBytes, err := os.ReadFile(registryPath)
+	if err != nil {
+		t.Fatalf("read %s: %v", registryPath, err)
+	}
+
+	shimLines := []int{}
+	for i, line := range strings.Split(string(stubsBytes), "\n") {
+		if strings.HasPrefix(strings.TrimSpace(line), "// TEMPORARY:") {
+			shimLines = append(shimLines, i+1)
+		}
+	}
+
+	registry := string(registryBytes)
+	shimsHeader := "## Shims"
+	idx := strings.Index(registry, shimsHeader)
+	if idx < 0 {
+		t.Fatalf("%s is missing the %q section that holds shim rows", registryPath, shimsHeader)
+	}
+	registryRowCount := 0
+	for _, line := range strings.Split(registry[idx+len(shimsHeader):], "\n") {
+		if strings.HasPrefix(line, "### ") {
+			registryRowCount++
+		}
+	}
+
+	if len(shimLines) != registryRowCount {
+		t.Fatalf(`bridge debt drift detected.
+
+%s has %d `+"`// TEMPORARY:`"+` shim comments (lines: %v).
+%s has %d level-3 rows under %q.
+
+Every shim must have a registry row. See AGENTS.md → "Strategy: Transpile
+stdlib, don't bridge it". To resolve:
+
+- If you added a shim: add a row to %s first, then re-run this test.
+- If you deleted a shim: also delete its row.
+- If you moved a shim: update its row's Location field.
+`,
+			stubsPath, len(shimLines), shimLines,
+			registryPath, registryRowCount, shimsHeader,
+			registryPath)
 	}
 }
