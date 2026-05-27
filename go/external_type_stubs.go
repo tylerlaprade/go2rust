@@ -1908,7 +1908,7 @@ func generateExternalStubs(stubs map[string]bool, interfaceTypes map[string]bool
 			} else if name == "token_Pos" && methodName == "is_valid" {
 				writeTokenPosIsValidMethod(&out)
 			} else {
-				writeExternalTypeStubMethod(&out, methodName, method)
+				writeExternalTypeStubMethod(&out, name, methodName, method)
 			}
 		}
 		out.WriteString("}\n")
@@ -2853,7 +2853,7 @@ func writeExternalInterfaceStub(out *strings.Builder, name string, methods map[s
 		} else if externalInterfaceCarriesSourcePos(name) && methodName == "pos" {
 			writeExternalInterfacePosMethod(out)
 		} else {
-			writeExternalTypeStubMethod(out, methodName, methods[methodName])
+			writeExternalTypeStubMethod(out, name, methodName, methods[methodName])
 		}
 	}
 	out.WriteString("}\n\n")
@@ -3011,7 +3011,15 @@ func writeExternalTypeStubConversions(out *strings.Builder, conversions map[stri
 			} else if interfaceTypes[targetName] {
 				out.WriteString("        Self::__go_from(_value)\n")
 			} else {
-				out.WriteString("        Self::default()\n")
+				// Per AGENTS.md "Strategy: Transpile stdlib, don't bridge it":
+				// From<X> for Y impls between two concrete stub types have no
+				// meaningful conversion. Returning Self::default() silently
+				// synthesizes type facts. Panic instead so callers fail loudly.
+				out.WriteString("        panic!(\"From<")
+				out.WriteString(sourceName)
+				out.WriteString("> for ")
+				out.WriteString(targetName)
+				out.WriteString(" bridge: concrete-to-concrete stub conversion has no implementation; transpile the underlying Go source or remove the conversion — see AGENTS.md and docs/bridge_debt.md\")\n")
 			}
 			out.WriteString("    }\n")
 			out.WriteString("}\n")
@@ -3035,7 +3043,17 @@ func writeExternalTypeStubDowncastMethod(out *strings.Builder) {
 }
 
 // MACHINERY: generic method emitter for external-stub framework.
-func writeExternalTypeStubMethod(out *strings.Builder, methodName string, method externalTypeStubMethod) {
+//
+// Per AGENTS.md "Strategy: Transpile stdlib, don't bridge it", the body
+// MUST panic instead of returning a default value. A bridge method that
+// silently returns Default::default() synthesizes type facts and re-enacts
+// the 2026 fallback incident one layer deeper. Methods that need real
+// behavior get a custom emitter (see writeTypesTypeStringMethod,
+// writeTypesConfigCheckMethod, etc.). Methods routed through this generic
+// emitter exist for type-system completeness only — calling them at
+// runtime is a bug to be fixed at the call site, either by adding a custom
+// emitter or by removing the call.
+func writeExternalTypeStubMethod(out *strings.Builder, typeName string, methodName string, method externalTypeStubMethod) {
 	out.WriteString("    pub fn ")
 	out.WriteString(methodName)
 	if method.ParamCount > 0 {
@@ -3073,22 +3091,11 @@ func writeExternalTypeStubMethod(out *strings.Builder, methodName string, method
 		}
 	}
 	out.WriteString(" {\n")
-	if len(method.ReturnTypes) > 0 {
-		out.WriteString("        ")
-		if len(method.ReturnTypes) > 1 {
-			out.WriteString("(")
-		}
-		for i, returnType := range method.ReturnTypes {
-			if i > 0 {
-				out.WriteString(", ")
-			}
-			writeExternalStubDefaultValue(out, returnType)
-		}
-		if len(method.ReturnTypes) > 1 {
-			out.WriteString(")")
-		}
-		out.WriteString("\n")
-	}
+	out.WriteString("        panic!(\"")
+	out.WriteString(typeName)
+	out.WriteString(".")
+	out.WriteString(methodName)
+	out.WriteString(" bridge: generic stub method body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md\")\n")
 	out.WriteString("    }\n")
 }
 
@@ -3141,7 +3148,7 @@ impl types_Basic {
 			out.WriteString(wrappedExternalStubExpr("String", "self.__go_name.clone()"))
 			out.WriteString("\n    }\n")
 		default:
-			writeExternalTypeStubMethod(out, methodName, methods[methodName])
+			writeExternalTypeStubMethod(out, "types_Basic", methodName, methods[methodName])
 		}
 	}
 	out.WriteString("}\n")
@@ -3912,7 +3919,7 @@ impl %s {
 	}
 	slices.Sort(methodNames)
 	for _, methodName := range methodNames {
-		writeExternalTypeStubMethod(out, methodName, methods[methodName])
+		writeExternalTypeStubMethod(out, name, methodName, methods[methodName])
 	}
 	out.WriteString("}\n")
 }
@@ -6486,6 +6493,13 @@ func writeExecPackageStub(out *strings.Builder, pkg *externalPackageStub, intege
 }
 
 // MACHINERY: generic stub function emitter dispatch.
+//
+// Per AGENTS.md "Strategy: Transpile stdlib, don't bridge it", the
+// generic body emits a panic instead of returning defaults. Functions
+// whose stubs need real behavior (exec.Command, io.Copy, os.Pipe, etc.)
+// have custom emitters dispatched above. Anything routing through the
+// generic body has no implementation — calling it at runtime is a bug
+// to be fixed at the call site or by adding a custom emitter.
 func writeExternalPackageStubFunction(out *strings.Builder, funcName string, fn externalPackageStubFunction, stubs map[string]bool) {
 	if funcName == "command" && len(fn.ReturnTypes) == 1 {
 		writeExecCommandStub(out, fn, false)
@@ -6540,11 +6554,9 @@ func writeExternalPackageStubFunction(out *strings.Builder, funcName string, fn 
 		writeExternalStubReturnType(out, fn.ReturnTypes)
 	}
 	out.WriteString(" {\n")
-	if len(fn.ReturnTypes) > 0 {
-		out.WriteString("        ")
-		writeExternalStubReturnValues(out, fn.ReturnTypes)
-		out.WriteString("\n")
-	}
+	out.WriteString("        panic!(\"")
+	out.WriteString(funcName)
+	out.WriteString(" bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md\")\n")
 	out.WriteString("    }\n")
 }
 
@@ -6854,22 +6866,6 @@ func writeExternalStubReturnType(out *strings.Builder, returnTypes []string) {
 		out.WriteString(returnType)
 	}
 	out.WriteString(")")
-}
-
-// MACHINERY: return-value tuple emitter for stub bodies.
-func writeExternalStubReturnValues(out *strings.Builder, returnTypes []string) {
-	if len(returnTypes) > 1 {
-		out.WriteString("(")
-	}
-	for i, returnType := range returnTypes {
-		if i > 0 {
-			out.WriteString(", ")
-		}
-		writeExternalStubDefaultValue(out, returnType)
-	}
-	if len(returnTypes) > 1 {
-		out.WriteString(")")
-	}
 }
 
 // MACHINERY: default-value emitter for stub return types.

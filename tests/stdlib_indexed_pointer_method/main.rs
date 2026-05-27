@@ -22,7 +22,7 @@ impl types_Term {
         None
     }
     pub fn r#type(&self) -> Arc<Mutex<Option<types_Type>>> {
-        Arc::new(Mutex::new(Some::<types_Type>(Default::default())))
+        panic!("types_Term.r#type bridge: generic stub method body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
     }
 }
 
@@ -84,7 +84,7 @@ impl Ord for types_Type {
 pub mod types {
     use super::*;
     pub fn new_term<T0, T1>(_arg0: T0, _arg1: T1) -> Arc<Mutex<Option<types_Term>>> {
-        Arc::new(Mutex::new(Some::<types_Term>(Default::default())))
+        panic!("new_term bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
     }
 }
 
