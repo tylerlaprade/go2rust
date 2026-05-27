@@ -23,7 +23,7 @@ impl types_Alias {
         None
     }
     pub fn rhs(&self) -> Rc<RefCell<Option<types_Type>>> {
-        Rc::new(RefCell::new(Some::<types_Type>(Default::default())))
+        panic!("types_Alias.rhs bridge: generic stub method body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
     }
 }
 

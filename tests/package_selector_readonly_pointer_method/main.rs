@@ -34,7 +34,7 @@ fn main() {
     example_com_package_selector_readonly_pointer_method_helper::__go_init_all();
 
     __go_init_all();
-    println!("{}", format!("{}", (*{ let __recv_holder = (*local.borrow().as_ref().unwrap()).clone(); let __recv_value = (*__recv_holder.borrow().as_ref().unwrap()).clone(); let __result = __recv_value.total(); __result }.borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", { let __recv_holder = (*local.borrow().as_ref().unwrap()).clone(); let __recv_value = (*__recv_holder.borrow().as_ref().unwrap()).clone(); let __result = __recv_value.total(); __result }));
 }
 
 pub(crate) fn __go_init_all() {

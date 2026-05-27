@@ -10,11 +10,11 @@ pub mod io {
 }
 
 
-pub fn same(err: Rc<RefCell<Option<Box<dyn StdError>>>>) -> Rc<RefCell<Option<bool>>> {
+pub fn same(err: Rc<RefCell<Option<Box<dyn StdError>>>>) -> bool {
 
-    return Rc::new(RefCell::new(Some((*err.borrow()).is_none() == (*io::EOF().borrow()).is_none())));
+    return (*err.borrow()).is_none() == (*io::EOF().borrow()).is_none();
 }
 
 fn main() {
-    println!("{}", format!("{}", (*same({ let __field = io::EOF().clone(); __field }).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", same({ let __field = io::EOF().clone(); __field })));
 }

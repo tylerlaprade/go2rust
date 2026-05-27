@@ -1410,6 +1410,9 @@ func functionTypeInterfaceImplResultRust(typ types.Type) string {
 	if ifaceName, ok := transpiledNamedInterfaceTypeNameFromTypes(typ); ok {
 		return rustLocalInterfaceParam(ifaceName)
 	}
+	if typeIsPredeclaredCopyScalar(typ) {
+		return goTypesTypeToRust(types.Unalias(typ))
+	}
 	return goTypesTypeToRustWrapped(typ)
 }
 
@@ -1727,38 +1730,7 @@ func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.Fi
 
 	out.WriteString(")")
 
-	// Return type
-	if fn.Type.Results != nil && len(fn.Type.Results.List) > 0 {
-		out.WriteString(" -> ")
-		if len(fn.Type.Results.List) == 1 && len(fn.Type.Results.List[0].Names) <= 1 {
-			// Single return value
-			out.WriteString(GoTypeToRust(fn.Type.Results.List[0].Type))
-		} else {
-			// Multiple return values - use tuple
-			out.WriteString("(")
-			first := true
-			for _, result := range fn.Type.Results.List {
-				// Handle multiple names with same type
-				if len(result.Names) > 0 {
-					for range result.Names {
-						if !first {
-							out.WriteString(", ")
-						}
-						first = false
-						out.WriteString(GoTypeToRust(result.Type))
-					}
-				} else {
-					// Unnamed return value
-					if !first {
-						out.WriteString(", ")
-					}
-					first = false
-					out.WriteString(GoTypeToRust(result.Type))
-				}
-			}
-			out.WriteString(")")
-		}
-	}
+	writeFuncDeclResultTypes(out, fn)
 
 	out.WriteString(" {\n")
 
@@ -2161,36 +2133,7 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 
 				out.WriteString(")")
 
-				// Return type
-				if funcType.Results != nil && len(funcType.Results.List) > 0 {
-					out.WriteString(" -> ")
-					if len(funcType.Results.List) == 1 && len(funcType.Results.List[0].Names) <= 1 {
-						// Single return value
-						out.WriteString(GoTypeToRust(funcType.Results.List[0].Type))
-					} else {
-						// Multiple return values - use tuple
-						out.WriteString("(")
-						first := true
-						for _, result := range funcType.Results.List {
-							if len(result.Names) > 0 {
-								for range result.Names {
-									if !first {
-										out.WriteString(", ")
-									}
-									first = false
-									out.WriteString(GoTypeToRust(result.Type))
-								}
-							} else {
-								if !first {
-									out.WriteString(", ")
-								}
-								first = false
-								out.WriteString(GoTypeToRust(result.Type))
-							}
-						}
-						out.WriteString(")")
-					}
-				}
+				writeFunctionResultTypes(out, funcType)
 
 				out.WriteString(";\n")
 			}
@@ -3205,29 +3148,7 @@ func writeFunctionTypeAliasMethodSignature(out *strings.Builder, fn *ast.FuncDec
 		}
 	}
 	out.WriteString(")")
-	if fn.Type.Results != nil && len(fn.Type.Results.List) > 0 {
-		out.WriteString(" -> ")
-		if len(fn.Type.Results.List) == 1 && len(fn.Type.Results.List[0].Names) <= 1 {
-			out.WriteString(GoTypeToRust(fn.Type.Results.List[0].Type))
-		} else {
-			out.WriteString("(")
-			first := true
-			for _, result := range fn.Type.Results.List {
-				count := len(result.Names)
-				if count == 0 {
-					count = 1
-				}
-				for i := 0; i < count; i++ {
-					if !first {
-						out.WriteString(", ")
-					}
-					first = false
-					out.WriteString(GoTypeToRust(result.Type))
-				}
-			}
-			out.WriteString(")")
-		}
-	}
+	writeFuncDeclResultTypes(out, fn)
 	out.WriteString(";\n")
 }
 
@@ -3348,9 +3269,20 @@ func writeNamedReturnValues(out *strings.Builder, fnType *ast.FuncType) {
 			}
 			first = false
 			if name.Name == "_" {
-				writeNamedReturnZeroValue(out, result.Type)
+				if resultTypeExprIsBareScalar(result.Type) {
+					writeBareScalarZeroValue(out, result.Type)
+				} else {
+					writeNamedReturnZeroValue(out, result.Type)
+				}
 			} else {
-				out.WriteString(RustLocalIdent(name.Name))
+				if resultTypeExprIsBareScalar(result.Type) {
+					out.WriteString("(*")
+					out.WriteString(RustLocalIdent(name.Name))
+					WriteBorrowMethod(out, false)
+					out.WriteString(".as_ref().unwrap())")
+				} else {
+					out.WriteString(RustLocalIdent(name.Name))
+				}
 			}
 		}
 	}
@@ -3360,6 +3292,10 @@ func writeNamedReturnValues(out *strings.Builder, fnType *ast.FuncType) {
 }
 
 func writeNamedReturnZeroValue(out *strings.Builder, typeExpr ast.Expr) {
+	if resultTypeExprIsBareScalar(typeExpr) {
+		writeBareScalarZeroValue(out, typeExpr)
+		return
+	}
 	if t, ok := typeExpr.(*ast.Ident); ok && t.Name == "error" {
 		WriteWrappedNone(out)
 		return
@@ -3776,38 +3712,7 @@ func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, a
 
 	out.WriteString(")")
 
-	// Return type
-	if fn.Type.Results != nil && len(fn.Type.Results.List) > 0 {
-		out.WriteString(" -> ")
-		if len(fn.Type.Results.List) == 1 && len(fn.Type.Results.List[0].Names) <= 1 {
-			// Single return value
-			out.WriteString(GoTypeToRust(fn.Type.Results.List[0].Type))
-		} else {
-			// Multiple return values - use tuple
-			out.WriteString("(")
-			first := true
-			for _, result := range fn.Type.Results.List {
-				// Handle multiple names with same type
-				if len(result.Names) > 0 {
-					for range result.Names {
-						if !first {
-							out.WriteString(", ")
-						}
-						first = false
-						out.WriteString(GoTypeToRust(result.Type))
-					}
-				} else {
-					// Unnamed return value
-					if !first {
-						out.WriteString(", ")
-					}
-					first = false
-					out.WriteString(GoTypeToRust(result.Type))
-				}
-			}
-			out.WriteString(")")
-		}
-	}
+	writeFuncDeclResultTypes(out, fn)
 
 	out.WriteString(" {\n")
 

@@ -89,7 +89,7 @@ impl B {
 }
 
 fn main() {
-    let mut c = Rc::new(RefCell::new(Some(C { b: Rc::new(RefCell::new(Some(B { a: Rc::new(RefCell::new(Some(A { x: Rc::new(RefCell::new(Some(10 as i32))), ..Default::default() }))), y: Rc::new(RefCell::new(Some(20 as i32))), ..Default::default() }))), z: Rc::new(RefCell::new(Some(30 as i32))), ..Default::default() })));
+    let mut c = Rc::new(RefCell::new(Some(C { b: Rc::new(RefCell::new(Some(B { a: Rc::new(RefCell::new(Some(A { x: Rc::new(RefCell::new(Some(10 as i32))), ..Default::default() }))), y: Rc::new(RefCell::new(Some(20 as i32))), a: Rc::new(RefCell::new(Some(A::default()))) }))), z: Rc::new(RefCell::new(Some(30 as i32))), b: Rc::new(RefCell::new(Some(B::default()))) })));
 
         // Direct access to nested promoted field
     print!("c.X = {}\n", (*(*(*c.borrow().as_ref().unwrap()).b.borrow().as_ref().unwrap().a.borrow().as_ref().unwrap()).x.borrow().as_ref().unwrap()));

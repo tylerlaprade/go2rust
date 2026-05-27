@@ -156,9 +156,9 @@ pub fn pos_from_int(n: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<token_Pos>>>
     return Arc::new(Mutex::new(Some(token_Pos((*n.lock().unwrap().as_ref().unwrap()) as i32))));
 }
 
-pub fn int_value() -> Arc<Mutex<Option<i32>>> {
+pub fn int_value() -> i32 {
 
-    return Arc::new(Mutex::new(Some(1 as i32)));
+    return 1 as i32;
 }
 
 pub fn kind_name() -> Arc<Mutex<Option<String>>> {
@@ -174,7 +174,7 @@ pub fn kind_name() -> Arc<Mutex<Option<String>>> {
 
 pub fn int_name() -> Arc<Mutex<Option<String>>> {
 
-    { let _switch_val = { let __v = int_value(); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned };
+    { let _switch_val = int_value();
     if _switch_val == (1) {
             return Arc::new(Mutex::new(Some("one".to_string())));
         } else {

@@ -150,12 +150,12 @@ impl<T> Iterator for GoChannel<T> {
     }
 }
 
-pub fn multiple_returns() -> (Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<String>>>, Arc<Mutex<Option<bool>>>) {
+pub fn multiple_returns() -> (i32, Arc<Mutex<Option<String>>>, bool) {
 
-    return (Arc::new(Mutex::new(Some(42 as i32))), Arc::new(Mutex::new(Some("hello".to_string()))), Arc::new(Mutex::new(Some(true))));
+    return (42 as i32, Arc::new(Mutex::new(Some("hello".to_string()))), true);
 }
 
-pub fn process_slice(slice: Arc<Mutex<Option<Vec<i32>>>>) -> (Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>) {
+pub fn process_slice(slice: Arc<Mutex<Option<Vec<i32>>>>) -> (i32, i32) {
     let mut sum: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(0)));
     let mut count: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(0)));
 
@@ -164,7 +164,7 @@ pub fn process_slice(slice: Arc<Mutex<Option<Vec<i32>>>>) -> (Arc<Mutex<Option<i
     { let __range_holder = slice.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for val in __range_values.iter().copied() {
         { let __rhs = val; let mut guard = sum.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     } }
-    return (sum, count);
+    return ((*sum.lock().unwrap().as_ref().unwrap()), (*count.lock().unwrap().as_ref().unwrap()));
 }
 
 fn main() {
@@ -173,7 +173,7 @@ fn main() {
 
         // Ignore all but first return value
     let (mut num, _, _) = multiple_returns();
-    print!("Only using first return: {}\n", { let __v = (*num.lock().unwrap().as_ref().unwrap()).clone(); __v });
+    print!("Only using first return: {}\n", num);
 
         // Ignore first and last return values
     let (_, mut str, _) = multiple_returns();
@@ -181,7 +181,7 @@ fn main() {
 
         // Ignore first two return values
     let (_, _, mut flag) = multiple_returns();
-    print!("Only using last return: {}\n", { let __v = (*flag.lock().unwrap().as_ref().unwrap()).clone(); __v });
+    print!("Only using last return: {}\n", flag);
 
         // Ignoring in range loops
     println!("{}", format!("{}", "\n=== Ignoring in range loops ===".to_string()));
@@ -242,10 +242,10 @@ fn main() {
     println!("{}", format!("{}", "\n=== Ignoring some return values in assignment ===".to_string()));
 
     let (mut sum, _) = process_slice(slice.clone());
-    print!("Sum (ignoring count): {}\n", { let __v = (*sum.lock().unwrap().as_ref().unwrap()).clone(); __v });
+    print!("Sum (ignoring count): {}\n", sum);
 
     let (_, mut count) = process_slice(slice.clone());
-    print!("Count (ignoring sum): {}\n", { let __v = (*count.lock().unwrap().as_ref().unwrap()).clone(); __v });
+    print!("Count (ignoring sum): {}\n", count);
 
         // Using blank identifier in variable declarations
     println!("{}", format!("{}", "\n=== Blank identifier in declarations ===".to_string()));
@@ -323,7 +323,7 @@ fn main() {
 
         // Sometimes you might want to ignore errors (not recommended in real code)
     let (mut result, _) = process_slice(Arc::new(Mutex::new(Some(vec![1, 2, 3, 4, 5]))));
-    print!("Result (ignoring potential error): {}\n", { let __v = (*result.lock().unwrap().as_ref().unwrap()).clone(); __v });
+    print!("Result (ignoring potential error): {}\n", result);
 
     println!("{}", format!("{}", "\n=== Complex example ===".to_string()));
 

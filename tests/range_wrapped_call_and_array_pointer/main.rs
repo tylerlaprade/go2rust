@@ -70,12 +70,12 @@ impl std::fmt::Display for bucket {
 
 
 impl bucket {
-    pub fn sum(&self) -> Rc<RefCell<Option<i32>>> {
+    pub fn sum(&self) -> i32 {
         let mut total = Rc::new(RefCell::new(Some(0)));
         { let __range_holder = self.values.clone().clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for value in __range_values.iter().copied() {
         { let __rhs = value; let mut guard = total.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     } }
-        return Rc::new(RefCell::new(Some(total.borrow().as_ref().unwrap().clone())));
+        return (*total.borrow().as_ref().unwrap());
     }
 }
 
@@ -89,7 +89,7 @@ fn main() {
         println!("{}", format!("{}", name));
     } }
     let mut b = Rc::new(RefCell::new(Some(bucket { values: Rc::new(RefCell::new(Some([2, 3, 5]))), ..Default::default() })));
-    println!("{}", format!("{}", (*(*b.borrow().as_ref().unwrap()).sum().borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*b.borrow().as_ref().unwrap()).sum()));
 
     let mut groups = Rc::new(RefCell::new(Some([vec!["go".to_string()], vec!["rust".to_string(), "zig".to_string()]])));
     let mut total = Rc::new(RefCell::new(Some(0)));

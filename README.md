@@ -97,13 +97,13 @@ fn get_greeting() -> Rc<RefCell<Option<String>>> {
     return Rc::new(RefCell::new(Some("Hello, World!".to_string())));
 }
 
-fn get_year() -> Rc<RefCell<Option<i32>>> {
-    return Rc::new(RefCell::new(Some(2024)));
+fn get_year() -> i32 {
+    return 2024 as i32;
 }
 
 fn main() {
     println!("{}", (*get_greeting().borrow().as_ref().unwrap()));
-    println!("{:?}", (*get_year().borrow().as_ref().unwrap()));
+    println!("{:?}", get_year());
 }
 ```
 
@@ -111,10 +111,11 @@ When the transpiler detects concurrency (goroutines, channels, or async stdlib c
 
 ## Philosophy
 
-This transpiler uses a "make it work first, optimize later" approach. **EVERY Go value** is wrapped for safety, but the wrapper type depends on concurrency needs:
+This transpiler uses a "make it work first, optimize later" approach. Most Go values are wrapped for safety, but the wrapper type depends on concurrency needs:
 
 - **Single-threaded code**: Uses `Rc<RefCell<Option<T>>>` for better performance
 - **Concurrent code**: Uses `Arc<Mutex<Option<T>>>` for thread safety
+- **Predeclared Copy scalar return slots**: Function boundaries can use bare Rust scalars such as `i32` or `bool` once `go/types` proves the result type
 
 This ensures semantic correctness for ANY Go program, even edge cases like taking the address of function parameters. The generated code is verbose but correct. Users can optimize later.
 
@@ -351,6 +352,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Single return values | ✅ |
 | └ Multiple return values | ✅ |
 | └ Named returns | ✅ |
+| └ Predeclared Copy scalar return slots lower to bare Rust scalar types | ✅ |
 | └ Slice and map literal returns | ✅ |
 | **`select` - Select statements** | ✅ |
 | └ Returning from select communication and default cases | ✅ |

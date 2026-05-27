@@ -8,7 +8,7 @@ pub const V2: u32 = 2;
 pub(crate) const NUM_VERSIONS: i32 = 3;
 
 
-pub(crate) const FLAG_SYNC_MARKERS: i64 = 1 << 0;
+pub(crate) const FLAG_SYNC_MARKERS: i32 = 1 << 0;
 
 
 #[derive(Debug, Clone, Default)]
@@ -198,7 +198,7 @@ impl std::fmt::Display for Header {
 
 
 impl Version {
-    pub fn has(&self, f: Rc<RefCell<Option<Version>>>) -> Rc<RefCell<Option<bool>>> {
-        return Rc::new(RefCell::new(Some(Version(Rc::new(RefCell::new(Some(V0 as u32)))) <= (*self.0.borrow().as_ref().unwrap()) && ((*self.0.borrow().as_ref().unwrap()) < Version(Rc::new(RefCell::new(Some(V2 as u32)))) || (*f.borrow().as_ref().unwrap()) == Version(Rc::new(RefCell::new(Some(V0 as u32))))))));
+    pub fn has(&self, f: Rc<RefCell<Option<Version>>>) -> bool {
+        return Version(Rc::new(RefCell::new(Some(V0 as u32)))) <= (*self.0.borrow().as_ref().unwrap()) && ((*self.0.borrow().as_ref().unwrap()) < Version(Rc::new(RefCell::new(Some(V2 as u32)))) || (*f.borrow().as_ref().unwrap()) == Version(Rc::new(RefCell::new(Some(V0 as u32)))));
     }
 }

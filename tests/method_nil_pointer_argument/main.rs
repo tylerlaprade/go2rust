@@ -45,12 +45,12 @@ impl std::fmt::Display for receiver {
 
 
 impl receiver {
-    pub fn is_nil(&self, ptr: Rc<RefCell<Option<item>>>) -> Rc<RefCell<Option<bool>>> {
-        return Rc::new(RefCell::new(Some(true)));
+    pub fn is_nil(&self, ptr: Rc<RefCell<Option<item>>>) -> bool {
+        return true;
     }
 }
 
 fn main() {
     let mut r: Rc<RefCell<Option<receiver>>> = Rc::new(RefCell::new(Some(Default::default())));
-    println!("{}", format!("{}", (*(*r.borrow().as_ref().unwrap()).is_nil(Rc::new(RefCell::new(None))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*r.borrow().as_ref().unwrap()).is_nil(Rc::new(RefCell::new(None)))));
 }

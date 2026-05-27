@@ -56,14 +56,14 @@ fn __go_init_globals() {
 
 
 impl Counter {
-    pub fn value(&self) -> Rc<RefCell<Option<i32>>> {
-        return Rc::new(RefCell::new(Some((*(*(*shared.borrow().as_ref().unwrap()).borrow().as_ref().unwrap()).value.borrow().as_ref().unwrap()) + (*self.value.borrow().as_ref().unwrap()))));
+    pub fn value(&self) -> i32 {
+        return (*(*(*shared.borrow().as_ref().unwrap()).borrow().as_ref().unwrap()).value.borrow().as_ref().unwrap()) + (*self.value.borrow().as_ref().unwrap());
     }
 }
 
 fn main() {
     __go_init_all();
-    println!("{}", format!("{}", (*{ let __recv_holder = (*shared.borrow().as_ref().unwrap()).clone(); let __recv_value = (*__recv_holder.borrow().as_ref().unwrap()).clone(); let __result = __recv_value.value(); __result }.borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", { let __recv_holder = (*shared.borrow().as_ref().unwrap()).clone(); let __recv_value = (*__recv_holder.borrow().as_ref().unwrap()).clone(); let __result = __recv_value.value(); __result }));
 }
 
 pub(crate) fn __go_init_all() {

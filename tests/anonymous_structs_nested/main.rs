@@ -149,10 +149,10 @@ impl std::fmt::Display for Dashboard {
 
 
 #[derive(Debug, Clone)]
-struct AnonymousStruct1 {
-    host: Rc<RefCell<Option<String>>>,
-    port: Rc<RefCell<Option<i32>>>,
-    credentials: Rc<RefCell<Option<AnonymousStruct2>>>,
+pub struct AnonymousStruct1 {
+    pub host: Rc<RefCell<Option<String>>>,
+    pub port: Rc<RefCell<Option<i32>>>,
+    pub credentials: Rc<RefCell<Option<AnonymousStruct2>>>,
 }
 impl AnonymousStruct1 {
     pub fn __go_value_clone(&self) -> Self {
@@ -175,9 +175,9 @@ impl std::fmt::Display for AnonymousStruct1 {
 
 
 #[derive(Debug, Clone)]
-struct AnonymousStruct2 {
-    user: Rc<RefCell<Option<String>>>,
-    password: Rc<RefCell<Option<String>>>,
+pub struct AnonymousStruct2 {
+    pub user: Rc<RefCell<Option<String>>>,
+    pub password: Rc<RefCell<Option<String>>>,
 }
 impl AnonymousStruct2 {
     pub fn __go_value_clone(&self) -> Self {
@@ -200,9 +200,9 @@ impl std::fmt::Display for AnonymousStruct2 {
 
 
 #[derive(Debug, Clone)]
-struct AnonymousStruct3 {
-    enabled: Rc<RefCell<Option<bool>>>,
-    t_t_l: Rc<RefCell<Option<i32>>>,
+pub struct AnonymousStruct3 {
+    pub enabled: Rc<RefCell<Option<bool>>>,
+    pub t_t_l: Rc<RefCell<Option<i32>>>,
 }
 impl AnonymousStruct3 {
     pub fn __go_value_clone(&self) -> Self {
@@ -225,10 +225,10 @@ impl std::fmt::Display for AnonymousStruct3 {
 
 
 #[derive(Debug, Clone)]
-struct AnonymousStruct4 {
-    i_d: Rc<RefCell<Option<i32>>>,
-    r#type: Rc<RefCell<Option<String>>>,
-    position: Rc<RefCell<Option<AnonymousStruct5>>>,
+pub struct AnonymousStruct4 {
+    pub i_d: Rc<RefCell<Option<i32>>>,
+    pub r#type: Rc<RefCell<Option<String>>>,
+    pub position: Rc<RefCell<Option<AnonymousStruct5>>>,
 }
 impl AnonymousStruct4 {
     pub fn __go_value_clone(&self) -> Self {
@@ -251,9 +251,9 @@ impl std::fmt::Display for AnonymousStruct4 {
 
 
 #[derive(Debug, Clone)]
-struct AnonymousStruct5 {
-    x: Rc<RefCell<Option<i32>>>,
-    y: Rc<RefCell<Option<i32>>>,
+pub struct AnonymousStruct5 {
+    pub x: Rc<RefCell<Option<i32>>>,
+    pub y: Rc<RefCell<Option<i32>>>,
 }
 impl AnonymousStruct5 {
     pub fn __go_value_clone(&self) -> Self {
@@ -318,9 +318,9 @@ fn main() {
 }
 
 #[derive(Clone)]
-struct AnonymousStruct6 {
-    version: Rc<RefCell<Option<String>>>,
-    modules: Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<AnonymousStruct7>>>>>>>,
+pub struct AnonymousStruct6 {
+    pub version: Rc<RefCell<Option<String>>>,
+    pub modules: Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<AnonymousStruct7>>>>>>>,
 }
 impl AnonymousStruct6 {
     pub fn __go_value_clone(&self) -> Self {
@@ -343,9 +343,9 @@ impl std::fmt::Display for AnonymousStruct6 {
 
 
 #[derive(Clone)]
-struct AnonymousStruct7 {
-    enabled: Rc<RefCell<Option<bool>>>,
-    settings: Rc<RefCell<Option<AnonymousStruct8>>>,
+pub struct AnonymousStruct7 {
+    pub enabled: Rc<RefCell<Option<bool>>>,
+    pub settings: Rc<RefCell<Option<AnonymousStruct8>>>,
 }
 impl AnonymousStruct7 {
     pub fn __go_value_clone(&self) -> Self {
@@ -368,8 +368,8 @@ impl std::fmt::Display for AnonymousStruct7 {
 
 
 #[derive(Clone, Default)]
-struct AnonymousStruct8 {
-    options: Rc<RefCell<Option<Vec<AnonymousStruct9>>>>,
+pub struct AnonymousStruct8 {
+    pub options: Rc<RefCell<Option<Vec<AnonymousStruct9>>>>,
 }
 impl AnonymousStruct8 {
     pub fn __go_value_clone(&self) -> Self {
@@ -386,9 +386,9 @@ impl std::fmt::Display for AnonymousStruct8 {
 
 
 #[derive(Clone)]
-struct AnonymousStruct9 {
-    key: Rc<RefCell<Option<String>>>,
-    value: Rc<RefCell<Option<Box<dyn Any>>>>,
+pub struct AnonymousStruct9 {
+    pub key: Rc<RefCell<Option<String>>>,
+    pub value: Rc<RefCell<Option<Box<dyn Any>>>>,
 }
 impl AnonymousStruct9 {
     pub fn __go_value_clone(&self) -> Self {

@@ -176,17 +176,17 @@ impl std::fmt::Display for state {
 
 
 impl state {
-    pub fn read(&self) -> Arc<Mutex<Option<i32>>> {
-        return self.value.clone();
+    pub fn read(&self) -> i32 {
+        return (*self.value.lock().unwrap().as_ref().unwrap());
     }
 
     pub fn run(&self) {
         let mut done = GoChannel::<bool>::new_buffered(1 as usize);
         let done_thread = done.clone(); let mut s_thread = self.clone(); std::thread::spawn(move || {
-        println!("{}", format!("{}", (*s_thread.read().lock().unwrap().as_ref().unwrap())));;
+        println!("{}", format!("{}", s_thread.read()));;
         done_thread.send(true);;;
     });
-        println!("{}", format!("{}", (*self.read().lock().unwrap().as_ref().unwrap())));
+        println!("{}", format!("{}", self.read()));
         done.recv().unwrap_or_default();
     }
 }

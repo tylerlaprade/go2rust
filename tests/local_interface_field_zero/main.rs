@@ -7,7 +7,7 @@ pub trait Reader: std::fmt::Display + Any {
     fn __go_clone_box_reader(&self) -> Box<dyn Reader>;
     fn __go_as_any(&self) -> &dyn Any;
     fn __go_eq_reader(&self, other: &dyn Reader) -> bool;
-    fn read(&self) -> Rc<RefCell<Option<i32>>>;
+    fn read(&self) -> i32;
 }
 
 impl Clone for Box<dyn Reader> {

@@ -7,8 +7,8 @@ pub trait geometry: std::fmt::Display + Any {
     fn __go_clone_box_geometry(&self) -> Box<dyn geometry>;
     fn __go_as_any(&self) -> &dyn Any;
     fn __go_eq_geometry(&self, other: &dyn geometry) -> bool;
-    fn area(&self) -> Rc<RefCell<Option<f64>>>;
-    fn perim(&self) -> Rc<RefCell<Option<f64>>>;
+    fn area(&self) -> f64;
+    fn perim(&self) -> f64;
 }
 
 impl Clone for Box<dyn geometry> {
@@ -44,21 +44,21 @@ impl std::fmt::Display for rect {
 
 
 impl rect {
-    pub fn area(&self) -> Rc<RefCell<Option<f64>>> {
-        return Rc::new(RefCell::new(Some((*self.width.borrow().as_ref().unwrap()) * (*self.height.borrow().as_ref().unwrap()))));
+    pub fn area(&self) -> f64 {
+        return (*self.width.borrow().as_ref().unwrap()) * (*self.height.borrow().as_ref().unwrap());
     }
 
-    pub fn perim(&self) -> Rc<RefCell<Option<f64>>> {
-        return Rc::new(RefCell::new(Some(2.0 * (*self.width.borrow().as_ref().unwrap()) + 2.0 * (*self.height.borrow().as_ref().unwrap()))));
+    pub fn perim(&self) -> f64 {
+        return 2.0 * (*self.width.borrow().as_ref().unwrap()) + 2.0 * (*self.height.borrow().as_ref().unwrap());
     }
 }
 
 impl geometry for rect {
-    fn area(&self) -> Rc<RefCell<Option<f64>>> {
-        return Rc::new(RefCell::new(Some((*self.width.borrow().as_ref().unwrap()) * (*self.height.borrow().as_ref().unwrap()))));
+    fn area(&self) -> f64 {
+        return (*self.width.borrow().as_ref().unwrap()) * (*self.height.borrow().as_ref().unwrap());
     }
-    fn perim(&self) -> Rc<RefCell<Option<f64>>> {
-        return Rc::new(RefCell::new(Some(2.0 * (*self.width.borrow().as_ref().unwrap()) + 2.0 * (*self.height.borrow().as_ref().unwrap()))));
+    fn perim(&self) -> f64 {
+        return 2.0 * (*self.width.borrow().as_ref().unwrap()) + 2.0 * (*self.height.borrow().as_ref().unwrap());
     }
     fn __go_clone_box_geometry(&self) -> Box<dyn geometry> {
         Box::new(self.clone()) as Box<dyn geometry>
@@ -77,8 +77,8 @@ impl geometry for rect {
 
 pub fn measure(g: Rc<RefCell<Option<Box<dyn geometry>>>>) {
     println!("{}", format!("{}", format!("{}", (*g.borrow().as_ref().unwrap()))));
-    println!("{}", format!("{}", (*(*g.borrow().as_ref().unwrap()).area().borrow().as_ref().unwrap())));
-    println!("{}", format!("{}", (*(*g.borrow().as_ref().unwrap()).perim().borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*g.borrow().as_ref().unwrap()).area()));
+    println!("{}", format!("{}", (*g.borrow().as_ref().unwrap()).perim()));
 }
 
 fn main() {

@@ -270,7 +270,7 @@ impl From<bytes_Buffer> for io_Writer {
 pub mod bytes {
     use super::*;
     pub fn new_buffer<T0>(_arg0: T0) -> Arc<Mutex<Option<bytes_Buffer>>> {
-        Arc::new(Mutex::new(Some::<bytes_Buffer>(Default::default())))
+        panic!("new_buffer bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
     }
 }
 

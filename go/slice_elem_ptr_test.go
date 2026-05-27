@@ -105,8 +105,8 @@ func read(infos []lineInfo, i int) (string, int) {
 	if !strings.Contains(rust, "alt.as_ref().unwrap().borrow().as_ref().unwrap()).filename.clone()") {
 		t.Fatalf("slice element pointer string selector should borrow the element before cloning the field handle:\n%s", rust)
 	}
-	if !strings.Contains(rust, "alt.as_ref().unwrap().borrow().as_ref().unwrap()).offset.clone()") {
-		t.Fatalf("slice element pointer int selector should borrow the element before cloning the field handle:\n%s", rust)
+	if !strings.Contains(rust, "(*(*alt.as_ref().unwrap().borrow().as_ref().unwrap()).offset.borrow().as_ref().unwrap())") {
+		t.Fatalf("slice element pointer int selector should borrow the element before unwrapping the field value:\n%s", rust)
 	}
 }
 

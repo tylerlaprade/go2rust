@@ -28,8 +28,8 @@ impl std::fmt::Display for Label {
 
 
 impl Label {
-    pub fn valid(&self) -> Rc<RefCell<Option<bool>>> {
-        return Rc::new(RefCell::new(Some((*self.name.borrow().as_ref().unwrap()).clone() != "")));
+    pub fn valid(&self) -> bool {
+        return (*self.name.borrow().as_ref().unwrap()).clone() != "";
     }
 
     pub fn name(&self) -> Rc<RefCell<Option<String>>> {

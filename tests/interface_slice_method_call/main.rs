@@ -77,7 +77,7 @@ pub trait Expr: std::fmt::Display + Any {
     fn __go_clone_box_expr(&self) -> Box<dyn Expr>;
     fn __go_as_any(&self) -> &dyn Any;
     fn __go_eq_expr(&self, other: &dyn Expr) -> bool;
-    fn pos(&self) -> Rc<RefCell<Option<i32>>>;
+    fn pos(&self) -> i32;
 }
 
 impl Clone for Box<dyn Expr> {
@@ -130,14 +130,14 @@ impl std::fmt::Display for Assign {
 
 
 impl Lit {
-    pub fn pos(&self) -> Rc<RefCell<Option<i32>>> {
-        return self.p.clone();
+    pub fn pos(&self) -> i32 {
+        return (*self.p.borrow().as_ref().unwrap());
     }
 }
 
 impl Expr for Lit {
-    fn pos(&self) -> Rc<RefCell<Option<i32>>> {
-        return self.p.clone();
+    fn pos(&self) -> i32 {
+        return (*self.p.borrow().as_ref().unwrap());
     }
     fn __go_clone_box_expr(&self) -> Box<dyn Expr> {
         Box::new(self.clone()) as Box<dyn Expr>
@@ -157,12 +157,12 @@ impl Expr for Lit {
 impl Assign {
     /// Mirrors ast.AssignStmt.Pos(): method body indexes the wrapped
     /// interface slice field and calls a trait method on the result.
-    pub fn first_pos(&self) -> Rc<RefCell<Option<i32>>> {
+    pub fn first_pos(&self) -> i32 {
         return { let __recv = (*self.lhs.borrow().as_ref().unwrap())[(0) as usize].clone(); let __result = (*__recv.borrow().as_ref().unwrap()).pos(); __result };
     }
 }
 
 fn main() {
     let mut a = Rc::new(RefCell::new(Some(Assign { lhs: Rc::new(RefCell::new(Some(vec![Rc::new(RefCell::new(Some(Box::new(Lit { p: Rc::new(RefCell::new(Some(7 as i32))), ..Default::default() }) as Box<dyn Expr>))), Rc::new(RefCell::new(Some(Box::new(Lit { p: Rc::new(RefCell::new(Some(9 as i32))), ..Default::default() }) as Box<dyn Expr>)))]))), ..Default::default() })));
-    println!("{}", format!("{}", (*(*a.borrow().as_ref().unwrap()).first_pos().borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*a.borrow().as_ref().unwrap()).first_pos()));
 }

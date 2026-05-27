@@ -68,8 +68,8 @@ impl std::fmt::Display for holder {
 
 
 impl node {
-    pub fn value(&self) -> Rc<RefCell<Option<i32>>> {
-        return self.value.clone();
+    pub fn value(&self) -> i32 {
+        return (*self.value.borrow().as_ref().unwrap());
     }
 }
 
@@ -81,7 +81,7 @@ impl holder {
 
 fn main() {
     let mut T = holder { value: Rc::new(RefCell::new(Some(Box::new(node { value: Rc::new(RefCell::new(Some(7 as i32))), ..Default::default() }) as Box<dyn Any>))), ..Default::default() }.current();
-    let T_closure_clone = T.clone(); let mut visit = Rc::new(RefCell::new(Some(Box::new(move || -> Rc<RefCell<Option<i32>>> {
+    let T_closure_clone = T.clone(); let mut visit = Rc::new(RefCell::new(Some(Box::new(move || -> i32 {
         {
     let _ts_subject = T.clone();
     let _ts_guard = _ts_subject.borrow();
@@ -94,10 +94,10 @@ fn main() {
     } else {
         let T = T.clone();
         drop(_ts_guard);
-        return Rc::new(RefCell::new(Some(0 as i32)));;
+        return 0 as i32;;
     }
     }
     unreachable!()
-    }) as Box<dyn FnMut() -> Rc<RefCell<Option<i32>>>>)));
-    println!("{}", format!("{}", (*{ let __f_ptr: *mut Box<dyn FnMut() -> Rc<RefCell<Option<i32>>>> = { let mut __f_guard = visit.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> Rc<RefCell<Option<i32>>>> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() }.borrow().as_ref().unwrap())));
+    }) as Box<dyn FnMut() -> i32>)));
+    println!("{}", format!("{}", (*{ let __f_ptr: *mut Box<dyn FnMut() -> i32> = { let mut __f_guard = visit.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> i32> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() }.borrow().as_ref().unwrap())));
 }

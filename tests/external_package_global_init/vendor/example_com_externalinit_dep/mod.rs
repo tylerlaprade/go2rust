@@ -1,8 +1,5 @@
 use go2rust_stdlib_stubs::*;
 
-use std::cell::{RefCell};
-use std::rc::{Rc};
-
 pub(crate) struct GoGlobal<T> {
     value: std::cell::UnsafeCell<Option<T>>,
 }
@@ -31,9 +28,9 @@ fn __go_init_globals() {
 }
 
 
-pub fn is_enabled() -> Rc<RefCell<Option<bool>>> {
+pub fn is_enabled() -> bool {
 
-    return Rc::new(RefCell::new(Some(enabled.borrow().as_ref().unwrap().clone())));
+    return (*enabled.borrow().as_ref().unwrap());
 }
 
 pub(crate) fn __go_init_all() {

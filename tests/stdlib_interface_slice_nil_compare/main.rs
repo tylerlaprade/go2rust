@@ -128,7 +128,7 @@ pub mod ast {
 }
 
 
-pub fn count_non_nil(exprs: Arc<Mutex<Option<Vec<ast_Expr>>>>) -> Arc<Mutex<Option<i32>>> {
+pub fn count_non_nil(exprs: Arc<Mutex<Option<Vec<ast_Expr>>>>) -> i32 {
 
     let mut count = Arc::new(Mutex::new(Some(0)));
     let mut i = Arc::new(Mutex::new(Some(0)));
@@ -140,13 +140,13 @@ pub fn count_non_nil(exprs: Arc<Mutex<Option<Vec<ast_Expr>>>>) -> Arc<Mutex<Opti
     }
     { let __range_holder = exprs.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for expr in __range_values.iter() {
         if false {
-        return Arc::new(Mutex::new(Some(-1)));
+        return -1;
     }
     } }
-    return Arc::new(Mutex::new(Some(count.lock().unwrap().as_ref().unwrap().clone())));
+    return { let __v = (*count.lock().unwrap().as_ref().unwrap()).clone(); __v };
 }
 
 fn main() {
     let mut exprs = Arc::new(Mutex::new(Some(Vec::<ast_Expr>::from([{ let __arg = ast::new_ident("x".to_string()); let __arg_guard = __arg.lock().unwrap(); __arg_guard.as_ref().map(|__v| (*__v).clone().into()).unwrap_or_else(ast_Expr::default) }]))));
-    println!("{}", format!("{}", (*count_non_nil(exprs.clone()).lock().unwrap().as_ref().unwrap())));
+    println!("{}", format!("{}", count_non_nil(exprs.clone())));
 }

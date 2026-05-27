@@ -28,16 +28,16 @@ impl std::fmt::Display for Item {
 
 
 impl Item {
-    pub fn pos(&self) -> Rc<RefCell<Option<i32>>> {
-        return self.pos.clone();
+    pub fn pos(&self) -> i32 {
+        return (*self.pos.borrow().as_ref().unwrap());
     }
 }
 
 fn main() {
     let mut items = Rc::new(RefCell::new(Some(vec![Rc::new(RefCell::new(Some(Item { pos: Rc::new(RefCell::new(Some(3))), ..Default::default() }))), Rc::new(RefCell::new(Some(Item { pos: Rc::new(RefCell::new(Some(1))), ..Default::default() }))), Rc::new(RefCell::new(Some(Item { pos: Rc::new(RefCell::new(Some(2))), ..Default::default() })))])));
-    { let __cmp_holder = Rc::new(RefCell::new(Some(Box::new(move |a: Rc<RefCell<Option<Item>>>, b: Rc<RefCell<Option<Item>>>| -> Rc<RefCell<Option<i32>>> {
-        return Rc::new(RefCell::new(Some((*(*a.borrow().as_ref().unwrap()).pos().borrow().as_ref().unwrap()) - (*(*b.borrow().as_ref().unwrap()).pos().borrow().as_ref().unwrap()))));
-    }) as Box<dyn FnMut(Rc<RefCell<Option<Item>>>, Rc<RefCell<Option<Item>>>) -> Rc<RefCell<Option<i32>>>>))); let mut __sort_guard = items.borrow_mut(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.sort_by(|__a, __b| { let __cmp = { let mut __cmp_guard = __cmp_holder.borrow_mut(); let __cmp_fn = __cmp_guard.as_mut().unwrap(); (*__cmp_fn)(__a.clone(), __b.clone()) }; let __ord = (*__cmp.borrow().as_ref().unwrap()).cmp(&0); __ord }); } };
+    { let __cmp_holder = Rc::new(RefCell::new(Some(Box::new(move |a: Rc<RefCell<Option<Item>>>, b: Rc<RefCell<Option<Item>>>| -> i32 {
+        return (*a.borrow().as_ref().unwrap()).pos() - (*b.borrow().as_ref().unwrap()).pos();
+    }) as Box<dyn FnMut(Rc<RefCell<Option<Item>>>, Rc<RefCell<Option<Item>>>) -> i32>))); let mut __sort_guard = items.borrow_mut(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.sort_by(|__a, __b| { let __cmp = { let mut __cmp_guard = __cmp_holder.borrow_mut(); let __cmp_fn = __cmp_guard.as_mut().unwrap(); (*__cmp_fn)(__a.clone(), __b.clone()) }; let __ord = (*__cmp.borrow().as_ref().unwrap()).cmp(&0); __ord }); } };
     { let __range_holder = items.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for it in __range_values.iter() {
         println!("{}", format!("{}", (*(*it.borrow().as_ref().unwrap()).pos.borrow().as_ref().unwrap())));
     } }

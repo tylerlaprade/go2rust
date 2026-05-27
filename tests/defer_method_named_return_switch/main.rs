@@ -20,7 +20,7 @@ impl std::fmt::Display for reader {
 
 
 impl reader {
-    pub fn pick(&self, v: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>> {
+    pub fn pick(&self, v: Rc<RefCell<Option<i32>>>) -> i32 {
         let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
     let mut res: Rc<RefCell<Option<i32>>> = Rc::new(RefCell::new(Some(0)));
@@ -39,7 +39,7 @@ impl reader {
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return res
+        return (*res.borrow().as_ref().unwrap())
     }
         } else {
             {
@@ -48,7 +48,7 @@ impl reader {
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return res
+        return (*res.borrow().as_ref().unwrap())
     }
         }
     }
@@ -57,6 +57,6 @@ impl reader {
 
 fn main() {
     let mut r = Rc::new(RefCell::new(Some(reader {  })));
-    println!("{}", format!("{}", (*(*r.borrow().as_ref().unwrap()).pick(Rc::new(RefCell::new(Some(0)))).borrow().as_ref().unwrap())));
-    println!("{}", format!("{}", (*(*r.borrow().as_ref().unwrap()).pick(Rc::new(RefCell::new(Some(2)))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*r.borrow().as_ref().unwrap()).pick(Rc::new(RefCell::new(Some(0))))));
+    println!("{}", format!("{}", (*r.borrow().as_ref().unwrap()).pick(Rc::new(RefCell::new(Some(2))))));
 }

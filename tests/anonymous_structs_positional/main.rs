@@ -8,9 +8,9 @@ fn main() {
 }
 
 #[derive(Debug, Clone)]
-struct AnonymousStruct1 {
-    name: Rc<RefCell<Option<String>>>,
-    count: Rc<RefCell<Option<i32>>>,
+pub struct AnonymousStruct1 {
+    pub name: Rc<RefCell<Option<String>>>,
+    pub count: Rc<RefCell<Option<i32>>>,
 }
 impl AnonymousStruct1 {
     pub fn __go_value_clone(&self) -> Self {

@@ -295,7 +295,7 @@ impl std::fmt::Display for printer {
 
 
 impl printer {
-    pub fn write(&mut self, data: Rc<RefCell<Option<Vec<u8>>>>) -> (Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<Box<dyn StdError>>>>) {
+    pub fn write(&mut self, data: Rc<RefCell<Option<Vec<u8>>>>) -> (i32, Rc<RefCell<Option<Box<dyn StdError>>>>) {
     let mut n: Rc<RefCell<Option<i32>>> = Rc::new(RefCell::new(Some(0)));
     let mut err: Rc<RefCell<Option<Box<dyn StdError>>>> = Rc::new(RefCell::new(None));
 
@@ -305,13 +305,13 @@ impl printer {
         { let (__tmp_0, __tmp_1) = (*self.output.borrow().as_ref().unwrap()).write(Rc::new(RefCell::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.borrow(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[((*n.borrow().as_ref().unwrap())) as usize..(i + 1) as usize].to_vec() })))); let __moved_tmp_0 = { let mut __guard = __tmp_0.borrow_mut(); __guard.take() }; *m.borrow_mut() = __moved_tmp_0; let __moved_tmp_1 = { let mut __guard = __tmp_1.borrow_mut(); __guard.take() }; *err.borrow_mut() = __moved_tmp_1; };
         { let __rhs = (*m.borrow().as_ref().unwrap()); let mut guard = n.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
         if (*err.borrow()).is_some() {
-        return (n, err);
+        return ((*n.borrow().as_ref().unwrap()), err);
     }
         { let __target = self.line.clone(); let mut guard = __target.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
     } else if b == ('#' as u8) {
         { let (__tmp_0, __tmp_1) = { let __s = format!("{:6}  ", (*self.line.borrow().as_ref().unwrap())); let __n = __s.len() as i32; (*self.output.borrow().as_ref().unwrap()).__go_write_bytes(__s.as_bytes()); (Rc::new(RefCell::new(Some::<i32>(__n))), Rc::new(RefCell::new(None::<Box<dyn StdError>>))) }; let __moved_tmp_1 = { let mut __guard = __tmp_1.borrow_mut(); __guard.take() }; *err.borrow_mut() = __moved_tmp_1; };
         if (*err.borrow()).is_some() {
-        return (n, err);
+        return ((*n.borrow().as_ref().unwrap()), err);
     }
     }
     } }
@@ -319,7 +319,7 @@ impl printer {
         { let (__tmp_0, __tmp_1) = (*self.output.borrow().as_ref().unwrap()).write(Rc::new(RefCell::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.borrow(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[((*n.borrow().as_ref().unwrap())) as usize..].to_vec() })))); let __moved_tmp_0 = { let mut __guard = __tmp_0.borrow_mut(); __guard.take() }; *m.borrow_mut() = __moved_tmp_0; let __moved_tmp_1 = { let mut __guard = __tmp_1.borrow_mut(); __guard.take() }; *err.borrow_mut() = __moved_tmp_1; };
         { let __rhs = (*m.borrow().as_ref().unwrap()); let mut guard = n.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     }
-        return (n, err);
+        return ((*n.borrow().as_ref().unwrap()), err);
     }
 }
 
@@ -331,5 +331,5 @@ fn main() {
         println!("{} {}", format!("{}", "err:".to_string()), format!("{}", format!("{}", (*err.borrow().as_ref().unwrap()))));
         return;
     }
-    println!("{} {} {} {}", format!("{}", "wrote".to_string()), format!("{}", { let __v = (*n.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", "bytes:".to_string()), format!("{}", (*(*buf.borrow_mut().as_mut().unwrap()).string().borrow().as_ref().unwrap())));
+    println!("{} {} {} {}", format!("{}", "wrote".to_string()), format!("{}", n), format!("{}", "bytes:".to_string()), format!("{}", (*(*buf.borrow_mut().as_mut().unwrap()).string().borrow().as_ref().unwrap())));
 }

@@ -67,7 +67,7 @@ fn __go_init_globals() {
     *configData.borrow_mut() = Some(BTreeMap::new());
     *computedValue.borrow_mut() = Some(0);
     *appConfig.borrow_mut() = Some(Default::default());
-    *computedValue.borrow_mut() = Some((*compute_initial_value().borrow().as_ref().unwrap()).clone());
+    *computedValue.borrow_mut() = Some(compute_initial_value());
 }
 
 
@@ -101,10 +101,10 @@ fn __go_init_2() {
     { let __map_key = "target".to_string(); let __map_value = Rc::new(RefCell::new(Some("rust".to_string()))); (*configData.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
 }
 
-pub fn compute_initial_value() -> Rc<RefCell<Option<i32>>> {
+pub fn compute_initial_value() -> i32 {
 
     println!("{}", format!("{}", "Computing initial value during package initialization".to_string()));
-    return Rc::new(RefCell::new(Some(42 * 2)));
+    return 42 * 2;
 }
 
 /// Another init function that runs after variable initialization
@@ -163,7 +163,7 @@ fn main() {
 
         // Demonstrate that init functions only run once
     println!("{}", format!("{}", "\n=== Calling functions that were used in init ===".to_string()));
-    print!("Calling computeInitialValue() again: {}\n", (*compute_initial_value().borrow().as_ref().unwrap()));
+    print!("Calling computeInitialValue() again: {}\n", compute_initial_value());
     setup_logging();
 
         // Show that package variables retain their init values

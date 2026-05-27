@@ -1,6 +1,3 @@
-use std::cell::{RefCell};
-use std::rc::{Rc};
-
 pub(crate) struct GoGlobal<T> {
     value: std::cell::UnsafeCell<Option<T>>,
 }
@@ -35,16 +32,16 @@ fn __go_init_globals() {
     *c.borrow_mut() = Some(0);
     *d.borrow_mut() = Some(0);
     *d.borrow_mut() = Some(3);
-    *b.borrow_mut() = Some((*f().borrow().as_ref().unwrap()).clone());
-    *c.borrow_mut() = Some((*f().borrow().as_ref().unwrap()).clone());
+    *b.borrow_mut() = Some(f());
+    *c.borrow_mut() = Some(f());
     *a.borrow_mut() = Some((*c.borrow().as_ref().unwrap()) + (*b.borrow().as_ref().unwrap()));
 }
 
 
-pub fn f() -> Rc<RefCell<Option<i32>>> {
+pub fn f() -> i32 {
 
     { let mut guard = d.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
-    return Rc::new(RefCell::new(Some(d.borrow().as_ref().unwrap().clone())));
+    return (*d.borrow().as_ref().unwrap());
 }
 
 fn __go_init_0() {

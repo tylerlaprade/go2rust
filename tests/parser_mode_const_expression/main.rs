@@ -2355,7 +2355,7 @@ pub mod token {
     pub const X_O_R__A_S_S_I_G_N: token_Token = token_Token(30);
 
     pub fn new_file_set() -> Arc<Mutex<Option<token_FileSet>>> {
-        Arc::new(Mutex::new(Some::<token_FileSet>(Default::default())))
+        panic!("new_file_set bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
     }
 }
 

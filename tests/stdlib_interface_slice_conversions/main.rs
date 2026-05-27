@@ -112,15 +112,15 @@ impl From<types_Pointer> for types_Type {
 pub mod types {
     use super::*;
     pub fn new_pointer<T0>(_arg0: T0) -> Arc<Mutex<Option<types_Pointer>>> {
-        Arc::new(Mutex::new(Some::<types_Pointer>(Default::default())))
+        panic!("new_pointer bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
     }
 }
 
 
-pub fn forms(named: Arc<Mutex<Option<types_Named>>>) -> Arc<Mutex<Option<i32>>> {
+pub fn forms(named: Arc<Mutex<Option<types_Named>>>) -> i32 {
 
     if (*named.lock().unwrap()).is_none() {
-        return Arc::new(Mutex::new(Some(0 as i32)));
+        return 0 as i32;
     }
     let mut count = Arc::new(Mutex::new(Some(0)));
     for recv in &Vec::<types_Type>::from([{ let __arg = named.clone(); let __arg_guard = __arg.lock().unwrap(); __arg_guard.as_ref().map(|__v| (*__v).clone().into()).unwrap_or_else(types_Type::default) }, { let __arg = types::new_pointer(named.clone()); let __arg_guard = __arg.lock().unwrap(); __arg_guard.as_ref().map(|__v| (*__v).clone().into()).unwrap_or_else(types_Type::default) }]) {
@@ -128,7 +128,7 @@ pub fn forms(named: Arc<Mutex<Option<types_Named>>>) -> Arc<Mutex<Option<i32>>> 
         { let mut guard = count.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
     }
-    return Arc::new(Mutex::new(Some(count.lock().unwrap().as_ref().unwrap().clone())));
+    return { let __v = (*count.lock().unwrap().as_ref().unwrap()).clone(); __v };
 }
 
 fn main() {

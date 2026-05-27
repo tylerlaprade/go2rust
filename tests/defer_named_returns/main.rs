@@ -20,7 +20,7 @@ impl std::fmt::Display for counter {
 
 
 impl counter {
-    pub fn method(&self) -> Rc<RefCell<Option<i32>>> {
+    pub fn method(&self) -> i32 {
         let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
     let mut result: Rc<RefCell<Option<i32>>> = Rc::new(RefCell::new(Some(0)));
@@ -36,12 +36,12 @@ impl counter {
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return result
+        return (*result.borrow().as_ref().unwrap())
     }
     }
 }
 
-pub fn compute() -> Rc<RefCell<Option<i32>>> {
+pub fn compute() -> i32 {
     let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
     let mut result: Rc<RefCell<Option<i32>>> = Rc::new(RefCell::new(Some(0)));
@@ -57,7 +57,7 @@ pub fn compute() -> Rc<RefCell<Option<i32>>> {
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return result
+        return (*result.borrow().as_ref().unwrap())
     }
 }
 
@@ -82,8 +82,8 @@ pub fn decorate() -> Rc<RefCell<Option<String>>> {
 }
 
 fn main() {
-    println!("{}", format!("{}", (*compute().borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", compute()));
     println!("{}", format!("{}", (*decorate().borrow().as_ref().unwrap())));
     let mut c: Rc<RefCell<Option<counter>>> = Rc::new(RefCell::new(Some(Default::default())));
-    println!("{}", format!("{}", (*(*c.borrow().as_ref().unwrap()).method().borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*c.borrow().as_ref().unwrap()).method()));
 }

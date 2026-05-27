@@ -54,7 +54,7 @@ fn main() {
     print!("len={} cap={} {}\n", (*s.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0), (*s.borrow()).as_ref().map(|__v| __v.capacity()).unwrap_or(0), format_slice(&s));
 
         // Three-index slice
-    let mut s2 = Rc::new(RefCell::new(Some({ let __seq = { let __seq_holder = s.clone(); let __seq_guard = __seq_holder.borrow(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; let _slice = &__seq[(2) as usize..(5) as usize]; let mut _v = Vec::with_capacity(((7) - (2)) as usize); _v.extend_from_slice(_slice); _v })));
+    let mut s2 = Rc::new(RefCell::new(Some({ let __seq = { let __seq_holder = s.clone(); let __seq_guard = __seq_holder.borrow(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; let _slice = &__seq[(2) as usize..(5) as usize]; let mut _v = Vec::with_capacity((((7) as usize) - ((2) as usize)) as usize); _v.extend_from_slice(_slice); _v })));
     print!("s2: len={} cap={} {}\n", (*s2.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0), (*s2.borrow()).as_ref().map(|__v| __v.capacity()).unwrap_or(0), format_slice(&s2));
 
         // Copy

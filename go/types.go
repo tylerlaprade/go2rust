@@ -479,12 +479,12 @@ func generateClosureType(funcType *ast.FuncType) string {
 		returnType = "()"
 	} else if len(funcType.Results.List) == 1 && len(funcType.Results.List[0].Names) == 0 {
 		// Single unnamed return
-		returnType = GoTypeToRust(funcType.Results.List[0].Type)
+		returnType = GoReturnTypeToRust(funcType.Results.List[0].Type)
 	} else {
 		// Multiple returns or named returns
 		var retTypes []string
 		for _, field := range funcType.Results.List {
-			retType := GoTypeToRust(field.Type)
+			retType := GoReturnTypeToRust(field.Type)
 			count := len(field.Names)
 			if count == 0 {
 				count = 1
@@ -1200,6 +1200,9 @@ func goTypesConstTypeToRust(t types.Type) string {
 }
 
 func goTypesReturnTypeToRust(t types.Type) string {
+	if typeIsPredeclaredCopyScalar(t) {
+		return goTypesTypeToRust(types.Unalias(t))
+	}
 	if _, ok := t.Underlying().(*types.Pointer); ok {
 		return goTypesTypeToRust(t)
 	}

@@ -104,7 +104,7 @@ impl exporter {
     }
 }
 
-pub fn count_type_names(objs: Rc<RefCell<Option<Vec<types_Object>>>>) -> Rc<RefCell<Option<i32>>> {
+pub fn count_type_names(objs: Rc<RefCell<Option<Vec<types_Object>>>>) -> i32 {
 
     let mut count = Rc::new(RefCell::new(Some(0)));
     { let __range_holder = objs.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for o in __range_values.iter() {
@@ -122,7 +122,7 @@ pub fn count_type_names(objs: Rc<RefCell<Option<Vec<types_Object>>>>) -> Rc<RefC
         }
     }
     } }
-    return Rc::new(RefCell::new(Some(count.borrow().as_ref().unwrap().clone())));
+    return (*count.borrow().as_ref().unwrap());
 }
 
 pub fn accept_object_keys(index: Rc<RefCell<Option<BTreeMap<types_Object, Rc<RefCell<Option<u64>>>>>>>, e: Rc<RefCell<Option<exporter>>>) {
@@ -134,7 +134,7 @@ pub fn accept_object_keys(index: Rc<RefCell<Option<BTreeMap<types_Object, Rc<Ref
 
 fn main() {
     if false {
-        println!("{}", format!("{}", (*count_type_names(Rc::new(RefCell::new(None))).borrow().as_ref().unwrap())));
+        println!("{}", format!("{}", count_type_names(Rc::new(RefCell::new(None)))));
         accept_object_keys(Rc::new(RefCell::new(None)), Rc::new(RefCell::new(None)));
     }
     println!("{}", format!("{}", "ok".to_string()));

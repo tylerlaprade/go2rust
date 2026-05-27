@@ -7,7 +7,7 @@ pub trait Node: std::fmt::Display + Any {
     fn __go_clone_box_node(&self) -> Box<dyn Node>;
     fn __go_as_any(&self) -> &dyn Any;
     fn __go_eq_node(&self, other: &dyn Node) -> bool;
-    fn pos(&self) -> Rc<RefCell<Option<i32>>>;
+    fn pos(&self) -> i32;
 }
 
 impl Clone for Box<dyn Node> {
@@ -28,6 +28,21 @@ impl Clone for Box<dyn Expr> {
     }
 }
 
+impl Node for Box<dyn Expr> {
+    fn __go_clone_box_node(&self) -> Box<dyn Node> {
+        Box::new((*self).clone()) as Box<dyn Node>
+    }
+    fn __go_as_any(&self) -> &dyn Any {
+        (**self).__go_as_any()
+    }
+    fn __go_eq_node(&self, other: &dyn Node) -> bool {
+        (**self).__go_eq_node(other)
+    }
+    fn pos(&self) -> i32 {
+        (**self).pos()
+    }
+}
+
 pub trait Stmt: Node + std::fmt::Display + Any {
     fn __go_clone_box_stmt(&self) -> Box<dyn Stmt>;
     fn __go_eq_stmt(&self, other: &dyn Stmt) -> bool;
@@ -37,6 +52,21 @@ pub trait Stmt: Node + std::fmt::Display + Any {
 impl Clone for Box<dyn Stmt> {
     fn clone(&self) -> Self {
         self.__go_clone_box_stmt()
+    }
+}
+
+impl Node for Box<dyn Stmt> {
+    fn __go_clone_box_node(&self) -> Box<dyn Node> {
+        Box::new((*self).clone()) as Box<dyn Node>
+    }
+    fn __go_as_any(&self) -> &dyn Any {
+        (**self).__go_as_any()
+    }
+    fn __go_eq_node(&self, other: &dyn Node) -> bool {
+        (**self).__go_eq_node(other)
+    }
+    fn pos(&self) -> i32 {
+        (**self).pos()
     }
 }
 
@@ -84,8 +114,8 @@ impl std::fmt::Display for ExprStmt {
 
 
 impl Ident {
-    pub fn pos(&self) -> Rc<RefCell<Option<i32>>> {
-        return self.pos.clone();
+    pub fn pos(&self) -> i32 {
+        return (*self.pos.borrow().as_ref().unwrap());
     }
 
     pub fn expr_node(&self) {
@@ -108,8 +138,8 @@ impl Expr for Ident {
 }
 
 impl Node for Ident {
-    fn pos(&self) -> Rc<RefCell<Option<i32>>> {
-        return self.pos.clone();
+    fn pos(&self) -> i32 {
+        return (*self.pos.borrow().as_ref().unwrap());
     }
     fn __go_clone_box_node(&self) -> Box<dyn Node> {
         Box::new(self.clone()) as Box<dyn Node>
@@ -127,7 +157,7 @@ impl Node for Ident {
 }
 
 impl ExprStmt {
-    pub fn pos(&self) -> Rc<RefCell<Option<i32>>> {
+    pub fn pos(&self) -> i32 {
         return (*self.x.borrow().as_ref().unwrap()).pos();
     }
 
@@ -136,7 +166,7 @@ impl ExprStmt {
 }
 
 impl Node for ExprStmt {
-    fn pos(&self) -> Rc<RefCell<Option<i32>>> {
+    fn pos(&self) -> i32 {
         return (*self.x.borrow().as_ref().unwrap()).pos();
     }
     fn __go_clone_box_node(&self) -> Box<dyn Node> {
@@ -170,7 +200,7 @@ impl Stmt for ExprStmt {
 }
 
 pub fn dump_node(n: Rc<RefCell<Option<Box<dyn Node>>>>) {
-    println!("{} {}", format!("{}", "node pos:".to_string()), format!("{}", (*(*n.borrow().as_ref().unwrap()).pos().borrow().as_ref().unwrap())));
+    println!("{} {}", format!("{}", "node pos:".to_string()), format!("{}", (*n.borrow().as_ref().unwrap()).pos()));
 }
 
 pub fn walk_expr(e: Rc<RefCell<Option<Box<dyn Expr>>>>) {

@@ -615,12 +615,28 @@ func registerCallTupleResultSyntaxInfo(lhs []ast.Expr, call *ast.CallExpr) {
 			resultTypes = []string{"Vec<u8>", goTypeToRustBase(ast.NewIdent("error"))}
 		}
 	}
-	if len(resultTypes) == 0 {
-		return
-	}
-
 	vt := GetVarTable()
 	if vt == nil {
+		return
+	}
+	if len(resultTypes) == 0 {
+		if sig, ok := callSignatureFromTypeInfo(call); ok {
+			results := sig.Results()
+			for i := 0; i < results.Len() && i < len(lhs); i++ {
+				if !signatureResultIsBareScalar(sig, i) {
+					continue
+				}
+				ident, ok := lhs[i].(*ast.Ident)
+				if !ok || ident.Name == "_" {
+					continue
+				}
+				vt.Register(ident.Name, &VarInfo{
+					WrapLevel: WrapNone,
+					RustType:  goTypesTypeToRust(types.Unalias(results.At(i).Type())),
+					Source:    SourceLocal,
+				})
+			}
+		}
 		return
 	}
 	for i, rustType := range resultTypes {
@@ -2447,6 +2463,10 @@ func writeBlankNamedReturnValue(out *strings.Builder, result ast.Expr, expected 
 		WriteWrappedNone(out)
 		return
 	}
+	if resultTypeExprIsBareScalar(expected) {
+		writeBareScalarReturnValue(out, result, expected)
+		return
+	}
 	if writeLocalInterfaceConcreteReturnConversion(out, result, expected) {
 		return
 	}
@@ -2532,6 +2552,15 @@ func writeNamedReturnAssignmentFromTemp(out *strings.Builder, name *ast.Ident, r
 	if name == nil || name.Name == "_" {
 		return
 	}
+	if resultTypeExprIsBareScalar(resultType) {
+		out.WriteString("        *")
+		out.WriteString(RustLocalIdent(name.Name))
+		WriteBorrowMethod(out, true)
+		out.WriteString(" = Some(")
+		out.WriteString(tempName)
+		out.WriteString(");\n")
+		return
+	}
 	if isGoErrorType(expectedTypeFromParamExpr(resultType)) {
 		out.WriteString("        { let __moved_val = { let mut __guard = ")
 		out.WriteString(tempName)
@@ -2568,11 +2597,20 @@ func writeNamedReturnValuesWithBlankTemps(out *strings.Builder, fnType *ast.Func
 			if name.Name == "_" {
 				if resultIndex < len(blankTemps) && blankTemps[resultIndex] != "" {
 					out.WriteString(blankTemps[resultIndex])
+				} else if resultTypeExprIsBareScalar(result.Type) {
+					writeBareScalarZeroValue(out, result.Type)
 				} else {
 					writeNamedReturnZeroValue(out, result.Type)
 				}
 			} else {
-				out.WriteString(RustLocalIdent(name.Name))
+				if resultTypeExprIsBareScalar(result.Type) {
+					out.WriteString("(*")
+					out.WriteString(RustLocalIdent(name.Name))
+					WriteBorrowMethod(out, false)
+					out.WriteString(".as_ref().unwrap())")
+				} else {
+					out.WriteString(RustLocalIdent(name.Name))
+				}
 			}
 			resultIndex++
 		}
@@ -3131,6 +3169,33 @@ func writeMoveWrappedInnerAssignmentFromTemp(out *strings.Builder, lhs ast.Expr,
 	out.WriteString(" = ")
 	out.WriteString(movedName)
 	out.WriteString(";")
+}
+
+func writeTupleAssignmentFromTemp(out *strings.Builder, lhs ast.Expr, tmpName string, tmpBareScalar bool) {
+	if ident, ok := lhs.(*ast.Ident); ok && ident.Name == "_" {
+		return
+	}
+	if indexExpr, ok := lhs.(*ast.IndexExpr); ok && writeIndexedSequenceAssignmentFromTemp(out, indexExpr, tmpName, !tmpBareScalar) {
+		return
+	}
+	if ident, ok := lhs.(*ast.Ident); ok && isVarBare(ident.Name) {
+		out.WriteString(" ")
+		out.WriteString(RustIdentForUse(ident))
+		out.WriteString(" = ")
+		out.WriteString(tmpName)
+		out.WriteString(";")
+		return
+	}
+	if tmpBareScalar {
+		out.WriteString(" *")
+		TranspileExpressionContext(out, lhs, LValue)
+		WriteBorrowMethod(out, true)
+		out.WriteString(" = Some(")
+		out.WriteString(tmpName)
+		out.WriteString(");")
+		return
+	}
+	writeMoveWrappedInnerAssignmentFromTemp(out, lhs, tmpName)
 }
 
 func writeIndexedSequenceAssignmentFromTemp(out *strings.Builder, indexExpr *ast.IndexExpr, tmpName string, tmpWrapped bool) bool {
@@ -5168,40 +5233,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 			if hasNamedReturns {
 				out.WriteString(" ")
-				// Return the named values
-				needsTuple := false
-				totalReturns := 0
-				for _, result := range fnType.Results.List {
-					if len(result.Names) > 0 {
-						totalReturns += len(result.Names)
-					} else {
-						totalReturns++
-					}
-				}
-				needsTuple = totalReturns > 1
-
-				if needsTuple {
-					out.WriteString("(")
-				}
-
-				first := true
-				for _, result := range fnType.Results.List {
-					for _, name := range result.Names {
-						if !first {
-							out.WriteString(", ")
-						}
-						first = false
-						if name.Name == "_" {
-							writeNamedReturnZeroValue(out, result.Type)
-						} else {
-							out.WriteString(RustLocalIdent(name.Name))
-						}
-					}
-				}
-
-				if needsTuple {
-					out.WriteString(")")
-				}
+				writeNamedReturnValues(out, fnType)
 			}
 		} else if len(s.Results) > 0 {
 			out.WriteString(" ")
@@ -5224,6 +5256,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 				if isNil {
 					WriteWrappedNone(out)
+				} else if resultType := returnResultTypeExpr(fnType, i); resultTypeExprIsBareScalar(resultType) {
+					writeBareScalarReturnValue(out, result, resultType)
 				} else {
 					// Check if this is a field access on self (already wrapped)
 					if isConcreteErrorReturnValue(result, returnResultTypeExpr(fnType, i)) {
@@ -6033,7 +6067,11 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					TranspileExpression(out, s.Rhs[0])
 					out.WriteString(";")
 					for i, lhs := range s.Lhs {
-						writeMoveWrappedInnerAssignmentFromTemp(out, lhs, fmt.Sprintf("__tmp_%d", i))
+						tmpBareScalar := false
+						if call, ok := s.Rhs[0].(*ast.CallExpr); ok {
+							tmpBareScalar = callResultIsBareScalar(call, i)
+						}
+						writeTupleAssignmentFromTemp(out, lhs, fmt.Sprintf("__tmp_%d", i), tmpBareScalar)
 					}
 					out.WriteString(" }")
 				}

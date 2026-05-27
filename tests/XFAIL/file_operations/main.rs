@@ -161,13 +161,13 @@ impl bufio_Scanner {
         None
     }
     pub fn err(&self) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
-        Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>))
+        panic!("bufio_Scanner.err bridge: generic stub method body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
     }
-    pub fn scan(&self) -> Arc<Mutex<Option<bool>>> {
-        Arc::new(Mutex::new(Some::<bool>(Default::default())))
+    pub fn scan(&self) -> bool {
+        panic!("bufio_Scanner.scan bridge: generic stub method body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
     }
     pub fn text(&self) -> Arc<Mutex<Option<String>>> {
-        Arc::new(Mutex::new(Some::<String>(Default::default())))
+        panic!("bufio_Scanner.text bridge: generic stub method body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
     }
 }
 
@@ -200,10 +200,10 @@ impl fs_FileInfo {
         Arc::new(Mutex::new(Some::<bool>(self.is_dir)))
     }
     pub fn mod_time(&self) -> Arc<Mutex<Option<GoTime>>> {
-        Arc::new(Mutex::new(Some::<GoTime>(Default::default())))
+        panic!("fs_FileInfo.mod_time bridge: generic stub method body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
     }
     pub fn mode(&self) -> Arc<Mutex<Option<fs_FileMode>>> {
-        Arc::new(Mutex::new(Some::<fs_FileMode>(Default::default())))
+        panic!("fs_FileInfo.mode bridge: generic stub method body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
     }
 }
 
@@ -345,14 +345,14 @@ impl os_File {
 pub mod bufio {
     use super::*;
     pub fn new_scanner<T0>(_arg0: T0) -> Arc<Mutex<Option<bufio_Scanner>>> {
-        Arc::new(Mutex::new(Some::<bufio_Scanner>(Default::default())))
+        panic!("new_scanner bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
     }
 }
 
 
 pub mod io {
     use super::*;
-    pub fn copy<T0: 'static, T1: 'static>(_arg0: T0, _arg1: T1) -> (Arc<Mutex<Option<i64>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+    pub fn copy<T0: 'static, T1: 'static>(_arg0: T0, _arg1: T1) -> (i64, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
         let mut data = Vec::new();
         if let Some(src) = (&_arg1 as &dyn std::any::Any).downcast_ref::<Arc<Mutex<Option<os_File>>>>() {
             data = src.lock().unwrap().as_ref().map(|file| file.__go_read_all_for_copy()).unwrap_or_default();
@@ -418,16 +418,16 @@ pub mod os {
     pub const O__A_P_P_E_N_D: i32 = 0;
     pub const O__W_R_O_N_L_Y: i32 = 0;
 
-    pub fn is_not_exist<T0>(_arg0: T0) -> Arc<Mutex<Option<bool>>> {
-        Arc::new(Mutex::new(Some::<bool>(Default::default())))
+    pub fn is_not_exist<T0>(_arg0: T0) -> bool {
+        panic!("is_not_exist bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
     }
 
     pub fn open<T0>(_arg0: T0) -> (Arc<Mutex<Option<os_File>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
-        (Arc::new(Mutex::new(Some::<os_File>(Default::default()))), Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>)))
+        panic!("open bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
     }
 
     pub fn open_file<T0, T1, T2>(_arg0: T0, _arg1: T1, _arg2: T2) -> (Arc<Mutex<Option<os_File>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
-        (Arc::new(Mutex::new(Some::<os_File>(Default::default()))), Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>)))
+        panic!("open_file bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
     }
 
     pub fn read_file<T0: GoStringArg>(_arg0: T0) -> (Arc<Mutex<Option<Vec<u8>>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
@@ -676,7 +676,7 @@ fn main() {
     }
     }
 
-    print!("Copied {} bytes to '{}'\n", { let __v = (*bytesWritten.lock().unwrap().as_ref().unwrap()).clone(); __v }, { let __v = (*copyFilename.lock().unwrap().as_ref().unwrap()).clone(); __v });
+    print!("Copied {} bytes to '{}'\n", bytesWritten, { let __v = (*copyFilename.lock().unwrap().as_ref().unwrap()).clone(); __v });
 
         // Read and process file content
     println!("{}", format!("{}", "\n--- Processing file content ---".to_string()));

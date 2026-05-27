@@ -27,19 +27,19 @@ impl std::fmt::Display for item {
 }
 
 
-pub fn has_name(it: Rc<RefCell<Option<item>>>) -> Rc<RefCell<Option<bool>>> {
+pub fn has_name(it: Rc<RefCell<Option<item>>>) -> bool {
 
-    return Rc::new(RefCell::new(Some((*it.borrow()).is_some() && { let __selector_holder = (*it.borrow().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } == "ready")));
+    return (*it.borrow()).is_some() && { let __selector_holder = (*it.borrow().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } == "ready";
 }
 
-pub fn missing_or_ready(it: Rc<RefCell<Option<item>>>) -> Rc<RefCell<Option<bool>>> {
+pub fn missing_or_ready(it: Rc<RefCell<Option<item>>>) -> bool {
 
-    return Rc::new(RefCell::new(Some((*it.borrow()).is_none() || { let __selector_holder = (*it.borrow().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } == "ready")));
+    return (*it.borrow()).is_none() || { let __selector_holder = (*it.borrow().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } == "ready";
 }
 
 fn main() {
-    println!("{}", format!("{}", (*has_name(Rc::new(RefCell::new(None))).borrow().as_ref().unwrap())));
-    println!("{}", format!("{}", (*has_name(Rc::new(RefCell::new(Some(item { name: Rc::new(RefCell::new(Some("ready".to_string()))), ..Default::default() })))).borrow().as_ref().unwrap())));
-    println!("{}", format!("{}", (*missing_or_ready(Rc::new(RefCell::new(None))).borrow().as_ref().unwrap())));
-    println!("{}", format!("{}", (*missing_or_ready(Rc::new(RefCell::new(Some(item { name: Rc::new(RefCell::new(Some("other".to_string()))), ..Default::default() })))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", has_name(Rc::new(RefCell::new(None)))));
+    println!("{}", format!("{}", has_name(Rc::new(RefCell::new(Some(item { name: Rc::new(RefCell::new(Some("ready".to_string()))), ..Default::default() }))))));
+    println!("{}", format!("{}", missing_or_ready(Rc::new(RefCell::new(None)))));
+    println!("{}", format!("{}", missing_or_ready(Rc::new(RefCell::new(Some(item { name: Rc::new(RefCell::new(Some("other".to_string()))), ..Default::default() }))))));
 }

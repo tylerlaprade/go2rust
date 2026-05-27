@@ -140,7 +140,7 @@ pub mod io {
     }
 
     pub fn multi_writer<T0>(_arg0: T0) -> Arc<Mutex<Option<io_Writer>>> {
-        Arc::new(Mutex::new(Some::<io_Writer>(Default::default())))
+        panic!("multi_writer bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
     }
 }
 
@@ -148,7 +148,7 @@ pub mod io {
 pub mod md5 {
     use super::*;
     pub fn new() -> Arc<Mutex<Option<hash_Hash>>> {
-        Arc::new(Mutex::new(Some::<hash_Hash>(Default::default())))
+        panic!("new bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
     }
 }
 

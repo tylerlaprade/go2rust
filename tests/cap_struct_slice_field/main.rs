@@ -63,8 +63,8 @@ impl std::fmt::Display for bucket {
 
 
 impl bucket {
-    pub fn has_room(&self) -> Rc<RefCell<Option<bool>>> {
-        return Rc::new(RefCell::new(Some(((*self.values.borrow()).as_ref().map(|__v| __v.capacity()).unwrap_or(0) as i32) >= (3 as i32))));
+    pub fn has_room(&self) -> bool {
+        return ((*self.values.borrow()).as_ref().map(|__v| __v.capacity()).unwrap_or(0) as i32) >= (3 as i32);
     }
 }
 
@@ -72,5 +72,5 @@ fn main() {
     let mut b = Rc::new(RefCell::new(Some(bucket { values: Rc::new(RefCell::new(Some({ let mut v = Vec::with_capacity((3) as usize); v.resize((1) as usize, 0); v }))), ..Default::default() })));
     println!("{}", format!("{}", (*(*b.borrow().as_ref().unwrap()).values.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)));
     println!("{}", format!("{}", (*(*b.borrow().as_ref().unwrap()).values.borrow()).as_ref().map(|__v| __v.capacity()).unwrap_or(0)));
-    println!("{}", format!("{}", (*(*b.borrow().as_ref().unwrap()).has_room().borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*b.borrow().as_ref().unwrap()).has_room()));
 }

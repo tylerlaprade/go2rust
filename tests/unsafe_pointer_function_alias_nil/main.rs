@@ -13,7 +13,7 @@ fn __go_init_globals() {
 
 pub fn r#use() -> Arc<Mutex<Option<String>>> {
 
-    let mut exporterPtr = Arc::new(Mutex::new({ let __ptr = { let __target = exporter.clone(); let __guard = __target.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }; let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some(Exporter::default()) } }));
+    let mut exporterPtr = Arc::new(Mutex::new({ let __ptr = { let __target = exporter.clone(); let __guard = __target.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }; let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<Exporter>(unimplemented!("unsafe.Pointer conversion to Exporter")) } }));
     if (*exporterPtr.lock().unwrap()).is_none() {
         return Arc::new(Mutex::new(Some("nil".to_string())));
     }

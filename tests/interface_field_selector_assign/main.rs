@@ -7,7 +7,7 @@ pub trait Expr: std::fmt::Display + Any {
     fn __go_clone_box_expr(&self) -> Box<dyn Expr>;
     fn __go_as_any(&self) -> &dyn Any;
     fn __go_eq_expr(&self, other: &dyn Expr) -> bool;
-    fn pos(&self) -> Rc<RefCell<Option<i32>>>;
+    fn pos(&self) -> i32;
 }
 
 impl Clone for Box<dyn Expr> {
@@ -78,14 +78,14 @@ impl std::fmt::Display for Field {
 
 
 impl Ident {
-    pub fn pos(&self) -> Rc<RefCell<Option<i32>>> {
-        return Rc::new(RefCell::new(Some(1 as i32)));
+    pub fn pos(&self) -> i32 {
+        return 1 as i32;
     }
 }
 
 impl Expr for Ident {
-    fn pos(&self) -> Rc<RefCell<Option<i32>>> {
-        return Rc::new(RefCell::new(Some(1 as i32)));
+    fn pos(&self) -> i32 {
+        return 1 as i32;
     }
     fn __go_clone_box_expr(&self) -> Box<dyn Expr> {
         Box::new(self.clone()) as Box<dyn Expr>
@@ -103,14 +103,14 @@ impl Expr for Ident {
 }
 
 impl StarExpr {
-    pub fn pos(&self) -> Rc<RefCell<Option<i32>>> {
-        return Rc::new(RefCell::new(Some(2 as i32)));
+    pub fn pos(&self) -> i32 {
+        return 2 as i32;
     }
 }
 
 impl Expr for StarExpr {
-    fn pos(&self) -> Rc<RefCell<Option<i32>>> {
-        return Rc::new(RefCell::new(Some(2 as i32)));
+    fn pos(&self) -> i32 {
+        return 2 as i32;
     }
     fn __go_clone_box_expr(&self) -> Box<dyn Expr> {
         Box::new(self.clone()) as Box<dyn Expr>
@@ -145,7 +145,7 @@ pub fn unwrap(fields: Rc<RefCell<Option<Vec<Rc<RefCell<Option<Field>>>>>>>) -> R
         }
     });;
         if (*p.borrow()).is_some() {
-            { let new_val = (*(*p.borrow().as_ref().unwrap()).x.borrow().as_ref().unwrap()).clone(); *t.borrow_mut() = Some(new_val); };;
+            t = (*p.borrow().as_ref().unwrap()).x.clone();;
         }
     }
     {

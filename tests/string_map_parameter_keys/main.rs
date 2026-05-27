@@ -75,16 +75,16 @@ impl std::fmt::Display for position {
 
 
 impl cache {
-    pub fn off(&mut self, s: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<u64>>> {
+    pub fn off(&mut self, s: Rc<RefCell<Option<String>>>) -> u64 {
         let (mut off, mut ok) = match (*self.index.borrow().as_ref().unwrap()).get(&(*s.borrow().as_ref().unwrap()).clone()) { /* MAP_COMMA_OK */ Some(v) => (v.clone(), Rc::new(RefCell::new(Some(true)))), None => (Rc::new(RefCell::new(Some(0))), Rc::new(RefCell::new(Some(false)))) };
         if !(*ok.borrow().as_ref().unwrap()) {
         { let new_val = Rc::new(RefCell::new(Some((*s.borrow().as_ref().unwrap()).len() as u64))); let __moved_val = { let mut __guard = new_val.borrow_mut(); __guard.take() }; *off.borrow_mut() = __moved_val; };
         { let __map_key = (*s.borrow().as_ref().unwrap()).clone(); let __map_value = off.clone(); (*self.index.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
     }
-        return Rc::new(RefCell::new(Some(off.borrow().as_ref().unwrap().clone())));
+        return (*off.borrow().as_ref().unwrap());
     }
 
-    pub fn remember(&mut self, p: Rc<RefCell<Option<position>>>) -> Rc<RefCell<Option<u64>>> {
+    pub fn remember(&mut self, p: Rc<RefCell<Option<position>>>) -> u64 {
         let mut file = Rc::new(RefCell::new(Some({ let __selector_holder = (*p.borrow().as_ref().unwrap()).filename.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
         return self.off(Rc::new(RefCell::new(Some({ let __arg_holder = file.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))));
     }
@@ -92,7 +92,7 @@ impl cache {
 
 fn main() {
     let mut c = Rc::new(RefCell::new(Some(cache { index: Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<u64>>>>::from([])))), ..Default::default() })));
-    println!("{}", format!("{}", (*(*c.borrow_mut().as_mut().unwrap()).off(Rc::new(RefCell::new(Some("abc".to_string())))).borrow().as_ref().unwrap())));
-    println!("{}", format!("{}", (*(*c.borrow_mut().as_mut().unwrap()).off(Rc::new(RefCell::new(Some("abc".to_string())))).borrow().as_ref().unwrap())));
-    println!("{}", format!("{}", (*(*c.borrow_mut().as_mut().unwrap()).remember(Rc::new(RefCell::new(Some(position { filename: Rc::new(RefCell::new(Some("xyz".to_string()))), ..Default::default() })))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*c.borrow_mut().as_mut().unwrap()).off(Rc::new(RefCell::new(Some("abc".to_string()))))));
+    println!("{}", format!("{}", (*c.borrow_mut().as_mut().unwrap()).off(Rc::new(RefCell::new(Some("abc".to_string()))))));
+    println!("{}", format!("{}", (*c.borrow_mut().as_mut().unwrap()).remember(Rc::new(RefCell::new(Some(position { filename: Rc::new(RefCell::new(Some("xyz".to_string()))), ..Default::default() }))))));
 }

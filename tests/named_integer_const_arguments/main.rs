@@ -515,29 +515,29 @@ impl std::fmt::Display for Encoder {
 
 
 impl Encoder {
-    pub fn sync(&self, m: Rc<RefCell<Option<SyncMarker>>>) -> Rc<RefCell<Option<i32>>> {
-        return Rc::new(RefCell::new(Some((*(*m.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) as i32)));
+    pub fn sync(&self, m: Rc<RefCell<Option<SyncMarker>>>) -> i32 {
+        return (*Rc::new(RefCell::new(Some((*(*m.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) as i32))).borrow().as_ref().unwrap());
     }
 
-    pub fn call_sync(&self) -> Rc<RefCell<Option<i32>>> {
+    pub fn call_sync(&self) -> i32 {
         return self.sync(Rc::new(RefCell::new(Some(SyncMarker(Rc::new(RefCell::new(Some(SYNC_BOOL as i32))))))));
     }
 }
 
-pub fn take_reloc(k: Rc<RefCell<Option<RelocKind>>>) -> Rc<RefCell<Option<i32>>> {
+pub fn take_reloc(k: Rc<RefCell<Option<RelocKind>>>) -> i32 {
 
-    return Rc::new(RefCell::new(Some((*(*k.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) as i32)));
+    return (*Rc::new(RefCell::new(Some((*(*k.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) as i32))).borrow().as_ref().unwrap());
 }
 
-pub fn field_enabled(f: Rc<RefCell<Option<Field>>>) -> Rc<RefCell<Option<i32>>> {
+pub fn field_enabled(f: Rc<RefCell<Option<Field>>>) -> i32 {
 
-    return Rc::new(RefCell::new(Some((*Rc::new(RefCell::new(Some((*(*f.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) as i32))).borrow().as_ref().unwrap()) + 10)));
+    return (*Rc::new(RefCell::new(Some((*(*f.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) as i32))).borrow().as_ref().unwrap()) + 10;
 }
 
 fn main() {
     let mut e: Rc<RefCell<Option<Encoder>>> = Rc::new(RefCell::new(Some(Default::default())));
-    println!("{}", format!("{}", (*take_reloc(Rc::new(RefCell::new(Some(RelocKind(Rc::new(RefCell::new(Some(RELOC_META as i32)))))))).borrow().as_ref().unwrap())));
-    println!("{}", format!("{}", (*(*e.borrow().as_ref().unwrap()).sync(Rc::new(RefCell::new(Some(SyncMarker(Rc::new(RefCell::new(Some(SYNC_BOOL as i32)))))))).borrow().as_ref().unwrap())));
-    println!("{}", format!("{}", (*(*e.borrow().as_ref().unwrap()).call_sync().borrow().as_ref().unwrap())));
-    println!("{}", format!("{}", (*field_enabled(Rc::new(RefCell::new(Some(Field(Rc::new(RefCell::new(Some(HAS_INIT as i32)))))))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", take_reloc(Rc::new(RefCell::new(Some(RelocKind(Rc::new(RefCell::new(Some(RELOC_META as i32))))))))));
+    println!("{}", format!("{}", (*e.borrow().as_ref().unwrap()).sync(Rc::new(RefCell::new(Some(SyncMarker(Rc::new(RefCell::new(Some(SYNC_BOOL as i32))))))))));
+    println!("{}", format!("{}", (*e.borrow().as_ref().unwrap()).call_sync()));
+    println!("{}", format!("{}", field_enabled(Rc::new(RefCell::new(Some(Field(Rc::new(RefCell::new(Some(HAS_INIT as i32))))))))));
 }

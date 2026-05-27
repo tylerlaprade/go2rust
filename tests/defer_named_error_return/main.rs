@@ -2,7 +2,7 @@ use std::cell::{RefCell};
 use std::error::Error as StdError;
 use std::rc::{Rc};
 
-pub fn compute() -> (Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<Box<dyn StdError>>>>) {
+pub fn compute() -> (i32, Rc<RefCell<Option<Box<dyn StdError>>>>) {
     let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
     let mut result: Rc<RefCell<Option<i32>>> = Rc::new(RefCell::new(Some(0)));
@@ -20,12 +20,12 @@ pub fn compute() -> (Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<Box<dyn StdErro
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return (result, err)
+        return ((*result.borrow().as_ref().unwrap()), err)
     }
 }
 
 fn main() {
     let (mut result, mut err) = compute();
-    println!("{}", format!("{}", { let __v = (*result.borrow().as_ref().unwrap()).clone(); __v }));
+    println!("{}", format!("{}", result));
     println!("{}", format!("{}", format!("{}", (*err.borrow().as_ref().unwrap()))));
 }

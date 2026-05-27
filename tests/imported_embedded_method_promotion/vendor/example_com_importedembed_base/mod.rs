@@ -245,8 +245,8 @@ impl Decoder {
         return Arc::new(Mutex::new(Some(format!("{}:{}", { let __v = (*prefix.lock().unwrap().as_ref().unwrap()).clone(); __v }, (*self.value.lock().unwrap().as_ref().unwrap())))));
     }
 
-    pub fn snapshot(&self) -> Arc<Mutex<Option<i32>>> {
-        return self.value.clone();
+    pub fn snapshot(&self) -> i32 {
+        return (*self.value.lock().unwrap().as_ref().unwrap());
     }
 
     pub fn clone(&self) -> Arc<Mutex<Option<Decoder>>> {

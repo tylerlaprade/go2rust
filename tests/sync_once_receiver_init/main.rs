@@ -208,7 +208,7 @@ impl std::fmt::Display for runner {
 
 
 #[derive(Debug, Clone, Default)]
-struct AnonymousStruct1 {
+pub struct AnonymousStruct1 {
 }
 impl AnonymousStruct1 {
     pub fn __go_value_clone(&self) -> Self {

@@ -7,7 +7,7 @@ pub trait hasValue: std::fmt::Display + Any {
     fn __go_clone_box_has_value(&self) -> Box<dyn hasValue>;
     fn __go_as_any(&self) -> &dyn Any;
     fn __go_eq_has_value(&self, other: &dyn hasValue) -> bool;
-    fn value(&self) -> Rc<RefCell<Option<i32>>>;
+    fn value(&self) -> i32;
 }
 
 impl Clone for Box<dyn hasValue> {
@@ -42,14 +42,14 @@ impl std::fmt::Display for r#box {
 
 
 impl r#box {
-    pub fn value(&self) -> Rc<RefCell<Option<i32>>> {
-        return self.n.clone();
+    pub fn value(&self) -> i32 {
+        return (*self.n.borrow().as_ref().unwrap());
     }
 }
 
 impl hasValue for r#box {
-    fn value(&self) -> Rc<RefCell<Option<i32>>> {
-        return self.n.clone();
+    fn value(&self) -> i32 {
+        return (*self.n.borrow().as_ref().unwrap());
     }
     fn __go_clone_box_has_value(&self) -> Box<dyn hasValue> {
         Box::new(self.clone()) as Box<dyn hasValue>
@@ -83,7 +83,7 @@ pub fn probe(v: Rc<RefCell<Option<Box<dyn Any>>>>) {
         }
     });
     if (*ok.borrow().as_ref().unwrap()) {
-        println!("{}", format!("{}", (*(*h.borrow().as_ref().unwrap()).value().borrow().as_ref().unwrap())));
+        println!("{}", format!("{}", (*h.borrow().as_ref().unwrap()).value()));
     } else {
         println!("{}", format!("{}", "no".to_string()));
     }

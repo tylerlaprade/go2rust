@@ -227,9 +227,9 @@ fn main() {
 }
 
 #[derive(Debug, Clone)]
-struct AnonymousStruct1 {
-    mode: Rc<RefCell<Option<LoadMode>>>,
-    name: Rc<RefCell<Option<String>>>,
+pub struct AnonymousStruct1 {
+    pub mode: Rc<RefCell<Option<LoadMode>>>,
+    pub name: Rc<RefCell<Option<String>>>,
 }
 impl AnonymousStruct1 {
     pub fn __go_value_clone(&self) -> Self {

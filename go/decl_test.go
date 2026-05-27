@@ -125,7 +125,7 @@ type Expr interface {
 	if !strings.Contains(rust, "impl Node for Box<dyn Expr>") {
 		t.Fatalf("boxed Expr trait object should implement embedded Node trait:\n%s", rust)
 	}
-	if !strings.Contains(rust, "fn pos(&self) -> Rc<RefCell<Option<i32>>>") {
+	if !strings.Contains(rust, "fn pos(&self) -> i32") {
 		t.Fatalf("Node method should be delegated on boxed Expr trait object:\n%s", rust)
 	}
 }

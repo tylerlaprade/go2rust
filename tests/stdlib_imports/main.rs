@@ -222,7 +222,7 @@ fn main() {
     if (*err.borrow()).is_some() {
         println!("{} {}", format!("{}", "Parse error:".to_string()), format!("{}", format!("{}", (*err.borrow().as_ref().unwrap()))));
     } else {
-        println!("{} {}", format!("{}", "Parsed number:".to_string()), format!("{}", { let __v = (*parsed.borrow().as_ref().unwrap()).clone(); __v }));
+        println!("{} {}", format!("{}", "Parsed number:".to_string()), format!("{}", parsed));
     }
 
     let mut floatStr = Rc::new(RefCell::new(Some(go_strconv_format_float(3.14159 as f64, char::from_u32((('f' as i32)) as u32).unwrap_or('f'), 2 as i32))));

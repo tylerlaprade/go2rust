@@ -2,9 +2,9 @@ use std::cell::{RefCell};
 use std::collections::BTreeMap;
 use std::rc::{Rc};
 
-pub fn keep(s: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<bool>>> {
+pub fn keep(s: Rc<RefCell<Option<String>>>) -> bool {
 
-    return Rc::new(RefCell::new(Some(((*s.borrow().as_ref().unwrap()).len() as i32) > (0 as i32))));
+    return ((*s.borrow().as_ref().unwrap()).len() as i32) > (0 as i32);
 }
 
 fn main() {

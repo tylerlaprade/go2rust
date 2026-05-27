@@ -1,1 +1,1 @@
-pub(crate) const FLAG_SYNC_MARKERS: i64 = 1 << 0;
+pub(crate) const FLAG_SYNC_MARKERS: i32 = 1 << 0;

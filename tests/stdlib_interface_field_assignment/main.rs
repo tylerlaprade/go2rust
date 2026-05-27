@@ -64,8 +64,8 @@ impl Ord for types_Type {
 
 pub mod types {
     use super::*;
-    pub fn identical<T0, T1>(_arg0: T0, _arg1: T1) -> Arc<Mutex<Option<bool>>> {
-        Arc::new(Mutex::new(Some::<bool>(Default::default())))
+    pub fn identical<T0, T1>(_arg0: T0, _arg1: T1) -> bool {
+        panic!("identical bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
     }
 }
 
@@ -101,7 +101,7 @@ pub fn under(t: Arc<Mutex<Option<types_Type>>>) -> Arc<Mutex<Option<types_Type>>
     return t.clone();
 }
 
-pub fn disjoint(x: Arc<Mutex<Option<term>>>, y: Arc<Mutex<Option<term>>>) -> Arc<Mutex<Option<bool>>> {
+pub fn disjoint(x: Arc<Mutex<Option<term>>>, y: Arc<Mutex<Option<term>>>) -> bool {
 
     let mut ux = { let __src = (*x.lock().unwrap().as_ref().unwrap()).typ.clone(); let __copied = (*__src.lock().unwrap().as_ref().unwrap()).clone(); Arc::new(Mutex::new(Some(__copied))) };
     if (*{ let __field = (*y.lock().unwrap().as_ref().unwrap()).tilde.clone(); __field }.lock().unwrap().as_ref().unwrap()) {
@@ -111,13 +111,13 @@ pub fn disjoint(x: Arc<Mutex<Option<term>>>, y: Arc<Mutex<Option<term>>>) -> Arc
     if (*{ let __field = (*x.lock().unwrap().as_ref().unwrap()).tilde.clone(); __field }.lock().unwrap().as_ref().unwrap()) {
         { let new_val = under(uy.clone()); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *uy.lock().unwrap() = __moved_val; };
     }
-    return Arc::new(Mutex::new(Some(!((*types::identical(ux.clone(), uy.clone()).lock().unwrap().as_ref().unwrap())))));
+    return !((*types::identical(ux.clone(), uy.clone()).lock().unwrap().as_ref().unwrap()));
 }
 
 fn main() {
     if false {
         let mut t = Arc::new(Mutex::new(Some(term { tilde: Arc::new(Mutex::new(Some(false))), typ: Arc::new(Mutex::new(Some(Default::default()))) })));
-        println!("{}", format!("{}", (*disjoint(t.clone(), t.clone()).lock().unwrap().as_ref().unwrap())));
+        println!("{}", format!("{}", disjoint(t.clone(), t.clone())));
     }
     println!("{}", format!("{}", "ok".to_string()));
 }

@@ -7,7 +7,7 @@ pub trait Reader: std::fmt::Display + Any {
     fn __go_clone_box_reader(&self) -> Box<dyn Reader>;
     fn __go_as_any(&self) -> &dyn Any;
     fn __go_eq_reader(&self, other: &dyn Reader) -> bool;
-    fn read(&self) -> Rc<RefCell<Option<i32>>>;
+    fn read(&self) -> i32;
 }
 
 impl Clone for Box<dyn Reader> {
@@ -45,7 +45,7 @@ pub trait Valuer: std::fmt::Display + Any {
     fn __go_clone_box_valuer(&self) -> Box<dyn Valuer>;
     fn __go_as_any(&self) -> &dyn Any;
     fn __go_eq_valuer(&self, other: &dyn Valuer) -> bool;
-    fn value(&self) -> Rc<RefCell<Option<i32>>>;
+    fn value(&self) -> i32;
 }
 
 impl Clone for Box<dyn Valuer> {
@@ -80,14 +80,14 @@ impl std::fmt::Display for number {
 
 
 impl counter {
-    pub fn read(&self) -> Rc<RefCell<Option<i32>>> {
-        return self.n.clone();
+    pub fn read(&self) -> i32 {
+        return (*self.n.borrow().as_ref().unwrap());
     }
 }
 
 impl Reader for counter {
-    fn read(&self) -> Rc<RefCell<Option<i32>>> {
-        return self.n.clone();
+    fn read(&self) -> i32 {
+        return (*self.n.borrow().as_ref().unwrap());
     }
     fn __go_clone_box_reader(&self) -> Box<dyn Reader> {
         Box::new(self.clone()) as Box<dyn Reader>
@@ -105,14 +105,14 @@ impl Reader for counter {
 }
 
 impl number {
-    pub fn value(&self) -> Rc<RefCell<Option<i32>>> {
-        return self.n.clone();
+    pub fn value(&self) -> i32 {
+        return (*self.n.borrow().as_ref().unwrap());
     }
 }
 
 impl Valuer for number {
-    fn value(&self) -> Rc<RefCell<Option<i32>>> {
-        return self.n.clone();
+    fn value(&self) -> i32 {
+        return (*self.n.borrow().as_ref().unwrap());
     }
     fn __go_clone_box_valuer(&self) -> Box<dyn Valuer> {
         Box::new(self.clone()) as Box<dyn Valuer>
@@ -142,5 +142,5 @@ pub fn new_valuer() -> Rc<RefCell<Option<Box<dyn Valuer>>>> {
 fn main() {
     let mut reader = new_reader();
     let mut valuer = new_valuer();
-    println!("{} {}", format!("{}", (*(*reader.borrow().as_ref().unwrap()).read().borrow().as_ref().unwrap())), format!("{}", (*(*valuer.borrow().as_ref().unwrap()).value().borrow().as_ref().unwrap())));
+    println!("{} {}", format!("{}", (*reader.borrow().as_ref().unwrap()).read()), format!("{}", (*valuer.borrow().as_ref().unwrap()).value()));
 }

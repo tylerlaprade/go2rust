@@ -23,7 +23,7 @@ impl io_ReadCloser {
         self.__go_value.as_ref().downcast_ref::<T>()
     }
     pub fn close(&self) -> Rc<RefCell<Option<Box<dyn StdError>>>> {
-        Rc::new(RefCell::new(None::<Box<dyn StdError>>))
+        panic!("io_ReadCloser.close bridge: generic stub method body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
     }
 }
 
@@ -167,7 +167,7 @@ impl From<os_File> for io_ReadCloser {
 pub mod os {
     use super::*;
     pub fn open<T0>(_arg0: T0) -> (Rc<RefCell<Option<os_File>>>, Rc<RefCell<Option<Box<dyn StdError>>>>) {
-        (Rc::new(RefCell::new(Some::<os_File>(Default::default()))), Rc::new(RefCell::new(None::<Box<dyn StdError>>)))
+        panic!("open bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
     }
 }
 

@@ -180,7 +180,7 @@ pub trait valueReader: std::fmt::Display + Any {
     fn __go_clone_box_value_reader(&self) -> Box<dyn valueReader + Send + Sync>;
     fn __go_as_any(&self) -> &dyn Any;
     fn __go_eq_value_reader(&self, other: &(dyn valueReader + Send + Sync)) -> bool;
-    fn value(&self) -> Arc<Mutex<Option<i32>>>;
+    fn value(&self) -> i32;
 }
 
 impl Clone for Box<dyn valueReader + Send + Sync> {
@@ -202,14 +202,14 @@ fn __go_init_globals() {
 
 
 impl counter {
-    pub fn value(&self) -> Arc<Mutex<Option<i32>>> {
-        return self.value.clone();
+    pub fn value(&self) -> i32 {
+        return (*self.value.lock().unwrap().as_ref().unwrap());
     }
 }
 
 impl valueReader for counter {
-    fn value(&self) -> Arc<Mutex<Option<i32>>> {
-        return self.value.clone();
+    fn value(&self) -> i32 {
+        return (*self.value.lock().unwrap().as_ref().unwrap());
     }
     fn __go_clone_box_value_reader(&self) -> Box<dyn valueReader + Send + Sync> {
         Box::new(self.clone()) as Box<dyn valueReader + Send + Sync>
@@ -240,9 +240,9 @@ pub fn get_counter() -> Arc<Mutex<Option<counter>>> {
     return (*current.lock().unwrap().as_ref().unwrap()).clone();
 }
 
-pub fn current_value() -> Arc<Mutex<Option<i32>>> {
+pub fn current_value() -> i32 {
 
-    return Arc::new(Mutex::new(Some({ let __selector_holder = (*(*current.lock().unwrap().as_ref().unwrap()).lock().unwrap().as_ref().unwrap()).value.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
+    return (*(*(*current.lock().unwrap().as_ref().unwrap()).lock().unwrap().as_ref().unwrap()).value.lock().unwrap().as_ref().unwrap());
 }
 
 pub fn set_current_value(value: Arc<Mutex<Option<i32>>>) {
@@ -272,7 +272,7 @@ fn main() {
 
     set_counter(new_counter(Arc::new(Mutex::new(Some(7)))));
     println!("{}", format!("{}", (*(*get_counter().lock().unwrap().as_ref().unwrap()).value.lock().unwrap().as_ref().unwrap())));
-    println!("{}", format!("{}", (*current_value().lock().unwrap().as_ref().unwrap())));
+    println!("{}", format!("{}", current_value()));
     set_current_value(Arc::new(Mutex::new(Some(9))));
     println!("{}", format!("{}", (*(*get_counter().lock().unwrap().as_ref().unwrap()).value.lock().unwrap().as_ref().unwrap())));
     set_counter(new_counter(Arc::new(Mutex::new(Some(11)))));
@@ -282,7 +282,7 @@ fn main() {
     set_counter(new_counter(Arc::new(Mutex::new(Some(13)))));
     clear_counter();
     println!("{}", format!("{}", (*get_counter().lock().unwrap()).is_none()));
-    println!("{}", format!("{}", (*{ let __recv = get_fallback(); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).value(); __result }.lock().unwrap().as_ref().unwrap())));
+    println!("{}", format!("{}", { let __recv = get_fallback(); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).value(); __result }));
 }
 
 pub(crate) fn __go_init_all() {

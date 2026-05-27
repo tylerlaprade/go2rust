@@ -1,17 +1,9 @@
 use std::cell::{RefCell};
 use std::rc::{Rc};
 
-pub fn divmod(a: Rc<RefCell<Option<i32>>>, b: Rc<RefCell<Option<i32>>>) -> (Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) {
+pub fn divmod(a: Rc<RefCell<Option<i32>>>, b: Rc<RefCell<Option<i32>>>) -> (i32, i32) {
 
-    return ({
-            let __tmp_x = (*a.borrow().as_ref().unwrap());
-            let __tmp_y = (*b.borrow().as_ref().unwrap());
-            Rc::new(RefCell::new(Some(__tmp_x / __tmp_y)))
-        }, {
-            let __tmp_x = (*a.borrow().as_ref().unwrap());
-            let __tmp_y = (*b.borrow().as_ref().unwrap());
-            Rc::new(RefCell::new(Some(__tmp_x % __tmp_y)))
-        });
+    return ((*a.borrow().as_ref().unwrap()) / (*b.borrow().as_ref().unwrap()), (*a.borrow().as_ref().unwrap()) % (*b.borrow().as_ref().unwrap()));
 }
 
 pub fn swap(a: Rc<RefCell<Option<String>>>, b: Rc<RefCell<Option<String>>>) -> (Rc<RefCell<Option<String>>>, Rc<RefCell<Option<String>>>) {
@@ -22,7 +14,7 @@ pub fn swap(a: Rc<RefCell<Option<String>>>, b: Rc<RefCell<Option<String>>>) -> (
 fn main() {
         // Basic multiple returns
     let (mut q, mut r) = divmod(Rc::new(RefCell::new(Some(17))), Rc::new(RefCell::new(Some(5))));
-    println!("{} {} {} {}", format!("{}", "Quotient:".to_string()), format!("{}", { let __v = (*q.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", "Remainder:".to_string()), format!("{}", { let __v = (*r.borrow().as_ref().unwrap()).clone(); __v }));
+    println!("{} {} {} {}", format!("{}", "Quotient:".to_string()), format!("{}", q), format!("{}", "Remainder:".to_string()), format!("{}", r));
 
         // Multiple assignment
     let (mut x, mut y) = (Rc::new(RefCell::new(Some("hello".to_string()))), Rc::new(RefCell::new(Some("world".to_string()))));
@@ -34,5 +26,5 @@ fn main() {
 
         // Ignoring values
     let (_, mut r2) = divmod(Rc::new(RefCell::new(Some(23))), Rc::new(RefCell::new(Some(7))));
-    println!("{} {}", format!("{}", "23 mod 7 =".to_string()), format!("{}", { let __v = (*r2.borrow().as_ref().unwrap()).clone(); __v }));
+    println!("{} {}", format!("{}", "23 mod 7 =".to_string()), format!("{}", r2));
 }

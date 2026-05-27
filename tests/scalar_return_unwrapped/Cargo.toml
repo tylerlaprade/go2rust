@@ -1,0 +1,8 @@
+[package]
+name = "scalar_return_unwrapped"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "scalar_return_unwrapped"
+path = "main.rs"

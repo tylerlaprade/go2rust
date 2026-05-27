@@ -29,8 +29,8 @@ impl std::fmt::Display for Package {
 
 
 impl Package {
-    pub fn complete(&self) -> Rc<RefCell<Option<bool>>> {
-        return self.complete.clone();
+    pub fn complete(&self) -> bool {
+        return (*self.complete.borrow().as_ref().unwrap());
     }
 }
 
@@ -72,5 +72,5 @@ fn main() {
     if (*err.borrow()).is_some() {
         panic!("{}", (*err.borrow().as_ref().unwrap()));
     }
-    eprintln!("{}", format!("{}", (*(*pkg.borrow().as_ref().unwrap()).complete().borrow().as_ref().unwrap())));
+    eprintln!("{}", format!("{}", (*pkg.borrow().as_ref().unwrap()).complete()));
 }

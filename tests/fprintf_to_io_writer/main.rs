@@ -287,9 +287,9 @@ impl std::fmt::Display for printer {
 
 
 impl printer {
-    pub fn write(&self, s: Rc<RefCell<Option<String>>>) -> (Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<Box<dyn StdError>>>>) {
+    pub fn write(&self, s: Rc<RefCell<Option<String>>>) -> (i32, Rc<RefCell<Option<Box<dyn StdError>>>>) {
         let (mut n, mut err) = { let __s = format!("{}", { let __v = (*s.borrow().as_ref().unwrap()).clone(); __v }); let __n = __s.len() as i32; (*self.output.borrow().as_ref().unwrap()).__go_write_bytes(__s.as_bytes()); (Rc::new(RefCell::new(Some::<i32>(__n))), Rc::new(RefCell::new(None::<Box<dyn StdError>>))) };
-        return (Rc::new(RefCell::new(Some(n.borrow().as_ref().unwrap().clone()))), err.clone());
+        return (n, err.clone());
     }
 }
 
@@ -301,5 +301,5 @@ fn main() {
         println!("{} {}", format!("{}", "err:".to_string()), format!("{}", format!("{}", (*err.borrow().as_ref().unwrap()))));
         return;
     }
-    println!("{} {} {} {}", format!("{}", "wrote".to_string()), format!("{}", { let __v = (*n.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", "bytes:".to_string()), format!("{}", (*(*buf.borrow_mut().as_mut().unwrap()).string().borrow().as_ref().unwrap())));
+    println!("{} {} {} {}", format!("{}", "wrote".to_string()), format!("{}", n), format!("{}", "bytes:".to_string()), format!("{}", (*(*buf.borrow_mut().as_mut().unwrap()).string().borrow().as_ref().unwrap())));
 }

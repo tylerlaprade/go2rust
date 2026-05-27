@@ -203,7 +203,7 @@ impl GoJsonDecode for Config {
 }
 
 
-pub fn enabled(cfg: Rc<RefCell<Option<Config>>>, bit: Rc<RefCell<Option<LoadMode>>>) -> Rc<RefCell<Option<bool>>> {
+pub fn enabled(cfg: Rc<RefCell<Option<Config>>>, bit: Rc<RefCell<Option<LoadMode>>>) -> bool {
 
-    return Rc::new(RefCell::new(Some(LoadMode(Rc::new(RefCell::new(Some(((*(*(*cfg.borrow().as_ref().unwrap()).mode.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) & (*(*bit.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap())))))) != LoadMode(Rc::new(RefCell::new(Some(0 as i32)))))));
+    return LoadMode(Rc::new(RefCell::new(Some(((*(*(*cfg.borrow().as_ref().unwrap()).mode.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) & (*(*bit.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap())))))) != LoadMode(Rc::new(RefCell::new(Some(0 as i32))));
 }

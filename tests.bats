@@ -2167,6 +2167,10 @@ run_xfail_test() {
     run_test "tests/sort_slice"
 }
 
+@test "source_stdlib_path_filepath_isabs" {
+    run_test "tests/source_stdlib_path_filepath_isabs"
+}
+
 @test "stdlib_concrete_error_variable" {
     run_test "tests/stdlib_concrete_error_variable"
 }
@@ -2685,10 +2689,6 @@ run_xfail_test() {
 
 @test "XFAIL: panic_recover" {
     run_xfail_test "tests/XFAIL/panic_recover"
-}
-
-@test "XFAIL: source_stdlib_path_filepath_isabs" {
-    run_xfail_test "tests/XFAIL/source_stdlib_path_filepath_isabs"
 }
 
 @test "XFAIL: stateful_goroutines" {

@@ -16,7 +16,7 @@ impl types_Chan {
         None
     }
     pub fn dir(&self) -> Rc<RefCell<Option<types_ChanDir>>> {
-        Rc::new(RefCell::new(Some::<types_ChanDir>(Default::default())))
+        panic!("types_Chan.dir bridge: generic stub method body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
     }
 }
 
@@ -70,20 +70,20 @@ pub mod types {
 }
 
 
-pub fn is_bidirectional(ch: Rc<RefCell<Option<types_Chan>>>) -> Rc<RefCell<Option<bool>>> {
+pub fn is_bidirectional(ch: Rc<RefCell<Option<types_Chan>>>) -> bool {
 
-    return Rc::new(RefCell::new(Some((*(*ch.borrow_mut().as_mut().unwrap()).dir().borrow().as_ref().unwrap()).clone() == types_ChanDir(types::SEND_RECV.0 as i32))));
+    return (*(*ch.borrow_mut().as_mut().unwrap()).dir().borrow().as_ref().unwrap()).clone() == types_ChanDir(types::SEND_RECV.0 as i32);
 }
 
-pub fn has_direction(ch: Rc<RefCell<Option<types_Chan>>>) -> Rc<RefCell<Option<bool>>> {
+pub fn has_direction(ch: Rc<RefCell<Option<types_Chan>>>) -> bool {
 
-    return Rc::new(RefCell::new(Some((*(*ch.borrow_mut().as_mut().unwrap()).dir().borrow().as_ref().unwrap()).clone() & types_ChanDir(types::SEND_RECV.0 as i32) != types_ChanDir(0 as i32))));
+    return (*(*ch.borrow_mut().as_mut().unwrap()).dir().borrow().as_ref().unwrap()).clone() & types_ChanDir(types::SEND_RECV.0 as i32) != types_ChanDir(0 as i32);
 }
 
 fn main() {
     if false {
-        println!("{}", format!("{}", (*is_bidirectional(Rc::new(RefCell::new(None))).borrow().as_ref().unwrap())));
-        println!("{}", format!("{}", (*has_direction(Rc::new(RefCell::new(None))).borrow().as_ref().unwrap())));
+        println!("{}", format!("{}", is_bidirectional(Rc::new(RefCell::new(None)))));
+        println!("{}", format!("{}", has_direction(Rc::new(RefCell::new(None)))));
     }
     println!("{}", format!("{}", "ok".to_string()));
 }

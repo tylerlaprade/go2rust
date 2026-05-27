@@ -100,7 +100,7 @@ fn main() {
     println!("{} {}", format!("{}", "Updated Person 2:".to_string()), format!("{}", (*p2.borrow().as_ref().unwrap())));
 
         // Embedded structs
-    let mut emp = Rc::new(RefCell::new(Some(Employee { person: Rc::new(RefCell::new(Some(Person { name: Rc::new(RefCell::new(Some("Charlie".to_string()))), age: Rc::new(RefCell::new(Some(35 as i32))), ..Default::default() }))), address: Rc::new(RefCell::new(Some(Address { street: Rc::new(RefCell::new(Some("123 Main St".to_string()))), city: Rc::new(RefCell::new(Some("Anytown".to_string()))), state: Rc::new(RefCell::new(Some("CA".to_string()))), ..Default::default() }))), i_d: Rc::new(RefCell::new(Some(1001 as i32))), salary: Rc::new(RefCell::new(Some(75000.0 as f64))), ..Default::default() })));
+    let mut emp = Rc::new(RefCell::new(Some(Employee { person: Rc::new(RefCell::new(Some(Person { name: Rc::new(RefCell::new(Some("Charlie".to_string()))), age: Rc::new(RefCell::new(Some(35 as i32))), ..Default::default() }))), address: Rc::new(RefCell::new(Some(Address { street: Rc::new(RefCell::new(Some("123 Main St".to_string()))), city: Rc::new(RefCell::new(Some("Anytown".to_string()))), state: Rc::new(RefCell::new(Some("CA".to_string()))), ..Default::default() }))), i_d: Rc::new(RefCell::new(Some(1001 as i32))), salary: Rc::new(RefCell::new(Some(75000.0 as f64))), person: Rc::new(RefCell::new(Some(Person::default()))), address: Rc::new(RefCell::new(Some(Address::default()))) })));
 
     println!("{} {}", format!("{}", "Employee:".to_string()), format!("{}", (*emp.borrow().as_ref().unwrap())));
     println!("{} {}", format!("{}", "Employee name:".to_string()), format!("{}", (*(*(*emp.borrow().as_ref().unwrap()).person.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()).clone()));

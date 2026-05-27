@@ -36,15 +36,15 @@ impl item {
         }
     }
 
-    pub fn either(&self, y: Rc<RefCell<Option<item>>>) -> Rc<RefCell<Option<bool>>> {
-        return Rc::new(RefCell::new(Some((*self.flag.borrow().as_ref().unwrap()) || !(*(*y.borrow().as_ref().unwrap()).flag.borrow().as_ref().unwrap()))));
+    pub fn either(&self, y: Rc<RefCell<Option<item>>>) -> bool {
+        return (*self.flag.borrow().as_ref().unwrap()) || !(*(*y.borrow().as_ref().unwrap()).flag.borrow().as_ref().unwrap());
     }
 
-    pub fn active(&self) -> Rc<RefCell<Option<bool>>> {
+    pub fn active(&self) -> bool {
         if (*self.flag.clone().borrow().as_ref().unwrap()) {
-        return Rc::new(RefCell::new(Some(true)));
+        return true;
     }
-        return Rc::new(RefCell::new(Some(false)));
+        return false;
     }
 }
 
@@ -53,6 +53,6 @@ fn main() {
     let mut off = Rc::new(RefCell::new(Some(item { flag: Rc::new(RefCell::new(Some(false))) })));
     println!("{}", format!("{}", (*(*on.borrow().as_ref().unwrap()).label().borrow().as_ref().unwrap())));
     println!("{}", format!("{}", (*(*off.borrow().as_ref().unwrap()).label().borrow().as_ref().unwrap())));
-    println!("{}", format!("{}", (*(*on.borrow().as_ref().unwrap()).either(off.clone()).borrow().as_ref().unwrap())));
-    println!("{}", format!("{}", (*(*off.borrow().as_ref().unwrap()).active().borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*on.borrow().as_ref().unwrap()).either(off.clone())));
+    println!("{}", format!("{}", (*off.borrow().as_ref().unwrap()).active()));
 }

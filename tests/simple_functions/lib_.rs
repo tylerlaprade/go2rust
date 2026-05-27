@@ -11,7 +11,7 @@ pub fn get_world() -> Rc<RefCell<Option<String>>> {
     return Rc::new(RefCell::new(Some("World".to_string())));
 }
 
-pub fn get_magic_number() -> Rc<RefCell<Option<i32>>> {
+pub fn get_magic_number() -> i32 {
 
-    return Rc::new(RefCell::new(Some(42 as i32)));
+    return 42 as i32;
 }

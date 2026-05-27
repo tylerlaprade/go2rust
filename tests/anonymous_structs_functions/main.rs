@@ -155,19 +155,19 @@ pub fn print_person(p: Arc<Mutex<Option<AnonymousStruct1>>>) {
 }
 
 /// Function returning anonymous struct
-pub fn get_point() -> Arc<Mutex<Option<AnonymousStruct2>>> {
+pub fn get_point() -> Arc<Mutex<Option</* unknown struct */>>> {
 
     return Arc::new(Mutex::new(Some(AnonymousStruct2 { x: Arc::new(Mutex::new(Some(10 as i32))), y: Arc::new(Mutex::new(Some(20 as i32))) })));
 }
 
 /// Function with multiple anonymous struct parameters
-pub fn compare_points(p1: Arc<Mutex<Option<AnonymousStruct2>>>, p2: Arc<Mutex<Option<AnonymousStruct2>>>) -> Arc<Mutex<Option<bool>>> {
+pub fn compare_points(p1: Arc<Mutex<Option<AnonymousStruct2>>>, p2: Arc<Mutex<Option<AnonymousStruct2>>>) -> bool {
 
-    return Arc::new(Mutex::new(Some({ let __tmp_x = (*{ let __field = (*p1.lock().unwrap().as_ref().unwrap()).x.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __field = (*p2.lock().unwrap().as_ref().unwrap()).x.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x == __tmp_y } && { let __tmp_x = (*{ let __field = (*p1.lock().unwrap().as_ref().unwrap()).y.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __field = (*p2.lock().unwrap().as_ref().unwrap()).y.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x == __tmp_y })));
+    return { let __tmp_x = (*{ let __field = (*p1.lock().unwrap().as_ref().unwrap()).x.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __field = (*p2.lock().unwrap().as_ref().unwrap()).x.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x == __tmp_y } && { let __tmp_x = (*{ let __field = (*p1.lock().unwrap().as_ref().unwrap()).y.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __field = (*p2.lock().unwrap().as_ref().unwrap()).y.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x == __tmp_y };
 }
 
 /// Function returning multiple values including anonymous struct
-pub fn get_config() -> (Arc<Mutex<Option<String>>>, Arc<Mutex<Option<AnonymousStruct3>>>) {
+pub fn get_config() -> (Arc<Mutex<Option<String>>>, Arc<Mutex<Option</* unknown struct */>>>) {
 
     return (Arc::new(Mutex::new(Some("server".to_string()))), Arc::new(Mutex::new(Some(AnonymousStruct3 { port: Arc::new(Mutex::new(Some(8080 as i32))), timeout: Arc::new(Mutex::new(Some(30 as i32))) }))));
 }
@@ -197,8 +197,8 @@ fn main() {
     let mut p1 = Arc::new(Mutex::new(Some(AnonymousStruct2 { x: Arc::new(Mutex::new(Some(5 as i32))), y: Arc::new(Mutex::new(Some(10 as i32))) })));
     let mut p2 = Arc::new(Mutex::new(Some(AnonymousStruct2 { x: Arc::new(Mutex::new(Some(5 as i32))), y: Arc::new(Mutex::new(Some(10 as i32))) })));
     let mut p3 = Arc::new(Mutex::new(Some(AnonymousStruct2 { x: Arc::new(Mutex::new(Some(10 as i32))), y: Arc::new(Mutex::new(Some(20 as i32))) })));
-    print!("p1 == p2: {}\n", (*compare_points(p1.clone(), p2.clone()).lock().unwrap().as_ref().unwrap()));
-    print!("p1 == p3: {}\n", (*compare_points(p1.clone(), p3.clone()).lock().unwrap().as_ref().unwrap()));
+    print!("p1 == p2: {}\n", compare_points(p1.clone(), p2.clone()));
+    print!("p1 == p3: {}\n", compare_points(p1.clone(), p3.clone()));
 
         // Test function returning multiple values including anonymous struct
     let (mut name, mut config) = get_config();
@@ -219,9 +219,9 @@ fn main() {
 }
 
 #[derive(Debug, Clone)]
-struct AnonymousStruct1 {
-    name: Arc<Mutex<Option<String>>>,
-    age: Arc<Mutex<Option<i32>>>,
+pub struct AnonymousStruct1 {
+    pub name: Arc<Mutex<Option<String>>>,
+    pub age: Arc<Mutex<Option<i32>>>,
 }
 impl AnonymousStruct1 {
     pub fn __go_value_clone(&self) -> Self {
@@ -244,9 +244,9 @@ impl std::fmt::Display for AnonymousStruct1 {
 
 
 #[derive(Debug, Clone)]
-struct AnonymousStruct2 {
-    x: Arc<Mutex<Option<i32>>>,
-    y: Arc<Mutex<Option<i32>>>,
+pub struct AnonymousStruct2 {
+    pub x: Arc<Mutex<Option<i32>>>,
+    pub y: Arc<Mutex<Option<i32>>>,
 }
 impl AnonymousStruct2 {
     pub fn __go_value_clone(&self) -> Self {
@@ -269,9 +269,9 @@ impl std::fmt::Display for AnonymousStruct2 {
 
 
 #[derive(Debug, Clone)]
-struct AnonymousStruct3 {
-    port: Arc<Mutex<Option<i32>>>,
-    timeout: Arc<Mutex<Option<i32>>>,
+pub struct AnonymousStruct3 {
+    pub port: Arc<Mutex<Option<i32>>>,
+    pub timeout: Arc<Mutex<Option<i32>>>,
 }
 impl AnonymousStruct3 {
     pub fn __go_value_clone(&self) -> Self {
@@ -294,9 +294,9 @@ impl std::fmt::Display for AnonymousStruct3 {
 
 
 #[derive(Debug, Clone)]
-struct AnonymousStruct4 {
-    debug: Arc<Mutex<Option<bool>>>,
-    verbose: Arc<Mutex<Option<bool>>>,
+pub struct AnonymousStruct4 {
+    pub debug: Arc<Mutex<Option<bool>>>,
+    pub verbose: Arc<Mutex<Option<bool>>>,
 }
 impl AnonymousStruct4 {
     pub fn __go_value_clone(&self) -> Self {
@@ -319,9 +319,9 @@ impl std::fmt::Display for AnonymousStruct4 {
 
 
 #[derive(Debug, Clone)]
-struct AnonymousStruct5 {
-    r#type: Arc<Mutex<Option<String>>>,
-    message: Arc<Mutex<Option<String>>>,
+pub struct AnonymousStruct5 {
+    pub r#type: Arc<Mutex<Option<String>>>,
+    pub message: Arc<Mutex<Option<String>>>,
 }
 impl AnonymousStruct5 {
     pub fn __go_value_clone(&self) -> Self {

@@ -29,14 +29,14 @@ impl opAppender {
     }
 }
 
-pub fn is_digit(c: Rc<RefCell<Option<u8>>>) -> Rc<RefCell<Option<bool>>> {
+pub fn is_digit(c: Rc<RefCell<Option<u8>>>) -> bool {
 
-    return Rc::new(RefCell::new(Some(('0' as u8) <= (*c.borrow().as_ref().unwrap()) && (*c.borrow().as_ref().unwrap()) <= ('9' as u8))));
+    return ('0' as u8) <= (*c.borrow().as_ref().unwrap()) && (*c.borrow().as_ref().unwrap()) <= ('9' as u8);
 }
 
-pub fn starts_with_v(s: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<bool>>> {
+pub fn starts_with_v(s: Rc<RefCell<Option<String>>>) -> bool {
 
-    return Rc::new(RefCell::new(Some(((*s.borrow().as_ref().unwrap()).len() as i32) > (0 as i32) && { let __s = &((*s.borrow().as_ref().unwrap()).clone()); __s.as_bytes()[(0) as usize] } == ('v' as u8))));
+    return ((*s.borrow().as_ref().unwrap()).len() as i32) > (0 as i32) && { let __s = &((*s.borrow().as_ref().unwrap()).clone()); __s.as_bytes()[(0) as usize] } == ('v' as u8);
 }
 
 pub fn append_op(path: Rc<RefCell<Option<Vec<u8>>>>, op: Rc<RefCell<Option<u8>>>) -> Rc<RefCell<Option<Vec<u8>>>> {
@@ -58,10 +58,10 @@ pub fn classify_op(op: Rc<RefCell<Option<u8>>>) -> Rc<RefCell<Option<String>>> {
 }
 
 fn main() {
-    println!("{} {}", format!("{}", "digit 5:".to_string()), format!("{}", (*is_digit(Rc::new(RefCell::new(Some(('5' as u8))))).borrow().as_ref().unwrap())));
-    println!("{} {}", format!("{}", "digit x:".to_string()), format!("{}", (*is_digit(Rc::new(RefCell::new(Some(('x' as u8))))).borrow().as_ref().unwrap())));
-    println!("{} {}", format!("{}", "version v1:".to_string()), format!("{}", (*starts_with_v(Rc::new(RefCell::new(Some("v1.0.0".to_string())))).borrow().as_ref().unwrap())));
-    println!("{} {}", format!("{}", "version x1:".to_string()), format!("{}", (*starts_with_v(Rc::new(RefCell::new(Some("x1.0.0".to_string())))).borrow().as_ref().unwrap())));
+    println!("{} {}", format!("{}", "digit 5:".to_string()), format!("{}", is_digit(Rc::new(RefCell::new(Some(('5' as u8)))))));
+    println!("{} {}", format!("{}", "digit x:".to_string()), format!("{}", is_digit(Rc::new(RefCell::new(Some(('x' as u8)))))));
+    println!("{} {}", format!("{}", "version v1:".to_string()), format!("{}", starts_with_v(Rc::new(RefCell::new(Some("v1.0.0".to_string()))))));
+    println!("{} {}", format!("{}", "version x1:".to_string()), format!("{}", starts_with_v(Rc::new(RefCell::new(Some("x1.0.0".to_string()))))));
     let mut path = Rc::new(RefCell::new(Some(Vec::<u8>::new())));
     { let new_val = { let __append_target = path.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push(OP_TYPE as u8); __append_target.clone() }; path = new_val; };
     { let new_val = append_op(path.clone(), Rc::new(RefCell::new(Some(OP_ELEM as u8)))); path = new_val; };

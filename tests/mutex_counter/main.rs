@@ -72,10 +72,10 @@ impl Counter {
         { let __target = self.value.clone(); let mut guard = __target.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
 
-    pub fn value(&self) -> Rc<RefCell<Option<i32>>> {
+    pub fn value(&self) -> i32 {
         let __mutex_guard_source_209 = self.mu.clone(); let __mutex_guard_209 = __mutex_guard_source_209.lock();
         // mu.Unlock() handled by RAII guard
-        return self.value.clone();
+        return (*self.value.borrow().as_ref().unwrap());
     }
 }
 
@@ -83,5 +83,5 @@ fn main() {
     let mut counter = Rc::new(RefCell::new(Some(Counter { mu: GoMutex::new(), value: Rc::new(RefCell::new(Some(0))) })));
     (*counter.borrow_mut().as_mut().unwrap()).increment();
     (*counter.borrow_mut().as_mut().unwrap()).increment();
-    println!("{} {}", format!("{}", "Counter value:".to_string()), format!("{}", (*(*counter.borrow().as_ref().unwrap()).value().borrow().as_ref().unwrap())));
+    println!("{} {}", format!("{}", "Counter value:".to_string()), format!("{}", (*counter.borrow().as_ref().unwrap()).value()));
 }

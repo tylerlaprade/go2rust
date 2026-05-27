@@ -1,10 +1,10 @@
 use std::cell::{RefCell};
 use std::rc::{Rc};
 
-pub const FLAG_READ: i64 = 1 << 0;
-pub const FLAG_WRITE: i64 = 1 << 1;
-pub const FLAG_EXECUTE: i64 = 1 << 2;
-pub const FLAG_DELETE: i64 = 1 << 3;
+pub const FLAG_READ: i32 = 1 << 0;
+pub const FLAG_WRITE: i32 = 1 << 1;
+pub const FLAG_EXECUTE: i32 = 1 << 2;
+pub const FLAG_DELETE: i32 = 1 << 3;
 
 
 pub const K_B: i64 = 1 << (10 * 1);

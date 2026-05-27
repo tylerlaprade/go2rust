@@ -66,9 +66,9 @@ impl Spec for ImportSpec {
     }
 }
 
-pub fn pair_o_k(prev: Rc<RefCell<Option<Box<dyn Spec>>>>, next: Rc<RefCell<Option<Box<dyn Spec>>>>) -> Rc<RefCell<Option<bool>>> {
+pub fn pair_o_k(prev: Rc<RefCell<Option<Box<dyn Spec>>>>, next: Rc<RefCell<Option<Box<dyn Spec>>>>) -> bool {
 
-    return Rc::new(RefCell::new(Some((*(*prev.borrow().as_ref().unwrap()).label().borrow().as_ref().unwrap()).clone() != (*(*next.borrow().as_ref().unwrap()).label().borrow().as_ref().unwrap()).clone())));
+    return (*(*prev.borrow().as_ref().unwrap()).label().borrow().as_ref().unwrap()).clone() != (*(*next.borrow().as_ref().unwrap()).label().borrow().as_ref().unwrap()).clone();
 }
 
 fn main() {
@@ -77,6 +77,6 @@ fn main() {
         if (i as i32) == (((*specs.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32) - (1 as i32) as i32) {
         continue
     }
-        println!("{}", format!("{}", (*pair_o_k(s.clone(), (*specs.borrow().as_ref().unwrap())[(i + 1) as usize].clone().clone()).borrow().as_ref().unwrap())));
+        println!("{}", format!("{}", pair_o_k(s.clone(), (*specs.borrow().as_ref().unwrap())[(i + 1) as usize].clone().clone())));
     } }
 }

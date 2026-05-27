@@ -50,7 +50,7 @@ impl std::fmt::Display for Free {
 
 
 impl Free {
-    pub fn has(&mut self, key: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<bool>>> {
+    pub fn has(&mut self, key: Rc<RefCell<Option<String>>>) -> bool {
         let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
     let mut res: Rc<RefCell<Option<bool>>> = Rc::new(RefCell::new(Some(false)));
@@ -69,7 +69,7 @@ impl Free {
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return res
+        return (*res.borrow().as_ref().unwrap())
     }
     }
 }

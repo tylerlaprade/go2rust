@@ -2,7 +2,7 @@ use std::any::Any;
 use std::cell::{RefCell};
 use std::rc::{Rc};
 
-pub fn boxed_int_o_k(v: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<bool>>> {
+pub fn boxed_int_o_k(v: Rc<RefCell<Option<i32>>>) -> bool {
 
     let mut boxed = Rc::new(RefCell::new(Some(Box::new((*v.borrow().as_ref().unwrap()).clone()) as Box<dyn Any>)));
     let (_, mut ok) = ({
@@ -18,9 +18,9 @@ pub fn boxed_int_o_k(v: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<bool>>> {
             (Rc::new(RefCell::new(Some(0))), Rc::new(RefCell::new(Some(false))))
         }
     });
-    return Rc::new(RefCell::new(Some(ok.borrow().as_ref().unwrap().clone())));
+    return (*ok.borrow().as_ref().unwrap());
 }
 
 fn main() {
-    println!("{}", format!("{}", (*boxed_int_o_k(Rc::new(RefCell::new(Some(42)))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", boxed_int_o_k(Rc::new(RefCell::new(Some(42))))));
 }

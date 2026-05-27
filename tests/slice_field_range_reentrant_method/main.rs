@@ -63,25 +63,25 @@ impl std::fmt::Display for holder {
 
 
 impl holder {
-    pub fn has_values(&self) -> Rc<RefCell<Option<bool>>> {
+    pub fn has_values(&self) -> bool {
         { let __range_holder = self.values.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for _ in __range_values.iter() {
-        return Rc::new(RefCell::new(Some(true)));
+        return true;
     } }
-        return Rc::new(RefCell::new(Some(false)));
+        return false;
     }
 
-    pub fn count_with_check(&self) -> Rc<RefCell<Option<i32>>> {
+    pub fn count_with_check(&self) -> i32 {
         let mut count = Rc::new(RefCell::new(Some(0)));
         { let __range_holder = self.values.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for _ in __range_values.iter() {
         if (*self.has_values().borrow().as_ref().unwrap()) {
         { let mut guard = count.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
     } }
-        return Rc::new(RefCell::new(Some(count.borrow().as_ref().unwrap().clone())));
+        return (*count.borrow().as_ref().unwrap());
     }
 }
 
 fn main() {
     let mut h = Rc::new(RefCell::new(Some(holder { values: Rc::new(RefCell::new(Some(vec!["a".to_string(), "b".to_string()]))), ..Default::default() })));
-    println!("{}", format!("{}", (*(*h.borrow().as_ref().unwrap()).count_with_check().borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*h.borrow().as_ref().unwrap()).count_with_check()));
 }

@@ -4,21 +4,13 @@ use std::cell::{RefCell};
 use std::rc::{Rc};
 
 /// Add adds two numbers
-pub fn add(a: Rc<RefCell<Option<i32>>>, b: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>> {
+pub fn add(a: Rc<RefCell<Option<i32>>>, b: Rc<RefCell<Option<i32>>>) -> i32 {
 
-    return {
-            let __tmp_x = (*a.borrow().as_ref().unwrap());
-            let __tmp_y = (*b.borrow().as_ref().unwrap());
-            Rc::new(RefCell::new(Some(__tmp_x + __tmp_y)))
-        };
+    return (*a.borrow().as_ref().unwrap()) + (*b.borrow().as_ref().unwrap());
 }
 
 /// Multiply multiplies two numbers
-pub fn multiply(a: Rc<RefCell<Option<i32>>>, b: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>> {
+pub fn multiply(a: Rc<RefCell<Option<i32>>>, b: Rc<RefCell<Option<i32>>>) -> i32 {
 
-    return {
-            let __tmp_x = (*a.borrow().as_ref().unwrap());
-            let __tmp_y = (*b.borrow().as_ref().unwrap());
-            Rc::new(RefCell::new(Some(__tmp_x * __tmp_y)))
-        };
+    return (*a.borrow().as_ref().unwrap()) * (*b.borrow().as_ref().unwrap());
 }

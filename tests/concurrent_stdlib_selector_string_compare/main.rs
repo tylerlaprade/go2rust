@@ -168,13 +168,9 @@ impl ast_Ident {
 }
 
 
-pub fn has_name(e: Arc<Mutex<Option<ast_Ident>>>, name: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<bool>>> {
+pub fn has_name(e: Arc<Mutex<Option<ast_Ident>>>, name: Arc<Mutex<Option<String>>>) -> bool {
 
-    return {
-            let __tmp_x = (*(*e.lock().unwrap().as_ref().unwrap()).name.lock().unwrap().as_ref().unwrap()).clone();
-            let __tmp_y = (*name.lock().unwrap().as_ref().unwrap()).clone();
-            Arc::new(Mutex::new(Some(__tmp_x == __tmp_y)))
-        };
+    return { let __tmp_x = { let __selector_holder = (*e.lock().unwrap().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = (*name.lock().unwrap().as_ref().unwrap()).clone(); __tmp_x == __tmp_y };
 }
 
 fn main() {

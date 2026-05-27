@@ -49,7 +49,7 @@ pub trait Shape: std::fmt::Display + Any {
     fn __go_clone_box_shape(&self) -> Box<dyn Shape>;
     fn __go_as_any(&self) -> &dyn Any;
     fn __go_eq_shape(&self, other: &dyn Shape) -> bool;
-    fn area(&self) -> Rc<RefCell<Option<f64>>>;
+    fn area(&self) -> f64;
 }
 
 impl Clone for Box<dyn Shape> {
@@ -110,14 +110,14 @@ impl std::fmt::Display for Circle {
 
 
 impl Rectangle {
-    pub fn area(&self) -> Rc<RefCell<Option<f64>>> {
-        return Rc::new(RefCell::new(Some((*self.width.borrow().as_ref().unwrap()) * (*self.height.borrow().as_ref().unwrap()))));
+    pub fn area(&self) -> f64 {
+        return (*self.width.borrow().as_ref().unwrap()) * (*self.height.borrow().as_ref().unwrap());
     }
 }
 
 impl Shape for Rectangle {
-    fn area(&self) -> Rc<RefCell<Option<f64>>> {
-        return Rc::new(RefCell::new(Some((*self.width.borrow().as_ref().unwrap()) * (*self.height.borrow().as_ref().unwrap()))));
+    fn area(&self) -> f64 {
+        return (*self.width.borrow().as_ref().unwrap()) * (*self.height.borrow().as_ref().unwrap());
     }
     fn __go_clone_box_shape(&self) -> Box<dyn Shape> {
         Box::new(self.clone()) as Box<dyn Shape>
@@ -135,14 +135,14 @@ impl Shape for Rectangle {
 }
 
 impl Circle {
-    pub fn area(&self) -> Rc<RefCell<Option<f64>>> {
-        return Rc::new(RefCell::new(Some(3.14159 as f64 * (*self.radius.borrow().as_ref().unwrap()) * (*self.radius.borrow().as_ref().unwrap()))));
+    pub fn area(&self) -> f64 {
+        return 3.14159 as f64 * (*self.radius.borrow().as_ref().unwrap()) * (*self.radius.borrow().as_ref().unwrap());
     }
 }
 
 impl Shape for Circle {
-    fn area(&self) -> Rc<RefCell<Option<f64>>> {
-        return Rc::new(RefCell::new(Some(3.14159 as f64 * (*self.radius.borrow().as_ref().unwrap()) * (*self.radius.borrow().as_ref().unwrap()))));
+    fn area(&self) -> f64 {
+        return 3.14159 as f64 * (*self.radius.borrow().as_ref().unwrap()) * (*self.radius.borrow().as_ref().unwrap());
     }
     fn __go_clone_box_shape(&self) -> Box<dyn Shape> {
         Box::new(self.clone()) as Box<dyn Shape>
@@ -257,7 +257,7 @@ pub fn assert_without_check(value: Rc<RefCell<Option<Box<dyn Any>>>>) {
 }
 
 pub fn describe_shape(s: Rc<RefCell<Option<Box<dyn Shape>>>>) {
-    print!("Shape area: {:.2}\n", (*(*s.borrow().as_ref().unwrap()).area().borrow().as_ref().unwrap()));
+    print!("Shape area: {:.2}\n", (*s.borrow().as_ref().unwrap()).area());
 
         // Type assertion on interface
     {

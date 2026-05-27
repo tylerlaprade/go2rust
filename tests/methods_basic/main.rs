@@ -55,8 +55,8 @@ impl std::fmt::Display for Person {
 
 impl Counter {
     /// Method with value receiver
-    pub fn get_value(&self) -> Rc<RefCell<Option<i32>>> {
-        return self.value.clone();
+    pub fn get_value(&self) -> i32 {
+        return (*self.value.borrow().as_ref().unwrap());
     }
 
     /// Method with pointer receiver
@@ -69,9 +69,9 @@ impl Counter {
     }
 
     /// Method with return value
-    pub fn double(&mut self) -> Rc<RefCell<Option<i32>>> {
+    pub fn double(&mut self) -> i32 {
         { let __target = self.value.clone(); let __rhs = 2; let mut guard = __target.borrow_mut(); *guard = Some(guard.as_ref().unwrap() * __rhs); };
-        return self.value.clone();
+        return (*self.value.borrow().as_ref().unwrap());
     }
 }
 
@@ -89,13 +89,13 @@ impl Person {
 fn main() {
         // Counter methods
     let mut counter = Rc::new(RefCell::new(Some(Counter { value: Rc::new(RefCell::new(Some(0 as i32))), ..Default::default() })));
-    println!("{} {}", format!("{}", "Initial value:".to_string()), format!("{}", (*(*counter.borrow().as_ref().unwrap()).get_value().borrow().as_ref().unwrap())));
+    println!("{} {}", format!("{}", "Initial value:".to_string()), format!("{}", (*counter.borrow().as_ref().unwrap()).get_value()));
 
     (*counter.borrow_mut().as_mut().unwrap()).increment();
-    println!("{} {}", format!("{}", "After increment:".to_string()), format!("{}", (*(*counter.borrow().as_ref().unwrap()).get_value().borrow().as_ref().unwrap())));
+    println!("{} {}", format!("{}", "After increment:".to_string()), format!("{}", (*counter.borrow().as_ref().unwrap()).get_value()));
 
     (*counter.borrow_mut().as_mut().unwrap()).add(Rc::new(RefCell::new(Some(5))));
-    println!("{} {}", format!("{}", "After adding 5:".to_string()), format!("{}", (*(*counter.borrow().as_ref().unwrap()).get_value().borrow().as_ref().unwrap())));
+    println!("{} {}", format!("{}", "After adding 5:".to_string()), format!("{}", (*counter.borrow().as_ref().unwrap()).get_value()));
 
     let mut doubled = (*counter.borrow_mut().as_mut().unwrap()).double();
     println!("{} {}", format!("{}", "After doubling:".to_string()), format!("{}", { let __v = (*doubled.borrow().as_ref().unwrap()).clone(); __v }));

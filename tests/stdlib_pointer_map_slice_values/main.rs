@@ -109,7 +109,7 @@ impl types_Package {
         None
     }
     pub fn name(&self) -> Rc<RefCell<Option<String>>> {
-        Rc::new(RefCell::new(Some::<String>(Default::default())))
+        panic!("types_Package.name bridge: generic stub method body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
     }
 }
 
@@ -117,6 +117,7 @@ impl types_Package {
 pub mod sort {
     use super::*;
     pub fn slice<T0, T1>(_arg0: T0, _arg1: T1) {
+        panic!("slice bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
     }
 }
 
@@ -205,17 +206,17 @@ pub fn remember(m: Rc<RefCell<Option<BTreeMap<GoLocalPtrKey<types_Package>, Rc<R
     for (__range_key, objs) in { let __range_holder = m.clone(); let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
         let p = __range_key.value();
         { let new_val = { let __append_target = pkgs.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push(p.clone()); __append_target.clone() }; pkgs = new_val; };
-        let objs_closure_clone = objs.clone(); sort::slice(objs_closure_clone.clone(), Rc::new(RefCell::new(Some(Box::new(move |i: Rc<RefCell<Option<i32>>>, j: Rc<RefCell<Option<i32>>>| -> Rc<RefCell<Option<bool>>> {
-        return Rc::new(RefCell::new(Some((*(*objs_closure_clone.borrow().as_ref().unwrap())[((*i.borrow().as_ref().unwrap())) as usize].clone().name.borrow().as_ref().unwrap()).clone() < (*(*objs_closure_clone.borrow().as_ref().unwrap())[((*j.borrow().as_ref().unwrap())) as usize].clone().name.borrow().as_ref().unwrap()).clone())));
-    }) as Box<dyn FnMut(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<bool>>>>))));
+        let objs_closure_clone = objs.clone(); sort::slice(objs_closure_clone.clone(), Rc::new(RefCell::new(Some(Box::new(move |i: Rc<RefCell<Option<i32>>>, j: Rc<RefCell<Option<i32>>>| -> bool {
+        return (*(*objs_closure_clone.borrow().as_ref().unwrap())[((*i.borrow().as_ref().unwrap())) as usize].clone().name.borrow().as_ref().unwrap()).clone() < (*(*objs_closure_clone.borrow().as_ref().unwrap())[((*j.borrow().as_ref().unwrap())) as usize].clone().name.borrow().as_ref().unwrap()).clone();
+    }) as Box<dyn FnMut(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> bool>))));
         let _ = (*objs.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0);
     }
-    let pkgs_closure_clone = pkgs.clone(); sort::slice(pkgs_closure_clone.clone(), Rc::new(RefCell::new(Some(Box::new(move |i: Rc<RefCell<Option<i32>>>, j: Rc<RefCell<Option<i32>>>| -> Rc<RefCell<Option<bool>>> {
-        return Rc::new(RefCell::new(Some((*export_path((*pkgs_closure_clone.borrow().as_ref().unwrap())[((*i.borrow().as_ref().unwrap())) as usize].clone()).borrow().as_ref().unwrap()).clone() < (*export_path((*pkgs_closure_clone.borrow().as_ref().unwrap())[((*j.borrow().as_ref().unwrap())) as usize].clone()).borrow().as_ref().unwrap()).clone())));
-    }) as Box<dyn FnMut(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<bool>>>>))));
-    let pkgs_closure_clone = pkgs.clone(); let w_closure_clone = w.clone(); sort::slice(pkgs_closure_clone.clone(), Rc::new(RefCell::new(Some(Box::new(move |i: Rc<RefCell<Option<i32>>>, j: Rc<RefCell<Option<i32>>>| -> Rc<RefCell<Option<bool>>> {
-        return Rc::new(RefCell::new(Some((*(*w_closure_clone.borrow().as_ref().unwrap()).export_path((*pkgs_closure_clone.borrow().as_ref().unwrap())[((*i.borrow().as_ref().unwrap())) as usize].clone()).borrow().as_ref().unwrap()).clone() < (*(*w_closure_clone.borrow().as_ref().unwrap()).export_path((*pkgs_closure_clone.borrow().as_ref().unwrap())[((*j.borrow().as_ref().unwrap())) as usize].clone()).borrow().as_ref().unwrap()).clone())));
-    }) as Box<dyn FnMut(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<bool>>>>))));
+    let pkgs_closure_clone = pkgs.clone(); sort::slice(pkgs_closure_clone.clone(), Rc::new(RefCell::new(Some(Box::new(move |i: Rc<RefCell<Option<i32>>>, j: Rc<RefCell<Option<i32>>>| -> bool {
+        return (*export_path((*pkgs_closure_clone.borrow().as_ref().unwrap())[((*i.borrow().as_ref().unwrap())) as usize].clone()).borrow().as_ref().unwrap()).clone() < (*export_path((*pkgs_closure_clone.borrow().as_ref().unwrap())[((*j.borrow().as_ref().unwrap())) as usize].clone()).borrow().as_ref().unwrap()).clone();
+    }) as Box<dyn FnMut(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> bool>))));
+    let pkgs_closure_clone = pkgs.clone(); let w_closure_clone = w.clone(); sort::slice(pkgs_closure_clone.clone(), Rc::new(RefCell::new(Some(Box::new(move |i: Rc<RefCell<Option<i32>>>, j: Rc<RefCell<Option<i32>>>| -> bool {
+        return (*(*w_closure_clone.borrow().as_ref().unwrap()).export_path((*pkgs_closure_clone.borrow().as_ref().unwrap())[((*i.borrow().as_ref().unwrap())) as usize].clone()).borrow().as_ref().unwrap()).clone() < (*(*w_closure_clone.borrow().as_ref().unwrap()).export_path((*pkgs_closure_clone.borrow().as_ref().unwrap())[((*j.borrow().as_ref().unwrap())) as usize].clone()).borrow().as_ref().unwrap()).clone();
+    }) as Box<dyn FnMut(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> bool>))));
     { let __range_holder = pkgs.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for p in __range_values.iter() {
         let _ = export_path((*p).clone());
         let _ = (*w.borrow().as_ref().unwrap()).export_path((*p).clone());

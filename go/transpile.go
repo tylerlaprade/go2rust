@@ -804,29 +804,7 @@ func writeExternalLocalInterfaceMethod(out *strings.Builder, methodName string, 
 		}
 	}
 	out.WriteString(")")
-	if funcType.Results != nil && len(funcType.Results.List) > 0 {
-		out.WriteString(" -> ")
-		if len(funcType.Results.List) == 1 && len(funcType.Results.List[0].Names) <= 1 {
-			out.WriteString(GoTypeToRust(funcType.Results.List[0].Type))
-		} else {
-			out.WriteString("(")
-			first := true
-			for _, result := range funcType.Results.List {
-				count := len(result.Names)
-				if count == 0 {
-					count = 1
-				}
-				for range count {
-					if !first {
-						out.WriteString(", ")
-					}
-					first = false
-					out.WriteString(GoTypeToRust(result.Type))
-				}
-			}
-			out.WriteString(")")
-		}
-	}
+	writeFunctionResultTypes(out, funcType)
 	out.WriteString(" {\n")
 	out.WriteString("        self.")
 	out.WriteString(ToSnakeCase(methodName))
@@ -1120,38 +1098,7 @@ func generatePromotedMethod(out *strings.Builder, method *ast.FuncDecl, embedded
 
 	out.WriteString(")")
 
-	// Return type
-	if method.Type.Results != nil && len(method.Type.Results.List) > 0 {
-		out.WriteString(" -> ")
-		if len(method.Type.Results.List) == 1 && len(method.Type.Results.List[0].Names) <= 1 {
-			// Single return value
-			out.WriteString(GoTypeToRust(method.Type.Results.List[0].Type))
-		} else {
-			// Multiple return values - use tuple
-			out.WriteString("(")
-			first := true
-			for _, result := range method.Type.Results.List {
-				// Handle multiple names with same type
-				if len(result.Names) > 0 {
-					for range result.Names {
-						if !first {
-							out.WriteString(", ")
-						}
-						first = false
-						out.WriteString(GoTypeToRust(result.Type))
-					}
-				} else {
-					// No name, just type
-					if !first {
-						out.WriteString(", ")
-					}
-					first = false
-					out.WriteString(GoTypeToRust(result.Type))
-				}
-			}
-			out.WriteString(")")
-		}
-	}
+	writeFuncDeclResultTypes(out, method)
 
 	out.WriteString(" {\n")
 	out.WriteString("        // Forward to embedded type's method\n")

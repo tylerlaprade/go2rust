@@ -54,13 +54,13 @@ impl std::fmt::Display for Outer {
 
 
 impl Inner {
-    pub fn get_value(&self) -> Rc<RefCell<Option<i32>>> {
-        return self.value.clone();
+    pub fn get_value(&self) -> i32 {
+        return (*self.value.borrow().as_ref().unwrap());
     }
 }
 
 impl Outer {
-    pub fn get_value(&self) -> Rc<RefCell<Option<i32>>> {
+    pub fn get_value(&self) -> i32 {
         // Forward to embedded type's method
         let embedded = self.inner.clone();
         let guard = embedded.borrow();
@@ -70,12 +70,12 @@ impl Outer {
 }
 
 fn main() {
-    let mut o = Rc::new(RefCell::new(Some(Outer { inner: Rc::new(RefCell::new(Some(Inner { value: Rc::new(RefCell::new(Some(42 as i32))), ..Default::default() }))), name: Rc::new(RefCell::new(Some("test".to_string()))), ..Default::default() })));
+    let mut o = Rc::new(RefCell::new(Some(Outer { inner: Rc::new(RefCell::new(Some(Inner { value: Rc::new(RefCell::new(Some(42 as i32))), ..Default::default() }))), name: Rc::new(RefCell::new(Some("test".to_string()))), inner: Rc::new(RefCell::new(Some(Inner::default()))) })));
 
         // Direct field access
     println!("{} {}", format!("{}", "Value:".to_string()), format!("{}", (*(*(*o.borrow().as_ref().unwrap()).inner.borrow().as_ref().unwrap()).value.borrow().as_ref().unwrap())));
     println!("{} {}", format!("{}", "Name:".to_string()), format!("{}", (*(*o.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()).clone()));
 
         // Method call
-    println!("{} {}", format!("{}", "GetValue:".to_string()), format!("{}", (*(*o.borrow().as_ref().unwrap()).get_value().borrow().as_ref().unwrap())));
+    println!("{} {}", format!("{}", "GetValue:".to_string()), format!("{}", (*o.borrow().as_ref().unwrap()).get_value()));
 }

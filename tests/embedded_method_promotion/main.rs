@@ -170,8 +170,8 @@ impl Logger {
 }
 
 impl Counter {
-    pub fn value(&self) -> Rc<RefCell<Option<i32>>> {
-        return self.count.clone();
+    pub fn value(&self) -> i32 {
+        return (*self.count.borrow().as_ref().unwrap());
     }
 
     pub fn increment(&mut self) {
@@ -190,9 +190,9 @@ impl Service {
     }
 
     /// Method that shadows embedded method
-    pub fn value(&self) -> Rc<RefCell<Option<i32>>> {
+    pub fn value(&self) -> i32 {
                 // This should shadow Counter.Value()
-        return Rc::new(RefCell::new(Some((*(*self.counter.borrow().as_ref().unwrap()).value().borrow().as_ref().unwrap()) * 10)));
+        return (*self.counter.borrow().as_ref().unwrap()).value() * 10;
     }
 
     pub fn add(&mut self, n: Rc<RefCell<Option<i32>>>) {
@@ -229,8 +229,8 @@ impl Service {
 }
 
 impl Base {
-    pub fn get_i_d(&self) -> Rc<RefCell<Option<i32>>> {
-        return self.id.clone();
+    pub fn get_i_d(&self) -> i32 {
+        return (*self.id.borrow().as_ref().unwrap());
     }
 
     pub fn set_i_d(&mut self, id: Rc<RefCell<Option<i32>>>) {
@@ -243,7 +243,7 @@ impl Middle {
         return self.data.clone();
     }
 
-    pub fn get_i_d(&self) -> Rc<RefCell<Option<i32>>> {
+    pub fn get_i_d(&self) -> i32 {
         // Forward to embedded type's method
         let embedded = self.base.clone();
         let guard = embedded.borrow();
@@ -273,7 +273,7 @@ impl Top {
         embedded_ref.get_data()
     }
 
-    pub fn get_i_d(&self) -> Rc<RefCell<Option<i32>>> {
+    pub fn get_i_d(&self) -> i32 {
         // Forward to embedded type's method
         let embedded = self.middle.clone();
         let guard = embedded.borrow();
@@ -293,7 +293,7 @@ impl Top {
 fn main() {
         // Test basic method promotion
     println!("{}", format!("{}", "=== Basic method promotion ===".to_string()));
-    let mut svc = Rc::new(RefCell::new(Some(Service { logger: Rc::new(RefCell::new(Some(Logger { prefix: Rc::new(RefCell::new(Some("SVC".to_string()))), ..Default::default() }))), counter: Rc::new(RefCell::new(Some(Counter { count: Rc::new(RefCell::new(Some(0 as i32))), ..Default::default() }))), name: Rc::new(RefCell::new(Some("MyService".to_string()))), ..Default::default() })));
+    let mut svc = Rc::new(RefCell::new(Some(Service { logger: Rc::new(RefCell::new(Some(Logger { prefix: Rc::new(RefCell::new(Some("SVC".to_string()))), ..Default::default() }))), counter: Rc::new(RefCell::new(Some(Counter { count: Rc::new(RefCell::new(Some(0 as i32))), ..Default::default() }))), name: Rc::new(RefCell::new(Some("MyService".to_string()))), logger: Rc::new(RefCell::new(Some(Logger::default()))), counter: Rc::new(RefCell::new(Some(Counter::default()))) })));
 
         // Call promoted methods from Logger
     (*svc.borrow().as_ref().unwrap()).log(Rc::new(RefCell::new(Some("Service started".to_string()))));
@@ -303,28 +303,28 @@ fn main() {
         // Call promoted methods from Counter
     (*svc.borrow_mut().as_mut().unwrap()).increment();
     (*svc.borrow_mut().as_mut().unwrap()).add(Rc::new(RefCell::new(Some(5))));
-    print!("Counter value (via promoted method): {}\n", (*(*(*svc.borrow().as_ref().unwrap()).counter.borrow().as_ref().unwrap()).value().borrow().as_ref().unwrap()));
+    print!("Counter value (via promoted method): {}\n", (*(*svc.borrow().as_ref().unwrap()).counter.borrow().as_ref().unwrap()).value());
 
         // Call Service's own methods
     print!("Service name: {}\n", (*(*svc.borrow().as_ref().unwrap()).name().borrow().as_ref().unwrap()));
-    print!("Shadowed Value method: {}\n", (*(*svc.borrow().as_ref().unwrap()).value().borrow().as_ref().unwrap()));
+    print!("Shadowed Value method: {}\n", (*svc.borrow().as_ref().unwrap()).value());
 
         // Test method promotion with pointers
     println!("{}", format!("{}", "\n=== Method promotion with pointers ===".to_string()));
-    let mut svcPtr = Rc::new(RefCell::new(Some(Service { logger: Rc::new(RefCell::new(Some(Logger { prefix: Rc::new(RefCell::new(Some("PTR".to_string()))), ..Default::default() }))), counter: Rc::new(RefCell::new(Some(Counter { count: Rc::new(RefCell::new(Some(10 as i32))), ..Default::default() }))), name: Rc::new(RefCell::new(Some("PointerService".to_string()))), ..Default::default() })));
+    let mut svcPtr = Rc::new(RefCell::new(Some(Service { logger: Rc::new(RefCell::new(Some(Logger { prefix: Rc::new(RefCell::new(Some("PTR".to_string()))), ..Default::default() }))), counter: Rc::new(RefCell::new(Some(Counter { count: Rc::new(RefCell::new(Some(10 as i32))), ..Default::default() }))), name: Rc::new(RefCell::new(Some("PointerService".to_string()))), logger: Rc::new(RefCell::new(Some(Logger::default()))), counter: Rc::new(RefCell::new(Some(Counter::default()))) })));
 
     (*svcPtr.borrow().as_ref().unwrap()).log(Rc::new(RefCell::new(Some("Pointer service".to_string()))));
     (*svcPtr.borrow_mut().as_mut().unwrap()).increment();
-    print!("Pointer service counter: {}\n", (*(*(*svcPtr.borrow().as_ref().unwrap()).counter.borrow().as_ref().unwrap()).value().borrow().as_ref().unwrap()));
+    print!("Pointer service counter: {}\n", (*(*svcPtr.borrow().as_ref().unwrap()).counter.borrow().as_ref().unwrap()).value());
 
         // Test multi-level embedding
     println!("{}", format!("{}", "\n=== Multi-level embedding ===".to_string()));
-    let mut top = Rc::new(RefCell::new(Some(Top { middle: Rc::new(RefCell::new(Some(Middle { base: Rc::new(RefCell::new(Some(Base { id: Rc::new(RefCell::new(Some(100 as i32))), ..Default::default() }))), data: Rc::new(RefCell::new(Some("middle data".to_string()))), ..Default::default() }))), extra: Rc::new(RefCell::new(Some("extra data".to_string()))), ..Default::default() })));
+    let mut top = Rc::new(RefCell::new(Some(Top { middle: Rc::new(RefCell::new(Some(Middle { base: Rc::new(RefCell::new(Some(Base { id: Rc::new(RefCell::new(Some(100 as i32))), ..Default::default() }))), data: Rc::new(RefCell::new(Some("middle data".to_string()))), base: Rc::new(RefCell::new(Some(Base::default()))) }))), extra: Rc::new(RefCell::new(Some("extra data".to_string()))), middle: Rc::new(RefCell::new(Some(Middle::default()))) })));
 
         // Methods promoted from Base through Middle
-    print!("ID (promoted from Base): {}\n", (*(*top.borrow().as_ref().unwrap()).get_i_d().borrow().as_ref().unwrap()));
+    print!("ID (promoted from Base): {}\n", (*top.borrow().as_ref().unwrap()).get_i_d());
     (*top.borrow_mut().as_mut().unwrap()).set_i_d(Rc::new(RefCell::new(Some(200))));
-    print!("ID after SetID: {}\n", (*(*top.borrow().as_ref().unwrap()).get_i_d().borrow().as_ref().unwrap()));
+    print!("ID after SetID: {}\n", (*top.borrow().as_ref().unwrap()).get_i_d());
 
         // Methods promoted from Middle
     print!("Data (promoted from Middle): {}\n", (*(*top.borrow().as_ref().unwrap()).get_data().borrow().as_ref().unwrap()));

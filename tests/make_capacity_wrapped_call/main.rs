@@ -28,8 +28,8 @@ impl std::fmt::Display for counter {
 
 
 impl counter {
-    pub fn len(&self) -> Arc<Mutex<Option<i32>>> {
-        return self.n.clone();
+    pub fn len(&self) -> i32 {
+        return (*self.n.lock().unwrap().as_ref().unwrap());
     }
 }
 
@@ -39,7 +39,7 @@ fn main() {
     });
 
     let mut c = Arc::new(Mutex::new(Some(counter { n: Arc::new(Mutex::new(Some(3 as i32))), ..Default::default() })));
-    let mut xs = Arc::new(Mutex::new(Some(Vec::with_capacity((*{ let __recv = c.clone(); let __recv_ptr: *const counter = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const counter }; let __result = unsafe { &*__recv_ptr }.len(); __result }.lock().unwrap().as_ref().unwrap()) as usize))));
+    let mut xs = Arc::new(Mutex::new(Some(Vec::with_capacity(({ let __recv = c.clone(); let __recv_ptr: *const counter = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const counter }; let __result = unsafe { &*__recv_ptr }.len(); __result }) as usize))));
     { let new_val = { let __append_target = xs.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).extend(vec![1, 2, 3]); __append_target.clone() }; xs = new_val; };
 
     println!("{}", format!("{}", (*xs.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0)));

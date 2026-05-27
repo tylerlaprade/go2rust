@@ -38,22 +38,18 @@ impl CustomError {
 impl StdError for CustomError {}
 
 
-pub fn divide(a: Rc<RefCell<Option<f64>>>, b: Rc<RefCell<Option<f64>>>) -> (Rc<RefCell<Option<f64>>>, Rc<RefCell<Option<Box<dyn StdError>>>>) {
+pub fn divide(a: Rc<RefCell<Option<f64>>>, b: Rc<RefCell<Option<f64>>>) -> (f64, Rc<RefCell<Option<Box<dyn StdError>>>>) {
 
     if (*b.borrow().as_ref().unwrap()) == 0.0 {
-        return (Rc::new(RefCell::new(Some(0.0 as f64))), Rc::new(RefCell::new(Some(Box::<dyn std::error::Error>::from("division by zero".to_string())))));
+        return (0.0, Rc::new(RefCell::new(Some(Box::<dyn std::error::Error>::from("division by zero".to_string())))));
     }
-    return ({
-            let __tmp_x = (*a.borrow().as_ref().unwrap());
-            let __tmp_y = (*b.borrow().as_ref().unwrap());
-            Rc::new(RefCell::new(Some(__tmp_x / __tmp_y)))
-        }, Rc::new(RefCell::new(None)));
+    return ((*a.borrow().as_ref().unwrap()) / (*b.borrow().as_ref().unwrap()), Rc::new(RefCell::new(None)));
 }
 
-pub fn sqrt(x: Rc<RefCell<Option<f64>>>) -> (Rc<RefCell<Option<f64>>>, Rc<RefCell<Option<Box<dyn StdError>>>>) {
+pub fn sqrt(x: Rc<RefCell<Option<f64>>>) -> (f64, Rc<RefCell<Option<Box<dyn StdError>>>>) {
 
     if (*x.borrow().as_ref().unwrap()) < 0.0 {
-        return (Rc::new(RefCell::new(Some(0.0 as f64))), Rc::new(RefCell::new(Some(Box::<dyn StdError>::from(format!("cannot take square root of negative number: {:.6}", { let __v = (*x.borrow().as_ref().unwrap()).clone(); __v }))))));
+        return (0.0, Rc::new(RefCell::new(Some(Box::<dyn StdError>::from(format!("cannot take square root of negative number: {:.6}", { let __v = (*x.borrow().as_ref().unwrap()).clone(); __v }))))));
     }
 
         // Simple approximation
@@ -63,7 +59,7 @@ pub fn sqrt(x: Rc<RefCell<Option<f64>>>) -> (Rc<RefCell<Option<f64>>>, Rc<RefCel
         { let new_val = ((*result.borrow().as_ref().unwrap()) + (*x.borrow().as_ref().unwrap()) / (*result.borrow().as_ref().unwrap())) / 2.0; *result.borrow_mut() = Some(new_val); };
         { let mut guard = i.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
-    return (Rc::new(RefCell::new(Some(result.borrow().as_ref().unwrap().clone()))), Rc::new(RefCell::new(None)));
+    return ((*result.borrow().as_ref().unwrap()), Rc::new(RefCell::new(None)));
 }
 
 pub fn process_value(val: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<Box<dyn StdError>>>> {
@@ -83,17 +79,17 @@ fn main() {
     if (*err.borrow()).is_some() {
         println!("{} {}", format!("{}", "Error:".to_string()), format!("{}", format!("{}", (*err.borrow().as_ref().unwrap()))));
     } else {
-        println!("{} {}", format!("{}", "10 / 2 =".to_string()), format!("{}", { let __v = (*result.borrow().as_ref().unwrap()).clone(); __v }));
+        println!("{} {}", format!("{}", "10 / 2 =".to_string()), format!("{}", result));
     }
 
         // Error case
-    { let (__tmp_0, __tmp_1) = divide(Rc::new(RefCell::new(Some(10.0))), Rc::new(RefCell::new(Some(0.0)))); let __moved_tmp_0 = { let mut __guard = __tmp_0.borrow_mut(); __guard.take() }; *result.borrow_mut() = __moved_tmp_0; let __moved_tmp_1 = { let mut __guard = __tmp_1.borrow_mut(); __guard.take() }; *err.borrow_mut() = __moved_tmp_1; };
+    { let (__tmp_0, __tmp_1) = divide(Rc::new(RefCell::new(Some(10.0))), Rc::new(RefCell::new(Some(0.0)))); result = __tmp_0; let __moved_tmp_1 = { let mut __guard = __tmp_1.borrow_mut(); __guard.take() }; *err.borrow_mut() = __moved_tmp_1; };
     if (*err.borrow()).is_some() {
         println!("{} {}", format!("{}", "Error:".to_string()), format!("{}", format!("{}", (*err.borrow().as_ref().unwrap()))));
         let mut wrapped = Rc::new(RefCell::new(Some(Box::<dyn StdError>::from(format!("wrapped division: {}", format!("{}", (*err.borrow().as_ref().unwrap())))))));
         println!("{} {}", format!("{}", "Wrapped error:".to_string()), format!("{}", format!("{}", (*wrapped.borrow().as_ref().unwrap()))));
     } else {
-        println!("{} {}", format!("{}", "Result:".to_string()), format!("{}", { let __v = (*result.borrow().as_ref().unwrap()).clone(); __v }));
+        println!("{} {}", format!("{}", "Result:".to_string()), format!("{}", result));
     }
 
         // Formatted error
@@ -101,7 +97,7 @@ fn main() {
     if (*err.borrow()).is_some() {
         println!("{} {}", format!("{}", "Sqrt error:".to_string()), format!("{}", format!("{}", (*err.borrow().as_ref().unwrap()))));
     } else {
-        println!("{} {}", format!("{}", "Sqrt result:".to_string()), format!("{}", { let __v = (*sqrtResult.borrow().as_ref().unwrap()).clone(); __v }));
+        println!("{} {}", format!("{}", "Sqrt result:".to_string()), format!("{}", sqrtResult));
     }
 
         // Custom error

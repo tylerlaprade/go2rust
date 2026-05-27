@@ -3144,7 +3144,7 @@ pub mod token {
     pub const X_O_R__A_S_S_I_G_N: token_Token = token_Token(30);
 
     pub fn new_file_set() -> Arc<Mutex<Option<token_FileSet>>> {
-        Arc::new(Mutex::new(Some::<token_FileSet>(Default::default())))
+        panic!("new_file_set bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
     }
 }
 
@@ -3156,15 +3156,15 @@ pub mod types {
     }
 
     pub fn new_checker<T0, T1, T2, T3>(_arg0: T0, _arg1: T1, _arg2: T2, _arg3: T3) -> Arc<Mutex<Option<types_Checker>>> {
-        Arc::new(Mutex::new(Some::<types_Checker>(Default::default())))
+        panic!("new_checker bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
     }
 
     pub fn new_package<T0, T1>(_arg0: T0, _arg1: T1) -> Arc<Mutex<Option<types_Package>>> {
-        Arc::new(Mutex::new(Some::<types_Package>(Default::default())))
+        panic!("new_package bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
     }
 
     pub fn unalias<T0>(_arg0: T0) -> Arc<Mutex<Option<types_Type>>> {
-        Arc::new(Mutex::new(Some::<types_Type>(Default::default())))
+        panic!("unalias bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
     }
 }
 

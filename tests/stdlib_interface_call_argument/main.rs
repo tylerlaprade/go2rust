@@ -89,7 +89,7 @@ impl From<types_Tuple> for types_Type {
 pub mod types {
     use super::*;
     pub fn new_tuple<T0>(_arg0: T0) -> Arc<Mutex<Option<types_Tuple>>> {
-        Arc::new(Mutex::new(Some::<types_Tuple>(Default::default())))
+        panic!("new_tuple bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
     }
 }
 
@@ -112,19 +112,19 @@ impl std::fmt::Display for Walker {
 
 
 impl Walker {
-    pub fn has(&self, t: Arc<Mutex<Option<types_Type>>>) -> Arc<Mutex<Option<bool>>> {
-        return Arc::new(Mutex::new(Some(true)));
+    pub fn has(&self, t: Arc<Mutex<Option<types_Type>>>) -> bool {
+        return true;
     }
 }
 
-pub fn has(t: Arc<Mutex<Option<types_Type>>>) -> Arc<Mutex<Option<bool>>> {
+pub fn has(t: Arc<Mutex<Option<types_Type>>>) -> bool {
 
-    return Arc::new(Mutex::new(Some(true)));
+    return true;
 }
 
 fn main() {
     let mut w: Arc<Mutex<Option<Walker>>> = Arc::new(Mutex::new(Some(Default::default())));
 
-    println!("{}", format!("{}", (*has({ let __arg = types::new_tuple(((),)); let __converted = { let __arg_guard = __arg.lock().unwrap(); let __converted: Option<types_Type> = __arg_guard.as_ref().map(|__v| (*__v).clone().into()); __converted }; Arc::new(Mutex::new(__converted)) }).lock().unwrap().as_ref().unwrap())));
-    println!("{}", format!("{}", (*(*w.lock().unwrap().as_ref().unwrap()).has({ let __arg = types::new_tuple(((),)); let __converted = { let __arg_guard = __arg.lock().unwrap(); let __converted: Option<types_Type> = __arg_guard.as_ref().map(|__v| (*__v).clone().into()); __converted }; Arc::new(Mutex::new(__converted)) }).lock().unwrap().as_ref().unwrap())));
+    println!("{}", format!("{}", has({ let __arg = types::new_tuple(((),)); let __converted = { let __arg_guard = __arg.lock().unwrap(); let __converted: Option<types_Type> = __arg_guard.as_ref().map(|__v| (*__v).clone().into()); __converted }; Arc::new(Mutex::new(__converted)) })));
+    println!("{}", format!("{}", (*w.lock().unwrap().as_ref().unwrap()).has({ let __arg = types::new_tuple(((),)); let __converted = { let __arg_guard = __arg.lock().unwrap(); let __converted: Option<types_Type> = __arg_guard.as_ref().map(|__v| (*__v).clone().into()); __converted }; Arc::new(Mutex::new(__converted)) })));
 }

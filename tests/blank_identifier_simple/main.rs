@@ -2,16 +2,16 @@ use std::cell::{RefCell};
 use std::collections::BTreeMap;
 use std::rc::{Rc};
 
-pub fn multiple_returns() -> (Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<String>>>, Rc<RefCell<Option<bool>>>) {
+pub fn multiple_returns() -> (i32, Rc<RefCell<Option<String>>>, bool) {
 
-    return (Rc::new(RefCell::new(Some(42 as i32))), Rc::new(RefCell::new(Some("hello".to_string()))), Rc::new(RefCell::new(Some(true))));
+    return (42 as i32, Rc::new(RefCell::new(Some("hello".to_string()))), true);
 }
 
-pub fn named_blank_result() -> (Rc<RefCell<Option<String>>>, Rc<RefCell<Option<bool>>>) {
+pub fn named_blank_result() -> (Rc<RefCell<Option<String>>>, bool) {
     let _: Rc<RefCell<Option<String>>> = Rc::new(RefCell::new(Some(String::new())));
     let mut ok: Rc<RefCell<Option<bool>>> = Rc::new(RefCell::new(Some(false)));
 
-    return (Rc::new(RefCell::new(Some("ignored".to_string()))), Rc::new(RefCell::new(Some(true))));
+    return (Rc::new(RefCell::new(Some("ignored".to_string()))), true);
 }
 
 fn main() {
@@ -20,7 +20,7 @@ fn main() {
 
         // Ignore all but first return value
     let (mut num, _, _) = multiple_returns();
-    print!("Only using first return: {}\n", { let __v = (*num.borrow().as_ref().unwrap()).clone(); __v });
+    print!("Only using first return: {}\n", num);
 
         // Ignore first and last return values
     let (_, mut str, _) = multiple_returns();
@@ -28,7 +28,7 @@ fn main() {
 
         // Ignore first two return values
     let (_, _, mut flag) = multiple_returns();
-    print!("Only using last return: {}\n", { let __v = (*flag.borrow().as_ref().unwrap()).clone(); __v });
+    print!("Only using last return: {}\n", flag);
 
         // Ignoring in range loops
     println!("{}", format!("{}", "\n=== Ignoring in range loops ===".to_string()));
@@ -96,5 +96,5 @@ fn main() {
     print!("a={}, c={} (middle value ignored)\n", { let __v = (*a.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*c.borrow().as_ref().unwrap()).clone(); __v });
 
     let (_, mut ok) = named_blank_result();
-    print!("blank named result ok={}\n", { let __v = (*ok.borrow().as_ref().unwrap()).clone(); __v });
+    print!("blank named result ok={}\n", ok);
 }

@@ -1,0 +1,20 @@
+
+[workspace]
+members = [
+    ".",
+    "vendor/go2rust_stdlib_stubs",
+    "vendor/path_filepath",
+]
+
+[package]
+name = "source_stdlib_path_filepath_isabs"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "source_stdlib_path_filepath_isabs"
+path = "main.rs"
+
+[dependencies]
+go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }
+path_filepath = { path = "vendor/path_filepath" }

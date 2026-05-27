@@ -44,21 +44,21 @@ where
     }
 }
 
-pub fn compare_length(a: Rc<RefCell<Option<String>>>, b: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<i32>>> {
+pub fn compare_length(a: Rc<RefCell<Option<String>>>, b: Rc<RefCell<Option<String>>>) -> i32 {
 
     if ((*a.borrow().as_ref().unwrap()).len() as i32) < ((*b.borrow().as_ref().unwrap()).len() as i32) {
-        return Rc::new(RefCell::new(Some(-1)));
+        return -1;
     }
     if ((*a.borrow().as_ref().unwrap()).len() as i32) > ((*b.borrow().as_ref().unwrap()).len() as i32) {
-        return Rc::new(RefCell::new(Some(1 as i32)));
+        return 1 as i32;
     }
     if (*a.borrow().as_ref().unwrap()) < (*b.borrow().as_ref().unwrap()) {
-        return Rc::new(RefCell::new(Some(-1)));
+        return -1;
     }
     if (*a.borrow().as_ref().unwrap()) > (*b.borrow().as_ref().unwrap()) {
-        return Rc::new(RefCell::new(Some(1 as i32)));
+        return 1 as i32;
     }
-    return Rc::new(RefCell::new(Some(0 as i32)));
+    return 0 as i32;
 }
 
 fn main() {
@@ -67,12 +67,8 @@ fn main() {
     println!("{}", format!("{}", format_slice(&words)));
 
     let mut numbers = Rc::new(RefCell::new(Some(vec![3, 1, 4, 2])));
-    { let __cmp_holder = Rc::new(RefCell::new(Some(Box::new(move |a: Rc<RefCell<Option<i32>>>, b: Rc<RefCell<Option<i32>>>| -> Rc<RefCell<Option<i32>>> {
-        return {
-            let __tmp_x = (*b.borrow().as_ref().unwrap());
-            let __tmp_y = (*a.borrow().as_ref().unwrap());
-            Rc::new(RefCell::new(Some(__tmp_x - __tmp_y)))
-        };
-    }) as Box<dyn FnMut(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>>))); let mut __sort_guard = numbers.borrow_mut(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.sort_by(|__a, __b| { let __cmp = { let mut __cmp_guard = __cmp_holder.borrow_mut(); let __cmp_fn = __cmp_guard.as_mut().unwrap(); (*__cmp_fn)(Rc::new(RefCell::new(Some(__a.clone()))), Rc::new(RefCell::new(Some(__b.clone())))) }; let __ord = (*__cmp.borrow().as_ref().unwrap()).cmp(&0); __ord }); } };
+    { let __cmp_holder = Rc::new(RefCell::new(Some(Box::new(move |a: Rc<RefCell<Option<i32>>>, b: Rc<RefCell<Option<i32>>>| -> i32 {
+        return (*b.borrow().as_ref().unwrap()) - (*a.borrow().as_ref().unwrap());
+    }) as Box<dyn FnMut(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> i32>))); let mut __sort_guard = numbers.borrow_mut(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.sort_by(|__a, __b| { let __cmp = { let mut __cmp_guard = __cmp_holder.borrow_mut(); let __cmp_fn = __cmp_guard.as_mut().unwrap(); (*__cmp_fn)(Rc::new(RefCell::new(Some(__a.clone()))), Rc::new(RefCell::new(Some(__b.clone())))) }; let __ord = (*__cmp.borrow().as_ref().unwrap()).cmp(&0); __ord }); } };
     println!("{}", format!("{}", format_slice(&numbers)));
 }

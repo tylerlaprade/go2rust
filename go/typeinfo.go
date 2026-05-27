@@ -485,6 +485,9 @@ func (ti *TypeInfo) ReturnsWrappedValue(expr ast.Expr) bool {
 		if isBareBuiltinCall(e) {
 			return false
 		}
+		if callReturnsBareScalar(e) {
+			return false
+		}
 		// Both function calls and type conversions return wrapped values
 		// (TranspileTypeConversion wraps its output with WriteWrapperPrefix/Suffix)
 		return true

@@ -77,7 +77,7 @@ impl types_Scope {
         None
     }
     pub fn lookup<T0>(&self, _arg0: T0) -> Rc<RefCell<Option<types_Object>>> {
-        Rc::new(RefCell::new(Some::<types_Object>(Default::default())))
+        panic!("types_Scope.lookup bridge: generic stub method body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
     }
 }
 

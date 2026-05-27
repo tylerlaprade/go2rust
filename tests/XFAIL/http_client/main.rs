@@ -58,7 +58,7 @@ impl io_ReadCloser {
         self.__go_value.as_ref().downcast_ref::<T>()
     }
     pub fn close(&self) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
-        Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>))
+        panic!("io_ReadCloser.close bridge: generic stub method body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
     }
 }
 
@@ -121,7 +121,7 @@ impl strings_Reader {
 pub mod bufio {
     use super::*;
     pub fn new_reader<T0>(_arg0: T0) -> Arc<Mutex<Option<bufio_Reader>>> {
-        Arc::new(Mutex::new(Some::<bufio_Reader>(Default::default())))
+        panic!("new_reader bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
     }
 }
 
@@ -129,7 +129,7 @@ pub mod bufio {
 pub mod http {
     use super::*;
     pub fn read_response<T0, T1>(_arg0: T0, _arg1: T1) -> (Arc<Mutex<Option<http_Response>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
-        (Arc::new(Mutex::new(Some::<http_Response>(Default::default()))), Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>)))
+        panic!("read_response bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
     }
 }
 
@@ -137,7 +137,7 @@ pub mod http {
 pub mod io {
     use super::*;
     pub fn read_all<T0>(_arg0: T0) -> (Arc<Mutex<Option<Vec<u8>>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
-        (Arc::new(Mutex::new(Some::<Vec<u8>>(Default::default()))), Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>)))
+        panic!("read_all bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
     }
 }
 
@@ -145,7 +145,7 @@ pub mod io {
 pub mod strings {
     use super::*;
     pub fn new_reader<T0>(_arg0: T0) -> Arc<Mutex<Option<strings_Reader>>> {
-        Arc::new(Mutex::new(Some::<strings_Reader>(Default::default())))
+        panic!("new_reader bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
     }
 }
 

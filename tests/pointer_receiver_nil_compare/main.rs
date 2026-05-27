@@ -28,16 +28,16 @@ impl std::fmt::Display for node {
 
 
 impl node {
-    pub fn same(&self, other: Rc<RefCell<Option<node>>>) -> Rc<RefCell<Option<bool>>> {
+    pub fn same(&self, other: Rc<RefCell<Option<node>>>) -> bool {
         if false || (*other.borrow()).is_none() {
-        return Rc::new(RefCell::new(Some(false)));
+        return false;
     }
-        return Rc::new(RefCell::new(Some((*self.value.borrow().as_ref().unwrap()) == (*(*other.borrow().as_ref().unwrap()).value.borrow().as_ref().unwrap()))));
+        return (*self.value.borrow().as_ref().unwrap()) == (*(*other.borrow().as_ref().unwrap()).value.borrow().as_ref().unwrap());
     }
 }
 
 fn main() {
     let mut left = Rc::new(RefCell::new(Some(node { value: Rc::new(RefCell::new(Some(7 as i32))), ..Default::default() })));
     let mut missing: Rc<RefCell<Option<node>>> = Rc::new(RefCell::new(None));
-    println!("{}", format!("{}", (*(*left.borrow().as_ref().unwrap()).same(missing.clone()).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*left.borrow().as_ref().unwrap()).same(missing.clone())));
 }

@@ -28,7 +28,7 @@ impl std::fmt::Display for termSet {
 }
 
 
-pub fn compute() -> Rc<RefCell<Option<bool>>> {
+pub fn compute() -> bool {
     let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
 
@@ -45,10 +45,10 @@ pub fn compute() -> Rc<RefCell<Option<bool>>> {
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return Rc::new(RefCell::new(Some(false)))
+        return false
     }
 }
 
 fn main() {
-    println!("{}", format!("{}", (*compute().borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", compute()));
 }

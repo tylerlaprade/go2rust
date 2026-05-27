@@ -199,7 +199,7 @@ pub mod types {
     }
 
     pub fn new_pointer<T0>(_arg0: T0) -> Arc<Mutex<Option<types_Pointer>>> {
-        Arc::new(Mutex::new(Some::<types_Pointer>(Default::default())))
+        panic!("new_pointer bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
     }
 }
 

@@ -28,13 +28,28 @@ impl Clone for Box<dyn hasNameAndString> {
     }
 }
 
-pub fn asserted_anonymous_interface(v: Rc<RefCell<Option<Box<dyn hasNameAndString>>>>) -> Rc<RefCell<Option<bool>>> {
+impl hasName for Box<dyn hasNameAndString> {
+    fn __go_clone_box_has_name(&self) -> Box<dyn hasName> {
+        Box::new((*self).clone()) as Box<dyn hasName>
+    }
+    fn __go_as_any(&self) -> &dyn Any {
+        (**self).__go_as_any()
+    }
+    fn __go_eq_has_name(&self, other: &dyn hasName) -> bool {
+        (**self).__go_eq_has_name(other)
+    }
+    fn name(&self) -> Rc<RefCell<Option<String>>> {
+        (**self).name()
+    }
+}
+
+pub fn asserted_anonymous_interface(v: Rc<RefCell<Option<Box<dyn hasNameAndString>>>>) -> bool {
 
     let (_, mut ok) = ({
         let __asserted = v.clone();
         (__asserted.clone(), Rc::new(RefCell::new(Some(true))))
     });
-    return Rc::new(RefCell::new(Some(ok.borrow().as_ref().unwrap().clone())));
+    return (*ok.borrow().as_ref().unwrap());
 }
 
 fn main() {

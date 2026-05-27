@@ -28,8 +28,8 @@ impl std::fmt::Display for counter {
 
 
 impl counter {
-    pub fn len(&self) -> Rc<RefCell<Option<i32>>> {
-        return self.n.clone();
+    pub fn len(&self) -> i32 {
+        return (*self.n.borrow().as_ref().unwrap());
     }
 }
 
@@ -52,7 +52,7 @@ fn main() {
 
     let mut methodSum = Rc::new(RefCell::new(Some(0)));
     let mut c = Rc::new(RefCell::new(Some(counter { n: Rc::new(RefCell::new(Some(4 as i32))), ..Default::default() })));
-    for i in 0..({ let __v = (*c.borrow().as_ref().unwrap()).len(); let __owned = (*__v.borrow().as_ref().unwrap()).clone(); __owned }) {
+    for i in 0..((*c.borrow().as_ref().unwrap()).len()) {
         { let __rhs = i; let mut guard = methodSum.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     }
 

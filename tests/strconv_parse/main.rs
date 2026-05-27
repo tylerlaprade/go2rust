@@ -9,5 +9,5 @@ fn main() {
         println!("{} {}", format!("{}", "Error:".to_string()), format!("{}", format!("{}", (*err.borrow().as_ref().unwrap()))));
         return;
     }
-    println!("{} {}", format!("{}", "Parsed number:".to_string()), format!("{}", { let __v = (*num.borrow().as_ref().unwrap()).clone(); __v }));
+    println!("{} {}", format!("{}", "Parsed number:".to_string()), format!("{}", num));
 }

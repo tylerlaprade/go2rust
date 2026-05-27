@@ -41,8 +41,8 @@ impl GoJsonDecode for Counter {
 
 
 impl Counter {
-    pub fn total(&self) -> Rc<RefCell<Option<i32>>> {
-        return Rc::new(RefCell::new(Some((*self.value.borrow().as_ref().unwrap()) + (*self.value.borrow().as_ref().unwrap()))));
+    pub fn total(&self) -> i32 {
+        return (*self.value.borrow().as_ref().unwrap()) + (*self.value.borrow().as_ref().unwrap());
     }
 }
 

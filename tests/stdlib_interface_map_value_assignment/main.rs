@@ -359,11 +359,11 @@ pub mod token {
 pub mod types {
     use super::*;
     pub fn new_type_name<T0, T1, T2, T3>(_arg0: T0, _arg1: T1, _arg2: T2, _arg3: T3) -> Arc<Mutex<Option<types_TypeName>>> {
-        Arc::new(Mutex::new(Some::<types_TypeName>(Default::default())))
+        panic!("new_type_name bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
     }
 
     pub fn new_type_param<T0, T1>(_arg0: T0, _arg1: T1) -> Arc<Mutex<Option<types_TypeParam>>> {
-        Arc::new(Mutex::new(Some::<types_TypeParam>(Default::default())))
+        panic!("new_type_param bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
     }
 }
 

@@ -43,9 +43,9 @@ pub fn string_ptr(v: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>>
     return v.clone();
 }
 
-pub fn invert(v: Rc<RefCell<Option<bool>>>) -> Rc<RefCell<Option<bool>>> {
+pub fn invert(v: Rc<RefCell<Option<bool>>>) -> bool {
 
-    return Rc::new(RefCell::new(Some(!(*v.borrow().as_ref().unwrap()))));
+    return !(*v.borrow().as_ref().unwrap());
 }
 
 pub fn suffix(s: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>> {
@@ -57,7 +57,7 @@ fn main() {
     __go_init_all();
     println!("{}", format!("{}", (*(*enabled.borrow().as_ref().unwrap()).borrow().as_ref().unwrap()).clone()));
     println!("{}", format!("{}", (*(*label.borrow().as_ref().unwrap()).borrow().as_ref().unwrap()).clone()));
-    println!("{}", format!("{}", (*invert(Rc::new(RefCell::new(Some((*(*enabled.borrow().as_ref().unwrap()).borrow().as_ref().unwrap()).clone())))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", invert(Rc::new(RefCell::new(Some((*(*enabled.borrow().as_ref().unwrap()).borrow().as_ref().unwrap()).clone()))))));
     println!("{}", format!("{}", (*suffix(Rc::new(RefCell::new(Some((*(*label.borrow().as_ref().unwrap()).borrow().as_ref().unwrap()).clone())))).borrow().as_ref().unwrap())));
 }
 

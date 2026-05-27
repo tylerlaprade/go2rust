@@ -56,6 +56,7 @@ Method receivers (value and pointer), multiple returns (including named returns,
 - ✅ Pointer type-assertion call arguments - expressions such as `accept(v.(*T))` pass the asserted pointer handle directly instead of nesting it in another pointer wrapper (type_assertion_pointer_argument added, 2026-05-12)
 - ✅ Method nil pointer arguments - `nil` passed to `*T` method parameters lowers to a typed empty wrapper instead of nesting `None` inside `Some` (method_nil_pointer_argument added, 2026-05-09)
 - ✅ Tuple return reassignment - existing fields, locals, and parameters receive inner values from returned wrapped tuple elements (tuple_return_reassignment promoted, 2026-05-07)
+- ✅ Bare Copy scalar return boundaries - functions, methods, named returns, and tuple result slots declared as predeclared Copy scalars emit bare Rust return types such as `i32` and `bool`, while existing wrapped locals still store those results through their wrapper slots (scalar_return_unwrapped added, 2026-05-27)
 - ✅ Slice literal returns - return statements pass self-wrapping slice literals through without nesting wrappers (return_slice_literal promoted, 2026-05-07)
 
 ### ✅ Phase 4.5: Advanced Types and Structs

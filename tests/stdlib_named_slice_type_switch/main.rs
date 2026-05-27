@@ -21,7 +21,7 @@ impl scanner_Error {
         None
     }
     pub fn error(&self) -> Rc<RefCell<Option<String>>> {
-        Rc::new(RefCell::new(Some::<String>(Default::default())))
+        panic!("scanner_Error.error bridge: generic stub method body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
     }
 }
 
@@ -42,7 +42,7 @@ impl scanner_ErrorList {
         None
     }
     pub fn error(&self) -> Rc<RefCell<Option<String>>> {
-        Rc::new(RefCell::new(Some::<String>(Default::default())))
+        panic!("scanner_ErrorList.error bridge: generic stub method body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
     }
 }
 

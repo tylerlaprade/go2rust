@@ -1,7 +1,7 @@
 use std::cell::{RefCell};
 use std::rc::{Rc};
 
-pub fn pick(v: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>> {
+pub fn pick(v: Rc<RefCell<Option<i32>>>) -> i32 {
     let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
     let mut res: Rc<RefCell<Option<i32>>> = Rc::new(RefCell::new(Some(0)));
@@ -20,7 +20,7 @@ pub fn pick(v: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>> {
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return res
+        return (*res.borrow().as_ref().unwrap())
     }
         } else {
             {
@@ -29,13 +29,13 @@ pub fn pick(v: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>> {
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return res
+        return (*res.borrow().as_ref().unwrap())
     }
         }
     }
 }
 
 fn main() {
-    println!("{}", format!("{}", (*pick(Rc::new(RefCell::new(Some(0)))).borrow().as_ref().unwrap())));
-    println!("{}", format!("{}", (*pick(Rc::new(RefCell::new(Some(2)))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", pick(Rc::new(RefCell::new(Some(0))))));
+    println!("{}", format!("{}", pick(Rc::new(RefCell::new(Some(2))))));
 }

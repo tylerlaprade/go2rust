@@ -58,7 +58,7 @@ impl Employee {
 }
 
 fn main() {
-    let mut e = Rc::new(RefCell::new(Some(Employee { person: Rc::new(RefCell::new(Some(Person { name: Rc::new(RefCell::new(Some("John".to_string()))), age: Rc::new(RefCell::new(Some(30 as i32))), ..Default::default() }))), i_d: Rc::new(RefCell::new(Some(123 as i32))), ..Default::default() })));
+    let mut e = Rc::new(RefCell::new(Some(Employee { person: Rc::new(RefCell::new(Some(Person { name: Rc::new(RefCell::new(Some("John".to_string()))), age: Rc::new(RefCell::new(Some(30 as i32))), ..Default::default() }))), i_d: Rc::new(RefCell::new(Some(123 as i32))), person: Rc::new(RefCell::new(Some(Person::default()))) })));
     println!("{}", format!("{}", (*(*(*e.borrow().as_ref().unwrap()).person.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()).clone()));
     println!("{}", format!("{}", (*(*e.borrow().as_ref().unwrap()).i_d.borrow().as_ref().unwrap())));
 }

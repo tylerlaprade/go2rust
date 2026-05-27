@@ -7,8 +7,8 @@ pub trait Node: std::fmt::Display + Any {
     fn __go_clone_box_node(&self) -> Box<dyn Node>;
     fn __go_as_any(&self) -> &dyn Any;
     fn __go_eq_node(&self, other: &dyn Node) -> bool;
-    fn pos(&self) -> Rc<RefCell<Option<i32>>>;
-    fn end(&self) -> Rc<RefCell<Option<i32>>>;
+    fn pos(&self) -> i32;
+    fn end(&self) -> i32;
 }
 
 impl Clone for Box<dyn Node> {
@@ -26,6 +26,24 @@ pub trait Expr: Node + std::fmt::Display + Any {
 impl Clone for Box<dyn Expr> {
     fn clone(&self) -> Self {
         self.__go_clone_box_expr()
+    }
+}
+
+impl Node for Box<dyn Expr> {
+    fn __go_clone_box_node(&self) -> Box<dyn Node> {
+        Box::new((*self).clone()) as Box<dyn Node>
+    }
+    fn __go_as_any(&self) -> &dyn Any {
+        (**self).__go_as_any()
+    }
+    fn __go_eq_node(&self, other: &dyn Node) -> bool {
+        (**self).__go_eq_node(other)
+    }
+    fn end(&self) -> i32 {
+        (**self).end()
+    }
+    fn pos(&self) -> i32 {
+        (**self).pos()
     }
 }
 
@@ -55,12 +73,12 @@ impl std::fmt::Display for Lit {
 
 
 impl Lit {
-    pub fn pos(&self) -> Rc<RefCell<Option<i32>>> {
-        return self.value.clone();
+    pub fn pos(&self) -> i32 {
+        return (*self.value.borrow().as_ref().unwrap());
     }
 
-    pub fn end(&self) -> Rc<RefCell<Option<i32>>> {
-        return Rc::new(RefCell::new(Some((*self.value.borrow().as_ref().unwrap()) + 1 as i32)));
+    pub fn end(&self) -> i32 {
+        return (*self.value.borrow().as_ref().unwrap()) + 1 as i32;
     }
 
     pub fn expr_node(&self) {
@@ -83,11 +101,11 @@ impl Expr for Lit {
 }
 
 impl Node for Lit {
-    fn pos(&self) -> Rc<RefCell<Option<i32>>> {
-        return self.value.clone();
+    fn pos(&self) -> i32 {
+        return (*self.value.borrow().as_ref().unwrap());
     }
-    fn end(&self) -> Rc<RefCell<Option<i32>>> {
-        return Rc::new(RefCell::new(Some((*self.value.borrow().as_ref().unwrap()) + 1 as i32)));
+    fn end(&self) -> i32 {
+        return (*self.value.borrow().as_ref().unwrap()) + 1 as i32;
     }
     fn __go_clone_box_node(&self) -> Box<dyn Node> {
         Box::new(self.clone()) as Box<dyn Node>
@@ -104,7 +122,7 @@ impl Node for Lit {
     }
 }
 
-pub fn describe(e: Rc<RefCell<Option<Box<dyn Expr>>>>) -> (Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) {
+pub fn describe(e: Rc<RefCell<Option<Box<dyn Expr>>>>) -> (i32, i32) {
 
     return ((*e.borrow().as_ref().unwrap()).pos(), (*e.borrow().as_ref().unwrap()).end());
 }
@@ -112,5 +130,5 @@ pub fn describe(e: Rc<RefCell<Option<Box<dyn Expr>>>>) -> (Rc<RefCell<Option<i32
 fn main() {
     let mut lit = Rc::new(RefCell::new(Some(Lit { value: Rc::new(RefCell::new(Some(7 as i32))), ..Default::default() })));
     let (mut p, mut q) = describe(Rc::new(RefCell::new(Some(Box::new((*lit.borrow().as_ref().unwrap()).clone()) as Box<dyn Expr>))));
-    println!("{} {}", format!("{}", { let __v = (*p.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*q.borrow().as_ref().unwrap()).clone(); __v }));
+    println!("{} {}", format!("{}", p), format!("{}", q));
 }

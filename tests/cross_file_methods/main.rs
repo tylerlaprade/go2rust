@@ -9,13 +9,13 @@ use std::rc::{Rc};
 fn main() {
         // Test Counter methods - transpiler needs to know Counter has these methods
     let mut c = Rc::new(RefCell::new(Some(Counter { value: Rc::new(RefCell::new(Some(10 as i32))), ..Default::default() })));
-    print!("Initial value: {}\n", (*(*c.borrow().as_ref().unwrap()).value().borrow().as_ref().unwrap()));
+    print!("Initial value: {}\n", (*c.borrow().as_ref().unwrap()).value());
 
     (*c.borrow_mut().as_mut().unwrap()).increment();
-    print!("After increment: {}\n", (*(*c.borrow().as_ref().unwrap()).value().borrow().as_ref().unwrap()));
+    print!("After increment: {}\n", (*c.borrow().as_ref().unwrap()).value());
 
     (*c.borrow_mut().as_mut().unwrap()).add(Rc::new(RefCell::new(Some(5))));
-    print!("After adding 5: {}\n", (*(*c.borrow().as_ref().unwrap()).value().borrow().as_ref().unwrap()));
+    print!("After adding 5: {}\n", (*c.borrow().as_ref().unwrap()).value());
 
         // Test Point methods - transpiler needs to resolve method receivers
     let mut p1 = Rc::new(RefCell::new(Some(Point { x: Rc::new(RefCell::new(Some(0.0 as f64))), y: Rc::new(RefCell::new(Some(0.0 as f64))), ..Default::default() })));

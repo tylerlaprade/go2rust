@@ -32,8 +32,8 @@ impl Counter {
         { let __target = self.value.clone(); let mut guard = __target.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
 
-    pub fn value(&self) -> Rc<RefCell<Option<i32>>> {
-        return self.value.clone();
+    pub fn value(&self) -> i32 {
+        return (*self.value.borrow().as_ref().unwrap());
     }
 }
 
@@ -46,5 +46,5 @@ fn main() {
     let mut counter = new_counter();
     (*counter.borrow_mut().as_mut().unwrap()).increment();
     (*counter.borrow_mut().as_mut().unwrap()).increment();
-    println!("{} {}", format!("{}", "Counter value:".to_string()), format!("{}", (*(*counter.borrow().as_ref().unwrap()).value().borrow().as_ref().unwrap())));
+    println!("{} {}", format!("{}", "Counter value:".to_string()), format!("{}", (*counter.borrow().as_ref().unwrap()).value()));
 }

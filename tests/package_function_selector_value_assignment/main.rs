@@ -6,6 +6,7 @@ use std::rc::{Rc};
 pub mod log {
     use super::*;
     pub fn printf<T0, T1>(_arg0: T0, _arg1: T1) {
+        panic!("printf bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
     }
 }
 

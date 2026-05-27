@@ -1,5 +1,4 @@
 use std::fmt::{Display, Formatter};
-use std::sync::{Arc, Mutex};
 
 
 struct GoChannel<T> {
@@ -171,13 +170,13 @@ pub(crate) static sem: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Optio
 
 fn __go_init_globals() {
     *sem.lock().unwrap() = Some(Default::default());
-    *sem.lock().unwrap() = Some(GoChannel::<token>::new_buffered((*size().lock().unwrap().as_ref().unwrap()) as usize));
+    *sem.lock().unwrap() = Some(GoChannel::<token>::new_buffered((size()) as usize));
 }
 
 
-pub fn size() -> Arc<Mutex<Option<i32>>> {
+pub fn size() -> i32 {
 
-    return Arc::new(Mutex::new(Some(2 as i32)));
+    return 2 as i32;
 }
 
 fn main() {

@@ -184,18 +184,14 @@ pub mod types {
 }
 
 
-pub fn is_invalid(t: Rc<RefCell<Option<types_Type>>>) -> Rc<RefCell<Option<bool>>> {
+pub fn is_invalid(t: Rc<RefCell<Option<types_Type>>>) -> bool {
 
-    return {
-            let __tmp_x = (*t.borrow().as_ref().unwrap()).clone();
-            let __tmp_y = { let __arg = (*types::Typ().borrow().as_ref().unwrap())[0usize].clone(); let __converted = { let __arg_guard = __arg.borrow(); let __converted: types_Type = __arg_guard.as_ref().map(|__v| (*__v).clone().into()).unwrap_or_else(types_Type::default); __converted }; __converted };
-            Rc::new(RefCell::new(Some(__tmp_x == __tmp_y)))
-        };
+    return (*t.borrow().as_ref().unwrap()).clone() == { let __arg = (*types::Typ().borrow().as_ref().unwrap())[0usize].clone(); let __converted = { let __arg_guard = __arg.borrow(); let __converted: types_Type = __arg_guard.as_ref().map(|__v| (*__v).clone().into()).unwrap_or_else(types_Type::default); __converted }; __converted };
 }
 
 fn main() {
     if false {
-        println!("{}", format!("{}", (*is_invalid({ let __arg = (*types::Typ().borrow().as_ref().unwrap())[0usize].clone(); let __converted = { let __arg_guard = __arg.borrow(); let __converted: Option<types_Type> = __arg_guard.as_ref().map(|__v| (*__v).clone().into()); __converted }; Rc::new(RefCell::new(__converted)) }).borrow().as_ref().unwrap())));
+        println!("{}", format!("{}", is_invalid({ let __arg = (*types::Typ().borrow().as_ref().unwrap())[0usize].clone(); let __converted = { let __arg_guard = __arg.borrow(); let __converted: Option<types_Type> = __arg_guard.as_ref().map(|__v| (*__v).clone().into()); __converted }; Rc::new(RefCell::new(__converted)) })));
     }
     println!("{}", format!("{}", "ok".to_string()));
 }

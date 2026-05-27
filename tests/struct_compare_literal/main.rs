@@ -36,12 +36,12 @@ pub fn parse(x: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<version>>> {
     return Rc::new(RefCell::new(Some(version { major: x.clone(), minor: Rc::new(RefCell::new(Some("0".to_string()))), ..Default::default() })));
 }
 
-pub fn valid(x: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<bool>>> {
+pub fn valid(x: Rc<RefCell<Option<String>>>) -> bool {
 
-    return Rc::new(RefCell::new(Some((*parse(Rc::new(RefCell::new(Some({ let __arg_holder = x.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() })))).borrow().as_ref().unwrap()).clone() != version { major: Rc::new(RefCell::new(Some(String::new()))), minor: Rc::new(RefCell::new(Some(String::new()))) })));
+    return (*parse(Rc::new(RefCell::new(Some({ let __arg_holder = x.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() })))).borrow().as_ref().unwrap()).clone() != version { major: Rc::new(RefCell::new(Some(String::new()))), minor: Rc::new(RefCell::new(Some(String::new()))) };
 }
 
 fn main() {
-    println!("{}", format!("{}", (*valid(Rc::new(RefCell::new(Some("1".to_string())))).borrow().as_ref().unwrap())));
-    println!("{}", format!("{}", (*valid(Rc::new(RefCell::new(Some("".to_string())))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", valid(Rc::new(RefCell::new(Some("1".to_string()))))));
+    println!("{}", format!("{}", valid(Rc::new(RefCell::new(Some("".to_string()))))));
 }

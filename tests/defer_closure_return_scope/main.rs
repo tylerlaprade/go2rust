@@ -1,7 +1,7 @@
 use std::cell::{RefCell};
 use std::rc::{Rc};
 
-pub fn run() -> Rc<RefCell<Option<i32>>> {
+pub fn run() -> i32 {
     let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
     let mut result: Rc<RefCell<Option<i32>>> = Rc::new(RefCell::new(Some(0)));
@@ -18,10 +18,10 @@ pub fn run() -> Rc<RefCell<Option<i32>>> {
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return result
+        return (*result.borrow().as_ref().unwrap())
     }
 }
 
 fn main() {
-    println!("{}", format!("{}", (*run().borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", run()));
 }

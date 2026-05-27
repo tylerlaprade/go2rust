@@ -516,6 +516,112 @@ func apply(options []option) {
 	}
 }
 
+func TestCopyScalarReturnBoundariesUseBareRustTypes(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+type counter struct {
+	n int
+}
+
+func year() int {
+	return 2024
+}
+
+func (c counter) value() int {
+	return c.n
+}
+
+func named() (x int) {
+	x = year()
+	return
+}
+
+func pair() (int, bool) {
+	return year(), true
+}
+
+func main() {
+	fmt.Println(year())
+}
+`)
+
+	for _, want := range []string{
+		"pub fn year() -> i32",
+		"pub fn named() -> i32",
+		"pub fn pair() -> (i32, bool)",
+		"pub fn value(&self) -> i32",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("copy scalar return boundary should emit %q:\n%s", want, rust)
+		}
+	}
+	for _, unwanted := range []string{
+		"pub fn year() -> Rc<RefCell<Option<i32>>>",
+		"pub fn named() -> Rc<RefCell<Option<i32>>>",
+		"pub fn pair() -> (Rc<RefCell<Option<i32>>>",
+		"pub fn value(&self) -> Rc<RefCell<Option<i32>>>",
+	} {
+		if strings.Contains(rust, unwanted) {
+			t.Fatalf("copy scalar return boundary should not remain wrapped (%q):\n%s", unwanted, rust)
+		}
+	}
+	if !strings.Contains(rust, "return 2024 as i32;") {
+		t.Fatalf("literal scalar return should emit a bare typed value:\n%s", rust)
+	}
+	if strings.Contains(rust, "return year().borrow()") || strings.Contains(rust, "return (*year()") {
+		t.Fatalf("bare scalar-returning calls should not be unwrapped at return boundaries:\n%s", rust)
+	}
+	if strings.Contains(rust, "format!(\"{}\", (*year().borrow().as_ref().unwrap()))") {
+		t.Fatalf("bare scalar-returning calls should not be unwrapped for fmt printing:\n%s", rust)
+	}
+}
+
+func TestTupleAssignmentFromBareScalarReturnSlots(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func pair() (int, bool) {
+	return 1, true
+}
+
+func assign() int {
+	var x int
+	var ok bool
+	x, ok = pair()
+	if ok {
+		return x
+	}
+	return 0
+}
+
+func short() int {
+	x, ok := pair()
+	if ok {
+		return x
+	}
+	return 0
+}
+`)
+
+	if !strings.Contains(rust, "pub fn pair() -> (i32, bool)") {
+		t.Fatalf("tuple return signature should use bare scalar slots:\n%s", rust)
+	}
+	if strings.Contains(rust, "__tmp_0.borrow()") || strings.Contains(rust, "__tmp_0.lock()") ||
+		strings.Contains(rust, "__tmp_1.borrow()") || strings.Contains(rust, "__tmp_1.lock()") {
+		t.Fatalf("tuple reassignment from bare scalar slots should not borrow temporaries:\n%s", rust)
+	}
+	if !strings.Contains(rust, "= Some(__tmp_0)") || !strings.Contains(rust, "= Some(__tmp_1)") {
+		t.Fatalf("tuple reassignment should store bare scalar temps into existing wrapped locals:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let (mut x, mut ok) = pair();") {
+		t.Fatalf("tuple short declaration should bind bare scalar results directly:\n%s", rust)
+	}
+	if !strings.Contains(rust, "if ok {") || !strings.Contains(rust, "return x;") {
+		t.Fatalf("tuple short-declared bare scalar locals should be used directly:\n%s", rust)
+	}
+}
+
 func TestLocalInterfaceAssignmentFromOwnMethodCallClonesReceiver(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

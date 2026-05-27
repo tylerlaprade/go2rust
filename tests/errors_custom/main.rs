@@ -38,28 +38,20 @@ impl argError {
 impl StdError for argError {}
 
 
-pub fn f1(arg: Rc<RefCell<Option<i32>>>) -> (Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<Box<dyn StdError>>>>) {
+pub fn f1(arg: Rc<RefCell<Option<i32>>>) -> (i32, Rc<RefCell<Option<Box<dyn StdError>>>>) {
 
     if (*arg.borrow().as_ref().unwrap()) == 42 {
-        return (Rc::new(RefCell::new(Some(-1))), Rc::new(RefCell::new(Some(Box::<dyn std::error::Error>::from("can't work with 42".to_string())))));
+        return (-1, Rc::new(RefCell::new(Some(Box::<dyn std::error::Error>::from("can't work with 42".to_string())))));
     }
-    return ({
-            let __tmp_x = (*arg.borrow().as_ref().unwrap());
-            let __tmp_y = 3;
-            Rc::new(RefCell::new(Some(__tmp_x + __tmp_y)))
-        }, Rc::new(RefCell::new(None)));
+    return ((*arg.borrow().as_ref().unwrap()) + 3, Rc::new(RefCell::new(None)));
 }
 
-pub fn f2(arg: Rc<RefCell<Option<i32>>>) -> (Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<Box<dyn StdError>>>>) {
+pub fn f2(arg: Rc<RefCell<Option<i32>>>) -> (i32, Rc<RefCell<Option<Box<dyn StdError>>>>) {
 
     if (*arg.borrow().as_ref().unwrap()) == 42 {
-        return (Rc::new(RefCell::new(Some(-1))), Rc::new(RefCell::new(Some(Box::new(argError { arg: Rc::new(RefCell::new(Some((*arg.borrow().as_ref().unwrap())))), prob: Rc::new(RefCell::new(Some("can't work with it".to_string()))), ..Default::default() }) as Box<dyn StdError>))));
+        return (-1, Rc::new(RefCell::new(Some(Box::new(argError { arg: Rc::new(RefCell::new(Some((*arg.borrow().as_ref().unwrap())))), prob: Rc::new(RefCell::new(Some("can't work with it".to_string()))), ..Default::default() }) as Box<dyn StdError>))));
     }
-    return ({
-            let __tmp_x = (*arg.borrow().as_ref().unwrap());
-            let __tmp_y = 3;
-            Rc::new(RefCell::new(Some(__tmp_x + __tmp_y)))
-        }, Rc::new(RefCell::new(None)));
+    return ((*arg.borrow().as_ref().unwrap()) + 3, Rc::new(RefCell::new(None)));
 }
 
 fn main() {
@@ -69,7 +61,7 @@ fn main() {
         if (*e.borrow()).is_some() {
             println!("{} {}", format!("{}", "f1 failed:".to_string()), format!("{}", format!("{}", (*e.borrow().as_ref().unwrap()))));;
         } else {
-            println!("{} {}", format!("{}", "f1 worked:".to_string()), format!("{}", { let __v = (*r.borrow().as_ref().unwrap()).clone(); __v }));;
+            println!("{} {}", format!("{}", "f1 worked:".to_string()), format!("{}", r));;
         }
     }
     }
@@ -79,7 +71,7 @@ fn main() {
         if (*e.borrow()).is_some() {
             println!("{} {}", format!("{}", "f2 failed:".to_string()), format!("{}", format!("{}", (*e.borrow().as_ref().unwrap()))));;
         } else {
-            println!("{} {}", format!("{}", "f2 worked:".to_string()), format!("{}", { let __v = (*r.borrow().as_ref().unwrap()).clone(); __v }));;
+            println!("{} {}", format!("{}", "f2 worked:".to_string()), format!("{}", r));;
         }
     }
     }

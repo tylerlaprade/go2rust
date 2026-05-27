@@ -168,8 +168,8 @@ impl std::fmt::Display for Holder {
 
 
 impl Holder {
-    pub fn ready(&self) -> Arc<Mutex<Option<bool>>> {
-        return Arc::new(Mutex::new(Some(!self.ch.is_nil())));
+    pub fn ready(&self) -> bool {
+        return !self.ch.is_nil();
     }
 
     pub fn fill(&mut self) {
@@ -184,16 +184,16 @@ impl Holder {
 
 fn main() {
     let mut h = Arc::new(Mutex::new(Some(Holder { ch: Default::default() })));
-    println!("{}", format!("{}", (*(*h.lock().unwrap().as_ref().unwrap()).ready().lock().unwrap().as_ref().unwrap())));
+    println!("{}", format!("{}", (*h.lock().unwrap().as_ref().unwrap()).ready()));
     (*h.lock().unwrap().as_mut().unwrap()).fill();
 
     let mut h2 = Arc::new(Mutex::new(Some(Holder { ch: GoChannel::<i32>::new_buffered(1 as usize), ..Default::default() })));
-    println!("{}", format!("{}", (*(*h2.lock().unwrap().as_ref().unwrap()).ready().lock().unwrap().as_ref().unwrap())));
+    println!("{}", format!("{}", (*h2.lock().unwrap().as_ref().unwrap()).ready()));
     println!("{}", format!("{}", (*h2.lock().unwrap().as_ref().unwrap()).ch.len()));
     println!("{}", format!("{}", (*h2.lock().unwrap().as_ref().unwrap()).ch.capacity()));
     (*h2.lock().unwrap().as_ref().unwrap()).ch.send(7);
     println!("{}", format!("{}", (*h2.lock().unwrap().as_ref().unwrap()).ch.recv().unwrap_or_default()));
 
     let mut h3 = Arc::new(Mutex::new(Some(Holder { ch: Default::default(), ..Default::default() })));
-    println!("{}", format!("{}", (*(*h3.lock().unwrap().as_ref().unwrap()).ready().lock().unwrap().as_ref().unwrap())));
+    println!("{}", format!("{}", (*h3.lock().unwrap().as_ref().unwrap()).ready()));
 }

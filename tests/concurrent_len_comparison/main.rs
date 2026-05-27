@@ -148,22 +148,18 @@ impl<T> Iterator for GoChannel<T> {
     }
 }
 
-pub fn consumed_all(v: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<bool>>> {
+pub fn consumed_all(v: Arc<Mutex<Option<String>>>) -> bool {
 
     let mut i = Arc::new(Mutex::new(Some(0)));
     while { let __tmp_x = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v } as i32); let __tmp_y = ((*v.lock().unwrap().as_ref().unwrap()).len() as i32); __tmp_x < __tmp_y } {
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
-    return {
-            let __tmp_x = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v } as i32);
-            let __tmp_y = ((*v.lock().unwrap().as_ref().unwrap()).len() as i32);
-            Arc::new(Mutex::new(Some(__tmp_x == __tmp_y)))
-        };
+    return { let __tmp_x = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v } as i32); let __tmp_y = ((*v.lock().unwrap().as_ref().unwrap()).len() as i32); __tmp_x == __tmp_y };
 }
 
 fn main() {
     let mut ch = GoChannel::<i32>::new_buffered(1 as usize);
     ch.send(1);
     println!("{}", format!("{}", ch.recv().unwrap_or_default()));
-    println!("{}", format!("{}", (*consumed_all(Arc::new(Mutex::new(Some("abc".to_string())))).lock().unwrap().as_ref().unwrap())));
+    println!("{}", format!("{}", consumed_all(Arc::new(Mutex::new(Some("abc".to_string()))))));
 }

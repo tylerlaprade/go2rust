@@ -189,5 +189,5 @@ fn main() {
         println!("{} {}", format!("{}", "err:".to_string()), format!("{}", format!("{}", (*err.borrow().as_ref().unwrap()))));
         return;
     }
-    println!("{} {} {} {}", format!("{}", "wrote".to_string()), format!("{}", { let __v = (*n.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", "bytes:".to_string()), format!("{}", (*(*buf.borrow_mut().as_mut().unwrap()).string().borrow().as_ref().unwrap())));
+    println!("{} {} {} {}", format!("{}", "wrote".to_string()), format!("{}", n), format!("{}", "bytes:".to_string()), format!("{}", (*(*buf.borrow_mut().as_mut().unwrap()).string().borrow().as_ref().unwrap())));
 }

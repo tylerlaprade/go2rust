@@ -181,12 +181,12 @@ fn go_rand_float64() -> f64 {
 
 pub mod atomic {
     use super::*;
-    pub fn add_uint64<T0, T1>(_arg0: T0, _arg1: T1) -> Arc<Mutex<Option<u64>>> {
-        Arc::new(Mutex::new(Some::<u64>(Default::default())))
+    pub fn add_uint64<T0, T1>(_arg0: T0, _arg1: T1) -> u64 {
+        panic!("add_uint64 bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
     }
 
-    pub fn load_uint64<T0>(_arg0: T0) -> Arc<Mutex<Option<u64>>> {
-        Arc::new(Mutex::new(Some::<u64>(Default::default())))
+    pub fn load_uint64<T0>(_arg0: T0) -> u64 {
+        panic!("load_uint64 bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
     }
 }
 

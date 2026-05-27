@@ -103,7 +103,7 @@ pub mod binary {
     }
 
     pub fn write<T0, T1, T2>(_arg0: T0, _arg1: T1, _arg2: T2) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
-        Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>))
+        panic!("write bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
     }
 }
 
@@ -115,7 +115,7 @@ pub mod io {
     }
 
     pub fn multi_writer<T0>(_arg0: T0) -> Arc<Mutex<Option<io_Writer>>> {
-        Arc::new(Mutex::new(Some::<io_Writer>(Default::default())))
+        panic!("multi_writer bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
     }
 }
 

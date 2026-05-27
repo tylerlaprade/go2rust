@@ -79,9 +79,9 @@ pub fn selector_name(sel: Rc<RefCell<Option<ast_SelectorExpr>>>) -> Rc<RefCell<O
     return Rc::new(RefCell::new(Some({ let __selector_holder = (*(*sel.borrow().as_ref().unwrap()).sel.borrow().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
 }
 
-pub fn has_selector_name(sel: Rc<RefCell<Option<ast_SelectorExpr>>>) -> Rc<RefCell<Option<bool>>> {
+pub fn has_selector_name(sel: Rc<RefCell<Option<ast_SelectorExpr>>>) -> bool {
 
-    return Rc::new(RefCell::new(Some({ let __selector_holder = (*(*sel.borrow().as_ref().unwrap()).sel.borrow().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } != "_")));
+    return { let __selector_holder = (*(*sel.borrow().as_ref().unwrap()).sel.borrow().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } != "_";
 }
 
 pub fn selector_name_map(sel: Rc<RefCell<Option<ast_SelectorExpr>>>) -> Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<String>>>>>>> {
@@ -95,7 +95,7 @@ fn main() {
     if false {
         println!("{}", format!("{}", format!("&{}", (*pick(Rc::new(RefCell::new(Some(ast_SelectorExpr { ..Default::default() })))).borrow().as_ref().unwrap()))));
         println!("{}", format!("{}", (*selector_name(Rc::new(RefCell::new(Some(ast_SelectorExpr { ..Default::default() })))).borrow().as_ref().unwrap())));
-        println!("{}", format!("{}", (*has_selector_name(Rc::new(RefCell::new(Some(ast_SelectorExpr { ..Default::default() })))).borrow().as_ref().unwrap())));
+        println!("{}", format!("{}", has_selector_name(Rc::new(RefCell::new(Some(ast_SelectorExpr { ..Default::default() }))))));
         println!("{}", format!("{}", format_map(&selector_name_map(Rc::new(RefCell::new(Some(ast_SelectorExpr { ..Default::default() })))))));
     }
     println!("{}", format!("{}", "ok".to_string()));

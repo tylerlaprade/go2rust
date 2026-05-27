@@ -350,11 +350,11 @@ impl std::fmt::Display for Encoder {
 
 
 impl Encoder {
-    pub fn sync(&self, m: Rc<RefCell<Option<SyncMarker>>>) -> Rc<RefCell<Option<i32>>> {
-        return Rc::new(RefCell::new(Some((*(*m.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) as i32)));
+    pub fn sync(&self, m: Rc<RefCell<Option<SyncMarker>>>) -> i32 {
+        return (*Rc::new(RefCell::new(Some((*(*m.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) as i32))).borrow().as_ref().unwrap());
     }
 
-    pub fn call_sync(&self) -> Rc<RefCell<Option<i32>>> {
+    pub fn call_sync(&self) -> i32 {
         return self.sync(Rc::new(RefCell::new(Some(SyncMarker(Rc::new(RefCell::new(Some(SYNC_BOOL as i32))))))));
     }
 }

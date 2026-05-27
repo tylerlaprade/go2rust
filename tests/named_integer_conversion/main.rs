@@ -217,33 +217,33 @@ fn __go_init_globals() {
 
 
 impl Kind {
-    pub fn method_int(&self) -> Rc<RefCell<Option<i32>>> {
-        return Rc::new(RefCell::new(Some((*self.0.borrow().as_ref().unwrap()) as i32)));
+    pub fn method_int(&self) -> i32 {
+        return (*Rc::new(RefCell::new(Some((*self.0.borrow().as_ref().unwrap()) as i32))).borrow().as_ref().unwrap());
     }
 
-    pub fn method_plus(&self) -> Rc<RefCell<Option<i32>>> {
-        return Rc::new(RefCell::new(Some((((*self.0.borrow().as_ref().unwrap()) + 1)) as i32)));
+    pub fn method_plus(&self) -> i32 {
+        return (*Rc::new(RefCell::new(Some((((*self.0.borrow().as_ref().unwrap()) + 1)) as i32))).borrow().as_ref().unwrap());
     }
 }
 
-pub fn as_int(k: Rc<RefCell<Option<Kind>>>) -> Rc<RefCell<Option<i32>>> {
+pub fn as_int(k: Rc<RefCell<Option<Kind>>>) -> i32 {
 
-    return Rc::new(RefCell::new(Some((*(*k.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) as i32)));
+    return (*Rc::new(RefCell::new(Some((*(*k.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) as i32))).borrow().as_ref().unwrap());
 }
 
-pub fn as_uint64(k: Rc<RefCell<Option<Kind>>>) -> Rc<RefCell<Option<u64>>> {
+pub fn as_uint64(k: Rc<RefCell<Option<Kind>>>) -> u64 {
 
-    return Rc::new(RefCell::new(Some((*(*k.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) as u64)));
+    return (*Rc::new(RefCell::new(Some((*(*k.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) as u64))).borrow().as_ref().unwrap());
 }
 
-pub fn field_as_int(e: Rc<RefCell<Option<Entry>>>) -> Rc<RefCell<Option<i32>>> {
+pub fn field_as_int(e: Rc<RefCell<Option<Entry>>>) -> i32 {
 
-    return Rc::new(RefCell::new(Some((*(*(*e.borrow().as_ref().unwrap()).kind.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) as i32)));
+    return (*Rc::new(RefCell::new(Some((*(*(*e.borrow().as_ref().unwrap()).kind.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) as i32))).borrow().as_ref().unwrap());
 }
 
-pub fn plus_as_int(k: Rc<RefCell<Option<Kind>>>) -> Rc<RefCell<Option<i32>>> {
+pub fn plus_as_int(k: Rc<RefCell<Option<Kind>>>) -> i32 {
 
-    return Rc::new(RefCell::new(Some((((*(*k.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) + 1)) as i32)));
+    return (*Rc::new(RefCell::new(Some((((*(*k.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) + 1)) as i32))).borrow().as_ref().unwrap());
 }
 
 pub fn limit_kind() -> Rc<RefCell<Option<Kind>>> {
@@ -251,27 +251,23 @@ pub fn limit_kind() -> Rc<RefCell<Option<Kind>>> {
     return Rc::new(RefCell::new(Some(Kind(Rc::new(RefCell::new(Some(((*kindIndex.borrow().as_ref().unwrap()).len() as i32) - (1 as i32) as i32)))))));
 }
 
-pub fn over_limit(k: Rc<RefCell<Option<Kind>>>) -> Rc<RefCell<Option<bool>>> {
+pub fn over_limit(k: Rc<RefCell<Option<Kind>>>) -> bool {
 
-    return {
-            let __tmp_x = (*k.borrow().as_ref().unwrap()).clone();
-            let __tmp_y = Kind(Rc::new(RefCell::new(Some(((*kindIndex.borrow().as_ref().unwrap()).len() as i32) - (1 as i32) as i32))));
-            Rc::new(RefCell::new(Some(__tmp_x >= __tmp_y)))
-        };
+    return (*k.borrow().as_ref().unwrap()).clone() >= Kind(Rc::new(RefCell::new(Some(((*kindIndex.borrow().as_ref().unwrap()).len() as i32) - (1 as i32) as i32))));
 }
 
 fn main() {
     __go_init_all();
     let mut k: Rc<RefCell<Option<Kind>>> = Rc::new(RefCell::new(Some(Kind(Rc::new(RefCell::new(Some(3)))))));
     let mut entry = Rc::new(RefCell::new(Some(Entry { kind: k.clone(), ..Default::default() })));
-    println!("{}", format!("{}", (*as_int(Rc::new(RefCell::new(Some((*k.borrow().as_ref().unwrap()).clone())))).borrow().as_ref().unwrap())));
-    println!("{}", format!("{}", (*as_uint64(Rc::new(RefCell::new(Some((*k.borrow().as_ref().unwrap()).clone())))).borrow().as_ref().unwrap())));
-    println!("{}", format!("{}", (*field_as_int(Rc::new(RefCell::new(Some((*entry.borrow().as_ref().unwrap()).clone())))).borrow().as_ref().unwrap())));
-    println!("{}", format!("{}", (*plus_as_int(Rc::new(RefCell::new(Some((*k.borrow().as_ref().unwrap()).clone())))).borrow().as_ref().unwrap())));
-    println!("{}", format!("{}", (*(*k.borrow().as_ref().unwrap()).method_int().borrow().as_ref().unwrap())));
-    println!("{}", format!("{}", (*(*k.borrow().as_ref().unwrap()).method_plus().borrow().as_ref().unwrap())));
-    println!("{}", format!("{}", (*as_int(limit_kind()).borrow().as_ref().unwrap())));
-    println!("{}", format!("{}", (*over_limit(Rc::new(RefCell::new(Some((*k.borrow().as_ref().unwrap()).clone())))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", as_int(Rc::new(RefCell::new(Some((*k.borrow().as_ref().unwrap()).clone()))))));
+    println!("{}", format!("{}", as_uint64(Rc::new(RefCell::new(Some((*k.borrow().as_ref().unwrap()).clone()))))));
+    println!("{}", format!("{}", field_as_int(Rc::new(RefCell::new(Some((*entry.borrow().as_ref().unwrap()).clone()))))));
+    println!("{}", format!("{}", plus_as_int(Rc::new(RefCell::new(Some((*k.borrow().as_ref().unwrap()).clone()))))));
+    println!("{}", format!("{}", (*k.borrow().as_ref().unwrap()).method_int()));
+    println!("{}", format!("{}", (*k.borrow().as_ref().unwrap()).method_plus()));
+    println!("{}", format!("{}", as_int(limit_kind())));
+    println!("{}", format!("{}", over_limit(Rc::new(RefCell::new(Some((*k.borrow().as_ref().unwrap()).clone()))))));
 }
 
 pub(crate) fn __go_init_all() {

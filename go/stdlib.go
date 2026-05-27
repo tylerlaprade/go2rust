@@ -520,6 +520,10 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 	}
 	// Check if this is a function call that returns a wrapped value
 	if callExpr, ok := arg.(*ast.CallExpr); ok {
+		if callReturnsBareScalar(callExpr) {
+			TranspileExpression(out, arg)
+			return
+		}
 		// Check if it's a method call or user function call
 		needsUnwrap := false
 

@@ -24,7 +24,7 @@ impl types_Object {
         self.__go_value.as_ref().downcast_ref::<T>()
     }
     pub fn pkg(&self) -> Rc<RefCell<Option<types_Package>>> {
-        Rc::new(RefCell::new(Some::<types_Package>(Default::default())))
+        panic!("types_Object.pkg bridge: generic stub method body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
     }
 }
 

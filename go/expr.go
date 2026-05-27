@@ -8042,12 +8042,12 @@ func TranspileFuncLitBox(out *strings.Builder, funcLit *ast.FuncLit) {
 		out.WriteString("-> ")
 		if len(funcLit.Type.Results.List) == 1 && len(funcLit.Type.Results.List[0].Names) == 0 {
 			// Single unnamed return
-			out.WriteString(GoTypeToRust(funcLit.Type.Results.List[0].Type))
+			out.WriteString(GoReturnTypeToRust(funcLit.Type.Results.List[0].Type))
 		} else {
 			// Multiple returns
 			var retTypes []string
 			for _, field := range funcLit.Type.Results.List {
-				retType := GoTypeToRust(field.Type)
+				retType := GoReturnTypeToRust(field.Type)
 				count := len(field.Names)
 				if count == 0 {
 					count = 1

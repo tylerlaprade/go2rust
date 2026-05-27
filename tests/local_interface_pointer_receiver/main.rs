@@ -49,8 +49,8 @@ pub trait List: std::fmt::Display + Any {
     fn __go_clone_box_list(&self) -> Box<dyn List>;
     fn __go_as_any(&self) -> &dyn Any;
     fn __go_eq_list(&self, other: &dyn List) -> bool;
-    fn valid(&self, index: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<bool>>>;
-    fn label(&self, index: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>;
+    fn valid(&self, index: Rc<RefCell<Option<i32>>>) -> bool;
+    fn label(&self, index: Rc<RefCell<Option<i32>>>) -> i32;
 }
 
 impl Clone for Box<dyn List> {
@@ -78,21 +78,21 @@ impl std::fmt::Display for list {
 
 
 impl list {
-    pub fn valid(&self, index: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<bool>>> {
-        return Rc::new(RefCell::new(Some((*index.borrow().as_ref().unwrap()) >= 0 && ((*index.borrow().as_ref().unwrap()) as i32) < ((*self.labels.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32))));
+    pub fn valid(&self, index: Rc<RefCell<Option<i32>>>) -> bool {
+        return (*index.borrow().as_ref().unwrap()) >= 0 && ((*index.borrow().as_ref().unwrap()) as i32) < ((*self.labels.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32);
     }
 
-    pub fn label(&self, index: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>> {
-        return Rc::new(RefCell::new(Some((*self.labels.borrow().as_ref().unwrap())[((*index.borrow().as_ref().unwrap())) as usize].clone())));
+    pub fn label(&self, index: Rc<RefCell<Option<i32>>>) -> i32 {
+        return (*self.labels.borrow().as_ref().unwrap())[((*index.borrow().as_ref().unwrap())) as usize].clone();
     }
 }
 
 impl List for list {
-    fn valid(&self, index: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<bool>>> {
-        return Rc::new(RefCell::new(Some((*index.borrow().as_ref().unwrap()) >= 0 && ((*index.borrow().as_ref().unwrap()) as i32) < ((*self.labels.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32))));
+    fn valid(&self, index: Rc<RefCell<Option<i32>>>) -> bool {
+        return (*index.borrow().as_ref().unwrap()) >= 0 && ((*index.borrow().as_ref().unwrap()) as i32) < ((*self.labels.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32);
     }
-    fn label(&self, index: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>> {
-        return Rc::new(RefCell::new(Some((*self.labels.borrow().as_ref().unwrap())[((*index.borrow().as_ref().unwrap())) as usize].clone())));
+    fn label(&self, index: Rc<RefCell<Option<i32>>>) -> i32 {
+        return (*self.labels.borrow().as_ref().unwrap())[((*index.borrow().as_ref().unwrap())) as usize].clone();
     }
     fn __go_clone_box_list(&self) -> Box<dyn List> {
         Box::new(self.clone()) as Box<dyn List>

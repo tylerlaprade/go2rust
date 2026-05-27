@@ -251,6 +251,18 @@ impl GoJsonDecode for i32 {
     }
 }
 
+impl GoJsonDecode for i16 {
+    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
+        value.as_i64().map(|value| value as i16).ok_or_else(|| go_json_expected(value, "integer"))
+    }
+}
+
+impl GoJsonDecode for i8 {
+    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
+        value.as_i64().map(|value| value as i8).ok_or_else(|| go_json_expected(value, "integer"))
+    }
+}
+
 impl GoJsonDecode for i64 {
     fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
         value.as_i64().ok_or_else(|| go_json_expected(value, "integer"))
@@ -260,6 +272,12 @@ impl GoJsonDecode for i64 {
 impl GoJsonDecode for u8 {
     fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
         value.as_u64().map(|value| value as u8).ok_or_else(|| go_json_expected(value, "integer"))
+    }
+}
+
+impl GoJsonDecode for u16 {
+    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
+        value.as_u64().map(|value| value as u16).ok_or_else(|| go_json_expected(value, "integer"))
     }
 }
 
@@ -275,9 +293,21 @@ impl GoJsonDecode for u64 {
     }
 }
 
+impl GoJsonDecode for usize {
+    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
+        value.as_u64().map(|value| value as usize).ok_or_else(|| go_json_expected(value, "integer"))
+    }
+}
+
 impl GoJsonDecode for f64 {
     fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
         value.as_f64().ok_or_else(|| go_json_expected(value, "number"))
+    }
+}
+
+impl GoJsonDecode for f32 {
+    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
+        value.as_f64().map(|value| value as f32).ok_or_else(|| go_json_expected(value, "number"))
     }
 }
 
@@ -288,6 +318,23 @@ where
     fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
         let array = value.as_array().ok_or_else(|| go_json_expected(value, "array"))?;
         array.iter().map(T::go_json_decode).collect()
+    }
+}
+
+impl<T, const N: usize> GoJsonDecode for [T; N]
+where
+    T: GoJsonDecode + Default,
+{
+    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
+        let array = value.as_array().ok_or_else(|| go_json_expected(value, "array"))?;
+        if array.len() != N {
+            return Err(format!("expected array of length {}, got {}", N, array.len()));
+        }
+        let mut out = std::array::from_fn(|_| T::default());
+        for (index, item) in array.iter().enumerate() {
+            out[index] = T::go_json_decode(item)?;
+        }
+        Ok(out)
     }
 }
 

@@ -1,17 +1,17 @@
 use std::cell::{RefCell};
 use std::rc::{Rc};
 
-pub fn is_upper(r: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<bool>>> {
+pub fn is_upper(r: Rc<RefCell<Option<i32>>>) -> bool {
 
-    return Rc::new(RefCell::new(Some((*r.borrow().as_ref().unwrap()) >= ('A' as i32) && (*r.borrow().as_ref().unwrap()) <= ('Z' as i32))));
+    return (*r.borrow().as_ref().unwrap()) >= ('A' as i32) && (*r.borrow().as_ref().unwrap()) <= ('Z' as i32);
 }
 
-pub fn to_lower(r: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<u8>>> {
+pub fn to_lower(r: Rc<RefCell<Option<i32>>>) -> u8 {
 
     if (*r.borrow().as_ref().unwrap()) >= ('A' as i32) && (*r.borrow().as_ref().unwrap()) <= ('Z' as i32) {
-        return Rc::new(RefCell::new(Some(((*r.borrow().as_ref().unwrap()) + (('a' as i32) - ('A' as i32)) as i32) as u8)));
+        return (*Rc::new(RefCell::new(Some(((*r.borrow().as_ref().unwrap()) + (('a' as i32) - ('A' as i32)) as i32) as u8))).borrow().as_ref().unwrap());
     }
-    return Rc::new(RefCell::new(Some((*r.borrow().as_ref().unwrap()) as u8)));
+    return (*Rc::new(RefCell::new(Some((*r.borrow().as_ref().unwrap()) as u8))).borrow().as_ref().unwrap());
 }
 
 pub fn classify(r: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<String>>> {
@@ -41,6 +41,6 @@ fn main() {
         if (r as i32) < (0x20 as i32) || (r as i32) == (0x7f as i32) || (r as i32) > (0x7e as i32) {
         { let new_val = true; *control.borrow_mut() = Some(new_val); };
     }
-        println!("{} {} {} {} {}", format!("{}", (*is_upper(Rc::new(RefCell::new(Some(r as i32)))).borrow().as_ref().unwrap())), format!("{}", (*Rc::new(RefCell::new(Some((*to_lower(Rc::new(RefCell::new(Some(r as i32)))).borrow().as_ref().unwrap()) as i32))).borrow().as_ref().unwrap())), format!("{}", (*classify(Rc::new(RefCell::new(Some(r as i32)))).borrow().as_ref().unwrap())), format!("{}", { let __v = (*rangeClass.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*control.borrow().as_ref().unwrap()).clone(); __v }));
+        println!("{} {} {} {} {}", format!("{}", is_upper(Rc::new(RefCell::new(Some(r as i32))))), format!("{}", (*Rc::new(RefCell::new(Some(to_lower(Rc::new(RefCell::new(Some(r as i32)))) as i32))).borrow().as_ref().unwrap())), format!("{}", (*classify(Rc::new(RefCell::new(Some(r as i32)))).borrow().as_ref().unwrap())), format!("{}", { let __v = (*rangeClass.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*control.borrow().as_ref().unwrap()).clone(); __v }));
     }
 }

@@ -39,8 +39,8 @@ fn main() {
 }
 
 #[derive(Debug, Clone, Default)]
-struct AnonymousStruct1 {
-    child: Rc<RefCell<Option<node>>>,
+pub struct AnonymousStruct1 {
+    pub child: Rc<RefCell<Option<node>>>,
 }
 impl AnonymousStruct1 {
     pub fn __go_value_clone(&self) -> Self {

@@ -206,7 +206,7 @@ impl std::fmt::Display for writer {
 
 
 impl writer {
-    pub fn available(&self) -> Rc<RefCell<Option<i32>>> {
+    pub fn available(&self) -> i32 {
         let embedded = self.buffer.clone();
         let guard = embedded.borrow();
         let embedded_ref = guard.as_ref().unwrap();
@@ -227,7 +227,7 @@ impl writer {
         embedded_ref.bytes()
     }
 
-    pub fn cap(&self) -> Rc<RefCell<Option<i32>>> {
+    pub fn cap(&self) -> i32 {
         let embedded = self.buffer.clone();
         let guard = embedded.borrow();
         let embedded_ref = guard.as_ref().unwrap();
@@ -241,7 +241,7 @@ impl writer {
         embedded_ref.grow(_arg0)
     }
 
-    pub fn len(&self) -> Rc<RefCell<Option<i32>>> {
+    pub fn len(&self) -> i32 {
         let embedded = self.buffer.clone();
         let guard = embedded.borrow();
         let embedded_ref = guard.as_ref().unwrap();
@@ -255,14 +255,14 @@ impl writer {
         embedded_ref.next(_arg0)
     }
 
-    pub fn read<T0: 'static>(&self, _arg0: T0) -> (Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<Box<dyn StdError>>>>) {
+    pub fn read<T0: 'static>(&self, _arg0: T0) -> (i32, Rc<RefCell<Option<Box<dyn StdError>>>>) {
         let embedded = self.buffer.clone();
         let guard = embedded.borrow();
         let embedded_ref = guard.as_ref().unwrap();
         embedded_ref.read(_arg0)
     }
 
-    pub fn read_byte(&self) -> (Rc<RefCell<Option<u8>>>, Rc<RefCell<Option<Box<dyn StdError>>>>) {
+    pub fn read_byte(&self) -> (u8, Rc<RefCell<Option<Box<dyn StdError>>>>) {
         let embedded = self.buffer.clone();
         let guard = embedded.borrow();
         let embedded_ref = guard.as_ref().unwrap();
@@ -276,14 +276,14 @@ impl writer {
         embedded_ref.read_bytes(_arg0)
     }
 
-    pub fn read_from<T0: 'static>(&self, _arg0: T0) -> (Rc<RefCell<Option<i64>>>, Rc<RefCell<Option<Box<dyn StdError>>>>) {
+    pub fn read_from<T0: 'static>(&self, _arg0: T0) -> (i64, Rc<RefCell<Option<Box<dyn StdError>>>>) {
         let embedded = self.buffer.clone();
         let guard = embedded.borrow();
         let embedded_ref = guard.as_ref().unwrap();
         embedded_ref.read_from(_arg0)
     }
 
-    pub fn read_rune(&self) -> (Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<Box<dyn StdError>>>>) {
+    pub fn read_rune(&self) -> (i32, i32, Rc<RefCell<Option<Box<dyn StdError>>>>) {
         let embedded = self.buffer.clone();
         let guard = embedded.borrow();
         let embedded_ref = guard.as_ref().unwrap();
@@ -332,7 +332,7 @@ impl writer {
         embedded_ref.unread_rune()
     }
 
-    pub fn write<T0: 'static>(&self, _arg0: T0) -> (Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<Box<dyn StdError>>>>) {
+    pub fn write<T0: 'static>(&self, _arg0: T0) -> (i32, Rc<RefCell<Option<Box<dyn StdError>>>>) {
         let embedded = self.buffer.clone();
         let guard = embedded.borrow();
         let embedded_ref = guard.as_ref().unwrap();
@@ -346,21 +346,21 @@ impl writer {
         embedded_ref.write_byte(_arg0)
     }
 
-    pub fn write_rune<T0: 'static>(&self, _arg0: T0) -> (Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<Box<dyn StdError>>>>) {
+    pub fn write_rune<T0: 'static>(&self, _arg0: T0) -> (i32, Rc<RefCell<Option<Box<dyn StdError>>>>) {
         let embedded = self.buffer.clone();
         let guard = embedded.borrow();
         let embedded_ref = guard.as_ref().unwrap();
         embedded_ref.write_rune(_arg0)
     }
 
-    pub fn write_string<T0: 'static>(&self, _arg0: T0) -> (Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<Box<dyn StdError>>>>) {
+    pub fn write_string<T0: 'static>(&self, _arg0: T0) -> (i32, Rc<RefCell<Option<Box<dyn StdError>>>>) {
         let embedded = self.buffer.clone();
         let guard = embedded.borrow();
         let embedded_ref = guard.as_ref().unwrap();
         embedded_ref.write_string(_arg0)
     }
 
-    pub fn write_to<T0: 'static>(&self, _arg0: T0) -> (Rc<RefCell<Option<i64>>>, Rc<RefCell<Option<Box<dyn StdError>>>>) {
+    pub fn write_to<T0: 'static>(&self, _arg0: T0) -> (i64, Rc<RefCell<Option<Box<dyn StdError>>>>) {
         let embedded = self.buffer.clone();
         let guard = embedded.borrow();
         let embedded_ref = guard.as_ref().unwrap();

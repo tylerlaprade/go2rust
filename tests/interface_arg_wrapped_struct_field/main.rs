@@ -7,7 +7,7 @@ pub trait Node: std::fmt::Display + Any {
     fn __go_clone_box_node(&self) -> Box<dyn Node>;
     fn __go_as_any(&self) -> &dyn Any;
     fn __go_eq_node(&self, other: &dyn Node) -> bool;
-    fn pos(&self) -> Rc<RefCell<Option<i32>>>;
+    fn pos(&self) -> i32;
 }
 
 impl Clone for Box<dyn Node> {
@@ -60,14 +60,14 @@ impl std::fmt::Display for Wrap {
 
 
 impl Lit {
-    pub fn pos(&self) -> Rc<RefCell<Option<i32>>> {
-        return self.value.clone();
+    pub fn pos(&self) -> i32 {
+        return (*self.value.borrow().as_ref().unwrap());
     }
 }
 
 impl Node for Lit {
-    fn pos(&self) -> Rc<RefCell<Option<i32>>> {
-        return self.value.clone();
+    fn pos(&self) -> i32 {
+        return (*self.value.borrow().as_ref().unwrap());
     }
     fn __go_clone_box_node(&self) -> Box<dyn Node> {
         Box::new(self.clone()) as Box<dyn Node>
@@ -85,7 +85,7 @@ impl Node for Lit {
 }
 
 pub fn dump(n: Rc<RefCell<Option<Box<dyn Node>>>>) {
-    println!("{}", format!("{}", (*(*n.borrow().as_ref().unwrap()).pos().borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*n.borrow().as_ref().unwrap()).pos()));
 }
 
 pub fn r#use(w: Rc<RefCell<Option<Wrap>>>) {

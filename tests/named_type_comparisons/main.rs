@@ -168,22 +168,14 @@ impl Ord for Kind {
 }
 
 
-pub fn different(a: Rc<RefCell<Option<Kind>>>, b: Rc<RefCell<Option<Kind>>>) -> Rc<RefCell<Option<bool>>> {
+pub fn different(a: Rc<RefCell<Option<Kind>>>, b: Rc<RefCell<Option<Kind>>>) -> bool {
 
-    return {
-            let __tmp_x = (*a.borrow().as_ref().unwrap()).clone();
-            let __tmp_y = (*b.borrow().as_ref().unwrap()).clone();
-            Rc::new(RefCell::new(Some(__tmp_x != __tmp_y)))
-        };
+    return (*a.borrow().as_ref().unwrap()) != (*b.borrow().as_ref().unwrap());
 }
 
-pub fn same(a: Rc<RefCell<Option<Kind>>>, b: Rc<RefCell<Option<Kind>>>) -> Rc<RefCell<Option<bool>>> {
+pub fn same(a: Rc<RefCell<Option<Kind>>>, b: Rc<RefCell<Option<Kind>>>) -> bool {
 
-    return {
-            let __tmp_x = (*a.borrow().as_ref().unwrap()).clone();
-            let __tmp_y = (*b.borrow().as_ref().unwrap()).clone();
-            Rc::new(RefCell::new(Some(__tmp_x == __tmp_y)))
-        };
+    return (*a.borrow().as_ref().unwrap()) == (*b.borrow().as_ref().unwrap());
 }
 
 pub fn zero_kind() -> Rc<RefCell<Option<Kind>>> {
@@ -192,7 +184,7 @@ pub fn zero_kind() -> Rc<RefCell<Option<Kind>>> {
 }
 
 fn main() {
-    println!("{}", format!("{}", (*different(Rc::new(RefCell::new(Some(Kind(Rc::new(RefCell::new(Some(INVALID as i8))))))), Rc::new(RefCell::new(Some(Kind(Rc::new(RefCell::new(Some(STRING as i8)))))))).borrow().as_ref().unwrap())));
-    println!("{}", format!("{}", (*same(Rc::new(RefCell::new(Some(Kind(Rc::new(RefCell::new(Some(BOOL as i8))))))), Rc::new(RefCell::new(Some(Kind(Rc::new(RefCell::new(Some(BOOL as i8)))))))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", different(Rc::new(RefCell::new(Some(Kind(Rc::new(RefCell::new(Some(INVALID as i8))))))), Rc::new(RefCell::new(Some(Kind(Rc::new(RefCell::new(Some(STRING as i8))))))))));
+    println!("{}", format!("{}", same(Rc::new(RefCell::new(Some(Kind(Rc::new(RefCell::new(Some(BOOL as i8))))))), Rc::new(RefCell::new(Some(Kind(Rc::new(RefCell::new(Some(BOOL as i8))))))))));
     println!("{}", format!("{}", (*zero_kind().borrow().as_ref().unwrap()).clone() == Kind(Rc::new(RefCell::new(Some(INVALID as i8))))));
 }
