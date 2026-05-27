@@ -703,6 +703,28 @@ func main() {
 	}
 }
 
+func TestTailReturnFallsBackToExplicitForBareScalarNamedReturns(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func calc(a, b int) (sum, product int) {
+	sum = a + b
+	product = a * b
+	return
+}
+
+func paramsOnly(a, b int) (int, int) {
+	return a + b, a * b
+}
+`)
+
+	if !strings.Contains(rust, "return ((*sum.borrow().as_ref().unwrap()), (*product.borrow().as_ref().unwrap()));") {
+		t.Fatalf("naked return through bare scalar named-returns should keep explicit return for borrow lifetime safety:\n%s", rust)
+	}
+	if !strings.Contains(rust, "((*a.borrow().as_ref().unwrap()) + (*b.borrow().as_ref().unwrap()), (*a.borrow().as_ref().unwrap()) * (*b.borrow().as_ref().unwrap()))\n}") {
+		t.Fatalf("returns that only borrow parameters should still tail-return:\n%s", rust)
+	}
+}
+
 func TestRangeIndexReturnedFromBareScalarTupleSlotCastsToI32(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

@@ -20,6 +20,69 @@ func TranspileTailStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.Fun
 	TranspileStatement(out, stmt, fnType, fileSet, comments, lastPos, indent)
 }
 
+// returnExpressionsBorrowWrappedLocals reports whether any of the return
+// values would read a wrapped local through a .borrow()/lock() Ref temporary
+// whose lifetime, if extended to the function body by tail-expression rules,
+// would outlive the local it borrows from. Parameters drop after temporaries
+// so they remain safe in tail position; only `let`-declared wrapped locals
+// trigger the rejection.
+func returnExpressionsBorrowWrappedLocals(results []ast.Expr) bool {
+	for _, expr := range results {
+		if expressionReadsWrappedLocal(expr) {
+			return true
+		}
+	}
+	return false
+}
+
+func expressionReadsWrappedLocal(expr ast.Expr) bool {
+	found := false
+	ast.Inspect(expr, func(n ast.Node) bool {
+		if found {
+			return false
+		}
+		ident, ok := n.(*ast.Ident)
+		if !ok {
+			return true
+		}
+		info := lookupVarInfo(ident.Name)
+		if info == nil || info.Source != SourceLocal {
+			return true
+		}
+		if info.WrapLevel == WrapNone {
+			return true
+		}
+		found = true
+		return false
+	})
+	return found
+}
+
+// namedReturnsUnwrapBareScalar reports whether the function has at least one
+// named return that lowers as a bare scalar slot fed by a wrapped local. Those
+// slots use `(*name.borrow().as_ref().unwrap())` at the return boundary, which
+// has the same lifetime issue as wrapped local reads inside explicit returns.
+func namedReturnsUnwrapBareScalar(fnType *ast.FuncType) bool {
+	if fnType == nil || fnType.Results == nil {
+		return false
+	}
+	for _, result := range fnType.Results.List {
+		if len(result.Names) == 0 {
+			continue
+		}
+		if !resultTypeExprIsBareScalar(result.Type) {
+			continue
+		}
+		for _, name := range result.Names {
+			if name.Name == "_" {
+				continue
+			}
+			return true
+		}
+	}
+	return false
+}
+
 func sameExpressionSyntax(a ast.Expr, b ast.Expr) bool {
 	var left bytes.Buffer
 	var right bytes.Buffer
@@ -5219,6 +5282,23 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		}
 
 		tailReturn := currentReturnStatementIsTail && !currentFunctionHasDefer
+		if tailReturn {
+			// Tail expressions in a function body extend their temporaries
+			// to the body's scope, which outlives `let`-declared locals.
+			// `(*x.borrow().as_ref().unwrap())` patterns produce Ref
+			// temporaries whose drop depends on the wrapped local — if the
+			// local drops first, rustc rejects the body. Falling back to an
+			// explicit `return <expr>;` keeps the temporaries scoped to
+			// the statement so locals can drop afterward safely.
+			if len(s.Results) > 0 && returnExpressionsBorrowWrappedLocals(s.Results) {
+				tailReturn = false
+			} else if len(s.Results) == 0 && namedReturnsUnwrapBareScalar(fnType) {
+				// Naked returns lower named-return locals through the same
+				// (*x.borrow().as_ref().unwrap()) pattern when the slot is a
+				// bare scalar, with the same lifetime conflict.
+				tailReturn = false
+			}
+		}
 
 		// Execute defers before returning if needed
 		if currentFunctionHasDefer {
