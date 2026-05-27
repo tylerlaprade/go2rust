@@ -2745,6 +2745,11 @@ func rustConstTypeForConstObject(name *ast.Ident) (string, bool) {
 }
 
 func evalIntConstExpr(expr ast.Expr) (int64, bool) {
+	if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.info != nil {
+		if tv, ok := typeInfo.info.Types[expr]; ok && tv.Value != nil {
+			return constant.Int64Val(tv.Value)
+		}
+	}
 	switch e := expr.(type) {
 	case *ast.BasicLit:
 		if e.Kind != token.INT {
@@ -2801,6 +2806,8 @@ func evalIntConstExpr(expr ast.Expr) (int64, bool) {
 			return 0, false
 		}
 		switch e.Op {
+		case token.ADD:
+			return v, true
 		case token.SUB:
 			return -v, true
 		case token.XOR:
@@ -2808,6 +2815,15 @@ func evalIntConstExpr(expr ast.Expr) (int64, bool) {
 		}
 	case *ast.ParenExpr:
 		return evalIntConstExpr(e.X)
+	case *ast.CallExpr:
+		if len(e.Args) != 1 {
+			return 0, false
+		}
+		typeInfo := GetTypeInfo()
+		if typeInfo == nil || !typeInfo.IsTypeConversion(e) {
+			return 0, false
+		}
+		return evalIntConstExpr(e.Args[0])
 	}
 	return 0, false
 }
@@ -3000,10 +3016,51 @@ func TranspileConstExpr(out *strings.Builder, expr ast.Expr, iotaValue int) {
 		out.WriteString("(")
 		TranspileConstExpr(out, e.X, iotaValue)
 		out.WriteString(")")
+	case *ast.UnaryExpr:
+		writeConstUnaryExpr(out, e, iotaValue)
+	case *ast.CallExpr:
+		if !writeConstTypeConversion(out, e, iotaValue) {
+			TranspileExpression(out, expr)
+		}
 	default:
 		// Fallback to regular expression transpilation
 		TranspileExpression(out, expr)
 	}
+}
+
+func writeConstUnaryExpr(out *strings.Builder, expr *ast.UnaryExpr, iotaValue int) {
+	switch expr.Op {
+	case token.ADD:
+		TranspileConstExpr(out, expr.X, iotaValue)
+	case token.SUB:
+		out.WriteString("-")
+		TranspileConstExpr(out, expr.X, iotaValue)
+	case token.NOT, token.XOR:
+		out.WriteString("!")
+		TranspileConstExpr(out, expr.X, iotaValue)
+	default:
+		TranspileExpression(out, expr)
+	}
+}
+
+func writeConstTypeConversion(out *strings.Builder, call *ast.CallExpr, iotaValue int) bool {
+	if call == nil || len(call.Args) != 1 {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || !typeInfo.IsTypeConversion(call) {
+		return false
+	}
+	rustType, ok := rustConstTypeForGoTypesType(typeInfo.GetType(call))
+	if !ok {
+		return false
+	}
+	out.WriteString("(")
+	TranspileConstExpr(out, call.Args[0], iotaValue)
+	out.WriteString(" as ")
+	out.WriteString(rustType)
+	out.WriteString(")")
+	return true
 }
 
 func writeExternalNamedIntegerConstValue(out *strings.Builder, name *ast.Ident) bool {

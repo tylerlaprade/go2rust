@@ -507,6 +507,12 @@ func rustConstTypeForGoTypesType(typ types.Type) (string, bool) {
 		}
 		return rustConstTypeForGoTypesType(t.Underlying())
 	case *types.Basic:
+		switch t.Kind() {
+		case types.Bool, types.UntypedBool:
+			return "bool", true
+		case types.String, types.UntypedString:
+			return "&'static str", true
+		}
 		return rustConstTypeForDefinedUnderlying(t.Name())
 	default:
 		return "", false

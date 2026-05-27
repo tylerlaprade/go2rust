@@ -96,6 +96,50 @@ func main() {
 	}
 }
 
+func TestConstDeclLowersTypeConversionUnaryConstExpression(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+const PtrSize = 4 << (^uintptr(0) >> 63)
+const Int64Align = PtrSize
+`)
+
+	if strings.Contains(rust, "Arc::new") || strings.Contains(rust, "Mutex::new") {
+		t.Fatalf("const expressions must not use runtime wrappers:\n%s", rust)
+	}
+	if !strings.Contains(rust, "pub const PTR_SIZE: i32 = 4 << (!(0 as usize) >> 63);") {
+		t.Fatalf("uintptr conversion and unary xor const expression not lowered as a Rust const:\n%s", rust)
+	}
+	if !strings.Contains(rust, "pub const INT64_ALIGN: i32 = PTR_SIZE;") {
+		t.Fatalf("const identifier initialized from PtrSize should keep the const path and type:\n%s", rust)
+	}
+}
+
+func TestConstDeclUsesUntypedBoolTypeInfo(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+const (
+	IsArmbe = 0
+	IsArm64be = 0
+	IsMips = 0
+	IsMips64 = 0
+	IsPpc = 0
+	IsPpc64 = 0
+	IsS390 = 0
+	IsS390x = 0
+	IsSparc = 0
+	IsSparc64 = 0
+	BigEndian = IsArmbe|IsArm64be|IsMips|IsMips64|IsPpc|IsPpc64|IsS390|IsS390x|IsSparc|IsSparc64 == 1
+)
+`)
+
+	if !strings.Contains(rust, "pub const BIG_ENDIAN: bool =") {
+		t.Fatalf("untyped boolean const should emit bool type:\n%s", rust)
+	}
+	if strings.Contains(rust, "pub const BIG_ENDIAN: i32 =") {
+		t.Fatalf("untyped boolean const must not emit integer type:\n%s", rust)
+	}
+}
+
 func TestNoTypeInfoPackageConstDoesNotUseGlobalPath(t *testing.T) {
 	prevTypeInfo := currentTypeInfo
 	prevPackageConstants := packageConstants
@@ -404,7 +448,33 @@ func transpileNoTypeInfoRegression(t *testing.T, src string) string {
 	return transpileRegression(t, src, nil)
 }
 
+func transpileTypedRegression(t *testing.T, src string) string {
+	t.Helper()
+
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", src, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(main.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+	return transpileParsedRegression(t, file, fset, typeInfo)
+}
+
 func transpileRegression(t *testing.T, src string, typeInfo *TypeInfo) string {
+	t.Helper()
+
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", src, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(main.go) error = %v", err)
+	}
+	return transpileParsedRegression(t, file, fset, typeInfo)
+}
+
+func transpileParsedRegression(t *testing.T, file *ast.File, fset *token.FileSet, typeInfo *TypeInfo) string {
 	t.Helper()
 
 	prevTypeInfo := currentTypeInfo
@@ -452,11 +522,6 @@ func transpileRegression(t *testing.T, src string, typeInfo *TypeInfo) string {
 	currentContext = nil
 	SetVarTable(nil)
 
-	fset := token.NewFileSet()
-	file, err := parser.ParseFile(fset, "main.go", src, 0)
-	if err != nil {
-		t.Fatalf("ParseFile(main.go) error = %v", err)
-	}
 	rust, _, _ := Transpile(file, fset, typeInfo)
 	return rust
 }
