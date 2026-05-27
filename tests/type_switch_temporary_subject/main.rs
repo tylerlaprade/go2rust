@@ -61,7 +61,7 @@ pub fn classify(b: Rc<RefCell<Option<sampleBox>>>) -> Rc<RefCell<Option<String>>
     } else {
         let v = (*b.borrow().as_ref().unwrap()).current().clone();
         drop(_ts_guard);
-        Rc::new(RefCell::new(Some("other".to_string())));
+        return Rc::new(RefCell::new(Some("other".to_string())));;
     }
     }
     unreachable!()

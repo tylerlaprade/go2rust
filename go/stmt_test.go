@@ -620,6 +620,32 @@ func closure() int {
 	}
 }
 
+func TestNestedReturnsInsideTailControlFlowStayExplicit(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func choose(v int) int {
+	switch v {
+	case 0:
+		return 1
+	default:
+		return 2
+	}
+}
+`)
+
+	for _, want := range []string{
+		"return 1;",
+		"return 2;",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("nested return inside tail control flow should keep explicit %q:\n%s", want, rust)
+		}
+	}
+	if strings.Contains(rust, "\n            1\n") || strings.Contains(rust, "\n            2\n") {
+		t.Fatalf("nested return inside tail control flow must not become a bare expression:\n%s", rust)
+	}
+}
+
 func TestTupleAssignmentFromBareScalarReturnSlots(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

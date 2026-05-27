@@ -2287,8 +2287,10 @@ impl Ord for io_Writer {
 // PERMANENT: not scaffold — Rust std::sync::atomic is the long-term implementation;
 // Go's sync/atomic semantics cannot be transpiled from Go source (runtime-tied).
 func writeAtomicInt32Stub(out *strings.Builder) {
-	intType := wrappedExternalStubType("i32")
-	boolType := wrappedExternalStubType("bool")
+	// Predeclared Copy scalar return slots stay bare to match the rest of
+	// the transpiler's signature shape — callers expect a raw value.
+	intType := "i32"
+	boolType := "bool"
 	fmt.Fprintf(out, `#[derive(Debug, Clone)]
 pub struct atomic_Int32 {
     __go_value: std::sync::Arc<std::sync::atomic::AtomicI32>,
@@ -2359,10 +2361,10 @@ impl atomic_Int32 {
     }
 }
 `,
-		intType, wrappedExternalStubExpr("i32", "previous.wrapping_add(delta)"),
-		intType, wrappedExternalStubExpr("i32", "self.__go_value.load(std::sync::atomic::Ordering::SeqCst)"),
-		intType, wrappedExternalStubExpr("i32", "self.__go_value.swap(__go_atomic_i32_arg(&arg0), std::sync::atomic::Ordering::SeqCst)"),
-		boolType, wrappedExternalStubExpr("bool", "self.__go_value.compare_exchange(old, new, std::sync::atomic::Ordering::SeqCst, std::sync::atomic::Ordering::SeqCst).is_ok()"))
+		intType, "previous.wrapping_add(delta)",
+		intType, "self.__go_value.load(std::sync::atomic::Ordering::SeqCst)",
+		intType, "self.__go_value.swap(__go_atomic_i32_arg(&arg0), std::sync::atomic::Ordering::SeqCst)",
+		boolType, "self.__go_value.compare_exchange(old, new, std::sync::atomic::Ordering::SeqCst, std::sync::atomic::Ordering::SeqCst).is_ok()")
 }
 
 // TEMPORARY: hand-written Rust shim for go/token.Token enum.

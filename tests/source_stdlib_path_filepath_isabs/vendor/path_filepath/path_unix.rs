@@ -38,5 +38,5 @@ pub fn join_1(elem: Arc<Mutex<Option<Vec<String>>>>) -> Arc<Mutex<Option<String>
 }
 
 pub fn same_word(a: Arc<Mutex<Option<String>>>, b: Arc<Mutex<Option<String>>>) -> bool {
-    { let __tmp_x = (*a.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = (*b.lock().unwrap().as_ref().unwrap()).clone(); __tmp_x == __tmp_y }
+    return { let __tmp_x = (*a.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = (*b.lock().unwrap().as_ref().unwrap()).clone(); __tmp_x == __tmp_y };
 }

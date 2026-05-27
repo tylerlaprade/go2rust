@@ -14,9 +14,15 @@ import (
 var currentReturnStatementIsTail bool
 
 func TranspileTailStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncType, fileSet *token.FileSet, comments []*ast.CommentGroup, lastPos *token.Pos, indent string) {
-	prev := currentReturnStatementIsTail
-	currentReturnStatementIsTail = true
-	defer func() { currentReturnStatementIsTail = prev }()
+	// Only flag the immediate return-as-tail position. A loop, type switch,
+	// or if statement that happens to be the last body statement contains
+	// nested return statements that must still emit explicit `return X;`,
+	// not become the body's trailing expression.
+	if _, isReturn := stmt.(*ast.ReturnStmt); isReturn {
+		prev := currentReturnStatementIsTail
+		currentReturnStatementIsTail = true
+		defer func() { currentReturnStatementIsTail = prev }()
+	}
 	TranspileStatement(out, stmt, fnType, fileSet, comments, lastPos, indent)
 }
 
@@ -96,6 +102,29 @@ func identIsWrappedFunctionLocal(ident *ast.Ident) bool {
 		return false
 	}
 	return true
+}
+
+// returnExpressionEmissionStartsWithBlock reports whether the given return
+// value would emit Rust source that starts with `{`. Such expressions are
+// ambiguous when used as a tail expression: Rust parses the leading `{` as a
+// block statement, which breaks shapes like `{ ... } && { ... }`.
+func returnExpressionEmissionStartsWithBlock(expr ast.Expr) bool {
+	switch e := expr.(type) {
+	case *ast.BinaryExpr:
+		// In concurrent mode every binary expression (other than && / ||)
+		// lowers to `{ let __tmp_x = ...; __tmp_x op __tmp_y }`. A logical
+		// op then composes two such blocks, leaving the body starting with
+		// `{`.
+		if NeedsConcurrentWrapper() && e.Op != token.LAND && e.Op != token.LOR {
+			return true
+		}
+		if e.Op == token.LAND || e.Op == token.LOR {
+			return returnExpressionEmissionStartsWithBlock(e.X)
+		}
+	case *ast.ParenExpr:
+		return returnExpressionEmissionStartsWithBlock(e.X)
+	}
+	return false
 }
 
 // namedReturnsUnwrapBareScalar reports whether the function has at least one
@@ -5024,6 +5053,12 @@ func callReturnsWrappedBoolBySyntax(call *ast.CallExpr) bool {
 	if call == nil {
 		return false
 	}
+	// With bare-scalar return widening, calls whose signature returns a
+	// predeclared bool now produce a bare Rust bool — they don't need the
+	// wrap-then-unwrap dance some call sites still apply.
+	if callReturnsBareScalar(call) {
+		return false
+	}
 	if ident, ok := call.Fun.(*ast.Ident); ok {
 		if sig := GetFunctionSignature(ident.Name); sig != nil && len(sig.Results) == 1 {
 			if resultIdent, ok := sig.Results[0].Type.(*ast.Ident); ok && resultIdent.Name == "bool" {
@@ -5357,6 +5392,13 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				// Naked returns lower named-return locals through the same
 				// (*x.borrow().as_ref().unwrap()) pattern when the slot is a
 				// bare scalar, with the same lifetime conflict.
+				tailReturn = false
+			} else if len(s.Results) > 0 && returnExpressionEmissionStartsWithBlock(s.Results[0]) {
+				// Emitting the return value as the body's trailing expression
+				// would leave the function body starting with `{`, which Rust
+				// parses as a statement-block rather than the LHS of a binary
+				// expression. Keep the explicit `return X;` shape so the
+				// expression is unambiguous.
 				tailReturn = false
 			}
 		}

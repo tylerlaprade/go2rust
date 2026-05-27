@@ -159,9 +159,9 @@ pub fn int_value() -> i32 {
 pub fn kind_name() -> Arc<Mutex<Option<String>>> {
     { let _switch_val = { let __v = kind(); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned };
     if _switch_val == (types_BasicKind(types::INT.0 as i32)) {
-            Arc::new(Mutex::new(Some("int".to_string())))
+            return Arc::new(Mutex::new(Some("int".to_string())));
         } else {
-            Arc::new(Mutex::new(Some("other".to_string())))
+            return Arc::new(Mutex::new(Some("other".to_string())));
         }
     }
 }
@@ -169,9 +169,9 @@ pub fn kind_name() -> Arc<Mutex<Option<String>>> {
 pub fn int_name() -> Arc<Mutex<Option<String>>> {
     { let _switch_val = int_value();
     if _switch_val == (1) {
-            Arc::new(Mutex::new(Some("one".to_string())))
+            return Arc::new(Mutex::new(Some("one".to_string())));
         } else {
-            Arc::new(Mutex::new(Some("other".to_string())))
+            return Arc::new(Mutex::new(Some("other".to_string())));
         }
     }
 }

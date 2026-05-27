@@ -30,9 +30,9 @@ impl std::fmt::Display for item {
 impl item {
     pub fn label(&self) -> Rc<RefCell<Option<String>>> {
         if (*self.flag.clone().borrow().as_ref().unwrap()) {
-            Rc::new(RefCell::new(Some("on".to_string())))
+            return Rc::new(RefCell::new(Some("on".to_string())));
         } else {
-            Rc::new(RefCell::new(Some("off".to_string())))
+            return Rc::new(RefCell::new(Some("off".to_string())));
         }
     }
 

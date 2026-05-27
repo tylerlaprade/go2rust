@@ -225,7 +225,7 @@ pub fn has_stmt(stmts: Arc<Mutex<Option<Vec<ast_Stmt>>>>) -> bool {
 }
 
 pub fn accept_stmt(stmt: Arc<Mutex<Option<ast_Stmt>>>) -> bool {
-    (*stmt.lock().unwrap()).is_some()
+    return (*stmt.lock().unwrap()).is_some();
 }
 
 pub fn stmt_kind(stmts: Arc<Mutex<Option<Vec<ast_Stmt>>>>) -> Arc<Mutex<Option<String>>> {

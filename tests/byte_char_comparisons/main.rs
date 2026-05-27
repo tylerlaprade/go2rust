@@ -44,11 +44,11 @@ pub fn append_op(path: Rc<RefCell<Option<Vec<u8>>>>, op: Rc<RefCell<Option<u8>>>
 pub fn classify_op(op: Rc<RefCell<Option<u8>>>) -> Rc<RefCell<Option<String>>> {
     { let _switch_val = (*op.borrow().as_ref().unwrap());
     if _switch_val == (OP_TYPE as u8) {
-            Rc::new(RefCell::new(Some("type".to_string())))
+            return Rc::new(RefCell::new(Some("type".to_string())));
         } else if _switch_val == (OP_ELEM as u8) {
-            Rc::new(RefCell::new(Some("elem".to_string())))
+            return Rc::new(RefCell::new(Some("elem".to_string())));
         } else {
-            Rc::new(RefCell::new(Some("unknown".to_string())))
+            return Rc::new(RefCell::new(Some("unknown".to_string())));
         }
     }
 }

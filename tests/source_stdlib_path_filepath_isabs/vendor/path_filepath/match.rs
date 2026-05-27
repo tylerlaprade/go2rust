@@ -102,7 +102,7 @@ pub fn r#match(mut pattern: Arc<Mutex<Option<String>>>, mut name: Arc<Mutex<Opti
         // Look for match skipping i+1 bytes.
         // Cannot skip /.
         // if we're the last chunk, make sure we exhausted the name
-    ({ let __tmp_x = ((*name.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = (0 as i32); __tmp_x == __tmp_y }, Arc::new(Mutex::new(None)))
+    return ({ let __tmp_x = ((*name.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = (0 as i32); __tmp_x == __tmp_y }, Arc::new(Mutex::new(None)));
 }
 
 /// scanChunk gets the next segment of pattern, which is a non-star string
@@ -365,12 +365,12 @@ pub fn glob_with_limit(pattern: Arc<Mutex<Option<String>>>, depth: Arc<Mutex<Opt
 pub fn clean_glob_path(path: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<String>>> {
     { let _switch_val = (*path.lock().unwrap().as_ref().unwrap()).clone();
     if _switch_val == ("".to_string()) {
-            Arc::new(Mutex::new(Some(".".to_string())))
+            return Arc::new(Mutex::new(Some(".".to_string())));
         } else if _switch_val == ({ let __v = Arc::new(Mutex::new(Some(char::from_u32(((*Separator.lock().unwrap().as_ref().unwrap())) as u32).unwrap().to_string()))); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) {
                         // do nothing to the path
-            Arc::new(Mutex::new(Some(path.lock().unwrap().as_ref().unwrap().clone())))
+            return Arc::new(Mutex::new(Some(path.lock().unwrap().as_ref().unwrap().clone())));
         } else {
-            Arc::new(Mutex::new(Some({ let __s = &((*path.lock().unwrap().as_ref().unwrap()).clone()); __s[(0) as usize..({ let __tmp_x = ((*path.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = (1 as i32); __tmp_x - __tmp_y }) as usize].to_string() })))
+            return Arc::new(Mutex::new(Some({ let __s = &((*path.lock().unwrap().as_ref().unwrap()).clone()); __s[(0) as usize..({ let __tmp_x = ((*path.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = (1 as i32); __tmp_x - __tmp_y }) as usize].to_string() })));
         }
     }
 }
@@ -382,17 +382,17 @@ pub fn clean_glob_path_windows(path: Arc<Mutex<Option<String>>>) -> (i32, Arc<Mu
 
     let mut vollen = filepathlite::volume_name_len(path.clone());
     if { let __tmp_x = (*path.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = ""; __tmp_x == __tmp_y } {
-            (0, Arc::new(Mutex::new(Some(".".to_string()))))
+            return (0, Arc::new(Mutex::new(Some(".".to_string()))));
         } else if { let __tmp_x = ({ let __tmp_x = vollen; let __tmp_y = 1; __tmp_x + __tmp_y } as i32); let __tmp_y = ((*path.lock().unwrap().as_ref().unwrap()).len() as i32); __tmp_x == __tmp_y } && os::is_path_separator({ let __s = &((*path.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[({ let __tmp_x = ((*path.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = (1 as i32); __tmp_x - __tmp_y }) as usize] }) {
                         // do nothing to the path
-            ({ let __tmp_x = vollen; let __tmp_y = 1; __tmp_x + __tmp_y }, Arc::new(Mutex::new(Some(path.lock().unwrap().as_ref().unwrap().clone()))))
+            return ({ let __tmp_x = vollen; let __tmp_y = 1; __tmp_x + __tmp_y }, Arc::new(Mutex::new(Some(path.lock().unwrap().as_ref().unwrap().clone()))));
         } else if { let __tmp_x = (vollen as i32); let __tmp_y = ((*path.lock().unwrap().as_ref().unwrap()).len() as i32); __tmp_x == __tmp_y } && { let __tmp_x = ((*path.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = (2 as i32); __tmp_x == __tmp_y } {
-            (vollen, Arc::new(Mutex::new(Some(format!("{}{}", { let __v = (*path.lock().unwrap().as_ref().unwrap()).clone(); __v }, ".".to_string())))))
+            return (vollen, Arc::new(Mutex::new(Some(format!("{}{}", { let __v = (*path.lock().unwrap().as_ref().unwrap()).clone(); __v }, ".".to_string())))));
         } else {
             if { let __tmp_x = (vollen as i32); let __tmp_y = ((*path.lock().unwrap().as_ref().unwrap()).len() as i32); __tmp_x >= __tmp_y } {
         { let new_val = { let __tmp_x = ((*path.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = (1 as i32); __tmp_x - __tmp_y }; *vollen.lock().unwrap() = Some(new_val); };
     }
-            (vollen, Arc::new(Mutex::new(Some({ let __s = &((*path.lock().unwrap().as_ref().unwrap()).clone()); __s[(0) as usize..({ let __tmp_x = ((*path.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = (1 as i32); __tmp_x - __tmp_y }) as usize].to_string() }))))
+            return (vollen, Arc::new(Mutex::new(Some({ let __s = &((*path.lock().unwrap().as_ref().unwrap()).clone()); __s[(0) as usize..({ let __tmp_x = ((*path.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = (1 as i32); __tmp_x - __tmp_y }) as usize].to_string() }))));
         }
 }
 

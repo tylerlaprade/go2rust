@@ -169,7 +169,7 @@ impl std::fmt::Display for Holder {
 
 impl Holder {
     pub fn ready(&self) -> bool {
-        !self.ch.is_nil()
+        return !self.ch.is_nil();
     }
 
     pub fn fill(&mut self) {

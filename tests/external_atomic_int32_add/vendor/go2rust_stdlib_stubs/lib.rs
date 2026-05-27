@@ -279,27 +279,27 @@ impl atomic_Int32 {
         None
     }
 
-    pub fn add<T0: 'static>(&self, arg0: T0) -> Rc<RefCell<Option<i32>>> {
+    pub fn add<T0: 'static>(&self, arg0: T0) -> i32 {
         let delta = __go_atomic_i32_arg(&arg0);
         let previous = self.__go_value.fetch_add(delta, std::sync::atomic::Ordering::SeqCst);
-        Rc::new(RefCell::new(Some::<i32>(previous.wrapping_add(delta))))
+        previous.wrapping_add(delta)
     }
 
-    pub fn load(&self) -> Rc<RefCell<Option<i32>>> {
-        Rc::new(RefCell::new(Some::<i32>(self.__go_value.load(std::sync::atomic::Ordering::SeqCst))))
+    pub fn load(&self) -> i32 {
+        self.__go_value.load(std::sync::atomic::Ordering::SeqCst)
     }
 
     pub fn store<T0: 'static>(&self, arg0: T0) {
         self.__go_value.store(__go_atomic_i32_arg(&arg0), std::sync::atomic::Ordering::SeqCst);
     }
 
-    pub fn swap<T0: 'static>(&self, arg0: T0) -> Rc<RefCell<Option<i32>>> {
-        Rc::new(RefCell::new(Some::<i32>(self.__go_value.swap(__go_atomic_i32_arg(&arg0), std::sync::atomic::Ordering::SeqCst))))
+    pub fn swap<T0: 'static>(&self, arg0: T0) -> i32 {
+        self.__go_value.swap(__go_atomic_i32_arg(&arg0), std::sync::atomic::Ordering::SeqCst)
     }
 
-    pub fn compare_and_swap<T0: 'static, T1: 'static>(&self, old: T0, new: T1) -> Rc<RefCell<Option<bool>>> {
+    pub fn compare_and_swap<T0: 'static, T1: 'static>(&self, old: T0, new: T1) -> bool {
         let old = __go_atomic_i32_arg(&old);
         let new = __go_atomic_i32_arg(&new);
-        Rc::new(RefCell::new(Some::<bool>(self.__go_value.compare_exchange(old, new, std::sync::atomic::Ordering::SeqCst, std::sync::atomic::Ordering::SeqCst).is_ok())))
+        self.__go_value.compare_exchange(old, new, std::sync::atomic::Ordering::SeqCst, std::sync::atomic::Ordering::SeqCst).is_ok()
     }
 }

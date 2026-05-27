@@ -94,7 +94,7 @@ fn main() {
     } else {
         let T = T.clone();
         drop(_ts_guard);
-        0;
+        return 0;;
     }
     }
     unreachable!()

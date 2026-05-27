@@ -15,11 +15,11 @@ pub fn to_lower(r: Rc<RefCell<Option<i32>>>) -> u8 {
 pub fn classify(r: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<String>>> {
     { let _switch_val = (*r.borrow().as_ref().unwrap());
     if _switch_val == (('\n' as i32)) {
-            Rc::new(RefCell::new(Some("newline".to_string())))
+            return Rc::new(RefCell::new(Some("newline".to_string())));
         } else if _switch_val == (('A' as i32)) {
-            Rc::new(RefCell::new(Some("upper-a".to_string())))
+            return Rc::new(RefCell::new(Some("upper-a".to_string())));
         } else {
-            Rc::new(RefCell::new(Some("other".to_string())))
+            return Rc::new(RefCell::new(Some("other".to_string())));
         }
     }
 }

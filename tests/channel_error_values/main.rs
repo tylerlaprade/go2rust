@@ -174,7 +174,7 @@ pub fn select_receive(ch: GoChannel<Option<Box<dyn StdError + Send + Sync>>>) ->
             let mut err = Arc::new(Mutex::new(err));
             return err.clone();
         }
-        Arc::new(Mutex::new(None))
+        return Arc::new(Mutex::new(None));
     }
 }
 

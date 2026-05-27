@@ -181,7 +181,7 @@ impl Params {
     }
 
     pub fn at(&self, i: Arc<Mutex<Option<i32>>>) -> i32 {
-        { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }
+        return { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y };
     }
 }
 

@@ -186,7 +186,7 @@ pub fn classify(mut err: Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) ->
     {
         let err = err.clone();
         drop(_ts_guard);
-        Arc::new(Mutex::new(Some(format!("{}", err.lock().unwrap().as_ref().unwrap()))));
+        return Arc::new(Mutex::new(Some(format!("{}", err.lock().unwrap().as_ref().unwrap()))));;
     }
     }
     unreachable!()
