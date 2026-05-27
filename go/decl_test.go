@@ -70,6 +70,32 @@ func VisitAll[N Node](list []N) {
 	}
 }
 
+func TestStructDefaultWrapsNamedArrayFieldZeroValue(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+type Bitmap [2]uint8
+
+type RegArgs struct {
+	ReturnIsPtr Bitmap
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile() error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := Transpile(file, fset, typeInfo)
+
+	if !strings.Contains(rust, "return_is_ptr: Rc::new(RefCell::new(Some(Bitmap(") &&
+		!strings.Contains(rust, "return_is_ptr: Arc::new(Mutex::new(Some(Bitmap(") {
+		t.Fatalf("named array field default should construct the named type:\n%s", rust)
+	}
+}
+
 func TestEmbeddedInterfaceTraitObjectImplementsSupertrait(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

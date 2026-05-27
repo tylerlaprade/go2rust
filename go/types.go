@@ -812,6 +812,18 @@ func zeroValueForTypesType(typ types.Type) string {
 		if _, isSlice := types.Unalias(named.Underlying()).(*types.Slice); isSlice {
 			return "Default::default()"
 		}
+		if array, isArray := types.Unalias(named.Underlying()).(*types.Array); isArray {
+			var out strings.Builder
+			out.WriteString(goTypesNamedTypeToRust(named))
+			out.WriteString("(")
+			WriteWrapperPrefix(&out)
+			out.WriteString("std::array::from_fn(|_| ")
+			out.WriteString(zeroValueForTypesType(array.Elem()))
+			out.WriteString(")")
+			WriteWrapperSuffix(&out)
+			out.WriteString(")")
+			return out.String()
+		}
 		if basic, ok := types.Unalias(named.Underlying()).(*types.Basic); ok {
 			zeroValue := zeroValueForBasicType(basic)
 			if zeroValue != "" {
