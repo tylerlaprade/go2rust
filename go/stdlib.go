@@ -138,6 +138,7 @@ func init() {
 	}
 
 	builtinMappings = map[string]StdlibHandler{
+		"print":   transpileBuiltinPrint,
 		"println": transpileBuiltinPrintln,
 		"append":  transpileAppend,
 		"len":     transpileLen,
@@ -222,6 +223,25 @@ func transpileBuiltinPrintln(out *strings.Builder, call *ast.CallExpr) {
 			out.WriteString(", ")
 			transpilePrintArgString(out, arg)
 		}
+	}
+
+	out.WriteString(")")
+}
+
+func transpileBuiltinPrint(out *strings.Builder, call *ast.CallExpr) {
+	// Go's builtin `print` writes to stderr without adding separators or a newline.
+	out.WriteString("eprint!")
+	out.WriteString("(")
+
+	out.WriteString("\"")
+	for range call.Args {
+		out.WriteString("{}")
+	}
+	out.WriteString("\"")
+
+	for _, arg := range call.Args {
+		out.WriteString(", ")
+		transpilePrintArgString(out, arg)
 	}
 
 	out.WriteString(")")

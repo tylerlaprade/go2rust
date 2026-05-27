@@ -49,3 +49,28 @@ func Write(buf *strings.Builder, cmap CommentMap, s string) {
 		t.Fatalf("%%p should not display-format the wrapped interface handle:\n%s", rust)
 	}
 }
+
+func TestBuiltinPrintUsesRustStderrMacro(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+func warn(field string) {
+	print("missing ", field, "\n")
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile() error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := Transpile(file, fset, typeInfo)
+	if !strings.Contains(rust, `eprint!("{}{}{}"`) {
+		t.Fatalf("builtin print should emit Rust stderr macro without inserted spaces:\n%s", rust)
+	}
+	if strings.Contains(rust, "print(Rc::") || strings.Contains(rust, "print(Arc::") {
+		t.Fatalf("builtin print must not emit a call to a nonexistent Rust print function:\n%s", rust)
+	}
+}
