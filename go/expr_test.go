@@ -1445,6 +1445,26 @@ func methods(p unsafe.Pointer, n int) []Method {
 	}
 }
 
+func TestThreeIndexSliceCapacityUnwrapsSelectorBounds(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Header struct {
+	Count uint16
+}
+
+func take(values []int, h *Header) []int {
+	return values[:h.Count:h.Count]
+}
+`)
+
+	if strings.Contains(rust, "h.count.clone()) - 0") {
+		t.Fatalf("three-index slice capacity should unwrap selector bounds before arithmetic:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Vec::with_capacity(((") || !strings.Contains(rust, "as usize) - 0") {
+		t.Fatalf("three-index slice capacity should use usize bounds:\n%s", rust)
+	}
+}
+
 func TestUintptrConversionFromUnsafePointerIdentifierUsesHandle(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

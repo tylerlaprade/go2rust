@@ -6790,11 +6790,11 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			}
 			out.WriteString("]; let mut _v = Vec::with_capacity((")
 			out.WriteString("(")
-			TranspileExpression(out, e.Max)
+			writeExpressionAsUsize(out, e.Max)
 			out.WriteString(") - ")
 			if e.Low != nil {
 				out.WriteString("(")
-				TranspileExpression(out, e.Low)
+				writeExpressionAsUsize(out, e.Low)
 				out.WriteString(")")
 			} else {
 				out.WriteString("0")
