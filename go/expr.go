@@ -8292,7 +8292,7 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 		typeInfo := GetTypeInfo()
 		if typeInfo != nil {
 			if argType := typeInfo.GetType(arg); argType != nil {
-				if iface, ok := argType.Underlying().(*types.Interface); ok && iface.NumMethods() == 0 {
+				if isEmptyInterfaceType(argType) {
 					if ident, ok := arg.(*ast.Ident); ok && ident.Name != "nil" {
 						out.WriteString(RustIdentForUse(ident))
 						out.WriteString(".clone()")
@@ -8623,7 +8623,7 @@ func pointerTypeExprTarget(expr ast.Expr) (ast.Expr, bool) {
 
 func writePointerTypeConversion(out *strings.Builder, target ast.Expr, source ast.Expr) {
 	if ident, ok := source.(*ast.Ident); ok && ident.Name == "nil" {
-		WriteWrappedNone(out)
+		writeTypedWrappedNone(out, pointerConversionTargetTypeToRust(target))
 		return
 	}
 	typeInfo := GetTypeInfo()
@@ -10877,11 +10877,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				typeInfo := GetTypeInfo()
 				if !argIsInterface && typeInfo != nil {
 					argType := typeInfo.GetType(arg)
-					if argType != nil {
-						if iface, ok := argType.Underlying().(*types.Interface); ok && iface.NumMethods() == 0 {
-							argIsInterface = true
-						}
-					}
+					argIsInterface = isEmptyInterfaceType(argType)
 				}
 
 				if argIsInterface {

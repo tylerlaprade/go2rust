@@ -1469,6 +1469,60 @@ func addr(e EmptyInterface) uintptr {
 	}
 }
 
+func TestGenericValueCallArgumentBoxesForAnyParameter(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func typeOf(a any) {}
+
+func typeFor[T any]() {
+	var v T
+	typeOf(v)
+}
+`)
+
+	if strings.Contains(rust, "type_of((*v.") {
+		t.Fatalf("generic value passed to any parameter should not be emitted as raw T:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Box::new((*v.") || !strings.Contains(rust, "as Box<dyn Any") {
+		t.Fatalf("generic value passed to any parameter should be boxed as Any:\n%s", rust)
+	}
+}
+
+func TestGenericValueAnyConversionBoxesTypeParam(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func box[T any]() any {
+	var v T
+	return any(v)
+}
+`)
+
+	if strings.Contains(rust, "return v.clone()") {
+		t.Fatalf("generic value converted to any should not be treated as an existing any handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Box::new((*v.") || !strings.Contains(rust, "as Box<dyn Any") {
+		t.Fatalf("generic value converted to any should be boxed as Any:\n%s", rust)
+	}
+}
+
+func TestGenericNilPointerCallArgumentBoxesTypedNone(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func typeOf(a any) {}
+
+func typeFor[T any]() {
+	typeOf((*T)(nil))
+}
+`)
+
+	if strings.Contains(rust, "RefCell::new(None))") || strings.Contains(rust, "Mutex::new(None))") {
+		t.Fatalf("generic nil pointer boxed as any should not emit untyped None:\n%s", rust)
+	}
+	if !strings.Contains(rust, "None::<T>") || !strings.Contains(rust, "as Box<dyn Any") {
+		t.Fatalf("generic nil pointer boxed as any should include typed None inside Any box:\n%s", rust)
+	}
+}
+
 func TestThreeIndexSliceCapacityUnwrapsSelectorBounds(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
