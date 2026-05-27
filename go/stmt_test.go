@@ -932,6 +932,24 @@ func clear(b, mask bitset) bitset {
 	}
 }
 
+func TestLabeledContinueBeforeLoopPostTerminatesRustStatement(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func scan(limit int) {
+outer:
+	for i := 0; i < limit; i++ {
+		for j := 0; j < limit; j++ {
+			continue outer
+		}
+	}
+}
+`)
+
+	if !strings.Contains(rust, "continue 'outer;") {
+		t.Fatalf("labeled continue followed by a loop post statement should be terminated:\n%s", rust)
+	}
+}
+
 func TestLocalInterfaceAssignmentFromOwnMethodCallClonesReceiver(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

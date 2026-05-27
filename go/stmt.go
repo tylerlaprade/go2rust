@@ -1719,8 +1719,14 @@ func typeSwitchStmtTerminates(s *ast.TypeSwitchStmt) bool {
 }
 
 func stmtNeedsSeparatorBeforeFollowingStatement(stmt ast.Stmt) bool {
-	typeSwitch, ok := stmt.(*ast.TypeSwitchStmt)
-	return ok && typeSwitchStmtTerminates(typeSwitch)
+	switch s := stmt.(type) {
+	case *ast.TypeSwitchStmt:
+		return typeSwitchStmtTerminates(s)
+	case *ast.BranchStmt:
+		return s.Tok == token.BREAK || s.Tok == token.CONTINUE || s.Tok == token.GOTO
+	default:
+		return false
+	}
 }
 
 func writeStatementSeparatorBeforeFollowingStatement(out *strings.Builder, stmt ast.Stmt, hasFollowing bool) {
