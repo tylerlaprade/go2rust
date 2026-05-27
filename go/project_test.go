@@ -1842,6 +1842,51 @@ func check() {
 	}
 }
 
+func TestExportedAnonymousStructGlobalFieldsArePublic(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+
+require example.com/dep v0.0.0
+
+replace example.com/dep => ./dep
+`)
+	writeTestFile(t, filepath.Join(tempDir, "dep", "go.mod"), `module example.com/dep
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "dep", "dep.go"), `package dep
+
+type CacheLinePad struct{}
+
+var ARM64 struct {
+	_ CacheLinePad
+	HasDIT bool
+}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+import "example.com/dep"
+
+var Supported = dep.ARM64.HasDIT
+`)
+
+	generator := NewProjectGenerator([]string{filepath.Join(tempDir, "main.go")})
+	generator.SetExternalPackageMode(ModeTranspile)
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	depRS := mustReadFile(t, filepath.Join(tempDir, "vendor", "example_com_dep", "mod.rs"))
+	if strings.Contains(depRS, "pub(crate) struct AnonymousStruct1") || strings.Contains(depRS, "pub(crate) has_d_i_t:") {
+		t.Fatalf("exported anonymous struct global fields must be public across package crates, got:\n%s", depRS)
+	}
+	if !strings.Contains(depRS, "pub struct AnonymousStruct1") || !strings.Contains(depRS, "pub has_d_i_t:") {
+		t.Fatalf("exported anonymous struct global field should be public, got:\n%s", depRS)
+	}
+}
+
 func TestStructWithImportedFieldDoesNotDeriveDebug(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod

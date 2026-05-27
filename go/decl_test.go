@@ -180,10 +180,10 @@ var Features struct {
 	}
 
 	rust, _, _ := Transpile(file, fset, typeInfo)
-	if !strings.Contains(rust, "pub(crate) struct AnonymousStruct1") {
+	if !strings.Contains(rust, "pub struct AnonymousStruct1") {
 		t.Fatalf("anonymous package-global struct type should be visible across generated modules:\n%s", rust)
 	}
-	if !strings.Contains(rust, "pub(crate) enabled:") {
+	if !strings.Contains(rust, "pub enabled:") {
 		t.Fatalf("anonymous package-global struct fields should be visible across generated modules:\n%s", rust)
 	}
 }
@@ -213,7 +213,7 @@ var Holder struct {
 	if strings.Contains(rust, "WARNING: embedded field in anonymous struct") {
 		t.Fatalf("anonymous embedded struct field should be declared, not warned:\n%s", rust)
 	}
-	if !strings.Contains(rust, "pub(crate) ptr_type: Rc<RefCell<Option<PtrType>>>") {
+	if !strings.Contains(rust, "pub ptr_type: Rc<RefCell<Option<PtrType>>>") {
 		t.Fatalf("anonymous embedded struct field should be emitted with the generated field name:\n%s", rust)
 	}
 	if !strings.Contains(rust, "Self { ptr_type:") {
