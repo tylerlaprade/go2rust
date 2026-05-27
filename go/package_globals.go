@@ -557,7 +557,7 @@ func transpilePackageGlobalInit(out *strings.Builder, globals []packageGlobal) {
 		out.WriteString(rustPackageGlobalName(global.name))
 		WriteBorrowMethod(out, true)
 		out.WriteString(" = ")
-		if isGoErrorType(global.typ) {
+		if isGoErrorType(global.typ) || isInterfaceType(global.typ) {
 			out.WriteString("None;\n")
 			continue
 		}

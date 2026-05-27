@@ -45,6 +45,14 @@ func isEmptyInterfaceType(typ types.Type) bool {
 	return ok && intf.NumMethods() == 0
 }
 
+func isInterfaceType(typ types.Type) bool {
+	if typ == nil {
+		return false
+	}
+	_, ok := types.Unalias(typ).Underlying().(*types.Interface)
+	return ok
+}
+
 func localNamedInterfaceTypeName(typ types.Type) (string, bool) {
 	named, ok := typ.(*types.Named)
 	if !ok || named.Obj() == nil {
