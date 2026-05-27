@@ -914,6 +914,24 @@ func countUntilLimit(values []int) int {
 	}
 }
 
+func TestReturnBitClearUsesRustOperator(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type bitset uint64
+
+func clear(b, mask bitset) bitset {
+	return b &^ mask
+}
+`)
+
+	if strings.Contains(rust, "&^") {
+		t.Fatalf("Go bit clear operator must not leak into generated Rust:\n%s", rust)
+	}
+	if !strings.Contains(rust, "& !") {
+		t.Fatalf("Go bit clear return should lower to Rust '& !':\n%s", rust)
+	}
+}
+
 func TestLocalInterfaceAssignmentFromOwnMethodCallClonesReceiver(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

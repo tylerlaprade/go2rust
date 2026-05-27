@@ -5847,7 +5847,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							out.WriteString("            ")
 							WriteWrapperPrefix(out)
 							out.WriteString("__tmp_x ")
-							out.WriteString(binExpr.Op.String())
+							out.WriteString(rustBinaryOp(binExpr.Op))
 							out.WriteString(" __tmp_y")
 							WriteWrapperSuffix(out)
 							out.WriteString("\n")
