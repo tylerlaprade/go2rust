@@ -11,6 +11,16 @@ import (
 	"strings"
 )
 
+func rustStructFieldName(name *ast.Ident, fieldIndex int, nameIndex int) string {
+	if name == nil {
+		return ""
+	}
+	if name.Name == "_" {
+		return fmt.Sprintf("__blank_%d_%d", fieldIndex, nameIndex)
+	}
+	return ToSnakeCase(name.Name)
+}
+
 // generateStructDisplay generates a Display implementation for a struct to match Go's output format
 func generateStructDisplay(out *strings.Builder, structName string, structType *ast.StructType) {
 	TrackImport("Display")
@@ -66,7 +76,7 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 		interfaceSlice bool
 	}
 	var fields []fieldEntry
-	for _, field := range structType.Fields.List {
+	for fieldIndex, field := range structType.Fields.List {
 		// Skip sync types (Mutex, WaitGroup) — they're not data fields
 		if isSyncParam(field.Type) {
 			continue
@@ -86,9 +96,9 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 			continue
 		}
 		if len(field.Names) > 0 {
-			for _, name := range field.Names {
+			for nameIndex, name := range field.Names {
 				fields = append(fields, fieldEntry{
-					name:           name.Name,
+					name:           rustStructFieldName(name, fieldIndex, nameIndex),
 					isEmbedded:     false,
 					isSlice:        isSlice,
 					isMap:          isMap,
@@ -421,10 +431,13 @@ func structComparableFieldNames(structType *ast.StructType) []string {
 	if structType == nil {
 		return fields
 	}
-	for _, field := range structType.Fields.List {
+	for fieldIndex, field := range structType.Fields.List {
 		if len(field.Names) > 0 {
-			for _, name := range field.Names {
-				fields = append(fields, ToSnakeCase(name.Name))
+			for nameIndex, name := range field.Names {
+				if name.Name == "_" {
+					continue
+				}
+				fields = append(fields, rustStructFieldName(name, fieldIndex, nameIndex))
 			}
 			continue
 		}
@@ -522,17 +535,17 @@ func generateStructValueClone(out *strings.Builder, structName string, structTyp
 	out.WriteString("    pub fn __go_value_clone(&self) -> Self {\n")
 	out.WriteString("        Self { ")
 	needComma := false
-	for _, field := range structType.Fields.List {
+	for fieldIndex, field := range structType.Fields.List {
 		fieldNames := field.Names
 		if len(fieldNames) == 0 {
 			fieldNames = []*ast.Ident{ast.NewIdent(getEmbeddedFieldName(field.Type))}
 		}
-		for _, name := range fieldNames {
+		for nameIndex, name := range fieldNames {
 			if needComma {
 				out.WriteString(", ")
 			}
 			needComma = true
-			fieldName := ToSnakeCase(name.Name)
+			fieldName := rustStructFieldName(name, fieldIndex, nameIndex)
 			out.WriteString(fieldName)
 			out.WriteString(": ")
 			writeStructCloneField(out, fieldName, field.Type)
@@ -633,14 +646,14 @@ func generateStructDefault(out *strings.Builder, structName string, structType *
 	out.WriteString("    fn default() -> Self {\n")
 	out.WriteString("        Self { ")
 	needComma := false
-	for _, field := range structType.Fields.List {
+	for fieldIndex, field := range structType.Fields.List {
 		if len(field.Names) > 0 {
-			for _, name := range field.Names {
+			for nameIndex, name := range field.Names {
 				if needComma {
 					out.WriteString(", ")
 				}
 				needComma = true
-				out.WriteString(ToSnakeCase(name.Name))
+				out.WriteString(rustStructFieldName(name, fieldIndex, nameIndex))
 				out.WriteString(": ")
 				writeStructDefaultValue(out, field.Type)
 			}
@@ -2028,7 +2041,7 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 		out.WriteString(rustTypeName)
 		out.WriteString(" {\n")
 
-		for _, field := range t.Fields.List {
+		for fieldIndex, field := range t.Fields.List {
 			// Add struct tag as comment if present
 			if field.Tag != nil && field.Tag.Value != "" {
 				out.WriteString("    // tags: ")
@@ -2038,9 +2051,9 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 
 			if len(field.Names) > 0 {
 				// Handle multiple names on one line (e.g., X, Y int)
-				for _, name := range field.Names {
+				for nameIndex, name := range field.Names {
 					out.WriteString("    pub ")
-					out.WriteString(ToSnakeCase(name.Name))
+					out.WriteString(rustStructFieldName(name, fieldIndex, nameIndex))
 					out.WriteString(": ")
 					out.WriteString(GoTypeToRust(field.Type))
 					out.WriteString(",\n")

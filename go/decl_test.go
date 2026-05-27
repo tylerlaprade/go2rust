@@ -101,6 +101,39 @@ type Expr interface {
 	}
 }
 
+func TestBlankStructFieldsUseGeneratedRustFieldNames(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+type CacheLinePad struct{ _ [8]byte }
+
+var Features struct {
+	_ CacheLinePad
+	Enabled bool
+	_ CacheLinePad
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile() error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := Transpile(file, fset, typeInfo)
+	for _, invalid := range []string{"pub _:", " _:", "self._."} {
+		if strings.Contains(rust, invalid) {
+			t.Fatalf("blank struct fields should not emit invalid Rust field %q:\n%s", invalid, rust)
+		}
+	}
+	for _, want := range []string{"pub __blank_0_0", "__blank_0_0:", "__blank_2_0:"} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("blank struct field should use generated field name %q:\n%s", want, rust)
+		}
+	}
+}
+
 func TestTranspileConstDeclUsesPackageVisibility(t *testing.T) {
 	var out strings.Builder
 	TranspileConstDecl(&out, &ast.GenDecl{

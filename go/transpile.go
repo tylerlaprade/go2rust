@@ -1850,12 +1850,12 @@ func writeAnonymousStructDefinitions(body *strings.Builder, first *bool, emitted
 		body.WriteString(typeName)
 		body.WriteString(" {\n")
 
-		for _, field := range structType.Fields.List {
+		for fieldIndex, field := range structType.Fields.List {
 			if len(field.Names) > 0 {
 				// Handle multiple names on one line (e.g., X, Y int)
-				for _, name := range field.Names {
+				for nameIndex, name := range field.Names {
 					body.WriteString("    ")
-					body.WriteString(ToSnakeCase(name.Name))
+					body.WriteString(rustStructFieldName(name, fieldIndex, nameIndex))
 					body.WriteString(": ")
 					body.WriteString(GoTypeToRust(field.Type))
 					body.WriteString(",\n")

@@ -7166,12 +7166,12 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					out.WriteString(RustTypeNameForUse(ident.Name))
 					out.WriteString(" { ")
 					fieldIdx := 0
-					for _, field := range sd.ASTType.Fields.List {
-						for _, name := range field.Names {
+					for fieldIndex, field := range sd.ASTType.Fields.List {
+						for nameIndex, name := range field.Names {
 							if fieldIdx > 0 {
 								out.WriteString(", ")
 							}
-							out.WriteString(ToSnakeCase(name.Name))
+							out.WriteString(rustStructFieldName(name, fieldIndex, nameIndex))
 							out.WriteString(": ")
 							if isSyncParam(field.Type) {
 								out.WriteString(goTypeToRustBase(field.Type))
@@ -7227,12 +7227,12 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			} else if allPositional {
 				if sd, exists := structDefs[ident.Name]; exists && sd.ASTType != nil {
 					eltIndex := 0
-					for _, field := range sd.ASTType.Fields.List {
+					for fieldIndex, field := range sd.ASTType.Fields.List {
 						fieldNames := field.Names
 						if len(fieldNames) == 0 {
 							fieldNames = []*ast.Ident{ast.NewIdent(getEmbeddedFieldName(field.Type))}
 						}
-						for _, name := range fieldNames {
+						for nameIndex, name := range fieldNames {
 							if eltIndex >= len(e.Elts) {
 								break
 							}
@@ -7240,7 +7240,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 								out.WriteString(", ")
 							}
 							wroteFields = true
-							out.WriteString(ToSnakeCase(name.Name))
+							out.WriteString(rustStructFieldName(name, fieldIndex, nameIndex))
 							out.WriteString(": ")
 							writeWrappedStructFieldValue(out, e.Elts[eltIndex], field.Type, nil)
 							eltIndex++
@@ -7279,16 +7279,16 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			if allPositional {
 				if sd, exists := structDefs[ident.Name]; exists && sd.ASTType != nil {
 					eltIndex := 0
-					for _, field := range sd.ASTType.Fields.List {
+					for fieldIndex, field := range sd.ASTType.Fields.List {
 						fieldNames := field.Names
 						if len(fieldNames) == 0 {
 							fieldNames = []*ast.Ident{ast.NewIdent(getEmbeddedFieldName(field.Type))}
 						}
-						for _, name := range fieldNames {
+						for nameIndex, name := range fieldNames {
 							if eltIndex >= len(e.Elts) {
 								break
 							}
-							initializedFields[name.Name] = true
+							initializedFields[rustStructFieldName(name, fieldIndex, nameIndex)] = true
 							eltIndex++
 						}
 						if eltIndex >= len(e.Elts) {
@@ -7300,7 +7300,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				for _, elt := range e.Elts {
 					if kv, ok := elt.(*ast.KeyValueExpr); ok {
 						if key, ok := kv.Key.(*ast.Ident); ok {
-							initializedFields[key.Name] = true
+							initializedFields[ToSnakeCase(key.Name)] = true
 						}
 					}
 				}
@@ -7308,9 +7308,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			// Check if any uninitialized field is a struct type that needs Some(T::default())
 			hasStructFields := false
 			if sd, exists := structDefs[ident.Name]; exists && sd.ASTType != nil {
-				for _, field := range sd.ASTType.Fields.List {
-					for _, name := range field.Names {
-						if !initializedFields[name.Name] {
+				for fieldIndex, field := range sd.ASTType.Fields.List {
+					for nameIndex, name := range field.Names {
+						if !initializedFields[rustStructFieldName(name, fieldIndex, nameIndex)] {
 							if nestedStruct, ok := field.Type.(*ast.StructType); ok {
 								generateAnonymousStructType(nestedStruct)
 								hasStructFields = true
@@ -7335,15 +7335,16 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			if hasStructFields {
 				// Explicitly initialize struct-typed fields with Some(T::default())
 				if sd, exists := structDefs[ident.Name]; exists && sd.ASTType != nil {
-					for _, field := range sd.ASTType.Fields.List {
+					for fieldIndex, field := range sd.ASTType.Fields.List {
 						if len(field.Names) > 0 {
-							for _, name := range field.Names {
-								if !initializedFields[name.Name] {
+							for nameIndex, name := range field.Names {
+								rustFieldName := rustStructFieldName(name, fieldIndex, nameIndex)
+								if !initializedFields[rustFieldName] {
 									if wroteFields {
 										out.WriteString(", ")
 									}
 									wroteFields = true
-									out.WriteString(ToSnakeCase(name.Name))
+									out.WriteString(rustFieldName)
 									out.WriteString(": ")
 									if nestedStruct, ok := field.Type.(*ast.StructType); ok {
 										nestedName := generateAnonymousStructType(nestedStruct)
@@ -7418,12 +7419,12 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 
 			if allPositional {
 				eltIndex := 0
-				for _, field := range structType.Fields.List {
+				for fieldIndex, field := range structType.Fields.List {
 					fieldNames := field.Names
 					if len(fieldNames) == 0 {
 						fieldNames = []*ast.Ident{ast.NewIdent(getEmbeddedFieldName(field.Type))}
 					}
-					for _, name := range fieldNames {
+					for nameIndex, name := range fieldNames {
 						if eltIndex >= len(e.Elts) {
 							break
 						}
@@ -7431,8 +7432,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 							out.WriteString(", ")
 						}
 						needComma = true
-						initializedFields[name.Name] = true
-						out.WriteString(ToSnakeCase(name.Name))
+						rustFieldName := rustStructFieldName(name, fieldIndex, nameIndex)
+						initializedFields[rustFieldName] = true
+						out.WriteString(rustFieldName)
 						out.WriteString(": ")
 						writeWrappedStructFieldValue(out, e.Elts[eltIndex], field.Type, nil)
 						eltIndex++
@@ -7449,7 +7451,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 								out.WriteString(", ")
 							}
 							needComma = true
-							initializedFields[key.Name] = true
+							initializedFields[ToSnakeCase(key.Name)] = true
 							out.WriteString(ToSnakeCase(key.Name))
 							out.WriteString(": ")
 							writeWrappedStructFieldValue(out, kv.Value, findStructFieldExpr(structType, key.Name), nil)
@@ -7459,14 +7461,15 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			}
 
 			// Add default values for uninitialized fields
-			for _, field := range structType.Fields.List {
-				for _, name := range field.Names {
-					if !initializedFields[name.Name] {
+			for fieldIndex, field := range structType.Fields.List {
+				for nameIndex, name := range field.Names {
+					rustFieldName := rustStructFieldName(name, fieldIndex, nameIndex)
+					if !initializedFields[rustFieldName] {
 						if needComma {
 							out.WriteString(", ")
 						}
 						needComma = true
-						out.WriteString(ToSnakeCase(name.Name))
+						out.WriteString(rustFieldName)
 						out.WriteString(": ")
 						if nestedStruct, ok := field.Type.(*ast.StructType); ok {
 							// Nested struct field needs Some(StructName::default())
