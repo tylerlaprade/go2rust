@@ -1353,6 +1353,24 @@ func (r *regs) addr(i int) uintptr {
 	}
 }
 
+func TestUintptrConversionFromUnsafePointerIdentifierUsesHandle(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "unsafe"
+
+func addr(p unsafe.Pointer) uintptr {
+	return uintptr(p)
+}
+`)
+
+	if strings.Contains(rust, "__v }.borrow()") || strings.Contains(rust, "__v }.lock()") {
+		t.Fatalf("uintptr(unsafe.Pointer identifier) should not borrow after unwrapping to a raw integer:\n%s", rust)
+	}
+	if !strings.Contains(rust, "(*p.borrow().as_ref().unwrap()) as usize") {
+		t.Fatalf("uintptr(unsafe.Pointer identifier) should borrow the pointer handle directly:\n%s", rust)
+	}
+}
+
 func TestUnsafeRuntimeIntrinsicsEmitTypedUnimplemented(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

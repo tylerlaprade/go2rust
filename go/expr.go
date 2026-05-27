@@ -8717,7 +8717,7 @@ func writeUnsafePointerLikeUintptrConversion(out *strings.Builder, arg ast.Expr)
 		out.WriteString(".as_ref().unwrap()) as usize")
 	} else {
 		out.WriteString("(*")
-		TranspileExpression(out, arg)
+		writeUnsafePointerLikeHandle(out, arg)
 		WriteBorrowMethod(out, false)
 		out.WriteString(".as_ref().unwrap()) as usize")
 	}
@@ -8752,12 +8752,20 @@ func writeUnsafePointerConversionValue(out *strings.Builder, arg ast.Expr) {
 	}
 	if isUnsafePointerLikeType(argType) {
 		out.WriteString("(*")
-		TranspileExpression(out, arg)
+		writeUnsafePointerLikeHandle(out, arg)
 		WriteBorrowMethod(out, false)
 		out.WriteString(".as_ref().unwrap())")
 		return
 	}
 	writeNumericConversionValue(out, arg)
+}
+
+func writeUnsafePointerLikeHandle(out *strings.Builder, arg ast.Expr) {
+	if ident, ok := arg.(*ast.Ident); ok && ident.Name != "nil" {
+		out.WriteString(RustIdentForUse(ident))
+		return
+	}
+	TranspileExpressionContext(out, arg, LValue)
 }
 
 func writeNamedTypeDefinitionAccess(out *strings.Builder, expr ast.Expr) {
