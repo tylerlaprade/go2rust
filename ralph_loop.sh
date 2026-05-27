@@ -305,7 +305,17 @@ for ((i = 1; i <= MAX_ITERATIONS; i++)); do
     PROMPT=$(build_prompt "$ANALYSIS_TASK")
 
     # Shared file for latest tool description
-    TOOL_DESC_FILE=$(mktemp)
+    if ! TOOL_DESC_FILE=$(mktemp 2>/dev/null); then
+        event "ABORT: mktemp failed (likely no space left on device)"
+        TOOL_DESC_FILE=""
+        break
+    fi
+    if ! ITER_STDERR=$(mktemp 2>/dev/null); then
+        event "ABORT: mktemp failed (likely no space left on device)"
+        rm -f "$TOOL_DESC_FILE"
+        TOOL_DESC_FILE=""
+        break
+    fi
 
     # Background spinner
     _spinner_iter=$i _spinner_max=$MAX_ITERATIONS _spinner_pass=$PASSING _spinner_xfail=$XFAIL _spinner_queue=$QUEUED _spinner_desc_file=$TOOL_DESC_FILE
@@ -332,8 +342,8 @@ for ((i = 1; i <= MAX_ITERATIONS; i++)); do
         --max-turns "$MAX_TURNS" \
         -p "$PROMPT" \
         --output-format stream-json \
-        2>&1 | tee "$LOGFILE" | jq -r --unbuffered '.message.content[]? | select(.type == "tool_use") | "  → " + .description // .name' 2>/dev/null \
-        | while IFS= read -r line; do printf '%s' "$line" > "$TOOL_DESC_FILE"; done
+        2>&1 | tee "$LOGFILE" 2>>"$ITER_STDERR" | jq -r --unbuffered '.message.content[]? | select(.type == "tool_use") | "  → " + .description // .name' 2>/dev/null \
+        | while IFS= read -r line; do printf '%s' "$line" > "$TOOL_DESC_FILE"; done 2>>"$ITER_STDERR"
     EXIT_CODE=${PIPESTATUS[0]}
     set -e
 
@@ -343,6 +353,16 @@ for ((i = 1; i <= MAX_ITERATIONS; i++)); do
     SPINNER_PID=""
     rm -f "$TOOL_DESC_FILE"
     TOOL_DESC_FILE=""
+
+    # If the disk filled mid-iteration, stop immediately — further iterations
+    # will just churn with the same I/O errors.
+    if { [ -s "$ITER_STDERR" ] && grep -q 'No space left on device' "$ITER_STDERR"; } \
+       || { [ -f "$LOGFILE" ] && grep -q 'No space left on device' "$LOGFILE"; }; then
+        event "ABORT: no space left on device — stopping loop"
+        rm -f "$ITER_STDERR"
+        break
+    fi
+    rm -f "$ITER_STDERR"
 
     ELAPSED=$(( SECONDS - SESSION_START ))
     LINES=$(wc -l < "$LOGFILE" | tr -d ' ')
