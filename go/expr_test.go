@@ -1301,6 +1301,36 @@ func extractBits(data uint64, start, end uint) uint {
 	}
 }
 
+func TestUnsafePointerConversionUsesCurrentReceiver(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+import "unsafe"
+
+type Type struct{}
+
+func (t *Type) addr() uintptr {
+	return uintptr(unsafe.Pointer(t))
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(main.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := Transpile(file, fset, typeInfo)
+
+	if strings.Contains(rust, "Arc::as_ptr(&t)") || strings.Contains(rust, "Rc::as_ptr(&t)") {
+		t.Fatalf("unsafe.Pointer conversion for current receiver should use the lowered receiver, not the Go receiver name:\n%s", rust)
+	}
+	if !strings.Contains(rust, "self as *const _ as usize") {
+		t.Fatalf("unsafe.Pointer conversion should take the address of the lowered receiver:\n%s", rust)
+	}
+}
+
 func TestNoTypeInfoFunctionFieldDoesNotSynthesizeBoxFromRegistry(t *testing.T) {
 	prevTypeInfo := currentTypeInfo
 	defer func() { currentTypeInfo = prevTypeInfo }()

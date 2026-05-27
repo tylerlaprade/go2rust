@@ -9103,6 +9103,13 @@ func writeUnsafePointerConversion(out *strings.Builder, arg ast.Expr) {
 		return
 	}
 	if typeInfo.IsPointer(arg) {
+		if ident, ok := arg.(*ast.Ident); ok && ident.Name != "nil" {
+			if currentReceiver != "" && ident.Name == currentReceiver {
+				out.WriteString("self as *const _ as usize")
+				WriteWrapperSuffix(out)
+				return
+			}
+		}
 		out.WriteString(GetOuterWrapperType())
 		out.WriteString("::as_ptr(&")
 		if ident, ok := arg.(*ast.Ident); ok && ident.Name != "nil" {
