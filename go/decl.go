@@ -982,6 +982,46 @@ func isOsArgsSelector(sel *ast.SelectorExpr) bool {
 	return resolveStdlibPackageName(ident.Name) == "os"
 }
 
+func writeFunctionTypeParams(out *strings.Builder, fnType *ast.FuncType) {
+	if fnType == nil || fnType.TypeParams == nil || len(fnType.TypeParams.List) == 0 {
+		return
+	}
+	var params []string
+	for _, field := range fnType.TypeParams.List {
+		for _, name := range field.Names {
+			params = append(params, rustFunctionTypeParam(name))
+		}
+	}
+	if len(params) == 0 {
+		return
+	}
+	out.WriteString("<")
+	out.WriteString(strings.Join(params, ", "))
+	out.WriteString(">")
+}
+
+func rustFunctionTypeParam(name *ast.Ident) string {
+	rustName := RustTypeNameForUse(name.Name)
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return rustName
+	}
+	obj, ok := typeInfo.info.Defs[name].(*types.TypeName)
+	if !ok {
+		return rustName
+	}
+	traitName, ok := goTypeParamTraitConstraintName(obj.Type())
+	if !ok {
+		return rustName
+	}
+	bounds := []string{traitName, "Clone"}
+	if NeedsConcurrentWrapper() {
+		bounds = append(bounds, "Send", "Sync")
+	}
+	bounds = append(bounds, "'static")
+	return rustName + ": " + strings.Join(bounds, " + ")
+}
+
 func functionUsesOsArgs(fn *ast.FuncDecl) bool {
 	if fn.Body == nil {
 		return false
@@ -1530,6 +1570,7 @@ func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.Fi
 	}
 	out.WriteString("fn ")
 	out.WriteString(rustFunctionName(fn))
+	writeFunctionTypeParams(out, fn.Type)
 	out.WriteString("(")
 
 	// Parameters

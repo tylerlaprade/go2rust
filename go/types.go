@@ -217,6 +217,34 @@ func goTypeParamConstraintToRust(t types.Type) (string, bool) {
 	return "", false
 }
 
+func goTypeParamTraitConstraintName(t types.Type) (string, bool) {
+	tp, ok := types.Unalias(t).(*types.TypeParam)
+	if !ok || tp.Constraint() == nil {
+		return "", false
+	}
+	named, ok := types.Unalias(tp.Constraint()).(*types.Named)
+	if !ok || named.Obj() == nil {
+		return "", false
+	}
+	iface, ok := named.Underlying().(*types.Interface)
+	if !ok || iface.NumMethods() == 0 {
+		return "", false
+	}
+	return goTypesNamedTypeToRust(named), true
+}
+
+func goTypeParamTraitConstraintNameFromExpr(expr ast.Expr) (string, bool) {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return "", false
+	}
+	typ := typeInfo.GetType(expr)
+	if typ == nil {
+		return "", false
+	}
+	return goTypeParamTraitConstraintName(typ)
+}
+
 // getStructSignature creates a unique signature for a struct type based on its fields
 func getStructSignature(structType *ast.StructType) string {
 	var sig strings.Builder
@@ -860,6 +888,9 @@ func goCollectionElemTypeToRust(expr ast.Expr) string {
 		return GoTypeToRust(expr)
 	}
 	if ident, ok := expr.(*ast.Ident); ok && ident.Name == "error" {
+		return GoTypeToRust(expr)
+	}
+	if _, ok := goTypeParamTraitConstraintNameFromExpr(expr); ok {
 		return GoTypeToRust(expr)
 	}
 	// Local named interfaces need wrapped slice elements: Box<dyn Trait> has no

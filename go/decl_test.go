@@ -2,6 +2,7 @@ package main
 
 import (
 	"go/ast"
+	"go/parser"
 	"go/token"
 	"strings"
 	"testing"
@@ -27,6 +28,45 @@ func TestTranspileFunctionWithoutBodyDoesNotPanic(t *testing.T) {
 	}
 	if !strings.Contains(got, "unimplemented!(\"Go function declaration has no body\")") {
 		t.Fatalf("missing bodyless function fallback in:\n%s", got)
+	}
+}
+
+func TestTranspileGenericInterfaceConstrainedFunctionEmitsRustTypeParam(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+type Node interface {
+	Pos() int
+}
+
+func Use(node Node) {}
+
+func VisitAll[N Node](list []N) {
+	for _, node := range list {
+		Use(node)
+	}
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile() error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+	SetTypeInfo(typeInfo)
+	defer SetTypeInfo(nil)
+
+	rust, _, _ := Transpile(file, fset, typeInfo)
+
+	if !strings.Contains(rust, "pub fn visit_all<N: Node + Clone") {
+		t.Fatalf("generic interface-constrained function should emit a Rust type parameter bound:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Vec<Rc<RefCell<Option<N>>>>") {
+		t.Fatalf("slice of interface-constrained type parameter should use wrapped elements:\n%s", rust)
+	}
+	if strings.Contains(rust, "Vec<N>") {
+		t.Fatalf("slice of interface-constrained type parameter should not emit unwrapped Vec<N>:\n%s", rust)
 	}
 }
 
