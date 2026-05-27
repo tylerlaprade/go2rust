@@ -1183,6 +1183,116 @@ func writeTraitMethodSigFromTypes(out *strings.Builder, name string, sig *types.
 	out.WriteString(";\n")
 }
 
+func writeEmbeddedTraitObjectAdapters(out *strings.Builder, ifaceName string, embeddedTraits []string) {
+	for _, embeddedName := range embeddedTraits {
+		embeddedIface := localInterfaceTypesByName(embeddedName)
+		if embeddedIface == nil {
+			continue
+		}
+		writeEmbeddedTraitObjectAdapter(out, ifaceName, embeddedName, embeddedIface)
+	}
+}
+
+func writeEmbeddedTraitObjectAdapter(out *strings.Builder, ifaceName, embeddedName string, embeddedIface *types.Interface) {
+	out.WriteString("\n\nimpl ")
+	out.WriteString(embeddedName)
+	out.WriteString(" for ")
+	out.WriteString(rustLocalInterfaceTraitObject(ifaceName))
+	out.WriteString(" {\n")
+	writeEmbeddedTraitObjectClone(out, embeddedName)
+	if !interfaceTypeHasNamedEmbedded(embeddedIface) {
+		out.WriteString("    fn __go_as_any(&self) -> &dyn Any {\n")
+		out.WriteString("        (**self).__go_as_any()\n")
+		out.WriteString("    }\n")
+	}
+	writeEmbeddedTraitObjectEq(out, embeddedName)
+	for i := 0; i < embeddedIface.NumMethods(); i++ {
+		method := embeddedIface.Method(i)
+		sig, ok := method.Type().(*types.Signature)
+		if !ok {
+			continue
+		}
+		writeEmbeddedTraitObjectMethod(out, method.Name(), sig)
+	}
+	out.WriteString("}")
+}
+
+func writeEmbeddedTraitObjectClone(out *strings.Builder, embeddedName string) {
+	traitSnake := traitMethodSuffix(embeddedName)
+	out.WriteString("    fn __go_clone_box_")
+	out.WriteString(traitSnake)
+	out.WriteString("(&self) -> ")
+	out.WriteString(rustLocalInterfaceTraitObject(embeddedName))
+	out.WriteString(" {\n")
+	out.WriteString("        Box::new((*self).clone()) as ")
+	out.WriteString(rustLocalInterfaceTraitObject(embeddedName))
+	out.WriteString("\n")
+	out.WriteString("    }\n")
+}
+
+func writeEmbeddedTraitObjectEq(out *strings.Builder, embeddedName string) {
+	traitSnake := traitMethodSuffix(embeddedName)
+	out.WriteString("    fn __go_eq_")
+	out.WriteString(traitSnake)
+	out.WriteString("(&self, other: ")
+	out.WriteString(rustLocalInterfaceParamBare(embeddedName))
+	out.WriteString(") -> bool {\n")
+	out.WriteString("        (**self).__go_eq_")
+	out.WriteString(traitSnake)
+	out.WriteString("(other)\n")
+	out.WriteString("    }\n")
+}
+
+func writeEmbeddedTraitObjectMethod(out *strings.Builder, name string, sig *types.Signature) {
+	out.WriteString("    fn ")
+	out.WriteString(ToSnakeCase(name))
+	out.WriteString("(&self")
+	params := sig.Params()
+	argNames := make([]string, 0, params.Len())
+	for j := 0; j < params.Len(); j++ {
+		p := params.At(j)
+		pName := p.Name()
+		if pName == "" {
+			pName = fmt.Sprintf("_arg%d", j)
+		}
+		pName = RustLocalIdent(pName)
+		argNames = append(argNames, pName)
+		out.WriteString(", ")
+		out.WriteString(pName)
+		out.WriteString(": ")
+		out.WriteString(goTypesParamTypeToRust(p.Type()))
+	}
+	out.WriteString(")")
+	res := sig.Results()
+	switch res.Len() {
+	case 0:
+	case 1:
+		out.WriteString(" -> ")
+		out.WriteString(goTypesReturnTypeToRust(res.At(0).Type()))
+	default:
+		out.WriteString(" -> (")
+		for j := 0; j < res.Len(); j++ {
+			if j > 0 {
+				out.WriteString(", ")
+			}
+			out.WriteString(goTypesReturnTypeToRust(res.At(j).Type()))
+		}
+		out.WriteString(")")
+	}
+	out.WriteString(" {\n")
+	out.WriteString("        (**self).")
+	out.WriteString(ToSnakeCase(name))
+	out.WriteString("(")
+	for i, argName := range argNames {
+		if i > 0 {
+			out.WriteString(", ")
+		}
+		out.WriteString(argName)
+	}
+	out.WriteString(")\n")
+	out.WriteString("    }\n")
+}
+
 func interfaceParamVarInfo(typeExpr ast.Expr) (*VarInfo, bool) {
 	interfaceName, ok := transpiledNamedInterfaceTypeNameFromExpr(typeExpr)
 	if !ok {
@@ -2074,6 +2184,7 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 		out.WriteString("()\n")
 		out.WriteString("    }\n")
 		out.WriteString("}")
+		writeEmbeddedTraitObjectAdapters(out, rustTypeName, embeddedTraits)
 
 	default:
 		// Handle type aliases and type definitions

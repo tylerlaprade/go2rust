@@ -70,6 +70,37 @@ func VisitAll[N Node](list []N) {
 	}
 }
 
+func TestEmbeddedInterfaceTraitObjectImplementsSupertrait(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+type Node interface {
+	Pos() int
+}
+
+type Expr interface {
+	Node
+	ExprNode()
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile() error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := Transpile(file, fset, typeInfo)
+
+	if !strings.Contains(rust, "impl Node for Box<dyn Expr>") {
+		t.Fatalf("boxed Expr trait object should implement embedded Node trait:\n%s", rust)
+	}
+	if !strings.Contains(rust, "fn pos(&self) -> Rc<RefCell<Option<i32>>>") {
+		t.Fatalf("Node method should be delegated on boxed Expr trait object:\n%s", rust)
+	}
+}
+
 func TestTranspileConstDeclUsesPackageVisibility(t *testing.T) {
 	var out strings.Builder
 	TranspileConstDecl(&out, &ast.GenDecl{
