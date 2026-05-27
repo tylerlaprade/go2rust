@@ -7117,7 +7117,14 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						// Multi-name, single function call: var q, r = divmod(a, b)
 						// Generate: let (mut q, mut r) = divmod(a, b);
 						if len(valueSpec.Names) > 1 && len(valueSpec.Values) == 1 {
-							if _, isCall := valueSpec.Values[0].(*ast.CallExpr); isCall {
+							if callExpr, isCall := valueSpec.Values[0].(*ast.CallExpr); isCall {
+								// Record bare-scalar tuple slot info so later uses
+								// of the LHS names don't synthesize .borrow()/.lock().
+								lhsExprs := make([]ast.Expr, len(valueSpec.Names))
+								for i, name := range valueSpec.Names {
+									lhsExprs[i] = name
+								}
+								registerCallTupleResultSyntaxInfo(lhsExprs, callExpr)
 								out.WriteString("let (")
 								for i, name := range valueSpec.Names {
 									if i > 0 {
