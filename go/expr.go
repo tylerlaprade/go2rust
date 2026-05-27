@@ -11078,6 +11078,13 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 					}
 				}
 
+				if currentReceiver != "" && ident.Name == currentReceiver && currentReceiverScalarTypeDefinition() {
+					WriteWrapperPrefix(out)
+					out.WriteString("self.clone()")
+					WriteWrapperSuffix(out)
+					continue
+				}
+
 				if isConstIdent(ident) {
 					writeWrappedExpressionForExpectedType(out, arg, paramTypeForArg)
 					continue

@@ -924,6 +924,30 @@ func forceConcurrent() {
 	}
 }
 
+func TestNamedScalarReceiverFunctionArgumentUsesSelf(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type bitset uint64
+
+func (b bitset) first() uintptr {
+	return bitsetFirst(b)
+}
+
+func bitsetFirst(b bitset) uintptr {
+	return uintptr(b)
+}
+`)
+
+	if strings.Contains(rust, "bitset_first(Rc::new(RefCell::new(Some((*b.borrow()") ||
+		strings.Contains(rust, "bitset_first(Arc::new(Mutex::new(Some((*b.lock()") {
+		t.Fatalf("named scalar receiver used the Go receiver name instead of self in call argument:\n%s", rust)
+	}
+	if !strings.Contains(rust, "bitset_first(Rc::new(RefCell::new(Some(self.clone()))))") &&
+		!strings.Contains(rust, "bitset_first(Arc::new(Mutex::new(Some(self.clone()))))") {
+		t.Fatalf("named scalar receiver should pass self.clone() as the named value argument:\n%s", rust)
+	}
+}
+
 func TestNoTypeInfoExternalExecLookPathRegistersStub(t *testing.T) {
 	rust := transpileNoTypeInfoRegression(t, `package main
 
