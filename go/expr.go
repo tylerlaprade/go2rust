@@ -8638,7 +8638,7 @@ func writePointerTypeConversion(out *strings.Builder, target ast.Expr, source as
 }
 
 func writePointerTypeConversionFromUnsafePointer(out *strings.Builder, target ast.Expr, source ast.Expr) {
-	targetType := goTypeToRustBase(target)
+	targetType := pointerConversionTargetTypeToRust(target)
 	trackWrapperImports()
 	if NeedsConcurrentWrapper() {
 		out.WriteString("Arc::new(Mutex::new({ let __ptr = ")
@@ -8663,6 +8663,17 @@ func writeUnsafePointerConversionUnsupported(out *strings.Builder, targetType st
 	out.WriteString("unimplemented!(\"unsafe.Pointer conversion to ")
 	out.WriteString(targetType)
 	out.WriteString("\")")
+}
+
+func pointerConversionTargetTypeToRust(target ast.Expr) string {
+	if !isFunctionSignatureTypeExpr(target) {
+		if typ, ok := typeInfoTypeForTypeExpr(target); ok {
+			if alias, ok := typ.(*types.Alias); ok {
+				return goTypesTypeToRust(types.Unalias(alias))
+			}
+		}
+	}
+	return goTypeToRustBase(target)
 }
 
 func writeReflectStringHeaderPointerConversion(out *strings.Builder, call *ast.CallExpr) bool {

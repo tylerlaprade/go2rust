@@ -1377,6 +1377,54 @@ func (t *Type) Len() int {
 	}
 }
 
+func TestPointerToStructAliasUsesUnderlyingPointee(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Target struct {
+	Elem *int
+}
+
+type Alias = Target
+
+func elem(p *Alias) *int {
+	return p.Elem
+}
+`)
+
+	if strings.Contains(rust, "Option<Alias>") {
+		t.Fatalf("pointer to struct alias should not point at the full alias handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "pub fn elem(p: Rc<RefCell<Option<Target>>>)") {
+		t.Fatalf("pointer to struct alias should use the underlying pointee type:\n%s", rust)
+	}
+}
+
+func TestUnsafePointerToStructAliasConversionUsesUnderlyingPointee(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "unsafe"
+
+type Target struct {
+	Elem *int
+}
+
+type Alias = Target
+
+type Type struct{}
+
+func elem(t *Type) *int {
+	return (*Alias)(unsafe.Pointer(t)).Elem
+}
+`)
+
+	if strings.Contains(rust, "Some::<Alias>") {
+		t.Fatalf("unsafe.Pointer conversion to struct alias should not use the full alias handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Some::<Target>(unimplemented!(\"unsafe.Pointer conversion to Target\"))") {
+		t.Fatalf("unsafe.Pointer conversion to struct alias should use the underlying pointee type:\n%s", rust)
+	}
+}
+
 func TestUintptrConversionFromUnsafePointerIdentifierUsesHandle(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

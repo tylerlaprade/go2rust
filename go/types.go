@@ -49,6 +49,30 @@ func isEmptyInterfaceType(typ types.Type) bool {
 	return ok && intf.NumMethods() == 0
 }
 
+func typeInfoTypeForTypeExpr(expr ast.Expr) (types.Type, bool) {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || expr == nil {
+		return nil, false
+	}
+	if typ := typeInfo.GetType(expr); typ != nil {
+		return typ, true
+	}
+	if typeInfo.info == nil {
+		return nil, false
+	}
+	switch e := expr.(type) {
+	case *ast.Ident:
+		if obj, ok := typeInfo.info.Uses[e].(*types.TypeName); ok {
+			return obj.Type(), true
+		}
+	case *ast.SelectorExpr:
+		if obj, ok := typeInfo.info.Uses[e.Sel].(*types.TypeName); ok {
+			return obj.Type(), true
+		}
+	}
+	return nil, false
+}
+
 func isInterfaceType(typ types.Type) bool {
 	if typ == nil {
 		return false
@@ -413,6 +437,25 @@ func GoTypeToRust(expr ast.Expr) string {
 	return baseType
 }
 
+func pointerAliasElemTypeToRust(star *ast.StarExpr) (string, bool) {
+	if star == nil || isFunctionSignatureTypeExpr(star.X) {
+		return "", false
+	}
+	typ, ok := typeInfoTypeForTypeExpr(star)
+	if !ok {
+		return "", false
+	}
+	ptr, ok := types.Unalias(typ).Underlying().(*types.Pointer)
+	if !ok {
+		return "", false
+	}
+	alias, ok := ptr.Elem().(*types.Alias)
+	if !ok {
+		return "", false
+	}
+	return goTypesTypeToRust(types.Unalias(alias)), true
+}
+
 // Generate Rust closure type from Go function type
 func generateClosureType(funcType *ast.FuncType) string {
 	var paramTypes []string
@@ -578,6 +621,9 @@ func goTypeToRustBase(expr ast.Expr) string {
 		}
 		// Pointer type - wrap the base type (not already wrapped)
 		innerType := goTypeToRustBase(t.X)
+		if aliasElemType, ok := pointerAliasElemTypeToRust(t); ok {
+			innerType = aliasElemType
+		}
 		outerWrapper := GetOuterWrapperType()
 		innerWrapper := GetInnerWrapperType()
 		return outerWrapper + "<" + innerWrapper + "<Option<" + innerType + ">>>"
