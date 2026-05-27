@@ -29,11 +29,11 @@ impl std::fmt::Display for Box_ {
 
 impl Box_ {
     pub fn inner(&self) -> Rc<RefCell<Option<Box_>>> {
-        return Rc::new(RefCell::new(Some(self.clone())));
+        Rc::new(RefCell::new(Some(self.clone())))
     }
 
     pub fn r#use(&self, other: Rc<RefCell<Option<Box_>>>) -> i32 {
-        return (*(*other.borrow().as_ref().unwrap()).value.borrow().as_ref().unwrap());
+        (*(*other.borrow().as_ref().unwrap()).value.borrow().as_ref().unwrap())
     }
 }
 

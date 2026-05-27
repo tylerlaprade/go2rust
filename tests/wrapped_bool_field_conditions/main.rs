@@ -30,21 +30,21 @@ impl std::fmt::Display for item {
 impl item {
     pub fn label(&self) -> Rc<RefCell<Option<String>>> {
         if (*self.flag.clone().borrow().as_ref().unwrap()) {
-            return Rc::new(RefCell::new(Some("on".to_string())));
+            Rc::new(RefCell::new(Some("on".to_string())))
         } else {
-            return Rc::new(RefCell::new(Some("off".to_string())));
+            Rc::new(RefCell::new(Some("off".to_string())))
         }
     }
 
     pub fn either(&self, y: Rc<RefCell<Option<item>>>) -> bool {
-        return (*self.flag.borrow().as_ref().unwrap()) || !(*(*y.borrow().as_ref().unwrap()).flag.borrow().as_ref().unwrap());
+        (*self.flag.borrow().as_ref().unwrap()) || !(*(*y.borrow().as_ref().unwrap()).flag.borrow().as_ref().unwrap())
     }
 
     pub fn active(&self) -> bool {
         if (*self.flag.clone().borrow().as_ref().unwrap()) {
         return true;
     }
-        return false;
+        false
     }
 }
 

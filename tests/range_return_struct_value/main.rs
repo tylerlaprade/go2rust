@@ -64,39 +64,35 @@ impl std::fmt::Display for holder {
 
 impl scorer {
     pub fn score(&self, item: Rc<RefCell<Option<item>>>) -> i32 {
-        return (*(*item.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()).len() as i32;
+        (*(*item.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()).len() as i32
     }
 }
 
 pub fn first(items: Rc<RefCell<Option<Vec<item>>>>) -> Rc<RefCell<Option<item>>> {
-
     { let __range_holder = items.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for item in __range_values.iter() {
         return Rc::new(RefCell::new(Some((*item).clone())));
     } }
-    return Rc::new(RefCell::new(Some(item { name: Rc::new(RefCell::new(Some(String::new()))) })));
+    Rc::new(RefCell::new(Some(item { name: Rc::new(RefCell::new(Some(String::new()))) })))
 }
 
 pub fn score(item: Rc<RefCell<Option<item>>>) -> i32 {
-
-    return (*(*item.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()).len() as i32;
+    (*(*item.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()).len() as i32
 }
 
 pub fn total_score(items: Rc<RefCell<Option<Vec<item>>>>) -> i32 {
-
     let mut total = Rc::new(RefCell::new(Some(0)));
     { let __range_holder = items.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for item in __range_values.iter() {
         { let __rhs = score(Rc::new(RefCell::new(Some((*item).clone())))); let mut guard = total.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     } }
-    return (*total.borrow().as_ref().unwrap());
+    (*total.borrow().as_ref().unwrap())
 }
 
 pub fn total_method_score(h: Rc<RefCell<Option<holder>>>, items: Rc<RefCell<Option<Vec<item>>>>) -> i32 {
-
     let mut total = Rc::new(RefCell::new(Some(0)));
     { let __range_holder = items.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for item in __range_values.iter() {
         { let __rhs = (*(*h.borrow().as_ref().unwrap()).s.borrow().as_ref().unwrap()).score(Rc::new(RefCell::new(Some((*item).clone())))); let mut guard = total.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     } }
-    return (*total.borrow().as_ref().unwrap());
+    (*total.borrow().as_ref().unwrap())
 }
 
 fn main() {

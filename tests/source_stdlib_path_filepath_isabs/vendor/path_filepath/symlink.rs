@@ -9,7 +9,6 @@ use std::error::Error as StdError;
 use std::sync::{Arc, Mutex};
 
 pub fn walk_symlinks(mut path: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<String>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
-
     let mut volLen = filepathlite::volume_name_len(path.clone());
     let mut pathSeparator = Arc::new(Mutex::new(Some(char::from_u32((os::PATH_SEPARATOR) as u32).unwrap().to_string())));
 
@@ -168,5 +167,5 @@ pub fn walk_symlinks(mut path: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<
         // Symlink to absolute path.
         // Symlink to relative path; replace last
         // path component in dest.
-    return (clean(Arc::new(Mutex::new(Some({ let __arg_holder = dest.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))), Arc::new(Mutex::new(None)));
+    (clean(Arc::new(Mutex::new(Some({ let __arg_holder = dest.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))), Arc::new(Mutex::new(None)))
 }

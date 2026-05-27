@@ -185,8 +185,7 @@ pub mod types {
 
 
 pub fn is_invalid(t: Rc<RefCell<Option<types_Type>>>) -> bool {
-
-    return (*t.borrow().as_ref().unwrap()).clone() == { let __arg = (*types::Typ().borrow().as_ref().unwrap())[0usize].clone(); let __converted = { let __arg_guard = __arg.borrow(); let __converted: types_Type = __arg_guard.as_ref().map(|__v| (*__v).clone().into()).unwrap_or_else(types_Type::default); __converted }; __converted };
+    (*t.borrow().as_ref().unwrap()).clone() == { let __arg = (*types::Typ().borrow().as_ref().unwrap())[0usize].clone(); let __converted = { let __arg_guard = __arg.borrow(); let __converted: types_Type = __arg_guard.as_ref().map(|__v| (*__v).clone().into()).unwrap_or_else(types_Type::default); __converted }; __converted }
 }
 
 fn main() {

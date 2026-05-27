@@ -68,7 +68,7 @@ impl bag {
         { let __range_holder = self.values.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for value in __range_values.iter().copied() {
         { let __rhs = value; let mut guard = sum.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     } }
-        return (*sum.borrow().as_ref().unwrap());
+        (*sum.borrow().as_ref().unwrap())
     }
 }
 

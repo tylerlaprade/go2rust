@@ -2,7 +2,6 @@ use std::cell::{RefCell};
 use std::rc::{Rc};
 
 pub fn compare_strings(a: Rc<RefCell<Option<String>>>, b: Rc<RefCell<Option<String>>>) -> i32 {
-
     panic!("nil slice comparator called");
 }
 

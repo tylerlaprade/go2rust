@@ -28,7 +28,7 @@ pub fn parse(v: Rc<RefCell<Option<parseValue>>>) -> Rc<RefCell<Option<Box<dyn St
 
 pub fn parse_pair(v: Rc<RefCell<Option<parseValue>>>) -> (i32, Rc<RefCell<Option<Box<dyn StdError>>>>) {
 
-    return (7 as i32, { let __return_value_1 = (*v.borrow().as_ref().unwrap()).err.clone(); __return_value_1 });
+    return (7, { let __return_value_1 = (*v.borrow().as_ref().unwrap()).err.clone(); __return_value_1 });
 }
 
 fn main() {

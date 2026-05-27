@@ -6,7 +6,7 @@ use std::rc::{Rc};
 
 pub fn raw_marker() -> u64 {
 
-    return 5 as u64;
+    return 5;
 }
 
 fn main() {

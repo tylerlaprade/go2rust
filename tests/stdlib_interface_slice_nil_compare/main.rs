@@ -129,7 +129,6 @@ pub mod ast {
 
 
 pub fn count_non_nil(exprs: Arc<Mutex<Option<Vec<ast_Expr>>>>) -> i32 {
-
     let mut count = Arc::new(Mutex::new(Some(0)));
     let mut i = Arc::new(Mutex::new(Some(0)));
     while { let __tmp_x = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v } as i32); let __tmp_y = ((*exprs.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); __tmp_x < __tmp_y } {
@@ -143,7 +142,7 @@ pub fn count_non_nil(exprs: Arc<Mutex<Option<Vec<ast_Expr>>>>) -> i32 {
         return -1;
     }
     } }
-    return { let __v = (*count.lock().unwrap().as_ref().unwrap()).clone(); __v };
+    { let __v = (*count.lock().unwrap().as_ref().unwrap()).clone(); __v }
 }
 
 fn main() {

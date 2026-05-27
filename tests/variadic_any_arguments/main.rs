@@ -4,18 +4,15 @@ use std::error::Error as StdError;
 use std::rc::{Rc};
 
 pub fn label() -> Rc<RefCell<Option<String>>> {
-
-    return Rc::new(RefCell::new(Some("value".to_string())));
+    Rc::new(RefCell::new(Some("value".to_string())))
 }
 
 pub fn fail() -> Rc<RefCell<Option<Box<dyn StdError>>>> {
-
-    return Rc::new(RefCell::new(Some(Box::<dyn std::error::Error>::from("bad".to_string()))));
+    Rc::new(RefCell::new(Some(Box::<dyn std::error::Error>::from("bad".to_string()))))
 }
 
 pub fn count(args: Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) -> i32 {
-
-    return (*args.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32;
+    (*args.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32
 }
 
 fn main() {

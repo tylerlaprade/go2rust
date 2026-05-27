@@ -95,9 +95,10 @@ func writeFunctionResultTypes(out *strings.Builder, fnType *ast.FuncType) {
 			total += len(result.Names)
 		}
 	}
-	// Multi-result functions keep wrapped tuple elements for now: callers
-	// destructure into wrapped locals through paths that still assume
-	// wrapped slots. Single-result is where the optimization is safe.
+	// Each slot is lowered independently through GoReturnTypeToRust, so
+	// predeclared Copy scalar positions emit as bare Rust scalars in both
+	// single- and multi-result signatures while non-scalar positions stay
+	// wrapped. The single-result fast path is just an output shape choice.
 	if total == 1 {
 		out.WriteString(GoReturnTypeToRust(fnType.Results.List[0].Type))
 		return
@@ -312,6 +313,11 @@ func writeBareScalarReturnValue(out *strings.Builder, expr ast.Expr, expectedTyp
 		writeBareScalarBasicLit(out, e, expectedType)
 		return
 	case *ast.Ident:
+		if expectedType != nil {
+			if expected, ok := resultTypeExprType(expectedType); ok && writeRangeIndexForExpectedType(out, e, expected) {
+				return
+			}
+		}
 		// RValue context unwraps wrapped locals to a bare value. Constants
 		// and literals also lower correctly through this path.
 		TranspileExpressionContext(out, e, RValue)

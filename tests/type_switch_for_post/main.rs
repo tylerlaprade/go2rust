@@ -3,7 +3,6 @@ use std::cell::{RefCell};
 use std::rc::{Rc};
 
 pub fn classify(value: Rc<RefCell<Option<Box<dyn Any>>>>) -> Rc<RefCell<Option<String>>> {
-
     let mut i = Rc::new(RefCell::new(Some(0)));
     while (*i.borrow().as_ref().unwrap()) < 2 {
         {
@@ -27,7 +26,7 @@ pub fn classify(value: Rc<RefCell<Option<Box<dyn Any>>>>) -> Rc<RefCell<Option<S
     unreachable!();
         { let mut guard = i.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
-    return Rc::new(RefCell::new(Some("none".to_string())));
+    Rc::new(RefCell::new(Some("none".to_string())))
 }
 
 fn main() {

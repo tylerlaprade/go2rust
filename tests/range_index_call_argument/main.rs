@@ -2,8 +2,7 @@ use std::cell::{RefCell};
 use std::rc::{Rc};
 
 pub fn take_index(i: Rc<RefCell<Option<i32>>>) -> i32 {
-
-    return (*i.borrow().as_ref().unwrap()) + 1;
+    (*i.borrow().as_ref().unwrap()) + 1
 }
 
 fn main() {

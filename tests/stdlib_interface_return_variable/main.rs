@@ -141,7 +141,6 @@ impl From<types_Chan> for types_Type {
 
 
 pub fn as_type(t: Rc<RefCell<Option<types_Type>>>) -> Rc<RefCell<Option<types_Type>>> {
-
     let (mut ch, mut ok) = ({
         let val = t.clone();
         let guard = val.borrow();
@@ -158,16 +157,15 @@ pub fn as_type(t: Rc<RefCell<Option<types_Type>>>) -> Rc<RefCell<Option<types_Ty
     if (*ok.borrow().as_ref().unwrap()) {
         return { let __arg = ch.clone(); let __converted = { let __arg_guard = __arg.borrow(); let __converted: Option<types_Type> = __arg_guard.as_ref().map(|__v| (*__v).clone().into()); __converted }; Rc::new(RefCell::new(__converted)) };
     }
-    return t.clone();
+    t.clone()
 }
 
 pub fn zero_object() -> Rc<RefCell<Option<types_Object>>> {
-
     let mut obj: Rc<RefCell<Option<types_Object>>> = Rc::new(RefCell::new(None));
     if (*obj.borrow()).is_none() {
         return Rc::new(RefCell::new(None));
     }
-    return obj.clone();
+    obj.clone()
 }
 
 fn main() {

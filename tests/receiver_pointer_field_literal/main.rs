@@ -47,13 +47,13 @@ impl std::fmt::Display for Link {
 
 impl Node {
     pub fn link(&self) -> Rc<RefCell<Option<Link>>> {
-        return Rc::new(RefCell::new(Some(Link { owner: Rc::new(RefCell::new(Some(self.clone()))), ..Default::default() })));
+        Rc::new(RefCell::new(Some(Link { owner: Rc::new(RefCell::new(Some(self.clone()))), ..Default::default() })))
     }
 }
 
 impl Link {
     pub fn owner_name(&self) -> Rc<RefCell<Option<String>>> {
-        return Rc::new(RefCell::new(Some({ let __selector_holder = (*self.owner.borrow().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
+        Rc::new(RefCell::new(Some({ let __selector_holder = (*self.owner.borrow().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))
     }
 }
 

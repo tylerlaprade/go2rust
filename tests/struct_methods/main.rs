@@ -30,11 +30,11 @@ impl std::fmt::Display for rect {
 
 impl rect {
     pub fn area(&self) -> i32 {
-        return (*self.width.borrow().as_ref().unwrap()) * (*self.height.borrow().as_ref().unwrap());
+        (*self.width.borrow().as_ref().unwrap()) * (*self.height.borrow().as_ref().unwrap())
     }
 
     pub fn perim(&self) -> i32 {
-        return 2 as i32 * (*self.width.borrow().as_ref().unwrap()) + 2 as i32 * (*self.height.borrow().as_ref().unwrap());
+        2 as i32 * (*self.width.borrow().as_ref().unwrap()) + 2 as i32 * (*self.height.borrow().as_ref().unwrap())
     }
 }
 

@@ -69,7 +69,7 @@ impl r#box {
 
     pub fn add(&mut self, x: Rc<RefCell<Option<i32>>>) -> i32 {
         { let new_val = { let __append_target = self.items.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push((*x.borrow().as_ref().unwrap()).clone()); __append_target.clone() }; self.items = new_val; };
-        return (*self.items.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32;
+        (*self.items.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32
     }
 
     pub fn flush(&mut self) {

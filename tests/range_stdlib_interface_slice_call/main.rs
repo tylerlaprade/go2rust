@@ -214,7 +214,6 @@ pub mod ast {
 
 
 pub fn has_stmt(stmts: Arc<Mutex<Option<Vec<ast_Stmt>>>>) -> bool {
-
     let mut prev: Arc<Mutex<Option<ast_Stmt>>> = Arc::new(Mutex::new(None));
     { let __range_holder = stmts.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for stmt in __range_values.iter() {
         { let new_val = (*stmt).clone(); *prev.lock().unwrap() = Some(new_val); };
@@ -222,16 +221,14 @@ pub fn has_stmt(stmts: Arc<Mutex<Option<Vec<ast_Stmt>>>>) -> bool {
         return accept_stmt(prev.clone());
     }
     } }
-    return false;
+    false
 }
 
 pub fn accept_stmt(stmt: Arc<Mutex<Option<ast_Stmt>>>) -> bool {
-
-    return (*stmt.lock().unwrap()).is_some();
+    (*stmt.lock().unwrap()).is_some()
 }
 
 pub fn stmt_kind(stmts: Arc<Mutex<Option<Vec<ast_Stmt>>>>) -> Arc<Mutex<Option<String>>> {
-
     { let __range_holder = stmts.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for stmt in __range_values.iter() {
         {
     let _ts_is_nil = false;
@@ -247,11 +244,10 @@ pub fn stmt_kind(stmts: Arc<Mutex<Option<Vec<ast_Stmt>>>>) -> Arc<Mutex<Option<S
     }
     unreachable!()
     } }
-    return Arc::new(Mutex::new(Some("none".to_string())));
+    Arc::new(Mutex::new(Some("none".to_string())))
 }
 
 pub fn assert_expr_stmt(stmts: Arc<Mutex<Option<Vec<ast_Stmt>>>>) -> bool {
-
     { let __range_holder = stmts.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for stmt in __range_values.iter() {
         let mut expr = ({
         let val = stmt;
@@ -259,7 +255,7 @@ pub fn assert_expr_stmt(stmts: Arc<Mutex<Option<Vec<ast_Stmt>>>>) -> bool {
     }).clone();
         return (*expr.lock().unwrap()).is_some();
     } }
-    return false;
+    false
 }
 
 fn main() {

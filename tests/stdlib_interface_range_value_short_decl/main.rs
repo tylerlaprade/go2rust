@@ -258,7 +258,6 @@ impl From<ast_Ident> for ast_Expr {
 
 
 pub fn normalize(elts: Arc<Mutex<Option<Vec<ast_Expr>>>>) -> Arc<Mutex<Option<Vec<ast_Expr>>>> {
-
     let mut values: Arc<Mutex<Option<Vec<ast_Expr>>>> = Arc::new(Mutex::new(None));
     { let __range_holder = elts.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for elt in __range_values.iter() {
         let mut value = Arc::new(Mutex::new(Some((*elt).clone())));
@@ -277,7 +276,7 @@ pub fn normalize(elts: Arc<Mutex<Option<Vec<ast_Expr>>>>) -> Arc<Mutex<Option<Ve
     }
         { let new_val = { let __append_target = values.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push((*value.lock().unwrap().as_ref().unwrap()).clone()); __append_target.clone() }; values = new_val; };
     } }
-    return values.clone();
+    values.clone()
 }
 
 fn main() {

@@ -69,13 +69,13 @@ impl std::fmt::Display for container {
 
 impl base {
     pub fn describe(&self) -> Rc<RefCell<Option<String>>> {
-        return Rc::new(RefCell::new(Some(format!("base with num={}", (*self.num.borrow().as_ref().unwrap())))));
+        Rc::new(RefCell::new(Some(format!("base with num={}", (*self.num.borrow().as_ref().unwrap())))))
     }
 }
 
 impl describer for base {
     fn describe(&self) -> Rc<RefCell<Option<String>>> {
-        return Rc::new(RefCell::new(Some(format!("base with num={}", (*self.num.borrow().as_ref().unwrap())))));
+        Rc::new(RefCell::new(Some(format!("base with num={}", (*self.num.borrow().as_ref().unwrap())))))
     }
     fn __go_clone_box_describer(&self) -> Box<dyn describer> {
         Box::new(self.clone()) as Box<dyn describer>

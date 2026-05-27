@@ -2,8 +2,7 @@ use std::cell::{RefCell};
 use std::rc::{Rc};
 
 pub fn qualify(dir: Rc<RefCell<Option<String>>>, file: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>> {
-
-    return Rc::new(RefCell::new(Some(format!("{}{}", format!("{}{}", (*dir.borrow().as_ref().unwrap()), "/".to_string()), (*file.borrow().as_ref().unwrap())))));
+    Rc::new(RefCell::new(Some(format!("{}{}", format!("{}{}", (*dir.borrow().as_ref().unwrap()), "/".to_string()), (*file.borrow().as_ref().unwrap())))))
 }
 
 fn main() {

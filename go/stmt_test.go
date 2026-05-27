@@ -664,6 +664,69 @@ func short() int {
 	}
 }
 
+func TestStrconvAtoiTupleSlotEmitsBareScalarFirstResult(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import (
+	"fmt"
+	"strconv"
+)
+
+func main() {
+	num, err := strconv.Atoi("42")
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
+	fmt.Println("Parsed number:", num)
+}
+`)
+
+	if strings.Contains(rust, "Ok(n) => (Rc::new(") || strings.Contains(rust, "Ok(n) => (Arc::new(") {
+		t.Fatalf("strconv.Atoi Ok branch should keep the bare scalar in the first tuple slot:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Ok(n) => (n,") {
+		t.Fatalf("strconv.Atoi Ok branch should yield bare scalar n directly:\n%s", rust)
+	}
+	if strings.Contains(rust, "Err(e) => (Rc::new(RefCell::new(Some(0)))") ||
+		strings.Contains(rust, "Err(e) => (Arc::new(Mutex::new(Some(0)))") {
+		t.Fatalf("strconv.Atoi Err branch should emit bare scalar zero in the first tuple slot:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Err(_) => (0 as i32,") {
+		t.Fatalf("strconv.Atoi Err branch should emit bare zero (0 as i32) in the first tuple slot:\n%s", rust)
+	}
+	if !strings.Contains(rust, "(mut num, mut err)") {
+		t.Fatalf("expected num/err short-decl destructuring:\n%s", rust)
+	}
+	if strings.Contains(rust, "format!(\"{}\", (*num.borrow()") || strings.Contains(rust, "format!(\"{}\", (*num.lock()") {
+		t.Fatalf("bare scalar num must not be unwrapped through .borrow()/lock() in fmt printing:\n%s", rust)
+	}
+}
+
+func TestRangeIndexReturnedFromBareScalarTupleSlotCastsToI32(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func findInSlice(slice []int, target int) (int, bool) {
+	for i, val := range slice {
+		if val == target {
+			return i, true
+		}
+	}
+	return -1, false
+}
+`)
+
+	if !strings.Contains(rust, "pub fn find_in_slice") {
+		t.Fatalf("expected find_in_slice declaration:\n%s", rust)
+	}
+	if !strings.Contains(rust, "return (i as i32, true);") {
+		t.Fatalf("range index returned through bare i32 tuple slot must cast usize -> i32:\n%s", rust)
+	}
+	if strings.Contains(rust, "return (i, true);") {
+		t.Fatalf("range index emit should not leak usize into a bare i32 return slot:\n%s", rust)
+	}
+}
+
 func TestLocalInterfaceAssignmentFromOwnMethodCallClonesReceiver(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

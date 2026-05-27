@@ -126,13 +126,12 @@ impl Unknown {
 }
 
 pub fn map_keys<K: Any + Clone + 'static, V: Any + Clone + 'static>(m: Rc<RefCell<Option<BTreeMap<K, Rc<RefCell<Option<V>>>>>>>) -> Rc<RefCell<Option<Vec<Box<dyn Any>>>>> {
-
     let mut r = Rc::new(RefCell::new(Some(Vec::with_capacity(((*m.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)) as usize))));
     for (__range_key, _) in { let __range_holder = m.clone(); let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
         let k = __range_key.value();
         { let new_val = { let __append_target = r.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push((*k.borrow().as_ref().unwrap()).clone()); __append_target.clone() }; r = new_val; };
     }
-    return r.clone();
+    r.clone()
 }
 
 fn main() {

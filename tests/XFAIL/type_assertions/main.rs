@@ -111,13 +111,13 @@ impl std::fmt::Display for Circle {
 
 impl Rectangle {
     pub fn area(&self) -> f64 {
-        return (*self.width.borrow().as_ref().unwrap()) * (*self.height.borrow().as_ref().unwrap());
+        (*self.width.borrow().as_ref().unwrap()) * (*self.height.borrow().as_ref().unwrap())
     }
 }
 
 impl Shape for Rectangle {
     fn area(&self) -> f64 {
-        return (*self.width.borrow().as_ref().unwrap()) * (*self.height.borrow().as_ref().unwrap());
+        (*self.width.borrow().as_ref().unwrap()) * (*self.height.borrow().as_ref().unwrap())
     }
     fn __go_clone_box_shape(&self) -> Box<dyn Shape> {
         Box::new(self.clone()) as Box<dyn Shape>
@@ -136,13 +136,13 @@ impl Shape for Rectangle {
 
 impl Circle {
     pub fn area(&self) -> f64 {
-        return 3.14159 as f64 * (*self.radius.borrow().as_ref().unwrap()) * (*self.radius.borrow().as_ref().unwrap());
+        3.14159 as f64 * (*self.radius.borrow().as_ref().unwrap()) * (*self.radius.borrow().as_ref().unwrap())
     }
 }
 
 impl Shape for Circle {
     fn area(&self) -> f64 {
-        return 3.14159 as f64 * (*self.radius.borrow().as_ref().unwrap()) * (*self.radius.borrow().as_ref().unwrap());
+        3.14159 as f64 * (*self.radius.borrow().as_ref().unwrap()) * (*self.radius.borrow().as_ref().unwrap())
     }
     fn __go_clone_box_shape(&self) -> Box<dyn Shape> {
         Box::new(self.clone()) as Box<dyn Shape>

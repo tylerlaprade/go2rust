@@ -69,13 +69,13 @@ impl std::fmt::Display for holder {
 
 impl node {
     pub fn value(&self) -> i32 {
-        return (*self.value.borrow().as_ref().unwrap());
+        (*self.value.borrow().as_ref().unwrap())
     }
 }
 
 impl holder {
     pub fn current(&self) -> Rc<RefCell<Option<Box<dyn Any>>>> {
-        return self.value.clone();
+        self.value.clone()
     }
 }
 
@@ -90,11 +90,11 @@ fn main() {
     if _ts_val.and_then(|__v| __v.downcast_ref::<node>()).is_some() {
         let T = Rc::new(RefCell::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<node>()).unwrap().clone())));
         drop(_ts_guard);
-        return (*T.borrow().as_ref().unwrap()).value();;
+        (*T.borrow().as_ref().unwrap()).value();
     } else {
         let T = T.clone();
         drop(_ts_guard);
-        return 0 as i32;;
+        0;
     }
     }
     unreachable!()

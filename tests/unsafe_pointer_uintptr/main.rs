@@ -1,8 +1,7 @@
 use std::sync::{Arc, Mutex};
 
 pub fn address(p: Arc<Mutex<Option<i32>>>) -> usize {
-
-    return (*Arc::new(Mutex::new(Some((*Arc::new(Mutex::new(Some(Arc::as_ptr(&p) as usize))).lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap());
+    (*Arc::new(Mutex::new(Some((*Arc::new(Mutex::new(Some(Arc::as_ptr(&p) as usize))).lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap())
 }
 
 fn main() {

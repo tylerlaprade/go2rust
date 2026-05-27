@@ -79,13 +79,13 @@ impl std::fmt::Display for Field {
 
 impl Ident {
     pub fn pos(&self) -> i32 {
-        return 1 as i32;
+        return 1;
     }
 }
 
 impl Expr for Ident {
     fn pos(&self) -> i32 {
-        return 1 as i32;
+        return 1;
     }
     fn __go_clone_box_expr(&self) -> Box<dyn Expr> {
         Box::new(self.clone()) as Box<dyn Expr>
@@ -104,13 +104,13 @@ impl Expr for Ident {
 
 impl StarExpr {
     pub fn pos(&self) -> i32 {
-        return 2 as i32;
+        return 2;
     }
 }
 
 impl Expr for StarExpr {
     fn pos(&self) -> i32 {
-        return 2 as i32;
+        return 2;
     }
     fn __go_clone_box_expr(&self) -> Box<dyn Expr> {
         Box::new(self.clone()) as Box<dyn Expr>

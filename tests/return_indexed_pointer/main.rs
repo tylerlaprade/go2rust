@@ -28,8 +28,7 @@ impl std::fmt::Display for item {
 
 
 pub fn first(items: Rc<RefCell<Option<Vec<Rc<RefCell<Option<item>>>>>>>) -> Rc<RefCell<Option<item>>> {
-
-    return (*items.borrow().as_ref().unwrap())[(0) as usize].clone();
+    (*items.borrow().as_ref().unwrap())[(0) as usize].clone()
 }
 
 fn main() {

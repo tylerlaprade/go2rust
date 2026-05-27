@@ -47,7 +47,7 @@ where
 pub fn factorial(n: Rc<RefCell<Option<i32>>>) -> i32 {
 
     if (*n.borrow().as_ref().unwrap()) <= 1 {
-        return 1 as i32;
+        return 1;
     }
     return (*n.borrow().as_ref().unwrap()) * factorial(Rc::new(RefCell::new(Some((*n.borrow().as_ref().unwrap()) - 1))));
 }
@@ -71,7 +71,7 @@ pub fn gcd(a: Rc<RefCell<Option<i32>>>, b: Rc<RefCell<Option<i32>>>) -> i32 {
 pub fn power(base: Rc<RefCell<Option<i32>>>, exp: Rc<RefCell<Option<i32>>>) -> i32 {
 
     if (*exp.borrow().as_ref().unwrap()) == 0 {
-        return 1 as i32;
+        return 1;
     }
     if (*exp.borrow().as_ref().unwrap()) == 1 {
         return (*base.borrow().as_ref().unwrap());
@@ -86,7 +86,7 @@ pub fn power(base: Rc<RefCell<Option<i32>>>, exp: Rc<RefCell<Option<i32>>>) -> i
 pub fn sum_array(arr: Rc<RefCell<Option<Vec<i32>>>>) -> i32 {
 
     if ((*arr.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32) == (0 as i32) {
-        return 0 as i32;
+        return 0;
     }
     if ((*arr.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32) == (1 as i32) {
         return (*arr.borrow().as_ref().unwrap())[(0) as usize].clone();

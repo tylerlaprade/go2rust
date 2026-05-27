@@ -2356,19 +2356,17 @@ func transpileStrconvItoa(out *strings.Builder, call *ast.CallExpr) {
 
 func transpileStrconvAtoi(out *strings.Builder, call *ast.CallExpr) {
 	if len(call.Args) > 0 {
-		// Capture input string for Go-compatible error message
+		// strconv.Atoi returns (int, error). The int slot is a predeclared
+		// Copy scalar, so it lowers to a bare i32 at the boundary; the error
+		// slot keeps the wrapped representation.
 		out.WriteString("{ let __atoi_input = ")
 		TranspileExpression(out, call.Args[0])
 		out.WriteString(".clone(); match __atoi_input.parse::<i32>() { ")
-		out.WriteString("Ok(n) => (")
-		WriteWrapperPrefix(out)
-		out.WriteString("n))), ")
+		out.WriteString("Ok(n) => (n, ")
 		WriteWrappedNone(out)
 		out.WriteString("), ")
 		TrackImport("Error")
-		out.WriteString("Err(e) => (")
-		WriteWrapperPrefix(out)
-		out.WriteString("0))), ")
+		out.WriteString("Err(_) => (0 as i32, ")
 		WriteWrapperPrefix(out)
 		if NeedsConcurrentWrapper() {
 			out.WriteString("Box::<dyn StdError + Send + Sync>::from(format!(\"strconv.Atoi: parsing \\\"{}\\\": invalid syntax\", __atoi_input)))))) } }")

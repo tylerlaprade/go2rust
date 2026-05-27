@@ -113,13 +113,12 @@ impl std::fmt::Display for Walker {
 
 impl Walker {
     pub fn has(&self, t: Arc<Mutex<Option<types_Type>>>) -> bool {
-        return true;
+        true
     }
 }
 
 pub fn has(t: Arc<Mutex<Option<types_Type>>>) -> bool {
-
-    return true;
+    true
 }
 
 fn main() {

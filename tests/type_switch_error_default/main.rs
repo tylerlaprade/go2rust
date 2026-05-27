@@ -170,7 +170,7 @@ impl std::fmt::Display for plainErr {
 
 impl plainErr {
     pub fn error(&self) -> Arc<Mutex<Option<String>>> {
-        return Arc::new(Mutex::new(Some("plain".to_string())));
+        Arc::new(Mutex::new(Some("plain".to_string())))
     }
 }
 
@@ -178,7 +178,6 @@ impl StdError for plainErr {}
 
 
 pub fn classify(mut err: Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) -> Arc<Mutex<Option<String>>> {
-
     {
     let _ts_subject = err.clone();
     let _ts_guard = _ts_subject.lock().unwrap();
@@ -187,7 +186,7 @@ pub fn classify(mut err: Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) ->
     {
         let err = err.clone();
         drop(_ts_guard);
-        return Arc::new(Mutex::new(Some(format!("{}", err.lock().unwrap().as_ref().unwrap()))));;
+        Arc::new(Mutex::new(Some(format!("{}", err.lock().unwrap().as_ref().unwrap()))));
     }
     }
     unreachable!()

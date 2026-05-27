@@ -55,7 +55,7 @@ impl std::fmt::Display for Outer {
 
 impl Inner {
     pub fn get_value(&self) -> i32 {
-        return (*self.value.borrow().as_ref().unwrap());
+        (*self.value.borrow().as_ref().unwrap())
     }
 }
 

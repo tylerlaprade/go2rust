@@ -2,8 +2,7 @@ use std::cell::{RefCell};
 use std::rc::{Rc};
 
 pub fn accept(n: Rc<RefCell<Option<i32>>>) -> i32 {
-
-    return (*n.borrow().as_ref().unwrap());
+    (*n.borrow().as_ref().unwrap())
 }
 
 fn main() {

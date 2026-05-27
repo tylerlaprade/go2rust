@@ -238,14 +238,13 @@ impl std::fmt::Display for result {
 
 
 pub fn join(dir: Arc<Mutex<Option<String>>>, groups: Arc<Mutex<Option<Vec<Vec<String>>>>>) -> Arc<Mutex<Option<Vec<String>>>> {
-
     let mut out: Arc<Mutex<Option<Vec<String>>>> = Arc::new(Mutex::new(None));
     { let __range_holder = groups.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for group in __range_values.iter() {
         for name in group.iter() {
         { let new_val = { let __append_target = out.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(format!("{}{}", format!("{}{}", { let __v = (*dir.lock().unwrap().as_ref().unwrap()).clone(); __v }, "/".to_string()), name)); __append_target.clone() }; out = new_val; };
     }
     } }
-    return out.clone();
+    out.clone()
 }
 
 fn main() {

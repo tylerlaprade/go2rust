@@ -19,8 +19,7 @@ impl ast_File {
 
 
 pub fn label(file: Rc<RefCell<Option<ast_File>>>) -> Rc<RefCell<Option<String>>> {
-
-    return Rc::new(RefCell::new(Some("ok".to_string())));
+    Rc::new(RefCell::new(Some("ok".to_string())))
 }
 
 fn main() {

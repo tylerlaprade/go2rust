@@ -219,22 +219,19 @@ pub struct ExprList(pub Arc<Mutex<Option<Vec<ast_Expr>>>>);
 
 
 pub fn pad_exprs(elts: Arc<Mutex<Option<Vec<ast_Expr>>>>, length: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<Vec<ast_Expr>>>> {
-
     let mut values = Arc::new(Mutex::new(Some({ let __v = (*elts.lock().unwrap().as_ref().unwrap()).clone(); __v })));
     while { let __tmp_x = ((*values.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = ({ let __v = (*length.lock().unwrap().as_ref().unwrap()).clone(); __v } as i32); __tmp_x < __tmp_y } {
         { let new_val = { let __append_target = values.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(Default::default()); __append_target.clone() }; values = new_val; };
     }
-    return values.clone();
+    values.clone()
 }
 
 pub fn pad_named_exprs(elts: Arc<Mutex<Option<ExprList>>>) -> Arc<Mutex<Option<ExprList>>> {
-
-    return { let __base = { let __named_slice = (*elts.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __base_guard = __base.lock().unwrap(); let mut __values = __base_guard.as_ref().cloned().unwrap_or_else(Vec::new); drop(__base_guard); __values.push(Default::default()); Arc::new(Mutex::new(Some(ExprList(Arc::new(Mutex::new(Some(__values))))))) };
+    { let __base = { let __named_slice = (*elts.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __base_guard = __base.lock().unwrap(); let mut __values = __base_guard.as_ref().cloned().unwrap_or_else(Vec::new); drop(__base_guard); __values.push(Default::default()); Arc::new(Mutex::new(Some(ExprList(Arc::new(Mutex::new(Some(__values))))))) }
 }
 
 pub fn nil_literal() -> Arc<Mutex<Option<Vec<ast_Expr>>>> {
-
-    return Arc::new(Mutex::new(Some(Vec::<ast_Expr>::from([Default::default()]))));
+    Arc::new(Mutex::new(Some(Vec::<ast_Expr>::from([Default::default()]))))
 }
 
 fn main() {

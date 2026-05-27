@@ -67,7 +67,7 @@ impl holder {
         { let __range_holder = self.values.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for _ in __range_values.iter() {
         return true;
     } }
-        return false;
+        false
     }
 
     pub fn count_with_check(&self) -> i32 {
@@ -77,7 +77,7 @@ impl holder {
         { let mut guard = count.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
     } }
-        return (*count.borrow().as_ref().unwrap());
+        (*count.borrow().as_ref().unwrap())
     }
 }
 

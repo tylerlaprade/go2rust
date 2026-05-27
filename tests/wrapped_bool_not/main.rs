@@ -2,8 +2,7 @@ use std::cell::{RefCell};
 use std::rc::{Rc};
 
 pub fn is_ready(flag: Rc<RefCell<Option<bool>>>) -> bool {
-
-    return (*flag.borrow().as_ref().unwrap());
+    (*flag.borrow().as_ref().unwrap())
 }
 
 fn main() {

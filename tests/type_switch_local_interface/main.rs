@@ -68,17 +68,17 @@ impl std::fmt::Display for beta {
 
 impl alpha {
     pub fn name(&self) -> Rc<RefCell<Option<String>>> {
-        return self.name.clone();
+        self.name.clone()
     }
 
     pub fn extra(&self) -> Rc<RefCell<Option<String>>> {
-        return Rc::new(RefCell::new(Some(format!("{}{}", "alpha:".to_string(), (*self.name.clone().borrow().as_ref().unwrap())))));
+        Rc::new(RefCell::new(Some(format!("{}{}", "alpha:".to_string(), (*self.name.clone().borrow().as_ref().unwrap())))))
     }
 }
 
 impl namer for alpha {
     fn name(&self) -> Rc<RefCell<Option<String>>> {
-        return self.name.clone();
+        self.name.clone()
     }
     fn __go_clone_box_namer(&self) -> Box<dyn namer> {
         Box::new(self.clone()) as Box<dyn namer>
@@ -97,13 +97,13 @@ impl namer for alpha {
 
 impl beta {
     pub fn name(&self) -> Rc<RefCell<Option<String>>> {
-        return self.name.clone();
+        self.name.clone()
     }
 }
 
 impl namer for beta {
     fn name(&self) -> Rc<RefCell<Option<String>>> {
-        return self.name.clone();
+        self.name.clone()
     }
     fn __go_clone_box_namer(&self) -> Box<dyn namer> {
         Box::new(self.clone()) as Box<dyn namer>
@@ -121,7 +121,6 @@ impl namer for beta {
 }
 
 pub fn describe(n: Rc<RefCell<Option<Box<dyn namer>>>>) -> Rc<RefCell<Option<String>>> {
-
     {
     let _ts_subject = n.clone();
     let _ts_guard = _ts_subject.borrow();
@@ -137,17 +136,15 @@ pub fn describe(n: Rc<RefCell<Option<Box<dyn namer>>>>) -> Rc<RefCell<Option<Str
         return (*v.borrow().as_ref().unwrap()).name();;
     }
     }
-    return (*n.borrow().as_ref().unwrap()).name();
+    (*n.borrow().as_ref().unwrap()).name()
 }
 
 pub fn pick_alpha() -> Rc<RefCell<Option<alpha>>> {
-
-    return Rc::new(RefCell::new(Some(alpha { name: Rc::new(RefCell::new(Some("call".to_string()))), ..Default::default() })));
+    Rc::new(RefCell::new(Some(alpha { name: Rc::new(RefCell::new(Some("call".to_string()))), ..Default::default() })))
 }
 
 pub fn new_namer() -> Rc<RefCell<Option<Box<dyn namer>>>> {
-
-    return Rc::new(RefCell::new(Some(Box::new((*pick_alpha().borrow().as_ref().unwrap()).clone()) as Box<dyn namer>)));
+    Rc::new(RefCell::new(Some(Box::new((*pick_alpha().borrow().as_ref().unwrap()).clone()) as Box<dyn namer>)))
 }
 
 fn main() {

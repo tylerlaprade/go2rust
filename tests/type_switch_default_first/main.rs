@@ -3,7 +3,6 @@ use std::cell::{RefCell};
 use std::rc::{Rc};
 
 pub fn classify(v: Rc<RefCell<Option<Box<dyn Any>>>>) -> Rc<RefCell<Option<String>>> {
-
     let mut result = Rc::new(RefCell::new(Some("".to_string())));
     {
     let _ts_subject = v.clone();
@@ -18,7 +17,7 @@ pub fn classify(v: Rc<RefCell<Option<Box<dyn Any>>>>) -> Rc<RefCell<Option<Strin
         { let new_val = "other".to_string(); *result.borrow_mut() = Some(new_val); };;
     }
     }
-    return Rc::new(RefCell::new(Some(result.borrow().as_ref().unwrap().clone())));
+    Rc::new(RefCell::new(Some(result.borrow().as_ref().unwrap().clone())))
 }
 
 fn main() {

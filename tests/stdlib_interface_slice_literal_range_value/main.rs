@@ -239,11 +239,10 @@ impl From<ast_Ident> for ast_Expr {
 
 
 pub fn singleton_from_range(elts: Arc<Mutex<Option<Vec<ast_Expr>>>>) -> Arc<Mutex<Option<Vec<ast_Expr>>>> {
-
     { let __range_holder = elts.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for elt in __range_values.iter() {
         return Arc::new(Mutex::new(Some(Vec::<ast_Expr>::from([(*elt).clone()]))));
     } }
-    return Arc::new(Mutex::new(None));
+    Arc::new(Mutex::new(None))
 }
 
 fn main() {

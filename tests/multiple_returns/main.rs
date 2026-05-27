@@ -47,22 +47,19 @@ where
 
 /// Functions with multiple return values
 pub fn divmod(a: Rc<RefCell<Option<i32>>>, b: Rc<RefCell<Option<i32>>>) -> (i32, i32) {
-
-    return ((*a.borrow().as_ref().unwrap()) / (*b.borrow().as_ref().unwrap()), (*a.borrow().as_ref().unwrap()) % (*b.borrow().as_ref().unwrap()));
+    ((*a.borrow().as_ref().unwrap()) / (*b.borrow().as_ref().unwrap()), (*a.borrow().as_ref().unwrap()) % (*b.borrow().as_ref().unwrap()))
 }
 
 pub fn parse_number(s: Rc<RefCell<Option<String>>>) -> (i32, Rc<RefCell<Option<Box<dyn StdError>>>>) {
-
-    let (mut num, mut err) = { let __atoi_input = (*s.borrow().as_ref().unwrap()).clone(); match __atoi_input.parse::<i32>() { Ok(n) => (Rc::new(RefCell::new(Some(n))), Rc::new(RefCell::new(None))), Err(e) => (Rc::new(RefCell::new(Some(0))), Rc::new(RefCell::new(Some(Box::<dyn StdError>::from(format!("strconv.Atoi: parsing \"{}\": invalid syntax", __atoi_input)))))) } };
+    let (mut num, mut err) = { let __atoi_input = (*s.borrow().as_ref().unwrap()).clone(); match __atoi_input.parse::<i32>() { Ok(n) => (n, Rc::new(RefCell::new(None))), Err(_) => (0 as i32, Rc::new(RefCell::new(Some(Box::<dyn StdError>::from(format!("strconv.Atoi: parsing \"{}\": invalid syntax", __atoi_input)))))) } };
     if (*err.borrow()).is_some() {
-        return (0 as i32, Rc::new(RefCell::new(Some(Box::<dyn StdError>::from(format!("failed to parse '{}': {}", { let __v = (*s.borrow().as_ref().unwrap()).clone(); __v }, format!("{}", (*err.borrow().as_ref().unwrap()))))))));
+        return (0, Rc::new(RefCell::new(Some(Box::<dyn StdError>::from(format!("failed to parse '{}': {}", { let __v = (*s.borrow().as_ref().unwrap()).clone(); __v }, format!("{}", (*err.borrow().as_ref().unwrap()))))))));
     }
-    return (num, Rc::new(RefCell::new(None)));
+    (num, Rc::new(RefCell::new(None)))
 }
 
 pub fn get_name_age() -> (Rc<RefCell<Option<String>>>, i32) {
-
-    return (Rc::new(RefCell::new(Some("Alice".to_string()))), 30 as i32);
+    (Rc::new(RefCell::new(Some("Alice".to_string()))), 30)
 }
 
 /// Named return values
@@ -72,7 +69,7 @@ pub fn calculate(a: Rc<RefCell<Option<i32>>>, b: Rc<RefCell<Option<i32>>>) -> (i
 
     { let new_val = (*a.borrow().as_ref().unwrap()) + (*b.borrow().as_ref().unwrap()); *sum.borrow_mut() = Some(new_val); };
     { let new_val = (*a.borrow().as_ref().unwrap()) * (*b.borrow().as_ref().unwrap()); *product.borrow_mut() = Some(new_val); };
-    return ((*sum.borrow().as_ref().unwrap()), (*product.borrow().as_ref().unwrap()));
+    ((*sum.borrow().as_ref().unwrap()), (*product.borrow().as_ref().unwrap()))
 }
 
 pub fn process_data(data: Rc<RefCell<Option<Vec<i32>>>>) -> (i32, i32, i32) {
@@ -81,7 +78,7 @@ pub fn process_data(data: Rc<RefCell<Option<Vec<i32>>>>) -> (i32, i32, i32) {
     let mut sum: Rc<RefCell<Option<i32>>> = Rc::new(RefCell::new(Some(0)));
 
     if ((*data.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32) == (0 as i32) {
-        return (0 as i32, 0 as i32, 0 as i32);
+        return (0, 0, 0);
     }
 
     { let new_val = (*data.borrow().as_ref().unwrap())[(0) as usize].clone(); *min.borrow_mut() = Some(new_val); };
@@ -98,12 +95,11 @@ pub fn process_data(data: Rc<RefCell<Option<Vec<i32>>>>) -> (i32, i32, i32) {
         { let __rhs = val; let mut guard = sum.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     } }
 
-    return ((*min.borrow().as_ref().unwrap()), (*max.borrow().as_ref().unwrap()), (*sum.borrow().as_ref().unwrap()));
+    ((*min.borrow().as_ref().unwrap()), (*max.borrow().as_ref().unwrap()), (*sum.borrow().as_ref().unwrap()))
 }
 
 pub fn swap(a: Rc<RefCell<Option<String>>>, b: Rc<RefCell<Option<String>>>) -> (Rc<RefCell<Option<String>>>, Rc<RefCell<Option<String>>>) {
-
-    return (Rc::new(RefCell::new(Some(b.borrow().as_ref().unwrap().clone()))), Rc::new(RefCell::new(Some(a.borrow().as_ref().unwrap().clone()))));
+    (Rc::new(RefCell::new(Some(b.borrow().as_ref().unwrap().clone()))), Rc::new(RefCell::new(Some(a.borrow().as_ref().unwrap().clone()))))
 }
 
 /// Function returning multiple values of different types
@@ -113,7 +109,7 @@ pub fn get_person_info() -> (Rc<RefCell<Option<String>>>, i32, f64, bool) {
     let mut height: Rc<RefCell<Option<f64>>> = Rc::new(RefCell::new(Some(0.0)));
     let mut married: Rc<RefCell<Option<bool>>> = Rc::new(RefCell::new(Some(false)));
 
-    return (Rc::new(RefCell::new(Some("Bob".to_string()))), 25 as i32, 5.9, false);
+    (Rc::new(RefCell::new(Some("Bob".to_string()))), 25, 5.9, false)
 }
 
 /// Function that can return early with different values
@@ -123,10 +119,10 @@ pub fn find_in_slice(slice: Rc<RefCell<Option<Vec<i32>>>>, target: Rc<RefCell<Op
 
     { let __range_holder = slice.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, val) in __range_values.iter().copied().enumerate() {
         if val == (*target.borrow().as_ref().unwrap()) {
-        return (i, true);
+        return (i as i32, true);
     }
     } }
-    return (-1, false);
+    (-1, false)
 }
 
 /// Multiple returns with error handling
@@ -137,7 +133,7 @@ pub fn safe_divide(a: Rc<RefCell<Option<f64>>>, b: Rc<RefCell<Option<f64>>>) -> 
     if (*b.borrow().as_ref().unwrap()) == 0.0 {
         return (0.0, Rc::new(RefCell::new(Some(Box::<dyn StdError>::from(format!("division by zero"))))));
     }
-    return ((*a.borrow().as_ref().unwrap()) / (*b.borrow().as_ref().unwrap()), Rc::new(RefCell::new(None)));
+    ((*a.borrow().as_ref().unwrap()) / (*b.borrow().as_ref().unwrap()), Rc::new(RefCell::new(None)))
 }
 
 fn main() {

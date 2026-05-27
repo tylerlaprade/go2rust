@@ -192,8 +192,7 @@ fn __go_init_globals() {
 
 
 pub fn capture(re: Rc<RefCell<Option<GoRegexp>>>, text: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<Vec<String>>>> {
-
-    return (*re.borrow_mut().as_mut().unwrap()).find_string_submatch(Rc::new(RefCell::new(Some({ let __arg_holder = text.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+    (*re.borrow_mut().as_mut().unwrap()).find_string_submatch(Rc::new(RefCell::new(Some({ let __arg_holder = text.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))))
 }
 
 fn main() {

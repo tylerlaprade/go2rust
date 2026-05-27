@@ -97,8 +97,7 @@ fn __go_init_globals() {
 /// Getting Dot-Dot Right,”
 /// https://9p.io/sys/doc/lexnames.html
 pub fn clean(path: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<String>>> {
-
-    return filepathlite::clean(path.clone());
+    filepathlite::clean(path.clone())
 }
 
 /// IsLocal reports whether path, using lexical analysis only, has all of these properties:
@@ -116,8 +115,7 @@ pub fn clean(path: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<String>>> {
 /// In particular, it does not account for the effect of any symbolic links
 /// that may exist in the filesystem.
 pub fn is_local(path: Arc<Mutex<Option<String>>>) -> bool {
-
-    return (*filepathlite::is_local(path.clone()).lock().unwrap().as_ref().unwrap());
+    (*filepathlite::is_local(path.clone()).lock().unwrap().as_ref().unwrap())
 }
 
 /// Localize converts a slash-separated path into an operating system path.
@@ -129,16 +127,14 @@ pub fn is_local(path: Arc<Mutex<Option<String>>>) -> bool {
 ///
 /// The path returned by Localize will always be local, as reported by IsLocal.
 pub fn localize(path: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<String>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
-
-    return filepathlite::localize(path.clone());
+    filepathlite::localize(path.clone())
 }
 
 /// ToSlash returns the result of replacing each separator character
 /// in path with a slash ('/') character. Multiple separators are
 /// replaced by multiple slashes.
 pub fn to_slash(path: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<String>>> {
-
-    return filepathlite::to_slash(path.clone());
+    filepathlite::to_slash(path.clone())
 }
 
 /// FromSlash returns the result of replacing each slash ('/') character
@@ -148,8 +144,7 @@ pub fn to_slash(path: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<String>>> 
 /// See also the Localize function, which converts a slash-separated path
 /// as used by the io/fs package to an operating system path.
 pub fn from_slash(path: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<String>>> {
-
-    return filepathlite::from_slash(path.clone());
+    filepathlite::from_slash(path.clone())
 }
 
 /// SplitList splits a list of paths joined by the OS-specific [ListSeparator],
@@ -157,8 +152,7 @@ pub fn from_slash(path: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<String>>
 /// Unlike strings.Split, SplitList returns an empty slice when passed an empty
 /// string.
 pub fn split_list(path: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<Vec<String>>>> {
-
-    return split_list_1(Arc::new(Mutex::new(Some({ let __arg_holder = path.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+    split_list_1(Arc::new(Mutex::new(Some({ let __arg_holder = path.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))))
 }
 
 /// Split splits path immediately following the final [Separator],
@@ -170,7 +164,7 @@ pub fn split(path: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<String>>>, A
     let mut dir: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(Some(String::new())));
     let mut file: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(Some(String::new())));
 
-    return filepathlite::split(path.clone());
+    filepathlite::split(path.clone())
 }
 
 /// Join joins any number of path elements into a single path,
@@ -181,8 +175,7 @@ pub fn split(path: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<String>>>, A
 /// On Windows, the result will only be a UNC path if the first
 /// non-empty element is a UNC path.
 pub fn join(elem: Arc<Mutex<Option<Vec<String>>>>) -> Arc<Mutex<Option<String>>> {
-
-    return join_1(elem.clone());
+    join_1(elem.clone())
 }
 
 /// Ext returns the file name extension used by path.
@@ -190,8 +183,7 @@ pub fn join(elem: Arc<Mutex<Option<Vec<String>>>>) -> Arc<Mutex<Option<String>>>
 /// in the final element of path; it is empty if there is
 /// no dot.
 pub fn ext(path: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<String>>> {
-
-    return filepathlite::ext(path.clone());
+    filepathlite::ext(path.clone())
 }
 
 /// EvalSymlinks returns the path name after the evaluation of any symbolic
@@ -200,14 +192,12 @@ pub fn ext(path: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<String>>> {
 /// unless one of the components is an absolute symbolic link.
 /// EvalSymlinks calls [Clean] on the result.
 pub fn eval_symlinks(path: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<String>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
-
-    return eval_symlinks_1(Arc::new(Mutex::new(Some({ let __arg_holder = path.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+    eval_symlinks_1(Arc::new(Mutex::new(Some({ let __arg_holder = path.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))))
 }
 
 /// IsAbs reports whether the path is absolute.
 pub fn is_abs(path: Arc<Mutex<Option<String>>>) -> bool {
-
-    return (*filepathlite::is_abs(path.clone()).lock().unwrap().as_ref().unwrap());
+    (*filepathlite::is_abs(path.clone()).lock().unwrap().as_ref().unwrap())
 }
 
 /// Abs returns an absolute representation of path.
@@ -216,12 +206,10 @@ pub fn is_abs(path: Arc<Mutex<Option<String>>>) -> bool {
 /// path name for a given file is not guaranteed to be unique.
 /// Abs calls [Clean] on the result.
 pub fn abs(path: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<String>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
-
-    return abs_1(Arc::new(Mutex::new(Some({ let __arg_holder = path.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+    abs_1(Arc::new(Mutex::new(Some({ let __arg_holder = path.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))))
 }
 
 pub fn unix_abs(path: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<String>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
-
     if (*is_abs(Arc::new(Mutex::new(Some({ let __arg_holder = path.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))).lock().unwrap().as_ref().unwrap()) {
         return (clean(Arc::new(Mutex::new(Some({ let __arg_holder = path.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))), Arc::new(Mutex::new(None)));
     }
@@ -229,7 +217,7 @@ pub fn unix_abs(path: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<String>>>
     if (*err.lock().unwrap()).is_some() {
         return (Arc::new(Mutex::new(Some("".to_string()))), err.clone());
     }
-    return (join(Arc::new(Mutex::new(Some(vec![{ let __v = (*wd.lock().unwrap().as_ref().unwrap()).clone(); __v }, { let __v = (*path.lock().unwrap().as_ref().unwrap()).clone(); __v }])))), Arc::new(Mutex::new(None)));
+    (join(Arc::new(Mutex::new(Some(vec![{ let __v = (*wd.lock().unwrap().as_ref().unwrap()).clone(); __v }, { let __v = (*path.lock().unwrap().as_ref().unwrap()).clone(); __v }])))), Arc::new(Mutex::new(None)))
 }
 
 /// Rel returns a relative path that is lexically equivalent to targpath when
@@ -241,7 +229,6 @@ pub fn unix_abs(path: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<String>>>
 /// knowing the current working directory would be necessary to compute it.
 /// Rel calls [Clean] on the result.
 pub fn rel(basepath: Arc<Mutex<Option<String>>>, targpath: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<String>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
-
     let mut baseVol = volume_name(Arc::new(Mutex::new(Some({ let __arg_holder = basepath.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
     let mut targVol = volume_name(Arc::new(Mutex::new(Some({ let __arg_holder = targpath.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
     let mut base = clean(Arc::new(Mutex::new(Some({ let __arg_holder = basepath.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
@@ -315,12 +302,11 @@ pub fn rel(basepath: Arc<Mutex<Option<String>>>, targpath: Arc<Mutex<Option<Stri
         return (Arc::new(Mutex::new(Some(String::from_utf8((*buf.lock().unwrap().as_ref().unwrap()).clone()).unwrap()))), Arc::new(Mutex::new(None)));
     }
         // Base elements left. Must go up before going down.
-    return (Arc::new(Mutex::new(Some({ let __s = &((*targ.lock().unwrap().as_ref().unwrap()).clone()); __s[({ let __v = (*t0.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize..].to_string() }))), Arc::new(Mutex::new(None)));
+    (Arc::new(Mutex::new(Some({ let __s = &((*targ.lock().unwrap().as_ref().unwrap()).clone()); __s[({ let __v = (*t0.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize..].to_string() }))), Arc::new(Mutex::new(None)))
 }
 
 /// walkDir recursively descends path, calling walkDirFn.
 pub fn walk_dir_1(path: Arc<Mutex<Option<String>>>, d: Arc<Mutex<Option<fs_DirEntry>>>, walkDirFn: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<fs_DirEntry>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> + Send + Sync>>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
-
     {
         let mut err = { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<fs_DirEntry>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> + Send + Sync> = { let mut __f_guard = walkDirFn.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<fs_DirEntry>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(Mutex::new(Some({ let __arg_holder = path.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), d.clone(), Arc::new(Mutex::new(None))) };;
         if (*err.lock().unwrap()).is_some() || !(*(*d.lock().unwrap().as_ref().unwrap()).is_dir().lock().unwrap().as_ref().unwrap()) {
@@ -357,12 +343,11 @@ pub fn walk_dir_1(path: Arc<Mutex<Option<String>>>, d: Arc<Mutex<Option<fs_DirEn
         }
     }
     } }
-    return Arc::new(Mutex::new(None));
+    Arc::new(Mutex::new(None))
 }
 
 /// walk recursively descends path, calling walkFn.
 pub fn walk_1(path: Arc<Mutex<Option<String>>>, info: Arc<Mutex<Option<fs_FileInfo>>>, walkFn: WalkFunc) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
-
     if !(*(*info.lock().unwrap().as_ref().unwrap()).is_dir().lock().unwrap().as_ref().unwrap()) {
         return { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<fs_FileInfo>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> + Send + Sync> = { let mut __f_guard = walkFn.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<fs_FileInfo>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(Mutex::new(Some({ let __arg_holder = path.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), info.clone(), Arc::new(Mutex::new(None))) };
     }
@@ -404,7 +389,7 @@ pub fn walk_1(path: Arc<Mutex<Option<String>>>, info: Arc<Mutex<Option<fs_FileIn
     }
     }
     } }
-    return Arc::new(Mutex::new(None));
+    Arc::new(Mutex::new(None))
 }
 
 /// WalkDir walks the file tree rooted at root, calling fn for each file or
@@ -423,7 +408,6 @@ pub fn walk_1(path: Arc<Mutex<Option<String>>>, info: Arc<Mutex<Option<fs_FileIn
 /// for the operating system. This is unlike [io/fs.WalkDir], which always
 /// uses slash separated paths.
 pub fn walk_dir_1(root: Arc<Mutex<Option<String>>>, r#fn: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<fs_DirEntry>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> + Send + Sync>>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
-
     let (mut info, mut err) = os::lstat(root.clone());
     if (*err.lock().unwrap()).is_some() {
         { let __rhs_holder = { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<fs_DirEntry>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> + Send + Sync> = { let mut __f_guard = r#fn.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<fs_DirEntry>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(Mutex::new(Some({ let __arg_holder = root.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(None)), err.clone()) }.clone(); let new_val = { let mut guard = __rhs_holder.lock().unwrap(); guard.take() }; *err.lock().unwrap() = new_val; };
@@ -433,7 +417,7 @@ pub fn walk_dir_1(root: Arc<Mutex<Option<String>>>, r#fn: Arc<Mutex<Option<Box<d
     if (*err.lock().unwrap()).is_none() == (*SkipDir.lock().unwrap()).is_none() || (*err.lock().unwrap()).is_none() == (*SkipAll.lock().unwrap()).is_none() {
         return Arc::new(Mutex::new(None));
     }
-    return err.clone();
+    err.clone()
 }
 
 /// Walk walks the file tree rooted at root, calling fn for each file or
@@ -451,7 +435,6 @@ pub fn walk_dir_1(root: Arc<Mutex<Option<String>>>, r#fn: Arc<Mutex<Option<Box<d
 /// Walk is less efficient than [WalkDir], introduced in Go 1.16,
 /// which avoids calling os.Lstat on every visited file or directory.
 pub fn walk_1(root: Arc<Mutex<Option<String>>>, r#fn: WalkFunc) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
-
     let (mut info, mut err) = os::lstat(root.clone());
     if (*err.lock().unwrap()).is_some() {
         { let __rhs_holder = { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<fs_FileInfo>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> + Send + Sync> = { let mut __f_guard = r#fn.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<fs_FileInfo>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(Mutex::new(Some({ let __arg_holder = root.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(None)), err.clone()) }.clone(); let new_val = { let mut guard = __rhs_holder.lock().unwrap(); guard.take() }; *err.lock().unwrap() = new_val; };
@@ -461,13 +444,12 @@ pub fn walk_1(root: Arc<Mutex<Option<String>>>, r#fn: WalkFunc) -> Arc<Mutex<Opt
     if (*err.lock().unwrap()).is_none() == (*SkipDir.lock().unwrap()).is_none() || (*err.lock().unwrap()).is_none() == (*SkipAll.lock().unwrap()).is_none() {
         return Arc::new(Mutex::new(None));
     }
-    return err.clone();
+    err.clone()
 }
 
 /// readDirNames reads the directory named by dirname and returns
 /// a sorted list of directory entry names.
 pub fn read_dir_names(dirname: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<Vec<String>>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
-
     let (mut f, mut err) = os::open(dirname.clone());
     if (*err.lock().unwrap()).is_some() {
         return (Arc::new(Mutex::new(None)), err.clone());
@@ -478,7 +460,7 @@ pub fn read_dir_names(dirname: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<
         return (Arc::new(Mutex::new(None)), err.clone());
     }
     { let mut __sort_guard = names.lock().unwrap(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.sort(); } };
-    return (names.clone(), Arc::new(Mutex::new(None)));
+    (names.clone(), Arc::new(Mutex::new(None)))
 }
 
 /// Base returns the last element of path.
@@ -486,8 +468,7 @@ pub fn read_dir_names(dirname: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<
 /// If the path is empty, Base returns ".".
 /// If the path consists entirely of separators, Base returns a single separator.
 pub fn base(path: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<String>>> {
-
-    return filepathlite::base(path.clone());
+    filepathlite::base(path.clone())
 }
 
 /// Dir returns all but the last element of path, typically the path's directory.
@@ -497,8 +478,7 @@ pub fn base(path: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<String>>> {
 /// If the path consists entirely of separators, Dir returns a single separator.
 /// The returned path does not end in a separator unless it is the root directory.
 pub fn dir(path: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<String>>> {
-
-    return filepathlite::dir(path.clone());
+    filepathlite::dir(path.clone())
 }
 
 /// VolumeName returns leading volume name.
@@ -506,8 +486,7 @@ pub fn dir(path: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<String>>> {
 /// Given "\\host\share\foo" it returns "\\host\share".
 /// On other platforms it returns "".
 pub fn volume_name(path: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<String>>> {
-
-    return filepathlite::volume_name(path.clone());
+    filepathlite::volume_name(path.clone())
 }
 
 pub(crate) fn __go_init_all() {

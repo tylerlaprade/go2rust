@@ -72,8 +72,7 @@ impl std::fmt::Display for Package {
 
 
 pub fn abs_join(dir: Rc<RefCell<Option<String>>>, fileses: Rc<RefCell<Option<Vec<Vec<String>>>>>) -> Rc<RefCell<Option<Vec<String>>>> {
-
-    return Rc::new(RefCell::new(Some(vec![(*dir.borrow().as_ref().unwrap()).clone(), (*fileses.borrow().as_ref().unwrap())[(0) as usize].clone()[(0) as usize].clone(), (*fileses.borrow().as_ref().unwrap())[(1) as usize].clone()[(0) as usize].clone()])));
+    Rc::new(RefCell::new(Some(vec![(*dir.borrow().as_ref().unwrap()).clone(), (*fileses.borrow().as_ref().unwrap())[(0) as usize].clone()[(0) as usize].clone(), (*fileses.borrow().as_ref().unwrap())[(1) as usize].clone()[(0) as usize].clone()])))
 }
 
 fn main() {

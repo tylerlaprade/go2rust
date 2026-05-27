@@ -339,14 +339,13 @@ pub mod ast {
 
 
 pub fn version(info: Rc<RefCell<Option<types_Info>>>, file: Rc<RefCell<Option<ast_File>>>) -> Rc<RefCell<Option<String>>> {
-
     {
         let mut v = Rc::new(RefCell::new(Some((*(*info.borrow().as_ref().unwrap()).file_versions.borrow().as_ref().unwrap()).clone().get(&GoLocalPtrKey::new(file.clone())).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| String::new()))));;
         if (*v.borrow().as_ref().unwrap()).clone() != "" {
             return Rc::new(RefCell::new(Some(v.borrow().as_ref().unwrap().clone())));;
         }
     }
-    return Rc::new(RefCell::new(Some("".to_string())));
+    Rc::new(RefCell::new(Some("".to_string())))
 }
 
 fn main() {

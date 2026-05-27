@@ -375,10 +375,9 @@ pub fn remember(values: Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<types
 }
 
 pub fn literal() -> Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<types_Type>>>>>>> {
-
     let mut tn = types::new_type_name({ let __go_arg = token::NO_POS; __go_arg }, (), "U".to_string(), ());
     let mut tp = types::new_type_param(tn.clone(), ());
-    return Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<types_Type>>>>::from([("U".to_string(), { let __arg = tp.clone(); let __converted = { let __arg_guard = __arg.lock().unwrap(); let __converted: Option<types_Type> = __arg_guard.as_ref().map(|__v| (*__v).clone().into()); __converted }; Arc::new(Mutex::new(__converted)) })]))));
+    Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<types_Type>>>>::from([("U".to_string(), { let __arg = tp.clone(); let __converted = { let __arg_guard = __arg.lock().unwrap(); let __converted: Option<types_Type> = __arg_guard.as_ref().map(|__v| (*__v).clone().into()); __converted }; Arc::new(Mutex::new(__converted)) })]))))
 }
 
 fn main() {

@@ -97,12 +97,10 @@ impl std::fmt::Display for term {
 
 
 pub fn under(t: Arc<Mutex<Option<types_Type>>>) -> Arc<Mutex<Option<types_Type>>> {
-
-    return t.clone();
+    t.clone()
 }
 
 pub fn disjoint(x: Arc<Mutex<Option<term>>>, y: Arc<Mutex<Option<term>>>) -> bool {
-
     let mut ux = { let __src = (*x.lock().unwrap().as_ref().unwrap()).typ.clone(); let __copied = (*__src.lock().unwrap().as_ref().unwrap()).clone(); Arc::new(Mutex::new(Some(__copied))) };
     if (*{ let __field = (*y.lock().unwrap().as_ref().unwrap()).tilde.clone(); __field }.lock().unwrap().as_ref().unwrap()) {
         { let new_val = under(ux.clone()); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *ux.lock().unwrap() = __moved_val; };
@@ -111,7 +109,7 @@ pub fn disjoint(x: Arc<Mutex<Option<term>>>, y: Arc<Mutex<Option<term>>>) -> boo
     if (*{ let __field = (*x.lock().unwrap().as_ref().unwrap()).tilde.clone(); __field }.lock().unwrap().as_ref().unwrap()) {
         { let new_val = under(uy.clone()); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *uy.lock().unwrap() = __moved_val; };
     }
-    return !((*types::identical(ux.clone(), uy.clone()).lock().unwrap().as_ref().unwrap()));
+    !((*types::identical(ux.clone(), uy.clone()).lock().unwrap().as_ref().unwrap()))
 }
 
 fn main() {

@@ -239,11 +239,10 @@ impl From<ast_FuncLit> for ast_Expr {
 
 
 pub fn first_func(args: Arc<Mutex<Option<Vec<ast_Expr>>>>) -> Arc<Mutex<Option<ast_FuncLit>>> {
-
-    return ({
+    ({
         let val = { let __seq = { let __seq_holder = args.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.clone();
         Arc::new(Mutex::new(Some(val.downcast_ref::<ast_FuncLit>().expect("type assertion failed").clone())))
-    });
+    })
 }
 
 fn main() {

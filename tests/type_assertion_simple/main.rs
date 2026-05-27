@@ -44,12 +44,11 @@ impl hasName for Box<dyn hasNameAndString> {
 }
 
 pub fn asserted_anonymous_interface(v: Rc<RefCell<Option<Box<dyn hasNameAndString>>>>) -> bool {
-
     let (_, mut ok) = ({
         let __asserted = v.clone();
         (__asserted.clone(), Rc::new(RefCell::new(Some(true))))
     });
-    return (*ok.borrow().as_ref().unwrap());
+    (*ok.borrow().as_ref().unwrap())
 }
 
 fn main() {

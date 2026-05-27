@@ -70,25 +70,21 @@ impl ast_SelectorExpr {
 
 
 pub fn pick(sel: Rc<RefCell<Option<ast_SelectorExpr>>>) -> Rc<RefCell<Option<ast_Ident>>> {
-
-    return (*sel.borrow().as_ref().unwrap()).sel.clone();
+    (*sel.borrow().as_ref().unwrap()).sel.clone()
 }
 
 pub fn selector_name(sel: Rc<RefCell<Option<ast_SelectorExpr>>>) -> Rc<RefCell<Option<String>>> {
-
-    return Rc::new(RefCell::new(Some({ let __selector_holder = (*(*sel.borrow().as_ref().unwrap()).sel.borrow().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
+    Rc::new(RefCell::new(Some({ let __selector_holder = (*(*sel.borrow().as_ref().unwrap()).sel.borrow().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))
 }
 
 pub fn has_selector_name(sel: Rc<RefCell<Option<ast_SelectorExpr>>>) -> bool {
-
-    return { let __selector_holder = (*(*sel.borrow().as_ref().unwrap()).sel.borrow().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } != "_";
+    { let __selector_holder = (*(*sel.borrow().as_ref().unwrap()).sel.borrow().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } != "_"
 }
 
 pub fn selector_name_map(sel: Rc<RefCell<Option<ast_SelectorExpr>>>) -> Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<String>>>>>>> {
-
     let mut names = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<String>>>>::new())));
     { let __map_key = "selector".to_string(); let __map_value = (*(*sel.borrow().as_ref().unwrap()).sel.borrow().as_ref().unwrap()).name.clone(); (*names.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
-    return names.clone();
+    names.clone()
 }
 
 fn main() {

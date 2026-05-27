@@ -7,7 +7,7 @@ pub fn count() -> i32 {
 
     let mut tuple = example_com_sharedstubmain_aliases::tuple();
     if (*tuple.borrow()).is_none() {
-        return 0 as i32;
+        return 0;
     }
     return (*(*tuple.borrow_mut().as_mut().unwrap()).len().borrow().as_ref().unwrap());
 }

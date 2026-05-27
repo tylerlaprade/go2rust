@@ -3,7 +3,6 @@ use std::cell::{RefCell};
 use std::rc::{Rc};
 
 pub fn regular(v: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<String>>> {
-
     let mut result = Rc::new(RefCell::new(Some("start".to_string())));
     { let _switch_val = (*v.borrow().as_ref().unwrap());
     if _switch_val == (1) {
@@ -12,11 +11,10 @@ pub fn regular(v: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<String>>> {
             { let new_val = "other".to_string(); *result.borrow_mut() = Some(new_val); };
         }
     }
-    return Rc::new(RefCell::new(Some(result.borrow().as_ref().unwrap().clone())));
+    Rc::new(RefCell::new(Some(result.borrow().as_ref().unwrap().clone())))
 }
 
 pub fn typed(v: Rc<RefCell<Option<Box<dyn Any>>>>) -> Rc<RefCell<Option<String>>> {
-
     let mut result = Rc::new(RefCell::new(Some("start".to_string())));
     {
     let _ts_subject = v.clone();
@@ -31,11 +29,10 @@ pub fn typed(v: Rc<RefCell<Option<Box<dyn Any>>>>) -> Rc<RefCell<Option<String>>
         { let new_val = "other".to_string(); *result.borrow_mut() = Some(new_val); };;
     }
     }
-    return Rc::new(RefCell::new(Some(result.borrow().as_ref().unwrap().clone())));
+    Rc::new(RefCell::new(Some(result.borrow().as_ref().unwrap().clone())))
 }
 
 pub fn nested_regular(v: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<String>>> {
-
     let mut result = Rc::new(RefCell::new(Some("start".to_string())));
     '__go_switch_1: loop {
         { let _switch_val = (*v.borrow().as_ref().unwrap());
@@ -51,11 +48,10 @@ pub fn nested_regular(v: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<String>>
     };
         break;
     }
-    return Rc::new(RefCell::new(Some(format!("{}{}", (*result.borrow().as_ref().unwrap()), "-done".to_string()))));
+    Rc::new(RefCell::new(Some(format!("{}{}", (*result.borrow().as_ref().unwrap()), "-done".to_string()))))
 }
 
 pub fn nested_typed(v: Rc<RefCell<Option<Box<dyn Any>>>>) -> Rc<RefCell<Option<String>>> {
-
     let mut result = Rc::new(RefCell::new(Some("start".to_string())));
     '__go_switch_2: loop {
     {
@@ -77,7 +73,7 @@ pub fn nested_typed(v: Rc<RefCell<Option<Box<dyn Any>>>>) -> Rc<RefCell<Option<S
     };
     break;
 }
-    return Rc::new(RefCell::new(Some(format!("{}{}", (*result.borrow().as_ref().unwrap()), "-done".to_string()))));
+    Rc::new(RefCell::new(Some(format!("{}{}", (*result.borrow().as_ref().unwrap()), "-done".to_string()))))
 }
 
 fn main() {

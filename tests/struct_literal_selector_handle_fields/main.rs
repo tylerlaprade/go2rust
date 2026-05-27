@@ -260,8 +260,7 @@ impl std::fmt::Display for Request {
 
 
 pub fn build_request(cfg: Arc<Mutex<Option<Config>>>) -> Arc<Mutex<Option<Request>>> {
-
-    return Arc::new(Mutex::new(Some(Request { env: { let __field = (*cfg.lock().unwrap().as_ref().unwrap()).env.clone(); __field }, build_flags: { let __field = (*cfg.lock().unwrap().as_ref().unwrap()).build_flags.clone(); __field }, overlay: { let __field = (*cfg.lock().unwrap().as_ref().unwrap()).overlay.clone(); __field }, ..Default::default() })));
+    Arc::new(Mutex::new(Some(Request { env: { let __field = (*cfg.lock().unwrap().as_ref().unwrap()).env.clone(); __field }, build_flags: { let __field = (*cfg.lock().unwrap().as_ref().unwrap()).build_flags.clone(); __field }, overlay: { let __field = (*cfg.lock().unwrap().as_ref().unwrap()).overlay.clone(); __field }, ..Default::default() })))
 }
 
 fn main() {

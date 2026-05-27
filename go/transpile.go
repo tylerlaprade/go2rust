@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"go/ast"
+	"go/parser"
 	"go/token"
 	"go/types"
 	"slices"
@@ -1253,6 +1254,31 @@ func implementsInterface(typeMethods []*ast.FuncDecl, iface *ast.InterfaceType) 
 
 func Transpile(file *ast.File, fileSet *token.FileSet, typeInfo *TypeInfo) (string, *ImportTracker, map[string]bool) {
 	return TranspileWithMapping(file, fileSet, typeInfo, nil)
+}
+
+// TranspileSource parses a raw Go source string and returns the transpiled
+// Rust as a string. The source must be a complete Go file (with a `package`
+// clause). External (non-stdlib) imports are not resolved in this mode —
+// for projects with dependencies, use the file-based pipeline instead.
+func TranspileSource(source string) (string, error) {
+	fileSet := token.NewFileSet()
+	file, err := parser.ParseFile(fileSet, "input.go", source, parser.ParseComments)
+	if err != nil {
+		return "", fmt.Errorf("parse error: %v", err)
+	}
+
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fileSet)
+	if err != nil {
+		return "", fmt.Errorf("type check error: %v", err)
+	}
+
+	cd := NewConcurrencyDetector()
+	cd.AnalyzeProject([]*ast.File{file})
+	SetConcurrencyDetector(cd)
+	defer SetConcurrencyDetector(nil)
+
+	rust, _, _ := Transpile(file, fileSet, typeInfo)
+	return rust, nil
 }
 
 func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *TypeInfo, packageMapping map[string]string) (string, *ImportTracker, map[string]bool) {
