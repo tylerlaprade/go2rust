@@ -188,6 +188,39 @@ var Features struct {
 	}
 }
 
+func TestAnonymousStructEmbeddedFieldsAreDeclared(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+type PtrType struct {
+	N int
+}
+
+var Holder struct {
+	PtrType
+	U int
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile() error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := Transpile(file, fset, typeInfo)
+	if strings.Contains(rust, "WARNING: embedded field in anonymous struct") {
+		t.Fatalf("anonymous embedded struct field should be declared, not warned:\n%s", rust)
+	}
+	if !strings.Contains(rust, "pub(crate) ptr_type: Rc<RefCell<Option<PtrType>>>") {
+		t.Fatalf("anonymous embedded struct field should be emitted with the generated field name:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Self { ptr_type:") {
+		t.Fatalf("anonymous embedded struct clone/default paths should reference declared field:\n%s", rust)
+	}
+}
+
 func TestTranspileConstDeclUsesPackageVisibility(t *testing.T) {
 	var out strings.Builder
 	TranspileConstDecl(&out, &ast.GenDecl{

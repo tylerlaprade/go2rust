@@ -1861,8 +1861,12 @@ func writeAnonymousStructDefinitions(body *strings.Builder, first *bool, emitted
 					body.WriteString(",\n")
 				}
 			} else {
-				// Anonymous/embedded field - should not happen in anonymous structs
-				body.WriteString("    // WARNING: embedded field in anonymous struct\n")
+				name := ast.NewIdent(getEmbeddedFieldName(field.Type))
+				body.WriteString("    pub(crate) ")
+				body.WriteString(rustStructFieldName(name, fieldIndex, 0))
+				body.WriteString(": ")
+				body.WriteString(GoTypeToRust(field.Type))
+				body.WriteString(",\n")
 			}
 		}
 
