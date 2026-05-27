@@ -385,3 +385,27 @@ in the first place.
 - Fixture: TODO: add
 - Removal trigger: transpiler can lower `io.Copy` from source.
 - Added: 2026-05-27 (backfill)
+
+### types-term
+
+- Location: `go/external_type_stubs.go:3162` (`writeTypesTermStub`)
+- Go symbol: `go/types.Term` — `struct Term { tilde bool; typ Type }`
+- Transpiler gap: no pipeline to vendor and transpile `go/types`
+  source (see preamble). Until that lands, `types.Term`-using programs
+  need a hand-written shim.
+- Fixture: `tests/stdlib_indexed_pointer_method/main.go` —
+  `types.NewTerm(false, nil)` then `.Type()` on indexed and ranged
+  `*types.Term`.
+- Removal trigger: vendored-stdlib pipeline can transpile `go/types`
+  and produce a Rust `types::Term` with the same shape; drop this shim
+  and `writeTypesNewTermFunction`.
+- Added: 2026-05-27
+
+### types-new-term
+
+- Location: `go/external_type_stubs.go:6652` (`writeTypesNewTermFunction`)
+- Go symbol: `go/types.NewTerm(tilde bool, typ Type) *Term`
+- Transpiler gap: same vendored-stdlib pipeline gap as `types-term`.
+- Fixture: `tests/stdlib_indexed_pointer_method/main.go`.
+- Removal trigger: retired together with `types-term`.
+- Added: 2026-05-27

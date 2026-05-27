@@ -7,8 +7,27 @@ fn __go_next_external_interface_id() -> usize {
 
 
 
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
-pub struct types_Term;
+pub trait GoTypesTypeArg {
+    fn __go_into_types_type_arg(self) -> Arc<Mutex<Option<types_Type>>>;
+}
+
+impl GoTypesTypeArg for () {
+    fn __go_into_types_type_arg(self) -> Arc<Mutex<Option<types_Type>>> {
+        Arc::new(Mutex::new(None::<types_Type>))
+    }
+}
+
+impl GoTypesTypeArg for Arc<Mutex<Option<types_Type>>> {
+    fn __go_into_types_type_arg(self) -> Arc<Mutex<Option<types_Type>>> {
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct types_Term {
+    pub tilde: bool,
+    pub typ: Arc<Mutex<Option<types_Type>>>,
+}
 
 impl std::fmt::Display for types_Term {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -16,13 +35,12 @@ impl std::fmt::Display for types_Term {
     }
 }
 
-
 impl types_Term {
     pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
         None
     }
     pub fn r#type(&self) -> Arc<Mutex<Option<types_Type>>> {
-        panic!("types_Term.r#type bridge: generic stub method body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
+        self.typ.clone()
     }
 }
 
@@ -83,8 +101,8 @@ impl Ord for types_Type {
 
 pub mod types {
     use super::*;
-    pub fn new_term<T0, T1>(_arg0: T0, _arg1: T1) -> Arc<Mutex<Option<types_Term>>> {
-        panic!("new_term bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
+    pub fn new_term<T1: GoTypesTypeArg>(tilde: bool, typ: T1) -> Arc<Mutex<Option<types_Term>>> {
+        Arc::new(Mutex::new(Some::<types_Term>(types_Term { tilde, typ: typ.__go_into_types_type_arg() })))
     }
 }
 

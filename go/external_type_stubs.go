@@ -1811,6 +1811,10 @@ func generateExternalStubs(stubs map[string]bool, interfaceTypes map[string]bool
 			writeTypesBasicStub(&out, methodsByType[name])
 			continue
 		}
+		if name == "types_Term" {
+			writeTypesTermStub(&out, methodsByType[name])
+			continue
+		}
 		if interfaceTypes[name] {
 			writeExternalInterfaceStub(&out, name, methodsByType[name])
 			continue
@@ -3149,6 +3153,87 @@ impl types_Basic {
 			out.WriteString("\n    }\n")
 		default:
 			writeExternalTypeStubMethod(out, "types_Basic", methodName, methods[methodName])
+		}
+	}
+	out.WriteString("}\n")
+}
+
+// TEMPORARY: hand-written Rust shim for go/types.Term.
+// Long-term fix: transpile go/types source — see AGENTS.md
+// "Strategy: Transpile stdlib, don't bridge it" and docs/bridge_debt.md
+// (row: types-term).
+//
+// Term is `struct Term { tilde bool; typ Type }`. NewTerm constructs one;
+// Type() returns the typ field. The shim mirrors that shape so the fixture
+// stdlib_indexed_pointer_method runs without the bridge silently faking
+// values. The companion `new_term` emitter is `writeTypesNewTermFunction`
+// (called from `writeExternalPackageStubFunction`), and the trait
+// `GoTypesTypeArg` that lets `new_term` accept either nil (Go) or a
+// wrapped types_Type comes from this stub too so both are in scope.
+func writeTypesTermStub(out *strings.Builder, methods map[string]externalTypeStubMethod) {
+	typesTypeWrapped := wrappedExternalStubType("types_Type")
+	typesTypeNone := wrappedExternalStubNoneExpr("types_Type")
+
+	// Trait at top level so both this stub and the `pub mod types` body
+	// (where `new_term` lives) can see it via `use super::*`. The trait
+	// converts Go's untyped nil (lowered as `()`) and a wrapped types_Type
+	// handle into a uniform wrapped-Option carrier.
+	out.WriteString("pub trait GoTypesTypeArg {\n")
+	out.WriteString("    fn __go_into_types_type_arg(self) -> ")
+	out.WriteString(typesTypeWrapped)
+	out.WriteString(";\n}\n\n")
+	out.WriteString("impl GoTypesTypeArg for () {\n")
+	out.WriteString("    fn __go_into_types_type_arg(self) -> ")
+	out.WriteString(typesTypeWrapped)
+	out.WriteString(" {\n        ")
+	out.WriteString(typesTypeNone)
+	out.WriteString("\n    }\n}\n\n")
+	out.WriteString("impl GoTypesTypeArg for ")
+	out.WriteString(typesTypeWrapped)
+	out.WriteString(" {\n")
+	out.WriteString("    fn __go_into_types_type_arg(self) -> ")
+	out.WriteString(typesTypeWrapped)
+	out.WriteString(" {\n        self\n    }\n}\n\n")
+
+	out.WriteString("#[derive(Debug, Clone, Default)]\n")
+	out.WriteString("pub struct types_Term {\n")
+	out.WriteString("    pub tilde: bool,\n")
+	out.WriteString("    pub typ: ")
+	out.WriteString(typesTypeWrapped)
+	out.WriteString(",\n}\n\n")
+
+	out.WriteString("impl std::fmt::Display for types_Term {\n")
+	out.WriteString("    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {\n")
+	out.WriteString("        write!(f, \"<types_Term>\")\n")
+	out.WriteString("    }\n}\n\n")
+
+	out.WriteString("impl types_Term {\n")
+	out.WriteString("    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {\n")
+	out.WriteString("        None\n")
+	out.WriteString("    }\n")
+
+	methodNames := make([]string, 0, len(methods))
+	for methodName := range methods {
+		methodNames = append(methodNames, methodName)
+	}
+	slices.Sort(methodNames)
+	for _, methodName := range methodNames {
+		switch methodName {
+		case "r#type":
+			out.WriteString("    pub fn r#type(&self) -> ")
+			out.WriteString(typesTypeWrapped)
+			out.WriteString(" {\n        self.typ.clone()\n    }\n")
+		case "tilde":
+			out.WriteString("    pub fn tilde(&self) -> ")
+			out.WriteString(wrappedExternalStubType("bool"))
+			out.WriteString(" {\n        ")
+			out.WriteString(wrappedExternalStubExpr("bool", "self.tilde"))
+			out.WriteString("\n    }\n")
+		default:
+			// Unknown methods route through the generic emitter, which
+			// panics on call per AGENTS.md. If a fixture surfaces such a
+			// call, add the case here with a real impl.
+			writeExternalTypeStubMethod(out, "types_Term", methodName, methods[methodName])
 		}
 	}
 	out.WriteString("}\n")
@@ -6525,6 +6610,10 @@ func writeExternalPackageStubFunction(out *strings.Builder, funcName string, fn 
 		writeRuntimeGOMAXPROCSStub(out, fn)
 		return
 	}
+	if funcName == "new_term" && len(fn.ReturnTypes) == 1 {
+		writeTypesNewTermFunction(out)
+		return
+	}
 	out.WriteString("    pub fn ")
 	out.WriteString(funcName)
 	if fn.ParamCount > 0 {
@@ -6558,6 +6647,22 @@ func writeExternalPackageStubFunction(out *strings.Builder, funcName string, fn 
 	out.WriteString(funcName)
 	out.WriteString(" bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md\")\n")
 	out.WriteString("    }\n")
+}
+
+// TEMPORARY: hand-written Rust shim for go/types.NewTerm.
+// Long-term fix: transpile go/types source. See AGENTS.md "Strategy:
+// Transpile stdlib, don't bridge it" and docs/bridge_debt.md (row:
+// types-new-term). Mirrors `func NewTerm(tilde bool, typ Type) *Term`
+// — the typ arg is accepted via the GoTypesTypeArg trait emitted by
+// writeTypesTermStub so the call site can pass either Go's nil
+// (lowered as `()`) or a wrapped types_Type handle.
+func writeTypesNewTermFunction(out *strings.Builder) {
+	typesTermWrapped := wrappedExternalStubType("types_Term")
+	out.WriteString("    pub fn new_term<T1: GoTypesTypeArg>(tilde: bool, typ: T1) -> ")
+	out.WriteString(typesTermWrapped)
+	out.WriteString(" {\n        ")
+	out.WriteString(wrappedExternalStubExpr("types_Term", "types_Term { tilde, typ: typ.__go_into_types_type_arg() }"))
+	out.WriteString("\n    }\n")
 }
 
 // PERMANENT: not scaffold — runtime.GOMAXPROCS is runtime-tied; Rust has no direct equivalent.
