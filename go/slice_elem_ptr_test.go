@@ -68,6 +68,23 @@ func update() {
 	}
 }
 
+func TestArrayElemAddressDoesNotUseSliceElemPtr(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func update() {
+	nums := [2]int{1, 2}
+	_ = &nums[0]
+}
+`)
+
+	if strings.Contains(rust, "GoSliceElemPtr::new") {
+		t.Fatalf("array element address should not use the slice element pointer helper:\n%s", rust)
+	}
+	if !strings.Contains(rust, "array element address requires pointer support") {
+		t.Fatalf("array element address should fail loudly until array element pointers are supported:\n%s", rust)
+	}
+}
+
 func TestShortDeclSliceElemPointerSelectorBorrowsElement(t *testing.T) {
 	rust := transpileTypedSliceElemPtrRegression(t, `package main
 

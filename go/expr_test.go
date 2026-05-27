@@ -1331,6 +1331,28 @@ func (t *Type) addr() uintptr {
 	}
 }
 
+func TestUnsafePointerAddressOfArrayElementAvoidsSliceElemPtr(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "unsafe"
+
+type regs struct {
+	ints [4]uintptr
+}
+
+func (r *regs) addr(i int) uintptr {
+	return uintptr(unsafe.Pointer(&r.ints[i]))
+}
+`)
+
+	if strings.Contains(rust, "GoSliceElemPtr::new") {
+		t.Fatalf("unsafe.Pointer(&array[index]) should not use the slice element pointer helper:\n%s", rust)
+	}
+	if !strings.Contains(rust, "as *const _ as usize") {
+		t.Fatalf("unsafe.Pointer(&array[index]) should lower through an element address:\n%s", rust)
+	}
+}
+
 func TestUnsafeRuntimeIntrinsicsEmitTypedUnimplemented(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

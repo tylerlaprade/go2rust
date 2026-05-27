@@ -6145,13 +6145,17 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					out.WriteString("/* ERROR: Type information required for slice element address */ unimplemented!(\"type information required for slice element address\")")
 					return
 				}
-				if !typeInfo.IsMap(indexExpr.X) {
+				if typeInfo.IsSlice(indexExpr.X) {
 					NeedSliceElemPtr()
 					out.WriteString("GoSliceElemPtr::new(")
 					TranspileExpressionContext(out, indexExpr.X, LValue)
 					out.WriteString(".clone(), ")
 					writeExpressionAsUsize(out, indexExpr.Index)
 					out.WriteString(")")
+					return
+				}
+				if typeInfo.IsArray(indexExpr.X) || typeInfo.IsPointerToArray(indexExpr.X) {
+					out.WriteString("/* ERROR: Array element address requires array element pointer support */ unimplemented!(\"array element address requires pointer support\")")
 					return
 				}
 			}
@@ -9102,6 +9106,13 @@ func writeUnsafePointerConversion(out *strings.Builder, arg ast.Expr) {
 		WriteWrapperSuffix(out)
 		return
 	}
+	if indexExpr, ok := addressOfIndexExpr(arg); ok {
+		if !writeUnsafePointerIndexedElementAddress(out, indexExpr) {
+			out.WriteString("/* ERROR: Type information required for unsafe.Pointer indexed element address */ unimplemented!(\"type info required for unsafe.Pointer indexed element address\")")
+		}
+		WriteWrapperSuffix(out)
+		return
+	}
 	if typeInfo.IsPointer(arg) {
 		if ident, ok := arg.(*ast.Ident); ok && ident.Name != "nil" {
 			if currentReceiver != "" && ident.Name == currentReceiver {
@@ -9123,6 +9134,38 @@ func writeUnsafePointerConversion(out *strings.Builder, arg ast.Expr) {
 	}
 	writeNumericConversionValue(out, arg)
 	WriteWrapperSuffix(out)
+}
+
+func addressOfIndexExpr(expr ast.Expr) (*ast.IndexExpr, bool) {
+	unary, ok := unwrapParens(expr).(*ast.UnaryExpr)
+	if !ok || unary.Op != token.AND {
+		return nil, false
+	}
+	indexExpr, ok := unwrapParens(unary.X).(*ast.IndexExpr)
+	return indexExpr, ok
+}
+
+func writeUnsafePointerIndexedElementAddress(out *strings.Builder, indexExpr *ast.IndexExpr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.GetType(indexExpr.X) == nil {
+		return false
+	}
+	if !typeInfo.IsArray(indexExpr.X) && !typeInfo.IsSlice(indexExpr.X) && !typeInfo.IsPointerToArray(indexExpr.X) {
+		return false
+	}
+	out.WriteString("{ let __seq_holder = ")
+	if _, _, ok := namedSliceTypeForExpr(indexExpr.X); ok {
+		writeNamedSliceInnerHandleClone(out, indexExpr.X)
+	} else {
+		TranspileExpressionContext(out, indexExpr.X, LValue)
+		out.WriteString(".clone()")
+	}
+	out.WriteString("; let __seq_guard = __seq_holder")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; &__seq_guard.as_ref().unwrap()[")
+	writeExpressionAsUsize(out, indexExpr.Index)
+	out.WriteString("] as *const _ as usize }")
+	return true
 }
 
 func writeExternalIntegerTupleField(out *strings.Builder, typ types.Type) {
