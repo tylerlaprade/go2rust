@@ -3953,6 +3953,14 @@ func wrappedExternalStubExpr(innerType string, expr string) string {
 	return fmt.Sprintf("%s::new(%s::new(Some::<%s>(%s)))", GetOuterWrapperType(), GetInnerWrapperType(), innerType, expr)
 }
 
+func writeExternalStubReturnValue(out *strings.Builder, rustType string, innerType string, expr string) {
+	if rustType == innerType {
+		out.WriteString(expr)
+		return
+	}
+	out.WriteString(wrappedExternalStubExpr(innerType, expr))
+}
+
 func wrappedExternalStubSomeExpr(innerType string, expr string) string {
 	return wrappedExternalStubExpr(innerType, expr)
 }
@@ -6692,7 +6700,7 @@ func writeRuntimeGOMAXPROCSStub(out *strings.Builder, fn externalPackageStubFunc
 	out.WriteString(") -> ")
 	writeExternalStubReturnType(out, fn.ReturnTypes)
 	out.WriteString(" {\n        ")
-	out.WriteString(wrappedExternalStubExpr("i32", "std::thread::available_parallelism().map(|n| n.get() as i32).unwrap_or(1).max(1)"))
+	writeExternalStubReturnValue(out, fn.ReturnTypes[0], "i32", "std::thread::available_parallelism().map(|n| n.get() as i32).unwrap_or(1).max(1)")
 	out.WriteString("\n    }\n")
 }
 
@@ -6755,7 +6763,7 @@ func writeIoCopyStub(out *strings.Builder, fn externalPackageStubFunction, stubs
 `, wrappedExternalStubType("os_File"), externalStubBorrowExpr("dst"))
 	}
 	out.WriteString("        (")
-	out.WriteString(wrappedExternalStubExpr("i64", "data.len() as i64"))
+	writeExternalStubReturnValue(out, fn.ReturnTypes[0], "i64", "data.len() as i64")
 	out.WriteString(", ")
 	writeExternalStubDefaultValue(out, fn.ReturnTypes[1])
 	out.WriteString(")\n    }\n")

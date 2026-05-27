@@ -236,6 +236,40 @@ func TestParserStubPreservesFileAndNodeMetadataForTypeInfoBridge(t *testing.T) {
 	}
 }
 
+func TestRuntimeGOMAXPROCSStubMatchesBareReturnSignature(t *testing.T) {
+	var out strings.Builder
+	writeRuntimeGOMAXPROCSStub(&out, externalPackageStubFunction{
+		ParamCount:  1,
+		ReturnTypes: []string{"i32"},
+	})
+	got := out.String()
+	if strings.Contains(got, "Some::<i32>") || strings.Contains(got, "RefCell::new") || strings.Contains(got, "Mutex::new") {
+		t.Fatalf("runtime.GOMAXPROCS stub should return bare i32 for bare signatures:\n%s", got)
+	}
+	if !strings.Contains(got, "pub fn g_o_m_a_x_p_r_o_c_s<T0>(_arg0: T0) -> i32") ||
+		!strings.Contains(got, "std::thread::available_parallelism()") {
+		t.Fatalf("runtime.GOMAXPROCS stub should preserve the runtime fallback body:\n%s", got)
+	}
+}
+
+func TestIoCopyStubMatchesBareCountReturnSignature(t *testing.T) {
+	var out strings.Builder
+	writeIoCopyStub(&out, externalPackageStubFunction{
+		ParamCount: 2,
+		ReturnTypes: []string{
+			"i64",
+			"Rc<RefCell<Option<Box<dyn StdError>>>>",
+		},
+	}, nil)
+	got := out.String()
+	if strings.Contains(got, "Some::<i64>") {
+		t.Fatalf("io.Copy stub should not wrap a bare byte-count return:\n%s", got)
+	}
+	if !strings.Contains(got, "(data.len() as i64, Rc::new(RefCell::new(None::<Box<dyn StdError>>)))") {
+		t.Fatalf("io.Copy stub should return a bare byte count and wrapped error:\n%s", got)
+	}
+}
+
 func TestAstInterfacesCarrySourcePositions(t *testing.T) {
 	var out strings.Builder
 	writeExternalInterfaceStub(&out, "ast_Expr", map[string]externalTypeStubMethod{

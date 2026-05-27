@@ -2271,6 +2271,25 @@ func lookup(i uint8) int {
 	}
 }
 
+func TestExternalStdlibScalarCallStaysBareInComparison(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "runtime"
+
+func ok() bool {
+	return runtime.GOMAXPROCS(0) > 0
+}
+`)
+
+	if strings.Contains(rust, "g_o_m_a_x_p_r_o_c_s(0).borrow()") ||
+		strings.Contains(rust, "g_o_m_a_x_p_r_o_c_s(0).lock()") {
+		t.Fatalf("external stdlib scalar call should not be unwrapped as a handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "runtime::g_o_m_a_x_p_r_o_c_s(0) > 0") {
+		t.Fatalf("external stdlib scalar call should stay bare in comparison:\n%s", rust)
+	}
+}
+
 func TestNoTypeInfoRangeUsesTrackedMap(t *testing.T) {
 	prevTypeInfo := currentTypeInfo
 	prevCollections := localCollectionKinds

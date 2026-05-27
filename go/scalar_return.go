@@ -214,7 +214,7 @@ func callReturnsBareScalar(call *ast.CallExpr) bool {
 	if typeInfo.IsTypeConversion(call) {
 		return false
 	}
-	if !callIsUserDefinedFunction(call) {
+	if !callUsesGeneratedReturnSignature(call) {
 		return false
 	}
 	sig, ok := callSignatureFromTypeInfo(call)
@@ -224,10 +224,11 @@ func callReturnsBareScalar(call *ast.CallExpr) bool {
 	return signatureReturnsBareScalar(sig)
 }
 
-// callIsUserDefinedFunction returns true for calls to functions transpiled
-// from the user's own Go source. It excludes Go predeclared builtins and
-// stdlib calls that go through their own dispatch in stdlib.go.
-func callIsUserDefinedFunction(call *ast.CallExpr) bool {
+// callUsesGeneratedReturnSignature returns true for calls whose callee
+// signature is mirrored directly in generated Rust: user/source-mapped
+// functions and external package stubs. It excludes predeclared builtins and
+// stdlib calls that go through custom handlers.
+func callUsesGeneratedReturnSignature(call *ast.CallExpr) bool {
 	if call == nil {
 		return false
 	}
@@ -249,7 +250,10 @@ func callIsUserDefinedFunction(call *ast.CallExpr) bool {
 		return true
 	}
 	pkgPath := fn.Pkg().Path()
-	return !isStdlibPackage(pkgPath) || isSourceMappedPackagePath(pkgPath)
+	if !isStdlibPackage(pkgPath) || isSourceMappedPackagePath(pkgPath) {
+		return true
+	}
+	return isStubBackedStdlibPackagePath(pkgPath)
 }
 
 func callFunctionObjectFromTypeInfo(typeInfo *TypeInfo, call *ast.CallExpr) (*types.Func, bool) {
@@ -292,7 +296,7 @@ func callResultIsBareScalar(call *ast.CallExpr, index int) bool {
 	if typeInfo == nil || typeInfo.IsTypeConversion(call) {
 		return false
 	}
-	if !callIsUserDefinedFunction(call) {
+	if !callUsesGeneratedReturnSignature(call) {
 		return false
 	}
 	sig, ok := callSignatureFromTypeInfo(call)
