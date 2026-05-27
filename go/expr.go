@@ -4342,7 +4342,10 @@ func isBareLocalInterfaceValue(expr ast.Expr) bool {
 		// A reference to a wrapped value (&Rc<...> / &Arc<...>) is not a bare
 		// interface value — the wrapped form must be dereferenced through its
 		// wrappers to compare against nil.
-		if strings.HasPrefix(info.RustType, "&Rc<") || strings.HasPrefix(info.RustType, "&Arc<") {
+		if strings.HasPrefix(info.RustType, "Rc<") ||
+			strings.HasPrefix(info.RustType, "Arc<") ||
+			strings.HasPrefix(info.RustType, "&Rc<") ||
+			strings.HasPrefix(info.RustType, "&Arc<") {
 			return false
 		}
 		return true
@@ -4932,10 +4935,27 @@ func writeMapLookupKeyWithRustType(out *strings.Builder, index ast.Expr, keyRust
 	return true
 }
 
+func writeInterfaceMapLookupKeyWithType(out *strings.Builder, index ast.Expr, keyType types.Type) bool {
+	if keyType == nil {
+		return false
+	}
+	if _, ok := transpiledNamedInterfaceTypeNameFromTypes(keyType); !ok && !isEmptyInterfaceType(keyType) {
+		return false
+	}
+	NeedGoPtrKey()
+	out.WriteString("&GoLocalPtrKey::new(")
+	TranspileExpressionContext(out, index, LValue)
+	out.WriteString(".clone())")
+	return true
+}
+
 func writeMapLookupKeyWithType(out *strings.Builder, index ast.Expr, keyType types.Type) {
 	if keyType != nil && stdlibInterfaceArgumentConversionExists(index, keyType) {
 		out.WriteString("&")
 		writeStdlibInterfaceComparableConversion(out, index, keyType)
+		return
+	}
+	if writeInterfaceMapLookupKeyWithType(out, index, keyType) {
 		return
 	}
 	if ident, ok := index.(*ast.Ident); ok {

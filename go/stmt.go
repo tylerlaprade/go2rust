@@ -7372,6 +7372,12 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					if _, ok := types.Unalias(mapKeyType).Underlying().(*types.Pointer); ok {
 						keyRangeVarType = goTypesTypeToRust(mapKeyType)
 						mapKeyNeedsValueBinding = true
+					} else if _, ok := transpiledNamedInterfaceTypeNameFromTypes(mapKeyType); ok {
+						keyRangeVarType = goTypesTypeToRustWrapped(mapKeyType)
+						mapKeyNeedsValueBinding = true
+					} else if isEmptyInterfaceType(mapKeyType) {
+						keyRangeVarType = goTypesTypeToRustWrapped(mapKeyType)
+						mapKeyNeedsValueBinding = true
 					} else if isStdlibNamedInterfaceValueType(mapKeyType) {
 						keyRangeVarType = goTypesTypeToRustWrapped(mapKeyType)
 						mapKeyNeedsWrappedBinding = true

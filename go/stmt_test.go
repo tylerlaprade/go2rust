@@ -335,6 +335,44 @@ func forceConcurrent() {
 	}
 }
 
+func TestInterfaceMapRangeKeyUsesStoredInterfaceHandle(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+type Node interface {
+	Pos() int
+}
+
+type CommentMap map[Node]int
+
+func First(cmap CommentMap) int {
+	for node := range cmap {
+		return cmap[node]
+	}
+	return 0
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile() error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := Transpile(file, fset, typeInfo)
+
+	if !strings.Contains(rust, "let node = __range_key.value();") {
+		t.Fatalf("interface map range key should recover the stored interface handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".get(&GoLocalPtrKey::new(node.clone()))") {
+		t.Fatalf("interface map lookup with range key should rebuild GoLocalPtrKey from the handle:\n%s", rust)
+	}
+	if strings.Contains(rust, "node.__go_clone_box_node()") {
+		t.Fatalf("interface map range key should not treat GoLocalPtrKey itself as the interface value:\n%s", rust)
+	}
+}
+
 func TestLocalMapKeyRustTypeReportsTrackedPointerKey(t *testing.T) {
 	prevCollections := localCollectionKinds
 	prevMapKeys := localMapKeyRustTypes
