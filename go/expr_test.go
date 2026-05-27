@@ -1445,6 +1445,30 @@ func methods(p unsafe.Pointer, n int) []Method {
 	}
 }
 
+func TestUnsafePointerSelectorFieldUsesPointerHandle(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "unsafe"
+
+type Type struct{}
+
+type EmptyInterface struct {
+	Type *Type
+}
+
+func addr(e EmptyInterface) uintptr {
+	return uintptr(unsafe.Pointer(e.Type))
+}
+`)
+
+	if strings.Contains(rust, ".r#type.borrow().as_ref().unwrap())) as usize") {
+		t.Fatalf("unsafe.Pointer selector conversion should take the address of the pointer handle, not the pointee:\n%s", rust)
+	}
+	if !strings.Contains(rust, "as_ptr(&") || !strings.Contains(rust, ".r#type.clone()") {
+		t.Fatalf("unsafe.Pointer selector conversion should use the cloned pointer field handle:\n%s", rust)
+	}
+}
+
 func TestThreeIndexSliceCapacityUnwrapsSelectorBounds(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

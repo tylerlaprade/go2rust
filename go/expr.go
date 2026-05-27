@@ -9195,6 +9195,8 @@ func writeUnsafePointerConversion(out *strings.Builder, arg ast.Expr) {
 		out.WriteString("::as_ptr(&")
 		if ident, ok := arg.(*ast.Ident); ok && ident.Name != "nil" {
 			out.WriteString(RustIdentForUse(ident))
+		} else if _, ok := arg.(*ast.SelectorExpr); ok {
+			writePointerHandleExpression(out, arg)
 		} else {
 			TranspileExpression(out, arg)
 		}
