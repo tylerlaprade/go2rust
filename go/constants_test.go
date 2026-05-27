@@ -718,6 +718,24 @@ func assertNamedUintConstPeersUseSyntax(t *testing.T, rust string) {
 	}
 }
 
+func TestConstBinaryPeerCastsUntypedConstIdentifierToUint64(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+const (
+	ctrlEmpty = 0b10000000
+	bitsetLSB = 0x0101010101010101
+	ctrlWord = bitsetLSB * uint64(ctrlEmpty)
+)
+`)
+
+	if strings.Contains(rust, "BITSET_L_S_B * (CTRL_EMPTY as u64)") {
+		t.Fatalf("const binary expression should not multiply signed inferred const by uint64 conversion:\n%s", rust)
+	}
+	if !strings.Contains(rust, "BITSET_L_S_B as u64 * (CTRL_EMPTY as u64)") {
+		t.Fatalf("const binary expression should cast untyped const identifier to uint64 peer:\n%s", rust)
+	}
+}
+
 func TestNoTypeInfoNamedIntegerBitwiseClonesSelectorField(t *testing.T) {
 	rust := transpileNoTypeInfoRegression(t, `package main
 

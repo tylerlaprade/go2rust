@@ -3047,11 +3047,23 @@ func TranspileConstExpr(out *strings.Builder, expr ast.Expr, iotaValue int) {
 			}
 		} else {
 			// Handle binary expressions in const context
-			TranspileConstExpr(out, e.X, iotaValue)
-			out.WriteString(" ")
-			out.WriteString(e.Op.String())
-			out.WriteString(" ")
-			TranspileConstExpr(out, e.Y, iotaValue)
+			if e.Op == token.SHL || e.Op == token.SHR {
+				TranspileConstExpr(out, e.X, iotaValue)
+				out.WriteString(" ")
+				out.WriteString(e.Op.String())
+				out.WriteString(" ")
+				TranspileConstExpr(out, e.Y, iotaValue)
+			} else {
+				if _, isCall := e.X.(*ast.CallExpr); isCall || !writeConstExpressionForBinaryPeer(out, e.X, e.Y) {
+					TranspileConstExpr(out, e.X, iotaValue)
+				}
+				out.WriteString(" ")
+				out.WriteString(e.Op.String())
+				out.WriteString(" ")
+				if _, isCall := e.Y.(*ast.CallExpr); isCall || !writeConstExpressionForBinaryPeer(out, e.Y, e.X) {
+					TranspileConstExpr(out, e.Y, iotaValue)
+				}
+			}
 		}
 	case *ast.ParenExpr:
 		out.WriteString("(")
