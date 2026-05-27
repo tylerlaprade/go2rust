@@ -131,6 +131,27 @@ func clear(files []*File) {
 	}
 }
 
+func TestSliceElemPointerStructFieldInitializerFailsLoudly(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+type Name struct {
+	Bytes *byte
+}
+
+func makeName() Name {
+	b := []byte{1}
+	return Name{Bytes: &b[0]}
+}
+`)
+
+	if strings.Contains(rust, "bytes: GoSliceElemPtr::new") {
+		t.Fatalf("slice element pointer field initializer should not emit an incompatible helper value:\n%s", rust)
+	}
+	if !strings.Contains(rust, `unimplemented!("slice element pointer cannot initialize pointer field")`) {
+		t.Fatalf("slice element pointer field initializer should fail loudly:\n%s", rust)
+	}
+}
+
 func transpileTypedSliceElemPtrRegression(t *testing.T, src string) string {
 	t.Helper()
 

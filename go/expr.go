@@ -4107,6 +4107,9 @@ func writeWrappedStructFieldValue(out *strings.Builder, value ast.Expr, fieldExp
 			out.WriteString("Default::default()")
 			return
 		}
+		if writeUnsupportedSliceElemPointerFieldValue(out, value, expectedFieldType) {
+			return
+		}
 		if writeCurrentReceiverPointerFieldValue(out, value, fieldExpr, expectedFieldType) {
 			return
 		}
@@ -4220,6 +4223,40 @@ func writeWrappedStructFieldValue(out *strings.Builder, value ast.Expr, fieldExp
 		}
 		WriteWrapperSuffix(out)
 	}
+}
+
+func writeUnsupportedSliceElemPointerFieldValue(out *strings.Builder, value ast.Expr, expectedFieldType types.Type) bool {
+	unary, ok := value.(*ast.UnaryExpr)
+	if !ok || unary.Op != token.AND {
+		return false
+	}
+	index, ok := unary.X.(*ast.IndexExpr)
+	if !ok {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	valueType := typeInfo.GetType(value)
+	if valueType == nil {
+		return false
+	}
+	if _, ok := types.Unalias(valueType).Underlying().(*types.Pointer); !ok {
+		return false
+	}
+	if expectedFieldType != nil {
+		if _, ok := types.Unalias(expectedFieldType).Underlying().(*types.Pointer); !ok {
+			return false
+		}
+	}
+	if !typeInfo.IsSlice(index.X) {
+		return false
+	}
+	WriteWrapperPrefix(out)
+	out.WriteString("unimplemented!(\"slice element pointer cannot initialize pointer field\")")
+	WriteWrapperSuffix(out)
+	return true
 }
 
 func writeUnknownExpectedSelectorHandleFieldValue(out *strings.Builder, value ast.Expr, fieldExpr ast.Expr, expected types.Type) bool {
