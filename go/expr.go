@@ -8174,6 +8174,11 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 		return
 	}
 
+	if target, ok := typedPointerTypeConversionTarget(call); ok {
+		writePointerTypeConversion(out, target, call.Args[0])
+		return
+	}
+
 	if target, ok := pointerTypeConversionTarget(call.Fun); ok {
 		writePointerTypeConversion(out, target, call.Args[0])
 		return
@@ -8581,6 +8586,41 @@ func pointerTypeConversionTargetFromCall(call *ast.CallExpr) (ast.Expr, bool) {
 	return nil, false
 }
 
+func typedPointerTypeConversionTarget(call *ast.CallExpr) (ast.Expr, bool) {
+	if call == nil || len(call.Args) != 1 {
+		return nil, false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || !typeInfo.IsTypeConversion(call) {
+		return nil, false
+	}
+	callType := typeInfo.GetType(call)
+	if callType == nil {
+		return nil, false
+	}
+	if _, ok := types.Unalias(callType).Underlying().(*types.Pointer); !ok {
+		return nil, false
+	}
+	target, ok := pointerTypeExprTarget(call.Fun)
+	if !ok {
+		return nil, false
+	}
+	return target, true
+}
+
+func pointerTypeExprTarget(expr ast.Expr) (ast.Expr, bool) {
+	expr = unwrapParens(expr)
+	star, ok := expr.(*ast.StarExpr)
+	if !ok {
+		return nil, false
+	}
+	switch star.X.(type) {
+	case *ast.Ident, *ast.SelectorExpr, *ast.StructType, *ast.IndexExpr, *ast.IndexListExpr:
+		return star.X, true
+	}
+	return nil, false
+}
+
 func writePointerTypeConversion(out *strings.Builder, target ast.Expr, source ast.Expr) {
 	if ident, ok := source.(*ast.Ident); ok && ident.Name == "nil" {
 		WriteWrappedNone(out)
@@ -8598,20 +8638,31 @@ func writePointerTypeConversion(out *strings.Builder, target ast.Expr, source as
 }
 
 func writePointerTypeConversionFromUnsafePointer(out *strings.Builder, target ast.Expr, source ast.Expr) {
+	targetType := goTypeToRustBase(target)
 	trackWrapperImports()
 	if NeedsConcurrentWrapper() {
 		out.WriteString("Arc::new(Mutex::new({ let __ptr = ")
 		TranspileExpression(out, source)
-		out.WriteString("; let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some(")
-		out.WriteString(goTypeToRustBase(target))
-		out.WriteString("::default()) } }))")
+		out.WriteString("; let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<")
+		out.WriteString(targetType)
+		out.WriteString(">(")
+		writeUnsafePointerConversionUnsupported(out, targetType)
+		out.WriteString(") } }))")
 		return
 	}
 	out.WriteString("Rc::new(RefCell::new({ let __ptr = ")
 	TranspileExpression(out, source)
-	out.WriteString("; let __ptr_guard = __ptr.borrow(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some(")
-	out.WriteString(goTypeToRustBase(target))
-	out.WriteString("::default()) } }))")
+	out.WriteString("; let __ptr_guard = __ptr.borrow(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<")
+	out.WriteString(targetType)
+	out.WriteString(">(")
+	writeUnsafePointerConversionUnsupported(out, targetType)
+	out.WriteString(") } }))")
+}
+
+func writeUnsafePointerConversionUnsupported(out *strings.Builder, targetType string) {
+	out.WriteString("unimplemented!(\"unsafe.Pointer conversion to ")
+	out.WriteString(targetType)
+	out.WriteString("\")")
 }
 
 func writeReflectStringHeaderPointerConversion(out *strings.Builder, call *ast.CallExpr) bool {

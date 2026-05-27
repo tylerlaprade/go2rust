@@ -1353,6 +1353,30 @@ func (r *regs) addr(i int) uintptr {
 	}
 }
 
+func TestUnsafePointerToNamedStructConversionDoesNotExposeRawPointerToSelector(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "unsafe"
+
+type Header struct {
+	Len uintptr
+}
+
+type Type struct{}
+
+func (t *Type) Len() int {
+	return int((*Header)(unsafe.Pointer(t)).Len)
+}
+`)
+
+	if strings.Contains(rust, "as usize))).lock().unwrap().as_ref().unwrap()).len") {
+		t.Fatalf("unsafe.Pointer to named struct conversion should not expose a raw usize to field selection:\n%s", rust)
+	}
+	if !strings.Contains(rust, "unimplemented!(\"unsafe.Pointer conversion to Header\")") {
+		t.Fatalf("unsafe.Pointer to named struct conversion should emit a typed loud unsupported path:\n%s", rust)
+	}
+}
+
 func TestUintptrConversionFromUnsafePointerIdentifierUsesHandle(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

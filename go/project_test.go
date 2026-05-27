@@ -745,7 +745,7 @@ func main() {}
 	}
 }
 
-func TestUnsafePointerToNamedFunctionTypeConversionUsesPointerDefault(t *testing.T) {
+func TestUnsafePointerToNamedFunctionTypeConversionEmitsUnsupportedTypedPointer(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
 
@@ -780,8 +780,8 @@ func Use() {
 	}
 
 	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
-	if !strings.Contains(mainRS, "if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some(Exporter::default()) }") {
-		t.Fatalf("pointer conversion from unsafe pointer should preserve nil before falling back to a typed pointer default, got:\n%s", mainRS)
+	if !strings.Contains(mainRS, "if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<Exporter>(unimplemented!(\"unsafe.Pointer conversion to Exporter\")) }") {
+		t.Fatalf("pointer conversion from unsafe pointer should preserve nil before emitting a typed unsupported path, got:\n%s", mainRS)
 	}
 	if strings.Contains(mainRS, "atomic::load_pointer") && strings.Contains(mainRS, "as Box<dyn Fn") {
 		t.Fatalf("pointer conversion should not cast a raw unsafe pointer to a function box, got:\n%s", mainRS)
