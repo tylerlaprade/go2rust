@@ -18,9 +18,9 @@ impl types_Package {
 
 
 pub fn make_qualifier() -> Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<types_Package>>>) -> Arc<Mutex<Option<String>>> + Send + Sync>>>> {
-    Arc::new(Mutex::new(Some(Box::new(move |pkg: Arc<Mutex<Option<types_Package>>>| -> Arc<Mutex<Option<String>>> {
+    return Arc::new(Mutex::new(Some(Box::new(move |pkg: Arc<Mutex<Option<types_Package>>>| -> Arc<Mutex<Option<String>>> {
         Arc::new(Mutex::new(Some("".to_string())))
-    }) as Box<dyn FnMut(Arc<Mutex<Option<types_Package>>>) -> Arc<Mutex<Option<String>>> + Send + Sync>)))
+    }) as Box<dyn FnMut(Arc<Mutex<Option<types_Package>>>) -> Arc<Mutex<Option<String>>> + Send + Sync>)));
 }
 
 pub fn use_qualifier(qualifier: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<types_Package>>>) -> Arc<Mutex<Option<String>>> + Send + Sync>>>>) -> Arc<Mutex<Option<String>>> {

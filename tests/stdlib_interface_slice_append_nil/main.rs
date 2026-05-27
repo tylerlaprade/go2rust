@@ -223,7 +223,7 @@ pub fn pad_exprs(elts: Arc<Mutex<Option<Vec<ast_Expr>>>>, length: Arc<Mutex<Opti
     while { let __tmp_x = ((*values.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = ({ let __v = (*length.lock().unwrap().as_ref().unwrap()).clone(); __v } as i32); __tmp_x < __tmp_y } {
         { let new_val = { let __append_target = values.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(Default::default()); __append_target.clone() }; values = new_val; };
     }
-    values.clone()
+    return values.clone();
 }
 
 pub fn pad_named_exprs(elts: Arc<Mutex<Option<ExprList>>>) -> Arc<Mutex<Option<ExprList>>> {

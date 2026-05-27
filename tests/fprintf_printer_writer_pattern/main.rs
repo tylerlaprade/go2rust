@@ -302,7 +302,7 @@ impl printer {
         let mut m: Rc<RefCell<Option<i32>>> = Rc::new(RefCell::new(Some(0)));
         { let __range_holder = data.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, b) in __range_values.iter().copied().enumerate() {
         if b == ('\n' as u8) {
-        { let (__tmp_0, __tmp_1) = (*self.output.borrow().as_ref().unwrap()).write(Rc::new(RefCell::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.borrow(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[((*n.borrow().as_ref().unwrap())) as usize..(i + 1) as usize].to_vec() })))); let __moved_tmp_0 = { let mut __guard = __tmp_0.borrow_mut(); __guard.take() }; *m.borrow_mut() = __moved_tmp_0; let __moved_tmp_1 = { let mut __guard = __tmp_1.borrow_mut(); __guard.take() }; *err.borrow_mut() = __moved_tmp_1; };
+        { let (__tmp_0, __tmp_1) = (*self.output.borrow().as_ref().unwrap()).write(Rc::new(RefCell::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.borrow(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[((*n.borrow().as_ref().unwrap())) as usize..(i as i32 + 1) as usize].to_vec() })))); *m.borrow_mut() = Some(__tmp_0); let __moved_tmp_1 = { let mut __guard = __tmp_1.borrow_mut(); __guard.take() }; *err.borrow_mut() = __moved_tmp_1; };
         { let __rhs = (*m.borrow().as_ref().unwrap()); let mut guard = n.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
         if (*err.borrow()).is_some() {
         return ((*n.borrow().as_ref().unwrap()), err);
@@ -316,7 +316,7 @@ impl printer {
     }
     } }
         if ((*data.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32) > ((*n.borrow().as_ref().unwrap()) as i32) {
-        { let (__tmp_0, __tmp_1) = (*self.output.borrow().as_ref().unwrap()).write(Rc::new(RefCell::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.borrow(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[((*n.borrow().as_ref().unwrap())) as usize..].to_vec() })))); let __moved_tmp_0 = { let mut __guard = __tmp_0.borrow_mut(); __guard.take() }; *m.borrow_mut() = __moved_tmp_0; let __moved_tmp_1 = { let mut __guard = __tmp_1.borrow_mut(); __guard.take() }; *err.borrow_mut() = __moved_tmp_1; };
+        { let (__tmp_0, __tmp_1) = (*self.output.borrow().as_ref().unwrap()).write(Rc::new(RefCell::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.borrow(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[((*n.borrow().as_ref().unwrap())) as usize..].to_vec() })))); *m.borrow_mut() = Some(__tmp_0); let __moved_tmp_1 = { let mut __guard = __tmp_1.borrow_mut(); __guard.take() }; *err.borrow_mut() = __moved_tmp_1; };
         { let __rhs = (*m.borrow().as_ref().unwrap()); let mut guard = n.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     }
         return ((*n.borrow().as_ref().unwrap()), err);

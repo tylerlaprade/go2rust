@@ -57,10 +57,10 @@ impl GoRegexp {
         Rc::new(RefCell::new(Some(go_regexp_find_all_string(&pattern, &text, limit))))
     }
 
-    fn match_string(&self, text: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<bool>>> {
+    fn match_string(&self, text: Rc<RefCell<Option<String>>>) -> bool {
         let pattern = (*self.pattern.borrow().as_ref().unwrap()).clone();
         let text = (*text.borrow().as_ref().unwrap()).clone();
-        Rc::new(RefCell::new(Some(go_regexp_match_string(&pattern, &text))))
+        go_regexp_match_string(&pattern, &text)
     }
 
     fn find_string_submatch(&self, text: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<Vec<String>>>> {

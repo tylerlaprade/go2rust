@@ -44,7 +44,7 @@ pub fn compute() -> bool {
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return false
+        return false;
     }
 }
 

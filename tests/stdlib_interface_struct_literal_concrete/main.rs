@@ -397,7 +397,7 @@ impl std::fmt::Display for entry {
 pub fn make_entry() -> Arc<Mutex<Option<entry>>> {
     let mut tn = types::new_type_name({ let __go_arg = token::NO_POS; __go_arg }, (), "T".to_string(), ());
     let mut tp = types::new_type_param(tn.clone(), ());
-    Arc::new(Mutex::new(Some(entry { typ: { let __arg = tp.clone(); let __converted = { let __arg_guard = __arg.lock().unwrap(); let __converted: Option<types_Type> = __arg_guard.as_ref().map(|__v| (*__v).clone().into()); __converted }; Arc::new(Mutex::new(__converted)) }, name: Arc::new(Mutex::new(Some("ok".to_string()))), ..Default::default() })))
+    return Arc::new(Mutex::new(Some(entry { typ: { let __arg = tp.clone(); let __converted = { let __arg_guard = __arg.lock().unwrap(); let __converted: Option<types_Type> = __arg_guard.as_ref().map(|__v| (*__v).clone().into()); __converted }; Arc::new(Mutex::new(__converted)) }, name: Arc::new(Mutex::new(Some("ok".to_string()))), ..Default::default() })));
 }
 
 fn main() {

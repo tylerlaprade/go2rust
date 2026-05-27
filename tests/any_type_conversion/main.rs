@@ -17,7 +17,7 @@ pub fn boxed_int_o_k(v: Rc<RefCell<Option<i32>>>) -> bool {
             (Rc::new(RefCell::new(Some(0))), Rc::new(RefCell::new(Some(false))))
         }
     });
-    (*ok.borrow().as_ref().unwrap())
+    return (*ok.borrow().as_ref().unwrap());
 }
 
 fn main() {

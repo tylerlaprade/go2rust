@@ -13,7 +13,7 @@ pub fn read(out: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>> {
 }
 
 pub fn size(out: Rc<RefCell<Option<String>>>) -> i32 {
-    (*Rc::new(RefCell::new(Some((*out.borrow().as_ref().unwrap()).len() as i32))).borrow().as_ref().unwrap())
+    Rc::new(RefCell::new(Some((*out.borrow().as_ref().unwrap()).len() as i32)))
 }
 
 fn main() {

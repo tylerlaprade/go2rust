@@ -77,7 +77,7 @@ impl holder {
         { let mut guard = count.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
     } }
-        (*count.borrow().as_ref().unwrap())
+        return (*count.borrow().as_ref().unwrap());
     }
 }
 

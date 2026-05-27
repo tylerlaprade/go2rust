@@ -74,7 +74,7 @@ impl invocation {
     pub fn run(&self) -> Rc<RefCell<Option<Vec<String>>>> {
         let mut goArgs = Rc::new(RefCell::new(Some(vec![{ let __selector_holder = self.verb.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }])));
         { let new_val = { let __append_target = goArgs.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).extend({ let __slice_holder = self.build_flags.clone(); let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().map(|__v| __v.clone()).unwrap_or_default() }.iter().cloned()); __append_target.clone() }; goArgs = new_val; };
-        goArgs.clone()
+        return goArgs.clone();
     }
 }
 

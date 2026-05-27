@@ -60,6 +60,12 @@ func expressionReadsWrappedLocal(expr ast.Expr) bool {
 // position produce Ref temporaries that outlive the local under Rust's
 // tail-expression scoping rules, so the caller can fall back to an explicit
 // `return X;` to keep the temporary scoped to the statement.
+//
+// The transpiler's default short-decl path wraps locals even when the Go type
+// is a Copy scalar (so `&local` and re-binding stay correct). The VarTable
+// records the rare opt-outs (bare scalar slot from a bare-scalar call, range
+// vars, etc.) as WrapNone. Anything else that's a body-declared local is
+// assumed wrapped.
 func identIsWrappedFunctionLocal(ident *ast.Ident) bool {
 	if ident == nil || ident.Name == "_" {
 		return false
@@ -87,11 +93,6 @@ func identIsWrappedFunctionLocal(ident *ast.Ident) bool {
 	// parameters, receivers, or enclosing-scope variables — they drop after
 	// the tail expression's temporaries, so they are safe.
 	if !currentFunctionBodyLbrace.IsValid() || v.Pos() <= currentFunctionBodyLbrace {
-		return false
-	}
-	// A local with a predeclared Copy scalar type lowers to a bare Rust
-	// value, so no Ref temporary is created when reading it.
-	if typeIsPredeclaredCopyScalar(v.Type()) {
 		return false
 	}
 	return true

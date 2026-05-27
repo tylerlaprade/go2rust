@@ -115,7 +115,7 @@ pub fn clean(path: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<String>>> {
 /// In particular, it does not account for the effect of any symbolic links
 /// that may exist in the filesystem.
 pub fn is_local(path: Arc<Mutex<Option<String>>>) -> bool {
-    (*filepathlite::is_local(path.clone()).lock().unwrap().as_ref().unwrap())
+    filepathlite::is_local(path.clone())
 }
 
 /// Localize converts a slash-separated path into an operating system path.
@@ -197,7 +197,7 @@ pub fn eval_symlinks(path: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<Stri
 
 /// IsAbs reports whether the path is absolute.
 pub fn is_abs(path: Arc<Mutex<Option<String>>>) -> bool {
-    (*filepathlite::is_abs(path.clone()).lock().unwrap().as_ref().unwrap())
+    filepathlite::is_abs(path.clone())
 }
 
 /// Abs returns an absolute representation of path.
@@ -217,7 +217,7 @@ pub fn unix_abs(path: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<String>>>
     if (*err.lock().unwrap()).is_some() {
         return (Arc::new(Mutex::new(Some("".to_string()))), err.clone());
     }
-    (join(Arc::new(Mutex::new(Some(vec![{ let __v = (*wd.lock().unwrap().as_ref().unwrap()).clone(); __v }, { let __v = (*path.lock().unwrap().as_ref().unwrap()).clone(); __v }])))), Arc::new(Mutex::new(None)))
+    return (join(Arc::new(Mutex::new(Some(vec![{ let __v = (*wd.lock().unwrap().as_ref().unwrap()).clone(); __v }, { let __v = (*path.lock().unwrap().as_ref().unwrap()).clone(); __v }])))), Arc::new(Mutex::new(None)));
 }
 
 /// Rel returns a relative path that is lexically equivalent to targpath when
@@ -240,7 +240,7 @@ pub fn rel(basepath: Arc<Mutex<Option<String>>>, targpath: Arc<Mutex<Option<Stri
     { let new_val = Arc::new(Mutex::new(Some({ let __s = &((*targ.lock().unwrap().as_ref().unwrap()).clone()); __s[((*targVol.lock().unwrap().as_ref().unwrap()).len()) as usize..].to_string() }))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *targ.lock().unwrap() = __moved_val; };
     if { let __tmp_x = (*base.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "."; __tmp_x == __tmp_y } {
         { let new_val = "".to_string(); *base.lock().unwrap() = Some(new_val); };
-    } else if { let __tmp_x = (*base.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = ""; __tmp_x == __tmp_y } && { let __tmp_x = (*filepathlite::volume_name_len(baseVol.clone()).lock().unwrap().as_ref().unwrap()); let __tmp_y = 2; __tmp_x > __tmp_y } {
+    } else if { let __tmp_x = (*base.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = ""; __tmp_x == __tmp_y } && { let __tmp_x = filepathlite::volume_name_len(baseVol.clone()); let __tmp_y = 2; __tmp_x > __tmp_y } {
         { let new_val = Arc::new(Mutex::new(Some(char::from_u32(((*Separator.lock().unwrap().as_ref().unwrap())) as u32).unwrap().to_string()))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *base.lock().unwrap() = __moved_val; };
     }
 
@@ -282,14 +282,14 @@ pub fn rel(basepath: Arc<Mutex<Option<String>>>, targpath: Arc<Mutex<Option<Stri
     if { let __tmp_x = { let __v = (*b0.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*bl.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x != __tmp_y } {
                 // Base elements left. Must go up before going down.
         let mut seps = bytealg::count_string(Arc::new(Mutex::new(Some({ let __s = &((*base.lock().unwrap().as_ref().unwrap()).clone()); __s[({ let __v = (*b0.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize..({ let __v = (*bl.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].to_string() }))), SEPARATOR);
-        let mut size = Arc::new(Mutex::new(Some({ let __tmp_x = 2; let __tmp_y = { let __tmp_x = { let __v = (*seps.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3; __tmp_x * __tmp_y }; __tmp_x + __tmp_y })));
+        let mut size = Arc::new(Mutex::new(Some({ let __tmp_x = 2; let __tmp_y = { let __tmp_x = seps; let __tmp_y = 3; __tmp_x * __tmp_y }; __tmp_x + __tmp_y })));
         if { let __tmp_x = { let __v = (*tl.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*t0.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x != __tmp_y } {
         { let __rhs = { let __tmp_x = { let __tmp_x = 1; let __tmp_y = { let __v = (*tl.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }; let __tmp_y = { let __v = (*t0.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y }; let mut guard = size.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     }
         let mut buf = Arc::new(Mutex::new(Some(vec![0; ({ let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize])));
         let mut n = { let _src = "..".to_string().as_bytes().to_vec(); let _n = std::cmp::min(({ let __v = (*buf.lock().unwrap().as_ref().unwrap()).clone(); __v }).len(), _src.len()); for _i in 0.._n { (*buf.lock().unwrap().as_mut().unwrap())[_i] = _src[_i].clone(); } Arc::new(Mutex::new(Some(_n as i32))) };
         let mut i = Arc::new(Mutex::new(Some(0)));
-    while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*seps.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x < __tmp_y } {
+    while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = seps; __tmp_x < __tmp_y } {
         (*buf.lock().unwrap().as_mut().unwrap())[({ let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] = SEPARATOR as u8;
         { let _dst_start = ({ let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }) as usize; let _dst_len = (*buf.lock().unwrap().as_ref().unwrap()).len() - _dst_start; let _src = "..".to_string().as_bytes().to_vec(); let _n = std::cmp::min(_dst_len, _src.len()); for _i in 0.._n { (*buf.lock().unwrap().as_mut().unwrap())[_dst_start + _i] = _src[_i].clone(); } Arc::new(Mutex::new(Some(_n as i32))) };
         { let __rhs = 3; let mut guard = n.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
@@ -309,8 +309,8 @@ pub fn rel(basepath: Arc<Mutex<Option<String>>>, targpath: Arc<Mutex<Option<Stri
 pub fn walk_dir_1(path: Arc<Mutex<Option<String>>>, d: Arc<Mutex<Option<fs_DirEntry>>>, walkDirFn: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<fs_DirEntry>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> + Send + Sync>>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
     {
         let mut err = { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<fs_DirEntry>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> + Send + Sync> = { let mut __f_guard = walkDirFn.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<fs_DirEntry>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(Mutex::new(Some({ let __arg_holder = path.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), d.clone(), Arc::new(Mutex::new(None))) };;
-        if (*err.lock().unwrap()).is_some() || !(*(*d.lock().unwrap().as_ref().unwrap()).is_dir().lock().unwrap().as_ref().unwrap()) {
-            if (*err.lock().unwrap()).is_none() == (*SkipDir.lock().unwrap()).is_none() && (*(*d.lock().unwrap().as_ref().unwrap()).is_dir().lock().unwrap().as_ref().unwrap()) {
+        if (*err.lock().unwrap()).is_some() || !(*d.lock().unwrap().as_ref().unwrap()).is_dir() {
+            if (*err.lock().unwrap()).is_none() == (*SkipDir.lock().unwrap()).is_none() && (*d.lock().unwrap().as_ref().unwrap()).is_dir() {
         *err.lock().unwrap() = None;
     };
             return err.clone();;
@@ -323,7 +323,7 @@ pub fn walk_dir_1(path: Arc<Mutex<Option<String>>>, d: Arc<Mutex<Option<fs_DirEn
                 // Second call, to report ReadDir error.
         { let __rhs_holder = { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<fs_DirEntry>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> + Send + Sync> = { let mut __f_guard = walkDirFn.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<fs_DirEntry>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(Mutex::new(Some({ let __arg_holder = path.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), d.clone(), err.clone()) }.clone(); let new_val = { let mut guard = __rhs_holder.lock().unwrap(); guard.take() }; *err.lock().unwrap() = new_val; };
         if (*err.lock().unwrap()).is_some() {
-        if (*err.lock().unwrap()).is_none() == (*SkipDir.lock().unwrap()).is_none() && (*(*d.lock().unwrap().as_ref().unwrap()).is_dir().lock().unwrap().as_ref().unwrap()) {
+        if (*err.lock().unwrap()).is_none() == (*SkipDir.lock().unwrap()).is_none() && (*d.lock().unwrap().as_ref().unwrap()).is_dir() {
         *err.lock().unwrap() = None;
     }
         return err.clone();
@@ -348,7 +348,7 @@ pub fn walk_dir_1(path: Arc<Mutex<Option<String>>>, d: Arc<Mutex<Option<fs_DirEn
 
 /// walk recursively descends path, calling walkFn.
 pub fn walk_1(path: Arc<Mutex<Option<String>>>, info: Arc<Mutex<Option<fs_FileInfo>>>, walkFn: WalkFunc) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
-    if !(*(*info.lock().unwrap().as_ref().unwrap()).is_dir().lock().unwrap().as_ref().unwrap()) {
+    if !(*info.lock().unwrap().as_ref().unwrap()).is_dir() {
         return { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<fs_FileInfo>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> + Send + Sync> = { let mut __f_guard = walkFn.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<fs_FileInfo>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(Mutex::new(Some({ let __arg_holder = path.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), info.clone(), Arc::new(Mutex::new(None))) };
     }
 
@@ -383,7 +383,7 @@ pub fn walk_1(path: Arc<Mutex<Option<String>>>, info: Arc<Mutex<Option<fs_FileIn
     } else {
         { let __rhs_holder = walk_1(Arc::new(Mutex::new(Some({ let __arg_holder = filename.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), fileInfo.clone(), walkFn.clone()).clone(); let new_val = { let mut guard = __rhs_holder.lock().unwrap(); guard.take() }; *err.lock().unwrap() = new_val; };
         if (*err.lock().unwrap()).is_some() {
-        if !(*(*fileInfo.lock().unwrap().as_ref().unwrap()).is_dir().lock().unwrap().as_ref().unwrap()) || (*err.lock().unwrap()).is_none() != (*SkipDir.lock().unwrap()).is_none() {
+        if !(*fileInfo.lock().unwrap().as_ref().unwrap()).is_dir() || (*err.lock().unwrap()).is_none() != (*SkipDir.lock().unwrap()).is_none() {
         return err.clone();
     }
     }
@@ -417,7 +417,7 @@ pub fn walk_dir_1(root: Arc<Mutex<Option<String>>>, r#fn: Arc<Mutex<Option<Box<d
     if (*err.lock().unwrap()).is_none() == (*SkipDir.lock().unwrap()).is_none() || (*err.lock().unwrap()).is_none() == (*SkipAll.lock().unwrap()).is_none() {
         return Arc::new(Mutex::new(None));
     }
-    err.clone()
+    return err.clone();
 }
 
 /// Walk walks the file tree rooted at root, calling fn for each file or
@@ -444,7 +444,7 @@ pub fn walk_1(root: Arc<Mutex<Option<String>>>, r#fn: WalkFunc) -> Arc<Mutex<Opt
     if (*err.lock().unwrap()).is_none() == (*SkipDir.lock().unwrap()).is_none() || (*err.lock().unwrap()).is_none() == (*SkipAll.lock().unwrap()).is_none() {
         return Arc::new(Mutex::new(None));
     }
-    err.clone()
+    return err.clone();
 }
 
 /// readDirNames reads the directory named by dirname and returns
@@ -460,7 +460,7 @@ pub fn read_dir_names(dirname: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<
         return (Arc::new(Mutex::new(None)), err.clone());
     }
     { let mut __sort_guard = names.lock().unwrap(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.sort(); } };
-    (names.clone(), Arc::new(Mutex::new(None)))
+    return (names.clone(), Arc::new(Mutex::new(None)));
 }
 
 /// Base returns the last element of path.

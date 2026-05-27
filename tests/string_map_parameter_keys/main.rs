@@ -81,12 +81,12 @@ impl cache {
         { let new_val = Rc::new(RefCell::new(Some((*s.borrow().as_ref().unwrap()).len() as u64))); let __moved_val = { let mut __guard = new_val.borrow_mut(); __guard.take() }; *off.borrow_mut() = __moved_val; };
         { let __map_key = (*s.borrow().as_ref().unwrap()).clone(); let __map_value = off.clone(); (*self.index.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
     }
-        (*off.borrow().as_ref().unwrap())
+        return (*off.borrow().as_ref().unwrap());
     }
 
     pub fn remember(&mut self, p: Rc<RefCell<Option<position>>>) -> u64 {
         let mut file = Rc::new(RefCell::new(Some({ let __selector_holder = (*p.borrow().as_ref().unwrap()).filename.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
-        self.off(Rc::new(RefCell::new(Some({ let __arg_holder = file.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))))
+        return self.off(Rc::new(RefCell::new(Some({ let __arg_holder = file.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))));
     }
 }
 

@@ -48,7 +48,7 @@ pub fn asserted_anonymous_interface(v: Rc<RefCell<Option<Box<dyn hasNameAndStrin
         let __asserted = v.clone();
         (__asserted.clone(), Rc::new(RefCell::new(Some(true))))
     });
-    (*ok.borrow().as_ref().unwrap())
+    return (*ok.borrow().as_ref().unwrap());
 }
 
 fn main() {

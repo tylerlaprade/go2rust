@@ -53,7 +53,7 @@ pub fn safe_divide(a: Rc<RefCell<Option<f64>>>, b: Rc<RefCell<Option<f64>>>) -> 
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return ((*result.borrow().as_ref().unwrap()), err)
+        return ((*result.borrow().as_ref().unwrap()), err);
     }
 }
 
@@ -82,7 +82,7 @@ pub fn process_slice(slice: Rc<RefCell<Option<Vec<i32>>>>, index: Rc<RefCell<Opt
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return ((*value.borrow().as_ref().unwrap()), err)
+        return ((*value.borrow().as_ref().unwrap()), err);
     }
 }
 

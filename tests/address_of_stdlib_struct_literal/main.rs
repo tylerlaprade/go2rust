@@ -275,7 +275,7 @@ pub fn make_buffer() -> Rc<RefCell<Option<bytes_Buffer>>> {
     let (mut stdout, mut stderr) = (Rc::new(RefCell::new(Some(bytes_Buffer { ..Default::default() }))), Rc::new(RefCell::new(Some(bytes_Buffer { ..Default::default() }))));
     r#use({ let __arg = stdout.clone(); let __converted = { let __arg_guard = __arg.borrow(); let __converted: Option<io_Writer> = __arg_guard.as_ref().map(|__v| (*__v).clone().into()); __converted }; Rc::new(RefCell::new(__converted)) });
     r#use({ let __arg = stderr.clone(); let __converted = { let __arg_guard = __arg.borrow(); let __converted: Option<io_Writer> = __arg_guard.as_ref().map(|__v| (*__v).clone().into()); __converted }; Rc::new(RefCell::new(__converted)) });
-    stdout.clone()
+    return stdout.clone();
 }
 
 fn main() {

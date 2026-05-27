@@ -163,7 +163,7 @@ fn main() {
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return
+        return;
     }
     }
     let resp_defer_captured = resp.clone(); __defer_stack.push(Box::new(move || {

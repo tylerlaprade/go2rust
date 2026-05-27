@@ -59,9 +59,9 @@ impl std::fmt::Display for Request {
 
 
 pub fn make_request(prefix: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<Config>>>) -> Rc<RefCell<Option<Request>>>>>>> {
-    let prefix_closure_clone = prefix.clone(); Rc::new(RefCell::new(Some(Box::new(move |cfg: Rc<RefCell<Option<Config>>>| -> Rc<RefCell<Option<Request>>> {
+    let prefix_closure_clone = prefix.clone(); return Rc::new(RefCell::new(Some(Box::new(move |cfg: Rc<RefCell<Option<Config>>>| -> Rc<RefCell<Option<Request>>> {
         Rc::new(RefCell::new(Some(Request { mode: Rc::new(RefCell::new(Some(format!("{}{}", (*prefix_closure_clone.borrow().as_ref().unwrap()), (*(*cfg.borrow().as_ref().unwrap()).mode.borrow().as_ref().unwrap()).clone())))), env: Rc::new(RefCell::new(Some({ let __selector_holder = (*cfg.borrow().as_ref().unwrap()).env.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), build_flags: Rc::new(RefCell::new(Some({ let __selector_holder = (*cfg.borrow().as_ref().unwrap()).build_flags.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), tests: Rc::new(RefCell::new(Some({ let __selector_holder = (*cfg.borrow().as_ref().unwrap()).tests.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), ..Default::default() })))
-    }) as Box<dyn FnMut(Rc<RefCell<Option<Config>>>) -> Rc<RefCell<Option<Request>>>>)))
+    }) as Box<dyn FnMut(Rc<RefCell<Option<Config>>>) -> Rc<RefCell<Option<Request>>>>)));
 }
 
 fn main() {

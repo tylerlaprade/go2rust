@@ -376,5 +376,5 @@ fn main() {
     (*w.borrow_mut().as_mut().unwrap()).reset();
     let mut length = (*w.borrow_mut().as_mut().unwrap()).len();
     let mut text = (*w.borrow_mut().as_mut().unwrap()).string();
-    print!("len={} string={:?}\n", { let __v = (*length.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*text.borrow().as_ref().unwrap()).clone(); __v });
+    print!("len={} string={:?}\n", length, { let __v = (*text.borrow().as_ref().unwrap()).clone(); __v });
 }

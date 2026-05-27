@@ -8,5 +8,5 @@ pub fn count() -> i32 {
     if (*tuple.borrow()).is_none() {
         return 0;
     }
-    (*(*tuple.borrow_mut().as_mut().unwrap()).len().borrow().as_ref().unwrap())
+    return (*tuple.borrow_mut().as_mut().unwrap()).len();
 }

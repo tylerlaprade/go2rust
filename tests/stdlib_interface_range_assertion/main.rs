@@ -121,7 +121,7 @@ pub fn count_type_names(objs: Rc<RefCell<Option<Vec<types_Object>>>>) -> i32 {
         }
     }
     } }
-    (*count.borrow().as_ref().unwrap())
+    return (*count.borrow().as_ref().unwrap());
 }
 
 pub fn accept_object_keys(index: Rc<RefCell<Option<BTreeMap<types_Object, Rc<RefCell<Option<u64>>>>>>>, e: Rc<RefCell<Option<exporter>>>) {

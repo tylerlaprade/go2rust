@@ -219,7 +219,7 @@ pub fn make_type() -> Arc<Mutex<Option<types_Type>>> {
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return res
+        return res;
     }
 }
 

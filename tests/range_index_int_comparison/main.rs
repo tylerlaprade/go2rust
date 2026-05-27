@@ -8,12 +8,12 @@ pub fn limit(values: Rc<RefCell<Option<Vec<i32>>>>) -> i32 {
 pub fn count_until_limit(values: Rc<RefCell<Option<Vec<i32>>>>) -> i32 {
     let mut count = Rc::new(RefCell::new(Some(0)));
     for i in 0..({ let __range_holder = values.clone(); let __range_guard = __range_holder.borrow(); __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) {
-        if i >= limit(values.clone()) {
+        if i as i32 >= limit(values.clone()) {
         break
     }
         { let mut guard = count.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
-    (*count.borrow().as_ref().unwrap())
+    return (*count.borrow().as_ref().unwrap());
 }
 
 fn main() {

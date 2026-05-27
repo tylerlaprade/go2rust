@@ -202,18 +202,16 @@ impl GoTime {
         Arc::new(Mutex::new(Some(self.clone())))
     }
 
-    fn unix(&self) -> Arc<Mutex<Option<i64>>> {
-        Arc::new(Mutex::new(Some(self.seconds)))
+    fn unix(&self) -> i64 {
+        self.seconds
     }
 
-    fn unix_nano(&self) -> Arc<Mutex<Option<i64>>> {
-        Arc::new(Mutex::new(Some(
-            self.seconds * 1_000_000_000 + self.nanos as i64,
-        )))
+    fn unix_nano(&self) -> i64 {
+        self.seconds * 1_000_000_000 + self.nanos as i64
     }
 
-    fn is_zero(&self) -> Arc<Mutex<Option<bool>>> {
-        Arc::new(Mutex::new(Some(self.seconds == 0 && self.nanos == 0)))
+    fn is_zero(&self) -> bool {
+        self.seconds == 0 && self.nanos == 0
     }
 
     fn format(&self, _layout: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<String>>> {
@@ -275,9 +273,9 @@ fn go_new_timer(duration: std::time::Duration) -> GoTimer {
 }
 
 impl GoTimer {
-    fn stop(&self) -> Arc<Mutex<Option<bool>>> {
+    fn stop(&self) -> bool {
         let was_stopped = self.stopped.swap(true, std::sync::atomic::Ordering::SeqCst);
-        Arc::new(Mutex::new(Some(!was_stopped)))
+        !was_stopped
     }
 }
 
@@ -289,7 +287,7 @@ fn main() {
 
     let mut timer2 = Arc::new(Mutex::new(Some(go_new_timer(std::time::Duration::from_millis(500)))));
     let mut stop2 = { let __recv = timer2.clone(); let __recv_ptr: *mut GoTimer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut GoTimer }; let __result = unsafe { &mut *__recv_ptr }.stop(); __result };
-    if { let __v = (*stop2.lock().unwrap().as_ref().unwrap()).clone(); __v } {
+    if stop2 {
         println!("{}", format!("{}", "Timer 2 stopped".to_string()));
     }
 

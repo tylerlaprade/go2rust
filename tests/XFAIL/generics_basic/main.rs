@@ -131,7 +131,7 @@ pub fn map_keys<K: Any + Clone + 'static, V: Any + Clone + 'static>(m: Rc<RefCel
         let k = __range_key.value();
         { let new_val = { let __append_target = r.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push((*k.borrow().as_ref().unwrap()).clone()); __append_target.clone() }; r = new_val; };
     }
-    r.clone()
+    return r.clone();
 }
 
 fn main() {

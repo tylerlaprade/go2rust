@@ -99,5 +99,5 @@ fn main() {
     }
     unreachable!()
     }) as Box<dyn FnMut() -> i32>)));
-    println!("{}", format!("{}", (*{ let __f_ptr: *mut Box<dyn FnMut() -> i32> = { let mut __f_guard = visit.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> i32> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() }.borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", { let __f_ptr: *mut Box<dyn FnMut() -> i32> = { let mut __f_guard = visit.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> i32> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() }));
 }

@@ -20,7 +20,7 @@ pub fn pick(v: Rc<RefCell<Option<i32>>>) -> i32 {
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return (*res.borrow().as_ref().unwrap())
+        return (*res.borrow().as_ref().unwrap());
     }
         } else {
             {
@@ -29,7 +29,7 @@ pub fn pick(v: Rc<RefCell<Option<i32>>>) -> i32 {
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return (*res.borrow().as_ref().unwrap())
+        return (*res.borrow().as_ref().unwrap());
     }
         }
     }

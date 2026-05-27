@@ -76,6 +76,6 @@ fn main() {
         if (i as i32) == (((*specs.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32) - (1 as i32) as i32) {
         continue
     }
-        println!("{}", format!("{}", pair_o_k(s.clone(), (*specs.borrow().as_ref().unwrap())[(i + 1) as usize].clone().clone())));
+        println!("{}", format!("{}", pair_o_k(s.clone(), (*specs.borrow().as_ref().unwrap())[(i as i32 + 1) as usize].clone().clone())));
     } }
 }

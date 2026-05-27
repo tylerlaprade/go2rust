@@ -265,7 +265,7 @@ impl std::fmt::Display for State {
 impl State {
     pub fn invocation(&self) -> Arc<Mutex<Option<Invocation>>> {
         let mut cfg = self.cfg.clone();
-        Arc::new(Mutex::new(Some(Invocation { env: { let __field = (*cfg.lock().unwrap().as_ref().unwrap()).env.clone(); __field }, clean_env: Arc::new(Mutex::new(Some({ let __nil_target = (*cfg.lock().unwrap().as_ref().unwrap()).env.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_some(); __nil_result }))), working_dir: Arc::new(Mutex::new(Some({ let __selector_holder = (*cfg.lock().unwrap().as_ref().unwrap()).dir.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), ..Default::default() })))
+        return Arc::new(Mutex::new(Some(Invocation { env: { let __field = (*cfg.lock().unwrap().as_ref().unwrap()).env.clone(); __field }, clean_env: Arc::new(Mutex::new(Some({ let __nil_target = (*cfg.lock().unwrap().as_ref().unwrap()).env.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_some(); __nil_result }))), working_dir: Arc::new(Mutex::new(Some({ let __selector_holder = (*cfg.lock().unwrap().as_ref().unwrap()).dir.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), ..Default::default() })));
     }
 }
 

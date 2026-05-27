@@ -19,7 +19,7 @@ pub fn load() -> (Rc<RefCell<Option<Vec<i32>>>>, Rc<RefCell<Option<Box<dyn StdEr
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return (__return_0, err)
+        return (__return_0, err);
     }
 }
 

@@ -145,18 +145,16 @@ impl GoTime {
         Rc::new(RefCell::new(Some(self.clone())))
     }
 
-    fn unix(&self) -> Rc<RefCell<Option<i64>>> {
-        Rc::new(RefCell::new(Some(self.seconds)))
+    fn unix(&self) -> i64 {
+        self.seconds
     }
 
-    fn unix_nano(&self) -> Rc<RefCell<Option<i64>>> {
-        Rc::new(RefCell::new(Some(
-            self.seconds * 1_000_000_000 + self.nanos as i64,
-        )))
+    fn unix_nano(&self) -> i64 {
+        self.seconds * 1_000_000_000 + self.nanos as i64
     }
 
-    fn is_zero(&self) -> Rc<RefCell<Option<bool>>> {
-        Rc::new(RefCell::new(Some(self.seconds == 0 && self.nanos == 0)))
+    fn is_zero(&self) -> bool {
+        self.seconds == 0 && self.nanos == 0
     }
 
     fn format(&self, _layout: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>> {
@@ -241,9 +239,9 @@ fn main() {
     println!("{}", format!("{}", "\n--- time package ---".to_string()));
     let mut localFixed = Rc::new(RefCell::new(Some(GoTime::from_unix(1700000000 as i64, 0 as i64))));
     let mut fixed = (*localFixed.borrow().as_ref().unwrap()).u_t_c();
-    println!("{} {}", format!("{}", "Fixed timestamp:".to_string()), format!("{}", (*(*fixed.borrow().as_ref().unwrap()).unix().borrow().as_ref().unwrap())));
+    println!("{} {}", format!("{}", "Fixed timestamp:".to_string()), format!("{}", (*fixed.borrow().as_ref().unwrap()).unix()));
     let mut later = (*fixed.borrow().as_ref().unwrap()).add(Rc::new(RefCell::new(Some(std::time::Duration::from_secs(3600)))));
-    println!("{} {}", format!("{}", "One hour later:".to_string()), format!("{}", (*(*later.borrow().as_ref().unwrap()).unix().borrow().as_ref().unwrap())));
+    println!("{} {}", format!("{}", "One hour later:".to_string()), format!("{}", (*later.borrow().as_ref().unwrap()).unix()));
 
         // os package
     println!("{}", format!("{}", "\n--- os package ---".to_string()));
@@ -252,7 +250,7 @@ fn main() {
         // Combined usage
     println!("{}", format!("{}", "\n--- Combined usage ---".to_string()));
     let mut timestamp = (*fixed.borrow().as_ref().unwrap()).unix();
-    let mut timestampStr = Rc::new(RefCell::new(Some(go_strconv_format_int((*timestamp.borrow().as_ref().unwrap()) as i64, 10 as i32))));
+    let mut timestampStr = Rc::new(RefCell::new(Some(go_strconv_format_int(timestamp as i64, 10 as i32))));
     let mut message = Rc::new(RefCell::new(Some(format!("{}{}", "Timestamp: ".to_string(), (*timestampStr.borrow().as_ref().unwrap())))));
     println!("{}", format!("{}", { let __v = (*message.borrow().as_ref().unwrap()).clone(); __v }));
 

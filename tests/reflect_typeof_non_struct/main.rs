@@ -39,8 +39,8 @@ impl GoReflectType {
         Rc::new(RefCell::new(Some((*self.name.borrow().as_ref().unwrap()).clone())))
     }
 
-    fn num_field(&self) -> Rc<RefCell<Option<i32>>> {
-        Rc::new(RefCell::new(Some(self.fields.borrow().as_ref().unwrap().len() as i32)))
+    fn num_field(&self) -> i32 {
+        self.fields.borrow().as_ref().unwrap().len() as i32
     }
 
     fn field(&self, index: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<GoReflectField>>> {

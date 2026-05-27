@@ -9,7 +9,7 @@ pub fn collect(names: Rc<RefCell<Option<Vec<String>>>>) -> Rc<RefCell<Option<Vec
         (*errs_closure_clone.borrow_mut().as_mut().unwrap())[(i_closure_clone) as usize] = Rc::new(RefCell::new(Some(Box::<dyn std::error::Error>::from(name_closure_clone.clone()))));
     }) as Box<dyn FnMut() -> ()>))); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
     } }
-    errs.clone()
+    return errs.clone();
 }
 
 fn main() {

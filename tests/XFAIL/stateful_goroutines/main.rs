@@ -303,7 +303,7 @@ fn main() {
     }
 
     let mut readOpsFinal = atomic::load_uint64(readOps.clone());
-    println!("{} {}", format!("{}", "readOps:".to_string()), format!("{}", { let __v = (*readOpsFinal.lock().unwrap().as_ref().unwrap()).clone(); __v }));
+    println!("{} {}", format!("{}", "readOps:".to_string()), format!("{}", readOpsFinal));
     let mut writeOpsFinal = atomic::load_uint64(writeOps.clone());
-    println!("{} {}", format!("{}", "writeOps:".to_string()), format!("{}", { let __v = (*writeOpsFinal.lock().unwrap().as_ref().unwrap()).clone(); __v }));
+    println!("{} {}", format!("{}", "writeOps:".to_string()), format!("{}", writeOpsFinal));
 }

@@ -166,7 +166,7 @@ pub fn lookup(m: Arc<Mutex<Option<BTreeMap<GoLocalPtrKey<scope>, Arc<Mutex<Optio
         { let new_val = Arc::new(Mutex::new(Some(vec![Default::default(); (1) as usize]))); objs = new_val; };
         { let __map_key = GoLocalPtrKey::new(s.clone()); let __map_value = objs.clone(); (*m.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
     }
-    objs.clone()
+    return objs.clone();
 }
 
 fn main() {

@@ -98,7 +98,7 @@ fn main() {
     println!("{} {}", format!("{}", "After adding 5:".to_string()), format!("{}", (*counter.borrow().as_ref().unwrap()).get_value()));
 
     let mut doubled = (*counter.borrow_mut().as_mut().unwrap()).double();
-    println!("{} {}", format!("{}", "After doubling:".to_string()), format!("{}", { let __v = (*doubled.borrow().as_ref().unwrap()).clone(); __v }));
+    println!("{} {}", format!("{}", "After doubling:".to_string()), format!("{}", doubled));
 
         // Person methods
     let mut person = Rc::new(RefCell::new(Some(Person { name: Rc::new(RefCell::new(Some("Alice".to_string()))), age: Rc::new(RefCell::new(Some(25 as i32))), ..Default::default() })));

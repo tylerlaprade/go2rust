@@ -109,7 +109,7 @@ pub fn disjoint(x: Arc<Mutex<Option<term>>>, y: Arc<Mutex<Option<term>>>) -> boo
     if (*{ let __field = (*x.lock().unwrap().as_ref().unwrap()).tilde.clone(); __field }.lock().unwrap().as_ref().unwrap()) {
         { let new_val = under(uy.clone()); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *uy.lock().unwrap() = __moved_val; };
     }
-    !((*types::identical(ux.clone(), uy.clone()).lock().unwrap().as_ref().unwrap()))
+    return !types::identical(ux.clone(), uy.clone());
 }
 
 fn main() {

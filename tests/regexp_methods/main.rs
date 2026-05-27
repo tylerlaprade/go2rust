@@ -15,10 +15,10 @@ impl GoRegexp {
         Rc::new(RefCell::new(Some(go_regexp_find_all_string(&pattern, &text, limit))))
     }
 
-    fn match_string(&self, text: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<bool>>> {
+    fn match_string(&self, text: Rc<RefCell<Option<String>>>) -> bool {
         let pattern = (*self.pattern.borrow().as_ref().unwrap()).clone();
         let text = (*text.borrow().as_ref().unwrap()).clone();
-        Rc::new(RefCell::new(Some(go_regexp_match_string(&pattern, &text))))
+        go_regexp_match_string(&pattern, &text)
     }
 
     fn find_string_submatch(&self, text: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<Vec<String>>>> {
@@ -202,7 +202,7 @@ fn main() {
     println!("{}", format!("{}", (*{ let __recv_holder = (*modFlagRegexp.borrow().as_ref().unwrap()).clone(); let __result = (*__recv_holder.borrow_mut().as_mut().unwrap()).find_string_submatch(Rc::new(RefCell::new(Some("-mod vendor".to_string())))); __result }.borrow().as_ref().unwrap())[(1) as usize].clone()));
 
     let mut changed = Rc::new(RefCell::new(Some(GoRegexp { pattern: Rc::new(RefCell::new(Some("go:.*go.mod.*contents have changed".to_string()))) })));
-    println!("{}", format!("{}", (*(*changed.borrow_mut().as_mut().unwrap()).match_string(Rc::new(RefCell::new(Some("go: updates to go.mod needed, but contents have changed".to_string())))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*changed.borrow_mut().as_mut().unwrap()).match_string(Rc::new(RefCell::new(Some("go: updates to go.mod needed, but contents have changed".to_string()))))));
 
     let mut version = Rc::new(RefCell::new(Some(GoRegexp { pattern: Rc::new(RefCell::new(Some("^go version (go\\S+|devel \\S+)".to_string()))) })));
     println!("{}", format!("{}", (*(*version.borrow_mut().as_mut().unwrap()).find_string_submatch(Rc::new(RefCell::new(Some("go version go1.22.0 darwin/arm64".to_string())))).borrow().as_ref().unwrap())[(1) as usize].clone()));

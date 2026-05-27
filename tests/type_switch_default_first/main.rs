@@ -17,7 +17,7 @@ pub fn classify(v: Rc<RefCell<Option<Box<dyn Any>>>>) -> Rc<RefCell<Option<Strin
         { let new_val = "other".to_string(); *result.borrow_mut() = Some(new_val); };;
     }
     }
-    Rc::new(RefCell::new(Some(result.borrow().as_ref().unwrap().clone())))
+    return Rc::new(RefCell::new(Some(result.borrow().as_ref().unwrap().clone())));
 }
 
 fn main() {

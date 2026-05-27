@@ -37,8 +37,8 @@ impl GoReflectType {
         Arc::new(Mutex::new(Some((*self.name.lock().unwrap().as_ref().unwrap()).clone())))
     }
 
-    fn num_field(&self) -> Arc<Mutex<Option<i32>>> {
-        Arc::new(Mutex::new(Some(self.fields.lock().unwrap().as_ref().unwrap().len() as i32)))
+    fn num_field(&self) -> i32 {
+        self.fields.lock().unwrap().as_ref().unwrap().len() as i32
     }
 
     fn field(&self, index: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<GoReflectField>>> {

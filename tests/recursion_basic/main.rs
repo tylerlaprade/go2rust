@@ -74,7 +74,7 @@ pub fn power(base: Rc<RefCell<Option<i32>>>, exp: Rc<RefCell<Option<i32>>>) -> i
     }
     if (*exp.borrow().as_ref().unwrap()) % 2 == 0 {
         let mut half = power(Rc::new(RefCell::new(Some((*base.borrow().as_ref().unwrap()).clone()))), Rc::new(RefCell::new(Some((*exp.borrow().as_ref().unwrap()) / 2))));
-        return { let __bin_half = (*half.borrow().as_ref().unwrap()).clone(); __bin_half * __bin_half };
+        return half * half;
     }
     (*base.borrow().as_ref().unwrap()) * power(Rc::new(RefCell::new(Some((*base.borrow().as_ref().unwrap()).clone()))), Rc::new(RefCell::new(Some((*exp.borrow().as_ref().unwrap()) - 1))))
 }

@@ -171,7 +171,7 @@ pub fn match_chunk(mut chunk: Arc<Mutex<Option<String>>>, mut s: Arc<Mutex<Optio
             let mut r: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(0)));
             if !{ let __v = (*failed.lock().unwrap().as_ref().unwrap()).clone(); __v } {
         let mut n: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(0)));
-        { let (__tmp_0, __tmp_1) = utf8::decode_rune_in_string(s.clone()); let __moved_tmp_0 = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take() }; *r.lock().unwrap() = __moved_tmp_0; let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *n.lock().unwrap() = __moved_tmp_1; };
+        { let (__tmp_0, __tmp_1) = utf8::decode_rune_in_string(s.clone()); *r.lock().unwrap() = Some(__tmp_0); *n.lock().unwrap() = Some(__tmp_1); };
         { let new_val = Arc::new(Mutex::new(Some({ let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); __s[({ let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize..].to_string() }))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *s.lock().unwrap() = __moved_val; };
     }
             { let new_val = Arc::new(Mutex::new(Some({ let __s = &((*chunk.lock().unwrap().as_ref().unwrap()).clone()); __s[(1) as usize..].to_string() }))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *chunk.lock().unwrap() = __moved_val; };
@@ -383,16 +383,16 @@ pub fn clean_glob_path_windows(path: Arc<Mutex<Option<String>>>) -> (i32, Arc<Mu
     let mut vollen = filepathlite::volume_name_len(path.clone());
     if { let __tmp_x = (*path.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = ""; __tmp_x == __tmp_y } {
             (0, Arc::new(Mutex::new(Some(".".to_string()))))
-        } else if { let __tmp_x = ({ let __tmp_x = { let __v = (*vollen.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y } as i32); let __tmp_y = ((*path.lock().unwrap().as_ref().unwrap()).len() as i32); __tmp_x == __tmp_y } && (*os::is_path_separator({ let __s = &((*path.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[({ let __tmp_x = ((*path.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = (1 as i32); __tmp_x - __tmp_y }) as usize] }).lock().unwrap().as_ref().unwrap()) {
+        } else if { let __tmp_x = ({ let __tmp_x = vollen; let __tmp_y = 1; __tmp_x + __tmp_y } as i32); let __tmp_y = ((*path.lock().unwrap().as_ref().unwrap()).len() as i32); __tmp_x == __tmp_y } && os::is_path_separator({ let __s = &((*path.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[({ let __tmp_x = ((*path.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = (1 as i32); __tmp_x - __tmp_y }) as usize] }) {
                         // do nothing to the path
-            ({ let __tmp_x = { let __v = (*vollen.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }, Arc::new(Mutex::new(Some(path.lock().unwrap().as_ref().unwrap().clone()))))
-        } else if { let __tmp_x = ({ let __v = (*vollen.lock().unwrap().as_ref().unwrap()).clone(); __v } as i32); let __tmp_y = ((*path.lock().unwrap().as_ref().unwrap()).len() as i32); __tmp_x == __tmp_y } && { let __tmp_x = ((*path.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = (2 as i32); __tmp_x == __tmp_y } {
-            ({ let __v = (*vollen.lock().unwrap().as_ref().unwrap()).clone(); __v }, Arc::new(Mutex::new(Some(format!("{}{}", { let __v = (*path.lock().unwrap().as_ref().unwrap()).clone(); __v }, ".".to_string())))))
+            ({ let __tmp_x = vollen; let __tmp_y = 1; __tmp_x + __tmp_y }, Arc::new(Mutex::new(Some(path.lock().unwrap().as_ref().unwrap().clone()))))
+        } else if { let __tmp_x = (vollen as i32); let __tmp_y = ((*path.lock().unwrap().as_ref().unwrap()).len() as i32); __tmp_x == __tmp_y } && { let __tmp_x = ((*path.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = (2 as i32); __tmp_x == __tmp_y } {
+            (vollen, Arc::new(Mutex::new(Some(format!("{}{}", { let __v = (*path.lock().unwrap().as_ref().unwrap()).clone(); __v }, ".".to_string())))))
         } else {
-            if { let __tmp_x = ({ let __v = (*vollen.lock().unwrap().as_ref().unwrap()).clone(); __v } as i32); let __tmp_y = ((*path.lock().unwrap().as_ref().unwrap()).len() as i32); __tmp_x >= __tmp_y } {
+            if { let __tmp_x = (vollen as i32); let __tmp_y = ((*path.lock().unwrap().as_ref().unwrap()).len() as i32); __tmp_x >= __tmp_y } {
         { let new_val = { let __tmp_x = ((*path.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = (1 as i32); __tmp_x - __tmp_y }; *vollen.lock().unwrap() = Some(new_val); };
     }
-            ({ let __v = (*vollen.lock().unwrap().as_ref().unwrap()).clone(); __v }, Arc::new(Mutex::new(Some({ let __s = &((*path.lock().unwrap().as_ref().unwrap()).clone()); __s[(0) as usize..({ let __tmp_x = ((*path.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = (1 as i32); __tmp_x - __tmp_y }) as usize].to_string() }))))
+            (vollen, Arc::new(Mutex::new(Some({ let __s = &((*path.lock().unwrap().as_ref().unwrap()).clone()); __s[(0) as usize..({ let __tmp_x = ((*path.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = (1 as i32); __tmp_x - __tmp_y }) as usize].to_string() }))))
         }
 }
 
@@ -414,17 +414,17 @@ pub fn glob_1(dir: Arc<Mutex<Option<String>>>, pattern: Arc<Mutex<Option<String>
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return (m, e)
+        return (m, e);
     }
     }
         // ignore I/O error
-    if !(*(*fi.lock().unwrap().as_ref().unwrap()).is_dir().lock().unwrap().as_ref().unwrap()) {
+    if !(*fi.lock().unwrap().as_ref().unwrap()).is_dir() {
         {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return (m, e)
+        return (m, e);
     }
     }
         // ignore I/O error
@@ -435,7 +435,7 @@ pub fn glob_1(dir: Arc<Mutex<Option<String>>>, pattern: Arc<Mutex<Option<String>
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return (m, e)
+        return (m, e);
     }
     }
         // ignore I/O error
@@ -455,7 +455,7 @@ pub fn glob_1(dir: Arc<Mutex<Option<String>>>, pattern: Arc<Mutex<Option<String>
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return (m, e)
+        return (m, e);
     }
     }
         if matched {
@@ -467,7 +467,7 @@ pub fn glob_1(dir: Arc<Mutex<Option<String>>>, pattern: Arc<Mutex<Option<String>
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return (m, e)
+        return (m, e);
     }
 }
 
@@ -478,7 +478,7 @@ pub fn has_meta(path: Arc<Mutex<Option<String>>>) -> bool {
     if { let __tmp_x = runtime::G_O_O_S; let __tmp_y = "windows"; __tmp_x != __tmp_y } {
         { let new_val = "*?[\\".to_string(); *magicChars.lock().unwrap() = Some(new_val); };
     }
-    (*strings::contains_any(path.clone(), magicChars.clone()).lock().unwrap().as_ref().unwrap())
+    return strings::contains_any(path.clone(), magicChars.clone());
 }
 
 pub(crate) fn __go_init_all() {

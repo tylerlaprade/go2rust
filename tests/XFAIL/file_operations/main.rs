@@ -92,18 +92,16 @@ impl GoTime {
         Arc::new(Mutex::new(Some(self.clone())))
     }
 
-    fn unix(&self) -> Arc<Mutex<Option<i64>>> {
-        Arc::new(Mutex::new(Some(self.seconds)))
+    fn unix(&self) -> i64 {
+        self.seconds
     }
 
-    fn unix_nano(&self) -> Arc<Mutex<Option<i64>>> {
-        Arc::new(Mutex::new(Some(
-            self.seconds * 1_000_000_000 + self.nanos as i64,
-        )))
+    fn unix_nano(&self) -> i64 {
+        self.seconds * 1_000_000_000 + self.nanos as i64
     }
 
-    fn is_zero(&self) -> Arc<Mutex<Option<bool>>> {
-        Arc::new(Mutex::new(Some(self.seconds == 0 && self.nanos == 0)))
+    fn is_zero(&self) -> bool {
+        self.seconds == 0 && self.nanos == 0
     }
 
     fn format(&self, _layout: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<String>>> {
@@ -368,7 +366,7 @@ pub mod io {
         if let Some(dst) = (&_arg0 as &dyn std::any::Any).downcast_ref::<os_File>() {
             dst.__go_write_bytes(&data);
         }
-        (Arc::new(Mutex::new(Some::<i64>(data.len() as i64))), Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>)))
+        (data.len() as i64, Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>)))
     }
 }
 
@@ -470,7 +468,7 @@ fn main() {
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return
+        return;
     }
     }
 
@@ -486,7 +484,7 @@ fn main() {
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return
+        return;
     }
     }
         print!("Wrote: {}\n", line);
@@ -506,7 +504,7 @@ fn main() {
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return
+        return;
     }
     }
 
@@ -523,7 +521,7 @@ fn main() {
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return
+        return;
     }
     }
     let file_defer_captured = file.clone(); __defer_stack.push(Box::new(move || {
@@ -533,7 +531,7 @@ fn main() {
     let mut scanner = bufio::new_scanner(file.clone());
     let mut lineNum = Arc::new(Mutex::new(Some(1)));
 
-    while (*{ let __recv = scanner.clone(); let __recv_ptr: *mut bufio_Scanner = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bufio_Scanner }; let __result = unsafe { &mut *__recv_ptr }.scan(); __result }.lock().unwrap().as_ref().unwrap()) {
+    while { let __recv = scanner.clone(); let __recv_ptr: *mut bufio_Scanner = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bufio_Scanner }; let __result = unsafe { &mut *__recv_ptr }.scan(); __result } {
         let mut line = { let __recv = scanner.clone(); let __recv_ptr: *mut bufio_Scanner = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bufio_Scanner }; let __result = unsafe { &mut *__recv_ptr }.text(); __result };
         print!("Line {}: {}\n", { let __v = (*lineNum.lock().unwrap().as_ref().unwrap()).clone(); __v }, { let __v = (*line.lock().unwrap().as_ref().unwrap()).clone(); __v });
         { let mut guard = lineNum.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
@@ -548,7 +546,7 @@ fn main() {
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return
+        return;
     };
         }
     }
@@ -564,7 +562,7 @@ fn main() {
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return
+        return;
     }
     }
 
@@ -580,7 +578,7 @@ fn main() {
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return
+        return;
     }
     }
         print!("Appended: {}\n", line);
@@ -599,7 +597,7 @@ fn main() {
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return
+        return;
     }
     }
 
@@ -616,18 +614,18 @@ fn main() {
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return
+        return;
     }
     }
 
     print!("File name: {}\n", (*(*fileInfo.lock().unwrap().as_ref().unwrap()).name().lock().unwrap().as_ref().unwrap()));
-    print!("File size: {} bytes\n", (*(*fileInfo.lock().unwrap().as_ref().unwrap()).size().lock().unwrap().as_ref().unwrap()));
+    print!("File size: {} bytes\n", (*fileInfo.lock().unwrap().as_ref().unwrap()).size());
     print!("File mode: {}\n", (*(*fileInfo.lock().unwrap().as_ref().unwrap()).mode().lock().unwrap().as_ref().unwrap()));
 
         // Keep the fixture deterministic; actual modification times vary per run.
     let _ = (*fileInfo.lock().unwrap().as_ref().unwrap()).mod_time();
     println!("{}", format!("{}", "Modified time: <deterministic>".to_string()));
-    print!("Is directory: {}\n", (*(*fileInfo.lock().unwrap().as_ref().unwrap()).is_dir().lock().unwrap().as_ref().unwrap()));
+    print!("Is directory: {}\n", (*fileInfo.lock().unwrap().as_ref().unwrap()).is_dir());
 
         // Copy file
     println!("{}", format!("{}", "\n--- Copying file ---".to_string()));
@@ -642,7 +640,7 @@ fn main() {
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return
+        return;
     }
     }
     let sourceFile_defer_captured = sourceFile.clone(); __defer_stack.push(Box::new(move || {
@@ -657,7 +655,7 @@ fn main() {
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return
+        return;
     }
     }
     let destFile_defer_captured = destFile.clone(); __defer_stack.push(Box::new(move || {
@@ -672,7 +670,7 @@ fn main() {
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return
+        return;
     }
     }
 
@@ -689,7 +687,7 @@ fn main() {
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return
+        return;
     }
     }
     let file_defer_captured = file.clone(); __defer_stack.push(Box::new(move || {
@@ -701,7 +699,7 @@ fn main() {
     let mut lineCount = Arc::new(Mutex::new(Some(0)));
     let mut charCount = Arc::new(Mutex::new(Some(0)));
 
-    while (*{ let __recv = scanner.clone(); let __recv_ptr: *mut bufio_Scanner = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bufio_Scanner }; let __result = unsafe { &mut *__recv_ptr }.scan(); __result }.lock().unwrap().as_ref().unwrap()) {
+    while { let __recv = scanner.clone(); let __recv_ptr: *mut bufio_Scanner = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bufio_Scanner }; let __result = unsafe { &mut *__recv_ptr }.scan(); __result } {
         let mut line = { let __recv = scanner.clone(); let __recv_ptr: *mut bufio_Scanner = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bufio_Scanner }; let __result = unsafe { &mut *__recv_ptr }.text(); __result };
         { let mut guard = lineCount.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
         { let __rhs = (*line.lock().unwrap().as_ref().unwrap()).len() as i32; let mut guard = charCount.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
@@ -733,7 +731,7 @@ fn main() {
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return
+        return;
     }
     }
     let file_defer_captured = file.clone(); __defer_stack.push(Box::new(move || {
@@ -759,7 +757,7 @@ fn main() {
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return
+        return;
     }
     }
 
@@ -775,7 +773,7 @@ fn main() {
         let (_, mut err) = os::stat(f.clone());;
         if (*err.lock().unwrap()).is_none() {
             print!("File '{}' exists\n", f);;
-        } else if (*os::is_not_exist(err.clone()).lock().unwrap().as_ref().unwrap()) {
+        } else if os::is_not_exist(err.clone()) {
         print!("File '{}' does not exist\n", f);
     } else {
         print!("Error checking file '{}': {}\n", f, format!("{}", (*err.lock().unwrap().as_ref().unwrap())));
@@ -803,7 +801,7 @@ fn main() {
     { let __range_holder = filesToRemove.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for f in __range_values.iter() {
         {
         let (_, mut err) = os::stat(f.clone());;
-        if (*os::is_not_exist(err.clone()).lock().unwrap().as_ref().unwrap()) {
+        if os::is_not_exist(err.clone()) {
             print!("File '{}' successfully removed\n", f);;
         } else {
             print!("File '{}' still exists\n", f);;

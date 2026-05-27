@@ -55,18 +55,16 @@ impl GoTime {
         Rc::new(RefCell::new(Some(self.clone())))
     }
 
-    fn unix(&self) -> Rc<RefCell<Option<i64>>> {
-        Rc::new(RefCell::new(Some(self.seconds)))
+    fn unix(&self) -> i64 {
+        self.seconds
     }
 
-    fn unix_nano(&self) -> Rc<RefCell<Option<i64>>> {
-        Rc::new(RefCell::new(Some(
-            self.seconds * 1_000_000_000 + self.nanos as i64,
-        )))
+    fn unix_nano(&self) -> i64 {
+        self.seconds * 1_000_000_000 + self.nanos as i64
     }
 
-    fn is_zero(&self) -> Rc<RefCell<Option<bool>>> {
-        Rc::new(RefCell::new(Some(self.seconds == 0 && self.nanos == 0)))
+    fn is_zero(&self) -> bool {
+        self.seconds == 0 && self.nanos == 0
     }
 
     fn format(&self, _layout: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>> {
@@ -135,8 +133,8 @@ fn main() {
     let mut future = (*base.borrow().as_ref().unwrap()).add(Rc::new(RefCell::new(Some(std::time::Duration::from_secs(3600)))));
     println!("{} {}", format!("{}", "One hour later:".to_string()), format!("{}", (*future.borrow().as_ref().unwrap())));
 
-    println!("{} {}", format!("{}", "Unix timestamp:".to_string()), format!("{}", (*(*base.borrow().as_ref().unwrap()).unix().borrow().as_ref().unwrap())));
+    println!("{} {}", format!("{}", "Unix timestamp:".to_string()), format!("{}", (*base.borrow().as_ref().unwrap()).unix()));
 
     let mut ev: Rc<RefCell<Option<event>>> = Rc::new(RefCell::new(Some(Default::default())));
-    println!("{} {}", format!("{}", "Zero field:".to_string()), format!("{}", (*(*(*ev.borrow().as_ref().unwrap()).when.borrow().as_ref().unwrap()).is_zero().borrow().as_ref().unwrap())));
+    println!("{} {}", format!("{}", "Zero field:".to_string()), format!("{}", (*(*ev.borrow().as_ref().unwrap()).when.borrow().as_ref().unwrap()).is_zero()));
 }

@@ -142,7 +142,7 @@ pub fn count_non_nil(exprs: Arc<Mutex<Option<Vec<ast_Expr>>>>) -> i32 {
         return -1;
     }
     } }
-    { let __v = (*count.lock().unwrap().as_ref().unwrap()).clone(); __v }
+    return { let __v = (*count.lock().unwrap().as_ref().unwrap()).clone(); __v };
 }
 
 fn main() {

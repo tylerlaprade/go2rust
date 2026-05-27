@@ -53,7 +53,7 @@ pub fn import(path: Rc<RefCell<Option<String>>>) -> (Rc<RefCell<Option<Package>>
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return (pkg, err)
+        return (pkg, err);
     }
     }
     {
@@ -63,7 +63,7 @@ pub fn import(path: Rc<RefCell<Option<String>>>) -> (Rc<RefCell<Option<Package>>
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return (pkg, err)
+        return (pkg, err);
     }
 }
 

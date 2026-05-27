@@ -153,7 +153,7 @@ pub fn consumed_all(v: Arc<Mutex<Option<String>>>) -> bool {
     while { let __tmp_x = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v } as i32); let __tmp_y = ((*v.lock().unwrap().as_ref().unwrap()).len() as i32); __tmp_x < __tmp_y } {
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
-    { let __tmp_x = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v } as i32); let __tmp_y = ((*v.lock().unwrap().as_ref().unwrap()).len() as i32); __tmp_x == __tmp_y }
+    return { let __tmp_x = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v } as i32); let __tmp_y = ((*v.lock().unwrap().as_ref().unwrap()).len() as i32); __tmp_x == __tmp_y };
 }
 
 fn main() {

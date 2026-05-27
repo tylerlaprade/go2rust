@@ -6612,6 +6612,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				// Range indexes are represented as usize but Go binary expressions use int.
 			} else if writeIntegerConstantForRangeIndexPeer(out, e.X, e.Y) {
 				// Integer constant cast for comparison with a range index.
+			} else if typeInfo != nil && writeRangeIndexForExpectedType(out, e.X, typeInfo.GetType(e.Y)) {
+				// Range index usize cast to i32 when the peer is a Go int expression
+				// (e.g., a bare-scalar-returning call like `limit(values)`).
 			} else if lit, ok := e.X.(*ast.BasicLit); ok && writeCharLiteralForPeer(out, lit, e.Y) {
 				// Character literal emitted as byte.
 			} else if writeConstExpressionForSyntaxPeer(out, e.X, e.Y) {
@@ -6654,6 +6657,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				// Range indexes are represented as usize but Go binary expressions use int.
 			} else if writeIntegerConstantForRangeIndexPeer(out, e.Y, e.X) {
 				// Integer constant cast for comparison with a range index.
+			} else if typeInfo != nil && writeRangeIndexForExpectedType(out, e.Y, typeInfo.GetType(e.X)) {
+				// Range index usize cast to i32 when the peer is a Go int expression
+				// (e.g., a bare-scalar-returning call like `limit(values)`).
 			} else if lit, ok := e.Y.(*ast.BasicLit); ok && writeCharLiteralForPeer(out, lit, e.X) {
 				// Character literal emitted as byte.
 			} else if writeConstExpressionForSyntaxPeer(out, e.Y, e.X) {

@@ -23,7 +23,7 @@ pub fn total(ns: Rc<RefCell<Option<Numbers>>>) -> i32 {
     { let __range_holder = { let __named_slice = (*ns.borrow().as_ref().unwrap()).0.clone(); __named_slice }; let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for n in __range_values.iter().copied() {
         { let __rhs = n; let mut guard = sum.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     } }
-    (*sum.borrow().as_ref().unwrap())
+    return (*sum.borrow().as_ref().unwrap());
 }
 
 pub fn grow(mut ns: Rc<RefCell<Option<Numbers>>>) -> Rc<RefCell<Option<Numbers>>> {

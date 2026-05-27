@@ -725,6 +725,21 @@ func paramsOnly(a, b int) (int, int) {
 	}
 }
 
+func TestTailReturnFallsBackForShortDeclWrappedLocals(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func explicitFromLocals(a, b int) (int, int) {
+	x := a + b
+	y := a * b
+	return x, y
+}
+`)
+
+	if !strings.Contains(rust, "return ((*x.borrow().as_ref().unwrap()), (*y.borrow().as_ref().unwrap()));") {
+		t.Fatalf("explicit return reading short-decl wrapped locals must stay an explicit return statement:\n%s", rust)
+	}
+}
+
 func TestDeferReturnEmitsTrailingSemicolonForBareScalarReturn(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
@@ -794,6 +809,30 @@ func findInSlice(slice []int, target int) (int, bool) {
 	}
 	if strings.Contains(rust, "return (i, true);") {
 		t.Fatalf("range index emit should not leak usize into a bare i32 return slot:\n%s", rust)
+	}
+}
+
+func TestRangeIndexComparedWithBareScalarCallCastsToI32(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func limit(values []int) int {
+	return len(values)
+}
+
+func countUntilLimit(values []int) int {
+	count := 0
+	for i := range values {
+		if i >= limit(values) {
+			break
+		}
+		count++
+	}
+	return count
+}
+`)
+
+	if !strings.Contains(rust, "i as i32 >= limit(values.clone())") {
+		t.Fatalf("range index usize must cast to i32 when compared against a bare-scalar int call:\n%s", rust)
 	}
 }
 

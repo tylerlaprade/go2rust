@@ -202,18 +202,16 @@ impl GoTime {
         Arc::new(Mutex::new(Some(self.clone())))
     }
 
-    fn unix(&self) -> Arc<Mutex<Option<i64>>> {
-        Arc::new(Mutex::new(Some(self.seconds)))
+    fn unix(&self) -> i64 {
+        self.seconds
     }
 
-    fn unix_nano(&self) -> Arc<Mutex<Option<i64>>> {
-        Arc::new(Mutex::new(Some(
-            self.seconds * 1_000_000_000 + self.nanos as i64,
-        )))
+    fn unix_nano(&self) -> i64 {
+        self.seconds * 1_000_000_000 + self.nanos as i64
     }
 
-    fn is_zero(&self) -> Arc<Mutex<Option<bool>>> {
-        Arc::new(Mutex::new(Some(self.seconds == 0 && self.nanos == 0)))
+    fn is_zero(&self) -> bool {
+        self.seconds == 0 && self.nanos == 0
     }
 
     fn format(&self, _layout: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<String>>> {

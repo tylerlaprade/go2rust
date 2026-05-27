@@ -18,7 +18,7 @@ pub fn build_cleanup(empty: Rc<RefCell<Option<bool>>>) -> (Rc<RefCell<Option<Box
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return (cleanup, err)
+        return (cleanup, err);
     }
     }
     let cleanup_defer_captured = cleanup.clone(); let err_defer_captured = err.clone(); __defer_stack.push(Box::new(move || {
@@ -39,7 +39,7 @@ pub fn build_cleanup(empty: Rc<RefCell<Option<bool>>>) -> (Rc<RefCell<Option<Box
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return (cleanup, err)
+        return (cleanup, err);
     }
 }
 

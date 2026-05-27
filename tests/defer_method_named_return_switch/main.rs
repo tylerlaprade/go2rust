@@ -39,7 +39,7 @@ impl reader {
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return (*res.borrow().as_ref().unwrap())
+        return (*res.borrow().as_ref().unwrap());
     }
         } else {
             {
@@ -48,7 +48,7 @@ impl reader {
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return (*res.borrow().as_ref().unwrap())
+        return (*res.borrow().as_ref().unwrap());
     }
         }
     }

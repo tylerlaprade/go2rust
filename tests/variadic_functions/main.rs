@@ -6,7 +6,7 @@ pub fn sum(numbers: Rc<RefCell<Option<Vec<i32>>>>) -> i32 {
     { let __range_holder = numbers.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for num in __range_values.iter().copied() {
         { let __rhs = num; let mut guard = total.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     } }
-    (*total.borrow().as_ref().unwrap())
+    return (*total.borrow().as_ref().unwrap());
 }
 
 pub fn average(numbers: Rc<RefCell<Option<Vec<f64>>>>) -> f64 {
@@ -17,13 +17,13 @@ pub fn average(numbers: Rc<RefCell<Option<Vec<f64>>>>) -> f64 {
     { let __range_holder = numbers.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for num in __range_values.iter().copied() {
         { let __rhs = num; let mut guard = total.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     } }
-    (*total.borrow().as_ref().unwrap()) / (*Rc::new(RefCell::new(Some((*numbers.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as f64))).borrow().as_ref().unwrap())
+    return (*total.borrow().as_ref().unwrap()) / (*Rc::new(RefCell::new(Some((*numbers.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as f64))).borrow().as_ref().unwrap());
 }
 
 pub fn print_strings(prefix: Rc<RefCell<Option<String>>>, strings: Rc<RefCell<Option<Vec<String>>>>) {
     print!("{}: ", { let __v = (*prefix.borrow().as_ref().unwrap()).clone(); __v });
     { let __range_holder = strings.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, str) in __range_values.iter().enumerate() {
-        if i > 0 {
+        if i as i32 > 0 {
         print!("{}", format!("{}", ", ".to_string()));
     }
         print!("{}", format!("{}", str));
@@ -38,7 +38,7 @@ pub fn min(first: Rc<RefCell<Option<i32>>>, rest: Rc<RefCell<Option<Vec<i32>>>>)
         { let new_val = num; *minimum.borrow_mut() = Some(new_val); };
     }
     } }
-    (*minimum.borrow().as_ref().unwrap())
+    return (*minimum.borrow().as_ref().unwrap());
 }
 
 pub fn concat(separator: Rc<RefCell<Option<String>>>, strings: Rc<RefCell<Option<Vec<String>>>>) -> Rc<RefCell<Option<String>>> {
@@ -49,7 +49,7 @@ pub fn concat(separator: Rc<RefCell<Option<String>>>, strings: Rc<RefCell<Option
     for str in &{ let __seq = { let __seq_holder = strings.clone(); let __seq_guard = __seq_holder.borrow(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(1) as usize..].to_vec() } {
         { (*result.borrow_mut().as_mut().unwrap()).push_str(&format!("{}{}", (*separator.borrow().as_ref().unwrap()), str)); };
     }
-    Rc::new(RefCell::new(Some(result.borrow().as_ref().unwrap().clone())))
+    return Rc::new(RefCell::new(Some(result.borrow().as_ref().unwrap().clone())));
 }
 
 fn main() {

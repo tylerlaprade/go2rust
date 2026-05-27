@@ -1013,7 +1013,7 @@ impl<T> GoAtomicPointer<T> {
         self.value.lock().unwrap().replace(value).unwrap_or_else(|| Arc::new(Mutex::new(None)))
     }
 
-    fn compare_and_swap(&self, old: Arc<Mutex<Option<T>>>, new: Arc<Mutex<Option<T>>>) -> Arc<Mutex<Option<bool>>> {
+    fn compare_and_swap(&self, old: Arc<Mutex<Option<T>>>, new: Arc<Mutex<Option<T>>>) -> bool {
         let mut current = self.value.lock().unwrap();
         let matched = match current.as_ref() {
             Some(value) if Arc::ptr_eq(value, &old) => true,
@@ -1023,7 +1023,7 @@ impl<T> GoAtomicPointer<T> {
         if matched {
             *current = Some(new);
         }
-        Arc::new(Mutex::new(Some(matched)))
+        matched
     }
 }
 
@@ -1074,7 +1074,7 @@ impl<T> GoAtomicPointer<T> {
         self.value.borrow_mut().replace(value).unwrap_or_else(|| Rc::new(RefCell::new(None)))
     }
 
-    fn compare_and_swap(&self, old: Rc<RefCell<Option<T>>>, new: Rc<RefCell<Option<T>>>) -> Rc<RefCell<Option<bool>>> {
+    fn compare_and_swap(&self, old: Rc<RefCell<Option<T>>>, new: Rc<RefCell<Option<T>>>) -> bool {
         let mut current = self.value.borrow_mut();
         let matched = match current.as_ref() {
             Some(value) if Rc::ptr_eq(value, &old) => true,
@@ -1084,7 +1084,7 @@ impl<T> GoAtomicPointer<T> {
         if matched {
             *current = Some(new);
         }
-        Rc::new(RefCell::new(Some(matched)))
+        matched
     }
 }
 
@@ -1416,10 +1416,10 @@ impl GoRegexp {
         Arc::new(Mutex::new(Some(go_regexp_find_all_string(&pattern, &text, limit))))
     }
 
-    fn match_string(&self, text: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<bool>>> {
+    fn match_string(&self, text: Arc<Mutex<Option<String>>>) -> bool {
         let pattern = (*self.pattern.lock().unwrap().as_ref().unwrap()).clone();
         let text = (*text.lock().unwrap().as_ref().unwrap()).clone();
-        Arc::new(Mutex::new(Some(go_regexp_match_string(&pattern, &text))))
+        go_regexp_match_string(&pattern, &text)
     }
 
     fn find_string_submatch(&self, text: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<Vec<String>>>> {
@@ -1583,10 +1583,10 @@ impl GoRegexp {
         Rc::new(RefCell::new(Some(go_regexp_find_all_string(&pattern, &text, limit))))
     }
 
-    fn match_string(&self, text: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<bool>>> {
+    fn match_string(&self, text: Rc<RefCell<Option<String>>>) -> bool {
         let pattern = (*self.pattern.borrow().as_ref().unwrap()).clone();
         let text = (*text.borrow().as_ref().unwrap()).clone();
-        Rc::new(RefCell::new(Some(go_regexp_match_string(&pattern, &text))))
+        go_regexp_match_string(&pattern, &text)
     }
 
     fn find_string_submatch(&self, text: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<Vec<String>>>> {
@@ -2015,18 +2015,16 @@ impl GoTime {
         Arc::new(Mutex::new(Some(self.clone())))
     }
 
-    fn unix(&self) -> Arc<Mutex<Option<i64>>> {
-        Arc::new(Mutex::new(Some(self.seconds)))
+    fn unix(&self) -> i64 {
+        self.seconds
     }
 
-    fn unix_nano(&self) -> Arc<Mutex<Option<i64>>> {
-        Arc::new(Mutex::new(Some(
-            self.seconds * 1_000_000_000 + self.nanos as i64,
-        )))
+    fn unix_nano(&self) -> i64 {
+        self.seconds * 1_000_000_000 + self.nanos as i64
     }
 
-    fn is_zero(&self) -> Arc<Mutex<Option<bool>>> {
-        Arc::new(Mutex::new(Some(self.seconds == 0 && self.nanos == 0)))
+    fn is_zero(&self) -> bool {
+        self.seconds == 0 && self.nanos == 0
     }
 
     fn format(&self, _layout: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<String>>> {
@@ -2050,18 +2048,16 @@ impl GoTime {
         Rc::new(RefCell::new(Some(self.clone())))
     }
 
-    fn unix(&self) -> Rc<RefCell<Option<i64>>> {
-        Rc::new(RefCell::new(Some(self.seconds)))
+    fn unix(&self) -> i64 {
+        self.seconds
     }
 
-    fn unix_nano(&self) -> Rc<RefCell<Option<i64>>> {
-        Rc::new(RefCell::new(Some(
-            self.seconds * 1_000_000_000 + self.nanos as i64,
-        )))
+    fn unix_nano(&self) -> i64 {
+        self.seconds * 1_000_000_000 + self.nanos as i64
     }
 
-    fn is_zero(&self) -> Rc<RefCell<Option<bool>>> {
-        Rc::new(RefCell::new(Some(self.seconds == 0 && self.nanos == 0)))
+    fn is_zero(&self) -> bool {
+        self.seconds == 0 && self.nanos == 0
     }
 
     fn format(&self, _layout: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>> {
@@ -2134,9 +2130,9 @@ fn go_new_timer(duration: std::time::Duration) -> GoTimer {
 }
 
 impl GoTimer {
-    fn stop(&self) -> Arc<Mutex<Option<bool>>> {
+    fn stop(&self) -> bool {
         let was_stopped = self.stopped.swap(true, std::sync::atomic::Ordering::SeqCst);
-        Arc::new(Mutex::new(Some(!was_stopped)))
+        !was_stopped
     }
 }
 `)
@@ -2172,9 +2168,9 @@ fn go_new_timer(duration: std::time::Duration) -> GoTimer {
 }
 
 impl GoTimer {
-    fn stop(&self) -> Rc<RefCell<Option<bool>>> {
+    fn stop(&self) -> bool {
         let was_stopped = self.stopped.swap(true, std::sync::atomic::Ordering::SeqCst);
-        Rc::new(RefCell::new(Some(!was_stopped)))
+        !was_stopped
     }
 }
 `)
@@ -2632,8 +2628,8 @@ impl GoReflectType {
         Arc::new(Mutex::new(Some((*self.name.lock().unwrap().as_ref().unwrap()).clone())))
     }
 
-    fn num_field(&self) -> Arc<Mutex<Option<i32>>> {
-        Arc::new(Mutex::new(Some(self.fields.lock().unwrap().as_ref().unwrap().len() as i32)))
+    fn num_field(&self) -> i32 {
+        self.fields.lock().unwrap().as_ref().unwrap().len() as i32
     }
 
     fn field(&self, index: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<GoReflectField>>> {
@@ -2707,8 +2703,8 @@ impl GoReflectType {
         Rc::new(RefCell::new(Some((*self.name.borrow().as_ref().unwrap()).clone())))
     }
 
-    fn num_field(&self) -> Rc<RefCell<Option<i32>>> {
-        Rc::new(RefCell::new(Some(self.fields.borrow().as_ref().unwrap().len() as i32)))
+    fn num_field(&self) -> i32 {
+        self.fields.borrow().as_ref().unwrap().len() as i32
     }
 
     fn field(&self, index: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<GoReflectField>>> {
