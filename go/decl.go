@@ -1825,9 +1825,11 @@ func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.Fi
 	}
 
 	// Declare named return values as mutable variables
+	hasNamedReturns := false
 	if fn.Type.Results != nil {
 		for _, result := range fn.Type.Results.List {
 			if len(result.Names) > 0 {
+				hasNamedReturns = true
 				for _, name := range result.Names {
 					if name.Name == "_" {
 						out.WriteString("    let ")
@@ -1901,7 +1903,11 @@ func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.Fi
 				}
 			}
 		}
-		if len(fn.Type.Results.List) > 0 {
+		// Separator after the named-return declarations, but only when we
+		// actually emitted some. Unnamed returns leave the block empty, so
+		// emitting a newline here would leave a blank line at the top of
+		// every function body for no reason.
+		if hasNamedReturns {
 			out.WriteString("\n")
 		}
 	}
@@ -1912,14 +1918,18 @@ func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.Fi
 	if functionHasGoto(fn) {
 		prevStmt = TranspileGotoStatementList(out, fn.Body.List, fn.Type, fileSet, comments, &lastPos, "    ")
 	} else {
-		for _, stmt := range fn.Body.List {
+		for i, stmt := range fn.Body.List {
 			// Add blank line if there was one in the source
 			if prevStmt != nil && hasBlankLineBetween(fileSet, prevStmt.End(), stmt.Pos()) {
 				out.WriteString("\n")
 			}
 
 			out.WriteString("    ")
-			TranspileStatement(out, stmt, fn.Type, fileSet, comments, &lastPos, "    ")
+			if i == len(fn.Body.List)-1 {
+				TranspileTailStatement(out, stmt, fn.Type, fileSet, comments, &lastPos, "    ")
+			} else {
+				TranspileStatement(out, stmt, fn.Type, fileSet, comments, &lastPos, "    ")
+			}
 			out.WriteString("\n")
 
 			prevStmt = stmt
@@ -3797,9 +3807,13 @@ func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, a
 
 	var prevStmt ast.Stmt
 	var lastPos token.Pos = fn.Body.Lbrace
-	for _, stmt := range fn.Body.List {
+	for i, stmt := range fn.Body.List {
 		out.WriteString("        ")
-		TranspileStatement(out, stmt, fn.Type, fileSet, comments, &lastPos, "        ")
+		if i == len(fn.Body.List)-1 {
+			TranspileTailStatement(out, stmt, fn.Type, fileSet, comments, &lastPos, "        ")
+		} else {
+			TranspileStatement(out, stmt, fn.Type, fileSet, comments, &lastPos, "        ")
+		}
 		out.WriteString("\n")
 		prevStmt = stmt
 	}

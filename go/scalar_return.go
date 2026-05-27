@@ -404,11 +404,11 @@ func writeBareScalarBasicLit(out *strings.Builder, lit *ast.BasicLit, expectedTy
 			}
 			return
 		}
+		// Untyped Go int literals translate to untyped Rust int literals.
+		// Rust's type inference resolves the literal to the surrounding
+		// scalar return type without an explicit `as <type>` — the cast is
+		// redundant noise that the Twitter critique correctly flagged.
 		out.WriteString(lit.Value)
-		if rustType != "" {
-			out.WriteString(" as ")
-			out.WriteString(rustType)
-		}
 		return
 	case token.FLOAT:
 		out.WriteString(lit.Value)

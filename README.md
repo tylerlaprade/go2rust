@@ -90,20 +90,20 @@ func main() {
 **Output (Rust) - Single-threaded code:**
 
 ```rust
-use std::rc::Rc;
-use std::cell::RefCell;
+use std::cell::{RefCell};
+use std::rc::{Rc};
 
-fn get_greeting() -> Rc<RefCell<Option<String>>> {
-    return Rc::new(RefCell::new(Some("Hello, World!".to_string())));
+pub fn get_greeting() -> Rc<RefCell<Option<String>>> {
+    Rc::new(RefCell::new(Some("Hello, World!".to_string())))
 }
 
-fn get_year() -> i32 {
-    return 2024 as i32;
+pub fn get_year() -> i32 {
+    2024
 }
 
 fn main() {
-    println!("{}", (*get_greeting().borrow().as_ref().unwrap()));
-    println!("{:?}", get_year());
+    println!("{}", format!("{}", (*get_greeting().borrow().as_ref().unwrap())));
+    eprintln!("{}", format!("{}", get_year()));
 }
 ```
 
@@ -353,6 +353,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Multiple return values | ✅ |
 | └ Named returns | ✅ |
 | └ Predeclared Copy scalar return slots lower to bare Rust scalar types | ✅ |
+| └ Tail-position returns emit Rust tail expressions without `return` or `;` | ✅ |
 | └ Slice and map literal returns | ✅ |
 | **`select` - Select statements** | ✅ |
 | └ Returning from select communication and default cases | ✅ |

@@ -567,14 +567,56 @@ func main() {
 			t.Fatalf("copy scalar return boundary should not remain wrapped (%q):\n%s", unwanted, rust)
 		}
 	}
-	if !strings.Contains(rust, "return 2024 as i32;") {
-		t.Fatalf("literal scalar return should emit a bare typed value:\n%s", rust)
+	if !strings.Contains(rust, "\n    2024\n}") {
+		t.Fatalf("tail literal scalar return should emit a bare expression:\n%s", rust)
+	}
+	if strings.Contains(rust, "return 2024") {
+		t.Fatalf("tail literal scalar return should not keep explicit return syntax:\n%s", rust)
 	}
 	if strings.Contains(rust, "return year().borrow()") || strings.Contains(rust, "return (*year()") {
 		t.Fatalf("bare scalar-returning calls should not be unwrapped at return boundaries:\n%s", rust)
 	}
 	if strings.Contains(rust, "format!(\"{}\", (*year().borrow().as_ref().unwrap()))") {
 		t.Fatalf("bare scalar-returning calls should not be unwrapped for fmt printing:\n%s", rust)
+	}
+}
+
+func TestTailReturnExpressionsOmitReturnKeyword(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func early(ok bool) int {
+	if ok {
+		return 1
+	}
+	return 2
+}
+
+func pair() (int, bool) {
+	return 3, true
+}
+
+func closure() int {
+	f := func() int {
+		return 4
+	}
+	return f()
+}
+`)
+
+	if !strings.Contains(rust, "return 1;") {
+		t.Fatalf("non-tail return should keep explicit return syntax:\n%s", rust)
+	}
+	if strings.Contains(rust, "return 2;") || strings.Contains(rust, "return (3, true);") || strings.Contains(rust, "return 4;") {
+		t.Fatalf("tail returns should omit explicit return syntax:\n%s", rust)
+	}
+	for _, want := range []string{
+		"\n    2\n}",
+		"\n    (3, true)\n}",
+		"move || -> i32 {\n        4\n    }",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("tail return should emit %q:\n%s", want, rust)
+		}
 	}
 }
 

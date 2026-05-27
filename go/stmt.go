@@ -11,6 +11,15 @@ import (
 	"strings"
 )
 
+var currentReturnStatementIsTail bool
+
+func TranspileTailStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncType, fileSet *token.FileSet, comments []*ast.CommentGroup, lastPos *token.Pos, indent string) {
+	prev := currentReturnStatementIsTail
+	currentReturnStatementIsTail = true
+	defer func() { currentReturnStatementIsTail = prev }()
+	TranspileStatement(out, stmt, fnType, fileSet, comments, lastPos, indent)
+}
+
 func sameExpressionSyntax(a ast.Expr, b ast.Expr) bool {
 	var left bytes.Buffer
 	var right bytes.Buffer
@@ -5209,6 +5218,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			break
 		}
 
+		tailReturn := currentReturnStatementIsTail && !currentFunctionHasDefer
+
 		// Execute defers before returning if needed
 		if currentFunctionHasDefer {
 			out.WriteString("{\n")
@@ -5217,7 +5228,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			out.WriteString("            f();\n")
 			out.WriteString("        }\n")
 			out.WriteString("        return")
-		} else {
+		} else if !tailReturn {
 			out.WriteString("return")
 		}
 
@@ -5232,11 +5243,15 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			}
 
 			if hasNamedReturns {
-				out.WriteString(" ")
+				if !tailReturn {
+					out.WriteString(" ")
+				}
 				writeNamedReturnValues(out, fnType)
 			}
 		} else if len(s.Results) > 0 {
-			out.WriteString(" ")
+			if !tailReturn {
+				out.WriteString(" ")
+			}
 			// Check if we need a tuple for multiple return values
 			needsTuple := len(s.Results) > 1
 			if needsTuple {
@@ -5667,12 +5682,14 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			if needsTuple {
 				out.WriteString(")")
 			}
+		} else if tailReturn {
+			out.WriteString("()")
 		}
 
 		// Close the defer execution block if needed
 		if currentFunctionHasDefer {
 			out.WriteString("\n    }")
-		} else {
+		} else if !tailReturn {
 			out.WriteString(";")
 		}
 

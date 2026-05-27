@@ -57,6 +57,7 @@ Method receivers (value and pointer), multiple returns (including named returns,
 - ✅ Method nil pointer arguments - `nil` passed to `*T` method parameters lowers to a typed empty wrapper instead of nesting `None` inside `Some` (method_nil_pointer_argument added, 2026-05-09)
 - ✅ Tuple return reassignment - existing fields, locals, and parameters receive inner values from returned wrapped tuple elements (tuple_return_reassignment promoted, 2026-05-07)
 - ✅ Bare Copy scalar return boundaries - functions, methods, named returns, and tuple result slots declared as predeclared Copy scalars emit bare Rust return types such as `i32` and `bool`, while existing wrapped locals still store those results through their wrapper slots (scalar_return_unwrapped added, 2026-05-27)
+- ✅ Tail-position return expression lowering - final `return expr` statements in functions, methods, and function literals emit Rust tail expressions without the `return` keyword or trailing semicolon (2026-05-27)
 - ✅ Slice literal returns - return statements pass self-wrapping slice literals through without nesting wrappers (return_slice_literal promoted, 2026-05-07)
 
 ### ✅ Phase 4.5: Advanced Types and Structs

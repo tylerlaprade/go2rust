@@ -3,8 +3,7 @@
 /// wrapped Rc<RefCell<Option<i32>>>. There is no addressable callee return
 /// slot to preserve, so the wrapping had no semantic effect.
 pub fn get_year() -> i32 {
-
-    return 2024 as i32;
+    2024
 }
 
 fn main() {
