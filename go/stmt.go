@@ -1547,6 +1547,10 @@ func writeBareValueForWrappedSlot(out *strings.Builder, expr ast.Expr) bool {
 	default:
 		return false
 	}
+	if !selectorRValueReturnsWrappedHandle(sel) {
+		TranspileExpression(out, sel)
+		return true
+	}
 	out.WriteString("{ let __v = ")
 	TranspileExpression(out, sel)
 	out.WriteString("; let __owned = (*__v")

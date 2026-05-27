@@ -483,6 +483,39 @@ func assignFromIndex(nodes []Node) Node {
 	}
 }
 
+func TestPointerAssignmentFromRangeStructScalarFieldKeepsBareValue(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+type option struct {
+	Feature *bool
+	Enable  bool
+}
+
+func apply(options []option) {
+	for _, o := range options {
+		*o.Feature = o.Enable
+	}
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile() error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := Transpile(file, fset, typeInfo)
+
+	if strings.Contains(rust, "let __owned = (*__v") {
+		t.Fatalf("pointer assignment from a range struct scalar field should use the bare field value:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let new_val = (*o.enable.borrow().as_ref().unwrap())") {
+		t.Fatalf("pointer assignment should read the range struct field directly:\n%s", rust)
+	}
+}
+
 func TestLocalInterfaceAssignmentFromOwnMethodCallClonesReceiver(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
