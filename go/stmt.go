@@ -1114,10 +1114,65 @@ func typeSwitchCaseRustType(typeInfo *TypeInfo, typeExpr ast.Expr) (rustType str
 	return goTypesTypeToRust(typ), false
 }
 
-func writeTypeSwitchCaseCondition(out *strings.Builder, typeInfo *TypeInfo, typeExpr ast.Expr) {
+func typeSwitchCaseLocalInterface(typeInfo *TypeInfo, typeExpr ast.Expr) (*types.Interface, bool) {
+	if typeInfo == nil || typeExpr == nil {
+		return nil, false
+	}
+	typ := typeInfo.GetType(typeExpr)
+	if ident, ok := typeExpr.(*ast.Ident); ok {
+		if obj, ok := typeInfo.GetObject(ident).(*types.TypeName); ok {
+			typ = obj.Type()
+		}
+	} else if sel, ok := typeExpr.(*ast.SelectorExpr); ok {
+		if obj, ok := typeInfo.GetObject(sel.Sel).(*types.TypeName); ok {
+			typ = obj.Type()
+		}
+	}
+	if typ == nil {
+		return nil, false
+	}
+	if _, ok := localNamedInterfaceTypeNameFromTypes(typ); !ok {
+		return nil, false
+	}
+	named, ok := types.Unalias(typ).(*types.Named)
+	if !ok {
+		return nil, false
+	}
+	iface, ok := named.Underlying().(*types.Interface)
+	if !ok || iface.NumMethods() == 0 {
+		return nil, false
+	}
+	return iface, true
+}
+
+func writeTypeSwitchLocalInterfaceCaseCondition(out *strings.Builder, typeInfo *TypeInfo, typeExpr ast.Expr, subjectType types.Type) bool {
+	iface, ok := typeSwitchCaseLocalInterface(typeInfo, typeExpr)
+	if !ok {
+		return false
+	}
+	candidates := localInterfaceAssertionCandidates(iface, subjectType)
+	if len(candidates) == 0 {
+		out.WriteString("false")
+		return true
+	}
+	for i, candidate := range candidates {
+		if i > 0 {
+			out.WriteString(" || ")
+		}
+		out.WriteString("_ts_val.and_then(|__v| __v.downcast_ref::<")
+		out.WriteString(candidate.rustType)
+		out.WriteString(">()).is_some()")
+	}
+	return true
+}
+
+func writeTypeSwitchCaseCondition(out *strings.Builder, typeInfo *TypeInfo, typeExpr ast.Expr, subjectType types.Type) {
 	rustType, isNil := typeSwitchCaseRustType(typeInfo, typeExpr)
 	if isNil {
 		out.WriteString("_ts_is_nil")
+		return
+	}
+	if writeTypeSwitchLocalInterfaceCaseCondition(out, typeInfo, typeExpr, subjectType) {
 		return
 	}
 	if rustType == "" {
@@ -8812,6 +8867,10 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		}
 
 		typeInfo := GetTypeInfo()
+		var typeSwitchSubjectType types.Type
+		if typeInfo != nil {
+			typeSwitchSubjectType = typeInfo.GetType(expr)
+		}
 		subjectUsesAny := isEmptyInterfaceValueExpr(expr)
 		subjectIsLocalInterfaceRef := isLocalInterfaceRefIdent(expr) || isBareLocalInterfaceValue(expr)
 		subjectIsTranspiledInterface := !subjectIsLocalInterfaceRef && isTranspiledInterfaceExpr(expr)
@@ -8938,7 +8997,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				if len(caseClause.List) == 1 {
 					rustType, isNil := typeSwitchCaseRustType(typeInfo, caseClause.List[0])
 					out.WriteString("if ")
-					writeTypeSwitchCaseCondition(out, typeInfo, caseClause.List[0])
+					writeTypeSwitchCaseCondition(out, typeInfo, caseClause.List[0], typeSwitchSubjectType)
 					out.WriteString(" {\n")
 
 					// Create typed variable if needed
@@ -8966,7 +9025,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						if j > 0 {
 							out.WriteString(" || ")
 						}
-						writeTypeSwitchCaseCondition(out, typeInfo, typeExpr)
+						writeTypeSwitchCaseCondition(out, typeInfo, typeExpr, typeSwitchSubjectType)
 					}
 					out.WriteString(" {\n")
 					if varName != "" {

@@ -90,6 +90,68 @@ func (x *NotExpr) wrap() string {
 	}
 }
 
+func TestTypeSwitchLocalInterfaceCaseUsesConcreteCandidates(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+type Node interface {
+	Pos() int
+}
+
+type Decl interface {
+	Node
+	declNode()
+}
+
+type Stmt interface {
+	Node
+	stmtNode()
+}
+
+type GenDecl struct{}
+
+func (*GenDecl) Pos() int { return 0 }
+func (*GenDecl) declNode() {}
+
+type AssignStmt struct{}
+
+func (*AssignStmt) Pos() int { return 0 }
+func (*AssignStmt) stmtNode() {}
+
+func important(q Node) bool {
+	switch q.(type) {
+	case Decl, Stmt:
+		return true
+	}
+	return false
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile() error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := Transpile(file, fset, typeInfo)
+	fnIndex := strings.Index(rust, "pub fn important")
+	if fnIndex < 0 {
+		t.Fatalf("generated Rust did not contain important function:\n%s", rust)
+	}
+	fnRust := rust[fnIndex:]
+	if strings.Contains(fnRust, "downcast_ref::<Decl>()") ||
+		strings.Contains(fnRust, "downcast_ref::<Stmt>()") ||
+		strings.Contains(fnRust, "downcast_ref::<Box<dyn Decl") ||
+		strings.Contains(fnRust, "downcast_ref::<Box<dyn Stmt") {
+		t.Fatalf("type switch case interfaces should not be emitted as concrete Rust downcasts:\n%s", rust)
+	}
+	if !strings.Contains(fnRust, "downcast_ref::<GenDecl>()") ||
+		!strings.Contains(fnRust, "downcast_ref::<AssignStmt>()") {
+		t.Fatalf("type switch case interfaces should check concrete implementors from go/types:\n%s", rust)
+	}
+}
+
 func TestMultiShortDeclLenCapWrapsGoInt(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
