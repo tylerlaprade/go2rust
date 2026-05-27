@@ -2282,6 +2282,18 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 				out.WriteString(".as_ref().unwrap()))\n")
 				out.WriteString("    }\n")
 				out.WriteString("}\n")
+			} else if array, ok := t.(*ast.ArrayType); ok && arrayTypeDefinitionElemDisplayable(array) {
+				TrackImport("Display")
+				TrackImport("Formatter")
+				NeedFormatSlice()
+
+				out.WriteString("\nimpl Display for ")
+				out.WriteString(rustTypeName)
+				out.WriteString(" {\n")
+				out.WriteString("    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {\n")
+				out.WriteString("        write!(f, \"{}\", format_slice(&self.0))\n")
+				out.WriteString("    }\n")
+				out.WriteString("}\n")
 			} else if ident, ok := t.(*ast.Ident); ok {
 				// Add Display impl when the underlying Rust type is displayable.
 				if isDisplayableDefinedUnderlying(ident.Name) {
@@ -2318,6 +2330,13 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 			}
 		}
 	}
+}
+
+func arrayTypeDefinitionElemDisplayable(array *ast.ArrayType) bool {
+	if array == nil {
+		return false
+	}
+	return isDisplayableDefinedUnderlying(typeDefinitionUnderlyingName(array.Elt))
 }
 
 func registerStructDef(name string, structType *ast.StructType) {

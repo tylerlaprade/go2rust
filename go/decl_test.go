@@ -94,6 +94,9 @@ type RegArgs struct {
 		!strings.Contains(rust, "return_is_ptr: Arc::new(Mutex::new(Some(Bitmap(") {
 		t.Fatalf("named array field default should construct the named type:\n%s", rust)
 	}
+	if !strings.Contains(rust, "impl Display for Bitmap") || !strings.Contains(rust, "format_slice(&self.0)") {
+		t.Fatalf("named array type should implement Display through the slice formatter:\n%s", rust)
+	}
 }
 
 func TestEmbeddedInterfaceTraitObjectImplementsSupertrait(t *testing.T) {
