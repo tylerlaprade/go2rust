@@ -832,6 +832,9 @@ func writePackageGlobalInitValue(out *strings.Builder, expr ast.Expr, targetType
 		TranspileFuncLitBox(out, funcLit)
 		return
 	}
+	if writeConstExpressionForExpectedGoType(out, expr, targetType) {
+		return
+	}
 	if ident, ok := expr.(*ast.Ident); ok && isWrappedValueIdent(ident) {
 		writeIdentValueClone(out, ident)
 		return
