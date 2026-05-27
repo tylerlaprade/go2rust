@@ -2344,9 +2344,53 @@ func writeLocalInterfaceHandleAssignment(out *strings.Builder, lhs ast.Expr, rhs
 		WriteWrapperPrefix(out)
 		writeLocalInterfaceBareClone(out, rhs)
 		WriteWrapperSuffix(out)
+	} else if writeLocalInterfaceAssignedCallHandleClone(out, lhs, rhs) {
+		// RHS emitted by helper.
 	} else {
 		writeLocalInterfaceHandleClone(out, rhs)
 	}
+	return true
+}
+
+func writeLocalInterfaceAssignedCallHandleClone(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
+	lhsIdent, ok := lhs.(*ast.Ident)
+	if !ok {
+		return false
+	}
+	call, ok := rhs.(*ast.CallExpr)
+	if !ok {
+		return false
+	}
+	sel, ok := call.Fun.(*ast.SelectorExpr)
+	if !ok {
+		return false
+	}
+	recvIdent, ok := sel.X.(*ast.Ident)
+	if !ok || recvIdent.Name != lhsIdent.Name {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo != nil {
+		lhsObj := typeInfo.GetObject(lhsIdent)
+		recvObj := typeInfo.GetObject(recvIdent)
+		if lhsObj != nil && recvObj != nil && lhsObj != recvObj {
+			return false
+		}
+	}
+
+	out.WriteString("{ let __recv = ")
+	TranspileExpressionContext(out, recvIdent, LValue)
+	out.WriteString(".clone(); let __result = ")
+	oldRenames := currentCaptureRenames
+	nextRenames := make(map[string]string, len(oldRenames)+1)
+	for name, renamed := range oldRenames {
+		nextRenames[name] = renamed
+	}
+	nextRenames[recvIdent.Name] = "__recv"
+	currentCaptureRenames = nextRenames
+	TranspileExpressionContext(out, rhs, LValue)
+	currentCaptureRenames = oldRenames
+	out.WriteString(".clone(); __result }")
 	return true
 }
 

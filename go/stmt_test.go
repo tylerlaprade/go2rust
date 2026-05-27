@@ -483,6 +483,43 @@ func assignFromIndex(nodes []Node) Node {
 	}
 }
 
+func TestLocalInterfaceAssignmentFromOwnMethodCallClonesReceiver(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+type Node interface {
+	Pos() int
+}
+
+type Visitor interface {
+	Visit(Node) Visitor
+}
+
+func Walk(v Visitor, node Node) {
+	v = v.Visit(node)
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile() error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := Transpile(file, fset, typeInfo)
+	if strings.Contains(rust, "v = (*v.borrow().as_ref().unwrap()).visit") ||
+		strings.Contains(rust, "v = (*v.lock().unwrap().as_ref().unwrap()).visit") {
+		t.Fatalf("assignment from a method call on the same interface handle should not borrow the assigned variable directly:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __recv = v.clone();") ||
+		(!strings.Contains(rust, "v = { let __recv = v.clone(); let __result = (*__recv.borrow().as_ref().unwrap()).visit") &&
+			!strings.Contains(rust, "v = { let __recv = v.clone(); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).visit")) ||
+		!strings.Contains(rust, "__result }") {
+		t.Fatalf("assignment from a method call on the same interface handle should clone the receiver before assignment:\n%s", rust)
+	}
+}
+
 func TestLocalMapKeyRustTypeReportsTrackedPointerKey(t *testing.T) {
 	prevCollections := localCollectionKinds
 	prevMapKeys := localMapKeyRustTypes
