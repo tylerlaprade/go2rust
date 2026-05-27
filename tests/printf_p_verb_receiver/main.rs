@@ -30,7 +30,7 @@ impl std::fmt::Display for Scope {
 impl Scope {
     pub fn string(&self) -> Rc<RefCell<Option<String>>> {
         let mut buf: Rc<RefCell<Option<String>>> = Rc::new(RefCell::new(Some(Default::default())));
-        (*buf.clone().borrow_mut().as_mut().unwrap()).push_str(&format!("scope {} {{", format!("{:p}", self)));
+        (*buf.clone().borrow_mut().as_mut().unwrap()).push_str(&format!("scope {:p} {{", self));
         (*buf.clone().borrow_mut().as_mut().unwrap()).push_str(&format!("name={}}}", (*self.name.borrow().as_ref().unwrap())));
         return Rc::new(RefCell::new(Some({ let __builder = buf.clone(); let __guard = __builder.borrow(); let __value = (*__guard.as_ref().unwrap()).clone(); drop(__guard); __value })));
     }
