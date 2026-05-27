@@ -52,3 +52,33 @@ var sink any
 		t.Fatalf("package global interface zero value should initialize to nil:\n%s", rust)
 	}
 }
+
+func TestPackageGlobalAnyAssignmentBoxesGenericValue(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+var sink any
+
+func store[T any](x T) {
+	sink = x
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile() error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := Transpile(file, fset, typeInfo)
+	if strings.Contains(rust, "sink = x.clone()") {
+		t.Fatalf("assignment to package-global any should not replace the global handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "pub fn store<T: Any + Clone + 'static>") {
+		t.Fatalf("generic any assignment should bound the Rust type parameter for boxing:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let new_val = Box::new(") || !strings.Contains(rust, "*sink.borrow_mut() = Some(new_val)") {
+		t.Fatalf("assignment to package-global any should box into the global slot:\n%s", rust)
+	}
+}

@@ -41,7 +41,11 @@ func isEmptyInterfaceType(typ types.Type) bool {
 	if typ == nil {
 		return false
 	}
-	intf, ok := typ.Underlying().(*types.Interface)
+	unaliased := types.Unalias(typ)
+	if _, ok := unaliased.(*types.TypeParam); ok {
+		return false
+	}
+	intf, ok := unaliased.Underlying().(*types.Interface)
 	return ok && intf.NumMethods() == 0
 }
 
@@ -239,6 +243,15 @@ func goTypeParamTraitConstraintName(t types.Type) (string, bool) {
 		return "", false
 	}
 	return goTypesNamedTypeToRust(named), true
+}
+
+func goTypeParamHasAnyConstraint(t types.Type) bool {
+	tp, ok := types.Unalias(t).(*types.TypeParam)
+	if !ok || tp.Constraint() == nil {
+		return false
+	}
+	iface, ok := tp.Constraint().Underlying().(*types.Interface)
+	return ok && iface.NumMethods() == 0 && iface.NumEmbeddeds() == 0
 }
 
 func goTypeParamTraitConstraintNameFromExpr(expr ast.Expr) (string, bool) {
