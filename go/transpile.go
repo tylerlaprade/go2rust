@@ -1846,7 +1846,7 @@ func writeAnonymousStructDefinitions(body *strings.Builder, first *bool, emitted
 		}
 		*first = false
 		writeStructDerive(body, "", structType)
-		body.WriteString("struct ")
+		body.WriteString("pub(crate) struct ")
 		body.WriteString(typeName)
 		body.WriteString(" {\n")
 
@@ -1854,7 +1854,7 @@ func writeAnonymousStructDefinitions(body *strings.Builder, first *bool, emitted
 			if len(field.Names) > 0 {
 				// Handle multiple names on one line (e.g., X, Y int)
 				for nameIndex, name := range field.Names {
-					body.WriteString("    ")
+					body.WriteString("    pub(crate) ")
 					body.WriteString(rustStructFieldName(name, fieldIndex, nameIndex))
 					body.WriteString(": ")
 					body.WriteString(GoTypeToRust(field.Type))

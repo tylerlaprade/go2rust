@@ -134,6 +134,31 @@ var Features struct {
 	}
 }
 
+func TestAnonymousStructFieldsArePackageVisible(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+var Features struct {
+	Enabled bool
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile() error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := Transpile(file, fset, typeInfo)
+	if !strings.Contains(rust, "pub(crate) struct AnonymousStruct1") {
+		t.Fatalf("anonymous package-global struct type should be visible across generated modules:\n%s", rust)
+	}
+	if !strings.Contains(rust, "pub(crate) enabled:") {
+		t.Fatalf("anonymous package-global struct fields should be visible across generated modules:\n%s", rust)
+	}
+}
+
 func TestTranspileConstDeclUsesPackageVisibility(t *testing.T) {
 	var out strings.Builder
 	TranspileConstDecl(&out, &ast.GenDecl{
