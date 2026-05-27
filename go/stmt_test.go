@@ -373,6 +373,54 @@ func First(cmap CommentMap) int {
 	}
 }
 
+func TestLocalInterfaceAssignmentCopiesWrappedHandle(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+type Node interface {
+	Pos() int
+}
+
+func assignFromRange(nodes []Node) Node {
+	var p Node
+	for _, q := range nodes {
+		p = q
+	}
+	return p
+}
+
+func assignFromIndex(nodes []Node) Node {
+	var top Node
+	top = nodes[0]
+	return top
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile() error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := Transpile(file, fset, typeInfo)
+
+	if strings.Contains(rust, "*p.borrow_mut().as_mut().unwrap() = Some(new_val)") ||
+		strings.Contains(rust, "*p.lock().unwrap() = Some(new_val)") ||
+		strings.Contains(rust, "*top.borrow_mut().as_mut().unwrap() = Some(new_val)") ||
+		strings.Contains(rust, "*top.lock().unwrap() = Some(new_val)") {
+		t.Fatalf("assignment between local interface handles should replace the handle, not store a handle inside Some:\n%s", rust)
+	}
+	if !strings.Contains(rust, "p = (*q).clone()") &&
+		!strings.Contains(rust, "p = q.clone()") {
+		t.Fatalf("range assignment should copy the local interface handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "top = (*nodes.borrow().as_ref().unwrap())[(0) as usize].clone()") &&
+		!strings.Contains(rust, "top = { let __seq =") {
+		t.Fatalf("index assignment should replace the local interface handle from the slice element:\n%s", rust)
+	}
+}
+
 func TestLocalMapKeyRustTypeReportsTrackedPointerKey(t *testing.T) {
 	prevCollections := localCollectionKinds
 	prevMapKeys := localMapKeyRustTypes

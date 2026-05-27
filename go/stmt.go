@@ -2259,6 +2259,42 @@ func writeStdlibInterfaceNamedReturnAssignment(out *strings.Builder, name *ast.I
 	return true
 }
 
+func writeLocalInterfaceHandleAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || lhs == nil || rhs == nil {
+		return false
+	}
+	lhsType := typeInfo.GetType(lhs)
+	rhsType := typeInfo.GetType(rhs)
+	if lhsType == nil || rhsType == nil {
+		return false
+	}
+	if _, ok := localNamedInterfaceTypeNameFromTypes(lhsType); !ok {
+		return false
+	}
+	rhsIsLocalInterface := false
+	if _, ok := localNamedInterfaceTypeNameFromTypes(rhsType); ok {
+		rhsIsLocalInterface = true
+	}
+	if !rhsIsLocalInterface && !isBareLocalInterfaceValue(rhs) {
+		return false
+	}
+	if !types.AssignableTo(rhsType, lhsType) {
+		return false
+	}
+
+	TranspileExpressionContext(out, lhs, LValue)
+	out.WriteString(" = ")
+	if isBareLocalInterfaceValue(rhs) {
+		WriteWrapperPrefix(out)
+		writeLocalInterfaceBareClone(out, rhs)
+		WriteWrapperSuffix(out)
+	} else {
+		writeLocalInterfaceHandleClone(out, rhs)
+	}
+	return true
+}
+
 func writeErrorChannelNamedReturnAssignment(out *strings.Builder, name *ast.Ident, resultType ast.Expr, rhs ast.Expr) bool {
 	if name == nil || name.Name == "_" || !isGoErrorType(expectedTypeFromParamExpr(resultType)) {
 		return false
@@ -6069,6 +6105,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									// Slice assignment replaces the handle to preserve slice-header aliasing.
 								} else if writeBareRangeVarAssignment(out, s.Lhs[0], s.Rhs[0]) {
 									// Assigned range variables are local bare Rust bindings, not wrapper handles.
+								} else if writeLocalInterfaceHandleAssignment(out, s.Lhs[0], s.Rhs[0]) {
+									// Local interface assignment copies the existing interface handle.
 								} else if writeStdlibInterfaceAssignment(out, s.Lhs[0], s.Rhs[0]) {
 									// Converted concrete stdlib values assigned through a stdlib interface handle.
 								} else if isConcreteErrorInterfaceAssignment(s.Lhs[0], s.Rhs[0]) {
