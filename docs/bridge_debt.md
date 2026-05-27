@@ -39,19 +39,30 @@ commit both together. The test will fail if you remove one without the other.
 
 ## The common infrastructure gap
 
-Every row below shares one root-cause gap: **`go2rust` cannot yet take a
-vendored copy of Go stdlib source and emit a routed Rust module that
-replaces a shim.** See AGENTS.md → "Infrastructure prerequisite for
-transpile-instead". Until that pipeline exists, no row can be retired by
-simply transpiling the underlying Go source — which is why the per-row
-`Transpiler gap` field is mostly `TODO: investigate`. The honest gap for
-most rows is "missing the vendored-stdlib routing pipeline," not "the
-language feature X."
+**Update 2026-05-27:** The pipeline already exists — see AGENTS.md →
+"Infrastructure for transpile-instead". Fixtures opt-in via
+`.go2rust.toml` (`source_stdlib_packages = "..."`); the loader fetches
+the stdlib source and routes calls to the resulting `vendor/<crate>/`
+module instead of the bridge.
 
-When that pipeline lands, retiring rows becomes mechanical: vendor the
-function, transpile, drop the shim, drop the row. Until then, the priority
-is to (a) stop new shims being added without justification (this file +
-the tripwire), and (b) build the pipeline.
+The actual blocker for retiring most rows below is that **the
+transpiler doesn't yet produce compiling Rust from real stdlib source.**
+Sample counts on system Go 1.24:
+
+- `errors` — 38 errors
+- `path` — 11 errors
+- `go/token` — 19 errors
+- `path/filepath` — 106 errors
+
+Each error class (wrapped-type arithmetic, generics handling, type
+inference on wrapped values) is a focused fixture target. The XFAIL
+demo `tests/XFAIL/source_stdlib_path_filepath_isabs/` exercises the
+pipeline end-to-end and will auto-promote when the gaps close.
+
+When a stdlib package compiles clean through the pipeline, retiring its
+row is mechanical: drop the matching `writeXxxStub` from
+`go/external_type_stubs.go`, drop the `// TEMPORARY:` comment, drop the
+row here.
 
 ## Shims
 

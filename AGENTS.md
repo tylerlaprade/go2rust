@@ -168,19 +168,29 @@ The first three steps must be tried genuinely. "I considered transpiling but it'
 - Every hour spent on the bridge is an hour not spent making the transpiler complete enough to handle real Go.
 - The bridge has grown ~860 lines and 8 `// TEMPORARY:` scaffolds in the two weeks ending 2026-05-27 with zero removals. That trajectory is the canonical "drifting into Rust port of Go stdlib" pattern this rule exists to stop.
 
-#### Infrastructure prerequisite for transpile-instead
+#### Infrastructure for transpile-instead
 
-The transpile-instead path requires a piece of infrastructure the project doesn't fully have yet: a mechanism to (1) vendor a subset of Go stdlib source into the project, (2) run it through `go2rust` like any other package, and (3) route stdlib selector calls in user code to the transpiled vendored module instead of to a hand-written shim.
+The pipeline exists and is opt-in per import path:
 
-Today the project has `vendor/go2rust_stdlib_stubs` — but it carries hand-written *stand-ins*, not transpiled Go source. Until the routing piece exists, every "transpile this stdlib package instead of growing the shim" instruction in this doc is blocked.
+- `--source-stdlib-packages=path/filepath,go/token` on the `go2rust` CLI
+  (or `GO2RUST_SOURCE_STDLIB_PACKAGES` env var) tells the loader to fetch
+  the named stdlib package's Go source via `packages.Load` and run it
+  through the normal transpilation path instead of registering a bridge
+  stub. Supports `all`, `std`, and `<prefix>/...` patterns.
+- Fixtures opt-in via `.go2rust.toml` with a `source_stdlib_packages = "..."` line; `tests.bats` reads it and passes the flag.
+- The loader (`go/package_loader.go` — `shouldTranspileStdlibPackage`, `collectAllPackages`) and the transpile context (`isSourceMappedPackagePath` in `go/context.go`) keep bridge stub registration off for opted-in packages and generate a `vendor/<rust_crate>/lib.rs` instead.
+- A demo fixture lives at `tests/XFAIL/source_stdlib_path_filepath_isabs/` (currently XFAIL — see below).
 
-This makes building the vendored-stdlib pipeline the highest-leverage architectural work item, ahead of any further translator micro-fix. Concretely, the missing pieces are:
+**The remaining blocker is not infrastructure; it is transpiler completeness.** When the pipeline runs on a real stdlib package today, the produced Rust does not compile. Counts measured 2026-05-27 on the system Go 1.24 stdlib:
 
-1. A way to declare in a fixture (or in `go.mod` analogue) "use this transpiled copy of `path/filepath` instead of the bridge."
-2. A loader path in `go/project.go` / `go/imports.go` that resolves stdlib import paths to the vendored module when one exists.
-3. A test harness that vendors a small stdlib function (e.g., `filepath.IsAbs` — three lines on Unix) and asserts the transpiler can produce a working Rust module from it.
+- `errors` — 38 errors, 34 warnings
+- `path` — 11 errors
+- `go/token` — 19 errors
+- `path/filepath` — 106 errors, 152 warnings
 
-A session that ships any of those three pieces is doing the real paring work. A session that adds more `// TEMPORARY:` shims is not.
+These are real transpiler gaps (wrapped-type arithmetic, generics handling, type inference on wrapped values, missing trait derives on wrapped types) that surface on stdlib shape and don't show up in the narrower fixture corpus. Each is a focused fixture target under `tests/XFAIL/` in its own right.
+
+**This makes the highest-leverage work item now "close transpiler gaps in transpiled stdlib output," not "build pipeline." Each closed gap moves a stdlib package closer to compiling clean; once a package compiles, the matching bridge shim retires (`./test.sh` auto-promotes XFAIL → passing, and the registry row drops).**
 
 ### Triage Principles
 

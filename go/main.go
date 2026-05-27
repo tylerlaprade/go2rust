@@ -10,8 +10,9 @@ import (
 )
 
 var (
-	externalPackagesFlag = flag.String("external-packages", "transpile", "How to handle external packages: transpile, ffi, or none")
-	helpFlag             = flag.Bool("help", false, "Show help message")
+	externalPackagesFlag    = flag.String("external-packages", "transpile", "How to handle external packages: transpile, ffi, or none")
+	sourceStdlibPackagesArg = flag.String("source-stdlib-packages", "", "Comma-separated stdlib import paths to transpile from source instead of using the bridge (e.g., 'path/filepath,go/token'). Also accepts 'all' or 'std' to opt in everything; suffix '/...' for a subtree. Same effect as setting GO2RUST_SOURCE_STDLIB_PACKAGES.")
+	helpFlag                = flag.Bool("help", false, "Show help message")
 )
 
 func main() {
@@ -20,6 +21,12 @@ func main() {
 	if *helpFlag {
 		showHelp()
 		os.Exit(0)
+	}
+
+	// CLI flag overrides env var if explicitly set, otherwise leaves the env
+	// var alone so existing callers and Go unit tests keep working.
+	if *sourceStdlibPackagesArg != "" {
+		os.Setenv("GO2RUST_SOURCE_STDLIB_PACKAGES", *sourceStdlibPackagesArg)
 	}
 
 	externalMode, err := ParseExternalPackageMode(*externalPackagesFlag)
@@ -81,18 +88,23 @@ func showHelp() {
 	fmt.Printf("go2rust - Go to Rust transpiler\n\n")
 	fmt.Printf("Usage: %s [options] <go-file-or-directory>...\n\n", os.Args[0])
 	fmt.Printf("Options:\n")
-	fmt.Printf("  -external-packages <mode>  How to handle external packages (default: transpile)\n")
-	fmt.Printf("                             Modes:\n")
-	fmt.Printf("                               transpile - Recursively transpile all dependencies\n")
-	fmt.Printf("                               ffi       - Generate FFI bridge to Go libraries\n")
-	fmt.Printf("                               stub      - Generate stub implementations for manual completion\n")
-	fmt.Printf("                               none      - Error on external imports\n")
-	fmt.Printf("  -help                      Show this help message\n\n")
+	fmt.Printf("  -external-packages <mode>      How to handle external packages (default: transpile)\n")
+	fmt.Printf("                                 Modes:\n")
+	fmt.Printf("                                   transpile - Recursively transpile all dependencies\n")
+	fmt.Printf("                                   ffi       - Generate FFI bridge to Go libraries\n")
+	fmt.Printf("                                   stub      - Generate stub implementations for manual completion\n")
+	fmt.Printf("                                   none      - Error on external imports\n")
+	fmt.Printf("  -source-stdlib-packages <list> Comma-separated stdlib import paths to transpile from source\n")
+	fmt.Printf("                                 instead of using the bridge. Supports 'all', 'std', and\n")
+	fmt.Printf("                                 '<prefix>/...' subtree patterns. Mirrors the\n")
+	fmt.Printf("                                 GO2RUST_SOURCE_STDLIB_PACKAGES env var.\n")
+	fmt.Printf("  -help                          Show this help message\n\n")
 	fmt.Printf("Examples:\n")
-	fmt.Printf("  %s main.go                                    # Transpile with default settings\n", os.Args[0])
-	fmt.Printf("  %s -external-packages=ffi ./cmd/myapp        # Use FFI for external packages\n", os.Args[0])
-	fmt.Printf("  %s -external-packages=stub mycode.go         # Generate stubs for external deps\n", os.Args[0])
-	fmt.Printf("  %s -external-packages=none simple.go         # Fail on external imports\n", os.Args[0])
+	fmt.Printf("  %s main.go                                                # Transpile with default settings\n", os.Args[0])
+	fmt.Printf("  %s -external-packages=ffi ./cmd/myapp                    # Use FFI for external packages\n", os.Args[0])
+	fmt.Printf("  %s -external-packages=stub mycode.go                     # Generate stubs for external deps\n", os.Args[0])
+	fmt.Printf("  %s -external-packages=none simple.go                     # Fail on external imports\n", os.Args[0])
+	fmt.Printf("  %s -source-stdlib-packages=path/filepath ./tests/foo     # Transpile path/filepath from source\n", os.Args[0])
 }
 
 func collectGoFiles(path string) ([]string, error) {

@@ -97,25 +97,46 @@ run_transpile_and_compare() {
     
     # Check for test-specific configuration
     local external_mode=""
+    local source_stdlib_packages=""
     if [ -f "$test_dir/.go2rust.toml" ]; then
-        # Simple parsing - just look for external_packages line
+        # Simple parsing - look for known config lines
         external_mode=$(grep "^external_packages" "$test_dir/.go2rust.toml" | cut -d'"' -f2)
+        source_stdlib_packages=$(grep "^source_stdlib_packages" "$test_dir/.go2rust.toml" | cut -d'"' -f2)
     fi
-    
+
     # Build transpile command with appropriate flags
     local transpiler="${GO2RUST_TEST_BINARY:-./go2rust}"
-    local transpile_output
+    local -a transpile_args=()
     if [ -n "$external_mode" ]; then
-        transpile_output=$("$transpiler" "--external-packages=$external_mode" "$test_dir" 2>&1)
-    else
-        transpile_output=$("$transpiler" "$test_dir" 2>&1)
+        transpile_args+=("--external-packages=$external_mode")
     fi
+    if [ -n "$source_stdlib_packages" ]; then
+        transpile_args+=("--source-stdlib-packages=$source_stdlib_packages")
+    fi
+    local transpile_output
+    transpile_output=$("$transpiler" "${transpile_args[@]}" "$test_dir" 2>&1)
     if [ $? -ne 0 ]; then
         echo "Transpilation failed:"
         echo "$transpile_output" | sed "s/^/  /"
         return 1
     fi
-    
+
+    # If expected_main.rs is present, the freshly-transpiled main.rs must
+    # match it byte-for-byte. This pins the generated Rust shape for
+    # fixtures that document a specific lowering decision (e.g., bare
+    # scalar return types). Without that file, generated Rust is allowed
+    # to drift freely between runs.
+    if [ -f "$test_dir/expected_main.rs" ]; then
+        if ! diff -u "$test_dir/expected_main.rs" "$test_dir/main.rs" > /tmp/go2rust-rust-diff.$$ 2>&1; then
+            echo ""
+            echo "Generated Rust does not match expected_main.rs:"
+            cat /tmp/go2rust-rust-diff.$$ | sed "s/^/  /"
+            rm -f /tmp/go2rust-rust-diff.$$
+            return 1
+        fi
+        rm -f /tmp/go2rust-rust-diff.$$
+    fi
+
     # Run Rust version with faster compilation settings
     # -A warnings: Allow all warnings (don't spend time on lints)
     # -C opt-level=0: No optimizations (fastest compilation)
@@ -1998,6 +2019,10 @@ run_xfail_test() {
     run_test "tests/rust_keyword_identifiers"
 }
 
+@test "scalar_return_unwrapped" {
+    run_test "tests/scalar_return_unwrapped"
+}
+
 @test "select_basic" {
     run_test "tests/select_basic"
 }
@@ -2660,6 +2685,10 @@ run_xfail_test() {
 
 @test "XFAIL: panic_recover" {
     run_xfail_test "tests/XFAIL/panic_recover"
+}
+
+@test "XFAIL: source_stdlib_path_filepath_isabs" {
+    run_xfail_test "tests/XFAIL/source_stdlib_path_filepath_isabs"
 }
 
 @test "XFAIL: stateful_goroutines" {
