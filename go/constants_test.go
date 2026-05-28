@@ -1256,6 +1256,33 @@ func adjust(out *seq, in seq) {
 	}
 }
 
+func TestNamedIntegerSelectorAndNotAssignUsesWrappedMutation(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type kind uint8
+
+const direct kind = 1 << 5
+
+type typ struct {
+	kind_ kind
+}
+
+func clear(t *typ) {
+	t.kind_ &^= direct
+}
+`)
+
+	if !strings.Contains(rust, "let __rhs = kind(") {
+		t.Fatalf("named integer &^= should construct a named RHS value:\n%s", rust)
+	}
+	if !strings.Contains(rust, "& ! __rhs") {
+		t.Fatalf("named integer &^= should lower to Rust bit-clear on the wrapped slot:\n%s", rust)
+	}
+	if strings.Contains(rust, ".kind_ = DIRECT") {
+		t.Fatalf("named integer &^= must not become a direct assignment:\n%s", rust)
+	}
+}
+
 func TestNoTypeInfoChannelSendUnwrapsMethodBoolResult(t *testing.T) {
 	rust := transpileNoTypeInfoRegression(t, `package main
 

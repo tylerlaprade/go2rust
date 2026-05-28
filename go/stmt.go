@@ -4115,6 +4115,8 @@ func writeMapElementUpdate(out *strings.Builder, indexExpr *ast.IndexExpr, op to
 		out.WriteString("%")
 	case token.AND_ASSIGN:
 		out.WriteString("&")
+	case token.AND_NOT_ASSIGN:
+		out.WriteString("& !")
 	case token.OR_ASSIGN:
 		out.WriteString("|")
 	case token.XOR_ASSIGN:
@@ -4151,6 +4153,8 @@ func writeCompoundAssignOperator(out *strings.Builder, op token.Token) {
 		out.WriteString("%")
 	case token.AND_ASSIGN:
 		out.WriteString("&")
+	case token.AND_NOT_ASSIGN:
+		out.WriteString("& !")
 	case token.OR_ASSIGN:
 		out.WriteString("|")
 	case token.XOR_ASSIGN:
@@ -4165,7 +4169,7 @@ func writeCompoundAssignOperator(out *strings.Builder, op token.Token) {
 func compoundAssignUsesOwnedNamedIntegerValue(lhs ast.Expr, op token.Token) bool {
 	switch op {
 	case token.ADD_ASSIGN, token.SUB_ASSIGN, token.MUL_ASSIGN, token.QUO_ASSIGN, token.REM_ASSIGN,
-		token.AND_ASSIGN, token.OR_ASSIGN, token.XOR_ASSIGN, token.SHL_ASSIGN, token.SHR_ASSIGN:
+		token.AND_ASSIGN, token.AND_NOT_ASSIGN, token.OR_ASSIGN, token.XOR_ASSIGN, token.SHL_ASSIGN, token.SHR_ASSIGN:
 	default:
 		return false
 	}
@@ -4386,7 +4390,7 @@ func writeBareCompoundAssignValueForOp(out *strings.Builder, expr ast.Expr, expe
 
 func writeNamedIntegerConstCompoundAssignValue(out *strings.Builder, expr ast.Expr, expected types.Type, op token.Token) bool {
 	switch op {
-	case token.AND_ASSIGN, token.OR_ASSIGN, token.XOR_ASSIGN:
+	case token.AND_ASSIGN, token.AND_NOT_ASSIGN, token.OR_ASSIGN, token.XOR_ASSIGN:
 	default:
 		return false
 	}
@@ -6294,7 +6298,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			}
 		} else if s.Tok == token.ADD_ASSIGN || s.Tok == token.SUB_ASSIGN ||
 			s.Tok == token.MUL_ASSIGN || s.Tok == token.QUO_ASSIGN || s.Tok == token.REM_ASSIGN ||
-			s.Tok == token.AND_ASSIGN || s.Tok == token.OR_ASSIGN || s.Tok == token.XOR_ASSIGN ||
+			s.Tok == token.AND_ASSIGN || s.Tok == token.AND_NOT_ASSIGN || s.Tok == token.OR_ASSIGN || s.Tok == token.XOR_ASSIGN ||
 			s.Tok == token.SHL_ASSIGN || s.Tok == token.SHR_ASSIGN {
 			// Compound assignment operators
 			if indexExpr, isMapIndex := isMapIndexExpression(s.Lhs[0]); isMapIndex {
@@ -6368,6 +6372,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						out.WriteString("%")
 					case token.AND_ASSIGN:
 						out.WriteString("&")
+					case token.AND_NOT_ASSIGN:
+						out.WriteString("& !")
 					case token.OR_ASSIGN:
 						out.WriteString("|")
 					case token.XOR_ASSIGN:
