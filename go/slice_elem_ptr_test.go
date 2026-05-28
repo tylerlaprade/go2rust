@@ -110,6 +110,32 @@ func read(infos []lineInfo, i int) (string, int) {
 	}
 }
 
+func TestSliceElemPointerMetadataDoesNotLeakPastIfBody(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+type method struct {
+	Typ int
+	Mtyp int
+}
+
+func read(methods []method, i int, ok bool) int {
+	if ok {
+		m := &methods[i]
+		return m.Typ
+	}
+	m := methods[i]
+	return m.Mtyp
+}
+`)
+
+	if strings.Contains(rust, "m.as_ref().unwrap().borrow().as_ref().unwrap()).mtyp") {
+		t.Fatalf("slice element pointer metadata should not leak past the if body:\n%s", rust)
+	}
+	if !strings.Contains(rust, "(*m.borrow().as_ref().unwrap()).mtyp") {
+		t.Fatalf("post-if value local should use normal wrapped struct field access:\n%s", rust)
+	}
+}
+
 func TestSliceElemPointerMethodCallBorrowsElement(t *testing.T) {
 	rust := transpileTypedSliceElemPtrRegression(t, `package main
 

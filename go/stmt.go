@@ -5455,11 +5455,17 @@ func transpileElseBranch(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTy
 	}
 	if block, ok := stmt.(*ast.BlockStmt); ok {
 		out.WriteString("{\n")
+		popElseBodyScope := func() {}
+		if vt := GetVarTable(); vt != nil {
+			vt.PushScope()
+			popElseBodyScope = vt.PopScope
+		}
 		for _, stmt := range block.List {
 			out.WriteString("            ")
 			TranspileStatementSimple(out, stmt, fnType, fileSet)
 			out.WriteString(";\n")
 		}
+		popElseBodyScope()
 		out.WriteString("        }")
 	}
 }
@@ -5476,11 +5482,17 @@ func transpileIfWithInitAsBlock(out *strings.Builder, stmt *ast.IfStmt, fnType *
 	out.WriteString(" {\n")
 	beforeGuards := cloneMutexGuards(activeMutexGuards)
 	activeMutexGuards = cloneMutexGuards(beforeGuards)
+	popIfBodyScope := func() {}
+	if vt := GetVarTable(); vt != nil {
+		vt.PushScope()
+		popIfBodyScope = vt.PopScope
+	}
 	for _, bodyStmt := range stmt.Body.List {
 		out.WriteString("            ")
 		TranspileStatementSimple(out, bodyStmt, fnType, fileSet)
 		out.WriteString(";\n")
 	}
+	popIfBodyScope()
 	thenGuards := cloneMutexGuards(activeMutexGuards)
 	out.WriteString("        }")
 	elseGuards := cloneMutexGuards(beforeGuards)
@@ -8895,6 +8907,11 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 		// Use comment-aware transpilation for the body
 		activeMutexGuards = cloneMutexGuards(beforeGuards)
+		popIfBodyScope := func() {}
+		if vt := GetVarTable(); vt != nil {
+			vt.PushScope()
+			popIfBodyScope = vt.PopScope
+		}
 		var ifBodyLastPos token.Pos = s.Body.Lbrace
 		for i, stmt := range s.Body.List {
 			out.WriteString("        ")
@@ -8902,6 +8919,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			writeStatementSeparatorBeforeFollowingStatement(out, stmt, i < len(s.Body.List)-1)
 			out.WriteString("\n")
 		}
+		popIfBodyScope()
 		thenGuards := cloneMutexGuards(activeMutexGuards)
 
 		out.WriteString("    }")
@@ -8921,6 +8939,11 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			} else if block, ok := s.Else.(*ast.BlockStmt); ok {
 				// else block
 				out.WriteString("{\n")
+				popElseBodyScope := func() {}
+				if vt := GetVarTable(); vt != nil {
+					vt.PushScope()
+					popElseBodyScope = vt.PopScope
+				}
 				var elseBodyLastPos token.Pos = block.Lbrace
 				for i, stmt := range block.List {
 					out.WriteString("        ")
@@ -8928,6 +8951,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					writeStatementSeparatorBeforeFollowingStatement(out, stmt, i < len(block.List)-1)
 					out.WriteString("\n")
 				}
+				popElseBodyScope()
 				out.WriteString("    }")
 			}
 			elseGuards = cloneMutexGuards(activeMutexGuards)
