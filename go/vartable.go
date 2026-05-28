@@ -97,6 +97,18 @@ func lookupVarInfo(name string) *VarInfo {
 	return vt.Lookup(name)
 }
 
+func lookupVarInfoInCurrentScope(name string) *VarInfo {
+	vt := GetVarTable()
+	if vt == nil || len(vt.scopes) == 0 {
+		return nil
+	}
+	return vt.scopes[len(vt.scopes)-1].vars[name]
+}
+
+func isVarDeclaredInCurrentScope(name string) bool {
+	return lookupVarInfoInCurrentScope(name) != nil
+}
+
 // isVarBare checks if a variable is known to be bare (not wrapped) via VarTable.
 func isVarBare(name string) bool {
 	if info := lookupVarInfo(name); info != nil && info.WrapLevel == WrapNone {

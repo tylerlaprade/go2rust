@@ -853,6 +853,9 @@ func registerCallTupleResultSyntaxInfo(lhs []ast.Expr, call *ast.CallExpr) {
 				if !ok || ident.Name == "_" {
 					continue
 				}
+				if isVarDeclaredInCurrentScope(ident.Name) {
+					continue
+				}
 				vt.Register(ident.Name, &VarInfo{
 					WrapLevel: WrapNone,
 					RustType:  goTypesTypeToRust(types.Unalias(results.At(i).Type())),
@@ -870,6 +873,9 @@ func registerCallTupleResultSyntaxInfo(lhs []ast.Expr, call *ast.CallExpr) {
 		if !ok || ident.Name == "_" {
 			continue
 		}
+		if isVarDeclaredInCurrentScope(ident.Name) {
+			continue
+		}
 		if rustType == "Vec<u8>" {
 			localCollectionKinds[ident.Name] = "slice"
 			localRangeElemRustTypes[ident.Name] = "u8"
@@ -880,6 +886,22 @@ func registerCallTupleResultSyntaxInfo(lhs []ast.Expr, call *ast.CallExpr) {
 			Source:    SourceLocal,
 		})
 	}
+}
+
+func shortDeclLHSUsesExistingBinding(lhs ast.Expr) bool {
+	ident, ok := lhs.(*ast.Ident)
+	if !ok || ident.Name == "_" {
+		return false
+	}
+	if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.info != nil {
+		if _, ok := typeInfo.info.Uses[ident]; ok {
+			return true
+		}
+		if obj, ok := typeInfo.info.Defs[ident]; ok {
+			return obj == nil
+		}
+	}
+	return isVarDeclaredInCurrentScope(ident.Name)
 }
 
 func registerTypeExprCollectionInfo(name string, typeExpr ast.Expr) {
@@ -6329,14 +6351,23 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				}
 			} else if needsTupleUnpack {
 				if s.Tok == token.DEFINE {
-					if call, ok := s.Rhs[0].(*ast.CallExpr); ok {
-						registerCallTupleResultSyntaxInfo(s.Lhs, call)
+					existingShortDeclLHS := make([]bool, len(s.Lhs))
+					anyExistingShortDeclLHS := false
+					for i, lhs := range s.Lhs {
+						if shortDeclLHSUsesExistingBinding(lhs) {
+							existingShortDeclLHS[i] = true
+							anyExistingShortDeclLHS = true
+						}
 					}
 					out.WriteString("let ")
 					out.WriteString("(")
 					for i, lhs := range s.Lhs {
 						if i > 0 {
 							out.WriteString(", ")
+						}
+						if existingShortDeclLHS[i] {
+							out.WriteString(fmt.Sprintf("__tmp_%d", i))
+							continue
 						}
 						// Don't add mut before blank identifier
 						if ident, ok := lhs.(*ast.Ident); !ok || ident.Name != "_" {
@@ -6349,6 +6380,27 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					out.WriteString(" = ")
 
 					TranspileExpression(out, s.Rhs[0])
+					if call, ok := s.Rhs[0].(*ast.CallExpr); ok {
+						registrationLHS := s.Lhs
+						if anyExistingShortDeclLHS {
+							registrationLHS = append([]ast.Expr(nil), s.Lhs...)
+							for i := range registrationLHS {
+								if existingShortDeclLHS[i] {
+									registrationLHS[i] = ast.NewIdent("_")
+								}
+							}
+						}
+						registerCallTupleResultSyntaxInfo(registrationLHS, call)
+						if anyExistingShortDeclLHS {
+							out.WriteString(";")
+						}
+						for i, lhs := range s.Lhs {
+							if !existingShortDeclLHS[i] {
+								continue
+							}
+							writeTupleAssignmentFromTemp(out, lhs, fmt.Sprintf("__tmp_%d", i), callResultIsBareScalar(call, i))
+						}
+					}
 				} else {
 					out.WriteString("{ let (")
 					for i := range s.Lhs {

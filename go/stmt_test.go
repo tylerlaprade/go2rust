@@ -771,6 +771,39 @@ func caller() int {
 	}
 }
 
+func TestMixedTupleShortDeclKeepsExistingWrappedLocal(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func round(n uint64) (uint64, bool) {
+	return n, true
+}
+
+func caller(seed uint64) uint64 {
+	size := seed + 1
+	size, ok := round(size)
+	if ok {
+		return size
+	}
+	return 0
+}
+`)
+
+	if strings.Contains(rust, "round(Rc::new(RefCell::new(Some(size))))") ||
+		strings.Contains(rust, "round(Arc::new(Mutex::new(Some(size))))") {
+		t.Fatalf("mixed tuple short declaration must evaluate RHS with the existing wrapped local:\n%s", rust)
+	}
+	if strings.Contains(rust, "let (mut size, mut ok) = round") {
+		t.Fatalf("mixed tuple short declaration must not redeclare the existing local:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Some(__tmp_0)") || !strings.Contains(rust, "mut ok") {
+		t.Fatalf("mixed tuple short declaration should assign the existing local from a temp and declare the new name:\n%s", rust)
+	}
+	if !strings.Contains(rust, "; *size.borrow_mut() = Some(__tmp_0);") &&
+		!strings.Contains(rust, "; *size.lock().unwrap() = Some(__tmp_0);") {
+		t.Fatalf("mixed tuple short declaration should terminate the tuple binding before temp assignment:\n%s", rust)
+	}
+}
+
 func TestStrconvAtoiTupleSlotEmitsBareScalarFirstResult(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
