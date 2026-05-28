@@ -643,6 +643,34 @@ func closure() int {
 	}
 }
 
+func TestReturnFunctionIdentifierUsesTypedFunctionValueBox(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type value struct {
+	n int
+}
+
+func cvtInt(v value) value {
+	return v
+}
+
+func convertOp(ok bool) func(value) value {
+	if ok {
+		return cvtInt
+	}
+	return nil
+}
+`)
+
+	if strings.Contains(rust, "cvtInt.clone()") {
+		t.Fatalf("returning a function identifier should not emit an untranslated Go identifier clone:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Box::new(move |__arg0:") ||
+		!strings.Contains(rust, "{ cvt_int(__arg0) }) as Box<dyn FnMut") {
+		t.Fatalf("returning a function identifier should box a typed function value using the Rust function name:\n%s", rust)
+	}
+}
+
 func TestNestedReturnsInsideTailControlFlowStayExplicit(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

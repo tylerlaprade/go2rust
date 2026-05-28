@@ -2753,6 +2753,26 @@ func writeFunctionNamedReturnAssignment(out *strings.Builder, name *ast.Ident, r
 	return true
 }
 
+func writeFunctionReturnValue(out *strings.Builder, result ast.Expr, resultType ast.Expr) bool {
+	if _, ok := functionSignatureFromTypeExpr(resultType); !ok {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		out.WriteString(`unimplemented!("type info required to lower function return value")`)
+		return true
+	}
+	typ := typeInfo.GetType(result)
+	if typ == nil {
+		out.WriteString(`unimplemented!("type info required to lower function return value")`)
+		return true
+	}
+	if !isFunctionSignatureType(typ) {
+		return false
+	}
+	return writeFunctionValueHandle(out, result)
+}
+
 func writeBlankNamedReturnValue(out *strings.Builder, result ast.Expr, expected ast.Expr) {
 	if ident, ok := result.(*ast.Ident); ok && ident.Name == "nil" {
 		WriteWrappedNone(out)
@@ -5723,6 +5743,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						// Function literal - already wrapped by TranspileFuncLit
 						TranspileExpression(out, result)
 					} else if ident, ok := result.(*ast.Ident); ok {
+						if writeFunctionReturnValue(out, result, returnResultTypeExpr(fnType, i)) {
+							continue
+						}
 						if isCurrentReceiverIdent(ident) {
 							if writeStdlibInterfaceCallArgumentConversion(out, ident, expectedTypeFromParamExpr(returnResultTypeExpr(fnType, i))) {
 								continue
