@@ -6529,9 +6529,13 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									out.WriteString(RustIdentForUse(ident))
 									out.WriteString(".as_ref().unwrap().borrow_mut() = Some(new_val); }")
 								} else if isUnsafePointerDerefAssignmentTarget(star) {
-									out.WriteString("{ let _ = ")
-									TranspileExpression(out, s.Rhs[0])
-									out.WriteString("; }")
+									out.WriteString("{ ")
+									if ident, ok := s.Rhs[0].(*ast.Ident); !ok || ident.Name != "nil" {
+										out.WriteString("let _ = ")
+										TranspileExpression(out, s.Rhs[0])
+										out.WriteString("; ")
+									}
+									out.WriteString("unimplemented!(\"unsafe.Pointer dereference assignment\"); }")
 								} else {
 									out.WriteString("{ ")
 									out.WriteString("let new_val = ")

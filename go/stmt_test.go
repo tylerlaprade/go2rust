@@ -868,6 +868,24 @@ func caller() int {
 	}
 }
 
+func TestUnsafePointerDerefNilAssignmentIsLoudUnsupported(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "unsafe"
+
+func clear(slot unsafe.Pointer) {
+	*(*unsafe.Pointer)(slot) = nil
+}
+`)
+
+	if strings.Contains(rust, "let _ = None") {
+		t.Fatalf("unsafe pointer nil assignment should not emit type-ambiguous None:\n%s", rust)
+	}
+	if !strings.Contains(rust, `unimplemented!("unsafe.Pointer dereference assignment")`) {
+		t.Fatalf("unsafe pointer dereference assignment should fail loudly:\n%s", rust)
+	}
+}
+
 func TestNamedIntegerBinaryIndexParenthesizesAsCast(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
