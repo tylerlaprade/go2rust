@@ -28,8 +28,8 @@ impl fs_DirEntry {
     pub fn name(&self) -> Arc<Mutex<Option<String>>> {
         Arc::new(Mutex::new(Some::<String>(self.name.clone())))
     }
-    pub fn is_dir(&self) -> Arc<Mutex<Option<bool>>> {
-        Arc::new(Mutex::new(Some::<bool>(self.is_dir)))
+    pub fn is_dir(&self) -> bool {
+        self.is_dir
     }
 }
 
@@ -55,11 +55,11 @@ impl fs_FileInfo {
     pub fn name(&self) -> Arc<Mutex<Option<String>>> {
         Arc::new(Mutex::new(Some::<String>(self.name.clone())))
     }
-    pub fn size(&self) -> Arc<Mutex<Option<i64>>> {
-        Arc::new(Mutex::new(Some::<i64>(self.size)))
+    pub fn size(&self) -> i64 {
+        self.size
     }
-    pub fn is_dir(&self) -> Arc<Mutex<Option<bool>>> {
-        Arc::new(Mutex::new(Some::<bool>(self.is_dir)))
+    pub fn is_dir(&self) -> bool {
+        self.is_dir
     }
 }
 

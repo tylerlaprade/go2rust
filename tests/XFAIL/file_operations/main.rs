@@ -191,11 +191,11 @@ impl fs_FileInfo {
     pub fn name(&self) -> Arc<Mutex<Option<String>>> {
         Arc::new(Mutex::new(Some::<String>(self.name.clone())))
     }
-    pub fn size(&self) -> Arc<Mutex<Option<i64>>> {
-        Arc::new(Mutex::new(Some::<i64>(self.size)))
+    pub fn size(&self) -> i64 {
+        self.size
     }
-    pub fn is_dir(&self) -> Arc<Mutex<Option<bool>>> {
-        Arc::new(Mutex::new(Some::<bool>(self.is_dir)))
+    pub fn is_dir(&self) -> bool {
+        self.is_dir
     }
     pub fn mod_time(&self) -> Arc<Mutex<Option<GoTime>>> {
         panic!("fs_FileInfo.mod_time bridge: generic stub method body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")

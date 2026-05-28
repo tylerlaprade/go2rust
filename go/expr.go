@@ -4612,12 +4612,12 @@ func writeExpressionForExpectedTypesType(out *strings.Builder, value ast.Expr, e
 	if !ok {
 		return false
 	}
-	if !isConstantExpression(value) {
-		if typeInfo := GetTypeInfo(); typeInfo != nil {
-			if valueNamed, ok := types.Unalias(typeInfo.GetType(value)).(*types.Named); ok && sameNamedTypeDefinition(valueNamed, named) {
-				TranspileExpression(out, value)
-				return true
-			}
+	// A value already of the same named type — typically a const reference
+	// like `types.SendRecv` — needs no constructor wrap or `as <int>` cast.
+	if typeInfo := GetTypeInfo(); typeInfo != nil {
+		if valueNamed, ok := types.Unalias(typeInfo.GetType(value)).(*types.Named); ok && sameNamedTypeDefinition(valueNamed, named) {
+			TranspileExpression(out, value)
+			return true
 		}
 	}
 	if isTimeDurationType(named) {
