@@ -3347,7 +3347,9 @@ func writeConcreteLocalInterfaceValue(out *strings.Builder, expr ast.Expr, expec
 		return false
 	}
 	out.WriteString("Box::new(")
-	if ident, ok := expr.(*ast.Ident); ok && ident.Name != "_" && ident.Name != "nil" && !isVarBare(ident.Name) {
+	if ident, ok := expr.(*ast.Ident); ok && isCurrentReceiverIdent(ident) {
+		out.WriteString("self.clone()")
+	} else if ident, ok := expr.(*ast.Ident); ok && ident.Name != "_" && ident.Name != "nil" && !isVarBare(ident.Name) {
 		out.WriteString("(*")
 		TranspileExpressionContext(out, expr, LValue)
 		WriteBorrowMethod(out, false)

@@ -385,6 +385,35 @@ func collect(list []Expr, x Expr) []Expr {
 	}
 }
 
+func TestAppendCurrentReceiverToInterfaceSliceBoxesSelf(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Node interface {
+	ID() int
+}
+
+type item struct{}
+
+func (i *item) ID() int {
+	return 1
+}
+
+func (i *item) Nodes() []Node {
+	var nodes []Node
+	nodes = append(nodes, i)
+	return nodes
+}
+`)
+
+	if strings.Contains(rust, "self.borrow()") || strings.Contains(rust, "self.lock()") {
+		t.Fatalf("current receiver boxed into an interface should not be treated as a wrapped handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Box::new(self.clone()) as Box<dyn Node>") &&
+		!strings.Contains(rust, "Box::new(self.clone()) as Box<dyn Node + Send + Sync>") {
+		t.Fatalf("current receiver boxed into an interface should clone self into the trait object:\n%s", rust)
+	}
+}
+
 func TestAppendLenToIntSliceCastsToGoInt(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

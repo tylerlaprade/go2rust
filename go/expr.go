@@ -4731,6 +4731,11 @@ func writeConcreteLocalInterfaceBox(out *strings.Builder, value ast.Expr, interf
 	if typeInfo == nil {
 		return false
 	}
+	if ident, ok := value.(*ast.Ident); ok && isCurrentReceiverIdent(ident) {
+		out.WriteString("Box::new(self.clone()) as ")
+		out.WriteString(rustLocalInterfaceTraitObject(interfaceName))
+		return true
+	}
 	if !typeInfo.IsPointer(value) {
 		if ident, ok := value.(*ast.Ident); ok && ident.Name != "_" {
 			out.WriteString("Box::new((*")
