@@ -711,6 +711,30 @@ func classify() string {
 	}
 }
 
+func TestSwitchOnWrappedUintptrFieldUnwrapsFieldHandleOnce(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type arrayType struct {
+	Len uintptr
+}
+
+func classify(a *arrayType) int {
+	switch a.Len {
+	case 0:
+		return 1
+	}
+	return 2
+}
+`)
+
+	if strings.Contains(rust, "let __v = (*{ let __field = (*a.borrow().as_ref().unwrap()).len.clone(); __field }.borrow().as_ref().unwrap())") {
+		t.Fatalf("switch tag field should not unwrap the field before borrowing its handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __v = (*a.borrow().as_ref().unwrap()).len.clone()") {
+		t.Fatalf("switch tag field should clone the wrapped field handle before borrowing:\n%s", rust)
+	}
+}
+
 func TestNoTypeInfoLocalConstByteFieldAssignmentDoesNotSynthesizeCast(t *testing.T) {
 	src := `package main
 

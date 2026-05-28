@@ -4005,7 +4005,8 @@ func writeSwitchWrappedFieldValue(out *strings.Builder, expr ast.Expr) bool {
 		types.UntypedString, types.UntypedBool,
 		types.UntypedInt, types.UntypedRune, types.UntypedFloat:
 		out.WriteString("{ let __v = ")
-		TranspileExpression(out, expr)
+		TranspileExpressionContext(out, expr, LValue)
+		out.WriteString(".clone()")
 		out.WriteString("; let __owned = (*__v")
 		WriteBorrowMethod(out, false)
 		out.WriteString(".as_ref().unwrap()).clone(); __owned }")
