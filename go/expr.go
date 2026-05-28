@@ -9699,7 +9699,10 @@ func writeUnsafePointerIndexedElementAddress(out *strings.Builder, indexExpr *as
 		return false
 	}
 	out.WriteString("{ let __seq_holder = ")
-	if _, _, ok := namedSliceTypeForExpr(indexExpr.X); ok {
+	if pointerArray, ok := pointerToArrayDerefOperand(indexExpr.X, typeInfo); ok {
+		TranspileExpressionContext(out, pointerArray, LValue)
+		out.WriteString(".clone()")
+	} else if _, _, ok := namedSliceTypeForExpr(indexExpr.X); ok {
 		writeNamedSliceInnerHandleClone(out, indexExpr.X)
 	} else {
 		TranspileExpressionContext(out, indexExpr.X, LValue)
@@ -9711,6 +9714,23 @@ func writeUnsafePointerIndexedElementAddress(out *strings.Builder, indexExpr *as
 	writeExpressionAsUsize(out, indexExpr.Index)
 	out.WriteString("] as *const _ as usize }")
 	return true
+}
+
+func pointerToArrayDerefOperand(expr ast.Expr, typeInfo *TypeInfo) (ast.Expr, bool) {
+	expr = unwrapParens(expr)
+	var operand ast.Expr
+	switch e := expr.(type) {
+	case *ast.UnaryExpr:
+		if e.Op == token.MUL {
+			operand = unwrapParens(e.X)
+		}
+	case *ast.StarExpr:
+		operand = unwrapParens(e.X)
+	}
+	if operand == nil || typeInfo == nil || !typeInfo.IsPointerToArray(operand) {
+		return nil, false
+	}
+	return operand, true
 }
 
 func writeExternalIntegerTupleField(out *strings.Builder, typ types.Type) {

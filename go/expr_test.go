@@ -1763,6 +1763,24 @@ func (r *regs) addr(i int) uintptr {
 	}
 }
 
+func TestUnsafePointerAddressOfPointerToArrayElementBorrowsPointerArray(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "unsafe"
+
+func addr(values *[4]uint64, i int) uintptr {
+	return uintptr(unsafe.Pointer(&(*values)[i]))
+}
+`)
+
+	if strings.Contains(rust, "let __seq_holder = ({ let __v = (*values") {
+		t.Fatalf("unsafe.Pointer(&(*arrayPtr)[index]) should not clone the array before borrowing its element:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __seq_holder = values.clone(); let __seq_guard = __seq_holder.borrow(); &__seq_guard.as_ref().unwrap()[") {
+		t.Fatalf("unsafe.Pointer(&(*arrayPtr)[index]) should borrow the pointer's array payload:\n%s", rust)
+	}
+}
+
 func TestUnsafePointerToNamedStructConversionDoesNotExposeRawPointerToSelector(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
