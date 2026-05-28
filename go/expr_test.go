@@ -534,6 +534,26 @@ func add(valueStart []int, steps []string) []int {
 	}
 }
 
+func TestAppendRangeIndexToIntSliceCastsToGoInt(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func indexes(values []string) []int {
+	var out []int
+	for i := range values {
+		out = append(out, i)
+	}
+	return out
+}
+`)
+
+	if strings.Contains(rust, ".push(i)") {
+		t.Fatalf("append range index to []int should not push usize directly:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".push(i as i32)") {
+		t.Fatalf("append range index to []int should cast usize to Go int:\n%s", rust)
+	}
+}
+
 func TestAppendLocalInterfaceHandleKeepsWrappedValue(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

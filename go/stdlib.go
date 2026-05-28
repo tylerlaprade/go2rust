@@ -3474,6 +3474,9 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 					if writeLenCapCallArgumentForExpectedType(out, expr, elemType) {
 						return
 					}
+					if writeRangeIndexForExpectedType(out, expr, elemType) {
+						return
+					}
 					if writeBareFixedArrayCompositeLiteral(out, expr, elemType) {
 						return
 					}
