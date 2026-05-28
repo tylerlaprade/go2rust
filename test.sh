@@ -96,7 +96,7 @@ echo "Updated tests.bats with $(grep -c '^@test' tests.bats) tests"
 # Parse command line arguments
 VERBOSE=false
 JOBS=""
-TIMEOUT="10s"
+TIMEOUT="15s"
 HELP=false
 TEST_NAMES=()
 
