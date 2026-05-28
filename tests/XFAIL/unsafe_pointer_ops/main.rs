@@ -31,11 +31,11 @@ fn main() {
     let mut p = Arc::new(Mutex::new(Some(Point { x: Arc::new(Mutex::new(Some(10 as i32))), y: Arc::new(Mutex::new(Some(20 as i32))), ..Default::default() })));
 
         // Get pointer to X field
-    let mut xPtr = Arc::new(Mutex::new({ let __ptr = Arc::new(Mutex::new(Some(Arc::as_ptr(&p) as usize))); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<i32>(unimplemented!("unsafe.Pointer conversion to i32")) } }));
+    let mut xPtr = Arc::new(Mutex::new({ let __ptr = Arc::new(Mutex::new(Some(Arc::as_ptr(&p) as usize))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<i32>(unimplemented!("unsafe.Pointer conversion to i32")) } }));
     print!("X via unsafe: {}\n", { let __v = (*xPtr.lock().unwrap().as_ref().unwrap()).clone(); __v });
 
         // Get pointer to Y field
-    let mut yPtr = Arc::new(Mutex::new({ let __ptr = Arc::new(Mutex::new(Some({ let __tmp_x = (*Arc::new(Mutex::new(Some((*Arc::new(Mutex::new(Some(Arc::as_ptr(&p) as usize))).lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = (*Arc::new(Mutex::new(Some::<usize>(unimplemented!("unsafe.Offsetof requires struct layout support")))).lock().unwrap().as_ref().unwrap()) as usize; __tmp_x + __tmp_y }))); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<i32>(unimplemented!("unsafe.Pointer conversion to i32")) } }));
+    let mut yPtr = Arc::new(Mutex::new({ let __ptr = Arc::new(Mutex::new(Some({ let __tmp_x = (*Arc::new(Mutex::new(Some((*Arc::new(Mutex::new(Some(Arc::as_ptr(&p) as usize))).lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = (*Arc::new(Mutex::new(Some::<usize>(unimplemented!("unsafe.Offsetof requires struct layout support")))).lock().unwrap().as_ref().unwrap()) as usize; __tmp_x + __tmp_y }))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<i32>(unimplemented!("unsafe.Pointer conversion to i32")) } }));
     print!("Y via unsafe: {}\n", { let __v = (*yPtr.lock().unwrap().as_ref().unwrap()).clone(); __v });
 
         // Size and alignment

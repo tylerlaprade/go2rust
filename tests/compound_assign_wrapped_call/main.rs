@@ -11,6 +11,6 @@ fn main() {
     });
 
     let mut hash: Arc<Mutex<Option<u32>>> = Arc::new(Mutex::new(Some(7)));
-    { let __rhs = bump(Arc::new(Mutex::new(Some(2)))); let mut guard = hash.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
+    { let __rhs = bump(Arc::new(Mutex::new(Some(2 as u32)))); let mut guard = hash.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     println!("{}", format!("{}", { let __v = (*hash.lock().unwrap().as_ref().unwrap()).clone(); __v }));
 }

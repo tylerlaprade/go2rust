@@ -368,8 +368,8 @@ pub fn strip(mut mode: Rc<RefCell<Option<LoadMode>>>) -> Rc<RefCell<Option<Strin
 
 fn main() {
     __go_init_all();
-    println!("{}", format!("{}", (*strip(Rc::new(RefCell::new(Some(LoadMode(Rc::new(RefCell::new(Some(NEED_NAME as i32 | NEED_IMPORTS as i32)))))))).borrow().as_ref().unwrap())));
-    println!("{}", format!("{}", (*strip(Rc::new(RefCell::new(Some(LoadMode(Rc::new(RefCell::new(Some(NEED_FILES as i32 | (8 as i32))))))))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*strip(Rc::new(RefCell::new(Some(LoadMode(Rc::new(RefCell::new(Some(NEED_NAME as i32 | NEED_IMPORTS as i32 as i32)))))))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*strip(Rc::new(RefCell::new(Some(LoadMode(Rc::new(RefCell::new(Some(NEED_FILES as i32 | (8 as i32) as i32)))))))).borrow().as_ref().unwrap())));
 }
 
 #[derive(Debug, Clone)]
