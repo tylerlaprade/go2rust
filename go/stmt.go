@@ -4724,64 +4724,118 @@ func rhsEmittedRustCast(rhs ast.Expr) string {
 	return ""
 }
 
+type mutexReceiverInfo struct {
+	expr   ast.Expr
+	fields []string
+}
+
 // mutexLockReceiver returns the receiver for a Lock() call on a sync.Mutex field.
-func mutexLockReceiver(expr ast.Expr) (ast.Expr, bool) {
-	call, ok := expr.(*ast.CallExpr)
-	if !ok {
-		return nil, false
-	}
-	sel, ok := call.Fun.(*ast.SelectorExpr)
-	if !ok || sel.Sel.Name != "Lock" {
-		return nil, false
-	}
-	// Check if the receiver field is a sync.Mutex
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return nil, false
-	}
-	fieldType := typeInfo.GetType(sel.X)
-	if fieldType == nil {
-		return nil, false
-	}
-	if named, ok := fieldType.(*types.Named); ok {
-		if named.Obj() != nil && named.Obj().Pkg() != nil && named.Obj().Pkg().Name() == "sync" && named.Obj().Name() == "Mutex" {
-			return sel.X, true
-		}
-	}
-	return nil, false
+func mutexLockReceiver(expr ast.Expr) (mutexReceiverInfo, bool) {
+	return syncMutexMethodReceiver(expr, "Lock")
 }
 
-func mutexUnlockReceiver(expr ast.Expr) (ast.Expr, bool) {
+func mutexUnlockReceiver(expr ast.Expr) (mutexReceiverInfo, bool) {
+	return syncMutexMethodReceiver(expr, "Unlock")
+}
+
+func syncMutexMethodReceiver(expr ast.Expr, methodName string) (mutexReceiverInfo, bool) {
 	call, ok := expr.(*ast.CallExpr)
 	if !ok {
-		return nil, false
+		return mutexReceiverInfo{}, false
 	}
 	sel, ok := call.Fun.(*ast.SelectorExpr)
-	if !ok || sel.Sel.Name != "Unlock" {
-		return nil, false
+	if !ok || sel.Sel.Name != methodName {
+		return mutexReceiverInfo{}, false
 	}
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil {
-		return nil, false
+		return mutexReceiverInfo{}, false
 	}
 	fieldType := typeInfo.GetType(sel.X)
-	if fieldType == nil {
-		return nil, false
+	if isSyncMutexType(fieldType) {
+		return mutexReceiverInfo{expr: sel.X}, true
 	}
-	if named, ok := fieldType.(*types.Named); ok {
-		if named.Obj() != nil && named.Obj().Pkg() != nil && named.Obj().Pkg().Name() == "sync" && named.Obj().Name() == "Mutex" {
-			return sel.X, true
-		}
+	if typeInfo.info == nil {
+		return mutexReceiverInfo{}, false
 	}
-	return nil, false
+	selection := typeInfo.info.Selections[sel]
+	if selection == nil {
+		return mutexReceiverInfo{}, false
+	}
+	fn, ok := selection.Obj().(*types.Func)
+	if !ok || fn.Name() != methodName {
+		return mutexReceiverInfo{}, false
+	}
+	sig, ok := fn.Type().(*types.Signature)
+	if !ok || sig.Recv() == nil || !isSyncMutexType(sig.Recv().Type()) {
+		return mutexReceiverInfo{}, false
+	}
+	indexes := selection.Index()
+	if len(indexes) < 2 {
+		return mutexReceiverInfo{}, false
+	}
+	fields, ok := promotedMutexFieldPath(selection.Recv(), indexes[:len(indexes)-1])
+	if !ok {
+		return mutexReceiverInfo{}, false
+	}
+	return mutexReceiverInfo{expr: sel.X, fields: fields}, true
 }
 
-func mutexReceiverKey(expr ast.Expr) (string, bool) {
+func isSyncMutexType(typ types.Type) bool {
+	if typ == nil {
+		return false
+	}
+	if ptr, ok := types.Unalias(typ).(*types.Pointer); ok {
+		typ = ptr.Elem()
+	}
+	named, ok := types.Unalias(typ).(*types.Named)
+	return ok && named.Obj() != nil && named.Obj().Pkg() != nil &&
+		named.Obj().Pkg().Path() == "sync" && named.Obj().Name() == "Mutex"
+}
+
+func promotedMutexFieldPath(recv types.Type, indexes []int) ([]string, bool) {
+	var fields []string
+	current := recv
+	for _, index := range indexes {
+		if ptr, ok := types.Unalias(current).(*types.Pointer); ok {
+			current = ptr.Elem()
+		}
+		structType, ok := types.Unalias(current).Underlying().(*types.Struct)
+		if !ok || index < 0 || index >= structType.NumFields() {
+			return nil, false
+		}
+		field := structType.Field(index)
+		fields = append(fields, ToSnakeCase(field.Name()))
+		current = field.Type()
+	}
+	return fields, len(fields) > 0
+}
+
+func mutexReceiverKey(receiver mutexReceiverInfo) (string, bool) {
 	var buf bytes.Buffer
-	if format.Node(&buf, token.NewFileSet(), expr) != nil {
+	if format.Node(&buf, token.NewFileSet(), receiver.expr) != nil {
 		return "", false
 	}
+	for _, field := range receiver.fields {
+		buf.WriteByte('.')
+		buf.WriteString(field)
+	}
 	return buf.String(), true
+}
+
+func writeMutexReceiver(out *strings.Builder, receiver mutexReceiverInfo) {
+	if len(receiver.fields) == 0 {
+		TranspileExpressionContext(out, receiver.expr, LValue)
+		return
+	}
+	out.WriteString("(*")
+	TranspileExpressionContext(out, receiver.expr, LValue)
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap())")
+	for _, field := range receiver.fields {
+		out.WriteString(".")
+		out.WriteString(field)
+	}
 }
 
 func cloneMutexGuards(guards map[string]string) map[string]string {
@@ -4818,7 +4872,7 @@ func writeMutexLockStatement(out *strings.Builder, expr ast.Expr) bool {
 	out.WriteString("let ")
 	out.WriteString(sourceName)
 	out.WriteString(" = ")
-	TranspileExpressionContext(out, receiver, LValue)
+	writeMutexReceiver(out, receiver)
 	out.WriteString(".clone(); ")
 	out.WriteString("let ")
 	out.WriteString(guardName)
@@ -4857,20 +4911,8 @@ func isMutexUnlockDefer(call *ast.CallExpr) bool {
 	if !ok || sel.Sel.Name != "Unlock" {
 		return false
 	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return false
-	}
-	fieldType := typeInfo.GetType(sel.X)
-	if fieldType == nil {
-		return false
-	}
-	if named, ok := fieldType.(*types.Named); ok {
-		if named.Obj() != nil && named.Obj().Pkg() != nil && named.Obj().Pkg().Name() == "sync" && named.Obj().Name() == "Mutex" {
-			return true
-		}
-	}
-	return false
+	_, ok = syncMutexMethodReceiver(call, "Unlock")
+	return ok
 }
 
 // channelElementIsGoError reports whether a channel expression carries Go error values.

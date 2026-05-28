@@ -428,6 +428,34 @@ var Holder struct {
 	}
 }
 
+func TestAnonymousStructEmbeddedMutexPromotedLockUsesMutexField(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "sync"
+
+var cache struct {
+	sync.Mutex
+	n int
+}
+
+func lockCache() {
+	cache.Lock()
+	defer cache.Unlock()
+}
+`)
+
+	if strings.Contains(rust, ".as_mut().unwrap()).lock()") ||
+		strings.Contains(rust, ".as_mut().unwrap()).unlock()") {
+		t.Fatalf("promoted sync.Mutex methods on anonymous structs should not call methods on the outer struct:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".mutex.clone(); let __mutex_guard_") {
+		t.Fatalf("promoted sync.Mutex Lock should acquire the embedded mutex field:\n%s", rust)
+	}
+	if !strings.Contains(rust, "// mu.Unlock() handled by RAII guard") {
+		t.Fatalf("promoted sync.Mutex deferred Unlock should be handled by the active guard:\n%s", rust)
+	}
+}
+
 func TestTranspileConstDeclUsesPackageVisibility(t *testing.T) {
 	var out strings.Builder
 	TranspileConstDecl(&out, &ast.GenDecl{
