@@ -346,9 +346,30 @@ func writeConstAssignmentValue(out *strings.Builder, lhs ast.Expr, rhs ast.Expr)
 	}
 	expected := typeInfo.GetType(lhs)
 	if expected == nil {
+		if ident, ok := lhs.(*ast.Ident); ok {
+			if obj := typeInfo.GetObject(ident); obj != nil {
+				expected = obj.Type()
+			}
+		}
+	}
+	if expected == nil {
 		return false
 	}
 	return writeConstExpressionForExpectedGoType(out, rhs, expected)
+}
+
+func writeWrappedConstVarInitializer(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
+	if _, ok := rhs.(*ast.BasicLit); ok {
+		return false
+	}
+	var raw strings.Builder
+	if !writeConstAssignmentValue(&raw, lhs, rhs) {
+		return false
+	}
+	WriteWrapperPrefix(out)
+	out.WriteString(raw.String())
+	WriteWrapperSuffix(out)
+	return true
 }
 
 func writeRangeIndexAssignmentValue(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
@@ -7403,6 +7424,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									// Concurrent map fields are map handles; clone the handle.
 								} else if writeSliceSelectorHandleClone(out, valueSpec.Values[i]) {
 									// Slice fields are already wrapped handles; clone the handle.
+								} else if valueSpec.Type != nil && writeWrappedConstVarInitializer(out, name, valueSpec.Values[i]) {
+									// Typed const initializers are cast through the LHS type from go/types.
 								} else if ident, ok := valueSpec.Values[i].(*ast.Ident); ok {
 									isInterface := false
 									if valueSpec.Type != nil {

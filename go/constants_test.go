@@ -181,6 +181,22 @@ const (
 	}
 }
 
+func TestTypedVarInitializerCastsUntypedConstPeer(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+const PrimeRK = 16777619
+
+func hash() uint32 {
+	var pow, sq uint32 = 1, PrimeRK
+	return pow + sq
+}
+`)
+
+	if !strings.Contains(rust, "Some(PRIME_R_K as u32)") {
+		t.Fatalf("typed uint32 var initializer should cast untyped const to the LHS type:\n%s", rust)
+	}
+}
+
 func TestNoTypeInfoPackageConstDoesNotUseGlobalPath(t *testing.T) {
 	prevTypeInfo := currentTypeInfo
 	prevPackageConstants := packageConstants
