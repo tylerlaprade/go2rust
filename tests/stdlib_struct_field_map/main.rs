@@ -352,6 +352,6 @@ fn main() {
     let mut file = Rc::new(RefCell::new(Some(ast_File { ..Default::default() })));
     let mut info = Rc::new(RefCell::new(Some(types_Info { file_versions: Rc::new(RefCell::new(Some(BTreeMap::<GoLocalPtrKey<ast_File>, Rc<RefCell<Option<String>>>>::from([(GoLocalPtrKey::new(file.clone()), Rc::new(RefCell::new(Some("go1.22".to_string()))))])))), ..Default::default() })));
     let _ = Rc::new(RefCell::new(Some(types_Info { instances: Rc::new(RefCell::new(Some(BTreeMap::<GoLocalPtrKey<ast_Ident>, Rc<RefCell<Option<types_Instance>>>>::from([])))), implicits: Rc::new(RefCell::new(Some(BTreeMap::<ast_Node, Rc<RefCell<Option<types_Object>>>>::from([])))), scopes: Rc::new(RefCell::new(Some(BTreeMap::<ast_Node, Rc<RefCell<Option<types_Scope>>>>::from([])))), ..Default::default() })));
-    let _ = Rc::new(RefCell::new(Some(ast_ChanType { dir: Rc::new(RefCell::new(Some(ast_ChanDir(ast::S_E_N_D as i32)))), ..Default::default() })));
+    let _ = Rc::new(RefCell::new(Some(ast_ChanType { dir: Rc::new(RefCell::new(Some(ast::S_E_N_D))), ..Default::default() })));
     println!("{}", format!("{}", (*version(info.clone(), file.clone()).borrow().as_ref().unwrap())));
 }

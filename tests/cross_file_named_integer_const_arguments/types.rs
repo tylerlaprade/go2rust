@@ -649,6 +649,6 @@ impl Encoder {
     }
 
     pub fn call_sync(&self) -> i32 {
-        self.sync(Rc::new(RefCell::new(Some(SyncMarker(Rc::new(RefCell::new(Some(SYNC_BOOL as i32))))))))
+        self.sync(Rc::new(RefCell::new(Some(SYNC_BOOL))))
     }
 }

@@ -137,15 +137,15 @@ pub mod types {
 
 
 pub fn kind() -> Arc<Mutex<Option<types_BasicKind>>> {
-    Arc::new(Mutex::new(Some(types_BasicKind(types::INT as i32))))
+    Arc::new(Mutex::new(Some(types::INT)))
 }
 
 pub fn dir() -> Arc<Mutex<Option<types_ChanDir>>> {
-    Arc::new(Mutex::new(Some(types_ChanDir(types::SEND_RECV as i32))))
+    Arc::new(Mutex::new(Some(types::SEND_RECV)))
 }
 
 pub fn zero_kind() -> Arc<Mutex<Option<types_BasicKind>>> {
-    Arc::new(Mutex::new(Some(types_BasicKind(0 as i32))))
+    Arc::new(Mutex::new(Some(0)))
 }
 
 pub fn pos_from_int(n: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<token_Pos>>> {
@@ -158,7 +158,7 @@ pub fn int_value() -> i32 {
 
 pub fn kind_name() -> Arc<Mutex<Option<String>>> {
     { let _switch_val = { let __v = kind(); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned };
-    if _switch_val == (types_BasicKind(types::INT as i32)) {
+    if _switch_val == (types::INT) {
             return Arc::new(Mutex::new(Some("int".to_string())));
         } else {
             return Arc::new(Mutex::new(Some("other".to_string())));

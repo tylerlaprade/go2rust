@@ -19,7 +19,7 @@ impl PartialEq for Path {
 
 
 pub fn empty_path() -> Rc<RefCell<Option<Path>>> {
-    Rc::new(RefCell::new(Some(Path(Rc::new(RefCell::new(Some("".to_string())))))))
+    Rc::new(RefCell::new(Some("".to_string())))
 }
 
 pub fn from_string(s: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<Path>>> {

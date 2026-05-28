@@ -10,7 +10,7 @@ pub fn take_reloc(k: Rc<RefCell<Option<RelocKind>>>) -> i32 {
 
 fn main() {
     let mut e: Rc<RefCell<Option<Encoder>>> = Rc::new(RefCell::new(Some(Default::default())));
-    println!("{}", format!("{}", take_reloc(Rc::new(RefCell::new(Some(RelocKind(Rc::new(RefCell::new(Some(RELOC_META as i32))))))))));
-    println!("{}", format!("{}", (*e.borrow().as_ref().unwrap()).sync(Rc::new(RefCell::new(Some(SyncMarker(Rc::new(RefCell::new(Some(SYNC_BOOL as i32))))))))));
+    println!("{}", format!("{}", take_reloc(Rc::new(RefCell::new(Some(RELOC_META))))));
+    println!("{}", format!("{}", (*e.borrow().as_ref().unwrap()).sync(Rc::new(RefCell::new(Some(SYNC_BOOL))))));
     println!("{}", format!("{}", (*e.borrow().as_ref().unwrap()).call_sync()));
 }

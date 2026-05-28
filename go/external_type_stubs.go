@@ -2193,7 +2193,9 @@ func writeIoWriterStub(out *strings.Builder, hasBytesBuffer bool, hasOsFile bool
 		defaultValue = "Arc::new(())"
 	}
 	vecType := wrappedExternalStubType("Vec<u8>")
-	intType := wrappedExternalStubType("i32")
+	// Predeclared Copy scalar return slots stay bare to match the widened
+	// signatures user-defined io.Writer impls and direct callers use.
+	intType := "i32"
 	errorInnerType := externalStubErrorInnerType()
 	errorType := wrappedExternalStubType(errorInnerType)
 	noneError := wrappedExternalStubNoneExpr(errorInnerType)
@@ -2251,7 +2253,7 @@ impl io_Writer {
 
 impl Default for io_Writer {
     fn default() -> Self {
-        Self { __go_id: 0, __go_value: `, intType, errorType, vecType, vecBorrow, wrappedExternalStubExpr("i32", "n"), noneError)
+        Self { __go_id: 0, __go_value: `, intType, errorType, vecType, vecBorrow, "n", noneError)
 	out.WriteString(defaultValue)
 	out.WriteString(` }
     }

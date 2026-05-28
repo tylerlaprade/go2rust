@@ -1,8 +1,8 @@
 [package]
-name = "fprintf_printer_writer_pattern"
+name = "transpiled"
 version = "0.1.0"
 edition = "2021"
 
 [[bin]]
-name = "fprintf_printer_writer_pattern"
+name = "transpiled"
 path = "main.rs"

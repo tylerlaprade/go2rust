@@ -961,7 +961,7 @@ impl Encoder {
     }
 
     pub fn call_sync(&self) -> i32 {
-        self.sync(Rc::new(RefCell::new(Some(SyncMarker(Rc::new(RefCell::new(Some(SYNC_BOOL as i32))))))))
+        self.sync(Rc::new(RefCell::new(Some(SYNC_BOOL))))
     }
 }
 
@@ -975,8 +975,8 @@ pub fn field_enabled(f: Rc<RefCell<Option<Field>>>) -> i32 {
 
 fn main() {
     let mut e: Rc<RefCell<Option<Encoder>>> = Rc::new(RefCell::new(Some(Default::default())));
-    println!("{}", format!("{}", take_reloc(Rc::new(RefCell::new(Some(RelocKind(Rc::new(RefCell::new(Some(RELOC_META as i32))))))))));
-    println!("{}", format!("{}", (*e.borrow().as_ref().unwrap()).sync(Rc::new(RefCell::new(Some(SyncMarker(Rc::new(RefCell::new(Some(SYNC_BOOL as i32))))))))));
+    println!("{}", format!("{}", take_reloc(Rc::new(RefCell::new(Some(RELOC_META))))));
+    println!("{}", format!("{}", (*e.borrow().as_ref().unwrap()).sync(Rc::new(RefCell::new(Some(SYNC_BOOL))))));
     println!("{}", format!("{}", (*e.borrow().as_ref().unwrap()).call_sync()));
-    println!("{}", format!("{}", field_enabled(Rc::new(RefCell::new(Some(Field(Rc::new(RefCell::new(Some(HAS_INIT as i32))))))))));
+    println!("{}", format!("{}", field_enabled(Rc::new(RefCell::new(Some(HAS_INIT))))));
 }

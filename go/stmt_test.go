@@ -931,8 +931,11 @@ func (m *Map) grow() {
 	if strings.Contains(rust, "0..(self.dir_len.clone())") {
 		t.Fatalf("integer range over selector should unwrap the field limit, not iterate over the handle:\n%s", rust)
 	}
-	if !strings.Contains(rust, "*__range_limit") {
-		t.Fatalf("integer range over selector should use an unwrapped range limit:\n%s", rust)
+	if !strings.Contains(rust, "let __range_value = { let __range_guard = __range_limit") {
+		t.Fatalf("integer range over selector should borrow the cloned field handle in an inner block:\n%s", rust)
+	}
+	if !strings.Contains(rust, "}; __range_value }") {
+		t.Fatalf("integer range over selector should return an owned range limit after the borrow ends:\n%s", rust)
 	}
 	if !strings.Contains(rust, "self.dir_len.clone()") {
 		t.Fatalf("integer range over selector should clone the field handle before borrowing:\n%s", rust)

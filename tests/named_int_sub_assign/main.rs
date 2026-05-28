@@ -362,7 +362,7 @@ impl std::fmt::Display for Comment {
 
 
 fn main() {
-    let mut spans = Rc::new(RefCell::new(Some(vec![Span { start: Rc::new(RefCell::new(Some(Pos(Rc::new(RefCell::new(Some(10 as i32))))))), end: Rc::new(RefCell::new(Some(Pos(Rc::new(RefCell::new(Some(20 as i32))))))), ..Default::default() }, Span { start: Rc::new(RefCell::new(Some(Pos(Rc::new(RefCell::new(Some(30 as i32))))))), end: Rc::new(RefCell::new(Some(Pos(Rc::new(RefCell::new(Some(40 as i32))))))), ..Default::default() }])));
+    let mut spans = Rc::new(RefCell::new(Some(vec![Span { start: Rc::new(RefCell::new(Some(10))), end: Rc::new(RefCell::new(Some(20))), ..Default::default() }, Span { start: Rc::new(RefCell::new(Some(30))), end: Rc::new(RefCell::new(Some(40))), ..Default::default() }])));
     let mut c = Rc::new(RefCell::new(Some(Comment { slash: Rc::new(RefCell::new(Some(Default::default()))) })));
     for i in 0..({ let __range_holder = spans.clone(); let __range_guard = __range_holder.borrow(); __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) {
         { let new_val = (*(*spans.borrow().as_ref().unwrap())[(i) as usize].clone().start.borrow().as_ref().unwrap()).clone() - Pos(Rc::new(RefCell::new(Some(1 as i32)))); *(*c.borrow().as_ref().unwrap()).slash.borrow_mut() = Some(new_val); };

@@ -29,6 +29,6 @@ impl Writer {
 }
 
 fn main() {
-    println!("{}", format!("{}", (Writer {  }).code(Rc::new(RefCell::new(Some(Box::new(CodeVal(Rc::new(RefCell::new(Some(VAL_BOOL as i32))))) as Box<dyn Code>))))));
-    println!("{}", format!("{}", (Writer {  }).code(Rc::new(RefCell::new(Some(Box::new(CodeVal(Rc::new(RefCell::new(Some(VAL_STRING as i32))))) as Box<dyn Code>))))));
+    println!("{}", format!("{}", (Writer {  }).code(Rc::new(RefCell::new(Some(Box::new(VAL_BOOL) as Box<dyn Code>))))));
+    println!("{}", format!("{}", (Writer {  }).code(Rc::new(RefCell::new(Some(Box::new(VAL_STRING) as Box<dyn Code>))))));
 }

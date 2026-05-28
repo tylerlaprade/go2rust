@@ -515,9 +515,9 @@ func writeIntegerRangeLimit(out *strings.Builder, expr ast.Expr) {
 	if typeInfo != nil && typeInfo.ReturnsWrappedValue(expr) {
 		out.WriteString("{ let __range_limit = ")
 		TranspileExpressionContext(out, expr, LValue)
-		out.WriteString(".clone(); (*__range_limit")
+		out.WriteString(".clone(); let __range_value = { let __range_guard = __range_limit")
 		WriteBorrowMethod(out, false)
-		out.WriteString(".as_ref().unwrap()).clone() }")
+		out.WriteString("; (*__range_guard.as_ref().unwrap()).clone() }; __range_value }")
 		return
 	}
 	writeUnwrappedRangeTarget(out, expr)
