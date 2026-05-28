@@ -985,6 +985,28 @@ func shift(ctrls ctrlGroup) ctrlGroup {
 	}
 }
 
+func TestShiftLeftUntypedConstantDoesNotUseCountType(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type table struct {
+	localDepth uint8
+}
+
+type Map struct {
+	globalDepth uint8
+}
+
+func (m *Map) entries(nt *table) int {
+	entries := 1 << (m.globalDepth - nt.localDepth)
+	return entries
+}
+`)
+
+	if strings.Contains(rust, "1 as u8 <<") {
+		t.Fatalf("left operand of shift should not be cast to the shift count type:\n%s", rust)
+	}
+}
+
 func TestNamedIntegerAssignmentUsesRawNamedValue(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

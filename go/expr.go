@@ -148,6 +148,26 @@ func writeNamedIntegerPrimitiveOperand(out *strings.Builder, expr ast.Expr) {
 	TranspileExpression(out, expr)
 }
 
+func writeConstShiftLeftOperandForResult(out *strings.Builder, expr ast.Expr, shift *ast.BinaryExpr) bool {
+	if shift == nil || (shift.Op != token.SHL && shift.Op != token.SHR) || expr != shift.X {
+		return false
+	}
+	if !isConstantExpression(expr) {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	if resultType := typeInfo.GetType(shift); resultType != nil {
+		if writeConstExpressionForExpectedGoType(out, expr, resultType) {
+			return true
+		}
+	}
+	TranspileExpression(out, expr)
+	return true
+}
+
 func writeNamedIntegerBitwiseExpression(out *strings.Builder, expr *ast.BinaryExpr) bool {
 	switch expr.Op {
 	case token.AND, token.OR, token.XOR:
@@ -7388,7 +7408,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					// Embedded fields (no names)
 					if len(field.Names) == 0 {
 						typeName := getEmbeddedFieldName(field.Type)
-						if !initializedFields[typeName] {
+						if !initializedFields[ToSnakeCase(typeName)] {
 							if _, isStruct := structDefs[typeName]; isStruct {
 								hasStructFields = true
 							}
@@ -7437,7 +7457,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 						} else {
 							// Embedded field
 							typeName := getEmbeddedFieldName(field.Type)
-							if !initializedFields[typeName] {
+							if !initializedFields[ToSnakeCase(typeName)] {
 								if wroteFields {
 									out.WriteString(", ")
 								}
