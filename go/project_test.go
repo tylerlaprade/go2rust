@@ -1491,6 +1491,45 @@ func main() {
 	}
 }
 
+func TestCrossFileMethodImplQualifiesReceiverType(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "defs.go"), `package main
+
+type flag uintptr
+`)
+	writeTestFile(t, filepath.Join(tempDir, "methods.go"), `package main
+
+func (f flag) PanicNotMap() {
+}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+func main() {
+}
+`)
+
+	generator := NewProjectGenerator([]string{
+		filepath.Join(tempDir, "defs.go"),
+		filepath.Join(tempDir, "methods.go"),
+		filepath.Join(tempDir, "main.go"),
+	})
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	methodsRS := mustReadFile(t, filepath.Join(tempDir, "methods.rs"))
+	if strings.Contains(methodsRS, "\nimpl flag {") {
+		t.Fatalf("cross-file method impl should not use the unqualified receiver type:\n%s", methodsRS)
+	}
+	if !strings.Contains(methodsRS, "impl crate::defs::flag {") {
+		t.Fatalf("cross-file method impl should qualify the receiver type's defining module:\n%s", methodsRS)
+	}
+}
+
 func TestAppendPointerReturnKeepsHandle(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod

@@ -1597,6 +1597,60 @@ func registerPackageTypeFactsFromFiles(files []*ast.File) {
 	registerPackageStructDefsFromFiles(files)
 }
 
+func registerPackageTypeModuleNames(pkgState *PackageState, files []*ast.File, moduleNamesByIndex []string) {
+	if pkgState == nil {
+		return
+	}
+	if pkgState.TypeModuleNames == nil {
+		pkgState.TypeModuleNames = make(map[string]string)
+	}
+	for i, file := range files {
+		if file == nil || i >= len(moduleNamesByIndex) {
+			continue
+		}
+		moduleName := moduleNamesByIndex[i]
+		if moduleName == "" {
+			continue
+		}
+		registerPackageTypeModuleNamesForFile(pkgState, file, moduleName)
+	}
+}
+
+func registerPackageTypeModuleNamesForFile(pkgState *PackageState, file *ast.File, moduleName string) {
+	if pkgState == nil || file == nil || moduleName == "" {
+		return
+	}
+	if pkgState.TypeModuleNames == nil {
+		pkgState.TypeModuleNames = make(map[string]string)
+	}
+	for _, decl := range file.Decls {
+		genDecl, ok := decl.(*ast.GenDecl)
+		if !ok || genDecl.Tok != token.TYPE {
+			continue
+		}
+		for _, spec := range genDecl.Specs {
+			typeSpec, ok := spec.(*ast.TypeSpec)
+			if !ok || typeSpec.Name == nil {
+				continue
+			}
+			pkgState.TypeModuleNames[typeSpec.Name.Name] = moduleName
+		}
+	}
+}
+
+func rustImplTypeNameForUse(typeName string) string {
+	rustTypeName := RustTypeNameForUse(typeName)
+	ctx := GetTranspileContext()
+	if ctx == nil || ctx.Package == nil || ctx.CurrentModuleName == "" {
+		return rustTypeName
+	}
+	moduleName := ctx.Package.TypeModuleNames[typeName]
+	if moduleName == "" || moduleName == ctx.CurrentModuleName {
+		return rustTypeName
+	}
+	return "crate::" + moduleName + "::" + rustTypeName
+}
+
 // registerPackageStructDefsFromFiles populates structDefs for every struct type
 // declared across the package's files before any file is emitted. Per-file
 // registration (in TranspileWithMapping) only sees types from the current file,

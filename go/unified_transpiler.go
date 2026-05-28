@@ -334,11 +334,12 @@ func (ut *UnifiedTranspiler) transpilePackage(pkg *PackageInfo) error {
 	pkgState.FunctionNameOverrides = assignPackageFunctionNames(pkg.ASTFiles)
 	pkgState.MethodNameOverrides = assignPackageMethodNames(pkg.ASTFiles, ut.globalTypeInfo)
 	pkgState.MethodsByType = collectPackageMethods(pkg.ASTFiles)
-	SetTranspileContext(&TranspileContext{
+	runCtx := &TranspileContext{
 		Session:        NewTranspileSession(ut.globalTypeInfo, ut.packageMapping),
 		Package:        pkgState,
 		PackageMapping: ut.packageMapping,
-	})
+	}
+	SetTranspileContext(runCtx)
 	defer SetTranspileContext(parentCtx)
 	registerPackageTypeFactsFromFiles(pkg.ASTFiles)
 	registerFunctionSignaturesFromFiles(pkg.ASTFiles)
@@ -359,6 +360,7 @@ func (ut *UnifiedTranspiler) transpilePackage(pkg *PackageInfo) error {
 		moduleNamesByIndex[i] = moduleName
 		modules = append(modules, moduleName)
 	}
+	registerPackageTypeModuleNames(pkgState, pkg.ASTFiles, moduleNamesByIndex)
 
 	// Process each file in the package
 	for i, astFile := range pkg.ASTFiles {
@@ -369,6 +371,7 @@ func (ut *UnifiedTranspiler) transpilePackage(pkg *PackageInfo) error {
 		moduleName := moduleNamesByIndex[i]
 
 		// Transpile the file with shared type info and package mapping
+		runCtx.CurrentModuleName = moduleName
 		rustCode, _, _ := TranspileWithMapping(astFile, ut.fileSet, ut.globalTypeInfo, ut.packageMapping)
 		rustCode = prefixSiblingModuleImports(rustCode, moduleName, modules)
 

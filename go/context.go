@@ -22,6 +22,7 @@ type PackageState struct {
 	InterfaceTypes               map[string]bool
 	TypeDefinitions              map[string]string
 	TypeAliases                  map[string]bool
+	TypeModuleNames              map[string]string
 	FunctionTypeAliases          map[string]bool
 	FunctionTypeAliasBoxTypes    map[string]string
 	MapKeyStructTypes            map[string]bool
@@ -91,6 +92,7 @@ type TranspileContext struct {
 	PackageMapping          map[string]string // Go import path -> Rust crate name
 	UsePackageExternalStubs bool
 	UsePackageHelpers       bool
+	CurrentModuleName       string
 }
 
 func NewTranspileSession(typeInfo *TypeInfo, packageMapping map[string]string) *TranspileSession {
@@ -111,6 +113,7 @@ func NewPackageState() *PackageState {
 		InterfaceTypes:               make(map[string]bool),
 		TypeDefinitions:              make(map[string]string),
 		TypeAliases:                  make(map[string]bool),
+		TypeModuleNames:              make(map[string]string),
 		FunctionTypeAliases:          make(map[string]bool),
 		FunctionTypeAliasBoxTypes:    make(map[string]string),
 		MapKeyStructTypes:            make(map[string]bool),
@@ -231,6 +234,9 @@ func (ctx *TranspileContext) ensureDefaults() {
 		}
 		if ctx.Package.TypeAliases == nil {
 			ctx.Package.TypeAliases = make(map[string]bool)
+		}
+		if ctx.Package.TypeModuleNames == nil {
+			ctx.Package.TypeModuleNames = make(map[string]string)
 		}
 		if ctx.Package.FunctionTypeAliases == nil {
 			ctx.Package.FunctionTypeAliases = make(map[string]bool)
@@ -378,6 +384,9 @@ func (ctx *TranspileContext) captureCompatibilityState() {
 		ctx.Package.InterfaceTypes = interfaceTypes
 		ctx.Package.TypeDefinitions = typeDefinitions
 		ctx.Package.TypeAliases = typeAliases
+		if ctx.Package.TypeModuleNames == nil {
+			ctx.Package.TypeModuleNames = make(map[string]string)
+		}
 		ctx.Package.FunctionTypeAliases = functionTypeAliases
 		ctx.Package.FunctionTypeAliasBoxTypes = functionTypeAliasBoxTypes
 		if ctx.Package.MapKeyStructTypes == nil {

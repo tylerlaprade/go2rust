@@ -1334,6 +1334,7 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 	if parentCtx != nil {
 		ctx.UsePackageExternalStubs = parentCtx.UsePackageExternalStubs
 		ctx.UsePackageHelpers = parentCtx.UsePackageHelpers
+		ctx.CurrentModuleName = parentCtx.CurrentModuleName
 	}
 	SetTranspileContext(ctx)
 	defer SetTranspileContext(parentCtx)
@@ -1598,7 +1599,7 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 		}
 		previousTypeMethods := currentTypeMethods
 		currentTypeMethods = typeMethods
-		rustTypeName := RustTypeNameForUse(typeName)
+		rustTypeName := rustImplTypeNameForUse(typeName)
 		if !first {
 			body.WriteString("\n\n")
 		}

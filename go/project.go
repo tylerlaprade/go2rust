@@ -265,6 +265,21 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 	registerFunctionSignaturesFromFiles(astFiles)
 
 	nonMainModuleNames := pg.nonMainModuleNames(astFilesByPath)
+	for _, filename := range pg.goFiles {
+		file := astFilesByPath[normalizeFilePath(filename)]
+		if file == nil {
+			continue
+		}
+		baseName := strings.TrimSuffix(filepath.Base(filename), ".go")
+		if baseName == "main" && file.Name.Name == "main" {
+			continue
+		}
+		outputName := baseName
+		if pg.hasMainFile() && strings.HasPrefix(baseName, "lib") && strings.TrimLeft(baseName[3:], "_") == "" {
+			outputName = baseName + "_"
+		}
+		registerPackageTypeModuleNamesForFile(packageState, file, outputName)
+	}
 
 	// Ensure we clean up TypeInfo when done
 	defer SetTypeInfo(nil)
@@ -296,10 +311,18 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 			continue
 		}
 
+		// For lib.go in a binary crate, rename to avoid Rust warnings
+		outputName := baseName
+		if pg.hasMainFile() && strings.HasPrefix(baseName, "lib") && strings.TrimLeft(baseName[3:], "_") == "" {
+			outputName = baseName + "_"
+			rustFilename = strings.TrimSuffix(filename, ".go") + "_.rs"
+		}
+
 		var rustCode string
 		var fileImports *ImportTracker
 		var fileExternalPkgs map[string]bool
 
+		runCtx.CurrentModuleName = outputName
 		if pg.packageMapping != nil {
 			rustCode, fileImports, fileExternalPkgs = TranspileWithMapping(file, fileSet, pg.typeInfo, pg.packageMapping)
 		} else {
@@ -319,13 +342,6 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 			for imp := range fileImports.needs {
 				pg.projectImports.Add(imp)
 			}
-		}
-
-		// For lib.go in a binary crate, rename to avoid Rust warnings
-		outputName := baseName
-		if pg.hasMainFile() && strings.HasPrefix(baseName, "lib") && strings.TrimLeft(baseName[3:], "_") == "" {
-			outputName = baseName + "_"
-			rustFilename = strings.TrimSuffix(filename, ".go") + "_.rs"
 		}
 
 		if moduleHasPackageInitAll(rustCode) {

@@ -617,6 +617,7 @@ func (pl *PackageLoader) transpilePackage(pkg *packages.Package) error {
 		pkgCtx.UsePackageHelpers = usePackageHelpers
 	}
 	pkgState.ImportedInterfaceImpls = packageAnalysis.importedInterfaceImpls
+	registerPackageTypeModuleNames(pkgState, pkg.Syntax, moduleNamesByIndex)
 	registerPackageTypeFactsFromFiles(pkg.Syntax)
 	registerFunctionSignaturesFromFiles(pkg.Syntax)
 
@@ -633,6 +634,9 @@ func (pl *PackageLoader) transpilePackage(pkg *packages.Package) error {
 		moduleName := moduleNamesByIndex[i]
 
 		// Transpile with the package's type info and global package mapping
+		if pkgCtx != nil {
+			pkgCtx.CurrentModuleName = moduleName
+		}
 		rustCode, fileImports, _ := TranspileWithMapping(astFile, pkg.Fset, pkgTypeInfo, pl.packageMapping)
 		if fileImports != nil {
 			for imp := range fileImports.needs {
