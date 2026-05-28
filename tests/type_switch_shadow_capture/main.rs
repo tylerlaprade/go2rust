@@ -69,7 +69,7 @@ impl std::fmt::Display for holder {
 
 impl node {
     pub fn value(&self) -> i32 {
-        (*self.value.borrow().as_ref().unwrap())
+        return (*self.value.borrow().as_ref().unwrap());
     }
 }
 

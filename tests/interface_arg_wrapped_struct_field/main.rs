@@ -61,13 +61,13 @@ impl std::fmt::Display for Wrap {
 
 impl Lit {
     pub fn pos(&self) -> i32 {
-        (*self.value.borrow().as_ref().unwrap())
+        return (*self.value.borrow().as_ref().unwrap());
     }
 }
 
 impl Node for Lit {
     fn pos(&self) -> i32 {
-        (*self.value.borrow().as_ref().unwrap())
+        return (*self.value.borrow().as_ref().unwrap());
     }
     fn __go_clone_box_node(&self) -> Box<dyn Node> {
         Box::new(self.clone()) as Box<dyn Node>

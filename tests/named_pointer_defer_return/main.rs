@@ -30,7 +30,7 @@ impl std::fmt::Display for Package {
 
 impl Package {
     pub fn complete(&self) -> bool {
-        (*self.complete.borrow().as_ref().unwrap())
+        return (*self.complete.borrow().as_ref().unwrap());
     }
 }
 

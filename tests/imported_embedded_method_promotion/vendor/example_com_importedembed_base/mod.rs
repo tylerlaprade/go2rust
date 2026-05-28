@@ -393,7 +393,7 @@ impl Decoder {
     }
 
     pub fn snapshot(&self) -> i32 {
-        (*self.value.lock().unwrap().as_ref().unwrap())
+        return (*self.value.lock().unwrap().as_ref().unwrap());
     }
 
     pub fn clone(&self) -> Arc<Mutex<Option<Decoder>>> {

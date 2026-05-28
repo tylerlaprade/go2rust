@@ -206,7 +206,7 @@ pub fn remember(m: Rc<RefCell<Option<BTreeMap<GoLocalPtrKey<types_Package>, Rc<R
         let p = __range_key.value();
         { let new_val = { let __append_target = pkgs.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push(p.clone()); __append_target.clone() }; pkgs = new_val; };
         let objs_closure_clone = objs.clone(); sort::slice(objs_closure_clone.clone(), Rc::new(RefCell::new(Some(Box::new(move |i: Rc<RefCell<Option<i32>>>, j: Rc<RefCell<Option<i32>>>| -> bool {
-        (*(*objs_closure_clone.borrow().as_ref().unwrap())[((*i.borrow().as_ref().unwrap())) as usize].clone().name.borrow().as_ref().unwrap()).clone() < (*(*objs_closure_clone.borrow().as_ref().unwrap())[((*j.borrow().as_ref().unwrap())) as usize].clone().name.borrow().as_ref().unwrap()).clone()
+        return (*(*objs_closure_clone.borrow().as_ref().unwrap())[((*i.borrow().as_ref().unwrap())) as usize].clone().name.borrow().as_ref().unwrap()).clone() < (*(*objs_closure_clone.borrow().as_ref().unwrap())[((*j.borrow().as_ref().unwrap())) as usize].clone().name.borrow().as_ref().unwrap()).clone();
     }) as Box<dyn FnMut(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> bool>))));
         let _ = (*objs.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0);
     }

@@ -111,13 +111,13 @@ impl std::fmt::Display for Circle {
 
 impl Rectangle {
     pub fn area(&self) -> f64 {
-        (*self.width.borrow().as_ref().unwrap()) * (*self.height.borrow().as_ref().unwrap())
+        return (*self.width.borrow().as_ref().unwrap()) * (*self.height.borrow().as_ref().unwrap());
     }
 }
 
 impl Shape for Rectangle {
     fn area(&self) -> f64 {
-        (*self.width.borrow().as_ref().unwrap()) * (*self.height.borrow().as_ref().unwrap())
+        return (*self.width.borrow().as_ref().unwrap()) * (*self.height.borrow().as_ref().unwrap());
     }
     fn __go_clone_box_shape(&self) -> Box<dyn Shape> {
         Box::new(self.clone()) as Box<dyn Shape>

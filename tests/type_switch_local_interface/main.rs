@@ -68,7 +68,7 @@ impl std::fmt::Display for beta {
 
 impl alpha {
     pub fn name(&self) -> Rc<RefCell<Option<String>>> {
-        self.name.clone()
+        return self.name.clone();
     }
 
     pub fn extra(&self) -> Rc<RefCell<Option<String>>> {
@@ -78,7 +78,7 @@ impl alpha {
 
 impl namer for alpha {
     fn name(&self) -> Rc<RefCell<Option<String>>> {
-        self.name.clone()
+        return self.name.clone();
     }
     fn __go_clone_box_namer(&self) -> Box<dyn namer> {
         Box::new(self.clone()) as Box<dyn namer>
@@ -97,13 +97,13 @@ impl namer for alpha {
 
 impl beta {
     pub fn name(&self) -> Rc<RefCell<Option<String>>> {
-        self.name.clone()
+        return self.name.clone();
     }
 }
 
 impl namer for beta {
     fn name(&self) -> Rc<RefCell<Option<String>>> {
-        self.name.clone()
+        return self.name.clone();
     }
     fn __go_clone_box_namer(&self) -> Box<dyn namer> {
         Box::new(self.clone()) as Box<dyn namer>

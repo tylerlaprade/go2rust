@@ -86,13 +86,13 @@ impl std::fmt::Display for Decl {
 
 impl Decl {
     pub fn tag(&self) -> Rc<RefCell<Option<String>>> {
-        self.tag.clone()
+        return self.tag.clone();
     }
 }
 
 impl Node for Decl {
     fn tag(&self) -> Rc<RefCell<Option<String>>> {
-        self.tag.clone()
+        return self.tag.clone();
     }
     fn __go_clone_box_node(&self) -> Box<dyn Node> {
         Box::new(self.clone()) as Box<dyn Node>

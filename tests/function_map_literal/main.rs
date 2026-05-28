@@ -73,7 +73,7 @@ pub fn twice(x: Rc<RefCell<Option<i32>>>) -> i32 {
 }
 
 pub fn read(p: Rc<RefCell<Option<item>>>) -> i32 {
-    (*(*p.borrow().as_ref().unwrap()).value.borrow().as_ref().unwrap())
+    return (*(*p.borrow().as_ref().unwrap()).value.borrow().as_ref().unwrap());
 }
 
 fn __go_init_0() {

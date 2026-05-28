@@ -29,7 +29,7 @@ impl std::fmt::Display for info {
 
 
 pub fn accept(ptr: Rc<RefCell<Option<info>>>) -> Rc<RefCell<Option<String>>> {
-    Rc::new(RefCell::new(Some({ let __selector_holder = (*ptr.borrow().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))
+    return Rc::new(RefCell::new(Some({ let __selector_holder = (*ptr.borrow().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
 }
 
 pub fn r#box(value: Rc<RefCell<Option<Box<dyn Any>>>>) -> Rc<RefCell<Option<Box<dyn Any>>>> {

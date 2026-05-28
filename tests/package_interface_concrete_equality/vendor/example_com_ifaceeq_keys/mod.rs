@@ -52,7 +52,7 @@ fn __go_init_globals() {
 
 impl String_ {
     pub fn name(&self) -> Arc<Mutex<Option<String>>> {
-        self.name.clone()
+        return self.name.clone();
     }
 
     pub fn label(&self) -> Arc<Mutex<Option<example_com_ifaceeq_label::Label>>> {
@@ -62,7 +62,7 @@ impl String_ {
 
 impl example_com_ifaceeq_label::Key for String_ {
     fn name(&self) -> Arc<Mutex<Option<String>>> {
-        self.name.clone()
+        return self.name.clone();
     }
     fn __go_clone_box_key(&self) -> Box<dyn example_com_ifaceeq_label::Key + Send + Sync> {
         Box::new(self.clone()) as Box<dyn example_com_ifaceeq_label::Key + Send + Sync>

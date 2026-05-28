@@ -42,7 +42,7 @@ impl GoJsonDecode for Counter {
 
 impl Counter {
     pub fn total(&self) -> i32 {
-        (*self.value.borrow().as_ref().unwrap()) + (*self.value.borrow().as_ref().unwrap())
+        return (*self.value.borrow().as_ref().unwrap()) + (*self.value.borrow().as_ref().unwrap());
     }
 }
 

@@ -56,7 +56,7 @@ impl std::fmt::Display for Person {
 impl Counter {
     /// Method with value receiver
     pub fn get_value(&self) -> i32 {
-        (*self.value.borrow().as_ref().unwrap())
+        return (*self.value.borrow().as_ref().unwrap());
     }
 
     /// Method with pointer receiver
@@ -71,7 +71,7 @@ impl Counter {
     /// Method with return value
     pub fn double(&mut self) -> i32 {
         { let __target = self.value.clone(); let __rhs = 2; let mut guard = __target.borrow_mut(); *guard = Some(guard.as_ref().unwrap() * __rhs); };
-        (*self.value.borrow().as_ref().unwrap())
+        return (*self.value.borrow().as_ref().unwrap());
     }
 }
 

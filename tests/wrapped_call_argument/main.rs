@@ -33,7 +33,7 @@ impl Box_ {
     }
 
     pub fn r#use(&self, other: Rc<RefCell<Option<Box_>>>) -> i32 {
-        (*(*other.borrow().as_ref().unwrap()).value.borrow().as_ref().unwrap())
+        return (*(*other.borrow().as_ref().unwrap()).value.borrow().as_ref().unwrap());
     }
 }
 

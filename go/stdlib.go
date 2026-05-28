@@ -1934,11 +1934,9 @@ func transpileStringsCut(out *strings.Builder, call *ast.CallExpr) {
 	WriteWrapperPrefix(out)
 	out.WriteString("__after")
 	WriteWrapperSuffix(out)
-	out.WriteString(", ")
-	WriteWrapperPrefix(out)
-	out.WriteString("true")
-	WriteWrapperSuffix(out)
-	out.WriteString(") } else { (")
+	// The Go signature returns `(string, string, bool)` — the bool slot is a
+	// predeclared Copy scalar, so emit it bare to match the widened shape.
+	out.WriteString(", true) } else { (")
 	WriteWrapperPrefix(out)
 	out.WriteString("__s")
 	WriteWrapperSuffix(out)
@@ -1946,11 +1944,7 @@ func transpileStringsCut(out *strings.Builder, call *ast.CallExpr) {
 	WriteWrapperPrefix(out)
 	out.WriteString("String::new()")
 	WriteWrapperSuffix(out)
-	out.WriteString(", ")
-	WriteWrapperPrefix(out)
-	out.WriteString("false")
-	WriteWrapperSuffix(out)
-	out.WriteString(") } }")
+	out.WriteString(", false) } }")
 }
 
 func transpileStringsHasSuffix(out *strings.Builder, call *ast.CallExpr) {

@@ -45,7 +45,7 @@ impl std::fmt::Display for rect {
 
 impl rect {
     pub fn area(&self) -> f64 {
-        (*self.width.borrow().as_ref().unwrap()) * (*self.height.borrow().as_ref().unwrap())
+        return (*self.width.borrow().as_ref().unwrap()) * (*self.height.borrow().as_ref().unwrap());
     }
 
     pub fn perim(&self) -> f64 {
@@ -55,7 +55,7 @@ impl rect {
 
 impl geometry for rect {
     fn area(&self) -> f64 {
-        (*self.width.borrow().as_ref().unwrap()) * (*self.height.borrow().as_ref().unwrap())
+        return (*self.width.borrow().as_ref().unwrap()) * (*self.height.borrow().as_ref().unwrap());
     }
     fn perim(&self) -> f64 {
         2.0 * (*self.width.borrow().as_ref().unwrap()) + 2.0 * (*self.height.borrow().as_ref().unwrap())

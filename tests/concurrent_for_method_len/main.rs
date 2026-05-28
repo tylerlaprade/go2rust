@@ -177,7 +177,7 @@ impl std::fmt::Display for Params {
 
 impl Params {
     pub fn len(&self) -> i32 {
-        (*self.n.lock().unwrap().as_ref().unwrap())
+        return (*self.n.lock().unwrap().as_ref().unwrap());
     }
 
     pub fn at(&self, i: Arc<Mutex<Option<i32>>>) -> i32 {

@@ -43,13 +43,13 @@ impl std::fmt::Display for Impl {
 
 impl Impl {
     pub fn name(&self) -> Rc<RefCell<Option<String>>> {
-        self.name.clone()
+        return self.name.clone();
     }
 }
 
 impl Spec for Impl {
     fn name(&self) -> Rc<RefCell<Option<String>>> {
-        self.name.clone()
+        return self.name.clone();
     }
     fn __go_clone_box_spec(&self) -> Box<dyn Spec> {
         Box::new(self.clone()) as Box<dyn Spec>

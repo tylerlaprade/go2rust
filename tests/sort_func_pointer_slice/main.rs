@@ -29,7 +29,7 @@ impl std::fmt::Display for Item {
 
 impl Item {
     pub fn pos(&self) -> i32 {
-        (*self.pos.borrow().as_ref().unwrap())
+        return (*self.pos.borrow().as_ref().unwrap());
     }
 }
 

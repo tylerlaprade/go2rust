@@ -30,7 +30,7 @@ impl std::fmt::Display for Signature {
 
 impl Signature {
     pub fn recv(&self) -> Rc<RefCell<Option<String>>> {
-        self.name.clone()
+        return self.name.clone();
     }
 }
 

@@ -43,13 +43,13 @@ impl std::fmt::Display for ImportSpec {
 
 impl ImportSpec {
     pub fn label(&self) -> Rc<RefCell<Option<String>>> {
-        self.name.clone()
+        return self.name.clone();
     }
 }
 
 impl Spec for ImportSpec {
     fn label(&self) -> Rc<RefCell<Option<String>>> {
-        self.name.clone()
+        return self.name.clone();
     }
     fn __go_clone_box_spec(&self) -> Box<dyn Spec> {
         Box::new(self.clone()) as Box<dyn Spec>

@@ -56,7 +56,7 @@ impl loader {
 }
 
 pub fn r#use(cfg: Rc<RefCell<Option<Config>>>, patterns: Rc<RefCell<Option<Vec<String>>>>) -> Rc<RefCell<Option<String>>> {
-    Rc::new(RefCell::new(Some(format!("{}{}", format!("{}{}", (*(*cfg.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()).clone(), ":".to_string()), (*patterns.borrow().as_ref().unwrap())[(0) as usize].clone()))))
+    return Rc::new(RefCell::new(Some(format!("{}{}", format!("{}{}", (*(*cfg.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()).clone(), ":".to_string()), (*patterns.borrow().as_ref().unwrap())[(0) as usize].clone()))));
 }
 
 fn main() {

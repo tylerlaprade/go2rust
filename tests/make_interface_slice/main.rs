@@ -68,13 +68,13 @@ impl std::fmt::Display for Dog {
 
 impl Cat {
     pub fn sound(&self) -> Rc<RefCell<Option<String>>> {
-        Rc::new(RefCell::new(Some(format!("{}{}", (*self.name.clone().borrow().as_ref().unwrap()), ": meow".to_string()))))
+        return Rc::new(RefCell::new(Some(format!("{}{}", (*self.name.clone().borrow().as_ref().unwrap()), ": meow".to_string()))));
     }
 }
 
 impl Animal for Cat {
     fn sound(&self) -> Rc<RefCell<Option<String>>> {
-        Rc::new(RefCell::new(Some(format!("{}{}", (*self.name.clone().borrow().as_ref().unwrap()), ": meow".to_string()))))
+        return Rc::new(RefCell::new(Some(format!("{}{}", (*self.name.clone().borrow().as_ref().unwrap()), ": meow".to_string()))));
     }
     fn __go_clone_box_animal(&self) -> Box<dyn Animal> {
         Box::new(self.clone()) as Box<dyn Animal>
@@ -93,13 +93,13 @@ impl Animal for Cat {
 
 impl Dog {
     pub fn sound(&self) -> Rc<RefCell<Option<String>>> {
-        Rc::new(RefCell::new(Some(format!("{}{}", (*self.name.clone().borrow().as_ref().unwrap()), ": woof".to_string()))))
+        return Rc::new(RefCell::new(Some(format!("{}{}", (*self.name.clone().borrow().as_ref().unwrap()), ": woof".to_string()))));
     }
 }
 
 impl Animal for Dog {
     fn sound(&self) -> Rc<RefCell<Option<String>>> {
-        Rc::new(RefCell::new(Some(format!("{}{}", (*self.name.clone().borrow().as_ref().unwrap()), ": woof".to_string()))))
+        return Rc::new(RefCell::new(Some(format!("{}{}", (*self.name.clone().borrow().as_ref().unwrap()), ": woof".to_string()))));
     }
     fn __go_clone_box_animal(&self) -> Box<dyn Animal> {
         Box::new(self.clone()) as Box<dyn Animal>

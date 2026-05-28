@@ -29,7 +29,7 @@ impl std::fmt::Display for label {
 
 impl label {
     pub fn name(&self) -> Rc<RefCell<Option<String>>> {
-        self.name.clone()
+        return self.name.clone();
     }
 }
 

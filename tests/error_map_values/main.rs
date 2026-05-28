@@ -31,7 +31,7 @@ impl std::fmt::Display for customError {
 
 impl customError {
     pub fn error(&self) -> Rc<RefCell<Option<String>>> {
-        self.msg.clone()
+        return self.msg.clone();
     }
 }
 

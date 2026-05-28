@@ -37,7 +37,7 @@ impl item {
     }
 
     pub fn either(&self, y: Rc<RefCell<Option<item>>>) -> bool {
-        (*self.flag.borrow().as_ref().unwrap()) || !(*(*y.borrow().as_ref().unwrap()).flag.borrow().as_ref().unwrap())
+        return (*self.flag.borrow().as_ref().unwrap()) || !(*(*y.borrow().as_ref().unwrap()).flag.borrow().as_ref().unwrap());
     }
 
     pub fn active(&self) -> bool {

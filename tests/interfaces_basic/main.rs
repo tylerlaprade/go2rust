@@ -70,7 +70,7 @@ impl std::fmt::Display for Circle {
 
 impl Rectangle {
     pub fn area(&self) -> f64 {
-        (*self.width.borrow().as_ref().unwrap()) * (*self.height.borrow().as_ref().unwrap())
+        return (*self.width.borrow().as_ref().unwrap()) * (*self.height.borrow().as_ref().unwrap());
     }
 
     pub fn perimeter(&self) -> f64 {
@@ -80,7 +80,7 @@ impl Rectangle {
 
 impl Shape for Rectangle {
     fn area(&self) -> f64 {
-        (*self.width.borrow().as_ref().unwrap()) * (*self.height.borrow().as_ref().unwrap())
+        return (*self.width.borrow().as_ref().unwrap()) * (*self.height.borrow().as_ref().unwrap());
     }
     fn perimeter(&self) -> f64 {
         2.0 * ((*self.width.borrow().as_ref().unwrap()) + (*self.height.borrow().as_ref().unwrap()))

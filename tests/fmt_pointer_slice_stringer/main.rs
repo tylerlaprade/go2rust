@@ -245,7 +245,7 @@ impl std::fmt::Display for Package {
 
 impl Package {
     pub fn string(&self) -> Arc<Mutex<Option<String>>> {
-        self.i_d.clone()
+        return self.i_d.clone();
     }
 }
 

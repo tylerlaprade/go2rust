@@ -29,7 +29,7 @@ impl std::fmt::Display for counter {
 
 impl counter {
     pub fn len(&self) -> i32 {
-        (*self.n.borrow().as_ref().unwrap())
+        return (*self.n.borrow().as_ref().unwrap());
     }
 }
 

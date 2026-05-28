@@ -81,13 +81,13 @@ impl std::fmt::Display for number {
 
 impl counter {
     pub fn read(&self) -> i32 {
-        (*self.n.borrow().as_ref().unwrap())
+        return (*self.n.borrow().as_ref().unwrap());
     }
 }
 
 impl Reader for counter {
     fn read(&self) -> i32 {
-        (*self.n.borrow().as_ref().unwrap())
+        return (*self.n.borrow().as_ref().unwrap());
     }
     fn __go_clone_box_reader(&self) -> Box<dyn Reader> {
         Box::new(self.clone()) as Box<dyn Reader>
@@ -106,13 +106,13 @@ impl Reader for counter {
 
 impl number {
     pub fn value(&self) -> i32 {
-        (*self.n.borrow().as_ref().unwrap())
+        return (*self.n.borrow().as_ref().unwrap());
     }
 }
 
 impl Valuer for number {
     fn value(&self) -> i32 {
-        (*self.n.borrow().as_ref().unwrap())
+        return (*self.n.borrow().as_ref().unwrap());
     }
     fn __go_clone_box_valuer(&self) -> Box<dyn Valuer> {
         Box::new(self.clone()) as Box<dyn Valuer>

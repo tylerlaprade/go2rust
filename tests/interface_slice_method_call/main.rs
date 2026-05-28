@@ -131,13 +131,13 @@ impl std::fmt::Display for Assign {
 
 impl Lit {
     pub fn pos(&self) -> i32 {
-        (*self.p.borrow().as_ref().unwrap())
+        return (*self.p.borrow().as_ref().unwrap());
     }
 }
 
 impl Expr for Lit {
     fn pos(&self) -> i32 {
-        (*self.p.borrow().as_ref().unwrap())
+        return (*self.p.borrow().as_ref().unwrap());
     }
     fn __go_clone_box_expr(&self) -> Box<dyn Expr> {
         Box::new(self.clone()) as Box<dyn Expr>
