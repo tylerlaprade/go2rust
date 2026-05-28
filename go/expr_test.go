@@ -280,6 +280,28 @@ func collect(list []Expr, x Expr) []Expr {
 	}
 }
 
+func TestAppendLenToIntSliceCastsToGoInt(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+func add(valueStart []int, steps []string) []int {
+	return append(valueStart, len(steps))
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(main.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := Transpile(file, fset, typeInfo)
+	if !strings.Contains(rust, ".push((*steps.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32)") {
+		t.Fatalf("append len() to []int should cast usize length to Go int:\n%s", rust)
+	}
+}
+
 func TestAppendLocalInterfaceHandleKeepsWrappedValue(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

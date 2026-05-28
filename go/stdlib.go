@@ -3462,6 +3462,9 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 					if isFunctionSignatureType(elemType) && writeFunctionValueHandle(out, expr) {
 						return
 					}
+					if writeLenCapCallArgumentForExpectedType(out, expr, elemType) {
+						return
+					}
 					if writeBareFixedArrayCompositeLiteral(out, expr, elemType) {
 						return
 					}
