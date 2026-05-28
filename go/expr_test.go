@@ -414,6 +414,70 @@ func (i *item) Nodes() []Node {
 	}
 }
 
+func TestAppendInterfaceCallResultKeepsHandle(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Node interface {
+	ID() int
+}
+
+type item struct{}
+
+func (item) ID() int {
+	return 1
+}
+
+func makeNode() Node {
+	return item{}
+}
+
+func Nodes() []Node {
+	var nodes []Node
+	nodes = append(nodes, makeNode())
+	return nodes
+}
+`)
+
+	if strings.Contains(rust, "(*make_node()") {
+		t.Fatalf("append of local interface call result should not unwrap the interface handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".push(make_node())") && !strings.Contains(rust, ".push(make_node().clone())") {
+		t.Fatalf("append of local interface call result should store the returned handle:\n%s", rust)
+	}
+}
+
+func TestAppendConcreteCallResultToInterfaceSliceBoxesValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Node interface {
+	ID() int
+}
+
+type item struct{}
+
+func (*item) ID() int {
+	return 1
+}
+
+func makeItem() *item {
+	return &item{}
+}
+
+func Nodes() []Node {
+	var nodes []Node
+	nodes = append(nodes, makeItem())
+	return nodes
+}
+`)
+
+	if strings.Contains(rust, ".push(make_item())") || strings.Contains(rust, ".push(make_item().clone())") {
+		t.Fatalf("append of concrete call result to interface slice should not store the concrete handle directly:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Box::new((*make_item()") {
+		t.Fatalf("append of concrete call result to interface slice should box the concrete value:\n%s", rust)
+	}
+}
+
 func TestAppendLenToIntSliceCastsToGoInt(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

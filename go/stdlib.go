@@ -3446,6 +3446,13 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 				if writeStdlibInterfaceBareConversion(out, expr, elemType) {
 					return
 				}
+				if elemType != nil {
+					if _, ok := localNamedInterfaceTypeNameFromTypes(elemType); ok {
+						if writeLocalInterfaceSliceElementValue(out, expr, elemType) {
+							return
+						}
+					}
+				}
 				if callExpr, ok := expr.(*ast.CallExpr); ok && typeInfo.ReturnsWrappedValue(callExpr) && !callReturnsBareChannelValue(callExpr) {
 					if compositeLiteralElementKeepsHandle(elemType) {
 						TranspileExpression(out, expr)
