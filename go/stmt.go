@@ -230,19 +230,19 @@ func registerBareShortDecl(lhs ast.Expr) {
 	}
 }
 
-func writeBareScalarCallAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
+func writeBareScalarAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
 	ident, ok := lhs.(*ast.Ident)
-	if !ok || !isVarBare(ident.Name) {
+	if !ok || ident.Name == "_" || !isVarBare(ident.Name) {
 		return false
 	}
-	call, ok := rhs.(*ast.CallExpr)
-	if !ok || !callReturnsBareScalar(call) {
-		return false
+	var expected types.Type
+	if typeInfo := GetTypeInfo(); typeInfo != nil {
+		expected = typeInfo.GetType(lhs)
 	}
 	out.WriteString("{ let new_val = ")
-	TranspileExpression(out, rhs)
+	writeBareCompoundAssignValue(out, rhs, expected)
 	out.WriteString("; ")
-	TranspileExpressionContext(out, lhs, LValue)
+	out.WriteString(RustIdentForUse(ident))
 	out.WriteString(" = new_val; }")
 	return true
 }
@@ -6597,8 +6597,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									// Slice assignment replaces the handle to preserve slice-header aliasing.
 								} else if writeBareRangeVarAssignment(out, s.Lhs[0], s.Rhs[0]) {
 									// Assigned range variables are local bare Rust bindings, not wrapper handles.
-								} else if writeBareScalarCallAssignment(out, s.Lhs[0], s.Rhs[0]) {
-									// Bare scalar locals stay bare when reassigned from bare scalar calls.
+								} else if writeBareScalarAssignment(out, s.Lhs[0], s.Rhs[0]) {
+									// Bare scalar locals stay bare when reassigned.
 								} else if writeLocalInterfaceHandleAssignment(out, s.Lhs[0], s.Rhs[0]) {
 									// Local interface assignment copies the existing interface handle.
 								} else if writeStdlibInterfaceAssignment(out, s.Lhs[0], s.Rhs[0]) {

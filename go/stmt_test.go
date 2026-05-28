@@ -804,6 +804,34 @@ func caller(seed uint64) uint64 {
 	}
 }
 
+func TestBareScalarAssignmentFromWrappedLocalUnwrapsRHS(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func pair() (int, bool) {
+	return 1, true
+}
+
+func caller() int {
+	x, _ := pair()
+	var y int
+	y = 2
+	x = y
+	return x
+}
+`)
+
+	if strings.Contains(rust, "*x.borrow_mut()") || strings.Contains(rust, "*x.lock().unwrap()") {
+		t.Fatalf("assignment to a bare scalar local should not use wrapper mutation:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let new_val = (*y.borrow().as_ref().unwrap())") &&
+		!strings.Contains(rust, "let new_val = (*y.lock().unwrap().as_ref().unwrap())") {
+		t.Fatalf("assignment to a bare scalar local should unwrap the wrapped RHS:\n%s", rust)
+	}
+	if !strings.Contains(rust, "x = new_val;") {
+		t.Fatalf("assignment to a bare scalar local should assign the Rust local directly:\n%s", rust)
+	}
+}
+
 func TestNamedIntegerBinaryIndexParenthesizesAsCast(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
