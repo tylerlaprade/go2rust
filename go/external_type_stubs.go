@@ -1275,6 +1275,7 @@ func mergeHelperTracker(dst *HelperTracker, src *HelperTracker) {
 	dst.needsFormatAny = dst.needsFormatAny || src.needsFormatAny
 	dst.needsFormatAnySlice = dst.needsFormatAnySlice || src.needsFormatAnySlice
 	dst.needsAnyEq = dst.needsAnyEq || src.needsAnyEq
+	dst.needsGoByteSequence = dst.needsGoByteSequence || src.needsGoByteSequence
 	dst.needsGoChannel = dst.needsGoChannel || src.needsGoChannel
 	dst.needsWaitGroup = dst.needsWaitGroup || src.needsWaitGroup
 	dst.needsGoMutex = dst.needsGoMutex || src.needsGoMutex

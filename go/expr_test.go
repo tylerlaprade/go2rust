@@ -2521,7 +2521,7 @@ func digit(val uint) byte {
 	}
 }
 
-func TestStringOrByteSliceTypeParamIndexUsesLoweredStringBytes(t *testing.T) {
+func TestStringOrByteSliceTypeParamIndexUsesByteSequenceTrait(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
 func hash[T string | []byte](sep T) uint32 {
@@ -2529,11 +2529,40 @@ func hash[T string | []byte](sep T) uint32 {
 }
 `)
 
-	if !strings.Contains(rust, ".as_bytes()[") {
-		t.Fatalf("string-lowered type parameter index should read bytes from the lowered String:\n%s", rust)
+	if !strings.Contains(rust, ".go_byte(") {
+		t.Fatalf("string/byte-slice type parameter index should use byte-sequence trait byte access:\n%s", rust)
 	}
-	if strings.Contains(rust, "__seq[") {
-		t.Fatalf("string-lowered type parameter index should not use slice indexing on String:\n%s", rust)
+	body := rust[strings.Index(rust, "pub fn hash"):]
+	if strings.Contains(body, ".as_bytes()[") || strings.Contains(body, "__seq[") {
+		t.Fatalf("string/byte-slice type parameter index should not use a concrete String or slice path:\n%s", rust)
+	}
+}
+
+func TestStringOrByteSliceTypeParamUsesByteSequenceTrait(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func fingerprint[T string | []byte](s T, sep T) (uint32, string) {
+	hash := uint32(len(sep))
+	hash += uint32(sep[0])
+	return hash, string(s[:len(sep)])
+}
+`)
+
+	if !strings.Contains(rust, "pub fn fingerprint<T: GoByteSequence + Clone") {
+		t.Fatalf("string/byte-slice type parameter should use a byte-sequence trait bound:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".go_len()") {
+		t.Fatalf("len on string/byte-slice type parameter should use byte-sequence trait length:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".go_byte(") {
+		t.Fatalf("indexing string/byte-slice type parameter should use byte-sequence trait byte access:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".go_slice_to_string(") {
+		t.Fatalf("string conversion of a string/byte-slice type-parameter slice should use byte-sequence trait conversion:\n%s", rust)
+	}
+	body := rust[strings.Index(rust, "pub fn fingerprint"):]
+	if strings.Contains(body, ".as_bytes()[") {
+		t.Fatalf("string/byte-slice type parameter should not be lowered as concrete String bytes:\n%s", rust)
 	}
 }
 

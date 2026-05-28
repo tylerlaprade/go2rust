@@ -589,6 +589,13 @@ func NeedAnyEq() {
 	}
 }
 
+// NeedGoByteSequence marks that we need the GoByteSequence helper trait.
+func NeedGoByteSequence() {
+	if helpers := activeHelperTracker(); helpers != nil {
+		helpers.needsGoByteSequence = true
+	}
+}
+
 // NeedFormatAnySlice marks that we need the format_any_slice helper
 func NeedFormatAnySlice() {
 	if helpers := activeHelperTracker(); helpers != nil {

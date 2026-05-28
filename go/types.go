@@ -297,6 +297,47 @@ func goTypeParamHasAnyConstraint(t types.Type) bool {
 	return ok && iface.NumMethods() == 0 && iface.NumEmbeddeds() == 0
 }
 
+func goTypeParamHasStringByteSliceConstraint(t types.Type) bool {
+	tp, ok := types.Unalias(t).(*types.TypeParam)
+	if !ok || tp.Constraint() == nil {
+		return false
+	}
+	iface, ok := tp.Constraint().Underlying().(*types.Interface)
+	if !ok {
+		return false
+	}
+	hasString := false
+	hasByteSlice := false
+	for i := 0; i < iface.NumEmbeddeds(); i++ {
+		embedded := types.Unalias(iface.EmbeddedType(i))
+		union, ok := embedded.(*types.Union)
+		if !ok {
+			return false
+		}
+		for j := 0; j < union.Len(); j++ {
+			switch {
+			case isGoStringType(union.Term(j).Type()):
+				hasString = true
+			case isGoByteSliceType(union.Term(j).Type()):
+				hasByteSlice = true
+			default:
+				return false
+			}
+		}
+	}
+	return hasString && hasByteSlice
+}
+
+func isGoStringType(t types.Type) bool {
+	basic, ok := types.Unalias(t).Underlying().(*types.Basic)
+	return ok && basic.Kind() == types.String
+}
+
+func isGoByteSliceType(t types.Type) bool {
+	slice, ok := types.Unalias(t).Underlying().(*types.Slice)
+	return ok && isByteType(slice.Elem())
+}
+
 func goTypeParamTraitConstraintNameFromExpr(expr ast.Expr) (string, bool) {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil {

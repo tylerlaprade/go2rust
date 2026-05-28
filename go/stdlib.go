@@ -3791,6 +3791,11 @@ func transpileLen(out *strings.Builder, call *ast.CallExpr) {
 			return
 		}
 
+		if typeInfo != nil && goTypeParamHasStringByteSliceConstraint(typeInfo.GetType(call.Args[0])) {
+			writeGoByteSequenceLen(out, call.Args[0])
+			return
+		}
+
 		if writeNamedSliceLen(out, call.Args[0]) {
 			return
 		}

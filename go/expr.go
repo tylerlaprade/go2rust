@@ -763,6 +763,53 @@ func writeStringSequenceValue(out *strings.Builder, expr ast.Expr) {
 	out.WriteString(".as_ref().unwrap()).clone()")
 }
 
+func writeGoByteSequenceReceiver(out *strings.Builder, expr ast.Expr) {
+	out.WriteString("(*")
+	TranspileExpressionContext(out, expr, LValue)
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap())")
+}
+
+func writeGoByteSequenceLen(out *strings.Builder, expr ast.Expr) {
+	NeedGoByteSequence()
+	writeGoByteSequenceReceiver(out, expr)
+	out.WriteString(".go_len()")
+}
+
+func writeGoByteSequenceIndex(out *strings.Builder, expr ast.Expr, index ast.Expr) {
+	NeedGoByteSequence()
+	writeGoByteSequenceReceiver(out, expr)
+	out.WriteString(".go_byte(")
+	writeExpressionAsUsize(out, index)
+	out.WriteString(")")
+}
+
+func writeGoByteSequenceToString(out *strings.Builder, expr ast.Expr) {
+	NeedGoByteSequence()
+	writeGoByteSequenceReceiver(out, expr)
+	out.WriteString(".go_to_string()")
+}
+
+func writeGoByteSequenceSliceToString(out *strings.Builder, expr ast.Expr, low ast.Expr, high ast.Expr) {
+	NeedGoByteSequence()
+	writeGoByteSequenceReceiver(out, expr)
+	out.WriteString(".go_slice_to_string(")
+	if low != nil {
+		writeExpressionAsUsize(out, low)
+	} else {
+		out.WriteString("0")
+	}
+	out.WriteString(", ")
+	if high != nil {
+		out.WriteString("Some(")
+		writeExpressionAsUsize(out, high)
+		out.WriteString(")")
+	} else {
+		out.WriteString("None")
+	}
+	out.WriteString(")")
+}
+
 func methodReceiverExpressionNeedsUnwrap(expr ast.Expr) bool {
 	switch e := expr.(type) {
 	case *ast.CallExpr:
@@ -6922,14 +6969,18 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			// Check if it's a string (returns a byte)
 			typeInfo := GetTypeInfo()
 			isString := false
+			isGoByteSequence := false
 			if typeInfo != nil {
 				isString = typeInfo.IsString(e.X)
+				isGoByteSequence = goTypeParamHasStringByteSliceConstraint(typeInfo.GetType(e.X))
 				if !isString {
 					isString = typeParamConstraintLowersToRustString(typeInfo.GetType(e.X))
 				}
 			}
 
-			if isString {
+			if isGoByteSequence {
+				writeGoByteSequenceIndex(out, e.X, e.Index)
+			} else if isString {
 				// String indexing returns a byte (u8). Bind by reference so
 				// repeated reads of a range loop string don't move the value.
 				out.WriteString("{ let __s = &(")
@@ -6974,14 +7025,20 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		// Slice expressions like arr[1:] or s[0:5] or s[0:5:7]
 		// The array/slice is wrapped, so we need to unwrap it first
 		isStringSlice := false
+		isGoByteSequenceSlice := false
 		if typeInfo := GetTypeInfo(); typeInfo != nil {
 			isStringSlice = typeInfo.IsString(e.X)
+			isGoByteSequenceSlice = goTypeParamHasStringByteSliceConstraint(typeInfo.GetType(e.X))
 		}
 		if !isStringSlice && (isSyntaxStringValue(e.X) || isStringConstExpr(e.X)) {
 			isStringSlice = true
 		}
 
-		if e.Slice3 && e.Max != nil && !isStringSlice {
+		if isGoByteSequenceSlice {
+			WriteWrapperPrefix(out)
+			writeGoByteSequenceSliceToString(out, e.X, e.Low, e.High)
+			WriteWrapperSuffix(out)
+		} else if e.Slice3 && e.Max != nil && !isStringSlice {
 			// Three-index slice: s[low:high:max] → cap = max - low
 			WriteWrapperPrefix(out)
 			out.WriteString("{ let __seq = ")
@@ -8554,6 +8611,12 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 		if typeInfo != nil {
 			argType := typeInfo.GetType(arg)
 			if argType != nil {
+				if goTypeParamHasStringByteSliceConstraint(argType) {
+					WriteWrapperPrefix(out)
+					writeGoByteSequenceToString(out, arg)
+					WriteWrapperSuffix(out)
+					return
+				}
 				// Check if converting from []byte or []rune
 				if slice, ok := argType.Underlying().(*types.Slice); ok {
 					elemType := slice.Elem()
