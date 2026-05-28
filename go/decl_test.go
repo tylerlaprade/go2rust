@@ -4,6 +4,7 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"go/types"
 	"strings"
 	"testing"
 )
@@ -28,6 +29,47 @@ func TestTranspileFunctionWithoutBodyDoesNotPanic(t *testing.T) {
 	}
 	if !strings.Contains(got, "unimplemented!(\"Go function declaration has no body\")") {
 		t.Fatalf("missing bodyless function fallback in:\n%s", got)
+	}
+}
+
+func TestStructWithSourceMappedStdlibFieldDoesNotDeriveDebug(t *testing.T) {
+	prevContext := GetTranspileContext()
+	prevTypeInfo := currentTypeInfo
+	prevImports := goPackageImports
+	defer func() {
+		SetTranspileContext(prevContext)
+		currentTypeInfo = prevTypeInfo
+		goPackageImports = prevImports
+	}()
+
+	selector := &ast.SelectorExpr{X: ast.NewIdent("abi"), Sel: ast.NewIdent("SwissMapType")}
+	fieldType := &ast.StarExpr{X: selector}
+	structType := &ast.StructType{Fields: &ast.FieldList{List: []*ast.Field{{
+		Names: []*ast.Ident{ast.NewIdent("typ")},
+		Type:  fieldType,
+	}}}}
+
+	abiPkg := types.NewPackage("internal/abi", "abi")
+	currentPkg := types.NewPackage("internal/runtime/maps", "maps")
+	named := types.NewNamed(types.NewTypeName(token.NoPos, abiPkg, "SwissMapType", nil), types.NewStruct(nil, nil), nil)
+	SetTypeInfo(&TypeInfo{
+		info: &types.Info{Types: map[ast.Expr]types.TypeAndValue{
+			selector:  {Type: named},
+			fieldType: {Type: types.NewPointer(named)},
+		}},
+		pkg: currentPkg,
+	})
+	SetTranspileContext(&TranspileContext{PackageMapping: map[string]string{"internal/abi": "internal_abi"}})
+	goPackageImports = map[string]string{"abi": "internal/abi"}
+
+	var out strings.Builder
+	writeStructDerive(&out, "Iter", structType)
+	got := out.String()
+	if strings.Contains(got, "Debug") {
+		t.Fatalf("struct with source-mapped stdlib field should not derive Debug:\n%s", got)
+	}
+	if !strings.Contains(got, "Clone") {
+		t.Fatalf("struct with source-mapped stdlib field should still derive Clone:\n%s", got)
 	}
 }
 

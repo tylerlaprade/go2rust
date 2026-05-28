@@ -841,8 +841,9 @@ func typeReferencesExternalNamedTypeSeen(typ types.Type, seen map[types.Type]boo
 	switch t := typ.(type) {
 	case *types.Named:
 		if t.Obj() != nil && t.Obj().Pkg() != nil {
+			pkgPath := t.Obj().Pkg().Path()
 			if typeInfo := GetTypeInfo(); typeInfo == nil || typeInfo.pkg == nil || t.Obj().Pkg() != typeInfo.pkg {
-				if !isStdlibPackage(t.Obj().Pkg().Path()) {
+				if !isStdlibPackage(pkgPath) || isSourceMappedPackagePath(pkgPath) {
 					return true
 				}
 			}
