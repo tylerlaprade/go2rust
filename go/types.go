@@ -1222,7 +1222,7 @@ func goTypesTypeToRust(t types.Type) string {
 		NeedGoChannel()
 		return "GoChannel<" + goTypesChannelElemTypeToRust(ut.Elem()) + ">"
 	case *types.Struct:
-		if named, ok := t.(*types.Named); ok {
+		if named, ok := types.Unalias(t).(*types.Named); ok {
 			return goTypesNamedTypeToRust(named)
 		}
 		if anonName := lookupAnonymousStructName(ut); anonName != "" {

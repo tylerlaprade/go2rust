@@ -2455,6 +2455,50 @@ func TestCollectGoFilesSkipsTestFilesForDirectoryInput(t *testing.T) {
 	}
 }
 
+func TestImportedAliasStructLiteralConstructsAliasedStruct(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "abi", "abi.go"), `package abi
+
+type Name string
+
+type Type struct{}
+
+type StructField struct {
+	Name Name
+	Typ *Type
+	Offset uintptr
+}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+import "example.com/mainmod/abi"
+
+type structField = abi.StructField
+
+func makeField(n abi.Name, t *abi.Type) structField {
+	return structField{Name: n, Typ: t, Offset: 0}
+}
+`)
+
+	generator := NewProjectGenerator([]string{filepath.Join(tempDir, "main.go")})
+	generator.SetExternalPackageMode(ModeTranspile)
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
+	if strings.Contains(mainRS, "structField {") {
+		t.Fatalf("alias struct literal must not construct the alias wrapper name:\n%s", mainRS)
+	}
+	if !strings.Contains(mainRS, "example_com_mainmod_abi::StructField {") {
+		t.Fatalf("alias struct literal should construct the aliased package struct:\n%s", mainRS)
+	}
+}
+
 func writeTestFile(t *testing.T, path string, content string) {
 	t.Helper()
 	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {

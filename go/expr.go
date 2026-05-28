@@ -5000,7 +5000,7 @@ func fixedArrayLiteralLength(lit *ast.CompositeLit, arrayType *ast.ArrayType) (i
 }
 
 func typesStructLiteralName(typ types.Type, structUnder *types.Struct) string {
-	if named, ok := typ.(*types.Named); ok {
+	if named, ok := types.Unalias(typ).(*types.Named); ok {
 		return goTypesNamedTypeToRust(named)
 	}
 	return lookupAnonymousStructName(structUnder)
@@ -7455,6 +7455,15 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		} else if ident, ok := e.Type.(*ast.Ident); ok {
 			if typeInfo := GetTypeInfo(); typeInfo != nil {
 				if typ := typeInfo.GetType(e); typ != nil {
+					if IsTypeAlias(ident.Name) {
+						if structUnder, ok := typ.Underlying().(*types.Struct); ok {
+							structTypeName := typesStructLiteralName(typ, structUnder)
+							if structTypeName != "" {
+								writeTypesStructCompositeLiteral(out, structTypeName, typ, structUnder, e.Elts)
+								return
+							}
+						}
+					}
 					if sliceType, ok := typ.Underlying().(*types.Slice); ok {
 						wrapInTypeDefinition := !IsTypeAlias(ident.Name)
 						if wrapInTypeDefinition {
