@@ -1383,3 +1383,54 @@ func (v Value) MapRange() *Iter {
 		t.Fatalf("receiver used as a struct literal field should wrap a cloned self value:\n%s", rust)
 	}
 }
+
+func TestMethodReceiverAssignmentAndCallArgumentUseSelf(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Value struct {
+	n int
+}
+
+func accept(v Value) {
+}
+
+func (v Value) call() {
+	var rcvr Value
+	rcvr = v
+	accept(v)
+	_ = rcvr
+}
+`)
+
+	if strings.Contains(rust, "v.borrow") || strings.Contains(rust, "v.clone()") {
+		t.Fatalf("receiver assignment and call arguments should lower through self, not the Go receiver name:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let new_val = self.clone()") {
+		t.Fatalf("receiver assignment should clone self into the wrapped target:\n%s", rust)
+	}
+	if !strings.Contains(rust, "accept(Rc::new(RefCell::new(Some(self.clone()))))") {
+		t.Fatalf("receiver call argument should wrap a cloned self value:\n%s", rust)
+	}
+}
+
+func TestNamedScalarReceiverCallArgumentKeepsNamedValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type bitset uint64
+
+func bitsetFirst(b bitset) uintptr {
+	return uintptr(b)
+}
+
+func (b bitset) first() uintptr {
+	return bitsetFirst(b)
+}
+`)
+
+	if strings.Contains(rust, "(*self.0.borrow().as_ref().unwrap()).clone()") {
+		t.Fatalf("named scalar receiver call argument should pass the named value, not the raw scalar:\n%s", rust)
+	}
+	if !strings.Contains(rust, "bitset_first(Rc::new(RefCell::new(Some(self.clone()))))") {
+		t.Fatalf("named scalar receiver call argument should wrap a cloned self value:\n%s", rust)
+	}
+}

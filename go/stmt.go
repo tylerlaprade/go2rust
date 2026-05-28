@@ -1862,6 +1862,14 @@ func writeBareValueForWrappedSlot(out *strings.Builder, expr ast.Expr) bool {
 	return true
 }
 
+func writeCurrentReceiverAssignmentValue(out *strings.Builder, expr ast.Expr) bool {
+	ident, ok := expr.(*ast.Ident)
+	if !ok {
+		return false
+	}
+	return writeCurrentReceiverClone(out, ident)
+}
+
 func writeFunctionTypedIdentFieldAssignment(out *strings.Builder, lhs ast.Expr, rhsIdent *ast.Ident) bool {
 	if rhsIdent.Name == "_" || rhsIdent.Name == "nil" || rhsIdent.Name == "true" || rhsIdent.Name == "false" {
 		return false
@@ -6741,7 +6749,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 											}
 											out.WriteString("{ ")
 											out.WriteString("let new_val = ")
-											if rhsIsWrappedVar {
+											if writeCurrentReceiverAssignmentValue(out, s.Rhs[0]) {
+												// Method receivers are Rust self, not wrapped locals named after the Go receiver.
+											} else if rhsIsWrappedVar {
 												// Use clone to avoid moving non-Copy types like String
 												rhsVarName := RustIdentForUse(rhsIdent)
 												if currentCaptureRenames != nil {
@@ -6867,7 +6877,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										}
 										out.WriteString("{ ")
 										out.WriteString("let new_val = ")
-										if rhsIsWrappedVar {
+										if writeCurrentReceiverAssignmentValue(out, s.Rhs[0]) {
+											// Method receivers are Rust self, not wrapped locals named after the Go receiver.
+										} else if rhsIsWrappedVar {
 											// Use clone to avoid moving non-Copy types like String
 											rhsIdent := s.Rhs[0].(*ast.Ident)
 											rhsVarName := RustIdentForUse(rhsIdent)

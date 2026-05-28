@@ -1560,11 +1560,7 @@ func writeCallArgumentValue(out *strings.Builder, arg ast.Expr) bool {
 		return false
 	}
 	if isCurrentReceiverIdent(ident) {
-		if writeCurrentReceiverValueClone(out, ident) {
-			return true
-		}
-		out.WriteString("self.clone()")
-		return true
+		return writeCurrentReceiverClone(out, ident)
 	}
 	if _, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar {
 		return writeOwnedRangeValue(out, ident)
@@ -3313,6 +3309,24 @@ func writeCurrentReceiverValueClone(out *strings.Builder, ident *ast.Ident) bool
 	return true
 }
 
+func writeCurrentReceiverClone(out *strings.Builder, ident *ast.Ident) bool {
+	if !isCurrentReceiverIdent(ident) {
+		return false
+	}
+	out.WriteString("self.clone()")
+	return true
+}
+
+func writeCurrentReceiverWrappedClone(out *strings.Builder, ident *ast.Ident) bool {
+	if !isCurrentReceiverIdent(ident) {
+		return false
+	}
+	WriteWrapperPrefix(out)
+	writeCurrentReceiverClone(out, ident)
+	WriteWrapperSuffix(out)
+	return true
+}
+
 func writeCurrentReceiverDerefRead(out *strings.Builder, expr ast.Expr, target ast.Expr) bool {
 	ident, ok := target.(*ast.Ident)
 	if !ok || !isCurrentReceiverIdent(ident) {
@@ -4311,11 +4325,7 @@ func writeWrappedStructFieldValue(out *strings.Builder, value ast.Expr, fieldExp
 			}
 			WriteWrapperSuffix(out)
 		} else if isCurrentReceiverIdent(valIdent) {
-			WriteWrapperPrefix(out)
-			if !writeCurrentReceiverValueClone(out, valIdent) {
-				out.WriteString("self.clone()")
-			}
-			WriteWrapperSuffix(out)
+			writeCurrentReceiverWrappedClone(out, valIdent)
 		} else {
 			// It's already wrapped, just clone it.
 			out.WriteString(RustIdentForUse(valIdent))
@@ -11258,10 +11268,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 					}
 				}
 
-				if isCurrentReceiverIdent(ident) && currentReceiverScalarTypeDefinition() {
-					WriteWrapperPrefix(out)
-					out.WriteString("self.clone()")
-					WriteWrapperSuffix(out)
+				if writeCurrentReceiverWrappedClone(out, ident) {
 					continue
 				}
 
