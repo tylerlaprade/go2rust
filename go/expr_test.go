@@ -2407,6 +2407,23 @@ func lookup(i uint8) int {
 	}
 }
 
+func TestRuneConstantBinaryWithUintPeerCastsToPeerType(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func digit(val uint) byte {
+	q := val / 10
+	return byte('0' + val - q*10)
+}
+`)
+
+	if !strings.Contains(rust, "('0' as u32)") {
+		t.Fatalf("rune constant in uint arithmetic should cast to the typed uint peer:\n%s", rust)
+	}
+	if strings.Contains(rust, "('0' as i32)") {
+		t.Fatalf("rune constant in uint arithmetic must not default to i32:\n%s", rust)
+	}
+}
+
 func TestStringOrByteSliceTypeParamIndexUsesLoweredStringBytes(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

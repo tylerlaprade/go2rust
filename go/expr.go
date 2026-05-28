@@ -403,7 +403,20 @@ func writeCharLiteralForPeer(out *strings.Builder, lit *ast.BasicLit, peer ast.E
 		return true
 	}
 	if !isByteLikeExpression(peer) {
-		return false
+		typeInfo := GetTypeInfo()
+		if typeInfo == nil {
+			return false
+		}
+		castType, ok := rustIntegerCastTypeForExpected(typeInfo.GetType(peer))
+		if !ok {
+			return false
+		}
+		out.WriteString("(")
+		out.WriteString(lit.Value)
+		out.WriteString(" as ")
+		out.WriteString(castType)
+		out.WriteString(")")
+		return true
 	}
 	out.WriteString("(")
 	out.WriteString(lit.Value)
