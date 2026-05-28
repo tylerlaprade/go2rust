@@ -384,6 +384,14 @@ func lookupAnonymousStructName(structType *types.Struct) string {
 		match := true
 		idx := 0
 		for _, field := range anonAST.Fields.List {
+			if len(field.Names) == 0 {
+				if idx >= numFields || structType.Field(idx).Name() != getEmbeddedFieldName(field.Type) {
+					match = false
+					break
+				}
+				idx++
+				continue
+			}
 			for _, name := range field.Names {
 				if idx >= numFields || structType.Field(idx).Name() != name.Name {
 					match = false

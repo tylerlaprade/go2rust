@@ -320,6 +320,9 @@ var Holder struct {
 	if strings.Contains(rust, "WARNING: embedded field in anonymous struct") {
 		t.Fatalf("anonymous embedded struct field should be declared, not warned:\n%s", rust)
 	}
+	if strings.Contains(rust, "/* unknown struct */") {
+		t.Fatalf("anonymous embedded struct package global should use the registered anonymous struct type:\n%s", rust)
+	}
 	if !strings.Contains(rust, "pub ptr_type: Rc<RefCell<Option<PtrType>>>") {
 		t.Fatalf("anonymous embedded struct field should be emitted with the generated field name:\n%s", rust)
 	}
