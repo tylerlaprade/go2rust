@@ -2053,6 +2053,23 @@ func boxMap() any {
 	}
 }
 
+func TestTypedNilChannelAnyVarInitializerBoxesTypedNilChannel(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func boxChan() any {
+	var x any = (chan int)(nil)
+	return x
+}
+`)
+
+	if strings.Contains(rust, "let __v = None") || strings.Contains(rust, "Box::new(None)") {
+		t.Fatalf("typed nil channel in any initializer should not emit untyped None:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Box::new(GoChannel::<i32>::default()) as Box<dyn Any") {
+		t.Fatalf("typed nil channel in any initializer should preserve the channel type inside Any:\n%s", rust)
+	}
+}
+
 func TestExplicitGenericFunctionCallUsesRustTypeArgs(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

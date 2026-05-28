@@ -4217,7 +4217,7 @@ func writeInterfaceBoxedValue(out *strings.Builder, expr ast.Expr) {
 	out.WriteString("Box::new(")
 	if call, ok := expr.(*ast.CallExpr); ok {
 		typeInfo := GetTypeInfo()
-		if _, ok := typedNilMapOrSliceConversionType(call); ok {
+		if _, ok := typedNilConversionType(call); ok {
 			TranspileExpression(out, call)
 		} else if typeInfo != nil && typeInfo.ReturnsWrappedValue(call) && !callReturnsBareChannelValue(call) && (!typeInfo.IsTypeConversion(call) || typeConversionEmitsWrappedValue(call)) {
 			out.WriteString("{ let __v = ")
@@ -8519,7 +8519,7 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 	if writeFunctionSignatureTypeConversion(out, call) {
 		return
 	}
-	if writeTypedNilMapOrSliceConversion(out, call) {
+	if writeTypedNilConversion(out, call) {
 		return
 	}
 	if reflectStructTagConversionTarget(call) {
@@ -8868,7 +8868,7 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 	}
 }
 
-func typedNilMapOrSliceConversionType(call *ast.CallExpr) (types.Type, bool) {
+func typedNilConversionType(call *ast.CallExpr) (types.Type, bool) {
 	if call == nil || len(call.Args) != 1 {
 		return nil, false
 	}
@@ -8885,20 +8885,35 @@ func typedNilMapOrSliceConversionType(call *ast.CallExpr) (types.Type, bool) {
 		return nil, false
 	}
 	switch types.Unalias(targetType).Underlying().(type) {
-	case *types.Map, *types.Slice:
+	case *types.Map, *types.Slice, *types.Chan:
 		return targetType, true
 	default:
 		return nil, false
 	}
 }
 
-func writeTypedNilMapOrSliceConversion(out *strings.Builder, call *ast.CallExpr) bool {
-	targetType, ok := typedNilMapOrSliceConversionType(call)
+func writeTypedNilConversion(out *strings.Builder, call *ast.CallExpr) bool {
+	targetType, ok := typedNilConversionType(call)
 	if !ok {
 		return false
 	}
+	if _, ok := types.Unalias(targetType).Underlying().(*types.Chan); ok {
+		writeChannelNilDefault(out, goTypesTypeToRust(targetType))
+		return true
+	}
 	writeTypedWrappedNone(out, goTypesTypeToRust(targetType))
 	return true
+}
+
+func writeChannelNilDefault(out *strings.Builder, rustType string) {
+	if strings.HasPrefix(rustType, "GoChannel<") && strings.HasSuffix(rustType, ">") {
+		out.WriteString("GoChannel::<")
+		out.WriteString(strings.TrimSuffix(strings.TrimPrefix(rustType, "GoChannel<"), ">"))
+		out.WriteString(">::default()")
+		return
+	}
+	out.WriteString(rustType)
+	out.WriteString("::default()")
 }
 
 func numericConversionCastNeedsParens(arg ast.Expr) bool {
