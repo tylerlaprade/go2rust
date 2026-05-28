@@ -905,6 +905,21 @@ func read(p *ctrl) ctrl {
 	}
 }
 
+func TestNamedIntegerBitClearConversionOperandStaysBare(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type bitset uint64
+
+func clearBelow(b bitset, mask uint64) bitset {
+	return b &^ bitset(mask)
+}
+`)
+
+	if strings.Contains(rust, "(*bitset(") {
+		t.Fatalf("named integer conversion in binary return should not be borrowed as a wrapper:\n%s", rust)
+	}
+}
+
 func TestNamedIntegerAssignmentUsesRawNamedValue(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

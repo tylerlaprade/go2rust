@@ -4745,6 +4745,16 @@ func isRightNilComparison(expr *ast.BinaryExpr) bool {
 	return ok && ident.Name == "nil"
 }
 
+func expressionReturnsWrappedValueForExtraction(typeInfo *TypeInfo, expr ast.Expr) bool {
+	if typeInfo == nil || !typeInfo.ReturnsWrappedValue(expr) {
+		return false
+	}
+	if call, ok := expr.(*ast.CallExpr); ok && typeInfo.IsTypeConversion(call) && !typeConversionEmitsWrappedValue(call) {
+		return false
+	}
+	return true
+}
+
 func writeErrorChannelReceiveAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
 	unary, ok := rhs.(*ast.UnaryExpr)
 	if !ok || unary.Op != token.ARROW || !channelElementIsGoError(unary.X) {
@@ -5823,7 +5833,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									// typed named constants are constructed as their named newtype when compared with named values.
 								} else if sel, ok := expr.(*ast.SelectorExpr); ok && writeSyntaxNamedSelectorValue(out, sel) {
 									// Named selector fields need a syntax fallback when type info only proves the field is wrapped.
-								} else if typeInfo != nil && typeInfo.ReturnsWrappedValue(expr) {
+								} else if expressionReturnsWrappedValueForExtraction(typeInfo, expr) {
 									// Expression returns wrapped value, unwrap it.
 									out.WriteString("(*")
 									writeExpressionForBorrow(out, expr)
