@@ -905,6 +905,33 @@ func read(p *ctrl) ctrl {
 	}
 }
 
+func TestNamedIntegerConstReturnWrapsLocalPackageConst(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type ChanDir int
+
+const (
+	RecvDir    ChanDir = 1 << iota
+	SendDir
+	BothDir            = RecvDir | SendDir
+	InvalidDir ChanDir = 0
+)
+
+type Type struct{}
+
+func (t *Type) ChanDir() ChanDir {
+	return InvalidDir
+}
+`)
+
+	if strings.Contains(rust, "Some(INVALID_DIR)") {
+		t.Fatalf("named integer const returned through wrapped result must construct the named type:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Some(ChanDir(") {
+		t.Fatalf("named integer const returned through wrapped result should be wrapped as ChanDir:\n%s", rust)
+	}
+}
+
 func TestNamedIntegerBitClearConversionOperandStaysBare(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
