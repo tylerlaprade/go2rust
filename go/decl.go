@@ -2123,7 +2123,7 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 		}
 		out.WriteString(" std::fmt::Display + Any {\n")
 		TrackImport("Display")
-		traitSnake := ToSnakeCase(rustTypeName)
+		traitSnake := traitMethodSuffix(rustTypeName)
 		out.WriteString("    fn __go_clone_box_")
 		out.WriteString(traitSnake)
 		out.WriteString("(&self) -> ")

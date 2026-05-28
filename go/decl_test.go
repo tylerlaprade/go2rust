@@ -218,6 +218,25 @@ type Expr interface {
 	}
 }
 
+func TestInterfaceKeywordNameUsesIdentifierSafeHelperSuffix(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Type interface {
+	String() string
+}
+`)
+
+	if strings.Contains(rust, "__go_clone_box_r#type") || strings.Contains(rust, "__go_eq_r#type") {
+		t.Fatalf("interface helper suffix should not use raw identifiers inside larger names:\n%s", rust)
+	}
+	if !strings.Contains(rust, "fn __go_clone_box_type_(&self)") {
+		t.Fatalf("keyword-derived interface helper suffix should be identifier-safe:\n%s", rust)
+	}
+	if !strings.Contains(rust, "fn __go_eq_type_(&self, other: &dyn Type)") {
+		t.Fatalf("keyword-derived equality helper suffix should be identifier-safe:\n%s", rust)
+	}
+}
+
 func TestBlankStructFieldsUseGeneratedRustFieldNames(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

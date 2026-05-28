@@ -205,7 +205,12 @@ func traitMethodSuffix(ifaceName string) string {
 	if idx := strings.LastIndex(name, "::"); idx != -1 {
 		name = name[idx+2:]
 	}
-	return ToSnakeCase(name)
+	name = strings.TrimPrefix(name, "r#")
+	suffix := strings.TrimPrefix(ToSnakeCase(name), "r#")
+	if isRustPathKeyword(suffix) || isRustKeyword(suffix) {
+		return suffix + "_"
+	}
+	return suffix
 }
 
 // interfaceTypeHasNamedEmbedded reports whether the given go/types interface
