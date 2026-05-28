@@ -8806,36 +8806,22 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 		rustType = "i32" // rune is an alias for int32
 	// Complex types
 	case "complex64":
+		if writeComplexToComplexConversion(out, call.Args[0], "f32") {
+			return
+		}
 		WriteWrapperPrefix(out)
 		out.WriteString("num::Complex::<f32>::new(")
-		if ident, ok := call.Args[0].(*ast.Ident); ok && ident.Name != "nil" {
-			out.WriteString("(*")
-			out.WriteString(ident.Name)
-			WriteBorrowMethod(out, false)
-			out.WriteString(".as_ref().unwrap()) as f32")
-		} else {
-			out.WriteString("(*")
-			TranspileExpression(out, call.Args[0])
-			WriteBorrowMethod(out, false)
-			out.WriteString(".as_ref().unwrap()) as f32")
-		}
-		out.WriteString(", 0.0))))")
+		writeNumericConversionValue(out, call.Args[0])
+		out.WriteString(" as f32, 0.0))))")
 		return
 	case "complex128":
+		if writeComplexToComplexConversion(out, call.Args[0], "f64") {
+			return
+		}
 		WriteWrapperPrefix(out)
 		out.WriteString("num::Complex::<f64>::new(")
-		if ident, ok := call.Args[0].(*ast.Ident); ok && ident.Name != "nil" {
-			out.WriteString("(*")
-			out.WriteString(ident.Name)
-			WriteBorrowMethod(out, false)
-			out.WriteString(".as_ref().unwrap()) as f64")
-		} else {
-			out.WriteString("(*")
-			TranspileExpression(out, call.Args[0])
-			WriteBorrowMethod(out, false)
-			out.WriteString(".as_ref().unwrap()) as f64")
-		}
-		out.WriteString(", 0.0))))")
+		writeNumericConversionValue(out, call.Args[0])
+		out.WriteString(" as f64, 0.0))))")
 		return
 	default:
 		// Check for custom type definitions
@@ -8884,6 +8870,52 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 		// No cast needed or unknown type
 		TranspileExpression(out, call.Args[0])
 	}
+}
+
+func writeComplexToComplexConversion(out *strings.Builder, arg ast.Expr, targetComponentRust string) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	argType := typeInfo.GetType(arg)
+	if argType == nil {
+		return false
+	}
+	basic, ok := types.Unalias(argType).Underlying().(*types.Basic)
+	if !ok {
+		return false
+	}
+	switch basic.Kind() {
+	case types.Complex64, types.Complex128, types.UntypedComplex:
+	default:
+		return false
+	}
+
+	TrackImport("num::Complex")
+	WriteWrapperPrefix(out)
+	out.WriteString("{ let __z = ")
+	writeComplexConversionSourceValue(out, arg)
+	out.WriteString("; num::Complex::<")
+	out.WriteString(targetComponentRust)
+	out.WriteString(">::new(__z.re as ")
+	out.WriteString(targetComponentRust)
+	out.WriteString(", __z.im as ")
+	out.WriteString(targetComponentRust)
+	out.WriteString(") }")
+	WriteWrapperSuffix(out)
+	return true
+}
+
+func writeComplexConversionSourceValue(out *strings.Builder, arg ast.Expr) {
+	typeInfo := GetTypeInfo()
+	if typeInfo != nil && typeInfo.ReturnsWrappedValue(arg) {
+		out.WriteString("(*")
+		TranspileExpressionContext(out, arg, LValue)
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap())")
+		return
+	}
+	TranspileExpression(out, arg)
 }
 
 func typedNilConversionType(call *ast.CallExpr) (types.Type, bool) {

@@ -558,6 +558,22 @@ func parts(x complex128) (float64, float64) {
 	}
 }
 
+func TestComplex64ToComplex128ConversionUsesComponents(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func widen(x complex64) complex128 {
+	return complex128(x)
+}
+`)
+
+	if strings.Contains(rust, "as f64, 0.0") {
+		t.Fatalf("complex64 to complex128 conversion should preserve real and imaginary components:\n%s", rust)
+	}
+	if !strings.Contains(rust, "num::Complex::<f64>::new(__z.re as f64, __z.im as f64)") {
+		t.Fatalf("complex64 to complex128 conversion should widen both components:\n%s", rust)
+	}
+}
+
 func TestAppendLenToIntSliceCastsToGoInt(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
