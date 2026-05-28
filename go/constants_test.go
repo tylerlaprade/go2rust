@@ -1341,3 +1341,36 @@ func chanDir() types.ChanDir {
 		t.Fatalf("stdlib stub const should be assigned directly into the wrapped slot:\n%s", chanDirRust)
 	}
 }
+
+// Regression: when a Go package has two functions whose snake-case names
+// collide (e.g. `Walk` vs `walk`, both → `walk`), the per-package rename
+// (`assignPackageFunctionNames`) and the per-file rename
+// (`assignFunctionNames`) must not both produce `_1` suffixes for different
+// functions. Before the fix, `walk` (lowercase) became `walk_1` from the
+// package layer, and `Walk` (uppercase) became `walk_1` from the file
+// layer — colliding.
+func TestSnakeCaseCollidingFunctionsDoNotDoubleSuffix(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func Walk() int    { return 0 }
+func walk() int    { return 0 }
+func WalkDir() int { return 0 }
+func walkDir() int { return 0 }
+
+func main() {
+	_ = Walk()
+	_ = walk()
+	_ = WalkDir()
+	_ = walkDir()
+}
+`)
+
+	walkOccurrences := strings.Count(rust, "pub fn walk_1(")
+	if walkOccurrences > 1 {
+		t.Fatalf("snake-case name collisions should each get a unique suffix; `walk_1` appears %d times:\n%s", walkOccurrences, rust)
+	}
+	walkDirOccurrences := strings.Count(rust, "pub fn walk_dir_1(")
+	if walkDirOccurrences > 1 {
+		t.Fatalf("snake-case name collisions should each get a unique suffix; `walk_dir_1` appears %d times:\n%s", walkDirOccurrences, rust)
+	}
+}

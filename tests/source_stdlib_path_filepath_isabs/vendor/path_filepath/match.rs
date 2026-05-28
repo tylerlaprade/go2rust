@@ -222,7 +222,7 @@ pub fn match_chunk(mut chunk: Arc<Mutex<Option<String>>>, mut s: Arc<Mutex<Optio
         { let new_val = true; *failed.lock().unwrap() = Some(new_val); };
     }
         let (_, mut n) = utf8::decode_rune_in_string(s.clone());
-        { let new_val = Arc::new(Mutex::new(Some({ let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); __s[({ let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize..].to_string() }))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *s.lock().unwrap() = __moved_val; };
+        { let new_val = Arc::new(Mutex::new(Some({ let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); __s[(n) as usize..].to_string() }))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *s.lock().unwrap() = __moved_val; };
     }
             { let new_val = Arc::new(Mutex::new(Some({ let __s = &((*chunk.lock().unwrap().as_ref().unwrap()).clone()); __s[(1) as usize..].to_string() }))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *chunk.lock().unwrap() = __moved_val; };
         }
@@ -390,7 +390,7 @@ pub fn clean_glob_path_windows(path: Arc<Mutex<Option<String>>>) -> (i32, Arc<Mu
             return (vollen, Arc::new(Mutex::new(Some(format!("{}{}", { let __v = (*path.lock().unwrap().as_ref().unwrap()).clone(); __v }, ".".to_string())))));
         } else {
             if { let __tmp_x = (vollen as i32); let __tmp_y = ((*path.lock().unwrap().as_ref().unwrap()).len() as i32); __tmp_x >= __tmp_y } {
-        { let new_val = { let __tmp_x = ((*path.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = (1 as i32); __tmp_x - __tmp_y }; *vollen.lock().unwrap() = Some(new_val); };
+        { let new_val = { let __tmp_x = ((*path.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = (1 as i32); __tmp_x - __tmp_y }; vollen = new_val; };
     }
             return (vollen, Arc::new(Mutex::new(Some({ let __s = &((*path.lock().unwrap().as_ref().unwrap()).clone()); __s[(0) as usize..({ let __tmp_x = ((*path.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = (1 as i32); __tmp_x - __tmp_y }) as usize].to_string() }))));
         }

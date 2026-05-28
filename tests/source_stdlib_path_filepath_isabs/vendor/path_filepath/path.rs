@@ -332,7 +332,7 @@ pub fn walk_dir_1(path: Arc<Mutex<Option<String>>>, d: Arc<Mutex<Option<fs_DirEn
 
         // Second call, to report ReadDir error.
     { let __range_holder = dirs.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for d1 in __range_values.iter() {
-        let mut path1 = join(Arc::new(Mutex::new(Some(vec![{ let __v = (*path.lock().unwrap().as_ref().unwrap()).clone(); __v }, d1.name()]))));
+        let mut path1 = join(Arc::new(Mutex::new(Some(vec![{ let __v = (*path.lock().unwrap().as_ref().unwrap()).clone(); __v }, (*d1.name().lock().unwrap().as_ref().unwrap())]))));
         {
         let mut err = walk_dir_1(Arc::new(Mutex::new(Some({ let __arg_holder = path1.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some((*d1).clone()))), walkDirFn.clone());;
         if (*err.lock().unwrap()).is_some() {
@@ -407,7 +407,7 @@ pub fn walk_1(path: Arc<Mutex<Option<String>>>, info: Arc<Mutex<Option<fs_FileIn
 /// WalkDir calls fn with paths that use the separator character appropriate
 /// for the operating system. This is unlike [io/fs.WalkDir], which always
 /// uses slash separated paths.
-pub fn walk_dir_1(root: Arc<Mutex<Option<String>>>, r#fn: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<fs_DirEntry>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> + Send + Sync>>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
+pub fn walk_dir(root: Arc<Mutex<Option<String>>>, r#fn: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<fs_DirEntry>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> + Send + Sync>>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
     let (mut info, mut err) = os::lstat(root.clone());
     if (*err.lock().unwrap()).is_some() {
         { let __rhs_holder = { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<fs_DirEntry>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> + Send + Sync> = { let mut __f_guard = r#fn.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<fs_DirEntry>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(Mutex::new(Some({ let __arg_holder = root.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(None)), err.clone()) }.clone(); let new_val = { let mut guard = __rhs_holder.lock().unwrap(); guard.take() }; *err.lock().unwrap() = new_val; };
@@ -434,7 +434,7 @@ pub fn walk_dir_1(root: Arc<Mutex<Option<String>>>, r#fn: Arc<Mutex<Option<Box<d
 ///
 /// Walk is less efficient than [WalkDir], introduced in Go 1.16,
 /// which avoids calling os.Lstat on every visited file or directory.
-pub fn walk_1(root: Arc<Mutex<Option<String>>>, r#fn: WalkFunc) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
+pub fn walk(root: Arc<Mutex<Option<String>>>, r#fn: WalkFunc) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
     let (mut info, mut err) = os::lstat(root.clone());
     if (*err.lock().unwrap()).is_some() {
         { let __rhs_holder = { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<fs_FileInfo>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> + Send + Sync> = { let mut __f_guard = r#fn.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<fs_FileInfo>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(Mutex::new(Some({ let __arg_holder = root.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(None)), err.clone()) }.clone(); let new_val = { let mut guard = __rhs_holder.lock().unwrap(); guard.take() }; *err.lock().unwrap() = new_val; };

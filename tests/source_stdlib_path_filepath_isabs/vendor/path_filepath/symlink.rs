@@ -124,7 +124,7 @@ pub fn walk_symlinks(mut path: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<
         { let new_val = Arc::new(Mutex::new(Some({ let __s = &((*link.lock().unwrap().as_ref().unwrap()).clone()); __s[..(1) as usize].to_string() }))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *dest.lock().unwrap() = __moved_val; };
         { let new_val = 1; *end.lock().unwrap() = Some(new_val); };
         { let new_val = Arc::new(Mutex::new(Some({ let __s = &((*link.lock().unwrap().as_ref().unwrap()).clone()); __s[..(1) as usize].to_string() }))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *vol.lock().unwrap() = __moved_val; };
-        { let new_val = 1; *volLen.lock().unwrap() = Some(new_val); };
+        { let new_val = 1; volLen = new_val; };
     } else {
         let mut r: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(0)));
         { let new_val = { let __tmp_x = ((*dest.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = (1 as i32); __tmp_x - __tmp_y }; *r.lock().unwrap() = Some(new_val); };

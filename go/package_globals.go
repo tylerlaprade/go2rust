@@ -150,8 +150,21 @@ func rustMethodSelectorName(sel *ast.SelectorExpr) string {
 func assignFunctionNames(functions []*ast.FuncDecl) map[*ast.FuncDecl]string {
 	names := make(map[*ast.FuncDecl]string)
 	used := make(map[string]int)
+	// Seed the in-file counter with names the per-package layer has
+	// already claimed. Without this, the per-file rename collides
+	// with `assignPackageFunctionNames` — e.g. both `walkDir` (package
+	// layer) and `WalkDir` (file layer) would each resolve to
+	// `walk_dir_1`, producing two definitions with the same Rust name.
+	for _, override := range packageFunctionNameOverrides {
+		used[override]++
+	}
 	initIndex := 0
 	for _, fn := range functions {
+		if _, hasPkgOverride := packageFunctionNameOverrides[fn.Name.Name]; hasPkgOverride {
+			// Per-package layer already chose this function's Rust name.
+			// Skip the per-file rename so we don't collide with it.
+			continue
+		}
 		rustName := RustFunctionName(fn.Name.Name)
 		if fn.Name.Name == "init" {
 			rustName = fmt.Sprintf("__go_init_%d", initIndex)
