@@ -975,6 +975,33 @@ func (m *Map) Use(t *table) int {
 	}
 }
 
+func TestNamedIntegerConversionCallArgumentWrapsExpectedNamedParam(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type ctrl uint8
+
+type group struct{}
+
+func h2(hash uintptr) uintptr {
+	return hash >> 7
+}
+
+func (g *group) set(c ctrl) {}
+
+func use(g *group, hash uintptr) {
+	g.set(ctrl(h2(hash)))
+}
+`)
+
+	if strings.Contains(rust, ".set(ctrl(") {
+		t.Fatalf("named integer conversion call argument should not bypass parameter wrapping:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".set(Rc::new(RefCell::new(Some(ctrl(") &&
+		!strings.Contains(rust, ".set(Arc::new(Mutex::new(Some(ctrl(") {
+		t.Fatalf("named integer conversion call argument should wrap the named value for the parameter:\n%s", rust)
+	}
+}
+
 func TestNoTypeInfoExternalExecLookPathRegistersStub(t *testing.T) {
 	rust := transpileNoTypeInfoRegression(t, `package main
 

@@ -1909,7 +1909,7 @@ func writeAlreadyWrappedCallArgument(out *strings.Builder, arg ast.Expr) bool {
 		return false
 	}
 	typeInfo := GetTypeInfo()
-	if typeInfo != nil && typeInfo.ReturnsWrappedValue(callArg) && !callReturnsBareChannelValue(callArg) {
+	if typeInfo != nil && typeInfo.ReturnsWrappedValue(callArg) && !callReturnsBareChannelValue(callArg) && (!typeInfo.IsTypeConversion(callArg) || typeConversionEmitsWrappedValue(callArg)) {
 		TranspileExpression(out, arg)
 		return true
 	}
