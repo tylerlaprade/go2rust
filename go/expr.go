@@ -10868,6 +10868,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 
 	// Check if this is a closure call (calling a variable that holds a function)
 	closureCallSuffix := ""
+	explicitGenericFuncName := ""
 	if ident, ok := call.Fun.(*ast.Ident); ok {
 		// Check if this is a known function or a variable
 		if isBuiltinCallTarget(ident) || isFunctionName(ident) {
@@ -10897,6 +10898,8 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 			out.WriteString(" }; let __f = unsafe { &mut *__f_ptr }; (*__f)")
 			closureCallSuffix = " }"
 		}
+	} else if funcName, ok := writeExplicitGenericFunctionCallTarget(out, call.Fun); ok {
+		explicitGenericFuncName = funcName
 	} else if typeAssert, ok := call.Fun.(*ast.TypeAssertExpr); ok && typeAssertionEmitsBareFunctionValue(typeAssert) {
 		writeFunctionTypeAssertionCallTarget(out, typeAssert)
 		closureCallSuffix = "\n        } else {\n            panic!(\"type assertion on nil interface\")\n        }\n    })"
@@ -10921,6 +10924,8 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 	var funcName string
 	if ident, ok := call.Fun.(*ast.Ident); ok {
 		funcName = ident.Name
+	} else if explicitGenericFuncName != "" {
+		funcName = explicitGenericFuncName
 	}
 
 	// Get function signature to check for interface parameters
@@ -11061,6 +11066,8 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 		isClosureCall := false
 		if ident, ok := call.Fun.(*ast.Ident); ok {
 			isClosureCall = !isBuiltinCallTarget(ident) && !isFunctionName(ident)
+		} else if explicitGenericFuncName != "" {
+			isClosureCall = false
 		} else {
 			// Complex expression, likely a closure
 			isClosureCall = true
@@ -11489,15 +11496,70 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 	closeFunctionCall()
 }
 
-func writeInferredCallTypeArgs(out *strings.Builder, ident *ast.Ident) {
+func writeExplicitGenericFunctionCallTarget(out *strings.Builder, fun ast.Expr) (string, bool) {
+	target, ident, ok := explicitGenericFunctionTarget(fun)
+	if !ok {
+		return "", false
+	}
+	instance, ok := genericFunctionInstance(ident)
+	if !ok {
+		return "", false
+	}
+	switch target := target.(type) {
+	case *ast.Ident:
+		out.WriteString(rustFunctionNameForUse(target.Name))
+	case *ast.SelectorExpr:
+		TranspileExpression(out, target)
+	default:
+		return "", false
+	}
+	writeTypeArgsFromInstance(out, instance)
+	return ident.Name, true
+}
+
+func explicitGenericFunctionTarget(fun ast.Expr) (ast.Expr, *ast.Ident, bool) {
+	switch e := unwrapParens(fun).(type) {
+	case *ast.IndexExpr:
+		return genericFunctionTargetFromBase(e.X)
+	case *ast.IndexListExpr:
+		return genericFunctionTargetFromBase(e.X)
+	default:
+		return nil, nil, false
+	}
+}
+
+func genericFunctionTargetFromBase(base ast.Expr) (ast.Expr, *ast.Ident, bool) {
+	switch e := unwrapParens(base).(type) {
+	case *ast.Ident:
+		return e, e, true
+	case *ast.SelectorExpr:
+		return e, e.Sel, true
+	default:
+		return nil, nil, false
+	}
+}
+
+func genericFunctionInstance(ident *ast.Ident) (types.Instance, bool) {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil || typeInfo.info == nil || typeInfo.info.Instances == nil || ident == nil {
-		return
+		return types.Instance{}, false
 	}
 	instance, ok := typeInfo.info.Instances[ident]
 	if !ok || instance.TypeArgs == nil || instance.TypeArgs.Len() == 0 {
+		return types.Instance{}, false
+	}
+	return instance, true
+}
+
+func writeInferredCallTypeArgs(out *strings.Builder, ident *ast.Ident) {
+	instance, ok := genericFunctionInstance(ident)
+	if !ok {
 		return
 	}
+	writeTypeArgsFromInstance(out, instance)
+}
+
+func writeTypeArgsFromInstance(out *strings.Builder, instance types.Instance) {
 	out.WriteString("::<")
 	for i := 0; i < instance.TypeArgs.Len(); i++ {
 		if i > 0 {

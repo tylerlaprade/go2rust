@@ -1659,6 +1659,26 @@ func typeFor[T any]() {
 	}
 }
 
+func TestExplicitGenericFunctionCallUsesRustTypeArgs(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func identity[T any](value T) T {
+	return value
+}
+
+func use() int {
+	return identity[int](3)
+}
+`)
+
+	if strings.Contains(rust, "identity.clone()") || strings.Contains(rust, "int.borrow") || strings.Contains(rust, "int.lock") {
+		t.Fatalf("explicit generic function call should not lower the type argument as an index expression:\n%s", rust)
+	}
+	if !strings.Contains(rust, "identity::<i32>(") {
+		t.Fatalf("explicit generic function call should emit Rust type arguments:\n%s", rust)
+	}
+}
+
 func TestThreeIndexSliceCapacityUnwrapsSelectorBounds(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
