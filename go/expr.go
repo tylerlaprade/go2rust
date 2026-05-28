@@ -48,12 +48,6 @@ func writeNamedIntegerExpressionAsUsize(out *strings.Builder, expr ast.Expr) boo
 }
 
 func writeNamedIntegerPrimitiveExpression(out *strings.Builder, expr ast.Expr) bool {
-	if binary, ok := expr.(*ast.BinaryExpr); ok {
-		return writeNamedIntegerBinaryPrimitiveExpression(out, binary)
-	}
-	if writeUnaryIntegerLiteral(out, expr) {
-		return true
-	}
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil {
 		return false
@@ -61,6 +55,16 @@ func writeNamedIntegerPrimitiveExpression(out *strings.Builder, expr ast.Expr) b
 	named, ok := types.Unalias(typeInfo.GetType(expr)).(*types.Named)
 	if !ok || !isNamedIntegerType(named) {
 		return false
+	}
+	if isConstantExpression(expr) {
+		TranspileConstExpr(out, expr, 0)
+		return true
+	}
+	if binary, ok := expr.(*ast.BinaryExpr); ok {
+		return writeNamedIntegerBinaryPrimitiveExpression(out, binary)
+	}
+	if writeUnaryIntegerLiteral(out, expr) {
+		return true
 	}
 	if lit, ok := expr.(*ast.BasicLit); ok {
 		out.WriteString(lit.Value)

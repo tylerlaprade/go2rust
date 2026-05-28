@@ -923,6 +923,25 @@ func clearBelow(b bitset, mask uint64) bitset {
 	}
 }
 
+func TestNamedIntegerBitwiseConstShiftOperandStaysPrimitive(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type bitset uint64
+
+func start() {
+	go func() {}()
+}
+
+func lowestSet(b bitset) bool {
+	return b&(1<<7) != 0
+}
+`)
+
+	if strings.Contains(rust, "(1 << 7).0") {
+		t.Fatalf("constant shift operand should stay primitive inside named integer bitwise op:\n%s", rust)
+	}
+}
+
 func TestNamedIntegerAssignmentUsesRawNamedValue(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
