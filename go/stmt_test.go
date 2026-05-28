@@ -1359,3 +1359,27 @@ func (t *thing) value(items []*thing) int {
 		t.Fatalf("short declaration shadowing the receiver should keep the local identifier:\n%s", rust)
 	}
 }
+
+func TestMethodReceiverStructLiteralFieldUsesSelf(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Value struct {
+	n int
+}
+
+type Iter struct {
+	m Value
+}
+
+func (v Value) MapRange() *Iter {
+	return &Iter{m: v}
+}
+`)
+
+	if strings.Contains(rust, "m: v.clone()") {
+		t.Fatalf("receiver used as a struct literal field should lower through self, not the Go receiver name:\n%s", rust)
+	}
+	if !strings.Contains(rust, "m: Rc::new(RefCell::new(Some(self.clone())))") {
+		t.Fatalf("receiver used as a struct literal field should wrap a cloned self value:\n%s", rust)
+	}
+}
