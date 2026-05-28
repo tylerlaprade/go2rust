@@ -125,16 +125,16 @@ impl std::ops::Add for namedInt {
 }
 
 impl std::ops::Add<i64> for namedInt {
-    type Output = i64;
-    fn add(self, other: i64) -> i64 {
-        *self.0.borrow().as_ref().unwrap() + other
+    type Output = namedInt;
+    fn add(self, other: i64) -> namedInt {
+        namedInt(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() + other))))
     }
 }
 
 impl std::ops::Add<namedInt> for i64 {
-    type Output = i64;
-    fn add(self, other: namedInt) -> i64 {
-        self + *other.0.borrow().as_ref().unwrap()
+    type Output = namedInt;
+    fn add(self, other: namedInt) -> namedInt {
+        namedInt(Rc::new(RefCell::new(Some(self + *other.0.borrow().as_ref().unwrap()))))
     }
 }
 
@@ -146,16 +146,16 @@ impl std::ops::Sub for namedInt {
 }
 
 impl std::ops::Sub<i64> for namedInt {
-    type Output = i64;
-    fn sub(self, other: i64) -> i64 {
-        *self.0.borrow().as_ref().unwrap() - other
+    type Output = namedInt;
+    fn sub(self, other: i64) -> namedInt {
+        namedInt(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() - other))))
     }
 }
 
 impl std::ops::Sub<namedInt> for i64 {
-    type Output = i64;
-    fn sub(self, other: namedInt) -> i64 {
-        self - *other.0.borrow().as_ref().unwrap()
+    type Output = namedInt;
+    fn sub(self, other: namedInt) -> namedInt {
+        namedInt(Rc::new(RefCell::new(Some(self - *other.0.borrow().as_ref().unwrap()))))
     }
 }
 
@@ -167,16 +167,16 @@ impl std::ops::BitAnd for namedInt {
 }
 
 impl std::ops::BitAnd<i64> for namedInt {
-    type Output = i64;
-    fn bitand(self, other: i64) -> i64 {
-        *self.0.borrow().as_ref().unwrap() & other
+    type Output = namedInt;
+    fn bitand(self, other: i64) -> namedInt {
+        namedInt(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() & other))))
     }
 }
 
 impl std::ops::BitAnd<namedInt> for i64 {
-    type Output = i64;
-    fn bitand(self, other: namedInt) -> i64 {
-        self & *other.0.borrow().as_ref().unwrap()
+    type Output = namedInt;
+    fn bitand(self, other: namedInt) -> namedInt {
+        namedInt(Rc::new(RefCell::new(Some(self & *other.0.borrow().as_ref().unwrap()))))
     }
 }
 
@@ -188,16 +188,16 @@ impl std::ops::BitOr for namedInt {
 }
 
 impl std::ops::BitOr<i64> for namedInt {
-    type Output = i64;
-    fn bitor(self, other: i64) -> i64 {
-        *self.0.borrow().as_ref().unwrap() | other
+    type Output = namedInt;
+    fn bitor(self, other: i64) -> namedInt {
+        namedInt(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() | other))))
     }
 }
 
 impl std::ops::BitOr<namedInt> for i64 {
-    type Output = i64;
-    fn bitor(self, other: namedInt) -> i64 {
-        self | *other.0.borrow().as_ref().unwrap()
+    type Output = namedInt;
+    fn bitor(self, other: namedInt) -> namedInt {
+        namedInt(Rc::new(RefCell::new(Some(self | *other.0.borrow().as_ref().unwrap()))))
     }
 }
 
@@ -209,16 +209,163 @@ impl std::ops::BitXor for namedInt {
 }
 
 impl std::ops::BitXor<i64> for namedInt {
-    type Output = i64;
-    fn bitxor(self, other: i64) -> i64 {
-        *self.0.borrow().as_ref().unwrap() ^ other
+    type Output = namedInt;
+    fn bitxor(self, other: i64) -> namedInt {
+        namedInt(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() ^ other))))
     }
 }
 
 impl std::ops::BitXor<namedInt> for i64 {
-    type Output = i64;
-    fn bitxor(self, other: namedInt) -> i64 {
-        self ^ *other.0.borrow().as_ref().unwrap()
+    type Output = namedInt;
+    fn bitxor(self, other: namedInt) -> namedInt {
+        namedInt(Rc::new(RefCell::new(Some(self ^ *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Not for namedInt {
+    type Output = namedInt;
+    fn not(self) -> namedInt {
+        namedInt(Rc::new(RefCell::new(Some(!*self.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Shl for namedInt {
+    type Output = namedInt;
+    fn shl(self, other: namedInt) -> namedInt {
+        namedInt(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Shl<i32> for namedInt {
+    type Output = namedInt;
+    fn shl(self, other: i32) -> namedInt {
+        namedInt(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+    }
+}
+
+impl std::ops::Shl<i8> for namedInt {
+    type Output = namedInt;
+    fn shl(self, other: i8) -> namedInt {
+        namedInt(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+    }
+}
+
+impl std::ops::Shl<i16> for namedInt {
+    type Output = namedInt;
+    fn shl(self, other: i16) -> namedInt {
+        namedInt(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+    }
+}
+
+impl std::ops::Shl<i64> for namedInt {
+    type Output = namedInt;
+    fn shl(self, other: i64) -> namedInt {
+        namedInt(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+    }
+}
+
+impl std::ops::Shl<u32> for namedInt {
+    type Output = namedInt;
+    fn shl(self, other: u32) -> namedInt {
+        namedInt(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+    }
+}
+
+impl std::ops::Shl<u8> for namedInt {
+    type Output = namedInt;
+    fn shl(self, other: u8) -> namedInt {
+        namedInt(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+    }
+}
+
+impl std::ops::Shl<u16> for namedInt {
+    type Output = namedInt;
+    fn shl(self, other: u16) -> namedInt {
+        namedInt(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+    }
+}
+
+impl std::ops::Shl<u64> for namedInt {
+    type Output = namedInt;
+    fn shl(self, other: u64) -> namedInt {
+        namedInt(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+    }
+}
+
+impl std::ops::Shl<usize> for namedInt {
+    type Output = namedInt;
+    fn shl(self, other: usize) -> namedInt {
+        namedInt(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+    }
+}
+
+impl std::ops::Shr for namedInt {
+    type Output = namedInt;
+    fn shr(self, other: namedInt) -> namedInt {
+        namedInt(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Shr<i32> for namedInt {
+    type Output = namedInt;
+    fn shr(self, other: i32) -> namedInt {
+        namedInt(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+    }
+}
+
+impl std::ops::Shr<i8> for namedInt {
+    type Output = namedInt;
+    fn shr(self, other: i8) -> namedInt {
+        namedInt(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+    }
+}
+
+impl std::ops::Shr<i16> for namedInt {
+    type Output = namedInt;
+    fn shr(self, other: i16) -> namedInt {
+        namedInt(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+    }
+}
+
+impl std::ops::Shr<i64> for namedInt {
+    type Output = namedInt;
+    fn shr(self, other: i64) -> namedInt {
+        namedInt(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+    }
+}
+
+impl std::ops::Shr<u32> for namedInt {
+    type Output = namedInt;
+    fn shr(self, other: u32) -> namedInt {
+        namedInt(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+    }
+}
+
+impl std::ops::Shr<u8> for namedInt {
+    type Output = namedInt;
+    fn shr(self, other: u8) -> namedInt {
+        namedInt(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+    }
+}
+
+impl std::ops::Shr<u16> for namedInt {
+    type Output = namedInt;
+    fn shr(self, other: u16) -> namedInt {
+        namedInt(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+    }
+}
+
+impl std::ops::Shr<u64> for namedInt {
+    type Output = namedInt;
+    fn shr(self, other: u64) -> namedInt {
+        namedInt(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+    }
+}
+
+impl std::ops::Shr<usize> for namedInt {
+    type Output = namedInt;
+    fn shr(self, other: usize) -> namedInt {
+        namedInt(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
     }
 }
 

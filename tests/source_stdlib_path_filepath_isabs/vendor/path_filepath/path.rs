@@ -241,7 +241,7 @@ pub fn rel(basepath: Arc<Mutex<Option<String>>>, targpath: Arc<Mutex<Option<Stri
     if { let __tmp_x = (*base.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "."; __tmp_x == __tmp_y } {
         { let new_val = "".to_string(); *base.lock().unwrap() = Some(new_val); };
     } else if { let __tmp_x = (*base.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = ""; __tmp_x == __tmp_y } && { let __tmp_x = filepathlite::volume_name_len(baseVol.clone()); let __tmp_y = 2; __tmp_x > __tmp_y } {
-        { let new_val = Arc::new(Mutex::new(Some(char::from_u32(((*Separator.lock().unwrap().as_ref().unwrap())) as u32).unwrap().to_string()))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *base.lock().unwrap() = __moved_val; };
+        { let new_val = Arc::new(Mutex::new(Some(char::from_u32((SEPARATOR) as u32).unwrap().to_string()))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *base.lock().unwrap() = __moved_val; };
     }
 
         /* isUNC */

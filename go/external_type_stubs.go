@@ -6510,13 +6510,9 @@ func writeFilepathEvalSymlinksFunction(out *strings.Builder, fn externalPackageS
 // TEMPORARY: hand-written Rust shim for filepath.IsAbs.
 // Long-term fix: transpile path/filepath source (pure string check).
 func writeFilepathIsAbsFunction(out *strings.Builder) {
-	out.WriteString("    pub fn is_abs<T0: GoStringArg>(_arg0: T0) -> ")
-	out.WriteString(wrappedExternalStubType("bool"))
-	out.WriteString(" {\n")
+	out.WriteString("    pub fn is_abs<T0: GoStringArg>(_arg0: T0) -> bool {\n")
 	out.WriteString("        let path = _arg0.into_go_string();\n")
-	out.WriteString("        ")
-	out.WriteString(wrappedExternalStubExpr("bool", "Path::new(&path).is_absolute()"))
-	out.WriteString("\n")
+	out.WriteString("        Path::new(&path).is_absolute()\n")
 	out.WriteString("    }\n")
 }
 

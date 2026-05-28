@@ -58,16 +58,16 @@ impl std::ops::Add for ObjKind {
 }
 
 impl std::ops::Add<i32> for ObjKind {
-    type Output = i32;
-    fn add(self, other: i32) -> i32 {
-        *self.0.borrow().as_ref().unwrap() + other
+    type Output = ObjKind;
+    fn add(self, other: i32) -> ObjKind {
+        ObjKind(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() + other))))
     }
 }
 
 impl std::ops::Add<ObjKind> for i32 {
-    type Output = i32;
-    fn add(self, other: ObjKind) -> i32 {
-        self + *other.0.borrow().as_ref().unwrap()
+    type Output = ObjKind;
+    fn add(self, other: ObjKind) -> ObjKind {
+        ObjKind(Rc::new(RefCell::new(Some(self + *other.0.borrow().as_ref().unwrap()))))
     }
 }
 
@@ -79,16 +79,16 @@ impl std::ops::Sub for ObjKind {
 }
 
 impl std::ops::Sub<i32> for ObjKind {
-    type Output = i32;
-    fn sub(self, other: i32) -> i32 {
-        *self.0.borrow().as_ref().unwrap() - other
+    type Output = ObjKind;
+    fn sub(self, other: i32) -> ObjKind {
+        ObjKind(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() - other))))
     }
 }
 
 impl std::ops::Sub<ObjKind> for i32 {
-    type Output = i32;
-    fn sub(self, other: ObjKind) -> i32 {
-        self - *other.0.borrow().as_ref().unwrap()
+    type Output = ObjKind;
+    fn sub(self, other: ObjKind) -> ObjKind {
+        ObjKind(Rc::new(RefCell::new(Some(self - *other.0.borrow().as_ref().unwrap()))))
     }
 }
 
@@ -100,16 +100,16 @@ impl std::ops::BitAnd for ObjKind {
 }
 
 impl std::ops::BitAnd<i32> for ObjKind {
-    type Output = i32;
-    fn bitand(self, other: i32) -> i32 {
-        *self.0.borrow().as_ref().unwrap() & other
+    type Output = ObjKind;
+    fn bitand(self, other: i32) -> ObjKind {
+        ObjKind(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() & other))))
     }
 }
 
 impl std::ops::BitAnd<ObjKind> for i32 {
-    type Output = i32;
-    fn bitand(self, other: ObjKind) -> i32 {
-        self & *other.0.borrow().as_ref().unwrap()
+    type Output = ObjKind;
+    fn bitand(self, other: ObjKind) -> ObjKind {
+        ObjKind(Rc::new(RefCell::new(Some(self & *other.0.borrow().as_ref().unwrap()))))
     }
 }
 
@@ -121,16 +121,16 @@ impl std::ops::BitOr for ObjKind {
 }
 
 impl std::ops::BitOr<i32> for ObjKind {
-    type Output = i32;
-    fn bitor(self, other: i32) -> i32 {
-        *self.0.borrow().as_ref().unwrap() | other
+    type Output = ObjKind;
+    fn bitor(self, other: i32) -> ObjKind {
+        ObjKind(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() | other))))
     }
 }
 
 impl std::ops::BitOr<ObjKind> for i32 {
-    type Output = i32;
-    fn bitor(self, other: ObjKind) -> i32 {
-        self | *other.0.borrow().as_ref().unwrap()
+    type Output = ObjKind;
+    fn bitor(self, other: ObjKind) -> ObjKind {
+        ObjKind(Rc::new(RefCell::new(Some(self | *other.0.borrow().as_ref().unwrap()))))
     }
 }
 
@@ -142,16 +142,163 @@ impl std::ops::BitXor for ObjKind {
 }
 
 impl std::ops::BitXor<i32> for ObjKind {
-    type Output = i32;
-    fn bitxor(self, other: i32) -> i32 {
-        *self.0.borrow().as_ref().unwrap() ^ other
+    type Output = ObjKind;
+    fn bitxor(self, other: i32) -> ObjKind {
+        ObjKind(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() ^ other))))
     }
 }
 
 impl std::ops::BitXor<ObjKind> for i32 {
-    type Output = i32;
-    fn bitxor(self, other: ObjKind) -> i32 {
-        self ^ *other.0.borrow().as_ref().unwrap()
+    type Output = ObjKind;
+    fn bitxor(self, other: ObjKind) -> ObjKind {
+        ObjKind(Rc::new(RefCell::new(Some(self ^ *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Not for ObjKind {
+    type Output = ObjKind;
+    fn not(self) -> ObjKind {
+        ObjKind(Rc::new(RefCell::new(Some(!*self.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Shl for ObjKind {
+    type Output = ObjKind;
+    fn shl(self, other: ObjKind) -> ObjKind {
+        ObjKind(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Shl<i32> for ObjKind {
+    type Output = ObjKind;
+    fn shl(self, other: i32) -> ObjKind {
+        ObjKind(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+    }
+}
+
+impl std::ops::Shl<i8> for ObjKind {
+    type Output = ObjKind;
+    fn shl(self, other: i8) -> ObjKind {
+        ObjKind(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+    }
+}
+
+impl std::ops::Shl<i16> for ObjKind {
+    type Output = ObjKind;
+    fn shl(self, other: i16) -> ObjKind {
+        ObjKind(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+    }
+}
+
+impl std::ops::Shl<i64> for ObjKind {
+    type Output = ObjKind;
+    fn shl(self, other: i64) -> ObjKind {
+        ObjKind(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+    }
+}
+
+impl std::ops::Shl<u32> for ObjKind {
+    type Output = ObjKind;
+    fn shl(self, other: u32) -> ObjKind {
+        ObjKind(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+    }
+}
+
+impl std::ops::Shl<u8> for ObjKind {
+    type Output = ObjKind;
+    fn shl(self, other: u8) -> ObjKind {
+        ObjKind(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+    }
+}
+
+impl std::ops::Shl<u16> for ObjKind {
+    type Output = ObjKind;
+    fn shl(self, other: u16) -> ObjKind {
+        ObjKind(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+    }
+}
+
+impl std::ops::Shl<u64> for ObjKind {
+    type Output = ObjKind;
+    fn shl(self, other: u64) -> ObjKind {
+        ObjKind(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+    }
+}
+
+impl std::ops::Shl<usize> for ObjKind {
+    type Output = ObjKind;
+    fn shl(self, other: usize) -> ObjKind {
+        ObjKind(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+    }
+}
+
+impl std::ops::Shr for ObjKind {
+    type Output = ObjKind;
+    fn shr(self, other: ObjKind) -> ObjKind {
+        ObjKind(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Shr<i32> for ObjKind {
+    type Output = ObjKind;
+    fn shr(self, other: i32) -> ObjKind {
+        ObjKind(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+    }
+}
+
+impl std::ops::Shr<i8> for ObjKind {
+    type Output = ObjKind;
+    fn shr(self, other: i8) -> ObjKind {
+        ObjKind(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+    }
+}
+
+impl std::ops::Shr<i16> for ObjKind {
+    type Output = ObjKind;
+    fn shr(self, other: i16) -> ObjKind {
+        ObjKind(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+    }
+}
+
+impl std::ops::Shr<i64> for ObjKind {
+    type Output = ObjKind;
+    fn shr(self, other: i64) -> ObjKind {
+        ObjKind(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+    }
+}
+
+impl std::ops::Shr<u32> for ObjKind {
+    type Output = ObjKind;
+    fn shr(self, other: u32) -> ObjKind {
+        ObjKind(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+    }
+}
+
+impl std::ops::Shr<u8> for ObjKind {
+    type Output = ObjKind;
+    fn shr(self, other: u8) -> ObjKind {
+        ObjKind(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+    }
+}
+
+impl std::ops::Shr<u16> for ObjKind {
+    type Output = ObjKind;
+    fn shr(self, other: u16) -> ObjKind {
+        ObjKind(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+    }
+}
+
+impl std::ops::Shr<u64> for ObjKind {
+    type Output = ObjKind;
+    fn shr(self, other: u64) -> ObjKind {
+        ObjKind(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+    }
+}
+
+impl std::ops::Shr<usize> for ObjKind {
+    type Output = ObjKind;
+    fn shr(self, other: usize) -> ObjKind {
+        ObjKind(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
     }
 }
 

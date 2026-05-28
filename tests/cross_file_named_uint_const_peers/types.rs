@@ -64,16 +64,16 @@ impl std::ops::Add for Version {
 }
 
 impl std::ops::Add<u32> for Version {
-    type Output = u32;
-    fn add(self, other: u32) -> u32 {
-        *self.0.borrow().as_ref().unwrap() + other
+    type Output = Version;
+    fn add(self, other: u32) -> Version {
+        Version(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() + other))))
     }
 }
 
 impl std::ops::Add<Version> for u32 {
-    type Output = u32;
-    fn add(self, other: Version) -> u32 {
-        self + *other.0.borrow().as_ref().unwrap()
+    type Output = Version;
+    fn add(self, other: Version) -> Version {
+        Version(Rc::new(RefCell::new(Some(self + *other.0.borrow().as_ref().unwrap()))))
     }
 }
 
@@ -85,16 +85,16 @@ impl std::ops::Sub for Version {
 }
 
 impl std::ops::Sub<u32> for Version {
-    type Output = u32;
-    fn sub(self, other: u32) -> u32 {
-        *self.0.borrow().as_ref().unwrap() - other
+    type Output = Version;
+    fn sub(self, other: u32) -> Version {
+        Version(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() - other))))
     }
 }
 
 impl std::ops::Sub<Version> for u32 {
-    type Output = u32;
-    fn sub(self, other: Version) -> u32 {
-        self - *other.0.borrow().as_ref().unwrap()
+    type Output = Version;
+    fn sub(self, other: Version) -> Version {
+        Version(Rc::new(RefCell::new(Some(self - *other.0.borrow().as_ref().unwrap()))))
     }
 }
 
@@ -106,16 +106,16 @@ impl std::ops::BitAnd for Version {
 }
 
 impl std::ops::BitAnd<u32> for Version {
-    type Output = u32;
-    fn bitand(self, other: u32) -> u32 {
-        *self.0.borrow().as_ref().unwrap() & other
+    type Output = Version;
+    fn bitand(self, other: u32) -> Version {
+        Version(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() & other))))
     }
 }
 
 impl std::ops::BitAnd<Version> for u32 {
-    type Output = u32;
-    fn bitand(self, other: Version) -> u32 {
-        self & *other.0.borrow().as_ref().unwrap()
+    type Output = Version;
+    fn bitand(self, other: Version) -> Version {
+        Version(Rc::new(RefCell::new(Some(self & *other.0.borrow().as_ref().unwrap()))))
     }
 }
 
@@ -127,16 +127,16 @@ impl std::ops::BitOr for Version {
 }
 
 impl std::ops::BitOr<u32> for Version {
-    type Output = u32;
-    fn bitor(self, other: u32) -> u32 {
-        *self.0.borrow().as_ref().unwrap() | other
+    type Output = Version;
+    fn bitor(self, other: u32) -> Version {
+        Version(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() | other))))
     }
 }
 
 impl std::ops::BitOr<Version> for u32 {
-    type Output = u32;
-    fn bitor(self, other: Version) -> u32 {
-        self | *other.0.borrow().as_ref().unwrap()
+    type Output = Version;
+    fn bitor(self, other: Version) -> Version {
+        Version(Rc::new(RefCell::new(Some(self | *other.0.borrow().as_ref().unwrap()))))
     }
 }
 
@@ -148,16 +148,163 @@ impl std::ops::BitXor for Version {
 }
 
 impl std::ops::BitXor<u32> for Version {
-    type Output = u32;
-    fn bitxor(self, other: u32) -> u32 {
-        *self.0.borrow().as_ref().unwrap() ^ other
+    type Output = Version;
+    fn bitxor(self, other: u32) -> Version {
+        Version(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() ^ other))))
     }
 }
 
 impl std::ops::BitXor<Version> for u32 {
-    type Output = u32;
-    fn bitxor(self, other: Version) -> u32 {
-        self ^ *other.0.borrow().as_ref().unwrap()
+    type Output = Version;
+    fn bitxor(self, other: Version) -> Version {
+        Version(Rc::new(RefCell::new(Some(self ^ *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Not for Version {
+    type Output = Version;
+    fn not(self) -> Version {
+        Version(Rc::new(RefCell::new(Some(!*self.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Shl for Version {
+    type Output = Version;
+    fn shl(self, other: Version) -> Version {
+        Version(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Shl<i32> for Version {
+    type Output = Version;
+    fn shl(self, other: i32) -> Version {
+        Version(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+    }
+}
+
+impl std::ops::Shl<i8> for Version {
+    type Output = Version;
+    fn shl(self, other: i8) -> Version {
+        Version(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+    }
+}
+
+impl std::ops::Shl<i16> for Version {
+    type Output = Version;
+    fn shl(self, other: i16) -> Version {
+        Version(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+    }
+}
+
+impl std::ops::Shl<i64> for Version {
+    type Output = Version;
+    fn shl(self, other: i64) -> Version {
+        Version(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+    }
+}
+
+impl std::ops::Shl<u32> for Version {
+    type Output = Version;
+    fn shl(self, other: u32) -> Version {
+        Version(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+    }
+}
+
+impl std::ops::Shl<u8> for Version {
+    type Output = Version;
+    fn shl(self, other: u8) -> Version {
+        Version(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+    }
+}
+
+impl std::ops::Shl<u16> for Version {
+    type Output = Version;
+    fn shl(self, other: u16) -> Version {
+        Version(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+    }
+}
+
+impl std::ops::Shl<u64> for Version {
+    type Output = Version;
+    fn shl(self, other: u64) -> Version {
+        Version(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+    }
+}
+
+impl std::ops::Shl<usize> for Version {
+    type Output = Version;
+    fn shl(self, other: usize) -> Version {
+        Version(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+    }
+}
+
+impl std::ops::Shr for Version {
+    type Output = Version;
+    fn shr(self, other: Version) -> Version {
+        Version(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Shr<i32> for Version {
+    type Output = Version;
+    fn shr(self, other: i32) -> Version {
+        Version(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+    }
+}
+
+impl std::ops::Shr<i8> for Version {
+    type Output = Version;
+    fn shr(self, other: i8) -> Version {
+        Version(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+    }
+}
+
+impl std::ops::Shr<i16> for Version {
+    type Output = Version;
+    fn shr(self, other: i16) -> Version {
+        Version(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+    }
+}
+
+impl std::ops::Shr<i64> for Version {
+    type Output = Version;
+    fn shr(self, other: i64) -> Version {
+        Version(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+    }
+}
+
+impl std::ops::Shr<u32> for Version {
+    type Output = Version;
+    fn shr(self, other: u32) -> Version {
+        Version(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+    }
+}
+
+impl std::ops::Shr<u8> for Version {
+    type Output = Version;
+    fn shr(self, other: u8) -> Version {
+        Version(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+    }
+}
+
+impl std::ops::Shr<u16> for Version {
+    type Output = Version;
+    fn shr(self, other: u16) -> Version {
+        Version(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+    }
+}
+
+impl std::ops::Shr<u64> for Version {
+    type Output = Version;
+    fn shr(self, other: u64) -> Version {
+        Version(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+    }
+}
+
+impl std::ops::Shr<usize> for Version {
+    type Output = Version;
+    fn shr(self, other: usize) -> Version {
+        Version(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
     }
 }
 

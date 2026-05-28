@@ -73,16 +73,16 @@ impl std::ops::Add for CodeVal {
 }
 
 impl std::ops::Add<i32> for CodeVal {
-    type Output = i32;
-    fn add(self, other: i32) -> i32 {
-        *self.0.borrow().as_ref().unwrap() + other
+    type Output = CodeVal;
+    fn add(self, other: i32) -> CodeVal {
+        CodeVal(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() + other))))
     }
 }
 
 impl std::ops::Add<CodeVal> for i32 {
-    type Output = i32;
-    fn add(self, other: CodeVal) -> i32 {
-        self + *other.0.borrow().as_ref().unwrap()
+    type Output = CodeVal;
+    fn add(self, other: CodeVal) -> CodeVal {
+        CodeVal(Rc::new(RefCell::new(Some(self + *other.0.borrow().as_ref().unwrap()))))
     }
 }
 
@@ -94,16 +94,16 @@ impl std::ops::Sub for CodeVal {
 }
 
 impl std::ops::Sub<i32> for CodeVal {
-    type Output = i32;
-    fn sub(self, other: i32) -> i32 {
-        *self.0.borrow().as_ref().unwrap() - other
+    type Output = CodeVal;
+    fn sub(self, other: i32) -> CodeVal {
+        CodeVal(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() - other))))
     }
 }
 
 impl std::ops::Sub<CodeVal> for i32 {
-    type Output = i32;
-    fn sub(self, other: CodeVal) -> i32 {
-        self - *other.0.borrow().as_ref().unwrap()
+    type Output = CodeVal;
+    fn sub(self, other: CodeVal) -> CodeVal {
+        CodeVal(Rc::new(RefCell::new(Some(self - *other.0.borrow().as_ref().unwrap()))))
     }
 }
 
@@ -115,16 +115,16 @@ impl std::ops::BitAnd for CodeVal {
 }
 
 impl std::ops::BitAnd<i32> for CodeVal {
-    type Output = i32;
-    fn bitand(self, other: i32) -> i32 {
-        *self.0.borrow().as_ref().unwrap() & other
+    type Output = CodeVal;
+    fn bitand(self, other: i32) -> CodeVal {
+        CodeVal(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() & other))))
     }
 }
 
 impl std::ops::BitAnd<CodeVal> for i32 {
-    type Output = i32;
-    fn bitand(self, other: CodeVal) -> i32 {
-        self & *other.0.borrow().as_ref().unwrap()
+    type Output = CodeVal;
+    fn bitand(self, other: CodeVal) -> CodeVal {
+        CodeVal(Rc::new(RefCell::new(Some(self & *other.0.borrow().as_ref().unwrap()))))
     }
 }
 
@@ -136,16 +136,16 @@ impl std::ops::BitOr for CodeVal {
 }
 
 impl std::ops::BitOr<i32> for CodeVal {
-    type Output = i32;
-    fn bitor(self, other: i32) -> i32 {
-        *self.0.borrow().as_ref().unwrap() | other
+    type Output = CodeVal;
+    fn bitor(self, other: i32) -> CodeVal {
+        CodeVal(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() | other))))
     }
 }
 
 impl std::ops::BitOr<CodeVal> for i32 {
-    type Output = i32;
-    fn bitor(self, other: CodeVal) -> i32 {
-        self | *other.0.borrow().as_ref().unwrap()
+    type Output = CodeVal;
+    fn bitor(self, other: CodeVal) -> CodeVal {
+        CodeVal(Rc::new(RefCell::new(Some(self | *other.0.borrow().as_ref().unwrap()))))
     }
 }
 
@@ -157,16 +157,163 @@ impl std::ops::BitXor for CodeVal {
 }
 
 impl std::ops::BitXor<i32> for CodeVal {
-    type Output = i32;
-    fn bitxor(self, other: i32) -> i32 {
-        *self.0.borrow().as_ref().unwrap() ^ other
+    type Output = CodeVal;
+    fn bitxor(self, other: i32) -> CodeVal {
+        CodeVal(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() ^ other))))
     }
 }
 
 impl std::ops::BitXor<CodeVal> for i32 {
-    type Output = i32;
-    fn bitxor(self, other: CodeVal) -> i32 {
-        self ^ *other.0.borrow().as_ref().unwrap()
+    type Output = CodeVal;
+    fn bitxor(self, other: CodeVal) -> CodeVal {
+        CodeVal(Rc::new(RefCell::new(Some(self ^ *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Not for CodeVal {
+    type Output = CodeVal;
+    fn not(self) -> CodeVal {
+        CodeVal(Rc::new(RefCell::new(Some(!*self.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Shl for CodeVal {
+    type Output = CodeVal;
+    fn shl(self, other: CodeVal) -> CodeVal {
+        CodeVal(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Shl<i32> for CodeVal {
+    type Output = CodeVal;
+    fn shl(self, other: i32) -> CodeVal {
+        CodeVal(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+    }
+}
+
+impl std::ops::Shl<i8> for CodeVal {
+    type Output = CodeVal;
+    fn shl(self, other: i8) -> CodeVal {
+        CodeVal(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+    }
+}
+
+impl std::ops::Shl<i16> for CodeVal {
+    type Output = CodeVal;
+    fn shl(self, other: i16) -> CodeVal {
+        CodeVal(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+    }
+}
+
+impl std::ops::Shl<i64> for CodeVal {
+    type Output = CodeVal;
+    fn shl(self, other: i64) -> CodeVal {
+        CodeVal(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+    }
+}
+
+impl std::ops::Shl<u32> for CodeVal {
+    type Output = CodeVal;
+    fn shl(self, other: u32) -> CodeVal {
+        CodeVal(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+    }
+}
+
+impl std::ops::Shl<u8> for CodeVal {
+    type Output = CodeVal;
+    fn shl(self, other: u8) -> CodeVal {
+        CodeVal(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+    }
+}
+
+impl std::ops::Shl<u16> for CodeVal {
+    type Output = CodeVal;
+    fn shl(self, other: u16) -> CodeVal {
+        CodeVal(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+    }
+}
+
+impl std::ops::Shl<u64> for CodeVal {
+    type Output = CodeVal;
+    fn shl(self, other: u64) -> CodeVal {
+        CodeVal(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+    }
+}
+
+impl std::ops::Shl<usize> for CodeVal {
+    type Output = CodeVal;
+    fn shl(self, other: usize) -> CodeVal {
+        CodeVal(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+    }
+}
+
+impl std::ops::Shr for CodeVal {
+    type Output = CodeVal;
+    fn shr(self, other: CodeVal) -> CodeVal {
+        CodeVal(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Shr<i32> for CodeVal {
+    type Output = CodeVal;
+    fn shr(self, other: i32) -> CodeVal {
+        CodeVal(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+    }
+}
+
+impl std::ops::Shr<i8> for CodeVal {
+    type Output = CodeVal;
+    fn shr(self, other: i8) -> CodeVal {
+        CodeVal(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+    }
+}
+
+impl std::ops::Shr<i16> for CodeVal {
+    type Output = CodeVal;
+    fn shr(self, other: i16) -> CodeVal {
+        CodeVal(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+    }
+}
+
+impl std::ops::Shr<i64> for CodeVal {
+    type Output = CodeVal;
+    fn shr(self, other: i64) -> CodeVal {
+        CodeVal(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+    }
+}
+
+impl std::ops::Shr<u32> for CodeVal {
+    type Output = CodeVal;
+    fn shr(self, other: u32) -> CodeVal {
+        CodeVal(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+    }
+}
+
+impl std::ops::Shr<u8> for CodeVal {
+    type Output = CodeVal;
+    fn shr(self, other: u8) -> CodeVal {
+        CodeVal(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+    }
+}
+
+impl std::ops::Shr<u16> for CodeVal {
+    type Output = CodeVal;
+    fn shr(self, other: u16) -> CodeVal {
+        CodeVal(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+    }
+}
+
+impl std::ops::Shr<u64> for CodeVal {
+    type Output = CodeVal;
+    fn shr(self, other: u64) -> CodeVal {
+        CodeVal(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+    }
+}
+
+impl std::ops::Shr<usize> for CodeVal {
+    type Output = CodeVal;
+    fn shr(self, other: usize) -> CodeVal {
+        CodeVal(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
     }
 }
 

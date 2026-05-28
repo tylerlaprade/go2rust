@@ -55,16 +55,16 @@ impl std::ops::Add for Pos {
 }
 
 impl std::ops::Add<i32> for Pos {
-    type Output = i32;
-    fn add(self, other: i32) -> i32 {
-        *self.0.borrow().as_ref().unwrap() + other
+    type Output = Pos;
+    fn add(self, other: i32) -> Pos {
+        Pos(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() + other))))
     }
 }
 
 impl std::ops::Add<Pos> for i32 {
-    type Output = i32;
-    fn add(self, other: Pos) -> i32 {
-        self + *other.0.borrow().as_ref().unwrap()
+    type Output = Pos;
+    fn add(self, other: Pos) -> Pos {
+        Pos(Rc::new(RefCell::new(Some(self + *other.0.borrow().as_ref().unwrap()))))
     }
 }
 
@@ -76,16 +76,16 @@ impl std::ops::Sub for Pos {
 }
 
 impl std::ops::Sub<i32> for Pos {
-    type Output = i32;
-    fn sub(self, other: i32) -> i32 {
-        *self.0.borrow().as_ref().unwrap() - other
+    type Output = Pos;
+    fn sub(self, other: i32) -> Pos {
+        Pos(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() - other))))
     }
 }
 
 impl std::ops::Sub<Pos> for i32 {
-    type Output = i32;
-    fn sub(self, other: Pos) -> i32 {
-        self - *other.0.borrow().as_ref().unwrap()
+    type Output = Pos;
+    fn sub(self, other: Pos) -> Pos {
+        Pos(Rc::new(RefCell::new(Some(self - *other.0.borrow().as_ref().unwrap()))))
     }
 }
 
@@ -97,16 +97,16 @@ impl std::ops::BitAnd for Pos {
 }
 
 impl std::ops::BitAnd<i32> for Pos {
-    type Output = i32;
-    fn bitand(self, other: i32) -> i32 {
-        *self.0.borrow().as_ref().unwrap() & other
+    type Output = Pos;
+    fn bitand(self, other: i32) -> Pos {
+        Pos(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() & other))))
     }
 }
 
 impl std::ops::BitAnd<Pos> for i32 {
-    type Output = i32;
-    fn bitand(self, other: Pos) -> i32 {
-        self & *other.0.borrow().as_ref().unwrap()
+    type Output = Pos;
+    fn bitand(self, other: Pos) -> Pos {
+        Pos(Rc::new(RefCell::new(Some(self & *other.0.borrow().as_ref().unwrap()))))
     }
 }
 
@@ -118,16 +118,16 @@ impl std::ops::BitOr for Pos {
 }
 
 impl std::ops::BitOr<i32> for Pos {
-    type Output = i32;
-    fn bitor(self, other: i32) -> i32 {
-        *self.0.borrow().as_ref().unwrap() | other
+    type Output = Pos;
+    fn bitor(self, other: i32) -> Pos {
+        Pos(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() | other))))
     }
 }
 
 impl std::ops::BitOr<Pos> for i32 {
-    type Output = i32;
-    fn bitor(self, other: Pos) -> i32 {
-        self | *other.0.borrow().as_ref().unwrap()
+    type Output = Pos;
+    fn bitor(self, other: Pos) -> Pos {
+        Pos(Rc::new(RefCell::new(Some(self | *other.0.borrow().as_ref().unwrap()))))
     }
 }
 
@@ -139,16 +139,163 @@ impl std::ops::BitXor for Pos {
 }
 
 impl std::ops::BitXor<i32> for Pos {
-    type Output = i32;
-    fn bitxor(self, other: i32) -> i32 {
-        *self.0.borrow().as_ref().unwrap() ^ other
+    type Output = Pos;
+    fn bitxor(self, other: i32) -> Pos {
+        Pos(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() ^ other))))
     }
 }
 
 impl std::ops::BitXor<Pos> for i32 {
-    type Output = i32;
-    fn bitxor(self, other: Pos) -> i32 {
-        self ^ *other.0.borrow().as_ref().unwrap()
+    type Output = Pos;
+    fn bitxor(self, other: Pos) -> Pos {
+        Pos(Rc::new(RefCell::new(Some(self ^ *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Not for Pos {
+    type Output = Pos;
+    fn not(self) -> Pos {
+        Pos(Rc::new(RefCell::new(Some(!*self.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Shl for Pos {
+    type Output = Pos;
+    fn shl(self, other: Pos) -> Pos {
+        Pos(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Shl<i32> for Pos {
+    type Output = Pos;
+    fn shl(self, other: i32) -> Pos {
+        Pos(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+    }
+}
+
+impl std::ops::Shl<i8> for Pos {
+    type Output = Pos;
+    fn shl(self, other: i8) -> Pos {
+        Pos(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+    }
+}
+
+impl std::ops::Shl<i16> for Pos {
+    type Output = Pos;
+    fn shl(self, other: i16) -> Pos {
+        Pos(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+    }
+}
+
+impl std::ops::Shl<i64> for Pos {
+    type Output = Pos;
+    fn shl(self, other: i64) -> Pos {
+        Pos(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+    }
+}
+
+impl std::ops::Shl<u32> for Pos {
+    type Output = Pos;
+    fn shl(self, other: u32) -> Pos {
+        Pos(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+    }
+}
+
+impl std::ops::Shl<u8> for Pos {
+    type Output = Pos;
+    fn shl(self, other: u8) -> Pos {
+        Pos(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+    }
+}
+
+impl std::ops::Shl<u16> for Pos {
+    type Output = Pos;
+    fn shl(self, other: u16) -> Pos {
+        Pos(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+    }
+}
+
+impl std::ops::Shl<u64> for Pos {
+    type Output = Pos;
+    fn shl(self, other: u64) -> Pos {
+        Pos(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+    }
+}
+
+impl std::ops::Shl<usize> for Pos {
+    type Output = Pos;
+    fn shl(self, other: usize) -> Pos {
+        Pos(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+    }
+}
+
+impl std::ops::Shr for Pos {
+    type Output = Pos;
+    fn shr(self, other: Pos) -> Pos {
+        Pos(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Shr<i32> for Pos {
+    type Output = Pos;
+    fn shr(self, other: i32) -> Pos {
+        Pos(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+    }
+}
+
+impl std::ops::Shr<i8> for Pos {
+    type Output = Pos;
+    fn shr(self, other: i8) -> Pos {
+        Pos(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+    }
+}
+
+impl std::ops::Shr<i16> for Pos {
+    type Output = Pos;
+    fn shr(self, other: i16) -> Pos {
+        Pos(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+    }
+}
+
+impl std::ops::Shr<i64> for Pos {
+    type Output = Pos;
+    fn shr(self, other: i64) -> Pos {
+        Pos(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+    }
+}
+
+impl std::ops::Shr<u32> for Pos {
+    type Output = Pos;
+    fn shr(self, other: u32) -> Pos {
+        Pos(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+    }
+}
+
+impl std::ops::Shr<u8> for Pos {
+    type Output = Pos;
+    fn shr(self, other: u8) -> Pos {
+        Pos(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+    }
+}
+
+impl std::ops::Shr<u16> for Pos {
+    type Output = Pos;
+    fn shr(self, other: u16) -> Pos {
+        Pos(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+    }
+}
+
+impl std::ops::Shr<u64> for Pos {
+    type Output = Pos;
+    fn shr(self, other: u64) -> Pos {
+        Pos(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+    }
+}
+
+impl std::ops::Shr<usize> for Pos {
+    type Output = Pos;
+    fn shr(self, other: usize) -> Pos {
+        Pos(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
     }
 }
 

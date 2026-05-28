@@ -51,7 +51,7 @@ pub fn r#match(mut pattern: Arc<Mutex<Option<String>>>, mut name: Arc<Mutex<Opti
         { let (__tmp_0, __tmp_1, __tmp_2) = scan_chunk(Arc::new(Mutex::new(Some({ let __arg_holder = pattern.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); *star.lock().unwrap() = Some(__tmp_0); let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *chunk.lock().unwrap() = __moved_tmp_1; let __moved_tmp_2 = { let mut __guard = __tmp_2.lock().unwrap(); __guard.take() }; *pattern.lock().unwrap() = __moved_tmp_2; };
         if { let __v = (*star.lock().unwrap().as_ref().unwrap()).clone(); __v } && { let __tmp_x = (*chunk.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = ""; __tmp_x == __tmp_y } {
                 // Trailing * matches rest of string unless it has a /.
-        return (!((*Arc::new(Mutex::new(Some({ let __s = (*name.lock().unwrap().as_ref().unwrap()).clone(); let __arg = Arc::new(Mutex::new(Some(char::from_u32(((*Separator.lock().unwrap().as_ref().unwrap())) as u32).unwrap().to_string()))); __s.contains(&__arg) }))).lock().unwrap().as_ref().unwrap())), Arc::new(Mutex::new(None)));
+        return (!((*Arc::new(Mutex::new(Some({ let __s = (*name.lock().unwrap().as_ref().unwrap()).clone(); let __arg = Arc::new(Mutex::new(Some(char::from_u32((SEPARATOR) as u32).unwrap().to_string()))); __s.contains(&__arg) }))).lock().unwrap().as_ref().unwrap())), Arc::new(Mutex::new(None)));
     }
 
                 // Trailing * matches rest of string unless it has a /.
@@ -366,7 +366,7 @@ pub fn clean_glob_path(path: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<Str
     { let _switch_val = (*path.lock().unwrap().as_ref().unwrap()).clone();
     if _switch_val == ("".to_string()) {
             return Arc::new(Mutex::new(Some(".".to_string())));
-        } else if _switch_val == ({ let __v = Arc::new(Mutex::new(Some(char::from_u32(((*Separator.lock().unwrap().as_ref().unwrap())) as u32).unwrap().to_string()))); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) {
+        } else if _switch_val == ({ let __v = Arc::new(Mutex::new(Some(char::from_u32((SEPARATOR) as u32).unwrap().to_string()))); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) {
                         // do nothing to the path
             return Arc::new(Mutex::new(Some(path.lock().unwrap().as_ref().unwrap().clone())));
         } else {

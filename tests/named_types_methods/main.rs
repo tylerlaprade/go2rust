@@ -55,16 +55,16 @@ impl std::ops::Add for Celsius {
 }
 
 impl std::ops::Add<f64> for Celsius {
-    type Output = f64;
-    fn add(self, other: f64) -> f64 {
-        *self.0.borrow().as_ref().unwrap() + other
+    type Output = Celsius;
+    fn add(self, other: f64) -> Celsius {
+        Celsius(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() + other))))
     }
 }
 
 impl std::ops::Add<Celsius> for f64 {
-    type Output = f64;
-    fn add(self, other: Celsius) -> f64 {
-        self + *other.0.borrow().as_ref().unwrap()
+    type Output = Celsius;
+    fn add(self, other: Celsius) -> Celsius {
+        Celsius(Rc::new(RefCell::new(Some(self + *other.0.borrow().as_ref().unwrap()))))
     }
 }
 
@@ -76,16 +76,16 @@ impl std::ops::Sub for Celsius {
 }
 
 impl std::ops::Sub<f64> for Celsius {
-    type Output = f64;
-    fn sub(self, other: f64) -> f64 {
-        *self.0.borrow().as_ref().unwrap() - other
+    type Output = Celsius;
+    fn sub(self, other: f64) -> Celsius {
+        Celsius(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() - other))))
     }
 }
 
 impl std::ops::Sub<Celsius> for f64 {
-    type Output = f64;
-    fn sub(self, other: Celsius) -> f64 {
-        self - *other.0.borrow().as_ref().unwrap()
+    type Output = Celsius;
+    fn sub(self, other: Celsius) -> Celsius {
+        Celsius(Rc::new(RefCell::new(Some(self - *other.0.borrow().as_ref().unwrap()))))
     }
 }
 
@@ -143,16 +143,16 @@ impl std::ops::Add for Fahrenheit {
 }
 
 impl std::ops::Add<f64> for Fahrenheit {
-    type Output = f64;
-    fn add(self, other: f64) -> f64 {
-        *self.0.borrow().as_ref().unwrap() + other
+    type Output = Fahrenheit;
+    fn add(self, other: f64) -> Fahrenheit {
+        Fahrenheit(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() + other))))
     }
 }
 
 impl std::ops::Add<Fahrenheit> for f64 {
-    type Output = f64;
-    fn add(self, other: Fahrenheit) -> f64 {
-        self + *other.0.borrow().as_ref().unwrap()
+    type Output = Fahrenheit;
+    fn add(self, other: Fahrenheit) -> Fahrenheit {
+        Fahrenheit(Rc::new(RefCell::new(Some(self + *other.0.borrow().as_ref().unwrap()))))
     }
 }
 
@@ -164,16 +164,16 @@ impl std::ops::Sub for Fahrenheit {
 }
 
 impl std::ops::Sub<f64> for Fahrenheit {
-    type Output = f64;
-    fn sub(self, other: f64) -> f64 {
-        *self.0.borrow().as_ref().unwrap() - other
+    type Output = Fahrenheit;
+    fn sub(self, other: f64) -> Fahrenheit {
+        Fahrenheit(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() - other))))
     }
 }
 
 impl std::ops::Sub<Fahrenheit> for f64 {
-    type Output = f64;
-    fn sub(self, other: Fahrenheit) -> f64 {
-        self - *other.0.borrow().as_ref().unwrap()
+    type Output = Fahrenheit;
+    fn sub(self, other: Fahrenheit) -> Fahrenheit {
+        Fahrenheit(Rc::new(RefCell::new(Some(self - *other.0.borrow().as_ref().unwrap()))))
     }
 }
 

@@ -1469,6 +1469,26 @@ func methods(p unsafe.Pointer, n int) []Method {
 	}
 }
 
+func TestUnsafePointerToPointerConversionUsesTypedUnsupportedPointee(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "unsafe"
+
+type table struct{}
+
+func directoryAt(dir unsafe.Pointer, i uintptr) *table {
+	return *(**table)(unsafe.Pointer(uintptr(dir) + i))
+}
+`)
+
+	if strings.Contains(rust, "as usize))).borrow().as_ref().unwrap()).clone()") {
+		t.Fatalf("unsafe.Pointer to pointer conversion should not expose raw uintptr to dereference:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Some::<Rc<RefCell<Option<table>>>>(unimplemented!(\"unsafe.Pointer conversion to Rc<RefCell<Option<table>>>\")") {
+		t.Fatalf("unsafe.Pointer to pointer conversion should emit a typed unsupported pointee:\n%s", rust)
+	}
+}
+
 func TestUnsafePointerSelectorFieldUsesPointerHandle(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

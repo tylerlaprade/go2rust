@@ -125,7 +125,7 @@ impl Unknown {
     }
 }
 
-pub fn map_keys<K: Any + Clone + 'static, V: Any + Clone + 'static>(m: Rc<RefCell<Option<BTreeMap<K, Rc<RefCell<Option<V>>>>>>>) -> Rc<RefCell<Option<Vec<Box<dyn Any>>>>> {
+pub fn map_keys<K: Any + Clone + 'static, V: Any + Clone + 'static>(m: Rc<RefCell<Option<BTreeMap<K, Rc<RefCell<Option<V>>>>>>>) -> Rc<RefCell<Option<Vec<K>>>> {
     let mut r = Rc::new(RefCell::new(Some(Vec::with_capacity(((*m.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)) as usize))));
     for (__range_key, _) in { let __range_holder = m.clone(); let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
         let k = __range_key.value();

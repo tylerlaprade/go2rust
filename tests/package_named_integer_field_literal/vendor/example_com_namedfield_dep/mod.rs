@@ -62,16 +62,16 @@ impl std::ops::Add for LoadMode {
 }
 
 impl std::ops::Add<i32> for LoadMode {
-    type Output = i32;
-    fn add(self, other: i32) -> i32 {
-        *self.0.borrow().as_ref().unwrap() + other
+    type Output = LoadMode;
+    fn add(self, other: i32) -> LoadMode {
+        LoadMode(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() + other))))
     }
 }
 
 impl std::ops::Add<LoadMode> for i32 {
-    type Output = i32;
-    fn add(self, other: LoadMode) -> i32 {
-        self + *other.0.borrow().as_ref().unwrap()
+    type Output = LoadMode;
+    fn add(self, other: LoadMode) -> LoadMode {
+        LoadMode(Rc::new(RefCell::new(Some(self + *other.0.borrow().as_ref().unwrap()))))
     }
 }
 
@@ -83,16 +83,16 @@ impl std::ops::Sub for LoadMode {
 }
 
 impl std::ops::Sub<i32> for LoadMode {
-    type Output = i32;
-    fn sub(self, other: i32) -> i32 {
-        *self.0.borrow().as_ref().unwrap() - other
+    type Output = LoadMode;
+    fn sub(self, other: i32) -> LoadMode {
+        LoadMode(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() - other))))
     }
 }
 
 impl std::ops::Sub<LoadMode> for i32 {
-    type Output = i32;
-    fn sub(self, other: LoadMode) -> i32 {
-        self - *other.0.borrow().as_ref().unwrap()
+    type Output = LoadMode;
+    fn sub(self, other: LoadMode) -> LoadMode {
+        LoadMode(Rc::new(RefCell::new(Some(self - *other.0.borrow().as_ref().unwrap()))))
     }
 }
 
@@ -104,16 +104,16 @@ impl std::ops::BitAnd for LoadMode {
 }
 
 impl std::ops::BitAnd<i32> for LoadMode {
-    type Output = i32;
-    fn bitand(self, other: i32) -> i32 {
-        *self.0.borrow().as_ref().unwrap() & other
+    type Output = LoadMode;
+    fn bitand(self, other: i32) -> LoadMode {
+        LoadMode(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() & other))))
     }
 }
 
 impl std::ops::BitAnd<LoadMode> for i32 {
-    type Output = i32;
-    fn bitand(self, other: LoadMode) -> i32 {
-        self & *other.0.borrow().as_ref().unwrap()
+    type Output = LoadMode;
+    fn bitand(self, other: LoadMode) -> LoadMode {
+        LoadMode(Rc::new(RefCell::new(Some(self & *other.0.borrow().as_ref().unwrap()))))
     }
 }
 
@@ -125,16 +125,16 @@ impl std::ops::BitOr for LoadMode {
 }
 
 impl std::ops::BitOr<i32> for LoadMode {
-    type Output = i32;
-    fn bitor(self, other: i32) -> i32 {
-        *self.0.borrow().as_ref().unwrap() | other
+    type Output = LoadMode;
+    fn bitor(self, other: i32) -> LoadMode {
+        LoadMode(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() | other))))
     }
 }
 
 impl std::ops::BitOr<LoadMode> for i32 {
-    type Output = i32;
-    fn bitor(self, other: LoadMode) -> i32 {
-        self | *other.0.borrow().as_ref().unwrap()
+    type Output = LoadMode;
+    fn bitor(self, other: LoadMode) -> LoadMode {
+        LoadMode(Rc::new(RefCell::new(Some(self | *other.0.borrow().as_ref().unwrap()))))
     }
 }
 
@@ -146,16 +146,163 @@ impl std::ops::BitXor for LoadMode {
 }
 
 impl std::ops::BitXor<i32> for LoadMode {
-    type Output = i32;
-    fn bitxor(self, other: i32) -> i32 {
-        *self.0.borrow().as_ref().unwrap() ^ other
+    type Output = LoadMode;
+    fn bitxor(self, other: i32) -> LoadMode {
+        LoadMode(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() ^ other))))
     }
 }
 
 impl std::ops::BitXor<LoadMode> for i32 {
-    type Output = i32;
-    fn bitxor(self, other: LoadMode) -> i32 {
-        self ^ *other.0.borrow().as_ref().unwrap()
+    type Output = LoadMode;
+    fn bitxor(self, other: LoadMode) -> LoadMode {
+        LoadMode(Rc::new(RefCell::new(Some(self ^ *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Not for LoadMode {
+    type Output = LoadMode;
+    fn not(self) -> LoadMode {
+        LoadMode(Rc::new(RefCell::new(Some(!*self.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Shl for LoadMode {
+    type Output = LoadMode;
+    fn shl(self, other: LoadMode) -> LoadMode {
+        LoadMode(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Shl<i32> for LoadMode {
+    type Output = LoadMode;
+    fn shl(self, other: i32) -> LoadMode {
+        LoadMode(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+    }
+}
+
+impl std::ops::Shl<i8> for LoadMode {
+    type Output = LoadMode;
+    fn shl(self, other: i8) -> LoadMode {
+        LoadMode(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+    }
+}
+
+impl std::ops::Shl<i16> for LoadMode {
+    type Output = LoadMode;
+    fn shl(self, other: i16) -> LoadMode {
+        LoadMode(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+    }
+}
+
+impl std::ops::Shl<i64> for LoadMode {
+    type Output = LoadMode;
+    fn shl(self, other: i64) -> LoadMode {
+        LoadMode(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+    }
+}
+
+impl std::ops::Shl<u32> for LoadMode {
+    type Output = LoadMode;
+    fn shl(self, other: u32) -> LoadMode {
+        LoadMode(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+    }
+}
+
+impl std::ops::Shl<u8> for LoadMode {
+    type Output = LoadMode;
+    fn shl(self, other: u8) -> LoadMode {
+        LoadMode(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+    }
+}
+
+impl std::ops::Shl<u16> for LoadMode {
+    type Output = LoadMode;
+    fn shl(self, other: u16) -> LoadMode {
+        LoadMode(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+    }
+}
+
+impl std::ops::Shl<u64> for LoadMode {
+    type Output = LoadMode;
+    fn shl(self, other: u64) -> LoadMode {
+        LoadMode(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+    }
+}
+
+impl std::ops::Shl<usize> for LoadMode {
+    type Output = LoadMode;
+    fn shl(self, other: usize) -> LoadMode {
+        LoadMode(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+    }
+}
+
+impl std::ops::Shr for LoadMode {
+    type Output = LoadMode;
+    fn shr(self, other: LoadMode) -> LoadMode {
+        LoadMode(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Shr<i32> for LoadMode {
+    type Output = LoadMode;
+    fn shr(self, other: i32) -> LoadMode {
+        LoadMode(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+    }
+}
+
+impl std::ops::Shr<i8> for LoadMode {
+    type Output = LoadMode;
+    fn shr(self, other: i8) -> LoadMode {
+        LoadMode(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+    }
+}
+
+impl std::ops::Shr<i16> for LoadMode {
+    type Output = LoadMode;
+    fn shr(self, other: i16) -> LoadMode {
+        LoadMode(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+    }
+}
+
+impl std::ops::Shr<i64> for LoadMode {
+    type Output = LoadMode;
+    fn shr(self, other: i64) -> LoadMode {
+        LoadMode(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+    }
+}
+
+impl std::ops::Shr<u32> for LoadMode {
+    type Output = LoadMode;
+    fn shr(self, other: u32) -> LoadMode {
+        LoadMode(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+    }
+}
+
+impl std::ops::Shr<u8> for LoadMode {
+    type Output = LoadMode;
+    fn shr(self, other: u8) -> LoadMode {
+        LoadMode(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+    }
+}
+
+impl std::ops::Shr<u16> for LoadMode {
+    type Output = LoadMode;
+    fn shr(self, other: u16) -> LoadMode {
+        LoadMode(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+    }
+}
+
+impl std::ops::Shr<u64> for LoadMode {
+    type Output = LoadMode;
+    fn shr(self, other: u64) -> LoadMode {
+        LoadMode(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+    }
+}
+
+impl std::ops::Shr<usize> for LoadMode {
+    type Output = LoadMode;
+    fn shr(self, other: usize) -> LoadMode {
+        LoadMode(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
     }
 }
 

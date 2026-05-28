@@ -148,7 +148,7 @@ impl<T> Iterator for GoChannel<T> {
     }
 }
 
-pub fn replace(mut ch: GoChannel<i32>) -> Arc<Mutex<Option<GoChannel<i32>>>> {
+pub fn replace(mut ch: GoChannel<i32>) -> GoChannel<i32> {
     ch = GoChannel::<i32>::new_buffered(1 as usize);
     ch.send(7);
     ch.clone()

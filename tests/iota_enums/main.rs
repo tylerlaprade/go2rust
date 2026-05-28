@@ -61,16 +61,16 @@ impl std::ops::Add for Color {
 }
 
 impl std::ops::Add<i32> for Color {
-    type Output = i32;
-    fn add(self, other: i32) -> i32 {
-        *self.0.borrow().as_ref().unwrap() + other
+    type Output = Color;
+    fn add(self, other: i32) -> Color {
+        Color(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() + other))))
     }
 }
 
 impl std::ops::Add<Color> for i32 {
-    type Output = i32;
-    fn add(self, other: Color) -> i32 {
-        self + *other.0.borrow().as_ref().unwrap()
+    type Output = Color;
+    fn add(self, other: Color) -> Color {
+        Color(Rc::new(RefCell::new(Some(self + *other.0.borrow().as_ref().unwrap()))))
     }
 }
 
@@ -82,16 +82,16 @@ impl std::ops::Sub for Color {
 }
 
 impl std::ops::Sub<i32> for Color {
-    type Output = i32;
-    fn sub(self, other: i32) -> i32 {
-        *self.0.borrow().as_ref().unwrap() - other
+    type Output = Color;
+    fn sub(self, other: i32) -> Color {
+        Color(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() - other))))
     }
 }
 
 impl std::ops::Sub<Color> for i32 {
-    type Output = i32;
-    fn sub(self, other: Color) -> i32 {
-        self - *other.0.borrow().as_ref().unwrap()
+    type Output = Color;
+    fn sub(self, other: Color) -> Color {
+        Color(Rc::new(RefCell::new(Some(self - *other.0.borrow().as_ref().unwrap()))))
     }
 }
 
@@ -103,16 +103,16 @@ impl std::ops::BitAnd for Color {
 }
 
 impl std::ops::BitAnd<i32> for Color {
-    type Output = i32;
-    fn bitand(self, other: i32) -> i32 {
-        *self.0.borrow().as_ref().unwrap() & other
+    type Output = Color;
+    fn bitand(self, other: i32) -> Color {
+        Color(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() & other))))
     }
 }
 
 impl std::ops::BitAnd<Color> for i32 {
-    type Output = i32;
-    fn bitand(self, other: Color) -> i32 {
-        self & *other.0.borrow().as_ref().unwrap()
+    type Output = Color;
+    fn bitand(self, other: Color) -> Color {
+        Color(Rc::new(RefCell::new(Some(self & *other.0.borrow().as_ref().unwrap()))))
     }
 }
 
@@ -124,16 +124,16 @@ impl std::ops::BitOr for Color {
 }
 
 impl std::ops::BitOr<i32> for Color {
-    type Output = i32;
-    fn bitor(self, other: i32) -> i32 {
-        *self.0.borrow().as_ref().unwrap() | other
+    type Output = Color;
+    fn bitor(self, other: i32) -> Color {
+        Color(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() | other))))
     }
 }
 
 impl std::ops::BitOr<Color> for i32 {
-    type Output = i32;
-    fn bitor(self, other: Color) -> i32 {
-        self | *other.0.borrow().as_ref().unwrap()
+    type Output = Color;
+    fn bitor(self, other: Color) -> Color {
+        Color(Rc::new(RefCell::new(Some(self | *other.0.borrow().as_ref().unwrap()))))
     }
 }
 
@@ -145,16 +145,163 @@ impl std::ops::BitXor for Color {
 }
 
 impl std::ops::BitXor<i32> for Color {
-    type Output = i32;
-    fn bitxor(self, other: i32) -> i32 {
-        *self.0.borrow().as_ref().unwrap() ^ other
+    type Output = Color;
+    fn bitxor(self, other: i32) -> Color {
+        Color(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() ^ other))))
     }
 }
 
 impl std::ops::BitXor<Color> for i32 {
-    type Output = i32;
-    fn bitxor(self, other: Color) -> i32 {
-        self ^ *other.0.borrow().as_ref().unwrap()
+    type Output = Color;
+    fn bitxor(self, other: Color) -> Color {
+        Color(Rc::new(RefCell::new(Some(self ^ *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Not for Color {
+    type Output = Color;
+    fn not(self) -> Color {
+        Color(Rc::new(RefCell::new(Some(!*self.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Shl for Color {
+    type Output = Color;
+    fn shl(self, other: Color) -> Color {
+        Color(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Shl<i32> for Color {
+    type Output = Color;
+    fn shl(self, other: i32) -> Color {
+        Color(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+    }
+}
+
+impl std::ops::Shl<i8> for Color {
+    type Output = Color;
+    fn shl(self, other: i8) -> Color {
+        Color(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+    }
+}
+
+impl std::ops::Shl<i16> for Color {
+    type Output = Color;
+    fn shl(self, other: i16) -> Color {
+        Color(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+    }
+}
+
+impl std::ops::Shl<i64> for Color {
+    type Output = Color;
+    fn shl(self, other: i64) -> Color {
+        Color(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+    }
+}
+
+impl std::ops::Shl<u32> for Color {
+    type Output = Color;
+    fn shl(self, other: u32) -> Color {
+        Color(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+    }
+}
+
+impl std::ops::Shl<u8> for Color {
+    type Output = Color;
+    fn shl(self, other: u8) -> Color {
+        Color(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+    }
+}
+
+impl std::ops::Shl<u16> for Color {
+    type Output = Color;
+    fn shl(self, other: u16) -> Color {
+        Color(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+    }
+}
+
+impl std::ops::Shl<u64> for Color {
+    type Output = Color;
+    fn shl(self, other: u64) -> Color {
+        Color(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+    }
+}
+
+impl std::ops::Shl<usize> for Color {
+    type Output = Color;
+    fn shl(self, other: usize) -> Color {
+        Color(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+    }
+}
+
+impl std::ops::Shr for Color {
+    type Output = Color;
+    fn shr(self, other: Color) -> Color {
+        Color(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Shr<i32> for Color {
+    type Output = Color;
+    fn shr(self, other: i32) -> Color {
+        Color(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+    }
+}
+
+impl std::ops::Shr<i8> for Color {
+    type Output = Color;
+    fn shr(self, other: i8) -> Color {
+        Color(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+    }
+}
+
+impl std::ops::Shr<i16> for Color {
+    type Output = Color;
+    fn shr(self, other: i16) -> Color {
+        Color(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+    }
+}
+
+impl std::ops::Shr<i64> for Color {
+    type Output = Color;
+    fn shr(self, other: i64) -> Color {
+        Color(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+    }
+}
+
+impl std::ops::Shr<u32> for Color {
+    type Output = Color;
+    fn shr(self, other: u32) -> Color {
+        Color(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+    }
+}
+
+impl std::ops::Shr<u8> for Color {
+    type Output = Color;
+    fn shr(self, other: u8) -> Color {
+        Color(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+    }
+}
+
+impl std::ops::Shr<u16> for Color {
+    type Output = Color;
+    fn shr(self, other: u16) -> Color {
+        Color(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+    }
+}
+
+impl std::ops::Shr<u64> for Color {
+    type Output = Color;
+    fn shr(self, other: u64) -> Color {
+        Color(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+    }
+}
+
+impl std::ops::Shr<usize> for Color {
+    type Output = Color;
+    fn shr(self, other: usize) -> Color {
+        Color(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
     }
 }
 

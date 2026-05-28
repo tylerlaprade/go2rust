@@ -62,16 +62,16 @@ impl std::ops::Add for ServerState {
 }
 
 impl std::ops::Add<i32> for ServerState {
-    type Output = i32;
-    fn add(self, other: i32) -> i32 {
-        *self.0.borrow().as_ref().unwrap() + other
+    type Output = ServerState;
+    fn add(self, other: i32) -> ServerState {
+        ServerState(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() + other))))
     }
 }
 
 impl std::ops::Add<ServerState> for i32 {
-    type Output = i32;
-    fn add(self, other: ServerState) -> i32 {
-        self + *other.0.borrow().as_ref().unwrap()
+    type Output = ServerState;
+    fn add(self, other: ServerState) -> ServerState {
+        ServerState(Rc::new(RefCell::new(Some(self + *other.0.borrow().as_ref().unwrap()))))
     }
 }
 
@@ -83,16 +83,16 @@ impl std::ops::Sub for ServerState {
 }
 
 impl std::ops::Sub<i32> for ServerState {
-    type Output = i32;
-    fn sub(self, other: i32) -> i32 {
-        *self.0.borrow().as_ref().unwrap() - other
+    type Output = ServerState;
+    fn sub(self, other: i32) -> ServerState {
+        ServerState(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() - other))))
     }
 }
 
 impl std::ops::Sub<ServerState> for i32 {
-    type Output = i32;
-    fn sub(self, other: ServerState) -> i32 {
-        self - *other.0.borrow().as_ref().unwrap()
+    type Output = ServerState;
+    fn sub(self, other: ServerState) -> ServerState {
+        ServerState(Rc::new(RefCell::new(Some(self - *other.0.borrow().as_ref().unwrap()))))
     }
 }
 
@@ -104,16 +104,16 @@ impl std::ops::BitAnd for ServerState {
 }
 
 impl std::ops::BitAnd<i32> for ServerState {
-    type Output = i32;
-    fn bitand(self, other: i32) -> i32 {
-        *self.0.borrow().as_ref().unwrap() & other
+    type Output = ServerState;
+    fn bitand(self, other: i32) -> ServerState {
+        ServerState(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() & other))))
     }
 }
 
 impl std::ops::BitAnd<ServerState> for i32 {
-    type Output = i32;
-    fn bitand(self, other: ServerState) -> i32 {
-        self & *other.0.borrow().as_ref().unwrap()
+    type Output = ServerState;
+    fn bitand(self, other: ServerState) -> ServerState {
+        ServerState(Rc::new(RefCell::new(Some(self & *other.0.borrow().as_ref().unwrap()))))
     }
 }
 
@@ -125,16 +125,16 @@ impl std::ops::BitOr for ServerState {
 }
 
 impl std::ops::BitOr<i32> for ServerState {
-    type Output = i32;
-    fn bitor(self, other: i32) -> i32 {
-        *self.0.borrow().as_ref().unwrap() | other
+    type Output = ServerState;
+    fn bitor(self, other: i32) -> ServerState {
+        ServerState(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() | other))))
     }
 }
 
 impl std::ops::BitOr<ServerState> for i32 {
-    type Output = i32;
-    fn bitor(self, other: ServerState) -> i32 {
-        self | *other.0.borrow().as_ref().unwrap()
+    type Output = ServerState;
+    fn bitor(self, other: ServerState) -> ServerState {
+        ServerState(Rc::new(RefCell::new(Some(self | *other.0.borrow().as_ref().unwrap()))))
     }
 }
 
@@ -146,16 +146,163 @@ impl std::ops::BitXor for ServerState {
 }
 
 impl std::ops::BitXor<i32> for ServerState {
-    type Output = i32;
-    fn bitxor(self, other: i32) -> i32 {
-        *self.0.borrow().as_ref().unwrap() ^ other
+    type Output = ServerState;
+    fn bitxor(self, other: i32) -> ServerState {
+        ServerState(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() ^ other))))
     }
 }
 
 impl std::ops::BitXor<ServerState> for i32 {
-    type Output = i32;
-    fn bitxor(self, other: ServerState) -> i32 {
-        self ^ *other.0.borrow().as_ref().unwrap()
+    type Output = ServerState;
+    fn bitxor(self, other: ServerState) -> ServerState {
+        ServerState(Rc::new(RefCell::new(Some(self ^ *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Not for ServerState {
+    type Output = ServerState;
+    fn not(self) -> ServerState {
+        ServerState(Rc::new(RefCell::new(Some(!*self.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Shl for ServerState {
+    type Output = ServerState;
+    fn shl(self, other: ServerState) -> ServerState {
+        ServerState(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Shl<i32> for ServerState {
+    type Output = ServerState;
+    fn shl(self, other: i32) -> ServerState {
+        ServerState(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+    }
+}
+
+impl std::ops::Shl<i8> for ServerState {
+    type Output = ServerState;
+    fn shl(self, other: i8) -> ServerState {
+        ServerState(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+    }
+}
+
+impl std::ops::Shl<i16> for ServerState {
+    type Output = ServerState;
+    fn shl(self, other: i16) -> ServerState {
+        ServerState(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+    }
+}
+
+impl std::ops::Shl<i64> for ServerState {
+    type Output = ServerState;
+    fn shl(self, other: i64) -> ServerState {
+        ServerState(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+    }
+}
+
+impl std::ops::Shl<u32> for ServerState {
+    type Output = ServerState;
+    fn shl(self, other: u32) -> ServerState {
+        ServerState(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+    }
+}
+
+impl std::ops::Shl<u8> for ServerState {
+    type Output = ServerState;
+    fn shl(self, other: u8) -> ServerState {
+        ServerState(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+    }
+}
+
+impl std::ops::Shl<u16> for ServerState {
+    type Output = ServerState;
+    fn shl(self, other: u16) -> ServerState {
+        ServerState(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+    }
+}
+
+impl std::ops::Shl<u64> for ServerState {
+    type Output = ServerState;
+    fn shl(self, other: u64) -> ServerState {
+        ServerState(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+    }
+}
+
+impl std::ops::Shl<usize> for ServerState {
+    type Output = ServerState;
+    fn shl(self, other: usize) -> ServerState {
+        ServerState(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+    }
+}
+
+impl std::ops::Shr for ServerState {
+    type Output = ServerState;
+    fn shr(self, other: ServerState) -> ServerState {
+        ServerState(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Shr<i32> for ServerState {
+    type Output = ServerState;
+    fn shr(self, other: i32) -> ServerState {
+        ServerState(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+    }
+}
+
+impl std::ops::Shr<i8> for ServerState {
+    type Output = ServerState;
+    fn shr(self, other: i8) -> ServerState {
+        ServerState(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+    }
+}
+
+impl std::ops::Shr<i16> for ServerState {
+    type Output = ServerState;
+    fn shr(self, other: i16) -> ServerState {
+        ServerState(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+    }
+}
+
+impl std::ops::Shr<i64> for ServerState {
+    type Output = ServerState;
+    fn shr(self, other: i64) -> ServerState {
+        ServerState(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+    }
+}
+
+impl std::ops::Shr<u32> for ServerState {
+    type Output = ServerState;
+    fn shr(self, other: u32) -> ServerState {
+        ServerState(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+    }
+}
+
+impl std::ops::Shr<u8> for ServerState {
+    type Output = ServerState;
+    fn shr(self, other: u8) -> ServerState {
+        ServerState(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+    }
+}
+
+impl std::ops::Shr<u16> for ServerState {
+    type Output = ServerState;
+    fn shr(self, other: u16) -> ServerState {
+        ServerState(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+    }
+}
+
+impl std::ops::Shr<u64> for ServerState {
+    type Output = ServerState;
+    fn shr(self, other: u64) -> ServerState {
+        ServerState(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+    }
+}
+
+impl std::ops::Shr<usize> for ServerState {
+    type Output = ServerState;
+    fn shr(self, other: usize) -> ServerState {
+        ServerState(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
     }
 }
 

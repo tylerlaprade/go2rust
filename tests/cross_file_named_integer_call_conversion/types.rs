@@ -55,16 +55,16 @@ impl std::ops::Add for Marker {
 }
 
 impl std::ops::Add<i32> for Marker {
-    type Output = i32;
-    fn add(self, other: i32) -> i32 {
-        *self.0.borrow().as_ref().unwrap() + other
+    type Output = Marker;
+    fn add(self, other: i32) -> Marker {
+        Marker(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() + other))))
     }
 }
 
 impl std::ops::Add<Marker> for i32 {
-    type Output = i32;
-    fn add(self, other: Marker) -> i32 {
-        self + *other.0.borrow().as_ref().unwrap()
+    type Output = Marker;
+    fn add(self, other: Marker) -> Marker {
+        Marker(Rc::new(RefCell::new(Some(self + *other.0.borrow().as_ref().unwrap()))))
     }
 }
 
@@ -76,16 +76,16 @@ impl std::ops::Sub for Marker {
 }
 
 impl std::ops::Sub<i32> for Marker {
-    type Output = i32;
-    fn sub(self, other: i32) -> i32 {
-        *self.0.borrow().as_ref().unwrap() - other
+    type Output = Marker;
+    fn sub(self, other: i32) -> Marker {
+        Marker(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() - other))))
     }
 }
 
 impl std::ops::Sub<Marker> for i32 {
-    type Output = i32;
-    fn sub(self, other: Marker) -> i32 {
-        self - *other.0.borrow().as_ref().unwrap()
+    type Output = Marker;
+    fn sub(self, other: Marker) -> Marker {
+        Marker(Rc::new(RefCell::new(Some(self - *other.0.borrow().as_ref().unwrap()))))
     }
 }
 
@@ -97,16 +97,16 @@ impl std::ops::BitAnd for Marker {
 }
 
 impl std::ops::BitAnd<i32> for Marker {
-    type Output = i32;
-    fn bitand(self, other: i32) -> i32 {
-        *self.0.borrow().as_ref().unwrap() & other
+    type Output = Marker;
+    fn bitand(self, other: i32) -> Marker {
+        Marker(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() & other))))
     }
 }
 
 impl std::ops::BitAnd<Marker> for i32 {
-    type Output = i32;
-    fn bitand(self, other: Marker) -> i32 {
-        self & *other.0.borrow().as_ref().unwrap()
+    type Output = Marker;
+    fn bitand(self, other: Marker) -> Marker {
+        Marker(Rc::new(RefCell::new(Some(self & *other.0.borrow().as_ref().unwrap()))))
     }
 }
 
@@ -118,16 +118,16 @@ impl std::ops::BitOr for Marker {
 }
 
 impl std::ops::BitOr<i32> for Marker {
-    type Output = i32;
-    fn bitor(self, other: i32) -> i32 {
-        *self.0.borrow().as_ref().unwrap() | other
+    type Output = Marker;
+    fn bitor(self, other: i32) -> Marker {
+        Marker(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() | other))))
     }
 }
 
 impl std::ops::BitOr<Marker> for i32 {
-    type Output = i32;
-    fn bitor(self, other: Marker) -> i32 {
-        self | *other.0.borrow().as_ref().unwrap()
+    type Output = Marker;
+    fn bitor(self, other: Marker) -> Marker {
+        Marker(Rc::new(RefCell::new(Some(self | *other.0.borrow().as_ref().unwrap()))))
     }
 }
 
@@ -139,16 +139,163 @@ impl std::ops::BitXor for Marker {
 }
 
 impl std::ops::BitXor<i32> for Marker {
-    type Output = i32;
-    fn bitxor(self, other: i32) -> i32 {
-        *self.0.borrow().as_ref().unwrap() ^ other
+    type Output = Marker;
+    fn bitxor(self, other: i32) -> Marker {
+        Marker(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() ^ other))))
     }
 }
 
 impl std::ops::BitXor<Marker> for i32 {
-    type Output = i32;
-    fn bitxor(self, other: Marker) -> i32 {
-        self ^ *other.0.borrow().as_ref().unwrap()
+    type Output = Marker;
+    fn bitxor(self, other: Marker) -> Marker {
+        Marker(Rc::new(RefCell::new(Some(self ^ *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Not for Marker {
+    type Output = Marker;
+    fn not(self) -> Marker {
+        Marker(Rc::new(RefCell::new(Some(!*self.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Shl for Marker {
+    type Output = Marker;
+    fn shl(self, other: Marker) -> Marker {
+        Marker(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Shl<i32> for Marker {
+    type Output = Marker;
+    fn shl(self, other: i32) -> Marker {
+        Marker(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+    }
+}
+
+impl std::ops::Shl<i8> for Marker {
+    type Output = Marker;
+    fn shl(self, other: i8) -> Marker {
+        Marker(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+    }
+}
+
+impl std::ops::Shl<i16> for Marker {
+    type Output = Marker;
+    fn shl(self, other: i16) -> Marker {
+        Marker(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+    }
+}
+
+impl std::ops::Shl<i64> for Marker {
+    type Output = Marker;
+    fn shl(self, other: i64) -> Marker {
+        Marker(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+    }
+}
+
+impl std::ops::Shl<u32> for Marker {
+    type Output = Marker;
+    fn shl(self, other: u32) -> Marker {
+        Marker(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+    }
+}
+
+impl std::ops::Shl<u8> for Marker {
+    type Output = Marker;
+    fn shl(self, other: u8) -> Marker {
+        Marker(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+    }
+}
+
+impl std::ops::Shl<u16> for Marker {
+    type Output = Marker;
+    fn shl(self, other: u16) -> Marker {
+        Marker(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+    }
+}
+
+impl std::ops::Shl<u64> for Marker {
+    type Output = Marker;
+    fn shl(self, other: u64) -> Marker {
+        Marker(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+    }
+}
+
+impl std::ops::Shl<usize> for Marker {
+    type Output = Marker;
+    fn shl(self, other: usize) -> Marker {
+        Marker(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+    }
+}
+
+impl std::ops::Shr for Marker {
+    type Output = Marker;
+    fn shr(self, other: Marker) -> Marker {
+        Marker(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Shr<i32> for Marker {
+    type Output = Marker;
+    fn shr(self, other: i32) -> Marker {
+        Marker(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+    }
+}
+
+impl std::ops::Shr<i8> for Marker {
+    type Output = Marker;
+    fn shr(self, other: i8) -> Marker {
+        Marker(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+    }
+}
+
+impl std::ops::Shr<i16> for Marker {
+    type Output = Marker;
+    fn shr(self, other: i16) -> Marker {
+        Marker(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+    }
+}
+
+impl std::ops::Shr<i64> for Marker {
+    type Output = Marker;
+    fn shr(self, other: i64) -> Marker {
+        Marker(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+    }
+}
+
+impl std::ops::Shr<u32> for Marker {
+    type Output = Marker;
+    fn shr(self, other: u32) -> Marker {
+        Marker(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+    }
+}
+
+impl std::ops::Shr<u8> for Marker {
+    type Output = Marker;
+    fn shr(self, other: u8) -> Marker {
+        Marker(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+    }
+}
+
+impl std::ops::Shr<u16> for Marker {
+    type Output = Marker;
+    fn shr(self, other: u16) -> Marker {
+        Marker(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+    }
+}
+
+impl std::ops::Shr<u64> for Marker {
+    type Output = Marker;
+    fn shr(self, other: u64) -> Marker {
+        Marker(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+    }
+}
+
+impl std::ops::Shr<usize> for Marker {
+    type Output = Marker;
+    fn shr(self, other: usize) -> Marker {
+        Marker(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
     }
 }
 

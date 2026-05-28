@@ -1217,6 +1217,11 @@ func goTypesReturnTypeToRust(t types.Type) string {
 	if _, ok := t.Underlying().(*types.Pointer); ok {
 		return goTypesTypeToRust(t)
 	}
+	if _, ok := t.Underlying().(*types.Chan); ok {
+		// Channels stay bare — GoChannel<T> is already a shared cloneable
+		// handle and the value-channel emitters match this shape.
+		return goTypesTypeToRust(t)
+	}
 	return goTypesTypeToRustWrapped(t)
 }
 
