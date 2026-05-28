@@ -1032,6 +1032,9 @@ func goTypesTypeToRust(t types.Type) string {
 	if rustType, ok := goTypesKnownStdlibNamedTypeToRust(t); ok {
 		return rustType
 	}
+	if interfaceName, ok := transpiledNamedInterfaceTypeNameFromTypes(t); ok {
+		return rustLocalInterfaceTraitObject(interfaceName)
+	}
 	if sig, ok := signatureFromType(t); ok {
 		return signatureToBoxDynFn(sig)
 	}

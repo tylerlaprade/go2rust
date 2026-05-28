@@ -38,6 +38,37 @@ func TestGoTypesTypeToRustUsesAnyForUnnamedInterfaces(t *testing.T) {
 	}
 }
 
+func TestGoTypesReturnTypeToRustWrapsCurrentStdlibInterfaceTraitObject(t *testing.T) {
+	prevTypeInfo := currentTypeInfo
+	defer func() { currentTypeInfo = prevTypeInfo }()
+
+	method := types.NewFunc(
+		token.NoPos,
+		nil,
+		"Name",
+		types.NewSignatureType(
+			nil,
+			nil,
+			nil,
+			types.NewTuple(),
+			types.NewTuple(types.NewVar(token.NoPos, nil, "", types.Typ[types.String])),
+			false,
+		),
+	)
+	iface := types.NewInterfaceType([]*types.Func{method}, nil).Complete()
+	reflectPkg := types.NewPackage("reflect", "reflect")
+	named := types.NewNamed(types.NewTypeName(token.NoPos, reflectPkg, "Type", nil), iface, nil)
+
+	SetTypeInfo(&TypeInfo{pkg: reflectPkg})
+	got := goTypesReturnTypeToRust(named)
+	if strings.Contains(got, "Option<Type>") {
+		t.Fatalf("current stdlib named interface return used bare trait type: %q", got)
+	}
+	if !strings.Contains(got, "Option<Box<dyn Type") {
+		t.Fatalf("current stdlib named interface return should wrap a trait object, got %q", got)
+	}
+}
+
 func TestTypeInfoUsesCoreTypeForTypeParameterRanges(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
