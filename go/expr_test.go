@@ -371,6 +371,26 @@ func flatten(split [][][]Expr) []Expr {
 	}
 }
 
+func TestAppendStringConcatExpansionUsesBareString(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func appendName(name string) []byte {
+	var repr []byte
+	repr = append(repr, (" " + name)...)
+	return repr
+}
+`)
+
+	if strings.Contains(rust, ")).borrow().as_ref().unwrap()).clone().as_bytes()") ||
+		strings.Contains(rust, ")).lock().unwrap().as_ref().unwrap()).clone().as_bytes()") {
+		t.Fatalf("append string expansion should not treat string concatenation as wrapped:\n%s", rust)
+	}
+	if !strings.Contains(rust, "format!(\"{}{}\", \" \".to_string(),") ||
+		!strings.Contains(rust, ".as_bytes().iter().cloned()") {
+		t.Fatalf("append string expansion should extend from the bare formatted string:\n%s", rust)
+	}
+}
+
 func TestAppendConcreteLocalInterfaceAssertionBoxesValue(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
