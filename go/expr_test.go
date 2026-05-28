@@ -1002,6 +1002,26 @@ func use(g *group, hash uintptr) {
 	}
 }
 
+func TestConstBinaryFunctionArgumentUsesExpectedIntegerType(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+const slots = 8
+
+func newTable(capacity uint64) {}
+
+func use() {
+	newTable(2 * slots)
+}
+`)
+
+	if strings.Contains(rust, "Some({ let __tmp_x = 2; let __tmp_y = SLOTS; __tmp_x * __tmp_y })") {
+		t.Fatalf("const binary function argument should not stay at the default integer type:\n%s", rust)
+	}
+	if !strings.Contains(rust, " as u64") {
+		t.Fatalf("const binary function argument should cast to the expected uint64 parameter:\n%s", rust)
+	}
+}
+
 func TestNoTypeInfoExternalExecLookPathRegistersStub(t *testing.T) {
 	rust := transpileNoTypeInfoRegression(t, `package main
 

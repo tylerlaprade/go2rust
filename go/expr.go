@@ -11373,6 +11373,8 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 					if !strings.Contains(argStr, ".") && !strings.Contains(argStr, "as f") {
 						out.WriteString(".0")
 					}
+				} else if expectedArgType != nil && writeConstExpressionForExpectedGoType(out, arg, expectedArgType) {
+					// Constant emitted in the parameter's expected representation.
 				} else if lit, ok := arg.(*ast.BasicLit); ok && writeCharLiteralForExpectedType(out, lit, paramTypeForArg) {
 					// Character literal emitted as byte.
 				} else if writeOwnedExpressionValue(out, arg) {
