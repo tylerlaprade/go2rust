@@ -1867,3 +1867,37 @@ func assign(frame unsafe.Pointer, regs *RegArgs) (unsafe.Pointer, *RegArgs) {
 		t.Fatalf("parallel short declaration should clone pointer handles:\n%s", rust)
 	}
 }
+
+func TestFuncLitSelectorAssignmentClonesCapturedTarget(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type table struct {
+	Equal func(int) bool
+	Values []int
+}
+
+func assign(typ *table, comparable bool) {
+	typ.Equal = nil
+	if comparable {
+		typ.Equal = func(v int) bool {
+			return len(typ.Values) == v
+		}
+	}
+}
+`)
+
+	targetClone := strings.Index(rust, "let __func_lit_target = ")
+	if targetClone == -1 {
+		t.Fatalf("function literal assignment should clone selector target before the move closure:\n%s", rust)
+	}
+	newValue := strings.Index(rust, "let new_val = Box::new(move |")
+	if newValue == -1 {
+		t.Fatalf("function literal assignment should lower through a boxed move closure:\n%s", rust)
+	}
+	if targetClone > newValue {
+		t.Fatalf("function literal target clone should be emitted before the move closure:\n%s", rust)
+	}
+	if !strings.Contains(rust, "; *__func_lit_target") {
+		t.Fatalf("function literal assignment should write through the cloned target handle:\n%s", rust)
+	}
+}

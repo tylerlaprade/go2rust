@@ -3622,6 +3622,50 @@ func expressionFunctionSignature(expr ast.Expr) (*types.Signature, bool) {
 	return sig, ok
 }
 
+func funcLitAssignmentTargetNeedsClone(lhs ast.Expr, funcLit *ast.FuncLit) bool {
+	if lhs == nil || funcLit == nil {
+		return false
+	}
+	captured := capturedVarsForFuncLit(funcLit)
+	if len(captured) == 0 {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return false
+	}
+
+	needsClone := false
+	var inspect func(ast.Node)
+	inspect = func(node ast.Node) {
+		if node == nil || needsClone {
+			return
+		}
+		ast.Inspect(node, func(n ast.Node) bool {
+			if n == nil || needsClone {
+				return false
+			}
+			switch node := n.(type) {
+			case *ast.SelectorExpr:
+				inspect(node.X)
+				return false
+			case *ast.Ident:
+				if !captured[node.Name] {
+					return true
+				}
+				obj, ok := typeInfo.GetObject(node).(*types.Var)
+				if ok && !isPackageScopeObject(obj) {
+					needsClone = true
+					return false
+				}
+			}
+			return true
+		})
+	}
+	inspect(lhs)
+	return needsClone
+}
+
 func functionTypeRustNameFromTypeExpr(expr ast.Expr) (string, bool) {
 	switch t := expr.(type) {
 	case *ast.FuncType:
@@ -7143,10 +7187,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									_, isFuncLHS := expressionFunctionSignature(s.Lhs[0])
 									if isFuncLHS || expressionHasFunctionSignatureSyntax(s.Lhs[0]) {
 										out.WriteString("{ ")
-										cloneFuncLitTarget := false
-										if ident, ok := s.Lhs[0].(*ast.Ident); ok {
-											cloneFuncLitTarget = capturedVarsForFuncLit(funcLit)[ident.Name]
-										}
+										cloneFuncLitTarget := funcLitAssignmentTargetNeedsClone(s.Lhs[0], funcLit)
 										if cloneFuncLitTarget {
 											out.WriteString("let __func_lit_target = ")
 											TranspileExpressionContext(out, s.Lhs[0], LValue)
