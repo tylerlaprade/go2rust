@@ -4463,6 +4463,13 @@ func writeWrappedStructFieldValue(out *strings.Builder, value ast.Expr, fieldExp
 		return
 	}
 
+	if expectedFieldType != nil && isUnsafePointerLikeType(expectedFieldType) {
+		if ident, ok := value.(*ast.Ident); ok && ident.Name == "nil" {
+			out.WriteString("Default::default()")
+			return
+		}
+	}
+
 	if (fieldExpr != nil && isEmptyInterfaceExpr(fieldExpr)) || isEmptyInterfaceType(expectedFieldType) {
 		if writeEmptyInterfaceHandleClone(out, value) {
 			return

@@ -1915,6 +1915,29 @@ func makeAny() any {
 	}
 }
 
+func TestUnsafePointerStructFieldNilUsesTypedDefault(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "unsafe"
+
+type Value struct {
+	ptr unsafe.Pointer
+}
+
+func zero() Value {
+	return Value{nil}
+}
+`)
+
+	if strings.Contains(rust, "ptr: Rc::new(RefCell::new(Some(None)))") ||
+		strings.Contains(rust, "ptr: Arc::new(Mutex::new(Some(None)))") {
+		t.Fatalf("unsafe.Pointer struct field nil should not double-wrap None:\n%s", rust)
+	}
+	if !strings.Contains(rust, "ptr: Default::default()") {
+		t.Fatalf("unsafe.Pointer struct field nil should use the typed handle default:\n%s", rust)
+	}
+}
+
 func TestFuncLiteralReturningAnyBoxesUnsafePointerCall(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
