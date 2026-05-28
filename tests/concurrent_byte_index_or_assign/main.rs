@@ -152,7 +152,7 @@ impl<T> Iterator for GoChannel<T> {
 fn main() {
     let mut done = GoChannel::<bool>::new_buffered(1 as usize);
     let mut seen = Arc::new(Mutex::new(Some(vec![0; (2) as usize])));
-    let mut bit = Arc::new(Mutex::new(Some({ let __tmp_x = (*Arc::new(Mutex::new(Some(1 as u8))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 3 as u8; __tmp_x << __tmp_y })));
+    let mut bit = Arc::new(Mutex::new(Some({ let __tmp_x = (*Arc::new(Mutex::new(Some(1 as u8))).lock().unwrap().as_ref().unwrap()) as u8; let __tmp_y = 3 as u8; __tmp_x << __tmp_y })));
 
     let bit_thread = Arc::new(Mutex::new(Some((*bit.lock().unwrap().as_ref().unwrap()).clone()))); let done_thread = done.clone(); let seen_thread = Arc::new(Mutex::new(Some((*seen.lock().unwrap().as_ref().unwrap()).clone()))); std::thread::spawn(move || {
         { let __idx = 0 as usize; let __rhs = (*bit.lock().unwrap().as_ref().unwrap()); let mut __seq_guard = seen_thread.lock().unwrap(); let __seq = __seq_guard.as_mut().unwrap(); __seq[__idx] = __seq[__idx] | __rhs; };;

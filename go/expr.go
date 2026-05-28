@@ -6536,6 +6536,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			if lit, ok := expr.(*ast.BasicLit); ok && writeCharLiteralForPeer(out, lit, other) {
 				return
 			}
+			if writeConstShiftLeftOperandForResult(out, expr, e) {
+				return
+			}
 			if writeConstExpressionForSyntaxPeer(out, expr, other) {
 				return
 			}
@@ -6649,6 +6652,8 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				// (e.g., a bare-scalar-returning call like `limit(values)`).
 			} else if lit, ok := e.X.(*ast.BasicLit); ok && writeCharLiteralForPeer(out, lit, e.Y) {
 				// Character literal emitted as byte.
+			} else if writeConstShiftLeftOperandForResult(out, e.X, e) {
+				// Left operand of a shift uses the shift result type, not the count type.
 			} else if writeConstExpressionForSyntaxPeer(out, e.X, e.Y) {
 				// Constant emitted in the peer's syntax-proven representation.
 			} else if writeConstExpressionForBinaryPeer(out, e.X, e.Y) {

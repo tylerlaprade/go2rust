@@ -1950,14 +1950,21 @@ func externalStubErrorInnerType() string {
 func writeBytesBufferStub(out *strings.Builder) {
 	vecType := wrappedExternalStubType("Vec<u8>")
 	stringType := wrappedExternalStubType("String")
-	intType := wrappedExternalStubType("i32")
-	byteType := wrappedExternalStubType("u8")
+	// Predeclared Copy scalar return slots stay bare to match the widened
+	// signatures callers expect. `*Wrap` variants keep the legacy wrapped
+	// shape for argument downcast positions whose accessor logic still
+	// assumes a wrapped argument.
+	intType := "i32"
+	intWrap := wrappedExternalStubType("i32")
+	int64Type := "i64"
+	byteType := "u8"
+	byteWrap := wrappedExternalStubType("u8")
 	errorInnerType := externalStubErrorInnerType()
 	errorType := wrappedExternalStubType(errorInnerType)
 	noneError := wrappedExternalStubNoneExpr(errorInnerType)
-	zeroInt := wrappedExternalStubExpr("i32", "0")
-	zeroInt64 := wrappedExternalStubExpr("i64", "0")
-	zeroByte := wrappedExternalStubExpr("u8", "0")
+	zeroInt := "0 as i32"
+	zeroInt64 := "0 as i64"
+	zeroByte := "0 as u8"
 	emptyBytes := wrappedExternalStubExpr("Vec<u8>", "Vec::new()")
 	emptyString := wrappedExternalStubExpr("String", "String::new()")
 	vecBorrow := externalStubBorrowExpr("v")
@@ -2142,7 +2149,7 @@ impl bytes_Buffer {
 `,
 		stringType, wrappedExternalStubExpr("String", "self.__go_string()"),
 		vecType, wrappedExternalStubExpr("Vec<u8>", "self.__go_bytes()"),
-		intType, wrappedExternalStubExpr("i32", "self.__go_data.lock().unwrap().len() as i32"),
+		intType, "self.__go_data.lock().unwrap().len() as i32",
 		intType,
 		vecType, emptyBytes,
 		intType,
@@ -2150,26 +2157,26 @@ impl bytes_Buffer {
 		intType, errorType, zeroInt, noneError,
 		byteType, errorType, zeroByte, noneError,
 		vecType, errorType, emptyBytes, noneError,
-		wrappedExternalStubType("i64"), errorType, zeroInt64, noneError,
+		int64Type, errorType, zeroInt64, noneError,
 		intType, intType, errorType, zeroInt, zeroInt, noneError,
 		stringType, errorType, emptyString, noneError,
 		errorType, noneError,
 		errorType, noneError,
 		intType, errorType,
 		vecType, vecBorrow,
-		wrappedExternalStubExpr("i32", "n"), noneError,
+		"n", noneError,
 		intType, errorType,
 		stringType, stringBorrow,
-		wrappedExternalStubExpr("i32", "n"), noneError,
+		"n", noneError,
 		errorType,
-		byteType, byteBorrow,
-		intType, intBorrow,
+		byteWrap, byteBorrow,
+		intWrap, intBorrow,
 		noneError,
 		intType, errorType,
-		intType, intBorrow,
-		wrappedExternalStubExpr("i32", "n"), noneError,
-		wrappedExternalStubType("i64"), errorType,
-		wrappedExternalStubExpr("i64", "self.__go_data.lock().unwrap().len() as i64"), noneError)
+		intWrap, intBorrow,
+		"n", noneError,
+		int64Type, errorType,
+		"self.__go_data.lock().unwrap().len() as i64", noneError)
 }
 
 // TEMPORARY: hand-written Rust shim for io.Writer trait bridging.

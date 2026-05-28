@@ -60,6 +60,6 @@ pub fn r#use(cfg: Rc<RefCell<Option<Config>>>, patterns: Rc<RefCell<Option<Vec<S
 }
 
 fn main() {
-    let mut ld = Rc::new(RefCell::new(Some(loader { config: Rc::new(RefCell::new(Some(Config { name: Rc::new(RefCell::new(Some("cfg".to_string()))), ..Default::default() }))), config: Rc::new(RefCell::new(Some(Config::default()))) })));
+    let mut ld = Rc::new(RefCell::new(Some(loader { config: Rc::new(RefCell::new(Some(Config { name: Rc::new(RefCell::new(Some("cfg".to_string()))), ..Default::default() }))), ..Default::default() })));
     println!("{}", format!("{}", (*r#use((*ld.borrow().as_ref().unwrap()).config.clone(), Rc::new(RefCell::new(Some(vec!["pat".to_string()])))).borrow().as_ref().unwrap())));
 }

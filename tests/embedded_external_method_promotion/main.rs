@@ -49,15 +49,15 @@ impl bytes_Buffer {
         Rc::new(RefCell::new(Some::<Vec<u8>>(self.__go_bytes())))
     }
 
-    pub fn len(&self) -> Rc<RefCell<Option<i32>>> {
-        Rc::new(RefCell::new(Some::<i32>(self.__go_data.lock().unwrap().len() as i32)))
+    pub fn len(&self) -> i32 {
+        self.__go_data.lock().unwrap().len() as i32
     }
 
     pub fn reset(&self) {
         self.__go_data.lock().unwrap().clear();
     }
 
-    pub fn available(&self) -> Rc<RefCell<Option<i32>>> {
+    pub fn available(&self) -> i32 {
         self.len()
     }
 
@@ -65,7 +65,7 @@ impl bytes_Buffer {
         Rc::new(RefCell::new(Some::<Vec<u8>>(Vec::new())))
     }
 
-    pub fn cap(&self) -> Rc<RefCell<Option<i32>>> {
+    pub fn cap(&self) -> i32 {
         self.len()
     }
 
@@ -76,24 +76,24 @@ impl bytes_Buffer {
         Rc::new(RefCell::new(Some::<Vec<u8>>(Vec::new())))
     }
 
-    pub fn read<T0>(&self, _arg0: T0) -> (Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<Box<dyn StdError>>>>) {
-        (Rc::new(RefCell::new(Some::<i32>(0))), Rc::new(RefCell::new(None::<Box<dyn StdError>>)))
+    pub fn read<T0>(&self, _arg0: T0) -> (i32, Rc<RefCell<Option<Box<dyn StdError>>>>) {
+        (0 as i32, Rc::new(RefCell::new(None::<Box<dyn StdError>>)))
     }
 
-    pub fn read_byte(&self) -> (Rc<RefCell<Option<u8>>>, Rc<RefCell<Option<Box<dyn StdError>>>>) {
-        (Rc::new(RefCell::new(Some::<u8>(0))), Rc::new(RefCell::new(None::<Box<dyn StdError>>)))
+    pub fn read_byte(&self) -> (u8, Rc<RefCell<Option<Box<dyn StdError>>>>) {
+        (0 as u8, Rc::new(RefCell::new(None::<Box<dyn StdError>>)))
     }
 
     pub fn read_bytes<T0>(&self, _arg0: T0) -> (Rc<RefCell<Option<Vec<u8>>>>, Rc<RefCell<Option<Box<dyn StdError>>>>) {
         (Rc::new(RefCell::new(Some::<Vec<u8>>(Vec::new()))), Rc::new(RefCell::new(None::<Box<dyn StdError>>)))
     }
 
-    pub fn read_from<T0>(&self, _arg0: T0) -> (Rc<RefCell<Option<i64>>>, Rc<RefCell<Option<Box<dyn StdError>>>>) {
-        (Rc::new(RefCell::new(Some::<i64>(0))), Rc::new(RefCell::new(None::<Box<dyn StdError>>)))
+    pub fn read_from<T0>(&self, _arg0: T0) -> (i64, Rc<RefCell<Option<Box<dyn StdError>>>>) {
+        (0 as i64, Rc::new(RefCell::new(None::<Box<dyn StdError>>)))
     }
 
-    pub fn read_rune(&self) -> (Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<Box<dyn StdError>>>>) {
-        (Rc::new(RefCell::new(Some::<i32>(0))), Rc::new(RefCell::new(Some::<i32>(0))), Rc::new(RefCell::new(None::<Box<dyn StdError>>)))
+    pub fn read_rune(&self) -> (i32, i32, Rc<RefCell<Option<Box<dyn StdError>>>>) {
+        (0 as i32, 0 as i32, Rc::new(RefCell::new(None::<Box<dyn StdError>>)))
     }
 
     pub fn read_string<T0>(&self, _arg0: T0) -> (Rc<RefCell<Option<String>>>, Rc<RefCell<Option<Box<dyn StdError>>>>) {
@@ -112,7 +112,7 @@ impl bytes_Buffer {
         Rc::new(RefCell::new(None::<Box<dyn StdError>>))
     }
 
-    pub fn write<T0: 'static>(&self, arg0: T0) -> (Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<Box<dyn StdError>>>>) {
+    pub fn write<T0: 'static>(&self, arg0: T0) -> (i32, Rc<RefCell<Option<Box<dyn StdError>>>>) {
         let bytes = if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<Vec<u8>>() {
             v.clone()
         } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<Rc<RefCell<Option<Vec<u8>>>>>() {
@@ -122,10 +122,10 @@ impl bytes_Buffer {
         };
         let n = bytes.len() as i32;
         self.__go_write_bytes(&bytes);
-        (Rc::new(RefCell::new(Some::<i32>(n))), Rc::new(RefCell::new(None::<Box<dyn StdError>>)))
+        (n, Rc::new(RefCell::new(None::<Box<dyn StdError>>)))
     }
 
-    pub fn write_string<T0: 'static>(&self, arg0: T0) -> (Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<Box<dyn StdError>>>>) {
+    pub fn write_string<T0: 'static>(&self, arg0: T0) -> (i32, Rc<RefCell<Option<Box<dyn StdError>>>>) {
         let value = if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<String>() {
             v.clone()
         } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<&str>() {
@@ -138,7 +138,7 @@ impl bytes_Buffer {
         let bytes = value.into_bytes();
         let n = bytes.len() as i32;
         self.__go_write_bytes(&bytes);
-        (Rc::new(RefCell::new(Some::<i32>(n))), Rc::new(RefCell::new(None::<Box<dyn StdError>>)))
+        (n, Rc::new(RefCell::new(None::<Box<dyn StdError>>)))
     }
 
     pub fn write_byte<T0: 'static>(&self, arg0: T0) -> Rc<RefCell<Option<Box<dyn StdError>>>> {
@@ -157,7 +157,7 @@ impl bytes_Buffer {
         Rc::new(RefCell::new(None::<Box<dyn StdError>>))
     }
 
-    pub fn write_rune<T0: 'static>(&self, arg0: T0) -> (Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<Box<dyn StdError>>>>) {
+    pub fn write_rune<T0: 'static>(&self, arg0: T0) -> (i32, Rc<RefCell<Option<Box<dyn StdError>>>>) {
         let value = if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<char>() {
             *v
         } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<i32>() {
@@ -171,11 +171,11 @@ impl bytes_Buffer {
         let bytes = value.encode_utf8(&mut encoded).as_bytes().to_vec();
         let n = bytes.len() as i32;
         self.__go_write_bytes(&bytes);
-        (Rc::new(RefCell::new(Some::<i32>(n))), Rc::new(RefCell::new(None::<Box<dyn StdError>>)))
+        (n, Rc::new(RefCell::new(None::<Box<dyn StdError>>)))
     }
 
-    pub fn write_to<T0>(&self, _arg0: T0) -> (Rc<RefCell<Option<i64>>>, Rc<RefCell<Option<Box<dyn StdError>>>>) {
-        (Rc::new(RefCell::new(Some::<i64>(self.__go_data.lock().unwrap().len() as i64))), Rc::new(RefCell::new(None::<Box<dyn StdError>>)))
+    pub fn write_to<T0>(&self, _arg0: T0) -> (i64, Rc<RefCell<Option<Box<dyn StdError>>>>) {
+        (self.__go_data.lock().unwrap().len() as i64, Rc::new(RefCell::new(None::<Box<dyn StdError>>)))
     }
 }
 
