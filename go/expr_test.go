@@ -2083,6 +2083,30 @@ func addr(values *[4]uint64, i int) uintptr {
 	}
 }
 
+func TestUnsafePointerAddressOfBareUintptrLocalUsesRawAddress(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "unsafe"
+
+func code() uintptr {
+	return 1
+}
+
+func ptr() unsafe.Pointer {
+	code := code()
+	return unsafe.Pointer(&code)
+}
+`)
+
+	if strings.Contains(rust, "Arc::as_ptr(&code.clone())") ||
+		strings.Contains(rust, "Rc::as_ptr(&code.clone())") {
+		t.Fatalf("unsafe.Pointer(&bareUintptrLocal) should not call wrapper as_ptr on a raw uintptr:\n%s", rust)
+	}
+	if !strings.Contains(rust, "&code as *const _ as usize") {
+		t.Fatalf("unsafe.Pointer(&bareUintptrLocal) should use the raw local address:\n%s", rust)
+	}
+}
+
 func TestUnsafePointerToNamedStructConversionDoesNotExposeRawPointerToSelector(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

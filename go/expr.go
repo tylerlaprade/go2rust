@@ -9864,6 +9864,10 @@ func writeUnsafePointerConversion(out *strings.Builder, arg ast.Expr) {
 		WriteWrapperSuffix(out)
 		return
 	}
+	if writeUnsafePointerAddressOfBareLocal(out, arg) {
+		WriteWrapperSuffix(out)
+		return
+	}
 	if typeInfo.IsPointer(arg) {
 		if ident, ok := arg.(*ast.Ident); ok && ident.Name != "nil" {
 			if isCurrentReceiverIdent(ident) {
@@ -9887,6 +9891,32 @@ func writeUnsafePointerConversion(out *strings.Builder, arg ast.Expr) {
 	}
 	writeNumericConversionValue(out, arg)
 	WriteWrapperSuffix(out)
+}
+
+func writeUnsafePointerAddressOfBareLocal(out *strings.Builder, arg ast.Expr) bool {
+	unary, ok := unwrapParens(arg).(*ast.UnaryExpr)
+	if !ok || unary.Op != token.AND {
+		return false
+	}
+	ident, ok := unwrapParens(unary.X).(*ast.Ident)
+	if !ok || ident.Name == "_" || ident.Name == "nil" || !isVarBare(ident.Name) {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	operandType := typeInfo.GetType(ident)
+	if operandType == nil {
+		return false
+	}
+	if _, ok := types.Unalias(operandType).Underlying().(*types.Pointer); ok {
+		return false
+	}
+	out.WriteString("&")
+	out.WriteString(RustIdentForUse(ident))
+	out.WriteString(" as *const _ as usize")
+	return true
 }
 
 func addressOfIndexExpr(expr ast.Expr) (*ast.IndexExpr, bool) {
