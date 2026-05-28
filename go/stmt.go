@@ -4622,11 +4622,13 @@ func writeNamedIntegerIncDec(out *strings.Builder, expr ast.Expr, op token.Token
 	writeWrappedMutationTargetPrelude(out, expr)
 	out.WriteString("let mut guard = ")
 	writeWrappedMutationTargetRef(out, expr, true)
-	out.WriteString("; *guard = Some(")
-	out.WriteString(goTypesNamedTypeToRust(named))
-	out.WriteString("(")
-	WriteWrapperPrefix(out)
-	out.WriteString("guard.as_ref().unwrap().clone() ")
+	// `guard.as_ref().unwrap().clone()` is already the named newtype value,
+	// and the generated `Add<scalar>`/`Sub<scalar>` impls return the newtype
+	// (see writeScalarTypeDefinitionNumericOps). Re-wrapping in another
+	// `NewType(wrap(...))` constructor would place a newtype where the inner
+	// Option expects the raw scalar (E0308). Lower it like a bare scalar
+	// increment and let the operator impl produce the newtype.
+	out.WriteString("; *guard = Some(guard.as_ref().unwrap().clone() ")
 	if op == token.INC {
 		out.WriteString("+")
 	} else {
@@ -4634,8 +4636,7 @@ func writeNamedIntegerIncDec(out *strings.Builder, expr ast.Expr, op token.Token
 	}
 	out.WriteString(" 1 as ")
 	out.WriteString(rustType)
-	WriteWrapperSuffix(out)
-	out.WriteString(")); }")
+	out.WriteString("); }")
 	return true
 }
 

@@ -1,0 +1,8 @@
+[package]
+name = "named_integer_incdec"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "named_integer_incdec"
+path = "main.rs"
