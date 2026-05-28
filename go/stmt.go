@@ -7235,6 +7235,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 												// Package-global slices are stored as global values; clone the current slice into the local wrapper.
 											} else if writeWrappedValueCopyFromIdent(out, ident) {
 												// Copied by value from an existing wrapped value
+											} else if writeNamedIntegerWrappedInitializer(out, rhs) {
+												// Typed named integer const identifiers need the named newtype, not the raw const.
 											} else if rhsIsPointerType(rhs) {
 												// RHS is a pointer-typed variable (e.g., z := y where y is *int)
 												// Clone the Rc to preserve aliasing instead of copying the inner value

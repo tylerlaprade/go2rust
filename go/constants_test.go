@@ -963,6 +963,35 @@ func fill(tokens []string, keywords map[string]Token) {
 	}
 }
 
+func TestNamedIntegerShortDeclFromConstIdentPreservesNamedValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type StepKind int
+
+const (
+	StepBad StepKind = iota
+	StepPointer
+)
+
+func f(flag bool) StepKind {
+	kind := StepBad
+	if flag {
+		kind = StepPointer
+	}
+	return kind
+}
+`)
+
+	if strings.Contains(rust, "let mut kind = Rc::new(RefCell::new(Some(STEP_BAD)))") ||
+		strings.Contains(rust, "let mut kind = Arc::new(Mutex::new(Some(STEP_BAD)))") {
+		t.Fatalf("short declaration from named integer const ident must not store the raw const:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let mut kind = Rc::new(RefCell::new(Some(StepKind(") &&
+		!strings.Contains(rust, "let mut kind = Arc::new(Mutex::new(Some(StepKind(") {
+		t.Fatalf("short declaration from named integer const ident should wrap StepKind:\n%s", rust)
+	}
+}
+
 func TestNamedIntegerMixedPrimitiveOpsReturnNamedType(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
