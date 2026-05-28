@@ -1845,3 +1845,25 @@ func method() Method {
 		t.Fatalf("wrapped struct return should clone before constructing the wrapper:\n%s", rust)
 	}
 }
+
+func TestParallelShortDeclPointerIdentClonesHandle(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "unsafe"
+
+type RegArgs struct{}
+
+func assign(frame unsafe.Pointer, regs *RegArgs) (unsafe.Pointer, *RegArgs) {
+	valueFrame, valueRegs := frame, regs
+	return valueFrame, valueRegs
+}
+`)
+
+	if strings.Contains(rust, "Some((*regs.borrow().as_ref().unwrap()))") ||
+		strings.Contains(rust, "Some((*regs.lock().unwrap().as_ref().unwrap()))") {
+		t.Fatalf("parallel short declaration should not move the pointee out of a pointer handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "regs.clone()") {
+		t.Fatalf("parallel short declaration should clone pointer handles:\n%s", rust)
+	}
+}

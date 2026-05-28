@@ -6961,6 +6961,10 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						} else if unary, ok := rhs.(*ast.UnaryExpr); ok && unary.Op == token.AND {
 							// Address-of expressions already return wrapped handles.
 							TranspileExpression(out, rhs)
+						} else if rhsIsPointerType(rhs) {
+							// Pointer identifiers in parallel short declarations copy the handle.
+							TranspileExpressionContext(out, rhs, AddressOf)
+							out.WriteString(".clone()")
 						} else if ident, ok := rhs.(*ast.Ident); ok && writeWrappedValueCopyFromIdent(out, ident) {
 							// Copied by value from an existing wrapped value
 						} else {
