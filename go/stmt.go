@@ -339,6 +339,18 @@ func writeByteConstAssignmentValue(out *strings.Builder, lhs ast.Expr, rhs ast.E
 	return writeConstExpressionForExpectedGoType(out, rhs, expected)
 }
 
+func writeConstAssignmentValue(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	expected := typeInfo.GetType(lhs)
+	if expected == nil {
+		return false
+	}
+	return writeConstExpressionForExpectedGoType(out, rhs, expected)
+}
+
 func writeRangeIndexAssignmentValue(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil {
@@ -6719,6 +6731,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 												out.WriteString(rhsVarName)
 												WriteBorrowMethod(out, false)
 												out.WriteString(".as_ref().unwrap().clone()")
+											} else if writeConstAssignmentValue(out, s.Lhs[0], s.Rhs[0]) {
+												// Constants assigned to wrapped slots need the target type from go/types.
 											} else if writeByteConstAssignmentValue(out, s.Lhs[0], s.Rhs[0]) {
 												// Byte constants assigned to byte slots need the same go/types context as call arguments.
 											} else if writeRangeIndexAssignmentValue(out, s.Lhs[0], s.Rhs[0]) {
@@ -6844,6 +6858,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 											out.WriteString(rhsVarName)
 											WriteBorrowMethod(out, false)
 											out.WriteString(".as_ref().unwrap().clone()")
+										} else if writeConstAssignmentValue(out, s.Lhs[0], s.Rhs[0]) {
+											// Constants assigned to wrapped slots need the target type from go/types.
 										} else if writeByteConstAssignmentValue(out, s.Lhs[0], s.Rhs[0]) {
 											// Byte constants assigned to byte slots need the same go/types context as call arguments.
 										} else if writeRangeIndexAssignmentValue(out, s.Lhs[0], s.Rhs[0]) {

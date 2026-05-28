@@ -1147,6 +1147,24 @@ func scan() {
 	}
 }
 
+func TestWrappedUint64AssignmentFromSelectorConstCastsValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "unicode/utf8"
+
+func clamp(capacity uint64) uint64 {
+	if capacity < utf8.UTFMax {
+		capacity = utf8.UTFMax
+	}
+	return capacity
+}
+`)
+
+	if !strings.Contains(rust, "let new_val = utf8::") || !strings.Contains(rust, "as u64; *capacity") {
+		t.Fatalf("selector const assigned to uint64 should be cast to the target type:\n%s", rust)
+	}
+}
+
 func TestReturnBitClearUsesRustOperator(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
