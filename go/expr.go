@@ -4622,17 +4622,21 @@ func writeExpressionForExpectedTypesType(out *strings.Builder, value ast.Expr, e
 			}
 		}
 	}
-	// A package-qualified constant of the same named type (e.g. `types.Int`,
-	// `token.ILLEGAL`) is emitted with the named Rust type by the external
-	// stub, so it doesn't need the constructor + `as <int>` rewrap a local
-	// constant of the underlying type would require.
+	// A stdlib-stub-qualified constant of the same named type (e.g.
+	// `types.Int`, `token.ILLEGAL`) is emitted with the named Rust type by
+	// the external stub generator, so it doesn't need the constructor +
+	// `as <int>` rewrap. User package constants are emitted as the bare
+	// underlying type, so they still need wrapping below.
 	if sel, ok := value.(*ast.SelectorExpr); ok {
 		if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.info != nil {
 			if xIdent, ok := sel.X.(*ast.Ident); ok {
-				if _, isPkg := typeInfo.info.Uses[xIdent].(*types.PkgName); isPkg {
-					if valueNamed, ok := types.Unalias(typeInfo.GetType(value)).(*types.Named); ok && sameNamedTypeDefinition(valueNamed, named) {
-						TranspileExpression(out, value)
-						return true
+				if pkgName, isPkg := typeInfo.info.Uses[xIdent].(*types.PkgName); isPkg && pkgName.Imported() != nil {
+					pkgPath := pkgName.Imported().Path()
+					if isStdlibPackage(pkgPath) && !isSourceMappedPackagePath(pkgPath) {
+						if valueNamed, ok := types.Unalias(typeInfo.GetType(value)).(*types.Named); ok && sameNamedTypeDefinition(valueNamed, named) {
+							TranspileExpression(out, value)
+							return true
+						}
 					}
 				}
 			}
