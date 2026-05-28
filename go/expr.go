@@ -4863,6 +4863,11 @@ func writeExpressionForExpectedTypesType(out *strings.Builder, value ast.Expr, e
 	if writeStdlibInterfaceBareConversion(out, value, expected) {
 		return true
 	}
+	if _, isNamed := types.Unalias(expected).(*types.Named); !isNamed {
+		if writeConstExpressionForExpectedInteger(out, value, expected) {
+			return true
+		}
+	}
 	named, ok := expected.(*types.Named)
 	if !ok {
 		return false

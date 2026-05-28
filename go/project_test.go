@@ -2499,6 +2499,44 @@ func makeField(n abi.Name, t *abi.Type) structField {
 	}
 }
 
+func TestImportedConstSelectorCastsToUint8StructField(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "dep", "dep.go"), `package dep
+
+const PtrSize = 8
+
+type Type struct {
+	Align_ uint8
+}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+import "example.com/mainmod/dep"
+
+func build() dep.Type {
+	return dep.Type{Align_: dep.PtrSize}
+}
+`)
+
+	generator := NewProjectGenerator([]string{filepath.Join(tempDir, "main.go")})
+	generator.SetExternalPackageMode(ModeTranspile)
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
+	if strings.Contains(mainRS, "Some(example_com_mainmod_dep::PTR_SIZE))") {
+		t.Fatalf("imported const selector assigned to uint8 field should be cast before wrapping:\n%s", mainRS)
+	}
+	if !strings.Contains(mainRS, "Some(example_com_mainmod_dep::PTR_SIZE as u8)") {
+		t.Fatalf("imported const selector assigned to uint8 field should cast to u8:\n%s", mainRS)
+	}
+}
+
 func writeTestFile(t *testing.T, path string, content string) {
 	t.Helper()
 	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
