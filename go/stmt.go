@@ -4365,9 +4365,20 @@ func writeWrappedMutationTargetPrelude(out *strings.Builder, expr ast.Expr) bool
 }
 
 func writeWrappedMutationTargetRef(out *strings.Builder, expr ast.Expr, mutable bool) {
-	if _, ok := expr.(*ast.SelectorExpr); ok {
+	switch e := expr.(type) {
+	case *ast.SelectorExpr:
 		out.WriteString("__target")
-	} else {
+	case *ast.StarExpr:
+		// `*p` mutation (increment/compound-assign): the pointer operand is
+		// itself the wrapper handle (Arc<Mutex<Option<T>>> /
+		// Rc<RefCell<Option<T>>>), so lock/borrow it directly to obtain a
+		// guard over Option<T>. Lower the operand as an LValue to get the bare
+		// handle place; lowering the StarExpr itself (or the operand as a
+		// value) would emit the fully-dereferenced scalar, and the trailing
+		// WriteBorrowMethod would then call .lock()/.borrow() on a scalar
+		// (E0599: no method named lock/borrow found for type i32).
+		TranspileExpressionContext(out, e.X, LValue)
+	default:
 		TranspileExpressionContext(out, expr, LValue)
 	}
 	WriteBorrowMethod(out, mutable)
