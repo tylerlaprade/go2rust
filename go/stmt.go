@@ -8239,6 +8239,24 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					WriteBorrowMethod(out, false)
 					out.WriteString(".as_ref().unwrap()).chars()")
 				}
+			} else if s.Key != nil {
+				// for i := range str
+				out.WriteString("(")
+				writeRangeBinding(out, s.Key, keyAssigned)
+				out.WriteString(", _) in ")
+				if isStringLit {
+					TranspileExpression(out, s.X)
+					out.WriteString(".char_indices()")
+				} else {
+					out.WriteString("(*")
+					if ident, ok := s.X.(*ast.Ident); ok {
+						out.WriteString(EscapeRustIdent(ident.Name))
+					} else {
+						TranspileExpression(out, s.X)
+					}
+					WriteBorrowMethod(out, false)
+					out.WriteString(".as_ref().unwrap()).char_indices()")
+				}
 			} else {
 				// for range str
 				out.WriteString("_ in ")

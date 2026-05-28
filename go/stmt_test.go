@@ -213,6 +213,29 @@ func trim(words []string) {
 	}
 }
 
+func TestStringRangeKeyOnlyUsesCharIndices(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func sumIndexes(s string) int {
+	total := 0
+	for i := range s {
+		total += i
+	}
+	return total
+}
+`)
+
+	if strings.Contains(rust, "for _ in") {
+		t.Fatalf("key-only string range should not discard the index binding:\n%s", rust)
+	}
+	if !strings.Contains(rust, "for i in 0..") && !strings.Contains(rust, "for (i, _) in") {
+		t.Fatalf("key-only string range should bind the byte index:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".char_indices()") {
+		t.Fatalf("key-only string range should iterate string byte indices:\n%s", rust)
+	}
+}
+
 func TestIfInitShortDeclDoesNotLeakPastIf(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
