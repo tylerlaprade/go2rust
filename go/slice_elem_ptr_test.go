@@ -110,6 +110,31 @@ func read(infos []lineInfo, i int) (string, int) {
 	}
 }
 
+func TestSliceElemPointerMethodCallBorrowsElement(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+type field struct {
+	Embedded bool
+}
+
+func (f *field) IsEmbedded() bool {
+	return f.Embedded
+}
+
+func read(fields []field, i int) bool {
+	p := &fields[i]
+	return p.IsEmbedded()
+}
+`)
+
+	if strings.Contains(rust, "p.borrow()") || strings.Contains(rust, "p.lock()") {
+		t.Fatalf("slice element pointer method call should not use normal pointer wrapper locks:\n%s", rust)
+	}
+	if !strings.Contains(rust, "(*p.as_ref().unwrap().borrow().as_ref().unwrap()).is_embedded()") {
+		t.Fatalf("slice element pointer method call should borrow the element receiver:\n%s", rust)
+	}
+}
+
 func TestSliceElemPointerDerefNilStoresPointerHandle(t *testing.T) {
 	rust := transpileTypedSliceElemPtrRegression(t, `package main
 

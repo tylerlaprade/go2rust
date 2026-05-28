@@ -10934,6 +10934,15 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				} else {
 					out.WriteString("self.")
 				}
+			} else if isSliceElemPtrVar(ident.Name) {
+				needsMut := methodCallNeedsMutableReceiver(sel)
+				out.WriteString("(*")
+				writeSliceElemPtrBorrow(out, ident, needsMut)
+				if needsMut {
+					out.WriteString(".as_mut().unwrap()).")
+				} else {
+					out.WriteString(".as_ref().unwrap()).")
+				}
 			} else {
 				// Check if this variable is wrapped (not a range var, not a constant, not bare)
 				typeInfo := GetTypeInfo()
