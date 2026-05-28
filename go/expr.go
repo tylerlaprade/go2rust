@@ -7462,7 +7462,11 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					out.WriteString(" { ")
 					fieldIdx := 0
 					for fieldIndex, field := range sd.ASTType.Fields.List {
-						for nameIndex, name := range field.Names {
+						fieldNames := field.Names
+						if len(fieldNames) == 0 {
+							fieldNames = []*ast.Ident{ast.NewIdent(getEmbeddedFieldName(field.Type))}
+						}
+						for nameIndex, name := range fieldNames {
 							if fieldIdx > 0 {
 								out.WriteString(", ")
 							}

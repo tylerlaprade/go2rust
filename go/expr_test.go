@@ -78,6 +78,31 @@ func main() {
 	}
 }
 
+func TestEmptyStructLiteralInitializesEmbeddedFields(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type flag uintptr
+
+type Value struct {
+	typ *int
+	ptr uintptr
+	flag
+}
+
+func zero() Value {
+	return Value{}
+}
+`)
+
+	body := rust
+	if idx := strings.Index(rust, "pub fn zero"); idx >= 0 {
+		body = rust[idx:]
+	}
+	if !strings.Contains(body, "flag:") {
+		t.Fatalf("empty struct literal should initialize embedded fields:\n%s", rust)
+	}
+}
+
 func TestPositionalStructLiteralWrapsBareScalarLocalField(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
