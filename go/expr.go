@@ -1031,6 +1031,30 @@ func writeVariadicPackedElementValue(out *strings.Builder, arg ast.Expr, elemTyp
 	if isFunctionSignatureTypeExpr(elemTypeExpr) && writeFunctionValueHandle(out, arg) {
 		return
 	}
+	if elemType != nil {
+		if writeConstExpressionForExpectedGoType(out, arg, elemType) {
+			return
+		}
+		if writeRangeCharForExpectedType(out, arg, elemType) {
+			return
+		}
+		if writeLenCapCallArgumentForExpectedType(out, arg, elemType) {
+			return
+		}
+		if writeRangeIndexForExpectedType(out, arg, elemType) {
+			return
+		}
+	}
+	if call, ok := arg.(*ast.CallExpr); ok {
+		typeInfo := GetTypeInfo()
+		if typeInfo != nil && typeInfo.ReturnsWrappedValue(call) && !callReturnsBareChannelValue(call) && (!typeInfo.IsTypeConversion(call) || typeConversionEmitsWrappedValue(call)) {
+			out.WriteString("(*")
+			TranspileExpression(out, call)
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref().unwrap())")
+			return
+		}
+	}
 	TranspileExpression(out, arg)
 }
 

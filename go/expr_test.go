@@ -824,6 +824,29 @@ func main() {
 	}
 }
 
+func TestVariadicByteArgumentsUseElementType(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func fnv(seed uint32, bytes ...byte) uint32 {
+	return seed
+}
+
+func use(hash uint32) uint32 {
+	return fnv(hash, 'm', byte(hash>>24))
+}
+`)
+
+	if strings.Contains(rust, "vec![('m' as i32),") {
+		t.Fatalf("variadic byte rune literal should be cast to u8:\n%s", rust)
+	}
+	if strings.Contains(rust, "Rc<RefCell<Option<u8>>>") {
+		t.Fatalf("variadic byte conversion should emit raw u8 elements, not wrapped handles:\n%s", rust)
+	}
+	if !strings.Contains(rust, "vec![('m' as i32) as u8, (*") {
+		t.Fatalf("variadic byte arguments should use raw u8 vector elements:\n%s", rust)
+	}
+}
+
 func TestReferenceRangeComparisonDereferencesWithoutTypeInfo(t *testing.T) {
 	expr, err := parser.ParseExpr("num > 6")
 	if err != nil {
