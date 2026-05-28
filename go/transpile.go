@@ -1102,7 +1102,7 @@ func generatePromotedMethod(out *strings.Builder, method *ast.FuncDecl, embedded
 				if j > 0 {
 					out.WriteString(", ")
 				}
-				out.WriteString(name.Name)
+				out.WriteString(RustLocalIdent(name.Name))
 				out.WriteString(": ")
 				out.WriteString(GoTypeToRust(field.Type))
 			}
@@ -1143,7 +1143,7 @@ func generatePromotedMethod(out *strings.Builder, method *ast.FuncDecl, embedded
 				if j > 0 {
 					out.WriteString(", ")
 				}
-				out.WriteString(name.Name)
+				out.WriteString(RustLocalIdent(name.Name))
 			}
 		}
 	}

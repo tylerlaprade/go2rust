@@ -508,3 +508,32 @@ func TestGeneratePromotedMethodKeepsMutatingPointerReceiverMutable(t *testing.T)
 		t.Fatalf("mutating promoted pointer method should borrow embedded value mutably, got:\n%s", got)
 	}
 }
+
+func TestGeneratePromotedMethodEscapesKeywordParams(t *testing.T) {
+	method := &ast.FuncDecl{
+		Name: ast.NewIdent("Count"),
+		Recv: &ast.FieldList{List: []*ast.Field{{
+			Names: []*ast.Ident{ast.NewIdent("p")},
+			Type:  &ast.StarExpr{X: ast.NewIdent("Package")},
+		}}},
+		Type: &ast.FuncType{
+			Params: &ast.FieldList{List: []*ast.Field{{
+				Names: []*ast.Ident{ast.NewIdent("match")},
+				Type:  ast.NewIdent("int"),
+			}}},
+			Results: &ast.FieldList{List: []*ast.Field{{Type: ast.NewIdent("int")}}},
+		},
+		Body: &ast.BlockStmt{},
+	}
+
+	var out strings.Builder
+	generatePromotedMethod(&out, method, "Package")
+
+	got := out.String()
+	if strings.Contains(got, " match:") || strings.Contains(got, "(match)") {
+		t.Fatalf("promoted method should not emit unescaped Rust keyword parameter:\n%s", got)
+	}
+	if !strings.Contains(got, "r#match:") || !strings.Contains(got, "count(r#match)") {
+		t.Fatalf("promoted method should escape keyword parameter consistently:\n%s", got)
+	}
+}
