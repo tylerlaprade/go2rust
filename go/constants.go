@@ -89,6 +89,11 @@ func writeExpressionForExpectedType(out *strings.Builder, value ast.Expr, expect
 	if writeConstExpressionForExpectedTypeExpr(out, value, expectedIdent) {
 		return true
 	}
+	if typeInfo := GetTypeInfo(); typeInfo != nil {
+		if writeExpressionForExpectedTypesType(out, value, typeInfo.GetType(expectedIdent)) {
+			return true
+		}
+	}
 	underlying, isTypeDef := LookupTypeDefinition(expectedIdent.Name)
 	if !isTypeDef {
 		if typeInfo := GetTypeInfo(); typeInfo != nil {

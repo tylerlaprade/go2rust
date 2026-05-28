@@ -890,6 +890,21 @@ func (b bitset) removeFirst() bitset {
 	}
 }
 
+func TestNamedIntegerReturnSameTypedValueDoesNotReconstruct(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type ctrl uint8
+
+func read(p *ctrl) ctrl {
+	return *p
+}
+`)
+
+	if strings.Contains(rust, " as u8") {
+		t.Fatalf("returning a value already typed as ctrl should not cast ctrl back to u8:\n%s", rust)
+	}
+}
+
 func TestNamedIntegerAssignmentUsesRawNamedValue(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
