@@ -11182,10 +11182,18 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 					}
 				}
 
-				// Check if this is a channel parameter - pass with clone, no wrapping
+				// Bare scalar locals still need a Go value handle when the callee
+				// parameter is emitted as wrapped. Channels are the bare exception.
 				if _, isRangeVar := rangeLoopVars[ident.Name]; !isRangeVar && isVarBare(ident.Name) {
-					out.WriteString(argVarName)
-					out.WriteString(".clone()")
+					typeInfo := GetTypeInfo()
+					if (typeInfo != nil && typeInfo.IsChannel(ident)) || isChannelFieldType(expectedArgType) || isChannelFieldExpr(paramTypeForArg) {
+						out.WriteString(argVarName)
+						out.WriteString(".clone()")
+					} else {
+						WriteWrapperPrefix(out)
+						out.WriteString(argVarName)
+						WriteWrapperSuffix(out)
+					}
 					continue
 				}
 

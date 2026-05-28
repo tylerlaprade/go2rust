@@ -742,6 +742,35 @@ func short() int {
 	}
 }
 
+func TestTupleBareScalarShortDeclWrapsForGeneratedCallArgument(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func pair() (int, bool) {
+	return 1, true
+}
+
+func use(v int) int {
+	return v
+}
+
+func caller() int {
+	x, ok := pair()
+	if ok {
+		return use(x)
+	}
+	return 0
+}
+`)
+
+	if strings.Contains(rust, "use(x.clone())") {
+		t.Fatalf("bare scalar local must be wrapped when passed to a generated wrapped parameter:\n%s", rust)
+	}
+	if !strings.Contains(rust, "use(Rc::new(RefCell::new(Some(x))))") &&
+		!strings.Contains(rust, "use(Arc::new(Mutex::new(Some(x))))") {
+		t.Fatalf("bare scalar local should be wrapped for generated call argument:\n%s", rust)
+	}
+}
+
 func TestStrconvAtoiTupleSlotEmitsBareScalarFirstResult(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
