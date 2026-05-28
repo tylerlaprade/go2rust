@@ -76,7 +76,7 @@ func writeNamedIntegerPrimitiveExpression(out *strings.Builder, expr ast.Expr) b
 		return true
 	}
 	if lit, ok := expr.(*ast.BasicLit); ok {
-		out.WriteString(lit.Value)
+		out.WriteString(RustCharLiteral(lit.Value))
 		return true
 	}
 	if call, ok := expr.(*ast.CallExpr); ok {
@@ -154,7 +154,7 @@ func writeNamedIntegerBinaryPrimitiveExpression(out *strings.Builder, expr *ast.
 
 func writeNamedIntegerPrimitiveOperand(out *strings.Builder, expr ast.Expr) {
 	if lit, ok := expr.(*ast.BasicLit); ok {
-		out.WriteString(lit.Value)
+		out.WriteString(RustCharLiteral(lit.Value))
 		return
 	}
 	if writeUnaryIntegerLiteral(out, expr) {
@@ -408,7 +408,7 @@ func writeCharLiteralForPeer(out *strings.Builder, lit *ast.BasicLit, peer ast.E
 		return false
 	}
 	if rangeVarRustType(peer) == "char" {
-		out.WriteString(lit.Value)
+		out.WriteString(RustCharLiteral(lit.Value))
 		return true
 	}
 	if !isByteLikeExpression(peer) {
@@ -421,14 +421,14 @@ func writeCharLiteralForPeer(out *strings.Builder, lit *ast.BasicLit, peer ast.E
 			return false
 		}
 		out.WriteString("(")
-		out.WriteString(lit.Value)
+		out.WriteString(RustCharLiteral(lit.Value))
 		out.WriteString(" as ")
 		out.WriteString(castType)
 		out.WriteString(")")
 		return true
 	}
 	out.WriteString("(")
-	out.WriteString(lit.Value)
+	out.WriteString(RustCharLiteral(lit.Value))
 	out.WriteString(" as u8)")
 	return true
 }
@@ -535,7 +535,7 @@ func writeCharLiteralForExpectedType(out *strings.Builder, lit *ast.BasicLit, ex
 		return false
 	}
 	out.WriteString("(")
-	out.WriteString(lit.Value)
+	out.WriteString(RustCharLiteral(lit.Value))
 	out.WriteString(" as u8)")
 	return true
 }
@@ -6139,9 +6139,10 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			out.WriteString(".to_string()")
 		case token.CHAR:
 			// In Go, character literals are runes (int32)
-			// Convert 'A' to the numeric value
+			// Convert 'A' to the numeric value. RustCharLiteral translates
+			// Go-only escapes (\a \b \f \v, octal, \uXXXX) Rust rejects.
 			out.WriteString("(")
-			out.WriteString(e.Value)
+			out.WriteString(RustCharLiteral(e.Value))
 			out.WriteString(" as i32)")
 		case token.INT:
 			// Check if this integer is used in a float context
@@ -11157,7 +11158,7 @@ func writeStringsBuilderByteArg(out *strings.Builder, arg ast.Expr) {
 
 func writeStringsBuilderRuneArg(out *strings.Builder, arg ast.Expr) {
 	if lit, ok := arg.(*ast.BasicLit); ok && lit.Kind == token.CHAR {
-		out.WriteString(lit.Value)
+		out.WriteString(RustCharLiteral(lit.Value))
 		return
 	}
 	if ident, ok := arg.(*ast.Ident); ok && rangeLoopVars[ident.Name] == "char" {

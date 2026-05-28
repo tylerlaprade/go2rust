@@ -3323,7 +3323,7 @@ func TranspileConstExpr(out *strings.Builder, expr ast.Expr, iotaValue int) {
 			out.WriteString(RustStringLiteral(e.Value))
 		} else if e.Kind == token.CHAR {
 			out.WriteString("(")
-			out.WriteString(e.Value)
+			out.WriteString(RustCharLiteral(e.Value))
 			out.WriteString(" as i32)")
 		} else {
 			out.WriteString(e.Value)

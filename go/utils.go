@@ -350,6 +350,53 @@ func RustStringLiteral(goLiteral string) string {
 	return out.String()
 }
 
+// RustCharLiteral converts a Go character (rune) literal to a Rust char
+// literal, translating Go-only escapes (\a \b \f \v, octal, \uXXXX) that Rust
+// rejects into Rust-safe forms. Printable ASCII chars are emitted verbatim so
+// the common case (e.g. 'A', '\n') produces no snapshot churn. Mirrors
+// RustStringLiteral's escaping for a single rune.
+func RustCharLiteral(goLiteral string) string {
+	// Only rune/char literals (single-quoted) need translation. Guarding on the
+	// leading quote makes this a safe no-op for INT/FLOAT/STRING/raw literals,
+	// so it can be applied at any site that emits a possibly-char BasicLit.
+	if len(goLiteral) < 2 || goLiteral[0] != '\'' {
+		return goLiteral
+	}
+	unquoted, err := strconv.Unquote(goLiteral)
+	if err != nil {
+		return goLiteral
+	}
+	runes := []rune(unquoted)
+	if len(runes) != 1 {
+		return goLiteral
+	}
+	r := runes[0]
+	var out strings.Builder
+	out.WriteByte('\'')
+	switch r {
+	case '\\':
+		out.WriteString("\\\\")
+	case '\'':
+		out.WriteString("\\'")
+	case '\n':
+		out.WriteString("\\n")
+	case '\r':
+		out.WriteString("\\r")
+	case '\t':
+		out.WriteString("\\t")
+	default:
+		if r < 0x20 || r == 0x7f || r > 0x7e {
+			out.WriteString("\\u{")
+			out.WriteString(strconv.FormatInt(int64(r), 16))
+			out.WriteByte('}')
+		} else {
+			out.WriteRune(r)
+		}
+	}
+	out.WriteByte('\'')
+	return out.String()
+}
+
 func isRustPathKeyword(s string) bool {
 	switch s {
 	case "crate", "self", "super":

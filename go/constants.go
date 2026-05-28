@@ -518,7 +518,7 @@ func writePrimitiveConstExpressionForBinaryPeer(out *strings.Builder, expr ast.E
 
 func writeSwitchCaseValueForTag(out *strings.Builder, expr ast.Expr, tag ast.Expr) {
 	if lit, ok := expr.(*ast.BasicLit); ok && lit.Kind == token.CHAR && rangeVarRustType(tag) == "char" {
-		out.WriteString(lit.Value)
+		out.WriteString(RustCharLiteral(lit.Value))
 		return
 	}
 	typeInfo := GetTypeInfo()
