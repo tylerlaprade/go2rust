@@ -2027,6 +2027,10 @@ run_xfail_test() {
     run_test "tests/return_string_const"
 }
 
+@test "rune_escape_literals" {
+    run_test "tests/rune_escape_literals"
+}
+
 @test "runtime_gomaxprocs" {
     run_test "tests/runtime_gomaxprocs"
 }

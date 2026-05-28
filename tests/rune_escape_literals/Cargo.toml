@@ -1,0 +1,8 @@
+[package]
+name = "rune_escape_literals"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "rune_escape_literals"
+path = "main.rs"
