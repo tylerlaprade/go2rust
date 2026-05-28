@@ -966,6 +966,25 @@ func shiftCount(b bitset, n uint) bitset {
 	}
 }
 
+func TestNamedIntegerShiftAssignClonesCurrentValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type ctrlGroup uint64
+
+func shift(ctrls ctrlGroup) ctrlGroup {
+	ctrls >>= 8
+	return ctrls
+}
+`)
+
+	if strings.Contains(rust, "guard.as_ref().unwrap() >> __rhs") {
+		t.Fatalf("named integer shift assignment should shift the owned named value, not a reference:\n%s", rust)
+	}
+	if !strings.Contains(rust, "guard.as_ref().unwrap().clone() >> __rhs") {
+		t.Fatalf("named integer shift assignment should clone the current named value:\n%s", rust)
+	}
+}
+
 func TestNamedIntegerAssignmentUsesRawNamedValue(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
