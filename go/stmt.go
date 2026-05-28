@@ -2603,8 +2603,13 @@ func writePointerNamedReturnAssignment(out *strings.Builder, name *ast.Ident, re
 		return false
 	}
 	out.WriteString("{ let new_val = ")
-	TranspileExpressionContext(out, rhs, AddressOf)
-	out.WriteString(".clone(); ")
+	if isSliceElementAddress(rhs) {
+		out.WriteString(`unimplemented!("slice element pointer return requires pointer representation support")`)
+	} else {
+		TranspileExpressionContext(out, rhs, AddressOf)
+		out.WriteString(".clone()")
+	}
+	out.WriteString("; ")
 	out.WriteString(RustLocalIdent(name.Name))
 	out.WriteString(" = new_val; }")
 	return true
@@ -2773,6 +2778,24 @@ func writeFunctionReturnValue(out *strings.Builder, result ast.Expr, resultType 
 	return writeFunctionValueHandle(out, result)
 }
 
+func writePointerReturnValue(out *strings.Builder, result ast.Expr, expected ast.Expr) bool {
+	if !isPointerReturnExpression(result, expected) {
+		return false
+	}
+	if isSliceElementAddress(result) {
+		out.WriteString(`unimplemented!("slice element pointer return requires pointer representation support")`)
+		return true
+	}
+	switch result.(type) {
+	case *ast.Ident, *ast.SelectorExpr:
+		TranspileExpressionContext(out, result, LValue)
+		out.WriteString(".clone()")
+	default:
+		TranspileExpression(out, result)
+	}
+	return true
+}
+
 func writeBlankNamedReturnValue(out *strings.Builder, result ast.Expr, expected ast.Expr) {
 	if ident, ok := result.(*ast.Ident); ok && ident.Name == "nil" {
 		WriteWrappedNone(out)
@@ -2797,14 +2820,7 @@ func writeBlankNamedReturnValue(out *strings.Builder, result ast.Expr, expected 
 		WriteWrapperSuffix(out)
 		return
 	}
-	if isPointerReturnExpression(result, expected) {
-		switch result.(type) {
-		case *ast.Ident, *ast.SelectorExpr:
-			TranspileExpressionContext(out, result, LValue)
-			out.WriteString(".clone()")
-			return
-		}
-		TranspileExpression(out, result)
+	if writePointerReturnValue(out, result, expected) {
 		return
 	}
 	if compositeLit, ok := result.(*ast.CompositeLit); ok && isCompositeLitSelfWrapping(compositeLit) {
@@ -3079,6 +3095,19 @@ func isPointerReturnExpression(result ast.Expr, expected ast.Expr) bool {
 	}
 	typeInfo := GetTypeInfo()
 	return typeInfo != nil && typeInfo.IsPointer(result)
+}
+
+func isSliceElementAddress(expr ast.Expr) bool {
+	unary, ok := unwrapParens(expr).(*ast.UnaryExpr)
+	if !ok || unary.Op != token.AND {
+		return false
+	}
+	indexExpr, ok := unwrapParens(unary.X).(*ast.IndexExpr)
+	if !ok {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	return typeInfo != nil && typeInfo.IsSlice(indexExpr.X)
 }
 
 func writeStdlibInterfaceAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
@@ -5838,8 +5867,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							}
 						}
 					} else if writeLocalInterfaceConcreteReturnConversion(out, result, returnResultTypeExpr(fnType, i)) {
-					} else if isPointerReturnExpression(result, returnResultTypeExpr(fnType, i)) {
-						TranspileExpression(out, result)
+					} else if writePointerReturnValue(out, result, returnResultTypeExpr(fnType, i)) {
 					} else if compositeLit, ok := result.(*ast.CompositeLit); ok && isCompositeLitSelfWrapping(compositeLit) {
 						// Slice and map literals already return wrapped values.
 						TranspileExpression(out, result)

@@ -152,6 +152,26 @@ func makeName() Name {
 	}
 }
 
+func TestSliceElemPointerReturnFailsLoudlyInsteadOfInvalidHelper(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+type entry struct {
+	value int
+}
+
+func pick(bucket []entry) *entry {
+	return &bucket[len(bucket)-1]
+}
+`)
+
+	if strings.Contains(rust, "return GoSliceElemPtr::new") {
+		t.Fatalf("slice element pointer return should not emit an incompatible helper value:\n%s", rust)
+	}
+	if !strings.Contains(rust, `unimplemented!("slice element pointer return requires pointer representation support")`) {
+		t.Fatalf("slice element pointer return should fail loudly:\n%s", rust)
+	}
+}
+
 func transpileTypedSliceElemPtrRegression(t *testing.T, src string) string {
 	t.Helper()
 
