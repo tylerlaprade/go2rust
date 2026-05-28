@@ -775,6 +775,20 @@ const (
 	}
 }
 
+func TestUntypedHexConstAboveInt64UsesUint64(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+const bitsetMSB = 0x8080808080808080
+`)
+
+	if strings.Contains(rust, "BITSET_M_S_B: i32") {
+		t.Fatalf("large positive hex constant should not default to i32:\n%s", rust)
+	}
+	if !strings.Contains(rust, "BITSET_M_S_B: u64 = 0x8080808080808080") {
+		t.Fatalf("large positive hex constant should use u64:\n%s", rust)
+	}
+}
+
 func TestConstBinaryPeerKeepsNamedIntegerConstsPrimitive(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

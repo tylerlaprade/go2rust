@@ -2968,6 +2968,10 @@ func inferConstType(expr ast.Expr) string {
 				if val > math.MaxInt32 || val < math.MinInt32 {
 					return "i64"
 				}
+			} else if val, err := strconv.ParseUint(e.Value, 0, 64); err == nil {
+				if val > math.MaxInt32 {
+					return "u64"
+				}
 			}
 			return "i32"
 		case token.FLOAT:
