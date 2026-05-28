@@ -3497,6 +3497,36 @@ func writeMoveWrappedInnerAssignment(out *strings.Builder, lhs ast.Expr, rhs ast
 	out.WriteString(" = __moved_val; }")
 }
 
+func writeCapturedCurrentReceiverAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
+	ident, ok := lhs.(*ast.Ident)
+	if !ok || !isCurrentReceiverIdent(ident) || currentCaptureRenames == nil {
+		return false
+	}
+	renamed, ok := currentCaptureRenames[ident.Name]
+	if !ok || renamed == "" || renamed == ident.Name {
+		return false
+	}
+	target := RustLocalIdent(renamed)
+	typeInfo := GetTypeInfo()
+	out.WriteString("{ ")
+	call, isCall := rhs.(*ast.CallExpr)
+	if typeInfo != nil && typeInfo.ReturnsWrappedValue(rhs) && (!isCall || !isBareBuiltinReturn(call)) {
+		out.WriteString("let new_val = ")
+		TranspileExpression(out, rhs)
+		out.WriteString("; let __moved_val = { let mut __guard = new_val")
+		WriteBorrowMethod(out, true)
+		out.WriteString("; __guard.take().unwrap() }; ")
+		out.WriteString(target)
+		out.WriteString(" = __moved_val; }")
+		return true
+	}
+	out.WriteString(target)
+	out.WriteString(" = ")
+	TranspileExpression(out, rhs)
+	out.WriteString("; }")
+	return true
+}
+
 func writeMoveWrappedInnerAssignmentFromTemp(out *strings.Builder, lhs ast.Expr, tmpName string) {
 	if ident, ok := lhs.(*ast.Ident); ok && ident.Name == "_" {
 		return
@@ -6716,6 +6746,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									// Pointer assignment replaces the handle to preserve aliasing.
 								} else if writeSliceHandleAssignment(out, s.Lhs[0], s.Rhs[0]) {
 									// Slice assignment replaces the handle to preserve slice-header aliasing.
+								} else if writeCapturedCurrentReceiverAssignment(out, s.Lhs[0], s.Rhs[0]) {
+									// Captured value receivers are bare closure-local copies, not wrapper slots.
 								} else if writeBareRangeVarAssignment(out, s.Lhs[0], s.Rhs[0]) {
 									// Assigned range variables are local bare Rust bindings, not wrapper handles.
 								} else if writeBareScalarAssignment(out, s.Lhs[0], s.Rhs[0]) {

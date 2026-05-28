@@ -3395,6 +3395,13 @@ func writeCurrentReceiverClone(out *strings.Builder, ident *ast.Ident) bool {
 	if !isCurrentReceiverIdent(ident) {
 		return false
 	}
+	if currentCaptureRenames != nil {
+		if renamed, ok := currentCaptureRenames[ident.Name]; ok && renamed != "" && renamed != ident.Name {
+			out.WriteString(RustLocalIdent(renamed))
+			out.WriteString(".clone()")
+			return true
+		}
+	}
 	out.WriteString("self.clone()")
 	return true
 }

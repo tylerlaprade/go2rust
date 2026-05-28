@@ -1305,6 +1305,39 @@ func Walk(v Visitor, node Node) {
 	}
 }
 
+func TestCapturedValueReceiverAssignmentUpdatesBareClone(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Value struct {
+	n int
+}
+
+func (v Value) Elem() Value {
+	return Value{n: v.n + 1}
+}
+
+func (v Value) Seq() func(func(Value) bool) {
+	return func(yield func(Value) bool) {
+		v = v.Elem()
+		yield(v)
+	}
+}
+`)
+
+	if strings.Contains(rust, "*v_closure_clone.borrow_mut()") || strings.Contains(rust, "*v_closure_clone.lock().unwrap()") {
+		t.Fatalf("captured value receiver assignment should update the bare closure clone, not a wrapper slot:\n%s", rust)
+	}
+	if !strings.Contains(rust, "v_closure_clone = __moved_val") {
+		t.Fatalf("captured value receiver assignment should move the wrapped return value into the bare clone:\n%s", rust)
+	}
+	if strings.Contains(rust, "Some(self.clone())") {
+		t.Fatalf("captured value receiver argument should use the closure clone, not self:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Some(v_closure_clone.clone())") {
+		t.Fatalf("captured value receiver argument should wrap the closure clone:\n%s", rust)
+	}
+}
+
 func TestLocalMapKeyRustTypeReportsTrackedPointerKey(t *testing.T) {
 	prevCollections := localCollectionKinds
 	prevMapKeys := localMapKeyRustTypes
