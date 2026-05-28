@@ -2259,9 +2259,10 @@ func transpileSlicesSortFunc(out *strings.Builder, call *ast.CallExpr) {
 		writeSortFuncWrappedElement(out, "__b", elemIsInterface, elemHasInherentWrapper)
 		out.WriteString(")")
 	}
-	out.WriteString("; let __ord = (*__cmp")
-	WriteBorrowMethod(out, false)
-	out.WriteString(".as_ref().unwrap()).cmp(&0); __ord }); } }")
+	// Comparator returns a bare Go int (i32) under the widened scalar return
+	// rule, so the result is already a primitive and `.cmp(&0)` applies to it
+	// directly without a wrap/unwrap dance.
+	out.WriteString("; let __ord = __cmp.cmp(&0); __ord }); } }")
 }
 
 func transpileSlicesContains(out *strings.Builder, call *ast.CallExpr) {

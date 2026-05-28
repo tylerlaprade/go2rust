@@ -10145,18 +10145,15 @@ func writeStringsBuilderMethodCall(out *strings.Builder, sel *ast.SelectorExpr, 
 		WriteWrapperSuffix(out)
 		return true
 	case "Len":
-		WriteWrapperPrefix(out)
 		if bareReceiver {
 			writeStringsBuilderRawReceiver(out, sel.X)
 			out.WriteString(".len() as i32")
-			WriteWrapperSuffix(out)
 			return true
 		}
 		out.WriteString("(*")
 		writeStringsBuilderReceiverHandle(out, sel.X)
 		WriteBorrowMethod(out, false)
 		out.WriteString(".as_ref().unwrap()).len() as i32")
-		WriteWrapperSuffix(out)
 		return true
 	default:
 		return false
