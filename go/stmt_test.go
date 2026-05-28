@@ -1199,6 +1199,27 @@ func adjust() {
 	}
 }
 
+func TestUnsafePointerAnyDerefAssignmentMovesTemporaryInterface(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "unsafe"
+
+func load(ptr unsafe.Pointer) any {
+	var eface any
+	eface = *(*any)(ptr)
+	return eface
+}
+`)
+
+	if strings.Contains(rust, "as_mut().unwrap()).clone()") {
+		t.Fatalf("assignment from temporary unsafe any dereference should not clone Box<dyn Any>:\n%s", rust)
+	}
+	if !strings.Contains(rust, "eface = Rc::new(RefCell::new({") &&
+		!strings.Contains(rust, "eface = Arc::new(Mutex::new({") {
+		t.Fatalf("assignment from temporary unsafe any dereference should move the temporary interface handle:\n%s", rust)
+	}
+}
+
 func TestShortDeclFromSelectorNamedArrayCompositeLiteralRegistersBareLocal(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

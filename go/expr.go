@@ -4261,8 +4261,40 @@ func writeEmptyInterfaceHandleClone(out *strings.Builder, expr ast.Expr) bool {
 	if !isEmptyInterfaceValueExpr(expr) {
 		return false
 	}
+	if writeEmptyInterfacePointerConversionDerefHandle(out, expr) {
+		return true
+	}
 	TranspileExpressionContext(out, expr, LValue)
 	out.WriteString(".clone()")
+	return true
+}
+
+func writeEmptyInterfacePointerConversionDerefHandle(out *strings.Builder, expr ast.Expr) bool {
+	star, ok := unwrapParens(expr).(*ast.StarExpr)
+	if !ok {
+		return false
+	}
+	call, ok := unwrapParens(star.X).(*ast.CallExpr)
+	if !ok {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || !typeInfo.IsTypeConversion(call) {
+		return false
+	}
+	valueType := typeInfo.GetType(star)
+	if valueType == nil || !isEmptyInterfaceType(valueType) {
+		return false
+	}
+	pointerType := typeInfo.GetType(star.X)
+	if pointerType == nil {
+		return false
+	}
+	ptr, ok := types.Unalias(pointerType).Underlying().(*types.Pointer)
+	if !ok || !isEmptyInterfaceType(ptr.Elem()) {
+		return false
+	}
+	TranspileExpressionContext(out, star.X, LValue)
 	return true
 }
 
