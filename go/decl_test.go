@@ -211,7 +211,7 @@ func Keep[N int64 | uint64](num N) N {
 }
 `)
 
-	want := "pub fn keep<N>(num: Rc<RefCell<Option<N>>>) -> Rc<RefCell<Option<N>>>"
+	want := "pub fn keep<N: GoInteger + Clone + 'static>(num: Rc<RefCell<Option<N>>>) -> Rc<RefCell<Option<N>>>"
 	if !strings.Contains(rust, want) {
 		t.Fatalf("generic union-constrained parameter should preserve the type parameter in the signature, want %q:\n%s", want, rust)
 	}

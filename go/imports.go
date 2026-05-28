@@ -124,6 +124,7 @@ type HelperTracker struct {
 	needsFormatAnySlice             bool
 	needsAnyEq                      bool
 	needsGoByteSequence             bool
+	needsGoInteger                  bool
 	needsGoChannel                  bool
 	needsWaitGroup                  bool
 	needsGoMutex                    bool
@@ -208,6 +209,10 @@ func (ht *HelperTracker) GenerateHelpers() string {
 
 	if ht.needsGoByteSequence {
 		generateGoByteSequence(&result)
+	}
+
+	if ht.needsGoInteger {
+		generateGoInteger(&result)
 	}
 
 	if ht.needsGoChannel {
@@ -325,6 +330,7 @@ func (ht *HelperTracker) HasAny() bool {
 		ht.needsFormatAnySlice ||
 		ht.needsAnyEq ||
 		ht.needsGoByteSequence ||
+		ht.needsGoInteger ||
 		ht.needsGoChannel ||
 		ht.needsWaitGroup ||
 		ht.needsGoMutex ||
@@ -443,6 +449,9 @@ func (ht *HelperTracker) ImportNames() []string {
 	}
 	if ht.needsGoByteSequence {
 		add("GoByteSequence")
+	}
+	if ht.needsGoInteger {
+		add("GoInteger", "go_integer_from_i128", "go_integer_cast", "go_integer_add_one", "go_integer_sub_one")
 	}
 	if ht.needsGoChannel {
 		add("GoChannel")
@@ -744,6 +753,49 @@ impl GoByteSequence for Vec<u8> {
     fn go_to_string(&self) -> String {
         String::from_utf8(self.clone()).unwrap()
     }
+}
+`)
+}
+
+func generateGoInteger(out *strings.Builder) {
+	out.WriteString(`
+pub trait GoInteger: Copy + Clone + PartialOrd + 'static {
+    fn go_from_i128(value: i128) -> Self;
+    fn go_to_i128(self) -> i128;
+}
+
+macro_rules! impl_go_integer {
+    ($($t:ty),* $(,)?) => {
+        $(
+            impl GoInteger for $t {
+                fn go_from_i128(value: i128) -> Self {
+                    value as $t
+                }
+
+                fn go_to_i128(self) -> i128 {
+                    self as i128
+                }
+            }
+        )*
+    };
+}
+
+impl_go_integer!(i8, i16, i32, i64, isize, u8, u16, u32, u64, usize);
+
+fn go_integer_from_i128<T: GoInteger>(value: i128) -> T {
+    T::go_from_i128(value)
+}
+
+fn go_integer_cast<T: GoInteger, U: GoInteger>(value: U) -> T {
+    T::go_from_i128(value.go_to_i128())
+}
+
+fn go_integer_add_one<T: GoInteger>(value: T) -> T {
+    T::go_from_i128(value.go_to_i128() + 1)
+}
+
+fn go_integer_sub_one<T: GoInteger>(value: T) -> T {
+    T::go_from_i128(value.go_to_i128() - 1)
 }
 `)
 }

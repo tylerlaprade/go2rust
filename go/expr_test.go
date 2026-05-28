@@ -2610,6 +2610,32 @@ func count[T int8 | int16 | int32 | int64 | int, N int64 | uint64](num N) int {
 	}
 }
 
+func TestNumericTypeParamConversionForLoopUsesIntegerTrait(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func count[T int8 | int16 | int32 | int64 | int, N int64 | uint64](num N) int {
+	total := 0
+	for i := T(0); i < T(num); i++ {
+		total += int(i)
+	}
+	return total
+}
+`)
+
+	for _, want := range []string{
+		"T: GoInteger + Clone",
+		"N: GoInteger + Clone",
+		"go_integer_from_i128::<T>(0",
+		"go_integer_cast::<T, _>",
+		"go_integer_add_one",
+		"go_integer_cast::<i32, _>",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("numeric type-parameter loop should use integer trait helper %q:\n%s", want, rust)
+		}
+	}
+}
+
 func TestExternalStdlibScalarCallStaysBareInComparison(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

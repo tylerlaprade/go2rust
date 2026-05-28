@@ -4452,6 +4452,26 @@ func writeNamedIntegerIncDec(out *strings.Builder, expr ast.Expr, op token.Token
 	return true
 }
 
+func writeIntegerTypeParamIncDec(out *strings.Builder, expr ast.Expr, op token.Token) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || !goTypeParamHasIntegerConstraint(typeInfo.GetType(expr)) {
+		return false
+	}
+	NeedGoInteger()
+	out.WriteString("{ ")
+	writeWrappedMutationTargetPrelude(out, expr)
+	out.WriteString("let mut guard = ")
+	writeWrappedMutationTargetRef(out, expr, true)
+	out.WriteString("; *guard = Some(")
+	if op == token.INC {
+		out.WriteString("go_integer_add_one")
+	} else {
+		out.WriteString("go_integer_sub_one")
+	}
+	out.WriteString("(*guard.as_ref().unwrap())); }")
+	return true
+}
+
 func writeConstIdentForCompoundExpected(out *strings.Builder, ident *ast.Ident, expected types.Type, rustName string) bool {
 	if ident == nil || expected == nil {
 		return false
@@ -7927,6 +7947,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 	case *ast.IncDecStmt:
 		if indexExpr, isMapIndex := isMapIndexExpression(s.X); isMapIndex {
 			writeMapElementUpdate(out, indexExpr, s.Tok, nil)
+		} else if writeIntegerTypeParamIncDec(out, s.X, s.Tok) {
+			// Generic integer increments use the typed helper instead of a raw Rust integer literal.
 		} else if writeNamedIntegerIncDec(out, s.X, s.Tok) {
 			// Named integer arithmetic returns the underlying scalar; preserve the named wrapper on mutation.
 		} else {

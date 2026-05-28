@@ -8531,6 +8531,9 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 		out.WriteString(")")
 		return
 	}
+	if writeIntegerTypeParamConversion(out, call) {
+		return
+	}
 	if named, ok := externalStringConversionTarget(call); ok {
 		writeStringTypeDefinitionConstructor(out, goTypesNamedTypeToRust(named), call.Args[0])
 		return
@@ -8801,16 +8804,18 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 
 	if needsCast && rustType != "" {
 		WriteWrapperPrefix(out)
-		needsParens := numericConversionCastNeedsParens(call.Args[0])
-		if needsParens {
-			out.WriteString("(")
+		if !writeIntegerTypeParamToRustNumericConversion(out, call.Args[0], rustType) {
+			needsParens := numericConversionCastNeedsParens(call.Args[0])
+			if needsParens {
+				out.WriteString("(")
+			}
+			writeNumericConversionValue(out, call.Args[0])
+			if needsParens {
+				out.WriteString(")")
+			}
+			out.WriteString(" as ")
+			out.WriteString(rustType)
 		}
-		writeNumericConversionValue(out, call.Args[0])
-		if needsParens {
-			out.WriteString(")")
-		}
-		out.WriteString(" as ")
-		out.WriteString(rustType)
 		WriteWrapperSuffix(out)
 	} else {
 		// No cast needed or unknown type
@@ -8821,6 +8826,65 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 func numericConversionCastNeedsParens(arg ast.Expr) bool {
 	_, ok := arg.(*ast.BinaryExpr)
 	return ok
+}
+
+func writeIntegerTypeParamConversion(out *strings.Builder, call *ast.CallExpr) bool {
+	if call == nil || len(call.Args) != 1 {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	target, ok := types.Unalias(typeInfo.GetType(call)).(*types.TypeParam)
+	if !ok || !goTypeParamHasIntegerConstraint(target) || target.Obj() == nil {
+		return false
+	}
+	NeedGoInteger()
+	targetRust := RustTypeNameForUse(target.Obj().Name())
+	if writeIntegerTypeParamConstantConversion(out, targetRust, call.Args[0], typeInfo) {
+		return true
+	}
+	out.WriteString("go_integer_cast::<")
+	out.WriteString(targetRust)
+	out.WriteString(", _>(")
+	writeNumericConversionValue(out, call.Args[0])
+	out.WriteString(")")
+	return true
+}
+
+func writeIntegerTypeParamConstantConversion(out *strings.Builder, targetRust string, arg ast.Expr, typeInfo *TypeInfo) bool {
+	if typeInfo == nil || typeInfo.info == nil {
+		return false
+	}
+	tv, ok := typeInfo.info.Types[arg]
+	if !ok || tv.Value == nil {
+		return false
+	}
+	value := constant.ToInt(tv.Value)
+	if value.Kind() != constant.Int {
+		return false
+	}
+	out.WriteString("go_integer_from_i128::<")
+	out.WriteString(targetRust)
+	out.WriteString(">(")
+	out.WriteString(value.String())
+	out.WriteString(" as i128)")
+	return true
+}
+
+func writeIntegerTypeParamToRustNumericConversion(out *strings.Builder, arg ast.Expr, rustType string) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || rustType == "" || !goTypeParamHasIntegerConstraint(typeInfo.GetType(arg)) {
+		return false
+	}
+	NeedGoInteger()
+	out.WriteString("go_integer_cast::<")
+	out.WriteString(rustType)
+	out.WriteString(", _>(")
+	writeNumericConversionValue(out, arg)
+	out.WriteString(")")
+	return true
 }
 
 func writeFunctionSignatureTypeConversion(out *strings.Builder, call *ast.CallExpr) bool {

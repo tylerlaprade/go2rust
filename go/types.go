@@ -338,6 +338,43 @@ func isGoByteSliceType(t types.Type) bool {
 	return ok && isByteType(slice.Elem())
 }
 
+func goTypeParamHasIntegerConstraint(t types.Type) bool {
+	tp, ok := types.Unalias(t).(*types.TypeParam)
+	if !ok || tp.Constraint() == nil {
+		return false
+	}
+	iface, ok := tp.Constraint().Underlying().(*types.Interface)
+	if !ok {
+		return false
+	}
+	hasTerm := false
+	for i := 0; i < iface.NumEmbeddeds(); i++ {
+		embedded := types.Unalias(iface.EmbeddedType(i))
+		if union, ok := embedded.(*types.Union); ok {
+			for j := 0; j < union.Len(); j++ {
+				if !isGoIntegerType(union.Term(j).Type()) {
+					return false
+				}
+				hasTerm = true
+			}
+			continue
+		}
+		if !isGoIntegerType(embedded) {
+			return false
+		}
+		hasTerm = true
+	}
+	return hasTerm
+}
+
+func isGoIntegerType(t types.Type) bool {
+	if t == nil {
+		return false
+	}
+	basic, ok := types.Unalias(t).Underlying().(*types.Basic)
+	return ok && basic.Info()&types.IsInteger != 0
+}
+
 func goTypeParamTraitConstraintNameFromExpr(expr ast.Expr) (string, bool) {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil {
