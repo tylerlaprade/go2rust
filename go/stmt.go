@@ -4258,6 +4258,10 @@ func writeBareCompoundAssignValueForOp(out *strings.Builder, expr ast.Expr, expe
 			out.WriteString(rustConstName(ident.Name))
 			return
 		}
+		if isVarBare(ident.Name) {
+			out.WriteString(RustIdentForUse(ident))
+			return
+		}
 		if !isRangeVar && !isLocalConst && ident.Name != "true" && ident.Name != "false" &&
 			ident.Name != "nil" && ident.Name != "_" {
 			out.WriteString("(*")

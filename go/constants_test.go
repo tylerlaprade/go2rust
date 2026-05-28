@@ -1232,6 +1232,30 @@ func f() uintptr {
 	}
 }
 
+func TestCompoundAssignBareScalarLocalUsesRawValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type seq struct {
+	stackBytes uintptr
+}
+
+func align(x uintptr) uintptr { return x }
+
+func adjust(out *seq, in seq) {
+	retOffset := align(in.stackBytes)
+	out.stackBytes = retOffset
+	out.stackBytes -= retOffset
+}
+`)
+
+	if strings.Contains(rust, "retOffset.borrow()") || strings.Contains(rust, "retOffset.lock()") {
+		t.Fatalf("bare scalar compound assignment RHS should not be unwrapped as a handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __rhs = retOffset") {
+		t.Fatalf("bare scalar compound assignment RHS should use the raw local:\n%s", rust)
+	}
+}
+
 func TestNoTypeInfoChannelSendUnwrapsMethodBoolResult(t *testing.T) {
 	rust := transpileNoTypeInfoRegression(t, `package main
 

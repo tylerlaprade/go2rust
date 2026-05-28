@@ -4346,6 +4346,10 @@ func writeWrappedStructFieldValue(out *strings.Builder, value ast.Expr, fieldExp
 			WriteWrapperSuffix(out)
 		} else if isCurrentReceiverIdent(valIdent) {
 			writeCurrentReceiverWrappedClone(out, valIdent)
+		} else if isVarBare(valIdent.Name) {
+			WriteWrapperPrefix(out)
+			TranspileExpression(out, value)
+			WriteWrapperSuffix(out)
 		} else {
 			// It's already wrapped, just clone it.
 			out.WriteString(RustIdentForUse(valIdent))

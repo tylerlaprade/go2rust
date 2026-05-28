@@ -78,6 +78,35 @@ func main() {
 	}
 }
 
+func TestPositionalStructLiteralWrapsBareScalarLocalField(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type seq struct {
+	stackBytes uintptr
+}
+
+type desc struct {
+	call seq
+	retOffset uintptr
+}
+
+func align(x uintptr) uintptr { return x }
+
+func makeDesc(in seq) desc {
+	retOffset := align(in.stackBytes)
+	return desc{in, retOffset}
+}
+`)
+
+	if strings.Contains(rust, "ret_offset: retOffset.clone()") {
+		t.Fatalf("bare scalar local field should not be treated as an existing handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "ret_offset: Rc::new(RefCell::new(Some(retOffset)))") &&
+		!strings.Contains(rust, "ret_offset: Arc::new(Mutex::new(Some(retOffset)))") {
+		t.Fatalf("bare scalar local field should be wrapped for the struct field:\n%s", rust)
+	}
+}
+
 func TestLocalInterfaceReferenceCallArgumentUsesCurrentReceiver(t *testing.T) {
 	prevReceiver := currentReceiver
 	currentReceiver = "k"
