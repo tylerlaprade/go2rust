@@ -134,7 +134,16 @@ func writeNamedIntegerBinaryPrimitiveExpression(out *strings.Builder, expr *ast.
 		return false
 	}
 	out.WriteString("(")
-	writeNamedIntegerPrimitiveOperand(out, expr.X)
+	var left strings.Builder
+	writeNamedIntegerPrimitiveOperand(&left, expr.X)
+	leftEmission := left.String()
+	if (expr.Op == token.SHL || expr.Op == token.SHR) && shiftOperandEmissionNeedsParens(leftEmission) {
+		out.WriteString("(")
+		out.WriteString(leftEmission)
+		out.WriteString(")")
+	} else {
+		out.WriteString(leftEmission)
+	}
 	out.WriteString(" ")
 	out.WriteString(rustBinaryOp(expr.Op))
 	out.WriteString(" ")

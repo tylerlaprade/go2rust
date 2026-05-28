@@ -1088,6 +1088,31 @@ func (m *Map) entries(nt *table) int {
 	}
 }
 
+func TestNamedIntegerConversionShiftLeftOperandIsParenthesized(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type flag uintptr
+
+const (
+	flagMethod      flag = 1 << 9
+	flagMethodShift      = 10
+)
+
+func methodFlag(i int) flag {
+	var fl flag
+	fl |= flag(i)<<flagMethodShift | flagMethod
+	return fl
+}
+`)
+
+	if strings.Contains(rust, "as usize <<") {
+		t.Fatalf("named integer conversion used as shift left operand must be parenthesized:\n%s", rust)
+	}
+	if !strings.Contains(rust, ") as usize) << FLAG_METHOD_SHIFT") {
+		t.Fatalf("named integer conversion shift left operand should keep the cast grouped:\n%s", rust)
+	}
+}
+
 func TestNamedIntegerAssignmentUsesRawNamedValue(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
