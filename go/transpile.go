@@ -1859,4 +1859,30 @@ func writeAnonymousStructDefinitions(body *strings.Builder, first *bool, emitted
 		generateStructJsonDecode(body, typeName, structType)
 		emitted[typeName] = true
 	}
+
+	var aliasNames []string
+	for aliasName, targetName := range anonymousStructAliases {
+		if emitted["alias:"+aliasName] || !emitted[targetName] {
+			continue
+		}
+		aliasNames = append(aliasNames, aliasName)
+	}
+	slices.Sort(aliasNames)
+	for _, aliasName := range aliasNames {
+		if !*first {
+			body.WriteString("\n\n")
+		}
+		*first = false
+		if ast.IsExported(aliasName) {
+			body.WriteString("pub ")
+		} else {
+			body.WriteString("pub(crate) ")
+		}
+		body.WriteString("type ")
+		body.WriteString(aliasName)
+		body.WriteString(" = ")
+		body.WriteString(anonymousStructAliases[aliasName])
+		body.WriteString(";\n")
+		emitted["alias:"+aliasName] = true
+	}
 }

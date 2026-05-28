@@ -133,6 +133,28 @@ const ctrlGroupsSize = unsafe.Sizeof(ctrlGroup(0))
 	}
 }
 
+func TestConstDeclUnsafeOffsetofEmitsBareOffsetof(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "unsafe"
+
+var cpu struct {
+	HasSSE42 bool
+	Count uint64
+}
+
+const offsetCount = unsafe.Offsetof(cpu.Count)
+`)
+
+	if !strings.Contains(rust, "pub(crate) const OFFSET_COUNT: usize = std::mem::offset_of!(") {
+		t.Fatalf("unsafe.Offsetof const initializer should emit a bare Rust const expression:\n%s", rust)
+	}
+	if strings.Contains(rust, "OFFSET_COUNT: usize = Arc::new") ||
+		strings.Contains(rust, "OFFSET_COUNT: usize = Rc::new") {
+		t.Fatalf("unsafe.Offsetof const initializer must not emit runtime wrappers:\n%s", rust)
+	}
+}
+
 func TestConstDeclUsesUntypedBoolTypeInfo(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

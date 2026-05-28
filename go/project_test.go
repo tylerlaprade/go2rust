@@ -1887,6 +1887,61 @@ var Supported = dep.ARM64.HasDIT
 	}
 }
 
+func TestUnsafeOffsetofImportedAnonymousStructGlobalUsesTypeAlias(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+
+require example.com/dep v0.0.0
+
+replace example.com/dep => ./dep
+`)
+	writeTestFile(t, filepath.Join(tempDir, "dep", "go.mod"), `module example.com/dep
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "dep", "dep.go"), `package dep
+
+var CPU struct {
+	Flag bool
+	Count uint64
+}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+import (
+	"unsafe"
+
+	"example.com/dep"
+)
+
+const OffsetCount = unsafe.Offsetof(dep.CPU.Count)
+
+func main() {
+	println(OffsetCount)
+}
+`)
+
+	generator := NewProjectGenerator([]string{filepath.Join(tempDir, "main.go")})
+	generator.SetExternalPackageMode(ModeTranspile)
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	depRS := mustReadFile(t, filepath.Join(tempDir, "vendor", "example_com_dep", "mod.rs"))
+	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
+	if !strings.Contains(depRS, "pub type CPU = AnonymousStruct1;") {
+		t.Fatalf("external anonymous struct global should expose a type alias, got:\n%s", depRS)
+	}
+	if !strings.Contains(mainRS, "std::mem::offset_of!(example_com_dep::CPU, count)") {
+		t.Fatalf("unsafe.Offsetof should use the imported package global type alias, got:\n%s", mainRS)
+	}
+	if strings.Contains(mainRS, "/* unknown struct */") {
+		t.Fatalf("unsafe.Offsetof should not emit an unknown struct placeholder, got:\n%s", mainRS)
+	}
+}
+
 func TestStructWithImportedFieldDoesNotDeriveDebug(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod

@@ -14,6 +14,7 @@ import (
 var anonymousStructCounter = 0
 var anonymousStructs = make(map[string]*ast.StructType)
 var anonymousStructTypeMap = make(map[string]string) // maps struct signature to type name
+var anonymousStructAliases = make(map[string]string) // maps package global type aliases to anonymous struct names
 
 func isEmptyInterfaceExpr(expr ast.Expr) bool {
 	if ident, ok := expr.(*ast.Ident); ok && ident.Name == "any" {

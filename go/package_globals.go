@@ -433,18 +433,34 @@ func registerAnonymousStructsForPackageGlobal(valueSpec *ast.ValueSpec, name *as
 	if valueSpec == nil || name == nil {
 		return
 	}
-	registerAnonymousStructsInTypeExpr(valueSpec.Type)
+	if typeName, ok := anonymousStructTypeNameFromExpr(valueSpec.Type); ok {
+		anonymousStructAliases[RustTypeNameForUse(name.Name)] = typeName
+	} else {
+		registerAnonymousStructsInTypeExpr(valueSpec.Type)
+	}
 	for i, candidate := range valueSpec.Names {
 		if candidate != name {
 			continue
 		}
 		if i < len(valueSpec.Values) {
 			if lit, ok := valueSpec.Values[i].(*ast.CompositeLit); ok {
-				registerAnonymousStructsInTypeExpr(lit.Type)
+				if typeName, ok := anonymousStructTypeNameFromExpr(lit.Type); ok {
+					anonymousStructAliases[RustTypeNameForUse(name.Name)] = typeName
+				} else {
+					registerAnonymousStructsInTypeExpr(lit.Type)
+				}
 			}
 		}
 		return
 	}
+}
+
+func anonymousStructTypeNameFromExpr(expr ast.Expr) (string, bool) {
+	structType, ok := expr.(*ast.StructType)
+	if !ok {
+		return "", false
+	}
+	return generateAnonymousStructType(structType), true
 }
 
 func registerAnonymousStructsInTypeExpr(expr ast.Expr) {

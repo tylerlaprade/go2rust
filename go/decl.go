@@ -3207,6 +3207,8 @@ func writeConstUnsafeTypeSizeCall(out *strings.Builder, call *ast.CallExpr) bool
 	case "unsafe.Alignof":
 		goFunc = "Alignof"
 		rustFunc = "align_of"
+	case "unsafe.Offsetof":
+		return writeConstUnsafeOffsetofCall(out, call)
 	default:
 		return false
 	}
@@ -3240,6 +3242,58 @@ func writeConstUnsafeTypeSizeCall(out *strings.Builder, call *ast.CallExpr) bool
 	out.WriteString(goTypesTypeToRust(argType))
 	out.WriteString(">()")
 	return true
+}
+
+func writeConstUnsafeOffsetofCall(out *strings.Builder, call *ast.CallExpr) bool {
+	if len(call.Args) == 0 {
+		out.WriteString("/* ERROR: unsafe.Offsetof requires an argument */ unimplemented!()")
+		return true
+	}
+	sel, ok := call.Args[0].(*ast.SelectorExpr)
+	if !ok {
+		out.WriteString("unimplemented!(\"unsafe.Offsetof requires selector\")")
+		return true
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		out.WriteString("unimplemented!(\"type info required for unsafe.Offsetof\")")
+		return true
+	}
+	containerType := typeInfo.GetType(sel.X)
+	if containerType == nil {
+		out.WriteString("unimplemented!(\"type info required for unsafe.Offsetof\")")
+		return true
+	}
+	if ptr, ok := types.Unalias(containerType).(*types.Pointer); ok {
+		containerType = ptr.Elem()
+	}
+	containerRustType := goTypesTypeToRust(containerType)
+	if containerRustType == "/* unknown struct */" {
+		if rustType, ok := importedPackageGlobalTypePath(sel.X, typeInfo); ok {
+			containerRustType = rustType
+		}
+	}
+	out.WriteString("std::mem::offset_of!(")
+	out.WriteString(containerRustType)
+	out.WriteString(", ")
+	out.WriteString(ToSnakeCase(sel.Sel.Name))
+	out.WriteString(")")
+	return true
+}
+
+func importedPackageGlobalTypePath(expr ast.Expr, typeInfo *TypeInfo) (string, bool) {
+	sel, ok := expr.(*ast.SelectorExpr)
+	if !ok || typeInfo == nil {
+		return "", false
+	}
+	obj, ok := typeInfo.GetObject(sel.Sel).(*types.Var)
+	if !ok || obj.Pkg() == nil {
+		return "", false
+	}
+	if typeInfo.pkg != nil && obj.Pkg() == typeInfo.pkg {
+		return "", false
+	}
+	return rustTypeNameForImportedPackagePath(obj.Pkg().Path(), obj.Name())
 }
 
 func writeConstTypeConversion(out *strings.Builder, call *ast.CallExpr, iotaValue int) bool {
