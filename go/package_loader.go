@@ -622,6 +622,7 @@ func (pl *PackageLoader) transpilePackage(pkg *packages.Package) error {
 
 	var generatedModules []generatedRustModule
 	var initModules []generatedInitModule
+	packageImports := NewImportTracker()
 
 	// Process each file in the package
 	for i, astFile := range pkg.Syntax {
@@ -632,7 +633,12 @@ func (pl *PackageLoader) transpilePackage(pkg *packages.Package) error {
 		moduleName := moduleNamesByIndex[i]
 
 		// Transpile with the package's type info and global package mapping
-		rustCode, _, _ := TranspileWithMapping(astFile, pkg.Fset, pkgTypeInfo, pl.packageMapping)
+		rustCode, fileImports, _ := TranspileWithMapping(astFile, pkg.Fset, pkgTypeInfo, pl.packageMapping)
+		if fileImports != nil {
+			for imp := range fileImports.needs {
+				packageImports.Add(imp)
+			}
+		}
 		if moduleHasPackageInitAll(rustCode) {
 			initModules = append(initModules, generatedInitModule{
 				moduleName:       moduleName,
@@ -703,8 +709,20 @@ name = "%s"
 path = "lib.rs"
 `, crateName, crateName)
 	dependencyCrates = addSharedStdlibStubCrateDependency(dependencyCrates)
-	if len(dependencyCrates) > 0 {
+	needsNum := packageImports.needs["num::Complex"]
+	needsSerdeJSON := generatedRustModulesContain(generatedModules, "serde_json::") || generatedRustModulesContain(generatedModules, "pub use serde_json")
+	needsGosyn := generatedRustModulesContain(generatedModules, "gosyn::")
+	if needsNum || needsSerdeJSON || needsGosyn || len(dependencyCrates) > 0 {
 		cargoToml += "\n[dependencies]\n"
+		if needsNum {
+			cargoToml += "num = \"0.4\"\n"
+		}
+		if needsSerdeJSON {
+			cargoToml += "serde_json = \"1\"\n"
+		}
+		if needsGosyn {
+			cargoToml += "gosyn = \"0.2.9\"\n"
+		}
 		for _, depCrate := range dependencyCrates {
 			cargoToml += fmt.Sprintf("%s = { path = \"../%s\" }\n", depCrate, depCrate)
 		}
@@ -717,6 +735,15 @@ path = "lib.rs"
 
 	pl.packageStates[pkg.PkgPath] = pkgState
 	return nil
+}
+
+func generatedRustModulesContain(modules []generatedRustModule, needle string) bool {
+	for _, module := range modules {
+		if strings.Contains(module.rustCode, needle) {
+			return true
+		}
+	}
+	return false
 }
 
 func prefixExternalPackageModuleImports(rustCode, selfModule string, moduleNames []string, helpers *HelperTracker) string {

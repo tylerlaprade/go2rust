@@ -206,6 +206,53 @@ func main() {
 	}
 }
 
+func TestTranspiledExternalPackageCargoIncludesComplexDependency(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+
+require example.com/dep v0.0.0
+
+replace example.com/dep => ./dep
+`)
+	writeTestFile(t, filepath.Join(tempDir, "dep", "go.mod"), `module example.com/dep
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "dep", "dep.go"), `package dep
+
+func Nop() {}
+
+func Accept(x complex128) {}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+import "example.com/dep"
+
+func main() {
+	dep.Nop()
+}
+`)
+
+	generator := NewProjectGenerator([]string{filepath.Join(tempDir, "main.go")})
+	generator.SetExternalPackageMode(ModeTranspile)
+
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	depRS := mustReadFile(t, filepath.Join(tempDir, "vendor", "example_com_dep", "mod.rs"))
+	if !strings.Contains(depRS, "use num::Complex;") {
+		t.Fatalf("complex signature should import num::Complex, got:\n%s", depRS)
+	}
+
+	depCargo := mustReadFile(t, filepath.Join(tempDir, "vendor", "example_com_dep", "Cargo.toml"))
+	if !strings.Contains(depCargo, `num = "0.4"`) {
+		t.Fatalf("external package Cargo.toml should include num when generated code imports it, got:\n%s", depCargo)
+	}
+}
+
 func TestTranspiledExternalPackageExportedGlobalUsesGoName(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
