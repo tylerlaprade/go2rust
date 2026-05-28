@@ -1822,3 +1822,26 @@ func assign(m Method, typ Type) Method {
 		t.Fatalf("local interface field assignment should borrow the struct mutably:\n%s", rust)
 	}
 }
+
+func TestWrappedStructReturnClonesBeforeWrapping(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Method struct {
+	Name string
+}
+
+func method() Method {
+	var m Method
+	return m
+}
+`)
+
+	if strings.Contains(rust, "Rc::new(RefCell::new(Some(m.borrow().as_ref().unwrap().clone())))") ||
+		strings.Contains(rust, "Arc::new(Mutex::new(Some(m.lock().unwrap().as_ref().unwrap().clone())))") {
+		t.Fatalf("wrapped struct return should not wrap a borrow temporary directly:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __owned = m.borrow().as_ref().unwrap().clone();") &&
+		!strings.Contains(rust, "let __owned = m.lock().unwrap().as_ref().unwrap().clone();") {
+		t.Fatalf("wrapped struct return should clone before constructing the wrapper:\n%s", rust)
+	}
+}

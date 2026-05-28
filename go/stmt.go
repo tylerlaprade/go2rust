@@ -2154,11 +2154,14 @@ func writeWrappedValueCopyFromIdent(out *strings.Builder, ident *ast.Ident) bool
 				varName = RustLocalIdent(renamed)
 			}
 		}
-		WriteWrapperPrefix(out)
+		out.WriteString("{ let __owned = ")
 		out.WriteString(varName)
 		WriteBorrowMethod(out, false)
-		out.WriteString(".as_ref().unwrap().clone()")
+		out.WriteString(".as_ref().unwrap().clone(); ")
+		WriteWrapperPrefix(out)
+		out.WriteString("__owned")
 		WriteWrapperSuffix(out)
+		out.WriteString(" }")
 		return true
 	default:
 		return false
