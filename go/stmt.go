@@ -419,6 +419,26 @@ func writeConstAssignmentValue(out *strings.Builder, lhs ast.Expr, rhs ast.Expr)
 	return writeConstExpressionForExpectedGoType(out, rhs, expected)
 }
 
+func writePointerDerefAssignmentValue(out *strings.Builder, rhs ast.Expr, expected types.Type) bool {
+	if call, ok := rhs.(*ast.CallExpr); ok {
+		typeInfo := GetTypeInfo()
+		if typeInfo != nil && typeInfo.ReturnsWrappedValue(call) && !isBareBuiltinReturn(call) && !callReturnsBareChannelValue(call) && (!typeInfo.IsTypeConversion(call) || typeConversionEmitsWrappedValue(call)) {
+			out.WriteString("(*")
+			TranspileExpression(out, rhs)
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref().unwrap()).clone()")
+			return true
+		}
+	}
+	if writeBareValueForWrappedSlot(out, rhs) {
+		return true
+	}
+	if expected != nil && writeConstExpressionForExpectedGoType(out, rhs, expected) {
+		return true
+	}
+	return false
+}
+
 func writeWrappedConstVarInitializer(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
 	if _, ok := rhs.(*ast.BasicLit); ok {
 		return false
@@ -6963,7 +6983,11 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 								} else {
 									out.WriteString("{ ")
 									out.WriteString("let new_val = ")
-									if !writeBareValueForWrappedSlot(out, s.Rhs[0]) {
+									var expected types.Type
+									if typeInfo := GetTypeInfo(); typeInfo != nil {
+										expected = typeInfo.GetType(star)
+									}
+									if !writePointerDerefAssignmentValue(out, s.Rhs[0], expected) {
 										TranspileExpression(out, s.Rhs[0])
 									}
 									out.WriteString("; ")

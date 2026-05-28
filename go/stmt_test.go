@@ -539,6 +539,30 @@ func apply(options []option) {
 	}
 }
 
+func TestPointerDerefAssignmentFromWrappedStructCallStoresBareValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type header struct {
+	Len int
+}
+
+func makeHeader() header {
+	return header{}
+}
+
+func assign(p *header) {
+	*p = makeHeader()
+}
+`)
+
+	if strings.Contains(rust, "Some(new_val)") && strings.Contains(rust, "let new_val = make_header()") {
+		t.Fatalf("pointer deref assignment should not store a wrapped call result inside Some:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let new_val = (*make_header().borrow().as_ref().unwrap()).clone()") {
+		t.Fatalf("pointer deref assignment should unwrap the struct call result before storing:\n%s", rust)
+	}
+}
+
 func TestCopyScalarReturnBoundariesUseBareRustTypes(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
