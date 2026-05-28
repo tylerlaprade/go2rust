@@ -5,6 +5,7 @@ import (
 	"go/parser"
 	"go/token"
 	"go/types"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -99,6 +100,50 @@ func TestStructWithSourceMappedStdlibFieldDoesNotDeriveDebug(t *testing.T) {
 	}
 	if !strings.Contains(got, "Clone") {
 		t.Fatalf("struct with source-mapped stdlib field should still derive Clone:\n%s", got)
+	}
+}
+
+func TestConcurrentMapKeyStructWithInterfaceFieldUsesTraitEquality(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+type Node interface {
+	String() string
+}
+
+type visit struct {
+	addr uintptr
+	typ  Node
+}
+
+func seen(t Node) bool {
+	go func() {}()
+	visited := map[visit]bool{}
+	v := visit{0, t}
+	return visited[v]
+}
+`)
+
+	generator := NewProjectGenerator([]string{filepath.Join(tempDir, "main.go")})
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	rust := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
+
+	bad := "self.typ.lock().unwrap(); let __right = other.typ.lock().unwrap(); __left.as_ref() == __right.as_ref()"
+	if strings.Contains(rust, bad) {
+		t.Fatalf("interface field equality should use the interface equality helper, not trait object ==:\n%s", rust)
+	}
+	if !strings.Contains(rust, "__left.as_ref().__go_eq_node(__right.as_ref())") {
+		t.Fatalf("interface field equality should call the typed interface equality helper:\n%s", rust)
+	}
+	if !strings.Contains(rust, "format!(\"{}\", __left.as_ref()).cmp(&format!(\"{}\", __right.as_ref()))") {
+		t.Fatalf("interface field ordering should use an orderable trait-object key:\n%s", rust)
 	}
 }
 

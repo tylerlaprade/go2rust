@@ -426,8 +426,13 @@ func structNeedsCustomOrd(structName string, structType *ast.StructType) bool {
 	return structName != "" && structType != nil && structNeedsOrd(structName) && NeedsConcurrentWrapper()
 }
 
-func structComparableFieldNames(structType *ast.StructType) []string {
-	var fields []string
+type structComparableField struct {
+	name string
+	expr ast.Expr
+}
+
+func structComparableFields(structType *ast.StructType) []structComparableField {
+	var fields []structComparableField
 	if structType == nil {
 		return fields
 	}
@@ -437,13 +442,89 @@ func structComparableFieldNames(structType *ast.StructType) []string {
 				if name.Name == "_" {
 					continue
 				}
-				fields = append(fields, rustStructFieldName(name, fieldIndex, nameIndex))
+				fields = append(fields, structComparableField{
+					name: rustStructFieldName(name, fieldIndex, nameIndex),
+					expr: field.Type,
+				})
 			}
 			continue
 		}
-		fields = append(fields, ToSnakeCase(getEmbeddedFieldName(field.Type)))
+		fields = append(fields, structComparableField{
+			name: ToSnakeCase(getEmbeddedFieldName(field.Type)),
+			expr: field.Type,
+		})
 	}
 	return fields
+}
+
+func structComparableFieldNames(structType *ast.StructType) []string {
+	fields := structComparableFields(structType)
+	names := make([]string, 0, len(fields))
+	for _, field := range fields {
+		names = append(names, field.name)
+	}
+	return names
+}
+
+func structComparableFieldInterfaceName(expr ast.Expr) (string, bool) {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return "", false
+	}
+	return transpiledNamedInterfaceTypeNameFromTypes(typeInfo.GetType(expr))
+}
+
+func writeStructComparableFieldEq(out *strings.Builder, field structComparableField) {
+	if ifaceName, ok := structComparableFieldInterfaceName(field.expr); ok {
+		out.WriteString("{ let __left = self.")
+		out.WriteString(field.name)
+		out.WriteString(".lock().unwrap(); let __right = other.")
+		out.WriteString(field.name)
+		out.WriteString(".lock().unwrap(); match (__left.as_ref(), __right.as_ref()) { (Some(__left), Some(__right)) => __left.as_ref().__go_eq_")
+		out.WriteString(traitMethodSuffix(ifaceName))
+		out.WriteString("(__right.as_ref()), (None, None) => true, _ => false } }")
+		return
+	}
+	out.WriteString("{ let __left = self.")
+	out.WriteString(field.name)
+	out.WriteString(".lock().unwrap(); let __right = other.")
+	out.WriteString(field.name)
+	out.WriteString(".lock().unwrap(); __left.as_ref() == __right.as_ref() }")
+}
+
+func writeStructComparableFieldOrd(out *strings.Builder, field structComparableField) {
+	out.WriteString("        {\n")
+	if _, ok := structComparableFieldInterfaceName(field.expr); ok {
+		out.WriteString("            let __left = self.")
+		out.WriteString(field.name)
+		out.WriteString(".lock().unwrap();\n")
+		out.WriteString("            let __right = other.")
+		out.WriteString(field.name)
+		out.WriteString(".lock().unwrap();\n")
+		out.WriteString("            let __ord = match (__left.as_ref(), __right.as_ref()) {\n")
+		out.WriteString("                (None, None) => std::cmp::Ordering::Equal,\n")
+		out.WriteString("                (None, Some(_)) => std::cmp::Ordering::Less,\n")
+		out.WriteString("                (Some(_), None) => std::cmp::Ordering::Greater,\n")
+		out.WriteString("                (Some(__left), Some(__right)) => format!(\"{}\", __left.as_ref()).cmp(&format!(\"{}\", __right.as_ref())),\n")
+		out.WriteString("            };\n")
+		out.WriteString("            match __ord {\n")
+		out.WriteString("                std::cmp::Ordering::Equal => {}\n")
+		out.WriteString("                __ord => return __ord,\n")
+		out.WriteString("            }\n")
+		out.WriteString("        }\n")
+		return
+	}
+	out.WriteString("            let __left = { self.")
+	out.WriteString(field.name)
+	out.WriteString(".lock().unwrap().as_ref().cloned() };\n")
+	out.WriteString("            let __right = { other.")
+	out.WriteString(field.name)
+	out.WriteString(".lock().unwrap().as_ref().cloned() };\n")
+	out.WriteString("            match __left.cmp(&__right) {\n")
+	out.WriteString("                std::cmp::Ordering::Equal => {}\n")
+	out.WriteString("                __ord => return __ord,\n")
+	out.WriteString("            }\n")
+	out.WriteString("        }\n")
 }
 
 func generateStructPartialEq(out *strings.Builder, structName string, structType *ast.StructType) {
@@ -457,22 +538,18 @@ func generateStructPartialEq(out *strings.Builder, structName string, structType
 	out.WriteString(" {\n")
 	out.WriteString("    fn eq(&self, other: &Self) -> bool {\n")
 
-	fields := structComparableFieldNames(structType)
+	fields := structComparableFields(structType)
 	if len(fields) == 0 {
 		out.WriteString("        true\n")
 	} else {
 		out.WriteString("        (\n")
-		for i, fieldName := range fields {
+		for i, field := range fields {
 			if i > 0 {
 				out.WriteString("\n                && ")
 			} else {
 				out.WriteString("            ")
 			}
-			out.WriteString("{ let __left = self.")
-			out.WriteString(fieldName)
-			out.WriteString(".lock().unwrap(); let __right = other.")
-			out.WriteString(fieldName)
-			out.WriteString(".lock().unwrap(); __left.as_ref() == __right.as_ref() }")
+			writeStructComparableFieldEq(out, field)
 		}
 		out.WriteString("\n        )\n")
 	}
@@ -504,20 +581,9 @@ func generateStructOrd(out *strings.Builder, structName string, structType *ast.
 	out.WriteString(" {\n")
 	out.WriteString("    fn cmp(&self, other: &Self) -> std::cmp::Ordering {\n")
 
-	fields := structComparableFieldNames(structType)
-	for _, fieldName := range fields {
-		out.WriteString("        {\n")
-		out.WriteString("            let __left = { self.")
-		out.WriteString(fieldName)
-		out.WriteString(".lock().unwrap().as_ref().cloned() };\n")
-		out.WriteString("            let __right = { other.")
-		out.WriteString(fieldName)
-		out.WriteString(".lock().unwrap().as_ref().cloned() };\n")
-		out.WriteString("            match __left.cmp(&__right) {\n")
-		out.WriteString("                std::cmp::Ordering::Equal => {}\n")
-		out.WriteString("                __ord => return __ord,\n")
-		out.WriteString("            }\n")
-		out.WriteString("        }\n")
+	fields := structComparableFields(structType)
+	for _, field := range fields {
+		writeStructComparableFieldOrd(out, field)
 	}
 	out.WriteString("        std::cmp::Ordering::Equal\n")
 	out.WriteString("    }\n")
