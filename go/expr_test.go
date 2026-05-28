@@ -235,6 +235,32 @@ func asExpr(x any) Expr {
 	}
 }
 
+func TestConcreteAssertionReturnBoxesLocalInterface(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Type interface {
+	Name() string
+}
+
+type rtype struct{}
+
+func (*rtype) Name() string {
+	return "rtype"
+}
+
+func cached(x any) Type {
+	return x.(*rtype)
+}
+`)
+
+	if strings.Contains(rust, "Some(({") && strings.Contains(rust, "downcast_ref::<rtype>()") {
+		t.Fatalf("concrete assertion returned as local interface should not wrap the pointer handle directly:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Box::new((*") || !strings.Contains(rust, "downcast_ref::<rtype>()") || !strings.Contains(rust, "as Box<dyn Type") {
+		t.Fatalf("concrete assertion returned as local interface should box the asserted concrete value:\n%s", rust)
+	}
+}
+
 func TestAssignedLocalInterfaceParamUsesWrappedShadow(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

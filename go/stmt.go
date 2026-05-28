@@ -1322,6 +1322,15 @@ func writeLocalInterfaceConcreteReturnConversion(out *strings.Builder, result as
 							WriteWrapperSuffix(out)
 							return true
 						}
+						if _, ok := result.(*ast.TypeAssertExpr); ok {
+							var boxed strings.Builder
+							if writeConcreteLocalInterfaceValue(&boxed, result, targetType, interfaceName) {
+								WriteWrapperPrefix(out)
+								out.WriteString(boxed.String())
+								WriteWrapperSuffix(out)
+								return true
+							}
+						}
 					}
 				}
 			}

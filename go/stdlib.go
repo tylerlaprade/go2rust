@@ -3354,7 +3354,7 @@ func writeConcreteLocalInterfaceValue(out *strings.Builder, expr ast.Expr, expec
 		TranspileExpressionContext(out, expr, LValue)
 		WriteBorrowMethod(out, false)
 		out.WriteString(".as_ref().unwrap()).clone()")
-	} else if typeInfo.ReturnsWrappedValue(expr) {
+	} else if typeInfo.ReturnsWrappedValue(expr) || typeInfo.IsPointer(expr) {
 		out.WriteString("(*")
 		TranspileExpressionContext(out, expr, LValue)
 		WriteBorrowMethod(out, false)
