@@ -32,6 +32,35 @@ func TestTranspileFunctionWithoutBodyDoesNotPanic(t *testing.T) {
 	}
 }
 
+func TestTranspileFunctionWithoutBodyNamesUnnamedParams(t *testing.T) {
+	var out strings.Builder
+	fn := &ast.FuncDecl{
+		Name: ast.NewIdent("externalFunc"),
+		Type: &ast.FuncType{
+			Params: &ast.FieldList{List: []*ast.Field{
+				{Type: ast.NewIdent("int")},
+				{Type: ast.NewIdent("string")},
+			}},
+			Results: &ast.FieldList{
+				List: []*ast.Field{{Type: ast.NewIdent("bool")}},
+			},
+		},
+	}
+
+	TranspileFunction(&out, fn, token.NewFileSet(), nil)
+
+	got := out.String()
+	if strings.Contains(got, "(,") || strings.Contains(got, ", )") {
+		t.Fatalf("unnamed parameters should not leave empty Rust signature slots:\n%s", got)
+	}
+	if !strings.Contains(got, "__arg0: Rc<RefCell<Option<i32>>>") {
+		t.Fatalf("first unnamed parameter should get a synthetic Rust name:\n%s", got)
+	}
+	if !strings.Contains(got, "__arg1: Rc<RefCell<Option<String>>>") {
+		t.Fatalf("second unnamed parameter should get a synthetic Rust name:\n%s", got)
+	}
+}
+
 func TestStructWithSourceMappedStdlibFieldDoesNotDeriveDebug(t *testing.T) {
 	prevContext := GetTranspileContext()
 	prevTypeInfo := currentTypeInfo

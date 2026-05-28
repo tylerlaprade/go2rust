@@ -1709,25 +1709,7 @@ func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.Fi
 	writeFunctionTypeParams(out, fn.Type)
 	out.WriteString("(")
 
-	// Parameters
-	if fn.Type.Params != nil {
-		for i, field := range fn.Type.Params.List {
-			if i > 0 {
-				out.WriteString(", ")
-			}
-			for j, name := range field.Names {
-				if j > 0 {
-					out.WriteString(", ")
-				}
-				if blockIdentAssigned(fn.Body, name.Name) {
-					out.WriteString("mut ")
-				}
-				out.WriteString(RustLocalIdent(name.Name))
-				out.WriteString(": ")
-				out.WriteString(GoTypeToRustParam(field.Type))
-			}
-		}
-	}
+	writeFuncDeclParams(out, fn)
 
 	out.WriteString(")")
 
@@ -1959,6 +1941,42 @@ func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.Fi
 	}
 
 	out.WriteString("}")
+}
+
+func writeFuncDeclParams(out *strings.Builder, fn *ast.FuncDecl) {
+	if fn == nil || fn.Type == nil || fn.Type.Params == nil {
+		return
+	}
+	paramIndex := 0
+	first := true
+	for _, field := range fn.Type.Params.List {
+		if len(field.Names) == 0 {
+			if !first {
+				out.WriteString(", ")
+			}
+			writeFuncDeclParam(out, fmt.Sprintf("__arg%d", paramIndex), field.Type, false)
+			paramIndex++
+			first = false
+			continue
+		}
+		for _, name := range field.Names {
+			if !first {
+				out.WriteString(", ")
+			}
+			writeFuncDeclParam(out, name.Name, field.Type, blockIdentAssigned(fn.Body, name.Name))
+			paramIndex++
+			first = false
+		}
+	}
+}
+
+func writeFuncDeclParam(out *strings.Builder, name string, typ ast.Expr, mutable bool) {
+	if mutable {
+		out.WriteString("mut ")
+	}
+	out.WriteString(RustLocalIdent(name))
+	out.WriteString(": ")
+	out.WriteString(GoTypeToRustParam(typ))
 }
 
 // getEmbeddedFieldName extracts the type name from an embedded field
@@ -3948,24 +3966,7 @@ func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, a
 		}
 	}
 	// Other parameters
-	if fn.Type.Params != nil {
-		for i, field := range fn.Type.Params.List {
-			if i > 0 {
-				out.WriteString(", ")
-			}
-			for j, name := range field.Names {
-				if j > 0 {
-					out.WriteString(", ")
-				}
-				if blockIdentAssigned(fn.Body, name.Name) {
-					out.WriteString("mut ")
-				}
-				out.WriteString(RustLocalIdent(name.Name))
-				out.WriteString(": ")
-				out.WriteString(GoTypeToRustParam(field.Type))
-			}
-		}
-	}
+	writeFuncDeclParams(out, fn)
 
 	out.WriteString(")")
 
