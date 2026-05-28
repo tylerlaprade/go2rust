@@ -343,10 +343,10 @@ fn __go_init_globals() {
     *stateName.borrow_mut() = Some(BTreeMap::new());
     {
         let mut __go_map = BTreeMap::<ServerState, Rc<RefCell<Option<String>>>>::new();
-        __go_map.insert(STATE_IDLE, Rc::new(RefCell::new(Some("idle".to_string()))));
-        __go_map.insert(STATE_CONNECTED, Rc::new(RefCell::new(Some("connected".to_string()))));
-        __go_map.insert(STATE_ERROR, Rc::new(RefCell::new(Some("error".to_string()))));
-        __go_map.insert(STATE_RETRYING, Rc::new(RefCell::new(Some("retrying".to_string()))));
+        __go_map.insert(ServerState(Rc::new(RefCell::new(Some(STATE_IDLE as i32)))), Rc::new(RefCell::new(Some("idle".to_string()))));
+        __go_map.insert(ServerState(Rc::new(RefCell::new(Some(STATE_CONNECTED as i32)))), Rc::new(RefCell::new(Some("connected".to_string()))));
+        __go_map.insert(ServerState(Rc::new(RefCell::new(Some(STATE_ERROR as i32)))), Rc::new(RefCell::new(Some("error".to_string()))));
+        __go_map.insert(ServerState(Rc::new(RefCell::new(Some(STATE_RETRYING as i32)))), Rc::new(RefCell::new(Some("retrying".to_string()))));
         *stateName.borrow_mut() = Some(__go_map);
     }
 }
@@ -360,7 +360,7 @@ impl ServerState {
 
 fn main() {
     __go_init_all();
-    let mut ns = transition(Rc::new(RefCell::new(Some(STATE_IDLE))));
+    let mut ns = transition(Rc::new(RefCell::new(Some(ServerState(Rc::new(RefCell::new(Some(STATE_IDLE as i32))))))));
     println!("{}", format!("{}", { let __v = (*ns.borrow().as_ref().unwrap()).clone(); __v }));
 
     let mut ns2 = transition(Rc::new(RefCell::new(Some((*ns.borrow().as_ref().unwrap()).clone()))));
@@ -369,12 +369,12 @@ fn main() {
 
 pub fn transition(s: Rc<RefCell<Option<ServerState>>>) -> Rc<RefCell<Option<ServerState>>> {
     { let _switch_val = (*s.borrow().as_ref().unwrap()).clone();
-    if _switch_val == (STATE_IDLE) {
-            return Rc::new(RefCell::new(Some(STATE_CONNECTED)));
-        } else if _switch_val == (STATE_CONNECTED) || _switch_val == (STATE_RETRYING) {
-            return Rc::new(RefCell::new(Some(STATE_IDLE)));
-        } else if _switch_val == (STATE_ERROR) {
-            return Rc::new(RefCell::new(Some(STATE_ERROR)));
+    if _switch_val == (ServerState(Rc::new(RefCell::new(Some(STATE_IDLE as i32))))) {
+            return Rc::new(RefCell::new(Some(ServerState(Rc::new(RefCell::new(Some(STATE_CONNECTED as i32)))))));
+        } else if _switch_val == (ServerState(Rc::new(RefCell::new(Some(STATE_CONNECTED as i32))))) || _switch_val == (ServerState(Rc::new(RefCell::new(Some(STATE_RETRYING as i32))))) {
+            return Rc::new(RefCell::new(Some(ServerState(Rc::new(RefCell::new(Some(STATE_IDLE as i32)))))));
+        } else if _switch_val == (ServerState(Rc::new(RefCell::new(Some(STATE_ERROR as i32))))) {
+            return Rc::new(RefCell::new(Some(ServerState(Rc::new(RefCell::new(Some(STATE_ERROR as i32)))))));
         } else {
             panic!("unknown state: {}", { let __v = (*s.borrow().as_ref().unwrap()).clone(); __v });
         }

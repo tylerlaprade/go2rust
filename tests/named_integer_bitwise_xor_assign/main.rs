@@ -339,7 +339,7 @@ pub(crate) static modes: GoGlobal<[AnonymousStruct1; 3]> = GoGlobal::new();
 
 fn __go_init_globals() {
     *modes.borrow_mut() = Some(std::array::from_fn(|_| Default::default()));
-    *modes.borrow_mut() = Some((*Rc::new(RefCell::new(Some([AnonymousStruct1 { mode: Rc::new(RefCell::new(Some(NEED_NAME))), name: Rc::new(RefCell::new(Some("NeedName".to_string()))), ..Default::default() }, AnonymousStruct1 { mode: Rc::new(RefCell::new(Some(NEED_FILES))), name: Rc::new(RefCell::new(Some("NeedFiles".to_string()))), ..Default::default() }, AnonymousStruct1 { mode: Rc::new(RefCell::new(Some(NEED_IMPORTS))), name: Rc::new(RefCell::new(Some("NeedImports".to_string()))), ..Default::default() }]))).borrow().as_ref().unwrap()).clone());
+    *modes.borrow_mut() = Some((*Rc::new(RefCell::new(Some([AnonymousStruct1 { mode: Rc::new(RefCell::new(Some(LoadMode(Rc::new(RefCell::new(Some(NEED_NAME as i32))))))), name: Rc::new(RefCell::new(Some("NeedName".to_string()))), ..Default::default() }, AnonymousStruct1 { mode: Rc::new(RefCell::new(Some(LoadMode(Rc::new(RefCell::new(Some(NEED_FILES as i32))))))), name: Rc::new(RefCell::new(Some("NeedFiles".to_string()))), ..Default::default() }, AnonymousStruct1 { mode: Rc::new(RefCell::new(Some(LoadMode(Rc::new(RefCell::new(Some(NEED_IMPORTS as i32))))))), name: Rc::new(RefCell::new(Some("NeedImports".to_string()))), ..Default::default() }]))).borrow().as_ref().unwrap()).clone());
 }
 
 

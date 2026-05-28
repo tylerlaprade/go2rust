@@ -83,7 +83,7 @@ pub fn walk_symlinks(mut path: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<
         return (Arc::new(Mutex::new(Some("".to_string()))), err.clone());
     }
 
-        if { let __tmp_x = { let __tmp_x = (*(*fi.lock().unwrap().as_ref().unwrap()).mode().lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = fs::MODE_SYMLINK; __tmp_x & __tmp_y }; let __tmp_y = 0; __tmp_x == __tmp_y } {
+        if { let __tmp_x = { let __tmp_x = (*(*fi.lock().unwrap().as_ref().unwrap()).mode().lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = fs::MODE_SYMLINK; __tmp_x & __tmp_y }; let __tmp_y = fs_FileMode(0 as u32); __tmp_x == __tmp_y } {
         if !{ let __recv = (*fi.lock().unwrap().as_ref().unwrap()).mode(); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).is_dir(); __result } && { let __tmp_x = ({ let __v = (*end.lock().unwrap().as_ref().unwrap()).clone(); __v } as i32); let __tmp_y = ((*path.lock().unwrap().as_ref().unwrap()).len() as i32); __tmp_x < __tmp_y } {
         return (Arc::new(Mutex::new(Some("".to_string()))), Arc::new(Mutex::new(Some(Box::new(syscall::E_N_O_T_D_I_R) as Box<dyn StdError + Send + Sync>))));
     }

@@ -339,7 +339,7 @@ pub(crate) static introduced: GoGlobal<[Version; 4]> = GoGlobal::new();
 
 fn __go_init_globals() {
     *introduced.borrow_mut() = Some(std::array::from_fn(|_| Version(Rc::new(RefCell::new(Some(0))))));
-    *introduced.borrow_mut() = Some((*Rc::new(RefCell::new(Some([V1, 0, V2, Version(Rc::new(RefCell::new(Some(0))))]))).borrow().as_ref().unwrap()).clone());
+    *introduced.borrow_mut() = Some((*Rc::new(RefCell::new(Some([Version(Rc::new(RefCell::new(Some(V1 as u32)))), Version(Rc::new(RefCell::new(Some(0 as u32)))), Version(Rc::new(RefCell::new(Some(V2 as u32)))), Version(Rc::new(RefCell::new(Some(0))))]))).borrow().as_ref().unwrap()).clone());
 }
 
 

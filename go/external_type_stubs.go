@@ -5851,12 +5851,8 @@ func writeBuildImportFunction(out *strings.Builder, fn externalPackageStubFuncti
 // TEMPORARY: hand-written Rust shim for build.IsLocalImport.
 // Long-term fix: transpile go/build source.
 func writeBuildIsLocalImportFunction(out *strings.Builder) {
-	out.WriteString("    pub fn is_local_import<T0: GoStringArg>(_arg0: T0) -> ")
-	out.WriteString(wrappedExternalStubType("bool"))
-	out.WriteString(" {\n")
-	out.WriteString("        ")
-	out.WriteString(wrappedExternalStubExpr("bool", "go_build_is_local_import_str(&_arg0.into_go_string())"))
-	out.WriteString("\n")
+	out.WriteString("    pub fn is_local_import<T0: GoStringArg>(_arg0: T0) -> bool {\n")
+	out.WriteString("        go_build_is_local_import_str(&_arg0.into_go_string())\n")
 	out.WriteString("    }\n")
 }
 

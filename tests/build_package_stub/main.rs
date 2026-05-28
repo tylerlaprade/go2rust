@@ -212,8 +212,8 @@ pub mod build {
     }
 
 
-    pub fn is_local_import<T0: GoStringArg>(_arg0: T0) -> Arc<Mutex<Option<bool>>> {
-        Arc::new(Mutex::new(Some::<bool>(go_build_is_local_import_str(&_arg0.into_go_string()))))
+    pub fn is_local_import<T0: GoStringArg>(_arg0: T0) -> bool {
+        go_build_is_local_import_str(&_arg0.into_go_string())
     }
 }
 

@@ -43,7 +43,7 @@ impl io_Writer {
     pub fn __go_write_bytes(&self, data: &[u8]) {
     }
 
-    pub fn write<T0: 'static>(&self, arg0: T0) -> (Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+    pub fn write<T0: 'static>(&self, arg0: T0) -> (i32, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
         let bytes = if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<Vec<u8>>() {
             v.clone()
         } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<Arc<Mutex<Option<Vec<u8>>>>>() {
@@ -53,7 +53,7 @@ impl io_Writer {
         };
         let n = bytes.len() as i32;
         self.__go_write_bytes(&bytes);
-        (Arc::new(Mutex::new(Some::<i32>(n))), Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>)))
+        (n, Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>)))
     }
 }
 
