@@ -918,6 +918,9 @@ func clearBelow(b bitset, mask uint64) bitset {
 	if strings.Contains(rust, "(*bitset(") {
 		t.Fatalf("named integer conversion in binary return should not be borrowed as a wrapper:\n%s", rust)
 	}
+	if !strings.Contains(rust, "impl std::ops::Not for bitset") {
+		t.Fatalf("named integer bit-clear should have a Not impl for the named type:\n%s", rust)
+	}
 }
 
 func TestNamedIntegerAssignmentUsesRawNamedValue(t *testing.T) {

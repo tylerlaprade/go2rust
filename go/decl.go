@@ -2376,6 +2376,7 @@ func writeScalarTypeDefinitionNumericOps(out *strings.Builder, typeName string, 
 		writeScalarTypeDefinitionBinaryOp(out, rustTypeName, rustType, "BitAnd", "bitand", "&", true)
 		writeScalarTypeDefinitionBinaryOp(out, rustTypeName, rustType, "BitOr", "bitor", "|", true)
 		writeScalarTypeDefinitionBinaryOp(out, rustTypeName, rustType, "BitXor", "bitxor", "^", true)
+		writeScalarTypeDefinitionUnaryOp(out, rustTypeName, "Not", "not", "!")
 	}
 }
 
@@ -2599,6 +2600,34 @@ func writeScalarTypeDefinitionBinaryOp(out *strings.Builder, rustTypeName string
 		out.WriteString(")")
 	}
 	out.WriteString("\n")
+	out.WriteString("    }\n")
+	out.WriteString("}\n")
+}
+
+func writeScalarTypeDefinitionUnaryOp(out *strings.Builder, rustTypeName string, traitName string, methodName string, op string) {
+	out.WriteString("\nimpl std::ops::")
+	out.WriteString(traitName)
+	out.WriteString(" for ")
+	out.WriteString(rustTypeName)
+	out.WriteString(" {\n")
+	out.WriteString("    type Output = ")
+	out.WriteString(rustTypeName)
+	out.WriteString(";\n")
+	out.WriteString("    fn ")
+	out.WriteString(methodName)
+	out.WriteString("(self) -> ")
+	out.WriteString(rustTypeName)
+	out.WriteString(" {\n")
+	out.WriteString("        ")
+	out.WriteString(rustTypeName)
+	out.WriteString("(")
+	WriteWrapperPrefix(out)
+	out.WriteString(op)
+	out.WriteString("*self.0")
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap()")
+	WriteWrapperSuffix(out)
+	out.WriteString(")\n")
 	out.WriteString("    }\n")
 	out.WriteString("}\n")
 }
