@@ -640,6 +640,7 @@ func writePackageGlobalMultiValueInit(out *strings.Builder, init *types.Initiali
 	TranspileExpression(out, init.Rhs)
 	out.WriteString(";\n")
 
+	callExpr, _ := init.Rhs.(*ast.CallExpr)
 	for i, lhs := range init.Lhs {
 		if lhs.Name() == "_" || tempNames[i] == "" {
 			continue
@@ -648,15 +649,22 @@ func writePackageGlobalMultiValueInit(out *strings.Builder, init *types.Initiali
 		if !ok {
 			continue
 		}
-		writePackageGlobalInitTempAssignment(out, global, tempNames[i])
+		bareScalar := callExpr != nil && callResultIsBareScalar(callExpr, i)
+		writePackageGlobalInitTempAssignment(out, global, tempNames[i], bareScalar)
 	}
 }
 
-func writePackageGlobalInitTempAssignment(out *strings.Builder, global packageGlobal, tempName string) {
+func writePackageGlobalInitTempAssignment(out *strings.Builder, global packageGlobal, tempName string, tempBareScalar bool) {
 	out.WriteString("    *")
 	out.WriteString(rustPackageGlobalName(global.name))
 	WriteBorrowMethod(out, true)
 	out.WriteString(" = ")
+	if tempBareScalar {
+		out.WriteString("Some(")
+		out.WriteString(tempName)
+		out.WriteString(");\n")
+		return
+	}
 	if isGoErrorType(global.typ) {
 		out.WriteString("{ let mut __guard = ")
 		out.WriteString(tempName)

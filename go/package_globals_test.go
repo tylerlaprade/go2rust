@@ -82,3 +82,32 @@ func store[T any](x T) {
 		t.Fatalf("assignment to package-global any should box into the global slot:\n%s", rust)
 	}
 }
+
+func TestPackageGlobalBareScalarTupleSlotAssignsDirectly(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+var enabled, _ = parseEnabled()
+
+func parseEnabled() (bool, error) {
+	return true, nil
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile() error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := Transpile(file, fset, typeInfo)
+	if strings.Contains(rust, "__go_pkg_init_0.borrow().as_ref().unwrap()") ||
+		strings.Contains(rust, "__go_pkg_init_0.lock().unwrap().as_ref().unwrap()") {
+		t.Fatalf("bare-scalar tuple slot should not be treated as a wrapped handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "*enabled.borrow_mut() = Some(__go_pkg_init_0);") &&
+		!strings.Contains(rust, "*enabled.lock().unwrap() = Some(__go_pkg_init_0);") {
+		t.Fatalf("bare-scalar tuple slot should assign the temp directly into the global slot:\n%s", rust)
+	}
+}

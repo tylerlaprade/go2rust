@@ -27,7 +27,7 @@ pub(crate) static enabled: GoGlobal<bool> = GoGlobal::new();
 fn __go_init_globals() {
     *enabled.borrow_mut() = Some(false);
     let (__go_pkg_init_0, _) = parse_enabled();
-    *enabled.borrow_mut() = Some((*__go_pkg_init_0.borrow().as_ref().unwrap()).clone());
+    *enabled.borrow_mut() = Some(__go_pkg_init_0);
 }
 
 
