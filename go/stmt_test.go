@@ -1176,6 +1176,29 @@ func adjust() {
 	}
 }
 
+func TestBareScalarCallResultNumericConversionStaysBare(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func scalar() uintptr {
+	return 3
+}
+
+func use(v uint32) {}
+
+func adjust() {
+	frameSize := scalar()
+	use(uint32(frameSize))
+}
+`)
+
+	if strings.Contains(rust, "frameSize.borrow()") || strings.Contains(rust, "frameSize.lock()") {
+		t.Fatalf("numeric conversion of a bare scalar local should use the raw local:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Some(frameSize as u32)") {
+		t.Fatalf("numeric conversion of a bare scalar local should cast the raw local:\n%s", rust)
+	}
+}
+
 func TestShortDeclFromSelectorNamedArrayCompositeLiteralRegistersBareLocal(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

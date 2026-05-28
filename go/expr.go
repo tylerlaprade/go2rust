@@ -9607,6 +9607,11 @@ func writeNumericConversionValue(out *strings.Builder, arg ast.Expr) {
 			writeExternalIntegerTupleField(out, argType)
 			return
 		}
+		if isVarBare(ident.Name) && typeIsPredeclaredMutableBareScalar(argType) {
+			out.WriteString(RustIdentForUse(ident))
+			writeExternalIntegerTupleField(out, argType)
+			return
+		}
 		out.WriteString("(*")
 		out.WriteString(RustIdentForUse(ident))
 		WriteBorrowMethod(out, false)
