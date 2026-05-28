@@ -3465,6 +3465,14 @@ func writeNamedStringComparisonValue(out *strings.Builder, expr ast.Expr) bool {
 	if !isNamedStringExpr(expr) {
 		return false
 	}
+	if ident, ok := expr.(*ast.Ident); ok && isCurrentReceiverIdent(ident) && currentReceiverScalarTypeDefinition() {
+		out.WriteString("(*")
+		out.WriteString(currentReceiverRustName())
+		out.WriteString(".0")
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap()).clone()")
+		return true
+	}
 	out.WriteString("(*")
 	TranspileExpressionContext(out, expr, LValue)
 	WriteBorrowMethod(out, false)

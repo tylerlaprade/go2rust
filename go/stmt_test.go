@@ -1753,6 +1753,27 @@ func (tag StructTag) Trim(i int) StructTag {
 	}
 }
 
+func TestNamedStringValueReceiverComparisonUsesInnerString(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type StructTag string
+
+func (tag StructTag) HasSuffix(i int) bool {
+	tag = tag[i:]
+	return tag != ""
+}
+`)
+
+	if strings.Contains(rust, "__self.0.borrow().as_ref().unwrap()).0.borrow()") ||
+		strings.Contains(rust, "__self.0.lock().unwrap().as_ref().unwrap()).0.lock()") {
+		t.Fatalf("named string receiver comparison should not treat the raw string handle as another named value:\n%s", rust)
+	}
+	if !strings.Contains(rust, "(*__self.0.borrow().as_ref().unwrap()).clone()") &&
+		!strings.Contains(rust, "(*__self.0.lock().unwrap().as_ref().unwrap()).clone()") {
+		t.Fatalf("named string receiver comparison should clone the receiver's inner string:\n%s", rust)
+	}
+}
+
 func TestNamedScalarReceiverCallArgumentKeepsNamedValue(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
