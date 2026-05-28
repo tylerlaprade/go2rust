@@ -9357,7 +9357,11 @@ func reflectStructTagConversionTarget(call *ast.CallExpr) bool {
 	if !ok || named.Obj() == nil || named.Obj().Pkg() == nil {
 		return false
 	}
-	return named.Obj().Pkg().Path() == "reflect" && named.Obj().Name() == "StructTag"
+	pkg := named.Obj().Pkg()
+	if typeInfo.pkg != nil && pkg == typeInfo.pkg {
+		return false
+	}
+	return pkg.Path() == "reflect" && named.Obj().Name() == "StructTag" && isStubBackedStdlibPackagePath(pkg.Path())
 }
 
 func externalIntegerConversionTarget(call *ast.CallExpr) (*types.Named, string, bool) {

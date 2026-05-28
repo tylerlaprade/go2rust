@@ -1640,6 +1640,41 @@ func reverse(s string) string {
 	}
 }
 
+func TestSourceMappedReflectStructTagConversionUsesLocalType(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "type.go", `package reflect
+
+type StructTag string
+
+type StructField struct {
+	Tag StructTag
+}
+
+func assign(tag string) StructField {
+	var f StructField
+	if tag != "" {
+		f.Tag = StructTag(tag)
+	}
+	return f
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(type.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfoWithImporter("reflect", []*ast.File{file}, fset, nil)
+	if err != nil {
+		t.Fatalf("NewTypeInfoWithImporter(reflect) error = %v", err)
+	}
+
+	rust := transpileParsedRegression(t, file, fset, typeInfo)
+	if strings.Contains(rust, "GoReflectStructTag") {
+		t.Fatalf("source-mapped reflect package should not use external reflect StructTag helper:\n%s", rust)
+	}
+	if !strings.Contains(rust, "StructTag(") {
+		t.Fatalf("source-mapped reflect package should construct its local StructTag type:\n%s", rust)
+	}
+}
+
 func TestParenthesizedNumericConversionTargetWrapsBinaryOperand(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
