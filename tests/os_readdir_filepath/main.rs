@@ -237,7 +237,7 @@ fn main() {
         println!("{} {} {} {}", format!("{}", "entry".to_string()), format!("{}", { let __v = (*joined.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", (*filepath::base(joined.clone()).lock().unwrap().as_ref().unwrap())), format!("{}", entry.is_dir()));
     } }
 
-    let (mut info, mut err) = os::stat("data/nested".to_string());
+    let (mut info, __tmp_1) = os::stat("data/nested".to_string()); let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1;;
     if (*err.lock().unwrap()).is_some() {
         println!("{}", format!("{}", "stat error".to_string()));
         return;

@@ -96,7 +96,7 @@ pub fn walk_symlinks(mut path: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<
         return (Arc::new(Mutex::new(Some("".to_string()))), Arc::new(Mutex::new(Some(Box::<dyn std::error::Error + Send + Sync>::from("EvalSymlinks: too many links".to_string())))));
     }
 
-        let (mut link, mut err) = os::readlink(dest.clone());
+        let (mut link, __tmp_1) = os::readlink(dest.clone()); let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1;;
         if (*err.lock().unwrap()).is_some() {
         return (Arc::new(Mutex::new(Some("".to_string()))), err.clone());
     }

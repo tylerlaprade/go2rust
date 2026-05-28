@@ -496,7 +496,7 @@ fn main() {
         // Read entire file
     println!("{}", format!("{}", "\n--- Reading entire file ---".to_string()));
 
-    let (mut data, mut err) = os::read_file(filename.clone());
+    let (mut data, __tmp_1) = os::read_file(filename.clone()); let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1;;
     if (*err.lock().unwrap()).is_some() {
         print!("Error reading file: {}\n", format!("{}", (*err.lock().unwrap().as_ref().unwrap())));
         {
@@ -606,7 +606,7 @@ fn main() {
         // File information
     println!("{}", format!("{}", "\n--- File information ---".to_string()));
 
-    let (mut fileInfo, mut err) = os::stat(filename.clone());
+    let (mut fileInfo, __tmp_1) = os::stat(filename.clone()); let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1;;
     if (*err.lock().unwrap()).is_some() {
         print!("Error getting file info: {}\n", format!("{}", (*err.lock().unwrap().as_ref().unwrap())));
         {
@@ -632,7 +632,7 @@ fn main() {
 
     let mut copyFilename = Arc::new(Mutex::new(Some("test_file_copy.txt".to_string())));
 
-    let (mut sourceFile, mut err) = os::open(filename.clone());
+    let (mut sourceFile, __tmp_1) = os::open(filename.clone()); let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1;;
     if (*err.lock().unwrap()).is_some() {
         print!("Error opening source file: {}\n", format!("{}", (*err.lock().unwrap().as_ref().unwrap())));
         {
@@ -647,7 +647,7 @@ fn main() {
         { let __recv = sourceFile_defer_captured.clone(); let __recv_ptr: *mut os_File = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut os_File }; let __result = unsafe { &mut *__recv_ptr }.close(); __result };
     }));
 
-    let (mut destFile, mut err) = { let __path = (*copyFilename.lock().unwrap().as_ref().unwrap()).clone(); match GoFile::create(&__path) { Ok(file) => (Arc::new(Mutex::new(Some(file))), Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>))), Err(e) => (Arc::new(Mutex::new(Some(GoFile::empty()))), Arc::new(Mutex::new(Some(Box::<dyn StdError + Send + Sync>::from(e))))) } };
+    let (mut destFile, __tmp_1) = { let __path = (*copyFilename.lock().unwrap().as_ref().unwrap()).clone(); match GoFile::create(&__path) { Ok(file) => (Arc::new(Mutex::new(Some(file))), Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>))), Err(e) => (Arc::new(Mutex::new(Some(GoFile::empty()))), Arc::new(Mutex::new(Some(Box::<dyn StdError + Send + Sync>::from(e))))) } }; let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1;;
     if (*err.lock().unwrap()).is_some() {
         print!("Error creating destination file: {}\n", format!("{}", (*err.lock().unwrap().as_ref().unwrap())));
         {
@@ -662,7 +662,7 @@ fn main() {
         { let __recv = destFile_defer_captured.clone(); let __recv_ptr: *mut os_File = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut os_File }; let __result = unsafe { &mut *__recv_ptr }.close(); __result };
     }));
 
-    let (mut bytesWritten, mut err) = io::copy(destFile.clone(), sourceFile.clone());
+    let (mut bytesWritten, __tmp_1) = io::copy(destFile.clone(), sourceFile.clone()); let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1;;
     if (*err.lock().unwrap()).is_some() {
         print!("Error copying file: {}\n", format!("{}", (*err.lock().unwrap().as_ref().unwrap())));
         {

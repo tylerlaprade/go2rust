@@ -3082,7 +3082,7 @@ fn main() {
     }
 
     let mut info = Arc::new(Mutex::new(Some(types_Info { types: Arc::new(Mutex::new(Some(BTreeMap::<ast_Expr, Arc<Mutex<Option<types_TypeAndValue>>>>::from([])))), ..Default::default() })));
-    let (mut pkg, mut err) = { let __recv = Arc::new(Mutex::new(Some(types_Config::default()))); let __result = (*__recv.lock().unwrap().as_mut().unwrap()).check("p".to_string(), fset.clone(), Arc::new(Mutex::new(Some(vec![file.clone()]))), info.clone()); __result };
+    let (mut pkg, __tmp_1) = { let __recv = Arc::new(Mutex::new(Some(types_Config::default()))); let __result = (*__recv.lock().unwrap().as_mut().unwrap()).check("p".to_string(), fset.clone(), Arc::new(Mutex::new(Some(vec![file.clone()]))), info.clone()); __result }; let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1;;
     println!("{} {} {}", format!("{}", (*pkg.lock().unwrap()).is_some()), format!("{}", (*err.lock().unwrap()).is_none()), format!("{}", { let __tmp_x = ((*(*info.lock().unwrap().as_ref().unwrap()).types.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = (0 as i32); __tmp_x > __tmp_y }));
 
     let (mut nilInfoPkg, mut nilInfoErr) = { let __recv = Arc::new(Mutex::new(Some(types_Config::default()))); let __result = (*__recv.lock().unwrap().as_mut().unwrap()).check("p".to_string(), fset.clone(), Arc::new(Mutex::new(Some(vec![file.clone()]))), ()); __result };

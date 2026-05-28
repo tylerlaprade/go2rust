@@ -204,7 +204,7 @@ fn main() {
 
         // Safe division
     println!("{}", format!("{}", "\n=== Safe division ===".to_string()));
-    let (mut result, mut err) = safe_divide(Rc::new(RefCell::new(Some(10.0))), Rc::new(RefCell::new(Some(3.0))));
+    let (mut result, __tmp_1) = safe_divide(Rc::new(RefCell::new(Some(10.0))), Rc::new(RefCell::new(Some(3.0)))); let __moved_tmp_1 = { let mut __guard = __tmp_1.borrow_mut(); __guard.take() }; *err.borrow_mut() = __moved_tmp_1;;
     if (*err.borrow()).is_some() {
         print!("Error: {}\n", format!("{}", (*err.borrow().as_ref().unwrap())));
     } else {

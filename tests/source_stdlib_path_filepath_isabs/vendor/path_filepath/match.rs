@@ -222,7 +222,7 @@ pub fn match_chunk(mut chunk: Arc<Mutex<Option<String>>>, mut s: Arc<Mutex<Optio
         { let new_val = true; *failed.lock().unwrap() = Some(new_val); };
     }
         let (_, mut n) = utf8::decode_rune_in_string(s.clone());
-        { let new_val = Arc::new(Mutex::new(Some({ let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); __s[(n) as usize..].to_string() }))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *s.lock().unwrap() = __moved_val; };
+        { let new_val = Arc::new(Mutex::new(Some({ let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); __s[({ let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize..].to_string() }))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *s.lock().unwrap() = __moved_val; };
     }
             { let new_val = Arc::new(Mutex::new(Some({ let __s = &((*chunk.lock().unwrap().as_ref().unwrap()).clone()); __s[(1) as usize..].to_string() }))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *chunk.lock().unwrap() = __moved_val; };
         }
@@ -276,8 +276,8 @@ pub fn get_esc(mut chunk: Arc<Mutex<Option<String>>>) -> (i32, Arc<Mutex<Option<
         return ((*r.lock().unwrap().as_ref().unwrap()), nchunk, err);
     }
     }
-    let (mut r, mut n) = utf8::decode_rune_in_string(chunk.clone());
-    if { let __tmp_x = r; let __tmp_y = utf8::RUNE_ERROR as i32; __tmp_x == __tmp_y } && { let __tmp_x = n; let __tmp_y = 1; __tmp_x == __tmp_y } {
+    let (__tmp_0, mut n) = utf8::decode_rune_in_string(chunk.clone()); *r.lock().unwrap() = Some(__tmp_0);;
+    if { let __tmp_x = { let __v = (*r.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = utf8::RUNE_ERROR as i32; __tmp_x == __tmp_y } && { let __tmp_x = n; let __tmp_y = 1; __tmp_x == __tmp_y } {
         { let __rhs_holder = ErrBadPattern.clone(); let new_val = { let mut guard = __rhs_holder.lock().unwrap(); guard.take() }; *err.lock().unwrap() = new_val; };
     }
     { let new_val = Arc::new(Mutex::new(Some({ let __s = &((*chunk.lock().unwrap().as_ref().unwrap()).clone()); __s[(n) as usize..].to_string() }))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *nchunk.lock().unwrap() = __moved_val; };
@@ -428,7 +428,7 @@ pub fn glob_1(dir: Arc<Mutex<Option<String>>>, pattern: Arc<Mutex<Option<String>
     }
     }
         // ignore I/O error
-    let (mut d, mut err) = os::open(dir.clone());
+    let (mut d, __tmp_1) = os::open(dir.clone()); let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1;;
     if (*err.lock().unwrap()).is_some() {
         {
         // Execute deferred functions

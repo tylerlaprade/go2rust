@@ -227,7 +227,7 @@ fn main() {
 
     let mut numbers = Rc::new(RefCell::new(Some(vec![1, 2, 3, 4, 5])));
 
-    let (mut value, mut err) = process_slice(numbers.clone(), Rc::new(RefCell::new(Some(2))));
+    let (mut value, __tmp_1) = process_slice(numbers.clone(), Rc::new(RefCell::new(Some(2)))); let __moved_tmp_1 = { let mut __guard = __tmp_1.borrow_mut(); __guard.take() }; *err.borrow_mut() = __moved_tmp_1;;
     if (*err.borrow()).is_some() {
         print!("Error: {}\n", format!("{}", (*err.borrow().as_ref().unwrap())));
     } else {

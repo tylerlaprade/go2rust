@@ -34,7 +34,7 @@ fn main() {
     let mut err = parse(v.clone());
     println!("{}", format!("{}", (*Rc::new(RefCell::new(Some(format!("{}", err.borrow().as_ref().unwrap())))).borrow().as_ref().unwrap())));
 
-    let (mut n, mut err) = parse_pair(v.clone());
+    let (mut n, __tmp_1) = parse_pair(v.clone()); let __moved_tmp_1 = { let mut __guard = __tmp_1.borrow_mut(); __guard.take() }; *err.borrow_mut() = __moved_tmp_1;;
     println!("{}", format!("{}", n));
     println!("{}", format!("{}", (*Rc::new(RefCell::new(Some(format!("{}", err.borrow().as_ref().unwrap())))).borrow().as_ref().unwrap())));
 }

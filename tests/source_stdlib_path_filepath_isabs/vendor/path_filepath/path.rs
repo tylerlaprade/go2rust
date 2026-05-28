@@ -454,7 +454,7 @@ pub fn read_dir_names(dirname: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<
     if (*err.lock().unwrap()).is_some() {
         return (Arc::new(Mutex::new(None)), err.clone());
     }
-    let (mut names, mut err) = { let __recv = f.clone(); let __recv_ptr: *mut os_File = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut os_File }; let __result = unsafe { &mut *__recv_ptr }.readdirnames(Arc::new(Mutex::new(Some(-1)))); __result };
+    let (mut names, __tmp_1) = { let __recv = f.clone(); let __recv_ptr: *mut os_File = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut os_File }; let __result = unsafe { &mut *__recv_ptr }.readdirnames(Arc::new(Mutex::new(Some(-1)))); __result }; let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1;;
     { let __recv = f.clone(); let __recv_ptr: *mut os_File = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut os_File }; let __result = unsafe { &mut *__recv_ptr }.close(); __result };
     if (*err.lock().unwrap()).is_some() {
         return (Arc::new(Mutex::new(None)), err.clone());

@@ -90,7 +90,7 @@ fn main() {
     }
 
         // Formatted error
-    let (mut sqrtResult, mut err) = sqrt(Rc::new(RefCell::new(Some(-4.0))));
+    let (mut sqrtResult, __tmp_1) = sqrt(Rc::new(RefCell::new(Some(-4.0)))); let __moved_tmp_1 = { let mut __guard = __tmp_1.borrow_mut(); __guard.take() }; *err.borrow_mut() = __moved_tmp_1;;
     if (*err.borrow()).is_some() {
         println!("{} {}", format!("{}", "Sqrt error:".to_string()), format!("{}", format!("{}", (*err.borrow().as_ref().unwrap()))));
     } else {
