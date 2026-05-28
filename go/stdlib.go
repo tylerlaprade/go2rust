@@ -4243,10 +4243,8 @@ func transpileReal(out *strings.Builder, call *ast.CallExpr) {
 	}
 
 	WriteWrapperPrefix(out)
-	out.WriteString("(*")
-	TranspileExpression(out, call.Args[0])
-	WriteBorrowMethod(out, false)
-	out.WriteString(".as_ref().unwrap()).re)))")
+	writeComplexComponentValue(out, call.Args[0], "re")
+	out.WriteString(")))")
 }
 
 // transpileImag handles the imag() builtin function
@@ -4256,10 +4254,22 @@ func transpileImag(out *strings.Builder, call *ast.CallExpr) {
 	}
 
 	WriteWrapperPrefix(out)
+	writeComplexComponentValue(out, call.Args[0], "im")
+	out.WriteString(")))")
+}
+
+func writeComplexComponentValue(out *strings.Builder, expr ast.Expr, component string) {
+	if isExpressionResultBare(expr) {
+		TranspileExpression(out, expr)
+		out.WriteString(".")
+		out.WriteString(component)
+		return
+	}
 	out.WriteString("(*")
-	TranspileExpression(out, call.Args[0])
+	TranspileExpressionContext(out, expr, LValue)
 	WriteBorrowMethod(out, false)
-	out.WriteString(".as_ref().unwrap()).im)))")
+	out.WriteString(".as_ref().unwrap()).")
+	out.WriteString(component)
 }
 
 // Helper function to format maps like Go does

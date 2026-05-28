@@ -478,6 +478,40 @@ func Nodes() []Node {
 	}
 }
 
+func TestConcurrentRealImagUseComplexHandle(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+func parts(x complex128) (float64, float64) {
+	go func() {}()
+	return real(x), imag(x)
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(main.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+	prevDetector := GetConcurrencyDetector()
+	detector := NewConcurrencyDetector()
+	detector.AnalyzeFile(file)
+	SetConcurrencyDetector(detector)
+	defer SetConcurrencyDetector(prevDetector)
+
+	rust, _, _ := Transpile(file, fset, typeInfo)
+	if strings.Contains(rust, "__v }.lock()") {
+		t.Fatalf("real/imag should not borrow a raw cloned complex value as a handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "(*x.lock().unwrap().as_ref().unwrap()).re") {
+		t.Fatalf("real should read the complex component through the original handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "(*x.lock().unwrap().as_ref().unwrap()).im") {
+		t.Fatalf("imag should read the complex component through the original handle:\n%s", rust)
+	}
+}
+
 func TestAppendLenToIntSliceCastsToGoInt(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
