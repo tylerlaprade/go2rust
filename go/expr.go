@@ -998,7 +998,7 @@ func variadicElementTypeExpr(funcSig *FunctionSignature, variadicStart int) ast.
 	return nil
 }
 
-func writeMethodCallArguments(out *strings.Builder, sel *ast.SelectorExpr, call *ast.CallExpr, externalStdlibStubMethodCall bool, bareMethodCall bool) bool {
+func writeMethodCallArguments(out *strings.Builder, sel *ast.SelectorExpr, call *ast.CallExpr, externalStdlibStubMethodCall bool, bareArgumentMethodCall bool) bool {
 	sig, ok := callSignatureFromTypeInfo(call)
 	if !ok || !sig.Variadic() || sig.Params() == nil || sig.Params().Len() == 0 {
 		return false
@@ -1011,7 +1011,7 @@ func writeMethodCallArguments(out *strings.Builder, sel *ast.SelectorExpr, call 
 		}
 		if externalStdlibStubMethodCall {
 			writeExternalStubCallArgument(out, call.Args[i])
-		} else if bareMethodCall {
+		} else if bareArgumentMethodCall {
 			TranspileExpression(out, call.Args[i])
 		} else {
 			writeRegularMethodCallArgument(out, sel, call.Args[i], i)
@@ -1046,6 +1046,21 @@ func writeMethodCallArguments(out *strings.Builder, sel *ast.SelectorExpr, call 
 	out.WriteString("]")
 	WriteWrapperSuffix(out)
 	return true
+}
+
+func methodCallUsesBareArguments(sel *ast.SelectorExpr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	if ident, ok := sel.X.(*ast.Ident); ok {
+		_, isRangeVar := rangeLoopVars[ident.Name]
+		return !isRangeVar && isGoSyncNamedType(typeInfo.GetType(ident))
+	}
+	if fieldSel, ok := sel.X.(*ast.SelectorExpr); ok {
+		return isGoSyncNamedType(typeInfo.GetType(fieldSel))
+	}
+	return false
 }
 
 func methodCallFuncLitArgCapturesReceiver(call *ast.CallExpr, receiver string) bool {
@@ -10794,32 +10809,21 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 			out.WriteString(".")
 		}
 
-		// Check if receiver is a bare sync type (WaitGroup, Mutex)
-		bareMethodCall := false
+		// Bare sync helpers have Rust-native method signatures; generated Go
+		// methods still take wrapped Go parameters even when the receiver is bare.
+		bareArgumentMethodCall := methodCallUsesBareArguments(sel)
 		externalStdlibStubMethodCall := IsExternalStdlibSelectorMethod(sel)
-		if ident, ok := sel.X.(*ast.Ident); ok {
-			_, isRangeVar := rangeLoopVars[ident.Name]
-			if !isRangeVar && isVarBare(ident.Name) {
-				bareMethodCall = true
-			}
-		} else if fieldSel, ok := sel.X.(*ast.SelectorExpr); ok {
-			typeInfo := GetTypeInfo()
-			if typeInfo != nil {
-				bareMethodCall = isGoSyncNamedType(typeInfo.GetType(fieldSel))
-			}
-		}
 
 		out.WriteString(rustMethodSelectorName(sel))
 		out.WriteString("(")
-		if !writeMethodCallArguments(out, sel, call, externalStdlibStubMethodCall, bareMethodCall) {
+		if !writeMethodCallArguments(out, sel, call, externalStdlibStubMethodCall, bareArgumentMethodCall) {
 			for i, arg := range call.Args {
 				if i > 0 {
 					out.WriteString(", ")
 				}
 				if externalStdlibStubMethodCall {
 					writeExternalStubCallArgument(out, arg)
-				} else if bareMethodCall {
-					// Bare type methods take bare arguments
+				} else if bareArgumentMethodCall {
 					TranspileExpression(out, arg)
 				} else {
 					writeRegularMethodCallArgument(out, sel, arg, i)

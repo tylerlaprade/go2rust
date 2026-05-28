@@ -3133,6 +3133,70 @@ func (xl termlist) norm(t types.Type) {
 	}
 }
 
+func TestBareReceiverMethodCallSelectorFieldArgumentKeepsHandle(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+type Step struct{ I int }
+type Bitmap [2]byte
+
+func (b *Bitmap) Set(i int) {}
+
+func f(st Step, bitmap Bitmap) {
+	bitmap.Set(st.I)
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile() error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	prevTypeInfo := currentTypeInfo
+	prevVarTable := currentVarTable
+	defer func() {
+		currentTypeInfo = prevTypeInfo
+		SetVarTable(prevVarTable)
+	}()
+	SetTypeInfo(typeInfo)
+	vt := NewVarTable()
+	vt.Register("bitmap", &VarInfo{WrapLevel: WrapNone, Source: SourceLocal})
+	vt.Register("st", &VarInfo{WrapLevel: WrapNone, Source: SourceLocal})
+	SetVarTable(vt)
+
+	var call *ast.CallExpr
+	ast.Inspect(file, func(node ast.Node) bool {
+		if call != nil {
+			return false
+		}
+		candidate, ok := node.(*ast.CallExpr)
+		if !ok {
+			return true
+		}
+		sel, ok := candidate.Fun.(*ast.SelectorExpr)
+		if ok && sel.Sel.Name == "Set" {
+			call = candidate
+			return false
+		}
+		return true
+	})
+	if call == nil {
+		t.Fatal("method call not found")
+	}
+
+	var out strings.Builder
+	TranspileExpression(&out, call)
+	got := out.String()
+	if strings.Contains(got, ".set((*st.i") || strings.Contains(got, "st.i.borrow") || strings.Contains(got, "st.i.lock") {
+		t.Fatalf("bare receiver method argument should preserve the selector field handle:\n%s", got)
+	}
+	if !strings.Contains(got, ".set({ let __field = st.i.clone(); __field })") {
+		t.Fatalf("bare receiver method argument should clone the selector field handle:\n%s", got)
+	}
+}
+
 func TestNilPointerFunctionArgumentUsesNilHandle(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
