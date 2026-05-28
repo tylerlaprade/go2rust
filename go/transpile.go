@@ -406,6 +406,59 @@ type FieldAccessInfo struct {
 	FieldName    string   // The actual field name (snake_case)
 }
 
+func fieldAccessInfoFromSelection(sel *ast.SelectorExpr, typeInfo *TypeInfo) (FieldAccessInfo, bool) {
+	if sel == nil || typeInfo == nil || typeInfo.info == nil {
+		return FieldAccessInfo{}, false
+	}
+	selection, ok := typeInfo.info.Selections[sel]
+	if !ok || selection.Kind() != types.FieldVal {
+		return FieldAccessInfo{}, false
+	}
+	index := selection.Index()
+	if len(index) == 0 {
+		return FieldAccessInfo{}, false
+	}
+
+	embeddedPath := make([]string, 0, len(index)-1)
+	currentType := selection.Recv()
+	for i, fieldIndex := range index {
+		structType, ok := structUnderlyingThroughPointers(currentType)
+		if !ok || fieldIndex < 0 || fieldIndex >= structType.NumFields() {
+			return FieldAccessInfo{}, false
+		}
+		field := structType.Field(fieldIndex)
+		if i == len(index)-1 {
+			return FieldAccessInfo{
+				Found:        true,
+				IsPromoted:   len(embeddedPath) > 0,
+				EmbeddedPath: embeddedPath,
+				FieldName:    ToSnakeCase(field.Name()),
+			}, true
+		}
+		embeddedPath = append(embeddedPath, field.Name())
+		currentType = field.Type()
+	}
+	return FieldAccessInfo{}, false
+}
+
+func structUnderlyingThroughPointers(typ types.Type) (*types.Struct, bool) {
+	for typ != nil {
+		typ = types.Unalias(typ)
+		if ptr, ok := typ.(*types.Pointer); ok {
+			typ = ptr.Elem()
+			continue
+		}
+		underlying := types.Unalias(typ.Underlying())
+		if ptr, ok := underlying.(*types.Pointer); ok {
+			typ = ptr.Elem()
+			continue
+		}
+		structType, ok := underlying.(*types.Struct)
+		return structType, ok
+	}
+	return nil, false
+}
+
 func collectComparableStructTypes(file *ast.File) map[string]bool {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil {

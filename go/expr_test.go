@@ -3264,26 +3264,28 @@ func f(xs []int) int {
 	}
 }
 
-func TestIncompleteTypeInfoPromotedEmbeddedFieldUsesSyntax(t *testing.T) {
-	rust := transpileRegression(t, `package main
+func TestPromotedImportedEmbeddedFieldUsesTypedSelectionPath(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
 
-type Person struct {
-	Name string
+import "go/token"
+
+type wrapped struct {
+	token.Position
 }
 
-type Employee struct {
-	Person
-	ID int
-}
+func line(w *wrapped) int {
+	return w.Line
+}`)
 
-func f() string {
-	emp := Employee{Person: Person{Name: "Alice"}, ID: 1}
-	return emp.Name
-}`, &TypeInfo{})
-
-	if !strings.Contains(rust, ".person.borrow().as_ref().unwrap()).name") &&
-		!strings.Contains(rust, ".person.lock().unwrap().as_ref().unwrap()).name") {
-		t.Fatalf("promoted embedded field should traverse the embedded Person field:\n%s", rust)
+	returnIndex := strings.Index(rust, "return ")
+	if returnIndex < 0 {
+		t.Fatalf("missing return in generated Rust:\n%s", rust)
+	}
+	returnExpr := rust[returnIndex:]
+	positionIndex := strings.Index(returnExpr, ".position.")
+	lineIndex := strings.Index(returnExpr, ".line")
+	if positionIndex < 0 || lineIndex < 0 || positionIndex > lineIndex {
+		t.Fatalf("promoted imported embedded field should traverse the typed embedded field path:\n%s", rust)
 	}
 }
 

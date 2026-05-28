@@ -5927,7 +5927,10 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 						receiverName = RustLocalIdent(renamed)
 					}
 				}
-				fieldInfo := resolveFieldAccess(currentReceiverType, e.Sel.Name)
+				fieldInfo := selectorFieldAccessInfo(e)
+				if !fieldInfo.Found {
+					fieldInfo = resolveFieldAccess(currentReceiverType, e.Sel.Name)
+				}
 
 				if fieldInfo.IsPromoted {
 					// Accessing promoted field through embedded struct(s)
@@ -5982,40 +5985,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					}
 				}
 			} else {
-				// Regular field access on a variable - need to check for promoted fields
-				// Try to resolve the field through type info
-				var fieldInfo FieldAccessInfo
-
-				if typeInfo != nil {
-					// Try to get the type of the variable
-					if t := typeInfo.GetType(e.X); t != nil {
-						// Extract the struct type name
-						typeStr := t.String()
-						// Remove package prefix if present
-						if idx := strings.LastIndex(typeStr, "."); idx >= 0 {
-							typeStr = typeStr[idx+1:]
-						}
-						// Remove pointer prefix if present
-						typeStr = strings.TrimPrefix(typeStr, "*")
-
-						fieldInfo = resolveFieldAccess(typeStr, e.Sel.Name)
-					} else {
-						fieldInfo = FieldAccessInfo{
-							IsPromoted: false,
-							FieldName:  ToSnakeCase(e.Sel.Name),
-						}
-					}
-				} else {
-					fieldInfo = FieldAccessInfo{
-						IsPromoted: false,
-						FieldName:  ToSnakeCase(e.Sel.Name),
-					}
-				}
-				if !fieldInfo.Found {
-					if typeName, ok := syntaxStructTypeNameForSelectorBase(e.X); ok {
-						fieldInfo = resolveFieldAccess(typeName, e.Sel.Name)
-					}
-				}
+				// Regular field access on a variable - use go/types selection data
+				// before falling back to the local struct registry.
+				fieldInfo := selectorFieldAccessInfo(e)
 
 				// Check if this variable is wrapped (not a range var, not a constant, not bare)
 				needsUnwrap := false
@@ -6172,33 +6144,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			}
 		} else {
 			// Complex expression for X (not just an identifier)
-			var fieldInfo FieldAccessInfo
-
-			if typeInfo != nil {
-				// Try to get the type of the expression
-				if t := typeInfo.GetType(e.X); t != nil {
-					// Extract the struct type name
-					typeStr := t.String()
-					// Remove package prefix if present
-					if idx := strings.LastIndex(typeStr, "."); idx >= 0 {
-						typeStr = typeStr[idx+1:]
-					}
-					// Remove pointer prefix if present
-					typeStr = strings.TrimPrefix(typeStr, "*")
-
-					fieldInfo = resolveFieldAccess(typeStr, e.Sel.Name)
-				} else {
-					fieldInfo = FieldAccessInfo{
-						IsPromoted: false,
-						FieldName:  ToSnakeCase(e.Sel.Name),
-					}
-				}
-			} else {
-				fieldInfo = FieldAccessInfo{
-					IsPromoted: false,
-					FieldName:  ToSnakeCase(e.Sel.Name),
-				}
-			}
+			fieldInfo := selectorFieldAccessInfo(e)
 
 			if fieldInfo.IsPromoted {
 				// Accessing promoted field through embedded struct(s)

@@ -3687,6 +3687,9 @@ func selectorFieldAccessInfo(sel *ast.SelectorExpr) FieldAccessInfo {
 		FieldName: ToSnakeCase(sel.Sel.Name),
 	}
 	typeInfo := GetTypeInfo()
+	if typedFieldInfo, ok := fieldAccessInfoFromSelection(sel, typeInfo); ok {
+		return typedFieldInfo
+	}
 	if typeInfo == nil {
 		return fieldInfo
 	}
