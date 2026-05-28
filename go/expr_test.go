@@ -948,6 +948,33 @@ func bitsetFirst(b bitset) uintptr {
 	}
 }
 
+func TestPointerReceiverPassedAsPointerArgumentUsesHandle(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Map struct {
+	seed int
+}
+
+type table struct{}
+
+func (t *table) Put(m *Map) int {
+	return m.seed
+}
+
+func (m *Map) Use(t *table) int {
+	return t.Put(m)
+}
+`)
+
+	if strings.Contains(rust, ".put(self.clone())") {
+		t.Fatalf("pointer receiver passed as pointer argument should not pass the bare receiver value:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".put(Rc::new(RefCell::new(Some(self.clone()))))") &&
+		!strings.Contains(rust, ".put(Arc::new(Mutex::new(Some(self.clone()))))") {
+		t.Fatalf("pointer receiver passed as pointer argument should be wrapped as a pointer handle:\n%s", rust)
+	}
+}
+
 func TestNoTypeInfoExternalExecLookPathRegistersStub(t *testing.T) {
 	rust := transpileNoTypeInfoRegression(t, `package main
 

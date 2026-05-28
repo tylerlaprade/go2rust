@@ -1972,6 +1972,12 @@ func writePointerHandleCallArgument(out *strings.Builder, arg ast.Expr, expected
 		if writeOwnedRangeValue(out, e) {
 			return true
 		}
+		if currentReceiver != "" && e.Name == currentReceiver {
+			WriteWrapperPrefix(out)
+			out.WriteString("self.clone()")
+			WriteWrapperSuffix(out)
+			return true
+		}
 		if globalIdent, ok := packageGlobalPointerIdent(e); ok {
 			writePackageGlobalPointerHandleClone(out, globalIdent)
 			return true
