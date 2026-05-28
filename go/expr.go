@@ -1089,6 +1089,9 @@ func writeSyncOnceDoFuncLitCall(out *strings.Builder, call *ast.CallExpr) bool {
 	if hasClosureDefer {
 		out.WriteString("        let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();\n")
 	}
+	prevReturnTail := currentReturnStatementIsTail
+	currentReturnStatementIsTail = false
+	defer func() { currentReturnStatementIsTail = prevReturnTail }()
 	if funcLit.Body != nil {
 		for i, stmt := range funcLit.Body.List {
 			out.WriteString("        ")
@@ -8219,6 +8222,9 @@ func TranspileFuncLitBox(out *strings.Builder, funcLit *ast.FuncLit) {
 		out.WriteString("        let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();\n")
 	}
 	writeNamedReturnDeclarations(out, funcLit.Type)
+	prevReturnTail := currentReturnStatementIsTail
+	currentReturnStatementIsTail = false
+	defer func() { currentReturnStatementIsTail = prevReturnTail }()
 	if funcLit.Body != nil {
 		for i, stmt := range funcLit.Body.List {
 			out.WriteString("        ") // Indent for closure body

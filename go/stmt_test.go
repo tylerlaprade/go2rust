@@ -1134,3 +1134,28 @@ func TestLocalMapKeyRustTypeReportsTrackedPointerKey(t *testing.T) {
 		t.Fatalf("localMapKeyRustType() = (%q, %v), want tracked pointer key", keyType, ok)
 	}
 }
+
+func TestNestedReturnInsideFuncLitStaysExplicit(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func produce() func() {
+	return func() {
+		if true {
+			return
+		}
+	}
+}
+
+func main() {
+	produce()()
+}
+`)
+
+	if strings.Contains(rust, "if true {\n        ()\n    }") {
+		t.Fatalf("nested return inside func lit must not become trailing `()`:\n%s", rust)
+	}
+	if !strings.Contains(rust, "if true {\n        return;") &&
+		!strings.Contains(rust, "if true {\n            return;") {
+		t.Fatalf("nested return inside func lit should emit explicit return;\n%s", rust)
+	}
+}

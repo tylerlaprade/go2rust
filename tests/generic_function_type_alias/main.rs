@@ -4,7 +4,7 @@ use std::rc::{Rc};
 pub fn words() -> Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<String>>>) -> bool>>>>) -> ()>>>> {
     return Rc::new(RefCell::new(Some(Box::new(move |r#yield: Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<String>>>) -> bool>>>>| {
         if !{ let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<String>>>) -> bool> = { let mut __f_guard = r#yield.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<String>>>) -> bool> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some("go".to_string())))) } {
-        ()
+        return;
     }
         { let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<String>>>) -> bool> = { let mut __f_guard = r#yield.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<String>>>) -> bool> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some("rust".to_string())))) };
     }) as Box<dyn FnMut(Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<String>>>) -> bool>>>>) -> ()>)));
