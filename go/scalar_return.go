@@ -158,11 +158,45 @@ func funcDeclSignatureFromTypeInfo(fn *ast.FuncDecl) (*types.Signature, bool) {
 }
 
 func writeFuncDeclResultTypes(out *strings.Builder, fn *ast.FuncDecl) {
+	// Register any anonymous struct types in the signature so go/types name
+	// lookup finds them when emitting the return type.
+	if fn != nil && fn.Type != nil {
+		registerAnonymousStructTypesInFuncType(fn.Type)
+	}
 	if sig, ok := funcDeclSignatureFromTypeInfo(fn); ok && writeSignatureResultTypes(out, sig) {
 		return
 	}
 	if fn != nil {
 		writeFunctionResultTypes(out, fn.Type)
+	}
+}
+
+// registerAnonymousStructTypesInFuncType walks the function signature's AST
+// looking for `struct { ... }` shapes and pre-registers them via
+// generateAnonymousStructType, so lookupAnonymousStructName can find them by
+// shape when emitting the return / parameter types.
+func registerAnonymousStructTypesInFuncType(fnType *ast.FuncType) {
+	visit := func(expr ast.Expr) {
+		ast.Inspect(expr, func(n ast.Node) bool {
+			if st, ok := n.(*ast.StructType); ok {
+				generateAnonymousStructType(st)
+			}
+			return true
+		})
+	}
+	if fnType.Params != nil {
+		for _, field := range fnType.Params.List {
+			if field.Type != nil {
+				visit(field.Type)
+			}
+		}
+	}
+	if fnType.Results != nil {
+		for _, field := range fnType.Results.List {
+			if field.Type != nil {
+				visit(field.Type)
+			}
+		}
 	}
 }
 

@@ -3980,9 +3980,9 @@ func wrappedExternalStubNoneExpr(innerType string) string {
 
 // PERMANENT: not scaffold — io/fs.FileInfo is OS-tied; Rust std::fs::Metadata is the long-term implementation.
 func writeFsFileInfoStub(out *strings.Builder, name string, methods map[string]externalTypeStubMethod) {
-	boolType := wrappedExternalStubType("bool")
 	stringType := wrappedExternalStubType("String")
-	int64Type := wrappedExternalStubType("i64")
+	// Predeclared Copy scalar return slots stay bare to match the widened
+	// signatures callers use.
 
 	fmt.Fprintf(out, `#[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct %s {
@@ -4005,13 +4005,13 @@ impl %s {
     pub fn name(&self) -> %s {
         %s
     }
-    pub fn size(&self) -> %s {
-        %s
+    pub fn size(&self) -> i64 {
+        self.size
     }
-    pub fn is_dir(&self) -> %s {
-        %s
+    pub fn is_dir(&self) -> bool {
+        self.is_dir
     }
-`, name, name, name, name, stringType, wrappedExternalStubExpr("String", "self.name.clone()"), int64Type, wrappedExternalStubExpr("i64", "self.size"), boolType, wrappedExternalStubExpr("bool", "self.is_dir"))
+`, name, name, name, name, stringType, wrappedExternalStubExpr("String", "self.name.clone()"))
 	methodNames := make([]string, 0, len(methods))
 	for methodName := range methods {
 		if methodName == "name" || methodName == "size" || methodName == "is_dir" {
@@ -4028,7 +4028,6 @@ impl %s {
 
 // PERMANENT: not scaffold — io/fs.DirEntry is OS-tied; Rust std::fs::DirEntry is the long-term implementation.
 func writeFsDirEntryStub(out *strings.Builder, name string) {
-	boolType := wrappedExternalStubType("bool")
 	stringType := wrappedExternalStubType("String")
 
 	fmt.Fprintf(out, `#[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord)]
@@ -4051,11 +4050,11 @@ impl %s {
     pub fn name(&self) -> %s {
         %s
     }
-    pub fn is_dir(&self) -> %s {
-        %s
+    pub fn is_dir(&self) -> bool {
+        self.is_dir
     }
 }
-`, name, name, name, name, stringType, wrappedExternalStubExpr("String", "self.name.clone()"), boolType, wrappedExternalStubExpr("bool", "self.is_dir"))
+`, name, name, name, name, stringType, wrappedExternalStubExpr("String", "self.name.clone()"))
 }
 
 // TEMPORARY: hand-written Rust shim for go/ast package.

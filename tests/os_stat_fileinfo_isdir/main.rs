@@ -30,11 +30,11 @@ impl fs_FileInfo {
     pub fn name(&self) -> Rc<RefCell<Option<String>>> {
         Rc::new(RefCell::new(Some::<String>(self.name.clone())))
     }
-    pub fn size(&self) -> Rc<RefCell<Option<i64>>> {
-        Rc::new(RefCell::new(Some::<i64>(self.size)))
+    pub fn size(&self) -> i64 {
+        self.size
     }
-    pub fn is_dir(&self) -> Rc<RefCell<Option<bool>>> {
-        Rc::new(RefCell::new(Some::<bool>(self.is_dir)))
+    pub fn is_dir(&self) -> bool {
+        self.is_dir
     }
 }
 
