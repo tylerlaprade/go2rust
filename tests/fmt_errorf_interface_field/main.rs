@@ -55,15 +55,15 @@ impl bytes_Buffer {
         Arc::new(Mutex::new(Some::<Vec<u8>>(self.__go_bytes())))
     }
 
-    pub fn len(&self) -> Arc<Mutex<Option<i32>>> {
-        Arc::new(Mutex::new(Some::<i32>(self.__go_data.lock().unwrap().len() as i32)))
+    pub fn len(&self) -> i32 {
+        self.__go_data.lock().unwrap().len() as i32
     }
 
     pub fn reset(&self) {
         self.__go_data.lock().unwrap().clear();
     }
 
-    pub fn available(&self) -> Arc<Mutex<Option<i32>>> {
+    pub fn available(&self) -> i32 {
         self.len()
     }
 
@@ -71,7 +71,7 @@ impl bytes_Buffer {
         Arc::new(Mutex::new(Some::<Vec<u8>>(Vec::new())))
     }
 
-    pub fn cap(&self) -> Arc<Mutex<Option<i32>>> {
+    pub fn cap(&self) -> i32 {
         self.len()
     }
 
@@ -82,24 +82,24 @@ impl bytes_Buffer {
         Arc::new(Mutex::new(Some::<Vec<u8>>(Vec::new())))
     }
 
-    pub fn read<T0>(&self, _arg0: T0) -> (Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
-        (Arc::new(Mutex::new(Some::<i32>(0))), Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>)))
+    pub fn read<T0>(&self, _arg0: T0) -> (i32, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+        (0 as i32, Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>)))
     }
 
-    pub fn read_byte(&self) -> (Arc<Mutex<Option<u8>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
-        (Arc::new(Mutex::new(Some::<u8>(0))), Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>)))
+    pub fn read_byte(&self) -> (u8, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+        (0 as u8, Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>)))
     }
 
     pub fn read_bytes<T0>(&self, _arg0: T0) -> (Arc<Mutex<Option<Vec<u8>>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
         (Arc::new(Mutex::new(Some::<Vec<u8>>(Vec::new()))), Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>)))
     }
 
-    pub fn read_from<T0>(&self, _arg0: T0) -> (Arc<Mutex<Option<i64>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
-        (Arc::new(Mutex::new(Some::<i64>(0))), Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>)))
+    pub fn read_from<T0>(&self, _arg0: T0) -> (i64, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+        (0 as i64, Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>)))
     }
 
-    pub fn read_rune(&self) -> (Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
-        (Arc::new(Mutex::new(Some::<i32>(0))), Arc::new(Mutex::new(Some::<i32>(0))), Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>)))
+    pub fn read_rune(&self) -> (i32, i32, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+        (0 as i32, 0 as i32, Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>)))
     }
 
     pub fn read_string<T0>(&self, _arg0: T0) -> (Arc<Mutex<Option<String>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
@@ -118,7 +118,7 @@ impl bytes_Buffer {
         Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>))
     }
 
-    pub fn write<T0: 'static>(&self, arg0: T0) -> (Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+    pub fn write<T0: 'static>(&self, arg0: T0) -> (i32, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
         let bytes = if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<Vec<u8>>() {
             v.clone()
         } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<Arc<Mutex<Option<Vec<u8>>>>>() {
@@ -128,10 +128,10 @@ impl bytes_Buffer {
         };
         let n = bytes.len() as i32;
         self.__go_write_bytes(&bytes);
-        (Arc::new(Mutex::new(Some::<i32>(n))), Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>)))
+        (n, Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>)))
     }
 
-    pub fn write_string<T0: 'static>(&self, arg0: T0) -> (Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+    pub fn write_string<T0: 'static>(&self, arg0: T0) -> (i32, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
         let value = if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<String>() {
             v.clone()
         } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<&str>() {
@@ -144,7 +144,7 @@ impl bytes_Buffer {
         let bytes = value.into_bytes();
         let n = bytes.len() as i32;
         self.__go_write_bytes(&bytes);
-        (Arc::new(Mutex::new(Some::<i32>(n))), Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>)))
+        (n, Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>)))
     }
 
     pub fn write_byte<T0: 'static>(&self, arg0: T0) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
@@ -163,7 +163,7 @@ impl bytes_Buffer {
         Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>))
     }
 
-    pub fn write_rune<T0: 'static>(&self, arg0: T0) -> (Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+    pub fn write_rune<T0: 'static>(&self, arg0: T0) -> (i32, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
         let value = if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<char>() {
             *v
         } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<i32>() {
@@ -177,11 +177,11 @@ impl bytes_Buffer {
         let bytes = value.encode_utf8(&mut encoded).as_bytes().to_vec();
         let n = bytes.len() as i32;
         self.__go_write_bytes(&bytes);
-        (Arc::new(Mutex::new(Some::<i32>(n))), Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>)))
+        (n, Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>)))
     }
 
-    pub fn write_to<T0>(&self, _arg0: T0) -> (Arc<Mutex<Option<i64>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
-        (Arc::new(Mutex::new(Some::<i64>(self.__go_data.lock().unwrap().len() as i64))), Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>)))
+    pub fn write_to<T0>(&self, _arg0: T0) -> (i64, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+        (self.__go_data.lock().unwrap().len() as i64, Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>)))
     }
 }
 

@@ -74,11 +74,11 @@ pub fn pick(sel: Rc<RefCell<Option<ast_SelectorExpr>>>) -> Rc<RefCell<Option<ast
 }
 
 pub fn selector_name(sel: Rc<RefCell<Option<ast_SelectorExpr>>>) -> Rc<RefCell<Option<String>>> {
-    Rc::new(RefCell::new(Some({ let __selector_holder = (*(*sel.borrow().as_ref().unwrap()).sel.borrow().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))
+    return Rc::new(RefCell::new(Some({ let __selector_holder = (*(*sel.borrow().as_ref().unwrap()).sel.borrow().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
 }
 
 pub fn has_selector_name(sel: Rc<RefCell<Option<ast_SelectorExpr>>>) -> bool {
-    { let __selector_holder = (*(*sel.borrow().as_ref().unwrap()).sel.borrow().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } != "_"
+    return { let __selector_holder = (*(*sel.borrow().as_ref().unwrap()).sel.borrow().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } != "_";
 }
 
 pub fn selector_name_map(sel: Rc<RefCell<Option<ast_SelectorExpr>>>) -> Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<String>>>>>>> {

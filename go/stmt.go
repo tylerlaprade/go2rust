@@ -136,7 +136,8 @@ func callReturnsMultipleResults(call *ast.CallExpr) bool {
 // returnExpressionEmissionStartsWithBlock reports whether the given return
 // value would emit Rust source that starts with `{`. Such expressions are
 // ambiguous when used as a tail expression: Rust parses the leading `{` as a
-// block statement, which breaks shapes like `{ ... } && { ... }`.
+// block statement, which breaks shapes like `{ ... } && { ... }` or
+// `{ ... } != "x"`.
 func returnExpressionEmissionStartsWithBlock(expr ast.Expr) bool {
 	switch e := expr.(type) {
 	case *ast.BinaryExpr:
@@ -147,11 +148,24 @@ func returnExpressionEmissionStartsWithBlock(expr ast.Expr) bool {
 		if NeedsConcurrentWrapper() && e.Op != token.LAND && e.Op != token.LOR {
 			return true
 		}
-		if e.Op == token.LAND || e.Op == token.LOR {
-			return returnExpressionEmissionStartsWithBlock(e.X)
-		}
+		// Whatever the operator, the LHS is emitted first; if it would
+		// produce a leading `{`, the binary expression inherits the
+		// parsing ambiguity.
+		return returnExpressionEmissionStartsWithBlock(e.X)
 	case *ast.ParenExpr:
 		return returnExpressionEmissionStartsWithBlock(e.X)
+	case *ast.SelectorExpr:
+		// Named-type field accesses that need a value clone emit through
+		// `writeSyntaxNamedSelectorValue` as `{ let __selector_holder = ... }`.
+		if selectorSyntaxValueNeedsClone(e) {
+			return true
+		}
+		// Cloneable wrapped field accesses lower through
+		// `writeClonedWrappedExpression`, which also wraps the value in a
+		// `{ let __selector_holder = ... }` block.
+		if !isExpressionResultBare(expr) && isCloneableNonPointerExpr(expr) {
+			return true
+		}
 	}
 	return false
 }
@@ -486,6 +500,14 @@ func writeIntegerRangeLimit(out *strings.Builder, expr ast.Expr) {
 		out.WriteString("; let __owned = (*__v")
 		WriteBorrowMethod(out, false)
 		out.WriteString(".as_ref().unwrap()).clone(); __owned }")
+		return
+	}
+	if typeInfo != nil && typeInfo.ReturnsWrappedValue(expr) {
+		out.WriteString("{ let __range_limit = ")
+		TranspileExpressionContext(out, expr, LValue)
+		out.WriteString("; (*__range_limit")
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap()).clone() }")
 		return
 	}
 	writeUnwrappedRangeTarget(out, expr)

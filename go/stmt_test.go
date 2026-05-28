@@ -914,6 +914,28 @@ func countUntilLimit(values []int) int {
 	}
 }
 
+func TestIntegerRangeOverSelectorUnwrapsLimit(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Map struct {
+	dirLen int
+}
+
+func (m *Map) grow() {
+	for i := range m.dirLen {
+		_ = i
+	}
+}
+`)
+
+	if strings.Contains(rust, "0..(self.dir_len.clone())") {
+		t.Fatalf("integer range over selector should unwrap the field limit, not iterate over the handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "*__range_limit") {
+		t.Fatalf("integer range over selector should use an unwrapped range limit:\n%s", rust)
+	}
+}
+
 func TestReturnBitClearUsesRustOperator(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
