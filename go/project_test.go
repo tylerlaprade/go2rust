@@ -1530,6 +1530,56 @@ func main() {
 	}
 }
 
+func TestCrossFilePromotedMethodUsesPackageMethodSet(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "defs.go"), `package main
+
+type flag uintptr
+
+type Value struct {
+	flag
+}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "methods.go"), `package main
+
+func (f flag) PanicNotMap() {
+}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "use.go"), `package main
+
+func (v Value) Use() {
+	v.PanicNotMap()
+}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+func main() {
+}
+`)
+
+	generator := NewProjectGenerator([]string{
+		filepath.Join(tempDir, "defs.go"),
+		filepath.Join(tempDir, "methods.go"),
+		filepath.Join(tempDir, "use.go"),
+		filepath.Join(tempDir, "main.go"),
+	})
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	defsRS := mustReadFile(t, filepath.Join(tempDir, "defs.rs"))
+	if !strings.Contains(defsRS, "pub fn panic_not_map(&self)") {
+		t.Fatalf("outer type should forward promoted methods declared in sibling files:\n%s", defsRS)
+	}
+	if !strings.Contains(defsRS, "embedded_ref.panic_not_map()") {
+		t.Fatalf("promoted method forwarder should delegate through the embedded field:\n%s", defsRS)
+	}
+}
+
 func TestAppendPointerReturnKeepsHandle(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod

@@ -1629,6 +1629,11 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 		}
 	}
 
+	packageMethods := methods
+	if currentContext != nil && currentContext.Package != nil && len(currentContext.Package.MethodsByType) > 0 {
+		packageMethods = currentContext.Package.MethodsByType
+	}
+
 	sort.Slice(typeNames, func(i, j int) bool {
 		pos1, exists1 := typePositions[typeNames[i]]
 		pos2, exists2 := typePositions[typeNames[j]]
@@ -1688,7 +1693,7 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 		if structDef, exists := structDefs[typeName]; exists && declaredTypeNames[typeName] {
 			existingMethodNames := make(map[string]bool)
 			existingRustMethodNames := make(map[string]bool)
-			for _, ownMethod := range typeMethods {
+			for _, ownMethod := range packageMethods[typeName] {
 				existingMethodNames[ownMethod.Name.Name] = true
 				existingRustMethodNames[rustMethodName(ownMethod)] = true
 			}
@@ -1698,7 +1703,7 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 				embeddedType string
 				method       *ast.FuncDecl
 			})
-			collectPromotedMethods(structDef, methods, promotedMethods)
+			collectPromotedMethods(structDef, packageMethods, promotedMethods)
 
 			// Generate forwarding methods for all promoted methods
 			// Sort method names for deterministic output
