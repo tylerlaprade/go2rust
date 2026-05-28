@@ -1215,6 +1215,23 @@ func main() {
 	}
 }
 
+func TestCompoundAssignSelectorConstCastsToExpectedUintptr(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "unicode/utf8"
+
+func f() uintptr {
+	spill := uintptr(0)
+	spill += utf8.RuneSelf
+	return spill
+}
+`)
+
+	if !strings.Contains(rust, "RUNE_SELF as usize") {
+		t.Fatalf("selector constant compound assignment should cast to uintptr/usize:\n%s", rust)
+	}
+}
+
 func TestNoTypeInfoChannelSendUnwrapsMethodBoolResult(t *testing.T) {
 	rust := transpileNoTypeInfoRegression(t, `package main
 
