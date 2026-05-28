@@ -265,6 +265,25 @@ type RegArgs struct {
 	}
 }
 
+func TestSyncMapStructFieldUsesWrappedHandle(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "sync"
+
+type cache struct {
+	m sync.Map
+}
+`)
+
+	if strings.Contains(rust, "pub m: sync_Map,") {
+		t.Fatalf("sync.Map struct fields should not be bare when struct helpers treat fields as handles:\n%s", rust)
+	}
+	if !strings.Contains(rust, "pub m: Rc<RefCell<Option<sync_Map>>>") &&
+		!strings.Contains(rust, "pub m: Arc<Mutex<Option<sync_Map>>>") {
+		t.Fatalf("sync.Map struct fields should use the normal wrapped field representation:\n%s", rust)
+	}
+}
+
 func TestEmbeddedInterfaceTraitObjectImplementsSupertrait(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

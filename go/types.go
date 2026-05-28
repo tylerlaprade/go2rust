@@ -526,11 +526,10 @@ func GoTypeToRust(expr ast.Expr) string {
 		return baseType
 	}
 
-	// sync types are not wrapped - they handle synchronization internally
-	if sel, ok := expr.(*ast.SelectorExpr); ok {
-		if ident, ok := sel.X.(*ast.Ident); ok && ident.Name == "sync" {
-			return baseType
-		}
+	// Bare sync helper types handle synchronization internally. Other sync
+	// package values, such as sync.Map, still use normal Go field handles.
+	if isSyncParam(expr) {
+		return baseType
 	}
 
 	// Wrap everything in appropriate wrapper
