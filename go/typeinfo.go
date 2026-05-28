@@ -495,6 +495,9 @@ func (ti *TypeInfo) ReturnsWrappedValue(expr ast.Expr) bool {
 		if isBareBuiltinCall(e) {
 			return false
 		}
+		if ti.IsTypeConversion(e) && !typeConversionEmitsWrappedValue(e) {
+			return false
+		}
 		if callReturnsBareScalar(e) {
 			return false
 		}

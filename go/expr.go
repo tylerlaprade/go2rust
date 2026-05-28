@@ -9152,6 +9152,9 @@ func writeNamedTypeDefinitionAccess(out *strings.Builder, expr ast.Expr) {
 }
 
 func typeConversionEmitsWrappedValue(call *ast.CallExpr) bool {
+	if typeConversionTargetIsTypeParam(call) {
+		return false
+	}
 	if _, _, ok := externalIntegerConversionTarget(call); ok {
 		return false
 	}
@@ -9173,6 +9176,18 @@ func typeConversionEmitsWrappedValue(call *ast.CallExpr) bool {
 	}
 	_, isTypeDef := LookupTypeDefinition(targetType)
 	return !isTypeDef
+}
+
+func typeConversionTargetIsTypeParam(call *ast.CallExpr) bool {
+	if call == nil {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	_, ok := types.Unalias(typeInfo.GetType(call)).(*types.TypeParam)
+	return ok
 }
 
 func externalStringConversionTarget(call *ast.CallExpr) (*types.Named, bool) {

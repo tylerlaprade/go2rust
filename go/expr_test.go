@@ -2589,6 +2589,27 @@ func use[T string | []byte](sep T) uint32 {
 	}
 }
 
+func TestNumericTypeParamConversionForLoopUsesConsistentWrapperShape(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func count[T int8 | int16 | int32 | int64 | int, N int64 | uint64](num N) int {
+	total := 0
+	for i := T(0); i < T(num); i++ {
+		total += int(i)
+	}
+	return total
+}
+`)
+
+	if strings.Contains(rust, "let mut i = 0;") {
+		t.Fatalf("type-parameter conversion short declaration should not create a bare local later used as wrapped:\n%s", rust)
+	}
+	if strings.Contains(rust, "(*(*num.borrow().as_ref().unwrap()).borrow()") ||
+		strings.Contains(rust, "(*(*num.lock().unwrap().as_ref().unwrap()).lock()") {
+		t.Fatalf("type-parameter conversion in comparison should not double-unwrap the converted value:\n%s", rust)
+	}
+}
+
 func TestExternalStdlibScalarCallStaysBareInComparison(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
