@@ -793,6 +793,57 @@ func localInterfaceAssertionTarget(e *ast.TypeAssertExpr) (string, *types.Interf
 	return ifaceName, ifaceType, sourceType, candidates, true
 }
 
+// anonInterfaceMethodSet returns the *types.Interface for a type expression that
+// denotes an anonymous (non-named) interface carrying at least one method, such
+// as `interface{ Name() string }`. Named interfaces (handled by the trait-object
+// path) and empty interfaces (handled as Box<dyn Any>) return false so the
+// caller keeps its existing behavior.
+func anonInterfaceMethodSet(typeExpr ast.Expr) (*types.Interface, bool) {
+	if typeExpr == nil {
+		return nil, false
+	}
+	if _, ok := typeExpr.(*ast.InterfaceType); !ok {
+		return nil, false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return nil, false
+	}
+	typ := typeInfo.GetType(typeExpr)
+	if typ == nil {
+		return nil, false
+	}
+	// A non-named interface literal has no *types.Named wrapper; its type is the
+	// *types.Interface itself (the named-interface path covers the Named case).
+	iface, ok := types.Unalias(typ).(*types.Interface)
+	if !ok || iface.NumMethods() == 0 {
+		return nil, false
+	}
+	return iface, true
+}
+
+// anonInterfaceAssertionTarget resolves a type-assertion whose target is an
+// anonymous interface literal with methods (e.g. `x.(interface{ Name() string })`)
+// to its structural candidates against the source. The named-interface path
+// (localInterfaceAssertionTarget) covers `*types.Named` interfaces; this covers
+// the unnamed method-set form that otherwise lowered to a soft `Unknown`/`Box<dyn Any>`.
+func anonInterfaceAssertionTarget(e *ast.TypeAssertExpr) (sourceType types.Type, candidates []localInterfaceAssertionCandidate, ok bool) {
+	if e == nil || e.Type == nil {
+		return nil, nil, false
+	}
+	iface, ok := anonInterfaceMethodSet(e.Type)
+	if !ok {
+		return nil, nil, false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return nil, nil, false
+	}
+	sourceType = typeInfo.GetType(e.X)
+	candidates = localInterfaceAssertionCandidates(iface, sourceType)
+	return sourceType, candidates, true
+}
+
 func collectExternalLocalInterfaceImpls(file *ast.File, interfaces map[string]*ast.InterfaceType) map[string]map[string]externalLocalInterfaceImpl {
 	typeInfo := GetTypeInfo()
 	if file == nil || typeInfo == nil || typeInfo.pkg == nil {

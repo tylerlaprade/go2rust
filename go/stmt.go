@@ -1546,8 +1546,20 @@ func typeSwitchCaseLocalInterface(typeInfo *TypeInfo, typeExpr ast.Expr) (*types
 	return iface, true
 }
 
+// typeSwitchCaseInterface resolves a type-switch case expression to its method
+// set when the case denotes an interface with at least one method. It covers
+// both named local interfaces (`case namer:`) and anonymous interface literals
+// (`case interface{ Name() string }:`); both lower to the same structural
+// candidate downcast against the concrete implementors in scope.
+func typeSwitchCaseInterface(typeInfo *TypeInfo, typeExpr ast.Expr) (*types.Interface, bool) {
+	if iface, ok := typeSwitchCaseLocalInterface(typeInfo, typeExpr); ok {
+		return iface, true
+	}
+	return anonInterfaceMethodSet(typeExpr)
+}
+
 func writeTypeSwitchLocalInterfaceCaseCondition(out *strings.Builder, typeInfo *TypeInfo, typeExpr ast.Expr, subjectType types.Type) bool {
-	iface, ok := typeSwitchCaseLocalInterface(typeInfo, typeExpr)
+	iface, ok := typeSwitchCaseInterface(typeInfo, typeExpr)
 	if !ok {
 		return false
 	}
@@ -1564,6 +1576,34 @@ func writeTypeSwitchLocalInterfaceCaseCondition(out *strings.Builder, typeInfo *
 		out.WriteString(candidate.rustType)
 		out.WriteString(">()).is_some()")
 	}
+	return true
+}
+
+// writeTypeSwitchInterfaceCaseBinding binds the case variable for an interface
+// case (named or anonymous). The condition has already matched a structural
+// candidate, so the bound value is the matched concrete implementor downcast
+// out of the subject. With a single candidate this is exact; multiple
+// candidates would need a unifying trait object the anonymous path cannot
+// synthesize yet, so that case panics loudly rather than emitting wrong code.
+func writeTypeSwitchInterfaceCaseBinding(out *strings.Builder, typeInfo *TypeInfo, varName string, typeExpr ast.Expr, subjectType types.Type) bool {
+	iface, ok := typeSwitchCaseInterface(typeInfo, typeExpr)
+	if !ok {
+		return false
+	}
+	candidates := localInterfaceAssertionCandidates(iface, subjectType)
+	out.WriteString("        let ")
+	out.WriteString(varName)
+	out.WriteString(" = ")
+	if len(candidates) != 1 {
+		out.WriteString(fmt.Sprintf("unimplemented!(\"type info required: type switch on interface case with %d concrete implementors needs a synthesized trait object\");\n", len(candidates)))
+		return true
+	}
+	WriteWrapperPrefix(out)
+	out.WriteString("_ts_val.and_then(|__v| __v.downcast_ref::<")
+	out.WriteString(candidates[0].rustType)
+	out.WriteString(">()).unwrap().clone()")
+	WriteWrapperSuffix(out)
+	out.WriteString(";\n")
 	return true
 }
 
@@ -9965,6 +10005,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					// Create typed variable if needed
 					if varName != "" && isNil {
 						writeTypeSwitchOriginalBinding(out, varName, expr, isRangeVar, isStdlibRangeRef)
+					} else if varName != "" && writeTypeSwitchInterfaceCaseBinding(out, typeInfo, varName, caseClause.List[0], typeSwitchSubjectType) {
+						// interface case (named or anonymous): bound to matched concrete implementor
 					} else if varName != "" && rustType == "" {
 						out.WriteString("        let ")
 						out.WriteString(varName)

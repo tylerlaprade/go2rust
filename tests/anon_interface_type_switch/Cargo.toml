@@ -1,0 +1,8 @@
+[package]
+name = "anon_interface_type_switch"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "anon_interface_type_switch"
+path = "main.rs"

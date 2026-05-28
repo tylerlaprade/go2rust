@@ -3353,7 +3353,23 @@ func writeCurrentReceiverPointerComparison(out *strings.Builder, expr *ast.Binar
 	}
 	left, leftIsIdent := expr.X.(*ast.Ident)
 	right, rightIsIdent := expr.Y.(*ast.Ident)
-	if !(leftIsIdent && isCurrentReceiverIdent(left)) && !(rightIsIdent && isCurrentReceiverIdent(right)) {
+	leftIsReceiver := leftIsIdent && isCurrentReceiverIdent(left)
+	rightIsReceiver := rightIsIdent && isCurrentReceiverIdent(right)
+	if !leftIsReceiver && !rightIsReceiver {
+		return false
+	}
+	// This collapse models the Go pointer-identity `self == nil` / `self ==
+	// otherPtr` patterns, where the wrapped receiver is never None. It is only
+	// valid when the receiver is a pointer. A value receiver (e.g. a
+	// named-integer receiver `t == Add`) compared against a peer is a real
+	// value comparison and must fall through to the normal comparison lowering.
+	var receiverExpr ast.Expr
+	if leftIsReceiver {
+		receiverExpr = left
+	} else {
+		receiverExpr = right
+	}
+	if typeInfo := GetTypeInfo(); typeInfo == nil || !typeInfo.IsPointer(receiverExpr) {
 		return false
 	}
 	if expr.Op == token.EQL {
@@ -5962,6 +5978,52 @@ func isPackageSelectorBaseIdent(ident *ast.Ident) bool {
 	return isFallbackStdlib
 }
 
+// namedIntegerConstReceiverType reports the named-integer type of a method
+// receiver expression when that receiver is a *types.Const emitted as a raw
+// scalar (a current-package constant or a source-transpiled stdlib constant).
+// Such constants land in Rust as bare integers (e.g. `pub const ADD: i32 = 12`)
+// even though their Go type is a named integer with methods, so a method call
+// must reconstruct the newtype receiver instead of treating the scalar as a
+// wrapped handle. Stdlib-bridge stub constants already emit the newtype via the
+// stub generator and are intentionally excluded.
+func namedIntegerConstReceiverType(expr ast.Expr) (*types.Named, bool) {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return nil, false
+	}
+	var obj types.Object
+	switch e := expr.(type) {
+	case *ast.Ident:
+		obj = typeInfo.GetObject(e)
+	case *ast.SelectorExpr:
+		obj = typeInfo.GetObject(e.Sel)
+	default:
+		return nil, false
+	}
+	constObj, ok := obj.(*types.Const)
+	if !ok {
+		return nil, false
+	}
+	named, ok := types.Unalias(constObj.Type()).(*types.Named)
+	if !ok || named.Obj() == nil || !isNamedIntegerType(named) {
+		return nil, false
+	}
+	objPkg := named.Obj().Pkg()
+	if objPkg == nil {
+		return nil, false
+	}
+	// Current-package named integer constants emit as raw scalars.
+	if typeInfo.pkg != nil && objPkg == typeInfo.pkg {
+		return named, true
+	}
+	// Stdlib constants only emit as raw scalars when the package is
+	// source-transpiled; the bridge-stub path already produces the newtype.
+	if isStdlibPackage(objPkg.Path()) && isSourceMappedPackagePath(objPkg.Path()) {
+		return named, true
+	}
+	return nil, false
+}
+
 func methodCallNeedsMutableReceiver(sel *ast.SelectorExpr) bool {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil {
@@ -7992,6 +8054,10 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		if e.Type != nil {
 			if ifaceName, _, sourceType, candidates, ok := localInterfaceAssertionTarget(e); ok {
 				writeLocalInterfaceAssertionValue(out, e, ifaceName, sourceType, candidates)
+				return
+			}
+			if sourceType, candidates, ok := anonInterfaceAssertionTarget(e); ok {
+				writeAnonInterfaceAssertionValue(out, e, sourceType, candidates)
 				return
 			}
 			// Get the Rust type for the assertion
@@ -10293,6 +10359,93 @@ func writeLocalInterfaceAssertionWrappedNone(out *strings.Builder, ifaceName str
 	writeTypedWrappedNone(out, rustLocalInterfaceTraitObject(ifaceName))
 }
 
+// writeAnonInterfaceAssertionCommaOk lowers `x.(interface{...})` in comma-ok
+// position. The assertion target is an anonymous method-set interface with no
+// trait object, so a single matching concrete implementor is bound directly.
+// Zero or multiple implementors would require a synthesized trait object to
+// unify the success type, which is not supported yet, so it panics loudly.
+func writeAnonInterfaceAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr, sourceType types.Type, candidates []localInterfaceAssertionCandidate) {
+	if len(candidates) != 1 {
+		out.WriteString(fmt.Sprintf("unimplemented!(\"type info required: comma-ok assertion to anonymous interface with %d concrete implementors needs a synthesized trait object\")", len(candidates)))
+		return
+	}
+	usesTraitSource := localInterfaceAssertionUsesTraitSource(sourceType)
+	out.WriteString("({\n")
+	out.WriteString("        let val = ")
+	writeTypeAssertionInputClone(out, e.X)
+	out.WriteString(";\n")
+	out.WriteString("        let guard = val")
+	WriteBorrowMethod(out, false)
+	out.WriteString(";\n")
+	out.WriteString("        if let Some(ref any_val) = *guard {\n")
+	out.WriteString("            if let Some(typed_val) = ")
+	writeLocalInterfaceAssertionDowncast(out, usesTraitSource, candidates[0].rustType)
+	out.WriteString(" {\n")
+	out.WriteString("                (")
+	WriteWrapperPrefix(out)
+	out.WriteString("typed_val.clone()")
+	WriteWrapperSuffix(out)
+	out.WriteString(", ")
+	WriteWrapperPrefix(out)
+	out.WriteString("true")
+	WriteWrapperSuffix(out)
+	out.WriteString(")\n")
+	out.WriteString("            } else {\n")
+	out.WriteString("                (")
+	writeTypedWrappedNone(out, candidates[0].rustType)
+	out.WriteString(", ")
+	WriteWrapperPrefix(out)
+	out.WriteString("false")
+	WriteWrapperSuffix(out)
+	out.WriteString(")\n")
+	out.WriteString("            }\n")
+	out.WriteString("        } else {\n")
+	out.WriteString("            (")
+	writeTypedWrappedNone(out, candidates[0].rustType)
+	out.WriteString(", ")
+	WriteWrapperPrefix(out)
+	out.WriteString("false")
+	WriteWrapperSuffix(out)
+	out.WriteString(")\n")
+	out.WriteString("        }\n")
+	out.WriteString("    })")
+}
+
+// writeAnonInterfaceAssertionValue lowers `x.(interface{...})` in value
+// position (panicking on failure), binding the single matching concrete
+// implementor directly. See writeAnonInterfaceAssertionCommaOk for the
+// trait-object limitation on zero/multiple implementors.
+func writeAnonInterfaceAssertionValue(out *strings.Builder, e *ast.TypeAssertExpr, sourceType types.Type, candidates []localInterfaceAssertionCandidate) {
+	if len(candidates) != 1 {
+		out.WriteString(fmt.Sprintf("unimplemented!(\"type info required: assertion to anonymous interface with %d concrete implementors needs a synthesized trait object\")", len(candidates)))
+		return
+	}
+	usesTraitSource := localInterfaceAssertionUsesTraitSource(sourceType)
+	out.WriteString("({\n")
+	out.WriteString("        let val = ")
+	writeTypeAssertionInputClone(out, e.X)
+	out.WriteString(";\n")
+	out.WriteString("        let guard = val")
+	WriteBorrowMethod(out, false)
+	out.WriteString(";\n")
+	out.WriteString("        if let Some(ref any_val) = *guard {\n")
+	out.WriteString("            if let Some(typed_val) = ")
+	writeLocalInterfaceAssertionDowncast(out, usesTraitSource, candidates[0].rustType)
+	out.WriteString(" {\n")
+	out.WriteString("                ")
+	WriteWrapperPrefix(out)
+	out.WriteString("typed_val.clone()")
+	WriteWrapperSuffix(out)
+	out.WriteString("\n")
+	out.WriteString("            } else {\n")
+	out.WriteString("                panic!(\"type assertion failed\")\n")
+	out.WriteString("            }\n")
+	out.WriteString("        } else {\n")
+	out.WriteString("            panic!(\"type assertion on nil interface\")\n")
+	out.WriteString("        }\n")
+	out.WriteString("    })")
+}
+
 func writeLocalInterfaceAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr, ifaceName string, sourceType types.Type, candidates []localInterfaceAssertionCandidate) {
 	usesTraitSource := localInterfaceAssertionUsesTraitSource(sourceType)
 	out.WriteString("({\n")
@@ -10428,6 +10581,11 @@ func TranspileTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr) 
 		WriteWrapperSuffix(out)
 		out.WriteString(")\n")
 		out.WriteString("    })")
+		return
+	}
+
+	if sourceType, candidates, ok := anonInterfaceAssertionTarget(e); ok {
+		writeAnonInterfaceAssertionCommaOk(out, e, sourceType, candidates)
 		return
 	}
 
@@ -11209,6 +11367,27 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 		// Check what kind of receiver we have
 		needsUnwrap := false
 		closeReceiverBlock := false
+
+		// A named-integer constant receiver (current-package or
+		// source-transpiled stdlib) is emitted as a raw scalar, so calling a
+		// method on it requires reconstructing the newtype value first.
+		if named, ok := namedIntegerConstReceiverType(sel.X); ok {
+			if writeExpressionForExpectedTypesType(out, sel.X, named) {
+				out.WriteString(".")
+				out.WriteString(rustMethodSelectorName(sel))
+				out.WriteString("(")
+				if !writeMethodCallArguments(out, sel, call, IsExternalStdlibSelectorMethod(sel), methodCallUsesBareArguments(sel)) {
+					for i, arg := range call.Args {
+						if i > 0 {
+							out.WriteString(", ")
+						}
+						writeRegularMethodCallArgument(out, sel, arg, i)
+					}
+				}
+				out.WriteString(")")
+				return
+			}
+		}
 
 		// Check if the receiver is a simple identifier (local variable)
 		if ident, ok := sel.X.(*ast.Ident); ok {
