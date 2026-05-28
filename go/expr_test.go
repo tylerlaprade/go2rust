@@ -2950,6 +2950,34 @@ func f() { n++ }`, 0)
 	}
 }
 
+func TestPackageGlobalPointerEqualityUsesStoredHandle(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Type struct{}
+
+type MapType struct {
+	Key *Type
+}
+
+func makeType() *Type {
+	return &Type{}
+}
+
+var stringType = makeType()
+
+func same(tt *MapType) bool {
+	return tt.Key == stringType
+}
+`)
+
+	if strings.Contains(rust, "let __right = stringType.clone()") {
+		t.Fatalf("package-global pointer equality should not compare against the global slot handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __right = (*stringType.borrow().as_ref().unwrap()).clone()") {
+		t.Fatalf("package-global pointer equality should clone the pointer stored in the global:\n%s", rust)
+	}
+}
+
 func TestNoTypeInfoPackageGlobalMapIndexUsesSyntaxKind(t *testing.T) {
 	prevTypeInfo := currentTypeInfo
 	prevGlobals := packageGlobalNames

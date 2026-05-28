@@ -3272,8 +3272,15 @@ func writeCurrentReceiverPointerComparison(out *strings.Builder, expr *ast.Binar
 }
 
 func writePointerHandleExpression(out *strings.Builder, expr ast.Expr) {
-	switch expr.(type) {
-	case *ast.Ident, *ast.SelectorExpr:
+	switch e := expr.(type) {
+	case *ast.Ident:
+		if globalIdent, ok := packageGlobalPointerIdent(e); ok {
+			writePackageGlobalPointerHandleClone(out, globalIdent)
+			return
+		}
+		TranspileExpressionContext(out, expr, LValue)
+		out.WriteString(".clone()")
+	case *ast.SelectorExpr:
 		TranspileExpressionContext(out, expr, LValue)
 		out.WriteString(".clone()")
 	default:
