@@ -262,8 +262,12 @@ func compositeLiteralEmitsBareStructValue(lit *ast.CompositeLit) bool {
 	if typ == nil {
 		return false
 	}
-	_, ok := types.Unalias(typ).Underlying().(*types.Struct)
-	return ok
+	switch types.Unalias(typ).Underlying().(type) {
+	case *types.Struct, *types.Array:
+		return true
+	default:
+		return false
+	}
 }
 
 func writeArraySliceElementAssignmentValue(out *strings.Builder, rhs ast.Expr, expected types.Type) {

@@ -1102,6 +1102,22 @@ func parse(env string) {
 	}
 }
 
+func TestShortDeclFromSelectorNamedArrayCompositeLiteralRegistersBareLocal(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "hash/crc32"
+
+func f() {
+	table := crc32.Table{}
+	_ = table
+}
+`)
+
+	if strings.Contains(rust, "table.borrow()") || strings.Contains(rust, "table.lock()") {
+		t.Fatalf("selector named-array composite literal should register a bare local:\n%s", rust)
+	}
+}
+
 func TestRangeIndexReturnedFromBareScalarTupleSlotCastsToI32(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
