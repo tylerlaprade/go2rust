@@ -3136,6 +3136,33 @@ func writeUnsafePointerDerefNilComparison(out *strings.Builder, expr ast.Expr, o
 	return true
 }
 
+func writeUnsafePointerInterfaceDerefValue(out *strings.Builder, star *ast.StarExpr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || star == nil {
+		return false
+	}
+	call, ok := unwrapParens(star.X).(*ast.CallExpr)
+	if !ok || len(call.Args) != 1 || !typeInfo.IsTypeConversion(call) {
+		return false
+	}
+	if !isUnsafePointerLikeType(typeInfo.GetType(call.Args[0])) {
+		return false
+	}
+	valueType := typeInfo.GetType(star)
+	if valueType == nil {
+		out.WriteString("/* ERROR: Type information required for unsafe.Pointer interface dereference */ unimplemented!(\"type info required for unsafe.Pointer interface dereference\")")
+		return true
+	}
+	iface, ok := types.Unalias(valueType).Underlying().(*types.Interface)
+	if !ok || iface.NumMethods() == 0 {
+		return false
+	}
+	out.WriteString("unimplemented!(\"unsafe.Pointer conversion to ")
+	out.WriteString(goTypesTypeToRust(valueType))
+	out.WriteString("\")")
+	return true
+}
+
 func writeLocalInterfaceReferenceBinding(out *strings.Builder, name string, expr ast.Expr) (bare bool) {
 	if isBareLocalInterfaceValue(expr) {
 		out.WriteString("let ")
@@ -6666,6 +6693,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			}
 			if ident, ok := packageGlobalPointerIdent(e.X); ok {
 				writePackageGlobalPointerDerefRead(out, ident, e)
+				break
+			}
+			if writeUnsafePointerInterfaceDerefValue(out, e) {
 				break
 			}
 			out.WriteString("{ let __v = (*")

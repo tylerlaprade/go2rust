@@ -2237,6 +2237,25 @@ func load(slot unsafe.Pointer) unsafe.Pointer {
 	}
 }
 
+func TestUnsafePointerToAnonymousInterfaceDerefIsLoudUnsupported(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "unsafe"
+
+func load(slot unsafe.Pointer) any {
+	return *(*interface{ M() })(slot)
+}
+`)
+
+	if strings.Contains(rust, ".as_ref().unwrap()).clone().borrow()") ||
+		strings.Contains(rust, ".as_ref().unwrap()).clone().lock()") {
+		t.Fatalf("unsafe.Pointer interface dereference should not treat the pointer payload as a wrapped handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, `unimplemented!("unsafe.Pointer conversion to Box<dyn Any`) {
+		t.Fatalf("unsafe.Pointer interface dereference should fail loudly at the typed boundary:\n%s", rust)
+	}
+}
+
 func TestUnsafePointerDerefNilComparisonUsesPointerValue(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
