@@ -574,6 +574,39 @@ func widen(x complex64) complex128 {
 	}
 }
 
+func TestConcurrentComplexComparisonCastsZeroConstant(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+var done chan int
+
+func isZero(z complex128) bool {
+	return z == 0
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(main.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+	prevDetector := GetConcurrencyDetector()
+	detector := NewConcurrencyDetector()
+	detector.AnalyzeFile(file)
+	SetConcurrencyDetector(detector)
+	defer SetConcurrencyDetector(prevDetector)
+
+	rust, _, _ := Transpile(file, fset, typeInfo)
+
+	if strings.Contains(rust, "let __tmp_y = 0;") {
+		t.Fatalf("complex comparison should not leave an integer zero peer:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __tmp_y = num::Complex::<f64>::new(0.0, 0.0)") {
+		t.Fatalf("complex comparison should cast zero to the peer complex type:\n%s", rust)
+	}
+}
+
 func TestAppendLenToIntSliceCastsToGoInt(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

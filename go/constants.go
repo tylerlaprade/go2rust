@@ -270,27 +270,38 @@ func isByteLikeGoType(typ types.Type) bool {
 }
 
 func constExpressionInt64Value(expr ast.Expr) (int64, bool) {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || typeInfo.info == nil {
+	value, ok := constExpressionValue(expr)
+	if !ok {
 		return 0, false
 	}
+	return constant.Int64Val(value)
+}
+
+func constExpressionValue(expr ast.Expr) (constant.Value, bool) {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return nil, false
+	}
 	if tv, ok := typeInfo.info.Types[expr]; ok && tv.Value != nil {
-		return constant.Int64Val(tv.Value)
+		return tv.Value, true
 	}
 	if ident, ok := expr.(*ast.Ident); ok {
 		if obj, ok := typeInfo.GetObject(ident).(*types.Const); ok && obj.Val() != nil {
-			return constant.Int64Val(obj.Val())
+			return obj.Val(), true
 		}
 		if typeInfo.pkg != nil && typeInfo.pkg.Scope() != nil {
 			if obj, ok := typeInfo.pkg.Scope().Lookup(ident.Name).(*types.Const); ok && obj.Val() != nil {
-				return constant.Int64Val(obj.Val())
+				return obj.Val(), true
 			}
 		}
 	}
-	return 0, false
+	return nil, false
 }
 
 func writeConstExpressionForExpectedGoType(out *strings.Builder, value ast.Expr, expected types.Type) bool {
+	if writeConstZeroExpressionForExpectedComplex(out, value, expected) {
+		return true
+	}
 	if writeConstExpressionForExpectedNamedInteger(out, value, expected) {
 		return true
 	}
@@ -316,6 +327,34 @@ func writeConstExpressionForExpectedGoType(out *strings.Builder, value ast.Expr,
 	}
 	TranspileExpression(out, value)
 	out.WriteString(" as u8")
+	return true
+}
+
+func writeConstZeroExpressionForExpectedComplex(out *strings.Builder, value ast.Expr, expected types.Type) bool {
+	if !isConstantExpression(value) || expected == nil {
+		return false
+	}
+	basic, ok := types.Unalias(expected).(*types.Basic)
+	if !ok {
+		return false
+	}
+	componentRust := ""
+	switch basic.Kind() {
+	case types.Complex64:
+		componentRust = "f32"
+	case types.Complex128:
+		componentRust = "f64"
+	default:
+		return false
+	}
+	constValue, ok := constExpressionValue(value)
+	if !ok || constant.Sign(constValue) != 0 {
+		return false
+	}
+	TrackImport("num::Complex")
+	out.WriteString("num::Complex::<")
+	out.WriteString(componentRust)
+	out.WriteString(">::new(0.0, 0.0)")
 	return true
 }
 
