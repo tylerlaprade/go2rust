@@ -1312,3 +1312,27 @@ func main() {
 		t.Fatalf("named-integer const bitwise OR should emit bare i32 operands:\n%s", mainRust)
 	}
 }
+
+func TestMethodReceiverShadowShortDeclUsesLocalIdent(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type thing struct {
+	n int
+}
+
+func (t *thing) value(items []*thing) int {
+	for _, scan := range items {
+		t := scan
+		return t.n
+	}
+	return 0
+}
+`)
+
+	if strings.Contains(rust, "let mut self") {
+		t.Fatalf("short declaration shadowing the receiver should not bind Rust self:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let mut t") {
+		t.Fatalf("short declaration shadowing the receiver should keep the local identifier:\n%s", rust)
+	}
+}

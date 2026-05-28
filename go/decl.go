@@ -3927,7 +3927,7 @@ func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, a
 	if fn.Recv != nil && len(fn.Recv.List) > 0 {
 		recv := fn.Recv.List[0]
 		if len(recv.Names) > 0 {
-			currentReceiver = recv.Names[0].Name
+			setCurrentReceiverFromIdent(recv.Names[0])
 		}
 		// Store the receiver type
 		currentReceiverType = getReceiverType(recv.Type)
@@ -3949,7 +3949,7 @@ func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, a
 		recv := fn.Recv.List[0]
 		// Store the receiver name for self translation
 		if len(recv.Names) > 0 {
-			currentReceiver = recv.Names[0].Name
+			setCurrentReceiverFromIdent(recv.Names[0])
 		}
 
 		if forceSharedReceiver {
@@ -4052,6 +4052,7 @@ func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, a
 		out.WriteString("        unimplemented!(\"Go method declaration has no body\");\n")
 		out.WriteString("    }\n")
 		currentReceiver = ""
+		currentReceiverObject = nil
 		return
 	}
 	writeAssignedInterfaceParamShadows(out, fn, "        ")
@@ -4081,4 +4082,13 @@ func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, a
 
 	// Clear the receiver name
 	currentReceiver = ""
+	currentReceiverObject = nil
+}
+
+func setCurrentReceiverFromIdent(ident *ast.Ident) {
+	currentReceiver = ident.Name
+	currentReceiverObject = nil
+	if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.info != nil {
+		currentReceiverObject = typeInfo.info.Defs[ident]
+	}
 }

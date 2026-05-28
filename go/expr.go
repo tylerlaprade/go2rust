@@ -107,7 +107,7 @@ func writeNamedIntegerPrimitiveExpression(out *strings.Builder, expr ast.Expr) b
 		TranspileExpression(out, expr)
 		return true
 	}
-	if ident, ok := expr.(*ast.Ident); ok && currentReceiver != "" && ident.Name == currentReceiver && currentReceiverScalarTypeDefinition() {
+	if ident, ok := expr.(*ast.Ident); ok && isCurrentReceiverIdent(ident) && currentReceiverScalarTypeDefinition() {
 		TranspileExpression(out, expr)
 		return true
 	}
@@ -800,7 +800,7 @@ func argsReferenceCurrentReceiver(args []ast.Expr) bool {
 			if found || node == nil {
 				return false
 			}
-			if ident, ok := node.(*ast.Ident); ok && ident.Name == currentReceiver {
+			if ident, ok := node.(*ast.Ident); ok && isCurrentReceiverIdent(ident) {
 				found = true
 				return false
 			}
@@ -818,7 +818,7 @@ func writeCurrentReceiverPointerMethodCallWithArgTemps(out *strings.Builder, sel
 		return false
 	}
 	ident, ok := sel.X.(*ast.Ident)
-	if !ok || ident.Name != currentReceiver {
+	if !ok || !isCurrentReceiverIdent(ident) {
 		return false
 	}
 	typeInfo := GetTypeInfo()
@@ -1229,12 +1229,12 @@ func writeNamedSliceInnerHandleClone(out *strings.Builder, expr ast.Expr) bool {
 		return false
 	}
 	inner := unwrapParens(expr)
-	if ident, ok := inner.(*ast.Ident); ok && currentReceiver != "" && ident.Name == currentReceiver {
+	if ident, ok := inner.(*ast.Ident); ok && isCurrentReceiverIdent(ident) {
 		out.WriteString("self.0.clone()")
 		return true
 	}
 	if star, ok := inner.(*ast.StarExpr); ok {
-		if ident, ok := unwrapParens(star.X).(*ast.Ident); ok && currentReceiver != "" && ident.Name == currentReceiver {
+		if ident, ok := unwrapParens(star.X).(*ast.Ident); ok && isCurrentReceiverIdent(ident) {
 			out.WriteString("self.0.clone()")
 			return true
 		}
@@ -1284,7 +1284,7 @@ func writeNamedMapInnerHandleClone(out *strings.Builder, expr ast.Expr) bool {
 		return false
 	}
 	inner := unwrapParens(expr)
-	if ident, ok := inner.(*ast.Ident); ok && currentReceiver != "" && ident.Name == currentReceiver {
+	if ident, ok := inner.(*ast.Ident); ok && isCurrentReceiverIdent(ident) {
 		if currentCaptureRenames != nil {
 			if renamed, exists := currentCaptureRenames[ident.Name]; exists {
 				out.WriteString(RustLocalIdent(renamed))
@@ -1296,7 +1296,7 @@ func writeNamedMapInnerHandleClone(out *strings.Builder, expr ast.Expr) bool {
 		return true
 	}
 	if star, ok := inner.(*ast.StarExpr); ok {
-		if ident, ok := unwrapParens(star.X).(*ast.Ident); ok && currentReceiver != "" && ident.Name == currentReceiver {
+		if ident, ok := unwrapParens(star.X).(*ast.Ident); ok && isCurrentReceiverIdent(ident) {
 			if currentCaptureRenames != nil {
 				if renamed, exists := currentCaptureRenames[ident.Name]; exists {
 					out.WriteString(RustLocalIdent(renamed))
@@ -1550,7 +1550,7 @@ func writeCallArgumentValue(out *strings.Builder, arg ast.Expr) bool {
 	if ident.Name == "_" || ident.Name == "nil" || ident.Name == "true" || ident.Name == "false" {
 		return false
 	}
-	if currentReceiver != "" && ident.Name == currentReceiver {
+	if isCurrentReceiverIdent(ident) {
 		if writeCurrentReceiverValueClone(out, ident) {
 			return true
 		}
@@ -1844,7 +1844,7 @@ func rustIdentForUseWithCapture(ident *ast.Ident) string {
 			return RustLocalIdent(renamed)
 		}
 	}
-	if currentReceiver != "" && ident.Name == currentReceiver {
+	if isCurrentReceiverIdent(ident) {
 		if _, _, ok := namedSliceTypeForExpr(ident); ok {
 			return "self.0"
 		}
@@ -1900,7 +1900,7 @@ func writeExternalStubCallArguments(out *strings.Builder, call *ast.CallExpr) bo
 func writeAlreadyWrappedCallArgument(out *strings.Builder, arg ast.Expr) bool {
 	if unary, ok := arg.(*ast.UnaryExpr); ok && unary.Op == token.AND {
 		if ident, ok := unary.X.(*ast.Ident); ok && ident.Name != "_" && ident.Name != "nil" {
-			if currentReceiver != "" && ident.Name == currentReceiver {
+			if isCurrentReceiverIdent(ident) {
 				return false
 			}
 			typeInfo := GetTypeInfo()
@@ -1923,7 +1923,7 @@ func writeAlreadyWrappedCallArgument(out *strings.Builder, arg ast.Expr) bool {
 			out.WriteString(".clone()")
 			return true
 		}
-		if currentReceiver != "" && ident.Name == currentReceiver {
+		if isCurrentReceiverIdent(ident) {
 			return false
 		}
 		if typeInfo != nil {
@@ -2026,7 +2026,7 @@ func writePointerHandleCallArgument(out *strings.Builder, arg ast.Expr, expected
 		if writeOwnedRangeValue(out, e) {
 			return true
 		}
-		if currentReceiver != "" && e.Name == currentReceiver {
+		if isCurrentReceiverIdent(e) {
 			WriteWrapperPrefix(out)
 			out.WriteString("self.clone()")
 			WriteWrapperSuffix(out)
@@ -2288,7 +2288,7 @@ func writeLocalInterfaceWrappedConstructionInnerValue(out *strings.Builder, arg 
 		}
 	}
 	if ident, ok := arg.(*ast.Ident); ok {
-		if currentReceiver != "" && ident.Name == currentReceiver {
+		if isCurrentReceiverIdent(ident) {
 			out.WriteString("(*self).clone()")
 			return
 		}
@@ -3173,7 +3173,7 @@ func writeCurrentReceiverPointerComparison(out *strings.Builder, expr *ast.Binar
 	}
 	left, leftIsIdent := expr.X.(*ast.Ident)
 	right, rightIsIdent := expr.Y.(*ast.Ident)
-	if !(leftIsIdent && left.Name == currentReceiver) && !(rightIsIdent && right.Name == currentReceiver) {
+	if !(leftIsIdent && isCurrentReceiverIdent(left)) && !(rightIsIdent && isCurrentReceiverIdent(right)) {
 		return false
 	}
 	if expr.Op == token.EQL {
@@ -3275,7 +3275,7 @@ func writeIdentValueClone(out *strings.Builder, ident *ast.Ident) {
 	if writeCurrentReceiverValueClone(out, ident) {
 		return
 	}
-	if ident != nil && currentReceiver != "" && ident.Name == currentReceiver {
+	if isCurrentReceiverIdent(ident) {
 		out.WriteString("self.clone()")
 		return
 	}
@@ -3292,7 +3292,7 @@ func writeIdentValueClone(out *strings.Builder, ident *ast.Ident) {
 }
 
 func writeCurrentReceiverValueClone(out *strings.Builder, ident *ast.Ident) bool {
-	if ident == nil || currentReceiver == "" || ident.Name != currentReceiver {
+	if !isCurrentReceiverIdent(ident) {
 		return false
 	}
 	if !currentReceiverScalarTypeDefinition() {
@@ -3306,7 +3306,7 @@ func writeCurrentReceiverValueClone(out *strings.Builder, ident *ast.Ident) bool
 
 func writeCurrentReceiverDerefRead(out *strings.Builder, expr ast.Expr, target ast.Expr) bool {
 	ident, ok := target.(*ast.Ident)
-	if !ok || currentReceiver == "" || ident.Name != currentReceiver {
+	if !ok || !isCurrentReceiverIdent(ident) {
 		return false
 	}
 	if expressionNeedsGoValueClone(expr) {
@@ -3331,6 +3331,26 @@ func currentReceiverScalarTypeDefinition() bool {
 	default:
 		return false
 	}
+}
+
+func isCurrentReceiverIdent(ident *ast.Ident) bool {
+	if ident == nil || currentReceiver == "" || ident.Name != currentReceiver {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return true
+	}
+	if obj := typeInfo.info.Defs[ident]; obj != nil {
+		return false
+	}
+	if currentReceiverObject == nil {
+		return true
+	}
+	if obj := typeInfo.info.Uses[ident]; obj != nil {
+		return obj == currentReceiverObject
+	}
+	return true
 }
 
 func isCloneableNonPointerExpr(expr ast.Expr) bool {
@@ -3581,7 +3601,7 @@ func selectorRValueReturnsWrappedHandle(expr ast.Expr) bool {
 		return false
 	}
 	ident, ok := sel.X.(*ast.Ident)
-	return ok && ident.Name == currentReceiver
+	return ok && isCurrentReceiverIdent(ident)
 }
 
 func compositeLiteralElementType(expr *ast.CompositeLit) types.Type {
@@ -4443,7 +4463,7 @@ func selectorFieldValueKeepsHandle(typ types.Type) bool {
 
 func writeCurrentReceiverPointerFieldValue(out *strings.Builder, value ast.Expr, fieldExpr ast.Expr, fieldType types.Type) bool {
 	ident, ok := value.(*ast.Ident)
-	if !ok || currentReceiver == "" || ident.Name != currentReceiver {
+	if !ok || !isCurrentReceiverIdent(ident) {
 		return false
 	}
 	typeInfo := GetTypeInfo()
@@ -5037,7 +5057,7 @@ func writeMapKeyForExpectedType(out *strings.Builder, key ast.Expr, keyType type
 	if _, ok := types.Unalias(named.Underlying()).(*types.Basic); !ok {
 		return false
 	}
-	if ident, ok := key.(*ast.Ident); ok && currentReceiver != "" && ident.Name == currentReceiver {
+	if ident, ok := key.(*ast.Ident); ok && isCurrentReceiverIdent(ident) {
 		out.WriteString("self.clone()")
 		return true
 	}
@@ -5269,7 +5289,7 @@ func writeOwnedMapKeyExpression(out *strings.Builder, expr ast.Expr) bool {
 		if writeOwnedRangeValue(out, ident) {
 			return true
 		}
-		if (currentReceiver == "" || ident.Name != currentReceiver) && !isCopyTypeExpression(expr) && writeOwnedExpressionValue(out, ident) {
+		if !isCurrentReceiverIdent(ident) && !isCopyTypeExpression(expr) && writeOwnedExpressionValue(out, ident) {
 			return true
 		}
 	}
@@ -5475,7 +5495,7 @@ func expressionNeedsGoValueClone(expr ast.Expr) bool {
 }
 
 func writeIdentExpression(out *strings.Builder, e *ast.Ident, ctx ExprContext, varName string) {
-	if currentReceiver != "" && e.Name == currentReceiver {
+	if isCurrentReceiverIdent(e) {
 		// Named type receivers (e.g. `(cmap CommentMap)` where CommentMap is
 		// `map[Node][]*CommentGroup` or a named slice) need access to the
 		// inner Arc handle, not a bare ident lookup. For non-named-type
@@ -5762,7 +5782,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		if currentCaptureRenames != nil {
 			if renamed, exists := currentCaptureRenames[identName]; exists {
 				varName = RustLocalIdent(renamed)
-				if currentReceiver != "" && identName == currentReceiver {
+				if isCurrentReceiverIdent(e) {
 					renamedReceiver = varName
 				}
 			}
@@ -5772,7 +5792,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			out.WriteString("None")
 			return
 		}
-		if currentReceiver != "" && identName == currentReceiver {
+		if isCurrentReceiverIdent(e) {
 			if renamedReceiver != "" {
 				out.WriteString(renamedReceiver)
 				return
@@ -5869,7 +5889,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			}
 		} else if ident, ok := e.X.(*ast.Ident); ok {
 			// Field access on a variable
-			if currentReceiver != "" && ident.Name == currentReceiver {
+			if isCurrentReceiverIdent(ident) {
 				// Field access on method receiver - use self directly unless a moved closure captured it.
 				receiverName := "self"
 				if currentCaptureRenames != nil {
@@ -6438,7 +6458,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			}
 
 			// Check if left side is the receiver (self)
-			if leftIdent, ok := e.X.(*ast.Ident); ok && currentReceiver != "" && leftIdent.Name == currentReceiver {
+			if leftIdent, ok := e.X.(*ast.Ident); ok && isCurrentReceiverIdent(leftIdent) {
 				// Receiver nil check - this is a Go pattern that doesn't translate well
 				// In Rust, methods can't be called on None values
 				// We'll generate a false condition since self is never None in a method
@@ -8596,7 +8616,7 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 		// Default string conversion
 		WriteWrapperPrefix(out)
 		if ident, ok := arg.(*ast.Ident); ok && ident.Name != "nil" {
-			if currentReceiver != "" && ident.Name == currentReceiver {
+			if isCurrentReceiverIdent(ident) {
 				TranspileExpression(out, ident)
 				out.WriteString(".to_string()")
 			} else if _, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar {
@@ -9279,7 +9299,7 @@ func writeNumericConversionValue(out *strings.Builder, arg ast.Expr) {
 			writeExternalIntegerTupleField(out, argType)
 			return
 		}
-		if currentReceiver != "" && ident.Name == currentReceiver && currentReceiverScalarTypeDefinition() {
+		if isCurrentReceiverIdent(ident) && currentReceiverScalarTypeDefinition() {
 			TranspileExpression(out, ident)
 			writeExternalIntegerTupleField(out, argType)
 			return
@@ -9377,7 +9397,7 @@ func writeUnsafePointerConversion(out *strings.Builder, arg ast.Expr) {
 	}
 	if typeInfo.IsPointer(arg) {
 		if ident, ok := arg.(*ast.Ident); ok && ident.Name != "nil" {
-			if currentReceiver != "" && ident.Name == currentReceiver {
+			if isCurrentReceiverIdent(ident) {
 				out.WriteString("self as *const _ as usize")
 				WriteWrapperSuffix(out)
 				return
@@ -10646,7 +10666,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 			if wrote, shouldClose := writePackageGlobalIdentMethodReceiver(out, ident, sel); wrote {
 				// Package-global pointer receiver handled above.
 				closeReceiverBlock = shouldClose
-			} else if currentReceiver != "" && ident.Name == currentReceiver {
+			} else if isCurrentReceiverIdent(ident) {
 				if currentCaptureRenames != nil {
 					if renamed, exists := currentCaptureRenames[ident.Name]; exists {
 						out.WriteString(RustLocalIdent(renamed))
@@ -10849,7 +10869,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 			// Likely a closure variable - need to unwrap and call
 			// Check if this variable has been renamed (captured in closure)
 			varName := RustIdentForUse(ident)
-			if currentReceiver != "" && ident.Name == currentReceiver {
+			if isCurrentReceiverIdent(ident) {
 				varName = "self"
 			}
 			if currentCaptureRenames != nil {
@@ -11216,7 +11236,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 					}
 				}
 
-				if currentReceiver != "" && ident.Name == currentReceiver && currentReceiverScalarTypeDefinition() {
+				if isCurrentReceiverIdent(ident) && currentReceiverScalarTypeDefinition() {
 					WriteWrapperPrefix(out)
 					out.WriteString("self.clone()")
 					WriteWrapperSuffix(out)

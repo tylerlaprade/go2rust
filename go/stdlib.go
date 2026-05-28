@@ -426,7 +426,7 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 		// Check if it's a pointer to a struct - Go prints "&{...}" for these
 		if ptr, ok := argType.(*types.Pointer); ok {
 			if _, ok := ptr.Elem().Underlying().(*types.Struct); ok {
-				if ident, ok := arg.(*ast.Ident); ok && currentReceiver != "" && ident.Name == currentReceiver {
+				if ident, ok := arg.(*ast.Ident); ok && isCurrentReceiverIdent(ident) {
 					// Avoid recursing into our own Display impl by formatting
 					// the receiver as a pointer address.
 					out.WriteString("format!(\"{:p}\", self)")
@@ -489,7 +489,7 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 
 	// Check if this is a field access on self (already wrapped)
 	if sel, ok := arg.(*ast.SelectorExpr); ok {
-		if ident, ok := sel.X.(*ast.Ident); ok && currentReceiver != "" && ident.Name == currentReceiver {
+		if ident, ok := sel.X.(*ast.Ident); ok && isCurrentReceiverIdent(ident) {
 			// self.field - need to unwrap for display, resolving promoted fields
 			fieldInfo := resolveFieldAccess(currentReceiverType, sel.Sel.Name)
 			if fieldInfo.IsPromoted && len(fieldInfo.EmbeddedPath) > 0 {
@@ -811,7 +811,7 @@ func transpileFormatPointerArg(out *strings.Builder, arg ast.Expr) {
 	}
 
 	if ident, ok := arg.(*ast.Ident); ok {
-		if currentReceiver != "" && ident.Name == currentReceiver {
+		if isCurrentReceiverIdent(ident) {
 			out.WriteString("self")
 			return
 		}
@@ -1219,7 +1219,7 @@ func fmtFprintfTargetIsBareReceiver(expr ast.Expr) bool {
 	if !ok {
 		return false
 	}
-	return currentReceiver != "" && ident.Name == currentReceiver
+	return isCurrentReceiverIdent(ident)
 }
 
 func formatSliceArgumentIsBareValue(arg ast.Expr) bool {
@@ -1355,7 +1355,7 @@ func writeNoTypeInfoSelectorCollectionPrintArg(out *strings.Builder, sel *ast.Se
 func syntaxSelectorFieldType(sel *ast.SelectorExpr) (ast.Expr, bool) {
 	structType, ok := syntaxStructTypeNameForSelectorBase(sel.X)
 	if !ok {
-		if ident, identOK := sel.X.(*ast.Ident); identOK && currentReceiver != "" && ident.Name == currentReceiver {
+		if ident, identOK := sel.X.(*ast.Ident); identOK && isCurrentReceiverIdent(ident) {
 			structType = currentReceiverType
 			ok = true
 		}

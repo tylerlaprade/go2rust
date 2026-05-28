@@ -28,6 +28,11 @@ var localInterfaces = make(map[string]bool)
 // currentReceiver tracks the current method receiver name for self translation
 var currentReceiver string
 
+// currentReceiverObject tracks the go/types object for the current method
+// receiver. Locals can legally shadow the receiver name, so name matching alone
+// is not sufficient when type information is available.
+var currentReceiverObject types.Object
+
 // currentReceiverType tracks the type of the current method receiver
 var currentReceiverType string
 

@@ -564,7 +564,7 @@ func (ti *TypeInfo) NeedsUnwrapping(expr ast.Expr) bool {
 		// by the SelectorExpr handler in RValue context.
 		// Only self/receiver field accesses need extra unwrapping (they just clone).
 		if ident, ok := e.X.(*ast.Ident); ok {
-			if currentReceiver != "" && ident.Name == currentReceiver {
+			if isCurrentReceiverIdent(ident) {
 				return true // self.field.clone() is still wrapped
 			}
 			// Check if it's a package selector (not a field access)

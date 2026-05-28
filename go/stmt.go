@@ -1250,7 +1250,7 @@ func writeFunctionTypeAliasWrappedReturn(out *strings.Builder, result ast.Expr, 
 	out.WriteString(ifaceName)
 	out.WriteString("(")
 	if ident, ok := result.(*ast.Ident); ok {
-		if currentReceiver != "" && ident.Name == currentReceiver {
+		if isCurrentReceiverIdent(ident) {
 			out.WriteString("self.clone()")
 		} else {
 			out.WriteString(RustIdentForUse(ident))
@@ -1361,7 +1361,7 @@ func writeLocalInterfaceConcreteReturnConversion(out *strings.Builder, result as
 }
 
 func writeCurrentReceiverStorage(out *strings.Builder, ident *ast.Ident) bool {
-	if ident == nil || currentReceiver == "" || ident.Name != currentReceiver {
+	if !isCurrentReceiverIdent(ident) {
 		return false
 	}
 	if _, isTypeDef := LookupTypeDefinition(currentReceiverType); !isTypeDef {
@@ -1574,7 +1574,7 @@ func isUnsafePointerDerefAssignmentTarget(expr ast.Expr) bool {
 
 func writeCurrentReceiverDerefAssignment(out *strings.Builder, star *ast.StarExpr, rhs ast.Expr) bool {
 	ident, ok := star.X.(*ast.Ident)
-	if !ok || currentReceiver == "" || ident.Name != currentReceiver {
+	if !ok || !isCurrentReceiverIdent(ident) {
 		return false
 	}
 	typeInfo := GetTypeInfo()
@@ -3272,7 +3272,7 @@ func selectorBaseSyntaxTypeName(expr ast.Expr) (string, bool) {
 	if !ok {
 		return "", false
 	}
-	if currentReceiver != "" && ident.Name == currentReceiver && currentReceiverType != "" {
+	if isCurrentReceiverIdent(ident) && currentReceiverType != "" {
 		return currentReceiverType, true
 	}
 	if vt := GetVarTable(); vt != nil {
@@ -3672,7 +3672,7 @@ func writePointerHandleSelectorTarget(out *strings.Builder, sel *ast.SelectorExp
 	fieldInfo := selectorFieldAccessInfo(sel)
 
 	if ident, ok := sel.X.(*ast.Ident); ok {
-		if currentReceiver != "" && ident.Name == currentReceiver {
+		if isCurrentReceiverIdent(ident) {
 			baseName := "self"
 			if currentCaptureRenames != nil {
 				if renamed, exists := currentCaptureRenames[ident.Name]; exists {
@@ -5620,7 +5620,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						}
 						if isFunctionSignatureExpression(result) && writeFunctionValueHandle(out, result) {
 							// Function selector values are represented by cloneable handles or boxed method values.
-						} else if ident, ok := sel.X.(*ast.Ident); ok && currentReceiver != "" && ident.Name == currentReceiver {
+						} else if ident, ok := sel.X.(*ast.Ident); ok && isCurrentReceiverIdent(ident) {
 							// Returning self.field - just clone it, don't double-wrap
 							out.WriteString("self.")
 							out.WriteString(ToSnakeCase(sel.Sel.Name))
@@ -5715,7 +5715,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						// Function literal - already wrapped by TranspileFuncLit
 						TranspileExpression(out, result)
 					} else if ident, ok := result.(*ast.Ident); ok {
-						if currentReceiver != "" && ident.Name == currentReceiver {
+						if isCurrentReceiverIdent(ident) {
 							if writeStdlibInterfaceCallArgumentConversion(out, ident, expectedTypeFromParamExpr(returnResultTypeExpr(fnType, i))) {
 								continue
 							}

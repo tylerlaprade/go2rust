@@ -570,6 +570,7 @@ func transpileParsedRegression(t *testing.T, file *ast.File, fset *token.FileSet
 	prevLocalConstants := localConstants
 	prevRangeLoopVars := rangeLoopVars
 	prevCurrentReceiver := currentReceiver
+	prevCurrentReceiverObject := currentReceiverObject
 	prevCurrentReceiverType := currentReceiverType
 	prevCurrentTypeMethods := currentTypeMethods
 	prevHasInitFunction := hasInitFunction
@@ -590,6 +591,7 @@ func transpileParsedRegression(t *testing.T, file *ast.File, fset *token.FileSet
 		localConstants = prevLocalConstants
 		rangeLoopVars = prevRangeLoopVars
 		currentReceiver = prevCurrentReceiver
+		currentReceiverObject = prevCurrentReceiverObject
 		currentReceiverType = prevCurrentReceiverType
 		currentTypeMethods = prevCurrentTypeMethods
 		hasInitFunction = prevHasInitFunction
