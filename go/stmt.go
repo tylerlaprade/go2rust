@@ -4047,6 +4047,13 @@ func writePointerHandleSelectorTarget(out *strings.Builder, sel *ast.SelectorExp
 			}
 		}
 
+		if isSliceElemPtrVar(ident.Name) {
+			out.WriteString("(*")
+			writeSliceElemPtrBorrow(out, ident, true)
+			out.WriteString(".as_mut().unwrap()).")
+			out.WriteString(fieldInfo.FieldName)
+			return true
+		}
 		if fieldInfo.IsPromoted {
 			writePromotedHandleAssignmentTarget(out, baseName, fieldInfo, needsUnwrap)
 			return true

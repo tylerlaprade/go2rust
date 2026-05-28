@@ -161,6 +161,30 @@ func read(fields []field, i int) bool {
 	}
 }
 
+func TestSliceElemPointerPointerFieldAssignmentMutatesElement(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+type typ struct{}
+
+type runtimeSelect struct {
+	typ *typ
+}
+
+func assign(cases []runtimeSelect, i int, typ *typ) {
+	rc := &cases[i]
+	rc.typ = typ
+}
+`)
+
+	if strings.Contains(rust, "(*rc.borrow_mut().as_mut().unwrap()).typ") ||
+		strings.Contains(rust, "(*rc.lock().unwrap().as_mut().unwrap()).typ") {
+		t.Fatalf("slice element pointer field assignment should not treat the pointer variable as a wrapped slot:\n%s", rust)
+	}
+	if !strings.Contains(rust, "(*rc.as_ref().unwrap().borrow_mut().as_mut().unwrap()).typ = new_val") {
+		t.Fatalf("slice element pointer field assignment should mutate the borrowed element field:\n%s", rust)
+	}
+}
+
 func TestSliceElemPointerDerefNilStoresPointerHandle(t *testing.T) {
 	rust := transpileTypedSliceElemPtrRegression(t, `package main
 
