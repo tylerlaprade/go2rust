@@ -15,6 +15,25 @@ func TestGoTypesTypeToRustMapsUnsafePointer(t *testing.T) {
 	}
 }
 
+func TestGoTypesTypeToRustMapsComplexBasics(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		typ  types.Type
+		want string
+	}{
+		{"complex64", types.Typ[types.Complex64], "num::Complex<f32>"},
+		{"complex128", types.Typ[types.Complex128], "num::Complex<f64>"},
+		{"untyped complex", types.Typ[types.UntypedComplex], "num::Complex<f64>"},
+	} {
+		if got := goTypesTypeToRust(tc.typ); got != tc.want {
+			t.Fatalf("goTypesTypeToRust(%s) = %q, want %q", tc.name, got, tc.want)
+		}
+		if got := goTypesReturnTypeToRust(tc.typ); strings.Contains(got, "unknown basic type") {
+			t.Fatalf("goTypesReturnTypeToRust(%s) should not emit an unknown basic type: %q", tc.name, got)
+		}
+	}
+}
+
 func TestGoTypesTypeToRustUsesAnyForUnnamedInterfaces(t *testing.T) {
 	method := types.NewFunc(
 		token.NoPos,

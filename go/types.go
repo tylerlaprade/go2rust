@@ -1109,6 +1109,15 @@ func goTypesTypeToRust(t types.Type) string {
 			return "f64"
 		case types.UntypedFloat:
 			return "f64"
+		case types.Complex64:
+			TrackImport("num::Complex")
+			return "num::Complex<f32>"
+		case types.Complex128:
+			TrackImport("num::Complex")
+			return "num::Complex<f64>"
+		case types.UntypedComplex:
+			TrackImport("num::Complex")
+			return "num::Complex<f64>"
 		case types.Bool:
 			return "bool"
 		case types.UntypedBool:
