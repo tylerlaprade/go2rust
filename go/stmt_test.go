@@ -919,6 +919,33 @@ func caller() int {
 	}
 }
 
+func TestSliceTypeAssertionAssignmentStoresAssertedSliceInHandle(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Type struct{}
+
+func load(v any) []*Type {
+	var rts []*Type
+	if v != nil {
+		rts = v.([]*Type)
+	}
+	return rts
+}
+`)
+
+	if !strings.Contains(rust, "downcast_ref::<Vec<Rc<RefCell<Option<Type>>>>>()") &&
+		!strings.Contains(rust, "downcast_ref::<Vec<Arc<Mutex<Option<Type>>>>>()") {
+		t.Fatalf("slice type assertion should assert the bare slice value:\n%s", rust)
+	}
+	if strings.Contains(rust, "rts = new_val;") {
+		t.Fatalf("slice type assertion assignment should not replace the slice handle with a bare Vec:\n%s", rust)
+	}
+	if !strings.Contains(rust, "*rts.borrow_mut() = Some(new_val);") &&
+		!strings.Contains(rust, "*rts.lock().unwrap() = Some(new_val);") {
+		t.Fatalf("slice type assertion assignment should store the asserted Vec in the existing handle:\n%s", rust)
+	}
+}
+
 func TestUnsafePointerDerefNilAssignmentIsLoudUnsupported(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

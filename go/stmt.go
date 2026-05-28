@@ -2111,6 +2111,9 @@ func writeSliceHandleAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr
 	if typeInfo == nil || !isPlainSliceExpression(lhs) || !isPlainSliceExpression(rhs) {
 		return false
 	}
+	if !sliceAssignmentRHSReturnsHandle(rhs) {
+		return false
+	}
 	if ident, ok := lhs.(*ast.Ident); ok && isPackageGlobalIdent(ident) {
 		return false
 	}
@@ -2131,6 +2134,15 @@ func writeSliceHandleAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr
 	writePointerHandleAssignmentTarget(out, lhs)
 	out.WriteString(" = new_val; }")
 	return true
+}
+
+func sliceAssignmentRHSReturnsHandle(rhs ast.Expr) bool {
+	switch rhs.(type) {
+	case *ast.TypeAssertExpr:
+		return false
+	default:
+		return true
+	}
 }
 
 func isPlainSliceExpression(expr ast.Expr) bool {
