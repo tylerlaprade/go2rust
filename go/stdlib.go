@@ -4168,26 +4168,43 @@ func transpileCopy(out *strings.Builder, call *ast.CallExpr) {
 
 		out.WriteString("{ let _src = ")
 		writeCopySourceValue(out, call.Args[1], srcIsString)
-		out.WriteString("; let _n = std::cmp::min((")
-		TranspileExpression(out, call.Args[0])
-		out.WriteString(").len(), _src.len()); for _i in 0.._n { ")
-		// Destination needs mutable borrow for assignment
-		if ident, ok := call.Args[0].(*ast.Ident); ok {
-			out.WriteString("(*")
-			out.WriteString(ident.Name)
-			WriteBorrowMethod(out, true)
-			out.WriteString(".as_mut().unwrap())")
-		} else {
-			out.WriteString("(*")
-			TranspileExpression(out, call.Args[0])
-			out.WriteString(")")
-		}
+		out.WriteString("; let _n = std::cmp::min(")
+		writeCopyDestination(out, call.Args[0], false)
+		out.WriteString(".len(), _src.len()); for _i in 0.._n { ")
+		// Destination needs mutable borrow for assignment.
+		writeCopyDestination(out, call.Args[0], true)
 		out.WriteString("[_i] = _src[_i].clone(); } ")
 		WriteWrapperPrefix(out)
 		out.WriteString("_n as i32")
 		WriteWrapperSuffix(out)
 		out.WriteString(" }")
 	}
+}
+
+// writeCopyDestination emits the unwrapped slice place for a copy() destination
+// that is not itself a slice expression (a bare variable or a struct field). The
+// destination of copy() is a wrapped slice handle in our model, so both the
+// length term and the per-element assignment must reach through the wrapper to
+// the inner Vec. Using TranspileExpressionContext(LValue) yields the handle
+// without cloning, so the mutable borrow writes into the live slice rather than
+// a discarded temporary (the prior else-branch cloned field selectors, silently
+// dropping the copy).
+func writeCopyDestination(out *strings.Builder, dst ast.Expr, mutable bool) {
+	typeInfo := GetTypeInfo()
+	if typeInfo != nil && typeInfo.IsSlice(dst) && !isExpressionResultBare(dst) {
+		out.WriteString("(*")
+		TranspileExpressionContext(out, dst, LValue)
+		WriteBorrowMethod(out, mutable)
+		if mutable {
+			out.WriteString(".as_mut().unwrap())")
+		} else {
+			out.WriteString(".as_ref().unwrap())")
+		}
+		return
+	}
+	out.WriteString("(")
+	TranspileExpression(out, dst)
+	out.WriteString(")")
 }
 
 func writeCopySourceValue(out *strings.Builder, expr ast.Expr, isString bool) {

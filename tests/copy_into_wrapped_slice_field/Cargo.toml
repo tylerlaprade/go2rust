@@ -1,0 +1,8 @@
+[package]
+name = "copy_into_wrapped_slice_field"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "copy_into_wrapped_slice_field"
+path = "main.rs"
