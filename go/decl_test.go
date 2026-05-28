@@ -203,6 +203,23 @@ func Identity[T any](x T) T {
 	}
 }
 
+func TestGenericUnionTypeParamParameterUsesTypeParam(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func Keep[N int64 | uint64](num N) N {
+	return num
+}
+`)
+
+	want := "pub fn keep<N>(num: Rc<RefCell<Option<N>>>) -> Rc<RefCell<Option<N>>>"
+	if !strings.Contains(rust, want) {
+		t.Fatalf("generic union-constrained parameter should preserve the type parameter in the signature, want %q:\n%s", want, rust)
+	}
+	if strings.Contains(rust, "num: Rc<RefCell<Option<i64>>>") {
+		t.Fatalf("generic union-constrained parameter should not lower to the first constraint term:\n%s", rust)
+	}
+}
+
 func TestStructDefaultWrapsNamedArrayFieldZeroValue(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

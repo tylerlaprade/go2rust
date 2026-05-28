@@ -606,7 +606,11 @@ func goTypeToRustBase(expr ast.Expr) string {
 		default:
 			typeInfo := GetTypeInfo()
 			if typeInfo != nil {
-				if rustType, ok := goTypeParamConstraintToRust(typeInfo.GetType(t)); ok {
+				typ := typeInfo.GetType(t)
+				if rustType, ok := goTypeParamNameToRust(typ); ok {
+					return rustType
+				}
+				if rustType, ok := goTypeParamConstraintToRust(typ); ok {
 					return rustType
 				}
 			}
