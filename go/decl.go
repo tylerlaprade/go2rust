@@ -1400,6 +1400,63 @@ func writeEmbeddedTraitObjectMethod(out *strings.Builder, name string, sig *type
 	out.WriteString("    }\n")
 }
 
+func writeLocalInterfaceForwardMethodFromTypes(out *strings.Builder, method *types.Func) {
+	if method == nil {
+		return
+	}
+	sig, ok := method.Type().(*types.Signature)
+	if !ok {
+		return
+	}
+	out.WriteString("    fn ")
+	out.WriteString(ToSnakeCase(method.Name()))
+	out.WriteString("(&self")
+	params := sig.Params()
+	argNames := make([]string, 0, params.Len())
+	for j := 0; j < params.Len(); j++ {
+		param := params.At(j)
+		paramName := param.Name()
+		if paramName == "" {
+			paramName = fmt.Sprintf("__arg%d", j)
+		}
+		paramName = RustLocalIdent(paramName)
+		argNames = append(argNames, paramName)
+		out.WriteString(", ")
+		out.WriteString(paramName)
+		out.WriteString(": ")
+		out.WriteString(goTypesParamTypeToRust(param.Type()))
+	}
+	out.WriteString(")")
+	res := sig.Results()
+	switch res.Len() {
+	case 0:
+	case 1:
+		out.WriteString(" -> ")
+		out.WriteString(goTypesReturnTypeToRust(res.At(0).Type()))
+	default:
+		out.WriteString(" -> (")
+		for j := 0; j < res.Len(); j++ {
+			if j > 0 {
+				out.WriteString(", ")
+			}
+			out.WriteString(goTypesReturnTypeToRust(res.At(j).Type()))
+		}
+		out.WriteString(")")
+	}
+	out.WriteString(" {\n")
+	out.WriteString("        self.")
+	out.WriteString(rustMethodNameForTypesFunc(method))
+	out.WriteString("(")
+	for j, argName := range argNames {
+		if j > 0 {
+			out.WriteString(", ")
+		}
+		out.WriteString(argName)
+	}
+	out.WriteString(")\n")
+	out.WriteString("    }\n")
+}
+
 func interfaceParamVarInfo(typeExpr ast.Expr) (*VarInfo, bool) {
 	interfaceName, ok := transpiledNamedInterfaceTypeNameFromExpr(typeExpr)
 	if !ok {
@@ -2293,15 +2350,22 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 
 				// Add other parameters
 				if funcType.Params != nil && len(funcType.Params.List) > 0 {
+					paramIndex := 0
 					for _, param := range funcType.Params.List {
-						out.WriteString(", ")
-						for j, name := range param.Names {
-							if j > 0 {
-								out.WriteString(", ")
-							}
+						if len(param.Names) == 0 {
+							out.WriteString(", ")
+							out.WriteString(RustLocalIdent(fmt.Sprintf("__arg%d", paramIndex)))
+							out.WriteString(": ")
+							out.WriteString(GoTypeToRustParam(param.Type))
+							paramIndex++
+							continue
+						}
+						for _, name := range param.Names {
+							out.WriteString(", ")
 							out.WriteString(RustLocalIdent(name.Name))
 							out.WriteString(": ")
 							out.WriteString(GoTypeToRustParam(param.Type))
+							paramIndex++
 						}
 					}
 				}

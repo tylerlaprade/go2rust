@@ -817,6 +817,42 @@ func typeMethodsImplementTypesInterface(typeMethods []*ast.FuncDecl, iface *type
 	return true
 }
 
+func currentPackageNamedType(typeName string) (*types.Named, bool) {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.pkg == nil || typeInfo.pkg.Scope() == nil {
+		return nil, false
+	}
+	obj, ok := typeInfo.pkg.Scope().Lookup(typeName).(*types.TypeName)
+	if !ok {
+		return nil, false
+	}
+	named, ok := types.Unalias(obj.Type()).(*types.Named)
+	return named, ok
+}
+
+func currentPackageTypeImplementsInterface(typeName string, iface *types.Interface) bool {
+	named, ok := currentPackageNamedType(typeName)
+	if !ok || iface == nil {
+		return false
+	}
+	iface.Complete()
+	if types.Implements(named, iface) {
+		return true
+	}
+	return types.Implements(types.NewPointer(named), iface)
+}
+
+func explicitInterfaceMethods(iface *types.Interface) []*types.Func {
+	if iface == nil {
+		return nil
+	}
+	methods := make([]*types.Func, 0, iface.NumExplicitMethods())
+	for i := 0; i < iface.NumExplicitMethods(); i++ {
+		methods = append(methods, iface.ExplicitMethod(i))
+	}
+	return methods
+}
+
 func methodDeclByName(typeMethods []*ast.FuncDecl, name string) *ast.FuncDecl {
 	for _, method := range typeMethods {
 		if method.Name.Name == name {
@@ -1766,35 +1802,27 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 		slices.Sort(ifaceNames)
 
 		for _, ifaceName := range ifaceNames {
-			ifaceType := interfaces[ifaceName]
-			if implementsInterface(methods[typeName], ifaceType) {
-				body.WriteString("\n\n")
-				body.WriteString("impl ")
-				body.WriteString(ifaceName)
-				body.WriteString(" for ")
-				body.WriteString(rustTypeName)
-				body.WriteString(" {\n")
-
-				// Generate trait method implementations for directly-declared
-				// methods only. Methods inherited from embedded named local
-				// interfaces are provided by the supertrait's impl block —
-				// duplicating them here would create method-resolution
-				// ambiguity.
-				for _, method := range ifaceType.Methods.List {
-					if len(method.Names) > 0 {
-						methodName := method.Names[0].Name
-						for _, impl := range methods[typeName] {
-							if impl.Name.Name == methodName {
-								TranspileTraitMethodImpl(&body, impl, fileSet, file.Comments)
-								break
-							}
-						}
-					}
-				}
-
-				writeLocalInterfaceSupportImpl(&body, ifaceName, typeName, localInterfaceTypesByName(ifaceName))
-				body.WriteString("}")
+			ifaceType := localInterfaceTypesByName(ifaceName)
+			if !currentPackageTypeImplementsInterface(typeName, ifaceType) {
+				continue
 			}
+			body.WriteString("\n\n")
+			body.WriteString("impl ")
+			body.WriteString(ifaceName)
+			body.WriteString(" for ")
+			body.WriteString(rustTypeName)
+			body.WriteString(" {\n")
+
+			// Generate trait method implementations for directly-declared
+			// methods only. Methods inherited from embedded named local
+			// interfaces are provided by the supertrait's impl block —
+			// duplicating them here would create method-resolution ambiguity.
+			for _, method := range explicitInterfaceMethods(ifaceType) {
+				writeLocalInterfaceForwardMethodFromTypes(&body, method)
+			}
+
+			writeLocalInterfaceSupportImpl(&body, ifaceName, typeName, ifaceType)
+			body.WriteString("}")
 		}
 
 		var importedIfaceNames []string

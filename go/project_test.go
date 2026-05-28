@@ -1580,6 +1580,62 @@ func main() {
 	}
 }
 
+func TestCrossFileInterfaceImplUsesPackageMethodSet(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "defs.go"), `package main
+
+type Node interface {
+	A() int
+	B() int
+}
+
+type item struct{}
+
+func (item) A() int {
+	return 1
+}
+
+func Box(v item) Node {
+	return v
+}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "methods.go"), `package main
+
+func (item) B() int {
+	return 2
+}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+func main() {
+}
+`)
+
+	generator := NewProjectGenerator([]string{
+		filepath.Join(tempDir, "defs.go"),
+		filepath.Join(tempDir, "methods.go"),
+		filepath.Join(tempDir, "main.go"),
+	})
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	defsRS := mustReadFile(t, filepath.Join(tempDir, "defs.rs"))
+	if !strings.Contains(defsRS, "impl Node for item") {
+		t.Fatalf("interface impl should use package-wide methods, including sibling-file methods:\n%s", defsRS)
+	}
+	if !strings.Contains(defsRS, "fn b(&self) -> i32") {
+		t.Fatalf("interface impl should include sibling-file method in the trait impl:\n%s", defsRS)
+	}
+	if !strings.Contains(defsRS, "self.b()") {
+		t.Fatalf("interface impl should delegate to the inherent sibling-file method:\n%s", defsRS)
+	}
+}
+
 func TestAppendPointerReturnKeepsHandle(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod

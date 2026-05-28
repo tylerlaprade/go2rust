@@ -186,6 +186,22 @@ func VisitAll[N Node](list []N) {
 	}
 }
 
+func TestInterfaceMethodSignatureNamesUnnamedParams(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Node interface {
+	Method(int) int
+}
+`)
+
+	if strings.Contains(rust, "fn method(&self)") {
+		t.Fatalf("interface method with unnamed parameter should not omit the parameter:\n%s", rust)
+	}
+	if !strings.Contains(rust, "fn method(&self, __arg0: Rc<RefCell<Option<i32>>>)") {
+		t.Fatalf("interface method with unnamed parameter should get a synthetic Rust name:\n%s", rust)
+	}
+}
+
 func TestGenericAnyTypeParamReturnUsesTypeParam(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

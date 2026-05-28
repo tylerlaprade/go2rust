@@ -117,6 +117,20 @@ func rustMethodName(fn *ast.FuncDecl) string {
 	return RustFunctionName(fn.Name.Name)
 }
 
+func rustMethodNameForTypesFunc(fn *types.Func) string {
+	if fn == nil {
+		return ""
+	}
+	if packageMethodNameOverrides != nil {
+		if key := methodOverrideKey(fn); key != "" {
+			if name, ok := packageMethodNameOverrides[key]; ok {
+				return name
+			}
+		}
+	}
+	return RustFunctionName(fn.Name())
+}
+
 func rustMethodSelectorName(sel *ast.SelectorExpr) string {
 	typeInfo := GetTypeInfo()
 	if typeInfo != nil && typeInfo.info != nil {
