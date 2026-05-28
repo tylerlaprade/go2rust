@@ -412,7 +412,7 @@ func RegisterExternalInterfaceMethodsForSource(source types.Type, iface *types.I
 	}
 }
 
-func collectExternalPromotedMethods(structDef *StructDef, existing map[string]bool) []externalPromotedMethod {
+func collectExternalPromotedMethods(structDef *StructDef, existingRustNames map[string]bool) []externalPromotedMethod {
 	if structDef == nil || structDef.ASTType == nil {
 		return nil
 	}
@@ -435,7 +435,8 @@ func collectExternalPromotedMethods(structDef *StructDef, existing map[string]bo
 				continue
 			}
 			methodName := fn.Name()
-			if existing[methodName] {
+			rustMethodName := ToSnakeCase(methodName)
+			if existingRustNames[rustMethodName] {
 				continue
 			}
 			sig, ok := fn.Type().(*types.Signature)
@@ -443,12 +444,11 @@ func collectExternalPromotedMethods(structDef *StructDef, existing map[string]bo
 				continue
 			}
 
-			rustMethodName := ToSnakeCase(methodName)
 			stubBacked := isStubBackedStdlibPackagePath(named.Obj().Pkg().Path())
 			if stubBacked {
 				RegisterExternalTypeStubMethod(rustTypeName, rustMethodName, sig)
 			}
-			existing[methodName] = true
+			existingRustNames[rustMethodName] = true
 			promoted = append(promoted, externalPromotedMethod{
 				EmbeddedFieldName: ToSnakeCase(getEmbeddedFieldName(field.Type)),
 				MethodName:        methodName,

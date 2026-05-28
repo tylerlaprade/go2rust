@@ -1634,8 +1634,10 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 		// Generate promoted methods from embedded types
 		if structDef, exists := structDefs[typeName]; exists && declaredTypeNames[typeName] {
 			existingMethodNames := make(map[string]bool)
+			existingRustMethodNames := make(map[string]bool)
 			for _, ownMethod := range typeMethods {
 				existingMethodNames[ownMethod.Name.Name] = true
+				existingRustMethodNames[rustMethodName(ownMethod)] = true
 			}
 
 			// Collect all methods that should be promoted (including from nested embeds)
@@ -1656,18 +1658,20 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 			for _, methodName := range promotedMethodNames {
 				methodInfo := promotedMethods[methodName]
 				// Check if this method is already defined by the outer type (shadowing)
-				if !existingMethodNames[methodName] {
+				methodRustName := rustMethodName(methodInfo.method)
+				if !existingMethodNames[methodName] && !existingRustMethodNames[methodRustName] {
 					// Generate a forwarding method
 					if methodCount > 0 {
 						body.WriteString("\n")
 					}
 					generatePromotedMethod(&body, methodInfo.method, methodInfo.embeddedType)
 					existingMethodNames[methodName] = true
+					existingRustMethodNames[methodRustName] = true
 					methodCount++
 				}
 			}
 
-			for _, promotedMethod := range collectExternalPromotedMethods(structDef, existingMethodNames) {
+			for _, promotedMethod := range collectExternalPromotedMethods(structDef, existingRustMethodNames) {
 				if methodCount > 0 {
 					body.WriteString("\n")
 				}

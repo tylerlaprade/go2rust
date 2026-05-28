@@ -483,6 +483,42 @@ func TestGeneratePromotedMethodKeepsReadOnlyPointerReceiverShared(t *testing.T) 
 	}
 }
 
+func TestPromotedMethodRustNameCollisionDoesNotDuplicateImpl(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+type Inner struct{}
+
+func (Inner) Common() int { return 1 }
+
+type Outer struct {
+	Inner
+}
+
+func (Outer) common() int { return 2 }
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile() error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := Transpile(file, fset, typeInfo)
+	implIndex := strings.LastIndex(rust, "impl Outer {")
+	if implIndex < 0 {
+		t.Fatalf("generated Rust did not contain impl Outer:\n%s", rust)
+	}
+	outerImpl := rust[implIndex:]
+	if nextImpl := strings.Index(outerImpl[len("impl Outer {"):], "\nimpl "); nextImpl >= 0 {
+		outerImpl = outerImpl[:len("impl Outer {")+nextImpl]
+	}
+	if count := strings.Count(outerImpl, "pub fn common(&self)"); count != 1 {
+		t.Fatalf("promoted method Rust-name collision should not duplicate common in impl Outer, got %d:\n%s", count, rust)
+	}
+}
+
 func TestGeneratePromotedMethodKeepsMutatingPointerReceiverMutable(t *testing.T) {
 	method := &ast.FuncDecl{
 		Name: ast.NewIdent("Set"),
