@@ -1088,3 +1088,64 @@ func run() {
 		t.Fatalf("channel send should unwrap the wrapped bool returned by a method call:\n%s", rust)
 	}
 }
+
+// Coverage matrix for the named-type-const short-circuit at
+// `writeExpressionForExpectedTypesType` (`go/expr.go`). Each case differs in
+// where the named-type constant comes from; the four variants together pin
+// the three iterations of behavior tweaks (commits 36b814b5, ce74f893,
+// d9405f00) so future tweaks fail loudly.
+
+func TestNamedTypeConstReturnLocalConst(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Kind int
+
+const Field Kind = 1
+
+func get() Kind {
+	return Field
+}
+`)
+
+	// Local typed constants are emitted as bare i32. The return slot is
+	// `Rc<RefCell<Option<Kind>>>`, so the const must be wrapped in
+	// `Kind(...)` newtype to match.
+	if strings.Contains(rust, "Some(FIELD)") || strings.Contains(rust, "Some(Field)") {
+		t.Fatalf("local typed const return must construct the named type, not assign bare:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Some(Kind(") {
+		t.Fatalf("local typed const return should wrap into the named newtype:\n%s", rust)
+	}
+}
+
+// Cross-package coverage lives in the `tests/package_named_const_argument/`
+// fixture, which exercises a user-package constant arg through the full
+// transpile pipeline. The in-memory helper here can't load
+// `example.com/<pkg>` paths, so we rely on the fixture for that variant.
+
+func TestNamedTypeConstReturnStdlibStubConst(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "go/types"
+
+func chanDir() types.ChanDir {
+	return types.SendRecv
+}
+`)
+
+	// Stdlib-stub-qualified constants of the same named type are emitted
+	// by the external stub generator with the named Rust type
+	// (`types::SEND_RECV: types_ChanDir`). They don't need the constructor
+	// + as-int rewrap.
+	chanDirIdx := strings.Index(rust, "pub fn chan_dir")
+	if chanDirIdx < 0 {
+		t.Fatalf("expected chan_dir function in output:\n%s", rust)
+	}
+	chanDirRust := rust[chanDirIdx:]
+	if strings.Contains(chanDirRust, "Some(types_ChanDir(") {
+		t.Fatalf("stdlib stub const already typed as the named type should not be re-wrapped inside chan_dir:\n%s", chanDirRust)
+	}
+	if !strings.Contains(chanDirRust, "Some(types::SEND_RECV)") {
+		t.Fatalf("stdlib stub const should be assigned directly into the wrapped slot:\n%s", chanDirRust)
+	}
+}
