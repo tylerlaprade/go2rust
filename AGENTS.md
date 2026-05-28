@@ -143,10 +143,12 @@ Self-transpiling is not the first validation step. Start with a focused fixture 
 #### Hard rules
 
 1. **Default action when self-host hits a stdlib gap: transpile, not bridge.** Vendor the Go source (or the relevant subset) and run it through `go2rust` like any other Go package. The gap that prevents transpilation is the bug to fix — it gets a focused fixture under `tests/XFAIL/<name>/` per Operating Rules.
-2. **Bridge growth is a regression.** Each session's expectation is that `go/external_type_stubs.go` either shrinks or holds steady. Adding lines, adding new `// TEMPORARY:` shims, or extending an existing one without retiring another is a regression that must be justified in the commit message — naming the milestone it unblocks and the planned removal trigger.
+2. **Bridge growth is a regression — and so is bridge stasis with no shim moving toward retirement.** Adding lines, adding a new `// TEMPORARY:` shim, or extending an existing one without retiring another is a regression that must be justified in the commit message — naming the milestone it unblocks and the planned removal trigger. But "held the bridge flat" is *not* progress and does not satisfy this rule. A flat shim count with no package being driven toward compiling is the loophole that lets the `go/types` core — the actual self-hosting blocker — sit untouched indefinitely. The bar each session is forward motion on the **active target package** (rule 6), measured as a strictly lower transpiled-source error count than the last commit that touched it, or a shim retired outright. No-regression is the floor; it is not the goal.
 3. **Every `// TEMPORARY:` shim MUST have a registry row in [`docs/bridge_debt.md`](docs/bridge_debt.md).** The row names the Go stdlib symbol, the transpiler gap that blocks the real fix, and a fixture path under `tests/XFAIL/` that demonstrates the gap. The Go test `TestBridgeDebtRegistryCoversAllShims` (in `go/external_type_stubs_test.go`) enforces this and will fail CI if a `// TEMPORARY:` is added without a matching row.
 4. **Shims MUST panic loudly on every unsupported code path.** No `Default::default()`, no `types_Type::default()`, no `String::new()` returns to fill in for missing behavior, no MACHINERY helper that synthesizes an empty value for a method whose Go counterpart has real semantics. A bridge that returns plausible-but-wrong values is structurally the same bug as the 2026 fallback incident, one layer deeper.
 5. **A shim is removable in one commit once the transpiler can produce the same output.** If a shim can't be deleted without a multi-commit refactor, it has grown past scaffold and the next session must shrink it.
+6. **One stdlib package is the active target at a time, opted into the pipeline, until it compiles clean and its shim retires.** The bridge-debt registry ([`docs/bridge_debt.md`](docs/bridge_debt.md)) is the authoritative list of still-shimmed packages; `path/filepath` already proved the pipeline end-to-end (`tests/source_stdlib_path_filepath_isabs/`). Pick the lowest-difficulty shimmed package, add its `source_stdlib_packages` opt-in fixture under `tests/XFAIL/`, and drive its `--cargo-check` error count to zero — each session strictly lower than the last, with both the old and new counts in the commit message (git history is the ledger; do **not** record running counts in this doc). At zero, `./test.sh` auto-promotes the fixture and the matching shim plus its registry row retire in the same commit. Only then advance to the next package. `go/types` is the terminal, hardest target; every other package is a step toward making it transpilable. Creating and burning down these fixtures is the required cadence, not an aspiration.
+7. **A package that is genuinely not transpilable yet is a committed decision, not a silent stall.** If the active target cannot be driven to zero this session — a transpiler gap needs a multi-session architecture change — the honest outcome is a commit that (a) captures the specific blocking gap as its own `tests/XFAIL/` fixture and (b) leaves the shim panicking loudly per rule 4. A documented, loud, panic-on-gap bridge is acceptable indefinitely; a quiet plausible-but-wrong one never is. Reverting toward soft-default bridging to manufacture apparent progress is the 2026 fallback incident again, one layer deeper.
 
 #### Checklist before editing `go/external_type_stubs.go`
 
@@ -166,7 +168,7 @@ The first three steps must be tried genuinely. "I considered transpiling but it'
 - Bridges that return soft defaults silently synthesize type facts — exactly what "Type Info Is Authoritative" forbids.
 - The bridge approach scales linearly with stdlib surface area; the transpile approach scales with transpiler completeness, which the project needs anyway to claim self-hosting for non-trivial Go.
 - Every hour spent on the bridge is an hour not spent making the transpiler complete enough to handle real Go.
-- The bridge has grown ~860 lines and 8 `// TEMPORARY:` scaffolds in the two weeks ending 2026-05-27 with zero removals. That trajectory is the canonical "drifting into Rust port of Go stdlib" pattern this rule exists to stop.
+- The bridge once grew ~860 lines with new `// TEMPORARY:` scaffolds and zero removals over a two-week stretch — the May 2026 trigger for these rules. That trajectory, *and* the "held flat, never shrank" stall that tends to follow it, is the "drifting into a Rust port of Go stdlib" pattern these rules exist to stop.
 
 #### Infrastructure for transpile-instead
 
@@ -179,18 +181,17 @@ The pipeline exists and is opt-in per import path:
   stub. Supports `all`, `std`, and `<prefix>/...` patterns.
 - Fixtures opt-in via `.go2rust.toml` with a `source_stdlib_packages = "..."` line; `tests.bats` reads it and passes the flag.
 - The loader (`go/package_loader.go` — `shouldTranspileStdlibPackage`, `collectAllPackages`) and the transpile context (`isSourceMappedPackagePath` in `go/context.go`) keep bridge stub registration off for opted-in packages and generate a `vendor/<rust_crate>/lib.rs` instead.
-- A demo fixture lives at `tests/XFAIL/source_stdlib_path_filepath_isabs/` (currently XFAIL — see below).
+- The first package through this pipeline is `path/filepath`: `tests/source_stdlib_path_filepath_isabs/` transpiles it from source and **passes**. It is the proof the pipeline produces compiling, behavior-correct Rust from real stdlib source — and the template for every remaining package on the punch list.
 
-**The remaining blocker is not infrastructure; it is transpiler completeness.** When the pipeline runs on a real stdlib package today, the produced Rust does not compile. Counts measured 2026-05-27 on the system Go 1.24 stdlib:
+**The remaining blocker is not infrastructure; it is transpiler completeness.** `path/filepath` now transpiles and runs; the rest of the punch list still produces Rust that does not compile. Illustrative `--cargo-check` error counts on the system Go 1.24 stdlib (re-run the pipeline for current numbers — these are not a checkpoint):
 
-- `errors` — 38 errors, 34 warnings
-- `path` — 11 errors
-- `go/token` — 19 errors
-- `path/filepath` — 106 errors, 152 warnings
+- `errors` — ~38 errors
+- `path` — ~11 errors
+- `go/token` — ~19 errors
 
-These are real transpiler gaps (wrapped-type arithmetic, generics handling, type inference on wrapped values, missing trait derives on wrapped types) that surface on stdlib shape and don't show up in the narrower fixture corpus. Each is a focused fixture target under `tests/XFAIL/` in its own right.
+These are real transpiler gaps (wrapped-type arithmetic, generics handling, type inference on wrapped values, missing trait derives on wrapped types) that surface on stdlib shape and don't show up in the narrower fixture corpus. Each is a focused fixture target under `tests/XFAIL/` per rule 6.
 
-**This makes the highest-leverage work item now "close transpiler gaps in transpiled stdlib output," not "build pipeline." Each closed gap moves a stdlib package closer to compiling clean; once a package compiles, the matching bridge shim retires (`./test.sh` auto-promotes XFAIL → passing, and the registry row drops).**
+**So the work is not "build pipeline" (built) and not "hold the bridge flat" (a stall) — it is "drive the active target package to zero `--cargo-check` errors so its shim retires," per rule 6. Each closed gap moves a package closer to compiling clean; each compiled package drops a shim and its registry row (`./test.sh` auto-promotes XFAIL → passing). Progress is measured in shims retired and target-package errors burned down, never in the bridge line count holding steady.**
 
 ### Triage Principles
 

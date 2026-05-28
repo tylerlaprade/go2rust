@@ -45,19 +45,21 @@ commit both together. The test will fail if you remove one without the other.
 the stdlib source and routes calls to the resulting `vendor/<crate>/`
 module instead of the bridge.
 
-The actual blocker for retiring most rows below is that **the
-transpiler doesn't yet produce compiling Rust from real stdlib source.**
-Sample counts on system Go 1.24:
+`path/filepath` has gone all the way through this pipeline:
+`tests/source_stdlib_path_filepath_isabs/` transpiles it from source
+and passes. The actual blocker for retiring most rows below is that
+**the transpiler doesn't yet produce compiling Rust from the rest of
+the real stdlib source.** Illustrative `--cargo-check` counts on system
+Go 1.24 (re-run the pipeline for current numbers):
 
-- `errors` — 38 errors
-- `path` — 11 errors
-- `go/token` — 19 errors
-- `path/filepath` — 106 errors
+- `errors` — ~38 errors
+- `path` — ~11 errors
+- `go/token` — ~19 errors
 
 Each error class (wrapped-type arithmetic, generics handling, type
-inference on wrapped values) is a focused fixture target. The XFAIL
-demo `tests/XFAIL/source_stdlib_path_filepath_isabs/` exercises the
-pipeline end-to-end and will auto-promote when the gaps close.
+inference on wrapped values) is a focused fixture target. Per AGENTS.md
+rule 6, one such package is the active target at a time, opted into the
+pipeline and driven to zero errors until its shim retires here.
 
 When a stdlib package compiles clean through the pipeline, retiring its
 row is mechanical: drop the matching `writeXxxStub` from
