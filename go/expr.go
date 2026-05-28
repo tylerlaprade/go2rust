@@ -3105,6 +3105,37 @@ func writeSelectorNilComparison(out *strings.Builder, expr ast.Expr, op token.To
 	return true
 }
 
+func writeUnsafePointerDerefNilComparison(out *strings.Builder, expr ast.Expr, op token.Token) bool {
+	if op != token.EQL && op != token.NEQ {
+		return false
+	}
+	star, ok := unwrapParens(expr).(*ast.StarExpr)
+	if !ok {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	if !isUnsafePointerLikeType(typeInfo.GetType(star)) {
+		return false
+	}
+	ptr, ok := types.Unalias(typeInfo.GetType(star.X)).Underlying().(*types.Pointer)
+	if !ok || !isUnsafePointerLikeType(ptr.Elem()) {
+		return false
+	}
+	out.WriteString("{ let __nil_ptr = ")
+	TranspileExpression(out, star)
+	out.WriteString("; __nil_ptr ")
+	if op == token.EQL {
+		out.WriteString("==")
+	} else {
+		out.WriteString("!=")
+	}
+	out.WriteString(" 0 }")
+	return true
+}
+
 func writeLocalInterfaceReferenceBinding(out *strings.Builder, name string, expr ast.Expr) (bare bool) {
 	if isBareLocalInterfaceValue(expr) {
 		out.WriteString("let ")
@@ -6675,6 +6706,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				return
 			}
 			if writeBareStdlibInterfaceNilComparison(out, e.X, e.Op) {
+				return
+			}
+			if writeUnsafePointerDerefNilComparison(out, e.X, e.Op) {
 				return
 			}
 			if leftIdent, ok := packageGlobalPointerIdent(e.X); ok {

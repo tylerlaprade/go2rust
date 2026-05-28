@@ -2157,6 +2157,25 @@ func load(slot unsafe.Pointer) unsafe.Pointer {
 	}
 }
 
+func TestUnsafePointerDerefNilComparisonUsesPointerValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "unsafe"
+
+func nilWord(slot unsafe.Pointer) bool {
+	return *(*unsafe.Pointer)(slot) == nil
+}
+`)
+
+	if strings.Contains(rust, ".as_mut().unwrap()).borrow()") ||
+		strings.Contains(rust, ".as_mut().unwrap()).lock()") {
+		t.Fatalf("unsafe.Pointer deref nil comparison should not borrow after extracting the pointer value:\n%s", rust)
+	}
+	if !strings.Contains(rust, "== 0") {
+		t.Fatalf("unsafe.Pointer deref nil comparison should compare the loaded pointer value to zero:\n%s", rust)
+	}
+}
+
 func TestUnsafePointerSelectorFieldUsesPointerHandle(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
