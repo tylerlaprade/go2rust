@@ -8753,7 +8753,7 @@ func writePointerTypeConversionFromUnsafePointer(out *strings.Builder, target as
 	trackWrapperImports()
 	if NeedsConcurrentWrapper() {
 		out.WriteString("Arc::new(Mutex::new({ let __ptr = ")
-		TranspileExpression(out, source)
+		writeUnsafePointerConversionSource(out, source)
 		out.WriteString("; let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<")
 		out.WriteString(targetType)
 		out.WriteString(">(")
@@ -8762,12 +8762,22 @@ func writePointerTypeConversionFromUnsafePointer(out *strings.Builder, target as
 		return
 	}
 	out.WriteString("Rc::new(RefCell::new({ let __ptr = ")
-	TranspileExpression(out, source)
+	writeUnsafePointerConversionSource(out, source)
 	out.WriteString("; let __ptr_guard = __ptr.borrow(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<")
 	out.WriteString(targetType)
 	out.WriteString(">(")
 	writeUnsafePointerConversionUnsupported(out, targetType)
 	out.WriteString(") } }))")
+}
+
+func writeUnsafePointerConversionSource(out *strings.Builder, source ast.Expr) {
+	typeInfo := GetTypeInfo()
+	if typeInfo != nil && source != nil && isUnsafePointerLikeType(typeInfo.GetType(source)) {
+		TranspileExpressionContext(out, source, LValue)
+		out.WriteString(".clone()")
+		return
+	}
+	TranspileExpression(out, source)
 }
 
 func writeUnsafePointerConversionUnsupported(out *strings.Builder, targetType string) {

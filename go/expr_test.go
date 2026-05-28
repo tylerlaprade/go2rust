@@ -1489,6 +1489,24 @@ func directoryAt(dir unsafe.Pointer, i uintptr) *table {
 	}
 }
 
+func TestUnsafePointerToPointerConversionKeepsSourceHandle(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "unsafe"
+
+func load(slot unsafe.Pointer) unsafe.Pointer {
+	return *((*unsafe.Pointer)(slot))
+}
+`)
+
+	if strings.Contains(rust, "let __ptr = { let __v = (*slot.borrow().as_ref().unwrap()).clone(); __v }; let __ptr_guard = __ptr.borrow()") {
+		t.Fatalf("unsafe.Pointer to pointer conversion should not unwrap the source handle before nil check:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __ptr = slot.clone(); let __ptr_guard = __ptr.borrow()") {
+		t.Fatalf("unsafe.Pointer to pointer conversion should borrow the wrapped source handle:\n%s", rust)
+	}
+}
+
 func TestUnsafePointerSelectorFieldUsesPointerHandle(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
