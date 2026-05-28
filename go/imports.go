@@ -122,6 +122,7 @@ type HelperTracker struct {
 	needsFormatNestedSlice          bool
 	needsFormatAny                  bool
 	needsFormatAnySlice             bool
+	needsAnyEq                      bool
 	needsGoChannel                  bool
 	needsWaitGroup                  bool
 	needsGoMutex                    bool
@@ -198,6 +199,10 @@ func (ht *HelperTracker) GenerateHelpers() string {
 
 	if ht.needsFormatAnySlice {
 		generateAnySliceFormatter(&result)
+	}
+
+	if ht.needsAnyEq {
+		generateAnyEquality(&result)
 	}
 
 	if ht.needsGoChannel {
@@ -313,6 +318,7 @@ func (ht *HelperTracker) HasAny() bool {
 		ht.needsFormatSlice ||
 		ht.needsFormatAny ||
 		ht.needsFormatAnySlice ||
+		ht.needsAnyEq ||
 		ht.needsGoChannel ||
 		ht.needsWaitGroup ||
 		ht.needsGoMutex ||
@@ -425,6 +431,9 @@ func (ht *HelperTracker) ImportNames() []string {
 	}
 	if ht.needsFormatAnySlice {
 		add("format_any_slice")
+	}
+	if ht.needsAnyEq {
+		add("go_any_eq")
 	}
 	if ht.needsGoChannel {
 		add("GoChannel")
@@ -597,6 +606,85 @@ func generateAnyFormatter(out *strings.Builder) {
 	out.WriteString("        \"<unknown>\".to_string()\n")
 	out.WriteString("    }\n")
 	out.WriteString("}\n")
+}
+
+func generateAnyEquality(out *strings.Builder) {
+	TrackImport("Any")
+	if NeedsConcurrentWrapper() {
+		TrackImport("Arc")
+		TrackImport("Mutex")
+		out.WriteString(`
+fn go_any_eq(left: &Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>, right: &Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> bool {
+    let left_guard = left.lock().unwrap();
+    let right_guard = right.lock().unwrap();
+    match (left_guard.as_ref(), right_guard.as_ref()) {
+        (None, None) => true,
+        (None, Some(_)) | (Some(_), None) => false,
+        (Some(left), Some(right)) => go_any_values_eq(left.as_ref(), right.as_ref()),
+    }
+}
+
+fn go_any_values_eq(left: &(dyn Any + Send + Sync), right: &(dyn Any + Send + Sync)) -> bool {
+    if left.type_id() != right.type_id() {
+        return false;
+    }
+    if let Some(v) = left.downcast_ref::<i32>() { return right.downcast_ref::<i32>().map_or(false, |r| v == r); }
+    if let Some(v) = left.downcast_ref::<i64>() { return right.downcast_ref::<i64>().map_or(false, |r| v == r); }
+    if let Some(v) = left.downcast_ref::<i8>() { return right.downcast_ref::<i8>().map_or(false, |r| v == r); }
+    if let Some(v) = left.downcast_ref::<i16>() { return right.downcast_ref::<i16>().map_or(false, |r| v == r); }
+    if let Some(v) = left.downcast_ref::<u32>() { return right.downcast_ref::<u32>().map_or(false, |r| v == r); }
+    if let Some(v) = left.downcast_ref::<u64>() { return right.downcast_ref::<u64>().map_or(false, |r| v == r); }
+    if let Some(v) = left.downcast_ref::<u8>() { return right.downcast_ref::<u8>().map_or(false, |r| v == r); }
+    if let Some(v) = left.downcast_ref::<u16>() { return right.downcast_ref::<u16>().map_or(false, |r| v == r); }
+    if let Some(v) = left.downcast_ref::<usize>() { return right.downcast_ref::<usize>().map_or(false, |r| v == r); }
+    if let Some(v) = left.downcast_ref::<isize>() { return right.downcast_ref::<isize>().map_or(false, |r| v == r); }
+    if let Some(v) = left.downcast_ref::<f64>() { return right.downcast_ref::<f64>().map_or(false, |r| v == r); }
+    if let Some(v) = left.downcast_ref::<f32>() { return right.downcast_ref::<f32>().map_or(false, |r| v == r); }
+    if let Some(v) = left.downcast_ref::<String>() { return right.downcast_ref::<String>().map_or(false, |r| v == r); }
+    if let Some(v) = left.downcast_ref::<&str>() { return right.downcast_ref::<&str>().map_or(false, |r| v == r); }
+    if let Some(v) = left.downcast_ref::<bool>() { return right.downcast_ref::<bool>().map_or(false, |r| v == r); }
+    if let Some(v) = left.downcast_ref::<char>() { return right.downcast_ref::<char>().map_or(false, |r| v == r); }
+    panic!("interface comparison with uncomparable dynamic type")
+}
+`)
+		return
+	}
+	TrackImport("Rc")
+	TrackImport("RefCell")
+	out.WriteString(`
+fn go_any_eq(left: &Rc<RefCell<Option<Box<dyn Any>>>>, right: &Rc<RefCell<Option<Box<dyn Any>>>>) -> bool {
+    let left_guard = left.borrow();
+    let right_guard = right.borrow();
+    match (left_guard.as_ref(), right_guard.as_ref()) {
+        (None, None) => true,
+        (None, Some(_)) | (Some(_), None) => false,
+        (Some(left), Some(right)) => go_any_values_eq(left.as_ref(), right.as_ref()),
+    }
+}
+
+fn go_any_values_eq(left: &dyn Any, right: &dyn Any) -> bool {
+    if left.type_id() != right.type_id() {
+        return false;
+    }
+    if let Some(v) = left.downcast_ref::<i32>() { return right.downcast_ref::<i32>().map_or(false, |r| v == r); }
+    if let Some(v) = left.downcast_ref::<i64>() { return right.downcast_ref::<i64>().map_or(false, |r| v == r); }
+    if let Some(v) = left.downcast_ref::<i8>() { return right.downcast_ref::<i8>().map_or(false, |r| v == r); }
+    if let Some(v) = left.downcast_ref::<i16>() { return right.downcast_ref::<i16>().map_or(false, |r| v == r); }
+    if let Some(v) = left.downcast_ref::<u32>() { return right.downcast_ref::<u32>().map_or(false, |r| v == r); }
+    if let Some(v) = left.downcast_ref::<u64>() { return right.downcast_ref::<u64>().map_or(false, |r| v == r); }
+    if let Some(v) = left.downcast_ref::<u8>() { return right.downcast_ref::<u8>().map_or(false, |r| v == r); }
+    if let Some(v) = left.downcast_ref::<u16>() { return right.downcast_ref::<u16>().map_or(false, |r| v == r); }
+    if let Some(v) = left.downcast_ref::<usize>() { return right.downcast_ref::<usize>().map_or(false, |r| v == r); }
+    if let Some(v) = left.downcast_ref::<isize>() { return right.downcast_ref::<isize>().map_or(false, |r| v == r); }
+    if let Some(v) = left.downcast_ref::<f64>() { return right.downcast_ref::<f64>().map_or(false, |r| v == r); }
+    if let Some(v) = left.downcast_ref::<f32>() { return right.downcast_ref::<f32>().map_or(false, |r| v == r); }
+    if let Some(v) = left.downcast_ref::<String>() { return right.downcast_ref::<String>().map_or(false, |r| v == r); }
+    if let Some(v) = left.downcast_ref::<&str>() { return right.downcast_ref::<&str>().map_or(false, |r| v == r); }
+    if let Some(v) = left.downcast_ref::<bool>() { return right.downcast_ref::<bool>().map_or(false, |r| v == r); }
+    if let Some(v) = left.downcast_ref::<char>() { return right.downcast_ref::<char>().map_or(false, |r| v == r); }
+    panic!("interface comparison with uncomparable dynamic type")
+}
+`)
 }
 
 func generateAnySliceFormatter(out *strings.Builder) {

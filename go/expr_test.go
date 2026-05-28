@@ -107,6 +107,32 @@ func makeDesc(in seq) desc {
 	}
 }
 
+func TestEmptyInterfaceEqualityUsesAnyEqHelper(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func boxed(v int) interface{} {
+	return v
+}
+
+func same(x interface{}, y interface{}) bool {
+	if x == nil || y == nil {
+		return x == y
+	}
+	return boxed(1) == boxed(2)
+}
+`)
+
+	if strings.Contains(rust, "__tmp_x == __tmp_y") && strings.Contains(rust, "Box<dyn Any") {
+		t.Fatalf("empty-interface equality should not compare Box<dyn Any> values directly:\n%s", rust)
+	}
+	if !strings.Contains(rust, "go_any_eq(&x, &y)") {
+		t.Fatalf("empty-interface variable equality should use go_any_eq:\n%s", rust)
+	}
+	if !strings.Contains(rust, "go_any_eq(&boxed(") {
+		t.Fatalf("empty-interface call equality should use go_any_eq:\n%s", rust)
+	}
+}
+
 func TestLocalInterfaceReferenceCallArgumentUsesCurrentReceiver(t *testing.T) {
 	prevReceiver := currentReceiver
 	currentReceiver = "k"

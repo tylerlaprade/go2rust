@@ -581,6 +581,14 @@ func NeedFormatAny() {
 	}
 }
 
+// NeedAnyEq marks that we need the go_any_eq helper.
+func NeedAnyEq() {
+	if helpers := activeHelperTracker(); helpers != nil {
+		helpers.needsAnyEq = true
+		TrackImport("Any")
+	}
+}
+
 // NeedFormatAnySlice marks that we need the format_any_slice helper
 func NeedFormatAnySlice() {
 	if helpers := activeHelperTracker(); helpers != nil {

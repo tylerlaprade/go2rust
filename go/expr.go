@@ -2610,6 +2610,26 @@ func writeGoErrorNilState(out *strings.Builder, expr ast.Expr) {
 	out.WriteString(").is_none()")
 }
 
+func writeEmptyInterfaceEquality(out *strings.Builder, expr *ast.BinaryExpr) bool {
+	if expr == nil || expr.Op != token.EQL && expr.Op != token.NEQ {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || !isEmptyInterfaceType(typeInfo.GetType(expr.X)) || !isEmptyInterfaceType(typeInfo.GetType(expr.Y)) {
+		return false
+	}
+	NeedAnyEq()
+	if expr.Op == token.NEQ {
+		out.WriteString("!")
+	}
+	out.WriteString("go_any_eq(&")
+	TranspileExpressionContext(out, expr.X, LValue)
+	out.WriteString(", &")
+	TranspileExpressionContext(out, expr.Y, LValue)
+	out.WriteString(")")
+	return true
+}
+
 func expectedTypeFromParamExpr(expr ast.Expr) types.Type {
 	if expr == nil {
 		return nil
@@ -6504,6 +6524,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			}
 		}
 		if writeGoErrorEquality(out, e) {
+			return
+		}
+		if writeEmptyInterfaceEquality(out, e) {
 			return
 		}
 		if writeCurrentReceiverPointerComparison(out, e) {

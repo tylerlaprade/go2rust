@@ -5951,6 +5951,12 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 								WriteWrapperSuffix(out)
 								continue
 							}
+							if writeEmptyInterfaceEquality(&cmp, binExpr) {
+								WriteWrapperPrefix(out)
+								out.WriteString(cmp.String())
+								WriteWrapperSuffix(out)
+								continue
+							}
 							if writeLocalInterfaceEquality(&cmp, binExpr.X, binExpr.Y, binExpr.Op) {
 								WriteWrapperPrefix(out)
 								out.WriteString(cmp.String())
