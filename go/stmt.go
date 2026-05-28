@@ -1277,6 +1277,10 @@ func writeLocalInterfaceConcreteReturnConversion(out *strings.Builder, result as
 		WriteWrappedNone(out)
 		return true
 	}
+	if isWrappedInterfaceSliceIndex(result) {
+		TranspileExpression(out, result)
+		return true
+	}
 	if isBareLocalInterfaceValue(result) {
 		WriteWrapperPrefix(out)
 		writeLocalInterfaceBareClone(out, result)

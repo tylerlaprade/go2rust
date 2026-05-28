@@ -1250,6 +1250,32 @@ func clear(b, mask bitset) bitset {
 	}
 }
 
+func TestReturnLocalInterfaceSliceIndexKeepsElementHandle(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Type interface {
+	Name() string
+}
+
+var types []Type
+
+func get(i int) Type {
+	if types[i] != nil {
+		return types[i]
+	}
+	return types[i]
+}
+`)
+
+	if strings.Contains(rust, "Some({ let __seq") || strings.Contains(rust, "Some((*types.borrow") {
+		t.Fatalf("returning a local-interface slice element should not wrap the existing handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "return (*types.borrow().as_ref().unwrap())") &&
+		!strings.Contains(rust, "return { let __seq") {
+		t.Fatalf("returning a local-interface slice element should return the cloned handle directly:\n%s", rust)
+	}
+}
+
 func TestLabeledContinueBeforeLoopPostTerminatesRustStatement(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
