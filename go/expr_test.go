@@ -1838,6 +1838,45 @@ func makeAny() any {
 	}
 }
 
+func TestFuncLiteralReturningAnyBoxesUnsafePointerCall(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+import "unsafe"
+
+type Type struct{}
+
+type Pool struct {
+	New func() any
+}
+
+func alloc(t *Type) unsafe.Pointer {
+	return nil
+}
+
+func makePool(t *Type) Pool {
+	return Pool{New: func() any {
+		return alloc(t)
+	}}
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(main.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfoWithImporter("main", []*ast.File{file}, fset, nil)
+	if err != nil {
+		t.Fatalf("NewTypeInfoWithImporter(main) error = %v", err)
+	}
+
+	rust := transpileParsedRegression(t, file, fset, typeInfo)
+	if strings.Contains(rust, "return alloc(") {
+		t.Fatalf("func literal returning any should not return the unsafe pointer handle directly:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Box::new({ let __v = alloc(") {
+		t.Fatalf("func literal returning any should box the unsafe pointer call result:\n%s", rust)
+	}
+}
+
 func TestParenthesizedNumericConversionTargetWrapsBinaryOperand(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

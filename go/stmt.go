@@ -1377,6 +1377,14 @@ func writeLocalInterfaceConcreteReturnConversion(out *strings.Builder, result as
 	return false
 }
 
+func writeEmptyInterfaceReturnConversion(out *strings.Builder, result ast.Expr, expected ast.Expr) bool {
+	if !isEmptyInterfaceTypeExpr(expected) {
+		return false
+	}
+	writeEmptyInterfaceCallArgumentValue(out, result)
+	return true
+}
+
 func writeCurrentReceiverStorage(out *strings.Builder, ident *ast.Ident) bool {
 	if !isCurrentReceiverIdent(ident) {
 		return false
@@ -5807,6 +5815,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 				if isNil {
 					WriteWrappedNone(out)
+				} else if writeEmptyInterfaceReturnConversion(out, result, returnResultTypeExpr(fnType, i)) {
 				} else if resultType := returnResultTypeExpr(fnType, i); resultTypeExprIsBareScalar(resultType) {
 					writeBareScalarReturnValue(out, result, resultType)
 				} else {
