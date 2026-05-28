@@ -652,8 +652,8 @@ impl std::fmt::Display for Symbol {
 
 
 fn main() {
-    let mut sym = Rc::new(RefCell::new(Some(Symbol { name: Rc::new(RefCell::new(Some("Println".to_string()))), kind: Rc::new(RefCell::new(Some(Kind(Rc::new(RefCell::new(Some(FUNC as i8))))))), version: Rc::new(RefCell::new(Some(Version(Rc::new(RefCell::new(Some(1 as i8))))))), ..Default::default() })));
-    let mut field = Rc::new(RefCell::new(Some(Symbol { name: Rc::new(RefCell::new(Some("Point.X".to_string()))), kind: Rc::new(RefCell::new(Some(Kind(Rc::new(RefCell::new(Some(FIELD as i8))))))), version: Rc::new(RefCell::new(Some(Version(Rc::new(RefCell::new(Some(0 as i8))))))), ..Default::default() })));
+    let mut sym = Rc::new(RefCell::new(Some(Symbol { name: Rc::new(RefCell::new(Some("Println".to_string()))), kind: Rc::new(RefCell::new(Some(FUNC))), version: Rc::new(RefCell::new(Some(1))), ..Default::default() })));
+    let mut field = Rc::new(RefCell::new(Some(Symbol { name: Rc::new(RefCell::new(Some("Point.X".to_string()))), kind: Rc::new(RefCell::new(Some(FIELD))), version: Rc::new(RefCell::new(Some(0))), ..Default::default() })));
 
     println!("{} {} {}", format!("{}", (*(*sym.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()).clone()), format!("{}", (*(*sym.borrow().as_ref().unwrap()).kind.borrow().as_ref().unwrap()).clone()), format!("{}", (*(*sym.borrow().as_ref().unwrap()).version.borrow().as_ref().unwrap()).clone()));
     println!("{} {} {}", format!("{}", (*(*field.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()).clone()), format!("{}", (*(*field.borrow().as_ref().unwrap()).kind.borrow().as_ref().unwrap()).clone()), format!("{}", (*(*field.borrow().as_ref().unwrap()).version.borrow().as_ref().unwrap()).clone()));

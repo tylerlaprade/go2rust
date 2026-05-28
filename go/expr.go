@@ -4612,12 +4612,30 @@ func writeExpressionForExpectedTypesType(out *strings.Builder, value ast.Expr, e
 	if !ok {
 		return false
 	}
-	// A value already of the same named type — typically a const reference
-	// like `types.SendRecv` — needs no constructor wrap or `as <int>` cast.
-	if typeInfo := GetTypeInfo(); typeInfo != nil {
-		if valueNamed, ok := types.Unalias(typeInfo.GetType(value)).(*types.Named); ok && sameNamedTypeDefinition(valueNamed, named) {
-			TranspileExpression(out, value)
-			return true
+	// A non-constant value already of the same named type evaluates to the
+	// named Rust type — emit it directly without wrapping or casting.
+	if !isConstantExpression(value) {
+		if typeInfo := GetTypeInfo(); typeInfo != nil {
+			if valueNamed, ok := types.Unalias(typeInfo.GetType(value)).(*types.Named); ok && sameNamedTypeDefinition(valueNamed, named) {
+				TranspileExpression(out, value)
+				return true
+			}
+		}
+	}
+	// A package-qualified constant of the same named type (e.g. `types.Int`,
+	// `token.ILLEGAL`) is emitted with the named Rust type by the external
+	// stub, so it doesn't need the constructor + `as <int>` rewrap a local
+	// constant of the underlying type would require.
+	if sel, ok := value.(*ast.SelectorExpr); ok {
+		if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.info != nil {
+			if xIdent, ok := sel.X.(*ast.Ident); ok {
+				if _, isPkg := typeInfo.info.Uses[xIdent].(*types.PkgName); isPkg {
+					if valueNamed, ok := types.Unalias(typeInfo.GetType(value)).(*types.Named); ok && sameNamedTypeDefinition(valueNamed, named) {
+						TranspileExpression(out, value)
+						return true
+					}
+				}
+			}
 		}
 	}
 	if isTimeDurationType(named) {
