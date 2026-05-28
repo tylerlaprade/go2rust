@@ -1159,3 +1159,36 @@ func main() {
 		t.Fatalf("nested return inside func lit should emit explicit return;\n%s", rust)
 	}
 }
+
+func TestNamedIntegerConstBinaryUsesPrimitiveOperands(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type LoadMode int
+
+const (
+	NeedName LoadMode = 1 << iota
+	NeedFiles
+	NeedTypes
+)
+
+type Config struct {
+	Mode LoadMode
+}
+
+func main() {
+	_ = Config{Mode: NeedName | NeedFiles | NeedTypes}
+}
+`)
+
+	mainIdx := strings.Index(rust, "fn main()")
+	if mainIdx < 0 {
+		t.Fatalf("expected fn main in generated output:\n%s", rust)
+	}
+	mainRust := rust[mainIdx:]
+	if strings.Count(mainRust, "LoadMode(") > 1 {
+		t.Fatalf("nested named-integer const operands must not each be wrapped in LoadMode(...) — expected a single outer wrap inside main():\n%s", mainRust)
+	}
+	if !strings.Contains(mainRust, "NEED_NAME as i32 | NEED_FILES as i32") {
+		t.Fatalf("named-integer const bitwise OR should emit bare i32 operands:\n%s", mainRust)
+	}
+}

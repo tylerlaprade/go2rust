@@ -361,6 +361,20 @@ func writeConstExpressionCastValue(out *strings.Builder, value ast.Expr) {
 		out.WriteString(".as_ref().unwrap())")
 		return
 	}
+	// A constant named-integer binary expression (e.g. `dep.NeedName |
+	// dep.NeedFiles`) must stay in its primitive Rust form here so the
+	// surrounding ` as i32` cast applies to bare i32, not to a wrapped
+	// newtype value. `TranspileExpression` would dispatch to the binary
+	// handler that emits a newtype, leaving us with `LoadMode(...) as i32`
+	// which Rust rejects.
+	if _, isBin := value.(*ast.BinaryExpr); isBin && isConstantExpression(value) {
+		if typeInfo != nil {
+			if named, ok := types.Unalias(typeInfo.GetType(value)).(*types.Named); ok && isNamedIntegerType(named) {
+				TranspileConstExpr(out, value, 0)
+				return
+			}
+		}
+	}
 	TranspileExpression(out, value)
 }
 
