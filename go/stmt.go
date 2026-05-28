@@ -166,6 +166,16 @@ func returnExpressionEmissionStartsWithBlock(expr ast.Expr) bool {
 		if !isExpressionResultBare(expr) && isCloneableNonPointerExpr(expr) {
 			return true
 		}
+	case *ast.CallExpr:
+		// `len`/`cap` on a named slice/map lower as a `{ let __slice_holder
+		// = ... }` block, and the bare-scalar return emitter appends ` as
+		// i32` after the call — leaving the body's tail expression starting
+		// with `{`.
+		if isBareBuiltinCallName(e, "len") || isBareBuiltinCallName(e, "cap") {
+			if len(e.Args) > 0 && (isNamedSliceExpression(e.Args[0]) || isNamedMapExpression(e.Args[0])) {
+				return true
+			}
+		}
 	}
 	return false
 }
@@ -505,7 +515,7 @@ func writeIntegerRangeLimit(out *strings.Builder, expr ast.Expr) {
 	if typeInfo != nil && typeInfo.ReturnsWrappedValue(expr) {
 		out.WriteString("{ let __range_limit = ")
 		TranspileExpressionContext(out, expr, LValue)
-		out.WriteString("; (*__range_limit")
+		out.WriteString(".clone(); (*__range_limit")
 		WriteBorrowMethod(out, false)
 		out.WriteString(".as_ref().unwrap()).clone() }")
 		return

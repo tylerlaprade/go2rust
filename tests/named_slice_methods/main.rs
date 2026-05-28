@@ -56,7 +56,7 @@ impl Display for Names {
 
 impl Names {
     pub fn len(&self) -> i32 {
-        { let __slice_holder = self.0.clone(); let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) } as i32
+        return { let __slice_holder = self.0.clone(); let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) } as i32;
     }
 
     pub fn first(&self) -> Rc<RefCell<Option<String>>> {

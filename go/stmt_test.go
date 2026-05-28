@@ -934,6 +934,9 @@ func (m *Map) grow() {
 	if !strings.Contains(rust, "*__range_limit") {
 		t.Fatalf("integer range over selector should use an unwrapped range limit:\n%s", rust)
 	}
+	if !strings.Contains(rust, "self.dir_len.clone()") {
+		t.Fatalf("integer range over selector should clone the field handle before borrowing:\n%s", rust)
+	}
 }
 
 func TestReturnBitClearUsesRustOperator(t *testing.T) {
