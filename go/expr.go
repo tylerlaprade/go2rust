@@ -3396,7 +3396,7 @@ func writeCurrentReceiverClone(out *strings.Builder, ident *ast.Ident) bool {
 		return false
 	}
 	if currentCaptureRenames != nil {
-		if renamed, ok := currentCaptureRenames[ident.Name]; ok && renamed != "" && renamed != ident.Name {
+		if renamed, ok := captureRenameForIdent(ident); ok && renamed != "" && renamed != ident.Name {
 			out.WriteString(RustLocalIdent(renamed))
 			out.WriteString(".clone()")
 			return true
@@ -3404,6 +3404,20 @@ func writeCurrentReceiverClone(out *strings.Builder, ident *ast.Ident) bool {
 	}
 	out.WriteString("self.clone()")
 	return true
+}
+
+func captureRenameForIdent(ident *ast.Ident) (string, bool) {
+	if ident == nil || currentCaptureRenames == nil {
+		return "", false
+	}
+	renamed, ok := currentCaptureRenames[ident.Name]
+	if !ok {
+		return "", false
+	}
+	if currentReceiver != "" && ident.Name == currentReceiver && !isCurrentReceiverIdent(ident) {
+		return "", false
+	}
+	return renamed, true
 }
 
 func writeCurrentReceiverWrappedClone(out *strings.Builder, ident *ast.Ident) bool {
@@ -5902,12 +5916,10 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		// Check if this variable has been renamed (captured in closure)
 		varName := RustIdentForUse(e)
 		renamedReceiver := ""
-		if currentCaptureRenames != nil {
-			if renamed, exists := currentCaptureRenames[identName]; exists {
-				varName = RustLocalIdent(renamed)
-				if isCurrentReceiverIdent(e) {
-					renamedReceiver = varName
-				}
+		if renamed, exists := captureRenameForIdent(e); exists {
+			varName = RustLocalIdent(renamed)
+			if isCurrentReceiverIdent(e) {
+				renamedReceiver = varName
 			}
 		}
 

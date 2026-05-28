@@ -1338,6 +1338,40 @@ func (v Value) Seq() func(func(Value) bool) {
 	}
 }
 
+func TestRangeValueShadowingCapturedReceiverKeepsRangeBinding(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Value struct {
+	n int
+}
+
+func ValueOf(x interface{}) Value {
+	return Value{}
+}
+
+func (v Value) String() string {
+	return "ab"
+}
+
+func (v Value) Seq2() func(func(Value, Value) bool) {
+	return func(yield func(Value, Value) bool) {
+		for i, v := range v.String() {
+			if !yield(ValueOf(i), ValueOf(v)) {
+				return
+			}
+		}
+	}
+}
+`)
+
+	if strings.Contains(rust, "Box::new(v_closure_clone)") {
+		t.Fatalf("range value shadowing a captured receiver should not use the receiver capture rename:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Box::new(v) as Box<dyn Any") {
+		t.Fatalf("range value shadowing a captured receiver should box the range binding:\n%s", rust)
+	}
+}
+
 func TestLocalMapKeyRustTypeReportsTrackedPointerKey(t *testing.T) {
 	prevCollections := localCollectionKinds
 	prevMapKeys := localMapKeyRustTypes
