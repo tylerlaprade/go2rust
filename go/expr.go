@@ -900,7 +900,8 @@ func writeCurrentReceiverPointerMethodCallWithArgTemps(out *strings.Builder, sel
 		writeRegularMethodCallArgument(out, sel, arg, i)
 		out.WriteString("; ")
 	}
-	out.WriteString("self.")
+	out.WriteString(currentReceiverRustName())
+	out.WriteString(".")
 	out.WriteString(rustMethodSelectorName(sel))
 	out.WriteString("(")
 	positionalEnd := len(call.Args)
@@ -1325,12 +1326,14 @@ func writeNamedSliceInnerHandleClone(out *strings.Builder, expr ast.Expr) bool {
 	}
 	inner := unwrapParens(expr)
 	if ident, ok := inner.(*ast.Ident); ok && isCurrentReceiverIdent(ident) {
-		out.WriteString("self.0.clone()")
+		out.WriteString(currentReceiverRustName())
+		out.WriteString(".0.clone()")
 		return true
 	}
 	if star, ok := inner.(*ast.StarExpr); ok {
 		if ident, ok := unwrapParens(star.X).(*ast.Ident); ok && isCurrentReceiverIdent(ident) {
-			out.WriteString("self.0.clone()")
+			out.WriteString(currentReceiverRustName())
+			out.WriteString(".0.clone()")
 			return true
 		}
 	}
@@ -1387,7 +1390,8 @@ func writeNamedMapInnerHandleClone(out *strings.Builder, expr ast.Expr) bool {
 				return true
 			}
 		}
-		out.WriteString("self.0.clone()")
+		out.WriteString(currentReceiverRustName())
+		out.WriteString(".0.clone()")
 		return true
 	}
 	if star, ok := inner.(*ast.StarExpr); ok {
@@ -1399,7 +1403,8 @@ func writeNamedMapInnerHandleClone(out *strings.Builder, expr ast.Expr) bool {
 					return true
 				}
 			}
-			out.WriteString("self.0.clone()")
+			out.WriteString(currentReceiverRustName())
+			out.WriteString(".0.clone()")
 			return true
 		}
 	}
@@ -1937,18 +1942,18 @@ func rustIdentForUseWithCapture(ident *ast.Ident) string {
 	}
 	if isCurrentReceiverIdent(ident) {
 		if _, _, ok := namedSliceTypeForExpr(ident); ok {
-			return "self.0"
+			return currentReceiverRustName() + ".0"
 		}
 		if typeInfo := GetTypeInfo(); typeInfo != nil {
 			if typ := typeInfo.GetType(ident); typ != nil {
 				if named, ok := types.Unalias(typ).(*types.Named); ok {
 					if _, ok := named.Underlying().(*types.Map); ok {
-						return "self.0"
+						return currentReceiverRustName() + ".0"
 					}
 				}
 			}
 		}
-		return "self"
+		return currentReceiverRustName()
 	}
 	return RustIdentForUse(ident)
 }
@@ -2119,7 +2124,8 @@ func writePointerHandleCallArgument(out *strings.Builder, arg ast.Expr, expected
 		}
 		if isCurrentReceiverIdent(e) {
 			WriteWrapperPrefix(out)
-			out.WriteString("self.clone()")
+			out.WriteString(currentReceiverRustName())
+			out.WriteString(".clone()")
 			WriteWrapperSuffix(out)
 			return true
 		}
@@ -2380,7 +2386,12 @@ func writeLocalInterfaceWrappedConstructionInnerValue(out *strings.Builder, arg 
 	}
 	if ident, ok := arg.(*ast.Ident); ok {
 		if isCurrentReceiverIdent(ident) {
-			out.WriteString("(*self).clone()")
+			if currentReceiverRustAlias != "" {
+				out.WriteString(currentReceiverRustAlias)
+				out.WriteString(".clone()")
+			} else {
+				out.WriteString("(*self).clone()")
+			}
 			return
 		}
 		// Range loop vars over wrapped collections need explicit unwrap
@@ -3394,7 +3405,8 @@ func writeIdentValueClone(out *strings.Builder, ident *ast.Ident) {
 		return
 	}
 	if isCurrentReceiverIdent(ident) {
-		out.WriteString("self.clone()")
+		out.WriteString(currentReceiverRustName())
+		out.WriteString(".clone()")
 		return
 	}
 	name := RustIdentForUse(ident)
@@ -3416,7 +3428,9 @@ func writeCurrentReceiverValueClone(out *strings.Builder, ident *ast.Ident) bool
 	if !currentReceiverScalarTypeDefinition() {
 		return false
 	}
-	out.WriteString("(*self.0")
+	out.WriteString("(*")
+	out.WriteString(currentReceiverRustName())
+	out.WriteString(".0")
 	WriteBorrowMethod(out, false)
 	out.WriteString(".as_ref().unwrap()).clone()")
 	return true
@@ -3433,7 +3447,8 @@ func writeCurrentReceiverClone(out *strings.Builder, ident *ast.Ident) bool {
 			return true
 		}
 	}
-	out.WriteString("self.clone()")
+	out.WriteString(currentReceiverRustName())
+	out.WriteString(".clone()")
 	return true
 }
 
@@ -3461,10 +3476,26 @@ func writeCurrentReceiverWrappedClone(out *strings.Builder, ident *ast.Ident) bo
 	return true
 }
 
+func currentReceiverRustName() string {
+	if currentReceiverRustAlias != "" {
+		return currentReceiverRustAlias
+	}
+	return "self"
+}
+
 func writeCurrentReceiverDerefRead(out *strings.Builder, expr ast.Expr, target ast.Expr) bool {
 	ident, ok := target.(*ast.Ident)
 	if !ok || !isCurrentReceiverIdent(ident) {
 		return false
+	}
+	if currentReceiverRustAlias != "" {
+		out.WriteString(currentReceiverRustAlias)
+		if expressionNeedsGoValueClone(expr) {
+			out.WriteString(".__go_value_clone()")
+		} else {
+			out.WriteString(".clone()")
+		}
+		return true
 	}
 	if expressionNeedsGoValueClone(expr) {
 		out.WriteString("(*self).__go_value_clone()")
@@ -4687,7 +4718,8 @@ func writeCurrentReceiverPointerFieldValue(out *strings.Builder, value ast.Expr,
 		return false
 	}
 	WriteWrapperPrefix(out)
-	out.WriteString("self.clone()")
+	out.WriteString(currentReceiverRustName())
+	out.WriteString(".clone()")
 	WriteWrapperSuffix(out)
 	return true
 }
@@ -4764,7 +4796,9 @@ func writeConcreteLocalInterfaceBox(out *strings.Builder, value ast.Expr, interf
 		return false
 	}
 	if ident, ok := value.(*ast.Ident); ok && isCurrentReceiverIdent(ident) {
-		out.WriteString("Box::new(self.clone()) as ")
+		out.WriteString("Box::new(")
+		out.WriteString(currentReceiverRustName())
+		out.WriteString(".clone()) as ")
 		out.WriteString(rustLocalInterfaceTraitObject(interfaceName))
 		return true
 	}
@@ -5270,7 +5304,8 @@ func writeMapKeyForExpectedType(out *strings.Builder, key ast.Expr, keyType type
 		return false
 	}
 	if ident, ok := key.(*ast.Ident); ok && isCurrentReceiverIdent(ident) {
-		out.WriteString("self.clone()")
+		out.WriteString(currentReceiverRustName())
+		out.WriteString(".clone()")
 		return true
 	}
 	if isConstantExpression(key) {
@@ -5714,14 +5749,16 @@ func writeIdentExpression(out *strings.Builder, e *ast.Ident, ctx ExprContext, v
 		// receivers, the rest of the code paths handle field/method
 		// dereferencing; bare receiver references fall through here.
 		if _, _, ok := namedSliceTypeForExpr(e); ok {
-			out.WriteString("self.0")
+			out.WriteString(currentReceiverRustName())
+			out.WriteString(".0")
 			return
 		}
 		if typeInfo := GetTypeInfo(); typeInfo != nil {
 			if typ := typeInfo.GetType(e); typ != nil {
 				if named, ok := types.Unalias(typ).(*types.Named); ok {
 					if _, ok := named.Underlying().(*types.Map); ok {
-						out.WriteString("self.0")
+						out.WriteString(currentReceiverRustName())
+						out.WriteString(".0")
 						return
 					}
 				}
@@ -6009,17 +6046,21 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			}
 			// Method receiver - translate to self
 			// Check if this is a type definition that needs unwrapping
+			receiverName := currentReceiverRustName()
 			if _, isTypeDef := LookupTypeDefinition(currentReceiverType); isTypeDef {
 				if ctx == LValue || ctx == AddressOf {
-					out.WriteString("self.0")
+					out.WriteString(receiverName)
+					out.WriteString(".0")
 				} else {
 					// For type definitions, access the inner value
-					out.WriteString("(*self.0")
+					out.WriteString("(*")
+					out.WriteString(receiverName)
+					out.WriteString(".0")
 					WriteBorrowMethod(out, false)
 					out.WriteString(".as_ref().unwrap())")
 				}
 			} else {
-				out.WriteString("self")
+				out.WriteString(receiverName)
 			}
 			return
 		}
@@ -6101,7 +6142,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			// Field access on a variable
 			if isCurrentReceiverIdent(ident) {
 				// Field access on method receiver - use self directly unless a moved closure captured it.
-				receiverName := "self"
+				receiverName := currentReceiverRustName()
 				if currentCaptureRenames != nil {
 					if renamed, exists := currentCaptureRenames[ident.Name]; exists {
 						receiverName = RustLocalIdent(renamed)
@@ -11064,10 +11105,12 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 						out.WriteString(RustLocalIdent(renamed))
 						out.WriteString(".")
 					} else {
-						out.WriteString("self.")
+						out.WriteString(currentReceiverRustName())
+						out.WriteString(".")
 					}
 				} else {
-					out.WriteString("self.")
+					out.WriteString(currentReceiverRustName())
+					out.WriteString(".")
 				}
 			} else if isSliceElemPtrVar(ident.Name) {
 				needsMut := methodCallNeedsMutableReceiver(sel)

@@ -1312,7 +1312,8 @@ func writeFunctionTypeAliasWrappedReturn(out *strings.Builder, result ast.Expr, 
 	out.WriteString("(")
 	if ident, ok := result.(*ast.Ident); ok {
 		if isCurrentReceiverIdent(ident) {
-			out.WriteString("self.clone()")
+			out.WriteString(currentReceiverRustName())
+			out.WriteString(".clone()")
 		} else {
 			out.WriteString(RustIdentForUse(ident))
 			out.WriteString(".clone()")
@@ -1449,7 +1450,8 @@ func writeCurrentReceiverStorage(out *strings.Builder, ident *ast.Ident) bool {
 	if _, isTypeDef := LookupTypeDefinition(currentReceiverType); !isTypeDef {
 		return false
 	}
-	out.WriteString("self.0")
+	out.WriteString(currentReceiverRustName())
+	out.WriteString(".0")
 	return true
 }
 
@@ -1950,6 +1952,48 @@ func writeCurrentReceiverAssignmentValue(out *strings.Builder, expr ast.Expr) bo
 		return false
 	}
 	return writeCurrentReceiverClone(out, ident)
+}
+
+func assignmentRHSReturnsWrappedValue(rhs ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || !typeInfo.ReturnsWrappedValue(rhs) {
+		return false
+	}
+	if call, ok := rhs.(*ast.CallExpr); ok {
+		if isBareBuiltinReturn(call) {
+			return false
+		}
+		if typeInfo.IsTypeConversion(call) && !typeConversionEmitsWrappedValue(call) {
+			return false
+		}
+	}
+	return true
+}
+
+func writeCurrentReceiverLocalAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
+	ident, ok := lhs.(*ast.Ident)
+	if !ok || !isCurrentReceiverIdent(ident) || currentReceiverRustAlias == "" {
+		return false
+	}
+	out.WriteString("{ let new_val = ")
+	if assignmentRHSReturnsWrappedValue(rhs) {
+		TranspileExpression(out, rhs)
+		out.WriteString("; let __moved_val = { let mut __guard = new_val")
+		WriteBorrowMethod(out, true)
+		out.WriteString("; __guard.take().unwrap() }; ")
+		out.WriteString(currentReceiverRustAlias)
+		out.WriteString(" = __moved_val; }")
+		return true
+	}
+	if writeCurrentReceiverAssignmentValue(out, rhs) {
+		// Self-assigning the receiver copies the current local receiver value.
+	} else if !writeOwnedExpressionValue(out, rhs) {
+		TranspileExpression(out, rhs)
+	}
+	out.WriteString("; ")
+	out.WriteString(currentReceiverRustAlias)
+	out.WriteString(" = new_val; }")
+	return true
 }
 
 func writeFunctionTypedIdentFieldAssignment(out *strings.Builder, lhs ast.Expr, rhsIdent *ast.Ident) bool {
@@ -3575,6 +3619,9 @@ func functionSignatureFromTypeExpr(expr ast.Expr) (*types.Signature, bool) {
 }
 
 func writeMoveWrappedInnerAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) {
+	if writeCurrentReceiverLocalAssignment(out, lhs, rhs) {
+		return
+	}
 	out.WriteString("{ ")
 	out.WriteString("let new_val = ")
 	TranspileExpression(out, rhs)
@@ -5893,7 +5940,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							// Function selector values are represented by cloneable handles or boxed method values.
 						} else if ident, ok := sel.X.(*ast.Ident); ok && isCurrentReceiverIdent(ident) {
 							// Returning self.field - just clone it, don't double-wrap
-							out.WriteString("self.")
+							out.WriteString(currentReceiverRustName())
+							out.WriteString(".")
 							out.WriteString(ToSnakeCase(sel.Sel.Name))
 							out.WriteString(".clone()")
 						} else if selectorExpressionKeepsHandle(result) {
@@ -5997,7 +6045,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 								continue
 							}
 							WriteWrapperPrefix(out)
-							out.WriteString("self.clone()")
+							out.WriteString(currentReceiverRustName())
+							out.WriteString(".clone()")
 							WriteWrapperSuffix(out)
 							continue
 						}
@@ -6918,6 +6967,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									// Pointer assignment replaces the handle to preserve aliasing.
 								} else if writeSliceHandleAssignment(out, s.Lhs[0], s.Rhs[0]) {
 									// Slice assignment replaces the handle to preserve slice-header aliasing.
+								} else if writeCurrentReceiverLocalAssignment(out, s.Lhs[0], s.Rhs[0]) {
+									// Reassigned Go value receivers are mutable Rust local copies, not wrapper slots.
 								} else if writeCapturedCurrentReceiverAssignment(out, s.Lhs[0], s.Rhs[0]) {
 									// Captured value receivers are bare closure-local copies, not wrapper slots.
 								} else if writeBareRangeVarAssignment(out, s.Lhs[0], s.Rhs[0]) {
@@ -9326,7 +9377,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					out.WriteString(varName)
 				}
 			} else if currentReceiver != "" && varName == currentReceiver {
-				out.WriteString("self")
+				out.WriteString(currentReceiverRustName())
 			} else {
 				out.WriteString(varName)
 			}
@@ -9500,7 +9551,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			out.WriteString(varName)
 			out.WriteString("_thread = ")
 			if currentReceiver != "" && varName == currentReceiver {
-				out.WriteString("self.clone(); ")
+				out.WriteString(currentReceiverRustName())
+				out.WriteString(".clone(); ")
 			} else if channelCaptured[varName] || pointerCaptured[varName] || isVarBare(varName) || isFunctionTypedNameInFunc(varName, fnType) {
 				// Channel, pointer, bare, and function-typed variables already have handle semantics.
 				out.WriteString(varName)

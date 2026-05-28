@@ -1668,6 +1668,45 @@ func (v Value) call() {
 	}
 }
 
+func TestValueReceiverReassignmentMovesWrappedReturnIntoLocalCopy(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Value struct {
+	n int
+}
+
+func (v Value) Elem() Value {
+	return v
+}
+
+func (v Value) Field(i int) Value {
+	return v
+}
+
+func (v Value) Walk(index []int) Value {
+	v = Value{n: 1}
+	for _, x := range index {
+		v = v.Elem()
+		v = v.Field(x)
+	}
+	return v
+}
+`)
+
+	if strings.Contains(rust, "*self.borrow_mut()") || strings.Contains(rust, "*self.lock().unwrap()") {
+		t.Fatalf("value receiver reassignment should not treat self as a wrapped slot:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let mut __self = self.clone();") {
+		t.Fatalf("value receiver reassignment should introduce a mutable local receiver copy:\n%s", rust)
+	}
+	if strings.Count(rust, "__self = __moved_val") < 2 {
+		t.Fatalf("value receiver reassignment should move wrapped returns into the mutable receiver copy:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Rc::new(RefCell::new(Some(__self.clone())))") {
+		t.Fatalf("value receiver return should use the reassigned local receiver copy:\n%s", rust)
+	}
+}
+
 func TestNamedScalarReceiverCallArgumentKeepsNamedValue(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

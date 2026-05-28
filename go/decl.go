@@ -3851,6 +3851,37 @@ func methodRequiresMutableReceiver(fn *ast.FuncDecl) bool {
 	return methodMutatesReceiver(fn, receiverNameForMethod(fn))
 }
 
+func methodReassignsValueReceiver(fn *ast.FuncDecl) bool {
+	if fn == nil || fn.Recv == nil || len(fn.Recv.List) == 0 || fn.Body == nil {
+		return false
+	}
+	if _, isPointer := fn.Recv.List[0].Type.(*ast.StarExpr); isPointer {
+		return false
+	}
+	found := false
+	ast.Inspect(fn.Body, func(n ast.Node) bool {
+		if found {
+			return false
+		}
+		if _, ok := n.(*ast.FuncLit); ok {
+			return false
+		}
+		assign, ok := n.(*ast.AssignStmt)
+		if !ok {
+			return true
+		}
+		for _, lhs := range assign.Lhs {
+			ident, ok := unwrapParens(lhs).(*ast.Ident)
+			if ok && isCurrentReceiverIdent(ident) {
+				found = true
+				return false
+			}
+		}
+		return true
+	})
+	return found
+}
+
 func collectMethodReceiverMutability(files []*ast.File, typeInfo *TypeInfo) map[string]bool {
 	mutableByMethod := make(map[string]bool)
 	if typeInfo == nil || typeInfo.info == nil {
@@ -4134,6 +4165,14 @@ func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, a
 		// Store the receiver type
 		currentReceiverType = getReceiverType(recv.Type)
 	}
+	prevCurrentReceiverRustAlias := currentReceiverRustAlias
+	currentReceiverRustAlias = ""
+	if methodReassignsValueReceiver(fn) {
+		currentReceiverRustAlias = "__self"
+	}
+	defer func() {
+		currentReceiverRustAlias = prevCurrentReceiverRustAlias
+	}()
 
 	// Output doc comments if present (with indentation for methods)
 	outputComment(out, fn.Doc, "    ", true)
@@ -4258,6 +4297,11 @@ func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, a
 		return
 	}
 	writeAssignedInterfaceParamShadows(out, fn, "        ")
+	if currentReceiverRustAlias != "" {
+		out.WriteString("        let mut ")
+		out.WriteString(currentReceiverRustAlias)
+		out.WriteString(" = self.clone();\n")
+	}
 
 	var prevStmt ast.Stmt
 	var lastPos token.Pos = fn.Body.Lbrace

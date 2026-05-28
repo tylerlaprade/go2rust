@@ -491,11 +491,13 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 	if sel, ok := arg.(*ast.SelectorExpr); ok {
 		if ident, ok := sel.X.(*ast.Ident); ok && isCurrentReceiverIdent(ident) {
 			// self.field - need to unwrap for display, resolving promoted fields
+			receiverName := currentReceiverRustName()
 			fieldInfo := resolveFieldAccess(currentReceiverType, sel.Sel.Name)
 			if fieldInfo.IsPromoted && len(fieldInfo.EmbeddedPath) > 0 {
 				// Promoted field - traverse through embedded structs
 				out.WriteString("(*")
-				out.WriteString("self.")
+				out.WriteString(receiverName)
+				out.WriteString(".")
 				out.WriteString(ToSnakeCase(fieldInfo.EmbeddedPath[0]))
 				WriteBorrowMethod(out, false)
 				out.WriteString(".as_ref().unwrap()")
@@ -510,7 +512,9 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 				WriteBorrowMethod(out, false)
 				out.WriteString(".as_ref().unwrap())")
 			} else {
-				out.WriteString("(*self.")
+				out.WriteString("(*")
+				out.WriteString(receiverName)
+				out.WriteString(".")
 				out.WriteString(ToSnakeCase(sel.Sel.Name))
 				WriteBorrowMethod(out, false)
 				out.WriteString(".as_ref().unwrap())")
@@ -3361,7 +3365,8 @@ func writeConcreteLocalInterfaceValue(out *strings.Builder, expr ast.Expr, expec
 	}
 	out.WriteString("Box::new(")
 	if ident, ok := expr.(*ast.Ident); ok && isCurrentReceiverIdent(ident) {
-		out.WriteString("self.clone()")
+		out.WriteString(currentReceiverRustName())
+		out.WriteString(".clone()")
 	} else if ident, ok := expr.(*ast.Ident); ok && ident.Name != "_" && ident.Name != "nil" && !isVarBare(ident.Name) {
 		out.WriteString("(*")
 		TranspileExpressionContext(out, expr, LValue)
