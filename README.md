@@ -35,9 +35,9 @@ Rust transpiler must run the fixture suite and produce the same outputs as the
 Go implementation.
 
 Current status: the generated Rust transpiler builds and runs the copied
-behavior suite, but self-hosting is not complete. As of 2026-05-21, a full
-generated-binary fixture run reports 162 passing fixtures, 376 failing
-fixtures, and 9 XFAIL.
+behavior suite, but self-hosting is not complete — not every fixture yet
+produces matching output through the generated binary. Run the behavior gate
+above for the current state.
 
 ### External Package Handling
 
