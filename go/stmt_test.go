@@ -946,6 +946,31 @@ func load(v any) []*Type {
 	}
 }
 
+func TestVarInitializerFromBareScalarCallRegistersBareLocal(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func fnv1(x uint32, list ...byte) uint32 {
+	return x
+}
+
+func use() uint32 {
+	var (
+		hash = fnv1(0, []byte("struct {")...)
+	)
+	name := "field"
+	hash = fnv1(hash, []byte(name)...)
+	return hash
+}
+`)
+
+	if strings.Contains(rust, "hash.borrow") || strings.Contains(rust, "hash.lock") {
+		t.Fatalf("var initialized from a bare-scalar call should stay a bare local:\n%s", rust)
+	}
+	if !strings.Contains(rust, "hash = new_val;") {
+		t.Fatalf("bare scalar var reassignment should assign the Rust local directly:\n%s", rust)
+	}
+}
+
 func TestUnsafePointerDerefNilAssignmentIsLoudUnsupported(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

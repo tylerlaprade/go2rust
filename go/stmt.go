@@ -7597,7 +7597,10 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									}
 								} else if call, isCall := valueSpec.Values[i].(*ast.CallExpr); isCall {
 									registerCallResultSyntaxInfo(name, call)
-									if writeBareBuiltinShortDeclInitializer(out, call, name) {
+									if valueSpec.Type == nil && callReturnsBareScalar(call) {
+										registerBareShortDecl(name)
+										TranspileExpression(out, call)
+									} else if writeBareBuiltinShortDeclInitializer(out, call, name) {
 										// len/cap/min/max var initializers use normal Go value wrappers.
 									} else {
 										// Function calls already return wrapped values, don't wrap again
