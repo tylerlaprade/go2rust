@@ -74,3 +74,20 @@ func warn(field string) {
 		t.Fatalf("builtin print must not emit a call to a nonexistent Rust print function:\n%s", rust)
 	}
 }
+
+func TestCopyToSliceTypeAssertionUsesBareDestination(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func fill(v any, src []int) int {
+	return copy(v.([]int), src)
+}
+`)
+
+	if strings.Contains(rust, "downcast_ref::<Vec<i32>>().expect(\"type assertion failed\").clone()\n        } else") &&
+		(strings.Contains(rust, "}).borrow()") || strings.Contains(rust, "}).lock()")) {
+		t.Fatalf("copy destination from slice type assertion should not be borrowed as a wrapped handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let mut _dst =") {
+		t.Fatalf("copy destination from slice type assertion should use a mutable bare Vec temp:\n%s", rust)
+	}
+}

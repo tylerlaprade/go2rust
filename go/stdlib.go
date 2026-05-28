@@ -4166,6 +4166,19 @@ func transpileCopy(out *strings.Builder, call *ast.CallExpr) {
 			return
 		}
 
+		if copyDestinationIsBareSlice(call.Args[0]) {
+			out.WriteString("{ let mut _dst = ")
+			TranspileExpression(out, call.Args[0])
+			out.WriteString("; let _src = ")
+			writeCopySourceValue(out, call.Args[1], srcIsString)
+			out.WriteString("; let _n = std::cmp::min(_dst.len(), _src.len()); for _i in 0.._n { _dst[_i] = _src[_i].clone(); } ")
+			WriteWrapperPrefix(out)
+			out.WriteString("_n as i32")
+			WriteWrapperSuffix(out)
+			out.WriteString(" }")
+			return
+		}
+
 		out.WriteString("{ let _src = ")
 		writeCopySourceValue(out, call.Args[1], srcIsString)
 		out.WriteString("; let _n = std::cmp::min(")
@@ -4179,6 +4192,18 @@ func transpileCopy(out *strings.Builder, call *ast.CallExpr) {
 		WriteWrapperSuffix(out)
 		out.WriteString(" }")
 	}
+}
+
+func copyDestinationIsBareSlice(dst ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || !typeInfo.IsSlice(dst) {
+		return false
+	}
+	if isExpressionResultBare(dst) {
+		return true
+	}
+	_, ok := unwrapParens(dst).(*ast.TypeAssertExpr)
+	return ok
 }
 
 // writeCopyDestination emits the unwrapped slice place for a copy() destination
