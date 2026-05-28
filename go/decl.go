@@ -2377,6 +2377,7 @@ func writeScalarTypeDefinitionNumericOps(out *strings.Builder, typeName string, 
 		writeScalarTypeDefinitionBinaryOp(out, rustTypeName, rustType, "BitOr", "bitor", "|", true)
 		writeScalarTypeDefinitionBinaryOp(out, rustTypeName, rustType, "BitXor", "bitxor", "^", true)
 		writeScalarTypeDefinitionUnaryOp(out, rustTypeName, "Not", "not", "!")
+		writeScalarTypeDefinitionShiftOps(out, rustTypeName)
 	}
 }
 
@@ -2626,6 +2627,65 @@ func writeScalarTypeDefinitionUnaryOp(out *strings.Builder, rustTypeName string,
 	out.WriteString("*self.0")
 	WriteBorrowMethod(out, false)
 	out.WriteString(".as_ref().unwrap()")
+	WriteWrapperSuffix(out)
+	out.WriteString(")\n")
+	out.WriteString("    }\n")
+	out.WriteString("}\n")
+}
+
+func writeScalarTypeDefinitionShiftOps(out *strings.Builder, rustTypeName string) {
+	for _, spec := range []struct {
+		traitName  string
+		methodName string
+		op         string
+	}{
+		{"Shl", "shl", "<<"},
+		{"Shr", "shr", ">>"},
+	} {
+		writeScalarTypeDefinitionShiftOp(out, rustTypeName, rustTypeName, spec.traitName, spec.methodName, spec.op, true)
+		for _, rhsType := range []string{"i32", "i8", "i16", "i64", "u32", "u8", "u16", "u64", "usize"} {
+			writeScalarTypeDefinitionShiftOp(out, rustTypeName, rhsType, spec.traitName, spec.methodName, spec.op, false)
+		}
+	}
+}
+
+func writeScalarTypeDefinitionShiftOp(out *strings.Builder, rustTypeName string, rhsType string, traitName string, methodName string, op string, rhsWrapped bool) {
+	out.WriteString("\nimpl std::ops::")
+	out.WriteString(traitName)
+	if !rhsWrapped {
+		out.WriteString("<")
+		out.WriteString(rhsType)
+		out.WriteString(">")
+	}
+	out.WriteString(" for ")
+	out.WriteString(rustTypeName)
+	out.WriteString(" {\n")
+	out.WriteString("    type Output = ")
+	out.WriteString(rustTypeName)
+	out.WriteString(";\n")
+	out.WriteString("    fn ")
+	out.WriteString(methodName)
+	out.WriteString("(self, other: ")
+	out.WriteString(rhsType)
+	out.WriteString(") -> ")
+	out.WriteString(rustTypeName)
+	out.WriteString(" {\n")
+	out.WriteString("        ")
+	out.WriteString(rustTypeName)
+	out.WriteString("(")
+	WriteWrapperPrefix(out)
+	out.WriteString("*self.0")
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap() ")
+	out.WriteString(op)
+	out.WriteString(" ")
+	if rhsWrapped {
+		out.WriteString("*other.0")
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap()")
+	} else {
+		out.WriteString("other")
+	}
 	WriteWrapperSuffix(out)
 	out.WriteString(")\n")
 	out.WriteString("    }\n")

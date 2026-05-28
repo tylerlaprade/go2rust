@@ -942,6 +942,30 @@ func lowestSet(b bitset) bool {
 	}
 }
 
+func TestNamedIntegerShiftOpsPreserveNamedType(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type bitset uint64
+
+func shiftConst(b bitset) bitset {
+	return b >> 8
+}
+
+func shiftCount(b bitset, n uint) bitset {
+	return b << n
+}
+`)
+
+	for _, want := range []string{
+		"impl std::ops::Shr<i32> for bitset {\n    type Output = bitset",
+		"impl std::ops::Shl<u32> for bitset {\n    type Output = bitset",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("named integer shift op should preserve named type, missing %q:\n%s", want, rust)
+		}
+	}
+}
+
 func TestNamedIntegerAssignmentUsesRawNamedValue(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
