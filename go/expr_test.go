@@ -1810,6 +1810,34 @@ func assign(rt *rtype) arrayType {
 	}
 }
 
+func TestUnsafePointerArrayLiteralZeroUsesTypedNil(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+import "unsafe"
+
+func makeAny() any {
+	var iarray any = [1]unsafe.Pointer{}
+	return iarray
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(main.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfoWithImporter("main", []*ast.File{file}, fset, nil)
+	if err != nil {
+		t.Fatalf("NewTypeInfoWithImporter(main) error = %v", err)
+	}
+
+	rust := transpileParsedRegression(t, file, fset, typeInfo)
+	if strings.Contains(rust, "[Default::default()]") {
+		t.Fatalf("unsafe.Pointer array literal zero should not emit trait-level Default::default():\n%s", rust)
+	}
+	if !strings.Contains(rust, "Box::new([0])") {
+		t.Fatalf("unsafe.Pointer array literal zero should emit a typed nil pointer value:\n%s", rust)
+	}
+}
+
 func TestParenthesizedNumericConversionTargetWrapsBinaryOperand(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
