@@ -210,6 +210,31 @@ func tagName(x Expr) string {
 	}
 }
 
+func TestAnyAssertionToPackageInterfaceUsesConcreteCandidates(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Expr interface {
+	isExpr()
+}
+
+type TagExpr struct{}
+
+func (TagExpr) isExpr() {}
+
+func asExpr(x any) Expr {
+	return x.(Expr)
+}
+`)
+
+	if strings.Contains(rust, "downcast_ref::<Expr>()") {
+		t.Fatalf("assertion to package interface should not downcast to the trait type:\n%s", rust)
+	}
+	if !strings.Contains(rust, "downcast_ref::<TagExpr>()") ||
+		!strings.Contains(rust, "Box::new(typed_val.clone()) as Box<dyn Expr") {
+		t.Fatalf("assertion to package interface should downcast concrete candidates and box the trait object:\n%s", rust)
+	}
+}
+
 func TestAssignedLocalInterfaceParamUsesWrappedShadow(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

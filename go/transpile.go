@@ -776,9 +776,6 @@ func localInterfaceAssertionTarget(e *ast.TypeAssertExpr) (string, *types.Interf
 	if !ok {
 		return "", nil, nil, nil, false
 	}
-	if !localInterfaces[ifaceName] {
-		return "", nil, nil, nil, false
-	}
 	named, ok := types.Unalias(targetType).(*types.Named)
 	if !ok {
 		return "", nil, nil, nil, false
