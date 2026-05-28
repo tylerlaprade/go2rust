@@ -1772,6 +1772,44 @@ func tagString(field StructField) string {
 	}
 }
 
+func TestAddressOfParenthesizedSelectorKeepsAddressContext(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+type Type struct{}
+
+type rtype struct {
+	t Type
+}
+
+type arrayType struct {
+	slice *Type
+}
+
+func assign(rt *rtype) arrayType {
+	var array arrayType
+	array.slice = &(rt.t)
+	return array
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(main.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust := transpileParsedRegression(t, file, fset, typeInfo)
+	if strings.Contains(rust, ".t.borrow().as_ref().unwrap()).clone()).clone()") ||
+		strings.Contains(rust, ".t.lock().unwrap().as_ref().unwrap()).clone()).clone()") {
+		t.Fatalf("address-of parenthesized selector should keep the field handle, not clone the selected value:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".t).clone()") && !strings.Contains(rust, ".t.clone()") {
+		t.Fatalf("address-of parenthesized selector should clone the field handle:\n%s", rust)
+	}
+}
+
 func TestParenthesizedNumericConversionTargetWrapsBinaryOperand(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

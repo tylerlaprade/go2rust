@@ -7830,7 +7830,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 	case *ast.ParenExpr:
 		// Parenthesized expression
 		out.WriteString("(")
-		TranspileExpression(out, e.X)
+		TranspileExpressionContext(out, e.X, ctx)
 		out.WriteString(")")
 
 	case *ast.TypeAssertExpr:
