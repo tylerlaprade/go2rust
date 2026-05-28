@@ -4193,7 +4193,9 @@ func writeInterfaceBoxedValue(out *strings.Builder, expr ast.Expr) {
 	out.WriteString("Box::new(")
 	if call, ok := expr.(*ast.CallExpr); ok {
 		typeInfo := GetTypeInfo()
-		if typeInfo != nil && typeInfo.ReturnsWrappedValue(call) && !callReturnsBareChannelValue(call) && (!typeInfo.IsTypeConversion(call) || typeConversionEmitsWrappedValue(call)) {
+		if _, ok := typedNilMapOrSliceConversionType(call); ok {
+			TranspileExpression(out, call)
+		} else if typeInfo != nil && typeInfo.ReturnsWrappedValue(call) && !callReturnsBareChannelValue(call) && (!typeInfo.IsTypeConversion(call) || typeConversionEmitsWrappedValue(call)) {
 			out.WriteString("{ let __v = ")
 			TranspileExpression(out, call)
 			out.WriteString("; let __owned = (*__v")
@@ -8488,6 +8490,9 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 	if writeFunctionSignatureTypeConversion(out, call) {
 		return
 	}
+	if writeTypedNilMapOrSliceConversion(out, call) {
+		return
+	}
 	if reflectStructTagConversionTarget(call) {
 		writeReflectStructTagConversion(out, call.Args[0])
 		return
@@ -8832,6 +8837,39 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 		// No cast needed or unknown type
 		TranspileExpression(out, call.Args[0])
 	}
+}
+
+func typedNilMapOrSliceConversionType(call *ast.CallExpr) (types.Type, bool) {
+	if call == nil || len(call.Args) != 1 {
+		return nil, false
+	}
+	ident, ok := call.Args[0].(*ast.Ident)
+	if !ok || ident.Name != "nil" {
+		return nil, false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || !typeInfo.IsTypeConversion(call) {
+		return nil, false
+	}
+	targetType := typeInfo.GetType(call)
+	if targetType == nil {
+		return nil, false
+	}
+	switch types.Unalias(targetType).Underlying().(type) {
+	case *types.Map, *types.Slice:
+		return targetType, true
+	default:
+		return nil, false
+	}
+}
+
+func writeTypedNilMapOrSliceConversion(out *strings.Builder, call *ast.CallExpr) bool {
+	targetType, ok := typedNilMapOrSliceConversionType(call)
+	if !ok {
+		return false
+	}
+	writeTypedWrappedNone(out, goTypesTypeToRust(targetType))
+	return true
 }
 
 func numericConversionCastNeedsParens(arg ast.Expr) bool {

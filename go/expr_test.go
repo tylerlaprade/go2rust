@@ -1786,6 +1786,24 @@ func typeFor[T any]() {
 	}
 }
 
+func TestTypedNilMapAnyVarInitializerBoxesTypedNone(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func boxMap() any {
+	var x any = (map[int]int)(nil)
+	return x
+}
+`)
+
+	if strings.Contains(rust, "let mut x: Rc<RefCell<Option<Box<dyn Any>>>> = None;") ||
+		strings.Contains(rust, "Box::new(None)") {
+		t.Fatalf("typed nil map in any initializer should not emit a nil interface or untyped None:\n%s", rust)
+	}
+	if !strings.Contains(rust, "None::<BTreeMap<i32,") || !strings.Contains(rust, "as Box<dyn Any") {
+		t.Fatalf("typed nil map in any initializer should preserve the typed nil map inside Any:\n%s", rust)
+	}
+}
+
 func TestExplicitGenericFunctionCallUsesRustTypeArgs(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

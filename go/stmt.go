@@ -7519,6 +7519,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									WriteWrappedNone(out)
 								} else if valueSpec.Type != nil && writeStdlibInterfaceCallArgumentConversion(out, valueSpec.Values[i], expectedTypeFromParamExpr(valueSpec.Type)) {
 									// Converted concrete stdlib values assigned to a stdlib interface variable.
+								} else if valueSpec.Type != nil && isEmptyInterfaceTypeExpr(valueSpec.Type) {
+									writeEmptyInterfaceCallArgumentValue(out, valueSpec.Values[i])
 								} else if isLocalInterface {
 									// Assigning to a local interface variable - keep wrapped, just clone the Rc
 									if ident, ok := valueSpec.Values[i].(*ast.Ident); ok {
