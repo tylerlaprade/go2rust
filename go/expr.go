@@ -9617,6 +9617,17 @@ func writeStringTypeDefinitionInnerValue(out *strings.Builder, arg ast.Expr) boo
 		out.WriteString(".to_string()")
 		return true
 	}
+	if argType != nil {
+		if basic, ok := types.Unalias(argType).Underlying().(*types.Basic); ok && basic.Kind() == types.String {
+			if typeInfo != nil && typeInfo.ReturnsWrappedValue(arg) {
+				out.WriteString("(*")
+				TranspileExpression(out, arg)
+				WriteBorrowMethod(out, false)
+				out.WriteString(".as_ref().unwrap()).clone()")
+				return true
+			}
+		}
+	}
 	if call, ok := arg.(*ast.CallExpr); ok && typeInfo != nil && typeInfo.ReturnsWrappedValue(call) && !isBareBuiltinReturn(call) && !callReturnsBareChannelValue(call) && (!typeInfo.IsTypeConversion(call) || typeConversionEmitsWrappedValue(call)) {
 		out.WriteString("(*")
 		TranspileExpression(out, arg)

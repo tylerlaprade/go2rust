@@ -1707,6 +1707,28 @@ func (v Value) Walk(index []int) Value {
 	}
 }
 
+func TestNamedStringValueReceiverSliceReassignmentWrapsLocalCopy(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type StructTag string
+
+func (tag StructTag) Trim(i int) StructTag {
+	tag = tag[i:]
+	return tag
+}
+`)
+
+	if !strings.Contains(rust, "let mut __self = self.clone();") {
+		t.Fatalf("named string receiver reassignment should introduce a mutable local receiver copy:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let new_val = StructTag(") || !strings.Contains(rust, "__self = new_val") {
+		t.Fatalf("named string receiver reassignment should wrap the sliced string in the named type:\n%s", rust)
+	}
+	if strings.Contains(rust, "__self = __moved_val") {
+		t.Fatalf("named string receiver reassignment should not move a bare string into the named receiver copy:\n%s", rust)
+	}
+}
+
 func TestNamedScalarReceiverCallArgumentKeepsNamedValue(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

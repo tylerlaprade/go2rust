@@ -1970,12 +1970,47 @@ func assignmentRHSReturnsWrappedValue(rhs ast.Expr) bool {
 	return true
 }
 
+func writeCurrentReceiverNamedTypeAssignmentValue(out *strings.Builder, rhs ast.Expr) bool {
+	if currentReceiverObject == nil {
+		return false
+	}
+	named, ok := types.Unalias(currentReceiverObject.Type()).(*types.Named)
+	if !ok || named.Obj() == nil {
+		return false
+	}
+	basic, ok := types.Unalias(named.Underlying()).(*types.Basic)
+	if !ok || basic.Kind() != types.String {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		out.WriteString("unimplemented!(\"type info required for named receiver assignment\")")
+		return true
+	}
+	rhsType := typeInfo.GetType(rhs)
+	if rhsType == nil || !types.AssignableTo(rhsType, named) {
+		return false
+	}
+	rustTypeName := goTypesNamedTypeToRust(named)
+	if rustTypeName == "" {
+		rustTypeName = RustTypeNameForUse(named.Obj().Name())
+	}
+	writeStringTypeDefinitionConstructor(out, rustTypeName, rhs)
+	return true
+}
+
 func writeCurrentReceiverLocalAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
 	ident, ok := lhs.(*ast.Ident)
 	if !ok || !isCurrentReceiverIdent(ident) || currentReceiverRustAlias == "" {
 		return false
 	}
 	out.WriteString("{ let new_val = ")
+	if writeCurrentReceiverNamedTypeAssignmentValue(out, rhs) {
+		out.WriteString("; ")
+		out.WriteString(currentReceiverRustAlias)
+		out.WriteString(" = new_val; }")
+		return true
+	}
 	if assignmentRHSReturnsWrappedValue(rhs) {
 		TranspileExpression(out, rhs)
 		out.WriteString("; let __moved_val = { let mut __guard = new_val")
