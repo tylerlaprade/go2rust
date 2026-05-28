@@ -804,6 +804,47 @@ func caller(seed uint64) uint64 {
 	}
 }
 
+func TestNamedIntegerBinaryIndexParenthesizesAsCast(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Code int
+
+const Invalid Code = -1
+
+func main() {
+	var x [1]struct{}
+	_ = x[Invalid - -1]
+}
+`)
+
+	if strings.Contains(rust, "INVALID as i32 - -1 as i32 as usize") {
+		t.Fatalf("named-integer binary index must parenthesize as-cast operands before as-usize:\n%s", rust)
+	}
+	if !strings.Contains(rust, "(INVALID as i32 - -1 as i32) as usize") {
+		t.Fatalf("expected named-integer binary index emission to wrap operands in parens:\n%s", rust)
+	}
+}
+
+func TestShiftLHSWithAsCastIsParenthesized(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func byteBit(i int) byte {
+	return byte(1) << (i % 8)
+}
+
+func main() {
+	_ = byteBit(3)
+}
+`)
+
+	if strings.Contains(rust, "as u8 <<") {
+		t.Fatalf("shift LHS with as-cast must be parenthesized to avoid Rust precedence collision:\n%s", rust)
+	}
+	if !strings.Contains(rust, "as u8) <<") {
+		t.Fatalf("expected shift LHS with as-cast to be wrapped in parens:\n%s", rust)
+	}
+}
+
 func TestStrconvAtoiTupleSlotEmitsBareScalarFirstResult(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

@@ -40,10 +40,19 @@ func writeExpressionAsUsize(out *strings.Builder, expr ast.Expr) {
 }
 
 func writeNamedIntegerExpressionAsUsize(out *strings.Builder, expr ast.Expr) bool {
-	if !writeNamedIntegerPrimitiveExpression(out, expr) {
+	var inner strings.Builder
+	if !writeNamedIntegerPrimitiveExpression(&inner, expr) {
 		return false
 	}
-	out.WriteString(" as usize")
+	emission := inner.String()
+	if shiftOperandEmissionNeedsParens(emission) {
+		out.WriteString("(")
+		out.WriteString(emission)
+		out.WriteString(") as usize")
+	} else {
+		out.WriteString(emission)
+		out.WriteString(" as usize")
+	}
 	return true
 }
 
@@ -160,12 +169,41 @@ func writeConstShiftLeftOperandForResult(out *strings.Builder, expr ast.Expr, sh
 		return false
 	}
 	if resultType := typeInfo.GetType(shift); resultType != nil {
-		if writeConstExpressionForExpectedGoType(out, expr, resultType) {
+		var inner strings.Builder
+		if writeConstExpressionForExpectedGoType(&inner, expr, resultType) {
+			emission := inner.String()
+			if shiftOperandEmissionNeedsParens(emission) {
+				out.WriteString("(")
+				out.WriteString(emission)
+				out.WriteString(")")
+			} else {
+				out.WriteString(emission)
+			}
 			return true
 		}
 	}
 	TranspileExpression(out, expr)
 	return true
+}
+
+// shiftOperandEmissionNeedsParens reports whether a shift LHS emission ends
+// with a top-level `as <type>` cast. Rust parses `expr as Ty << rhs` as
+// `expr as (Ty << rhs)`, so the cast must be parenthesized.
+func shiftOperandEmissionNeedsParens(emission string) bool {
+	depth := 0
+	for i := 0; i < len(emission); i++ {
+		switch emission[i] {
+		case '(':
+			depth++
+		case ')':
+			depth--
+		case ' ':
+			if depth == 0 && strings.HasPrefix(emission[i:], " as ") {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func writeNamedIntegerBitwiseExpression(out *strings.Builder, expr *ast.BinaryExpr) bool {
