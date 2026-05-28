@@ -254,6 +254,11 @@ func goTypeParamConstraintToRust(t types.Type) (string, bool) {
 	return "", false
 }
 
+func typeParamConstraintLowersToRustString(t types.Type) bool {
+	rustType, ok := goTypeParamConstraintToRust(t)
+	return ok && rustType == "String"
+}
+
 func goTypeParamNameToRust(t types.Type) (string, bool) {
 	tp, ok := types.Unalias(t).(*types.TypeParam)
 	if !ok || tp.Obj() == nil {

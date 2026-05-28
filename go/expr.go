@@ -6873,6 +6873,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			isString := false
 			if typeInfo != nil {
 				isString = typeInfo.IsString(e.X)
+				if !isString {
+					isString = typeParamConstraintLowersToRustString(typeInfo.GetType(e.X))
+				}
 			}
 
 			if isString {
@@ -10828,6 +10831,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 		if isBuiltinCallTarget(ident) || isFunctionName(ident) {
 			// Regular function call
 			out.WriteString(rustFunctionNameForUse(ident.Name))
+			writeInferredCallTypeArgs(out, ident)
 		} else {
 			// Likely a closure variable - need to unwrap and call
 			// Check if this variable has been renamed (captured in closure)
@@ -11441,6 +11445,25 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 		}
 	}
 	closeFunctionCall()
+}
+
+func writeInferredCallTypeArgs(out *strings.Builder, ident *ast.Ident) {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil || typeInfo.info.Instances == nil || ident == nil {
+		return
+	}
+	instance, ok := typeInfo.info.Instances[ident]
+	if !ok || instance.TypeArgs == nil || instance.TypeArgs.Len() == 0 {
+		return
+	}
+	out.WriteString("::<")
+	for i := 0; i < instance.TypeArgs.Len(); i++ {
+		if i > 0 {
+			out.WriteString(", ")
+		}
+		out.WriteString(goTypesTypeToRust(instance.TypeArgs.At(i)))
+	}
+	out.WriteString(">")
 }
 
 func syntaxExprIsGoError(expr ast.Expr) bool {

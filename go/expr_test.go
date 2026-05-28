@@ -2407,6 +2407,45 @@ func lookup(i uint8) int {
 	}
 }
 
+func TestStringOrByteSliceTypeParamIndexUsesLoweredStringBytes(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func hash[T string | []byte](sep T) uint32 {
+	return uint32(sep[0])
+}
+`)
+
+	if !strings.Contains(rust, ".as_bytes()[") {
+		t.Fatalf("string-lowered type parameter index should read bytes from the lowered String:\n%s", rust)
+	}
+	if strings.Contains(rust, "__seq[") {
+		t.Fatalf("string-lowered type parameter index should not use slice indexing on String:\n%s", rust)
+	}
+}
+
+func TestTypeParamCallArgumentIsNotLoweredAsInterfaceReference(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func hash[T string | []byte](sep T) uint32 {
+	return uint32(sep[0])
+}
+
+func use[T string | []byte](sep T) uint32 {
+	return hash(sep)
+}
+`)
+
+	if strings.Contains(rust, "hash(&*") {
+		t.Fatalf("type parameter argument should not be lowered as an interface reference:\n%s", rust)
+	}
+	if !strings.Contains(rust, "hash::<T>(") {
+		t.Fatalf("inferred type parameter call should emit explicit Rust type arguments:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Rc::new(RefCell::new(Some((*sep.borrow().as_ref().unwrap()).clone())))") {
+		t.Fatalf("type parameter value argument should be passed through the wrapped value path:\n%s", rust)
+	}
+}
+
 func TestExternalStdlibScalarCallStaysBareInComparison(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

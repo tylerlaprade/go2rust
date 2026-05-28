@@ -46,6 +46,7 @@ func NewTypeInfoWithImporter(path string, files []*ast.File, fset *token.FileSet
 		Uses:       make(map[*ast.Ident]types.Object),
 		Implicits:  make(map[ast.Node]types.Object),
 		Selections: make(map[*ast.SelectorExpr]*types.Selection),
+		Instances:  make(map[*ast.Ident]types.Instance),
 		InitOrder:  []*types.Initializer{},
 	}
 
@@ -457,8 +458,7 @@ func (ti *TypeInfo) IsInterface(ident *ast.Ident) bool {
 	// Look up the identifier in the type info
 	if obj, ok := ti.info.Uses[ident]; ok {
 		if typeName, ok := obj.(*types.TypeName); ok {
-			// Check if the underlying type is an interface
-			if _, ok := typeName.Type().Underlying().(*types.Interface); ok {
+			if typeNameIsInterfaceValue(typeName) {
 				return true
 			}
 		}
@@ -467,14 +467,24 @@ func (ti *TypeInfo) IsInterface(ident *ast.Ident) bool {
 	// Also check in Defs for type definitions
 	if obj, ok := ti.info.Defs[ident]; ok {
 		if typeName, ok := obj.(*types.TypeName); ok {
-			// Check if the underlying type is an interface
-			if _, ok := typeName.Type().Underlying().(*types.Interface); ok {
+			if typeNameIsInterfaceValue(typeName) {
 				return true
 			}
 		}
 	}
 
 	return false
+}
+
+func typeNameIsInterfaceValue(typeName *types.TypeName) bool {
+	if typeName == nil || typeName.Type() == nil {
+		return false
+	}
+	if _, ok := types.Unalias(typeName.Type()).(*types.TypeParam); ok {
+		return false
+	}
+	_, ok := types.Unalias(typeName.Type()).Underlying().(*types.Interface)
+	return ok
 }
 
 // ReturnsWrappedValue checks if an expression returns a wrapped Arc<Mutex<Option<T>>> value
