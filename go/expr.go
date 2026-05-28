@@ -8885,7 +8885,7 @@ func typedNilConversionType(call *ast.CallExpr) (types.Type, bool) {
 		return nil, false
 	}
 	switch types.Unalias(targetType).Underlying().(type) {
-	case *types.Map, *types.Slice, *types.Chan:
+	case *types.Map, *types.Slice, *types.Chan, *types.Signature:
 		return targetType, true
 	default:
 		return nil, false

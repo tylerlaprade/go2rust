@@ -2070,6 +2070,23 @@ func boxChan() any {
 	}
 }
 
+func TestTypedNilFunctionAnyVarInitializerBoxesTypedNone(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func boxFunc() any {
+	var x any = (func())(nil)
+	return x
+}
+`)
+
+	if strings.Contains(rust, "let __v = None") || strings.Contains(rust, "Box::new(None)") {
+		t.Fatalf("typed nil function in any initializer should not emit untyped None:\n%s", rust)
+	}
+	if !strings.Contains(rust, "None::<Box<dyn FnMut() -> ()>") || !strings.Contains(rust, "as Box<dyn Any") {
+		t.Fatalf("typed nil function in any initializer should preserve the function type inside Any:\n%s", rust)
+	}
+}
+
 func TestExplicitGenericFunctionCallUsesRustTypeArgs(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
