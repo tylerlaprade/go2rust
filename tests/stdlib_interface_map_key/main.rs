@@ -133,7 +133,7 @@ pub fn remember(names: Rc<RefCell<Option<BTreeMap<types_Object, Rc<RefCell<Optio
     for (__range_key, _) in { let __range_holder = names.clone(); let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
         let key = Rc::new(RefCell::new(Some(__range_key.clone())));
         let _ = (*key.borrow().as_ref().unwrap()).pkg();
-        { let new_val = { let __append_target = entries.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push(entry { obj: key.clone(), ..Default::default() }); __append_target.clone() }; entries = new_val; };
+        { let new_val = { let __append_target = entries.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push(entry { obj: Rc::new(RefCell::new(Some((*key.borrow_mut().as_mut().unwrap())))), ..Default::default() }); __append_target.clone() }; entries = new_val; };
     }
     let _ = (*entries.borrow().as_ref().unwrap());
     let mut copied = Rc::new(RefCell::new(Some(BTreeMap::<types_Object, Rc<RefCell<Option<String>>>>::from([]))));
