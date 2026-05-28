@@ -804,6 +804,42 @@ func caller(seed uint64) uint64 {
 	}
 }
 
+func TestTupleShortDeclReregistersNewBareBoolAfterWrappedShadow(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type iter struct{}
+
+func (it *iter) pair(seed int) (int, int, bool) {
+	return seed, seed + 1, true
+}
+
+func caller(it *iter, seed int) int {
+	if seed > 0 {
+		var ok bool
+		a, b, ok := it.pair(seed)
+		_ = a
+		_ = b
+		if ok {
+			return 1
+		}
+	}
+	x, _, ok := it.pair(seed)
+	if !ok {
+		return 0
+	}
+	return x
+}
+`)
+
+	if !strings.Contains(rust, "let (mut x, _, mut ok) = it.pair") &&
+		!strings.Contains(rust, "let (mut x, _, mut ok) = (*it") {
+		t.Fatalf("later tuple short declaration should bind a new bare ok result:\n%s", rust)
+	}
+	if !strings.Contains(rust, "if !ok {") {
+		t.Fatalf("new tuple bool result should be used as a bare bool, not through a stale wrapped ok:\n%s", rust)
+	}
+}
+
 func TestBareScalarAssignmentFromWrappedLocalUnwrapsRHS(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

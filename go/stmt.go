@@ -862,9 +862,6 @@ func registerCallTupleResultSyntaxInfo(lhs []ast.Expr, call *ast.CallExpr) {
 				if !ok || ident.Name == "_" {
 					continue
 				}
-				if isVarDeclaredInCurrentScope(ident.Name) {
-					continue
-				}
 				vt.Register(ident.Name, &VarInfo{
 					WrapLevel: WrapNone,
 					RustType:  goTypesTypeToRust(types.Unalias(results.At(i).Type())),
@@ -880,9 +877,6 @@ func registerCallTupleResultSyntaxInfo(lhs []ast.Expr, call *ast.CallExpr) {
 		}
 		ident, ok := lhs[i].(*ast.Ident)
 		if !ok || ident.Name == "_" {
-			continue
-		}
-		if isVarDeclaredInCurrentScope(ident.Name) {
 			continue
 		}
 		if rustType == "Vec<u8>" {
