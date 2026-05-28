@@ -8787,7 +8787,11 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 			}
 		} else {
 			out.WriteString("(*")
-			TranspileExpression(out, arg)
+			if sel, ok := arg.(*ast.SelectorExpr); ok && selectorStringConversionCanBorrowFieldHandle(sel) {
+				TranspileExpressionContext(out, arg, LValue)
+			} else {
+				TranspileExpression(out, arg)
+			}
 			WriteBorrowMethod(out, false)
 			out.WriteString(".as_ref().unwrap()).to_string()")
 		}
@@ -9386,6 +9390,15 @@ func reflectStructTagConversionTarget(call *ast.CallExpr) bool {
 		return false
 	}
 	return pkg.Path() == "reflect" && named.Obj().Name() == "StructTag" && isStubBackedStdlibPackagePath(pkg.Path())
+}
+
+func selectorStringConversionCanBorrowFieldHandle(sel *ast.SelectorExpr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil || sel == nil || !typeInfo.IsString(sel) {
+		return false
+	}
+	selection, ok := typeInfo.info.Selections[sel]
+	return ok && selection.Kind() == types.FieldVal
 }
 
 func externalIntegerConversionTarget(call *ast.CallExpr) (*types.Named, string, bool) {

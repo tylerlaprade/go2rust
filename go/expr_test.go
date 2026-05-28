@@ -1741,6 +1741,37 @@ func assign(tag string) StructField {
 	}
 }
 
+func TestSourceMappedNamedStringSelectorConversionUsesFieldHandle(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "type.go", `package reflect
+
+type StructTag string
+
+type StructField struct {
+	Tag StructTag
+}
+
+func tagString(field StructField) string {
+	return string(field.Tag)
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(type.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfoWithImporter("reflect", []*ast.File{file}, fset, nil)
+	if err != nil {
+		t.Fatalf("NewTypeInfoWithImporter(reflect) error = %v", err)
+	}
+
+	rust := transpileParsedRegression(t, file, fset, typeInfo)
+	if strings.Contains(rust, ".clone().lock()") || strings.Contains(rust, ".clone().borrow()") {
+		t.Fatalf("string conversion from a named string selector should borrow the field handle, not lock the cloned value:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".tag") || !strings.Contains(rust, ".to_string()") {
+		t.Fatalf("string conversion from a named string selector should emit a field string conversion:\n%s", rust)
+	}
+}
+
 func TestParenthesizedNumericConversionTargetWrapsBinaryOperand(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
