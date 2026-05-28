@@ -247,6 +247,63 @@ func writeBareScalarAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr)
 	return true
 }
 
+func typeIsPredeclaredMutableBareScalar(t types.Type) bool {
+	t = types.Unalias(t)
+	basic, ok := t.(*types.Basic)
+	if !ok || basic.Kind() == types.Bool {
+		return false
+	}
+	return basicKindIsCopyScalar(basic.Kind())
+}
+
+func bareScalarMutationTarget(expr ast.Expr) (*ast.Ident, types.Type, bool) {
+	ident, ok := expr.(*ast.Ident)
+	if !ok || ident.Name == "_" || !isVarBare(ident.Name) {
+		return nil, nil, false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return nil, nil, false
+	}
+	t := typeInfo.GetType(expr)
+	if !typeIsPredeclaredMutableBareScalar(t) {
+		return nil, nil, false
+	}
+	return ident, t, true
+}
+
+func writeBareScalarCompoundAssign(out *strings.Builder, lhs ast.Expr, op token.Token, rhs ast.Expr) bool {
+	ident, expected, ok := bareScalarMutationTarget(lhs)
+	if !ok {
+		return false
+	}
+	out.WriteString("{ let __rhs = ")
+	writeBareCompoundAssignValueForOp(out, rhs, expected, op)
+	out.WriteString("; ")
+	out.WriteString(RustIdentForUse(ident))
+	out.WriteString(" = ")
+	out.WriteString(RustIdentForUse(ident))
+	out.WriteString(" ")
+	writeCompoundAssignOperator(out, op)
+	out.WriteString(" __rhs; }")
+	return true
+}
+
+func writeBareScalarIncDec(out *strings.Builder, expr ast.Expr, op token.Token) bool {
+	ident, _, ok := bareScalarMutationTarget(expr)
+	if !ok {
+		return false
+	}
+	out.WriteString("{ ")
+	out.WriteString(RustIdentForUse(ident))
+	if op == token.INC {
+		out.WriteString(" += 1; }")
+	} else {
+		out.WriteString(" -= 1; }")
+	}
+	return true
+}
+
 func compositeLiteralEmitsBareStructValue(lit *ast.CompositeLit) bool {
 	if lit == nil {
 		return false
@@ -6314,6 +6371,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				writeMapElementUpdate(out, indexExpr, s.Tok, s.Rhs[0])
 			} else if indexExpr, ok := s.Lhs[0].(*ast.IndexExpr); ok && writeIndexedCompoundAssign(out, indexExpr, s.Tok, s.Rhs[0]) {
 				// array/slice element compound assignment mutates the underlying sequence directly.
+			} else if writeBareScalarCompoundAssign(out, s.Lhs[0], s.Tok, s.Rhs[0]) {
+				// Bare scalar locals mutate directly.
 			} else {
 
 				isString := false
@@ -8049,6 +8108,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			// Generic integer increments use the typed helper instead of a raw Rust integer literal.
 		} else if writeNamedIntegerIncDec(out, s.X, s.Tok) {
 			// Named integer arithmetic returns the underlying scalar; preserve the named wrapper on mutation.
+		} else if writeBareScalarIncDec(out, s.X, s.Tok) {
+			// Bare scalar locals mutate directly.
 		} else {
 			// For wrapped variables, we need to update the value inside
 			out.WriteString("{ ")

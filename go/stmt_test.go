@@ -1154,6 +1154,28 @@ func parse(env string) {
 	}
 }
 
+func TestBareScalarCallResultIncDecAndCompoundAssignStayBare(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func scalar() int {
+	return 3
+}
+
+func adjust() {
+	n := scalar()
+	n--
+	frameSize := scalar()
+	frameSize += scalar()
+	_, _ = n, frameSize
+}
+`)
+
+	if strings.Contains(rust, "n.borrow()") || strings.Contains(rust, "n.borrow_mut()") || strings.Contains(rust, "n.lock()") ||
+		strings.Contains(rust, "frameSize.borrow()") || strings.Contains(rust, "frameSize.borrow_mut()") || strings.Contains(rust, "frameSize.lock()") {
+		t.Fatalf("bare scalar call results should mutate as raw locals, not wrapper handles:\n%s", rust)
+	}
+}
+
 func TestShortDeclFromSelectorNamedArrayCompositeLiteralRegistersBareLocal(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
