@@ -363,6 +363,10 @@ run_xfail_test() {
     run_test "tests/aliasing_mutation"
 }
 
+@test "anon_interface_type_switch" {
+    run_test "tests/anon_interface_type_switch"
+}
+
 @test "anonymous_structs_basic" {
     run_test "tests/anonymous_structs_basic"
 }
@@ -705,6 +709,10 @@ run_xfail_test() {
 
 @test "copy_from_struct_field_slice" {
     run_test "tests/copy_from_struct_field_slice"
+}
+
+@test "copy_into_wrapped_slice_field" {
+    run_test "tests/copy_into_wrapped_slice_field"
 }
 
 @test "cross_file_debug_derive_inner_any" {
@@ -1459,6 +1467,10 @@ run_xfail_test() {
     run_test "tests/mutex_guard_method_call"
 }
 
+@test "named_const_method_call" {
+    run_test "tests/named_const_method_call"
+}
+
 @test "named_func_return_defer" {
     run_test "tests/named_func_return_defer"
 }
@@ -1489,6 +1501,10 @@ run_xfail_test() {
 
 @test "named_integer_conversion" {
     run_test "tests/named_integer_conversion"
+}
+
+@test "named_integer_incdec" {
+    run_test "tests/named_integer_incdec"
 }
 
 @test "named_integer_index" {
@@ -2171,6 +2187,10 @@ run_xfail_test() {
     run_test "tests/source_stdlib_path_filepath_isabs"
 }
 
+@test "star_pointer_incdec" {
+    run_test "tests/star_pointer_incdec"
+}
+
 @test "stdlib_concrete_error_variable" {
     run_test "tests/stdlib_concrete_error_variable"
 }
@@ -2689,6 +2709,14 @@ run_xfail_test() {
 
 @test "XFAIL: panic_recover" {
     run_xfail_test "tests/XFAIL/panic_recover"
+}
+
+@test "XFAIL: pointer_package_global" {
+    run_xfail_test "tests/XFAIL/pointer_package_global"
+}
+
+@test "XFAIL: slice_expr_into_raw_element_slot" {
+    run_xfail_test "tests/XFAIL/slice_expr_into_raw_element_slot"
 }
 
 @test "XFAIL: stateful_goroutines" {
