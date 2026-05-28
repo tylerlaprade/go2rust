@@ -1073,6 +1073,26 @@ func (m *Map) grow() {
 	}
 }
 
+func TestIntegerRangeOverSelectorConstUsesBareLimit(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "unicode/utf8"
+
+func scan() {
+	for i := range utf8.UTFMax {
+		_ = i
+	}
+}
+`)
+
+	if strings.Contains(rust, "__range_guard") || strings.Contains(rust, ".lock().unwrap()") {
+		t.Fatalf("integer range over selector const should not borrow a wrapped limit:\n%s", rust)
+	}
+	if !strings.Contains(rust, "0..(") {
+		t.Fatalf("expected integer range emission:\n%s", rust)
+	}
+}
+
 func TestReturnBitClearUsesRustOperator(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

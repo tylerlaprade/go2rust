@@ -504,6 +504,15 @@ func writeUnwrappedRangeTarget(out *strings.Builder, expr ast.Expr) {
 
 func writeIntegerRangeLimit(out *strings.Builder, expr ast.Expr) {
 	typeInfo := GetTypeInfo()
+	if isConstantExpression(expr) {
+		if typeInfo != nil {
+			if expected := typeInfo.GetType(expr); expected != nil && writeConstExpressionForExpectedGoType(out, expr, expected) {
+				return
+			}
+		}
+		TranspileExpression(out, expr)
+		return
+	}
 	if call, ok := expr.(*ast.CallExpr); ok && typeInfo != nil && typeInfo.ReturnsWrappedValue(call) && !isBareBuiltinReturn(call) && !callReturnsBareChannelValue(call) && (!typeInfo.IsTypeConversion(call) || typeConversionEmitsWrappedValue(call)) {
 		out.WriteString("{ let __v = ")
 		TranspileExpression(out, call)
