@@ -4453,6 +4453,10 @@ func writeWrappedStructFieldValue(out *strings.Builder, value ast.Expr, fieldExp
 		if writeCurrentReceiverPointerFieldValue(out, value, fieldExpr, expectedFieldType) {
 			return
 		}
+		if globalIdent, ok := packageGlobalPointerIdent(value); ok {
+			writePackageGlobalPointerHandleClone(out, globalIdent)
+			return
+		}
 		if _, ok := value.(*ast.SelectorExpr); ok {
 			out.WriteString("{ let __field = ")
 			TranspileExpressionContext(out, value, LValue)

@@ -1788,6 +1788,34 @@ func tagString(field StructField) string {
 	}
 }
 
+func TestPointerFieldStructLiteralUsesPackageGlobalPointerHandle(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Type struct{}
+
+type Value struct {
+	typ *Type
+}
+
+func rtypeOf() *Type {
+	return &Type{}
+}
+
+var uint8Type = rtypeOf()
+
+func Make() Value {
+	return Value{uint8Type}
+}
+`)
+
+	if strings.Contains(rust, "typ: uint8Type.clone()") {
+		t.Fatalf("pointer field literal should not store the package-global slot handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "typ: (*uint8Type.borrow().as_ref().unwrap()).clone()") {
+		t.Fatalf("pointer field literal should clone the pointer handle stored in the package global:\n%s", rust)
+	}
+}
+
 func TestAddressOfParenthesizedSelectorKeepsAddressContext(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
