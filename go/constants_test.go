@@ -692,6 +692,25 @@ func (s Symbol) kindName() string {
 	}
 }
 
+func TestSwitchOnImportedConstSelectorDoesNotUnwrapField(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "go/token"
+
+func classify() string {
+	switch token.ILLEGAL {
+	case token.ILLEGAL:
+		return "illegal"
+	}
+	return "other"
+}
+`)
+
+	if strings.Contains(rust, "ILLEGAL; let __owned = (*__v") {
+		t.Fatalf("switch tag package constant selector should not be treated as a wrapped field:\n%s", rust)
+	}
+}
+
 func TestNoTypeInfoLocalConstByteFieldAssignmentDoesNotSynthesizeCast(t *testing.T) {
 	src := `package main
 

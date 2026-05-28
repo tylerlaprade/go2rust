@@ -3979,10 +3979,14 @@ func writeSwitchTagValue(out *strings.Builder, expr ast.Expr) {
 
 func writeSwitchWrappedFieldValue(out *strings.Builder, expr ast.Expr) bool {
 	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
+	if typeInfo == nil || typeInfo.info == nil {
 		return false
 	}
-	if _, ok := expr.(*ast.SelectorExpr); !ok {
+	sel, ok := expr.(*ast.SelectorExpr)
+	if !ok {
+		return false
+	}
+	if _, ok := typeInfo.info.Selections[sel]; !ok {
 		return false
 	}
 	typ := typeInfo.GetType(expr)
