@@ -2891,7 +2891,12 @@ func writeLocalInterfaceHandleAssignment(out *strings.Builder, lhs ast.Expr, rhs
 		return false
 	}
 
-	TranspileExpressionContext(out, lhs, LValue)
+	if sel, ok := lhs.(*ast.SelectorExpr); ok && writePointerHandleSelectorTarget(out, sel) {
+		// Selector handle fields need the outer struct borrowed mutably so the
+		// field handle itself can be replaced.
+	} else {
+		TranspileExpressionContext(out, lhs, LValue)
+	}
 	out.WriteString(" = ")
 	if isBareLocalInterfaceValue(rhs) {
 		WriteWrapperPrefix(out)

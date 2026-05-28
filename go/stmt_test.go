@@ -1795,3 +1795,30 @@ func (b bitset) first() uintptr {
 		t.Fatalf("named scalar receiver call argument should wrap a cloned self value:\n%s", rust)
 	}
 }
+
+func TestLocalInterfaceFieldAssignmentMutablyBorrowsStruct(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Type interface {
+	Name() string
+}
+
+type Method struct {
+	Type Type
+}
+
+func assign(m Method, typ Type) Method {
+	m.Type = typ
+	return m
+}
+`)
+
+	if strings.Contains(rust, ".borrow().as_ref().unwrap()).r#type =") ||
+		strings.Contains(rust, ".lock().unwrap().as_ref().unwrap()).r#type =") {
+		t.Fatalf("local interface field assignment should not replace the field through an immutable struct borrow:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".borrow_mut().as_mut().unwrap()).r#type =") &&
+		!strings.Contains(rust, ".lock().unwrap().as_mut().unwrap()).r#type =") {
+		t.Fatalf("local interface field assignment should borrow the struct mutably:\n%s", rust)
+	}
+}
