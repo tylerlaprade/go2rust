@@ -3686,6 +3686,17 @@ func writePointerHandleAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Ex
 	if typeInfo == nil || !typeInfo.IsPointer(lhs) || !typeInfo.IsPointer(rhs) {
 		return false
 	}
+	if _, ok := lhs.(*ast.SelectorExpr); ok {
+		var unsupported strings.Builder
+		if writeUnsupportedSliceElemPointerHandleValue(&unsupported, rhs, "slice element pointer cannot assign to pointer field") {
+			out.WriteString("{ let new_val = ")
+			out.WriteString(unsupported.String())
+			out.WriteString("; ")
+			writePointerHandleAssignmentTarget(out, lhs)
+			out.WriteString(" = new_val; }")
+			return true
+		}
+	}
 	if ident, ok := packageGlobalPointerIdent(lhs); ok {
 		out.WriteString("{ let new_val = ")
 		writePointerHandleValueClone(out, rhs)

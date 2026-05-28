@@ -177,6 +177,26 @@ func makeName() Name {
 	}
 }
 
+func TestSliceElemPointerFieldAssignmentFailsLoudly(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+type Name struct {
+	Bytes *byte
+}
+
+func setName(n *Name, b []byte) {
+	n.Bytes = &b[0]
+}
+`)
+
+	if strings.Contains(rust, "bytes = GoSliceElemPtr::new") {
+		t.Fatalf("slice element pointer field assignment should not emit an incompatible helper value:\n%s", rust)
+	}
+	if !strings.Contains(rust, `unimplemented!("slice element pointer cannot assign to pointer field")`) {
+		t.Fatalf("slice element pointer field assignment should fail loudly:\n%s", rust)
+	}
+}
+
 func TestSliceElemPointerReturnFailsLoudlyInsteadOfInvalidHelper(t *testing.T) {
 	rust := transpileTypedSliceElemPtrRegression(t, `package main
 

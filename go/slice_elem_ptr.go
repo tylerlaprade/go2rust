@@ -241,6 +241,18 @@ func writeSliceElemPtrOptionValue(out *strings.Builder, rhs ast.Expr) bool {
 	return true
 }
 
+func writeUnsupportedSliceElemPointerHandleValue(out *strings.Builder, rhs ast.Expr, message string) bool {
+	if _, ok := sliceElemPtrAddressElemRustType(rhs); !ok {
+		return false
+	}
+	WriteWrapperPrefix(out)
+	out.WriteString(`unimplemented!("`)
+	out.WriteString(message)
+	out.WriteString(`")`)
+	WriteWrapperSuffix(out)
+	return true
+}
+
 func writeSliceElemPtrDerefAssignmentValue(out *strings.Builder, target *ast.StarExpr, rhs ast.Expr) bool {
 	ident, ok := rhs.(*ast.Ident)
 	if !ok || ident.Name != "nil" {
