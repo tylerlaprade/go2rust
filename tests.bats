@@ -2079,6 +2079,10 @@ run_xfail_test() {
     run_test "tests/regexp_methods"
 }
 
+@test "return_conversion_as_interface" {
+    run_test "tests/return_conversion_as_interface"
+}
+
 @test "return_indexed_pointer" {
     run_test "tests/return_indexed_pointer"
 }
@@ -2507,6 +2511,10 @@ run_xfail_test() {
     run_test "tests/struct_embedding"
 }
 
+@test "struct_field_conversion_interface_box" {
+    run_test "tests/struct_field_conversion_interface_box"
+}
+
 @test "struct_function_slice_field" {
     run_test "tests/struct_function_slice_field"
 }
@@ -2821,10 +2829,6 @@ run_xfail_test() {
 
 @test "XFAIL: pointer_package_global" {
     run_xfail_test "tests/XFAIL/pointer_package_global"
-}
-
-@test "XFAIL: return_conversion_as_interface" {
-    run_xfail_test "tests/XFAIL/return_conversion_as_interface"
 }
 
 @test "XFAIL: stateful_goroutines" {

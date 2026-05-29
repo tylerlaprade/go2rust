@@ -1497,6 +1497,18 @@ func writeLocalInterfaceConcreteReturnConversion(out *strings.Builder, result as
 								return true
 							}
 						}
+						// A conversion/constructor call producing a concrete value that
+						// implements the interface (e.g. `return boolVal(b)`) must be
+						// boxed; it isn't a wrapped-returning call handled above.
+						if _, ok := result.(*ast.CallExpr); ok {
+							var boxed strings.Builder
+							if writeConcreteLocalInterfaceValue(&boxed, result, targetType, interfaceName) {
+								WriteWrapperPrefix(out)
+								out.WriteString(boxed.String())
+								WriteWrapperSuffix(out)
+								return true
+							}
+						}
 					}
 				}
 			}
