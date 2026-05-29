@@ -1,0 +1,8 @@
+[package]
+name = "any_slice_index_assign_concrete"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "any_slice_index_assign_concrete"
+path = "main.rs"

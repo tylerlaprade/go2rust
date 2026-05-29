@@ -327,9 +327,70 @@ func compositeLiteralEmitsBareStructValue(lit *ast.CompositeLit) bool {
 	}
 }
 
+// writeAnyBoxInnerValue emits the owned concrete value to box into a Box<dyn
+// Any> — unwrapping a wrapped variable or wrapped-returning call, or stripping
+// the wrapper off a literal/expression.
+func writeAnyBoxInnerValue(out *strings.Builder, expr ast.Expr) {
+	if ident, ok := expr.(*ast.Ident); ok {
+		switch ident.Name {
+		case "nil", "true", "false":
+		default:
+			if _, isConst := localConstants[ident.Name]; !isConst {
+				if _, isRange := rangeLoopVars[ident.Name]; !isRange {
+					out.WriteString("(*")
+					out.WriteString(EscapeRustIdent(ident.Name))
+					WriteBorrowMethod(out, false)
+					out.WriteString(".as_ref().unwrap()).clone()")
+					return
+				}
+			}
+		}
+	}
+	if call, ok := expr.(*ast.CallExpr); ok {
+		typeInfo := GetTypeInfo()
+		if typeInfo != nil && typeInfo.ReturnsWrappedValue(call) && !isBareBuiltinReturn(call) && (!typeInfo.IsTypeConversion(call) || typeConversionEmitsWrappedValue(call)) {
+			out.WriteString("(*")
+			TranspileExpression(out, call)
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref().unwrap()).clone()")
+			return
+		}
+	}
+	var buf strings.Builder
+	TranspileExpression(&buf, expr)
+	s := buf.String()
+	wrapPrefix := GetOuterWrapperType() + "::new(" + GetInnerWrapperType() + "::new(Some("
+	wrapSuffix := ")))"
+	if strings.HasPrefix(s, wrapPrefix) && strings.HasSuffix(s, wrapSuffix) {
+		out.WriteString(s[len(wrapPrefix) : len(s)-len(wrapSuffix)])
+		return
+	}
+	out.WriteString(s)
+}
+
+// writeBareAnyBox emits `Box::new(<value>) as Box<dyn Any...>`, boxing a concrete
+// expr into a bare Box<dyn Any> trait object (the element slot of a []any, which
+// stores bare boxes).
+func writeBareAnyBox(out *strings.Builder, expr ast.Expr) {
+	out.WriteString("Box::new(")
+	writeAnyBoxInnerValue(out, expr)
+	out.WriteString(") as ")
+	out.WriteString(rustAnyTraitObject())
+}
+
 func writeArraySliceElementAssignmentValue(out *strings.Builder, rhs ast.Expr, expected types.Type) {
 	if isGoErrorType(expected) && writeGoErrorHandleValue(out, rhs) {
 		return
+	}
+	// A []any element slot stores a bare Box<dyn Any>; box a concrete value into
+	// it. (A value already of interface type is handled by the local/stdlib
+	// interface paths or the generic clone below.)
+	if isEmptyInterfaceType(expected) && !isEmptyInterfaceValueExpr(rhs) {
+		ident, isIdent := rhs.(*ast.Ident)
+		if !isIdent || ident.Name != "nil" {
+			writeBareAnyBox(out, rhs)
+			return
+		}
 	}
 	if writePointerArraySliceElementAssignmentValue(out, rhs, expected) {
 		return

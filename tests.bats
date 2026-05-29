@@ -2779,6 +2779,10 @@ run_xfail_test() {
     run_test "tests/wrapped_call_argument"
 }
 
+@test "XFAIL: any_slice_index_assign_concrete" {
+    run_xfail_test "tests/XFAIL/any_slice_index_assign_concrete"
+}
+
 @test "XFAIL: concurrency_patterns" {
     run_xfail_test "tests/XFAIL/concurrency_patterns"
 }
