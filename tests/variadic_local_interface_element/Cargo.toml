@@ -1,0 +1,8 @@
+[package]
+name = "variadic_local_interface_element"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "variadic_local_interface_element"
+path = "main.rs"

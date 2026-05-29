@@ -1151,6 +1151,18 @@ func writeVariadicPackedElementValue(out *strings.Builder, arg ast.Expr, elemTyp
 		writeInterfaceBoxedValue(out, arg)
 		return
 	}
+	// A named local-interface variadic element (`...ast.Expr`) packs into a Vec of
+	// WRAPPED trait-object handles (Rc/Arc<...<Option<Box<dyn Iface>>>>), so the
+	// element must be the wrapped handle, not the bare Box<dyn Iface> the
+	// fallthrough TranspileExpression yields by unwrapping an interface arg. Route
+	// through the same logic a regular local-interface call argument uses.
+	if elemType != nil {
+		if _, ok := transpiledNamedInterfaceTypeNameFromTypes(elemType); ok {
+			if writeLocalInterfaceReferenceCallArgument(out, arg, elemType) {
+				return
+			}
+		}
+	}
 	if elemType != nil {
 		if _, ok := types.Unalias(elemType).Underlying().(*types.Slice); ok {
 			writeSliceCloneOrEmpty(out, arg)

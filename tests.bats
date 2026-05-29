@@ -2775,6 +2775,10 @@ run_xfail_test() {
     run_test "tests/variadic_functions"
 }
 
+@test "variadic_local_interface_element" {
+    run_test "tests/variadic_local_interface_element"
+}
+
 @test "variadic_method_any" {
     run_test "tests/variadic_method_any"
 }
