@@ -3624,6 +3624,16 @@ func writeCurrentReceiverWrappedClone(out *strings.Builder, ident *ast.Ident) bo
 }
 
 func currentReceiverRustName() string {
+	// Inside a closure that captured the receiver (a defer or func literal that
+	// uses `p`), the receiver was cloned into a capture variable and `self` was
+	// moved into the closure. References to the receiver in the closure body
+	// must use that clone, not `self`, or the move makes later receiver use in
+	// the enclosing method fail to borrow (E0382).
+	if currentReceiver != "" && currentCaptureRenames != nil {
+		if renamed, ok := currentCaptureRenames[currentReceiver]; ok {
+			return RustLocalIdent(renamed)
+		}
+	}
 	if currentReceiverRustAlias != "" {
 		return currentReceiverRustAlias
 	}
