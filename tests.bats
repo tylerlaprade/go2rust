@@ -1483,6 +1483,10 @@ run_xfail_test() {
     run_test "tests/named_func_return_defer"
 }
 
+@test "named_func_type_interface_param" {
+    run_test "tests/named_func_type_interface_param"
+}
+
 @test "named_int_sub_assign" {
     run_test "tests/named_int_sub_assign"
 }
@@ -2737,10 +2741,6 @@ run_xfail_test() {
 
 @test "XFAIL: http_client" {
     run_xfail_test "tests/XFAIL/http_client"
-}
-
-@test "XFAIL: named_func_type_interface_param" {
-    run_xfail_test "tests/XFAIL/named_func_type_interface_param"
 }
 
 @test "XFAIL: panic_recover" {

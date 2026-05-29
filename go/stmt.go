@@ -3787,6 +3787,25 @@ func functionSignatureFromTypeExpr(expr ast.Expr) (*types.Signature, bool) {
 	return sig, ok
 }
 
+func functionTypeExprUsesWrappedHandle(expr ast.Expr) (bool, bool) {
+	if expr == nil {
+		return false, true
+	}
+	if _, ok := expr.(*ast.FuncType); ok {
+		return false, true
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false, false
+	}
+	typ := expectedTypeFromParamExpr(expr)
+	if typ == nil {
+		return false, false
+	}
+	_, ok := signatureFromType(typ)
+	return ok, true
+}
+
 func writeMoveWrappedInnerAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) {
 	if writeCurrentReceiverLocalAssignment(out, lhs, rhs) {
 		return
@@ -7965,6 +7984,18 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									} else {
 										// Function calls already return wrapped values, don't wrap again
 										writeCallExpressionForInitializer(out, call)
+									}
+								} else if funcLit, isFuncLit := valueSpec.Values[i].(*ast.FuncLit); isFuncLit && valueSpec.Type != nil {
+									if _, directFuncType := valueSpec.Type.(*ast.FuncType); directFuncType {
+										TranspileFuncLitBox(out, funcLit)
+									} else if usesWrappedHandle, hasTypeInfo := functionTypeExprUsesWrappedHandle(valueSpec.Type); usesWrappedHandle {
+										WriteWrapperPrefix(out)
+										TranspileFuncLitBox(out, funcLit)
+										WriteWrapperSuffix(out)
+									} else if !hasTypeInfo {
+										out.WriteString(`unimplemented!("type info required to lower function literal initializer")`)
+									} else {
+										TranspileExpression(out, valueSpec.Values[i])
 									}
 								} else if compositeLit, isCompositeLit := valueSpec.Values[i].(*ast.CompositeLit); isCompositeLit {
 									registerCompositeLiteralSyntaxVarInfo(name, compositeLit)

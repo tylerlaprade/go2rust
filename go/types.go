@@ -1477,9 +1477,12 @@ func goTypesParamTypeToRust(t types.Type) string {
 }
 
 func goTypesFunctionParamTypeToRust(t types.Type) string {
-	if interfaceName, ok := transpiledNamedInterfaceTypeNameFromTypes(t); ok {
-		return rustLocalInterfaceParamBare(interfaceName)
-	}
+	// Named interface parameters use the wrapped nilable handle at every
+	// function boundary, closure types included, matching func values,
+	// func-typed parameters, and call sites. This keeps the named func-type
+	// alias, the func value, and the call site in the same shape so a
+	// `func(Node) bool` value converts to a named `type T func(Node) bool`
+	// (e.g. go/ast's ast.Inspect) and a nil interface arg lowers to None.
 	return goTypesParamTypeToRust(t)
 }
 

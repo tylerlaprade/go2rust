@@ -1,0 +1,8 @@
+[package]
+name = "named_func_type_interface_param"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "named_func_type_interface_param"
+path = "main.rs"

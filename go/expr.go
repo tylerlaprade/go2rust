@@ -11822,22 +11822,13 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 			paramTypeForArg = paramType
 			expectedArgType = expectedTypeFromParamExpr(paramType)
 			if ident, ok := paramType.(*ast.Ident); ok {
-				// Check if this is an interface type using TypeInfo
 				typeInfo := GetTypeInfo()
 				if typeInfo != nil && typeInfo.IsInterface(ident) {
 					if isEmptyInterfaceTypeExpr(ident) {
 						expectsEmptyInterface = true
 					} else {
-						// Interface parameters now use &dyn Trait, not wrapped
 						expectsInterfaceParam = true
 						interfaceName = ident.Name
-						// We no longer need interface boxing since params changed
-						needsInterfaceBoxing = false
-					}
-				} else if typeInfo == nil {
-					if interfaceNameFromSyntax, ok := transpiledNamedInterfaceTypeNameFromExpr(ident); ok {
-						expectsInterfaceParam = true
-						interfaceName = interfaceNameFromSyntax
 						needsInterfaceBoxing = false
 					}
 				}
@@ -11879,22 +11870,19 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				continue
 			}
 
-			// Function values use &dyn Trait for interface parameters; ordinary
-			// functions keep nilable wrapped handles.
+			// Interface arguments match the closure/function param shape from
+			// goTypesFunctionParamTypeToRust: an IMPORTED interface in a
+			// closure/function-value call uses a bare cross-crate trait
+			// reference, while a LOCAL interface (and every ordinary function
+			// call) uses the wrapped nilable handle so a `func(Node) bool` value
+			// converts to a named `type T func(Node) bool` and nil lowers to None.
 			if expectsInterfaceParam {
-				if isClosureCall && expectedArgType != nil {
-					if writeLocalInterfaceBareReferenceCallArgument(out, arg, expectedArgType) {
+				if expectedArgType != nil {
+					if writeLocalInterfaceReferenceCallArgument(out, arg, expectedArgType) {
 						continue
 					}
-				}
-				if !isClosureCall {
-					if expectedArgType != nil {
-						if writeLocalInterfaceReferenceCallArgument(out, arg, expectedArgType) {
-							continue
-						}
-					} else if writeLocalInterfaceReferenceCallArgumentForTypeExpr(out, arg, paramTypeForArg) {
-						continue
-					}
+				} else if writeLocalInterfaceReferenceCallArgumentForTypeExpr(out, arg, paramTypeForArg) {
+					continue
 				}
 			}
 

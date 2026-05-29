@@ -256,6 +256,33 @@ func TestGoTypesFunctionParamUsesBareImportedInterfaceReference(t *testing.T) {
 	}
 }
 
+func TestGoTypesFunctionParamUsesWrappedLocalInterfaceHandle(t *testing.T) {
+	paramType := types.Typ[types.Int]
+	method := types.NewFunc(
+		token.NoPos,
+		nil,
+		"Find",
+		types.NewSignatureType(
+			nil,
+			nil,
+			nil,
+			types.NewTuple(types.NewVar(token.NoPos, nil, "key", paramType)),
+			types.NewTuple(types.NewVar(token.NoPos, nil, "", paramType)),
+			false,
+		),
+	)
+	iface := types.NewInterfaceType([]*types.Func{method}, nil).Complete()
+	pkg := types.NewPackage("example.com/mainmod", "main")
+	named := types.NewNamed(types.NewTypeName(token.NoPos, pkg, "Map", nil), iface, nil)
+
+	SetTypeInfo(&TypeInfo{pkg: pkg})
+	defer SetTypeInfo(nil)
+
+	if got, want := goTypesFunctionParamTypeToRust(named), "Rc<RefCell<Option<Box<dyn Map>>>>"; got != want {
+		t.Fatalf("goTypesFunctionParamTypeToRust(local interface) = %q, want %q", got, want)
+	}
+}
+
 func TestGoTypeToRustParamDoesNotTrustInterfaceRegistryWithoutTypeInfo(t *testing.T) {
 	prevTypeInfo := currentTypeInfo
 	prevContext := currentContext

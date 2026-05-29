@@ -853,6 +853,42 @@ func Deliver(exporter Exporter, ev Event) {
 	}
 }
 
+func TestFunctionTypeAliasFuncLiteralInitializerUsesInnerBox(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+type Node interface {
+	Name() string
+}
+
+type inspector func(Node) bool
+
+func NewInspector() inspector {
+	var insp inspector = func(n Node) bool {
+		return n.Name() == "alpha"
+	}
+	return insp
+}
+`)
+
+	generator := NewProjectGenerator([]string{filepath.Join(tempDir, "main.go")})
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
+	if strings.Contains(mainRS, "Some(Rc::new(RefCell::new(Some(Box::new(move") {
+		t.Fatalf("named function literal initializer should store the closure box, not a nested function handle, got:\n%s", mainRS)
+	}
+	if !strings.Contains(mainRS, "let mut insp: inspector = Rc::new(RefCell::new(Some(Box::new(move |n: Rc<RefCell<Option<Box<dyn Node>>>>|") {
+		t.Fatalf("named function literal initializer should wrap one closure box in the alias handle, got:\n%s", mainRS)
+	}
+}
+
 func TestImportedInterfaceImplCanBeDiscoveredFromSiblingFileCall(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
