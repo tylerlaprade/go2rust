@@ -747,6 +747,10 @@ run_xfail_test() {
     run_test "tests/cross_file_function_alias_param"
 }
 
+@test "cross_file_interface_impl" {
+    run_test "tests/cross_file_interface_impl"
+}
+
 @test "cross_file_interface_typed_const_argument" {
     run_test "tests/cross_file_interface_typed_const_argument"
 }

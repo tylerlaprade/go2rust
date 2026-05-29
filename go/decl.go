@@ -1255,6 +1255,43 @@ func localInterfaceTypesFromTypeSpec(typeSpec *ast.TypeSpec) *types.Interface {
 	return iface
 }
 
+// packageLocalInterfaceNames returns the names of every named interface type
+// declared in the current package — across all files — unioned with the AST
+// interfaces of the file being emitted (a fallback for when type info is
+// unavailable). Trait-impl generation iterates this so a concrete type picks up
+// the interfaces it implements regardless of which file declares them.
+func packageLocalInterfaceNames(fileInterfaces map[string]*ast.InterfaceType) []string {
+	seen := map[string]bool{}
+	var names []string
+	add := func(name string) {
+		if name == "" || seen[name] {
+			return
+		}
+		seen[name] = true
+		names = append(names, name)
+	}
+	if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.pkg != nil {
+		scope := typeInfo.pkg.Scope()
+		for _, name := range scope.Names() {
+			tn, ok := scope.Lookup(name).(*types.TypeName)
+			if !ok {
+				continue
+			}
+			named, ok := tn.Type().(*types.Named)
+			if !ok {
+				continue
+			}
+			if _, ok := named.Underlying().(*types.Interface); ok {
+				add(name)
+			}
+		}
+	}
+	for name := range fileInterfaces {
+		add(name)
+	}
+	return names
+}
+
 // localInterfaceTypesByName looks up the go/types interface for a top-level
 // type name in the current package.
 func localInterfaceTypesByName(name string) *types.Interface {
