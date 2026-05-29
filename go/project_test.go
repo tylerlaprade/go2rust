@@ -2869,6 +2869,51 @@ func lang(v version) bool {
 	}
 }
 
+func TestConcurrentComparableStructPointerFieldUsesPointerIdentity(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+type scope struct {
+	values []int
+}
+
+type key struct {
+	scope *scope
+	name  string
+}
+
+var seen map[key]int
+
+func start() {
+	go func() {}()
+}
+
+func lookup(s *scope) int {
+	return seen[key{scope: s, name: "x"}]
+}
+`)
+
+	generator := NewProjectGenerator([]string{filepath.Join(tempDir, "main.go")})
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
+	if strings.Contains(mainRS, "self.scope.lock().unwrap().as_ref().cloned()") {
+		t.Fatalf("pointer field ordering should not clone or compare pointee values, got:\n%s", mainRS)
+	}
+	if !strings.Contains(mainRS, "Arc::ptr_eq(&self.scope, &other.scope)") {
+		t.Fatalf("pointer field equality should compare pointer handles by identity, got:\n%s", mainRS)
+	}
+	if !strings.Contains(mainRS, "Arc::as_ptr(&self.scope)") || !strings.Contains(mainRS, "Arc::as_ptr(&other.scope)") {
+		t.Fatalf("pointer field ordering should order pointer handles by address, got:\n%s", mainRS)
+	}
+}
+
 func TestTypeDefinitionMethodReceiverUsesSelfValue(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod

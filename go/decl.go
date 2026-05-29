@@ -547,16 +547,75 @@ func structComparableFieldNames(structType *ast.StructType) []string {
 	return names
 }
 
-func structComparableFieldInterfaceName(expr ast.Expr) (string, bool) {
+func structComparableFieldType(field structComparableField) (types.Type, bool) {
 	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return "", false
+	if typeInfo == nil || field.expr == nil {
+		return nil, false
 	}
-	return transpiledNamedInterfaceTypeNameFromTypes(typeInfo.GetType(expr))
+	typ := typeInfo.GetType(field.expr)
+	return typ, typ != nil
+}
+
+func writeStructComparableFieldTypeInfoRequired(out *strings.Builder, operation string, field structComparableField) {
+	out.WriteString("unimplemented!(")
+	out.WriteString(strconv.Quote(fmt.Sprintf("type info required to %s struct field %s", operation, field.name)))
+	out.WriteString(")")
+}
+
+func writeStructComparablePointerFieldEq(out *strings.Builder, field structComparableField) {
+	outerWrapper := GetOuterWrapperType()
+	out.WriteString("{ let __left_some = self.")
+	out.WriteString(field.name)
+	out.WriteString(".lock().unwrap().is_some(); let __right_some = other.")
+	out.WriteString(field.name)
+	out.WriteString(".lock().unwrap().is_some(); (!__left_some && !__right_some) || (__left_some && __right_some && ")
+	out.WriteString(outerWrapper)
+	out.WriteString("::ptr_eq(&self.")
+	out.WriteString(field.name)
+	out.WriteString(", &other.")
+	out.WriteString(field.name)
+	out.WriteString(")) }")
+}
+
+func writeStructComparablePointerFieldOrd(out *strings.Builder, field structComparableField) {
+	outerWrapper := GetOuterWrapperType()
+	out.WriteString("            let __left_some = self.")
+	out.WriteString(field.name)
+	out.WriteString(".lock().unwrap().is_some();\n")
+	out.WriteString("            let __right_some = other.")
+	out.WriteString(field.name)
+	out.WriteString(".lock().unwrap().is_some();\n")
+	out.WriteString("            let __ord = match (__left_some, __right_some) {\n")
+	out.WriteString("                (false, false) => std::cmp::Ordering::Equal,\n")
+	out.WriteString("                (false, true) => std::cmp::Ordering::Less,\n")
+	out.WriteString("                (true, false) => std::cmp::Ordering::Greater,\n")
+	out.WriteString("                (true, true) => (")
+	out.WriteString(outerWrapper)
+	out.WriteString("::as_ptr(&self.")
+	out.WriteString(field.name)
+	out.WriteString(") as usize).cmp(&(")
+	out.WriteString(outerWrapper)
+	out.WriteString("::as_ptr(&other.")
+	out.WriteString(field.name)
+	out.WriteString(") as usize)),\n")
+	out.WriteString("            };\n")
+	out.WriteString("            match __ord {\n")
+	out.WriteString("                std::cmp::Ordering::Equal => {}\n")
+	out.WriteString("                __ord => return __ord,\n")
+	out.WriteString("            }\n")
 }
 
 func writeStructComparableFieldEq(out *strings.Builder, field structComparableField) {
-	if ifaceName, ok := structComparableFieldInterfaceName(field.expr); ok {
+	typ, ok := structComparableFieldType(field)
+	if !ok {
+		writeStructComparableFieldTypeInfoRequired(out, "compare", field)
+		return
+	}
+	if isPointerType(typ) {
+		writeStructComparablePointerFieldEq(out, field)
+		return
+	}
+	if ifaceName, ok := transpiledNamedInterfaceTypeNameFromTypes(typ); ok {
 		out.WriteString("{ let __left = self.")
 		out.WriteString(field.name)
 		out.WriteString(".lock().unwrap(); let __right = other.")
@@ -575,7 +634,20 @@ func writeStructComparableFieldEq(out *strings.Builder, field structComparableFi
 
 func writeStructComparableFieldOrd(out *strings.Builder, field structComparableField) {
 	out.WriteString("        {\n")
-	if _, ok := structComparableFieldInterfaceName(field.expr); ok {
+	typ, ok := structComparableFieldType(field)
+	if !ok {
+		out.WriteString("            ")
+		writeStructComparableFieldTypeInfoRequired(out, "order", field)
+		out.WriteString(";\n")
+		out.WriteString("        }\n")
+		return
+	}
+	if isPointerType(typ) {
+		writeStructComparablePointerFieldOrd(out, field)
+		out.WriteString("        }\n")
+		return
+	}
+	if _, ok := transpiledNamedInterfaceTypeNameFromTypes(typ); ok {
 		out.WriteString("            let __left = self.")
 		out.WriteString(field.name)
 		out.WriteString(".lock().unwrap();\n")
