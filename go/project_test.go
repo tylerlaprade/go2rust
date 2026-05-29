@@ -2009,6 +2009,48 @@ func main() {
 	}
 }
 
+func TestPackageAnyCloneHelperQualifiesSiblingModuleTypes(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "termlist.go"), `package main
+
+type termlist struct{}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "use.go"), `package main
+
+func sink(args ...any) {}
+
+func call(x termlist, y any) {
+	sink(x)
+	sink(y)
+}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+func main() {}
+`)
+
+	generator := NewProjectGenerator([]string{
+		filepath.Join(tempDir, "termlist.go"),
+		filepath.Join(tempDir, "use.go"),
+		filepath.Join(tempDir, "main.go"),
+	})
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	helpersRS := mustReadFile(t, filepath.Join(tempDir, packageHelperIncludeFile))
+	if strings.Contains(helpersRS, "downcast_ref::<termlist>()") {
+		t.Fatalf("package helper should not refer to a sibling module type without qualification, got:\n%s", helpersRS)
+	}
+	if !strings.Contains(helpersRS, "downcast_ref::<crate::termlist::termlist>()") {
+		t.Fatalf("package helper should qualify sibling module types, got:\n%s", helpersRS)
+	}
+}
+
 func TestCrossFileMethodImplQualifiesReceiverType(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod

@@ -3,6 +3,7 @@ package main
 import (
 	"go/ast"
 	"go/types"
+	"strings"
 )
 
 // TranspileSession holds run-scoped state shared across package transpilation.
@@ -638,7 +639,35 @@ func anyCloneRustType(typ types.Type) (string, bool) {
 	if _, ok := named.Underlying().(*types.Interface); ok {
 		return "", false
 	}
-	return goTypesTypeToRust(named), true
+	rustType := goTypesTypeToRust(named)
+	if qualified, ok := currentPackageHelperRustTypePath(named, rustType); ok {
+		return qualified, true
+	}
+	return rustType, true
+}
+
+func currentPackageHelperRustTypePath(named *types.Named, rustType string) (string, bool) {
+	if named == nil || named.Obj() == nil || named.Obj().Pkg() == nil {
+		return "", false
+	}
+	ctx := GetTranspileContext()
+	if ctx == nil || ctx.Package == nil || !ctx.UsePackageHelpers {
+		return "", false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.pkg == nil || named.Obj().Pkg() != typeInfo.pkg {
+		return "", false
+	}
+	typeName := named.Obj().Name()
+	moduleName := ctx.Package.TypeModuleNames[typeName]
+	if moduleName == "" {
+		return "", false
+	}
+	rustTypeName := RustTypeNameForUse(typeName)
+	if rustType != rustTypeName && !strings.HasPrefix(rustType, rustTypeName+"<") {
+		return "", false
+	}
+	return "crate::" + moduleName + "::" + rustType, true
 }
 
 // NeedGoByteSequence marks that we need the GoByteSequence helper trait.
