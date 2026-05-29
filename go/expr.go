@@ -8480,6 +8480,14 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				wroteFields = true
 			} else if allPositional {
 				if sd, exists := structDefs[ident.Name]; exists && sd.ASTType != nil {
+					var typedStructUnder *types.Struct
+					if typeInfo := GetTypeInfo(); typeInfo != nil {
+						if typ := typeInfo.GetType(e); typ != nil {
+							if structUnder, ok := types.Unalias(typ).Underlying().(*types.Struct); ok {
+								typedStructUnder = structUnder
+							}
+						}
+					}
 					eltIndex := 0
 					for fieldIndex, field := range sd.ASTType.Fields.List {
 						fieldNames := field.Names
@@ -8496,7 +8504,11 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 							wroteFields = true
 							out.WriteString(rustStructFieldName(name, fieldIndex, nameIndex))
 							out.WriteString(": ")
-							writeWrappedStructFieldValue(out, e.Elts[eltIndex], field.Type, nil)
+							var typedFieldType types.Type
+							if typedStructUnder != nil && eltIndex < typedStructUnder.NumFields() {
+								typedFieldType = typedStructUnder.Field(eltIndex).Type()
+							}
+							writeWrappedStructFieldValue(out, e.Elts[eltIndex], field.Type, typedFieldType)
 							eltIndex++
 						}
 						if eltIndex >= len(e.Elts) {

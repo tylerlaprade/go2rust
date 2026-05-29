@@ -488,6 +488,10 @@ type operand struct {
 func record(selx *dep.SelectorExpr) operand {
 	return operand{expr: selx}
 }
+
+func recordPositional(selx *dep.SelectorExpr) operand {
+	return operand{selx}
+}
 `)
 
 	generator := NewProjectGenerator([]string{
