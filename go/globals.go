@@ -1,6 +1,9 @@
 package main
 
-import "go/ast"
+import (
+	"go/ast"
+	"go/types"
+)
 
 // Global type info for the current transpilation
 var currentTypeInfo *TypeInfo
@@ -100,6 +103,13 @@ func currentTypeDefinitions() map[string]string {
 	return typeDefinitions
 }
 
+func currentTypeDefinitionUnderlyingTypes() map[string]types.Type {
+	if currentContext != nil && currentContext.Package != nil {
+		return currentContext.Package.TypeDefinitionUnderlyingTypes
+	}
+	return typeDefinitionUnderlyingTypes
+}
+
 func currentTypeAliases() map[string]bool {
 	if currentContext != nil && currentContext.Package != nil {
 		return currentContext.Package.TypeAliases
@@ -126,9 +136,20 @@ func RegisterTypeDefinition(name, underlying string) {
 	currentTypeDefinitions()[name] = underlying
 }
 
+func RegisterTypeDefinitionUnderlyingType(name string, typ types.Type) {
+	if typ != nil {
+		currentTypeDefinitionUnderlyingTypes()[name] = typ
+	}
+}
+
 func LookupTypeDefinition(name string) (string, bool) {
 	underlying, ok := currentTypeDefinitions()[name]
 	return underlying, ok
+}
+
+func LookupTypeDefinitionUnderlyingType(name string) (types.Type, bool) {
+	typ, ok := currentTypeDefinitionUnderlyingTypes()[name]
+	return typ, ok
 }
 
 func RegisterTypeAlias(name string) {

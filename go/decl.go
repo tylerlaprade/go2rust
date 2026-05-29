@@ -2082,7 +2082,17 @@ func registerPackageTypeFact(typeSpec *ast.TypeSpec) {
 		return
 	}
 	if !isStruct {
-		RegisterTypeDefinition(typeSpec.Name.Name, typeDefinitionUnderlyingName(typeSpec.Type))
+		registerTypeDefinitionForTypeExpr(typeSpec.Name.Name, typeSpec.Type)
+	}
+}
+
+func registerTypeDefinitionForTypeExpr(name string, expr ast.Expr) {
+	if name == "" || expr == nil {
+		return
+	}
+	RegisterTypeDefinition(name, typeDefinitionUnderlyingName(expr))
+	if typ, ok := typeInfoTypeForTypeExpr(expr); ok {
+		RegisterTypeDefinitionUnderlyingType(name, typ)
 	}
 }
 
@@ -2704,13 +2714,13 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 			// those fields rather than a newtype over a wrapped handle. Otherwise
 			// field access (t.field) resolves to nothing (E0609/E0615) — go/types'
 			// union.Term hits this.
-			RegisterTypeDefinition(typeSpec.Name.Name, typeDefinitionUnderlyingName(t))
+			registerTypeDefinitionForTypeExpr(typeSpec.Name.Name, t)
 			emitStructTypeDeclBody(out, typeSpec.Name.Name, structAST)
 			return
 		} else {
 			// Type definition: type A B
 			// Create a newtype wrapper in Rust
-			RegisterTypeDefinition(typeSpec.Name.Name, typeDefinitionUnderlyingName(t))
+			registerTypeDefinitionForTypeExpr(typeSpec.Name.Name, t)
 			if typeContainsTraitObjectInUnderlying(t) {
 				out.WriteString("#[derive(Clone, Default)]\n")
 			} else {

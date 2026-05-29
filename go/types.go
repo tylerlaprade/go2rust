@@ -997,6 +997,9 @@ func zeroValueForTypesType(typ types.Type) string {
 		return rustEmptyErrorHandleValue()
 	}
 	if named, ok := types.Unalias(typ).(*types.Named); ok {
+		if zeroValue, ok := zeroValueForNamedOverNamedScalar(named); ok {
+			return zeroValue
+		}
 		if isTimeDurationType(named) {
 			return "std::time::Duration::from_nanos(0)"
 		}
@@ -1067,6 +1070,31 @@ func zeroValueForTypesType(typ types.Type) string {
 	default:
 		return "Default::default()"
 	}
+}
+
+func zeroValueForNamedOverNamedScalar(named *types.Named) (string, bool) {
+	if named == nil || named.Obj() == nil {
+		return "", false
+	}
+	underlyingType, ok := LookupTypeDefinitionUnderlyingType(named.Obj().Name())
+	if !ok || underlyingType == nil || types.Identical(named, underlyingType) {
+		return "", false
+	}
+	underlyingNamed, ok := types.Unalias(underlyingType).(*types.Named)
+	if !ok {
+		return "", false
+	}
+	if _, ok := types.Unalias(underlyingNamed.Underlying()).(*types.Basic); !ok {
+		return "", false
+	}
+	var out strings.Builder
+	out.WriteString(goTypesNamedTypeToRust(named))
+	out.WriteString("(")
+	WriteWrapperPrefix(&out)
+	out.WriteString(zeroValueForTypesType(underlyingType))
+	WriteWrapperSuffix(&out)
+	out.WriteString(")")
+	return out.String(), true
 }
 
 func zeroValueForBasicType(t *types.Basic) string {

@@ -106,6 +106,9 @@ var interfaceTypes = make(map[string]bool)
 // typeDefinitions tracks which types are type definitions (not aliases)
 var typeDefinitions = make(map[string]string) // maps type name to underlying type
 
+// typeDefinitionUnderlyingTypes tracks the immediate RHS type for type definitions.
+var typeDefinitionUnderlyingTypes = make(map[string]types.Type)
+
 // typeAliases tracks which types are type aliases
 var typeAliases = make(map[string]bool)
 
@@ -1726,7 +1729,7 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 							_, isStruct := typeSpec.Type.(*ast.StructType)
 							_, isInterface := typeSpec.Type.(*ast.InterfaceType)
 							if !isStruct && !isInterface {
-								RegisterTypeDefinition(typeSpec.Name.Name, typeDefinitionUnderlyingName(typeSpec.Type))
+								registerTypeDefinitionForTypeExpr(typeSpec.Name.Name, typeSpec.Type)
 							}
 						}
 						// Track interfaces

@@ -2945,6 +2945,38 @@ func start() {
 	}
 }
 
+func TestConcurrentNamedTypeOverNamedScalarGlobalZeroPreservesInnerName(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+type Pos int
+type atPos Pos
+
+var p atPos
+
+func start() {
+	go func() {}()
+}
+`)
+
+	generator := NewProjectGenerator([]string{filepath.Join(tempDir, "main.go")})
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
+	if strings.Contains(mainRS, "atPos(Arc::new(Mutex::new(Some(0))))") {
+		t.Fatalf("named type over named scalar zero value should not erase inner named type, got:\n%s", mainRS)
+	}
+	if !strings.Contains(mainRS, "atPos(Arc::new(Mutex::new(Some(Pos(") {
+		t.Fatalf("named type over named scalar zero value should wrap the inner named zero value, got:\n%s", mainRS)
+	}
+}
+
 func TestTypeDefinitionMethodReceiverUsesSelfValue(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod

@@ -14,41 +14,42 @@ type TranspileSession struct {
 
 // PackageState holds package-scoped registries that should be shared across files.
 type PackageState struct {
-	FunctionSignatures           map[string]*FunctionSignature
-	FunctionNameOverrides        map[string]string
-	MethodNameOverrides          map[string]string
-	MethodsByType                map[string][]*ast.FuncDecl
-	ErrorImplTypes               map[string]bool
-	StringerImplTypes            map[string]bool
-	InterfaceTypes               map[string]bool
-	TypeDefinitions              map[string]string
-	TypeAliases                  map[string]bool
-	TypeModuleNames              map[string]string
-	FunctionTypeAliases          map[string]bool
-	FunctionTypeAliasBoxTypes    map[string]string
-	MapKeyStructTypes            map[string]bool
-	PackageConstants             map[string]string
-	PackageConstantTypeNames     map[string]string
-	ConstantNameOverrides        map[string]string
-	GoPackageImports             map[string]string
-	ExternalPackages             map[string]bool
-	StructDefs                   map[string]*StructDef
-	EmbeddedFields               map[string]map[string]string
-	AnonymousStructCounter       int
-	AnonymousStructs             map[string]*ast.StructType
-	AnonymousStructTypeMap       map[string]string
-	AnonymousStructAliases       map[string]string
-	ImportedInterfaceImpls       map[string]map[string]*types.Interface
-	ExternalLocalInterfaceImpls  map[string]map[string]externalLocalInterfaceImpl
-	ExternalTypeStubs            map[string]bool
-	ExternalTypeStubInterfaces   map[string]bool
-	ExternalTypeStubIntegerTypes map[string]string
-	ExternalTypeStubTupleTypes   map[string]string
-	ExternalTypeStubFields       map[string]map[string]string
-	ExternalTypeStubMethods      map[string]map[string]externalTypeStubMethod
-	ExternalTypeStubConversions  map[string]map[string]bool
-	ExternalPackageStubs         map[string]*externalPackageStub
-	Helpers                      *HelperTracker
+	FunctionSignatures            map[string]*FunctionSignature
+	FunctionNameOverrides         map[string]string
+	MethodNameOverrides           map[string]string
+	MethodsByType                 map[string][]*ast.FuncDecl
+	ErrorImplTypes                map[string]bool
+	StringerImplTypes             map[string]bool
+	InterfaceTypes                map[string]bool
+	TypeDefinitions               map[string]string
+	TypeDefinitionUnderlyingTypes map[string]types.Type
+	TypeAliases                   map[string]bool
+	TypeModuleNames               map[string]string
+	FunctionTypeAliases           map[string]bool
+	FunctionTypeAliasBoxTypes     map[string]string
+	MapKeyStructTypes             map[string]bool
+	PackageConstants              map[string]string
+	PackageConstantTypeNames      map[string]string
+	ConstantNameOverrides         map[string]string
+	GoPackageImports              map[string]string
+	ExternalPackages              map[string]bool
+	StructDefs                    map[string]*StructDef
+	EmbeddedFields                map[string]map[string]string
+	AnonymousStructCounter        int
+	AnonymousStructs              map[string]*ast.StructType
+	AnonymousStructTypeMap        map[string]string
+	AnonymousStructAliases        map[string]string
+	ImportedInterfaceImpls        map[string]map[string]*types.Interface
+	ExternalLocalInterfaceImpls   map[string]map[string]externalLocalInterfaceImpl
+	ExternalTypeStubs             map[string]bool
+	ExternalTypeStubInterfaces    map[string]bool
+	ExternalTypeStubIntegerTypes  map[string]string
+	ExternalTypeStubTupleTypes    map[string]string
+	ExternalTypeStubFields        map[string]map[string]string
+	ExternalTypeStubMethods       map[string]map[string]externalTypeStubMethod
+	ExternalTypeStubConversions   map[string]map[string]bool
+	ExternalPackageStubs          map[string]*externalPackageStub
+	Helpers                       *HelperTracker
 }
 
 // FileState holds file-scoped scratch state for a single transpilation pass.
@@ -108,40 +109,41 @@ func NewTranspileSession(typeInfo *TypeInfo, packageMapping map[string]string) *
 
 func NewPackageState() *PackageState {
 	return &PackageState{
-		FunctionSignatures:           make(map[string]*FunctionSignature),
-		FunctionNameOverrides:        make(map[string]string),
-		MethodNameOverrides:          make(map[string]string),
-		MethodsByType:                make(map[string][]*ast.FuncDecl),
-		ErrorImplTypes:               make(map[string]bool),
-		StringerImplTypes:            make(map[string]bool),
-		InterfaceTypes:               make(map[string]bool),
-		TypeDefinitions:              make(map[string]string),
-		TypeAliases:                  make(map[string]bool),
-		TypeModuleNames:              make(map[string]string),
-		FunctionTypeAliases:          make(map[string]bool),
-		FunctionTypeAliasBoxTypes:    make(map[string]string),
-		MapKeyStructTypes:            make(map[string]bool),
-		PackageConstants:             make(map[string]string),
-		PackageConstantTypeNames:     make(map[string]string),
-		ConstantNameOverrides:        make(map[string]string),
-		GoPackageImports:             make(map[string]string),
-		ExternalPackages:             make(map[string]bool),
-		StructDefs:                   make(map[string]*StructDef),
-		EmbeddedFields:               make(map[string]map[string]string),
-		AnonymousStructs:             make(map[string]*ast.StructType),
-		AnonymousStructTypeMap:       make(map[string]string),
-		AnonymousStructAliases:       make(map[string]string),
-		ImportedInterfaceImpls:       make(map[string]map[string]*types.Interface),
-		ExternalLocalInterfaceImpls:  make(map[string]map[string]externalLocalInterfaceImpl),
-		ExternalTypeStubs:            make(map[string]bool),
-		ExternalTypeStubInterfaces:   make(map[string]bool),
-		ExternalTypeStubIntegerTypes: make(map[string]string),
-		ExternalTypeStubTupleTypes:   make(map[string]string),
-		ExternalTypeStubFields:       make(map[string]map[string]string),
-		ExternalTypeStubMethods:      make(map[string]map[string]externalTypeStubMethod),
-		ExternalTypeStubConversions:  make(map[string]map[string]bool),
-		ExternalPackageStubs:         make(map[string]*externalPackageStub),
-		Helpers:                      &HelperTracker{},
+		FunctionSignatures:            make(map[string]*FunctionSignature),
+		FunctionNameOverrides:         make(map[string]string),
+		MethodNameOverrides:           make(map[string]string),
+		MethodsByType:                 make(map[string][]*ast.FuncDecl),
+		ErrorImplTypes:                make(map[string]bool),
+		StringerImplTypes:             make(map[string]bool),
+		InterfaceTypes:                make(map[string]bool),
+		TypeDefinitions:               make(map[string]string),
+		TypeDefinitionUnderlyingTypes: make(map[string]types.Type),
+		TypeAliases:                   make(map[string]bool),
+		TypeModuleNames:               make(map[string]string),
+		FunctionTypeAliases:           make(map[string]bool),
+		FunctionTypeAliasBoxTypes:     make(map[string]string),
+		MapKeyStructTypes:             make(map[string]bool),
+		PackageConstants:              make(map[string]string),
+		PackageConstantTypeNames:      make(map[string]string),
+		ConstantNameOverrides:         make(map[string]string),
+		GoPackageImports:              make(map[string]string),
+		ExternalPackages:              make(map[string]bool),
+		StructDefs:                    make(map[string]*StructDef),
+		EmbeddedFields:                make(map[string]map[string]string),
+		AnonymousStructs:              make(map[string]*ast.StructType),
+		AnonymousStructTypeMap:        make(map[string]string),
+		AnonymousStructAliases:        make(map[string]string),
+		ImportedInterfaceImpls:        make(map[string]map[string]*types.Interface),
+		ExternalLocalInterfaceImpls:   make(map[string]map[string]externalLocalInterfaceImpl),
+		ExternalTypeStubs:             make(map[string]bool),
+		ExternalTypeStubInterfaces:    make(map[string]bool),
+		ExternalTypeStubIntegerTypes:  make(map[string]string),
+		ExternalTypeStubTupleTypes:    make(map[string]string),
+		ExternalTypeStubFields:        make(map[string]map[string]string),
+		ExternalTypeStubMethods:       make(map[string]map[string]externalTypeStubMethod),
+		ExternalTypeStubConversions:   make(map[string]map[string]bool),
+		ExternalPackageStubs:          make(map[string]*externalPackageStub),
+		Helpers:                       &HelperTracker{},
 	}
 }
 
@@ -237,6 +239,9 @@ func (ctx *TranspileContext) ensureDefaults() {
 		}
 		if ctx.Package.TypeDefinitions == nil {
 			ctx.Package.TypeDefinitions = make(map[string]string)
+		}
+		if ctx.Package.TypeDefinitionUnderlyingTypes == nil {
+			ctx.Package.TypeDefinitionUnderlyingTypes = make(map[string]types.Type)
 		}
 		if ctx.Package.TypeAliases == nil {
 			ctx.Package.TypeAliases = make(map[string]bool)
@@ -392,6 +397,7 @@ func (ctx *TranspileContext) captureCompatibilityState() {
 		ctx.Package.StringerImplTypes = stringerImplTypes
 		ctx.Package.InterfaceTypes = interfaceTypes
 		ctx.Package.TypeDefinitions = typeDefinitions
+		ctx.Package.TypeDefinitionUnderlyingTypes = typeDefinitionUnderlyingTypes
 		ctx.Package.TypeAliases = typeAliases
 		if ctx.Package.TypeModuleNames == nil {
 			ctx.Package.TypeModuleNames = make(map[string]string)
@@ -465,6 +471,7 @@ func (ctx *TranspileContext) applyCompatibilityState() {
 		stringerImplTypes = ctx.Package.StringerImplTypes
 		interfaceTypes = ctx.Package.InterfaceTypes
 		typeDefinitions = ctx.Package.TypeDefinitions
+		typeDefinitionUnderlyingTypes = ctx.Package.TypeDefinitionUnderlyingTypes
 		typeAliases = ctx.Package.TypeAliases
 		functionTypeAliases = ctx.Package.FunctionTypeAliases
 		functionTypeAliasBoxTypes = ctx.Package.FunctionTypeAliasBoxTypes
