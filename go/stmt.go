@@ -5757,6 +5757,30 @@ func writeMutexReceiver(out *strings.Builder, receiver mutexReceiverInfo) {
 	}
 }
 
+func mutexReceiverIsWrappedIdent(receiver mutexReceiverInfo) bool {
+	if len(receiver.fields) != 0 {
+		return false
+	}
+	_, ok := receiver.expr.(*ast.Ident)
+	return ok
+}
+
+func writeMutexReceiverRef(out *strings.Builder, receiver mutexReceiverInfo) {
+	if !mutexReceiverIsWrappedIdent(receiver) {
+		writeMutexReceiver(out, receiver)
+		return
+	}
+	out.WriteString("(*")
+	writeMutexReceiver(out, receiver)
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap())")
+}
+
+func writeMutexReceiverCloneValue(out *strings.Builder, receiver mutexReceiverInfo) {
+	writeMutexReceiverRef(out, receiver)
+	out.WriteString(".clone()")
+}
+
 func cloneMutexGuards(guards map[string]string) map[string]string {
 	cloned := make(map[string]string, len(guards))
 	for key, guardName := range guards {
@@ -5785,7 +5809,7 @@ func writeMutexLockStatement(out *strings.Builder, expr ast.Expr) bool {
 		return false
 	}
 	if currentLoopDepth > 0 {
-		writeMutexReceiver(out, receiver)
+		writeMutexReceiverRef(out, receiver)
 		out.WriteString(".lock();")
 		return true
 	}
@@ -5796,8 +5820,8 @@ func writeMutexLockStatement(out *strings.Builder, expr ast.Expr) bool {
 	out.WriteString("let ")
 	out.WriteString(sourceName)
 	out.WriteString(" = ")
-	writeMutexReceiver(out, receiver)
-	out.WriteString(".clone(); ")
+	writeMutexReceiverCloneValue(out, receiver)
+	out.WriteString("; ")
 	out.WriteString("let ")
 	out.WriteString(guardName)
 	out.WriteString(" = ")
@@ -5820,7 +5844,7 @@ func writeMutexUnlockStatement(out *strings.Builder, expr ast.Expr) bool {
 	}
 	guardName, ok := activeMutexGuards[key]
 	if !ok {
-		writeMutexReceiver(out, receiver)
+		writeMutexReceiverRef(out, receiver)
 		out.WriteString(".unlock();")
 		return true
 	}

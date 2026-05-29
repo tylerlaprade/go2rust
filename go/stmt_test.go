@@ -1055,6 +1055,28 @@ func aliasUnlock(x, l *node) {
 	}
 }
 
+func TestPackageMutexLockUsesInnerGoMutexValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "sync"
+
+var mu sync.Mutex
+
+func lockPackageMutex() {
+	mu.Lock()
+	defer mu.Unlock()
+}
+`)
+
+	if strings.Contains(rust, "= mu.clone(); let __mutex_guard") {
+		t.Fatalf("package mutex guard source should clone the inner GoMutex value, not the wrapped handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "mu.borrow().as_ref().unwrap()).clone(); let __mutex_guard") &&
+		!strings.Contains(rust, "mu.lock().unwrap().as_ref().unwrap()).clone(); let __mutex_guard") {
+		t.Fatalf("package mutex guard source should dereference the wrapped mutex handle:\n%s", rust)
+	}
+}
+
 func TestPointerReceiverComparisonUsesHandleIdentity(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
