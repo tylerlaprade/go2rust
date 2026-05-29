@@ -4,6 +4,7 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"go/types"
 	"strings"
 	"testing"
 )
@@ -2024,5 +2025,72 @@ func (p *parser) parse() int {
 
 	if got := strings.Count(rust, "// Execute deferred functions"); got != 1 {
 		t.Fatalf("infinite trailing for loop should not emit a second final defer drain, got %d:\n%s", got, rust)
+	}
+}
+
+func TestImportedTranspiledInterfaceAssignmentCopiesHandle(t *testing.T) {
+	prevTypeInfo := currentTypeInfo
+	prevContext := currentContext
+	defer func() {
+		currentTypeInfo = prevTypeInfo
+		currentContext = prevContext
+	}()
+
+	astPkg := types.NewPackage("go/ast", "ast")
+	posMethod := types.NewFunc(
+		token.NoPos,
+		astPkg,
+		"Pos",
+		types.NewSignatureType(
+			nil,
+			nil,
+			nil,
+			types.NewTuple(),
+			types.NewTuple(types.NewVar(token.NoPos, nil, "", types.Typ[types.Int])),
+			false,
+		),
+	)
+	exprType := types.NewNamed(
+		types.NewTypeName(token.NoPos, astPkg, "Expr", nil),
+		types.NewInterfaceType([]*types.Func{posMethod}, nil).Complete(),
+		nil,
+	)
+	currentPkg := types.NewPackage("go/parser", "parser")
+	lhs := ast.NewIdent("key")
+	rhs := ast.NewIdent("other")
+
+	SetTypeInfo(&TypeInfo{
+		info: &types.Info{
+			Types: map[ast.Expr]types.TypeAndValue{
+				lhs: {Type: exprType},
+				rhs: {Type: exprType},
+			},
+		},
+		pkg: currentPkg,
+	})
+	SetTranspileContext(&TranspileContext{
+		PackageMapping: map[string]string{"go/ast": "go_ast"},
+	})
+
+	var out strings.Builder
+	if !writeLocalInterfaceHandleAssignment(&out, lhs, rhs) {
+		t.Fatal("imported source-mapped interface assignment should copy the interface handle")
+	}
+	rust := out.String()
+	if strings.Contains(rust, "*key.borrow") || strings.Contains(rust, "*key.lock") || strings.Contains(rust, "Some(other") {
+		t.Fatalf("interface handle assignment should replace the handle, not wrap it inside the slot:\n%s", rust)
+	}
+	if !strings.Contains(rust, "key = other.clone()") {
+		t.Fatalf("interface handle assignment should clone the RHS handle:\n%s", rust)
+	}
+
+	out.Reset()
+	writeParallelAssignmentTarget(&out, lhs, "__tmp_0", rhs)
+	rust = out.String()
+	if strings.Contains(rust, "*key.borrow") || strings.Contains(rust, "*key.lock") || strings.Contains(rust, "Some(__tmp_0") {
+		t.Fatalf("parallel interface handle assignment should replace the handle, not wrap it inside the slot:\n%s", rust)
+	}
+	if !strings.Contains(rust, "key = __tmp_0;") {
+		t.Fatalf("parallel interface handle assignment should use the captured RHS handle:\n%s", rust)
 	}
 }

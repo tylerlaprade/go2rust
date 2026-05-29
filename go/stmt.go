@@ -2945,14 +2945,14 @@ func writeLocalInterfaceHandleAssignment(out *strings.Builder, lhs ast.Expr, rhs
 	if lhsType == nil || rhsType == nil {
 		return false
 	}
-	if _, ok := localNamedInterfaceTypeNameFromTypes(lhsType); !ok {
+	if _, ok := transpiledNamedInterfaceTypeNameFromTypes(lhsType); !ok {
 		return false
 	}
-	rhsIsLocalInterface := false
-	if _, ok := localNamedInterfaceTypeNameFromTypes(rhsType); ok {
-		rhsIsLocalInterface = true
+	rhsIsTranspiledInterface := false
+	if _, ok := transpiledNamedInterfaceTypeNameFromTypes(rhsType); ok {
+		rhsIsTranspiledInterface = true
 	}
-	if !rhsIsLocalInterface && !isBareLocalInterfaceValue(rhs) {
+	if !rhsIsTranspiledInterface && !isBareLocalInterfaceValue(rhs) {
 		return false
 	}
 	if !types.AssignableTo(rhsType, lhsType) {
@@ -2978,9 +2978,40 @@ func writeLocalInterfaceHandleAssignment(out *strings.Builder, lhs ast.Expr, rhs
 	return true
 }
 
+func transpiledInterfaceHandleAssignmentTypes(lhs ast.Expr, rhs ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || lhs == nil || rhs == nil {
+		return false
+	}
+	lhsType := typeInfo.GetType(lhs)
+	rhsType := typeInfo.GetType(rhs)
+	if lhsType == nil || rhsType == nil {
+		return false
+	}
+	if _, ok := transpiledNamedInterfaceTypeNameFromTypes(lhsType); !ok {
+		return false
+	}
+	if _, ok := transpiledNamedInterfaceTypeNameFromTypes(rhsType); !ok {
+		return false
+	}
+	return types.AssignableTo(rhsType, lhsType)
+}
+
+func writeTranspiledInterfaceHandleAssignmentTarget(out *strings.Builder, lhs ast.Expr, value string) {
+	if sel, ok := lhs.(*ast.SelectorExpr); ok && writePointerHandleSelectorTarget(out, sel) {
+		// Selector handle fields need the outer struct borrowed mutably so the
+		// field handle itself can be replaced.
+	} else {
+		TranspileExpressionContext(out, lhs, LValue)
+	}
+	out.WriteString(" = ")
+	out.WriteString(value)
+	out.WriteString(";")
+}
+
 // writeConcreteToTranspiledInterfaceAssignment boxes a concrete value assigned
 // to an interface-typed target. writeLocalInterfaceHandleAssignment only covers
-// a LOCAL interface LHS with an interface/bare-interface RHS (handle clone);
+// an interface LHS with an interface/bare-interface RHS (handle clone);
 // reassigning a concrete value (`typ = name` where typ is ast.Expr and name is
 // *ast.Ident) needs `Box::new(value) as Box<dyn Iface>` and works for an
 // imported interface (go_ast::Expr) too. go/parser hits this on nearly every
@@ -5051,6 +5082,11 @@ func writeParallelAssignmentTarget(out *strings.Builder, lhs ast.Expr, tmpName s
 		if writeIndexedSequenceAssignmentFromTemp(out, indexExpr, tmpName, tmpWrapped) {
 			return
 		}
+	}
+	if transpiledInterfaceHandleAssignmentTypes(lhs, rhs) {
+		out.WriteString(" ")
+		writeTranspiledInterfaceHandleAssignmentTarget(out, lhs, tmpName)
+		return
 	}
 	if ident, ok := lhs.(*ast.Ident); ok && isVarBare(ident.Name) {
 		out.WriteString(" ")
