@@ -3279,12 +3279,46 @@ func writeConstLenCallForRustType(out *strings.Builder, expr ast.Expr, iotaValue
 	if !ok || !constBuiltinCallName(call, "len") || len(call.Args) != 1 {
 		return false
 	}
+	if length, ok := constArrayLenValue(call); ok {
+		out.WriteString(strconv.FormatInt(length, 10))
+		out.WriteString(" as ")
+		out.WriteString(castType)
+		return true
+	}
 	if !constExprIsStringValue(call.Args[0]) {
 		return false
 	}
 	TranspileConstExpr(out, call.Args[0], iotaValue)
 	out.WriteString(".len() as ")
 	out.WriteString(castType)
+	return true
+}
+
+func constArrayLenValue(call *ast.CallExpr) (int64, bool) {
+	if !constBuiltinCallName(call, "len") || len(call.Args) != 1 {
+		return 0, false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return 0, false
+	}
+	typ := typeInfo.GetType(call.Args[0])
+	if ptr, ok := types.Unalias(typ).(*types.Pointer); ok {
+		typ = ptr.Elem()
+	}
+	array, ok := types.Unalias(typ).(*types.Array)
+	if !ok {
+		return 0, false
+	}
+	return array.Len(), true
+}
+
+func writeConstArrayLenCall(out *strings.Builder, call *ast.CallExpr) bool {
+	length, ok := constArrayLenValue(call)
+	if !ok {
+		return false
+	}
+	out.WriteString(strconv.FormatInt(length, 10))
 	return true
 }
 
@@ -3691,6 +3725,9 @@ func TranspileConstExpr(out *strings.Builder, expr ast.Expr, iotaValue int) {
 		if writeConstUnsafeTypeSizeCall(out, e) {
 			return
 		}
+		if writeConstArrayLenCall(out, e) {
+			return
+		}
 		if !writeConstTypeConversion(out, e, iotaValue) {
 			TranspileExpression(out, expr)
 		}
@@ -3832,11 +3869,26 @@ func writeConstTypeConversion(out *strings.Builder, call *ast.CallExpr, iotaValu
 		return false
 	}
 	out.WriteString("(")
-	TranspileConstExpr(out, call.Args[0], iotaValue)
+	if constTypeConversionArgNeedsParens(call.Args[0]) {
+		out.WriteString("(")
+		TranspileConstExpr(out, call.Args[0], iotaValue)
+		out.WriteString(")")
+	} else {
+		TranspileConstExpr(out, call.Args[0], iotaValue)
+	}
 	out.WriteString(" as ")
 	out.WriteString(rustType)
 	out.WriteString(")")
 	return true
+}
+
+func constTypeConversionArgNeedsParens(arg ast.Expr) bool {
+	switch arg.(type) {
+	case *ast.BinaryExpr:
+		return true
+	default:
+		return false
+	}
 }
 
 func writeExternalNamedIntegerConstValue(out *strings.Builder, name *ast.Ident) bool {

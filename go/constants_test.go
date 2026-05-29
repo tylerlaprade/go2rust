@@ -525,6 +525,38 @@ const n = len(dots)
 	}
 }
 
+func TestConstTypeConversionCastsWholeBinaryExpression(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+const n = uint64(2 - 1)
+`)
+
+	if strings.Contains(rust, "2 - 1 as u64") {
+		t.Fatalf("const type conversion should not cast only the binary RHS:\n%s", rust)
+	}
+	if !strings.Contains(rust, "const N: u64 = ((2 - 1) as u64);") {
+		t.Fatalf("const type conversion should cast the whole binary expression:\n%s", rust)
+	}
+}
+
+func TestConstLenArrayVariableUsesTypedLength(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+var table = [3]uint64{1, 5, 25}
+const m = uint64(len(table) - 1)
+`)
+
+	if strings.Contains(rust, "TABLE.borrow") || strings.Contains(rust, "TABLE.lock") {
+		t.Fatalf("const len(array variable) should use the go/types array length, not runtime wrapper access:\n%s", rust)
+	}
+	if strings.Contains(rust, "len() - 1 as u64") {
+		t.Fatalf("const len(array variable) conversion should not cast only the binary RHS:\n%s", rust)
+	}
+	if !strings.Contains(rust, "const M: u64 = ((3 - 1) as u64);") {
+		t.Fatalf("const len(array variable) conversion should cast the typed length expression:\n%s", rust)
+	}
+}
+
 func TestCollectPackageGlobalsIgnoresConstDecl(t *testing.T) {
 	prevTypeInfo := currentTypeInfo
 	prevGlobals := packageGlobalNames
