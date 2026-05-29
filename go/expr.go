@@ -7042,6 +7042,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			// Unary plus is a no-op in Rust.
 			TranspileExpression(out, e.X)
 		case token.SUB:
+			if writeNamedIntegerNegExpression(out, e) {
+				return
+			}
 			if writeUnsignedUnaryMinus(out, e.X) {
 				return
 			}
@@ -10454,6 +10457,40 @@ func writeNamedBoolNotExpression(out *strings.Builder, expr *ast.UnaryExpr) bool
 	writeNamedBoolLogicalOperand(out, expr.X)
 	out.WriteString(")")
 	WriteWrapperSuffix(out)
+	out.WriteString(")")
+	return true
+}
+
+// writeNamedIntegerNegExpression lowers unary minus on a named-integer type as a
+// value, mirroring writeNamedBoolNotExpression for `!`. Go's `-y` where y has a
+// named integer type (e.g. go/constant's int64Val) yields that same named type,
+// so the result must be re-wrapped in the newtype rather than left as the bare
+// primitive. A bare primitive can't satisfy interface bounds the named type
+// implements (the symptom: `i64: Value is not satisfied` when `-y` is boxed). The
+// primitive form is still emitted by writeNamedIntegerUnaryPrimitiveExpression in
+// arithmetic contexts that unwrap; this handler is the value-context analog.
+func writeNamedIntegerNegExpression(out *strings.Builder, expr *ast.UnaryExpr) bool {
+	if expr == nil || expr.Op != token.SUB {
+		return false
+	}
+	ident, ok := expr.X.(*ast.Ident)
+	if !ok {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	named, ok := types.Unalias(typeInfo.GetType(expr)).(*types.Named)
+	if !ok || !isNamedIntegerType(named) {
+		return false
+	}
+	basic, ok := types.Unalias(named.Underlying()).(*types.Basic)
+	if !ok || basic.Info()&types.IsUnsigned != 0 {
+		return false
+	}
+	out.WriteString("-(")
+	writeIdentValueClone(out, ident)
 	out.WriteString(")")
 	return true
 }

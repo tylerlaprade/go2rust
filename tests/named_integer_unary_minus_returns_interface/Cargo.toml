@@ -1,0 +1,8 @@
+[package]
+name = "named_integer_unary_minus_returns_interface"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "named_integer_unary_minus_returns_interface"
+path = "main.rs"

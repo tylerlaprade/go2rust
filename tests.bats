@@ -1559,6 +1559,10 @@ run_xfail_test() {
     run_test "tests/named_integer_negative_index"
 }
 
+@test "named_integer_unary_minus_returns_interface" {
+    run_test "tests/named_integer_unary_minus_returns_interface"
+}
+
 @test "named_map_receiver_assign" {
     run_test "tests/named_map_receiver_assign"
 }
