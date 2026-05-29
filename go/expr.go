@@ -3767,6 +3767,57 @@ func writePointerEquality(out *strings.Builder, expr *ast.BinaryExpr) bool {
 	return true
 }
 
+func writeSliceElemPointerEquality(out *strings.Builder, expr *ast.BinaryExpr) bool {
+	if expr == nil || expr.Op != token.EQL && expr.Op != token.NEQ {
+		return false
+	}
+	leftIndex, leftOK := addressOfIndexExpr(expr.X)
+	rightIndex, rightOK := addressOfIndexExpr(expr.Y)
+	if !leftOK || !rightOK {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || !typeInfo.IsSlice(leftIndex.X) || !typeInfo.IsSlice(rightIndex.X) {
+		return false
+	}
+	trackWrapperImports()
+	out.WriteString("{ let __left = ")
+	if !writeSliceElemPtrNewExpression(out, leftIndex) {
+		return false
+	}
+	out.WriteString("; let __right = ")
+	if !writeSliceElemPtrNewExpression(out, rightIndex) {
+		return false
+	}
+	out.WriteString("; let __eq = ")
+	out.WriteString(GetOuterWrapperType())
+	out.WriteString("::ptr_eq(&__left.slice, &__right.slice) && __left.index == __right.index; ")
+	if expr.Op == token.NEQ {
+		out.WriteString("!")
+	}
+	out.WriteString("__eq }")
+	return true
+}
+
+func writeSliceElemPtrNewExpression(out *strings.Builder, indexExpr *ast.IndexExpr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || indexExpr == nil || !typeInfo.IsSlice(indexExpr.X) {
+		return false
+	}
+	NeedSliceElemPtr()
+	out.WriteString("GoSliceElemPtr::new(")
+	if _, _, ok := namedSliceTypeForExpr(indexExpr.X); ok {
+		writeNamedSliceInnerHandleClone(out, indexExpr.X)
+	} else {
+		TranspileExpressionContext(out, indexExpr.X, LValue)
+		out.WriteString(".clone()")
+	}
+	out.WriteString(", ")
+	writeExpressionAsUsize(out, indexExpr.Index)
+	out.WriteString(")")
+	return true
+}
+
 func isStringLiteralExpr(expr ast.Expr) bool {
 	lit, ok := expr.(*ast.BasicLit)
 	return ok && lit.Kind == token.STRING
@@ -7090,18 +7141,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					out.WriteString("/* ERROR: Type information required for slice element address */ unimplemented!(\"type information required for slice element address\")")
 					return
 				}
-				if typeInfo.IsSlice(indexExpr.X) {
-					NeedSliceElemPtr()
-					out.WriteString("GoSliceElemPtr::new(")
-					if _, _, ok := namedSliceTypeForExpr(indexExpr.X); ok {
-						writeNamedSliceInnerHandleClone(out, indexExpr.X)
-					} else {
-						TranspileExpressionContext(out, indexExpr.X, LValue)
-						out.WriteString(".clone()")
-					}
-					out.WriteString(", ")
-					writeExpressionAsUsize(out, indexExpr.Index)
-					out.WriteString(")")
+				if writeSliceElemPtrNewExpression(out, indexExpr) {
 					return
 				}
 				if typeInfo.IsArray(indexExpr.X) || typeInfo.IsPointerToArray(indexExpr.X) {
@@ -7300,6 +7340,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			return
 		}
 		if writeCurrentReceiverPointerComparison(out, e) {
+			return
+		}
+		if writeSliceElemPointerEquality(out, e) {
 			return
 		}
 		if writePointerEquality(out, e) {

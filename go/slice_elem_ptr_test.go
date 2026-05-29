@@ -88,6 +88,25 @@ func alias(x nat) {
 	}
 }
 
+func TestSliceElemPointerEqualityComparesHandleAndIndex(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+type Word uint
+type nat []Word
+
+func alias(x, y nat) bool {
+	return cap(x) > 0 && cap(y) > 0 && &x[0:cap(x)][cap(x)-1] == &y[0:cap(y)][cap(y)-1]
+}
+`)
+
+	if strings.Contains(rust, "__left.borrow") || strings.Contains(rust, "__left.lock") {
+		t.Fatalf("slice element pointer equality should not treat GoSliceElemPtr as a wrapped pointer handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "::ptr_eq(&__left.slice, &__right.slice)") || !strings.Contains(rust, "__left.index == __right.index") {
+		t.Fatalf("slice element pointer equality should compare the sequence handle and index:\n%s", rust)
+	}
+}
+
 func TestArrayElemAddressDoesNotUseSliceElemPtr(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
