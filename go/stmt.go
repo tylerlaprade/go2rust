@@ -4831,6 +4831,9 @@ func tempHoldsWrappedValue(rhs ast.Expr) bool {
 		if !isVar {
 			return false
 		}
+		if _, _, ok := namedSliceTypeFromType(field.Type()); ok {
+			return false
+		}
 		// Handle-typed fields (pointer/slice/map/chan/func/interface) always keep
 		// their wrapped Arc<Mutex<Option<T>>> handle when read.
 		if selectorFieldValueKeepsHandle(field.Type()) {

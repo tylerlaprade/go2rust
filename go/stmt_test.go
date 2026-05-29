@@ -1760,6 +1760,36 @@ func set(z *nat) {
 	}
 }
 
+func TestParallelNamedSliceFieldAssignmentStoresValues(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Word uint
+type nat []Word
+
+type Int struct {
+	abs nat
+}
+
+type Rat struct {
+	a, b Int
+}
+
+func swap(z *Rat) {
+	z.a.abs, z.b.abs = z.b.abs, z.a.abs
+}
+`)
+
+	if strings.Contains(rust, "__tmp_0.borrow_mut().take()") ||
+		strings.Contains(rust, "__tmp_1.borrow_mut().take()") ||
+		strings.Contains(rust, "__tmp_0.lock().unwrap().take()") ||
+		strings.Contains(rust, "__tmp_1.lock().unwrap().take()") {
+		t.Fatalf("parallel named-slice field assignment should not treat value temps as handles:\n%s", rust)
+	}
+	if !strings.Contains(rust, "= Some(__tmp_0);") || !strings.Contains(rust, "= Some(__tmp_1);") {
+		t.Fatalf("parallel named-slice field assignment should store captured named-slice values:\n%s", rust)
+	}
+}
+
 func TestNamedIntegerSliceRangeUsesClonedValues(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
