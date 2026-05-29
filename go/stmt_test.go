@@ -548,6 +548,54 @@ func (info *Info) ObjectOf(id *Ident) Object {
 	}
 }
 
+func TestConcretePointerMapLookupKeyForLocalInterfaceKeyBoxesValue(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+type Node interface {
+	Pos() int
+}
+
+type ImportSpec struct {
+	p int
+}
+
+func (s ImportSpec) Pos() int {
+	return s.p
+}
+
+type Info struct {
+	Implicits map[Node]int
+}
+
+func (info *Info) Value(imp *ImportSpec) int {
+	return info.Implicits[imp]
+}
+
+func (info *Info) Set(imp *ImportSpec) {
+	info.Implicits[imp] = 7
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile() error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := Transpile(file, fset, typeInfo)
+	if strings.Contains(rust, "GoLocalPtrKey::new(imp.clone())") {
+		t.Fatalf("concrete pointer key for local-interface map should not use the concrete handle directly:\n%s", rust)
+	}
+	if strings.Contains(rust, "GoPtrKey::new(imp.clone())") {
+		t.Fatalf("concrete pointer key for local-interface map should not use a concrete pointer key:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Box::new((*imp.borrow().as_ref().unwrap()).clone()) as Box<dyn Node>") {
+		t.Fatalf("concrete pointer key for local-interface map should box the pointee as the interface:\n%s", rust)
+	}
+}
+
 func TestPointerAssignmentFromRangeStructScalarFieldKeepsBareValue(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

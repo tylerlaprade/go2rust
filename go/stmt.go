@@ -3005,13 +3005,6 @@ func writeMapKeyExpressionWithType(out *strings.Builder, expr ast.Expr, keyType 
 	if keyType != nil && writeStdlibInterfaceComparableConversion(out, expr, keyType) {
 		return
 	}
-	if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.IsPointer(expr) {
-		out.WriteString(goPtrKeyHelperNameForType(typeInfo.GetType(expr)))
-		out.WriteString("::new(")
-		TranspileExpressionContext(out, expr, LValue)
-		out.WriteString(".clone())")
-		return
-	}
 	// Interface-typed map keys: wrap with GoLocalPtrKey to match the map's
 	// key type. The wrapped interface handle's identity is the Arc/Rc
 	// pointer, which matches Go's interface identity for pointer-backed
@@ -3020,10 +3013,22 @@ func writeMapKeyExpressionWithType(out *strings.Builder, expr ast.Expr, keyType 
 		if _, ok := transpiledNamedInterfaceTypeNameFromTypes(keyType); ok {
 			NeedGoPtrKey()
 			out.WriteString("GoLocalPtrKey::new(")
-			TranspileExpressionContext(out, expr, LValue)
-			out.WriteString(".clone())")
+			if !writeLocalInterfaceMapKeyHandle(out, expr, keyType) {
+				TranspileExpressionContext(out, expr, LValue)
+				out.WriteString(".clone()")
+			}
+			out.WriteString(")")
 			return
 		}
+	}
+	if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.IsPointer(expr) {
+		out.WriteString(goPtrKeyHelperNameForType(typeInfo.GetType(expr)))
+		out.WriteString("::new(")
+		TranspileExpressionContext(out, expr, LValue)
+		out.WriteString(".clone())")
+		return
+	}
+	if keyType != nil {
 		if isEmptyInterfaceType(keyType) {
 			NeedGoPtrKey()
 			out.WriteString("GoLocalPtrKey::new(")

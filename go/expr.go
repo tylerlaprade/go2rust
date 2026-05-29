@@ -6048,6 +6048,36 @@ func writeStdlibInterfaceMapKeyValue(out *strings.Builder, key ast.Expr, keyType
 	return false
 }
 
+func writeLocalInterfaceMapKeyHandle(out *strings.Builder, key ast.Expr, keyType types.Type) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || keyType == nil {
+		return false
+	}
+	ifaceName, ok := transpiledNamedInterfaceTypeNameFromTypes(keyType)
+	if !ok {
+		return false
+	}
+	keyValueType := typeInfo.GetType(key)
+	if keyValueType == nil {
+		return false
+	}
+	if _, ok := transpiledNamedInterfaceTypeNameFromTypes(keyValueType); ok && types.AssignableTo(keyValueType, keyType) {
+		TranspileExpressionContext(out, key, LValue)
+		out.WriteString(".clone()")
+		return true
+	}
+	iface, ok := types.Unalias(keyType).Underlying().(*types.Interface)
+	if !ok {
+		return false
+	}
+	iface.Complete()
+	if !types.AssignableTo(keyValueType, keyType) && !types.Implements(keyValueType, iface) {
+		return false
+	}
+	writeLocalInterfaceWrappedConstruction(out, key, ifaceName, keyType)
+	return true
+}
+
 func writeMapLookupKey(out *strings.Builder, index ast.Expr) {
 	writeMapLookupKeyWithType(out, index, nil)
 }
@@ -6085,8 +6115,11 @@ func writeInterfaceMapLookupKeyWithType(out *strings.Builder, index ast.Expr, ke
 	}
 	NeedGoPtrKey()
 	out.WriteString("&GoLocalPtrKey::new(")
-	TranspileExpressionContext(out, index, LValue)
-	out.WriteString(".clone())")
+	if !writeLocalInterfaceMapKeyHandle(out, index, keyType) {
+		TranspileExpressionContext(out, index, LValue)
+		out.WriteString(".clone()")
+	}
+	out.WriteString(")")
 	return true
 }
 
