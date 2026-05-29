@@ -8743,7 +8743,7 @@ func writeWrappedFunctionValueBox(out *strings.Builder, ident *ast.Ident, sig *t
 func isBuiltinFunction(name string) bool {
 	builtins := map[string]bool{
 		"len": true, "cap": true, "make": true, "new": true,
-		"append": true, "copy": true, "delete": true, "close": true,
+		"append": true, "copy": true, "delete": true, "clear": true, "close": true,
 		"complex": true, "real": true, "imag": true,
 		"panic": true, "recover": true, "print": true, "println": true,
 		"min": true, "max": true,
@@ -8771,12 +8771,7 @@ func isBuiltinCallTarget(ident *ast.Ident) bool {
 	if ident == nil || !isBuiltinFunction(ident.Name) {
 		return false
 	}
-	switch ident.Name {
-	case "min", "max":
-		return isBuiltinIdent(ident)
-	default:
-		return true
-	}
+	return isBuiltinIdent(ident)
 }
 
 func isPredeclaredTypeConversionTarget(fun ast.Expr) bool {

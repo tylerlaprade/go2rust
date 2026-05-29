@@ -181,3 +181,54 @@ func fill(v any, src []int) int {
 		t.Fatalf("copy destination from slice type assertion should use a mutable bare Vec temp:\n%s", rust)
 	}
 }
+
+func TestBuiltinClearNamedSliceAndSliceExprUsesTypedBuiltin(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Word uint
+type nat []Word
+
+func wipe(z nat, buf []byte) {
+	clear(z)
+	clear(buf[1:len(buf)])
+}
+
+func clearValue(x int) int {
+	return x + 1
+}
+`)
+
+	if strings.Contains(rust, "clear.lock()") || strings.Contains(rust, "__f_ptr") {
+		t.Fatalf("builtin clear should not lower as a function value call:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __clear_holder = { let __named_slice =") {
+		t.Fatalf("clear(named slice) should mutate the named slice inner handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "*__clear_elem = Word(") {
+		t.Fatalf("clear(named slice) should write the typed element zero value:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __clear_start = (1) as usize") ||
+		!strings.Contains(rust, "__clear_seq[__clear_i] = 0;") {
+		t.Fatalf("clear(slice expr) should zero the selected byte range:\n%s", rust)
+	}
+}
+
+func TestUserFunctionNamedClearDoesNotUseBuiltinClear(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func clear(x int) int {
+	return x + 1
+}
+
+func use() int {
+	return clear(1)
+}
+`)
+
+	if strings.Contains(rust, "__clear_holder") {
+		t.Fatalf("user-defined clear should not lower as the builtin clear:\n%s", rust)
+	}
+	if !strings.Contains(rust, "clear(") {
+		t.Fatalf("user-defined clear should remain a normal function call:\n%s", rust)
+	}
+}

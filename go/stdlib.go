@@ -149,6 +149,7 @@ func init() {
 		"cap":     transpileCap,
 		"copy":    transpileCopy,
 		"delete":  transpileDelete,
+		"clear":   transpileClear,
 		"new":     transpileNew,
 		"complex": transpileComplex,
 		"real":    transpileReal,
@@ -4199,6 +4200,102 @@ func transpileDelete(out *strings.Builder, call *ast.CallExpr) {
 		writeMapLookupKeyWithType(out, call.Args[1], keyType)
 		out.WriteString("); }")
 	}
+}
+
+func transpileClear(out *strings.Builder, call *ast.CallExpr) {
+	if len(call.Args) == 0 {
+		return
+	}
+	arg := call.Args[0]
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		out.WriteString("unimplemented!(\"type info required for clear\")")
+		return
+	}
+	argType := typeInfo.GetType(arg)
+	if argType == nil {
+		out.WriteString("unimplemented!(\"type info required for clear\")")
+		return
+	}
+	switch typ := types.Unalias(argType).Underlying().(type) {
+	case *types.Map:
+		writeClearMap(out, arg)
+	case *types.Slice:
+		writeClearSlice(out, arg, typ.Elem())
+	default:
+		out.WriteString("unimplemented!(\"clear requires map or slice type\")")
+	}
+}
+
+func writeClearMap(out *strings.Builder, arg ast.Expr) {
+	out.WriteString("{ let __clear_holder = ")
+	if isNamedMapExpression(arg) {
+		writeNamedMapInnerHandleClone(out, arg)
+	} else {
+		TranspileExpressionContext(out, arg, LValue)
+		out.WriteString(".clone()")
+	}
+	out.WriteString("; let mut __clear_guard = __clear_holder")
+	WriteBorrowMethod(out, true)
+	out.WriteString("; if let Some(__clear_map) = __clear_guard.as_mut() { __clear_map.clear(); } }")
+}
+
+func writeClearSlice(out *strings.Builder, arg ast.Expr, elemType types.Type) {
+	zeroValue := zeroValueForTypesType(elemType)
+	if slice, ok := unwrapParens(arg).(*ast.SliceExpr); ok {
+		writeClearSliceExpr(out, slice, zeroValue)
+		return
+	}
+	out.WriteString("{ let __clear_holder = ")
+	writeClearSliceHandle(out, arg)
+	out.WriteString("; let mut __clear_guard = __clear_holder")
+	WriteBorrowMethod(out, true)
+	out.WriteString("; if let Some(__clear_seq) = __clear_guard.as_mut() { for __clear_elem in __clear_seq.iter_mut() { *__clear_elem = ")
+	out.WriteString(zeroValue)
+	out.WriteString("; } } }")
+}
+
+func writeClearSliceExpr(out *strings.Builder, slice *ast.SliceExpr, zeroValue string) {
+	out.WriteString("{ let __clear_start = ")
+	if slice.Low != nil {
+		writeExpressionAsUsize(out, slice.Low)
+	} else {
+		out.WriteString("0usize")
+	}
+	out.WriteString("; let __clear_end = ")
+	if slice.High != nil {
+		writeExpressionAsUsize(out, slice.High)
+	} else {
+		writeClearSliceLen(out, slice.X)
+	}
+	out.WriteString("; let __clear_holder = ")
+	writeClearSliceHandle(out, slice.X)
+	out.WriteString("; let mut __clear_guard = __clear_holder")
+	WriteBorrowMethod(out, true)
+	out.WriteString("; if let Some(__clear_seq) = __clear_guard.as_mut() { assert!(__clear_start <= __clear_end && __clear_end <= __clear_seq.len()); for __clear_i in __clear_start..__clear_end { __clear_seq[__clear_i] = ")
+	out.WriteString(zeroValue)
+	out.WriteString("; } } }")
+}
+
+func writeClearSliceHandle(out *strings.Builder, expr ast.Expr) {
+	if isNamedSliceExpression(expr) {
+		writeNamedSliceInnerHandleClone(out, expr)
+		return
+	}
+	TranspileExpressionContext(out, expr, LValue)
+	out.WriteString(".clone()")
+}
+
+func writeClearSliceLen(out *strings.Builder, expr ast.Expr) {
+	if isNamedSliceExpression(expr) {
+		writeNamedSliceLen(out, expr)
+		return
+	}
+	out.WriteString("{ let __clear_len_holder = ")
+	TranspileExpressionContext(out, expr, LValue)
+	out.WriteString(".clone(); let __clear_len_guard = __clear_len_holder")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; __clear_len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }")
 }
 
 func transpileCopy(out *strings.Builder, call *ast.CallExpr) {
