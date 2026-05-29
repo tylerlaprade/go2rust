@@ -9276,6 +9276,19 @@ func TranspileFuncLitBox(out *strings.Builder, funcLit *ast.FuncLit) {
 		}
 	}
 
+	inlineReceiverCapture := false
+	if currentReceiver != "" && captured[currentReceiver] {
+		rename := captureRenames[currentReceiver]
+		if rename == "" || rename == currentReceiver {
+			cloneName := currentReceiver + "_closure_clone"
+			captureRenames[currentReceiver] = cloneName
+			inlineReceiverCapture = true
+			out.WriteString("{ let mut ")
+			out.WriteString(RustLocalIdent(cloneName))
+			out.WriteString(" = (*self).clone(); ")
+		}
+	}
+
 	// Store current capture renames for nested transpilation
 	oldCaptureRenames := snapshotCaptureRenames()
 	currentCaptureRenames = captureRenames
@@ -9399,6 +9412,9 @@ func TranspileFuncLitBox(out *strings.Builder, funcLit *ast.FuncLit) {
 	// Cast to the right type and close wrappers
 	out.WriteString(" as ")
 	out.WriteString(generateClosureType(funcLit.Type))
+	if inlineReceiverCapture {
+		out.WriteString(" }")
+	}
 }
 
 func functionBoxTypeForCallTarget(expr ast.Expr) string {

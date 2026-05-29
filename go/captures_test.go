@@ -197,6 +197,39 @@ func (cmap CommentMap) Filter(node Node) CommentMap {
 	}
 }
 
+func TestIfConditionFuncLitCapturesReceiverClone(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Checker struct{}
+
+func under(fn func(int) bool) bool {
+	return fn(1)
+}
+
+func (check *Checker) fail(n int) {}
+
+func (check *Checker) builtin() bool {
+	if under(func(u int) bool {
+		check.fail(u)
+		return false
+	}) {
+		return true
+	}
+	return false
+}
+`)
+
+	if strings.Contains(rust, "check.fail") {
+		t.Fatalf("if-condition closure should not emit the Go receiver name:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let mut check_closure_clone = (*self).clone();") {
+		t.Fatalf("if-condition closure should clone the receiver inline:\n%s", rust)
+	}
+	if !strings.Contains(rust, "check_closure_clone.fail") {
+		t.Fatalf("if-condition closure should call through the cloned receiver:\n%s", rust)
+	}
+}
+
 func TestSyntaxClosurePredeclaredConversionsAreNotCaptured(t *testing.T) {
 	prevTypeInfo := currentTypeInfo
 	defer func() { currentTypeInfo = prevTypeInfo }()
