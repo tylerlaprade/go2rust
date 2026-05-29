@@ -11433,6 +11433,12 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 					if !needsUnwrap && typeInfo != nil && isWrappedRangeVarType(varType) {
 						if _, ok := transpiledNamedInterfaceTypeNameFromTypes(typeInfo.GetType(ident)); ok {
 							needsUnwrap = true
+						} else if _, ok := types.Unalias(typeInfo.GetType(ident)).(*types.TypeParam); ok {
+							// Range var whose type is a type parameter: the value
+							// is wrapped (Rc/Arc<...<T>>) and the called method is
+							// a trait method on the bound interface, so unwrap to
+							// &T to dispatch it (calling on the handle is E0599).
+							needsUnwrap = true
 						}
 					}
 				} else {
