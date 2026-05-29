@@ -13377,7 +13377,33 @@ func writeAlreadyWrappedSelectorCallArgument(out *strings.Builder, arg ast.Expr,
 }
 
 func writeNamedSliceInnerHandleCallArgument(out *strings.Builder, arg ast.Expr, expected types.Type) bool {
+	if writeNamedSliceValueForExpectedType(out, arg, expected) {
+		return true
+	}
 	return writeNamedSliceInnerHandleForExpectedType(out, arg, expected)
+}
+
+func writeNamedSliceValueForExpectedType(out *strings.Builder, arg ast.Expr, expected types.Type) bool {
+	expectedNamed, _, ok := namedSliceTypeFromType(expected)
+	if !ok {
+		return false
+	}
+	if _, ok := unwrapParens(arg).(*ast.SliceExpr); !ok {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	actual := typeInfo.GetType(arg)
+	actualNamed, _, ok := namedSliceTypeFromType(actual)
+	if !ok || !sameNamedTypeDefinition(actualNamed, expectedNamed) {
+		return false
+	}
+	WriteWrapperPrefix(out)
+	TranspileExpression(out, arg)
+	WriteWrapperSuffix(out)
+	return true
 }
 
 func writeNamedSliceInnerHandleForExpectedType(out *strings.Builder, arg ast.Expr, expected types.Type) bool {

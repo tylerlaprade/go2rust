@@ -1667,6 +1667,28 @@ func (z nat) add(x, y nat, n int) Word {
 	}
 }
 
+func TestNamedSliceSliceExprCallArgumentWrapsForNamedParameter(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Word uint
+type nat []Word
+
+func take(z nat) {}
+
+func call(z nat, n int) {
+	take(z[n:])
+}
+`)
+
+	if strings.Contains(rust, "take(nat(") {
+		t.Fatalf("named-slice slice call argument for named parameter should not pass a bare named value:\n%s", rust)
+	}
+	if !strings.Contains(rust, "take(Rc::new(RefCell::new(Some(nat(") &&
+		!strings.Contains(rust, "take(Arc::new(Mutex::new(Some(nat(") {
+		t.Fatalf("named-slice slice call argument for named parameter should wrap the named value:\n%s", rust)
+	}
+}
+
 func TestNamedSliceSliceExprShortDeclWrapsNamedValue(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
