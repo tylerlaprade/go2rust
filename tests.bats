@@ -2123,6 +2123,10 @@ run_xfail_test() {
     run_test "tests/slice_expr_call_argument"
 }
 
+@test "slice_expr_into_raw_element_slot" {
+    run_test "tests/slice_expr_into_raw_element_slot"
+}
+
 @test "slice_expr_method_argument" {
     run_test "tests/slice_expr_method_argument"
 }
@@ -2401,6 +2405,10 @@ run_xfail_test() {
 
 @test "strings_case_nested" {
     run_test "tests/strings_case_nested"
+}
+
+@test "strings_contains_rune_const_arg" {
+    run_test "tests/strings_contains_rune_const_arg"
 }
 
 @test "strings_has_prefix_const_arg" {
@@ -2737,10 +2745,6 @@ run_xfail_test() {
 
 @test "XFAIL: pointer_package_global" {
     run_xfail_test "tests/XFAIL/pointer_package_global"
-}
-
-@test "XFAIL: slice_expr_into_raw_element_slot" {
-    run_xfail_test "tests/XFAIL/slice_expr_into_raw_element_slot"
 }
 
 @test "XFAIL: stateful_goroutines" {
