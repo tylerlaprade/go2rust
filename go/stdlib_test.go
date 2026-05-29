@@ -348,3 +348,25 @@ func use() int {
 		t.Fatalf("user-defined clear should remain a normal function call:\n%s", rust)
 	}
 }
+
+func TestSlicesContainsKeywordInterfaceUsesSafeEqualitySuffix(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "slices"
+
+type Type interface {
+	String() string
+}
+
+func hasNil(list []Type) bool {
+	return slices.Contains(list, nil)
+}
+`)
+
+	if strings.Contains(rust, "__go_eq_r#type") {
+		t.Fatalf("slices.Contains over keyword-named interface should not use raw identifier suffix:\n%s", rust)
+	}
+	if !strings.Contains(rust, "__go_eq_type_(") {
+		t.Fatalf("slices.Contains over keyword-named interface should use identifier-safe equality suffix:\n%s", rust)
+	}
+}

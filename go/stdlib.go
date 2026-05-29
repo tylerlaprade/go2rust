@@ -2363,7 +2363,7 @@ func transpileSlicesContains(out *strings.Builder, call *ast.CallExpr) {
 	}
 	if typeInfo := GetTypeInfo(); typeInfo != nil {
 		if elemName, ok := localInterfaceSliceElemName(typeInfo.GetType(call.Args[0])); ok {
-			elemSnake := ToSnakeCase(elemName)
+			elemSnake := traitMethodSuffix(elemName)
 			WriteWrapperPrefix(out)
 			out.WriteString("{ let __slice_holder = ")
 			TranspileExpressionContext(out, call.Args[0], LValue)
