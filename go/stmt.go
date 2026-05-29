@@ -3317,6 +3317,9 @@ func writeLocalInterfaceHandleAssignment(out *strings.Builder, lhs ast.Expr, rhs
 		WriteWrapperSuffix(out)
 	} else if writeLocalInterfaceAssignedCallHandleClone(out, lhs, rhs) {
 		// RHS emitted by helper.
+	} else if writeLocalInterfaceReferenceCallArgument(out, rhs, lhsType) {
+		// Interface-to-interface assignment may need re-boxing when the Rust
+		// trait-object types differ, such as imported Expr assigned to positioner.
 	} else {
 		writeLocalInterfaceHandleClone(out, rhs)
 	}

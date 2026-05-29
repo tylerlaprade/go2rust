@@ -318,6 +318,68 @@ func use(expr dep.Expr) int {
 	}
 }
 
+func TestExternalInterfaceFieldAssignmentBoxesTraitObjectForLocalInterface(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+
+require example.com/dep v0.0.0
+
+replace example.com/dep => ./dep
+`)
+	writeTestFile(t, filepath.Join(tempDir, "dep", "go.mod"), `module example.com/dep
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "dep", "dep.go"), `package dep
+
+type Node interface {
+	Pos() int
+	End() int
+}
+
+type Expr interface {
+	Node
+	exprNode()
+}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+import "example.com/dep"
+
+type positioner interface {
+	Pos() int
+}
+
+type operand struct {
+	expr dep.Expr
+}
+
+func use(args []operand) positioner {
+	var at positioner
+	at = args[0].expr
+	return at
+}
+`)
+
+	generator := NewProjectGenerator([]string{
+		filepath.Join(tempDir, "main.go"),
+	})
+	generator.SetExternalPackageMode(ModeTranspile)
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
+	if strings.Contains(mainRS, ".expr.clone();") {
+		t.Fatalf("imported interface field assignment should not copy the source interface handle into the local interface slot:\n%s", mainRS)
+	}
+	if !strings.Contains(mainRS, ".expr.borrow().as_ref().unwrap()).clone()) as Box<dyn positioner>") {
+		t.Fatalf("imported interface field assignment should box the imported trait object as the local interface:\n%s", mainRS)
+	}
+}
+
 func TestExternalInterfaceCallArgumentImplEmitsWithInterfaceFileOnce(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
