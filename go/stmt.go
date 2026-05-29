@@ -448,10 +448,11 @@ func writeIndexedIncDec(out *strings.Builder, indexExpr *ast.IndexExpr, op token
 
 	out.WriteString("{ let __idx = ")
 	TranspileExpression(out, indexExpr.Index)
-	out.WriteString(" as usize; let mut __seq_guard = ")
-	writeIndexedSequenceMutationHandle(out, indexExpr.X)
-	WriteBorrowMethod(out, true)
-	out.WriteString("; let __seq = __seq_guard.as_mut().unwrap(); __seq[__idx] = __seq[__idx] ")
+	out.WriteString(" as usize; ")
+	writeIndexedSequenceMutationGuard(out, indexExpr.X)
+	out.WriteString("; let __seq = __seq_guard.as_mut().unwrap(); __seq[__idx] = ")
+	writeIndexedCurrentElementValue(out, elemType)
+	out.WriteString(" ")
 	if op == token.INC {
 		out.WriteString("+ ")
 	} else {
@@ -5497,26 +5498,40 @@ func writeIndexedCompoundAssign(out *strings.Builder, indexExpr *ast.IndexExpr, 
 	if typeInfo.IsMap(indexExpr.X) {
 		return false
 	}
+	elemType := typeInfo.GetArrayOrSliceElemType(indexExpr.X)
 
 	out.WriteString("{ let __idx = ")
 	TranspileExpression(out, indexExpr.Index)
 	out.WriteString(" as usize; let __rhs = ")
-	writeBareCompoundAssignValueForOp(out, rhs, typeInfo.GetArrayOrSliceElemType(indexExpr.X), op)
-	out.WriteString("; let mut __seq_guard = ")
-	writeIndexedSequenceMutationHandle(out, indexExpr.X)
-	WriteBorrowMethod(out, true)
-	out.WriteString("; let __seq = __seq_guard.as_mut().unwrap(); __seq[__idx] = __seq[__idx] ")
+	writeBareCompoundAssignValueForOp(out, rhs, elemType, op)
+	out.WriteString("; ")
+	writeIndexedSequenceMutationGuard(out, indexExpr.X)
+	out.WriteString("; let __seq = __seq_guard.as_mut().unwrap(); __seq[__idx] = ")
+	writeIndexedCurrentElementValue(out, elemType)
+	out.WriteString(" ")
 	writeCompoundAssignOperator(out, op)
 	out.WriteString(" __rhs; }")
 	return true
 }
 
-func writeIndexedSequenceMutationHandle(out *strings.Builder, expr ast.Expr) {
+func writeIndexedSequenceMutationGuard(out *strings.Builder, expr ast.Expr) {
 	if subj := unwrapParens(expr); isNamedSliceExpression(subj) {
+		out.WriteString("let __seq_holder = ")
 		writeNamedSliceInnerHandleClone(out, subj)
+		out.WriteString("; let mut __seq_guard = __seq_holder")
+		WriteBorrowMethod(out, true)
 		return
 	}
+	out.WriteString("let mut __seq_guard = ")
 	TranspileExpressionContext(out, expr, LValue)
+	WriteBorrowMethod(out, true)
+}
+
+func writeIndexedCurrentElementValue(out *strings.Builder, elemType types.Type) {
+	out.WriteString("__seq[__idx]")
+	if !typeIsPredeclaredCopyScalar(elemType) {
+		out.WriteString(".clone()")
+	}
 }
 
 func writeMapCommaOkMissingValue(out *strings.Builder, indexExpr *ast.IndexExpr, syntaxKeepsHandle bool) {

@@ -2314,6 +2314,31 @@ func (x *decimal) bump(n int) {
 	}
 }
 
+func TestNamedSliceElementCompoundAssignUsesStableHandleAndClonesElement(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Word uint
+type nat []Word
+
+func round(z nat, n uint32, lsb Word) {
+	const msb = 1 << 63
+	z[n-1] |= msb
+	z[0] &^= lsb - 1
+}
+`)
+
+	if strings.Contains(rust, "}.borrow_mut()") || strings.Contains(rust, "}.lock().unwrap()") {
+		t.Fatalf("named slice compound assignment should bind the slice handle before borrowing it:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __seq_holder = { let __named_slice =") {
+		t.Fatalf("named slice compound assignment should keep a stable slice handle binding:\n%s", rust)
+	}
+	if !strings.Contains(rust, "__seq[__idx].clone() | __rhs") ||
+		!strings.Contains(rust, "__seq[__idx].clone() & ! __rhs") {
+		t.Fatalf("named slice compound assignment should clone non-Copy elements before applying the operator:\n%s", rust)
+	}
+}
+
 func TestReturnBitClearUsesRustOperator(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
