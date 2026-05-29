@@ -185,6 +185,10 @@ func transpileFmtPrint(out *strings.Builder, call *ast.CallExpr) {
 }
 
 func transpileFmtPrintln(out *strings.Builder, call *ast.CallExpr) {
+	if writeFmtPrintlnVariadicAny(out, call) {
+		return
+	}
+
 	out.WriteString("println!")
 	out.WriteString("(")
 
@@ -205,6 +209,38 @@ func transpileFmtPrintln(out *strings.Builder, call *ast.CallExpr) {
 	}
 
 	out.WriteString(")")
+}
+
+func writeFmtPrintlnVariadicAny(out *strings.Builder, call *ast.CallExpr) bool {
+	if call == nil || !call.Ellipsis.IsValid() || len(call.Args) != 1 {
+		return false
+	}
+	if !isEmptyInterfaceSliceArgument(call.Args[0]) {
+		return false
+	}
+	NeedFormatAnySlice()
+	TrackImport("Any")
+	out.WriteString("println!(\"{}\", format_any_variadic(&")
+	if ident, ok := call.Args[0].(*ast.Ident); ok {
+		out.WriteString(RustIdentForUse(ident))
+	} else {
+		TranspileExpression(out, call.Args[0])
+	}
+	out.WriteString("))")
+	return true
+}
+
+func isEmptyInterfaceSliceArgument(arg ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	elemType := typeInfo.GetSliceElemType(arg)
+	if elemType == nil {
+		return false
+	}
+	intf, ok := types.Unalias(elemType).Underlying().(*types.Interface)
+	return ok && intf.NumMethods() == 0
 }
 
 func transpileBuiltinPrintln(out *strings.Builder, call *ast.CallExpr) {

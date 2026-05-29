@@ -23,14 +23,22 @@ fn format_any(value: &dyn Any) -> String {
     }
 }
 
-fn format_any_slice(slice: &Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) -> String {
+fn format_any_slice_values(slice: &Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) -> String {
     let guard = slice.borrow();
     if let Some(ref s) = *guard {
         let formatted: Vec<String> = s.iter().map(|v| format_any(v.as_ref())).collect();
-        format!("[{}]", formatted.join(" "))
+        formatted.join(" ")
     } else {
-        "[]".to_string()
+        String::new()
     }
+}
+
+fn format_any_slice(slice: &Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) -> String {
+    format!("[{}]", format_any_slice_values(slice))
+}
+
+fn format_any_variadic(slice: &Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) -> String {
+    format_any_slice_values(slice)
 }
 
 pub fn print_any(v: Rc<RefCell<Option<Box<dyn Any>>>>) {

@@ -614,7 +614,11 @@ impl<T> std::fmt::Display for ` + name + `<T> {
 
 func generateAnyFormatter(out *strings.Builder) {
 	TrackImport("Any")
-	out.WriteString("\nfn format_any(value: &dyn Any) -> String {\n")
+	if NeedsConcurrentWrapper() {
+		out.WriteString("\nfn format_any(value: &(dyn Any + Send + Sync)) -> String {\n")
+	} else {
+		out.WriteString("\nfn format_any(value: &dyn Any) -> String {\n")
+	}
 	out.WriteString("    if let Some(v) = value.downcast_ref::<i32>() {\n")
 	out.WriteString("        v.to_string()\n")
 	out.WriteString("    } else if let Some(v) = value.downcast_ref::<i64>() {\n")
@@ -864,14 +868,22 @@ func generateAnySliceFormatter(out *strings.Builder) {
 		TrackImport("Mutex")
 		TrackImport("Any")
 		out.WriteString(`
-fn format_any_slice(slice: &Arc<Mutex<Option<Vec<Box<dyn Any>>>>>) -> String {
+fn format_any_slice_values(slice: &Arc<Mutex<Option<Vec<Box<dyn Any + Send + Sync>>>>>) -> String {
     let guard = slice.lock().unwrap();
     if let Some(ref s) = *guard {
         let formatted: Vec<String> = s.iter().map(|v| format_any(v.as_ref())).collect();
-        format!("[{}]", formatted.join(" "))
+        formatted.join(" ")
     } else {
-        "[]".to_string()
+        String::new()
     }
+}
+
+fn format_any_slice(slice: &Arc<Mutex<Option<Vec<Box<dyn Any + Send + Sync>>>>>) -> String {
+    format!("[{}]", format_any_slice_values(slice))
+}
+
+fn format_any_variadic(slice: &Arc<Mutex<Option<Vec<Box<dyn Any + Send + Sync>>>>>) -> String {
+    format_any_slice_values(slice)
 }
 `)
 	} else {
@@ -879,14 +891,22 @@ fn format_any_slice(slice: &Arc<Mutex<Option<Vec<Box<dyn Any>>>>>) -> String {
 		TrackImport("RefCell")
 		TrackImport("Any")
 		out.WriteString(`
-fn format_any_slice(slice: &Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) -> String {
+fn format_any_slice_values(slice: &Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) -> String {
     let guard = slice.borrow();
     if let Some(ref s) = *guard {
         let formatted: Vec<String> = s.iter().map(|v| format_any(v.as_ref())).collect();
-        format!("[{}]", formatted.join(" "))
+        formatted.join(" ")
     } else {
-        "[]".to_string()
+        String::new()
     }
+}
+
+fn format_any_slice(slice: &Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) -> String {
+    format!("[{}]", format_any_slice_values(slice))
+}
+
+fn format_any_variadic(slice: &Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) -> String {
+    format_any_slice_values(slice)
 }
 `)
 	}

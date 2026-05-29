@@ -679,6 +679,10 @@ run_xfail_test() {
     run_test "tests/concurrent_string_builder_return"
 }
 
+@test "concurrent_variadic_any_println" {
+    run_test "tests/concurrent_variadic_any_println"
+}
+
 @test "const_basic" {
     run_test "tests/const_basic"
 }

@@ -75,6 +75,47 @@ func warn(field string) {
 	}
 }
 
+func TestConcurrentFmtPrintlnVariadicAnyUsesVariadicFormatter(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+import "fmt"
+
+func log(values ...any) {
+	fmt.Println(values...)
+}
+
+func main() {
+	go func() {}()
+	log("x", 7, true)
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile() error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+	prevDetector := GetConcurrencyDetector()
+	detector := NewConcurrencyDetector()
+	detector.AnalyzeFile(file)
+	SetConcurrencyDetector(detector)
+	defer SetConcurrencyDetector(prevDetector)
+
+	rust, _, _ := Transpile(file, fset, typeInfo)
+
+	if !strings.Contains(rust, "format_any_variadic(&values)") {
+		t.Fatalf("fmt.Println(values...) should use variadic any formatting:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Vec<Box<dyn Any + Send + Sync>>") {
+		t.Fatalf("concurrent any slice formatter should accept Send+Sync any elements:\n%s", rust)
+	}
+	if strings.Contains(rust, "format_any_slice(&values)") {
+		t.Fatalf("fmt.Println(values...) should not format the variadic slice with brackets:\n%s", rust)
+	}
+}
+
 func TestPanicAnyFormatsInterfacePayload(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
