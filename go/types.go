@@ -982,6 +982,7 @@ func zeroValueForGoType(expr ast.Expr) string {
 		}
 		return "vec![]"
 	case *ast.MapType:
+		TrackImport("BTreeMap")
 		return "BTreeMap::new()"
 	default:
 		return "Default::default()"
@@ -1043,6 +1044,7 @@ func zeroValueForTypesType(typ types.Type) string {
 	case *types.Array:
 		return "std::array::from_fn(|_| " + zeroValueForTypesType(t.Elem()) + ")"
 	case *types.Map:
+		TrackImport("BTreeMap")
 		return "BTreeMap::new()"
 	case *types.Pointer:
 		trackWrapperImports()

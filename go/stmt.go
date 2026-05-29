@@ -9026,6 +9026,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										}
 									case *ast.MapType:
 										// Initialize map variable with empty map (Go nil map)
+										TrackImport("BTreeMap")
 										out.WriteString(" = ")
 										WriteWrapperPrefix(out)
 										out.WriteString("BTreeMap::new()")

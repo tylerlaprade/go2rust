@@ -2051,6 +2051,46 @@ func main() {}
 	}
 }
 
+func TestCrossFileNamedMapZeroValueImportsBTreeMap(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "defs.go"), `package main
+
+type objset map[string]int
+`)
+	writeTestFile(t, filepath.Join(tempDir, "use.go"), `package main
+
+func collect() {
+	var m objset
+	_ = m
+}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+func main() {}
+`)
+
+	generator := NewProjectGenerator([]string{
+		filepath.Join(tempDir, "defs.go"),
+		filepath.Join(tempDir, "use.go"),
+		filepath.Join(tempDir, "main.go"),
+	})
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	useRS := mustReadFile(t, filepath.Join(tempDir, "use.rs"))
+	if !strings.Contains(useRS, "BTreeMap::new()") {
+		t.Fatalf("cross-file named map zero value should initialize with BTreeMap::new, got:\n%s", useRS)
+	}
+	if !strings.Contains(useRS, "use std::collections::BTreeMap;") {
+		t.Fatalf("cross-file named map zero value should import BTreeMap at the use site, got:\n%s", useRS)
+	}
+}
+
 func TestCrossFileMethodImplQualifiesReceiverType(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
