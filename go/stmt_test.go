@@ -1972,3 +1972,33 @@ func (s *scanner) advance() {
 		t.Fatalf("compound assignment to int field should cast usize range index to i32:\n%s", rust)
 	}
 }
+
+func TestDeferClosureCompoundAssignUsesCapturedIdentRename(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type parser struct {
+	nestLev int
+}
+
+func (p *parser) parse() {
+	var n int
+	defer func() { p.nestLev -= n }()
+	for n = 1; n < 3; n++ {
+		p.nestLev++
+	}
+}
+`)
+
+	if !strings.Contains(rust, "let n_defer_captured = n.clone();") {
+		t.Fatalf("deferred closure should clone the captured local:\n%s", rust)
+	}
+	if strings.Contains(rust, "let __rhs = n as i32") ||
+		strings.Contains(rust, "let __rhs = (*n.borrow") ||
+		strings.Contains(rust, "let __rhs = (*n.lock") {
+		t.Fatalf("deferred closure compound assignment should not read the outer binding directly:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __rhs = (*n_defer_captured.borrow") &&
+		!strings.Contains(rust, "let __rhs = (*n_defer_captured.lock") {
+		t.Fatalf("deferred closure compound assignment should read the captured clone:\n%s", rust)
+	}
+}
