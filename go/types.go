@@ -824,9 +824,17 @@ func goTypeToRustBase(expr ast.Expr) string {
 			}
 			if isStdlibPackage(goPackageImports[ident.Name]) {
 				if named, ok := namedTypeForTypeExpr(t); ok {
+					if ifaceName, ok := transpiledNamedInterfaceTypeNameFromTypes(named); ok {
+						return rustLocalInterfaceTraitObject(ifaceName)
+					}
 					if sig, ok := signatureFromType(named); ok {
 						return signatureToBoxDynFn(sig)
 					}
+				}
+			}
+			if named, ok := namedTypeForTypeExpr(t); ok {
+				if ifaceName, ok := transpiledNamedInterfaceTypeNameFromTypes(named); ok {
+					return rustLocalInterfaceTraitObject(ifaceName)
 				}
 			}
 			if rustName, ok := rustTypeNameForImportedPackagePath(goPackageImports[ident.Name], t.Sel.Name); ok {

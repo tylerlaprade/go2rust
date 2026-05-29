@@ -678,6 +678,54 @@ type Exporter func(dep.Mapper) int
 	}
 }
 
+func TestStructFieldUsesImportedInterfaceTraitObject(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+
+require example.com/dep v0.0.0
+
+replace example.com/dep => ./dep
+`)
+	writeTestFile(t, filepath.Join(tempDir, "dep", "go.mod"), `module example.com/dep
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "dep", "dep.go"), `package dep
+
+type Node interface {
+	Pos() int
+}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+import "example.com/dep"
+
+type Holder struct {
+	Node dep.Node
+	List []dep.Node
+}
+`)
+
+	generator := NewProjectGenerator([]string{filepath.Join(tempDir, "main.go")})
+	generator.SetExternalPackageMode(ModeTranspile)
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
+	if !strings.Contains(mainRS, "pub node: Rc<RefCell<Option<Box<dyn example_com_dep::Node>>>>") {
+		t.Fatalf("imported interface field should use a boxed trait object, got:\n%s", mainRS)
+	}
+	if strings.Contains(mainRS, "Option<example_com_dep::Node>") {
+		t.Fatalf("imported interface field should not use a bare trait name as a type, got:\n%s", mainRS)
+	}
+	if !strings.Contains(mainRS, "Vec<Rc<RefCell<Option<Box<dyn example_com_dep::Node>>>>>") {
+		t.Fatalf("imported interface slices should wrap boxed trait-object elements, got:\n%s", mainRS)
+	}
+}
+
 func TestFunctionTypeAliasCallPassesConcreteImportedInterfaceArgument(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
