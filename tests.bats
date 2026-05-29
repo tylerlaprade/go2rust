@@ -1611,6 +1611,10 @@ run_xfail_test() {
     run_test "tests/named_type_comparisons"
 }
 
+@test "named_type_over_struct_fields" {
+    run_test "tests/named_type_over_struct_fields"
+}
+
 @test "named_types_methods" {
     run_test "tests/named_types_methods"
 }
@@ -2837,10 +2841,6 @@ run_xfail_test() {
 
 @test "XFAIL: http_client" {
     run_xfail_test "tests/XFAIL/http_client"
-}
-
-@test "XFAIL: named_type_over_struct_fields" {
-    run_xfail_test "tests/XFAIL/named_type_over_struct_fields"
 }
 
 @test "XFAIL: panic_recover" {

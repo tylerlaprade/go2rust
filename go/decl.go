@@ -2371,63 +2371,103 @@ func functionTypeSpecRustBoxType(typeSpec *ast.TypeSpec, fallback *ast.FuncType)
 	return generateClosureType(fallback)
 }
 
-func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *ast.GenDecl) {
-	rustTypeName := RustTypeNameForUse(typeSpec.Name.Name)
-	switch t := typeSpec.Type.(type) {
-	case *ast.StructType:
-		registerStructDef(typeSpec.Name.Name, t)
+// emitStructTypeDeclBody writes the Rust struct definition plus its derived
+// impls (clone, Default, Display, PartialEq, Ord, JSON) for a Go struct type.
+// Shared by a direct `type T struct{...}` and a defined type whose underlying is
+// a named struct (`type Term term`), which must expose the same fields rather
+// than lower to a newtype over a wrapped handle.
+// definedTypeUnderlyingStructAST returns the struct AST for `type A B` when B is
+// a named type whose underlying is a struct, so A can be emitted with B's fields.
+// It confirms the struct shape through go/types and fetches the AST from the
+// struct registry; returns nil (caller falls back to a newtype) when either is
+// unavailable, e.g. the underlying isn't a struct or wasn't registered yet.
+func definedTypeUnderlyingStructAST(t ast.Expr) *ast.StructType {
+	ident, ok := t.(*ast.Ident)
+	if !ok {
+		return nil
+	}
+	if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.pkg != nil && typeInfo.pkg.Scope() != nil {
+		obj := typeInfo.pkg.Scope().Lookup(ident.Name)
+		named, ok := obj.(*types.TypeName)
+		if !ok {
+			return nil
+		}
+		n, ok := named.Type().(*types.Named)
+		if !ok {
+			return nil
+		}
+		if _, ok := n.Underlying().(*types.Struct); !ok {
+			return nil
+		}
+	}
+	if def, ok := structDefs[ident.Name]; ok && def != nil {
+		return def.ASTType
+	}
+	return nil
+}
 
-		writeStructDerive(out, typeSpec.Name.Name, t)
-		out.WriteString("pub struct ")
-		out.WriteString(rustTypeName)
-		out.WriteString(" {\n")
+func emitStructTypeDeclBody(out *strings.Builder, structName string, t *ast.StructType) {
+	rustTypeName := RustTypeNameForUse(structName)
+	registerStructDef(structName, t)
 
-		for fieldIndex, field := range t.Fields.List {
-			// Add struct tag as comment if present
-			if field.Tag != nil && field.Tag.Value != "" {
-				out.WriteString("    // tags: ")
-				out.WriteString(field.Tag.Value)
-				out.WriteString("\n")
-			}
+	writeStructDerive(out, structName, t)
+	out.WriteString("pub struct ")
+	out.WriteString(rustTypeName)
+	out.WriteString(" {\n")
 
-			if len(field.Names) > 0 {
-				// Handle multiple names on one line (e.g., X, Y int)
-				for nameIndex, name := range field.Names {
-					out.WriteString("    pub ")
-					out.WriteString(rustStructFieldName(name, fieldIndex, nameIndex))
-					out.WriteString(": ")
-					out.WriteString(GoTypeToRust(field.Type))
-					out.WriteString(",\n")
-				}
-			} else {
-				// Embedded field - extract the type name
-				fieldName := getEmbeddedFieldName(field.Type)
+	for fieldIndex, field := range t.Fields.List {
+		// Add struct tag as comment if present
+		if field.Tag != nil && field.Tag.Value != "" {
+			out.WriteString("    // tags: ")
+			out.WriteString(field.Tag.Value)
+			out.WriteString("\n")
+		}
+
+		if len(field.Names) > 0 {
+			// Handle multiple names on one line (e.g., X, Y int)
+			for nameIndex, name := range field.Names {
 				out.WriteString("    pub ")
-				out.WriteString(ToSnakeCase(fieldName))
+				out.WriteString(rustStructFieldName(name, fieldIndex, nameIndex))
 				out.WriteString(": ")
 				out.WriteString(GoTypeToRust(field.Type))
 				out.WriteString(",\n")
 			}
+		} else {
+			// Embedded field - extract the type name
+			fieldName := getEmbeddedFieldName(field.Type)
+			out.WriteString("    pub ")
+			out.WriteString(ToSnakeCase(fieldName))
+			out.WriteString(": ")
+			out.WriteString(GoTypeToRust(field.Type))
+			out.WriteString(",\n")
 		}
+	}
 
-		out.WriteString("}\n\n")
+	out.WriteString("}\n\n")
 
-		generateStructValueClone(out, typeSpec.Name.Name, t)
+	generateStructValueClone(out, structName, t)
+	out.WriteString("\n")
+
+	generateStructDefault(out, structName, t)
+	if structNeedsCustomDefault(t) {
 		out.WriteString("\n")
+	}
 
-		generateStructDefault(out, typeSpec.Name.Name, t)
-		if structNeedsCustomDefault(t) {
-			out.WriteString("\n")
-		}
+	// Generate Display implementation to match Go's format
+	generateStructDisplay(out, structName, t)
+	if IsErrorImplType(structName) && !structCanDeriveDebug(t) {
+		generateStructDebug(out, structName)
+	}
+	generateStructPartialEq(out, structName, t)
+	generateStructOrd(out, structName, t)
+	generateStructJsonDecode(out, structName, t)
+}
 
-		// Generate Display implementation to match Go's format
-		generateStructDisplay(out, typeSpec.Name.Name, t)
-		if IsErrorImplType(typeSpec.Name.Name) && !structCanDeriveDebug(t) {
-			generateStructDebug(out, typeSpec.Name.Name)
-		}
-		generateStructPartialEq(out, typeSpec.Name.Name, t)
-		generateStructOrd(out, typeSpec.Name.Name, t)
-		generateStructJsonDecode(out, typeSpec.Name.Name, t)
+func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *ast.GenDecl) {
+	rustTypeName := RustTypeNameForUse(typeSpec.Name.Name)
+	switch t := typeSpec.Type.(type) {
+	case *ast.StructType:
+		emitStructTypeDeclBody(out, typeSpec.Name.Name, t)
 
 	case *ast.InterfaceType:
 		// Generate a trait for the interface
@@ -2560,6 +2600,15 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 			// trait methods to the function-type's inherent methods so call
 			// sites can convert via Box::new(<FuncType>As<Iface>(value)).
 			writeFunctionTypeInterfaceImpls(out, typeSpec.Name.Name, rustTypeName)
+		} else if structAST := definedTypeUnderlyingStructAST(t); structAST != nil {
+			// `type Term term` where term is a struct: Term has term's fields (Go
+			// promotes them through the underlying), so emit Term as a struct with
+			// those fields rather than a newtype over a wrapped handle. Otherwise
+			// field access (t.field) resolves to nothing (E0609/E0615) — go/types'
+			// union.Term hits this.
+			RegisterTypeDefinition(typeSpec.Name.Name, typeDefinitionUnderlyingName(t))
+			emitStructTypeDeclBody(out, typeSpec.Name.Name, structAST)
+			return
 		} else {
 			// Type definition: type A B
 			// Create a newtype wrapper in Rust
