@@ -1819,6 +1819,10 @@ run_xfail_test() {
     run_test "tests/parallel_slice_field_assign"
 }
 
+@test "param_shadows_named_scalar_type" {
+    run_test "tests/param_shadows_named_scalar_type"
+}
+
 @test "parameter_reassignment" {
     run_test "tests/parameter_reassignment"
 }

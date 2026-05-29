@@ -269,10 +269,39 @@ func RustTypeNameForUse(s string) string {
 }
 
 func RustLocalIdent(s string) string {
-	if isPackageGlobalName(s) {
+	if isPackageGlobalName(s) || isPackageTupleStructTypeName(s) {
 		return EscapeRustIdent(s + "_local")
 	}
 	return EscapeRustIdent(s)
+}
+
+// isPackageTupleStructTypeName reports whether s names a package-level type that
+// lowers to a Rust tuple struct (named scalars, slices, maps, channels,
+// pointers, functions, arrays — anything but a plain struct/interface). A local
+// or parameter sharing that name shadows the tuple struct, which Rust rejects in
+// pattern position (E0530: "function parameters cannot shadow tuple structs"),
+// e.g. go/types' `func (obj) setColor(color color)` where `color` is `type color
+// uint32`. Renaming the binding to <name>_local — the same scheme used for
+// package-global collisions — sidesteps it; type references keep the bare name.
+func isPackageTupleStructTypeName(s string) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.pkg == nil || typeInfo.pkg.Scope() == nil {
+		return false
+	}
+	tn, ok := typeInfo.pkg.Scope().Lookup(s).(*types.TypeName)
+	if !ok {
+		return false
+	}
+	named, ok := tn.Type().(*types.Named)
+	if !ok {
+		return false
+	}
+	switch named.Underlying().(type) {
+	case *types.Struct, *types.Interface:
+		return false
+	default:
+		return true
+	}
 }
 
 func isPackageGlobalName(s string) bool {

@@ -1,0 +1,8 @@
+[package]
+name = "param_shadows_named_scalar_type"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "param_shadows_named_scalar_type"
+path = "main.rs"
