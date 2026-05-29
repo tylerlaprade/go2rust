@@ -1474,6 +1474,30 @@ func (x *Float) bits() int {
 	}
 }
 
+func TestNamedSliceSelectorReturnAsUnnamedSliceUsesInnerHandle(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Word uint
+type nat []Word
+
+type Int struct {
+	abs nat
+}
+
+func (x *Int) Bits() []Word {
+	return x.abs
+}
+`)
+
+	if strings.Contains(rust, "return self.abs.clone();") {
+		t.Fatalf("named-slice field returned as unnamed slice should not return the named wrapper handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "return { let __named_slice = (*self.abs.borrow().as_ref().unwrap()).0.clone(); __named_slice };") &&
+		!strings.Contains(rust, "return { let __named_slice = (*self.abs.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice };") {
+		t.Fatalf("named-slice field returned as unnamed slice should return the inner slice handle:\n%s", rust)
+	}
+}
+
 func TestVarInitializerFromBareScalarCallRegistersBareLocal(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

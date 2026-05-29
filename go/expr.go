@@ -13303,6 +13303,10 @@ func writeAlreadyWrappedSelectorCallArgument(out *strings.Builder, arg ast.Expr,
 }
 
 func writeNamedSliceInnerHandleCallArgument(out *strings.Builder, arg ast.Expr, expected types.Type) bool {
+	return writeNamedSliceInnerHandleForExpectedType(out, arg, expected)
+}
+
+func writeNamedSliceInnerHandleForExpectedType(out *strings.Builder, arg ast.Expr, expected types.Type) bool {
 	if expected == nil {
 		return false
 	}

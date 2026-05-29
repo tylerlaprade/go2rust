@@ -3075,6 +3075,10 @@ func returnResultTypeExpr(fnType *ast.FuncType, index int) ast.Expr {
 	return nil
 }
 
+func writeNamedSliceInnerHandleReturnValue(out *strings.Builder, result ast.Expr, expected ast.Expr) bool {
+	return writeNamedSliceInnerHandleForExpectedType(out, result, expectedTypeFromParamExpr(expected))
+}
+
 func typeExprIsPointer(expr ast.Expr) bool {
 	if expr == nil {
 		return false
@@ -6774,6 +6778,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				if isNil {
 					WriteWrappedNone(out)
 				} else if writeEmptyInterfaceReturnConversion(out, result, returnResultTypeExpr(fnType, i)) {
+				} else if writeNamedSliceInnerHandleReturnValue(out, result, returnResultTypeExpr(fnType, i)) {
 				} else if resultType := returnResultTypeExpr(fnType, i); resultTypeExprIsBareScalar(resultType) {
 					writeBareScalarReturnValue(out, result, resultType)
 				} else {
