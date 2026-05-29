@@ -1,0 +1,8 @@
+[package]
+name = "slice_expr_into_raw_element_slot"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "slice_expr_into_raw_element_slot"
+path = "main.rs"

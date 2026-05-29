@@ -356,7 +356,14 @@ func writeArraySliceElementAssignmentValue(out *strings.Builder, rhs ast.Expr, e
 	}
 
 	needsUnwrap := false
-	if call, ok := rhs.(*ast.CallExpr); ok {
+	if _, ok := rhs.(*ast.SliceExpr); ok {
+		// A slice expression lowers to a wrapped handle, but a value-typed
+		// slice/array element slot (e.g. the inner []byte of [][]byte) stores a
+		// raw Vec, so the wrapped slice value must be unwrapped to match it
+		// (E0308 otherwise). The pointer- and interface-element cases are
+		// already handled by the helpers above this point.
+		needsUnwrap = true
+	} else if call, ok := rhs.(*ast.CallExpr); ok {
 		typeInfo := GetTypeInfo()
 		if appendCallReturnsBareIndexedSlice(call) {
 			needsUnwrap = false
