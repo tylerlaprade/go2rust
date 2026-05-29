@@ -193,6 +193,65 @@ func Use() int {
 	}
 }
 
+func TestExternalInterfaceCaseImplementsLocalInterfaceForTraitObject(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+
+require example.com/dep v0.0.0
+
+replace example.com/dep => ./dep
+`)
+	writeTestFile(t, filepath.Join(tempDir, "dep", "go.mod"), `module example.com/dep
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "dep", "dep.go"), `package dep
+
+type Node interface {
+	Pos() int
+	End() int
+}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+import "example.com/dep"
+
+type positioner interface {
+	Pos() int
+}
+
+func spanOf(at positioner) int {
+	switch x := at.(type) {
+	case dep.Node:
+		return x.End()
+	default:
+		return at.Pos()
+	}
+}
+`)
+
+	generator := NewProjectGenerator([]string{
+		filepath.Join(tempDir, "main.go"),
+	})
+	generator.SetExternalPackageMode(ModeTranspile)
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
+	if strings.Contains(mainRS, "impl positioner for example_com_dep::Node") {
+		t.Fatalf("imported interface cases should not emit an impl for the trait type itself:\n%s", mainRS)
+	}
+	if !strings.Contains(mainRS, "impl positioner for Box<dyn example_com_dep::Node>") {
+		t.Fatalf("imported interface cases should implement the local interface for the boxed trait object:\n%s", mainRS)
+	}
+	if !strings.Contains(mainRS, "(**self).pos()") {
+		t.Fatalf("boxed imported interface impl should delegate methods through the inner trait object:\n%s", mainRS)
+	}
+}
+
 func TestExternalPackageUsesOwnConcurrencyDetector(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod

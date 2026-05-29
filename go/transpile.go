@@ -325,12 +325,18 @@ func (analysis *transpileFileAnalysis) externalLocalInterfaceImpls(interfaces ma
 			return
 		}
 		rustType := goTypesNamedTypeToRust(named)
+		_, sourceIsInterface := types.Unalias(named.Underlying()).(*types.Interface)
+		implRustType := rustType
+		if sourceIsInterface {
+			implRustType = rustLocalInterfaceTraitObject(rustType)
+		}
 		if impls[ifaceName] == nil {
 			impls[ifaceName] = make(map[string]externalLocalInterfaceImpl)
 		}
-		impls[ifaceName][rustType] = externalLocalInterfaceImpl{
-			ifaceAST:  interfaces[ifaceName],
-			ifaceType: ifaceType,
+		impls[ifaceName][implRustType] = externalLocalInterfaceImpl{
+			ifaceAST:          interfaces[ifaceName],
+			ifaceType:         ifaceType,
+			sourceIsInterface: sourceIsInterface,
 		}
 	}
 
@@ -670,8 +676,9 @@ func importedInterfaceImplsForFile(file *ast.File) map[string]map[string]*types.
 }
 
 type externalLocalInterfaceImpl struct {
-	ifaceAST  *ast.InterfaceType
-	ifaceType *types.Interface
+	ifaceAST          *ast.InterfaceType
+	ifaceType         *types.Interface
+	sourceIsInterface bool
 }
 
 type localInterfaceAssertionCandidate struct {
@@ -940,7 +947,7 @@ func collectPackageMethods(files []*ast.File) map[string][]*ast.FuncDecl {
 	return methods
 }
 
-func writeExternalLocalInterfaceMethod(out *strings.Builder, methodName string, funcType *ast.FuncType) {
+func writeExternalLocalInterfaceMethod(out *strings.Builder, methodName string, funcType *ast.FuncType, sourceIsInterface bool) {
 	out.WriteString("    fn ")
 	out.WriteString(ToSnakeCase(methodName))
 	out.WriteString("(&self")
@@ -965,7 +972,12 @@ func writeExternalLocalInterfaceMethod(out *strings.Builder, methodName string, 
 	out.WriteString(")")
 	writeFunctionResultTypes(out, funcType)
 	out.WriteString(" {\n")
-	out.WriteString("        self.")
+	out.WriteString("        ")
+	if sourceIsInterface {
+		out.WriteString("(**self).")
+	} else {
+		out.WriteString("self.")
+	}
 	out.WriteString(ToSnakeCase(methodName))
 	out.WriteString("(")
 	for i, argName := range argNames {
@@ -1045,7 +1057,7 @@ func writeExternalLocalInterfaceImpls(out *strings.Builder, first *bool, impls m
 					if !ok {
 						continue
 					}
-					writeExternalLocalInterfaceMethod(out, method.Names[0].Name, funcType)
+					writeExternalLocalInterfaceMethod(out, method.Names[0].Name, funcType, impl.sourceIsInterface)
 				}
 			}
 			writeExternalLocalInterfaceSupportImpl(out, ifaceName, concreteType, impl.ifaceType)
