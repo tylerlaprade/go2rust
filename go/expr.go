@@ -1184,11 +1184,8 @@ func methodCallFuncLitArgCapturesReceiver(call *ast.CallExpr, receiver string) b
 	return false
 }
 
-func isSyncOnceDoFuncLitCall(call *ast.CallExpr) bool {
+func isSyncOnceDoCall(call *ast.CallExpr) bool {
 	if call == nil || len(call.Args) != 1 {
-		return false
-	}
-	if _, ok := call.Args[0].(*ast.FuncLit); !ok {
 		return false
 	}
 	sel, ok := call.Fun.(*ast.SelectorExpr)
@@ -1199,16 +1196,41 @@ func isSyncOnceDoFuncLitCall(call *ast.CallExpr) bool {
 	return typeInfo != nil && isGoSyncOnceNamedType(typeInfo.GetType(sel.X))
 }
 
-func writeSyncOnceReceiverClone(out *strings.Builder, expr ast.Expr) {
-	if fieldSel, ok := expr.(*ast.SelectorExpr); ok {
-		TranspileExpression(out, fieldSel.X)
-		out.WriteString(".")
-		out.WriteString(ToSnakeCase(fieldSel.Sel.Name))
-		out.WriteString(".clone()")
-		return
+func isSyncOnceDoFuncLitCall(call *ast.CallExpr) bool {
+	if !isSyncOnceDoCall(call) {
+		return false
 	}
-	TranspileExpression(out, expr)
+	_, ok := call.Args[0].(*ast.FuncLit)
+	return ok
+}
+
+func writeSyncOnceReceiverClone(out *strings.Builder, expr ast.Expr) {
+	TranspileExpressionContext(out, expr, LValue)
 	out.WriteString(".clone()")
+}
+
+func writeBareFunctionValue(out *strings.Builder, expr ast.Expr) bool {
+	if ident, ok := expr.(*ast.Ident); ok {
+		if sig, ok := functionValueSignature(ident); ok {
+			writeFunctionValueBox(out, ident, sig)
+			return true
+		}
+	}
+	if _, ok := expr.(*ast.FuncLit); ok {
+		TranspileExpression(out, expr)
+		return true
+	}
+	if sel, ok := expr.(*ast.SelectorExpr); ok {
+		if sig, ok := pointerMethodValueSignature(sel); ok {
+			writePointerMethodValueBox(out, sel, sig)
+			return true
+		}
+		if sig, ok := selectorFunctionValueSignature(sel); ok {
+			writeFunctionValueExpressionBox(out, sel, sig)
+			return true
+		}
+	}
+	return false
 }
 
 func writeSyncOnceDoFuncLitCall(out *strings.Builder, call *ast.CallExpr) bool {
@@ -1254,6 +1276,26 @@ func writeSyncOnceDoFuncLitCall(out *strings.Builder, call *ast.CallExpr) bool {
 		}
 	}
 	out.WriteString("    }); }")
+	return true
+}
+
+func writeSyncOnceDoFunctionValueCall(out *strings.Builder, call *ast.CallExpr) bool {
+	if !isSyncOnceDoCall(call) {
+		return false
+	}
+	if _, ok := call.Args[0].(*ast.FuncLit); ok {
+		return false
+	}
+	var arg strings.Builder
+	if !writeBareFunctionValue(&arg, call.Args[0]) {
+		return false
+	}
+	sel := call.Fun.(*ast.SelectorExpr)
+	out.WriteString("{ let __once = ")
+	writeSyncOnceReceiverClone(out, sel.X)
+	out.WriteString("; __once.r#do(")
+	out.WriteString(arg.String())
+	out.WriteString(") }")
 	return true
 }
 
@@ -11406,6 +11448,9 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 	}
 
 	if writeSyncOnceDoFuncLitCall(out, call) {
+		return
+	}
+	if writeSyncOnceDoFunctionValueCall(out, call) {
 		return
 	}
 

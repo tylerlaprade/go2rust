@@ -284,6 +284,36 @@ type cache struct {
 	}
 }
 
+func TestDisplayImplForMutableStringMethodUsesReceiverClone(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "sync"
+
+type setting struct {
+	once sync.Once
+	n int
+}
+
+func (s *setting) String() string {
+	return s.Value()
+}
+
+func (s *setting) Value() string {
+	s.once.Do(func() {
+		s.n++
+	})
+	return "setting"
+}
+`)
+
+	if strings.Contains(rust, "write!(f, \"{}\", (*self.string()") {
+		t.Fatalf("Display impl should not call a mutable String method through &self:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let mut __self = self.clone();") || !strings.Contains(rust, "(*__self.string()") {
+		t.Fatalf("Display impl should call mutable String through a receiver clone:\n%s", rust)
+	}
+}
+
 func TestEmbeddedInterfaceTraitObjectImplementsSupertrait(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

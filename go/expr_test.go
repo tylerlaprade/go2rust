@@ -3137,6 +3137,43 @@ func TestFunctionMapValueWithoutTypeInfoDoesNotSynthesizeBoxFromRegistry(t *test
 	}
 }
 
+func TestSyncOnceDoPromotedFieldMethodValueUsesTypedReceiverAndClosure(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "sync"
+
+type outer struct {
+	*inner
+}
+
+type inner struct {
+	once sync.Once
+	n int
+}
+
+func (o *outer) init() {
+	o.once.Do(o.mark)
+}
+
+func (o *outer) mark() {
+	o.n++
+}
+`)
+
+	if strings.Contains(rust, "self.once.r#do") {
+		t.Fatalf("promoted sync.Once field should not be emitted as a direct field on the outer receiver:\n%s", rust)
+	}
+	if strings.Contains(rust, "self.mark.clone()") {
+		t.Fatalf("method value argument to sync.Once.Do should lower to a callable closure, not a field clone:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __once =") || !strings.Contains(rust, "__once.r#do(") {
+		t.Fatalf("sync.Once.Do should clone the typed receiver before invoking Do:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Box::new(move |") || !strings.Contains(rust, ".mark()") {
+		t.Fatalf("method value argument should lower to a boxed method-value closure:\n%s", rust)
+	}
+}
+
 func TestNoTypeInfoMethodFunctionParameterPassesHandle(t *testing.T) {
 	prevTypeInfo := currentTypeInfo
 	defer func() { currentTypeInfo = prevTypeInfo }()

@@ -571,6 +571,59 @@ func main() {
 	}
 }
 
+func TestAtomicUint64MethodValueUsesSharedAtomicHelper(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+
+require example.com/dep v0.0.0
+
+replace example.com/dep => ./dep
+`)
+	writeTestFile(t, filepath.Join(tempDir, "dep", "go.mod"), `module example.com/dep
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "dep", "dep.go"), `package dep
+
+import "sync/atomic"
+
+type Counter struct {
+	n atomic.Uint64
+}
+
+func use(read func() uint64) {}
+
+func (c *Counter) Register() {
+	use(c.n.Load)
+}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+import "example.com/dep"
+
+func main() {
+	var c dep.Counter
+	c.Register()
+}
+`)
+
+	generator := NewProjectGenerator([]string{filepath.Join(tempDir, "main.go")})
+	generator.SetExternalPackageMode(ModeTranspile)
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	stubsRS := mustReadFile(t, filepath.Join(tempDir, "vendor", sharedStdlibStubCrateName, "lib.rs"))
+	if !strings.Contains(stubsRS, "pub struct atomic_Uint64") || !strings.Contains(stubsRS, "AtomicU64") {
+		t.Fatalf("atomic.Uint64 should use the real Rust atomic helper, got:\n%s", stubsRS)
+	}
+	if !strings.Contains(stubsRS, "pub fn load(&self) -> u64") {
+		t.Fatalf("atomic.Uint64 helper should provide Load for method values, got:\n%s", stubsRS)
+	}
+}
+
 func TestSyncRWMutexFieldUsesBareHelper(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod

@@ -1807,6 +1807,10 @@ func generateExternalStubs(stubs map[string]bool, interfaceTypes map[string]bool
 			writeAtomicInt32Stub(&out)
 			continue
 		}
+		if name == "atomic_Uint64" {
+			writeAtomicUint64Stub(&out)
+			continue
+		}
 		if name == "token_Token" {
 			writeTokenTokenStub(&out)
 			continue
@@ -2386,6 +2390,65 @@ impl atomic_Int32 {
 		intType, "self.__go_value.load(std::sync::atomic::Ordering::SeqCst)",
 		intType, "self.__go_value.swap(__go_atomic_i32_arg(&arg0), std::sync::atomic::Ordering::SeqCst)",
 		boolType, "self.__go_value.compare_exchange(old, new, std::sync::atomic::Ordering::SeqCst, std::sync::atomic::Ordering::SeqCst).is_ok()")
+}
+
+// PERMANENT: not scaffold - Rust std::sync::atomic is the long-term implementation;
+// Go's sync/atomic semantics cannot be transpiled from Go source (runtime-tied).
+func writeAtomicUint64Stub(out *strings.Builder) {
+	out.WriteString(`#[derive(Debug, Clone)]
+pub struct atomic_Uint64 {
+    __go_value: std::sync::Arc<std::sync::atomic::AtomicU64>,
+}
+
+impl Default for atomic_Uint64 {
+    fn default() -> Self {
+        Self { __go_value: std::sync::Arc::new(std::sync::atomic::AtomicU64::new(0)) }
+    }
+}
+
+impl std::fmt::Display for atomic_Uint64 {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<atomic_Uint64>")
+    }
+}
+
+fn __go_atomic_u64_arg<T: 'static>(arg: &T) -> u64 {
+    let any = arg as &dyn std::any::Any;
+    if let Some(v) = any.downcast_ref::<u64>() {
+        *v
+    } else if let Some(v) = any.downcast_ref::<u32>() {
+        *v as u64
+    } else if let Some(v) = any.downcast_ref::<usize>() {
+        *v as u64
+    } else if let Some(v) = any.downcast_ref::<i32>() {
+        *v as u64
+    } else if let Some(v) = any.downcast_ref::<i64>() {
+        *v as u64
+    } else if let Some(v) = any.downcast_ref::<std::sync::Arc<std::sync::Mutex<Option<u64>>>>() {
+        v.lock().unwrap().as_ref().copied().unwrap_or_default()
+    } else if let Some(v) = any.downcast_ref::<std::rc::Rc<std::cell::RefCell<Option<u64>>>>() {
+        v.borrow().as_ref().copied().unwrap_or_default()
+    } else {
+        panic!("atomic_Uint64 helper: unsupported argument type; use a typed sync/atomic.Uint64 value")
+    }
+}
+
+impl atomic_Uint64 {
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        None
+    }
+
+    pub fn add<T0: 'static>(&self, arg0: T0) -> u64 {
+        let delta = __go_atomic_u64_arg(&arg0);
+        let previous = self.__go_value.fetch_add(delta, std::sync::atomic::Ordering::SeqCst);
+        previous.wrapping_add(delta)
+    }
+
+    pub fn load(&self) -> u64 {
+        self.__go_value.load(std::sync::atomic::Ordering::SeqCst)
+    }
+}
+`)
 }
 
 // TEMPORARY: hand-written Rust shim for go/token.Token enum.

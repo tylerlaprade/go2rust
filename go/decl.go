@@ -46,9 +46,7 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 		out.WriteString(rustStructName)
 		out.WriteString(" {\n")
 		out.WriteString("    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {\n")
-		out.WriteString("        write!(f, \"{}\", (*self.string()")
-		WriteBorrowMethod(out, false)
-		out.WriteString(".as_ref().unwrap()))\n")
+		writeStringerDisplayBody(out, structName, "        ")
 		out.WriteString("    }\n")
 		out.WriteString("}\n")
 		return
@@ -381,6 +379,55 @@ func namedTypeHasGoStringMethod(typeName string) bool {
 		return false
 	}
 	return typeHasGoStringMethod(obj.Type()) || typeHasGoStringMethod(types.NewPointer(obj.Type()))
+}
+
+func namedTypeGoStringMethodRequiresMutableReceiver(typeName string) bool {
+	for _, fn := range methodsForReceiverType(typeName) {
+		if fn != nil && fn.Name != nil && fn.Name.Name == "String" {
+			return methodRequiresMutableReceiver(fn)
+		}
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.pkg == nil || typeInfo.pkg.Scope() == nil {
+		return false
+	}
+	obj, ok := typeInfo.pkg.Scope().Lookup(typeName).(*types.TypeName)
+	if !ok {
+		return false
+	}
+	for _, typ := range []types.Type{obj.Type(), types.NewPointer(obj.Type())} {
+		methodSet := types.NewMethodSet(typ)
+		selection := methodSet.Lookup(nil, "String")
+		if selection == nil {
+			continue
+		}
+		fn, ok := selection.Obj().(*types.Func)
+		if !ok {
+			continue
+		}
+		key := methodOverrideKey(fn)
+		if key == "" {
+			continue
+		}
+		if mutable, ok := typeInfo.methodMutableReceiverMap[key]; ok {
+			return mutable
+		}
+	}
+	return false
+}
+
+func writeStringerDisplayBody(out *strings.Builder, typeName string, indent string) {
+	if namedTypeGoStringMethodRequiresMutableReceiver(typeName) {
+		out.WriteString(indent)
+		out.WriteString("let mut __self = self.clone();\n")
+		out.WriteString(indent)
+		out.WriteString("write!(f, \"{}\", (*__self.string()")
+	} else {
+		out.WriteString(indent)
+		out.WriteString("write!(f, \"{}\", (*self.string()")
+	}
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap()))\n")
 }
 
 func typeHasGoStringMethod(typ types.Type) bool {
@@ -2500,9 +2547,7 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 				out.WriteString(rustTypeName)
 				out.WriteString(" {\n")
 				out.WriteString("    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {\n")
-				out.WriteString("        write!(f, \"{}\", (*self.string()")
-				WriteBorrowMethod(out, false)
-				out.WriteString(".as_ref().unwrap()))\n")
+				writeStringerDisplayBody(out, typeSpec.Name.Name, "        ")
 				out.WriteString("    }\n")
 				out.WriteString("}\n")
 			} else if IsErrorImplType(typeSpec.Name.Name) {
@@ -2543,9 +2588,7 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 					out.WriteString(" {\n")
 					out.WriteString("    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {\n")
 					if IsStringerImplType(typeSpec.Name.Name) {
-						out.WriteString("        write!(f, \"{}\", (*self.string()")
-						WriteBorrowMethod(out, false)
-						out.WriteString(".as_ref().unwrap()))\n")
+						writeStringerDisplayBody(out, typeSpec.Name.Name, "        ")
 					} else {
 						out.WriteString("        write!(f, \"{}\", self.0")
 						WriteBorrowMethod(out, false)
