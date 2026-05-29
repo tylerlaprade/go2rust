@@ -2505,6 +2505,10 @@ func writePointerHandleCallArgument(out *strings.Builder, arg ast.Expr, expected
 		}
 	case *ast.TypeAssertExpr:
 		// Pointer type assertions already lower to the asserted pointer handle.
+	case *ast.CallExpr:
+		if !typeInfo.ReturnsWrappedValue(e) || callReturnsBareChannelValue(e) {
+			return false
+		}
 	default:
 		return false
 	}

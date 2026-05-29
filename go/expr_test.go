@@ -795,6 +795,30 @@ func use(x Type) {
 	}
 }
 
+func TestVariadicPointerCallElementKeepsReturnedHandle(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Var struct{}
+type Tuple struct{}
+
+func NewVar() *Var { return &Var{} }
+func NewTuple(vars ...*Var) *Tuple { return &Tuple{} }
+
+func makeTuple() *Tuple {
+	return NewTuple(NewVar())
+}
+`)
+
+	if strings.Contains(rust, "(*new_var().borrow().as_ref().unwrap())") ||
+		strings.Contains(rust, "(*new_var().lock().unwrap().as_ref().unwrap())") {
+		t.Fatalf("pointer-returning variadic element should not be unwrapped to the pointee:\n%s", rust)
+	}
+	if !strings.Contains(rust, "new_tuple(Rc::new(RefCell::new(Some(vec![new_var()])))") &&
+		!strings.Contains(rust, "new_tuple(Arc::new(Mutex::new(Some(vec![new_var()])))") {
+		t.Fatalf("pointer-returning variadic element should keep the returned handle:\n%s", rust)
+	}
+}
+
 func TestWrappedStringCallArgumentUsesShortGuardBlock(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
