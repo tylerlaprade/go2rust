@@ -1,0 +1,8 @@
+[package]
+name = "parallel_assign_receiver_named_scalar_field"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "parallel_assign_receiver_named_scalar_field"
+path = "main.rs"

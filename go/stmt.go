@@ -4650,13 +4650,13 @@ func tempHoldsWrappedValue(rhs ast.Expr) bool {
 			return true
 		}
 		// A value-typed field (Basic, named scalars like token.Pos, structs,
-		// arrays) keeps its handle when read directly off the current receiver
-		// (self.field), but is unwrapped to a bare value when read through a
-		// wrapped pointer variable (v.field), so only the receiver form yields a
-		// wrapped temporary.
-		if ident, ok := sel.X.(*ast.Ident); ok && isCurrentReceiverIdent(ident) {
-			return true
-		}
+		// arrays) is unwrapped to a bare value snapshot when read into a parallel
+		// assignment temp: writeOwnedExpressionValue clones it out of the handle
+		// (isCloneableNonPointerExpr), and Go's parallel-assignment semantics
+		// require a value snapshot of the RHS rather than an alias to the field's
+		// handle. So the temp holds a value, not the wrapped handle, whether the
+		// field is read off the current receiver (self.field) or a wrapped pointer
+		// variable (v.field).
 		return false
 	}
 	return false

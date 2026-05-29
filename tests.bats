@@ -1795,6 +1795,10 @@ run_xfail_test() {
     run_test "tests/panic_with_sprintf"
 }
 
+@test "parallel_assign_receiver_named_scalar_field" {
+    run_test "tests/parallel_assign_receiver_named_scalar_field"
+}
+
 @test "parallel_assign_value_field_swap" {
     run_test "tests/parallel_assign_value_field_swap"
 }
