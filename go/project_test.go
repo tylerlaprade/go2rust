@@ -561,6 +561,62 @@ var _ positioner = atPos(0)
 	}
 }
 
+func TestDefinedTypeOverImportedNamedIntegerConversionKeepsNamedValue(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+
+require example.com/dep v0.0.0
+
+replace example.com/dep => ./dep
+`)
+	writeTestFile(t, filepath.Join(tempDir, "dep", "go.mod"), `module example.com/dep
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "dep", "dep.go"), `package dep
+
+type Pos int
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+import "example.com/dep"
+
+type positioner interface {
+	Pos() dep.Pos
+}
+
+type atPos dep.Pos
+
+func (p atPos) Pos() dep.Pos {
+	return dep.Pos(p)
+}
+
+func wrap(pos dep.Pos) positioner {
+	return atPos(pos)
+}
+`)
+
+	generator := NewProjectGenerator([]string{
+		filepath.Join(tempDir, "main.go"),
+	})
+	generator.SetExternalPackageMode(ModeTranspile)
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
+	if strings.Contains(mainRS, "atPos(Rc::new(RefCell::new(Some((*(*pos.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) as i32") ||
+		strings.Contains(mainRS, "atPos(Arc::new(Mutex::new(Some((*(*pos.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) as i32") {
+		t.Fatalf("conversion to defined type over imported named integer should keep the named value:\n%s", mainRS)
+	}
+	if !strings.Contains(mainRS, "atPos(Rc::new(RefCell::new(Some((*pos.borrow().as_ref().unwrap()).clone()))") &&
+		!strings.Contains(mainRS, "atPos(Arc::new(Mutex::new(Some((*pos.lock().unwrap().as_ref().unwrap()).clone()))") {
+		t.Fatalf("conversion to defined type over imported named integer should wrap a cloned named value:\n%s", mainRS)
+	}
+}
+
 func TestExternalPackageUsesOwnConcurrencyDetector(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod

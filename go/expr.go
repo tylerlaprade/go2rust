@@ -246,6 +246,9 @@ func writeNamedIntegerValueForExpected(out *strings.Builder, expr ast.Expr, name
 	if named == nil || !isNamedIntegerType(named) {
 		return false
 	}
+	if writeNamedIntegerDefinedNamedValueForExpected(out, expr, named) {
+		return true
+	}
 	if stdlibStubSelectorConstHasNamedType(expr, named) {
 		TranspileExpression(out, expr)
 		return true
@@ -271,6 +274,72 @@ func writeNamedIntegerValueForExpected(out *strings.Builder, expr ast.Expr, name
 	WriteWrapperSuffix(out)
 	out.WriteString(")")
 	return true
+}
+
+func writeNamedIntegerDefinedNamedValueForExpected(out *strings.Builder, expr ast.Expr, expected *types.Named) bool {
+	if !namedIntegerTypeDefinitionStoresNamedValue(expected) {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	actual, ok := types.Unalias(typeInfo.GetType(expr)).(*types.Named)
+	if !ok || !isNamedIntegerType(actual) || sameNamedTypeDefinition(actual, expected) {
+		return false
+	}
+	out.WriteString(goTypesNamedTypeToRust(expected))
+	out.WriteString("(")
+	WriteWrapperPrefix(out)
+	if isConstantExpression(expr) {
+		writeNamedIntegerValueForExpected(out, expr, actual)
+	} else {
+		writeNamedIntegerNamedStorageValue(out, expr, typeInfo)
+	}
+	WriteWrapperSuffix(out)
+	out.WriteString(")")
+	return true
+}
+
+func writeNamedIntegerNamedStorageValue(out *strings.Builder, expr ast.Expr, typeInfo *TypeInfo) {
+	if ident, ok := expr.(*ast.Ident); ok && ident.Name != "nil" && !isVarBare(ident.Name) {
+		out.WriteString("(*")
+		out.WriteString(RustIdentForUse(ident))
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap()).clone()")
+		return
+	}
+	if sel, ok := expr.(*ast.SelectorExpr); ok && !isExpressionResultBare(sel) && isCloneableNonPointerExpr(sel) {
+		writeClonedWrappedExpression(out, sel, "__named_value_holder", "__named_value_guard")
+		return
+	}
+	if typeInfo != nil && typeInfo.ReturnsWrappedValue(expr) {
+		out.WriteString("(*")
+		TranspileExpressionContext(out, expr, LValue)
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap()).clone()")
+		return
+	}
+	TranspileExpression(out, expr)
+}
+
+func namedIntegerTypeDefinitionStoresNamedValue(named *types.Named) bool {
+	if named == nil || named.Obj() == nil || !isNamedIntegerType(named) {
+		return false
+	}
+	underlying, isTypeDef := LookupTypeDefinition(named.Obj().Name())
+	if !isTypeDef {
+		return false
+	}
+	if _, ok := rustCastTypeForDefinedUnderlying(underlying); ok {
+		return false
+	}
+	switch underlying {
+	case "bool", "string":
+		return false
+	default:
+		return true
+	}
 }
 
 func writeConstShiftLeftOperandForResult(out *strings.Builder, expr ast.Expr, shift *ast.BinaryExpr) bool {
@@ -9652,6 +9721,11 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 		writeStringTypeDefinitionConstructor(out, goTypesNamedTypeToRust(named), call.Args[0])
 		return
 	}
+	if named, ok := namedIntegerDefinedNamedConversionTarget(call); ok {
+		if writeNamedIntegerDefinedNamedValueForExpected(out, call.Args[0], named) {
+			return
+		}
+	}
 	if named, rustType, ok := namedIntegerConversionTarget(call); ok {
 		out.WriteString(goTypesNamedTypeToRust(named))
 		out.WriteString("(")
@@ -10551,6 +10625,18 @@ func namedIntegerConversionTarget(call *ast.CallExpr) (*types.Named, string, boo
 	}
 	rustType, ok := rustCastTypeForDefinedUnderlying(basic.Name())
 	return named, rustType, ok
+}
+
+func namedIntegerDefinedNamedConversionTarget(call *ast.CallExpr) (*types.Named, bool) {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || call == nil || !typeInfo.IsTypeConversion(call) {
+		return nil, false
+	}
+	named, ok := types.Unalias(typeInfo.GetType(call)).(*types.Named)
+	if !ok || !namedIntegerTypeDefinitionStoresNamedValue(named) {
+		return nil, false
+	}
+	return named, true
 }
 
 func writeUnwrappedSliceClone(out *strings.Builder, arg ast.Expr) {
