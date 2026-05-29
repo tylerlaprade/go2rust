@@ -1214,12 +1214,13 @@ func writeConstExpressionWithRustIntegerOperands(out *strings.Builder, value ast
 	if !ok || !constExpressionCastsTopOperandsForOp(binary.Op) {
 		return false
 	}
+	operandRustType := constExpressionOperandRustType(value, rustType)
 	out.WriteString("(")
-	writeConstExpressionOperandAsRustInteger(out, binary.X, rustType)
+	writeConstExpressionOperandAsRustInteger(out, binary.X, operandRustType)
 	out.WriteString(" ")
 	out.WriteString(rustBinaryOp(binary.Op))
 	out.WriteString(" ")
-	writeConstExpressionOperandAsRustInteger(out, binary.Y, rustType)
+	writeConstExpressionOperandAsRustInteger(out, binary.Y, operandRustType)
 	out.WriteString(")")
 	return true
 }
@@ -1232,14 +1233,51 @@ func writeConstExpressionWithRustIntegerOperandsForExpected(out *strings.Builder
 	if !ok || !constExpressionCastsOperandsForOp(binary.Op) {
 		return false
 	}
+	operandRustType := constExpressionOperandRustType(value, rustType)
 	out.WriteString("(")
-	writeConstExpressionOperandAsRustInteger(out, binary.X, rustType)
+	writeConstExpressionOperandAsRustInteger(out, binary.X, operandRustType)
 	out.WriteString(" ")
 	out.WriteString(rustBinaryOp(binary.Op))
 	out.WriteString(" ")
-	writeConstExpressionOperandAsRustInteger(out, binary.Y, rustType)
+	writeConstExpressionOperandAsRustInteger(out, binary.Y, operandRustType)
 	out.WriteString(")")
 	return true
+}
+
+func constExpressionOperandRustType(expr ast.Expr, rustType string) string {
+	if isUnsignedRustIntegerCastType(rustType) && constExpressionContainsNegativeValue(expr) {
+		return "i128"
+	}
+	return rustType
+}
+
+func isUnsignedRustIntegerCastType(rustType string) bool {
+	switch rustType {
+	case "u8", "u16", "u32", "u64", "usize":
+		return true
+	default:
+		return false
+	}
+}
+
+func constExpressionContainsNegativeValue(expr ast.Expr) bool {
+	negative := false
+	ast.Inspect(expr, func(node ast.Node) bool {
+		if negative {
+			return false
+		}
+		nodeExpr, ok := node.(ast.Expr)
+		if !ok {
+			return true
+		}
+		value, ok := constExpressionValue(nodeExpr)
+		if ok && constant.Sign(value) < 0 {
+			negative = true
+			return false
+		}
+		return true
+	})
+	return negative
 }
 
 func constExpressionHasRustIntegerOperandMismatch(expr ast.Expr, rustType string) bool {

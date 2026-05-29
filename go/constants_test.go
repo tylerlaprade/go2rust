@@ -1594,6 +1594,28 @@ func invalid(ln uint32) bool {
 	}
 }
 
+func TestExpectedUint64ConstBinaryWithNegativeOperandUsesSignedIntermediate(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+const (
+	shift = 52
+	bias = 1023
+)
+
+func setExponent(x uint64) uint64 {
+	x |= (-1 + bias) << shift
+	return x
+}
+`)
+
+	if strings.Contains(rust, "-1 as u64") {
+		t.Fatalf("unsigned const expression should not cast a negative operand to u64 before addition:\n%s", rust)
+	}
+	if !strings.Contains(rust, "-1 as i128") || !strings.Contains(rust, "BIAS as i128") {
+		t.Fatalf("unsigned const expression with negative operand should use a signed intermediate:\n%s", rust)
+	}
+}
+
 func TestNamedIntegerBitClearConversionOperandStaysBare(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
