@@ -2767,6 +2767,10 @@ run_xfail_test() {
     run_xfail_test "tests/XFAIL/http_client"
 }
 
+@test "XFAIL: interface_slice_literal_concrete_elems" {
+    run_xfail_test "tests/XFAIL/interface_slice_literal_concrete_elems"
+}
+
 @test "XFAIL: panic_recover" {
     run_xfail_test "tests/XFAIL/panic_recover"
 }
