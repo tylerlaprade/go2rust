@@ -855,6 +855,38 @@ func makeTuple() *Tuple {
 	}
 }
 
+func TestVariadicEllipsisSelectorSliceKeepsHandle(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Expr interface {
+	Pos() int
+}
+
+type checker struct{}
+
+func (c *checker) consume(args ...Expr) {}
+
+type indexed struct {
+	indices []Expr
+}
+
+func call(c *checker, ix *indexed) {
+	c.consume(ix.indices...)
+}
+`)
+
+	if strings.Contains(rust, ".consume((*{ let __field = (*ix.borrow().as_ref().unwrap()).indices.clone(); __field }.borrow().as_ref().unwrap()).clone())") ||
+		strings.Contains(rust, ".consume((*{ let __field = (*ix.lock().unwrap().as_ref().unwrap()).indices.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone())") {
+		t.Fatalf("ellipsis selector slice should not unwrap to a raw Vec:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".consume((*ix.borrow().as_ref().unwrap()).indices.clone())") &&
+		!strings.Contains(rust, ".consume((*ix.lock().unwrap().as_ref().unwrap()).indices.clone())") &&
+		!strings.Contains(rust, ".consume({ let __field = (*ix.borrow().as_ref().unwrap()).indices.clone(); __field })") &&
+		!strings.Contains(rust, ".consume({ let __field = (*ix.lock().unwrap().as_ref().unwrap()).indices.clone(); __field })") {
+		t.Fatalf("ellipsis selector slice should pass the existing slice handle:\n%s", rust)
+	}
+}
+
 func TestWrappedStringCallArgumentUsesShortGuardBlock(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

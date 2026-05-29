@@ -1405,6 +1405,9 @@ func writeMethodCallArguments(out *strings.Builder, sel *ast.SelectorExpr, call 
 		if ident, ok := lastArg.(*ast.Ident); ok {
 			out.WriteString(RustIdentForUse(ident))
 			out.WriteString(".clone()")
+		} else if _, ok := lastArg.(*ast.SelectorExpr); ok {
+			TranspileExpressionContext(out, lastArg, LValue)
+			out.WriteString(".clone()")
 		} else {
 			TranspileExpression(out, lastArg)
 		}
@@ -12847,6 +12850,9 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 			if ident, ok := lastArg.(*ast.Ident); ok {
 				out.WriteString(EscapeRustIdent(ident.Name))
 				out.WriteString(".clone()")
+			} else if _, ok := lastArg.(*ast.SelectorExpr); ok {
+				TranspileExpressionContext(out, lastArg, LValue)
+				out.WriteString(".clone()")
 			} else {
 				TranspileExpression(out, lastArg)
 			}
@@ -13493,6 +13499,11 @@ func writeVariadicCallArgumentsFromTypes(out *strings.Builder, call *ast.CallExp
 		lastArg := call.Args[len(call.Args)-1]
 		if ident, ok := lastArg.(*ast.Ident); ok {
 			out.WriteString(RustIdentForUse(ident))
+			out.WriteString(".clone()")
+			return
+		}
+		if _, ok := lastArg.(*ast.SelectorExpr); ok {
+			TranspileExpressionContext(out, lastArg, LValue)
 			out.WriteString(".clone()")
 			return
 		}
