@@ -3505,6 +3505,15 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 			var elemType types.Type
 			if typeInfo := GetTypeInfo(); typeInfo != nil {
 				elemType = typeInfo.GetSliceElemType(call.Args[0])
+				// A nil element whose slot is a bare (slice) value — e.g.
+				// append([][]T, nil), where the inner []T is stored as a raw Vec —
+				// is the element's zero value, not a wrapped None to deref.
+				if nilIdent, ok := expr.(*ast.Ident); ok && nilIdent.Name == "nil" && elemType != nil {
+					if _, isSlice := types.Unalias(elemType).Underlying().(*types.Slice); isSlice {
+						out.WriteString("Default::default()")
+						return
+					}
+				}
 				if isGoErrorType(elemType) && writeGoErrorHandleValue(out, expr) {
 					return
 				}

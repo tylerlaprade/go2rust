@@ -1,0 +1,8 @@
+[package]
+name = "append_nil_to_nested_slice"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "append_nil_to_nested_slice"
+path = "main.rs"

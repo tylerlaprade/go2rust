@@ -1603,6 +1603,10 @@ run_xfail_test() {
     run_test "tests/nested_embedding"
 }
 
+@test "nested_pointer_slice_field_display" {
+    run_test "tests/nested_pointer_slice_field_display"
+}
+
 @test "nested_slice_array_append" {
     run_test "tests/nested_slice_array_append"
 }
@@ -2763,6 +2767,10 @@ run_xfail_test() {
     run_test "tests/wrapped_call_argument"
 }
 
+@test "XFAIL: append_nil_to_nested_slice" {
+    run_xfail_test "tests/XFAIL/append_nil_to_nested_slice"
+}
+
 @test "XFAIL: concurrency_patterns" {
     run_xfail_test "tests/XFAIL/concurrency_patterns"
 }
@@ -2785,10 +2793,6 @@ run_xfail_test() {
 
 @test "XFAIL: http_client" {
     run_xfail_test "tests/XFAIL/http_client"
-}
-
-@test "XFAIL: nested_pointer_slice_field_display" {
-    run_xfail_test "tests/XFAIL/nested_pointer_slice_field_display"
 }
 
 @test "XFAIL: panic_recover" {
