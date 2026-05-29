@@ -2445,10 +2445,12 @@ func writeWrappedOwnedExpressionValue(out *strings.Builder, expr ast.Expr) bool 
 	if typ == nil {
 		return false
 	}
-	switch typ.Underlying().(type) {
-	case *types.Basic, *types.Struct, *types.Array:
-	default:
-		return false
+	if !namedCollectionSelectorNeedsOwnedValue(expr, typ) {
+		switch typ.Underlying().(type) {
+		case *types.Basic, *types.Struct, *types.Array:
+		default:
+			return false
+		}
 	}
 	var inner strings.Builder
 	if !writeOwnedExpressionValue(&inner, expr) {
@@ -2458,6 +2460,22 @@ func writeWrappedOwnedExpressionValue(out *strings.Builder, expr ast.Expr) bool 
 	out.WriteString(inner.String())
 	WriteWrapperSuffix(out)
 	return true
+}
+
+func namedCollectionSelectorNeedsOwnedValue(expr ast.Expr, typ types.Type) bool {
+	if _, ok := expr.(*ast.SelectorExpr); !ok {
+		return false
+	}
+	named, ok := types.Unalias(typ).(*types.Named)
+	if !ok {
+		return false
+	}
+	switch named.Underlying().(type) {
+	case *types.Slice, *types.Map:
+		return true
+	default:
+		return false
+	}
 }
 
 func writeConcurrentMapSelectorHandleClone(out *strings.Builder, expr ast.Expr) bool {

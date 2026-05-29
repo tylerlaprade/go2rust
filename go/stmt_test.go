@@ -1422,6 +1422,30 @@ func trim(z *Float, n uint32) {
 	}
 }
 
+func TestNamedSliceSelectorShortDeclCopiesNamedValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Word uint
+type nat []Word
+
+type Float struct {
+	mant nat
+}
+
+func (x *Float) bits() int {
+	m := x.mant
+	return len(m)
+}
+`)
+
+	if strings.Contains(rust, "Some(self.mant.clone())") {
+		t.Fatalf("named-slice selector short declaration should not store the field handle inside the new wrapper:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __selector_holder = self.mant.clone()") {
+		t.Fatalf("named-slice selector short declaration should clone the named field value:\n%s", rust)
+	}
+}
+
 func TestVarInitializerFromBareScalarCallRegistersBareLocal(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
