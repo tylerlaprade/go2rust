@@ -2339,6 +2339,35 @@ func round(z nat, n uint32, lsb Word) {
 	}
 }
 
+func TestRangeNamedIntegerComparisonClonesValueBeforeReuse(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type Word uint
+type nat []Word
+
+func start() {
+	go func() {}()
+}
+
+func keep(values nat) Word {
+	var out Word
+	for _, d := range values {
+		if d != 0 {
+			out = d
+		}
+	}
+	return out
+}
+`)
+
+	if strings.Contains(rust, "let __tmp_x = d;") {
+		t.Fatalf("comparison should not move a non-Copy range value that is reused later:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __tmp_x = d.clone();") {
+		t.Fatalf("comparison should clone a non-Copy range value before comparing:\n%s", rust)
+	}
+}
+
 func TestReturnBitClearUsesRustOperator(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
