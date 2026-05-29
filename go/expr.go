@@ -5103,6 +5103,25 @@ func writeLocalInterfaceFieldValue(out *strings.Builder, value ast.Expr, fieldEx
 			return true
 		}
 	}
+	// A conversion/constructor call producing a concrete value that implements
+	// the interface field (e.g. complexVal{im: int64Val(0)}) must be boxed.
+	if _, ok := value.(*ast.CallExpr); ok {
+		expected := fieldType
+		if expected == nil && fieldExpr != nil {
+			if typeInfo := GetTypeInfo(); typeInfo != nil {
+				expected = typeInfo.GetType(fieldExpr)
+			}
+		}
+		if expected != nil {
+			var boxed strings.Builder
+			if writeConcreteLocalInterfaceValue(&boxed, value, expected, interfaceName) {
+				WriteWrapperPrefix(out)
+				out.WriteString(boxed.String())
+				WriteWrapperSuffix(out)
+				return true
+			}
+		}
+	}
 	return false
 }
 
