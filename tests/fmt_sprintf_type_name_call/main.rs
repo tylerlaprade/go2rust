@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 
 
-fn go_type_name(val: &dyn Any) -> &'static str {
+fn __go_type_name(val: &dyn Any) -> &'static str {
     if val.is::<i32>() { return "int" }
     if val.is::<i64>() { return "int64" }
     if val.is::<i8>() { return "int8" }
@@ -33,5 +33,5 @@ fn main() {
         ;
     });
 
-    println!("{}", format!("{}", (*Arc::new(Mutex::new(Some(format!("type {}", go_type_name(&(*label().lock().unwrap().as_ref().unwrap())))))).lock().unwrap().as_ref().unwrap())));
+    println!("{}", format!("{}", (*Arc::new(Mutex::new(Some(format!("type {}", __go_type_name(&(*label().lock().unwrap().as_ref().unwrap())))))).lock().unwrap().as_ref().unwrap())));
 }

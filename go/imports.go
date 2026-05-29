@@ -6,6 +6,8 @@ import (
 	"strings"
 )
 
+const goTypeNameHelperRustName = "__go_type_name"
+
 // ImportTracker tracks which imports are needed during transpilation
 type ImportTracker struct {
 	needs map[string]bool
@@ -490,7 +492,7 @@ func (ht *HelperTracker) ImportNames() []string {
 		add("GoAtomicPointer")
 	}
 	if ht.needsGoTypeName {
-		add("go_type_name")
+		add(goTypeNameHelperRustName)
 	}
 	if ht.needsBase64 {
 		add("go_base64_encode", "go_base64_decode", "go_base64_value")
@@ -1469,7 +1471,9 @@ impl<T> std::fmt::Display for GoAtomicPointer<T> {
 func generateGoTypeNameHelper(out *strings.Builder) {
 	TrackImport("Any")
 	out.WriteString(`
-fn go_type_name(val: &dyn Any) -> &'static str {
+fn `)
+	out.WriteString(goTypeNameHelperRustName)
+	out.WriteString(`(val: &dyn Any) -> &'static str {
     if val.is::<i32>() { return "int" }
     if val.is::<i64>() { return "int64" }
     if val.is::<i8>() { return "int8" }

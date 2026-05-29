@@ -4,7 +4,7 @@ use std::error::Error as StdError;
 use std::rc::{Rc};
 
 
-fn go_type_name(val: &dyn Any) -> &'static str {
+fn __go_type_name(val: &dyn Any) -> &'static str {
     if val.is::<i32>() { return "int" }
     if val.is::<i64>() { return "int64" }
     if val.is::<i8>() { return "int8" }
@@ -30,8 +30,8 @@ pub fn label() -> Rc<RefCell<Option<String>>> {
 }
 
 fn main() {
-    let mut err = Rc::new(RefCell::new(Some(Box::<dyn StdError>::from(format!("bad type {}", go_type_name(&(*label().borrow().as_ref().unwrap())))))));
+    let mut err = Rc::new(RefCell::new(Some(Box::<dyn StdError>::from(format!("bad type {}", __go_type_name(&(*label().borrow().as_ref().unwrap())))))));
     println!("{}", format!("{}", format!("{}", (*err.borrow().as_ref().unwrap()))));
     let mut value = label();
-    println!("{}", format!("{}", format!("{}", (*(Rc::new(RefCell::new(Some(Box::<dyn StdError>::from(format!("stored type {}", go_type_name(value.borrow().as_ref().unwrap()))))))).borrow().as_ref().unwrap()))));
+    println!("{}", format!("{}", format!("{}", (*(Rc::new(RefCell::new(Some(Box::<dyn StdError>::from(format!("stored type {}", __go_type_name(value.borrow().as_ref().unwrap()))))))).borrow().as_ref().unwrap()))));
 }

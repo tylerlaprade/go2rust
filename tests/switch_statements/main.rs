@@ -3,7 +3,7 @@ use std::cell::{RefCell};
 use std::rc::{Rc};
 
 
-fn go_type_name(val: &dyn Any) -> &'static str {
+fn __go_type_name(val: &dyn Any) -> &'static str {
     if val.is::<i32>() { return "int" }
     if val.is::<i64>() { return "int64" }
     if val.is::<i8>() { return "int8" }
@@ -127,7 +127,7 @@ pub fn type_switch(value: Rc<RefCell<Option<Box<dyn Any>>>>) {
     } else {
         let v = value.clone();
         drop(_ts_guard);
-        print!("Unknown type: {}\n", go_type_name(&**v.borrow().as_ref().unwrap()));;
+        print!("Unknown type: {}\n", __go_type_name(&**v.borrow().as_ref().unwrap()));;
     }
     }
 }

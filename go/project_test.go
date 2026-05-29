@@ -1903,7 +1903,7 @@ func main() {
 	if strings.Contains(normalizeRS, "use crate::*;") {
 		t.Fatalf("module should not glob-import crate root and shadow termlist type with termlist module, got:\n%s", normalizeRS)
 	}
-	if !strings.Contains(normalizeRS, "use crate::{go_type_name};") {
+	if !strings.Contains(normalizeRS, "use crate::{__go_type_name};") {
 		t.Fatalf("module should import only the needed crate-root helper, got:\n%s", normalizeRS)
 	}
 	if !strings.Contains(normalizeRS, "pub terms: Rc<RefCell<Option<termlist>>>") {
@@ -1912,7 +1912,51 @@ func main() {
 
 	helpersRS := mustReadFile(t, filepath.Join(tempDir, packageHelperIncludeFile))
 	if !strings.Contains(helpersRS, "use std::any::Any;") {
-		t.Fatalf("helper include should import Any for go_type_name, got:\n%s", helpersRS)
+		t.Fatalf("helper include should import Any for type-name helper, got:\n%s", helpersRS)
+	}
+}
+
+func TestTypeNameHelperDoesNotCollideWithPackageGoTypeNameFunction(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "typexpr.go"), `package main
+
+import "fmt"
+
+func goTypeName(v any) string {
+	return fmt.Sprintf("%T", v)
+}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+func main() {
+	println(goTypeName(1))
+}
+`)
+
+	generator := NewProjectGenerator([]string{
+		filepath.Join(tempDir, "typexpr.go"),
+		filepath.Join(tempDir, "main.go"),
+	})
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	typexprRS := mustReadFile(t, filepath.Join(tempDir, "typexpr.rs"))
+	if strings.Contains(typexprRS, "use crate::{go_type_name};") {
+		t.Fatalf("module should not import a helper name that collides with its own function, got:\n%s", typexprRS)
+	}
+	if !strings.Contains(typexprRS, "use crate::{__go_type_name};") {
+		t.Fatalf("module should import the internal type-name helper, got:\n%s", typexprRS)
+	}
+	if !strings.Contains(typexprRS, "pub fn go_type_name(") {
+		t.Fatalf("source function should still lower to its normal Rust name, got:\n%s", typexprRS)
+	}
+	if !strings.Contains(typexprRS, "__go_type_name(") {
+		t.Fatalf("%%T lowering should call the internal helper, got:\n%s", typexprRS)
 	}
 }
 

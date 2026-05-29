@@ -991,7 +991,8 @@ func transpileFormatArg(out *strings.Builder, arg ast.Expr, argIndex int, charIn
 		NeedGoTypeName()
 		if ident, ok := arg.(*ast.Ident); ok {
 			if isVarBare(ident.Name) {
-				out.WriteString("go_type_name(")
+				out.WriteString(goTypeNameHelperRustName)
+				out.WriteString("(")
 				out.WriteString(ident.Name)
 				out.WriteString(")")
 			} else {
@@ -1005,19 +1006,22 @@ func transpileFormatArg(out *strings.Builder, arg ast.Expr, argIndex int, charIn
 					}
 				}
 				if isEmptyInterface {
-					out.WriteString("go_type_name(&**")
+					out.WriteString(goTypeNameHelperRustName)
+					out.WriteString("(&**")
 					out.WriteString(ident.Name)
 					WriteBorrowMethod(out, false)
 					out.WriteString(".as_ref().unwrap())")
 				} else {
-					out.WriteString("go_type_name(")
+					out.WriteString(goTypeNameHelperRustName)
+					out.WriteString("(")
 					out.WriteString(ident.Name)
 					WriteBorrowMethod(out, false)
 					out.WriteString(".as_ref().unwrap())")
 				}
 			}
 		} else {
-			out.WriteString("go_type_name(&")
+			out.WriteString(goTypeNameHelperRustName)
+			out.WriteString("(&")
 			transpilePrintArg(out, arg)
 			out.WriteString(")")
 		}
