@@ -231,6 +231,31 @@ func fill(v any, src []int) int {
 	}
 }
 
+func TestBuiltinCopyNamedSliceUsesInnerHandle(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Word uint
+type nat []Word
+
+func shift(z nat, m, n uint32) int {
+	return copy(z, z[m-n:])
+}
+`)
+
+	if strings.Contains(rust, "(*z.borrow().as_ref().unwrap()).len()") {
+		t.Fatalf("copy named-slice destination should not call len on the named wrapper:\n%s", rust)
+	}
+	if strings.Contains(rust, "(*nat(") {
+		t.Fatalf("copy named-slice source should not borrow a named slice value as a wrapper handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let _dst_holder = { let __named_slice = (*z.borrow().as_ref().unwrap()).0.clone(); __named_slice }") {
+		t.Fatalf("copy named-slice destination should use the inner slice handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __slice_holder = { let __named_slice = (*z.borrow().as_ref().unwrap()).0.clone(); __named_slice }") {
+		t.Fatalf("copy named-slice source slice should read from the inner slice handle:\n%s", rust)
+	}
+}
+
 func TestBuiltinClearNamedSliceAndSliceExprUsesTypedBuiltin(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

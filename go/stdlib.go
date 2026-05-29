@@ -4334,6 +4334,23 @@ func transpileCopy(out *strings.Builder, call *ast.CallExpr) {
 		typeInfo := GetTypeInfo()
 		srcIsString := typeInfo != nil && typeInfo.IsString(call.Args[1])
 
+		if isNamedSliceExpression(call.Args[0]) {
+			out.WriteString("{ let _dst_holder = ")
+			writeNamedSliceInnerHandleClone(out, call.Args[0])
+			out.WriteString("; let _src = ")
+			writeCopySourceValue(out, call.Args[1], srcIsString)
+			out.WriteString("; let _dst_len = { let _dst_guard = _dst_holder")
+			WriteBorrowMethod(out, false)
+			out.WriteString("; _dst_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }; let _n = std::cmp::min(_dst_len, _src.len()); for _i in 0.._n { (*_dst_holder")
+			WriteBorrowMethod(out, true)
+			out.WriteString(".as_mut().unwrap())[_i] = _src[_i].clone(); } ")
+			WriteWrapperPrefix(out)
+			out.WriteString("_n as i32")
+			WriteWrapperSuffix(out)
+			out.WriteString(" }")
+			return
+		}
+
 		if dstSlice, ok := call.Args[0].(*ast.SliceExpr); ok {
 			out.WriteString("{ let _dst_start = ")
 			writeCopySliceLow(out, dstSlice)
@@ -4424,6 +4441,9 @@ func writeCopySourceValue(out *strings.Builder, expr ast.Expr, isString bool) {
 		out.WriteString(".as_bytes().to_vec()")
 		return
 	}
+	if writeNamedSliceCopySourceValue(out, expr) {
+		return
+	}
 	if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.ReturnsWrappedValue(expr) && !isExpressionResultBare(expr) {
 		out.WriteString("(*")
 		TranspileExpressionContext(out, expr, LValue)
@@ -4434,6 +4454,39 @@ func writeCopySourceValue(out *strings.Builder, expr ast.Expr, isString bool) {
 	out.WriteString("(")
 	TranspileExpression(out, expr)
 	out.WriteString(").clone()")
+}
+
+func writeNamedSliceCopySourceValue(out *strings.Builder, expr ast.Expr) bool {
+	expr = unwrapParens(expr)
+	if slice, ok := expr.(*ast.SliceExpr); ok {
+		sliceSubject := unwrapParens(slice.X)
+		if !isNamedSliceExpression(sliceSubject) {
+			return false
+		}
+		out.WriteString("{ let __slice_holder = ")
+		writeNamedSliceInnerHandleClone(out, sliceSubject)
+		out.WriteString("; let __slice_guard = __slice_holder")
+		WriteBorrowMethod(out, false)
+		out.WriteString("; let __seq = __slice_guard.as_ref().cloned().unwrap_or_default(); __seq[")
+		if slice.Low != nil {
+			writeExpressionAsUsize(out, slice.Low)
+		}
+		out.WriteString("..")
+		if slice.High != nil {
+			writeExpressionAsUsize(out, slice.High)
+		}
+		out.WriteString("].to_vec() }")
+		return true
+	}
+	if !isNamedSliceExpression(expr) {
+		return false
+	}
+	out.WriteString("{ let __slice_holder = ")
+	writeNamedSliceInnerHandleClone(out, expr)
+	out.WriteString("; let __slice_guard = __slice_holder")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; __slice_guard.as_ref().cloned().unwrap_or_default() }")
+	return true
 }
 
 func writeCopySliceLow(out *strings.Builder, slice *ast.SliceExpr) {
