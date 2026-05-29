@@ -67,6 +67,7 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 		isInterface        bool
 		isFunction         bool
 		funcSlice          bool
+		anySlice           bool
 		hasTrait           bool
 		mapOpaque          bool
 		nestedSlice        bool
@@ -85,6 +86,7 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 		isInterface := isEmptyInterfaceExpr(field.Type)
 		isFunction := isFunctionSignatureTypeExpr(field.Type)
 		funcSlice := arrayFieldContainsFunction(field.Type)
+		anySlice := sliceFieldContainsEmptyInterface(field.Type)
 		_, isChannel := field.Type.(*ast.ChanType)
 		hasTrait := typeHasTraitField(field.Type)
 		mapOpaque := mapFieldNeedsOpaqueDisplay(field.Type)
@@ -105,6 +107,7 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 					isInterface:        isInterface,
 					isFunction:         isFunction,
 					funcSlice:          funcSlice,
+					anySlice:           anySlice,
 					hasTrait:           hasTrait,
 					mapOpaque:          mapOpaque,
 					nestedSlice:        nestedSlice,
@@ -124,6 +127,7 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 				isInterface:        isInterface,
 				isFunction:         isFunction,
 				funcSlice:          funcSlice,
+				anySlice:           anySlice,
 				hasTrait:           hasTrait,
 				mapOpaque:          mapOpaque,
 				nestedSlice:        nestedSlice,
@@ -179,6 +183,11 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 		} else if f.ptrSlice {
 			NeedFormatSlice()
 			out.WriteString("format_slice_wrapped(&self.")
+			out.WriteString(ToSnakeCase(f.name))
+			out.WriteString(")")
+		} else if f.anySlice {
+			NeedFormatAnySlice()
+			out.WriteString("format_any_slice(&self.")
 			out.WriteString(ToSnakeCase(f.name))
 			out.WriteString(")")
 		} else if f.interfaceSlice {
@@ -264,6 +273,15 @@ func arrayFieldContainsFunction(expr ast.Expr) bool {
 		return false
 	}
 	return isFunctionSignatureTypeExpr(arrayType.Elt)
+}
+
+func sliceFieldContainsEmptyInterface(expr ast.Expr) bool {
+	typ, ok := typeInfoTypeForTypeExpr(expr)
+	if !ok {
+		return false
+	}
+	slice, ok := types.Unalias(typ).Underlying().(*types.Slice)
+	return ok && isEmptyInterfaceType(slice.Elem())
 }
 
 func arrayFieldContainsLocalInterface(expr ast.Expr) bool {

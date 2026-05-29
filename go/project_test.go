@@ -2914,6 +2914,37 @@ func lookup(s *scope) int {
 	}
 }
 
+func TestConcurrentStructDisplayAnySliceUsesAnyFormatter(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+type desc struct {
+	args []any
+}
+
+func start() {
+	go func() {}()
+}
+`)
+
+	generator := NewProjectGenerator([]string{filepath.Join(tempDir, "main.go")})
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
+	if strings.Contains(mainRS, "format_slice(&self.args)") {
+		t.Fatalf("[]any struct display should not use Display-bound slice formatter, got:\n%s", mainRS)
+	}
+	if !strings.Contains(mainRS, "format_any_slice(&self.args)") {
+		t.Fatalf("[]any struct display should use format_any_slice, got:\n%s", mainRS)
+	}
+}
+
 func TestTypeDefinitionMethodReceiverUsesSelfValue(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
