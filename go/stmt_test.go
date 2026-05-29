@@ -1374,6 +1374,30 @@ func clamp(capacity uint64) uint64 {
 	}
 }
 
+func TestArrayElementAssignmentFromNamedScalarSelectorUsesValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Pos int
+
+type parser struct {
+	pos Pos
+}
+
+func (p *parser) assign(i int) [2]Pos {
+	var colons [2]Pos
+	colons[i] = p.pos
+	return colons
+}
+`)
+
+	if strings.Contains(rust, "] = self.pos.clone();") {
+		t.Fatalf("array element assignment should not store a selector field handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __v = self.pos.clone(); let __owned = (*__v") {
+		t.Fatalf("array element assignment should copy the selector field value:\n%s", rust)
+	}
+}
+
 func TestReturnBitClearUsesRustOperator(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
