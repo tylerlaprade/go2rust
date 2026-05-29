@@ -44,6 +44,51 @@ func isPrunedSourceDecl(ident *ast.Ident) bool {
 	return sourceMappedDeclIsPruned(ti.GetObject(ident))
 }
 
+// implReceiverTypeIsPruned reports whether the type that owns the given methods
+// is a source-mapped type pruned by DCE. The per-file prunedTypeNames gate only
+// sees types DECLARED in the current file, but a type's methods can live in a
+// different file from its decl (e.g. token.FileSet's Read/Write in serialize.go
+// vs the FileSet decl in position.go). When the type is unreachable, that other
+// file would still emit `impl FileSet { ... }` referencing a type that was never
+// emitted. Gating the impl block on the receiver type's reachability — resolved
+// through go/types, not file membership — keeps emission consistent with DCE.
+//
+// A *types.Named has one canonical TypeName (named.Obj()), the same object the
+// reachability set is keyed by, so there is no object-identity mismatch here
+// (unlike the named.Method(i) trap reachability.go documents for methods).
+func implReceiverTypeIsPruned(typeMethods []*ast.FuncDecl) bool {
+	if sourceStdlibReachable == nil || len(typeMethods) == 0 {
+		return false
+	}
+	ti := GetTypeInfo()
+	if ti == nil {
+		return false
+	}
+	for _, m := range typeMethods {
+		if m == nil || m.Name == nil {
+			continue
+		}
+		fn, ok := ti.GetObject(m.Name).(*types.Func)
+		if !ok {
+			continue
+		}
+		sig, ok := fn.Type().(*types.Signature)
+		if !ok || sig.Recv() == nil {
+			continue
+		}
+		recv := types.Unalias(sig.Recv().Type())
+		if ptr, ok := recv.(*types.Pointer); ok {
+			recv = types.Unalias(ptr.Elem())
+		}
+		named, ok := recv.(*types.Named)
+		if !ok || named.Obj() == nil {
+			continue
+		}
+		return sourceMappedDeclIsPruned(named.Obj())
+	}
+	return false
+}
+
 // computeSourceStdlibReachable builds the reachable func/method/type set with a
 // single uniform object-reachability pass.
 //

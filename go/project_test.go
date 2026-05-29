@@ -2942,6 +2942,66 @@ func dead() {}
 	}
 }
 
+// TestSourceStdlibPruningSkipsCrossFileImplForUnreachableType covers the case
+// where a pruned type's methods live in a different file from its type decl —
+// exactly token.FileSet (declared in position.go) with Read/Write methods in
+// serialize.go. The per-file prunedTypeNames gate only sees types declared in
+// the file being emitted, so the methods file would emit `impl Dead { ... }`
+// for a type that was never declared in any emitted file. The receiver-type
+// reachability gate must skip the whole impl block.
+func TestSourceStdlibPruningSkipsCrossFileImplForUnreachableType(t *testing.T) {
+	prevCtx := GetTranspileContext()
+	SetTranspileContext(&TranspileContext{PackageMapping: map[string]string{"go/token": "go_token"}})
+	defer SetTranspileContext(prevCtx)
+	prevReachable := sourceStdlibReachable
+	defer SetSourceStdlibReachable(prevReachable)
+
+	fset := token.NewFileSet()
+	posFile, err := parser.ParseFile(fset, "position.go", `package token
+
+type Live struct{}
+type Dead struct{}
+`, parser.ParseComments)
+	if err != nil {
+		t.Fatalf("ParseFile(position.go) error = %v", err)
+	}
+	serFile, err := parser.ParseFile(fset, "serialize.go", `package token
+
+func (Live) Keep() {}
+func (Dead) Drop() {}
+`, parser.ParseComments)
+	if err != nil {
+		t.Fatalf("ParseFile(serialize.go) error = %v", err)
+	}
+
+	typeInfo, err := NewTypeInfoWithImporter("go/token", []*ast.File{posFile, serFile}, fset, nil)
+	if err != nil {
+		t.Fatalf("NewTypeInfoWithImporter(go/token) error = %v", err)
+	}
+	pkg := &packages.Package{
+		Name:      "token",
+		PkgPath:   "go/token",
+		Fset:      fset,
+		Syntax:    []*ast.File{posFile, serFile},
+		Types:     typeInfo.pkg,
+		TypesInfo: typeInfo.info,
+	}
+	SetSourceStdlibReachable(map[types.Object]bool{
+		definitionByName(t, pkg, "Live"): true,
+		definitionByName(t, pkg, "Keep"): true,
+	})
+
+	// Emit the methods file. Dead is unreachable and declared elsewhere, so its
+	// impl block must be skipped; Live's reachable impl must remain.
+	rust, _, _ := TranspileWithMapping(serFile, fset, typeInfo, map[string]string{"go/token": "go_token"})
+	if strings.Contains(rust, "impl Dead") {
+		t.Fatalf("pruned cross-file type Dead should not get an impl block:\n%s", rust)
+	}
+	if !strings.Contains(rust, "impl Live") {
+		t.Fatalf("reachable cross-file impl for Live missing from output:\n%s", rust)
+	}
+}
+
 func TestCollectGoFilesSkipsTestFilesForDirectoryInput(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "main.go"), "package main\nfunc main() {}\n")

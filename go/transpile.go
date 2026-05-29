@@ -1771,6 +1771,12 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 		if typeMethods == nil {
 			typeMethods = []*ast.FuncDecl{}
 		}
+		// Cross-file DCE: prunedTypeNames only covers types declared in this
+		// file. When the type decl was pruned in another file, skip its impl
+		// block here too so it doesn't reference a type that was never emitted.
+		if implReceiverTypeIsPruned(typeMethods) {
+			continue
+		}
 		previousTypeMethods := currentTypeMethods
 		currentTypeMethods = typeMethods
 		rustTypeName := rustImplTypeNameForUse(typeName)
