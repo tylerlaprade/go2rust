@@ -2935,6 +2935,52 @@ func writeLocalInterfaceHandleAssignment(out *strings.Builder, lhs ast.Expr, rhs
 	return true
 }
 
+// writeConcreteToTranspiledInterfaceAssignment boxes a concrete value assigned
+// to an interface-typed target. writeLocalInterfaceHandleAssignment only covers
+// a LOCAL interface LHS with an interface/bare-interface RHS (handle clone);
+// reassigning a concrete value (`typ = name` where typ is ast.Expr and name is
+// *ast.Ident) needs `Box::new(value) as Box<dyn Iface>` and works for an
+// imported interface (go_ast::Expr) too. go/parser hits this on nearly every
+// node-building path.
+func writeConcreteToTranspiledInterfaceAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || lhs == nil || rhs == nil {
+		return false
+	}
+	lhsType := typeInfo.GetType(lhs)
+	rhsType := typeInfo.GetType(rhs)
+	if lhsType == nil || rhsType == nil {
+		return false
+	}
+	ifaceName, ok := transpiledNamedInterfaceTypeNameFromTypes(lhsType)
+	if !ok {
+		return false
+	}
+	// Interface-to-interface and bare-interface RHS are the handle-clone case
+	// handled by writeLocalInterfaceHandleAssignment before this runs.
+	if _, rhsIsIface := transpiledNamedInterfaceTypeNameFromTypes(rhsType); rhsIsIface {
+		return false
+	}
+	if isBareLocalInterfaceValue(rhs) {
+		return false
+	}
+	// nil is handled earlier in the assignment dispatch.
+	if ident, ok := rhs.(*ast.Ident); ok && ident.Name == "nil" {
+		return false
+	}
+	if !types.AssignableTo(rhsType, lhsType) {
+		return false
+	}
+	if sel, ok := lhs.(*ast.SelectorExpr); ok && writePointerHandleSelectorTarget(out, sel) {
+		// Selector handle fields need the outer struct borrowed mutably.
+	} else {
+		TranspileExpressionContext(out, lhs, LValue)
+	}
+	out.WriteString(" = ")
+	writeLocalInterfaceWrappedConstruction(out, rhs, ifaceName, lhsType)
+	return true
+}
+
 func writeLocalInterfaceAssignedCallHandleClone(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
 	lhsIdent, ok := lhs.(*ast.Ident)
 	if !ok {
@@ -7227,6 +7273,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									// Converted concrete stdlib values assigned through a stdlib interface handle.
 								} else if isConcreteErrorInterfaceAssignment(s.Lhs[0], s.Rhs[0]) {
 									writeConcreteErrorInterfaceAssignment(out, s.Lhs[0], s.Rhs[0])
+								} else if writeConcreteToTranspiledInterfaceAssignment(out, s.Lhs[0], s.Rhs[0]) {
+									// Concrete value reassigned into an interface-typed target boxes into the interface handle.
 								} else if unary, ok := s.Rhs[0].(*ast.UnaryExpr); ok && unary.Op == token.AND {
 									if _, isComposite := unary.X.(*ast.CompositeLit); isComposite {
 										writeMoveWrappedInnerAssignment(out, s.Lhs[0], s.Rhs[0])
