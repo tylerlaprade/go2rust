@@ -448,7 +448,7 @@ func (ht *HelperTracker) ImportNames() []string {
 		add("format_any")
 	}
 	if ht.needsFormatAnySlice {
-		add("format_any_slice")
+		add("format_any_slice", "format_any_variadic")
 	}
 	if ht.needsAnyEq {
 		add("go_any_eq")

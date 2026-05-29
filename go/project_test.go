@@ -1521,6 +1521,43 @@ func main() {}
 	}
 }
 
+func TestMultiFileVariadicAnyPrintlnImportsCrateRootFormatter(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "printer.go"), `package main
+
+import "fmt"
+
+func Print(values ...any) {
+	fmt.Println(values...)
+}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+func main() {}
+`)
+
+	generator := NewProjectGenerator([]string{
+		filepath.Join(tempDir, "printer.go"),
+		filepath.Join(tempDir, "main.go"),
+	})
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	printerRS := mustReadFile(t, filepath.Join(tempDir, "printer.rs"))
+	if !strings.Contains(printerRS, "format_any_variadic(&values)") {
+		t.Fatalf("fmt.Println(values...) should call the variadic any formatter, got:\n%s", printerRS)
+	}
+	if !strings.Contains(printerRS, "use crate::{format_any, format_any_slice, format_any_variadic};") {
+		t.Fatalf("multi-file module should import the crate-root variadic any formatter, got:\n%s", printerRS)
+	}
+
+	helpersRS := mustReadFile(t, filepath.Join(tempDir, packageHelperIncludeFile))
+	if !strings.Contains(helpersRS, "fn format_any_variadic") {
+		t.Fatalf("package helper include should define format_any_variadic, got:\n%s", helpersRS)
+	}
+}
+
 func TestTranspiledExternalMultiFilePackageHelpersUseSharedCrateRootInclude(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
