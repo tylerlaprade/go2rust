@@ -1633,9 +1633,13 @@ func TestNamedIntegerSliceRangeUsesClonedValues(t *testing.T) {
 type Word uint
 type nat []Word
 
-func sticky(x nat) bool {
-	for _, w := range x[:1] {
-		if w != 0 {
+func forceConcurrent() {
+	go func() {}()
+}
+
+func (x nat) sticky() bool {
+	for _, x := range x[:1] {
+		if x != 0 {
 			return true
 		}
 	}
@@ -1648,6 +1652,9 @@ func sticky(x nat) bool {
 	}
 	if !strings.Contains(rust, ".iter().cloned()") {
 		t.Fatalf("range over named integer slice should use cloned values:\n%s", rust)
+	}
+	if strings.Contains(rust, "if *x !=") || strings.Contains(rust, "let __tmp_x = *x") {
+		t.Fatalf("owned named integer range value should not be dereferenced in comparison:\n%s", rust)
 	}
 }
 

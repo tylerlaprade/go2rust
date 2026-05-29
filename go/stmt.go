@@ -9470,7 +9470,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					}
 					if valueAssigned && strings.HasPrefix(valueType, "&") && !isWrappedRangeVarType(valueType) {
 						registeredValueType = strings.TrimPrefix(valueType, "&")
-					} else if valueType == "T" && (needsCopied || valueAssigned) {
+					} else if valueType == "T" && (needsCopied || needsCloned || valueAssigned) {
 						registeredValueType = valueType
 					} else if valueType == "T" {
 						registeredValueType = "ref_value"
