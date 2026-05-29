@@ -1574,6 +1574,26 @@ func masked() {
 	}
 }
 
+func TestExpectedUint64ConstBinaryCastsLocalConstOperand(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "math"
+
+func invalid(ln uint32) bool {
+	const j = 1 + 4
+	return uint64(ln) > math.MaxInt-j
+}
+`)
+
+	if strings.Contains(rust, "math::MAX_INT; let __tmp_y = j; __tmp_x - __tmp_y") ||
+		strings.Contains(rust, "math::MAX_INT - j") {
+		t.Fatalf("uint64 comparison const expression should not subtract an i32 local const from MaxInt:\n%s", rust)
+	}
+	if !strings.Contains(rust, "(j as u64)") {
+		t.Fatalf("uint64 comparison const expression should cast the local const operand:\n%s", rust)
+	}
+}
+
 func TestNamedIntegerBitClearConversionOperandStaysBare(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

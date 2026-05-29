@@ -821,7 +821,11 @@ func writeConstExpressionForExpectedInteger(out *strings.Builder, value ast.Expr
 	if !ok {
 		return false
 	}
-	writeConstExpressionCastValue(out, value)
+	if writeConstExpressionWithRustIntegerOperandsForExpected(out, value, rustType) {
+		// Constant operands were emitted in the expected primitive type.
+	} else {
+		writeConstExpressionCastValue(out, value)
+	}
 	out.WriteString(" as ")
 	out.WriteString(rustType)
 	return true
@@ -1218,6 +1222,50 @@ func writeConstExpressionWithRustIntegerOperands(out *strings.Builder, value ast
 	writeConstExpressionOperandAsRustInteger(out, binary.Y, rustType)
 	out.WriteString(")")
 	return true
+}
+
+func writeConstExpressionWithRustIntegerOperandsForExpected(out *strings.Builder, value ast.Expr, rustType string) bool {
+	if rustType == "" || !isConstantExpression(value) || !constExpressionHasRustIntegerOperandMismatch(value, rustType) {
+		return false
+	}
+	binary, ok := unwrapParens(value).(*ast.BinaryExpr)
+	if !ok || !constExpressionCastsOperandsForOp(binary.Op) {
+		return false
+	}
+	out.WriteString("(")
+	writeConstExpressionOperandAsRustInteger(out, binary.X, rustType)
+	out.WriteString(" ")
+	out.WriteString(rustBinaryOp(binary.Op))
+	out.WriteString(" ")
+	writeConstExpressionOperandAsRustInteger(out, binary.Y, rustType)
+	out.WriteString(")")
+	return true
+}
+
+func constExpressionHasRustIntegerOperandMismatch(expr ast.Expr, rustType string) bool {
+	if rustType == "" {
+		return false
+	}
+	mismatch := false
+	ast.Inspect(expr, func(node ast.Node) bool {
+		if mismatch {
+			return false
+		}
+		switch e := node.(type) {
+		case *ast.Ident:
+			if operandRustType, ok := syntaxIntegerRustType(e); ok && operandRustType != rustType {
+				mismatch = true
+				return false
+			}
+		case *ast.SelectorExpr:
+			if operandRustType, ok := syntaxIntegerRustType(e); ok && operandRustType != rustType {
+				mismatch = true
+				return false
+			}
+		}
+		return true
+	})
+	return mismatch
 }
 
 func constExpressionCastsTopOperandsForOp(op token.Token) bool {
