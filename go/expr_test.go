@@ -3756,6 +3756,34 @@ func get(e entry) any { return e.value }`, 0)
 	}
 }
 
+func TestAnyReturnPointerSelectorBoxesHandle(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type node struct {
+	n int
+}
+
+type holder struct {
+	ptr *node
+}
+
+func start() {
+	go func() {}()
+}
+
+func get(h holder) any {
+	return h.ptr
+}
+`)
+
+	if strings.Contains(rust, "Box::new((*{ let __field = (*h.lock().unwrap().as_ref().unwrap()).ptr.clone(); __field }.lock().unwrap().as_ref().unwrap()))") {
+		t.Fatalf("pointer selector returned as any should box the pointer handle, not unwrap the pointee:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Box::new((*h.lock().unwrap().as_ref().unwrap()).ptr.clone()) as Box<dyn Any + Send + Sync>") {
+		t.Fatalf("pointer selector returned as any should clone the pointer handle into the box:\n%s", rust)
+	}
+}
+
 func TestNoTypeInfoAnyHandleReuseUsesSyntax(t *testing.T) {
 	src := `package main
 import "fmt"

@@ -4876,6 +4876,9 @@ func writeInterfaceBoxedValue(out *strings.Builder, expr ast.Expr) {
 		} else if !writeOwnedExpressionValue(out, expr) {
 			writeMaybeUnwrappedExpression(out, expr)
 		}
+	} else if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.IsPointer(expr) {
+		TranspileExpressionContext(out, expr, LValue)
+		out.WriteString(".clone()")
 	} else if isNamedTypeDefinitionValue(expr) {
 		writeOwnedNamedTypeDefinitionValue(out, expr)
 	} else if !writeOwnedExpressionValue(out, expr) {
