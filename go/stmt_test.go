@@ -564,6 +564,28 @@ func assign(p *header) {
 	}
 }
 
+func TestParallelPointerDerefAssignmentWritesThroughPointerHandles(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Int struct {
+	n int
+}
+
+func rotate(a, b, c *Int) {
+	*a, *b, *c = *b, *c, *a
+}
+`)
+
+	if strings.Contains(rust, "*(*a.borrow_mut().as_mut().unwrap()).borrow_mut()") ||
+		strings.Contains(rust, "*(*a.lock().unwrap().as_mut().unwrap()).lock()") {
+		t.Fatalf("parallel pointer deref assignment should not borrow the pointee as a handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "*a.borrow_mut() = Some(__tmp_0);") &&
+		!strings.Contains(rust, "*a.lock().unwrap() = Some(__tmp_0);") {
+		t.Fatalf("parallel pointer deref assignment should write through the pointer handle:\n%s", rust)
+	}
+}
+
 func TestCopyScalarReturnBoundariesUseBareRustTypes(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

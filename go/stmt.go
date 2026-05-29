@@ -4258,8 +4258,7 @@ func writeMoveWrappedInnerAssignmentFromTemp(out *strings.Builder, lhs ast.Expr,
 	WriteBorrowMethod(out, true)
 	out.WriteString("; __guard.take() };")
 	out.WriteString(" *")
-	TranspileExpressionContext(out, lhs, LValue)
-	WriteBorrowMethod(out, true)
+	writeTempAssignmentTargetRef(out, lhs)
 	out.WriteString(" = ")
 	out.WriteString(movedName)
 	out.WriteString(";")
@@ -4282,14 +4281,28 @@ func writeTupleAssignmentFromTemp(out *strings.Builder, lhs ast.Expr, tmpName st
 	}
 	if tmpBareScalar {
 		out.WriteString(" *")
-		TranspileExpressionContext(out, lhs, LValue)
-		WriteBorrowMethod(out, true)
+		writeTempAssignmentTargetRef(out, lhs)
 		out.WriteString(" = Some(")
 		out.WriteString(tmpName)
 		out.WriteString(");")
 		return
 	}
 	writeMoveWrappedInnerAssignmentFromTemp(out, lhs, tmpName)
+}
+
+func writeTempAssignmentTargetRef(out *strings.Builder, lhs ast.Expr) {
+	if star, ok := lhs.(*ast.StarExpr); ok {
+		TranspileExpressionContext(out, star.X, LValue)
+		WriteBorrowMethod(out, true)
+		return
+	}
+	if ident, ok := lhs.(*ast.Ident); ok {
+		out.WriteString(RustIdentForUse(ident))
+		WriteBorrowMethod(out, true)
+		return
+	}
+	TranspileExpressionContext(out, lhs, LValue)
+	WriteBorrowMethod(out, true)
 }
 
 func writeIndexedSequenceAssignmentFromTemp(out *strings.Builder, indexExpr *ast.IndexExpr, tmpName string, tmpWrapped bool) bool {
@@ -5474,12 +5487,7 @@ func writeParallelAssignmentTarget(out *strings.Builder, lhs ast.Expr, tmpName s
 	}
 
 	out.WriteString(" *")
-	if ident, ok := lhs.(*ast.Ident); ok {
-		out.WriteString(RustIdentForUse(ident))
-	} else {
-		TranspileExpressionContext(out, lhs, LValue)
-	}
-	WriteBorrowMethod(out, true)
+	writeTempAssignmentTargetRef(out, lhs)
 	out.WriteString(" = ")
 	if tmpWrapped {
 		out.WriteString(tmpName)
