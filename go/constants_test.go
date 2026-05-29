@@ -1548,6 +1548,32 @@ func small(w Word) bool {
 	}
 }
 
+func TestNamedIntegerBitwiseConstExpressionCastsOperands(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Word uint
+
+const (
+	primesA = 3 * 5 * 7 * 11 * 13 * 17 * 19 * 23 * 37
+	primesB = 29 * 31 * 41 * 43 * 47 * 53
+	M = 1<<64 - 1
+)
+
+func use(w Word) {}
+
+func masked() {
+	use((primesA * primesB) & M)
+}
+`)
+
+	if strings.Contains(rust, "(PRIMES_A * PRIMES_B) & M") {
+		t.Fatalf("named integer bitwise const expression should not combine standalone const storage types:\n%s", rust)
+	}
+	if !strings.Contains(rust, "(PRIMES_A as u64) * (PRIMES_B as u64)") || !strings.Contains(rust, "(M as u64)") {
+		t.Fatalf("named integer bitwise const expression should cast operands to the named primitive peer:\n%s", rust)
+	}
+}
+
 func TestNamedIntegerBitClearConversionOperandStaysBare(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

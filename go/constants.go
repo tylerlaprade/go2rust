@@ -1183,7 +1183,9 @@ func writeNamedIntegerConstForExpected(out *strings.Builder, value ast.Expr, nam
 	out.WriteString("(")
 	WriteWrapperPrefix(out)
 	if isConstantExpression(value) && !isNamedIntegerConversionCall(value) {
-		if constTypeConversionArgNeedsParens(value) {
+		if writeConstExpressionWithRustIntegerOperands(out, value, rustType) {
+			// Constant operands were emitted in the target primitive type.
+		} else if constTypeConversionArgNeedsParens(value) {
 			out.WriteString("(")
 			TranspileConstExpr(out, value, 0)
 			out.WriteString(")")
@@ -1198,6 +1200,61 @@ func writeNamedIntegerConstForExpected(out *strings.Builder, value ast.Expr, nam
 	WriteWrapperSuffix(out)
 	out.WriteString(")")
 	return true
+}
+
+func writeConstExpressionWithRustIntegerOperands(out *strings.Builder, value ast.Expr, rustType string) bool {
+	if rustType == "" || !isConstantExpression(value) {
+		return false
+	}
+	binary, ok := unwrapParens(value).(*ast.BinaryExpr)
+	if !ok || !constExpressionCastsTopOperandsForOp(binary.Op) {
+		return false
+	}
+	out.WriteString("(")
+	writeConstExpressionOperandAsRustInteger(out, binary.X, rustType)
+	out.WriteString(" ")
+	out.WriteString(rustBinaryOp(binary.Op))
+	out.WriteString(" ")
+	writeConstExpressionOperandAsRustInteger(out, binary.Y, rustType)
+	out.WriteString(")")
+	return true
+}
+
+func constExpressionCastsTopOperandsForOp(op token.Token) bool {
+	switch op {
+	case token.AND, token.OR, token.XOR, token.AND_NOT:
+		return true
+	default:
+		return false
+	}
+}
+
+func constExpressionCastsOperandsForOp(op token.Token) bool {
+	switch op {
+	case token.ADD, token.SUB, token.MUL, token.QUO, token.REM,
+		token.AND, token.OR, token.XOR, token.AND_NOT:
+		return true
+	default:
+		return false
+	}
+}
+
+func writeConstExpressionOperandAsRustInteger(out *strings.Builder, expr ast.Expr, rustType string) {
+	if binary, ok := unwrapParens(expr).(*ast.BinaryExpr); ok && constExpressionCastsOperandsForOp(binary.Op) && isConstantExpression(binary) {
+		out.WriteString("(")
+		writeConstExpressionOperandAsRustInteger(out, binary.X, rustType)
+		out.WriteString(" ")
+		out.WriteString(rustBinaryOp(binary.Op))
+		out.WriteString(" ")
+		writeConstExpressionOperandAsRustInteger(out, binary.Y, rustType)
+		out.WriteString(")")
+		return
+	}
+	out.WriteString("(")
+	TranspileConstExpr(out, expr, 0)
+	out.WriteString(" as ")
+	out.WriteString(rustType)
+	out.WriteString(")")
 }
 
 func stdlibStubSelectorConstHasNamedType(value ast.Expr, named *types.Named) bool {
