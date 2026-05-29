@@ -4355,12 +4355,30 @@ func writePointerHandleAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Ex
 }
 
 func writePointerHandleValueClone(out *strings.Builder, rhs ast.Expr) {
+	if writeCurrentPointerReceiverHandleClone(out, rhs) {
+		return
+	}
 	if ident, ok := packageGlobalPointerIdent(rhs); ok {
 		writePackageGlobalPointerHandleClone(out, ident)
 		return
 	}
 	TranspileExpressionContext(out, rhs, AddressOf)
 	out.WriteString(".clone()")
+}
+
+func writeCurrentPointerReceiverHandleClone(out *strings.Builder, rhs ast.Expr) bool {
+	ident, ok := unwrapParens(rhs).(*ast.Ident)
+	if !ok || !isCurrentReceiverIdent(ident) || currentReceiverObject == nil {
+		return false
+	}
+	if _, isPtr := types.Unalias(currentReceiverObject.Type()).(*types.Pointer); !isPtr {
+		return false
+	}
+	WriteWrapperPrefix(out)
+	out.WriteString(currentReceiverRustName())
+	out.WriteString(".clone()")
+	WriteWrapperSuffix(out)
+	return true
 }
 
 func writePackageGlobalPointerNilAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
@@ -4600,16 +4618,8 @@ func writeRangeOwnedValuesAdapter(out *strings.Builder, rangeExpr ast.Expr, usin
 // is wrapped into a fresh handle (the clone shares the receiver's wrapped field
 // handles, like the defer-capture / method-value patterns).
 func writePointerShortDeclRhsValue(out *strings.Builder, rhs ast.Expr) {
-	if ident, ok := unwrapParens(rhs).(*ast.Ident); ok && isCurrentReceiverIdent(ident) {
-		if currentReceiverObject != nil {
-			if _, isPtr := types.Unalias(currentReceiverObject.Type()).(*types.Pointer); isPtr {
-				WriteWrapperPrefix(out)
-				out.WriteString(currentReceiverRustName())
-				out.WriteString(".clone()")
-				WriteWrapperSuffix(out)
-				return
-			}
-		}
+	if writeCurrentPointerReceiverHandleClone(out, rhs) {
+		return
 	}
 	TranspileExpressionContext(out, rhs, AddressOf)
 	out.WriteString(".clone()")

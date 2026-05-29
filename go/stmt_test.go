@@ -1095,6 +1095,29 @@ func (x *node) different(y *node) bool {
 	}
 }
 
+func TestPointerReceiverAssignedToPointerVariableUsesHandle(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type node struct {
+	n int
+}
+
+func (x *node) current() *node {
+	var out *node
+	out = x
+	return out
+}
+`)
+
+	if strings.Contains(rust, "let new_val = self.clone(); out = new_val") {
+		t.Fatalf("pointer receiver assignment should not assign the bare receiver value to a pointer handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let new_val = Rc::new(RefCell::new(Some(self.clone())))") &&
+		!strings.Contains(rust, "let new_val = Arc::new(Mutex::new(Some(self.clone())))") {
+		t.Fatalf("pointer receiver assignment should wrap the receiver clone as a pointer handle:\n%s", rust)
+	}
+}
+
 func TestNestedReturnsInsideTailControlFlowStayExplicit(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
