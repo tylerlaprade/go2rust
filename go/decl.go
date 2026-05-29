@@ -3198,6 +3198,9 @@ func writeConstExprForRustType(out *strings.Builder, expr ast.Expr, iotaValue in
 	if writeConstLenCallForRustType(out, expr, iotaValue, rustType) {
 		return
 	}
+	if writeConstSelectorForIntegerRustType(out, expr, iotaValue, rustType) {
+		return
+	}
 	TranspileConstExpr(out, expr, iotaValue)
 }
 
@@ -3244,6 +3247,37 @@ func writeConstLenCallForRustType(out *strings.Builder, expr ast.Expr, iotaValue
 	}
 	TranspileConstExpr(out, call.Args[0], iotaValue)
 	out.WriteString(".len() as ")
+	out.WriteString(castType)
+	return true
+}
+
+func writeConstSelectorForIntegerRustType(out *strings.Builder, expr ast.Expr, iotaValue int, rustType string) bool {
+	castType, ok := rustIntegerCastTypeFromRustType(rustType)
+	if !ok {
+		return false
+	}
+	sel, ok := expr.(*ast.SelectorExpr)
+	if !ok {
+		return false
+	}
+	if hasStdlibSelectorMapping(sel) {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		out.WriteString(`/* ERROR: Type information required for const selector */ unimplemented!("type info required for const selector")`)
+		return true
+	}
+	obj, ok := typeInfo.GetObject(sel.Sel).(*types.Const)
+	if !ok || obj.Val() == nil || obj.Val().Kind() != constant.Int {
+		return false
+	}
+	basic, ok := types.Unalias(obj.Type()).(*types.Basic)
+	if !ok || !isIntegerBasicKind(basic.Kind()) {
+		return false
+	}
+	TranspileConstExpr(out, expr, iotaValue)
+	out.WriteString(" as ")
 	out.WriteString(castType)
 	return true
 }

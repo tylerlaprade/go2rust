@@ -353,6 +353,47 @@ func value() int {
 	}
 }
 
+func TestTranspiledExternalPackageConstSelectorCastsToInferredConstType(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+
+require example.com/dep v0.0.0
+
+replace example.com/dep => ./dep
+`)
+	writeTestFile(t, filepath.Join(tempDir, "dep", "go.mod"), `module example.com/dep
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "dep", "dep.go"), `package dep
+
+const MaxInt32 = 1<<31 - 1
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+import "example.com/dep"
+
+const MaxExp = dep.MaxInt32
+`)
+
+	generator := NewProjectGenerator([]string{filepath.Join(tempDir, "main.go")})
+	generator.SetExternalPackageMode(ModeTranspile)
+
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
+	if strings.Contains(mainRS, "pub const MAX_EXP: i32 = example_com_dep::MAX_INT32;") {
+		t.Fatalf("external package const selector should be cast to the inferred const storage type:\n%s", mainRS)
+	}
+	if !strings.Contains(mainRS, "pub const MAX_EXP: i32 = example_com_dep::MAX_INT32 as i32;") {
+		t.Fatalf("external package const selector should cast to i32:\n%s", mainRS)
+	}
+}
+
 func TestTranspiledExternalPackagePointerGlobalMethodCall(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
