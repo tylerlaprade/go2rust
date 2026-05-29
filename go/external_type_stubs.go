@@ -428,7 +428,12 @@ func collectExternalPromotedMethods(structDef *StructDef, existingRustNames map[
 		}
 
 		rustTypeName := goTypesNamedTypeToRust(named)
-		methodSet := types.NewMethodSet(types.NewPointer(named))
+		methodSetType := types.Type(types.NewPointer(named))
+		if iface, ok := types.Unalias(named.Underlying()).(*types.Interface); ok {
+			iface.Complete()
+			methodSetType = named
+		}
+		methodSet := types.NewMethodSet(methodSetType)
 		for i := 0; i < methodSet.Len(); i++ {
 			fn, ok := methodSet.At(i).Obj().(*types.Func)
 			if !ok || !fn.Exported() {

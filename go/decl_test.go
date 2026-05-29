@@ -777,3 +777,26 @@ func TestGeneratePromotedMethodEscapesKeywordParams(t *testing.T) {
 		t.Fatalf("promoted method should escape keyword parameter consistently:\n%s", got)
 	}
 }
+
+func TestExternalEmbeddedInterfacePromotesMethods(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+type byteReader struct {
+	fmt.ScanState
+}
+
+func (r byteReader) ReadByte() (byte, error) {
+	ch, _, err := r.ReadRune()
+	return byte(ch), err
+}
+`)
+
+	if !strings.Contains(rust, "pub fn read_rune(&self)") {
+		t.Fatalf("embedded external interface should promote its methods onto the outer type:\n%s", rust)
+	}
+	if !strings.Contains(rust, "embedded_ref.read_rune()") {
+		t.Fatalf("promoted external interface method should delegate through the embedded field:\n%s", rust)
+	}
+}
