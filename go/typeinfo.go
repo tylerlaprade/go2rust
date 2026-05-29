@@ -515,8 +515,11 @@ func (ti *TypeInfo) ReturnsWrappedValue(expr ast.Expr) bool {
 		// Array/slice indexing returns the element directly (not wrapped)
 		return false
 	case *ast.SliceExpr:
-		// Slice expressions return a new slice (wrapped)
-		return true
+		// Plain slice expressions return a new wrapped slice. Named slice
+		// expressions lower as their named Rust value, which owns the inner
+		// slice handle.
+		_, _, isNamedSlice := namedSliceTypeFromType(ti.GetType(e))
+		return !isNamedSlice
 	case *ast.Ident:
 		// Variables are already wrapped, but accessing them doesn't add another layer
 		// However, in return statements, we need to clone wrapped variables to avoid move errors
@@ -599,10 +602,8 @@ func (ti *TypeInfo) NeedsUnwrapping(expr ast.Expr) bool {
 		// For non-basic element types (pointers, etc.), the element may be wrapped
 		return true
 	case *ast.SliceExpr:
-		// SliceExpr handler wraps its output in Rc/Arc, so it IS wrapped
-		// But it's already called in RValue context via TranspileExpression
-		// The caller should unwrap it
-		return true
+		_, _, isNamedSlice := namedSliceTypeFromType(ti.GetType(e))
+		return !isNamedSlice
 	case *ast.BasicLit:
 		// Literals don't need unwrapping
 		return false

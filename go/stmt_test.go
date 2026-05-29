@@ -1348,6 +1348,35 @@ func load(v any) []*Type {
 	}
 }
 
+func TestNamedSliceFieldSliceAssignmentStoresNamedValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Word uint
+type nat []Word
+
+type Float struct {
+	mant nat
+}
+
+func trim(z *Float, n uint32) {
+	z.mant = z.mant[:n]
+}
+`)
+
+	if !strings.Contains(rust, "let new_val = nat(") {
+		t.Fatalf("named-slice slice assignment should construct the named value:\n%s", rust)
+	}
+	if strings.Contains(rust, "new_val.borrow_mut()") || strings.Contains(rust, "new_val.lock().unwrap()") {
+		t.Fatalf("named-slice slice assignment should not treat the named value as a wrapper handle:\n%s", rust)
+	}
+	if strings.Contains(rust, "__moved_val") {
+		t.Fatalf("named-slice slice assignment should store the named value, not move from a wrapper:\n%s", rust)
+	}
+	if !strings.Contains(rust, " = Some(new_val); }") {
+		t.Fatalf("named-slice slice assignment should store the named value in the existing slot:\n%s", rust)
+	}
+}
+
 func TestVarInitializerFromBareScalarCallRegistersBareLocal(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

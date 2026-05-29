@@ -3824,6 +3824,9 @@ func isAssignmentSelfWrappingExpression(expr ast.Expr) bool {
 	case *ast.CompositeLit:
 		return isCompositeLitSelfWrapping(e)
 	case *ast.SliceExpr:
+		if typeInfo := GetTypeInfo(); typeInfo != nil {
+			return typeInfo.ReturnsWrappedValue(e)
+		}
 		return true
 	case *ast.CallExpr:
 		return isBuiltinCallNamed(e, "make") && !isMakeChannelCall(e)
