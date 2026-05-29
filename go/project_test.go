@@ -2253,6 +2253,98 @@ func rounded(z nat, ntz uint32) bool {
 	}
 }
 
+func TestCrossFileNamedSliceCallArgumentUsesInnerHandleForUnnamedSliceParam(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "arith.go"), `package main
+
+type Word uint
+type nat []Word
+
+func addVW(z, x []Word, y Word) Word {
+	return y
+}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "round.go"), `package main
+
+func start() {
+	go func() {}()
+}
+
+type Float struct {
+	mant nat
+}
+
+func rounded(z *Float, lsb Word) Word {
+	return addVW(z.mant, z.mant, lsb)
+}
+`)
+
+	generator := NewProjectGenerator([]string{
+		filepath.Join(tempDir, "arith.go"),
+		filepath.Join(tempDir, "round.go"),
+	})
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	roundRS := mustReadFile(t, filepath.Join(tempDir, "round.rs"))
+	if strings.Contains(roundRS, "let __field = (*z.lock().unwrap().as_ref().unwrap()).mant.clone(); __field") {
+		t.Fatalf("named-slice field passed to []Word parameter should not pass the nat handle:\n%s", roundRS)
+	}
+	if strings.Count(roundRS, ".mant.lock().unwrap().as_ref().unwrap()).0.clone()") != 2 {
+		t.Fatalf("named-slice field passed to []Word parameter should pass inner slice handles:\n%s", roundRS)
+	}
+}
+
+func TestCrossFileNamedSliceFieldCompoundAssignUsesInnerHandle(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "arith.go"), `package main
+
+type Word uint
+type nat []Word
+`)
+	writeTestFile(t, filepath.Join(tempDir, "round.go"), `package main
+
+func start() {
+	go func() {}()
+}
+
+type Float struct {
+	mant nat
+}
+
+func rounded(z *Float, n int, lsb Word) {
+	const msb Word = 1 << 31
+	z.mant[n-1] |= msb
+	z.mant[0] &^= lsb - 1
+}
+`)
+
+	generator := NewProjectGenerator([]string{
+		filepath.Join(tempDir, "arith.go"),
+		filepath.Join(tempDir, "round.go"),
+	})
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	roundRS := mustReadFile(t, filepath.Join(tempDir, "round.rs"))
+	if strings.Contains(roundRS, ".mant.lock().unwrap().as_mut().unwrap(); __seq[__idx]") {
+		t.Fatalf("named-slice field compound assignment should not index the named wrapper:\n%s", roundRS)
+	}
+	if strings.Count(roundRS, ".mant.lock().unwrap().as_ref().unwrap()).0.clone()") != 2 {
+		t.Fatalf("named-slice field compound assignment should mutate inner slice handles:\n%s", roundRS)
+	}
+}
+
 func TestGlobalInitDoesNotCallDuplicateNameOverrides(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod

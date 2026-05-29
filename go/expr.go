@@ -1105,6 +1105,9 @@ func writeRegularMethodCallArgument(out *strings.Builder, sel *ast.SelectorExpr,
 		if writeFunctionHandleCallArgument(out, arg, expectedArgType) {
 			return
 		}
+		if writeNamedSliceInnerHandleCallArgument(out, arg, expectedArgType) {
+			return
+		}
 		if writeAlreadyWrappedSelectorCallArgument(out, arg, expectedArgType) {
 			return
 		}
@@ -12004,6 +12007,9 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 					if writePointerHandleCallArgument(out, arg, expectedArgType) {
 						continue
 					}
+					if writeNamedSliceInnerHandleCallArgument(out, arg, expectedArgType) {
+						continue
+					}
 					if writeAlreadyWrappedSelectorCallArgument(out, arg, expectedArgType) {
 						continue
 					}
@@ -12629,6 +12635,10 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 					continue
 				}
 
+				if writeNamedSliceInnerHandleCallArgument(out, arg, expectedArgType) {
+					continue
+				}
+
 				if writeAlreadyWrappedSelectorCallArgument(out, arg, expectedArgType) {
 					continue
 				}
@@ -13231,6 +13241,9 @@ func writeFunctionSignatureCallArgument(out *strings.Builder, arg ast.Expr, expe
 	if writeFunctionHandleCallArgument(out, arg, expected) {
 		return
 	}
+	if writeNamedSliceInnerHandleCallArgument(out, arg, expected) {
+		return
+	}
 	if writeAlreadyWrappedSelectorCallArgument(out, arg, expected) {
 		return
 	}
@@ -13276,6 +13289,34 @@ func writeAlreadyWrappedSelectorCallArgument(out *strings.Builder, arg ast.Expr,
 	}
 	writeSelectorHandleClone(out, sel)
 	return true
+}
+
+func writeNamedSliceInnerHandleCallArgument(out *strings.Builder, arg ast.Expr, expected types.Type) bool {
+	if expected == nil {
+		return false
+	}
+	expected = types.Unalias(expected)
+	if _, ok := expected.(*types.Named); ok {
+		return false
+	}
+	if _, ok := expected.Underlying().(*types.Slice); !ok {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	actual := typeInfo.GetType(arg)
+	if actual == nil {
+		return false
+	}
+	if _, _, ok := namedSliceTypeFromType(actual); !ok {
+		return false
+	}
+	if !types.AssignableTo(actual, expected) {
+		return false
+	}
+	return writeNamedSliceInnerHandleClone(out, arg)
 }
 
 func writeSelectorHandleClone(out *strings.Builder, sel *ast.SelectorExpr) {
