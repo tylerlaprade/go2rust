@@ -692,6 +692,43 @@ func withNil(nodes []Node) []Node {
 	}
 }
 
+func TestLocalInterfaceSliceLiteralBoxesConcretePointerElements(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+type Expr interface{ exprNode() }
+
+type UnaryExpr struct{ Op string }
+
+func (*UnaryExpr) exprNode() {}
+
+type Ident struct{ Name string }
+
+func (*Ident) exprNode() {}
+
+func main() {
+	_ = []Expr{&UnaryExpr{Op: "-"}, &Ident{Name: "x"}}
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(main.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := Transpile(file, fset, typeInfo)
+	if strings.Contains(rust, "Box::new(Rc::new(RefCell::new(Some(UnaryExpr") ||
+		strings.Contains(rust, "Box::new(Rc::new(RefCell::new(Some(Ident") {
+		t.Fatalf("interface slice literal should not box pointer handles as trait objects:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Rc::new(RefCell::new(Some(Box::new(UnaryExpr") ||
+		!strings.Contains(rust, "Rc::new(RefCell::new(Some(Box::new(Ident") {
+		t.Fatalf("interface slice literal should box concrete values inside wrapped interface handles:\n%s", rust)
+	}
+}
+
 func TestWrappedStringCallArgumentUsesShortGuardBlock(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

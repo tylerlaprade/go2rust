@@ -2320,6 +2320,46 @@ func writeLocalInterfaceReferenceCallArgument(out *strings.Builder, arg ast.Expr
 	return true
 }
 
+func writeLocalInterfaceSliceLiteralElement(out *strings.Builder, arg ast.Expr, elemType types.Type) bool {
+	ifaceName, ok := transpiledNamedInterfaceTypeNameFromTypes(elemType)
+	if !ok {
+		return false
+	}
+	if ident, ok := arg.(*ast.Ident); ok && ident.Name == "nil" {
+		WriteWrappedNone(out)
+		return true
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		out.WriteString(`unimplemented!("type info required to lower local interface slice literal element")`)
+		return true
+	}
+	argType := typeInfo.GetType(arg)
+	if argType == nil {
+		out.WriteString(`unimplemented!("type info required to lower local interface slice literal element")`)
+		return true
+	}
+	if !types.AssignableTo(argType, elemType) {
+		return false
+	}
+	if argIface, argOK := transpiledNamedInterfaceTypeNameFromTypes(argType); argOK {
+		if argIface != ifaceName {
+			writeLocalInterfaceSubtraitUpcast(out, arg, ifaceName)
+			return true
+		}
+		if ident, ok := arg.(*ast.Ident); ok {
+			out.WriteString(RustIdentForUse(ident))
+			out.WriteString(".clone()")
+			return true
+		}
+		TranspileExpressionContext(out, arg, LValue)
+		out.WriteString(".clone()")
+		return true
+	}
+	writeLocalInterfaceWrappedConstruction(out, arg, ifaceName, elemType)
+	return true
+}
+
 func writeLocalInterfaceBareReferenceCallArgument(out *strings.Builder, arg ast.Expr, expected types.Type) bool {
 	if _, ok := transpiledNamedInterfaceTypeNameFromTypes(expected); !ok {
 		return false
@@ -4225,6 +4265,9 @@ func writeArraySliceLiteralElementValue(out *strings.Builder, expr ast.Expr, ele
 			writeSliceCloneOrEmpty(out, expr)
 			return true
 		}
+	}
+	if writeLocalInterfaceSliceLiteralElement(out, expr, elemType) {
+		return true
 	}
 	if compositeLiteralElementKeepsHandle(elemType) {
 		if isFunctionSignatureType(elemType) && writeFunctionValueHandle(out, expr) {
@@ -7667,26 +7710,28 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				}
 				if isInterfaceSlice {
 					if wrapInterfaceElements {
-						WriteWrapperPrefix(out)
+						if elemType == nil {
+							out.WriteString(`unimplemented!("type info required to lower local interface slice literal element")`)
+							continue
+						}
+						if !writeArraySliceLiteralElementValue(out, elt, elemType) {
+							TranspileExpression(out, elt)
+						}
+						continue
 					}
-					// Box each element for interface slices
 					out.WriteString("Box::new(")
-					// If the element is already a wrapped variable, unwrap it first
+					// If the element is already a wrapped variable, unwrap it first.
 					if ident, ok := elt.(*ast.Ident); ok && ident.Name != "nil" && ident.Name != "_" && ident.Name != "true" && ident.Name != "false" {
-						// Check if it's a variable (already wrapped)
 						if _, isRangeVar := rangeLoopVars[ident.Name]; !isRangeVar {
 							if _, isLocalConst := localConstants[ident.Name]; !isLocalConst {
-								// It's a wrapped variable, unwrap it
 								out.WriteString("(*")
 								out.WriteString(ident.Name)
 								WriteBorrowMethod(out, false)
 								out.WriteString(".as_ref().unwrap()).clone()")
 							} else {
-								// It's a constant
 								TranspileExpression(out, elt)
 							}
 						} else {
-							// Range variable
 							TranspileExpression(out, elt)
 						}
 					} else {
@@ -7695,9 +7740,6 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					out.WriteString(") as Box<dyn ")
 					out.WriteString(interfaceName)
 					out.WriteString(">")
-					if wrapInterfaceElements {
-						WriteWrapperSuffix(out)
-					}
 				} else {
 					if elemType == nil && writeArraySliceLiteralElementValueWithSyntaxType(out, elt, arrayType.Elt) {
 						continue

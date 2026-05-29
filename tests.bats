@@ -1179,6 +1179,10 @@ run_xfail_test() {
     run_test "tests/interface_slice_index_var_decl"
 }
 
+@test "interface_slice_literal_concrete_elems" {
+    run_test "tests/interface_slice_literal_concrete_elems"
+}
+
 @test "interface_slice_method_call" {
     run_test "tests/interface_slice_method_call"
 }
@@ -2765,10 +2769,6 @@ run_xfail_test() {
 
 @test "XFAIL: http_client" {
     run_xfail_test "tests/XFAIL/http_client"
-}
-
-@test "XFAIL: interface_slice_literal_concrete_elems" {
-    run_xfail_test "tests/XFAIL/interface_slice_literal_concrete_elems"
 }
 
 @test "XFAIL: panic_recover" {

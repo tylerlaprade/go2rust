@@ -1,0 +1,8 @@
+[package]
+name = "interface_slice_literal_concrete_elems"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "interface_slice_literal_concrete_elems"
+path = "main.rs"
