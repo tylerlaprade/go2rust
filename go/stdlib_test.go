@@ -50,6 +50,33 @@ func Write(buf *strings.Builder, cmap CommentMap, s string) {
 	}
 }
 
+func TestFmtSprintfPrecisionGAndSignedDecimalVerbs(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+import "fmt"
+
+func render(m float64, e int) string {
+	return fmt.Sprintf("%.6ge%+d", m, e) + fmt.Sprintf("%g", m)
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile() error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := Transpile(file, fset, typeInfo)
+	if strings.Contains(rust, "%.6g") || strings.Contains(rust, "%+d") || strings.Contains(rust, `"%g"`) {
+		t.Fatalf("fmt.Sprintf should not leave Go precision/sign verbs in Rust format strings:\n%s", rust)
+	}
+	if !strings.Contains(rust, `format!("{:.6}e{:+}"`) {
+		t.Fatalf("fmt.Sprintf should lower Go %%g precision and signed decimal verbs:\n%s", rust)
+	}
+}
+
 func TestBuiltinPrintUsesRustStderrMacro(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

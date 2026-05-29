@@ -645,7 +645,26 @@ func convertFormatStringWithSkips(goFormat string) (string, []int, []int, []int,
 				argIndex++
 				i += 2
 			} else if format[i+1] == '+' && i+2 < len(format) {
+				if format[i+2] == '.' {
+					j := i + 3
+					for j < len(format) && format[j] >= '0' && format[j] <= '9' {
+						j++
+					}
+					if j < len(format) && (format[j] == 'f' || format[j] == 'g') {
+						precision := format[i+3 : j]
+						result.WriteString("{:+.")
+						result.WriteString(precision)
+						result.WriteString("}")
+						argIndex++
+						i = j + 1
+						continue
+					}
+				}
 				switch format[i+2] {
+				case 'd', 'f', 'g':
+					result.WriteString("{:+}")
+					argIndex++
+					i += 3
 				case 'v':
 					result.WriteString("{:?}")
 					argIndex++
@@ -687,7 +706,7 @@ func convertFormatStringWithSkips(goFormat string) (string, []int, []int, []int,
 				for j < len(format) && format[j] >= '0' && format[j] <= '9' {
 					j++
 				}
-				if j < len(format) && (format[j] == 'f' || format[j] == 'd' || format[j] == 's') {
+				if j < len(format) && (format[j] == 'f' || format[j] == 'g' || format[j] == 'd' || format[j] == 's') {
 					precision := format[i+2 : j]
 					result.WriteString("{:.")
 					result.WriteString(precision)
@@ -762,7 +781,7 @@ func convertFormatStringWithSkips(goFormat string) (string, []int, []int, []int,
 
 				// Handle single-char format verbs
 				switch format[i+1] {
-				case 'd', 's', 'v', 't', 'w':
+				case 'd', 'g', 's', 'v', 't', 'w':
 					result.WriteString("{}")
 					argIndex++
 				case 'p':
