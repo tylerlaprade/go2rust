@@ -2438,6 +2438,29 @@ func (v Value) Walk(index []int) Value {
 	}
 }
 
+func TestValueReceiverTupleAssignmentMovesReturnIntoLocalCopy(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type nat []int
+
+func (z nat) div(x, y nat) (nat, nat) {
+	return z, x
+}
+
+func (q nat) convert(r nat) nat {
+	q, r = q.div(r, q)
+	return q
+}
+`)
+
+	if strings.Contains(rust, "*q.borrow") || strings.Contains(rust, "*q.lock") {
+		t.Fatalf("value receiver tuple assignment should not write through an undefined receiver handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "__self = __moved_val") {
+		t.Fatalf("value receiver tuple assignment should move the returned value into the local receiver copy:\n%s", rust)
+	}
+}
+
 func TestNamedStringValueReceiverSliceReassignmentWrapsLocalCopy(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

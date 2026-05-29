@@ -4271,6 +4271,9 @@ func writeTupleAssignmentFromTemp(out *strings.Builder, lhs ast.Expr, tmpName st
 	if indexExpr, ok := lhs.(*ast.IndexExpr); ok && writeIndexedSequenceAssignmentFromTemp(out, indexExpr, tmpName, !tmpBareScalar) {
 		return
 	}
+	if writeParallelCurrentReceiverAssignmentTarget(out, lhs, tmpName, !tmpBareScalar) {
+		return
+	}
 	if ident, ok := lhs.(*ast.Ident); ok && isVarBare(ident.Name) {
 		out.WriteString(" ")
 		out.WriteString(RustIdentForUse(ident))
