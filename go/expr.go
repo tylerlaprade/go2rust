@@ -10229,7 +10229,12 @@ func writeInterfaceAssertionSourceClone(out *strings.Builder, expr ast.Expr) {
 func writeTypeAssertionInputClone(out *strings.Builder, expr ast.Expr) {
 	if _, isIdent := expr.(*ast.Ident); !isIdent {
 		if typeInfo := GetTypeInfo(); typeInfo != nil {
-			if _, ok := localNamedInterfaceTypeNameFromTypes(typeInfo.GetType(expr)); ok {
+			// Clone the wrapped interface handle (so the comma-ok downcast can
+			// open it) for any transpiled named interface, including imported
+			// ones (go/parser asserting on an ast.Expr/ast.Stmt field).
+			// Unwrapping here would hand the downcast an already-unwrapped
+			// Box<dyn T> with no .lock()/.borrow(), breaking inference.
+			if _, ok := transpiledNamedInterfaceTypeNameFromTypes(typeInfo.GetType(expr)); ok {
 				TranspileExpressionContext(out, expr, LValue)
 				out.WriteString(".clone()")
 				return

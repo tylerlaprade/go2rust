@@ -1,0 +1,20 @@
+
+[workspace]
+members = [
+    ".",
+    "vendor/example_com_commaok_ast",
+    "vendor/go2rust_stdlib_stubs",
+]
+
+[package]
+name = "comma_ok_assert_imported_interface_field"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "comma_ok_assert_imported_interface_field"
+path = "main.rs"
+
+[dependencies]
+example_com_commaok_ast = { path = "vendor/example_com_commaok_ast" }
+go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }
