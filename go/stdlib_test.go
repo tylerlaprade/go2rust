@@ -278,6 +278,26 @@ func fill(dst nat, src nat, d int) int {
 	}
 }
 
+func TestBuiltinCopyNamedSliceArrayElementSourceUsesBareNamedValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Word uint
+type nat []Word
+
+func fill(z nat, powers [2]nat) int {
+	return copy(z, powers[0])
+}
+`)
+
+	if strings.Contains(rust, "}.borrow().as_ref().unwrap()).0.clone()") ||
+		strings.Contains(rust, "}.lock().unwrap().as_ref().unwrap()).0.clone()") {
+		t.Fatalf("copy named-slice array element source should not borrow the bare named value:\n%s", rust)
+	}
+	if !strings.Contains(rust, "__named_slice.0.clone()") {
+		t.Fatalf("copy named-slice array element source should use the named value inner handle:\n%s", rust)
+	}
+}
+
 func TestBuiltinClearNamedSliceAndSliceExprUsesTypedBuiltin(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
