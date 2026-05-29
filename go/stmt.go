@@ -557,6 +557,10 @@ func writeArraySliceElementAssignmentValue(out *strings.Builder, rhs ast.Expr, e
 			needsUnwrap = false
 		} else if typeInfo != nil && typeInfo.ReturnsWrappedValue(call) && (!typeInfo.IsTypeConversion(call) || typeConversionEmitsWrappedValue(call)) {
 			needsUnwrap = true
+		} else if typeInfo != nil && typeInfo.IsTypeConversion(call) {
+			// Type-driven conversions that emit bare values, such as Word(x),
+			// already match value-typed element slots.
+			needsUnwrap = false
 		} else if ident, ok := call.Fun.(*ast.Ident); ok {
 			if !isBuiltinCallTarget(ident) && !isFunctionName(ident) {
 				needsUnwrap = true

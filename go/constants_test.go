@@ -1431,6 +1431,28 @@ func forceConcurrent() {
 	}
 }
 
+func TestNamedIntegerConversionSliceElementAssignmentStoresNamedValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Word uint
+type nat []Word
+
+func set(z nat, x uint64) {
+	z[1] = Word(x >> 32)
+	z[0] = Word(x)
+}
+`)
+
+	if strings.Contains(rust, "Word(Rc::new(RefCell::new(Some(") &&
+		strings.Contains(rust, ")).borrow().as_ref().unwrap()") {
+		t.Fatalf("named integer conversion assigned into slice element should not be borrowed as a wrapper:\n%s", rust)
+	}
+	if strings.Contains(rust, "Word(Arc::new(Mutex::new(Some(") &&
+		strings.Contains(rust, ")).lock().unwrap().as_ref().unwrap()") {
+		t.Fatalf("named integer conversion assigned into slice element should not be locked as a wrapper:\n%s", rust)
+	}
+}
+
 func TestNamedIntegerConstReturnWrapsLocalPackageConst(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
