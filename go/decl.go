@@ -1594,7 +1594,12 @@ func writeFunctionTypeInterfaceImpl(out *strings.Builder, funcTypeName, ifaceNam
 		}
 		out.WriteString("    fn ")
 		out.WriteString(ToSnakeCase(method.Name()))
-		out.WriteString("(&self")
+		out.WriteString("(")
+		if interfaceMethodRequiresMutableReceiver(method) {
+			out.WriteString("&mut self")
+		} else {
+			out.WriteString("&self")
+		}
 		for j := 0; j < sig.Params().Len(); j++ {
 			param := sig.Params().At(j)
 			out.WriteString(", ")

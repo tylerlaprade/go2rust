@@ -315,6 +315,52 @@ type Expr interface {
 	}
 }
 
+func TestFunctionTypeInterfaceWrapperUsesMutableTraitReceiver(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Node interface {
+	node()
+}
+
+type Visitor interface {
+	Visit(node Node) Visitor
+}
+
+type inspector func(Node) bool
+
+func (f inspector) Visit(node Node) Visitor {
+	if f(node) {
+		return f
+	}
+	return nil
+}
+
+type counter struct {
+	n int
+}
+
+func (c *counter) Visit(node Node) Visitor {
+	c.n = c.n + 1
+	return c
+}
+
+func Walk(v Visitor, node Node) {
+	v = v.Visit(node)
+}
+
+func Inspect(node Node, f func(Node) bool) {
+	Walk(inspector(f), node)
+}
+`)
+
+	if strings.Contains(rust, "impl Visitor for inspectorAsVisitor {\n    fn visit(&self") {
+		t.Fatalf("function-type interface wrapper should match mutable trait receiver:\n%s", rust)
+	}
+	if !strings.Contains(rust, "impl Visitor for inspectorAsVisitor {\n    fn visit(&mut self") {
+		t.Fatalf("function-type interface wrapper should use &mut self for mutable trait method:\n%s", rust)
+	}
+}
+
 func TestInterfaceKeywordNameUsesIdentifierSafeHelperSuffix(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
