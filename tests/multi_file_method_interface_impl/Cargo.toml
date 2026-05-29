@@ -1,0 +1,8 @@
+[package]
+name = "multi_file_method_interface_impl"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "multi_file_method_interface_impl"
+path = "main.rs"
