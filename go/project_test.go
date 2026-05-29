@@ -2083,8 +2083,9 @@ func main() {}
 	}
 
 	useRS := mustReadFile(t, filepath.Join(tempDir, "use.rs"))
-	if !strings.Contains(useRS, "BTreeMap::new()") {
-		t.Fatalf("cross-file named map zero value should initialize with BTreeMap::new, got:\n%s", useRS)
+	wantInitializer := "Some(objset(Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i32>>>>::new())))))"
+	if !strings.Contains(useRS, wantInitializer) {
+		t.Fatalf("cross-file named map zero value should construct the named map wrapper, got:\n%s", useRS)
 	}
 	if !strings.Contains(useRS, "use std::collections::BTreeMap;") {
 		t.Fatalf("cross-file named map zero value should import BTreeMap at the use site, got:\n%s", useRS)

@@ -1003,6 +1003,21 @@ func zeroValueForTypesType(typ types.Type) string {
 		if _, isSlice := types.Unalias(named.Underlying()).(*types.Slice); isSlice {
 			return "Default::default()"
 		}
+		if mapType, isMap := types.Unalias(named.Underlying()).(*types.Map); isMap {
+			TrackImport("BTreeMap")
+			var out strings.Builder
+			out.WriteString(goTypesNamedTypeToRust(named))
+			out.WriteString("(")
+			WriteWrapperPrefix(&out)
+			out.WriteString("BTreeMap::<")
+			out.WriteString(goTypesMapKeyToRust(mapType.Key()))
+			out.WriteString(", ")
+			out.WriteString(goTypesMapValueToRust(mapType.Elem()))
+			out.WriteString(">::new()")
+			WriteWrapperSuffix(&out)
+			out.WriteString(")")
+			return out.String()
+		}
 		if array, isArray := types.Unalias(named.Underlying()).(*types.Array); isArray {
 			var out strings.Builder
 			out.WriteString(goTypesNamedTypeToRust(named))
