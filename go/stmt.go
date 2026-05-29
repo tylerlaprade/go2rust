@@ -4175,7 +4175,7 @@ func writePointerHandleSelectorTarget(out *strings.Builder, sel *ast.SelectorExp
 			if !needsUnwrap && identTypeIsWrappedPointer(ident) {
 				needsUnwrap = true
 			}
-		} else if _, isLocalConst := localConstants[ident.Name]; !isLocalConst && !isVarBare(ident.Name) {
+		} else if !isLocalConstantIdent(ident) && !isVarBare(ident.Name) {
 			needsUnwrap = true
 		}
 

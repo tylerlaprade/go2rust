@@ -6488,7 +6488,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 						needsUnwrap = true
 					}
 				} else {
-					if _, isLocalConst := localConstants[ident.Name]; !isLocalConst {
+					if !isLocalConstantIdent(ident) {
 						if !isVarBare(ident.Name) {
 							// Regular variable - likely wrapped
 							needsUnwrap = true
@@ -11571,7 +11571,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 						}
 					}
 				} else {
-					if _, isLocalConst := localConstants[ident.Name]; !isLocalConst {
+					if !isLocalConstantIdent(ident) {
 						if isFunctionTypeAliasValue(ident) {
 							needsUnwrap = false
 						} else if !isVarBare(ident.Name) {

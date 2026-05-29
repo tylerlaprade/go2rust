@@ -942,6 +942,42 @@ func (p *Parser) mark() {
 	}
 }
 
+func TestLocalConstNameDoesNotShadowPointerSelectorAssignment(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Pos int
+
+type Ident struct {
+	NamePos Pos
+	Name    string
+}
+
+func trace() {
+	const dots = ". . . "
+	const n = len(dots)
+	_ = n
+}
+
+func NewIdent(name string) *Ident {
+	return &Ident{Name: name}
+}
+
+func assign(pos Pos) *Ident {
+	n := NewIdent("_")
+	n.NamePos = pos
+	return n
+}
+`)
+
+	if strings.Contains(rust, "*n.name_pos") {
+		t.Fatalf("pointer selector assignment should not use stale local-const name state:\n%s", rust)
+	}
+	if !strings.Contains(rust, "*(*n.borrow().as_ref().unwrap()).name_pos.borrow_mut() = Some(new_val);") &&
+		!strings.Contains(rust, "*(*n.lock().unwrap().as_ref().unwrap()).name_pos.lock().unwrap() = Some(new_val);") {
+		t.Fatalf("pointer selector assignment should unwrap the pointer handle before field access:\n%s", rust)
+	}
+}
+
 func TestCapturedReceiverSelectorAssignmentUsesCloneName(t *testing.T) {
 	prevReceiver := currentReceiver
 	prevReceiverType := currentReceiverType
