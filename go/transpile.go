@@ -617,7 +617,10 @@ func importedTranspiledInterfaceFromType(typ types.Type) (string, *types.Interfa
 	if typeInfo != nil && typeInfo.pkg != nil && named.Obj().Pkg() == typeInfo.pkg {
 		return "", nil, false
 	}
-	if isStdlibPackage(named.Obj().Pkg().Path()) {
+	// A bridged stdlib interface is handled by its hand-written stub, not a
+	// transpiled trait. A source-transpiled stdlib package emits a real Rust
+	// trait, so a current-package type implementing it still needs an impl.
+	if isStubBackedStdlibPackagePath(named.Obj().Pkg().Path()) {
 		return "", nil, false
 	}
 	return goTypesNamedTypeToRust(named), intf, true

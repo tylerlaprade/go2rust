@@ -2589,6 +2589,36 @@ func main() {
 	}
 }
 
+func TestSourceStdlibImportedInterfaceImplEmitsTraitImpl(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "parser.go", `package parser
+
+import "go/ast"
+
+type resolver struct{}
+
+func (r resolver) Visit(node ast.Node) ast.Visitor {
+	return r
+}
+
+func Use() {
+	ast.Walk(resolver{}, nil)
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(parser.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := TranspileWithMapping(file, fset, typeInfo, map[string]string{"go/ast": "go_ast"})
+	if !strings.Contains(rust, "impl go_ast::Visitor for resolver") {
+		t.Fatalf("source-mapped stdlib interface impl should be emitted with the concrete type, got:\n%s", rust)
+	}
+}
+
 func TestSourceStdlibReachabilityPrunesUnusedDeclarations(t *testing.T) {
 	t.Setenv(sourceStdlibPackagesEnv, "go/token")
 	prevCtx := GetTranspileContext()
