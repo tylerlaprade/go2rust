@@ -1049,6 +1049,13 @@ func writeVariadicPackedElementValue(out *strings.Builder, arg ast.Expr, elemTyp
 			return
 		}
 	}
+	// A pointer-typed variadic element (e.g. `...*ast.Ident` packed from a
+	// *ast.Ident field) is a wrapped pointer handle; clone the handle rather
+	// than unwrapping it to the bare struct, which the generic TranspileExpression
+	// below would do for a selector.
+	if writePointerHandleCallArgument(out, arg, elemType) {
+		return
+	}
 	if call, ok := arg.(*ast.CallExpr); ok {
 		typeInfo := GetTypeInfo()
 		if typeInfo != nil && typeInfo.ReturnsWrappedValue(call) && !callReturnsBareChannelValue(call) && (!typeInfo.IsTypeConversion(call) || typeConversionEmitsWrappedValue(call)) {

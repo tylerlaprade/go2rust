@@ -2707,6 +2707,10 @@ run_xfail_test() {
     run_test "tests/variadic_nil_slice_element"
 }
 
+@test "variadic_pointer_field_arg" {
+    run_test "tests/variadic_pointer_field_arg"
+}
+
 @test "variadic_selector_repeated_field" {
     run_test "tests/variadic_selector_repeated_field"
 }

@@ -1,0 +1,8 @@
+[package]
+name = "variadic_pointer_field_arg"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "variadic_pointer_field_arg"
+path = "main.rs"
