@@ -1465,6 +1465,31 @@ func shiftCount(b bitset, n uint) bitset {
 	}
 }
 
+func TestNamedIntegerShiftShortDeclStoresNamedValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Word uint
+type nat []Word
+
+func rounded(z nat, ntz uint32) bool {
+	lsb := Word(1) << ntz
+	return z[0]&lsb != 0
+}
+`)
+
+	if strings.Contains(rust, "let mut lsb = Rc::new(RefCell::new(Some({") ||
+		strings.Contains(rust, "let mut lsb = Arc::new(Mutex::new(Some({") {
+		t.Fatalf("short declaration from named integer shift must store the named value, not the raw scalar:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let mut lsb = Rc::new(RefCell::new(Some(Word(") &&
+		!strings.Contains(rust, "let mut lsb = Arc::new(Mutex::new(Some(Word(") {
+		t.Fatalf("short declaration from named integer shift did not wrap Word:\n%s", rust)
+	}
+	if strings.Contains(rust, "1 as u64 as u32") {
+		t.Fatalf("named integer shift left operand should not be cast to the count type:\n%s", rust)
+	}
+}
+
 func TestNamedIntegerShiftAssignClonesCurrentValue(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

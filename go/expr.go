@@ -212,6 +212,33 @@ func writeNamedIntegerPrimitiveOperand(out *strings.Builder, expr ast.Expr, prim
 	TranspileExpression(out, expr)
 }
 
+func writeNamedIntegerValueForExpected(out *strings.Builder, expr ast.Expr, named *types.Named) bool {
+	if named == nil || !isNamedIntegerType(named) {
+		return false
+	}
+	if rustType, ok := externalIntegerRustTypeForNamed(named); ok {
+		out.WriteString(goTypesNamedTypeToRust(named))
+		out.WriteString("(")
+		writeNumericConversionValue(out, expr)
+		out.WriteString(" as ")
+		out.WriteString(rustType)
+		out.WriteString(")")
+		return true
+	}
+	if isConstantExpression(expr) {
+		return writeNamedIntegerConstForExpected(out, expr, named)
+	}
+	out.WriteString(goTypesNamedTypeToRust(named))
+	out.WriteString("(")
+	WriteWrapperPrefix(out)
+	if !writeNamedIntegerPrimitiveExpression(out, expr) {
+		TranspileExpression(out, expr)
+	}
+	WriteWrapperSuffix(out)
+	out.WriteString(")")
+	return true
+}
+
 func writeConstShiftLeftOperandForResult(out *strings.Builder, expr ast.Expr, shift *ast.BinaryExpr) bool {
 	if shift == nil || (shift.Op != token.SHL && shift.Op != token.SHR) || expr != shift.X {
 		return false
@@ -5347,7 +5374,9 @@ func writeExpressionForExpectedTypesType(out *strings.Builder, value ast.Expr, e
 	if !isConstantExpression(value) {
 		if typeInfo := GetTypeInfo(); typeInfo != nil {
 			if valueNamed, ok := types.Unalias(typeInfo.GetType(value)).(*types.Named); ok && sameNamedTypeDefinition(valueNamed, named) {
-				TranspileExpression(out, value)
+				if !writeNamedIntegerValueForExpected(out, value, named) {
+					TranspileExpression(out, value)
+				}
 				return true
 			}
 		}
@@ -5395,6 +5424,9 @@ func writeExpressionForExpectedTypesType(out *strings.Builder, value ast.Expr, e
 	}
 	if isConstantExpression(value) && isNamedIntegerType(named) {
 		return writeNamedIntegerConstForExpected(out, value, named)
+	}
+	if writeNamedIntegerValueForExpected(out, value, named) {
+		return true
 	}
 	out.WriteString(goTypesNamedTypeToRust(named))
 	out.WriteString("(")

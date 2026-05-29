@@ -2213,6 +2213,46 @@ func (c Code) Check() bool {
 	}
 }
 
+func TestCrossFileNamedIntegerShiftShortDeclStoresNamedValue(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "arith.go"), `package main
+
+type Word uint
+type nat []Word
+`)
+	writeTestFile(t, filepath.Join(tempDir, "round.go"), `package main
+
+func start() {
+	go func() {}()
+}
+
+func rounded(z nat, ntz uint32) bool {
+	lsb := Word(1) << ntz
+	return z[0]&lsb != 0
+}
+`)
+
+	generator := NewProjectGenerator([]string{
+		filepath.Join(tempDir, "arith.go"),
+		filepath.Join(tempDir, "round.go"),
+	})
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	roundRS := mustReadFile(t, filepath.Join(tempDir, "round.rs"))
+	if strings.Contains(roundRS, "let mut lsb = Arc::new(Mutex::new(Some({") {
+		t.Fatalf("cross-file named integer shift short declaration should store Word, not the raw scalar:\n%s", roundRS)
+	}
+	if !strings.Contains(roundRS, "let mut lsb = Arc::new(Mutex::new(Some(Word(") {
+		t.Fatalf("cross-file named integer shift short declaration should wrap Word:\n%s", roundRS)
+	}
+}
+
 func TestGlobalInitDoesNotCallDuplicateNameOverrides(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
