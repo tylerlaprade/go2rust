@@ -729,7 +729,7 @@ name = "%s"
 path = "lib.rs"
 `, crateName, crateName)
 	dependencyCrates = addSharedStdlibStubCrateDependency(dependencyCrates)
-	needsNum := packageImports.needs["num::Complex"]
+	needsNum := packageImports.needs["num::Complex"] || generatedRustModulesContain(generatedModules, "num::Complex")
 	needsSerdeJSON := generatedRustModulesContain(generatedModules, "serde_json::") || generatedRustModulesContain(generatedModules, "pub use serde_json")
 	needsGosyn := generatedRustModulesContain(generatedModules, "gosyn::")
 	if needsNum || needsSerdeJSON || needsGosyn || len(dependencyCrates) > 0 {

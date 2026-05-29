@@ -839,6 +839,9 @@ func (pg *ProjectGenerator) generateCargoToml() error {
 	if pg.projectImports != nil && pg.projectImports.needs["num::Complex"] {
 		needsNum = true
 	}
+	if pg.generatedRustContains("num::Complex") {
+		needsNum = true
+	}
 	needsSerdeJSON := pg.generatedRustContains("serde_json::") || pg.generatedRustContains("pub use serde_json")
 	needsGosyn := pg.generatedRustContains("gosyn::")
 
