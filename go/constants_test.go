@@ -803,6 +803,28 @@ func transpileTypedRegression(t *testing.T, src string) string {
 	return transpileParsedRegression(t, file, fset, typeInfo)
 }
 
+func transpileTypedConcurrentRegression(t *testing.T, src string) string {
+	t.Helper()
+
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", src, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(main.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+	prevConcurrencyDetector := globalConcurrencyDetector
+	cd := NewConcurrencyDetector()
+	cd.AnalyzeProject([]*ast.File{file})
+	SetConcurrencyDetector(cd)
+	t.Cleanup(func() {
+		SetConcurrencyDetector(prevConcurrencyDetector)
+	})
+	return transpileParsedRegression(t, file, fset, typeInfo)
+}
+
 func transpileRegression(t *testing.T, src string, typeInfo *TypeInfo) string {
 	t.Helper()
 
@@ -1510,7 +1532,11 @@ func shift(ctrls ctrlGroup) ctrlGroup {
 }
 
 func TestShiftLeftUntypedConstantDoesNotUseCountType(t *testing.T) {
-	rust := transpileTypedRegression(t, `package main
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+func start() {
+	go func() {}()
+}
 
 type table struct {
 	localDepth uint8
@@ -1526,8 +1552,28 @@ func (m *Map) entries(nt *table) int {
 }
 `)
 
-	if strings.Contains(rust, "1 as u8 <<") {
+	if strings.Contains(rust, "1 as u8") {
 		t.Fatalf("left operand of shift should not be cast to the shift count type:\n%s", rust)
+	}
+}
+
+func TestShiftLeftConvertedConstantUsesResultTypeInConcurrentTemp(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+func start() {
+	go func() {}()
+}
+
+func localDepthMask(localDepth uint8) uintptr {
+	return uintptr(1) << (64 - localDepth)
+}
+`)
+
+	if strings.Contains(rust, "let __tmp_x = (*Arc::new(Mutex::new(Some(1 as usize))).lock().unwrap().as_ref().unwrap()) as u8") {
+		t.Fatalf("converted shift left operand should not be cast to the shift count type:\n%s", rust)
+	}
+	if !strings.Contains(rust, "as usize") {
+		t.Fatalf("converted shift left operand should use the uintptr result type:\n%s", rust)
 	}
 }
 

@@ -7405,6 +7405,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 
 		if NeedsConcurrentWrapper() && e.Op != token.LAND && e.Op != token.LOR {
 			writeTempOperand := func(expr ast.Expr, other ast.Expr, isStringLit bool, needsUnwrap bool) {
+				if writeConstShiftLeftOperandForResult(out, expr, e) {
+					return
+				}
 				if writeConstExpressionForBinaryPeer(out, expr, other) {
 					return
 				}
