@@ -10604,6 +10604,32 @@ func writeAnonInterfaceAssertionValue(out *strings.Builder, e *ast.TypeAssertExp
 	out.WriteString("    })")
 }
 
+func writeUnsupportedAnonInterfaceAssertionMethodCall(out *strings.Builder, call *ast.CallExpr, sel *ast.SelectorExpr) bool {
+	typeAssert, ok := sel.X.(*ast.TypeAssertExpr)
+	if !ok {
+		return false
+	}
+	_, candidates, ok := anonInterfaceAssertionTarget(typeAssert)
+	if !ok || len(candidates) == 1 {
+		return false
+	}
+	message := fmt.Sprintf("type info required: assertion method call on anonymous interface with %d concrete implementors needs a synthesized trait object", len(candidates))
+	if typeInfo := GetTypeInfo(); typeInfo != nil {
+		if resultType := typeInfo.GetType(call); resultType != nil {
+			out.WriteString("({ let __unsupported: ")
+			out.WriteString(goTypesReturnTypeToRust(resultType))
+			out.WriteString(" = unimplemented!(\"")
+			out.WriteString(message)
+			out.WriteString("\"); __unsupported })")
+			return true
+		}
+	}
+	out.WriteString("unimplemented!(\"")
+	out.WriteString(message)
+	out.WriteString("\")")
+	return true
+}
+
 func writeLocalInterfaceAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr, ifaceName string, sourceType types.Type, candidates []localInterfaceAssertionCandidate) {
 	usesTraitSource := localInterfaceAssertionUsesTraitSource(sourceType)
 	out.WriteString("({\n")
@@ -11416,6 +11442,10 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 	// Check if this is a method call (selector expression)
 	if sel, ok := call.Fun.(*ast.SelectorExpr); ok {
 		RegisterExternalSelectorMethod(sel)
+
+		if writeUnsupportedAnonInterfaceAssertionMethodCall(out, call, sel) {
+			return
+		}
 
 		// First check if this is a package function call
 		isPackageCall := false

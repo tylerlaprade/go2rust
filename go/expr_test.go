@@ -4146,6 +4146,35 @@ func f() {
 	}
 }
 
+func TestUnsupportedAnonInterfaceAssertionMethodCallIsWholeCallUnimplemented(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Pos int
+
+type Decl struct{}
+func (*Decl) Pos() Pos { return 1 }
+
+type Other struct{}
+func (*Other) Pos() Pos { return 2 }
+
+func f(x any) Pos {
+	pos := x.(interface{ Pos() Pos }).Pos()
+	return pos
+}
+`)
+
+	want := `unimplemented!("type info required: assertion method call on anonymous interface with 2 concrete implementors needs a synthesized trait object")`
+	if !strings.Contains(rust, want) {
+		t.Fatalf("unsupported anonymous-interface assertion method call should emit one loud unimplemented expression:\n%s", rust)
+	}
+	if strings.Contains(rust, `needs a synthesized trait object").pos()`) {
+		t.Fatalf("unsupported anonymous-interface assertion method call should not append a method call to unimplemented!():\n%s", rust)
+	}
+	if !strings.Contains(rust, `let __unsupported: Rc<RefCell<Option<Pos>>> = unimplemented!`) {
+		t.Fatalf("unsupported anonymous-interface assertion method call should carry the typed call result:\n%s", rust)
+	}
+}
+
 func TestReturnStringParameterCopiesWrappedValue(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
