@@ -4757,7 +4757,11 @@ func writeWrappedStructFieldValue(out *strings.Builder, value ast.Expr, fieldExp
 			WriteWrapperSuffix(out)
 		} else {
 			// It's already wrapped, just clone it.
-			out.WriteString(RustIdentForUse(valIdent))
+			fieldValueName := RustIdentForUse(valIdent)
+			if renamed, ok := captureRenameForIdent(valIdent); ok {
+				fieldValueName = RustLocalIdent(renamed)
+			}
+			out.WriteString(fieldValueName)
 			out.WriteString(".clone()")
 		}
 	} else if isCompositeLitSelfWrapping(value) {

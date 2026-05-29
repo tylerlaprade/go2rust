@@ -4390,6 +4390,31 @@ func TestCapturedReferenceRangeValueUsesCapturedClone(t *testing.T) {
 	}
 }
 
+func TestCapturedWrappedStructFieldValueUsesClosureClone(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Ident struct{}
+
+type Field struct {
+	Names []*Ident
+}
+
+func makeField(names []*Ident) func() *Field {
+	return func() *Field {
+		return &Field{Names: names}
+	}
+}
+`)
+
+	if strings.Contains(rust, "names: names.clone()") {
+		t.Fatalf("captured struct field value should not move the outer binding into the closure:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let names_closure_clone = names.clone();") ||
+		!strings.Contains(rust, "names: names_closure_clone.clone()") {
+		t.Fatalf("captured struct field value should use the closure clone:\n%s", rust)
+	}
+}
+
 func TestTrackedRangeElemFallbackFillsGenericValueType(t *testing.T) {
 	prevRangeElemTypes := localRangeElemRustTypes
 	defer func() {
