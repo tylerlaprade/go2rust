@@ -85,6 +85,24 @@ func update() {
 	}
 }
 
+func TestArrayElemAddressShortDeclDoesNotUseSliceElemPtr(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+func update() {
+	var recent [2][4]uint64
+	cache := &recent[0]
+	_ = cache
+}
+`)
+
+	if strings.Contains(rust, "GoSliceElemPtr") {
+		t.Fatalf("array element address short declaration should not use slice element pointer helpers:\n%s", rust)
+	}
+	if !strings.Contains(rust, "array element address requires pointer support") {
+		t.Fatalf("array element address short declaration should fail loudly until array element pointers are supported:\n%s", rust)
+	}
+}
+
 func TestShortDeclSliceElemPointerSelectorBorrowsElement(t *testing.T) {
 	rust := transpileTypedSliceElemPtrRegression(t, `package main
 

@@ -1357,6 +1357,27 @@ func scan() {
 	}
 }
 
+func TestRangeKeyOnlyOverSlicedArrayExpressionWrapsLengthBlock(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func sum(n int) int {
+	var stk [4]int
+	total := 0
+	for i := range stk[:n] {
+		total += i
+	}
+	return total
+}
+`)
+
+	if strings.Contains(rust, " in 0..{ let __seq =") {
+		t.Fatalf("key-only range over sliced array expression should parenthesize the length block:\n%s", rust)
+	}
+	if !strings.Contains(rust, " in 0..({ let __seq =") {
+		t.Fatalf("expected parenthesized range length block:\n%s", rust)
+	}
+}
+
 func TestWrappedUint64AssignmentFromSelectorConstCastsValue(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

@@ -7928,7 +7928,10 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										out.WriteString(">>")
 									} else if s.Tok == token.DEFINE && len(s.Lhs) == 1 && len(s.Rhs) == 1 {
 										if ident, ok := lhs.(*ast.Ident); ok && ident.Name != "_" {
-											if rustType, ok := localMakeSliceTypeAnnotation(s.Rhs[0]); ok {
+											if rustType, ok := arrayElemAddressPointerRustType(s.Rhs[0]); ok {
+												out.WriteString(": ")
+												out.WriteString(rustType)
+											} else if rustType, ok := localMakeSliceTypeAnnotation(s.Rhs[0]); ok {
 												out.WriteString(": ")
 												out.WriteString(rustType)
 											}
@@ -9380,13 +9383,14 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			} else if s.Key != nil {
 				// for i := range arr
 				writeRangeBinding(out, s.Key, keyAssigned)
-				out.WriteString(" in 0..")
+				out.WriteString(" in 0..(")
 				if rangeValuesVar != "" {
 					out.WriteString(rangeValuesVar)
 					out.WriteString(".len()")
 				} else {
 					writeRangeLengthExpression(out, s.X)
 				}
+				out.WriteString(")")
 			} else {
 				// for range arr
 				out.WriteString("_ in ")

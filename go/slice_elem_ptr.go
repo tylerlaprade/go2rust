@@ -209,11 +209,37 @@ func sliceElemPtrAddressElemRustType(expr ast.Expr) (string, bool) {
 	if typeInfo == nil || typeInfo.GetType(indexExpr.X) == nil || typeInfo.IsMap(indexExpr.X) {
 		return "", false
 	}
-	elemType := typeInfo.GetArrayOrSliceElemType(indexExpr.X)
+	if !typeInfo.IsSlice(indexExpr.X) {
+		return "", false
+	}
+	elemType := typeInfo.GetSliceElemType(indexExpr.X)
 	if elemType == nil {
 		return "", false
 	}
 	return goTypesTypeToRust(elemType), true
+}
+
+func arrayElemAddressPointerRustType(expr ast.Expr) (string, bool) {
+	unary, ok := unwrapParens(expr).(*ast.UnaryExpr)
+	if !ok || unary.Op != token.AND {
+		return "", false
+	}
+	indexExpr, ok := unwrapParens(unary.X).(*ast.IndexExpr)
+	if !ok {
+		return "", false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.GetType(indexExpr.X) == nil {
+		return "", false
+	}
+	if !typeInfo.IsArray(indexExpr.X) && !typeInfo.IsPointerToArray(indexExpr.X) {
+		return "", false
+	}
+	typ := typeInfo.GetType(expr)
+	if typ == nil {
+		return "", false
+	}
+	return goTypesTypeToRust(typ), true
 }
 
 func unwrapParens(expr ast.Expr) ast.Expr {
