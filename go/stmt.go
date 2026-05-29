@@ -2580,6 +2580,21 @@ func writeMapWrappedValue(out *strings.Builder, expr ast.Expr, valueType types.T
 						varName = RustLocalIdent(renamed)
 					}
 				}
+				if valueType != nil && !mapValueTypeKeepsHandle(valueType) {
+					// Go copies map values. For a value-typed variable, snapshot
+					// its current value into a fresh handle rather than aliasing
+					// the variable's handle, because the stored entry would track
+					// later mutations of the variable (e.g. a loop counter, as in
+					// go/token's `keywords[tokens[i]] = i`, which left every entry
+					// pointing at the loop's final value).
+					WriteWrapperPrefix(out)
+					out.WriteString("(*")
+					out.WriteString(varName)
+					WriteBorrowMethod(out, false)
+					out.WriteString(".as_ref().unwrap()).clone()")
+					WriteWrapperSuffix(out)
+					return
+				}
 				out.WriteString(varName)
 				out.WriteString(".clone()")
 				return
